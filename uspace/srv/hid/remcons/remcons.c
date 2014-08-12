@@ -225,14 +225,13 @@ static int spawn_task_fibril(void *arg)
 {
 	telnet_user_t *user = arg;
 	
-	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", user->service_name);
-	
 	task_id_t task;
-	int rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, "-w", term, APP_SHELL, NULL);
+	int rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, user->service_name,
+	    "/loc", "--msg", "--", APP_SHELL, NULL);
 	if (rc != EOK) {
-		telnet_user_error(user, "Spawning `%s -w %s %s' failed: %s.",
-		    APP_GETTERM, term, APP_SHELL, str_error(rc));
+		telnet_user_error(user, "Spawning `%s %s /loc --msg -- %s' "
+		    "failed: %s.", APP_GETTERM, user->service_name, APP_SHELL,
+		    str_error(rc));
 		fibril_mutex_lock(&user->guard);
 		user->task_finished = true;
 		user->srvs.aborted = true;

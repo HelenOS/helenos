@@ -35,8 +35,7 @@
 #ifndef CONSOLE_CONSOLE_H__
 #define CONSOLE_CONSOLE_H__
 
-#define CONSOLE_COUNT   12
-#define KERNEL_CONSOLE  11
+#define CONSOLE_COUNT   11
 
 #endif
 

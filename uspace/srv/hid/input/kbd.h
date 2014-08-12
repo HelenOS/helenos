@@ -47,7 +47,7 @@ struct layout;
 
 typedef struct kbd_dev {
 	/** Link to kbd_devs list */
-	link_t kbd_devs;
+	link_t link;
 
 	/** Service ID (only for kbdev devices) */
 	service_id_t svc_id;

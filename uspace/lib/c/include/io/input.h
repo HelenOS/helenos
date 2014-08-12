@@ -48,6 +48,8 @@ typedef struct {
 } input_t;
 
 typedef struct input_ev_ops {
+	int (*active)(input_t *);
+	int (*deactive)(input_t *);
 	int (*key)(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
 	int (*move)(input_t *, int, int);
 	int (*abs_move)(input_t *, unsigned, unsigned, unsigned, unsigned);
@@ -56,8 +58,7 @@ typedef struct input_ev_ops {
 
 extern int input_open(async_sess_t *, input_ev_ops_t *, void *, input_t **);
 extern void input_close(input_t *);
-extern int input_yield(input_t *);
-extern int input_reclaim(input_t *);
+extern int input_activate(input_t *);
 
 #endif
 

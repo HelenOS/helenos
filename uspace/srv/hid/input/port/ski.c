@@ -44,14 +44,10 @@
 #include "../kbd.h"
 
 static int ski_port_init(kbd_dev_t *);
-static void ski_port_yield(void);
-static void ski_port_reclaim(void);
 static void ski_port_write(uint8_t data);
 
 kbd_port_ops_t ski_port = {
 	.init = ski_port_init,
-	.yield = ski_port_yield,
-	.reclaim = ski_port_reclaim,
 	.write = ski_port_write
 };
 
@@ -63,8 +59,6 @@ static kbd_dev_t *kbd_dev;
 
 static void ski_thread_impl(void *arg);
 static int32_t ski_getchar(void);
-
-static volatile bool polling_disabled = false;
 
 /** Initialize Ski port driver. */
 static int ski_port_init(kbd_dev_t *kdev)
@@ -80,16 +74,6 @@ static int ski_port_init(kbd_dev_t *kdev)
 	}
 
 	return 0;
-}
-
-static void ski_port_yield(void)
-{
-	polling_disabled = true;
-}
-
-static void ski_port_reclaim(void)
-{
-	polling_disabled = false;
 }
 
 static void ski_port_write(uint8_t data)

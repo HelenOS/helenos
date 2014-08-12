@@ -79,23 +79,27 @@ void input_close(input_t *input)
 	free(input);
 }
 
-int input_yield(input_t *input)
+int input_activate(input_t *input)
 {
 	async_exch_t *exch = async_exchange_begin(input->sess);
-	int rc = async_req_0_0(exch, INPUT_YIELD);
+	int rc = async_req_0_0(exch, INPUT_ACTIVATE);
 	async_exchange_end(exch);
 	
 	return rc;
 }
 
-int input_reclaim(input_t *input)
+static void input_ev_active(input_t *input, ipc_callid_t callid,
+    ipc_call_t *call)
 {
-	async_exch_t *exch = async_exchange_begin(input->sess);
+	int rc = input->ev_ops->active(input);
+	async_answer_0(callid, rc);
+}
 
-	int rc = async_req_0_0(exch, INPUT_RECLAIM);
-	async_exchange_end(exch);
-
-	return rc;
+static void input_ev_deactive(input_t *input, ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	int rc = input->ev_ops->deactive(input);
+	async_answer_0(callid, rc);
 }
 
 static void input_ev_key(input_t *input, ipc_callid_t callid,
@@ -176,6 +180,12 @@ static void input_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
+		case INPUT_EVENT_ACTIVE:
+			input_ev_active(input, callid, &call);
+			break;
+		case INPUT_EVENT_DEACTIVE:
+			input_ev_deactive(input, callid, &call);
+			break;
 		case INPUT_EVENT_KEY:
 			input_ev_key(input, callid, &call);
 			break;

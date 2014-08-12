@@ -271,36 +271,26 @@ static int gui_start(const char *app, const char *srv_name)
 	return retval;
 }
 
-static void getterm(const char *svc, const char *app, bool wmsg)
+static void getterm(const char *svc, const char *app, bool msg)
 {
-	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", LOCFS_MOUNT_POINT, svc);
-	
-	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
-	
-	/* Wait for the terminal service to be ready */
-	service_id_t service_id;
-	int rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, term,
-		    str_error(rc));
-		return;
-	}
-	
-	if (wmsg) {
-		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, "-w", term,
-		    app, NULL);
-		if (rc != EOK) {
-			printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
-			    APP_GETTERM, term, app, str_error(rc));
-		}
+	if (msg) {
+		printf("%s: Spawning %s %s %s --msg --wait -- %s\n", NAME,
+		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
+		
+		int rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, svc,
+		    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
+		if (rc != EOK)
+			printf("%s: Error spawning %s %s %s --msg --wait -- %s\n",
+			    NAME, APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 	} else {
-		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, term, app,
-		    NULL);
-		if (rc != EOK) {
-			printf("%s: Error spawning %s %s %s (%s)\n", NAME,
-			    APP_GETTERM, term, app, str_error(rc));
-		}
+		printf("%s: Spawning %s %s %s --wait -- %s\n", NAME,
+		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
+		
+		int rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, svc,
+		    LOCFS_MOUNT_POINT, "--wait", "--", app, NULL);
+		if (rc != EOK)
+			printf("%s: Error spawning %s %s %s --wait -- %s\n",
+			    NAME, APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 	}
 }
 
@@ -363,17 +353,16 @@ int main(int argc, char *argv[])
 	if (rc == EOK) {
 		gui_start("/app/vlaunch", HID_COMPOSITOR_SERVER);
 		gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
-	} else {
-		rc = console(HID_INPUT, HID_OUTPUT);
-		if (rc == EOK) {
-			getterm("term/vc0", "/app/bdsh", true);
-			getterm("term/vc1", "/app/bdsh", false);
-			getterm("term/vc2", "/app/bdsh", false);
-			getterm("term/vc3", "/app/bdsh", false);
-			getterm("term/vc4", "/app/bdsh", false);
-			getterm("term/vc5", "/app/bdsh", false);
-			getterm("term/vc6", "/app/klog", false);
-		}
+	}
+	
+	rc = console(HID_INPUT, HID_OUTPUT);
+	if (rc == EOK) {
+		getterm("term/vc0", "/app/bdsh", true);
+		getterm("term/vc1", "/app/bdsh", false);
+		getterm("term/vc2", "/app/bdsh", false);
+		getterm("term/vc3", "/app/bdsh", false);
+		getterm("term/vc4", "/app/bdsh", false);
+		getterm("term/vc5", "/app/bdsh", false);
 	}
 	
 	return 0;

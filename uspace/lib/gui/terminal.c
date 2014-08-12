@@ -103,16 +103,8 @@ static terminal_t *srv_to_terminal(con_srv_t *srv)
 
 static void getterm(const char *svc, const char *app)
 {
-	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", LOCFS_MOUNT_POINT, svc);
-	
-	/* Wait for the terminal service to be ready */
-	service_id_t service_id;
-	int rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
-	if (rc != EOK)
-		return;
-	
-	task_spawnl(NULL, APP_GETTERM, APP_GETTERM, "-w", term, app, NULL);
+	task_spawnl(NULL, APP_GETTERM, APP_GETTERM, svc, LOCFS_MOUNT_POINT,
+	    "--msg", "--wait", "--", app, NULL);
 }
 
 static pixel_t color_table[16] = {

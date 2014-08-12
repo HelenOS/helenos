@@ -41,6 +41,7 @@
 #include <task.h>
 #include <str_error.h>
 #include <errno.h>
+#include <loc.h>
 #include "version.h"
 #include "welcome.h"
 
@@ -48,10 +49,16 @@
 
 static void usage(void)
 {
-	printf("Usage: %s <terminal> [-w] <command> [<arguments...>]\n", APP_NAME);
+	printf("Usage: %s <terminal> <locfs> [--msg] [--wait] -- "
+	    "<command> [<arguments...>]\n", APP_NAME);
+	printf(" <terminal>    Terminal device\n");
+	printf(" <locfs>       Mount point of locfs\n");
+	printf(" --msg         Print welcome message\n");
+	printf(" --wait        Wait for the terminal to be ready\n");
 }
 
-static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
+static void reopen(FILE **stream, int fd, const char *path, int flags,
+    const char *mode)
 {
 	if (fclose(*stream))
 		return;
@@ -75,50 +82,76 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 
 int main(int argc, char *argv[])
 {
-	int rc;
-	task_exit_t texit;
-	int retval;
-	task_id_t id;
-	char *fname, *term;
-	char **cmd_args;
-	bool print_wmsg;
-
 	argv++;
 	argc--;
-	if (argc < 1) {
+	if (argc < 4) {
 		usage();
-		return -1;
+		return 1;
 	}
-
-	if (str_cmp(*argv, "-w") == 0) {
-		print_wmsg = true;
+	
+	char *term = *argv;
+	argv++;
+	argc--;
+	
+	char *locfs = *argv;
+	argv++;
+	argc--;
+	
+	bool print_msg = false;
+	bool wait = false;
+	
+	while ((argc > 0) && (str_cmp(*argv, "--") != 0)) {
+		if (str_cmp(*argv, "--msg") == 0) {
+			print_msg = true;
+		} else if (str_cmp(*argv, "--wait") == 0) {
+			wait = true;
+		} else {
+			usage();
+			return 2;
+		}
+		
 		argv++;
 		argc--;
-	} else {
-		print_wmsg = false;
 	}
-
-	if (argc < 2) {
-		usage();
-		return -1;
-	}
-
-	term = *argv++;
-	fname = *argv;
-	cmd_args = argv;
 	
-	reopen(&stdin, 0, term, O_RDONLY, "r");
-	reopen(&stdout, 1, term, O_WRONLY, "w");
-	reopen(&stderr, 2, term, O_WRONLY, "w");
+	if (argc < 1) {
+		usage();
+		return 3;
+	}
+	
+	/* Skip "--" */
+	argv++;
+	argc--;
+	
+	char *cmd = *argv;
+	char **args = argv;
+	
+	if (wait) {
+		/* Wait for the terminal service to be ready */
+		service_id_t service_id;
+		int rc = loc_service_get_id(term, &service_id, IPC_FLAG_BLOCKING);
+		if (rc != EOK) {
+			printf("%s: Error waiting on %s (%s)\n", APP_NAME, term,
+			    str_error(rc));
+			return rc;
+		}
+	}
+	
+	char term_node[LOC_NAME_MAXLEN];
+	snprintf(term_node, LOC_NAME_MAXLEN, "%s/%s", locfs, term);
+	
+	reopen(&stdin, 0, term_node, O_RDONLY, "r");
+	reopen(&stdout, 1, term_node, O_WRONLY, "w");
+	reopen(&stderr, 2, term_node, O_WRONLY, "w");
 	
 	if (stdin == NULL)
-		return -2;
+		return 4;
 	
 	if (stdout == NULL)
-		return -3;
+		return 5;
 	
 	if (stderr == NULL)
-		return -4;
+		return 6;
 	
 	/*
 	 * FIXME: fdopen() should actually detect that we are opening a console
@@ -127,23 +160,27 @@ int main(int argc, char *argv[])
 	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
 	
 	version_print(term);
-	if (print_wmsg)
+	if (print_msg)
 		welcome_msg_print();
-
-	rc = task_spawnv(&id, fname, (const char * const *) cmd_args);
+	
+	task_id_t id;
+	
+	int rc = task_spawnv(&id, cmd, (const char * const *) args);
 	if (rc != EOK) {
-		printf("%s: Error spawning %s (%s)\n", APP_NAME, fname,
+		printf("%s: Error spawning %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));
-		return -5;
+		return rc;
 	}
-
+	
+	task_exit_t texit;
+	int retval;
 	rc = task_wait(id, &texit, &retval);
 	if (rc != EOK) {
-		printf("%s: Error waiting for %s (%s)\n", APP_NAME, fname,
+		printf("%s: Error waiting for %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));
-		return -6;
+		return rc;
 	}
-
+	
 	return 0;
 }
 

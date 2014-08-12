@@ -45,14 +45,10 @@
 #include "../kbd.h"
 
 static int pl050_port_init(kbd_dev_t *);
-static void pl050_port_yield(void);
-static void pl050_port_reclaim(void);
 static void pl050_port_write(uint8_t data);
 
 kbd_port_ops_t pl050_port = {
 	.init = pl050_port_init,
-	.yield = pl050_port_yield,
-	.reclaim = pl050_port_reclaim,
 	.write = pl050_port_write
 };
 
@@ -126,14 +122,6 @@ static int pl050_port_init(kbd_dev_t *kdev)
 	irq_register(inr, device_assign_devno(), 0, &pl050_kbd);
 	
 	return 0;
-}
-
-static void pl050_port_yield(void)
-{
-}
-
-static void pl050_port_reclaim(void)
-{
 }
 
 static void pl050_port_write(uint8_t data)

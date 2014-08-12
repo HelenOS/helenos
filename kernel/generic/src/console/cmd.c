@@ -1356,8 +1356,6 @@ int cmd_continue(cmd_arg_t *argv)
 {
 	printf("The kernel will now relinquish the console.\n");
 	release_console();
-	
-	event_notify_0(EVENT_KCONSOLE, false);
 	indev_pop_character(stdin);
 	
 	return 1;

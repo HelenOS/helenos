@@ -203,6 +203,7 @@ void kio_init(void)
 
 void grab_console(void)
 {
+	event_notify_1(EVENT_KCONSOLE, false, true);
 	bool prev = console_override;
 	
 	console_override = true;
@@ -220,6 +221,7 @@ void grab_console(void)
 void release_console(void)
 {
 	console_override = false;
+	event_notify_1(EVENT_KCONSOLE, false, false);
 }
 
 /** Activate kernel console override */

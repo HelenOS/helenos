@@ -55,11 +55,11 @@
 #include <async.h>
 #include <loc.h>
 
-#include <event.h>
 #include <io/keycode.h>
 #include <io/mode.h>
 #include <io/visualizer.h>
 #include <io/window.h>
+#include <io/console.h>
 
 #include <transform.h>
 #include <rectangle.h>
@@ -143,20 +143,23 @@ static FIBRIL_MUTEX_INITIALIZE(discovery_mtx);
 
 /** Input server proxy */
 static input_t *input;
+static bool active = false;
 
+static int comp_active(input_t *);
+static int comp_deactive(input_t *);
 static int comp_key_press(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
 static int comp_mouse_move(input_t *, int, int);
 static int comp_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
 static int comp_mouse_button(input_t *, int, int);
 
 static input_ev_ops_t input_ev_ops = {
+	.active = comp_active,
+	.deactive = comp_deactive,
 	.key = comp_key_press,
 	.move = comp_mouse_move,
 	.abs_move = comp_abs_move,
 	.button = comp_mouse_button
 };
-
-static void input_disconnect(void);
 
 static pointer_t *input_pointer(input_t *input)
 {
@@ -566,12 +569,14 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 	fibril_mutex_unlock(&window_list_mtx);
 
 	/* Notify visualizers about updated regions. */
-	list_foreach(viewport_list, link, viewport_t, vp) {
-		sysarg_t x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp;
-		surface_get_damaged_region(vp->surface, &x_dmg_vp, &y_dmg_vp, &w_dmg_vp, &h_dmg_vp);
-		surface_reset_damaged_region(vp->surface);
-		visualizer_update_damaged_region(
-		    vp->sess, x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp, 0, 0);
+	if (active) {
+		list_foreach(viewport_list, link, viewport_t, vp) {
+			sysarg_t x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp;
+			surface_get_damaged_region(vp->surface, &x_dmg_vp, &y_dmg_vp, &w_dmg_vp, &h_dmg_vp);
+			surface_reset_damaged_region(vp->surface);
+			visualizer_update_damaged_region(vp->sess,
+			    x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp, 0, 0);
+		}
 	}
 	
 	fibril_mutex_unlock(&viewport_list_mtx);
@@ -1073,6 +1078,30 @@ static void viewport_destroy(viewport_t *vp)
 	}
 }
 
+#if 0
+static void comp_shutdown(void)
+{
+	loc_service_unregister(winreg_id);
+	input_disconnect();
+	
+	/* Close all clients and their windows. */
+	fibril_mutex_lock(&window_list_mtx);
+	list_foreach(window_list, link, window_t, win) {
+		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
+		if (event) {
+			link_initialize(&event->link);
+			event->type = WINDOW_CLOSE;
+			prodcons_produce(&win->queue, &event->link);
+		}
+	}
+	fibril_mutex_unlock(&window_list_mtx);
+	
+	async_answer_0(iid, EOK);
+	
+	/* All fibrils of the compositor will terminate soon. */
+}
+#endif
+
 static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Release viewport resources. */
@@ -1081,34 +1110,12 @@ static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_cal
 	list_remove(&vp->link);
 	viewport_destroy(vp);
 	
-	/* Terminate compositor if there are no more viewports. */
-	if (list_empty(&viewport_list)) {
-		fibril_mutex_unlock(&viewport_list_mtx);
-		loc_service_unregister(winreg_id);
-		input_disconnect();
-
-		/* Close all clients and their windows. */
-		fibril_mutex_lock(&window_list_mtx);
-		list_foreach(window_list, link, window_t, win) {
-			window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
-			if (event) {
-				link_initialize(&event->link);
-				event->type = WINDOW_CLOSE;
-				prodcons_produce(&win->queue, &event->link);
-			}
-		}
-		fibril_mutex_unlock(&window_list_mtx);
-
-		async_answer_0(iid, EOK);
-
-		/* All fibrils of the compositor will terminate soon. */
-	} else {
-		fibril_mutex_unlock(&viewport_list_mtx);
-		async_answer_0(iid, EOK);
-
-		comp_restrict_pointers();
-		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-	}
+	fibril_mutex_unlock(&viewport_list_mtx);
+	
+	async_answer_0(iid, EOK);
+	
+	comp_restrict_pointers();
+	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
 static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -1779,6 +1786,20 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 	return EOK;
 }
 
+static int comp_active(input_t *input)
+{
+	active = true;
+	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+	
+	return EOK;
+}
+
+static int comp_deactive(input_t *input)
+{
+	active = false;
+	return EOK;
+}
+
 static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
     keymod_t mods, wchar_t c)
 {
@@ -2067,7 +2088,8 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 
 		fibril_mutex_unlock(&viewport_list_mtx);
 	} else if (kconsole_switch) {
-		__SYSCALL0(SYS_DEBUG_CONSOLE);
+		if (console_kcon())
+			active = false;
 	} else {
 		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 		if (event == NULL)
@@ -2136,30 +2158,23 @@ static void input_disconnect(void)
 	pointer_destroy(pointer);
 }
 
-static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
+static void discover_viewports(void)
 {
-	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-}
-
-static int discover_viewports(void)
-{
+	fibril_mutex_lock(&discovery_mtx);
+	
 	/* Create viewports and connect them to visualizers. */
 	category_id_t cat_id;
 	int rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Failed to get visualizer category.\n", NAME);
-		return -1;
-	}
+	if (rc != EOK)
+		goto ret;
 	
 	service_id_t *svcs;
 	size_t svcs_cnt = 0;
 	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
-	if (rc != EOK || svcs_cnt == 0) {
-		printf("%s: Failed to get visualizer category services.\n", NAME);
-		return -1;
-	}
-
-	fibril_mutex_lock(&viewport_list_mtx);	
+	if (rc != EOK)
+		goto ret;
+	
+	fibril_mutex_lock(&viewport_list_mtx);
 	for (size_t i = 0; i < svcs_cnt; ++i) {
 		bool exists = false;
 		list_foreach(viewport_list, link, viewport_t, vp) {
@@ -2178,16 +2193,16 @@ static int discover_viewports(void)
 	}
 	fibril_mutex_unlock(&viewport_list_mtx);
 	
-	/* TODO damage only newly added viewports */
-	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-	return EOK;
+	if (!list_empty(&viewport_list))
+		input_activate(input);
+	
+ret:
+	fibril_mutex_unlock(&discovery_mtx);
 }
 
 static void category_change_cb(void)
 {
-	fibril_mutex_lock(&discovery_mtx);
 	discover_viewports();
-	fibril_mutex_unlock(&discovery_mtx);
 }
 
 static int compositor_srv_init(char *input_svc, char *name)
@@ -2205,14 +2220,6 @@ static int compositor_srv_init(char *input_svc, char *name)
 	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME, str_error(rc));
 		return -1;
-	}
-	
-	/* Register interrupt handler to switch back from kconsole. */
-	async_set_interrupt_received(interrupt_received);
-	rc = event_subscribe(EVENT_KCONSOLE, 0);
-	if (rc != EOK) {
-		printf("%s: Failed to register kconsole notifications (%s)\n",
-		    NAME, str_error(rc));
 	}
 	
 	server_name = name;
@@ -2247,19 +2254,9 @@ static int compositor_srv_init(char *input_svc, char *name)
 		printf("%s: Failed to register category change callback\n", NAME);
 		input_disconnect();
 		return rc;
-	}	
-	
-	rc = discover_viewports();
-	if (rc != EOK) {
-		input_disconnect();
-		return rc;
 	}
 	
-	if (list_empty(&viewport_list)) {
-		printf("%s: Failed to get viewports.\n", NAME);
-		input_disconnect();
-		return -1;
-	}
+	discover_viewports();
 	
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);

@@ -43,8 +43,6 @@ struct mouse_dev;
 
 typedef struct mouse_port_ops {
 	int (*init)(struct mouse_dev *);
-	void (*yield)(void);
-	void (*reclaim)(void);
 	void (*write)(uint8_t);
 } mouse_port_ops_t;
 

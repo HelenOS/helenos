@@ -43,14 +43,10 @@
 #include "../kbd.h"
 
 static int msim_port_init(kbd_dev_t *);
-static void msim_port_yield(void);
-static void msim_port_reclaim(void);
 static void msim_port_write(uint8_t data);
 
 kbd_port_ops_t msim_port = {
 	.init = msim_port_init,
-	.yield = msim_port_yield,
-	.reclaim = msim_port_reclaim,
 	.write = msim_port_write
 };
 
@@ -101,14 +97,6 @@ static int msim_port_init(kbd_dev_t *kdev)
 	irq_register(inr, device_assign_devno(), 0, &msim_kbd);
 	
 	return 0;
-}
-
-static void msim_port_yield(void)
-{
-}
-
-static void msim_port_reclaim(void)
-{
 }
 
 static void msim_port_write(uint8_t data)

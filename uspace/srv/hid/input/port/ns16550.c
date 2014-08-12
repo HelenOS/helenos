@@ -45,14 +45,10 @@
 #include "../kbd.h"
 
 static int ns16550_port_init(kbd_dev_t *);
-static void ns16550_port_yield(void);
-static void ns16550_port_reclaim(void);
 static void ns16550_port_write(uint8_t data);
 
 kbd_port_ops_t ns16550_port = {
 	.init = ns16550_port_init,
-	.yield = ns16550_port_yield,
-	.reclaim = ns16550_port_reclaim,
 	.write = ns16550_port_write
 };
 
@@ -143,14 +139,6 @@ static int ns16550_port_init(kbd_dev_t *kdev)
 	irq_register(inr, device_assign_devno(), inr, &ns16550_kbd);
 	
 	return pio_enable((void *) ns16550_physical, 8, &vaddr);
-}
-
-static void ns16550_port_yield(void)
-{
-}
-
-static void ns16550_port_reclaim(void)
-{
 }
 
 static void ns16550_port_write(uint8_t data)
