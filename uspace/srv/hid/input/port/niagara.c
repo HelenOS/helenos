@@ -126,7 +126,7 @@ static void niagara_port_write(uint8_t data)
 
 /**
  * Called regularly by the polling thread. Reads codes of all the
- * pressed keys from the buffer. 
+ * pressed keys from the buffer.
  */
 static void niagara_key_pressed(void)
 {

@@ -82,10 +82,9 @@ void input_close(input_t *input)
 int input_yield(input_t *input)
 {
 	async_exch_t *exch = async_exchange_begin(input->sess);
-
 	int rc = async_req_0_0(exch, INPUT_YIELD);
 	async_exchange_end(exch);
-
+	
 	return rc;
 }
 

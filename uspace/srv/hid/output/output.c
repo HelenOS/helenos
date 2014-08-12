@@ -431,7 +431,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			case OUTPUT_SET_RGB_COLOR:
 				srv_set_rgb_color(callid, &call);
 				break;
-			
 			case OUTPUT_UPDATE:
 				srv_update(callid, &call);
 				break;

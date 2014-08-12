@@ -376,7 +376,7 @@ static int cons_read(con_srv_t *srv, void *buf, size_t size)
 			free(event);
 		}
 	}
-
+	
 	return size;
 }
 
@@ -387,6 +387,7 @@ static int cons_write(con_srv_t *srv, void *data, size_t size)
 	size_t off = 0;
 	while (off < size)
 		cons_write_char(cons, str_decode(data, &off, size));
+	
 	return size;
 }
 
@@ -497,6 +498,7 @@ static int cons_get_event(con_srv_t *srv, cons_event_t *event)
 	
 	event->type = CEV_KEY;
 	event->ev.key = *kevent;
+	
 	free(kevent);
 	return EOK;
 }
@@ -525,7 +527,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	
 	con_conn(iid, icall, &cons->srvs);
 }
-
 
 static int input_connect(const char *svc)
 {
@@ -582,10 +583,8 @@ static async_sess_t *output_connect(const char *svc)
 
 static bool console_srv_init(char *input_svc, char *output_svc)
 {
-	int rc;
-	
 	/* Connect to input service */
-	rc = input_connect(input_svc);
+	int rc = input_connect(input_svc);
 	if (rc != EOK)
 		return false;
 	

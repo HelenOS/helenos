@@ -102,13 +102,26 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	unsigned int mod_mask;
 	
 	switch (key) {
-	case KC_LCTRL: mod_mask = KM_LCTRL; break;
-	case KC_RCTRL: mod_mask = KM_RCTRL; break;
-	case KC_LSHIFT: mod_mask = KM_LSHIFT; break;
-	case KC_RSHIFT: mod_mask = KM_RSHIFT; break;
-	case KC_LALT: mod_mask = KM_LALT; break;
-	case KC_RALT: mod_mask = KM_RALT; break;
-	default: mod_mask = 0; break;
+	case KC_LCTRL:
+		mod_mask = KM_LCTRL;
+		break;
+	case KC_RCTRL:
+		mod_mask = KM_RCTRL;
+		break;
+	case KC_LSHIFT:
+		mod_mask = KM_LSHIFT;
+		break;
+	case KC_RSHIFT:
+		mod_mask = KM_RSHIFT;
+		break;
+	case KC_LALT:
+		mod_mask = KM_LALT;
+		break;
+	case KC_RALT:
+		mod_mask = KM_RALT;
+		break;
+	default:
+		mod_mask = 0;
 	}
 	
 	if (mod_mask != 0) {
@@ -119,10 +132,17 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	}
 	
 	switch (key) {
-	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; break;
-	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; break;
-	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; break;
-	default: mod_mask = 0; break;
+	case KC_CAPS_LOCK:
+		mod_mask = KM_CAPS_LOCK;
+		break;
+	case KC_NUM_LOCK:
+		mod_mask = KM_NUM_LOCK;
+		break;
+	case KC_SCROLL_LOCK:
+		mod_mask = KM_SCROLL_LOCK;
+		break;
+	default:
+		mod_mask = 0;
 	}
 	
 	if (mod_mask != 0) {
@@ -142,29 +162,31 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 		}
 	}
 	
-	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
-	    key == KC_F1) {
+	// TODO: More elegant layout switching
+	
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
+	    (key == KC_F1)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[0]);
 		return;
 	}
 	
-	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
-	    key == KC_F2) {
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
+	    (key == KC_F2)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[1]);
 		return;
 	}
 	
-	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
-	    key == KC_F3) {
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
+	    (key == KC_F3)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[2]);
 		return;
 	}
 	
-	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
-	    key == KC_F4) {
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
+	    (key == KC_F4)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[3]);
 		return;
@@ -619,15 +641,13 @@ static void cat_change_cb(void)
 /** Start listening for new devices. */
 static int input_start_dev_discovery(void)
 {
-	int rc;
-
-	rc = loc_register_cat_change_cb(cat_change_cb);
+	int rc = loc_register_cat_change_cb(cat_change_cb);
 	if (rc != EOK) {
 		printf("%s: Failed registering callback for device discovery. "
 		    "(%d)\n", NAME, rc);
 		return rc;
 	}
-
+	
 	return dev_check_new();
 }
 
@@ -667,6 +687,7 @@ int main(int argc, char **argv)
 	
 	/* Register driver */
 	async_set_client_connection(client_connection);
+	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server\n", NAME);
