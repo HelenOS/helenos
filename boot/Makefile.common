@@ -126,11 +126,11 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/taskmon/taskmon
 
 RD_DRVS_ESSENTIAL = \
-	infrastructure/root
+	infrastructure/root \
+	infrastructure/rootvirt \
+	fb/kfb 
 
 RD_DRVS_NON_ESSENTIAL = \
-	infrastructure/rootvirt \
-	fb/kfb \
 	test/test1 \
 	test/test2 \
 	test/test3 \
