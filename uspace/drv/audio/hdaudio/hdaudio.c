@@ -43,7 +43,7 @@
 
 #include "hdactl.h"
 #include "hdaudio.h"
-#include "hdaudio_regs.h"
+#include "spec/regs.h"
 
 #define NAME "hdaudio"
 
@@ -70,12 +70,10 @@ static int hda_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_a;
 	hda_t *hda = NULL;
-	const char *dev_name;
 	hw_res_list_parsed_t res;
 	void *regs;
 	int rc;
 
-	dev_name = ddf_dev_get_name(dev);
 	ddf_msg(LVL_NOTE, "hda_dev_add()");
 
 	hda = ddf_dev_data_alloc(dev, sizeof(hda_t));
@@ -126,8 +124,7 @@ static int hda_dev_add(ddf_dev_t *dev)
 
 	hda->regs = (hda_regs_t *)regs;
 
-	hda->ctl = hda_ctl_init(hda);
-	if (hda->ctl == NULL) {
+	if (hda_ctl_init(hda) == NULL) {
 		rc = EIO;
 		goto error;
 	}
@@ -150,8 +147,6 @@ static int hda_dev_add(ddf_dev_t *dev)
 	}
 
 	ddf_fun_add_to_category(fun_a, "virtual");
-
-	ddf_msg(LVL_DEBUG, "Device `%s' accepted.", dev_name);
 	return EOK;
 error:
 	if (hda != NULL) {

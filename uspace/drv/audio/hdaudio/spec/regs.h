@@ -32,8 +32,8 @@
 /** @file High Definition Audio register interface
  */
 
-#ifndef HDAUDIO_REGS_H
-#define HDAUDIO_REGS_H
+#ifndef SPEC_REGS_H
+#define SPEC_REGS_H
 
 #include <sys/types.h>
 
@@ -99,7 +99,11 @@ typedef struct {
 	/** Wall Clock Counter */
 	uint32_t walclk;
 	/** Reserved */
-	uint32_t reserved4[4];
+	uint8_t reserved4[4];
+	/** Stream Synchronization */
+	uint32_t ssync;
+	/** Reserved */
+	uint8_t reserved5[4];
 	/** CORB Lower Base Address */
 	uint32_t corblbase;
 	/** CORB Upper Base Address */
@@ -115,7 +119,7 @@ typedef struct {
 	/** CORB Size */
 	uint8_t corbsize;
 	/** Reserved */
-	uint8_t reserved5[1];
+	uint8_t reserved6[1];
 	/** RIRB Lower Base Address */
 	uint32_t rirblbase;
 	/** RIRB Upper Base Address */
@@ -131,7 +135,7 @@ typedef struct {
 	/** RIRB Size */
 	uint8_t rirbsize;
 	/** Reserved */
-	uint8_t reserved6[1];
+	uint8_t reserved7[1];
 	/** Immediate Command Output Interface */
 	uint32_t icoi;
 	/** Immediate Command Input Interface */
@@ -139,22 +143,108 @@ typedef struct {
 	/** Immediate Command Status */
 	uint32_t icis;
 	/** Reserved */
-	uint8_t reserved7[6];
+	uint8_t reserved8[6];
 	/** DMA Position Buffer Lower Base */
 	uint32_t dpiblbase;
 	/** DMA Position Buffer Upper Base */
 	uint32_t dpibubase;
 	/** Reserved */
-	uint8_t reserved8[8];
+	uint8_t reserved9[8];
 	/** Stream descriptor registers */
 	hda_sdesc_regs_t sdesc[64];
 	/** Fill up to 0x2030 */
-	uint8_t reserved9[6064];
+	uint8_t reserved10[6064];
 	/** Wall Clock Counter Alias */
 	uint32_t walclka;
 	/** Stream Descriptor Link Position in Current Buffer */
 	uint32_t sdlpiba[64];
 } hda_regs_t;
+
+typedef enum {
+	/** Number of Output Streams Supported (H) */
+	gcap_oss_h = 15,
+	/** Number of Output Streams Supported (L) */
+	gcap_oss_l = 12,
+	/** Number of Input Streams Supported (H) */
+	gcap_iss_h = 11,
+	/** Number of Input Streams Supported (L) */
+	gcap_iss_l = 8,
+	/** Number of Bidirectional Streams Supported (H) */
+	gcap_bss_h = 7,
+	/** Number of Bidirectional Streams Supported (L) */
+	gcap_bss_l = 3,
+	/** Number of Serial Data Out Signals (H) */
+	gcap_nsdo_h = 2,
+	/** Number of Serial Data Out Signals (H) */
+	gcap_nsdo_l = 1,
+	/** 64 Bit Address Supported */
+	gcap_64ok = 0
+} hda_gcap_bits_t;
+
+typedef enum {
+	/** Accept Unsolicited Response Enable */
+	gctl_unsol = 8,
+	/** Flush Control */
+	gctl_fcntrl = 1,
+	/** Controller Reset */
+	gctl_crst = 0
+} hda_gctl_bits_t;
+
+typedef enum {
+	/** CORB Read Pointer Reset */
+	corbrp_rst = 15,
+	/** CORB Read Pointer (H) */
+	corbrp_rp_h = 7,
+	/** CORB Read Pointer (L) */
+	corbrp_rp_l = 0
+} hda_corbrp_bits_t;
+
+typedef enum {
+	/** Enable CORB DMA Engine */
+	corbctl_run = 1,
+	/** CORB Memory Error Interrupt Enable */
+	corbctl_meie = 0
+} hda_corbctl_bits_t;
+
+typedef enum {
+	/** CORB Size Capability (H) */
+	corbsize_cap_h = 7,
+	/** CORB Size Capability (L) */
+	corbsize_cap_l = 4,
+	/** CORB Size (H) */
+	corbsize_size_h = 1,
+	/** CORB Size (L) */
+	corbsize_size_l = 0
+} hda_corbsize_bits_t;
+
+typedef enum {
+	/** RIRB Write Pointer Reset */
+	rirbwp_rst = 15,
+	/** RIRB Write Pointer (H) */
+	rirbwp_wp_h = 7,
+	/** RIRB Write Pointer (L) */
+	rirbrp_wp_l = 0
+} hda_rirbwp_bits_t;
+
+typedef enum {
+	/** Response Overrun Interrupt Control */
+	rirbctl_oic = 2,
+	/** RIRB DMA Enable */
+	rirbctl_run = 1,
+	/** CORB Memory Error Interrupt Enable */
+	rirbctl_int = 0
+} hda_rirbctl_bits_t;
+
+typedef enum {
+	/** RIRB Size Capability (H) */
+	rirbsize_cap_h = 7,
+	/** RIRB Size Capability (L) */
+	rirbsize_cap_l = 4,
+	/** RIRB Size (H) */
+	rirbsize_size_h = 1,
+	/** RIRB Size (L) */
+	rirbsize_size_l = 0
+} hda_rirbsize_bits_t;
 
 #endif
 

@@ -29,7 +29,7 @@
 /** @addtogroup hdaudio
  * @{
  */
-/** @file High Definition Audio controller
+/** @file High Definition Audio driver
  */
 
 #ifndef HDAUDIO_H
@@ -39,9 +39,9 @@
 #include <ddf/driver.h>
 #include <stdint.h>
 
-#include "hdaudio_regs.h"
+#include "spec/regs.h"
 
-/** High Definition Audio Controller */
+/** High Definition Audio driver instance */
 typedef struct {
 	async_sess_t *parent_sess;
 	ddf_fun_t *fun_a;
