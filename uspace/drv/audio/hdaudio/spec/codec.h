@@ -104,7 +104,7 @@ typedef enum {
 	/** Subordinate Node Count */
 	hda_sub_nc = 0x04,
 	/** Function Group Type */
-	hba_fgrp_type = 0x05,
+	hda_fgrp_type = 0x05,
 	/** Audio Function Group Capabilities */
 	hda_afg_caps = 0x08,
 	/** Audio Widget Capabilities */
@@ -130,6 +130,96 @@ typedef enum {
 	/** Volume Knob Capabilities */
 	hda_volk_nob_caps = 0x13
 } hda_param_id_t;
+
+/** Subordinate Node Count Response bits */
+typedef enum {
+	/** Starting Node Number (H) */
+	subnc_startnode_h = 23,
+	/** Starting Node Number (L) */
+	subnc_startnode_l = 16,
+	/** Total Node Count (H) */
+	subnc_nodecount_h = 7,
+	/** Total Node Count (L) */
+	subnc_nodecount_l = 0
+} hda_sub_nc_bits_t;
+
+/** Function Group Type Response bits */
+typedef enum {
+	/** UnSol Capable */
+	fgrpt_unsol = 8,
+	/** Group Type (H) */
+	fgrpt_type_h = 7,
+	/** Group Type (L) */
+	fgrpt_type_l = 0
+} hda_fgrp_type_bits_t;
+
+/** Function Group Type */
+typedef enum {
+	/** Audio Function Group */
+	fgrp_afg = 0x01,
+	/** Vendor Defined Modem Function Group */
+	fgrp_vdmfg = 0x02
+} hda_fgrp_type_t;
+
+/** Audio Widget Capabilities Bits */
+typedef enum {
+	/** Type (H) */
+	awc_type_h = 23,
+	/** Type (L) */
+	awc_type_l = 20,
+	/** Chan Count Ext (H) */
+	awc_chan_count_ext_h = 15,
+	/** Chan Count Ext (L) */
+	awc_chan_count_ext_l = 13,
+	/** CP Caps */
+	awc_cp_caps = 12,
+	/** L-R Swap */
+	awc_lr_swap = 11,
+	/** Power Control */
+	awc_power_cntrl = 10,
+	/** Digital */
+	awc_digital = 9,
+	/** Conn List */
+	awc_conn_list = 8,
+	/** Unsol Capable */
+	awc_unsol_capable = 7,
+	/** Proc Widget */
+	awc_proc_widget = 6,
+	/** Stripe */
+	awc_stripe = 5,
+	/** Format Override */
+	awc_fmt_override = 4,
+	/** Amp Param Override */
+	awc_amp_param_override = 3,
+	/** Out Amp Present */
+	awc_out_amp_present = 2,
+	/** In Amp Present */
+	awc_in_amp_present = 1,
+	/** Chan Count LSB (Stereo) */
+	awc_chan_count_lsb = 0
+} hda_awidget_caps_bits_t;
+
+/** Audio Widget Type */
+typedef enum {
+	/** Audio Output */
+	awt_audio_output = 0x0,
+	/** Audio Input */
+	awt_audio_input = 0x1,
+	/** Audio Mixer */
+	awt_audio_mixer = 0x2,
+	/** Audio Selector */
+	awt_audio_selector = 0x3,
+	/** Pin Complex */
+	awt_pin_complex = 0x4,
+	/** Power Widget */
+	awt_power_widget = 0x5,
+	/** Volume Knob Widget */
+	awt_volume_knob = 0x6,
+	/** Beep Generator Widget */
+	awt_beep_generator = 0x7,
+	/** Vendor-defined audio widget */
+	awt_vendor_defined = 0xf
+} hda_awidget_type_t;
 
 #endif
 

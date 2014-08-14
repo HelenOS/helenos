@@ -32,6 +32,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = hdaudio
 
 SOURCES = \
+	codec.c \
 	regif.c \
 	hdactl.c \
 	hdaudio.c

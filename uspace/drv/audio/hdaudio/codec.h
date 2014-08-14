@@ -32,27 +32,18 @@
 /** @file High Definition Audio controller
  */
 
-#ifndef HDACTL_H
-#define HDACTL_H
+#ifndef CODEC_H
+#define CODEC_H
 
 #include "hdaudio.h"
 
-typedef struct hda_ctl {
-	uintptr_t corb_phys;
-	void *corb_virt;
-	size_t corb_entries;
+typedef struct hda_codec {
+	hda_t *hda;
+	uint8_t address;
+} hda_codec_t;
 
-	uintptr_t rirb_phys;
-	void *rirb_virt;
-	size_t rirb_entries;
-	size_t rirb_rp;
-
-	struct hda_codec *codec;
-} hda_ctl_t;
-
-extern hda_ctl_t *hda_ctl_init(hda_t *);
-extern void hda_ctl_fini(hda_ctl_t *);
-extern int hda_cmd(hda_t *, uint32_t, uint32_t *);
+extern hda_codec_t *hda_codec_init(hda_t *, uint8_t);
+extern void hda_codec_fini(hda_codec_t *);
 
 #endif
 

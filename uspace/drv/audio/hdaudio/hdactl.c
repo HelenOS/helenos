@@ -41,6 +41,7 @@
 #include <macros.h>
 #include <stdint.h>
 
+#include "codec.h"
 #include "hdactl.h"
 #include "regif.h"
 #include "spec/regs.h"
@@ -48,7 +49,8 @@
 enum {
 	ctrl_init_wait_max = 10,
 	codec_enum_wait_us = 512,
-	corb_wait_max = 10
+	corb_wait_max = 10,
+	rirb_wait_max = 100
 };
 
 /** Select an appropriate CORB/RIRB size.
@@ -230,7 +232,7 @@ static int hda_rirb_init(hda_t *hda)
 	hda_reg16_write(&hda->regs->rirbwp, BIT_V(uint16_t, rirbwp_rst));
 
 	/* Set RINTCNT - Qemu won't read from CORB if this is zero */
-	hda_reg16_write(&hda->regs->rintcnt, 2);
+	hda_reg16_write(&hda->regs->rintcnt, 128);
 
 	hda->ctl->rirb_rp = 0;
 
@@ -335,26 +337,46 @@ static int hda_corb_write(hda_t *hda, uint32_t *data, size_t count)
 	return EOK;
 }
 
-static void hda_rirb_read(hda_t *hda)
+static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 {
 	size_t wp;
 	hda_rirb_entry_t resp;
 	hda_rirb_entry_t *rirb;
+	int wcnt;
 
 	rirb = (hda_rirb_entry_t *)hda->ctl->rirb_virt;
 
-	wp = hda_get_rirbwp(hda);
-	ddf_msg(LVL_NOTE, "hda_rirb_read: wp=%d", wp);
-	while (hda->ctl->rirb_rp != wp) {
-		++hda->ctl->rirb_rp;
-		resp = rirb[hda->ctl->rirb_rp];
+	while (count > 0) {
+		wp = hda_get_rirbwp(hda);
+		ddf_msg(LVL_NOTE, "hda_rirb_read: wp=%d", wp);
+		while (count > 0 && hda->ctl->rirb_rp != wp) {
+			++hda->ctl->rirb_rp;
+			resp = rirb[hda->ctl->rirb_rp];
 
-		ddf_msg(LVL_NOTE, "RESPONSE resp=0x%x respex=0x%x",
-		    resp.resp, resp.respex);
+			ddf_msg(LVL_NOTE, "RESPONSE resp=0x%x respex=0x%x",
+			    resp.resp, resp.respex);
+			if ((resp.respex & BIT_V(uint32_t, respex_unsol)) == 0) {
+				/* Solicited response */
+				*data++ = resp;
+				--count;
+			}
+		}
+
+		if (count > 0) {
+			wcnt = rirb_wait_max;
+			while (wcnt > 0 && hda_get_rirbwp(hda) == hda->ctl->rirb_rp) {
+				async_usleep(100);
+				--wcnt;
+			}
+
+			if (hda_get_rirbwp(hda) == hda->ctl->rirb_rp)
+				return ETIMEOUT;
+		}
 	}
+
+	return EOK;
 }
 
-#include "spec/codec.h"
 hda_ctl_t *hda_ctl_init(hda_t *hda)
 {
 	hda_ctl_t *ctl;
@@ -425,25 +447,36 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	if (rc != EOK)
 		goto error;
 
-	uint32_t verb;
-	verb = (0 << 28) | (0 << 20) | ((hda_get_param) << 8) | (hda_sub_nc);
-	rc = hda_corb_write(hda, &verb, 1);
-	ddf_msg(LVL_NOTE, "hda_corb_write -> %d", rc);
-	rc = hda_corb_write(hda, &verb, 1);
-	ddf_msg(LVL_NOTE, "hda_corb_write -> %d", rc);
-	rc = hda_corb_write(hda, &verb, 1);
-	ddf_msg(LVL_NOTE, "hda_corb_write -> %d", rc);
-	rc = hda_corb_write(hda, &verb, 1);
-	ddf_msg(LVL_NOTE, "hda_corb_write -> %d", rc);
-
-	async_usleep(100*1000);
-	hda_rirb_read(hda);
+	hda->ctl->codec = hda_codec_init(hda, 0);
+	if (hda->ctl->codec == NULL)
+		goto error;
 
 	return ctl;
 error:
 	free(ctl);
 	hda->ctl = NULL;
 	return NULL;
+}
+
+int hda_cmd(hda_t *hda, uint32_t verb, uint32_t *resp)
+{
+	int rc;
+	hda_rirb_entry_t rentry;
+
+	rc = hda_corb_write(hda, &verb, 1);
+	if (rc != EOK)
+		return rc;
+
+	if (resp != NULL) {
+		rc = hda_rirb_read(hda, &rentry, 1);
+		if (rc != EOK)
+			return rc;
+
+		/* XXX Verify that response came from the correct codec */
+		*resp = rentry.resp;
+	}
+
+	return EOK;
 }
 
 void hda_ctl_fini(hda_ctl_t *ctl)
