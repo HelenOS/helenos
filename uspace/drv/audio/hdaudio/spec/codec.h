@@ -37,7 +37,7 @@
 
 typedef enum {
 	/** Get Parameter */
-	hda_get_param = 0xf00,
+	hda_param_get = 0xf00,
 	/** Connection Select Control / Get */
 	hda_conn_sel_get = 0xf01,
 	/** Connection Select Control / Set */
@@ -93,7 +93,121 @@ typedef enum {
 	/** Unsolicited Response Control / Get */
 	hda_unsol_resp_get = 0xf08,
 	/** Unsolicied Response Control / Set */
-	hda_unsol_resp_set = 0x708
+	hda_unsol_resp_set = 0x708,
+	/** Pin Sense / Get */
+	hda_pin_sense_get = 0xf09,
+	/** Pin Sense / Execute */
+	hda_pin_sense_exec = 0x709,
+	/** EAPD/BTL Enable / Get */
+	hda_eapd_btl_enable_get = 0xf0c,
+	/** EAPD/BTL Enable / Set */
+	hda_eapd_btl_enable_set = 0x70c,
+	/** GPI Data / Get */
+	hda_gpi_data_get = 0xf10,
+	/** GPI Data / Set */
+	hda_gpi_data_set = 0x710,
+	/** GPI Wake Enable / Get */
+	hda_gpi_wakeen_get = 0xf11,
+	/** GPI Wake Enable / Set */
+	hda_gpi_wakeen_set = 0x711,
+	/** GPI Unsolicited Enable / Get */
+	hda_gpi_unsol_get = 0xf12,
+	/** GPI Unsolicited Enable / Set */
+	hda_gpi_unsol_set = 0x712,
+	/** GPI Sticky / Get */
+	hda_gpi_sticky_get = 0xf13,
+	/** GPI Sticky / Set */
+	hda_gpi_sticky_set = 0x713,
+	/** GPO Data / Get */
+	hda_gpo_data_get = 0xf14,
+	/** GPO Data / Set */
+	hda_gpo_data_set = 0x714,
+	/** GPIO Data / Get */
+	hda_gpio_data_get = 0xf15,
+	/** GPIO Data / Set */
+	hda_gpio_data_set = 0x715,
+	/** GPIO Enable / Get */
+	hda_gpio_enable_get = 0xf16,
+	/** GPIO Enable / Set */
+	hda_gpio_enable_set = 0x716,
+	/** GPIO Direction / Get */
+	hda_gpio_dir_get = 0xf17,
+	/** GPIO Direction / Set */
+	hda_gpio_dir_set = 0x717,
+	/** GPIO Wake Enable / Get */
+	hda_gpio_wakeen_get = 0xf18,
+	/** GPIO Wake Enable / Set */
+	hda_gpio_wakeen_set = 0x718,
+	/** GPIO Unsolicited Enable / Get */
+	hda_gpio_unsol_get = 0xf19,
+	/** GPIO Unsolicited Enable / Set */
+	hda_gpio_unsol_set = 0x719,
+	/** GPIO Sticky Mask / Get */
+	hda_gpio_sticky_get = 0xf1a,
+	/** GPIO Sticky Mask / Set */
+	hda_hpio_sticky_set = 0x71a,
+	/** Beep Generation / Get */
+	hda_beep_gen_get = 0xf0a,
+	/** Beep Generation / Set */
+	hda_beep_gen_set = 0x70a,
+	/** Volume Knob / Get */
+	hda_vol_knob_get = 0xf0f,
+	/** Volume Knob / Set */
+	hda_vol_knob_set = 0x70f,
+	/** Implementation Identification / Get */
+	hda_impl_ident_get = 0xf20,
+	/** Implementation Identification / Set 1 */
+	hda_impl_ident_set1 = 0x720,
+	/** Implementation Identification / Set 2 */
+	hda_impl_ident_set2 = 0x721,
+	/** Implementation Identification / Set 3 */
+	hda_impl_ident_set3 = 0x722,
+	/** Implementation Identification / Set 4 */
+	hda_impl_ident_set4 = 0x723,
+	/** Configuration Default / Get */
+	hda_cfg_def_get = 0xf1c,
+	/** Configuration Default / Set 1 */
+	hda_cfg_def_set1 = 0x71c,
+	/** Configuration Default / Set 2 */
+	hda_cfg_def_set2 = 0x71d,
+	/** Configuration Default / Set 3 */
+	hda_cfg_def_set3 = 0x71e,
+	/** Configuration Default / Set 4 */
+	hda_cfg_def_set4 = 0x71f,
+	/** Stripe Control / Get */
+	hda_stripe_ctl_get = 0xf24,
+	/** Stripe Control / Set */
+	hda_stripe_ctl_set = 0x724,
+	/** Function Reset / Execute */
+	hda_fun_rst_exec = 0x7ff,
+	/** ELD Data / Get */
+	hda_eld_data_get = 0xf2f,
+	/** Converter Channel Count / Get */
+	hda_cvt_chan_cnt_get = 0xf2d,
+	/** Converter Channel Count / Set */
+	hda_cvt_chan_cnt_set = 0x72d,
+	/** DIP-Size / Get */
+	hda_dip_size_get = 0xf2e,
+	/** DIP-Index / Get */
+	hda_dip_index_get = 0xf30,
+	/** DIP-Index / Set */
+	hda_dip_index_set = 0x730,
+	/** DIP-Data / Get */
+	hda_dip_data_get = 0xf31,
+	/** DIP-Data / Set */
+	hda_dip_data_set = 0x731,
+	/** DIP-XmitCtrl / Get */
+	hda_dip_xmitctrl_get = 0xf32,
+	/** DIP-XmitCtrl / Set */
+	hda_dip_xmitctrl_set = 0x732,
+	/** Protection Control / Get */
+	hda_prot_ctl_get = 0xf33,
+	/** Protection Control / Set */
+	hda_prot_ctl_set = 0x733,
+	/** ASP Channel Mapping / Get */
+	hda_asp_chanmap_get = 0xf34,
+	/** ASP Channel Mapping / Set */
+	hda_asp_chanmap_set = 0x734
 } hda_verb_t;
 
 typedef enum {

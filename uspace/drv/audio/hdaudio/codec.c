@@ -47,7 +47,7 @@ static int hda_get_parameter(hda_codec_t *codec, int node, hda_param_id_t param,
 {
 	uint32_t verb;
 
-	verb = (codec->address << 28) | (node << 20) | ((hda_get_param) << 8) | param;
+	verb = (codec->address << 28) | (node << 20) | ((hda_param_get) << 8) | param;
 	return hda_cmd(codec->hda, verb, resp);
 }
 
@@ -103,6 +103,15 @@ static int hda_get_aw_caps(hda_codec_t *codec, int node,
 	return EOK;
 }
 
+/** Get Configuration Default */
+static int hda_get_cfg_def(hda_codec_t *codec, int node, uint32_t *cfgdef)
+{
+	uint32_t verb;
+
+	verb = (codec->address << 28) | (node << 20) | ((hda_cfg_def_get) << 8) | 0;
+	return hda_cmd(codec->hda, verb, cfgdef);
+}
+
 hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 {
 	hda_codec_t *codec;
@@ -114,6 +123,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 	hda_fgrp_type_t grptype;
 	hda_awidget_type_t awtype;
 	uint32_t awcaps;
+	uint32_t cfgdef;
 
 	codec = calloc(1, sizeof(hda_codec_t));
 	if (codec == NULL)
@@ -152,6 +162,15 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 				goto error;
 			ddf_msg(LVL_NOTE, "aw %d: type=0x%x caps=0x%x",
 			    aw, awtype, awcaps);
+
+			if (awtype == awt_pin_complex) {
+				rc = hda_get_cfg_def(codec, aw, &cfgdef);
+				if (rc != EOK)
+					goto error;
+				ddf_msg(LVL_NOTE, "aw %d: PIN cdfgef=0x%x",
+				    aw, cfgdef);
+
+			}
 		}
 	}
 

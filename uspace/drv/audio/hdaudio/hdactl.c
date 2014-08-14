@@ -266,7 +266,7 @@ static size_t hda_get_corbwp(hda_t *hda)
 
 static void hda_set_corbwp(hda_t *hda, size_t wp)
 {
-	ddf_msg(LVL_NOTE, "Set CORBWP = %d", wp);
+	ddf_msg(LVL_DEBUG2, "Set CORBWP = %d", wp);
 	hda_reg16_write(&hda->regs->corbwp, wp);
 }
 
@@ -348,12 +348,12 @@ static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 
 	while (count > 0) {
 		wp = hda_get_rirbwp(hda);
-		ddf_msg(LVL_NOTE, "hda_rirb_read: wp=%d", wp);
+		ddf_msg(LVL_DEBUG2, "hda_rirb_read: wp=%d", wp);
 		while (count > 0 && hda->ctl->rirb_rp != wp) {
 			++hda->ctl->rirb_rp;
 			resp = rirb[hda->ctl->rirb_rp];
 
-			ddf_msg(LVL_NOTE, "RESPONSE resp=0x%x respex=0x%x",
+			ddf_msg(LVL_DEBUG2, "RESPONSE resp=0x%x respex=0x%x",
 			    resp.resp, resp.respex);
 			if ((resp.respex & BIT_V(uint32_t, respex_unsol)) == 0) {
 				/* Solicited response */
