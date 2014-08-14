@@ -47,7 +47,8 @@
 
 enum {
 	ctrl_init_wait_max = 10,
-	codec_enum_wait_us = 512
+	codec_enum_wait_us = 512,
+	corb_wait_max = 10
 };
 
 /** Select an appropriate CORB/RIRB size.
@@ -103,7 +104,7 @@ static int hda_corb_init(hda_t *hda)
 
 	ddf_msg(LVL_NOTE, "hda_corb_init()");
 
-	/* Stop CORB if not stopped. */
+	/* Stop CORB if not stopped */
 	ctl = hda_reg8_read(&hda->regs->corbctl);
 	if ((ctl & BIT_V(uint8_t, corbctl_run)) != 0) {
 		ddf_msg(LVL_NOTE, "CORB is enabled, disabling first.");
@@ -147,13 +148,19 @@ static int hda_corb_init(hda_t *hda)
 	hda_reg32_write(&hda->regs->corblbase, LOWER32(hda->ctl->corb_phys));
 	hda_reg32_write(&hda->regs->corbubase, UPPER32(hda->ctl->corb_phys));
 
-	ddf_msg(LVL_NOTE, "Rset CORB Read/Write pointers");
+	ddf_msg(LVL_NOTE, "Reset CORB Read/Write pointers");
 
 	/* Reset CORB Read Pointer */
 	hda_reg16_write(&hda->regs->corbrp, BIT_V(uint16_t, corbrp_rst));
 
 	/* Reset CORB Write Poitner */
 	hda_reg16_write(&hda->regs->corbwp, 0);
+
+	/* Start CORB */
+	ctl = hda_reg8_read(&hda->regs->corbctl);
+	ddf_msg(LVL_NOTE, "CORBctl (0x%x) = 0x%x",
+	    (unsigned)((void *)&hda->regs->corbctl - (void *)hda->regs), ctl | BIT_V(uint8_t, corbctl_run));
+	hda_reg8_write(&hda->regs->corbctl, ctl | BIT_V(uint8_t, corbctl_run));
 
 	ddf_msg(LVL_NOTE, "CORB initialized");
 	return EOK;
@@ -173,7 +180,7 @@ static int hda_rirb_init(hda_t *hda)
 
 	ddf_msg(LVL_NOTE, "hda_rirb_init()");
 
-	/* Stop RIRB if not stopped. */
+	/* Stop RIRB if not stopped */
 	ctl = hda_reg8_read(&hda->regs->rirbctl);
 	if ((ctl & BIT_V(uint8_t, rirbctl_run)) != 0) {
 		ddf_msg(LVL_NOTE, "RIRB is enabled, disabling first.");
@@ -217,10 +224,21 @@ static int hda_rirb_init(hda_t *hda)
 	hda_reg32_write(&hda->regs->rirblbase, LOWER32(hda->ctl->rirb_phys));
 	hda_reg32_write(&hda->regs->rirbubase, UPPER32(hda->ctl->rirb_phys));
 
-	ddf_msg(LVL_NOTE, "Rset RIRB Write pointer");
+	ddf_msg(LVL_NOTE, "Reset RIRB Write pointer");
 
 	/* Reset RIRB Write Pointer */
 	hda_reg16_write(&hda->regs->rirbwp, BIT_V(uint16_t, rirbwp_rst));
+
+	/* Set RINTCNT - Qemu won't read from CORB if this is zero */
+	hda_reg16_write(&hda->regs->rintcnt, 2);
+
+	hda->ctl->rirb_rp = 0;
+
+	/* Start RIRB */
+	ctl = hda_reg8_read(&hda->regs->rirbctl);
+	ddf_msg(LVL_NOTE, "RIRBctl (0x%x) = 0x%x",
+	    (unsigned)((void *)&hda->regs->rirbctl - (void *)hda->regs), ctl | BIT_V(uint8_t, rirbctl_run));
+	hda_reg8_write(&hda->regs->rirbctl, ctl | BIT_V(uint8_t, rirbctl_run));
 
 	ddf_msg(LVL_NOTE, "RIRB initialized");
 	return EOK;
@@ -228,6 +246,115 @@ error:
 	return EIO;
 }
 
+static size_t hda_get_corbrp(hda_t *hda)
+{
+	uint16_t corbrp;
+
+	corbrp = hda_reg16_read(&hda->regs->corbrp);
+	return BIT_RANGE_EXTRACT(uint16_t, corbrp_rp_h, corbrp_rp_l, corbrp);
+}
+
+static size_t hda_get_corbwp(hda_t *hda)
+{
+	uint16_t corbwp;
+
+	corbwp = hda_reg16_read(&hda->regs->corbwp);
+	return BIT_RANGE_EXTRACT(uint16_t, corbwp_wp_h, corbwp_wp_l, corbwp);
+}
+
+static void hda_set_corbwp(hda_t *hda, size_t wp)
+{
+	ddf_msg(LVL_NOTE, "Set CORBWP = %d", wp);
+	hda_reg16_write(&hda->regs->corbwp, wp);
+}
+
+static size_t hda_get_rirbwp(hda_t *hda)
+{
+	uint16_t rirbwp;
+
+	rirbwp = hda_reg16_read(&hda->regs->rirbwp);
+	return BIT_RANGE_EXTRACT(uint16_t, rirbwp_wp_h, rirbwp_wp_l, rirbwp);
+}
+
+/** Determine number of free entries in CORB */
+static size_t hda_corb_avail(hda_t *hda)
+{
+	int rp, wp;
+	int avail;
+
+	rp = hda_get_corbrp(hda);
+	wp = hda_get_corbwp(hda);
+
+	avail = rp - wp - 1;
+	while (avail < 0)
+		avail += hda->ctl->corb_entries;
+
+	return avail;
+}
+
+/** Write to CORB */
+static int hda_corb_write(hda_t *hda, uint32_t *data, size_t count)
+{
+	size_t avail;
+	size_t wp;
+	size_t idx;
+	size_t now;
+	size_t i;
+	uint32_t *corb;
+	int wcnt;
+
+	avail = hda_corb_avail(hda);
+	wp = hda_get_corbwp(hda);
+	corb = (uint32_t *)hda->ctl->corb_virt;
+
+	idx = 0;
+	while (idx < count) {
+		now = min(avail, count - idx);
+
+		for (i = 0; i < now; i++) {
+			wp = (wp + 1) % hda->ctl->corb_entries;
+			corb[wp] = data[idx++];
+		}
+
+		hda_set_corbwp(hda, wp);
+
+		if (idx < count) {
+			/* We filled up CORB but still data remaining */
+			wcnt = corb_wait_max;
+			while (hda_corb_avail(hda) < 1 && wcnt > 0) {
+				async_usleep(100);
+				--wcnt;
+			}
+
+			/* If CORB is still full return timeout error */
+			if (hda_corb_avail(hda) < 1)
+				return ETIMEOUT;
+		}
+	}
+
+	return EOK;
+}
+
+static void hda_rirb_read(hda_t *hda)
+{
+	size_t wp;
+	hda_rirb_entry_t resp;
+	hda_rirb_entry_t *rirb;
+
+	rirb = (hda_rirb_entry_t *)hda->ctl->rirb_virt;
+
+	wp = hda_get_rirbwp(hda);
+	ddf_msg(LVL_NOTE, "hda_rirb_read: wp=%d", wp);
+	while (hda->ctl->rirb_rp != wp) {
+		++hda->ctl->rirb_rp;
+		resp = rirb[hda->ctl->rirb_rp];
+
+		ddf_msg(LVL_NOTE, "RESPONSE resp=0x%x respex=0x%x",
+		    resp.resp, resp.respex);
+	}
+}
+
+#include "spec/codec.h"
 hda_ctl_t *hda_ctl_init(hda_t *hda)
 {
 	hda_ctl_t *ctl;
@@ -297,6 +424,20 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	rc = hda_rirb_init(hda);
 	if (rc != EOK)
 		goto error;
+
+	uint32_t verb;
+	verb = (0 << 28) | (0 << 20) | ((hda_get_param) << 8) | (hda_sub_nc);
+	rc = hda_corb_write(hda, &verb, 1);
+	ddf_msg(LVL_NOTE, "hda_corb_write -> %d", rc);
+	rc = hda_corb_write(hda, &verb, 1);
+	ddf_msg(LVL_NOTE, "hda_corb_write -> %d", rc);
+	rc = hda_corb_write(hda, &verb, 1);
+	ddf_msg(LVL_NOTE, "hda_corb_write -> %d", rc);
+	rc = hda_corb_write(hda, &verb, 1);
+	ddf_msg(LVL_NOTE, "hda_corb_write -> %d", rc);
+
+	async_usleep(100*1000);
+	hda_rirb_read(hda);
 
 	return ctl;
 error:

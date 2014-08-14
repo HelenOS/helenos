@@ -45,6 +45,7 @@ typedef struct hda_ctl {
 	uintptr_t rirb_phys;
 	void *rirb_virt;
 	size_t rirb_entries;
+	size_t rirb_rp;
 } hda_ctl_t;
 
 extern hda_ctl_t *hda_ctl_init(hda_t *);

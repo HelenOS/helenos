@@ -69,11 +69,11 @@ typedef enum {
 	/** S/PDIF Converter Control / Set 1 */
 	hda_spdif_ctl_set1 = 0x70d,
 	/** S/PDIF Converter Control / Set 2 */
-	hda_spdif_ctl_set1 = 0x70e,
+	hda_spdif_ctl_set2 = 0x70e,
 	/** S/PDIF Converter Control / Set 3 */
-	hda_spdif_ctl_set1 = 0x73e,
+	hda_spdif_ctl_set3 = 0x73e,
 	/** S/PDIF Converter Control / Set 4 */
-	hda_spdif_ctl_set1 = 0x73f,
+	hda_spdif_ctl_set4 = 0x73f,
 	/** Power State / Get */
 	hda_power_state_get = 0xf05,
 	/** Power State / Set */
@@ -90,10 +90,10 @@ typedef enum {
 	hda_enable_vref_get = 0xf07,
 	/** Enable VRef / Set */
 	hda_enable_vref_set = 0x707,
-	/** Connection Select Control / Get */
-	hda_conn_sel_get = 0xf08,
-	/** Connection Select Control / Set */
-	hda_conn_sel_set = 0x708
+	/** Unsolicited Response Control / Get */
+	hda_unsol_resp_get = 0xf08,
+	/** Unsolicied Response Control / Set */
+	hda_unsol_resp_set = 0x708
 } hda_verb_t;
 
 typedef enum {

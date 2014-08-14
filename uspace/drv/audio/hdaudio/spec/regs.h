@@ -200,6 +200,13 @@ typedef enum {
 } hda_corbrp_bits_t;
 
 typedef enum {
+	/** CORB Write Pointer (H) */
+	corbwp_wp_h = 7,
+	/** CORB Write Pointer (L) */
+	corbwp_wp_l = 0
+} hda_corbwp_bits_t;
+
+typedef enum {
 	/** Enable CORB DMA Engine */
 	corbctl_run = 1,
 	/** CORB Memory Error Interrupt Enable */
@@ -223,7 +230,7 @@ typedef enum {
 	/** RIRB Write Pointer (H) */
 	rirbwp_wp_h = 7,
 	/** RIRB Write Pointer (L) */
-	rirbrp_wp_l = 0
+	rirbwp_wp_l = 0
 } hda_rirbwp_bits_t;
 
 typedef enum {
@@ -245,6 +252,22 @@ typedef enum {
 	/** RIRB Size (L) */
 	rirbsize_size_l = 0
 } hda_rirbsize_bits_t;
+
+typedef struct {
+	/** Response - data received from codec */
+	uint32_t resp;
+	/** Response Extended - added by controller */
+	uint32_t respex;
+} hda_rirb_entry_t;
+
+typedef enum {
+	/** Unsolicited response */
+	respex_unsol = 4,
+	/** Codec Address (H) */
+	respex_addr_h = 3,
+	/** Codec Address (L) */
+	respex_addr_l = 0
+} hda_respex_bits_t;
 
 #endif
 
