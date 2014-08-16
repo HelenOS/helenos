@@ -39,8 +39,12 @@
 
 /** Stream Descriptor registers */
 typedef struct {
-	/** Control */
-	uint16_t ctl;
+	/** Control 1 */
+	uint8_t ctl1;
+	/** Control 2 */
+	uint8_t ctl2;
+	/** Control 3 */
+	uint8_t ctl3;
 	/** Status */
 	uint8_t sts;
 	/** Link Position in Current Buffer */
@@ -141,13 +145,13 @@ typedef struct {
 	/** Immediate Command Input Interface */
 	uint32_t icii;
 	/** Immediate Command Status */
-	uint32_t icis;
+	uint16_t icis;
 	/** Reserved */
 	uint8_t reserved8[6];
 	/** DMA Position Buffer Lower Base */
-	uint32_t dpiblbase;
+	uint32_t dplbase;
 	/** DMA Position Buffer Upper Base */
-	uint32_t dpibubase;
+	uint32_t dpubase;
 	/** Reserved */
 	uint8_t reserved9[8];
 	/** Stream descriptor registers */

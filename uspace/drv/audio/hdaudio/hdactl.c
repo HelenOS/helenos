@@ -101,7 +101,6 @@ static int hda_corb_init(hda_t *hda)
 	uint8_t corbsz;
 	uint8_t sizecap;
 	uint8_t selsz;
-	bool ok64bit;
 	int rc;
 
 	ddf_msg(LVL_NOTE, "hda_corb_init()");
@@ -130,10 +129,6 @@ static int hda_corb_init(hda_t *hda)
 	hda_reg8_write(&hda->regs->corbsize, corbsz);
 	hda->ctl->corb_entries = hda_rb_entries(selsz);
 
-	ddf_msg(LVL_NOTE, "Read GCAP");
-	uint16_t gcap = hda_reg16_read(&hda->regs->gcap);
-	ok64bit = (gcap & BIT_V(uint8_t, gcap_64ok)) != 0;
-	ddf_msg(LVL_NOTE, "GCAP: 0x%x (64OK=%d)", gcap, ok64bit);
 
 	/*
 	 * CORB must be aligned to 128 bytes. If 64OK is not set,
@@ -141,7 +136,7 @@ static int hda_corb_init(hda_t *hda)
 	 */
 	hda->ctl->corb_virt = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(hda->ctl->corb_entries * sizeof(uint32_t),
-	    ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
+	    hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 	    &hda->ctl->corb_phys, &hda->ctl->corb_virt);
 
 	ddf_msg(LVL_NOTE, "Set CORB base registers");
@@ -177,7 +172,6 @@ static int hda_rirb_init(hda_t *hda)
 	uint8_t rirbsz;
 	uint8_t sizecap;
 	uint8_t selsz;
-	bool ok64bit;
 	int rc;
 
 	ddf_msg(LVL_NOTE, "hda_rirb_init()");
@@ -206,18 +200,13 @@ static int hda_rirb_init(hda_t *hda)
 	hda_reg8_write(&hda->regs->rirbsize, rirbsz);
 	hda->ctl->rirb_entries = hda_rb_entries(selsz);
 
-	ddf_msg(LVL_NOTE, "Read GCAP");
-	uint16_t gcap = hda_reg16_read(&hda->regs->gcap);
-	ok64bit = (gcap & BIT_V(uint8_t, gcap_64ok)) != 0;
-	ddf_msg(LVL_NOTE, "GCAP: 0x%x (64OK=%d)", gcap, ok64bit);
-
 	/*
 	 * RIRB must be aligned to 128 bytes. If 64OK is not set,
 	 * it must be within the 32-bit address space.
 	 */
 	hda->ctl->rirb_virt = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(hda->ctl->rirb_entries * sizeof(uint64_t),
-	    ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
+	    hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 	    &hda->ctl->rirb_phys, &hda->ctl->rirb_virt);
 
 	ddf_msg(LVL_NOTE, "Set RIRB base registers");
@@ -432,6 +421,14 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	}
 
 	ddf_msg(LVL_NOTE, "Controller is out of reset.");
+
+	ddf_msg(LVL_NOTE, "Read GCAP");
+	uint16_t gcap = hda_reg16_read(&hda->regs->gcap);
+	ctl->ok64bit = (gcap & BIT_V(uint16_t, gcap_64ok)) != 0;
+	ctl->oss = BIT_RANGE_EXTRACT(uint16_t, gcap_oss_h, gcap_oss_l, gcap);
+	ctl->iss = BIT_RANGE_EXTRACT(uint16_t, gcap_iss_h, gcap_iss_l, gcap);
+	ctl->bss = BIT_RANGE_EXTRACT(uint16_t, gcap_bss_h, gcap_bss_l, gcap);
+	ddf_msg(LVL_NOTE, "GCAP: 0x%x (64OK=%d)", gcap, ctl->ok64bit);
 
 	/* Give codecs enough time to enumerate themselves */
 	async_usleep(codec_enum_wait_us);

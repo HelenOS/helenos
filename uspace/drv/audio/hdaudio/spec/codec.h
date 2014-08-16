@@ -335,6 +335,18 @@ typedef enum {
 	awt_vendor_defined = 0xf
 } hda_awidget_type_t;
 
+/** Converter Control bits */
+typedef enum {
+	/** Stream (H) */
+	cctl_stream_h = 7,
+	/** Stream (L) */
+	cctl_stream_l = 4,
+	/** Channel (H) */
+	cctl_channel_h = 3,
+	/** Channel (L) */
+	cctl_channel_l = 0
+} hda_converter_ctl_bits_t;
+
 #endif
 
 /** @}

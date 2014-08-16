@@ -29,22 +29,51 @@
 /** @addtogroup hdaudio
  * @{
  */
-/** @file High Definition Audio controller
+/** @file High Definition Audio stream
  */
 
-#ifndef CODEC_H
-#define CODEC_H
+#ifndef STREAM_H
+#define STERAM_H
 
 #include "hdaudio.h"
+#include "spec/bdl.h"
 
-typedef struct hda_codec {
+typedef enum {
+	/** Input Stream */
+	sdir_input,
+	/** Output Stream */
+	sdir_output,
+	/** Bidirectional Stream */
+	sdir_bidi
+} hda_stream_dir_t;
+
+typedef struct hda_stream {
 	hda_t *hda;
-	uint8_t address;
-	uint8_t out_aw;
-} hda_codec_t;
+	/** Stream ID */
+	uint8_t sid;
+	/** Stream descriptor index */
+	uint8_t sdid;
+	/** Direction */
+	hda_stream_dir_t dir;
+	/** Number of buffers */
+	size_t nbuffers;
+	/** Buffer size */
+	size_t bufsize;
+	/** Buffer Descriptor List */
+	hda_buffer_desc_t *bdl;
+	/** Physical address of BDL */
+	uintptr_t bdl_phys;
+	/** Buffers */
+	void **buf;
+	/** Physical addresses of buffers */
+	uintptr_t *buf_phys;
+	/** Stream format */
+	uint32_t fmt;
+} hda_stream_t;
 
-extern hda_codec_t *hda_codec_init(hda_t *, uint8_t);
-extern void hda_codec_fini(hda_codec_t *);
+extern hda_stream_t *hda_stream_create(hda_t *, hda_stream_dir_t, uint32_t);
+extern void hda_stream_start(hda_stream_t *);
+extern void hda_stream_destroy(hda_stream_t *);
 
 #endif
 

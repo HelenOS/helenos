@@ -35,9 +35,15 @@
 #ifndef HDACTL_H
 #define HDACTL_H
 
+#include <stdbool.h>
 #include "hdaudio.h"
 
 typedef struct hda_ctl {
+	bool ok64bit;
+	int iss;
+	int oss;
+	int bss;
+
 	uintptr_t corb_phys;
 	void *corb_virt;
 	size_t corb_entries;

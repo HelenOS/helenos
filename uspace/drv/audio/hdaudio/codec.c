@@ -41,14 +41,22 @@
 #include "codec.h"
 #include "hdactl.h"
 #include "spec/codec.h"
+#include "spec/fmt.h"
+#include "stream.h"
 
-static int hda_get_parameter(hda_codec_t *codec, int node, hda_param_id_t param,
+static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload,
     uint32_t *resp)
 {
 	uint32_t verb;
 
-	verb = (codec->address << 28) | (node << 20) | ((hda_param_get) << 8) | param;
+	verb = (codec->address << 28) | (node << 20) | (vid << 8) | payload;
 	return hda_cmd(codec->hda, verb, resp);
+}
+
+static int hda_get_parameter(hda_codec_t *codec, int node, hda_param_id_t param,
+    uint32_t *resp)
+{
+	return hda_ccmd(codec, node, hda_param_get, param, resp);
 }
 
 static int hda_get_subnc(hda_codec_t *codec, int node, int *startnode,
@@ -86,6 +94,32 @@ static int hda_get_fgrp_type(hda_codec_t *codec, int node, bool *unsol,
 	return EOK;
 }
 
+/** Get Suppported PCM Size, Rates */
+static int hda_get_supp_rates(hda_codec_t *codec, int node, uint32_t *rates)
+{
+	return hda_get_parameter(codec, node, hda_supp_rates, rates);
+}
+
+/** Get Suppported Stream Formats */
+static int hda_get_supp_formats(hda_codec_t *codec, int node, uint32_t *fmts)
+{
+	return hda_get_parameter(codec, node, hda_supp_formats, fmts);
+}
+
+static int hda_set_converter_fmt(hda_codec_t *codec, int node, uint16_t fmt)
+{
+	return hda_ccmd(codec, node, hda_converter_fmt_set, fmt, NULL);
+}
+
+static int hda_set_converter_ctl(hda_codec_t *codec, int node, uint8_t stream,
+    uint8_t channel)
+{
+	uint32_t ctl;
+
+	ctl = (stream << cctl_stream_l) | (channel << cctl_channel_l);
+	return hda_ccmd(codec, node, hda_converter_ctl_set, ctl, NULL);
+}
+
 /** Get Audio Widget Capabilities */
 static int hda_get_aw_caps(hda_codec_t *codec, int node,
     hda_awidget_type_t *type, uint32_t *caps)
@@ -106,10 +140,19 @@ static int hda_get_aw_caps(hda_codec_t *codec, int node,
 /** Get Configuration Default */
 static int hda_get_cfg_def(hda_codec_t *codec, int node, uint32_t *cfgdef)
 {
-	uint32_t verb;
+	return hda_ccmd(codec, node, hda_cfg_def_get, 0, cfgdef);
+}
 
-	verb = (codec->address << 28) | (node << 20) | ((hda_cfg_def_get) << 8) | 0;
-	return hda_cmd(codec->hda, verb, cfgdef);
+/** Get Amplifier Gain / Mute  */
+static int hda_get_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload,
+    uint32_t *resp)
+{
+	return hda_ccmd(codec, node, hda_amp_gain_mute_get, payload, resp);
+}
+
+static int hda_set_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload)
+{
+	return hda_ccmd(codec, node, hda_amp_gain_mute_set, payload, NULL);
 }
 
 hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
@@ -124,6 +167,8 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 	hda_awidget_type_t awtype;
 	uint32_t awcaps;
 	uint32_t cfgdef;
+	uint32_t rates;
+	uint32_t formats;
 
 	codec = calloc(1, sizeof(hda_codec_t));
 	if (codec == NULL)
@@ -170,10 +215,77 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 				ddf_msg(LVL_NOTE, "aw %d: PIN cdfgef=0x%x",
 				    aw, cfgdef);
 
+			} else if (awtype == awt_audio_output) {
+				codec->out_aw = aw;
+			}
+
+			if ((awcaps & BIT_V(uint32_t, awc_out_amp_present)) != 0) {
+				uint32_t ampcaps;
+				uint32_t gmleft, gmright;
+
+				rc = hda_get_parameter(codec, aw,
+				    hda_out_amp_caps, &ampcaps);
+				if (rc != EOK)
+					goto error;
+
+				rc = hda_get_amp_gain_mute(codec, aw, 0x8000, &gmleft);
+				if (rc != EOK)
+					goto error;
+
+				rc = hda_get_amp_gain_mute(codec, aw, 0xc000, &gmright);
+				if (rc != EOK)
+					goto error;
+
+				ddf_msg(LVL_NOTE, "out amp caps 0x%x "
+				    "gain/mute: L:0x%x R:0x%x",
+				    ampcaps, gmleft, gmright);
+
+				rc = hda_set_amp_gain_mute(codec, aw, 0xb04a);
+				if (rc != EOK)
+					goto error;
 			}
 		}
 	}
 
+	rc = hda_get_supp_rates(codec, codec->out_aw, &rates);
+	if (rc != EOK)
+		goto error;
+
+	rc = hda_get_supp_formats(codec, codec->out_aw, &formats);
+	if (rc != EOK)
+		goto error;
+
+	ddf_msg(LVL_NOTE, "Output widget %d: rates=0x%x formats=0x%x",
+	    codec->out_aw, rates, formats);
+
+	/* XXX Choose appropriate parameters */
+	uint32_t fmt;
+	/* 48 kHz, 16-bits, 1 channel */
+	fmt = fmt_bits_16 << fmt_bits_l;
+
+	/* Create stream */
+	ddf_msg(LVL_NOTE, "Create stream");
+	hda_stream_t *stream;
+	stream = hda_stream_create(hda, sdir_output, fmt);
+	if (stream == NULL)
+		goto error;
+
+	/* Configure converter */
+
+	ddf_msg(LVL_NOTE, "Configure converter format");
+	rc = hda_set_converter_fmt(codec, codec->out_aw, fmt);
+	if (rc != EOK)
+		goto error;
+
+	ddf_msg(LVL_NOTE, "Configure converter stream, channel");
+	rc = hda_set_converter_ctl(codec, codec->out_aw, stream->sid, 0);
+	if (rc != EOK)
+		goto error;
+
+	ddf_msg(LVL_NOTE, "Start stream");
+	hda_stream_start(stream);
+
+	ddf_msg(LVL_NOTE, "Codec OK");
 	return codec;
 error:
 	free(codec);

@@ -35,6 +35,7 @@ SOURCES = \
 	codec.c \
 	regif.c \
 	hdactl.c \
-	hdaudio.c
+	hdaudio.c \
+	stream.c
 
 include $(USPACE_PREFIX)/Makefile.common

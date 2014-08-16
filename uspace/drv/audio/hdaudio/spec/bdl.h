@@ -29,22 +29,23 @@
 /** @addtogroup hdaudio
  * @{
  */
-/** @file High Definition Audio controller
+/** @file High Definition Audio buffer descriptor list
  */
 
-#ifndef CODEC_H
-#define CODEC_H
+#ifndef SPEC_BDL_H
+#define SPEC_BDL_H
 
-#include "hdaudio.h"
+/** Buffer descriptor */
+typedef struct {
+	uint64_t address;
+	uint32_t length;
+	uint32_t flags;
+} hda_buffer_desc_t;
 
-typedef struct hda_codec {
-	hda_t *hda;
-	uint8_t address;
-	uint8_t out_aw;
-} hda_codec_t;
-
-extern hda_codec_t *hda_codec_init(hda_t *, uint8_t);
-extern void hda_codec_fini(hda_codec_t *);
+/** Buffer descriptor flags bits */
+typedef enum {
+	bdf_ioc = 0
+} hda_bd_flags_bits_t;
 
 #endif
 
