@@ -876,28 +876,16 @@ int block_read_bytes_direct(service_id_t service_id, aoff64_t abs_offset,
  * @param session    Starting session.
  *
  * @return Allocated TOC structure.
- * @return NULL on failure.
+ * @return EOK on success or negative error code.
  *
  */
-toc_block_t *block_get_toc(service_id_t service_id, uint8_t session)
+int block_read_toc(service_id_t service_id, uint8_t session, void *buf,
+    size_t bufsize)
 {
 	devcon_t *devcon = devcon_search(service_id);
-	toc_block_t *toc = NULL;
-	int rc;
 	
 	assert(devcon);
-	
-	toc = (toc_block_t *) malloc(sizeof(toc_block_t));
-	if (toc == NULL)
-		return NULL;
-	
-	rc = bd_read_toc(devcon->bd, session, toc, sizeof(toc_block_t));
-	if (rc != EOK) {
-		free(toc);
-		return NULL;
-	}
-	
-	return toc;
+	return bd_read_toc(devcon->bd, session, buf, bufsize);
 }
 
 /** Read blocks from block device.

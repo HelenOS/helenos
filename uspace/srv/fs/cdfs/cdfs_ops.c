@@ -47,6 +47,7 @@
 #include <libfs.h>
 #include <errno.h>
 #include <block.h>
+#include <scsi/mmc.h>
 #include <str.h>
 #include <byteorder.h>
 #include <macros.h>
@@ -1034,12 +1035,15 @@ static int cdfs_mounted(service_id_t service_id, const char *opts,
 		if (str_uint32_t(opts + 8, NULL, 0, false, &altroot) != EOK)
 			altroot = 0;
 	} else {
-		/* Read TOC and find the last session */
-		toc_block_t *toc = block_get_toc(service_id, 1);
-		if ((toc != NULL) && (uint16_t_be2host(toc->size) == 10)) {
-			altroot = uint32_t_be2host(toc->first_lba);
-			free(toc);
-		}
+		/*
+		 * Read TOC multisession information and get the start address
+		 * of the first track in the last session
+		 */
+		scsi_toc_multisess_data_t toc;
+
+		rc = block_read_toc(service_id, 1, &toc, sizeof(toc));
+		if (rc == EOK && (uint16_t_be2host(toc.toc_len) == 10))
+			altroot = uint32_t_be2host(toc.ftrack_lsess.start_addr);
 	}
 	
 	/* Initialize the block cache */

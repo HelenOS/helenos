@@ -68,6 +68,35 @@ typedef struct {
 	uint8_t control;
 } __attribute__((packed)) scsi_cdb_read_toc_t;
 
+/** TOC Track Descriptor */
+typedef struct {
+	/** Reserved */
+	uint8_t reserved0;
+	/** ADR, Control */
+	uint8_t adr_control;
+	/** Track Number */
+	uint8_t track_no;
+	/** Reserved */
+	uint8_t reserved3;
+	/** Track Start Address */
+	uint32_t start_addr;
+} __attribute__((packed)) scsi_toc_track_desc_t;
+
+/** Read TOC response format 00001b: Multi-session Information
+ *
+ * Returned for Read TOC command with Format 0001b
+ */
+typedef struct {
+	/** TOC Data Length */
+	uint16_t toc_len;
+	/** First Complete Session Number */
+	uint8_t first_sess;
+	/** Last Complete Session Number */
+	uint8_t last_sess;
+	/** TOC Track Descriptor for first track in last complete session */
+	scsi_toc_track_desc_t ftrack_lsess;
+} __attribute__((packed)) scsi_toc_multisess_data_t;
+
 #endif
 
 /** @}
