@@ -53,7 +53,9 @@
 #include <as.h>
 #include <bd_srv.h>
 #include <fibril_synch.h>
+#include <scsi/mmc.h>
 #include <scsi/sbc.h>
+#include <scsi/spc.h>
 #include <stdint.h>
 #include <str.h>
 #include <loc.h>
@@ -342,7 +344,7 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 {
 	identify_data_t idata;
 	uint8_t model[40];
-	ata_inquiry_data_t inq_data;
+	scsi_std_inquiry_data_t inq_data;
 	size_t isize;
 	uint16_t w;
 	uint8_t c;
@@ -471,7 +473,7 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 		}
 
 		/* Check device type. */
-		if (INQUIRY_PDEV_TYPE(inq_data.pdev_type) != PDEV_TYPE_CDROM)
+		if (INQUIRY_PDEV_TYPE(inq_data.pqual_devtype) != SCSI_DEV_CD_DVD)
 			ddf_msg(LVL_WARN, "Peripheral device type is not CD-ROM.");
 
 		rc = ata_pcmd_read_capacity(d, &nblocks, &block_size);
@@ -830,15 +832,22 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size,
     size_t *rcvd_size)
 {
-	ata_pcmd_inquiry_t cp;
+	uint8_t cpb[12];
+	scsi_cdb_inquiry_t *cp = (scsi_cdb_inquiry_t *)cpb;
 	int rc;
 
-	memset(&cp, 0, sizeof(cp));
+	memset(cpb, 0, sizeof(cpb));
 
-	cp.opcode = PCMD_INQUIRY;
-	cp.alloc_len = min(obuf_size, 0xff); /* Allocation length */
+	/*
+	 * For SFF 8020 compliance the inquiry must be padded to 12 bytes
+	 * and allocation length must fit in one byte.
+	 */
+	cp->op_code = SCSI_CMD_INQUIRY;
 
-	rc = ata_cmd_packet(disk, &cp, sizeof(cp), obuf, obuf_size, rcvd_size);
+	/* Allocation length */
+	cp->alloc_len = host2uint16_t_be(min(obuf_size, 0xff));
+
+	rc = ata_cmd_packet(disk, cpb, sizeof(cpb), obuf, obuf_size, rcvd_size);
 	if (rc != EOK)
 		return rc;
 
@@ -893,7 +902,7 @@ static int ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
 static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
     void *obuf, size_t obuf_size)
 {
-	ata_pcmd_read_12_t cp;
+	scsi_cdb_read_12_t cp;
 	int rc;
 
 	if (ba > UINT32_MAX)
@@ -901,9 +910,9 @@ static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
 
 	memset(&cp, 0, sizeof(cp));
 
-	cp.opcode = PCMD_READ_12;
-	cp.ba = host2uint32_t_be(ba);
-	cp.nblocks = host2uint32_t_be(cnt);
+	cp.op_code = SCSI_CMD_READ_12;
+	cp.lba = host2uint32_t_be(ba);
+	cp.xfer_len = host2uint32_t_be(cnt);
 
 	rc = ata_cmd_packet(disk, &cp, sizeof(cp), obuf, obuf_size, NULL);
 	if (rc != EOK)
@@ -932,22 +941,23 @@ static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
 static int ata_pcmd_read_toc(disk_t *disk, uint8_t session, void *obuf,
     size_t obuf_size)
 {
-	ata_pcmd_read_toc_t cp;
+	uint8_t cpb[12];
+	scsi_cdb_read_toc_t *cp = (scsi_cdb_read_toc_t *)cpb;
 	int rc;
 
-	memset(&cp, 0, sizeof(cp));
+	memset(cpb, 0, sizeof(cpb));
 
-	cp.opcode = PCMD_READ_TOC;
-	cp.msf = 0;
-	cp.format = 0x01; /* 0x01 = multi-session mode */
-	cp.start = session;
-	cp.size = host2uint16_t_be(obuf_size);
-	cp.oldformat = 0x40; /* 0x01 = multi-session mode (shifted to MSB) */
-	
-	rc = ata_cmd_packet(disk, &cp, sizeof(cp), obuf, obuf_size, NULL);
+	cp->op_code = SCSI_CMD_READ_TOC;
+	cp->msf = 0;
+	cp->format = 0x01; /* 0x01 = multi-session mode */
+	cp->track_sess_no = session;
+	cp->alloc_len = host2uint16_t_be(obuf_size);
+	cp->control = 0x40; /* 0x01 = multi-session mode (shifted to MSB) */
+
+	rc = ata_cmd_packet(disk, cpb, sizeof(cpb), obuf, obuf_size, NULL);
 	if (rc != EOK)
 		return rc;
-	
+
 	return EOK;
 }
 
