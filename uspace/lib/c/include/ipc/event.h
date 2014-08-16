@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericipc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_SYSIPC_H_
-#define KERN_SYSIPC_H_
+#ifndef LIBC_IPC_EVENT_H_
+#define LIBC_IPC_EVENT_H_
 
-#include <ipc/ipc.h>
-#include <ipc/irq.h>
-#include <typedefs.h>
+#include <abi/ipc/event.h>
+#include <libarch/types.h>
 
-extern sysarg_t sys_ipc_call_async_fast(sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t);
-extern sysarg_t sys_ipc_call_async_slow(sysarg_t, ipc_data_t *);
-extern sysarg_t sys_ipc_answer_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t);
-extern sysarg_t sys_ipc_answer_slow(sysarg_t, ipc_data_t *);
-extern sysarg_t sys_ipc_wait_for_call(ipc_data_t *, uint32_t, unsigned int);
-extern sysarg_t sys_ipc_poke(void);
-extern sysarg_t sys_ipc_forward_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, unsigned int);
-extern sysarg_t sys_ipc_forward_slow(sysarg_t, sysarg_t, ipc_data_t *,
-    unsigned int);
-extern sysarg_t sys_ipc_hangup(sysarg_t);
-
-extern sysarg_t sys_ipc_irq_subscribe(inr_t, devno_t, sysarg_t, irq_code_t *);
-extern sysarg_t sys_ipc_irq_unsubscribe(inr_t, devno_t);
-
-#ifdef __32_BITS__
-
-extern sysarg_t sys_ipc_connect_kbox(sysarg64_t *);
-
-#endif  /* __32_BITS__ */
-
-#ifdef __64_BITS__
-
-extern sysarg_t sys_ipc_connect_kbox(sysarg_t);
-
-#endif  /* __64_BITS__ */
+extern int ipc_event_subscribe(event_type_t, sysarg_t);
+extern int ipc_event_task_subscribe(event_task_type_t, sysarg_t);
+extern int ipc_event_unsubscribe(event_type_t);
+extern int ipc_event_task_unsubscribe(event_task_type_t);
+extern int ipc_event_unmask(event_type_t);
+extern int ipc_event_task_unmask(event_task_type_t);
 
 #endif
 

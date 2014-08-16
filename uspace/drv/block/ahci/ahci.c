@@ -889,12 +889,12 @@ static irq_cmd_t ahci_cmds[] = {
 
 /** AHCI interrupt handler.
  *
- * @param dev   DDF device structure.
  * @param iid   The IPC call id.
  * @param icall The IPC call structure.
+ * @param dev   DDF device structure.
  *
  */
-static void ahci_interrupt(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+static void ahci_interrupt(ipc_callid_t iid, ipc_call_t *icall, ddf_dev_t *dev)
 {
 	ahci_dev_t *ahci = dev_ahci_dev(dev);
 	unsigned int port = IPC_GET_ARG1(*icall);

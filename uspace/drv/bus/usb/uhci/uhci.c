@@ -68,18 +68,21 @@ static inline uhci_t *dev_to_uhci(ddf_dev_t *dev)
 
 /** IRQ handling callback, forward status from call to diver structure.
  *
- * @param[in] dev DDF instance of the device to use.
  * @param[in] iid (Unused).
  * @param[in] call Pointer to the call from kernel.
+ * @param[in] dev DDF instance of the device to use.
+ *
  */
-static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 {
 	assert(dev);
+	
 	uhci_t *uhci = dev_to_uhci(dev);
 	if (!uhci) {
 		usb_log_error("Interrupt on not yet initialized device.\n");
 		return;
 	}
+	
 	const uint16_t status = IPC_GET_ARG1(*call);
 	hc_interrupt(&uhci->hc, status);
 }

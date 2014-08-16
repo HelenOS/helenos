@@ -100,7 +100,10 @@ static irq_code_t pl050_kbd = {
 	pl050_cmds
 };
 
-static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call);
+static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
+{
+	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
+}
 
 static int pl050_port_init(kbd_dev_t *kdev)
 {
@@ -118,8 +121,8 @@ static int pl050_port_init(kbd_dev_t *kdev)
 	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
 		return -1;
 	
-	async_set_interrupt_received(pl050_irq_handler);
-	irq_register(inr, device_assign_devno(), 0, &pl050_kbd);
+	async_irq_subscribe(inr, device_assign_devno(), pl050_irq_handler, NULL,
+	    &pl050_kbd);
 	
 	return 0;
 }
@@ -127,11 +130,6 @@ static int pl050_port_init(kbd_dev_t *kdev)
 static void pl050_port_write(uint8_t data)
 {
 	(void) data;
-}
-
-static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call)
-{
-	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
 }
 
 /**

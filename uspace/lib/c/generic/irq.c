@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,18 +32,38 @@
 /** @file
  */
 
-#ifndef LIBC_EVENT_H_
-#define LIBC_EVENT_H_
+#include <ipc/irq.h>
+#include <libc.h>
 
-#include <abi/ipc/event.h>
-#include <libarch/types.h>
+/** Subscribe to IRQ notification.
+ *
+ * @param inr    IRQ number.
+ * @param devno  Device number of the device generating inr.
+ * @param method Use this method for notifying me.
+ * @param ucode  Top-half pseudocode handler.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int ipc_irq_subscribe(int inr, int devno, sysarg_t method,
+    const irq_code_t *ucode)
+{
+	return __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, devno, method,
+	    (sysarg_t) ucode);
+}
 
-extern int event_subscribe(event_type_t, sysarg_t);
-extern int event_task_subscribe(event_task_type_t, sysarg_t);
-extern int event_unmask(event_type_t);
-extern int event_task_unmask(event_task_type_t);
-
-#endif
+/** Unsubscribe from IRQ notification.
+ *
+ * @param inr   IRQ number.
+ * @param devno Device number of the device generating inr.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int ipc_irq_unsubscribe(int inr, int devno)
+{
+	return __SYSCALL2(SYS_IPC_IRQ_UNSUBSCRIBE, inr, devno);
+}
 
 /** @}
  */

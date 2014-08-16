@@ -763,10 +763,11 @@ static void ns8250_read_from_device(ns8250_t *ns)
  * status register changes, so the interrupt is handled by reading the incoming
  * data and reading the line status register.
  *
- * @param dev		The serial port device.
+ * @param dev The serial port device.
+ *
  */
-static inline void ns8250_interrupt_handler(ddf_dev_t *dev, ipc_callid_t iid,
-    ipc_call_t *icall)
+static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
+    ddf_dev_t *dev)
 {
 	ns8250_t *ns = dev_ns8250(dev);
 

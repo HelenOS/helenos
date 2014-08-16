@@ -45,6 +45,8 @@
 #include <atomic.h>
 #include <stdbool.h>
 #include <task.h>
+#include <abi/ddi/irq.h>
+#include <abi/ipc/event.h>
 
 typedef ipc_callid_t aid_t;
 
@@ -61,8 +63,9 @@ typedef void (*async_client_data_dtor_t)(void *);
  */
 typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *, void *);
 
-/** Interrupt handler */
-typedef void (*async_interrupt_handler_t)(ipc_callid_t, ipc_call_t *);
+/** Notification handler */
+typedef void (*async_notification_handler_t)(ipc_callid_t, ipc_call_t *,
+    void *);
 
 /** Exchange management style
  *
@@ -154,8 +157,20 @@ extern void *async_get_client_data_by_id(task_id_t);
 extern void async_put_client_data_by_id(task_id_t);
 
 extern void async_set_client_connection(async_client_conn_t);
-extern void async_set_interrupt_received(async_interrupt_handler_t);
-extern void async_set_interrupt_handler_stack_size(size_t);
+extern void async_set_notification_handler_stack_size(size_t);
+
+extern int async_irq_subscribe(int, int, async_notification_handler_t, void *,
+    const irq_code_t *);
+extern int async_irq_unsubscribe(int, int);
+
+extern int async_event_subscribe(event_type_t, async_notification_handler_t,
+    void *);
+extern int async_event_task_subscribe(event_task_type_t,
+    async_notification_handler_t, void *);
+extern int async_event_unsubscribe(event_type_t);
+extern int async_event_task_unsubscribe(event_task_type_t);
+extern int async_event_unmask(event_type_t);
+extern int async_event_task_unmask(event_task_type_t);
 
 /*
  * Wrappers for simple communication.

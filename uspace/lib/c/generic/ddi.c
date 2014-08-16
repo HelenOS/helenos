@@ -311,34 +311,5 @@ uint32_t pio_read_32(const ioport32_t *reg)
 	return val;
 }
 
-/** Register IRQ notification.
- *
- * @param inr    IRQ number.
- * @param devno  Device number of the device generating inr.
- * @param method Use this method for notifying me.
- * @param ucode  Top-half pseudocode handler.
- *
- * @return Value returned by the kernel.
- *
- */
-int irq_register(int inr, int devno, int method, const irq_code_t *ucode)
-{
-	return __SYSCALL4(SYS_IRQ_REGISTER, inr, devno, method,
-	    (sysarg_t) ucode);
-}
-
-/** Unregister IRQ notification.
- *
- * @param inr   IRQ number.
- * @param devno Device number of the device generating inr.
- *
- * @return Value returned by the kernel.
- *
- */
-int irq_unregister(int inr, int devno)
-{
-	return __SYSCALL2(SYS_IRQ_UNREGISTER, inr, devno);
-}
-
 /** @}
  */

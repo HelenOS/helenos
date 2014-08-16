@@ -58,19 +58,21 @@ static inline ohci_t *dev_to_ohci(ddf_dev_t *dev)
 }
 /** IRQ handling callback, identifies device
  *
- * @param[in] dev DDF instance of the device to use.
  * @param[in] iid (Unused).
  * @param[in] call Pointer to the call that represents interrupt.
+ * @param[in] dev DDF instance of the device to use.
+ *
  */
-static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 {
 	assert(dev);
-
+	
 	ohci_t *ohci = dev_to_ohci(dev);
 	if (!ohci) {
 		usb_log_warning("Interrupt on device that is not ready.\n");
 		return;
 	}
+	
 	const uint16_t status = IPC_GET_ARG1(*call);
 	hc_interrupt(&ohci->hc, status);
 }

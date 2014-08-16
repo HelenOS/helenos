@@ -164,8 +164,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_connect_kbox,
 	
 	/* Event notification syscalls. */
-	(syshandler_t) sys_event_subscribe,
-	(syshandler_t) sys_event_unmask,
+	(syshandler_t) sys_ipc_event_subscribe,
+	(syshandler_t) sys_ipc_event_unsubscribe,
+	(syshandler_t) sys_ipc_event_unmask,
 	
 	/* Capabilities related syscalls. */
 	(syshandler_t) sys_cap_grant,
@@ -179,8 +180,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_dmamem_unmap,
 	(syshandler_t) sys_iospace_enable,
 	(syshandler_t) sys_iospace_disable,
-	(syshandler_t) sys_irq_register,
-	(syshandler_t) sys_irq_unregister,
+	
+	(syshandler_t) sys_ipc_irq_subscribe,
+	(syshandler_t) sys_ipc_irq_unsubscribe,
 	
 	/* Sysinfo syscalls. */
 	(syshandler_t) sys_sysinfo_get_keys_size,

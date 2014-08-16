@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <str_error.h>
 #include <loc.h>
-#include <event.h>
 #include <io/keycode.h>
 #include <align.h>
 #include <fibril_synch.h>

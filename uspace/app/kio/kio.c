@@ -38,7 +38,6 @@
 #include <async.h>
 #include <as.h>
 #include <ddi.h>
-#include <event.h>
 #include <errno.h>
 #include <str_error.h>
 #include <io/kio.h>
@@ -148,7 +147,8 @@ static int consumer(void *data)
  * @param arg    Local argument
  *
  */
-static void notification_received(ipc_callid_t callid, ipc_call_t *call)
+static void kio_notification_handler(ipc_callid_t callid, ipc_call_t *call,
+    void *arg)
 {
 	/*
 	 * Make sure we process only a single notification
@@ -180,7 +180,7 @@ static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 	} else
 		producer(kio_stored, kio + offset);
 	
-	event_unmask(EVENT_KIO);
+	async_event_unmask(EVENT_KIO);
 	fibril_mutex_unlock(&mtx);
 }
 
@@ -213,8 +213,7 @@ int main(int argc, char *argv[])
 	}
 	
 	prodcons_initialize(&pc);
-	async_set_interrupt_received(notification_received);
-	rc = event_subscribe(EVENT_KIO, 0);
+	rc = async_event_subscribe(EVENT_KIO, kio_notification_handler, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register kio notifications\n",
 		    NAME);
@@ -232,10 +231,10 @@ int main(int argc, char *argv[])
 	if (!input) {
 		fprintf(stderr, "%s: Could not create input\n", NAME);
 		return ENOMEM;
-	}	
+	}
 
 	fibril_add_ready(fid);
-	event_unmask(EVENT_KIO);
+	async_event_unmask(EVENT_KIO);
 	kio_update();
 	
 	tinput_set_prompt(input, "kio> ");
@@ -250,9 +249,9 @@ int main(int argc, char *argv[])
 		kio_command(str, str_size(str));
 		free(str);
 	}
- 
+
 	if (rc == ENOENT)
-		rc = EOK;	
+		rc = EOK;
 
 	return EOK;
 }

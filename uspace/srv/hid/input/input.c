@@ -53,7 +53,6 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <loc.h>
-#include <event.h>
 #include <str_error.h>
 #include "layout.h"
 #include "kbd.h"
@@ -357,7 +356,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static void kconsole_event_received(ipc_callid_t callid, ipc_call_t *call)
+static void kconsole_event_handler(ipc_callid_t callid, ipc_call_t *call,
+    void *arg)
 {
 	if (IPC_GET_ARG1(*call)) {
 		/* Kernel console activated */
@@ -771,8 +771,7 @@ int main(int argc, char **argv)
 	}
 	
 	/* Receive kernel notifications */
-	async_set_interrupt_received(kconsole_event_received);
-	rc = event_subscribe(EVENT_KCONSOLE, 0);
+	rc = async_event_subscribe(EVENT_KCONSOLE, kconsole_event_handler, NULL);
 	if (rc != EOK)
 		printf("%s: Failed to register kconsole notifications (%s)\n",
 		    NAME, str_error(rc));

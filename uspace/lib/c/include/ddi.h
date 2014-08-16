@@ -129,9 +129,6 @@ static inline uint32_t pio_clear_32(ioport32_t *r, uint32_t v, useconds_t d)
 	return pio_change_32(r, 0, v, d);
 }
 
-extern int irq_register(int, int, int, const irq_code_t *);
-extern int irq_unregister(int, int);
-
 #endif
 
 /** @}

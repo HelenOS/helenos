@@ -67,11 +67,10 @@ static irq_code_t uart_irq_code = {
 /** S3C24xx UART instance structure */
 static s3c24xx_uart_t *uart;
 
-static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
-    void *arg);
-static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call);
-static int s3c24xx_uart_init(s3c24xx_uart_t *uart);
-static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte);
+static void s3c24xx_uart_connection(ipc_callid_t, ipc_call_t *, void *);
+static void s3c24xx_uart_irq_handler(ipc_callid_t, ipc_call_t *, void *);
+static int s3c24xx_uart_init(s3c24xx_uart_t *);
+static void s3c24xx_uart_sendb(s3c24xx_uart_t *, uint8_t);
 
 int main(int argc, char *argv[])
 {
@@ -149,9 +148,12 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
 	}
 }
 
-static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call)
+static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call,
+    void *arg)
 {
-	(void) iid; (void) call;
+	(void) iid;
+	(void) call;
+	(void) arg;
 
 	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_RX_COUNT) != 0) {
 		uint32_t data = pio_read_32(&uart->io->urxh) & 0xff;
@@ -191,9 +193,8 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
 	    (void *) uart->paddr, inr);
 
-	async_set_interrupt_received(s3c24xx_uart_irq_handler);
-
-	irq_register(inr, device_assign_devno(), 0, &uart_irq_code);
+	async_irq_subscribe(inr, device_assign_devno(), s3c24xx_uart_irq_handler,
+	    NULL, &uart_irq_code);
 
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
 	pio_write_32(&uart->io->ufcon, UFCON_FIFO_ENABLE |

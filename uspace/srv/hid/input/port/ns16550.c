@@ -106,16 +106,23 @@ irq_code_t ns16550_kbd = {
 	ns16550_cmds
 };
 
-static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call);
-
 static uintptr_t ns16550_physical;
-
 static kbd_dev_t *kbd_dev;
+static sysarg_t inr;
+
+static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
+{
+	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
+	
+	if (irc_service) {
+		async_exch_t *exch = async_exchange_begin(irc_sess);
+		async_msg_1(exch, IRC_CLEAR_INTERRUPT, inr);
+		async_exchange_end(exch);
+	}
+}
 
 static int ns16550_port_init(kbd_dev_t *kdev)
 {
-	void *vaddr;
-	
 	kbd_dev = kdev;
 	
 	sysarg_t ns16550;
@@ -127,7 +134,6 @@ static int ns16550_port_init(kbd_dev_t *kdev)
 	if (sysinfo_get_value("kbd.address.physical", &ns16550_physical) != EOK)
 		return -1;
 	
-	sysarg_t inr;
 	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
 		return -1;
 	
@@ -135,26 +141,16 @@ static int ns16550_port_init(kbd_dev_t *kdev)
 	ns16550_kbd.cmds[0].addr = (void *) (ns16550_physical + LSR_REG);
 	ns16550_kbd.cmds[3].addr = (void *) (ns16550_physical + RBR_REG);
 	
-	async_set_interrupt_received(ns16550_irq_handler);
-	irq_register(inr, device_assign_devno(), inr, &ns16550_kbd);
+	async_irq_subscribe(inr, device_assign_devno(), ns16550_irq_handler, NULL,
+	    &ns16550_kbd);
 	
+	void *vaddr;
 	return pio_enable((void *) ns16550_physical, 8, &vaddr);
 }
 
 static void ns16550_port_write(uint8_t data)
 {
 	(void) data;
-}
-
-static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
-{
-	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
-	
-	if (irc_service) {
-		async_exch_t *exch = async_exchange_begin(irc_sess);
-		async_msg_1(exch, IRC_CLEAR_INTERRUPT, IPC_GET_IMETHOD(*call));
-		async_exchange_end(exch);
-	}
 }
 
 /**

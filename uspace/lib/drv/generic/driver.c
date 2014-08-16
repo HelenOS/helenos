@@ -950,9 +950,6 @@ int ddf_driver_main(const driver_t *drv)
 	 */
 	driver = drv;
 	
-	/* Initialize interrupt module */
-	interrupt_init();
-	
 	/*
 	 * Register driver with device manager using generic handler for
 	 * incoming connections.

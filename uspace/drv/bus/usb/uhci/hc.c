@@ -150,22 +150,22 @@ int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
 		    str_error(rc));
 		return rc;
 	}
-
+	
 	irq_code_t irq_code = {
 		.rangecount = hc_irq_pio_range_count,
 		.ranges = irq_ranges,
 		.cmdcount = hc_irq_cmd_count,
 		.cmds = irq_cmds
 	};
-
-        /* Register handler to avoid interrupt lockup */
-        rc = register_interrupt_handler(device, irq, handler, &irq_code);
-        if (rc != EOK) {
-    		usb_log_error("Failed to register interrupt handler: %s.\n",
-    		    str_error(rc));
-    		return rc;
-    	}
-
+	
+	/* Register handler to avoid interrupt lockup */
+	rc = register_interrupt_handler(device, irq, handler, &irq_code);
+	if (rc != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	
 	return EOK;
 }
 

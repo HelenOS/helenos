@@ -63,11 +63,11 @@
 #define i8042_AUX_DISABLE    0x20
 #define i8042_KBD_TRANSLATE  0x40  /* Use this to switch to XT scancodes */
 
-void default_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static void default_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
 /** Port function operations. */
 static ddf_dev_ops_t ops = {
-	.default_handler = default_handler,
+	.default_handler = default_handler
 };
 
 static const irq_pio_range_t i8042_ranges[] = {
@@ -122,13 +122,13 @@ static void wait_ready(i8042_t *dev)
  *
  * Write new data to the corresponding buffer.
  *
- * @param dev  Device that caued the interrupt.
  * @param iid  Call id.
  * @param call pointerr to call data.
+ * @param dev  Device that caued the interrupt.
  *
  */
-static void i8042_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
-    ipc_call_t *call)
+static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call,
+    ddf_dev_t *dev)
 {
 	i8042_t *controller = dev_i8042(dev);
 	
@@ -360,7 +360,7 @@ static int i8042_read(ddf_fun_t *fun, char *data, size_t size)
  * @param call IPC request.
  *
  */
-void default_handler(ddf_fun_t *fun, ipc_callid_t id, ipc_call_t *call)
+static void default_handler(ddf_fun_t *fun, ipc_callid_t id, ipc_call_t *call)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*call);
 	const size_t size = IPC_GET_ARG1(*call);

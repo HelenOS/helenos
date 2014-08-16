@@ -1228,13 +1228,13 @@ static void e1000_interrupt_handler_impl(nic_t *nic, uint32_t icr)
 
 /** Handle device interrupt
  *
- * @param dev   E1000 device
  * @param iid   IPC call id
  * @param icall IPC call structure
+ * @param dev   E1000 device
  *
  */
-static void e1000_interrupt_handler(ddf_dev_t *dev, ipc_callid_t iid,
-    ipc_call_t *icall)
+static void e1000_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
+    ddf_dev_t *dev)
 {
 	uint32_t icr = (uint32_t) IPC_GET_ARG2(*icall);
 	nic_t *nic = NIC_DATA_DEV(dev);
