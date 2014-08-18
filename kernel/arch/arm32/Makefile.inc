@@ -53,7 +53,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/dummy.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/interrupt.c \
 	arch/$(KARCH)/src/exception.c \
 	arch/$(KARCH)/src/userspace.c \

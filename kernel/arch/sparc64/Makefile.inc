@@ -80,7 +80,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/trap/trap.c \
 	arch/$(KARCH)/src/trap/exception.c \
 	arch/$(KARCH)/src/trap/interrupt.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/tick.c \
 	arch/$(KARCH)/src/drivers/kbd.c \
 	arch/$(KARCH)/src/drivers/pci.c \

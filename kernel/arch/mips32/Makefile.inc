@@ -69,7 +69,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/tlb.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/smp/smp.c \
 	arch/$(KARCH)/src/machine_func.c
 
