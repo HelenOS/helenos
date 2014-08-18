@@ -86,6 +86,21 @@ int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 	    pages, flags, (sysarg_t) virt, (sysarg_t) __entry);
 }
 
+/** Unmap a piece of physical memory to task.
+ *
+ * Caller of this function must have the CAP_MEM_MANAGER capability.
+ *
+ * @param virt Virtual address from the phys-mapped region.
+ *
+ * @return EOK on success.
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ *
+ */
+int physmem_unmap(void *virt)
+{
+	return __SYSCALL1(SYS_PHYSMEM_UNMAP, (sysarg_t) virt);
+}
+
 /** Lock a piece physical memory for DMA transfers.
  *
  * The mapping of the specified virtual memory address
@@ -180,6 +195,30 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
+/** Disable I/O space range to task.
+ *
+ * Caller of this function must have the IO_MEM_MANAGER capability.
+ *
+ * @param id     Task ID.
+ * @param ioaddr Starting address of the I/O range.
+ * @param size   Size of the range.
+ *
+ * @return EOK on success
+ * @return EPERM if the caller lacks the CAP_IO_MANAGER capability
+ * @return ENOENT if there is no task with specified ID
+ *
+ */
+static int iospace_disable(task_id_t id, void *ioaddr, size_t size)
+{
+	const ddi_ioarg_t arg = {
+		.task_id = id,
+		.ioaddr = ioaddr,
+		.size = size
+	};
+	
+	return __SYSCALL1(SYS_IOSPACE_DISABLE, (sysarg_t) &arg);
+}
+
 /** Enable PIO for specified address range.
  *
  * @param range I/O range to be enable.
@@ -270,6 +309,26 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 	
 	*virt = virt_page + offset;
 	return EOK;
+}
+
+/** Disable PIO for specified I/O range.
+ *
+ * @param virt     I/O start address.
+ * @param size     Size of the I/O region.
+ *
+ * @return EOK on success.
+ * @return Negative error code on failure.
+ *
+ */
+int pio_disable(void *virt, size_t size)
+{
+#ifdef IO_SPACE_BOUNDARY
+	if (virt < IO_SPACE_BOUNDARY)
+		return iospace_disable(task_get_id(), virt, size);
+#else
+	(void) iospace_disable;
+#endif
+	return physmem_unmap(virt);
 }
 
 void pio_write_8(ioport8_t *reg, uint8_t val)

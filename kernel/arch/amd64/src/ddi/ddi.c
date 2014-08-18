@@ -50,10 +50,10 @@
  * Interrupts are disabled and task is locked.
  *
  * @param task   Task.
- * @param ioaddr Startign I/O space address.
+ * @param ioaddr Starting I/O space address.
  * @param size   Size of the enabled I/O range.
  *
- * @return 0 on success or an error code from errno.h.
+ * @return EOK on success or an error code from errno.h.
  *
  */
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
@@ -99,6 +99,42 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 	 * Enable the range and we are done.
 	 */
 	bitmap_clear_range(&task->arch.iomap, (size_t) ioaddr, size);
+	
+	/*
+	 * Increment I/O Permission bitmap generation counter.
+	 */
+	task->arch.iomapver++;
+	
+	return EOK;
+}
+
+/** Disable I/O space range for task.
+ *
+ * Interrupts are disabled and task is locked.
+ *
+ * @param task   Task.
+ * @param ioaddr Starting I/O space address.
+ * @param size   Size of the enabled I/O range.
+ *
+ * @return EOK on success or an error code from errno.h.
+ *
+ */
+int ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
+{
+	size_t elements = ioaddr + size;
+	if (elements > IO_PORTS)
+		return ENOENT;
+	
+	if (ioaddr >= task->arch.iomap.elements)
+		return EINVAL;	
+
+	if (task->arch.iomap.elements < elements)
+		size -= elements - task->arch.iomap.elements;
+
+	/*
+	 * Disable the range.
+	 */
+	bitmap_set_range(&task->arch.iomap, (size_t) ioaddr, size);
 	
 	/*
 	 * Increment I/O Permission bitmap generation counter.

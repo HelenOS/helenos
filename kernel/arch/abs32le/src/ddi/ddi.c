@@ -45,5 +45,13 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 	return 0;
 }
 
+/** Disable I/O space range for task.
+ *
+ */
+int ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
+{
+	return 0;
+}
+
 /** @}
  */
