@@ -737,6 +737,7 @@ static int rtl8169_on_activated(nic_t *nic_data)
 
 	/* Configure Receive Control Register */
 	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
+	rtl8169->rcr_ucast = RCR_ACCEPT_PHYS_MATCH;
 	rcr |= RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ERROR | RCR_ACCEPT_RUNT;
 	pio_write_32(rtl8169->regs + RCR, rcr);
 	pio_write_16(rtl8169->regs + RMS, BUFFER_SIZE);
@@ -792,15 +793,120 @@ static void rtl8169_link_change(ddf_dev_t *dev)
 
 }
 
+/** Notify NIC framework about HW filtering state when promisc mode was disabled
+ *
+ *  @param nic_data     The NIC data
+ *  @param mcast_mode   Current multicast mode
+ *  @param was_promisc  Sign if the promiscuous mode was active before disabling
+ */
+inline static void rtl8169_rcx_promics_rem(nic_t *nic_data,
+    nic_multicast_mode_t mcast_mode, uint8_t was_promisc)
+{
+	assert(nic_data);
+
+	if (was_promisc != 0) {
+		if (mcast_mode == NIC_MULTICAST_LIST)
+			nic_report_hw_filtering(nic_data, 1, 0, -1);
+		else
+			nic_report_hw_filtering(nic_data, 1, 1, -1);
+	} else {
+		nic_report_hw_filtering(nic_data, 1, -1, -1);
+	}
+}
+
 static int rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
+	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
+	uint8_t was_promisc = rcr & RCR_ACCEPT_ALL_PHYS;
+	nic_multicast_mode_t mcast_mode;
+
+	nic_query_multicast(nic_data, &mcast_mode, 0, NULL, NULL);
+
+	ddf_msg(LVL_DEBUG, "Unicast RX filter mode: %d", mode);
+
+
+	switch (mode) {
+	case NIC_UNICAST_BLOCKED:
+		rtl8169->rcr_ucast = 0;
+		rtl8169_rcx_promics_rem(nic_data, mcast_mode, was_promisc);
+		break;
+	case NIC_UNICAST_DEFAULT:
+		rtl8169->rcr_ucast = RCR_ACCEPT_PHYS_MATCH;
+		rtl8169_rcx_promics_rem(nic_data, mcast_mode, was_promisc);
+		break;
+	case NIC_UNICAST_LIST:
+		rtl8169->rcr_ucast = RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ALL_PHYS;
+
+		if (mcast_mode == NIC_MULTICAST_PROMISC)
+			nic_report_hw_filtering(nic_data, 0, 1, -1);
+		else
+			nic_report_hw_filtering(nic_data, 0, 0, -1);
+		break;
+	case NIC_UNICAST_PROMISC:
+		rtl8169->rcr_ucast = RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ALL_PHYS;
+
+		if (mcast_mode == NIC_MULTICAST_PROMISC)
+			nic_report_hw_filtering(nic_data, 1, 1, -1);
+		else
+			nic_report_hw_filtering(nic_data, 1, 0, -1);
+		break;
+	default:
+		return ENOTSUP;
+	}
+
+	fibril_mutex_lock(&rtl8169->rx_lock);
+
+	rcr &= ~(RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ALL_PHYS);
+	pio_write_32(rtl8169->regs + RCR, rcr | rtl8169->rcr_ucast | rtl8169->rcr_mcast);
+	ddf_msg(LVL_DEBUG, "new RCR value: 0x%08x", rcr | rtl8169->rcr_ucast | rtl8169->rcr_mcast);
+
+	fibril_mutex_unlock(&rtl8169->rx_lock);
 	return EOK;
 }
 
 static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
+	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
+	uint64_t mask;
+
+	ddf_msg(LVL_DEBUG, "Multicast RX filter mode: %d", mode);
+
+	switch (mode) {
+	case NIC_MULTICAST_BLOCKED:
+		rtl8169->rcr_mcast = 0;
+		if ((rtl8169->rcr_ucast & RCR_ACCEPT_ALL_PHYS) != 0)
+			nic_report_hw_filtering(nic_data, -1, 0, -1);
+		else
+			nic_report_hw_filtering(nic_data, -1, 1, -1);
+		break;
+	case NIC_MULTICAST_LIST:
+		mask = nic_mcast_hash(addr, addr_count);
+		pio_write_32(rtl8169->regs + MAR0, (uint32_t)mask);
+		pio_write_32(rtl8169->regs + MAR0 + 4, (uint32_t)(mask >> 32));
+		rtl8169->rcr_mcast = RCR_ACCEPT_MULTICAST;
+		nic_report_hw_filtering(nic_data, -1, 0, -1);
+		break;
+	case NIC_MULTICAST_PROMISC:
+		pio_write_32(rtl8169->regs + MAR0, 0xffffffffULL);
+		pio_write_32(rtl8169->regs + MAR0 + 4, (uint32_t)(0xffffffffULL >> 32));
+		rtl8169->rcr_mcast = RCR_ACCEPT_MULTICAST;
+		nic_report_hw_filtering(nic_data, -1, 1, -1);
+		break;
+	default:
+		return ENOTSUP;
+	}
+
+	fibril_mutex_lock(&rtl8169->rx_lock);
+
+	rcr &= ~(RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ALL_PHYS);
+	pio_write_32(rtl8169->regs + RCR, rcr | rtl8169->rcr_ucast | rtl8169->rcr_mcast);
+	ddf_msg(LVL_DEBUG, "new RCR value: 0x%08x", rcr | rtl8169->rcr_ucast | rtl8169->rcr_mcast);
+
+	fibril_mutex_unlock(&rtl8169->rx_lock);
 	return EOK;
 }
 
@@ -810,8 +916,23 @@ static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
 	
 	/* Configure Receive Control Register */
 	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
-	rcr |= RCR_ACCEPT_BROADCAST;		
+
+	ddf_msg(LVL_DEBUG, "Broadcast RX filter mode: %d", mode);
+
+	switch (mode) {
+	case NIC_BROADCAST_BLOCKED:
+		rcr &= RCR_ACCEPT_BROADCAST;
+		break;
+	case NIC_BROADCAST_ACCEPTED:
+		rcr |= RCR_ACCEPT_BROADCAST;
+		break;
+	default:
+		return ENOTSUP;
+	}
+
 	pio_write_32(rtl8169->regs + RCR, rcr);
+	ddf_msg(LVL_DEBUG," new RCR value: 0x%08x", rcr);
+
 	return EOK;
 }
 

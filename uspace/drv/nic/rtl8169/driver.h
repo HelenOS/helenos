@@ -85,6 +85,10 @@ typedef struct rtl8169_data {
 	 */
 	size_t tx_used;
 
+	/** Receive Control Register masks */
+	uint32_t rcr_ucast;
+	uint32_t rcr_mcast;
+
 	/** Lock for receiver */
 	fibril_mutex_t rx_lock;
 	/** Lock for transmitter */
