@@ -37,7 +37,6 @@
 #include <arch/interrupt.h>
 #include <typedefs.h>
 #include <arch.h>
-#include <time/clock.h>
 #include <ipc/sysipc.h>
 #include <arch/drivers/pic.h>
 #include <arch/mm/tlb.h>
@@ -45,11 +44,19 @@
 #include <print.h>
 #include <log.h>
 
-void start_decrementer(void)
+static uint32_t decrementer_value;
+
+void decrementer_start(uint32_t val)
+{
+	decrementer_value = val;
+	decrementer_restart();
+}
+
+void decrementer_restart(void)
 {
 	asm volatile (
 		"mtdec %[dec]\n"
-		:: [dec] "r" (1000)
+		:: [dec] "r" (decrementer_value)
 	);
 }
 
@@ -139,7 +146,7 @@ static void exception_external(unsigned int n, istate_t *istate)
 
 static void exception_decrementer(unsigned int n, istate_t *istate)
 {
-	start_decrementer();
+	decrementer_restart();
 	clock();
 }
 

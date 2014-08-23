@@ -48,7 +48,8 @@
 #define VECTOR_DTLB_MISS_LOAD       14
 #define VECTOR_DTLB_MISS_STORE      15
 
-extern void start_decrementer(void);
+extern void decrementer_start(uint32_t);
+extern void decrementer_restart(void);
 extern void interrupt_init(void);
 extern void extint_handler(unsigned int, istate_t *);
 

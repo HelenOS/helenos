@@ -46,6 +46,7 @@
 #include <userspace.h>
 #include <mm/page.h>
 #include <mm/km.h>
+#include <time/clock.h>
 #include <abi/proc/uarg.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
@@ -98,8 +99,27 @@ void arch_pre_mm_init(void)
 	/* Initialize dispatch table */
 	interrupt_init();
 	
+	ofw_tree_node_t *cpus_node;
+	ofw_tree_node_t *cpu_node;
+	ofw_tree_property_t *freq_prop;
+
+	cpus_node = ofw_tree_lookup("/cpus");
+	if (!cpus_node)
+		panic("Could not find cpus node.");
+
+	cpu_node = cpus_node->child;
+	if (!cpu_node)
+		panic("Could not find first cpu.");	
+
+	freq_prop = ofw_tree_getprop(cpu_node, "clock-frequency");
+	if (!freq_prop)
+		panic("Could not get frequency property.");
+
+	uint32_t freq;
+	freq = *((uint32_t *) freq_prop->value);
+
 	/* Start decrementer */
-	start_decrementer();
+	decrementer_start(freq / HZ);
 }
 
 #ifdef CONFIG_FB
