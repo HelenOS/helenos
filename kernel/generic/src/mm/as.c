@@ -571,7 +571,7 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
  * @param size         Size of area.
  * @param attrs        Attributes of the area.
  * @param backend      Address space area backend. NULL if no backend is used.
- * @param backend_data NULL or a pointer to an array holding two void *.
+ * @param backend_data NULL or a pointer to custom backend data.
  * @param base         Starting virtual address of the area.
  *                     If set to -1, a suitable mappable area is found.
  * @param bound        Lowest address bound if base is set to -1.
