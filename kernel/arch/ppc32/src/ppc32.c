@@ -111,7 +111,7 @@ void arch_pre_mm_init(void)
 	if (!cpu_node)
 		panic("Could not find first cpu.");	
 
-	freq_prop = ofw_tree_getprop(cpu_node, "clock-frequency");
+	freq_prop = ofw_tree_getprop(cpu_node, "timebase-frequency");
 	if (!freq_prop)
 		panic("Could not get frequency property.");
 
