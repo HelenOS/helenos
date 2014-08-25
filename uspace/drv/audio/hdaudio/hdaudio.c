@@ -78,37 +78,67 @@ irq_pio_range_t hdaudio_irq_pio_ranges[] = {
 };
 
 irq_cmd_t hdaudio_irq_commands[] = {
+	/* 0 */
 	{
 		.cmd = CMD_PIO_READ_8,
 		.addr = NULL, /* rirbsts */
 		.dstarg = 2
 	},
+	/* 1 */
 	{
 		.cmd = CMD_AND,
 		.value = BIT_V(uint8_t, rirbsts_intfl),
 		.srcarg = 2,
 		.dstarg = 3
 	},
+	/* 2 */
 	{
 		.cmd = CMD_PREDICATE,
 		.value = 2,
 		.srcarg = 3
 	},
+	/* 3 */
 	{
 		.cmd = CMD_PIO_WRITE_8,
 		.addr = NULL, /* rirbsts */
-		.value = BIT_V(uint8_t, rirbsts_intfl),
+		.value = BIT_V(uint8_t, rirbsts_intfl)
 	},
+	/* 4 */
 	{
 		.cmd = CMD_ACCEPT
 	}
 };
 
-irq_code_t hdaudio_irq_code = {
-	.rangecount = sizeof(hdaudio_irq_pio_ranges) / sizeof(irq_pio_range_t),
-	.ranges = hdaudio_irq_pio_ranges,
-	.cmdcount = sizeof(hdaudio_irq_commands) / sizeof(irq_cmd_t),
-	.cmds = hdaudio_irq_commands
+irq_cmd_t hdaudio_irq_commands_sdesc[] = {
+	/* 0 */
+	{
+		.cmd = CMD_PIO_READ_32,
+		.addr = NULL, /* intsts */
+		.dstarg = 2
+	},
+	/* 1 */
+	{
+		.cmd = CMD_AND,
+		.value = 0, /* 1 << idx */
+		.srcarg = 2,
+		.dstarg = 3,
+	},
+	/* 2 */
+	{
+		.cmd = CMD_PREDICATE,
+		.value = 2,
+		.srcarg = 3
+	},
+	/* 3 */
+	{
+		.cmd = CMD_PIO_WRITE_8,
+		.addr = NULL, /* sdesc[x].sts */
+		.value = 0x4 /* XXX sdesc.sts.BCIS */
+	},
+	/* 4 */
+	{
+		.cmd = CMD_ACCEPT
+	}
 };
 
 static int hda_dev_add(ddf_dev_t *dev)
@@ -116,6 +146,12 @@ static int hda_dev_add(ddf_dev_t *dev)
 	ddf_fun_t *fun_a;
 	hda_t *hda = NULL;
 	hw_res_list_parsed_t res;
+	irq_code_t irq_code;
+	irq_cmd_t *cmds;
+	size_t ncmds_base;
+	size_t ncmds_sdesc;
+	size_t ncmds;
+	int i;
 	void *regs;
 	int rc;
 
@@ -180,16 +216,41 @@ static int hda_dev_add(ddf_dev_t *dev)
 	}
 	ddf_msg(LVL_NOTE, "interrupt no: %d", res.irqs.irqs[0]);
 
+	ncmds_base = sizeof(hdaudio_irq_commands) / sizeof(irq_cmd_t);
+	ncmds_sdesc = sizeof(hdaudio_irq_commands_sdesc) / sizeof(irq_cmd_t);
+	ncmds = ncmds_base + 30 * ncmds_sdesc;
+
+	cmds = calloc(ncmds, sizeof(irq_cmd_t));
+	if (cmds == NULL) {
+		ddf_msg(LVL_ERROR, "Out of memory");
+		goto error;
+	}
+
+	irq_code.rangecount = sizeof(hdaudio_irq_pio_ranges) /
+	    sizeof(irq_pio_range_t);
+	irq_code.ranges = hdaudio_irq_pio_ranges;
+	irq_code.cmdcount = ncmds;
+	irq_code.cmds = cmds;
+
 	hda_regs_t *rphys = (hda_regs_t *)(uintptr_t)hda->rwbase;
 	hdaudio_irq_pio_ranges[0].base = (uintptr_t)hda->rwbase;
-	hdaudio_irq_commands[0].addr = (void *)&rphys->rirbsts;
-	hdaudio_irq_commands[3].addr = (void *)&rphys->rirbsts;
+
+	memcpy(cmds, hdaudio_irq_commands, sizeof(hdaudio_irq_commands));
+	cmds[0].addr = (void *)&rphys->rirbsts;
+	cmds[3].addr = (void *)&rphys->rirbsts;
+
+	for (i = 0; i < 30; i++) {
+		memcpy(&cmds[ncmds_base + i * ncmds_sdesc],
+		    hdaudio_irq_commands_sdesc, sizeof(hdaudio_irq_commands_sdesc));
+		cmds[ncmds_base + i * ncmds_sdesc + 0].addr = (void *)&rphys->intsts;
+		cmds[ncmds_base + i * ncmds_sdesc + 1].value = BIT_V(uint32_t, i);
+		cmds[ncmds_base + i * ncmds_sdesc + 3].addr = (void *)&rphys->sdesc[i].sts;
+	}
+
 	ddf_msg(LVL_NOTE, "range0.base=%x", hdaudio_irq_pio_ranges[0].base);
-	ddf_msg(LVL_NOTE, "cmd0.addr=%p", hdaudio_irq_commands[0].addr);
-	ddf_msg(LVL_NOTE, "cmd3.addr=%p", hdaudio_irq_commands[3].addr);
 
 	rc = register_interrupt_handler(dev, res.irqs.irqs[0],
-	    hdaudio_interrupt, &hdaudio_irq_code);
+	    hdaudio_interrupt, &irq_code);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
 		    rc);
@@ -283,7 +344,7 @@ static void hdaudio_interrupt(ddf_dev_t *dev, ipc_callid_t iid,
 {
 	hda_t *hda = (hda_t *)ddf_dev_data_get(dev);
 
-	ddf_msg(LVL_NOTE, "## interrupt ##");
+	if (0) ddf_msg(LVL_NOTE, "## interrupt ##");
 	hda_ctl_interrupt(hda->ctl);
 }
 

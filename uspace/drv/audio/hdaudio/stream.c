@@ -112,7 +112,7 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 	for (i = 0; i < stream->nbuffers; i++) {
 		stream->bdl[i].address = host2uint64_t_le(stream->buf_phys[i]);
 		stream->bdl[i].length = host2uint32_t_le(stream->bufsize);
-		stream->bdl[i].flags = 0/*BIT_V(uint32_t, bdf_ioc)*/;
+		stream->bdl[i].flags = BIT_V(uint32_t, bdf_ioc);
 	}
 
 	return EOK;
