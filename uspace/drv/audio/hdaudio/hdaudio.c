@@ -224,8 +224,6 @@ error:
 	if (hda != NULL) {
 		if (hda->ctl != NULL)
 			hda_ctl_fini(hda->ctl);
-		if (hda->parent_sess != NULL)
-			async_hangup(hda->parent_sess);
 	}
 
 	ddf_msg(LVL_NOTE, "Failing hda_dev_add() -> %d", rc);
