@@ -355,7 +355,7 @@ static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 	hda_rirb_entry_t resp;
 	int wcnt;
 
-	wcnt = 10;
+	wcnt = 10*1000;
 
 	fibril_mutex_lock(&hda->ctl->solrb_lock);
 
@@ -478,8 +478,6 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	ddf_msg(LVL_NOTE, "STATESTS = 0x%x",
 	    hda_reg16_read(&hda->regs->statests));
 
-	async_usleep(1000*1000);
-
 	/* Enable interrupts */
 	intctl = hda_reg32_read(&hda->regs->intctl);
 	ddf_msg(LVL_NOTE, "intctl (0x%x) := 0x%x",
@@ -488,20 +486,13 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	hda_reg32_write(&hda->regs->intctl, intctl |
 	    BIT_V(uint32_t, intctl_gie) | BIT_V(uint32_t, intctl_cie));
 
-	async_usleep(1000*1000);
-
 	rc = hda_corb_init(hda);
 	if (rc != EOK)
 		goto error;
 
-
-	async_usleep(1000*1000);
-
 	rc = hda_rirb_init(hda);
 	if (rc != EOK)
 		goto error;
-
-	async_usleep(1000*1000);
 
 	ddf_msg(LVL_NOTE, "call hda_codec_init()");
 	hda->ctl->codec = hda_codec_init(hda, 0);
