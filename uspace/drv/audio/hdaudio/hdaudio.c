@@ -80,7 +80,7 @@ irq_pio_range_t hdaudio_irq_pio_ranges[] = {
 irq_cmd_t hdaudio_irq_commands[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = NULL,
+		.addr = NULL, /* rirbsts */
 		.dstarg = 2
 	},
 	{
@@ -96,7 +96,7 @@ irq_cmd_t hdaudio_irq_commands[] = {
 	},
 	{
 		.cmd = CMD_PIO_WRITE_8,
-		.addr = NULL,
+		.addr = NULL, /* rirbsts */
 		.value = BIT_V(uint8_t, rirbsts_intfl),
 	},
 	{

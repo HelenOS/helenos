@@ -484,7 +484,8 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	    (unsigned)((void *)&hda->regs->intctl - (void *)hda->regs),
 	    intctl | BIT_V(uint32_t, intctl_gie) | BIT_V(uint32_t, intctl_cie));
 	hda_reg32_write(&hda->regs->intctl, intctl |
-	    BIT_V(uint32_t, intctl_gie) | BIT_V(uint32_t, intctl_cie));
+	    BIT_V(uint32_t, intctl_gie) | BIT_V(uint32_t, intctl_cie) |
+	    0x3fffffff);
 
 	rc = hda_corb_init(hda);
 	if (rc != EOK)
@@ -500,6 +501,11 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 		ddf_msg(LVL_NOTE, "hda_codec_init() failed");
 		goto error;
 	}
+
+	async_usleep(5*1000*1000);
+	ddf_msg(LVL_NOTE, "intsts=0x%x", hda_reg32_read(&hda->regs->intsts));
+	ddf_msg(LVL_NOTE, "sdesc[%d].sts=0x%x",
+	    hda->ctl->iss, hda_reg8_read(&hda->regs->sdesc[hda->ctl->iss].sts));
 
 	return ctl;
 error:

@@ -33,9 +33,12 @@
  */
 
 #include <as.h>
+#include <bitops.h>
+#include <byteorder.h>
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
+#include <macros.h>
 #include <stdlib.h>
 
 #include "hdactl.h"
@@ -89,6 +92,9 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 		if (rc != EOK)
 			goto error;
 
+		ddf_msg(LVL_NOTE, "Stream buf phys=0x%llx virt=%p",
+		    (unsigned long long)buffer_phys, buffer);
+
 		stream->buf[i] = buffer;
 		stream->buf_phys[i] = buffer_phys;
 
@@ -104,9 +110,9 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 
 	/* Fill in BDL */
 	for (i = 0; i < stream->nbuffers; i++) {
-		stream->bdl[i].address = stream->buf_phys[i];
-		stream->bdl[i].length = stream->bufsize;
-		stream->bdl[i].flags = 0;
+		stream->bdl[i].address = host2uint64_t_le(stream->buf_phys[i]);
+		stream->bdl[i].length = host2uint32_t_le(stream->bufsize);
+		stream->bdl[i].flags = 0/*BIT_V(uint32_t, bdf_ioc)*/;
 	}
 
 	return EOK;
@@ -117,11 +123,20 @@ error:
 static void hda_stream_desc_configure(hda_stream_t *stream)
 {
 	hda_sdesc_regs_t *sdregs;
+	uint8_t ctl1;
+	uint8_t ctl3;
+
+	ctl3 = (stream->sid << 4);
+	ctl1 = 0x4;
 
 	sdregs = &stream->hda->regs->sdesc[stream->sdid];
+	hda_reg8_write(&sdregs->ctl3, ctl3);
+	hda_reg8_write(&sdregs->ctl1, ctl1);
 	hda_reg32_write(&sdregs->cbl, stream->nbuffers * stream->bufsize);
 	hda_reg16_write(&sdregs->lvi, stream->nbuffers - 1);
 	hda_reg16_write(&sdregs->fmt, stream->fmt);
+	hda_reg32_write(&sdregs->bdpl, LOWER32(stream->bdl_phys));
+	hda_reg32_write(&sdregs->bdpu, UPPER32(stream->bdl_phys));
 }
 
 static void hda_stream_set_run(hda_stream_t *stream, bool run)
