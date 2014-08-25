@@ -45,6 +45,7 @@
 
 #include "hdactl.h"
 #include "hdaudio.h"
+#include "pcm_iface.h"
 #include "spec/regs.h"
 
 #define NAME "hdaudio"
@@ -68,6 +69,10 @@ static driver_ops_t driver_ops = {
 static driver_t hda_driver = {
 	.name = NAME,
 	.driver_ops = &driver_ops
+};
+
+ddf_dev_ops_t hda_pcm_ops = {
+	.interfaces[AUDIO_PCM_BUFFER_IFACE] = &hda_pcm_iface
 };
 
 irq_pio_range_t hdaudio_irq_pio_ranges[] = {
@@ -143,7 +148,7 @@ irq_cmd_t hdaudio_irq_commands_sdesc[] = {
 
 static int hda_dev_add(ddf_dev_t *dev)
 {
-	ddf_fun_t *fun_a;
+	ddf_fun_t *fun_pcm;
 	hda_t *hda = NULL;
 	hw_res_list_parsed_t res;
 	irq_code_t irq_code;
@@ -263,23 +268,25 @@ static int hda_dev_add(ddf_dev_t *dev)
 	}
 
 	ddf_msg(LVL_NOTE, "create function");
-	fun_a = ddf_fun_create(dev, fun_exposed, "a");
-	if (fun_a == NULL) {
-		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
+	fun_pcm = ddf_fun_create(dev, fun_exposed, "pcm");
+	if (fun_pcm == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating function 'pcm'.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	hda->fun_a = fun_a;
+	hda->fun_pcm = fun_pcm;
 
-	rc = ddf_fun_bind(fun_a);
+	ddf_fun_set_ops(fun_pcm, &hda_pcm_ops);
+
+	rc = ddf_fun_bind(fun_pcm);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'.");
-		ddf_fun_destroy(fun_a);
+		ddf_msg(LVL_ERROR, "Failed binding function 'pcm'.");
+		ddf_fun_destroy(fun_pcm);
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun_a, "virtual");
+	ddf_fun_add_to_category(fun_pcm, "audio-pcm");
 	return EOK;
 error:
 	if (hda != NULL) {
@@ -298,12 +305,12 @@ static int hda_dev_remove(ddf_dev_t *dev)
 
 	ddf_msg(LVL_DEBUG, "hda_dev_remove(%p)", dev);
 
-	if (hda->fun_a != NULL) {
-		rc = ddf_fun_offline(hda->fun_a);
+	if (hda->fun_pcm != NULL) {
+		rc = ddf_fun_offline(hda->fun_pcm);
 		if (rc != EOK)
 			return rc;
 
-		rc = ddf_fun_unbind(hda->fun_a);
+		rc = ddf_fun_unbind(hda->fun_pcm);
 		if (rc != EOK)
 			return rc;
 	}
@@ -318,8 +325,8 @@ static int hda_dev_gone(ddf_dev_t *dev)
 
 	ddf_msg(LVL_DEBUG, "hda_dev_remove(%p)", dev);
 
-	if (hda->fun_a != NULL) {
-		rc = ddf_fun_unbind(hda->fun_a);
+	if (hda->fun_pcm != NULL) {
+		rc = ddf_fun_unbind(hda->fun_pcm);
 		if (rc != EOK)
 			return rc;
 	}

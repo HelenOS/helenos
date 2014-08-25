@@ -29,27 +29,15 @@
 /** @addtogroup hdaudio
  * @{
  */
-/** @file High Definition Audio driver
+/** @file High Definition Audio PCM interface
  */
 
-#ifndef HDAUDIO_H
-#define HDAUDIO_H
+#ifndef PCM_IFACE_H
+#define PCM_IFACE_H
 
-#include <async.h>
-#include <ddf/driver.h>
-#include <stdint.h>
+#include <audio_pcm_iface.h>
 
-#include "spec/regs.h"
-
-/** High Definition Audio driver instance */
-typedef struct hda {
-	async_sess_t *parent_sess;
-	ddf_fun_t *fun_pcm;
-	uint64_t rwbase;
-	size_t rwsize;
-	hda_regs_t *regs;
-	struct hda_ctl *ctl;
-} hda_t;
+extern audio_pcm_iface_t hda_pcm_iface;
 
 #endif
 

@@ -28,7 +28,7 @@
 
 USPACE_PREFIX = ../../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBPCM_PREFIX)/include
 BINARY = hdaudio
 
 SOURCES = \
@@ -36,6 +36,7 @@ SOURCES = \
 	regif.c \
 	hdactl.c \
 	hdaudio.c \
+	pcm_iface.c \
 	stream.c
 
 include $(USPACE_PREFIX)/Makefile.common
