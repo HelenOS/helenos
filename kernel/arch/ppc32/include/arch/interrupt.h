@@ -43,6 +43,7 @@
 #define VECTOR_DATA_STORAGE         2
 #define VECTOR_INSTRUCTION_STORAGE  3
 #define VECTOR_EXTERNAL             4
+#define VECTOR_FP_UNAVAILABLE       7
 #define VECTOR_DECREMENTER          8
 #define VECTOR_ITLB_MISS            13
 #define VECTOR_DTLB_MISS_LOAD       14

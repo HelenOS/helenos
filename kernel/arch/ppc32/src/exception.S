@@ -257,7 +257,10 @@ jump_to_kernel:
 	addi r12, r12, exc_dispatch@l
 	mtsrr0 r12
 	
+	mfsrr1 r5
+	andi. r5, r5, MSR_FP
 	mfmsr r12
+	or r12, r12, r5		# Propagate MSR_FP from SRR1 to MSR
 	ori r12, r12, (MSR_IR | MSR_DR)@l
 	mtsrr1 r12
 	
@@ -275,8 +278,11 @@ jump_to_kernel_syscall:
 	lis r12, iret_syscall@ha
 	addi r12, r12, iret_syscall@l
 	mtlr r12
-	
+
+	mfsrr1 r0
+	andi. r0, r0, MSR_FP
 	mfmsr r12
+	or r12, r12, r0		# Propagate MSR_FP from SRR1 to MSR
 	ori r12, r12, (MSR_IR | MSR_DR)@l
 	mtsrr1 r12
 	

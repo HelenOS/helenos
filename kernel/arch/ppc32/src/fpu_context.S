@@ -28,6 +28,7 @@
 
 #include <arch/asm/regname.h>
 #include <arch/context_offset.h>
+#include <arch/msr.h>
 
 .text
 
@@ -38,6 +39,20 @@
 .global fpu_disable
 
 .macro FPU_CONTEXT_STORE r
+	stfd fr0, OFFSET_FR0(\r)
+	stfd fr1, OFFSET_FR1(\r)
+	stfd fr2, OFFSET_FR2(\r)
+	stfd fr3, OFFSET_FR3(\r)
+	stfd fr4, OFFSET_FR4(\r)
+	stfd fr5, OFFSET_FR5(\r)
+	stfd fr6, OFFSET_FR6(\r)
+	stfd fr7, OFFSET_FR7(\r)
+	stfd fr8, OFFSET_FR8(\r)
+	stfd fr9, OFFSET_FR9(\r)
+	stfd fr10, OFFSET_FR10(\r)
+	stfd fr11, OFFSET_FR11(\r)
+	stfd fr12, OFFSET_FR12(\r)
+	stfd fr13, OFFSET_FR13(\r)
 	stfd fr14, OFFSET_FR14(\r)
 	stfd fr15, OFFSET_FR15(\r)
 	stfd fr16, OFFSET_FR16(\r)
@@ -59,6 +74,20 @@
 .endm
 
 .macro FPU_CONTEXT_LOAD r
+	lfd fr0, OFFSET_FR0(\r)
+	lfd fr1, OFFSET_FR1(\r)
+	lfd fr2, OFFSET_FR2(\r)
+	lfd fr3, OFFSET_FR3(\r)
+	lfd fr4, OFFSET_FR4(\r)
+	lfd fr5, OFFSET_FR5(\r)
+	lfd fr6, OFFSET_FR6(\r)
+	lfd fr7, OFFSET_FR7(\r)
+	lfd fr8, OFFSET_FR8(\r)
+	lfd fr9, OFFSET_FR9(\r)
+	lfd fr10, OFFSET_FR10(\r)
+	lfd fr11, OFFSET_FR11(\r)
+	lfd fr12, OFFSET_FR12(\r)
+	lfd fr13, OFFSET_FR13(\r)
 	lfd fr14, OFFSET_FR14(\r)
 	lfd fr15, OFFSET_FR15(\r)
 	lfd fr16, OFFSET_FR16(\r)
@@ -80,26 +109,42 @@
 .endm
 
 fpu_context_save:
-//	FPU_CONTEXT_STORE r3
-//	
-//	mffs fr0
-//	stfd fr0, OFFSET_FPSCR(r3)
+	FPU_CONTEXT_STORE r3
+	
+	mffs fr0
+	stfd fr0, OFFSET_FPSCR(r3)
 	
 	blr
 
 fpu_context_restore:
-//	FPU_CONTEXT_LOAD r3
-//	
-//	lfd fr0, OFFSET_FPSCR(r3)
-//	mtfsf 7, fr0
+	lfd fr0, OFFSET_FPSCR(r3)
+	mtfsf 7, fr0
+
+	FPU_CONTEXT_LOAD r3
 	
 	blr
 
 fpu_init:
+	mfmsr r0
+	ori r0, r0, MSR_FP
+
+	# Disable FPU exceptions
+	li r3, MSR_FE0 | MSR_FE1
+	andc r0, r0, r3
+
+	mtmsr r0
 	blr
 
 fpu_enable:
+	mfmsr r0
+	ori r0, r0, MSR_FP
+	mtmsr r0
 	blr
 
 fpu_disable:
+	mfmsr r0
+	li r3, MSR_FP
+	andc r0, r0, r3
+	mtmsr r0
 	blr
+
