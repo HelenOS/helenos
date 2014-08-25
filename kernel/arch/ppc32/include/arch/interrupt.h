@@ -35,7 +35,7 @@
 #ifndef KERN_ppc32_INTERRUPT_H_
 #define KERN_ppc32_INTERRUPT_H_
 
-#include <arch/exception.h>
+#include <arch/istate.h>
 
 #define IVT_ITEMS  16
 #define IVT_FIRST  0
