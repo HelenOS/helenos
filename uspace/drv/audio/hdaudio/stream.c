@@ -174,6 +174,7 @@ void hda_stream_destroy(hda_stream_t *stream)
 
 void hda_stream_start(hda_stream_t *stream)
 {
+	ddf_msg(LVL_NOTE, "hda_stream_start()");
 	hda_stream_set_run(stream, true);
 }
 

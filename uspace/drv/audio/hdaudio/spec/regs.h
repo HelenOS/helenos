@@ -195,6 +195,15 @@ typedef enum {
 } hda_gctl_bits_t;
 
 typedef enum {
+	/** Global Interrupt Enable */
+	intctl_gie = 31,
+	/** Controller Interrupt Enable */
+	intctl_cie = 30,
+	/** Stream Interrupt Enable */
+	intctl_sie = 29
+} hda_intctl_bits_t;
+
+typedef enum {
 	/** CORB Read Pointer Reset */
 	corbrp_rst = 15,
 	/** CORB Read Pointer (H) */
@@ -245,6 +254,13 @@ typedef enum {
 	/** CORB Memory Error Interrupt Enable */
 	rirbctl_int = 0
 } hda_rirbctl_bits_t;
+
+typedef enum {
+	/** Response Overrun Interrupt Status */
+	rirbsts_ois = 2,
+	/** Response Interrupt */
+	rirbsts_intfl = 0
+} hda_rirbsts_bits_t;
 
 typedef enum {
 	/** RIRB Size Capability (H) */

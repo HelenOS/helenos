@@ -38,6 +38,7 @@
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <macros.h>
 #include <stdint.h>
 
@@ -221,15 +222,16 @@ static int hda_rirb_init(hda_t *hda)
 	hda_reg16_write(&hda->regs->rirbwp, BIT_V(uint16_t, rirbwp_rst));
 
 	/* Set RINTCNT - Qemu won't read from CORB if this is zero */
-	hda_reg16_write(&hda->regs->rintcnt, 128);
+	hda_reg16_write(&hda->regs->rintcnt, hda->ctl->rirb_entries / 2);
 
 	hda->ctl->rirb_rp = 0;
 
-	/* Start RIRB */
+	/* Start RIRB and enable RIRB interrupt */
 	ctl = hda_reg8_read(&hda->regs->rirbctl);
 	ddf_msg(LVL_NOTE, "RIRBctl (0x%x) = 0x%x",
 	    (unsigned)((void *)&hda->regs->rirbctl - (void *)hda->regs), ctl | BIT_V(uint8_t, rirbctl_run));
-	hda_reg8_write(&hda->regs->rirbctl, ctl | BIT_V(uint8_t, rirbctl_run));
+	hda_reg8_write(&hda->regs->rirbctl, ctl | BIT_V(uint8_t, rirbctl_run) |
+	    BIT_V(uint8_t, rirbctl_int));
 
 	ddf_msg(LVL_NOTE, "RIRB initialized");
 	return EOK;
@@ -326,23 +328,43 @@ static int hda_corb_write(hda_t *hda, uint32_t *data, size_t count)
 	return EOK;
 }
 
-static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
+static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data)
 {
 	size_t wp;
 	hda_rirb_entry_t resp;
 	hda_rirb_entry_t *rirb;
-	int wcnt;
 
 	rirb = (hda_rirb_entry_t *)hda->ctl->rirb_virt;
 
-	while (count > 0) {
-		wp = hda_get_rirbwp(hda);
-		ddf_msg(LVL_DEBUG2, "hda_rirb_read: wp=%d", wp);
-		while (count > 0 && hda->ctl->rirb_rp != wp) {
-			++hda->ctl->rirb_rp;
-			resp = rirb[hda->ctl->rirb_rp];
+	wp = hda_get_rirbwp(hda);
+	ddf_msg(LVL_DEBUG2, "hda_rirb_read: wp=%d", wp);
+	if (hda->ctl->rirb_rp == wp)
+		return ENOENT;
 
-			ddf_msg(LVL_DEBUG2, "RESPONSE resp=0x%x respex=0x%x",
+	++hda->ctl->rirb_rp;
+	resp = rirb[hda->ctl->rirb_rp];
+
+	ddf_msg(LVL_DEBUG2, "RESPONSE resp=0x%x respex=0x%x",
+	    resp.resp, resp.respex);
+	*data = resp;
+	return EOK;
+}
+
+static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
+{
+	hda_rirb_entry_t resp;
+	int wcnt;
+
+	wcnt = 10;
+
+	fibril_mutex_lock(&hda->ctl->solrb_lock);
+
+	while (count > 0) {
+		while (count > 0 && hda->ctl->solrb_rp != hda->ctl->solrb_wp) {
+			++hda->ctl->solrb_rp;
+			resp = hda->ctl->solrb[hda->ctl->solrb_rp];
+
+			ddf_msg(LVL_DEBUG2, "solrb RESPONSE resp=0x%x respex=0x%x",
 			    resp.resp, resp.respex);
 			if ((resp.respex & BIT_V(uint32_t, respex_unsol)) == 0) {
 				/* Solicited response */
@@ -352,17 +374,22 @@ static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 		}
 
 		if (count > 0) {
-			wcnt = rirb_wait_max;
-			while (wcnt > 0 && hda_get_rirbwp(hda) == hda->ctl->rirb_rp) {
+			while (wcnt > 0 && hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
+				fibril_mutex_unlock(&hda->ctl->solrb_lock);
 				async_usleep(100);
+				fibril_mutex_lock(&hda->ctl->solrb_lock);
 				--wcnt;
 			}
 
-			if (hda_get_rirbwp(hda) == hda->ctl->rirb_rp)
+			if (hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
+				ddf_msg(LVL_NOTE, "hda_solrb_read() time out");
+				fibril_mutex_unlock(&hda->ctl->solrb_lock);
 				return ETIMEOUT;
+			}
 		}
 	}
 
+	fibril_mutex_unlock(&hda->ctl->solrb_lock);
 	return EOK;
 }
 
@@ -370,6 +397,7 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 {
 	hda_ctl_t *ctl;
 	uint32_t gctl;
+	uint32_t intctl;
 	int cnt;
 	int rc;
 
@@ -377,7 +405,11 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	if (ctl == NULL)
 		return NULL;
 
+	fibril_mutex_initialize(&ctl->solrb_lock);
+	fibril_condvar_initialize(&ctl->solrb_cv);
+
 	hda->ctl = ctl;
+	ctl->hda = hda;
 
 	uint8_t vmaj = hda_reg8_read(&hda->regs->vmaj);
 	uint8_t vmin = hda_reg8_read(&hda->regs->vmin);
@@ -390,7 +422,17 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	}
 
 	ddf_msg(LVL_NOTE, "reg 0x%zx STATESTS = 0x%x",
-	    (void *)&hda->regs->statests - (void *)hda->regs, hda_reg16_read(&hda->regs->statests));
+	    (void *)&hda->regs->statests - (void *)hda->regs,
+		hda_reg16_read(&hda->regs->statests));
+	/**
+	  * Clear STATESTS bits so they don't generate an interrupt later
+	  * when we enable interrupts.
+	  */
+	hda_reg16_write(&hda->regs->statests, 0x7f);
+
+	ddf_msg(LVL_NOTE, "after clearing reg 0x%zx STATESTS = 0x%x",
+	    (void *)&hda->regs->statests - (void *)hda->regs,
+		hda_reg16_read(&hda->regs->statests));
 
 	gctl = hda_reg32_read(&hda->regs->gctl);
 	if ((gctl & BIT_V(uint32_t, gctl_crst)) != 0) {
@@ -436,17 +478,37 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	ddf_msg(LVL_NOTE, "STATESTS = 0x%x",
 	    hda_reg16_read(&hda->regs->statests));
 
+	async_usleep(1000*1000);
+
+	/* Enable interrupts */
+	intctl = hda_reg32_read(&hda->regs->intctl);
+	ddf_msg(LVL_NOTE, "intctl (0x%x) := 0x%x",
+	    (unsigned)((void *)&hda->regs->intctl - (void *)hda->regs),
+	    intctl | BIT_V(uint32_t, intctl_gie) | BIT_V(uint32_t, intctl_cie));
+	hda_reg32_write(&hda->regs->intctl, intctl |
+	    BIT_V(uint32_t, intctl_gie) | BIT_V(uint32_t, intctl_cie));
+
+	async_usleep(1000*1000);
+
 	rc = hda_corb_init(hda);
 	if (rc != EOK)
 		goto error;
+
+
+	async_usleep(1000*1000);
 
 	rc = hda_rirb_init(hda);
 	if (rc != EOK)
 		goto error;
 
+	async_usleep(1000*1000);
+
+	ddf_msg(LVL_NOTE, "call hda_codec_init()");
 	hda->ctl->codec = hda_codec_init(hda, 0);
-	if (hda->ctl->codec == NULL)
+	if (hda->ctl->codec == NULL) {
+		ddf_msg(LVL_NOTE, "hda_codec_init() failed");
 		goto error;
+	}
 
 	return ctl;
 error:
@@ -465,7 +527,7 @@ int hda_cmd(hda_t *hda, uint32_t verb, uint32_t *resp)
 		return rc;
 
 	if (resp != NULL) {
-		rc = hda_rirb_read(hda, &rentry, 1);
+		rc = hda_solrb_read(hda, &rentry, 1);
 		if (rc != EOK)
 			return rc;
 
@@ -480,6 +542,27 @@ void hda_ctl_fini(hda_ctl_t *ctl)
 {
 	ddf_msg(LVL_NOTE, "hda_ctl_fini()");
 	free(ctl);
+}
+
+void hda_ctl_interrupt(hda_ctl_t *ctl)
+{
+	hda_rirb_entry_t resp;
+	int rc;
+
+	while (true) {
+		rc = hda_rirb_read(ctl->hda, &resp);
+		if (rc != EOK) {
+//			ddf_msg(LVL_NOTE, "nothing in rirb");
+			break;
+		}
+
+		ddf_msg(LVL_NOTE, "writing to solrb");
+		fibril_mutex_lock(&ctl->solrb_lock);
+		ctl->solrb_wp = (ctl->solrb_wp + 1) % softrb_entries;
+		ctl->solrb[ctl->solrb_wp] = resp;
+		fibril_mutex_unlock(&ctl->solrb_lock);
+		fibril_condvar_broadcast(&ctl->solrb_cv);
+	}
 }
 
 /** @}

@@ -42,7 +42,7 @@
 #include "spec/regs.h"
 
 /** High Definition Audio driver instance */
-typedef struct {
+typedef struct hda {
 	async_sess_t *parent_sess;
 	ddf_fun_t *fun_a;
 	uint64_t rwbase;
