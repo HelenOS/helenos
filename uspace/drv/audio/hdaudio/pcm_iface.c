@@ -227,8 +227,14 @@ static int hda_start_playback(ddf_fun_t *fun, unsigned frames,
 
 static int hda_stop_playback(ddf_fun_t *fun, bool immediate)
 {
+	hda_t *hda = fun_to_hda(fun);
+
 	ddf_msg(LVL_NOTE, "hda_stop_playback()");
-	return ENOTSUP;
+	hda_stream_stop(hda->pcm_stream);
+	hda_stream_reset(hda->pcm_stream);
+
+	hda_pcm_event(hda, PCM_EVENT_PLAYBACK_TERMINATED);
+	return EOK;
 }
 
 static int hda_start_capture(ddf_fun_t *fun, unsigned frames, unsigned channels,

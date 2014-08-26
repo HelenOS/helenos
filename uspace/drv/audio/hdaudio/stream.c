@@ -176,8 +176,32 @@ static void hda_stream_set_run(hda_stream_t *stream, bool run)
 	sdregs = &stream->hda->regs->sdesc[stream->sdid];
 
 	ctl = hda_reg8_read(&sdregs->ctl1);
-	ctl = ctl | 2 /* XXX Run */;
+	if (run)
+		ctl = ctl | BIT_V(uint8_t, sdctl1_run);
+	else
+		ctl = ctl & ~BIT_V(uint8_t, sdctl1_run);
+
 	hda_reg8_write(&sdregs->ctl1, ctl);
+}
+
+static void hda_stream_reset_noinit(hda_stream_t *stream)
+{
+	uint32_t ctl;
+	hda_sdesc_regs_t *sdregs;
+
+	sdregs = &stream->hda->regs->sdesc[stream->sdid];
+
+	ctl = hda_reg8_read(&sdregs->ctl1);
+	ctl = ctl | BIT_V(uint8_t, sdctl1_srst);
+	hda_reg8_write(&sdregs->ctl1, ctl);
+
+	async_usleep(100 * 1000);
+
+//	ctl = hda_reg8_read(&sdregs->ctl1);
+//	ctl = ctl & ~BIT_V(uint8_t, sdctl1_srst);
+//	hda_reg8_write(&sdregs->ctl1, ctl);
+
+//	async_usleep(100 * 1000);
 }
 
 hda_stream_t *hda_stream_create(hda_t *hda, hda_stream_dir_t dir,
@@ -213,6 +237,7 @@ error:
 void hda_stream_destroy(hda_stream_t *stream)
 {
 	ddf_msg(LVL_NOTE, "hda_stream_destroy()");
+	hda_stream_reset_noinit(stream);
 	free(stream);
 }
 
@@ -220,6 +245,19 @@ void hda_stream_start(hda_stream_t *stream)
 {
 	ddf_msg(LVL_NOTE, "hda_stream_start()");
 	hda_stream_set_run(stream, true);
+}
+
+void hda_stream_stop(hda_stream_t *stream)
+{
+	ddf_msg(LVL_NOTE, "hda_stream_stop()");
+	hda_stream_set_run(stream, false);
+}
+
+void hda_stream_reset(hda_stream_t *stream)
+{
+	ddf_msg(LVL_NOTE, "hda_stream_reset()");
+	hda_stream_reset_noinit(stream);
+	hda_stream_desc_configure(stream);
 }
 
 /** @}

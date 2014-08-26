@@ -165,6 +165,19 @@ typedef struct {
 } hda_regs_t;
 
 typedef enum {
+	/** Descriptor Error Interrupt Enable */
+	sdctl1_deie = 4,
+	/** FIFO Error Interrupt Enable */
+	sdctl1_feie = 3,
+	/** Interrupt on Completion Enable */
+	sdctl1_ioce = 2,
+	/** Stream Run */
+	sdctl1_run = 1,
+	/** Stream Reset */
+	sdctl1_srst = 0
+} hda_sdesc_ctl1_bits;
+
+typedef enum {
 	/** Number of Output Streams Supported (H) */
 	gcap_oss_h = 15,
 	/** Number of Output Streams Supported (L) */

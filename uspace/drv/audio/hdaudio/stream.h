@@ -72,8 +72,10 @@ typedef struct hda_stream {
 } hda_stream_t;
 
 extern hda_stream_t *hda_stream_create(hda_t *, hda_stream_dir_t, uint32_t);
-extern void hda_stream_start(hda_stream_t *);
 extern void hda_stream_destroy(hda_stream_t *);
+extern void hda_stream_start(hda_stream_t *);
+extern void hda_stream_stop(hda_stream_t *);
+extern void hda_stream_reset(hda_stream_t *);
 
 #endif
 
