@@ -105,7 +105,7 @@ static int hda_ctl_reg16_set_reset(uint16_t *reg, uint16_t mask)
 /** Select an appropriate CORB/RIRB size.
  *
  * We always use the largest available size. In @a sizecap each of bits
- * 0, 1, 2 determine whether one of the supported size (0 == 2 enries,
+ * 0, 1, 2 determine whether one of the supported size (0 == 2 entries,
  * 1 == 16 entries, 2 == 256 entries) is supported. @a *selsz is set to
  * one of 0, 1, 2 on success.
  *
@@ -248,7 +248,7 @@ static int hda_rirb_init(hda_t *hda)
 		goto error;
 	}
 	rirbsz = rirbsz & ~BIT_RANGE(uint8_t, rirbsize_size_h, rirbsize_size_l);
-	rirbsz = rirbsz | selsz;
+	rirbsz = rirbsz | (selsz << rirbsize_size_l);
 
 	ddf_msg(LVL_NOTE, "Setting RIRB Size register to 0x%x", rirbsz);
 	hda_reg8_write(&hda->regs->rirbsize, rirbsz);
@@ -394,7 +394,7 @@ static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data)
 	if (hda->ctl->rirb_rp == wp)
 		return ENOENT;
 
-	++hda->ctl->rirb_rp;
+	hda->ctl->rirb_rp = (hda->ctl->rirb_rp + 1) % hda->ctl->rirb_entries;
 	resp = rirb[hda->ctl->rirb_rp];
 
 	ddf_msg(LVL_DEBUG2, "RESPONSE resp=0x%x respex=0x%x",
@@ -414,7 +414,7 @@ static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 
 	while (count > 0) {
 		while (count > 0 && hda->ctl->solrb_rp != hda->ctl->solrb_wp) {
-			++hda->ctl->solrb_rp;
+			hda->ctl->solrb_rp = (hda->ctl->solrb_rp + 1) % softrb_entries;
 			resp = hda->ctl->solrb[hda->ctl->solrb_rp];
 
 			ddf_msg(LVL_DEBUG2, "solrb RESPONSE resp=0x%x respex=0x%x",
@@ -626,6 +626,21 @@ static void hda_ctl_process_rirb(hda_ctl_t *ctl)
 void hda_ctl_interrupt(hda_ctl_t *ctl)
 {
 	hda_ctl_process_rirb(ctl);
+}
+
+void hda_ctl_dump_info(hda_ctl_t *ctl)
+{
+	ddf_msg(LVL_NOTE, "corbwp=%d, corbrp=%d",
+	    hda_reg16_read(&ctl->hda->regs->corbwp),
+	    hda_reg16_read(&ctl->hda->regs->corbrp));
+	ddf_msg(LVL_NOTE, "corbctl=0x%x, corbsts=0x%x",
+	    hda_reg8_read(&ctl->hda->regs->corbctl),
+	    hda_reg8_read(&ctl->hda->regs->corbsts));
+	ddf_msg(LVL_NOTE, "rirbwp=0x%x, soft-rirbrp=0x%x",
+	    hda_reg16_read(&ctl->hda->regs->rirbwp),
+	    ctl->rirb_rp);
+	ddf_msg(LVL_NOTE, "solrb_wp=0x%x, solrb_rp=0x%x",
+	    ctl->solrb_wp, ctl->solrb_wp);
 }
 
 /** @}

@@ -42,7 +42,6 @@
 typedef struct hda_codec {
 	hda_t *hda;
 	uint8_t address;
-	uint8_t out_aw;
 	uint8_t out_aw_list[MAX_OUT_AW];
 	int out_aw_num;
 	int out_aw_sel;

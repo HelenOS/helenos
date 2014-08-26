@@ -55,12 +55,14 @@ static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload
 
 	verb = (codec->address << 28) | (node << 20) | (vid << 8) | payload;
 	int rc = hda_cmd(codec->hda, verb, resp);
+/*
 	if (resp != NULL) {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
 		    *resp);
 	} else {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32, verb);
 	}
+*/
 	return rc;
 }
 
@@ -408,30 +410,29 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 				    aw, cfgdef);
 
 			} else if (awtype == awt_audio_output) {
-				codec->out_aw = aw;
 				codec->out_aw_list[codec->out_aw_num++] = aw;
+
+				rc = hda_get_supp_rates(codec, aw, &rates);
+				if (rc != EOK)
+					goto error;
+
+				rc = hda_get_supp_formats(codec, aw, &formats);
+				if (rc != EOK)
+					goto error;
+
+				ddf_msg(LVL_NOTE, "Output widget %d: rates=0x%x formats=0x%x",
+				    aw, rates, formats);
 			}
 
-if (0) {
 			if ((awcaps & BIT_V(uint32_t, awc_out_amp_present)) != 0)
 				hda_set_out_amp_max(codec, aw);
 
 			if ((awcaps & BIT_V(uint32_t, awc_in_amp_present)) != 0)
 				hda_set_in_amp_max(codec, aw);
-}
 		}
 	}
 
-	rc = hda_get_supp_rates(codec, codec->out_aw, &rates);
-	if (rc != EOK)
-		goto error;
-
-	rc = hda_get_supp_formats(codec, codec->out_aw, &formats);
-	if (rc != EOK)
-		goto error;
-
-	ddf_msg(LVL_NOTE, "Output widget %d: rates=0x%x formats=0x%x",
-	    codec->out_aw, rates, formats);
+	hda_ctl_dump_info(hda->ctl);
 
 	ddf_msg(LVL_NOTE, "Codec OK");
 	return codec;
