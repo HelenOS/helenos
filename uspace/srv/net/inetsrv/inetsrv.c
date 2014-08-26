@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <task.h>
 #include "addrobj.h"
 #include "icmp.h"
 #include "icmp_std.h"

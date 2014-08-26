@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <libarch/types.h>
+#include <task.h>
 
 #include "protocol.h"
 #include "client.h"

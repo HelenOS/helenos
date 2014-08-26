@@ -43,6 +43,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <task.h>
 #include "arp.h"
 #include "ethip.h"
 #include "ethip_nic.h"

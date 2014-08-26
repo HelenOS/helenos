@@ -43,7 +43,7 @@
 #include <ipc/common.h>
 #include <abi/ipc/methods.h>
 #include <abi/synch.h>
-#include <task.h>
+#include <abi/proc/task.h>
 
 typedef void (*ipc_async_callback_t)(void *, int, ipc_call_t *);
 

@@ -34,6 +34,7 @@
 #include <abi/ipc/methods.h>
 #include <inttypes.h>
 #include <io/log.h>
+#include <task.h>
 
 #include <abi/fb/visuals.h>
 #include <adt/list.h>

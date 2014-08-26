@@ -74,7 +74,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 	*stream = fdopen(fd, mode);
 }
 
-static task_id_t spawn(int argc, char *argv[])
+static task_id_t spawn(task_wait_t *wait, int argc, char *argv[])
 {
 	const char **args;
 	task_id_t id = 0;
@@ -92,7 +92,7 @@ static task_id_t spawn(int argc, char *argv[])
 	
 	args[argc] = NULL;
 	
-	rc = task_spawnv(&id, argv[0], args);
+	rc = task_spawnv(&id, wait, argv[0], args);
 	
 	free(args);
 	
@@ -151,13 +151,14 @@ int main(int argc, char *argv[])
 	 * and it should set line-buffering mode automatically.
 	 */
 	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
-	
-	task_id_t id = spawn(argc - i, argv + i);
+
+	task_wait_t wait;	
+	task_id_t id = spawn(&wait, argc - i, argv + i);
 	
 	if (id != 0) {
 		task_exit_t texit;
 		int retval;
-		task_wait(id, &texit, &retval);
+		task_wait(&wait, &texit, &retval);
 		
 		return retval;
 	}

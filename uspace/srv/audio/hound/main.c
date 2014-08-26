@@ -42,6 +42,7 @@
 #include <str_error.h>
 #include <hound/server.h>
 #include <hound/protocol.h>
+#include <task.h>
 
 #include "hound.h"
 

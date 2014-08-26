@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
  * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2014 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -93,13 +94,16 @@ int task_kill(task_id_t task_id)
  * loader API. Arguments are passed as a null-terminated array of strings.
  *
  * @param id   If not NULL, the ID of the task is stored here on success.
+ * @param wait If not NULL, setup waiting for task's return value and store
+ *             the information necessary for waiting here on success.
  * @param path Pathname of the binary to execute.
  * @param argv Command-line arguments.
  *
  * @return Zero on success or negative error code.
  *
  */
-int task_spawnv(task_id_t *id, const char *path, const char *const args[])
+int task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
+    const char *const args[])
 {
 	/* Send default files */
 	int *files[4];
@@ -124,7 +128,7 @@ int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 	
 	files[3] = NULL;
 	
-	return task_spawnvf(id, path, args, files);
+	return task_spawnvf(id, wait, path, args, files);
 }
 
 /** Create a new task by running an executable from the filesystem.
@@ -134,6 +138,8 @@ int task_spawnv(task_id_t *id, const char *path, const char *const args[])
  * Files are passed as null-terminated array of pointers to fdi_node_t.
  *
  * @param id    If not NULL, the ID of the task is stored here on success.
+ * @param wait  If not NULL, setup waiting for task's return value and store
+ *              the information necessary for waiting here on success.
  * @param path  Pathname of the binary to execute.
  * @param argv  Command-line arguments.
  * @param files Standard files to use.
@@ -141,13 +147,15 @@ int task_spawnv(task_id_t *id, const char *path, const char *const args[])
  * @return Zero on success or negative error code.
  *
  */
-int task_spawnvf(task_id_t *id, const char *path, const char *const args[],
-    int *const files[])
+int task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
+    const char *const args[], int *const files[])
 {
 	/* Connect to a program loader. */
 	loader_t *ldr = loader_connect();
 	if (ldr == NULL)
 		return EREFUSED;
+	
+	bool wait_initialized = false;
 	
 	/* Get task ID. */
 	task_id_t task_id;
@@ -180,6 +188,14 @@ int task_spawnvf(task_id_t *id, const char *path, const char *const args[],
 	if (rc != EOK)
 		goto error;
 	
+	/* Setup waiting for return value if needed */
+	if (wait) {
+		rc = task_setup_wait(task_id, wait);
+		if (rc != EOK)
+			goto error;
+		wait_initialized = true;
+	}
+	
 	/* Run it. */
 	rc = loader_run(ldr);
 	if (rc != EOK)
@@ -192,6 +208,9 @@ int task_spawnvf(task_id_t *id, const char *path, const char *const args[],
 	return EOK;
 	
 error:
+	if (wait_initialized)
+		task_cancel_wait(wait);
+	
 	/* Error exit */
 	loader_abort(ldr);
 	return rc;
@@ -203,6 +222,8 @@ error:
  * loader API. Arguments are passed in a va_list.
  *
  * @param id   If not NULL, the ID of the task is stored here on success.
+ * @param wait If not NULL, setup waiting for task's return value and store
+ *             the information necessary for waiting here on success.
  * @param path Pathname of the binary to execute.
  * @param cnt  Number of arguments.
  * @param ap   Command-line arguments.
@@ -210,7 +231,8 @@ error:
  * @return Zero on success or negative error code.
  *
  */
-int task_spawn(task_id_t *task_id, const char *path, int cnt, va_list ap)
+int task_spawn(task_id_t *task_id, task_wait_t *wait, const char *path,
+    int cnt, va_list ap)
 {
 	/* Allocate argument list. */
 	const char **arglist = malloc(cnt * sizeof(const char *));
@@ -226,7 +248,7 @@ int task_spawn(task_id_t *task_id, const char *path, int cnt, va_list ap)
 	} while (arg != NULL);
 	
 	/* Spawn task. */
-	int rc = task_spawnv(task_id, path, arglist);
+	int rc = task_spawnv(task_id, wait, path, arglist);
 	
 	/* Free argument list. */
 	free(arglist);
@@ -239,13 +261,15 @@ int task_spawn(task_id_t *task_id, const char *path, int cnt, va_list ap)
  * loader API. Arguments are passed as a null-terminated list of arguments.
  *
  * @param id   If not NULL, the ID of the task is stored here on success.
+ * @param wait If not NULL, setup waiting for task's return value and store
+ *             the information necessary for waiting here on success.
  * @param path Pathname of the binary to execute.
  * @param ...  Command-line arguments.
  *
  * @return Zero on success or negative error code.
  *
  */
-int task_spawnl(task_id_t *task_id, const char *path, ...)
+int task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...)
 {
 	/* Count the number of arguments. */
 	
@@ -261,27 +285,98 @@ int task_spawnl(task_id_t *task_id, const char *path, ...)
 	va_end(ap);
 	
 	va_start(ap, path);
-	int rc = task_spawn(task_id, path, cnt, ap);
+	int rc = task_spawn(task_id, wait, path, cnt, ap);
 	va_end(ap);
 	
 	return rc;
 }
 
-int task_wait(task_id_t id, task_exit_t *texit, int *retval)
+/** Setup waiting for a task.
+ * 
+ * If the task finishes after this call succeeds, it is guaranteed that
+ * task_wait(wait, &texit, &retval) will return correct return value for
+ * the task.
+ *
+ * @param id   ID of the task to setup waiting for.
+ * @param wait Information necessary for the later task_wait call is stored here.
+ *
+ * @return EOK on success, else error code.
+ */
+int task_setup_wait(task_id_t id, task_wait_t *wait)
+{
+	async_exch_t *exch = async_exchange_begin(session_ns);
+	wait->aid = async_send_2(exch, NS_TASK_WAIT, LOWER32(id), UPPER32(id),
+	    &wait->result);
+	async_exchange_end(exch);
+
+	return EOK;
+}
+
+/** Cancel waiting for a task.
+ *
+ * This can be called *instead of* task_wait if the caller is not interested
+ * in waiting for the task anymore.
+ *
+ * This function cannot be called if the task_wait was already called.
+ *
+ * @param wait task_wait_t previously initialized by task_setup_wait.
+ */
+void task_cancel_wait(task_wait_t *wait) {
+	async_forget(wait->aid);
+}
+
+/** Wait for a task to finish.
+ *
+ * This function returns correct values even if the task finished in
+ * between task_setup_wait and this task_wait call.
+ *
+ * This function cannot be called more than once with the same task_wait_t
+ * (it can be reused, but must be reinitialized with task_setup_wait first)
+ *
+ * @param wait   task_wait_t previously initialized by task_setup_wait.
+ * @param texit  Store type of task exit here.
+ * @param retval Store return value of the task here.
+ * 
+ * @return EOK on success, else error code.
+ */
+int task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 {
 	assert(texit);
 	assert(retval);
-	
-	async_exch_t *exch = async_exchange_begin(session_ns);
-	sysarg_t te, rv;
-	int rc = (int) async_req_2_2(exch, NS_TASK_WAIT, LOWER32(id),
-	    UPPER32(id), &te, &rv);
-	async_exchange_end(exch);
-	
-	*texit = te;
-	*retval = rv;
-	
+
+	sysarg_t rc;
+	async_wait_for(wait->aid, &rc);
+
+	if (rc == EOK) {
+		*texit = IPC_GET_ARG1(wait->result);
+		*retval = IPC_GET_ARG2(wait->result);
+	}
+
 	return rc;
+}
+
+/** Wait for a task to finish by its id.
+ *
+ * Note that this will fail with ENOENT if the task id is not registered in ns
+ * (e.g. if the task finished). If you are spawning a task and need to wait
+ * for its completion, use wait parameter of the task_spawn* functions instead
+ * to prevent a race where the task exits before you may have a chance to wait
+ * wait for it.
+ *
+ * @param id ID of the task to wait for.
+ * @param texit  Store type of task exit here.
+ * @param retval Store return value of the task here.
+ * 
+ * @return EOK on success, else error code.
+ */
+int task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)
+{
+	task_wait_t wait;
+	int rc = task_setup_wait(id, &wait);
+	if (rc != EOK)
+		return rc;
+	
+	return task_wait(&wait, texit, retval);
 }
 
 int task_retval(int val)

@@ -164,8 +164,9 @@ int main(int argc, char *argv[])
 		welcome_msg_print();
 	
 	task_id_t id;
+	task_wait_t twait;
 	
-	int rc = task_spawnv(&id, cmd, (const char * const *) args);
+	int rc = task_spawnv(&id, &twait, cmd, (const char * const *) args);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));
@@ -174,7 +175,7 @@ int main(int argc, char *argv[])
 	
 	task_exit_t texit;
 	int retval;
-	rc = task_wait(id, &texit, &retval);
+	rc = task_wait(&twait, &texit, &retval);
 	if (rc != EOK) {
 		printf("%s: Error waiting for %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));

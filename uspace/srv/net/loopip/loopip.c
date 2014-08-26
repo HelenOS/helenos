@@ -43,6 +43,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <task.h>
 
 #define NAME  "loopip"
 

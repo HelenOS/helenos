@@ -171,7 +171,8 @@ static int srv_startl(const char *path, ...)
 	
 	va_start(ap, path);
 	task_id_t id;
-	int rc = task_spawn(&id, path, cnt, ap);
+	task_wait_t wait;
+	int rc = task_spawn(&id, &wait, path, cnt, ap);
 	va_end(ap);
 	
 	if (rc != EOK) {
@@ -188,7 +189,7 @@ static int srv_startl(const char *path, ...)
 	
 	task_exit_t texit;
 	int retval;
-	rc = task_wait(id, &texit, &retval);
+	rc = task_wait(&wait, &texit, &retval);
 	if (rc != EOK) {
 		printf("%s: Error waiting for %s (%s)\n", NAME, path,
 		    str_error(rc));
@@ -252,7 +253,8 @@ static int gui_start(const char *app, const char *srv_name)
 	printf("%s: Spawning %s %s\n", NAME, app, winreg);
 	
 	task_id_t id;
-	int rc = task_spawnl(&id, app, app, winreg, NULL);
+	task_wait_t wait;
+	int rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
 		    winreg, str_error(rc));
@@ -261,7 +263,7 @@ static int gui_start(const char *app, const char *srv_name)
 	
 	task_exit_t texit;
 	int retval;
-	rc = task_wait(id, &texit, &retval);
+	rc = task_wait(&wait, &texit, &retval);
 	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL)) {
 		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
 		    app, str_error(rc));
@@ -277,7 +279,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 		printf("%s: Spawning %s %s %s --msg --wait -- %s\n", NAME,
 		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 		
-		int rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, svc,
+		int rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
 		    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
 		if (rc != EOK)
 			printf("%s: Error spawning %s %s %s --msg --wait -- %s\n",
@@ -286,7 +288,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 		printf("%s: Spawning %s %s %s --wait -- %s\n", NAME,
 		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 		
-		int rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, svc,
+		int rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
 		    LOCFS_MOUNT_POINT, "--wait", "--", app, NULL);
 		if (rc != EOK)
 			printf("%s: Error spawning %s %s %s --wait -- %s\n",
