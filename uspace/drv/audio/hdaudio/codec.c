@@ -48,9 +48,20 @@ static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload
     uint32_t *resp)
 {
 	uint32_t verb;
+	uint32_t myresp;
+
+	if (resp == NULL)
+		resp = &myresp;
 
 	verb = (codec->address << 28) | (node << 20) | (vid << 8) | payload;
-	return hda_cmd(codec->hda, verb, resp);
+	int rc = hda_cmd(codec->hda, verb, resp);
+	if (resp != NULL) {
+		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
+		    *resp);
+	} else {
+		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32, verb);
+	}
+	return rc;
 }
 
 static int hda_get_parameter(hda_codec_t *codec, int node, hda_param_id_t param,
@@ -92,6 +103,27 @@ static int hda_get_fgrp_type(hda_codec_t *codec, int node, bool *unsol,
 	*type = BIT_RANGE_EXTRACT(uint32_t, fgrpt_type_h, fgrpt_type_l, resp);
 
 	return EOK;
+}
+
+static int hda_get_clist_len(hda_codec_t *codec, int node, bool *longform,
+    int *items)
+{
+	int rc;
+	uint32_t resp;
+
+	rc = hda_get_parameter(codec, node, hda_clist_len, &resp);
+	if (rc != EOK)
+		return rc;
+
+//	ddf_msg(LVL_NOTE, "hda_get_clist_len: resp=0x%x", resp);
+	*longform = resp & BIT_V(uint32_t, cll_longform);
+	*items = resp & BIT_RANGE_EXTRACT(uint32_t, cll_len_h, cll_len_l, resp);
+	return EOK;
+}
+
+static int hda_get_clist_entry(hda_codec_t *codec, int node, int n, uint32_t *resp)
+{
+	return hda_ccmd(codec, node, hda_clist_entry_get, n, resp);
 }
 
 /** Get Suppported PCM Size, Rates */
@@ -143,15 +175,27 @@ static int hda_get_cfg_def(hda_codec_t *codec, int node, uint32_t *cfgdef)
 	return hda_ccmd(codec, node, hda_cfg_def_get, 0, cfgdef);
 }
 
+static int hda_get_conn_sel(hda_codec_t *codec, int node, uint32_t *conn)
+{
+	return hda_ccmd(codec, node, hda_conn_sel_get, 0, conn);
+}
+
 /** Get Amplifier Gain / Mute  */
 static int hda_get_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload,
     uint32_t *resp)
 {
-	return hda_ccmd(codec, node, hda_amp_gain_mute_get, payload, resp);
+//	ddf_msg(LVL_NOTE, "hda_get_amp_gain_mute(codec, %d, %x)",
+//	    node, payload);
+	int rc = hda_ccmd(codec, node, hda_amp_gain_mute_get, payload, resp);
+//	ddf_msg(LVL_NOTE, "hda_get_amp_gain_mute(codec, %d, %x, resp=%x)",
+//	    node, payload, *resp);
+	return rc;
 }
 
 static int hda_set_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload)
 {
+//	ddf_msg(LVL_NOTE, "hda_set_amp_gain_mute(codec, %d, %x)",
+//	    node, payload);
 	return hda_ccmd(codec, node, hda_amp_gain_mute_set, payload, NULL);
 }
 
@@ -175,10 +219,10 @@ static int hda_set_out_amp_max(hda_codec_t *codec, uint8_t aw)
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_NOTE, "out amp caps 0x%x "
-	    "gain/mute: L:0x%x R:0x%x",
-	    ampcaps, gmleft, gmright);
 	offset = ampcaps & 0x7f;
+	ddf_msg(LVL_NOTE, "out amp caps 0x%x (offset=0x%x)"
+	    "gain/mute: L:0x%x R:0x%x",
+	    ampcaps, offset, gmleft, gmright);
 
 	rc = hda_set_amp_gain_mute(codec, aw, 0xb000 + offset);
 	if (rc != EOK)
@@ -202,8 +246,8 @@ static int hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_NOTE, "in amp caps 0x%x ", ampcaps);
 	offset = ampcaps & 0x7f;
+	ddf_msg(LVL_NOTE, "in amp caps 0x%x (offset=0x%x)", ampcaps, offset);
 
 	for (i = 0; i < 15; i++) {
 		rc = hda_get_amp_gain_mute(codec, aw, 0x0000 + i, &gmleft);
@@ -224,6 +268,68 @@ static int hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
 
 	return EOK;
 error:
+	return rc;
+}
+
+static int hda_clist_dump(hda_codec_t *codec, uint8_t aw)
+{
+	int rc;
+	bool longform;
+	int len;
+	uint32_t resp;
+	uint32_t mask;
+	uint32_t cidx;
+	int shift;
+	int epresp;
+	int i, j;
+
+	ddf_msg(LVL_NOTE, "Connections for widget %d:", aw);
+
+	rc = hda_get_clist_len(codec, aw, &longform, &len);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed getting connection list length.");
+		return rc;
+	}
+
+	if (len > 1) {
+		rc = hda_get_conn_sel(codec, aw, &cidx);
+		if (rc != EOK) {
+			ddf_msg(LVL_ERROR, "Failed getting connection select");
+			return rc;
+		}
+	} else {
+		cidx = 0;
+	}
+
+//	ddf_msg(LVL_NOTE, "longform:%d len:%d", longform, len);
+
+	if (longform) {
+		epresp = 2;
+		mask = 0xffff;
+		shift = 16;
+	} else {
+		epresp = 4;
+		mask = 0xff;
+		shift = 8;
+	}
+
+	i = 0;
+	while (i < len) {
+		rc = hda_get_clist_entry(codec, aw, i, &resp);
+		if (rc != EOK) {
+			ddf_msg(LVL_ERROR, "Failed getting connection list entry.");
+			return rc;
+		}
+
+		for (j = 0; j < epresp && i < len; j++) {
+			ddf_msg(LVL_NOTE, "<- %d%s", resp & mask,
+			    (int)cidx == i ? " *** current *** " : "");
+			resp = resp << shift;
+			++i;
+		}
+
+	}
+
 	return rc;
 }
 
@@ -280,6 +386,20 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 			ddf_msg(LVL_NOTE, "aw %d: type=0x%x caps=0x%x",
 			    aw, awtype, awcaps);
 
+			switch (awtype) {
+			case awt_audio_input:
+			case awt_audio_mixer:
+			case awt_audio_selector:
+			case awt_pin_complex:
+			case awt_power_widget:
+				rc = hda_clist_dump(codec, aw);
+				if (rc != EOK)
+					goto error;
+				break;
+			default:
+				break;
+			}
+
 			if (awtype == awt_pin_complex) {
 				rc = hda_get_cfg_def(codec, aw, &cfgdef);
 				if (rc != EOK)
@@ -292,11 +412,13 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 				codec->out_aw_list[codec->out_aw_num++] = aw;
 			}
 
+if (0) {
 			if ((awcaps & BIT_V(uint32_t, awc_out_amp_present)) != 0)
 				hda_set_out_amp_max(codec, aw);
 
 			if ((awcaps & BIT_V(uint32_t, awc_in_amp_present)) != 0)
 				hda_set_in_amp_max(codec, aw);
+}
 		}
 	}
 

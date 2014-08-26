@@ -234,7 +234,7 @@ typedef enum {
 	/** Output Amplifier Capabilities */
 	hda_out_amp_caps = 0x12,
 	/** Connection List Length */
-	hda_clist_len = 0xe,
+	hda_clist_len = 0x0e,
 	/** Supported Power States */
 	hda_supp_pwr_states = 0x0f,
 	/** Processing Capabilities */
@@ -274,6 +274,16 @@ typedef enum {
 	/** Vendor Defined Modem Function Group */
 	fgrp_vdmfg = 0x02
 } hda_fgrp_type_t;
+
+/** Connection List Length Response bits */
+typedef enum {
+	/** Long Form */
+	cll_longform = 7,
+	/** Connection List Length (H) */
+	cll_len_h = 6,
+	/** Connection List Length (L) */
+	cll_len_l = 0
+} hda_clist_len_bits_t;
 
 /** Audio Widget Capabilities Bits */
 typedef enum {
