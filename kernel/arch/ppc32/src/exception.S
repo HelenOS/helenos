@@ -61,7 +61,7 @@
 	
 	2:
 	
-	subi sp, sp, 164
+	subi sp, sp, 176
 	stw r0, 8(sp)
 	stw r2, 12(sp)
 	stw r3, 16(sp)
