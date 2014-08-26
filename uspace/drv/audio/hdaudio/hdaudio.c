@@ -36,6 +36,7 @@
 #include <bitops.h>
 #include <ddi.h>
 #include <device/hw_res_parsed.h>
+#include <irc.h>
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
@@ -253,6 +254,12 @@ static int hda_dev_add(ddf_dev_t *dev)
 	}
 
 	ddf_msg(LVL_NOTE, "range0.base=%x", hdaudio_irq_pio_ranges[0].base);
+
+	rc = irc_enable_interrupt(res.irqs.irqs[0]);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed enabling interrupt. (%d)", rc);
+		goto error;
+	}
 
 	rc = register_interrupt_handler(dev, res.irqs.irqs[0],
 	    hdaudio_interrupt, &irq_code);

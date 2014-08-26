@@ -37,10 +37,15 @@
 
 #include "hdaudio.h"
 
+#define MAX_OUT_AW 256
+
 typedef struct hda_codec {
 	hda_t *hda;
 	uint8_t address;
 	uint8_t out_aw;
+	uint8_t out_aw_list[MAX_OUT_AW];
+	int out_aw_num;
+	int out_aw_sel;
 } hda_codec_t;
 
 extern hda_codec_t *hda_codec_init(hda_t *, uint8_t);

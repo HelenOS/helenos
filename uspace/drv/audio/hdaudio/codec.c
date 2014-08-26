@@ -155,6 +155,78 @@ static int hda_set_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload)
 	return hda_ccmd(codec, node, hda_amp_gain_mute_set, payload, NULL);
 }
 
+static int hda_set_out_amp_max(hda_codec_t *codec, uint8_t aw)
+{
+	uint32_t ampcaps;
+	uint32_t gmleft, gmright;
+	uint32_t offset;
+	int rc;
+
+	rc = hda_get_parameter(codec, aw,
+	    hda_out_amp_caps, &ampcaps);
+	if (rc != EOK)
+		goto error;
+
+	rc = hda_get_amp_gain_mute(codec, aw, 0x8000, &gmleft);
+	if (rc != EOK)
+		goto error;
+
+	rc = hda_get_amp_gain_mute(codec, aw, 0xc000, &gmright);
+	if (rc != EOK)
+		goto error;
+
+	ddf_msg(LVL_NOTE, "out amp caps 0x%x "
+	    "gain/mute: L:0x%x R:0x%x",
+	    ampcaps, gmleft, gmright);
+	offset = ampcaps & 0x7f;
+
+	rc = hda_set_amp_gain_mute(codec, aw, 0xb000 + offset);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
+static int hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
+{
+	uint32_t ampcaps;
+	uint32_t gmleft, gmright;
+	uint32_t offset;
+	int i;
+	int rc;
+
+	rc = hda_get_parameter(codec, aw,
+	    hda_out_amp_caps, &ampcaps);
+	if (rc != EOK)
+		goto error;
+
+	ddf_msg(LVL_NOTE, "in amp caps 0x%x ", ampcaps);
+	offset = ampcaps & 0x7f;
+
+	for (i = 0; i < 15; i++) {
+		rc = hda_get_amp_gain_mute(codec, aw, 0x0000 + i, &gmleft);
+		if (rc != EOK)
+			goto error;
+
+		rc = hda_get_amp_gain_mute(codec, aw, 0x4000 + i, &gmright);
+		if (rc != EOK)
+			goto error;
+
+		ddf_msg(LVL_NOTE, "in:%d gain/mute: L:0x%x R:0x%x",
+		    i, gmleft, gmright);
+
+		rc = hda_set_amp_gain_mute(codec, aw, 0x7000 + (i << 8) + offset);
+		if (rc != EOK)
+			goto error;
+	}
+
+	return EOK;
+error:
+	return rc;
+}
+
 hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 {
 	hda_codec_t *codec;
@@ -217,33 +289,14 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 
 			} else if (awtype == awt_audio_output) {
 				codec->out_aw = aw;
+				codec->out_aw_list[codec->out_aw_num++] = aw;
 			}
 
-			if ((awcaps & BIT_V(uint32_t, awc_out_amp_present)) != 0) {
-				uint32_t ampcaps;
-				uint32_t gmleft, gmright;
+			if ((awcaps & BIT_V(uint32_t, awc_out_amp_present)) != 0)
+				hda_set_out_amp_max(codec, aw);
 
-				rc = hda_get_parameter(codec, aw,
-				    hda_out_amp_caps, &ampcaps);
-				if (rc != EOK)
-					goto error;
-
-				rc = hda_get_amp_gain_mute(codec, aw, 0x8000, &gmleft);
-				if (rc != EOK)
-					goto error;
-
-				rc = hda_get_amp_gain_mute(codec, aw, 0xc000, &gmright);
-				if (rc != EOK)
-					goto error;
-
-				ddf_msg(LVL_NOTE, "out amp caps 0x%x "
-				    "gain/mute: L:0x%x R:0x%x",
-				    ampcaps, gmleft, gmright);
-
-				rc = hda_set_amp_gain_mute(codec, aw, 0xb04a);
-				if (rc != EOK)
-					goto error;
-			}
+			if ((awcaps & BIT_V(uint32_t, awc_in_amp_present)) != 0)
+				hda_set_in_amp_max(codec, aw);
 		}
 	}
 
@@ -274,23 +327,29 @@ void hda_codec_fini(hda_codec_t *codec)
 int hda_out_converter_setup(hda_codec_t *codec, uint8_t sid)
 {
 	int rc;
+	int out_aw;
+	int i;
 
-	/* XXX Choose appropriate parameters */
-	uint32_t fmt;
-	/* 48 kHz, 16-bits, 1 channel */
-	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l);
+	for (i = 0; i < codec->out_aw_num; i++) {
+		out_aw = codec->out_aw_list[i];
 
-	/* Configure converter */
+		/* XXX Choose appropriate parameters */
+		uint32_t fmt;
+		/* 48 kHz, 16-bits, 1 channel */
+		fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l);
 
-	ddf_msg(LVL_NOTE, "Configure converter format");
-	rc = hda_set_converter_fmt(codec, codec->out_aw, fmt);
-	if (rc != EOK)
-		goto error;
+		/* Configure converter */
 
-	ddf_msg(LVL_NOTE, "Configure converter stream, channel");
-	rc = hda_set_converter_ctl(codec, codec->out_aw, sid, 0);
-	if (rc != EOK)
-		goto error;
+		ddf_msg(LVL_NOTE, "Configure converter format");
+		rc = hda_set_converter_fmt(codec, out_aw, fmt);
+		if (rc != EOK)
+			goto error;
+
+		ddf_msg(LVL_NOTE, "Configure converter stream, channel");
+		rc = hda_set_converter_ctl(codec, out_aw, sid, 0);
+		if (rc != EOK)
+			goto error;
+	}
 
 	return EOK;
 error:

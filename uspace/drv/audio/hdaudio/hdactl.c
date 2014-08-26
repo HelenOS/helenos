@@ -54,6 +54,8 @@ enum {
 	rirb_wait_max = 100
 };
 
+static void hda_ctl_process_rirb(hda_ctl_t *);
+
 /** Perform set-reset handshake on a 16-bit register.
  *
  * The bit(s) specified in the mask are written as 1, then we wait
@@ -406,20 +408,16 @@ static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 	hda_rirb_entry_t resp;
 	int wcnt;
 
-	ddf_msg(LVL_NOTE, "hda_solrb_read()");
-	wcnt = 100;
+	ddf_msg(LVL_DEBUG, "hda_solrb_read()");
 
-	ddf_msg(LVL_NOTE, "hda_solrb_read() - lock mutex");
 	fibril_mutex_lock(&hda->ctl->solrb_lock);
 
 	while (count > 0) {
-		ddf_msg(LVL_NOTE, "hda_solrb_read() - while(1)");
 		while (count > 0 && hda->ctl->solrb_rp != hda->ctl->solrb_wp) {
-			ddf_msg(LVL_NOTE, "hda_solrb_read() - while(2)");
 			++hda->ctl->solrb_rp;
 			resp = hda->ctl->solrb[hda->ctl->solrb_rp];
 
-			ddf_msg(LVL_NOTE, "solrb RESPONSE resp=0x%x respex=0x%x",
+			ddf_msg(LVL_DEBUG2, "solrb RESPONSE resp=0x%x respex=0x%x",
 			    resp.resp, resp.respex);
 			if ((resp.respex & BIT_V(uint32_t, respex_unsol)) == 0) {
 				/* Solicited response */
@@ -429,30 +427,23 @@ static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 		}
 
 		if (count > 0) {
-			ddf_msg(LVL_NOTE, "hda_solrb_read() - count > 0");
+			wcnt = 100;
 			while (wcnt > 0 && hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
-				ddf_msg(LVL_NOTE, "hda_solrb_read() - while(3), wcnt=%d", wcnt);
 				fibril_mutex_unlock(&hda->ctl->solrb_lock);
-				ddf_msg(LVL_NOTE, "hda_solrb_read() - sleep");
 				async_usleep(10000);
-				ddf_msg(LVL_NOTE, "hda_solrb_read() - re-lock");
 				fibril_mutex_lock(&hda->ctl->solrb_lock);
 				--wcnt;
 			}
 
 			if (hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
+				ddf_msg(LVL_NOTE, "hda_solrb_read() - last ditch effort process RIRB");
+				fibril_mutex_unlock(&hda->ctl->solrb_lock);
+				hda_ctl_process_rirb(hda->ctl);
+				fibril_mutex_lock(&hda->ctl->solrb_lock);
+			}
+
+			if (hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
 				ddf_msg(LVL_NOTE, "hda_solrb_read() time out");
-				ddf_msg(LVL_NOTE, "corbwp=%d corbrp=%d",
-				    hda_reg16_read(&hda->regs->corbwp),
-				    hda_reg16_read(&hda->regs->corbrp));
-				ddf_msg(LVL_NOTE, "corbctl=0x%x, corbsts=0x%x",
-				    hda_reg8_read(&hda->regs->corbctl),
-				    hda_reg8_read(&hda->regs->corbsts));
-				ddf_msg(LVL_NOTE, "rirbwp=%d",
-				    hda_reg16_read(&hda->regs->rirbwp));
-				ddf_msg(LVL_NOTE, "rirbctl=0x%x, rirbsts=0x%x",
-				    hda_reg8_read(&hda->regs->rirbctl),
-				    hda_reg8_read(&hda->regs->rirbsts));
 				fibril_mutex_unlock(&hda->ctl->solrb_lock);
 				return ETIMEOUT;
 			}
@@ -460,7 +451,6 @@ static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 	}
 
 	fibril_mutex_unlock(&hda->ctl->solrb_lock);
-	ddf_msg(LVL_NOTE, "hda_solrb_read() success");
 	return EOK;
 }
 
@@ -612,7 +602,7 @@ void hda_ctl_fini(hda_ctl_t *ctl)
 	free(ctl);
 }
 
-void hda_ctl_interrupt(hda_ctl_t *ctl)
+static void hda_ctl_process_rirb(hda_ctl_t *ctl)
 {
 	hda_rirb_entry_t resp;
 	int rc;
@@ -624,13 +614,18 @@ void hda_ctl_interrupt(hda_ctl_t *ctl)
 			break;
 		}
 
-		ddf_msg(LVL_NOTE, "writing to solrb");
+		ddf_msg(LVL_DEBUG2, "writing to solrb");
 		fibril_mutex_lock(&ctl->solrb_lock);
 		ctl->solrb_wp = (ctl->solrb_wp + 1) % softrb_entries;
 		ctl->solrb[ctl->solrb_wp] = resp;
 		fibril_mutex_unlock(&ctl->solrb_lock);
 		fibril_condvar_broadcast(&ctl->solrb_cv);
 	}
+}
+
+void hda_ctl_interrupt(hda_ctl_t *ctl)
+{
+	hda_ctl_process_rirb(ctl);
 }
 
 /** @}
