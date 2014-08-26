@@ -49,6 +49,7 @@ typedef struct hda {
 	size_t rwsize;
 	hda_regs_t *regs;
 	struct hda_ctl *ctl;
+	struct hda_stream *pcm_stream;
 } hda_t;
 
 #endif

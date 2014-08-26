@@ -258,33 +258,6 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 	ddf_msg(LVL_NOTE, "Output widget %d: rates=0x%x formats=0x%x",
 	    codec->out_aw, rates, formats);
 
-	/* XXX Choose appropriate parameters */
-	uint32_t fmt;
-	/* 48 kHz, 16-bits, 1 channel */
-	fmt = fmt_bits_16 << fmt_bits_l;
-
-	/* Create stream */
-	ddf_msg(LVL_NOTE, "Create stream");
-	hda_stream_t *stream;
-	stream = hda_stream_create(hda, sdir_output, fmt);
-	if (stream == NULL)
-		goto error;
-
-	/* Configure converter */
-
-	ddf_msg(LVL_NOTE, "Configure converter format");
-	rc = hda_set_converter_fmt(codec, codec->out_aw, fmt);
-	if (rc != EOK)
-		goto error;
-
-	ddf_msg(LVL_NOTE, "Configure converter stream, channel");
-	rc = hda_set_converter_ctl(codec, codec->out_aw, stream->sid, 0);
-	if (rc != EOK)
-		goto error;
-
-	ddf_msg(LVL_NOTE, "Start stream");
-	hda_stream_start(stream);
-
 	ddf_msg(LVL_NOTE, "Codec OK");
 	return codec;
 error:
@@ -296,6 +269,32 @@ void hda_codec_fini(hda_codec_t *codec)
 {
 	ddf_msg(LVL_NOTE, "hda_codec_fini()");
 	free(codec);
+}
+
+int hda_out_converter_setup(hda_codec_t *codec, uint8_t sid)
+{
+	int rc;
+
+	/* XXX Choose appropriate parameters */
+	uint32_t fmt;
+	/* 48 kHz, 16-bits, 1 channel */
+	fmt = fmt_bits_16 << fmt_bits_l;
+
+	/* Configure converter */
+
+	ddf_msg(LVL_NOTE, "Configure converter format");
+	rc = hda_set_converter_fmt(codec, codec->out_aw, fmt);
+	if (rc != EOK)
+		goto error;
+
+	ddf_msg(LVL_NOTE, "Configure converter stream, channel");
+	rc = hda_set_converter_ctl(codec, codec->out_aw, sid, 0);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
 }
 
 /** @}

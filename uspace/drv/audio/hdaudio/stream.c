@@ -101,7 +101,7 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 		k = 0;
 		for (j = 0; j < stream->bufsize / 2; j++) {
 			int16_t *bp = stream->buf[i];
-			bp[j] = (k > 128) ? -10000 : 10000;
+			bp[j] = (k > 128) ? -100 : 100;
 			++k;
 			if (k >= 256)
 				k = 0;

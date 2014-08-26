@@ -39,6 +39,12 @@
 #include <pcm/sample_format.h>
 #include <stdbool.h>
 
+#include "codec.h"
+#include "hdactl.h"
+#include "hdaudio.h"
+#include "spec/fmt.h"
+#include "stream.h"
+
 static int hda_get_info_str(ddf_fun_t *, const char **);
 static unsigned hda_query_cap(ddf_fun_t *, audio_cap_t);
 static int hda_test_format(ddf_fun_t *, unsigned *, unsigned *,
@@ -73,29 +79,96 @@ audio_pcm_iface_t hda_pcm_iface = {
 	.stop_capture = hda_stop_capture
 };
 
+enum {
+	max_buffer_size = 65536 /* XXX this is completely arbitrary */
+};
+
+static hda_t *fun_to_hda(ddf_fun_t *fun)
+{
+	return (hda_t *)ddf_dev_data_get(ddf_fun_get_dev(fun));
+}
+
 static int hda_get_info_str(ddf_fun_t *fun, const char **name)
 {
 	ddf_msg(LVL_NOTE, "hda_get_info_str()");
-	return ENOTSUP;
+	if (name)
+		*name = "High Definition Audio";
+	return EOK;
 }
 
 static unsigned hda_query_cap(ddf_fun_t *fun, audio_cap_t cap)
 {
-	ddf_msg(LVL_NOTE, "hda_query_cap()");
-	return ENOTSUP;
+	ddf_msg(LVL_NOTE, "hda_query_cap(%d)", cap);
+	switch (cap) {
+	case AUDIO_CAP_PLAYBACK:
+	case AUDIO_CAP_INTERRUPT:
+		return 1;
+	case AUDIO_CAP_BUFFER_POS:
+	case AUDIO_CAP_CAPTURE:
+		return 0;
+	case AUDIO_CAP_MAX_BUFFER:
+		return max_buffer_size;
+	case AUDIO_CAP_INTERRUPT_MIN_FRAMES:
+		return 128;
+	case AUDIO_CAP_INTERRUPT_MAX_FRAMES:
+		return 16384;
+	default:
+		return ENOTSUP;
+	}
 }
 
 static int hda_test_format(ddf_fun_t *fun, unsigned *channels,
     unsigned *rate, pcm_sample_format_t *format)
 {
-	ddf_msg(LVL_NOTE, "hda_test_format()");
-	return ENOTSUP;
+	int rc = EOK;
+
+	ddf_msg(LVL_NOTE, "hda_test_format(%u, %u, %d)\n",
+	    *channels, *rate, *format);
+
+	if (*channels != 1) {
+		*channels = 1;
+		rc = ELIMIT;
+	}
+
+	if (*format != PCM_SAMPLE_SINT16_LE) {
+		*format = PCM_SAMPLE_SINT16_LE;
+		rc = ELIMIT;
+	}
+
+	if (*rate != 48000) {
+		*rate = 48000;
+		rc = ELIMIT;
+	}
+
+	return rc;
 }
 
 static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 {
-	ddf_msg(LVL_NOTE, "hda_get_buffer()");
-	return ENOTSUP;
+	hda_t *hda = fun_to_hda(fun);
+
+	ddf_msg(LVL_NOTE, "hda_get_buffer(): hda=%p", hda);
+	if (hda->pcm_stream != NULL)
+		return EBUSY;
+
+	/* XXX Choose appropriate parameters */
+	uint32_t fmt;
+	/* 48 kHz, 16-bits, 1 channel */
+	fmt = fmt_bits_16 << fmt_bits_l;
+
+	ddf_msg(LVL_NOTE, "hda_get_buffer() - create stream");
+	hda->pcm_stream = hda_stream_create(hda, sdir_output, fmt);
+	if (hda->pcm_stream == NULL)
+		return EIO;
+
+	ddf_msg(LVL_NOTE, "hda_get_buffer() - fill info");
+	/* XXX This is only one buffer */
+	*buffer = hda->pcm_stream->buf[0];
+	*size = hda->pcm_stream->bufsize;
+
+	ddf_msg(LVL_NOTE, "hda_get_buffer() retturing EOK, buffer=%p, size=%zu",
+	    *buffer, *size);
+	return EOK;
 }
 
 static int hda_get_buffer_position(ddf_fun_t *fun, size_t *pos)
@@ -118,15 +191,31 @@ static async_sess_t *hda_get_event_session(ddf_fun_t *fun)
 
 static int hda_release_buffer(ddf_fun_t *fun)
 {
+	hda_t *hda = fun_to_hda(fun);
+
 	ddf_msg(LVL_NOTE, "hda_release_buffer()");
-	return ENOTSUP;
+	if (hda->pcm_stream == NULL)
+		return EINVAL;
+
+	hda_stream_destroy(hda->pcm_stream);
+	hda->pcm_stream = NULL;
+	return EOK;
 }
 
 static int hda_start_playback(ddf_fun_t *fun, unsigned frames,
     unsigned channels, unsigned rate, pcm_sample_format_t format)
 {
+	hda_t *hda = fun_to_hda(fun);
+	int rc;
+
 	ddf_msg(LVL_NOTE, "hda_start_playback()");
-	return ENOTSUP;
+
+	rc = hda_out_converter_setup(hda->ctl->codec, hda->pcm_stream->sid);
+	if (rc != EOK)
+		return rc;
+
+	hda_stream_start(hda->pcm_stream);
+	return EOK;
 }
 
 static int hda_stop_playback(ddf_fun_t *fun, bool immediate)

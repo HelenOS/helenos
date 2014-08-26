@@ -45,6 +45,7 @@ typedef struct hda_codec {
 
 extern hda_codec_t *hda_codec_init(hda_t *, uint8_t);
 extern void hda_codec_fini(hda_codec_t *);
+extern int hda_out_converter_setup(hda_codec_t *, uint8_t);
 
 #endif
 
