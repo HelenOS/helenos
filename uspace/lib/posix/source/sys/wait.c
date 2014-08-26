@@ -99,7 +99,7 @@ posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
 	task_exit_t texit;
 	int retval;
 	
-	int rc = task_wait((task_id_t) pid, &texit, &retval);
+	int rc = task_wait_task_id((task_id_t) pid, &texit, &retval);
 	
 	if (rc < 0) {
 		/* Unable to retrieve status. */

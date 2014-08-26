@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief Program loader interface.
  */
 
-#ifndef LIBC_LOADER_H_
-#define LIBC_LOADER_H_
+#ifndef LIBC_TYPES_TASK_H_
+#define LIBC_TYPES_TASK_H_
 
-#include <abi/proc/task.h>
-
-/** Forward declararion */
-struct loader;
-typedef struct loader loader_t;
-
-extern int loader_spawn(const char *);
-extern loader_t *loader_connect(void);
-extern int loader_get_task_id(loader_t *, task_id_t *);
-extern int loader_set_cwd(loader_t *);
-extern int loader_set_pathname(loader_t *, const char *);
-extern int loader_set_args(loader_t *, const char *const[]);
-extern int loader_set_files(loader_t *, int *const[]);
-extern int loader_load_program(loader_t *);
-extern int loader_run(loader_t *);
-extern void loader_abort(loader_t *);
+typedef enum {
+	TASK_EXIT_NORMAL,
+	TASK_EXIT_UNEXPECTED
+} task_exit_t;
 
 #endif
 
-/**
- * @}
+/** @}
  */

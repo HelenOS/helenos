@@ -38,23 +38,33 @@
 #include <sys/types.h>
 #include <abi/proc/task.h>
 #include <stdarg.h>
+#include <async.h>
+#include <types/task.h>
 
-typedef enum {
-	TASK_EXIT_NORMAL,
-	TASK_EXIT_UNEXPECTED
-} task_exit_t;
+typedef struct {
+	ipc_call_t result;
+	aid_t aid;
+} task_wait_t;
+
+struct _TASK;
+typedef struct _TASK task_t;
 
 extern task_id_t task_get_id(void);
 extern int task_set_name(const char *);
 extern int task_kill(task_id_t);
 
-extern int task_spawnv(task_id_t *, const char *path, const char *const []);
-extern int task_spawnvf(task_id_t *, const char *path, const char *const [],
-    int *const []);
-extern int task_spawn(task_id_t *, const char *path, int, va_list ap);
-extern int task_spawnl(task_id_t *, const char *path, ...);
+extern int task_spawnv(task_id_t *, task_wait_t *, const char *path,
+    const char *const []);
+extern int task_spawnvf(task_id_t *, task_wait_t *, const char *path,
+    const char *const [], int *const []);
+extern int task_spawn(task_id_t *, task_wait_t *, const char *path, int,
+    va_list ap);
+extern int task_spawnl(task_id_t *, task_wait_t *, const char *path, ...);
 
-extern int task_wait(task_id_t id, task_exit_t *, int *);
+extern int task_setup_wait(task_id_t, task_wait_t *);
+extern void task_cancel_wait(task_wait_t *);
+extern int task_wait(task_wait_t *, task_exit_t *, int *);
+extern int task_wait_task_id(task_id_t, task_exit_t *, int *);
 extern int task_retval(int);
 
 #endif

@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <task.h>
 #include "iplink.h"
 #include "nconfsrv.h"
 

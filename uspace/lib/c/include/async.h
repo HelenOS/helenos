@@ -44,7 +44,7 @@
 #include <sys/time.h>
 #include <atomic.h>
 #include <stdbool.h>
-#include <task.h>
+#include <abi/proc/task.h>
 #include <abi/ddi/irq.h>
 #include <abi/ipc/event.h>
 

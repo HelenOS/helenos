@@ -35,6 +35,7 @@
 #include <abi/ipc/methods.h>
 #include <ipc/mouseev.h>
 #include <inttypes.h>
+#include <task.h>
 
 #include "isdv4.h"
 

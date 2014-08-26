@@ -249,10 +249,11 @@ int os_input_line(const char *prompt, char **ptr)
 int os_exec(char *const cmd[])
 {
 	task_id_t tid;
+	task_wait_t twait;
 	task_exit_t texit;
 	int rc, retval;
 
-	rc = task_spawnv(&tid, cmd[0], (char const * const *) cmd);
+	rc = task_spawnv(&tid, &twait, cmd[0], (char const * const *) cmd);
 	if (rc != EOK) {
 		printf("Error: Failed spawning '%s' (%s).\n", cmd[0],
 		    str_error(rc));
@@ -260,7 +261,7 @@ int os_exec(char *const cmd[])
 	}
 
 	/* XXX Handle exit status and return value. */
-	rc = task_wait(tid, &texit, &retval);
+	rc = task_wait(&twait, &texit, &retval);
 	(void) rc;
 
 	return EOK;

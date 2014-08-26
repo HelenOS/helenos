@@ -81,11 +81,11 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call, void *arg)
 		}
 
 		printf(NAME ": Executing %s -c %s -t %s\n", fname, dump_fname, s_taskid);
-		rc = task_spawnl(NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
+		rc = task_spawnl(NULL, NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
 		    NULL);
 	} else {
 		printf(NAME ": Executing %s -t %s\n", fname, s_taskid);
-		rc = task_spawnl(NULL, fname, fname, "-t", s_taskid, NULL);
+		rc = task_spawnl(NULL, NULL, fname, fname, "-t", s_taskid, NULL);
 	}
 
 	if (rc != EOK) {

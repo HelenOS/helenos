@@ -225,7 +225,8 @@ static int spawn_task_fibril(void *arg)
 	telnet_user_t *user = arg;
 	
 	task_id_t task;
-	int rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, user->service_name,
+	task_wait_t wait;
+	int rc = task_spawnl(&task, &wait, APP_GETTERM, APP_GETTERM, user->service_name,
 	    "/loc", "--msg", "--", APP_SHELL, NULL);
 	if (rc != EOK) {
 		telnet_user_error(user, "Spawning `%s %s /loc --msg -- %s' "
@@ -245,7 +246,7 @@ static int spawn_task_fibril(void *arg)
 
 	task_exit_t task_exit;
 	int task_retval;
-	task_wait(task, &task_exit, &task_retval);
+	task_wait(&wait, &task_exit, &task_retval);
 	telnet_user_log(user, "%s terminated %s, exit code %d.", APP_GETTERM,
 	    task_exit == TASK_EXIT_NORMAL ? "normally" : "unexpectedly",
 	    task_retval);
