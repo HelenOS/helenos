@@ -278,7 +278,7 @@ int hda_out_converter_setup(hda_codec_t *codec, uint8_t sid)
 	/* XXX Choose appropriate parameters */
 	uint32_t fmt;
 	/* 48 kHz, 16-bits, 1 channel */
-	fmt = fmt_bits_16 << fmt_bits_l;
+	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l);
 
 	/* Configure converter */
 

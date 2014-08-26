@@ -53,10 +53,10 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 	void *buffer;
 	uintptr_t buffer_phys;
 	size_t i;
-	size_t j, k;
+//	size_t j, k;
 	int rc;
 
-	stream->nbuffers = 2;
+	stream->nbuffers = 4;
 	stream->bufsize = 16384;
 
 	/*
@@ -83,7 +83,7 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 		goto error;
 
 	/* Allocate buffers */
-
+/*
 	for (i = 0; i < stream->nbuffers; i++) {
 		buffer = AS_AREA_ANY;
 		rc = dmamem_map_anonymous(stream->bufsize,
@@ -106,6 +106,35 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 			if (k >= 256)
 				k = 0;
 		}
+	}
+*/
+//	async_usleep(1000*1000);
+	/* audio_pcm_iface requires a single contiguous buffer */
+	buffer = AS_AREA_ANY;
+	rc = dmamem_map_anonymous(stream->bufsize * stream->nbuffers,
+	    stream->hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
+	    0, &buffer_phys, &buffer);
+	if (rc != EOK) {
+		ddf_msg(LVL_NOTE, "dmamem_map_anon -> %d", rc);
+		goto error;
+	}
+
+	for (i = 0; i < stream->nbuffers; i++) {
+		stream->buf[i] = buffer + i * stream->bufsize;
+		stream->buf_phys[i] = buffer_phys + i * stream->bufsize;
+
+		ddf_msg(LVL_NOTE, "Stream buf phys=0x%llx virt=%p",
+		    (long long unsigned)(uintptr_t)stream->buf[i],
+		    (void *)stream->buf_phys[i]);
+/*		k = 0;
+		for (j = 0; j < stream->bufsize / 2; j++) {
+			int16_t *bp = stream->buf[i];
+			bp[j] = (k > 128) ? -10000 : 10000;
+			++k;
+			if (k >= 256)
+				k = 0;
+		}
+*/
 	}
 
 	/* Fill in BDL */

@@ -42,6 +42,7 @@
 #include "codec.h"
 #include "hdactl.h"
 #include "hdaudio.h"
+#include "pcm_iface.h"
 #include "spec/fmt.h"
 #include "stream.h"
 
@@ -154,7 +155,7 @@ static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 	/* XXX Choose appropriate parameters */
 	uint32_t fmt;
 	/* 48 kHz, 16-bits, 1 channel */
-	fmt = fmt_bits_16 << fmt_bits_l;
+	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l);
 
 	ddf_msg(LVL_NOTE, "hda_get_buffer() - create stream");
 	hda->pcm_stream = hda_stream_create(hda, sdir_output, fmt);
@@ -164,7 +165,7 @@ static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 	ddf_msg(LVL_NOTE, "hda_get_buffer() - fill info");
 	/* XXX This is only one buffer */
 	*buffer = hda->pcm_stream->buf[0];
-	*size = hda->pcm_stream->bufsize;
+	*size = hda->pcm_stream->bufsize * hda->pcm_stream->nbuffers;
 
 	ddf_msg(LVL_NOTE, "hda_get_buffer() retturing EOK, buffer=%p, size=%zu",
 	    *buffer, *size);
@@ -179,14 +180,19 @@ static int hda_get_buffer_position(ddf_fun_t *fun, size_t *pos)
 
 static int hda_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
 {
+	hda_t *hda = fun_to_hda(fun);
+
 	ddf_msg(LVL_NOTE, "hda_set_event_session()");
-	return ENOTSUP;
+	hda->ev_sess = sess;
+	return EOK;
 }
 
 static async_sess_t *hda_get_event_session(ddf_fun_t *fun)
 {
+	hda_t *hda = fun_to_hda(fun);
+
 	ddf_msg(LVL_NOTE, "hda_get_event_session()");
-	return NULL;
+	return hda->ev_sess;
 }
 
 static int hda_release_buffer(ddf_fun_t *fun)
@@ -214,6 +220,7 @@ static int hda_start_playback(ddf_fun_t *fun, unsigned frames,
 	if (rc != EOK)
 		return rc;
 
+	async_usleep(1000*1000);
 	hda_stream_start(hda->pcm_stream);
 	return EOK;
 }
@@ -235,6 +242,20 @@ static int hda_stop_capture(ddf_fun_t *fun, bool immediate)
 {
 	ddf_msg(LVL_NOTE, "hda_stop_capture()");
 	return ENOTSUP;
+}
+
+void hda_pcm_event(hda_t *hda, pcm_event_t event)
+{
+	async_exch_t *exchange;
+
+	if (hda->ev_sess == NULL) {
+		ddf_log_warning("No one listening for event %u", event);
+		return;
+	}
+
+	exchange = async_exchange_begin(hda->ev_sess);
+	async_msg_1(exchange, event, 0);
+	async_exchange_end(exchange);
 }
 
 /** @}

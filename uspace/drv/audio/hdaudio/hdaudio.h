@@ -44,6 +44,7 @@
 /** High Definition Audio driver instance */
 typedef struct hda {
 	async_sess_t *parent_sess;
+	async_sess_t *ev_sess;
 	ddf_fun_t *fun_pcm;
 	uint64_t rwbase;
 	size_t rwsize;

@@ -353,6 +353,16 @@ static void hdaudio_interrupt(ddf_dev_t *dev, ipc_callid_t iid,
 
 	if (0) ddf_msg(LVL_NOTE, "## interrupt ##");
 //	ddf_msg(LVL_NOTE, "interrupt arg4=0x%x", (int)IPC_GET_ARG4(*icall));
+	if (IPC_GET_ARG3(*icall) != 0) {
+		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+/*		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);*/
+	}
 	hda_ctl_interrupt(hda->ctl);
 }
 
