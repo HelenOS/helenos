@@ -127,7 +127,7 @@ static int hda_test_format(ddf_fun_t *fun, unsigned *channels,
 	    *channels, *rate, *format);
 
 	if (*channels != 1) {
-		*channels = 1;
+		*channels = 2;
 		rc = ELIMIT;
 	}
 
@@ -136,8 +136,8 @@ static int hda_test_format(ddf_fun_t *fun, unsigned *channels,
 		rc = ELIMIT;
 	}
 
-	if (*rate != 48000) {
-		*rate = 48000;
+	if (*rate != 44100) {
+		*rate = 44100;
 		rc = ELIMIT;
 	}
 
@@ -155,7 +155,7 @@ static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 	/* XXX Choose appropriate parameters */
 	uint32_t fmt;
 	/* 48 kHz, 16-bits, 1 channel */
-	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l);
+	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l) | 1;
 
 	ddf_msg(LVL_NOTE, "hda_get_buffer() - create stream");
 	hda->pcm_stream = hda_stream_create(hda, sdir_output, fmt);
