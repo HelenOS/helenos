@@ -118,6 +118,9 @@
 	
 	mfsprg2 r12
 	stw r12, 160(sp)
+
+	li r12, 0
+	stw r12, 0(sp)
 .endm
 
 .org 0x100
