@@ -53,16 +53,26 @@ static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload
 	if (resp == NULL)
 		resp = &myresp;
 
-	verb = (codec->address << 28) | (node << 20) | (vid << 8) | payload;
+	if ((vid & 0x700) != 0) {
+		verb = (codec->address << 28) |
+		    ((node & 0x1ff) << 20) |
+		    ((vid & 0xfff) << 8) |
+		    (payload & 0xff);
+	} else {
+		verb = (codec->address << 28) |
+		    ((node & 0x1ff) << 20) |
+		    ((vid & 0xf) << 16) |
+		    (payload & 0xffff);
+	}
 	int rc = hda_cmd(codec->hda, verb, resp);
-/*
+
 	if (resp != NULL) {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
 		    *resp);
 	} else {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32, verb);
 	}
-*/
+
 	return rc;
 }
 
@@ -213,22 +223,23 @@ static int hda_set_out_amp_max(hda_codec_t *codec, uint8_t aw)
 	if (rc != EOK)
 		goto error;
 
+	offset = ampcaps & 0x7f;
+	ddf_msg(LVL_NOTE, "out amp caps 0x%x (offset=0x%x)",
+	    ampcaps, offset);
+
+	rc = hda_set_amp_gain_mute(codec, aw, 0xb000 + offset/2);
+	if (rc != EOK)
+		goto error;
+
 	rc = hda_get_amp_gain_mute(codec, aw, 0x8000, &gmleft);
 	if (rc != EOK)
 		goto error;
 
-	rc = hda_get_amp_gain_mute(codec, aw, 0xc000, &gmright);
+	rc = hda_get_amp_gain_mute(codec, aw, 0xa000, &gmright);
 	if (rc != EOK)
 		goto error;
 
-	offset = ampcaps & 0x7f;
-	ddf_msg(LVL_NOTE, "out amp caps 0x%x (offset=0x%x)"
-	    "gain/mute: L:0x%x R:0x%x",
-	    ampcaps, offset, gmleft, gmright);
-
-	rc = hda_set_amp_gain_mute(codec, aw, 0xb000 + offset);
-	if (rc != EOK)
-		goto error;
+	ddf_msg(LVL_NOTE, "gain/mute: L:0x%x R:0x%x", gmleft, gmright);
 
 	return EOK;
 error:
@@ -252,20 +263,20 @@ static int hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
 	ddf_msg(LVL_NOTE, "in amp caps 0x%x (offset=0x%x)", ampcaps, offset);
 
 	for (i = 0; i < 15; i++) {
+		rc = hda_set_amp_gain_mute(codec, aw, 0x7000 + (i << 8) + offset/2);
+		if (rc != EOK)
+			goto error;
+
 		rc = hda_get_amp_gain_mute(codec, aw, 0x0000 + i, &gmleft);
 		if (rc != EOK)
 			goto error;
 
-		rc = hda_get_amp_gain_mute(codec, aw, 0x4000 + i, &gmright);
+		rc = hda_get_amp_gain_mute(codec, aw, 0x2000 + i, &gmright);
 		if (rc != EOK)
 			goto error;
 
 		ddf_msg(LVL_NOTE, "in:%d gain/mute: L:0x%x R:0x%x",
 		    i, gmleft, gmright);
-
-		rc = hda_set_amp_gain_mute(codec, aw, 0x7000 + (i << 8) + offset);
-		if (rc != EOK)
-			goto error;
 	}
 
 	return EOK;
