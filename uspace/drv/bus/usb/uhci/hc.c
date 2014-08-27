@@ -431,6 +431,8 @@ do { \
 	  &instance->transfers_control_slow;
 	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_BULK] =
 	  &instance->transfers_bulk_full;
+	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_BULK] =
+	  &instance->transfers_bulk_full;
 
 	return EOK;
 }
