@@ -214,9 +214,9 @@ static int hda_dev_add(ddf_dev_t *dev)
 
 	hda->regs = (hda_regs_t *)regs;
 
-	ddf_msg(LVL_NOTE, "IRQs: %d", res.irqs.count);
+	ddf_msg(LVL_NOTE, "IRQs: %zu", res.irqs.count);
 	if (res.irqs.count != 1) {
-		ddf_msg(LVL_ERROR, "Unexpected IRQ count %d (!= 1)",
+		ddf_msg(LVL_ERROR, "Unexpected IRQ count %zu (!= 1)",
 		    res.irqs.count);
 		goto error;
 	}
@@ -253,7 +253,7 @@ static int hda_dev_add(ddf_dev_t *dev)
 		cmds[ncmds_base + i * ncmds_sdesc + 3].addr = (void *)&rphys->sdesc[i].sts;
 	}
 
-	ddf_msg(LVL_NOTE, "range0.base=%x", hdaudio_irq_pio_ranges[0].base);
+	ddf_msg(LVL_NOTE, "range0.base=%zu", hdaudio_irq_pio_ranges[0].base);
 
 	rc = irc_enable_interrupt(res.irqs.irqs[0]);
 	if (rc != EOK) {

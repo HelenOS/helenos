@@ -66,13 +66,13 @@ static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload
 	}
 	int rc = hda_cmd(codec->hda, verb, resp);
 
-	if (resp != NULL) {
+/*	if (resp != NULL) {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
 		    *resp);
 	} else {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32, verb);
 	}
-
+*/
 	return rc;
 }
 
@@ -249,7 +249,7 @@ static int hda_set_out_amp_max(hda_codec_t *codec, uint8_t aw)
 	ddf_msg(LVL_NOTE, "out amp caps 0x%x (offset=0x%x)",
 	    ampcaps, offset);
 
-	rc = hda_set_amp_gain_mute(codec, aw, 0xb000 + offset/2);
+	rc = hda_set_amp_gain_mute(codec, aw, 0xb000 + offset);
 	if (rc != EOK)
 		goto error;
 
@@ -285,7 +285,7 @@ static int hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
 	ddf_msg(LVL_NOTE, "in amp caps 0x%x (offset=0x%x)", ampcaps, offset);
 
 	for (i = 0; i < 15; i++) {
-		rc = hda_set_amp_gain_mute(codec, aw, 0x7000 + (i << 8) + offset/2);
+		rc = hda_set_amp_gain_mute(codec, aw, 0x7000 + (i << 8) + offset);
 		if (rc != EOK)
 			goto error;
 
@@ -465,6 +465,10 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 
 		ddf_msg(LVL_NOTE, "hda_get_fgrp_type -> %d", rc);
 		ddf_msg(LVL_NOTE, "unsol: %d, grptype: %d", unsol, grptype);
+
+		rc = hda_power_ctl_init(codec, fg);
+		if (rc != EOK)
+			goto error;
 
 		rc = hda_get_subnc(codec, fg, &saw, &naw);
 		if (rc != EOK)

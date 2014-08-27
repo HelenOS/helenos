@@ -310,7 +310,7 @@ static size_t hda_get_corbwp(hda_t *hda)
 
 static void hda_set_corbwp(hda_t *hda, size_t wp)
 {
-	ddf_msg(LVL_DEBUG2, "Set CORBWP = %d", wp);
+	ddf_msg(LVL_DEBUG2, "Set CORBWP = %zu", wp);
 	hda_reg16_write(&hda->regs->corbwp, wp);
 }
 
@@ -390,7 +390,7 @@ static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data)
 	rirb = (hda_rirb_entry_t *)hda->ctl->rirb_virt;
 
 	wp = hda_get_rirbwp(hda);
-	ddf_msg(LVL_DEBUG2, "hda_rirb_read: wp=%d", wp);
+	ddf_msg(LVL_DEBUG2, "hda_rirb_read: wp=%zu", wp);
 	if (hda->ctl->rirb_rp == wp)
 		return ENOENT;
 
@@ -636,10 +636,10 @@ void hda_ctl_dump_info(hda_ctl_t *ctl)
 	ddf_msg(LVL_NOTE, "corbctl=0x%x, corbsts=0x%x",
 	    hda_reg8_read(&ctl->hda->regs->corbctl),
 	    hda_reg8_read(&ctl->hda->regs->corbsts));
-	ddf_msg(LVL_NOTE, "rirbwp=0x%x, soft-rirbrp=0x%x",
+	ddf_msg(LVL_NOTE, "rirbwp=0x%x, soft-rirbrp=0x%zx",
 	    hda_reg16_read(&ctl->hda->regs->rirbwp),
 	    ctl->rirb_rp);
-	ddf_msg(LVL_NOTE, "solrb_wp=0x%x, solrb_rp=0x%x",
+	ddf_msg(LVL_NOTE, "solrb_wp=0x%zx, solrb_rp=0x%zx",
 	    ctl->solrb_wp, ctl->solrb_wp);
 }
 
