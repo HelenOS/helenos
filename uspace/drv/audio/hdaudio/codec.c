@@ -337,7 +337,7 @@ static int hda_clist_dump(hda_codec_t *codec, uint8_t aw)
 		for (j = 0; j < epresp && i < len; j++) {
 			ddf_msg(LVL_NOTE, "<- %d%s", resp & mask,
 			    (int)cidx == i ? " *** current *** " : "");
-			resp = resp << shift;
+			resp = resp >> shift;
 			++i;
 		}
 
