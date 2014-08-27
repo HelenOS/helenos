@@ -323,6 +323,35 @@ typedef enum {
 	awc_chan_count_lsb = 0
 } hda_awidget_caps_bits_t;
 
+typedef enum {
+	/** High Bit Rate */
+	pwc_hbr = 27,
+	/** Display Port */
+	pwc_dp = 24,
+	/** EAPD Capable */
+	pwc_eapd = 16,
+	/** VRef Control (H) */
+	pwc_vrefctl_h = 15,
+	/** VRef Control (L) */
+	pwc_vrefctl_l = 8,
+	/** HDMI */
+	pwc_hdmi = 7,
+	/** Balanced I/O Pins */
+	pwc_bal_io = 6,
+	/** Input Capable */
+	pwc_input = 5,
+	/** Output Capable */
+	pwc_output = 4,
+	/** Headphone Drive Capable */
+	pwc_hpd = 3,
+	/** Presence Detect Capable */
+	pwc_presence = 2,
+	/** Trigger Required */
+	pwc_trigger_reqd = 1,
+	/** Impedance Sense Capable */
+	pwc_imp_sense = 0
+} hda_pin_caps_bits_t;
+
 /** Audio Widget Type */
 typedef enum {
 	/** Audio Output */

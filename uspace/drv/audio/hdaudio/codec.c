@@ -138,6 +138,16 @@ static int hda_get_clist_entry(hda_codec_t *codec, int node, int n, uint32_t *re
 	return hda_ccmd(codec, node, hda_clist_entry_get, n, resp);
 }
 
+static int hda_get_eapd_btl_enable(hda_codec_t *codec, int node, uint32_t *resp)
+{
+	return hda_ccmd(codec, node, hda_eapd_btl_enable_get, 0, resp);
+}
+
+static int hda_set_eapd_btl_enable(hda_codec_t *codec, int node, uint8_t payload)
+{
+	return hda_ccmd(codec, node, hda_eapd_btl_enable_set, payload, NULL);
+}
+
 /** Get Suppported PCM Size, Rates */
 static int hda_get_supp_rates(hda_codec_t *codec, int node, uint32_t *rates)
 {
@@ -179,6 +189,18 @@ static int hda_get_aw_caps(hda_codec_t *codec, int node,
 	*caps = resp;
 
 	return EOK;
+}
+
+/** Get Pin Capabilities */
+static int hda_get_pin_caps(hda_codec_t *codec, int node, uint32_t *caps)
+{
+	return hda_get_parameter(codec, node, hda_pin_caps, caps);
+}
+
+/** Get Power State */
+static int hda_get_power_state(hda_codec_t *codec, int node, uint32_t *pstate)
+{
+	return hda_ccmd(codec, node, hda_power_state_get, 0, pstate);
 }
 
 /** Get Configuration Default */
@@ -346,6 +368,66 @@ static int hda_clist_dump(hda_codec_t *codec, uint8_t aw)
 	return rc;
 }
 
+static int hda_pin_init(hda_codec_t *codec, uint8_t aw)
+{
+	int rc;
+	uint32_t cfgdef;
+	uint32_t pcaps;
+	uint32_t eapd;
+
+	rc = hda_get_cfg_def(codec, aw, &cfgdef);
+	if (rc != EOK)
+		goto error;
+	ddf_msg(LVL_NOTE, "aw %d: PIN cdfgef=0x%x",
+	    aw, cfgdef);
+
+	rc = hda_get_pin_caps(codec, aw, &pcaps);
+	if (rc != EOK)
+		goto error;
+	ddf_msg(LVL_NOTE, "aw %d : PIN caps=0x%x",
+	    aw, pcaps);
+
+	if ((pcaps & BIT_V(uint32_t, pwc_eapd)) != 0) {
+		rc = hda_get_eapd_btl_enable(codec, aw, &eapd);
+		if (rc != EOK)
+			goto error;
+
+		ddf_msg(LVL_NOTE, "PIN %d had EAPD value=0x%x", aw, eapd);
+
+		rc = hda_set_eapd_btl_enable(codec, aw, eapd | 2);
+		if (rc != EOK)
+			goto error;
+
+		rc = hda_get_eapd_btl_enable(codec, aw, &eapd);
+		if (rc != EOK)
+			goto error;
+
+		ddf_msg(LVL_NOTE, "PIN %d now has EAPD value=0x%x", aw, eapd);
+	}
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Init power-control in wiget capable of doing so. */
+static int hda_power_ctl_init(hda_codec_t *codec, uint8_t aw)
+{
+	int rc;
+	uint32_t pwrstate;
+
+	ddf_msg(LVL_NOTE, "aw %d is power control-capable", aw);
+
+	rc = hda_get_power_state(codec, aw, &pwrstate);
+	if (rc != EOK)
+		goto error;
+	ddf_msg(LVL_NOTE, "aw %d: power state = 0x%x", aw, pwrstate);
+
+	return EOK;
+error:
+	return rc;
+}
+
 hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 {
 	hda_codec_t *codec;
@@ -357,7 +439,6 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 	hda_fgrp_type_t grptype;
 	hda_awidget_type_t awtype;
 	uint32_t awcaps;
-	uint32_t cfgdef;
 	uint32_t rates;
 	uint32_t formats;
 
@@ -399,6 +480,12 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 			ddf_msg(LVL_NOTE, "aw %d: type=0x%x caps=0x%x",
 			    aw, awtype, awcaps);
 
+			if ((awcaps & BIT_V(uint32_t, awc_power_cntrl)) != 0) {
+				rc = hda_power_ctl_init(codec, aw);
+				if (rc != EOK)
+					goto error;
+			}
+
 			switch (awtype) {
 			case awt_audio_input:
 			case awt_audio_mixer:
@@ -414,12 +501,9 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 			}
 
 			if (awtype == awt_pin_complex) {
-				rc = hda_get_cfg_def(codec, aw, &cfgdef);
+				rc = hda_pin_init(codec, aw);
 				if (rc != EOK)
 					goto error;
-				ddf_msg(LVL_NOTE, "aw %d: PIN cdfgef=0x%x",
-				    aw, cfgdef);
-
 			} else if (awtype == awt_audio_output) {
 				codec->out_aw_list[codec->out_aw_num++] = aw;
 
