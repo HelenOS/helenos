@@ -45,10 +45,11 @@ def probe(struct):
 
 %s
 
-main()
+int main()
 {
 %s
 	emit_constant(%s_SIZE, sizeof(%s));
+	return 0;
 }
 	""" % (generate_includes(struct), generate_struct(struct),
 	    generate_probes(struct), name.upper(), typename)
