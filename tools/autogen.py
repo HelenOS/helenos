@@ -38,8 +38,16 @@ def usage():
 
 def generate_includes(struct):
 	code = ""
-	for i in range(len(struct['includes'])):
-		code = code + "#include %s\n" % struct['includes'][i]
+	for include in struct['includes']:
+		if 'guard' in include.keys():
+			code = code + "#ifdef %s\n" % include['guard']
+		if 'negative-guard' in include.keys():
+			code = code + "#ifndef %s\n" % include['negative-guard']
+		code = code + "#include %s\n" % include['include']
+		if 'guard' in include.keys():
+			code = code + "#endif\n"
+		if 'negative-guard' in include.keys():
+			code = code + "#endif\n"
 	return code.strip()
 
 def generate_struct(struct):
