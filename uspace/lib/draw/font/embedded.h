@@ -38,7 +38,7 @@
 
 #include "../font.h"
 
-extern font_decoder_t fd_embedded;
+extern int embedded_font_create(font_t **, uint16_t points);
 
 #endif
 

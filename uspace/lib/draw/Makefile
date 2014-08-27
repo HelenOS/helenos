@@ -36,6 +36,7 @@ SOURCES = \
 	codec/tga.c \
 	cursor/embedded.c \
 	font/embedded.c \
+	font/bitmap_backend.c \
 	gfx/font-8x16.c \
 	gfx/cursor-11x18.c \
 	drawctx.c \

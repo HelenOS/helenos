@@ -185,7 +185,7 @@ static void term_update_char(terminal_t *term, surface_t *surface,
 	// FIXME: Glyph type should be actually uint32_t
 	//        for full UTF-32 coverage.
 	
-	uint16_t glyph = fb_font_glyph(field->ch);
+	uint16_t glyph = fb_font_glyph(field->ch, NULL);
 	
 	for (unsigned int y = 0; y < FONT_SCANLINES; y++) {
 		pixel_t *dst = pixelmap_pixel_at(

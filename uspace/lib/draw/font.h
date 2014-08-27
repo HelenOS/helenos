@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2014 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,30 +45,74 @@
 struct drawctx;
 typedef struct drawctx drawctx_t;
 
-typedef enum {
-	FONT_DECODER_EMBEDDED
-} font_decoder_type_t;
+typedef int metric_t;
 
 typedef struct {
-	void (*init)(char *, uint16_t *, void **);
-	uint16_t (*resolve)(const wchar_t, void *);
-	surface_t *(*render)(uint16_t, uint16_t);
-	void (*release)(void *);
-} font_decoder_t;
+	/* Horizontal distance between origin and left side of the glyph */ 
+	metric_t left_side_bearing;
+	
+	/* Width of the actual glyph drawn */
+	metric_t width;
+	
+	/* Horizontal distance between right side of the glyph and origin
+	   of the next glyph */
+	metric_t right_side_bearing;
+	
+	/* Vertical distance between baseline and top of the glyph
+	   (positive to top) */
+	metric_t ascender;
+	
+	/* Height of the actual glyph drawn */
+	metric_t height;
+} glyph_metrics_t;
 
-typedef struct font {
-	uint16_t points;
-	uint16_t glyph_count;
-	surface_t **glyphs;
-	font_decoder_t *decoder;
-	void *decoder_data;
+static inline metric_t glyph_metrics_get_descender(glyph_metrics_t *gm)
+{
+	return gm->height - gm->ascender;
+}
+
+static inline metric_t glyph_metrics_get_advancement(glyph_metrics_t *gm)
+{
+	return gm->left_side_bearing + gm->width + gm->right_side_bearing;
+}
+
+typedef struct {
+	/* Distance between top of the line and baseline */
+	metric_t ascender;
+	
+	/* Distance between baseline and bottom of the line */
+	metric_t descender;
+	
+	/* Distance between bottom of the line and top of the next line */
+	metric_t leading;
+} font_metrics_t;
+
+typedef uint32_t glyph_id_t;
+
+typedef struct {
+	int (*get_font_metrics)(void *, font_metrics_t *);
+	int (*resolve_glyph)(void *, wchar_t, glyph_id_t *);
+	int (*get_glyph_metrics)(void *, glyph_id_t, glyph_metrics_t *);
+	int (*render_glyph)(void *, drawctx_t *, source_t *, sysarg_t,
+	    sysarg_t, glyph_id_t);
+	void (*release)(void *);
+} font_backend_t;
+
+typedef struct {
+	font_backend_t *backend;
+	void *backend_data;
 } font_t;
 
-extern void font_init(font_t *, font_decoder_type_t, char *, uint16_t);
+extern font_t *font_create(font_backend_t *, void *);
+extern int font_get_metrics(font_t *, font_metrics_t *);
+extern int font_resolve_glyph(font_t *, wchar_t, glyph_id_t *);
+extern int font_get_glyph_metrics(font_t *, glyph_id_t, glyph_metrics_t *);
+extern int font_render_glyph(font_t *, drawctx_t *, source_t *,
+    sysarg_t, sysarg_t, glyph_id_t);
 extern void font_release(font_t *);
 
-extern void font_get_box(font_t *, char *, sysarg_t *, sysarg_t *);
-extern void font_draw_text(font_t *, drawctx_t *, source_t *, const char *,
+extern int font_get_box(font_t *, char *, sysarg_t *, sysarg_t *);
+extern int font_draw_text(font_t *, drawctx_t *, source_t *, const char *,
     sysarg_t, sysarg_t);
 
 #endif

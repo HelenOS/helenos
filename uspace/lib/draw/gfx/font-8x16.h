@@ -36,12 +36,14 @@
 #define FONT_8X16_H_
 
 #include <sys/types.h>
+#include <stdbool.h>
 
 #define FONT_GLYPHS     2899
 #define FONT_WIDTH      8
 #define FONT_SCANLINES  16
+#define FONT_ASCENDER   12
 
-extern uint16_t fb_font_glyph(const wchar_t);
+extern uint16_t fb_font_glyph(const wchar_t, bool *);
 extern uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES];
 
 #endif
