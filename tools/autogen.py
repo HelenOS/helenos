@@ -54,8 +54,9 @@ def generate_probes(struct):
 	code = ""
 	for i in range(len(struct['members'])):
 		member = struct['members'][i]
-		code = code + ("\temit_constant(OFFSET_%s, offsetof(%s_t, %s));\n" % 
-		    (member['name'].upper(), struct['name'], member['name']))
+		code = code + ("\temit_constant(%s_OFFSET_%s, offsetof(%s_t, %s));\n" % 
+		    (struct['name'].upper(), member['name'].upper(), struct['name'],
+		    member['name']))
 	return code
 
 def probe(struct):
