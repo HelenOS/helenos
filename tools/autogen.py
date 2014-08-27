@@ -28,7 +28,7 @@
 #
 
 import sys
-import json
+import yaml 
 import re
 
 def usage():
@@ -142,7 +142,7 @@ def run():
 		usage()
 
 	with open(sys.argv[2], "rb") as fp:
-		struct = json.load(fp)
+		struct = yaml.load(fp)
 
 	if sys.argv[1] == "probe":
 		code = probe(struct)
