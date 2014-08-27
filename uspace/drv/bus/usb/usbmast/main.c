@@ -84,6 +84,7 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 static int usbmast_bd_open(bd_srvs_t *, bd_srv_t *);
 static int usbmast_bd_close(bd_srv_t *);
 static int usbmast_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int usbmast_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
 static int usbmast_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
 static int usbmast_bd_get_block_size(bd_srv_t *, size_t *);
 static int usbmast_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
@@ -92,6 +93,7 @@ static bd_ops_t usbmast_bd_ops = {
 	.open = usbmast_bd_open,
 	.close = usbmast_bd_close,
 	.read_blocks = usbmast_bd_read_blocks,
+	.sync_cache = usbmast_bd_sync_cache,
 	.write_blocks = usbmast_bd_write_blocks,
 	.get_block_size = usbmast_bd_get_block_size,
 	.get_num_blocks = usbmast_bd_get_num_blocks
@@ -335,6 +337,14 @@ static int usbmast_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *b
 		return EINVAL;
 
 	return usbmast_read(mfun, ba, cnt, buf);
+}
+
+/** Synchronize blocks to nonvolatile storage. */
+static int usbmast_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
+{
+	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
+
+	return usbmast_sync_cache(mfun, ba, cnt);
 }
 
 /** Write blocks to the device. */

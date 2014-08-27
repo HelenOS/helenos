@@ -194,6 +194,8 @@ void block_fini(service_id_t service_id)
 	if (devcon->cache)
 		(void) block_cache_fini(service_id);
 	
+	(void)bd_sync_cache(devcon->bd, 0, 0);
+	
 	devcon_remove(devcon);
 	
 	if (devcon->bb_buf)

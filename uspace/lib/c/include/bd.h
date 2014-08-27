@@ -47,6 +47,7 @@ extern void bd_close(bd_t *);
 extern int bd_read_blocks(bd_t *, aoff64_t, size_t, void *, size_t);
 extern int bd_read_toc(bd_t *, uint8_t, void *, size_t);
 extern int bd_write_blocks(bd_t *, aoff64_t, size_t, const void *, size_t);
+extern int bd_sync_cache(bd_t *, aoff64_t, size_t);
 extern int bd_get_block_size(bd_t *, size_t *);
 extern int bd_get_num_blocks(bd_t *, aoff64_t *);
 

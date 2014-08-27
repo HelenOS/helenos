@@ -127,6 +127,25 @@ static void bd_read_toc_srv(bd_srv_t *srv, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
+static void bd_sync_cache_srv(bd_srv_t *srv, ipc_callid_t callid,
+    ipc_call_t *call)
+{
+	aoff64_t ba;
+	size_t cnt;
+	int rc;
+
+	ba = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
+	cnt = IPC_GET_ARG3(*call);
+
+	if (srv->srvs->ops->sync_cache == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	rc = srv->srvs->ops->sync_cache(srv, ba, cnt);
+	async_answer_0(callid, rc);
+}
+
 static void bd_write_blocks_srv(bd_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
@@ -242,6 +261,9 @@ int bd_conn(ipc_callid_t iid, ipc_call_t *icall, bd_srvs_t *srvs)
 			break;
 		case BD_READ_TOC:
 			bd_read_toc_srv(srv, callid, &call);
+			break;
+		case BD_SYNC_CACHE:
+			bd_sync_cache_srv(srv, callid, &call);
 			break;
 		case BD_WRITE_BLOCKS:
 			bd_write_blocks_srv(srv, callid, &call);
