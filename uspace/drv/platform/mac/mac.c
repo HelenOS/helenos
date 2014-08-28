@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup root_mac Mac platform driver.
+ * @defgroup mac Mac platform driver.
  * @brief HelenOS Mac platform driver.
  * @{
  */

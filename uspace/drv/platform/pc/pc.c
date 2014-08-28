@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup root_pc PC platform driver.
+ * @defgroup pc PC platform driver.
  * @brief HelenOS PC platform driver.
  * @{
  */
@@ -59,7 +59,7 @@ typedef struct pc_fun {
 } pc_fun_t;
 
 static int pc_dev_add(ddf_dev_t *dev);
-static void root_pc_init(void);
+static void pc_init(void);
 
 /** The root device driver's standard operations. */
 static driver_ops_t pc_ops = {
@@ -148,7 +148,7 @@ static pio_window_ops_t fun_pio_window_ops = {
 	.get_pio_window = &pc_get_pio_window
 };
 
-/* Initialized in root_pc_init() function. */
+/* Initialized in pc_init() function. */
 static ddf_dev_ops_t pc_fun_ops;
 
 static bool
@@ -217,7 +217,7 @@ static int pc_dev_add(ddf_dev_t *dev)
 	return EOK;
 }
 
-static void root_pc_init(void)
+static void pc_init(void)
 {
 	ddf_log_init(NAME);
 	pc_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
@@ -227,7 +227,7 @@ static void root_pc_init(void)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS PC platform driver\n");
-	root_pc_init();
+	pc_init();
 	return ddf_driver_main(&pc_driver);
 }
 

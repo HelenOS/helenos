@@ -28,7 +28,7 @@
  */
 
 /**
- * @defgroup root_leon3 SPARC LEON3 platform driver.
+ * @defgroup leon3 SPARC LEON3 platform driver.
  * @brief HelenOS SPARC LEON3 platform driver.
  * @{
  */

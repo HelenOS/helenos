@@ -28,7 +28,7 @@
  */
 
 /**
- * @defgroup root_malta Malta board platform driver.
+ * @defgroup malta Malta board platform driver.
  * @brief HelenOS Malta board platform driver.
  * @{
  */
@@ -77,7 +77,7 @@ typedef struct malta_fun {
 } malta_fun_t;
 
 static int malta_dev_add(ddf_dev_t *dev);
-static void root_malta_init(void);
+static void malta_init(void);
 
 /** The root device driver's standard operations. */
 static driver_ops_t malta_ops = {
@@ -166,7 +166,7 @@ static pio_window_ops_t fun_pio_window_ops = {
 	.get_pio_window = &malta_get_pio_window
 };
 
-/* Initialized in root_malta_init() function. */
+/* Initialized in malta_init() function. */
 static ddf_dev_ops_t malta_fun_ops;
 
 static bool
@@ -254,7 +254,7 @@ static int malta_dev_add(ddf_dev_t *dev)
 	return EOK;
 }
 
-static void root_malta_init(void)
+static void malta_init(void)
 {
 	ddf_log_init(NAME);
 	malta_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
@@ -264,7 +264,7 @@ static void root_malta_init(void)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Malta platform driver\n");
-	root_malta_init();
+	malta_init();
 	return ddf_driver_main(&malta_driver);
 }
 

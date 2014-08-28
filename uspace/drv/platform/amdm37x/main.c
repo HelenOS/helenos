@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup root_amdm37x TI AM/DM37x platform driver.
+ * @defgroup amdm37x TI AM/DM37x platform driver.
  * @brief HelenOS TI AM/DM37x platform driver.
  * @{
  */
