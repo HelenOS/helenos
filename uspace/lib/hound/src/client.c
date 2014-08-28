@@ -242,6 +242,8 @@ int hound_context_connect_target(hound_context_t *hound, const char* target)
 		ret = hound_context_get_available_targets(hound, &tgt, &count);
 		if (ret != EOK)
 			return ret;
+		if (count == 0)
+			return ENOENT;
 		target = tgt[0];
 	}
 	//TODO handle all-targets
