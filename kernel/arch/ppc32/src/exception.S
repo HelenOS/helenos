@@ -30,8 +30,8 @@
 #include <arch/msr.h>
 #include <arch/mm/page.h>
 #include <arch/istate_struct.h>
-#include <align.h>
 #include <arch/stack.h>
+#include <align.h>
 
 .section K_UNMAPPED_TEXT_START, "ax"
 
@@ -44,24 +44,21 @@
 	mfcr r12
 	mtsprg2 sp
 	
-	# check whether SP is in kernel
+	# check whether the previous mode was user or kernel
 	
-	andis. sp, sp, 0x8000
+	mfsrr1 sp # use sp as a temporary register to hold SRR1
+	andi. sp, sp, MSR_PR 
 	bne 1f
-	
-		# stack is in user-space
-		
-		mfsprg0 sp
-	
-	b 2f
-	
-	1:
-	
-		# stack is in kernel
+		# previous mode was kernel
 		
 		mfsprg2 sp
 		subis sp, sp, 0x8000
+	b 2f
 	
+	1:
+		# previous mode was user
+		
+		mfsprg0 sp
 	2:
 	
 	subi sp, sp, ALIGN_UP(ISTATE_SIZE, STACK_ALIGNMENT)
@@ -265,6 +262,9 @@ jump_to_kernel:
 	mtsrr0 r12
 	
 	mfsrr1 r5
+
+	andi. r5, r5, MSR_PR
+
 	andi. r5, r5, MSR_FP
 	mfmsr r12
 	or r12, r12, r5		# Propagate MSR_FP from SRR1 to MSR
