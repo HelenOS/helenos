@@ -253,22 +253,31 @@ exc_dtlb_miss_store:
 
 .org 0x4000
 jump_to_kernel:
+	mfsrr1 r5
+	andi. r5, r5, MSR_PR
+	bne 1f
+		# Previous mode was kernel.
+		# We can construct a proper frame linkage.
+		
+		mfsrr0 r12
+		stw r12, ISTATE_OFFSET_LR_FRAME(sp)
+		mfsprg2 r12
+		stw r12, ISTATE_OFFSET_SP_FRAME(sp)
+	1:
+
 	lis r12, iret@ha
 	addi r12, r12, iret@l
 	mtlr r12
-	
+
 	lis r12, exc_dispatch@ha
 	addi r12, r12, exc_dispatch@l
 	mtsrr0 r12
-	
-	mfsrr1 r5
 
-	andi. r5, r5, MSR_PR
-
-	andi. r5, r5, MSR_FP
 	mfmsr r12
+	mfsrr1 r5
+	andi. r5, r5, MSR_FP
 	or r12, r12, r5		# Propagate MSR_FP from SRR1 to MSR
-	ori r12, r12, (MSR_IR | MSR_DR)@l
+	ori r12, r12, (MSR_IR | MSR_DR)
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000
@@ -289,7 +298,7 @@ jump_to_kernel_syscall:
 	andi. r0, r0, MSR_FP
 	mfmsr r12
 	or r12, r12, r0		# Propagate MSR_FP from SRR1 to MSR
-	ori r12, r12, (MSR_IR | MSR_DR)@l
+	ori r12, r12, (MSR_IR | MSR_DR)
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000
