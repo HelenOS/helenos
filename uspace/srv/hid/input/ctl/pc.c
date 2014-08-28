@@ -186,7 +186,7 @@ static int scanmap_simple[] = {
 
 static int scanmap_e0[] = {
 	[0x38] = KC_RALT,
-	[0x1d] = KC_RSHIFT,
+	[0x1d] = KC_RCTRL,
 
 	[0x37] = KC_PRTSCR,
 

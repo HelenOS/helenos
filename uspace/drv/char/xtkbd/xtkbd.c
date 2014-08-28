@@ -158,7 +158,7 @@ static const int scanmap_simple[] = {
 /** Scancode set 1 extended codes table */
 static const int scanmap_e0[] = {
 	[0x38] = KC_RALT,
-	[0x1d] = KC_RSHIFT,
+	[0x1d] = KC_RCTRL,
 
 	[0x37] = KC_PRTSCR,
 
