@@ -95,3 +95,7 @@ endif
 ifeq ($(CONFIG_PL050),y)
 	ARCH_SOURCES += genarch/src/drivers/pl050/pl050.c
 endif
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag
+
