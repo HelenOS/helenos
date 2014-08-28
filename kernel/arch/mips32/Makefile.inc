@@ -85,3 +85,6 @@ ifeq ($(MACHINE),msim)
         ARCH_SOURCES += arch/$(KARCH)/src/mach/msim/msim.c
 endif
 
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag
+
