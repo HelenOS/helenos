@@ -127,13 +127,13 @@ def generate(struct, lines):
 	return code
 
 def filter_pairs(lines):
-	pattern = re.compile("^\tEMITTED_CONSTANT ([A-Z_][A-Z0-9_]*) = \$?([0-9]+)$");
+	pattern = re.compile("^\tEMITTED_CONSTANT ([A-Z_][A-Z0-9_]*) = (\$|#)?([0-9]+)$");
 	pairs = []
 	for line in lines:
 		res = pattern.match(line)
 		if res == None:
 			continue
-		pairs = pairs + [res.group(1, 2)]
+		pairs = pairs + [res.group(1, 3)]
 	return pairs
 	
 
