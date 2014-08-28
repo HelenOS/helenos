@@ -58,3 +58,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/pht.c \
 	arch/$(KARCH)/src/mm/tlb.c \
 	arch/$(KARCH)/src/drivers/pic.c
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag
+

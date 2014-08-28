@@ -28,6 +28,7 @@
 
 #include <arch/asm/regname.h>
 #include <arch/msr.h>
+#include <arch/istate_struct.h>
 
 .text
 
@@ -84,57 +85,57 @@ iret:
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
 	
-	lwz r0, 8(sp)
-	lwz r2, 12(sp)
-	lwz r3, 16(sp)
-	lwz r4, 20(sp)
-	lwz r5, 24(sp)
-	lwz r6, 28(sp)
-	lwz r7, 32(sp)
-	lwz r8, 36(sp)
-	lwz r9, 40(sp)
-	lwz r10, 44(sp)
-	lwz r11, 48(sp)
-	lwz r13, 52(sp)
-	lwz r14, 56(sp)
-	lwz r15, 60(sp)
-	lwz r16, 64(sp)
-	lwz r17, 68(sp)
-	lwz r18, 72(sp)
-	lwz r19, 76(sp)
-	lwz r20, 80(sp)
-	lwz r21, 84(sp)
-	lwz r22, 88(sp)
-	lwz r23, 92(sp)
-	lwz r24, 96(sp)
-	lwz r25, 100(sp)
-	lwz r26, 104(sp)
-	lwz r27, 108(sp)
-	lwz r28, 112(sp)
-	lwz r29, 116(sp)
-	lwz r30, 120(sp)
-	lwz r31, 124(sp)
+	lwz r0, ISTATE_OFFSET_R0(sp)
+	lwz r2, ISTATE_OFFSET_R2(sp)
+	lwz r3, ISTATE_OFFSET_R3(sp)
+	lwz r4, ISTATE_OFFSET_R4(sp)
+	lwz r5, ISTATE_OFFSET_R5(sp)
+	lwz r6, ISTATE_OFFSET_R6(sp)
+	lwz r7, ISTATE_OFFSET_R7(sp)
+	lwz r8, ISTATE_OFFSET_R8(sp)
+	lwz r9, ISTATE_OFFSET_R9(sp)
+	lwz r10, ISTATE_OFFSET_R10(sp)
+	lwz r11, ISTATE_OFFSET_R11(sp)
+	lwz r13, ISTATE_OFFSET_R13(sp)
+	lwz r14, ISTATE_OFFSET_R14(sp)
+	lwz r15, ISTATE_OFFSET_R15(sp)
+	lwz r16, ISTATE_OFFSET_R16(sp)
+	lwz r17, ISTATE_OFFSET_R17(sp)
+	lwz r18, ISTATE_OFFSET_R18(sp)
+	lwz r19, ISTATE_OFFSET_R19(sp)
+	lwz r20, ISTATE_OFFSET_R20(sp)
+	lwz r21, ISTATE_OFFSET_R21(sp)
+	lwz r22, ISTATE_OFFSET_R22(sp)
+	lwz r23, ISTATE_OFFSET_R23(sp)
+	lwz r24, ISTATE_OFFSET_R24(sp)
+	lwz r25, ISTATE_OFFSET_R25(sp)
+	lwz r26, ISTATE_OFFSET_R26(sp)
+	lwz r27, ISTATE_OFFSET_R27(sp)
+	lwz r28, ISTATE_OFFSET_R28(sp)
+	lwz r29, ISTATE_OFFSET_R29(sp)
+	lwz r30, ISTATE_OFFSET_R30(sp)
+	lwz r31, ISTATE_OFFSET_R31(sp)
 	
-	lwz r12, 128(sp)
+	lwz r12, ISTATE_OFFSET_CR(sp)
 	mtcr r12
 	
-	lwz r12, 132(sp)
+	lwz r12, ISTATE_OFFSET_PC(sp)
 	mtsrr0 r12
 	
-	lwz r12, 136(sp)
+	lwz r12, ISTATE_OFFSET_SRR1(sp)
 	mtsrr1 r12
 	
-	lwz r12, 140(sp)
+	lwz r12, ISTATE_OFFSET_LR(sp)
 	mtlr r12
 	
-	lwz r12, 144(sp)
+	lwz r12, ISTATE_OFFSET_CTR(sp)
 	mtctr r12
 	
-	lwz r12, 148(sp)
+	lwz r12, ISTATE_OFFSET_XER(sp)
 	mtxer r12
 	
-	lwz r12, 156(sp)
-	lwz sp, 160(sp)
+	lwz r12, ISTATE_OFFSET_R12(sp)
+	lwz sp, ISTATE_OFFSET_SP(sp)
 	
 	rfi
 
@@ -151,56 +152,56 @@ iret_syscall:
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
 	
-	lwz r0, 8(sp)
-	lwz r2, 12(sp)
-	lwz r4, 20(sp)
-	lwz r5, 24(sp)
-	lwz r6, 28(sp)
-	lwz r7, 32(sp)
-	lwz r8, 36(sp)
-	lwz r9, 40(sp)
-	lwz r10, 44(sp)
-	lwz r11, 48(sp)
-	lwz r13, 52(sp)
-	lwz r14, 56(sp)
-	lwz r15, 60(sp)
-	lwz r16, 64(sp)
-	lwz r17, 68(sp)
-	lwz r18, 72(sp)
-	lwz r19, 76(sp)
-	lwz r20, 80(sp)
-	lwz r21, 84(sp)
-	lwz r22, 88(sp)
-	lwz r23, 92(sp)
-	lwz r24, 96(sp)
-	lwz r25, 100(sp)
-	lwz r26, 104(sp)
-	lwz r27, 108(sp)
-	lwz r28, 112(sp)
-	lwz r29, 116(sp)
-	lwz r30, 120(sp)
-	lwz r31, 124(sp)
+	lwz r0, ISTATE_OFFSET_R0(sp)
+	lwz r2, ISTATE_OFFSET_R2(sp)
+	lwz r4, ISTATE_OFFSET_R4(sp)
+	lwz r5, ISTATE_OFFSET_R5(sp)
+	lwz r6, ISTATE_OFFSET_R6(sp)
+	lwz r7, ISTATE_OFFSET_R7(sp)
+	lwz r8, ISTATE_OFFSET_R8(sp)
+	lwz r9, ISTATE_OFFSET_R9(sp)
+	lwz r10, ISTATE_OFFSET_R10(sp)
+	lwz r11, ISTATE_OFFSET_R11(sp)
+	lwz r13, ISTATE_OFFSET_R13(sp)
+	lwz r14, ISTATE_OFFSET_R14(sp)
+	lwz r15, ISTATE_OFFSET_R15(sp)
+	lwz r16, ISTATE_OFFSET_R16(sp)
+	lwz r17, ISTATE_OFFSET_R17(sp)
+	lwz r18, ISTATE_OFFSET_R18(sp)
+	lwz r19, ISTATE_OFFSET_R19(sp)
+	lwz r20, ISTATE_OFFSET_R20(sp)
+	lwz r21, ISTATE_OFFSET_R21(sp)
+	lwz r22, ISTATE_OFFSET_R22(sp)
+	lwz r23, ISTATE_OFFSET_R23(sp)
+	lwz r24, ISTATE_OFFSET_R24(sp)
+	lwz r25, ISTATE_OFFSET_R25(sp)
+	lwz r26, ISTATE_OFFSET_R26(sp)
+	lwz r27, ISTATE_OFFSET_R27(sp)
+	lwz r28, ISTATE_OFFSET_R28(sp)
+	lwz r29, ISTATE_OFFSET_R29(sp)
+	lwz r30, ISTATE_OFFSET_R30(sp)
+	lwz r31, ISTATE_OFFSET_R31(sp)
 	
-	lwz r12, 128(sp)
+	lwz r12, ISTATE_OFFSET_CR(sp)
 	mtcr r12
 	
-	lwz r12, 132(sp)
+	lwz r12, ISTATE_OFFSET_PC(sp)
 	mtsrr0 r12
 	
-	lwz r12, 136(sp)
+	lwz r12, ISTATE_OFFSET_SRR1(sp)
 	mtsrr1 r12
 	
-	lwz r12, 140(sp)
+	lwz r12, ISTATE_OFFSET_LR(sp)
 	mtlr r12
 	
-	lwz r12, 144(sp)
+	lwz r12, ISTATE_OFFSET_CTR(sp)
 	mtctr r12
 	
-	lwz r12, 148(sp)
+	lwz r12, ISTATE_OFFSET_XER(sp)
 	mtxer r12
 	
-	lwz r12, 156(sp)
-	lwz sp, 160(sp)
+	lwz r12, ISTATE_OFFSET_R12(sp)
+	lwz sp, ISTATE_OFFSET_SP(sp)
 	
 	rfi
 
