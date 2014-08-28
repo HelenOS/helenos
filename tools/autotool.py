@@ -355,6 +355,20 @@ def check_binutils(path, prefix, common, details):
 	check_app([common['OBJDUMP'], "--version"], "GNU Objdump utility", details)
 	check_app([common['STRIP'], "--version"], "GNU strip", details)
 
+def check_python():
+	"Check for Python dependencies"
+	
+	try:
+		sys.stderr.write("Checking for PyYAML ... ")
+		import yaml
+	except ImportError:
+		print_error(["PyYAML is missing.",
+		             "",
+		             "Please make sure that it is installed in your",
+		             "system (usually part of PyYAML package)."])
+	
+	sys.stderr.write("ok\n")
+
 def decode_value(value):
 	"Decode integer value"
 	
@@ -808,6 +822,8 @@ def main():
 			common['CC_ARGS'].append("-target")
 			common['CC_ARGS'].append(clang_target)
 			common['CLANG_TARGET'] = clang_target
+		
+		check_python()
 		
 		# Platform-specific utilities
 		if ((config['BARCH'] == "amd64") or (config['BARCH'] == "ia32") or (config['BARCH'] == "ppc32") or (config['BARCH'] == "sparc64")):
