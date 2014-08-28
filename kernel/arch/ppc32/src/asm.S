@@ -59,7 +59,7 @@ userspace_asm:
 	
 	mtsrr0 r5
 	
-	/* Set problem state, enable interrupts */
+	/* Set privileged state, enable interrupts */
 	
 	ori r31, r31, MSR_PR
 	ori r31, r31, MSR_EE
