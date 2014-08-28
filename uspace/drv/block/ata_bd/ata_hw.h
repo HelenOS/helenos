@@ -135,7 +135,8 @@ enum ata_command {
 	CMD_WRITE_SECTORS_EXT	= 0x34,
 	CMD_PACKET		= 0xA0,
 	CMD_IDENTIFY_PKT_DEV	= 0xA1,
-	CMD_IDENTIFY_DRIVE	= 0xEC
+	CMD_IDENTIFY_DRIVE	= 0xEC,
+	CMD_FLUSH_CACHE		= 0xE7
 };
 
 /** Data returned from identify device and identify packet device command. */

@@ -96,11 +96,13 @@ static int ata_bd_write_blocks(bd_srv_t *, uint64_t ba, size_t cnt,
     const void *buf, size_t);
 static int ata_bd_get_block_size(bd_srv_t *, size_t *);
 static int ata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static int ata_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
 
 static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t cnt,
     void *buf);
 static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
     const void *buf);
+static int ata_rcmd_flush_cache(disk_t *disk);
 static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id);
 static int ata_identify_dev(disk_t *disk, void *buf);
 static int ata_identify_pkt_dev(disk_t *disk, void *buf);
@@ -128,7 +130,8 @@ bd_ops_t ata_bd_ops = {
 	.read_toc = ata_bd_read_toc,
 	.write_blocks = ata_bd_write_blocks,
 	.get_block_size = ata_bd_get_block_size,
-	.get_num_blocks = ata_bd_get_num_blocks
+	.get_num_blocks = ata_bd_get_num_blocks,
+	.sync_cache = ata_bd_sync_cache
 };
 
 static disk_t *bd_srv_disk(bd_srv_t *bd)
@@ -585,6 +588,18 @@ static int ata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
+/** Flush cache. */
+static int ata_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
+{
+	disk_t *disk = bd_srv_disk(bd);
+
+	/* ATA cannot flush just some blocks, we just flush everything. */
+	(void)ba;
+	(void)cnt;
+
+	return ata_rcmd_flush_cache(disk);
+}
+
 /** PIO data-in command protocol. */
 static int ata_pio_data_in(disk_t *disk, void *obuf, size_t obuf_size,
     size_t blk_size, size_t nblocks)
@@ -638,6 +653,21 @@ static int ata_pio_data_out(disk_t *disk, const void *buf, size_t buf_size,
 			pio_write_16(&ctrl->cmd->data_port, ((uint16_t *) buf)[i]);
 		}
 	}
+
+	if (status & SR_ERR)
+		return EIO;
+
+	return EOK;
+}
+
+/** PIO non-data command protocol. */
+static int ata_pio_nondata(disk_t *disk)
+{
+	ata_ctrl_t *ctrl = disk->ctrl;
+	uint8_t status;
+
+	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
+		return EIO;
 
 	if (status & SR_ERR)
 		return EIO;
@@ -1075,6 +1105,46 @@ static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
 
 	rc = ata_pio_data_out(disk, buf, cnt * disk->block_size,
 	    disk->block_size, cnt);
+
+	fibril_mutex_unlock(&ctrl->lock);
+	return rc;
+}
+
+/** Flush cached data to nonvolatile storage.
+ *
+ * @param disk		Disk
+ *
+ * @return EOK on success, EIO on error.
+ */
+static int ata_rcmd_flush_cache(disk_t *disk)
+{
+	ata_ctrl_t *ctrl = disk->ctrl;
+	uint8_t drv_head;
+	int rc;
+
+	/* New value for Drive/Head register */
+	drv_head =
+	    (disk_dev_idx(disk) != 0) ? DHR_DRV : 0;
+
+	fibril_mutex_lock(&ctrl->lock);
+
+	/* Program a Flush Cache operation. */
+
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
+		fibril_mutex_unlock(&ctrl->lock);
+		return EIO;
+	}
+
+	pio_write_8(&ctrl->cmd->drive_head, drv_head);
+
+	if (wait_status(ctrl, SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
+		fibril_mutex_unlock(&ctrl->lock);
+		return EIO;
+	}
+
+	pio_write_8(&ctrl->cmd->command, CMD_FLUSH_CACHE);
+
+	rc = ata_pio_nondata(disk);
 
 	fibril_mutex_unlock(&ctrl->lock);
 	return rc;
