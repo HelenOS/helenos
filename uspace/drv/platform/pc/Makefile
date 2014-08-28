@@ -29,9 +29,9 @@
 USPACE_PREFIX = ../../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = rootmalta
+BINARY = pc
 
 SOURCES = \
-	rootmalta.c
+	pc.c
 
 include $(USPACE_PREFIX)/Makefile.common

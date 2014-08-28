@@ -34,7 +34,7 @@ RD_SRVS_ESSENTIAL += \
 
 
 RD_DRVS_ESSENTIAL += \
-	infrastructure/rootpc \
+	platform/pc \
 	block/ata_bd \
 	bus/pci/pciintel \
 	bus/isa \

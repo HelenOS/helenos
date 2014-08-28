@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup rootvirt Root device driver for virtual devices.
+ * @defgroup virt Root device driver for virtual devices.
  * @{
  */
 
@@ -41,7 +41,7 @@
 #include <ddf/driver.h>
 #include <ddf/log.h>
 
-#define NAME "rootvirt"
+#define NAME "virt"
 
 /** Virtual function entry */
 typedef struct {
@@ -61,34 +61,34 @@ virtual_function_t virtual_functions[] = {
 	}
 };
 
-static int rootvirt_dev_add(ddf_dev_t *dev);
-static int rootvirt_dev_remove(ddf_dev_t *dev);
-static int rootvirt_fun_online(ddf_fun_t *fun);
-static int rootvirt_fun_offline(ddf_fun_t *fun);
+static int virt_dev_add(ddf_dev_t *dev);
+static int virt_dev_remove(ddf_dev_t *dev);
+static int virt_fun_online(ddf_fun_t *fun);
+static int virt_fun_offline(ddf_fun_t *fun);
 
-static driver_ops_t rootvirt_ops = {
-	.dev_add = &rootvirt_dev_add,
-	.dev_remove = &rootvirt_dev_remove,
-	.fun_online = &rootvirt_fun_online,
-	.fun_offline = &rootvirt_fun_offline
+static driver_ops_t virt_ops = {
+	.dev_add = &virt_dev_add,
+	.dev_remove = &virt_dev_remove,
+	.fun_online = &virt_fun_online,
+	.fun_offline = &virt_fun_offline
 };
 
-static driver_t rootvirt_driver = {
+static driver_t virt_driver = {
 	.name = NAME,
-	.driver_ops = &rootvirt_ops
+	.driver_ops = &virt_ops
 };
 
 /* Device soft state */
 typedef struct {
 	ddf_dev_t *dev;
 	list_t functions;
-} rootvirt_t;
+} virt_t;
 
 /* Function soft state */
 typedef struct {
 	ddf_fun_t *fun;
 	link_t dev_link;
-} rootvirt_fun_t;
+} virt_fun_t;
 
 static int instances = 0;
 
@@ -99,11 +99,11 @@ static int instances = 0;
  * @param vfun		Virtual function description
  * @return		EOK on success or negative error code.
  */
-static int rootvirt_add_fun(rootvirt_t *rootvirt, virtual_function_t *vfun)
+static int virt_add_fun(virt_t *virt, virtual_function_t *vfun)
 {
-	ddf_dev_t *vdev = rootvirt->dev;
+	ddf_dev_t *vdev = virt->dev;
 	ddf_fun_t *fun;
-	rootvirt_fun_t *rvfun;
+	virt_fun_t *rvfun;
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "Registering function `%s' (match \"%s\")",
@@ -115,7 +115,7 @@ static int rootvirt_add_fun(rootvirt_t *rootvirt, virtual_function_t *vfun)
 		return ENOMEM;
 	}
 
-	rvfun = ddf_fun_data_alloc(fun, sizeof(rootvirt_fun_t));
+	rvfun = ddf_fun_data_alloc(fun, sizeof(virt_fun_t));
 	if (rvfun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state for %s.",
 		    vfun->name);
@@ -141,18 +141,18 @@ static int rootvirt_add_fun(rootvirt_t *rootvirt, virtual_function_t *vfun)
 		return rc;
 	}
 
-	list_append(&rvfun->dev_link, &rootvirt->functions);
+	list_append(&rvfun->dev_link, &virt->functions);
 
 	ddf_msg(LVL_NOTE, "Registered child device `%s'", vfun->name);
 	return EOK;
 }
 
-static int rootvirt_fun_remove(rootvirt_fun_t *rvfun)
+static int virt_fun_remove(virt_fun_t *rvfun)
 {
 	int rc;
 	const char *name = ddf_fun_get_name(rvfun->fun);
 
-	ddf_msg(LVL_DEBUG, "rootvirt_fun_remove('%s')", name);
+	ddf_msg(LVL_DEBUG, "virt_fun_remove('%s')", name);
 	rc = ddf_fun_offline(rvfun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error offlining function '%s'.", name);
@@ -171,9 +171,9 @@ static int rootvirt_fun_remove(rootvirt_fun_t *rvfun)
 }
 
 
-static int rootvirt_dev_add(ddf_dev_t *dev)
+static int virt_dev_add(ddf_dev_t *dev)
 {
-	rootvirt_t *rootvirt;
+	virt_t *virt;
 
 	/*
 	 * Allow only single instance of root virtual device.
@@ -184,12 +184,12 @@ static int rootvirt_dev_add(ddf_dev_t *dev)
 
 	ddf_msg(LVL_DEBUG, "dev_add(handle=%d)", (int)ddf_dev_get_handle(dev));
 
-	rootvirt = ddf_dev_data_alloc(dev, sizeof(rootvirt_t));
-	if (rootvirt == NULL)
+	virt = ddf_dev_data_alloc(dev, sizeof(virt_t));
+	if (virt == NULL)
 		return ENOMEM;
 
-	rootvirt->dev = dev;
-	list_initialize(&rootvirt->functions);
+	virt->dev = dev;
+	list_initialize(&virt->functions);
 
 	/*
 	 * Go through all virtual functions and try to add them.
@@ -197,24 +197,24 @@ static int rootvirt_dev_add(ddf_dev_t *dev)
 	 */
 	virtual_function_t *vfun = virtual_functions;
 	while (vfun->name != NULL) {
-		(void) rootvirt_add_fun(rootvirt, vfun);
+		(void) virt_add_fun(virt, vfun);
 		vfun++;
 	}
 
 	return EOK;
 }
 
-static int rootvirt_dev_remove(ddf_dev_t *dev)
+static int virt_dev_remove(ddf_dev_t *dev)
 {
-	rootvirt_t *rootvirt = (rootvirt_t *)ddf_dev_data_get(dev);
+	virt_t *virt = (virt_t *)ddf_dev_data_get(dev);
 	int rc;
 
-	while (!list_empty(&rootvirt->functions)) {
-		rootvirt_fun_t *rvfun = list_get_instance(
-		    list_first(&rootvirt->functions), rootvirt_fun_t,
+	while (!list_empty(&virt->functions)) {
+		virt_fun_t *rvfun = list_get_instance(
+		    list_first(&virt->functions), virt_fun_t,
 			dev_link);
 
-		rc = rootvirt_fun_remove(rvfun);
+		rc = virt_fun_remove(rvfun);
 		if (rc != EOK)
 			return rc;
 	}
@@ -223,15 +223,15 @@ static int rootvirt_dev_remove(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int rootvirt_fun_online(ddf_fun_t *fun)
+static int virt_fun_online(ddf_fun_t *fun)
 {
-	ddf_msg(LVL_DEBUG, "rootvirt_fun_online()");
+	ddf_msg(LVL_DEBUG, "virt_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int rootvirt_fun_offline(ddf_fun_t *fun)
+static int virt_fun_offline(ddf_fun_t *fun)
 {
-	ddf_msg(LVL_DEBUG, "rootvirt_fun_offline()");
+	ddf_msg(LVL_DEBUG, "virt_fun_offline()");
 	return ddf_fun_offline(fun);
 }
 
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 	printf(NAME ": HelenOS virtual devices root driver\n");
 
 	ddf_log_init(NAME);
-	return ddf_driver_main(&rootvirt_driver);
+	return ddf_driver_main(&virt_driver);
 }
 
 /**

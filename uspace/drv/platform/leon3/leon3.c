@@ -39,15 +39,15 @@
 #include <errno.h>
 #include <ops/hw_res.h>
 #include <stdio.h>
-#include "rootleon3.h"
+#include "leon3.h"
 
-#define NAME  "rootleon3"
+#define NAME  "leon3"
 
 typedef struct {
 	const char *name;
 	match_id_t match_id;
 	hw_resource_list_t hw_resources;
-} rootleon3_fun_t;
+} leon3_fun_t;
 
 static hw_resource_t amba_res[] = {
 	{
@@ -68,7 +68,7 @@ static hw_resource_t amba_res[] = {
 	}
 };
 
-static const rootleon3_fun_t leon3_func = {
+static const leon3_fun_t leon3_func = {
 	.name = "leon_amba",
 	.match_id = {
 		.id =  "leon_amba",
@@ -80,19 +80,19 @@ static const rootleon3_fun_t leon3_func = {
 	}
 };
 
-static hw_resource_list_t *rootleon3_get_resources(ddf_fun_t *);
-static bool rootleon3_enable_interrupt(ddf_fun_t *);
+static hw_resource_list_t *leon3_get_resources(ddf_fun_t *);
+static bool leon3_enable_interrupt(ddf_fun_t *);
 
 static hw_res_ops_t fun_hw_res_ops = {
-	.get_resource_list = &rootleon3_get_resources,
-	.enable_interrupt = &rootleon3_enable_interrupt
+	.get_resource_list = &leon3_get_resources,
+	.enable_interrupt = &leon3_enable_interrupt
 };
 
-static ddf_dev_ops_t rootleon3_fun_ops = {
+static ddf_dev_ops_t leon3_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops
 };
 
-static int rootleon3_add_fun(ddf_dev_t *dev, const rootleon3_fun_t *fun)
+static int leon3_add_fun(ddf_dev_t *dev, const leon3_fun_t *fun)
 {
 	assert(dev);
 	assert(fun);
@@ -113,8 +113,8 @@ static int rootleon3_add_fun(ddf_dev_t *dev, const rootleon3_fun_t *fun)
 	}
 	
 	/* Allocate needed data */
-	rootleon3_fun_t *rf =
-	    ddf_fun_data_alloc(fnode, sizeof(rootleon3_fun_t));
+	leon3_fun_t *rf =
+	    ddf_fun_data_alloc(fnode, sizeof(leon3_fun_t));
 	if (!rf) {
 		ddf_fun_destroy(fnode);
 		return ENOMEM;
@@ -122,7 +122,7 @@ static int rootleon3_add_fun(ddf_dev_t *dev, const rootleon3_fun_t *fun)
 	*rf = *fun;
 	
 	/* Set provided operations to the device. */
-	ddf_fun_set_ops(fnode, &rootleon3_fun_ops);
+	ddf_fun_set_ops(fnode, &leon3_fun_ops);
 	
 	/* Register function. */
 	ret = ddf_fun_bind(fnode);
@@ -143,12 +143,12 @@ static int rootleon3_add_fun(ddf_dev_t *dev, const rootleon3_fun_t *fun)
  * @return Zero on success, negative error number otherwise.
  *
  */
-static int rootleon3_dev_add(ddf_dev_t *dev)
+static int leon3_dev_add(ddf_dev_t *dev)
 {
 	assert(dev);
 	
 	/* Register functions */
-	if (rootleon3_add_fun(dev, &leon3_func) != EOK) {
+	if (leon3_add_fun(dev, &leon3_func) != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to add %s function for "
 		    "LEON3 platform.", leon3_func.name);
 	}
@@ -157,27 +157,27 @@ static int rootleon3_dev_add(ddf_dev_t *dev)
 }
 
 /** The root device driver's standard operations. */
-static driver_ops_t rootleon3_ops = {
-	.dev_add = &rootleon3_dev_add
+static driver_ops_t leon3_ops = {
+	.dev_add = &leon3_dev_add
 };
 
 /** The root device driver structure. */
-static driver_t rootleon3_driver = {
+static driver_t leon3_driver = {
 	.name = NAME,
-	.driver_ops = &rootleon3_ops
+	.driver_ops = &leon3_ops
 };
 
-static hw_resource_list_t *rootleon3_get_resources(ddf_fun_t *fnode)
+static hw_resource_list_t *leon3_get_resources(ddf_fun_t *fnode)
 {
-	rootleon3_fun_t *fun = ddf_fun_data_get(fnode);
+	leon3_fun_t *fun = ddf_fun_data_get(fnode);
 	assert(fun != NULL);
 	
-	printf("rootleon3_get_resources() called\n");
+	printf("leon3_get_resources() called\n");
 	
 	return &fun->hw_resources;
 }
 
-static bool rootleon3_enable_interrupt(ddf_fun_t *fun)
+static bool leon3_enable_interrupt(ddf_fun_t *fun)
 {
 	// FIXME TODO
 	return false;
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS SPARC LEON3 platform driver\n", NAME);
 	ddf_log_init(NAME);
-	return ddf_driver_main(&rootleon3_driver);
+	return ddf_driver_main(&leon3_driver);
 }
 
 /**

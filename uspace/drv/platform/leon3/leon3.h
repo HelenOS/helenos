@@ -33,8 +33,8 @@
  * @brief LEON3 root device.
  */
 
-#ifndef ROOTLEON3_H
-#define ROOTLEON3_H
+#ifndef LEON3_H
+#define LEON3_H
 
 #define AMBAPP_MASTER_AREA  0xfffff000
 #define AMBAPP_SLAVE_AREA   0xfffff800

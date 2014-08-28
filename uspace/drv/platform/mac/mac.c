@@ -41,11 +41,11 @@
 #include <ops/hw_res.h>
 #include <stdio.h>
 
-#define NAME  "rootmac"
+#define NAME  "mac"
 
 typedef struct {
 	hw_resource_list_t hw_resources;
-} rootmac_fun_t;
+} mac_fun_t;
 
 static hw_resource_t pci_conf_regs[] = {
 	{
@@ -68,23 +68,23 @@ static hw_resource_t pci_conf_regs[] = {
 	}
 };
 
-static rootmac_fun_t pci_data = {
+static mac_fun_t pci_data = {
 	.hw_resources = {
 		2,
 		pci_conf_regs
 	}
 };
 
-static ddf_dev_ops_t rootmac_fun_ops;
+static ddf_dev_ops_t mac_fun_ops;
 
 /** Obtain function soft-state from DDF function node */
-static rootmac_fun_t *rootmac_fun(ddf_fun_t *fnode)
+static mac_fun_t *mac_fun(ddf_fun_t *fnode)
 {
 	return ddf_fun_data_get(fnode);
 }
 
-static bool rootmac_add_fun(ddf_dev_t *dev, const char *name,
-    const char *str_match_id, rootmac_fun_t *fun_proto)
+static bool mac_add_fun(ddf_dev_t *dev, const char *name,
+    const char *str_match_id, mac_fun_t *fun_proto)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
@@ -96,7 +96,7 @@ static bool rootmac_add_fun(ddf_dev_t *dev, const char *name,
 	if (fnode == NULL)
 		goto failure;
 	
-	rootmac_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(rootmac_fun_t));
+	mac_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(mac_fun_t));
 	*fun = *fun_proto;
 	
 	/* Add match ID */
@@ -105,7 +105,7 @@ static bool rootmac_add_fun(ddf_dev_t *dev, const char *name,
 		goto failure;
 	
 	/* Set provided operations to the device. */
-	ddf_fun_set_ops(fnode, &rootmac_fun_ops);
+	ddf_fun_set_ops(fnode, &mac_fun_ops);
 	
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
@@ -132,40 +132,40 @@ failure:
  * @return Zero on success, negative error number otherwise.
  *
  */
-static int rootmac_dev_add(ddf_dev_t *dev)
+static int mac_dev_add(ddf_dev_t *dev)
 {
 #if 0
 	/* Register functions */
-	if (!rootmac_add_fun(dev, "pci0", "intel_pci", &pci_data))
+	if (!mac_add_fun(dev, "pci0", "intel_pci", &pci_data))
 		ddf_msg(LVL_ERROR, "Failed to add functions for Mac platform.");
 #else
 	(void)pci_data;
-	(void)rootmac_add_fun;
+	(void)mac_add_fun;
 #endif
 	
 	return EOK;
 }
 
 /** The root device driver's standard operations. */
-static driver_ops_t rootmac_ops = {
-	.dev_add = &rootmac_dev_add
+static driver_ops_t mac_ops = {
+	.dev_add = &mac_dev_add
 };
 
 /** The root device driver structure. */
-static driver_t rootmac_driver = {
+static driver_t mac_driver = {
 	.name = NAME,
-	.driver_ops = &rootmac_ops
+	.driver_ops = &mac_ops
 };
 
-static hw_resource_list_t *rootmac_get_resources(ddf_fun_t *fnode)
+static hw_resource_list_t *mac_get_resources(ddf_fun_t *fnode)
 {
-	rootmac_fun_t *fun = rootmac_fun(fnode);
+	mac_fun_t *fun = mac_fun(fnode);
 	assert(fun != NULL);
 	
 	return &fun->hw_resources;
 }
 
-static bool rootmac_enable_interrupt(ddf_fun_t *fun)
+static bool mac_enable_interrupt(ddf_fun_t *fun)
 {
 	/* TODO */
 	
@@ -173,16 +173,16 @@ static bool rootmac_enable_interrupt(ddf_fun_t *fun)
 }
 
 static hw_res_ops_t fun_hw_res_ops = {
-   	.get_resource_list = &rootmac_get_resources,
-	.enable_interrupt = &rootmac_enable_interrupt
+   	.get_resource_list = &mac_get_resources,
+	.enable_interrupt = &mac_enable_interrupt
 };
 
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Mac platform driver\n", NAME);
 	ddf_log_init(NAME);
-	rootmac_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
-	return ddf_driver_main(&rootmac_driver);
+	mac_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
+	return ddf_driver_main(&mac_driver);
 }
 
 /**

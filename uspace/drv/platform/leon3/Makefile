@@ -29,9 +29,9 @@
 USPACE_PREFIX = ../../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = rootleon3
+BINARY = leon3
 
 SOURCES = \
-	rootleon3.c
+	leon3.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -54,7 +54,7 @@
 #include <ops/pio_window.h>
 #include <byteorder.h>
 
-#define NAME "rootmalta"
+#define NAME "malta"
 
 #define GT_BASE		UINT32_C(0x1be00000)
 #define GT_SIZE 	(2 * 1024 * 1024)
@@ -71,23 +71,23 @@
 #define GT_PCI_IOBASE	UINT32_C(0x18000000)
 #define GT_PCI_IOSIZE	UINT32_C(0x00200000)
 
-typedef struct rootmalta_fun {
+typedef struct malta_fun {
 	hw_resource_list_t hw_resources;
 	pio_window_t pio_window;
-} rootmalta_fun_t;
+} malta_fun_t;
 
-static int rootmalta_dev_add(ddf_dev_t *dev);
+static int malta_dev_add(ddf_dev_t *dev);
 static void root_malta_init(void);
 
 /** The root device driver's standard operations. */
-static driver_ops_t rootmalta_ops = {
-	.dev_add = &rootmalta_dev_add
+static driver_ops_t malta_ops = {
+	.dev_add = &malta_dev_add
 };
 
 /** The root device driver structure. */
-static driver_t rootmalta_driver = {
+static driver_t malta_driver = {
 	.name = NAME,
-	.driver_ops = &rootmalta_ops
+	.driver_ops = &malta_ops
 };
 
 static hw_resource_t pci_conf_regs[] = {
@@ -111,7 +111,7 @@ static hw_resource_t pci_conf_regs[] = {
 	}
 };
 
-static rootmalta_fun_t pci_data = {
+static malta_fun_t pci_data = {
 	.hw_resources = {
 		sizeof(pci_conf_regs) / sizeof(pci_conf_regs[0]),
 		pci_conf_regs
@@ -129,49 +129,49 @@ static rootmalta_fun_t pci_data = {
 };
 
 /** Obtain function soft-state from DDF function node */
-static rootmalta_fun_t *rootmalta_fun(ddf_fun_t *fnode)
+static malta_fun_t *malta_fun(ddf_fun_t *fnode)
 {
 	return ddf_fun_data_get(fnode);
 }
 
-static hw_resource_list_t *rootmalta_get_resources(ddf_fun_t *fnode)
+static hw_resource_list_t *malta_get_resources(ddf_fun_t *fnode)
 {
-	rootmalta_fun_t *fun = rootmalta_fun(fnode);
+	malta_fun_t *fun = malta_fun(fnode);
 	
 	assert(fun != NULL);
 	return &fun->hw_resources;
 }
 
-static bool rootmalta_enable_interrupt(ddf_fun_t *fun)
+static bool malta_enable_interrupt(ddf_fun_t *fun)
 {
 	/* TODO */
 	
 	return false;
 }
 
-static pio_window_t *rootmalta_get_pio_window(ddf_fun_t *fnode)
+static pio_window_t *malta_get_pio_window(ddf_fun_t *fnode)
 {
-	rootmalta_fun_t *fun = rootmalta_fun(fnode);
+	malta_fun_t *fun = malta_fun(fnode);
 
 	assert(fun != NULL);
 	return &fun->pio_window;
 }
 
 static hw_res_ops_t fun_hw_res_ops = {
-	.get_resource_list = &rootmalta_get_resources,
-	.enable_interrupt = &rootmalta_enable_interrupt,
+	.get_resource_list = &malta_get_resources,
+	.enable_interrupt = &malta_enable_interrupt,
 };
 
 static pio_window_ops_t fun_pio_window_ops = {
-	.get_pio_window = &rootmalta_get_pio_window
+	.get_pio_window = &malta_get_pio_window
 };
 
 /* Initialized in root_malta_init() function. */
-static ddf_dev_ops_t rootmalta_fun_ops;
+static ddf_dev_ops_t malta_fun_ops;
 
 static bool
-rootmalta_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
-    rootmalta_fun_t *fun_proto)
+malta_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
+    malta_fun_t *fun_proto)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
@@ -183,7 +183,7 @@ rootmalta_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 	if (fnode == NULL)
 		goto failure;
 	
-	rootmalta_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(rootmalta_fun_t));
+	malta_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(malta_fun_t));
 	*fun = *fun_proto;
 	
 	/* Add match ID */
@@ -192,7 +192,7 @@ rootmalta_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 		goto failure;
 	
 	/* Set provided operations to the device. */
-	ddf_fun_set_ops(fnode, &rootmalta_fun_ops);
+	ddf_fun_set_ops(fnode, &malta_fun_ops);
 	
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
@@ -211,9 +211,9 @@ failure:
 	return false;
 }
 
-static bool rootmalta_add_functions(ddf_dev_t *dev)
+static bool malta_add_functions(ddf_dev_t *dev)
 {
-	return rootmalta_add_fun(dev, "pci0", "intel_pci", &pci_data);
+	return malta_add_fun(dev, "pci0", "intel_pci", &pci_data);
 }
 
 /** Get the root device.
@@ -222,13 +222,13 @@ static bool rootmalta_add_functions(ddf_dev_t *dev)
  *			of HW and pseudo devices).
  * @return		Zero on success, negative error number otherwise.
  */
-static int rootmalta_dev_add(ddf_dev_t *dev)
+static int malta_dev_add(ddf_dev_t *dev)
 {
 	ioport32_t *gt;
 	uint32_t val;
 	int ret;
 
-	ddf_msg(LVL_DEBUG, "rootmalta_dev_add, device handle = %d",
+	ddf_msg(LVL_DEBUG, "malta_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));
 
 	/*
@@ -247,7 +247,7 @@ static int rootmalta_dev_add(ddf_dev_t *dev)
 
 	
 	/* Register functions. */
-	if (!rootmalta_add_functions(dev)) {
+	if (!malta_add_functions(dev)) {
 		ddf_msg(LVL_ERROR, "Failed to add functions for the Malta platform.");
 	}
 	
@@ -257,15 +257,15 @@ static int rootmalta_dev_add(ddf_dev_t *dev)
 static void root_malta_init(void)
 {
 	ddf_log_init(NAME);
-	rootmalta_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
-	rootmalta_fun_ops.interfaces[PIO_WINDOW_DEV_IFACE] = &fun_pio_window_ops;
+	malta_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
+	malta_fun_ops.interfaces[PIO_WINDOW_DEV_IFACE] = &fun_pio_window_ops;
 }
 
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Malta platform driver\n");
 	root_malta_init();
-	return ddf_driver_main(&rootmalta_driver);
+	return ddf_driver_main(&malta_driver);
 }
 
 /**

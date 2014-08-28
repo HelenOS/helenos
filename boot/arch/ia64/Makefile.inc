@@ -65,7 +65,7 @@ SOURCES += \
 endif
 
 RD_DRVS_ESSENTIAL += \
-	infrastructure/rootpc \
+	platform/pc \
 	bus/pci/pciintel \
 	bus/isa \
 	char/i8042 \

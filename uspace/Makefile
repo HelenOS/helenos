@@ -130,8 +130,8 @@ DIRS = \
 	srv/hw/char/s3c24xx_uart \
 	srv/hid/rfb \
 	drv/audio/sb16 \
-	drv/infrastructure/root \
-	drv/infrastructure/rootvirt \
+	drv/root/root \
+	drv/root/virt \
 	drv/block/ahci \
 	drv/block/ata_bd \
 	drv/char/i8042 \
@@ -161,7 +161,7 @@ DIRS = \
 
 ifeq ($(UARCH), $(filter $(UARCH),amd64 ia32 ia64))
 	DIRS += \
-		drv/infrastructure/rootpc \
+		drv/platform/pc \
 		drv/bus/pci/pciintel \
 		drv/bus/isa \
 		drv/char/ns8250 \
@@ -172,14 +172,14 @@ endif
 
 ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
 	DIRS += \
-		drv/infrastructure/rootmalta \
+		drv/platform/malta \
 		drv/bus/pci/pciintel \
 		drv/bus/isa
 endif
 
 ifeq ($(UARCH),ppc32)
 	DIRS += \
-		drv/infrastructure/rootmac \
+		drv/platform/mac \
 		drv/bus/pci/pciintel \
 		srv/hw/bus/cuda_adb
 endif
@@ -191,7 +191,7 @@ endif
 
 ifeq ($(UARCH),arm32)
 	DIRS += \
-		drv/infrastructure/rootamdm37x \
+		drv/platform/amdm37x \
 		drv/fb/amdm37x_dispc
 endif
 

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Lenka Trochtova
+# Copyright (c) 2010 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,9 +29,9 @@
 USPACE_PREFIX = ../../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = rootpc
+BINARY = virt
 
 SOURCES = \
-	rootpc.c
+	virt.c
 
 include $(USPACE_PREFIX)/Makefile.common

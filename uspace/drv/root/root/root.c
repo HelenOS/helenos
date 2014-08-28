@@ -60,7 +60,7 @@
 #define PLATFORM_FUN_MATCH_SCORE 100
 
 #define VIRTUAL_FUN_NAME "virt"
-#define VIRTUAL_FUN_MATCH_ID "rootvirt"
+#define VIRTUAL_FUN_MATCH_ID "virt"
 #define VIRTUAL_FUN_MATCH_SCORE 100
 
 static int root_dev_add(ddf_dev_t *dev);

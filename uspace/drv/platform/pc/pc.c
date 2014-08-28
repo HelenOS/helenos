@@ -51,25 +51,25 @@
 #include <ops/hw_res.h>
 #include <ops/pio_window.h>
 
-#define NAME "rootpc"
+#define NAME "pc"
 
-typedef struct rootpc_fun {
+typedef struct pc_fun {
 	hw_resource_list_t hw_resources;
 	pio_window_t pio_window;
-} rootpc_fun_t;
+} pc_fun_t;
 
-static int rootpc_dev_add(ddf_dev_t *dev);
+static int pc_dev_add(ddf_dev_t *dev);
 static void root_pc_init(void);
 
 /** The root device driver's standard operations. */
-static driver_ops_t rootpc_ops = {
-	.dev_add = &rootpc_dev_add
+static driver_ops_t pc_ops = {
+	.dev_add = &pc_dev_add
 };
 
 /** The root device driver structure. */
-static driver_t rootpc_driver = {
+static driver_t pc_driver = {
 	.name = NAME,
-	.driver_ops = &rootpc_ops
+	.driver_ops = &pc_ops
 };
 
 static hw_resource_t pci_conf_regs[] = {
@@ -93,7 +93,7 @@ static hw_resource_t pci_conf_regs[] = {
 	}
 };
 
-static rootpc_fun_t pci_data = {
+static pc_fun_t pci_data = {
 	.hw_resources = {
 		sizeof(pci_conf_regs) / sizeof(pci_conf_regs[0]),
 		pci_conf_regs
@@ -111,49 +111,49 @@ static rootpc_fun_t pci_data = {
 };
 
 /** Obtain function soft-state from DDF function node */
-static rootpc_fun_t *rootpc_fun(ddf_fun_t *fnode)
+static pc_fun_t *pc_fun(ddf_fun_t *fnode)
 {
 	return ddf_fun_data_get(fnode);
 }
 
-static hw_resource_list_t *rootpc_get_resources(ddf_fun_t *fnode)
+static hw_resource_list_t *pc_get_resources(ddf_fun_t *fnode)
 {
-	rootpc_fun_t *fun = rootpc_fun(fnode);
+	pc_fun_t *fun = pc_fun(fnode);
 	
 	assert(fun != NULL);
 	return &fun->hw_resources;
 }
 
-static bool rootpc_enable_interrupt(ddf_fun_t *fun)
+static bool pc_enable_interrupt(ddf_fun_t *fun)
 {
 	/* TODO */
 	
 	return false;
 }
 
-static pio_window_t *rootpc_get_pio_window(ddf_fun_t *fnode)
+static pio_window_t *pc_get_pio_window(ddf_fun_t *fnode)
 {
-	rootpc_fun_t *fun = rootpc_fun(fnode);
+	pc_fun_t *fun = pc_fun(fnode);
 	
 	assert(fun != NULL);
 	return &fun->pio_window;
 }
 
 static hw_res_ops_t fun_hw_res_ops = {
-	.get_resource_list = &rootpc_get_resources,
-	.enable_interrupt = &rootpc_enable_interrupt,
+	.get_resource_list = &pc_get_resources,
+	.enable_interrupt = &pc_enable_interrupt,
 };
 
 static pio_window_ops_t fun_pio_window_ops = {
-	.get_pio_window = &rootpc_get_pio_window
+	.get_pio_window = &pc_get_pio_window
 };
 
 /* Initialized in root_pc_init() function. */
-static ddf_dev_ops_t rootpc_fun_ops;
+static ddf_dev_ops_t pc_fun_ops;
 
 static bool
-rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
-    rootpc_fun_t *fun_proto)
+pc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
+    pc_fun_t *fun_proto)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
@@ -165,7 +165,7 @@ rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 	if (fnode == NULL)
 		goto failure;
 	
-	rootpc_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(rootpc_fun_t));
+	pc_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(pc_fun_t));
 	*fun = *fun_proto;
 	
 	/* Add match ID */
@@ -174,7 +174,7 @@ rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 		goto failure;
 	
 	/* Set provided operations to the device. */
-	ddf_fun_set_ops(fnode, &rootpc_fun_ops);
+	ddf_fun_set_ops(fnode, &pc_fun_ops);
 	
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
@@ -193,9 +193,9 @@ failure:
 	return false;
 }
 
-static bool rootpc_add_functions(ddf_dev_t *dev)
+static bool pc_add_functions(ddf_dev_t *dev)
 {
-	return rootpc_add_fun(dev, "pci0", "intel_pci", &pci_data);
+	return pc_add_fun(dev, "pci0", "intel_pci", &pci_data);
 }
 
 /** Get the root device.
@@ -204,13 +204,13 @@ static bool rootpc_add_functions(ddf_dev_t *dev)
  *			of HW and pseudo devices).
  * @return		Zero on success, negative error number otherwise.
  */
-static int rootpc_dev_add(ddf_dev_t *dev)
+static int pc_dev_add(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "rootpc_dev_add, device handle = %d",
+	ddf_msg(LVL_DEBUG, "pc_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));
 	
 	/* Register functions. */
-	if (!rootpc_add_functions(dev)) {
+	if (!pc_add_functions(dev)) {
 		ddf_msg(LVL_ERROR, "Failed to add functions for PC platform.");
 	}
 	
@@ -220,15 +220,15 @@ static int rootpc_dev_add(ddf_dev_t *dev)
 static void root_pc_init(void)
 {
 	ddf_log_init(NAME);
-	rootpc_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
-	rootpc_fun_ops.interfaces[PIO_WINDOW_DEV_IFACE] = &fun_pio_window_ops;
+	pc_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
+	pc_fun_ops.interfaces[PIO_WINDOW_DEV_IFACE] = &fun_pio_window_ops;
 }
 
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS PC platform driver\n");
 	root_pc_init();
-	return ddf_driver_main(&rootpc_driver);
+	return ddf_driver_main(&pc_driver);
 }
 
 /**

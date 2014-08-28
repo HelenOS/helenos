@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012 Jan Vesely
+# Copyright (c) 2010 Lenka Trochtova
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,10 +29,9 @@
 USPACE_PREFIX = ../../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = rootamdm37x
+BINARY = malta
 
 SOURCES = \
-	amdm37x.c \
-	rootamdm37x.c
+	malta.c
 
 include $(USPACE_PREFIX)/Makefile.common

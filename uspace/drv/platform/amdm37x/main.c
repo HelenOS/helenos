@@ -44,13 +44,13 @@
 
 #include "amdm37x.h"
 
-#define NAME  "rootamdm37x"
+#define NAME  "amdm37x"
 
 typedef struct {
 	const char *name;
 	match_id_t match_id;
 	hw_resource_list_t hw_resources;
-} rootamdm37x_fun_t;
+} amdm37x_fun_t;
 
 /* See amdm37x TRM page 3316 for these values */
 #define OHCI_BASE_ADDRESS   0x48064400
@@ -129,7 +129,7 @@ static hw_resource_t disp_res[] = {
 	},
 };
 
-static const rootamdm37x_fun_t amdm37x_funcs[] = {
+static const amdm37x_fun_t amdm37x_funcs[] = {
 {
 	.name = "ohci",
 	.match_id = { .id = "usb/host=ohci", .score = 90 },
@@ -148,19 +148,19 @@ static const rootamdm37x_fun_t amdm37x_funcs[] = {
 };
 
 
-static hw_resource_list_t *rootamdm37x_get_resources(ddf_fun_t *fnode);
-static bool rootamdm37x_enable_interrupt(ddf_fun_t *fun);
+static hw_resource_list_t *amdm37x_get_resources(ddf_fun_t *fnode);
+static bool amdm37x_enable_interrupt(ddf_fun_t *fun);
 
 static hw_res_ops_t fun_hw_res_ops = {
-	.get_resource_list = &rootamdm37x_get_resources,
-	.enable_interrupt = &rootamdm37x_enable_interrupt,
+	.get_resource_list = &amdm37x_get_resources,
+	.enable_interrupt = &amdm37x_enable_interrupt,
 };
 
-static ddf_dev_ops_t rootamdm37x_fun_ops = {
+static ddf_dev_ops_t amdm37x_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops
 };
 
-static int rootamdm37x_add_fun(ddf_dev_t *dev, const rootamdm37x_fun_t *fun)
+static int amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
 {
 	assert(dev);
 	assert(fun);
@@ -181,8 +181,8 @@ static int rootamdm37x_add_fun(ddf_dev_t *dev, const rootamdm37x_fun_t *fun)
 	}
 	
 	/* Alloc needed data */
-	rootamdm37x_fun_t *rf =
-	    ddf_fun_data_alloc(fnode, sizeof(rootamdm37x_fun_t));
+	amdm37x_fun_t *rf =
+	    ddf_fun_data_alloc(fnode, sizeof(amdm37x_fun_t));
 	if (!rf) {
 		ddf_fun_destroy(fnode);
 		return ENOMEM;
@@ -190,7 +190,7 @@ static int rootamdm37x_add_fun(ddf_dev_t *dev, const rootamdm37x_fun_t *fun)
 	*rf = *fun;
 
 	/* Set provided operations to the device. */
-	ddf_fun_set_ops(fnode, &rootamdm37x_fun_ops);
+	ddf_fun_set_ops(fnode, &amdm37x_fun_ops);
 	
 	/* Register function. */
 	ret = ddf_fun_bind(fnode);
@@ -211,7 +211,7 @@ static int rootamdm37x_add_fun(ddf_dev_t *dev, const rootamdm37x_fun_t *fun)
  * @return Zero on success, negative error number otherwise.
  *
  */
-static int rootamdm37x_dev_add(ddf_dev_t *dev)
+static int amdm37x_dev_add(ddf_dev_t *dev)
 {
 	assert(dev);
 	amdm37x_t *device = ddf_dev_data_alloc(dev, sizeof(amdm37x_t));
@@ -239,7 +239,7 @@ static int rootamdm37x_dev_add(ddf_dev_t *dev)
 
 	/* Register functions */
 	for (unsigned i = 0; i < ARRAY_SIZE(amdm37x_funcs); ++i) {
-		if (rootamdm37x_add_fun(dev, &amdm37x_funcs[i]) != EOK)
+		if (amdm37x_add_fun(dev, &amdm37x_funcs[i]) != EOK)
 			ddf_msg(LVL_ERROR, "Failed to add %s function for "
 			    "BeagleBoard-xM platform.", amdm37x_funcs[i].name);
 	}
@@ -247,24 +247,24 @@ static int rootamdm37x_dev_add(ddf_dev_t *dev)
 }
 
 /** The root device driver's standard operations. */
-static driver_ops_t rootamdm37x_ops = {
-	.dev_add = &rootamdm37x_dev_add
+static driver_ops_t amdm37x_ops = {
+	.dev_add = &amdm37x_dev_add
 };
 
 /** The root device driver structure. */
-static driver_t rootamdm37x_driver = {
+static driver_t amdm37x_driver = {
 	.name = NAME,
-	.driver_ops = &rootamdm37x_ops
+	.driver_ops = &amdm37x_ops
 };
 
-static hw_resource_list_t * rootamdm37x_get_resources(ddf_fun_t *fnode)
+static hw_resource_list_t * amdm37x_get_resources(ddf_fun_t *fnode)
 {
-	rootamdm37x_fun_t *fun = ddf_fun_data_get(fnode);
+	amdm37x_fun_t *fun = ddf_fun_data_get(fnode);
 	assert(fun != NULL);
 	return &fun->hw_resources;
 }
 
-static bool rootamdm37x_enable_interrupt(ddf_fun_t *fun)
+static bool amdm37x_enable_interrupt(ddf_fun_t *fun)
 {
 	//TODO: Implement
 	return false;
@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS AM/DM37x(OMAP37x) platform driver\n", NAME);
 	ddf_log_init(NAME);
-	return ddf_driver_main(&rootamdm37x_driver);
+	return ddf_driver_main(&amdm37x_driver);
 }
 
 /**

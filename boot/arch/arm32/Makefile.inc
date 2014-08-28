@@ -65,7 +65,7 @@ RD_SRVS_ESSENTIAL += \
 endif
 
 RD_DRVS_ESSENTIAL += \
-	infrastructure/rootamdm37x \
+	platform/amdm37x \
 	fb/amdm37x_dispc \
 	bus/usb/ehci \
 	bus/usb/ohci \

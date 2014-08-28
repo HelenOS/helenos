@@ -132,7 +132,7 @@ uspace/dist/drv/pciintel/
 uspace/dist/drv/ps2mouse/
 uspace/dist/drv/root/
 uspace/dist/drv/rootpc/
-uspace/dist/drv/rootvirt/
+uspace/dist/drv/virt/
 uspace/dist/drv/rtl8139/
 uspace/dist/drv/rtl8169/
 uspace/dist/drv/sb16/
@@ -199,9 +199,9 @@ uspace/drv/char/ns8250/ns8250
 uspace/drv/char/ps2mouse/ps2mouse
 uspace/drv/char/xtkbd/xtkbd
 uspace/drv/fb/kfb/kfb
-uspace/drv/infrastructure/root/root
-uspace/drv/infrastructure/rootpc/rootpc
-uspace/drv/infrastructure/rootvirt/rootvirt
+uspace/drv/root/root/root
+uspace/drv/root/virt/virt
+uspace/drv/platform/rootpc/rootpc
 uspace/drv/nic/e1k/e1k
 uspace/drv/nic/ne2k/ne2k
 uspace/drv/nic/rtl8139/rtl8139
