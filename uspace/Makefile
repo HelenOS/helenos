@@ -43,6 +43,7 @@ DIRS = \
 	app/dnsres \
 	app/download \
 	app/edit \
+	app/fontviewer \
 	app/getterm \
 	app/hdisk \
 	app/init \

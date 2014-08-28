@@ -27,6 +27,7 @@ uspace/app/devctl/devctl
 uspace/app/dnscfg/dnscfg
 uspace/app/dnsres/dnsres
 uspace/app/edit/edit
+uspace/app/fontviewer/fontviewer
 uspace/app/getterm/getterm
 uspace/app/inet/inet
 uspace/app/init/init
@@ -78,6 +79,7 @@ uspace/dist/app/devctl
 uspace/dist/app/dnscfg
 uspace/dist/app/dnsres
 uspace/dist/app/edit
+uspace/dist/app/fontviewer
 uspace/dist/app/getterm
 uspace/dist/app/inet
 uspace/dist/app/kill

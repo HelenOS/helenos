@@ -355,6 +355,7 @@ int main(int argc, char *argv[])
 	if (rc == EOK) {
 		gui_start("/app/vlaunch", HID_COMPOSITOR_SERVER);
 		gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
+		task_spawnl(NULL, NULL, "/app/fontviewer", "/app/fontviewer", "comp:0/winreg", "/cu12.pcf", NULL);
 	}
 	
 	rc = console(HID_INPUT, HID_OUTPUT);

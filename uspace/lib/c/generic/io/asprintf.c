@@ -75,6 +75,34 @@ int printf_size(const char *fmt, ...)
  * @param strp Address of the pointer where to store the address of
  *             the newly allocated string.
  * @fmt        Format string.
+ * @args       Variable argument list
+ *
+ * @return Number of characters printed or a negative error code.
+ *
+ */
+int vasprintf(char **strp, const char *fmt, va_list args)
+{
+	va_list args2;
+	va_copy(args2, args);
+	int ret = vprintf_size(fmt, args2);
+	va_end(args2);
+	
+	if (ret > 0) {
+		*strp = malloc(STR_BOUNDS(ret) + 1);
+		if (*strp == NULL)
+			return -1;
+		
+		vsnprintf(*strp, STR_BOUNDS(ret) + 1, fmt, args);
+	}
+	
+	return ret;
+}
+
+/** Allocate and print to string.
+ *
+ * @param strp Address of the pointer where to store the address of
+ *             the newly allocated string.
+ * @fmt        Format string.
  *
  * @return Number of characters printed or a negative error code.
  *
@@ -83,18 +111,8 @@ int asprintf(char **strp, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	int ret = vprintf_size(fmt, args);
+	int ret = vasprintf(strp, fmt, args);
 	va_end(args);
-	
-	if (ret > 0) {
-		*strp = malloc(STR_BOUNDS(ret) + 1);
-		if (*strp == NULL)
-			return -1;
-		
-		va_start(args, fmt);
-		vsnprintf(*strp, STR_BOUNDS(ret) + 1, fmt, args);
-		va_end(args);
-	}
 	
 	return ret;
 }
