@@ -135,7 +135,7 @@ static int get_glyph_surface(bitmap_backend_data_t *data, glyph_id_t glyph_id,
 	sysarg_t h;
 	surface_get_resolution(raw_surface, &w, &h);
 	
-	if (h == data->points) {
+	if (!data->scale) {
 		*result = raw_surface;
 		return EOK;
 	}
@@ -146,15 +146,15 @@ static int get_glyph_surface(bitmap_backend_data_t *data, glyph_id_t glyph_id,
 
 	transform_t transform;
 	transform_identity(&transform);
-	double ratio = ((double) data->points) / ((double) h);
-	transform_scale(&transform, ratio, ratio);
+	transform_translate(&transform, 0.5, 0.5);
+	transform_scale(&transform, data->scale_ratio, data->scale_ratio);
 	source_set_transform(&source, transform);
 
-	double width = w;
-	double height = h;
-	transform_apply_linear(&transform, &width, &height);
-	surface_t *scaled_surface =
-	    surface_create((sysarg_t) (width + 0.5), (sysarg_t) (height + 0.5), NULL, 0);
+	surface_coord_t scaled_width = (data->scale_ratio * ((double) w) + 0.5);
+	surface_coord_t scaled_height = (data->scale_ratio * ((double) h) + 0.5);
+
+	surface_t *scaled_surface = surface_create(scaled_width, scaled_height,
+	    NULL, 0);
 	if (!scaled_surface) {
 		surface_destroy(raw_surface);
 		return ENOMEM;
@@ -163,8 +163,7 @@ static int get_glyph_surface(bitmap_backend_data_t *data, glyph_id_t glyph_id,
 	drawctx_t context;
 	drawctx_init(&context, scaled_surface);
 	drawctx_set_source(&context, &source);
-	drawctx_transfer(&context, 0, 0,
-	    (sysarg_t) (width + 0.5), (sysarg_t) (height + 0.5));
+	drawctx_transfer(&context, 0, 0, scaled_width, scaled_height);
 
 	surface_destroy(raw_surface);
 	
@@ -248,10 +247,11 @@ int bitmap_font_create(bitmap_font_decoder_t *decoder, void *decoder_data,
 	else {
 		data->scale = true;
 		data->scale_ratio = ((double) points) / ((double) line_height);
+		line_height = (data->scale_ratio * ((double) line_height));
 		data->font_metrics.ascender = (metric_t)
 		    (data->scale_ratio * data->font_metrics.ascender + 0.5);
-		data->font_metrics.descender = (metric_t)
-		    (data->scale_ratio * data->font_metrics.descender - 0.5);
+		data->font_metrics.descender =
+		    line_height - data->font_metrics.ascender;
 		data->font_metrics.leading = (metric_t)
 		    (data->scale_ratio * data->font_metrics.leading + 0.5);
 	}
