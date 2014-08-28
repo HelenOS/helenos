@@ -28,6 +28,7 @@
 
 #include <arch/pm.h>
 #include <arch/mm/page.h>
+#include <arch/istate_struct.h>
 
 .text
 .global interrupt_handlers
@@ -141,36 +142,11 @@ read_efer_flag:
 	rdmsr
 	ret
 
-#define ISTATE_OFFSET_RAX		0
-#define ISTATE_OFFSET_RBX		8
-#define ISTATE_OFFSET_RCX		16
-#define ISTATE_OFFSET_RDX		24
-#define ISTATE_OFFSET_RSI		32
-#define ISTATE_OFFSET_RDI		40
-#define ISTATE_OFFSET_RBP		48
-#define ISTATE_OFFSET_R8		56
-#define ISTATE_OFFSET_R9		64
-#define ISTATE_OFFSET_R10		72
-#define ISTATE_OFFSET_R11		80
-#define ISTATE_OFFSET_R12		88	
-#define ISTATE_OFFSET_R13 		96
-#define ISTATE_OFFSET_R14		104
-#define ISTATE_OFFSET_R15		112
-#define ISTATE_OFFSET_ALIGNMENT		120
-#define ISTATE_OFFSET_RBP_FRAME		128
-#define ISTATE_OFFSET_RIP_FRAME		136
-#define ISTATE_OFFSET_ERROR_WORD	144
-#define ISTATE_OFFSET_RIP		152
-#define ISTATE_OFFSET_CS		160
-#define ISTATE_OFFSET_RFLAGS		168
-#define ISTATE_OFFSET_RSP		176
-#define ISTATE_OFFSET_SS		184
-
 /*
  * Size of the istate structure without the hardware-saved part and without the
  * error word.
  */
-#define ISTATE_SOFT_SIZE	144
+#define ISTATE_SOFT_SIZE	ISTATE_SIZE - (6 * 8)
 
 /**
  * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
