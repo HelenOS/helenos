@@ -135,6 +135,7 @@ DIRS = \
 	drv/block/ahci \
 	drv/block/ata_bd \
 	drv/char/i8042 \
+	drv/char/pl050 \
 	drv/char/ps2mouse \
 	drv/char/xtkbd \
 	drv/test/test1 \
@@ -154,7 +155,8 @@ DIRS = \
 	drv/nic/ne2k \
 	drv/nic/e1k \
 	drv/nic/rtl8139 \
-	drv/nic/rtl8169
+	drv/nic/rtl8169 \
+	drv/platform/icp
 
 ## Platform-specific hardware support
 #

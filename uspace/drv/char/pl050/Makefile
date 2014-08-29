@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2014 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,29 +27,11 @@
 #
 
 USPACE_PREFIX = ../../..
-BINARY = input
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = pl050
 
 SOURCES = \
-	layout/cz.c \
-	layout/us_qwerty.c \
-	layout/us_dvorak.c \
-	layout/ar.c \
-	port/adb.c \
-	port/adb_mouse.c \
-	port/chardev.c \
-	port/msim.c \
-	port/niagara.c \
-	port/ns16550.c \
-	port/ski.c \
-	proto/adb.c \
-	proto/mousedev.c \
-	ctl/apple.c \
-	ctl/kbdev.c \
-	ctl/stty.c \
-	ctl/sun.c \
-	gsp.c \
-	input.c \
-	layout.c \
-	stroke.c
+	pl050.c
 
 include $(USPACE_PREFIX)/Makefile.common

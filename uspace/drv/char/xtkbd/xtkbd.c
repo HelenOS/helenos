@@ -198,7 +198,7 @@ static ddf_dev_ops_t kbd_ops = {
  * @param kbd Keyboard driver structure to initialize.
  * @param dev DDF device structure.
  *
- * Connects to parent, creates mouse function, starts polling fibril.
+ * Connects to parent, creates keyboard function, starts polling fibril.
  */
 int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 {
@@ -206,23 +206,29 @@ int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 	assert(dev);
 	kbd->client_sess = NULL;
 	kbd->parent_sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
-	if (!kbd->parent_sess)
-		return ENOMEM;
+	if (!kbd->parent_sess) {
+		ddf_msg(LVL_ERROR, "Failed creating parent session.");
+		return EIO;
+	}
 
 	kbd->kbd_fun = ddf_fun_create(dev, fun_exposed, "kbd");
 	if (!kbd->kbd_fun) {
+		ddf_msg(LVL_ERROR, "Failed creating function 'kbd'.");
 		return ENOMEM;
 	}
 	ddf_fun_set_ops(kbd->kbd_fun, &kbd_ops);
 
 	int ret = ddf_fun_bind(kbd->kbd_fun);
 	if (ret != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding function 'kbd'.");
 		ddf_fun_destroy(kbd->kbd_fun);
-		return ENOMEM;
+		return EEXIST;
 	}
 
 	ret = ddf_fun_add_to_category(kbd->kbd_fun, "keyboard");
 	if (ret != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function 'kbd' to category "
+		    "'keyboard'.");
 		ddf_fun_unbind(kbd->kbd_fun);
 		ddf_fun_destroy(kbd->kbd_fun);
 		return ENOMEM;
@@ -230,17 +236,19 @@ int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 
 	kbd->polling_fibril = fibril_create(polling, kbd);
 	if (!kbd->polling_fibril) {
+		ddf_msg(LVL_ERROR, "Failed creating polling fibril.");
 		ddf_fun_unbind(kbd->kbd_fun);
 		ddf_fun_destroy(kbd->kbd_fun);
 		return ENOMEM;
 	}
+
 	fibril_add_ready(kbd->polling_fibril);
 	return EOK;
 }
 
 /** Get data and parse scancodes.
  * @param arg Pointer to xt_kbd_t structure.
- * @return Never.
+ * @return EIO on error.
  */
 int polling(void *arg)
 {
@@ -258,6 +266,8 @@ int polling(void *arg)
 
 		uint8_t code = 0;
 		ssize_t size = chardev_read(parent_exch, &code, 1);
+		if (size != 1)
+			return EIO;
 
 		/** Ignore AT command reply */
 		if (code == KBD_ACK || code == KBD_RESEND) {
@@ -268,14 +278,11 @@ int polling(void *arg)
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(int);
 			size = chardev_read(parent_exch, &code, 1);
+			if (size != 1)
+				return EIO;
+
 			// TODO handle print screen
 		}
-
-		/* Invalid read. */
-		if (size != 1) {
-			continue;
-		}
-
 
 		/* Bit 7 indicates press/release */
 		const kbd_event_type_t type =
