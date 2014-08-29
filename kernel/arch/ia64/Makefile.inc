@@ -71,3 +71,7 @@ ifeq ($(MACHINE),i460GX)
 	DEFS += -DI460GX
 	BFD = binary
 endif
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag
+
