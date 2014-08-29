@@ -208,7 +208,7 @@ static bd_srv_t *bd_srv_create(bd_srvs_t *srvs)
 {
 	bd_srv_t *srv;
 
-	srv = calloc(1, sizeof(srv));
+	srv = calloc(1, sizeof(bd_srv_t));
 	if (srv == NULL)
 		return NULL;
 

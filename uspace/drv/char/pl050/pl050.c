@@ -37,6 +37,7 @@
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
+#include <io/chardev_srv.h>
 
 #define NAME "pl050"
 
@@ -46,11 +47,6 @@
 #define PL050_STAT_RXFULL  (1 << 4)
 
 enum {
-	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
-	IPC_CHAR_WRITE,
-};
-
-enum {
 	buffer_size = 64
 };
 
@@ -58,6 +54,8 @@ static int pl050_dev_add(ddf_dev_t *);
 static int pl050_fun_online(ddf_fun_t *);
 static int pl050_fun_offline(ddf_fun_t *);
 static void pl050_char_conn(ipc_callid_t, ipc_call_t *, void *);
+static int pl050_read(chardev_srv_t *, void *, size_t);
+static int pl050_write(chardev_srv_t *, const void *, size_t);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &pl050_dev_add,
@@ -70,10 +68,18 @@ static driver_t pl050_driver = {
 	.driver_ops = &driver_ops
 };
 
+static chardev_ops_t pl050_chardev_ops = {
+	.read = pl050_read,
+	.write = pl050_write
+};
+
 typedef struct {
-	ddf_dev_t *dev;
-	ddf_fun_t *fun_a;
 	async_sess_t *parent_sess;
+	ddf_dev_t *dev;
+
+	ddf_fun_t *fun_a;
+	chardev_srvs_t cds;
+
 	uintptr_t iobase;
 	size_t iosize;
 	uint8_t buffer[buffer_size];
@@ -133,6 +139,8 @@ static void pl050_interrupt(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 {
 	pl050_t *pl050 = (pl050_t *)ddf_dev_data_get(dev);
 	size_t nidx;
+
+	ddf_msg(LVL_NOTE, "Interrupt");
 
 	fibril_mutex_lock(&pl050->buf_lock);
 	nidx = (pl050->buf_wp + 1) % buffer_size;
@@ -208,77 +216,37 @@ error:
 	return rc;
 }
 
-static int pl050_read(pl050_t *pl050, void *buffer, size_t size)
+static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
 {
+	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
 	uint8_t *bp = buffer;
+	size_t left;
 	fibril_mutex_lock(&pl050->buf_lock);
 
-	while (size > 0) {
+	left = size;
+	while (left > 0) {
 		while (pl050->buf_rp == pl050->buf_wp)
 			fibril_condvar_wait(&pl050->buf_cv, &pl050->buf_lock);
 		*bp++ = pl050->buffer[pl050->buf_rp];
-		--size;
+		--left;
 		pl050->buf_rp = (pl050->buf_rp + 1) % buffer_size;
 	}
 
 	fibril_mutex_unlock(&pl050->buf_lock);
 
-	return EOK;
+	return size;
 }
 
-static int pl050_write(pl050_t *pl050, void *data, size_t size)
+static int pl050_write(chardev_srv_t *srv, const void *data, size_t size)
 {
-	return EOK;
+	return size;
 }
 
 void pl050_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	pl050_t *pl050 = pl050_from_fun((ddf_fun_t *)arg);
 
-	/* Accept the connection */
-	async_answer_0(iid, EOK);
-
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
-		size_t size = IPC_GET_ARG1(call);
-
-		if (!method) {
-			/* The other side has hung up */
-			async_answer_0(callid, EOK);
-			break;
-		}
-
-		switch (method) {
-		case IPC_CHAR_READ:
-			if (size <= 4 * sizeof(sysarg_t)) {
-				sysarg_t message[4] = {};
-
-				pl050_read(pl050, (char *) message, size);
-				async_answer_4(callid, size, message[0], message[1],
-				    message[2], message[3]);
-			} else
-				async_answer_0(callid, ELIMIT);
-			break;
-
-		case IPC_CHAR_WRITE:
-			if (size <= 3 * sizeof(sysarg_t)) {
-				const sysarg_t message[3] = {
-					IPC_GET_ARG2(call),
-					IPC_GET_ARG3(call),
-					IPC_GET_ARG4(call)
-				};
-
-				pl050_write(pl050, (char *) message, size);
-				async_answer_0(callid, size);
-			} else
-				async_answer_0(callid, ELIMIT);
-
-		default:
-			async_answer_0(callid, EINVAL);
-		}
-	}
+	chardev_conn(iid, icall, &pl050->cds);
 }
 
 /** Add device. */
@@ -288,7 +256,7 @@ static int pl050_dev_add(ddf_dev_t *dev)
 	pl050_t *pl050;
 	int rc;
 
-	ddf_msg(LVL_DEBUG, "pl050_dev_add()");
+	ddf_msg(LVL_NOTE, "pl050_dev_add()");
 
 	pl050 = ddf_dev_data_alloc(dev, sizeof(pl050_t));
 	if (pl050 == NULL) {
@@ -307,10 +275,11 @@ static int pl050_dev_add(ddf_dev_t *dev)
 	pl050->fun_a = fun_a;
 	pl050->dev = dev;
 
+if (1) {
 	rc = pl050_init(pl050);
 	if (rc != EOK)
 		goto error;
-
+}
 	rc = ddf_fun_add_match_id(fun_a, "char/xtkbd", 10);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
@@ -318,8 +287,14 @@ static int pl050_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	ddf_fun_set_conn_handler(fun_a, pl050_char_conn);
+	ddf_msg(LVL_NOTE, "Init srvs");
+	if (1) {
+	chardev_srvs_init(&pl050->cds);
+	pl050->cds.ops = &pl050_chardev_ops;
+	pl050->cds.sarg = pl050;
 
+	ddf_fun_set_conn_handler(fun_a, pl050_char_conn);
+}
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
@@ -327,6 +302,7 @@ static int pl050_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
+	ddf_msg(LVL_NOTE, "Device added");
 	ddf_msg(LVL_DEBUG, "Device added.");
 	return EOK;
 error:

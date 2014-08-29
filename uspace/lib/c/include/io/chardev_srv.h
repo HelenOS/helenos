@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <mem.h>
-#include <ipc/dev_iface.h>
-#include <ddf/log.h>
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
-#include "chardev.h"
+#ifndef LIBC_IO_CHARDEV_SRV_H_
+#define LIBC_IO_CHARDEV_SRV_H_
 
-// TODO make this shared
-enum {
-	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
-	IPC_CHAR_WRITE,
+#include <adt/list.h>
+#include <async.h>
+#include <fibril_synch.h>
+#include <stdbool.h>
+#include <sys/types.h>
+
+typedef struct chardev_ops chardev_ops_t;
+
+/** Service setup (per sevice) */
+typedef struct {
+	chardev_ops_t *ops;
+	void *sarg;
+} chardev_srvs_t;
+
+/** Server structure (per client session) */
+typedef struct {
+	chardev_srvs_t *srvs;
+	void *carg;
+} chardev_srv_t;
+
+struct chardev_ops {
+	int (*open)(chardev_srvs_t *, chardev_srv_t *);
+	int (*close)(chardev_srv_t *);
+	int (*read)(chardev_srv_t *, void *, size_t);
+	int (*write)(chardev_srv_t *, const void *, size_t);
 };
 
-ssize_t chardev_read(async_exch_t *exch, void *data, size_t size)
-{
-	if (!exch)
-		return EBADMEM;
-	if (size > 4 * sizeof(sysarg_t))
-		return ELIMIT;
+extern void chardev_srvs_init(chardev_srvs_t *);
 
-	sysarg_t message[4] = { 0 };
-	const ssize_t ret = async_req_1_4(exch, IPC_CHAR_READ, size,
-	    &message[0], &message[1], &message[2], &message[3]);
-	if (ret > 0 && (size_t)ret <= size)
-		memcpy(data, message, size);
-	return ret;
-}
+extern int chardev_conn(ipc_callid_t, ipc_call_t *, chardev_srvs_t *);
 
-ssize_t chardev_write(async_exch_t *exch, const void *data, size_t size)
-{
-	if (!exch)
-		return EBADMEM;
-	if (size > 3 * sizeof(sysarg_t))
-		return ELIMIT;
+#endif
 
-	sysarg_t message[3] = { 0 };
-	memcpy(message, data, size);
-	return async_req_4_0(exch, IPC_CHAR_WRITE, size,
-	    message[0], message[1], message[2]);
-}
+/** @}
+ */

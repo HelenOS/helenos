@@ -39,6 +39,7 @@
 #ifndef i8042_H_
 #define i8042_H_
 
+#include <io/chardev_srv.h>
 #include <sys/types.h>
 #include <fibril_synch.h>
 #include <ddf/driver.h>
@@ -55,7 +56,13 @@ typedef struct {
 	ioport8_t status;
 } __attribute__ ((packed)) i8042_regs_t;
 
-/** i8042 driver structure. */
+/** i8042 Port. */
+typedef struct {
+	struct i8042 *ctl;		/**< Controller */
+	chardev_srvs_t cds;		/**< Character device server data */
+} i8042_port_t;
+
+/** i8042 Controller. */
 typedef struct i8042 {
 	i8042_regs_t *regs;             /**< I/O registers. */
 	ddf_fun_t *kbd_fun;             /**< Pirmary port device function. */
@@ -64,8 +71,11 @@ typedef struct i8042 {
 	buffer_t aux_buffer;            /**< Aux. port buffer. */
 	uint8_t aux_data[BUFFER_SIZE];  /**< Primary port buffer space. */
 	uint8_t kbd_data[BUFFER_SIZE];  /**< Aux. port buffer space. */
+	i8042_port_t *kbd;
+	i8042_port_t *aux;
 	fibril_mutex_t write_guard;     /**< Prevents simultanous port writes.*/
 } i8042_t;
+
 
 extern int i8042_init(i8042_t *, addr_range_t *, int, int, ddf_dev_t *);
 

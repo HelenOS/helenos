@@ -25,23 +25,36 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvmouse
- * @{
- */
-/** @file
- * @brief ps/2 mouse driver.
- */
 
-#ifndef _CHARDEV_H_
-#define _CHARDEV_H_
+#include <errno.h>
+#include <mem.h>
+#include <io/chardev.h>
+#include <ipc/chardev.h>
 
-#include <libarch/types.h>
-#include <async.h>
+ssize_t chardev_read(async_exch_t *exch, void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 4 * sizeof(sysarg_t))
+		return ELIMIT;
 
-ssize_t chardev_read(async_exch_t *, void *, size_t);
-ssize_t chardev_write(async_exch_t *, const void *, size_t);
+	sysarg_t message[4] = { 0 };
+	const ssize_t ret = async_req_1_4(exch, CHARDEV_READ, size,
+	    &message[0], &message[1], &message[2], &message[3]);
+	if (ret > 0 && (size_t)ret <= size)
+		memcpy(data, message, size);
+	return ret;
+}
 
-#endif
-/**
- * @}
- */
+ssize_t chardev_write(async_exch_t *exch, const void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+	if (size > 3 * sizeof(sysarg_t))
+		return ELIMIT;
+
+	sysarg_t message[3] = { 0 };
+	memcpy(message, data, size);
+	return async_req_4_0(exch, CHARDEV_WRITE, size,
+	    message[0], message[1], message[2]);
+}

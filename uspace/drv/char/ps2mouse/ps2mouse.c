@@ -36,12 +36,12 @@
 #include <errno.h>
 #include <ddf/log.h>
 #include <io/keycode.h>
+#include <io/chardev.h>
 #include <io/console.h>
 #include <ipc/mouseev.h>
 #include <abi/ipc/methods.h>
 
 #include "ps2mouse.h"
-#include "chardev.h"
 
 #define PS2_MOUSE_GET_DEVICE_ID   0xf2
 #define PS2_MOUSE_SET_SAMPLE_RATE   0xf3

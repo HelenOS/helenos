@@ -25,15 +25,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvkbd
+/** @addtogroup libc
  * @{
  */
-/** @file
- * @brief ps/2 mouse driver.
- */
 
-#ifndef _CHARDEV_H_
-#define _CHARDEV_H_
+#ifndef LIBC_IO_CHARDEV_H_
+#define LIBC_IO_CHARDEV_H_
 
 #include <libarch/types.h>
 #include <async.h>

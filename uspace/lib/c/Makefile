@@ -91,6 +91,8 @@ GENERIC_SOURCES = \
 	generic/io/asprintf.c \
 	generic/io/input.c \
 	generic/io/io.c \
+	generic/io/chardev.c \
+	generic/io/chardev_srv.c \
 	generic/io/chargrid.c \
 	generic/io/output.c \
 	generic/io/printf.c \

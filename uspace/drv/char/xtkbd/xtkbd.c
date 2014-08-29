@@ -35,11 +35,11 @@
 #include <errno.h>
 #include <ddf/log.h>
 #include <io/keycode.h>
+#include <io/chardev.h>
 #include <io/console.h>
 #include <ipc/kbdev.h>
 #include <abi/ipc/methods.h>
 
-#include "chardev.h"
 #include "xtkbd.h"
 
 /** Scancode set 1 table. */

@@ -194,9 +194,9 @@ else
 endif
 
 ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
-	OPTIMIZATION = s
+	OPTIMIZATION = 0
 else
-	OPTIMIZATION = 3
+	OPTIMIZATION = 0
 endif
 
 .PHONY: all clean
