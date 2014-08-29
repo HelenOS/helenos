@@ -140,8 +140,6 @@ static void pl050_interrupt(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 	pl050_t *pl050 = (pl050_t *)ddf_dev_data_get(dev);
 	size_t nidx;
 
-	ddf_msg(LVL_NOTE, "Interrupt");
-
 	fibril_mutex_lock(&pl050->buf_lock);
 	nidx = (pl050->buf_wp + 1) % buffer_size;
 	if (nidx == pl050->buf_rp) {
@@ -256,7 +254,7 @@ static int pl050_dev_add(ddf_dev_t *dev)
 	pl050_t *pl050;
 	int rc;
 
-	ddf_msg(LVL_NOTE, "pl050_dev_add()");
+	ddf_msg(LVL_DEBUG, "pl050_dev_add()");
 
 	pl050 = ddf_dev_data_alloc(dev, sizeof(pl050_t));
 	if (pl050 == NULL) {
@@ -275,11 +273,10 @@ static int pl050_dev_add(ddf_dev_t *dev)
 	pl050->fun_a = fun_a;
 	pl050->dev = dev;
 
-if (1) {
 	rc = pl050_init(pl050);
 	if (rc != EOK)
 		goto error;
-}
+
 	rc = ddf_fun_add_match_id(fun_a, "char/xtkbd", 10);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
@@ -287,14 +284,13 @@ if (1) {
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "Init srvs");
-	if (1) {
+
 	chardev_srvs_init(&pl050->cds);
 	pl050->cds.ops = &pl050_chardev_ops;
 	pl050->cds.sarg = pl050;
 
 	ddf_fun_set_conn_handler(fun_a, pl050_char_conn);
-}
+
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
@@ -302,7 +298,6 @@ if (1) {
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "Device added");
 	ddf_msg(LVL_DEBUG, "Device added.");
 	return EOK;
 error:
