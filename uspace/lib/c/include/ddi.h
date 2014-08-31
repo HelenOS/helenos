@@ -50,6 +50,7 @@
 extern int device_assign_devno(void);
 
 extern int physmem_map(uintptr_t, size_t, unsigned int, void **);
+extern int physmem_unmap(void *);
 
 extern int dmamem_map(void *, size_t, unsigned int, unsigned int, uintptr_t *);
 extern int dmamem_map_anonymous(size_t, uintptr_t, unsigned int, unsigned int,
@@ -60,6 +61,7 @@ extern int dmamem_unmap_anonymous(void *);
 extern int pio_enable_range(addr_range_t *, void **);
 extern int pio_enable_resource(pio_window_t *, hw_resource_t *, void **);
 extern int pio_enable(void *, size_t, void **);
+extern int pio_disable(void *, size_t);
 
 typedef void (*trace_fnc)(const volatile void *place, uint32_t val,
     volatile void* base, size_t size, void *data, bool write);

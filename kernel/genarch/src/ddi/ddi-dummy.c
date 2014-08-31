@@ -26,30 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32ddi
+/** @addtogroup genarch 
  * @{
  */
 /** @file
+ *  @brief DDI.
  */
 
 #include <ddi/ddi.h>
 #include <proc/task.h>
 #include <typedefs.h>
-#include <security/cap.h>
-#include <arch.h>
-#include <arch/cp0.h>
 
 /** Enable I/O space range for task.
  *
  * Interrupts are disabled and task is locked.
  *
- * @param task Task.
- * @param ioaddr Startign I/O space address.
- * @param size Size of the enabled I/O range.
+ * @param task   Task.
+ * @param ioaddr Starting I/O space address.
+ * @param size   Size of the enabled I/O range.
  *
- * @return 0 on success or an error code from errno.h.
+ * @return EOK on success or an error code from errno.h.
  */
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
+{
+	return 0;
+}
+
+/** Disable I/O space range for task.
+ *
+ * Interrupts are disabled and task is locked.
+ *
+ * @param task   Task.
+ * @param ioaddr Starting I/O space address.
+ * @param size   Size of the disabled I/O range.
+ *
+ * @return EOK on success or an error code from errno.h.
+ */
+int ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	return 0;
 }

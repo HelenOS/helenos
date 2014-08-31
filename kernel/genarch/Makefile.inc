@@ -180,3 +180,14 @@ ifeq ($(CONFIG_EGA), y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/ega/ega.c
 endif
+
+ifeq ($(CONFIG_IOMAP_BITMAP), y)
+	GENARCH_SOURCES += \
+		genarch/src/ddi/ddi-bitmap.c
+endif
+
+ifeq ($(CONFIG_IOMAP_DUMMY), y)
+	GENARCH_SOURCES += \
+		genarch/src/ddi/ddi-dummy.c
+endif
+

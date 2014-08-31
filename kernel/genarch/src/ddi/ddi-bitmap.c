@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
- * Copyright (c) 2008 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,49 +26,84 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64ddi
+/** @addtogroup amd64ddi
  * @{
  */
 /** @file
  */
 
 #include <ddi/ddi.h>
+#include <arch/ddi/ddi.h>
 #include <proc/task.h>
 #include <typedefs.h>
+#include <adt/bitmap.h>
 #include <mm/slab.h>
+#include <arch/pm.h>
 #include <errno.h>
-
-#define IO_MEMMAP_PAGES	16384
-#define PORTS_PER_PAGE	4
+#include <arch/cpu.h>
+#include <cpu.h>
+#include <arch.h>
+#include <align.h>
 
 /** Enable I/O space range for task.
  *
  * Interrupts are disabled and task is locked.
  *
- * @param task	 Task.
+ * @param task   Task.
  * @param ioaddr Starting I/O space address.
- * @param size	 Size of the enabled I/O range.
+ * @param size   Size of the enabled I/O range.
  *
  * @return EOK on success or an error code from errno.h.
+ *
  */
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
-	if (!task->arch.iomap) {
-		task->arch.iomap = malloc(sizeof(bitmap_t), 0);
-		if (task->arch.iomap == NULL)
+	size_t elements = ioaddr + size;
+	if (elements > IO_PORTS)
+		return ENOENT;
+	
+	if (task->arch.iomap.elements < elements) {
+		/*
+		 * The I/O permission bitmap is too small and needs to be grown.
+		 */
+		
+		void *store = malloc(bitmap_size(elements), FRAME_ATOMIC);
+		if (!store)
 			return ENOMEM;
 		
-		void *store = malloc(bitmap_size(IO_MEMMAP_PAGES), 0);
-		if (store == NULL)
-			return ENOMEM;
+		bitmap_t oldiomap;
+		bitmap_initialize(&oldiomap, task->arch.iomap.elements,
+		    task->arch.iomap.bits);
 		
-		bitmap_initialize(task->arch.iomap, IO_MEMMAP_PAGES, store);
-		bitmap_clear_range(task->arch.iomap, 0, IO_MEMMAP_PAGES);
+		bitmap_initialize(&task->arch.iomap, elements, store);
+		
+		/*
+		 * Mark the new range inaccessible.
+		 */
+		bitmap_set_range(&task->arch.iomap, oldiomap.elements,
+		    elements - oldiomap.elements);
+		
+		/*
+		 * In case there really existed smaller iomap,
+		 * copy its contents and deallocate it.
+		 */
+		if (oldiomap.bits) {
+			bitmap_copy(&task->arch.iomap, &oldiomap,
+			    oldiomap.elements);
+			
+			free(oldiomap.bits);
+		}
 	}
 	
-	uintptr_t iopage = ioaddr / PORTS_PER_PAGE;
-	size = ALIGN_UP(size + ioaddr - 4 * iopage, PORTS_PER_PAGE);
-	bitmap_set_range(task->arch.iomap, iopage, size / 4);
+	/*
+	 * Enable the range and we are done.
+	 */
+	bitmap_clear_range(&task->arch.iomap, (size_t) ioaddr, size);
+	
+	/*
+	 * Increment I/O Permission bitmap generation counter.
+	 */
+	task->arch.iomapver++;
 	
 	return EOK;
 }
@@ -78,22 +112,36 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
  *
  * Interrupts are disabled and task is locked.
  *
- * @param task	 Task.
+ * @param task   Task.
  * @param ioaddr Starting I/O space address.
- * @param size	 Size of the disabled I/O range.
+ * @param size   Size of the enabled I/O range.
  *
  * @return EOK on success or an error code from errno.h.
+ *
  */
 int ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
-	if (!task->arch.iomap)
-		return EINVAL;
-
-	uintptr_t iopage = ioaddr / PORTS_PER_PAGE;
-	size = ALIGN_UP(size + ioaddr - 4 * iopage, PORTS_PER_PAGE);
-	bitmap_clear_range(task->arch.iomap, iopage, size / 4);
+	size_t elements = ioaddr + size;
+	if (elements > IO_PORTS)
+		return ENOENT;
 	
-	return EOK;
+	if (ioaddr >= task->arch.iomap.elements)
+		return EINVAL;	
+
+	if (task->arch.iomap.elements < elements)
+		size -= elements - task->arch.iomap.elements;
+
+	/*
+	 * Disable the range.
+	 */
+	bitmap_set_range(&task->arch.iomap, (size_t) ioaddr, size);
+	
+	/*
+	 * Increment I/O Permission bitmap generation counter.
+	 */
+	task->arch.iomapver++;
+	
+	return 0;
 }
 
 /** @}
