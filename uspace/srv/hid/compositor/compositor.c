@@ -83,6 +83,8 @@
 static char *server_name;
 static sysarg_t coord_origin;
 static pixel_t bg_color;
+static filter_t filter = filter_bilinear;
+static unsigned int filter_index = 1;
 
 typedef struct {
 	link_t link;
@@ -407,7 +409,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 			drawctx_t context;
 
 			source_init(&source);
-			source_set_filter(&source, filter_nearest);
+			source_set_filter(&source, filter);
 			drawctx_init(&context, vp->surface);
 			drawctx_set_compose(&context, compose_over);
 			drawctx_set_source(&context, &source);
@@ -1817,12 +1819,13 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	bool viewport_change = (mods & KM_ALT) && (
 	    key == KC_O || key == KC_P);
 	bool kconsole_switch = (mods & KM_ALT) && (key == KC_M);
+	bool filter_switch = (mods & KM_ALT) && (key == KC_Y);
 
-	bool filter = (type == KEY_RELEASE) && (win_transform || win_resize ||
+	bool key_filter = (type == KEY_RELEASE) && (win_transform || win_resize ||
 	    win_opacity || win_close || win_switch || viewport_move ||
-	    viewport_change || kconsole_switch);
+	    viewport_change || kconsole_switch || filter_switch);
 
-	if (filter) {
+	if (key_filter) {
 		/* no-op */
 	} else if (win_transform) {
 		fibril_mutex_lock(&window_list_mtx);
@@ -2090,6 +2093,17 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	} else if (kconsole_switch) {
 		if (console_kcon())
 			active = false;
+	} else if (filter_switch) {
+		filter_index++;
+		if (filter_index > 1)
+			filter_index = 0;
+		if (filter_index == 0) {
+			filter = filter_nearest;
+		}
+		else {
+			filter = filter_bilinear;
+		}
+		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	} else {
 		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 		if (event == NULL)
