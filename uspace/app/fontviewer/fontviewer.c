@@ -46,6 +46,7 @@
 #include <task.h>
 #include <drawctx.h>
 #include <font/embedded.h>
+#include <font/pcf.h>
 #include <stdarg.h>
 #include <io/verify.h>
 
@@ -60,6 +61,7 @@ static canvas_t *canvas = NULL;
 static surface_coord_t width, height;
 uint16_t points = 16;
 bool show_metrics = true;
+char *font_path = NULL;
 
 static int draw(void);
 
@@ -104,7 +106,11 @@ static void on_keyboard_event(widget_t *widget, void *data)
 
 static int create_font(font_t **font, uint16_t points)
 {
-	return embedded_font_create(font, points);
+	if (font_path == NULL) {
+		return embedded_font_create(font, points);
+	}
+	
+	return pcf_font_create(font, font_path, points);
 }
 
 static source_t rgb(uint8_t r, uint8_t g, uint8_t b)
@@ -247,8 +253,10 @@ int main(int argc, char *argv[])
 	}
 	
 	if (argc < 3) {
-		printf("No image files specified.\n");
-		return 1;
+		font_path = NULL;
+	}
+	else {
+		font_path = argv[2];
 	}
 	
 	main_window = window_open(argv[1], true, false, "fontviewer");
