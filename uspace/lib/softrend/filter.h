@@ -39,11 +39,11 @@
 #include <stdbool.h>
 #include <io/pixelmap.h>
 
-typedef pixel_t (*filter_t)(pixelmap_t *, double, double, bool);
+typedef pixel_t (*filter_t)(pixelmap_t *, double, double, pixelmap_extend_t);
 
-extern pixel_t filter_nearest(pixelmap_t *, double, double, bool);
-extern pixel_t filter_bilinear(pixelmap_t *, double, double, bool);
-extern pixel_t filter_bicubic(pixelmap_t *, double, double, bool);
+extern pixel_t filter_nearest(pixelmap_t *, double, double, pixelmap_extend_t);
+extern pixel_t filter_bilinear(pixelmap_t *, double, double, pixelmap_extend_t);
+extern pixel_t filter_bicubic(pixelmap_t *, double, double, pixelmap_extend_t);
 
 #endif
 

@@ -443,7 +443,8 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 					transform_translate(&transform, -pos.x, -pos.y);
 
 					source_set_transform(&source, transform);
-					source_set_texture(&source, win->surface, false);
+					source_set_texture(&source, win->surface,
+					    PIXELMAP_EXTEND_TRANSPARENT_SIDES);
 					source_set_alpha(&source, PIXEL(win->opacity, 0, 0, 0));
 
 					drawctx_transfer(&context,

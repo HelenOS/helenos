@@ -142,7 +142,7 @@ static int get_glyph_surface(bitmap_backend_data_t *data, glyph_id_t glyph_id,
 	
 	source_t source;
 	source_init(&source);
-	source_set_texture(&source, raw_surface, false);
+	source_set_texture(&source, raw_surface, PIXELMAP_EXTEND_TRANSPARENT_BLACK);
 
 	transform_t transform;
 	transform_identity(&transform);

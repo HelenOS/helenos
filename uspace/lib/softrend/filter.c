@@ -37,6 +37,7 @@
 #include "filter.h"
 #include <io/pixel.h>
 
+
 static long round(double val)
 {
 	return val > 0 ? (long) (val + 0.5) : (long) (val - 0.5);
@@ -58,15 +59,6 @@ static long ceil(double val)
 	return lval;
 }
 
-static pixel_t get_pixel(pixelmap_t *pixmap, sysarg_t x, sysarg_t y, bool tile)
-{
-	if (tile) {
-		x %= pixmap->width;
-		y %= pixmap->height;
-	}
-
-	return pixelmap_get_pixel(pixmap, (sysarg_t) x, (sysarg_t) y);
-}
 
 static inline pixel_t blend_pixels(size_t count, float *weights,
     pixel_t *pixels)
@@ -83,12 +75,14 @@ static inline pixel_t blend_pixels(size_t count, float *weights,
 	    (uint8_t) blue);
 }
 
-pixel_t filter_nearest(pixelmap_t *pixmap, double x, double y, bool tile)
+pixel_t filter_nearest(pixelmap_t *pixmap, double x, double y,
+    pixelmap_extend_t extend)
 {
-	return get_pixel(pixmap, round(x), round(y), tile);
+	return pixelmap_get_extended_pixel(pixmap, round(x), round(y), extend);
 }
 
-pixel_t filter_bilinear(pixelmap_t *pixmap, double x, double y, bool tile)
+pixel_t filter_bilinear(pixelmap_t *pixmap, double x, double y,
+    pixelmap_extend_t extend)
 {
 	long x1 = floor(x);
 	long x2 = ceil(x);
@@ -96,18 +90,18 @@ pixel_t filter_bilinear(pixelmap_t *pixmap, double x, double y, bool tile)
 	long y2 = ceil(y);
 	
 	if (y1 == y2 && x1 == x2) {
-		return get_pixel(pixmap, (sysarg_t) x1, (sysarg_t) y1,
-		    tile);
+		return pixelmap_get_extended_pixel(pixmap,
+		    (sysarg_t) x1, (sysarg_t) y1, extend);
 	}
 	
 	double x_delta = x - x1;
 	double y_delta = y - y1;
 	
 	pixel_t pixels[4];
-	pixels[0] = get_pixel(pixmap, x1, y1, tile);
-	pixels[1] = get_pixel(pixmap, x2, y1, tile);
-	pixels[2] = get_pixel(pixmap, x1, y2, tile);
-	pixels[3] = get_pixel(pixmap, x2, y2, tile);
+	pixels[0] = pixelmap_get_extended_pixel(pixmap, x1, y1, extend);
+	pixels[1] = pixelmap_get_extended_pixel(pixmap, x2, y1, extend);
+	pixels[2] = pixelmap_get_extended_pixel(pixmap, x1, y2, extend);
+	pixels[3] = pixelmap_get_extended_pixel(pixmap, x2, y2, extend);
 	
 	float weights[4];
 	weights[0] = (1 - x_delta) * (1 - y_delta);
@@ -118,7 +112,8 @@ pixel_t filter_bilinear(pixelmap_t *pixmap, double x, double y, bool tile)
 	return blend_pixels(4, weights, pixels);
 }
 
-pixel_t filter_bicubic(pixelmap_t *pixmap, double x, double y, bool tile)
+pixel_t filter_bicubic(pixelmap_t *pixmap, double x, double y,
+    pixelmap_extend_t extend)
 {
 	// TODO
 	return 0;
