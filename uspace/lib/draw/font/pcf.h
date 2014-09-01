@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2014 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup gui
+/** @addtogroup draw
  * @{
  */
 /**
  * @file
  */
 
-#ifndef GUI_BUTTON_H_
-#define GUI_BUTTON_H_
+#ifndef DRAW_FONT_PBF_H_
+#define DRAW_FONT_PBF_H_
 
-#include <sys/types.h>
-#include <io/pixel.h>
+#include "../font.h"
 
-#include <source.h>
-#include <font.h>
-
-#include "connection.h"
-#include "widget.h"
-
-typedef struct button {
-	widget_t widget;
-	source_t background;
-	source_t foreground;
-	source_t text;
-	char *caption;
-	font_t *font;
-	signal_t clicked;
-} button_t;
-
-extern bool init_button(button_t *, widget_t *, const char *, uint16_t, pixel_t,
-    pixel_t, pixel_t);
-extern button_t *create_button(widget_t *, const char *, uint16_t, pixel_t,
-    pixel_t, pixel_t);
-extern void deinit_button(button_t *);
+extern int pcf_font_create(font_t **, char *path, uint16_t points);
 
 #endif
 

@@ -54,6 +54,7 @@
 #include <font.h>
 #include <drawctx.h>
 #include <surface.h>
+#include <font/embedded.h>
 
 #include "common.h"
 #include "connection.h"
@@ -159,16 +160,20 @@ static void paint_internal(widget_t *widget)
 	
 	/* Window caption */
 	
-	font_t font;
-	font_init(&font, FONT_DECODER_EMBEDDED, NULL, 16);
+	font_t *font;
+	int rc = embedded_font_create(&font, 16);
+	if (rc != EOK) {
+		window_yield(widget->window);
+		return;
+	}
 	
-	drawctx_set_font(&drawctx, &font);
+	drawctx_set_font(&drawctx, font);
 	source_set_color(&source, widget->window->is_focused ?
 	    color_caption_focus : color_caption_unfocus);
 	
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
-	font_get_box(&font, widget->window->caption, &cpt_width, &cpt_height);
+	font_get_box(font, widget->window->caption, &cpt_width, &cpt_height);
 	
 	bool draw_title =
 	    (widget->width >= 2 * border_thickness + 2 * bevel_thickness +
@@ -182,7 +187,7 @@ static void paint_internal(widget_t *widget)
 			drawctx_print(&drawctx, widget->window->caption, cpt_x, cpt_y);
 	}
 	
-	font_release(&font);
+	font_release(font);
 	window_yield(widget->window);
 }
 

@@ -37,6 +37,8 @@
 #include <malloc.h>
 #include <drawctx.h>
 #include <surface.h>
+#include <font/embedded.h>
+#include <errno.h>
 #include "common.h"
 #include "window.h"
 #include "button.h"
@@ -75,14 +77,14 @@ static void paint_internal(widget_t *widget)
 	
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
-	font_get_box(&btn->font, btn->caption, &cpt_width, &cpt_height);
+	font_get_box(btn->font, btn->caption, &cpt_width, &cpt_height);
 	
 	if ((widget->width >= cpt_width) && (widget->height >= cpt_height)) {
 		sysarg_t x = ((widget->width - cpt_width) / 2) + widget->hpos;
 		sysarg_t y = ((widget->height - cpt_height) / 2) + widget->vpos;
 		
 		drawctx_set_source(&drawctx, &btn->text);
-		drawctx_set_font(&drawctx, &btn->font);
+		drawctx_set_font(&drawctx, btn->font);
 		
 		if (btn->caption)
 			drawctx_print(&drawctx, btn->caption, x, y);
@@ -95,7 +97,7 @@ void deinit_button(button_t *btn)
 {
 	widget_deinit(&btn->widget);
 	free(btn->caption);
-	font_release(&btn->font);
+	font_release(btn->font);
 }
 
 static void button_destroy(widget_t *widget)
@@ -170,11 +172,16 @@ bool init_button(button_t *btn, widget_t *parent, const char *caption,
 	else
 		btn->caption = str_dup(caption);
 	
-	font_init(&btn->font, FONT_DECODER_EMBEDDED, NULL, points);
+	int rc = embedded_font_create(&btn->font, points);
+	if (rc != EOK) {
+		free(btn->caption);
+		btn->caption = NULL;
+		return false;
+	}
 	
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
-	font_get_box(&btn->font, btn->caption, &cpt_width, &cpt_height);
+	font_get_box(btn->font, btn->caption, &cpt_width, &cpt_height);
 	btn->widget.width_min = cpt_width + 10;
 	btn->widget.height_min = cpt_height + 10;
 	btn->widget.width_ideal = cpt_width + 30;

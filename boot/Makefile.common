@@ -217,7 +217,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/date/date \
 	$(USPACE_PATH)/app/vdemo/vdemo \
 	$(USPACE_PATH)/app/viewer/viewer \
-	$(USPACE_PATH)/app/df/df
+	$(USPACE_PATH)/app/df/df \
+	$(USPACE_PATH)/app/fontviewer/fontviewer
 
 COMPONENTS = \
 	$(KERNEL_PATH)/kernel.bin \

@@ -50,7 +50,7 @@ typedef struct label {
 	source_t background;
 	source_t text;
 	char *caption;
-	font_t font;
+	font_t *font;
 	slot_t rewrite;
 } label_t;
 

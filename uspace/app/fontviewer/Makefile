@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Petr Koupy
+# Copyright (c) 2014 Martin Sucha
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,24 +27,22 @@
 #
 
 USPACE_PREFIX = ../..
-LIBRARY = libdraw
-SLIBRARY = libdraw.so.0.0
-LSONAME = libdraw.so0
-EXTRA_CFLAGS += -I$(LIBSOFTREND_PREFIX)
+
+LIBS = \
+	$(LIBGUI_PREFIX)/libgui.a \
+	$(LIBDRAW_PREFIX)/libdraw.a \
+	$(LIBSOFTREND_PREFIX)/libsoftrend.a \
+	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
+
+EXTRA_CFLAGS += \
+	-I$(LIBGUI_PREFIX) \
+	-I$(LIBDRAW_PREFIX) \
+	-I$(LIBSOFTREND_PREFIX)
+
+BINARY = fontviewer
+MATH = y
 
 SOURCES = \
-	codec/tga.c \
-	cursor/embedded.c \
-	font/embedded.c \
-	font/bitmap_backend.c \
-	font/pcf.c \
-	gfx/font-8x16.c \
-	gfx/cursor-11x18.c \
-	drawctx.c \
-	cursor.c \
-	font.c \
-	path.c \
-	source.c \
-	surface.c
+	fontviewer.c
 
 include $(USPACE_PREFIX)/Makefile.common

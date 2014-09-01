@@ -119,6 +119,7 @@ extern int vprintf(const char *, va_list);
 
 extern int snprintf(char *, size_t , const char *, ...)
     PRINTF_ATTRIBUTE(3, 4);
+extern int vasprintf(char **, const char *, va_list);
 extern int asprintf(char **, const char *, ...)
     PRINTF_ATTRIBUTE(2, 3);
 extern int vsnprintf(char *, size_t, const char *, va_list);

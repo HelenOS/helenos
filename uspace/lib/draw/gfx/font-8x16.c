@@ -43,9 +43,14 @@
  * glyph in the font or returns an index to the question
  * mark glyph if no specific glyph exists.
  *
+ * If found is not null, indicate whether the glyph was found or not.
+ *
  */
-uint16_t fb_font_glyph(const wchar_t ch)
+uint16_t fb_font_glyph(const wchar_t ch, bool *found)
 {
+	if (found)
+		*found = true;
+	
 	if (ch == 0x0000)
 		return 0;
 	
@@ -360,6 +365,9 @@ uint16_t fb_font_glyph(const wchar_t ch)
 	
 	if (ch == 0xfeff)
 		return 2896;
+	
+	if (found)
+		*found = false;
 	
 	return 2898;
 }

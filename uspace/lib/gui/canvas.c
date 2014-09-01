@@ -57,7 +57,8 @@ static void paint_internal(widget_t *widget)
 	source_t source;
 	source_init(&source);
 	source_set_transform(&source, transform);
-	source_set_texture(&source, canvas->surface, false);
+	source_set_texture(&source, canvas->surface,
+	    PIXELMAP_EXTEND_TRANSPARENT_BLACK);
 	
 	drawctx_t drawctx;
 	drawctx_init(&drawctx, surface);
