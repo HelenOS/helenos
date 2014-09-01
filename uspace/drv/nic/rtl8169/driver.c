@@ -921,7 +921,7 @@ static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
 
 	switch (mode) {
 	case NIC_BROADCAST_BLOCKED:
-		rcr &= RCR_ACCEPT_BROADCAST;
+		rcr &= ~RCR_ACCEPT_BROADCAST;
 		break;
 	case NIC_BROADCAST_ACCEPTED:
 		rcr |= RCR_ACCEPT_BROADCAST;
