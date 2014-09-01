@@ -26,8 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define	_DDF_DATA_IMPLANT
-
 #include <assert.h>
 #include <errno.h>
 #include <align.h>
@@ -329,6 +327,14 @@ static rtl8169_t *rtl8169_create_dev_data(ddf_dev_t *dev)
 	return rtl8169;
 }
 
+static void rtl8169_dev_cleanup(ddf_dev_t *dev)
+{
+	assert(dev);
+
+	if (ddf_dev_data_get(dev))
+		nic_unbind_and_destroy(dev);
+}
+
 static int rtl8169_dev_initialize(ddf_dev_t *dev)
 {
 	int ret;
@@ -350,7 +356,7 @@ static int rtl8169_dev_initialize(ddf_dev_t *dev)
 	
 failed:
 	ddf_msg(LVL_ERROR, "The device initialization failed");
-//	rtl8139_dev_cleanup(dev);
+	rtl8169_dev_cleanup(dev);
 	return ret;
 
 }
@@ -438,7 +444,6 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 
 	nic_set_ddf_fun(nic_data, fun);
 	ddf_fun_set_ops(fun, &rtl8169_dev_ops);
-//	ddf_fun_data_implant(fun, nic_data);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -466,7 +471,7 @@ err_irq:
 	//unregister_interrupt_handler(dev, rtl8169->irq);
 err_pio:
 err_destroy:
-	//rtl8169_dev_cleanup(dev);
+	rtl8169_dev_cleanup(dev);
 	return rc;
 
 	return EOK;
@@ -732,14 +737,10 @@ static int rtl8169_on_activated(nic_t *nic_data)
 
 	/* Configure Receive Control Register */
 	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
-	rcr |= RCR_ACCEPT_ALL_PHYS | RCR_ACCEPT_PHYS_MATCH \
-	    | RCR_ACCEPT_BROADCAST | RCR_ACCEPT_ERROR \
-	    | RCR_ACCEPT_RUNT;
+	rtl8169->rcr_ucast = RCR_ACCEPT_PHYS_MATCH;
+	rcr |= RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ERROR | RCR_ACCEPT_RUNT;
 	pio_write_32(rtl8169->regs + RCR, rcr);
 	pio_write_16(rtl8169->regs + RMS, BUFFER_SIZE);
-
-	ddf_msg(LVL_NOTE, "RCR: 0x%08x", pio_read_32(rtl8169->regs + RCR));
-
 
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
 	irc_enable_interrupt(rtl8169->irq);
@@ -792,20 +793,146 @@ static void rtl8169_link_change(ddf_dev_t *dev)
 
 }
 
+/** Notify NIC framework about HW filtering state when promisc mode was disabled
+ *
+ *  @param nic_data     The NIC data
+ *  @param mcast_mode   Current multicast mode
+ *  @param was_promisc  Sign if the promiscuous mode was active before disabling
+ */
+inline static void rtl8169_rcx_promics_rem(nic_t *nic_data,
+    nic_multicast_mode_t mcast_mode, uint8_t was_promisc)
+{
+	assert(nic_data);
+
+	if (was_promisc != 0) {
+		if (mcast_mode == NIC_MULTICAST_LIST)
+			nic_report_hw_filtering(nic_data, 1, 0, -1);
+		else
+			nic_report_hw_filtering(nic_data, 1, 1, -1);
+	} else {
+		nic_report_hw_filtering(nic_data, 1, -1, -1);
+	}
+}
+
 static int rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
+	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
+	uint8_t was_promisc = rcr & RCR_ACCEPT_ALL_PHYS;
+	nic_multicast_mode_t mcast_mode;
+
+	nic_query_multicast(nic_data, &mcast_mode, 0, NULL, NULL);
+
+	ddf_msg(LVL_DEBUG, "Unicast RX filter mode: %d", mode);
+
+
+	switch (mode) {
+	case NIC_UNICAST_BLOCKED:
+		rtl8169->rcr_ucast = 0;
+		rtl8169_rcx_promics_rem(nic_data, mcast_mode, was_promisc);
+		break;
+	case NIC_UNICAST_DEFAULT:
+		rtl8169->rcr_ucast = RCR_ACCEPT_PHYS_MATCH;
+		rtl8169_rcx_promics_rem(nic_data, mcast_mode, was_promisc);
+		break;
+	case NIC_UNICAST_LIST:
+		rtl8169->rcr_ucast = RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ALL_PHYS;
+
+		if (mcast_mode == NIC_MULTICAST_PROMISC)
+			nic_report_hw_filtering(nic_data, 0, 1, -1);
+		else
+			nic_report_hw_filtering(nic_data, 0, 0, -1);
+		break;
+	case NIC_UNICAST_PROMISC:
+		rtl8169->rcr_ucast = RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ALL_PHYS;
+
+		if (mcast_mode == NIC_MULTICAST_PROMISC)
+			nic_report_hw_filtering(nic_data, 1, 1, -1);
+		else
+			nic_report_hw_filtering(nic_data, 1, 0, -1);
+		break;
+	default:
+		return ENOTSUP;
+	}
+
+	fibril_mutex_lock(&rtl8169->rx_lock);
+
+	rcr &= ~(RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ALL_PHYS);
+	pio_write_32(rtl8169->regs + RCR, rcr | rtl8169->rcr_ucast | rtl8169->rcr_mcast);
+	ddf_msg(LVL_DEBUG, "new RCR value: 0x%08x", rcr | rtl8169->rcr_ucast | rtl8169->rcr_mcast);
+
+	fibril_mutex_unlock(&rtl8169->rx_lock);
 	return EOK;
 }
 
 static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
+	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
+	uint64_t mask;
+
+	ddf_msg(LVL_DEBUG, "Multicast RX filter mode: %d", mode);
+
+	switch (mode) {
+	case NIC_MULTICAST_BLOCKED:
+		rtl8169->rcr_mcast = 0;
+		if ((rtl8169->rcr_ucast & RCR_ACCEPT_ALL_PHYS) != 0)
+			nic_report_hw_filtering(nic_data, -1, 0, -1);
+		else
+			nic_report_hw_filtering(nic_data, -1, 1, -1);
+		break;
+	case NIC_MULTICAST_LIST:
+		mask = nic_mcast_hash(addr, addr_count);
+		pio_write_32(rtl8169->regs + MAR0, (uint32_t)mask);
+		pio_write_32(rtl8169->regs + MAR0 + 4, (uint32_t)(mask >> 32));
+		rtl8169->rcr_mcast = RCR_ACCEPT_MULTICAST;
+		nic_report_hw_filtering(nic_data, -1, 0, -1);
+		break;
+	case NIC_MULTICAST_PROMISC:
+		pio_write_32(rtl8169->regs + MAR0, 0xffffffffULL);
+		pio_write_32(rtl8169->regs + MAR0 + 4, (uint32_t)(0xffffffffULL >> 32));
+		rtl8169->rcr_mcast = RCR_ACCEPT_MULTICAST;
+		nic_report_hw_filtering(nic_data, -1, 1, -1);
+		break;
+	default:
+		return ENOTSUP;
+	}
+
+	fibril_mutex_lock(&rtl8169->rx_lock);
+
+	rcr &= ~(RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ALL_PHYS);
+	pio_write_32(rtl8169->regs + RCR, rcr | rtl8169->rcr_ucast | rtl8169->rcr_mcast);
+	ddf_msg(LVL_DEBUG, "new RCR value: 0x%08x", rcr | rtl8169->rcr_ucast | rtl8169->rcr_mcast);
+
+	fibril_mutex_unlock(&rtl8169->rx_lock);
 	return EOK;
 }
 
 static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
+	
+	/* Configure Receive Control Register */
+	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
+
+	ddf_msg(LVL_DEBUG, "Broadcast RX filter mode: %d", mode);
+
+	switch (mode) {
+	case NIC_BROADCAST_BLOCKED:
+		rcr &= RCR_ACCEPT_BROADCAST;
+		break;
+	case NIC_BROADCAST_ACCEPTED:
+		rcr |= RCR_ACCEPT_BROADCAST;
+		break;
+	default:
+		return ENOTSUP;
+	}
+
+	pio_write_32(rtl8169->regs + RCR, rcr);
+	ddf_msg(LVL_DEBUG," new RCR value: 0x%08x", rcr);
+
 	return EOK;
 }
 
@@ -815,8 +942,9 @@ static void rtl8169_transmit_done(ddf_dev_t *dev)
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 	rtl8169_descr_t *descr;
+	int sent = 0;
 
-	ddf_msg(LVL_NOTE, "rtl8169_transmit_done()");
+	ddf_msg(LVL_DEBUG, "rtl8169_transmit_done()");
 
 	fibril_mutex_lock(&rtl8169->tx_lock);
 
@@ -827,10 +955,14 @@ static void rtl8169_transmit_done(ddf_dev_t *dev)
 		descr = &rtl8169->tx_ring[tail];
 		descr->control &= (~CONTROL_OWN);
 		write_barrier();
-		ddf_msg(LVL_NOTE, "TX status for descr %d: 0x%08x", tail, descr->control);
+		ddf_msg(LVL_DEBUG, "TX status for descr %d: 0x%08x", tail, descr->control);
 	
 		tail = (tail + 1) % TX_BUFFERS_COUNT;
+		sent++;
 	}
+
+	if (sent != 0)
+		nic_set_tx_busy(nic_data, 0);
 
 	rtl8169->tx_tail = tail;
 
@@ -848,7 +980,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 	unsigned int tail, fsidx = 0;
 	int frame_size;
 
-	ddf_msg(LVL_NOTE, "rtl8169_receive_done()");
+	ddf_msg(LVL_DEBUG, "rtl8169_receive_done()");
 
 	fibril_mutex_lock(&rtl8169->rx_lock);
 
@@ -861,7 +993,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 			break;
 
 		if (descr->control & RXSTATUS_RES) {
-			ddf_msg(LVL_NOTE, "error at slot %d: 0x%08x\n", tail, descr->control);
+			ddf_msg(LVL_WARN, "error at slot %d: 0x%08x\n", tail, descr->control);
 			tail = (tail + 1) % RX_BUFFERS_COUNT;
 			continue;
 		}
@@ -870,8 +1002,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 			fsidx = tail;
 		
 		if (descr->control & CONTROL_LS) {
-
-			ddf_msg(LVL_NOTE, "received message at slot %d, control 0x%08x", tail, descr->control);
+			ddf_msg(LVL_DEBUG, "received message at slot %d, control 0x%08x", tail, descr->control);
 
 			if (fsidx != tail)
 				ddf_msg(LVL_WARN, "single frame spanning multiple descriptors");
@@ -906,7 +1037,7 @@ static void rtl8169_irq_handler(ipc_callid_t iid, ipc_call_t *icall,
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
-	ddf_msg(LVL_NOTE, "rtl8169_irq_handler(): isr=0x%04x", isr);
+	ddf_msg(LVL_DEBUG, "rtl8169_irq_handler(): isr=0x%04x", isr);
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
 
 	while (isr != 0) {
@@ -962,7 +1093,7 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 
 	fibril_mutex_lock(&rtl8169->tx_lock);
 
-	ddf_msg(LVL_NOTE, "send_frame: size: %zu, tx_head=%d tx_tail=%d",
+	ddf_msg(LVL_DEBUG, "send_frame: size: %zu, tx_head=%d tx_tail=%d",
 	    size, rtl8169->tx_head, rtl8169->tx_tail);
 
 	head = rtl8169->tx_head;
@@ -985,7 +1116,7 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 	descr = &rtl8169->tx_ring[head];
 	prev = &rtl8169->tx_ring[(head - 1) % TX_BUFFERS_COUNT];
 
-	ddf_msg(LVL_NOTE, "current_descr=%p, prev_descr=%p", descr, prev);
+	ddf_msg(LVL_DEBUG, "current_descr=%p, prev_descr=%p", descr, prev);
 
 	descr->control = CONTROL_OWN | CONTROL_FS | CONTROL_LS;
 	descr->control |= size & 0xffff;

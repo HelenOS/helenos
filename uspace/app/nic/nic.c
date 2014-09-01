@@ -48,6 +48,9 @@ typedef struct {
 	nic_address_t address;
 	nic_cable_state_t link_state;
 	nic_channel_mode_t duplex;
+	nic_unicast_mode_t unicast_mode;
+	nic_multicast_mode_t multicast_mode;
+	nic_broadcast_mode_t broadcast_mode;
 	int speed;
 } nic_info_t;
 
@@ -61,6 +64,9 @@ static void print_syntax(void)
 	printf("\tspeed <10|100|1000> - set NIC speed\n");
 	printf("\tduplex <half|full|simplex> - set duplex mode\n");
 	printf("\tauto - enable autonegotiation\n");
+	printf("\tunicast <block|default|list|promisc> - set unicast receive filtering\n");
+	printf("\tmulticast <block|list|promisc> - set multicast receive filtering\n");
+	printf("\tbroadcast <block|allow> - block or allow incoming broadcast frames\n");
 }
 
 static async_sess_t *get_nic_by_index(size_t i)
@@ -144,6 +150,26 @@ static int nic_get_info(service_id_t svc_id, char *svc_name,
 		goto error;
 	}
 
+	rc = nic_unicast_get_mode(sess, &info->unicast_mode, 0, NULL, NULL);
+	if (rc != EOK) {
+		printf("Error gettinc NIC unicast receive mode.\n");
+		rc = EIO;
+		goto error;
+	}
+
+	rc = nic_multicast_get_mode(sess, &info->multicast_mode, 0, NULL, NULL);
+	if (rc != EOK) {
+		printf("Error gettinc NIC multicast receive mode.\n");
+		rc = EIO;
+		goto error;
+	}
+
+	rc = nic_broadcast_get_mode(sess, &info->broadcast_mode);
+	if (rc != EOK) {
+		printf("Error gettinc NIC broadcast receive mode.\n");
+		rc = EIO;
+		goto error;
+	}
 
 	return EOK;
 error:
@@ -166,6 +192,39 @@ static const char *nic_duplex_mode_str(nic_channel_mode_t mode)
 	case NIC_CM_FULL_DUPLEX: return "full-duplex";
 	case NIC_CM_HALF_DUPLEX: return "half-duplex";
 	case NIC_CM_SIMPLEX: return "simplex";
+	default: assert(false); return NULL;
+	}
+}
+
+static const char *nic_unicast_mode_str(nic_unicast_mode_t mode)
+{
+	switch (mode) {
+	case NIC_UNICAST_UNKNOWN: return "unknown";
+	case NIC_UNICAST_BLOCKED: return "blocked";
+	case NIC_UNICAST_DEFAULT: return "default";
+	case NIC_UNICAST_LIST: return "list";
+	case NIC_UNICAST_PROMISC: return "promisc";
+	default: assert(false); return NULL;
+	}
+}
+
+static const char *nic_multicast_mode_str(nic_unicast_mode_t mode)
+{
+	switch (mode) {
+	case NIC_MULTICAST_UNKNOWN: return "unknown";
+	case NIC_MULTICAST_BLOCKED: return "blocked";
+	case NIC_MULTICAST_LIST: return "list";
+	case NIC_MULTICAST_PROMISC: return "promisc";
+	default: assert(false); return NULL;
+	}
+}
+
+static const char *nic_broadcast_mode_str(nic_unicast_mode_t mode)
+{
+	switch (mode) {
+	case NIC_BROADCAST_UNKNOWN: return "unknown";
+	case NIC_BROADCAST_BLOCKED: return "blocked";
+	case NIC_BROADCAST_ACCEPTED: return "accepted";
 	default: assert(false); return NULL;
 	}
 }
@@ -233,6 +292,12 @@ static int nic_list(void)
 		    nic_info.device_info.model_name);
 		printf("\tLink state: %s\n",
 		    nic_link_state_str(nic_info.link_state));
+		printf("\tUnicast receive mode: %s\n",
+		    nic_unicast_mode_str(nic_info.unicast_mode));
+		printf("\tMulticast receive mode: %s\n",
+		    nic_multicast_mode_str(nic_info.multicast_mode));
+		printf("\tBroadcast receive mode: %s\n",
+		    nic_broadcast_mode_str(nic_info.broadcast_mode));
 
 		if (nic_info.link_state == NIC_CS_PLUGGED) {
 			printf("\tSpeed: %dMbps %s\n", nic_info.speed,
@@ -370,6 +435,94 @@ static int nic_set_addr(int i, char *str)
 	return nic_set_address(sess, &addr);
 }
 
+static int nic_set_rx_unicast(int i, char *str)
+{
+	async_sess_t *sess;
+
+	sess = get_nic_by_index(i);
+	if (sess == NULL) {
+		printf("Specified NIC doesn't exist or cannot connect to it.\n");
+		return EINVAL;
+	}
+
+	if (!str_cmp(str, "block")) {
+		nic_unicast_set_mode(sess, NIC_UNICAST_BLOCKED, NULL, 0);
+		return EOK;
+	}
+
+	if (!str_cmp(str, "default")) {
+		nic_unicast_set_mode(sess, NIC_UNICAST_DEFAULT, NULL, 0);
+		return EOK;
+	}
+
+	if (!str_cmp(str, "list")) {
+		nic_unicast_set_mode(sess, NIC_UNICAST_LIST, NULL, 0);
+		return EOK;
+	}
+
+	if (!str_cmp(str, "promisc")) {
+		nic_unicast_set_mode(sess, NIC_UNICAST_PROMISC, NULL, 0);
+		return EOK;
+	}
+
+
+	printf("Invalid pameter - should be one of: block, default, promisc\n");
+	return EINVAL;
+}
+
+static int nic_set_rx_multicast(int i, char *str)
+{
+	async_sess_t *sess;
+
+	sess = get_nic_by_index(i);
+	if (sess == NULL) {
+		printf("Specified NIC doesn't exist or cannot connect to it.\n");
+		return EINVAL;
+	}
+
+	if (!str_cmp(str, "block")) {
+		nic_multicast_set_mode(sess, NIC_MULTICAST_BLOCKED, NULL, 0);
+		return EOK;
+	}
+
+	if (!str_cmp(str, "list")) {
+		nic_multicast_set_mode(sess, NIC_MULTICAST_LIST, NULL, 0);
+		return EOK;
+	}
+
+	if (!str_cmp(str, "promisc")) {
+		nic_multicast_set_mode(sess, NIC_MULTICAST_PROMISC, NULL, 0);
+		return EOK;
+	}
+
+	printf("Invalid pameter - should be one of: block, promisc\n");
+	return EINVAL;
+}
+
+static int nic_set_rx_broadcast(int i, char *str)
+{
+	async_sess_t *sess;
+
+	sess = get_nic_by_index(i);
+	if (sess == NULL) {
+		printf("Specified NIC doesn't exist or cannot connect to it.\n");
+		return EINVAL;
+	}
+
+	if (!str_cmp(str, "block")) {
+		nic_broadcast_set_mode(sess, NIC_BROADCAST_BLOCKED);
+		return EOK;
+	}
+
+	if (!str_cmp(str, "accept")) {
+		nic_broadcast_set_mode(sess, NIC_BROADCAST_ACCEPTED);
+		return EOK;
+	}
+
+	printf("Invalid pameter - should be 'block' or 'accept'\n");
+	return EINVAL;
+}
+
 int main(int argc, char *argv[])
 {
 	int rc;
@@ -398,6 +551,15 @@ int main(int argc, char *argv[])
 
 		if (!str_cmp(argv[2], "auto"))
 			return nic_set_autoneg(index);
+
+		if (!str_cmp(argv[2], "unicast"))
+			return nic_set_rx_unicast(index, argv[3]);
+
+		if (!str_cmp(argv[2], "multicast"))
+			return nic_set_rx_multicast(index, argv[3]);
+
+		if (!str_cmp(argv[2], "broadcast"))
+			return nic_set_rx_broadcast(index, argv[3]);
 
 	} else {
 		printf(NAME ": Invalid argument.\n");
