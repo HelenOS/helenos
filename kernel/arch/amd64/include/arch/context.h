@@ -35,7 +35,7 @@
 #ifndef KERN_amd64_CONTEXT_H_
 #define KERN_amd64_CONTEXT_H_
 
-#include <typedefs.h>
+#include <arch/context_struct.h>
 
 /*
  * According to ABI the stack MUST be aligned on
@@ -50,24 +50,6 @@
 		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
 		(c)->rbp = 0; \
 	} while (0)
-
-/* We include only registers that must be preserved
- * during function call
- */
-typedef struct {
-	uintptr_t sp;
-	uintptr_t pc;
-	
-	uint64_t rbx;
-	uint64_t rbp;
-	
-	uint64_t r12;
-	uint64_t r13;
-	uint64_t r14;
-	uint64_t r15;
-	
-	ipl_t ipl;
-} __attribute__ ((packed)) context_t;
 
 #endif
 

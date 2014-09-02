@@ -1,5 +1,4 @@
-#
-# Copyright (c) 2001-2004 Jakub Jermar
+# Copyright (c) 2014 Jakub Jermar 
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,56 +25,59 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
+{
+        name : context,
 
-.global context_save_arch
-.global context_restore_arch
+        includes : [
+                {
+                        include : <typedefs.h>
+                }
+        ],
 
-#include <arch/context_struct.h>
+        members : [
+                #
+                # We include only registers that must be preserved
+                # during function call.
+                #
 
-## Save current CPU context
-#
-# Save CPU context to context_t variable
-# pointed by the 1st argument. Returns 1 in EAX.
-#
-context_save_arch:
-	movq (%rsp), %rdx     # the caller's return %eip
-	
-	# 1st argument passed in %edi
-	movq %rdx, CONTEXT_OFFSET_PC(%rdi)
-	movq %rsp, CONTEXT_OFFSET_SP(%rdi)
-	
-	movq %rbx, CONTEXT_OFFSET_RBX(%rdi)
-	movq %rbp, CONTEXT_OFFSET_RBP(%rdi)
-	movq %r12, CONTEXT_OFFSET_R12(%rdi)
-	movq %r13, CONTEXT_OFFSET_R13(%rdi)
-	movq %r14, CONTEXT_OFFSET_R14(%rdi)
-	movq %r15, CONTEXT_OFFSET_R15(%rdi)
-	
-	xorl %eax, %eax       # context_save returns 1
-	incl %eax
-	ret
+                {
+                        name : sp,
+                        type : uint64_t
+                },
+                {
+                        name : pc,
+                        type : uint64_t
+                },
 
+                {
+                        name : rbx,
+                        type : uint64_t
+                },
+                {
+                        name : rbp,
+                        type : uint64_t
+                },
 
-## Restore current CPU context
-#
-# Restore CPU context from context_t variable
-# pointed by the 1st argument. Returns 0 in EAX.
-#
-context_restore_arch:
-	movq CONTEXT_OFFSET_R15(%rdi), %r15
-	movq CONTEXT_OFFSET_R14(%rdi), %r14
-	movq CONTEXT_OFFSET_R13(%rdi), %r13
-	movq CONTEXT_OFFSET_R12(%rdi), %r12
-	movq CONTEXT_OFFSET_RBP(%rdi), %rbp
-	movq CONTEXT_OFFSET_RBX(%rdi), %rbx
-	
-	movq CONTEXT_OFFSET_SP(%rdi), %rsp   # ctx->sp -> %rsp
-	
-	movq CONTEXT_OFFSET_PC(%rdi), %rdx 
-	
-	movq %rdx, (%rsp)
-	
-	xorl %eax, %eax       # context_restore returns 0
-	ret
+                {
+                        name : r12,
+                        type : uint64_t
+                },
+                {
+                        name : r13,
+                        type : uint64_t
+                },
+                {
+                        name : r14,
+                        type : uint64_t
+                },
+                {
+                        name : r15,
+                        type : uint64_t
+                },
 
+                {
+                        name : ipl,
+                        type : ipl_t
+                }
+        ]
+}
