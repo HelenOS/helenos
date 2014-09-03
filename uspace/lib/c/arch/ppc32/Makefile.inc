@@ -36,4 +36,7 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
 
+ARCH_AUTOGENS_AG = \
+	arch/$(UARCH)/include/libarch/fibril_context.ag
+
 .PRECIOUS: arch/$(UARCH)/src/entry.o
