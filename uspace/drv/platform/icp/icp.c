@@ -50,7 +50,9 @@
 
 enum {
 	icp_kbd_base = 0x18000000,
-	icp_kbd_irq = 3
+	icp_kbd_irq = 3,
+	icp_mouse_base = 0x19000000,
+	icp_mouse_irq = 4
 };
 
 typedef struct icp_fun {
@@ -68,7 +70,7 @@ static driver_t icp_driver = {
 	.driver_ops = &icp_ops
 };
 
-static hw_resource_t icp_pl050_res[] = {
+static hw_resource_t icp_kbd_res[] = {
 	{
 		.type = MEM_RANGE,
 		.res.mem_range = {
@@ -86,6 +88,24 @@ static hw_resource_t icp_pl050_res[] = {
 	}
 };
 
+static hw_resource_t icp_mouse_res[] = {
+	{
+		.type = MEM_RANGE,
+		.res.mem_range = {
+			.address = icp_mouse_base,
+			.size = 9,
+			.relative = false,
+			.endianness = LITTLE_ENDIAN
+		}
+	},
+	{
+		.type = INTERRUPT,
+		.res.interrupt = {
+			.irq = icp_mouse_irq
+		}
+	}
+};
+
 static pio_window_t icp_pio_window = {
 	.mem = {
 		.base = 0,
@@ -93,10 +113,17 @@ static pio_window_t icp_pio_window = {
 	}
 };
 
-static icp_fun_t icp_pl050_fun_proto = {
+static icp_fun_t icp_kbd_fun_proto = {
 	.hw_resources = {
-		sizeof(icp_pl050_res) / sizeof(icp_pl050_res[0]),
-		icp_pl050_res
+		sizeof(icp_kbd_res) / sizeof(icp_kbd_res[0]),
+		icp_kbd_res
+	},
+};
+
+static icp_fun_t icp_mouse_fun_proto = {
+	.hw_resources = {
+		sizeof(icp_mouse_res) / sizeof(icp_mouse_res[0]),
+		icp_mouse_res
 	},
 };
 
@@ -187,7 +214,17 @@ error:
 
 static int icp_add_functions(ddf_dev_t *dev)
 {
-	return icp_add_fun(dev, "pl050", "arm/pl050", &icp_pl050_fun_proto);
+	int rc;
+
+	rc = icp_add_fun(dev, "kbd", "arm/pl050", &icp_kbd_fun_proto);
+	if (rc != EOK)
+		return rc;
+
+	rc = icp_add_fun(dev, "mouse", "arm/pl050", &icp_mouse_fun_proto);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 /** Add device. */

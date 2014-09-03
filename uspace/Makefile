@@ -195,7 +195,8 @@ endif
 ifeq ($(UARCH),arm32)
 	DIRS += \
 		drv/platform/amdm37x \
-		drv/fb/amdm37x_dispc
+		drv/fb/amdm37x_dispc \
+		srv/hw/irc/icp-ic
 endif
 
 ## System libraries

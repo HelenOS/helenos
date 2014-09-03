@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2009 Vineeth Pillai
  * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
@@ -26,81 +27,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup pl050
  * @{
  */
-/** @file
+/** @file ARM PrimeCell PS2 Keyboard/Mouse Interface (PL050) registers
  */
 
-#include <assert.h>
-#include <errno.h>
-#include <ipc/irc.h>
-#include <ipc/services.h>
-#include <irc.h>
-#include <ns.h>
-#include <sysinfo.h>
+#ifndef PL050_HW_H
+#define PL050_HW_H
 
-static async_sess_t *irc_sess;
+#include <sys/types.h>
 
-/** Connect to IRC service.
- *
- * @return	EOK on success, EIO on failure
- */
-static int irc_init(void)
-{
-	assert(irc_sess == NULL);
+typedef struct {
+	/** Control register */
+	uint8_t cr;
+	/** Padding */
+	uint8_t pad1[3];
+	/** Status register */
+	uint8_t stat;
+	/** Padding */
+	uint8_t pad5[3];
+	/** Received data */
+	uint8_t data;
+	/** Padding */
+	uint8_t pad9[3];
+	/** Clock divisor */
+	uint8_t clkdiv;
+	/** Padding */
+	uint8_t pad13[3];
+	/** Interrupt status register */
+	uint8_t ir;
+	/** Padding */
+	uint8_t pad17[3];
+} kmi_regs_t;
 
-	irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_IRC, 0, 0);
+typedef enum {
+	/** 0 = PS2 mode, 1 = No line control bit mode */
+	kmi_cr_type = 5,
+	/** Enable receiver interrupt */
+	kmi_cr_rxintr = 4,
+	/** Enable transmitter interrupt */
+	kmi_cr_txintr = 3,
+	/** Enable PrimeCell KMI */
+	kmi_cr_enable = 2,
+	/** Force KMI data LOW */
+	kmi_cr_forcedata = 1,
+	/** Force KMI clock LOW */
+	kmi_cr_forceclock = 0
+} kmi_cr_bits_t;
 
-	if (irc_sess == NULL)
-		return EIO;
+typedef enum {
+	kmi_stat_txempty = 6,
+	kmi_stat_txbusy = 5,
+	kmi_stat_rxfull = 4,
+	kmi_stat_rxbusy = 3,
+	kmi_stat_rxparity = 2,
+	kmi_stat_clkin = 1,
+	kmi_stat_datain = 0
+} kmi_stat_bits_t;
 
-	return EOK;
-}
-
-/** Enable interrupt.
- *
- * @param irq	IRQ number
- */
-int irc_enable_interrupt(int irq)
-{
-	int rc;
-
-	if (irc_sess == NULL) {
-		rc = irc_init();
-		if (rc != EOK)
-			return rc;
-	}
-
-	async_exch_t *exch = async_exchange_begin(irc_sess);
-	rc = async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
-	async_exchange_end(exch);
-
-	return rc;
-}
-
-
-/** Disable interrupt.
- *
- * @param irq	IRQ number
- */
-int irc_disable_interrupt(int irq)
-{
-	int rc;
-
-	if (irc_sess == NULL) {
-		rc = irc_init();
-		if (rc != EOK)
-			return rc;
-	}
-
-	async_exch_t *exch = async_exchange_begin(irc_sess);
-	rc = async_req_1_0(exch, IRC_CLEAR_INTERRUPT, irq);
-	async_exchange_end(exch);
-
-	return rc;
-}
+#endif
 
 /** @}
  */

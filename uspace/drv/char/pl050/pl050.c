@@ -31,6 +31,7 @@
  */
 
 #include <assert.h>
+#include <bitops.h>
 #include <stdio.h>
 #include <errno.h>
 #include <ddf/driver.h>
@@ -38,13 +39,11 @@
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
 #include <io/chardev_srv.h>
+#include <irc.h>
+
+#include "pl050_hw.h"
 
 #define NAME "pl050"
-
-#define PL050_STAT	4
-#define PL050_DATA	8
-
-#define PL050_STAT_RXFULL  (1 << 4)
 
 enum {
 	buffer_size = 64
@@ -76,12 +75,14 @@ static chardev_ops_t pl050_chardev_ops = {
 typedef struct {
 	async_sess_t *parent_sess;
 	ddf_dev_t *dev;
+	char *name;
 
 	ddf_fun_t *fun_a;
 	chardev_srvs_t cds;
 
 	uintptr_t iobase;
 	size_t iosize;
+	kmi_regs_t *regs;
 	uint8_t buffer[buffer_size];
 	size_t buf_rp;
 	size_t buf_wp;
@@ -104,7 +105,7 @@ static irq_cmd_t pl050_cmds[] = {
 	},
 	{
 		.cmd = CMD_AND,
-		.value = PL050_STAT_RXFULL,
+		.value = BIT_V(uint8_t, kmi_stat_rxfull),
 		.srcarg = 1,
 		.dstarg = 3
 	},
@@ -158,6 +159,7 @@ static void pl050_interrupt(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 static int pl050_init(pl050_t *pl050)
 {
 	hw_res_list_parsed_t res;
+	void *regs;
 	int rc;
 
 	fibril_mutex_initialize(&pl050->buf_lock);
@@ -189,8 +191,9 @@ static int pl050_init(pl050_t *pl050)
 	pl050->iosize = RNGSZ(res.mem_ranges.ranges[0]);
 
 	pl050_irq_code.ranges[0].base = pl050->iobase;
-	pl050_irq_code.cmds[0].addr = (void *) pl050->iobase + PL050_STAT;
-	pl050_irq_code.cmds[3].addr = (void *) pl050->iobase + PL050_DATA;
+	kmi_regs_t *regsphys = (kmi_regs_t *) pl050->iobase;
+	pl050_irq_code.cmds[0].addr = &regsphys->stat;
+	pl050_irq_code.cmds[3].addr = &regsphys->data;
 
 	if (res.irqs.count != 1) {
 		ddf_msg(LVL_ERROR, "Expected exactly one IRQ.");
@@ -201,6 +204,14 @@ static int pl050_init(pl050_t *pl050)
 	ddf_msg(LVL_DEBUG, "iobase=%p irq=%d", (void *)pl050->iobase,
 	    res.irqs.irqs[0]);
 
+	rc = pio_enable((void *)pl050->iobase, sizeof(kmi_regs_t), &regs);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error enabling PIO");
+		goto error;
+	}
+
+	pl050->regs = regs;
+
 	rc = register_interrupt_handler(pl050->dev, res.irqs.irqs[0],
 	    pl050_interrupt, &pl050_irq_code);
 	if (rc != EOK) {
@@ -208,6 +219,16 @@ static int pl050_init(pl050_t *pl050)
 		    rc);
 		goto error;
 	}
+
+	rc = irc_enable_interrupt(res.irqs.irqs[0]);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed enabling interrupt. (%d)", rc);
+		goto error;
+	}
+
+	pio_write_8(&pl050->regs->cr,
+	    BIT_V(uint8_t, kmi_cr_enable) |
+	    BIT_V(uint8_t, kmi_cr_rxintr));
 
 	return EOK;
 error:
@@ -219,6 +240,7 @@ static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
 	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
 	uint8_t *bp = buffer;
 	size_t left;
+
 	fibril_mutex_lock(&pl050->buf_lock);
 
 	left = size;
@@ -237,6 +259,22 @@ static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
 
 static int pl050_write(chardev_srv_t *srv, const void *data, size_t size)
 {
+	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
+	uint8_t *dp = (uint8_t *)data;
+	uint8_t status;
+	size_t i;
+
+	ddf_msg(LVL_NOTE, "%s/pl050_write(%zu bytes)", pl050->name, size);
+	for (i = 0; i < size; i++) {
+		while (true) {
+			status = pio_read_8(&pl050->regs->stat);
+			if ((status & BIT_V(uint8_t, kmi_stat_txempty)) != 0)
+				break;
+		}
+		pio_write_8(&pl050->regs->data, dp[i]);
+	}
+	ddf_msg(LVL_NOTE, "%s/pl050_write() success", pl050->name);
+
 	return size;
 }
 
@@ -251,7 +289,8 @@ void pl050_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 static int pl050_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_a;
-	pl050_t *pl050;
+	pl050_t *pl050 = NULL;
+	const char *mname;
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "pl050_dev_add()");
@@ -259,6 +298,12 @@ static int pl050_dev_add(ddf_dev_t *dev)
 	pl050 = ddf_dev_data_alloc(dev, sizeof(pl050_t));
 	if (pl050 == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.\n");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	pl050->name = (char *)ddf_dev_get_name(dev);
+	if (pl050->name == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
@@ -277,13 +322,17 @@ static int pl050_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto error;
 
-	rc = ddf_fun_add_match_id(fun_a, "char/xtkbd", 10);
+	if (str_cmp(pl050->name, "kbd") == 0)
+		mname = "char/xtkbd";
+	else
+		mname = "char/ps2mouse";
+
+	rc = ddf_fun_add_match_id(fun_a, mname, 10);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
 		    "char/xtkbd");
 		goto error;
 	}
-
 
 	chardev_srvs_init(&pl050->cds);
 	pl050->cds.ops = &pl050_chardev_ops;
@@ -301,6 +350,8 @@ static int pl050_dev_add(ddf_dev_t *dev)
 	ddf_msg(LVL_DEBUG, "Device added.");
 	return EOK;
 error:
+	if (pl050 != NULL)
+		free(pl050->name);
 	return rc;
 }
 

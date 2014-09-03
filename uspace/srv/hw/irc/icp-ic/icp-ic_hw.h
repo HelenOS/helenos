@@ -26,81 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup pl050
  * @{
  */
-/** @file
+/** @file ARM PrimeCell PS2 Keyboard/Mouse Interface (PL050) registers
  */
 
-#include <assert.h>
-#include <errno.h>
-#include <ipc/irc.h>
-#include <ipc/services.h>
-#include <irc.h>
-#include <ns.h>
-#include <sysinfo.h>
+#ifndef ICP_IC_HW_H
+#define ICP_IC_HW_H
 
-static async_sess_t *irc_sess;
+#include <ddi.h>
+#include <sys/types.h>
 
-/** Connect to IRC service.
- *
- * @return	EOK on success, EIO on failure
- */
-static int irc_init(void)
-{
-	assert(irc_sess == NULL);
+typedef struct {
+	ioport32_t irq_status;
+	ioport32_t irq_rawstat;
+	ioport32_t irq_enableset;
+	ioport32_t irq_enableclr;
+	ioport32_t int_softset;
+	ioport32_t int_softclr;
+	ioport32_t fiq_status;
+	ioport32_t fiq_rawstat;
+	ioport32_t fiq_enableset;
+	ioport32_t fiq_enableclr;
+} icpic_regs_t;
 
-	irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_IRC, 0, 0);
-
-	if (irc_sess == NULL)
-		return EIO;
-
-	return EOK;
-}
-
-/** Enable interrupt.
- *
- * @param irq	IRQ number
- */
-int irc_enable_interrupt(int irq)
-{
-	int rc;
-
-	if (irc_sess == NULL) {
-		rc = irc_init();
-		if (rc != EOK)
-			return rc;
-	}
-
-	async_exch_t *exch = async_exchange_begin(irc_sess);
-	rc = async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
-	async_exchange_end(exch);
-
-	return rc;
-}
-
-
-/** Disable interrupt.
- *
- * @param irq	IRQ number
- */
-int irc_disable_interrupt(int irq)
-{
-	int rc;
-
-	if (irc_sess == NULL) {
-		rc = irc_init();
-		if (rc != EOK)
-			return rc;
-	}
-
-	async_exch_t *exch = async_exchange_begin(irc_sess);
-	rc = async_req_1_0(exch, IRC_CLEAR_INTERRUPT, irq);
-	async_exchange_end(exch);
-
-	return rc;
-}
+#endif
 
 /** @}
  */
