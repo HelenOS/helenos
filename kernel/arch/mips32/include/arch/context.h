@@ -37,42 +37,16 @@
 
 #include <align.h>
 #include <arch/stack.h>
+#include <arch/context_struct.h>
+#include <typedefs.h>
 
 /*
  * Put one item onto the stack to support get_stack_base() and align it up.
  */
 #define SP_DELTA  (ABI_STACK_FRAME + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
-#ifndef __ASM__
-
-#include <typedefs.h>
-
 #define context_set(ctx, pc, stack, size) \
     context_set_generic(ctx, pc, stack, size)
-
-/*
- * Only save registers that must be preserved across
- * function calls.
- */
-typedef struct {
-	uintptr_t sp;
-	uintptr_t pc;
-	
-	uint32_t s0;
-	uint32_t s1;
-	uint32_t s2;
-	uint32_t s3;
-	uint32_t s4;
-	uint32_t s5;
-	uint32_t s6;
-	uint32_t s7;
-	uint32_t s8;
-	uint32_t gp;
-
-	ipl_t ipl;
-} context_t;
-
-#endif /* __ASM__ */
 
 #endif
 

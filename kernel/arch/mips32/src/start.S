@@ -29,7 +29,6 @@
 #include <arch/asm/regname.h>
 #include <arch/mm/page.h>
 #include <arch/asm/boot.h>
-#include <arch/context_offset.h>
 #include <arch/stack.h>
 #include <arch/istate_struct.h>
 
