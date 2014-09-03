@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <libarch/context_offset.h>
+#include <libarch/fibril_context.h>
 
 .text
 
@@ -43,13 +43,18 @@ context_save:
 	movl 4(%esp), %edx  # address of the context variable to save context to
 	
 	# save registers to the context structure
-	CONTEXT_SAVE_ARCH_CORE %edx %eax
+	movl %esp, CONTEXT_OFFSET_SP(%edx)	# %esp -> ctx->sp
+	movl %eax, CONTEXT_OFFSET_PC(%edx)	# %eip -> ctx->pc
+	movl %ebx, CONTEXT_OFFSET_EBX(%edx)	# %ebx -> ctx->ebx
+	movl %esi, CONTEXT_OFFSET_ESI(%edx)	# %esi -> ctx->esi
+	movl %edi, CONTEXT_OFFSET_EDI(%edx)	# %edi -> ctx->edi
+	movl %ebp, CONTEXT_OFFSET_EBP(%edx)	# %ebp -> ctx->ebp
 	
 	# save TLS
 	movl %gs:0, %eax
-	movl %eax, OFFSET_TLS(%edx)     # tls -> ctx->tls
+	movl %eax, CONTEXT_OFFSET_TLS(%edx)	# tls -> ctx->tls
 	
-	xorl %eax, %eax     # context_save returns 1
+	xorl %eax, %eax		# context_save returns 1
 	incl %eax
 	ret
 
@@ -62,16 +67,22 @@ context_restore:
 	movl 4(%esp), %eax  # address of the context variable to restore context from
 	
 	# restore registers from the context structure
-	CONTEXT_RESTORE_ARCH_CORE %eax %edx
+	movl CONTEXT_OFFSET_SP(%eax),%esp	# ctx->sp -> %esp
+	movl CONTEXT_OFFSET_PC(%eax),%edx	# ctx->pc -> \pc
+	movl CONTEXT_OFFSET_EBX(%eax),%ebx	# ctx->ebx -> %ebx
+	movl CONTEXT_OFFSET_ESI(%eax),%esi	# ctx->esi -> %esi
+	movl CONTEXT_OFFSET_EDI(%eax),%edi	# ctx->edi -> %edi
+	movl CONTEXT_OFFSET_EBP(%eax),%ebp	# ctx->ebp -> %ebp
 	
 	movl %edx, 0(%esp)  # ctx->pc -> saver's return %eip
 	
 	# set thread local storage
 	pushl %edx
-	movl OFFSET_TLS(%eax), %edx  # Set arg1 to TLS addr
-	movl $1, %eax                # Syscall SYS_TLS_SET
+	movl CONTEXT_OFFSET_TLS(%eax), %edx	# Set arg1 to TLS addr
+	movl $1, %eax				# Syscall SYS_TLS_SET
 	int $0x30
 	popl %edx
 	
-	xorl %eax, %eax     # context_restore returns 0
+	xorl %eax, %eax		# context_restore returns 0
 	ret
+
