@@ -32,7 +32,7 @@
 .global context_restore
 
 #include <libarch/regname.h>
-#include <libarch/fibril_struct.h>
+#include <libarch/fibril_context.h>
 
 context_save:
 	stw sp, CONTEXT_OFFSET_SP(r3)
