@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/context_offset.h>
+#include <arch/context_struct.h>
 
 .text
 
@@ -40,13 +40,18 @@
 # pointed by the 1st argument. Returns 1 in EAX.
 #
 context_save_arch:
-	movl 0(%esp),%eax	# save pc value into eax	
-	movl 4(%esp),%edx	# address of the context variable to save context to 
+	movl 0(%esp), %eax	# save pc value into eax	
+	movl 4(%esp), %edx	# address of the context variable to save context to 
 
-		# save registers to given structure
-	CONTEXT_SAVE_ARCH_CORE %edx %eax
+	# save registers to given structure
+	movl %esp, CONTEXT_OFFSET_SP(%edx)	# %esp -> ctx->sp
+	movl %eax, CONTEXT_OFFSET_PC(%edx)	# %eip -> ctx->pc
+	movl %ebx, CONTEXT_OFFSET_EBX(%edx)	# %ebx -> ctx->ebx
+	movl %esi, CONTEXT_OFFSET_ESI(%edx)	# %esi -> ctx->esi
+	movl %edi, CONTEXT_OFFSET_EDI(%edx)	# %edi -> ctx->edi
+	movl %ebp, CONTEXT_OFFSET_EBP(%edx)	# %ebp -> ctx->ebp
 
-	xorl %eax,%eax		# context_save returns 1
+	xorl %eax, %eax		# context_save returns 1
 	incl %eax
 	ret
 
@@ -57,11 +62,17 @@ context_save_arch:
 # pointed by the 1st argument. Returns 0 in EAX.
 #
 context_restore_arch:
-	movl 4(%esp),%eax	# address of the context variable to restore context from
+	movl 4(%esp), %eax	# address of the context variable to restore context from
 
-		# restore registers from given structure
-	CONTEXT_RESTORE_ARCH_CORE %eax %edx
+	# restore registers from given structure
+	movl CONTEXT_OFFSET_SP(%eax), %esp	# ctx->sp -> %esp
+	movl CONTEXT_OFFSET_PC(%eax), %edx	# ctx->pc -> \pc
+	movl CONTEXT_OFFSET_EBX(%eax), %ebx	# ctx->ebx -> %ebx
+	movl CONTEXT_OFFSET_ESI(%eax), %esi	# ctx->esi -> %esi
+	movl CONTEXT_OFFSET_EDI(%eax), %edi	# ctx->edi -> %edi
+	movl CONTEXT_OFFSET_EBP(%eax), %ebp	# ctx->ebp -> %ebp
 
-	movl %edx,0(%esp)	# put saved pc on stack
-	xorl %eax,%eax		# context_restore returns 0
+	movl %edx, 0(%esp)	# put saved pc on stack
+	xorl %eax, %eax		# context_restore returns 0
 	ret
+
