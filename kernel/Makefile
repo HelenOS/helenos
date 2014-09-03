@@ -403,7 +403,7 @@ $(LINK): $(LINK).in $(DEPEND)
 
 %.h: %.ag
 	$(AUTOGEN) probe $< >$<.probe.c
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -S -o $<.probe.s $<.probe.c
+	$(CC) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
 	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
 %.o: %.S $(DEPEND)
