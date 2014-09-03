@@ -96,7 +96,6 @@ bool source_is_fast(source_t *source)
 	return ((source->mask == NULL) &&
 	    (source->alpha == (pixel_t) PIXEL(255, 0, 0, 0)) &&
 	    (source->texture != NULL) &&
-	    (source->texture_extend == PIXELMAP_EXTEND_TRANSPARENT_BLACK) &&
 	    (transform_is_fast(&source->transform)));
 }
 
