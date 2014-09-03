@@ -35,42 +35,12 @@
 #ifndef KERN_ppc32_CONTEXT_H_
 #define KERN_ppc32_CONTEXT_H_
 
-#include <typedefs.h>
+#include <arch/context_struct.h>
 
 #define SP_DELTA  16
 
 #define context_set(ctx, pc, stack, size) \
     context_set_generic(ctx, pc, stack, size)
-
-typedef struct {
-	uintptr_t sp;
-	uintptr_t pc;
-	
-	uint32_t r2;
-	uint32_t r13;
-	uint32_t r14;
-	uint32_t r15;
-	uint32_t r16;
-	uint32_t r17;
-	uint32_t r18;
-	uint32_t r19;
-	uint32_t r20;
-	uint32_t r21;
-	uint32_t r22;
-	uint32_t r23;
-	uint32_t r24;
-	uint32_t r25;
-	uint32_t r26;
-	uint32_t r27;
-	uint32_t r28;
-	uint32_t r29;
-	uint32_t r30;
-	uint32_t r31;
-	
-	uint32_t cr;
-	
-	ipl_t ipl;
-} __attribute__((packed)) context_t;
 
 #endif
 
