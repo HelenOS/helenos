@@ -38,6 +38,7 @@
 
 #include <align.h>
 #include <arch/stack.h>
+#include <arch/context_struct.h>
 
 /* Put one item onto the stack to support get_stack_base() and align it up. */
 #define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
@@ -50,29 +51,6 @@
 	} while (0)
 
 #ifndef __ASM__
-
-#include <typedefs.h>
-
-/** Thread context containing registers that must be preserved across function
- * calls.
- */
-typedef struct {
-	uint32_t cpu_mode;
-	uintptr_t sp;
-	uintptr_t pc;
-	
-	uint32_t r4;
-	uint32_t r5;
-	uint32_t r6;
-	uint32_t r7;
-	uint32_t r8;
-	uint32_t r9;
-	uint32_t r10;
-	uint32_t fp;	/* r11 */
-	
-	ipl_t ipl;
-} context_t;
-
 
 #endif /* __ASM__ */
 
