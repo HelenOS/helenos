@@ -33,7 +33,7 @@
  */
 
 #ifndef STREAM_H
-#define STERAM_H
+#define STREAM_H
 
 #include "hdaudio.h"
 #include "spec/bdl.h"

@@ -216,7 +216,7 @@ static int hda_start_playback(ddf_fun_t *fun, unsigned frames,
 
 	ddf_msg(LVL_NOTE, "hda_start_playback()");
 
-	rc = hda_out_converter_setup(hda->ctl->codec, hda->pcm_stream->sid);
+	rc = hda_out_converter_setup(hda->ctl->codec, hda->pcm_stream);
 	if (rc != EOK)
 		return rc;
 
