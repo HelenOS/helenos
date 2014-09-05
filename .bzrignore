@@ -124,6 +124,7 @@ uspace/dist/drv/ata_bd/
 uspace/dist/drv/cmos-rtc/
 uspace/dist/drv/e1k/
 uspace/dist/drv/ehci/
+uspace/dist/drv/hdaudio/
 uspace/dist/drv/i8042/
 uspace/dist/drv/isa/
 uspace/dist/drv/kfb/
@@ -181,6 +182,7 @@ uspace/dist/srv/tcp
 uspace/dist/srv/tmpfs
 uspace/dist/srv/udf
 uspace/dist/srv/udp
+uspace/drv/audio/hdaudio/hdaudio
 uspace/drv/audio/sb16/sb16
 uspace/drv/block/ahci/ahci
 uspace/drv/block/ata_bd/ata_bd

@@ -136,7 +136,7 @@ def qemu_usb_options():
 def qemu_audio_options():
 	if is_override('nosnd'):
 		return ''
-	return ' -soundhw sb16' 
+	return ' -device intel-hda -device hda-duplex'
 
 def qemu_run(platform, machine):
 	cfg = cfg_get(platform, machine)
