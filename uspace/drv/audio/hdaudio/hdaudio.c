@@ -149,19 +149,20 @@ irq_cmd_t hdaudio_irq_commands_sdesc[] = {
 
 static int hda_dev_add(ddf_dev_t *dev)
 {
-	ddf_fun_t *fun_pcm;
+	ddf_fun_t *fun_pcm = NULL;
 	hda_t *hda = NULL;
 	hw_res_list_parsed_t res;
 	irq_code_t irq_code;
-	irq_cmd_t *cmds;
+	irq_cmd_t *cmds = NULL;
 	size_t ncmds_base;
 	size_t ncmds_sdesc;
 	size_t ncmds;
 	int i;
-	void *regs;
+	void *regs = NULL;
 	int rc;
 
 	ddf_msg(LVL_NOTE, "hda_dev_add()");
+	hw_res_list_parsed_init(&res);
 
 	hda = ddf_dev_data_alloc(dev, sizeof(hda_t));
 	if (hda == NULL) {
@@ -180,7 +181,6 @@ static int hda_dev_add(ddf_dev_t *dev)
 	}
 
 	ddf_msg(LVL_NOTE, "get HW res list");
-	hw_res_list_parsed_init(&res);
 	rc = hw_res_get_list_parsed(hda->parent_sess, &res, 0);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed getting resource list.\n");
@@ -269,6 +269,9 @@ static int hda_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
+	free(cmds);
+	cmds = NULL;
+
 	if (hda_ctl_init(hda) == NULL) {
 		rc = EIO;
 		goto error;
@@ -294,12 +297,19 @@ static int hda_dev_add(ddf_dev_t *dev)
 	}
 
 	ddf_fun_add_to_category(fun_pcm, "audio-pcm");
+
+	hw_res_list_parsed_clean(&res);
 	return EOK;
 error:
+	if (fun_pcm != NULL)
+		ddf_fun_destroy(fun_pcm);
 	if (hda != NULL) {
 		if (hda->ctl != NULL)
 			hda_ctl_fini(hda->ctl);
 	}
+	free(cmds);
+	// pio_disable(regs);
+	hw_res_list_parsed_clean(&res);
 
 	ddf_msg(LVL_NOTE, "Failing hda_dev_add() -> %d", rc);
 	return rc;
@@ -322,6 +332,8 @@ static int hda_dev_remove(ddf_dev_t *dev)
 			return rc;
 	}
 
+	hda_ctl_fini(hda->ctl);
+	// pio_disable(regs);
 	return EOK;
 }
 

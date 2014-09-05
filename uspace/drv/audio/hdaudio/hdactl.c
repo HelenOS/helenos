@@ -216,7 +216,22 @@ static int hda_corb_init(hda_t *hda)
 	ddf_msg(LVL_NOTE, "CORB initialized");
 	return EOK;
 error:
+	if (hda->ctl->corb_virt != NULL)
+		dmamem_unmap_anonymous(&hda->ctl->corb_virt);
 	return EIO;
+}
+
+/** Tear down the CORB */
+static void hda_corb_fini(hda_t *hda)
+{
+	uint8_t ctl;
+
+	/* Stop CORB */
+	ctl = hda_reg8_read(&hda->regs->corbctl);
+	hda_reg8_write(&hda->regs->corbctl, ctl & ~BIT_V(uint8_t, corbctl_run));
+
+	if (hda->ctl->corb_virt != NULL)
+		dmamem_unmap_anonymous(&hda->ctl->corb_virt);
 }
 
 /** Initialize the RIRB */
@@ -289,7 +304,23 @@ static int hda_rirb_init(hda_t *hda)
 	ddf_msg(LVL_NOTE, "RIRB initialized");
 	return EOK;
 error:
+	if (hda->ctl->rirb_virt != NULL)
+		dmamem_unmap_anonymous(&hda->ctl->rirb_virt);
 	return EIO;
+}
+
+/** Tear down the RIRB */
+static void hda_rirb_fini(hda_t *hda)
+{
+	uint8_t ctl;
+
+	/* Stop RIRB and disable RIRB interrupt */
+	ctl = hda_reg8_read(&hda->regs->rirbctl);
+	hda_reg8_write(&hda->regs->rirbctl, ctl &
+	    ~(BIT_V(uint8_t, rirbctl_run) | BIT_V(uint8_t, rirbctl_int)));
+
+	if (hda->ctl->rirb_virt != NULL)
+		dmamem_unmap_anonymous(&hda->ctl->rirb_virt);
 }
 
 static size_t hda_get_corbrp(hda_t *hda)
@@ -570,9 +601,19 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 
 	return ctl;
 error:
+	hda_rirb_fini(hda);
+	hda_corb_fini(hda);
 	free(ctl);
 	hda->ctl = NULL;
 	return NULL;
+}
+
+void hda_ctl_fini(hda_ctl_t *ctl)
+{
+	ddf_msg(LVL_NOTE, "hda_ctl_fini()");
+	hda_rirb_fini(ctl->hda);
+	hda_corb_fini(ctl->hda);
+	free(ctl);
 }
 
 int hda_cmd(hda_t *hda, uint32_t verb, uint32_t *resp)
@@ -594,12 +635,6 @@ int hda_cmd(hda_t *hda, uint32_t verb, uint32_t *resp)
 	}
 
 	return EOK;
-}
-
-void hda_ctl_fini(hda_ctl_t *ctl)
-{
-	ddf_msg(LVL_NOTE, "hda_ctl_fini()");
-	free(ctl);
 }
 
 static void hda_ctl_process_rirb(hda_ctl_t *ctl)
