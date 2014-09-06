@@ -36,6 +36,7 @@
 #define KERN_sparc64_CONTEXT_H_
 
 #include <arch/stack.h>
+#include <arch/context_struct.h>
 #include <typedefs.h>
 #include <align.h>
 
@@ -48,32 +49,6 @@
 		    STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA); \
 		(c)->fp = -STACK_BIAS; \
 	} while (0)
-
-/*
- * Save only registers that must be preserved across
- * function calls.
- */
-typedef struct {
-	uintptr_t sp;		/* %o6 */
-	uintptr_t pc;		/* %o7 */
-	uint64_t i0;
-	uint64_t i1;
-	uint64_t i2;
-	uint64_t i3;
-	uint64_t i4;
-	uint64_t i5;
-	uintptr_t fp;		/* %i6 */
-	uintptr_t i7;
-	uint64_t l0;
-	uint64_t l1;
-	uint64_t l2;
-	uint64_t l3;
-	uint64_t l4;
-	uint64_t l5;
-	uint64_t l6;
-	uint64_t l7;
-	ipl_t ipl;
-} context_t;
 
 #endif
 

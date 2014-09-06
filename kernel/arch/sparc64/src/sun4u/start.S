@@ -38,7 +38,7 @@
 #include <arch/mm/cache_spec.h>
 
 #ifdef CONFIG_SMP
-#include <arch/context_offset.h>
+#include <arch/context_struct.h>
 #endif
 
 .register %g2, #scratch
@@ -355,7 +355,7 @@ kernel_image_start:
 	 * in the ctx global variable.
 	 */
 	set ctx, %g1
-	add %g1, OFFSET_SP, %g1
+	add %g1, CONTEXT_OFFSET_SP, %g1
 	ldx [%g1], %o6
 
 	/*

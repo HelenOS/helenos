@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/context_offset.h>
+#include <arch/context_struct.h>
 #include <arch/arch.h>
 #include <arch/regdef.h>
 
@@ -46,7 +46,24 @@ context_save_arch:
 	#
 	flushw
 
-	CONTEXT_SAVE_ARCH_CORE %o0
+	stx %sp, [%o0 + CONTEXT_OFFSET_SP]
+	stx %o7, [%o0 + CONTEXT_OFFSET_PC]
+	stx %i0, [%o0 + CONTEXT_OFFSET_I0]
+	stx %i1, [%o0 + CONTEXT_OFFSET_I1]
+	stx %i2, [%o0 + CONTEXT_OFFSET_I2]
+	stx %i3, [%o0 + CONTEXT_OFFSET_I3]
+	stx %i4, [%o0 + CONTEXT_OFFSET_I4]
+	stx %i5, [%o0 + CONTEXT_OFFSET_I5]
+	stx %fp, [%o0 + CONTEXT_OFFSET_FP]
+	stx %i7, [%o0 + CONTEXT_OFFSET_I7]
+	stx %l0, [%o0 + CONTEXT_OFFSET_L0]
+	stx %l1, [%o0 + CONTEXT_OFFSET_L1]
+	stx %l2, [%o0 + CONTEXT_OFFSET_L2]
+	stx %l3, [%o0 + CONTEXT_OFFSET_L3]
+	stx %l4, [%o0 + CONTEXT_OFFSET_L4]
+	stx %l5, [%o0 + CONTEXT_OFFSET_L5]
+	stx %l6, [%o0 + CONTEXT_OFFSET_L6]
+	stx %l7, [%o0 + CONTEXT_OFFSET_L7]
 	retl
 	mov 1, %o0		! context_save_arch returns 1
 
@@ -68,6 +85,23 @@ context_restore_arch:
 	wrpr %g0, NWINDOWS - 2, %cansave
 	wrpr %l0, %pstate
 
-	CONTEXT_RESTORE_ARCH_CORE %o0
+	ldx [%o0 + CONTEXT_OFFSET_SP], %sp
+	ldx [%o0 + CONTEXT_OFFSET_PC], %o7
+	ldx [%o0 + CONTEXT_OFFSET_I0], %i0
+	ldx [%o0 + CONTEXT_OFFSET_I1], %i1
+	ldx [%o0 + CONTEXT_OFFSET_I2], %i2
+	ldx [%o0 + CONTEXT_OFFSET_I3], %i3
+	ldx [%o0 + CONTEXT_OFFSET_I4], %i4
+	ldx [%o0 + CONTEXT_OFFSET_I5], %i5
+	ldx [%o0 + CONTEXT_OFFSET_FP], %fp
+	ldx [%o0 + CONTEXT_OFFSET_I7], %i7
+	ldx [%o0 + CONTEXT_OFFSET_L0], %l0
+	ldx [%o0 + CONTEXT_OFFSET_L1], %l1
+	ldx [%o0 + CONTEXT_OFFSET_L2], %l2
+	ldx [%o0 + CONTEXT_OFFSET_L3], %l3
+	ldx [%o0 + CONTEXT_OFFSET_L4], %l4
+	ldx [%o0 + CONTEXT_OFFSET_L5], %l5
+	ldx [%o0 + CONTEXT_OFFSET_L6], %l6
+	ldx [%o0 + CONTEXT_OFFSET_L7], %l7
 	retl
 	xor %o0, %o0, %o0	! context_restore_arch returns 0
