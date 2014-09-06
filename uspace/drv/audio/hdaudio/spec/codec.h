@@ -86,10 +86,10 @@ typedef enum {
 	hda_sdi_select_get = 0xf04,
 	/** SDI Select / Set */
 	hda_sdi_select_set = 0x704,
-	/** Enable VRef / Get */
-	hda_enable_vref_get = 0xf07,
-	/** Enable VRef / Set */
-	hda_enable_vref_set = 0x707,
+	/** Pin Control / Get */
+	hda_pin_ctl_get = 0xf07,
+	/** Pin Control / Set */
+	hda_pin_ctl_set = 0x707,
 	/** Unsolicited Response Control / Get */
 	hda_unsol_resp_get = 0xf08,
 	/** Unsolicied Response Control / Set */
@@ -323,6 +323,7 @@ typedef enum {
 	awc_chan_count_lsb = 0
 } hda_awidget_caps_bits_t;
 
+/** Pin Capabilities */
 typedef enum {
 	/** High Bit Rate */
 	pwc_hbr = 27,
@@ -385,6 +386,24 @@ typedef enum {
 	/** Channel (L) */
 	cctl_channel_l = 0
 } hda_converter_ctl_bits_t;
+
+/** Pin Widget Control bits */
+typedef enum {
+	/** Headphone Drive Enable */
+	pctl_hpd_enable = 7,
+	/** Out Enable */
+	pctl_out_enable = 6,
+	/** In Enable */
+	pctl_in_enable = 5,
+	/** Voltage Reference Enable (H) */
+	pctl_vref_enable_h = 2,
+	/** Voltage Reference Enable (L) */
+	pctl_vref_enable_l = 0,
+	/** Encoded Packet Type (H) */
+	pctl_ept_h = 1,
+	/** Encoded Packet Type (L) */
+	pctl_ept_l = 0
+} hda_pin_ctl_bits_t;
 
 #endif
 

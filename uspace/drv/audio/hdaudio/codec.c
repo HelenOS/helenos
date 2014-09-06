@@ -65,8 +65,8 @@ static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload
 		    (payload & 0xffff);
 	}
 	int rc = hda_cmd(codec->hda, verb, resp);
-
-/*	if (resp != NULL) {
+/*
+	if (resp != NULL) {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
 		    *resp);
 	} else {
@@ -174,6 +174,24 @@ static int hda_set_converter_ctl(hda_codec_t *codec, int node, uint8_t stream,
 	return hda_ccmd(codec, node, hda_converter_ctl_set, ctl, NULL);
 }
 
+static int hda_set_pin_ctl(hda_codec_t *codec, int node, uint8_t pctl)
+{
+	return hda_ccmd(codec, node, hda_pin_ctl_set, pctl, NULL);
+}
+
+static int hda_get_pin_ctl(hda_codec_t *codec, int node, uint8_t *pctl)
+{
+	int rc;
+	uint32_t resp;
+
+	rc = hda_ccmd(codec, node, hda_pin_ctl_get, 0, &resp);
+	if (rc != EOK)
+		return rc;
+
+	*pctl = resp;
+	return EOK;
+}
+
 /** Get Audio Widget Capabilities */
 static int hda_get_aw_caps(hda_codec_t *codec, int node,
     hda_awidget_type_t *type, uint32_t *caps)
@@ -224,6 +242,12 @@ static int hda_get_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload,
 //	ddf_msg(LVL_NOTE, "hda_get_amp_gain_mute(codec, %d, %x, resp=%x)",
 //	    node, payload, *resp);
 	return rc;
+}
+
+/** Get GP I/O Count */
+static int hda_get_gpio_cnt(hda_codec_t *codec, int node, uint32_t *resp)
+{
+	return hda_get_parameter(codec, node, hda_gpio_cnt, resp);
 }
 
 static int hda_set_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload)
@@ -374,6 +398,7 @@ static int hda_pin_init(hda_codec_t *codec, uint8_t aw)
 	uint32_t cfgdef;
 	uint32_t pcaps;
 	uint32_t eapd;
+	uint8_t pctl;
 
 	rc = hda_get_cfg_def(codec, aw, &cfgdef);
 	if (rc != EOK)
@@ -404,6 +429,34 @@ static int hda_pin_init(hda_codec_t *codec, uint8_t aw)
 
 		ddf_msg(LVL_NOTE, "PIN %d now has EAPD value=0x%x", aw, eapd);
 	}
+
+	pctl = 0;
+	if ((pcaps & BIT_V(uint32_t, pwc_output)) != 0) {
+		ddf_msg(LVL_NOTE, "PIN %d will enable output", aw);
+	    	pctl = pctl | BIT_V(uint8_t, pctl_out_enable);
+	}
+
+	if ((pcaps & BIT_V(uint32_t, pwc_hpd)) != 0) {
+		ddf_msg(LVL_NOTE, "PIN %d will enable headphone drive", aw);
+	    	pctl = pctl | BIT_V(uint8_t, pctl_hpd_enable);
+	}
+
+/*	if ((pcaps & BIT_V(uint32_t, pwc_input)) != 0) {
+		ddf_msg(LVL_NOTE, "PIN %d will enable input");
+	    	pctl = pctl | BIT_V(uint8_t, pctl_input_enable);
+	}
+*/
+	ddf_msg(LVL_NOTE, "Setting PIN %d ctl to 0x%x", aw, pctl);
+	rc = hda_set_pin_ctl(codec, aw, pctl);
+	if (rc != EOK)
+		goto error;
+
+	pctl = 0;
+	rc = hda_get_pin_ctl(codec, aw, &pctl);
+	if (rc != EOK)
+		goto error;
+
+	ddf_msg(LVL_NOTE, "PIN %d ctl reads as 0x%x", aw, pctl);
 
 	return EOK;
 error:
@@ -441,6 +494,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 	uint32_t awcaps;
 	uint32_t rates;
 	uint32_t formats;
+	uint32_t gpio;
 
 	codec = calloc(1, sizeof(hda_codec_t));
 	if (codec == NULL)
@@ -465,6 +519,17 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 
 		ddf_msg(LVL_NOTE, "hda_get_fgrp_type -> %d", rc);
 		ddf_msg(LVL_NOTE, "unsol: %d, grptype: %d", unsol, grptype);
+
+		rc = hda_get_gpio_cnt(codec, fg, &gpio);
+		if (rc != EOK)
+			goto error;
+
+		ddf_msg(LVL_NOTE, "GPIO: wake=%d unsol=%d gpis=%d gpos=%d gpios=%d",
+		    (gpio & BIT_V(uint32_t, 31)) != 0,
+		    (gpio & BIT_V(uint32_t, 30)) != 0,
+		    BIT_RANGE_EXTRACT(uint32_t, 23, 16, gpio),
+		    BIT_RANGE_EXTRACT(uint32_t, 15, 8, gpio),
+		    BIT_RANGE_EXTRACT(uint32_t, 7, 0, gpio));
 
 		rc = hda_power_ctl_init(codec, fg);
 		if (rc != EOK)
