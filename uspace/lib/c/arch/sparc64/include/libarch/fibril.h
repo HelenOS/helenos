@@ -36,6 +36,7 @@
 #define LIBC_sparc64_FIBRIL_H_
 
 #include <libarch/stack.h>
+#include <libarch/fibril_context.h>
 #include <sys/types.h>
 #include <align.h>
 
@@ -49,32 +50,6 @@
 		(c)->fp = -STACK_BIAS; \
 		(c)->tp = (uint64_t) ptls; \
 	} while (0)
-
-/*
- * Save only registers that must be preserved across
- * function calls.
- */
-typedef struct {
-	uintptr_t sp;		/* %o6 */
-	uintptr_t pc;		/* %o7 */
-	uint64_t i0;
-	uint64_t i1;
-	uint64_t i2;
-	uint64_t i3;
-	uint64_t i4;
-	uint64_t i5;
-	uintptr_t fp;		/* %i6 */
-	uintptr_t i7;
-	uint64_t l0;
-	uint64_t l1;
-	uint64_t l2;
-	uint64_t l3;
-	uint64_t l4;
-	uint64_t l5;
-	uint64_t l6;
-	uint64_t l7;
-	uint64_t tp;		/* %g7 */
-} context_t;
 
 static inline uintptr_t context_get_fp(context_t *ctx)
 {
