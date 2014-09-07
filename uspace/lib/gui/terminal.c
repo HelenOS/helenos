@@ -253,7 +253,8 @@ static bool term_update_cursor(terminal_t *term, surface_t *surface,
 	chargrid_get_cursor(term->backbuf, &back_col, &back_row);
 	
 	bool front_visibility =
-	    chargrid_get_cursor_visibility(term->frontbuf);
+	    chargrid_get_cursor_visibility(term->frontbuf) &&
+	    term->widget.window->is_focused;
 	bool back_visibility =
 	    chargrid_get_cursor_visibility(term->backbuf);
 	
