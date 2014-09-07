@@ -73,5 +73,6 @@ ifeq ($(MACHINE),i460GX)
 endif
 
 ARCH_AUTOGENS_AG = \
-	arch/$(KARCH)/include/arch/istate_struct.ag
+	arch/$(KARCH)/include/arch/istate_struct.ag \
+	arch/$(KARCH)/include/arch/context_struct.ag
 
