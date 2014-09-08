@@ -68,6 +68,13 @@ def generate_probes(struct):
 		code = code + ("\temit_constant(%s_OFFSET_%s, offsetof(%s_t, %s));\n" % 
 		    (struct['name'].upper(), member['name'].upper(), struct['name'],
 		    member['name']))
+		code = code + ("\temit_constant(%s_SIZE_%s, sizeof(((%s_t *) 0)->%s));\n" % 
+		    (struct['name'].upper(), member['name'].upper(), struct['name'],
+		    member['name']))
+		if 'elements' in member.keys():
+			code = code + ("\temit_constant(%s_%s_ITEM_SIZE, sizeof(%s));\n" % 
+			    (struct['name'].upper(), member['name'].upper(), member['type']))
+			
 	return code
 
 def probe(struct):
