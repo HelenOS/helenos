@@ -54,7 +54,10 @@ def generate_struct(struct):
 	code = "typedef struct %s {\n" % struct['name']
 	for i in range(len(struct['members'])):
 		member = struct['members'][i]
-		code = code + "\t%s %s;\n" % (member['type'], member['name'])
+		if 'elements' in member.keys():
+			code = code + "\t%s %s[%d];\n" % (member['type'], member['name'], member['elements'])
+		else: 
+			code = code + "\t%s %s;\n" % (member['type'], member['name'])
 	code = code + "} %s_t;" % struct['name']
 	return code
 
