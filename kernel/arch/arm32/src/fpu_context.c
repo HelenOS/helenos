@@ -188,8 +188,7 @@ void fpu_setup(void)
 		printf("No FPU avaiable\n");
 		return;
 	}
-	switch (FPSID_SUBACHITECTURE(fpsid))
-	{
+	switch (FPSID_SUBACHITECTURE(fpsid)) {
 	case FPU_VFPv1:
 		printf("Detected VFPv1\n");
 		save_context = fpu_context_save_s32;
