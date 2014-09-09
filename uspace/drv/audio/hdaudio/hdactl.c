@@ -51,7 +51,8 @@ enum {
 	ctrl_init_wait_max = 10,
 	codec_enum_wait_us = 512,
 	corb_wait_max = 10,
-	rirb_wait_max = 100
+	rirb_wait_max = 100,
+	solrb_wait_us = 100 * 1000
 };
 
 static void hda_ctl_process_rirb(hda_ctl_t *);
@@ -437,7 +438,6 @@ static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data)
 static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 {
 	hda_rirb_entry_t resp;
-	int wcnt;
 
 	ddf_msg(LVL_DEBUG, "hda_solrb_read()");
 
@@ -458,12 +458,10 @@ static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 		}
 
 		if (count > 0) {
-			wcnt = 100;
-			while (wcnt > 0 && hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
-				fibril_mutex_unlock(&hda->ctl->solrb_lock);
-				async_usleep(10000);
-				fibril_mutex_lock(&hda->ctl->solrb_lock);
-				--wcnt;
+			if (hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
+				fibril_condvar_wait_timeout(
+				    &hda->ctl->solrb_cv, &hda->ctl->solrb_lock,
+				    solrb_wait_us);
 			}
 
 			if (hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
