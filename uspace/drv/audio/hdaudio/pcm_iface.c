@@ -148,9 +148,13 @@ static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 {
 	hda_t *hda = fun_to_hda(fun);
 
+	hda_lock(hda);
+
 	ddf_msg(LVL_NOTE, "hda_get_buffer(): hda=%p", hda);
-	if (hda->pcm_stream != NULL)
+	if (hda->pcm_stream != NULL) {
+		hda_unlock(hda);
 		return EBUSY;
+	}
 
 	/* XXX Choose appropriate parameters */
 	uint32_t fmt;
@@ -159,8 +163,10 @@ static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 
 	ddf_msg(LVL_NOTE, "hda_get_buffer() - create stream");
 	hda->pcm_stream = hda_stream_create(hda, sdir_output, fmt);
-	if (hda->pcm_stream == NULL)
+	if (hda->pcm_stream == NULL) {
+		hda_unlock(hda);
 		return EIO;
+	}
 
 	ddf_msg(LVL_NOTE, "hda_get_buffer() - fill info");
 	/* XXX This is only one buffer */
@@ -169,6 +175,8 @@ static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 
 	ddf_msg(LVL_NOTE, "hda_get_buffer() retturing EOK, buffer=%p, size=%zu",
 	    *buffer, *size);
+
+	hda_unlock(hda);
 	return EOK;
 }
 
@@ -183,28 +191,43 @@ static int hda_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
 	hda_t *hda = fun_to_hda(fun);
 
 	ddf_msg(LVL_NOTE, "hda_set_event_session()");
+	hda_lock(hda);
 	hda->ev_sess = sess;
+	hda_unlock(hda);
+
 	return EOK;
 }
 
 static async_sess_t *hda_get_event_session(ddf_fun_t *fun)
 {
 	hda_t *hda = fun_to_hda(fun);
+	async_sess_t *sess;
 
 	ddf_msg(LVL_NOTE, "hda_get_event_session()");
-	return hda->ev_sess;
+
+	hda_lock(hda);
+	sess = hda->ev_sess;
+	hda_unlock(hda);
+
+	return sess;
 }
 
 static int hda_release_buffer(ddf_fun_t *fun)
 {
 	hda_t *hda = fun_to_hda(fun);
 
+	hda_lock(hda);
+
 	ddf_msg(LVL_NOTE, "hda_release_buffer()");
-	if (hda->pcm_stream == NULL)
+	if (hda->pcm_stream == NULL) {
+		hda_unlock(hda);
 		return EINVAL;
+	}
 
 	hda_stream_destroy(hda->pcm_stream);
 	hda->pcm_stream = NULL;
+
+	hda_unlock(hda);
 	return EOK;
 }
 
@@ -215,13 +238,17 @@ static int hda_start_playback(ddf_fun_t *fun, unsigned frames,
 	int rc;
 
 	ddf_msg(LVL_NOTE, "hda_start_playback()");
+	hda_lock(hda);
 
 	rc = hda_out_converter_setup(hda->ctl->codec, hda->pcm_stream);
-	if (rc != EOK)
+	if (rc != EOK) {
+		hda_unlock(hda);
 		return rc;
+	}
 
-	async_usleep(1000*1000);
 	hda_stream_start(hda->pcm_stream);
+	hda->playing = true;
+	hda_unlock(hda);
 	return EOK;
 }
 
@@ -230,8 +257,11 @@ static int hda_stop_playback(ddf_fun_t *fun, bool immediate)
 	hda_t *hda = fun_to_hda(fun);
 
 	ddf_msg(LVL_NOTE, "hda_stop_playback()");
+	hda_lock(hda);
 	hda_stream_stop(hda->pcm_stream);
 	hda_stream_reset(hda->pcm_stream);
+	hda->playing = false;
+	hda_unlock(hda);
 
 	hda_pcm_event(hda, PCM_EVENT_PLAYBACK_TERMINATED);
 	return EOK;

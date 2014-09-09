@@ -171,6 +171,8 @@ static int hda_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
+	fibril_mutex_initialize(&hda->lock);
+
 	ddf_msg(LVL_NOTE, "create parent sess");
 	hda->parent_sess = ddf_dev_parent_sess_create(dev,
 	    EXCHANGE_SERIALIZE);
@@ -372,17 +374,29 @@ static void hdaudio_interrupt(ipc_callid_t iid, ipc_call_t *icall,
 
 	if (0) ddf_msg(LVL_NOTE, "## interrupt ##");
 //	ddf_msg(LVL_NOTE, "interrupt arg4=0x%x", (int)IPC_GET_ARG4(*icall));
-	if (IPC_GET_ARG3(*icall) != 0) {
-		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
-		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
-		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
-		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
-/*		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
-		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
-		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
-		hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);*/
-	}
 	hda_ctl_interrupt(hda->ctl);
+
+	if (IPC_GET_ARG3(*icall) != 0) {
+		/* Buffer completed */
+		hda_lock(hda);
+		if (hda->playing) {
+			hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+			hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+			hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+			hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+		}
+		hda_unlock(hda);
+	}
+}
+
+void hda_lock(hda_t *hda)
+{
+	fibril_mutex_lock(&hda->lock);
+}
+
+void hda_unlock(hda_t *hda)
+{
+	fibril_mutex_unlock(&hda->lock);
 }
 
 int main(int argc, char *argv[])

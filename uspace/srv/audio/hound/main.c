@@ -70,6 +70,11 @@ int main(int argc, char **argv)
 {
 	printf("%s: HelenOS sound service\n", NAME);
 
+	if (log_init(NAME) != EOK) {
+		printf(NAME ": Failed to initialize logging.\n");
+		return 1;
+	}
+
 	int ret = hound_init(&hound);
 	if (ret != EOK) {
 		log_fatal("Failed to initialize hound structure: %s",

@@ -594,7 +594,6 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 		goto error;
 	}
 
-	async_usleep(5*1000*1000);
 	ddf_msg(LVL_NOTE, "intsts=0x%x", hda_reg32_read(&hda->regs->intsts));
 	ddf_msg(LVL_NOTE, "sdesc[%d].sts=0x%x",
 	    hda->ctl->iss, hda_reg8_read(&hda->regs->sdesc[hda->ctl->iss].sts));

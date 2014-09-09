@@ -108,7 +108,6 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 		}
 	}
 */
-//	async_usleep(1000*1000);
 	/* audio_pcm_iface requires a single contiguous buffer */
 	buffer = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(stream->bufsize * stream->nbuffers,
