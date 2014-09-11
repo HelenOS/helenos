@@ -27,12 +27,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-VERSION=2.1.0
+VERSION=2.1.1
 BASENAME=qemu-${VERSION}
 TARBALL=${BASENAME}.tar.bz2
 SOURCEDIR=${BASENAME}
 URL=http://wiki.qemu-project.org/download/${TARBALL}
-MD5="6726977292b448cbc7f89998fac6983b"
+MD5="78b1b51bfa2eee424e1bfdf3b66daa64"
 
 if [ ! -f ${TARBALL} ];
 then
@@ -48,29 +48,6 @@ fi
 tar xvfj ${TARBALL}
 
 cd ${SOURCEDIR}
-
-patch -p 1 <<EOF
-diff --git a/target-arm/cpu.h b/target-arm/cpu.h
-index 8098b8d..659b104 100644
---- a/target-arm/cpu.h
-+++ b/target-arm/cpu.h
-@@ -1255,7 +1255,14 @@ static inline bool arm_singlestep_active(CPUARMState *env)
- static inline void cpu_get_tb_cpu_state(CPUARMState *env, target_ulong *pc,
-                                         target_ulong *cs_base, int *flags)
- {
--    int fpen = extract32(env->cp15.c1_coproc, 20, 2);
-+    int fpen;
-+
-+    if (arm_feature(env, ARM_FEATURE_V6)) {
-+        fpen = extract32(env->cp15.c1_coproc, 20, 2);
-+    } else {
-+        /* CPACR doesn't exist before v6, so VFP is always accessible */
-+        fpen = 3;
-+    }
- 
-     if (is_a64(env)) {
-         *pc = env->pc;
-EOF
 
 ./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,ppc-softmmu,sparc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --audio-drv-list=pa
 
