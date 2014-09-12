@@ -48,23 +48,8 @@
  * Interrupts
  */
 
-typedef void interrupt_handler_t(ddf_dev_t *, ipc_callid_t, ipc_call_t *);
+typedef void interrupt_handler_t(ipc_callid_t, ipc_call_t *, ddf_dev_t *);
 
-typedef struct interrupt_context {
-	int id;
-	ddf_dev_t *dev;
-	int irq;
-	interrupt_handler_t *handler;
-	link_t link;
-} interrupt_context_t;
-
-typedef struct interrupt_context_list {
-	int curr_id;
-	list_t contexts;
-	fibril_mutex_t mutex;
-} interrupt_context_list_t;
-
-extern void interrupt_init(void);
 extern int register_interrupt_handler(ddf_dev_t *, int, interrupt_handler_t *,
     const irq_code_t *);
 extern int unregister_interrupt_handler(ddf_dev_t *, int);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
 #include <ipc/inet.h>
 #include <ipc/services.h>
 #include <loc.h>
+#include <stdlib.h>
 
 static void inet_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -223,6 +224,7 @@ static void inet_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	rc = inet_ev_ops->recv(&dgram);
+	free(dgram.data);
 	async_answer_0(iid, rc);
 }
 

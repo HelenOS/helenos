@@ -49,6 +49,13 @@ LSONAME = libc.so0
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
+ARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(ARCH_AUTOGENS_AG)))
+ARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(ARCH_AUTOGENS_AG)))
+ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG)))
+
+PRE_DEPEND += $(ARCH_AUTOGENS_H)
+EXTRA_CLEAN += $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
+
 GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
@@ -64,6 +71,7 @@ GENERIC_SOURCES = \
 	generic/device/hw_res_parsed.c \
 	generic/device/pio_window.c \
 	generic/device/clock_dev.c \
+	generic/device/led_dev.c \
 	generic/dhcp.c \
 	generic/dnsr.c \
 	generic/dlfcn.c \
@@ -90,6 +98,8 @@ GENERIC_SOURCES = \
 	generic/io/asprintf.c \
 	generic/io/input.c \
 	generic/io/io.c \
+	generic/io/chardev.c \
+	generic/io/chardev_srv.c \
 	generic/io/chargrid.c \
 	generic/io/output.c \
 	generic/io/printf.c \
@@ -107,6 +117,8 @@ GENERIC_SOURCES = \
 	generic/io/window.c \
 	generic/iplink.c \
 	generic/iplink_srv.c \
+	generic/irc.c \
+	generic/irq.c \
 	generic/ieee_double.c \
 	generic/power_of_ten.c \
 	generic/double_to_str.c \
@@ -157,6 +169,11 @@ TEST_SOURCES = \
 	test/sprintf.c
 
 include $(USPACE_PREFIX)/Makefile.common
+
+%.h: %.ag
+	$(AUTOGEN) probe $< >$<.probe.c
+	$(CC) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
+	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@

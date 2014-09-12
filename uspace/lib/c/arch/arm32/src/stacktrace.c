@@ -50,12 +50,12 @@ bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 
 int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 {
-	return (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV, prev);
+	return (*st->ops->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV, prev);
 }
 
 int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
 {
-	return (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_RA, ra);
+	return (*st->ops->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_RA, ra);
 }
 
 /** @}

@@ -48,12 +48,12 @@
 typedef struct {
 	uint64_t lo;
 	int64_t hi;
-} int128_t;
+} __attribute__ ((aligned(16))) int128_t;
 
 typedef struct {
 	uint64_t lo;
 	uint64_t hi;
-} uint128_t;
+} __attribute__ ((aligned(16))) uint128_t;
 
 typedef struct {
 	volatile atomic_count_t count;

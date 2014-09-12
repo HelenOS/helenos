@@ -32,6 +32,7 @@
 /** @file Change logger behavior.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <async.h>
 #include <errno.h>
 #include <str_error.h>

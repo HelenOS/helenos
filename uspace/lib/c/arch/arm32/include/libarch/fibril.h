@@ -39,6 +39,7 @@
 #include <sys/types.h>
 #include <align.h>
 #include <thread.h>
+#include <libarch/fibril_context.h>
 
 /** Size of a stack item */
 #define STACK_ITEM_SIZE  4
@@ -64,26 +65,6 @@
 		(c)->tls = ((sysarg_t)(ptls)) + sizeof(tcb_t) + ARM_TP_OFFSET; \
 		(c)->fp = 0; \
 	} while (0)
-
-/** Fibril context.
- *
- *  Only registers preserved accross function calls are included. r9 is used 
- *  to store a TLS address. -ffixed-r9 gcc forces gcc not to use this
- *  register. -mtp=soft forces gcc to use #__aeabi_read_tp to obtain
- *  TLS address.
- */
-typedef struct  {
-	uint32_t sp;
-	uint32_t pc;
-	uint32_t r4;
-	uint32_t r5;
-	uint32_t r6;
-	uint32_t r7;
-	uint32_t r8;
-	uint32_t tls;	/* r9 */
-	uint32_t r10;
-	uint32_t fp;	/* r11 */
-} context_t;
 
 static inline uintptr_t context_get_fp(context_t *ctx)
 {

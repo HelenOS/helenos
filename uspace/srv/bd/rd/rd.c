@@ -59,7 +59,7 @@
 #define NAME  "rd"
 
 /** Pointer to the ramdisk's image */
-static void *rd_addr;
+static void *rd_addr = AS_AREA_ANY;
 
 /** Size of the ramdisk */
 static size_t rd_size;

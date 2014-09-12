@@ -39,7 +39,6 @@
 #include <ipc/services.h>
 #include <sys/typefmt.h>
 #include <task.h>
-#include <event.h>
 #include <ipc/corecfg.h>
 #include <loc.h>
 #include <macros.h>
@@ -52,7 +51,7 @@ static bool write_core_files;
 
 static void corecfg_client_conn(ipc_callid_t , ipc_call_t *, void *);
 
-static void fault_event(ipc_callid_t callid, ipc_call_t *call)
+static void fault_event(ipc_callid_t callid, ipc_call_t *call, void *arg)
 {
 	const char *fname;
 	char *s_taskid;
@@ -82,11 +81,11 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 		}
 
 		printf(NAME ": Executing %s -c %s -t %s\n", fname, dump_fname, s_taskid);
-		rc = task_spawnl(NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
+		rc = task_spawnl(NULL, NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
 		    NULL);
 	} else {
 		printf(NAME ": Executing %s -t %s\n", fname, s_taskid);
-		rc = task_spawnl(NULL, fname, fname, "-t", s_taskid, NULL);
+		rc = task_spawnl(NULL, NULL, fname, fname, "-t", s_taskid, NULL);
 	}
 
 	if (rc != EOK) {
@@ -142,7 +141,7 @@ int main(int argc, char *argv[])
 #else
 	write_core_files = false;
 #endif
-	if (event_subscribe(EVENT_FAULT, 0) != EOK) {
+	if (async_event_subscribe(EVENT_FAULT, fault_event, NULL) != EOK) {
 		printf("%s: Error registering fault notifications.\n", NAME);
 		return -1;
 	}
@@ -164,7 +163,6 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	async_set_interrupt_received(fault_event);
 	task_retval(0);
 	async_manager();
 	

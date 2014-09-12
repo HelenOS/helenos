@@ -69,7 +69,7 @@
 #define INO_MASK	0x1f
 
 static uintptr_t base_phys;
-static volatile uint64_t *base_virt;
+static volatile uint64_t *base_virt = (volatile uint64_t *) AS_AREA_ANY;
 
 /** Handle one connection to obio.
  *

@@ -32,6 +32,7 @@ BINARY = taskdump
 
 SOURCES = \
 	elf_core.c \
+	fibrildump.c \
 	taskdump.c \
 	symtab.c
 

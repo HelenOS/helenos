@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/context_offset.h>
+#include <arch/context_struct.h>
 
 .text
 
@@ -38,14 +38,38 @@
 .global context_restore_arch
 
 context_save_arch:
-	CONTEXT_SAVE_ARCH_CORE $a0
+	sw $s0, CONTEXT_OFFSET_S0($a0)
+	sw $s1, CONTEXT_OFFSET_S1($a0)
+	sw $s2, CONTEXT_OFFSET_S2($a0)
+	sw $s3, CONTEXT_OFFSET_S3($a0)
+	sw $s4, CONTEXT_OFFSET_S4($a0)
+	sw $s5, CONTEXT_OFFSET_S5($a0)
+	sw $s6, CONTEXT_OFFSET_S6($a0)
+	sw $s7, CONTEXT_OFFSET_S7($a0)
+	sw $s8, CONTEXT_OFFSET_S8($a0)
+	sw $gp, CONTEXT_OFFSET_GP($a0)
+	
+	sw $ra, CONTEXT_OFFSET_PC($a0)
+	sw $sp, CONTEXT_OFFSET_SP($a0)
 	
 	# context_save returns 1
 	j $31
 	li $2, 1
 
 context_restore_arch:
-	CONTEXT_RESTORE_ARCH_CORE $a0
+	lw $s0, CONTEXT_OFFSET_S0($a0)
+	lw $s1, CONTEXT_OFFSET_S1($a0)
+	lw $s2, CONTEXT_OFFSET_S2($a0)
+	lw $s3, CONTEXT_OFFSET_S3($a0)
+	lw $s4, CONTEXT_OFFSET_S4($a0)
+	lw $s5, CONTEXT_OFFSET_S5($a0)
+	lw $s6, CONTEXT_OFFSET_S6($a0)
+	lw $s7, CONTEXT_OFFSET_S7($a0)
+	lw $s8, CONTEXT_OFFSET_S8($a0)
+	lw $gp, CONTEXT_OFFSET_GP($a0)
+	
+	lw $ra, CONTEXT_OFFSET_PC($a0)
+	lw $sp, CONTEXT_OFFSET_SP($a0)
 	
 	# context_restore returns 0
 	j $31

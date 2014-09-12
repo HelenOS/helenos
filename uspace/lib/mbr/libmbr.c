@@ -89,7 +89,7 @@ void mbr_free_label(mbr_label_t *label)
 /** Allocate memory for mbr_t */
 mbr_t *mbr_alloc_mbr(void)
 {
-	return malloc(sizeof(mbr_t));
+	return (mbr_t *)alloc_br();
 }
 
 /** Read MBR from specific device

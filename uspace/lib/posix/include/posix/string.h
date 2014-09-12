@@ -63,9 +63,6 @@
  * Because libposix is always linked with libc, providing only these
  * forward declarations ought to be enough.
  */
-/* From str.h. */
-extern char * strtok_r(char *, const char *, char **);
-extern char * strtok(char *, const char *);
 
 /* From mem.h */
 // #define bzero(ptr, len)  memset((ptr), 0, (len))
@@ -99,6 +96,11 @@ extern char *__POSIX_DEF__(strpbrk)(const char *s1, const char *s2);
 extern size_t __POSIX_DEF__(strcspn)(const char *s1, const char *s2);
 extern size_t __POSIX_DEF__(strspn)(const char *s1, const char *s2);
 extern char *__POSIX_DEF__(strstr)(const char *haystack, const char *needle);
+
+/* Tokenization functions. */
+extern char *__POSIX_DEF__(strtok_r)(char *, const char *, char **);
+extern char *__POSIX_DEF__(strtok)(char *, const char *);
+
 
 /* Collation Functions */
 extern int __POSIX_DEF__(strcoll)(const char *s1, const char *s2);

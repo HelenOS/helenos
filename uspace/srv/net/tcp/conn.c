@@ -77,11 +77,11 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	if (conn == NULL)
 		goto error;
 
-	conn->tw_timer = fibril_timer_create();
+	fibril_mutex_initialize(&conn->lock);
+
+	conn->tw_timer = fibril_timer_create(&conn->lock);
 	if (conn->tw_timer == NULL)
 		goto error;
-
-	fibril_mutex_initialize(&conn->lock);
 
 	/* One for the user, one for not being in closed state */
 	atomic_set(&conn->refcnt, 2);
@@ -199,6 +199,29 @@ void tcp_conn_delref(tcp_conn_t *conn)
 
 	if (atomic_predec(&conn->refcnt) == 0)
 		tcp_conn_free(conn);
+}
+
+/** Lock connection.
+ *
+ * Must be called before any other connection-manipulating function,
+ * except tcp_conn_{add|del}ref(). Locks the connection including
+ * its timers. Must not be called inside any of the connection
+ * timer handlers.
+ *
+ * @param conn		Connection
+ */
+void tcp_conn_lock(tcp_conn_t *conn)
+{
+	fibril_mutex_lock(&conn->lock);
+}
+
+/** Unlock connection.
+ *
+ * @param conn		Connection
+ */
+void tcp_conn_unlock(tcp_conn_t *conn)
+{
+	fibril_mutex_unlock(&conn->lock);
 }
 
 /** Delete connection.
@@ -1182,11 +1205,11 @@ static void tw_timeout_func(void *arg)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tw_timeout_func(%p)", conn);
 
-	fibril_mutex_lock(&conn->lock);
+	tcp_conn_lock(conn);
 
 	if (conn->cstate == st_closed) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Connection already closed.");
-		fibril_mutex_unlock(&conn->lock);
+		tcp_conn_unlock(conn);
 		tcp_conn_delref(conn);
 		return;
 	}
@@ -1195,8 +1218,10 @@ static void tw_timeout_func(void *arg)
 	tcp_conn_remove(conn);
 	tcp_conn_state_set(conn, st_closed);
 
-	fibril_mutex_unlock(&conn->lock);
+	tcp_conn_unlock(conn);
 	tcp_conn_delref(conn);
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tw_timeout_func(%p) end", conn);
 }
 
 /** Start or restart the Time-Wait timeout.
@@ -1205,9 +1230,11 @@ static void tw_timeout_func(void *arg)
  */
 void tcp_conn_tw_timer_set(tcp_conn_t *conn)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_conn_tw_timer_set() begin");
 	tcp_conn_addref(conn);
-	fibril_timer_set(conn->tw_timer, TIME_WAIT_TIMEOUT, tw_timeout_func,
-	    (void *)conn);
+	fibril_timer_set_locked(conn->tw_timer, TIME_WAIT_TIMEOUT,
+	    tw_timeout_func, (void *)conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_conn_tw_timer_set() end");
 }
 
 /** Clear the Time-Wait timeout.
@@ -1216,8 +1243,10 @@ void tcp_conn_tw_timer_set(tcp_conn_t *conn)
  */
 void tcp_conn_tw_timer_clear(tcp_conn_t *conn)
 {
-	if (fibril_timer_clear(conn->tw_timer) == fts_active)
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_conn_tw_timer_clear() begin");
+	if (fibril_timer_clear_locked(conn->tw_timer) == fts_active)
 		tcp_conn_delref(conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_conn_tw_timer_clear() end");
 }
 
 /** Trim segment to the receive window.

@@ -41,6 +41,7 @@
 
 #include <transform.h>
 #include <filter.h>
+#include <io/pixelmap.h>
 
 #include "surface.h"
 
@@ -50,11 +51,11 @@ typedef struct source {
 
 	pixel_t color;
 	surface_t *texture;
-	bool texture_tile;
+	pixelmap_extend_t texture_extend;
 
 	pixel_t alpha;
 	surface_t *mask;
-	bool mask_tile;
+	pixelmap_extend_t mask_extend;
 } source_t;
 
 extern void source_init(source_t *);
@@ -65,10 +66,10 @@ extern void source_reset_transform(source_t *);
 extern void source_set_filter(source_t *, filter_t);
 
 extern void source_set_color(source_t *, pixel_t);
-extern void source_set_texture(source_t *, surface_t *, bool);
+extern void source_set_texture(source_t *, surface_t *, pixelmap_extend_t);
 
 extern void source_set_alpha(source_t *, pixel_t);
-extern void source_set_mask(source_t *, surface_t *, bool);
+extern void source_set_mask(source_t *, surface_t *, pixelmap_extend_t);
 
 extern bool source_is_fast(source_t *);
 extern pixel_t *source_direct_access(source_t *, double, double);

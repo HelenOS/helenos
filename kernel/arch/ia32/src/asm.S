@@ -33,6 +33,7 @@
 #include <arch/pm.h>
 #include <arch/cpu.h>
 #include <arch/mm/page.h>
+#include <arch/istate_struct.h>
 
 .text
 .global paging_on
@@ -135,31 +136,11 @@ enable_l_apic_in_msr:
 	wrmsr
 	ret
 
-#define ISTATE_OFFSET_EDX         0
-#define ISTATE_OFFSET_ECX         4
-#define ISTATE_OFFSET_EBX         8
-#define ISTATE_OFFSET_ESI         12
-#define ISTATE_OFFSET_EDI         16 
-#define ISTATE_OFFSET_EBP         20
-#define ISTATE_OFFSET_EAX         24
-#define ISTATE_OFFSET_EBP_FRAME   28
-#define ISTATE_OFFSET_EIP_FRAME   32
-#define ISTATE_OFFSET_GS          36
-#define ISTATE_OFFSET_FS          40
-#define ISTATE_OFFSET_ES          44
-#define ISTATE_OFFSET_DS          48
-#define ISTATE_OFFSET_ERROR_WORD  52
-#define ISTATE_OFFSET_EIP         56
-#define ISTATE_OFFSET_CS          60
-#define ISTATE_OFFSET_EFLAGS      64
-#define ISTATE_OFFSET_ESP         68
-#define ISTATE_OFFSET_SS          72
-
 /*
  * Size of the istate structure without the hardware-saved part
  * and without the error word.
  */
-#define ISTATE_SOFT_SIZE  52
+#define ISTATE_SOFT_SIZE	ISTATE_SIZE - (6 * 4) 
 
 /*
  * The SYSENTER syscall mechanism can be used for syscalls with

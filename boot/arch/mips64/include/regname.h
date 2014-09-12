@@ -1,1 +1,0 @@
-../../mips32/include/regname.h

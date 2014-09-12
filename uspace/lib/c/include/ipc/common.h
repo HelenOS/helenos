@@ -38,7 +38,7 @@
 #include <sys/types.h>
 #include <abi/ipc/ipc.h>
 #include <atomic.h>
-#include <task.h>
+#include <abi/proc/task.h>
 
 #define IPC_FLAG_BLOCKING  0x01
 

@@ -35,6 +35,7 @@
 #ifndef DRV_UHCI_HC_H
 #define DRV_UHCI_HC_H
 
+#include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
 #include <fibril.h>
@@ -92,7 +93,7 @@ typedef struct uhci_regs {
 /** Main UHCI driver structure */
 typedef struct hc {
 	/** Generic HCD driver structure */
-	hcd_t generic;
+	hcd_t *generic;
 
 	/** Addresses of I/O registers */
 	uhci_regs_t *registers;
@@ -125,7 +126,7 @@ int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
 int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t,
     addr_range_t *);
 void hc_interrupt(hc_t *instance, uint16_t status);
-int hc_init(hc_t *instance, addr_range_t *regs, bool interupts);
+int hc_init(hc_t *, ddf_fun_t *, addr_range_t *, bool);
 
 /** Safely dispose host controller internal structures
  *

@@ -103,6 +103,8 @@ int niagara_init(void)
 	if (rc != EOK)
 		return rc;
 	
+	niagara.fifo = (output_fifo_t *) AS_AREA_ANY;
+	
 	rc = physmem_map(paddr, 1, AS_AREA_READ | AS_AREA_WRITE,
 	    (void *) &niagara.fifo);
 	if (rc != EOK)

@@ -43,14 +43,10 @@
 #include "../kbd.h"
 
 static int msim_port_init(kbd_dev_t *);
-static void msim_port_yield(void);
-static void msim_port_reclaim(void);
 static void msim_port_write(uint8_t data);
 
 kbd_port_ops_t msim_port = {
 	.init = msim_port_init,
-	.yield = msim_port_yield,
-	.reclaim = msim_port_reclaim,
 	.write = msim_port_write
 };
 
@@ -81,7 +77,10 @@ static irq_code_t msim_kbd = {
 	msim_cmds
 };
 
-static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call);
+static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
+{
+	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
+}
 
 static int msim_port_init(kbd_dev_t *kdev)
 {
@@ -97,28 +96,15 @@ static int msim_port_init(kbd_dev_t *kdev)
 	
 	msim_ranges[0].base = paddr;
 	msim_cmds[0].addr = (void *) paddr;
-	async_set_interrupt_received(msim_irq_handler);
-	irq_register(inr, device_assign_devno(), 0, &msim_kbd);
+	async_irq_subscribe(inr, device_assign_devno(), msim_irq_handler, NULL,
+	    &msim_kbd);
 	
 	return 0;
-}
-
-static void msim_port_yield(void)
-{
-}
-
-static void msim_port_reclaim(void)
-{
 }
 
 static void msim_port_write(uint8_t data)
 {
 	(void) data;
-}
-
-static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call)
-{
-	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
 }
 
 /** @}

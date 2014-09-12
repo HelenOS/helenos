@@ -69,7 +69,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/tlb.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/smp/smp.c \
 	arch/$(KARCH)/src/machine_func.c
 
@@ -84,4 +83,9 @@ endif
 ifeq ($(MACHINE),msim)
         ARCH_SOURCES += arch/$(KARCH)/src/mach/msim/msim.c
 endif
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag \
+	arch/$(KARCH)/include/arch/context_struct.ag \
+	arch/$(KARCH)/include/arch/fpu_context_struct.ag
 

@@ -554,7 +554,7 @@ int getuptime(struct timeval *tv)
 			return -1;
 		}
 		
-		void *addr;
+		void *addr = AS_AREA_ANY;
 		rc = physmem_map(faddr, 1, AS_AREA_READ | AS_AREA_CACHEABLE,
 		    &addr);
 		if (rc != EOK) {

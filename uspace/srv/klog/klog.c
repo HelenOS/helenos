@@ -39,7 +39,6 @@
 #include <async.h>
 #include <as.h>
 #include <ddi.h>
-#include <event.h>
 #include <errno.h>
 #include <str_error.h>
 #include <io/klog.h>
@@ -192,7 +191,8 @@ static int consumer(void *data)
  * @param arg    Local argument
  *
  */
-static void notification_received(ipc_callid_t callid, ipc_call_t *call)
+static void klog_notification_received(ipc_callid_t callid, ipc_call_t *call,
+    void *arg)
 {
 	/*
 	 * Make sure we process only a single notification
@@ -204,7 +204,7 @@ static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 	
 	producer();
 	
-	event_unmask(EVENT_KLOG);
+	async_event_unmask(EVENT_KLOG);
 	fibril_mutex_unlock(&mtx);
 }
 
@@ -228,8 +228,7 @@ int main(int argc, char *argv[])
 	}
 	
 	prodcons_initialize(&pc);
-	async_set_interrupt_received(notification_received);
-	rc = event_subscribe(EVENT_KLOG, 0);
+	rc = async_event_subscribe(EVENT_KLOG, klog_notification_received, NULL);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Unable to register klog notifications");
@@ -244,7 +243,7 @@ int main(int argc, char *argv[])
 	}
 	
 	fibril_add_ready(fid);
-	event_unmask(EVENT_KLOG);
+	async_event_unmask(EVENT_KLOG);
 	
 	fibril_mutex_lock(&mtx);
 	producer();

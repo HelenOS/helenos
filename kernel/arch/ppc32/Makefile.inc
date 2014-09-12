@@ -50,7 +50,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/proc/scheduler.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
@@ -58,3 +57,9 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/pht.c \
 	arch/$(KARCH)/src/mm/tlb.c \
 	arch/$(KARCH)/src/drivers/pic.c
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag \
+	arch/$(KARCH)/include/arch/context_struct.ag \
+	arch/$(KARCH)/include/arch/fpu_context_struct.ag
+

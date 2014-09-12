@@ -35,9 +35,9 @@
 #include <ddi/irq.h>
 #include <interrupt.h>
 #include <arch/interrupt.h>
+#include <arch/istate.h>
 #include <typedefs.h>
 #include <arch.h>
-#include <time/clock.h>
 #include <ipc/sysipc.h>
 #include <arch/drivers/pic.h>
 #include <arch/mm/tlb.h>
@@ -45,11 +45,19 @@
 #include <print.h>
 #include <log.h>
 
-void start_decrementer(void)
+static uint32_t decrementer_value;
+
+void decrementer_start(uint32_t val)
+{
+	decrementer_value = val;
+	decrementer_restart();
+}
+
+void decrementer_restart(void)
 {
 	asm volatile (
 		"mtdec %[dec]\n"
-		:: [dec] "r" (1000)
+		:: [dec] "r" (decrementer_value)
 	);
 }
 
@@ -103,7 +111,7 @@ void istate_decode(istate_t *istate)
 static void exception_external(unsigned int n, istate_t *istate)
 {
 	uint8_t inum;
-	
+
 	while ((inum = pic_get_pending()) != 255) {
 		irq_t *irq = irq_dispatch_and_lock(inum);
 		if (irq) {
@@ -137,9 +145,24 @@ static void exception_external(unsigned int n, istate_t *istate)
 	}
 }
 
+static void exception_fp_unavailable(unsigned int n, istate_t *istate)
+{
+#ifdef CONFIG_FPU_LAZY
+	scheduler_fpu_lazy_request();
+	/*
+	 * Propagate MSR_FP from MSR back to istate's SRR1, which will become
+	 * the next MSR.
+	 */
+	istate->srr1 |= msr_read() & MSR_FP;
+#else
+	fault_if_from_uspace(istate, "FPU fault.");
+	panic_badtrap(istate, n, "FPU fault.");
+#endif
+}
+
 static void exception_decrementer(unsigned int n, istate_t *istate)
 {
-	start_decrementer();
+	decrementer_restart();
 	clock();
 }
 
@@ -152,6 +175,8 @@ void interrupt_init(void)
 	    pht_refill);
 	exc_register(VECTOR_EXTERNAL, "external", true,
 	    exception_external);
+	exc_register(VECTOR_FP_UNAVAILABLE, "fp_unavailable", true,
+	    exception_fp_unavailable);
 	exc_register(VECTOR_DECREMENTER, "timer", true,
 	    exception_decrementer);
 	exc_register(VECTOR_ITLB_MISS, "itlb_miss", true,

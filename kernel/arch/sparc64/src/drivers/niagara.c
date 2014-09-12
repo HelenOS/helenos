@@ -207,6 +207,7 @@ static void niagara_init(void)
 	 * buffers.
 	 */
 	
+	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 5);
 	
 	sysinfo_set_item_val("niagara.outbuf.address", NULL,

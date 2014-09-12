@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <str_error.h>
 #include <loc.h>
-#include <event.h>
 #include <io/keycode.h>
 #include <align.h>
 #include <fibril_synch.h>
@@ -224,16 +223,15 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 static int spawn_task_fibril(void *arg)
 {
 	telnet_user_t *user = arg;
-	int rc;
-
-	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", "/loc", user->service_name);
-
+	
 	task_id_t task;
-	rc = task_spawnl(&task, APP_GETTERM, APP_GETTERM, "-w", term, APP_SHELL, NULL);
+	task_wait_t wait;
+	int rc = task_spawnl(&task, &wait, APP_GETTERM, APP_GETTERM, user->service_name,
+	    "/loc", "--msg", "--", APP_SHELL, NULL);
 	if (rc != EOK) {
-		telnet_user_error(user, "Spawning `%s -w %s %s' failed: %s.",
-		    APP_GETTERM, term, APP_SHELL, str_error(rc));
+		telnet_user_error(user, "Spawning `%s %s /loc --msg -- %s' "
+		    "failed: %s.", APP_GETTERM, user->service_name, APP_SHELL,
+		    str_error(rc));
 		fibril_mutex_lock(&user->guard);
 		user->task_finished = true;
 		user->srvs.aborted = true;
@@ -248,7 +246,7 @@ static int spawn_task_fibril(void *arg)
 
 	task_exit_t task_exit;
 	int task_retval;
-	task_wait(task, &task_exit, &task_retval);
+	task_wait(&wait, &task_exit, &task_retval);
 	telnet_user_log(user, "%s terminated %s, exit code %d.", APP_GETTERM,
 	    task_exit == TASK_EXIT_NORMAL ? "normally" : "unexpectedly",
 	    task_retval);

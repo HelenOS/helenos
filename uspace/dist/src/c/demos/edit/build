@@ -1,10 +1,13 @@
 cc -D__PCC__ -I/inc/c -E -o sheet.i sheet.c
 cc -D__PCC__ -I/inc/c -E -o edit.i edit.c
+cc -D__PCC__ -I/inc/c -E -o search.i search.c
 
 cc -S -o sheet.s sheet.i
 cc -S -o edit.s edit.i
+cc -S -o search.s search.i
 
 as -o sheet.o sheet.s
 as -o edit.o edit.s
+as -o search.o search.s
 
-ld -T /inc/_link.ld -o edit_ sheet.o edit.o /lib/libc.a /lib/libsoftint.a
+ld -T /inc/_link.ld -o edit_ sheet.o edit.o search.o /lib/libc.a /lib/libsoftint.a

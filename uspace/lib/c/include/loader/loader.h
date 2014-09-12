@@ -36,7 +36,7 @@
 #ifndef LIBC_LOADER_H_
 #define LIBC_LOADER_H_
 
-#include <task.h>
+#include <abi/proc/task.h>
 
 /** Forward declararion */
 struct loader;

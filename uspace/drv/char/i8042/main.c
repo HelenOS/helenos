@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 	 * Alleviate the virtual memory / page table pressure caused by 
 	 * interrupt storms when the default large stacks are used.
 	 */
-	async_set_interrupt_handler_stack_size(PAGE_SIZE);
+	async_set_notification_handler_stack_size(PAGE_SIZE);
 
 	return ddf_driver_main(&i8042_driver);
 }

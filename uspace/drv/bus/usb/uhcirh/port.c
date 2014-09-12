@@ -268,10 +268,24 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 
 	int ret, count = MAX_ERROR_COUNT;
 	do {
-		ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
+		port->attached_device.fun = ddf_fun_create(port->rh, fun_inner,
+		    NULL);
+		if (port->attached_device.fun == NULL) {
+			ret = ENOMEM;
+			continue;
+		}
+
+		ret = usb_hc_new_device_wrapper(port->rh,
+		    port->attached_device.fun,
+		    &port->hc_connection,
 		    speed, uhci_port_reset_enable, port,
-		    &port->attached_device.address, NULL, NULL,
-		    &port->attached_device.fun);
+		    &port->attached_device.address, NULL);
+
+		if (ret != EOK) {
+			ddf_fun_destroy(port->attached_device.fun);
+			port->attached_device.fun = NULL;
+		}
+
 	} while (ret != EOK && count-- > 0);
 
 	if (ret != EOK) {

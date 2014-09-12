@@ -37,8 +37,6 @@
 
 #include <vfs/vfs.h>
 #include <ipc/services.h>
-#include <abi/ipc/event.h>
-#include <event.h>
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
@@ -51,10 +49,6 @@
 #include "vfs.h"
 
 #define NAME  "vfs"
-
-enum {
-	VFS_TASK_STATE_CHANGE
-};
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
@@ -144,19 +138,13 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	 */
 }
 
-static void notification_received(ipc_callid_t callid, ipc_call_t *call)
+static void notification_handler(ipc_callid_t callid, ipc_call_t *call, void *arg)
 {
-	switch (IPC_GET_IMETHOD(*call)) {
-	case VFS_TASK_STATE_CHANGE:
-		if (IPC_GET_ARG1(*call) == VFS_PASS_HANDLE)
-			vfs_pass_handle(
-			    (task_id_t) MERGE_LOUP32(IPC_GET_ARG4(*call),
-			    IPC_GET_ARG5(*call)), call->in_task_id,
-			    (int) IPC_GET_ARG2(*call));
-		break;
-	default:
-		break;
-	}
+	if (IPC_GET_ARG1(*call) == VFS_PASS_HANDLE)
+		vfs_pass_handle(
+		    (task_id_t) MERGE_LOUP32(IPC_GET_ARG4(*call),
+		    IPC_GET_ARG5(*call)), call->in_task_id,
+		    (int) IPC_GET_ARG2(*call));
 }
 
 int main(int argc, char **argv)
@@ -195,10 +183,10 @@ int main(int argc, char **argv)
 	async_set_client_connection(vfs_connection);
 
 	/*
-	 * Set notification handler and subscribe to notifications.
+	 * Subscribe to notifications.
 	 */
-	async_set_interrupt_received(notification_received);
-	event_task_subscribe(EVENT_TASK_STATE_CHANGE, VFS_TASK_STATE_CHANGE);
+	async_event_task_subscribe(EVENT_TASK_STATE_CHANGE, notification_handler,
+	    NULL);
 	
 	/*
 	 * Register at the naming service.

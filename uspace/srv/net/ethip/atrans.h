@@ -44,7 +44,7 @@
 extern int atrans_add(addr32_t, addr48_t);
 extern int atrans_remove(addr32_t);
 extern int atrans_lookup(addr32_t, addr48_t);
-extern int atrans_wait_timeout(suseconds_t);
+extern int atrans_lookup_timeout(addr32_t, suseconds_t, addr48_t);
 
 #endif
 

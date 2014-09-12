@@ -177,7 +177,7 @@ static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
 		size = MAX_BUFFER_SIZE;
 	
 	uintptr_t pa = 0;
-	void *buffer = NULL;
+	void *buffer = AS_AREA_ANY;
 	
 	int ret = dmamem_map_anonymous(size, DMAMEM_16MiB | 0x0000ffff,
 	    AS_AREA_WRITE | AS_AREA_READ, 0, &pa, &buffer);

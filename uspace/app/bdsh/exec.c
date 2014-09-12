@@ -96,6 +96,7 @@ static char *find_command(char *cmd)
 unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 {
 	task_id_t tid;
+	task_wait_t twait;
 	task_exit_t texit;
 	char *tmp;
 	int rc, retval, i;
@@ -120,7 +121,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	}
 	file_handles_p[i] = NULL;
 
-	rc = task_spawnvf(&tid, tmp, (const char **) argv, file_handles_p);
+	rc = task_spawnvf(&tid, &twait, tmp, (const char **) argv, file_handles_p);
 	free(tmp);
 
 	if (rc != 0) {
@@ -129,7 +130,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 		return 1;
 	}
 	
-	rc = task_wait(tid, &texit, &retval);
+	rc = task_wait(&twait, &texit, &retval);
 	if (rc != EOK) {
 		printf("%s: Failed waiting for command (%s)\n", progname,
 		    str_error(rc));

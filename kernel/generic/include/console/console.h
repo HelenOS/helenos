@@ -75,7 +75,7 @@ extern sysarg_t sys_kio(int cmd, const void *buf, size_t size);
 extern void grab_console(void);
 extern void release_console(void);
 
-extern sysarg_t sys_debug_activate_console(void);
+extern sysarg_t sys_debug_console(void);
 
 #endif /* KERN_CONSOLE_H_ */
 

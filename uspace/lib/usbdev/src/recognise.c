@@ -33,9 +33,6 @@
  * Functions for recognition of attached devices.
  */
 
-/** XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <sys/types.h>
 #include <fibril_synch.h>
 #include <usb/debug.h>
@@ -317,13 +314,12 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
  *
  */
 int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
-    ddf_dev_t *parent, ddf_dev_ops_t *dev_ops, void *dev_data,
-    ddf_fun_t **child_fun)
+    ddf_dev_t *parent, ddf_fun_t *fun, ddf_dev_ops_t *dev_ops)
 {
-	if (child_fun == NULL || ctrl_pipe == NULL)
+	if (ctrl_pipe == NULL)
 		return EINVAL;
 	
-	if (!dev_ops && dev_data) {
+	if (!dev_ops && ddf_fun_data_get(fun) != NULL) {
 		usb_log_warning("Using standard fun ops with arbitrary "
 		    "driver data. This does not have to work.\n");
 	}
@@ -333,7 +329,6 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 	const size_t this_device_name_index =
 	    (size_t) atomic_preinc(&device_name_index);
 	
-	ddf_fun_t *child = NULL;
 	int rc;
 	
 	/*
@@ -347,33 +342,29 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 		goto failure;
 	}
 	
-	child = ddf_fun_create(parent, fun_inner, child_name);
-	if (child == NULL) {
-		rc = ENOMEM;
+	rc = ddf_fun_set_name(fun, child_name);
+	if (rc != EOK)
 		goto failure;
-	}
 	
 	if (dev_ops != NULL)
-		ddf_fun_set_ops(child, dev_ops);
+		ddf_fun_set_ops(fun, dev_ops);
 	else
-		ddf_fun_set_ops(child, &child_ops);
-	
-	ddf_fun_data_implant(child, dev_data);
+		ddf_fun_set_ops(fun, &child_ops);
 	
 	/*
 	 * Store the attached device in fun
 	 * driver data if there is no other data
 	 */
-	if (!dev_data) {
+	if (ddf_fun_data_get(fun) == NULL) {
 		usb_hub_attached_device_t *new_device = ddf_fun_data_alloc(
-		    child, sizeof(usb_hub_attached_device_t));
+		    fun, sizeof(usb_hub_attached_device_t));
 		if (!new_device) {
 			rc = ENOMEM;
 			goto failure;
 		}
 		
 		new_device->address = ctrl_pipe->wire->address;
-		new_device->fun = child;
+		new_device->fun = fun;
 	}
 	
 	match_id_list_t match_ids;
@@ -383,7 +374,7 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 		goto failure;
 	
 	list_foreach(match_ids.ids, link, match_id_t, match_id) {
-		rc = ddf_fun_add_match_id(child, match_id->id, match_id->score);
+		rc = ddf_fun_add_match_id(fun, match_id->id, match_id->score);
 		if (rc != EOK) {
 			clean_match_ids(&match_ids);
 			goto failure;
@@ -392,19 +383,13 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 	
 	clean_match_ids(&match_ids);
 	
-	rc = ddf_fun_bind(child);
+	rc = ddf_fun_bind(fun);
 	if (rc != EOK)
 		goto failure;
 	
-	*child_fun = child;
 	return EOK;
 	
 failure:
-	if (child != NULL) {
-		/* This takes care of match_id deallocation as well. */
-		ddf_fun_destroy(child);
-	}
-	
 	return rc;
 }
 

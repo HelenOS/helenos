@@ -36,13 +36,9 @@
 #define KERN_mips32_FPU_CONTEXT_H_
 
 #include <typedefs.h>
+#include <arch/fpu_context_struct.h>
 
 #define FPU_CONTEXT_ALIGN    sizeof(sysarg_t)
-
-typedef struct {
-	sysarg_t dregs[32];
-	sysarg_t cregs[32];
-} fpu_context_t;
 
 #endif
 

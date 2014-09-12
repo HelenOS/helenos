@@ -27,6 +27,7 @@
  */
 
 #include <arch/asm/regname.h>
+#include <arch/fpu_context_struct.h>
 
 .text
 
@@ -135,21 +136,21 @@ memcpy_to_uspace_failover_address:
 
 .macro fpu_gp_save reg ctx
 	mfc1 $t0, $\reg
-	sw $t0, \reg * 4(\ctx)
+	sw $t0, FPU_CONTEXT_OFFSET_DREGS + \reg * FPU_CONTEXT_DREGS_ITEM_SIZE(\ctx)
 .endm
 
 .macro fpu_gp_restore reg ctx
-	lw $t0, \reg * 4(\ctx)
+	lw $t0, FPU_CONTEXT_OFFSET_DREGS + \reg * FPU_CONTEXT_DREGS_ITEM_SIZE(\ctx)
 	mtc1 $t0, $\reg
 .endm
 
 .macro fpu_ct_save reg ctx
 	cfc1 $t0, $1
-	sw $t0, (\reg + 32) * 4(\ctx)
+	sw $t0, FPU_CONTEXT_OFFSET_CREGS + \reg * FPU_CONTEXT_CREGS_ITEM_SIZE(\ctx)
 .endm
 
 .macro fpu_ct_restore reg ctx
-	lw $t0, (\reg + 32) * 4(\ctx)
+	lw $t0, FPU_CONTEXT_OFFSET_CREGS + \reg * FPU_CONTEZT_CREGS_ITEM_SIZE(\ctx)
 	ctc1 $t0, $\reg
 .endm
 

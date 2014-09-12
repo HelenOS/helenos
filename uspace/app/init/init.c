@@ -171,7 +171,8 @@ static int srv_startl(const char *path, ...)
 	
 	va_start(ap, path);
 	task_id_t id;
-	int rc = task_spawn(&id, path, cnt, ap);
+	task_wait_t wait;
+	int rc = task_spawn(&id, &wait, path, cnt, ap);
 	va_end(ap);
 	
 	if (rc != EOK) {
@@ -188,7 +189,7 @@ static int srv_startl(const char *path, ...)
 	
 	task_exit_t texit;
 	int retval;
-	rc = task_wait(id, &texit, &retval);
+	rc = task_wait(&wait, &texit, &retval);
 	if (rc != EOK) {
 		printf("%s: Error waiting for %s (%s)\n", NAME, path,
 		    str_error(rc));
@@ -252,7 +253,8 @@ static int gui_start(const char *app, const char *srv_name)
 	printf("%s: Spawning %s %s\n", NAME, app, winreg);
 	
 	task_id_t id;
-	int rc = task_spawnl(&id, app, app, winreg, NULL);
+	task_wait_t wait;
+	int rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
 		    winreg, str_error(rc));
@@ -261,7 +263,7 @@ static int gui_start(const char *app, const char *srv_name)
 	
 	task_exit_t texit;
 	int retval;
-	rc = task_wait(id, &texit, &retval);
+	rc = task_wait(&wait, &texit, &retval);
 	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL)) {
 		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
 		    app, str_error(rc));
@@ -271,36 +273,26 @@ static int gui_start(const char *app, const char *srv_name)
 	return retval;
 }
 
-static void getterm(const char *svc, const char *app, bool wmsg)
+static void getterm(const char *svc, const char *app, bool msg)
 {
-	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", LOCFS_MOUNT_POINT, svc);
-	
-	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
-	
-	/* Wait for the terminal service to be ready */
-	service_id_t service_id;
-	int rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, term,
-		    str_error(rc));
-		return;
-	}
-	
-	if (wmsg) {
-		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, "-w", term,
-		    app, NULL);
-		if (rc != EOK) {
-			printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
-			    APP_GETTERM, term, app, str_error(rc));
-		}
+	if (msg) {
+		printf("%s: Spawning %s %s %s --msg --wait -- %s\n", NAME,
+		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
+		
+		int rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
+		    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
+		if (rc != EOK)
+			printf("%s: Error spawning %s %s %s --msg --wait -- %s\n",
+			    NAME, APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 	} else {
-		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, term, app,
-		    NULL);
-		if (rc != EOK) {
-			printf("%s: Error spawning %s %s %s (%s)\n", NAME,
-			    APP_GETTERM, term, app, str_error(rc));
-		}
+		printf("%s: Spawning %s %s %s --wait -- %s\n", NAME,
+		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
+		
+		int rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
+		    LOCFS_MOUNT_POINT, "--wait", "--", app, NULL);
+		if (rc != EOK)
+			printf("%s: Error spawning %s %s %s --wait -- %s\n",
+			    NAME, APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 	}
 }
 
@@ -338,6 +330,7 @@ int main(int argc, char *argv[])
 	srv_start("/srv/devman");
 	srv_start("/srv/apic");
 	srv_start("/srv/i8259");
+	srv_start("/srv/icp-ic");
 	srv_start("/srv/obio");
 	srv_start("/srv/cuda_adb");
 	srv_start("/srv/s3c24xx_uart");
@@ -363,17 +356,16 @@ int main(int argc, char *argv[])
 	if (rc == EOK) {
 		gui_start("/app/vlaunch", HID_COMPOSITOR_SERVER);
 		gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
-	} else {
-		rc = console(HID_INPUT, HID_OUTPUT);
-		if (rc == EOK) {
-			getterm("term/vc0", "/app/bdsh", true);
-			getterm("term/vc1", "/app/bdsh", false);
-			getterm("term/vc2", "/app/bdsh", false);
-			getterm("term/vc3", "/app/bdsh", false);
-			getterm("term/vc4", "/app/bdsh", false);
-			getterm("term/vc5", "/app/bdsh", false);
-			getterm("term/vc6", "/app/klog", false);
-		}
+	}
+	
+	rc = console(HID_INPUT, HID_OUTPUT);
+	if (rc == EOK) {
+		getterm("term/vc0", "/app/bdsh", true);
+		getterm("term/vc1", "/app/bdsh", false);
+		getterm("term/vc2", "/app/bdsh", false);
+		getterm("term/vc3", "/app/bdsh", false);
+		getterm("term/vc4", "/app/bdsh", false);
+		getterm("term/vc5", "/app/bdsh", false);
 	}
 	
 	return 0;

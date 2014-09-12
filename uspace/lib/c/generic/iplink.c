@@ -170,6 +170,29 @@ int iplink_get_mac48(iplink_t *iplink, addr48_t *mac)
 	return (int) retval;
 }
 
+int iplink_set_mac48(iplink_t *iplink, addr48_t mac)
+{
+	async_exch_t *exch = async_exchange_begin(iplink->sess);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, IPLINK_GET_MAC48, &answer);
+	
+	int rc = async_data_read_start(exch, mac, sizeof(addr48_t));
+	
+	loc_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	return (int) retval;
+}
+
+
 int iplink_addr_add(iplink_t *iplink, inet_addr_t *addr)
 {
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
@@ -231,6 +254,24 @@ static void iplink_ev_recv(iplink_t *iplink, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
+static void iplink_ev_change_addr(iplink_t *iplink, ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	addr48_t *addr;
+	size_t size;
+	
+	int rc = async_data_write_accept((void **)&addr, false,
+	    sizeof(addr48_t), sizeof(addr48_t), 0, &size);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	rc = iplink->ev_ops->change_addr(iplink, *addr);
+	free(addr);
+	async_answer_0(iid, EOK);
+}
+
 static void iplink_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	iplink_t *iplink = (iplink_t *) arg;
@@ -248,6 +289,8 @@ static void iplink_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case IPLINK_EV_RECV:
 			iplink_ev_recv(iplink, callid, &call);
 			break;
+		case IPLINK_EV_CHANGE_ADDR:
+			iplink_ev_change_addr(iplink, callid, &call);
 		default:
 			async_answer_0(callid, ENOTSUP);
 		}

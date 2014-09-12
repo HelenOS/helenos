@@ -51,7 +51,7 @@ typedef struct button {
 	source_t foreground;
 	source_t text;
 	char *caption;
-	font_t font;
+	font_t *font;
 	signal_t clicked;
 } button_t;
 

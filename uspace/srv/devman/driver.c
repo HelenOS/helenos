@@ -39,6 +39,7 @@
 #include <loc.h>
 #include <str_error.h>
 #include <stdio.h>
+#include <task.h>
 
 #include "dev.h"
 #include "devman.h"
@@ -289,7 +290,7 @@ bool start_driver(driver_t *drv)
 	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
 	
-	rc = task_spawnl(NULL, drv->binary_path, drv->binary_path, NULL);
+	rc = task_spawnl(NULL, NULL, drv->binary_path, drv->binary_path, NULL);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Spawning driver `%s' (%s) failed: %s.",
 		    drv->name, drv->binary_path, str_error(rc));

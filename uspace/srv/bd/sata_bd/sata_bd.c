@@ -44,6 +44,7 @@
 #include <str.h>
 #include <loc.h>
 #include <macros.h>
+#include <task.h>
 
 #include <ahci_iface.h>
 #include "sata_bd.h"

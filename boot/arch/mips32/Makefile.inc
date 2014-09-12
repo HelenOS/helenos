@@ -51,7 +51,7 @@ endif
 
 ifeq ($(MACHINE), $(filter $(MACHINE),bmalta lmalta))
 	RD_DRVS_ESSENTIAL += \
-		infrastructure/rootmalta \
+		platform/malta \
 		block/ata_bd \
 		bus/pci/pciintel \
 		bus/isa \

@@ -65,14 +65,14 @@ LINK = arch/$(KARCH)/_link.ld
 EMPTY_MAP = generic/src/debug/empty_map.o
 SIZEOK_MAP = generic/src/debug/sizeok_map.o
 
-.PHONY: all clean
+.PHONY: all clean autogen_clean
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BIN) $(DISASM)
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
-clean:
+clean: autogen_clean
 	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* arch/*/_link.ld arch/*/include/arch/common.h
-	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
+	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm '{}' \;
 
 ## Common compiler flags
 #
@@ -366,6 +366,10 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
+ARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(ARCH_AUTOGENS_AG)))
+ARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(ARCH_AUTOGENS_AG)))
+ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG)))
+
 LFLAGS_LTO := $(addprefix -Xlinker ,$(LFLAGS))
 
 ifeq ($(CONFIG_SYMTAB),y)
@@ -396,6 +400,11 @@ endif
 
 $(LINK): $(LINK).in $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
+
+%.h: %.ag
+	$(AUTOGEN) probe $< >$<.probe.c
+	$(CC) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
+	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
 %.o: %.S $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c -o $@ $<
@@ -440,9 +449,12 @@ endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
-$(DEPEND): $(COMMON_HEADER_ARCH)
+$(DEPEND): $(COMMON_HEADER_ARCH) $(ARCH_AUTOGENS_H)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 	ln -sfn ../../../../$< $@
+
+autogen_clean:
+	-rm $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)

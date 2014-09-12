@@ -33,9 +33,6 @@
  * @brief OHCI driver
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/interrupt.h>
@@ -61,19 +58,21 @@ static inline ohci_t *dev_to_ohci(ddf_dev_t *dev)
 }
 /** IRQ handling callback, identifies device
  *
- * @param[in] dev DDF instance of the device to use.
  * @param[in] iid (Unused).
  * @param[in] call Pointer to the call that represents interrupt.
+ * @param[in] dev DDF instance of the device to use.
+ *
  */
-static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 {
 	assert(dev);
-
+	
 	ohci_t *ohci = dev_to_ohci(dev);
 	if (!ohci) {
 		usb_log_warning("Interrupt on device that is not ready.\n");
 		return;
 	}
+	
 	const uint16_t status = IPC_GET_ARG1(*call);
 	hc_interrupt(&ohci->hc, status);
 }
@@ -164,7 +163,6 @@ int device_setup_ohci(ddf_dev_t *device)
 	}
 
 	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
-	ddf_fun_data_implant(instance->hc_fun, &instance->hc);
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
 	if (instance->rh_fun == NULL) {
@@ -213,7 +211,7 @@ int device_setup_ohci(ddf_dev_t *device)
 		interrupts = true;
 	}
 
-	rc = hc_init(&instance->hc, &regs, interrupts);
+	rc = hc_init(&instance->hc, instance->hc_fun, &regs, interrupts);
 	if (rc != EOK) {
 		usb_log_error("Failed to init ohci_hcd: %s.\n", str_error(rc));
 		goto error;

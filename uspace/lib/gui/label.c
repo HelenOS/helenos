@@ -37,6 +37,8 @@
 #include <malloc.h>
 #include <drawctx.h>
 #include <surface.h>
+#include <font/embedded.h>
+#include <errno.h>
 #include "window.h"
 #include "label.h"
 
@@ -57,14 +59,14 @@ static void paint_internal(widget_t *widget)
 	
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
-	font_get_box(&lbl->font, lbl->caption, &cpt_width, &cpt_height);
+	font_get_box(lbl->font, lbl->caption, &cpt_width, &cpt_height);
 	
 	if ((widget->width >= cpt_width) && (widget->height >= cpt_height)) {
 		sysarg_t x = ((widget->width - cpt_width) / 2) + widget->hpos;
 		sysarg_t y = ((widget->height - cpt_height) / 2) + widget->vpos;
 		
 		drawctx_set_source(&drawctx, &lbl->text);
-		drawctx_set_font(&drawctx, &lbl->font);
+		drawctx_set_font(&drawctx, lbl->font);
 		
 		if (lbl->caption)
 			drawctx_print(&drawctx, lbl->caption, x, y);
@@ -83,7 +85,7 @@ static void on_rewrite(widget_t *widget, void *data)
 		
 		sysarg_t cpt_width;
 		sysarg_t cpt_height;
-		font_get_box(&lbl->font, lbl->caption, &cpt_width, &cpt_height);
+		font_get_box(lbl->font, lbl->caption, &cpt_width, &cpt_height);
 		
 		lbl->widget.width_min = cpt_width + 4;
 		lbl->widget.height_min = cpt_height + 4;
@@ -98,7 +100,7 @@ void deinit_label(label_t *lbl)
 {
 	widget_deinit(&lbl->widget);
 	free(lbl->caption);
-	font_release(&lbl->font);
+	font_release(lbl->font);
 }
 
 static void label_destroy(widget_t *widget)
@@ -160,11 +162,16 @@ bool init_label(label_t *lbl, widget_t *parent, const char *caption,
 	else
 		lbl->caption = str_dup(caption);
 	
-	font_init(&lbl->font, FONT_DECODER_EMBEDDED, NULL, points);
+	int rc = embedded_font_create(&lbl->font, points);
+	if (rc != EOK) {
+		free(lbl->caption);
+		lbl->caption = NULL;
+		return false;
+	}
 	
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
-	font_get_box(&lbl->font, lbl->caption, &cpt_width, &cpt_height);
+	font_get_box(lbl->font, lbl->caption, &cpt_width, &cpt_height);
 	
 	lbl->widget.width_min = cpt_width + 4;
 	lbl->widget.height_min = cpt_height + 4;

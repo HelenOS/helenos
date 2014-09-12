@@ -43,6 +43,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <task.h>
 #include "arp.h"
 #include "ethip.h"
 #include "ethip_nic.h"
@@ -57,6 +58,7 @@ static int ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
 static int ethip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
 static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu);
 static int ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
+static int ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac);
 static int ethip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
 static int ethip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
@@ -69,6 +71,7 @@ static iplink_ops_t ethip_iplink_ops = {
 	.send6 = ethip_send6,
 	.get_mtu = ethip_get_mtu,
 	.get_mac48 = ethip_get_mac48,
+	.set_mac48 = ethip_set_mac48,
 	.addr_add = ethip_addr_add,
 	.addr_remove = ethip_addr_remove
 };
@@ -278,6 +281,16 @@ static int ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac)
 	
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	addr48(nic->mac_addr, *mac);
+	
+	return EOK;
+}
+
+static int ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_set_mac48()");
+	
+	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
+	addr48(*mac, nic->mac_addr);
 	
 	return EOK;
 }

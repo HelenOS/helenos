@@ -287,18 +287,18 @@ int nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
-	    NIC_GET_DEVICE_INFO);
-	if (rc != EOK) {
-		async_exchange_end(exch);
-		return rc;
-	}
-	
-	rc = async_data_read_start(exch, device_info, sizeof(nic_device_info_t));
-	
+	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	    NIC_GET_DEVICE_INFO, NULL);
+	int rc = async_data_read_start(exch, device_info, sizeof(nic_device_info_t));
 	async_exchange_end(exch);
+
+	sysarg_t res;
+	async_wait_for(aid, &res);
 	
-	return rc;
+	if (rc != EOK)
+		return rc;
+	
+	return (int) res;
 }
 
 /** Request status of the cable (plugged/unplugged)

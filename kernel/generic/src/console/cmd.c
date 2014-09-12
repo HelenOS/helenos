@@ -1148,7 +1148,7 @@ int cmd_physmem(cmd_arg_t *argv)
 /** Write 4 byte value to address */
 int cmd_set4(cmd_arg_t *argv)
 {
-	uintptr_t addr;
+	uintptr_t addr = 0; // Prevent -Werror=maybe-uninitialized
 	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
 	int rc;
@@ -1356,8 +1356,6 @@ int cmd_continue(cmd_arg_t *argv)
 {
 	printf("The kernel will now relinquish the console.\n");
 	release_console();
-	
-	event_notify_0(EVENT_KCONSOLE, false);
 	indev_pop_character(stdin);
 	
 	return 1;

@@ -150,6 +150,8 @@ void tcp_transmit_pdu(tcp_pdu_t *pdu)
 	rc = inet_send(&dgram, INET_TTL_MAX, 0);
 	if (rc != EOK)
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to transmit PDU.");
+
+	free(pdu_raw);
 }
 
 /** Process received PDU. */

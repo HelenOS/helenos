@@ -79,7 +79,7 @@ def platform_to_qemu_options(platform, machine):
 	if platform == 'amd64':
 		return 'system-x86_64', pc_options(64)
 	elif platform == 'arm32':
-		return 'system-arm', ''
+		return 'system-arm', '-M integratorcp'
 	elif platform == 'ia32':
 		return 'system-i386', pc_options(32)
 	elif platform == 'mips32':
@@ -136,7 +136,7 @@ def qemu_usb_options():
 def qemu_audio_options():
 	if is_override('nosnd'):
 		return ''
-	return ' -soundhw sb16' 
+	return ' -device intel-hda -device hda-duplex'
 
 def qemu_run(platform, machine):
 	cfg = cfg_get(platform, machine)

@@ -46,14 +46,10 @@
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
 static int chardev_port_init(kbd_dev_t *);
-static void chardev_port_yield(void);
-static void chardev_port_reclaim(void);
 static void chardev_port_write(uint8_t data);
 
 kbd_port_ops_t chardev_port = {
 	.init = chardev_port_init,
-	.yield = chardev_port_yield,
-	.reclaim = chardev_port_reclaim,
 	.write = chardev_port_write
 };
 
@@ -112,14 +108,6 @@ static int chardev_port_init(kbd_dev_t *kdev)
 	}
 	
 	return 0;
-}
-
-static void chardev_port_yield(void)
-{
-}
-
-static void chardev_port_reclaim(void)
-{
 }
 
 static void chardev_port_write(uint8_t data)

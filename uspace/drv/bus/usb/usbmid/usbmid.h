@@ -59,6 +59,7 @@ typedef struct {
 
 /** Container to hold all the function pointers */
 typedef struct usb_mid {
+	ddf_dev_t *dev;
 	ddf_fun_t *ctl_fun;
 	list_t interface_list;
 } usb_mid_t;

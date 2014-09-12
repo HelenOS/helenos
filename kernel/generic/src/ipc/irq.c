@@ -35,14 +35,13 @@
  * @file
  * @brief IRQ notification framework.
  *
- * This framework allows applications to register to receive a notification
+ * This framework allows applications to subscribe to receive a notification
  * when interrupt is detected. The application may provide a simple 'top-half'
  * handler as part of its registration, which can perform simple operations
  * (read/write port/memory, add information to notification IPC message).
  *
  * The structure of a notification message is as follows:
- * - IMETHOD: interface and method as registered by
- *            the SYS_IRQ_REGISTER syscall
+ * - IMETHOD: interface and method as set by the SYS_IPC_IRQ_SUBSCRIBE syscall
  * - ARG1: payload modified by a 'top-half' handler (scratch[1])
  * - ARG2: payload modified by a 'top-half' handler (scratch[2])
  * - ARG3: payload modified by a 'top-half' handler (scratch[3])
@@ -51,7 +50,7 @@
  * - in_phone_hash: interrupt counter (may be needed to assure correct order
  *                  in multithreaded drivers)
  *
- * Note on synchronization for ipc_irq_register(), ipc_irq_unregister(),
+ * Note on synchronization for ipc_irq_subscribe(), ipc_irq_unsubscribe(),
  * ipc_irq_cleanup() and IRQ handlers:
  *
  *   By always taking all of the uspace IRQ hash table lock, IRQ structure lock
@@ -288,7 +287,7 @@ error:
 	return NULL;
 }
 
-/** Register an answerbox as a receiving end for IRQ notifications.
+/** Subscribe an answerbox as a receiving end for IRQ notifications.
  *
  * @param box     Receiving answerbox.
  * @param inr     IRQ number.
@@ -300,7 +299,7 @@ error:
  * @return EOK on success or a negative error code.
  *
  */
-int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
+int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
     sysarg_t imethod, irq_code_t *ucode)
 {
 	sysarg_t key[] = {
@@ -368,7 +367,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	return EOK;
 }
 
-/** Unregister task from IRQ notification.
+/** Unsubscribe task from IRQ notification.
  *
  * @param box   Answerbox associated with the notification.
  * @param inr   IRQ number.
@@ -377,7 +376,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
  * @return EOK on success or a negative error code.
  *
  */
-int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
+int ipc_irq_unsubscribe(answerbox_t *box, inr_t inr, devno_t devno)
 {
 	sysarg_t key[] = {
 		(sysarg_t) inr,
@@ -431,7 +430,7 @@ int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 /** Disconnect all IRQ notifications from an answerbox.
  *
  * This function is effective because the answerbox contains
- * list of all irq_t structures that are registered to
+ * list of all irq_t structures that are subscribed to
  * send notifications to it.
  *
  * @param box Answerbox for which we want to carry out the cleanup.

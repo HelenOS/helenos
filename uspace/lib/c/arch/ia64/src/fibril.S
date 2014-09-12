@@ -26,15 +26,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <libarch/fibril_context.h>
+
 .text
 
 .global context_save
 .global context_restore
 
 context_save:
-	alloc loc0 = ar.pfs, 1, 8, 0, 0
-	mov loc1 = ar.unat	;;
-	/* loc2 */
+	alloc loc0 = ar.pfs, 1, 49, 0, 0
+	mov loc1 = ar.unat ;;
 	mov loc3 = ar.rsc
 
 	.auto
@@ -57,95 +58,187 @@ context_save:
 	.explicit
 
 	mov loc6 = ar.lc
+
+	add loc8 = CONTEXT_OFFSET_AR_PFS, in0
+	add loc9 = CONTEXT_OFFSET_AR_UNAT_CALLER, in0
+	add loc10 = CONTEXT_OFFSET_AR_UNAT_CALLEE, in0
+	add loc11 = CONTEXT_OFFSET_AR_RSC, in0
+	add loc12 = CONTEXT_OFFSET_BSP, in0
+	add loc13 = CONTEXT_OFFSET_AR_RNAT, in0
+	add loc14 = CONTEXT_OFFSET_AR_LC, in0
+
+	add loc15 = CONTEXT_OFFSET_R1, in0
+	add loc16 = CONTEXT_OFFSET_R4, in0
+	add loc17 = CONTEXT_OFFSET_R5, in0
+	add loc18 = CONTEXT_OFFSET_R6, in0
+	add loc19 = CONTEXT_OFFSET_R7, in0
+	add loc20 = CONTEXT_OFFSET_SP, in0
+	add loc21 = CONTEXT_OFFSET_TP, in0
+
+	add loc22 = CONTEXT_OFFSET_PC, in0
+	add loc23 = CONTEXT_OFFSET_B1, in0
+	add loc24 = CONTEXT_OFFSET_B2, in0
+	add loc25 = CONTEXT_OFFSET_B3, in0
+	add loc26 = CONTEXT_OFFSET_B4, in0
+	add loc27 = CONTEXT_OFFSET_B5, in0
+
+	add loc28 = CONTEXT_OFFSET_PR, in0
+
+	add loc29 = CONTEXT_OFFSET_F2, in0
+	add loc30 = CONTEXT_OFFSET_F3, in0
+	add loc31 = CONTEXT_OFFSET_F4, in0
+	add loc32 = CONTEXT_OFFSET_F5, in0
+
+	add loc33 = CONTEXT_OFFSET_F16, in0
+	add loc34 = CONTEXT_OFFSET_F17, in0
+	add loc35 = CONTEXT_OFFSET_F18, in0
+	add loc36 = CONTEXT_OFFSET_F19, in0
+	add loc37 = CONTEXT_OFFSET_F20, in0
+	add loc38 = CONTEXT_OFFSET_F21, in0
+	add loc39 = CONTEXT_OFFSET_F22, in0
+	add loc40 = CONTEXT_OFFSET_F23, in0
+	add loc41 = CONTEXT_OFFSET_F24, in0
+	add loc42 = CONTEXT_OFFSET_F25, in0
+	add loc43 = CONTEXT_OFFSET_F26, in0
+	add loc44 = CONTEXT_OFFSET_F27, in0
+	add loc45 = CONTEXT_OFFSET_F28, in0
+	add loc46 = CONTEXT_OFFSET_F29, in0
+	add loc47 = CONTEXT_OFFSET_F30, in0
+	add loc48 = CONTEXT_OFFSET_F31, in0 ;;
+
+	/*
+	 * Save general registers including NaT bits
+	 */
+	st8.spill [loc15] = r1 ;;
+	st8.spill [loc16] = r4 ;;
+	st8.spill [loc17] = r5 ;;
+	st8.spill [loc18] = r6 ;;
+	st8.spill [loc19] = r7 ;;
+	st8.spill [loc20] = r12	;;	/* save sp */
+	st8.spill [loc21] = r13 ;;	/* save tp */
+
+	mov loc2 = ar.unat
 	
 	/*
 	 * Save application registers
 	 */
-	st8 [in0] = loc0, 8	;;	/* save ar.pfs */
-	st8 [in0] = loc1, 8	;;	/* save ar.unat (caller) */
-	mov loc2 = in0		;;
-	add in0 = 8, in0	;;	/* skip ar.unat (callee) */
-	st8 [in0] = loc3, 8	;;	/* save ar.rsc */
-	st8 [in0] = loc4, 8	;;	/* save ar.bsp */
-	st8 [in0] = loc5, 8	;;	/* save ar.rnat */
-	st8 [in0] = loc6, 8	;;	/* save ar.lc */
-	
-	/*
-	 * Save general registers including NaT bits
-	 */
-	st8.spill [in0] = r1, 8		;;
-	st8.spill [in0] = r4, 8		;;
-	st8.spill [in0] = r5, 8		;;
-	st8.spill [in0] = r6, 8		;;
-	st8.spill [in0] = r7, 8		;;
-	st8.spill [in0] = r12, 8	;;	/* save sp */
-	st8.spill [in0] = r13, 8	;;	/* save tp */
-
-	mov loc3 = ar.unat		;;
-	st8 [loc2] = loc3		/* save ar.unat (callee) */
+	st8 [loc8] = loc0	/* save ar.pfs */
+	st8 [loc9] = loc1 ;;	/* save ar.unat (caller) */
+	st8 [loc10] = loc2	/* save ar.unat (callee) */
+	st8 [loc11] = loc3	/* save ar.rsc */
+	st8 [loc12] = loc4	/* save ar.bsp */
+	st8 [loc13] = loc5	/* save ar.rnat */
+	st8 [loc14] = loc6 ;;	/* save ar.lc */
 
 	/*
 	 * Save branch registers
 	 */
-	mov loc2 = b0		;;
-	st8 [in0] = loc2, 8		/* save pc */
-	mov loc3 = b1		;;
-	st8 [in0] = loc3, 8
-	mov loc4 = b2		;;
-	st8 [in0] = loc4, 8
-	mov loc5 = b3		;;
-	st8 [in0] = loc5, 8
-	mov loc6 = b4		;;
-	st8 [in0] = loc6, 8
-	mov loc7 = b5		;;
-	st8 [in0] = loc7, 8
+	mov loc2 = b0
+	mov loc3 = b1
+	mov loc4 = b2
+	mov loc5 = b3
+	mov loc6 = b4
+	mov loc7 = b5 ;;
+	st8 [loc22] = loc2	/* save pc */
+	st8 [loc23] = loc3
+	st8 [loc24] = loc4
+	st8 [loc25] = loc5
+	st8 [loc26] = loc6
+	st8 [loc27] = loc7 ;;
 
 	/*
 	 * Save predicate registers
 	 */
-	mov loc2 = pr		;;
-	st8 [in0] = loc2, 16;; 		/* Next fpu registers should be spilled to 16B aligned address */
+	mov loc2 = pr ;;
+	st8 [loc28] = loc2
 
 	/*
 	 * Save floating-point registers.
 	 */
-	stf.spill [in0] = f2, 16 ;;
-	stf.spill [in0] = f3, 16 ;;
-	stf.spill [in0] = f4, 16 ;;
-	stf.spill [in0] = f5, 16 ;;
+	stf.spill [loc29] = f2
+	stf.spill [loc30] = f3
+	stf.spill [loc31] = f4
+	stf.spill [loc32] = f5
 
-	stf.spill [in0] = f16, 16 ;;
-	stf.spill [in0] = f17, 16 ;;
-	stf.spill [in0] = f18, 16 ;;
-	stf.spill [in0] = f19, 16 ;;
-	stf.spill [in0] = f20, 16 ;;
-	stf.spill [in0] = f21, 16 ;;
-	stf.spill [in0] = f22, 16 ;;
-	stf.spill [in0] = f23, 16 ;;
-	stf.spill [in0] = f24, 16 ;;
-	stf.spill [in0] = f25, 16 ;;
-	stf.spill [in0] = f26, 16 ;;
-	stf.spill [in0] = f27, 16 ;;
-	stf.spill [in0] = f28, 16 ;;
-	stf.spill [in0] = f29, 16 ;;
-	stf.spill [in0] = f30, 16 ;;
-	stf.spill [in0] = f31, 16 ;;	
+	stf.spill [loc33] = f16
+	stf.spill [loc34] = f17
+	stf.spill [loc35] = f18
+	stf.spill [loc36] = f19
+	stf.spill [loc37] = f20
+	stf.spill [loc38] = f21
+	stf.spill [loc39] = f22
+	stf.spill [loc40] = f23
+	stf.spill [loc41] = f24
+	stf.spill [loc42] = f25
+	stf.spill [loc43] = f26
+	stf.spill [loc44] = f27
+	stf.spill [loc45] = f28
+	stf.spill [loc46] = f29
+	stf.spill [loc47] = f30
+	stf.spill [loc48] = f31
 
 	mov ar.unat = loc1
 	
-	add r8 = r0, r0, 1 		/* context_save returns 1 */
+	add r8 = r0, r0, 1 	/* context_save returns 1 */
 	br.ret.sptk.many b0
 
 context_restore:
-	alloc loc0 = ar.pfs, 1, 9, 0, 0	;;
+	alloc loc0 = ar.pfs, 1, 50, 0, 0	;;
 
-	ld8 loc0 = [in0], 8	;;	/* load ar.pfs */
-	ld8 loc1 = [in0], 8	;;	/* load ar.unat (caller) */
-	ld8 loc2 = [in0], 8	;;	/* load ar.unat (callee) */
-	ld8 loc3 = [in0], 8	;;	/* load ar.rsc */
-	ld8 loc4 = [in0], 8	;;	/* load ar.bsp */
-	ld8 loc5 = [in0], 8	;;	/* load ar.rnat */
-	ld8 loc6 = [in0], 8	;;	/* load ar.lc */
+	add loc9 = CONTEXT_OFFSET_AR_PFS, in0
+	add loc10 = CONTEXT_OFFSET_AR_UNAT_CALLER, in0
+	add loc11 = CONTEXT_OFFSET_AR_UNAT_CALLEE, in0
+	add loc12 = CONTEXT_OFFSET_AR_RSC, in0
+	add loc13 = CONTEXT_OFFSET_BSP, in0
+	add loc14 = CONTEXT_OFFSET_AR_RNAT, in0
+	add loc15 = CONTEXT_OFFSET_AR_LC, in0
+
+	add loc16 = CONTEXT_OFFSET_R1, in0
+	add loc17 = CONTEXT_OFFSET_R4, in0
+	add loc18 = CONTEXT_OFFSET_R5, in0
+	add loc19 = CONTEXT_OFFSET_R6, in0
+	add loc20 = CONTEXT_OFFSET_R7, in0
+	add loc21 = CONTEXT_OFFSET_SP, in0
+	add loc22 = CONTEXT_OFFSET_TP, in0
+
+	add loc23 = CONTEXT_OFFSET_PC, in0
+	add loc24 = CONTEXT_OFFSET_B1, in0
+	add loc25 = CONTEXT_OFFSET_B2, in0
+	add loc26 = CONTEXT_OFFSET_B3, in0
+	add loc27 = CONTEXT_OFFSET_B4, in0
+	add loc28 = CONTEXT_OFFSET_B5, in0
+
+	add loc29 = CONTEXT_OFFSET_PR, in0
+
+	add loc30 = CONTEXT_OFFSET_F2, in0
+	add loc31 = CONTEXT_OFFSET_F3, in0
+	add loc32 = CONTEXT_OFFSET_F4, in0
+	add loc33 = CONTEXT_OFFSET_F5, in0
+
+	add loc34 = CONTEXT_OFFSET_F16, in0
+	add loc35 = CONTEXT_OFFSET_F17, in0
+	add loc36 = CONTEXT_OFFSET_F18, in0
+	add loc37 = CONTEXT_OFFSET_F19, in0
+	add loc38 = CONTEXT_OFFSET_F20, in0
+	add loc39 = CONTEXT_OFFSET_F21, in0
+	add loc40 = CONTEXT_OFFSET_F22, in0
+	add loc41 = CONTEXT_OFFSET_F23, in0
+	add loc42 = CONTEXT_OFFSET_F24, in0
+	add loc43 = CONTEXT_OFFSET_F25, in0
+	add loc44 = CONTEXT_OFFSET_F26, in0
+	add loc45 = CONTEXT_OFFSET_F27, in0
+	add loc46 = CONTEXT_OFFSET_F28, in0
+	add loc47 = CONTEXT_OFFSET_F29, in0
+	add loc48 = CONTEXT_OFFSET_F30, in0
+	add loc49 = CONTEXT_OFFSET_F31, in0 ;;
+
+	ld8 loc0 = [loc9]	/* load ar.pfs */
+	ld8 loc1 = [loc10]	/* load ar.unat (caller) */
+	ld8 loc2 = [loc11]	/* load ar.unat (callee) */
+	ld8 loc3 = [loc12]	/* load ar.rsc */
+	ld8 loc4 = [loc13]	/* load ar.bsp */
+	ld8 loc5 = [loc14]	/* load ar.rnat */
+	ld8 loc6 = [loc15]	/* load ar.lc */
 	
 	.auto	
 
@@ -179,66 +272,66 @@ context_restore:
 
 	.explicit
 
-	mov ar.unat = loc2	;;
+	mov ar.unat = loc2 ;;
 	mov ar.lc = loc6
 	
 	/*
 	 * Restore general registers including NaT bits
 	 */
-	ld8.fill r1 = [in0], 8	;;
-	ld8.fill r4 = [in0], 8	;;
-	ld8.fill r5 = [in0], 8	;;
-	ld8.fill r6 = [in0], 8	;;
-	ld8.fill r7 = [in0], 8	;;
-	ld8.fill r12 = [in0], 8	;;	/* restore sp */
-	ld8.fill r13 = [in0], 8	;;
+	ld8.fill r1 = [loc16] ;;
+	ld8.fill r4 = [loc17] ;;
+	ld8.fill r5 = [loc18] ;;
+	ld8.fill r6 = [loc19] ;;
+	ld8.fill r7 = [loc20] ;;
+	ld8.fill r12 = [loc21] ;;	/* restore sp */
+	ld8.fill r13 = [loc22] ;;
 
 	/* 
 	 * Restore branch registers
 	 */
-	ld8 loc2 = [in0], 8	;;	/* restore pc */
+	ld8 loc2 = [loc23]		/* restore pc */
+	ld8 loc3 = [loc24]
+	ld8 loc4 = [loc25]
+	ld8 loc5 = [loc26]
+	ld8 loc6 = [loc27]
+	ld8 loc7 = [loc28] ;;
 	mov b0 = loc2
-	ld8 loc3 = [in0], 8	;;
 	mov b1 = loc3
-	ld8 loc4 = [in0], 8	;;
 	mov b2 = loc4
-	ld8 loc5 = [in0], 8	;;
 	mov b3 = loc5
-	ld8 loc6 = [in0], 8	;;
 	mov b4 = loc6
-	ld8 loc7 = [in0], 8	;;
-	mov b5 = loc7
+	mov b5 = loc7 ;;
 
 	/*
 	 * Restore predicate registers
 	 */
-	ld8 loc2 = [in0], 16	;;
+	ld8 loc2 = [loc29] ;;
 	mov pr = loc2, ~0
 
 	/*
 	 * Restore floating-point registers.
 	 */
-	ldf.fill f2 = [in0], 16 ;;
-	ldf.fill f3 = [in0], 16 ;;
-	ldf.fill f4 = [in0], 16 ;;
-	ldf.fill f5 = [in0], 16 ;;
+	ldf.fill f2 = [loc30]
+	ldf.fill f3 = [loc31]
+	ldf.fill f4 = [loc32]
+	ldf.fill f5 = [loc33]
 
-	ldf.fill f16 = [in0], 16 ;;
-	ldf.fill f17 = [in0], 16 ;;
-	ldf.fill f18 = [in0], 16 ;;
-	ldf.fill f19 = [in0], 16 ;;
-	ldf.fill f20 = [in0], 16 ;;
-	ldf.fill f21 = [in0], 16 ;;
-	ldf.fill f22 = [in0], 16 ;;
-	ldf.fill f23 = [in0], 16 ;;
-	ldf.fill f24 = [in0], 16 ;;
-	ldf.fill f25 = [in0], 16 ;;
-	ldf.fill f26 = [in0], 16 ;;
-	ldf.fill f27 = [in0], 16 ;;
-	ldf.fill f28 = [in0], 16 ;;
-	ldf.fill f29 = [in0], 16 ;;
-	ldf.fill f30 = [in0], 16 ;;
-	ldf.fill f31 = [in0], 16 ;;
+	ldf.fill f16 = [loc34]
+	ldf.fill f17 = [loc35]
+	ldf.fill f18 = [loc36]
+	ldf.fill f19 = [loc37]
+	ldf.fill f20 = [loc38]
+	ldf.fill f21 = [loc39]
+	ldf.fill f22 = [loc40]
+	ldf.fill f23 = [loc41]
+	ldf.fill f24 = [loc42]
+	ldf.fill f25 = [loc43]
+	ldf.fill f26 = [loc44]
+	ldf.fill f27 = [loc45]
+	ldf.fill f28 = [loc46]
+	ldf.fill f29 = [loc47]
+	ldf.fill f30 = [loc48]
+	ldf.fill f31 = [loc49]
 	
 	mov ar.unat = loc1
 	

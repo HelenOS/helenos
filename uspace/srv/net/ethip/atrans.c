@@ -102,27 +102,62 @@ int atrans_remove(addr32_t ip_addr)
 	return EOK;
 }
 
-int atrans_lookup(addr32_t ip_addr, addr48_t mac_addr)
+static int atrans_lookup_locked(addr32_t ip_addr, addr48_t mac_addr)
 {
-	fibril_mutex_lock(&atrans_list_lock);
 	ethip_atrans_t *atrans = atrans_find(ip_addr);
-	if (atrans == NULL) {
-		fibril_mutex_unlock(&atrans_list_lock);
+	if (atrans == NULL)
 		return ENOENT;
-	}
-	
-	fibril_mutex_unlock(&atrans_list_lock);
+
 	addr48(atrans->mac_addr, mac_addr);
 	return EOK;
 }
 
-int atrans_wait_timeout(suseconds_t timeout)
+int atrans_lookup(addr32_t ip_addr, addr48_t mac_addr)
 {
+	int rc;
+
 	fibril_mutex_lock(&atrans_list_lock);
-	int rc = fibril_condvar_wait_timeout(&atrans_cv, &atrans_list_lock,
-	    timeout);
+	rc = atrans_lookup_locked(ip_addr, mac_addr);
 	fibril_mutex_unlock(&atrans_list_lock);
-	
+
+	return rc;
+}
+
+static void atrans_lookup_timeout_handler(void *arg)
+{
+	bool *timedout = (bool *)arg;
+
+	fibril_mutex_lock(&atrans_list_lock);
+	*timedout = true;
+	fibril_mutex_unlock(&atrans_list_lock);
+	fibril_condvar_broadcast(&atrans_cv);
+}
+
+int atrans_lookup_timeout(addr32_t ip_addr, suseconds_t timeout,
+    addr48_t mac_addr)
+{
+	fibril_timer_t *t;
+	bool timedout;
+	int rc;
+
+	t = fibril_timer_create(NULL);
+	if (t == NULL)
+		return ENOMEM;
+
+	timedout = false;
+	fibril_timer_set(t, timeout, atrans_lookup_timeout_handler, &timedout);
+
+	fibril_mutex_lock(&atrans_list_lock);
+
+	while ((rc = atrans_lookup_locked(ip_addr, mac_addr)) == ENOENT &&
+	    !timedout) {
+		fibril_condvar_wait(&atrans_cv, &atrans_list_lock);
+	}
+
+	fibril_mutex_unlock(&atrans_list_lock);
+	(void) fibril_timer_clear(t);
+	fibril_timer_destroy(t);
+
 	return rc;
 }
 

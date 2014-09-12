@@ -214,6 +214,7 @@ int ega_init(void)
 		return rc;
 	
 	ega.size = (ega.cols * ega.rows) << 1;
+	ega.addr = AS_AREA_ANY;
 	
 	rc = physmem_map(paddr,
 	    ALIGN_UP(ega.size, PAGE_SIZE) >> PAGE_WIDTH,

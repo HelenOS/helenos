@@ -49,6 +49,8 @@ extern void tcp_conn_ack_of_fin_rcvd(tcp_conn_t *);
 extern tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *);
 extern void tcp_conn_addref(tcp_conn_t *);
 extern void tcp_conn_delref(tcp_conn_t *);
+extern void tcp_conn_lock(tcp_conn_t *);
+extern void tcp_conn_unlock(tcp_conn_t *);
 extern bool tcp_conn_got_syn(tcp_conn_t *);
 extern void tcp_conn_segment_arrived(tcp_conn_t *, tcp_segment_t *);
 extern void tcp_conn_trim_seg_to_wnd(tcp_conn_t *, tcp_segment_t *);

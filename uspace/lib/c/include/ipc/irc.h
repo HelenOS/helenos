@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IRC_H_
-#define LIBC_IRC_H_
+#ifndef LIBC_IPC_IRC_H_
+#define LIBC_IPC_IRC_H_
 
 #include <ipc/common.h>
 

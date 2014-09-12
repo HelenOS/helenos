@@ -38,6 +38,7 @@
 
 #include "cdfs_ops.h"
 #include <stdbool.h>
+#include <adt/list.h>
 #include <adt/hash_table.h>
 #include <adt/hash.h>
 #include <malloc.h>
@@ -46,6 +47,7 @@
 #include <libfs.h>
 #include <errno.h>
 #include <block.h>
+#include <scsi/mmc.h>
 #include <str.h>
 #include <byteorder.h>
 #include <macros.h>
@@ -64,6 +66,11 @@
 #define FS_NODE(node)    ((node) ? (node)->fs_node : NULL)
 
 #define CDFS_STANDARD_IDENT  "CD001"
+
+enum {
+	CDFS_NAME_CURDIR = '\x00',
+	CDFS_NAME_PARENTDIR = '\x01'
+};
 
 typedef enum {
 	VOL_DESC_BOOT = 0,
@@ -125,7 +132,7 @@ typedef struct {
 } __attribute__((packed)) cdfs_dir_t;
 
 typedef struct {
-	uint8_t res0;
+	uint8_t flags; /* reserved in primary */
 	
 	uint8_t system_ident[32];
 	uint8_t ident[32];
@@ -133,7 +140,7 @@ typedef struct {
 	uint64_t res1;
 	uint32_t_lb lba_size;
 	
-	uint8_t res2[32];
+	uint8_t esc_seq[32]; /* reserved in primary */
 	uint16_t_lb set_size;
 	uint16_t_lb sequence_nr;
 	
@@ -163,7 +170,7 @@ typedef struct {
 	cdfs_datetime_t effective;
 	
 	uint8_t fs_version;
-} __attribute__((packed)) cdfs_vol_desc_primary_t;
+} __attribute__((packed)) cdfs_vol_desc_prisec_t;
 
 typedef struct {
 	uint8_t type;
@@ -171,9 +178,16 @@ typedef struct {
 	uint8_t version;
 	union {
 		cdfs_vol_desc_boot_t boot;
-		cdfs_vol_desc_primary_t primary;
+		cdfs_vol_desc_prisec_t prisec;
 	} data;
 } __attribute__((packed)) cdfs_vol_desc_t;
+
+typedef enum {
+	/** ASCII character set / encoding (base ISO 9660) */
+	enc_ascii,
+	/** UCS-2 character set / encoding (Joliet) */
+	enc_ucs2
+} cdfs_enc_t;
 
 typedef enum {
 	CDFS_NONE,
@@ -190,9 +204,15 @@ typedef struct {
 typedef uint32_t cdfs_lba_t;
 
 typedef struct {
+	link_t link;		  /**< Link to list of all instances */
+	service_id_t service_id;  /**< Service ID of block device */
+	cdfs_enc_t enc;		  /**< Filesystem string encoding */
+} cdfs_t;
+
+typedef struct {
 	fs_node_t *fs_node;       /**< FS node */
 	fs_index_t index;         /**< Node index */
-	service_id_t service_id;  /**< Service ID of block device */
+	cdfs_t *fs;		  /**< File system */
 	
 	ht_link_t nh_link;        /**< Nodes hash table link */
 	cdfs_dentry_type_t type;  /**< Dentry type */
@@ -205,6 +225,24 @@ typedef struct {
 	bool processed;           /**< If all children have been read */
 	unsigned int opened;      /**< Opened count */
 } cdfs_node_t;
+
+/** String encoding */
+enum {
+	/** ASCII - standard ISO 9660 */
+	ucs2_esc_seq_no = 3,
+	/** USC-2 - Joliet */
+	ucs2_esc_seq_len = 3
+};
+
+/** Joliet SVD UCS-2 escape sequences */
+static uint8_t ucs2_esc_seq[ucs2_esc_seq_no][ucs2_esc_seq_len] = {
+	{ 0x25, 0x2f, 0x40 },
+	{ 0x25, 0x2f, 0x43 },
+	{ 0x25, 0x2f, 0x45 }
+};
+
+/** List of all instances */
+static LIST_INITIALIZE(cdfs_instances);
 
 /** Shared index of nodes */
 static fs_index_t cdfs_index = 1;
@@ -233,7 +271,7 @@ static size_t nodes_key_hash(void *k)
 static size_t nodes_hash(const ht_link_t *item)
 {
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
-	return hash_combine(node->service_id, node->index);
+	return hash_combine(node->fs->service_id, node->index);
 }
 
 static bool nodes_key_equal(void *k, const ht_link_t *item)
@@ -241,20 +279,20 @@ static bool nodes_key_equal(void *k, const ht_link_t *item)
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 	ht_key_t *key = (ht_key_t*)k;
 	
-	return key->service_id == node->service_id && key->index == node->index;
+	return key->service_id == node->fs->service_id && key->index == node->index;
 }
 
 static void nodes_remove_callback(ht_link_t *item)
 {
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 	
-	assert(node->type == CDFS_DIRECTORY);
-	
-	link_t *link;
-	while ((link = list_first(&node->cs_list)) != NULL) {
-		cdfs_dentry_t *dentry = list_get_instance(link, cdfs_dentry_t, link);
-		list_remove(&dentry->link);
-		free(dentry);
+	if (node->type == CDFS_DIRECTORY) {
+		link_t *link;
+		while ((link = list_first(&node->cs_list)) != NULL) {
+			cdfs_dentry_t *dentry = list_get_instance(link, cdfs_dentry_t, link);
+			list_remove(&dentry->link);
+			free(dentry);
+		}
 	}
 	
 	free(node->fs_node);
@@ -299,7 +337,7 @@ static void cdfs_node_initialize(cdfs_node_t *node)
 {
 	node->fs_node = NULL;
 	node->index = 0;
-	node->service_id = 0;
+	node->fs = NULL;
 	node->type = CDFS_NONE;
 	node->lnkcnt = 0;
 	node->size = 0;
@@ -310,7 +348,7 @@ static void cdfs_node_initialize(cdfs_node_t *node)
 	list_initialize(&node->cs_list);
 }
 
-static int create_node(fs_node_t **rfn, service_id_t service_id, int lflag,
+static int create_node(fs_node_t **rfn, cdfs_t *fs, int lflag,
     fs_index_t index)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
@@ -331,7 +369,7 @@ static int create_node(fs_node_t **rfn, service_id_t service_id, int lflag,
 	node->fs_node->data = node;
 	
 	fs_node_t *rootfn;
-	int rc = cdfs_root_get(&rootfn, service_id);
+	int rc = cdfs_root_get(&rootfn, fs->service_id);
 	
 	assert(rc == EOK);
 	
@@ -340,7 +378,7 @@ static int create_node(fs_node_t **rfn, service_id_t service_id, int lflag,
 	else
 		node->index = index;
 	
-	node->service_id = service_id;
+	node->fs = fs;
 	
 	if (lflag & L_DIRECTORY)
 		node->type = CDFS_DIRECTORY;
@@ -390,7 +428,95 @@ static int link_node(fs_node_t *pfn, fs_node_t *fn, const char *name)
 	return EOK;
 }
 
-static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
+/** Decode CDFS string.
+ *
+ * @param data	Pointer to string data
+ * @param dsize	Size of data in bytes
+ * @param enc	String encoding
+ * @return	Decoded string
+ */
+static char *cdfs_decode_str(void *data, size_t dsize, cdfs_enc_t enc)
+{
+	int rc;
+	char *str;
+	uint16_t *buf;
+	
+	switch (enc) {
+	case enc_ascii:
+		str = malloc(dsize + 1);
+		if (str == NULL)
+			return NULL;
+		memcpy(str, data, dsize);
+		str[dsize] = '\0';
+		break;
+	case enc_ucs2:
+		buf = calloc(dsize + 2, 1);
+		if (buf == NULL)
+			return NULL;
+		
+		size_t i;
+		for (i = 0; i < dsize / sizeof(uint16_t); i++) {
+			buf[i] = uint16_t_be2host(((uint16_t *)data)[i]);
+		}
+		
+		size_t dstr_size = dsize / sizeof(uint16_t) * 4 + 1;
+		str = malloc(dstr_size);
+		if (str == NULL)
+			return NULL;
+		
+		rc = utf16_to_str(str, dstr_size, buf);
+		free(buf);
+		
+		if (rc != EOK)
+			return NULL;
+		break;
+	default:
+		assert(false);
+		str = NULL;
+	}
+	
+	return str;
+}
+
+/** Decode file name.
+ *
+ * @param data	File name buffer
+ * @param dsize	Fine name buffer size
+ * @param dtype	Directory entry type
+ * @return	Decoded file name (allocated string)
+ */
+static char *cdfs_decode_name(void *data, size_t dsize, cdfs_enc_t enc,
+    cdfs_dentry_type_t dtype)
+{
+	char *name;
+	char *dot;
+	char *scolon;
+	
+	name = cdfs_decode_str(data, dsize, enc);
+	if (name == NULL)
+		return NULL;
+	
+	if (dtype == CDFS_DIRECTORY)
+		return name;
+	
+	dot = str_chr(name, '.');
+	
+	if (dot != NULL) {
+		scolon = str_chr(dot, ';');
+		if (scolon != NULL) {
+			/* Trim version part */
+			*scolon = '\0';
+		}
+	
+		/* If the extension is an empty string, trim the dot separator. */
+		if (dot[1] == '\0')
+			*dot = '\0';
+	}
+	
+	return name;
+}
+
+static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 {
 	cdfs_node_t *node = CDFS_NODE(fs_node);
 	assert(node);
@@ -404,18 +530,21 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 	
 	for (uint32_t i = 0; i < blocks; i++) {
 		block_t *block;
-		int rc = block_get(&block, service_id, node->lba + i, BLOCK_FLAGS_NONE);
+		int rc = block_get(&block, fs->service_id, node->lba + i, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return false;
 		
-		cdfs_dir_t *dir = (cdfs_dir_t *) block->data;
+		cdfs_dir_t *dir;
 		
-		// FIXME: skip '.' and '..'
-		
-		for (size_t offset = 0;
-		    (dir->length != 0) && (offset < BLOCK_SIZE);
+		for (size_t offset = 0; offset < BLOCK_SIZE;
 		    offset += dir->length) {
 			dir = (cdfs_dir_t *) (block->data + offset);
+			if (dir->length == 0)
+				break;
+			if (offset + dir->length > BLOCK_SIZE) {
+				/* XXX Incorrect FS structure */
+				break;
+			}
 			
 			cdfs_dentry_type_t dentry_type;
 			if (dir->flags & DIR_FLAG_DIRECTORY)
@@ -423,10 +552,19 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 			else
 				dentry_type = CDFS_FILE;
 			
+			/* Skip special entries */
+			
+			if (dir->name_length == 1 &&
+			    dir->name[0] == CDFS_NAME_CURDIR)
+				continue;
+			if (dir->name_length == 1 &&
+			    dir->name[0] == CDFS_NAME_PARENTDIR)
+				continue;
+			
 			// FIXME: hack - indexing by dentry byte offset on disc
 			
 			fs_node_t *fn;
-			int rc = create_node(&fn, service_id, dentry_type,
+			int rc = create_node(&fn, fs, dentry_type,
 			    (node->lba + i) * BLOCK_SIZE + offset);
 			if ((rc != EOK) || (fn == NULL))
 				return false;
@@ -435,12 +573,10 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 			cur->lba = uint32_lb(dir->lba);
 			cur->size = uint32_lb(dir->size);
 			
-			char *name = (char *) malloc(dir->name_length + 1);
+			char *name = cdfs_decode_name(dir->name,
+			    dir->name_length, node->fs->enc, dentry_type);
 			if (name == NULL)
 				return false;
-			
-			memcpy(name, dir->name, dir->name_length);
-			name[dir->name_length] = 0;
 			
 			// FIXME: check return value
 			
@@ -458,13 +594,13 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 	return true;
 }
 
-static fs_node_t *get_uncached_node(service_id_t service_id, fs_index_t index)
+static fs_node_t *get_uncached_node(cdfs_t *fs, fs_index_t index)
 {
 	cdfs_lba_t lba = index / BLOCK_SIZE;
 	size_t offset = index % BLOCK_SIZE;
 	
 	block_t *block;
-	int rc = block_get(&block, service_id, lba, BLOCK_FLAGS_NONE);
+	int rc = block_get(&block, fs->service_id, lba, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return NULL;
 	
@@ -477,7 +613,7 @@ static fs_node_t *get_uncached_node(service_id_t service_id, fs_index_t index)
 		dentry_type = CDFS_FILE;
 	
 	fs_node_t *fn;
-	rc = create_node(&fn, service_id, dentry_type, index);
+	rc = create_node(&fn, fs, dentry_type, index);
 	if ((rc != EOK) || (fn == NULL))
 		return NULL;
 	
@@ -493,11 +629,11 @@ static fs_node_t *get_uncached_node(service_id_t service_id, fs_index_t index)
 	return fn;
 }
 
-static fs_node_t *get_cached_node(service_id_t service_id, fs_index_t index)
+static fs_node_t *get_cached_node(cdfs_t *fs, fs_index_t index)
 {
 	ht_key_t key = {
 		.index = index,
-		.service_id = service_id
+		.service_id = fs->service_id
 	};
 	
 	ht_link_t *link = hash_table_find(&nodes, &key);
@@ -507,7 +643,7 @@ static fs_node_t *get_cached_node(service_id_t service_id, fs_index_t index)
 		return FS_NODE(node);
 	}
 	
-	return get_uncached_node(service_id, index);
+	return get_uncached_node(fs, index);
 }
 
 static int cdfs_match(fs_node_t **fn, fs_node_t *pfn, const char *component)
@@ -515,14 +651,14 @@ static int cdfs_match(fs_node_t **fn, fs_node_t *pfn, const char *component)
 	cdfs_node_t *parent = CDFS_NODE(pfn);
 	
 	if (!parent->processed) {
-		int rc = cdfs_readdir(parent->service_id, pfn);
+		int rc = cdfs_readdir(parent->fs, pfn);
 		if (rc != EOK)
 			return rc;
 	}
 	
 	list_foreach(parent->cs_list, link, cdfs_dentry_t, dentry) {
 		if (str_cmp(dentry->name, component) == 0) {
-			*fn = get_cached_node(parent->service_id, dentry->index);
+			*fn = get_cached_node(parent->fs, dentry->index);
 			return EOK;
 		}
 	}
@@ -536,7 +672,7 @@ static int cdfs_node_open(fs_node_t *fn)
 	cdfs_node_t *node = CDFS_NODE(fn);
 	
 	if (!node->processed)
-		cdfs_readdir(node->service_id, fn);
+		cdfs_readdir(node->fs, fn);
 	
 	node->opened++;
 	return EOK;
@@ -577,7 +713,7 @@ static int cdfs_has_children(bool *has_children, fs_node_t *fn)
 	cdfs_node_t *node = CDFS_NODE(fn);
 	
 	if ((node->type == CDFS_DIRECTORY) && (!node->processed))
-		cdfs_readdir(node->service_id, fn);
+		cdfs_readdir(node->fs, fn);
 	
 	*has_children = !list_empty(&node->cs_list);
 	return EOK;
@@ -621,7 +757,7 @@ static service_id_t cdfs_service_get(fs_node_t *fn)
 static int cdfs_size_block(service_id_t service_id, uint32_t *size)
 {
 	*size = BLOCK_SIZE;
-
+	
 	return EOK; 
 }
 
@@ -661,12 +797,120 @@ libfs_ops_t cdfs_libfs_ops = {
 	.free_block_count = cdfs_free_block_count
 };
 
-static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
+/** Verify that escape sequence corresonds to one of the allowed encoding
+ * escape sequences allowed for Joliet. */
+static int cdfs_verify_joliet_esc_seq(uint8_t *seq)
+{
+	size_t i, j, k;
+	bool match;
+	
+	i = 0;
+	while (i + ucs2_esc_seq_len <= 32) {
+		if (seq[i] == 0)
+			break;
+		
+		for (j = 0; j < ucs2_esc_seq_no; j++) {
+			match = true;
+			for (k = 0; k < ucs2_esc_seq_len; k++)
+				if (seq[i + k] != ucs2_esc_seq[j][k])
+					match = false;
+			if (match) {
+				break;
+			}
+		}
+		
+		if (!match)
+			return EINVAL;
+		
+		i += ucs2_esc_seq_len;
+	}
+	
+	while (i < 32) {
+		if (seq[i] != 0)
+			return EINVAL;
+		++i;
+	}
+	
+	return EOK;
+}
+
+/** Find Joliet supplementary volume descriptor.
+ *
+ * @param sid		Block device service ID
+ * @param altroot	First filesystem block
+ * @param rlba		Place to store LBA of root dir
+ * @param rsize		Place to store size of root dir
+ * @return 		EOK if found, ENOENT if not
+ */
+static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
+    uint32_t *rlba, uint32_t *rsize)
+{
+	cdfs_lba_t bi;
+
+	for (bi = altroot + 17; ; bi++) {
+		block_t *block;
+		int rc = block_get(&block, sid, bi, BLOCK_FLAGS_NONE);
+		if (rc != EOK)
+			break;
+		
+		cdfs_vol_desc_t *vol_desc = (cdfs_vol_desc_t *) block->data;
+		
+		if (vol_desc->type == VOL_DESC_SET_TERMINATOR) {
+			block_put(block);
+			break;
+		}
+		
+		if ((vol_desc->type != VOL_DESC_SUPPLEMENTARY) ||
+		    (memcmp(vol_desc->standard_ident, CDFS_STANDARD_IDENT, 5) != 0) ||
+		    (vol_desc->version != 1)) {
+			block_put(block);
+			continue;
+		}
+		
+		uint16_t set_size = uint16_lb(vol_desc->data.prisec.set_size);
+		if (set_size > 1) {
+			/*
+			 * Technically, we don't support multi-disc sets.
+			 * But one can encounter erroneously mastered
+			 * images in the wild and it might actually work
+			 * for the first disc in the set.
+			 */
+		}
+		
+		uint16_t sequence_nr = uint16_lb(vol_desc->data.prisec.sequence_nr);
+		if (sequence_nr != 1) {
+			/*
+		    	 * We only support the first disc
+			 * in multi-disc sets.
+			 */
+			block_put(block);
+			continue;
+		}
+		
+		uint16_t block_size = uint16_lb(vol_desc->data.prisec.block_size);
+		if (block_size != BLOCK_SIZE) {
+			block_put(block);
+			continue;
+		}
+		
+		rc = cdfs_verify_joliet_esc_seq(vol_desc->data.prisec.esc_seq);
+		if (rc != EOK)
+			continue;
+		*rlba = uint32_lb(vol_desc->data.prisec.root_dir.lba);
+		*rsize = uint32_lb(vol_desc->data.prisec.root_dir.size);
+		block_put(block);
+		return EOK;
+	}
+	
+	return ENOENT;
+}
+
+static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
     cdfs_lba_t altroot)
 {
 	/* First 16 blocks of isofs are empty */
 	block_t *block;
-	int rc = block_get(&block, service_id, altroot + 16, BLOCK_FLAGS_NONE);
+	int rc = block_get(&block, fs->service_id, altroot + 16, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return false;
 	
@@ -683,7 +927,7 @@ static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
 		return false;
 	}
 	
-	uint16_t set_size = uint16_lb(vol_desc->data.primary.set_size);
+	uint16_t set_size = uint16_lb(vol_desc->data.prisec.set_size);
 	if (set_size > 1) {
 		/*
 		 * Technically, we don't support multi-disc sets.
@@ -693,7 +937,7 @@ static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
 		 */
 	}
 	
-	uint16_t sequence_nr = uint16_lb(vol_desc->data.primary.sequence_nr);
+	uint16_t sequence_nr = uint16_lb(vol_desc->data.prisec.sequence_nr);
 	if (sequence_nr != 1) {
 		/*
 		 * We only support the first disc
@@ -703,7 +947,7 @@ static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
 		return false;
 	}
 	
-	uint16_t block_size = uint16_lb(vol_desc->data.primary.block_size);
+	uint16_t block_size = uint16_lb(vol_desc->data.prisec.block_size);
 	if (block_size != BLOCK_SIZE) {
 		block_put(block);
 		return false;
@@ -712,10 +956,25 @@ static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
 	// TODO: implement path table support
 	
 	cdfs_node_t *node = CDFS_NODE(rfn);
-	node->lba = uint32_lb(vol_desc->data.primary.root_dir.lba);
-	node->size = uint32_lb(vol_desc->data.primary.root_dir.size);
 	
-	if (!cdfs_readdir(service_id, rfn)) {
+	/* Search for Joliet SVD */
+	
+	uint32_t jrlba;
+	uint32_t jrsize;
+	
+	rc = cdfs_find_joliet_svd(fs->service_id, altroot, &jrlba, &jrsize);
+	if (rc == EOK) {
+		/* Found */
+		node->lba = jrlba;
+		node->size = jrsize;
+		fs->enc = enc_ucs2;
+	} else {
+		node->lba = uint32_lb(vol_desc->data.prisec.root_dir.lba);
+		node->size = uint32_lb(vol_desc->data.prisec.root_dir.size);
+		fs->enc = enc_ascii;
+	}
+	
+	if (!cdfs_readdir(fs, rfn)) {
 		block_put(block);
 		return false;
 	}
@@ -727,14 +986,22 @@ static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
 /* Mount a session with session start offset
  *
  */
-static bool cdfs_instance_init(service_id_t service_id, cdfs_lba_t altroot)
+static cdfs_t *cdfs_fs_create(service_id_t sid, cdfs_lba_t altroot)
 {
+	cdfs_t *fs = NULL;
+	fs_node_t *rfn = NULL;
+
+	fs = calloc(1, sizeof(cdfs_t));
+	if (fs == NULL)
+		goto error;
+	
+	fs->service_id = sid;
+	
 	/* Create root node */
-	fs_node_t *rfn;
-	int rc = create_node(&rfn, service_id, L_DIRECTORY, cdfs_index++);
+	int rc = create_node(&rfn, fs, L_DIRECTORY, cdfs_index++);
 	
 	if ((rc != EOK) || (!rfn))
-		return false;
+		goto error;
 	
 	/* FS root is not linked */
 	CDFS_NODE(rfn)->lnkcnt = 0;
@@ -742,12 +1009,15 @@ static bool cdfs_instance_init(service_id_t service_id, cdfs_lba_t altroot)
 	CDFS_NODE(rfn)->processed = false;
 	
 	/* Check if there is cdfs in given session */
-	if (!iso_readfs(service_id, rfn, altroot)) {
-		// XXX destroy node
-		return false;
-	}
+	if (!iso_readfs(fs, rfn, altroot))
+		goto error;
 	
-	return true;
+	list_append(&fs->link, &cdfs_instances);
+	return fs;
+error:
+	// XXX destroy node
+	free(fs);
+	return NULL;
 }
 
 static int cdfs_mounted(service_id_t service_id, const char *opts,
@@ -765,12 +1035,15 @@ static int cdfs_mounted(service_id_t service_id, const char *opts,
 		if (str_uint32_t(opts + 8, NULL, 0, false, &altroot) != EOK)
 			altroot = 0;
 	} else {
-		/* Read TOC and find the last session */
-		toc_block_t *toc = block_get_toc(service_id, 1);
-		if ((toc != NULL) && (uint16_t_be2host(toc->size) == 10)) {
-			altroot = uint32_t_be2host(toc->first_lba);
-			free(toc);
-		}
+		/*
+		 * Read TOC multisession information and get the start address
+		 * of the first track in the last session
+		 */
+		scsi_toc_multisess_data_t toc;
+
+		rc = block_read_toc(service_id, 1, &toc, sizeof(toc));
+		if (rc == EOK && (uint16_t_be2host(toc.toc_len) == 10))
+			altroot = uint32_t_be2host(toc.ftrack_lsess.start_addr);
 	}
 	
 	/* Initialize the block cache */
@@ -791,8 +1064,8 @@ static int cdfs_mounted(service_id_t service_id, const char *opts,
 		return EEXIST;
 	}
 	
-	/* Initialize cdfs instance */
-	if (!cdfs_instance_init(service_id, altroot)) {
+	/* Create cdfs instance */
+	if (cdfs_fs_create(service_id, altroot) == NULL) {
 		block_cache_fini(service_id);
 		block_fini(service_id);
 		
@@ -815,23 +1088,41 @@ static bool rm_service_id_nodes(ht_link_t *item, void *arg)
 	service_id_t service_id = *(service_id_t*)arg;
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 	
-	if (node->service_id == service_id) {
+	if (node->fs->service_id == service_id) {
 		hash_table_remove_item(&nodes, &node->nh_link);
 	}
 	
 	return true;
 }
 
-static void cdfs_instance_done(service_id_t service_id)
+static void cdfs_fs_destroy(cdfs_t *fs)
 {
-	hash_table_apply(&nodes, rm_service_id_nodes, &service_id);
-	block_cache_fini(service_id);
-	block_fini(service_id);
+	list_remove(&fs->link);
+	hash_table_apply(&nodes, rm_service_id_nodes, &fs->service_id);
+	block_cache_fini(fs->service_id);
+	block_fini(fs->service_id);
+	free(fs);
+}
+
+static cdfs_t *cdfs_find_by_sid(service_id_t service_id)
+{
+	list_foreach(cdfs_instances, link, cdfs_t, fs) {
+		if (fs->service_id == service_id)
+			return fs;
+	}
+	
+	return NULL;
 }
 
 static int cdfs_unmounted(service_id_t service_id)
 {
-	cdfs_instance_done(service_id);
+	cdfs_t *fs;
+
+	fs = cdfs_find_by_sid(service_id);
+	if (fs == NULL)
+		return ENOENT;
+	
+	cdfs_fs_destroy(fs);
 	return EOK;
 }
 
@@ -851,7 +1142,7 @@ static int cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	    hash_table_get_inst(link, cdfs_node_t, nh_link);
 	
 	if (!node->processed) {
-		int rc = cdfs_readdir(service_id, FS_NODE(node));
+		int rc = cdfs_readdir(node->fs, FS_NODE(node));
 		if (rc != EOK)
 			return rc;
 	}
@@ -934,7 +1225,7 @@ static bool cache_remove_closed(ht_link_t *item, void *arg)
 	
 	/* Some nodes were requested to be removed from the cache. */
 	if (0 < *premove_cnt) {
-		cdfs_node_t *node =	hash_table_get_inst(item, cdfs_node_t, nh_link);
+		cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 
 		if (!node->opened) {
 			hash_table_remove_item(&nodes, item);

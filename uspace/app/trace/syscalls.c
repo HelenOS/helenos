@@ -64,21 +64,24 @@ const sc_desc_t syscall_desc[] = {
     [SYS_IPC_POKE] = { "ipc_poke",			0,	V_ERRNO },
     [SYS_IPC_HANGUP] = { "ipc_hangup",			1,	V_ERRNO },
 
-    [SYS_EVENT_SUBSCRIBE] = { "event_subscribe",	2,	V_ERRNO },
+    [SYS_IPC_EVENT_SUBSCRIBE] = { "ipc_event_subscribe",	2,	V_ERRNO },
+    [SYS_IPC_EVENT_UNSUBSCRIBE] = { "ipc_event_unsubscribe",	1,	V_ERRNO },
+    [SYS_IPC_EVENT_UNMASK] = { "ipc_event_unmask",	1,	V_ERRNO },
 
     [SYS_CAP_GRANT] = { "cap_grant",			2,	V_ERRNO },
     [SYS_CAP_REVOKE] = { "cap_revoke",			2,	V_ERRNO },
     [SYS_PHYSMEM_MAP] = { "physmem_map",		4,	V_ERRNO },
     [SYS_IOSPACE_ENABLE] = { "iospace_enable",		1,	V_ERRNO },
-    [SYS_IRQ_REGISTER] = { "irq_register",	4,	V_ERRNO },
-    [SYS_IRQ_UNREGISTER] = { "irq_unregister",	2,	V_ERRNO },
+
+    [SYS_IPC_IRQ_SUBSCRIBE] = { "ipc_irq_subscribe",	4,	V_ERRNO },
+    [SYS_IPC_IRQ_UNSUBSCRIBE] = { "ipc_irq_unsubscribe",	2,	V_ERRNO },
 
     [SYS_SYSINFO_GET_VAL_TYPE] = { "sysinfo_get_val_type",		2,	V_INTEGER },
     [SYS_SYSINFO_GET_VALUE] = { "sysinfo_get_value",		3,	V_ERRNO },
     [SYS_SYSINFO_GET_DATA_SIZE] = { "sysinfo_get_data_size",	3,	V_ERRNO },
     [SYS_SYSINFO_GET_DATA] = { "sysinfo_get_data",		5,	V_ERRNO },
 
-    [SYS_DEBUG_ACTIVATE_CONSOLE] = { "debug_activate_console", 0,	V_ERRNO },
+    [SYS_DEBUG_CONSOLE] = { "debug_console", 0,	V_ERRNO },
     [SYS_IPC_CONNECT_KBOX] = { "ipc_connect_kbox",	1,	V_ERRNO }
 };
 

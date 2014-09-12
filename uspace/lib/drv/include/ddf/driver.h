@@ -110,11 +110,6 @@ typedef struct driver {
 	const driver_ops_t *driver_ops;
 } driver_t;
 
-/** XXX Only to transition USB */
-#ifdef _DDF_DATA_IMPLANT
-extern void ddf_fun_data_implant(ddf_fun_t *, void *);
-#endif
-
 extern int ddf_driver_main(const driver_t *);
 
 extern void *ddf_dev_data_alloc(ddf_dev_t *, size_t);

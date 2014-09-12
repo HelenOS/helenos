@@ -41,13 +41,11 @@ SOURCES = \
 	port/msim.c \
 	port/niagara.c \
 	port/ns16550.c \
-	port/pl050.c \
 	port/ski.c \
 	proto/adb.c \
 	proto/mousedev.c \
 	ctl/apple.c \
 	ctl/kbdev.c \
-	ctl/pc.c \
 	ctl/stty.c \
 	ctl/sun.c \
 	gsp.c \

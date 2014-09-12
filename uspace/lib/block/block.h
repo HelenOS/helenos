@@ -80,6 +80,8 @@ typedef struct block {
 	aoff64_t pba;
 	/** Size of the block. */
 	size_t size;
+	/** Number of write failures. */
+	int write_failures;
 	/** Link for placing the block into the free block list. */
 	link_t free_link;
 	/** Link for placing the block into the block hash table. */ 
@@ -95,19 +97,6 @@ enum cache_mode {
 	/** Write-Back */
 	CACHE_MODE_WB
 };
-
-typedef struct {
-	uint16_t size;
-	uint8_t first_session;
-	uint8_t last_session;
-	
-	uint8_t res0;
-	uint8_t adr_ctrl;
-	uint8_t first_track;
-	uint8_t res1;
-	
-	uint32_t first_lba;
-} __attribute__((packed)) toc_block_t;
 
 extern int block_init(exch_mgmt_t, service_id_t, size_t);
 extern void block_fini(service_id_t);
@@ -126,7 +115,7 @@ extern int block_seqread(service_id_t, void *, size_t *, size_t *, aoff64_t *,
 
 extern int block_get_bsize(service_id_t, size_t *);
 extern int block_get_nblocks(service_id_t, aoff64_t *);
-extern toc_block_t *block_get_toc(service_id_t, uint8_t);
+extern int block_read_toc(service_id_t, uint8_t, void *, size_t);
 extern int block_read_direct(service_id_t, aoff64_t, size_t, void *);
 extern int block_read_bytes_direct(service_id_t, aoff64_t, size_t, void *);
 extern int block_write_direct(service_id_t, aoff64_t, size_t, const void *);

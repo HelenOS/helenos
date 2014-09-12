@@ -36,18 +36,20 @@
 #ifndef LOG_H_
 #define LOG_H_
 
+#include <io/log.h>
+
 #ifndef NAME
 #define NAME "NONAME"
 #endif
 
 #include <stdio.h>
 
-#define log_fatal(msg, ...) printf(NAME ": Fatal: " msg "\n", ##__VA_ARGS__);
-#define log_error(msg, ...) printf(NAME ": Error: " msg "\n", ##__VA_ARGS__);
-#define log_warning(msg, ...) printf(NAME ": Warn: " msg "\n", ##__VA_ARGS__);
-#define log_info(msg, ...) printf(NAME ": Info: " msg "\n", ##__VA_ARGS__);
-#define log_debug(msg, ...) printf("%s: Debug: %s: " msg "\n", NAME, __FUNCTION__, ##__VA_ARGS__);
-#define log_verbose(msg, ...) printf("%s: %s: " msg "\n", NAME, __FUNCTION__, ##__VA_ARGS__);
+#define log_fatal(...) log_msg(LOG_DEFAULT, LVL_FATAL, ##__VA_ARGS__);
+#define log_error(...) log_msg(LOG_DEFAULT, LVL_ERROR, ##__VA_ARGS__);
+#define log_warning(...) log_msg(LOG_DEFAULT, LVL_WARN, ##__VA_ARGS__);
+#define log_info(...) log_msg(LOG_DEFAULT, LVL_NOTE, ##__VA_ARGS__);
+#define log_debug(...) log_msg(LOG_DEFAULT, LVL_DEBUG, ##__VA_ARGS__);
+#define log_verbose(...) log_msg(LOG_DEFAULT, LVL_DEBUG2, ##__VA_ARGS__);
 
 #endif
 

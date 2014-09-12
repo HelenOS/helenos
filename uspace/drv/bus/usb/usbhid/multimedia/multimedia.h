@@ -37,18 +37,11 @@
 #define USB_HID_MULTIMEDIA_H_
 
 #include <usb/dev/driver.h>
+#include "../usbhid.h"
 
-struct usb_hid_dev;
-
-
-
-int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data);
-
-void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data);
-
-bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data);
-
-
+extern int usb_multimedia_init(usb_hid_dev_t *, void **);
+extern void usb_multimedia_deinit(usb_hid_dev_t *, void *);
+extern bool usb_multimedia_polling_callback(usb_hid_dev_t *, void *);
 
 #endif // USB_HID_MULTIMEDIA_H_
 

@@ -36,13 +36,20 @@
 #define KERN_MEMSTR_H_
 
 #include <typedefs.h>
+#include <cc.h>
+
+#ifdef CONFIG_LTO
+#define DO_NOT_DISCARD ATTRIBUTE_USED
+#else
+#define DO_NOT_DISCARD
+#endif
 
 #define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
 extern void memsetb(void *, size_t, uint8_t);
 extern void memsetw(void *, size_t, uint16_t);
-extern void *memmove(void *, const void *, size_t);
+extern void *memmove(void *, const void *, size_t) DO_NOT_DISCARD;
 
 #endif
 

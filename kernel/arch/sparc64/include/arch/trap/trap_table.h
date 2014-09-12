@@ -36,32 +36,36 @@
 #define KERN_sparc64_TRAP_TABLE_H_
 
 #include <arch/stack.h>
+#include <arch/istate_struct.h>
 
 #define TRAP_TABLE_ENTRY_COUNT	1024
 #define TRAP_TABLE_ENTRY_SIZE	32
 #define TRAP_TABLE_SIZE		(TRAP_TABLE_ENTRY_COUNT * TRAP_TABLE_ENTRY_SIZE)
 
+#define ISTATE_END_OFFSET(o)	((o) - ISTATE_SIZE)
+
 /*
- * The following needs to be in sync with the definition of the istate
- * structure. The one STACK_ITEM_SIZE is counted for space holding the 7th
+ * The one STACK_ITEM_SIZE is counted for space holding the 7th
  * argument to syscall_handler (i.e. syscall number) and the other
  * STACK_ITEM_SIZE is counted because of the required alignment.
  */
 #define PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE \
     (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE + \
-    (2 * STACK_ITEM_SIZE) + (12 * 8))
-#define SAVED_TSTATE	-(1 * 8)
-#define SAVED_TPC	-(2 * 8)
-#define SAVED_TNPC	-(3 * 8)	/* <-- istate_t begins here */
-#define SAVED_Y		-(4 * 8)
-#define SAVED_I0	-(5 * 8)
-#define SAVED_I1	-(6 * 8)
-#define SAVED_I2	-(7 * 8)
-#define SAVED_I3	-(8 * 8)
-#define SAVED_I4	-(9 * 8)
-#define SAVED_I5	-(10 * 8)
-#define SAVED_I6	-(11 * 8)
-#define SAVED_I7	-(12 * 8)
+    (2 * STACK_ITEM_SIZE) + (ISTATE_SIZE + 9 * 8))
+/* <-- istate_t ends here */
+#define SAVED_TSTATE	ISTATE_END_OFFSET(ISTATE_OFFSET_TSTATE)	
+#define SAVED_TPC	ISTATE_END_OFFSET(ISTATE_OFFSET_TPC)
+#define SAVED_TNPC	ISTATE_END_OFFSET(ISTATE_OFFSET_TNPC)
+/* <-- istate_t begins here */
+#define SAVED_Y		-(1 * 8 + ISTATE_SIZE)
+#define SAVED_I0	-(2 * 8 + ISTATE_SIZE)
+#define SAVED_I1	-(3 * 8 + ISTATE_SIZE)
+#define SAVED_I2	-(4 * 8 + ISTATE_SIZE)
+#define SAVED_I3	-(5 * 8 + ISTATE_SIZE)
+#define SAVED_I4	-(6 * 8 + ISTATE_SIZE)
+#define SAVED_I5	-(7 * 8 + ISTATE_SIZE)
+#define SAVED_I6	-(8 * 8 + ISTATE_SIZE)
+#define SAVED_I7	-(9 * 8 + ISTATE_SIZE)
 
 #ifndef __ASM__
 

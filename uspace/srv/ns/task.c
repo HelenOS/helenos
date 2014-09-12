@@ -39,16 +39,10 @@
 #include <stdio.h>
 #include <macros.h>
 #include <malloc.h>
+#include <types/task.h>
 #include "task.h"
 #include "ns.h"
 
-
-/* TODO:
- *
- * As there is currently no convention that each task has to be waited
- * for, the NS can leak memory because of the zombie tasks.
- *
- */
 
 /** Task hash table item. */
 typedef struct {
@@ -194,7 +188,6 @@ loop:
 			    ht->retval);
 		}
 		
-		hash_table_remove(&task_hash_table, &pr->id);
 		list_remove(&pr->link);
 		free(pr);
 		goto loop;
@@ -203,10 +196,6 @@ loop:
 
 void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 {
-	sysarg_t retval;
-	task_exit_t texit;
-	bool remove = false;
-	
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?
 	    hash_table_get_inst(link, hashed_task_t, link) : NULL;
@@ -217,32 +206,26 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 		return;
 	}
 	
-	if (!ht->finished) {
-		/* Add to pending list */
-		pending_wait_t *pr =
-		    (pending_wait_t *) malloc(sizeof(pending_wait_t));
-		if (!pr) {
-			retval = ENOMEM;
-			goto out;
-		}
-		
-		link_initialize(&pr->link);
-		pr->id = id;
-		pr->callid = callid;
-		list_append(&pr->link, &pending_wait);
+	if (ht->finished) {
+		task_exit_t texit = ht->have_rval ? TASK_EXIT_NORMAL :
+		    TASK_EXIT_UNEXPECTED;
+		ipc_answer_2(callid, EOK, texit, ht->retval);
 		return;
 	}
 	
-	remove = true;
-	retval = EOK;
-	
-out:
-	if (!(callid & IPC_CALLID_NOTIFICATION)) {
-		texit = ht->have_rval ? TASK_EXIT_NORMAL : TASK_EXIT_UNEXPECTED;
-		ipc_answer_2(callid, retval, texit, ht->retval);
+	/* Add to pending list */
+	pending_wait_t *pr =
+	    (pending_wait_t *) malloc(sizeof(pending_wait_t));
+	if (!pr) {
+		if (!(callid & IPC_CALLID_NOTIFICATION))
+			ipc_answer_0(callid, ENOMEM);
+		return;
 	}
-	if (remove)
-		hash_table_remove_item(&task_hash_table, link);
+	
+	link_initialize(&pr->link);
+	pr->id = id;
+	pr->callid = callid;
+	list_append(&pr->link, &pending_wait);
 }
 
 int ns_task_id_intro(ipc_call_t *call)
@@ -313,6 +296,8 @@ int ns_task_retval(ipc_call_t *call)
 	ht->have_rval = true;
 	ht->retval = IPC_GET_ARG1(*call);
 	
+	process_pending_wait();
+	
 	return EOK;
 }
 
@@ -334,6 +319,9 @@ int ns_task_disconnect(ipc_call_t *call)
 	hashed_task_t *ht = hash_table_get_inst(link, hashed_task_t, link);
 	
 	ht->finished = true;
+	
+	process_pending_wait();
+	hash_table_remove(&task_hash_table, &id);
 	
 	return EOK;
 }

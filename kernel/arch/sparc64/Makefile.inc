@@ -80,7 +80,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/trap/trap.c \
 	arch/$(KARCH)/src/trap/exception.c \
 	arch/$(KARCH)/src/trap/interrupt.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/tick.c \
 	arch/$(KARCH)/src/drivers/kbd.c \
 	arch/$(KARCH)/src/drivers/pci.c \
@@ -107,3 +106,8 @@ ifeq ($(CONFIG_TSB),y)
 	ARCH_SOURCES += \
 		arch/$(KARCH)/src/mm/$(USARCH)/tsb.c
 endif
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag \
+	arch/$(KARCH)/include/arch/context_struct.ag
+

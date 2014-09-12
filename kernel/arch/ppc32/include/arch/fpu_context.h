@@ -35,29 +35,9 @@
 #ifndef KERN_ppc32_FPU_CONTEXT_H_
 #define KERN_ppc32_FPU_CONTEXT_H_
 
-#include <typedefs.h>
+#define FPU_CONTEXT_ALIGN	8	
 
-typedef struct {
-	uint64_t fr14;
-	uint64_t fr15;
-	uint64_t fr16;
-	uint64_t fr17;
-	uint64_t fr18;
-	uint64_t fr19;
-	uint64_t fr20;
-	uint64_t fr21;
-	uint64_t fr22;
-	uint64_t fr23;
-	uint64_t fr24;
-	uint64_t fr25;
-	uint64_t fr26;
-	uint64_t fr27;
-	uint64_t fr28;
-	uint64_t fr29;
-	uint64_t fr30;
-	uint64_t fr31;
-	uint32_t fpscr;
-} __attribute__ ((packed)) fpu_context_t;
+#include <arch/fpu_context_struct.h>
 
 #endif
 

@@ -36,8 +36,6 @@
 /** @file
  */
 
-#define _DDF_DATA_IMPLANT
-
 #include <assert.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
@@ -595,17 +593,6 @@ void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
 	return data;
 }
 
-/** Implant foreign driver-specific device data.
- *
- * XXX This is used to transition USB to new interface. Do not use
- * in new code. Use of this function must be removed.
- */
-void ddf_fun_data_implant(ddf_fun_t *fun, void *data)
-{
-	assert(fun->driver_data == NULL);
-	fun->driver_data = data;
-}
-
 /** Return driver-specific device data. */
 void *ddf_dev_data_get(ddf_dev_t *dev)
 {
@@ -962,9 +949,6 @@ int ddf_driver_main(const driver_t *drv)
 	 * handler for incoming connections.
 	 */
 	driver = drv;
-	
-	/* Initialize interrupt module */
-	interrupt_init();
 	
 	/*
 	 * Register driver with device manager using generic handler for

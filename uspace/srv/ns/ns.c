@@ -65,7 +65,6 @@ int main(int argc, char **argv)
 	
 	while (true) {
 		process_pending_conn();
-		process_pending_wait();
 		
 		ipc_call_t call;
 		ipc_callid_t callid = ipc_wait_for_call(&call);

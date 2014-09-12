@@ -571,7 +571,7 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
  * @param size         Size of area.
  * @param attrs        Attributes of the area.
  * @param backend      Address space area backend. NULL if no backend is used.
- * @param backend_data NULL or a pointer to an array holding two void *.
+ * @param backend_data NULL or a pointer to custom backend data.
  * @param base         Starting virtual address of the area.
  *                     If set to -1, a suitable mappable area is found.
  * @param bound        Lowest address bound if base is set to -1.
@@ -1724,7 +1724,7 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 	ASSERT(IS_ALIGNED(page, PAGE_SIZE));
 	ASSERT(count);
 	
-	btree_node_t *leaf;
+	btree_node_t *leaf = NULL;
 	size_t pages = (size_t) btree_search(&area->used_space, page, &leaf);
 	if (pages) {
 		/*
@@ -1732,6 +1732,8 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		 */
 		return false;
 	}
+
+	ASSERT(leaf != NULL);
 	
 	if (!leaf->keys) {
 		btree_insert(&area->used_space, page, (void *) count, leaf);

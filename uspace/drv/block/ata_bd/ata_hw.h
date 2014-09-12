@@ -135,7 +135,8 @@ enum ata_command {
 	CMD_WRITE_SECTORS_EXT	= 0x34,
 	CMD_PACKET		= 0xA0,
 	CMD_IDENTIFY_PKT_DEV	= 0xA1,
-	CMD_IDENTIFY_DRIVE	= 0xEC
+	CMD_IDENTIFY_DRIVE	= 0xEC,
+	CMD_FLUSH_CACHE		= 0xE7
 };
 
 /** Data returned from identify device and identify packet device command. */
@@ -240,73 +241,8 @@ enum ata_cs1 {
 	cs1_addr48	= 0x0400	/**< 48-bit address feature set */
 };
 
-/** ATA packet command codes. */
-enum ata_pkt_command {
-	PCMD_INQUIRY		= 0x12,
-	PCMD_READ_12		= 0xa8,
-	PCMD_READ_TOC		= 0x43
-};
-
-/** ATAPI Inquiry command */
-typedef struct {
-	uint8_t opcode;		/**< Operation code (PCMD_INQUIRY) */
-	uint8_t _res0;
-	uint8_t _res1;
-	uint8_t _res2;
-	uint8_t alloc_len;	/**< Allocation length */
-	uint8_t _res3;
-	uint8_t _res4;
-	uint8_t _res5;
-	uint32_t _res6;
-} __attribute__ ((packed)) ata_pcmd_inquiry_t;
-
-/** ATAPI Read(12) command */
-typedef struct {
-	uint8_t opcode;		/**< Operation code (PCMD_READ_12) */
-	uint8_t _res0;
-	uint32_t ba;		/**< Starting block address */
-	uint32_t nblocks;	/**< Number of blocks to transfer */
-	uint8_t _res1;
-	uint8_t _res2;
-} __attribute__ ((packed)) ata_pcmd_read_12_t;
-
-/** ATAPI Read TOC command */
-typedef struct {
-	uint8_t opcode;		/**< Operation code (PCMD_READ_TOC) */
-	uint8_t msf;            /**< 0x2 = MSF bit set */
-	uint8_t format;         /**< low 3 bits */
-	uint8_t _res0;
-	uint8_t _res1;
-	uint8_t _res2;
-	uint8_t start;          /**< starting track/session number */
-	uint16_t size;		/**< Allocation length */
-	uint8_t oldformat;         /**< high 2 bits */
-	uint8_t _res3;
-	uint8_t _res4;
-} __attribute__ ((packed)) ata_pcmd_read_toc_t;
-
-/** Data returned from Inquiry command (mandatory part) */
-typedef struct {
-	uint8_t pdev_type;	/** Reserved, Peripheral device type */
-	uint8_t rmb;		/** RMB, Reserved */
-	uint8_t std_version;	/** ISO version, ECMA version, ANSI version */
-	uint8_t atapi_ver_rdf;	/** ATAPI version, Response data format */
-	uint8_t additional_len;	/** Additional length */
-	uint8_t _res0;
-	uint8_t _res1;
-	uint8_t _res2;
-	uint8_t vendor_id[8];	/** Vendor ID */
-	uint8_t product_id[8];	/** Product ID */
-	uint8_t product_rev[4];	/** Product revision level */
-} ata_inquiry_data_t;
-
-/** Extract value of ata_inquiry_data_t.pdev_type */
+/** Extract value of device type from scsi_std_inquiry_data_t.pqual_devtype */
 #define INQUIRY_PDEV_TYPE(val) ((val) & 0x1f)
-
-/** Values for ata_inquiry_data_t.pdev_type */
-enum ata_pdev_type {
-	PDEV_TYPE_CDROM		= 0x05
-};
 
 enum ata_pdev_signature {
 	/**

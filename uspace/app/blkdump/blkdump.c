@@ -43,6 +43,7 @@
 #include <mem.h>
 #include <loc.h>
 #include <byteorder.h>
+#include <scsi/mmc.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <inttypes.h>
@@ -213,15 +214,20 @@ static int print_blocks(aoff64_t block_offset, aoff64_t block_count, size_t bloc
 
 static int print_toc(void)
 {
-	toc_block_t *toc;
+	scsi_toc_multisess_data_t toc;
+	int rc;
 
-	toc = block_get_toc(service_id, 0);
-	if (toc == NULL)
+	rc = block_read_toc(service_id, 0, &toc, sizeof(toc));
+	if (rc != EOK)
 		return 1;
 
-	printf("TOC size: %" PRIu16 " bytes\n", toc->size);
-	printf("First session: %" PRIu8 "\n", toc->first_session);
-	printf("Last_session: %" PRIu8 "\n", toc->last_session);
+	printf("Multisession Information:\n");
+	printf("\tFirst complete session: %" PRIu8 "\n", toc.first_sess);
+	printf("\tLast complete session: %" PRIu8 "\n", toc.last_sess);
+	printf("\tFirst track of last complete session:\n");
+	printf("\t\tADR / Control: 0x%" PRIx8 "\n", toc.ftrack_lsess.adr_control);
+	printf("\t\tTrack number: %" PRIu8 "\n", toc.ftrack_lsess.track_no);
+	printf("\t\tStart block address: %" PRIu32 "\n", toc.ftrack_lsess.start_addr);
 
 	return 0;
 }
@@ -270,7 +276,8 @@ static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 
 static void syntax_print(void)
 {
-	printf("syntax: blkdump [--relative] [--offset <num_blocks>] [--count <num_blocks>] <device_name>\n");
+	printf("syntax: blkdump [--toc] [--relative] [--offset <num_blocks>] "
+	    "[--count <num_blocks>] <device_name>\n");
 }
 
 /**

@@ -59,14 +59,28 @@ ENDIANESS = LE
 EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
 
 ifeq ($(MACHINE), gta02)
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24xx_ts \
-	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
+	RD_SRVS_ESSENTIAL += \
+		$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24xx_ts \
+		$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
+endif
+
+ifeq ($(MACHINE), $(filter $(MACHINE),beagleboardxm beaglebone))
+	RD_DRVS_ESSENTIAL += \
+		platform/amdm37x \
+		fb/amdm37x_dispc
+endif
+
+ifeq ($(MACHINE), integratorcp)
+	RD_DRVS_ESSENTIAL += \
+		char/pl050 \
+		char/xtkbd \
+		char/ps2mouse \
+		platform/icp
+	RD_SRVS_ESSENTIAL += \
+		$(USPACE_PATH)/srv/hw/irc/icp-ic/icp-ic
 endif
 
 RD_DRVS_ESSENTIAL += \
-	infrastructure/rootamdm37x \
-	fb/amdm37x_dispc \
 	bus/usb/ehci \
 	bus/usb/ohci \
 	bus/usb/usbflbk \

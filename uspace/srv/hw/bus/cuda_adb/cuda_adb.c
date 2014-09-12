@@ -54,7 +54,7 @@
 
 static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int cuda_init(void);
-static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call);
+static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg);
 
 static void cuda_irq_listen(void);
 static void cuda_irq_receive(void);
@@ -281,8 +281,8 @@ static int cuda_init(void)
 
 	cuda_irq_code.ranges[0].base = (uintptr_t) instance->cuda_physical;
 	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_physical)->ifr;
-	async_set_interrupt_received(cuda_irq_handler);
-	irq_register(10, device_assign_devno(), 0, &cuda_irq_code);
+	async_irq_subscribe(10, device_assign_devno(), cuda_irq_handler, NULL,
+	    &cuda_irq_code);
 
 	/* Enable SR interrupt. */
 	pio_write_8(&dev->ier, TIP | TREQ);
@@ -294,7 +294,7 @@ static int cuda_init(void)
 	return 0;
 }
 
-static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call)
+static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
 {
 	uint8_t rbuf[CUDA_RCV_BUF_SIZE];
 	size_t len;

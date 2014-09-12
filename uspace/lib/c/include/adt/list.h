@@ -38,7 +38,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
-#include <unistd.h>
+#include <stddef.h>
 
 /** Doubly linked list link. */
 typedef struct link {

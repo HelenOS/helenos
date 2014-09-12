@@ -102,7 +102,7 @@ static inline void free32(void *addr)
 static inline void *get_page(void)
 {
 	uintptr_t phys;
-	void *address;
+	void *address = AS_AREA_ANY;
 	
 	const int ret = dmamem_map_anonymous(UHCI_REQUIRED_PAGE_SIZE,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,

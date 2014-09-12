@@ -40,7 +40,6 @@
 #include <errno.h>
 #include <str_error.h>
 #include <loc.h>
-#include <event.h>
 #include <io/con_srv.h>
 #include <io/kbd_event.h>
 #include <io/keycode.h>
@@ -83,6 +82,7 @@ typedef struct {
 
 /** Input server proxy */
 static input_t *input;
+static bool active = false;
 
 /** Session to the output server */
 static async_sess_t *output_sess;
@@ -97,16 +97,18 @@ static console_t consoles[CONSOLE_COUNT];
 /** Mutex for console switching */
 static FIBRIL_MUTEX_INITIALIZE(switch_mtx);
 
-static console_t *prev_console = &consoles[0];
 static console_t *active_console = &consoles[0];
-static console_t *kernel_console = &consoles[KERNEL_CONSOLE];
 
+static int input_ev_active(input_t *);
+static int input_ev_deactive(input_t *);
 static int input_ev_key(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
 static int input_ev_move(input_t *, int, int);
 static int input_ev_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
 static int input_ev_button(input_t *, int, int);
 
 static input_ev_ops_t input_ev_ops = {
+	.active = input_ev_active,
+	.deactive = input_ev_deactive,
 	.key = input_ev_key,
 	.move = input_ev_move,
 	.abs_move = input_ev_abs_move,
@@ -158,7 +160,7 @@ static void cons_update(console_t *cons)
 	fibril_mutex_lock(&switch_mtx);
 	fibril_mutex_lock(&cons->mtx);
 	
-	if ((cons == active_console) && (active_console != kernel_console)) {
+	if ((active) && (cons == active_console)) {
 		output_update(output_sess, cons->fbid);
 		output_cursor_update(output_sess, cons->fbid);
 	}
@@ -172,7 +174,7 @@ static void cons_update_cursor(console_t *cons)
 	fibril_mutex_lock(&switch_mtx);
 	fibril_mutex_lock(&cons->mtx);
 	
-	if ((cons == active_console) && (active_console != kernel_console))
+	if ((active) && (cons == active_console))
 		output_cursor_update(output_sess, cons->fbid);
 	
 	fibril_mutex_unlock(&cons->mtx);
@@ -184,7 +186,7 @@ static void cons_damage(console_t *cons)
 	fibril_mutex_lock(&switch_mtx);
 	fibril_mutex_lock(&cons->mtx);
 	
-	if ((cons == active_console) && (active_console != kernel_console)) {
+	if ((active) && (cons == active_console)) {
 		output_damage(output_sess, cons->fbid, 0, 0, cons->cols,
 		    cons->rows);
 		output_cursor_update(output_sess, cons->fbid);
@@ -194,8 +196,24 @@ static void cons_damage(console_t *cons)
 	fibril_mutex_unlock(&switch_mtx);
 }
 
-static void cons_switch(console_t *cons)
+static void cons_switch(unsigned int index)
 {
+	/*
+	 * The first undefined index is reserved
+	 * for switching to the kernel console.
+	 */
+	if (index == CONSOLE_COUNT) {
+		if (console_kcon())
+			active = false;
+		
+		return;
+	}
+	
+	if (index > CONSOLE_COUNT)
+		return;
+	
+	console_t *cons = &consoles[index];
+	
 	fibril_mutex_lock(&switch_mtx);
 	
 	if (cons == active_console) {
@@ -203,19 +221,6 @@ static void cons_switch(console_t *cons)
 		return;
 	}
 	
-	if (cons == kernel_console) {
-		output_yield(output_sess);
-		if (!console_kcon()) {
-			output_claim(output_sess);
-			fibril_mutex_unlock(&switch_mtx);
-			return;
-		}
-	}
-	
-	if (active_console == kernel_console)
-		output_claim(output_sess);
-	
-	prev_console = active_console;
 	active_console = cons;
 	
 	fibril_mutex_unlock(&switch_mtx);
@@ -223,27 +228,29 @@ static void cons_switch(console_t *cons)
 	cons_damage(cons);
 }
 
-static console_t *cons_get_active_uspace(void)
+static int input_ev_active(input_t *input)
 {
-	fibril_mutex_lock(&switch_mtx);
+	active = true;
+	output_claim(output_sess);
+	cons_damage(active_console);
 	
-	console_t *active_uspace = active_console;
-	if (active_uspace == kernel_console)
-		active_uspace = prev_console;
+	return EOK;
+}
+
+static int input_ev_deactive(input_t *input)
+{
+	active = false;
+	output_yield(output_sess);
 	
-	assert(active_uspace != kernel_console);
-	
-	fibril_mutex_unlock(&switch_mtx);
-	
-	return active_uspace;
+	return EOK;
 }
 
 static int input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key,
     keymod_t mods, wchar_t c)
 {
-	if ((key >= KC_F1) && (key < KC_F1 + CONSOLE_COUNT) &&
+	if ((key >= KC_F1) && (key <= KC_F1 + CONSOLE_COUNT) &&
 	    ((mods & KM_CTRL) == 0)) {
-		cons_switch(&consoles[key - KC_F1]);
+		cons_switch(key - KC_F1);
 	} else {
 		/* Got key press/release event */
 		kbd_event_t *event =
@@ -258,15 +265,7 @@ static int input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key,
 		event->mods = mods;
 		event->c = c;
 		
-		/*
-		 * Kernel console does not read events
-		 * from us, so we will redirect them
-		 * to the (last) active userspace console
-		 * if necessary.
-		 */
-		console_t *target_console = cons_get_active_uspace();
-		
-		prodcons_produce(&target_console->input_pc,
+		prodcons_produce(&active_console->input_pc,
 		    &event->link);
 	}
 	
@@ -376,7 +375,7 @@ static int cons_read(con_srv_t *srv, void *buf, size_t size)
 			free(event);
 		}
 	}
-
+	
 	return size;
 }
 
@@ -387,6 +386,7 @@ static int cons_write(con_srv_t *srv, void *data, size_t size)
 	size_t off = 0;
 	while (off < size)
 		cons_write_char(cons, str_decode(data, &off, size));
+	
 	return size;
 }
 
@@ -497,6 +497,7 @@ static int cons_get_event(con_srv_t *srv, cons_event_t *event)
 	
 	event->type = CEV_KEY;
 	event->ev.key = *kevent;
+	
 	free(kevent);
 	return EOK;
 }
@@ -506,9 +507,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	console_t *cons = NULL;
 	
 	for (size_t i = 0; i < CONSOLE_COUNT; i++) {
-		if (i == KERNEL_CONSOLE)
-			continue;
-		
 		if (consoles[i].dsid == (service_id_t) IPC_GET_ARG1(*icall)) {
 			cons = &consoles[i];
 			break;
@@ -525,7 +523,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	
 	con_conn(iid, icall, &cons->srvs);
 }
-
 
 static int input_connect(const char *svc)
 {
@@ -556,11 +553,6 @@ static int input_connect(const char *svc)
 	return EOK;
 }
 
-static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
-{
-	cons_switch(prev_console);
-}
-
 static async_sess_t *output_connect(const char *svc)
 {
 	async_sess_t *sess;
@@ -582,10 +574,8 @@ static async_sess_t *output_connect(const char *svc)
 
 static bool console_srv_init(char *input_svc, char *output_svc)
 {
-	int rc;
-	
 	/* Connect to input service */
-	rc = input_connect(input_svc);
+	int rc = input_connect(input_svc);
 	if (rc != EOK)
 		return false;
 	
@@ -609,56 +599,51 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 	console_caps_t ccaps;
 	output_get_caps(output_sess, &ccaps);
 	
-	/* Inititalize consoles */
-	for (size_t i = 0; i < CONSOLE_COUNT; i++) {
-		consoles[i].index = i;
-		atomic_set(&consoles[i].refcnt, 0);
-		fibril_mutex_initialize(&consoles[i].mtx);
-		prodcons_initialize(&consoles[i].input_pc);
-		consoles[i].char_remains_len = 0;
-		
-		if (i == KERNEL_CONSOLE)
-			continue;
-		
-		consoles[i].cols = cols;
-		consoles[i].rows = rows;
-		consoles[i].ccaps = ccaps;
-		consoles[i].frontbuf =
-		    chargrid_create(cols, rows, CHARGRID_FLAG_SHARED);
-		
-		if (consoles[i].frontbuf == NULL) {
-			printf("%s: Unable to allocate frontbuffer %zu\n", NAME, i);
-			return false;
+	/*
+	 * Inititalize consoles only if there are
+	 * actually some output devices.
+	 */
+	if (ccaps != 0) {
+		for (size_t i = 0; i < CONSOLE_COUNT; i++) {
+			consoles[i].index = i;
+			atomic_set(&consoles[i].refcnt, 0);
+			fibril_mutex_initialize(&consoles[i].mtx);
+			prodcons_initialize(&consoles[i].input_pc);
+			consoles[i].char_remains_len = 0;
+			
+			consoles[i].cols = cols;
+			consoles[i].rows = rows;
+			consoles[i].ccaps = ccaps;
+			consoles[i].frontbuf =
+			    chargrid_create(cols, rows, CHARGRID_FLAG_SHARED);
+			
+			if (consoles[i].frontbuf == NULL) {
+				printf("%s: Unable to allocate frontbuffer %zu\n", NAME, i);
+				return false;
+			}
+			
+			consoles[i].fbid = output_frontbuf_create(output_sess,
+			    consoles[i].frontbuf);
+			if (consoles[i].fbid == 0) {
+				printf("%s: Unable to create frontbuffer %zu\n", NAME, i);
+				return false;
+			}
+			
+			con_srvs_init(&consoles[i].srvs);
+			consoles[i].srvs.ops = &con_ops;
+			consoles[i].srvs.sarg = &consoles[i];
+			
+			char vc[LOC_NAME_MAXLEN + 1];
+			snprintf(vc, LOC_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
+			
+			if (loc_service_register(vc, &consoles[i].dsid) != EOK) {
+				printf("%s: Unable to register device %s\n", NAME, vc);
+				return false;
+			}
 		}
 		
-		consoles[i].fbid = output_frontbuf_create(output_sess,
-		    consoles[i].frontbuf);
-		if (consoles[i].fbid == 0) {
-			printf("%s: Unable to create frontbuffer %zu\n", NAME, i);
-			return false;
-		}
-		
-		con_srvs_init(&consoles[i].srvs);
-		consoles[i].srvs.ops = &con_ops;
-		consoles[i].srvs.sarg = &consoles[i];
-		
-		char vc[LOC_NAME_MAXLEN + 1];
-		snprintf(vc, LOC_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
-		
-		if (loc_service_register(vc, &consoles[i].dsid) != EOK) {
-			printf("%s: Unable to register device %s\n", NAME, vc);
-			return false;
-		}
+		input_activate(input);
 	}
-	
-	cons_damage(active_console);
-	
-	/* Receive kernel notifications */
-	async_set_interrupt_received(interrupt_received);
-	rc = event_subscribe(EVENT_KCONSOLE, 0);
-	if (rc != EOK)
-		printf("%s: Failed to register kconsole notifications (%s)\n",
-		    NAME, str_error(rc));
 	
 	return true;
 }

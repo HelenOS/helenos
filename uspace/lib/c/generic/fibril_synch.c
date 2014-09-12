@@ -447,32 +447,38 @@ static int fibril_timer_func(void *arg)
 	fibril_timer_t *timer = (fibril_timer_t *) arg;
 	int rc;
 
-	fibril_mutex_lock(&timer->lock);
+	fibril_mutex_lock(timer->lockp);
 
-	while (true) {
-		while (timer->state != fts_active &&
-		    timer->state != fts_cleanup) {
-
-			if (timer->state == fts_cleanup)
-				break;
-
-			fibril_condvar_wait(&timer->cv, &timer->lock);
-		}
-
-		if (timer->state == fts_cleanup)
+	while (timer->state != fts_cleanup) {
+		switch (timer->state) {
+		case fts_not_set:
+		case fts_fired:
+			fibril_condvar_wait(&timer->cv, timer->lockp);
 			break;
-
-		rc = fibril_condvar_wait_timeout(&timer->cv, &timer->lock,
-		    timer->delay);
-		if (rc == ETIMEOUT) {
-			timer->state = fts_fired;
-			fibril_mutex_unlock(&timer->lock);
-			timer->fun(timer->arg);
-			fibril_mutex_lock(&timer->lock);
+		case fts_active:
+			rc = fibril_condvar_wait_timeout(&timer->cv,
+			    timer->lockp, timer->delay);
+			if (rc == ETIMEOUT && timer->state == fts_active) {
+				timer->state = fts_fired;
+				timer->handler_running = true;
+				fibril_mutex_unlock(timer->lockp);
+				timer->fun(timer->arg);
+				fibril_mutex_lock(timer->lockp);
+				timer->handler_running = false;
+			}
+			break;
+		case fts_cleanup:
+		case fts_clean:
+			assert(false);
+			break;
 		}
 	}
 
-	fibril_mutex_unlock(&timer->lock);
+	/* Acknowledge timer fibril has finished cleanup. */
+	timer->state = fts_clean;
+	fibril_mutex_unlock(timer->lockp);
+	free(timer);
+
 	return 0;
 }
 
@@ -480,7 +486,7 @@ static int fibril_timer_func(void *arg)
  *
  * @return		New timer on success, @c NULL if out of memory.
  */
-fibril_timer_t *fibril_timer_create(void)
+fibril_timer_t *fibril_timer_create(fibril_mutex_t *lock)
 {
 	fid_t fid;
 	fibril_timer_t *timer;
@@ -500,9 +506,9 @@ fibril_timer_t *fibril_timer_create(void)
 
 	timer->fibril = fid;
 	timer->state = fts_not_set;
+	timer->lockp = (lock != NULL) ? lock : &timer->lock;
 
 	fibril_add_ready(fid);
-
 	return timer;
 }
 
@@ -512,11 +518,13 @@ fibril_timer_t *fibril_timer_create(void)
  */
 void fibril_timer_destroy(fibril_timer_t *timer)
 {
-	fibril_mutex_lock(&timer->lock);
-	assert(timer->state != fts_active);
+	fibril_mutex_lock(timer->lockp);
+	assert(timer->state == fts_not_set || timer->state == fts_fired);
+
+	/* Request timer fibril to terminate. */
 	timer->state = fts_cleanup;
 	fibril_condvar_broadcast(&timer->cv);
-	fibril_mutex_unlock(&timer->lock);
+	fibril_mutex_unlock(timer->lockp);
 }
 
 /** Set timer.
@@ -532,13 +540,31 @@ void fibril_timer_destroy(fibril_timer_t *timer)
 void fibril_timer_set(fibril_timer_t *timer, suseconds_t delay,
     fibril_timer_fun_t fun, void *arg)
 {
-	fibril_mutex_lock(&timer->lock);
+	fibril_mutex_lock(timer->lockp);
+	fibril_timer_set_locked(timer, delay, fun, arg);
+	fibril_mutex_unlock(timer->lockp);
+}
+
+/** Set locked timer.
+ *
+ * Set timer to execute a callback function after the specified
+ * interval. Must be called when the timer is locked.
+ *
+ * @param timer		Timer
+ * @param delay		Delay in microseconds
+ * @param fun		Callback function
+ * @param arg		Argument for @a fun
+ */
+void fibril_timer_set_locked(fibril_timer_t *timer, suseconds_t delay,
+    fibril_timer_fun_t fun, void *arg)
+{
+	assert(fibril_mutex_is_locked(timer->lockp));
+	assert(timer->state == fts_not_set || timer->state == fts_fired);
 	timer->state = fts_active;
 	timer->delay = delay;
 	timer->fun = fun;
 	timer->arg = arg;
 	fibril_condvar_broadcast(&timer->cv);
-	fibril_mutex_unlock(&timer->lock);
 }
 
 /** Clear timer.
@@ -556,7 +582,34 @@ fibril_timer_state_t fibril_timer_clear(fibril_timer_t *timer)
 {
 	fibril_timer_state_t old_state;
 
-	fibril_mutex_lock(&timer->lock);
+	fibril_mutex_lock(timer->lockp);
+	old_state = fibril_timer_clear_locked(timer);
+	fibril_mutex_unlock(timer->lockp);
+
+	return old_state;
+}
+
+/** Clear locked timer.
+ *
+ * Clears (cancels) timer and returns last state of the timer.
+ * This can be one of:
+ *    - fts_not_set	If the timer has not been set or has been cleared
+ *    - fts_active	Timer was set but did not fire
+ *    - fts_fired	Timer fired
+ * Must be called when the timer is locked.
+ *
+ * @param timer		Timer
+ * @return		Last timer state
+ */
+fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *timer)
+{
+	fibril_timer_state_t old_state;
+
+	assert(fibril_mutex_is_locked(timer->lockp));
+
+	while (timer->handler_running)
+		fibril_condvar_wait(&timer->cv, timer->lockp);
+
 	old_state = timer->state;
 	timer->state = fts_not_set;
 
@@ -564,7 +617,6 @@ fibril_timer_state_t fibril_timer_clear(fibril_timer_t *timer)
 	timer->fun = NULL;
 	timer->arg = NULL;
 	fibril_condvar_broadcast(&timer->cv);
-	fibril_mutex_unlock(&timer->lock);
 
 	return old_state;
 }

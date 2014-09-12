@@ -150,22 +150,22 @@ int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
 		    str_error(rc));
 		return rc;
 	}
-
+	
 	irq_code_t irq_code = {
 		.rangecount = hc_irq_pio_range_count,
 		.ranges = irq_ranges,
 		.cmdcount = hc_irq_cmd_count,
 		.cmds = irq_cmds
 	};
-
-        /* Register handler to avoid interrupt lockup */
-        rc = register_interrupt_handler(device, irq, handler, &irq_code);
-        if (rc != EOK) {
-    		usb_log_error("Failed to register interrupt handler: %s.\n",
-    		    str_error(rc));
-    		return rc;
-    	}
-
+	
+	/* Register handler to avoid interrupt lockup */
+	rc = register_interrupt_handler(device, irq, handler, &irq_code);
+	if (rc != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	
 	return EOK;
 }
 
@@ -229,6 +229,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 /** Initialize UHCI hc driver structure
  *
  * @param[in] instance Memory place to initialize.
+ * @param[in] HC function node
  * @param[in] regs Range of device's I/O control registers.
  * @param[in] interrupts True if hw interrupts should be used.
  * @return Error code.
@@ -237,7 +238,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
+int hc_init(hc_t *instance, ddf_fun_t *fun, addr_range_t *regs, bool interrupts)
 {
 	assert(regs->size >= sizeof(uhci_regs_t));
 	int rc;
@@ -265,12 +266,18 @@ int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
 		return rc;
 	}
 
-	hcd_init(&instance->generic, USB_SPEED_FULL,
+	instance->generic = ddf_fun_data_alloc(fun, sizeof(hcd_t));
+	if (instance->generic == NULL) {
+		usb_log_error("Out of memory.\n");
+		return ENOMEM;
+	}
+
+	hcd_init(instance->generic, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 
-	instance->generic.private_data = instance;
-	instance->generic.schedule = hc_schedule;
-	instance->generic.ep_add_hook = NULL;
+	instance->generic->private_data = instance;
+	instance->generic->schedule = hc_schedule;
+	instance->generic->ep_add_hook = NULL;
 
 	hc_init_hw(instance);
 	if (!interrupts) {
@@ -423,6 +430,8 @@ do { \
 	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_CONTROL] =
 	  &instance->transfers_control_slow;
 	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_BULK] =
+	  &instance->transfers_bulk_full;
+	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_BULK] =
 	  &instance->transfers_bulk_full;
 
 	return EOK;

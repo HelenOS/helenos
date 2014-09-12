@@ -56,6 +56,7 @@
 #include <macros.h>
 
 #include "sheet.h"
+#include "sheet_impl.h"
 
 enum {
 	TAB_WIDTH	= 8,
@@ -65,8 +66,14 @@ enum {
 };
 
 /** Initialize an empty sheet. */
-int sheet_init(sheet_t *sh)
+int sheet_create(sheet_t **rsh)
 {
+	sheet_t *sh;
+
+	sh = calloc(1, sizeof(sheet_t));
+	if (sh == NULL)
+		return ENOMEM;
+
 	sh->dbuf_size = INITIAL_SIZE;
 	sh->text_size = 0;
 
@@ -76,6 +83,7 @@ int sheet_init(sheet_t *sh)
 
 	list_initialize(&sh->tags);
 
+	*rsh = sh;
 	return EOK;
 }
 
@@ -96,7 +104,6 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 {
 	char *ipp;
 	size_t sz;
-	tag_t *tag;
 	char *newp;
 
 	sz = str_size(str);
@@ -119,9 +126,7 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 
 	/* Adjust tags. */
 
-	list_foreach(sh->tags, link) {
-		tag = list_get_instance(link, tag_t, link);
-
+	list_foreach(sh->tags, link, tag_t, tag) {
 		if (tag->b_off > pos->b_off)
 			tag->b_off += sz;
 		else if (tag->b_off == pos->b_off && dir == dir_before)
@@ -145,7 +150,6 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 {
 	char *spp;
 	size_t sz;
-	tag_t *tag;
 	char *newp;
 	size_t shrink_size;
 
@@ -156,9 +160,7 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 	sh->text_size -= sz;
 
 	/* Adjust tags. */
-	list_foreach(sh->tags, link) {
-		tag = list_get_instance(link, tag_t, link);
-
+	list_foreach(sh->tags, link, tag_t, tag) {
 		if (tag->b_off >= epos->b_off)
 			tag->b_off -= sz;
 		else if (tag->b_off >= spos->b_off)
@@ -263,7 +265,7 @@ void sheet_get_row_width(sheet_t *sh, int row, int *length)
 	
 	sheet_get_cell_pt(sh, &coord, dir_before, &pt);
 	spt_get_coord(&pt, &coord);
-	*length = coord.column - 1;
+	*length = coord.column;
 }
 
 /** Get the number of rows in a sheet. */
@@ -312,6 +314,23 @@ void spt_get_coord(spt_t const *pos, coord_t *coord)
 bool spt_equal(spt_t const *a, spt_t const *b)
 {
 	return a->b_off == b->b_off;
+}
+
+/** Get a character at spt and return next spt */
+wchar_t spt_next_char(spt_t spt, spt_t *next)
+{
+	wchar_t ch = str_decode(spt.sh->data, &spt.b_off, spt.sh->text_size);
+	if (next)
+		*next = spt;
+	return ch;
+}
+
+wchar_t spt_prev_char(spt_t spt, spt_t *prev)
+{
+	wchar_t ch = str_decode_reverse(spt.sh->data, &spt.b_off, spt.sh->text_size);
+	if (prev)
+		*prev = spt;
+	return ch;
 }
 
 /** Place a tag on the specified s-point. */

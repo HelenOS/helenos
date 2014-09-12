@@ -40,19 +40,15 @@
 
 #ifdef KERNEL
 
+#include <arch/istate_struct.h>
 #include <arch/regdef.h>
 
 #else /* KERNEL */
 
+#include <libarch/istate_struct.h>
 #include <libarch/regdef.h>
 
 #endif /* KERNEL */
-
-typedef struct istate {
-	uint64_t tnpc;
-	uint64_t tpc;
-	uint64_t tstate;
-} istate_t;
 
 NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
     uintptr_t retaddr)

@@ -39,6 +39,7 @@
 
 #include "ddf/driver.h"
 
+#define PCI_VENDOR_ID  0x00
 #define PCI_DEVICE_ID  0x02
 
 extern int pci_config_space_read_8(async_sess_t *, uint32_t, uint8_t *);
