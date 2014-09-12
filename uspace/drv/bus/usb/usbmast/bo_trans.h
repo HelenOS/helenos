@@ -59,7 +59,7 @@ typedef struct {
 	 */
 
 	/** Command Descriptor Block */
-	void *cdb;
+	const void *cdb;
 	/** CDB size in bytes */
 	size_t cdb_size;
 

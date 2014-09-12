@@ -393,26 +393,24 @@ int usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
  */
 int usbmast_sync_cache(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks)
 {
-	scsi_cmd_t cmd;
-	scsi_cdb_sync_cache_10_t cdb;
-	int rc;
-
 	if (ba > UINT32_MAX)
 		return ELIMIT;
 
 	if (nblocks > UINT16_MAX)
 		return ELIMIT;
 
-	memset(&cdb, 0, sizeof(cdb));
-	cdb.op_code = SCSI_CMD_SYNC_CACHE_10;
-	cdb.lba = host2uint32_t_be(ba);
-	cdb.numlb = host2uint16_t_be(nblocks);
+	const scsi_cdb_sync_cache_10_t cdb = {
+		.op_code = SCSI_CMD_SYNC_CACHE_10,
+		.lba = host2uint32_t_be(ba),
+		.numlb = host2uint16_t_be(nblocks),
+	};
 
-	memset(&cmd, 0, sizeof(cmd));
-	cmd.cdb = &cdb;
-	cmd.cdb_size = sizeof(cdb);
+	scsi_cmd_t cmd = {
+		.cdb = &cdb,
+		.cdb_size = sizeof(cdb),
+	};
 
-	rc = usbmast_run_cmd(mfun, &cmd);
+	const int rc = usbmast_run_cmd(mfun, &cmd);
 
         if (rc != EOK) {
 		usb_log_error("Synchronize Cache (10) transport failed, device %s: %s.\n",
