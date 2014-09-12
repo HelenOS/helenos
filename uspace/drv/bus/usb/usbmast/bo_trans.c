@@ -64,24 +64,21 @@ bool usb_mast_verbose = false;
 int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 {
 	int rc;
-	int retval = EOK;
-	size_t act_size;
+
+	if (cmd->data_in && cmd->data_out)
+		return EINVAL;
+
 	usb_pipe_t *bulk_in_pipe = mfun->mdev->bulk_in_pipe;
 	usb_pipe_t *bulk_out_pipe = mfun->mdev->bulk_out_pipe;
-	usb_direction_t ddir;
-	void *dbuf;
-	size_t dbuf_size;
 
-	if (cmd->data_out != NULL && cmd->data_in == NULL) {
-		ddir = USB_DIRECTION_OUT;
-		dbuf = (void *)cmd->data_out;
-		dbuf_size = cmd->data_out_size;
-	} else if (cmd->data_out == NULL && cmd->data_in != NULL) {
+	usb_pipe_t *dpipe = bulk_out_pipe;
+	usb_direction_t ddir = USB_DIRECTION_OUT;
+	size_t dbuf_size = cmd->data_out_size;
+
+	if (cmd->data_in) {
 		ddir = USB_DIRECTION_IN;
-		dbuf = cmd->data_in;
 		dbuf_size = cmd->data_in_size;
-	} else {
-		assert(false);
+		dpipe = bulk_in_pipe;
 	}
 
 	/* Prepare CBW - command block wrapper */
@@ -99,31 +96,27 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 		return EIO;
 
 	MASTLOG("Transferring data.\n");
-	if (ddir == USB_DIRECTION_IN) {
+	if (cmd->data_in) {
+		size_t act_size;
 		/* Recieve data from the device. */
-		rc = usb_pipe_read(bulk_in_pipe, dbuf, dbuf_size, &act_size);
+		rc = usb_pipe_read(dpipe, cmd->data_in, cmd->data_in_size,
+		    &act_size);
 		MASTLOG("Received %zu bytes (%s): %s.\n", act_size,
-		    usb_debug_str_buffer((uint8_t *) dbuf, act_size, 0),
+		    usb_debug_str_buffer(cmd->data_in, act_size, 0),
 		    str_error(rc));
-	} else {
+	}
+	if (cmd->data_out) {
 		/* Send data to the device. */
-		rc = usb_pipe_write(bulk_out_pipe, dbuf, dbuf_size);
-		MASTLOG("Sent %zu bytes (%s): %s.\n", act_size,
-		    usb_debug_str_buffer((uint8_t *) dbuf, act_size, 0),
+		rc = usb_pipe_write(dpipe, cmd->data_out, cmd->data_out_size);
+		MASTLOG("Sent %zu bytes (%s): %s.\n", cmd->data_out_size,
+		    usb_debug_str_buffer(cmd->data_out, cmd->data_out_size, 0),
 		    str_error(rc));
 	}
 
 	if (rc == ESTALL) {
 		/* Clear stall condition and continue below to read CSW. */
-		if (ddir == USB_DIRECTION_IN) {
-			usb_pipe_clear_halt(
-			    usb_device_get_default_pipe(mfun->mdev->usb_dev),
-			    bulk_in_pipe);
-		} else {
-			usb_pipe_clear_halt(
-			    usb_device_get_default_pipe(mfun->mdev->usb_dev),
-			    bulk_out_pipe);
-		}
+		usb_pipe_clear_halt(
+		    usb_device_get_default_pipe(mfun->mdev->usb_dev), dpipe);
         } else if (rc != EOK) {
 		return EIO;
 	}
@@ -164,14 +157,14 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 		break;
 	case cbs_phase_error:
 		MASTLOG("Phase error\n");
-		retval = EIO;
+		rc = EIO;
 		break;
 	default:
-		retval = EIO;
+		rc = EIO;
 		break;
 	}
 
-	size_t residue = (size_t) uint32_usb2host(csw.dCSWDataResidue);
+	const size_t residue = uint32_usb2host(csw.dCSWDataResidue);
 	if (residue > dbuf_size) {
 		MASTLOG("residue > dbuf_size\n");
 		return EIO;
@@ -185,10 +178,10 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	 * received (sent).
 	 */
 
-	if (ddir == USB_DIRECTION_IN)
+	if (cmd->data_in)
 		cmd->rcvd_size = dbuf_size - residue;
 
-	return retval;
+	return rc;
 }
 
 /** Perform bulk-only mass storage reset.
