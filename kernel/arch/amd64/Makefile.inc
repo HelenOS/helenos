@@ -31,7 +31,7 @@ BFD_ARCH = i386:x86-64
 BFD = binary
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
-CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
+CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 CLANG_CFLAGS += $(CMN1)
@@ -85,3 +85,8 @@ ifeq ($(CONFIG_SMP),y)
 		arch/$(KARCH)/src/smp/mps.c \
 		arch/$(KARCH)/src/smp/smp.c
 endif
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag \
+	arch/$(KARCH)/include/arch/context_struct.ag
+

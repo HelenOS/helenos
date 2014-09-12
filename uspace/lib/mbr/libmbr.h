@@ -36,6 +36,8 @@
 #ifndef LIBMBR_LIBMBR_H_
 #define LIBMBR_LIBMBR_H_
 
+#include <adt/list.h>
+#include <loc.h>
 #include <sys/types.h>
 #include "mbr.h"
 

@@ -53,6 +53,7 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <loc.h>
+#include <str_error.h>
 #include "layout.h"
 #include "kbd.h"
 #include "kbd_port.h"
@@ -60,6 +61,9 @@
 #include "mouse.h"
 #include "mouse_proto.h"
 #include "input.h"
+
+bool irc_service = false;
+async_sess_t *irc_sess = NULL;
 
 #define NUM_LAYOUTS  4
 
@@ -70,10 +74,20 @@ static layout_ops_t *layout[NUM_LAYOUTS] = {
 	&ar_ops
 };
 
-static void kbd_devs_yield(void);
-static void kbd_devs_reclaim(void);
+typedef struct {
+	/** Link into the list of clients */
+	link_t link;
+	
+	/** Indicate whether the client is active */
+	bool active;
+	
+	/** Client callback session */
+	async_sess_t *sess;
+} client_t;
 
-async_sess_t *client_sess = NULL;
+/** List of clients */
+static list_t clients;
+static client_t *active_client = NULL;
 
 /** List of keyboard devices */
 static list_t kbd_devs;
@@ -81,10 +95,30 @@ static list_t kbd_devs;
 /** List of mouse devices */
 static list_t mouse_devs;
 
-bool irc_service = false;
-async_sess_t *irc_sess = NULL;
-
 static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
+
+static void *client_data_create(void)
+{
+	client_t *client = (client_t *) calloc(1, sizeof(client_t));
+	if (client == NULL)
+		return NULL;
+	
+	link_initialize(&client->link);
+	client->active = false;
+	client->sess = NULL;
+	
+	list_append(&client->link, &clients);
+	
+	return client;
+}
+
+static void client_data_destroy(void *data)
+{
+	client_t *client = (client_t *) data;
+	
+	list_remove(&client->link);
+	free(client);
+}
 
 void kbd_push_data(kbd_dev_t *kdev, sysarg_t data)
 {
@@ -102,13 +136,26 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	unsigned int mod_mask;
 	
 	switch (key) {
-	case KC_LCTRL: mod_mask = KM_LCTRL; break;
-	case KC_RCTRL: mod_mask = KM_RCTRL; break;
-	case KC_LSHIFT: mod_mask = KM_LSHIFT; break;
-	case KC_RSHIFT: mod_mask = KM_RSHIFT; break;
-	case KC_LALT: mod_mask = KM_LALT; break;
-	case KC_RALT: mod_mask = KM_RALT; break;
-	default: mod_mask = 0; break;
+	case KC_LCTRL:
+		mod_mask = KM_LCTRL;
+		break;
+	case KC_RCTRL:
+		mod_mask = KM_RCTRL;
+		break;
+	case KC_LSHIFT:
+		mod_mask = KM_LSHIFT;
+		break;
+	case KC_RSHIFT:
+		mod_mask = KM_RSHIFT;
+		break;
+	case KC_LALT:
+		mod_mask = KM_LALT;
+		break;
+	case KC_RALT:
+		mod_mask = KM_RALT;
+		break;
+	default:
+		mod_mask = 0;
 	}
 	
 	if (mod_mask != 0) {
@@ -119,10 +166,17 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	}
 	
 	switch (key) {
-	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; break;
-	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; break;
-	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; break;
-	default: mod_mask = 0; break;
+	case KC_CAPS_LOCK:
+		mod_mask = KM_CAPS_LOCK;
+		break;
+	case KC_NUM_LOCK:
+		mod_mask = KM_NUM_LOCK;
+		break;
+	case KC_SCROLL_LOCK:
+		mod_mask = KM_SCROLL_LOCK;
+		break;
+	default:
+		mod_mask = 0;
 	}
 	
 	if (mod_mask != 0) {
@@ -142,29 +196,31 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 		}
 	}
 	
-	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
-	    key == KC_F1) {
+	// TODO: More elegant layout switching
+	
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
+	    (key == KC_F1)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[0]);
 		return;
 	}
 	
-	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
-	    key == KC_F2) {
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
+	    (key == KC_F2)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[1]);
 		return;
 	}
 	
-	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
-	    key == KC_F3) {
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
+	    (key == KC_F3)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[2]);
 		return;
 	}
 	
-	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
-	    key == KC_F4) {
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
+	    (key == KC_F4)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[3]);
 		return;
@@ -176,49 +232,92 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	
 	ev.c = layout_parse_ev(kdev->active_layout, &ev);
 	
-	async_exch_t *exch = async_exchange_begin(client_sess);
-	async_msg_4(exch, INPUT_EVENT_KEY, ev.type, ev.key, ev.mods, ev.c);
-	async_exchange_end(exch);
+	list_foreach(clients, link, client_t, client) {
+		if (client->active) {
+			async_exch_t *exch = async_exchange_begin(client->sess);
+			async_msg_4(exch, INPUT_EVENT_KEY, ev.type, ev.key, ev.mods, ev.c);
+			async_exchange_end(exch);
+		}
+	}
 }
 
-/** Mouse pointer has moved. */
+/** Mouse pointer has moved (relative mode). */
 void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy, int dz)
 {
-	async_exch_t *exch = async_exchange_begin(client_sess);
-	if (dx || dy)
-		async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
-	if (dz) {
-		// TODO: Implement proper wheel support
-		keycode_t code = dz > 0 ? KC_UP : KC_DOWN;
-		for (int i = 0; i < 3; ++i) {
-			async_msg_4(exch, INPUT_EVENT_KEY, KEY_PRESS, code, 0, 0);
+	list_foreach(clients, link, client_t, client) {
+		if (client->active) {
+			async_exch_t *exch = async_exchange_begin(client->sess);
+			
+			if ((dx) || (dy))
+				async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
+			
+			if (dz) {
+				// TODO: Implement proper wheel support
+				keycode_t code = dz > 0 ? KC_UP : KC_DOWN;
+				
+				for (unsigned int i = 0; i < 3; i++)
+					async_msg_4(exch, INPUT_EVENT_KEY, KEY_PRESS, code, 0, 0);
+				
+				async_msg_4(exch, INPUT_EVENT_KEY, KEY_RELEASE, code, 0, 0);
+			}
+			
+			async_exchange_end(exch);
 		}
-		async_msg_4(exch, INPUT_EVENT_KEY, KEY_RELEASE, code, 0, 0);
 	}
-	async_exchange_end(exch);
 }
 
-/** Mouse pointer has moved in absolute mode. */
+/** Mouse pointer has moved (absolute mode). */
 void mouse_push_event_abs_move(mouse_dev_t *mdev, unsigned int x, unsigned int y,
     unsigned int max_x, unsigned int max_y)
 {
-	if (max_x && max_y) {
-		async_exch_t *exch = async_exchange_begin(client_sess);
-		async_msg_4(exch, INPUT_EVENT_ABS_MOVE, x, y, max_x, max_y);
-		async_exchange_end(exch);
+	list_foreach(clients, link, client_t, client) {
+		if (client->active) {
+			if ((max_x) && (max_y)) {
+				async_exch_t *exch = async_exchange_begin(client->sess);
+				async_msg_4(exch, INPUT_EVENT_ABS_MOVE, x, y, max_x, max_y);
+				async_exchange_end(exch);
+			}
+		}
 	}
 }
 
 /** Mouse button has been pressed. */
 void mouse_push_event_button(mouse_dev_t *mdev, int bnum, int press)
 {
-	async_exch_t *exch = async_exchange_begin(client_sess);
-	async_msg_2(exch, INPUT_EVENT_BUTTON, bnum, press);
-	async_exchange_end(exch);
+	list_foreach(clients, link, client_t, client) {
+		if (client->active) {
+			async_exch_t *exch = async_exchange_begin(client->sess);
+			async_msg_2(exch, INPUT_EVENT_BUTTON, bnum, press);
+			async_exchange_end(exch);
+		}
+	}
 }
 
+/** Arbitrate client actiovation */
+static void client_arbitration(client_t *req)
+{
+	/* Mutual exclusion of active clients */
+	list_foreach(clients, link, client_t, client)
+		client->active = (client == req);
+	
+	/* Notify clients about the arbitration */
+	list_foreach(clients, link, client_t, client) {
+		async_exch_t *exch = async_exchange_begin(client->sess);
+		async_msg_0(exch, client->active ?
+		    INPUT_EVENT_ACTIVE : INPUT_EVENT_DEACTIVE);
+		async_exchange_end(exch);
+	}
+}
+
+/** New client connection */
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
+	client_t *client = (client_t *) async_get_client_data();
+	if (client == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
 	async_answer_0(iid, EOK);
 	
 	while (true) {
@@ -226,9 +325,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		if (!IPC_GET_IMETHOD(call)) {
-			if (client_sess != NULL) {
-				async_hangup(client_sess);
-				client_sess = NULL;
+			if (client->sess != NULL) {
+				async_hangup(client->sess);
+				client->sess = NULL;
 			}
 			
 			async_answer_0(callid, EOK);
@@ -238,25 +337,34 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_sess_t *sess =
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
-			if (client_sess == NULL) {
-				client_sess = sess;
+			if (client->sess == NULL) {
+				client->sess = sess;
 				async_answer_0(callid, EOK);
 			} else
 				async_answer_0(callid, ELIMIT);
 		} else {
 			switch (IPC_GET_IMETHOD(call)) {
-			case INPUT_YIELD:
-				kbd_devs_yield();
-				async_answer_0(callid, EOK);
-				break;
-			case INPUT_RECLAIM:
-				kbd_devs_reclaim();
+			case INPUT_ACTIVATE:
+				active_client = client;
+				client_arbitration(client);
 				async_answer_0(callid, EOK);
 				break;
 			default:
 				async_answer_0(callid, EINVAL);
 			}
 		}
+	}
+}
+
+static void kconsole_event_handler(ipc_callid_t callid, ipc_call_t *call,
+    void *arg)
+{
+	if (IPC_GET_ARG1(*call)) {
+		/* Kernel console activated */
+		client_arbitration(NULL);
+	} else {
+		/* Kernel console deactivated */
+		client_arbitration(active_client);
 	}
 }
 
@@ -269,7 +377,7 @@ static kbd_dev_t *kbd_dev_new(void)
 		return NULL;
 	}
 	
-	link_initialize(&kdev->kbd_devs);
+	link_initialize(&kdev->link);
 	
 	kdev->mods = KM_NUM_LOCK;
 	kdev->lock_keys = 0;
@@ -287,7 +395,7 @@ static mouse_dev_t *mouse_dev_new(void)
 		return NULL;
 	}
 	
-	link_initialize(&mdev->mouse_devs);
+	link_initialize(&mdev->link);
 	
 	return mdev;
 }
@@ -313,7 +421,7 @@ static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 		goto fail;
 	}
 	
-	list_append(&kdev->kbd_devs, &kbd_devs);
+	list_append(&kdev->link, &kbd_devs);
 	return;
 	
 fail:
@@ -341,7 +449,7 @@ static void mouse_add_dev(mouse_port_ops_t *port, mouse_proto_ops_t *proto)
 		goto fail;
 	}
 	
-	list_append(&mdev->mouse_devs, &mouse_devs);
+	list_append(&mdev->link, &mouse_devs);
 	return;
 	
 fail:
@@ -350,7 +458,7 @@ fail:
 
 /** Add new kbdev device.
  *
- * @param service_id	Service ID of the keyboard device
+ * @param service_id Service ID of the keyboard device
  *
  */
 static int kbd_add_kbdev(service_id_t service_id, kbd_dev_t **kdevp)
@@ -374,7 +482,7 @@ static int kbd_add_kbdev(service_id_t service_id, kbd_dev_t **kdevp)
 		goto fail;
 	}
 	
-	list_append(&kdev->kbd_devs, &kbd_devs);
+	list_append(&kdev->link, &kbd_devs);
 	*kdevp = kdev;
 	return EOK;
 	
@@ -387,7 +495,7 @@ fail:
 
 /** Add new mousedev device.
  *
- * @param service_id	Service ID of the mouse device
+ * @param service_id Service ID of the mouse device
  *
  */
 static int mouse_add_mousedev(service_id_t service_id, mouse_dev_t **mdevp)
@@ -411,7 +519,7 @@ static int mouse_add_mousedev(service_id_t service_id, mouse_dev_t **mdevp)
 		goto fail;
 	}
 	
-	list_append(&mdev->mouse_devs, &mouse_devs);
+	list_append(&mdev->link, &mouse_devs);
 	*mdevp = mdev;
 	return EOK;
 	
@@ -429,9 +537,6 @@ static void kbd_add_legacy_devs(void)
 	 */
 #if defined(UARCH_arm32) && defined(MACHINE_gta02)
 	kbd_add_dev(&chardev_port, &stty_ctl);
-#endif
-#if defined(UARCH_arm32) && defined(MACHINE_integratorcp)
-	kbd_add_dev(&pl050_port, &pc_ctl);
 #endif
 #if defined(MACHINE_ski)
 	kbd_add_dev(&ski_port, &stty_ctl);
@@ -466,26 +571,6 @@ static void mouse_add_legacy_devs(void)
 	(void) mouse_add_dev;
 }
 
-static void kbd_devs_yield(void)
-{
-	/* For each keyboard device */
-	list_foreach(kbd_devs, kbd_devs, kbd_dev_t, kdev) {
-		/* Yield port */
-		if (kdev->port_ops != NULL)
-			(*kdev->port_ops->yield)();
-	}
-}
-
-static void kbd_devs_reclaim(void)
-{
-	/* For each keyboard device */
-	list_foreach(kbd_devs, kbd_devs, kbd_dev_t, kdev) {
-		/* Reclaim port */
-		if (kdev->port_ops != NULL)
-			(*kdev->port_ops->reclaim)();
-	}
-}
-
 static int dev_check_new_kbdevs(void)
 {
 	category_id_t keyboard_cat;
@@ -514,7 +599,7 @@ static int dev_check_new_kbdevs(void)
 		already_known = false;
 		
 		/* Determine whether we already know this device. */
-		list_foreach(kbd_devs, kbd_devs, kbd_dev_t, kdev) {
+		list_foreach(kbd_devs, link, kbd_dev_t, kdev) {
 			if (kdev->svc_id == svcs[i]) {
 				already_known = true;
 				break;
@@ -565,7 +650,7 @@ static int dev_check_new_mousedevs(void)
 		already_known = false;
 		
 		/* Determine whether we already know this device. */
-		list_foreach(mouse_devs, mouse_devs, mouse_dev_t, mdev) {
+		list_foreach(mouse_devs, link, mouse_dev_t, mdev) {
 			if (mdev->svc_id == svcs[i]) {
 				already_known = true;
 				break;
@@ -619,15 +704,13 @@ static void cat_change_cb(void)
 /** Start listening for new devices. */
 static int input_start_dev_discovery(void)
 {
-	int rc;
-
-	rc = loc_register_cat_change_cb(cat_change_cb);
+	int rc = loc_register_cat_change_cb(cat_change_cb);
 	if (rc != EOK) {
 		printf("%s: Failed registering callback for device discovery. "
 		    "(%d)\n", NAME, rc);
 		return rc;
 	}
-
+	
 	return dev_check_new();
 }
 
@@ -647,6 +730,7 @@ int main(int argc, char **argv)
 	
 	sysarg_t obio;
 	
+	list_initialize(&clients);
 	list_initialize(&kbd_devs);
 	list_initialize(&mouse_devs);
 	
@@ -666,7 +750,10 @@ int main(int argc, char **argv)
 	mouse_add_legacy_devs();
 	
 	/* Register driver */
+	async_set_client_data_constructor(client_data_create);
+	async_set_client_data_destructor(client_data_destroy);
 	async_set_client_connection(client_connection);
+	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server\n", NAME);
@@ -679,6 +766,12 @@ int main(int argc, char **argv)
 		printf("%s: Unable to register service %s\n", NAME, argv[1]);
 		return rc;
 	}
+	
+	/* Receive kernel notifications */
+	rc = async_event_subscribe(EVENT_KCONSOLE, kconsole_event_handler, NULL);
+	if (rc != EOK)
+		printf("%s: Failed to register kconsole notifications (%s)\n",
+		    NAME, str_error(rc));
 	
 	/* Start looking for new input devices */
 	input_start_dev_discovery();

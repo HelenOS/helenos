@@ -39,7 +39,7 @@
 #define __POSIX_DEF__(x) x
 #endif
 
-#include "sys/types.h"
+#include "types.h"
 #include <abi/mm/as.h>
 
 #define MAP_FAILED ((void *) -1)
@@ -59,9 +59,10 @@
 #define PROT_WRITE AS_AREA_WRITE
 #define PROT_EXEC  AS_AREA_EXEC
 
-extern void *mmap(void *start, size_t length, int prot, int flags, int fd,
+extern void *
+__POSIX_DEF__(mmap)(void *start, size_t length, int prot, int flags, int fd,
     __POSIX_DEF__(off_t) offset);
-extern int munmap(void *start, size_t length);
+extern int __POSIX_DEF__(munmap)(void *start, size_t length);
 
 
 #endif /* POSIX_SYS_MMAN_H_ */

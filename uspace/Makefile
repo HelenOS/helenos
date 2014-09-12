@@ -43,6 +43,7 @@ DIRS = \
 	app/dnsres \
 	app/download \
 	app/edit \
+	app/fontviewer \
 	app/getterm \
 	app/hdisk \
 	app/init \
@@ -76,6 +77,7 @@ DIRS = \
 	app/nettest1 \
 	app/nettest2 \
 	app/nettest3 \
+	app/nic \
 	app/ping \
 	app/sysinfo \
 	app/mkbd \
@@ -128,12 +130,14 @@ DIRS = \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
 	srv/hid/rfb \
+	drv/audio/hdaudio \
 	drv/audio/sb16 \
-	drv/infrastructure/root \
-	drv/infrastructure/rootvirt \
+	drv/root/root \
+	drv/root/virt \
 	drv/block/ahci \
 	drv/block/ata_bd \
 	drv/char/i8042 \
+	drv/char/pl050 \
 	drv/char/ps2mouse \
 	drv/char/xtkbd \
 	drv/test/test1 \
@@ -151,43 +155,16 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/ne2k \
 	drv/nic/e1k \
-	drv/nic/rtl8139
-
-ifeq ($(CONFIG_PCC),y)
-DIRS += \
-	app/cc \
-	app/ccom \
-	app/ccom/mkext \
-	app/cpp
-endif
-
-ifeq ($(CONFIG_BINUTILS),y)
-DIRS += \
-	app/binutils
-endif
-
-ifeq ($(CONFIG_MSIM),y)
-DIRS += \
-	app/msim
-endif
+	drv/nic/rtl8139 \
+	drv/nic/rtl8169 \
+	drv/platform/icp
 
 ## Platform-specific hardware support
 #
 
-ifeq ($(UARCH),amd64)
+ifeq ($(UARCH), $(filter $(UARCH),amd64 ia32 ia64))
 	DIRS += \
-		drv/infrastructure/rootpc \
-		drv/bus/pci/pciintel \
-		drv/bus/isa \
-		drv/char/ns8250 \
-		drv/time/cmos-rtc \
-		srv/hw/irc/apic \
-		srv/hw/irc/i8259
-endif
-
-ifeq ($(UARCH),ia32)
-	DIRS += \
-		drv/infrastructure/rootpc \
+		drv/platform/pc \
 		drv/bus/pci/pciintel \
 		drv/bus/isa \
 		drv/char/ns8250 \
@@ -198,14 +175,14 @@ endif
 
 ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
 	DIRS += \
-		drv/infrastructure/rootmalta \
+		drv/platform/malta \
 		drv/bus/pci/pciintel \
 		drv/bus/isa
 endif
 
 ifeq ($(UARCH),ppc32)
 	DIRS += \
-		drv/infrastructure/rootmac \
+		drv/platform/mac \
 		drv/bus/pci/pciintel \
 		srv/hw/bus/cuda_adb
 endif
@@ -217,8 +194,9 @@ endif
 
 ifeq ($(UARCH),arm32)
 	DIRS += \
-		drv/infrastructure/rootamdm37x \
-		drv/fb/amdm37x_dispc
+		drv/platform/amdm37x \
+		drv/fb/amdm37x_dispc \
+		srv/hw/irc/icp-ic
 endif
 
 ## System libraries

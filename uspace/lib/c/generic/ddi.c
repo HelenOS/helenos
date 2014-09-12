@@ -70,10 +70,12 @@ int device_assign_devno(void)
  * @param pages Number of pages to map.
  * @param flags Flags for the new address space area.
  * @param virt  Virtual address of the starting page.
+ *              If set to AS_AREA_ANY ((void *) -1), a suitable value
+ *              is found by the kernel, otherwise the kernel tries to
+ *              obey the desired value.
  *
- * @return EOK on success
- * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability
- * @return ENOENT if there is no task with specified ID
+ * @return EOK on success.
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
  * @return ENOMEM if there was some problem in creating
  *         the address space area.
  *
@@ -84,6 +86,41 @@ int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 	    pages, flags, (sysarg_t) virt, (sysarg_t) __entry);
 }
 
+/** Unmap a piece of physical memory to task.
+ *
+ * Caller of this function must have the CAP_MEM_MANAGER capability.
+ *
+ * @param virt Virtual address from the phys-mapped region.
+ *
+ * @return EOK on success.
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ *
+ */
+int physmem_unmap(void *virt)
+{
+	return __SYSCALL1(SYS_PHYSMEM_UNMAP, (sysarg_t) virt);
+}
+
+/** Lock a piece physical memory for DMA transfers.
+ *
+ * The mapping of the specified virtual memory address
+ * to physical memory address is locked in order to
+ * make it safe for DMA transferts.
+ *
+ * Caller of this function must have the CAP_MEM_MANAGER capability.
+ *
+ * @param virt      Virtual address of the memory to be locked.
+ * @param size      Number of bytes to lock.
+ * @param map_flags Desired virtual memory area flags.
+ * @param flags     Flags for the physical memory address.
+ * @param phys      Locked physical memory address.
+ *
+ * @return EOK on success.
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ * @return ENOMEM if there was some problem in creating
+ *         the address space area.
+ *
+ */
 int dmamem_map(void *virt, size_t size, unsigned int map_flags,
     unsigned int flags, uintptr_t *phys)
 {
@@ -92,6 +129,26 @@ int dmamem_map(void *virt, size_t size, unsigned int map_flags,
 	    (sysarg_t) phys, (sysarg_t) virt, 0);
 }
 
+/** Map a piece of physical memory suitable for DMA transfers.
+ *
+ * Caller of this function must have the CAP_MEM_MANAGER capability.
+ *
+ * @param size       Number of bytes to map.
+ * @param constraint Bit mask defining the contraint on the physical
+ *                   address to be mapped.
+ * @param map_flags  Desired virtual memory area flags.
+ * @param flags      Flags for the physical memory address.
+ * @param virt       Virtual address of the starting page.
+ *                   If set to AS_AREA_ANY ((void *) -1), a suitable value
+ *                   is found by the kernel, otherwise the kernel tries to
+ *                   obey the desired value.
+ *
+ * @return EOK on success.
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ * @return ENOMEM if there was some problem in creating
+ *         the address space area.
+ *
+ */
 int dmamem_map_anonymous(size_t size, uintptr_t constraint,
     unsigned int map_flags, unsigned int flags, uintptr_t *phys, void **virt)
 {
@@ -136,6 +193,30 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 	};
 	
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
+}
+
+/** Disable I/O space range to task.
+ *
+ * Caller of this function must have the IO_MEM_MANAGER capability.
+ *
+ * @param id     Task ID.
+ * @param ioaddr Starting address of the I/O range.
+ * @param size   Size of the range.
+ *
+ * @return EOK on success
+ * @return EPERM if the caller lacks the CAP_IO_MANAGER capability
+ * @return ENOENT if there is no task with specified ID
+ *
+ */
+static int iospace_disable(task_id_t id, void *ioaddr, size_t size)
+{
+	const ddi_ioarg_t arg = {
+		.task_id = id,
+		.ioaddr = ioaddr,
+		.size = size
+	};
+	
+	return __SYSCALL1(SYS_IOSPACE_DISABLE, (sysarg_t) &arg);
 }
 
 /** Enable PIO for specified address range.
@@ -220,7 +301,7 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 	size_t offset = (uintptr_t) pio_addr - phys_frame;
 	size_t pages = SIZE2PAGES(offset + size);
 	
-	void *virt_page;
+	void *virt_page = AS_AREA_ANY;
 	int rc = physmem_map(phys_frame, pages,
 	    AS_AREA_READ | AS_AREA_WRITE, &virt_page);
 	if (rc != EOK)
@@ -228,6 +309,26 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 	
 	*virt = virt_page + offset;
 	return EOK;
+}
+
+/** Disable PIO for specified I/O range.
+ *
+ * @param virt     I/O start address.
+ * @param size     Size of the I/O region.
+ *
+ * @return EOK on success.
+ * @return Negative error code on failure.
+ *
+ */
+int pio_disable(void *virt, size_t size)
+{
+#ifdef IO_SPACE_BOUNDARY
+	if (virt < IO_SPACE_BOUNDARY)
+		return iospace_disable(task_get_id(), virt, size);
+#else
+	(void) iospace_disable;
+#endif
+	return physmem_unmap(virt);
 }
 
 void pio_write_8(ioport8_t *reg, uint8_t val)
@@ -267,35 +368,6 @@ uint32_t pio_read_32(const ioport32_t *reg)
 	const uint32_t val = arch_pio_read_32(reg);
 	pio_trace_log(reg, val, false);
 	return val;
-}
-
-/** Register IRQ notification.
- *
- * @param inr    IRQ number.
- * @param devno  Device number of the device generating inr.
- * @param method Use this method for notifying me.
- * @param ucode  Top-half pseudocode handler.
- *
- * @return Value returned by the kernel.
- *
- */
-int irq_register(int inr, int devno, int method, const irq_code_t *ucode)
-{
-	return __SYSCALL4(SYS_IRQ_REGISTER, inr, devno, method,
-	    (sysarg_t) ucode);
-}
-
-/** Unregister IRQ notification.
- *
- * @param inr   IRQ number.
- * @param devno Device number of the device generating inr.
- *
- * @return Value returned by the kernel.
- *
- */
-int irq_unregister(int inr, int devno)
-{
-	return __SYSCALL2(SYS_IRQ_UNREGISTER, inr, devno);
 }
 
 /** @}

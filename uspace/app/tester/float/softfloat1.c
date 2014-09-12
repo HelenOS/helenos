@@ -38,7 +38,7 @@
 #include <stdbool.h>
 #include "../tester.h"
 
-#define OPERANDS  10
+#define OPERANDS   10
 #define PRECISION  10000
 
 #define PRIdCMPTYPE  PRId32
@@ -55,14 +55,14 @@ typedef void (* template_unary_t)(void *, unsigned, cmptype_t *, cmptype_t *);
 typedef void (* template_binary_t)(void *, unsigned, unsigned, cmptype_t *,
     cmptype_t *);
 
-#define NUMBERS	\
+#define NUMBERS \
 	3.5, -2.1, 100.0, 50.0, -1024.0, 0.0, 768.3156, 1080.499999, -600.0, 1.0
 
 static float fop_a[OPERANDS] = {
 	NUMBERS
 };
 
-static double dop_a[OPERANDS] =	{
+static double dop_a[OPERANDS] = {
 	NUMBERS
 };
 
@@ -82,74 +82,68 @@ static int dcmp(double a, double b)
 {
 	if (a < b)
 		return -1;
-	else if (a > b)
+	
+	if (a > b)
 		return 1;
-
+	
 	return 0;
 }
 
-static void
-uint_to_double_template(void *f, unsigned i, cmptype_t *pic, cmptype_t *pisc)
+static void uint_to_double_template(void *f, unsigned i, cmptype_t *pic,
+    cmptype_t *pisc)
 {
-	double c;
-	double_t sc;
-
 	uint_to_double_op_t op = (uint_to_double_op_t) f;
 	
+	double c;
+	double_t sc;
 	op(uop_a[i], &c, &sc);
-
+	
 	*pic = (cmptype_t) (c * PRECISION);
 	*pisc = (cmptype_t) (sc.val * PRECISION);
 }
 
-static void
-double_to_uint_template(void *f, unsigned i, cmptype_t *pic, cmptype_t *pisc)
+static void double_to_uint_template(void *f, unsigned i, cmptype_t *pic,
+    cmptype_t *pisc)
 {
-	unsigned int c;
-	unsigned int sc;
-
 	double_to_uint_op_t op = (double_to_uint_op_t) f;
 	
+	unsigned int c;
+	unsigned int sc;
 	op(dop_a[i], &c, &sc);
-
+	
 	*pic = (cmptype_t) c;
 	*pisc = (cmptype_t) sc;
 }
 
 
-static void
-float_template_binary(void *f, unsigned i, unsigned j, cmptype_t *pic,
-    cmptype_t *pisc)
+static void float_template_binary(void *f, unsigned i, unsigned j,
+    cmptype_t *pic, cmptype_t *pisc)
 {
-	float c;
-	float_t sc;
-
 	float_binary_op_t op = (float_binary_op_t) f;
 	
+	float c;
+	float_t sc;
 	op(fop_a[i], fop_a[j], &c, &sc);
-
+	
 	*pic = (cmptype_t) (c * PRECISION);
 	*pisc = (cmptype_t) (sc.val * PRECISION);
 }
 
-static void
-double_template_binary(void *f, unsigned i, unsigned j, cmptype_t *pic,
-    cmptype_t *pisc)
+static void double_template_binary(void *f, unsigned i, unsigned j,
+    cmptype_t *pic, cmptype_t *pisc)
 {
-	double c;
-	double_t sc;
-
 	double_binary_op_t op = (double_binary_op_t) f;
 	
+	double c;
+	double_t sc;
 	op(dop_a[i], dop_a[j], &c, &sc);
-
+	
 	*pic = (cmptype_t) (c * PRECISION);
 	*pisc = (cmptype_t) (sc.val * PRECISION);
 }
 
-static void
-double_compare_template(void *f, unsigned i, unsigned j, cmptype_t *pis,
-    cmptype_t *piss)
+static void double_compare_template(void *f, unsigned i, unsigned j,
+    cmptype_t *pis, cmptype_t *piss)
 {
 	double_cmp_op_t op = (double_cmp_op_t) f;
 	
@@ -163,10 +157,10 @@ static bool test_template_unary(template_unary_t template, void *f)
 	for (unsigned int i = 0; i < OPERANDS; i++) {
 		cmptype_t ic;
 		cmptype_t isc;
-
-		template(f, i, &ic, &isc);	
+		
+		template(f, i, &ic, &isc);
 		cmptype_t diff = cmpabs(ic - isc);
-			
+		
 		if (diff != 0) {
 			TPRINTF("i=%u diff=%" PRIdCMPTYPE "\n", i, diff);
 			correct = false;
@@ -181,11 +175,11 @@ static bool test_template_binary(template_binary_t template, void *f)
 	bool correct = true;
 	
 	for (unsigned int i = 0; i < OPERANDS; i++) {
-		for (unsigned int j = 0; j < OPERANDS; j++) {			
+		for (unsigned int j = 0; j < OPERANDS; j++) {
 			cmptype_t ic;
 			cmptype_t isc;
-
-			template(f, i, j, &ic, &isc);	
+			
+			template(f, i, j, &ic, &isc);
 			cmptype_t diff = cmpabs(ic - isc);
 			
 			if (diff != 0) {
@@ -205,24 +199,24 @@ static void uint_to_double_operator(unsigned int a, double *pc, double_t *psc)
 	psc->data = uint_to_double(a);
 }
 
-static void
-double_to_uint_operator(double a, unsigned int *pc, unsigned int *psc)
+static void double_to_uint_operator(double a, unsigned int *pc,
+    unsigned int *psc)
 {
 	double_t sa;
-
+	
 	sa.val = a;
-
+	
 	*pc = (unsigned int) a;
 	*psc = double_to_uint(sa.data);
 }
 
-static void
-double_to_int_operator(double a, unsigned int *pc, unsigned int *psc)
+static void double_to_int_operator(double a, unsigned int *pc,
+    unsigned int *psc)
 {
 	double_t sa;
-
+	
 	sa.val = a;
-
+	
 	*pc = (int) a;
 	*psc = double_to_int(sa.data);
 }
@@ -236,9 +230,10 @@ static void float_add_operator(float a, float b, float *pc, float_t *psc)
 	
 	sa.val = a;
 	sb.val = b;
-	if (sa.data.parts.sign == sb.data.parts.sign)
+	
+	if (sa.data.parts.sign == sb.data.parts.sign) {
 		psc->data = add_float(sa.data, sb.data);
-	else if (sa.data.parts.sign) {
+	} else if (sa.data.parts.sign) {
 		sa.data.parts.sign = 0;
 		psc->data = sub_float(sb.data, sa.data);
 	} else {
@@ -266,7 +261,7 @@ static void float_div_operator(float a, float b, float *pc, float_t *psc)
 		psc->val = 0.0;
 		return;
 	}
-
+	
 	*pc = a / b;
 	
 	float_t sa;
@@ -286,9 +281,10 @@ static void double_add_operator(double a, double b, double *pc, double_t *psc)
 	
 	sa.val = a;
 	sb.val = b;
-	if (sa.data.parts.sign == sb.data.parts.sign)
+	
+	if (sa.data.parts.sign == sb.data.parts.sign) {
 		psc->data = add_double(sa.data, sb.data);
-	else if (sa.data.parts.sign) {
+	} else if (sa.data.parts.sign) {
 		sa.data.parts.sign = 0;
 		psc->data = sub_double(sb.data, sa.data);
 	} else {
@@ -316,7 +312,7 @@ static void double_div_operator(double a, double b, double *pc, double_t *psc)
 		psc->val = 0.0;
 		return;
 	}
-
+	
 	*pc = a / b;
 	
 	double_t sa;
@@ -327,17 +323,17 @@ static void double_div_operator(double a, double b, double *pc, double_t *psc)
 	psc->data = div_double(sa.data, sb.data);
 }
 
-static void
-double_cmp_operator(double a, double b, cmptype_t *pis, cmptype_t *piss)
+static void double_cmp_operator(double a, double b, cmptype_t *pis,
+    cmptype_t *piss)
 {
 	*pis = dcmp(a, b);
-
+	
 	double_t sa;
 	double_t sb;
-
+	
 	sa.val = a;
 	sb.val = b;
-
+	
 	if (is_double_lt(sa.data, sb.data))
 		*piss = -1;
 	else if (is_double_gt(sa.data, sb.data))
@@ -351,45 +347,54 @@ double_cmp_operator(double a, double b, cmptype_t *pis, cmptype_t *piss)
 const char *test_softfloat1(void)
 {
 	const char *err = NULL;
-
+	
 	if (!test_template_binary(float_template_binary, float_add_operator)) {
 		err = "Float addition failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_binary(float_template_binary, float_mul_operator)) {
 		err = "Float multiplication failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_binary(float_template_binary, float_div_operator)) {
 		err = "Float division failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_binary(double_template_binary, double_add_operator)) {
 		err = "Double addition failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_binary(double_template_binary, double_mul_operator)) {
 		err = "Double multiplication failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_binary(double_template_binary, double_div_operator)) {
 		err = "Double division failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_binary(double_compare_template, double_cmp_operator)) {
 		err = "Double comparison failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_unary(uint_to_double_template,
 	    uint_to_double_operator)) {
 		err = "Conversion from unsigned int to double failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_unary(double_to_uint_template,
 	    double_to_uint_operator)) {
 		err = "Conversion from double to unsigned int failed";
 		TPRINTF("%s\n", err);
 	}
+	
 	if (!test_template_unary(double_to_uint_template,
 	    double_to_int_operator)) {
 		err = "Conversion from double to signed int failed";
@@ -398,4 +403,3 @@ const char *test_softfloat1(void)
 	
 	return err;
 }
-

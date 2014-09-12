@@ -43,9 +43,6 @@
 #include <usb/dev/driver.h>
 #include "usbmast.h"
 
-#define BULK_IN_EP 0
-#define BULK_OUT_EP 1
-
 typedef enum cmd_status {
 	CMDS_GOOD,
 	CMDS_FAILED

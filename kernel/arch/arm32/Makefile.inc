@@ -35,9 +35,9 @@ ATSIGN = %
 GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
 
 ifeq ($(CONFIG_FPU),y)
-# This is necessary to allow vmsr insn and fpexc manipulation
-# Use vfp32 to allow context save/restore of d16-d31 regs.
-AFLAGS += -mfloat-abi=hard -mfpu=vfp3
+	# This is necessary to allow vmsr insn and fpexc manipulation
+	# Use vfp32 to allow context save/restore of d16-d31 regs.
+	AFLAGS += -mfloat-abi=hard -mfpu=vfp3
 endif
 
 BITS = 32
@@ -53,7 +53,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/dummy.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/interrupt.c \
 	arch/$(KARCH)/src/exception.c \
 	arch/$(KARCH)/src/userspace.c \
@@ -85,7 +84,7 @@ ifeq ($(MACHINE),beagleboardxm)
 endif
 
 ifeq ($(MACHINE),beaglebone)
-        ARCH_SOURCES += arch/$(KARCH)/src/mach/beaglebone/beaglebone.c
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/beaglebone/beaglebone.c
 endif
 
 ifeq ($(MACHINE),raspberrypi)
@@ -95,3 +94,8 @@ endif
 ifeq ($(CONFIG_PL050),y)
 	ARCH_SOURCES += genarch/src/drivers/pl050/pl050.c
 endif
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag \
+	arch/$(KARCH)/include/arch/context_struct.ag
+

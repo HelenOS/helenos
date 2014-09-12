@@ -62,7 +62,9 @@ static void niagara_putchar(outdev_t *, const wchar_t);
 /** Character device operations */
 static outdev_operations_t niagara_ops = {
 	.write = niagara_putchar,
-	.redraw = NULL
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 /**
@@ -205,6 +207,7 @@ static void niagara_init(void)
 	 * buffers.
 	 */
 	
+	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 5);
 	
 	sysinfo_set_item_val("niagara.outbuf.address", NULL,

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2014 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -38,13 +38,15 @@
  * @brief i8042 PS/2 port driver.
  */
 
-#include <device/hw_res.h>
+#include <ddf/log.h>
+#include <ddf/interrupt.h>
 #include <ddi.h>
+#include <device/hw_res.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
-#include <ddf/log.h>
-#include <ddf/interrupt.h>
+#include <io/chardev_srv.h>
+
 #include "i8042.h"
 
 /* Interesting bits for status register */
@@ -63,11 +65,13 @@
 #define i8042_AUX_DISABLE    0x20
 #define i8042_KBD_TRANSLATE  0x40  /* Use this to switch to XT scancodes */
 
-void default_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static void i8042_char_conn(ipc_callid_t, ipc_call_t *, void *);
+static int i8042_read(chardev_srv_t *, void *, size_t);
+static int i8042_write(chardev_srv_t *, const void *, size_t);
 
-/** Port function operations. */
-static ddf_dev_ops_t ops = {
-	.default_handler = default_handler,
+static chardev_ops_t i8042_chardev_ops = {
+	.read = i8042_read,
+	.write = i8042_write
 };
 
 static const irq_pio_range_t i8042_ranges[] = {
@@ -105,12 +109,6 @@ static const irq_cmd_t i8042_cmds[] = {
 	}
 };
 
-/** Get i8042 soft state from device node. */
-static i8042_t *dev_i8042(ddf_dev_t *dev)
-{
-	return ddf_dev_data_get(dev);
-}
-
 /** Wait until it is safe to write to the device. */
 static void wait_ready(i8042_t *dev)
 {
@@ -122,15 +120,15 @@ static void wait_ready(i8042_t *dev)
  *
  * Write new data to the corresponding buffer.
  *
- * @param dev  Device that caued the interrupt.
  * @param iid  Call id.
  * @param call pointerr to call data.
+ * @param dev  Device that caued the interrupt.
  *
  */
-static void i8042_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
-    ipc_call_t *call)
+static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call,
+    ddf_dev_t *dev)
 {
-	i8042_t *controller = dev_i8042(dev);
+	i8042_t *controller = ddf_dev_data_get(dev);
 	
 	const uint8_t status = IPC_GET_ARG1(*call);
 	const uint8_t data = IPC_GET_ARG2(*call);
@@ -185,6 +183,17 @@ int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		goto error;
 	};
 	
+	dev->kbd = ddf_fun_data_alloc(dev->kbd_fun, sizeof(i8042_port_t));
+	if (dev->kbd == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+	
+	dev->kbd->ctl = dev;
+	chardev_srvs_init(&dev->kbd->cds);
+	dev->kbd->cds.ops = &i8042_chardev_ops;
+	dev->kbd->cds.sarg = dev->kbd;
+	
 	rc = ddf_fun_add_match_id(dev->kbd_fun, "char/xtkbd", 90);
 	if (rc != EOK)
 		goto error;
@@ -195,12 +204,23 @@ int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		goto error;
 	}
 	
+	dev->aux = ddf_fun_data_alloc(dev->aux_fun, sizeof(i8042_port_t));
+	if (dev->aux == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+	
+	dev->aux->ctl = dev;
+	chardev_srvs_init(&dev->aux->cds);
+	dev->aux->cds.ops = &i8042_chardev_ops;
+	dev->aux->cds.sarg = dev->aux;
+	
 	rc = ddf_fun_add_match_id(dev->aux_fun, "char/ps2mouse", 90);
 	if (rc != EOK)
 		goto error;
 	
-	ddf_fun_set_ops(dev->kbd_fun, &ops);
-	ddf_fun_set_ops(dev->aux_fun, &ops);
+	ddf_fun_set_conn_handler(dev->kbd_fun, i8042_char_conn);
+	ddf_fun_set_conn_handler(dev->aux_fun, i8042_char_conn);
 	
 	buffer_init(&dev->kbd_buffer, dev->kbd_data, BUFFER_SIZE);
 	buffer_init(&dev->aux_buffer, dev->aux_data, BUFFER_SIZE);
@@ -297,102 +317,73 @@ error:
 	return rc;
 }
 
-// FIXME TODO use shared instead this
-enum {
-	IPC_CHAR_READ = DEV_FIRST_CUSTOM_METHOD,
-	IPC_CHAR_WRITE,
-};
-
 /** Write data to i8042 port.
  *
- * @param fun    DDF function.
- * @param buffer Data source.
- * @param size   Data size.
+ * @param srv	 Connection-specific data
+ * @param buffer Data source
+ * @param size   Data size
  *
  * @return Bytes written.
  *
  */
-static int i8042_write(ddf_fun_t *fun, char *buffer, size_t size)
+static int i8042_write(chardev_srv_t *srv, const void *data, size_t size)
 {
-	i8042_t *controller = dev_i8042(ddf_fun_get_dev(fun));
-	fibril_mutex_lock(&controller->write_guard);
+	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
+	i8042_t *i8042 = port->ctl;
+	const char *dp = (const char *)data;
+	
+	fibril_mutex_lock(&i8042->write_guard);
 	
 	for (size_t i = 0; i < size; ++i) {
-		if (controller->aux_fun == fun) {
-			wait_ready(controller);
-			pio_write_8(&controller->regs->status,
+		if (port == i8042->aux) {
+			wait_ready(i8042);
+			pio_write_8(&i8042->regs->status,
 			    i8042_CMD_WRITE_AUX);
 		}
 		
-		wait_ready(controller);
-		pio_write_8(&controller->regs->data, buffer[i]);
+		wait_ready(i8042);
+		pio_write_8(&i8042->regs->data, dp[i]);
 	}
 	
-	fibril_mutex_unlock(&controller->write_guard);
+	fibril_mutex_unlock(&i8042->write_guard);
 	return size;
 }
 
 /** Read data from i8042 port.
  *
- * @param fun    DDF function.
- * @param buffer Data place.
- * @param size   Data place size.
+ * @param srv	 Connection-specific data
+ * @param buffer Data place
+ * @param size   Data place size
  *
  * @return Bytes read.
  *
  */
-static int i8042_read(ddf_fun_t *fun, char *data, size_t size)
+static int i8042_read(chardev_srv_t *srv, void *dest, size_t size)
 {
-	i8042_t *controller = dev_i8042(ddf_fun_get_dev(fun));
-	buffer_t *buffer = (fun == controller->aux_fun) ?
-	    &controller->aux_buffer : &controller->kbd_buffer;
+	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
+	i8042_t *i8042 = port->ctl;
+	uint8_t *destp = (uint8_t *)dest;
+	
+	buffer_t *buffer = (port == i8042->aux) ?
+	    &i8042->aux_buffer : &i8042->kbd_buffer;
 	
 	for (size_t i = 0; i < size; ++i)
-		*data++ = buffer_read(buffer);
+		*destp++ = buffer_read(buffer);
 	
 	return size;
 }
 
 /** Handle data requests.
  *
- * @param fun  ddf_fun_t function.
  * @param id   callid
  * @param call IPC request.
- *
+ * @param arg  ddf_fun_t function.
  */
-void default_handler(ddf_fun_t *fun, ipc_callid_t id, ipc_call_t *call)
+void i8042_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	const sysarg_t method = IPC_GET_IMETHOD(*call);
-	const size_t size = IPC_GET_ARG1(*call);
-	
-	switch (method) {
-	case IPC_CHAR_READ:
-		if (size <= 4 * sizeof(sysarg_t)) {
-			sysarg_t message[4] = {};
-			
-			i8042_read(fun, (char *) message, size);
-			async_answer_4(id, size, message[0], message[1],
-			    message[2], message[3]);
-		} else
-			async_answer_0(id, ELIMIT);
-		break;
-	
-	case IPC_CHAR_WRITE:
-		if (size <= 3 * sizeof(sysarg_t)) {
-			const sysarg_t message[3] = {
-				IPC_GET_ARG2(*call),
-				IPC_GET_ARG3(*call),
-				IPC_GET_ARG4(*call)
-			};
-			
-			i8042_write(fun, (char *) message, size);
-			async_answer_0(id, size);
-		} else
-			async_answer_0(id, ELIMIT);
-	
-	default:
-		async_answer_0(id, EINVAL);
-	}
+	i8042_port_t *port = ddf_fun_data_get((ddf_fun_t *)arg);
+
+	chardev_conn(iid, icall, &port->cds);
 }
 
 /**

@@ -61,6 +61,7 @@ struct bd_ops {
 	int (*close)(bd_srv_t *);
 	int (*read_blocks)(bd_srv_t *, aoff64_t, size_t, void *, size_t);
 	int (*read_toc)(bd_srv_t *, uint8_t, void *, size_t);
+	int (*sync_cache)(bd_srv_t *, aoff64_t, size_t);
 	int (*write_blocks)(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
 	int (*get_block_size)(bd_srv_t *, size_t *);
 	int (*get_num_blocks)(bd_srv_t *, aoff64_t *);

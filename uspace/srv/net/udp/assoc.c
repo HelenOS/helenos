@@ -274,10 +274,10 @@ int udp_assoc_send(udp_assoc_t *assoc, udp_sock_t *fsock, udp_msg_t *msg)
 		return ENOMEM;
 
 	rc = udp_transmit_pdu(pdu);
+	udp_pdu_delete(pdu);
+
 	if (rc != EOK)
 		return EIO;
-
-	udp_pdu_delete(pdu);
 
 	return EOK;
 }
@@ -334,6 +334,7 @@ void udp_assoc_received(udp_sockpair_t *rsp, udp_msg_t *msg)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "No association found. Message dropped.");
 		/* XXX Generate ICMP error. */
 		/* XXX Might propagate error directly by error return. */
+		udp_msg_delete(msg);
 		return;
 	}
 

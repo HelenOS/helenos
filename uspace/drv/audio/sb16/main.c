@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 	return ddf_driver_main(&sb_driver);
 }
 
-static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 {
 	sb16_t *sb16_dev = ddf_dev_data_get(dev);
 	sb16_interrupt(sb16_dev);

@@ -36,6 +36,7 @@
 #define KERN_DEBUG_H_
 
 #include <panic.h>
+#include <log.h>
 #include <symtab_lookup.h>
 
 #define CALLER  ((uintptr_t) __builtin_return_address(0))

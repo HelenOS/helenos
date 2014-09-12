@@ -99,8 +99,9 @@ extern int event_notify(event_type_t, bool, sysarg_t, sysarg_t, sysarg_t,
 extern int event_task_notify(struct task *, event_task_type_t, bool, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
-extern sysarg_t sys_event_subscribe(sysarg_t, sysarg_t);
-extern sysarg_t sys_event_unmask(sysarg_t);
+extern sysarg_t sys_ipc_event_subscribe(sysarg_t, sysarg_t);
+extern sysarg_t sys_ipc_event_unsubscribe(sysarg_t);
+extern sysarg_t sys_ipc_event_unmask(sysarg_t);
 
 #endif
 

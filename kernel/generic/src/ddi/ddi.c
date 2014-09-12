@@ -120,6 +120,7 @@ NO_TRACE static int physmem_map(uintptr_t phys, size_t pages,
 	mem_backend_data_t backend_data;
 	backend_data.base = phys;
 	backend_data.frames = pages;
+	backend_data.anonymous = false;
 	
 	/*
 	 * Check if the memory region is explicitly enabled
@@ -209,8 +210,9 @@ map:
 
 NO_TRACE static int physmem_unmap(uintptr_t virt)
 {
-	// TODO: implement unmap
-	return EOK;
+	ASSERT(TASK);
+
+	return as_area_destroy(TASK->as, virt);
 }
 
 /** Wrapper for SYS_PHYSMEM_MAP syscall.
@@ -227,9 +229,13 @@ NO_TRACE static int physmem_unmap(uintptr_t virt)
 sysarg_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
     void *virt_ptr, uintptr_t bound)
 {
-	uintptr_t virt = (uintptr_t) -1;
-	int rc = physmem_map(ALIGN_DOWN(phys, FRAME_SIZE), pages, flags,
-	    &virt, bound);
+	uintptr_t virt;
+	int rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
+	if (rc != EOK)
+		return rc;
+	
+	rc = physmem_map(ALIGN_DOWN(phys, FRAME_SIZE), pages, flags, &virt,
+	    bound);
 	if (rc != EOK)
 		return rc;
 	
@@ -249,9 +255,9 @@ sysarg_t sys_physmem_unmap(uintptr_t virt)
 
 /** Enable range of I/O space for task.
  *
- * @param id Task ID of the destination task.
+ * @param id     Task ID of the destination task.
  * @param ioaddr Starting I/O address.
- * @param size Size of the enabled I/O space..
+ * @param size   Size of the enabled I/O space.
  *
  * @return 0 on success, EPERM if the caller lacks capabilities to use this
  *           syscall, ENOENT if there is no task matching the specified ID.
@@ -284,6 +290,47 @@ NO_TRACE static int iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	int rc = ddi_iospace_enable_arch(task, ioaddr, size);
 	irq_spinlock_unlock(&task->lock, true);
+
+	return rc;
+}
+
+/** Disable range of I/O space for task.
+ *
+ * @param id     Task ID of the destination task.
+ * @param ioaddr Starting I/O address.
+ * @param size   Size of the enabled I/O space.
+ *
+ * @return 0 on success, EPERM if the caller lacks capabilities to use this
+ *           syscall, ENOENT if there is no task matching the specified ID.
+ *
+ */
+NO_TRACE static int iospace_disable(task_id_t id, uintptr_t ioaddr, size_t size)
+{
+	/*
+	 * Make sure the caller is authorised to make this syscall.
+	 */
+	cap_t caps = cap_get(TASK);
+	if (!(caps & CAP_IO_MANAGER))
+		return EPERM;
+	
+	irq_spinlock_lock(&tasks_lock, true);
+	
+	task_t *task = task_find_by_id(id);
+	
+	if ((!task) || (!container_check(CONTAINER, task->container))) {
+		/*
+		 * There is no task with the specified ID
+		 * or the task belongs to a different security
+		 * context.
+		 */
+		irq_spinlock_unlock(&tasks_lock, true);
+		return ENOENT;
+	}
+	
+	/* Lock the task and release the lock protecting tasks_btree. */
+	irq_spinlock_exchange(&tasks_lock, &task->lock);
+	int rc = ddi_iospace_disable_arch(task, ioaddr, size);
+	irq_spinlock_unlock(&task->lock, true);
 	
 	return rc;
 }
@@ -308,8 +355,13 @@ sysarg_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 
 sysarg_t sys_iospace_disable(ddi_ioarg_t *uspace_io_arg)
 {
-	// TODO: implement
-	return ENOTSUP;
+	ddi_ioarg_t arg;
+	int rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
+	if (rc != 0)
+		return (sysarg_t) rc;
+
+	return (sysarg_t) iospace_disable((task_id_t) arg.task_id,
+	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
 NO_TRACE static int dmamem_map(uintptr_t virt, size_t size, unsigned int map_flags,
@@ -328,17 +380,18 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	ASSERT(TASK);
 	
 	size_t frames = SIZE2FRAMES(size);
-	*phys = frame_alloc(frames, FRAME_NO_RESERVE, constraint);
+	*phys = frame_alloc(frames, FRAME_ATOMIC, constraint);
 	if (*phys == 0)
 		return ENOMEM;
 	
 	mem_backend_data_t backend_data;
 	backend_data.base = *phys;
 	backend_data.frames = frames;
+	backend_data.anonymous = true;
 	
 	if (!as_area_create(TASK->as, map_flags, size,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
-		frame_free_noreserve(*phys, frames);
+		frame_free(*phys, frames);
 		return ENOMEM;
 	}
 	
@@ -353,8 +406,7 @@ NO_TRACE static int dmamem_unmap(uintptr_t virt, size_t size)
 
 NO_TRACE static int dmamem_unmap_anonymous(uintptr_t virt)
 {
-	// TODO: implement unlocking & unmap
-	return EOK;
+	return as_area_destroy(TASK->as, virt);
 }
 
 sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
@@ -388,8 +440,12 @@ sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
 		if (rc != EOK)
 			return rc;
 		
+		uintptr_t virt;
+		rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
+		if (rc != EOK)
+			return rc;
+		
 		uintptr_t phys;
-		uintptr_t virt = (uintptr_t) -1;
 		rc = dmamem_map_anonymous(size, constraint, map_flags, flags,
 		    &phys, &virt, bound);
 		if (rc != EOK)

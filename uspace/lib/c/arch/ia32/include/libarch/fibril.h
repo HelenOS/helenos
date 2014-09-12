@@ -36,6 +36,7 @@
 #define LIBC_ia32_FIBRIL_H_
 
 #include <sys/types.h>
+#include <libarch/fibril_context.h>
 
 /*
  * According to ABI the stack MUST be aligned on
@@ -51,22 +52,6 @@
 		(c)->tls = (sysarg_t) (ptls); \
 		(c)->ebp = 0; \
 	} while (0)
-
-/*
- * We include only registers that must be preserved
- * during function call
- */
-typedef struct {
-	uint32_t sp;
-	uint32_t pc;
-	
-	uint32_t ebx;
-	uint32_t esi;
-	uint32_t edi;
-	uint32_t ebp;
-	
-	uint32_t tls;
-} context_t;
 
 static inline uintptr_t context_get_fp(context_t *ctx)
 {

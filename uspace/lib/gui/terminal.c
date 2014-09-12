@@ -103,16 +103,8 @@ static terminal_t *srv_to_terminal(con_srv_t *srv)
 
 static void getterm(const char *svc, const char *app)
 {
-	char term[LOC_NAME_MAXLEN];
-	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", LOCFS_MOUNT_POINT, svc);
-	
-	/* Wait for the terminal service to be ready */
-	service_id_t service_id;
-	int rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
-	if (rc != EOK)
-		return;
-	
-	task_spawnl(NULL, APP_GETTERM, APP_GETTERM, "-w", term, app, NULL);
+	task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
+	    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
 }
 
 static pixel_t color_table[16] = {
@@ -193,7 +185,7 @@ static void term_update_char(terminal_t *term, surface_t *surface,
 	// FIXME: Glyph type should be actually uint32_t
 	//        for full UTF-32 coverage.
 	
-	uint16_t glyph = fb_font_glyph(field->ch);
+	uint16_t glyph = fb_font_glyph(field->ch, NULL);
 	
 	for (unsigned int y = 0; y < FONT_SCANLINES; y++) {
 		pixel_t *dst = pixelmap_pixel_at(
@@ -261,7 +253,8 @@ static bool term_update_cursor(terminal_t *term, surface_t *surface,
 	chargrid_get_cursor(term->backbuf, &back_col, &back_row);
 	
 	bool front_visibility =
-	    chargrid_get_cursor_visibility(term->frontbuf);
+	    chargrid_get_cursor_visibility(term->frontbuf) &&
+	    term->widget.window->is_focused;
 	bool back_visibility =
 	    chargrid_get_cursor_visibility(term->backbuf);
 	

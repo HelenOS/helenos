@@ -1359,32 +1359,46 @@ unsigned long strtoul(const char *nptr, char **endptr, int base)
 	return (sgn ? -number : number);
 }
 
-char *strtok(char *s, const char *delim)
-{
-	static char *next;
-
-	return strtok_r(s, delim, &next);
-}
-
-char *strtok_r(char *s, const char *delim, char **next)
+/** Split string by delimiters.
+ *
+ * @param s             String to be tokenized. May not be NULL.
+ * @param delim		String with the delimiters.
+ * @param next		Variable which will receive the pointer to the
+ *                      continuation of the string following the first
+ *                      occurrence of any of the delimiter characters.
+ *                      May be NULL.
+ * @return              Pointer to the prefix of @a s before the first
+ *                      delimiter character. NULL if no such prefix
+ *                      exists.
+ */
+char *str_tok(char *s, const char *delim, char **next)
 {
 	char *start, *end;
 
-	if (s == NULL)
-		s = *next;
+	if (!s)
+		return NULL;
+	
+	size_t len = str_size(s);
+	size_t cur;
+	size_t tmp;
+	wchar_t ch;
 
 	/* Skip over leading delimiters. */
-	while (*s && (str_chr(delim, *s) != NULL)) ++s;
-	start = s;
+	for (tmp = cur = 0;
+	    (ch = str_decode(s, &tmp, len)) && str_chr(delim, ch); /**/)
+		cur = tmp;
+	start = &s[cur];
 
 	/* Skip over token characters. */
-	while (*s && (str_chr(delim, *s) == NULL)) ++s;
-	end = s;
-	*next = (*s ? s + 1 : s);
+	for (tmp = cur;
+	    (ch = str_decode(s, &tmp, len)) && !str_chr(delim, ch); /**/)
+		cur = tmp;
+	end = &s[cur];
+	if (next)
+		*next = (ch ? &s[tmp] : &s[cur]);
 
-	if (start == end) {
+	if (start == end)
 		return NULL;	/* No more tokens. */
-	}
 
 	/* Overwrite delimiter with NULL terminator. */
 	*end = '\0';

@@ -38,15 +38,14 @@
 
 #include <stdbool.h>
 
-#ifndef PI
-#define PI 3.141592653589793
-#endif
+#define TRANSFORM_MATRIX_DIM  3
 
 typedef struct {
-	double m[3][3];
+	double matrix[TRANSFORM_MATRIX_DIM][TRANSFORM_MATRIX_DIM];
 } transform_t;
 
-extern void transform_multiply(transform_t *, const transform_t *, const transform_t *);
+extern void transform_product(transform_t *, const transform_t *,
+    const transform_t *);
 extern void transform_invert(transform_t *);
 
 extern void transform_identity(transform_t *);

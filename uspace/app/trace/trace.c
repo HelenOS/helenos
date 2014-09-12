@@ -875,7 +875,7 @@ int main(int argc, char *argv[])
 	if (task_wait_for) {
 		printf("Waiting for task to exit.\n");
 
-		rc = task_wait(task_id, &texit, &retval);
+		rc = task_wait_task_id(task_id, &texit, &retval);
 		if (rc != EOK) {
 			printf("Failed waiting for task.\n");
 			return -1;

@@ -42,6 +42,7 @@
 #include <str_error.h>
 #include <hound/server.h>
 #include <hound/protocol.h>
+#include <task.h>
 
 #include "hound.h"
 
@@ -68,6 +69,11 @@ static void scan_for_devices(void)
 int main(int argc, char **argv)
 {
 	printf("%s: HelenOS sound service\n", NAME);
+
+	if (log_init(NAME) != EOK) {
+		printf(NAME ": Failed to initialize logging.\n");
+		return 1;
+	}
 
 	int ret = hound_init(&hound);
 	if (ret != EOK) {

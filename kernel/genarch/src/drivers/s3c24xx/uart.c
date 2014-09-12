@@ -94,7 +94,9 @@ static void s3c24xx_uart_irq_handler(irq_t *irq)
 
 static outdev_operations_t s3c24xx_uart_ops = {
 	.write = s3c24xx_uart_putchar,
-	.redraw = NULL
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)

@@ -383,6 +383,17 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 	for (uintptr_t addr = ALIGN_DOWN(base, ptl0_step);
 	    addr - 1 < base + size - 1;
 	    addr += ptl0_step) {
+		if (GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr))) {
+			ASSERT(overlaps(addr, ptl0_step,
+			    config.identity_base, config.identity_size));
+
+			/*
+			 * This PTL0 entry also maps the kernel identity region,
+			 * so it is already global and initialized.
+			 */
+			continue;
+		}
+
 		uintptr_t l1 = PA2KA(frame_alloc(frames, FRAME_LOWMEM, 0));
 		memsetb((void *) l1, FRAMES2SIZE(frames), 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr), KA2PA(l1));

@@ -39,7 +39,7 @@
 #include <audio_pcm_iface.h>
 #include <pcm/format.h>
 #include <stdio.h>
-#include <sys/mman.h>
+#include <as.h>
 #include <inttypes.h>
 
 #include "wave.h"
@@ -228,7 +228,7 @@ int drecord(const char *device, const char *file)
 
 cleanup:
 	fclose(rec.file);
-	munmap(rec.buffer.base, rec.buffer.size);
+	as_area_destroy(rec.buffer.base);
 	audio_pcm_release_buffer(rec.device);
 close_session:
 	audio_pcm_close(session);

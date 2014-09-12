@@ -30,7 +30,7 @@
 #include <arch/arch.h>
 #include <arch/stack.h>
 #include <arch/regdef.h>
-#include <arch/context_offset.h>
+#include <arch/context_struct.h>
 #include <arch/sun4v/regdef.h>
 #include <arch/sun4v/hypercall.h>
 #include <arch/sun4v/arch.h>
@@ -290,7 +290,7 @@ kernel_image_start:
 	 * in the ctx global variable.
 	 */
 	set ctx, %g1
-	add %g1, OFFSET_SP, %g1
+	add %g1, CONTEXT_OFFSET_SP, %g1
 	ldx [%g1], %o6
 
 	/*

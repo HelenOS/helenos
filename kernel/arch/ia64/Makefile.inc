@@ -29,17 +29,7 @@
 BFD_NAME = elf64-little
 BFD_ARCH = ia64-elf64
 
-#
-# FIXME:
-#
-# The -fno-selective-scheduling and -fno-selective-scheduling2 options
-# should be removed as soon as a bug in GCC concerning unchecked
-# speculative loads is fixed.
-#
-# See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=53975 for reference.
-#
-
-CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127 -fno-selective-scheduling -fno-selective-scheduling2
+CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 
@@ -81,3 +71,8 @@ ifeq ($(MACHINE),i460GX)
 	DEFS += -DI460GX
 	BFD = binary
 endif
+
+ARCH_AUTOGENS_AG = \
+	arch/$(KARCH)/include/arch/istate_struct.ag \
+	arch/$(KARCH)/include/arch/context_struct.ag
+

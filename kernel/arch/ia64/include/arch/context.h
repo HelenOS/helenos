@@ -39,6 +39,7 @@
 #include <arch/register.h>
 #include <align.h>
 #include <arch/stack.h>
+#include <arch/context_struct.h>
 
 /*
  * context_save_arch() and context_restore_arch() are both leaf procedures.
@@ -56,74 +57,6 @@
 		(c)->ar_pfs &= PFM_MASK; \
 		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size / 2), STACK_ALIGNMENT) - SP_DELTA; \
 	} while (0)
-
-/*
- * Only save registers that must be preserved across
- * function calls.
- */
-typedef struct {
-
-	/*
-	 * Application registers
-	 */
-	uint64_t ar_pfs;
-	uint64_t ar_unat_caller;
-	uint64_t ar_unat_callee;
-	uint64_t ar_rsc;
-	uintptr_t bsp;		/* ar_bsp */
-	uint64_t ar_rnat;
-	uint64_t ar_lc;
-
-	/*
-	 * General registers
-	 */
-	uint64_t r1;
-	uint64_t r4;
-	uint64_t r5;
-	uint64_t r6;
-	uint64_t r7;
-	uintptr_t sp;		/* r12 */
-	uint64_t r13;
-	
-	/*
-	 * Branch registers
-	 */
-	uintptr_t pc;		/* b0 */
-	uint64_t b1;
-	uint64_t b2;
-	uint64_t b3;
-	uint64_t b4;
-	uint64_t b5;
-
-	/*
-	 * Predicate registers
-	 */
-	uint64_t pr;
-
-	uint128_t f2 __attribute__ ((aligned(16)));
-	uint128_t f3;
-	uint128_t f4;
-	uint128_t f5;
-
-	uint128_t f16;
-	uint128_t f17;
-	uint128_t f18;
-	uint128_t f19;
-	uint128_t f20;
-	uint128_t f21;
-	uint128_t f22;
-	uint128_t f23;
-	uint128_t f24;
-	uint128_t f25;
-	uint128_t f26;
-	uint128_t f27;
-	uint128_t f28;
-	uint128_t f29;
-	uint128_t f30;
-	uint128_t f31;
-	
-	ipl_t ipl;
-} context_t;
 
 #endif
 

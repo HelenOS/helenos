@@ -93,7 +93,8 @@ void indev_push_character(indev_t *indev, wchar_t ch)
 wchar_t indev_pop_character(indev_t *indev)
 {
 	if (atomic_get(&haltstate)) {
-		/* If we are here, we are hopefully on the processor that
+		/*
+		 * If we are here, we are hopefully on the processor that
 		 * issued the 'halt' command, so proceed to read the character
 		 * directly from input
 		 */
@@ -114,11 +115,25 @@ wchar_t indev_pop_character(indev_t *indev)
 	
 	waitq_sleep(&indev->wq);
 	irq_spinlock_lock(&indev->lock, true);
-	wchar_t ch = indev->buffer[(indev->index - indev->counter) % INDEV_BUFLEN];
+	wchar_t ch = indev->buffer[(indev->index - indev->counter) %
+	    INDEV_BUFLEN];
 	indev->counter--;
 	irq_spinlock_unlock(&indev->lock, true);
 	
 	return ch;
+}
+
+/** Signal out-of-band condition
+ *
+ * @param indev  Input character device.
+ * @param signal Out-of-band condition to signal.
+ *
+ */
+void indev_signal(indev_t *indev, indev_signal_t signal)
+{
+	if ((indev != NULL) && (indev->op != NULL) &&
+	    (indev->op->signal != NULL))
+		indev->op->signal(indev, signal);
 }
 
 /** Initialize output character device.

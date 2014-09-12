@@ -39,6 +39,8 @@
 
 #define MEM_STACK_SIZE	STACK_SIZE
 
+#define STACK_ALIGNMENT	16
+
 #endif
 
 /** @}

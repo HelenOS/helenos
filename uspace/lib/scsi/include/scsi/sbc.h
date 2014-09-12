@@ -49,6 +49,9 @@ enum scsi_cmd_sbc {
 	SCSI_CMD_READ_CAPACITY_10	= 0x25,
 	SCSI_CMD_READ_CAPACITY_16	= 0x9e,
 
+	SCSI_CMD_SYNC_CACHE_10		= 0x35,
+	SCSI_CMD_SYNC_CACHE_16		= 0x91,
+
 	SCSI_CMD_WRITE_6		= 0x0a,
 	SCSI_CMD_WRITE_10		= 0x2a,
 	SCSI_CMD_WRITE_12		= 0xaa,
@@ -129,6 +132,38 @@ typedef struct {
 	/** Size of block in bytes */
 	uint32_t block_size;
 } scsi_read_capacity_10_data_t;
+
+/** SCSI Synchronize Cache (10) command */
+typedef struct {
+	/** Operation code (SCSI_CMD_SYNC_CACHE_10) */
+	uint8_t op_code;
+	/** Reserved, Sync_NV, Immed, Reserved */
+	uint8_t flags;
+	/** Logical block address */
+	uint32_t lba;
+	/** Reserved, Group Number */
+	uint8_t group_no;
+	/** Number of Logical Blocks */
+	uint16_t numlb;
+	/** Control */
+	uint8_t control;
+} __attribute__((packed)) scsi_cdb_sync_cache_10_t;
+
+/** SCSI Synchronize Cache (16) command */
+typedef struct {
+	/** Operation code (SCSI_CMD_SYNC_CACHE_16) */
+	uint8_t op_code;
+	/** Reserved, Sync_NV, Immed, Reserved */
+	uint8_t flags;
+	/** Logical block address */
+	uint64_t lba;
+	/** Number of Logical Blocks */
+	uint32_t numlb;
+	/** Reserved, Group Number */
+	uint8_t group_no;
+	/** Control */
+	uint8_t control;
+} __attribute__((packed)) scsi_cdb_sync_cache_16_t;
 
 /** SCSI Write (10) command */
 typedef struct {

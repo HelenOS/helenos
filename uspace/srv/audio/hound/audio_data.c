@@ -44,7 +44,7 @@
  * @param data audio buffer
  * @param size Size of the @p data buffer.
  * @param fomart audio data format.
- * @return pointer to valid audio data structre, NULL on failure.
+ * @return pointer to valid audio data structure, NULL on failure.
  */
 audio_data_t *audio_data_create(const void *data, size_t size,
     pcm_format_t format)

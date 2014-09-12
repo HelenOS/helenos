@@ -29,6 +29,9 @@
 #include <arch/asm/regname.h>
 #include <arch/msr.h>
 #include <arch/mm/page.h>
+#include <arch/istate_struct.h>
+#include <arch/stack.h>
+#include <align.h>
 
 .section K_UNMAPPED_TEXT_START, "ax"
 
@@ -41,83 +44,84 @@
 	mfcr r12
 	mtsprg2 sp
 	
-	# check whether SP is in kernel
+	# check whether the previous mode was user or kernel
 	
-	andis. sp, sp, 0x8000
+	mfsrr1 sp # use sp as a temporary register to hold SRR1
+	andi. sp, sp, MSR_PR 
 	bne 1f
-	
-		# stack is in user-space
-		
-		mfsprg0 sp
-	
-	b 2f
-	
-	1:
-	
-		# stack is in kernel
+		# previous mode was kernel
 		
 		mfsprg2 sp
 		subis sp, sp, 0x8000
+	b 2f
 	
+	1:
+		# previous mode was user
+		
+		mfsprg0 sp
 	2:
 	
-	subi sp, sp, 164
-	stw r0, 8(sp)
-	stw r2, 12(sp)
-	stw r3, 16(sp)
-	stw r4, 20(sp)
-	stw r5, 24(sp)
-	stw r6, 28(sp)
-	stw r7, 32(sp)
-	stw r8, 36(sp)
-	stw r9, 40(sp)
-	stw r10, 44(sp)
-	stw r11, 48(sp)
-	stw r13, 52(sp)
-	stw r14, 56(sp)
-	stw r15, 60(sp)
-	stw r16, 64(sp)
-	stw r17, 68(sp)
-	stw r18, 72(sp)
-	stw r19, 76(sp)
-	stw r20, 80(sp)
-	stw r21, 84(sp)
-	stw r22, 88(sp)
-	stw r23, 92(sp)
-	stw r24, 96(sp)
-	stw r25, 100(sp)
-	stw r26, 104(sp)
-	stw r27, 108(sp)
-	stw r28, 112(sp)
-	stw r29, 116(sp)
-	stw r30, 120(sp)
-	stw r31, 124(sp)
+	subi sp, sp, ALIGN_UP(ISTATE_SIZE, STACK_ALIGNMENT)
+	stw r0, ISTATE_OFFSET_R0(sp)
+	stw r2, ISTATE_OFFSET_R2(sp)
+	stw r3, ISTATE_OFFSET_R3(sp)
+	stw r4, ISTATE_OFFSET_R4(sp)
+	stw r5, ISTATE_OFFSET_R5(sp)
+	stw r6, ISTATE_OFFSET_R6(sp)
+	stw r7, ISTATE_OFFSET_R7(sp)
+	stw r8, ISTATE_OFFSET_R8(sp)
+	stw r9, ISTATE_OFFSET_R9(sp)
+	stw r10, ISTATE_OFFSET_R10(sp)
+	stw r11, ISTATE_OFFSET_R11(sp)
+	stw r13, ISTATE_OFFSET_R13(sp)
+	stw r14, ISTATE_OFFSET_R14(sp)
+	stw r15, ISTATE_OFFSET_R15(sp)
+	stw r16, ISTATE_OFFSET_R16(sp)
+	stw r17, ISTATE_OFFSET_R17(sp)
+	stw r18, ISTATE_OFFSET_R18(sp)
+	stw r19, ISTATE_OFFSET_R19(sp)
+	stw r20, ISTATE_OFFSET_R20(sp)
+	stw r21, ISTATE_OFFSET_R21(sp)
+	stw r22, ISTATE_OFFSET_R22(sp)
+	stw r23, ISTATE_OFFSET_R23(sp)
+	stw r24, ISTATE_OFFSET_R24(sp)
+	stw r25, ISTATE_OFFSET_R25(sp)
+	stw r26, ISTATE_OFFSET_R26(sp)
+	stw r27, ISTATE_OFFSET_R27(sp)
+	stw r28, ISTATE_OFFSET_R28(sp)
+	stw r29, ISTATE_OFFSET_R29(sp)
+	stw r30, ISTATE_OFFSET_R30(sp)
+	stw r31, ISTATE_OFFSET_R31(sp)
 	
-	stw r12, 128(sp)
+	stw r12, ISTATE_OFFSET_CR(sp)
 	
 	mfsrr0 r12
-	stw r12, 132(sp)
+	stw r12, ISTATE_OFFSET_PC(sp)
 	
 	mfsrr1 r12
-	stw r12, 136(sp)
+	stw r12, ISTATE_OFFSET_SRR1(sp)
 	
 	mflr r12
-	stw r12, 140(sp)
+	stw r12, ISTATE_OFFSET_LR(sp)
 	
 	mfctr r12
-	stw r12, 144(sp)
+	stw r12, ISTATE_OFFSET_CTR(sp)
 	
 	mfxer r12
-	stw r12, 148(sp)
+	stw r12, ISTATE_OFFSET_XER(sp)
 	
 	mfdar r12
-	stw r12, 152(sp)
+	stw r12, ISTATE_OFFSET_DAR(sp)
 	
 	mfsprg1 r12
-	stw r12, 156(sp)
+	stw r12, ISTATE_OFFSET_R12(sp)
 	
 	mfsprg2 r12
-	stw r12, 160(sp)
+	stw r12, ISTATE_OFFSET_SP(sp)
+
+	li r12, 0
+	stw r12, ISTATE_OFFSET_LR_FRAME(sp)
+	stw r12, ISTATE_OFFSET_SP_FRAME(sp)
 .endm
 
 .org 0x100
@@ -249,21 +253,35 @@ exc_dtlb_miss_store:
 
 .org 0x4000
 jump_to_kernel:
+	mfsrr1 r5
+	andi. r5, r5, MSR_PR
+	bne 1f
+		# Previous mode was kernel.
+		# We can construct a proper frame linkage.
+		
+		mfsrr0 r12
+		stw r12, ISTATE_OFFSET_LR_FRAME(sp)
+		mfsprg2 r12
+		stw r12, ISTATE_OFFSET_SP_FRAME(sp)
+	1:
+
 	lis r12, iret@ha
 	addi r12, r12, iret@l
 	mtlr r12
-	
+
 	lis r12, exc_dispatch@ha
 	addi r12, r12, exc_dispatch@l
 	mtsrr0 r12
-	
+
 	mfmsr r12
-	ori r12, r12, (MSR_IR | MSR_DR)@l
+	mfsrr1 r5
+	andi. r5, r5, MSR_FP
+	or r12, r12, r5		# Propagate MSR_FP from SRR1 to MSR
+	ori r12, r12, (MSR_IR | MSR_DR)
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000
 	mr r4, sp
-	addi r4, r4, 8
 	
 	rfi
 
@@ -275,9 +293,12 @@ jump_to_kernel_syscall:
 	lis r12, iret_syscall@ha
 	addi r12, r12, iret_syscall@l
 	mtlr r12
-	
+
+	mfsrr1 r0
+	andi. r0, r0, MSR_FP
 	mfmsr r12
-	ori r12, r12, (MSR_IR | MSR_DR)@l
+	or r12, r12, r0		# Propagate MSR_FP from SRR1 to MSR
+	ori r12, r12, (MSR_IR | MSR_DR)
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000

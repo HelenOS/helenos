@@ -34,6 +34,7 @@
 
 #include <async.h>
 #include <elf/elf_linux.h>
+#include <fibrildump.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -51,6 +52,7 @@
 #include <symtab.h>
 #include <elf_core.h>
 #include <stacktrace.h>
+#include <taskdump.h>
 
 #define LINE_BYTES 16
 
@@ -74,6 +76,10 @@ static char *get_app_task_name(void);
 static char *fmt_sym_address(uintptr_t addr);
 
 static istate_t reg_state;
+
+static stacktrace_ops_t td_stacktrace_ops = {
+	.read_uintptr = td_read_uintptr
+}; 
 
 int main(int argc, char *argv[])
 {
@@ -105,6 +111,10 @@ int main(int argc, char *argv[])
 	rc = areas_dump();
 	if (rc < 0)
 		printf("Failed dumping address space areas.\n");
+
+	rc = fibrils_dump(app_symtab, sess);
+	if (rc < 0)
+		printf("Failed dumping fibrils.\n");
 
 	udebug_end(sess);
 	async_hangup(sess);
@@ -310,11 +320,39 @@ static int areas_dump(void)
 	return 0;
 }
 
+int td_stacktrace(uintptr_t fp, uintptr_t pc)
+{
+	uintptr_t nfp;
+	stacktrace_t st;
+	char *sym_pc;
+	int rc;
+
+	st.op_arg = NULL;
+	st.ops = &td_stacktrace_ops;
+
+	while (stacktrace_fp_valid(&st, fp)) {
+		sym_pc = fmt_sym_address(pc);
+		printf("  %p: %s\n", (void *) fp, sym_pc);
+		free(sym_pc);
+
+		rc = stacktrace_ra_get(&st, fp, &pc);
+		if (rc != EOK)
+			return rc;
+
+		rc = stacktrace_fp_prev(&st, fp, &nfp);
+		if (rc != EOK)
+			return rc;
+
+		fp = nfp;
+	}
+
+	return EOK;
+}
+
 static int thread_dump(uintptr_t thash)
 {
 	istate_t istate;
-	uintptr_t pc, fp, nfp;
-	stacktrace_t st;
+	uintptr_t pc, fp;
 	char *sym_pc;
 	int rc;
 
@@ -335,24 +373,7 @@ static int thread_dump(uintptr_t thash)
 	    sym_pc, (void *) fp);
 	free(sym_pc);
 
-	st.op_arg = NULL;
-	st.read_uintptr = td_read_uintptr;
-
-	while (stacktrace_fp_valid(&st, fp)) {
-		sym_pc = fmt_sym_address(pc);
-		printf("  %p: %s\n", (void *) fp, sym_pc);
-		free(sym_pc);
-
-		rc = stacktrace_ra_get(&st, fp, &pc);
-		if (rc != EOK)
-			return rc;
-
-		rc = stacktrace_fp_prev(&st, fp, &nfp);
-		if (rc != EOK)
-			return rc;
-
-		fp = nfp;
-	}
+	(void) td_stacktrace(fp, pc);
 
 	return EOK;
 }

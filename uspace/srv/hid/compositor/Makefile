@@ -27,6 +27,7 @@
 #
 
 USPACE_PREFIX = ../../..
+
 LIBS = \
 	$(LIBDRAW_PREFIX)/libdraw.a \
 	$(LIBSOFTREND_PREFIX)/libsoftrend.a \
@@ -39,6 +40,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBDRV_PREFIX)/include
 
 BINARY = compositor
+MATH = y
 
 SOURCES = \
 	compositor.c

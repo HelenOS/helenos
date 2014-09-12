@@ -54,7 +54,6 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <sys/mman.h>
 #include <align.h>
 #include <malloc.h>
 #include <str.h>
@@ -930,14 +929,12 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	/* Parse mount options. */
 	char *mntopts = (char *) opts;
-	char *saveptr;
 	char *opt;
-	while ((opt = strtok_r(mntopts, " ,", &saveptr)) != NULL) {
+	while ((opt = str_tok(mntopts, " ,", &mntopts)) != NULL) {
 		if (str_cmp(opt, "wtcache") == 0)
 			cmode = CACHE_MODE_WT;
 		else if (str_cmp(opt, "nolfn") == 0)
 			instance->lfn_enabled = false;
-		mntopts = NULL;
 	}
 
 	/* initialize libblock */

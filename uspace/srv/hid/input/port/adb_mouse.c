@@ -108,22 +108,12 @@ static int adb_port_init(mouse_dev_t *mdev)
 	return EOK;
 }
 
-static void adb_port_yield(void)
-{
-}
-
-static void adb_port_reclaim(void)
-{
-}
-
 static void adb_port_write(uint8_t data)
 {
 }
 
 mouse_port_ops_t adb_mouse_port = {
 	.init = adb_port_init,
-	.yield = adb_port_yield,
-	.reclaim = adb_port_reclaim,
 	.write = adb_port_write
 };
 

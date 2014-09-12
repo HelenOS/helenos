@@ -71,6 +71,8 @@ static void pl011_uart_putchar(outdev_t *dev, wchar_t ch)
 static outdev_operations_t pl011_uart_ops = {
 	.write = pl011_uart_putchar,
 	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 static irq_ownership_t pl011_uart_claim(irq_t *irq)

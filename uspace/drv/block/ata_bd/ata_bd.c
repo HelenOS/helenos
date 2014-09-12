@@ -53,6 +53,9 @@
 #include <as.h>
 #include <bd_srv.h>
 #include <fibril_synch.h>
+#include <scsi/mmc.h>
+#include <scsi/sbc.h>
+#include <scsi/spc.h>
 #include <stdint.h>
 #include <str.h>
 #include <loc.h>
@@ -93,19 +96,24 @@ static int ata_bd_write_blocks(bd_srv_t *, uint64_t ba, size_t cnt,
     const void *buf, size_t);
 static int ata_bd_get_block_size(bd_srv_t *, size_t *);
 static int ata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static int ata_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
 
 static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t cnt,
     void *buf);
 static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
     const void *buf);
+static int ata_rcmd_flush_cache(disk_t *disk);
 static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id);
 static int ata_identify_dev(disk_t *disk, void *buf);
 static int ata_identify_pkt_dev(disk_t *disk, void *buf);
 static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
-    void *obuf, size_t obuf_size);
-static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size);
+    void *obuf, size_t obuf_size, size_t *rcvd_size);
+static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size,
+    size_t *rcvd_size);
 static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
     void *obuf, size_t obuf_size);
+static int ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
+    size_t *block_size);
 static int ata_pcmd_read_toc(disk_t *disk, uint8_t ses,
     void *obuf, size_t obuf_size);
 static void disk_print_summary(disk_t *d);
@@ -122,7 +130,8 @@ bd_ops_t ata_bd_ops = {
 	.read_toc = ata_bd_read_toc,
 	.write_blocks = ata_bd_write_blocks,
 	.get_block_size = ata_bd_get_block_size,
-	.get_num_blocks = ata_bd_get_num_blocks
+	.get_num_blocks = ata_bd_get_num_blocks,
+	.sync_cache = ata_bd_sync_cache
 };
 
 static disk_t *bd_srv_disk(bd_srv_t *bd)
@@ -338,10 +347,13 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 {
 	identify_data_t idata;
 	uint8_t model[40];
-	ata_inquiry_data_t inq_data;
+	scsi_std_inquiry_data_t inq_data;
+	size_t isize;
 	uint16_t w;
 	uint8_t c;
 	uint16_t bc;
+	uint64_t nblocks;
+	size_t block_size;
 	size_t pos, len;
 	int rc;
 	unsigned i;
@@ -456,19 +468,26 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 
 	if (d->dev_type == ata_pkt_dev) {
 		/* Send inquiry. */
-		rc = ata_pcmd_inquiry(d, &inq_data, sizeof(inq_data));
-		if (rc != EOK) {
+		rc = ata_pcmd_inquiry(d, &inq_data, sizeof(inq_data), &isize);
+		if (rc != EOK || isize < sizeof(inq_data)) {
 			ddf_msg(LVL_ERROR, "Device inquiry failed.");
 			d->present = false;
 			return EIO;
 		}
 
 		/* Check device type. */
-		if (INQUIRY_PDEV_TYPE(inq_data.pdev_type) != PDEV_TYPE_CDROM)
+		if (INQUIRY_PDEV_TYPE(inq_data.pqual_devtype) != SCSI_DEV_CD_DVD)
 			ddf_msg(LVL_WARN, "Peripheral device type is not CD-ROM.");
 
-		/* Assume 2k block size for now. */
-		d->block_size = 2048;
+		rc = ata_pcmd_read_capacity(d, &nblocks, &block_size);
+		if (rc != EOK) {
+			ddf_msg(LVL_ERROR, "Read capacity command failed.");
+			d->present = false;
+			return EIO;
+		}
+
+		d->blocks = nblocks;
+		d->block_size = block_size;
 	} else {
 		/* Assume register Read always uses 512-byte blocks. */
 		d->block_size = 512;
@@ -569,6 +588,18 @@ static int ata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
+/** Flush cache. */
+static int ata_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
+{
+	disk_t *disk = bd_srv_disk(bd);
+
+	/* ATA cannot flush just some blocks, we just flush everything. */
+	(void)ba;
+	(void)cnt;
+
+	return ata_rcmd_flush_cache(disk);
+}
+
 /** PIO data-in command protocol. */
 static int ata_pio_data_in(disk_t *disk, void *obuf, size_t obuf_size,
     size_t blk_size, size_t nblocks)
@@ -622,6 +653,21 @@ static int ata_pio_data_out(disk_t *disk, const void *buf, size_t buf_size,
 			pio_write_16(&ctrl->cmd->data_port, ((uint16_t *) buf)[i]);
 		}
 	}
+
+	if (status & SR_ERR)
+		return EIO;
+
+	return EOK;
+}
+
+/** PIO non-data command protocol. */
+static int ata_pio_nondata(disk_t *disk)
+{
+	ata_ctrl_t *ctrl = disk->ctrl;
+	uint8_t status;
+
+	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
+		return EIO;
 
 	if (status & SR_ERR)
 		return EIO;
@@ -721,11 +767,12 @@ static int ata_identify_pkt_dev(disk_t *disk, void *buf)
  * @param disk		Disk
  * @param obuf		Buffer for storing data read from device
  * @param obuf_size	Size of obuf in bytes
+ * @param rcvd_size	Place to store number of bytes read or @c NULL
  *
  * @return EOK on success, EIO on error.
  */
 static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
-    void *obuf, size_t obuf_size)
+    void *obuf, size_t obuf_size, size_t *rcvd_size)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	size_t i;
@@ -799,6 +846,8 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	if (status & SR_ERR)
 		return EIO;
 
+	if (rcvd_size != NULL)
+		*rcvd_size = data_size;
 	return EOK;
 }
 
@@ -810,19 +859,59 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size)
+static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size,
+    size_t *rcvd_size)
 {
-	ata_pcmd_inquiry_t cp;
+	uint8_t cpb[12];
+	scsi_cdb_inquiry_t *cp = (scsi_cdb_inquiry_t *)cpb;
 	int rc;
 
-	memset(&cp, 0, sizeof(cp));
+	memset(cpb, 0, sizeof(cpb));
 
-	cp.opcode = PCMD_INQUIRY;
-	cp.alloc_len = min(obuf_size, 0xff); /* Allocation length */
+	/*
+	 * For SFF 8020 compliance the inquiry must be padded to 12 bytes
+	 * and allocation length must fit in one byte.
+	 */
+	cp->op_code = SCSI_CMD_INQUIRY;
 
-	rc = ata_cmd_packet(disk, &cp, sizeof(cp), obuf, obuf_size);
+	/* Allocation length */
+	cp->alloc_len = host2uint16_t_be(min(obuf_size, 0xff));
+
+	rc = ata_cmd_packet(disk, cpb, sizeof(cpb), obuf, obuf_size, rcvd_size);
 	if (rc != EOK)
 		return rc;
+
+	return EOK;
+}
+
+/** Issue ATAPI read capacity(10) command.
+ *
+ * @param disk		Disk
+ * @param nblocks	Place to store number of blocks
+ * @param block_size	Place to store block size
+ *
+ * @return EOK on success, EIO on error.
+ */
+static int ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
+    size_t *block_size)
+{
+	scsi_cdb_read_capacity_10_t cdb;
+	scsi_read_capacity_10_data_t data;
+	size_t rsize;
+	int rc;
+
+	memset(&cdb, 0, sizeof(cdb));
+	cdb.op_code = SCSI_CMD_READ_CAPACITY_10;
+
+	rc = ata_cmd_packet(disk, &cdb, sizeof(cdb), &data, sizeof(data), &rsize);
+	if (rc != EOK)
+		return rc;
+
+	if (rsize != sizeof(data))
+		return EIO;
+
+	*nblocks = uint32_t_be2host(data.last_lba) + 1;
+	*block_size = uint32_t_be2host(data.block_size);
 
 	return EOK;
 }
@@ -843,7 +932,7 @@ static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size)
 static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
     void *obuf, size_t obuf_size)
 {
-	ata_pcmd_read_12_t cp;
+	scsi_cdb_read_12_t cp;
 	int rc;
 
 	if (ba > UINT32_MAX)
@@ -851,11 +940,11 @@ static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
 
 	memset(&cp, 0, sizeof(cp));
 
-	cp.opcode = PCMD_READ_12;
-	cp.ba = host2uint32_t_be(ba);
-	cp.nblocks = host2uint32_t_be(cnt);
+	cp.op_code = SCSI_CMD_READ_12;
+	cp.lba = host2uint32_t_be(ba);
+	cp.xfer_len = host2uint32_t_be(cnt);
 
-	rc = ata_cmd_packet(disk, &cp, sizeof(cp), obuf, obuf_size);
+	rc = ata_cmd_packet(disk, &cp, sizeof(cp), obuf, obuf_size, NULL);
 	if (rc != EOK)
 		return rc;
 
@@ -882,22 +971,23 @@ static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
 static int ata_pcmd_read_toc(disk_t *disk, uint8_t session, void *obuf,
     size_t obuf_size)
 {
-	ata_pcmd_read_toc_t cp;
+	uint8_t cpb[12];
+	scsi_cdb_read_toc_t *cp = (scsi_cdb_read_toc_t *)cpb;
 	int rc;
 
-	memset(&cp, 0, sizeof(cp));
+	memset(cpb, 0, sizeof(cpb));
 
-	cp.opcode = PCMD_READ_TOC;
-	cp.msf = 0;
-	cp.format = 0x01; /* 0x01 = multi-session mode */
-	cp.start = session;
-	cp.size = host2uint16_t_be(obuf_size);
-	cp.oldformat = 0x40; /* 0x01 = multi-session mode (shifted to MSB) */
-	
-	rc = ata_cmd_packet(disk, &cp, sizeof(cp), obuf, obuf_size);
+	cp->op_code = SCSI_CMD_READ_TOC;
+	cp->msf = 0;
+	cp->format = 0x01; /* 0x01 = multi-session mode */
+	cp->track_sess_no = session;
+	cp->alloc_len = host2uint16_t_be(obuf_size);
+	cp->control = 0x40; /* 0x01 = multi-session mode (shifted to MSB) */
+
+	rc = ata_cmd_packet(disk, cpb, sizeof(cpb), obuf, obuf_size, NULL);
 	if (rc != EOK)
 		return rc;
-	
+
 	return EOK;
 }
 
@@ -1015,6 +1105,46 @@ static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
 
 	rc = ata_pio_data_out(disk, buf, cnt * disk->block_size,
 	    disk->block_size, cnt);
+
+	fibril_mutex_unlock(&ctrl->lock);
+	return rc;
+}
+
+/** Flush cached data to nonvolatile storage.
+ *
+ * @param disk		Disk
+ *
+ * @return EOK on success, EIO on error.
+ */
+static int ata_rcmd_flush_cache(disk_t *disk)
+{
+	ata_ctrl_t *ctrl = disk->ctrl;
+	uint8_t drv_head;
+	int rc;
+
+	/* New value for Drive/Head register */
+	drv_head =
+	    (disk_dev_idx(disk) != 0) ? DHR_DRV : 0;
+
+	fibril_mutex_lock(&ctrl->lock);
+
+	/* Program a Flush Cache operation. */
+
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
+		fibril_mutex_unlock(&ctrl->lock);
+		return EIO;
+	}
+
+	pio_write_8(&ctrl->cmd->drive_head, drv_head);
+
+	if (wait_status(ctrl, SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
+		fibril_mutex_unlock(&ctrl->lock);
+		return EIO;
+	}
+
+	pio_write_8(&ctrl->cmd->command, CMD_FLUSH_CACHE);
+
+	rc = ata_pio_nondata(disk);
 
 	fibril_mutex_unlock(&ctrl->lock);
 	return rc;

@@ -509,6 +509,59 @@ char *posix_strstr(const char *haystack, const char *needle)
 	return NULL;
 }
 
+/** Split string by delimiters.
+ *
+ * @param s             String to be tokenized. May not be NULL.
+ * @param delim		String with the delimiters.
+ * @return              Pointer to the prefix of @a s before the first
+ *                      delimiter character. NULL if no such prefix
+ *                      exists.
+ */
+char *posix_strtok(char *s, const char *delim)
+{
+	static char *next;
+
+	return posix_strtok_r(s, delim, &next);
+}
+
+
+/** Split string by delimiters.
+ *
+ * @param s             String to be tokenized. May not be NULL.
+ * @param delim		String with the delimiters.
+ * @param next		Variable which will receive the pointer to the
+ *                      continuation of the string following the first
+ *                      occurrence of any of the delimiter characters.
+ *                      May be NULL.
+ * @return              Pointer to the prefix of @a s before the first
+ *                      delimiter character. NULL if no such prefix
+ *                      exists.
+ */
+char *posix_strtok_r(char *s, const char *delim, char **next)
+{
+	char *start, *end;
+
+	if (s == NULL)
+		s = *next;
+
+	/* Skip over leading delimiters. */
+	while (*s && (posix_strchr(delim, *s) != NULL)) ++s;
+	start = s;
+
+	/* Skip over token characters. */
+	while (*s && (posix_strchr(delim, *s) == NULL)) ++s;
+	end = s;
+	*next = (*s ? s + 1 : s);
+
+	if (start == end) {
+		return NULL;	/* No more tokens. */
+	}
+
+	/* Overwrite delimiter with NULL terminator. */
+	*end = '\0';
+	return start;
+}
+
 /**
  * String comparison using collating information.
  *

@@ -62,7 +62,9 @@ static void dsrlnout_putchar(outdev_t *dev, const wchar_t ch)
 
 static outdev_operations_t dsrlndev_ops = {
 	.write = dsrlnout_putchar,
-	.redraw = NULL
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 outdev_t *dsrlnout_init(ioport8_t *base)

@@ -39,6 +39,7 @@ import re
 import time
 import subprocess
 import xtui
+import random
 
 RULES_FILE = sys.argv[1]
 MAKEFILE = 'Makefile.config'
@@ -255,6 +256,87 @@ def infer_verify_choices(config, rules):
 			return False
 	
 	return True
+
+## Fill the configuration with random (but valid) values.
+#
+# The random selection takes next rule and if the condition does
+# not violate existing configuration, random value of the variable
+# is selected.
+# This happens recursively as long as there are more rules.
+# If a conflict is found, we backtrack and try other settings of the
+# variable or ignoring the variable altogether.
+#
+# @param config Configuration to work on
+# @param rules  Rules
+# @param start_index With which rule to start (initial call must specify 0 here).
+# @return True if able to find a valid configuration 
+def random_choices(config, rules, start_index):
+	"Fill the configuration with random (but valid) values."
+	if start_index >= len(rules):
+		return True
+	
+	varname, vartype, name, choices, cond = rules[start_index]
+
+	# First check that this rule would make sense	
+	if cond:
+		if not check_condition(cond, config, rules):
+			return random_choices(config, rules, start_index + 1)
+	
+	# Remember previous choices for backtracking
+	yes_no = 0
+	choices_indexes = range(0, len(choices))
+	random.shuffle(choices_indexes)
+	
+	# Remember current configuration value
+	old_value = None
+	try:
+		old_value = config[varname]
+	except KeyError:
+		old_value = None
+	
+	# For yes/no choices, we ran the loop at most 2 times, for select
+	# choices as many times as there are options.
+	try_counter = 0
+	while True:
+		if vartype == 'choice':
+			if try_counter >= len(choices_indexes):
+				break
+			value = choices[choices_indexes[try_counter]][0]
+		elif vartype == 'y' or vartype == 'n':
+			if try_counter > 0:
+				break
+			value = vartype
+		elif vartype == 'y/n' or vartype == 'n/y':
+			if try_counter == 0:
+				yes_no = random.randint(0, 1)
+			elif try_counter == 1:
+				yes_no = 1 - yes_no
+			else:
+				break
+			if yes_no == 0:
+				value = 'n'
+			else:
+				value = 'y'
+		else:
+			raise RuntimeError("Unknown variable type: %s" % vartype)
+	
+		config[varname] = value
+		
+		ok = random_choices(config, rules, start_index + 1)
+		if ok:
+			return True
+		
+		try_counter = try_counter + 1
+	
+	# Restore the old value and backtrack
+	# (need to delete to prevent "ghost" variables that do not exist under
+	# certain configurations)
+	config[varname] = old_value
+	if old_value is None:
+		del config[varname]
+	
+	return random_choices(config, rules, start_index + 1)
+	
 
 ## Get default value from a rule.
 def get_default_rule(rule):
@@ -553,6 +635,20 @@ def main():
 		if infer_verify_choices(config, rules):
 			return 0
 		return 1
+	
+	# Random mode
+	if (len(sys.argv) == 3) and (sys.argv[2] == 'random'):
+		ok = random_choices(config, rules, 0)
+		if not ok:
+			sys.stderr.write("Internal error: unable to generate random config.\n")
+			return 2
+		if not infer_verify_choices(config, rules):
+			sys.stderr.write("Internal error: random configuration not consistent.\n")
+			return 2
+		preprocess_config(config, rules)
+		create_output(MAKEFILE, MACROS, config, rules)
+		
+		return 0	
 	
 	screen = xtui.screen_init()
 	try:

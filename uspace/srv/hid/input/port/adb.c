@@ -48,14 +48,10 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static void adb_kbd_reg0_data(uint16_t data);
 
 static int adb_port_init(kbd_dev_t *);
-static void adb_port_yield(void);
-static void adb_port_reclaim(void);
-static void adb_port_write(uint8_t data);
+static void adb_port_write(uint8_t);
 
 kbd_port_ops_t adb_port = {
 	.init = adb_port_init,
-	.yield = adb_port_yield,
-	.reclaim = adb_port_reclaim,
 	.write = adb_port_write
 };
 
@@ -94,14 +90,6 @@ static int adb_port_init(kbd_dev_t *kdev)
 	}
 	
 	return EOK;
-}
-
-static void adb_port_yield(void)
-{
-}
-
-static void adb_port_reclaim(void)
-{
 }
 
 static void adb_port_write(uint8_t data)

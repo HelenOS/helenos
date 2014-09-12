@@ -39,75 +39,15 @@
 
 #ifdef KERNEL
 
+#include <arch/istate_struct.h>
 #include <arch/register.h>
 
 #else /* KERNEL */
 
+#include <libarch/istate_struct.h>
 #include <libarch/register.h>
 
 #endif /* KERNEL */
-
-typedef struct istate {
-	uint128_t f2;
-	uint128_t f3;
-	uint128_t f4;
-	uint128_t f5;
-	uint128_t f6;
-	uint128_t f7;
-	uint128_t f8;
-	uint128_t f9;
-	uint128_t f10;
-	uint128_t f11;
-	uint128_t f12;
-	uint128_t f13;
-	uint128_t f14;
-	uint128_t f15;
-	uint128_t f16;
-	uint128_t f17;
-	uint128_t f18;
-	uint128_t f19;
-	uint128_t f20;
-	uint128_t f21;
-	uint128_t f22;
-	uint128_t f23;
-	uint128_t f24;
-	uint128_t f25;
-	uint128_t f26;
-	uint128_t f27;
-	uint128_t f28;
-	uint128_t f29;
-	uint128_t f30;
-	uint128_t f31;
-	
-	uintptr_t ar_bsp;
-	uintptr_t ar_bspstore;
-	uintptr_t ar_bspstore_new;
-	uint64_t ar_rnat;
-	uint64_t ar_ifs;
-	uint64_t ar_pfs;
-	uint64_t ar_rsc;
-	uintptr_t cr_ifa;
-	cr_isr_t cr_isr;
-	uintptr_t cr_iipa;
-	psr_t cr_ipsr;
-	uintptr_t cr_iip;
-	uint64_t pr;
-	uintptr_t sp;
-	
-	/*
-	 * The following variables are defined only for break_instruction
-	 * handler.
-	 */
-	uint64_t in0;
-	uint64_t in1;
-	uint64_t in2;
-	uint64_t in3;
-	uint64_t in4;
-	uint64_t in5;
-	uint64_t in6;
-
-	uint64_t alignment;
-} istate_t;
 
 NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
     uintptr_t retaddr)

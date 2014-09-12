@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2014 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,73 +34,57 @@
  * @file
  */
 
-#include <assert.h>
 #include <sys/types.h>
 #include <malloc.h>
+#include <errno.h>
 
 #include "../gfx/font-8x16.h"
 #include "embedded.h"
 #include "../drawctx.h"
+#include "bitmap_backend.h"
 
-static void fde_init(char *path, uint16_t *glyph_count, void **data)
+static int fde_resolve_glyph(void *unused, const wchar_t chr,
+    glyph_id_t *glyph_id)
 {
-	assert(glyph_count);
-	assert(data);
-
-	(*glyph_count) = FONT_GLYPHS;
-	(*data) = NULL;
+	bool found = false;
+	uint16_t glyph = fb_font_glyph(chr, &found);
+	if (!found)
+		return ENOENT;
+	
+	*glyph_id = glyph;
+	return EOK;
 }
 
-static uint16_t fde_resolve(const wchar_t chr, void *data)
+static int fde_load_glyph_surface(void *unused, glyph_id_t glyph_id,
+    surface_t **out_surface)
 {
-	return fb_font_glyph(chr);
-}
-
-static surface_t *fde_render(uint16_t glyph, uint16_t points)
-{
-	surface_t *template = surface_create(FONT_WIDTH, FONT_SCANLINES, NULL, 0);
-	if (!template) {
-		return NULL;
-	}
+	surface_t *surface = surface_create(FONT_WIDTH, FONT_SCANLINES, NULL, 0);
+	if (!surface)
+		return ENOMEM;
+	
 	for (unsigned int y = 0; y < FONT_SCANLINES; ++y) {
 		for (unsigned int x = 0; x < FONT_WIDTH; ++x) {
-			pixel_t p = (fb_font[glyph][y] & (1 << (7 - x))) ? 
+			pixel_t p = (fb_font[glyph_id][y] & (1 << (7 - x))) ? 
 			    PIXEL(255, 0, 0, 0) : PIXEL(0, 0, 0, 0);
-			surface_put_pixel(template, x, y, p);
+			surface_put_pixel(surface, x, y, p);
 		}
 	}
+	
+	*out_surface = surface;
+	return EOK;
+}
 
-	source_t source;
-	source_init(&source);
-	source_set_texture(&source, template, false);
-
-	transform_t transform;
-	transform_identity(&transform);
-	if (points != FONT_SCANLINES) {
-		double ratio = ((double) points) / ((double) FONT_SCANLINES);
-		transform_scale(&transform, ratio, ratio);
-		source_set_transform(&source, transform);
-	}
-
-	double width = FONT_WIDTH;
-	double height = FONT_SCANLINES;
-	transform_apply_linear(&transform, &width, &height);
-	surface_t *result =
-	    surface_create((sysarg_t) (width + 0.5), (sysarg_t) (height + 0.5), NULL, 0);
-	if (!result) {
-		surface_destroy(template);
-		return NULL;
-	}
-
-	drawctx_t context;
-	drawctx_init(&context, result);
-	drawctx_set_source(&context, &source);
-	drawctx_transfer(&context, 0, 0,
-	    (sysarg_t) (width + 0.5), (sysarg_t) (height + 0.5));
-
-	surface_destroy(template);
-
-	return result;
+static int fde_load_glyph_metrics(void *unused, glyph_id_t glyph_id,
+    glyph_metrics_t *gm)
+{
+	/* This is simple monospaced font, so fill this data statically */
+	gm->left_side_bearing = 0;
+	gm->width = FONT_WIDTH;
+	gm->right_side_bearing = 0;
+	gm->ascender = FONT_ASCENDER;
+	gm->height = FONT_SCANLINES;
+	
+	return EOK;
 }
 
 static void fde_release(void *data)
@@ -107,12 +92,24 @@ static void fde_release(void *data)
 	/* no-op */
 }
 
-font_decoder_t fd_embedded = {
-	.init = fde_init,
-	.resolve = fde_resolve,
-	.render = fde_render,
+bitmap_font_decoder_t fd_embedded = {
+	.resolve_glyph = fde_resolve_glyph,
+	.load_glyph_surface = fde_load_glyph_surface,
+	.load_glyph_metrics = fde_load_glyph_metrics,
 	.release = fde_release
 };
+
+font_metrics_t font_metrics = {
+	.ascender = FONT_ASCENDER,
+	.descender = (FONT_SCANLINES - FONT_ASCENDER),
+	.leading = 0
+};
+
+int embedded_font_create(font_t **font, uint16_t points)
+{
+	return bitmap_font_create(&fd_embedded, NULL, FONT_GLYPHS, font_metrics,
+	    points, font);
+}
 
 /** @}
  */

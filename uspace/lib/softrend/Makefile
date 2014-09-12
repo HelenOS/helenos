@@ -30,6 +30,7 @@ USPACE_PREFIX = ../..
 LIBRARY = libsoftrend
 SLIBRARY = libsoftrend.so.0.0
 LSONAME = libsoftrend.so0
+MATH = y
 
 SOURCES = \
 	compose.c \

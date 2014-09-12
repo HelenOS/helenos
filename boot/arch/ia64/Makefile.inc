@@ -30,19 +30,9 @@ BFD_NAME = elf64-ia64-little
 BFD_OUTPUT = $(BFD_NAME)
 BFD_ARCH = ia64
 
-#
-# FIXME:
-#
-# The -fno-selective-scheduling and -fno-selective-scheduling2 options
-# should be removed as soon as a bug in GCC concerning unchecked
-# speculative loads is fixed.
-#
-# See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=53975 for reference.
-#
-
 BITS = 64
 ENDIANESS = LE
-EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata -fno-selective-scheduling -fno-selective-scheduling2
+EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
 
 RD_SRVS_NON_ESSENTIAL +=
 
@@ -73,3 +63,28 @@ ifeq ($(MACHINE),ski)
 SOURCES += \
 	arch/$(BARCH)/src/ski.c
 endif
+
+RD_DRVS_ESSENTIAL += \
+	platform/pc \
+	bus/pci/pciintel \
+	bus/isa \
+	char/i8042 \
+	char/xtkbd
+
+RD_DRVS_NON_ESSENTIAL += \
+	char/ns8250 \
+	time/cmos-rtc \
+	bus/usb/ehci\
+	bus/usb/ohci \
+	bus/usb/uhci \
+	bus/usb/uhcirh \
+	bus/usb/usbflbk \
+	bus/usb/usbhub \
+	bus/usb/usbhid \
+	bus/usb/usbmast \
+	bus/usb/usbmid \
+	bus/usb/vhc
+
+RD_DRV_CFG += \
+	bus/isa
+

@@ -99,7 +99,9 @@ static void grlib_uart_irq_handler(irq_t *irq)
 
 static outdev_operations_t grlib_uart_ops = {
 	.write = grlib_uart_putchar,
-	.redraw = NULL
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 outdev_t *grlib_uart_init(uintptr_t paddr, inr_t inr)

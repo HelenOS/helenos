@@ -47,14 +47,10 @@
 #include "../kbd.h"
 
 static int niagara_port_init(kbd_dev_t *);
-static void niagara_port_yield(void);
-static void niagara_port_reclaim(void);
 static void niagara_port_write(uint8_t data);
 
 kbd_port_ops_t niagara_port = {
 	.init = niagara_port_init,
-	.yield = niagara_port_yield,
-	.reclaim = niagara_port_reclaim,
 	.write = niagara_port_write
 };
 
@@ -73,20 +69,16 @@ typedef volatile struct {
 	uint64_t write_ptr;
 	uint64_t read_ptr;
 	char data[INPUT_BUFFER_SIZE];
-}
-	__attribute__ ((packed))
-	__attribute__ ((aligned(PAGE_SIZE)))
-	*input_buffer_t;
+} __attribute__((packed)) __attribute__((aligned(PAGE_SIZE))) *input_buffer_t;
 
 /* virtual address of the shared buffer */
-static input_buffer_t input_buffer;
+static input_buffer_t input_buffer = (input_buffer_t) AS_AREA_ANY;
 
-static volatile bool polling_disabled = false;
 static void niagara_thread_impl(void *arg);
 
 /**
  * Initializes the Niagara driver.
- * Maps the shared buffer and creates the polling thread. 
+ * Maps the shared buffer and creates the polling thread.
  */
 static int niagara_port_init(kbd_dev_t *kdev)
 {
@@ -112,16 +104,6 @@ static int niagara_port_init(kbd_dev_t *kdev)
 	return 0;
 }
 
-static void niagara_port_yield(void)
-{
-	polling_disabled = true;
-}
-
-static void niagara_port_reclaim(void)
-{
-	polling_disabled = false;
-}
-
 static void niagara_port_write(uint8_t data)
 {
 	(void) data;
@@ -129,7 +111,7 @@ static void niagara_port_write(uint8_t data)
 
 /**
  * Called regularly by the polling thread. Reads codes of all the
- * pressed keys from the buffer. 
+ * pressed keys from the buffer.
  */
 static void niagara_key_pressed(void)
 {
@@ -151,8 +133,7 @@ static void niagara_thread_impl(void *arg)
 	(void) arg;
 
 	while (1) {
-		if (polling_disabled == false)
-			niagara_key_pressed();
+		niagara_key_pressed();
 		usleep(POLL_INTERVAL);
 	}
 }

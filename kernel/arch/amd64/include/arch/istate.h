@@ -37,33 +37,11 @@
 
 #include <trace.h>
 
-/** This is passed to interrupt handlers */
-typedef struct istate {
-	uint64_t rax;
-	uint64_t rbx;
-	uint64_t rcx;
-	uint64_t rdx;
-	uint64_t rsi;
-	uint64_t rdi;
-	uint64_t rbp;
-	uint64_t r8;
-	uint64_t r9;
-	uint64_t r10;
-	uint64_t r11;
-	uint64_t r12;
-	uint64_t r13;
-	uint64_t r14;
-	uint64_t r15;
-	uint64_t alignment;   /* align rbp_frame on multiple of 16 */
-	uint64_t rbp_frame;   /* imitation of frame pointer linkage */
-	uint64_t rip_frame;   /* imitation of return address linkage */
-	uint64_t error_word;  /* real or fake error word */
-	uint64_t rip;
-	uint64_t cs;
-	uint64_t rflags;
-	uint64_t rsp;         /* only if istate_t is from uspace */
-	uint64_t ss;          /* only if istate_t is from uspace */
-} istate_t;
+#ifdef KERNEL
+#include <arch/istate_struct.h>
+#else
+#include <libarch/istate_struct.h>
+#endif
 
 #define RPL_USER	3
 

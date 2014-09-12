@@ -390,11 +390,12 @@ NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
 	ASSERT(zone->flags & ZONE_AVAILABLE);
 	
 	/* Allocate frames from zone */
-	size_t index;
+	size_t index = (size_t) -1;
 	int avail = bitmap_allocate_range(&zone->bitmap, count, zone->base,
 	    FRAME_LOWPRIO, constraint, &index);
 	
 	ASSERT(avail);
+	ASSERT(index != (size_t) -1);
 	
 	/* Update frame reference count */
 	for (size_t i = 0; i < count; i++) {
@@ -900,9 +901,7 @@ loop:
 			return 0;
 		}
 		
-#ifdef CONFIG_DEBUG
 		size_t avail = frame_total_free_get_internal();
-#endif
 		
 		irq_spinlock_unlock(&zones.lock, true);
 		

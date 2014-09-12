@@ -100,6 +100,8 @@
 #include "private/async.h"
 #undef LIBC_ASYNC_C_
 
+#include <ipc/irq.h>
+#include <ipc/event.h>
 #include <futex.h>
 #include <fibril.h>
 #include <adt/hash_table.h>
@@ -114,7 +116,6 @@
 #include <stdlib.h>
 #include <macros.h>
 #include "private/libc.h"
-
 
 /** Session data */
 struct async_sess {
@@ -242,6 +243,20 @@ typedef struct {
 	async_client_conn_t cfibril;
 } connection_t;
 
+/* Notification data */
+typedef struct {
+	ht_link_t link;
+	
+	/** Notification method */
+	sysarg_t imethod;
+	
+	/** Notification handler */
+	async_notification_handler_t handler;
+	
+	/** Notification data */
+	void *data;
+} notification_t;
+
 /** Identifier of the incoming connection handled by the current fibril. */
 static fibril_local connection_t *fibril_connection;
 
@@ -334,22 +349,8 @@ static void default_client_connection(ipc_callid_t callid, ipc_call_t *call,
 	ipc_answer_0(callid, ENOENT);
 }
 
-/** Default fibril function that gets called to handle interrupt notifications.
- *
- * This function is defined as a weak symbol - to be redefined in user code.
- *
- * @param callid Hash of the incoming call.
- * @param call   Data of the incoming call.
- * @param arg    Local argument.
- *
- */
-static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
-{
-}
-
 static async_client_conn_t client_connection = default_client_connection;
-static async_interrupt_handler_t interrupt_received = default_interrupt_received;
-static size_t interrupt_handler_stksz = FIBRIL_DFLT_STK_SIZE;
+static size_t notification_handler_stksz = FIBRIL_DFLT_STK_SIZE;
 
 /** Setter for client_connection function pointer.
  *
@@ -362,23 +363,13 @@ void async_set_client_connection(async_client_conn_t conn)
 	client_connection = conn;
 }
 
-/** Setter for interrupt_received function pointer.
- *
- * @param intr Function that will implement a new interrupt
- *             notification fibril.
- */
-void async_set_interrupt_received(async_interrupt_handler_t intr)
-{
-	interrupt_received = intr;
-}
-
-/** Set the stack size for the interrupt handler notification fibrils.
+/** Set the stack size for the notification handler notification fibrils.
  *
  * @param size Stack size in bytes.
  */
-void async_set_interrupt_handler_stack_size(size_t size)
+void async_set_notification_handler_stack_size(size_t size)
 {
-	interrupt_handler_stksz = size;
+	notification_handler_stksz = size;
 }
 
 /** Mutex protecting inactive_exch_list and avail_phone_cv.
@@ -398,12 +389,15 @@ static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 
 static hash_table_t client_hash_table;
 static hash_table_t conn_hash_table;
+static hash_table_t notification_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
-static size_t client_key_hash(void *k)
+static sysarg_t notification_avail = 0;
+
+static size_t client_key_hash(void *key)
 {
-	task_id_t key = *(task_id_t*)k;
-	return key;
+	task_id_t in_task_id = *(task_id_t *) key;
+	return in_task_id;
 }
 
 static size_t client_hash(const ht_link_t *item)
@@ -412,13 +406,12 @@ static size_t client_hash(const ht_link_t *item)
 	return client_key_hash(&client->in_task_id);
 }
 
-static bool client_key_equal(void *k, const ht_link_t *item)
+static bool client_key_equal(void *key, const ht_link_t *item)
 {
-	task_id_t key = *(task_id_t*)k;
+	task_id_t in_task_id = *(task_id_t *) key;
 	client_t *client = hash_table_get_inst(item, client_t, link);
-	return key == client->in_task_id;
+	return in_task_id == client->in_task_id;
 }
-
 
 /** Operations for the client hash table. */
 static hash_table_ops_t client_hash_table_ops = {
@@ -438,8 +431,8 @@ static hash_table_ops_t client_hash_table_ops = {
  */
 static size_t conn_key_hash(void *key)
 {
-	sysarg_t in_phone_hash  = *(sysarg_t*)key;
-	return in_phone_hash ;
+	sysarg_t in_phone_hash = *(sysarg_t *) key;
+	return in_phone_hash;
 }
 
 static size_t conn_hash(const ht_link_t *item)
@@ -450,17 +443,46 @@ static size_t conn_hash(const ht_link_t *item)
 
 static bool conn_key_equal(void *key, const ht_link_t *item)
 {
-	sysarg_t in_phone_hash = *(sysarg_t*)key;
+	sysarg_t in_phone_hash = *(sysarg_t *) key;
 	connection_t *conn = hash_table_get_inst(item, connection_t, link);
 	return (in_phone_hash == conn->in_phone_hash);
 }
-
 
 /** Operations for the connection hash table. */
 static hash_table_ops_t conn_hash_table_ops = {
 	.hash = conn_hash,
 	.key_hash = conn_key_hash,
 	.key_equal = conn_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL
+};
+
+static size_t notification_key_hash(void *key)
+{
+	sysarg_t id = *(sysarg_t *) key;
+	return id;
+}
+
+static size_t notification_hash(const ht_link_t *item)
+{
+	notification_t *notification =
+	    hash_table_get_inst(item, notification_t, link);
+	return notification_key_hash(&notification->imethod);
+}
+
+static bool notification_key_equal(void *key, const ht_link_t *item)
+{
+	sysarg_t id = *(sysarg_t *) key;
+	notification_t *notification =
+	    hash_table_get_inst(item, notification_t, link);
+	return id == notification->imethod;
+}
+
+/** Operations for the notification hash table. */
+static hash_table_ops_t notification_hash_table_ops = {
+	.hash = notification_hash,
+	.key_hash = notification_key_hash,
+	.key_equal = notification_key_equal,
 	.equal = NULL,
 	.remove_callback = NULL
 };
@@ -510,14 +532,13 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 	
 	futex_down(&async_futex);
 	
-	ht_link_t *hlp = hash_table_find(&conn_hash_table, &call->in_phone_hash);
-	
-	if (!hlp) {
+	ht_link_t *link = hash_table_find(&conn_hash_table, &call->in_phone_hash);
+	if (!link) {
 		futex_up(&async_futex);
 		return false;
 	}
 	
-	connection_t *conn = hash_table_get_inst(hlp, connection_t, link);
+	connection_t *conn = hash_table_get_inst(link, connection_t, link);
 	
 	msg_t *msg = malloc(sizeof(*msg));
 	if (!msg) {
@@ -552,7 +573,8 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 /** Notification fibril.
  *
  * When a notification arrives, a fibril with this implementing function is
- * created. It calls interrupt_received() and does the final cleanup.
+ * created. It calls the corresponding notification handler and does the final
+ * cleanup.
  *
  * @param arg Message structure pointer.
  *
@@ -564,13 +586,30 @@ static int notification_fibril(void *arg)
 	assert(arg);
 	
 	msg_t *msg = (msg_t *) arg;
-	interrupt_received(msg->callid, &msg->call);
+	async_notification_handler_t handler = NULL;
+	void *data = NULL;
+	
+	futex_down(&async_futex);
+	
+	ht_link_t *link = hash_table_find(&notification_hash_table,
+	    &IPC_GET_IMETHOD(msg->call));
+	if (link) {
+		notification_t *notification =
+		    hash_table_get_inst(link, notification_t, link);
+		handler = notification->handler;
+		data = notification->data;
+	}
+	
+	futex_up(&async_futex);
+	
+	if (handler)
+		handler(msg->callid, &msg->call, data);
 	
 	free(msg);
 	return 0;
 }
 
-/** Process interrupt notification.
+/** Process notification.
  *
  * A new fibril is created which would process the notification.
  *
@@ -597,7 +636,7 @@ static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
 	msg->call = *call;
 	
 	fid_t fid = fibril_create_generic(notification_fibril, msg,
-	    interrupt_handler_stksz);
+	    notification_handler_stksz);
 	if (fid == 0) {
 		free(msg);
 		futex_up(&async_futex);
@@ -608,6 +647,147 @@ static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
 	
 	futex_up(&async_futex);
 	return true;
+}
+
+/** Subscribe to IRQ notification.
+ *
+ * @param inr     IRQ number.
+ * @param devno   Device number of the device generating inr.
+ * @param handler Notification handler.
+ * @param data    Notification handler client data.
+ * @param ucode   Top-half pseudocode handler.
+ *
+ * @return Zero on success or a negative error code.
+ *
+ */
+int async_irq_subscribe(int inr, int devno,
+    async_notification_handler_t handler, void *data, const irq_code_t *ucode)
+{
+	notification_t *notification =
+	    (notification_t *) malloc(sizeof(notification_t));
+	if (!notification)
+		return ENOMEM;
+	
+	futex_down(&async_futex);
+	
+	sysarg_t imethod = notification_avail;
+	notification_avail++;
+	
+	notification->imethod = imethod;
+	notification->handler = handler;
+	notification->data = data;
+	
+	hash_table_insert(&notification_hash_table, &notification->link);
+	
+	futex_up(&async_futex);
+	
+	return ipc_irq_subscribe(inr, devno, imethod, ucode);
+}
+
+/** Unsubscribe from IRQ notification.
+ *
+ * @param inr     IRQ number.
+ * @param devno   Device number of the device generating inr.
+ *
+ * @return Zero on success or a negative error code.
+ *
+ */
+int async_irq_unsubscribe(int inr, int devno)
+{
+	// TODO: Remove entry from hash table
+	//       to avoid memory leak
+	
+	return ipc_irq_unsubscribe(inr, devno);
+}
+
+/** Subscribe to event notifications.
+ *
+ * @param evno    Event type to subscribe.
+ * @param handler Notification handler.
+ * @param data    Notification handler client data.
+ *
+ * @return Zero on success or a negative error code.
+ *
+ */
+int async_event_subscribe(event_type_t evno,
+    async_notification_handler_t handler, void *data)
+{
+	notification_t *notification =
+	    (notification_t *) malloc(sizeof(notification_t));
+	if (!notification)
+		return ENOMEM;
+	
+	futex_down(&async_futex);
+	
+	sysarg_t imethod = notification_avail;
+	notification_avail++;
+	
+	notification->imethod = imethod;
+	notification->handler = handler;
+	notification->data = data;
+	
+	hash_table_insert(&notification_hash_table, &notification->link);
+	
+	futex_up(&async_futex);
+	
+	return ipc_event_subscribe(evno, imethod);
+}
+
+/** Subscribe to task event notifications.
+ *
+ * @param evno    Event type to subscribe.
+ * @param handler Notification handler.
+ * @param data    Notification handler client data.
+ *
+ * @return Zero on success or a negative error code.
+ *
+ */
+int async_event_task_subscribe(event_task_type_t evno,
+    async_notification_handler_t handler, void *data)
+{
+	notification_t *notification =
+	    (notification_t *) malloc(sizeof(notification_t));
+	if (!notification)
+		return ENOMEM;
+	
+	futex_down(&async_futex);
+	
+	sysarg_t imethod = notification_avail;
+	notification_avail++;
+	
+	notification->imethod = imethod;
+	notification->handler = handler;
+	notification->data = data;
+	
+	hash_table_insert(&notification_hash_table, &notification->link);
+	
+	futex_up(&async_futex);
+	
+	return ipc_event_task_subscribe(evno, imethod);
+}
+
+/** Unmask event notifications.
+ *
+ * @param evno Event type to unmask.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int async_event_unmask(event_type_t evno)
+{
+	return ipc_event_unmask(evno);
+}
+
+/** Unmask task event notifications.
+ *
+ * @param evno Event type to unmask.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int async_event_task_unmask(event_task_type_t evno)
+{
+	return ipc_event_task_unmask(evno);
 }
 
 /** Return new incoming message for the current (fibril-local) connection.
@@ -701,9 +881,9 @@ static client_t *async_client_get(task_id_t client_id, bool create)
 	client_t *client = NULL;
 
 	futex_down(&async_futex);
-	ht_link_t *lnk = hash_table_find(&client_hash_table, &client_id);
-	if (lnk) {
-		client = hash_table_get_inst(lnk, client_t, link);
+	ht_link_t *link = hash_table_find(&client_hash_table, &client_id);
+	if (link) {
+		client = hash_table_get_inst(link, client_t, link);
 		atomic_inc(&client->refcnt);
 	} else if (create) {
 		client = malloc(sizeof(client_t));
@@ -1105,6 +1285,10 @@ void __async_init(void)
 		abort();
 	
 	if (!hash_table_create(&conn_hash_table, 0, 0, &conn_hash_table_ops))
+		abort();
+	
+	if (!hash_table_create(&notification_hash_table, 0, 0,
+	    &notification_hash_table_ops))
 		abort();
 	
 	session_ns = (async_sess_t *) malloc(sizeof(async_sess_t));

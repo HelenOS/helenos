@@ -149,6 +149,17 @@ int bd_write_blocks(bd_t *bd, aoff64_t ba, size_t cnt, const void *data,
 	return EOK;
 }
 
+int bd_sync_cache(bd_t *bd, aoff64_t ba, size_t cnt)
+{
+	async_exch_t *exch = async_exchange_begin(bd->sess);
+
+	int rc = async_req_3_0(exch, BD_SYNC_CACHE, LOWER32(ba),
+	    UPPER32(ba), cnt);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
 int bd_get_block_size(bd_t *bd, size_t *rbsize)
 {
 	sysarg_t bsize;

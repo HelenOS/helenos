@@ -32,7 +32,6 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = xtkbd
 
 SOURCES = \
-	chardev.c \
 	main.c \
 	xtkbd.c
 

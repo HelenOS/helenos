@@ -90,6 +90,7 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	    &anon_backend, NULL, &virt, bound);
 	if (!area) {
 		task_destroy(prg->task);
+		prg->task = NULL;
 		return ENOMEM;
 	}
 	
@@ -112,6 +113,7 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 		free(kernel_uarg);
 		as_area_destroy(as, virt);
 		task_destroy(prg->task);
+		prg->task = NULL;
 		return ELIMIT;
 	}
 	

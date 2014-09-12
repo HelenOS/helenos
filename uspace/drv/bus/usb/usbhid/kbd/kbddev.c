@@ -665,12 +665,12 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	    HID_KBD_FUN_NAME, ddf_fun_get_handle(fun));
 
 	usb_log_debug("Adding DDF function to category %s...\n",
-	    HID_KBD_CLASS_NAME);
+	    HID_KBD_CATEGORY_NAME);
 	ret = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY_NAME);
 	if (ret != EOK) {
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
-		    HID_KBD_CLASS_NAME, str_error(ret));
+		    HID_KBD_CATEGORY_NAME, str_error(ret));
 		usb_kbd_destroy(kbd_dev);
 		if (ddf_fun_unbind(fun) == EOK) {
 			ddf_fun_destroy(fun);

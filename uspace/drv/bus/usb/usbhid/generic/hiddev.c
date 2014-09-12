@@ -45,8 +45,6 @@
 #include "hiddev.h"
 #include "usbhid.h"
 
-
-
 const usb_endpoint_description_t usb_hid_generic_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
@@ -57,7 +55,7 @@ const usb_endpoint_description_t usb_hid_generic_poll_endpoint_description = {
 };
 
 const char *HID_GENERIC_FUN_NAME = "hid";
-const char *HID_GENERIC_CLASS_NAME = "hid";
+const char *HID_GENERIC_CATEGORY = "hid";
 
 
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun);
@@ -222,6 +220,7 @@ bool usb_generic_hid_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
 	return true;
 }
+
 /**
  * @}
  */

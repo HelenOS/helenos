@@ -43,8 +43,8 @@
 static void parse_single_level_setting(char *setting)
 {
 	char *tmp;
-	char *key = strtok_r(setting, "=", &tmp);
-	char *value = strtok_r(NULL, "=", &tmp);
+	char *key = str_tok(setting, "=", &tmp);
+	char *value = str_tok(tmp, "=", &tmp);
 	if (key == NULL)
 		return;
 	if (value == NULL) {
@@ -75,10 +75,10 @@ static void parse_single_level_setting(char *setting)
 void parse_level_settings(char *settings)
 {
 	char *tmp;
-	char *single_setting = strtok_r(settings, " ", &tmp);
+	char *single_setting = str_tok(settings, " ", &tmp);
 	while (single_setting != NULL) {
 		parse_single_level_setting(single_setting);
-		single_setting = strtok_r(NULL, " ", &tmp);
+		single_setting = str_tok(tmp, " ", &tmp);
 	}
 }
 

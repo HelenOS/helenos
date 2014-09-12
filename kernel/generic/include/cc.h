@@ -39,8 +39,11 @@
 #ifndef __clang__
 #define ATTRIBUTE_OPTIMIZE(opt) \
 	__attribute__ ((optimize(opt)))
+#define ATTRIBUTE_USED \
+	__attribute__ ((used))
 #else
 #define ATTRIBUTE_OPTIMIZE(opt)
+#define ATTRIBUTE_USED
 #endif
 
 

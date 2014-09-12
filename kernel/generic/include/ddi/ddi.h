@@ -69,6 +69,7 @@ extern sysarg_t sys_iospace_disable(ddi_ioarg_t *);
  * Interface to be implemented by all architectures.
  */
 extern int ddi_iospace_enable_arch(task_t *, uintptr_t, size_t);
+extern int ddi_iospace_disable_arch(task_t *, uintptr_t, size_t);
 
 #endif
 

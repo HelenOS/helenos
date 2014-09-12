@@ -45,7 +45,7 @@ struct mouse_proto_ops;
 
 typedef struct mouse_dev {
 	/** Link to mouse_devs list */
-	link_t mouse_devs;
+	link_t link;
 	
 	/** Service ID (only for mousedev devices) */
 	service_id_t svc_id;

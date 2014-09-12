@@ -37,6 +37,7 @@
 #define LIBC_mips32_FIBRIL_H_
 
 #include <sys/types.h>
+#include <libarch/fibril_context.h>
 #include <libarch/stack.h>
 #include <align.h>
 
@@ -54,36 +55,6 @@
 		(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
 		(c)->tls = ((sysarg_t)(ptls)) + 0x7000 + sizeof(tcb_t); \
 	} while (0)
-
-typedef struct  {
-	uint32_t sp;
-	uint32_t pc;
-	
-	uint32_t s0;
-	uint32_t s1;
-	uint32_t s2;
-	uint32_t s3;
-	uint32_t s4;
-	uint32_t s5;
-	uint32_t s6;
-	uint32_t s7;
-	uint32_t s8;
-	uint32_t gp;
-	uint32_t tls; /* Thread local storage(=k1) */
-
-	uint32_t f20;
-	uint32_t f21;
-	uint32_t f22;
-	uint32_t f23;
-	uint32_t f24;
-	uint32_t f25;
-	uint32_t f26;
-	uint32_t f27;
-	uint32_t f28;
-	uint32_t f29;
-	uint32_t f30;
-	
-} context_t;
 
 static inline uintptr_t context_get_fp(context_t *ctx)
 {

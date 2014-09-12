@@ -44,11 +44,11 @@ void source_init(source_t *source)
 	
 	source->color = PIXEL(0, 0, 0, 0);
 	source->texture = NULL;
-	source->texture_tile = false;
+	source->texture_extend = PIXELMAP_EXTEND_TRANSPARENT_BLACK;
 
 	source->alpha = PIXEL(255, 0, 0, 0);
 	source->mask = NULL;
-	source->mask_tile = false;
+	source->mask_extend = PIXELMAP_EXTEND_TRANSPARENT_BLACK;
 }
 
 void source_set_transform(source_t *source, transform_t transform)
@@ -72,10 +72,11 @@ void source_set_color(source_t *source, pixel_t color)
 	source->color = color;
 }
 
-void source_set_texture(source_t *source, surface_t *texture, bool tile)
+void source_set_texture(source_t *source, surface_t *texture,
+    pixelmap_extend_t extend)
 {
 	source->texture = texture;
-	source->texture_tile = tile;
+	source->texture_extend = extend;
 }
 
 void source_set_alpha(source_t *source, pixel_t alpha)
@@ -83,27 +84,27 @@ void source_set_alpha(source_t *source, pixel_t alpha)
 	source->alpha = alpha;
 }
 
-void source_set_mask(source_t *source, surface_t *mask, bool tile)
+void source_set_mask(source_t *source, surface_t *mask,
+    pixelmap_extend_t extend)
 {
 	source->mask = mask;
-	source->mask_tile = tile;
+	source->mask_extend = extend;
 }
 
 bool source_is_fast(source_t *source)
 {
-	return (source->mask == NULL)
-	    && (source->alpha == (pixel_t) PIXEL(255, 0, 0, 0))
-	    && (source->texture != NULL)
-	    && (source->texture_tile == false)
-	    && transform_is_fast(&source->transform);
+	return ((source->mask == NULL) &&
+	    (source->alpha == (pixel_t) PIXEL(255, 0, 0, 0)) &&
+	    (source->texture != NULL) &&
+	    (transform_is_fast(&source->transform)));
 }
 
 pixel_t *source_direct_access(source_t *source, double x, double y)
 {
 	assert(source_is_fast(source));
 
-	long _x = (long) (x + source->transform.m[0][2]);
-	long _y = (long) (y + source->transform.m[1][2]);
+	long _x = (long) (x + source->transform.matrix[0][2]);
+	long _y = (long) (y + source->transform.matrix[1][2]);
 
 	return pixelmap_pixel_at(
 	    surface_pixmap_access(source->texture), (sysarg_t) _x, (sysarg_t) _y);
@@ -119,7 +120,7 @@ pixel_t source_determine_pixel(source_t *source, double x, double y)
 	if (source->mask) {
 		mask_pix = source->filter(
 		    surface_pixmap_access(source->mask),
-		    x, y, source->mask_tile);
+		    x, y, source->mask_extend);
 	} else {
 		mask_pix = source->alpha;
 	}
@@ -132,7 +133,7 @@ pixel_t source_determine_pixel(source_t *source, double x, double y)
 	if (source->texture) {
 		texture_pix = source->filter(
 		    surface_pixmap_access(source->texture),
-		    x, y, source->texture_tile);
+		    x, y, source->texture_extend);
 	} else {
 		texture_pix = source->color;
 	}

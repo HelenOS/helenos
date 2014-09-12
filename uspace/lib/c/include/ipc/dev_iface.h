@@ -40,9 +40,6 @@ typedef enum {
 	/** Character device interface */
 	CHAR_DEV_IFACE,
 
-	/** Graphic device interface */
-	GRAPH_DEV_IFACE,
-
 	/** Audio device mixer interface */
 	AUDIO_MIXER_IFACE,
 	/** Audio device pcm buffer interface */
@@ -63,6 +60,9 @@ typedef enum {
 
 	/** Interface provided by Real Time Clock devices */
 	CLOCK_DEV_IFACE,
+
+	/** Interface provided by LED devices */
+	LED_DEV_IFACE,
 
 	/** Interface provided by battery powered devices */
 	BATTERY_DEV_IFACE,

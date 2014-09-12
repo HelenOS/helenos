@@ -70,6 +70,9 @@ static int udp_inet_ev_recv(inet_dgram_t *dgram)
 	pdu->dest = dgram->dest;
 
 	udp_received_pdu(pdu);
+
+	/* We don't want udp_pdu_delete() to free dgram->data */
+	pdu->data = NULL;
 	udp_pdu_delete(pdu);
 
 	return EOK;

@@ -262,7 +262,7 @@ static void detect_execution_units(void)
 
 		while (md_next_child(&it)) {
 			md_node_t child = md_get_child_node(it);
-			const char *exec_unit_type;
+			const char *exec_unit_type = "";
 			md_get_string_property(child, "type", &exec_unit_type);
 
 			/* each physical core has just 1 integer exec. unit */

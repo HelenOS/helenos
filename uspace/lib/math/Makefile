@@ -27,9 +27,25 @@
 #
 
 USPACE_PREFIX = ../..
+ROOT_PATH = $(USPACE_PREFIX)/..
+
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+
 LIBRARY = libmath
+SLIBRARY = libmath.so.0.0
+LSONAME = libmath.so0
+MATH = y
+
+-include $(CONFIG_MAKEFILE)
+-include arch/$(UARCH)/Makefile.inc
+
+GENERIC_SOURCES = \
+	generic/trig.c \
+	generic/mod.c \
+	generic/trunc.c
 
 SOURCES = \
-	src/dummy.c
+	$(GENERIC_SOURCES) \
+	$(ARCH_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -49,7 +49,6 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <sys/mman.h>
 #include <align.h>
 #include <malloc.h>
 #include <inttypes.h>

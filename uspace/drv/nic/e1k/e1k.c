@@ -32,20 +32,15 @@
  *
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
 #include <adt/list.h>
 #include <align.h>
 #include <byteorder.h>
-#include <sysinfo.h>
-#include <ipc/irc.h>
-#include <ipc/ns.h>
-#include <ddi.h>
+#include <irc.h>
 #include <as.h>
+#include <ddi.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
@@ -75,7 +70,7 @@
 
 /** ddf_fun_t * -> nic_driver_data_t* cast */
 #define NIC_DATA_FUN(fun) \
-	((nic_t *) ddf_fun_data_get(fun))
+	((nic_t *) ddf_dev_data_get(ddf_fun_get_dev(fun)))
 
 /** ddf_dev_t * -> nic_driver_data_t* cast */
 #define NIC_DATA_DEV(dev) \
@@ -1233,13 +1228,13 @@ static void e1000_interrupt_handler_impl(nic_t *nic, uint32_t icr)
 
 /** Handle device interrupt
  *
- * @param dev   E1000 device
  * @param iid   IPC call id
  * @param icall IPC call structure
+ * @param dev   E1000 device
  *
  */
-static void e1000_interrupt_handler(ddf_dev_t *dev, ipc_callid_t iid,
-    ipc_call_t *icall)
+static void e1000_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
+    ddf_dev_t *dev)
 {
 	uint32_t icr = (uint32_t) IPC_GET_ARG2(*icall);
 	nic_t *nic = NIC_DATA_DEV(dev);
@@ -1374,6 +1369,7 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	fibril_mutex_lock(&e1000->rx_lock);
 	
+	e1000->rx_ring_virt = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(
 	    E1000_RX_FRAME_COUNT * sizeof(e1000_rx_descriptor_t),
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
@@ -1395,11 +1391,10 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 		goto error;
 	}
 	
-	size_t i;
-	uintptr_t frame_phys;
-	void *frame_virt;
-	
-	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
+	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++) {
+		uintptr_t frame_phys;
+		void *frame_virt = AS_AREA_ANY;
+		
 		rc = dmamem_map_anonymous(E1000_MAX_SEND_FRAME_SIZE,
 		    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 		    &frame_phys, &frame_virt);
@@ -1411,7 +1406,7 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	}
 	
 	/* Write descriptor */
-	for (i = 0; i < E1000_RX_FRAME_COUNT; i++)
+	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++)
 		e1000_fill_new_rx_descriptor(nic, i);
 	
 	e1000_initialize_rx_registers(e1000);
@@ -1420,7 +1415,7 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	return EOK;
 	
 error:
-	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
+	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++) {
 		if (e1000->rx_frame_virt[i] != NULL) {
 			dmamem_unmap_anonymous(e1000->rx_frame_virt[i]);
 			e1000->rx_frame_phys[i] = 0;
@@ -1570,7 +1565,7 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
 	fibril_mutex_lock(&e1000->tx_lock);
 	
 	e1000->tx_ring_phys = 0;
-	e1000->tx_ring_virt = NULL;
+	e1000->tx_ring_virt = AS_AREA_ANY;
 	
 	e1000->tx_frame_phys = NULL;
 	e1000->tx_frame_virt = NULL;
@@ -1596,6 +1591,7 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
 	}
 	
 	for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
+		e1000->tx_frame_virt[i] = AS_AREA_ANY;
 		rc = dmamem_map_anonymous(E1000_MAX_SEND_FRAME_SIZE,
 		    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
 		    0, &e1000->tx_frame_phys[i], &e1000->tx_frame_virt[i]);
@@ -1756,7 +1752,14 @@ static int e1000_on_activating(nic_t *nic)
 	
 	e1000_enable_interrupts(e1000);
 	
-	nic_enable_interrupt(nic, e1000->irq);
+	int rc = irc_enable_interrupt(e1000->irq);
+	if (rc != EOK) {
+		e1000_disable_interrupts(e1000);
+		fibril_mutex_unlock(&e1000->ctrl_lock);
+		fibril_mutex_unlock(&e1000->tx_lock);
+		fibril_mutex_unlock(&e1000->rx_lock);
+		return rc;
+	}
 	
 	e1000_clear_rx_ring(e1000);
 	e1000_enable_rx(e1000);
@@ -1794,7 +1797,7 @@ static int e1000_on_down_unlocked(nic_t *nic)
 	e1000_disable_tx(e1000);
 	e1000_disable_rx(e1000);
 	
-	nic_disable_interrupt(nic, e1000->irq);
+	irc_disable_interrupt(e1000->irq);
 	e1000_disable_interrupts(e1000);
 	
 	/*
@@ -2146,15 +2149,10 @@ int e1000_dev_add(ddf_dev_t *dev)
 		goto err_tx_structure;
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &e1000_dev_ops);
-	ddf_fun_data_implant(fun, nic);
 	
 	rc = e1000_register_int_handler(nic);
 	if (rc != EOK)
 		goto err_fun_create;
-	
-	rc = nic_connect_to_services(nic);
-	if (rc != EOK)
-		goto err_irq;
 	
 	rc = e1000_initialize_rx_structure(nic);
 	if (rc != EOK)
@@ -2377,14 +2375,14 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 
 int main(void)
 {
-	int rc = nic_driver_init(NAME);
-	if (rc != EOK)
-		return rc;
+	printf("%s: HelenOS E1000 network adapter driver\n", NAME);
+	
+	if (nic_driver_init(NAME) != EOK)
+		return 1;
 	
 	nic_driver_implement(&e1000_driver_ops, &e1000_dev_ops,
 	    &e1000_nic_iface);
 	
 	ddf_log_init(NAME);
-	ddf_msg(LVL_NOTE, "HelenOS E1000 driver started");
 	return ddf_driver_main(&e1000_driver);
 }

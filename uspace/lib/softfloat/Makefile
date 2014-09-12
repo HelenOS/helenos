@@ -29,6 +29,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libsoftfloat
+MATH = y
 
 SOURCES = \
 	softfloat.c \
@@ -38,7 +39,6 @@ SOURCES = \
 	div.c \
 	mul.c \
 	comparison.c \
-	conversion.c \
-	other.c
+	conversion.c
 
 include $(USPACE_PREFIX)/Makefile.common

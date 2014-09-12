@@ -115,11 +115,9 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 			driver = dev->pfun->dev->drv;
 		
 		fwd_h = dev->pfun->handle;
-	} else if (dev->state == DEVICE_USABLE) {
+	} else {
 		/* Connect to the specified function */
 		driver = dev->drv;
-		assert(driver != NULL);
-		
 		fwd_h = handle;
 	}
 	

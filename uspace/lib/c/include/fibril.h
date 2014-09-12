@@ -66,6 +66,7 @@ typedef sysarg_t fid_t;
 
 typedef struct fibril {
 	link_t link;
+	link_t all_link;
 	context_t ctx;
 	void *stack;
 	void *arg;

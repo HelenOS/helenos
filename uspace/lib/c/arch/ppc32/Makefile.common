@@ -26,7 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
+
+ifeq ($(CONFIG_FPU),y)
+FLOATS=hard
+else
+FLOATS=soft
+endif
+
+GCC_CFLAGS += -mcpu=powerpc -m$(FLOATS)-float -m32
 BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 AFLAGS = -a32
 

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2014 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,27 +35,85 @@
  */
 
 #include "filter.h"
+#include <io/pixel.h>
 
-pixel_t filter_nearest(pixelmap_t *pixmap, double x, double y, bool tile)
+
+static long round(double val)
 {
-	long _x = x > 0 ? (long) (x + 0.5) : (long) (x - 0.5);
-	long _y = y > 0 ? (long) (y + 0.5) : (long) (y - 0.5);
+	return val > 0 ? (long) (val + 0.5) : (long) (val - 0.5);
+}
 
-	if (tile) {
-		_x %= pixmap->width;
-		_y %= pixmap->height;
+static long floor(double val)
+{
+	long lval = (long) val;
+	if (val < 0 && lval != val)
+		return lval - 1;
+	return lval;
+}
+
+static long ceil(double val)
+{
+	long lval = (long) val;
+	if (val > 0 && lval != val)
+		return lval + 1;
+	return lval;
+}
+
+
+static inline pixel_t blend_pixels(size_t count, float *weights,
+    pixel_t *pixels)
+{
+	float alpha = 0, red = 0, green = 0, blue = 0;
+	for (size_t index = 0; index < count; index++) {
+		alpha += weights[index] * ALPHA(pixels[index]);
+		red   += weights[index] *   RED(pixels[index]);
+		green += weights[index] * GREEN(pixels[index]);
+		blue  += weights[index] *  BLUE(pixels[index]);
 	}
-
-	return pixelmap_get_pixel(pixmap, (sysarg_t) _x, (sysarg_t) _y);
+	
+	return PIXEL((uint8_t) alpha, (uint8_t) red, (uint8_t) green,
+	    (uint8_t) blue);
 }
 
-pixel_t filter_bilinear(pixelmap_t *pixmap, double x, double y, bool tile)
+pixel_t filter_nearest(pixelmap_t *pixmap, double x, double y,
+    pixelmap_extend_t extend)
 {
-	// TODO
-	return 0;
+	return pixelmap_get_extended_pixel(pixmap, round(x), round(y), extend);
 }
 
-pixel_t filter_bicubic(pixelmap_t *pixmap, double x, double y, bool tile)
+pixel_t filter_bilinear(pixelmap_t *pixmap, double x, double y,
+    pixelmap_extend_t extend)
+{
+	long x1 = floor(x);
+	long x2 = ceil(x);
+	long y1 = floor(y);
+	long y2 = ceil(y);
+	
+	if (y1 == y2 && x1 == x2) {
+		return pixelmap_get_extended_pixel(pixmap,
+		    (sysarg_t) x1, (sysarg_t) y1, extend);
+	}
+	
+	double x_delta = x - x1;
+	double y_delta = y - y1;
+	
+	pixel_t pixels[4];
+	pixels[0] = pixelmap_get_extended_pixel(pixmap, x1, y1, extend);
+	pixels[1] = pixelmap_get_extended_pixel(pixmap, x2, y1, extend);
+	pixels[2] = pixelmap_get_extended_pixel(pixmap, x1, y2, extend);
+	pixels[3] = pixelmap_get_extended_pixel(pixmap, x2, y2, extend);
+	
+	float weights[4];
+	weights[0] = (1 - x_delta) * (1 - y_delta);
+	weights[1] = (    x_delta) * (1 - y_delta);
+	weights[2] = (1 - x_delta) * (    y_delta);
+	weights[3] = (    x_delta) * (    y_delta);
+	
+	return blend_pixels(4, weights, pixels);
+}
+
+pixel_t filter_bicubic(pixelmap_t *pixmap, double x, double y,
+    pixelmap_extend_t extend)
 {
 	// TODO
 	return 0;

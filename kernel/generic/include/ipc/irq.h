@@ -46,13 +46,13 @@
 #include <typedefs.h>
 #include <adt/list.h>
 
-extern int ipc_irq_register(answerbox_t *, inr_t, devno_t, sysarg_t,
+extern int ipc_irq_subscribe(answerbox_t *, inr_t, devno_t, sysarg_t,
     irq_code_t *);
 
 extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
 extern void ipc_irq_top_half_handler(irq_t *);
 
-extern int ipc_irq_unregister(answerbox_t *, inr_t, devno_t);
+extern int ipc_irq_unsubscribe(answerbox_t *, inr_t, devno_t);
 extern void ipc_irq_cleanup(answerbox_t *);
 
 /*

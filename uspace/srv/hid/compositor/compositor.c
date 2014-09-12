@@ -54,14 +54,12 @@
 
 #include <async.h>
 #include <loc.h>
-#include <devman.h>
 
-#include <event.h>
-#include <graph_iface.h>
 #include <io/keycode.h>
 #include <io/mode.h>
 #include <io/visualizer.h>
 #include <io/window.h>
+#include <io/console.h>
 
 #include <transform.h>
 #include <rectangle.h>
@@ -85,6 +83,8 @@
 static char *server_name;
 static sysarg_t coord_origin;
 static pixel_t bg_color;
+static filter_t filter = filter_bilinear;
+static unsigned int filter_index = 1;
 
 typedef struct {
 	link_t link;
@@ -145,20 +145,23 @@ static FIBRIL_MUTEX_INITIALIZE(discovery_mtx);
 
 /** Input server proxy */
 static input_t *input;
+static bool active = false;
 
+static int comp_active(input_t *);
+static int comp_deactive(input_t *);
 static int comp_key_press(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
 static int comp_mouse_move(input_t *, int, int);
 static int comp_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
 static int comp_mouse_button(input_t *, int, int);
 
 static input_ev_ops_t input_ev_ops = {
+	.active = comp_active,
+	.deactive = comp_deactive,
 	.key = comp_key_press,
 	.move = comp_mouse_move,
 	.abs_move = comp_abs_move,
 	.button = comp_mouse_button
 };
-
-static void input_disconnect(void);
 
 static pointer_t *input_pointer(input_t *input)
 {
@@ -231,16 +234,16 @@ static window_t *window_create(void)
 
 static void window_destroy(window_t *win)
 {
-	if (win && atomic_get(&win->ref_cnt) == 0) {
+	if ((win) && (atomic_get(&win->ref_cnt) == 0)) {
 		while (!list_empty(&win->queue.list)) {
 			window_event_t *event = (window_event_t *) list_first(&win->queue.list);
 			list_remove(&event->link);
 			free(event);
 		}
-
-		if (win->surface) {
+		
+		if (win->surface)
 			surface_destroy(win->surface);
-		}
+		
 		free(win);
 	}
 }
@@ -252,23 +255,23 @@ static bool comp_coord_to_client(sysarg_t x_in, sysarg_t y_in, transform_t win_t
 	double y = y_in;
 	transform_invert(&win_trans);
 	transform_apply_affine(&win_trans, &x, &y);
-
-	/* Since client coordinate origin is (0, 0), it is necessary to check
+	
+	/*
+	 * Since client coordinate origin is (0, 0), it is necessary to check
 	 * coordinates to avoid underflow. Moreover, it is convenient to also
 	 * check against provided upper limits to determine whether the converted
-	 * coordinates are within the client window.  */
-	if (x < 0 || y < 0) {
+	 * coordinates are within the client window.
+	 */
+	if ((x < 0) || (y < 0))
 		return false;
-	} else {
-		(*x_out) = (sysarg_t) (x + 0.5);
-		(*y_out) = (sysarg_t) (y + 0.5);
-
-		if ((*x_out) >= x_lim || (*y_out) >= y_lim) {
-			return false;
-		} else {
-			return true;
-		}
-	}
+	
+	(*x_out) = (sysarg_t) (x + 0.5);
+	(*y_out) = (sysarg_t) (y + 0.5);
+	
+	if (((*x_out) >= x_lim) || ((*y_out) >= y_lim))
+		return false;
+	
+	return true;
 }
 
 static void comp_coord_from_client(double x_in, double y_in, transform_t win_trans,
@@ -278,8 +281,10 @@ static void comp_coord_from_client(double x_in, double y_in, transform_t win_tra
 	double y = y_in;
 	transform_apply_affine(&win_trans, &x, &y);
 	
-	/* It is assumed that compositor coordinate origin is chosen in such way,
-	 * that underflow/overflow here would be unlikely. */
+	/*
+	 * It is assumed that compositor coordinate origin is chosen in such way,
+	 * that underflow/overflow here would be unlikely.
+	 */
 	(*x_out) = (sysarg_t) (x + 0.5);
 	(*y_out) = (sysarg_t) (y + 0.5);
 }
@@ -404,7 +409,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 			drawctx_t context;
 
 			source_init(&source);
-			source_set_filter(&source, filter_nearest);
+			source_set_filter(&source, filter);
 			drawctx_init(&context, vp->surface);
 			drawctx_set_compose(&context, compose_over);
 			drawctx_set_source(&context, &source);
@@ -437,8 +442,9 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 					pos.y = vp->pos.y;
 					transform_translate(&transform, -pos.x, -pos.y);
 
-					source_set_transform(&source, transform);				
-					source_set_texture(&source, win->surface, false);
+					source_set_transform(&source, transform);
+					source_set_texture(&source, win->surface,
+					    PIXELMAP_EXTEND_TRANSPARENT_SIDES);
 					source_set_alpha(&source, PIXEL(win->opacity, 0, 0, 0));
 
 					drawctx_transfer(&context,
@@ -566,14 +572,16 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 	fibril_mutex_unlock(&window_list_mtx);
 
 	/* Notify visualizers about updated regions. */
-	list_foreach(viewport_list, link, viewport_t, vp) {
-		sysarg_t x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp;
-		surface_get_damaged_region(vp->surface, &x_dmg_vp, &y_dmg_vp, &w_dmg_vp, &h_dmg_vp);
-		surface_reset_damaged_region(vp->surface);
-		visualizer_update_damaged_region(
-		    vp->sess, x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp, 0, 0);
+	if (active) {
+		list_foreach(viewport_list, link, viewport_t, vp) {
+			sysarg_t x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp;
+			surface_get_damaged_region(vp->surface, &x_dmg_vp, &y_dmg_vp, &w_dmg_vp, &h_dmg_vp);
+			surface_reset_damaged_region(vp->surface);
+			visualizer_update_damaged_region(vp->sess,
+			    x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp, 0, 0);
+		}
 	}
-
+	
 	fibril_mutex_unlock(&viewport_list_mtx);
 }
 
@@ -589,14 +597,15 @@ static void comp_window_get_event(window_t *win, ipc_callid_t iid, ipc_call_t *i
 		free(event);
 		return;
 	}
+	
 	int rc = async_data_read_finalize(callid, event, len);
 	if (rc != EOK) {
 		async_answer_0(iid, ENOMEM);
 		free(event);
 		return;
 	}
-	async_answer_0(iid, EOK);
 	
+	async_answer_0(iid, EOK);
 	free(event);
 }
 
@@ -607,7 +616,7 @@ static void comp_window_damage(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 	double width = IPC_GET_ARG3(*icall);
 	double height = IPC_GET_ARG4(*icall);
 
-	if (width == 0 || height == 0) {
+	if ((width == 0) || (height == 0)) {
 		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	} else {
 		fibril_mutex_lock(&window_list_mtx);
@@ -664,11 +673,11 @@ static void comp_recalc_transform(window_t *win)
 	transform_t temp;
 	transform_identity(&transform);
 	temp = transform;
-	transform_multiply(&transform, &temp, &translate);
+	transform_product(&transform, &temp, &translate);
 	temp = transform;
-	transform_multiply(&transform, &temp, &rotate);
+	transform_product(&transform, &temp, &rotate);
 	temp = transform;
-	transform_multiply(&transform, &temp, &scale);
+	transform_product(&transform, &temp, &scale);
 	
 	win->transform = transform;
 }
@@ -856,13 +865,12 @@ static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall
 	}
 
 	comp_damage(x, y, width, height);
-
 	async_answer_0(iid, EOK);
 }
 
 static void comp_window_close_request(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 {
-    window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
+	window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 	if (event == NULL) {
 		async_answer_0(iid, ENOMEM);
 		return;
@@ -1002,8 +1010,10 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				comp_window_resize(win, callid, &call);
 				break;
 			case WINDOW_CLOSE:
-				/* Postpone the closing until the phone is hung up to cover
-				 * the case when the client is killed abruptly. */
+				/*
+				 * Postpone the closing until the phone is hung up to cover
+				 * the case when the client is killed abruptly.
+				 */
 				async_answer_0(callid, EOK);
 				break;
 			case WINDOW_CLOSE_REQUEST:
@@ -1018,13 +1028,12 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 static void comp_mode_change(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall)
 {
-	int rc;
 	sysarg_t mode_idx = IPC_GET_ARG2(*icall);
 	fibril_mutex_lock(&viewport_list_mtx);
 
 	/* Retrieve the mode that shall be set. */
 	vslmode_t new_mode;
-	rc = visualizer_get_mode(vp->sess, &new_mode, mode_idx);
+	int rc = visualizer_get_mode(vp->sess, &new_mode, mode_idx);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&viewport_list_mtx);
 		async_answer_0(iid, EINVAL);
@@ -1042,7 +1051,7 @@ static void comp_mode_change(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall
 
 	/* Try to set the mode and share out the surface. */
 	rc = visualizer_set_mode(vp->sess,
-		new_mode.index, new_mode.version, surface_direct_access(new_surface));
+	    new_mode.index, new_mode.version, surface_direct_access(new_surface));
 	if (rc != EOK) {
 		surface_destroy(new_surface);
 		fibril_mutex_unlock(&viewport_list_mtx);
@@ -1072,41 +1081,44 @@ static void viewport_destroy(viewport_t *vp)
 	}
 }
 
+#if 0
+static void comp_shutdown(void)
+{
+	loc_service_unregister(winreg_id);
+	input_disconnect();
+	
+	/* Close all clients and their windows. */
+	fibril_mutex_lock(&window_list_mtx);
+	list_foreach(window_list, link, window_t, win) {
+		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
+		if (event) {
+			link_initialize(&event->link);
+			event->type = WINDOW_CLOSE;
+			prodcons_produce(&win->queue, &event->link);
+		}
+	}
+	fibril_mutex_unlock(&window_list_mtx);
+	
+	async_answer_0(iid, EOK);
+	
+	/* All fibrils of the compositor will terminate soon. */
+}
+#endif
+
 static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Release viewport resources. */
 	fibril_mutex_lock(&viewport_list_mtx);
+	
 	list_remove(&vp->link);
 	viewport_destroy(vp);
-
-	/* Terminate compositor if there are no more viewports. */
-	if (list_empty(&viewport_list)) {
-		fibril_mutex_unlock(&viewport_list_mtx);
-		loc_service_unregister(winreg_id);
-		input_disconnect();
-
-		/* Close all clients and their windows. */
-		fibril_mutex_lock(&window_list_mtx);
-		list_foreach(window_list, link, window_t, win) {
-			window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
-			if (event) {
-				link_initialize(&event->link);
-				event->type = WINDOW_CLOSE;
-				prodcons_produce(&win->queue, &event->link);
-			}
-		}
-		fibril_mutex_unlock(&window_list_mtx);
-
-		async_answer_0(iid, EOK);
-
-		/* All fibrils of the compositor will terminate soon. */
-	} else {
-		fibril_mutex_unlock(&viewport_list_mtx);
-		async_answer_0(iid, EOK);
-
-		comp_restrict_pointers();
-		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-	}
+	
+	fibril_mutex_unlock(&viewport_list_mtx);
+	
+	async_answer_0(iid, EOK);
+	
+	comp_restrict_pointers();
+	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
 static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -1121,9 +1133,8 @@ static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 	fibril_mutex_unlock(&viewport_list_mtx);
 
-	if (!vp) {
+	if (!vp)
 		return;
-	}
 
 	/* Ignore parameters, the connection is already opened. */
 	while (true) {
@@ -1148,41 +1159,19 @@ static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static async_sess_t *vsl_connect(const char *svc)
+static async_sess_t *vsl_connect(service_id_t sid, const char *svc)
 {
 	int rc;
 	async_sess_t *sess;
-	service_id_t dsid;
-	devman_handle_t handle;
 
-	rc = loc_service_get_id(svc, &dsid, 0);
-	if (rc != EOK) {
-		return NULL;
-	}
-
-	rc = devman_fun_sid_to_handle(dsid, &handle);
-	if (rc == EOK) {
-		sess = devman_device_connect(EXCHANGE_SERIALIZE, handle, 0);
-		if (sess == NULL) {
-			printf("%s: Unable to connect to visualizer %s\n", NAME, svc);
-			return NULL;
-		}
-		rc = graph_dev_connect(sess);
-		if (rc != EOK) {
-			return NULL;
-		}
-	} else if (rc == ENOENT) {
-		sess = loc_service_connect(EXCHANGE_SERIALIZE, dsid, 0);
-		if (sess == NULL) {
-			printf("%s: Unable to connect to visualizer %s\n", NAME, svc);
-			return NULL;
-		}
-	} else {
+	sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
+	if (sess == NULL) {
+		printf("%s: Unable to connect to visualizer %s\n", NAME, svc);
 		return NULL;
 	}
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_connect_to_me(exch, dsid, 0, 0, vsl_notifications, NULL);
+	rc = async_connect_to_me(exch, sid, 0, 0, vsl_notifications, NULL);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -1195,70 +1184,74 @@ static async_sess_t *vsl_connect(const char *svc)
 	return sess;
 }
 
-static viewport_t *viewport_create(const char *vsl_name)
+static viewport_t *viewport_create(service_id_t sid)
 {
 	int rc;
+	char *vsl_name = NULL;
+	viewport_t *vp = NULL;
+	bool claimed = false;
 
-	viewport_t *vp = (viewport_t *) malloc(sizeof(viewport_t));
-	if (!vp) {
-		return NULL;
-	}
+	rc = loc_service_get_name(sid, &vsl_name);
+	if (rc != EOK)
+		goto error;
+
+	vp = (viewport_t *) calloc(1, sizeof(viewport_t));
+	if (!vp)
+		goto error;
 
 	link_initialize(&vp->link);
 	vp->pos.x = coord_origin;
 	vp->pos.y = coord_origin;
 
 	/* Establish output bidirectional connection. */
-	vp->sess = vsl_connect(vsl_name);
-	rc = loc_service_get_id(vsl_name, &vp->dsid, 0);
-	if (vp->sess == NULL || rc != EOK) {
-		free(vp);
-		return NULL;
-	}
+	vp->dsid = sid;
+	vp->sess = vsl_connect(sid, vsl_name);
+	if (vp->sess == NULL)
+		goto error;
 
 	/* Claim the given visualizer. */
 	rc = visualizer_claim(vp->sess, 0);
 	if (rc != EOK) {
-		async_hangup(vp->sess);
-		free(vp);
 		printf("%s: Unable to claim visualizer (%s)\n", NAME, str_error(rc));
-		return NULL;
+		goto error;
 	}
+
+	claimed = true;
 
 	/* Retrieve the default mode. */
 	rc = visualizer_get_default_mode(vp->sess, &vp->mode);
 	if (rc != EOK) {
-		visualizer_yield(vp->sess);
-		async_hangup(vp->sess);
-		free(vp);
 		printf("%s: Unable to retrieve mode (%s)\n", NAME, str_error(rc));
-		return NULL;
+		goto error;
 	}
 
 	/* Create surface with respect to the retrieved mode. */
 	vp->surface = surface_create(vp->mode.screen_width, vp->mode.screen_height,
 	    NULL, SURFACE_FLAG_SHARED);
 	if (vp->surface == NULL) {
-		visualizer_yield(vp->sess);
-		async_hangup(vp->sess);
-		free(vp);
 		printf("%s: Unable to create surface (%s)\n", NAME, str_error(rc));
-		return NULL;
+		goto error;
 	}
 
 	/* Try to set the mode and share out the surface. */
 	rc = visualizer_set_mode(vp->sess,
-		vp->mode.index, vp->mode.version, surface_direct_access(vp->surface));
+	    vp->mode.index, vp->mode.version, surface_direct_access(vp->surface));
 	if (rc != EOK) {
-		visualizer_yield(vp->sess);
-		surface_destroy(vp->surface);
-		async_hangup(vp->sess);
-		free(vp);
 		printf("%s: Unable to set mode (%s)\n", NAME, str_error(rc));
-		return NULL;
+		goto error;
 	}
 
 	return vp;
+error:
+	if (claimed)
+		visualizer_yield(vp->sess);
+	
+	if (vp->sess != NULL)
+		async_hangup(vp->sess);
+	
+	free(vp);
+	free(vsl_name);
+	return NULL;
 }
 
 static void comp_window_animate(pointer_t *pointer, window_t *win,
@@ -1796,6 +1789,20 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 	return EOK;
 }
 
+static int comp_active(input_t *input)
+{
+	active = true;
+	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+	
+	return EOK;
+}
+
+static int comp_deactive(input_t *input)
+{
+	active = false;
+	return EOK;
+}
+
 static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
     keymod_t mods, wchar_t c)
 {
@@ -1813,12 +1820,13 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	bool viewport_change = (mods & KM_ALT) && (
 	    key == KC_O || key == KC_P);
 	bool kconsole_switch = (mods & KM_ALT) && (key == KC_M);
+	bool filter_switch = (mods & KM_ALT) && (key == KC_Y);
 
-	bool filter = (type == KEY_RELEASE) && (win_transform || win_resize ||
+	bool key_filter = (type == KEY_RELEASE) && (win_transform || win_resize ||
 	    win_opacity || win_close || win_switch || viewport_move ||
-	    viewport_change || kconsole_switch);
+	    viewport_change || kconsole_switch || filter_switch);
 
-	if (filter) {
+	if (key_filter) {
 		/* no-op */
 	} else if (win_transform) {
 		fibril_mutex_lock(&window_list_mtx);
@@ -1838,10 +1846,10 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 				win->dx += 20;
 				break;
 			case KC_Q:
-				win->angle += (PI / 2);
+				win->angle += 0.1;
 				break;
 			case KC_E:
-				win->angle += -(PI / 2);
+				win->angle -= 0.1;
 				break;
 			case KC_R:
 				win->fx *= 0.95;
@@ -2084,7 +2092,19 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 
 		fibril_mutex_unlock(&viewport_list_mtx);
 	} else if (kconsole_switch) {
-		__SYSCALL0(SYS_DEBUG_ACTIVATE_CONSOLE);
+		if (console_kcon())
+			active = false;
+	} else if (filter_switch) {
+		filter_index++;
+		if (filter_index > 1)
+			filter_index = 0;
+		if (filter_index == 0) {
+			filter = filter_nearest;
+		}
+		else {
+			filter = filter_bilinear;
+		}
+		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	} else {
 		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 		if (event == NULL)
@@ -2153,30 +2173,23 @@ static void input_disconnect(void)
 	pointer_destroy(pointer);
 }
 
-static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
+static void discover_viewports(void)
 {
-	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-}
-
-static int discover_viewports(void)
-{
+	fibril_mutex_lock(&discovery_mtx);
+	
 	/* Create viewports and connect them to visualizers. */
 	category_id_t cat_id;
 	int rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Failed to get visualizer category.\n", NAME);
-		return -1;
-	}
+	if (rc != EOK)
+		goto ret;
 	
 	service_id_t *svcs;
 	size_t svcs_cnt = 0;
 	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
-	if (rc != EOK || svcs_cnt == 0) {
-		printf("%s: Failed to get visualizer category services.\n", NAME);
-		return -1;
-	}
-
-	fibril_mutex_lock(&viewport_list_mtx);	
+	if (rc != EOK)
+		goto ret;
+	
+	fibril_mutex_lock(&viewport_list_mtx);
 	for (size_t i = 0; i < svcs_cnt; ++i) {
 		bool exists = false;
 		list_foreach(viewport_list, link, viewport_t, vp) {
@@ -2189,27 +2202,22 @@ static int discover_viewports(void)
 		if (exists)
 			continue;
 		
-		char *svc_name;
-		rc = loc_service_get_name(svcs[i], &svc_name);
-		if (rc == EOK) {
-			viewport_t *vp = viewport_create(svc_name);
-			if (vp != NULL) {
-				list_append(&vp->link, &viewport_list);
-			}
-		}
+		viewport_t *vp = viewport_create(svcs[i]);
+		if (vp != NULL)
+			list_append(&vp->link, &viewport_list);
 	}
 	fibril_mutex_unlock(&viewport_list_mtx);
 	
-	/* TODO damage only newly added viewports */
-	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-	return EOK;
+	if (!list_empty(&viewport_list))
+		input_activate(input);
+	
+ret:
+	fibril_mutex_unlock(&discovery_mtx);
 }
 
 static void category_change_cb(void)
 {
-	fibril_mutex_lock(&discovery_mtx);
 	discover_viewports();
-	fibril_mutex_unlock(&discovery_mtx);
 }
 
 static int compositor_srv_init(char *input_svc, char *name)
@@ -2222,18 +2230,11 @@ static int compositor_srv_init(char *input_svc, char *name)
 	
 	/* Register compositor server. */
 	async_set_client_connection(client_connection);
+	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME, str_error(rc));
 		return -1;
-	}
-	
-	/* Register interrupt handler to switch back from kconsole. */
-	async_set_interrupt_received(interrupt_received);
-	rc = event_subscribe(EVENT_KCONSOLE, 0);
-	if (rc != EOK) {
-		printf("%s: Failed to register kconsole notifications (%s)\n",
-		    NAME, str_error(rc));
 	}
 	
 	server_name = name;
@@ -2255,36 +2256,25 @@ static int compositor_srv_init(char *input_svc, char *name)
 		printf("%s: Unable to register service %s\n", NAME, winreg);
 		return -1;
 	}
-
+	
 	/* Establish input bidirectional connection. */
 	rc = input_connect(input_svc);
 	if (rc != EOK) {
 		printf("%s: Failed to connect to input service.\n", NAME);
 		return rc;
 	}
-
+	
 	rc = loc_register_cat_change_cb(category_change_cb);
 	if (rc != EOK) {
 		printf("%s: Failed to register category change callback\n", NAME);
 		input_disconnect();
 		return rc;
-	}	
-
-	rc = discover_viewports();
-	if (rc != EOK) {
-		input_disconnect();
-		return rc;
 	}
 	
-	if (list_empty(&viewport_list)) {
-		printf("%s: Failed to get viewports.\n", NAME);
-		input_disconnect();
-		return -1;
-	}
-
+	discover_viewports();
+	
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-	
 	
 	return EOK;
 }

@@ -43,8 +43,6 @@ struct kbd_dev;
 
 typedef struct kbd_port_ops {
 	int (*init)(struct kbd_dev *);
-	void (*yield)(void);
-	void (*reclaim)(void);
 	void (*write)(uint8_t);
 } kbd_port_ops_t;
 
@@ -53,7 +51,6 @@ extern kbd_port_ops_t chardev_port;
 extern kbd_port_ops_t msim_port;
 extern kbd_port_ops_t niagara_port;
 extern kbd_port_ops_t ns16550_port;
-extern kbd_port_ops_t pl050_port;
 extern kbd_port_ops_t ski_port;
 
 #endif

@@ -376,7 +376,7 @@ void ofw_memmap(memmap_t *map)
 	for (pos = 0; (pos < ret / sizeof(uintptr_t)) &&
 	    (map->cnt < MEMMAP_MAX_RECORDS); pos += ac + sc) {
 		void *start = (void *) (buf[pos + ac - 1]);
-		uint32_t size = buf[pos + ac + sc - 1];
+		uintptr_t size = buf[pos + ac + sc - 1];
 		
 		/*
 		 * This is a hot fix of the issue which occurs on machines

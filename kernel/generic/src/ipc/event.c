@@ -57,17 +57,17 @@ static void event_initialize(event_t *event)
 	event->unmask_callback = NULL;
 }
 
-static event_t *evno2event(int evno, task_t *t)
+static event_t *evno2event(int evno, task_t *task)
 {
 	ASSERT(evno < EVENT_TASK_END);
-
+	
 	event_t *event;
-
+	
 	if (evno < EVENT_END)
 		event = &events[(event_type_t) evno];
 	else
-		event = &t->events[(event_task_type_t) evno - EVENT_END];
-
+		event = &task->events[(event_task_type_t) evno - EVENT_END];
+	
 	return event;
 }
 
@@ -85,7 +85,6 @@ void event_task_init(task_t *task)
 	for (unsigned int i = EVENT_END; i < EVENT_TASK_END; i++)
 		event_initialize(evno2event(i, task));
 }
-
 
 /** Unsubscribe kernel events associated with an answerbox
  *
@@ -259,7 +258,7 @@ static int event_subscribe(event_t *event, sysarg_t imethod,
     answerbox_t *answerbox)
 {
 	int res;
-
+	
 	spinlock_lock(&event->lock);
 	
 	if (event->answerbox == NULL) {
@@ -270,6 +269,36 @@ static int event_subscribe(event_t *event, sysarg_t imethod,
 		res = EOK;
 	} else
 		res = EEXISTS;
+	
+	spinlock_unlock(&event->lock);
+	
+	return res;
+}
+
+/** Unsubscribe event notifications
+ *
+ * @param evno      Event type.
+ * @param answerbox Answerbox used to send the notifications to.
+ *
+ * @return EOK if the subscription was successful.
+ * @return EEXISTS if the notifications of the given type are
+ *         already subscribed.
+ *
+ */
+static int event_unsubscribe(event_t *event, answerbox_t *answerbox)
+{
+	int res;
+	
+	spinlock_lock(&event->lock);
+	
+	if (event->answerbox == answerbox) {
+		event->answerbox = NULL;
+		event->counter = 0;
+		event->imethod = 0;
+		event->masked = false;
+		res = EOK;
+	} else
+		res = ENOENT;
 	
 	spinlock_unlock(&event->lock);
 	
@@ -296,7 +325,7 @@ static void event_unmask(event_t *event)
 		callback(event);
 }
 
-/** Event notification syscall wrapper
+/** Event notification subscription syscall wrapper
  *
  * @param evno    Event type to subscribe.
  * @param imethod IPC interface and method to be used for
@@ -308,13 +337,32 @@ static void event_unmask(event_t *event)
  *         already subscribed.
  *
  */
-sysarg_t sys_event_subscribe(sysarg_t evno, sysarg_t imethod)
+sysarg_t sys_ipc_event_subscribe(sysarg_t evno, sysarg_t imethod)
 {
 	if (evno >= EVENT_TASK_END)
 		return ELIMIT;
 	
 	return (sysarg_t) event_subscribe(evno2event(evno, TASK),
 	    (sysarg_t) imethod, &TASK->answerbox);
+}
+
+/** Event notification unsubscription syscall wrapper
+ *
+ * @param evno    Event type to unsubscribe.
+ *
+ * @return EOK on success.
+ * @return ELIMIT on unknown event type.
+ * @return ENOENT if the notification of the given type is not
+           subscribed.
+ *
+ */
+sysarg_t sys_ipc_event_unsubscribe(sysarg_t evno)
+{
+	if (evno >= EVENT_TASK_END)
+		return ELIMIT;
+	
+	return (sysarg_t) event_unsubscribe(evno2event(evno, TASK),
+	    &TASK->answerbox);
 }
 
 /** Event notification unmask syscall wrapper
@@ -330,7 +378,7 @@ sysarg_t sys_event_subscribe(sysarg_t evno, sysarg_t imethod)
  * @return ELIMIT on unknown event type.
  *
  */
-sysarg_t sys_event_unmask(sysarg_t evno)
+sysarg_t sys_ipc_event_unmask(sysarg_t evno)
 {
 	if (evno >= EVENT_TASK_END)
 		return ELIMIT;

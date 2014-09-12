@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2014 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,136 +34,139 @@
  * @file
  */
 
-#include <assert.h>
 #include <malloc.h>
+#include <errno.h>
+#include <str.h>
 
 #include "font.h"
 #include "font/embedded.h"
 #include "drawctx.h"
 
-void font_init(font_t *font, font_decoder_type_t decoder, char *path, uint16_t points)
+font_t *font_create(font_backend_t *backend, void *backend_data)
 {
-	font->points = points;
-
-	switch (decoder) {
-	case FONT_DECODER_EMBEDDED:
-		font->decoder = &fd_embedded;
-		break;
-	default:
-		font->decoder = NULL;
-		break;
-	}
-
-	if (font->decoder) {
-		font->decoder->init(path, &font->glyph_count, &font->decoder_data);
-
-		if (font->glyph_count > 0) {
-			font->glyphs = (surface_t **) malloc(sizeof(surface_t *) * font->glyph_count);
-		} else {
-			font->glyphs = NULL;
-		}
-
-		if (font->glyphs) {
-			for (size_t i = 0; i < font->glyph_count; ++i) {
-				font->glyphs[i] = NULL;
-			}
-		} else {
-			font->glyph_count = 0;
-		}
-	} else {
-		font->glyph_count = 0;
-		font->glyphs = NULL;
-		font->decoder_data = NULL;
-	}
+	font_t *font = malloc(sizeof(font_t));
+	if (font == NULL)
+		return NULL;
+	
+	font->backend = backend;
+	font->backend_data = backend_data;
+	
+	return font;
 }
 
 void font_release(font_t *font)
 {
-	if (font->glyphs) {
-		for (size_t i = 0; i < font->glyph_count; ++i) {
-			if (font->glyphs[i]) {
-				surface_destroy(font->glyphs[i]);
-			}
-		}
-		free(font->glyphs);
-	}
-	
-	if (font->decoder) {
-		font->decoder->release(font->decoder_data);
-	}
+	font->backend->release(font->backend_data);
 }
 
-void font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height)
-{
-	assert(width);
-	assert(height);
-
-	(*width) = 0;
-	(*height) = 0;
-
-	if (!text) {
-		return;
-	}
-
-	while (*text) {
-		uint16_t glyph_idx = font->decoder->resolve(*text, font->decoder_data);
-		if (glyph_idx < font->glyph_count) {
-			if (!font->glyphs[glyph_idx]) {
-				font->glyphs[glyph_idx] =
-				    font->decoder->render(glyph_idx, font->points);
-			}
-
-			surface_t *glyph = font->glyphs[glyph_idx];
-			if (glyph) {
-				sysarg_t w;
-				sysarg_t h;
-				surface_get_resolution(glyph, &w, &h);
-				(*width) += w;
-				(*height) = (*height) < h ? h : (*height);
-			}
-		}
-		++text;
-	}
+int font_get_metrics(font_t *font, font_metrics_t *metrics) {
+	return font->backend->get_font_metrics(font->backend_data, metrics);
 }
 
-void font_draw_text(font_t *font, drawctx_t *context, source_t *source,
-    const char *text, sysarg_t x, sysarg_t y)
-{
-	assert(context);
-	assert(source);
+int font_resolve_glyph(font_t *font, wchar_t c, glyph_id_t *glyph_id) {
+	return font->backend->resolve_glyph(font->backend_data, c, glyph_id);
+}
 
+int font_get_glyph_metrics(font_t *font, glyph_id_t glyph_id,
+    glyph_metrics_t *glyph_metrics)
+{
+	return font->backend->get_glyph_metrics(font->backend_data,
+	    glyph_id, glyph_metrics);
+}
+
+int font_render_glyph(font_t *font, drawctx_t *context, source_t *source,
+    sysarg_t x, sysarg_t y, glyph_id_t glyph_id)
+{
+	return font->backend->render_glyph(font->backend_data, context, source,
+	    x, y, glyph_id);
+}
+
+/* TODO this is bad interface */
+int font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height)
+{
+	font_metrics_t fm;
+	int rc = font_get_metrics(font, &fm);
+	if (rc != EOK)
+		return rc;
+
+	native_t x = 0;
+
+	size_t off = 0;
+	while (true) {
+		wchar_t c = str_decode(text, &off, STR_NO_LIMIT);
+		if (c == 0)
+			break;
+		
+		glyph_id_t glyph_id;
+		rc = font_resolve_glyph(font, c, &glyph_id);
+		if (rc != EOK) {
+			int rc2 = font_resolve_glyph(font, U_SPECIAL, &glyph_id);
+			if (rc2 != EOK) {
+				return rc;
+			}
+		}
+		
+		glyph_metrics_t glyph_metrics;
+		rc = font_get_glyph_metrics(font, glyph_id, &glyph_metrics);
+		if (rc != EOK)
+			return rc;
+		
+		x += glyph_metrics_get_advancement(&glyph_metrics);
+	}
+
+	*width = x;
+	*height = fm.ascender + fm.descender;
+	return EOK;
+}
+
+/* TODO this is bad interface */
+int font_draw_text(font_t *font, drawctx_t *context, source_t *source,
+    const char *text, sysarg_t sx, sysarg_t sy)
+{
 	drawctx_save(context);
 	drawctx_set_compose(context, compose_over);
 
-	while (*text) {
-		uint16_t glyph_idx = font->decoder->resolve(*text, font->decoder_data);
-		if (glyph_idx < font->glyph_count) {
-			if (!font->glyphs[glyph_idx]) {
-				font->glyphs[glyph_idx] =
-				    font->decoder->render(glyph_idx, font->points);
-			}
+	font_metrics_t fm;
+	int rc = font_get_metrics(font, &fm);
+	if (rc != EOK)
+		return rc;
 
-			surface_t *glyph = font->glyphs[glyph_idx];
-			if (glyph) {
-				sysarg_t w;
-				sysarg_t h;
-				surface_get_resolution(glyph, &w, &h);
+	native_t baseline = sy + fm.ascender;
+	native_t x = sx;
 
-				transform_t transform;
-				transform_identity(&transform);
-				transform_translate(&transform, x, y);
-				source_set_transform(source, transform);
-				source_set_mask(source, glyph, false);
-				drawctx_transfer(context, x, y, w, h);
-
-				x += w;
+	size_t off = 0;
+	while (true) {
+		wchar_t c = str_decode(text, &off, STR_NO_LIMIT);
+		if (c == 0)
+			break;
+		
+		glyph_id_t glyph_id;
+		rc = font_resolve_glyph(font, c, &glyph_id);
+		if (rc != EOK) {
+			int rc2 = font_resolve_glyph(font, U_SPECIAL, &glyph_id);
+			if (rc2 != EOK) {
+				return rc;
 			}
 		}
-		++text;
+		
+		glyph_metrics_t glyph_metrics;
+		rc = font_get_glyph_metrics(font, glyph_id, &glyph_metrics);
+		if (rc != EOK)
+			return rc;
+
+		rc = font_render_glyph(font, context, source, x, baseline,
+		    glyph_id);
+		if (rc != EOK)
+			return rc;
+
+		x += glyph_metrics_get_advancement(&glyph_metrics);
+
 	}
 
 	drawctx_restore(context);
 	source_set_mask(source, NULL, false);
+
+	return EOK;
 }
 
 /** @}

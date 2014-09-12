@@ -140,6 +140,7 @@ static int tcp_rqueue_fibril(void *arg)
 		rqe = list_get_instance(link, tcp_rqueue_entry_t, link);
 
 		tcp_as_segment_arrived(&rqe->sp, rqe->seg);
+		free(rqe);
 	}
 
 	/* Not reached */

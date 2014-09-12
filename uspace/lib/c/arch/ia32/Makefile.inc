@@ -38,4 +38,8 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/rtld/dynamic.c \
 	arch/$(UARCH)/src/rtld/reloc.c
 
+ARCH_AUTOGENS_AG = \
+	arch/$(UARCH)/include/libarch/istate_struct.ag \
+	arch/$(UARCH)/include/libarch/fibril_context.ag
+
 .PRECIOUS: arch/$(UARCH)/src/entry.o

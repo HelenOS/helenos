@@ -706,17 +706,23 @@ void gpt_set_flag(gpt_part_t *partition, gpt_attr_t flag, bool value)
 	partition->attributes = attr;
 }
 
-/** Generate a new pseudo-random UUID
- *
- * FIXME: This UUID generator is not compliant with RFC 4122.
- *
- */
+/** Generate a new pseudo-random UUID compliant with RFC 4122 */
 void gpt_set_random_uuid(uint8_t *uuid)
 {
 	srandom((unsigned int) (size_t) uuid);
 	
 	for (size_t i = 0; i < 16; i++)
 		uuid[i] = random();
+
+	/* 
+	 * Set version (stored in bits 4-7 of seventh byte) to 4 (random
+	 * UUID) and bits 6 and 7 of ninth byte to 0 and 1 respectively -
+	 * according to RFC 4122, section 4.4.
+	 */
+	uuid[6] &= 0x0f;
+	uuid[6] |= (0x4 << 4);
+	uuid[8] &= 0x3f;
+	uuid[8] |= (1 << 7);
 }
 
 /** Get next aligned address */

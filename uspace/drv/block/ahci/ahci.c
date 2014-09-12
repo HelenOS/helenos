@@ -37,9 +37,7 @@
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
 #include <pci_dev_iface.h>
-#include <sysinfo.h>
-#include <ipc/irc.h>
-#include <ns.h>
+#include <irc.h>
 #include <ahci_iface.h>
 #include "ahci.h"
 #include "ahci_hw.h"
@@ -128,7 +126,6 @@ static void ahci_ahci_hw_start(ahci_dev_t *);
 static int ahci_dev_add(ddf_dev_t *);
 
 static void ahci_get_model_name(uint16_t *, char *);
-static int ahci_enable_interrupt(int);
 
 static fibril_mutex_t sata_devices_count_lock;
 static int sata_devices_count = 0;
@@ -233,7 +230,7 @@ static int read_blocks(ddf_fun_t *fun, uint64_t blocknum,
 	sata_dev_t *sata = fun_sata_dev(fun);
 	
 	uintptr_t phys;
-	void *ibuf;
+	void *ibuf = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &ibuf);
 	if (rc != EOK) {
@@ -276,7 +273,7 @@ static int write_blocks(ddf_fun_t *fun, uint64_t blocknum,
 	sata_dev_t *sata = fun_sata_dev(fun);
 	
 	uintptr_t phys;
-	void *ibuf;
+	void *ibuf = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &ibuf);
 	if (rc != EOK) {
@@ -435,10 +432,10 @@ static int ahci_identify_device(sata_dev_t *sata)
 	}
 	
 	uintptr_t phys;
-	sata_identify_data_t *idata;
+	sata_identify_data_t *idata = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(SATA_IDENTIFY_DEVICE_BUFFER_LENGTH,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
-	    (void **) &idata);
+	    (void *) &idata);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate buffer to identify device.");
 		return rc;
@@ -629,10 +626,10 @@ static int ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
 	}
 	
 	uintptr_t phys;
-	sata_identify_data_t *idata;
+	sata_identify_data_t *idata = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(SATA_SET_FEATURE_BUFFER_LENGTH,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
-	    (void **) &idata);
+	    (void *) &idata);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate buffer for device set mode.");
 		return rc;
@@ -892,12 +889,12 @@ static irq_cmd_t ahci_cmds[] = {
 
 /** AHCI interrupt handler.
  *
- * @param dev   DDF device structure.
  * @param iid   The IPC call id.
  * @param icall The IPC call structure.
+ * @param dev   DDF device structure.
  *
  */
-static void ahci_interrupt(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+static void ahci_interrupt(ipc_callid_t iid, ipc_call_t *icall, ddf_dev_t *dev)
 {
 	ahci_dev_t *ahci = dev_ahci_dev(dev);
 	unsigned int port = IPC_GET_ARG1(*icall);
@@ -937,9 +934,9 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 {
 	size_t size = 4096;
 	uintptr_t phys = 0;
-	void *virt_fb = NULL;
-	void *virt_cmd = NULL;
-	void *virt_table = NULL;
+	void *virt_fb = AS_AREA_ANY;
+	void *virt_cmd = AS_AREA_ANY;
+	void *virt_table = AS_AREA_ANY;
 	ddf_fun_t *fun;
 	
 	fun = ddf_fun_create(ahci->dev, fun_exposed, NULL);
@@ -1154,11 +1151,11 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 		goto error_get_res_parsed;
 	
 	/* Map AHCI registers. */
-	ahci->memregs = NULL;
+	ahci->memregs = AS_AREA_ANY;
 	
 	physmem_map(RNGABS(hw_res_parsed.mem_ranges.ranges[0]),
 	    AHCI_MEMREGS_PAGES_COUNT, AS_AREA_READ | AS_AREA_WRITE,
-	    (void **) &ahci->memregs);
+	    (void *) &ahci->memregs);
 	if (ahci->memregs == NULL)
 		goto error_map_registers;
 	
@@ -1194,7 +1191,7 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 		goto error_register_interrupt_handler;
 	}
 	
-	rc = ahci_enable_interrupt(hw_res_parsed.irqs.irqs[0]);
+	rc = irc_enable_interrupt(hw_res_parsed.irqs.irqs[0]);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed enable interupt.");
 		goto error_enable_interrupt;
@@ -1312,28 +1309,6 @@ static void ahci_get_model_name(uint16_t *src, char *dst)
 	}
 	
 	dst[pos] = '\0';
-}
-
-/** Enable interrupt using SERVICE_IRC.
- *
- * @param irq Requested irq number.
- *
- * @return EOK if succeed, error code otherwise.
- *
- */
-static int ahci_enable_interrupt(int irq)
-{
-	async_sess_t *irc_sess = NULL;
-	irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_IRC, 0, 0);
-	if (!irc_sess)
-		return EINTR;
-	
-	async_exch_t *exch = async_exchange_begin(irc_sess);
-	const int rc = async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
-	async_exchange_end(exch);
-	
-	async_hangup(irc_sess);
-	return rc;
 }
 
 /*----------------------------------------------------------------------------*/

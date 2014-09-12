@@ -414,16 +414,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		return ENOTSUP;
 	}
 
-	/*
-	 * 1) subdriver vytvori vlastnu ddf_fun, vlastne ddf_dev_ops, ktore da
-	 *    do nej.
-	 * 2) do tych ops do .interfaces[DEV_IFACE_USBHID (asi)] priradi 
-	 *    vyplnenu strukturu usbhid_iface_t.
-	 * 3) klientska aplikacia - musi si rucne vytvorit telefon
-	 *    (devman_device_connect() - cesta k zariadeniu (/hw/pci0/...) az 
-	 *    k tej fcii.
-	 *    pouzit usb/classes/hid/iface.h - prvy int je telefon
-	 */
+	/* Initialize subdrivers */
 	bool ok = false;
 	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].init != NULL) {

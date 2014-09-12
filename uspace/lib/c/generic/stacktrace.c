@@ -41,20 +41,35 @@
 
 static int stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data);
 
-void stacktrace_print_fp_pc(uintptr_t fp, uintptr_t pc)
+static stacktrace_ops_t basic_ops = {
+	.read_uintptr = stacktrace_read_uintptr
+};
+
+void stacktrace_print_generic(stacktrace_ops_t *ops, void *arg, uintptr_t fp,
+    uintptr_t pc)
 {
 	stacktrace_t st;
 	uintptr_t nfp;
+	int rc;
 
-	st.op_arg = NULL;
-	st.read_uintptr = stacktrace_read_uintptr;
+	st.op_arg = arg;
+	st.ops = ops;
 
 	while (stacktrace_fp_valid(&st, fp)) {
 		printf("%p: %p()\n", (void *) fp, (void *) pc);
-		(void) stacktrace_ra_get(&st, fp, &pc);
-		(void) stacktrace_fp_prev(&st, fp, &nfp);
+		rc =  stacktrace_ra_get(&st, fp, &pc);
+		if (rc != EOK)
+			break;
+		rc = stacktrace_fp_prev(&st, fp, &nfp);
+		if (rc != EOK)
+			break;
 		fp = nfp;
 	}
+}
+
+void stacktrace_print_fp_pc(uintptr_t fp, uintptr_t pc)
+{
+	stacktrace_print_generic(&basic_ops, NULL, fp, pc);
 }
 
 void stacktrace_print(void)

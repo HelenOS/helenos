@@ -735,16 +735,16 @@ sysarg_t sys_ipc_poke(void)
  * @param imethod Interface and method to be associated with the notification.
  * @param ucode   Uspace pointer to the top-half pseudocode.
  *
- * @return EPERM or a return code returned by ipc_irq_register().
+ * @return EPERM or a return code returned by ipc_irq_subscribe().
  *
  */
-sysarg_t sys_irq_register(inr_t inr, devno_t devno, sysarg_t imethod,
+sysarg_t sys_ipc_irq_subscribe(inr_t inr, devno_t devno, sysarg_t imethod,
     irq_code_t *ucode)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 	
-	return ipc_irq_register(&TASK->answerbox, inr, devno, imethod, ucode);
+	return ipc_irq_subscribe(&TASK->answerbox, inr, devno, imethod, ucode);
 }
 
 /** Disconnect an IRQ handler from a task.
@@ -755,12 +755,12 @@ sysarg_t sys_irq_register(inr_t inr, devno_t devno, sysarg_t imethod,
  * @return Zero on success or EPERM on error.
  *
  */
-sysarg_t sys_irq_unregister(inr_t inr, devno_t devno)
+sysarg_t sys_ipc_irq_unsubscribe(inr_t inr, devno_t devno)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 	
-	ipc_irq_unregister(&TASK->answerbox, inr, devno);
+	ipc_irq_unsubscribe(&TASK->answerbox, inr, devno);
 	
 	return 0;
 }

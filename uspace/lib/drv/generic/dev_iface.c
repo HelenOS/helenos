@@ -42,8 +42,8 @@
 #include "remote_pio_window.h"
 #include "remote_char_dev.h"
 #include "remote_clock_dev.h"
+#include "remote_led_dev.h"
 #include "remote_battery_dev.h"
-#include "remote_graph_dev.h"
 #include "remote_nic.h"
 #include "remote_usb.h"
 #include "remote_usbhc.h"
@@ -60,13 +60,13 @@ static const iface_dipatch_table_t remote_ifaces = {
 		[HW_RES_DEV_IFACE] = &remote_hw_res_iface,
 		[PIO_WINDOW_DEV_IFACE] = &remote_pio_window_iface,
 		[CHAR_DEV_IFACE] = &remote_char_dev_iface,
-		[GRAPH_DEV_IFACE] = &remote_graph_dev_iface,
 		[NIC_DEV_IFACE] = &remote_nic_iface,
 		[PCI_DEV_IFACE] = &remote_pci_iface,
 		[USB_DEV_IFACE] = &remote_usb_iface,
 		[USBHC_DEV_IFACE] = &remote_usbhc_iface,
 		[USBHID_DEV_IFACE] = &remote_usbhid_iface,
 		[CLOCK_DEV_IFACE] = &remote_clock_dev_iface,
+		[LED_DEV_IFACE] = &remote_led_dev_iface,
 		[BATTERY_DEV_IFACE] = &remote_battery_dev_iface,
 		[AHCI_DEV_IFACE] = &remote_ahci_iface,
 	}

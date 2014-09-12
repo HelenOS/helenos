@@ -30,17 +30,12 @@
 #include <arch/stack.h>
 #include <arch/register.h>
 #include <arch/mm/page.h>
+#include <arch/istate_struct.h>
 #include <align.h>
 
-#define FRS_TO_SAVE 30
-#define STACK_ITEMS		(21 + FRS_TO_SAVE * 2)
-#define STACK_FRAME_SIZE	ALIGN_UP((STACK_ITEMS * STACK_ITEM_SIZE) + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
+#define STACK_FRAME_SIZE	ALIGN_UP(ISTATE_SIZE + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)
 
-#if (STACK_ITEMS % 2 == 0)
-#	define STACK_FRAME_BIAS	8
-#else
-#	define STACK_FRAME_BIAS 16
-#endif
+#define FLOAT_ITEM_SIZE		(STACK_ITEM_SIZE * 2)
 
 /** Partitioning of bank 0 registers. */
 #define R_OFFS 		r16
@@ -119,11 +114,11 @@ heavyweight_handler:
 	mov r26 = PSR_DFH_MASK
 	mov r27 = ~PSR_DFH_MASK ;;
 	and r26 = r25, r26
-	and r24 = r24, r27;;
-	or r24 = r24, r26;;
-	mov psr.l = r24;;
+	and r24 = r24, r27 ;;
+	or r24 = r24, r26 ;;
+	mov psr.l = r24 ;;
 	srlz.i
-	srlz.d;;
+	srlz.d ;;
 
 	mov r24 = cr.iip
 	mov r25 = cr.ipsr
@@ -160,8 +155,8 @@ heavyweight_handler:
 	mov r30 = r12
 (p4)	mov r12 = R_KSTACK ;;
 	
-	add r31 = -STACK_FRAME_BIAS, r12 ;;
-	add r12 = -STACK_FRAME_SIZE, r12
+	add r12 = -STACK_FRAME_SIZE, r12 ;;
+	add r31 = STACK_SCRATCH_AREA_SIZE + ISTATE_OFFSET_IN6, r12
 
     /* 4. save registers in bank 0 into memory stack */
 
@@ -178,24 +173,24 @@ heavyweight_handler:
 	 * Note that p5 is a preserved predicate register and we make use of it.
 	 */
 
-(p6)	st8 [r31] = r38, -8 ;;		/* save in6 */
-(p6)	st8 [r31] = r37, -8 ;;		/* save in5 */
-(p6)	st8 [r31] = r36, -8 ;;		/* save in4 */	
-(p6)	st8 [r31] = r35, -8 ;;		/* save in3 */
-(p6) 	st8 [r31] = r34, -8 ;;		/* save in2 */
-(p6)	st8 [r31] = r33, -8 ;;		/* save in1 */
-(p6)	st8 [r31] = r32, -8 ;;		/* save in0 */
-(p5)	add r31 = -56, r31 ;;
+(p6)	st8 [r31] = r38, -STACK_ITEM_SIZE ;;	/* save in6 */
+(p6)	st8 [r31] = r37, -STACK_ITEM_SIZE ;;	/* save in5 */
+(p6)	st8 [r31] = r36, -STACK_ITEM_SIZE ;;	/* save in4 */	
+(p6)	st8 [r31] = r35, -STACK_ITEM_SIZE ;;	/* save in3 */
+(p6) 	st8 [r31] = r34, -STACK_ITEM_SIZE ;;	/* save in2 */
+(p6)	st8 [r31] = r33, -STACK_ITEM_SIZE ;;	/* save in1 */
+(p6)	st8 [r31] = r32, -STACK_ITEM_SIZE ;;	/* save in0 */
+(p5)	add r31 = -(7 * STACK_ITEM_SIZE), r31 ;;
     
-	st8 [r31] = r30, -8 ;;		/* save old stack pointer */ 
+	st8 [r31] = r30, -STACK_ITEM_SIZE ;;	/* save old stack pointer */ 
 	
-	st8 [r31] = r29, -8 ;;		/* save predicate registers */
+	st8 [r31] = r29, -STACK_ITEM_SIZE ;;	/* save predicate registers */
 
-	st8 [r31] = r24, -8 ;;		/* save cr.iip */
-	st8 [r31] = r25, -8 ;;		/* save cr.ipsr */
-	st8 [r31] = r26, -8 ;;		/* save cr.iipa */
-	st8 [r31] = r27, -8 ;;		/* save cr.isr */
-	st8 [r31] = r28, -8 ;;		/* save cr.ifa */
+	st8 [r31] = r24, -STACK_ITEM_SIZE ;;	/* save cr.iip */
+	st8 [r31] = r25, -STACK_ITEM_SIZE ;;	/* save cr.ipsr */
+	st8 [r31] = r26, -STACK_ITEM_SIZE ;;	/* save cr.iipa */
+	st8 [r31] = r27, -STACK_ITEM_SIZE ;;	/* save cr.isr */
+	st8 [r31] = r28, -STACK_ITEM_SIZE ;;	/* save cr.ifa */
 
     /* 5. RSE switch from interrupted context */
 	mov r24 = ar.rsc
@@ -203,9 +198,9 @@ heavyweight_handler:
 	cover
 	mov r26 = cr.ifs
 	
-	st8 [r31] = r24, -8 ;;		/* save ar.rsc */
-	st8 [r31] = r25, -8 ;;		/* save ar.pfs */
-	st8 [r31] = r26, -8		/* save ar.ifs */
+	st8 [r31] = r24, -STACK_ITEM_SIZE ;;	/* save ar.rsc */
+	st8 [r31] = r25, -STACK_ITEM_SIZE ;;	/* save ar.pfs */
+	st8 [r31] = r26, -STACK_ITEM_SIZE	/* save ar.ifs */
 	
 	and r24 = ~(RSC_PL_MASK), r24 ;;
 	and r30 = ~(RSC_MODE_MASK), r24 ;;
@@ -230,10 +225,10 @@ heavyweight_handler:
 	
 	mov r29 = ar.bsp
 	
-	st8 [r31] = r27, -8 ;;		/* save ar.rnat */
-	st8 [r31] = r30, -8 ;;		/* save new value written to ar.bspstore */
-	st8 [r31] = r28, -8 ;;		/* save ar.bspstore */
-	st8 [r31] = r29, -8 		/* save ar.bsp */
+	st8 [r31] = r27, -STACK_ITEM_SIZE ;;	/* save ar.rnat */
+	st8 [r31] = r30, -STACK_ITEM_SIZE ;;	/* save new value written to ar.bspstore */
+	st8 [r31] = r28, -STACK_ITEM_SIZE ;;	/* save ar.bspstore */
+	st8 [r31] = r29, -STACK_ITEM_SIZE 	/* save ar.bsp */
 	
 	mov ar.rsc = r24		/* restore RSE's setting + kernel privileges */
 	
@@ -245,11 +240,11 @@ heavyweight_handler:
     /* 16. RSE switch to interrupted context */
 	cover				/* allocate zero size frame (step 1 (from Intel Docs)) */
 
-	add r31 = (STACK_SCRATCH_AREA_SIZE + (FRS_TO_SAVE * 2 * 8)), r12 ;;
+	add r31 = STACK_SCRATCH_AREA_SIZE + ISTATE_OFFSET_AR_BSP, r12 ;;
 
-	ld8 r30 = [r31], +8 ;;		/* load ar.bsp */
-	ld8 r29 = [r31], +8 ;;   	/* load ar.bspstore */
-	ld8 r28 = [r31], +8 ;;   	/* load ar.bspstore_new */
+	ld8 r30 = [r31], +STACK_ITEM_SIZE ;;	/* load ar.bsp */
+	ld8 r29 = [r31], +STACK_ITEM_SIZE ;;	/* load ar.bspstore */
+	ld8 r28 = [r31], +STACK_ITEM_SIZE ;;	/* load ar.bspstore_new */
 	sub r27 = r30 , r28 ;;		/* calculate loadrs (step 2) */
 	shl r27 = r27, 16
 
@@ -260,10 +255,10 @@ heavyweight_handler:
 
 	loadrs 				/* (step 3) */
 
-	ld8 r27 = [r31], +8 ;;		/* load ar.rnat */
-	ld8 r26 = [r31], +8 ;;		/* load cr.ifs */
-	ld8 r25 = [r31], +8 ;;		/* load ar.pfs */
-	ld8 r24 = [r31], +8 ;;		/* load ar.rsc */
+	ld8 r27 = [r31], +STACK_ITEM_SIZE ;;	/* load ar.rnat */
+	ld8 r26 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.ifs */
+	ld8 r25 = [r31], +STACK_ITEM_SIZE ;;	/* load ar.pfs */
+	ld8 r24 = [r31], +STACK_ITEM_SIZE ;;	/* load ar.rsc */
 
 	mov ar.bspstore = r29 ;;	/* (step 4) */
 	mov ar.rnat = r27		/* (step 5) */
@@ -274,11 +269,11 @@ heavyweight_handler:
 	mov ar.rsc = r24		/* (step 7) */
 
     /* 17. restore interruption state from memory stack */
-	ld8 r28 = [r31], +8 ;;		/* load cr.ifa */		
-	ld8 r27 = [r31], +8 ;;		/* load cr.isr */
-	ld8 r26 = [r31], +8 ;;		/* load cr.iipa */
-	ld8 r25 = [r31], +8 ;;		/* load cr.ipsr */
-	ld8 r24 = [r31], +8 ;;		/* load cr.iip */
+	ld8 r28 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.ifa */		
+	ld8 r27 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.isr */
+	ld8 r26 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.iipa */
+	ld8 r25 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.ipsr */
+	ld8 r24 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.iip */
 
 	mov cr.iip = r24;;
 	mov cr.iipa = r26
@@ -291,15 +286,15 @@ heavyweight_handler:
 	mov r27 = ~PSR_DFH_MASK ;;
 	and r25 = r25, r27
 	and r24 = r24, r26 ;;
-	or r25 = r25, r24;;
+	or r25 = r25, r24 ;;
 	mov cr.ipsr = r25
 
     /* 18. restore predicate registers from memory stack */
-	ld8 r29 = [r31], +8 ;;		/* load predicate registers */
+	ld8 r29 = [r31], +STACK_ITEM_SIZE ;;	/* load predicate registers */
 	mov pr = r29
 	
     /* 19. return from interruption */
-    	ld8 r12 = [r31]			/* load stack pointer */ 
+    	ld8 r12 = [r31]				/* load stack pointer */ 
 	rfi ;;
 
 .global heavyweight_handler_inner
@@ -372,48 +367,48 @@ heavyweight_handler_inner:
 	mov loc45 = r30
 	mov loc46 = r31
 
-	add r24 = 96 + STACK_SCRATCH_AREA_SIZE, r12
-	add r25 = 112 + STACK_SCRATCH_AREA_SIZE, r12
-	add r26 = 0 + STACK_SCRATCH_AREA_SIZE, r12
-	add r27 = 16 + STACK_SCRATCH_AREA_SIZE, r12
-	add r28 = 32 + STACK_SCRATCH_AREA_SIZE, r12
-	add r29 = 48 + STACK_SCRATCH_AREA_SIZE, r12
-	add r30 = 64 + STACK_SCRATCH_AREA_SIZE, r12
-	add r31 = 80 + STACK_SCRATCH_AREA_SIZE, r12 ;;
+	add r24 = ISTATE_OFFSET_F8 + STACK_SCRATCH_AREA_SIZE, r12
+	add r25 = ISTATE_OFFSET_F9 + STACK_SCRATCH_AREA_SIZE, r12
+	add r26 = ISTATE_OFFSET_F2 + STACK_SCRATCH_AREA_SIZE, r12
+	add r27 = ISTATE_OFFSET_F3 + STACK_SCRATCH_AREA_SIZE, r12
+	add r28 = ISTATE_OFFSET_F4 + STACK_SCRATCH_AREA_SIZE, r12
+	add r29 = ISTATE_OFFSET_F5 + STACK_SCRATCH_AREA_SIZE, r12
+	add r30 = ISTATE_OFFSET_F6 + STACK_SCRATCH_AREA_SIZE, r12
+	add r31 = ISTATE_OFFSET_F7 + STACK_SCRATCH_AREA_SIZE, r12 ;;
 	
-	stf.spill [r26] = f2, 0x80
-	stf.spill [r27] = f3, 0x80
-	stf.spill [r28] = f4, 0x80
-	stf.spill [r29] = f5, 0x80
-	stf.spill [r30] = f6, 0x80
-	stf.spill [r31] = f7, 0x80 ;;
+	stf.spill [r26] = f2, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r27] = f3, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r28] = f4, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r29] = f5, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r30] = f6, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r31] = f7, 8 * FLOAT_ITEM_SIZE ;;
 
-	stf.spill [r24] = f8, 0x80
-	stf.spill [r25] = f9, 0x80
-	stf.spill [r26] = f10, 0x80
-	stf.spill [r27] = f11, 0x80
-	stf.spill [r28] = f12, 0x80
-	stf.spill [r29] = f13, 0x80
-	stf.spill [r30] = f14, 0x80
-	stf.spill [r31] = f15, 0x80 ;;
+	stf.spill [r24] = f8, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r25] = f9, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r26] = f10, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r27] = f11, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r28] = f12, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r29] = f13, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r30] = f14, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r31] = f15, 8 * FLOAT_ITEM_SIZE ;;
 
-	stf.spill [r24] = f16, 0x80
-	stf.spill [r25] = f17, 0x80
-	stf.spill [r26] = f18, 0x80
-	stf.spill [r27] = f19, 0x80
-	stf.spill [r28] = f20, 0x80
-	stf.spill [r29] = f21, 0x80
-	stf.spill [r30] = f22, 0x80
-	stf.spill [r31] = f23, 0x80 ;;
+	stf.spill [r24] = f16, 8 * FLOAT_ITEM_SIZE 
+	stf.spill [r25] = f17, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r26] = f18, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r27] = f19, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r28] = f20, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r29] = f21, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r30] = f22, 8 * FLOAT_ITEM_SIZE
+	stf.spill [r31] = f23, 8 * FLOAT_ITEM_SIZE ;;
 
-	stf.spill [r24] = f24, 0x80
-	stf.spill [r25] = f25, 0x80
-	stf.spill [r26] = f26, 0x80
-	stf.spill [r27] = f27, 0x80
-	stf.spill [r28] = f28, 0x80
-	stf.spill [r29] = f29, 0x80
-	stf.spill [r30] = f30, 0x80
-	stf.spill [r31] = f31, 0x80 ;;
+	stf.spill [r24] = f24
+	stf.spill [r25] = f25
+	stf.spill [r26] = f26
+	stf.spill [r27] = f27
+	stf.spill [r28] = f28
+	stf.spill [r29] = f29
+	stf.spill [r30] = f30
+	stf.spill [r31] = f31 ;;
 
 	mov loc47 = ar.fpsr	/* preserve floating point status register */
     
@@ -441,48 +436,48 @@ heavyweight_handler_inner:
 	 */
 
     /* 13. restore general and floating-point registers */
-	add r24 = 96 + STACK_SCRATCH_AREA_SIZE, r12
-	add r25 = 112 + STACK_SCRATCH_AREA_SIZE, r12
-	add r26 = 0 + STACK_SCRATCH_AREA_SIZE, r12
-	add r27 = 16 + STACK_SCRATCH_AREA_SIZE, r12
-	add r28 = 32 + STACK_SCRATCH_AREA_SIZE, r12
-	add r29 = 48 + STACK_SCRATCH_AREA_SIZE, r12
-	add r30 = 64 + STACK_SCRATCH_AREA_SIZE, r12
-	add r31 = 80 + STACK_SCRATCH_AREA_SIZE, r12 ;;
+	add r24 = ISTATE_OFFSET_F8 + STACK_SCRATCH_AREA_SIZE, r12
+	add r25 = ISTATE_OFFSET_F9 + STACK_SCRATCH_AREA_SIZE, r12
+	add r26 = ISTATE_OFFSET_F2 + STACK_SCRATCH_AREA_SIZE, r12
+	add r27 = ISTATE_OFFSET_F3 + STACK_SCRATCH_AREA_SIZE, r12
+	add r28 = ISTATE_OFFSET_F4 + STACK_SCRATCH_AREA_SIZE, r12
+	add r29 = ISTATE_OFFSET_F5 + STACK_SCRATCH_AREA_SIZE, r12
+	add r30 = ISTATE_OFFSET_F6 + STACK_SCRATCH_AREA_SIZE, r12
+	add r31 = ISTATE_OFFSET_F7 + STACK_SCRATCH_AREA_SIZE, r12 ;;
 
-	ldf.fill f2 = [r26], 0x80
-	ldf.fill f3 = [r27], 0x80
-	ldf.fill f4 = [r28], 0x80
-	ldf.fill f5 = [r29], 0x80
-	ldf.fill f6 = [r30], 0x80
-	ldf.fill f7 = [r31], 0x80 ;;
+	ldf.fill f2 = [r26], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f3 = [r27], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f4 = [r28], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f5 = [r29], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f6 = [r30], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f7 = [r31], 8 * FLOAT_ITEM_SIZE ;;
 
-	ldf.fill f8 = [r24], 0x80
-	ldf.fill f9 = [r25], 0x80
-	ldf.fill f10 = [r26], 0x80
-	ldf.fill f11 = [r27], 0x80
-	ldf.fill f12 = [r28], 0x80
-	ldf.fill f13 = [r29], 0x80
-	ldf.fill f14 = [r30], 0x80
-	ldf.fill f15 = [r31], 0x80 ;;
+	ldf.fill f8 = [r24], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f9 = [r25], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f10 = [r26],8 * FLOAT_ITEM_SIZE
+	ldf.fill f11 = [r27], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f12 = [r28], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f13 = [r29], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f14 = [r30], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f15 = [r31], 8 * FLOAT_ITEM_SIZE ;;
 
-	ldf.fill f16 = [r24], 0x80
-	ldf.fill f17 = [r25], 0x80
-	ldf.fill f18 = [r26], 0x80
-	ldf.fill f19 = [r27], 0x80
-	ldf.fill f20 = [r28], 0x80
-	ldf.fill f21 = [r29], 0x80
-	ldf.fill f22 = [r30], 0x80
-	ldf.fill f23 = [r31], 0x80 ;;
+	ldf.fill f16 = [r24], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f17 = [r25], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f18 = [r26], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f19 = [r27], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f20 = [r28], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f21 = [r29], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f22 = [r30], 8 * FLOAT_ITEM_SIZE
+	ldf.fill f23 = [r31], 8 * FLOAT_ITEM_SIZE ;;
 
-	ldf.fill f24 = [r24], 0x80
-	ldf.fill f25 = [r25], 0x80
-	ldf.fill f26 = [r26], 0x80
-	ldf.fill f27 = [r27], 0x80
-	ldf.fill f28 = [r28], 0x80
-	ldf.fill f29 = [r29], 0x80
-	ldf.fill f30 = [r30], 0x80
-	ldf.fill f31 = [r31], 0x80 ;;
+	ldf.fill f24 = [r24]
+	ldf.fill f25 = [r25]
+	ldf.fill f26 = [r26]
+	ldf.fill f27 = [r27]
+	ldf.fill f28 = [r28]
+	ldf.fill f29 = [r29]
+	ldf.fill f30 = [r30]
+	ldf.fill f31 = [r31] ;;
 	
 	mov r1 = loc17
 	mov r2 = loc18

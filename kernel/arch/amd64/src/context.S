@@ -31,7 +31,7 @@
 .global context_save_arch
 .global context_restore_arch
 
-#include <arch/context_offset.h>
+#include <arch/context_struct.h>
 
 ## Save current CPU context
 #
@@ -42,7 +42,15 @@ context_save_arch:
 	movq (%rsp), %rdx     # the caller's return %eip
 	
 	# 1st argument passed in %edi
-	CONTEXT_SAVE_ARCH_CORE %rdi %rdx
+	movq %rdx, CONTEXT_OFFSET_PC(%rdi)
+	movq %rsp, CONTEXT_OFFSET_SP(%rdi)
+	
+	movq %rbx, CONTEXT_OFFSET_RBX(%rdi)
+	movq %rbp, CONTEXT_OFFSET_RBP(%rdi)
+	movq %r12, CONTEXT_OFFSET_R12(%rdi)
+	movq %r13, CONTEXT_OFFSET_R13(%rdi)
+	movq %r14, CONTEXT_OFFSET_R14(%rdi)
+	movq %r15, CONTEXT_OFFSET_R15(%rdi)
 	
 	xorl %eax, %eax       # context_save returns 1
 	incl %eax
@@ -55,9 +63,19 @@ context_save_arch:
 # pointed by the 1st argument. Returns 0 in EAX.
 #
 context_restore_arch:
-	CONTEXT_RESTORE_ARCH_CORE %rdi %rdx
+	movq CONTEXT_OFFSET_R15(%rdi), %r15
+	movq CONTEXT_OFFSET_R14(%rdi), %r14
+	movq CONTEXT_OFFSET_R13(%rdi), %r13
+	movq CONTEXT_OFFSET_R12(%rdi), %r12
+	movq CONTEXT_OFFSET_RBP(%rdi), %rbp
+	movq CONTEXT_OFFSET_RBX(%rdi), %rbx
+	
+	movq CONTEXT_OFFSET_SP(%rdi), %rsp   # ctx->sp -> %rsp
+	
+	movq CONTEXT_OFFSET_PC(%rdi), %rdx 
 	
 	movq %rdx, (%rsp)
 	
 	xorl %eax, %eax       # context_restore returns 0
 	ret
+

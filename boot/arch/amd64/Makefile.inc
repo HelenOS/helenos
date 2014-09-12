@@ -34,7 +34,7 @@ RD_SRVS_ESSENTIAL += \
 
 
 RD_DRVS_ESSENTIAL += \
-	infrastructure/rootpc \
+	platform/pc \
 	block/ata_bd \
 	bus/pci/pciintel \
 	bus/isa \
@@ -44,6 +44,7 @@ RD_DRVS_ESSENTIAL += \
 	char/xtkbd
 
 RD_DRVS_NON_ESSENTIAL += \
+	audio/hdaudio \
 	char/ns8250 \
 	time/cmos-rtc \
 	bus/usb/ehci\
@@ -62,8 +63,8 @@ RD_DRV_CFG += \
 RD_APPS_ESSENTIAL += \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/mixerctl/mixerctl \
-	$(USPACE_PATH)/app/wavplay/wavplay \
-	
+	$(USPACE_PATH)/app/wavplay/wavplay
+
 BOOT_OUTPUT = $(ROOT_PATH)/image.iso
 PREBUILD = $(INITRD).img
 BUILD = Makefile.grub

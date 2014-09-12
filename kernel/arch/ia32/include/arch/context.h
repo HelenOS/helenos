@@ -36,6 +36,7 @@
 #define KERN_ia32_CONTEXT_H_
 
 #include <typedefs.h>
+#include <arch/context_struct.h>
 
 #define STACK_ITEM_SIZE  4
 
@@ -53,20 +54,6 @@
 		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
 		(c)->ebp = 0; \
 	} while (0)
-
-/*
- * Only save registers that must be preserved across
- * function calls.
- */
-typedef struct {
-	uintptr_t sp;
-	uintptr_t pc;
-	uint32_t ebx;
-	uint32_t esi;
-	uint32_t edi;
-	uint32_t ebp;
-	ipl_t ipl;
-} __attribute__ ((packed)) context_t;
 
 #endif
 

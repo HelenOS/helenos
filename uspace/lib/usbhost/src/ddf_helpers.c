@@ -760,7 +760,7 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
  * @param[in] iid (Unused).
  * @param[in] call Pointer to the call from kernel.
  */
-void ddf_hcd_gen_irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+void ddf_hcd_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 {
 	assert(dev);
 	hcd_t *hcd = dev_to_hcd(dev);

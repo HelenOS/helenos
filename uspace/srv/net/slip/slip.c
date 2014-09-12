@@ -42,6 +42,7 @@
 #include <char_dev_iface.h>
 #include <io/log.h>
 #include <errno.h>
+#include <task.h>
 
 #define NAME		"slip"
 #define CAT_IPLINK	"iplink"

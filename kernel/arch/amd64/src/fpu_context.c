@@ -40,7 +40,7 @@ void fpu_context_save(fpu_context_t *fctx)
 {
 	asm volatile (
 		"fxsave %[fctx]\n"
-		: [fctx] "=m" (*fctx)
+		: [fctx] "=m" (fctx->fpu)
 	);
 }
 
@@ -49,7 +49,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 {
 	asm volatile (
 		"fxrstor %[fctx]\n"
-		: [fctx] "=m" (*fctx)
+		: [fctx] "=m" (fctx->fpu)
 	);
 }
 

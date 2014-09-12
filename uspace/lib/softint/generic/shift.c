@@ -127,5 +127,10 @@ long long __aeabi_llsl(long long val, int shift)
 	return __ashldi3(val, shift);
 }
 
+long long __aeabi_llsr(long long val, int shift)
+{
+	return __lshrdi3(val, shift);
+}
+
 /** @}
  */

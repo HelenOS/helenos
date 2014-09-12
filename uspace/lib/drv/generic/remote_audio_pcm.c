@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <macros.h>
 #include <str.h>
-#include <sys/mman.h>
+#include <as.h>
 
 #include "audio_pcm_iface.h"
 #include "ddf/driver.h"

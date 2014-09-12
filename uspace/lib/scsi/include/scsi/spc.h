@@ -45,7 +45,11 @@ enum scsi_cmd_spc {
 	SCSI_CMD_REQUEST_SENSE	= 0x03
 };
 
-/** SCSI Inquiry command */
+/** SCSI Inquiry command
+ *
+ * Note: for SFF 8020 the command must be zero-padded to 12 bytes
+ * and alloc_len must be <= 0xff.
+ */
 typedef struct {
 	/** Operation code (SCSI_CMD_INQUIRY) */
 	uint8_t op_code;

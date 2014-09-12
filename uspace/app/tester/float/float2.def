@@ -1,0 +1,6 @@
+{
+	"float2",
+	"Floating arithmetics",
+	&test_float2,
+	true
+},
