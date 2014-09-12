@@ -75,6 +75,7 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 
 	nconn = tcp_conn_new(lsock, fsock);
 	tcp_conn_add(nconn);
+	tcp_conn_lock(nconn);
 
 	if (acpass == ap_active) {
 		/* Synchronize (initiate) connection */
@@ -82,6 +83,7 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 	}
 
 	if (oflags == tcp_open_nonblock) {
+		tcp_conn_unlock(nconn);
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open -> %p", nconn);
 		*conn = nconn;
 		return TCP_EOK;
@@ -89,7 +91,6 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 
 	/* Wait for connection to be established or reset */
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open: Wait for connection.");
-	tcp_conn_lock(nconn);
 	while (nconn->cstate == st_listen ||
 	    nconn->cstate == st_syn_sent ||
 	    nconn->cstate == st_syn_received) {
