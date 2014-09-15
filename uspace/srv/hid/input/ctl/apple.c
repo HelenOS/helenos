@@ -51,44 +51,9 @@ kbd_ctl_ops_t apple_ctl = {
 	.set_ind = apple_ctl_set_ind
 };
 
-#define KBD_KEY_RELEASE		0x80
+#define KBD_KEY_RELEASE  0x80
 
-static kbd_dev_t *kbd_dev;
-
-static int scanmap[];
-
-static int apple_ctl_init(kbd_dev_t *kdev)
-{
-	kbd_dev = kdev;
-	return 0;
-}
-
-static void apple_ctl_parse(sysarg_t scancode)
-{
-	kbd_event_type_t type;
-	unsigned int key;
-
-	if (scancode >= 0x100)
-		return;
-
-	if (scancode & KBD_KEY_RELEASE) {
-		scancode &= ~KBD_KEY_RELEASE;
-		type = KEY_RELEASE;
-	} else {
-		type = KEY_PRESS;
-	}
-
-	key = scanmap[scancode];
-	if (key != 0)
-		kbd_push_event(kbd_dev, type, key);
-}
-
-static void apple_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
-{
-	(void) mods;
-}
-
-static int scanmap[] = {
+static unsigned int scanmap[] = {
 	[0x00] = KC_A,
 	[0x01] = KC_S,
 	[0x02] = KC_D,
@@ -194,7 +159,7 @@ static int scanmap[] = {
 	[0x66] = 0,
 	[0x67] = KC_F11,
 	[0x68] = 0,
-	[0x69] = 0,
+	[0x69] = KC_SYSREQ,
 	[0x6a] = 0,
 	[0x6b] = KC_SCROLL_LOCK,
 	[0x6c] = 0,
@@ -202,7 +167,7 @@ static int scanmap[] = {
 	[0x6e] = 0,
 	[0x6f] = KC_F12,
 	[0x70] = 0,
-	[0x71] = 0,
+	[0x71] = KC_PAUSE,
 	[0x72] = KC_INSERT,
 	[0x73] = KC_HOME,
 	[0x74] = KC_PAGE_UP,
@@ -218,6 +183,37 @@ static int scanmap[] = {
 	[0x7e] = 0,
 	[0x7f] = 0
 };
+
+static kbd_dev_t *kbd_dev;
+
+static int apple_ctl_init(kbd_dev_t *kdev)
+{
+	kbd_dev = kdev;
+	return 0;
+}
+
+static void apple_ctl_parse(sysarg_t scancode)
+{
+	kbd_event_type_t type;
+	
+	if (scancode & KBD_KEY_RELEASE) {
+		scancode &= ~KBD_KEY_RELEASE;
+		type = KEY_RELEASE;
+	} else
+		type = KEY_PRESS;
+	
+	if (scancode >= sizeof(scanmap) / sizeof(unsigned int))
+		return;
+	
+	unsigned int key = scanmap[scancode];
+	if (key != 0)
+		kbd_push_event(kbd_dev, type, key);
+}
+
+static void apple_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
+{
+	(void) mods;
+}
 
 /** @}
  */

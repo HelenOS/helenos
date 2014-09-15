@@ -44,11 +44,6 @@
  * HelenOS key codes.
  */
 static int scanmap_simple[255] = {
-
-//	[0x29] = KC_BACKTICK,
-
-//	[0x02] = KC_1,
-//	[0x03] = KC_2,
 	[0x04] = KC_A,
 	[0x05] = KC_B,
 	[0x06] = KC_C,
@@ -93,16 +88,15 @@ static int scanmap_simple[255] = {
 	[0x2b] = KC_TAB,
 	[0x2c] = KC_SPACE,
 
-	[0x2d] = KC_MINUS,  // same as DASH? (- or _)
+	[0x2d] = KC_MINUS,
 	[0x2e] = KC_EQUALS,
 	[0x2f] = KC_LBRACKET,
 	[0x30] = KC_RBRACKET,
 	[0x31] = KC_BACKSLASH,
-	//[0x32] = KC_,	// TODO: HASH??? maybe same as 0x31 - backslash
-	[0x32] = KC_BACKSLASH,
+	[0x32] = KC_HASH,
 	[0x33] = KC_SEMICOLON,
-	[0x34] = KC_QUOTE,  // same as APOSTROPHE? (')
-	[0x35] = KC_BACKTICK,  // same as GRAVE ACCENT?? (`)
+	[0x34] = KC_QUOTE,
+	[0x35] = KC_BACKTICK,
 	[0x36] = KC_COMMA,
 	[0x37] = KC_PERIOD,
 	[0x38] = KC_SLASH,
@@ -136,17 +130,6 @@ static int scanmap_simple[255] = {
 	[0x51] = KC_DOWN,
 	[0x52] = KC_UP,
 
-	//[0x64] = // some funny key
-
-	[0xe0] = KC_LCTRL,
-	[0xe1] = KC_LSHIFT,
-	[0xe2] = KC_LALT,
-	//[0xe3] = KC_L	// TODO: left GUI
-	[0xe4] = KC_RCTRL,
-	[0xe5] = KC_RSHIFT,
-	[0xe6] = KC_RALT,
-	//[0xe7] = KC_R	// TODO: right GUI
-
 	[0x53] = KC_NUM_LOCK,
 	[0x54] = KC_NSLASH,
 	[0x55] = KC_NTIMES,
@@ -163,8 +146,18 @@ static int scanmap_simple[255] = {
 	[0x60] = KC_N8,
 	[0x61] = KC_N9,
 	[0x62] = KC_N0,
-	[0x63] = KC_NPERIOD
+	[0x63] = KC_NPERIOD,
 
+	[0x64] = KC_BACKSLASH,
+
+	[0x9a] = KC_SYSREQ,
+
+	[0xe0] = KC_LCTRL,
+	[0xe1] = KC_LSHIFT,
+	[0xe2] = KC_LALT,
+	[0xe4] = KC_RCTRL,
+	[0xe5] = KC_RSHIFT,
+	[0xe6] = KC_RALT,
 };
 
 /**
@@ -172,7 +165,7 @@ static int scanmap_simple[255] = {
  * recognized by HelenOS.
  *
  * @param scancode USB HID key code (from HID Usage Tables).
- * 
+ *
  * @retval HelenOS key code corresponding to the given USB HID key code.
  */
 unsigned int usbhid_parse_scancode(int scancode)
