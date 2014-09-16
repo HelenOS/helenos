@@ -1,6 +1,7 @@
 #!/bin/bash
+
 #
-# Copyright (c) 2014 Jakub Jermar 
+# Copyright (c) 2014 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,29 +30,30 @@
 
 VERSION=2.1.1
 BASENAME=qemu-${VERSION}
+BASENAME_MASTER=qemu-master
 TARBALL=${BASENAME}.tar.bz2
 SOURCEDIR=${BASENAME}
 URL=http://wiki.qemu-project.org/download/${TARBALL}
+REPO=git://git.qemu.org/qemu.git
 MD5="78b1b51bfa2eee424e1bfdf3b66daa64"
 
-if [ ! -f ${TARBALL} ];
-then
-	wget ${URL}
+if [ "$1" == "--master" ]; then
+	git clone ${REPO} ${BASENAME_MASTER}
+	cd ${BASENAME_MASTER}
+else
+	if [ ! -f ${TARBALL} ]; then
+		wget ${URL}
+	fi
+	
+	if [ "`md5sum ${TARBALL} | cut -f 1 -d " "`" != ${MD5} ]; then
+		echo Wrong MD5 checksum
+		exit
+	fi
+	
+	tar xvfj ${TARBALL}
+	cd ${SOURCEDIR}
 fi
-
-if [ `md5sum ${TARBALL} | cut -f 1 -d " "` != ${MD5} ];
-then
-	echo Wrong MD5 checksum
-	exit
-fi
-
-tar xvfj ${TARBALL}
-
-cd ${SOURCEDIR}
 
 ./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,ppc-softmmu,sparc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --audio-drv-list=pa
-
 make -j 4
-
 sudo make install
-
