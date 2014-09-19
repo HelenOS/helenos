@@ -20,6 +20,7 @@ kernel/arch/amd64/_link.ld
 kernel/arch/amd64/include/arch/common.h
 kernel/generic/src/debug/real_map.bin
 uspace/app/bdsh/bdsh
+uspace/app/bdsh/test-bdsh
 uspace/app/bithenge/bithenge
 uspace/app/blkdump/blkdump
 uspace/app/bnchmark/bnchmark
@@ -220,10 +221,13 @@ uspace/lib/c/arch/amd64/_link-loader.ld
 uspace/lib/c/arch/amd64/_link-shlib.ld
 uspace/lib/c/arch/amd64/_link.ld
 uspace/lib/c/arch/amd64/include/libarch/common.h
+uspace/lib/c/test-libc
+uspace/lib/pcut/test-libpcut-*
 uspace/lib/posix/collisions.list
 uspace/lib/posix/redefs-hide-libc.xargs
 uspace/lib/posix/redefs-show-posix.xargs
 uspace/lib/posix/include/libc
+uspace/lib/posix/test-libposix
 uspace/srv/audio/hound/hound
 uspace/srv/bd/file_bd/file_bd
 uspace/srv/bd/part/guid_part/g_part
