@@ -84,6 +84,24 @@ ifeq ($(CONFIG_PCUT_TESTS),y)
 	echo "</ul></body></html>" >>"$(DIST_PATH)/test/test.html"
 endif
 
+ifeq ($(CONFIG_PCUT_SELF_TESTS),y)
+	echo "echo Running all PCUT self-tests..." >"$(DIST_PATH)/test/run_pcut"
+	echo "<html><head><title>Results of PCUT self-tests on HelenOS</title></head><body>" >"$(DIST_PATH)/test/pcut.html"
+	echo "<h1>Results of PCUT self-tests on HelenOS</h1><ul>" >>"$(DIST_PATH)/test/pcut.html"
+	for file in $(USPACE_PATH)/lib/pcut/test-libpcut-*; do \
+		file2=`basename $$file`; \
+		name=`echo "$$file2" | sed 's/test-libpcut-//'`; \
+		cp "$$file" "$(DIST_PATH)/test/" ; \
+		echo "echo ' ->' $$name" >>"$(DIST_PATH)/test/run_pcut"; \
+		echo "/test/$$file2 | to /test/$$file2.out" >>"$(DIST_PATH)/test/run_pcut"; \
+		echo "cat /test/$$file2.out" >>"$(DIST_PATH)/test/run_pcut"; \
+		echo "cp -f /test/$$file2.out /data/web/result-$$file2.txt" >>"$(DIST_PATH)/test/run_pcut"; \
+		echo "<li><a href=\"result-$$file2.txt\">$$name</a></li>" >>"$(DIST_PATH)/test/pcut.html"; \
+	done
+	echo "cp -f /test/pcut.html /data/web/pcut.html" >>"$(DIST_PATH)/test/run_pcut"
+	echo "</ul></body></html>" >>"$(DIST_PATH)/test/pcut.html"
+endif
+
 	for drv in $(RD_DRVS) ; do \
 		drv_dir="`dirname "$$drv"`" ; \
 		drv_name="`basename "$$drv"`" ; \
