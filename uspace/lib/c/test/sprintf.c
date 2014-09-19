@@ -42,7 +42,7 @@
 
 PCUT_INIT
 
-PCUT_TEST_SUITE(sprintf)
+PCUT_TEST_SUITE(sprintf);
 
 static char buffer[BUFFER_SIZE];
 

@@ -37,8 +37,15 @@
 
 PCUT_INIT
 
-PCUT_TEST_SUITE(scanf)
+PCUT_TEST_SUITE(scanf);
 
+
+#ifndef UARCH_sparc64
+
+/*
+ * We need some floating point functions for scanf() imlementation
+ * that are not yet available for SPARC-64.
+ */
 
 PCUT_TEST(int_decimal) {
 	int number;
@@ -53,5 +60,7 @@ PCUT_TEST(int_negative_decimal) {
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_INT_EQUALS(-53, number);
 }
+
+#endif
 
 PCUT_EXPORT(scanf);
