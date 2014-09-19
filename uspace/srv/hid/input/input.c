@@ -89,6 +89,9 @@ typedef struct {
 static list_t clients;
 static client_t *active_client = NULL;
 
+/** Kernel override */
+static bool active = true;
+
 /** List of keyboard devices */
 static list_t kbd_devs;
 
@@ -294,11 +297,11 @@ void mouse_push_event_button(mouse_dev_t *mdev, int bnum, int press)
 }
 
 /** Arbitrate client actiovation */
-static void client_arbitration(client_t *req)
+static void client_arbitration(void)
 {
 	/* Mutual exclusion of active clients */
 	list_foreach(clients, link, client_t, client)
-		client->active = (client == req);
+		client->active = ((active) && (client == active_client));
 	
 	/* Notify clients about the arbitration */
 	list_foreach(clients, link, client_t, client) {
@@ -346,7 +349,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			switch (IPC_GET_IMETHOD(call)) {
 			case INPUT_ACTIVATE:
 				active_client = client;
-				client_arbitration(client);
+				client_arbitration();
 				async_answer_0(callid, EOK);
 				break;
 			default:
@@ -361,11 +364,13 @@ static void kconsole_event_handler(ipc_callid_t callid, ipc_call_t *call,
 {
 	if (IPC_GET_ARG1(*call)) {
 		/* Kernel console activated */
-		client_arbitration(NULL);
+		active = false;
 	} else {
 		/* Kernel console deactivated */
-		client_arbitration(active_client);
+		active = true;
 	}
+	
+	client_arbitration();
 }
 
 static kbd_dev_t *kbd_dev_new(void)

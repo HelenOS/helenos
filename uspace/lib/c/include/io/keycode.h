@@ -106,6 +106,7 @@ typedef enum {
 	KC_SEMICOLON,
 	KC_QUOTE,
 	KC_BACKSLASH,
+	KC_HASH,
 
 	KC_ENTER,
 
@@ -153,8 +154,10 @@ typedef enum {
 	KC_F12,
 
 	KC_PRTSCR,
+	KC_SYSREQ,
 	KC_SCROLL_LOCK,
 	KC_PAUSE,
+	KC_BREAK,
 
 	/* Cursor keys block */
 
