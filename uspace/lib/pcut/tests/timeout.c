@@ -27,22 +27,38 @@
  */
 
 #include <pcut/pcut.h>
+
+#ifdef __unix
 #include <unistd.h>
+#endif
+#if defined(__WIN64) || defined(__WIN32) || defined(_WIN32)
+#include <windows.h>
+#endif
+
 #include <stdio.h>
 #include "tested.h"
+
+static void my_sleep(int sec) {
+#ifdef __unix
+	sleep(sec);
+#endif
+#if defined(__WIN64) || defined(__WIN32) || defined(_WIN32)
+	Sleep(1000 * sec);
+#endif
+}
 
 PCUT_INIT
 
 PCUT_TEST(shall_time_out) {
 	printf("Text before sleeping.\n");
-	sleep(PCUT_DEFAULT_TEST_TIMEOUT * 5);
+	my_sleep(PCUT_DEFAULT_TEST_TIMEOUT * 5);
 	printf("Text after the sleep.\n");
 }
 
 PCUT_TEST(custom_time_out,
 		PCUT_TEST_SET_TIMEOUT(PCUT_DEFAULT_TEST_TIMEOUT * 3)) {
 	printf("Text before sleeping.\n");
-	sleep(PCUT_DEFAULT_TEST_TIMEOUT * 2);
+	my_sleep(PCUT_DEFAULT_TEST_TIMEOUT * 2);
 	printf("Text after the sleep.\n");
 }
 

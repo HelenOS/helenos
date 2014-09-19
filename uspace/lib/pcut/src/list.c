@@ -81,19 +81,21 @@ pcut_item_t *pcut_get_real(pcut_item_t *item) {
  * @param nested Head of the nested list.
  */
 static void inline_nested_lists(pcut_item_t *nested) {
+	pcut_item_t *first;
+
 	if (nested->kind != PCUT_KIND_NESTED) {
 		return;
 	}
 
-	if (nested->nested.last == NULL) {
+	if (nested->nested == NULL) {
 		nested->kind = PCUT_KIND_SKIP;
 		return;
 	}
 
-	pcut_item_t *first = pcut_fix_list_get_real_head(nested->nested.last);
-	nested->nested.last->next = nested->next;
+	first = pcut_fix_list_get_real_head(nested->nested);
+	nested->nested->next = nested->next;
 	if (nested->next != NULL) {
-		nested->next->previous = nested->nested.last;
+		nested->next->previous = nested->nested;
 	}
 	nested->next = first;
 	first->previous = nested;
@@ -106,12 +108,16 @@ static void inline_nested_lists(pcut_item_t *nested) {
  * @param first List head.
  */
 static void set_ids(pcut_item_t *first) {
-	assert(first != NULL);
 	int id = 1;
+	pcut_item_t *it;
+
+	assert(first != NULL);
+
 	if (first->kind == PCUT_KIND_SKIP) {
 		first = pcut_get_real_next(first);
 	}
-	for (pcut_item_t *it = first; it != NULL; it = pcut_get_real_next(it)) {
+
+	for (it = first; it != NULL; it = pcut_get_real_next(it)) {
 		it->id = id;
 		id++;
 	}
@@ -125,15 +131,21 @@ static void set_ids(pcut_item_t *first) {
  * @param first Head of the list.
  */
 static void detect_skipped_tests(pcut_item_t *first) {
+	pcut_item_t *it;
+
 	assert(first != NULL);
 	if (first->kind == PCUT_KIND_SKIP) {
 		first = pcut_get_real_next(first);
 	}
-	for (pcut_item_t *it = first; it != NULL; it = pcut_get_real_next(it)) {
+
+	for (it = first; it != NULL; it = pcut_get_real_next(it)) {
+		pcut_extra_t *extras;
+
 		if (it->kind != PCUT_KIND_TEST) {
 			continue;
 		}
-		pcut_extra_t *extras = it->test.extras;
+
+		extras = it->extras;
 		while (extras->type != PCUT_EXTRA_LAST) {
 			if (extras->type == PCUT_EXTRA_SKIP) {
 				it->kind = PCUT_KIND_SKIP;
@@ -155,13 +167,14 @@ static void detect_skipped_tests(pcut_item_t *first) {
  * @return Head of the fixed list.
  */
 pcut_item_t *pcut_fix_list_get_real_head(pcut_item_t *last) {
+	pcut_item_t *next, *it;
+
 	last->next = NULL;
 
 	inline_nested_lists(last);
 
-	pcut_item_t *next = last;
-
-	pcut_item_t *it = last->previous;
+	next = last;
+	it = last->previous;
 	while (it != NULL) {
 		it->next = next;
 		inline_nested_lists(it);

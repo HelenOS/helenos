@@ -52,11 +52,10 @@ static int failed_tests_in_suite;
  * @param all_items Start of the list with all items.
  */
 static void xml_init(pcut_item_t *all_items) {
-	printf("<?xml version=\"1.0\"?>\n");
-
 	int tests_total = pcut_count_tests(all_items);
 	test_counter = 0;
 
+	printf("<?xml version=\"1.0\"?>\n");
 	printf("<report tests-total=\"%d\">\n", tests_total);
 }
 
@@ -68,7 +67,7 @@ static void xml_suite_start(pcut_item_t *suite) {
 	tests_in_suite = 0;
 	failed_tests_in_suite = 0;
 
-	printf("\t<suite name=\"%s\">\n", suite->suite.name);
+	printf("\t<suite name=\"%s\">\n", suite->name);
 }
 
 /** Report that a suite was completed.
@@ -76,7 +75,7 @@ static void xml_suite_start(pcut_item_t *suite) {
  * @param suite Suite that just ended.
  */
 static void xml_suite_done(pcut_item_t *suite) {
-	printf("\t</suite><!-- %s: %d / %d -->\n", suite->suite.name,
+	printf("\t</suite><!-- %s: %d / %d -->\n", suite->name,
 		failed_tests_in_suite, tests_in_suite);
 }
 
@@ -99,13 +98,15 @@ static void xml_test_start(pcut_item_t *test) {
  * @param element_name Wrapping XML element name.
  */
 static void print_by_lines(const char *message, const char *element_name) {
+	char *next_line_start;
+
 	if ((message == NULL) || (message[0] == 0)) {
 		return;
 	}
 
 	printf("\t\t\t<%s><![CDATA[", element_name);
 
-	char *next_line_start = pcut_str_find_char(message, '\n');
+	next_line_start = pcut_str_find_char(message, '\n');
 	while (next_line_start != NULL) {
 		next_line_start[0] = 0;
 		printf("%s\n", message);
@@ -130,13 +131,13 @@ static void print_by_lines(const char *message, const char *element_name) {
 static void xml_test_done(pcut_item_t *test, int outcome,
 		const char *error_message, const char *teardown_error_message,
 		const char *extra_output) {
-	const char *test_name = test->test.name;
+	const char *test_name = test->name;
+	const char *status_str = NULL;
 
 	if (outcome != TEST_OUTCOME_PASS) {
 		failed_tests_in_suite++;
 	}
 
-	const char *status_str = NULL;
 	switch (outcome) {
 	case TEST_OUTCOME_PASS:
 		status_str = "pass";
@@ -164,16 +165,13 @@ static void xml_test_done(pcut_item_t *test, int outcome,
 }
 
 /** Report testing done. */
-static void xml_done() {
+static void xml_done(void) {
 	printf("</report>\n");
 }
 
 
 pcut_report_ops_t pcut_report_xml = {
-	.init = xml_init,
-	.done = xml_done,
-	.suite_start = xml_suite_start,
-	.suite_done = xml_suite_done,
-	.test_start = xml_test_start,
-	.test_done = xml_test_done
+	xml_init, xml_done,
+	xml_suite_start, xml_suite_done,
+	xml_test_start, xml_test_done
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Vojtech Horky
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <pcut/pcut.h>
-#include "tested.h"
+/** @file
+ * Helper macros.
+ */
+#ifndef PCUT_HELPER_H_GUARD
+#define PCUT_HELPER_H_GUARD
 
-PCUT_INIT
+/** @cond devel */
 
+/** Join the two arguments on preprocessor level (inner call). */
+#define PCUT_JOIN_IMPL(a, b) a##b
 
+/** Join the two arguments on preprocessor level. */
+#define PCUT_JOIN(a, b) PCUT_JOIN_IMPL(a, b)
 
-PCUT_TEST_SUITE(with_teardown);
+/** Quote the parameter (inner call). */
+#define PCUT_QUOTE_IMPL(x) #x
 
-PCUT_TEST_AFTER {
-	printf("This is teardown-function.\n");
-}
+/** Quote the parameter. */
+#define PCUT_QUOTE(x) PCUT_QUOTE_IMPL(x)
 
-PCUT_TEST(empty) {
-}
+/** Get first argument from macro var-args. */
+#define PCUT_VARG_GET_FIRST(x, ...) x
 
-PCUT_TEST(failing) {
-	PCUT_ASSERT_INT_EQUALS(10, intmin(1, 2));
-}
+/** Get all but first arguments from macro var-args. */
+#define PCUT_VARG_SKIP_FIRST(x, ...) __VA_ARGS__
 
-
-
-PCUT_TEST_SUITE(with_failing_teardown);
-
-PCUT_TEST_AFTER {
-	printf("This is failing teardown-function.\n");
-	PCUT_ASSERT_INT_EQUALS(42, intmin(10, 20));
-}
-
-PCUT_TEST(empty2) {
-}
-
-PCUT_TEST(printing2) {
-	printf("Printed before test failure.\n");
-	PCUT_ASSERT_INT_EQUALS(0, intmin(-17, -19));
-}
-
-PCUT_TEST(failing2) {
-	PCUT_ASSERT_INT_EQUALS(12, intmin(3, 5));
-}
-
-
-PCUT_MAIN()
+#endif

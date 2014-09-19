@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<report tests-total="3">
+	<suite name="Default">
+		<testcase name="zero_exponent" status="fail">
+			<error-message><![CDATA[xmlreport.c:38: Expected <1> but got <0> (1 != intpow(2, 0))
+]]></error-message>
+		</testcase><!-- zero_exponent -->
+		<testcase name="one_exponent" status="fail">
+			<error-message><![CDATA[xmlreport.c:42: Expected <2> but got <0> (2 != intpow(2, 1))
+]]></error-message>
+		</testcase><!-- one_exponent -->
+		<testcase name="same_strings" status="fail">
+			<error-message><![CDATA[xmlreport.c:49: Expected <abc> but got <abd> ("abc" != "XXXabd" + 3)
+]]></error-message>
+		</testcase><!-- same_strings -->
+	</suite><!-- Default: 3 / 3 -->
+</report>

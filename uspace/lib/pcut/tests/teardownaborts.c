@@ -26,17 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
 #include <pcut/pcut.h>
-#include "tested.h"
+#include <stdlib.h>
 
 PCUT_INIT
 
-PCUT_TEST(access_null_pointer) {
-	int a = 5;
-	int *p = &a;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
-	p = NULL;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
+PCUT_TEST_AFTER {
+	abort();
+}
+
+PCUT_TEST(print_and_fail) {
+	printf("Tear-down will cause null pointer access...\n");
+	PCUT_ASSERT_NOT_NULL(NULL);
 }
 
 PCUT_MAIN()

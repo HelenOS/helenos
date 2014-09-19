@@ -31,8 +31,10 @@
  * Unix-specific functions for test execution via the fork() system call.
  */
 
-/** We need _POSX_SOURCE because of kill(). */
+/** We need _POSIX_SOURCE because of kill(). */
 #define _POSIX_SOURCE
+/** We need _BSD_SOURCE because of snprintf() when compiling under C89. */
+#define _BSD_SOURCE
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -136,13 +138,16 @@ static int convert_wait_status_to_outcome(int status) {
  * @param test Test to be run.
  */
 void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
+	int link_stdout[2], link_stderr[2];
+	int rc, status;
+	size_t stderr_size;
+
 	PCUT_UNUSED(self_path);
 
 	before_test_start(test);
 
-	int link_stdout[2], link_stderr[2];
 
-	int rc = pipe(link_stdout);
+	rc = pipe(link_stdout);
 	if (rc == -1) {
 		snprintf(error_message_buffer, OUTPUT_BUFFER_SIZE - 1,
 				"pipe() failed: %s.", strerror(rc));
@@ -183,10 +188,9 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	signal(SIGALRM, kill_child_on_alarm);
 	alarm(pcut_get_test_timeout(test));
 
-	size_t stderr_size = read_all(link_stderr[0], extra_output_buffer, OUTPUT_BUFFER_SIZE - 1);
+	stderr_size = read_all(link_stderr[0], extra_output_buffer, OUTPUT_BUFFER_SIZE - 1);
 	read_all(link_stdout[0], extra_output_buffer, OUTPUT_BUFFER_SIZE - 1 - stderr_size);
 
-	int status;
 	wait(&status);
 	alarm(0);
 
@@ -203,3 +207,10 @@ leave_close_parent_pipe:
 
 	pcut_report_test_done_unparsed(test, rc, extra_output_buffer, OUTPUT_BUFFER_SIZE);
 }
+
+void pcut_hook_before_test(pcut_item_t *test) {
+	PCUT_UNUSED(test);
+
+	/* Do nothing. */
+}
+

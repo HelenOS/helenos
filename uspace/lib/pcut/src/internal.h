@@ -36,6 +36,30 @@
 #include <pcut/pcut.h>
 #include <stdlib.h>
 
+
+/** @def PCUT_DEBUG(msg, ...)
+ * Debug printing.
+ *
+ * By default, this macro does nothing. Define PCUT_DEBUG_BUILD to
+ * actually print the messages to the console.
+ *
+ * @param msg Printf-like formatting message.
+ * @param ... Extra arguments for printf.
+ */
+#ifdef PCUT_DEBUG_BUILD
+#include <stdio.h>
+#define PCUT_DEBUG_INTERNAL(msg, ...) \
+	fprintf(stderr, "[PCUT %s:%d]: " msg "%s", __FILE__, __LINE__, __VA_ARGS__)
+#define PCUT_DEBUG(...) \
+	PCUT_DEBUG_INTERNAL( \
+		PCUT_VARG_GET_FIRST(__VA_ARGS__, this_arg_is_ignored), \
+		PCUT_VARG_SKIP_FIRST(__VA_ARGS__, "\n") \
+	)
+#else
+#define PCUT_DEBUG(...) (void)0
+#endif
+
+
 /** Mark a variable as unused. */
 #define PCUT_UNUSED(x) ((void)x)
 
@@ -62,6 +86,15 @@
 
 /** Test outcome: test failed unexpectedly. */
 #define TEST_OUTCOME_ERROR 3
+
+
+/*
+ * Use sprintf_s in Windows but only with Microsoft compiler.
+ * Namely, let MinGW use snprintf.
+ */
+#if (defined(__WIN64) || defined(__WIN32) || defined(_WIN32)) && defined(_MSC_VER)
+#define snprintf sprintf_s
+#endif
 
 extern int pcut_run_mode;
 
@@ -91,6 +124,8 @@ typedef struct pcut_report_ops pcut_report_ops_t;
 struct pcut_report_ops {
 	/** Initialize the reporting, given all tests. */
 	void (*init)(pcut_item_t *);
+	/** Finalize the reporting. */
+	void (*done)(void);
 	/** Test suite just started. */
 	void (*suite_start)(pcut_item_t *);
 	/** Test suite completed. */
@@ -100,8 +135,6 @@ struct pcut_report_ops {
 	/** Test completed. */
 	void (*test_done)(pcut_item_t *, int, const char *, const char *,
 		const char *);
-	/** Finalize the reporting. */
-	void (*done)(void);
 };
 
 void pcut_report_register_handler(pcut_report_ops_t *ops);
@@ -118,6 +151,18 @@ void pcut_report_test_done_unparsed(pcut_item_t *test, int outcome,
 void pcut_report_done(void);
 
 /* OS-dependent functions. */
+
+/** Hook to execute before test starts.
+ *
+ * Useful for OS-specific preparations prior to launching the actual
+ * test code (i. e. sandboxing the process more etc.).
+ *
+ * This function is not run by the launcher process that only
+ * starts other tests in separate processes.
+ *
+ * @param test The test that is about to be executed.
+ */
+void pcut_hook_before_test(pcut_item_t *test);
 
 /** Tell whether two strings start with the same prefix.
  *

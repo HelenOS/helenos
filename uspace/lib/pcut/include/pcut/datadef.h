@@ -38,6 +38,15 @@
 
 /** @cond devel */
 
+#if defined(__GNUC__) || defined(__clang__)
+#define PCUT_CC_UNUSED_VARIABLE(name, initializer) \
+	name __attribute__((unused)) = initializer
+#else
+#define PCUT_CC_UNUSED_VARIABLE(name, initializer) \
+	name = initializer
+#endif
+
+
 enum {
 	PCUT_KIND_SKIP,
 	PCUT_KIND_NESTED,
@@ -53,11 +62,21 @@ enum {
 	PCUT_EXTRA_LAST
 };
 
+enum {
+	PCUT_MAIN_EXTRA_PREINIT_HOOK,
+	PCUT_MAIN_EXTRA_INIT_HOOK,
+	PCUT_MAIN_EXTRA_REPORT_XML,
+	PCUT_MAIN_EXTRA_LAST
+};
+
 /** Generic wrapper for test cases, test suites etc. */
 typedef struct pcut_item pcut_item_t;
 
 /** Extra information about a test. */
 typedef struct pcut_extra pcut_extra_t;
+
+/** Extra information for the main() function. */
+typedef struct pcut_main_extra pcut_main_extra_t;
 
 /** Test method type. */
 typedef void (*pcut_test_func_t)(void);
@@ -72,10 +91,21 @@ struct pcut_extra {
 	 * Use PCUT_EXTRA_* to determine which field of the union is used.
 	 */
 	int type;
-	union {
-		/** Test-specific time-out in seconds. */
-		int timeout;
-	};
+	/** Test-specific time-out in seconds. */
+	int timeout;
+};
+
+/** @copydoc pcut_main_extra_t */
+struct pcut_main_extra {
+	/** Discriminator for the union.
+	 *
+	 * Use PCUT_MAIN_EXTRA_* to determine which field of the union is used.
+	 */
+	int type;
+	/** Callback once PCUT initializes itself. */
+	void (*init_hook)(void);
+	/** Callback even before command-line arguments are processed. */
+	void (*preinit_hook)(int *, char ***);
 };
 
 /** @copydoc pcut_item_t */
@@ -88,50 +118,29 @@ struct pcut_item {
 	/** Unique id of this item. */
 	int id;
 
-	/** Discriminator for the union.
-	 *
-	 * Use PCUT_KIND_* to determine which field of the union is used.
-	 */
+	/** Discriminator for this item. */
 	int kind;
-	union {
-		struct {
-			const char *name;
-			pcut_setup_func_t setup;
-			pcut_setup_func_t teardown;
-		} suite;
-		struct {
-			const char *name;
-			pcut_test_func_t func;
-			pcut_extra_t *extras;
-		} test;
-		/* setup is used for both set-up and tear-down */
-		struct {
-			pcut_setup_func_t func;
-		} setup;
-		struct {
-			pcut_item_t *last;
-		} nested;
-		struct {
-			int dummy;
-		} meta;
-	};
+
+	/** Name of this item. */
+	const char *name;
+
+	/** Test-case function. */
+	pcut_test_func_t test_func;
+
+	/** Set-up function of a suite. */
+	pcut_setup_func_t setup_func;
+	/** Tear-down function of a suite. */
+	pcut_setup_func_t teardown_func;
+
+	/** Extra attributes. */
+	pcut_extra_t *extras;
+
+	/** Extra attributes for main() function. */
+	pcut_main_extra_t *main_extras;
+
+	/** Nested lists. */
+	pcut_item_t *nested;
 };
-
-#ifdef PCUT_DEBUG_BUILD
-#define PCUT_DEBUG(msg, ...) \
-	printf("[PCUT]: Debug: " msg "\n", ##__VA_ARGS__)
-#else
-
-/** Debug printing.
- *
- * By default, this macro does nothing. Define PCUT_DEBUG_BUILD to
- * actually print the messages to the console.
- *
- * @param msg Printf-like formatting message.
- * @param ... Extra arguments for printf.
- */
-#define PCUT_DEBUG(msg, ...) (void)0
-#endif
 
 /** @endcond */
 

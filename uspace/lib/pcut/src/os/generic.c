@@ -32,6 +32,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <assert.h>
@@ -49,7 +50,7 @@
 
 /* Format the command to launch a test according to OS we are running on. */
 
-#if defined(__WIN64) || defined(__WIN32)
+#if defined(__WIN64) || defined(__WIN32) || defined(_WIN32)
 #include <process.h>
 
 #define FORMAT_COMMAND(buffer, buffer_size, self_path, test_id, temp_file) \
@@ -107,19 +108,27 @@ static int convert_wait_status_to_outcome(int status) {
  * @param test Test to be run.
  */
 void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
+	int rc;
+	FILE *tempfile;
+	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
+	char command[PCUT_COMMAND_LINE_BUFFER_SIZE];
+
 	before_test_start(test);
 
-	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
 	FORMAT_TEMP_FILENAME(tempfile_name, PCUT_TEMP_FILENAME_BUFFER_SIZE - 1);
-
-	char command[PCUT_COMMAND_LINE_BUFFER_SIZE];
 	FORMAT_COMMAND(command, PCUT_COMMAND_LINE_BUFFER_SIZE - 1,
 		self_path, (test)->id, tempfile_name);
+	
+	PCUT_DEBUG("Will execute <%s> (temp file <%s>) with system().",
+		command, tempfile_name);
 
-	int rc = system(command);
+	rc = system(command);
+
+	PCUT_DEBUG("system() returned 0x%04X", rc);
+
 	rc = convert_wait_status_to_outcome(rc);
 
-	FILE *tempfile = fopen(tempfile_name, "rb");
+	tempfile = fopen(tempfile_name, "rb");
 	if (tempfile == NULL) {
 		pcut_report_test_done(test, TEST_OUTCOME_ERROR, "Failed to open temporary file.", NULL, NULL);
 		return;
@@ -130,5 +139,11 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	remove(tempfile_name);
 
 	pcut_report_test_done_unparsed(test, rc, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+}
+
+void pcut_hook_before_test(pcut_item_t *test) {
+	PCUT_UNUSED(test);
+
+	/* Do nothing. */
 }
 

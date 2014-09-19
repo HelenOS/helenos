@@ -69,17 +69,21 @@ static pcut_item_t *current_test = NULL;
 static pcut_item_t *current_suite = NULL;
 
 /** A NULL-like suite. */
-static pcut_item_t default_suite = {
-	.kind = PCUT_KIND_TESTSUITE,
-	.id = -1,
-	.previous = NULL,
-	.next = NULL,
-	.suite = {
-		.name = "Default",
-		.setup = NULL,
-		.teardown = NULL
+static pcut_item_t default_suite;
+static int default_suite_initialized = 0;
+
+static void init_default_suite_when_needed() {
+	if (default_suite_initialized) {
+		return;
 	}
-};
+	default_suite.id = -1;
+	default_suite.kind = PCUT_KIND_TESTSUITE;
+	default_suite.previous = NULL;
+	default_suite.next = NULL;
+	default_suite.name = "Default";
+	default_suite.setup_func = NULL;
+	default_suite.teardown_func = NULL;
+}
 
 /** Find the suite given test belongs to.
  *
@@ -93,6 +97,7 @@ static pcut_item_t *pcut_find_parent_suite(pcut_item_t *it) {
 		}
 		it = it->previous;
 	}
+	init_default_suite_when_needed();
 	return &default_suite;
 }
 
@@ -114,6 +119,8 @@ static void run_setup_teardown(pcut_setup_func_t func) {
  * @param outcome Outcome of the current test.
  */
 static void leave_test(int outcome) {
+	PCUT_DEBUG("leave_test(outcome=%d), will_exit=%s", outcome,
+		leave_means_exit ? "yes" : "no");
 	if (leave_means_exit) {
 		exit(outcome);
 	}
@@ -144,7 +151,7 @@ void pcut_failed_assertion(const char *message) {
 	if (execute_teardown_on_failure) {
 		execute_teardown_on_failure = 0;
 		prev_message = message;
-		run_setup_teardown(current_suite->suite.teardown);
+		run_setup_teardown(current_suite->teardown_func);
 
 		/* Tear-down was okay. */
 		if (report_test_result) {
@@ -188,6 +195,8 @@ static int run_test(pcut_item_t *test) {
 	current_suite = pcut_find_parent_suite(test);
 	current_test = test;
 
+	pcut_hook_before_test(test);
+
 	/*
 	 * If anything goes wrong, execute the tear-down function
 	 * as well.
@@ -197,20 +206,20 @@ static int run_test(pcut_item_t *test) {
 	/*
 	 * Run the set-up function.
 	 */
-	run_setup_teardown(current_suite->suite.setup);
+	run_setup_teardown(current_suite->setup_func);
 
 	/*
 	 * The setup function was performed, it is time to run
 	 * the actual test.
 	 */
-	test->test.func();
+	test->test_func();
 
 	/*
 	 * Finally, run the tear-down function. We need to clear
 	 * the flag to prevent endless loop.
 	 */
 	execute_teardown_on_failure = 0;
-	run_setup_teardown(current_suite->suite.teardown);
+	run_setup_teardown(current_suite->teardown_func);
 
 	/*
 	 * If we got here, it means everything went well with
@@ -233,11 +242,13 @@ static int run_test(pcut_item_t *test) {
  * @return Error status (zero means success).
  */
 int pcut_run_test_forked(pcut_item_t *test) {
+	int rc;
+
 	report_test_result = 0;
 	print_test_error = 1;
 	leave_means_exit = 1;
 
-	int rc = run_test(test);
+	rc = run_test(test);
 
 	current_test = NULL;
 	current_suite = NULL;
@@ -254,11 +265,13 @@ int pcut_run_test_forked(pcut_item_t *test) {
  * @return Error status (zero means success).
  */
 int pcut_run_test_single(pcut_item_t *test) {
+	int rc;
+
 	report_test_result = 1;
 	print_test_error = 0;
 	leave_means_exit = 0;
 
-	int rc = run_test(test);
+	rc = run_test(test);
 
 	current_test = NULL;
 	current_suite = NULL;
@@ -272,11 +285,10 @@ int pcut_run_test_single(pcut_item_t *test) {
  * @return Timeout in seconds.
  */
 int pcut_get_test_timeout(pcut_item_t *test) {
-	PCUT_UNUSED(test);
-
 	int timeout = PCUT_DEFAULT_TEST_TIMEOUT;
+	pcut_extra_t *extras = test->extras;
 
-	pcut_extra_t *extras = test->test.extras;
+
 	while (extras->type != PCUT_EXTRA_LAST) {
 		if (extras->type == PCUT_EXTRA_TIMEOUT) {
 			timeout = extras->timeout;

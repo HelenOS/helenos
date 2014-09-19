@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Vojtech Horky
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <pcut/pcut.h>
 #include "tested.h"
 
 PCUT_INIT
 
-PCUT_TEST_AFTER {
-	int a = 5;
-	int *p = &a;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
-	p = NULL;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
+static char *argv_patched[] = {
+	NULL, /* Will be patched at run-time. */
+	(char *) "-l",
+	NULL
+};
+
+static void pre_init_hook(int *argc, char **argv[]) {
+	argv_patched[0] = (*argv)[0];
+	*argc = 2;
+	*argv = argv_patched;
 }
 
-PCUT_TEST(print_and_fail) {
-	printf("Tear-down will cause null pointer access...\n");
-	PCUT_ASSERT_NOT_NULL(NULL);
+PCUT_TEST(unreachable) {
+	PCUT_ASSERT_TRUE(0 && "unreachable code");
 }
 
-PCUT_MAIN()
+
+PCUT_CUSTOM_MAIN(
+	PCUT_MAIN_SET_PREINIT_HOOK(pre_init_hook)
+)
+

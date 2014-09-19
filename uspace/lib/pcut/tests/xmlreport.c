@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Vojtech Horky
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
+#include <pcut/pcut.h>
+#include "tested.h"
+
 #include <pcut/pcut.h>
 #include "tested.h"
 
 PCUT_INIT
 
-
-
-PCUT_TEST_SUITE(with_teardown);
-
-PCUT_TEST_AFTER {
-	printf("This is teardown-function.\n");
+PCUT_TEST(zero_exponent) {
+	PCUT_ASSERT_INT_EQUALS(1, intpow(2, 0));
 }
 
-PCUT_TEST(empty) {
+PCUT_TEST(one_exponent) {
+	PCUT_ASSERT_INT_EQUALS(2, intpow(2, 1));
+	PCUT_ASSERT_INT_EQUALS(39, intpow(39, 1));
 }
 
-PCUT_TEST(failing) {
-	PCUT_ASSERT_INT_EQUALS(10, intmin(1, 2));
+PCUT_TEST(same_strings) {
+	const char *p = "xyz";
+	PCUT_ASSERT_STR_EQUALS("xyz", p);
+	PCUT_ASSERT_STR_EQUALS("abc", "XXXabd" + 3);
 }
 
-
-
-PCUT_TEST_SUITE(with_failing_teardown);
-
-PCUT_TEST_AFTER {
-	printf("This is failing teardown-function.\n");
-	PCUT_ASSERT_INT_EQUALS(42, intmin(10, 20));
-}
-
-PCUT_TEST(empty2) {
-}
-
-PCUT_TEST(printing2) {
-	printf("Printed before test failure.\n");
-	PCUT_ASSERT_INT_EQUALS(0, intmin(-17, -19));
-}
-
-PCUT_TEST(failing2) {
-	PCUT_ASSERT_INT_EQUALS(12, intmin(3, 5));
-}
-
-
-PCUT_MAIN()
+PCUT_CUSTOM_MAIN(
+	PCUT_MAIN_SET_XML_REPORT
+)

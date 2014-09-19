@@ -34,6 +34,9 @@
  * by the testing framework.
  */
 
+/** We need _BSD_SOURCE because of vsnprintf() when compiling under C89. */
+#define _BSD_SOURCE
+
 #include "internal.h"
 #include <setjmp.h>
 #include <stdarg.h>
@@ -51,21 +54,20 @@ static char message_buffer[MESSAGE_BUFFER_COUNT][MAX_MESSAGE_LENGTH + 1];
 /** Currently active assertion buffer. */
 static int message_buffer_index = 0;
 
-/** Announce that assertion failed.
- *
- * @warning This function may not return.
- *
- * @param fmt printf-style formatting string.
- *
- */
-void pcut_failed_assertion_fmt(const char *fmt, ...) {
+void pcut_failed_assertion_fmt(const char *filename, int line, const char *fmt, ...) {
+	va_list args;
 	char *current_buffer = message_buffer[message_buffer_index];
+	size_t offset = 0;
 	message_buffer_index = (message_buffer_index + 1) % MESSAGE_BUFFER_COUNT;
 
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(current_buffer, MAX_MESSAGE_LENGTH, fmt, args);
-	va_end(args);
+	snprintf(current_buffer, MAX_MESSAGE_LENGTH, "%s:%d: ", filename, line);
+	offset = pcut_str_size(current_buffer);
+
+	if (offset + 1 < MAX_MESSAGE_LENGTH) {
+		va_start(args, fmt);
+		vsnprintf(current_buffer + offset, MAX_MESSAGE_LENGTH - offset, fmt, args);
+		va_end(args);
+	}
 
 	pcut_failed_assertion(current_buffer);
 }

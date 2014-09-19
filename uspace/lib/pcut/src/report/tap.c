@@ -66,7 +66,7 @@ static void tap_suite_start(pcut_item_t *suite) {
 	tests_in_suite = 0;
 	failed_tests_in_suite = 0;
 
-	printf("#> Starting suite %s.\n", suite->suite.name);
+	printf("#> Starting suite %s.\n", suite->name);
 }
 
 /** Report that a suite was completed.
@@ -75,7 +75,7 @@ static void tap_suite_start(pcut_item_t *suite) {
  */
 static void tap_suite_done(pcut_item_t *suite) {
 	printf("#> Finished suite %s (failed %d of %d).\n",
-			suite->suite.name, failed_tests_in_suite, tests_in_suite);
+			suite->name, failed_tests_in_suite, tests_in_suite);
 }
 
 /** Report that a test was started.
@@ -97,10 +97,11 @@ static void tap_test_start(pcut_item_t *test) {
  * @param prefix Prefix for each new line, such as comment character.
  */
 static void print_by_lines(const char *message, const char *prefix) {
+	char *next_line_start;
 	if ((message == NULL) || (message[0] == 0)) {
 		return;
 	}
-	char *next_line_start = pcut_str_find_char(message, '\n');
+	next_line_start = pcut_str_find_char(message, '\n');
 	while (next_line_start != NULL) {
 		next_line_start[0] = 0;
 		printf("%s%s\n", prefix, message);
@@ -123,14 +124,14 @@ static void print_by_lines(const char *message, const char *prefix) {
 static void tap_test_done(pcut_item_t *test, int outcome,
 		const char *error_message, const char *teardown_error_message,
 		const char *extra_output) {
-	const char *test_name = test->test.name;
+	const char *test_name = test->name;
+	const char *status_str = NULL;
+	const char *fail_error_str = NULL;
 
 	if (outcome != TEST_OUTCOME_PASS) {
 		failed_tests_in_suite++;
 	}
 
-	const char *status_str = NULL;
-	const char *fail_error_str = NULL;
 	switch (outcome) {
 	case TEST_OUTCOME_PASS:
 		status_str = "ok";
@@ -157,15 +158,12 @@ static void tap_test_done(pcut_item_t *test, int outcome,
 }
 
 /** Report testing done. */
-static void tap_done() {
+static void tap_done(void) {
 }
 
 
 pcut_report_ops_t pcut_report_tap = {
-	.init = tap_init,
-	.done = tap_done,
-	.suite_start = tap_suite_start,
-	.suite_done = tap_suite_done,
-	.test_start = tap_test_start,
-	.test_done = tap_test_done
+	tap_init, tap_done,
+	tap_suite_start, tap_suite_done,
+	tap_test_start, tap_test_done
 };

@@ -40,6 +40,14 @@
 /** Current running mode. */
 int pcut_run_mode = PCUT_RUN_MODE_FORKING;
 
+/** Empty list to bypass special handling for NULL. */
+static pcut_main_extra_t empty_main_extra[] = {
+	PCUT_MAIN_EXTRA_SET_LAST
+};
+
+/** Helper for iteration over main extras. */
+#define FOR_EACH_MAIN_EXTRA(extras, it) \
+	for (it = extras; it->type != PCUT_MAIN_EXTRA_LAST; it++)
 
 /** Checks whether the argument is an option followed by a number.
  *
@@ -53,8 +61,7 @@ int pcut_is_arg_with_number(const char *arg, const char *opt, int *value) {
 	if (! pcut_str_start_equals(arg, opt, opt_len)) {
 		return 0;
 	}
-	int val = pcut_str_to_int(arg + opt_len);
-	*value = val;
+	*value = pcut_str_to_int(arg + opt_len);
 	return 1;
 }
 
@@ -84,13 +91,13 @@ static pcut_item_t *pcut_find_by_id(pcut_item_t *first, int id) {
  * @param prog_path Path to the current binary (used in forked mode).
  */
 static void run_suite(pcut_item_t *suite, pcut_item_t **last, const char *prog_path) {
+	int is_first_test = 1;
+	int total_count = 0;
+
 	pcut_item_t *it = pcut_get_real_next(suite);
 	if ((it == NULL) || (it->kind == PCUT_KIND_TESTSUITE)) {
 		goto leave_no_print;
 	}
-
-	int is_first_test = 1;
-	int total_count = 0;
 
 	for (; it != NULL; it = pcut_get_real_next(it)) {
 		if (it->kind == PCUT_KIND_TESTSUITE) {
@@ -134,17 +141,18 @@ leave_no_print:
  */
 static void set_setup_teardown_callbacks(pcut_item_t *first) {
 	pcut_item_t *active_suite = NULL;
-	for (pcut_item_t *it = first; it != NULL; it = pcut_get_real_next(it)) {
+	pcut_item_t *it;
+	for (it = first; it != NULL; it = pcut_get_real_next(it)) {
 		if (it->kind == PCUT_KIND_TESTSUITE) {
 			active_suite = it;
 		} else if (it->kind == PCUT_KIND_SETUP) {
 			if (active_suite != NULL) {
-				active_suite->suite.setup = it->setup.func;
+				active_suite->setup_func = it->setup_func;
 			}
 			it->kind = PCUT_KIND_SKIP;
 		} else if (it->kind == PCUT_KIND_TEARDOWN) {
 			if (active_suite != NULL) {
-				active_suite->suite.teardown = it->setup.func;
+				active_suite->teardown_func = it->teardown_func;
 			}
 			it->kind = PCUT_KIND_SKIP;
 		} else {
@@ -165,11 +173,27 @@ static void set_setup_teardown_callbacks(pcut_item_t *first) {
  */
 int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 	pcut_item_t *items = pcut_fix_list_get_real_head(last);
+	pcut_item_t *it;
+	pcut_main_extra_t *main_extras = last->main_extras;
+	pcut_main_extra_t *main_extras_it;
 
 	int run_only_suite = -1;
 	int run_only_test = -1;
 
+	if (main_extras == NULL) {
+		main_extras = empty_main_extra;
+	}
+
 	pcut_report_register_handler(&pcut_report_tap);
+
+	FOR_EACH_MAIN_EXTRA(main_extras, main_extras_it) {
+		if (main_extras_it->type == PCUT_MAIN_EXTRA_REPORT_XML) {
+			pcut_report_register_handler(&pcut_report_xml);
+		}
+		if (main_extras_it->type == PCUT_MAIN_EXTRA_PREINIT_HOOK) {
+			main_extras_it->preinit_hook(&argc, &argv);
+		}
+	}
 
 	if (argc > 1) {
 		int i;
@@ -194,6 +218,12 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 	setvbuf(stdout, NULL, _IONBF, 0);
 	set_setup_teardown_callbacks(items);
 
+	FOR_EACH_MAIN_EXTRA(main_extras, main_extras_it) {
+		if (main_extras_it->type == PCUT_MAIN_EXTRA_INIT_HOOK) {
+			main_extras_it->init_hook();
+		}
+	}
+
 	PCUT_DEBUG("run_only_suite = %d   run_only_test = %d", run_only_suite, run_only_test);
 
 	if ((run_only_suite >= 0) && (run_only_test >= 0)) {
@@ -217,6 +247,7 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 	}
 
 	if (run_only_test > 0) {
+		int rc;
 		pcut_item_t *test = pcut_find_by_id(items, run_only_test);
 		if (test == NULL) {
 			printf("Test not found, aborting!\n");
@@ -227,7 +258,6 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 			return 3;
 		}
 
-		int rc;
 		if (pcut_run_mode == PCUT_RUN_MODE_SINGLE) {
 			rc = pcut_run_test_single(test);
 		} else {
@@ -240,7 +270,7 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 	/* Otherwise, run the whole thing. */
 	pcut_report_init(items);
 
-	pcut_item_t *it = items;
+	it = items;
 	while (it != NULL) {
 		if (it->kind == PCUT_KIND_TESTSUITE) {
 			pcut_item_t *tmp;

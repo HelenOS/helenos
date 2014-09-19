@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Vojtech Horky
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <pcut/pcut.h>
 #include "tested.h"
 
 PCUT_INIT
 
+static int init_counter = 1;
 
-
-PCUT_TEST_SUITE(with_teardown);
-
-PCUT_TEST_AFTER {
-	printf("This is teardown-function.\n");
+static void init_hook(void) {
+	init_counter++;
 }
 
-PCUT_TEST(empty) {
+static void pre_init_hook(int *argc, char **argv[]) {
+	(void) argc;
+	(void) argv;
+	init_counter *= 2;
 }
 
-PCUT_TEST(failing) {
-	PCUT_ASSERT_INT_EQUALS(10, intmin(1, 2));
+PCUT_TEST_BEFORE {
+	PCUT_ASSERT_INT_EQUALS(4, init_counter);
+	init_counter++;
 }
 
-
-
-PCUT_TEST_SUITE(with_failing_teardown);
-
-PCUT_TEST_AFTER {
-	printf("This is failing teardown-function.\n");
-	PCUT_ASSERT_INT_EQUALS(42, intmin(10, 20));
+PCUT_TEST(check_init_counter) {
+	PCUT_ASSERT_INT_EQUALS(5, init_counter);
 }
 
-PCUT_TEST(empty2) {
-}
-
-PCUT_TEST(printing2) {
-	printf("Printed before test failure.\n");
-	PCUT_ASSERT_INT_EQUALS(0, intmin(-17, -19));
-}
-
-PCUT_TEST(failing2) {
-	PCUT_ASSERT_INT_EQUALS(12, intmin(3, 5));
+PCUT_TEST(check_init_counter_2) {
+	PCUT_ASSERT_INT_EQUALS(5, init_counter);
 }
 
 
-PCUT_MAIN()
+PCUT_CUSTOM_MAIN(
+	PCUT_MAIN_SET_INIT_HOOK(init_hook),
+	PCUT_MAIN_SET_PREINIT_HOOK(pre_init_hook)
+)
+

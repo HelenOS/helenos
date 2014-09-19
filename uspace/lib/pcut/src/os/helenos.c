@@ -184,7 +184,8 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	int status = TEST_OUTCOME_PASS;
 
-	int rc = task_spawnvf(&test_task_id, self_path, arguments, files);
+	task_wait_t test_task_wait;
+	int rc = task_spawnvf(&test_task_id, &test_task_wait, self_path, arguments, files);
 	if (rc != EOK) {
 		status = TEST_OUTCOME_ERROR;
 		goto leave_close_tempfile;
@@ -202,7 +203,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	task_exit_t task_exit;
 	int task_retval;
-	rc = task_wait(test_task_id, &task_exit, &task_retval);
+	rc = task_wait(&test_task_wait, &task_exit, &task_retval);
 	if (rc != EOK) {
 		status = TEST_OUTCOME_ERROR;
 		goto leave_close_tempfile;
@@ -225,4 +226,10 @@ leave_close_tempfile:
 	unlink(tempfile_name);
 
 	pcut_report_test_done_unparsed(test, status, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+}
+
+void pcut_hook_before_test(pcut_item_t *test) {
+	PCUT_UNUSED(test);
+
+	/* Do nothing. */
 }

@@ -90,20 +90,26 @@ static int is_identifier_char(int c, int inside_identifier) {
 			|| (inside_identifier && isdigit(c));
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	FILE *input = stdin;
 	FILE *output = stdout;
 
 	int last_char_was_identifier = 0;
 	identifier_t last_identifier;
 
+	/* Unused parameters. */
+	(void) argc;
+	(void) argv;
+
 	while (1) {
+		int current_char_denotes_identifier;
+
 		int current_char = fgetc(input);
 		if (current_char == EOF) {
 			break;
 		}
 
-		int current_char_denotes_identifier = is_identifier_char(current_char, last_char_was_identifier);
+		current_char_denotes_identifier = is_identifier_char(current_char, last_char_was_identifier);
 		if (current_char_denotes_identifier) {
 			if (!last_char_was_identifier) {
 				identifier_init(&last_identifier);

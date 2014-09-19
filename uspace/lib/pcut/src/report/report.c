@@ -43,9 +43,17 @@ static pcut_report_ops_t *report_ops = NULL;
 /** Call a report function if it is available.
  *
  * @param op Operation to be called on the pcut_report_ops_t.
+ * @param ... Arguments to the operation.
  */
 #define REPORT_CALL(op, ...) \
 	if ((report_ops != NULL) && (report_ops->op != NULL)) report_ops->op(__VA_ARGS__)
+
+/** Call a report function if it is available.
+ *
+ * @param op Operation to be called on the pcut_report_ops_t.
+ */
+#define REPORT_CALL_NO_ARGS(op) \
+		if ((report_ops != NULL) && (report_ops->op != NULL)) report_ops->op()
 
 /** Print error message.
  *
@@ -93,11 +101,13 @@ static void parse_command_output(const char *full_output, size_t full_output_siz
 
 	/* Ensure that we do not read past the full_output. */
 	if (full_output[full_output_size - 1] != 0) {
-		// FIXME: can this happen?
+		/* FIXME: can this happen? */
 		return;
 	}
 
 	while (1) {
+		size_t message_length;
+
 		/* First of all, count number of zero bytes before the text. */
 		size_t cont_zeros_count = 0;
 		while (full_output[0] == 0) {
@@ -110,12 +120,12 @@ static void parse_command_output(const char *full_output, size_t full_output_siz
 		}
 
 		/* Determine the length of the text after the zeros. */
-		size_t message_length = pcut_str_size(full_output);
+		message_length = pcut_str_size(full_output);
 
 		if (cont_zeros_count < 2) {
 			/* Okay, standard I/O. */
 			if (message_length > stdio_buffer_size) {
-				// TODO: handle gracefully
+				/* TODO: handle gracefully */
 				return;
 			}
 			memcpy(stdio_buffer, full_output, message_length);
@@ -124,7 +134,7 @@ static void parse_command_output(const char *full_output, size_t full_output_siz
 		} else {
 			/* Error message. */
 			if (message_length > error_buffer_size) {
-				// TODO: handle gracefully
+				/* TODO: handle gracefully */
 				return;
 			}
 			memcpy(error_buffer, full_output, message_length);
@@ -212,7 +222,7 @@ void pcut_report_test_done_unparsed(pcut_item_t *test, int outcome,
 /** Close the report.
  *
  */
-void pcut_report_done() {
-	REPORT_CALL(done);
+void pcut_report_done(void) {
+	REPORT_CALL_NO_ARGS(done);
 }
 
