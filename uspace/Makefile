@@ -230,14 +230,11 @@ LIBS = \
 	lib/usbhid \
 	lib/usbvirt \
 	lib/pcm \
+	lib/pcut \
 	lib/bithenge \
 	lib/posix \
 	lib/mbr \
 	lib/gpt
-
-ifeq ($(CONFIG_PCUT_TESTS),y)
-	LIBS += lib/pcut
-endif
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

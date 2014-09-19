@@ -202,7 +202,6 @@ else
 endif
 
 # PCUT-based unit tests
-ifeq ($(CONFIG_PCUT_TESTS),y)
 ifneq ($(TEST_SOURCES),)
 	TEST_OUTPUT = $(TEST_BINARY)
 	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__
@@ -212,7 +211,6 @@ ifneq ($(LIBRARY),)
 	TEST_OUTPUT_LIBS += $(OUTPUT)
 endif
 	TEST_OUTPUT_LIBS += $(TEST_LIBS)
-endif
 endif
 
 .PHONY: all clean
@@ -356,13 +354,11 @@ ifneq ($(SLIBRARY),)
 	$(AR) rc $@ $(LOBJECTS)
 endif
 
-ifeq ($(CONFIG_PCUT_TESTS),y)
 ifneq ($(TEST_OUTPUT),)
 $(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
 	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(TEST_OUTPUT).map -o $@ $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS) $(LIBS) $(BASE_LIBS)
 ifeq ($(CONFIG_STRIP_BINARIES),y)
 	$(STRIP) $(TEST_OUTPUT)
-endif
 endif
 endif
 
