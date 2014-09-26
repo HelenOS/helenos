@@ -57,6 +57,7 @@ DIRS = \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
+	app/modplay \
 	app/nterm \
 	app/redir \
 	app/sbi \
@@ -223,6 +224,7 @@ LIBS = \
 	lib/net \
 	lib/nic \
 	lib/ext4 \
+	lib/trackmod \
 	lib/uri \
 	lib/usb \
 	lib/usbhost \
