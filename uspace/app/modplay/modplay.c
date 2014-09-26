@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 #else
 	format.sample_format = PCM_SAMPLE_SINT16_BE;
 #endif
-	buffer_size = format.sampling_rate;
+	buffer_size = 64 * 1024;
 
 	buffer = malloc(buffer_size);
 	if (buffer == NULL) {
@@ -136,9 +136,9 @@ int main(int argc, char *argv[])
 		if (quit)
 			break;
 
-		trackmod_modplay_get_samples(modplay, buffer, buffer_size);
+		trackmod_modplay_get_samples(modplay, buffer, buffer_size / 4);
 
-		rc = hound_write_main_stream(hound, buffer, buffer_size);
+		rc = hound_write_main_stream(hound, buffer, buffer_size / 4);
 		if (rc != EOK) {
 			printf("Error writing audio stream.\n");
 			break;
