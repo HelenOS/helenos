@@ -184,6 +184,7 @@ uspace/dist/srv/tcp
 uspace/dist/srv/tmpfs
 uspace/dist/srv/udf
 uspace/dist/srv/udp
+uspace/dist/test/*
 uspace/drv/audio/hdaudio/hdaudio
 uspace/drv/audio/sb16/sb16
 uspace/drv/block/ahci/ahci
@@ -228,6 +229,7 @@ uspace/lib/posix/redefs-hide-libc.xargs
 uspace/lib/posix/redefs-show-posix.xargs
 uspace/lib/posix/include/libc
 uspace/lib/posix/test-libposix
+uspace/lib/uri/test-liburi
 uspace/srv/audio/hound/hound
 uspace/srv/bd/file_bd/file_bd
 uspace/srv/bd/part/guid_part/g_part
