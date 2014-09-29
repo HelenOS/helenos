@@ -1,0 +1,8 @@
+1..2
+#> Starting suite Default.
+not ok 1 shall_time_out aborted
+# stdio: Text before sleeping.
+ok 2 custom_time_out
+# stdio: Text before sleeping.
+# stdio: Text after the sleep.
+#> Finished suite Default (failed 1 of 2).

@@ -221,6 +221,13 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/df/df \
 	$(USPACE_PATH)/app/fontviewer/fontviewer
 
+RD_TESTS = \
+	$(USPACE_PATH)/lib/c/test-libc \
+	$(USPACE_PATH)/lib/posix/test-libposix \
+	$(USPACE_PATH)/lib/uri/test-liburi \
+	$(USPACE_PATH)/app/bdsh/test-bdsh
+
+
 COMPONENTS = \
 	$(KERNEL_PATH)/kernel.bin \
 	$(INIT_TASKS) \

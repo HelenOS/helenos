@@ -1,0 +1,19 @@
+1..9
+#> Starting suite Default.
+not ok 1 int_equals failed
+# error: asserts.c:36: Expected <1> but got <0> (1 != 0)
+not ok 2 double_equals failed
+# error: asserts.c:41: Expected <1.000000+-0.400000> but got <0.500000> (1. != 0.5)
+not ok 3 str_equals failed
+# error: asserts.c:46: Expected <abc> but got <xyz> ("abc" != "xyz")
+ok 4 str_equals_or_null_base
+not ok 5 str_equals_or_null_different failed
+# error: asserts.c:54: Expected <abc> but got <xyz> ("abc" != "xyz")
+not ok 6 str_equals_or_null_one_null failed
+# error: asserts.c:58: Expected <NULL> but got <xyz> (NULL != "xyz")
+ok 7 str_equals_or_null_both
+not ok 8 assert_true failed
+# error: asserts.c:67: Expected true but got <0>
+not ok 9 assert_false failed
+# error: asserts.c:72: Expected false but got <42>
+#> Finished suite Default (failed 7 of 9).

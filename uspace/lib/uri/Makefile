@@ -35,4 +35,8 @@ LSONAME = liburi.so0
 SOURCES = \
 	uri.c
 
+TEST_SOURCES = \
+	test/main.c \
+	test/parser.c
+
 include $(USPACE_PREFIX)/Makefile.common

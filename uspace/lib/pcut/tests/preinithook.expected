@@ -1,0 +1,5 @@
+1..2
+#> Starting suite Default.
+ok 1 check_init_counter
+ok 2 check_init_counter_2
+#> Finished suite Default (failed 0 of 2).

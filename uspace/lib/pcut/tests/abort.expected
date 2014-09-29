@@ -1,0 +1,4 @@
+1..1
+#> Starting suite Default.
+not ok 1 access_null_pointer aborted
+#> Finished suite Default (failed 1 of 1).
