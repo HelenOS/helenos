@@ -66,9 +66,9 @@
 
 /** Heap shrink granularity
  *
- * Try not to pump and stress the heap to much
+ * Try not to pump and stress the heap too much
  * by shrinking and enlarging it too often.
- * A heap area won't shrunk if it the released
+ * A heap area won't shrink if the released
  * free block is smaller than this constant.
  *
  */
