@@ -33,6 +33,7 @@
  */
 
 #include <arch/cpu.h>
+#include <cpu.h>
 #include <arch.h>
 #include <typedefs.h>
 #include <print.h>
