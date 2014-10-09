@@ -132,7 +132,7 @@ typedef struct task {
 		/** CHT mapping virtual addresses of futex variables to futex objects.*/
 		cht_t ht;
 		/** Serializes access to futex_list.*/
-		spinlock_t list_lock;
+		SPINLOCK_DECLARE(list_lock);
 		/** List of all futexes accesses by this task. */
 		list_t list;
 		work_t destroy_work;
