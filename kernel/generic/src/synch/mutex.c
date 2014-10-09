@@ -40,6 +40,8 @@
 #include <debug.h>
 #include <arch.h>
 #include <stacktrace.h>
+#include <cpu.h>
+#include <proc/thread.h>
 
 /** Initialize mutex.
  *

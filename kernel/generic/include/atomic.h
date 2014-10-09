@@ -52,6 +52,20 @@ NO_TRACE ATOMIC static inline atomic_count_t atomic_get(atomic_t *val)
 	return val->count;
 }
 
+
+/*
+ * If the architecture does not provide operations that are atomic
+ * only with respect to the local cpu (eg exception handlers) and
+ * not other cpus, implement these cpu local atomic operations with
+ * full blown smp-safe atomics.
+ */
+#ifndef local_atomic_exchange
+#define local_atomic_exchange(var_addr, new_val) \
+	__atomic_exchange_n((var_addr), (new_val), __ATOMIC_RELAXED)
+#endif
+
+
+
 #endif
 
 /** @}

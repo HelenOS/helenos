@@ -80,7 +80,7 @@ LIST_INITIALIZE(dispatched_calls);
  */
 LIST_INITIALIZE(queued_calls);
 
-static atomic_t ipc_futex = FUTEX_INITIALIZER;
+static futex_t ipc_futex = FUTEX_INITIALIZER;
 
 /** Send asynchronous message via syscall.
  *
@@ -135,12 +135,12 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 {
 	if (!call) {
 		/* Nothing to do regardless if failed or not */
-		futex_up(&ipc_futex);
+		futex_unlock(&ipc_futex);
 		return;
 	}
 	
 	if (callid == (ipc_callid_t) IPC_CALLRET_FATAL) {
-		futex_up(&ipc_futex);
+		futex_unlock(&ipc_futex);
 		
 		/* Call asynchronous handler with error code */
 		if (call->callback)
@@ -151,7 +151,7 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 	}
 	
 	if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
-		futex_up(&ipc_futex);
+		futex_unlock(&ipc_futex);
 		
 		call->u.msg.phoneid = phoneid;
 		
@@ -174,7 +174,7 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 	
 	/* Add call to the list of dispatched calls */
 	list_append(&call->list, &dispatched_calls);
-	futex_up(&ipc_futex);
+	futex_unlock(&ipc_futex);
 }
 
 /** Fast asynchronous call.
@@ -218,15 +218,17 @@ void ipc_call_async_fast(int phoneid, sysarg_t imethod, sysarg_t arg1,
 	 * before another thread accesses the queue again.
 	 */
 	
-	futex_down(&ipc_futex);
+	futex_lock(&ipc_futex);
 	ipc_callid_t callid = __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phoneid,
 	    imethod, arg1, arg2, arg3, arg4);
 	
 	if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
 		if (!call) {
 			call = ipc_prepare_async(private, callback);
-			if (!call)
+			if (!call) {
+				futex_unlock(&ipc_futex);
 				return;
+			}
 		}
 		
 		IPC_SET_IMETHOD(call->u.msg.data, imethod);
@@ -288,7 +290,7 @@ void ipc_call_async_slow(int phoneid, sysarg_t imethod, sysarg_t arg1,
 	 * before another threadaccesses the queue again.
 	 */
 	
-	futex_down(&ipc_futex);
+	futex_lock(&ipc_futex);
 	ipc_callid_t callid =
 	    ipc_call_async_internal(phoneid, &call->u.msg.data);
 	
@@ -383,9 +385,9 @@ static void dispatch_queued_calls(void)
 		} else {
 			call->u.callid = callid;
 			
-			futex_down(&ipc_futex);
+			futex_lock(&ipc_futex);
 			list_append(&call->list, &dispatched_calls);
-			futex_up(&ipc_futex);
+			futex_unlock(&ipc_futex);
 		}
 		
 		futex_down(&async_futex);
@@ -411,7 +413,7 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 {
 	callid &= ~IPC_CALLID_ANSWERED;
 	
-	futex_down(&ipc_futex);
+	futex_lock(&ipc_futex);
 	
 	link_t *item;
 	for (item = dispatched_calls.head.next; item != &dispatched_calls.head;
@@ -422,7 +424,7 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 		if (call->u.callid == callid) {
 			list_remove(&call->list);
 			
-			futex_up(&ipc_futex);
+			futex_unlock(&ipc_futex);
 			
 			if (call->callback)
 				call->callback(call->private,
@@ -433,7 +435,7 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
 		}
 	}
 	
-	futex_up(&ipc_futex);
+	futex_unlock(&ipc_futex);
 }
 
 /** Wait for first IPC call to come.

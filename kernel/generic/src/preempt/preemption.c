@@ -36,25 +36,7 @@
  */
 
 #include <preemption.h>
-#include <arch.h>
-#include <arch/asm.h>
-#include <arch/barrier.h>
-#include <debug.h>
 
-/** Increment preemption disabled counter. */
-void preemption_disable(void)
-{
-	THE->preemption_disabled++;
-	memory_barrier();
-}
-
-/** Decrement preemption disabled counter. */
-void preemption_enable(void)
-{
-	ASSERT(PREEMPTION_DISABLED);
-	memory_barrier();
-	THE->preemption_disabled--;
-}
 
 /** @}
  */

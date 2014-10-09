@@ -38,7 +38,7 @@
 #include <synch/spinlock.h>
 #include <print.h>
 #include <func.h>
-#include <arch.h>
+#include <cpu.h>
 
 /** Initialize input character device.
  *

@@ -51,6 +51,12 @@ typedef struct list {
 	link_t head;  /**< List head. Does not have any data. */
 } list_t;
 
+
+extern int list_member(const link_t *, const list_t *);
+extern void list_splice(list_t *, link_t *);
+extern unsigned int list_count(const list_t *);
+
+
 /** Declare and initialize statically allocated list.
  *
  * @param name Name of the new statically allocated list.
@@ -79,6 +85,38 @@ typedef struct list {
 	    iterator = list_get_instance(_link, itype, member), \
 	    _link != &(list).head; _link = _link->prev)
 
+/** Unlike list_foreach(), allows removing items while traversing a list.
+ * 
+ * @code
+ * list_t mylist;
+ * typedef struct item {
+ *     int value;
+ *     link_t item_link;
+ * } item_t;
+ * 
+ * //..
+ * 
+ * // Print each list element's value and remove the element from the list.
+ * list_foreach_safe(mylist, cur_link, next_link) {
+ *     item_t *cur_item = list_get_instance(cur_link, item_t, item_link);
+ *     printf("%d\n", cur_item->value);
+ *     list_remove(cur_link);
+ * }
+ * @endcode
+ * 
+ * @param list List to traverse.
+ * @param iterator Iterator to the current element of the list.
+ *             The item this iterator points may be safely removed
+ *             from the list.
+ * @param next_iter Iterator to the next element of the list.
+ */
+#define list_foreach_safe(list, iterator, next_iter) \
+	for (link_t *iterator = (list).head.next, \
+		*next_iter = iterator->next; \
+		iterator != &(list).head; \
+		iterator = next_iter, next_iter = iterator->next)
+
+	
 #define assert_link_not_used(link) \
 	ASSERT(!link_used(link))
 
@@ -290,6 +328,21 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 	headless_list_split_or_concat(part1, part2);
 }
 
+/** Concatenate two lists
+ *
+ * Concatenate lists @a list1 and @a list2, producing a single
+ * list @a list1 containing items from both (in @a list1, @a list2
+ * order) and empty list @a list2.
+ *
+ * @param list1		First list and concatenated output
+ * @param list2 	Second list and empty output.
+ *
+ */
+NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
+{
+	list_splice(list2, list1->head.prev);
+}
+
 /** Get n-th item in a list.
  *
  * @param list Pointer to link_t structure representing the list.
@@ -338,10 +391,6 @@ static inline bool link_used(link_t *link)
 	ASSERT(link->prev != NULL && link->next != NULL);
 	return true;
 }
-
-extern int list_member(const link_t *, const list_t *);
-extern void list_concat(list_t *, list_t *);
-extern unsigned int list_count(const list_t *);
 
 #endif
 

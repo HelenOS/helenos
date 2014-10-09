@@ -37,9 +37,15 @@
 
 #include <mm/tlb.h>
 #include <synch/spinlock.h>
+#include <synch/rcu_types.h>
 #include <proc/scheduler.h>
 #include <arch/cpu.h>
 #include <arch/context.h>
+#include <adt/list.h>
+#include <arch.h>
+
+#define CPU                  THE->cpu
+
 
 /** CPU structure.
  *
@@ -91,6 +97,15 @@ typedef struct cpu {
 	cpu_arch_t arch;
 	
 	struct thread *fpu_owner;
+	
+	/**
+	 * SMP calls to invoke on this CPU.
+	 */
+	SPINLOCK_DECLARE(smp_calls_lock);
+	list_t smp_pending_calls;
+	
+	/** RCU per-cpu data. Uses own locking. */
+	rcu_cpu_data_t rcu;
 	
 	/**
 	 * Stack used by scheduler when there is no running thread.

@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <arch/barrier.h>
 #include <synch/smc.h>
+#include <mm/as.h>
 
 sysarg_t sys_smc_coherence(uintptr_t va, size_t size)
 {

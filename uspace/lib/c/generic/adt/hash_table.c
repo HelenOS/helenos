@@ -133,7 +133,7 @@ void hash_table_destroy(hash_table_t *h)
 	
 	free(h->bucket);
 
-	h->bucket = 0;
+	h->bucket = NULL;
 	h->bucket_cnt = 0;
 }
 

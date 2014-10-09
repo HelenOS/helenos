@@ -58,6 +58,7 @@ typedef struct {
 extern const char *test_atomic1(void);
 extern const char *test_avltree1(void);
 extern const char *test_btree1(void);
+extern const char *test_cht1(void);
 extern const char *test_mips1(void);
 extern const char *test_fault1(void);
 extern const char *test_falloc1(void);
@@ -74,6 +75,12 @@ extern const char *test_print3(void);
 extern const char *test_print4(void);
 extern const char *test_print5(void);
 extern const char *test_thread1(void);
+extern const char *test_smpcall1(void);
+extern const char *test_workqueue_all(void);
+extern const char *test_workqueue3(void);
+extern const char *test_workqueue3quit(void);
+extern const char *test_rcu1(void);
+
 
 extern test_t tests[];
 

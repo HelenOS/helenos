@@ -42,8 +42,10 @@
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/futex.h>
+#include <synch/workqueue.h>
 #include <adt/avl.h>
 #include <adt/btree.h>
+#include <adt/cht.h>
 #include <adt/list.h>
 #include <security/cap.h>
 #include <arch/proc/task.h>
@@ -56,6 +58,10 @@
 #include <udebug/udebug.h>
 #include <mm/as.h>
 #include <abi/sysinfo.h>
+#include <arch.h>
+
+#define TASK                 THE->task
+
 
 struct thread;
 
@@ -122,13 +128,15 @@ typedef struct task {
 	/** Architecture specific task data. */
 	task_arch_t arch;
 	
-	/**
-	 * Serializes access to the B+tree of task's futexes. This mutex is
-	 * independent on the task spinlock.
-	 */
-	mutex_t futexes_lock;
-	/** B+tree of futexes referenced by this task. */
-	btree_t futexes;
+	struct futex_cache {
+		/** CHT mapping virtual addresses of futex variables to futex objects.*/
+		cht_t ht;
+		/** Serializes access to futex_list.*/
+		spinlock_t list_lock;
+		/** List of all futexes accesses by this task. */
+		list_t list;
+		work_t destroy_work;
+	} *futexes;
 	
 	/** Accumulated accounting. */
 	uint64_t ucycles;

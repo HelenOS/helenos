@@ -45,6 +45,8 @@
 #include <arch.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
+#include <synch/workqueue.h>
+#include <synch/rcu.h>
 #include <cpu.h>
 #include <str.h>
 #include <context.h>
@@ -262,6 +264,13 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
 	irq_spinlock_unlock(&thread->lock, true);
 }
 
+/** Invoked right before thread_ready() readies the thread. thread is locked. */
+static void before_thread_is_ready(thread_t *thread)
+{
+	ASSERT(irq_spinlock_locked(&thread->lock));
+	workq_before_thread_is_ready(thread);
+}
+
 /** Make thread ready
  *
  * Switch thread to the ready state.
@@ -274,15 +283,22 @@ void thread_ready(thread_t *thread)
 	irq_spinlock_lock(&thread->lock, true);
 	
 	ASSERT(thread->state != Ready);
+
+	before_thread_is_ready(thread);
 	
 	int i = (thread->priority < RQ_COUNT - 1) ?
 	    ++thread->priority : thread->priority;
-	
-	cpu_t *cpu;
-	if (thread->wired || thread->nomigrate || thread->fpu_context_engaged) {
-		ASSERT(thread->cpu != NULL);
-		cpu = thread->cpu;
-	} else
+
+	/* Check that thread->cpu is set whenever it needs to be. */
+	ASSERT(thread->cpu != NULL || 
+		(!thread->wired && !thread->nomigrate && !thread->fpu_context_engaged));
+
+	/* 
+	 * Prefer to run on the same cpu as the last time. Used by wired 
+	 * threads as well as threads with disabled migration.
+	 */
+	cpu_t *cpu = thread->cpu;
+	if (cpu == NULL) 
 		cpu = CPU;
 	
 	thread->state = Ready;
@@ -376,6 +392,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	
 	thread->task = task;
 	
+	thread->workq = NULL;
+	
 	thread->fpu_context_exists = false;
 	thread->fpu_context_engaged = false;
 	
@@ -390,6 +408,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	
 	/* Might depend on previous initialization */
 	thread_create_arch(thread);
+	
+	rcu_thread_init(thread);
 	
 	if ((flags & THREAD_FLAG_NOATTACH) != THREAD_FLAG_NOATTACH)
 		thread_attach(thread, task);
@@ -500,7 +520,7 @@ void thread_exit(void)
 			 *
 			 */
 			ipc_cleanup();
-			futex_cleanup();
+			futex_task_cleanup();
 			LOG("Cleanup of task %" PRIu64" completed.", TASK->taskid);
 		}
 	}
@@ -520,6 +540,54 @@ restart:
 	
 	/* Not reached */
 	while (true);
+}
+
+/** Interrupts an existing thread so that it may exit as soon as possible.
+ * 
+ * Threads that are blocked waiting for a synchronization primitive 
+ * are woken up with a return code of ESYNCH_INTERRUPTED if the
+ * blocking call was interruptable. See waitq_sleep_timeout().
+ * 
+ * The caller must guarantee the thread object is valid during the entire
+ * function, eg by holding the threads_lock lock.
+ * 
+ * Interrupted threads automatically exit when returning back to user space.
+ * 
+ * @param thread A valid thread object. The caller must guarantee it
+ *               will remain valid until thread_interrupt() exits.
+ */
+void thread_interrupt(thread_t *thread)
+{
+	ASSERT(thread != NULL);
+	
+	irq_spinlock_lock(&thread->lock, true);
+	
+	thread->interrupted = true;
+	bool sleeping = (thread->state == Sleeping);
+	
+	irq_spinlock_unlock(&thread->lock, true);
+	
+	if (sleeping)
+		waitq_interrupt_sleep(thread);
+}
+
+/** Returns true if the thread was interrupted.
+ * 
+ * @param thread A valid thread object. User must guarantee it will
+ *               be alive during the entire call.
+ * @return true if the thread was already interrupted via thread_interrupt().
+ */
+bool thread_interrupted(thread_t *thread)
+{
+	ASSERT(thread != NULL);
+	
+	bool interrupted;
+	
+	irq_spinlock_lock(&thread->lock, true);
+	interrupted = thread->interrupted;
+	irq_spinlock_unlock(&thread->lock, true);
+	
+	return interrupted;
 }
 
 /** Prevent the current thread from being migrated to another processor. */

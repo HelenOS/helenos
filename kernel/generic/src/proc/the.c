@@ -42,6 +42,7 @@
  */
 
 #include <arch.h>
+#include <debug.h>
 
 /** Initialize THE structure
  *
@@ -52,12 +53,15 @@
  */
 void the_initialize(the_t *the)
 {
-	the->preemption_disabled = 0;
+	the->preemption = 0;
 	the->cpu = NULL;
 	the->thread = NULL;
 	the->task = NULL;
 	the->as = NULL;
 	the->magic = MAGIC;
+#ifdef RCU_PREEMPT_A	
+	the->rcu_nesting = 0;
+#endif
 }
 
 /** Copy THE structure

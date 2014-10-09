@@ -60,6 +60,7 @@
 #include <macros.h>
 #include <config.h>
 #include <str.h>
+#include <proc/thread.h> /* THREAD */
 
 zones_t zones;
 

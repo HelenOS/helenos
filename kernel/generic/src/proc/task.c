@@ -40,6 +40,7 @@
 #include <mm/as.h>
 #include <mm/slab.h>
 #include <atomic.h>
+#include <synch/futex.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <arch.h>
@@ -162,7 +163,6 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	atomic_set(&task->lifecount, 0);
 	
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
-	mutex_initialize(&task->futexes_lock, MUTEX_PASSIVE);
 	
 	list_initialize(&task->threads);
 	
@@ -174,7 +174,7 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 
 	spinlock_initialize(&task->active_calls_lock, "active_calls_lock");
 	list_initialize(&task->active_calls);
-	
+		
 #ifdef CONFIG_UDEBUG
 	/* Init kbox stuff */
 	task->kb.thread = NULL;
@@ -230,7 +230,7 @@ task_t *task_create(as_t *as, const char *name)
 	    (container_check(ipc_phone_0->task->container, task->container)))
 		(void) ipc_phone_connect(&task->phones[0], ipc_phone_0);
 	
-	btree_create(&task->futexes);
+	futex_task_init(task);
 	
 	/*
 	 * Get a reference to the address space.
@@ -271,7 +271,7 @@ void task_destroy(task_t *task)
 	/*
 	 * Free up dynamically allocated state.
 	 */
-	btree_destroy(&task->futexes);
+	futex_task_deinit(task);
 	
 	/*
 	 * Drop our reference to the address space.

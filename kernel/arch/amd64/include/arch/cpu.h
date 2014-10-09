@@ -72,6 +72,8 @@ typedef struct {
 	int stepping;
 	tss_t *tss;
 	
+	unsigned int id; /** CPU's local, ie physical, APIC ID. */
+	
 	size_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
 } cpu_arch_t;
 

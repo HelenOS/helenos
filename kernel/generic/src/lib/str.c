@@ -110,6 +110,7 @@
 #include <align.h>
 #include <debug.h>
 #include <macros.h>
+#include <mm/slab.h>
 
 /** Check the condition if wchar_t is signed */
 #ifdef WCHAR_IS_UNSIGNED
@@ -566,6 +567,7 @@ void str_cpy(char *dest, size_t size, const char *src)
 {
 	/* There must be space for a null terminator in the buffer. */
 	ASSERT(size > 0);
+	ASSERT(src != NULL);
 	
 	size_t src_off = 0;
 	size_t dest_off = 0;

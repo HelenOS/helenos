@@ -95,8 +95,8 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 	
 	printf("THE=%p: ", THE);
 	if (THE != NULL) {
-		printf("pd=%" PRIun " thread=%p task=%p cpu=%p as=%p"
-		    " magic=%#" PRIx32 "\n", THE->preemption_disabled,
+		printf("pe=%" PRIun " thread=%p task=%p cpu=%p as=%p"
+		    " magic=%#" PRIx32 "\n", THE->preemption,
 		    THE->thread, THE->task, THE->cpu, THE->as, THE->magic);
 		
 		if (THE->thread != NULL)
