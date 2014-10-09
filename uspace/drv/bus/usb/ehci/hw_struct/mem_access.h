@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+/** @addtogroup drvusbehci
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * @brief EHCI driver
  */
 #ifndef DRV_EHCI_HW_MEM_ACCESS_H
 #define DRV_EHCI_HW_MEM_ACCESS_H
