@@ -1819,7 +1819,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	    key == KC_I || key == KC_K || key == KC_J || key == KC_L);
 	bool viewport_change = (mods & KM_ALT) && (
 	    key == KC_O || key == KC_P);
-	bool kconsole_switch = (mods & KM_ALT) && (key == KC_M);
+	bool kconsole_switch = (key == KC_PAUSE) || (key == KC_BREAK);
 	bool filter_switch = (mods & KM_ALT) && (key == KC_Y);
 
 	bool key_filter = (type == KEY_RELEASE) && (win_transform || win_resize ||

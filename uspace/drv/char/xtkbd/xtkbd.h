@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvkbd
  * @{
  */
@@ -46,9 +47,10 @@ typedef struct {
 	fid_t polling_fibril;      /**< Fibril retrieving an parsing data. */
 } xt_kbd_t;
 
-int xt_kbd_init(xt_kbd_t *, ddf_dev_t *);
+extern int xt_kbd_init(xt_kbd_t *, ddf_dev_t *);
 
 #endif
+
 /**
  * @}
  */

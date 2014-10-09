@@ -1,0 +1,6 @@
+1..1
+#> Starting suite Default.
+not ok 1 print_and_fail aborted
+# error: teardownaborts.c:41: Pointer <NULL> ought not to be NULL
+# stdio: Tear-down will cause null pointer access...
+#> Finished suite Default (failed 1 of 1).

@@ -57,6 +57,7 @@ DIRS = \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
+	app/modplay \
 	app/nterm \
 	app/redir \
 	app/sbi \
@@ -222,6 +223,7 @@ LIBS = \
 	lib/net \
 	lib/nic \
 	lib/ext4 \
+	lib/trackmod \
 	lib/uri \
 	lib/usb \
 	lib/usbhost \
@@ -229,6 +231,7 @@ LIBS = \
 	lib/usbhid \
 	lib/usbvirt \
 	lib/pcm \
+	lib/pcut \
 	lib/bithenge \
 	lib/posix \
 	lib/mbr \
@@ -238,12 +241,16 @@ LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
 LIBN_BUILD = $(addsuffix .build,$(LIBN))
 BUILDS := $(addsuffix .build,$(DIRS))
+BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) lib/c)
 
 CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
 
 .PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD) $(BUILDS) $(CLEANS) clean
 
-all: $(BUILDS)
+all: $(BUILDS) $(BUILDS_TESTS)
+
+$(BUILDS_TESTS): $(BUILDS)
+	$(MAKE) -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)
 

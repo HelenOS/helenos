@@ -88,6 +88,7 @@ static void con_read_srv(con_srv_t *srv, ipc_callid_t callid,
 	if (srv->srvs->ops->read == NULL) {
 		async_answer_0(rcallid, ENOTSUP);
 		async_answer_0(callid, ENOTSUP);
+		free(buf);
 		return;
 	}
 
@@ -95,6 +96,7 @@ static void con_read_srv(con_srv_t *srv, ipc_callid_t callid,
 	if (rc < 0) {
 		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
+		free(buf);
 		return;
 	}
 

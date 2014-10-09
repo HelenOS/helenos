@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvkbd
  * @{
  */
@@ -59,11 +60,13 @@ static driver_t kbd_driver = {
 
 /** Initialize global driver structures (NONE).
  *
+ * Driver debug level is set here.
+ *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
  * @param[in] argv Cmdline argument vector (ignored).
+ *
  * @return Error code.
  *
- * Driver debug level is set here.
  */
 int main(int argc, char *argv[])
 {
@@ -75,7 +78,9 @@ int main(int argc, char *argv[])
 /** Initialize a new ddf driver instance of the driver
  *
  * @param[in] device DDF instance of the device to initialize.
+ *
  * @return Error code.
+ *
  */
 static int xt_kbd_add(ddf_dev_t *device)
 {
@@ -101,6 +106,7 @@ static int xt_kbd_add(ddf_dev_t *device)
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 	return EOK;
 }
+
 /**
  * @}
  */

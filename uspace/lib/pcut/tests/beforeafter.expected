@@ -1,0 +1,7 @@
+1..2
+#> Starting suite suite_with_setup_and_teardown.
+ok 1 test_with_setup_and_teardown
+#> Finished suite suite_with_setup_and_teardown (failed 0 of 1).
+#> Starting suite another_without_setup.
+ok 2 test_without_any_setup_or_teardown
+#> Finished suite another_without_setup (failed 0 of 1).

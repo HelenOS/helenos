@@ -1,0 +1,9 @@
+1..3
+#> Starting suite Default.
+not ok 1 zero_exponent failed
+# error: simple.c:35: Expected <1> but got <0> (1 != intpow(2, 0))
+not ok 2 one_exponent failed
+# error: simple.c:39: Expected <2> but got <0> (2 != intpow(2, 1))
+not ok 3 same_strings failed
+# error: simple.c:46: Expected <abc> but got <abd> ("abc" != "XXXabd" + 3)
+#> Finished suite Default (failed 3 of 3).

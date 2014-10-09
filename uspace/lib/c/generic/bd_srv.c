@@ -69,6 +69,7 @@ static void bd_read_blocks_srv(bd_srv_t *srv, ipc_callid_t callid,
 	if (srv->srvs->ops->read_blocks == NULL) {
 		async_answer_0(rcallid, ENOTSUP);
 		async_answer_0(callid, ENOTSUP);
+		free(buf);
 		return;
 	}
 
@@ -76,6 +77,7 @@ static void bd_read_blocks_srv(bd_srv_t *srv, ipc_callid_t callid,
 	if (rc != EOK) {
 		async_answer_0(rcallid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
+		free(buf);
 		return;
 	}
 
@@ -111,6 +113,7 @@ static void bd_read_toc_srv(bd_srv_t *srv, ipc_callid_t callid,
 	if (srv->srvs->ops->read_toc == NULL) {
 		async_answer_0(rcallid, ENOTSUP);
 		async_answer_0(callid, ENOTSUP);
+		free(buf);
 		return;
 	}
 
@@ -118,6 +121,7 @@ static void bd_read_toc_srv(bd_srv_t *srv, ipc_callid_t callid,
 	if (rc != EOK) {
 		async_answer_0(rcallid, ENOMEM);
 		async_answer_0(callid, ENOMEM);
+		free(buf);
 		return;
 	}
 

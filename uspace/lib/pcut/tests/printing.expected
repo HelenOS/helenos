@@ -1,0 +1,10 @@
+1..3
+#> Starting suite Default.
+ok 1 print_to_stdout
+# stdio: Printed from a test to stdout!
+ok 2 print_to_stderr
+# stdio: Printed from a test to stderr!
+not ok 3 print_to_stdout_and_fail failed
+# error: printing.c:45: Pointer <0> ought not to be NULL
+# stdio: Printed from a test to stdout!
+#> Finished suite Default (failed 1 of 3).
