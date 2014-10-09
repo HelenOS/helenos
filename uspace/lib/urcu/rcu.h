@@ -38,7 +38,7 @@
 
 #include <compiler/barrier.h>
 #include <libarch/barrier.h>
-#include <bool.h>
+#include <stdbool.h>
 
 /** Use to assign a pointer to newly initialized data to a rcu reader 
  * accessible pointer.
