@@ -40,6 +40,10 @@
 #include <arch.h>
 #include <print.h>
 
+#ifdef CONFIG_FPU
+#include <arch/fpu_context.h>
+#endif
+
 static inline unsigned log2(unsigned val)
 {
 	unsigned log = 0;
@@ -59,8 +63,7 @@ static unsigned dcache_linesize_log(unsigned level);
 /** Implementers (vendor) names */
 static const char * implementer(unsigned id)
 {
-	switch (id)
-	{
+	switch (id) {
 	case 0x41: return "ARM Limited";
 	case 0x44: return "Digital Equipment Corporation";
 	case 0x4d: return "Motorola, Freescale Semiconductor Inc.";
