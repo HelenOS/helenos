@@ -36,6 +36,7 @@
 #include <typedefs.h>
 #include <errno.h>
 #include <interrupt.h>
+#include <arch/interrupt.h>
 #include <macros.h>
 #include <str.h>
 #include <userspace.h>
@@ -84,6 +85,8 @@ void arch_pre_main(void)
 
 void arch_pre_mm_init(void)
 {
+	if (config.cpu_active == 1)
+		exception_init();
 }
 
 static void iosapic_init(void)
