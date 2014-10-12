@@ -197,6 +197,8 @@ void disabled_fp_register(unsigned int n, istate_t *istate)
 /** Handle syscall. */
 sysarg_t break_instruction(unsigned int n, istate_t *istate)
 {
+	sysarg_t ret;
+
 	/*
 	 * Move to next instruction after BREAK.
 	 */
@@ -207,8 +209,12 @@ sysarg_t break_instruction(unsigned int n, istate_t *istate)
 		istate->cr_ipsr.ri++;
 	}
 	
-	return syscall_handler(istate->in0, istate->in1, istate->in2,
+	interrupts_enable();
+	ret = syscall_handler(istate->in0, istate->in1, istate->in2,
 	    istate->in3, istate->in4, istate->in5, istate->in6);
+	interrupts_disable();
+
+	return ret;
 }
 
 void universal_handler(unsigned int n, istate_t *istate)
