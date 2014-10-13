@@ -30,22 +30,15 @@
  * @{
  */
 /**
- * @file Tracker module handling library.
+ * @file Extended Module (.xm).
  */
 
-#ifndef TRACKMOD_H
-#define TRACKMOD_H
+#ifndef XM_H
+#define XM_H
 
 #include "types/trackmod.h"
 
-extern trackmod_module_t *trackmod_module_new(void);
-extern int trackmod_module_load(char *, trackmod_module_t **);
-extern void trackmod_module_destroy(trackmod_module_t *);
-extern int trackmod_modplay_create(trackmod_module_t *, unsigned,
-    trackmod_modplay_t **);
-extern void trackmod_modplay_destroy(trackmod_modplay_t *);
-extern void trackmod_modplay_get_samples(trackmod_modplay_t *, void *, size_t);
-extern int trackmod_sample_get_frame(trackmod_sample_t *, size_t);
+extern int trackmod_xm_load(char *, trackmod_module_t **);
 
 #endif
 

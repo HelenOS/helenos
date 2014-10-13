@@ -41,6 +41,7 @@
 	#define NULL  ((void *) 0)
 #endif
 
+#define offsetof(type,member) ((size_t) &(((type *) 0)->member))
 
 #endif
 

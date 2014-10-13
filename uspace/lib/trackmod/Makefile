@@ -31,6 +31,7 @@ LIBRARY = libtrackmod
 
 SOURCES = \
 	protracker.c \
-	trackmod.c
+	trackmod.c \
+	xm.c
 
 include $(USPACE_PREFIX)/Makefile.common

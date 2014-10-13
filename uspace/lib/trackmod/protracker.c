@@ -112,6 +112,142 @@ static size_t order_list_get_npatterns(protracker_order_list_t *olist)
 	return 1 + max_pat;
 }
 
+
+/** Decode pattern cell.
+ *
+ * @param pattern Pattern
+ * @param row     Row number
+ * @param channel Channel number
+ * @param cell    Place to store decoded cell
+ */
+static void protracker_decode_cell(uint32_t cdata, trackmod_cell_t *cell)
+{
+	uint32_t code;
+
+	code = uint32_t_be2host(cdata);
+	cell->period = (code >> (4 * 4)) & 0xfff;
+	cell->instr = (((code >> (7 * 4)) & 0xf) << 4) |
+	    ((code >> (3 * 4)) & 0xf);
+	cell->effect = code & 0xfff;
+}
+
+/** Load Protracker patterns.
+ *
+ * @param f      File to read from
+ * @param module Module being loaded to
+ * @return       EOK on success, ENOMEM if out of memory, EIO on I/O error.
+ */
+static int protracker_load_patterns(FILE *f, trackmod_module_t *module)
+{
+	size_t cells;
+	size_t i, j;
+	int rc;
+	size_t nread;
+	uint32_t *buf = NULL;
+
+	cells = module->channels * protracker_pattern_rows;
+	buf = calloc(sizeof(uint32_t), cells);
+
+	if (buf == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	for (i = 0; i < module->patterns; i++) {
+		module->pattern[i].rows = protracker_pattern_rows;
+		module->pattern[i].channels = module->channels;
+		module->pattern[i].data = calloc(sizeof(trackmod_cell_t), cells);
+		if (module->pattern[i].data == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		nread = fread(buf, sizeof(uint32_t), cells, f);
+		if (nread != cells) {
+			printf("Error reading pattern.\n");
+			rc = EIO;
+			goto error;
+		}
+
+		/* Decode cells */
+		for (j = 0; j < cells; j++) {
+			protracker_decode_cell(buf[j],
+			    &module->pattern[i].data[j]);
+		}
+	}
+
+	free(buf);
+	return EOK;
+error:
+	free(buf);
+	return rc;
+}
+
+/** Load protracker samples.
+ *
+ * @param f      File being read from
+ * @param sample Sample header
+ * @param module Module being loaded to
+ * @return       EOk on success, ENOMEM if out of memory, EIO on I/O error.
+ */
+static int protracker_load_samples(FILE *f, protracker_smp_t *smp,
+    trackmod_module_t *module)
+{
+	int rc;
+	size_t i;
+	uint8_t ftval;
+	size_t nread;
+	trackmod_sample_t *sample;
+
+	for (i = 0; i < module->instrs; i++) {
+		module->instr[i].samples = 1;
+		module->instr[i].sample = calloc(1, sizeof(trackmod_sample_t));
+		if (module->instr[i].sample == NULL) {
+			printf("Error allocating sample.\n");
+			rc = ENOMEM;
+			goto error;
+		}
+
+		sample = &module->instr[i].sample[0];
+		sample->length =
+		    uint16_t_be2host(smp[i].length) * 2;
+		sample->bytes_smp = 1;
+		sample->data = calloc(1, sample->length);
+		if (sample->data == NULL) {
+			printf("Error allocating sample.\n");
+			rc = ENOMEM;
+			goto error;
+		}
+
+		nread = fread(sample->data, 1, sample->length, f);
+		if (nread != sample->length) {
+			printf("Error reading sample.\n");
+			rc = EIO;
+			goto error;
+		}
+
+		sample->def_vol = smp[i].def_vol;
+
+		sample->loop_start =
+		    uint16_t_be2host(smp[i].loop_start) * 2;
+		sample->loop_len =
+		    uint16_t_be2host(smp[i].loop_len) * 2;
+		if (sample->loop_len <= 2)
+			sample->loop_type = tl_no_loop;
+		else
+			sample->loop_type = tl_forward_loop;
+
+		/* Finetune is a 4-bit signed value. */
+		ftval = smp[i].finetune & 0x0f;
+		sample->finetune =
+			(ftval & 0x8) ? (ftval & 0x7) - 8 : ftval;
+	}
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Load protracker module.
  *
  * @param fname   File name
@@ -127,12 +263,11 @@ int trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 	protracker_15smp_t mod15;
 	protracker_order_list_t *order_list;
 	protracker_smp_t *sample;
-	size_t nread;
 	size_t samples;
 	size_t channels;
 	size_t patterns;
-	size_t cells;
-	size_t i, j;
+	size_t i;
+	size_t nread;
 	int rc;
 
 	f = fopen(fname, "rb");
@@ -191,9 +326,9 @@ int trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 
 	module->channels = channels;
 
-	module->samples = samples;
-	module->sample = calloc(sizeof(trackmod_sample_t), samples);
-	if (module->sample == NULL) {
+	module->instrs = samples;
+	module->instr = calloc(sizeof(trackmod_instr_t), samples);
+	if (module->instr == NULL) {
 		printf("Out of memory.\n");
 		rc = ENOMEM;
 		goto error;
@@ -220,59 +355,25 @@ int trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 		module->ord_list[i] = order_list->order_list[i];
 	}
 
-	/* Load patterns */
-
-	cells = channels * protracker_pattern_rows;
-
-	for (i = 0; i < patterns; i++) {
-		module->pattern[i].rows = protracker_pattern_rows;
-		module->pattern[i].channels = channels;
-		module->pattern[i].data = calloc(sizeof(uint32_t), cells);
-
-		nread = fread(module->pattern[i].data,
-		    sizeof(uint32_t), cells, f);
-		if (nread != cells) {
-			printf("Error reading pattern.\n");
-			rc = EIO;
-			goto error;
-		}
-
-		/* Convert byte order */
-		for (j = 0; j < cells; j++) {
-			module->pattern[i].data[j] = uint32_t_be2host(
-			    module->pattern[i].data[j]);
-		}
+	/* The 'mark' byte may or may not contain a valid restart position */
+	if (order_list->mark < order_list->order_list_len) {
+		module->restart_pos = order_list->mark;
 	}
+
+	/* Load patterns */
+	rc = protracker_load_patterns(f, module);
+	if (rc != EOK)
+		goto error;
 
 	/* Load samples */
-	for (i = 0; i < samples; i++) {
-		module->sample[i].length =
-		    uint16_t_be2host(sample[i].length) * 2;
-		module->sample[i].data = calloc(1, module->sample[i].length);
-		if (module->sample[i].data == NULL) {
-			printf("Error allocating sample.\n");
-			rc = ENOMEM;
-			goto error;
-		}
-
-		nread = fread(module->sample[i].data, 1, module->sample[i].length,
-			f);
-		if (nread != module->sample[i].length) {
-			printf("Error reading sample.\n");
-			rc = EIO;
-			goto error;
-		}
-
-		module->sample[i].def_vol = sample[i].def_vol;
-		module->sample[i].loop_start =
-		    uint16_t_be2host(sample[i].loop_start) * 2;
-		module->sample[i].loop_len =
-		    uint16_t_be2host(sample[i].loop_len) * 2;
-		if (module->sample[i].loop_len <= 2)
-			module->sample[i].loop_len = 0;
-	}
+	rc = protracker_load_samples(f, sample, module);
+	if (rc != EOK)
+		goto error;
 
 	(void) fclose(f);
+
+	module->def_bpm = protracker_def_bpm;
+	module->def_tpr = protracker_def_tpr;
 
 	*rmodule = module;
 	return EOK;
