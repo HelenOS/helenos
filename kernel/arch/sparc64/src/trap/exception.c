@@ -54,49 +54,49 @@ void istate_decode(istate_t *istate)
 }
 
 /** Handle instruction_access_exception. (0x8) */
-void instruction_access_exception(int n, istate_t *istate)
+void instruction_access_exception(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle instruction_access_error. (0xa) */
-void instruction_access_error(int n, istate_t *istate)
+void instruction_access_error(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle illegal_instruction. (0x10) */
-void illegal_instruction(int n, istate_t *istate)
+void illegal_instruction(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle privileged_opcode. (0x11) */
-void privileged_opcode(int n, istate_t *istate)
+void privileged_opcode(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle unimplemented_LDD. (0x12) */
-void unimplemented_LDD(int n, istate_t *istate)
+void unimplemented_LDD(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle unimplemented_STD. (0x13) */
-void unimplemented_STD(int n, istate_t *istate)
+void unimplemented_STD(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle fp_disabled. (0x20) */
-void fp_disabled(int n, istate_t *istate)
+void fp_disabled(unsigned int n, istate_t *istate)
 {
 	fprs_reg_t fprs;
 	
@@ -116,84 +116,84 @@ void fp_disabled(int n, istate_t *istate)
 }
 
 /** Handle fp_exception_ieee_754. (0x21) */
-void fp_exception_ieee_754(int n, istate_t *istate)
+void fp_exception_ieee_754(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle fp_exception_other. (0x22) */
-void fp_exception_other(int n, istate_t *istate)
+void fp_exception_other(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle tag_overflow. (0x23) */
-void tag_overflow(int n, istate_t *istate)
+void tag_overflow(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle division_by_zero. (0x28) */
-void division_by_zero(int n, istate_t *istate)
+void division_by_zero(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle data_access_exception. (0x30) */
-void data_access_exception(int n, istate_t *istate)
+void data_access_exception(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle data_access_error. (0x32) */
-void data_access_error(int n, istate_t *istate)
+void data_access_error(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle mem_address_not_aligned. (0x34) */
-void mem_address_not_aligned(int n, istate_t *istate)
+void mem_address_not_aligned(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle LDDF_mem_address_not_aligned. (0x35) */
-void LDDF_mem_address_not_aligned(int n, istate_t *istate)
+void LDDF_mem_address_not_aligned(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle STDF_mem_address_not_aligned. (0x36) */
-void STDF_mem_address_not_aligned(int n, istate_t *istate)
+void STDF_mem_address_not_aligned(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle privileged_action. (0x37) */
-void privileged_action(int n, istate_t *istate)
+void privileged_action(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle LDQF_mem_address_not_aligned. (0x38) */
-void LDQF_mem_address_not_aligned(int n, istate_t *istate)
+void LDQF_mem_address_not_aligned(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle STQF_mem_address_not_aligned. (0x39) */
-void STQF_mem_address_not_aligned(int n, istate_t *istate)
+void STQF_mem_address_not_aligned(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);

@@ -39,8 +39,8 @@
 #include <typedefs.h>
 #include <arch/istate.h>
 
-#define IVT_ITEMS  15
-#define IVT_FIRST  1
+#define IVT_ITEMS  512
+#define IVT_FIRST  0 
 
 /* This needs to be defined for inter-architecture API portability. */
 #define VECTOR_TLB_SHOOTDOWN_IPI  0
@@ -49,6 +49,8 @@ enum {
 	IPI_TLB_SHOOTDOWN = VECTOR_TLB_SHOOTDOWN_IPI,
 	IPI_SMP_CALL
 };
+
+extern void exc_arch_init(void);
 
 #endif
 
