@@ -36,6 +36,7 @@
 #include <arch/interrupt.h>
 #include <arch/trap/interrupt.h>
 #include <arch/trap/exception.h>
+#include <arch/trap/mmu.h>
 #include <arch/sparc64.h>
 #include <interrupt.h>
 #include <ddi/irq.h>
@@ -119,7 +120,16 @@ void exc_arch_init(void)
 	    "interrupt_vector_trap", true,
 	    interrupt);
 #endif
-	
+
+	exc_register(TT_FAST_INSTRUCTION_ACCESS_MMU_MISS,
+	    "fast_instruction_access_mmu_miss", true,
+	    fast_instruction_access_mmu_miss);
+	exc_register(TT_FAST_DATA_ACCESS_MMU_MISS,
+	    "fast_data_access_mmu_miss", true,
+	    fast_data_access_mmu_miss);
+	exc_register(TT_FAST_DATA_ACCESS_PROTECTION,
+	    "fast_data_access_protection", true,
+	    fast_data_access_protection);	
 }
 
 /** @}

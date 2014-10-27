@@ -73,7 +73,10 @@
 
 0:
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
-	PREEMPTIBLE_HANDLER fast_instruction_access_mmu_miss
+	mov TT_FAST_INSTRUCTION_ACCESS_MMU_MISS, %g2
+	mov VA_IMMU_TAG_ACCESS, %g5
+	ldxa [%g5] ASI_IMMU, %g5			! read the faulting Context and VPN
+	PREEMPTIBLE_HANDLER exc_dispatch 
 .endm
 
 .macro FAST_DATA_ACCESS_MMU_MISS_HANDLER tl
@@ -106,7 +109,7 @@
 	sethi %hi(fast_data_access_mmu_miss_data_hi), %g7
 	wr %g0, ASI_DMMU, %asi
 	ldxa [VA_DMMU_TAG_ACCESS] %asi, %g1		! read the faulting Context and VPN
-	set TLB_TAG_ACCESS_CONTEXT_MASK, %g2
+	ldx [%g7 + %lo(tlb_tag_access_context_mask)], %g2
 	andcc %g1, %g2, %g3				! get Context
 	bnz %xcc, 0f					! Context is non-zero
 	andncc %g1, %g2, %g3				! get page address into %g3
@@ -137,16 +140,9 @@
 	 */
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
 
-	/*
-	 * Read the Tag Access register for the higher-level handler.
-	 * This is necessary to survive nested DTLB misses.
-	 */	
-	ldxa [VA_DMMU_TAG_ACCESS] %asi, %g2
-
-	/*
-	 * g2 will be passed as an argument to fast_data_access_mmu_miss().
-	 */
-	PREEMPTIBLE_HANDLER fast_data_access_mmu_miss
+	mov TT_FAST_DATA_ACCESS_MMU_MISS, %g2
+	ldxa [VA_DMMU_TAG_ACCESS] %asi, %g5		! read the faulting Context and VPN
+	PREEMPTIBLE_HANDLER exc_dispatch 
 .endm
 
 .macro FAST_DATA_ACCESS_PROTECTION_HANDLER tl
@@ -163,17 +159,10 @@
 	 */
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
 
-	/*
-	 * Read the Tag Access register for the higher-level handler.
-	 * This is necessary to survive nested DTLB misses.
-	 */	
-	mov VA_DMMU_TAG_ACCESS, %g2
-	ldxa [%g2] ASI_DMMU, %g2
-
-	/*
-	 * g2 will be passed as an argument to fast_data_access_mmu_miss().
-	 */
-	PREEMPTIBLE_HANDLER fast_data_access_protection
+	mov TT_FAST_DATA_ACCESS_PROTECTION, %g2
+	mov VA_DMMU_TAG_ACCESS, %g5
+	ldxa [%g5] ASI_DMMU, %g5			! read the faulting Context and VPN
+	PREEMPTIBLE_HANDLER exc_dispatch 
 .endm
 
 #endif /* __ASM__ */

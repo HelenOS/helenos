@@ -53,17 +53,6 @@
  */
 #define STACK_ARG_SAVE_AREA_SIZE  (6 * STACK_ITEM_SIZE)
 
-/**
- * Offsets of arguments on stack.
- */
-#define STACK_ARG0  0
-#define STACK_ARG1  4
-#define STACK_ARG2  8
-#define STACK_ARG3  12
-#define STACK_ARG4  16
-#define STACK_ARG5  20
-#define STACK_ARG6  24
-
 #endif
 
 /** @}
