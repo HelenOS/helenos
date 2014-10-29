@@ -878,7 +878,7 @@ fill_0_normal_tl1:
 	 * We got here in order to avoid inconsistency of the window state registers.
 	 * If the:
 	 *
-	 * 	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+	 * 	save %g6, -ISTATE_SIZE, %sp
 	 *
 	 * instruction trapped and spilled a register window into the userspace
 	 * window buffer, we have just restored NWINDOWS - 1 register windows.
