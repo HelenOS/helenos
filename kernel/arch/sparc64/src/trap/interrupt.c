@@ -59,6 +59,16 @@ void exc_arch_init(void)
 	exc_register(TT_INSTRUCTION_ACCESS_ERROR,
 	    "instruction_access_error", false,
 	    instruction_access_error);
+
+#ifdef SUN4V
+	exc_register(TT_IAE_UNAUTH_ACCESS,
+	    "iae_unauth_access", false,
+	    instruction_access_exception);
+	exc_register(TT_IAE_NFO_PAGE,
+	    "iae_nfo_page", false,
+	    instruction_access_exception);
+#endif
+
 	exc_register(TT_ILLEGAL_INSTRUCTION,
 	    "illegal_instruction", false,
 	    illegal_instruction);
@@ -71,6 +81,25 @@ void exc_arch_init(void)
 	exc_register(TT_UNIMPLEMENTED_STD,
 	    "unimplemented_STD", false,
 	    unimplemented_STD);
+
+#ifdef SUN4V
+	exc_register(TT_DAE_INVALID_ASI,
+	    "dae_invalid_asi", false,
+	    data_access_exception);
+	exc_register(TT_DAE_PRIVILEGE_VIOLATION,
+	    "dae_privilege_violation", false,
+	    data_access_exception);
+	exc_register(TT_DAE_NC_PAGE,
+	    "dae_nc_page", false,
+	    data_access_exception);
+	exc_register(TT_DAE_NC_PAGE,
+	    "dae_nc_page", false,
+	    data_access_exception);
+	exc_register(TT_DAE_NFO_PAGE,
+	    "dae_nfo_page", false,
+	    data_access_exception);
+#endif
+
 	exc_register(TT_FP_DISABLED,
 	    "fp_disabled", true,
 	    fp_disabled);
@@ -115,7 +144,7 @@ void exc_arch_init(void)
 	    "interrupt_level_14", true,
 	    tick_interrupt);
 
-#ifdef SUN4u 
+#ifdef SUN4U 
 	exc_register(TT_INTERRUPT_VECTOR_TRAP,
 	    "interrupt_vector_trap", true,
 	    interrupt);
@@ -130,6 +159,13 @@ void exc_arch_init(void)
 	exc_register(TT_FAST_DATA_ACCESS_PROTECTION,
 	    "fast_data_access_protection", true,
 	    fast_data_access_protection);	
+
+#ifdef SUN4V
+	exc_register(TT_CPU_MONDO,
+	    "cpu_mondo", true,
+	    cpu_mondo);
+#endif
+
 }
 
 /** @}

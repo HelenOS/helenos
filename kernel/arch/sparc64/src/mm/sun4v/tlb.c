@@ -207,7 +207,7 @@ void itlb_pte_copy(pte_t *t)
 }
 
 /** ITLB miss handler. */
-void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
+void fast_instruction_access_mmu_miss(unsigned int tt, istate_t *istate)
 {
 	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	pte_t *t;
@@ -238,19 +238,14 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
  * Note that some faults (e.g. kernel faults) were already resolved by the
  * low-level, assembly language part of the fast_data_access_mmu_miss handler.
  *
- * @param page_and_ctx	A 64-bit value describing the fault. The most
- * 			significant 51 bits of the value contain the virtual
- * 			address which caused the fault truncated to the page
- * 			boundary. The least significant 13 bits of the value
- * 			contain the number of the context in which the fault
- * 			occurred.
+ * @param tt		Trap type.
  * @param istate	Interrupted state saved on the stack.
  */
-void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
+void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 {
 	pte_t *t;
-	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
-	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
+	uintptr_t va = DMISS_ADDRESS(istate->tlb_tag_access);
+	uint16_t ctx = DMISS_CONTEXT(istate->tlb_tag_access);
 	as_t *as = AS;
 
 	if (ctx == ASID_KERNEL) {
@@ -287,19 +282,14 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 
 /** DTLB protection fault handler.
  *
- * @param page_and_ctx	A 64-bit value describing the fault. The most
- * 			significant 51 bits of the value contain the virtual
- * 			address which caused the fault truncated to the page
- * 			boundary. The least significant 13 bits of the value
- * 			contain the number of the context in which the fault
- * 			occurred.
+ * @param tt		Trap type.
  * @param istate	Interrupted state saved on the stack.
  */
-void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
+void fast_data_access_protection(unsigned int tt, istate_t *istate)
 {
 	pte_t *t;
-	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
-	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
+	uintptr_t va = DMISS_ADDRESS(istate->tlb_tag_access);
+	uint16_t ctx = DMISS_CONTEXT(istate->tlb_tag_access);
 	as_t *as = AS;
 
 	if (ctx == ASID_KERNEL)

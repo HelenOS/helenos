@@ -39,8 +39,10 @@
 
 #ifndef __ASM__
 
+#include <arch/istate_struct.h>
+
 extern void sun4v_ipi_init(void);
-extern void cpu_mondo(void);
+extern void cpu_mondo(unsigned int, istate_t *);
 
 #endif
 
