@@ -423,7 +423,7 @@ fast_data_access_protection_handler_tl0:
 cpu_mondo_handler_tl0:
 	mov TT_CPU_MONDO, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER cpu_mondo
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x80, TL = 0, spill_0_normal handler */
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
