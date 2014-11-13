@@ -30,10 +30,12 @@ USPACE_PREFIX = ../..
 LIBRARY = libdraw
 SLIBRARY = libdraw.so.0.0
 LSONAME = libdraw.so0
-EXTRA_CFLAGS += -I$(LIBSOFTREND_PREFIX)
+EXTRA_CFLAGS += -I$(LIBSOFTREND_PREFIX) -I$(LIBCOMPRESS_PREFIX)
 
 SOURCES = \
 	codec/tga.c \
+	codec/tga.gz.c \
+	codec/webp.c \
 	cursor/embedded.c \
 	font/embedded.c \
 	font/bitmap_backend.c \
