@@ -33,6 +33,7 @@
 #
 
 DIRS = \
+	app/barber \
 	app/bdsh \
 	app/bithenge \
 	app/blkdump \
@@ -211,6 +212,7 @@ LIBS = \
 	lib/clui \
 	lib/fmtutil \
 	lib/scsi \
+	lib/compress \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
