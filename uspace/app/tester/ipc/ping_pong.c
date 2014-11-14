@@ -42,18 +42,12 @@ const char *test_ping_pong(void)
 	TPRINTF("Pinging ns server for %d seconds...", DURATION_SECS);
 	
 	struct timeval start;
-	if (gettimeofday(&start, NULL) != 0) {
-		TPRINTF("\n");
-		return "Failed getting the time";
-	}
+	gettimeofday(&start, NULL);
 	
 	uint64_t count = 0;
 	while (true) {
 		struct timeval now;
-		if (gettimeofday(&now, NULL) != 0) {
-			TPRINTF("\n");
-			return "Failed getting the time";
-		}
+		gettimeofday(&now, NULL);
 		
 		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
 			break;

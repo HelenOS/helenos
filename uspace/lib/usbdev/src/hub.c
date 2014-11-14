@@ -161,21 +161,15 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, ddf_fun_t *fun,
 {
 	if (hc_conn == NULL)
 		return EINVAL;
-
-	int rc;
+	
 	struct timeval start_time;
-
-	rc = gettimeofday(&start_time, NULL);
-	if (rc != EOK) {
-		return rc;
-	}
-
+	gettimeofday(&start_time, NULL);
+	
 	/* We are gona do a lot of communication better open it in advance. */
-	rc = usb_hc_connection_open(hc_conn);
-	if (rc != EOK) {
+	int rc = usb_hc_connection_open(hc_conn);
+	if (rc != EOK)
 		return rc;
-	}
-
+	
 	/* Request a new address. */
 	usb_address_t dev_addr =
 	    usb_hc_request_address(hc_conn, 0, false, dev_speed);
@@ -225,13 +219,10 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, ddf_fun_t *fun,
 		rc = ENOTCONN;
 		goto leave_release_default_address;
 	}
-
+	
 	struct timeval end_time;
-	rc = gettimeofday(&end_time, NULL);
-	if (rc != EOK) {
-		goto leave_release_default_address;
-	}
-
+	gettimeofday(&end_time, NULL);
+	
 	/* According to the USB spec part 9.1.2 host allows 100ms time for
 	 * the insertion process to complete. According to 7.1.7.1 this is the
 	 * time between attach detected and port reset. However, the setup done

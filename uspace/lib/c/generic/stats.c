@@ -290,20 +290,6 @@ load_t *stats_get_load(size_t *count)
 	return load;
 }
 
-/** Get system uptime
- *
- * @return System uptime (in seconds).
- *
- */
-sysarg_t stats_get_uptime(void)
-{
-	sysarg_t uptime;
-	if (sysinfo_get_value("system.uptime", &uptime) != EOK)
-		uptime = 0;
-	
-	return uptime;
-}
-
 /** Print load fixed-point value
  *
  * Print the load record fixed-point value in decimal

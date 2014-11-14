@@ -155,19 +155,20 @@ static const char *read_data(data_t *target)
 	
 	/* Get current time */
 	struct timeval time;
-	if (gettimeofday(&time, NULL) != EOK)
-		return "Cannot get time of day";
+	gettimeofday(&time, NULL);
 	
 	target->hours = (time.tv_sec % DAY) / HOUR;
 	target->minutes = (time.tv_sec % HOUR) / MINUTE;
 	target->seconds = time.tv_sec % MINUTE;
 	
 	/* Get uptime */
-	sysarg_t uptime = stats_get_uptime();
-	target->udays = uptime / DAY;
-	target->uhours = (uptime % DAY) / HOUR;
-	target->uminutes = (uptime % HOUR) / MINUTE;
-	target->useconds = uptime % MINUTE;
+	struct timeval uptime;
+	getuptime(&uptime);
+	
+	target->udays = uptime.tv_sec / DAY;
+	target->uhours = (uptime.tv_sec % DAY) / HOUR;
+	target->uminutes = (uptime.tv_sec % HOUR) / MINUTE;
+	target->useconds = uptime.tv_sec % MINUTE;
 	
 	/* Get load */
 	target->load = stats_get_load(&(target->load_count));

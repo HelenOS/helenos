@@ -47,7 +47,6 @@
 extern stats_cpu_t *stats_get_cpus(size_t *);
 extern stats_physmem_t *stats_get_physmem(void);
 extern load_t *stats_get_load(size_t *);
-extern sysarg_t stats_get_uptime(void);
 
 extern stats_task_t *stats_get_tasks(size_t *);
 extern stats_task_t *stats_get_task(task_id_t);

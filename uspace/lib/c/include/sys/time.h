@@ -39,8 +39,8 @@
 
 #include <sys/types.h>
 
-#define DST_NONE 0
-#define ASCTIME_BUF_LEN 26
+#define DST_NONE  0
+#define ASCTIME_BUF_LEN  26
 
 typedef long time_t;
 typedef long suseconds_t;
@@ -49,15 +49,15 @@ typedef uint32_t useconds_t;
 typedef uint32_t mseconds_t;
 
 struct tm {
-	int tm_sec;         /* Seconds [0,60]. */
-	int tm_min;         /* Minutes [0,59]. */
-	int tm_hour;        /* Hour [0,23]. */
-	int tm_mday;        /* Day of month [1,31]. */
-	int tm_mon;         /* Month of year [0,11]. */
-	int tm_year;        /* Years since 1900. */
-	int tm_wday;        /* Day of week [0,6] (Sunday = 0). */
-	int tm_yday;        /* Day of year [0,365]. */
-	int tm_isdst;       /* Daylight Savings flag. */
+	int tm_sec;    /* Seconds [0,60]. */
+	int tm_min;    /* Minutes [0,59]. */
+	int tm_hour;   /* Hour [0,23]. */
+	int tm_mday;   /* Day of month [1,31]. */
+	int tm_mon;    /* Month of year [0,11]. */
+	int tm_year;   /* Years since 1900. */
+	int tm_wday;   /* Day of week [0,6] (Sunday = 0). */
+	int tm_yday;   /* Day of year [0,365]. */
+	int tm_isdst;  /* Daylight Savings flag. */
 };
 
 struct timeval {
@@ -70,24 +70,24 @@ struct timezone {
 	int tz_dsttime;      /* type of dst correction */
 };
 
-extern void tv_add(struct timeval *tv, suseconds_t usecs);
-extern suseconds_t tv_sub(struct timeval *tv1, struct timeval *tv2);
-extern int tv_gt(struct timeval *tv1, struct timeval *tv2);
-extern int tv_gteq(struct timeval *tv1, struct timeval *tv2);
-extern int gettimeofday(struct timeval *tv, struct timezone *tz);
-extern int getuptime(struct timeval *tv);
+extern void tv_add(struct timeval *, suseconds_t);
+extern suseconds_t tv_sub(struct timeval *, struct timeval *);
+extern int tv_gt(struct timeval *, struct timeval *);
+extern int tv_gteq(struct timeval *, struct timeval *);
+extern void gettimeofday(struct timeval *, struct timezone *);
+extern void getuptime(struct timeval *);
 
 extern void udelay(useconds_t);
 
-extern time_t mktime(struct tm *tm);
-extern int time_utc2tm(const time_t time, struct tm *result);
-extern int time_utc2str(const time_t time, char *buf);
-extern void time_tm2str(const struct tm *timeptr, char *buf);
-extern int time_local2tm(const time_t time, struct tm *result);
-extern int time_local2str(const time_t time, char *buf);
-extern double difftime(time_t time1, time_t time0);
-extern size_t strftime(char *restrict s, size_t maxsize,
-    const char *restrict format, const struct tm *restrict tm);
+extern time_t mktime(struct tm *);
+extern int time_utc2tm(const time_t, struct tm *);
+extern int time_utc2str(const time_t, char *);
+extern void time_tm2str(const struct tm *, char *);
+extern int time_local2tm(const time_t, struct tm *);
+extern int time_local2str(const time_t, char *);
+extern double difftime(time_t, time_t);
+extern size_t strftime(char *restrict, size_t, const char *restrict,
+    const struct tm *restrict);
 
 #endif
 

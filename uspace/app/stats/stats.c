@@ -190,11 +190,12 @@ static void print_load(void)
 
 static void print_uptime(void)
 {
-	sysarg_t uptime = stats_get_uptime();
-	printf("%s: Up %" PRIun " days, %" PRIun " hours, "
-	    "%" PRIun " minutes, %" PRIun " seconds\n", NAME,
-	    uptime / DAY, (uptime % DAY) / HOUR,
-	    (uptime % HOUR) / MINUTE, uptime % MINUTE);
+	struct timeval uptime;
+	getuptime(&uptime);
+	
+	printf("%s: Up %ld days, %ld hours, %ld minutes, %ld seconds\n",
+	    NAME, uptime.tv_sec / DAY, (uptime.tv_sec % DAY) / HOUR,
+	    (uptime.tv_sec % HOUR) / MINUTE, uptime.tv_sec % MINUTE);
 }
 
 static void usage(const char *name)

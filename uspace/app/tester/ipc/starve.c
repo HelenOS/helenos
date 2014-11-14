@@ -39,24 +39,17 @@ const char *test_starve_ipc(void)
 {
 	const char *err = NULL;
 	console_ctrl_t *console = console_init(stdin, stdout);
-	if (console == NULL) {
+	if (console == NULL)
 		return "Failed to init connection with console.";
-	}
 	
 	struct timeval start;
-	if (gettimeofday(&start, NULL) != 0) {
-		err = "Failed getting the time";
-		goto leave;
-	}
+	gettimeofday(&start, NULL);
 	
 	TPRINTF("Intensive computation shall be imagined (for %ds)...\n", DURATION_SECS);
 	TPRINTF("Press a key to terminate prematurely...\n");
 	while (true) {
 		struct timeval now;
-		if (gettimeofday(&now, NULL) != 0) {
-			err = "Failed getting the time";
-			goto leave;
-		}
+		gettimeofday(&now, NULL);
 		
 		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
 			break;
@@ -69,16 +62,15 @@ const char *test_starve_ipc(void)
 			break;
 		}
 	}
-
+	
 	// FIXME - unless a key was pressed, the answer leaked as no one
 	// will wait for it.
 	// We cannot use async_forget() directly, though. Something like
 	// console_forget_pending_kbd_event() shall come here.
-
+	
 	TPRINTF("Terminating...\n");
-
-leave:
+	
 	console_done(console);
-
+	
 	return err;
 }
