@@ -315,18 +315,15 @@ sysarg_t stats_get_uptime(void)
  */
 void stats_print_load_fragment(load_t upper, unsigned int dec_length)
 {
-	/* Magic value from BSD */
-	load_t lower = 65536;
-	
 	/* Print the whole part */
-	printf("%u.", upper / lower);
+	printf("%u.", upper / LOAD_UNIT);
 	
-	load_t rest = (upper % lower) * 10;
+	load_t rest = (upper % LOAD_UNIT) * 10;
 	
 	unsigned int i;
 	for (i = 0; i < dec_length; i++) {
-		printf("%u", rest / lower);
-		rest = (rest % lower) * 10;
+		printf("%u", rest / LOAD_UNIT);
+		rest = (rest % LOAD_UNIT) * 10;
 	}
 }
 

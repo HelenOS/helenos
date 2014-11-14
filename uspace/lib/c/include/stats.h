@@ -42,6 +42,8 @@
 #include <sys/types.h>
 #include <abi/sysinfo.h>
 
+#define LOAD_UNIT  65536
+
 extern stats_cpu_t *stats_get_cpus(size_t *);
 extern stats_physmem_t *stats_get_physmem(void);
 extern load_t *stats_get_load(size_t *);
