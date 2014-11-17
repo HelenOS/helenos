@@ -355,11 +355,7 @@ int main(int argc, char *argv[])
 		printf("\n");
 	
 	struct timeval time_before;
-	rc = gettimeofday(&time_before, NULL);
-	if (rc != EOK) {
-		fprintf(stderr, "Get time of day error %d\n", rc);
-		return rc;
-	}
+	gettimeofday(&time_before, NULL);
 	
 	rc = sockets_sendto_recvfrom(verbose, socket_ids, sockets, address,
 	    &addrlen, data, size, messages, type);
@@ -367,11 +363,7 @@ int main(int argc, char *argv[])
 		return rc;
 	
 	struct timeval time_after;
-	rc = gettimeofday(&time_after, NULL);
-	if (rc != EOK) {
-		fprintf(stderr, "Get time of day error %d\n", rc);
-		return rc;
-	}
+	gettimeofday(&time_after, NULL);
 	
 	if (verbose)
 		printf("\tOK\n");
@@ -379,11 +371,7 @@ int main(int argc, char *argv[])
 	printf("sendto + recvfrom tested in %ld microseconds\n",
 	    tv_sub(&time_after, &time_before));
 	
-	rc = gettimeofday(&time_before, NULL);
-	if (rc != EOK) {
-		fprintf(stderr, "Get time of day error %d\n", rc);
-		return rc;
-	}
+	gettimeofday(&time_before, NULL);
 	
 	rc = sockets_sendto(verbose, socket_ids, sockets, address, addrlen,
 	    data, size, messages, type);
@@ -395,11 +383,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK)
 		return rc;
 	
-	rc = gettimeofday(&time_after, NULL);
-	if (rc != EOK) {
-		fprintf(stderr, "Get time of day error %d\n", rc);
-		return rc;
-	}
+	gettimeofday(&time_after, NULL);
 	
 	if (verbose)
 		printf("\tOK\n");

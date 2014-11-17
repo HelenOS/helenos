@@ -40,19 +40,65 @@
 #include <stddef.h>
 #include <stdint.h>
 
+enum {
+	max_key = 96,
+	keyoff_note = 97
+};
+
+typedef enum {
+	/** No loop */
+	tl_no_loop,
+	/** Forward loop */
+	tl_forward_loop,
+	/** Pingpong loop */
+	tl_pingpong_loop
+} trackmod_looptype_t;
+
 /** Sample */
 typedef struct {
 	/** Length in frames */
 	size_t length;
+	/** Bytes per sample */
+	size_t bytes_smp;
 	/** Sample data */
-	int8_t *data;
+	void *data;
+	/** Loop type */
+	trackmod_looptype_t loop_type;
 	/** Loop start position in frames */
 	size_t loop_start;
-	/** Loop length in frames or 0 - no looping */
+	/** Loop length in frames (> 0) */
 	size_t loop_len;
 	/** Default volume (0..63) */
 	uint8_t def_vol;
+	/** Relative note */
+	int rel_note;
+	/** Finetune value (-8..7) in 1/8 semitones */
+	int finetune;
 } trackmod_sample_t;
+
+/** Instrument */
+typedef struct {
+	/** Number of samples */
+	size_t samples;
+	/** Samples */
+	trackmod_sample_t *sample;
+	/** Sample index for each key */
+	int key_smp[max_key];
+} trackmod_instr_t;
+
+/** Pattern cell */
+typedef struct {
+	/** Note */
+	unsigned note;
+	/** Sample period */
+	unsigned period;
+	/** Instrument number */
+	unsigned instr;
+	/** Volume */
+	uint8_t volume;
+	/** Effect */
+	uint16_t effect;
+} trackmod_cell_t;
 
 /** Pattern */
 typedef struct {
@@ -61,7 +107,7 @@ typedef struct {
 	/** Number of channels */
 	size_t channels;
 	/** Pattern data */
-	uint32_t *data;
+	trackmod_cell_t *data;
 } trackmod_pattern_t;
 
 /** Module. */
@@ -69,9 +115,9 @@ typedef struct {
 	/** Number of channels */
 	size_t channels;
 	/** Number of samples */
-	size_t samples;
-	/** Samples */
-	trackmod_sample_t *sample;
+	size_t instrs;
+	/** Instruments */
+	trackmod_instr_t *instr;
 	/** Number of patterns */
 	size_t patterns;
 	/** Patterns */
@@ -80,6 +126,12 @@ typedef struct {
 	size_t ord_list_len;
 	/** Order list */
 	size_t *ord_list;
+	/** Restart pos */
+	size_t restart_pos;
+	/** Default BPM */
+	unsigned def_bpm;
+	/** Default TPR */
+	unsigned def_tpr;
 } trackmod_module_t;
 
 /** Channel playback */
@@ -91,10 +143,19 @@ typedef struct {
 	size_t smp_pos;
 	/** Sample position (clock ticks within frame) */
 	size_t smp_clk;
-	/** Period */
+	/** Current period */
 	unsigned period;
+	/** Period after note was processed, zero if no note */
+	unsigned period_new;
 	/** Volume */
 	uint8_t volume;
+	/** Volume slide amount */
+	int vol_slide;
+	/** Portamento amount (positive for tone and up portamento,
+	  * negative for down portamento. */
+	int portamento;
+	/** Tone portamento target period. */
+	unsigned period_tgt;
 } trackmod_chan_t;
 
 /** Module playback. */
@@ -130,16 +191,6 @@ typedef struct {
 	/** Debug mode, print messages to stdout. */
 	bool debug;
 } trackmod_modplay_t;
-
-/** Pattern cell (decoded) */
-typedef struct {
-	/** Sample period */
-	unsigned period;
-	/** Sample number */
-	unsigned sample;
-	/** Effect */
-	unsigned effect;
-} trackmod_cell_t;
 
 #endif
 

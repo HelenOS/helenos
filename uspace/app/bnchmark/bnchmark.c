@@ -61,25 +61,16 @@ static void syntax_print(void);
 static int measure(measure_func_t fn, void* data, umseconds_t *result)
 {
 	struct timeval start_time;
-	int rc;
-	rc = gettimeofday(&start_time, NULL);
-	if (rc != EOK) {
-		fprintf(stderr, "gettimeofday failed\n");
-		return rc;
-	}
+	gettimeofday(&start_time, NULL);
 	
-	rc = fn(data);
+	int rc = fn(data);
 	if (rc != EOK) {
 		fprintf(stderr, "measured function failed\n");
 		return rc;
 	}
-
+	
 	struct timeval final_time;
-	rc = gettimeofday(&final_time, NULL);
-	if (rc != EOK) {
-		fprintf(stderr, "gettimeofday failed\n");
-		return rc;
-	}
+	gettimeofday(&final_time, NULL);
 	
 	/* Calculate time difference in milliseconds */
 	*result = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
@@ -91,10 +82,9 @@ static int sequential_read_file(void *data)
 {
 	char *path = (char *) data;
 	char *buf = malloc(BUFSIZE);
-
-	if (buf == NULL) {
+	
+	if (buf == NULL)
 		return ENOMEM;
-	}
 	
 	FILE *file = fopen(path, "r");
 	if (file == NULL) {

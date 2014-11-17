@@ -401,11 +401,7 @@ int main(int argc, char *argv[])
 		printf("Starting tests\n");
 	
 	struct timeval time_before;
-	rc = gettimeofday(&time_before, NULL);
-	if (rc != EOK) {
-		fprintf(stderr, "Get time of day error %d\n", rc);
-		return rc;
-	}
+	gettimeofday(&time_before, NULL);
 	
 	nettest1_test(socket_ids,       1,        1);
 	nettest1_test(socket_ids,       1, messages);
@@ -413,11 +409,7 @@ int main(int argc, char *argv[])
 	nettest1_test(socket_ids, sockets, messages);
 	
 	struct timeval time_after;
-	rc = gettimeofday(&time_after, NULL);
-	if (rc != EOK) {
-		fprintf(stderr, "Get time of day error %d\n", rc);
-		return rc;
-	}
+	gettimeofday(&time_after, NULL);
 	
 	printf("Tested in %ld microseconds\n", tv_sub(&time_after,
 	    &time_before));

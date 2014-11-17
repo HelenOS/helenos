@@ -122,14 +122,7 @@ int main(int argc, char **argv)
 	last_mark = 0;
 	struct timeval prev_time;
 	struct timeval start_time;
-	int rc;
-	rc = gettimeofday(&start_time, NULL);
-	if (rc != EOK) {
-		printf("gettimeofday failed\n");
-		fclose(file);
-		free(buf);
-		return 1;
-	}
+	gettimeofday(&start_time, NULL);
 	prev_time = start_time;
 	
 	while (!feof(file)) {
@@ -154,13 +147,8 @@ int main(int argc, char **argv)
 		
 		if (progress && offset >= next_mark) {
 			struct timeval cur_time;
-			rc = gettimeofday(&cur_time, NULL);
-			if (rc != EOK) {
-				printf("gettimeofday failed\n");
-				fclose(file);
-				free(buf);
-				return 1;
-			}
+			gettimeofday(&cur_time, NULL);
+			
 			uint32_t last_run = cur_time.tv_sec - prev_time.tv_sec;
 			uint32_t total_time = cur_time.tv_sec - start_time.tv_sec;
 			if (last_run > 0 && total_time > 0) {
@@ -177,13 +165,7 @@ int main(int argc, char **argv)
 	}
 	
 	struct timeval final_time;
-	rc = gettimeofday(&final_time, NULL);
-	if (rc != EOK) {
-		printf("gettimeofday failed\n");
-		fclose(file);
-		free(buf);
-		return 1;
-	}
+	gettimeofday(&final_time, NULL);
 	
 	uint32_t total_run_time = final_time.tv_sec - start_time.tv_sec;
 	if (total_run_time > 0) {

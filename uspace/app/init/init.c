@@ -354,6 +354,7 @@ int main(int argc, char *argv[])
 	
 	int rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
 	if (rc == EOK) {
+		gui_start("/app/barber", HID_COMPOSITOR_SERVER);
 		gui_start("/app/vlaunch", HID_COMPOSITOR_SERVER);
 		gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
 	}

@@ -46,7 +46,11 @@ enum {
 	/** Order list max length */
 	protracker_olist_len = 128,
 	/** Number of rows in a pattern */
-	protracker_pattern_rows = 64
+	protracker_pattern_rows = 64,
+	/** Default TPR */
+	protracker_def_tpr = 6,
+	/** Default BPM */
+	protracker_def_bpm = 125
 };
 
 /** Protracker initial header. */

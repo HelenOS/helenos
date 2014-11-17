@@ -79,20 +79,6 @@ static load_t avenrdy[LOAD_STEPS] = {0, 0, 0};
 /** Load calculation lock */
 static mutex_t load_lock;
 
-/** Get system uptime
- *
- * @param item Sysinfo item (unused).
- * @param data Unused.
- *
- * @return System uptime (in secords).
- *
- */
-static sysarg_t get_stats_uptime(struct sysinfo_item *item, void *data)
-{
-	/* This doesn't have to be very accurate */
-	return uptime->seconds1;
-}
-
 /** Get statistics of all CPUs
  *
  * @param item    Sysinfo item (unused).
@@ -817,7 +803,6 @@ void stats_init(void)
 {
 	mutex_initialize(&load_lock, MUTEX_PASSIVE);
 	
-	sysinfo_set_item_gen_val("system.uptime", NULL, get_stats_uptime, NULL);
 	sysinfo_set_item_gen_data("system.cpus", NULL, get_stats_cpus, NULL);
 	sysinfo_set_item_gen_data("system.physmem", NULL, get_stats_physmem, NULL);
 	sysinfo_set_item_gen_data("system.load", NULL, get_stats_load, NULL);

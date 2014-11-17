@@ -109,6 +109,7 @@ typedef struct {
  *
  * @return True on succesful decoding.
  * @return False on failure.
+ *
  */
 static bool decode_tga_header(void *data, size_t size, tga_t *tga)
 {
@@ -173,6 +174,7 @@ static bool decode_tga_header(void *data, size_t size, tga_t *tga)
  *
  * @return Newly allocated surface with the decoded content.
  * @return NULL on error or unsupported format.
+ *
  */
 surface_t *decode_tga(void *data, size_t size, surface_flags_t flags)
 {
@@ -263,6 +265,7 @@ surface_t *decode_tga(void *data, size_t size, surface_flags_t flags)
  *
  * @return True on succesful encoding.
  * @return False on failure.
+ *
  */
 bool encode_tga(surface_t *surface, void **pdata, size_t *psize)
 {

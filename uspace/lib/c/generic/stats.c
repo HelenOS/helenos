@@ -290,20 +290,6 @@ load_t *stats_get_load(size_t *count)
 	return load;
 }
 
-/** Get system uptime
- *
- * @return System uptime (in seconds).
- *
- */
-sysarg_t stats_get_uptime(void)
-{
-	sysarg_t uptime;
-	if (sysinfo_get_value("system.uptime", &uptime) != EOK)
-		uptime = 0;
-	
-	return uptime;
-}
-
 /** Print load fixed-point value
  *
  * Print the load record fixed-point value in decimal
@@ -315,18 +301,15 @@ sysarg_t stats_get_uptime(void)
  */
 void stats_print_load_fragment(load_t upper, unsigned int dec_length)
 {
-	/* Magic value from BSD */
-	load_t lower = 65536;
-	
 	/* Print the whole part */
-	printf("%u.", upper / lower);
+	printf("%u.", upper / LOAD_UNIT);
 	
-	load_t rest = (upper % lower) * 10;
+	load_t rest = (upper % LOAD_UNIT) * 10;
 	
 	unsigned int i;
 	for (i = 0; i < dec_length; i++) {
-		printf("%u", rest / lower);
-		rest = (rest % lower) * 10;
+		printf("%u", rest / LOAD_UNIT);
+		rest = (rest % LOAD_UNIT) * 10;
 	}
 }
 

@@ -39,7 +39,6 @@
 #include <io/console.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <protracker.h>
 #include <trackmod.h>
 
 static bool quit = false;
@@ -87,7 +86,7 @@ int main(int argc, char *argv[])
 
 	con = console_init(stdin, stdout);
 
-	rc = trackmod_protracker_load(argv[1], &mod);
+	rc = trackmod_module_load(argv[1], &mod);
 	if (rc != EOK) {
 		printf("Error loading %s.\n", argv[1]);
 		return 1;
