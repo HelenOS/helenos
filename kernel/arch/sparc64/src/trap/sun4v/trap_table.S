@@ -896,7 +896,17 @@ fill_0_normal_tl1:
 	rdpr %cansave, %g3
 	brnz %g3, 2f
 	nop
+	rdpr %otherwin, %g4
+	brnz %g4, 1f
+	nop
+
+	/* OTHERWIN is zero, we are spilling a kernel window. */
 	INLINE_SPILL %g3, %g4
+	ba,a %xcc, 2f
+
+1:
+	/* OTHERWIN is non-zero, we are spilling a uspace window. */
+	INLINE_SPILL_TO_WBUF %g3, %g4, %g7
 
 2:
 	/* ask for new register window */
