@@ -287,8 +287,8 @@ static futex_t *get_futex(uintptr_t uaddr)
 /** Finds the physical address of the futex variable. */
 static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *paddr)
 {
-	spinlock_lock(&futex_ht_lock);
 	page_table_lock(AS, false);
+	spinlock_lock(&futex_ht_lock);
 
 	bool found = false;
 	pte_t *t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), true);
@@ -298,8 +298,8 @@ static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *paddr)
 		*paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	}
 	
-	page_table_unlock(AS, false);
 	spinlock_unlock(&futex_ht_lock);
+	page_table_unlock(AS, false);
 	
 	return found;
 }
