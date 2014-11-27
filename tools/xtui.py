@@ -38,8 +38,7 @@ def call_dlg(dlgcmd, *args, **kw):
 	indesc, outdesc = os.pipe()
 	pid = os.fork()
 	if (not pid):
-		os.close(2)
-		os.dup(outdesc)
+		os.dup2(outdesc, 2)
 		os.close(indesc)
 		
 		dlgargs = [dlgcmd]
