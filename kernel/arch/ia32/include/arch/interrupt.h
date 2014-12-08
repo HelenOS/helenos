@@ -52,6 +52,8 @@
 #define IRQ_CLK       0
 #define IRQ_KBD       1
 #define IRQ_PIC1      2
+/* NS16550 at COM1 */
+#define IRQ_NS16550   4
 #define IRQ_PIC_SPUR  7
 #define IRQ_MOUSE     12
 
