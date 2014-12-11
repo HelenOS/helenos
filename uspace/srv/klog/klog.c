@@ -52,6 +52,8 @@
 
 #define NAME       "klog"
 
+typedef size_t __attribute__ ((aligned(1))) unaligned_size_t;
+
 typedef struct {
 	size_t entry_len;
 	uint32_t serial;
@@ -108,7 +110,7 @@ static void producer()
 	size_t len = read;
 	size_t offset = 0;
 	while (offset < len) {
-		size_t entry_len = *((size_t *) (buffer + offset));
+		size_t entry_len = *((unaligned_size_t *) (buffer + offset));
 		
 		if (offset + entry_len > len || entry_len < sizeof(log_entry_t))
 			break;
