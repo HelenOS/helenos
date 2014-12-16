@@ -108,7 +108,7 @@ enum {
 static irq_pio_range_t cuda_ranges[] = {
 	{
 		.base = 0,
-		.size = sizeof(cuda_t) 
+		.size = sizeof(cuda_t)
 	}
 };
 
@@ -156,6 +156,12 @@ int main(int argc, char *argv[])
 	int i;
 
 	printf(NAME ": VIA-CUDA Apple Desktop Bus driver\n");
+	
+	/*
+	 * Alleviate the virtual memory / page table pressure caused by
+	 * interrupt storms when the default large stacks are used.
+	 */
+	async_set_notification_handler_stack_size(PAGE_SIZE);
 
 	for (i = 0; i < ADB_MAX_ADDR; ++i) {
 		adb_dev[i].client_sess = NULL;
@@ -305,17 +311,27 @@ static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
 
 	fibril_mutex_lock(&instance->dev_lock);
 
+	switch (instance->xstate) {
+	case cx_listen:
+		cuda_irq_listen();
+		break;
+	case cx_receive:
+		cuda_irq_receive();
+		break;
+	case cx_rcv_end:
+		cuda_irq_rcv_end(rbuf, &len);
+		handle = true;
+		break;
+	case cx_send_start:
+		cuda_irq_send_start();
+		break;
+	case cx_send:
+		cuda_irq_send();
+		break;
+	}
+	
 	/* Lower IFR.SR_INT so that CUDA can generate next int by raising it. */
 	pio_write_8(&instance->cuda->ifr, SR_INT);
-
-	switch (instance->xstate) {
-	case cx_listen: cuda_irq_listen(); break;
-	case cx_receive: cuda_irq_receive(); break;
-	case cx_rcv_end: cuda_irq_rcv_end(rbuf, &len);
-	    handle = true; break;
-	case cx_send_start: cuda_irq_send_start(); break;
-	case cx_send: cuda_irq_send(); break;
-	}
 
 	fibril_mutex_unlock(&instance->dev_lock);
 
@@ -330,17 +346,14 @@ static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
  */
 static void cuda_irq_listen(void)
 {
-	uint8_t b;
-
-	b = pio_read_8(&dev->b);
-
+	uint8_t b = pio_read_8(&dev->b);
+	
 	if ((b & TREQ) != 0) {
 		printf("cuda_irq_listen: no TREQ?!\n");
 		return;
 	}
-
-	pio_read_8(&dev->sr);
-	pio_write_8(&dev->b, pio_read_8(&dev->b) & ~TIP);
+	
+	pio_write_8(&dev->b, b & ~TIP);
 	instance->xstate = cx_receive;
 }
 
@@ -350,14 +363,12 @@ static void cuda_irq_listen(void)
  */
 static void cuda_irq_receive(void)
 {
-	uint8_t b, data;
-
-	data = pio_read_8(&dev->sr);
+	uint8_t data = pio_read_8(&dev->sr);
 	if (instance->bidx < CUDA_RCV_BUF_SIZE)
 		instance->rcv_buf[instance->bidx++] = data;
-
-	b = pio_read_8(&dev->b);
-
+	
+	uint8_t b = pio_read_8(&dev->b);
+	
 	if ((b & TREQ) == 0) {
 		pio_write_8(&dev->b, b ^ TACK);
 	} else {
@@ -373,10 +384,7 @@ static void cuda_irq_receive(void)
  */
 static void cuda_irq_rcv_end(void *buf, size_t *len)
 {
-	uint8_t b;
-	
-	b = pio_read_8(&dev->b);
-	pio_read_8(&dev->sr);
+	uint8_t b = pio_read_8(&dev->b);
 	
 	if ((b & TREQ) == 0) {
 		instance->xstate = cx_receive;
@@ -521,7 +529,6 @@ static void cuda_send_start(void)
 
 	instance->xstate = cx_send_start;
 }
-
 
 /** @}
  */
