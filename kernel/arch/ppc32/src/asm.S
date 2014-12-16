@@ -143,11 +143,6 @@ iret:
 
 iret_syscall:
 	
-	/* Reset decrementer */
-	
-	li r31, 1000
-	mtdec r31
-	
 	/* Disable interrupts */
 	
 	mfmsr r31
