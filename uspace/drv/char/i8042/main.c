@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 	ddf_log_init(NAME);
 	
 	/*
-	 * Alleviate the virtual memory / page table pressure caused by 
+	 * Alleviate the virtual memory / page table pressure caused by
 	 * interrupt storms when the default large stacks are used.
 	 */
 	async_set_notification_handler_stack_size(PAGE_SIZE);
