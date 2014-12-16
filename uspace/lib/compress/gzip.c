@@ -31,6 +31,7 @@
 #include <mem.h>
 #include <malloc.h>
 #include <unistd.h>
+#include <byteorder.h>
 #include "gzip.h"
 #include "inflate.h"
 
@@ -102,7 +103,7 @@ int gzip_expand(void *src, size_t srclen, void **dest, size_t *destlen)
 	    ((header.flags & (~GZIP_FLAGS_MASK)) != 0))
 		return EINVAL;
 	
-	*destlen = footer.size;
+	*destlen = uint32_t_le2host(footer.size);
 	
 	/* Ignore extra metadata */
 	
