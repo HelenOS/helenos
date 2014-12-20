@@ -88,7 +88,7 @@ def platform_to_qemu_options(platform, machine):
 		elif machine == 'bmalta':
 			return 'system-mips', malta_options()
 	elif platform == 'ppc32':
-		return 'system-ppc', ''
+		return 'system-ppc', '-m 256'
 	elif platform == 'sparc64':
 		return 'system-sparc64', ''
 
