@@ -35,7 +35,7 @@
 #
 
 VERSION = 0
-PATCHLEVEL = 5
+PATCHLEVEL = 6
 SUBLEVEL = 0
 
 ifdef EXTRAVERSION
@@ -44,6 +44,5 @@ else
 	RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)
 endif
 
-NAME = Fajtl
+NAME = Elastic Horse
 COPYRIGHT = Copyright (c) 2001-2014 HelenOS project
-
