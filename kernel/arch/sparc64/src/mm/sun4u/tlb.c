@@ -193,7 +193,7 @@ void itlb_pte_copy(pte_t *t, size_t index)
 }
 
 /** ITLB miss handler. */
-void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
+void fast_instruction_access_mmu_miss(unsigned int tt, istate_t *istate)
 {
 	size_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
 	pte_t *t;
@@ -223,20 +223,19 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
  * Note that some faults (e.g. kernel faults) were already resolved by the
  * low-level, assembly language part of the fast_data_access_mmu_miss handler.
  *
- * @param tag		Content of the TLB Tag Access register as it existed
- * 			when the trap happened. This is to prevent confusion
- * 			created by clobbered Tag Access register during a nested
- * 			DTLB miss.
+ * @param tt		Trap type.
  * @param istate	Interrupted state saved on the stack.
  */
-void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
+void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 {
+	tlb_tag_access_reg_t tag;
 	uintptr_t page_8k;
 	uintptr_t page_16k;
 	size_t index;
 	pte_t *t;
 	as_t *as = AS;
 
+	tag.value = istate->tlb_tag_access;
 	page_8k = (uint64_t) tag.vpn << MMU_PAGE_WIDTH;
 	page_16k = ALIGN_DOWN(page_8k, PAGE_SIZE);
 	index = tag.vpn % MMU_PAGES_PER_PAGE;
@@ -275,19 +274,18 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 
 /** DTLB protection fault handler.
  *
- * @param tag		Content of the TLB Tag Access register as it existed
- * 			when the trap happened. This is to prevent confusion
- * 			created by clobbered Tag Access register during a nested
- * 			DTLB miss.
+ * @param tt		Trap type.
  * @param istate	Interrupted state saved on the stack.
  */
-void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
+void fast_data_access_protection(unsigned int tt, istate_t *istate)
 {
+	tlb_tag_access_reg_t tag;
 	uintptr_t page_16k;
 	size_t index;
 	pte_t *t;
 	as_t *as = AS;
 
+	tag.value = istate->tlb_tag_access;
 	page_16k = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
 	index = tag.vpn % MMU_PAGES_PER_PAGE;	/* 16K-page emulation */
 

@@ -85,14 +85,14 @@ extern void dtr_purge(uintptr_t page, size_t width);
 extern void dtc_pte_copy(pte_t *t);
 extern void itc_pte_copy(pte_t *t);
 
-extern void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate);
-extern void alternate_data_tlb_fault(uint64_t vector, istate_t *istate);
-extern void data_nested_tlb_fault(uint64_t vector, istate_t *istate);
-extern void data_dirty_bit_fault(uint64_t vector, istate_t *istate);
-extern void instruction_access_bit_fault(uint64_t vector, istate_t *istate);
-extern void data_access_bit_fault(uint64_t vector, istate_t *istate);
-extern void data_access_rights_fault(uint64_t vector, istate_t *istate);
-extern void page_not_present(uint64_t vector, istate_t *istate);
+extern void alternate_instruction_tlb_fault(unsigned int, istate_t *);
+extern void alternate_data_tlb_fault(unsigned int, istate_t *);
+extern void data_nested_tlb_fault(unsigned int, istate_t *);
+extern void data_dirty_bit_fault(unsigned int, istate_t *);
+extern void instruction_access_bit_fault(unsigned int, istate_t *);
+extern void data_access_bit_fault(unsigned int, istate_t *);
+extern void data_access_rights_fault(unsigned int, istate_t *);
+extern void page_not_present(unsigned int, istate_t *);
 
 #endif
 

@@ -70,6 +70,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/smp/smp.c \
+	arch/$(KARCH)/src/smp/smp_call.c \
 	arch/$(KARCH)/src/machine_func.c
 
 ifeq ($(MACHINE),msim)

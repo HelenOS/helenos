@@ -51,6 +51,8 @@
 #include <arch/cycle.h>
 #include <atomic.h>
 #include <synch/spinlock.h>
+#include <synch/workqueue.h>
+#include <synch/rcu.h>
 #include <config.h>
 #include <context.h>
 #include <fpu_context.h>
@@ -63,6 +65,7 @@
 #include <log.h>
 #include <debug.h>
 #include <stacktrace.h>
+#include <cpu.h>
 
 static void scheduler_separated_stack(void);
 
@@ -86,6 +89,7 @@ static void before_task_runs(void)
 static void before_thread_runs(void)
 {
 	before_thread_runs_arch();
+	rcu_before_thread_runs();
 	
 #ifdef CONFIG_FPU_LAZY
 	if (THREAD == CPU->fpu_owner)
@@ -126,6 +130,8 @@ static void before_thread_runs(void)
  */
 static void after_thread_ran(void)
 {
+	workq_after_thread_ran();
+	rcu_after_thread_ran();
 	after_thread_ran_arch();
 }
 
@@ -218,6 +224,8 @@ loop:
 		interrupts_disable();
 		goto loop;
 	}
+
+	ASSERT(!CPU->idle);
 	
 	unsigned int i;
 	for (i = 0; i < RQ_COUNT; i++) {
@@ -397,6 +405,7 @@ void scheduler_separated_stack(void)
 	
 	ASSERT((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
 	ASSERT(CPU != NULL);
+	ASSERT(interrupts_disabled());
 	
 	/*
 	 * Hold the current task and the address space to prevent their
@@ -420,6 +429,7 @@ void scheduler_separated_stack(void)
 			break;
 		
 		case Exiting:
+			rcu_thread_exiting();
 repeat:
 			if (THREAD->detached) {
 				thread_destroy(THREAD, false);

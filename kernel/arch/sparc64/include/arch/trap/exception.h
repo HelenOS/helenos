@@ -70,25 +70,25 @@
 
 extern void dump_istate(istate_t *istate);
 
-extern void instruction_access_exception(int n, istate_t *istate);
-extern void instruction_access_error(int n, istate_t *istate);
-extern void illegal_instruction(int n, istate_t *istate);
-extern void privileged_opcode(int n, istate_t *istate);
-extern void unimplemented_LDD(int n, istate_t *istate);
-extern void unimplemented_STD(int n, istate_t *istate);
-extern void fp_disabled(int n, istate_t *istate);
-extern void fp_exception_ieee_754(int n, istate_t *istate);
-extern void fp_exception_other(int n, istate_t *istate);
-extern void tag_overflow(int n, istate_t *istate);
-extern void division_by_zero(int n, istate_t *istate);
-extern void data_access_exception(int n, istate_t *istate);
-extern void data_access_error(int n, istate_t *istate);
-extern void mem_address_not_aligned(int n, istate_t *istate);
-extern void LDDF_mem_address_not_aligned(int n, istate_t *istate);
-extern void STDF_mem_address_not_aligned(int n, istate_t *istate);
-extern void privileged_action(int n, istate_t *istate);
-extern void LDQF_mem_address_not_aligned(int n, istate_t *istate);
-extern void STQF_mem_address_not_aligned(int n, istate_t *istate);
+extern void instruction_access_exception(unsigned int, istate_t *);
+extern void instruction_access_error(unsigned int, istate_t *);
+extern void illegal_instruction(unsigned int, istate_t *);
+extern void privileged_opcode(unsigned int, istate_t *);
+extern void unimplemented_LDD(unsigned int, istate_t *);
+extern void unimplemented_STD(unsigned int, istate_t *);
+extern void fp_disabled(unsigned int, istate_t *);
+extern void fp_exception_ieee_754(unsigned int, istate_t *);
+extern void fp_exception_other(unsigned int, istate_t *);
+extern void tag_overflow(unsigned int, istate_t *);
+extern void division_by_zero(unsigned int, istate_t *);
+extern void data_access_exception(unsigned int, istate_t *);
+extern void data_access_error(unsigned int, istate_t *);
+extern void mem_address_not_aligned(unsigned int, istate_t *);
+extern void LDDF_mem_address_not_aligned(unsigned int, istate_t *);
+extern void STDF_mem_address_not_aligned(unsigned int, istate_t *);
+extern void privileged_action(unsigned int, istate_t *);
+extern void LDQF_mem_address_not_aligned(unsigned int, istate_t *);
+extern void STQF_mem_address_not_aligned(unsigned int, istate_t *);
 
 #endif /* !__ASM__ */
 

@@ -60,7 +60,9 @@ typedef struct {
 	unsigned int model;
 	unsigned int stepping;
 	cpuid_feature_info_t fi;
-	
+
+	unsigned int id; /** CPU's local, ie physical, APIC ID. */
+
 	tss_t *tss;
 	
 	size_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */

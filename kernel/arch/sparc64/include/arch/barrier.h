@@ -37,6 +37,12 @@
 
 #include <trace.h>
 
+#ifdef KERNEL
+#include <arch/common.h>
+#else
+#include <libarch/common.h>
+#endif
+
 /*
  * Our critical section barriers are prepared for the weakest RMO memory model.
  */

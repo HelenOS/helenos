@@ -61,6 +61,8 @@ DIRS = \
 	app/modplay \
 	app/nterm \
 	app/redir \
+	app/rcutest \
+	app/rcubench \
 	app/sbi \
 	app/sportdmp \
 	app/stats \
@@ -228,6 +230,7 @@ LIBS = \
 	lib/ext4 \
 	lib/trackmod \
 	lib/uri \
+	lib/urcu \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \

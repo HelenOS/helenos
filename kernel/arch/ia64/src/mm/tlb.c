@@ -476,11 +476,11 @@ static bool is_kernel_fault(uintptr_t va)
 
 /** Instruction TLB fault handler for faults with VHPT turned off.
  *
- * @param vector Interruption vector.
+ * @param n Interruption vector.
  * @param istate Structure with saved interruption state.
  *
  */
-void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
+void alternate_instruction_tlb_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
@@ -565,11 +565,11 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 
 /** Data TLB fault handler for faults with VHPT turned off.
  *
- * @param vector Interruption vector.
+ * @param n Interruption vector.
  * @param istate Structure with saved interruption state.
  *
  */
-void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
+void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 {
 	if (istate->cr_isr.sp) {
 		/*
@@ -622,22 +622,22 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
  *
  * This fault should not occur.
  *
- * @param vector Interruption vector.
+ * @param n Interruption vector.
  * @param istate Structure with saved interruption state.
  *
  */
-void data_nested_tlb_fault(uint64_t vector, istate_t *istate)
+void data_nested_tlb_fault(unsigned int n, istate_t *istate)
 {
 	ASSERT(false);
 }
 
 /** Data Dirty bit fault handler.
  *
- * @param vector Interruption vector.
+ * @param n Interruption vector.
  * @param istate Structure with saved interruption state.
  *
  */
-void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
+void data_dirty_bit_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
@@ -664,11 +664,11 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 
 /** Instruction access bit fault handler.
  *
- * @param vector Interruption vector.
+ * @param n Interruption vector.
  * @param istate Structure with saved interruption state.
  *
  */
-void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
+void instruction_access_bit_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
@@ -693,11 +693,11 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 
 /** Data access bit fault handler.
  *
- * @param vector Interruption vector.
+ * @param n Interruption vector.
  * @param istate Structure with saved interruption state.
  *
  */
-void data_access_bit_fault(uint64_t vector, istate_t *istate)
+void data_access_bit_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
@@ -728,11 +728,11 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 
 /** Data access rights fault handler.
  *
- * @param vector Interruption vector.
+ * @param n Interruption vector.
  * @param istate Structure with saved interruption state.
  *
  */
-void data_access_rights_fault(uint64_t vector, istate_t *istate)
+void data_access_rights_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;
@@ -752,11 +752,11 @@ void data_access_rights_fault(uint64_t vector, istate_t *istate)
 
 /** Page not present fault handler.
  *
- * @param vector Interruption vector.
+ * @param n Interruption vector.
  * @param istate Structure with saved interruption state.
  *
  */
-void page_not_present(uint64_t vector, istate_t *istate)
+void page_not_present(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t *t;

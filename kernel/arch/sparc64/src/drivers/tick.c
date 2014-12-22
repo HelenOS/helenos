@@ -34,6 +34,7 @@
 
 #include <arch/drivers/tick.h>
 #include <arch/interrupt.h>
+#include <arch/trap/interrupt.h>
 #include <arch/sparc64.h>
 #include <arch/asm.h>
 #include <arch/register.h>
@@ -50,7 +51,6 @@ void tick_init(void)
 	tick_compare_reg_t compare;
 	softint_reg_t clear;
 
-	interrupt_register(14, "tick_int", tick_interrupt);
 	compare.int_dis = false;
 	compare.tick_cmpr = tick_counter_read() +
 		CPU->arch.clock_frequency / HZ;
@@ -78,7 +78,7 @@ void tick_init(void)
 
 /** Process tick interrupt.
  *
- * @param n      Interrupt Level (14, can be ignored)
+ * @param n      Trap type (0x4e, can be ignored)
  * @param istate Interrupted state.
  *
  */
@@ -92,7 +92,7 @@ void tick_interrupt(unsigned int n, istate_t *istate)
 	/*
 	 * Make sure we are servicing interrupt_level_14
 	 */
-	ASSERT(n == 14);
+	ASSERT(n == TT_INTERRUPT_LEVEL_14);
 	
 	/*
 	 * Make sure we are servicing TICK_INT.

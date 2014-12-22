@@ -53,16 +53,15 @@
 #include <ipc/ipc.h>
 #include <synch/spinlock.h>
 #include <mm/tlb.h>
+#include <arch/mm/tlb.h>
 #include <symtab.h>
 #include <putchar.h>
 
 #define VECTORS_64_BUNDLE        20
 #define VECTORS_16_BUNDLE        48
-#define VECTORS_16_BUNDLE_START  0x5000
+#define VECTORS_16_BUNDLE_START  0x50
 
-#define VECTOR_MAX  0x7f00
-
-#define BUNDLE_SIZE  16
+#define VECTOR_MAX  0x7f
 
 static const char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"VHPT Translation vector",
@@ -121,15 +120,14 @@ static const char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 	"Reserved"
 };
 
-static const char *vector_to_string(uint16_t vector)
+static const char *vector_to_string(unsigned int n)
 {
-	ASSERT(vector <= VECTOR_MAX);
+	ASSERT(n <= VECTOR_MAX);
 	
-	if (vector >= VECTORS_16_BUNDLE_START)
-		return vector_names_16_bundle[(vector -
-		    VECTORS_16_BUNDLE_START) / (16 * BUNDLE_SIZE)];
+	if (n >= VECTORS_16_BUNDLE_START)
+		return vector_names_16_bundle[n - VECTORS_16_BUNDLE_START];
 	else
-		return vector_names_64_bundle[vector / (64 * BUNDLE_SIZE)];
+		return vector_names_64_bundle[n / 4];
 }
 
 void istate_decode(istate_t *istate)
@@ -152,7 +150,7 @@ void istate_decode(istate_t *istate)
 	    symtab_fmt_name_lookup(istate->cr_ifa));
 }
 
-void general_exception(uint64_t vector, istate_t *istate)
+void general_exception(unsigned int n, istate_t *istate)
 {
 	const char *desc;
 	
@@ -181,28 +179,26 @@ void general_exception(uint64_t vector, istate_t *istate)
 	}
 	
 	fault_if_from_uspace(istate, "General Exception (%s).", desc);
-	panic_badtrap(istate, vector, "General Exception (%s).", desc);
+	panic_badtrap(istate, n, "General Exception (%s).", desc);
 }
 
-void disabled_fp_register(uint64_t vector, istate_t *istate)
+void disabled_fp_register(unsigned int n, istate_t *istate)
 {
 #ifdef CONFIG_FPU_LAZY
 	scheduler_fpu_lazy_request();
 #else
 	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
-	    (uint16_t) vector, vector_to_string(vector));
+	    (uint16_t) n, vector_to_string(n));
 	panic_badtrap(istate, vector, "Interruption: %#hx (%s).",
-	    (uint16_t) vector, vector_to_string(vector));
+	    (uint16_t) n, vector_to_string(n));
 #endif
 }
 
-void nop_handler(uint64_t vector, istate_t *istate)
-{
-}
-
 /** Handle syscall. */
-int break_instruction(uint64_t vector, istate_t *istate)
+sysarg_t break_instruction(unsigned int n, istate_t *istate)
 {
+	sysarg_t ret;
+
 	/*
 	 * Move to next instruction after BREAK.
 	 */
@@ -213,26 +209,30 @@ int break_instruction(uint64_t vector, istate_t *istate)
 		istate->cr_ipsr.ri++;
 	}
 	
-	return syscall_handler(istate->in0, istate->in1, istate->in2,
+	interrupts_enable();
+	ret = syscall_handler(istate->in0, istate->in1, istate->in2,
 	    istate->in3, istate->in4, istate->in5, istate->in6);
+	interrupts_disable();
+
+	return ret;
 }
 
-void universal_handler(uint64_t vector, istate_t *istate)
+void universal_handler(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
-	    (uint16_t) vector, vector_to_string(vector));
-	panic_badtrap(istate, vector, "Interruption: %#hx (%s).",
-	    (uint16_t) vector, vector_to_string(vector));
+	    n, vector_to_string(n));
+	panic_badtrap(istate, n, "Interruption: %#hx (%s).",
+	    n, vector_to_string(n));
 }
 
 static void end_of_local_irq(void)
 {
 	asm volatile (
-		"mov cr.eoi=r0;;"
+		"mov cr.eoi = r0 ;;"
 	);
 }
 
-void external_interrupt(uint64_t vector, istate_t *istate)
+void external_interrupt(unsigned int n, istate_t *istate)
 {
 	cr_ivr_t ivr;
 	
@@ -295,6 +295,49 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 
 void trap_virtual_enable_irqs(uint16_t irqmask)
 {
+}
+
+void exception_init(void)
+{
+	unsigned int i;
+
+	for (i = 0; i < IVT_ITEMS; i++)
+		exc_register(i, "universal_handler", false, universal_handler);
+
+	exc_register(EXC_ALT_ITLB_FAULT,
+	    vector_to_string(EXC_ALT_ITLB_FAULT), true,
+	    alternate_instruction_tlb_fault);
+	exc_register(EXC_ALT_DTLB_FAULT,
+	    vector_to_string(EXC_ALT_DTLB_FAULT), true,
+	    alternate_data_tlb_fault);
+	exc_register(EXC_NESTED_TLB_FAULT,
+	    vector_to_string(EXC_NESTED_TLB_FAULT), false,
+	    data_nested_tlb_fault);
+	exc_register(EXC_DATA_D_BIT_FAULT,
+	    vector_to_string(EXC_DATA_D_BIT_FAULT), true,
+	    data_dirty_bit_fault);
+	exc_register(EXC_INST_A_BIT_FAULT,
+	    vector_to_string(EXC_INST_A_BIT_FAULT), true,
+	    instruction_access_bit_fault);
+	exc_register(EXC_DATA_A_BIT_FAULT, 
+	    vector_to_string(EXC_DATA_A_BIT_FAULT), true,
+	    data_access_bit_fault);
+	exc_register(EXC_EXT_INTERRUPT,
+	    vector_to_string(EXC_EXT_INTERRUPT), true,
+	    external_interrupt);
+
+	exc_register(EXC_PAGE_NOT_PRESENT,
+	    vector_to_string(EXC_PAGE_NOT_PRESENT), true,
+	    page_not_present);
+	exc_register(EXC_DATA_AR_FAULT,
+	    vector_to_string(EXC_DATA_AR_FAULT), true,
+	    data_access_rights_fault);
+	exc_register(EXC_GENERAL_EXCEPTION,
+	    vector_to_string(EXC_GENERAL_EXCEPTION), false,
+	    general_exception);
+	exc_register(EXC_DISABLED_FP_REG,
+	    vector_to_string(EXC_DISABLED_FP_REG), true,
+	    disabled_fp_register);
 }
 
 /** @}

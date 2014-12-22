@@ -35,18 +35,29 @@
 #ifndef KERN_ia64_INTERRUPT_H_
 #define KERN_ia64_INTERRUPT_H_
 
+#ifndef __ASM__
 #include <typedefs.h>
 #include <arch/istate.h>
+#endif
+
+#define EXC_ALT_ITLB_FAULT	0xc
+#define EXC_ALT_DTLB_FAULT	0x10
+#define EXC_NESTED_TLB_FAULT	0x14
+#define EXC_DATA_D_BIT_FAULT	0x20
+#define EXC_INST_A_BIT_FAULT	0x24
+#define EXC_DATA_A_BIT_FAULT	0x28
+#define EXC_BREAK_INSTRUCTION	0x2c
+#define EXC_EXT_INTERRUPT	0x30
+#define EXC_PAGE_NOT_PRESENT	0x50
+#define EXC_DATA_AR_FAULT	0x53
+#define EXC_GENERAL_EXCEPTION	0x54
+#define EXC_DISABLED_FP_REG	0x55
+#define EXC_SPECULATION		0x57
 
 /** ia64 has 256 INRs. */
 #define INR_COUNT  256
 
-/*
- * We need to keep this just to compile.
- * We might eventually move interrupt/ stuff
- * to genarch.
- */
-#define IVT_ITEMS  0
+#define IVT_ITEMS  128 
 #define IVT_FIRST  0
 
 /** External Interrupt vectors. */
@@ -71,16 +82,19 @@
 
 #define EOI  0  /**< The actual value doesn't matter. */
 
+#ifndef __ASM__
 extern void *ivt;
 
-extern void general_exception(uint64_t, istate_t *);
-extern int break_instruction(uint64_t, istate_t *);
-extern void universal_handler(uint64_t, istate_t *);
-extern void nop_handler(uint64_t, istate_t *);
-extern void external_interrupt(uint64_t, istate_t *);
-extern void disabled_fp_register(uint64_t, istate_t *);
+extern void general_exception(unsigned int, istate_t *);
+extern sysarg_t break_instruction(unsigned int, istate_t *);
+extern void universal_handler(unsigned int, istate_t *);
+extern void external_interrupt(unsigned int, istate_t *);
+extern void disabled_fp_register(unsigned int, istate_t *);
 
 extern void trap_virtual_enable_irqs(uint16_t);
+
+void exception_init(void);
+#endif
 
 #endif
 

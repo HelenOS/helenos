@@ -156,6 +156,8 @@ LIBURI_PREFIX = $(LIB_PREFIX)/uri
 LIBMBR_PREFIX = $(LIB_PREFIX)/mbr
 LIBGPT_PREFIX = $(LIB_PREFIX)/gpt
 
+LIBURCU_PREFIX = $(LIB_PREFIX)/urcu
+
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
 else
@@ -280,6 +282,11 @@ endif
 #
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
+
+ifeq ($(FUTEX_UPGRADABLE),y)
+	CFLAGS += -I$(LIBURCU_PREFIX)/
+	LIBS += $(LIBURCU_PREFIX)/liburcu.a
+endif
 
 ifeq ($(COMPILER),gcc_cross)
 	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)

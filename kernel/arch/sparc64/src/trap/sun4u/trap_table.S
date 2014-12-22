@@ -62,61 +62,81 @@ trap_table:
 .global instruction_access_exception_tl0
 instruction_access_exception_tl0:
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER instruction_access_exception
+	mov TT_INSTRUCTION_ACCESS_EXCEPTION, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x0a, TL = 0, instruction_access_error */
 .org trap_table + TT_INSTRUCTION_ACCESS_ERROR*ENTRY_SIZE
 .global instruction_access_error_tl0
 instruction_access_error_tl0:
-	PREEMPTIBLE_HANDLER instruction_access_error
+	mov TT_INSTRUCTION_ACCESS_ERROR, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x10, TL = 0, illegal_instruction */
 .org trap_table + TT_ILLEGAL_INSTRUCTION*ENTRY_SIZE
 .global illegal_instruction_tl0
 illegal_instruction_tl0:
-	PREEMPTIBLE_HANDLER illegal_instruction
+	mov TT_ILLEGAL_INSTRUCTION, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x11, TL = 0, privileged_opcode */
 .org trap_table + TT_PRIVILEGED_OPCODE*ENTRY_SIZE
 .global privileged_opcode_tl0
 privileged_opcode_tl0:
-	PREEMPTIBLE_HANDLER privileged_opcode
+	mov TT_PRIVILEGED_OPCODE, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x12, TL = 0, unimplemented_LDD */
 .org trap_table + TT_UNIMPLEMENTED_LDD*ENTRY_SIZE
 .global unimplemented_LDD_tl0
 unimplemented_LDD_tl0:
-	PREEMPTIBLE_HANDLER unimplemented_LDD
+	mov TT_UNIMPLEMENTED_LDD, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x13, TL = 0, unimplemented_STD */
 .org trap_table + TT_UNIMPLEMENTED_STD*ENTRY_SIZE
 .global unimplemented_STD_tl0
 unimplemented_STD_tl0:
-	PREEMPTIBLE_HANDLER unimplemented_STD
+	mov TT_UNIMPLEMENTED_STD, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x20, TL = 0, fb_disabled handler */
 .org trap_table + TT_FP_DISABLED*ENTRY_SIZE
 .global fb_disabled_tl0
 fp_disabled_tl0:
-	PREEMPTIBLE_HANDLER fp_disabled
+	mov TT_FP_DISABLED, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x21, TL = 0, fb_exception_ieee_754 handler */
 .org trap_table + TT_FP_EXCEPTION_IEEE_754*ENTRY_SIZE
 .global fb_exception_ieee_754_tl0
 fp_exception_ieee_754_tl0:
-	PREEMPTIBLE_HANDLER fp_exception_ieee_754
+	mov TT_FP_EXCEPTION_IEEE_754, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x22, TL = 0, fb_exception_other handler */
 .org trap_table + TT_FP_EXCEPTION_OTHER*ENTRY_SIZE
 .global fb_exception_other_tl0
 fp_exception_other_tl0:
-	PREEMPTIBLE_HANDLER fp_exception_other
+	mov TT_FP_EXCEPTION_OTHER, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x23, TL = 0, tag_overflow */
 .org trap_table + TT_TAG_OVERFLOW*ENTRY_SIZE
 .global tag_overflow_tl0
 tag_overflow_tl0:
-	PREEMPTIBLE_HANDLER tag_overflow
+	mov TT_TAG_OVERFLOW, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
@@ -128,152 +148,202 @@ clean_window_tl0:
 .org trap_table + TT_DIVISION_BY_ZERO*ENTRY_SIZE
 .global division_by_zero_tl0
 division_by_zero_tl0:
-	PREEMPTIBLE_HANDLER division_by_zero
+	mov TT_DIVISION_BY_ZERO, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x30, TL = 0, data_access_exception */
 .org trap_table + TT_DATA_ACCESS_EXCEPTION*ENTRY_SIZE
 .global data_access_exception_tl0
 data_access_exception_tl0:
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER data_access_exception
+	mov TT_DATA_ACCESS_EXCEPTION, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x32, TL = 0, data_access_error */
 .org trap_table + TT_DATA_ACCESS_ERROR*ENTRY_SIZE
 .global data_access_error_tl0
 data_access_error_tl0:
-	PREEMPTIBLE_HANDLER data_access_error
+	mov TT_DATA_ACCESS_ERROR, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x34, TL = 0, mem_address_not_aligned */
 .org trap_table + TT_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
 .global mem_address_not_aligned_tl0
 mem_address_not_aligned_tl0:
-	PREEMPTIBLE_HANDLER mem_address_not_aligned
+	mov TT_MEM_ADDRESS_NOT_ALIGNED, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x35, TL = 0, LDDF_mem_address_not_aligned */
 .org trap_table + TT_LDDF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
 .global LDDF_mem_address_not_aligned_tl0
 LDDF_mem_address_not_aligned_tl0:
-	PREEMPTIBLE_HANDLER LDDF_mem_address_not_aligned
+	mov TT_LDDF_MEM_ADDRESS_NOT_ALIGNED, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x36, TL = 0, STDF_mem_address_not_aligned */
 .org trap_table + TT_STDF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
 .global STDF_mem_address_not_aligned_tl0
 STDF_mem_address_not_aligned_tl0:
-	PREEMPTIBLE_HANDLER STDF_mem_address_not_aligned
+	mov TT_STDF_MEM_ADDRESS_NOT_ALIGNED, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x37, TL = 0, privileged_action */
 .org trap_table + TT_PRIVILEGED_ACTION*ENTRY_SIZE
 .global privileged_action_tl0
 privileged_action_tl0:
-	PREEMPTIBLE_HANDLER privileged_action
+	mov TT_PRIVILEGED_ACTION, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x38, TL = 0, LDQF_mem_address_not_aligned */
 .org trap_table + TT_LDQF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
 .global LDQF_mem_address_not_aligned_tl0
 LDQF_mem_address_not_aligned_tl0:
-	PREEMPTIBLE_HANDLER LDQF_mem_address_not_aligned
+	mov TT_LDQF_MEM_ADDRESS_NOT_ALIGNED, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x39, TL = 0, STQF_mem_address_not_aligned */
 .org trap_table + TT_STQF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
 .global STQF_mem_address_not_aligned_tl0
 STQF_mem_address_not_aligned_tl0:
-	PREEMPTIBLE_HANDLER STQF_mem_address_not_aligned
+	mov TT_STQF_MEM_ADDRESS_NOT_ALIGNED, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x41, TL = 0, interrupt_level_1 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_1*ENTRY_SIZE
 .global interrupt_level_1_handler_tl0
 interrupt_level_1_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 1
+	mov TT_INTERRUPT_LEVEL_1, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x42, TL = 0, interrupt_level_2 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_2*ENTRY_SIZE
 .global interrupt_level_2_handler_tl0
 interrupt_level_2_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 2
+	mov TT_INTERRUPT_LEVEL_2, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x43, TL = 0, interrupt_level_3 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_3*ENTRY_SIZE
 .global interrupt_level_3_handler_tl0
 interrupt_level_3_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 3
+	mov TT_INTERRUPT_LEVEL_3, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x44, TL = 0, interrupt_level_4 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_4*ENTRY_SIZE
 .global interrupt_level_4_handler_tl0
 interrupt_level_4_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 4
+	mov TT_INTERRUPT_LEVEL_4, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x45, TL = 0, interrupt_level_5 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_5*ENTRY_SIZE
 .global interrupt_level_5_handler_tl0
 interrupt_level_5_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 5
+	mov TT_INTERRUPT_LEVEL_5, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x46, TL = 0, interrupt_level_6 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_6*ENTRY_SIZE
 .global interrupt_level_6_handler_tl0
 interrupt_level_6_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 6
+	mov TT_INTERRUPT_LEVEL_6, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x47, TL = 0, interrupt_level_7 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_7*ENTRY_SIZE
 .global interrupt_level_7_handler_tl0
 interrupt_level_7_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 7
+	mov TT_INTERRUPT_LEVEL_7, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x48, TL = 0, interrupt_level_8 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_8*ENTRY_SIZE
 .global interrupt_level_8_handler_tl0
 interrupt_level_8_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 8
+	mov TT_INTERRUPT_LEVEL_8, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x49, TL = 0, interrupt_level_9 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_9*ENTRY_SIZE
 .global interrupt_level_9_handler_tl0
 interrupt_level_9_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 9
+	mov TT_INTERRUPT_LEVEL_9, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4a, TL = 0, interrupt_level_10 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_10*ENTRY_SIZE
 .global interrupt_level_10_handler_tl0
 interrupt_level_10_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 10
+	mov TT_INTERRUPT_LEVEL_10, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4b, TL = 0, interrupt_level_11 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_11*ENTRY_SIZE
 .global interrupt_level_11_handler_tl0
 interrupt_level_11_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 11
+	mov TT_INTERRUPT_LEVEL_11, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4c, TL = 0, interrupt_level_12 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_12*ENTRY_SIZE
 .global interrupt_level_12_handler_tl0
 interrupt_level_12_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 12
+	mov TT_INTERRUPT_LEVEL_12, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4d, TL = 0, interrupt_level_13 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_13*ENTRY_SIZE
 .global interrupt_level_13_handler_tl0
 interrupt_level_13_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 13
+	mov TT_INTERRUPT_LEVEL_13, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4e, TL = 0, interrupt_level_14 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_14*ENTRY_SIZE
 .global interrupt_level_14_handler_tl0
 interrupt_level_14_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 14
+	mov TT_INTERRUPT_LEVEL_14, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4f, TL = 0, interrupt_level_15 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_15*ENTRY_SIZE
 .global interrupt_level_15_handler_tl0
 interrupt_level_15_handler_tl0:
-	INTERRUPT_LEVEL_N_HANDLER 15
+	mov TT_INTERRUPT_LEVEL_15, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x60, TL = 0, interrupt_vector_trap handler */
 .org trap_table + TT_INTERRUPT_VECTOR_TRAP*ENTRY_SIZE
 .global interrupt_vector_trap_handler_tl0
 interrupt_vector_trap_handler_tl0:
-	INTERRUPT_VECTOR_TRAP_HANDLER
+	mov TT_INTERRUPT_VECTOR_TRAP, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x64, TL = 0, fast_instruction_access_MMU_miss */
 .org trap_table + TT_FAST_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
@@ -341,8 +411,9 @@ fill_1_normal_tl0:
 .org trap_table + (TT_TRAP_INSTRUCTION_0+\cur)*ENTRY_SIZE
 .global trap_instruction_\cur\()_tl0
 trap_instruction_\cur\()_tl0:
-	ba %xcc, trap_instruction_handler
 	mov \cur, %g2
+	ba %xcc, trap_instruction_handler
+	clr %g5
 .endr
 
 /*
@@ -355,21 +426,27 @@ trap_instruction_\cur\()_tl0:
 instruction_access_exception_tl1:
 	wrpr %g0, 1, %tl
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER instruction_access_exception
+	mov TT_INSTRUCTION_ACCESS_EXCEPTION, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x0a, TL > 0, instruction_access_error */
 .org trap_table + (TT_INSTRUCTION_ACCESS_ERROR+512)*ENTRY_SIZE
 .global instruction_access_error_tl1
 instruction_access_error_tl1:
 	wrpr %g0, 1, %tl
-	PREEMPTIBLE_HANDLER instruction_access_error
+	mov TT_INSTRUCTION_ACCESS_ERROR, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x10, TL > 0, illegal_instruction */
 .org trap_table + (TT_ILLEGAL_INSTRUCTION+512)*ENTRY_SIZE
 .global illegal_instruction_tl1
 illegal_instruction_tl1:
 	wrpr %g0, 1, %tl
-	PREEMPTIBLE_HANDLER illegal_instruction
+	mov TT_ILLEGAL_INSTRUCTION, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x24, TL > 0, clean_window handler */
 .org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
@@ -382,7 +459,9 @@ clean_window_tl1:
 .global division_by_zero_tl1
 division_by_zero_tl1:
 	wrpr %g0, 1, %tl
-	PREEMPTIBLE_HANDLER division_by_zero
+	mov TT_DIVISION_BY_ZERO, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x30, TL > 0, data_access_exception */
 .org trap_table + (TT_DATA_ACCESS_EXCEPTION+512)*ENTRY_SIZE
@@ -390,21 +469,27 @@ division_by_zero_tl1:
 data_access_exception_tl1:
 	wrpr %g0, 1, %tl
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER data_access_exception
+	mov TT_DATA_ACCESS_EXCEPTION, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x32, TL > 0, data_access_error */
 .org trap_table + (TT_DATA_ACCESS_ERROR+512)*ENTRY_SIZE
 .global data_access_error_tl1
 data_access_error_tl1:
 	wrpr %g0, 1, %tl
-	PREEMPTIBLE_HANDLER data_access_error
+	mov TT_DATA_ACCESS_ERROR, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x34, TL > 0, mem_address_not_aligned */
 .org trap_table + (TT_MEM_ADDRESS_NOT_ALIGNED+512)*ENTRY_SIZE
 .global mem_address_not_aligned_tl1
 mem_address_not_aligned_tl1:
 	wrpr %g0, 1, %tl
-	PREEMPTIBLE_HANDLER mem_address_not_aligned
+	mov TT_MEM_ADDRESS_NOT_ALIGNED, %g2
+	clr %g5
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x68, TL > 0, fast_data_access_MMU_miss */
 .org trap_table + (TT_FAST_DATA_ACCESS_MMU_MISS+512)*ENTRY_SIZE
@@ -469,21 +554,11 @@ fill_0_normal_tl1:
  * Input registers:
  *	%g1		Address of function to call if this is not a syscall.
  * 	%g2	 	First argument for the function.
+ *	%g5		I/DTLB_TAG_ACCESS register if applicable.
  *	%g6		Pre-set as kernel stack base if trap from userspace.
  *	%g7		Pre-set as address of the userspace window buffer.
  */
 .macro PREEMPTIBLE_HANDLER_TEMPLATE is_syscall
-	/*
-	 * ASSERT(%tl == 1)
-	 */
-	rdpr %tl, %g3
-	cmp %g3, 1
-	be %xcc, 1f
-	nop
-	! this is for debugging, if we ever get here it will be easy to find
-0:	ba,a %xcc, 0b
-
-1:
 .if NOT(\is_syscall)
 	rdpr %tstate, %g3
 	
@@ -501,8 +576,8 @@ fill_0_normal_tl1:
 	andcc %g3, TSTATE_PRIV_BIT, %g0		! if this trap came from the privileged mode...
 	bnz %xcc, 0f				! ...skip setting of kernel stack and primary context
 	nop
-	
 .endif
+
 	/*
 	 * Normal window spills will go to the userspace window buffer.
 	 */
@@ -515,7 +590,7 @@ fill_0_normal_tl1:
 	 * automatically saved in the old window's %sp
 	 * and the new window's %fp.
 	 */
-	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+	save %g6, -ISTATE_SIZE, %sp
 
 .if \is_syscall
 	/*
@@ -547,7 +622,7 @@ fill_0_normal_tl1:
 .if NOT(\is_syscall)
 	ba,a %xcc, 1f
 0:
-	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+	save %sp, -ISTATE_SIZE, %sp
 
 	/*
 	 * At this moment, we are using the kernel stack 
@@ -569,29 +644,26 @@ fill_0_normal_tl1:
 	mov %g2, %o0
 .else
 	! store the syscall number on the stack as 7th argument
-	stx %g2, [%sp + STACK_WINDOW_SAVE_AREA_SIZE + STACK_BIAS + STACK_ARG6] 
+	stx %g2, [%sp + STACK_BIAS + ISTATE_OFFSET_ARG6] 
 .endif
 
 	/*
-	 * Save TSTATE, TPC and TNPC aside.
+	 * Save TSTATE, TPC, TNPC and I/DTLB_TAG_ACCESS aside.
 	 */
 	rdpr %tstate, %g1
 	rdpr %tpc, %g2
 	rdpr %tnpc, %g3
 	rd %y, %g4
 
-	stx %g1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE]
-	stx %g2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC]
-	stx %g3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC]
+	stx %g1, [%sp + STACK_BIAS + ISTATE_OFFSET_TSTATE]
+	stx %g2, [%sp + STACK_BIAS + ISTATE_OFFSET_TPC]
+	stx %g3, [%sp + STACK_BIAS + ISTATE_OFFSET_TNPC]
+	stx %g5, [%sp + STACK_BIAS + ISTATE_OFFSET_TLB_TAG_ACCESS]
 
 	/*
 	 * Save the Y register.
-	 * This register is deprecated according to SPARC V9 specification
-	 * and is only present for backward compatibility with previous
-	 * versions of the SPARC architecture.
-	 * Surprisingly, gcc makes use of this register without a notice.
 	 */
-	stx %g4, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y]
+	stx %g4, [%sp + STACK_BIAS + ISTATE_OFFSET_Y]
 	
 	wrpr %g0, 0, %tl
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT, %pstate
@@ -602,7 +674,7 @@ fill_0_normal_tl1:
 	 * Call the higher-level handler and pass istate as second parameter.
 	 */
 	call %l0
-	add %sp, PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC, %o1
+	add %sp, STACK_BIAS, %o1
 .else
 	/*
 	 * Call the higher-level syscall handler and enable interrupts.
@@ -620,9 +692,9 @@ fill_0_normal_tl1:
 	/*
 	 * Read TSTATE, TPC and TNPC from saved copy.
 	 */
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE], %g1
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC], %g2
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC], %g3
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_TSTATE], %g1
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_TPC], %g2
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_TNPC], %g3
 
 	/*
 	 * Copy PSTATE.PEF to the in-register copy of TSTATE.
@@ -643,7 +715,7 @@ fill_0_normal_tl1:
 	/*
 	 * Restore Y.
 	 */
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y], %g4
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_Y], %g4
 	wr %g4, %y
 
 	/*
@@ -683,24 +755,24 @@ fill_0_normal_tl1:
 	 * registers manually.
 	 */
 	mov %sp, %g2
-	stx %i0, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0]
-	stx %i1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1]
-	stx %i2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I2]
-	stx %i3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I3]
-	stx %i4, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I4]
-	stx %i5, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I5]
-	stx %i6, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I6]
-	stx %i7, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I7]
+	stx %i0, [%sp + STACK_BIAS + ISTATE_OFFSET_O0]
+	stx %i1, [%sp + STACK_BIAS + ISTATE_OFFSET_O1]
+	stx %i2, [%sp + STACK_BIAS + ISTATE_OFFSET_O2]
+	stx %i3, [%sp + STACK_BIAS + ISTATE_OFFSET_O3]
+	stx %i4, [%sp + STACK_BIAS + ISTATE_OFFSET_O4]
+	stx %i5, [%sp + STACK_BIAS + ISTATE_OFFSET_O5]
+	stx %i6, [%sp + STACK_BIAS + ISTATE_OFFSET_O6]
+	stx %i7, [%sp + STACK_BIAS + ISTATE_OFFSET_O7]
 	wrpr %l0, 0, %cwp
 	mov %g2, %sp
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0], %i0
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1], %i1
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I2], %i2
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I3], %i3
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I4], %i4
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I5], %i5
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I6], %i6
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I7], %i7
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_O0], %i0
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_O1], %i1
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_O2], %i2
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_O3], %i3
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_O4], %i4
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_O5], %i5
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_O6], %i6
+	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_O7], %i7
 
 	/*
 	 * OTHERWIN != 0 or fall-through from the OTHERWIN == 0 case.
@@ -806,7 +878,7 @@ fill_0_normal_tl1:
 	 * We got here in order to avoid inconsistency of the window state registers.
 	 * If the:
 	 *
-	 * 	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+	 * 	save %g6, -ISTATE_SIZE, %sp
 	 *
 	 * instruction trapped and spilled a register window into the userspace
 	 * window buffer, we have just restored NWINDOWS - 1 register windows.

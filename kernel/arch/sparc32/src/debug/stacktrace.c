@@ -38,6 +38,7 @@
 #include <typedefs.h>
 #include <arch.h>
 #include <arch/stack.h>
+#include <proc/thread.h>
 
 #define FRAME_OFFSET_FP_PREV  14
 #define FRAME_OFFSET_RA       15

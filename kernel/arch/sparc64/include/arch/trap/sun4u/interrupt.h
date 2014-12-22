@@ -91,13 +91,6 @@
 
 #define INTERRUPT_VECTOR_TRAP_HANDLER_SIZE	TRAP_TABLE_ENTRY_SIZE
 
-#ifdef __ASM__
-.macro INTERRUPT_VECTOR_TRAP_HANDLER
-	PREEMPTIBLE_HANDLER interrupt
-.endm
-#endif /* __ASM__ */
-
-
 #endif
 
 /** @}

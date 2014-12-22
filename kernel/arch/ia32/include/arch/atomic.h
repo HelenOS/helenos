@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2012      Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -112,6 +113,7 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 	return v;
 }
 
+
 /** ia32 specific fast spinlock */
 NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
@@ -140,6 +142,108 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 	 */
 	CS_ENTER_BARRIER();
 }
+
+
+#define _atomic_cas_impl(pptr, exp_val, new_val, old_val, prefix) \
+({ \
+	switch (sizeof(typeof(*(pptr)))) { \
+	case 1: \
+		asm volatile ( \
+			prefix " cmpxchgb %[newval], %[ptr]\n" \
+			: /* Output operands. */ \
+			/* Old/current value is returned in eax. */ \
+			[oldval] "=a" (old_val), \
+			/* (*ptr) will be read and written to, hence "+" */ \
+			[ptr] "+m" (*pptr) \
+			: /* Input operands. */ \
+			/* Expected value must be in eax. */ \
+			[expval] "a" (exp_val), \
+			/* The new value may be in any register. */ \
+			[newval] "r" (new_val) \
+			: "memory" \
+		); \
+		break; \
+	case 2: \
+		asm volatile ( \
+			prefix " cmpxchgw %[newval], %[ptr]\n" \
+			: /* Output operands. */ \
+			/* Old/current value is returned in eax. */ \
+			[oldval] "=a" (old_val), \
+			/* (*ptr) will be read and written to, hence "+" */ \
+			[ptr] "+m" (*pptr) \
+			: /* Input operands. */ \
+			/* Expected value must be in eax. */ \
+			[expval] "a" (exp_val), \
+			/* The new value may be in any register. */ \
+			[newval] "r" (new_val) \
+			: "memory" \
+		); \
+		break; \
+	case 4: \
+		asm volatile ( \
+			prefix " cmpxchgl %[newval], %[ptr]\n" \
+			: /* Output operands. */ \
+			/* Old/current value is returned in eax. */ \
+			[oldval] "=a" (old_val), \
+			/* (*ptr) will be read and written to, hence "+" */ \
+			[ptr] "+m" (*pptr) \
+			: /* Input operands. */ \
+			/* Expected value must be in eax. */ \
+			[expval] "a" (exp_val), \
+			/* The new value may be in any register. */ \
+			[newval] "r" (new_val) \
+			: "memory" \
+		); \
+		break; \
+	} \
+})
+
+
+#ifndef local_atomic_cas
+
+#define local_atomic_cas(pptr, exp_val, new_val) \
+({ \
+	/* Use proper types and avoid name clashes */ \
+	typeof(*(pptr)) _old_val_cas; \
+	typeof(*(pptr)) _exp_val_cas = exp_val; \
+	typeof(*(pptr)) _new_val_cas = new_val; \
+	_atomic_cas_impl(pptr, _exp_val_cas, _new_val_cas, _old_val_cas, ""); \
+	\
+	_old_val_cas; \
+})
+
+#else
+/* Check if arch/atomic.h does not accidentally include /atomic.h .*/
+#error Architecture specific cpu local atomics already defined! Check your includes.
+#endif
+
+
+#ifndef local_atomic_exchange
+/* 
+ * Issuing a xchg instruction always implies lock prefix semantics.
+ * Therefore, it is cheaper to use a cmpxchg without a lock prefix 
+ * in a loop.
+ */
+#define local_atomic_exchange(pptr, new_val) \
+({ \
+	/* Use proper types and avoid name clashes */ \
+	typeof(*(pptr)) _exp_val_x; \
+	typeof(*(pptr)) _old_val_x; \
+	typeof(*(pptr)) _new_val_x = new_val; \
+	\
+	do { \
+		_exp_val_x = *pptr; \
+		_old_val_x = local_atomic_cas(pptr, _exp_val_x, _new_val_x); \
+	} while (_old_val_x != _exp_val_x); \
+	\
+	_old_val_x; \
+})
+
+#else
+/* Check if arch/atomic.h does not accidentally include /atomic.h .*/
+#error Architecture specific cpu local atomics already defined! Check your includes.
+#endif
+
 
 #endif
 

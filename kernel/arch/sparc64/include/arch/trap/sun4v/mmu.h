@@ -72,7 +72,9 @@
 #define TTE_DATA_TADDR_OFFSET			13
 
 .macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
-	PREEMPTIBLE_HANDLER fast_instruction_access_mmu_miss
+	mov TT_FAST_INSTRUCTION_ACCESS_MMU_MISS, %g2
+	clr %g5		! XXX
+	PREEMPTIBLE_HANDLER exc_dispatch 
 .endm
 
 /*
@@ -122,26 +124,28 @@
 	 * register window spill/fill handler accesses a memory which is not
 	 * mapped. In such a case, this handler will be called from TL = 1.
 	 * We handle the situation by pretending that the MMU miss occurred
-	 * on TL = 0. Once the MMU miss trap is services, the instruction which
+	 * on TL = 0. Once the MMU miss trap is serviced, the instruction which
 	 * caused the spill/fill trap is restarted, the spill/fill trap occurs,
-	 * but this time its handler accesse memory which IS mapped.
+	 * but this time its handler accesses memory which is mapped.
 	 */
 	.if (\tl > 0)
 		wrpr %g0, 1, %tl
 	.endif
 
-	/*
-	 * Save the faulting virtual page and faulting context to the %g2
-	 * register. The most significant 51 bits of the %g2 register will
-	 * contain the virtual address which caused the fault truncated to the
-	 * page boundary. The least significant 13 bits of the %g2 register
-	 * will contain the number of the context in which the fault occurred.
-	 * The value of the %g2 register will be passed as a parameter to the
-	 * higher level service routine.
-	 */
-	or %g1, %g3, %g2
+	mov TT_FAST_DATA_ACCESS_MMU_MISS, %g2
 
-	PREEMPTIBLE_HANDLER fast_data_access_mmu_miss
+	/*
+	 * Save the faulting virtual page and faulting context to the %g5
+	 * register. The most significant 51 bits of the %g5 register will
+	 * contain the virtual address which caused the fault truncated to the
+	 * page boundary. The least significant 13 bits of the %g5 register
+	 * will contain the number of the context in which the fault occurred.
+	 * The value of the %g5 register will be stored in the istate structure
+	 * for inspeciton by the higher level service routine.
+	 */
+	or %g1, %g3, %g5
+
+	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 
 /*
@@ -169,10 +173,12 @@
 	srlx %g1, TTE_DATA_TADDR_OFFSET, %g1		! truncate it to page boundary
 	sllx %g1, TTE_DATA_TADDR_OFFSET, %g1
 
-	/* the same as for FAST_DATA_ACCESS_MMU_MISS_HANDLER */
-	or %g1, %g3, %g2
+	mov TT_FAST_DATA_ACCESS_PROTECTION, %g2
 
-	PREEMPTIBLE_HANDLER fast_data_access_protection
+	/* the same as for FAST_DATA_ACCESS_MMU_MISS_HANDLER */
+	or %g1, %g3, %g5
+
+	PREEMPTIBLE_HANDLER exc_dispatch 
 .endm
 #endif /* __ASM__ */
 

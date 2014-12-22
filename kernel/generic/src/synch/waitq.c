@@ -56,6 +56,8 @@
 #include <arch/cycle.h>
 
 static void waitq_sleep_timed_out(void *);
+static void waitq_complete_wakeup(waitq_t *);
+
 
 /** Initialize wait queue
  *
@@ -329,6 +331,20 @@ void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl)
 		irq_spinlock_unlock(&wq->lock, false);
 		break;
 	default:
+		/* 
+		 * Wait for a waitq_wakeup() or waitq_unsleep() to complete
+		 * before returning from waitq_sleep() to the caller. Otherwise
+		 * the caller might expect that the wait queue is no longer used 
+		 * and deallocate it (although the wakeup on a another cpu has 
+		 * not yet completed and is using the wait queue). 
+		 * 
+		 * Note that we have to do this for ESYNCH_OK_BLOCKED and
+		 * ESYNCH_INTERRUPTED, but not necessarily for ESYNCH_TIMEOUT
+		 * where the timeout handler stops using the waitq before waking 
+		 * us up. To be on the safe side, ensure the waitq is not in use 
+		 * anymore in this case as well.
+		 */
+		waitq_complete_wakeup(wq);
 		break;
 	}
 	
@@ -356,7 +372,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
 		return ESYNCH_OK_ATOMIC;
 	} else {
 		if (PARAM_NON_BLOCKING(flags, usec)) {
-			/* Return immediatelly instead of going to sleep */
+			/* Return immediately instead of going to sleep */
 			return ESYNCH_WOULD_BLOCK;
 		}
 	}
@@ -441,6 +457,50 @@ void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
 	_waitq_wakeup_unsafe(wq, mode);
 	irq_spinlock_unlock(&wq->lock, true);
 }
+
+/** If there is a wakeup in progress actively waits for it to complete.
+ * 
+ * The function returns once the concurrently running waitq_wakeup()
+ * exits. It returns immediately if there are no concurrent wakeups 
+ * at the time.
+ * 
+ * Interrupts must be disabled.
+ * 
+ * Example usage:
+ * @code
+ * void callback(waitq *wq)
+ * {
+ *     // Do something and notify wait_for_completion() that we're done.
+ *     waitq_wakeup(wq);
+ * }
+ * void wait_for_completion(void) 
+ * {
+ *     waitq wg;
+ *     waitq_initialize(&wq);
+ *     // Run callback() in the background, pass it wq.
+ *     do_asynchronously(callback, &wq);
+ *     // Wait for callback() to complete its work.
+ *     waitq_sleep(&wq);
+ *     // callback() completed its work, but it may still be accessing 
+ *     // wq in waitq_wakeup(). Therefore it is not yet safe to return 
+ *     // from waitq_sleep() or it would clobber up our stack (where wq 
+ *     // is stored). waitq_sleep() ensures the wait queue is no longer
+ *     // in use by invoking waitq_complete_wakeup() internally.
+ *     
+ *     // waitq_sleep() returned, it is safe to free wq.
+ * }
+ * @endcode
+ * 
+ * @param wq  Pointer to a wait queue.
+ */
+static void waitq_complete_wakeup(waitq_t *wq)
+{
+	ASSERT(interrupts_disabled());
+	
+	irq_spinlock_lock(&wq->lock, false);
+	irq_spinlock_unlock(&wq->lock, false);
+}
+
 
 /** Internal SMP- and IRQ-unsafe version of waitq_wakeup()
  *

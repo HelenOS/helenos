@@ -35,10 +35,13 @@
 #include <stacktrace.h>
 #include <syscall/copy.h>
 #include <typedefs.h>
+#include <proc/thread.h>
 
 #include <arch.h>
 #include <arch/stack.h>
 #include <arch/trap/trap_table.h>
+
+#include <arch/istate_struct.h>
 
 #if defined(SUN4V)
 #include <arch/sun4v/arch.h>
@@ -60,7 +63,7 @@ bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 #endif
 
 	kstack += STACK_BIAS;
-	kstack -= PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE;
+	kstack -= ISTATE_SIZE;
 
 	if (THREAD && (ctx->fp == kstack))
 		return false;
