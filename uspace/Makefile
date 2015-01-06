@@ -158,6 +158,7 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
+	drv/bus/usb/ar9271 \
 	drv/nic/ne2k \
 	drv/nic/e1k \
 	drv/nic/rtl8139 \
