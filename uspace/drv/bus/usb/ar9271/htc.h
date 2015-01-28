@@ -42,6 +42,8 @@
 
 #include "ath.h"
 
+#define MAX_RESPONSE_LENGTH 64
+
 /**
  * HTC message IDs
  */

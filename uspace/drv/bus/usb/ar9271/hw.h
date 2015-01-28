@@ -37,7 +37,7 @@
 
 #include "ar9271.h"
 
-#define HW_WAIT_LOOPS 10000
+#define HW_WAIT_LOOPS 100
 #define HW_WAIT_TIME_US 10
 
 extern int hw_init(ar9271_t *ar9271);

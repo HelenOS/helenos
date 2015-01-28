@@ -38,8 +38,6 @@
 #include "wmi.h"
 #include "htc.h"
 
-#define MAX_RESP_LEN 64
-
 /**
  * HTC download pipes mapping.
  * 
@@ -81,7 +79,13 @@ int htc_send_message(htc_device_t *htc_device, void *buffer,
 	htc_frame_header_t *htc_header = (htc_frame_header_t *) buffer;
 	htc_header->endpoint_id = endpoint_id;
 	htc_header->flags = 0;
-	htc_header->payload_length = host2uint16_t_be(buffer_size);
+	htc_header->payload_length = 
+		host2uint16_t_be(buffer_size - sizeof(htc_frame_header_t));
+	
+	htc_header->control_bytes[0] = 0x02;
+	htc_header->control_bytes[1] = 0x88;
+	htc_header->control_bytes[2] = 0xFF;
+	htc_header->control_bytes[3] = 0xFF;
 	
 	ath_t *ath_device = htc_device->ath_device;
 	
@@ -149,7 +153,7 @@ static int htc_connect_service(htc_device_t *htc_device,
 	
 	free(buffer);
 	
-	buffer_size = MAX_RESP_LEN;
+	buffer_size = MAX_RESPONSE_LENGTH;
 	buffer = malloc(buffer_size);
 	
 	/* Read response from device. */
@@ -213,7 +217,7 @@ static int htc_config_credits(htc_device_t *htc_device)
 	
 	free(buffer);
 	
-	buffer_size = MAX_RESP_LEN;
+	buffer_size = MAX_RESPONSE_LENGTH;
 	buffer = malloc(buffer_size);
 
 	/* Check response from device. */
@@ -271,7 +275,7 @@ static int htc_complete_setup(htc_device_t *htc_device)
  */
 static int htc_check_ready(htc_device_t *htc_device)
 {
-	size_t buffer_size = MAX_RESP_LEN;
+	size_t buffer_size = MAX_RESPONSE_LENGTH;
 	void *buffer = malloc(buffer_size);
 
 	/* Read response from device. */

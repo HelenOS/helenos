@@ -105,21 +105,30 @@ typedef enum {
 	WMI_REG_RMW,
 } wmi_command_t;
 
+/**
+ * Structure used when sending registry buffer
+ */
 typedef struct {
 	uint32_t offset;		/**< Big Endian value! */
 	uint32_t value;			/**< Big Endian value! */
-} reg_buffer_t;
+} wmi_reg_t;
 
 extern int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t *res);
 extern int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t val);
+extern int wmi_reg_rmw(htc_device_t *htc_device, uint32_t reg_offset, 
+	uint32_t set_bit, uint32_t clear_bit);
+extern int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
+	uint32_t set_bit);
+extern int wmi_reg_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 
+	uint32_t clear_bit);
 extern int wmi_reg_buffer_write(htc_device_t *htc_device, 
-	reg_buffer_t *reg_buffer, size_t elements);
+	wmi_reg_t *reg_buffer, size_t elements);
 extern int wmi_send_command(htc_device_t *htc_device, 
 	wmi_command_t command_id, 
 	uint8_t *command_buffer, uint32_t command_length, 
-	uint8_t *response_buffer, uint32_t response_length);
+	void *response_buffer);
 
 #endif	/* ATHEROS_WMI_H */
 

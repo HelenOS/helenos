@@ -63,7 +63,7 @@ static int hw_read_wait(ar9271_t *ar9271, uint32_t offset, uint32_t mask,
 				rc);
 			continue;
 		}
-
+		
 		if((result & mask) == value) {
 			return EOK;
 		}
@@ -72,16 +72,16 @@ static int hw_read_wait(ar9271_t *ar9271, uint32_t offset, uint32_t mask,
 	return ETIMEOUT;
 }
 
-/**
- * Hardware reset of AR9271 device.
- * 
- * @param ar9271 Device structure.
- * 
- * @return EOK if succeed, negative error code otherwise.
- */
-int hw_reset(ar9271_t *ar9271)
+static int hw_reset_power_on(ar9271_t *ar9271)
 {
-	reg_buffer_t buffer[] = {
+	int rc = wmi_reg_write(ar9271->htc_device, AR9271_RTC_FORCE_WAKE, 
+		AR9271_RTC_FORCE_WAKE_ENABLE | 	AR9271_RTC_FORCE_WAKE_ON_INT);
+	if(rc != EOK) {
+		usb_log_error("Failed to bring up RTC register.\n");
+		return rc;
+	}
+	
+	wmi_reg_t buffer[] = {
 		{
 			.offset = AR9271_RTC_FORCE_WAKE,
 			.value = AR9271_RTC_FORCE_WAKE_ENABLE | 
@@ -97,8 +97,8 @@ int hw_reset(ar9271_t *ar9271)
 		}
 	};
 	
-	int rc = wmi_reg_buffer_write(ar9271->htc_device, buffer,
-		sizeof(buffer) / sizeof(reg_buffer_t));
+	rc = wmi_reg_buffer_write(ar9271->htc_device, buffer,
+		sizeof(buffer) / sizeof(wmi_reg_t));
 	if(rc != EOK) {
 		usb_log_error("Failed to set RT FORCE WAKE register.\n");
 		return rc;
@@ -127,7 +127,79 @@ int hw_reset(ar9271_t *ar9271)
 		return rc;
 	}
 	
-	/* TODO: Finish HW init. */
+	return EOK;
+}
+
+static int hw_warm_reset(ar9271_t *ar9271)
+{
+	wmi_reg_t buffer[] = {
+		{
+			.offset = AR9271_RTC_FORCE_WAKE,
+			.value = AR9271_RTC_FORCE_WAKE_ENABLE | 
+				AR9271_RTC_FORCE_WAKE_ON_INT
+		},
+		{
+			.offset = AR9271_RC,
+			.value = AR9271_RC_AHB
+		},
+		{
+			.offset = AR9271_RTC_RC,
+			.value = 1
+		}
+	};
+	
+	int rc = wmi_reg_buffer_write(ar9271->htc_device, buffer,
+		sizeof(buffer) / sizeof(wmi_reg_t));
+	if(rc != EOK) {
+		usb_log_error("Failed to set warm reset register.\n");
+		return rc;
+	}
+	
+	udelay(100);
+	
+	rc = wmi_reg_write(ar9271->htc_device, AR9271_RTC_RC, 0);
+	if(rc != EOK) {
+		usb_log_error("Failed to reset RTC RC register.\n");
+		return rc;
+	}
+	
+	rc = hw_read_wait(ar9271, AR9271_RTC_RC, AR9271_RTC_RC_MASK, 0);
+	if(rc != EOK) {
+		usb_log_error("Failed to read RTC RC register.\n");
+		return rc;
+	}
+	
+	rc = wmi_reg_write(ar9271->htc_device, AR9271_RC, 0);
+	if(rc != EOK) {
+		usb_log_error("Failed to reset MAC AHB register.\n");
+		return rc;
+	}
+	
+	return EOK;
+}
+
+/**
+ * Hardware reset of AR9271 device.
+ * 
+ * @param ar9271 Device structure.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+int hw_reset(ar9271_t *ar9271)
+{
+	int rc = hw_reset_power_on(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to HW reset power on.\n");
+		return rc;
+	}
+	
+	rc = hw_warm_reset(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to HW warm reset.\n");
+		return rc;
+	}
+	
+	/* TODO: Finish HW init (EEPROM init, MAC ADDR init). */
 	
 	return EOK;
 }

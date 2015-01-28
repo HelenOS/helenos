@@ -51,19 +51,24 @@
  */
 int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset, uint32_t *res)
 {
-	uint32_t resp_value;
 	uint32_t cmd_value = host2uint32_t_be(reg_offset);
 	
+	size_t buffer_size = MAX_RESPONSE_LENGTH;
+	void *resp_buffer = malloc(buffer_size);
+	
 	int rc = wmi_send_command(htc_device, WMI_REG_READ, 
-		(uint8_t *) &cmd_value, sizeof(cmd_value),
-		(uint8_t *) &resp_value, sizeof(resp_value));
+		(uint8_t *) &cmd_value, sizeof(cmd_value), resp_buffer);
 	
 	if(rc != EOK) {
 		usb_log_error("Failed to read registry value.\n");
 		return rc;
 	}
 	
-	*res = uint32_t_be2host(resp_value);
+	uint32_t *resp_value = (uint32_t *) ((void*) resp_buffer + 
+		sizeof(htc_frame_header_t) +
+		sizeof(wmi_command_header_t));
+	
+	*res = uint32_t_be2host(*resp_value);
 	
 	return rc;
 }
@@ -79,15 +84,17 @@ int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset, uint32_t *res)
  */
 int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t val)
 {
-	uint32_t resp_value = host2uint32_t_be(val);	
 	uint32_t cmd_buffer[] = {
 	    host2uint32_t_be(reg_offset),
-	    resp_value
+	    host2uint32_t_be(val)
 	};
 	
+	void *resp_buffer = malloc(MAX_RESPONSE_LENGTH);
+	
 	int rc = wmi_send_command(htc_device, WMI_REG_WRITE, 
-		(uint8_t *) &cmd_buffer, sizeof(cmd_buffer),
-		(uint8_t *) &resp_value, sizeof(resp_value));
+		(uint8_t *) &cmd_buffer, sizeof(cmd_buffer), resp_buffer);
+	
+	free(resp_buffer);
 	
 	if(rc != EOK) {
 		usb_log_error("Failed to write registry value.\n");
@@ -95,6 +102,71 @@ int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t val)
 	}
 	
 	return rc;
+}
+
+/**
+ * WMI registry set or clear specified bits.
+ * 
+ * @param htc_device HTC device structure.
+ * @param reg_offset Registry offset (address) to be written.
+ * @param set_bit Bit to be set.
+ * @param clear_bit Bit to be cleared.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+int wmi_reg_rmw(htc_device_t *htc_device, uint32_t reg_offset, 
+	uint32_t set_bit, uint32_t clear_bit)
+{
+	uint32_t value;
+	
+	int rc = wmi_reg_read(htc_device, reg_offset, &value);
+	if(rc != EOK) {
+		usb_log_error("Failed to read registry value in RMW "
+			"function.\n");
+		return rc;
+	}
+	
+	value |= set_bit;
+	value &= ~clear_bit;
+	
+	rc = wmi_reg_write(htc_device, reg_offset, value);
+	if(rc != EOK) {
+		usb_log_error("Failed to write registry value in RMW "
+			"function.\n");
+		return rc;
+	}
+	
+	return rc;
+}
+
+/**
+ * WMI registry set specified bit.
+ * 
+ * @param htc_device HTC device structure.
+ * @param reg_offset Registry offset (address) to be written.
+ * @param set_bit Bit to be set.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
+	uint32_t set_bit)
+{
+	return wmi_reg_rmw(htc_device, reg_offset, set_bit, 0);
+}
+
+/**
+ * WMI registry clear specified bit.
+ * 
+ * @param htc_device HTC device structure.
+ * @param reg_offset Registry offset (address) to be written.
+ * @param clear_bit Bit to be cleared.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+int wmi_reg_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 
+	uint32_t clear_bit)
+{
+	return wmi_reg_rmw(htc_device, reg_offset, 0, clear_bit);
 }
 
 /**
@@ -106,23 +178,29 @@ int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t val)
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int wmi_reg_buffer_write(htc_device_t *htc_device, reg_buffer_t *reg_buffer,
+int wmi_reg_buffer_write(htc_device_t *htc_device, wmi_reg_t *reg_buffer,
 	size_t elements)
 {
-	uint32_t resp_value;
+	size_t buffer_size = sizeof(wmi_reg_t) * elements;
+	void *buffer = malloc(buffer_size);
+	void *resp_buffer = malloc(MAX_RESPONSE_LENGTH);
 	
 	/* Convert values to correct endianness. */
 	for(size_t i = 0; i < elements; i++) {
-		reg_buffer_t *buffer_element = &reg_buffer[i];
-		buffer_element->offset = 
+		wmi_reg_t *buffer_element = &reg_buffer[i];
+		wmi_reg_t *buffer_it = (wmi_reg_t *)
+			((void *) buffer + i*sizeof(wmi_reg_t));
+		buffer_it->offset = 
 			host2uint32_t_be(buffer_element->offset);
-		buffer_element->value =
+		buffer_it->value =
 			host2uint32_t_be(buffer_element->value);
 	}
 	
 	int rc = wmi_send_command(htc_device, WMI_REG_WRITE, 
-		(uint8_t *) &reg_buffer, sizeof(reg_buffer_t)*elements,
-		(uint8_t *) &resp_value, sizeof(resp_value));
+		(uint8_t *) buffer, buffer_size, resp_buffer);
+	
+	free(buffer);
+	free(resp_buffer);
 	
 	if(rc != EOK) {
 		usb_log_error("Failed to write multi registry value.\n");
@@ -140,13 +218,11 @@ int wmi_reg_buffer_write(htc_device_t *htc_device, reg_buffer_t *reg_buffer,
  * @param command_buffer Buffer with command data.
  * @param command_length Length of command data.
  * @param response_buffer Buffer with response data.
- * @param response_length Length of response data.
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
 int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id, 
-    uint8_t *command_buffer, uint32_t command_length, 
-    uint8_t *response_buffer, uint32_t response_length) 
+    uint8_t *command_buffer, uint32_t command_length, void *response_buffer) 
 {
 	size_t header_size = sizeof(wmi_command_header_t) + 
 		sizeof(htc_frame_header_t);
@@ -173,23 +249,15 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	
 	free(buffer);
 	
-	buffer_size = header_size + response_length;
-	buffer = malloc(buffer_size);
-	
 	/* Read response. */
-	rc = htc_read_message(htc_device, buffer, buffer_size, NULL);
+	rc = htc_read_message(htc_device, response_buffer, MAX_RESPONSE_LENGTH, 
+		NULL);
 	if(rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to receive WMI message response. "
 		    "Error: %d\n", rc);
 		return rc;
 	}
-	
-	memcpy(response_buffer, 
-		buffer + sizeof(wmi_command_header_t), 
-		response_length);
-	
-	free(buffer);
 	
 	return rc;
 }
