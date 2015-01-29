@@ -80,6 +80,14 @@ int fibrils_dump(symtab_t *symtab, async_sess_t *sess)
 	uintptr_t pc, fp;
 	int rc;
 
+	/* 
+	 * If we for whatever reason could not obtain symbols table from the binary,
+	 * we cannot dump fibrils.
+	 */
+	if (symtab == NULL) {
+		return EIO;
+	}
+
 	rc = symtab_name_to_addr(symtab, "fibril_list", &fibril_list_addr);
 	if (rc != EOK)
 		return EIO;
