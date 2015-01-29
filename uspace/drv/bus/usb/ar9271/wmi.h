@@ -117,7 +117,7 @@ extern int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset,
 	uint32_t *res);
 extern int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t val);
-extern int wmi_reg_rmw(htc_device_t *htc_device, uint32_t reg_offset, 
+extern int wmi_reg_clear_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit, uint32_t clear_bit);
 extern int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit);

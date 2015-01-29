@@ -254,21 +254,6 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 	return rc;
 }
 
-/** Get MAC address of the AR9271 adapter
- *
- *  @param ar9271 The AR9271 device
- *  @param address The place to store the address
- *
- *  @return EOK if succeed, negative error code otherwise
- */
-inline static void ar9271_hw_get_addr(ar9271_t *ar9271, nic_address_t *addr)
-{
-	assert(ar9271);
-	assert(addr);
-	
-	// TODO
-}
-
 /** Force receiving all frames in the receive buffer
  *
  * @param nic NIC data
@@ -409,6 +394,8 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	
 	memset(ar9271, 0, sizeof(ar9271_t));
 	
+	ar9271->ddf_device = dev;
+	
 	rc = ar9271_init(ar9271, usb_device);
 	if(rc != EOK) {
 		free(ar9271);
@@ -490,8 +477,6 @@ static int ar9271_add_device(ddf_dev_t *dev)
 	}
 	
 	nic_t *nic = nic_get_from_ddf_dev(dev);
-	
-	/* TODO: Report HW address here. */
 	
 	/* Create AR9271 function.*/
 	fun = ddf_fun_create(nic_get_ddf_dev(nic), fun_exposed, "port0");

@@ -41,6 +41,5 @@
 #define HW_WAIT_TIME_US 10
 
 extern int hw_init(ar9271_t *ar9271);
-extern int hw_reset(ar9271_t *ar9271);
 
 #endif	/* ATHEROS_HW_H */

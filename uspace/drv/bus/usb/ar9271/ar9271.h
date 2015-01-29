@@ -39,11 +39,27 @@
 
 #include "htc.h"
 
+/** Number of GPIO pin used for handling led light */
+#define AR9271_LED_PIN 15
+
 /** AR9271 Registers */
 typedef enum {
+	/* EEPROM Addresses */
+	AR9271_EEPROM_BASE = 0x2100,
+	AR9271_EEPROM_MAC_ADDR_START = 0x2118,
+	
 	/* Reset MAC interface */
 	AR9271_RC = 0x4000,
 	AR9271_RC_AHB = 0x00000001,
+		
+	/* GPIO registers */
+	AR9271_GPIO_IN_OUT = 0x4048,		/**< GPIO value read/set  */
+	AR9271_GPIO_OE_OUT = 0x404C,		/**< GPIO set to output  */
+	AR9271_GPIO_OE_OUT_ALWAYS = 0x3,	/**< GPIO always drive output */
+	AR9271_GPIO_OUT_MUX1 = 0x4060,
+	AR9271_GPIO_OUT_MUX2 = 0x4064,
+	AR9271_GPIO_OUT_MUX3 = 0x4068,
+	AR9271_GPIO_OUT_MUX_AS_OUT = 0x0,	/**< GPIO set mux as output */
     
 	/* Wakeup related registers */
 	AR9271_RTC_RC = 0x7000,
@@ -61,8 +77,6 @@ typedef enum {
 	AR9271_FW_OFFSET =	0x903000,
 	
 	/* MAC Registers */
-	AR9271_MAC_REG_OFFSET = 0x10000000, /**< MAC Registers offset */
-			
 	AR9271_MAC_PCU_STA_ADDR_L32 = 0x8000, /**< STA Address Lower 32 Bits */
 	AR9271_MAC_PCU_STA_ADDR_U16 = 0x8004, /**< STA Address Upper 16 Bits */
 	AR9271_MAC_PCU_BSSID_L32 = 0x8008, /**< BSSID Lower 32 Bits */
@@ -77,6 +91,9 @@ typedef enum {
 
 /** AR9271 device data */
 typedef struct {
+	/** DDF device pointer */
+	ddf_dev_t *ddf_device;
+	
 	/** USB device data */
 	usb_device_t *usb_device;
 	

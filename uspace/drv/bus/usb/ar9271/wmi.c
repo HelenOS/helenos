@@ -114,7 +114,7 @@ int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t val)
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int wmi_reg_rmw(htc_device_t *htc_device, uint32_t reg_offset, 
+int wmi_reg_clear_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit, uint32_t clear_bit)
 {
 	uint32_t value;
@@ -126,8 +126,8 @@ int wmi_reg_rmw(htc_device_t *htc_device, uint32_t reg_offset,
 		return rc;
 	}
 	
-	value |= set_bit;
 	value &= ~clear_bit;
+	value |= set_bit;
 	
 	rc = wmi_reg_write(htc_device, reg_offset, value);
 	if(rc != EOK) {
@@ -151,7 +151,7 @@ int wmi_reg_rmw(htc_device_t *htc_device, uint32_t reg_offset,
 int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit)
 {
-	return wmi_reg_rmw(htc_device, reg_offset, set_bit, 0);
+	return wmi_reg_clear_set_bit(htc_device, reg_offset, set_bit, 0);
 }
 
 /**
@@ -166,7 +166,7 @@ int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset,
 int wmi_reg_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t clear_bit)
 {
-	return wmi_reg_rmw(htc_device, reg_offset, 0, clear_bit);
+	return wmi_reg_clear_set_bit(htc_device, reg_offset, 0, clear_bit);
 }
 
 /**

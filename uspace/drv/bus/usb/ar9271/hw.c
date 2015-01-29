@@ -34,6 +34,7 @@
 
 #include <usb/debug.h>
 #include <unistd.h>
+#include <nic.h>
 
 #include "hw.h"
 #include "wmi.h"
@@ -178,6 +179,94 @@ static int hw_warm_reset(ar9271_t *ar9271)
 	return EOK;
 }
 
+static int hw_addr_init(ar9271_t *ar9271)
+{
+	int rc;
+	uint32_t value;
+	nic_address_t ar9271_address;
+	
+	for(int i = 0; i < 3; i++) {
+		rc = wmi_reg_read(ar9271->htc_device, 
+			AR9271_EEPROM_MAC_ADDR_START + i*4,
+			&value);
+		
+		if(rc != EOK) {
+			usb_log_error("Failed to read %d. byte of MAC address."
+				"\n", i);
+			return rc;
+		}
+		
+		uint16_t two_bytes = uint16_t_be2host(value);
+		ar9271_address.address[2*i] = two_bytes >> 8;
+		ar9271_address.address[2*i+1] = two_bytes & 0xff;
+	}
+	
+	nic_t *nic = nic_get_from_ddf_dev(ar9271->ddf_device);
+	
+	rc = nic_report_address(nic, &ar9271_address);
+	if(rc != EOK) {
+		usb_log_error("Failed to report NIC HW address.\n");
+			return rc;
+	}
+	
+	return EOK;
+}
+
+static int hw_gpio_set_output(ar9271_t *ar9271, uint32_t gpio, uint32_t type)
+{
+	uint32_t address, gpio_shift, temp;
+	
+	if(gpio > 11) {
+		address = AR9271_GPIO_OUT_MUX3;
+	} else if(gpio > 5) {
+		address = AR9271_GPIO_OUT_MUX2;
+	} else {
+		address = AR9271_GPIO_OUT_MUX1;
+	}
+	
+	gpio_shift = (gpio % 6) * 5;
+	
+	int rc = wmi_reg_read(ar9271->htc_device, address, &temp);
+	if(rc != EOK) {
+		usb_log_error("Failed to read GPIO output mux.\n");
+		return rc;
+	}
+	
+	temp = ((temp & 0x1F0) << 1) | (temp & ~0x1F0);
+	temp &= ~(0x1f << gpio_shift);
+	temp |= (type << gpio_shift);
+	
+	rc = wmi_reg_write(ar9271->htc_device, address, temp);
+	if(rc != EOK) {
+		usb_log_error("Failed to write GPIO output mux.\n");
+		return rc;
+	}
+	
+	gpio_shift = 2 * gpio;
+	
+	rc = wmi_reg_clear_set_bit(ar9271->htc_device, AR9271_GPIO_OE_OUT,
+		AR9271_GPIO_OE_OUT_ALWAYS << gpio_shift, 
+		AR9271_GPIO_OE_OUT_ALWAYS << gpio_shift);
+	if(rc != EOK) {
+		usb_log_error("Failed to config GPIO as output.\n");
+		return rc;
+	}
+	
+	return EOK;
+}
+
+static int hw_gpio_set_value(ar9271_t *ar9271, uint32_t gpio, uint32_t value)
+{
+	int rc = wmi_reg_clear_set_bit(ar9271->htc_device, AR9271_GPIO_IN_OUT,
+		(~value & 1) << gpio, 1 << gpio);
+	if(rc != EOK) {
+		usb_log_error("Failed to set GPIO.\n");
+		return rc;
+	}
+	
+	return EOK;
+}
+
 /**
  * Hardware reset of AR9271 device.
  * 
@@ -185,7 +274,7 @@ static int hw_warm_reset(ar9271_t *ar9271)
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int hw_reset(ar9271_t *ar9271)
+static int hw_reset(ar9271_t *ar9271)
 {
 	int rc = hw_reset_power_on(ar9271);
 	if(rc != EOK) {
@@ -199,7 +288,29 @@ int hw_reset(ar9271_t *ar9271)
 		return rc;
 	}
 	
-	/* TODO: Finish HW init (EEPROM init, MAC ADDR init). */
+	rc = hw_addr_init(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to init HW addr.\n");
+		return rc;
+	}
+	
+	return EOK;
+}
+
+static int hw_init_led(ar9271_t *ar9271)
+{
+	int rc = hw_gpio_set_output(ar9271, AR9271_LED_PIN, 
+		AR9271_GPIO_OUT_MUX_AS_OUT);
+	if(rc != EOK) {
+		usb_log_error("Failed to set led GPIO to output.\n");
+		return rc;
+	}
+	
+	rc = hw_gpio_set_value(ar9271, AR9271_LED_PIN, 0);
+	if(rc != EOK) {
+		usb_log_error("Failed to init bring up GPIO led.\n");
+		return rc;
+	}
 	
 	return EOK;
 }
@@ -216,6 +327,12 @@ int hw_init(ar9271_t *ar9271)
 	int rc = hw_reset(ar9271);
 	if(rc != EOK) {
 		usb_log_error("Failed to HW reset device.\n");
+		return rc;
+	}
+	
+	rc = hw_init_led(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to HW init led.\n");
 		return rc;
 	}
 	
