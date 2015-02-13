@@ -249,6 +249,12 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	
 	free(buffer);
 	
+	bool clean_resp_buffer = false;
+	if(response_buffer == NULL) {
+		response_buffer = malloc(MAX_RESPONSE_LENGTH);
+		clean_resp_buffer = true;
+	}
+	
 	/* Read response. */
 	rc = htc_read_message(htc_device, response_buffer, MAX_RESPONSE_LENGTH, 
 		NULL);
@@ -257,6 +263,10 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 		usb_log_error("Failed to receive WMI message response. "
 		    "Error: %d\n", rc);
 		return rc;
+	}
+	
+	if(clean_resp_buffer) {
+		free(response_buffer);
 	}
 	
 	return rc;

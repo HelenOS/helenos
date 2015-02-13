@@ -26,21 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file hw.h
- *
- * Definitions of AR9271 hardware related functions.
- *
+/** @addtogroup libnet
+ *  @{
  */
 
-#ifndef ATHEROS_HW_H
-#define	ATHEROS_HW_H
+/** @file ieee80211_impl.c
+ * 
+ * IEEE 802.11 default functions implementation.
+ */
 
-#include "ar9271.h"
+#include <errno.h>
 
-#define HW_WAIT_LOOPS 100
-#define HW_WAIT_TIME_US 10
+#include <ieee80211_impl.h>
 
-extern int hw_init(ar9271_t *ar9271);
-extern int hw_reset(ar9271_t *ar9271);
-
-#endif	/* ATHEROS_HW_H */
+/**
+ * Default implementation of IEEE802.11 scan function.
+ * 
+ * @param ieee80211_dev Structure of IEEE802.11 device.
+ * 
+ * @return EOK if succeed, negative error code otherwise. 
+ */
+int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)
+{
+	/** TODO */
+	
+	return EOK;
+}

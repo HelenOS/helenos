@@ -28,10 +28,20 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude
 LIBRARY = libnet
 
+LIBS = \
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBNIC_PREFIX)/libnic.a 
+
+EXTRA_CFLAGS += \
+	-Iinclude \
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBNIC_PREFIX)/include
+
 SOURCES = \
-	tl/socket_core.c
+	tl/socket_core.c \
+	ieee80211/ieee80211.c \
+	ieee80211/ieee80211_impl.c
 
 include $(USPACE_PREFIX)/Makefile.common

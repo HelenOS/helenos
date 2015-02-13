@@ -32,14 +32,16 @@ LIBS = \
 	$(LIBUSBDEV_PREFIX)/libusbdev.a \
 	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBDRV_PREFIX)/libdrv.a \
-	$(LIBNIC_PREFIX)/libnic.a
+	$(LIBNIC_PREFIX)/libnic.a \
+	$(LIBNET_PREFIX)/libnet.a
 	
 EXTRA_CFLAGS += \
 	-I. \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBUSBDEV_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBNIC_PREFIX)/include
+	-I$(LIBNIC_PREFIX)/include \
+	-I$(LIBNET_PREFIX)/include \
 	
 BINARY = ar9271
 

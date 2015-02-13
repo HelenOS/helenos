@@ -26,21 +26,64 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file hw.h
- *
- * Definitions of AR9271 hardware related functions.
- *
+/** @addtogroup libnet
+ *  @{
  */
 
-#ifndef ATHEROS_HW_H
-#define	ATHEROS_HW_H
+/** @file ieee80211.h
+ * 
+ * IEEE 802.11 interface definition.
+ */
 
-#include "ar9271.h"
+#ifndef LIBNET_IEEE80211_H
+#define LIBNET_IEEE80211_H
 
-#define HW_WAIT_LOOPS 100
-#define HW_WAIT_TIME_US 10
+#include <ddf/driver.h>
+#include <sys/types.h>
 
-extern int hw_init(ar9271_t *ar9271);
-extern int hw_reset(ar9271_t *ar9271);
+/** Initial channel frequency. */
+#define IEEE80211_FIRST_CHANNEL 2412
 
-#endif	/* ATHEROS_HW_H */
+/** Max supported channel frequency. */
+#define IEEE80211_MAX_CHANNEL 2472
+
+/* Gap between IEEE80211 channels in MHz. */
+#define IEEE80211_CHANNEL_GAP 5
+
+struct ieee80211_dev;
+
+/** Device operating modes. */
+typedef enum {
+	IEEE80211_OPMODE_ADHOC,
+	IEEE80211_OPMODE_MESH,
+	IEEE80211_OPMODE_AP,
+	IEEE80211_OPMODE_STATION
+} ieee80211_operating_mode_t;
+
+/** IEEE 802.11 functions. */
+typedef struct {
+	int (*start)(struct ieee80211_dev *);
+	int (*scan)(struct ieee80211_dev *);
+} ieee80211_ops_t;
+
+/** IEEE 802.11 WiFi device structure. */
+typedef struct ieee80211_dev {
+	/** Backing DDF device. */
+	ddf_dev_t *ddf_dev;
+	
+	/** Pointer to implemented IEEE 802.11 operations. */
+	ieee80211_ops_t *ops;
+	
+	/** Pointer to driver specific data. */
+	void *driver_data;
+} ieee80211_dev_t;
+
+extern int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, 
+	void *driver_data, ddf_dev_t *ddf_dev);
+extern int ieee80211_init(ieee80211_dev_t *ieee80211_dev, 
+	ieee80211_ops_t *ieee80211_ops);
+
+#endif /* LIBNET_IEEE80211_H */
+
+/** @}
+ */

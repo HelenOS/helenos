@@ -32,6 +32,7 @@
  *
  */
 
+#include <ieee80211.h>
 #include <usb/classes/classes.h>
 #include <usb/dev/request.h>
 #include <usb/dev/poll.h>
@@ -94,17 +95,11 @@ const usb_endpoint_description_t *endpoints[] = {
 	NULL
 };
 
-/** Network interface options for AR9271 driver. */
-static nic_iface_t ar9271_nic_iface;
-
-/** Basic device operations for AR9271 NIC driver. */
-static ddf_dev_ops_t ar9271_nic_dev_ops;
-
-/** Basic driver operations for AR9271 NIC driver. */
-static driver_ops_t ar9271_nic_driver_ops;
-
 /* Callback when new device is to be controlled by this driver. */
 static int ar9271_add_device(ddf_dev_t *);
+
+/* IEEE802.11 callbacks */
+static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev);
 
 static driver_ops_t ar9271_driver_ops = {
 	.dev_add = ar9271_add_device
@@ -115,45 +110,153 @@ static driver_t ar9271_driver = {
 	.driver_ops = &ar9271_driver_ops
 };
 
-/* The default implementation callbacks */
-static int ar9271_on_activating(nic_t *);
-static int ar9271_on_stopping(nic_t *);
-static void ar9271_send_frame(nic_t *, void *, size_t);
+static ieee80211_ops_t ar9271_ieee80211_ops = {
+	.start = ar9271_ieee80211_start
+};
+
+static int ar9271_set_rx_filter(ar9271_t *ar9271)
+{
+	uint32_t filter_bits;
+	int rc = wmi_reg_read(ar9271->htc_device, AR9271_RX_FILTER, 
+		&filter_bits);
+	if(rc != EOK) {
+		usb_log_error("Failed to read RX filter.\n");
+		return EINVAL;
+	}
+	
+	/* TODO: Do proper filtering here. */
+	
+	filter_bits |= AR9271_RX_FILTER_UNI | AR9271_RX_FILTER_MULTI | 
+		AR9271_RX_FILTER_BROAD | AR9271_RX_FILTER_PROMISCUOUS;
+	
+	rc = wmi_reg_write(ar9271->htc_device, AR9271_RX_FILTER, filter_bits);
+	if(rc != EOK) {
+		usb_log_error("Failed to write RX filter.\n");
+		return EINVAL;
+	}
+	
+	return EOK;
+}
+
+static int ar9271_rx_init(ar9271_t *ar9271)
+{
+	int rc = wmi_reg_write(ar9271->htc_device, AR9271_COMMAND, 
+		AR9271_COMMAND_RX_ENABLE);
+	if(rc != EOK) {
+		usb_log_error("Failed to send RX enable command.\n");
+		return EINVAL;
+	}
+	
+	rc = ar9271_set_rx_filter(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to set RX filtering.\n");
+		return EINVAL;
+	}
+	
+	return EOK;
+}
+
+static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
+{
+	ar9271_t *ar9271 = (ar9271_t *) ieee80211_dev->driver_data;
+	
+	int rc = wmi_send_command(ar9271->htc_device, WMI_FLUSH_RECV, NULL, 0, 
+		NULL);
+	if(rc != EOK) {
+		usb_log_error("Failed to flush receiving buffer.\n");
+		return EINVAL;
+	}
+	
+	rc = hw_reset(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to do HW reset.\n");
+		return EINVAL;
+	}
+	
+	uint16_t htc_mode = host2uint16_t_be(1);
+	rc = wmi_send_command(ar9271->htc_device, WMI_SET_MODE, 
+		(uint8_t *) &htc_mode, sizeof(htc_mode), NULL);
+	if(rc != EOK) {
+		usb_log_error("Failed to set HTC mode.\n");
+		return EINVAL;
+	}
+	
+	rc = wmi_send_command(ar9271->htc_device, WMI_ATH_INIT, NULL, 0, 
+		NULL);
+	if(rc != EOK) {
+		usb_log_error("Failed to send ath init command.\n");
+		return EINVAL;
+	}
+	
+	rc = wmi_send_command(ar9271->htc_device, WMI_START_RECV, NULL, 0, 
+		NULL);
+	if(rc != EOK) {
+		usb_log_error("Failed to send receiving init command.\n");
+		return EINVAL;
+	}
+	
+	rc = ar9271_rx_init(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to initialize RX.\n");
+		return EINVAL;
+	}
+	
+	return EOK;
+}
 
 static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
 {
 	ar9271->usb_device = usb_device;
 	
-	ath_t *ath_device = malloc(sizeof(ath_t));
-	if (!ath_device) {
+	ar9271->ath_device = calloc(1, sizeof(ath_t));
+	if (!ar9271->ath_device) {
 		usb_log_error("Failed to allocate memory for ath device "
 		    "structure.\n");
 		return ENOMEM;
 	}
 	
-	int rc = ath_usb_init(ath_device, usb_device);
+	int rc = ath_usb_init(ar9271->ath_device, usb_device);
 	if(rc != EOK) {
-		free(ath_device);
+		free(ar9271->ath_device);
 		usb_log_error("Failed to initialize ath device.\n");
 		return EINVAL;
 	}
 		
 	/* HTC device structure initialization. */
-	ar9271->htc_device = malloc(sizeof(htc_device_t));
+	ar9271->htc_device = calloc(1, sizeof(htc_device_t));
 	if(!ar9271->htc_device) {
-		free(ath_device);
+		free(ar9271->ath_device);
 		usb_log_error("Failed to allocate memory for HTC device "
 		    "structure.\n");
 		return ENOMEM;
 	}
 	
-	memset(ar9271->htc_device, 0, sizeof(htc_device_t));
-        
-	rc = htc_device_init(ath_device, ar9271->htc_device);
+	rc = htc_device_init(ar9271->ath_device, ar9271->htc_device);
 	if(rc != EOK) {
 		free(ar9271->htc_device);
-		free(ath_device);
-		usb_log_error("Failed to initialize HTC device.\n");
+		free(ar9271->ath_device);
+		usb_log_error("Failed to initialize HTC device structure.\n");
+		return EINVAL;
+	}
+	
+	/* IEEE 802.11 framework structure initialization. */
+	ar9271->ieee80211_dev = calloc(1, sizeof(ieee80211_dev_t));
+	if (!ar9271->ieee80211_dev) {
+		free(ar9271->htc_device);
+		free(ar9271->ath_device);
+		usb_log_error("Failed to allocate memory for IEEE80211 device "
+		    "structure.\n");
+		return ENOMEM;
+	}
+	
+	rc = ieee80211_device_init(ar9271->ieee80211_dev, ar9271, 
+		ar9271->ddf_dev);
+	if(rc != EOK) {
+		free(ar9271->ieee80211_dev);
+		free(ar9271->htc_device);
+		free(ar9271->ath_device);
+		usb_log_error("Failed to initialize IEEE80211 device structure."
+			"\n");
 		return EINVAL;
 	}
 	
@@ -254,111 +357,6 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 	return rc;
 }
 
-/** Force receiving all frames in the receive buffer
- *
- * @param nic NIC data
- */
-static void ar9271_poll(nic_t *nic)
-{
-	assert(nic);
-}
-
-/** Set polling mode
- *
- * @param device  Device to set
- * @param mode    Mode to set
- * @param period  Period for NIC_POLL_PERIODIC
- *
- * @return EOK if succeed, ENOTSUP if the mode is not supported
- */
-static int ar9271_poll_mode_change(nic_t *nic, nic_poll_mode_t mode,
-    const struct timeval *period)
-{
-	assert(nic);
-	return EOK;
-}
-
-/** Set multicast frames acceptance mode
- *
- * @param nic      NIC device to update
- * @param mode     Mode to set
- * @param addr     Address list (used in mode = NIC_MULTICAST_LIST)
- * @param addr_cnt Length of address list (used in mode = NIC_MULTICAST_LIST)
- *
- * @return EOK if succeed, negative error code otherwise
- */
-static int ar9271_on_multicast_mode_change(nic_t *nic, 
-    nic_multicast_mode_t mode, const nic_address_t *addr, size_t addr_cnt)
-{
-	assert(nic);
-	return EOK;
-}
-
-/** Set unicast frames acceptance mode
- *
- * @param nic      NIC device to update
- * @param mode     Mode to set
- * @param addr     Address list (used in mode = NIC_MULTICAST_LIST)
- * @param addr_cnt Length of address list (used in mode = NIC_MULTICAST_LIST)
- *
- * @return EOK if succeed, negative error code otherwise
- */
-static int ar9271_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
-    const nic_address_t *addr, size_t addr_cnt)
-{
-	assert(nic);
-	return EOK;
-}
-
-/** Set broadcast frames acceptance mode
- *
- * @param nic  NIC device to update
- * @param mode Mode to set
- *
- * @return EOK if succeed, negative error code otherwise
- */
-static int ar9271_on_broadcast_mode_change(nic_t *nic, 
-    nic_broadcast_mode_t mode)
-{
-	assert(nic);
-	return EOK;
-}
-
-/** Activate the device to receive and transmit frames
- *
- * @param nic NIC driver data
- *
- * @return EOK if activated successfully, negative error code otherwise
- */
-static int ar9271_on_activating(nic_t *nic)
-{
-	assert(nic);
-	return EOK;
-}
-
-/** Callback for NIC_STATE_STOPPED change
- *
- * @param nic NIC driver data
- *
- * @return EOK if succeed, negative error code otherwise
- */
-static int ar9271_on_stopping(nic_t *nic)
-{
-	assert(nic);
-	return EOK;
-}
-
-/** Send frame
- *
- * @param nic    NIC driver data structure
- * @param data   Frame data
- * @param size   Frame size in bytes
- */
-static void ar9271_send_frame(nic_t *nic, void *data, size_t size)
-{
-	assert(nic);
-}
-
 /** Create driver data structure.
  * 
  *  @param dev The device structure
@@ -384,7 +382,7 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	}
 	
 	/* AR9271 structure initialization. */
-	ar9271_t *ar9271 = malloc(sizeof(ar9271_t));
+	ar9271_t *ar9271 = calloc(1, sizeof(ar9271_t));
 	if (!ar9271) {
 		free(usb_device);
 		usb_log_error("Failed to allocate memory for device "
@@ -392,9 +390,7 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 		return NULL;
 	}
 	
-	memset(ar9271, 0, sizeof(ar9271_t));
-	
-	ar9271->ddf_device = dev;
+	ar9271->ddf_dev = dev;
 	
 	rc = ar9271_init(ar9271, usb_device);
 	if(rc != EOK) {
@@ -404,24 +400,6 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 			rc);
 		return NULL;
 	}
-	
-	/* NIC framework initialization. */
-	nic_t *nic = nic_create_and_bind(dev);
-	if (!nic) {
-		free(ar9271);
-		free(usb_device);
-		usb_log_error("Failed to create and bind NIC data.\n");
-		return NULL;
-	}
-	
-	nic_set_specific(nic, ar9271);
-	nic_set_send_frame_handler(nic, ar9271_send_frame);
-	nic_set_state_change_handlers(nic, ar9271_on_activating,
-	    NULL, ar9271_on_stopping);
-	nic_set_filtering_change_handlers(nic,
-	    ar9271_on_unicast_mode_change, ar9271_on_multicast_mode_change,
-	    ar9271_on_broadcast_mode_change, NULL, NULL);
-	nic_set_poll_handlers(nic, ar9271_poll_mode_change, ar9271_poll);
 	
 	return ar9271;
 }
@@ -446,7 +424,6 @@ static void ar9271_delete_dev_data(ar9271_t *ar9271)
 static int ar9271_add_device(ddf_dev_t *dev)
 {
 	assert(dev);
-	ddf_fun_t *fun;
 	
 	/* Allocate driver data for the device. */
 	ar9271_t *ar9271 = ar9271_create_dev_data(dev);
@@ -476,30 +453,11 @@ static int ar9271_add_device(ddf_dev_t *dev)
 		return rc;
 	}
 	
-	nic_t *nic = nic_get_from_ddf_dev(dev);
-	
-	/* Create AR9271 function.*/
-	fun = ddf_fun_create(nic_get_ddf_dev(nic), fun_exposed, "port0");
-	if (fun == NULL) {
+	/* Initialize AR9271 IEEE 802.11 framework. */
+	rc = ieee80211_init(ar9271->ieee80211_dev, &ar9271_ieee80211_ops);
+	if(rc != EOK) {
 		ar9271_delete_dev_data(ar9271);
-		usb_log_error("Failed creating device function.\n");
-	}
-	
-	nic_set_ddf_fun(nic, fun);
-	ddf_fun_set_ops(fun, &ar9271_nic_dev_ops);
-	
-	rc = ddf_fun_bind(fun);
-	if (rc != EOK) {
-		ddf_fun_destroy(fun);
-		ar9271_delete_dev_data(ar9271);
-		usb_log_error("Failed binding device function.\n");
-		return rc;
-	}
-	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
-	if (rc != EOK) {
-		ddf_fun_unbind(fun);
-		ar9271_delete_dev_data(ar9271);
-		usb_log_error("Failed adding function to category.\n");
+		usb_log_error("Failed to initialize IEEE80211 framework.\n");
 		return rc;
 	}
 	
@@ -515,9 +473,6 @@ int main(void)
 	if (nic_driver_init(NAME) != EOK)
 		return 1;
 	
-	nic_driver_implement(&ar9271_nic_driver_ops, &ar9271_nic_dev_ops,
-	    &ar9271_nic_iface);
-
 	usb_log_info("HelenOS AR9271 driver started.\n");
 
 	return ddf_driver_main(&ar9271_driver);

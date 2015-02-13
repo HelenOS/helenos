@@ -101,8 +101,7 @@ typedef enum {
 	WMI_INT_STATS,
 	WMI_TX_STATS,
 	WMI_RX_STATS,
-	WMI_BITRATE_MASK,
-	WMI_REG_RMW,
+	WMI_BITRATE_MASK
 } wmi_command_t;
 
 /**

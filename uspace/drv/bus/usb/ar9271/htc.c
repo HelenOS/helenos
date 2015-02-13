@@ -34,6 +34,7 @@
 
 #include <usb/debug.h>
 #include <byteorder.h>
+#include <errno.h>
 
 #include "wmi.h"
 #include "htc.h"

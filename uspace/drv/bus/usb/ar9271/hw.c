@@ -35,6 +35,7 @@
 #include <usb/debug.h>
 #include <unistd.h>
 #include <nic.h>
+#include <ieee80211.h>
 
 #include "hw.h"
 #include "wmi.h"
@@ -75,13 +76,6 @@ static int hw_read_wait(ar9271_t *ar9271, uint32_t offset, uint32_t mask,
 
 static int hw_reset_power_on(ar9271_t *ar9271)
 {
-	int rc = wmi_reg_write(ar9271->htc_device, AR9271_RTC_FORCE_WAKE, 
-		AR9271_RTC_FORCE_WAKE_ENABLE | 	AR9271_RTC_FORCE_WAKE_ON_INT);
-	if(rc != EOK) {
-		usb_log_error("Failed to bring up RTC register.\n");
-		return rc;
-	}
-	
 	wmi_reg_t buffer[] = {
 		{
 			.offset = AR9271_RTC_FORCE_WAKE,
@@ -98,7 +92,7 @@ static int hw_reset_power_on(ar9271_t *ar9271)
 		}
 	};
 	
-	rc = wmi_reg_buffer_write(ar9271->htc_device, buffer,
+	int rc = wmi_reg_buffer_write(ar9271->htc_device, buffer,
 		sizeof(buffer) / sizeof(wmi_reg_t));
 	if(rc != EOK) {
 		usb_log_error("Failed to set RT FORCE WAKE register.\n");
@@ -131,8 +125,14 @@ static int hw_reset_power_on(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_warm_reset(ar9271_t *ar9271)
+static int hw_set_reset(ar9271_t *ar9271, bool cold)
 {
+	uint32_t reset_value = AR9271_RTC_RC_MAC_WARM;
+	
+	if(cold) {
+		reset_value |= AR9271_RTC_RC_MAC_COLD;
+	}
+	
 	wmi_reg_t buffer[] = {
 		{
 			.offset = AR9271_RTC_FORCE_WAKE,
@@ -145,7 +145,7 @@ static int hw_warm_reset(ar9271_t *ar9271)
 		},
 		{
 			.offset = AR9271_RTC_RC,
-			.value = 1
+			.value = reset_value
 		}
 	};
 	
@@ -201,7 +201,7 @@ static int hw_addr_init(ar9271_t *ar9271)
 		ar9271_address.address[2*i+1] = two_bytes & 0xff;
 	}
 	
-	nic_t *nic = nic_get_from_ddf_dev(ar9271->ddf_device);
+	nic_t *nic = nic_get_from_ddf_dev(ar9271->ddf_dev);
 	
 	rc = nic_report_address(nic, &ar9271_address);
 	if(rc != EOK) {
@@ -268,13 +268,13 @@ static int hw_gpio_set_value(ar9271_t *ar9271, uint32_t gpio, uint32_t value)
 }
 
 /**
- * Hardware reset of AR9271 device.
+ * Hardware init procedure of AR9271 device.
  * 
  * @param ar9271 Device structure.
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-static int hw_reset(ar9271_t *ar9271)
+static int hw_init_proc(ar9271_t *ar9271)
 {
 	int rc = hw_reset_power_on(ar9271);
 	if(rc != EOK) {
@@ -282,7 +282,7 @@ static int hw_reset(ar9271_t *ar9271)
 		return rc;
 	}
 	
-	rc = hw_warm_reset(ar9271);
+	rc = hw_set_reset(ar9271, false);
 	if(rc != EOK) {
 		usb_log_error("Failed to HW warm reset.\n");
 		return rc;
@@ -315,6 +315,144 @@ static int hw_init_led(ar9271_t *ar9271)
 	return EOK;
 }
 
+static int hw_set_operating_mode(ar9271_t *ar9271, 
+	ieee80211_operating_mode_t opmode)
+{
+	uint32_t set_bit = 0x10000000;
+	
+	/* NOTICE: Fall-through switch statement! */
+	switch(opmode) {
+		case IEEE80211_OPMODE_ADHOC:
+			set_bit |= AR9271_OPMODE_ADHOC_MASK;
+		case IEEE80211_OPMODE_MESH:
+		case IEEE80211_OPMODE_AP:
+			set_bit |= AR9271_OPMODE_STATION_AP_MASK;
+		case IEEE80211_OPMODE_STATION:
+			wmi_reg_clear_bit(ar9271->htc_device, AR9271_CONFIG,
+				AR9271_CONFIG_ADHOC);
+	}
+	
+	wmi_reg_clear_set_bit(ar9271->htc_device, AR9271_STATION_ID1,
+		set_bit, 
+		AR9271_OPMODE_STATION_AP_MASK | AR9271_OPMODE_ADHOC_MASK);
+	
+	return EOK;
+}
+
+static uint32_t hw_reverse_bits(uint32_t value, uint32_t count)
+{
+	uint32_t ret_val = 0;
+	
+	for(size_t i = 0; i < count; i++) {
+		ret_val = (ret_val << 1) | (value & 1);
+		value >>= 1;
+	}
+	
+	return ret_val;
+}
+
+static int hw_set_channel(ar9271_t *ar9271, uint16_t freq)
+{
+	/* Not supported channel frequency. */
+	if(freq < IEEE80211_FIRST_CHANNEL || freq > IEEE80211_MAX_CHANNEL) {
+		return EINVAL;
+	}
+	
+	/* Not supported channel frequency. */
+	if((freq - IEEE80211_FIRST_CHANNEL) % IEEE80211_CHANNEL_GAP != 0) {
+		return EINVAL;
+	}
+	
+	uint32_t result;
+	wmi_reg_read(ar9271->htc_device, AR9271_PHY_CCK_TX_CTRL, &result);
+	wmi_reg_write(ar9271->htc_device, AR9271_PHY_CCK_TX_CTRL,
+		result & ~AR9271_PHY_CCK_TX_CTRL_JAPAN);
+	
+	/* Some magic here. */
+	uint32_t channel = hw_reverse_bits(
+		(((((freq - 672) * 2 - 3040) / 10) << 2) & 0xFF), 8);
+	uint32_t to_write = (channel << 8) | 33;
+	
+	wmi_reg_write(ar9271->htc_device, AR9271_PHY_BASE + (0x37 << 2),
+		to_write);
+	
+	return EOK;
+}
+
+int hw_reset(ar9271_t *ar9271) 
+{
+	int rc = wmi_reg_write(ar9271->htc_device, 
+		AR9271_RESET_POWER_DOWN_CONTROL,
+		AR9271_RADIO_RF_RESET);
+	if(rc != EOK) {
+		usb_log_error("Failed to reset radio rf.\n");
+		return rc;
+	}
+	
+	udelay(50);
+	
+	rc = wmi_reg_write(ar9271->htc_device, 
+		AR9271_RESET_POWER_DOWN_CONTROL,
+		AR9271_GATE_MAC_CONTROL);
+	if(rc != EOK) {
+		usb_log_error("Failed to set the gate reset controls for MAC."
+			"\n");
+		return rc;
+	}
+	
+	udelay(50);
+	
+	/* Perform cold reset of device. */
+	rc = hw_set_reset(ar9271, true);
+	if(rc != EOK) {
+		usb_log_error("Failed to HW cold reset.\n");
+		return rc;
+	}
+	
+	/* Set physical layer mode. */
+	rc = wmi_reg_write(ar9271->htc_device, AR9271_PHY_MODE,
+		AR9271_PHY_MODE_DYNAMIC | AR9271_PHY_MODE_2G);
+	if(rc != EOK) {
+		usb_log_error("Failed to set physical layer mode.\n");
+		return rc;
+	}
+	
+	/* Set device operating mode. */
+	rc = hw_set_operating_mode(ar9271, IEEE80211_OPMODE_STATION);
+	if(rc != EOK) {
+		usb_log_error("Failed to set opmode to station.\n");
+		return rc;
+	}
+	
+	/* Set channel. */
+	rc = hw_set_channel(ar9271, IEEE80211_FIRST_CHANNEL);
+	if(rc != EOK) {
+		usb_log_error("Failed to set channel.\n");
+		return rc;
+	}
+	
+	/* Initialize transmission queues. */
+	for(int i = 0; i < AR9271_QUEUES_COUNT; i++) {
+		rc = wmi_reg_write(ar9271->htc_device, 
+			AR9271_QUEUE_BASE_MASK + (i << 2),
+			1 << i);
+		if(rc != EOK) {
+			usb_log_error("Failed to initialize transmission queue."
+				"\n");
+			return rc;
+		}
+	}
+	
+	/* Activate physical layer. */
+	rc = wmi_reg_write(ar9271->htc_device, AR9271_PHY_ACTIVE, 1);
+	if(rc != EOK) {
+		usb_log_error("Failed to activate physical layer.\n");
+		return rc;
+	}
+	
+	return EOK;
+}
+
 /**
  * Initialize hardware of AR9271 device.
  * 
@@ -324,7 +462,7 @@ static int hw_init_led(ar9271_t *ar9271)
  */
 int hw_init(ar9271_t *ar9271)
 {
-	int rc = hw_reset(ar9271);
+	int rc = hw_init_proc(ar9271);
 	if(rc != EOK) {
 		usb_log_error("Failed to HW reset device.\n");
 		return rc;

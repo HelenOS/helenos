@@ -257,7 +257,7 @@ LIB_CFLAGS = $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
 LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
 
 ifeq ($(CONFIG_DEBUG),y)
-#	GCC_CFLAGS += -Werror
+	GCC_CFLAGS += -Werror
 	ICC_CFLAGS += -Werror
 endif
 

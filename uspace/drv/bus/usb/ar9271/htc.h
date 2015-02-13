@@ -38,7 +38,6 @@
 
 #include <usb/dev/driver.h>
 #include <sys/types.h>
-#include <errno.h>
 
 #include "ath.h"
 
@@ -170,11 +169,11 @@ typedef struct {
 } __attribute__((packed)) htc_setup_complete_msg_t;
 
 extern int htc_device_init(ath_t *ath_device, htc_device_t *htc_device);
-extern int htc_init(htc_device_t* htc_device);
+extern int htc_init(htc_device_t *htc_device);
 extern int htc_read_message(htc_device_t *htc_device, void *buffer, 
 	size_t buffer_size, size_t *transferred_size);
 extern int htc_send_message(htc_device_t *htc_device, void *buffer, 
 	size_t buffer_size, uint8_t endpoint_id);
 
-#endif	/* HTC_H */
+#endif	/* ATHEROS_HTC_H */
 
