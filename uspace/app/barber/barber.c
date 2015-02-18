@@ -307,7 +307,8 @@ int main(int argc, char *argv[])
 		return 1;
 	
 	winreg = argv[1];
-	window_t *main_window = window_open(argv[1], true, true, "barber");
+	window_t *main_window = window_open(argv[1],
+	    WINDOW_MAIN | WINDOW_DECORATED, "barber");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 1;

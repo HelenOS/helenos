@@ -43,6 +43,12 @@
 #include <io/pos_event.h>
 
 typedef enum {
+	WINDOW_MAIN = 1,
+	WINDOW_DECORATED = 2,
+	WINDOW_RESIZEABLE = 4
+} window_flags_t;
+
+typedef enum {
 	GF_EMPTY = 0,
 	GF_MOVE_X = 1,
 	GF_MOVE_Y = 2,
@@ -107,7 +113,8 @@ typedef struct {
 	window_event_data_t data;
 } window_event_t;
 
-extern int win_register(async_sess_t *, service_id_t *, service_id_t *);
+extern int win_register(async_sess_t *, window_flags_t, service_id_t *,
+    service_id_t *);
 
 extern int win_get_event(async_sess_t *, window_event_t *);
 

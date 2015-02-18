@@ -590,15 +590,15 @@ static int fetch_input(void *arg)
 	return 0;
 }
 
-window_t *window_open(const char *winreg, bool is_main, bool is_decorated,
+window_t *window_open(const char *winreg, window_flags_t flags,
     const char *caption)
 {
 	window_t *win = (window_t *) malloc(sizeof(window_t));
 	if (!win)
 		return NULL;
 	
-	win->is_main = is_main;
-	win->is_decorated = is_decorated;
+	win->is_main = flags & WINDOW_MAIN;
+	win->is_decorated = flags & WINDOW_DECORATED;
 	win->is_focused = true;
 	prodcons_initialize(&win->events);
 	fibril_mutex_initialize(&win->guard);
@@ -631,7 +631,7 @@ window_t *window_open(const char *winreg, bool is_main, bool is_decorated,
 	
 	service_id_t in_dsid;
 	service_id_t out_dsid;
-	rc = win_register(reg_sess, &in_dsid, &out_dsid);
+	rc = win_register(reg_sess, flags, &in_dsid, &out_dsid);
 	async_hangup(reg_sess);
 	if (rc != EOK) {
 		free(win);
