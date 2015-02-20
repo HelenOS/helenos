@@ -48,7 +48,7 @@
 typedef struct {
     uint16_t command_id;		/**< Big Endian value! */
     uint16_t sequence_number;           /**< Big Endian value! */
-} __attribute__((packed)) wmi_command_header_t; 
+} __attribute__((packed)) wmi_command_header_t;
 
 /**
  * WMI services IDs
@@ -116,7 +116,7 @@ extern int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset,
 	uint32_t *res);
 extern int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t val);
-extern int wmi_reg_clear_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
+extern int wmi_reg_set_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit, uint32_t clear_bit);
 extern int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit);

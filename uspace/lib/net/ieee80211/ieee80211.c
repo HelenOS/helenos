@@ -36,7 +36,7 @@
  */
 
 #include <errno.h>
-#include <nic.h>
+#include <byteorder.h>
 
 #include <ieee80211_impl.h>
 #include <ieee80211.h>
@@ -47,14 +47,33 @@ static nic_iface_t ieee80211_nic_iface;
 /** Basic driver operations for IEEE 802.11 NIC driver. */
 static driver_ops_t ieee80211_nic_driver_ops;
 
+bool ieee80211_is_data_frame(ieee80211_header_t *header)
+{
+	return (header->frame_ctrl & 
+		host2uint16_t_le(IEEE80211_FRAME_CTRL_FRAME_TYPE)) ==
+		host2uint16_t_le(IEEE80211_FRAME_CTRL_DATA_FRAME);
+}
+
 static int ieee80211_open(ddf_fun_t *fun)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	ieee80211_dev_t *ieee80211_dev = nic_get_specific(nic_data);
 	
+	if(ieee80211_dev->started) {
+		return EOK;
+	} else {
+		ieee80211_dev->started = true;
+	}
+	
 	int rc = ieee80211_dev->ops->start(ieee80211_dev);
 	if(rc != EOK)
 		return rc;
+	
+	/*
+	rc = ieee80211_dev->ops->scan(ieee80211_dev);
+	if(rc != EOK)
+		return rc;
+	 */
 	
 	return EOK;
 }
@@ -69,6 +88,10 @@ static int ieee80211_set_operations(ieee80211_dev_t *ieee80211_dev,
 {
 	/* IEEE802.11 start operation must be implemented. */
 	if(!ieee80211_ops->start)
+		return EINVAL;
+	
+	/* IEEE802.11 TX handler must be implemented. */
+	if(!ieee80211_ops->tx_handler)
 		return EINVAL;
 	
 	if(!ieee80211_ops->scan)
@@ -92,6 +115,8 @@ int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, void *driver_data,
 {
 	ieee80211_dev->ddf_dev = ddf_dev;
 	ieee80211_dev->driver_data = driver_data;
+	ieee80211_dev->started = false;
+	ieee80211_dev->current_op_mode = IEEE80211_OPMODE_STATION;
 	
 	/* Bind NIC to device */
 	nic_t *nic = nic_create_and_bind(ddf_dev);

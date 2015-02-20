@@ -244,7 +244,7 @@ static int hw_gpio_set_output(ar9271_t *ar9271, uint32_t gpio, uint32_t type)
 	
 	gpio_shift = 2 * gpio;
 	
-	rc = wmi_reg_clear_set_bit(ar9271->htc_device, AR9271_GPIO_OE_OUT,
+	rc = wmi_reg_set_clear_bit(ar9271->htc_device, AR9271_GPIO_OE_OUT,
 		AR9271_GPIO_OE_OUT_ALWAYS << gpio_shift, 
 		AR9271_GPIO_OE_OUT_ALWAYS << gpio_shift);
 	if(rc != EOK) {
@@ -257,7 +257,7 @@ static int hw_gpio_set_output(ar9271_t *ar9271, uint32_t gpio, uint32_t type)
 
 static int hw_gpio_set_value(ar9271_t *ar9271, uint32_t gpio, uint32_t value)
 {
-	int rc = wmi_reg_clear_set_bit(ar9271->htc_device, AR9271_GPIO_IN_OUT,
+	int rc = wmi_reg_set_clear_bit(ar9271->htc_device, AR9271_GPIO_IN_OUT,
 		(~value & 1) << gpio, 1 << gpio);
 	if(rc != EOK) {
 		usb_log_error("Failed to set GPIO.\n");
@@ -316,12 +316,12 @@ static int hw_init_led(ar9271_t *ar9271)
 }
 
 static int hw_set_operating_mode(ar9271_t *ar9271, 
-	ieee80211_operating_mode_t opmode)
+	ieee80211_operating_mode_t op_mode)
 {
 	uint32_t set_bit = 0x10000000;
 	
 	/* NOTICE: Fall-through switch statement! */
-	switch(opmode) {
+	switch(op_mode) {
 		case IEEE80211_OPMODE_ADHOC:
 			set_bit |= AR9271_OPMODE_ADHOC_MASK;
 		case IEEE80211_OPMODE_MESH:
@@ -332,9 +332,11 @@ static int hw_set_operating_mode(ar9271_t *ar9271,
 				AR9271_CONFIG_ADHOC);
 	}
 	
-	wmi_reg_clear_set_bit(ar9271->htc_device, AR9271_STATION_ID1,
+	wmi_reg_set_clear_bit(ar9271->htc_device, AR9271_STATION_ID1,
 		set_bit, 
 		AR9271_OPMODE_STATION_AP_MASK | AR9271_OPMODE_ADHOC_MASK);
+	
+	ar9271->ieee80211_dev->current_op_mode = op_mode;
 	
 	return EOK;
 }
@@ -351,22 +353,22 @@ static uint32_t hw_reverse_bits(uint32_t value, uint32_t count)
 	return ret_val;
 }
 
-static int hw_set_channel(ar9271_t *ar9271, uint16_t freq)
+static int hw_set_freq(ar9271_t *ar9271, uint16_t freq)
 {
 	/* Not supported channel frequency. */
-	if(freq < IEEE80211_FIRST_CHANNEL || freq > IEEE80211_MAX_CHANNEL) {
+	if(freq < IEEE80211_FIRST_FREQ || freq > IEEE80211_MAX_FREQ) {
 		return EINVAL;
 	}
 	
 	/* Not supported channel frequency. */
-	if((freq - IEEE80211_FIRST_CHANNEL) % IEEE80211_CHANNEL_GAP != 0) {
+	if((freq - IEEE80211_FIRST_FREQ) % IEEE80211_CHANNEL_GAP != 0) {
 		return EINVAL;
 	}
 	
-	uint32_t result;
-	wmi_reg_read(ar9271->htc_device, AR9271_PHY_CCK_TX_CTRL, &result);
+	uint32_t tx_control;
+	wmi_reg_read(ar9271->htc_device, AR9271_PHY_CCK_TX_CTRL, &tx_control);
 	wmi_reg_write(ar9271->htc_device, AR9271_PHY_CCK_TX_CTRL,
-		result & ~AR9271_PHY_CCK_TX_CTRL_JAPAN);
+		tx_control & ~AR9271_PHY_CCK_TX_CTRL_JAPAN);
 	
 	/* Some magic here. */
 	uint32_t channel = hw_reverse_bits(
@@ -376,12 +378,132 @@ static int hw_set_channel(ar9271_t *ar9271, uint16_t freq)
 	wmi_reg_write(ar9271->htc_device, AR9271_PHY_BASE + (0x37 << 2),
 		to_write);
 	
+	ar9271->ieee80211_dev->current_freq = freq;
+	
+	return EOK;
+}
+
+static int hw_set_rx_filter(ar9271_t *ar9271)
+{
+	uint32_t filter_bits;
+	int rc = wmi_reg_read(ar9271->htc_device, AR9271_RX_FILTER, 
+		&filter_bits);
+	if(rc != EOK) {
+		usb_log_error("Failed to read RX filter.\n");
+		return EINVAL;
+	}
+	
+	/* TODO: Do proper filtering here. */
+	
+	filter_bits |= AR9271_RX_FILTER_UNI | AR9271_RX_FILTER_MULTI | 
+		AR9271_RX_FILTER_BROAD | AR9271_RX_FILTER_BEACON | 
+		AR9271_RX_FILTER_MYBEACON | AR9271_RX_FILTER_PROMISCUOUS;
+	
+	rc = wmi_reg_write(ar9271->htc_device, AR9271_RX_FILTER, filter_bits);
+	if(rc != EOK) {
+		usb_log_error("Failed to write RX filter.\n");
+		return EINVAL;
+	}
+	
+	return EOK;
+}
+
+int hw_rx_init(ar9271_t *ar9271)
+{
+	int rc = wmi_reg_write(ar9271->htc_device, AR9271_COMMAND, 
+		AR9271_COMMAND_RX_ENABLE);
+	if(rc != EOK) {
+		usb_log_error("Failed to send RX enable command.\n");
+		return EINVAL;
+	}
+	
+	rc = hw_set_rx_filter(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to set RX filtering.\n");
+		return EINVAL;
+	}
+	
+	return EOK;
+}
+
+static int hw_activate_phy(ar9271_t *ar9271)
+{
+	int rc = wmi_reg_write(ar9271->htc_device, AR9271_PHY_ACTIVE, 1);
+	if(rc != EOK) {
+		usb_log_error("Failed to activate set PHY active.\n");
+		return rc;
+	}
+	
+	udelay(1000);
+	
+	return EOK;
+}
+
+static int hw_init_pll(ar9271_t *ar9271)
+{
+	uint32_t pll;
+	
+	/* Some magic here. */
+	pll = (0x5 << 10) & 0x00003C00;
+	pll |= (0x2 << 14) & 0x0000C000; /**< 0x2 ~ quarter rate (0x1 half) */
+	pll |= 0x58 & 0x000003FF;
+	
+	return wmi_reg_write(ar9271->htc_device, AR9271_RTC_PLL_CONTROL, pll);
+}
+
+static int hw_calibrate(ar9271_t *ar9271)
+{
+	wmi_reg_set_bit(ar9271->htc_device, AR9271_CARRIER_LEAK_CONTROL,
+		AR9271_CARRIER_LEAK_CALIB);
+	wmi_reg_clear_bit(ar9271->htc_device, AR9271_ADC_CONTROL,
+		AR9271_ADC_CONTROL_OFF_PWDADC);
+	wmi_reg_set_bit(ar9271->htc_device, AR9271_AGC_CONTROL,
+		AR9271_AGC_CONTROL_TX_CALIB);
+	wmi_reg_set_bit(ar9271->htc_device, AR9271_PHY_TPCRG1,
+		AR9271_PHY_TPCRG1_PD_CALIB);
+	wmi_reg_set_bit(ar9271->htc_device, AR9271_AGC_CONTROL,
+		AR9271_AGC_CONTROL_CALIB);
+	
+	int rc = hw_read_wait(ar9271, AR9271_AGC_CONTROL, 
+		AR9271_AGC_CONTROL_CALIB, 0);
+	if(rc != EOK) {
+		usb_log_error("Failed to wait on calibrate completion.\n");
+		return rc;
+	}
+	
+	wmi_reg_set_bit(ar9271->htc_device, AR9271_ADC_CONTROL,
+		AR9271_ADC_CONTROL_OFF_PWDADC);
+	wmi_reg_clear_bit(ar9271->htc_device, AR9271_CARRIER_LEAK_CONTROL,
+		AR9271_CARRIER_LEAK_CALIB);
+	wmi_reg_clear_bit(ar9271->htc_device, AR9271_AGC_CONTROL,
+		AR9271_AGC_CONTROL_TX_CALIB);
+	
+	return EOK;
+}
+
+static int hw_set_init_values(ar9271_t *ar9271)
+{
+	int size = sizeof(ar9271_init_array) / sizeof(ar9271_init_array[0]);
+	
+	for(int i = 0; i < size; i++) {
+		uint32_t reg_offset = ar9271_init_array[i][0];
+		uint32_t reg_value = ar9271_init_array[i][1];
+		wmi_reg_write(ar9271->htc_device, reg_offset, reg_value);
+	}
+	
 	return EOK;
 }
 
 int hw_reset(ar9271_t *ar9271) 
 {
-	int rc = wmi_reg_write(ar9271->htc_device, 
+	/* Set physical layer as deactivated. */
+	int rc = wmi_reg_write(ar9271->htc_device, AR9271_PHY_ACTIVE, 0);
+	if(rc != EOK) {
+		usb_log_error("Failed to set PHY deactivated.\n");
+		return rc;
+	}
+	
+	rc = wmi_reg_write(ar9271->htc_device, 
 		AR9271_RESET_POWER_DOWN_CONTROL,
 		AR9271_RADIO_RF_RESET);
 	if(rc != EOK) {
@@ -390,6 +512,26 @@ int hw_reset(ar9271_t *ar9271)
 	}
 	
 	udelay(50);
+	
+	/* TODO: There should be cold reset only if RX or TX is enabled. */
+	
+	rc = hw_init_pll(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to init PLL.\n");
+		return rc;
+	}
+	
+	udelay(500);
+	
+	rc = wmi_reg_write(ar9271->htc_device, 
+		AR9271_CLOCK_CONTROL,
+		AR9271_MAX_CPU_CLOCK);
+	if(rc != EOK) {
+		usb_log_error("Failed to set CPU clock.\n");
+		return rc;
+	}
+	
+	udelay(100);
 	
 	rc = wmi_reg_write(ar9271->htc_device, 
 		AR9271_RESET_POWER_DOWN_CONTROL,
@@ -402,12 +544,13 @@ int hw_reset(ar9271_t *ar9271)
 	
 	udelay(50);
 	
-	/* Perform cold reset of device. */
-	rc = hw_set_reset(ar9271, true);
+	rc = hw_set_init_values(ar9271);
 	if(rc != EOK) {
-		usb_log_error("Failed to HW cold reset.\n");
+		usb_log_error("Failed to set device init values.\n");
 		return rc;
 	}
+	
+	/* TODO: There should probably be TX power settings. */
 	
 	/* Set physical layer mode. */
 	rc = wmi_reg_write(ar9271->htc_device, AR9271_PHY_MODE,
@@ -417,6 +560,8 @@ int hw_reset(ar9271_t *ar9271)
 		return rc;
 	}
 	
+	/* TODO: Init EEPROM here. */
+	
 	/* Set device operating mode. */
 	rc = hw_set_operating_mode(ar9271, IEEE80211_OPMODE_STATION);
 	if(rc != EOK) {
@@ -424,8 +569,8 @@ int hw_reset(ar9271_t *ar9271)
 		return rc;
 	}
 	
-	/* Set channel. */
-	rc = hw_set_channel(ar9271, IEEE80211_FIRST_CHANNEL);
+	/* Set channel frequency. */
+	rc = hw_set_freq(ar9271, IEEE80211_FIRST_FREQ);
 	if(rc != EOK) {
 		usb_log_error("Failed to set channel.\n");
 		return rc;
@@ -443,12 +588,25 @@ int hw_reset(ar9271_t *ar9271)
 		}
 	}
 	
+	/* TODO: Maybe resetting TX queues will be necessary afterwards here. */
+	
+	/* TODO: Setting RX, TX timeouts and others may be necessary here. */
+	
 	/* Activate physical layer. */
-	rc = wmi_reg_write(ar9271->htc_device, AR9271_PHY_ACTIVE, 1);
+	rc = hw_activate_phy(ar9271);
 	if(rc != EOK) {
 		usb_log_error("Failed to activate physical layer.\n");
 		return rc;
 	}
+	
+	/* Calibration. */
+	rc = hw_calibrate(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to calibrate device.\n");
+		return rc;
+	}
+	
+	usb_log_info("HW reset done.\n");
 	
 	return EOK;
 }

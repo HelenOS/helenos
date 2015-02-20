@@ -40,15 +40,19 @@
 
 #include <ddf/driver.h>
 #include <sys/types.h>
+#include <nic.h>
 
 /** Initial channel frequency. */
-#define IEEE80211_FIRST_CHANNEL 2412
+#define IEEE80211_FIRST_FREQ 2412
 
 /** Max supported channel frequency. */
-#define IEEE80211_MAX_CHANNEL 2472
+#define IEEE80211_MAX_FREQ 2472
 
 /* Gap between IEEE80211 channels in MHz. */
 #define IEEE80211_CHANNEL_GAP 5
+
+#define IEEE80211_FRAME_CTRL_FRAME_TYPE 0x000C
+#define IEEE80211_FRAME_CTRL_DATA_FRAME 0x0008
 
 struct ieee80211_dev;
 
@@ -64,6 +68,7 @@ typedef enum {
 typedef struct {
 	int (*start)(struct ieee80211_dev *);
 	int (*scan)(struct ieee80211_dev *);
+	int (*tx_handler)(struct ieee80211_dev *, void *, size_t);
 } ieee80211_ops_t;
 
 /** IEEE 802.11 WiFi device structure. */
@@ -76,8 +81,32 @@ typedef struct ieee80211_dev {
 	
 	/** Pointer to driver specific data. */
 	void *driver_data;
+	
+	/** Current operating frequency. */
+	uint16_t current_freq;
+	
+	/** Current operating mode. */
+	ieee80211_operating_mode_t current_op_mode;
+	
+	/* TODO: Probably to be removed later - nic.open function is now 
+	 * executed multiple times, have to find out reason and fix it. 
+	 */
+	/** Indicates whether driver has already started. */
+	bool started;
 } ieee80211_dev_t;
 
+/** IEEE 802.11 header structure. */
+typedef struct {
+	uint16_t frame_ctrl;		/**< Little Endian value! */
+	uint16_t duration_id;		/**< Little Endian value! */
+	uint8_t address1[ETH_ADDR];
+	uint8_t address2[ETH_ADDR];
+	uint8_t address3[ETH_ADDR];
+	uint16_t seq_ctrl;		/**< Little Endian value! */
+	uint8_t address4[ETH_ADDR];
+} __attribute__((packed)) __attribute__ ((aligned(2))) ieee80211_header_t;
+
+extern bool ieee80211_is_data_frame(ieee80211_header_t *header);
 extern int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, 
 	void *driver_data, ddf_dev_t *ddf_dev);
 extern int ieee80211_init(ieee80211_dev_t *ieee80211_dev, 

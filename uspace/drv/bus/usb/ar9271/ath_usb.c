@@ -82,6 +82,9 @@ int ath_usb_init(ath_t *ath, usb_device_t *usb_device)
 	ath_usb->input_ctrl_pipe_number = 2;
 	ath_usb->output_ctrl_pipe_number = 3;
 	
+	ath->ctrl_response_length = 64;
+	ath->data_response_length = 512;
+	
 	ath->specific_data = ath_usb;
 	ath->ops = &ath_usb_ops;
 	

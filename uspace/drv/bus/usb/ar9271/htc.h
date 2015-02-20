@@ -36,12 +36,15 @@
 #ifndef ATHEROS_HTC_H
 #define	ATHEROS_HTC_H
 
+#include <ieee80211.h>
 #include <usb/dev/driver.h>
 #include <sys/types.h>
+#include <nic.h>
 
 #include "ath.h"
 
-#define MAX_RESPONSE_LENGTH 64
+#define HTC_RTS_THRESHOLD 2304
+#define HTC_MAX_AMPDU 0xFFFF
 
 /**
  * HTC message IDs
@@ -64,6 +67,16 @@ typedef enum {
         HTC_SERVICE_NO_RESOURCES,
         HTC_SERVICE_NO_MORE_EP
 } htc_response_status_code_t;
+
+/**
+ * HTC operating mode definition
+ */
+typedef enum {
+	HTC_OPMODE_ADHOC = 0,
+	HTC_OPMODE_STATION = 1,
+	HTC_OPMODE_MESH = 2,
+	HTC_OPMODE_AP = 6
+} htc_operating_mode_t;
 
 /**
  * HTC endpoint numbers
@@ -97,6 +110,9 @@ typedef struct {
 	/** Lock for transmitter */
 	fibril_mutex_t tx_lock;
 	
+	/** Pointer to related IEEE 802.11 device */
+	ieee80211_dev_t *ieee80211_dev;
+	
 	/** Pointer to Atheros WiFi device structure */
 	ath_t *ath_device;
 } htc_device_t;
@@ -112,6 +128,20 @@ typedef struct {
     
 	/* Message payload starts after the header. */
 } __attribute__((packed)) htc_frame_header_t;
+
+/** 
+ * HTC management TX frame header structure 
+ */
+typedef struct {
+	uint8_t node_idx;
+	uint8_t vif_idx;
+	uint8_t tidno;
+	uint8_t flags;
+	uint8_t key_type;
+	uint8_t keyix;
+	uint8_t cookie;
+	uint8_t pad;
+} __attribute__((packed)) htc_tx_management_header_t;
 
 /** 
  * HTC ready message structure 
@@ -162,17 +192,52 @@ typedef struct {
 } __attribute__((packed)) htc_config_msg_t;
 
 /**
+ * HTC new virtual interface message
+ */
+typedef struct {
+        uint8_t index;
+	uint8_t op_mode;
+	uint8_t addr[ETH_ADDR];
+	uint8_t ath_cap;
+	uint16_t rts_thres;		/**< Big Endian value! */
+	uint8_t pad;
+} __attribute__((packed)) htc_vif_msg_t;
+
+/**
+ * HTC new station message
+ */
+typedef struct {
+	uint8_t addr[ETH_ADDR];
+	uint8_t bssid[ETH_ADDR];
+        uint8_t sta_index;
+	uint8_t vif_index;
+	uint8_t is_vif_sta;
+		
+	uint16_t flags;		/**< Big Endian value! */
+	uint16_t ht_cap;	/**< Big Endian value! */
+	uint16_t max_ampdu;	/**< Big Endian value! */
+	
+	uint8_t pad;
+} __attribute__((packed)) htc_sta_msg_t;
+
+/**
  * HTC setup complete message structure
  */
 typedef struct {
         uint16_t message_id;            /**< Big Endian value! */
 } __attribute__((packed)) htc_setup_complete_msg_t;
 
-extern int htc_device_init(ath_t *ath_device, htc_device_t *htc_device);
+extern int htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev, 
+	htc_device_t *htc_device);
 extern int htc_init(htc_device_t *htc_device);
-extern int htc_read_message(htc_device_t *htc_device, void *buffer, 
+extern int htc_init_new_vif(htc_device_t *htc_device);
+extern int htc_read_control_message(htc_device_t *htc_device, void *buffer, 
 	size_t buffer_size, size_t *transferred_size);
-extern int htc_send_message(htc_device_t *htc_device, void *buffer, 
+extern int htc_read_data_message(htc_device_t *htc_device, void *buffer, 
+	size_t buffer_size, size_t *transferred_size);
+extern int htc_send_control_message(htc_device_t *htc_device, void *buffer, 
+	size_t buffer_size, uint8_t endpoint_id);
+extern int htc_send_data_message(htc_device_t *htc_device, void *buffer, 
 	size_t buffer_size, uint8_t endpoint_id);
 
 #endif	/* ATHEROS_HTC_H */

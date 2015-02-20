@@ -47,6 +47,12 @@ typedef struct {
 
 /** Atheros wifi device structure */
 typedef struct ath {
+	/** Maximum length of data response message. */
+	size_t data_response_length;
+	
+	/** Maximum length of control response message. */
+	size_t ctrl_response_length;
+	
 	/** Implementation specific data. */
 	void *specific_data;
 	

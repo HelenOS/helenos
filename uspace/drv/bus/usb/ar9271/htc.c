@@ -38,6 +38,8 @@
 
 #include "wmi.h"
 #include "htc.h"
+#include "nic/nic.h"
+#include "ar9271.h"
 
 /**
  * HTC download pipes mapping.
@@ -63,8 +65,99 @@ static inline uint8_t wmi_service_to_upload_pipe(wmi_services_t service_id)
 	return (service_id == WMI_CONTROL_SERVICE) ? 4 : 1;
 }
 
+int htc_init_new_vif(htc_device_t *htc_device)
+{
+	htc_vif_msg_t vif_msg;
+	htc_sta_msg_t sta_msg;
+	
+	nic_address_t addr;
+	nic_t *nic = nic_get_from_ddf_dev(htc_device->ieee80211_dev->ddf_dev);
+	nic_query_address(nic, &addr);
+	
+	memcpy(&vif_msg.addr, &addr.address, ETH_ADDR);
+	memcpy(&sta_msg.addr, &addr.address, ETH_ADDR);
+	
+	ieee80211_operating_mode_t op_mode = 
+		htc_device->ieee80211_dev->current_op_mode;
+	
+	switch(op_mode) {
+		case IEEE80211_OPMODE_ADHOC:
+			vif_msg.op_mode = HTC_OPMODE_ADHOC;
+			break;
+		case IEEE80211_OPMODE_AP:
+			vif_msg.op_mode = HTC_OPMODE_AP;
+			break;
+		case IEEE80211_OPMODE_MESH:
+			vif_msg.op_mode = HTC_OPMODE_MESH;
+			break;
+		case IEEE80211_OPMODE_STATION:
+			vif_msg.op_mode = HTC_OPMODE_STATION;
+			break;
+	}
+	
+	vif_msg.index = 0;
+	vif_msg.rts_thres = host2uint16_t_be(HTC_RTS_THRESHOLD);
+	
+	int rc = wmi_send_command(htc_device, WMI_VAP_CREATE, 
+		(uint8_t *) &vif_msg, sizeof(vif_msg), NULL);
+	if(rc != EOK) {
+		usb_log_error("Failed to send VAP create command.\n");
+		return rc;
+	}
+	
+	sta_msg.is_vif_sta = 1;
+	sta_msg.max_ampdu = host2uint16_t_be(HTC_MAX_AMPDU);
+	sta_msg.sta_index = 0;
+	sta_msg.vif_index = 0;
+	
+	rc = wmi_send_command(htc_device, WMI_NODE_CREATE, 
+		(uint8_t *) &sta_msg, sizeof(sta_msg), NULL);
+	if(rc != EOK) {
+		usb_log_error("Failed to send NODE create command.\n");
+		return rc;
+	}
+	
+	/* Write first 4 bytes of MAC address. */
+	uint32_t id0;
+	memcpy(&id0, &addr.address, 4);
+	id0 = host2uint32_t_le(id0);
+	rc = wmi_reg_write(htc_device, AR9271_STATION_ID0, id0);
+	if(rc != EOK)
+		return rc;
+	
+	/* Write last 2 bytes of MAC address (and preserve existing data). */
+	uint32_t id1;
+	rc = wmi_reg_read(htc_device, AR9271_STATION_ID1, &id1);
+	if(rc != EOK)
+		return rc;
+	uint16_t id1_addr;
+	memcpy(&id1_addr, &addr.address[4], 2);
+	id1 = (id1 & ~AR9271_STATION_ID1_MASK) | host2uint16_t_le(id1_addr);
+	rc = wmi_reg_write(htc_device, AR9271_STATION_ID1, id1);
+	if(rc != EOK)
+		return rc;
+	
+	/* TODO: Set BSSID mask for AP mode. */
+	
+	return EOK;
+}
+
+static void htc_config_frame_header(htc_frame_header_t *header, 
+	size_t buffer_size, uint8_t endpoint_id)
+{
+	header->endpoint_id = endpoint_id;
+	header->flags = 0;
+	header->payload_length = 
+		host2uint16_t_be(buffer_size - sizeof(htc_frame_header_t));
+	
+	header->control_bytes[0] = 0x02;
+	header->control_bytes[1] = 0x88;
+	header->control_bytes[2] = 0xFF;
+	header->control_bytes[3] = 0xFF;
+}
+
 /**
- * Send HTC message to USB device.
+ * Send control HTC message to USB device.
  * 
  * @param htc_device HTC device structure.
  * @param buffer Buffer with data to be sent to USB device (without HTC frame
@@ -74,19 +167,11 @@ static inline uint8_t wmi_service_to_upload_pipe(wmi_services_t service_id)
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int htc_send_message(htc_device_t *htc_device, void *buffer, 
+int htc_send_control_message(htc_device_t *htc_device, void *buffer, 
 	size_t buffer_size, uint8_t endpoint_id)
 {
-	htc_frame_header_t *htc_header = (htc_frame_header_t *) buffer;
-	htc_header->endpoint_id = endpoint_id;
-	htc_header->flags = 0;
-	htc_header->payload_length = 
-		host2uint16_t_be(buffer_size - sizeof(htc_frame_header_t));
-	
-	htc_header->control_bytes[0] = 0x02;
-	htc_header->control_bytes[1] = 0x88;
-	htc_header->control_bytes[2] = 0xFF;
-	htc_header->control_bytes[3] = 0xFF;
+	htc_config_frame_header((htc_frame_header_t *) buffer, buffer_size,
+		endpoint_id);
 	
 	ath_t *ath_device = htc_device->ath_device;
 	
@@ -95,7 +180,30 @@ int htc_send_message(htc_device_t *htc_device, void *buffer,
 }
 
 /**
- * Read HTC message from USB device.
+ * Send data HTC message to USB device.
+ * 
+ * @param htc_device HTC device structure.
+ * @param buffer Buffer with data to be sent to USB device (without HTC frame
+ *              header).
+ * @param buffer_size Size of buffer (including HTC frame header).
+ * @param endpoint_id Destination endpoint.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+int htc_send_data_message(htc_device_t *htc_device, void *buffer, 
+	size_t buffer_size, uint8_t endpoint_id)
+{
+	htc_config_frame_header((htc_frame_header_t *) buffer, buffer_size,
+		endpoint_id);
+	
+	ath_t *ath_device = htc_device->ath_device;
+	
+	return ath_device->ops->send_data_message(ath_device, buffer, 
+		buffer_size);
+}
+
+/**
+ * Read HTC data message from USB device.
  * 
  * @param htc_device HTC device structure.
  * @param buffer Buffer where data from USB device will be stored.
@@ -104,7 +212,26 @@ int htc_send_message(htc_device_t *htc_device, void *buffer,
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int htc_read_message(htc_device_t *htc_device, void *buffer, 
+int htc_read_data_message(htc_device_t *htc_device, void *buffer, 
+	size_t buffer_size, size_t *transferred_size)
+{
+	ath_t *ath_device = htc_device->ath_device;
+	
+	return ath_device->ops->read_data_message(ath_device, buffer, 
+		buffer_size, transferred_size);
+}
+
+/**
+ * Read HTC control message from USB device.
+ * 
+ * @param htc_device HTC device structure.
+ * @param buffer Buffer where data from USB device will be stored.
+ * @param buffer_size Size of buffer.
+ * @param transferred_size Real size of read data.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+int htc_read_control_message(htc_device_t *htc_device, void *buffer, 
 	size_t buffer_size, size_t *transferred_size)
 {
 	ath_t *ath_device = htc_device->ath_device;
@@ -144,7 +271,7 @@ static int htc_connect_service(htc_device_t *htc_device,
 	service_message->connection_flags = 0;
 	
 	/* Send HTC message. */
-	int rc = htc_send_message(htc_device, buffer, buffer_size,
+	int rc = htc_send_control_message(htc_device, buffer, buffer_size,
 		htc_device->endpoints.ctrl_endpoint);
 	if(rc != EOK) {
 		free(buffer);
@@ -154,11 +281,11 @@ static int htc_connect_service(htc_device_t *htc_device,
 	
 	free(buffer);
 	
-	buffer_size = MAX_RESPONSE_LENGTH;
+	buffer_size = htc_device->ath_device->ctrl_response_length;
 	buffer = malloc(buffer_size);
 	
 	/* Read response from device. */
-	rc = htc_read_message(htc_device, buffer, buffer_size, NULL);
+	rc = htc_read_control_message(htc_device, buffer, buffer_size, NULL);
 	if(rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to receive HTC service connect response. "
@@ -207,7 +334,7 @@ static int htc_config_credits(htc_device_t *htc_device)
 	config_message->pipe_id = 1;
 
 	/* Send HTC message. */
-	int rc = htc_send_message(htc_device, buffer, buffer_size,
+	int rc = htc_send_control_message(htc_device, buffer, buffer_size,
 		htc_device->endpoints.ctrl_endpoint);
 	if(rc != EOK) {
 		free(buffer);
@@ -218,11 +345,11 @@ static int htc_config_credits(htc_device_t *htc_device)
 	
 	free(buffer);
 	
-	buffer_size = MAX_RESPONSE_LENGTH;
+	buffer_size = htc_device->ath_device->ctrl_response_length;
 	buffer = malloc(buffer_size);
 
 	/* Check response from device. */
-	rc = htc_read_message(htc_device, buffer, buffer_size, NULL);
+	rc = htc_read_control_message(htc_device, buffer, buffer_size, NULL);
 	if(rc != EOK) {
 		usb_log_error("Failed to receive HTC config response message. "
 			"Error: %d\n", rc);
@@ -253,7 +380,7 @@ static int htc_complete_setup(htc_device_t *htc_device)
 		host2uint16_t_be(HTC_MESSAGE_SETUP_COMPLETE);
 
 	/* Send HTC message. */
-	int rc = htc_send_message(htc_device, buffer, buffer_size, 
+	int rc = htc_send_control_message(htc_device, buffer, buffer_size, 
 		htc_device->endpoints.ctrl_endpoint);
 	if(rc != EOK) {
 		usb_log_error("Failed to send HTC setup complete message. "
@@ -276,11 +403,12 @@ static int htc_complete_setup(htc_device_t *htc_device)
  */
 static int htc_check_ready(htc_device_t *htc_device)
 {
-	size_t buffer_size = MAX_RESPONSE_LENGTH;
+	size_t buffer_size = htc_device->ath_device->ctrl_response_length;
 	void *buffer = malloc(buffer_size);
 
 	/* Read response from device. */
-	int rc = htc_read_message(htc_device, buffer, buffer_size, NULL);
+	int rc = htc_read_control_message(htc_device, buffer, buffer_size, 
+		NULL);
 	if(rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to receive HTC check ready message. "
@@ -309,18 +437,16 @@ static int htc_check_ready(htc_device_t *htc_device)
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int htc_device_init(ath_t *ath_device, htc_device_t *htc_device)
+int htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev, 
+	htc_device_t *htc_device)
 {
-	if(ath_device == NULL || htc_device == NULL) {
-		return EINVAL;
-	}
-	
 	fibril_mutex_initialize(&htc_device->rx_lock);
 	fibril_mutex_initialize(&htc_device->tx_lock);
 	
 	htc_device->endpoints.ctrl_endpoint = 0;
 	
 	htc_device->ath_device = ath_device;
+	htc_device->ieee80211_dev = ieee80211_dev;
 	
 	return EOK;
 }

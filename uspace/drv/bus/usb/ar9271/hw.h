@@ -37,10 +37,11 @@
 
 #include "ar9271.h"
 
-#define HW_WAIT_LOOPS 100
+#define HW_WAIT_LOOPS 1000
 #define HW_WAIT_TIME_US 10
 
 extern int hw_init(ar9271_t *ar9271);
+extern int hw_rx_init(ar9271_t *ar9271);
 extern int hw_reset(ar9271_t *ar9271);
 
 #endif	/* ATHEROS_HW_H */

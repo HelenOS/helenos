@@ -53,8 +53,8 @@ int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset, uint32_t *res)
 {
 	uint32_t cmd_value = host2uint32_t_be(reg_offset);
 	
-	size_t buffer_size = MAX_RESPONSE_LENGTH;
-	void *resp_buffer = malloc(buffer_size);
+	void *resp_buffer = 
+		malloc(htc_device->ath_device->ctrl_response_length);
 	
 	int rc = wmi_send_command(htc_device, WMI_REG_READ, 
 		(uint8_t *) &cmd_value, sizeof(cmd_value), resp_buffer);
@@ -89,7 +89,8 @@ int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t val)
 	    host2uint32_t_be(val)
 	};
 	
-	void *resp_buffer = malloc(MAX_RESPONSE_LENGTH);
+	void *resp_buffer = 
+		malloc(htc_device->ath_device->ctrl_response_length);
 	
 	int rc = wmi_send_command(htc_device, WMI_REG_WRITE, 
 		(uint8_t *) &cmd_buffer, sizeof(cmd_buffer), resp_buffer);
@@ -114,7 +115,7 @@ int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t val)
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int wmi_reg_clear_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
+int wmi_reg_set_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit, uint32_t clear_bit)
 {
 	uint32_t value;
@@ -151,7 +152,7 @@ int wmi_reg_clear_set_bit(htc_device_t *htc_device, uint32_t reg_offset,
 int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit)
 {
-	return wmi_reg_clear_set_bit(htc_device, reg_offset, set_bit, 0);
+	return wmi_reg_set_clear_bit(htc_device, reg_offset, set_bit, 0);
 }
 
 /**
@@ -166,7 +167,7 @@ int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset,
 int wmi_reg_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t clear_bit)
 {
-	return wmi_reg_clear_set_bit(htc_device, reg_offset, 0, clear_bit);
+	return wmi_reg_set_clear_bit(htc_device, reg_offset, 0, clear_bit);
 }
 
 /**
@@ -183,7 +184,8 @@ int wmi_reg_buffer_write(htc_device_t *htc_device, wmi_reg_t *reg_buffer,
 {
 	size_t buffer_size = sizeof(wmi_reg_t) * elements;
 	void *buffer = malloc(buffer_size);
-	void *resp_buffer = malloc(MAX_RESPONSE_LENGTH);
+	void *resp_buffer = 
+		malloc(htc_device->ath_device->ctrl_response_length);
 	
 	/* Convert values to correct endianness. */
 	for(size_t i = 0; i < elements; i++) {
@@ -239,7 +241,7 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 		host2uint16_t_be(++htc_device->sequence_number);
 	
 	/* Send message. */
-	int rc = htc_send_message(htc_device, buffer, buffer_size,
+	int rc = htc_send_control_message(htc_device, buffer, buffer_size,
 		htc_device->endpoints.wmi_endpoint);
 	if(rc != EOK) {
 		free(buffer);
@@ -250,14 +252,16 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	free(buffer);
 	
 	bool clean_resp_buffer = false;
+	size_t response_buffer_size = 
+		htc_device->ath_device->ctrl_response_length;
 	if(response_buffer == NULL) {
-		response_buffer = malloc(MAX_RESPONSE_LENGTH);
+		response_buffer = malloc(response_buffer_size);
 		clean_resp_buffer = true;
 	}
 	
 	/* Read response. */
-	rc = htc_read_message(htc_device, response_buffer, MAX_RESPONSE_LENGTH, 
-		NULL);
+	rc = htc_read_control_message(htc_device, response_buffer, 
+		response_buffer_size, NULL);
 	if(rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to receive WMI message response. "
