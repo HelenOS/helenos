@@ -341,18 +341,6 @@ static int hw_set_operating_mode(ar9271_t *ar9271,
 	return EOK;
 }
 
-static uint32_t hw_reverse_bits(uint32_t value, uint32_t count)
-{
-	uint32_t ret_val = 0;
-	
-	for(size_t i = 0; i < count; i++) {
-		ret_val = (ret_val << 1) | (value & 1);
-		value >>= 1;
-	}
-	
-	return ret_val;
-}
-
 static int hw_set_freq(ar9271_t *ar9271, uint16_t freq)
 {
 	/* Not supported channel frequency. */
@@ -371,12 +359,13 @@ static int hw_set_freq(ar9271_t *ar9271, uint16_t freq)
 		tx_control & ~AR9271_PHY_CCK_TX_CTRL_JAPAN);
 	
 	/* Some magic here. */
-	uint32_t channel = hw_reverse_bits(
-		(((((freq - 672) * 2 - 3040) / 10) << 2) & 0xFF), 8);
-	uint32_t to_write = (channel << 8) | 33;
+	uint32_t synth_ctl;
+	wmi_reg_read(ar9271->htc_device, AR9271_PHY_SYNTH_CONTROL, &synth_ctl);
+	synth_ctl &= 0xC0000000;
+	uint32_t channel_select = (freq * 0x10000) / 15;
+	synth_ctl = synth_ctl | (1 << 29) | (1 << 28) | channel_select;
 	
-	wmi_reg_write(ar9271->htc_device, AR9271_PHY_BASE + (0x37 << 2),
-		to_write);
+	wmi_reg_write(ar9271->htc_device, AR9271_PHY_SYNTH_CONTROL, synth_ctl);
 	
 	ar9271->ieee80211_dev->current_freq = freq;
 	
@@ -396,8 +385,7 @@ static int hw_set_rx_filter(ar9271_t *ar9271)
 	/* TODO: Do proper filtering here. */
 	
 	filter_bits |= AR9271_RX_FILTER_UNI | AR9271_RX_FILTER_MULTI | 
-		AR9271_RX_FILTER_BROAD | AR9271_RX_FILTER_BEACON | 
-		AR9271_RX_FILTER_MYBEACON | AR9271_RX_FILTER_PROMISCUOUS;
+		AR9271_RX_FILTER_BROAD | AR9271_RX_FILTER_PROMISCUOUS;
 	
 	rc = wmi_reg_write(ar9271->htc_device, AR9271_RX_FILTER, filter_bits);
 	if(rc != EOK) {
@@ -423,6 +411,9 @@ int hw_rx_init(ar9271_t *ar9271)
 		return EINVAL;
 	}
 	
+	wmi_reg_write(ar9271->htc_device, AR9271_MULTICAST_FILTER1, ~0);
+	wmi_reg_write(ar9271->htc_device, AR9271_MULTICAST_FILTER2, ~0);
+	
 	return EOK;
 }
 
@@ -446,12 +437,36 @@ static int hw_init_pll(ar9271_t *ar9271)
 	/* Some magic here. */
 	pll = (0x5 << 10) & 0x00003C00;
 	pll |= (0x2 << 14) & 0x0000C000; /**< 0x2 ~ quarter rate (0x1 half) */
-	pll |= 0x58 & 0x000003FF;
+	pll |= 0x2C & 0x000003FF;
 	
 	return wmi_reg_write(ar9271->htc_device, AR9271_RTC_PLL_CONTROL, pll);
 }
 
-static int hw_calibrate(ar9271_t *ar9271)
+static int hw_set_init_values(ar9271_t *ar9271)
+{
+	uint32_t reg_offset, reg_value;
+	
+	int size = 
+		sizeof(ar9271_2g_mode_array) / 	sizeof(ar9271_2g_mode_array[0]);
+	
+	for(int i = 0; i < size; i++) {
+		reg_offset = ar9271_2g_mode_array[i][0];
+		reg_value = ar9271_2g_mode_array[i][1];
+		wmi_reg_write(ar9271->htc_device, reg_offset, reg_value);
+	}
+	
+	size = sizeof(ar9271_init_array) / sizeof(ar9271_init_array[0]);
+	
+	for(int i = 0; i < size; i++) {
+		reg_offset = ar9271_init_array[i][0];
+		reg_value = ar9271_init_array[i][1];
+		wmi_reg_write(ar9271->htc_device, reg_offset, reg_value);
+	}
+	
+	return EOK;
+}
+
+static int hw_calibration(ar9271_t *ar9271)
 {
 	wmi_reg_set_bit(ar9271->htc_device, AR9271_CARRIER_LEAK_CONTROL,
 		AR9271_CARRIER_LEAK_CALIB);
@@ -481,15 +496,16 @@ static int hw_calibrate(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_set_init_values(ar9271_t *ar9271)
+static int hw_noise_floor_calibration(ar9271_t *ar9271)
 {
-	int size = sizeof(ar9271_init_array) / sizeof(ar9271_init_array[0]);
+	wmi_reg_set_bit(ar9271->htc_device, AR9271_AGC_CONTROL, 
+		AR9271_AGC_CONTROL_NF_CALIB_EN);
 	
-	for(int i = 0; i < size; i++) {
-		uint32_t reg_offset = ar9271_init_array[i][0];
-		uint32_t reg_value = ar9271_init_array[i][1];
-		wmi_reg_write(ar9271->htc_device, reg_offset, reg_value);
-	}
+	wmi_reg_clear_bit(ar9271->htc_device, AR9271_AGC_CONTROL, 
+		AR9271_AGC_CONTROL_NF_NOT_UPDATE);
+	
+	wmi_reg_set_bit(ar9271->htc_device, AR9271_AGC_CONTROL, 
+		AR9271_AGC_CONTROL_NF_CALIB);
 	
 	return EOK;
 }
@@ -553,14 +569,12 @@ int hw_reset(ar9271_t *ar9271)
 	/* TODO: There should probably be TX power settings. */
 	
 	/* Set physical layer mode. */
-	rc = wmi_reg_write(ar9271->htc_device, AR9271_PHY_MODE,
-		AR9271_PHY_MODE_DYNAMIC | AR9271_PHY_MODE_2G);
+	rc = wmi_reg_write(ar9271->htc_device, AR9271_PHY_MODE, 
+		AR9271_PHY_MODE_DYNAMIC);
 	if(rc != EOK) {
 		usb_log_error("Failed to set physical layer mode.\n");
 		return rc;
 	}
-	
-	/* TODO: Init EEPROM here. */
 	
 	/* Set device operating mode. */
 	rc = hw_set_operating_mode(ar9271, IEEE80211_OPMODE_STATION);
@@ -570,7 +584,7 @@ int hw_reset(ar9271_t *ar9271)
 	}
 	
 	/* Set channel frequency. */
-	rc = hw_set_freq(ar9271, IEEE80211_FIRST_FREQ);
+	rc = hw_set_freq(ar9271, 2437);
 	if(rc != EOK) {
 		usb_log_error("Failed to set channel.\n");
 		return rc;
@@ -590,8 +604,6 @@ int hw_reset(ar9271_t *ar9271)
 	
 	/* TODO: Maybe resetting TX queues will be necessary afterwards here. */
 	
-	/* TODO: Setting RX, TX timeouts and others may be necessary here. */
-	
 	/* Activate physical layer. */
 	rc = hw_activate_phy(ar9271);
 	if(rc != EOK) {
@@ -600,9 +612,15 @@ int hw_reset(ar9271_t *ar9271)
 	}
 	
 	/* Calibration. */
-	rc = hw_calibrate(ar9271);
+	rc = hw_calibration(ar9271);
 	if(rc != EOK) {
 		usb_log_error("Failed to calibrate device.\n");
+		return rc;
+	}
+	
+	rc = hw_noise_floor_calibration(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to calibrate noise floor.\n");
 		return rc;
 	}
 	

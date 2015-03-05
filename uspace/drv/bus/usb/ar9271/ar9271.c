@@ -164,7 +164,7 @@ static int ar9271_data_polling(void *arg)
 		int rc = 
 		htc_read_data_message(ar9271->htc_device, buffer, buffer_size,
 			NULL);
-		usb_log_info("RC is %d.\n", rc);
+		usb_log_info("XXXXXXXXXXXXXXXXXXXXXXXXXXXX RC is %d.\n", rc);
 		
 		/* TODO: Process RX message */
 	}
@@ -178,10 +178,26 @@ static int ar9271_diag_polling(void *arg)
 	
 	while(true) {
 		uint32_t result;
+		wmi_reg_read(ar9271->htc_device, 0x7828, &result);
+		usb_log_info("0x7828: %x\n", result);
+		wmi_reg_read(ar9271->htc_device, 0x782C, &result);
+		usb_log_info("0x782C: %x\n", result);
+		wmi_reg_read(ar9271->htc_device, 0x8048, &result);
+		usb_log_info("Diag reg.: %x\n", result);
+		wmi_reg_read(ar9271->htc_device, 0x8088, &result);
+		usb_log_info("Successful RTS count: %x\n", result);
+		wmi_reg_read(ar9271->htc_device, 0x808C, &result);
+		usb_log_info("Failed RTS count: %x\n", result);
+		wmi_reg_read(ar9271->htc_device, 0x8090, &result);
+		usb_log_info("Failed ACK count: %x\n", result);
+		wmi_reg_read(ar9271->htc_device, 0x8094, &result);
+		usb_log_info("Failed FCS count: %x\n", result);
 		wmi_reg_read(ar9271->htc_device, 0x80F0, &result);
 		usb_log_info("RX count: %x\n", result);
 		wmi_reg_read(ar9271->htc_device, 0x8098, &result);
 		usb_log_info("Beacon count: %x\n", result);
+		wmi_reg_read(ar9271->htc_device, 0x812C, &result);
+		usb_log_info("PHY errors: %x\n", result);
 		sleep(1);
 	}
 	
