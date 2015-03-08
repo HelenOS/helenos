@@ -44,7 +44,6 @@
 #include "ath.h"
 
 #define HTC_RTS_THRESHOLD 2304
-#define HTC_MAX_AMPDU 0xFFFF
 
 /**
  * HTC message IDs
@@ -219,6 +218,17 @@ typedef struct {
 	
 	uint8_t pad;
 } __attribute__((packed)) htc_sta_msg_t;
+
+/**
+ * HTC message to inform target about available capabilities.
+ */
+typedef struct {
+	uint32_t ampdu_limit;	/**< Big Endian value! */
+	uint8_t ampdu_subframes;
+	uint8_t enable_coex;
+	uint8_t tx_chainmask;
+	uint8_t pad;
+} __attribute__((packed)) htc_cap_msg_t;
 
 /**
  * HTC setup complete message structure

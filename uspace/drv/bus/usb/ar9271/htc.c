@@ -70,6 +70,9 @@ int htc_init_new_vif(htc_device_t *htc_device)
 	htc_vif_msg_t vif_msg;
 	htc_sta_msg_t sta_msg;
 	
+	memset(&vif_msg, 0, sizeof(htc_vif_msg_t));
+	memset(&sta_msg, 0, sizeof(htc_sta_msg_t));
+	
 	nic_address_t addr;
 	nic_t *nic = nic_get_from_ddf_dev(htc_device->ieee80211_dev->ddf_dev);
 	nic_query_address(nic, &addr);
@@ -98,44 +101,31 @@ int htc_init_new_vif(htc_device_t *htc_device)
 	vif_msg.index = 0;
 	vif_msg.rts_thres = host2uint16_t_be(HTC_RTS_THRESHOLD);
 	
-	int rc = wmi_send_command(htc_device, WMI_VAP_CREATE, 
-		(uint8_t *) &vif_msg, sizeof(vif_msg), NULL);
-	if(rc != EOK) {
-		usb_log_error("Failed to send VAP create command.\n");
-		return rc;
-	}
+	wmi_send_command(htc_device, WMI_VAP_CREATE, (uint8_t *) &vif_msg, 
+		sizeof(vif_msg), NULL);
 	
 	sta_msg.is_vif_sta = 1;
-	sta_msg.max_ampdu = host2uint16_t_be(HTC_MAX_AMPDU);
+	sta_msg.max_ampdu = host2uint16_t_be(0xFFFF);
 	sta_msg.sta_index = 0;
 	sta_msg.vif_index = 0;
 	
-	rc = wmi_send_command(htc_device, WMI_NODE_CREATE, 
-		(uint8_t *) &sta_msg, sizeof(sta_msg), NULL);
-	if(rc != EOK) {
-		usb_log_error("Failed to send NODE create command.\n");
-		return rc;
-	}
+	wmi_send_command(htc_device, WMI_NODE_CREATE, (uint8_t *) &sta_msg, 
+		sizeof(sta_msg), NULL);
 	
 	/* Write first 4 bytes of MAC address. */
 	uint32_t id0;
 	memcpy(&id0, &addr.address, 4);
 	id0 = host2uint32_t_le(id0);
-	rc = wmi_reg_write(htc_device, AR9271_STATION_ID0, id0);
-	if(rc != EOK)
-		return rc;
-	
+	wmi_reg_write(htc_device, AR9271_STATION_ID0, id0);
+
 	/* Write last 2 bytes of MAC address (and preserve existing data). */
 	uint32_t id1;
-	rc = wmi_reg_read(htc_device, AR9271_STATION_ID1, &id1);
-	if(rc != EOK)
-		return rc;
+	wmi_reg_read(htc_device, AR9271_STATION_ID1, &id1);
+
 	uint16_t id1_addr;
 	memcpy(&id1_addr, &addr.address[4], 2);
 	id1 = (id1 & ~AR9271_STATION_ID1_MASK) | host2uint16_t_le(id1_addr);
-	rc = wmi_reg_write(htc_device, AR9271_STATION_ID1, id1);
-	if(rc != EOK)
-		return rc;
+	wmi_reg_write(htc_device, AR9271_STATION_ID1, id1);
 	
 	/* TODO: Set BSSID mask for AP mode. */
 	
@@ -145,15 +135,11 @@ int htc_init_new_vif(htc_device_t *htc_device)
 static void htc_config_frame_header(htc_frame_header_t *header, 
 	size_t buffer_size, uint8_t endpoint_id)
 {
+	memset(header, 0, sizeof(htc_frame_header_t));
+	
 	header->endpoint_id = endpoint_id;
-	header->flags = 0;
 	header->payload_length = 
 		host2uint16_t_be(buffer_size - sizeof(htc_frame_header_t));
-	
-	header->control_bytes[0] = 0x02;
-	header->control_bytes[1] = 0x88;
-	header->control_bytes[2] = 0xFF;
-	header->control_bytes[3] = 0xFF;
 }
 
 /**
@@ -256,6 +242,7 @@ static int htc_connect_service(htc_device_t *htc_device,
 	size_t buffer_size = sizeof(htc_frame_header_t) + 
 		sizeof(htc_service_msg_t);
 	void *buffer = malloc(buffer_size);
+	memset(buffer, 0, buffer_size);
 	
 	/* Fill service message structure. */
 	htc_service_msg_t *service_message = (htc_service_msg_t *)

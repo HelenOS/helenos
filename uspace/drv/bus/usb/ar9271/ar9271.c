@@ -98,10 +98,12 @@ const usb_endpoint_description_t *endpoints[] = {
 /* Callback when new device is to be controlled by this driver. */
 static int ar9271_add_device(ddf_dev_t *);
 
-/* IEEE802.11 callbacks */
+/* IEEE 802.11 callbacks */
 static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev);
 static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 	void *buffer, size_t buffer_size);
+static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
+	uint16_t freq);
 
 static driver_ops_t ar9271_driver_ops = {
 	.dev_add = ar9271_add_device
@@ -114,45 +116,9 @@ static driver_t ar9271_driver = {
 
 static ieee80211_ops_t ar9271_ieee80211_ops = {
 	.start = ar9271_ieee80211_start,
-	.tx_handler = ar9271_ieee80211_tx_handler
+	.tx_handler = ar9271_ieee80211_tx_handler,
+	.set_freq = ar9271_ieee80211_set_freq
 };
-
-static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
-	void *buffer, size_t buffer_size)
-{
-	/* TODO: Process TX message properly */
-	
-	size_t complete_size, offset;
-	void *complete_buffer;
-	int endpoint;
-	
-	ar9271_t *ar9271 = (ar9271_t *) ieee80211_dev->driver_data;
-	
-	ieee80211_header_t *ieee80211_header = (ieee80211_header_t *) buffer;
-	
-	if(ieee80211_is_data_frame(ieee80211_header)) {
-		offset = sizeof(htc_frame_header_t);
-		complete_size = buffer_size + offset;
-		complete_buffer = malloc(complete_size);
-		endpoint = ar9271->htc_device->endpoints.data_be_endpoint;
-	} else {
-		offset = sizeof(htc_tx_management_header_t) +
-			sizeof(htc_frame_header_t);
-		complete_size = buffer_size + offset;
-		complete_buffer = malloc(complete_size);
-		endpoint = ar9271->htc_device->endpoints.mgmt_endpoint;
-	}
-	
-	/* Copy IEEE802.11 data to new allocated buffer with HTC headers. */
-	memcpy(complete_buffer + offset, buffer, buffer_size);
-	
-	htc_send_data_message(ar9271->htc_device, complete_buffer,
-		complete_size, endpoint);
-	
-	free(complete_buffer);
-	
-	return EOK;
-}
 
 static int ar9271_data_polling(void *arg)
 {
@@ -161,10 +127,9 @@ static int ar9271_data_polling(void *arg)
 	void *buffer = malloc(buffer_size);
 	
 	while(true) {
-		int rc = 
 		htc_read_data_message(ar9271->htc_device, buffer, buffer_size,
 			NULL);
-		usb_log_info("XXXXXXXXXXXXXXXXXXXXXXXXXXXX RC is %d.\n", rc);
+		usb_log_info("Incoming data message.\n");
 		
 		/* TODO: Process RX message */
 	}
@@ -172,6 +137,7 @@ static int ar9271_data_polling(void *arg)
 	return EOK;
 }
 
+/*
 static int ar9271_diag_polling(void *arg)
 {
 	ar9271_t *ar9271 = (ar9271_t *) arg;
@@ -182,7 +148,7 @@ static int ar9271_diag_polling(void *arg)
 		usb_log_info("0x7828: %x\n", result);
 		wmi_reg_read(ar9271->htc_device, 0x782C, &result);
 		usb_log_info("0x782C: %x\n", result);
-		wmi_reg_read(ar9271->htc_device, 0x8048, &result);
+		wmi_reg_read(ar9271->htc_device, AR9271_DIAG, &result);
 		usb_log_info("Diag reg.: %x\n", result);
 		wmi_reg_read(ar9271->htc_device, 0x8088, &result);
 		usb_log_info("Successful RTS count: %x\n", result);
@@ -203,6 +169,7 @@ static int ar9271_diag_polling(void *arg)
 	
 	return EOK;
 }
+ */
 
 static int ar9271_register_polling_fibrils(ar9271_t *ar9271)
 {
@@ -214,11 +181,89 @@ static int ar9271_register_polling_fibrils(ar9271_t *ar9271)
 	fibril_add_ready(fibril);
 	
 	/* Add debug polling fibril. */
+	/*
 	fibril = fibril_create(ar9271_diag_polling, ar9271);
 	if (fibril == 0) {
 		return ENOMEM;
 	}
 	fibril_add_ready(fibril);
+	 */
+	
+	return EOK;
+}
+
+/** 
+ * IEEE 802.11 handlers. 
+ */
+
+static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
+	uint16_t freq)
+{
+	ar9271_t *ar9271 = (ar9271_t *) ieee80211_dev->driver_data;
+	
+	wmi_send_command(ar9271->htc_device, WMI_DISABLE_INTR, NULL, 0, NULL);
+	wmi_send_command(ar9271->htc_device, WMI_DRAIN_TXQ_ALL, NULL, 0, NULL);
+	wmi_send_command(ar9271->htc_device, WMI_STOP_RECV, NULL, 0, NULL);
+	
+	int rc = hw_freq_switch(ar9271, freq);
+	if(rc != EOK) {
+		usb_log_error("Failed to HW switch frequency.\n");
+		return rc;
+	}
+	
+	wmi_send_command(ar9271->htc_device, WMI_START_RECV, NULL, 0, NULL);
+	
+	rc = hw_rx_init(ar9271);
+	if(rc != EOK) {
+		usb_log_error("Failed to initialize RX.\n");
+		return rc;
+	}
+	
+	uint16_t htc_mode = host2uint16_t_be(1);
+	wmi_send_command(ar9271->htc_device, WMI_SET_MODE, 
+		(uint8_t *) &htc_mode, sizeof(htc_mode), NULL);
+	wmi_send_command(ar9271->htc_device, WMI_ENABLE_INTR, NULL, 0, NULL);
+	
+	return EOK;
+}
+
+static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
+	void *buffer, size_t buffer_size)
+{
+	size_t complete_size, offset;
+	void *complete_buffer;
+	int endpoint;
+	
+	ar9271_t *ar9271 = (ar9271_t *) ieee80211_dev->driver_data;
+	
+	uint16_t frame_ctrl = uint16_t_le2host(*((uint16_t *) buffer));
+	if(frame_ctrl & IEEE80211_DATA_FRAME) {
+		offset = sizeof(htc_frame_header_t);
+		complete_size = buffer_size + offset;
+		complete_buffer = malloc(complete_size);
+		endpoint = ar9271->htc_device->endpoints.data_be_endpoint;
+	} else {
+		offset = sizeof(htc_tx_management_header_t) +
+			sizeof(htc_frame_header_t);
+		complete_size = buffer_size + offset;
+		complete_buffer = malloc(complete_size);
+		memset(complete_buffer, 0, complete_size);
+		
+		htc_tx_management_header_t *mgmt_header =
+			(htc_tx_management_header_t *) 
+			(complete_buffer + sizeof(htc_frame_header_t));
+		mgmt_header->keyix = 0xFF;
+		
+		endpoint = ar9271->htc_device->endpoints.mgmt_endpoint;
+	}
+	
+	/* Copy IEEE802.11 data to new allocated buffer with HTC headers. */
+	memcpy(complete_buffer + offset, buffer, buffer_size);
+	
+	htc_send_data_message(ar9271->htc_device, complete_buffer,
+		complete_size, endpoint);
+	
+	free(complete_buffer);
 	
 	return EOK;
 }
@@ -227,46 +272,36 @@ static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
 {
 	ar9271_t *ar9271 = (ar9271_t *) ieee80211_dev->driver_data;
 	
-	int rc = wmi_send_command(ar9271->htc_device, WMI_FLUSH_RECV, NULL, 0, 
-		NULL);
-	if(rc != EOK) {
-		usb_log_error("Failed to flush receiving buffer.\n");
-		return rc;
-	}
+	wmi_send_command(ar9271->htc_device, WMI_FLUSH_RECV, NULL, 0, NULL);
 	
-	rc = hw_reset(ar9271);
+	int rc = hw_reset(ar9271);
 	if(rc != EOK) {
 		usb_log_error("Failed to do HW reset.\n");
 		return rc;
 	}
 	
 	uint16_t htc_mode = host2uint16_t_be(1);
-	rc = wmi_send_command(ar9271->htc_device, WMI_SET_MODE, 
+	wmi_send_command(ar9271->htc_device, WMI_SET_MODE, 
 		(uint8_t *) &htc_mode, sizeof(htc_mode), NULL);
-	if(rc != EOK) {
-		usb_log_error("Failed to set HTC mode.\n");
-		return rc;
-	}
-	
-	rc = wmi_send_command(ar9271->htc_device, WMI_ATH_INIT, NULL, 0, 
-		NULL);
-	if(rc != EOK) {
-		usb_log_error("Failed to send ath init command.\n");
-		return rc;
-	}
-	
-	rc = wmi_send_command(ar9271->htc_device, WMI_START_RECV, NULL, 0, 
-		NULL);
-	if(rc != EOK) {
-		usb_log_error("Failed to send receiving init command.\n");
-		return rc;
-	}
+	wmi_send_command(ar9271->htc_device, WMI_ATH_INIT, NULL, 0, NULL);
+	wmi_send_command(ar9271->htc_device, WMI_START_RECV, NULL, 0, NULL);
+	wmi_send_command(ar9271->htc_device, WMI_ENABLE_INTR, NULL, 0, NULL);
 	
 	rc = hw_rx_init(ar9271);
 	if(rc != EOK) {
 		usb_log_error("Failed to initialize RX.\n");
 		return rc;
 	}
+	
+	/* Send capability message to target. */
+	htc_cap_msg_t cap_msg;
+	cap_msg.ampdu_limit = host2uint32_t_be(0xFFFF);
+	cap_msg.ampdu_subframes = 0xFF;
+	cap_msg.enable_coex = 0;
+	cap_msg.tx_chainmask = 0x1;
+	
+	wmi_send_command(ar9271->htc_device, WMI_TARGET_IC_UPDATE,
+		(uint8_t *) &cap_msg, sizeof(cap_msg), NULL);
 	
 	rc = htc_init_new_vif(ar9271->htc_device);
 	if(rc != EOK) {
@@ -280,11 +315,14 @@ static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
 		return rc;
 	}
 	
+	ar9271->starting_up = false;
+	
 	return EOK;
 }
 
 static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
 {
+	ar9271->starting_up = true;
 	ar9271->usb_device = usb_device;
 	
 	ar9271->ath_device = calloc(1, sizeof(ath_t));

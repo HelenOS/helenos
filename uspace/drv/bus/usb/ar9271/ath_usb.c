@@ -144,12 +144,25 @@ static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
 static int ath_usb_send_data_message(ath_t *ath, void *buffer, 
 	size_t buffer_size)
 {
+	size_t complete_buffer_size = buffer_size + DATA_HEADER_SIZE;
+	void *complete_buffer = malloc(buffer_size + DATA_HEADER_SIZE);
+	memcpy(complete_buffer + DATA_HEADER_SIZE, buffer, buffer_size);
+	
+	uint16_t *it = (uint16_t *) complete_buffer;
+	*it++ = host2uint16_t_le(buffer_size);
+	*it++ = host2uint16_t_le(TX_STREAM_MODE_TAG);
+	
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
 	usb_pipe_t *pipe = 
 		&ath_usb->usb_device->pipes[ath_usb->output_data_pipe_number].
 		pipe;
 	
-	return usb_pipe_write(pipe, buffer, buffer_size);
+	int ret_val = usb_pipe_write(pipe, complete_buffer, 
+		complete_buffer_size);
+	
+	free(complete_buffer);
+	
+	return ret_val;
 }
 
 /**

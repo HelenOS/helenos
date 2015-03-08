@@ -97,6 +97,7 @@ typedef enum {
 	AR9271_BSSID_MASK0 = 0x80E0,		/**< BSSID Mask Lower 32 Bits */
 	AR9271_BSSID_MASK1 = 0x80E4,		/**< BSSID Mask Upper 16 Bits */
 	AR9271_STATION_ID1_MASK = 0x0000FFFF,
+	AR9271_STATION_ID1_POWER_SAVING = 0x00040000,
 		
 	/* RX filtering register */
 	AR9271_RX_FILTER = 0x803C,
@@ -110,12 +111,19 @@ typedef enum {
 	AR9271_RX_FILTER_MYBEACON = 0x00000200,
 	AR9271_MULTICAST_FILTER1 = 0x8040,
 	AR9271_MULTICAST_FILTER2 = 0x8044,	
+	AR9271_DIAG = 0x8048,
 		
 	/* Physical layer registers */
+		
 	AR9271_PHY_ACTIVE = 0x981C,
 	AR9271_ADC_CONTROL = 0x982C,
 	AR9271_AGC_CONTROL = 0x9860,
 	AR9271_PHY_SYNTH_CONTROL = 0x9874, 
+	AR9271_PHY_SPECTRAL_SCAN = 0x9910,
+	AR9271_PHY_RADAR0 = 0x9954,
+	AR9271_PHY_RADAR0_FFT_ENABLED = 0x80000000,
+	AR9271_PHY_RFBUS_KILL = 0x997C,
+	AR9271_PHY_RFBUS_GRANT = 0x9C20,
 	AR9271_PHY_MODE = 0xA200,
 	AR9271_PHY_CCK_TX_CTRL = 0xA204,
 	AR9271_PHY_TPCRG1 = 0xA258, 
@@ -126,7 +134,6 @@ typedef enum {
 	AR9271_AGC_CONTROL_NF_CALIB_EN = 0x00008000, 
 	AR9271_AGC_CONTROL_TX_CALIB = 0x00010000,
 	AR9271_AGC_CONTROL_NF_NOT_UPDATE = 0x00020000,
-	AR9271_PHY_MODE_2G = 0x02,
 	AR9271_PHY_MODE_DYNAMIC = 0x04,
 	AR9271_PHY_CCK_TX_CTRL_JAPAN = 0x00000010,
 	AR9271_PHY_TPCRG1_PD_CALIB = 0x00400000,
@@ -155,6 +162,9 @@ typedef enum {
 
 /** AR9271 device data */
 typedef struct {
+	/** Whether device is starting up. */
+	bool starting_up;
+	
 	/** Backing DDF device */
 	ddf_dev_t *ddf_dev;
 	
@@ -186,10 +196,10 @@ static const uint32_t ar9271_2g_mode_array[][2] = {
 	{0x00008014, 0x08400b00},
 	{0x0000801c, 0x12e0002b},
 	{0x00008318, 0x00003440},
-	{0x00009804, 0x00000300},
+	{0x00009804, 0x000003c0},/*< note: overridden */
 	{0x00009820, 0x02020200},
 	{0x00009824, 0x01000e0e},
-	{0x00009828, 0x3a020001},
+	{0x00009828, 0x0a020001},/*< note: overridden */
 	{0x00009834, 0x00000e0e},
 	{0x00009838, 0x00000007},
 	{0x00009840, 0x206a012e},
@@ -485,6 +495,47 @@ static const uint32_t ar9271_2g_mode_array[][2] = {
 };
 
 /**
+ * AR9271 TX init values for 2GHz mode operation.
+ * 
+ * Taken from Linux sources.
+ */
+static const uint32_t ar9271_2g_tx_array[][2] = {
+	{0x0000a300, 0x00010000},
+	{0x0000a304, 0x00016200},
+	{0x0000a308, 0x00018201},
+	{0x0000a30c, 0x0001b240},
+	{0x0000a310, 0x0001d241},
+	{0x0000a314, 0x0001f600},
+	{0x0000a318, 0x00022800},
+	{0x0000a31c, 0x00026802},
+	{0x0000a320, 0x0002b805},
+	{0x0000a324, 0x0002ea41},
+	{0x0000a328, 0x00038b00},
+	{0x0000a32c, 0x0003ab40},
+	{0x0000a330, 0x0003cd80},
+	{0x0000a334, 0x000368de},
+	{0x0000a338, 0x0003891e},
+	{0x0000a33c, 0x0003a95e},
+	{0x0000a340, 0x0003e9df},
+	{0x0000a344, 0x0003e9df},
+	{0x0000a348, 0x0003e9df},
+	{0x0000a34c, 0x0003e9df},
+	{0x0000a350, 0x0003e9df},
+	{0x0000a354, 0x0003e9df},
+	{0x00007838, 0x0000002b},
+	{0x00007824, 0x00d8a7ff},
+	{0x0000786c, 0x08609eba},
+	{0x00007820, 0x00000c00},
+	{0x0000a274, 0x0a214652},
+	{0x0000a278, 0x0e739ce7},
+	{0x0000a27c, 0x05018063},
+	{0x0000a394, 0x06318c63},
+	{0x0000a398, 0x00000063},
+	{0x0000a3dc, 0x06318c63},
+	{0x0000a3e0, 0x00000063}
+};
+
+/**
  * AR9271 hardware init values.
  * 
  * Taken from Linux sources, some values omitted.
@@ -583,7 +634,7 @@ static const uint32_t ar9271_init_array[][2] = {
 	{0x00008054, 0x00000000},
 	{0x00008058, 0x00000000},
 	{0x0000805c, 0x000fc78f},
-	{0x00008060, 0x0000000f},
+	{0x00008060, 0xc7ff000f},
 	{0x00008064, 0x00000000},
 	{0x00008070, 0x00000000},
 	{0x000080b0, 0x00000000},
@@ -679,7 +730,7 @@ static const uint32_t ar9271_init_array[][2] = {
 	{0x00008338, 0x00ff0000},
 	{0x0000833c, 0x00000000},
 	{0x00008340, 0x00010380},
-	{0x00008344, 0x00581003},/*< note: disabled ADHOC_MCAST_KEYID feature */
+	{0x00008344, 0x00481083},/*< note: disabled ADHOC_MCAST_KEYID feature */
 	{0x00007010, 0x00000030},
 	{0x00007034, 0x00000002},
 	{0x00007038, 0x000004c2},

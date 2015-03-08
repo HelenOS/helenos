@@ -41,6 +41,7 @@
 #define HW_WAIT_TIME_US 10
 
 extern int hw_init(ar9271_t *ar9271);
+extern int hw_freq_switch(ar9271_t *, uint16_t freq);
 extern int hw_rx_init(ar9271_t *ar9271);
 extern int hw_reset(ar9271_t *ar9271);
 

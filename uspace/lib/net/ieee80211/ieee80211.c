@@ -41,18 +41,30 @@
 #include <ieee80211_impl.h>
 #include <ieee80211.h>
 
+/** Broadcast MAC address used to spread probe request through channel. */
+static const uint8_t ieee80211_broadcast_mac_addr[] = {
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+};
+
+/** IEEE 802.11 b/g supported data rates in units of 500 kb/s. */
+static const uint8_t ieee80211bg_data_rates[] = {
+	2, 4, 11, 12, 18, 22, 24, 36
+};
+
+/** IEEE 802.11 b/g extended supported data rates in units of 500 kb/s.
+ * 
+ *  These are defined separately, because probe request message can
+ *  only handle up to 8 data rates in supported rates IE. 
+ */
+static const uint8_t ieee80211bg_ext_data_rates[] = {
+	48, 72, 96, 108
+};
+
 /** Network interface options for IEEE 802.11 driver. */
 static nic_iface_t ieee80211_nic_iface;
 
 /** Basic driver operations for IEEE 802.11 NIC driver. */
 static driver_ops_t ieee80211_nic_driver_ops;
-
-bool ieee80211_is_data_frame(ieee80211_header_t *header)
-{
-	return (header->frame_ctrl & 
-		host2uint16_t_le(IEEE80211_FRAME_CTRL_FRAME_TYPE)) ==
-		host2uint16_t_le(IEEE80211_FRAME_CTRL_DATA_FRAME);
-}
 
 static int ieee80211_open(ddf_fun_t *fun)
 {
@@ -69,11 +81,9 @@ static int ieee80211_open(ddf_fun_t *fun)
 	if(rc != EOK)
 		return rc;
 	
-	/*
 	rc = ieee80211_dev->ops->scan(ieee80211_dev);
 	if(rc != EOK)
 		return rc;
-	 */
 	
 	return EOK;
 }
@@ -92,6 +102,10 @@ static int ieee80211_set_operations(ieee80211_dev_t *ieee80211_dev,
 	
 	/* IEEE802.11 TX handler must be implemented. */
 	if(!ieee80211_ops->tx_handler)
+		return EINVAL;
+	
+	/* IEEE802.11 set frequency handler must be implemented. */
+	if(!ieee80211_ops->set_freq)
 		return EINVAL;
 	
 	if(!ieee80211_ops->scan)
@@ -117,6 +131,9 @@ int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, void *driver_data,
 	ieee80211_dev->driver_data = driver_data;
 	ieee80211_dev->started = false;
 	ieee80211_dev->current_op_mode = IEEE80211_OPMODE_STATION;
+	
+	memcpy(ieee80211_dev->bssid_mask, ieee80211_broadcast_mac_addr, 
+		ETH_ADDR);
 	
 	/* Bind NIC to device */
 	nic_t *nic = nic_create_and_bind(ddf_dev);
@@ -170,6 +187,108 @@ int ieee80211_init(ieee80211_dev_t *ieee80211_dev,
 		ddf_fun_unbind(fun);
 		return rc;
 	}
+	
+	return EOK;
+}
+
+static uint8_t ieee80211_freq_to_channel(uint16_t freq)
+{
+	return (freq - IEEE80211_FIRST_FREQ) / IEEE80211_CHANNEL_GAP + 1;
+}
+
+int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev)
+{
+	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
+	nic_address_t nic_address;
+	nic_query_address(nic, &nic_address);
+	
+	size_t data_rates_size = 
+		sizeof(ieee80211bg_data_rates) / 
+		sizeof(ieee80211bg_data_rates[0]);
+	
+	size_t ext_data_rates_size = 
+		sizeof(ieee80211bg_ext_data_rates) / 
+		sizeof(ieee80211bg_ext_data_rates[0]);
+	
+	/* 3 headers - (rates, ext rates, current channel) and their data
+	 * lengths + pad. 
+	 */
+	size_t payload_size = 
+		sizeof(ieee80211_ie_header_t) * 3 +
+		data_rates_size + ext_data_rates_size + sizeof(uint8_t) + 2;
+	
+	size_t buffer_size = sizeof(ieee80211_mgmt_header_t) + payload_size;
+	void *buffer = malloc(buffer_size);
+	memset(buffer, 0, buffer_size);
+	
+	ieee80211_mgmt_header_t *mgmt_header = 
+		(ieee80211_mgmt_header_t *) buffer;
+	
+	mgmt_header->frame_ctrl = host2uint16_t_le(
+		IEEE80211_MGMT_FRAME | 
+		IEEE80211_MGMT_PROBE_REQ_FRAME
+		);
+	memcpy(mgmt_header->dest_addr, ieee80211_broadcast_mac_addr, ETH_ADDR);
+	memcpy(mgmt_header->src_addr, nic_address.address, ETH_ADDR);
+	memcpy(mgmt_header->bssid, ieee80211_broadcast_mac_addr, ETH_ADDR);
+	
+	/* Jump to payload -> header + padding. */
+	uint8_t *it = buffer + sizeof(ieee80211_mgmt_header_t) + 2;
+	
+	*it++ = IEEE80211_RATES_IE;
+	*it++ = data_rates_size;
+	memcpy(it, ieee80211bg_data_rates, data_rates_size);
+	it += data_rates_size;
+	
+	*it++ = IEEE80211_EXT_RATES_IE;
+	*it++ = ext_data_rates_size;
+	memcpy(it, ieee80211bg_ext_data_rates, ext_data_rates_size);
+	it += ext_data_rates_size;
+	
+	*it++ = IEEE80211_CHANNEL_IE;
+	*it++ = 1;
+	*it = ieee80211_freq_to_channel(ieee80211_dev->current_freq);
+	
+	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
+	
+	free(buffer);
+	
+	return EOK;
+}
+
+int ieee80211_probe_auth(ieee80211_dev_t *ieee80211_dev)
+{
+	uint8_t test_bssid[] = {0x14, 0xF6, 0x5A, 0xAF, 0x5E, 0xB7};
+	
+	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
+	nic_address_t nic_address;
+	nic_query_address(nic, &nic_address);
+	
+	size_t buffer_size = sizeof(ieee80211_mgmt_header_t) + 
+		sizeof(ieee80211_auth_body_t);
+	void *buffer = malloc(buffer_size);
+	memset(buffer, 0, buffer_size);
+	
+	ieee80211_mgmt_header_t *mgmt_header = 
+		(ieee80211_mgmt_header_t *) buffer;
+	
+	mgmt_header->frame_ctrl = host2uint16_t_le(
+		IEEE80211_MGMT_FRAME | 
+		IEEE80211_MGMT_AUTH_FRAME
+		);
+	memcpy(mgmt_header->dest_addr, test_bssid, ETH_ADDR);
+	memcpy(mgmt_header->src_addr, nic_address.address, ETH_ADDR);
+	memcpy(mgmt_header->bssid, test_bssid, ETH_ADDR);
+	
+	ieee80211_auth_body_t *auth_body =
+		(ieee80211_auth_body_t *) 
+		(buffer + sizeof(ieee80211_mgmt_header_t));
+	auth_body->auth_alg = host2uint16_t_le(0);
+	auth_body->auth_trans_no = host2uint16_t_le(0);
+	
+	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
+	
+	free(buffer);
 	
 	return EOK;
 }

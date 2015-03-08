@@ -51,9 +51,6 @@
 /* Gap between IEEE80211 channels in MHz. */
 #define IEEE80211_CHANNEL_GAP 5
 
-#define IEEE80211_FRAME_CTRL_FRAME_TYPE 0x000C
-#define IEEE80211_FRAME_CTRL_DATA_FRAME 0x0008
-
 struct ieee80211_dev;
 
 /** Device operating modes. */
@@ -64,11 +61,42 @@ typedef enum {
 	IEEE80211_OPMODE_STATION
 } ieee80211_operating_mode_t;
 
+/** IEEE 802.11 frame types. */
+typedef enum {
+	IEEE80211_MGMT_FRAME = 0x0,
+	IEEE80211_CTRL_FRAME = 0x4,
+	IEEE80211_DATA_FRAME = 0x8,
+	IEEE80211_EXT_FRAME = 0xC
+} ieee80211_frame_type_t;
+
+/** IEEE 802.11 frame subtypes. */
+typedef enum {
+	IEEE80211_MGMT_ASSOC_REQ_FRAME = 0x00,
+	IEEE80211_MGMT_ASSOC_RESP_FRAME = 0x10,
+	IEEE80211_MGMT_REASSOC_REQ_FRAME = 0x20,
+	IEEE80211_MGMT_REASSOC_RESP_FRAME = 0x30,
+	IEEE80211_MGMT_PROBE_REQ_FRAME = 0x40,
+	IEEE80211_MGMT_PROBE_RESP_FRAME = 0x50,
+	IEEE80211_MGMT_BEACON_FRAME = 0x80,
+	IEEE80211_MGMT_DIASSOC_FRAME = 0xA0,
+	IEEE80211_MGMT_AUTH_FRAME = 0xB0,
+	IEEE80211_MGMT_DEAUTH_FRAME = 0xC0,
+} ieee80211_frame_subtype_t;
+
+/** IEEE 802.11 information element types. */
+typedef enum {
+	IEEE80211_SSID_IE = 0,		/**< Target SSID. */
+	IEEE80211_RATES_IE = 1,		/**< Supported data rates. */
+	IEEE80211_CHANNEL_IE = 3,	/**< Current channel number. */
+	IEEE80211_EXT_RATES_IE = 50	/**< Extended data rates. */
+} ieee80211_ie_type_t;
+
 /** IEEE 802.11 functions. */
 typedef struct {
 	int (*start)(struct ieee80211_dev *);
 	int (*scan)(struct ieee80211_dev *);
 	int (*tx_handler)(struct ieee80211_dev *, void *, size_t);
+	int (*set_freq)(struct ieee80211_dev *, uint16_t);
 } ieee80211_ops_t;
 
 /** IEEE 802.11 WiFi device structure. */
@@ -88,6 +116,9 @@ typedef struct ieee80211_dev {
 	/** Current operating mode. */
 	ieee80211_operating_mode_t current_op_mode;
 	
+	/** BSSIDs we listen to. */
+	uint8_t bssid_mask[ETH_ADDR];
+	
 	/* TODO: Probably to be removed later - nic.open function is now 
 	 * executed multiple times, have to find out reason and fix it. 
 	 */
@@ -95,7 +126,17 @@ typedef struct ieee80211_dev {
 	bool started;
 } ieee80211_dev_t;
 
-/** IEEE 802.11 header structure. */
+/** IEEE 802.11 management header structure. */
+typedef struct {
+	uint16_t frame_ctrl;		/**< Little Endian value! */
+	uint16_t duration_id;		/**< Little Endian value! */
+	uint8_t dest_addr[ETH_ADDR];
+	uint8_t src_addr[ETH_ADDR];
+	uint8_t bssid[ETH_ADDR];
+	uint16_t seq_ctrl;		/**< Little Endian value! */
+} __attribute__((packed)) __attribute__ ((aligned(2))) ieee80211_mgmt_header_t;
+
+/** IEEE 802.11 data header structure. */
 typedef struct {
 	uint16_t frame_ctrl;		/**< Little Endian value! */
 	uint16_t duration_id;		/**< Little Endian value! */
@@ -104,13 +145,33 @@ typedef struct {
 	uint8_t address3[ETH_ADDR];
 	uint16_t seq_ctrl;		/**< Little Endian value! */
 	uint8_t address4[ETH_ADDR];
-} __attribute__((packed)) __attribute__ ((aligned(2))) ieee80211_header_t;
+	uint16_t qos_ctrl;		/**< Little Endian value! */
+} __attribute__((packed)) __attribute__ ((aligned(2))) ieee80211_data_header_t;
 
-extern bool ieee80211_is_data_frame(ieee80211_header_t *header);
+/** IEEE 802.11 information element header. */
+typedef struct {
+	uint8_t element_id;
+	uint8_t length;
+} __attribute__((packed)) __attribute__ ((aligned(2))) ieee80211_ie_header_t;
+
+/** IEEE 802.11 authentication frame body. */
+typedef struct {
+	uint16_t auth_alg;		/**< Little Endian value! */
+	uint16_t auth_trans_no;		/**< Little Endian value! */
+	uint16_t status;		/**< Little Endian value! */
+} __attribute__((packed)) __attribute__ ((aligned(2))) ieee80211_auth_body_t;
+
+typedef struct {
+	uint8_t bssid[ETH_ADDR];
+	uint16_t auth_alg;
+} __attribute__((packed)) __attribute__ ((aligned(2))) ieee80211_auth_data_t;
+
 extern int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, 
 	void *driver_data, ddf_dev_t *ddf_dev);
 extern int ieee80211_init(ieee80211_dev_t *ieee80211_dev, 
 	ieee80211_ops_t *ieee80211_ops);
+extern int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev);
+extern int ieee80211_probe_auth(ieee80211_dev_t *ieee80211_dev);
 
 #endif /* LIBNET_IEEE80211_H */
 

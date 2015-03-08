@@ -39,6 +39,10 @@
 
 #include "ath.h"
 
+#define DATA_HEADER_SIZE 4
+#define RX_STREAM_MODE_TAG 0x4e00
+#define TX_STREAM_MODE_TAG 0x697e
+
 /** Atheros USB wifi device structure */
 typedef struct {
 	/** USB pipes indexes */

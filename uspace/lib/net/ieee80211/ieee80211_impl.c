@@ -39,27 +39,6 @@
 
 #include <ieee80211_impl.h>
 
-static int ieee80211_freq_to_channel(uint16_t freq)
-{
-	return (freq - IEEE80211_FIRST_FREQ) / IEEE80211_CHANNEL_GAP + 1;
-}
-
-static int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev)
-{
-	size_t buffer_size = sizeof(ieee80211_header_t);
-	void *buffer = malloc(buffer_size);
-	
-	/* TODO */
-	
-	ieee80211_freq_to_channel(ieee80211_dev->current_freq);
-	
-	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
-	
-	free(buffer);
-	
-	return EOK;
-}
-
 /**
  * Default implementation of IEEE802.11 scan function.
  * 
@@ -69,10 +48,21 @@ static int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev)
  */
 int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)
 {
-	/* TODO */
-	int rc = ieee80211_probe_request(ieee80211_dev);
-	if(rc != EOK)
-		return rc;
+	uint16_t orig_freq = ieee80211_dev->current_freq;
+	
+	for(uint16_t freq = IEEE80211_FIRST_FREQ;
+		freq <= IEEE80211_MAX_FREQ; 
+		freq += IEEE80211_CHANNEL_GAP) {
+		ieee80211_dev->ops->set_freq(ieee80211_dev, freq);
+		ieee80211_probe_request(ieee80211_dev);
+		
+		/* Wait for probe responses. */
+		usleep(100000);
+	}
+	
+	ieee80211_dev->ops->set_freq(ieee80211_dev, orig_freq);
+	
+	/* TODO: Collect results. */
 	
 	return EOK;
 }
