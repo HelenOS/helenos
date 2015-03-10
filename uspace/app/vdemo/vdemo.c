@@ -109,7 +109,8 @@ static my_label_t *create_my_label(widget_t *parent,
 int main(int argc, char *argv[])
 {
 	if (argc >= 2) {
-		window_t *main_window = window_open(argv[1], true, true, "vdemo");
+		window_t *main_window = window_open(argv[1],
+		    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, "vdemo");
 		if (!main_window) {
 			printf("Cannot open main window.\n");
 			return 1;

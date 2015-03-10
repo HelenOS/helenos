@@ -48,7 +48,8 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	window_t *main_window = window_open(argv[1], true, true, "vterm");
+	window_t *main_window = window_open(argv[1],
+	    WINDOW_MAIN | WINDOW_DECORATED, "vterm");
 	if (!main_window) {
 		printf("%s: Cannot open main window.\n", NAME);
 		return 2;

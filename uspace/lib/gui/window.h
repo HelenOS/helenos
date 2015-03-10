@@ -64,8 +64,9 @@ struct window {
 /**
  * Allocate all resources for new window and register it in the compositor.
  * If the window is declared as main, its closure causes termination of the
- * whole application. Note that opened window does not have any surface yet. */
-extern window_t *window_open(const char *, bool, bool, const char *);
+ * whole application. Note that opened window does not have any surface yet.
+ */
+extern window_t *window_open(const char *, window_flags_t, const char *);
 
 /**
  * Post resize event into event loop. Window negotiates new surface with

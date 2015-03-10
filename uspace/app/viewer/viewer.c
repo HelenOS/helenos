@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	main_window = window_open(argv[1], true, false, "viewer");
+	main_window = window_open(argv[1], WINDOW_MAIN, "viewer");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 2;

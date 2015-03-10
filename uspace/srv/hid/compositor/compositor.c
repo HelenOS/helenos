@@ -89,6 +89,7 @@ static unsigned int filter_index = 1;
 typedef struct {
 	link_t link;
 	atomic_t ref_cnt;
+	window_flags_t flags;
 	service_id_t in_dsid;
 	service_id_t out_dsid;
 	prodcons_t queue;
@@ -634,6 +635,13 @@ static void comp_window_grab(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 {
 	sysarg_t pos_id = IPC_GET_ARG1(*icall);
 	sysarg_t grab_flags = IPC_GET_ARG2(*icall);
+	
+	/*
+	 * Filter out resize grab flags if the window
+	 * is not resizeable.
+	 */
+	if ((win->flags & WINDOW_RESIZEABLE) != WINDOW_RESIZEABLE)
+		grab_flags &= ~(GF_RESIZE_X | GF_RESIZE_Y);
 
 	fibril_mutex_lock(&pointer_list_mtx);
 	list_foreach(pointer_list, link, pointer_t, pointer) {
@@ -902,6 +910,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				async_answer_2(callid, ENOMEM, 0, 0);
 				return;
 			}
+			
+			win->flags = IPC_GET_ARG1(call);
 
 			char name_in[LOC_NAME_MAXLEN + 1];
 			snprintf(name_in, LOC_NAME_MAXLEN, "%s%s/win%zuin", NAMESPACE,
@@ -1884,7 +1894,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	} else if (win_resize) {
 		fibril_mutex_lock(&window_list_mtx);
 		window_t *win = (window_t *) list_first(&window_list);
-		if (win && win->surface) {
+		if ((win) && (win->surface) && (win->flags & WINDOW_RESIZEABLE)) {
 			window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 			if (event == NULL) {
 				fibril_mutex_unlock(&window_list_mtx);
