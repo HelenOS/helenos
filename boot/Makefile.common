@@ -66,10 +66,11 @@ endif
 DISTROOT = distroot
 INITRD = initrd
 
+# NOTE: Naming service must be first task in the list
 INIT_TASKS = \
 	$(USPACE_PATH)/srv/ns/ns \
 	$(USPACE_PATH)/srv/loader/loader \
-	$(USPACE_PATH)/app/init/init \
+	$(USPACE_PATH)/srv/sysman/sysman \
 	$(USPACE_PATH)/srv/locsrv/locsrv \
 	$(USPACE_PATH)/srv/bd/rd/rd \
 	$(USPACE_PATH)/srv/vfs/vfs \

@@ -118,6 +118,7 @@ DIRS = \
 	srv/net/udp \
 	srv/ns \
 	srv/taskmon \
+	srv/sysman \
 	srv/vfs \
 	srv/bd/sata_bd \
 	srv/bd/file_bd \
