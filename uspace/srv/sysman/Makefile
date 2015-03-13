@@ -34,6 +34,7 @@ STATIC_NEEDED = y
 SOURCES = \
 	configuration.c \
 	dep.c \
+	job.c \
 	main.c \
 	sysman.c \
 	unit.c

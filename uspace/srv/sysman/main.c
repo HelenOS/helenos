@@ -6,6 +6,7 @@
 
 #include "configuration.h"
 #include "dep.h"
+#include "job.h"
 #include "sysman.h"
 #include "unit.h"
 
@@ -84,6 +85,7 @@ int main(int argc, char *argv[])
 	printf(NAME ": HelenOS system daemon\n");
 
 	configuration_init();
+	job_queue_init();
 
 	/*
 	 * Create and start initial configuration asynchronously

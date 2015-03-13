@@ -1,5 +1,8 @@
 #include <assert.h>
+#include <errno.h>
+#include <fibril_synch.h>
 #include <mem.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "unit.h"
@@ -8,14 +11,15 @@ static void unit_init(unit_t *unit, unit_type_t type)
 {
 	assert(unit);
 
-	memset(unit, 0, sizeof(unit));
-
 	link_initialize(&unit->units);
-	list_initialize(&unit->dependants);
-	list_initialize(&unit->dependencies);
-
+	
 	unit->type = type;
 	unit->state = STATE_EMBRYO;
+	fibril_mutex_initialize(&unit->state_mtx);
+	fibril_condvar_initialize(&unit->state_cv);
+
+	list_initialize(&unit->dependants);
+	list_initialize(&unit->dependencies);
 }
 
 unit_t *unit_create(unit_type_t type)
@@ -40,4 +44,16 @@ void unit_destroy(unit_t **unit)
 	 */
 	free(*unit);
 	*unit = NULL;
+}
+
+/** Issue request to restarter to start a unit
+ *
+ * Return from this function only means start request was issued.
+ * If you need to wait for real start of the unit, use waiting on state_cv.
+ */
+int unit_start(unit_t *unit)
+{
+	// TODO actually start the unit
+	printf("Starting unit of type %i\n", unit->type);
+	return EOK;
 }

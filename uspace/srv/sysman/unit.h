@@ -2,6 +2,7 @@
 #define SYSMAN_UNIT_H
 
 #include <adt/list.h>
+#include <fibril_synch.h>
 
 #include "unit_mnt.h"
 #include "unit_cfg.h"
@@ -14,6 +15,7 @@ typedef enum {
 
 typedef enum {
 	STATE_EMBRYO = 0,
+	STATE_STARTED,
 	STATE_STOPPED
 } unit_state_t;
 
@@ -21,7 +23,10 @@ typedef struct {
 	link_t units;
 
 	unit_type_t type;
+
 	unit_state_t state;
+	fibril_mutex_t state_mtx;
+	fibril_condvar_t state_cv;
 
 	list_t dependencies;
 	list_t dependants;
@@ -36,5 +41,6 @@ typedef struct {
 extern unit_t *unit_create(unit_type_t);
 extern void unit_destroy(unit_t **);
 
+extern int unit_start(unit_t *);
 
 #endif
