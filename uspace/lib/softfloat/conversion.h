@@ -36,6 +36,8 @@
 #ifndef __CONVERSION_H__
 #define __CONVERSION_H__
 
+#include <mathtypes.h>
+
 extern float64 float32_to_float64(float32);
 extern float96 float32_to_float96(float32);
 extern float128 float32_to_float128(float32);
@@ -97,6 +99,80 @@ extern float128 int32_to_float128(int32_t);
 
 extern float128 uint64_to_float128(uint64_t);
 extern float128 int64_to_float128(int64_t);
+
+#ifdef float32_t
+extern float32_t __floatsisf(int32_t);
+extern float32_t __floatdisf(int64_t);
+extern float32_t __floatunsisf(uint32_t);
+extern float32_t __floatundisf(uint64_t);
+extern int32_t __fixsfsi(float32_t);
+extern int64_t __fixsfdi(float32_t);
+extern uint32_t __fixunssfsi(float32_t);
+extern uint64_t __fixunssfdi(float32_t);
+extern int32_t __aeabi_f2iz(float32_t);
+extern uint32_t __aeabi_f2uiz(float32_t);
+extern float32_t __aeabi_i2f(int32_t);
+extern float32_t __aeabi_l2f(int64_t);
+extern float32_t __aeabi_ui2f(uint32_t);
+extern float32_t __aeabi_ul2f(uint64_t);
+#endif
+
+#ifdef float64_t
+extern float64_t __floatsidf(int32_t);
+extern float64_t __floatdidf(int64_t);
+extern float64_t __floatunsidf(uint32_t);
+extern float64_t __floatundidf(uint64_t);
+extern int32_t __fixdfsi(float64_t);
+extern int64_t __fixdfdi(float64_t);
+extern uint32_t __fixunsdfsi(float64_t);
+extern uint64_t __fixunsdfdi(float64_t);
+extern float64_t __aeabi_i2d(int32_t);
+extern float64_t __aeabi_ui2d(uint32_t);
+extern float64_t __aeabi_l2d(int64_t);
+extern int32_t __aeabi_d2iz(float64_t);
+extern int64_t __aeabi_d2lz(float64_t);
+extern uint32_t __aeabi_d2uiz(float64_t);
+#endif
+
+#ifdef float128_t
+extern float128_t __floatsitf(int32_t);
+extern float128_t __floatditf(int64_t);
+extern float128_t __floatunsitf(uint32_t);
+extern float128_t __floatunditf(uint64_t);
+extern int32_t __fixtfsi(float128_t);
+extern int64_t __fixtfdi(float128_t);
+extern uint32_t __fixunstfsi(float128_t);
+extern uint64_t __fixunstfdi(float128_t);
+extern int32_t _Qp_qtoi(float128_t *);
+extern int64_t _Qp_qtox(float128_t *);
+extern uint32_t _Qp_qtoui(float128_t *);
+extern uint64_t _Qp_qtoux(float128_t *);
+extern void _Qp_itoq(float128_t *, int32_t);
+extern void _Qp_xtoq(float128_t *, int64_t);
+extern void _Qp_uitoq(float128_t *, uint32_t);
+extern void _Qp_uxtoq(float128_t *, uint64_t);
+#endif
+
+#if (defined(float32_t) && defined(float64_t))
+extern float32_t __truncdfsf2(float64_t);
+extern float64_t __extendsfdf2(float32_t);
+extern float64_t __aeabi_f2d(float32_t);
+extern float32_t __aeabi_d2f(float64_t);
+#endif
+
+#if (defined(float32_t) && defined(float128_t))
+extern float32_t __trunctfsf2(float128_t);
+extern float128_t __extendsftf2(float32_t);
+extern void _Qp_stoq(float128_t *, float32_t);
+extern float32_t _Qp_qtos(float128_t *);
+#endif
+
+#if (defined(float64_t) && defined(float128_t))
+extern float64_t __trunctfdf2(float128_t);
+extern float128_t __extenddftf2(float64_t);
+extern void _Qp_dtoq(float128_t *, float64_t);
+extern float64_t _Qp_qtod(float128_t *);
+#endif
 
 #endif
 

@@ -36,10 +36,27 @@
 #ifndef __ADD_H__
 #define __ADD_H__
 
+#include <mathtypes.h>
+
 extern float32 add_float32(float32, float32);
 extern float64 add_float64(float64, float64);
 extern float96 add_float96(float96, float96);
 extern float128 add_float128(float128, float128);
+
+#ifdef float32_t
+extern float32_t __addsf3(float32_t, float32_t);
+extern float32_t __aeabi_fadd(float32_t, float32_t);
+#endif
+
+#ifdef float64_t
+extern float64_t __adddf3(float64_t, float64_t);
+extern float64_t __aeabi_dadd(float64_t, float64_t);
+#endif
+
+#ifdef float128_t
+extern float128_t __addtf3(float128_t, float128_t);
+extern void _Qp_add(float128_t *, float128_t *, float128_t *);
+#endif
 
 #endif
 

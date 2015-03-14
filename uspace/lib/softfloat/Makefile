@@ -32,12 +32,12 @@ LIBRARY = libsoftfloat
 MATH = y
 
 SOURCES = \
-	softfloat.c \
 	common.c \
 	add.c \
 	sub.c \
 	div.c \
 	mul.c \
+	neg.c \
 	comparison.c \
 	conversion.c
 

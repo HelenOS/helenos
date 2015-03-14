@@ -36,10 +36,27 @@
 #ifndef __SUB_H__
 #define __SUB_H__
 
+#include <mathtypes.h>
+
 extern float32 sub_float32(float32, float32);
 extern float64 sub_float64(float64, float64);
 extern float96 sub_float96(float96, float96);
 extern float128 sub_float128(float128, float128);
+
+#ifdef float32_t
+extern float32_t __subsf3(float32_t, float32_t);
+extern float32_t __aeabi_fsub(float32_t, float32_t);
+#endif
+
+#ifdef float64_t
+extern float64_t __subdf3(float64_t, float64_t);
+extern float64_t __aeabi_dsub(float64_t, float64_t);
+#endif
+
+#ifdef float128_t
+extern float128_t __subtf3(float128_t, float128_t);
+extern void _Qp_sub(float128_t *, float128_t *, float128_t *);
+#endif
 
 #endif
 

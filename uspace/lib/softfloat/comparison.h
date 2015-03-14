@@ -36,6 +36,8 @@
 #ifndef __COMPARISON_H__
 #define __COMPARISON_H__
 
+#include <mathtypes.h>
+
 extern int is_float32_nan(float32);
 extern int is_float32_signan(float32);
 
@@ -75,6 +77,57 @@ extern int is_float128_zero(float128);
 extern int is_float128_eq(float128, float128);
 extern int is_float128_lt(float128, float128);
 extern int is_float128_gt(float128, float128);
+
+#ifdef float32_t
+extern int __gtsf2(float32_t, float32_t);
+extern int __gesf2(float32_t, float32_t);
+extern int __ltsf2(float32_t, float32_t);
+extern int __lesf2(float32_t, float32_t);
+extern int __eqsf2(float32_t, float32_t);
+extern int __nesf2(float32_t, float32_t);
+extern int __cmpsf2(float32_t, float32_t);
+extern int __unordsf2(float32_t, float32_t);
+extern int __aeabi_fcmpgt(float32_t, float32_t);
+extern int __aeabi_fcmplt(float32_t, float32_t);
+extern int __aeabi_fcmpge(float32_t, float32_t);
+extern int __aeabi_fcmpeq(float32_t, float32_t);
+#endif
+
+#ifdef float64_t
+extern int __gtdf2(float64_t, float64_t);
+extern int __gedf2(float64_t, float64_t);
+extern int __ltdf2(float64_t, float64_t);
+extern int __ledf2(float64_t, float64_t);
+extern int __eqdf2(float64_t, float64_t);
+extern int __nedf2(float64_t, float64_t);
+extern int __cmpdf2(float64_t, float64_t);
+extern int __unorddf2(float64_t, float64_t);
+extern int __aeabi_dcmplt(float64_t, float64_t);
+extern int __aeabi_dcmpeq(float64_t, float64_t);
+extern int __aeabi_dcmpgt(float64_t, float64_t);
+extern int __aeabi_dcmpge(float64_t, float64_t);
+extern int __aeabi_dcmple(float64_t, float64_t);
+#endif
+
+#ifdef float128_t
+extern int __gttf2(float128_t, float128_t);
+extern int __getf2(float128_t, float128_t);
+extern int __lttf2(float128_t, float128_t);
+extern int __letf2(float128_t, float128_t);
+extern int __eqtf2(float128_t, float128_t);
+extern int __netf2(float128_t, float128_t);
+extern int __cmptf2(float128_t, float128_t);
+extern int __unordtf2(float128_t, float128_t);
+extern int _Qp_cmp(float128_t *, float128_t *);
+extern int _Qp_cmpe(float128_t *, float128_t *);
+extern int _Qp_fgt(float128_t *, float128_t *);
+extern int _Qp_fge(float128_t *, float128_t *);
+extern int _Qp_flt(float128_t *, float128_t *);
+extern int _Qp_fle(float128_t *, float128_t *);
+extern int _Qp_feq(float128_t *, float128_t *);
+extern int _Qp_fne(float128_t *, float128_t *);
+
+#endif
 
 #endif
 

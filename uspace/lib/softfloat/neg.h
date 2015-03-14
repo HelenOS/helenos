@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +27,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libmath
+/** @addtogroup softfloat
  * @{
  */
-/** @file
+/** @file Negation functions.
  */
 
-#ifndef LIBMATH_TRIG_H_
-#define LIBMATH_TRIG_H_
+#ifndef __NEG_H__
+#define __NEG_H__
 
-extern float64_t float64_sin(float64_t);
-extern float64_t float64_cos(float64_t);
+#include <mathtypes.h>
+
+#ifdef float32_t
+extern float32_t __negsf2(float32_t);
+#endif
+
+#ifdef float64_t
+extern float64_t __negdf2(float64_t);
+#endif
+
+#ifdef float128_t
+extern float128_t __negtf2(float128_t);
+extern void _Qp_neg(float128_t *, float128_t *);
+#endif
 
 #endif
 

@@ -40,30 +40,30 @@
 #include <trunc.h>
 #include <trig.h>
 
-static inline double fmod(double dividend, double divisor)
+static inline float64_t fmod(float64_t dividend, float64_t divisor)
 {
-	return double_mod(dividend, divisor);
+	return float64_mod(dividend, divisor);
 }
 
-static inline double trunc(double val)
+static inline float64_t trunc(float64_t val)
 {
-	double_t arg;
+	float64_u arg;
 	arg.val = val;
 	
-	double_t ret;
+	float64_u ret;
 	ret.data = trunc_float64(arg.data);
 	
 	return ret.val;
 }
 
-static inline double sin(double val)
+static inline float64_t sin(float64_t val)
 {
-	return double_sin(val);
+	return float64_sin(val);
 }
 
-static inline double cos(double val)
+static inline float64_t cos(float64_t val)
 {
-	return double_cos(val);
+	return float64_cos(val);
 }
 
 #endif

@@ -36,10 +36,27 @@
 #ifndef __MUL_H__
 #define __MUL_H__
 
+#include <mathtypes.h>
+
 extern float32 mul_float32(float32, float32);
 extern float64 mul_float64(float64, float64);
 extern float96 mul_float96(float96, float96);
 extern float128 mul_float128(float128, float128);
+
+#ifdef float32_t
+extern float32_t __mulsf3(float32_t, float32_t);
+extern float32_t __aeabi_fmul(float32_t, float32_t);
+#endif
+
+#ifdef float64_t
+extern float64_t __muldf3(float64_t, float64_t);
+extern float64_t __aeabi_dmul(float64_t, float64_t);
+#endif
+
+#ifdef float128_t
+extern float128_t __multf3(float128_t, float128_t);
+extern void _Qp_mul(float128_t *, float128_t *, float128_t *);
+#endif
 
 #endif
 
