@@ -49,6 +49,7 @@ typedef uint32_t useconds_t;
 typedef uint32_t mseconds_t;
 
 struct tm {
+	int tm_usec;   /* Microseconds [0,999999]. */
 	int tm_sec;    /* Seconds [0,60]. */
 	int tm_min;    /* Minutes [0,59]. */
 	int tm_hour;   /* Hour [0,23]. */
@@ -70,8 +71,10 @@ struct timezone {
 	int tz_dsttime;      /* type of dst correction */
 };
 
-extern void tv_add(struct timeval *, suseconds_t);
-extern suseconds_t tv_sub(struct timeval *, struct timeval *);
+extern void tv_add_diff(struct timeval *, suseconds_t);
+extern void tv_add(struct timeval *, struct timeval *);
+extern suseconds_t tv_sub_diff(struct timeval *, struct timeval *);
+extern void tv_sub(struct timeval *, struct timeval *);
 extern int tv_gt(struct timeval *, struct timeval *);
 extern int tv_gteq(struct timeval *, struct timeval *);
 extern void gettimeofday(struct timeval *, struct timezone *);
@@ -84,6 +87,7 @@ extern time_t mktime(struct tm *);
 extern int time_utc2tm(const time_t, struct tm *);
 extern int time_utc2str(const time_t, char *);
 extern void time_tm2str(const struct tm *, char *);
+extern int time_tv2tm(const struct timeval *, struct tm *);
 extern int time_local2tm(const time_t, struct tm *);
 extern int time_local2str(const time_t, char *);
 extern double difftime(time_t, time_t);

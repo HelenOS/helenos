@@ -819,7 +819,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	
 	if (usecs) {
 		getuptime(&conn->wdata.to_event.expires);
-		tv_add(&conn->wdata.to_event.expires, usecs);
+		tv_add_diff(&conn->wdata.to_event.expires, usecs);
 	} else
 		conn->wdata.to_event.inlist = false;
 	
@@ -1213,7 +1213,8 @@ static int async_manager_worker(void)
 				flags = SYNCH_FLAGS_NON_BLOCKING;
 
 			} else {
-				timeout = tv_sub(&waiter->to_event.expires, &tv);
+				timeout = tv_sub_diff(&waiter->to_event.expires,
+				    &tv);
 				futex_up(&async_futex);
 			}
 		} else {
@@ -1504,7 +1505,7 @@ int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 		timeout = 0;
 
 	getuptime(&msg->wdata.to_event.expires);
-	tv_add(&msg->wdata.to_event.expires, timeout);
+	tv_add_diff(&msg->wdata.to_event.expires, timeout);
 	
 	/*
 	 * Current fibril is inserted as waiting regardless of the
@@ -1586,7 +1587,7 @@ void async_usleep(suseconds_t timeout)
 	msg->wdata.fid = fibril_get_id();
 	
 	getuptime(&msg->wdata.to_event.expires);
-	tv_add(&msg->wdata.to_event.expires, timeout);
+	tv_add_diff(&msg->wdata.to_event.expires, timeout);
 	
 	futex_down(&async_futex);
 	

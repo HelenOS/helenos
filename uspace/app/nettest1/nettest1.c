@@ -411,7 +411,7 @@ int main(int argc, char *argv[])
 	struct timeval time_after;
 	gettimeofday(&time_after, NULL);
 	
-	printf("Tested in %ld microseconds\n", tv_sub(&time_after,
+	printf("Tested in %ld microseconds\n", tv_sub_diff(&time_after,
 	    &time_before));
 	
 	free(address);

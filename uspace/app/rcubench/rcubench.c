@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 	run_threads_and_wait(&bench);
 	
 	getuptime(&end);
-	int64_t duration = tv_sub(&end, &start);
+	int64_t duration = tv_sub_diff(&end, &start);
 	
 	uint64_t secs = (uint64_t)duration / 1000 / 1000;
 	uint64_t total_iters = (uint64_t)bench.iters * bench.nthreads;

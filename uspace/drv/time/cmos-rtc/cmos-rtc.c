@@ -75,7 +75,7 @@ typedef struct rtc {
 	/** number of connected clients */
 	int clients_connected;
 	/** time at which the system booted */
-	time_t boottime;
+	struct timeval boot_time;
 } rtc_t;
 
 static rtc_t *dev_rtc(ddf_dev_t *dev);
@@ -96,7 +96,6 @@ static unsigned bcd2bin(unsigned bcd);
 static unsigned bin2bcd(unsigned binary);
 static int rtc_dev_remove(ddf_dev_t *dev);
 static void rtc_register_write(rtc_t *rtc, int reg, int data);
-static time_t uptime_get(void);
 static bool is_battery_ok(rtc_t *rtc);
 static int  rtc_fun_online(ddf_fun_t *fun);
 static int  rtc_fun_offline(ddf_fun_t *fun);
@@ -204,7 +203,8 @@ rtc_dev_initialize(rtc_t *rtc)
 
 	ddf_msg(LVL_DEBUG, "rtc_dev_initialize %s", ddf_dev_get_name(rtc->dev));
 
-	rtc->boottime = 0;
+	rtc->boot_time.tv_sec = 0;
+	rtc->boot_time.tv_usec = 0;
 	rtc->clients_connected = 0;
 
 	hw_resource_list_t hw_resources;
@@ -325,16 +325,18 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 	fibril_mutex_lock(&rtc->mutex);
 
-	if (rtc->boottime != 0) {
+	if (rtc->boot_time.tv_sec) {
 		/* There is no need to read the current time from the
 		 * device because it has already been cached.
 		 */
 
-		time_t cur_time = rtc->boottime + uptime_get();
-
+		struct timeval curtime;
+		
+		getuptime(&curtime);
+		tv_add(&curtime, &rtc->boot_time);
 		fibril_mutex_unlock(&rtc->mutex);
 
-		return time_local2tm(cur_time, t);
+		return time_tv2tm(&curtime, t);
 	}
 
 	/* Check if the RTC battery is OK */
@@ -343,29 +345,32 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		return EIO;
 	}
 
+	/* Microseconds are below RTC's resolution, assume 0. */
+	t->tm_usec = 0;
+
 	/* now read the registers */
 	do {
 		/* Suspend until the update process has finished */
-		while (rtc_update_in_progress(rtc));
+		while (rtc_update_in_progress(rtc))
+			;
 
-		t->tm_sec  = rtc_register_read(rtc, RTC_SEC);
-		t->tm_min  = rtc_register_read(rtc, RTC_MIN);
+		t->tm_sec = rtc_register_read(rtc, RTC_SEC);
+		t->tm_min = rtc_register_read(rtc, RTC_MIN);
 		t->tm_hour = rtc_register_read(rtc, RTC_HOUR);
 		t->tm_mday = rtc_register_read(rtc, RTC_DAY);
-		t->tm_mon  = rtc_register_read(rtc, RTC_MON);
+		t->tm_mon = rtc_register_read(rtc, RTC_MON);
 		t->tm_year = rtc_register_read(rtc, RTC_YEAR);
 
 		/* Now check if it is stable */
-	} while(t->tm_sec  != rtc_register_read(rtc, RTC_SEC) ||
-	    t->tm_min  != rtc_register_read(rtc, RTC_MIN) ||
+	} while(t->tm_sec != rtc_register_read(rtc, RTC_SEC) ||
+	    t->tm_min != rtc_register_read(rtc, RTC_MIN) ||
 	    t->tm_mday != rtc_register_read(rtc, RTC_DAY) ||
-	    t->tm_mon  != rtc_register_read(rtc, RTC_MON) ||
+	    t->tm_mon != rtc_register_read(rtc, RTC_MON) ||
 	    t->tm_year != rtc_register_read(rtc, RTC_YEAR));
 
 	/* Check if the RTC is working in 12h mode */
 	bool _12h_mode = !(rtc_register_read(rtc, RTC_STATUS_B) &
 	    RTC_B_24H);
-
 	if (_12h_mode) {
 		/* The RTC is working in 12h mode, check if it is AM or PM */
 		if (t->tm_hour & 0x80) {
@@ -377,13 +382,12 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 	/* Check if the RTC is working in BCD mode */
 	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_B_BCD);
-
 	if (bcd_mode) {
-		t->tm_sec  = bcd2bin(t->tm_sec);
-		t->tm_min  = bcd2bin(t->tm_min);
+		t->tm_sec = bcd2bin(t->tm_sec);
+		t->tm_min = bcd2bin(t->tm_min);
 		t->tm_hour = bcd2bin(t->tm_hour);
 		t->tm_mday = bcd2bin(t->tm_mday);
-		t->tm_mon  = bcd2bin(t->tm_mon);
+		t->tm_mon = bcd2bin(t->tm_mon);
 		t->tm_year = bcd2bin(t->tm_year);
 	}
 
@@ -413,7 +417,12 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	if (r < 0)
 		result = EINVAL;
 	else {
-		rtc->boottime = r - uptime_get();
+		struct timeval uptime;
+
+		getuptime(&uptime);
+		rtc->boot_time.tv_sec = r;
+		rtc->boot_time.tv_usec = t->tm_usec;	/* normalized */
+		tv_sub(&rtc->boot_time, &uptime);
 		result = EOK;
 	}
 
@@ -434,7 +443,8 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 {
 	bool bcd_mode;
 	time_t norm_time;
-	time_t uptime;
+	struct timeval uptime;
+	struct timeval ntv;
 	int  reg_b;
 	int  reg_a;
 	int  epoch;
@@ -444,8 +454,11 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	if ((norm_time = mktime(t)) < 0)
 		return EINVAL;
 
-	uptime = uptime_get();
-	if (norm_time <= uptime) {
+	ntv.tv_sec = norm_time;
+	ntv.tv_usec = t->tm_usec;
+	getuptime(&uptime);
+
+	if (tv_gteq(&uptime, &ntv)) {
 		/* This is not acceptable */
 		return EINVAL;
 	}
@@ -457,8 +470,9 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 		return EIO;
 	}
 
-	/* boottime must be recomputed */
-	rtc->boottime = 0;
+	/* boot_time must be recomputed */
+	rtc->boot_time.tv_sec = 0;
+	rtc->boot_time.tv_usec = 0;
 
 	/* Detect the RTC epoch */
 	if (rtc_register_read(rtc, RTC_YEAR) < 100)
@@ -728,16 +742,6 @@ static unsigned
 bin2bcd(unsigned binary)
 {
 	return ((binary / 10) << 4) + (binary % 10);
-}
-
-static time_t
-uptime_get(void)
-{
-	struct timeval tv;
-
-	getuptime(&tv);
-
-	return tv.tv_sec;
 }
 
 static int

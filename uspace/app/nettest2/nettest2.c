@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 		printf("\tOK\n");
 	
 	printf("sendto + recvfrom tested in %ld microseconds\n",
-	    tv_sub(&time_after, &time_before));
+	    tv_sub_diff(&time_after, &time_before));
 	
 	gettimeofday(&time_before, NULL);
 	
@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 		printf("\tOK\n");
 	
 	printf("sendto, recvfrom tested in %ld microseconds\n",
-	    tv_sub(&time_after, &time_before));
+	    tv_sub_diff(&time_after, &time_before));
 	
 	rc = sockets_close(verbose, socket_ids, sockets);
 	if (rc != EOK)

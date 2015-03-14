@@ -228,7 +228,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, ddf_fun_t *fun,
 	 * time between attach detected and port reset. However, the setup done
 	 * above might use much of this time so we should only wait to fill
 	 * up the 100ms quota*/
-	const suseconds_t elapsed = tv_sub(&end_time, &start_time);
+	const suseconds_t elapsed = tv_sub_diff(&end_time, &start_time);
 	if (elapsed < 100000) {
 		async_usleep(100000 - elapsed);
 	}
