@@ -246,12 +246,11 @@ ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 # clang does not support following options but I am not sure whether
 # something won't break because of that:
 # -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
-CLANG_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Wwrite-strings \
-	-integrated-as \
-	-pipe -g -target $(CLANG_TARGET) -D__$(ENDIANESS)__
+	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
+	-integrated-as -pipe -g -target $(CLANG_TARGET) -D__$(ENDIANESS)__
 
 LIB_CFLAGS = $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
 LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
@@ -289,28 +288,27 @@ ifeq ($(FUTEX_UPGRADABLE),y)
 endif
 
 ifeq ($(COMPILER),gcc_cross)
-	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS += $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_helenos)
-	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS += $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_native)
-	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS += $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),icc)
-	CFLAGS += $(ICC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS += $(ICC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),clang)
-	CFLAGS += $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
-	GCC_CFLAGS += $(EXTRA_CFLAGS)
+	CFLAGS += $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
@@ -372,9 +370,9 @@ endif
 endif
 
 %.o: %.S $(DEPEND)
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c $< -o $@
+	$(GCC) $(DEFS) $(GCC_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
 endif
 
 %.o: %.s $(DEPEND)
@@ -384,21 +382,21 @@ ifeq ($(PRECHECK),y)
 endif
 
 %.o: %.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 endif
 
 %.test.o: %.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(TEST_CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
 endif
 
 %.lo: %.S $(DEPEND)
-	$(CC) $(DEFS) $(LIB_CFLAGS) -D__ASM__ -c $< -o $@
+	$(CC) $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
 endif
 
 %.lo: %.s $(DEPEND)
@@ -408,13 +406,13 @@ ifeq ($(PRECHECK),y)
 endif
 
 %.lo: %.c $(DEPEND)
-	$(CC) $(DEFS) $(LIB_CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 endif
 
 $(DEPEND): $(PRE_DEPEND)
-	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) $(TEST_SOURCES) > $@ 2> /dev/null
+	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -- $(SOURCES) $(TEST_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
 
 ##

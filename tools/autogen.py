@@ -65,14 +65,14 @@ def generate_probes(struct):
 	code = ""
 	for i in range(len(struct['members'])):
 		member = struct['members'][i]
-		code = code + ("\temit_constant(%s_OFFSET_%s, offsetof(%s_t, %s));\n" % 
+		code = code + ("\temit_constant(%s_OFFSET_%s, offsetof(%s_t, %s));\n" %
 		    (struct['name'].upper(), member['name'].upper(), struct['name'],
 		    member['name']))
-		code = code + ("\temit_constant(%s_SIZE_%s, sizeof(((%s_t *) 0)->%s));\n" % 
+		code = code + ("\temit_constant(%s_SIZE_%s, sizeof(((%s_t *) 0)->%s));\n" %
 		    (struct['name'].upper(), member['name'].upper(), struct['name'],
 		    member['name']))
 		if 'elements' in member.keys():
-			code = code + ("\temit_constant(%s_%s_ITEM_SIZE, sizeof(%s));\n" % 
+			code = code + ("\temit_constant(%s_%s_ITEM_SIZE, sizeof(%s));\n" %
 			    (struct['name'].upper(), member['name'].upper(), member['type']))
 			
 	return code
@@ -82,7 +82,7 @@ def probe(struct):
 	typename = struct['name'] + "_t"
 
 	code = """
-%s		
+%s
 
 #define str(s) #s
 #define emit_constant(n, v) \
@@ -91,7 +91,9 @@ def probe(struct):
 
 %s
 
-int main()
+extern int main(int, char *[]);
+
+int main(int argc, char *argv[])
 {
 %s
 	emit_constant(%s_SIZE, sizeof(%s));
@@ -99,7 +101,7 @@ int main()
 }
 	""" % (generate_includes(struct), generate_struct(struct),
 	    generate_probes(struct), name.upper(), typename)
-
+	
 	return code
 
 def generate_defines(pairs):
@@ -166,4 +168,3 @@ def run():
 		usage()
 
 run()
-

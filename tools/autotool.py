@@ -87,6 +87,8 @@ PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, strc,
 #define DECLARE_FLOATSIZE(tag, type) \\
 	AUTOTOOL_DECLARE("floatsize", "", tag, #type, "", "", sizeof(type));
 
+extern int main(int, char *[]);
+
 int main(int argc, char *argv[])
 {
 #ifdef __SIZE_TYPE__
@@ -113,6 +115,8 @@ PROBE_INT128_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name
 #define DECLARE_INTSIZE(tag, type) \\
 	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, "", "", sizeof(unsigned type)); \\
 	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, "", "", sizeof(signed type));
+
+extern int main(int, char *[]);
 
 int main(int argc, char *argv[])
 {
@@ -215,36 +219,36 @@ def get_target(config):
 		
 		if (config['CROSS_TARGET'] == "arm32"):
 			gnu_target = "arm-linux-gnueabi"
-			clang_target = "arm-unknown-linux"
+			clang_target = "arm-unknown-none"
 			helenos_target = "arm-helenos-gnueabi"
 		
 		if (config['CROSS_TARGET'] == "ia32"):
 			gnu_target = "i686-pc-linux-gnu"
-			clang_target = "i386-unknown-linux"
+			clang_target = "i686-unknown-none"
 			helenos_target = "i686-pc-helenos"
 		
 		if (config['CROSS_TARGET'] == "mips32"):
+			cc_args.append("-mabi=32")
 			gnu_target = "mipsel-linux-gnu"
-			clang_target = "mipsel-unknown-linux"
+			clang_target = "mipsel-unknown-none"
 			helenos_target = "mipsel-helenos"
-			common['CC_ARGS'].append("-mabi=32")
 	
 	if (config['PLATFORM'] == "amd64"):
 		target = config['PLATFORM']
 		gnu_target = "amd64-linux-gnu"
-		clang_target = "x86_64-unknown-linux"
+		clang_target = "x86_64-unknown-none"
 		helenos_target = "amd64-helenos"
 	
 	if (config['PLATFORM'] == "arm32"):
 		target = config['PLATFORM']
 		gnu_target = "arm-linux-gnueabi"
-		clang_target = "arm-unknown-linux"
+		clang_target = "arm-unknown-none-eabi"
 		helenos_target = "arm-helenos-gnueabi"
 	
 	if (config['PLATFORM'] == "ia32"):
 		target = config['PLATFORM']
 		gnu_target = "i686-pc-linux-gnu"
-		clang_target = "i386-unknown-linux"
+		clang_target = "i686-unknown-none"
 		helenos_target = "i686-pc-helenos"
 	
 	if (config['PLATFORM'] == "ia64"):
@@ -259,13 +263,13 @@ def get_target(config):
 		if ((config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
 			target = config['PLATFORM']
 			gnu_target = "mipsel-linux-gnu"
-			clang_target = "mipsel-unknown-linux"
+			clang_target = "mipsel-unknown-none"
 			helenos_target = "mipsel-helenos"
 		
 		if ((config['MACHINE'] == "bmalta")):
 			target = "mips32eb"
 			gnu_target = "mips-linux-gnu"
-			clang_target = "mips-unknown-linux"
+			clang_target = "mips-unknown-none"
 			helenos_target = "mips-helenos"
 	
 	if (config['PLATFORM'] == "mips64"):
@@ -275,13 +279,13 @@ def get_target(config):
 		if (config['MACHINE'] == "msim"):
 			target = config['PLATFORM']
 			gnu_target = "mips64el-linux-gnu"
-			clang_target = "mips64el-unknown-linux"
+			clang_target = "mips64el-unknown-none"
 			helenos_target = "mips64el-helenos"
 	
 	if (config['PLATFORM'] == "ppc32"):
 		target = config['PLATFORM']
 		gnu_target = "ppc-linux-gnu"
-		clang_target = "powerpc-unknown-linux"
+		clang_target = "ppc-unknown-none"
 		helenos_target = "ppc-helenos"
 	
 	if (config['PLATFORM'] == "sparc32"):
@@ -292,7 +296,7 @@ def get_target(config):
 	if (config['PLATFORM'] == "sparc64"):
 		target = config['PLATFORM']
 		gnu_target = "sparc64-linux-gnu"
-		clang_target = "sparc-unknown-linux"
+		clang_target = "sparc-unknown-none"
 		helenos_target = "sparc64-helenos"
 	
 	return (target, cc_args, gnu_target, clang_target, helenos_target)
@@ -416,7 +420,7 @@ def probe_compiler(common, intsizes, floatsizes):
 		outf.write("\tDECLARE_INTSIZE(\"%s\", %s, %s, %s);\n" % (typedef['tag'], typedef['type'], typedef['strc'], typedef['conc']))
 	
 	for typedef in floatsizes:
-		outf.write("\nDECLARE_FLOATSIZE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
+		outf.write("\tDECLARE_FLOATSIZE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
 	
 	outf.write(PROBE_TAIL)
 	outf.close()
@@ -888,10 +892,11 @@ def main():
 			common['CC'] = common['GCC']
 		
 		if (config['COMPILER'] == "icc"):
-			common['CC'] = "icc"
 			check_app([common['CC'], "-V"], "Intel C++ Compiler", "support is experimental")
 			check_gcc(None, "", common, PACKAGE_GCC)
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
+			
+			common['CC'] = "icc"
 		
 		if (config['COMPILER'] == "clang"):
 			target, cc_args, gnu_target, clang_target, helenos_target = get_target(config)
