@@ -100,6 +100,24 @@ int main(int argc, char *argv[])
 PROBE_TAIL = """}
 """
 
+PROBE_INT128_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, strc, conc, value) \\
+	asm volatile ( \\
+		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" tag "\\t" name "\\t" strc "\\t" conc "\\t%[val]\\n" \\
+		: \\
+		: [val] "n" (value) \\
+	)
+
+#define DECLARE_INTSIZE(tag, type) \\
+	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, "", "", sizeof(unsigned type)); \\
+	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, "", "", sizeof(signed type));
+
+int main(int argc, char *argv[])
+{
+"""
+
+PROBE_INT128_TAIL = """}
+"""
+
 def read_config(fname, config):
 	"Read HelenOS build configuration"
 	
@@ -509,6 +527,72 @@ def probe_compiler(common, intsizes, floatsizes):
 	
 	return {'unsigned_sizes': unsigned_sizes, 'signed_sizes': signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags, 'unsigned_strcs': unsigned_strcs, 'signed_strcs': signed_strcs, 'unsigned_concs': unsigned_concs, 'signed_concs': signed_concs, 'float_tags': float_tags, 'builtin_sizes': builtin_sizes, 'builtin_signs': builtin_signs}
 
+def probe_int128(common):
+	"Generate, compile and parse probing source for 128-bit integers"
+	
+	check_common(common, "CC")
+	
+	outf = open(PROBE_SOURCE, 'w')
+	outf.write(PROBE_INT128_HEAD)
+	outf.write("\tDECLARE_INTSIZE(\"INT128\", int __attribute((mode(TI))));\n")
+	outf.write(PROBE_INT128_TAIL)
+	outf.close()
+	
+	args = [common['CC']]
+	args.extend(common['CC_ARGS'])
+	args.extend(["-S", "-o", PROBE_OUTPUT, PROBE_SOURCE])
+	
+	try:
+		sys.stderr.write("Checking whether the compiler has intrinsic support for 128-bit integers ... ")
+		output = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE).communicate()
+	except:
+		sys.stderr.write("no\n")
+		return False
+	
+	if (not os.path.isfile(PROBE_OUTPUT)):
+		sys.stderr.write("no\n")
+		return False
+	
+	inf = open(PROBE_OUTPUT, 'r')
+	lines = inf.readlines()
+	inf.close()
+	
+	for j in range(len(lines)):
+		tokens = lines[j].strip().split("\t")
+		
+		if (len(tokens) > 0):
+			if (tokens[0] == "AUTOTOOL_DECLARE"):
+				if (len(tokens) < 7):
+					print_error(["Malformed declaration in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+				
+				category = tokens[1]
+				subcategory = tokens[2]
+				tag = tokens[3]
+				name = tokens[4]
+				strc = tokens[5]
+				conc = tokens[6]
+				value = tokens[7]
+				
+				if (category == "intsize"):
+					try:
+						value_int = decode_value(value)
+					except:
+						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+					
+					if (subcategory == "unsigned"):
+						if (value_int != 16):
+							sys.stderr.write("no\n")
+							return False
+					elif (subcategory == "signed"):
+						if (value_int != 16):
+							sys.stderr.write("no\n")
+							return False
+					else:
+						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_OUTPUT, j), COMPILER_FAIL])
+	
+	sys.stderr.write("yes\n")
+	return True
+
 def detect_sizes(probe, bytes, inttags, floattags):
 	"Detect correct types for fixed-size types"
 	
@@ -682,7 +766,7 @@ def create_makefile(mkname, common):
 	
 	outmk.close()
 
-def create_header(hdname, maps):
+def create_header(hdname, maps, int128):
 	"Create header output"
 	
 	outhd = open(hdname, 'w')
@@ -702,6 +786,10 @@ def create_header(hdname, maps):
 	
 	for typedef in maps['typedefs']:
 		outhd.write('typedef %s %s;\n' % (typedef['oldtype'], typedef['newtype']))
+	
+	if (int128):
+		outhd.write('typedef unsigned int __attribute((mode(TI))) uint128_t;\n')
+		outhd.write('typedef signed int __attribute((mode(TI))) int128_t;\n')
 	
 	outhd.write('\n#endif\n')
 	outhd.close()
@@ -844,15 +932,17 @@ def main():
 			]
 		)
 		
+		int128 = probe_int128(common)
+		
 		maps = detect_sizes(probe, [1, 2, 4, 8], ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG'], ['LONG_DOUBLE', 'DOUBLE', 'FLOAT'])
 		
 	finally:
 		sandbox_leave(owd)
 	
 	common['AUTOGEN'] = "%s/autogen.py" % os.path.dirname(os.path.abspath(sys.argv[0]))
-
+	
 	create_makefile(MAKEFILE, common)
-	create_header(HEADER, maps)
+	create_header(HEADER, maps, int128)
 	
 	return 0
 

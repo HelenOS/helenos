@@ -45,16 +45,6 @@
 #define SSIZE_MIN  INT64_MIN
 #define SSIZE_MAX  INT64_MAX
 
-typedef struct {
-	uint64_t lo;
-	int64_t hi;
-} __attribute__((aligned(16))) int128_t;
-
-typedef struct {
-	uint64_t lo;
-	uint64_t hi;
-} __attribute__((aligned(16))) uint128_t;
-
 typedef uint64_t sysarg_t;
 typedef int64_t native_t;
 
