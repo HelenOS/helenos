@@ -47,6 +47,9 @@ GUARD = 'AUTOTOOL_COMMON_H_'
 PROBE_SOURCE = 'probe.c'
 PROBE_OUTPUT = 'probe.s'
 
+PROBE_INT128_SOURCE = 'probe_int128.c'
+PROBE_INT128_OUTPUT = 'probe_int128.s'
+
 PACKAGE_BINUTILS = "usually part of binutils"
 PACKAGE_GCC = "preferably version 4.7.0 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
@@ -532,7 +535,7 @@ def probe_int128(common):
 	
 	check_common(common, "CC")
 	
-	outf = open(PROBE_SOURCE, 'w')
+	outf = open(PROBE_INT128_SOURCE, 'w')
 	outf.write(PROBE_INT128_HEAD)
 	outf.write("\tDECLARE_INTSIZE(\"INT128\", int __attribute((mode(TI))));\n")
 	outf.write(PROBE_INT128_TAIL)
@@ -540,7 +543,7 @@ def probe_int128(common):
 	
 	args = [common['CC']]
 	args.extend(common['CC_ARGS'])
-	args.extend(["-S", "-o", PROBE_OUTPUT, PROBE_SOURCE])
+	args.extend(["-S", "-o", PROBE_INT128_OUTPUT, PROBE_INT128_SOURCE])
 	
 	try:
 		sys.stderr.write("Checking whether the compiler has intrinsic support for 128-bit integers ... ")
@@ -549,11 +552,11 @@ def probe_int128(common):
 		sys.stderr.write("no\n")
 		return False
 	
-	if (not os.path.isfile(PROBE_OUTPUT)):
+	if (not os.path.isfile(PROBE_INT128_OUTPUT)):
 		sys.stderr.write("no\n")
 		return False
 	
-	inf = open(PROBE_OUTPUT, 'r')
+	inf = open(PROBE_INT128_OUTPUT, 'r')
 	lines = inf.readlines()
 	inf.close()
 	
@@ -563,7 +566,7 @@ def probe_int128(common):
 		if (len(tokens) > 0):
 			if (tokens[0] == "AUTOTOOL_DECLARE"):
 				if (len(tokens) < 7):
-					print_error(["Malformed declaration in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+					print_error(["Malformed declaration in \"%s\" on line %s." % (PROBE_INT128_OUTPUT, j), COMPILER_FAIL])
 				
 				category = tokens[1]
 				subcategory = tokens[2]
@@ -577,7 +580,7 @@ def probe_int128(common):
 					try:
 						value_int = decode_value(value)
 					except:
-						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_INT128_OUTPUT, j), COMPILER_FAIL])
 					
 					if (subcategory == "unsigned"):
 						if (value_int != 16):
@@ -588,7 +591,7 @@ def probe_int128(common):
 							sys.stderr.write("no\n")
 							return False
 					else:
-						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_OUTPUT, j), COMPILER_FAIL])
+						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_INT128_OUTPUT, j), COMPILER_FAIL])
 	
 	sys.stderr.write("yes\n")
 	return True
