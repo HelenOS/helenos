@@ -45,4 +45,4 @@ else
 endif
 
 NAME = Elastic Horse
-COPYRIGHT = Copyright (c) 2001-2014 HelenOS project
+COPYRIGHT = Copyright (c) 2001-2015 HelenOS project
