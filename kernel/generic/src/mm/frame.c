@@ -73,25 +73,6 @@ static condvar_t mem_avail_cv;
 static size_t mem_avail_req = 0;  /**< Number of frames requested. */
 static size_t mem_avail_gen = 0;  /**< Generation counter. */
 
-/********************/
-/* Helper functions */
-/********************/
-
-NO_TRACE static inline size_t frame_index(zone_t *zone, frame_t *frame)
-{
-	return (size_t) (frame - zone->frames);
-}
-
-NO_TRACE static inline size_t frame_index_abs(zone_t *zone, frame_t *frame)
-{
-	return (size_t) (frame - zone->frames) + zone->base;
-}
-
-NO_TRACE static inline bool frame_index_valid(zone_t *zone, size_t index)
-{
-	return (index < zone->count);
-}
-
 /** Initialize frame structure.
  *
  * @param frame Frame structure to be initialized.
