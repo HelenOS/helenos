@@ -179,10 +179,15 @@ ifeq ($(UARCH), $(filter $(UARCH),amd64 ia32 ia64))
 endif
 
 ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
+ifeq ($(MACHINE),msim)
+	DIRS += \
+		drv/platform/msim
+else
 	DIRS += \
 		drv/platform/malta \
 		drv/bus/pci/pciintel \
 		drv/bus/isa
+endif
 endif
 
 ifeq ($(UARCH),ppc32)

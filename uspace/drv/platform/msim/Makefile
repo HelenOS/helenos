@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2010 Lenka Trochtova
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_ARCH = mips
-BITS = 32
-EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
-
-ifeq ($(MACHINE),msim)
-	BFD_NAME = elf32-tradlittlemips
-	BFD_OUTPUT = binary
-	ENDIANESS = LE
-	EXTRA_CFLAGS += -march=r4000
-endif
-ifeq ($(MACHINE),lmalta)
-	BFD_NAME = elf32-tradlittlemips
-	BFD_OUTPUT = elf32-tradlittlemips 
-	ENDIANESS = LE
-	EXTRA_CFLAGS += -march=4kc
-endif
-ifeq ($(MACHINE),bmalta)
-	BFD_NAME = elf32-tradbigmips
-	BFD_OUTPUT = elf32-tradbigmips 
-	ENDIANESS = BE
-	EXTRA_CFLAGS += -march=4kc
-endif
-
-ifeq ($(MACHINE), $(filter $(MACHINE),bmalta lmalta))
-	RD_DRVS_ESSENTIAL += \
-		platform/malta \
-		block/ata_bd \
-		bus/pci/pciintel \
-		bus/isa \
-		char/i8042 \
-		char/ps2mouse \
-		char/xtkbd
-
-	RD_DRV_CFG += \
-		bus/isa
-endif
-
-ifeq ($(MACHINE),msim)
-	RD_DRVS_ESSENTIAL += \
-		platform/msim
-endif
+USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = msim
 
 SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
-	genarch/src/division.c \
-	genarch/src/multiplication.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
+	msim.c
+
+include $(USPACE_PREFIX)/Makefile.common
