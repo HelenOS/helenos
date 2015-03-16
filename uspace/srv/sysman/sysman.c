@@ -5,6 +5,10 @@
 #include "job.h"
 #include "sysman.h"
 
+/** Create jobs for cluser of given unit.
+ *
+ * @note Using recursion, limits "depth" of dependency graph.
+ */
 static int sysman_create_closure_jobs(unit_t *unit, job_t **entry_job_ptr,
     list_t *accumulator, job_type_t type)
 {
@@ -16,11 +20,16 @@ static int sysman_create_closure_jobs(unit_t *unit, job_t **entry_job_ptr,
 	}
 
 	job->unit = unit;
-	// TODO set blocking jobs
 
 	list_foreach(unit->dependencies, dependencies, unit_dependency_t, edge) {
-		rc = sysman_create_closure_jobs(edge->dependency, NULL,
+		job_t *blocking_job = NULL;
+		rc = sysman_create_closure_jobs(edge->dependency, &blocking_job,
 		    accumulator, type);
+		if (rc != EOK) {
+			goto fail;
+		}
+		
+		rc = job_add_blocking_job(job, blocking_job);
 		if (rc != EOK) {
 			goto fail;
 		}

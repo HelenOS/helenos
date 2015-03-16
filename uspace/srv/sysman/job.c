@@ -211,6 +211,22 @@ job_t *job_create(job_type_t type)
 	return job;
 }
 
+int job_add_blocking_job(job_t *job, job_t *blocking_job)
+{
+	job_link_t *job_link = malloc(sizeof(job_link_t));
+	if (job_link == NULL) {
+		return ENOMEM;
+	}
+
+	link_initialize(&job_link->link);
+	list_append(&job_link->link, &job->blocking_jobs);
+
+	job_link->job = blocking_job;
+	job_add_ref(blocking_job);
+
+	return EOK;
+}
+
 static void job_destroy(job_t **job_ptr)
 {
 	job_t *job = *job_ptr;

@@ -54,5 +54,6 @@ extern void job_add_ref(job_t *);
 extern void job_del_ref(job_t **);
 
 extern job_t *job_create(job_type_t type);
+extern int job_add_blocking_job(job_t *, job_t *);
 
 #endif
