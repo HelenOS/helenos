@@ -500,7 +500,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 
 	/* Get max packet size for default pipe */
 	usb_standard_device_descriptor_t desc = { 0 };
-	static const usb_device_request_setup_packet_t get_device_desc_8 =
+	const usb_device_request_setup_packet_t get_device_desc_8 =
 	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
 
 	// TODO CALLBACKS
@@ -541,9 +541,9 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 		hcd_release_address(hcd, address);
 		return got;
 	}
-	
+
 	/* Get std device descriptor */
-	static const usb_device_request_setup_packet_t get_device_desc =
+	const usb_device_request_setup_packet_t get_device_desc =
 	    GET_DEVICE_DESC(sizeof(desc));
 
 	got = hcd_send_batch_sync(hcd, target, USB_DIRECTION_IN,
