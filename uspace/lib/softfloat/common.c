@@ -33,7 +33,6 @@
 /** @file Common helper operations.
  */
 
-#include "sftypes.h"
 #include "common.h"
 
 /* Table for fast leading zeroes counting. */

@@ -263,24 +263,46 @@ int apic_poll_errors(void)
 	return !esr.err_bitmap;
 }
 
-#define DELIVS_PENDING_SILENT_RETRIES	4	
-
+/* Waits for the destination cpu to accept the previous ipi. */
 static void l_apic_wait_for_delivery(void)
 {
 	icr_t icr;
-	unsigned retries = 0;
-
-	do {
-		if (retries++ > DELIVS_PENDING_SILENT_RETRIES) {
-			retries = 0;
-#ifdef CONFIG_DEBUG
-			log(LF_ARCH, LVL_DEBUG, "IPI is pending.");
-#endif
-			delay(20);
-		}
-		icr.lo = l_apic[ICRlo];
-	} while (icr.delivs == DELIVS_PENDING);
 	
+	do {
+		icr.lo = l_apic[ICRlo];
+	} while (icr.delivs != DELIVS_IDLE);
+}
+
+/** Send one CPU an IPI vector.
+ *
+ * @param apicid Physical APIC ID of the destination CPU.
+ * @param vector Interrupt vector to be sent.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+int l_apic_send_custom_ipi(uint8_t apicid, uint8_t vector)
+{
+	icr_t icr;
+
+	/* Wait for a destination cpu to accept our previous ipi. */
+	l_apic_wait_for_delivery();
+	
+	icr.lo = l_apic[ICRlo];
+	icr.hi = l_apic[ICRhi];
+	
+	icr.delmod = DELMOD_FIXED;
+	icr.destmod = DESTMOD_PHYS;
+	icr.level = LEVEL_ASSERT;
+	icr.shorthand = SHORTHAND_NONE;
+	icr.trigger_mode = TRIGMOD_LEVEL;
+	icr.vector = vector;
+	icr.dest = apicid;
+
+	/* Send the IPI by writing to l_apic[ICRlo]. */
+	l_apic[ICRhi] = icr.hi;
+	l_apic[ICRlo] = icr.lo;
+	
+	return apic_poll_errors();
 }
 
 /** Send all CPUs excluding CPU IPI vector.
@@ -293,6 +315,9 @@ static void l_apic_wait_for_delivery(void)
 int l_apic_broadcast_custom_ipi(uint8_t vector)
 {
 	icr_t icr;
+
+	/* Wait for a destination cpu to accept our previous ipi. */
+	l_apic_wait_for_delivery();
 	
 	icr.lo = l_apic[ICRlo];
 	icr.delmod = DELMOD_FIXED;
@@ -303,8 +328,6 @@ int l_apic_broadcast_custom_ipi(uint8_t vector)
 	icr.vector = vector;
 	
 	l_apic[ICRlo] = icr.lo;
-
-	l_apic_wait_for_delivery();
 	
 	return apic_poll_errors();
 }

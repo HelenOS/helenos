@@ -49,9 +49,11 @@
 #include <genarch/acpi/acpi.h>
 #include <genarch/drivers/ega/ega.h>
 #include <genarch/drivers/i8042/i8042.h>
+#include <genarch/drivers/ns16550/ns16550.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/fb/bfb.h>
 #include <genarch/kbrd/kbrd.h>
+#include <genarch/srln/srln.h>
 #include <genarch/multiboot/multiboot.h>
 #include <genarch/multiboot/multiboot2.h>
 
@@ -121,7 +123,7 @@ void arch_post_mm_init(void)
 	}
 }
 
-void arch_post_cpu_init()
+void arch_post_cpu_init(void)
 {
 #ifdef CONFIG_SMP
 	if (config.cpu_active > 1) {
@@ -163,6 +165,37 @@ void arch_post_smp_init(void)
 			trap_virtual_enable_irqs(1 << IRQ_KBD);
 			trap_virtual_enable_irqs(1 << IRQ_MOUSE);
 		}
+	}
+#endif
+
+#if (defined(CONFIG_NS16550) || defined(CONFIG_NS16550_OUT))
+	/*
+	 * Initialize the ns16550 controller.
+	 */
+#ifdef CONFIG_NS16550_OUT
+	outdev_t *ns16550_out;
+	outdev_t **ns16550_out_ptr = &ns16550_out;
+#else
+	outdev_t **ns16550_out_ptr = NULL;
+#endif
+	ns16550_instance_t *ns16550_instance
+	    = ns16550_init((ns16550_t *) NS16550_BASE, IRQ_NS16550, NULL, NULL,
+	    ns16550_out_ptr);
+	if (ns16550_instance) {
+#ifdef CONFIG_NS16550
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			ns16550_wire(ns16550_instance, srln);
+			trap_virtual_enable_irqs(1 << IRQ_NS16550);
+		}
+#endif
+#ifdef CONFIG_NS16550_OUT
+		if (ns16550_out) {
+			stdout_wire(ns16550_out);
+		}
+#endif
 	}
 #endif
 	

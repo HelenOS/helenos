@@ -1,0 +1,6 @@
+{
+	"smpcall1",
+	"smp_call() test",
+	&test_smpcall1,
+	true
+},

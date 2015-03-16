@@ -34,7 +34,7 @@
 
 #define BOOT_OFFSET  0x8000
 
-#define LOADER_ADDRESS  0x02000000
+#define LOADER_ADDRESS  0x08000000
 
 #ifndef __ASM__
 	#define PA2KA(addr)  (((uintptr_t) (addr)) + 0x80000000)

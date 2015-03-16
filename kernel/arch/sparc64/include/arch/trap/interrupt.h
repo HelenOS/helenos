@@ -62,19 +62,12 @@
 
 #define IGN_SHIFT	6
 
-
-#ifdef __ASM__
-.macro INTERRUPT_LEVEL_N_HANDLER n
-	mov \n - 1, %g2
-	PREEMPTIBLE_HANDLER exc_dispatch
-.endm
-#endif
-
 #ifndef __ASM__
 
 #include <arch/interrupt.h>
 
-extern void interrupt(int n, istate_t *istate);
+extern void interrupt(unsigned int n, istate_t *istate);
+
 #endif /* !def __ASM__ */
 
 

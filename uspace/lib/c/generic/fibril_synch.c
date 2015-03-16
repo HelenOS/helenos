@@ -379,7 +379,7 @@ fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
 	futex_down(&async_futex);
 	if (timeout) {
 		getuptime(&wdata.to_event.expires);
-		tv_add(&wdata.to_event.expires, timeout);
+		tv_add_diff(&wdata.to_event.expires, timeout);
 		async_insert_timeout(&wdata);
 	}
 	list_append(&wdata.wu_event.link, &fcv->waiters);

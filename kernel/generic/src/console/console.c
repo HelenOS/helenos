@@ -52,6 +52,8 @@
 #include <errno.h>
 #include <str.h>
 #include <abi/kio.h>
+#include <mm/frame.h> /* SIZE2FRAMES */
+#include <mm/slab.h>  /* malloc */
 
 #define KIO_PAGES    8
 #define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE / sizeof(wchar_t))

@@ -35,16 +35,17 @@
 #ifndef LIBMATH_ia32_MATH_H_
 #define LIBMATH_ia32_MATH_H_
 
+#include <mathtypes.h>
 #include <mod.h>
 
-static inline double fmod(double dividend, double divisor)
+static inline float64_t fmod(float64_t dividend, float64_t divisor)
 {
-	return double_mod(dividend, divisor);
+	return float64_mod(dividend, divisor);
 }
 
-extern double sin(double);
-extern double cos(double);
-extern double trunc(double);
+extern float64_t sin(float64_t);
+extern float64_t cos(float64_t);
+extern float64_t trunc(float64_t);
 
 #endif
 

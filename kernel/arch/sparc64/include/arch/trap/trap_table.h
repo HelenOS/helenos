@@ -42,31 +42,6 @@
 #define TRAP_TABLE_ENTRY_SIZE	32
 #define TRAP_TABLE_SIZE		(TRAP_TABLE_ENTRY_COUNT * TRAP_TABLE_ENTRY_SIZE)
 
-#define ISTATE_END_OFFSET(o)	((o) - ISTATE_SIZE)
-
-/*
- * The one STACK_ITEM_SIZE is counted for space holding the 7th
- * argument to syscall_handler (i.e. syscall number) and the other
- * STACK_ITEM_SIZE is counted because of the required alignment.
- */
-#define PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE \
-    (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE + \
-    (2 * STACK_ITEM_SIZE) + (ISTATE_SIZE + 9 * 8))
-/* <-- istate_t ends here */
-#define SAVED_TSTATE	ISTATE_END_OFFSET(ISTATE_OFFSET_TSTATE)	
-#define SAVED_TPC	ISTATE_END_OFFSET(ISTATE_OFFSET_TPC)
-#define SAVED_TNPC	ISTATE_END_OFFSET(ISTATE_OFFSET_TNPC)
-/* <-- istate_t begins here */
-#define SAVED_Y		-(1 * 8 + ISTATE_SIZE)
-#define SAVED_I0	-(2 * 8 + ISTATE_SIZE)
-#define SAVED_I1	-(3 * 8 + ISTATE_SIZE)
-#define SAVED_I2	-(4 * 8 + ISTATE_SIZE)
-#define SAVED_I3	-(5 * 8 + ISTATE_SIZE)
-#define SAVED_I4	-(6 * 8 + ISTATE_SIZE)
-#define SAVED_I5	-(7 * 8 + ISTATE_SIZE)
-#define SAVED_I6	-(8 * 8 + ISTATE_SIZE)
-#define SAVED_I7	-(9 * 8 + ISTATE_SIZE)
-
 #ifndef __ASM__
 
 #include <typedefs.h>
@@ -79,6 +54,7 @@ typedef struct trap_table_entry trap_table_entry_t;
 
 extern trap_table_entry_t trap_table[TRAP_TABLE_ENTRY_COUNT];
 extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
+
 #endif /* !__ASM__ */
 
 #ifdef __ASM__

@@ -52,6 +52,8 @@
 #define IRQ_CLK       0
 #define IRQ_KBD       1
 #define IRQ_PIC1      2
+/* NS16550 at COM1 */
+#define IRQ_NS16550   4
 #define IRQ_PIC_SPUR  7
 #define IRQ_MOUSE     12
 
@@ -68,6 +70,7 @@
 #define VECTOR_SYSCALL            IVT_FREEBASE
 #define VECTOR_TLB_SHOOTDOWN_IPI  (IVT_FREEBASE + 1)
 #define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
+#define VECTOR_SMP_CALL_IPI       (IVT_FREEBASE + 3)
 
 extern void (* disable_irqs_function)(uint16_t);
 extern void (* enable_irqs_function)(uint16_t);

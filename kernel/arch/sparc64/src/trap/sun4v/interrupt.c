@@ -94,7 +94,7 @@ void sun4v_ipi_init(void)
  * Handler of the CPU Mondo trap. Reads the message queue, updates the head
  * register and processes the message (invokes a function call).
  */
-void cpu_mondo(void)
+void cpu_mondo(unsigned int tt, istate_t *istate)
 {
 #ifdef CONFIG_SMP
 	unsigned int tail = asi_u64_read(ASI_QUEUE, VA_CPU_MONDO_QUEUE_TAIL);

@@ -41,6 +41,21 @@ extern float64 div_float64(float64, float64);
 extern float96 div_float96(float96, float96);
 extern float128 div_float128(float128, float128);
 
+#ifdef float32_t
+extern float32_t __divsf3(float32_t, float32_t);
+extern float32_t __aeabi_fdiv(float32_t, float32_t);
+#endif
+
+#ifdef float64_t
+extern float64_t __divdf3(float64_t, float64_t);
+extern float64_t __aeabi_ddiv(float64_t, float64_t);
+#endif
+
+#ifdef float128_t
+extern float128_t __divtf3(float128_t, float128_t);
+extern void _Qp_div(float128_t *, float128_t *, float128_t *);
+#endif
+
 #endif
 
 /** @}

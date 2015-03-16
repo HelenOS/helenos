@@ -58,6 +58,7 @@
 #define HOURS_PER_DAY  24
 #define MINS_PER_HOUR  60
 #define SECS_PER_MIN   60
+#define USECS_PER_SEC  1000000
 #define MINS_PER_DAY   (MINS_PER_HOUR * HOURS_PER_DAY)
 #define SECS_PER_HOUR  (SECS_PER_MIN * MINS_PER_HOUR)
 #define SECS_PER_DAY   (SECS_PER_HOUR * HOURS_PER_DAY)
@@ -251,18 +252,19 @@ static time_t day_of_week(time_t year, time_t mon, time_t mday)
  *
  * Optionally add specified amount of seconds.
  *
- * @param tm      Broken-down time to normalize.
- * @param sec_add Seconds to add.
+ * @param tm Broken-down time to normalize.
+ * @param tv Timeval to add.
  *
  * @return 0 on success, -1 on overflow
  *
  */
-static int normalize_time(struct tm *tm, time_t sec_add)
+static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 {
 	// TODO: DST correction
 	
 	/* Set initial values. */
-	time_t sec = tm->tm_sec + sec_add;
+	time_t usec = tm->tm_usec + tv->tv_usec;
+	time_t sec = tm->tm_sec + tv->tv_sec;
 	time_t min = tm->tm_min;
 	time_t hour = tm->tm_hour;
 	time_t day = tm->tm_mday - 1;
@@ -270,6 +272,8 @@ static int normalize_time(struct tm *tm, time_t sec_add)
 	time_t year = tm->tm_year;
 	
 	/* Adjust time. */
+	sec += floor_div(usec, USECS_PER_SEC);
+	usec = floor_mod(usec, USECS_PER_SEC);
 	min += floor_div(sec, SECS_PER_MIN);
 	sec = floor_mod(sec, SECS_PER_MIN);
 	hour += floor_div(min, MINS_PER_HOUR);
@@ -318,6 +322,7 @@ static int normalize_time(struct tm *tm, time_t sec_add)
 	tm->tm_wday = day_of_week(year, mon, day + 1);
 	
 	/* And put the values back to the struct. */
+	tm->tm_usec = (int) usec;
 	tm->tm_sec = (int) sec;
 	tm->tm_min = (int) min;
 	tm->tm_hour = (int) hour;
@@ -333,6 +338,17 @@ static int normalize_time(struct tm *tm, time_t sec_add)
 	tm->tm_year = (int) year;
 	return 0;
 }
+
+static int normalize_tm_time(struct tm *tm, time_t time)
+{
+	struct timeval tv = {
+		.tv_sec = time,
+		.tv_usec = 0
+	};
+
+	return normalize_tm_tv(tm, &tv);
+}
+
 
 /** Which day the week-based year starts on.
  *
@@ -441,21 +457,41 @@ static int mon_week_number(const struct tm *tm)
 	return (tm->tm_yday - first_day + 7) / 7;
 }
 
+static void tv_normalize(struct timeval *tv)
+{
+	while (tv->tv_usec > USECS_PER_SEC) {
+		tv->tv_sec++;
+		tv->tv_usec -= USECS_PER_SEC;
+	}
+	while (tv->tv_usec < 0) {
+		tv->tv_sec--;
+		tv->tv_usec += USECS_PER_SEC;
+	}
+}
+
 /** Add microseconds to given timeval.
  *
  * @param tv    Destination timeval.
  * @param usecs Number of microseconds to add.
  *
  */
-void tv_add(struct timeval *tv, suseconds_t usecs)
+void tv_add_diff(struct timeval *tv, suseconds_t usecs)
 {
-	tv->tv_sec += usecs / 1000000;
-	tv->tv_usec += usecs % 1000000;
-	
-	if (tv->tv_usec > 1000000) {
-		tv->tv_sec++;
-		tv->tv_usec -= 1000000;
-	}
+	tv->tv_sec += usecs / USECS_PER_SEC;
+	tv->tv_usec += usecs % USECS_PER_SEC;
+	tv_normalize(tv);
+}
+
+/** Add two timevals.
+ *
+ * @param tv1 First timeval.
+ * @param tv2 Second timeval.
+ */
+void tv_add(struct timeval *tv1, struct timeval *tv2)
+{
+	tv1->tv_sec += tv2->tv_sec;
+	tv1->tv_usec += tv2->tv_usec;
+	tv_normalize(tv1);
 }
 
 /** Subtract two timevals.
@@ -467,10 +503,23 @@ void tv_add(struct timeval *tv, suseconds_t usecs)
  *         microseconds.
  *
  */
-suseconds_t tv_sub(struct timeval *tv1, struct timeval *tv2)
+suseconds_t tv_sub_diff(struct timeval *tv1, struct timeval *tv2)
 {
 	return (tv1->tv_usec - tv2->tv_usec) +
-	    ((tv1->tv_sec - tv2->tv_sec) * 1000000);
+	    ((tv1->tv_sec - tv2->tv_sec) * USECS_PER_SEC);
+}
+
+/** Subtract two timevals.
+ *
+ * @param tv1 First timeval.
+ * @param tv2 Second timeval.
+ *
+ */
+void tv_sub(struct timeval *tv1, struct timeval *tv2)
+{
+	tv1->tv_sec -= tv2->tv_sec;
+	tv1->tv_usec -= tv2->tv_usec;
+	tv_normalize(tv1);
 }
 
 /** Decide if one timeval is greater than the other.
@@ -572,7 +621,7 @@ void gettimeofday(struct timeval *tv, struct timezone *tz)
 	if (rc != EOK)
 		goto fallback;
 	
-	tv->tv_usec = 0;
+	tv->tv_usec = time.tm_usec;
 	tv->tv_sec = mktime(&time);
 	
 	return;
@@ -688,7 +737,7 @@ time_t mktime(struct tm *tm)
 	// TODO: take DST flag into account
 	// TODO: detect overflow
 	
-	normalize_time(tm, 0);
+	normalize_tm_time(tm, 0);
 	return secs_since_epoch(tm);
 }
 
@@ -943,6 +992,7 @@ int time_utc2tm(const time_t time, struct tm *restrict result)
 	assert(result != NULL);
 	
 	/* Set result to epoch. */
+	result->tm_usec = 0;
 	result->tm_sec = 0;
 	result->tm_min = 0;
 	result->tm_hour = 0;
@@ -950,7 +1000,7 @@ int time_utc2tm(const time_t time, struct tm *restrict result)
 	result->tm_mon = 0;
 	result->tm_year = 70; /* 1970 */
 	
-	if (normalize_time(result, time) == -1)
+	if (normalize_tm_time(result, time) == -1)
 		return EOVERFLOW;
 	
 	return EOK;
@@ -1013,6 +1063,36 @@ void time_tm2str(const struct tm *restrict timeptr, char *restrict buf)
  *
  * Time is expressed relative to the user's specified timezone.
  *
+ * @param tv     Timeval to convert.
+ * @param result Structure to store the result to.
+ *
+ * @return EOK on success or a negative error code.
+ *
+ */
+int time_tv2tm(const struct timeval *tv, struct tm *restrict result)
+{
+	// TODO: Deal with timezones.
+	//       Currently assumes system and all times are in UTC
+	
+	/* Set result to epoch. */
+	result->tm_usec = 0;
+	result->tm_sec = 0;
+	result->tm_min = 0;
+	result->tm_hour = 0;
+	result->tm_mday = 1;
+	result->tm_mon = 0;
+	result->tm_year = 70; /* 1970 */
+	
+	if (normalize_tm_tv(result, tv) == -1)
+		return EOVERFLOW;
+	
+	return EOK;
+}
+
+/** Converts a time value to a broken-down local time.
+ *
+ * Time is expressed relative to the user's specified timezone.
+ *
  * @param timer  Time to convert.
  * @param result Structure to store the result to.
  *
@@ -1021,21 +1101,12 @@ void time_tm2str(const struct tm *restrict timeptr, char *restrict buf)
  */
 int time_local2tm(const time_t time, struct tm *restrict result)
 {
-	// TODO: Deal with timezones.
-	//       Currently assumes system and all times are in UTC
-	
-	/* Set result to epoch. */
-	result->tm_sec = 0;
-	result->tm_min = 0;
-	result->tm_hour = 0;
-	result->tm_mday = 1;
-	result->tm_mon = 0;
-	result->tm_year = 70; /* 1970 */
-	
-	if (normalize_time(result, time) == -1)
-		return EOVERFLOW;
-	
-	return EOK;
+	struct timeval tv = {
+		.tv_sec = time,
+		.tv_usec = 0
+	};
+
+	return time_tv2tm(&tv, result);
 }
 
 /** Convert the calendar time to a NULL-terminated string.

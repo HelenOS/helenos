@@ -33,7 +33,6 @@
 /** @file Conversion of precision and conversion between integers and floats.
  */
 
-#include "sftypes.h"
 #include "conversion.h"
 #include "comparison.h"
 #include "common.h"
@@ -1035,6 +1034,466 @@ float128 int64_to_float128(int64_t i)
 	
 	return result;
 }
+
+#ifdef float32_t
+
+float32_t __floatsisf(int32_t i)
+{
+	float32_u res;
+	res.data = int32_to_float32(i);
+	
+	return res.val;
+}
+
+float32_t __floatdisf(int64_t i)
+{
+	float32_u res;
+	res.data = int64_to_float32(i);
+	
+	return res.val;
+}
+
+float32_t __floatunsisf(uint32_t i)
+{
+	float32_u res;
+	res.data = uint32_to_float32(i);
+	
+	return res.val;
+}
+
+float32_t __floatundisf(uint64_t i)
+{
+	float32_u res;
+	res.data = uint64_to_float32(i);
+	
+	return res.val;
+}
+
+int32_t __fixsfsi(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	return float32_to_int32(ua.data);
+}
+
+int64_t __fixsfdi(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	return float32_to_int64(ua.data);
+}
+
+uint32_t __fixunssfsi(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	return float32_to_uint32(ua.data);
+}
+
+uint64_t __fixunssfdi(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	return float32_to_uint64(ua.data);
+}
+
+int32_t __aeabi_f2iz(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	return float32_to_int32(ua.data);
+}
+
+uint32_t __aeabi_f2uiz(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	return float32_to_uint32(ua.data);
+}
+
+float32_t __aeabi_i2f(int32_t i)
+{
+	float32_u res;
+	res.data = int32_to_float32(i);
+	
+	return res.val;
+}
+
+float32_t __aeabi_l2f(int64_t i)
+{
+	float32_u res;
+	res.data = int64_to_float32(i);
+	
+	return res.val;
+}
+
+float32_t __aeabi_ui2f(uint32_t i)
+{
+	float32_u res;
+	res.data = uint32_to_float32(i);
+	
+	return res.val;
+}
+
+float32_t __aeabi_ul2f(uint64_t i)
+{
+	float32_u res;
+	res.data = uint64_to_float32(i);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float64_t
+
+float64_t __floatsidf(int32_t i)
+{
+	float64_u res;
+	res.data = int32_to_float64(i);
+	
+	return res.val;
+}
+
+float64_t __floatdidf(int64_t i)
+{
+	float64_u res;
+	res.data = int64_to_float64(i);
+	
+	return res.val;
+}
+
+float64_t __floatunsidf(uint32_t i)
+{
+	float64_u res;
+	res.data = uint32_to_float64(i);
+	
+	return res.val;
+}
+
+float64_t __floatundidf(uint64_t i)
+{
+	float64_u res;
+	res.data = uint64_to_float64(i);
+	
+	return res.val;
+}
+
+uint32_t __fixunsdfsi(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	return float64_to_uint32(ua.data);
+}
+
+uint64_t __fixunsdfdi(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	return float64_to_uint64(ua.data);
+}
+
+int32_t __fixdfsi(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	return float64_to_int32(ua.data);
+}
+
+int64_t __fixdfdi(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	return float64_to_int64(ua.data);
+}
+
+float64_t __aeabi_i2d(int32_t i)
+{
+	float64_u res;
+	res.data = int32_to_float64(i);
+	
+	return res.val;
+}
+
+float64_t __aeabi_ui2d(uint32_t i)
+{
+	float64_u res;
+	res.data = uint32_to_float64(i);
+	
+	return res.val;
+}
+
+float64_t __aeabi_l2d(int64_t i)
+{
+	float64_u res;
+	res.data = int64_to_float64(i);
+	
+	return res.val;
+}
+
+int32_t __aeabi_d2iz(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	return float64_to_int32(ua.data);
+}
+
+int64_t __aeabi_d2lz(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	return float64_to_int64(ua.data);
+}
+
+uint32_t __aeabi_d2uiz(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	return float64_to_uint32(ua.data);
+}
+
+#endif
+
+#ifdef float128_t
+
+float128_t __floatsitf(int32_t i)
+{
+	float128_u res;
+	res.data = int32_to_float128(i);
+	
+	return res.val;
+}
+
+float128_t __floatditf(int64_t i)
+{
+	float128_u res;
+	res.data = int64_to_float128(i);
+	
+	return res.val;
+}
+
+float128_t __floatunsitf(uint32_t i)
+{
+	float128_u res;
+	res.data = uint32_to_float128(i);
+	
+	return res.val;
+}
+
+float128_t __floatunditf(uint64_t i)
+{
+	float128_u res;
+	res.data = uint64_to_float128(i);
+	
+	return res.val;
+}
+
+int32_t __fixtfsi(float128_t a)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	return float128_to_int32(ua.data);
+}
+
+int64_t __fixtfdi(float128_t a)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	return float128_to_uint64(ua.data);
+}
+
+uint32_t __fixunstfsi(float128_t a)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	return float128_to_uint32(ua.data);
+}
+
+uint64_t __fixunstfdi(float128_t a)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	return float128_to_uint64(ua.data);
+}
+
+int32_t _Qp_qtoi(float128_t *a)
+{
+	return __fixtfsi(*a);
+}
+
+int64_t _Qp_qtox(float128_t *a)
+{
+	return __fixunstfdi(*a);
+}
+
+uint32_t _Qp_qtoui(float128_t *a)
+{
+	return __fixunstfsi(*a);
+}
+
+uint64_t _Qp_qtoux(float128_t *a)
+{
+	return __fixunstfdi(*a);
+}
+
+void _Qp_itoq(float128_t *c, int32_t a)
+{
+	*c = __floatsitf(a);
+}
+
+void _Qp_xtoq(float128_t *c, int64_t a)
+{
+	*c = __floatditf(a);
+}
+
+void _Qp_uitoq(float128_t *c, uint32_t a)
+{
+	*c = __floatunsitf(a);
+}
+
+void _Qp_uxtoq(float128_t *c, uint64_t a)
+{
+	*c = __floatunditf(a);
+}
+
+#endif
+
+#if (defined(float32_t) && defined(float64_t))
+
+float32_t __truncdfsf2(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float32_u res;
+	res.data = float64_to_float32(ua.data);
+	
+	return res.val;
+}
+
+float64_t __extendsfdf2(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float64_u res;
+	res.data = float32_to_float64(ua.data);
+	
+	return res.val;
+}
+
+float64_t __aeabi_f2d(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float64_u res;
+	res.data = float32_to_float64(ua.data);
+	
+	return res.val;
+}
+
+float32_t __aeabi_d2f(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float32_u res;
+	res.data = float64_to_float32(ua.data);
+	
+	return res.val;
+}
+
+#endif
+
+#if (defined(float32_t) && defined(float128_t))
+
+float32_t __trunctfsf2(float128_t a)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float32_u res;
+	res.data = float128_to_float32(ua.data);
+	
+	return res.val;
+}
+
+float128_t __extendsftf2(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float128_u res;
+	res.data = float32_to_float128(ua.data);
+	
+	return res.val;
+}
+
+void _Qp_stoq(float128_t *c, float32_t a)
+{
+	*c = __extendsftf2(a);
+}
+
+float32_t _Qp_qtos(float128_t *a)
+{
+	return __trunctfsf2(*a);
+}
+
+#endif
+
+#if (defined(float64_t) && defined(float128_t))
+
+float64_t __trunctfdf2(float128_t a)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float64_u res;
+	res.data = float128_to_float64(ua.data);
+	
+	return res.val;
+}
+
+float128_t __extenddftf2(float64_t a)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float128_u res;
+	res.data = float64_to_float128(ua.data);
+	
+	return res.val;
+}
+
+void _Qp_dtoq(float128_t *c, float64_t a)
+{
+	*c = __extenddftf2(a);
+}
+
+float64_t _Qp_qtod(float128_t *a)
+{
+	return __trunctfdf2(*a);
+}
+
+#endif
 
 /** @}
  */

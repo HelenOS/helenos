@@ -51,11 +51,11 @@
  * @return Modulo.
  *
  */
-double double_mod(double dividend, double divisor)
+float64_t float64_mod(float64_t dividend, float64_t divisor)
 {
 	// FIXME: replace with exact arithmetics
 	
-	double quotient = trunc(dividend / divisor);
+	float64_t quotient = trunc(dividend / divisor);
 	
 	return (dividend - quotient * divisor);
 }

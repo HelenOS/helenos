@@ -51,7 +51,7 @@ const char *test_starve_ipc(void)
 		struct timeval now;
 		gettimeofday(&now, NULL);
 		
-		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
+		if (tv_sub_diff(&now, &start) >= DURATION_SECS * 1000000L)
 			break;
 		
 		cons_event_t ev;

@@ -67,7 +67,7 @@ float64 trunc_float64(float64 val)
 		/* All bits in val are relevant for the result */
 	} else {
 		/* Truncate irrelevant fraction bits */
-		val.parts.fraction &= UINT64_C(0x000fffffffffffff) >> exp;
+		val.parts.fraction &= ~(UINT64_C(0x000fffffffffffff) >> exp);
 	}
 	
 	return val;

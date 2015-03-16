@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
 		font_path = argv[2];
 	}
 	
-	main_window = window_open(argv[1], true, false, "fontviewer");
+	main_window = window_open(argv[1], WINDOW_MAIN, "fontviewer");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 2;

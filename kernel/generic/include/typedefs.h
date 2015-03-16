@@ -46,16 +46,6 @@
 #define true   1
 
 typedef struct {
-	uint64_t lo;
-	int64_t hi;
-} __attribute__ ((aligned(16))) int128_t;
-
-typedef struct {
-	uint64_t lo;
-	uint64_t hi;
-} __attribute__ ((aligned(16))) uint128_t;
-
-typedef struct {
 	volatile atomic_count_t count;
 } atomic_t;
 

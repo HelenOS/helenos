@@ -35,10 +35,10 @@
 #ifndef KERN_ARCH_H_
 #define KERN_ARCH_H_
 
-#include <arch/arch.h>
-#include <proc/thread.h>
-#include <proc/task.h>
-#include <mm/as.h>
+#include <arch/arch.h>  /* arch_pre_main() */
+#include <arch/asm.h>   /* get_stack_base() */
+#include <config.h>
+
 
 /*
  * THE is not an abbreviation, but the English definite article written in
@@ -48,11 +48,6 @@
  */
 #define THE  ((the_t * )(get_stack_base()))
 
-#define CPU                  THE->cpu
-#define THREAD               THE->thread
-#define TASK                 THE->task
-#define AS                   THE->as
-#define PREEMPTION_DISABLED  THE->preemption_disabled
 #define MAGIC                UINT32_C(0xfacefeed)
 
 #define container_check(ctn1, ctn2)  ((ctn1) == (ctn2))
@@ -61,18 +56,27 @@
 #define CONTAINER \
 	((THE->task) ? (THE->task->container) : (DEFAULT_CONTAINER))
 
+/* Fwd decl. to avoid include hell. */
+struct thread;
+struct task;
+struct cpu;
+struct as;
+
 /**
  * For each possible kernel stack, structure
  * of the following type will be placed at
  * the base address of the stack.
  */
 typedef struct {
-	size_t preemption_disabled;  /**< Preemption disabled counter. */
-	thread_t *thread;            /**< Current thread. */
-	task_t *task;                /**< Current task. */
-	cpu_t *cpu;                  /**< Executing cpu. */
-	as_t *as;                    /**< Current address space. */
-	uint32_t magic;              /**< Magic value */
+	size_t preemption;     /**< Preemption disabled counter and flag. */
+#ifdef RCU_PREEMPT_A
+	size_t rcu_nesting;    /**< RCU nesting count and flag. */
+#endif 
+	struct thread *thread; /**< Current thread. */
+	struct task *task;     /**< Current task. */
+	struct cpu *cpu;       /**< Executing cpu. */
+	struct as *as;         /**< Current address space. */
+	uint32_t magic;        /**< Magic value */
 } the_t;
 
 extern void the_initialize(the_t *);
@@ -89,6 +93,7 @@ extern void calibrate_delay_loop(void);
 extern void reboot(void);
 extern void arch_reboot(void);
 extern void *arch_construct_function(fncptr_t *, void *, void *);
+
 
 #endif
 

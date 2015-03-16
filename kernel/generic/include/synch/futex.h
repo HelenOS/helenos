@@ -54,7 +54,9 @@ extern void futex_init(void);
 extern sysarg_t sys_futex_sleep(uintptr_t);
 extern sysarg_t sys_futex_wakeup(uintptr_t);
 
-extern void futex_cleanup(void);
+extern void futex_task_cleanup(void);
+extern void futex_task_init(struct task *);
+extern void futex_task_deinit(struct task *);
 
 #endif
 

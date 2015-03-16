@@ -39,10 +39,11 @@
 
 #include <stdio.h>
 
-int win_register(async_sess_t *sess, service_id_t *in, service_id_t *out)
+int win_register(async_sess_t *sess, window_flags_t flags, service_id_t *in,
+    service_id_t *out)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_2(exch, WINDOW_REGISTER, in, out);
+	int ret = async_req_1_2(exch, WINDOW_REGISTER, flags, in, out);
 	async_exchange_end(exch);
 	
 	return ret;

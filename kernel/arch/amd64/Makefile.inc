@@ -83,10 +83,10 @@ ifeq ($(CONFIG_SMP),y)
 		arch/$(KARCH)/src/smp/apic.c \
 		arch/$(KARCH)/src/smp/ipi.c \
 		arch/$(KARCH)/src/smp/mps.c \
+		arch/$(KARCH)/src/smp/smp_call.c \
 		arch/$(KARCH)/src/smp/smp.c
 endif
 
 ARCH_AUTOGENS_AG = \
 	arch/$(KARCH)/include/arch/istate_struct.ag \
 	arch/$(KARCH)/include/arch/context_struct.ag
-

@@ -36,6 +36,7 @@
 #include <typedefs.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
+#include <arch/barrier.h>
 #include <arch/machine_func.h>
 #include <func.h>
 #include <config.h>
@@ -166,6 +167,29 @@ int memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
 {
 	memcpy(uspace_dst, src, size);
 	return 1;
+}
+
+bool __atomic_compare_exchange_4(uint32_t *ptr, uint32_t *expected,
+    uint32_t desired, bool weak, int success_mm, int failure_mm)
+{
+	ipl_t ipl;
+	bool success;
+
+	/* XXX: This is a rather dummy implementation. */
+
+	ipl = interrupts_disable();
+	memory_barrier();
+	if (*ptr == *expected) {
+		success = true;
+		*ptr = desired;
+	} else {
+		success = false;
+		*expected = *ptr;
+	}
+	memory_barrier();
+	interrupts_restore(ipl);
+
+	return success;
 }
 
 /** @}

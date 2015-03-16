@@ -677,9 +677,9 @@ NO_TRACE static inline void dtlb_demap(int type, int context_encoding, uintptr_t
 	membar();
 }
 
-extern void fast_instruction_access_mmu_miss(sysarg_t, istate_t *);
-extern void fast_data_access_mmu_miss(tlb_tag_access_reg_t, istate_t *);
-extern void fast_data_access_protection(tlb_tag_access_reg_t , istate_t *);
+extern void fast_instruction_access_mmu_miss(unsigned int, istate_t *);
+extern void fast_data_access_mmu_miss(unsigned int, istate_t *);
+extern void fast_data_access_protection(unsigned int, istate_t *);
 
 extern void dtlb_insert_mapping(uintptr_t, uintptr_t, int, bool, bool);
 

@@ -104,10 +104,9 @@ ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 # -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
 CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Werror -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-std=gnu99 -Wall -Werror -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-integrated-as \
-	-pipe -target $(CLANG_TARGET)
+	-integrated-as -pipe -target $(CLANG_TARGET)
 
 ifeq ($(CONFIG_DEBUG),y)
 	GCC_CFLAGS += -Werror
@@ -197,12 +196,14 @@ GENERIC_SOURCES = \
 	generic/src/adt/avl.c \
 	generic/src/adt/bitmap.c \
 	generic/src/adt/btree.c \
+	generic/src/adt/cht.c \
 	generic/src/adt/hash_table.c \
 	generic/src/adt/list.c \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
 	generic/src/console/prompt.c \
 	generic/src/cpu/cpu.c \
+	generic/src/cpu/cpu_mask.c \
 	generic/src/ddi/ddi.c \
 	generic/src/ddi/irq.c \
 	generic/src/ddi/device.c \
@@ -256,10 +257,14 @@ GENERIC_SOURCES = \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/smc.c \
+	generic/src/synch/smp_memory_barrier.c \
 	generic/src/synch/waitq.c \
 	generic/src/synch/futex.c \
+	generic/src/synch/workqueue.c \
+	generic/src/synch/rcu.c \
 	generic/src/smp/ipi.c \
 	generic/src/smp/smp.c \
+	generic/src/smp/smp_call.c \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
 	generic/src/ipc/sysipc_ops.c \
@@ -309,6 +314,7 @@ ifeq ($(CONFIG_TEST),y)
 		test/test.c \
 		test/atomic/atomic1.c \
 		test/btree/btree1.c \
+		test/cht/cht1.c \
 		test/avltree/avltree1.c \
 		test/fault/fault1.c \
 		test/mm/falloc1.c \
@@ -318,12 +324,16 @@ ifeq ($(CONFIG_TEST),y)
 		test/mm/slab2.c \
 		test/synch/semaphore1.c \
 		test/synch/semaphore2.c \
+		test/synch/workqueue2.c \
+		test/synch/workqueue3.c \
+		test/synch/rcu1.c \
 		test/print/print1.c \
 		test/print/print2.c \
 		test/print/print3.c \
 		test/print/print4.c \
 		test/print/print5.c \
-		test/thread/thread1.c
+		test/thread/thread1.c \
+		test/smpcall/smpcall1.c
 	
 	ifeq ($(KARCH),mips32)
 		GENERIC_SOURCES += test/debug/mips1.c

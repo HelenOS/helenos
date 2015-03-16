@@ -46,6 +46,9 @@ LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so0
 
+LIBS = $(LIBURCU_PREFIX)/liburcu.a
+EXTRA_CFLAGS += -I$(LIBURCU_PREFIX)
+
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
@@ -87,6 +90,7 @@ GENERIC_SOURCES = \
 	generic/fibril_synch.c \
 	generic/pcb.c \
 	generic/smc.c \
+	generic/smp_memory_barrier.c \
 	generic/thread.c \
 	generic/tls.c \
 	generic/task.c \

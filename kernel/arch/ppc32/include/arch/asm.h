@@ -57,6 +57,7 @@ NO_TRACE static inline void msr_write(uint32_t msr)
 {
 	asm volatile (
 		"mtmsr %[msr]\n"
+		"isync\n"
 		:: [msr] "r" (msr)
 	);
 }
@@ -65,6 +66,8 @@ NO_TRACE static inline void sr_set(uint32_t flags, asid_t asid, uint32_t sr)
 {
 	asm volatile (
 		"mtsrin %[value], %[sr]\n"
+		"sync\n"
+		"isync\n"
 		:: [value] "r" ((flags << 16) + (asid << 4) + sr),
 		   [sr] "r" (sr << 28)
 	);

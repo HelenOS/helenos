@@ -87,8 +87,10 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
  */
 static void swi_exception(unsigned int exc_no, istate_t *istate)
 {
+	interrupts_enable();
 	istate->r0 = syscall_handler(istate->r0, istate->r1, istate->r2,
 	    istate->r3, istate->r4, istate->r5, istate->r6);
+	interrupts_disable();
 }
 
 /** Fills exception vectors with appropriate exception handlers. */

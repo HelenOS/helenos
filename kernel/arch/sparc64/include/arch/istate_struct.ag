@@ -40,6 +40,100 @@
         ],
 
         members : [
+
+                #
+                # Window save area for locals and inputs. Required by ABI.
+                # Before using these, make sure that the corresponding register
+                # window has been spilled into memory, otherwise l0-l7 and
+                # i0-i7 will have undefined values.
+                #
+                {
+                        name : l0,
+                        type : uint64_t,
+                },
+                {
+                        name : l1,
+                        type : uint64_t,
+                },
+                {
+                        name : l2,
+                        type : uint64_t,
+                },
+                {
+                        name : l3,
+                        type : uint64_t,
+                },
+                {
+                        name : l4,
+                        type : uint64_t,
+                },
+                {
+                        name : l5,
+                        type : uint64_t,
+                },
+                {
+                        name : l6,
+                        type : uint64_t,
+                },
+                {
+                        name : l7,
+                        type : uint64_t,
+                },
+                {
+                        name : i0,
+                        type : uint64_t,
+                },
+                {
+                        name : i1,
+                        type : uint64_t,
+                },
+                {
+                        name : i2,
+                        type : uint64_t,
+                },
+                {
+                        name : i3,
+                        type : uint64_t,
+                },
+                {
+                        name : i4,
+                        type : uint64_t,
+                },
+                {
+                        name : i5,
+                        type : uint64_t,
+                },
+                {
+                        name : i6,
+                        type : uint64_t,
+                },
+                {
+                        name : i7,
+                        type : uint64_t,
+                },
+
+                #
+                # Six mandatory argument slots, required by the ABI, plus an
+                # optional argument slot for the 7th argument used by our
+                # syscalls. Since the preemptible handler is always passing
+                # integral arguments, undef_arg[0] - undef_arg[5] are always
+                # undefined.
+                #
+                {
+                        name : undef_arg,
+                        type : uint64_t,
+                        elements : 6,
+                },
+                {
+                        name : arg6,
+                        type : uint64_t,
+                },
+
+                #
+                # From this point onwards, the istate layout is not dicated by
+                # the ABI. The only requirement is the stack alignment.
+                #
+
                 {
                         name : tnpc,
                         type : uint64_t
@@ -50,6 +144,55 @@
                 },
                 {
                         name : tstate,
+                        type : uint64_t
+                },
+                {
+                        name : y,
+                        type : uint64_t,
+                },
+
+                #
+                # At the moment, these are defined only when needed by the
+                # preemptible handler, so consider them undefined for now.
+                #
+                {
+                        name : o0,
+                        type : uint64_t,
+                },
+                {
+                        name : o1,
+                        type : uint64_t,
+                },
+                {
+                        name : o2,
+                        type : uint64_t,
+                },
+                {
+                        name : o3,
+                        type : uint64_t,
+                },
+                {
+                        name : o4,
+                        type : uint64_t,
+                },
+                {
+                        name : o5,
+                        type : uint64_t,
+                },
+                {
+                        name : o6,
+                        type : uint64_t,
+                },
+                {
+                        name : o7,
+                        type : uint64_t,
+                },
+
+                #
+                # I/DTLB Tag Access register or zero for non-MMU traps.
+                #
+                {
+                        name : tlb_tag_access,
                         type : uint64_t
                 }
         ]

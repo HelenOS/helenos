@@ -298,7 +298,7 @@ jump_to_kernel_syscall:
 	andi. r0, r0, MSR_FP
 	mfmsr r12
 	or r12, r12, r0		# Propagate MSR_FP from SRR1 to MSR
-	ori r12, r12, (MSR_IR | MSR_DR)
+	ori r12, r12, (MSR_IR | MSR_DR | MSR_EE)
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000

@@ -52,7 +52,7 @@
  * @param n Ignored.
  * @param istate Ignored.
  */
-void interrupt(int n, istate_t *istate)
+void interrupt(unsigned int n, istate_t *istate)
 {
 	uint64_t status = asi_u64_read(ASI_INTR_DISPATCH_STATUS, 0);
 	if (status & (!INTR_DISPATCH_STATUS_BUSY))

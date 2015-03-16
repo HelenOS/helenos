@@ -38,7 +38,7 @@
 #define TAYLOR_DEGREE  13
 
 /** Precomputed values for factorial (starting from 1!) */
-static double factorials[TAYLOR_DEGREE] = {
+static float64_t factorials[TAYLOR_DEGREE] = {
 	1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800,
 	479001600, 6227020800
 };
@@ -55,10 +55,10 @@ static double factorials[TAYLOR_DEGREE] = {
  * @return Sine value approximation.
  *
  */
-static double taylor_sin(double arg)
+static float64_t taylor_sin(float64_t arg)
 {
-	double ret = 0;
-	double nom = 1;
+	float64_t ret = 0;
+	float64_t nom = 1;
 	
 	for (unsigned int i = 0; i < TAYLOR_DEGREE; i++) {
 		nom *= arg;
@@ -84,10 +84,10 @@ static double taylor_sin(double arg)
  * @return Cosine value approximation.
  *
  */
-static double taylor_cos(double arg)
+static float64_t taylor_cos(float64_t arg)
 {
-	double ret = 1;
-	double nom = 1;
+	float64_t ret = 1;
+	float64_t nom = 1;
 	
 	for (unsigned int i = 0; i < TAYLOR_DEGREE; i++) {
 		nom *= arg;
@@ -113,7 +113,7 @@ static double taylor_cos(double arg)
  * @return Sine value.
  *
  */
-static double base_sin(double arg)
+static float64_t base_sin(float64_t arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 	
@@ -146,7 +146,7 @@ static double base_sin(double arg)
  * @return Cosine value.
  *
  */
-static double base_cos(double arg)
+static float64_t base_cos(float64_t arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 	
@@ -155,13 +155,13 @@ static double base_cos(double arg)
 		return taylor_cos(arg);
 	case 1:
 	case 2:
-		return taylor_sin(arg - M_PI / 2);
+		return -taylor_sin(arg - M_PI / 2);
 	case 3:
 	case 4:
 		return -taylor_cos(arg - M_PI);
 	case 5:
 	case 6:
-		return -taylor_sin(arg - 3 * M_PI / 2);
+		return taylor_sin(arg - 3 * M_PI / 2);
 	default:
 		return taylor_cos(arg - 2 * M_PI);
 	}
@@ -176,9 +176,9 @@ static double base_cos(double arg)
  * @return Sine value.
  *
  */
-double double_sin(double arg)
+float64_t float64_sin(float64_t arg)
 {
-	double base_arg = fmod(arg, 2 * M_PI);
+	float64_t base_arg = fmod(arg, 2 * M_PI);
 	
 	if (base_arg < 0)
 		return -base_sin(-base_arg);
@@ -195,9 +195,9 @@ double double_sin(double arg)
  * @return Cosine value.
  *
  */
-double double_cos(double arg)
+float64_t float64_cos(float64_t arg)
 {
-	double base_arg = fmod(arg, 2 * M_PI);
+	float64_t base_arg = fmod(arg, 2 * M_PI);
 	
 	if (base_arg < 0)
 		return base_cos(-base_arg);

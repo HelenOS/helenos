@@ -1,0 +1,6 @@
+{
+	"workqueue",
+	"Separate and system work queue stress test",
+	&test_workqueue_all,
+	true
+},

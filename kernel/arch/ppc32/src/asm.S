@@ -54,6 +54,7 @@ userspace_asm:
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
+	isync
 	
 	/* Set entry point */
 	
@@ -84,6 +85,7 @@ iret:
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
+	isync
 	
 	lwz r0, ISTATE_OFFSET_R0(sp)
 	lwz r2, ISTATE_OFFSET_R2(sp)
@@ -141,16 +143,12 @@ iret:
 
 iret_syscall:
 	
-	/* Reset decrementer */
-	
-	li r31, 1000
-	mtdec r31
-	
 	/* Disable interrupts */
 	
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
+	isync
 	
 	lwz r0, ISTATE_OFFSET_R0(sp)
 	lwz r2, ISTATE_OFFSET_R2(sp)

@@ -211,7 +211,7 @@ void clock(void)
 		}
 		irq_spinlock_unlock(&THREAD->lock, false);
 		
-		if ((!ticks) && (!PREEMPTION_DISABLED)) {
+		if (ticks == 0 && PREEMPTION_ENABLED) {
 			scheduler();
 #ifdef CONFIG_UDEBUG
 			/*

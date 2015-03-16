@@ -83,8 +83,10 @@ void arch_pre_main(bootinfo_t *bootinfo)
 /** Perform sparc64 specific initialization before mm is initialized. */
 void arch_pre_mm_init(void)
 {
-	if (config.cpu_active == 1)
+	if (config.cpu_active == 1) {
 		trap_init();
+		exc_arch_init();
+	}
 }
 
 /** Perform sparc64 specific initialization afterr mm is initialized. */

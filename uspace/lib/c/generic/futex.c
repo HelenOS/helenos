@@ -34,9 +34,6 @@
 
 #include <futex.h>
 #include <atomic.h>
-#include <libarch/barrier.h>
-#include <libc.h>
-#include <sys/types.h>
 
 /** Initialize futex counter.
  *
@@ -46,65 +43,28 @@
  */
 void futex_initialize(futex_t *futex, int val)
 {
-	atomic_set(futex, val);
+	atomic_set(&futex->val, val);
 }
 
-/** Try to down the futex.
- *
- * @param futex Futex.
- *
- * @return Non-zero if the futex was acquired.
- * @return Zero if the futex was not acquired.
- *
- */
-int futex_trydown(futex_t *futex)
+
+#ifdef FUTEX_UPGRADABLE
+
+int _upgrade_futexes = 0;
+static futex_t upg_and_wait_futex = FUTEX_INITIALIZER;
+
+void futex_upgrade_all_and_wait(void)
 {
-	int rc;
-
-	rc = cas(futex, 1, 0);
-	CS_ENTER_BARRIER();
-
-	return rc;
-}
-
-/** Down the futex.
- *
- * @param futex Futex.
- *
- * @return ENOENT if there is no such virtual address.
- * @return Zero in the uncontended case.
- * @return Otherwise one of ESYNCH_OK_ATOMIC or ESYNCH_OK_BLOCKED.
- *
- */
-int futex_down(futex_t *futex)
-{
-	atomic_signed_t nv;
-
-	nv = (atomic_signed_t) atomic_predec(futex);
-	CS_ENTER_BARRIER();
-	if (nv < 0)
-		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count);
+	futex_down(&upg_and_wait_futex);
 	
-	return 0;
-}
-
-/** Up the futex.
- *
- * @param futex Futex.
- *
- * @return ENOENT if there is no such virtual address.
- * @return Zero in the uncontended case.
- *
- */
-int futex_up(futex_t *futex)
-{
-	CS_LEAVE_BARRIER();
-
-	if ((atomic_signed_t) atomic_postinc(futex) < 0)
-		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->count);
+	if (!_upgrade_futexes) {
+		rcu_assign(_upgrade_futexes, 1);
+		_rcu_synchronize(BM_BLOCK_THREAD);
+	}
 	
-	return 0;
+	futex_up(&upg_and_wait_futex);
 }
+
+#endif
 
 /** @}
  */

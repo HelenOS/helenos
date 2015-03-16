@@ -56,15 +56,17 @@ static double results_cos[OPERANDS] = {
 
 const char *test_float2(void)
 {
+	bool fail = false;
+	
 	for (unsigned int i = 0; i < OPERANDS; i++) {
 		double res = trunc(arguments[i]);
 		int64_t res_int = (int64_t) (res * PRECISION);
 		int64_t corr_int = (int64_t) (results_trunc[i] * PRECISION);
 		
 		if (res_int != corr_int) {
-			TPRINTF("Double truncation failed (%" PRId64 " != %" PRId64 ")\n",
-			    res_int, corr_int);
-			return "Double truncation failed";
+			TPRINTF("Double truncation failed (%" PRId64 " != %" PRId64
+			    ", arg %u)\n", res_int, corr_int, i);
+			fail = true;
 		}
 	}
 	
@@ -74,9 +76,9 @@ const char *test_float2(void)
 		int64_t corr_int = (int64_t) (results_sin[i] * PRECISION);
 		
 		if (res_int != corr_int) {
-			TPRINTF("Double sine failed (%" PRId64 " != %" PRId64 ")\n",
-			    res_int, corr_int);
-			return "Double sine failed";
+			TPRINTF("Double sine failed (%" PRId64 " != %" PRId64
+			    ", arg %u)\n", res_int, corr_int, i);
+			fail = true;
 		}
 	}
 	
@@ -86,11 +88,14 @@ const char *test_float2(void)
 		int64_t corr_int = (int64_t) (results_cos[i] * PRECISION);
 		
 		if (res_int != corr_int) {
-			TPRINTF("Double cosine failed (%" PRId64 " != %" PRId64 ")\n",
-			    res_int, corr_int);
-			return "Double cosine failed";
+			TPRINTF("Double cosine failed (%" PRId64 " != %" PRId64
+			    ", arg %u)\n", res_int, corr_int, i);
+			fail = true;
 		}
 	}
+	
+	if (fail)
+		return "Floating point imprecision";
 	
 	return NULL;
 }

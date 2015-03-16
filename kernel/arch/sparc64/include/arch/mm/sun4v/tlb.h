@@ -140,9 +140,9 @@ NO_TRACE static inline void mmu_demap_page(uintptr_t vaddr, int context, int mmu
 	__hypercall_fast5(MMU_DEMAP_PAGE, 0, 0, vaddr, context, mmu_flag);
 }
 
-extern void fast_instruction_access_mmu_miss(sysarg_t, istate_t *);
-extern void fast_data_access_mmu_miss(sysarg_t, istate_t *);
-extern void fast_data_access_protection(sysarg_t, istate_t *);
+extern void fast_instruction_access_mmu_miss(unsigned int, istate_t *);
+extern void fast_data_access_mmu_miss(unsigned int, istate_t *);
+extern void fast_data_access_protection(unsigned int, istate_t *);
 
 extern void dtlb_insert_mapping(uintptr_t, uintptr_t, int, bool, bool);
 
