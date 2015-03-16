@@ -13,6 +13,9 @@ static list_t job_queue;
 static fibril_mutex_t job_queue_mtx;
 static fibril_condvar_t job_queue_cv;
 
+static void job_destroy(job_t **);
+
+
 static int job_run_start(job_t *job)
 {
 	unit_t *unit = job->unit;
@@ -72,6 +75,8 @@ finish:
 	fibril_condvar_broadcast(&job->state_cv);
 	fibril_mutex_unlock(&job->state_mtx);
 
+	job_del_ref(&job);
+
 	return EOK;
 }
 
@@ -90,10 +95,10 @@ static int job_dispatcher(void *arg)
 		/*
 		 * Note that possible use of fibril pool must hold invariant
 		 * that job is started asynchronously. In the case there exists
-		 * circular dependency between jobs, it may attain a deadlock.
+		 * circular dependency between jobs, it may result in a deadlock.
 		 */
 		job_t *job = list_get_instance(link, job_t, link);
-		fid_t runner_fibril = fibril_create(job_runner, job); // TODO cast to void*?
+		fid_t runner_fibril = fibril_create(job_runner, job);
 		fibril_add_ready(runner_fibril);
 	}
 
@@ -134,6 +139,7 @@ int job_queue_jobs(list_t *jobs)
 		list_append(cur_link, &job_queue);
 	}
 
+	/* Only job dispatcher waits, it's correct to notify one only. */
 	fibril_condvar_signal(&job_queue_cv);
 	fibril_mutex_unlock(&job_queue_mtx);
 
@@ -159,12 +165,33 @@ int job_wait(job_t *job)
 	return rc;
 }
 
+void job_add_ref(job_t *job)
+{
+	atomic_inc(&job->refcnt);
+}
+
+void job_del_ref(job_t **job_ptr)
+{
+	job_t *job = *job_ptr;
+	if (job == NULL) {
+		return;
+	}
+
+	assert(atomic_get(&job->refcnt) > 0);
+	if (atomic_predec(&job->refcnt) == 0) {
+		job_destroy(job_ptr);
+	}
+}
+
 static void job_init(job_t *job, job_type_t type)
 {
 	assert(job);
 
 	link_initialize(&job->link);
 	list_initialize(&job->blocking_jobs);
+
+	/* Start with one reference for the creator */
+	atomic_set(&job->refcnt, 1);
 
 	job->type = type;
 	job->unit = NULL;
@@ -184,7 +211,7 @@ job_t *job_create(job_type_t type)
 	return job;
 }
 
-void job_destroy(job_t **job_ptr)
+static void job_destroy(job_t **job_ptr)
 {
 	job_t *job = *job_ptr;
 	if (job == NULL) {
@@ -194,6 +221,7 @@ void job_destroy(job_t **job_ptr)
 	list_foreach_safe(job->blocking_jobs, cur_link, next_link) {
 		job_link_t *jl = list_get_instance(cur_link, job_link_t, link);
 		list_remove(cur_link);
+		job_del_ref(&jl->job);
 		free(jl);
 	}
 	free(job);

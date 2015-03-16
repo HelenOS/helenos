@@ -2,6 +2,7 @@
 #define SYSMAN_JOB_H
 
 #include <adt/list.h>
+#include <atomic.h>
 
 #include "unit.h"
 
@@ -24,9 +25,14 @@ typedef struct {
 } job_link_t;
 
 struct job {
+	/** Link to queue job is in */
 	link_t link;
 
+	/** List of jobs (job_link_t ) that are blocking the job. */
 	list_t blocking_jobs;
+
+	/** Reference counter for the job structure. */
+	atomic_t refcnt;
 
 	job_type_t type;
 	unit_t *unit;
@@ -35,6 +41,7 @@ struct job {
 	fibril_mutex_t state_mtx;
 	fibril_condvar_t state_cv;
 
+	/** Return value of the job, defined only when state == JOB_FINISHED */
 	int retval;
 };
 
@@ -43,7 +50,9 @@ extern int job_queue_jobs(list_t *);
 
 extern int job_wait(job_t *);
 
+extern void job_add_ref(job_t *);
+extern void job_del_ref(job_t **);
+
 extern job_t *job_create(job_type_t type);
-extern void job_destroy(job_t **);
 
 #endif

@@ -26,6 +26,7 @@ static int sysman_create_closure_jobs(unit_t *unit, job_t **entry_job_ptr,
 		}
 	}
 
+	/* Job is passed to the accumulator, i.e. no add_ref. */
 	list_append(&job->link, accumulator);
 
 	if (entry_job_ptr != NULL) {
@@ -34,7 +35,7 @@ static int sysman_create_closure_jobs(unit_t *unit, job_t **entry_job_ptr,
 	return EOK;
 
 fail:
-	job_destroy(&job);
+	job_del_ref(&job);
 	return rc;
 }
 
@@ -49,6 +50,7 @@ int sysman_unit_start(unit_t *unit)
 		return rc;
 	}
 
+	// TODO handle errors when adding job accumulator
 	job_queue_jobs(&new_jobs);
 
 	return job_wait(job);
