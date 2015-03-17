@@ -1,1 +1,0 @@
-90 usb&vendor=0x0cf3&product=0x9271

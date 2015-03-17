@@ -56,15 +56,11 @@ RD_DRVS_NON_ESSENTIAL += \
 	bus/usb/usbhid \
 	bus/usb/usbmast \
 	bus/usb/usbmid \
-	bus/usb/vhc \
-	bus/usb/ar9271
+	bus/usb/vhc
 
 RD_DRV_CFG += \
 	bus/isa
 	
-RD_DRV_FW += \
-    bus/usb/ar9271
-
 RD_APPS_ESSENTIAL += \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/mixerctl/mixerctl \

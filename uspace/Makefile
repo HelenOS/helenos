@@ -93,6 +93,7 @@ DIRS = \
 	app/df \
 	app/wavplay \
 	app/websrv \
+	app/wifi_supplicant \
 	srv/audio/hound \
 	srv/clipboard \
 	srv/locsrv \
@@ -158,11 +159,11 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
-	drv/bus/usb/ar9271 \
 	drv/nic/ne2k \
 	drv/nic/e1k \
 	drv/nic/rtl8139 \
 	drv/nic/rtl8169 \
+	drv/nic/ar9271 \
 	drv/platform/icp
 
 ## Platform-specific hardware support
@@ -242,7 +243,8 @@ LIBS = \
 	lib/bithenge \
 	lib/posix \
 	lib/mbr \
-	lib/gpt
+	lib/gpt \
+	lib/ieee80211
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
