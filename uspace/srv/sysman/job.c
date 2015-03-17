@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include "job.h"
+#include "log.h"
 #include "unit.h"
 
 static list_t job_queue;
@@ -18,6 +19,7 @@ static void job_destroy(job_t **);
 
 static int job_run_start(job_t *job)
 {
+	sysman_log(LVL_DEBUG, "%s(%p)", __func__, job);
 	unit_t *unit = job->unit;
 
 	int rc = unit_start(unit);

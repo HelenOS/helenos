@@ -3,6 +3,7 @@
 #include <fibril.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <str.h>
 
 #include "configuration.h"
 #include "dep.h"
@@ -20,6 +21,9 @@ static void sysman_connection(ipc_callid_t callid, ipc_call_t *call, void *arg)
 static int sysman_entry_point(void *arg) {
 	/*
 	 * Build hard coded configuration.
+	 *
+	 * Strings are allocated on heap, so that they can be free'd by an
+	 * owning unit.
 	 */
 	int result = EOK;
 	unit_t *mnt_initrd = NULL;
@@ -32,16 +36,16 @@ static int sysman_entry_point(void *arg) {
 		goto fail;
 	}
 	// TODO Use RDFMT
-	mnt_initrd->data.mnt.type       = "ext4fs";
-	mnt_initrd->data.mnt.mountpoint = "/";
-	mnt_initrd->data.mnt.device     = "bd/initrd";
+	mnt_initrd->data.mnt.type       = str_dup("ext4fs");
+	mnt_initrd->data.mnt.mountpoint = str_dup("/");
+	mnt_initrd->data.mnt.device     = str_dup("bd/initrd");
 
 	cfg_init = unit_create(UNIT_CONFIGURATION);
 	if (cfg_init == NULL) {
 		result = ENOMEM;
 		goto fail;
 	}
-	cfg_init->data.cfg.path = "/cfg/";
+	cfg_init->data.cfg.path = str_dup("/cfg/");
 	
 	tgt_default = unit_create(UNIT_TARGET);
 	if (tgt_default == NULL) {

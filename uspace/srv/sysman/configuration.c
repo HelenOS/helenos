@@ -4,6 +4,7 @@
 #include <fibril_synch.h>
 
 #include "configuration.h"
+#include "log.h"
 
 static list_t units;
 static fibril_mutex_t units_mtx;
@@ -16,6 +17,7 @@ void configuration_init(void)
 
 int configuration_add_unit(unit_t *unit)
 {
+	sysman_log(LVL_DEBUG2, "%s(%p)", __func__, unit);
 	assert(unit);
 	assert(unit->state == STATE_EMBRYO);
 
@@ -30,6 +32,8 @@ int configuration_add_unit(unit_t *unit)
 /** Marks newly added units as usable (via state change) */
 int configuration_commit(void)
 {
+	sysman_log(LVL_DEBUG2, "%s", __func__);
+
 	fibril_mutex_lock(&units_mtx);
 	list_foreach(units, units, unit_t, u) {
 		if (u->state == STATE_EMBRYO) {

@@ -6,20 +6,10 @@
 
 #include "unit_mnt.h"
 #include "unit_cfg.h"
+#include "unit_tgt.h"
+#include "unit_types.h"
 
-typedef enum {
-	UNIT_TARGET = 0,
-	UNIT_MOUNT,
-	UNIT_CONFIGURATION
-} unit_type_t;
-
-typedef enum {
-	STATE_EMBRYO = 0,
-	STATE_STARTED,
-	STATE_STOPPED
-} unit_state_t;
-
-typedef struct {
+struct unit {
 	link_t units;
 
 	unit_type_t type;
@@ -35,11 +25,14 @@ typedef struct {
 		unit_mnt_t mnt;
 		unit_cfg_t cfg;
 	} data;
-} unit_t;
+};
 
 
 extern unit_t *unit_create(unit_type_t);
 extern void unit_destroy(unit_t **);
+
+// TODO add flags argument with explicit notification?
+extern void unit_set_state(unit_t *, unit_state_t);
 
 extern int unit_start(unit_t *);
 

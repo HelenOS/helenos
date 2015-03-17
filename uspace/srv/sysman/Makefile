@@ -28,6 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
+EXTRA_CFLAGS = -I. -I./units
 BINARY = sysman
 STATIC_NEEDED = y
 
@@ -37,6 +38,9 @@ SOURCES = \
 	job.c \
 	main.c \
 	sysman.c \
-	unit.c
+	unit.c \
+	units/unit_cfg.c \
+	units/unit_mnt.c  \
+	units/unit_tgt.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -24,6 +24,7 @@ typedef struct {
 	job_t *job;
 } job_link_t;
 
+/** Job represents pending or running operation on unit */
 struct job {
 	/** Link to queue job is in */
 	link_t link;
