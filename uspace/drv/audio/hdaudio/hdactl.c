@@ -561,7 +561,8 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	ctl->iss = BIT_RANGE_EXTRACT(uint16_t, gcap_iss_h, gcap_iss_l, gcap);
 	ctl->bss = BIT_RANGE_EXTRACT(uint16_t, gcap_bss_h, gcap_bss_l, gcap);
 	ddf_msg(LVL_NOTE, "GCAP: 0x%x (64OK=%d)", gcap, ctl->ok64bit);
-
+	ddf_msg(LVL_NOTE, "iss: %d, oss: %d, bss: %d\n",
+	    ctl->iss, ctl->oss, ctl->bss);
 	/* Give codecs enough time to enumerate themselves */
 	async_usleep(codec_enum_wait_us);
 

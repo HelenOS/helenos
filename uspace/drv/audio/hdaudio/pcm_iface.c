@@ -99,13 +99,18 @@ static int hda_get_info_str(ddf_fun_t *fun, const char **name)
 
 static unsigned hda_query_cap(ddf_fun_t *fun, audio_cap_t cap)
 {
+	hda_t *hda = fun_to_hda(fun);
+
 	ddf_msg(LVL_NOTE, "hda_query_cap(%d)", cap);
 	switch (cap) {
 	case AUDIO_CAP_PLAYBACK:
 	case AUDIO_CAP_INTERRUPT:
+		/* XXX Only if we have an output converter */
 		return 1;
-	case AUDIO_CAP_BUFFER_POS:
 	case AUDIO_CAP_CAPTURE:
+		/* Yes if we have an input converter */
+		return hda->ctl->codec->in_aw >= 0;
+	case AUDIO_CAP_BUFFER_POS:
 		return 0;
 	case AUDIO_CAP_MAX_BUFFER:
 		return max_buffer_size;
@@ -147,33 +152,30 @@ static int hda_test_format(ddf_fun_t *fun, unsigned *channels,
 static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 {
 	hda_t *hda = fun_to_hda(fun);
+	int rc;
 
 	hda_lock(hda);
 
 	ddf_msg(LVL_NOTE, "hda_get_buffer(): hda=%p", hda);
-	if (hda->pcm_stream != NULL) {
+	if (hda->pcm_buffers != NULL) {
 		hda_unlock(hda);
 		return EBUSY;
 	}
 
-	/* XXX Choose appropriate parameters */
-	uint32_t fmt;
-	/* 48 kHz, 16-bits, 1 channel */
-	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l) | 1;
-
-	ddf_msg(LVL_NOTE, "hda_get_buffer() - create stream");
-	hda->pcm_stream = hda_stream_create(hda, sdir_output, fmt);
-	if (hda->pcm_stream == NULL) {
+	ddf_msg(LVL_NOTE, "hda_get_buffer() - allocate stream buffers");
+	rc = hda_stream_buffers_alloc(hda, &hda->pcm_buffers);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
 		hda_unlock(hda);
-		return EIO;
+		return ENOMEM;
 	}
 
 	ddf_msg(LVL_NOTE, "hda_get_buffer() - fill info");
 	/* XXX This is only one buffer */
-	*buffer = hda->pcm_stream->buf[0];
-	*size = hda->pcm_stream->bufsize * hda->pcm_stream->nbuffers;
+	*buffer = hda->pcm_buffers->buf[0];
+	*size = hda->pcm_buffers->bufsize * hda->pcm_buffers->nbuffers;
 
-	ddf_msg(LVL_NOTE, "hda_get_buffer() retturing EOK, buffer=%p, size=%zu",
+	ddf_msg(LVL_NOTE, "hda_get_buffer() returing EOK, buffer=%p, size=%zu",
 	    *buffer, *size);
 
 	hda_unlock(hda);
@@ -219,13 +221,12 @@ static int hda_release_buffer(ddf_fun_t *fun)
 	hda_lock(hda);
 
 	ddf_msg(LVL_NOTE, "hda_release_buffer()");
-	if (hda->pcm_stream == NULL) {
+	if (hda->pcm_buffers == NULL) {
 		hda_unlock(hda);
 		return EINVAL;
 	}
 
-	hda_stream_destroy(hda->pcm_stream);
-	hda->pcm_stream = NULL;
+	hda_stream_buffers_free(hda->pcm_buffers);
 
 	hda_unlock(hda);
 	return EOK;
@@ -240,14 +241,34 @@ static int hda_start_playback(ddf_fun_t *fun, unsigned frames,
 	ddf_msg(LVL_NOTE, "hda_start_playback()");
 	hda_lock(hda);
 
+	if (hda->pcm_stream != NULL) {
+		hda_unlock(hda);
+		return EBUSY;
+	}
+
+	/* XXX Choose appropriate parameters */
+	uint32_t fmt;
+	/* 48 kHz, 16-bits, 1 channel */
+	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l) | 1;
+
+	ddf_msg(LVL_NOTE, "hda_start_playback() - create output stream");
+	hda->pcm_stream = hda_stream_create(hda, sdir_output, hda->pcm_buffers,
+	    fmt);
+	if (hda->pcm_stream == NULL) {
+		hda_unlock(hda);
+		return EIO;
+	}
+
 	rc = hda_out_converter_setup(hda->ctl->codec, hda->pcm_stream);
 	if (rc != EOK) {
+		hda_stream_destroy(hda->pcm_stream);
+		hda->pcm_stream = NULL;
 		hda_unlock(hda);
 		return rc;
 	}
 
-	hda_stream_start(hda->pcm_stream);
 	hda->playing = true;
+	hda_stream_start(hda->pcm_stream);
 	hda_unlock(hda);
 	return EOK;
 }
@@ -261,6 +282,9 @@ static int hda_stop_playback(ddf_fun_t *fun, bool immediate)
 	hda_stream_stop(hda->pcm_stream);
 	hda_stream_reset(hda->pcm_stream);
 	hda->playing = false;
+	hda_stream_destroy(hda->pcm_stream);
+	hda->pcm_stream = NULL;
+
 	hda_unlock(hda);
 
 	hda_pcm_event(hda, PCM_EVENT_PLAYBACK_TERMINATED);
@@ -270,14 +294,59 @@ static int hda_stop_playback(ddf_fun_t *fun, bool immediate)
 static int hda_start_capture(ddf_fun_t *fun, unsigned frames, unsigned channels,
     unsigned rate, pcm_sample_format_t format)
 {
+	hda_t *hda = fun_to_hda(fun);
+	int rc;
+
 	ddf_msg(LVL_NOTE, "hda_start_capture()");
-	return ENOTSUP;
+	hda_lock(hda);
+
+	if (hda->pcm_stream != NULL) {
+		hda_unlock(hda);
+		return EBUSY;
+	}
+
+	/* XXX Choose appropriate parameters */
+	uint32_t fmt;
+	/* 48 kHz, 16-bits, 1 channel */
+	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l) | 1;
+
+	ddf_msg(LVL_NOTE, "hda_start_capture() - create input stream");
+	hda->pcm_stream = hda_stream_create(hda, sdir_input, hda->pcm_buffers,
+	    fmt);
+	if (hda->pcm_stream == NULL) {
+		hda_unlock(hda);
+		return EIO;
+	}
+
+	rc = hda_in_converter_setup(hda->ctl->codec, hda->pcm_stream);
+	if (rc != EOK) {
+		hda_stream_destroy(hda->pcm_stream);
+		hda->pcm_stream = NULL;
+		hda_unlock(hda);
+		return rc;
+	}
+
+	hda->capturing = true;
+	hda_stream_start(hda->pcm_stream);
+	hda_unlock(hda);
+	return EOK;
 }
 
 static int hda_stop_capture(ddf_fun_t *fun, bool immediate)
 {
+	hda_t *hda = fun_to_hda(fun);
+
 	ddf_msg(LVL_NOTE, "hda_stop_capture()");
-	return ENOTSUP;
+	hda_lock(hda);
+	hda_stream_stop(hda->pcm_stream);
+	hda_stream_reset(hda->pcm_stream);
+	hda->capturing = false;
+	hda_stream_destroy(hda->pcm_stream);
+	hda->pcm_stream = NULL;
+	hda_unlock(hda);
+
+	hda_pcm_event(hda, PCM_EVENT_CAPTURE_TERMINATED);
+	return EOK;
 }
 
 void hda_pcm_event(hda_t *hda, pcm_event_t event)

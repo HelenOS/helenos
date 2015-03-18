@@ -54,7 +54,9 @@ typedef struct hda {
 	hda_regs_t *regs;
 	struct hda_ctl *ctl;
 	struct hda_stream *pcm_stream;
+	struct hda_stream_buffers *pcm_buffers;
 	bool playing;
+	bool capturing;
 } hda_t;
 
 extern void hda_lock(hda_t *);
