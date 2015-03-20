@@ -227,6 +227,7 @@ static int hda_release_buffer(ddf_fun_t *fun)
 	}
 
 	hda_stream_buffers_free(hda->pcm_buffers);
+	hda->pcm_buffers = NULL;
 
 	hda_unlock(hda);
 	return EOK;
