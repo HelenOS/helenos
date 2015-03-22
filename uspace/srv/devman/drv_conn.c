@@ -172,9 +172,9 @@ static int devman_receive_match_id(match_id_list_t *match_ids)
 	
 	callid = async_get_call(&call);
 	if (DEVMAN_ADD_MATCH_ID != IPC_GET_IMETHOD(call)) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, 
+		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Invalid protocol when trying to receive match id.");
-		async_answer_0(callid, EINVAL); 
+		async_answer_0(callid, EINVAL);
 		delete_match_id(match_id);
 		return EINVAL;
 	}
@@ -245,7 +245,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	
 	if (ftype != fun_inner && ftype != fun_exposed) {
 		/* Unknown function type */
-		log_msg(LOG_DEFAULT, LVL_ERROR, 
+		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Unknown function type %d provided by driver.",
 		    (int) ftype);
 
@@ -403,7 +403,7 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	
-	rc = fun_offline(fun);
+	rc = fun_online(fun);
 	if (rc != EOK) {
 		fun_busy_unlock(fun);
 		fun_del_ref(fun);
