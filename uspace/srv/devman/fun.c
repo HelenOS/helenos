@@ -347,6 +347,7 @@ int fun_online(fun_node_t *fun)
 	} else
 		loc_register_tree_function(fun, &device_tree);
 	
+	fun->state = FUN_ON_LINE;
 	fibril_rwlock_write_unlock(&device_tree.rwlock);
 	
 	return EOK;
