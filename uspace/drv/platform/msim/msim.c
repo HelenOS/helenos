@@ -191,7 +191,7 @@ failure:
 
 static bool msim_add_functions(ddf_dev_t *dev)
 {
-	return msim_add_fun(dev, "disk0", "msim_disk", &disk_data);
+	return msim_add_fun(dev, "disk0", "msim/ddisk", &disk_data);
 }
 
 /** Get the root device.

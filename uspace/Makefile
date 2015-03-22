@@ -140,6 +140,7 @@ DIRS = \
 	drv/root/virt \
 	drv/block/ahci \
 	drv/block/ata_bd \
+	drv/block/ddisk \
 	drv/char/i8042 \
 	drv/char/pl050 \
 	drv/char/ps2mouse \
