@@ -796,6 +796,7 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 			rc = block_put(path_ptr->block);
 			if (rc != EOK) {
 				ext4_balloc_free_block(inode_ref, fblock);
+				block_put(block);
 				return rc;
 			}
 			
