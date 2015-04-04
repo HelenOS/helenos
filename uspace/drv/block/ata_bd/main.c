@@ -80,7 +80,6 @@ static int ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
 	if (hw_res.io_ranges.count != 2) {
 		rc = EINVAL;
 		goto error;
-		return EINVAL;
 	}
 
 	addr_range_t *cmd_rng = &hw_res.io_ranges.ranges[0];
