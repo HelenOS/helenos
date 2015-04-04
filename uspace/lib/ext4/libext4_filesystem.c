@@ -844,8 +844,10 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 				}
 				
 				rc = block_put(subblock);
-				if (rc != EOK)
+				if (rc != EOK) {
+					block_put(block);
 					return rc;
+				}
 			}
 			
 			rc = ext4_balloc_free_block(inode_ref, ind_block);
