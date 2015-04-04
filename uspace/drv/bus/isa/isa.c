@@ -244,7 +244,9 @@ static char *fun_conf_read(const char *conf_path)
 	char *buf = NULL;
 	bool opened = false;
 	int fd;
-	size_t len = 0;
+	size_t file_len;
+	size_t total_read = 0;
+	ssize_t r;
 
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
@@ -254,26 +256,31 @@ static char *fun_conf_read(const char *conf_path)
 
 	opened = true;
 
-	len = lseek(fd, 0, SEEK_END);
+	file_len = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
-	if (len == 0) {
+	if (file_len == 0) {
 		ddf_msg(LVL_ERROR, "Configuration file '%s' is empty.",
 		    conf_path);
 		goto cleanup;
 	}
 
-	buf = malloc(len + 1);
+	buf = malloc(file_len + 1);
 	if (buf == NULL) {
 		ddf_msg(LVL_ERROR, "Memory allocation failed.");
 		goto cleanup;
 	}
 
-	if (0 >= read(fd, buf, len)) {
-		ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
-		goto cleanup;
-	}
+	do {
+		r = read(fd, &buf[total_read], file_len - total_read);
+		if (r < 0) {
+			ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
+			goto cleanup;
+		}
 
-	buf[len] = 0;
+		total_read += r;
+	} while (total_read < file_len);
+
+	buf[file_len] = 0;
 
 	suc = true;
 
