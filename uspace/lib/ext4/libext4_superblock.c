@@ -1177,6 +1177,16 @@ int ext4_superblock_write_direct(service_id_t service_id, ext4_superblock_t *sb)
 	return block_write_direct(service_id, first_block, block_count, sb);
 }
 
+/** Release the memory allocated for the superblock structure
+ *
+ * @param sb         Superblock to be freed
+ *
+ */
+void ext4_superblock_release(ext4_superblock_t *sb)
+{
+	free(sb);
+}
+
 /** Check sanity of the superblock.
  *
  * This check is performed at mount time.

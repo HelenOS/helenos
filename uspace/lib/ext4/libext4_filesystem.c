@@ -52,35 +52,32 @@
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
     enum cache_mode cmode)
 {
+	ext4_superblock_t *temp_superblock = NULL;
+
 	fs->device = service_id;
-	
+
 	/* Initialize block library (4096 is size of communication channel) */
 	int rc = block_init(EXCHANGE_SERIALIZE, fs->device, 4096);
 	if (rc != EOK)
-		return rc;
-	
+		goto err;
+
 	/* Read superblock from device to memory */
-	ext4_superblock_t *temp_superblock;
 	rc = ext4_superblock_read_direct(fs->device, &temp_superblock);
-	if (rc != EOK) {
-		block_fini(fs->device);
-		return rc;
-	}
-	
+	if (rc != EOK)
+		goto err_1;
+
 	/* Read block size from superblock and check */
 	uint32_t block_size = ext4_superblock_get_block_size(temp_superblock);
 	if (block_size > EXT4_MAX_BLOCK_SIZE) {
-		block_fini(fs->device);
-		return ENOTSUP;
+		rc = ENOTSUP;
+		goto err_1;
 	}
-	
+
 	/* Initialize block caching by libblock */
 	rc = block_cache_init(service_id, block_size, 0, cmode);
-	if (rc != EOK) {
-		block_fini(fs->device);
-		return rc;
-	}
-	
+	if (rc != EOK)
+		goto err_1;
+
 	/* Compute limits for indirect block levels */
 	uint32_t block_ids_per_block = block_size / sizeof(uint32_t);
 	fs->inode_block_limits[0] = EXT4_INODE_DIRECT_BLOCK_COUNT;
@@ -91,34 +88,39 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
 		fs->inode_block_limits[i] = fs->inode_block_limits[i - 1] +
 		    fs->inode_blocks_per_level[i];
 	}
-	
+
 	/* Return loaded superblock */
 	fs->superblock = temp_superblock;
-	
+
 	uint16_t state = ext4_superblock_get_state(fs->superblock);
-	
+
 	if (((state & EXT4_SUPERBLOCK_STATE_VALID_FS) !=
 	    EXT4_SUPERBLOCK_STATE_VALID_FS) ||
 	    ((state & EXT4_SUPERBLOCK_STATE_ERROR_FS) ==
 	    EXT4_SUPERBLOCK_STATE_ERROR_FS)) {
-		block_cache_fini(fs->device);
-		block_fini(fs->device);
-		return ENOTSUP;
+		rc = ENOTSUP;
+		goto err_2;
 	}
-	
+
 	/* Mark system as mounted */
 	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_ERROR_FS);
 	rc = ext4_superblock_write_direct(fs->device, fs->superblock);
-	if (rc != EOK) {
-		block_cache_fini(fs->device);
-		block_fini(fs->device);
-		return rc;
-	}
-	
+	if (rc != EOK)
+		goto err_2;
+
 	uint16_t mnt_count = ext4_superblock_get_mount_count(fs->superblock);
 	ext4_superblock_set_mount_count(fs->superblock, mnt_count + 1);
-	
+
 	return EOK;
+
+err_2:
+	block_cache_fini(fs->device);
+err_1:
+	block_fini(fs->device);
+err:
+	if (temp_superblock)
+		ext4_superblock_release(temp_superblock);
+	return rc;
 }
 
 /** Destroy filesystem instance (used by unmount operation).
