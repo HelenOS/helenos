@@ -35,6 +35,9 @@
  * IEEE 802.11 interface implementation.
  */
 
+#include <stdio.h>
+#include <crypto.h>
+#include <str.h>
 #include <macros.h>
 #include <errno.h>
 
@@ -44,25 +47,26 @@
 #include <ieee80211_private.h>
 #include <ops/ieee80211.h>
 
+#define IEEE80211_DATA_RATES_SIZE 8
+#define IEEE80211_EXT_DATA_RATES_SIZE 4
+
+/** Frame encapsulation used in IEEE 802.11. */
+static const uint8_t rfc1042_header[] = { 
+	0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00 
+};
+
 /** Broadcast MAC address used to spread probe request through channel. */
 static const uint8_t ieee80211_broadcast_mac_addr[] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
 
-/** IEEE 802.11 b/g supported data rates in units of 500 kb/s. */
-static const uint8_t ieee80211bg_data_rates[] = {
-	2, 4, 11, 12, 18, 22, 24, 36
-};
-
-/** IEEE 802.11 b/g extended supported data rates in units of 500 kb/s.
+/**
+ * Check data frame.
  * 
- *  These are defined separately, because probe request message can
- *  only handle up to 8 data rates in supported rates IE. 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it is data frame, otherwise false.
  */
-static const uint8_t ieee80211bg_ext_data_rates[] = {
-	48, 72, 96, 108
-};
-
 inline bool ieee80211_is_data_frame(uint16_t frame_ctrl)
 {
 	frame_ctrl = uint16_t_le2host(frame_ctrl);
@@ -71,6 +75,13 @@ inline bool ieee80211_is_data_frame(uint16_t frame_ctrl)
 		== IEEE80211_DATA_FRAME;
 }
 
+/**
+ * Check management frame.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it is management frame, otherwise false.
+ */
 inline bool ieee80211_is_mgmt_frame(uint16_t frame_ctrl)
 {
 	frame_ctrl = uint16_t_le2host(frame_ctrl);
@@ -79,6 +90,13 @@ inline bool ieee80211_is_mgmt_frame(uint16_t frame_ctrl)
 		== IEEE80211_MGMT_FRAME;
 }
 
+/**
+ * Check management beacon frame.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it is beacon frame, otherwise false.
+ */
 inline bool ieee80211_is_beacon_frame(uint16_t frame_ctrl)
 {
 	frame_ctrl = uint16_t_le2host(frame_ctrl);
@@ -87,12 +105,134 @@ inline bool ieee80211_is_beacon_frame(uint16_t frame_ctrl)
 		== IEEE80211_MGMT_BEACON_FRAME;
 }
 
+/**
+ * Check management probe response frame.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it is probe resp frame, otherwise false.
+ */
 inline bool ieee80211_is_probe_response_frame(uint16_t frame_ctrl)
 {
 	frame_ctrl = uint16_t_le2host(frame_ctrl);
 	
 	return (frame_ctrl & IEEE80211_FRAME_CTRL_FRAME_SUBTYPE)
 		== IEEE80211_MGMT_PROBE_RESP_FRAME;
+}
+
+/**
+ * Check management authentication frame.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it is auth frame, otherwise false.
+ */
+inline bool ieee80211_is_auth_frame(uint16_t frame_ctrl)
+{
+	frame_ctrl = uint16_t_le2host(frame_ctrl);
+	
+	return (frame_ctrl & IEEE80211_FRAME_CTRL_FRAME_SUBTYPE)
+		== IEEE80211_MGMT_AUTH_FRAME;
+}
+
+/**
+ * Check management association response frame.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it is assoc resp frame, otherwise false.
+ */
+inline bool ieee80211_is_assoc_response_frame(uint16_t frame_ctrl)
+{
+	frame_ctrl = uint16_t_le2host(frame_ctrl);
+	
+	return (frame_ctrl & IEEE80211_FRAME_CTRL_FRAME_SUBTYPE)
+		== IEEE80211_MGMT_ASSOC_RESP_FRAME;
+}
+
+/**
+ * Check data frame "to distribution system" direction.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it is TODS frame, otherwise false.
+ */
+static inline bool ieee80211_is_tods_frame(uint16_t frame_ctrl)
+{
+	frame_ctrl = uint16_t_le2host(frame_ctrl);
+	
+	return (frame_ctrl & IEEE80211_FRAME_CTRL_TODS);
+}
+
+/**
+ * Check data frame "from distribution system" direction.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it is FROMDS frame, otherwise false.
+ */
+static inline bool ieee80211_is_fromds_frame(uint16_t frame_ctrl)
+{
+	frame_ctrl = uint16_t_le2host(frame_ctrl);
+	
+	return (frame_ctrl & IEEE80211_FRAME_CTRL_FROMDS);
+}
+
+/**
+ * Check if it is data frame containing payload data.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if it has payload data, otherwise false.
+ */
+static inline bool ieee80211_has_data_frame(uint16_t frame_ctrl)
+{
+	frame_ctrl = uint16_t_le2host(frame_ctrl);
+	
+	return (frame_ctrl & (IEEE80211_FRAME_CTRL_FRAME_TYPE | 0x40))
+		== IEEE80211_DATA_FRAME;
+}
+
+/**
+ * Check if it is encrypted frame.
+ * 
+ * @param frame_ctrl Frame control field in little endian (!).
+ * 
+ * @return True if the frame is encrypted, otherwise false.
+ */
+static inline bool ieee80211_is_encrypted_frame(uint16_t frame_ctrl)
+{
+	frame_ctrl = uint16_t_le2host(frame_ctrl);
+	
+	return (frame_ctrl & IEEE80211_FRAME_CTRL_PROTECTED) != 0;
+}
+
+/**
+ * Check if PAE packet is EAPOL-Key frame.
+ * 
+ * @param key_frame Pointer to start of EAPOL frame.
+ * 
+ * @return True if it is EAPOL-Key frame, otherwise false.
+ */
+static inline bool ieee80211_is_eapol_key_frame(ieee80211_eapol_key_frame_t 
+	*key_frame)
+{
+	return (key_frame->packet_type == IEEE80211_EAPOL_KEY);
+}
+
+
+/**
+ * Generate packet sequence number.
+ * 
+ * @param ieee80211_dev IEEE 802.11 device.
+ * 
+ * @return True if it has payload data, otherwise false.
+ */
+static uint16_t ieee80211_get_sequence_number(ieee80211_dev_t *ieee80211_dev)
+{
+	uint16_t ret_val = ieee80211_dev->sequence_number;
+	ieee80211_dev->sequence_number += (1 << 4);
+	return ret_val;
 }
 
 /**
@@ -138,7 +278,8 @@ ddf_dev_t *ieee80211_get_ddf_dev(ieee80211_dev_t* ieee80211_dev)
  * 
  * @return Current IEEE 802.11 operating mode.
  */
-ieee80211_operating_mode_t ieee80211_query_current_op_mode(ieee80211_dev_t* ieee80211_dev)
+ieee80211_operating_mode_t ieee80211_query_current_op_mode(ieee80211_dev_t* 
+	ieee80211_dev)
 {
 	return ieee80211_dev->current_op_mode;
 }
@@ -153,6 +294,62 @@ ieee80211_operating_mode_t ieee80211_query_current_op_mode(ieee80211_dev_t* ieee
 uint16_t ieee80211_query_current_freq(ieee80211_dev_t* ieee80211_dev)
 {
 	return ieee80211_dev->current_freq;
+}
+
+/**
+ * Query BSSID the device is connected to.
+ * 
+ * @param ieee80211_dev IEEE 802.11 device.
+ * @param bssid Pointer to structure where should be stored BSSID.
+ */
+void ieee80211_query_bssid(ieee80211_dev_t* ieee80211_dev, 
+	nic_address_t *bssid)
+{
+	if(bssid) {
+		ieee80211_scan_result_t *auth_data =
+			&ieee80211_dev->bssid_info.res_link->scan_result;
+		
+		memcpy(bssid, (void *)&auth_data->bssid, sizeof(nic_address_t));
+	}
+}
+
+/**
+ * Get AID of network we are connected to.
+ * 
+ * @param ieee80211_dev IEEE 802.11 device.
+ * 
+ * @return AID.
+ */
+uint16_t ieee80211_get_aid(ieee80211_dev_t* ieee80211_dev)
+{
+	return ieee80211_dev->bssid_info.aid;
+}
+
+/**
+ * Get security suite used for HW encryption. 
+ * 
+ * @param ieee80211_dev IEEE 802.11 device.
+ * 
+ * @return Security suite indicator.
+ */
+int ieee80211_get_security_suite(ieee80211_dev_t* ieee80211_dev)
+{
+	ieee80211_scan_result_link_t *auth_link = 
+		ieee80211_dev->bssid_info.res_link;
+	
+	return auth_link->scan_result.security.pair_alg;
+}
+
+/**
+ * Check if IEEE 802.11 device is connected to network.
+ * 
+ * @param ieee80211_dev IEEE 802.11 device.
+ * 
+ * @return True if device is connected to network, otherwise false.
+ */
+bool ieee80211_is_connected(ieee80211_dev_t* ieee80211_dev)
+{
+	return ieee80211_dev->current_auth_phase == IEEE80211_AUTH_ASSOCIATED;
 }
 
 /**
@@ -177,6 +374,46 @@ void ieee80211_report_current_freq(ieee80211_dev_t* ieee80211_dev,
 	uint16_t freq)
 {
 	ieee80211_dev->current_freq = freq;
+}
+
+/**
+ * Check if IEEE 802.11 device is ready (fully initialized).
+ * 
+ * @param ieee80211_dev IEEE 802.11 device.
+ * 
+ * @return True if device is ready to work, otherwise false.
+ */
+bool ieee80211_is_ready(ieee80211_dev_t* ieee80211_dev)
+{
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	bool ready_state = ieee80211_dev->ready;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	
+	return ready_state;
+}
+
+/**
+ * Set IEEE 802.11 device to ready state.
+ * 
+ * @param ieee80211_dev IEEE 802.11 device.
+ * @param ready Ready state to be set.
+ */
+void ieee80211_set_ready(ieee80211_dev_t* ieee80211_dev, bool ready)
+{
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	ieee80211_dev->ready = ready;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+}
+
+extern bool ieee80211_query_using_key(ieee80211_dev_t* ieee80211_dev)
+{
+	return ieee80211_dev->using_hw_key;
+}
+
+void ieee80211_setup_key_confirm(ieee80211_dev_t* ieee80211_dev, 
+	bool using_key)
+{
+	ieee80211_dev->using_hw_key = using_key;
 }
 
 /**
@@ -208,15 +445,90 @@ static int ieee80211_open(ddf_fun_t *fun)
 	return EOK;
 }
 
-/** 
+/**
  * Send frame handler.
+ * 
+ * @param nic Pointer to NIC device.
+ * @param data Data buffer.
+ * @param size Data buffer size.
  */
 static void ieee80211_send_frame(nic_t *nic, void *data, size_t size)
 {
 	ieee80211_dev_t *ieee80211_dev = (ieee80211_dev_t *) 
 		nic_get_specific(nic);
 	
-	ieee80211_dev->ops->tx_handler(ieee80211_dev, data, size);
+	if(!ieee80211_is_connected(ieee80211_dev)) {
+		return;
+	}
+	
+	ieee80211_scan_result_t *auth_data =
+			&ieee80211_dev->bssid_info.res_link->scan_result;
+	
+	/* We drop part of IEEE 802.3 ethernet header. */
+	size_t drop_bytes = sizeof(eth_header_t) - 2;
+	
+	size_t complete_size = (size - drop_bytes) + 
+		sizeof(ieee80211_data_header_t) +
+		ARRAY_SIZE(rfc1042_header);
+	
+	/* Init crypto data. */
+	size_t add_size = 0;
+	uint16_t crypto = 0;
+	uint8_t add_data[8];
+	memset(add_data, 0, 8);
+	
+	if(ieee80211_dev->using_hw_key) {
+		int sec_suite = auth_data->security.pair_alg;
+		switch(sec_suite) {
+			case IEEE80211_SECURITY_SUITE_CCMP:
+				add_size = IEEE80211_CCMP_HEADER_LENGTH;
+				add_data[3] = 0x20;
+				break;
+			default:
+				break;
+		}
+
+		crypto = uint16_t_le2host(IEEE80211_FRAME_CTRL_PROTECTED);
+	}
+	
+	complete_size += add_size;
+	
+	void *complete_buffer = malloc(complete_size);
+	memset(complete_buffer, 0, complete_size);
+	
+	if(add_size) {
+		memcpy(complete_buffer + sizeof(ieee80211_data_header_t),
+			add_data, add_size);
+	}
+	
+	memcpy(complete_buffer + sizeof(ieee80211_data_header_t) + add_size,
+		rfc1042_header,
+		ARRAY_SIZE(rfc1042_header));
+	
+	memcpy(complete_buffer + 
+		sizeof(ieee80211_data_header_t) +
+		ARRAY_SIZE(rfc1042_header) + add_size, 
+		data + drop_bytes, size - drop_bytes);
+	
+	ieee80211_data_header_t *data_header =
+		(ieee80211_data_header_t *) complete_buffer;
+	data_header->frame_ctrl = 
+		uint16_t_le2host(IEEE80211_DATA_FRAME) |
+		uint16_t_le2host(IEEE80211_DATA_DATA_FRAME) |
+		uint16_t_le2host(IEEE80211_FRAME_CTRL_TODS) |
+		crypto;
+	data_header->seq_ctrl = ieee80211_get_sequence_number(ieee80211_dev);
+	
+	/* BSSID, SA, DA. */
+	memcpy(data_header->address1, auth_data->bssid.address,	ETH_ADDR);
+	memcpy(data_header->address2, data + ETH_ADDR, ETH_ADDR);
+	memcpy(data_header->address3, data, ETH_ADDR);
+	
+	ieee80211_dev->ops->tx_handler(ieee80211_dev, 
+		complete_buffer, 
+		complete_size);
+	
+	free(complete_buffer);
 }
 
 /**
@@ -245,6 +557,13 @@ static int ieee80211_implement(ieee80211_dev_t *ieee80211_dev,
 		if(!ieee80211_ops->set_freq)
 			ieee80211_ops->set_freq = ieee80211_set_freq_impl;
 		
+		if(!ieee80211_ops->bssid_change)
+			ieee80211_ops->bssid_change = 
+				ieee80211_bssid_change_impl;
+		
+		if(!ieee80211_ops->key_config)
+			ieee80211_ops->key_config = ieee80211_key_config_impl;
+		
 		if(!ieee80211_ops->scan)
 			ieee80211_ops->scan = ieee80211_scan_impl;
 	} else {
@@ -256,13 +575,18 @@ static int ieee80211_implement(ieee80211_dev_t *ieee80211_dev,
 	if(ieee80211_iface) {
 		if(nic_dev_ops)
 			if (!nic_dev_ops->interfaces[IEEE80211_DEV_IFACE])
-				nic_dev_ops->interfaces[IEEE80211_DEV_IFACE] = ieee80211_iface;
+				nic_dev_ops->interfaces[IEEE80211_DEV_IFACE] = 
+					ieee80211_iface;
 		
 		if(!ieee80211_iface->get_scan_results)
-			ieee80211_iface->get_scan_results = ieee80211_get_scan_results_impl;
+			ieee80211_iface->get_scan_results = 
+				ieee80211_get_scan_results_impl;
 		
 		if(!ieee80211_iface->connect)
 			ieee80211_iface->connect = ieee80211_connect_impl;
+		
+		if(!ieee80211_iface->disconnect)
+			ieee80211_iface->disconnect = ieee80211_disconnect_impl;
 	} else {
 		return EINVAL;
 	}
@@ -303,9 +627,17 @@ int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, ddf_dev_t *ddf_dev)
 {
 	ieee80211_dev->ddf_dev = ddf_dev;
 	ieee80211_dev->started = false;
+	ieee80211_dev->ready = false;
+	ieee80211_dev->using_hw_key = false;
 	ieee80211_dev->current_op_mode = IEEE80211_OPMODE_STATION;
+	ieee80211_dev->current_auth_phase = IEEE80211_AUTH_DISCONNECTED;
 	memcpy(ieee80211_dev->bssid_mask.address, ieee80211_broadcast_mac_addr, 
 		ETH_ADDR);
+	
+	ieee80211_scan_result_list_init(&ieee80211_dev->ap_list);
+	
+	fibril_mutex_initialize(&ieee80211_dev->gen_mutex);
+	fibril_condvar_initialize(&ieee80211_dev->gen_cond);
 	
 	/* Bind NIC to device */
 	nic_t *nic = nic_create_and_bind(ddf_dev);
@@ -372,33 +704,61 @@ int ieee80211_init(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
+/**
+ * Convert frequency value to channel number.
+ * 
+ * @param freq IEEE 802.11 operating frequency.
+ * 
+ * @return Operating channel number.
+ */
 static uint8_t ieee80211_freq_to_channel(uint16_t freq)
 {
 	return (freq - IEEE80211_FIRST_FREQ) / IEEE80211_CHANNEL_GAP + 1;
+}
+
+static void ieee80211_prepare_ie_header(void **ie_header,
+	uint8_t id, uint8_t length, void *data)
+{
+	ieee80211_ie_header_t *header =
+		(ieee80211_ie_header_t *) *ie_header;
+	
+	header->element_id = id;
+	header->length = length;
+	
+	memcpy(*ie_header + sizeof(ieee80211_ie_header_t), data, length);
+	
+	*ie_header = (void *) ((void *) header + 
+		sizeof(ieee80211_ie_header_t) + length);
 }
 
 /**
  * Probe request implementation.
  * 
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+ * @param ssid Probing SSID or NULL if broadcast.
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev)
+int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, char *ssid)
 {
 	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
 	nic_address_t nic_address;
 	nic_query_address(nic, &nic_address);
 	
-	size_t data_rates_size = ARRAY_SIZE(ieee80211bg_data_rates);
-	size_t ext_data_rates_size = ARRAY_SIZE(ieee80211bg_ext_data_rates);
+	size_t ssid_data_size = (ssid != NULL) ? str_size(ssid) : 0;
+	size_t channel_data_size = 1;
 	
-	/* 3 headers - (rates, ext rates, current channel) and their data
-	 * lengths + pad. 
+	uint8_t channel = 
+		ieee80211_freq_to_channel(ieee80211_dev->current_freq);
+	
+	/* 4 headers - (ssid, rates, ext rates, current channel) and their data
+	 * lengths. 
 	 */
 	size_t payload_size = 
-		sizeof(ieee80211_ie_header_t) * 3 +
-		data_rates_size + ext_data_rates_size + sizeof(uint8_t) + 2;
+		sizeof(ieee80211_ie_header_t) * 4 +
+		ssid_data_size + 
+		IEEE80211_DATA_RATES_SIZE + IEEE80211_EXT_DATA_RATES_SIZE + 
+		channel_data_size;
 	
 	size_t buffer_size = sizeof(ieee80211_mgmt_header_t) + payload_size;
 	void *buffer = malloc(buffer_size);
@@ -414,33 +774,21 @@ int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev)
 	memcpy(mgmt_header->dest_addr, ieee80211_broadcast_mac_addr, ETH_ADDR);
 	memcpy(mgmt_header->src_addr, nic_address.address, ETH_ADDR);
 	memcpy(mgmt_header->bssid, ieee80211_broadcast_mac_addr, ETH_ADDR);
+	mgmt_header->seq_ctrl = 
+		host2uint16_t_le(ieee80211_get_sequence_number(ieee80211_dev));
 	
-	/* Jump to payload -> header + padding. */
-	ieee80211_ie_header_t *rates_ie_header = (ieee80211_ie_header_t *) 
-		((void *)buffer + sizeof(ieee80211_mgmt_header_t) + 2);
-	rates_ie_header->element_id = IEEE80211_RATES_IE;
-	rates_ie_header->length = data_rates_size;
-	memcpy(rates_ie_header + sizeof(ieee80211_ie_header_t), 
-		ieee80211bg_data_rates, 
-		data_rates_size);
-	
-	ieee80211_ie_header_t *ext_rates_ie_header = (ieee80211_ie_header_t *) 
-		((void *)rates_ie_header + sizeof(ieee80211_ie_header_t) + 
-		data_rates_size);
-	ext_rates_ie_header->element_id = IEEE80211_EXT_RATES_IE;
-	ext_rates_ie_header->length = ext_data_rates_size;
-	memcpy(ext_rates_ie_header + sizeof(ieee80211_ie_header_t), 
-		ieee80211bg_ext_data_rates, 
-		ext_data_rates_size);
-	
-	ieee80211_ie_header_t *chan_ie_header = (ieee80211_ie_header_t *) 
-		((void *)ext_rates_ie_header + sizeof(ieee80211_ie_header_t) + 
-		ext_data_rates_size);
-	chan_ie_header->element_id = IEEE80211_CHANNEL_IE;
-	chan_ie_header->length = 1;
-	uint8_t *it = (uint8_t *) ((void *)chan_ie_header + 
-		sizeof(ieee80211_ie_header_t));
-	*it = ieee80211_freq_to_channel(ieee80211_dev->current_freq);
+	/* Jump to payload. */
+	void *it = (void *) buffer + sizeof(ieee80211_mgmt_header_t);
+	ieee80211_prepare_ie_header(&it, IEEE80211_SSID_IE, ssid_data_size, 
+		(void *) ssid);
+	ieee80211_prepare_ie_header(&it, IEEE80211_RATES_IE, 
+		IEEE80211_DATA_RATES_SIZE, 
+		(void *) &ieee80211bg_data_rates);
+	ieee80211_prepare_ie_header(&it, IEEE80211_EXT_RATES_IE, 
+		IEEE80211_EXT_DATA_RATES_SIZE, 
+		(void *) &ieee80211bg_data_rates[IEEE80211_DATA_RATES_SIZE]);
+	ieee80211_prepare_ie_header(&it, IEEE80211_CHANNEL_IE, 
+		channel_data_size, (void *) &channel);
 	
 	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
 	
@@ -450,22 +798,24 @@ int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev)
 }
 
 /**
- * Probe authentication implementation.
+ * IEEE 802.11 authentication implementation.
  * 
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
-int ieee80211_probe_auth(ieee80211_dev_t *ieee80211_dev)
+int ieee80211_authenticate(ieee80211_dev_t *ieee80211_dev)
 {
-	uint8_t test_bssid[] = {0x14, 0xF6, 0x5A, 0xAF, 0x5E, 0xB7};
-	
 	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
 	nic_address_t nic_address;
 	nic_query_address(nic, &nic_address);
 	
+	ieee80211_scan_result_t *auth_data =
+		&ieee80211_dev->bssid_info.res_link->scan_result;
+	
 	size_t buffer_size = sizeof(ieee80211_mgmt_header_t) + 
 		sizeof(ieee80211_auth_body_t);
+	
 	void *buffer = malloc(buffer_size);
 	memset(buffer, 0, buffer_size);
 	
@@ -476,15 +826,15 @@ int ieee80211_probe_auth(ieee80211_dev_t *ieee80211_dev)
 		IEEE80211_MGMT_FRAME | 
 		IEEE80211_MGMT_AUTH_FRAME
 		);
-	memcpy(mgmt_header->dest_addr, test_bssid, ETH_ADDR);
+	memcpy(mgmt_header->dest_addr, auth_data->bssid.address, ETH_ADDR);
 	memcpy(mgmt_header->src_addr, nic_address.address, ETH_ADDR);
-	memcpy(mgmt_header->bssid, test_bssid, ETH_ADDR);
+	memcpy(mgmt_header->bssid, auth_data->bssid.address, ETH_ADDR);
 	
 	ieee80211_auth_body_t *auth_body =
 		(ieee80211_auth_body_t *) 
 		(buffer + sizeof(ieee80211_mgmt_header_t));
 	auth_body->auth_alg = host2uint16_t_le(0);
-	auth_body->auth_trans_no = host2uint16_t_le(0);
+	auth_body->auth_trans_no = host2uint16_t_le(1);
 	
 	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
 	
@@ -493,35 +843,685 @@ int ieee80211_probe_auth(ieee80211_dev_t *ieee80211_dev)
 	return EOK;
 }
 
-/**
- * Process probe response and store results.
+/** 
+ * IEEE 802.11 association implementation.
+ * 
+ * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+ * @param password Passphrase to be used in encrypted communication or NULL
+ * for open networks.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password) 
+{
+	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
+	nic_address_t nic_address;
+	nic_query_address(nic, &nic_address);
+	
+	ieee80211_scan_result_link_t *auth_link =
+		ieee80211_dev->bssid_info.res_link;
+	
+	ieee80211_scan_result_t *auth_data = &auth_link->scan_result;
+	
+	size_t ssid_data_size = str_size(auth_data->ssid);
+	
+	size_t payload_size = 
+		sizeof(ieee80211_ie_header_t) * 3 +
+		ssid_data_size + 
+		IEEE80211_DATA_RATES_SIZE + 
+		IEEE80211_EXT_DATA_RATES_SIZE;
+	
+	size_t buffer_size = 
+		sizeof(ieee80211_mgmt_header_t) + 
+		sizeof(ieee80211_assoc_req_body_t) +
+		payload_size;
+	
+	if(auth_data->security.type == IEEE80211_SECURITY_WPA2) {
+		buffer_size += auth_link->rsn_copy_len;
+	}
+	
+	void *buffer = malloc(buffer_size);
+	memset(buffer, 0, buffer_size);
+	
+	ieee80211_mgmt_header_t *mgmt_header = 
+		(ieee80211_mgmt_header_t *) buffer;
+	
+	mgmt_header->frame_ctrl = host2uint16_t_le(
+		IEEE80211_MGMT_FRAME | 
+		IEEE80211_MGMT_ASSOC_REQ_FRAME
+		);
+	memcpy(mgmt_header->dest_addr, auth_data->bssid.address, ETH_ADDR);
+	memcpy(mgmt_header->src_addr, nic_address.address, ETH_ADDR);
+	memcpy(mgmt_header->bssid, auth_data->bssid.address, ETH_ADDR);
+	
+	ieee80211_assoc_req_body_t *assoc_body =
+		(ieee80211_assoc_req_body_t *) 
+		(buffer + sizeof(ieee80211_mgmt_header_t));
+	assoc_body->listen_interval = host2uint16_t_le(1);
+	
+	/* Jump to payload. */
+	void *it = buffer + sizeof(ieee80211_mgmt_header_t) +
+		sizeof(ieee80211_assoc_req_body_t);
+	ieee80211_prepare_ie_header(&it, IEEE80211_SSID_IE, 
+		ssid_data_size, (void *) auth_data->ssid);
+	ieee80211_prepare_ie_header(&it, IEEE80211_RATES_IE, 
+		IEEE80211_DATA_RATES_SIZE, 
+		(void *) &ieee80211bg_data_rates);
+	ieee80211_prepare_ie_header(&it, IEEE80211_EXT_RATES_IE, 
+		IEEE80211_EXT_DATA_RATES_SIZE, 
+		(void *) &ieee80211bg_data_rates[IEEE80211_DATA_RATES_SIZE]);
+	
+	if(auth_data->security.type != IEEE80211_SECURITY_OPEN) {
+		assoc_body->capability |= host2uint16_t_le(CAP_SECURITY);
+	}
+	
+	if(auth_data->security.type == IEEE80211_SECURITY_WPA2) {
+		memcpy(it, auth_link->rsn_copy,	auth_link->rsn_copy_len);
+	}
+	
+	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
+	
+	/* 
+	 * Save password and SSID to be used in eventual authentication 
+	 * handshake. 
+	 */
+	memcpy(ieee80211_dev->bssid_info.password, password, 
+		str_size(password));
+	
+	free(buffer);
+	
+	return EOK;
+}
+
+/** 
+ * IEEE 802.11 deauthentication implementation.
  * 
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  * 
  * @return EOK if succeed, negative error code otherwise.
  */
+int ieee80211_deauthenticate(ieee80211_dev_t *ieee80211_dev)
+{
+	ieee80211_scan_result_t *auth_data =
+		&ieee80211_dev->bssid_info.res_link->scan_result;
+	
+	ieee80211_dev->current_auth_phase = IEEE80211_AUTH_DISCONNECTED;
+	ieee80211_dev->bssid_info.aid = (uint16_t) -1;
+	memcpy(auth_data->bssid.address, ieee80211_broadcast_mac_addr, 
+		ETH_ADDR);
+	
+	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
+	nic_address_t nic_address;
+	nic_query_address(nic, &nic_address);
+	
+	size_t buffer_size = sizeof(ieee80211_mgmt_header_t) + 
+		sizeof(ieee80211_deauth_body_t);
+	void *buffer = malloc(buffer_size);
+	memset(buffer, 0, buffer_size);
+	
+	ieee80211_mgmt_header_t *mgmt_header = 
+		(ieee80211_mgmt_header_t *) buffer;
+	
+	mgmt_header->frame_ctrl = host2uint16_t_le(
+		IEEE80211_MGMT_FRAME | 
+		IEEE80211_MGMT_DEAUTH_FRAME
+		);
+	memcpy(mgmt_header->dest_addr, auth_data->bssid.address, ETH_ADDR);
+	memcpy(mgmt_header->src_addr, nic_address.address, ETH_ADDR);
+	memcpy(mgmt_header->bssid, auth_data->bssid.address, ETH_ADDR);
+	
+	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
+	
+	free(buffer);
+	
+	ieee80211_dev->ops->bssid_change(ieee80211_dev);
+	
+	return EOK;
+}
+
+static void ieee80211_process_auth_info(ieee80211_scan_result_link_t *ap_data,
+	void *buffer)
+{
+	uint8_t *it = (uint8_t *) buffer;
+	
+	uint16_t *version = (uint16_t *) it;
+	if(uint16_t_le2host(*version) != 0x1) {
+		ap_data->scan_result.security.type = -1;
+		return;
+	}
+	
+	it += sizeof(uint16_t);
+	
+	uint32_t group_cipher = *(it+3);
+	switch(group_cipher) {
+		case IEEE80211_AUTH_CIPHER_TKIP:
+			ap_data->scan_result.security.group_alg =
+				IEEE80211_SECURITY_SUITE_TKIP;
+			break;
+		case IEEE80211_AUTH_CIPHER_CCMP:
+			ap_data->scan_result.security.group_alg =
+				IEEE80211_SECURITY_SUITE_CCMP;
+			break;
+		default:
+			ap_data->scan_result.security.group_alg = -1;
+	}
+	
+	it += 4*sizeof(uint8_t);
+	
+	uint16_t *pairwise_count = (uint16_t *) it;
+	uint32_t pairwise_cipher = *(it+sizeof(uint16_t)+3);
+	switch(pairwise_cipher) {
+		case IEEE80211_AUTH_CIPHER_TKIP:
+			ap_data->scan_result.security.pair_alg =
+				IEEE80211_SECURITY_SUITE_TKIP;
+			break;
+		case IEEE80211_AUTH_CIPHER_CCMP:
+			ap_data->scan_result.security.pair_alg =
+				IEEE80211_SECURITY_SUITE_CCMP;
+			break;
+		default:
+			ap_data->scan_result.security.pair_alg = -1;
+	}
+	
+	it += 2*sizeof(uint16_t) + 
+		uint16_t_le2host(*pairwise_count)*sizeof(uint32_t);
+	
+	uint32_t auth_suite = *(it+3);
+	switch(auth_suite) {
+		case IEEE80211_AUTH_AKM_PSK:
+			ap_data->scan_result.security.auth =
+				IEEE80211_SECURITY_AUTH_PSK;
+			break;
+		case IEEE80211_AUTH_AKM_8021X:
+			ap_data->scan_result.security.auth =
+				IEEE80211_SECURITY_AUTH_8021X;
+			break;
+		default:
+			ap_data->scan_result.security.auth = -1;
+	}
+}
+
+static uint32_t uint32_from_uint8_seq(uint8_t *seq)
+{
+	return (*seq << 24) + (*(seq+1) << 16) + (*(seq+2) << 8) + *(seq+3); 
+}
+
+static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
+	ieee80211_scan_result_link_t *ap_data, void *buffer, size_t buffer_size)
+{
+	void *it = buffer;
+	while((it + sizeof(ieee80211_ie_header_t)) < buffer + buffer_size) {
+		ieee80211_ie_header_t *ie_header = 
+			(ieee80211_ie_header_t *) it;
+		uint8_t *channel;
+		switch(ie_header->element_id) {
+			case IEEE80211_CHANNEL_IE:
+				channel = (uint8_t *) 
+					(it + sizeof(ieee80211_ie_header_t));
+				ap_data->scan_result.channel = *channel;
+				break;
+			case IEEE80211_RSN_IE:
+				if(!ap_data)
+					break;
+				ap_data->scan_result.security.type =
+					IEEE80211_SECURITY_WPA2;
+				ieee80211_process_auth_info(ap_data, 
+					it + sizeof(ieee80211_ie_header_t));
+				ap_data->rsn_copy_len = ie_header->length +
+					sizeof(ieee80211_ie_header_t);
+				memcpy(ap_data->rsn_copy, 
+					it, 
+					ap_data->rsn_copy_len);
+				break;
+			case IEEE80211_VENDOR_IE:
+				if(uint32_from_uint8_seq(it + 
+					sizeof(ieee80211_ie_header_t)) ==
+					WPA_OUI) {
+					if(ap_data->scan_result.security.type ==
+						IEEE80211_SECURITY_WPA2) {
+						break;
+					}
+					ap_data->scan_result.security.type =
+						IEEE80211_SECURITY_WPA;
+					ieee80211_process_auth_info(ap_data,
+						it + 
+						sizeof(ieee80211_ie_header_t) +
+						sizeof(uint32_t));
+				} else if(uint32_from_uint8_seq(it + 
+					sizeof(ieee80211_ie_header_t)) ==
+					GTK_OUI) {
+					return it + 
+						sizeof(ieee80211_ie_header_t) +
+						sizeof(uint32_t) + 2;
+				}
+		}
+		it += sizeof(ieee80211_ie_header_t) + ie_header->length;
+	}
+	
+	return NULL;
+}
+
+/**
+ * Process probe response and store results.
+ * 
+ * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+ * @param mgmt_header Pointer to start of management frame header.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
 static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev, 
+	ieee80211_mgmt_header_t *mgmt_header, size_t buffer_size)
+{
+	ieee80211_beacon_start_t *beacon_body = (ieee80211_beacon_start_t *) 
+		((void *)mgmt_header + sizeof(ieee80211_mgmt_header_t));
+	
+	ieee80211_ie_header_t *ssid_ie_header = (ieee80211_ie_header_t *) 
+		((void *)beacon_body + sizeof(ieee80211_beacon_start_t));
+	
+	/* Not empty SSID. */
+	if(ssid_ie_header->length > 0) {
+		fibril_mutex_t *scan_mutex = &ieee80211_dev->ap_list.scan_mutex;
+		
+		fibril_mutex_lock(scan_mutex);
+		
+		ieee80211_scan_result_list_t *result_list =
+			&ieee80211_dev->ap_list;
+		
+		uint8_t *ssid_start = (uint8_t *) ((void *)ssid_ie_header + 
+			sizeof(ieee80211_ie_header_t));
+		char ssid[IEEE80211_MAX_SSID_LENGTH];
+		memcpy(ssid, ssid_start, ssid_ie_header->length);
+		ssid[ssid_ie_header->length] = '\0';
+		
+		/* Check whether SSID is already in results. */
+		ieee80211_scan_result_list_foreach(*result_list, result) {
+			if(!str_cmp(ssid, result->scan_result.ssid)) {
+				result->last_beacon = time(NULL);
+				fibril_mutex_unlock(scan_mutex);
+				return EOK;
+			}
+		}
+		
+		/* Results are full. */
+		if(result_list->size == IEEE80211_MAX_RESULTS_LENGTH - 1) {
+			fibril_mutex_unlock(scan_mutex);
+			return EOK;
+		}
+		
+		ieee80211_scan_result_link_t *ap_data = 
+			malloc(sizeof(ieee80211_scan_result_link_t));
+		memset(ap_data, 0, sizeof(ieee80211_scan_result_link_t));
+		link_initialize(&ap_data->link);
+		
+		memcpy(ap_data->scan_result.bssid.address, 
+			mgmt_header->bssid, ETH_ADDR);
+		memcpy(ap_data->scan_result.ssid, ssid, 
+			ssid_ie_header->length + 1);
+		
+		if(uint16_t_le2host(beacon_body->capability) & CAP_SECURITY) {
+			ap_data->scan_result.security.type = 
+				IEEE80211_SECURITY_WEP;
+		} else {
+			ap_data->scan_result.security.type = 
+				IEEE80211_SECURITY_OPEN;
+			ap_data->scan_result.security.auth = -1;
+			ap_data->scan_result.security.pair_alg = -1;
+			ap_data->scan_result.security.group_alg = -1;
+		}
+		
+		void *rest_ies_start = ssid_start + ssid_ie_header->length;
+		size_t rest_buffer_size = 
+			buffer_size - 
+			sizeof(ieee80211_mgmt_header_t) -
+			sizeof(ieee80211_beacon_start_t) -
+			sizeof(ieee80211_ie_header_t) -
+			ssid_ie_header->length;
+		
+		ieee80211_process_ies(ieee80211_dev, ap_data, rest_ies_start, 
+			rest_buffer_size);
+		
+		ap_data->last_beacon = time(NULL);
+		
+		ieee80211_scan_result_list_append(result_list, ap_data);
+		
+		fibril_mutex_unlock(scan_mutex);
+	}
+	
+	return EOK;
+}
+
+/**
+ * Process authentication response.
+ * 
+ * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+ * @param mgmt_header Pointer to start of management frame header.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+static int ieee80211_process_auth_response(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_mgmt_header_t *mgmt_header)
 {
-	ieee80211_ie_header_t *ssid_ie_header = (ieee80211_ie_header_t *) 
-		((void *)mgmt_header + sizeof(ieee80211_mgmt_header_t) + 
-		sizeof(ieee80211_beacon_start_t));
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	
-	if(ssid_ie_header->length > 0) {
-		uint8_t *results_length = &ieee80211_dev->ap_list.length;
-		
-		ieee80211_scan_result_t *ap_data = 
-			&ieee80211_dev->ap_list.results[(*results_length)++];
-		
-		memset(ap_data, 0, sizeof(ieee80211_scan_result_t));
-		
-		uint8_t *ssid_start = (uint8_t *) 
-			((void *)ssid_ie_header + 
-			sizeof(ieee80211_ie_header_t));
+	ieee80211_dev->current_auth_phase = IEEE80211_AUTH_AUTHENTICATED;
+	
+	fibril_condvar_signal(&ieee80211_dev->gen_cond);
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	
+	return EOK;
+}
 
-		memcpy(ap_data->bssid.address, mgmt_header->bssid, ETH_ADDR);
-		memcpy(ap_data->ssid, ssid_start, ssid_ie_header->length);
-		ap_data->ssid[ssid_ie_header->length] = '\0';
+/**
+ * Process association response.
+ * 
+ * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+ * @param mgmt_header Pointer to start of management frame header.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+static int ieee80211_process_assoc_response(ieee80211_dev_t *ieee80211_dev,
+	ieee80211_mgmt_header_t *mgmt_header)
+{
+	ieee80211_scan_result_t *auth_data =
+		&ieee80211_dev->bssid_info.res_link->scan_result;
+	
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	
+	ieee80211_assoc_resp_body_t *assoc_resp =
+		(ieee80211_assoc_resp_body_t *) ((void *)mgmt_header +
+		sizeof(ieee80211_mgmt_header_t));
+	
+	ieee80211_dev->bssid_info.aid = uint16_t_le2host(assoc_resp->aid);
+	memcpy(auth_data->bssid.address, mgmt_header->bssid, ETH_ADDR);
+	
+	ieee80211_dev->current_auth_phase = IEEE80211_AUTH_ASSOCIATED;
+	
+	ieee80211_dev->ops->bssid_change(ieee80211_dev);
+	
+	fibril_condvar_signal(&ieee80211_dev->gen_cond);
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	
+	return EOK;
+}
+
+static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
+	void *buffer, size_t buffer_size)
+{
+	ieee80211_eapol_key_frame_t *key_frame = 
+		(ieee80211_eapol_key_frame_t *) buffer;
+	
+	bool handshake_done = false;
+		
+	ieee80211_scan_result_link_t *auth_link =
+		ieee80211_dev->bssid_info.res_link;
+
+	ieee80211_scan_result_t *auth_data = &auth_link->scan_result;
+	uint8_t *ptk = ieee80211_dev->bssid_info.ptk;
+	uint8_t *gtk = ieee80211_dev->bssid_info.gtk;
+
+	size_t ptk_key_length, gtk_key_length;
+	hash_func_t hash_sel;
+	switch(auth_data->security.pair_alg) {
+		case IEEE80211_SECURITY_SUITE_CCMP:
+			ptk_key_length = IEEE80211_PTK_CCMP_LENGTH;
+			hash_sel = HASH_SHA1;
+			break;
+		default:
+			return ENOTSUP;
+	}
+
+	switch(auth_data->security.group_alg) {
+		case IEEE80211_SECURITY_SUITE_CCMP:
+			gtk_key_length = IEEE80211_GTK_CCMP_LENGTH;
+			break;
+		default:
+			return ENOTSUP;
+	}
+
+	size_t output_size = 
+		sizeof(eth_header_t) +
+		sizeof(ieee80211_eapol_key_frame_t);
+
+	if(!(uint16_t_be2host(key_frame->key_info) & 
+		IEEE80211_EAPOL_KEY_KEYINFO_SECURE)) {
+		output_size += auth_link->rsn_copy_len;
+	}
+
+	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
+	nic_address_t nic_address;
+	nic_query_address(nic, &nic_address);
+
+	void *output_buffer = malloc(output_size);
+	memset(output_buffer, 0, output_size);
+
+	/* Setup ethernet header. */
+	eth_header_t *eth_header = (eth_header_t *) output_buffer;
+	memcpy(eth_header->dest_addr, auth_data->bssid.address,	ETH_ADDR);
+	memcpy(eth_header->src_addr, nic_address.address, ETH_ADDR);
+	eth_header->proto = host2uint16_t_be(ETH_TYPE_PAE);
+
+	ieee80211_eapol_key_frame_t *output_key_frame =
+		(ieee80211_eapol_key_frame_t *) 
+		(output_buffer + sizeof(eth_header_t));
+
+	/* Copy content of incoming EAPOL-Key frame. */
+	memcpy((void *) output_key_frame, buffer, 
+		sizeof(ieee80211_eapol_key_frame_t));
+
+	output_key_frame->proto_version = 0x1;
+	output_key_frame->key_length = 0;
+	output_key_frame->body_length =
+		host2uint16_t_be(output_size - sizeof(eth_header_t)-4);
+	output_key_frame->key_info &= 
+		~host2uint16_t_be(
+			IEEE80211_EAPOL_KEY_KEYINFO_ACK
+		);
+
+	/* 
+	 * Check if it is last or first incoming message in 4-way 
+	 * handshake. 
+	 */
+	if(uint16_t_be2host(key_frame->key_info) & 
+		IEEE80211_EAPOL_KEY_KEYINFO_SECURE) {
+		output_key_frame->key_info &= 
+			~host2uint16_t_be(
+				IEEE80211_EAPOL_KEY_KEYINFO_ENCDATA
+			);
+		output_key_frame->key_info &= 
+			~host2uint16_t_be(
+				IEEE80211_EAPOL_KEY_KEYINFO_INSTALL
+			);
+		output_key_frame->key_data_length = 0;
+		output_key_frame->key_length = 0;
+		memset(output_key_frame->key_nonce, 0, 32);
+		memset(output_key_frame->key_mic, 0, 16);
+		memset(output_key_frame->key_rsc, 0, 8);
+		memset(output_key_frame->eapol_key_iv, 0, 16);
+
+		/* Derive GTK and save it. */
+		uint16_t key_data_length = 
+			uint16_t_be2host(key_frame->key_data_length);
+		uint16_t decrypt_len = key_data_length - 8;
+		uint8_t key_data[decrypt_len];
+		uint8_t *data_ptr = (uint8_t *) (buffer + 
+			sizeof(ieee80211_eapol_key_frame_t));
+		if(ieee80211_aes_key_unwrap(ptk + KEK_OFFSET, data_ptr,
+			key_data_length, key_data) == EOK) {
+			
+			uint8_t *key_ptr = ieee80211_process_ies(ieee80211_dev, 
+				NULL, key_data, decrypt_len);
+
+			if(key_ptr) {
+				memcpy(gtk, key_ptr, gtk_key_length);
+				handshake_done = true;
+			}
+		}
+	} else {
+		output_key_frame->key_info |= 
+			host2uint16_t_be(
+				IEEE80211_EAPOL_KEY_KEYINFO_MIC
+			);
+		output_key_frame->key_data_length =
+			host2uint16_t_be(auth_link->rsn_copy_len);
+		memcpy((void *)output_key_frame + 
+			sizeof(ieee80211_eapol_key_frame_t),
+			auth_link->rsn_copy,
+			auth_link->rsn_copy_len);
+
+		/* Compute PMK. */
+		uint8_t pmk[PBKDF2_KEY_LENGTH];
+		pbkdf2((uint8_t *) ieee80211_dev->bssid_info.password,
+			str_size(ieee80211_dev->bssid_info.password),
+			(uint8_t *) auth_data->ssid,
+			str_size(auth_data->ssid), pmk, hash_sel);
+
+		uint8_t *anonce = key_frame->key_nonce;
+
+		/* Generate SNONCE. */
+		uint8_t snonce[32];
+		rnd_sequence(snonce, 32);
+
+		memcpy(output_key_frame->key_nonce, snonce, 32);
+
+		uint8_t *dest_addr = eth_header->dest_addr;
+		uint8_t *src_addr = eth_header->src_addr;
+
+		/* Derive PTK and save it. */
+		uint8_t prf_result[ptk_key_length];
+		uint8_t crypt_data[PRF_CRYPT_DATA_LENGTH];
+		memcpy(crypt_data, 
+			min_sequence(dest_addr, src_addr, ETH_ADDR), 
+			ETH_ADDR);
+		memcpy(crypt_data + ETH_ADDR, 
+			max_sequence(dest_addr, src_addr, ETH_ADDR), 
+			ETH_ADDR);
+		memcpy(crypt_data + 2*ETH_ADDR, 
+			min_sequence(anonce, snonce, 32), 
+			32);
+		memcpy(crypt_data + 2*ETH_ADDR + 32, 
+			max_sequence(anonce, snonce, 32),
+			32);
+		ieee80211_prf(pmk, crypt_data, prf_result, hash_sel);
+		memcpy(ptk, prf_result, ptk_key_length);
+	}
+
+	/* Compute MIC of key frame data from KCK part of PTK. */
+	uint8_t mic[SHA1_HASH_LENGTH];
+	hmac(ptk, 16, (uint8_t *) output_key_frame, 
+		output_size - sizeof(eth_header_t), mic, hash_sel);
+
+	memcpy(output_key_frame->key_mic, mic, 16);
+
+	ieee80211_send_frame(nic, output_buffer, output_size);
+
+	free(output_buffer);
+
+	if(handshake_done) {
+		/* Insert keys into device. */
+		
+		/* Pairwise key. */
+		ieee80211_key_config_t key_config;
+		key_config.suite = auth_data->security.pair_alg;
+		key_config.flags =
+			IEEE80211_KEY_FLAG_TYPE_PAIRWISE;
+		memcpy(key_config.data, 
+			ptk + TK_OFFSET,
+			ptk_key_length - TK_OFFSET);
+
+		ieee80211_dev->ops->key_config(ieee80211_dev,
+			&key_config, true);
+		
+		/* Group key. */
+		key_config.suite = auth_data->security.group_alg;
+		key_config.flags =
+			IEEE80211_KEY_FLAG_TYPE_GROUP;
+		memcpy(key_config.data, gtk, gtk_key_length);
+
+		ieee80211_dev->ops->key_config(ieee80211_dev,
+			&key_config, true);
+
+		/* Signal successful handshake completion. */
+		fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+		fibril_condvar_signal(&ieee80211_dev->gen_cond);
+		fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	}
+	
+	return EOK;
+}
+
+static int ieee80211_process_eapol_frame(ieee80211_dev_t *ieee80211_dev,
+	void *buffer, size_t buffer_size)
+{
+	ieee80211_eapol_key_frame_t *key_frame = 
+		(ieee80211_eapol_key_frame_t *) buffer;
+	if(ieee80211_is_eapol_key_frame(key_frame)) {
+		return ieee80211_process_4way_handshake(ieee80211_dev, buffer,
+			buffer_size);
+	}
+	
+	return EOK;
+}
+
+/**
+ * Process data frame.
+ * 
+ * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+ * @param buffer Data buffer starting with IEEE 802.11 data header.
+ * @param buffer_size Size of buffer.
+ * 
+ * @return EOK if succeed, negative error code otherwise.
+ */
+static int ieee80211_process_data(ieee80211_dev_t *ieee80211_dev, 
+	void *buffer, size_t buffer_size)
+{
+	ieee80211_data_header_t *data_header = 
+		(ieee80211_data_header_t *) buffer;
+	
+	if(ieee80211_has_data_frame(data_header->frame_ctrl)) {
+		nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
+		size_t strip_length = sizeof(ieee80211_data_header_t) + 
+			ARRAY_SIZE(rfc1042_header);
+		
+		/* TODO: Probably different by used security alg. */
+		if(ieee80211_is_encrypted_frame(data_header->frame_ctrl)) {
+			strip_length += 8;
+		}
+		
+		/* Process 4-way authentication handshake. */
+		uint16_t *proto = (uint16_t *) (buffer + strip_length);
+		if(uint16_t_be2host(*proto) == ETH_TYPE_PAE) {
+			return ieee80211_process_eapol_frame(ieee80211_dev,
+				buffer + strip_length + sizeof(uint16_t),
+				buffer_size - strip_length - sizeof(uint16_t));
+		}
+		
+		/* Note: ETH protocol ID is already there, so we don't create 
+		 * whole ETH header. */
+		size_t frame_size = 
+			buffer_size - strip_length + sizeof(eth_header_t)-2;
+		nic_frame_t *frame = nic_alloc_frame(nic, frame_size);
+
+		if(frame == NULL) {
+			return ENOMEM;
+		}
+
+		uint8_t *src_addr = 
+			ieee80211_is_fromds_frame(data_header->frame_ctrl) ?
+				data_header->address3 : data_header->address2;
+		uint8_t *dest_addr = 
+			ieee80211_is_tods_frame(data_header->frame_ctrl) ?
+				data_header->address3 : data_header->address1;
+
+		eth_header_t *eth_header =
+			(eth_header_t *) frame->data;
+		memcpy(eth_header->src_addr, src_addr, ETH_ADDR);
+		memcpy(eth_header->dest_addr, dest_addr, ETH_ADDR);
+
+		memcpy(frame->data + sizeof(eth_header_t)-2, 
+			buffer + strip_length, 
+			buffer_size - strip_length);
+
+		nic_received_frame(nic, frame);
 	}
 	
 	return EOK;
@@ -547,21 +1547,21 @@ int ieee80211_rx_handler(ieee80211_dev_t *ieee80211_dev, void *buffer,
 		if(ieee80211_is_probe_response_frame(mgmt_header->frame_ctrl) ||
 			ieee80211_is_beacon_frame(mgmt_header->frame_ctrl)) {
 			return ieee80211_process_probe_response(ieee80211_dev,
+				mgmt_header, buffer_size);
+		}
+		
+		if(ieee80211_is_auth_frame(mgmt_header->frame_ctrl)) {
+			return ieee80211_process_auth_response(ieee80211_dev,
 				mgmt_header);
 		}
-		// TODO
-	} else if(ieee80211_is_data_frame(frame_ctrl)) {
-		nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
-		size_t frame_size = buffer_size - sizeof(ieee80211_data_header_t);
-		nic_frame_t *frame = nic_alloc_frame(nic, frame_size); 
-		if (frame != NULL) {
-			memcpy(frame->data, 
-				buffer + sizeof(ieee80211_data_header_t), 
-				frame_size);
-			nic_received_frame(nic, frame);
+		
+		if(ieee80211_is_assoc_response_frame(mgmt_header->frame_ctrl)) {
+			return ieee80211_process_assoc_response(ieee80211_dev,
+				mgmt_header);
 		}
-	} else {
-		// TODO
+	} else if(ieee80211_is_data_frame(frame_ctrl)) {
+		return ieee80211_process_data(ieee80211_dev, buffer, 
+			buffer_size);
 	}
 	
 	return EOK;

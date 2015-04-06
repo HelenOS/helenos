@@ -33,7 +33,8 @@ LIBS = \
 	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBDRV_PREFIX)/libdrv.a \
 	$(LIBNIC_PREFIX)/libnic.a \
-	$(LIBIEEE80211_PREFIX)/libieee80211.a
+	$(LIBIEEE80211_PREFIX)/libieee80211.a \
+	$(LIBCRYPTO_PREFIX)/libcrypto.a
 	
 EXTRA_CFLAGS += \
 	-I. \
@@ -42,6 +43,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBDRV_PREFIX)/include \
 	-I$(LIBNIC_PREFIX)/include \
 	-I$(LIBIEEE80211_PREFIX)/include \
+	-I$(LIBCRYPTO_PREFIX)
 	
 BINARY = ar9271
 

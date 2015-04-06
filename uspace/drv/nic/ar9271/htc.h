@@ -44,10 +44,10 @@
 #include "ath.h"
 
 #define HTC_RTS_THRESHOLD 2304
-#define HTC_RX_HEADER_LENGTH 40
+#define HTC_RATES_MAX_LENGTH 30
 
 /**
- * HTC message IDs
+ * HTC message IDs.
  */
 typedef enum {
 	HTC_MESSAGE_READY = 1,
@@ -58,7 +58,7 @@ typedef enum {
 } htc_message_id_t;
 
 /**
- * HTC response message status codes
+ * HTC response message status codes.
  */
 typedef enum {
         HTC_SERVICE_SUCCESS = 0,
@@ -69,7 +69,7 @@ typedef enum {
 } htc_response_status_code_t;
 
 /**
- * HTC operating mode definition
+ * HTC operating mode definition.
  */
 typedef enum {
 	HTC_OPMODE_ADHOC = 0,
@@ -79,7 +79,17 @@ typedef enum {
 } htc_operating_mode_t;
 
 /**
- * HTC endpoint numbers
+ * HTC data type indicator.
+ */
+typedef enum {
+	HTC_DATA_AMPDU = 1,
+	HTC_DATA_NORMAL = 2,
+	HTC_DATA_BEACON = 3,
+	HTC_DATA_MGMT = 4
+} htc_data_type_t;
+
+/**
+ * HTC endpoint numbers.
  */
 typedef struct {
         int ctrl_endpoint;
@@ -95,7 +105,7 @@ typedef struct {
 } htc_pipes_t;
 
 /**
- * HTC device data
+ * HTC device data.
  */
 typedef struct {
         /** WMI message sequence number */
@@ -118,19 +128,17 @@ typedef struct {
 } htc_device_t;
 
 /** 
- * HTC frame header structure 
+ * HTC frame header structure.
  */
 typedef struct {
 	uint8_t   endpoint_id;
 	uint8_t   flags;
 	uint16_t  payload_length;	/**< Big Endian value! */
 	uint8_t   control_bytes[4];
-    
-	/* Message payload starts after the header. */
 } __attribute__((packed)) htc_frame_header_t;
 
 /** 
- * HTC management TX frame header structure 
+ * HTC management TX frame header structure.
  */
 typedef struct {
 	uint8_t node_idx;
@@ -144,7 +152,22 @@ typedef struct {
 } __attribute__((packed)) htc_tx_management_header_t;
 
 /** 
- * HTC ready message structure 
+ * HTC data TX frame header structure.
+ */
+typedef struct {
+	uint8_t data_type;
+	uint8_t node_idx;
+	uint8_t vif_idx;
+	uint8_t tidno;
+	uint32_t flags;			/**< Big Endian value! */
+	uint8_t key_type;
+	uint8_t keyix;
+	uint8_t cookie;
+	uint8_t pad;
+} __attribute__((packed)) htc_tx_data_header_t;
+
+/** 
+ * HTC ready message structure.
  */
 typedef struct {
         uint16_t message_id;		/**< Big Endian value! */
@@ -156,7 +179,7 @@ typedef struct {
 } __attribute__((packed)) htc_ready_msg_t;
 
 /** 
- * HTC service message structure 
+ * HTC service message structure.
  */
 typedef struct {
 	uint16_t message_id;		/**< Big Endian value! */
@@ -170,7 +193,7 @@ typedef struct {
 } __attribute__((packed)) htc_service_msg_t;
 
 /** 
- * HTC service response message structure 
+ * HTC service response message structure.
  */
 typedef struct {
         uint16_t message_id;            /**< Big Endian value! */
@@ -183,7 +206,7 @@ typedef struct {
 } __attribute__((packed)) htc_service_resp_msg_t;
 
 /**
- * HTC credits config message structure
+ * HTC credits config message structure.
  */
 typedef struct {
         uint16_t message_id;            /**< Big Endian value! */
@@ -192,7 +215,7 @@ typedef struct {
 } __attribute__((packed)) htc_config_msg_t;
 
 /**
- * HTC new virtual interface message
+ * HTC new virtual interface message.
  */
 typedef struct {
         uint8_t index;
@@ -204,7 +227,7 @@ typedef struct {
 } __attribute__((packed)) htc_vif_msg_t;
 
 /**
- * HTC new station message
+ * HTC new station message.
  */
 typedef struct {
 	uint8_t addr[ETH_ADDR];
@@ -230,6 +253,40 @@ typedef struct {
 	uint8_t tx_chainmask;
 	uint8_t pad;
 } __attribute__((packed)) htc_cap_msg_t;
+
+typedef struct {
+	uint8_t sta_index;
+	uint8_t is_new;
+	uint32_t cap_flags;	/**< Big Endian value! */
+	uint8_t legacy_rates_count;
+	uint8_t legacy_rates[HTC_RATES_MAX_LENGTH];
+	uint16_t pad;
+} htc_rate_msg_t;
+
+/**
+ * HTC RX status structure used in incoming HTC data messages.
+ */
+typedef struct {
+	uint64_t timestamp;	/**< Big Endian value! */
+	uint16_t data_length;	/**< Big Endian value! */
+	uint8_t status;
+	uint8_t phy_err;
+	int8_t rssi;
+	int8_t rssi_ctl[3];
+	int8_t rssi_ext[3];
+	uint8_t keyix;
+	uint8_t rate;
+	uint8_t antenna;
+	uint8_t more;
+	uint8_t is_aggr;
+	uint8_t more_aggr;
+	uint8_t num_delims;
+	uint8_t flags;
+	uint8_t dummy;
+	uint32_t evm0;		/**< Big Endian value! */
+	uint32_t evm1;		/**< Big Endian value! */
+	uint32_t evm2;		/**< Big Endian value! */
+} htc_rx_status_t;
 
 /**
  * HTC setup complete message structure

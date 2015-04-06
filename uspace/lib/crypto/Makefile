@@ -27,23 +27,10 @@
 #
 
 USPACE_PREFIX = ../..
-LIBRARY = libieee80211
-
-LIBS = \
-	$(LIBDRV_PREFIX)/libdrv.a \
-	$(LIBNIC_PREFIX)/libnic.a \
-	$(LIBCRYPTO_PREFIX)/libcrypto.a
-
-EXTRA_CFLAGS += \
-	-Iinclude \
-	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBNIC_PREFIX)/include \
-	-I$(LIBCRYPTO_PREFIX)
+LIBRARY = libcrypto
 
 SOURCES = \
-	src/ieee80211.c \
-	src/ieee80211_impl.c \
-	src/ieee80211_iface_impl.c \
-	
+	crypto.c \
+	aes.c
 
 include $(USPACE_PREFIX)/Makefile.common

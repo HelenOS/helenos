@@ -104,6 +104,9 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 	void *buffer, size_t buffer_size);
 static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
 	uint16_t freq);
+static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev);
+static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
+	ieee80211_key_config_t *key_conf, bool insert);
 
 static driver_ops_t ar9271_driver_ops = {
 	.dev_add = ar9271_add_device
@@ -117,7 +120,9 @@ static driver_t ar9271_driver = {
 static ieee80211_ops_t ar9271_ieee80211_ops = {
 	.start = ar9271_ieee80211_start,
 	.tx_handler = ar9271_ieee80211_tx_handler,
-	.set_freq = ar9271_ieee80211_set_freq
+	.set_freq = ar9271_ieee80211_set_freq,
+	.bssid_change = ar9271_ieee80211_bssid_change,
+	.key_config = ar9271_ieee80211_key_config
 };
 
 static ieee80211_iface_t ar9271_ieee80211_iface;
@@ -185,8 +190,8 @@ static int ar9271_get_operation_mode(ddf_fun_t *fun, int *speed,
  * Set multicast frames acceptance mode.
  *
  */
-static int ar9271_on_multicast_mode_change(nic_t *nic, nic_multicast_mode_t mode,
-    const nic_address_t *addr, size_t addr_cnt)
+static int ar9271_on_multicast_mode_change(nic_t *nic, 
+	nic_multicast_mode_t mode, const nic_address_t *addr, size_t addr_cnt)
 {
 	/*
 	ieee80211_dev_t *ieee80211_dev = (ieee80211_dev_t *) 
@@ -248,7 +253,8 @@ static int ar9271_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
  * Set broadcast frames acceptance mode.
  *
  */
-static int ar9271_on_broadcast_mode_change(nic_t *nic, nic_broadcast_mode_t mode)
+static int ar9271_on_broadcast_mode_change(nic_t *nic, 
+	nic_broadcast_mode_t mode)
 {
 	/*
 	ieee80211_dev_t *ieee80211_dev = (ieee80211_dev_t *) 
@@ -270,8 +276,15 @@ static int ar9271_on_broadcast_mode_change(nic_t *nic, nic_broadcast_mode_t mode
 	return EOK;
 }
 
+static bool ar9271_rx_status_error(uint8_t status)
+{
+	return (status & AR9271_RX_ERROR_PHY) || (status & AR9271_RX_ERROR_CRC);
+}
+
 static int ar9271_data_polling(void *arg)
 {
+	assert(arg);
+	
 	ar9271_t *ar9271 = (ar9271_t *) arg;
 	
 	size_t buffer_size = ar9271->ath_device->data_response_length;
@@ -281,25 +294,43 @@ static int ar9271_data_polling(void *arg)
 		size_t transferred_size;
 		if(htc_read_data_message(ar9271->htc_device, 
 			buffer, buffer_size, &transferred_size) == EOK) {
+			size_t strip_length = 
+				sizeof(ath_usb_data_header_t) +
+				sizeof(htc_frame_header_t) + 
+				sizeof(htc_rx_status_t);
+			
+			if(transferred_size < strip_length)
+				continue;
+
 			ath_usb_data_header_t *data_header = 
 				(ath_usb_data_header_t *) buffer;
 
 			/* Invalid packet. */
-			if(data_header->tag != uint16_t_le2host(RX_TAG)) {
+			if(data_header->tag != uint16_t_le2host(RX_TAG))
 				continue;
-			}
 			
-			size_t strip_length = 
+			htc_rx_status_t *rx_status =
+				(htc_rx_status_t *) ((void *) buffer +
 				sizeof(ath_usb_data_header_t) +
-				sizeof(htc_frame_header_t) + 
-				HTC_RX_HEADER_LENGTH;
+				sizeof(htc_frame_header_t));
 			
-			/* TODO: RX header inspection. */
+			uint16_t data_length =
+				uint16_t_be2host(rx_status->data_length);
+			
+			int16_t payload_length = 
+				transferred_size - strip_length;
+			
+			if(payload_length - data_length < 0)
+				continue;
+			
+			if(ar9271_rx_status_error(rx_status->status))
+				continue;
+			
 			void *strip_buffer = buffer + strip_length;
-			
+
 			ieee80211_rx_handler(ar9271->ieee80211_dev,
 				strip_buffer,
-				transferred_size - strip_length);
+				payload_length);
 		}
 	}
 	
@@ -315,7 +346,11 @@ static int ar9271_data_polling(void *arg)
 static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
 	uint16_t freq)
 {
+	assert(ieee80211_dev);
+	
 	ar9271_t *ar9271 = (ar9271_t *) ieee80211_get_specific(ieee80211_dev);
+	
+	//hw_wakeup(ar9271);
 	
 	wmi_send_command(ar9271->htc_device, WMI_DISABLE_INTR, NULL, 0, NULL);
 	wmi_send_command(ar9271->htc_device, WMI_DRAIN_TXQ_ALL, NULL, 0, NULL);
@@ -343,9 +378,158 @@ static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
+static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev)
+{
+	assert(ieee80211_dev);
+	
+	ar9271_t *ar9271 = (ar9271_t *) ieee80211_get_specific(ieee80211_dev);
+
+	/* Check if we are connected or disconnected. */
+	if(ieee80211_is_connected(ieee80211_dev)) {
+		nic_address_t bssid;
+		ieee80211_query_bssid(ieee80211_dev, &bssid);
+
+		htc_sta_msg_t sta_msg;
+		memset(&sta_msg, 0, sizeof(htc_sta_msg_t));
+		sta_msg.is_vif_sta = 0;
+		sta_msg.max_ampdu = 
+			host2uint16_t_be(1 << IEEE80211_MAX_AMPDU_FACTOR);
+		sta_msg.sta_index = 1;
+		sta_msg.vif_index = 0;
+		memcpy(&sta_msg.addr, bssid.address, ETH_ADDR);
+
+		wmi_send_command(ar9271->htc_device, WMI_NODE_CREATE, 
+			(uint8_t *) &sta_msg, sizeof(sta_msg), NULL);
+
+		htc_rate_msg_t rate_msg;
+		memset(&rate_msg, 0, sizeof(htc_rate_msg_t));
+		rate_msg.sta_index = 1;
+		rate_msg.is_new = 1;
+		rate_msg.legacy_rates_count = 
+			ARRAY_SIZE(ieee80211bg_data_rates);
+		memcpy(&rate_msg.legacy_rates, 
+			ieee80211bg_data_rates, 
+			ARRAY_SIZE(ieee80211bg_data_rates));
+
+		wmi_send_command(ar9271->htc_device, WMI_RC_RATE_UPDATE, 
+			(uint8_t *) &rate_msg, sizeof(rate_msg), NULL);
+
+		hw_set_rx_filter(ar9271, true);
+	} else {
+		uint8_t station_id = 1;
+		wmi_send_command(ar9271->htc_device, WMI_NODE_REMOVE,
+			&station_id, sizeof(station_id), NULL);
+		
+		hw_set_rx_filter(ar9271, false);
+	}
+	
+	hw_set_bssid(ar9271);
+	
+	return EOK;
+}
+
+static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
+	ieee80211_key_config_t *key_conf, bool insert)
+{
+	assert(ieee80211_dev);
+	assert(key_conf);
+	
+	ar9271_t *ar9271 = (ar9271_t *) ieee80211_get_specific(ieee80211_dev);
+	
+	uint32_t key[5];
+	uint32_t key_type;
+	uint32_t reg_ptr;
+	void *data_start;
+	
+	if(insert) {
+		nic_address_t bssid;
+		ieee80211_query_bssid(ieee80211_dev, &bssid);
+		
+		switch(key_conf->suite) {
+			case IEEE80211_SECURITY_SUITE_WEP40:
+				key_type = AR9271_KEY_TABLE_TYPE_WEP40;
+				break;
+			case IEEE80211_SECURITY_SUITE_WEP104:
+				key_type = AR9271_KEY_TABLE_TYPE_WEP104;
+				break;
+			case IEEE80211_SECURITY_SUITE_TKIP:
+				key_type = AR9271_KEY_TABLE_TYPE_TKIP;
+				break;
+			case IEEE80211_SECURITY_SUITE_CCMP:
+				key_type = AR9271_KEY_TABLE_TYPE_CCMP;
+				break;
+			default:
+				key_type = -1;
+		}
+		
+		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_PAIRWISE) {
+			reg_ptr = AR9271_KEY_TABLE_STA;
+		} else {
+			reg_ptr = AR9271_KEY_TABLE_GRP;
+		}
+		
+		if(key_conf->suite == IEEE80211_SECURITY_SUITE_TKIP) {
+			// TODO
+		} else {
+			data_start = (void *) key_conf->data;
+			
+			key[0] = uint32_t_le2host(
+				*((uint32_t *) data_start));
+			key[1] = uint16_t_le2host(
+				*((uint16_t *) (data_start + 4)));
+			key[2] = uint32_t_le2host(
+				*((uint32_t *) (data_start + 6)));
+			key[3] = uint16_t_le2host(
+				*((uint16_t *) (data_start + 10)));
+			key[4] = uint32_t_le2host(
+				*((uint32_t *) (data_start + 12)));
+			
+			if(key_conf->suite == IEEE80211_SECURITY_SUITE_WEP40 ||
+			   key_conf->suite == IEEE80211_SECURITY_SUITE_WEP104) {
+				key[4] &= 0xFF;
+			}
+			
+			wmi_reg_write(ar9271->htc_device, reg_ptr + 0, key[0]);
+			wmi_reg_write(ar9271->htc_device, reg_ptr + 4, key[1]);
+			wmi_reg_write(ar9271->htc_device, reg_ptr + 8, key[2]);
+			wmi_reg_write(ar9271->htc_device, reg_ptr + 12, key[3]);
+			wmi_reg_write(ar9271->htc_device, reg_ptr + 16, key[4]);
+			wmi_reg_write(ar9271->htc_device, reg_ptr + 20, 
+				key_type);
+		}
+		
+		uint32_t macL, macH;
+		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_PAIRWISE) {
+			data_start = (void *) bssid.address;
+			macL = uint32_t_le2host(*((uint32_t *) data_start));
+			macH = uint16_t_le2host(*((uint16_t *) 
+				(data_start + 4)));
+		} else {
+			macL = macH = 0;
+		}
+		
+		macL >>= 1;
+		macL |= (macH & 1) << 31;
+		macH >>= 1;
+		macH |= 0x8000;
+		
+		wmi_reg_write(ar9271->htc_device, reg_ptr + 24, macL);
+		wmi_reg_write(ar9271->htc_device, reg_ptr + 28, macH);
+		
+		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_GROUP)
+			ieee80211_setup_key_confirm(ieee80211_dev, true);
+	} else {
+		// TODO
+	}
+	
+	return EOK;
+}
+
 static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 	void *buffer, size_t buffer_size)
 {
+	assert(ieee80211_dev);
+	
 	size_t complete_size, offset;
 	void *complete_buffer;
 	int endpoint;
@@ -354,9 +538,50 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 	
 	uint16_t frame_ctrl = *((uint16_t *) buffer);
 	if(ieee80211_is_data_frame(frame_ctrl)) {
-		offset = sizeof(htc_frame_header_t);
+		offset = sizeof(htc_tx_data_header_t) +
+			sizeof(htc_frame_header_t);
 		complete_size = buffer_size + offset;
 		complete_buffer = malloc(complete_size);
+		memset(complete_buffer, 0, complete_size);
+		
+		/* 
+		 * Because we handle just station mode yet, node ID and VIF ID
+		 * are fixed.
+		 */
+		htc_tx_data_header_t *data_header =
+			(htc_tx_data_header_t *) 
+			(complete_buffer + sizeof(htc_frame_header_t));
+		/* TODO: Distinguish data type. */
+		data_header->data_type = HTC_DATA_NORMAL;
+		data_header->node_idx = 1;
+		data_header->vif_idx = 0;
+		/* TODO: There I should probably handle slot number. */
+		data_header->cookie = 0;
+		
+		if(ieee80211_query_using_key(ieee80211_dev)) {
+			data_header->keyix = AR9271_STA_KEY_INDEX;
+			int sec_suite = 
+				ieee80211_get_security_suite(ieee80211_dev);
+			switch(sec_suite) {
+				case IEEE80211_SECURITY_SUITE_WEP40:
+				case IEEE80211_SECURITY_SUITE_WEP104:
+					data_header->key_type =
+						AR9271_KEY_TYPE_WEP;
+					break;
+				case IEEE80211_SECURITY_SUITE_TKIP:
+					data_header->key_type =
+						AR9271_KEY_TYPE_TKIP;
+					break;
+				case IEEE80211_SECURITY_SUITE_CCMP:
+					data_header->key_type =
+						AR9271_KEY_TYPE_AES;
+					break;
+			}
+		} else {
+			data_header->key_type = 0;
+			data_header->keyix = 0xFF;
+		}
+		
 		endpoint = ar9271->htc_device->endpoints.data_be_endpoint;
 	} else {
 		offset = sizeof(htc_tx_management_header_t) +
@@ -365,9 +590,17 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 		complete_buffer = malloc(complete_size);
 		memset(complete_buffer, 0, complete_size);
 		
+		/* 
+		 * Because we handle just station mode yet, node ID and VIF ID
+		 * are fixed.
+		 */
 		htc_tx_management_header_t *mgmt_header =
 			(htc_tx_management_header_t *) 
 			(complete_buffer + sizeof(htc_frame_header_t));
+		mgmt_header->node_idx = 0;
+		mgmt_header->vif_idx = 0;
+		/* TODO: There I should probably handle slot number. */
+		mgmt_header->cookie = 0;
 		mgmt_header->keyix = 0xFF;
 		
 		endpoint = ar9271->htc_device->endpoints.mgmt_endpoint;
@@ -386,6 +619,8 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 
 static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
 {
+	assert(ieee80211_dev);
+	
 	ar9271_t *ar9271 = (ar9271_t *) ieee80211_get_specific(ieee80211_dev);
 	
 	wmi_send_command(ar9271->htc_device, WMI_FLUSH_RECV, NULL, 0, NULL);
@@ -433,6 +668,9 @@ static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
 	fibril_add_ready(fibril);
 	
 	ar9271->starting_up = false;
+	ieee80211_set_ready(ieee80211_dev, true);
+	
+	usb_log_info("Device fully initialized.\n");
 	
 	return EOK;
 }

@@ -42,6 +42,8 @@
 #define WMI_SERVICE_GROUP 1
 #define CREATE_SERVICE_ID(group, i) (int) (((int) group << 8) | (int) (i))
 
+#define WMI_MGMT_CMD_MASK 0x1000
+
 /**
  * WMI header structure.
  */
@@ -116,8 +118,8 @@ extern int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset,
 	uint32_t *res);
 extern int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t val);
-extern int wmi_reg_set_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 
-	uint32_t set_bit, uint32_t clear_bit);
+extern int wmi_reg_set_clear_bit(htc_device_t *htc_device, 
+	uint32_t reg_offset, uint32_t set_bit, uint32_t clear_bit);
 extern int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
 	uint32_t set_bit);
 extern int wmi_reg_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 

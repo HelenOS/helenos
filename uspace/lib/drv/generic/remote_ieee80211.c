@@ -46,7 +46,8 @@
 /** IEEE 802.11 RPC functions IDs. */
 typedef enum {
 	IEEE80211_GET_SCAN_RESULTS,
-	IEEE80211_CONNECT
+	IEEE80211_CONNECT,
+	IEEE80211_DISCONNECT
 } ieee80211_funcs_t;
 
 /** Get scan results from IEEE 802.11 device
@@ -58,38 +59,38 @@ typedef enum {
  * negative error code otherwise.
  */
 int ieee80211_get_scan_results(async_sess_t *dev_sess, 
-	ieee80211_scan_results_t *results)
+	ieee80211_scan_results_t *results, bool now)
 {
 	assert(results);
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
-	aid_t aid = async_send_1(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
-	    IEEE80211_GET_SCAN_RESULTS, NULL);
+	aid_t aid = async_send_2(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
+	    IEEE80211_GET_SCAN_RESULTS, now, NULL);
 	int rc = async_data_read_start(exch, results, sizeof(ieee80211_scan_results_t));
 	async_exchange_end(exch);
 
 	sysarg_t res;
 	async_wait_for(aid, &res);
 	
-	if (rc != EOK)
+	if(res != EOK)
+		return (int) res;
+	else
 		return rc;
-	
-	return (int) res;
 }
 
 /** Connect to specified network.
  *
  * @param[in] dev_sess Device session.
- * @param[in] ssid Network SSID.
+ * @param[in] ssid_start Network SSID prefix.
  * @param[in] password Network password (pass empty string if not needed).
  *
  * @return EOK If the operation was successfully completed,
  * negative error code otherwise.
  */
-int ieee80211_connect(async_sess_t *dev_sess, char *ssid, char *password)
+int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 {
-	assert(ssid);
+	assert(ssid_start);
 	
 	sysarg_t rc_orig;
 	
@@ -98,7 +99,8 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid, char *password)
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_CONNECT, NULL);
 	
-	sysarg_t rc = async_data_write_start(exch, ssid, str_size(ssid) + 1);
+	sysarg_t rc = async_data_write_start(exch, ssid_start, 
+		str_size(ssid_start) + 1);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_wait_for(aid, &rc_orig);
@@ -131,6 +133,23 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid, char *password)
 	return (int) rc;
 }
 
+/** Disconnect device from network.
+ *
+ * @param[in] dev_sess Device session.
+ *
+ * @return EOK If the operation was successfully completed,
+ * negative error code otherwise.
+ */
+int ieee80211_disconnect(async_sess_t *dev_sess)
+{
+	async_exch_t *exch = async_exchange_begin(dev_sess);
+	int rc = async_req_1_0(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
+	    IEEE80211_DISCONNECT);
+	async_exchange_end(exch);
+	
+	return rc;
+}
+
 static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -140,7 +159,9 @@ static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
 	ieee80211_scan_results_t scan_results;
 	memset(&scan_results, 0, sizeof(ieee80211_scan_results_t));
 	
-	int rc = ieee80211_iface->get_scan_results(fun, &scan_results);
+	bool now = IPC_GET_ARG2(*call);
+	
+	int rc = ieee80211_iface->get_scan_results(fun, &scan_results, now);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
 		size_t max_len;
@@ -169,7 +190,7 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->connect);
 	
-	char ssid[MAX_STRING_SIZE];
+	char ssid_start[MAX_STRING_SIZE];
 	char password[MAX_STRING_SIZE];
 	
 	ipc_callid_t data_callid;
@@ -186,7 +207,7 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 		return;
 	}
 	
-	int rc = async_data_write_finalize(data_callid, ssid, len);
+	int rc = async_data_write_finalize(data_callid, ssid_start, len);
 	if (rc != EOK) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
@@ -212,8 +233,17 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 		return;
 	}
 	
-	rc = ieee80211_iface->connect(fun, ssid, password);
+	rc = ieee80211_iface->connect(fun, ssid_start, password);
 	
+	async_answer_0(callid, rc);
+}
+
+static void remote_ieee80211_disconnect(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
+	assert(ieee80211_iface->disconnect);
+	int rc = ieee80211_iface->disconnect(fun);
 	async_answer_0(callid, rc);
 }
 
@@ -222,7 +252,8 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
  */
 static const remote_iface_func_ptr_t remote_ieee80211_iface_ops[] = {
 	[IEEE80211_GET_SCAN_RESULTS] = remote_ieee80211_get_scan_results,
-	[IEEE80211_CONNECT] = remote_ieee80211_connect
+	[IEEE80211_CONNECT] = remote_ieee80211_connect,
+	[IEEE80211_DISCONNECT] = remote_ieee80211_disconnect
 };
 
 /** Remote IEEE 802.11 interface structure.

@@ -74,7 +74,10 @@ int htc_init_new_vif(htc_device_t *htc_device)
 	memset(&sta_msg, 0, sizeof(htc_sta_msg_t));
 	
 	nic_address_t addr;
-	nic_t *nic = nic_get_from_ddf_dev(ieee80211_get_ddf_dev(htc_device->ieee80211_dev));
+	nic_t *nic = 
+		nic_get_from_ddf_dev(
+			ieee80211_get_ddf_dev(htc_device->ieee80211_dev)
+		);
 	nic_query_address(nic, &addr);
 	
 	memcpy(&vif_msg.addr, &addr.address, ETH_ADDR);
@@ -126,8 +129,6 @@ int htc_init_new_vif(htc_device_t *htc_device)
 	memcpy(&id1_addr, &addr.address[4], 2);
 	id1 = (id1 & ~AR9271_STATION_ID1_MASK) | host2uint16_t_le(id1_addr);
 	wmi_reg_write(htc_device, AR9271_STATION_ID1, id1);
-	
-	/* TODO: Set BSSID mask for AP mode. */
 	
 	return EOK;
 }

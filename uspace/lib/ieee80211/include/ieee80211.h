@@ -56,6 +56,17 @@ typedef struct ieee80211_dev ieee80211_dev_t;
 /* Gap between IEEE80211 channels in MHz. */
 #define IEEE80211_CHANNEL_GAP 5
 
+/* Max AMPDU factor. */
+#define IEEE80211_MAX_AMPDU_FACTOR 13
+
+/* Max passphrase length in WPA/WPA2 protocols. */
+#define IEEE80211_WPA_MAX_PASSWORD_LENGTH 64
+
+/** IEEE 802.11 b/g supported data rates in units of 500 kb/s. */
+static const uint8_t ieee80211bg_data_rates[] = {
+	2, 4, 11, 12, 18, 22, 24, 36, 48, 72, 96, 108
+};
+
 /** Device operating modes. */
 typedef enum {
 	IEEE80211_OPMODE_ADHOC,
@@ -63,6 +74,20 @@ typedef enum {
 	IEEE80211_OPMODE_AP,
 	IEEE80211_OPMODE_STATION
 } ieee80211_operating_mode_t;
+
+/** Key flags. */
+typedef enum {
+	IEEE80211_KEY_FLAG_TYPE_PAIRWISE = 0x01,
+	IEEE80211_KEY_FLAG_TYPE_GROUP = 0x02
+} ieee80211_key_flags_t;
+
+/** Key config structure. */
+typedef struct {
+	uint8_t id;
+	uint8_t flags;
+	ieee80211_security_suite_t suite;
+	uint8_t data[32];
+} ieee80211_key_config_t;
 
 /** IEEE 802.11 callback functions. */
 typedef struct {
@@ -108,6 +133,27 @@ typedef struct {
 	 * @return EOK if succeed, negative error code otherwise.
 	 */
 	int (*set_freq)(struct ieee80211_dev *, uint16_t);
+	
+	/**
+	 * Callback to inform device about BSSID change.
+	 * 
+	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+	 * 
+	 * @return EOK if succeed, negative error code otherwise.
+	 */
+	int (*bssid_change)(struct ieee80211_dev *);
+	
+	/**
+	 * Callback to setup encryption key in IEEE 802.11 device.
+	 * 
+	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+	 * @param key_conf Key config structure.
+	 * @param insert True to insert this key to device, false to remove it.
+	 * 
+	 * @return EOK if succeed, negative error code otherwise.
+	 */
+	int (*key_config)(struct ieee80211_dev *, 
+		ieee80211_key_config_t *key_conf, bool);
 } ieee80211_ops_t;
 
 /* Initialization functions. */
@@ -123,17 +169,30 @@ extern void *ieee80211_get_specific(ieee80211_dev_t *ieee80211_dev);
 extern void ieee80211_set_specific(ieee80211_dev_t *ieee80211_dev, 
 	void *specific);
 extern ddf_dev_t *ieee80211_get_ddf_dev(ieee80211_dev_t* ieee80211_dev);
-extern ieee80211_operating_mode_t ieee80211_query_current_op_mode(ieee80211_dev_t *ieee80211_dev);
+extern ieee80211_operating_mode_t 
+	ieee80211_query_current_op_mode(ieee80211_dev_t *ieee80211_dev);
 extern uint16_t ieee80211_query_current_freq(ieee80211_dev_t *ieee80211_dev);
+extern void ieee80211_query_bssid(ieee80211_dev_t* ieee80211_dev, 
+	nic_address_t *bssid);
+extern bool ieee80211_is_connected(ieee80211_dev_t* ieee80211_dev);
 extern void ieee80211_report_current_op_mode(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_operating_mode_t op_mode);
 extern void ieee80211_report_current_freq(ieee80211_dev_t *ieee80211_dev,
 	uint16_t freq);
+extern uint16_t ieee80211_get_aid(ieee80211_dev_t* ieee80211_dev);
+extern int ieee80211_get_security_suite(ieee80211_dev_t* ieee80211_dev);
+extern bool ieee80211_is_ready(ieee80211_dev_t* ieee80211_dev);
+extern void ieee80211_set_ready(ieee80211_dev_t* ieee80211_dev, bool ready);
+extern bool ieee80211_query_using_key(ieee80211_dev_t* ieee80211_dev);
+extern void ieee80211_setup_key_confirm(ieee80211_dev_t* ieee80211_dev, 
+	bool using_key);
 
 extern bool ieee80211_is_data_frame(uint16_t frame_ctrl);
 extern bool ieee80211_is_mgmt_frame(uint16_t frame_ctrl);
 extern bool ieee80211_is_beacon_frame(uint16_t frame_ctrl);
 extern bool ieee80211_is_probe_response_frame(uint16_t frame_ctrl);
+extern bool ieee80211_is_auth_frame(uint16_t frame_ctrl);
+extern bool ieee80211_is_assoc_response_frame(uint16_t frame_ctrl);
 
 /* Worker functions. */
 extern int ieee80211_rx_handler(ieee80211_dev_t *ieee80211_dev, void *buffer,

@@ -44,8 +44,10 @@
 #include "ieee80211.h"
 
 extern int ieee80211_get_scan_results_impl(ddf_fun_t *fun, 
-	ieee80211_scan_results_t *results);
-extern int ieee80211_connect_impl(ddf_fun_t *fun, char *ssid, char *password);
+	ieee80211_scan_results_t *results, bool now);
+extern int ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, 
+	char *password);
+extern int ieee80211_disconnect_impl(ddf_fun_t *fun);
 
 #endif	/* LIB_IEEE80211_IFACE_IMPL_H */
 

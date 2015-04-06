@@ -42,10 +42,21 @@
 #include "ieee80211_private.h"
 
 extern int ieee80211_start_impl(ieee80211_dev_t *ieee80211_dev);
-extern int ieee80211_tx_handler_impl(ieee80211_dev_t *ieee80211_dev, void *buffer, 
-	size_t buffer_size);
-extern int ieee80211_set_freq_impl(ieee80211_dev_t *ieee80211_dev, uint16_t freq);
+extern int ieee80211_tx_handler_impl(ieee80211_dev_t *ieee80211_dev, 
+	void *buffer, size_t buffer_size);
+extern int ieee80211_set_freq_impl(ieee80211_dev_t *ieee80211_dev, 
+	uint16_t freq);
+extern int ieee80211_bssid_change_impl(ieee80211_dev_t *ieee80211_dev);
+extern int ieee80211_key_config_impl(ieee80211_dev_t *ieee80211_dev,
+	ieee80211_key_config_t *key_conf, bool insert);
 extern int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev);
+extern int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash, 
+	hash_func_t hash_sel);
+extern int ieee80211_aes_key_unwrap(uint8_t *kek, uint8_t *data, 
+	size_t data_size, uint8_t *output);
+extern int rnd_sequence(uint8_t *sequence, size_t length);
+extern uint8_t *min_sequence(uint8_t *seq1, uint8_t *seq2, size_t size);
+extern uint8_t *max_sequence(uint8_t *seq1, uint8_t *seq2, size_t size);
 
 #endif	/* LIB_IEEE80211_IMPL_H */
 

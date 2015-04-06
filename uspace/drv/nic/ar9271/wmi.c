@@ -230,7 +230,10 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 		sizeof(htc_frame_header_t);
 	size_t buffer_size = header_size + command_length;
 	void *buffer = malloc(buffer_size);
-	memcpy(buffer+header_size, command_buffer, command_length);
+	
+	if(command_buffer != NULL) {
+		memcpy(buffer+header_size, command_buffer, command_length);
+	}
 	
 	/* Set up WMI header */
 	wmi_command_header_t *wmi_header = (wmi_command_header_t *)
@@ -260,14 +263,29 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	}
 	
 	/* Read response. */
-	rc = htc_read_control_message(htc_device, response_buffer, 
-		response_buffer_size, NULL);
-	if(rc != EOK) {
-		free(buffer);
-		usb_log_error("Failed to receive WMI message response. "
-		    "Error: %d\n", rc);
-		return rc;
-	}
+	/* TODO: Ignoring WMI management RX messages ~ TX statuses etc. */
+	uint16_t cmd_id;
+	do {
+		rc = htc_read_control_message(htc_device, response_buffer, 
+			response_buffer_size, NULL);
+		if(rc != EOK) {
+			free(buffer);
+			usb_log_error("Failed to receive WMI message response. "
+			    "Error: %d\n", rc);
+			return rc;
+		}
+		
+		if(response_buffer_size < sizeof(htc_frame_header_t) + 
+			sizeof(wmi_command_header_t)) {
+			free(buffer);
+			usb_log_error("Corrupted response received.\n");
+			return EINVAL;
+		}
+		
+		wmi_command_header_t *wmi_hdr = (wmi_command_header_t *) 
+			((void*) response_buffer + sizeof(htc_frame_header_t));
+		cmd_id = uint16_t_be2host(wmi_hdr->command_id);
+	} while(cmd_id & WMI_MGMT_CMD_MASK);
 	
 	if(clean_resp_buffer) {
 		free(response_buffer);

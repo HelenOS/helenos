@@ -56,7 +56,7 @@ typedef struct {
 
 typedef struct {
 	uint16_t length;		/**< Little Endian value! */
-	uint16_t tag;		/**< Little Endian value! */
+	uint16_t tag;			/**< Little Endian value! */
 } ath_usb_data_header_t;
 
 extern int ath_usb_init(ath_t *ath, usb_device_t *usb_device);

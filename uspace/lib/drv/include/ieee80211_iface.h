@@ -38,8 +38,10 @@
 #include <ieee80211/ieee80211.h>
 #include <async.h>
 
-extern int ieee80211_get_scan_results(async_sess_t *, ieee80211_scan_results_t *);
+extern int ieee80211_get_scan_results(async_sess_t *, 
+	ieee80211_scan_results_t *, bool);
 extern int ieee80211_connect(async_sess_t *, char *, char *);
+extern int ieee80211_disconnect(async_sess_t *);
 
 #endif
 

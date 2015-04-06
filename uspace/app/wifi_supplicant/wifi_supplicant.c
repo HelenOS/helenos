@@ -35,12 +35,25 @@
 
 #include <ieee80211_iface.h>
 
-#include <malloc.h>
 #include <errno.h>
 #include <stdio.h>
 #include <loc.h>
 
 #define NAME "wifi_supplicant"
+
+#define enum_name(name_arr, i) ((i < 0) ? "NA" : name_arr[i])
+
+static const char* ieee80211_security_type_strs[] = {
+	"OPEN", "WEP", "WPA", "WPA2"
+};
+
+static const char* ieee80211_security_alg_strs[] = {
+	"WEP40", "WEP104", "CCMP", "TKIP"
+};
+
+static const char* ieee80211_security_auth_strs[] = {
+	"PSK", "8021X"
+};
 
 static void print_syntax(void)
 {
@@ -48,7 +61,11 @@ static void print_syntax(void)
 	printf("\t" NAME " [<cmd> [<args...>]]\n");
 	printf("\t<cmd> is:\n");
 	printf("\tlist - list wifi devices in <index>: <name> format\n");
-	printf("\tscan <index> - output scan results for given device\n");
+	printf("\tscan <index> [-n] - output scan results (force scan "
+		"immediately)\n");
+	printf("\tconnect <index> <ssid_prefix> [<password>] - connect to "
+		"network\n");
+	printf("\tdisconnect <index> - disconnect from network\n");
 }
 
 static char *nic_addr_format(nic_address_t *a)
@@ -97,13 +114,14 @@ static async_sess_t *get_wifi_by_index(size_t i)
 		return NULL;
 	}
 	
-	if(i > count - 1) {
+	if(i >= count) {
 		printf("Invalid wifi index.\n");
 		free(wifis);
 		return NULL;
 	}
 
-	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, wifis[i], 0);
+	async_sess_t *sess = 
+		loc_service_connect(EXCHANGE_SERIALIZE, wifis[i], 0);
 	if (sess == NULL) {
 		printf("Error connecting to service.\n");
 		free(wifis);
@@ -143,48 +161,109 @@ static int wifi_list(void)
 	return EOK;
 }
 
-static int wifi_connect(uint32_t index, char *ssid, char *password)
+static int wifi_connect(uint32_t index, char *ssid_start, char *password)
 {
-	assert(ssid);
+	assert(ssid_start);
 	
 	async_sess_t *sess = get_wifi_by_index(index);
 	if (sess == NULL) {
-		printf("Specified WIFI doesn't exist or cannot connect to it.\n");
+		printf("Specified WIFI doesn't exist or cannot connect to "
+			"it.\n");
 		return EINVAL;
 	}
 	
-	int rc = ieee80211_connect(sess, ssid, password);
+	int rc = ieee80211_connect(sess, ssid_start, password);
 	if(rc != EOK) {
-		printf("Failed connecting to network. Error: %d\n", rc);
-		return EINVAL;
+		if(rc == EREFUSED) {
+			printf("Device is not ready yet.\n");			
+		} else if(rc == ETIMEOUT) {
+			printf("Timeout when authenticating to network.\n");
+		} else if(rc == EPERM) {
+			printf("Bad password provided.\n");
+		} else {
+			printf("Error when connecting to network. "
+				"Error: %d\n", rc);
+		}
+		
+		return rc;
 	}
 	
-	printf("Successfully connected to %s!\n", ssid);
+	printf("Successfully connected to network!\n");
 	
 	return EOK;
 }
 
-static int wifi_scan(uint32_t index)
+static int wifi_disconnect(uint32_t index)
+{
+	async_sess_t *sess = get_wifi_by_index(index);
+	if (sess == NULL) {
+		printf("Specified WIFI doesn't exist or cannot connect to "
+			"it.\n");
+		return EINVAL;
+	}
+	
+	int rc = ieee80211_disconnect(sess);
+	if(rc != EOK) {
+		if(rc == EREFUSED) {
+			printf("Device is not ready yet.\n");
+		} else if(rc == EINVAL) {
+			printf("Not connected to any WiFi network.\n");
+		} else {
+			printf("Error when disconnecting from network. "
+				"Error: %d\n", rc);
+		}
+		return rc;
+	}
+	
+	printf("Successfully disconnected.\n");
+	
+	return EOK;
+}
+
+static int wifi_scan(uint32_t index, bool now)
 {
 	ieee80211_scan_results_t scan_results;
 	
 	async_sess_t *sess = get_wifi_by_index(index);
 	if (sess == NULL) {
-		printf("Specified WIFI doesn't exist or cannot connect to it.\n");
+		printf("Specified WIFI doesn't exist or cannot connect to "
+			"it.\n");
 		return EINVAL;
 	}
 	
-	int rc = ieee80211_get_scan_results(sess, &scan_results);
+	int rc = ieee80211_get_scan_results(sess, &scan_results, now);
 	if(rc != EOK) {
-		printf("Failed to fetch scan results. Error: %d\n", rc);
-		return EINVAL;
+		if(rc == EREFUSED) {
+			printf("Device is not ready yet.\n");
+		} else {
+			printf("Failed to fetch scan results. Error: %d\n", rc);
+		}
+		
+		return rc;
 	}
+	
+	if(scan_results.length == 0)
+		return EOK;
+	
+	printf("%16.16s %17s %4s %5s %5s %7s %7s\n", 
+		"SSID", "MAC", "CHAN", "TYPE", "AUTH", "UNI-ALG", "GRP-ALG");
 	
 	for(int i = 0; i < scan_results.length; i++) {
 		ieee80211_scan_result_t result = scan_results.results[i];
 		
-		printf("SSID: %s, MAC addr: %s\n", result.ssid, 
-			nic_addr_format(&result.bssid));
+		printf("%16.16s %17s %4d %5s %5s %7s %7s\n", 
+			result.ssid, 
+			nic_addr_format(&result.bssid),
+			result.channel,
+			enum_name(ieee80211_security_type_strs,
+				result.security.type),
+			enum_name(ieee80211_security_auth_strs,
+				result.security.auth),
+			enum_name(ieee80211_security_alg_strs,
+				result.security.pair_alg),
+			enum_name(ieee80211_security_alg_strs,
+				result.security.group_alg)
+		);
 	}
 	
 	return EOK;
@@ -196,25 +275,31 @@ int main(int argc, char *argv[])
 	uint32_t index;
 	
 	if(argc == 2) {
-		if (!str_cmp(argv[1], "list")) {
+		if(!str_cmp(argv[1], "list")) {
 			return wifi_list();
 		}
 	} else if(argc > 2) {
 		rc = str_uint32_t(argv[2], NULL, 10, false, &index);
-		if (rc != EOK) {
+		if(rc != EOK) {
 			printf(NAME ": Invalid argument.\n");
 			print_syntax();
 			return EINVAL;
 		}
-		if (!str_cmp(argv[1], "scan")) {
-			return wifi_scan(index);
-		} else if (!str_cmp(argv[1], "connect")) {
+		if(!str_cmp(argv[1], "scan")) {
+			bool now = false;
+			if(argc > 3)
+				if(!str_cmp(argv[3], "-n"))
+					now = true;
+			return wifi_scan(index, now);
+		} else if(!str_cmp(argv[1], "connect")) {
 			char *pass = NULL;
 			if(argc > 3) {
 				if(argc > 4)
 					pass = argv[4];
 				return wifi_connect(index, argv[3], pass);
 			} 
+		} else if(!str_cmp(argv[1], "disconnect")) {
+			return wifi_disconnect(index);
 		}
 	}
 	
