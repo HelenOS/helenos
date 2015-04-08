@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,34 +27,67 @@
  */
 
 /** @addtogroup libc
- *  @{
+ * @{
  */
-
 /** @file
- *  Internet common definitions.
  */
 
-#ifndef LIBC_INET_H_
-#define LIBC_INET_H_
+#ifndef LIBC_INET_UDP_H_
+#define LIBC_INET_UDP_H_
 
-#include <sys/types.h>
-#include <byteorder.h>
+#include <async.h>
+#include <inet/addr.h>
+#include <inet/endpoint.h>
+#include <inet/inet.h>
 
-/** Type definition of the address information.
- * @see addrinfo
- */
-typedef struct addrinfo addrinfo_t;
+typedef enum {
+	udp_ls_down,
+	udp_ls_up
+} udp_link_state_t;
 
-/** Socket address. */
-typedef struct sockaddr {
-	/** Address family. @see socket.h */
-	uint16_t sa_family;
-	/** 14 byte protocol address. */
-	uint8_t sa_data[14];
-} sockaddr_t;
+typedef struct {
+	struct udp *udp;
+	sysarg_t assoc_id;
+	size_t size;
+	inet_ep_t remote_ep;
+} udp_rmsg_t;
 
-extern int inet_ntop(uint16_t, const uint8_t *, char *, size_t);
-extern int inet_pton(uint16_t, const char *, uint8_t *);
+typedef struct {
+} udp_rerr_t;
+
+typedef struct {
+	struct udp *udp;
+	link_t ludp;
+	sysarg_t id;
+	struct udp_cb *cb;
+	void *cb_arg;
+} udp_assoc_t;
+
+typedef struct udp_cb {
+	void (*recv_msg)(udp_assoc_t *, udp_rmsg_t *);
+	void (*recv_err)(udp_assoc_t *, udp_rerr_t *);
+	void (*link_state)(udp_assoc_t *, udp_link_state_t);
+} udp_cb_t;
+
+typedef struct udp {
+	/** UDP session */
+	async_sess_t *sess;
+	/** List of associations */
+	list_t assoc; /* of udp_assoc_t */
+} udp_t;
+
+extern int udp_create(udp_t **);
+extern void udp_destroy(udp_t *);
+extern int udp_assoc_create(udp_t *, inet_ep2_t *, udp_cb_t *, void *,
+    udp_assoc_t **);
+extern void udp_assoc_destroy(udp_assoc_t *);
+extern int udp_assoc_send_msg(udp_assoc_t *, inet_ep_t *, void *, size_t);
+extern void *udp_assoc_userptr(udp_assoc_t *);
+extern size_t udp_rmsg_size(udp_rmsg_t *);
+extern int udp_rmsg_read(udp_rmsg_t *, size_t, void *, size_t);
+extern void udp_rmsg_remote_ep(udp_rmsg_t *, inet_ep_t *);
+extern uint8_t udp_rerr_type(udp_rerr_t *);
+extern uint8_t udp_rerr_code(udp_rerr_t *);
 
 #endif
 

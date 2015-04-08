@@ -39,7 +39,8 @@
 #include <sys/types.h>
 #include "udp_type.h"
 
-extern udp_assoc_t *udp_assoc_new(udp_sock_t *, udp_sock_t *);
+extern udp_assoc_t *udp_assoc_new(udp_sock_t *, udp_sock_t *, udp_assoc_cb_t *,
+    void *);
 extern void udp_assoc_delete(udp_assoc_t *);
 extern void udp_assoc_add(udp_assoc_t *);
 extern void udp_assoc_remove(udp_assoc_t *);

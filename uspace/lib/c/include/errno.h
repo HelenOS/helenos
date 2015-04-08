@@ -67,42 +67,8 @@ extern int *__errno(void) __attribute__((const));
 /** Negative acknowledgment. */
 #define ENAK (-303)
 
-/** An API function is called while another blocking function is in progress. */
-#define EINPROGRESS  (-10036)
-
-/** The socket identifier is not valid. */
-#define ENOTSOCK  (-10038)
-
-/** The destination address required. */
-#define EDESTADDRREQ  (-10039)
-
-/** Protocol is not supported.  */
-#define EPROTONOSUPPORT  (-10043)
-
-/** Socket type is not supported. */
-#define ESOCKTNOSUPPORT  (-10044)
-
-/** Protocol family is not supported. */
-#define EPFNOSUPPORT  (-10046)
-
-/** Address family is not supported. */
-#define EAFNOSUPPORT  (-10047)
-
-/** Address is already in use. */
-#define EADDRINUSE  (-10048)
-
-/** The socket is not connected or bound. */
-#define ENOTCONN  (-10057)
-
-#define ECONNREFUSED  (-10058)
-
-#define ECONNABORTED  (-10059)
-
 /** The requested operation was not performed. Try again later. */
 #define EAGAIN  (-11002)
-
-/** No data. */
-#define NO_DATA (-11004)
 
 #endif
 

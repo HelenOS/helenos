@@ -33,13 +33,14 @@
  * @file
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <macros.h>
 
-#include <net/socket.h>
 #include <inet/dnsr.h>
+#include <inet/tcp.h>
 
 #include <http/http.h>
 #include <http/receive-buffer.h>
@@ -47,7 +48,14 @@
 static ssize_t http_receive(void *client_data, void *buf, size_t buf_size)
 {
 	http_t *http = client_data;
-	return recv(http->conn_sd, buf, buf_size, 0);
+	size_t nrecv;
+	int rc;
+
+	rc = tcp_conn_recv(http->conn, buf, buf_size, &nrecv);
+	if (rc != EOK)
+		return rc;
+
+	return nrecv;
 }
 
 http_t *http_create(const char *host, uint16_t port)
@@ -76,7 +84,7 @@ http_t *http_create(const char *host, uint16_t port)
 
 int http_connect(http_t *http)
 {
-	if (http->connected)
+	if (http->conn != NULL)
 		return EBUSY;
 	
 	/* Interpret as address */
@@ -94,31 +102,35 @@ int http_connect(http_t *http)
 		dnsr_hostinfo_destroy(hinfo);
 	}
 	
-	struct sockaddr *saddr;
-	socklen_t saddrlen;
+	inet_ep2_t epp;
 	
-	rc = inet_addr_sockaddr(&http->addr, http->port, &saddr, &saddrlen);
-	if (rc != EOK) {
-		assert(rc == ENOMEM);
-		return ENOMEM;
-	}
+	inet_ep2_init(&epp);
+	epp.remote.addr = http->addr;
+	epp.remote.port = http->port;
 	
-	http->conn_sd = socket(saddr->sa_family, SOCK_STREAM, 0);
-	if (http->conn_sd < 0)
-		return http->conn_sd;
+	rc = tcp_create(&http->tcp);
+	if (rc != EOK)
+		return rc;
 	
-	rc = connect(http->conn_sd, saddr, saddrlen);
-	free(saddr);
+	rc = tcp_conn_create(http->tcp, &epp, NULL, NULL, &http->conn);
+	if (rc != EOK)
+		return rc;
+	
+	rc = tcp_conn_wait_connected(http->conn);
+	if (rc != EOK)
+		return rc;
 	
 	return rc;
 }
 
 int http_close(http_t *http)
 {
-	if (!http->connected)
+	if (http->conn == NULL)
 		return EINVAL;
 	
-	return closesocket(http->conn_sd);
+	tcp_conn_destroy(http->conn);
+	tcp_destroy(http->tcp);
+	return EOK;
 }
 
 void http_destroy(http_t *http)

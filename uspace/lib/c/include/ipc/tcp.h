@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svobda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup libcipc
  * @{
  */
-/** @file Socket provider
+/** @file
  */
 
-#ifndef SOCK_H
-#define SOCK_H
+#ifndef LIBC_IPC_TCP_H_
+#define LIBC_IPC_TCP_H_
 
-#include <async.h>
+#include <ipc/common.h>
 
-extern int udp_sock_init(void);
+typedef enum {
+	TCP_CONN_CREATE = IPC_FIRST_USER_METHOD,
+	TCP_CONN_DESTROY,
+	TCP_LISTENER_CREATE,
+	TCP_LISTENER_DESTROY,
+	TCP_CONN_SEND,
+	TCP_CONN_SEND_FIN,
+	TCP_CONN_PUSH,
+	TCP_CONN_RESET,
+	TCP_CONN_RECV
+} tcp_request_t;
+
+typedef enum {
+	TCP_CONNECTED = IPC_FIRST_USER_METHOD
+	TCP_CONN_FAILED,
+	TCP_CONN_RESET,
+	TCP_DATA_AVAIL,
+	TCP_URG_DATA
+} tcp_notif_t;
+
+typedef enum {
+	TCP_NEW_CONN = IPC_FIRST_USER_METHOD
+} tcp_listen_cb_t;
 
 #endif
 

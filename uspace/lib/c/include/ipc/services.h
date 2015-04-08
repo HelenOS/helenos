@@ -48,8 +48,6 @@ typedef enum {
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-	SERVICE_UDP        = FOURCC('u', 'd', 'p', ' '),
-	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
 } services_t;
 
 #define SERVICE_NAME_CORECFG	"corecfg"
@@ -60,6 +58,8 @@ typedef enum {
 #define SERVICE_NAME_INETPING   "net/inetping"
 #define SERVICE_NAME_INETPING6  "net/inetping6"
 #define SERVICE_NAME_NETCONF    "net/netconf"
+#define SERVICE_NAME_UDP	"net/udp"
+#define SERVICE_NAME_TCP	"net/tcp"
 
 #endif
 

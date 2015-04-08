@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,61 +27,33 @@
  */
 
 /** @addtogroup libc
- *  @{
+ * @{
  */
-
 /** @file
- *  Socket codes and definitions.
- *  This is a part of the network application library.
  */
 
-#ifndef LIBC_SOCKET_CODES_H_
-#define LIBC_SOCKET_CODES_H_
+#ifndef LIBC_INET_ASSOC_H_
+#define LIBC_INET_ASSOC_H_
 
-#include <sys/types.h>
+#include <stdint.h>
+#include <inet/addr.h>
+#include <loc.h>
 
-/** @name Address families definitions */
-/*@{*/
+/** Internet endpoint (address-port pair), a.k.a. socket */
+typedef struct {
+	inet_addr_t addr;
+	uint16_t port;
+} inet_ep_t;
 
-enum {
-	AF_NONE = 0,
-	AF_INET,  /* IPv4 address */
-	AF_INET6  /* IPv6 address */
-};
+/** Internet endpoint pair */
+typedef struct {
+	service_id_t local_link;
+	inet_ep_t local;
+	inet_ep_t remote;
+} inet_ep2_t;
 
-/*@}*/
-
-/** @name Protocol families definitions
- * Same as address families.
- */
-/*@{*/
-
-#define PF_INET   AF_INET
-#define PF_INET6  AF_INET6
-
-/*@}*/
-
-/** Socket types. */
-typedef enum sock_type {
-	/** Stream (connection oriented) socket. */
-	SOCK_STREAM = 1,
-	/** Datagram (connectionless oriented) socket. */
-	SOCK_DGRAM = 2,
-	/** Raw socket. */
-	SOCK_RAW = 3
-} sock_type_t;
-
-/** Type definition of the socket length. */
-typedef int32_t socklen_t;
-
-/* Socket options */
-
-enum {
-	SOL_SOCKET = 1,
-
-	/* IP link to transmit on */
-	SO_IPLINK
-};
+extern void inet_ep_init(inet_ep_t *);
+extern void inet_ep2_init(inet_ep2_t *);
 
 #endif
 

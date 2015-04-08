@@ -40,7 +40,6 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <inet/addr.h>
-#include <net/socket_codes.h>
 #include "msg.h"
 #include "pdu.h"
 #include "std.h"

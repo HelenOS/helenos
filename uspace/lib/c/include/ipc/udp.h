@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2015 Jiri Svobda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- *  @{
+/** @addtogroup libcipc
+ * @{
  */
-
 /** @file
- *  Character string to integer map.
  */
 
-#ifndef LIBC_CHAR_MAP_H_
-#define LIBC_CHAR_MAP_H_
+#ifndef LIBC_IPC_UDP_H_
+#define LIBC_IPC_UDP_H_
 
-#include <libarch/types.h>
+#include <ipc/common.h>
 
-/** Invalid assigned value used also if an&nbsp;entry does not exist. */
-#define CHAR_MAP_NULL  (-1)
+typedef enum {
+	UDP_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
+	UDP_ASSOC_CREATE,
+	UDP_ASSOC_DESTROY,
+	UDP_ASSOC_SEND_MSG,
+	UDP_RMSG_INFO,
+	UDP_RMSG_READ,
+	UDP_RMSG_DISCARD
+} udp_request_t;
 
-/** Type definition of the character string to integer map.
- *  @see char_map
- */
-typedef struct char_map char_map_t;
-
-/** Character string to integer map item.
- *
- * This structure recursivelly contains itself as a character by character tree.
- * The actually mapped character string consists of all the parent characters
- * and the actual one.
- */
-struct char_map {
-	/** Actually mapped character. */
-	uint8_t c;
-	/** Stored integral value. */
-	int value;
-	/** Next character array size. */
-	int size;
-	/** First free position in the next character array. */
-	int next;
-	/** Next character array. */
-	char_map_t **items;
-	/** Consistency check magic value. */
-	int magic;
-};
-
-extern int char_map_initialize(char_map_t *);
-extern void char_map_destroy(char_map_t *);
-extern int char_map_exclude(char_map_t *, const uint8_t *, size_t);
-extern int char_map_add(char_map_t *, const uint8_t *, size_t, const int);
-extern int char_map_find(const char_map_t *, const uint8_t *, size_t);
-extern int char_map_update(char_map_t *, const uint8_t *, size_t, const int);
+typedef enum {
+	UDP_EV_DATA = IPC_FIRST_USER_METHOD
+} udp_event_t;
 
 #endif
 

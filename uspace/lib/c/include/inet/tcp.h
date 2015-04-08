@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,44 +27,59 @@
  */
 
 /** @addtogroup libc
- *  @{
+ * @{
  */
-
 /** @file
- *  Socket application program interface (API).
- *  This is a part of the network application library.
- *  Based on the BSD socket interface.
  */
 
-#ifndef LIBC_SOCKET_H_
-#define LIBC_SOCKET_H_
+#ifndef LIBC_INET_TCP_H_
+#define LIBC_INET_TCP_H_
 
-#include <net/socket_codes.h>
-#include <net/in.h>
-#include <net/in6.h>
-#include <net/inet.h>
-#include <errno.h>
-#include <byteorder.h>
+#include <inet/addr.h>
+#include <inet/endpoint.h>
+#include <inet/inet.h>
 
-/** @name Socket application programming interface
- */
-/*@{*/
+typedef struct {
+} tcp_conn_t;
 
-extern int socket(int, int, int);
-extern int bind(int, const struct sockaddr *, socklen_t);
-extern int listen(int, int);
-extern int accept(int, struct sockaddr *, socklen_t *);
-extern int connect(int, const struct sockaddr *, socklen_t);
-extern int closesocket(int);
-extern int send(int, const void *, size_t, int);
-extern int sendto(int, const void *, size_t, int, const struct sockaddr *,
-    socklen_t);
-extern ssize_t recv(int, void *, size_t, int);
-extern ssize_t recvfrom(int, void *, size_t, int, struct sockaddr *, socklen_t *);
-extern int getsockopt(int, int, int, void *, size_t *);
-extern int setsockopt(int, int, int, const void *, size_t);
+typedef struct {
+} tcp_listener_t;
 
-/*@}*/
+typedef struct {
+	void (*connected)(tcp_conn_t *);
+	void (*conn_failed)(tcp_conn_t *);
+	void (*conn_reset)(tcp_conn_t *);
+	void (*data_avail)(tcp_conn_t *);
+	void (*urg_data)(tcp_conn_t *);
+} tcp_cb_t;
+
+typedef struct {
+	void (*new_conn)(tcp_listener_t *, tcp_conn_t *);
+} tcp_listen_cb_t;
+
+typedef struct {
+} tcp_t;
+
+extern int tcp_create(tcp_t **);
+extern void tcp_destroy(tcp_t *);
+extern int tcp_conn_create(tcp_t *, inet_ep2_t *, tcp_cb_t *, void *,
+    tcp_conn_t **);
+extern void tcp_conn_destroy(tcp_conn_t *);
+extern void *tcp_conn_userptr(tcp_conn_t *);
+extern int tcp_listener_create(tcp_t *, inet_ep_t *, tcp_listen_cb_t *, void *,
+    tcp_cb_t *, void *, tcp_listener_t **);
+extern void tcp_listener_destroy(tcp_listener_t *);
+extern void *tcp_listener_userptr(tcp_listener_t *);
+
+extern int tcp_conn_wait_connected(tcp_conn_t *);
+extern int tcp_conn_send(tcp_conn_t *, const void *, size_t);
+extern int tcp_conn_send_fin(tcp_conn_t *);
+extern int tcp_conn_push(tcp_conn_t *);
+extern void tcp_conn_reset(tcp_conn_t *);
+
+extern int tcp_conn_recv(tcp_conn_t *, void *, size_t, size_t *);
+extern int tcp_conn_recv_wait(tcp_conn_t *, void *, size_t, size_t *);
+
 
 #endif
 

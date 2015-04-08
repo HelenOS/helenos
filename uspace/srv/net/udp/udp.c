@@ -40,8 +40,8 @@
 #include <stdio.h>
 #include <task.h>
 
+#include "service.h"
 #include "udp_inet.h"
-#include "sock.h"
 
 #define NAME       "udp"
 
@@ -57,9 +57,9 @@ static int udp_init(void)
 		return ENOENT;
 	}
 
-	rc = udp_sock_init();
+	rc = udp_service_init();
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing socket service.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing UDP service.");
 		return ENOENT;
 	}
 

@@ -34,8 +34,10 @@
  * @file UDP user calls
  */
 
+#include <errno.h>
 #include <io/log.h>
 #include <macros.h>
+#include <mem.h>
 
 #include "assoc.h"
 #include "msg.h"
@@ -47,7 +49,7 @@ udp_error_t udp_uc_create(udp_assoc_t **assoc)
 	udp_assoc_t *nassoc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_create()");
-	nassoc = udp_assoc_new(NULL, NULL);
+	nassoc = udp_assoc_new(NULL, NULL, NULL, NULL);
 	if (nassoc == NULL)
 		return UDP_ENORES;
 
@@ -124,7 +126,7 @@ udp_error_t udp_uc_receive(udp_assoc_t *assoc, void *buf, size_t size,
 	switch (rc) {
 	case EOK:
 		break;
-	case ECONNABORTED:
+	case ENXIO:
 		return UDP_ERESET;
 	default:
 		assert(false);

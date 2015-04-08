@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,91 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tcp
+/** @addtogroup libc
  * @{
  */
-/** @file Socket provider
+/** @file UDP API
  */
 
-#ifndef SOCK_H
-#define SOCK_H
+#include <errno.h>
+#include <inet/endpoint.h>
+#include <inet/tcp.h>
 
-#include <async.h>
+int tcp_create(tcp_t **rtcp)
+{
+	return 0;
+}
 
-extern int tcp_sock_init(void);
+void tcp_destroy(tcp_t *tcp)
+{
+}
 
-#endif
+int tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
+    tcp_conn_t **rconn)
+{
+	return 0;
+}
+
+void tcp_conn_destroy(tcp_conn_t *conn)
+{
+}
+
+void *tcp_conn_userptr(tcp_conn_t *conn)
+{
+	return NULL;
+}
+
+int tcp_listener_create(tcp_t *tcp, inet_ep_t *ep, tcp_listen_cb_t *lcb,
+    void *larg, tcp_cb_t *cb, void *arg, tcp_listener_t **rlst)
+{
+	return 0;
+}
+
+void tcp_listener_destroy(tcp_listener_t *lst)
+{
+}
+
+void *tcp_listener_userptr(tcp_listener_t *lst)
+{
+	return NULL;
+}
+
+
+int tcp_conn_wait_connected(tcp_conn_t *conn)
+{
+	return 0;
+}
+
+int tcp_conn_send(tcp_conn_t *conn, const void *data, size_t bytes)
+{
+	return 0;
+}
+
+int tcp_conn_send_fin(tcp_conn_t *conn)
+{
+	return 0;
+}
+
+int tcp_conn_push(tcp_conn_t *conn)
+{
+	return 0;
+}
+
+void tcp_conn_reset(tcp_conn_t *conn)
+{
+}
+
+
+int tcp_conn_recv(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
+{
+	return 0;
+}
+
+int tcp_conn_recv_wait(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
+{
+	return 0;
+}
+
 
 /** @}
  */

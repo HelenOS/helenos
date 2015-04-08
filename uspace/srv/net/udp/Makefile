@@ -27,15 +27,13 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBNET_PREFIX)/libnet.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = udp
 
 SOURCES = \
 	assoc.c \
 	msg.c \
-	sock.c \
 	pdu.c \
+	service.c \
 	ucall.c \
 	udp.c \
 	udp_inet.c

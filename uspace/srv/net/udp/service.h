@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- *  @{
+/** @addtogroup udp
+ * @{
+ */
+/** @file HelenOS service implementation
  */
 
-/** @file
- *  INET6 family common definitions.
- */
+#ifndef SERVICE_H
+#define SERVICE_H
 
-#ifndef LIBC_IN6_H_
-#define LIBC_IN6_H_
-
-#include <net/inet.h>
-#include <net/ip_protocols.h>
-#include <sys/types.h>
-
-/** INET6 string address maximum length. */
-#define INET6_ADDRSTRLEN  (8 * 4 + 7 + 1)
-
-/** INET6 address. */
-typedef struct in6_addr {
-	/** 16 byte IPv6 address. */
-	uint8_t s6_addr[16];
-} in6_addr_t;
-
-/** INET6 socket address.
- * @see sockaddr
- */
-typedef struct sockaddr_in6 {
-	/** Address family. Should be AF_INET6. */
-	uint16_t sin6_family;
-	/** Port number. */
-	uint16_t sin6_port;
-	/** IPv6 flow information. */
-	uint32_t sin6_flowinfo;
-	/** IPv6 address. */
-	struct in6_addr sin6_addr;
-	/** Scope identifier. */
-	uint32_t sin6_scope_id;
-} sockaddr_in6_t;
-
-extern const in6_addr_t in6addr_any;
+extern int udp_service_init(void);
 
 #endif
 

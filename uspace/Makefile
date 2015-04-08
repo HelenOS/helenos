@@ -76,11 +76,6 @@ DIRS = \
 	app/untar \
 	app/usbinfo \
 	app/vuhid \
-	app/netecho \
-	app/netspeed \
-	app/nettest1 \
-	app/nettest2 \
-	app/nettest3 \
 	app/nic \
 	app/ping \
 	app/sysinfo \
@@ -225,7 +220,6 @@ LIBS = \
 	lib/softrend \
 	lib/draw \
 	lib/math \
-	lib/net \
 	lib/nic \
 	lib/ext4 \
 	lib/trackmod \

@@ -37,6 +37,7 @@
 
 #include <adt/prodcons.h>
 #include <fibril_synch.h>
+#include <inet/tcp.h>
 #include <inttypes.h>
 #include <io/con_srv.h>
 #include "remcons.h"
@@ -50,8 +51,8 @@ typedef struct {
 
 	/** Internal id, used for creating locfs entries. */
 	int id;
-	/** Associated socket. */
-	int socket;
+	/** Associated connection. */
+	tcp_conn_t *conn;
 	/** Location service id assigned to the virtual terminal. */
 	service_id_t service_id;
 	/** Path name of the service. */
@@ -79,7 +80,7 @@ typedef struct {
 	int cursor_x;
 } telnet_user_t;
 
-extern telnet_user_t *telnet_user_create(int);
+extern telnet_user_t *telnet_user_create(tcp_conn_t *);
 extern void telnet_user_add(telnet_user_t *);
 extern void telnet_user_destroy(telnet_user_t *);
 extern telnet_user_t *telnet_user_get_for_client_connection(service_id_t);

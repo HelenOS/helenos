@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,30 +27,23 @@
  */
 
 /** @addtogroup libc
- *  @{
+ * @{
+ */
+/** @file Internet endpoint
  */
 
-/** @file
- * Internet protocol numbers according to the on-line IANA - Assigned Protocol
- * numbers:
- *
- * http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xml
- */
+#include <inet/endpoint.h>
+#include <mem.h>
 
-#ifndef LIBC_IP_PROTOCOLS_H_
-#define LIBC_IP_PROTOCOLS_H_
+void inet_ep_init(inet_ep_t *ep)
+{
+	memset(ep, 0, sizeof(*ep));
+}
 
-/** @name IP protocols definitions */
-/*@{*/
-
-#define IPPROTO_ICMP    1
-#define IPPROTO_TCP     6
-#define IPPROTO_UDP     17
-#define IPPROTO_ICMPV6  58
-
-/*@}*/
-
-#endif
+void inet_ep2_init(inet_ep2_t *ep2)
+{
+	memset(ep2, 0, sizeof(*ep2));
+}
 
 /** @}
  */

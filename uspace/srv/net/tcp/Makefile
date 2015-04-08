@@ -27,8 +27,6 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBNET_PREFIX)/libnet.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = tcp
 
 SOURCES = \
@@ -39,7 +37,6 @@ SOURCES = \
 	rqueue.c \
 	segment.c \
 	seq_no.c \
-	sock.c \
 	tcp.c \
 	test.c \
 	tqueue.c \

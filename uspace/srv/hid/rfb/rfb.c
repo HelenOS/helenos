@@ -30,6 +30,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fibril_synch.h>
+#include <inet/addr.h>
+#include <inet/endpoint.h>
+#include <inet/tcp.h>
 #include <inttypes.h>
 #include <str.h>
 #include <str_error.h>
@@ -37,11 +40,17 @@
 #include <macros.h>
 #include <io/log.h>
 
-#include <net/in.h>
-#include <net/inet.h>
-#include <net/socket.h>
-
 #include "rfb.h"
+
+static void rfb_new_conn(tcp_listener_t *, tcp_conn_t *);
+
+static tcp_listen_cb_t listen_cb = {
+	.new_conn = rfb_new_conn
+};
+
+static tcp_cb_t conn_cb = {
+	.connected = NULL
+};
 
 /** Buffer for receiving the request. */
 #define BUFFER_SIZE  1024
@@ -52,17 +61,20 @@ static size_t rbuf_in;
 
 
 /** Receive one character (with buffering) */
-static int recv_char(int fd, char *c)
+static int recv_char(tcp_conn_t *conn, char *c)
 {
+	size_t nrecv;
+	int rc;
+
 	if (rbuf_out == rbuf_in) {
 		rbuf_out = 0;
 		rbuf_in = 0;
 		
-		ssize_t rc = recv(fd, rbuf, BUFFER_SIZE, 0);
-		if (rc <= 0)
+		rc = tcp_conn_recv_wait(conn, rbuf, BUFFER_SIZE, &nrecv);
+		if (rc != EOK)
 			return rc;
 		
-		rbuf_in = rc;
+		rbuf_in = nrecv;
 	}
 	
 	*c = rbuf[rbuf_out++];
@@ -70,10 +82,10 @@ static int recv_char(int fd, char *c)
 }
 
 /** Receive count characters (with buffering) */
-static int recv_chars(int fd, char *c, size_t count)
+static int recv_chars(tcp_conn_t *conn, char *c, size_t count)
 {
 	for (size_t i = 0; i < count; i++) {
-		int rc = recv_char(fd, c);
+		int rc = recv_char(conn, c);
 		if (rc != EOK)
 			return rc;
 		c++;
@@ -81,11 +93,11 @@ static int recv_chars(int fd, char *c, size_t count)
 	return EOK;
 }
 
-static int recv_skip_chars(int fd, size_t count)
+static int recv_skip_chars(tcp_conn_t *conn, size_t count)
 {
 	for (size_t i = 0; i < count; i++) {
 		char c;
-		int rc = recv_char(fd, &c);
+		int rc = recv_char(conn, &c);
 		if (rc != EOK)
 			return rc;
 	}
@@ -203,10 +215,10 @@ int rfb_set_size(rfb_t *rfb, uint16_t width, uint16_t height)
 	return EOK;
 }
 
-static int recv_message(int conn_sd, char type, void *buf, size_t size)
+static int recv_message(tcp_conn_t *conn, char type, void *buf, size_t size)
 {
 	memcpy(buf, &type, 1);
-	return recv_chars(conn_sd, ((char *) buf) + 1, size -1);
+	return recv_chars(conn, ((char *) buf) + 1, size -1);
 }
 
 static uint32_t rfb_scale_channel(uint8_t val, uint32_t max)
@@ -476,7 +488,8 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 	return size;
 }
 
-static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental)
+static int rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
+    bool incremental)
 {
 	fibril_mutex_lock(&rfb->lock);
 	if (!incremental || !rfb->damage_valid) {
@@ -539,14 +552,14 @@ static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental
 	fibril_mutex_unlock(&rfb->lock);
 	
 	if (!rfb->pixel_format.true_color) {
-		int rc = send(conn_sd, send_palette, send_palette_size, 0);
+		int rc = tcp_conn_send(conn, send_palette, send_palette_size);
 		if (rc != EOK) {
 			free(buf);
 			return rc;
 		}
 	}
 	
-	int rc = send(conn_sd, buf, buf_size, 0);
+	int rc = tcp_conn_send(conn, buf, buf_size);
 	free(buf);
 	
 	return rc;
@@ -579,17 +592,17 @@ static int rfb_set_pixel_format(rfb_t *rfb, rfb_pixel_format_t *pixel_format)
 	return EOK;
 }
 
-static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
+static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 {
 	/* Version handshake */
-	int rc = send(conn_sd, "RFB 003.008\n", 12, 0);
+	int rc = tcp_conn_send(conn, "RFB 003.008\n", 12);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server version %d", rc);
 		return;
 	}
 	
 	char client_version[12];
-	rc = recv_chars(conn_sd, client_version, 12);
+	rc = recv_chars(conn, client_version, 12);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client version: %d", rc);
 		return;
@@ -606,7 +619,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	char sec_types[2];
 	sec_types[0] = 1; /* length */
 	sec_types[1] = RFB_SECURITY_NONE;
-	rc = send(conn_sd, sec_types, 2, 0);
+	rc = tcp_conn_send(conn, sec_types, 2);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN,
 		    "Failed sending security handshake: %d", rc);
@@ -614,7 +627,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	}
 	
 	char selected_sec_type = 0;
-	rc = recv_char(conn_sd, &selected_sec_type);
+	rc = recv_char(conn, &selected_sec_type);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving security type: %d", rc);
 		return;
@@ -625,7 +638,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 		return;
 	}
 	uint32_t security_result = RFB_SECURITY_HANDSHAKE_OK;
-	rc = send(conn_sd, &security_result, sizeof(uint32_t), 0);
+	rc = tcp_conn_send(conn, &security_result, sizeof(uint32_t));
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending security result: %d", rc);
 		return;
@@ -633,7 +646,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	
 	/* Client init */
 	char shared_flag;
-	rc = recv_char(conn_sd, &shared_flag);
+	rc = recv_char(conn, &shared_flag);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client init: %d", rc);
 		return;
@@ -656,7 +669,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	rfb_server_init_to_be(server_init, server_init);
 	memcpy(server_init->name, rfb->name, name_length);
 	fibril_mutex_unlock(&rfb->lock);
-	rc = send(conn_sd, server_init, msg_length, 0);
+	rc = tcp_conn_send(conn, server_init, msg_length);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server init: %d", rc);
 		return;
@@ -664,7 +677,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	
 	while (true) {
 		char message_type = 0;
-		rc = recv_char(conn_sd, &message_type);
+		rc = recv_char(conn, &message_type);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_WARN,
 			    "Failed receiving client message type");
@@ -679,7 +692,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 		rfb_client_cut_text_t cct;
 		switch (message_type) {
 		case RFB_CMSG_SET_PIXEL_FORMAT:
-			recv_message(conn_sd, message_type, &spf, sizeof(spf));
+			recv_message(conn, message_type, &spf, sizeof(spf));
 			rfb_pixel_format_to_host(&spf.pixel_format, &spf.pixel_format);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received SetPixelFormat message");
 			fibril_mutex_lock(&rfb->lock);
@@ -689,12 +702,12 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 				return;
 			break;
 		case RFB_CMSG_SET_ENCODINGS:
-			recv_message(conn_sd, message_type, &se, sizeof(se));
+			recv_message(conn, message_type, &se, sizeof(se));
 			rfb_set_encodings_to_host(&se, &se);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received SetEncodings message");
 			for (uint16_t i = 0; i < se.count; i++) {
 				int32_t encoding = 0;
-				rc = recv_chars(conn_sd, (char *) &encoding, sizeof(int32_t));
+				rc = recv_chars(conn, (char *) &encoding, sizeof(int32_t));
 				if (rc != EOK)
 					return;
 				encoding = uint32_t_be2host(encoding);
@@ -706,27 +719,27 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 			}
 			break;
 		case RFB_CMSG_FRAMEBUFFER_UPDATE_REQUEST:
-			recv_message(conn_sd, message_type, &fbur, sizeof(fbur));
+			recv_message(conn, message_type, &fbur, sizeof(fbur));
 			rfb_framebuffer_update_request_to_host(&fbur, &fbur);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2,
 			    "Received FramebufferUpdateRequest message");
-			rfb_send_framebuffer_update(rfb, conn_sd, fbur.incremental);
+			rfb_send_framebuffer_update(rfb, conn, fbur.incremental);
 			break;
 		case RFB_CMSG_KEY_EVENT:
-			recv_message(conn_sd, message_type, &ke, sizeof(ke));
+			recv_message(conn, message_type, &ke, sizeof(ke));
 			rfb_key_event_to_host(&ke, &ke);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received KeyEvent message");
 			break;
 		case RFB_CMSG_POINTER_EVENT:
-			recv_message(conn_sd, message_type, &pe, sizeof(pe));
+			recv_message(conn, message_type, &pe, sizeof(pe));
 			rfb_pointer_event_to_host(&pe, &pe);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received PointerEvent message");
 			break;
 		case RFB_CMSG_CLIENT_CUT_TEXT:
-			recv_message(conn_sd, message_type, &cct, sizeof(cct));
+			recv_message(conn, message_type, &cct, sizeof(cct));
 			rfb_client_cut_text_to_host(&cct, &cct);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received ClientCutText message");
-			recv_skip_chars(conn_sd, cct.length);
+			recv_skip_chars(conn, cct.length);
 			break;
 		default:
 			log_msg(LOG_DEFAULT, LVL_WARN,
@@ -736,65 +749,40 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	}
 }
 
-int rfb_listen(rfb_t *rfb, uint16_t port) {
-	struct sockaddr_in addr;
+int rfb_listen(rfb_t *rfb, uint16_t port)
+{
+	tcp_t *tcp = NULL;
+	tcp_listener_t *lst = NULL;
+	inet_ep_t ep;
+	int rc;
 	
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
+	inet_ep_init(&ep);
+	ep.port = port;
 	
-	int rc = inet_pton(AF_INET, "127.0.0.1", (void *)
-	    &addr.sin_addr.s_addr);
+	rc = tcp_listener_create(tcp, &ep, &listen_cb, rfb, &conn_cb, rfb,
+	    &lst);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error parsing network address (%s)",
-		    str_error(rc));
-		return rc;
-	}
-
-	int listen_sd = socket(PF_INET, SOCK_STREAM, 0);
-	if (listen_sd < 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating listening socket (%s)",
-		    str_error(listen_sd));
-		return rc;
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating listener.\n");
+		goto error;
 	}
 	
-	rc = bind(listen_sd, (struct sockaddr *) &addr, sizeof(addr));
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error binding socket (%s)",
-		    str_error(rc));
-		return rc;
-	}
-	
-	rc = listen(listen_sd, 2);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "listen() failed (%s)", str_error(rc));
-		return rc;
-	}
-	
-	rfb->listen_sd = listen_sd;
+	rfb->tcp = tcp;
+	rfb->lst = lst;
 	
 	return EOK;
+error:
+	tcp_listener_destroy(lst);
+	tcp_destroy(tcp);
+	return rc;
 }
 
-void rfb_accept(rfb_t *rfb)
+static void rfb_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 {
-	while (true) {
-		struct sockaddr_in raddr;
-		socklen_t raddr_len = sizeof(raddr);
-		int conn_sd = accept(rfb->listen_sd, (struct sockaddr *) &raddr,
-		    &raddr_len);
-		
-		if (conn_sd < 0) {
-			log_msg(LOG_DEFAULT, LVL_WARN, "accept() failed (%s)",
-			    str_error(conn_sd));
-			continue;
-		}
-		
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Connection accepted");
-		
-		rbuf_out = 0;
-		rbuf_in = 0;
-		
-		rfb_socket_connection(rfb, conn_sd);
-		closesocket(conn_sd);
-	}
+	rfb_t *rfb = (rfb_t *)tcp_listener_userptr(lst);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Connection accepted");
+
+	rbuf_out = 0;
+	rbuf_in = 0;
+
+	rfb_socket_connection(rfb, conn);
 }

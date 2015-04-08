@@ -40,7 +40,6 @@
 #include <stdbool.h>
 #include <fibril.h>
 #include <fibril_synch.h>
-#include <socket_core.h>
 #include <sys/types.h>
 #include <inet/addr.h>
 
@@ -320,7 +319,7 @@ typedef struct {
 
 typedef struct {
 	async_sess_t *sess;
-	socket_cores_t sockets;
+//	socket_cores_t sockets;
 } tcp_client_t;
 
 #define TCP_SOCK_FRAGMENT_SIZE 1024
@@ -329,7 +328,7 @@ typedef struct tcp_sockdata {
 	/** Lock */
 	fibril_mutex_t lock;
 	/** Socket core */
-	socket_core_t *sock_core;
+//	socket_core_t *sock_core;
 	/** Client */
 	tcp_client_t *client;
 	/** Connection */
