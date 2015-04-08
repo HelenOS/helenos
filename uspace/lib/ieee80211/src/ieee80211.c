@@ -55,7 +55,7 @@ static const uint8_t rfc1042_header[] = {
 	0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00 
 };
 
-/** Broadcast MAC address used to spread probe request through channel. */
+/** Broadcast MAC address. */
 static const uint8_t ieee80211_broadcast_mac_addr[] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
@@ -1406,7 +1406,7 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 	}
 
 	/* Compute MIC of key frame data from KCK part of PTK. */
-	uint8_t mic[SHA1_HASH_LENGTH];
+	uint8_t mic[hash_sel];
 	hmac(ptk, 16, (uint8_t *) output_key_frame, 
 		output_size - sizeof(eth_header_t), mic, hash_sel);
 

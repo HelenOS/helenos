@@ -28,12 +28,12 @@
 
 /** @file aes.c
  * 
- * Implementation of AES algorithm.
+ * Implementation of AES-128 symmetric cipher cryptographic algorithm.
  * 
  * Based on FIPS 197.
  */
 
-#include <stdio.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <mem.h>
 
@@ -59,7 +59,7 @@
 #define AES_IP 0x1B
 
 /* Precomputed values for AES sub_byte transformation. */
-static const uint8_t sub_byte_array[BLOCK_LEN][BLOCK_LEN] = {
+static const uint8_t sbox[BLOCK_LEN][BLOCK_LEN] = {
 	{
 		0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 
 		0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76
@@ -127,7 +127,7 @@ static const uint8_t sub_byte_array[BLOCK_LEN][BLOCK_LEN] = {
 };
 
 /* Precomputed values for AES inv_sub_byte transformation. */
-static uint8_t inv_sub_byte_array[BLOCK_LEN][BLOCK_LEN] = {
+static uint8_t inv_sbox[BLOCK_LEN][BLOCK_LEN] = {
 	{
 		0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 
 		0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb
@@ -201,18 +201,32 @@ static const uint32_t r_con_array[] = {
 	0x1B000000, 0x36000000
 };
 
+/**
+ * Perform substitution transformation on given byte.
+ * 
+ * @param byte Input byte.
+ * @param inv Flag indicating whether to use inverse table.
+ * 
+ * @return Substituted value.
+ */
 static uint8_t sub_byte(uint8_t byte, bool inv)
 {
 	uint8_t i = byte >> 4;
 	uint8_t j = byte & 0xF;
 	
 	if(!inv) {
-		return sub_byte_array[i][j];
+		return sbox[i][j];
 	} else {
-		return inv_sub_byte_array[i][j];
+		return inv_sbox[i][j];
 	}
 }
 
+/**
+ * Perform substitution transformation on state table.
+ * 
+ * @param state State table to be modified.
+ * @param inv Flag indicating whether to use inverse table.
+ */
 static void sub_bytes(uint8_t state[ELEMS][ELEMS], bool inv)
 {
 	uint8_t val;
@@ -225,6 +239,11 @@ static void sub_bytes(uint8_t state[ELEMS][ELEMS], bool inv)
 	}
 }
 
+/**
+ * Perform shift rows transformation on state table.
+ * 
+ * @param state State table to be modified.
+ */
 static void shift_rows(uint8_t state[ELEMS][ELEMS])
 {
 	uint8_t temp[ELEMS];
@@ -236,6 +255,11 @@ static void shift_rows(uint8_t state[ELEMS][ELEMS])
 	}
 }
 
+/**
+ * Perform inverted shift rows transformation on state table.
+ * 
+ * @param state State table to be modified.
+ */
 static void inv_shift_rows(uint8_t state[ELEMS][ELEMS])
 {
 	uint8_t temp[ELEMS];
@@ -247,6 +271,14 @@ static void inv_shift_rows(uint8_t state[ELEMS][ELEMS])
 	}
 }
 
+/**
+ * Multiplication in GF(2^8).
+ * 
+ * @param x First factor.
+ * @param y Second factor.
+ * 
+ * @return Multiplication of given factors in GF(2^8).
+ */
 static uint8_t galois_mult(uint8_t x, uint8_t y) {
         uint8_t result = 0;
         uint8_t F_bitH;
@@ -264,6 +296,11 @@ static uint8_t galois_mult(uint8_t x, uint8_t y) {
         return result;
 }
 
+/**
+ * Perform mix columns transformation on state table.
+ * 
+ * @param state State table to be modified.
+ */
 static void mix_columns(uint8_t state[ELEMS][ELEMS])
 {
 	uint8_t orig_state[ELEMS][ELEMS];
@@ -293,6 +330,11 @@ static void mix_columns(uint8_t state[ELEMS][ELEMS])
 	}
 }
 
+/**
+ * Perform inverted mix columns transformation on state table.
+ * 
+ * @param state State table to be modified.
+ */
 static void inv_mix_columns(uint8_t state[ELEMS][ELEMS])
 {
 	uint8_t orig_state[ELEMS][ELEMS];
@@ -322,6 +364,12 @@ static void inv_mix_columns(uint8_t state[ELEMS][ELEMS])
 	}
 }
 
+/**
+ * Perform round key transformation on state table.
+ * 
+ * @param state State table to be modified.
+ * @param round_key Round key to be applied on state table.
+ */
 static void add_round_key(uint8_t state[ELEMS][ELEMS], uint32_t *round_key)
 {
 	uint8_t byte_round;
@@ -337,6 +385,13 @@ static void add_round_key(uint8_t state[ELEMS][ELEMS], uint32_t *round_key)
 	}
 }
 
+/**
+ * Perform substitution transformation on given word.
+ * 
+ * @param byte Input word.
+ * 
+ * @return Substituted word.
+ */
 static uint32_t sub_word(uint32_t word)
 {
 	uint32_t temp = word;
@@ -349,11 +404,24 @@ static uint32_t sub_word(uint32_t word)
 	return temp;
 }
 
+/**
+ * Perform left rotation by one byte on given word.
+ * 
+ * @param byte Input word.
+ * 
+ * @return Rotated word.
+ */
 static uint32_t rot_word(uint32_t word)
 {
 	return (word << 8 | word >> 24);
 }
 
+/**
+ * Key expansion procedure for AES algorithm.
+ * 
+ * @param key Input key.
+ * @param key_exp Result key expansion.
+ */
 static void key_expansion(uint8_t *key, uint32_t *key_exp)
 {
 	uint32_t temp;
@@ -378,6 +446,16 @@ static void key_expansion(uint8_t *key, uint32_t *key_exp)
 	}
 }
 
+/**
+ * AES-128 encryption algorithm.
+ * 
+ * @param key Input key.
+ * @param input Input data sequence to be encrypted.
+ * @param output Encrypted data sequence.
+ * 
+ * @return EINVAL when input or key not specified, ENOMEM when pointer for 
+ * output is not allocated, otherwise EOK.  
+ */
 int aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output)
 {
 	if(!key || !input)
@@ -403,17 +481,7 @@ int aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output)
 	
 	for(size_t k = 1; k <= ROUNDS; k++) {
 		sub_bytes(state, false);
-		for(size_t i = 0; i < ELEMS; i++) {
-			for(size_t j = 0; j < ELEMS; j++) {
-				printf("STATE SUB %d %d : %x\n", i, j, state[i][j]);
-			}
-		}
 		shift_rows(state);
-		for(size_t i = 0; i < ELEMS; i++) {
-			for(size_t j = 0; j < ELEMS; j++) {
-				printf("STATE SHIFT %d %d : %x\n", i, j, state[i][j]);
-			}
-		}
 		if(k < ROUNDS)
 			mix_columns(state);
 		add_round_key(state, key_exp + k*ELEMS);
@@ -429,6 +497,16 @@ int aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output)
 	return EOK;
 }
 
+/**
+ * AES-128 decryption algorithm.
+ * 
+ * @param key Input key.
+ * @param input Input data sequence to be decrypted.
+ * @param output Decrypted data sequence.
+ * 
+ * @return EINVAL when input or key not specified, ENOMEM when pointer for 
+ * output is not allocated, otherwise EOK.  
+ */
 int aes_decrypt(uint8_t *key, uint8_t *input, uint8_t *output)
 {
 	if(!key || !input)

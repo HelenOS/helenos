@@ -180,26 +180,13 @@ int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
 	if(!hash)
 		return ENOMEM;
 	
-	size_t hash_length, result_length;
-	switch(hash_sel) {
-		case HASH_MD5:
-			hash_length = MD5_HASH_LENGTH;
-			result_length = IEEE80211_PTK_TKIP_LENGTH;
-			break;
-		case HASH_SHA1:
-			hash_length = SHA1_HASH_LENGTH;
-			result_length = IEEE80211_PTK_CCMP_LENGTH;
-			break;
-		default:
-			hash_length = 0;
-			result_length = 0;
-	}
-	
+	size_t result_length = (hash_sel == HASH_MD5) ? 
+		IEEE80211_PTK_TKIP_LENGTH : IEEE80211_PTK_CCMP_LENGTH;
 	size_t iters = ((result_length * 8) + 159) / 160;
 	
 	const char *a = "Pairwise key expansion";
-	uint8_t result[hash_length*iters];
-	uint8_t temp[hash_length];
+	uint8_t result[hash_sel*iters];
+	uint8_t temp[hash_sel];
 	size_t data_size = PRF_CRYPT_DATA_LENGTH + str_size(a) + 2;
 	uint8_t work_arr[data_size];
 	memset(work_arr, 0, data_size);
@@ -211,7 +198,7 @@ int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
 		memcpy(work_arr + data_size - 1, &i, 1);
 		hmac(key, PBKDF2_KEY_LENGTH, work_arr, data_size, temp, 
 			hash_sel);
-		memcpy(result + i*hash_length, temp, hash_length);
+		memcpy(result + i*hash_sel, temp, hash_sel);
 	}
 	
 	memcpy(hash, result, result_length);
