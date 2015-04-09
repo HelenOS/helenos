@@ -38,7 +38,9 @@
 /** Address of devices. */
 #define MSIM_VIDEORAM     0x90000000
 #define MSIM_KBD_ADDRESS  0x90000000
+
 #define MSIM_KBD_IRQ      2
+#define MSIM_DDISK_IRQ    6
 
 #endif
 
