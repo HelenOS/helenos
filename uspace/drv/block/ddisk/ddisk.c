@@ -177,7 +177,7 @@ irq_code_t ddisk_irq_code = {
 
 void ddisk_irq_handler(ipc_callid_t iid, ipc_call_t *icall, ddf_dev_t *dev)
 {
-	ddf_msg(LVL_NOTE, "ddisk_irq_handler(), status=%" PRIx32,
+	ddf_msg(LVL_DEBUG, "ddisk_irq_handler(), status=%" PRIx32,
 	    (uint32_t) IPC_GET_ARG1(*icall));
 
 	ddisk_dev_t *ddisk_dev = (ddisk_dev_t *) ddf_dev_data_get(dev);
@@ -202,7 +202,7 @@ int ddisk_rw_block(ddisk_dev_t *ddisk_dev, bool read, aoff64_t ba, void *buf)
 {
 	fibril_mutex_lock(&ddisk_dev->lock);
 
-	ddf_msg(LVL_NOTE, "ddisk_rw_block(): read=%d, ba=%" PRId64 ", buf=%p",
+	ddf_msg(LVL_DEBUG, "ddisk_rw_block(): read=%d, ba=%" PRId64 ", buf=%p",
 	    read, ba, buf);
 
 	if (ba >= ddisk_dev->ddisk_fun->blocks)
