@@ -55,7 +55,7 @@ static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	if (!instance)
 		return ENOMEM;
 
-	const int ret =  hc_init(instance, res, irq);
+	const int ret = hc_init(instance, res, irq);
 	if (ret == EOK)
 		hcd_set_implementation(hcd, instance, ohci_hc_schedule,
 		    ohci_endpoint_init, ohci_endpoint_fini, ohci_hc_interrupt,
