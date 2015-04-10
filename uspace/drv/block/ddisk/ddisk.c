@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/driver.h>
+#include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
 #include <ddi.h>
@@ -49,13 +50,20 @@
 
 #define DDISK_BLOCK_SIZE	512
 
-static int ddisk_dev_add(ddf_dev_t *dev);
-static int ddisk_dev_remove(ddf_dev_t *dev);
-static int ddisk_dev_gone(ddf_dev_t *dev);
-static int ddisk_fun_online(ddf_fun_t *fun);
-static int ddisk_fun_offline(ddf_fun_t *fun);
+#define DDISK_STAT_IRQ_PENDING	0x4
+#define DDISK_CMD_READ		0x1
+#define DDISK_CMD_WRITE		0x2
+#define DDISK_CMD_IRQ_DEASSERT	0x4
+
+static int ddisk_dev_add(ddf_dev_t *);
+static int ddisk_dev_remove(ddf_dev_t *);
+static int ddisk_dev_gone(ddf_dev_t *);
+static int ddisk_fun_online(ddf_fun_t *);
+static int ddisk_fun_offline(ddf_fun_t *);
 
 static void ddisk_bd_connection(ipc_callid_t, ipc_call_t *, void *);
+
+static void ddisk_irq_handler(ipc_callid_t, ipc_call_t *, ddf_dev_t *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = ddisk_dev_add,
@@ -98,6 +106,8 @@ typedef struct ddisk_fun {
 
 typedef struct ddisk_dev {
 	fibril_mutex_t lock;
+	fibril_condvar_t io_cv;
+	bool io_busy;
 	ddf_dev_t *dev;
 	ddisk_res_t ddisk_res;
 	ddisk_fun_t *ddisk_fun; 	
@@ -108,8 +118,8 @@ typedef struct ddisk_dev {
 
 static int ddisk_bd_open(bd_srvs_t *, bd_srv_t *);
 static int ddisk_bd_close(bd_srv_t *);
-static int ddisk_bd_read_blocks(bd_srv_t *, uint64_t, size_t, void *, size_t);
-static int ddisk_bd_write_blocks(bd_srv_t *, uint64_t, size_t, const void *,
+static int ddisk_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int ddisk_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *,
     size_t);
 static int ddisk_bd_get_block_size(bd_srv_t *, size_t *);
 static int ddisk_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
@@ -123,6 +133,60 @@ bd_ops_t ddisk_bd_ops = {
 	.get_num_blocks = ddisk_bd_get_num_blocks,
 };
 
+irq_pio_range_t ddisk_irq_pio_ranges[] = {
+	{
+		.base = 0,
+		.size = sizeof(ddisk_regs_t)
+	}
+};
+
+irq_cmd_t ddisk_irq_commands[] = {
+	{
+		.cmd = CMD_PIO_READ_32,
+		.addr = NULL,
+		.dstarg = 1
+	},
+	{
+		.cmd = CMD_AND,
+		.srcarg = 1,
+		.value = DDISK_STAT_IRQ_PENDING,
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.srcarg = 2,
+		.value = 2 
+	},
+	{
+		/* Deassert the DMA interrupt. */
+		.cmd = CMD_PIO_WRITE_32,
+		.value = DDISK_CMD_IRQ_DEASSERT,
+		.addr = NULL 
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
+
+irq_code_t ddisk_irq_code = {
+	.rangecount = 1,
+	.ranges = ddisk_irq_pio_ranges,
+	.cmdcount = sizeof(ddisk_irq_commands) / sizeof(irq_cmd_t),
+	.cmds = ddisk_irq_commands,
+};
+
+void ddisk_irq_handler(ipc_callid_t iid, ipc_call_t *icall, ddf_dev_t *dev)
+{
+	ddf_msg(LVL_NOTE, "ddisk_irq_handler(), status=%" PRIx32,
+	    (uint32_t) IPC_GET_ARG1(*icall));
+
+	ddisk_dev_t *ddisk_dev = (ddisk_dev_t *) ddf_dev_data_get(dev);
+	
+	fibril_mutex_lock(&ddisk_dev->lock);
+	fibril_condvar_broadcast(&ddisk_dev->io_cv);
+	fibril_mutex_unlock(&ddisk_dev->lock);
+}
+
 int ddisk_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
@@ -133,23 +197,74 @@ int ddisk_bd_close(bd_srv_t *bd)
 	return EOK;
 }
 
-int
-ddisk_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
-    size_t size)
+static
+int ddisk_rw_block(ddisk_dev_t *ddisk_dev, bool read, aoff64_t ba, void *buf)
 {
-	if (size < cnt * DDISK_BLOCK_SIZE)
-		return EINVAL;		
+	fibril_mutex_lock(&ddisk_dev->lock);
 
-	return ENOTSUP;
+	ddf_msg(LVL_NOTE, "ddisk_rw_block(): read=%d, ba=%" PRId64 ", buf=%p",
+	    read, ba, buf);
+
+	if (ba >= ddisk_dev->ddisk_fun->blocks)
+		return ELIMIT;
+
+	while (ddisk_dev->io_busy)
+		fibril_condvar_wait(&ddisk_dev->io_cv, &ddisk_dev->lock);
+
+	ddisk_dev->io_busy = true;
+
+	if (!read)
+		memcpy(ddisk_dev->dma_buffer, buf, DDISK_BLOCK_SIZE);
+	
+	pio_write_32(&ddisk_dev->ddisk_regs->dma_buffer,
+	    ddisk_dev->dma_buffer_phys);
+	pio_write_32(&ddisk_dev->ddisk_regs->block, (uint32_t) ba);
+	pio_write_32(&ddisk_dev->ddisk_regs->command,
+	    read ? DDISK_CMD_READ : DDISK_CMD_WRITE);
+
+	fibril_condvar_wait(&ddisk_dev->io_cv, &ddisk_dev->lock);
+
+	if (read)
+		memcpy(buf, ddisk_dev->dma_buffer, DDISK_BLOCK_SIZE);
+
+	ddisk_dev->io_busy = false;
+	fibril_condvar_signal(&ddisk_dev->io_cv);
+	fibril_mutex_unlock(&ddisk_dev->lock);
+
+	return EOK;
 }
 
-int ddisk_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
-    const void *buf, size_t size)
+static
+int ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+    size_t size, bool is_read)
 {
+	ddisk_fun_t *ddisk_fun = (ddisk_fun_t *) bd->srvs->sarg;
+	aoff64_t i;
+	int rc;
+
 	if (size < cnt * DDISK_BLOCK_SIZE)
 		return EINVAL;		
 
-	return ENOTSUP;
+	for (i = 0; i < cnt; i++) {
+		rc = ddisk_rw_block(ddisk_fun->ddisk_dev, is_read, ba + i,
+		    buf + i * DDISK_BLOCK_SIZE);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+int ddisk_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+    size_t size)
+{
+	return ddisk_bd_rw_blocks(bd, ba, cnt, buf, size, true);
+}
+
+int ddisk_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    const void *buf, size_t size)
+{
+	return ddisk_bd_rw_blocks(bd, ba, cnt, (void *) buf, size, false);
 }
 
 int ddisk_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
@@ -331,6 +446,8 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	}
 
 	fibril_mutex_initialize(&ddisk_dev->lock);
+	fibril_condvar_initialize(&ddisk_dev->io_cv);
+	ddisk_dev->io_busy = false;
 	ddisk_dev->dev = dev;
 	ddisk_dev->ddisk_res = res;
 
@@ -373,9 +490,28 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "Device at %p with %d blocks (%dB) using interrupt %d",
+	/*
+ 	 * Register IRQ handler.
+ 	 */
+	ddisk_regs_t *res_phys = (ddisk_regs_t *) res.base;
+	ddisk_irq_pio_ranges[0].base = res.base;
+	ddisk_irq_commands[0].addr = (void *) &res_phys->status;
+	ddisk_irq_commands[3].addr = (void *) &res_phys->command;
+	rc = register_interrupt_handler(dev, ddisk_dev->ddisk_res.irq,
+	    ddisk_irq_handler, &ddisk_irq_code);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
+		goto error;
+	}
+
+	/*
+	 * Success, report what we have found.
+	 */
+	ddf_msg(LVL_NOTE,
+	    "Device at %p with %zu blocks (%zuB) using interrupt %d",
 	    (void *) ddisk_dev->ddisk_res.base, ddisk_dev->ddisk_fun->blocks,
-	    ddisk_dev->ddisk_fun->blocks * DDISK_BLOCK_SIZE, ddisk_dev->ddisk_res.irq);
+	    ddisk_dev->ddisk_fun->blocks * DDISK_BLOCK_SIZE,
+	    ddisk_dev->ddisk_res.irq);
 
 	return EOK;
 error:
