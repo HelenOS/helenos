@@ -50,6 +50,8 @@
 #define IEEE80211_DATA_RATES_SIZE 8
 #define IEEE80211_EXT_DATA_RATES_SIZE 4
 
+#define ATOMIC_GET(state)
+
 /** Frame encapsulation used in IEEE 802.11. */
 static const uint8_t rfc1042_header[] = { 
 	0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00 
@@ -281,7 +283,11 @@ ddf_dev_t *ieee80211_get_ddf_dev(ieee80211_dev_t* ieee80211_dev)
 ieee80211_operating_mode_t ieee80211_query_current_op_mode(ieee80211_dev_t* 
 	ieee80211_dev)
 {
-	return ieee80211_dev->current_op_mode;
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	ieee80211_operating_mode_t op_mode = ieee80211_dev->current_op_mode;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	
+	return op_mode;
 }
 
 /**
@@ -293,11 +299,17 @@ ieee80211_operating_mode_t ieee80211_query_current_op_mode(ieee80211_dev_t*
  */
 uint16_t ieee80211_query_current_freq(ieee80211_dev_t* ieee80211_dev)
 {
-	return ieee80211_dev->current_freq;
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	uint16_t current_freq = ieee80211_dev->current_freq;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	
+	return current_freq;
 }
 
 /**
  * Query BSSID the device is connected to.
+ * 
+ * Note: Expecting locked results_mutex.
  * 
  * @param ieee80211_dev IEEE 802.11 device.
  * @param bssid Pointer to structure where should be stored BSSID.
@@ -305,12 +317,25 @@ uint16_t ieee80211_query_current_freq(ieee80211_dev_t* ieee80211_dev)
 void ieee80211_query_bssid(ieee80211_dev_t* ieee80211_dev, 
 	nic_address_t *bssid)
 {
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	
 	if(bssid) {
-		ieee80211_scan_result_t *auth_data =
-			&ieee80211_dev->bssid_info.res_link->scan_result;
+		ieee80211_scan_result_link_t *res_link = 
+			ieee80211_dev->bssid_info.res_link;
 		
-		memcpy(bssid, (void *)&auth_data->bssid, sizeof(nic_address_t));
+		if(res_link) {
+			memcpy(bssid, &res_link->scan_result.bssid, 
+				sizeof(nic_address_t));
+		} else {
+			nic_address_t broadcast_addr;
+			memcpy(broadcast_addr.address,
+				ieee80211_broadcast_mac_addr,
+				ETH_ADDR);
+			memcpy(bssid, &broadcast_addr, sizeof(nic_address_t));
+		}
 	}
+	
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
 }
 
 /**
@@ -322,22 +347,29 @@ void ieee80211_query_bssid(ieee80211_dev_t* ieee80211_dev,
  */
 uint16_t ieee80211_get_aid(ieee80211_dev_t* ieee80211_dev)
 {
-	return ieee80211_dev->bssid_info.aid;
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	uint16_t aid = ieee80211_dev->bssid_info.aid;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	
+	return aid;
 }
 
 /**
- * Get security suite used for HW encryption. 
+ * Get pairwise security suite used for HW encryption. 
  * 
  * @param ieee80211_dev IEEE 802.11 device.
  * 
  * @return Security suite indicator.
  */
-int ieee80211_get_security_suite(ieee80211_dev_t* ieee80211_dev)
+int ieee80211_get_pairwise_security(ieee80211_dev_t* ieee80211_dev)
 {
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	ieee80211_scan_result_link_t *auth_link = 
 		ieee80211_dev->bssid_info.res_link;
+	int suite = auth_link->scan_result.security.pair_alg;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
 	
-	return auth_link->scan_result.security.pair_alg;
+	return suite;
 }
 
 /**
@@ -349,7 +381,44 @@ int ieee80211_get_security_suite(ieee80211_dev_t* ieee80211_dev)
  */
 bool ieee80211_is_connected(ieee80211_dev_t* ieee80211_dev)
 {
-	return ieee80211_dev->current_auth_phase == IEEE80211_AUTH_ASSOCIATED;
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	bool conn_state = 
+		ieee80211_dev->current_auth_phase == IEEE80211_AUTH_CONNECTED;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	return conn_state;
+}
+
+void ieee80211_set_auth_phase(ieee80211_dev_t *ieee80211_dev,
+	ieee80211_auth_phase_t auth_phase)
+{
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	ieee80211_dev->current_auth_phase = auth_phase;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+}
+
+ieee80211_auth_phase_t ieee80211_get_auth_phase(ieee80211_dev_t 
+	*ieee80211_dev)
+{
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	ieee80211_auth_phase_t conn_state = ieee80211_dev->current_auth_phase;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	return conn_state;
+}
+
+void ieee80211_set_connect_request(ieee80211_dev_t *ieee80211_dev)
+{
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	ieee80211_dev->pending_conn_req = true;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+}
+
+bool ieee80211_pending_connect_request(ieee80211_dev_t *ieee80211_dev)
+{
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	bool conn_request = ieee80211_dev->pending_conn_req;
+	ieee80211_dev->pending_conn_req = false;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	return conn_request;
 }
 
 /**
@@ -361,7 +430,9 @@ bool ieee80211_is_connected(ieee80211_dev_t* ieee80211_dev)
 void ieee80211_report_current_op_mode(ieee80211_dev_t* ieee80211_dev,
 	ieee80211_operating_mode_t op_mode)
 {
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	ieee80211_dev->current_op_mode = op_mode;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
 }
 
 /**
@@ -373,7 +444,9 @@ void ieee80211_report_current_op_mode(ieee80211_dev_t* ieee80211_dev,
 void ieee80211_report_current_freq(ieee80211_dev_t* ieee80211_dev,
 	uint16_t freq)
 {
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	ieee80211_dev->current_freq = freq;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
 }
 
 /**
@@ -407,13 +480,33 @@ void ieee80211_set_ready(ieee80211_dev_t* ieee80211_dev, bool ready)
 
 extern bool ieee80211_query_using_key(ieee80211_dev_t* ieee80211_dev)
 {
-	return ieee80211_dev->using_hw_key;
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
+	bool using_key = ieee80211_dev->using_hw_key;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+	
+	return using_key;
 }
 
 void ieee80211_setup_key_confirm(ieee80211_dev_t* ieee80211_dev, 
 	bool using_key)
 {
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	ieee80211_dev->using_hw_key = using_key;
+	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
+}
+
+static int ieee80211_scan(void *arg)
+{
+	assert(arg);
+	
+	ieee80211_dev_t *ieee80211_dev = (ieee80211_dev_t *) arg;
+	
+	while(true) {
+		ieee80211_dev->ops->scan(ieee80211_dev);
+		async_usleep(35000000);
+	}
+	
+	return EOK;
 }
 
 /**
@@ -438,9 +531,12 @@ static int ieee80211_open(ddf_fun_t *fun)
 	if(rc != EOK)
 		return rc;
 	
-	rc = ieee80211_dev->ops->scan(ieee80211_dev);
-	if(rc != EOK)
-		return rc;
+	/* Add scanning fibril. */
+	fid_t fibril = fibril_create(ieee80211_scan, ieee80211_dev);
+	if (fibril == 0) {
+		return ENOMEM;
+	}
+	fibril_add_ready(fibril);
 	
 	return EOK;
 }
@@ -457,7 +553,10 @@ static void ieee80211_send_frame(nic_t *nic, void *data, size_t size)
 	ieee80211_dev_t *ieee80211_dev = (ieee80211_dev_t *) 
 		nic_get_specific(nic);
 	
-	if(!ieee80211_is_connected(ieee80211_dev)) {
+	ieee80211_auth_phase_t auth_phase = 
+		ieee80211_get_auth_phase(ieee80211_dev);
+	if(auth_phase != IEEE80211_AUTH_ASSOCIATED && 
+		auth_phase != IEEE80211_AUTH_CONNECTED) {
 		return;
 	}
 	
@@ -477,7 +576,7 @@ static void ieee80211_send_frame(nic_t *nic, void *data, size_t size)
 	uint8_t add_data[8];
 	memset(add_data, 0, 8);
 	
-	if(ieee80211_dev->using_hw_key) {
+	if(ieee80211_query_using_key(ieee80211_dev)) {
 		int sec_suite = auth_data->security.pair_alg;
 		switch(sec_suite) {
 			case IEEE80211_SECURITY_SUITE_CCMP:
@@ -629,6 +728,7 @@ int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, ddf_dev_t *ddf_dev)
 	ieee80211_dev->started = false;
 	ieee80211_dev->ready = false;
 	ieee80211_dev->using_hw_key = false;
+	ieee80211_dev->pending_conn_req = false;
 	ieee80211_dev->current_op_mode = IEEE80211_OPMODE_STATION;
 	ieee80211_dev->current_auth_phase = IEEE80211_AUTH_DISCONNECTED;
 	memcpy(ieee80211_dev->bssid_mask.address, ieee80211_broadcast_mac_addr, 
@@ -636,6 +736,7 @@ int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, ddf_dev_t *ddf_dev)
 	
 	ieee80211_scan_result_list_init(&ieee80211_dev->ap_list);
 	
+	fibril_mutex_initialize(&ieee80211_dev->scan_mutex);
 	fibril_mutex_initialize(&ieee80211_dev->gen_mutex);
 	fibril_condvar_initialize(&ieee80211_dev->gen_cond);
 	
@@ -922,9 +1023,9 @@ int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
 	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
 	
 	/* 
-	 * Save password and SSID to be used in eventual authentication 
-	 * handshake. 
+	 * Save password to be used in eventual authentication handshake. 
 	 */
+	memset(ieee80211_dev->bssid_info.password, 0, IEEE80211_MAX_PASSW_LEN);
 	memcpy(ieee80211_dev->bssid_info.password, password, 
 		str_size(password));
 	
@@ -944,11 +1045,6 @@ int ieee80211_deauthenticate(ieee80211_dev_t *ieee80211_dev)
 {
 	ieee80211_scan_result_t *auth_data =
 		&ieee80211_dev->bssid_info.res_link->scan_result;
-	
-	ieee80211_dev->current_auth_phase = IEEE80211_AUTH_DISCONNECTED;
-	ieee80211_dev->bssid_info.aid = (uint16_t) -1;
-	memcpy(auth_data->bssid.address, ieee80211_broadcast_mac_addr, 
-		ETH_ADDR);
 	
 	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
 	nic_address_t nic_address;
@@ -974,7 +1070,13 @@ int ieee80211_deauthenticate(ieee80211_dev_t *ieee80211_dev)
 	
 	free(buffer);
 	
-	ieee80211_dev->ops->bssid_change(ieee80211_dev);
+	ieee80211_dev->bssid_info.res_link = NULL;
+	ieee80211_dev->ops->bssid_change(ieee80211_dev, false);
+	
+	if(ieee80211_query_using_key(ieee80211_dev))
+		ieee80211_dev->ops->key_config(ieee80211_dev, NULL, false);
+	
+	ieee80211_set_auth_phase(ieee80211_dev, IEEE80211_AUTH_DISCONNECTED);
 	
 	return EOK;
 }
@@ -1120,10 +1222,6 @@ static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
 	
 	/* Not empty SSID. */
 	if(ssid_ie_header->length > 0) {
-		fibril_mutex_t *scan_mutex = &ieee80211_dev->ap_list.scan_mutex;
-		
-		fibril_mutex_lock(scan_mutex);
-		
 		ieee80211_scan_result_list_t *result_list =
 			&ieee80211_dev->ap_list;
 		
@@ -1137,14 +1235,12 @@ static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
 		ieee80211_scan_result_list_foreach(*result_list, result) {
 			if(!str_cmp(ssid, result->scan_result.ssid)) {
 				result->last_beacon = time(NULL);
-				fibril_mutex_unlock(scan_mutex);
 				return EOK;
 			}
 		}
 		
 		/* Results are full. */
 		if(result_list->size == IEEE80211_MAX_RESULTS_LENGTH - 1) {
-			fibril_mutex_unlock(scan_mutex);
 			return EOK;
 		}
 		
@@ -1182,9 +1278,9 @@ static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
 		
 		ap_data->last_beacon = time(NULL);
 		
+		fibril_mutex_lock(&ieee80211_dev->ap_list.results_mutex);
 		ieee80211_scan_result_list_append(result_list, ap_data);
-		
-		fibril_mutex_unlock(scan_mutex);
+		fibril_mutex_unlock(&ieee80211_dev->ap_list.results_mutex);
 	}
 	
 	return EOK;
@@ -1201,10 +1297,19 @@ static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
 static int ieee80211_process_auth_response(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_mgmt_header_t *mgmt_header)
 {
+	ieee80211_auth_body_t *auth_body =
+		(ieee80211_auth_body_t *)
+		((void *)mgmt_header + sizeof(ieee80211_mgmt_header_t));
+	
+	if(auth_body->status != 0) {
+		ieee80211_set_auth_phase(ieee80211_dev, 
+			IEEE80211_AUTH_DISCONNECTED);
+	} else {
+		ieee80211_set_auth_phase(ieee80211_dev, 
+			IEEE80211_AUTH_AUTHENTICATED);
+	}
+	
 	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
-	
-	ieee80211_dev->current_auth_phase = IEEE80211_AUTH_AUTHENTICATED;
-	
 	fibril_condvar_signal(&ieee80211_dev->gen_cond);
 	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
 	
@@ -1222,22 +1327,22 @@ static int ieee80211_process_auth_response(ieee80211_dev_t *ieee80211_dev,
 static int ieee80211_process_assoc_response(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_mgmt_header_t *mgmt_header)
 {
-	ieee80211_scan_result_t *auth_data =
-		&ieee80211_dev->bssid_info.res_link->scan_result;
-	
-	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
-	
 	ieee80211_assoc_resp_body_t *assoc_resp =
 		(ieee80211_assoc_resp_body_t *) ((void *)mgmt_header +
 		sizeof(ieee80211_mgmt_header_t));
 	
-	ieee80211_dev->bssid_info.aid = uint16_t_le2host(assoc_resp->aid);
-	memcpy(auth_data->bssid.address, mgmt_header->bssid, ETH_ADDR);
+	if(assoc_resp->status != 0) {
+		ieee80211_set_auth_phase(ieee80211_dev, 
+			IEEE80211_AUTH_DISCONNECTED);
+	} else {
+		ieee80211_dev->bssid_info.aid = 
+			uint16_t_le2host(assoc_resp->aid);
+		ieee80211_set_auth_phase(ieee80211_dev, 
+			IEEE80211_AUTH_ASSOCIATED);
+		ieee80211_dev->ops->bssid_change(ieee80211_dev, true);
+	}
 	
-	ieee80211_dev->current_auth_phase = IEEE80211_AUTH_ASSOCIATED;
-	
-	ieee80211_dev->ops->bssid_change(ieee80211_dev);
-	
+	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	fibril_condvar_signal(&ieee80211_dev->gen_cond);
 	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
 	
@@ -1417,9 +1522,7 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 	free(output_buffer);
 
 	if(handshake_done) {
-		/* Insert keys into device. */
-		
-		/* Pairwise key. */
+		/* Insert Pairwise key. */
 		ieee80211_key_config_t key_config;
 		key_config.suite = auth_data->security.pair_alg;
 		key_config.flags =
@@ -1431,7 +1534,7 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 		ieee80211_dev->ops->key_config(ieee80211_dev,
 			&key_config, true);
 		
-		/* Group key. */
+		/* Insert Group key. */
 		key_config.suite = auth_data->security.group_alg;
 		key_config.flags =
 			IEEE80211_KEY_FLAG_TYPE_GROUP;

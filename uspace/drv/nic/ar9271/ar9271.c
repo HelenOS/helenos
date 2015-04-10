@@ -104,7 +104,8 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 	void *buffer, size_t buffer_size);
 static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
 	uint16_t freq);
-static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev);
+static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev,
+	bool connected);
 static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_key_config_t *key_conf, bool insert);
 
@@ -350,8 +351,6 @@ static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
 	
 	ar9271_t *ar9271 = (ar9271_t *) ieee80211_get_specific(ieee80211_dev);
 	
-	//hw_wakeup(ar9271);
-	
 	wmi_send_command(ar9271->htc_device, WMI_DISABLE_INTR, NULL, 0, NULL);
 	wmi_send_command(ar9271->htc_device, WMI_DRAIN_TXQ_ALL, NULL, 0, NULL);
 	wmi_send_command(ar9271->htc_device, WMI_STOP_RECV, NULL, 0, NULL);
@@ -378,14 +377,14 @@ static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
-static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev)
+static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev,
+	bool connected)
 {
 	assert(ieee80211_dev);
 	
 	ar9271_t *ar9271 = (ar9271_t *) ieee80211_get_specific(ieee80211_dev);
 
-	/* Check if we are connected or disconnected. */
-	if(ieee80211_is_connected(ieee80211_dev)) {
+	if(connected) {
 		nic_address_t bssid;
 		ieee80211_query_bssid(ieee80211_dev, &bssid);
 
@@ -432,16 +431,17 @@ static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_key_config_t *key_conf, bool insert)
 {
 	assert(ieee80211_dev);
-	assert(key_conf);
 	
 	ar9271_t *ar9271 = (ar9271_t *) ieee80211_get_specific(ieee80211_dev);
 	
-	uint32_t key[5];
-	uint32_t key_type;
-	uint32_t reg_ptr;
-	void *data_start;
-	
 	if(insert) {
+		assert(key_conf);
+		
+		uint32_t key[5];
+		uint32_t key_type;
+		uint32_t reg_ptr;
+		void *data_start;
+		
 		nic_address_t bssid;
 		ieee80211_query_bssid(ieee80211_dev, &bssid);
 		
@@ -519,7 +519,8 @@ static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_GROUP)
 			ieee80211_setup_key_confirm(ieee80211_dev, true);
 	} else {
-		// TODO
+		// TODO: Delete keys from device
+		ieee80211_setup_key_confirm(ieee80211_dev, false);
 	}
 	
 	return EOK;
@@ -561,7 +562,7 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 		if(ieee80211_query_using_key(ieee80211_dev)) {
 			data_header->keyix = AR9271_STA_KEY_INDEX;
 			int sec_suite = 
-				ieee80211_get_security_suite(ieee80211_dev);
+				ieee80211_get_pairwise_security(ieee80211_dev);
 			switch(sec_suite) {
 				case IEEE80211_SECURITY_SUITE_WEP40:
 				case IEEE80211_SECURITY_SUITE_WEP104:

@@ -44,7 +44,6 @@ extern int hw_init(ar9271_t *ar9271);
 extern int hw_freq_switch(ar9271_t *, uint16_t freq);
 extern int hw_rx_init(ar9271_t *ar9271);
 extern int hw_reset(ar9271_t *ar9271);
-extern int hw_wakeup(ar9271_t *ar9271);
 extern int hw_set_bssid(ar9271_t *ar9271);
 extern int hw_set_rx_filter(ar9271_t *ar9271, bool assoc);
 

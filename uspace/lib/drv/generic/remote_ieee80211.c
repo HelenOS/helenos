@@ -37,9 +37,12 @@
 #include <errno.h>
 #include <macros.h>
 #include <str.h>
+#include <inet/dhcp.h>
+#include <inet/inetcfg.h>
 
 #include "ops/ieee80211.h"
 #include "ieee80211_iface.h"
+#include "nic_iface.h"
 
 #define MAX_STRING_SIZE 32
 
@@ -77,6 +80,39 @@ int ieee80211_get_scan_results(async_sess_t *dev_sess,
 		return (int) res;
 	else
 		return rc;
+}
+
+static bool mac_matches(uint8_t *mac1, uint8_t *mac2)
+{
+	for(size_t i = 0; i < ETH_ADDR; i++) {
+		if(mac1[i] != mac2[i])
+			return false;
+	}
+	
+	return true;
+}
+
+static sysarg_t get_link_id(uint8_t *mac)
+{
+	sysarg_t *link_list;
+	inet_link_info_t link_info;
+	size_t count;
+	
+	int rc = inetcfg_get_link_list(&link_list, &count);
+	if (rc != EOK)
+		return -1;
+	
+	for (size_t i = 0; i < count; i++) {
+		rc = inetcfg_link_get(link_list[i], &link_info);
+		if (rc != EOK)
+			return -1;
+		
+		if(mac_matches(mac, link_info.mac_addr)) {
+			return link_list[i];
+		}
+	}
+	
+	return -1;
 }
 
 /** Connect to specified network.
@@ -129,6 +165,20 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 	async_exchange_end(exch);
 
 	async_wait_for(aid, &rc);
+	if (rc != EOK)
+		return rc;
+	
+	/* Send DHCP discover. */
+	nic_address_t wifi_mac;
+	rc = nic_get_address(dev_sess, &wifi_mac);
+	if (rc != EOK)
+		return rc;
+	
+	sysarg_t link_id = get_link_id(wifi_mac.address);
+	if(link_id == ((sysarg_t) -1))
+		return EINVAL;
+	
+	rc = dhcp_discover(link_id);
 	
 	return (int) rc;
 }
@@ -146,6 +196,68 @@ int ieee80211_disconnect(async_sess_t *dev_sess)
 	int rc = async_req_1_0(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_DISCONNECT);
 	async_exchange_end(exch);
+	
+	if(rc != EOK)
+		return rc;
+	
+	nic_address_t wifi_mac;
+	rc = nic_get_address(dev_sess, &wifi_mac);
+	if (rc != EOK)
+		return rc;
+	
+	inet_link_info_t link_info;
+	inet_addr_info_t addr_info;
+	inet_sroute_info_t route_info;
+	sysarg_t *addr_list;
+	sysarg_t *route_list;
+	size_t count;
+	
+	/* Remove previous DHCP address. */
+	rc = inetcfg_get_addr_list(&addr_list, &count);
+	if (rc != EOK)
+		return rc;
+	
+	for (size_t i = 0; i < count; i++) {
+		rc = inetcfg_addr_get(addr_list[i], &addr_info);
+		if (rc != EOK)
+			return rc;
+		
+		rc = inetcfg_link_get(addr_info.ilink, &link_info);
+		if (rc != EOK)
+			return rc;
+		
+		if(mac_matches(wifi_mac.address, link_info.mac_addr)) {
+			if(str_test_prefix(addr_info.name, "dhcp")) {
+				rc = inetcfg_addr_delete(addr_list[i]);
+				if(rc != EOK)
+					return rc;
+				break;
+			}
+		}
+	}
+	
+	/* 
+	 * TODO: At this moment there can be only one DHCP route,
+	 * so it must be reimplemented after this limitation will be
+	 * dropped.
+	 */
+	/* Remove previous DHCP static route. */
+	rc = inetcfg_get_sroute_list(&route_list, &count);
+	if (rc != EOK)
+		return rc;
+	
+	for (size_t i = 0; i < count; i++) {
+		rc = inetcfg_sroute_get(route_list[i], &route_info);
+		if (rc != EOK)
+			return rc;
+		
+		if(str_test_prefix(route_info.name, "dhcp")) {
+			rc = inetcfg_sroute_delete(route_list[i]);
+			if(rc != EOK)
+				return rc;
+			break;
+		}
+	}
 	
 	return rc;
 }

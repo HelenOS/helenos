@@ -46,7 +46,8 @@ extern int ieee80211_tx_handler_impl(ieee80211_dev_t *ieee80211_dev,
 	void *buffer, size_t buffer_size);
 extern int ieee80211_set_freq_impl(ieee80211_dev_t *ieee80211_dev, 
 	uint16_t freq);
-extern int ieee80211_bssid_change_impl(ieee80211_dev_t *ieee80211_dev);
+extern int ieee80211_bssid_change_impl(ieee80211_dev_t *ieee80211_dev,
+	bool connected);
 extern int ieee80211_key_config_impl(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_key_config_t *key_conf, bool insert);
 extern int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev);

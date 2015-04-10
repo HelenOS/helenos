@@ -108,6 +108,19 @@ static void dhcp_link_remove_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, rc);
 }
 
+static void dhcp_discover_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	sysarg_t link_id;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_discover_srv()");
+
+	link_id = IPC_GET_ARG1(*call);
+
+	rc = dhcpsrv_discover(link_id);
+	async_answer_0(callid, rc);
+}
+
 static void dhcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_client_conn()");
@@ -132,6 +145,9 @@ static void dhcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case DHCP_LINK_REMOVE:
 			dhcp_link_remove_srv(callid, &call);
+			break;
+		case DHCP_DISCOVER:
+			dhcp_discover_srv(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL);

@@ -35,6 +35,8 @@
 
 #include <ieee80211_iface.h>
 
+#include <inet/inetcfg.h>
+#include <inet/dhcp.h>
 #include <errno.h>
 #include <stdio.h>
 #include <loc.h>
@@ -172,14 +174,26 @@ static int wifi_connect(uint32_t index, char *ssid_start, char *password)
 		return EINVAL;
 	}
 	
-	int rc = ieee80211_connect(sess, ssid_start, password);
+	int rc = ieee80211_disconnect(sess);
+	if(rc != EOK) {
+		if(rc == EREFUSED) {
+			printf("Device is not ready yet.\n");			
+		} else {
+			printf("Error when disconnecting device. "
+				"Error: %d\n", rc);
+		}
+		
+		return rc;
+	}
+	
+	ieee80211_connect(sess, ssid_start, password);
 	if(rc != EOK) {
 		if(rc == EREFUSED) {
 			printf("Device is not ready yet.\n");			
 		} else if(rc == ETIMEOUT) {
 			printf("Timeout when authenticating to network.\n");
-		} else if(rc == EPERM) {
-			printf("Bad password provided.\n");
+		} else if(rc == ENOENT) {
+			printf("Given SSID not in scan results.\n");
 		} else {
 			printf("Error when connecting to network. "
 				"Error: %d\n", rc);
@@ -187,6 +201,8 @@ static int wifi_connect(uint32_t index, char *ssid_start, char *password)
 		
 		return rc;
 	}
+	
+	// TODO: Wait for DHCP address ?
 	
 	printf("Successfully connected to network!\n");
 	
@@ -273,6 +289,19 @@ int main(int argc, char *argv[])
 {
 	int rc;
 	uint32_t index;
+	
+	rc = inetcfg_init();
+	if (rc != EOK) {
+		printf(NAME ": Failed connecting to inetcfg service (%d).\n",
+		    rc);
+		return 1;
+	}
+	
+	rc = dhcp_init();
+	if (rc != EOK) {
+		printf(NAME ": Failed connecting to dhcp service (%d).\n", rc);
+		return 1;
+	}
 	
 	if(argc == 2) {
 		if(!str_cmp(argv[1], "list")) {

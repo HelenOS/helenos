@@ -53,8 +53,11 @@
 /* Timeout in us for waiting to finish 4-way handshake process. */
 #define HANDSHAKE_TIMEOUT 3000000
 
-/* Max period to rerun scan. */
-#define MAX_SCAN_SPAN_SEC 30
+/* Scanning period. */
+#define SCAN_PERIOD_USEC 35000000
+
+/* Time to wait for beacons on channel. */
+#define SCAN_CHANNEL_WAIT_USEC 200000
 
 /* Max time to keep scan result. */
 #define MAX_KEEP_SCAN_SPAN_SEC 120
@@ -186,7 +189,8 @@ typedef enum {
 typedef enum {
 	IEEE80211_AUTH_DISCONNECTED,
 	IEEE80211_AUTH_AUTHENTICATED,
-	IEEE80211_AUTH_ASSOCIATED
+	IEEE80211_AUTH_ASSOCIATED,
+	IEEE80211_AUTH_CONNECTED
 } ieee80211_auth_phase_t;
 
 /** Link with scan result info. */
@@ -201,15 +205,14 @@ typedef struct {
 /** List of scan results info. */
 typedef struct {
 	list_t list;
-	time_t last_scan;
-	fibril_mutex_t scan_mutex;
+	fibril_mutex_t results_mutex;
 	size_t size;
 } ieee80211_scan_result_list_t;
 
 /** BSSID info. */
 typedef struct {
 	uint16_t aid;
-	char password[IEEE80211_WPA_MAX_PASSWORD_LENGTH];
+	char password[IEEE80211_MAX_PASSW_LEN];
 	uint8_t ptk[MAX_PTK_LENGTH];
 	uint8_t gtk[MAX_GTK_LENGTH];
 	ieee80211_scan_result_link_t *res_link;
@@ -255,6 +258,12 @@ struct ieee80211_dev {
 	
 	/** Current authentication phase. */
 	ieee80211_auth_phase_t current_auth_phase;
+	
+	/** Flag indicating whether client wants connect to network. */
+	bool pending_conn_req;
+	
+	/** Scanning guard. */
+	fibril_mutex_t scan_mutex;
 	
 	/** General purpose guard. */
 	fibril_mutex_t gen_mutex;
@@ -367,7 +376,7 @@ static inline void ieee80211_scan_result_list_init(
 	ieee80211_scan_result_list_t *results) 
 {
 	list_initialize(&results->list);
-	fibril_mutex_initialize(&results->scan_mutex);
+	fibril_mutex_initialize(&results->results_mutex);
 }
 
 static inline void ieee80211_scan_result_list_remove(
@@ -386,6 +395,12 @@ static inline void ieee80211_scan_result_list_append(
 	results->size++;
 }
 
+extern void ieee80211_set_connect_request(ieee80211_dev_t *ieee80211_dev);
+extern bool ieee80211_pending_connect_request(ieee80211_dev_t *ieee80211_dev);
+extern ieee80211_auth_phase_t ieee80211_get_auth_phase(ieee80211_dev_t 
+	*ieee80211_dev);
+extern void ieee80211_set_auth_phase(ieee80211_dev_t *ieee80211_dev,
+	ieee80211_auth_phase_t auth_phase);
 extern int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, 
 	char *ssid);
 extern int ieee80211_authenticate(ieee80211_dev_t *ieee80211_dev);

@@ -59,8 +59,8 @@ typedef struct ieee80211_dev ieee80211_dev_t;
 /* Max AMPDU factor. */
 #define IEEE80211_MAX_AMPDU_FACTOR 13
 
-/* Max passphrase length in WPA/WPA2 protocols. */
-#define IEEE80211_WPA_MAX_PASSWORD_LENGTH 64
+/* Max authentication password length. */
+#define IEEE80211_MAX_PASSW_LEN 64
 
 /** IEEE 802.11 b/g supported data rates in units of 500 kb/s. */
 static const uint8_t ieee80211bg_data_rates[] = {
@@ -138,10 +138,11 @@ typedef struct {
 	 * Callback to inform device about BSSID change.
 	 * 
 	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
+	 * @param connected True if connected to new BSSID, otherwise false.
 	 * 
 	 * @return EOK if succeed, negative error code otherwise.
 	 */
-	int (*bssid_change)(struct ieee80211_dev *);
+	int (*bssid_change)(struct ieee80211_dev *, bool);
 	
 	/**
 	 * Callback to setup encryption key in IEEE 802.11 device.
@@ -180,7 +181,7 @@ extern void ieee80211_report_current_op_mode(ieee80211_dev_t *ieee80211_dev,
 extern void ieee80211_report_current_freq(ieee80211_dev_t *ieee80211_dev,
 	uint16_t freq);
 extern uint16_t ieee80211_get_aid(ieee80211_dev_t* ieee80211_dev);
-extern int ieee80211_get_security_suite(ieee80211_dev_t* ieee80211_dev);
+extern int ieee80211_get_pairwise_security(ieee80211_dev_t* ieee80211_dev);
 extern bool ieee80211_is_ready(ieee80211_dev_t* ieee80211_dev);
 extern void ieee80211_set_ready(ieee80211_dev_t* ieee80211_dev, bool ready);
 extern bool ieee80211_query_using_key(ieee80211_dev_t* ieee80211_dev);

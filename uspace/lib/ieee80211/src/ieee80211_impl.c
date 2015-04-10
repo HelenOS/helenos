@@ -89,7 +89,8 @@ int ieee80211_set_freq_impl(ieee80211_dev_t *ieee80211_dev, uint16_t freq)
  * 
  * @return EOK. 
  */
-int ieee80211_bssid_change_impl(ieee80211_dev_t *ieee80211_dev)
+int ieee80211_bssid_change_impl(ieee80211_dev_t *ieee80211_dev, 
+	bool connected)
 {
 	return EOK;
 }
@@ -117,45 +118,47 @@ int ieee80211_key_config_impl(ieee80211_dev_t *ieee80211_dev,
  */
 int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)
 {
-	if(ieee80211_is_connected(ieee80211_dev))
-		return EOK;
+	fibril_mutex_lock(&ieee80211_dev->scan_mutex);
 	
-	fibril_mutex_lock(&ieee80211_dev->ap_list.scan_mutex);
-	
-	/* Remove old entries we don't receive beacons from. */
-	ieee80211_scan_result_list_t *result_list = 
-		&ieee80211_dev->ap_list;
-	list_foreach_safe(result_list->list, cur_link, next_link) {
-		ieee80211_scan_result_link_t *cur_result = 
-			list_get_instance(cur_link,
-			ieee80211_scan_result_link_t, 
-			link);
-		if((time(NULL) - cur_result->last_beacon) > 
-			MAX_KEEP_SCAN_SPAN_SEC) {
-			ieee80211_scan_result_list_remove(result_list, 
-				cur_result);
+	if(ieee80211_get_auth_phase(ieee80211_dev) == 
+		IEEE80211_AUTH_DISCONNECTED) {
+		fibril_mutex_lock(&ieee80211_dev->ap_list.results_mutex);
+		/* Remove old entries we don't receive beacons from. */
+		ieee80211_scan_result_list_t *result_list = 
+			&ieee80211_dev->ap_list;
+		list_foreach_safe(result_list->list, cur_link, next_link) {
+			ieee80211_scan_result_link_t *cur_result = 
+				list_get_instance(cur_link,
+				ieee80211_scan_result_link_t, 
+				link);
+			if((time(NULL) - cur_result->last_beacon) > 
+				MAX_KEEP_SCAN_SPAN_SEC) {
+				ieee80211_scan_result_list_remove(result_list, 
+					cur_result);
+			}
 		}
+		fibril_mutex_unlock(&ieee80211_dev->ap_list.results_mutex);
+
+		uint16_t orig_freq = ieee80211_dev->current_freq;
+
+		for(uint16_t freq = IEEE80211_FIRST_FREQ;
+			freq <= IEEE80211_MAX_FREQ; 
+			freq += IEEE80211_CHANNEL_GAP) {
+			if(ieee80211_pending_connect_request(ieee80211_dev)) {
+				break;
+			}
+			
+			ieee80211_dev->ops->set_freq(ieee80211_dev, freq);
+			ieee80211_probe_request(ieee80211_dev, NULL);
+
+			/* Wait for probe responses. */
+			async_usleep(SCAN_CHANNEL_WAIT_USEC);
+		}
+
+		ieee80211_dev->ops->set_freq(ieee80211_dev, orig_freq);
 	}
 	
-	fibril_mutex_unlock(&ieee80211_dev->ap_list.scan_mutex);
-	
-	uint16_t orig_freq = ieee80211_dev->current_freq;
-	
-	for(uint16_t freq = IEEE80211_FIRST_FREQ;
-		freq <= IEEE80211_MAX_FREQ; 
-		freq += IEEE80211_CHANNEL_GAP) {
-		ieee80211_dev->ops->set_freq(ieee80211_dev, freq);
-		ieee80211_probe_request(ieee80211_dev, NULL);
-		
-		/* Wait for probe responses. */
-		usleep(100000);
-	}
-	
-	ieee80211_dev->ops->set_freq(ieee80211_dev, orig_freq);
-	
-	fibril_mutex_lock(&ieee80211_dev->ap_list.scan_mutex);
-	time(&ieee80211_dev->ap_list.last_scan);
-	fibril_mutex_unlock(&ieee80211_dev->ap_list.scan_mutex);
+	fibril_mutex_unlock(&ieee80211_dev->scan_mutex);
 	
 	return EOK;
 }

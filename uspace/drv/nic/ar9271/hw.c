@@ -376,49 +376,6 @@ static int hw_set_freq(ar9271_t *ar9271, uint16_t freq)
 	return EOK;
 }
 
-int hw_wakeup(ar9271_t *ar9271)
-{
-	int rc;
-	
-	uint32_t rtc_status;
-	wmi_reg_read(ar9271->htc_device, AR9271_RTC_STATUS, &rtc_status);
-	if((rtc_status & AR9271_RTC_STATUS_MASK) == AR9271_RTC_STATUS_SHUTDOWN) {
-		rc = hw_reset_power_on(ar9271);
-		if(rc != EOK) {
-			usb_log_info("Failed to HW reset power on.\n");
-			return rc;
-		}
-
-		rc = hw_set_reset(ar9271, false);
-		if(rc != EOK) {
-			usb_log_info("Failed to HW warm reset.\n");
-			return rc;
-		}
-	}
-	
-	wmi_reg_set_bit(ar9271->htc_device, AR9271_RTC_FORCE_WAKE,
-		AR9271_RTC_FORCE_WAKE_ENABLE);
-	
-	size_t i;
-	for(i = 0; i < HW_WAIT_LOOPS; i++) {
-		wmi_reg_read(ar9271->htc_device, AR9271_RTC_STATUS, 
-			&rtc_status);
-		if((rtc_status & AR9271_RTC_STATUS_MASK) == 
-			AR9271_RTC_STATUS_ON) {
-			break;
-		}
-		wmi_reg_set_bit(ar9271->htc_device, AR9271_RTC_FORCE_WAKE,
-			AR9271_RTC_FORCE_WAKE_ENABLE);
-		udelay(50);
-	}	
-	
-	if(i == HW_WAIT_LOOPS) {
-		return EINVAL;
-	} else {
-		return EOK;
-	}
-}
-
 int hw_freq_switch(ar9271_t *ar9271, uint16_t freq)
 {
 	wmi_reg_write(ar9271->htc_device, AR9271_PHY_RFBUS_KILL, 0x1);
