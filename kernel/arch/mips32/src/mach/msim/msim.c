@@ -61,6 +61,7 @@ struct mips32_machine_ops msim_machine_ops = {
 
 void msim_init(void)
 {
+	cp0_unmask_int(MSIM_DDISK_IRQ);
 }
 
 void msim_cpu_halt(void)

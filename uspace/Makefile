@@ -140,6 +140,7 @@ DIRS = \
 	drv/root/virt \
 	drv/block/ahci \
 	drv/block/ata_bd \
+	drv/block/ddisk \
 	drv/char/i8042 \
 	drv/char/pl050 \
 	drv/char/ps2mouse \
@@ -179,10 +180,15 @@ ifeq ($(UARCH), $(filter $(UARCH),amd64 ia32 ia64))
 endif
 
 ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
+ifeq ($(MACHINE),msim)
+	DIRS += \
+		drv/platform/msim
+else
 	DIRS += \
 		drv/platform/malta \
 		drv/bus/pci/pciintel \
 		drv/bus/isa
+endif
 endif
 
 ifeq ($(UARCH),ppc32)
