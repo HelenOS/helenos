@@ -112,7 +112,7 @@ typedef struct {
 	ddisk_regs_t *ddisk_regs;
 
 	bd_srvs_t bds;
-} ddisk_dev_t;
+} ddisk_t;
 
 static int ddisk_bd_open(bd_srvs_t *, bd_srv_t *);
 static int ddisk_bd_close(bd_srv_t *);
@@ -178,11 +178,11 @@ void ddisk_irq_handler(ipc_callid_t iid, ipc_call_t *icall, ddf_dev_t *dev)
 	ddf_msg(LVL_DEBUG, "ddisk_irq_handler(), status=%" PRIx32,
 	    (uint32_t) IPC_GET_ARG1(*icall));
 
-	ddisk_dev_t *ddisk_dev = (ddisk_dev_t *) ddf_dev_data_get(dev);
+	ddisk_t *ddisk = (ddisk_t *) ddf_dev_data_get(dev);
 	
-	fibril_mutex_lock(&ddisk_dev->lock);
-	fibril_condvar_broadcast(&ddisk_dev->io_cv);
-	fibril_mutex_unlock(&ddisk_dev->lock);
+	fibril_mutex_lock(&ddisk->lock);
+	fibril_condvar_broadcast(&ddisk->io_cv);
+	fibril_mutex_unlock(&ddisk->lock);
 }
 
 int ddisk_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -196,38 +196,38 @@ int ddisk_bd_close(bd_srv_t *bd)
 }
 
 static
-int ddisk_rw_block(ddisk_dev_t *ddisk_dev, bool read, aoff64_t ba, void *buf)
+int ddisk_rw_block(ddisk_t *ddisk, bool read, aoff64_t ba, void *buf)
 {
-	fibril_mutex_lock(&ddisk_dev->lock);
+	fibril_mutex_lock(&ddisk->lock);
 
 	ddf_msg(LVL_DEBUG, "ddisk_rw_block(): read=%d, ba=%" PRId64 ", buf=%p",
 	    read, ba, buf);
 
-	if (ba >= ddisk_dev->blocks)
+	if (ba >= ddisk->blocks)
 		return ELIMIT;
 
-	while (ddisk_dev->io_busy)
-		fibril_condvar_wait(&ddisk_dev->io_cv, &ddisk_dev->lock);
+	while (ddisk->io_busy)
+		fibril_condvar_wait(&ddisk->io_cv, &ddisk->lock);
 
-	ddisk_dev->io_busy = true;
+	ddisk->io_busy = true;
 
 	if (!read)
-		memcpy(ddisk_dev->dma_buffer, buf, DDISK_BLOCK_SIZE);
+		memcpy(ddisk->dma_buffer, buf, DDISK_BLOCK_SIZE);
 	
-	pio_write_32(&ddisk_dev->ddisk_regs->dma_buffer,
-	    ddisk_dev->dma_buffer_phys);
-	pio_write_32(&ddisk_dev->ddisk_regs->block, (uint32_t) ba);
-	pio_write_32(&ddisk_dev->ddisk_regs->command,
+	pio_write_32(&ddisk->ddisk_regs->dma_buffer,
+	    ddisk->dma_buffer_phys);
+	pio_write_32(&ddisk->ddisk_regs->block, (uint32_t) ba);
+	pio_write_32(&ddisk->ddisk_regs->command,
 	    read ? DDISK_CMD_READ : DDISK_CMD_WRITE);
 
-	fibril_condvar_wait(&ddisk_dev->io_cv, &ddisk_dev->lock);
+	fibril_condvar_wait(&ddisk->io_cv, &ddisk->lock);
 
 	if (read)
-		memcpy(buf, ddisk_dev->dma_buffer, DDISK_BLOCK_SIZE);
+		memcpy(buf, ddisk->dma_buffer, DDISK_BLOCK_SIZE);
 
-	ddisk_dev->io_busy = false;
-	fibril_condvar_signal(&ddisk_dev->io_cv);
-	fibril_mutex_unlock(&ddisk_dev->lock);
+	ddisk->io_busy = false;
+	fibril_condvar_signal(&ddisk->io_cv);
+	fibril_mutex_unlock(&ddisk->lock);
 
 	return EOK;
 }
@@ -236,7 +236,7 @@ static
 int ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
     size_t size, bool is_read)
 {
-	ddisk_dev_t *ddisk_dev = (ddisk_dev_t *) bd->srvs->sarg;
+	ddisk_t *ddisk = (ddisk_t *) bd->srvs->sarg;
 	aoff64_t i;
 	int rc;
 
@@ -244,7 +244,7 @@ int ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
 		return EINVAL;		
 
 	for (i = 0; i < cnt; i++) {
-		rc = ddisk_rw_block(ddisk_dev, is_read, ba + i,
+		rc = ddisk_rw_block(ddisk, is_read, ba + i,
 		    buf + i * DDISK_BLOCK_SIZE);
 		if (rc != EOK)
 			return rc;
@@ -273,9 +273,9 @@ int ddisk_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 
 int ddisk_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
-	ddisk_dev_t *ddisk_dev = (ddisk_dev_t *) bd->srvs->sarg;
+	ddisk_t *ddisk = (ddisk_t *) bd->srvs->sarg;
 
-	*rnb = ddisk_dev->blocks;
+	*rnb = ddisk->blocks;
 	return EOK;	
 }
 
@@ -314,12 +314,12 @@ error:
 	return rc;
 }
 
-static int ddisk_fun_create(ddisk_dev_t *ddisk_dev)
+static int ddisk_fun_create(ddisk_t *ddisk)
 {
 	int rc;
 	ddf_fun_t *fun = NULL;
 
-	fun = ddf_fun_create(ddisk_dev->dev, fun_exposed, DDISK_FUN_NAME);
+	fun = ddf_fun_create(ddisk->dev, fun_exposed, DDISK_FUN_NAME);
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating DDF function.");
 		rc = ENOMEM;
@@ -337,7 +337,7 @@ static int ddisk_fun_create(ddisk_dev_t *ddisk_dev)
 	}
 
 	ddf_fun_add_to_category(fun, "bd");
-	ddisk_dev->fun = fun;
+	ddisk->fun = fun;
 
 	return EOK;
 error:
@@ -347,55 +347,55 @@ error:
 	return rc;
 }
 
-static int ddisk_fun_remove(ddisk_dev_t *ddisk_dev)
+static int ddisk_fun_remove(ddisk_t *ddisk)
 {
 	int rc;
 
-	if (ddisk_dev->fun == NULL)
+	if (ddisk->fun == NULL)
 		return EOK;
 
-	ddf_msg(LVL_DEBUG, "ddisk_fun_remove(%p, '%s')", ddisk_dev,
+	ddf_msg(LVL_DEBUG, "ddisk_fun_remove(%p, '%s')", ddisk,
 	    DDISK_FUN_NAME);
-	rc = ddf_fun_offline(ddisk_dev->fun);
+	rc = ddf_fun_offline(ddisk->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error offlining function '%s'.",
 		    DDISK_FUN_NAME);
 		goto error;
 	}
 
-	rc = ddf_fun_unbind(ddisk_dev->fun);
+	rc = ddf_fun_unbind(ddisk->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.",
 		    DDISK_FUN_NAME);
 		goto error;
 	}
 
-	ddf_fun_destroy(ddisk_dev->fun);
-	ddisk_dev->fun = NULL;
+	ddf_fun_destroy(ddisk->fun);
+	ddisk->fun = NULL;
 	rc = EOK;
 
 error:
 	return rc;
 }
 
-static int ddisk_fun_unbind(ddisk_dev_t *ddisk_dev)
+static int ddisk_fun_unbind(ddisk_t *ddisk)
 {
 	int rc;
 
-	if (ddisk_dev->fun == NULL)
+	if (ddisk->fun == NULL)
 		return EOK;
 
-	ddf_msg(LVL_DEBUG, "ddisk_fun_unbind(%p, '%s')", ddisk_dev,
+	ddf_msg(LVL_DEBUG, "ddisk_fun_unbind(%p, '%s')", ddisk,
 	    DDISK_FUN_NAME);
-	rc = ddf_fun_unbind(ddisk_dev->fun);
+	rc = ddf_fun_unbind(ddisk->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.",
 		    DDISK_FUN_NAME);
 		goto error;
 	}
 
-	ddf_fun_destroy(ddisk_dev->fun);
-	ddisk_dev->fun = NULL;
+	ddf_fun_destroy(ddisk->fun);
+	ddisk->fun = NULL;
 	rc = EOK;
 
 error:
@@ -409,7 +409,7 @@ error:
  */
 static int ddisk_dev_add(ddf_dev_t *dev)
 {
-	ddisk_dev_t *ddisk_dev;
+	ddisk_t *ddisk;
 	ddisk_res_t res;
 	int rc;
 
@@ -425,8 +425,8 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	/*
 	 * Allocate soft state.
 	 */
-	ddisk_dev = ddf_dev_data_alloc(dev, sizeof(ddisk_dev_t));
-	if (!ddisk_dev) {
+	ddisk = ddf_dev_data_alloc(dev, sizeof(ddisk_t));
+	if (!ddisk) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
 		rc = ENOMEM;
 		goto error;
@@ -435,16 +435,16 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	/*
 	 * Initialize soft state.
 	 */
-	fibril_mutex_initialize(&ddisk_dev->lock);
-	ddisk_dev->dev = dev;
-	ddisk_dev->ddisk_res = res;
+	fibril_mutex_initialize(&ddisk->lock);
+	ddisk->dev = dev;
+	ddisk->ddisk_res = res;
 
-	fibril_condvar_initialize(&ddisk_dev->io_cv);
-	ddisk_dev->io_busy = false;
+	fibril_condvar_initialize(&ddisk->io_cv);
+	ddisk->io_busy = false;
 
-	bd_srvs_init(&ddisk_dev->bds);
-	ddisk_dev->bds.ops = &ddisk_bd_ops;
-	ddisk_dev->bds.sarg = ddisk_dev;
+	bd_srvs_init(&ddisk->bds);
+	ddisk->bds.ops = &ddisk_bd_ops;
+	ddisk->bds.sarg = ddisk;
 
 	/*
 	 * Enable access to ddisk's PIO registers.
@@ -455,12 +455,12 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Cannot initialize device I/O space.");
 		goto error;
 	}
-	ddisk_dev->ddisk_regs = vaddr;
+	ddisk->ddisk_regs = vaddr;
 
-	ddisk_dev->size = (int32_t) pio_read_32(&ddisk_dev->ddisk_regs->size);
-	ddisk_dev->blocks = ddisk_dev->size / DDISK_BLOCK_SIZE;
+	ddisk->size = (int32_t) pio_read_32(&ddisk->ddisk_regs->size);
+	ddisk->blocks = ddisk->size / DDISK_BLOCK_SIZE;
 
-	if (ddisk_dev->size <= 0) {
+	if (ddisk->size <= 0) {
 		ddf_msg(LVL_WARN, "No disk detected.");
 		rc = EIO;
 		goto error;
@@ -469,22 +469,22 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	/*
 	 * Allocate DMA buffer.
 	 */
-	ddisk_dev->dma_buffer = AS_AREA_ANY;
+	ddisk->dma_buffer = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(DDISK_BLOCK_SIZE, DMAMEM_4GiB,
-	    AS_AREA_READ | AS_AREA_WRITE, 0, &ddisk_dev->dma_buffer_phys,
-	    &ddisk_dev->dma_buffer);
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &ddisk->dma_buffer_phys,
+	    &ddisk->dma_buffer);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate DMA memory.");
 		goto error;
 	}
 
 	ddf_msg(LVL_NOTE, "Allocated DMA buffer at %p virtual and %p physical.",
-	    ddisk_dev->dma_buffer, (void *) ddisk_dev->dma_buffer_phys);
+	    ddisk->dma_buffer, (void *) ddisk->dma_buffer_phys);
 
 	/*
 	 * Create an exposed function.
 	 */
-	rc = ddisk_fun_create(ddisk_dev);
+	rc = ddisk_fun_create(ddisk);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed initializing ddisk controller.");
 		rc = EIO;
@@ -498,7 +498,7 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	ddisk_irq_pio_ranges[0].base = res.base;
 	ddisk_irq_commands[0].addr = (void *) &res_phys->status;
 	ddisk_irq_commands[3].addr = (void *) &res_phys->command;
-	rc = register_interrupt_handler(dev, ddisk_dev->ddisk_res.irq,
+	rc = register_interrupt_handler(dev, ddisk->ddisk_res.irq,
 	    ddisk_irq_handler, &ddisk_irq_code);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
@@ -510,29 +510,29 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	 */
 	ddf_msg(LVL_NOTE,
 	    "Device at %p with %zd blocks (%zuB) using interrupt %d",
-	    (void *) ddisk_dev->ddisk_res.base, ddisk_dev->blocks,
-	    ddisk_dev->size, ddisk_dev->ddisk_res.irq);
+	    (void *) ddisk->ddisk_res.base, ddisk->blocks,
+	    ddisk->size, ddisk->ddisk_res.irq);
 
 	return EOK;
 
 error:
-	if (ddisk_dev->ddisk_regs)
-		pio_disable(ddisk_dev->ddisk_regs, sizeof(ddisk_regs_t));
-	if (ddisk_dev->dma_buffer)
-		dmamem_unmap_anonymous(ddisk_dev->dma_buffer);
+	if (ddisk->ddisk_regs)
+		pio_disable(ddisk->ddisk_regs, sizeof(ddisk_regs_t));
+	if (ddisk->dma_buffer)
+		dmamem_unmap_anonymous(ddisk->dma_buffer);
 
 	return rc;
 }
 
 
-static int ddisk_dev_remove_common(ddisk_dev_t *ddisk_dev, bool surprise)
+static int ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
 {
 	int rc;
 
 	if (!surprise)
-		rc = ddisk_fun_remove(ddisk_dev);
+		rc = ddisk_fun_remove(ddisk);
 	else
-		rc = ddisk_fun_unbind(ddisk_dev);
+		rc = ddisk_fun_unbind(ddisk);
 
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Unable to cleanup function '%s'.",
@@ -540,31 +540,31 @@ static int ddisk_dev_remove_common(ddisk_dev_t *ddisk_dev, bool surprise)
 		return rc;
 	}
 	
-	rc = pio_disable(ddisk_dev->ddisk_regs, sizeof(ddisk_regs_t));
+	rc = pio_disable(ddisk->ddisk_regs, sizeof(ddisk_regs_t));
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Unable to disable PIO.");
 		return rc;	
 	}
 
-	dmamem_unmap_anonymous(ddisk_dev->dma_buffer);
+	dmamem_unmap_anonymous(ddisk->dma_buffer);
 
 	return EOK;
 }
 
 static int ddisk_dev_remove(ddf_dev_t *dev)
 {
-	ddisk_dev_t *ddisk_dev = (ddisk_dev_t *) ddf_dev_data_get(dev);
+	ddisk_t *ddisk = (ddisk_t *) ddf_dev_data_get(dev);
 
 	ddf_msg(LVL_DEBUG, "ddisk_dev_remove(%p)", dev);
-	return ddisk_dev_remove_common(ddisk_dev, false);
+	return ddisk_dev_remove_common(ddisk, false);
 }
 
 static int ddisk_dev_gone(ddf_dev_t *dev)
 {
-	ddisk_dev_t *ddisk_dev = (ddisk_dev_t *) ddf_dev_data_get(dev);
+	ddisk_t *ddisk = (ddisk_t *) ddf_dev_data_get(dev);
 
 	ddf_msg(LVL_DEBUG, "ddisk_dev_gone(%p)", dev);
-	return ddisk_dev_remove_common(ddisk_dev, true);
+	return ddisk_dev_remove_common(ddisk, true);
 }
 
 static int ddisk_fun_online(ddf_fun_t *fun)
@@ -582,11 +582,11 @@ static int ddisk_fun_offline(ddf_fun_t *fun)
 /** Block device connection handler */
 static void ddisk_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	ddisk_dev_t *ddisk_dev;
+	ddisk_t *ddisk;
 	ddf_fun_t *fun = (ddf_fun_t *) arg;
 
-	ddisk_dev = (ddisk_dev_t *) ddf_dev_data_get(ddf_fun_get_dev(fun));
-	bd_conn(iid, icall, &ddisk_dev->bds);
+	ddisk = (ddisk_t *) ddf_dev_data_get(ddf_fun_get_dev(fun));
+	bd_conn(iid, icall, &ddisk->bds);
 }
 
 int main(int argc, char *argv[])
