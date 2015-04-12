@@ -539,6 +539,8 @@ static int ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
 		    DDISK_FUN_NAME);
 		return rc;
 	}
+
+	unregister_interrupt_handler(ddisk->dev, ddisk->ddisk_res.irq);
 	
 	rc = pio_disable(ddisk->ddisk_regs, sizeof(ddisk_regs_t));
 	if (rc != EOK) {
