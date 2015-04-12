@@ -95,14 +95,22 @@ typedef struct {
 
 typedef struct {
 	fibril_mutex_t lock;
+
 	fibril_condvar_t io_cv;
 	bool io_busy;
-	ddf_dev_t *dev;
-	ddf_fun_t *fun;
-	ddisk_res_t ddisk_res;
-	ddisk_regs_t *ddisk_regs;
+
+	ssize_t size;
+	size_t blocks;
+
 	uintptr_t dma_buffer_phys;
 	void *dma_buffer;
+
+	ddf_dev_t *dev;
+	ddf_fun_t *fun;
+
+	ddisk_res_t ddisk_res;
+	ddisk_regs_t *ddisk_regs;
+
 	bd_srvs_t bds;
 } ddisk_dev_t;
 
@@ -195,7 +203,7 @@ int ddisk_rw_block(ddisk_dev_t *ddisk_dev, bool read, aoff64_t ba, void *buf)
 	ddf_msg(LVL_DEBUG, "ddisk_rw_block(): read=%d, ba=%" PRId64 ", buf=%p",
 	    read, ba, buf);
 
-	if (ba >= pio_read_32(&ddisk_dev->ddisk_regs->size) / DDISK_BLOCK_SIZE)
+	if (ba >= ddisk_dev->blocks)
 		return ELIMIT;
 
 	while (ddisk_dev->io_busy)
@@ -267,7 +275,7 @@ int ddisk_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	ddisk_dev_t *ddisk_dev = (ddisk_dev_t *) bd->srvs->sarg;
 
-	*rnb = pio_read_32(&ddisk_dev->ddisk_regs->size) / DDISK_BLOCK_SIZE;
+	*rnb = ddisk_dev->blocks;
 	return EOK;	
 }
 
@@ -365,6 +373,7 @@ static int ddisk_fun_remove(ddisk_dev_t *ddisk_dev)
 	ddf_fun_destroy(ddisk_dev->fun);
 	ddisk_dev->fun = NULL;
 	rc = EOK;
+
 error:
 	return rc;
 }
@@ -404,12 +413,18 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	ddisk_res_t res;
 	int rc;
 
+	/*
+	 * Get our resources.
+	 */
 	rc = ddisk_get_res(dev, &res);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Invalid HW resource configuration.");
 		return EINVAL;
 	}
 
+	/*
+	 * Allocate soft state.
+	 */
 	ddisk_dev = ddf_dev_data_alloc(dev, sizeof(ddisk_dev_t));
 	if (!ddisk_dev) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
@@ -417,11 +432,19 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
+	/*
+	 * Initialize soft state.
+	 */
 	fibril_mutex_initialize(&ddisk_dev->lock);
-	fibril_condvar_initialize(&ddisk_dev->io_cv);
-	ddisk_dev->io_busy = false;
 	ddisk_dev->dev = dev;
 	ddisk_dev->ddisk_res = res;
+
+	fibril_condvar_initialize(&ddisk_dev->io_cv);
+	ddisk_dev->io_busy = false;
+
+	bd_srvs_init(&ddisk_dev->bds);
+	ddisk_dev->bds.ops = &ddisk_bd_ops;
+	ddisk_dev->bds.sarg = ddisk_dev;
 
 	/*
 	 * Enable access to ddisk's PIO registers.
@@ -434,7 +457,10 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	}
 	ddisk_dev->ddisk_regs = vaddr;
 
-	if ((int32_t) pio_read_32(&ddisk_dev->ddisk_regs->size) <= 0) {
+	ddisk_dev->size = (int32_t) pio_read_32(&ddisk_dev->ddisk_regs->size);
+	ddisk_dev->blocks = ddisk_dev->size / DDISK_BLOCK_SIZE;
+
+	if (ddisk_dev->size <= 0) {
 		ddf_msg(LVL_WARN, "No disk detected.");
 		rc = EIO;
 		goto error;
@@ -455,10 +481,9 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	ddf_msg(LVL_NOTE, "Allocated DMA buffer at %p virtual and %p physical.",
 	    ddisk_dev->dma_buffer, (void *) ddisk_dev->dma_buffer_phys);
 
-	bd_srvs_init(&ddisk_dev->bds);
-	ddisk_dev->bds.ops = &ddisk_bd_ops;
-	ddisk_dev->bds.sarg = ddisk_dev;
-
+	/*
+	 * Create an exposed function.
+	 */
 	rc = ddisk_fun_create(ddisk_dev);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed initializing ddisk controller.");
@@ -484,12 +509,9 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	 * Success, report what we have found.
 	 */
 	ddf_msg(LVL_NOTE,
-	    "Device at %p with %" PRIu32 " blocks (%" PRIu32
-	    "B) using interrupt %d",
-	    (void *) ddisk_dev->ddisk_res.base,
-	    pio_read_32(&ddisk_dev->ddisk_regs->size) / DDISK_BLOCK_SIZE,
-	    pio_read_32(&ddisk_dev->ddisk_regs->size),
-	    ddisk_dev->ddisk_res.irq);
+	    "Device at %p with %zd blocks (%zuB) using interrupt %d",
+	    (void *) ddisk_dev->ddisk_res.base, ddisk_dev->blocks,
+	    ddisk_dev->size, ddisk_dev->ddisk_res.irq);
 
 	return EOK;
 
@@ -498,6 +520,7 @@ error:
 		pio_disable(ddisk_dev->ddisk_regs, sizeof(ddisk_regs_t));
 	if (ddisk_dev->dma_buffer)
 		dmamem_unmap_anonymous(ddisk_dev->dma_buffer);
+
 	return rc;
 }
 
