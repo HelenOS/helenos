@@ -503,7 +503,7 @@ static int ieee80211_scan(void *arg)
 	
 	while(true) {
 		ieee80211_dev->ops->scan(ieee80211_dev);
-		async_usleep(35000000);
+		async_usleep(SCAN_PERIOD_USEC);
 	}
 	
 	return EOK;
@@ -576,9 +576,14 @@ static void ieee80211_send_frame(nic_t *nic, void *data, size_t size)
 	uint8_t add_data[8];
 	memset(add_data, 0, 8);
 	
+	// TODO: Distinguish used key (pair/group) by dest address ?
 	if(ieee80211_query_using_key(ieee80211_dev)) {
 		int sec_suite = auth_data->security.pair_alg;
 		switch(sec_suite) {
+			case IEEE80211_SECURITY_SUITE_TKIP:
+				add_size = IEEE80211_TKIP_HEADER_LENGTH;
+				// TODO: Add data?
+				break;
 			case IEEE80211_SECURITY_SUITE_CCMP:
 				add_size = IEEE80211_CCMP_HEADER_LENGTH;
 				add_data[3] = 0x20;
@@ -977,8 +982,9 @@ int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
 		sizeof(ieee80211_assoc_req_body_t) +
 		payload_size;
 	
-	if(auth_data->security.type == IEEE80211_SECURITY_WPA2) {
-		buffer_size += auth_link->rsn_copy_len;
+	if(auth_data->security.type == IEEE80211_SECURITY_WPA || 
+		auth_data->security.type == IEEE80211_SECURITY_WPA2) {
+		buffer_size += auth_link->auth_ie_len;
 	}
 	
 	void *buffer = malloc(buffer_size);
@@ -1016,8 +1022,9 @@ int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
 		assoc_body->capability |= host2uint16_t_le(CAP_SECURITY);
 	}
 	
-	if(auth_data->security.type == IEEE80211_SECURITY_WPA2) {
-		memcpy(it, auth_link->rsn_copy,	auth_link->rsn_copy_len);
+	if(auth_data->security.type == IEEE80211_SECURITY_WPA || 
+		auth_data->security.type == IEEE80211_SECURITY_WPA2) {
+		memcpy(it, auth_link->auth_ie,	auth_link->auth_ie_len);
 	}
 	
 	ieee80211_dev->ops->tx_handler(ieee80211_dev, buffer, buffer_size);
@@ -1036,6 +1043,8 @@ int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
 
 /** 
  * IEEE 802.11 deauthentication implementation.
+ * 
+ * Note: Expecting locked results_mutex or scan_mutex.
  * 
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  * 
@@ -1148,6 +1157,15 @@ static uint32_t uint32_from_uint8_seq(uint8_t *seq)
 	return (*seq << 24) + (*(seq+1) << 16) + (*(seq+2) << 8) + *(seq+3); 
 }
 
+static void copy_auth_ie(ieee80211_ie_header_t *ie_header,
+	ieee80211_scan_result_link_t *ap_data, void *it)
+{
+	ap_data->auth_ie_len = ie_header->length + 
+		sizeof(ieee80211_ie_header_t);
+	
+	memcpy(ap_data->auth_ie, it, ap_data->auth_ie_len);
+}
+
 static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_scan_result_link_t *ap_data, void *buffer, size_t buffer_size)
 {
@@ -1169,16 +1187,13 @@ static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
 					IEEE80211_SECURITY_WPA2;
 				ieee80211_process_auth_info(ap_data, 
 					it + sizeof(ieee80211_ie_header_t));
-				ap_data->rsn_copy_len = ie_header->length +
-					sizeof(ieee80211_ie_header_t);
-				memcpy(ap_data->rsn_copy, 
-					it, 
-					ap_data->rsn_copy_len);
+				copy_auth_ie(ie_header, ap_data, it);
 				break;
 			case IEEE80211_VENDOR_IE:
 				if(uint32_from_uint8_seq(it + 
 					sizeof(ieee80211_ie_header_t)) ==
 					WPA_OUI) {
+					/* Prefering WPA2. */
 					if(ap_data->scan_result.security.type ==
 						IEEE80211_SECURITY_WPA2) {
 						break;
@@ -1189,6 +1204,7 @@ static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
 						it + 
 						sizeof(ieee80211_ie_header_t) +
 						sizeof(uint32_t));
+					copy_auth_ie(ie_header, ap_data, it);
 				} else if(uint32_from_uint8_seq(it + 
 					sizeof(ieee80211_ie_header_t)) ==
 					GTK_OUI) {
@@ -1355,41 +1371,63 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_eapol_key_frame_t *key_frame = 
 		(ieee80211_eapol_key_frame_t *) buffer;
 	
-	bool handshake_done = false;
-		
-	ieee80211_scan_result_link_t *auth_link =
+	ieee80211_scan_result_link_t *auth_link = 
 		ieee80211_dev->bssid_info.res_link;
 
 	ieee80211_scan_result_t *auth_data = &auth_link->scan_result;
+	
+	/* We don't support 802.1X authentication yet. */
+	if(auth_data->security.auth == IEEE80211_AUTH_AKM_8021X) {
+		return ENOTSUP;
+	}
+	
 	uint8_t *ptk = ieee80211_dev->bssid_info.ptk;
 	uint8_t *gtk = ieee80211_dev->bssid_info.gtk;
 
+	bool handshake_done = false;
+	
+	bool old_wpa = 
+		auth_data->security.type == IEEE80211_SECURITY_WPA;
+	
+	bool key_phase =
+		uint16_t_be2host(key_frame->key_info) & 
+		IEEE80211_EAPOL_KEY_KEYINFO_MIC;
+	
+	bool final_phase = 
+		uint16_t_be2host(key_frame->key_info) & 
+		IEEE80211_EAPOL_KEY_KEYINFO_SECURE;
+	
+	bool ccmp_used = 
+		auth_data->security.pair_alg == IEEE80211_SECURITY_SUITE_CCMP ||
+		auth_data->security.group_alg == IEEE80211_SECURITY_SUITE_CCMP;
+	
 	size_t ptk_key_length, gtk_key_length;
-	hash_func_t hash_sel;
-	switch(auth_data->security.pair_alg) {
-		case IEEE80211_SECURITY_SUITE_CCMP:
-			ptk_key_length = IEEE80211_PTK_CCMP_LENGTH;
-			hash_sel = HASH_SHA1;
-			break;
-		default:
-			return ENOTSUP;
+	hash_func_t mic_hash;
+	if(ccmp_used) {
+		mic_hash = HASH_SHA1;
+	} else {
+		mic_hash = HASH_MD5;
 	}
-
-	switch(auth_data->security.group_alg) {
-		case IEEE80211_SECURITY_SUITE_CCMP:
-			gtk_key_length = IEEE80211_GTK_CCMP_LENGTH;
-			break;
-		default:
-			return ENOTSUP;
+	
+	if(auth_data->security.pair_alg == IEEE80211_SECURITY_SUITE_CCMP) {
+		ptk_key_length = IEEE80211_PTK_CCMP_LENGTH;
+	} else {
+		ptk_key_length = IEEE80211_PTK_TKIP_LENGTH;
 	}
-
+	
+	if(auth_data->security.group_alg == IEEE80211_SECURITY_SUITE_CCMP) {
+		gtk_key_length = IEEE80211_GTK_CCMP_LENGTH;
+	} else {
+		gtk_key_length = IEEE80211_GTK_TKIP_LENGTH;
+	}
+	
 	size_t output_size = 
 		sizeof(eth_header_t) +
 		sizeof(ieee80211_eapol_key_frame_t);
 
 	if(!(uint16_t_be2host(key_frame->key_info) & 
-		IEEE80211_EAPOL_KEY_KEYINFO_SECURE)) {
-		output_size += auth_link->rsn_copy_len;
+		IEEE80211_EAPOL_KEY_KEYINFO_MIC)) {
+		output_size += auth_link->auth_ie_len;
 	}
 
 	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
@@ -1414,20 +1452,14 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 		sizeof(ieee80211_eapol_key_frame_t));
 
 	output_key_frame->proto_version = 0x1;
-	output_key_frame->key_length = 0;
 	output_key_frame->body_length =
-		host2uint16_t_be(output_size - sizeof(eth_header_t)-4);
+		host2uint16_t_be(output_size - sizeof(eth_header_t) - 4);
 	output_key_frame->key_info &= 
 		~host2uint16_t_be(
 			IEEE80211_EAPOL_KEY_KEYINFO_ACK
 		);
 
-	/* 
-	 * Check if it is last or first incoming message in 4-way 
-	 * handshake. 
-	 */
-	if(uint16_t_be2host(key_frame->key_info) & 
-		IEEE80211_EAPOL_KEY_KEYINFO_SECURE) {
+	if(key_phase) {
 		output_key_frame->key_info &= 
 			~host2uint16_t_be(
 				IEEE80211_EAPOL_KEY_KEYINFO_ENCDATA
@@ -1437,28 +1469,41 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 				IEEE80211_EAPOL_KEY_KEYINFO_INSTALL
 			);
 		output_key_frame->key_data_length = 0;
-		output_key_frame->key_length = 0;
 		memset(output_key_frame->key_nonce, 0, 32);
 		memset(output_key_frame->key_mic, 0, 16);
 		memset(output_key_frame->key_rsc, 0, 8);
 		memset(output_key_frame->eapol_key_iv, 0, 16);
 
 		/* Derive GTK and save it. */
-		uint16_t key_data_length = 
-			uint16_t_be2host(key_frame->key_data_length);
-		uint16_t decrypt_len = key_data_length - 8;
-		uint8_t key_data[decrypt_len];
-		uint8_t *data_ptr = (uint8_t *) (buffer + 
-			sizeof(ieee80211_eapol_key_frame_t));
-		if(ieee80211_aes_key_unwrap(ptk + KEK_OFFSET, data_ptr,
-			key_data_length, key_data) == EOK) {
-			
-			uint8_t *key_ptr = ieee80211_process_ies(ieee80211_dev, 
-				NULL, key_data, decrypt_len);
+		if(final_phase) {
+			uint16_t key_data_length = 
+				uint16_t_be2host(key_frame->key_data_length);
+			uint8_t key_data[key_data_length];
+			uint8_t *data_ptr = (uint8_t *) (buffer + 
+				sizeof(ieee80211_eapol_key_frame_t));
 
-			if(key_ptr) {
-				memcpy(gtk, key_ptr, gtk_key_length);
-				handshake_done = true;
+			int rc;
+			uint8_t work_key[32];
+		
+			if(ccmp_used) {
+				rc = ieee80211_aes_key_unwrap(ptk + KEK_OFFSET, 
+					data_ptr, key_data_length, key_data);
+			} else {
+				memcpy(work_key, key_frame->eapol_key_iv, 16);
+				memcpy(work_key + 16, ptk + KEK_OFFSET, 16);
+				rc = ieee80211_rc4_key_unwrap(work_key, 
+					data_ptr, key_data_length, key_data);
+			}
+			
+			if(rc == EOK) {
+				uint8_t *key_ptr = old_wpa ? key_data :
+					ieee80211_process_ies(ieee80211_dev,
+					NULL, key_data, key_data_length);
+
+				if(key_ptr) {
+					memcpy(gtk, key_ptr, gtk_key_length);
+					handshake_done = true;
+				}
 			}
 		}
 	} else {
@@ -1467,18 +1512,18 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 				IEEE80211_EAPOL_KEY_KEYINFO_MIC
 			);
 		output_key_frame->key_data_length =
-			host2uint16_t_be(auth_link->rsn_copy_len);
+			host2uint16_t_be(auth_link->auth_ie_len);
 		memcpy((void *)output_key_frame + 
 			sizeof(ieee80211_eapol_key_frame_t),
-			auth_link->rsn_copy,
-			auth_link->rsn_copy_len);
+			auth_link->auth_ie,
+			auth_link->auth_ie_len);
 
 		/* Compute PMK. */
 		uint8_t pmk[PBKDF2_KEY_LENGTH];
 		pbkdf2((uint8_t *) ieee80211_dev->bssid_info.password,
 			str_size(ieee80211_dev->bssid_info.password),
 			(uint8_t *) auth_data->ssid,
-			str_size(auth_data->ssid), pmk, hash_sel);
+			str_size(auth_data->ssid), pmk);
 
 		uint8_t *anonce = key_frame->key_nonce;
 
@@ -1492,7 +1537,6 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 		uint8_t *src_addr = eth_header->src_addr;
 
 		/* Derive PTK and save it. */
-		uint8_t prf_result[ptk_key_length];
 		uint8_t crypt_data[PRF_CRYPT_DATA_LENGTH];
 		memcpy(crypt_data, 
 			min_sequence(dest_addr, src_addr, ETH_ADDR), 
@@ -1506,14 +1550,13 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 		memcpy(crypt_data + 2*ETH_ADDR + 32, 
 			max_sequence(anonce, snonce, 32),
 			32);
-		ieee80211_prf(pmk, crypt_data, prf_result, hash_sel);
-		memcpy(ptk, prf_result, ptk_key_length);
+		ieee80211_prf(pmk, crypt_data, ptk, ptk_key_length);
 	}
 
 	/* Compute MIC of key frame data from KCK part of PTK. */
-	uint8_t mic[hash_sel];
+	uint8_t mic[mic_hash];
 	hmac(ptk, 16, (uint8_t *) output_key_frame, 
-		output_size - sizeof(eth_header_t), mic, hash_sel);
+		output_size - sizeof(eth_header_t), mic, mic_hash);
 
 	memcpy(output_key_frame->key_mic, mic, 16);
 
@@ -1521,9 +1564,10 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 
 	free(output_buffer);
 
-	if(handshake_done) {
-		/* Insert Pairwise key. */
-		ieee80211_key_config_t key_config;
+	ieee80211_key_config_t key_config;
+	
+	/* Insert Pairwise key. */
+	if((key_phase && old_wpa) || (final_phase && !old_wpa)) {
 		key_config.suite = auth_data->security.pair_alg;
 		key_config.flags =
 			IEEE80211_KEY_FLAG_TYPE_PAIRWISE;
@@ -1533,8 +1577,10 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 
 		ieee80211_dev->ops->key_config(ieee80211_dev,
 			&key_config, true);
-		
-		/* Insert Group key. */
+	}
+	
+	/* Insert Group key. */
+	if(final_phase) {
 		key_config.suite = auth_data->security.group_alg;
 		key_config.flags =
 			IEEE80211_KEY_FLAG_TYPE_GROUP;
@@ -1542,8 +1588,10 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 
 		ieee80211_dev->ops->key_config(ieee80211_dev,
 			&key_config, true);
+	}
 
-		/* Signal successful handshake completion. */
+	/* Signal successful handshake completion. */
+	if(handshake_done) {
 		fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 		fibril_condvar_signal(&ieee80211_dev->gen_cond);
 		fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
@@ -1585,7 +1633,9 @@ static int ieee80211_process_data(ieee80211_dev_t *ieee80211_dev,
 		size_t strip_length = sizeof(ieee80211_data_header_t) + 
 			ARRAY_SIZE(rfc1042_header);
 		
-		/* TODO: Probably different by used security alg. */
+		/* TODO: Different by used security alg. */
+		/* TODO: Trim frame by used security alg. */
+		// TODO: Distinguish used key (pair/group) by dest address ?
 		if(ieee80211_is_encrypted_frame(data_header->frame_ctrl)) {
 			strip_length += 8;
 		}

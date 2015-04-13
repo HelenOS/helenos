@@ -439,7 +439,7 @@ static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 		
 		uint32_t key[5];
 		uint32_t key_type;
-		uint32_t reg_ptr;
+		uint32_t reg_ptr, mic_reg_ptr;
 		void *data_start;
 		
 		nic_address_t bssid;
@@ -464,39 +464,36 @@ static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 		
 		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_PAIRWISE) {
 			reg_ptr = AR9271_KEY_TABLE_STA;
+			mic_reg_ptr = AR9271_KEY_TABLE_MIC_STA;
 		} else {
 			reg_ptr = AR9271_KEY_TABLE_GRP;
+			mic_reg_ptr = AR9271_KEY_TABLE_MIC_GRP;
 		}
 		
-		if(key_conf->suite == IEEE80211_SECURITY_SUITE_TKIP) {
-			// TODO
-		} else {
-			data_start = (void *) key_conf->data;
-			
-			key[0] = uint32_t_le2host(
-				*((uint32_t *) data_start));
-			key[1] = uint16_t_le2host(
-				*((uint16_t *) (data_start + 4)));
-			key[2] = uint32_t_le2host(
-				*((uint32_t *) (data_start + 6)));
-			key[3] = uint16_t_le2host(
-				*((uint16_t *) (data_start + 10)));
-			key[4] = uint32_t_le2host(
-				*((uint32_t *) (data_start + 12)));
-			
-			if(key_conf->suite == IEEE80211_SECURITY_SUITE_WEP40 ||
-			   key_conf->suite == IEEE80211_SECURITY_SUITE_WEP104) {
-				key[4] &= 0xFF;
-			}
-			
-			wmi_reg_write(ar9271->htc_device, reg_ptr + 0, key[0]);
-			wmi_reg_write(ar9271->htc_device, reg_ptr + 4, key[1]);
-			wmi_reg_write(ar9271->htc_device, reg_ptr + 8, key[2]);
-			wmi_reg_write(ar9271->htc_device, reg_ptr + 12, key[3]);
-			wmi_reg_write(ar9271->htc_device, reg_ptr + 16, key[4]);
-			wmi_reg_write(ar9271->htc_device, reg_ptr + 20, 
-				key_type);
+		data_start = (void *) key_conf->data;
+		
+		key[0] = uint32_t_le2host(
+			*((uint32_t *) data_start));
+		key[1] = uint16_t_le2host(
+			*((uint16_t *) (data_start + 4)));
+		key[2] = uint32_t_le2host(
+			*((uint32_t *) (data_start + 6)));
+		key[3] = uint16_t_le2host(
+			*((uint16_t *) (data_start + 10)));
+		key[4] = uint32_t_le2host(
+			*((uint32_t *) (data_start + 12)));
+
+		if(key_conf->suite == IEEE80211_SECURITY_SUITE_WEP40 ||
+		   key_conf->suite == IEEE80211_SECURITY_SUITE_WEP104) {
+			key[4] &= 0xFF;
 		}
+		
+		wmi_reg_write(ar9271->htc_device, reg_ptr + 0, key[0]);
+		wmi_reg_write(ar9271->htc_device, reg_ptr + 4, key[1]);
+		wmi_reg_write(ar9271->htc_device, reg_ptr + 8, key[2]);
+		wmi_reg_write(ar9271->htc_device, reg_ptr + 12, key[3]);
+		wmi_reg_write(ar9271->htc_device, reg_ptr + 16, key[4]);
+		wmi_reg_write(ar9271->htc_device, reg_ptr + 20, key_type);
 		
 		uint32_t macL, macH;
 		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_PAIRWISE) {
@@ -515,6 +512,47 @@ static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 		
 		wmi_reg_write(ar9271->htc_device, reg_ptr + 24, macL);
 		wmi_reg_write(ar9271->htc_device, reg_ptr + 28, macH);
+		
+		/* Setup MIC keys for TKIP. */
+		if(key_conf->suite == IEEE80211_SECURITY_SUITE_TKIP) {
+			uint32_t mic[5];
+			uint8_t *gen_mic = 
+				data_start + IEEE80211_TKIP_RX_MIC_OFFSET;
+			uint8_t *tx_mic;
+			if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_GROUP) {
+				tx_mic = gen_mic;
+			} else {
+				tx_mic = data_start + 
+					IEEE80211_TKIP_TX_MIC_OFFSET;
+			}
+			
+			mic[0] = uint32_t_le2host(
+				*((uint32_t *) gen_mic));
+			mic[1] = uint16_t_le2host(
+				*((uint16_t *) (tx_mic + 2))) & 0xFFFF;
+			mic[2] = uint32_t_le2host(
+				*((uint32_t *) (gen_mic + 4)));
+			mic[3] = uint16_t_le2host(
+				*((uint16_t *) tx_mic)) & 0xFFFF;
+			mic[4] = uint32_t_le2host(
+				*((uint32_t *) (tx_mic + 4)));
+			
+			wmi_reg_write(ar9271->htc_device, mic_reg_ptr + 0, 
+				mic[0]);
+			wmi_reg_write(ar9271->htc_device, mic_reg_ptr + 4, 
+				mic[1]);
+			wmi_reg_write(ar9271->htc_device, mic_reg_ptr + 8, 
+				mic[2]);
+			wmi_reg_write(ar9271->htc_device, mic_reg_ptr + 12, 
+				mic[3]);
+			wmi_reg_write(ar9271->htc_device, mic_reg_ptr + 16, 
+				mic[4]);
+			wmi_reg_write(ar9271->htc_device, mic_reg_ptr + 20, 
+				AR9271_KEY_TABLE_TYPE_CLR);
+			
+			wmi_reg_write(ar9271->htc_device, mic_reg_ptr + 24, 0);
+			wmi_reg_write(ar9271->htc_device, mic_reg_ptr + 28, 0);
+		}
 		
 		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_GROUP)
 			ieee80211_setup_key_confirm(ieee80211_dev, true);

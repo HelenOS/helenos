@@ -52,7 +52,9 @@ extern int ieee80211_key_config_impl(ieee80211_dev_t *ieee80211_dev,
 	ieee80211_key_config_t *key_conf, bool insert);
 extern int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev);
 extern int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash, 
-	hash_func_t hash_sel);
+	size_t output_size);
+extern int ieee80211_rc4_key_unwrap(uint8_t *key, uint8_t *data, 
+	size_t data_size, uint8_t *output);
 extern int ieee80211_aes_key_unwrap(uint8_t *kek, uint8_t *data, 
 	size_t data_size, uint8_t *output);
 extern int rnd_sequence(uint8_t *sequence, size_t length);

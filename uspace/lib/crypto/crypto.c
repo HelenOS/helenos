@@ -251,7 +251,7 @@ int create_hash(uint8_t *input, size_t input_size, uint8_t *output,
 }
 
 /**
- * Hash-based message authentication code using SHA-1 algorithm.
+ * Hash-based message authentication code.
  * 
  * @param key Cryptographic key sequence.
  * @param key_size Size of key sequence.
@@ -307,20 +307,19 @@ int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size,
 /**
  * Password-Based Key Derivation Function 2 as defined in RFC 2898,
  * using HMAC-SHA1 with 4096 iterations and 32 bytes key result used
- * for WPA2.
+ * for WPA/WPA2.
  * 
  * @param pass Password sequence.
  * @param pass_size Password sequence length.
  * @param salt Salt sequence to be used with password.
  * @param salt_size Salt sequence length.
  * @param hash Output parameter for result hash (32 byte value).
- * @param hash_sel Hash function selector.
  * 
  * @return EINVAL when pass or salt not specified, ENOMEM when pointer for 
  * output hash result is not allocated, otherwise EOK.
  */
 int pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, size_t salt_size, 
-	uint8_t *hash, hash_func_t hash_sel)
+	uint8_t *hash)
 {
 	if(!pass || !salt)
 		return EINVAL;
@@ -330,26 +329,26 @@ int pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, size_t salt_size,
 	
 	uint8_t work_salt[salt_size + sizeof(uint32_t)];
 	memcpy(work_salt, salt, salt_size);
-	uint8_t work_hmac[hash_sel];
-	uint8_t temp_hmac[hash_sel];
-	uint8_t xor_hmac[hash_sel];
-	uint8_t temp_hash[hash_sel*2];
+	uint8_t work_hmac[HASH_SHA1];
+	uint8_t temp_hmac[HASH_SHA1];
+	uint8_t xor_hmac[HASH_SHA1];
+	uint8_t temp_hash[HASH_SHA1*2];
 	
 	for(size_t i = 0; i < 2; i++) {
 		uint32_t big_i = host2uint32_t_be(i+1);
 		memcpy(work_salt + salt_size, &big_i, sizeof(uint32_t));
 		hmac(pass, pass_size, work_salt, salt_size + sizeof(uint32_t),
-			work_hmac, hash_sel);
-		memcpy(xor_hmac, work_hmac, hash_sel);
+			work_hmac, HASH_SHA1);
+		memcpy(xor_hmac, work_hmac, HASH_SHA1);
 		for(size_t k = 1; k < 4096; k++) {
-			memcpy(temp_hmac, work_hmac, hash_sel);
-			hmac(pass, pass_size, temp_hmac, hash_sel, 
-				work_hmac, hash_sel);
-			for(size_t t = 0; t < hash_sel; t++) {
+			memcpy(temp_hmac, work_hmac, HASH_SHA1);
+			hmac(pass, pass_size, temp_hmac, HASH_SHA1, 
+				work_hmac, HASH_SHA1);
+			for(size_t t = 0; t < HASH_SHA1; t++) {
 				xor_hmac[t] ^= work_hmac[t];
 			}
 		}
-		memcpy(temp_hash + i*hash_sel, xor_hmac, hash_sel);
+		memcpy(temp_hash + i*HASH_SHA1, xor_hmac, HASH_SHA1);
 	}
 	
 	memcpy(hash, temp_hash, PBKDF2_KEY_LENGTH);

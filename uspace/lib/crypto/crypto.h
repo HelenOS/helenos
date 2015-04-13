@@ -40,8 +40,8 @@ typedef enum {
 	HASH_SHA1 =	20
 } hash_func_t;
 
-extern int rc4(uint8_t *key, size_t key_size, uint8_t *input, 
-	size_t input_size, uint8_t *output);
+extern int rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size, 
+	size_t skip, uint8_t *output);
 extern int aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output);
 extern int aes_decrypt(uint8_t *key, uint8_t *input, uint8_t *output);
 extern int create_hash(uint8_t *input, size_t input_size, uint8_t *output, 
@@ -49,6 +49,6 @@ extern int create_hash(uint8_t *input, size_t input_size, uint8_t *output,
 extern int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size, 
 	uint8_t *hash, hash_func_t hash_sel);
 extern int pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, 
-	size_t salt_size, uint8_t *hash, hash_func_t hash_sel);
+	size_t salt_size, uint8_t *hash);
 
 #endif

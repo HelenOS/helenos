@@ -81,6 +81,11 @@ typedef enum {
 	IEEE80211_KEY_FLAG_TYPE_GROUP = 0x02
 } ieee80211_key_flags_t;
 
+typedef enum {
+	IEEE80211_TKIP_TX_MIC_OFFSET = 16,
+	IEEE80211_TKIP_RX_MIC_OFFSET = 24
+} ieee80211_tkip_mic_offset_t;
+
 /** Key config structure. */
 typedef struct {
 	uint8_t id;

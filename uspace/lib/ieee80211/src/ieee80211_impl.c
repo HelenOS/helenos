@@ -164,18 +164,19 @@ int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)
 }
 
 /**
- * Pseudorandom function used for IEEE 802.11 pairwise key computation.
+ * Pseudorandom function used for IEEE 802.11 pairwise key computation
+ * using SHA1 hash algorithm.
  * 
  * @param key Key with PBKDF2 encrypted passphrase.
  * @param data Concatenated sequence of both mac addresses and nonces.
- * @param hash Output parameter for result hash (48 byte value).
- * @param hash_sel Hash function selector.
+ * @param hash Output parameter for result hash.
+ * @param output_size Length of output sequence to be generated.
  * 
  * @return EINVAL when key or data not specified, ENOMEM when pointer for 
  * output hash result is not allocated, otherwise EOK. 
  */
 int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash, 
-	hash_func_t hash_sel)
+	size_t output_size)
 {
 	if(!key || !data)
 		return EINVAL;
@@ -183,13 +184,11 @@ int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
 	if(!hash)
 		return ENOMEM;
 	
-	size_t result_length = (hash_sel == HASH_MD5) ? 
-		IEEE80211_PTK_TKIP_LENGTH : IEEE80211_PTK_CCMP_LENGTH;
-	size_t iters = ((result_length * 8) + 159) / 160;
+	size_t iters = ((output_size * 8) + 159) / 160;
 	
 	const char *a = "Pairwise key expansion";
-	uint8_t result[hash_sel*iters];
-	uint8_t temp[hash_sel];
+	uint8_t result[HASH_SHA1*iters];
+	uint8_t temp[HASH_SHA1];
 	size_t data_size = PRF_CRYPT_DATA_LENGTH + str_size(a) + 2;
 	uint8_t work_arr[data_size];
 	memset(work_arr, 0, data_size);
@@ -200,13 +199,19 @@ int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
 	for(uint8_t i = 0; i < iters; i++) {
 		memcpy(work_arr + data_size - 1, &i, 1);
 		hmac(key, PBKDF2_KEY_LENGTH, work_arr, data_size, temp, 
-			hash_sel);
-		memcpy(result + i*hash_sel, temp, hash_sel);
+			HASH_SHA1);
+		memcpy(result + i*HASH_SHA1, temp, HASH_SHA1);
 	}
 	
-	memcpy(hash, result, result_length);
+	memcpy(hash, result, output_size);
 	
 	return EOK;
+}
+
+int ieee80211_rc4_key_unwrap(uint8_t *key, uint8_t *data, size_t data_size,
+	uint8_t *output)
+{
+	return rc4(key, 32, data, data_size, 256, output);
 }
 
 int ieee80211_aes_key_unwrap(uint8_t *kek, uint8_t *data, size_t data_size,
@@ -229,7 +234,7 @@ int ieee80211_aes_key_unwrap(uint8_t *kek, uint8_t *data, size_t data_size,
 	uint8_t shift, shb;
 	
 	memcpy(work_data, data + 8, n*8);
-	for(int j = 5; j >=0; j--) {
+	for(int j = 5; j >= 0; j--) {
 		for(int i = n; i > 0; i--) {
 			for(size_t k = 0; k < 8; k++) {
 				shift = 56 - 8*k;

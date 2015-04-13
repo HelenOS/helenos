@@ -51,7 +51,7 @@
 #define AUTH_TIMEOUT 200000
 
 /* Timeout in us for waiting to finish 4-way handshake process. */
-#define HANDSHAKE_TIMEOUT 3000000
+#define HANDSHAKE_TIMEOUT 5000000
 
 /* Scanning period. */
 #define SCAN_PERIOD_USEC 35000000
@@ -86,14 +86,23 @@
 /* TK offset inside PTK. */
 #define TK_OFFSET 32
 
-/* Length of CCMP header we need to reserve. */
-#define IEEE80211_CCMP_HEADER_LENGTH 8
-
 /* 
  * Length of data to be encrypted by PRF function:
  * NONCE + SNONCE (2 * 32) + DEST_MAC + SOURCE_MAC (2 * ETH_ADDR) 
  */
 #define PRF_CRYPT_DATA_LENGTH 2*32 + 2*ETH_ADDR
+
+/* Special room in header reserved for encryption. */
+typedef enum {
+	IEEE80211_TKIP_HEADER_LENGTH = 8,
+	IEEE80211_CCMP_HEADER_LENGTH = 8
+} ieee80211_encrypt_header_reserve_length_t;
+
+/* Special room in footer reserved for encryption. */
+typedef enum {
+	IEEE80211_TKIP_FOOTER_LENGTH = 4,
+	IEEE80211_CCMP_FOOTER_LENGTH = 8
+} ieee80211_encrypt_footer_reserve_length_t;
 
 /** IEEE 802.11 PTK key length. */
 typedef enum {
@@ -198,8 +207,8 @@ typedef struct {
 	link_t link;
 	time_t last_beacon;
 	ieee80211_scan_result_t scan_result;
-	uint8_t rsn_copy[256];
-	size_t rsn_copy_len;
+	uint8_t auth_ie[256];
+	size_t auth_ie_len;
 } ieee80211_scan_result_link_t;
 
 /** List of scan results info. */

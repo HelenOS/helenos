@@ -81,13 +81,14 @@ static void create_sbox(uint8_t *key, size_t key_size, uint8_t *sbox)
  * @param key_size Size of key sequence.
  * @param input Input data sequence to be processed.
  * @param input_size Size of input data sequence.
+ * @param skip Number of bytes to be skipped from the beginning of key stream.
  * @param output Result data sequence.
  * 
  * @return EINVAL when input or key not specified, ENOMEM when pointer for 
  * output is not allocated, otherwise EOK.  
  */
 int rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size, 
-	uint8_t *output)
+	size_t skip, uint8_t *output)
 {
 	if(!key || !input)
 		return EINVAL;
@@ -99,8 +100,16 @@ int rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size,
 	uint8_t sbox[SBOX_SIZE];
 	create_sbox(key, key_size, sbox);
 	
+	/* Skip first x bytes. */
+	uint8_t i = 0, j = 0;
+	for(size_t k = 0; k < skip; k++) {
+		i = i+1;
+		j = j + sbox[i];
+		swap(i, j, sbox);
+	}
+	
 	/* Processing loop. */
-	uint8_t i = 0, j = 0, val;
+	uint8_t val;
 	for(size_t k = 0; k < input_size; k++) {
 		i = i+1;
 		j = j + sbox[i];

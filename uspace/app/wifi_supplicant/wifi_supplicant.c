@@ -186,7 +186,7 @@ static int wifi_connect(uint32_t index, char *ssid_start, char *password)
 		return rc;
 	}
 	
-	ieee80211_connect(sess, ssid_start, password);
+	rc = ieee80211_connect(sess, ssid_start, password);
 	if(rc != EOK) {
 		if(rc == EREFUSED) {
 			printf("Device is not ready yet.\n");			
