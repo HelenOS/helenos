@@ -21,9 +21,9 @@ static int sysman_create_closure_jobs(unit_t *unit, job_t **entry_job_ptr,
 
 	job->unit = unit;
 
-	list_foreach(unit->dependencies, dependencies, unit_dependency_t, edge) {
+	list_foreach(unit->dependencies, dependencies, unit_dependency_t, dep) {
 		job_t *blocking_job = NULL;
-		rc = sysman_create_closure_jobs(edge->dependency, &blocking_job,
+		rc = sysman_create_closure_jobs(dep->dependency, &blocking_job,
 		    accumulator, type);
 		if (rc != EOK) {
 			goto fail;
@@ -54,6 +54,7 @@ int sysman_unit_start(unit_t *unit)
 	list_initialize(&new_jobs);
 
 	job_t *job = NULL;
+	// TODO shouldn't be here read-lock on configuration?
 	int rc = sysman_create_closure_jobs(unit, &job, &new_jobs, JOB_START);
 	if (rc != EOK) {
 		return rc;

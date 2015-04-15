@@ -28,7 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -I. -I./units
+LIBS = $(LIBCONF_PREFIX)/libconf.a
+EXTRA_CFLAGS += -I. -I./units -I$(LIBCONF_PREFIX)/include
 BINARY = sysman
 STATIC_NEEDED = y
 
@@ -40,7 +41,8 @@ SOURCES = \
 	sysman.c \
 	unit.c \
 	units/unit_cfg.c \
-	units/unit_mnt.c  \
-	units/unit_tgt.c
+	units/unit_mnt.c \
+	units/unit_tgt.c \
+	util.c
 
 include $(USPACE_PREFIX)/Makefile.common

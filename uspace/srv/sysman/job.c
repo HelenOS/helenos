@@ -136,7 +136,7 @@ int job_queue_jobs(list_t *jobs)
 	}
 
 	/* Enqueue jobs */
-	list_foreach_safe(*jobs, cur_link, next_lin) {
+	list_foreach_safe(*jobs, cur_link, next_link) {
 		list_remove(cur_link);
 		list_append(cur_link, &job_queue);
 	}

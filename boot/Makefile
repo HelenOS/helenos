@@ -69,6 +69,7 @@ ifeq ($(CONFIG_DEVEL_FILES), y)
 	cp -L "$(LIBGCC_PATH)" "$(DIST_PATH)/lib/"
 endif
 
+	cp -r -L $(INITRD_CFG_PATH)/* $(DIST_PATH)/cfg
 	for app in $(RD_APPS) ; do \
 		app_dir="`dirname "$$app"`" ; \
 		app_name="`basename "$$app"`" ; \

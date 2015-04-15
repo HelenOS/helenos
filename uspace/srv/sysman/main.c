@@ -35,28 +35,33 @@ static int sysman_entry_point(void *arg) {
 		result = ENOMEM;
 		goto fail;
 	}
+	mnt_initrd->name                 = str_dup("initrd.mnt");
 	// TODO Use RDFMT
-	mnt_initrd->data.mnt.type       = str_dup("ext4fs");
-	mnt_initrd->data.mnt.mountpoint = str_dup("/");
-	mnt_initrd->data.mnt.device     = str_dup("bd/initrd");
+	CAST_MNT(mnt_initrd)->type       = str_dup("ext4fs");
+	CAST_MNT(mnt_initrd)->mountpoint = str_dup("/");
+	CAST_MNT(mnt_initrd)->device     = str_dup("bd/initrd");
 
 	cfg_init = unit_create(UNIT_CONFIGURATION);
 	if (cfg_init == NULL) {
 		result = ENOMEM;
 		goto fail;
 	}
-	cfg_init->data.cfg.path = str_dup("/cfg/");
+	cfg_init->name           = str_dup("init.cfg");
+	CAST_CFG(cfg_init)->path = str_dup("/cfg/sysman");
 	
 	tgt_default = unit_create(UNIT_TARGET);
 	if (tgt_default == NULL) {
 		result = ENOMEM;
 		goto fail;
 	}
+	tgt_default->name = str_dup("default.tgt");
 	
 
 	/*
 	 * Add units to configuration and start the default target.
 	 */
+	configuration_start_update();
+
 	configuration_add_unit(mnt_initrd);
 	configuration_add_unit(cfg_init);
 	configuration_add_unit(tgt_default);

@@ -1,8 +1,12 @@
 #ifndef SYSMAN_UNIT_TGT_H
 #define SYSMAN_UNIT_TGT_H
 
-#include "unit_types.h"
+#include "unit.h"
 
-extern unit_ops_t unit_tgt_ops;
+typedef struct {
+	unit_t unit;
+} unit_tgt_t;
+
+extern unit_vmt_t unit_tgt_ops;
 
 #endif
