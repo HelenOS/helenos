@@ -1297,6 +1297,54 @@ uint32_t ext4_superblock_get_inodes_in_group(ext4_superblock_t *sb, uint32_t bgi
 		return (total_inodes - ((block_group_count - 1) * inodes_per_group));
 }
 
+/** Get the backup groups used with SPARSE_SUPER2
+ *
+ * @param sb    Pointer to the superblock
+ * @param g1    Output pointer to the first backup group
+ * @param g2    Output pointer to the second backup group
+ */
+void ext4_superblock_get_backup_groups_sparse2(ext4_superblock_t *sb,
+    uint32_t *g1, uint32_t *g2)
+{
+	*g1 = uint32_t_le2host(sb->backup_bgs[0]);
+	*g2 = uint32_t_le2host(sb->backup_bgs[1]);
+}
+
+/** Set the backup groups (SPARSE SUPER2)
+ *
+ * @param sb    Pointer to the superblock
+ * @param g1    Index of the first group
+ * @param g2    Index of the second group
+ */
+void ext4_superblock_set_backup_groups_sparse2(ext4_superblock_t *sb,
+    uint32_t g1, uint32_t g2)
+{
+	sb->backup_bgs[0] = host2uint32_t_le(g1);
+	sb->backup_bgs[1] = host2uint32_t_le(g2);
+}
+
+/** Get the number of blocks (per group) reserved to GDT expansion
+ *
+ * @param sb    Pointer to the superblock
+ *
+ * @return      Number of blocks
+ */
+uint32_t ext4_superblock_get_reserved_gdt_blocks(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->reserved_gdt_blocks);
+}
+
+/** Set the number of blocks (per group) reserved to GDT expansion
+ *
+ * @param sb    Pointer to the superblock
+ * @param n     Number of reserved blocks
+ */
+void ext4_superblock_set_reserved_gdt_blocks(ext4_superblock_t *sb,
+    uint32_t n)
+{
+	sb->reserved_gdt_blocks = host2uint32_t_le(n);
+}
+
 /**
  * @}
  */
