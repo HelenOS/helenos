@@ -110,4 +110,24 @@ static inline size_t hash_combine(size_t seed, size_t hash)
 	return seed;
 }
 
+/** Calculate hash of NULL-terminated string
+ *
+ * TODO Modify also same file in kernel subtree?
+ *
+ * @param[in]  str     NULL-terminated string (not NULL)
+ */
+static inline size_t hash_string(const char *str)
+{
+	/*
+	 * Using djb2 function
+	 * http://www.cse.yorku.ca/~oz/hash.html
+	 */
+	size_t hash = 5381;
+	char c;
+	while ((c = *str++)) {
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+	}
+	return hash;
+}
+
 #endif
