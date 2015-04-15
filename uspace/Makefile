@@ -241,6 +241,7 @@ DIRS += \
 	lib/gui \
 	lib/hound \
 	lib/http \
+	lib/conf \
 	lib/softrend \
 	lib/draw \
 	lib/label \

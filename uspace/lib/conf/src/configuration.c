@@ -1,0 +1,99 @@
+#include "conf/configuration.h"
+
+#include <assert.h>
+#include <errno.h>
+#include <str.h>
+
+static int config_load_item(config_item_t *config_item,
+    ini_item_iterator_t *it, void *dst, text_parse_t *parse)
+{
+	size_t cnt = 0;
+	void *field_dst = (char *)dst + config_item->offset;
+	bool has_error = false;
+
+	for (; ini_item_iterator_valid(it); ini_item_iterator_inc(it), ++cnt) {
+		const char *string = ini_item_iterator_value(it);
+		const size_t lineno = ini_item_iterator_lineno(it);
+		has_error = has_error ||
+		    config_item->parse(string, field_dst, parse, lineno);
+	}
+
+	if (cnt == 0) {
+		if (config_item->default_value == NULL) {
+			return ENOENT;
+		}
+		bool result = config_item->parse(config_item->default_value,
+		    field_dst, parse, 0);
+		/* Default string should be always correct */
+		assert(result);
+	}
+
+	return has_error ? EINVAL : EOK;
+}
+
+/** Process INI section as values to a structure
+ *
+ * @param[in]  specification  Mark-terminated array of config_item_t specifying
+ *                            available configuration values. The mark is value
+ *                            whose name is NULL, you can use
+ *                            CONFIGURATION_ITEM_SENTINEL.
+ * @param[in]  section        INI section with raw string data
+ * @param[out] dst            pointer to structure that holds parsed values
+ * @param[out] parse          structure for recording any parsing errors
+ *
+ * @return EOK on success
+ * @return EINVAL on any parsing errors (details in parse structure)
+ */
+int config_load_ini_section(config_item_t *specification,
+    ini_section_t *section, void *dst, text_parse_t *parse)
+{
+	bool has_error = false;
+
+	config_item_t *config_item = specification;
+	while (config_item->name != NULL) {
+		ini_item_iterator_t iterator =
+		    ini_section_get_iterator(section, config_item->name);
+
+		int rc = config_load_item(config_item, &iterator, dst, parse);
+		switch (rc) {
+		case ENOENT:
+			has_error = true;
+			text_parse_raise_error(parse, section->lineno,
+			    CONFIGURATION_EMISSING_ITEM);
+			break;
+		case EINVAL:
+			has_error = true;
+			/* Parser should've raised proper errors */
+			break;
+		case EOK:
+			/* empty (nothing to do) */
+			break;
+		default:
+			assert(false);
+		}
+
+		++config_item;
+	}
+
+	return has_error ? EOK : EINVAL;
+}
+
+/** Parse string (copy) to destination
+ *
+ * @param[out]  dst      pointer to char * where dedicated copy will be stored
+ *
+ * @return  true   on success
+ * @return  false  on error (typically low memory)
+ */
+bool config_parse_string(const char *string, void *dst, text_parse_t *parse,
+    size_t lineno)
+{
+	char *my_string = str_dup(string);
+	if (my_string) {
+		return false;
+	}
+
+	char **char_dst = dst;
+	*char_dst = my_string;
+	return true;
+}
