@@ -423,7 +423,7 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 		return rc;
 	}
 	
-	/* Inititialize in-memory representation */
+	/* Initialize in-memory representation */
 	newref->block_group = newref->block->data + offset;
 	newref->fs = fs;
 	newref->index = bgid;
