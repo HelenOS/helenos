@@ -63,6 +63,7 @@ extern int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *,
 extern int ext4_filesystem_release_inode_block(ext4_inode_ref_t *, uint32_t);
 extern int ext4_filesystem_append_inode_block(ext4_inode_ref_t *, uint32_t *,
     uint32_t *);
+uint32_t ext4_block_group_get_backup_blocks(ext4_block_group_ref_t *bg);
 
 #endif
 

@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <malloc.h>
 #include <ipc/vfs.h>
+#include <align.h>
 #include "libext4.h"
 
 /** Initialize filesystem and read all needed data.
@@ -520,6 +521,100 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 	}
 	
 	return crc;
+}
+
+/* Check if n is a power of p */
+static bool is_power_of(uint32_t n, unsigned p)
+{
+	if (p == 1 && n != p)
+		return false;
+
+	while (n != p) {
+		if (n < p)
+			return false;
+		else if ((n % p) != 0)
+			return false;
+
+		n /= p;
+	}
+
+	return true;
+}
+
+/** Get the number of blocks used by superblock + gdt + reserved gdt backups
+ *
+ * @param bg    Pointer to block group
+ *
+ * @return      Number of blocks
+ */
+uint32_t ext4_block_group_get_backup_blocks(ext4_block_group_ref_t *bg)
+{
+	uint32_t const idx = bg->index;
+	uint32_t r = 0;
+	bool has_backups = false;
+	ext4_superblock_t *sb = bg->fs->superblock;
+
+	/* First step: determine if the block group contains the backups */
+
+	if (idx <= 1)
+		has_backups = true;
+	else {
+		if (ext4_superblock_has_feature_compatible(sb,
+		    EXT4_FEATURE_COMPAT_SPARSE_SUPER2)) {
+			uint32_t g1, g2;
+
+			ext4_superblock_get_backup_groups_sparse2(sb,
+			    &g1, &g2);
+
+			if (idx == g1 || idx == g2)
+				has_backups = true;
+		} else if (!ext4_superblock_has_feature_read_only(sb,
+		    EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER)) {
+			/* Very old fs were all block groups have
+			 * superblock and block descriptors backups.
+			 */
+			has_backups = true;
+		} else {
+			if ((idx & 1) && (is_power_of(idx, 3) ||
+			    is_power_of(idx, 5) || is_power_of(idx, 7)))
+				has_backups = true;
+		}
+	}
+
+	if (has_backups) {
+		uint32_t bg_count;
+		uint32_t bg_desc_sz;
+		uint32_t gdt_table; /* Size of the GDT in blocks */
+		uint32_t block_size = ext4_superblock_get_block_size(sb);
+
+		/* Now we know that this block group has backups,
+		 * we have to compute how many blocks are reserved
+		 * for them
+		 */
+
+		if (idx == 0 && block_size == 1024) {
+			/* Special case for first group were the boot block
+			 * resides
+			 */
+			r++;
+		}
+
+		/* This accounts for the superblock */
+		r++;
+
+		/* Add the number of blocks used for the GDT */
+		bg_count = ext4_superblock_get_block_group_count(sb);
+		bg_desc_sz = ext4_superblock_get_desc_size(sb);
+		gdt_table = ROUND_UP(bg_count * bg_desc_sz, block_size) /
+		    block_size;
+
+		r += gdt_table;
+
+		/* And now the number of reserved GDT blocks */
+		r += ext4_superblock_get_reserved_gdt_blocks(sb);
+	}
+
+	return r;
 }
 
 /** Put reference to block group.
