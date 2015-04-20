@@ -195,8 +195,12 @@ int udp_pdu_decode(udp_pdu_t *pdu, udp_sockpair_t *sp, udp_msg_t **msg)
 	if (nmsg == NULL)
 		return ENOMEM;
 
-	nmsg->data = text;
 	nmsg->data_size = length - sizeof(udp_header_t);
+	nmsg->data = malloc(nmsg->data_size);
+	if (nmsg->data == NULL)
+		return ENOMEM;
+
+	memcpy(nmsg->data, text, nmsg->data_size);
 
 	*msg = nmsg;
 	return EOK;

@@ -364,6 +364,7 @@ void udp_assoc_received(udp_sockpair_t *rsp, udp_msg_t *msg)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "call assoc->cb->recv_msg");
 	assoc->cb->recv_msg(assoc->cb_arg, rsp, msg);
+	udp_assoc_delref(assoc);
 }
 
 /** Reset association.

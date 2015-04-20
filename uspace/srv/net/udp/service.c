@@ -64,7 +64,7 @@ static int udp_cassoc_queue_msg(udp_cassoc_t *cassoc, udp_sockpair_t *sp,
 {
 	udp_crcv_queue_entry_t *rqe;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_cassoc_queue_msg(%p, %p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_cassoc_queue_msg(%p, %p, %p)",
 	    cassoc, sp, msg);
 
 	rqe = calloc(1, sizeof(udp_crcv_queue_entry_t));
@@ -85,18 +85,17 @@ static int udp_cassoc_queue_msg(udp_cassoc_t *cassoc, udp_sockpair_t *sp,
 	return EOK;
 }
 
-
-static int udp_ev_data(udp_client_t *client)
+static void udp_ev_data(udp_client_t *client)
 {
 	async_exch_t *exch;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_ev_data()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_ev_data()");
 
 	exch = async_exchange_begin(client->sess);
-	sysarg_t rc = async_req_0_0(exch, UDP_EV_DATA);
+	aid_t req = async_send_0(exch, UDP_EV_DATA, NULL);
 	async_exchange_end(exch);
 
-	return rc;
+	async_forget(req);
 }
 
 static int udp_cassoc_create(udp_client_t *client, udp_assoc_t *assoc,
@@ -173,7 +172,7 @@ static int udp_assoc_create_impl(udp_client_t *client, inet_ep2_t *epp,
 	(void) inet_addr_format(&epp->local.addr, &la);
 	(void) inet_addr_format(&epp->remote.addr, &ra);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_create_impl la=%s ra=%s",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_create_impl la=%s ra=%s",
 	    la, ra);
 
 	assoc = udp_assoc_new(&local, &remote, NULL, NULL);
@@ -487,12 +486,14 @@ static void udp_rmsg_discard_srv(udp_client_t *client, ipc_callid_t iid,
 
 	enext = udp_rmsg_get_next(client);
 	if (enext == NULL) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "usg_rmsg_discard_srv: enext==NULL");
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
 	list_remove(&enext->link);
 	udp_msg_delete(enext->msg);
+	free(enext);
 	async_answer_0(iid, EOK);
 }
 
@@ -509,12 +510,12 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	list_initialize(&client.crcv_queue);
 
 	while (true) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "udp_client_conn: wait req");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn: wait req");
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
-		log_msg(LOG_DEFAULT, LVL_NOTE, "udp_client_conn: method=%d",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn: method=%d",
 		    (int)method);
 		if (!method) {
 			/* The other side has hung up */
