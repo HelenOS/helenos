@@ -83,5 +83,15 @@ int dhcp_link_remove(sysarg_t link_id)
 	return rc;
 }
 
+int dhcp_discover(sysarg_t link_id)
+{
+	async_exch_t *exch = async_exchange_begin(dhcp_sess);
+
+	int rc = async_req_1_0(exch, DHCP_DISCOVER, link_id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
 /** @}
  */

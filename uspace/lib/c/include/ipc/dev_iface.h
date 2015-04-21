@@ -47,6 +47,9 @@ typedef enum {
 	
 	/** Network interface controller interface */
 	NIC_DEV_IFACE,
+		
+	/** IEEE 802.11 interface controller interface */
+	IEEE80211_DEV_IFACE,
 	
 	/** Interface provided by any PCI device. */
 	PCI_DEV_IFACE,

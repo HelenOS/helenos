@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2014 Jan Kolarik
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,46 +26,32 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/audio/hound/hound \
-	$(USPACE_PATH)/srv/devman/devman \
-	$(USPACE_PATH)/srv/hw/irc/apic/apic \
-	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
+USPACE_PREFIX = ../../..
 
-
-RD_DRVS_ESSENTIAL += \
-	platform/pc \
-	block/ata_bd \
-	bus/pci/pciintel \
-	bus/isa \
-	audio/sb16 \
-	char/i8042 \
-	char/ps2mouse \
-	char/xtkbd
-
-RD_DRVS_NON_ESSENTIAL += \
-	audio/hdaudio \
-	char/ns8250 \
-	time/cmos-rtc \
-	bus/usb/ehci\
-	bus/usb/ohci \
-	bus/usb/uhci \
-	bus/usb/uhcirh \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
-	bus/usb/usbmid \
-	bus/usb/vhc
-
-RD_DRV_CFG += \
-	bus/isa
+LIBS = \
+	$(LIBUSBDEV_PREFIX)/libusbdev.a \
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBNIC_PREFIX)/libnic.a \
+	$(LIBIEEE80211_PREFIX)/libieee80211.a \
+	$(LIBCRYPTO_PREFIX)/libcrypto.a
 	
-RD_APPS_ESSENTIAL += \
-	$(USPACE_PATH)/app/edit/edit \
-	$(USPACE_PATH)/app/mixerctl/mixerctl \
-	$(USPACE_PATH)/app/wavplay/wavplay
+EXTRA_CFLAGS += \
+	-I. \
+	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBUSBDEV_PREFIX)/include \
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBNIC_PREFIX)/include \
+	-I$(LIBIEEE80211_PREFIX)/include \
+	-I$(LIBCRYPTO_PREFIX)
+	
+BINARY = ar9271
 
-BOOT_OUTPUT = $(ROOT_PATH)/image.iso
-PREBUILD = $(INITRD).img
-BUILD = Makefile.grub
+SOURCES = \
+	ath_usb.c \
+	hw.c \
+	wmi.c \
+	htc.c \
+	ar9271.c
+
+include $(USPACE_PREFIX)/Makefile.common

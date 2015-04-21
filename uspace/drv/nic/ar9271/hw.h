@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2015 Jan Kolarik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
+/** @file hw.h
+ *
+ * Definitions of AR9271 hardware related functions.
+ *
  */
-/** @file
- */
 
-#ifndef LIBC_IPC_DHCP_H_
-#define LIBC_IPC_DHCP_H_
+#ifndef ATHEROS_HW_H
+#define	ATHEROS_HW_H
 
-#include <ipc/common.h>
+#include "ar9271.h"
 
-/** DHCP service requests */
-typedef enum {
-	DHCP_LINK_ADD = IPC_FIRST_USER_METHOD,
-	DHCP_LINK_REMOVE,
-	DHCP_DISCOVER
-} dhcp_request_t;
+#define HW_WAIT_LOOPS 1000
+#define HW_WAIT_TIME_US 10
 
-#endif
+extern int hw_init(ar9271_t *ar9271);
+extern int hw_freq_switch(ar9271_t *, uint16_t freq);
+extern int hw_rx_init(ar9271_t *ar9271);
+extern int hw_reset(ar9271_t *ar9271);
+extern int hw_set_bssid(ar9271_t *ar9271);
+extern int hw_set_rx_filter(ar9271_t *ar9271, bool assoc);
 
-/**
- * @}
- */
+#endif	/* ATHEROS_HW_H */
