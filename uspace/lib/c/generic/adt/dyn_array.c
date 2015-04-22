@@ -90,12 +90,6 @@ int _dyn_array_initialize(dyn_array_t *da, size_t item_size, size_t capacity)
 	return _dyn_array_reserve(da, capacity);
 }
 
-void *_dyn_array_get(dyn_array_t *da, size_t index)
-{
-	assert(index < da->size);
-	return da->_data + (index * da->_item_size);
-}
-
 /** Grows/shrinks array so that it effeciently stores desired capacity
  *
  * @param      da

@@ -66,7 +66,7 @@ typedef struct {
  * @return lvalue for the given item
  */
 #define dyn_array_at(dyn_array, type, index)                                   \
-	(*((type *) _dyn_array_get((dyn_array), index)))
+	(*((type *) (dyn_array)->_data + index))
 
 /** Insert item at given position, shift rest of array
  *
@@ -107,7 +107,6 @@ extern void dyn_array_destroy(dyn_array_t *);
 extern void dyn_array_remove(dyn_array_t *, size_t);
 
 extern int _dyn_array_initialize(dyn_array_t *, size_t, size_t);
-extern void *_dyn_array_get(dyn_array_t *, size_t);
 extern int  _dyn_array_reserve(dyn_array_t *, size_t);
 extern void _dyn_array_shift(dyn_array_t *, size_t, size_t);
 extern void _dyn_array_unshift(dyn_array_t *, size_t, size_t);
