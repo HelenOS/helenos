@@ -117,7 +117,7 @@ bool config_parse_string(const char *string, void *dst, text_parse_t *parse,
     size_t lineno)
 {
 	char *my_string = str_dup(string);
-	if (my_string) {
+	if (my_string == NULL) {
 		return false;
 	}
 
