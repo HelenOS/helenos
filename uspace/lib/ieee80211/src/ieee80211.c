@@ -1180,8 +1180,11 @@ static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
 		ieee80211_ie_header_t *ie_header = 
 			(ieee80211_ie_header_t *) it;
 		uint8_t *channel;
+		uint32_t oui;
 		switch(ie_header->element_id) {
 			case IEEE80211_CHANNEL_IE:
+				if(!ap_data)
+					break;
 				channel = (uint8_t *) 
 					(it + sizeof(ieee80211_ie_header_t));
 				ap_data->scan_result.channel = *channel;
@@ -1196,9 +1199,11 @@ static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
 				copy_auth_ie(ie_header, ap_data, it);
 				break;
 			case IEEE80211_VENDOR_IE:
-				if(uint32be_from_seq(it + 
-					sizeof(ieee80211_ie_header_t)) ==
-					WPA_OUI) {
+				oui = uint32be_from_seq(it + 
+					sizeof(ieee80211_ie_header_t));
+				if(oui == WPA_OUI) {
+					if(!ap_data)
+						break;
 					/* Prefering WPA2. */
 					if(ap_data->scan_result.security.type ==
 						IEEE80211_SECURITY_WPA2) {
@@ -1211,12 +1216,10 @@ static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
 						sizeof(ieee80211_ie_header_t) +
 						sizeof(uint32_t));
 					copy_auth_ie(ie_header, ap_data, it);
-				} else if(uint32be_from_seq(it + 
-					sizeof(ieee80211_ie_header_t)) ==
-					GTK_OUI) {
+				} else if(oui == GTK_OUI) {
 					return it + 
 						sizeof(ieee80211_ie_header_t) +
-						sizeof(uint32_t) + 2;
+						sizeof(uint32_t);
 				}
 		}
 		it += sizeof(ieee80211_ie_header_t) + ie_header->length;
@@ -1389,6 +1392,7 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 	
 	uint8_t *ptk = ieee80211_dev->bssid_info.ptk;
 	uint8_t *gtk = ieee80211_dev->bssid_info.gtk;
+	uint8_t gtk_id = 1;
 
 	bool handshake_done = false;
 	
@@ -1502,11 +1506,19 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 			}
 			
 			if(rc == EOK) {
-				uint8_t *key_ptr = old_wpa ? key_data :
+				uint8_t *key_data_ptr = old_wpa ? key_data :
 					ieee80211_process_ies(ieee80211_dev,
 					NULL, key_data, key_data_length);
 
-				if(key_ptr) {
+				if(key_data_ptr) {
+					uint8_t *key_ptr;
+					if(old_wpa) {
+						key_ptr = key_data_ptr;
+					} else {
+						gtk_id = *key_data_ptr & 0x3;
+						key_ptr = key_data_ptr + 2;
+					}
+						
 					memcpy(gtk, key_ptr, gtk_key_length);
 					handshake_done = true;
 				}
@@ -1587,6 +1599,7 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 	
 	/* Insert Group key. */
 	if(final_phase) {
+		key_config.id = gtk_id;
 		key_config.suite = auth_data->security.group_alg;
 		key_config.flags =
 			IEEE80211_KEY_FLAG_TYPE_GROUP;

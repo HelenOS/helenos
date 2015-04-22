@@ -135,10 +135,7 @@ typedef enum {
 	AR9271_RX_FILTER_MCAST_BCAST_ALL = 0x00008000,
 		
 	/* Key related registers */
-	AR9271_KEY_TABLE_GRP = 0x8820,
-	AR9271_KEY_TABLE_STA = 0x8880,
-	AR9271_KEY_TABLE_MIC_GRP = 0x9020,
-	AR9271_KEY_TABLE_MIC_STA = 0x9080,
+	AR9271_KEY_TABLE_BASE = 0x8800,
 	AR9271_KEY_TABLE_TYPE_WEP40 = 0x0,
 	AR9271_KEY_TABLE_TYPE_WEP104 = 0x1,
 	AR9271_KEY_TABLE_TYPE_TKIP = 0x4,
@@ -185,6 +182,9 @@ typedef enum {
 	AR9271_FW_ADDRESS = 0x501000,
 	AR9271_FW_OFFSET = 0x903000,
 } ar9271_registers_t;
+
+/** Compute key table base position for key by its id. */
+#define AR9271_KEY_TABLE(id) (AR9271_KEY_TABLE_BASE + (id)*32)
 
 /** AR9271 Requests */
 typedef enum {

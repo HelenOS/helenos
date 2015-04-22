@@ -462,14 +462,12 @@ static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 				key_type = -1;
 		}
 		
-		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_PAIRWISE) {
-			reg_ptr = AR9271_KEY_TABLE_STA;
-			mic_reg_ptr = AR9271_KEY_TABLE_MIC_STA;
-		} else {
-			reg_ptr = AR9271_KEY_TABLE_GRP;
-			mic_reg_ptr = AR9271_KEY_TABLE_MIC_GRP;
-		}
+		uint8_t key_id = 
+			(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_PAIRWISE) ?
+				AR9271_STA_KEY_INDEX : key_conf->id;
 		
+		reg_ptr = AR9271_KEY_TABLE(key_id);
+		mic_reg_ptr = AR9271_KEY_TABLE(key_id + 64);
 		data_start = (void *) key_conf->data;
 		
 		key[0] = uint32_t_le2host(
@@ -557,7 +555,7 @@ static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 		if(key_conf->flags & IEEE80211_KEY_FLAG_TYPE_GROUP)
 			ieee80211_setup_key_confirm(ieee80211_dev, true);
 	} else {
-		// TODO: Delete keys from device
+		/* TODO: Delete keys from device */
 		ieee80211_setup_key_confirm(ieee80211_dev, false);
 	}
 	
@@ -590,11 +588,9 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 		htc_tx_data_header_t *data_header =
 			(htc_tx_data_header_t *) 
 			(complete_buffer + sizeof(htc_frame_header_t));
-		/* TODO: Distinguish data type. */
 		data_header->data_type = HTC_DATA_NORMAL;
 		data_header->node_idx = 1;
 		data_header->vif_idx = 0;
-		/* TODO: There I should probably handle slot number. */
 		data_header->cookie = 0;
 		
 		if(ieee80211_query_using_key(ieee80211_dev)) {
@@ -638,7 +634,6 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 			(complete_buffer + sizeof(htc_frame_header_t));
 		mgmt_header->node_idx = 0;
 		mgmt_header->vif_idx = 0;
-		/* TODO: There I should probably handle slot number. */
 		mgmt_header->cookie = 0;
 		mgmt_header->keyix = 0xFF;
 		
