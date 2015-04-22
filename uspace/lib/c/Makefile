@@ -145,6 +145,7 @@ GENERIC_SOURCES = \
 	generic/getopt.c \
 	generic/adt/checksum.c \
 	generic/adt/circ_buf.c \
+	generic/adt/dyn_array.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
 	generic/adt/odict.c \
@@ -193,6 +194,7 @@ TEST_SOURCES = \
 	test/cap.c \
 	test/casting.c \
 	test/double_to_str.c \
+	test/dyn_array.c \
 	test/fibril/timer.c \
 	test/getopt.c \
 	test/gsort.c \
