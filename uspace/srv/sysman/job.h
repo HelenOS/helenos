@@ -29,60 +29,62 @@
 #ifndef SYSMAN_JOB_H
 #define SYSMAN_JOB_H
 
+#include <adt/dyn_array.h>
 #include <adt/list.h>
 #include <atomic.h>
+#include <stdbool.h>
 
 #include "unit.h"
 
-struct job;
-typedef struct job job_t;
-
+/** Run state of job */
 typedef enum {
-	JOB_START
-} job_type_t;
-
-typedef enum {
-	JOB_WAITING,
+	JOB_UNQUEUED, /**< Job not in queue yet */
+	JOB_QUEUED,
+	JOB_DEQUEUED, /**< Job not in queue already */
 	JOB_RUNNING,
 	JOB_FINISHED
 } job_state_t;
 
+/** Return value of job */
+typedef enum {
+	JOB_OK,
+	JOB_FAILED,
+	JOB_UNDEFINED_ = -1
+} job_retval_t;
+
 typedef struct {
-	link_t link;
-	job_t *job;
-} job_link_t;
-
-/** Job represents pending or running operation on unit */
-struct job {
-	/** Link to queue job is in */
-	link_t link;
-
-	/** List of jobs (job_link_t ) that are blocking the job. */
-	list_t blocking_jobs;
-
-	/** Reference counter for the job structure. */
+	link_t job_queue;
 	atomic_t refcnt;
 
-	job_type_t type;
+	unit_state_t target_state;
 	unit_t *unit;
 
-	job_state_t state;
-	fibril_mutex_t state_mtx;
-	fibril_condvar_t state_cv;
+	/** Jobs that this job is preventing from running */
+	dyn_array_t blocked_jobs;
+	/** No. of jobs that must finish before this job */
+	size_t blocking_jobs;
+	/** Any of blocking jobs failed */
+	bool blocking_job_failed;
 
-	/** Return value of the job, defined only when state == JOB_FINISHED */
-	int retval;
-};
+	/** See job_state_t */
+	job_state_t state;
+	/** See job_retval_t */
+	job_retval_t retval;
+} job_t;
+
+typedef job_t *job_ptr_t;
 
 extern void job_queue_init(void);
-extern int job_queue_jobs(list_t *);
+extern int job_queue_add_jobs(dyn_array_t *);
+extern job_t *job_queue_pop_runnable(void);
 
-extern int job_wait(job_t *);
+extern int job_create_closure(job_t *, dyn_array_t *);
+extern job_t *job_create(unit_t *, unit_state_t);
 
 extern void job_add_ref(job_t *);
 extern void job_del_ref(job_t **);
 
-extern job_t *job_create(job_type_t type);
-extern int job_add_blocking_job(job_t *, job_t *);
 
+extern void job_run(job_t *);
+extern void job_finish(job_t *);
 #endif

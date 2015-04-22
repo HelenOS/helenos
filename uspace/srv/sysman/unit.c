@@ -67,8 +67,6 @@ static void unit_init(unit_t *unit, unit_type_t type)
 	unit->name = NULL;
 
 	unit->state = STATE_EMBRYO;
-	fibril_mutex_initialize(&unit->state_mtx);
-	fibril_condvar_initialize(&unit->state_cv);
 
 	list_initialize(&unit->dependants);
 	list_initialize(&unit->dependencies);
@@ -104,18 +102,17 @@ void unit_destroy(unit_t **unit_ptr)
 	unit_ptr = NULL;
 }
 
-void unit_set_state(unit_t *unit, unit_state_t state)
-{
-	fibril_mutex_lock(&unit->state_mtx);
-	unit->state = state;
-	fibril_condvar_broadcast(&unit->state_cv);
-	fibril_mutex_unlock(&unit->state_mtx);
-}
 
 /** Issue request to restarter to start a unit
  *
- * Return from this function only means start request was issued.
- * If you need to wait for real start of the unit, use waiting on state_cv.
+ * Ideally this function is non-blocking synchronous, however, some units
+ * cannot be started synchronously and thus return from this function generally
+ * means that start was requested.
+ *
+ * Check state of the unit for actual result, start method can end in states:
+ *   - STATE_STARTED, (succesful synchronous start)
+ *   - STATE_STARTING, (succesful asynchronous start request)
+ *   - STATE_FAILED.  (error occured)
  */
 int unit_start(unit_t *unit)
 {

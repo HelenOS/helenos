@@ -36,6 +36,7 @@
 #include "configuration.h"
 #include "dep.h"
 #include "job.h"
+#include "log.h"
 #include "sysman.h"
 #include "unit.h"
 
@@ -46,13 +47,8 @@ static void sysman_connection(ipc_callid_t callid, ipc_call_t *call, void *arg)
 	/* TODO handle client connections */
 }
 
-static int sysman_entry_point(void *arg) {
-	/*
-	 * Build hard coded configuration.
-	 *
-	 * Strings are allocated on heap, so that they can be free'd by an
-	 * owning unit.
-	 */
+/** Build hard coded configuration */
+static job_t *create_entry_configuration(void) {
 	int result = EOK;
 	unit_t *mnt_initrd = NULL;
 	unit_t *cfg_init = NULL;
@@ -106,37 +102,61 @@ static int sysman_entry_point(void *arg) {
 
 	configuration_commit();
 
-	result = sysman_unit_start(tgt_default);
-
-	return result;
+	job_t *first_job = job_create(tgt_default, STATE_STARTED);
+	if (first_job == NULL) {
+		goto fail;
+	}
+	return first_job;
 
 fail:
+	// TODO cannot destroy units after they're added to configuration
 	unit_destroy(&tgt_default);
 	unit_destroy(&cfg_init);
 	unit_destroy(&mnt_initrd);
-	return result;
+	return NULL;
+}
+
+static void first_job_handler(void *object, void *unused)
+{
+	job_t *job = object;
+	sysman_log(LVL_DEBUG, "First job retval: %i.", job->retval);
+	job_del_ref(&job);
 }
 
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS system daemon\n");
 
+	/*
+	 * Initialize global structures
+	 */
 	configuration_init();
+	sysman_events_init();
 	job_queue_init();
 
 	/*
-	 * Create and start initial configuration asynchronously
-	 * so that we can start server's fibril that may be used
-	 * when executing the start.
+	 * Create initial configuration while we are in a single fibril, keep
+	 * the job and run it when event loop is running.
 	 */
-	fid_t entry_fibril = fibril_create(sysman_entry_point, NULL);
-	fibril_add_ready(entry_fibril);
+	job_t *first_job = create_entry_configuration();
 
-	/* Prepare and start sysman server */
+	/*
+	 * Event loop runs in separate fibril, all consequent access to global
+	 * structure is made from this fibril only.
+	 */
+	fid_t event_loop_fibril = fibril_create(sysman_events_loop, NULL);
+	fibril_add_ready(event_loop_fibril);
+
+	/* Queue first job for processing */
+	sysman_object_observer(first_job, &first_job_handler, NULL);
+	sysman_raise_event(&sysman_event_job_process, first_job);
+
+	/* Start sysman server */
 	async_set_client_connection(sysman_connection);
 
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 
+	/* not reached */
 	return 0;
 }

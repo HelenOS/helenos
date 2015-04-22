@@ -29,8 +29,23 @@
 #ifndef SYSMAN_SYSMAN_H
 #define SYSMAN_SYSMAN_H
 
+#include "job.h"
 #include "unit.h"
 
-extern int sysman_unit_start(unit_t *);
+typedef void (*event_handler_t)(void *);
+typedef void (*callback_handler_t)(void *object, void *data);
+
+extern void sysman_events_init(void);
+
+extern int sysman_events_loop(void *);
+
+extern void sysman_raise_event(event_handler_t, void *);
+
+extern int sysman_object_observer(void *, callback_handler_t, void *);
+
+
+extern void sysman_event_job_process(void *);
+extern void sysman_event_job_queue_run(void *);
+extern void sysman_event_job_changed(void *);
 
 #endif

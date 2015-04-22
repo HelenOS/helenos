@@ -26,173 +26,248 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <adt/list.h>
+#include <adt/fifo.h>
 #include <assert.h>
 #include <errno.h>
-#include <fibril.h>
-#include <fibril_synch.h>
-#include <stdio.h>
-#include <stdlib.h>
 
+#include "dep.h"
 #include "job.h"
 #include "log.h"
-#include "unit.h"
+#include "sysman.h"
 
 static list_t job_queue;
-static fibril_mutex_t job_queue_mtx;
-static fibril_condvar_t job_queue_cv;
 
-static void job_destroy(job_t **);
+/*
+ * Static functions
+ */
 
-
-static int job_run_start(job_t *job)
+static int job_add_blocked_job(job_t *job, job_t *blocked_job)
 {
-	sysman_log(LVL_DEBUG, "%s(%p)", __func__, job);
-	unit_t *unit = job->unit;
-
-	int rc = unit_start(unit);
+	int rc = dyn_array_append(&job->blocked_jobs, job_ptr_t, blocked_job);
 	if (rc != EOK) {
-		return rc;
+		return ENOMEM;
 	}
 
-	fibril_mutex_lock(&unit->state_mtx);
-	while (unit->state != STATE_STARTED) {
-		fibril_condvar_wait(&unit->state_cv, &unit->state_mtx);
-	}
-	fibril_mutex_unlock(&unit->state_mtx);
+	job_add_ref(blocked_job);
+	blocked_job->blocking_jobs += 1;
 
-	// TODO react to failed state
 	return EOK;
 }
 
-static int job_runner(void *arg)
+static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 {
-	job_t *job = (job_t *)arg;
+	assert(job);
+	assert(u);
 
-	int retval = EOK;
+	link_initialize(&job->job_queue);
 
-	/* Wait for previous jobs */
-	list_foreach(job->blocking_jobs, link, job_link_t, jl) {
-		retval = job_wait(jl->job);
-		if (retval != EOK) {
-			break;
-		}
-	}
+	/* Start with one reference for the creator */
+	atomic_set(&job->refcnt, 1);
 
-	if (retval != EOK) {
-		goto finish;
-	}
+	job->target_state = target_state;
+	job->unit = u;
 
-	/* Run the job itself */
-	fibril_mutex_lock(&job->state_mtx);
-	job->state = JOB_RUNNING;
-	fibril_condvar_broadcast(&job->state_cv);
-	fibril_mutex_unlock(&job->state_mtx);
+	dyn_array_initialize(&job->blocked_jobs, job_ptr_t, 0);
+	job->blocking_jobs = 0;
+	job->blocking_job_failed = false;
 
-	switch (job->type) {
-	case JOB_START:
-		retval = job_run_start(job);
-		break;
-	default:
-		assert(false);
-	}
-
-
-finish:
-	fibril_mutex_lock(&job->state_mtx);
-	job->state = JOB_FINISHED;
-	job->retval = retval;
-	fibril_condvar_broadcast(&job->state_cv);
-	fibril_mutex_unlock(&job->state_mtx);
-
-	job_del_ref(&job);
-
-	return EOK;
+	job->state = JOB_UNQUEUED;
+	job->retval = JOB_UNDEFINED_;
 }
 
-static int job_dispatcher(void *arg)
+static bool job_eval_retval(job_t *job)
 {
-	fibril_mutex_lock(&job_queue_mtx);
-	while (1) {
-		while (list_empty(&job_queue)) {
-			fibril_condvar_wait(&job_queue_cv, &job_queue_mtx);
-		}
-		
-		link_t *link = list_first(&job_queue);
-		assert(link);
-		list_remove(link);
+	unit_t *u = job->unit;
+	if (u->state == job->target_state) {
+		job->retval = JOB_OK;
+		return true;
+	} else if (u->state == STATE_FAILED) {
+		job->retval = JOB_FAILED;
+		return true;
+	} else {
+		return false;
+	}
+}
 
-		/*
-		 * Note that possible use of fibril pool must hold invariant
-		 * that job is started asynchronously. In the case there exists
-		 * circular dependency between jobs, it may result in a deadlock.
-		 */
-		job_t *job = list_get_instance(link, job_t, link);
-		fid_t runner_fibril = fibril_create(job_runner, job);
-		fibril_add_ready(runner_fibril);
+static bool job_is_runnable(job_t *job)
+{
+	return job->state == JOB_QUEUED && job->blocking_jobs == 0;
+}
+
+static void job_check(void *object, void *data)
+{
+	unit_t *u = object;
+	job_t *job = data;
+
+	if (job_eval_retval(job)) {
+		job_finish(job);
+	} else {
+		// TODO place for timeout
+		// TODO add reference to job?
+		sysman_object_observer(u, &job_check, job);
+	}
+}
+
+
+static void job_unblock(job_t *blocked_job, job_t *blocking_job)
+{
+	if (blocking_job->retval == JOB_FAILED) {
+		blocked_job->blocking_job_failed = true;
+	}
+	blocked_job->blocking_jobs -= 1;
+}
+
+static void job_destroy(job_t **job_ptr)
+{
+	job_t *job = *job_ptr;
+	if (job == NULL) {
+		return;
 	}
 
-	fibril_mutex_unlock(&job_queue_mtx);
-	return EOK;
+	assert(!link_used(&job->job_queue));
+	dyn_array_destroy(&job->blocked_jobs);
+	// TODO I should decrease referece of blocked jobs
+
+	free(job);
+	*job_ptr = NULL;
 }
+
+/*
+ * Non-static functions
+ */
 
 void job_queue_init()
 {
 	list_initialize(&job_queue);
-	fibril_mutex_initialize(&job_queue_mtx);
-	fibril_condvar_initialize(&job_queue_cv);
-
-	fid_t dispatcher_fibril = fibril_create(job_dispatcher, NULL);
-	fibril_add_ready(dispatcher_fibril);
 }
 
-int job_queue_jobs(list_t *jobs)
+int job_queue_add_jobs(dyn_array_t *jobs)
 {
-	fibril_mutex_lock(&job_queue_mtx);
-
 	/* Check consistency with queue. */
-	list_foreach(*jobs, link, job_t, new_job) {
-		list_foreach(job_queue, link, job_t, queued_job) {
+	dyn_array_foreach(*jobs, job_ptr_t, new_job_it) {
+		list_foreach(job_queue, job_queue, job_t, queued_job) {
 			/*
 			 * Currently we have strict strategy not permitting
 			 * multiple jobs for one unit in the queue.
 			 */
-			if (new_job->unit == queued_job->unit) {
+			if ((*new_job_it)->unit == queued_job->unit) {
+				sysman_log(LVL_ERROR,
+				    "Cannot queue multiple jobs foor unit '%s'",
+				    unit_name((*new_job_it)->unit));
 				return EEXIST;
 			}
 		}
 	}
 
 	/* Enqueue jobs */
-	list_foreach_safe(*jobs, cur_link, next_link) {
-		list_remove(cur_link);
-		list_append(cur_link, &job_queue);
+	dyn_array_foreach(*jobs, job_ptr_t, job_it) {
+		(*job_it)->state = JOB_QUEUED;
+		list_append(&(*job_it)->job_queue, &job_queue);
+		// TODO explain this reference
+		job_add_ref(*job_it);
 	}
-
-	/* Only job dispatcher waits, it's correct to notify one only. */
-	fibril_condvar_signal(&job_queue_cv);
-	fibril_mutex_unlock(&job_queue_mtx);
 
 	return EOK;
 }
 
-/** Blocking wait for job finishing.
+/** Pop next runnable job
  *
- * Multiple fibrils may wait for the same job.
- *
- * @return    Return code of the job
+ * @return runnable job or NULL when there's none
  */
-int job_wait(job_t *job)
+job_t *job_queue_pop_runnable(void)
 {
-	fibril_mutex_lock(&job->state_mtx);
-	while (job->state != JOB_FINISHED) {
-		fibril_condvar_wait(&job->state_cv, &job->state_mtx);
+	job_t *result = NULL;
+	link_t *first_link = list_first(&job_queue);
+	bool first_iteration = true;
+
+	list_foreach_safe(job_queue, cur_link, next_link) {
+		result = list_get_instance(cur_link, job_t, job_queue);
+		if (job_is_runnable(result)) {
+			break;
+		} else if (!first_iteration && cur_link == first_link) {
+			result = NULL;
+			break;
+		} else {
+			/*
+			 * We make no assuptions about ordering of jobs in the
+			 * queue, so just move the job to the end of the queue.
+			 * If there are exist topologic ordering, eventually
+			 * jobs will be reordered. Furthermore when if there
+			 * exists any runnable job, it's always found.
+			 */
+			list_remove(cur_link);
+			list_append(cur_link, &job_queue);
+		}
+		first_iteration = false;
 	}
 
-	int rc = job->retval;
-	fibril_mutex_unlock(&job->state_mtx);
+	if (result) {
+		// TODO update refcount
+		list_remove(&result->job_queue);
+		result->state = JOB_DEQUEUED;
+	}
 
+	return result;
+}
+
+int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
+{
+	// TODO replace hard-coded FIFO size with resizable FIFO
+	FIFO_INITIALIZE_DYNAMIC(jobs_fifo, job_ptr_t, 10);
+	void *fifo_data = fifo_create(jobs_fifo);
+	int rc;
+	if (fifo_data == NULL) {
+		rc = ENOMEM;
+		goto finish;
+	}
+
+	/*
+	 * Traverse dependency graph in BFS fashion and create jobs for every
+	 * necessary unit.
+	 */
+	fifo_push(jobs_fifo, main_job);
+	job_t *job;
+	while ((job = fifo_pop(jobs_fifo)) != NULL) {
+		/*
+		 * Do not increase reference count of job, as we're passing it
+		 * to the closure.
+		 */
+		dyn_array_append(job_closure, job_ptr_t, job);
+
+		/* Traverse dependencies edges */
+		unit_t *u = job->unit;
+		list_foreach(u->dependencies, dependencies, unit_dependency_t, dep) {
+			// TODO prepare for reverse edge direction and
+			//      non-identity state mapping
+			job_t *new_job =
+			    job_create(dep->dependency, job->target_state);
+			if (new_job == NULL) {
+				rc = ENOMEM;
+				goto finish;
+			}
+			job_add_blocked_job(new_job, job);
+			fifo_push(jobs_fifo, new_job);
+		}
+	}
+	rc = EOK;
+
+finish:
+	free(fifo_data);
+	/*
+	 * Newly created jobs are already passed to the closure, thus not
+	 * deleting them here.
+	 */
 	return rc;
+}
+
+job_t *job_create(unit_t *u, unit_state_t target_state)
+{
+	job_t *job = malloc(sizeof(job_t));
+	if (job != NULL) {
+		job_init(job, u, target_state);
+	}
+
+	return job;
 }
 
 void job_add_ref(job_t *job)
@@ -213,64 +288,62 @@ void job_del_ref(job_t **job_ptr)
 	}
 }
 
-static void job_init(job_t *job, job_type_t type)
+void job_run(job_t *job)
 {
-	assert(job);
+	assert(job->state != JOB_RUNNING);
+	assert(job->state != JOB_FINISHED);
 
-	link_initialize(&job->link);
-	list_initialize(&job->blocking_jobs);
+	unit_t *u = job->unit;
+	sysman_log(LVL_DEBUG, "%s, %s -> %i",
+	    __func__, unit_name(u), job->target_state);
 
-	/* Start with one reference for the creator */
-	atomic_set(&job->refcnt, 1);
-
-	job->type = type;
-	job->unit = NULL;
-
-	job->state = JOB_WAITING;
-	fibril_mutex_initialize(&job->state_mtx);
-	fibril_condvar_initialize(&job->state_cv);
-}
-
-job_t *job_create(job_type_t type)
-{
-	job_t *job = malloc(sizeof(job_t));
-	if (job != NULL) {
-		job_init(job, type);
+	/* Propagate failure */
+	if (job->blocking_job_failed) {
+		goto fail;
 	}
 
-	return job;
+	int rc;
+	switch (job->target_state) {
+	case STATE_STARTED:
+		rc = unit_start(u);
+		break;
+	default:
+		// TODO implement other states
+		assert(false);
+	}
+	if (rc != EOK) {
+		goto fail;
+	}
+
+	job_check(job->unit, job);
+	return;
+
+fail:
+	job->retval = JOB_FAILED;
+	job_finish(job);
 }
 
-int job_add_blocking_job(job_t *job, job_t *blocking_job)
+/** Unblocks blocked jobs and notify observers
+ *
+ * @param[in]  job  job with defined return value
+ */
+void job_finish(job_t *job)
 {
-	job_link_t *job_link = malloc(sizeof(job_link_t));
-	if (job_link == NULL) {
-		return ENOMEM;
+	assert(job->state != JOB_FINISHED);
+	assert(job->retval != JOB_UNDEFINED_);
+
+	sysman_log(LVL_DEBUG2, "%s(%s) -> %i",
+	    __func__, unit_name(job->unit), job->retval);
+
+	job->state = JOB_FINISHED;
+
+	/* Job finished */
+	dyn_array_foreach(job->blocked_jobs, job_ptr_t, job_it) {
+		job_unblock(*job_it, job);
 	}
+	// TODO remove reference from blocked jobs
 
-	link_initialize(&job_link->link);
-	list_append(&job_link->link, &job->blocking_jobs);
-
-	job_link->job = blocking_job;
-	job_add_ref(blocking_job);
-
-	return EOK;
+	// TODO should reference be added (for the created event)
+	sysman_raise_event(&sysman_event_job_changed, job);
 }
 
-static void job_destroy(job_t **job_ptr)
-{
-	job_t *job = *job_ptr;
-	if (job == NULL) {
-		return;
-	}
-
-	list_foreach_safe(job->blocking_jobs, cur_link, next_link) {
-		job_link_t *jl = list_get_instance(cur_link, job_link_t, link);
-		list_remove(cur_link);
-		job_del_ref(&jl->job);
-		free(jl);
-	}
-	free(job);
-
-	*job_ptr = NULL;
-}

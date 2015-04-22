@@ -58,6 +58,7 @@ static int unit_tgt_start(unit_t *unit)
 	unit_tgt_t *u_tgt = CAST_TGT(unit);
 	assert(u_tgt);
 
+	unit->state = STATE_STARTED;
 	return EOK;
 }
 

@@ -38,7 +38,6 @@
 #include "log.h"
 
 static hash_table_t units;
-static fibril_rwlock_t units_rwl;
 
 /* Hash table functions */
 static size_t units_ht_hash(const ht_link_t *item)
@@ -80,7 +79,6 @@ static hash_table_ops_t units_ht_ops = {
 void configuration_init(void)
 {
 	hash_table_create(&units, 0, 0, &units_ht_ops);
-	fibril_rwlock_initialize(&units_rwl);
 }
 
 int configuration_add_unit(unit_t *unit)
@@ -88,7 +86,6 @@ int configuration_add_unit(unit_t *unit)
 	assert(unit);
 	assert(unit->state == STATE_EMBRYO);
 	assert(unit->name != NULL);
-	assert(fibril_rwlock_is_write_locked(&units_rwl));
 	sysman_log(LVL_DEBUG2, "%s('%s')", __func__, unit_name(unit));
 
 	if (hash_table_insert_unique(&units, &unit->units)) {
@@ -99,9 +96,7 @@ int configuration_add_unit(unit_t *unit)
 }
 
 void configuration_start_update(void) {
-	assert(!fibril_rwlock_is_write_locked(&units_rwl));
 	sysman_log(LVL_DEBUG2, "%s", __func__);
-	fibril_rwlock_write_lock(&units_rwl);
 }
 
 static bool configuration_commit_unit(ht_link_t *ht_link, void *arg)
@@ -123,7 +118,6 @@ static bool configuration_commit_unit(ht_link_t *ht_link, void *arg)
 /** Marks newly added units as usable (via state change) */
 void configuration_commit(void)
 {
-	assert(fibril_rwlock_is_write_locked(&units_rwl));
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
 	/*
@@ -131,7 +125,6 @@ void configuration_commit(void)
 	 * deps, thus eventually commiting all embryo deps as well.
 	 */
 	hash_table_apply(&units, &configuration_commit_unit, NULL);
-	fibril_rwlock_write_unlock(&units_rwl);
 }
 
 static bool configuration_rollback_unit(ht_link_t *ht_link, void *arg)
@@ -156,11 +149,9 @@ static bool configuration_rollback_unit(ht_link_t *ht_link, void *arg)
 
 void configuration_rollback(void)
 {
-	assert(fibril_rwlock_is_write_locked(&units_rwl));
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
 	hash_table_apply(&units, &configuration_rollback_unit, NULL);
-	fibril_rwlock_write_unlock(&units_rwl);
 }
 
 static bool configuration_resolve_unit(ht_link_t *ht_link, void *arg)
@@ -198,7 +189,6 @@ static bool configuration_resolve_unit(ht_link_t *ht_link, void *arg)
  */
 int configuration_resolve_dependecies(void)
 {
-	assert(fibril_rwlock_is_write_locked(&units_rwl));
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
 	bool has_error = false;

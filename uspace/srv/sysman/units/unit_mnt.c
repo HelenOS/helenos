@@ -86,30 +86,38 @@ static int unit_mnt_load(unit_t *unit, ini_configuration_t *ini_conf,
 
 static int unit_mnt_start(unit_t *unit)
 {
+	// TODO replace with non-blocking
+	const bool blocking = true;
 	unit_mnt_t *u_mnt = CAST_MNT(unit);
 	assert(u_mnt);
 
-	fibril_mutex_lock(&unit->state_mtx);
 	
 	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
 	assert(unit->state == STATE_STOPPED);
-	unit->state = STATE_STARTING;
-	
-	fibril_condvar_broadcast(&unit->state_cv);
-	fibril_mutex_unlock(&unit->state_mtx);
 
 
 	// TODO use other mount parameters
 	int rc = mount(u_mnt->type, u_mnt->mountpoint, u_mnt->device, "",
-	    IPC_FLAG_BLOCKING, 0);
+	    blocking ? IPC_FLAG_BLOCKING : 0, 0);
 
-	if (rc == EOK) {
-		sysman_log(LVL_NOTE, "Mount ('%s') mounted", unit_name(unit));
-		unit_set_state(unit, STATE_STARTED);
+	if (blocking) {
+		if (rc == EOK) {
+			sysman_log(LVL_DEBUG, "Mount ('%s') mounted", unit_name(unit));
+			unit->state = STATE_STARTED;
+		} else {
+			sysman_log(LVL_ERROR, "Mount ('%s') failed (%i)",
+			    unit_name(unit), rc);
+			unit->state = STATE_FAILED;
+		}
 	} else {
-		sysman_log(LVL_ERROR, "Mount ('%s') failed (%i)",
-		    unit_name(unit), rc);
-		unit_set_state(unit, STATE_FAILED);
+		if (rc == EOK) {
+			sysman_log(LVL_DEBUG, "Mount ('%s') requested", unit_name(unit));
+			unit->state = STATE_STARTING;
+		} else {
+			sysman_log(LVL_ERROR, "Mount ('%s') request failed (%i)",
+			    unit_name(unit), rc);
+			unit->state = STATE_FAILED;
+		}
 	}
 
 	return rc;

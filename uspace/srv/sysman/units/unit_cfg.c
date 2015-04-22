@@ -175,7 +175,7 @@ static int cfg_load_configuration(const char *path)
 			continue;
 		}
 
-		assert(unit->state = STATE_EMBRYO);
+		assert(unit->state == STATE_EMBRYO);
 		configuration_add_unit(unit);
 	}
 	closedir(dir);
@@ -231,11 +231,6 @@ static int unit_cfg_start(unit_t *unit)
 	unit_cfg_t *u_cfg = CAST_CFG(unit);
 	assert(u_cfg);
 
-	/*
-	 * Skip starting state and hold state lock during whole configuration
-	 * load.
-	 */
-	fibril_mutex_lock(&unit->state_mtx);
 	int rc = cfg_load_configuration(u_cfg->path);
 	
 	if (rc == EOK) {
@@ -243,8 +238,6 @@ static int unit_cfg_start(unit_t *unit)
 	} else {
 		unit->state = STATE_FAILED;
 	}
-	fibril_condvar_broadcast(&unit->state_cv);
-	fibril_mutex_unlock(&unit->state_mtx);
 
 	return rc;
 }

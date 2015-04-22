@@ -61,8 +61,6 @@ typedef struct {
 	char *name;
 
 	unit_state_t state;
-	fibril_mutex_t state_mtx;
-	fibril_condvar_t state_cv;
 
 	list_t dependencies;
 	list_t dependants;
