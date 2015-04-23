@@ -46,11 +46,13 @@ typedef struct hda_codec {
 	uint8_t out_aw_list[MAX_OUT_AW];
 	int out_aw_num;
 	int out_aw_sel;
+	int in_aw;
 } hda_codec_t;
 
 extern hda_codec_t *hda_codec_init(hda_t *, uint8_t);
 extern void hda_codec_fini(hda_codec_t *);
 extern int hda_out_converter_setup(hda_codec_t *, hda_stream_t *);
+extern int hda_in_converter_setup(hda_codec_t *, hda_stream_t *);
 
 #endif
 

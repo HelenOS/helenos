@@ -278,7 +278,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 			struct timeval time2;
 			getuptime(&time2);
 			log_verbose("Time to mix sources: %li\n",
-			    tv_sub(&time2, &time1));
+			    tv_sub_diff(&time2, &time1));
 			break;
 		}
 		case PCM_EVENT_CAPTURE_TERMINATED: {

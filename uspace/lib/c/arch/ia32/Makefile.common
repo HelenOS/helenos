@@ -31,6 +31,7 @@ ifeq ($(PROCESSOR),i486)
 else
 	GCC_CFLAGS += -march=pentium -fno-omit-frame-pointer
 endif
+
 CLANG_CFLAGS += -fno-omit-frame-pointer
 
 ENDIANESS = LE

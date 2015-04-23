@@ -40,7 +40,8 @@
 /** DHCP service requests */
 typedef enum {
 	DHCP_LINK_ADD = IPC_FIRST_USER_METHOD,
-	DHCP_LINK_REMOVE
+	DHCP_LINK_REMOVE,
+	DHCP_DISCOVER
 } dhcp_request_t;
 
 #endif

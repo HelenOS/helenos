@@ -33,7 +33,6 @@
 /** @file Division functions.
  */
 
-#include "sftypes.h"
 #include "add.h"
 #include "div.h"
 #include "comparison.h"
@@ -537,6 +536,93 @@ float128 div_float128(float128 a, float128 b)
 	result = finish_float128(cexp, cfrac_hi, cfrac_lo, result.parts.sign, shift_out);
 	return result;
 }
+
+#ifdef float32_t
+
+float32_t __divsf3(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	float32_u res;
+	res.data = div_float32(ua.data, ub.data);
+	
+	return res.val;
+}
+
+float32_t __aeabi_fdiv(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	float32_u res;
+	res.data = div_float32(ua.data, ub.data);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float64_t
+
+float64_t __divdf3(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	float64_u res;
+	res.data = div_float64(ua.data, ub.data);
+	
+	return res.val;
+}
+
+float64_t __aeabi_ddiv(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	float64_u res;
+	res.data = div_float64(ua.data, ub.data);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float128_t
+
+float128_t __divtf3(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	float128_u res;
+	res.data = div_float128(ua.data, ub.data);
+	
+	return res.val;
+}
+
+void _Qp_div(float128_t *c, float128_t *a, float128_t *b)
+{
+	*c = __divtf3(*a, *b);
+}
+
+#endif
 
 /** @}
  */

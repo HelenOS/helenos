@@ -36,7 +36,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#include "sftypes.h"
+#include <mathtypes.h>
 
 extern float64 finish_float64(int32_t, uint64_t, char);
 extern float128 finish_float128(int32_t, uint64_t, uint64_t, char, uint64_t);
@@ -52,17 +52,22 @@ extern void round_float128(int32_t *, uint64_t *, uint64_t *);
 extern void lshift128(uint64_t, uint64_t, int, uint64_t *, uint64_t *);
 extern void rshift128(uint64_t, uint64_t, int, uint64_t *, uint64_t *);
 
-extern void and128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
-extern void or128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
-extern void xor128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
+extern void and128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *,
+    uint64_t *);
+extern void or128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *,
+    uint64_t *);
+extern void xor128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *,
+    uint64_t *);
 extern void not128(uint64_t, uint64_t, uint64_t *, uint64_t *);
 
 extern int eq128(uint64_t, uint64_t, uint64_t, uint64_t);
 extern int le128(uint64_t, uint64_t, uint64_t, uint64_t);
 extern int lt128(uint64_t, uint64_t, uint64_t, uint64_t);
 
-extern void add128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
-extern void sub128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *, uint64_t *);
+extern void add128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *,
+    uint64_t *);
+extern void sub128(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t *,
+    uint64_t *);
 
 extern void mul64(uint64_t, uint64_t, uint64_t *, uint64_t *);
 extern void mul128(uint64_t, uint64_t, uint64_t, uint64_t,

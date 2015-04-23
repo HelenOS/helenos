@@ -138,9 +138,13 @@ RD_DRVS_NON_ESSENTIAL = \
 	nic/e1k \
 	nic/rtl8139 \
 	nic/rtl8169 \
+	nic/ar9271 \
 	block/ahci
 
 RD_DRV_CFG =
+
+RD_DRVS_FW_NON_ESSENTIAL = \
+	nic/ar9271
 
 RD_LIBS =
 
@@ -222,7 +226,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/vdemo/vdemo \
 	$(USPACE_PATH)/app/viewer/viewer \
 	$(USPACE_PATH)/app/df/df \
-	$(USPACE_PATH)/app/fontviewer/fontviewer
+	$(USPACE_PATH)/app/fontviewer/fontviewer \
+	$(USPACE_PATH)/app/wifi_supplicant/wifi_supplicant
 
 RD_TESTS = \
 	$(USPACE_PATH)/lib/c/test-libc \
@@ -246,10 +251,12 @@ ifeq ($(CONFIG_BAREBONE),y)
 RD_SRVS = $(RD_SRVS_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL)
 RD_DRVS = $(RD_DRVS_ESSENTIAL)
+RD_DRVS_FW = $(RD_DRVS_FW_ESSENTIAL)
 else
 RD_SRVS = $(RD_SRVS_ESSENTIAL) $(RD_SRVS_NON_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL) $(RD_APPS_NON_ESSENTIAL)
 RD_DRVS = $(RD_DRVS_ESSENTIAL) $(RD_DRVS_NON_ESSENTIAL)
+RD_DRVS_FW = $(RD_DRVS_FW_ESSENTIAL) $(RD_DRVS_FW_NON_ESSENTIAL)
 endif
 
 MODULES := $(notdir $(COMPONENTS))

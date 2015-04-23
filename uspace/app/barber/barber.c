@@ -232,7 +232,7 @@ static void frame_timer_callback(void *data)
 	struct timeval cur;
 	getuptime(&cur);
 	
-	plan_frame_timer(tv_sub(&cur, &prev));
+	plan_frame_timer(tv_sub_diff(&cur, &prev));
 }
 
 static void loc_callback(void)

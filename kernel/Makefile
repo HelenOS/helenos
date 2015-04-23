@@ -104,10 +104,9 @@ ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 # -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
 CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Werror -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-std=gnu99 -Wall -Werror -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-integrated-as \
-	-pipe -target $(CLANG_TARGET)
+	-integrated-as -pipe -target $(CLANG_TARGET)
 
 ifeq ($(CONFIG_DEBUG),y)
 	GCC_CFLAGS += -Werror

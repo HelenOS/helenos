@@ -307,6 +307,7 @@ int main(int argc, char *argv[])
 		if (record) {
 			if (direct) {
 				drecord(device, file);
+				continue;
 			} else {
 				printf("Indirect recording is not supported "
 				    "yet.\n");

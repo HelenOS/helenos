@@ -697,7 +697,7 @@ static bool do_one_reader_preempt(void (*f)(void*), const char *err)
 		free(p);
 		return true;
 	} else {
-		TPRINTF(err);
+		TPRINTF("%s", err);
 		/* Leak a bit of mem. */
 		return false;
 	}

@@ -244,7 +244,8 @@ static char *fun_conf_read(const char *conf_path)
 	char *buf = NULL;
 	bool opened = false;
 	int fd;
-	size_t len = 0;
+	size_t len;
+	ssize_t r;
 
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
@@ -268,7 +269,8 @@ static char *fun_conf_read(const char *conf_path)
 		goto cleanup;
 	}
 
-	if (0 >= read(fd, buf, len)) {
+	r = read_all(fd, buf, len);
+	if (r < 0) {
 		ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
 		goto cleanup;
 	}

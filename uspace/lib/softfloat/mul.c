@@ -33,7 +33,6 @@
 /** @file Multiplication functions.
  */
 
-#include "sftypes.h"
 #include "mul.h"
 #include "comparison.h"
 #include "common.h"
@@ -61,11 +60,13 @@ float32 mul_float32(float32 a, float32 b)
 			result.parts.exp = a.parts.exp;
 			return result;
 		}
+		
 		if (is_float32_signan(b)) { /* TODO: fix SigNaN */
 			result.parts.fraction = b.parts.fraction;
 			result.parts.exp = b.parts.exp;
 			return result;
 		}
+		
 		/* set NaN as result */
 		result.bin = FLOAT32_NAN;
 		return result;
@@ -77,6 +78,7 @@ float32 mul_float32(float32 a, float32 b)
 			result.bin = FLOAT32_NAN;
 			return result;
 		}
+		
 		result.parts.fraction = a.parts.fraction;
 		result.parts.exp = a.parts.exp;
 		return result;
@@ -88,6 +90,7 @@ float32 mul_float32(float32 a, float32 b)
 			result.bin = FLOAT32_NAN;
 			return result;
 		}
+		
 		result.parts.fraction = b.parts.fraction;
 		result.parts.exp = b.parts.exp;
 		return result;
@@ -105,7 +108,7 @@ float32 mul_float32(float32 a, float32 b)
 		return result;
 	}
 	
-	if (exp < 0) { 
+	if (exp < 0) {
 		/* FIXME: underflow */
 		/* return signed zero */
 		result.parts.fraction = 0x0;
@@ -163,10 +166,12 @@ float32 mul_float32(float32 a, float32 b)
 	if (exp <= FLOAT32_FRACTION_SIZE) {
 		/* denormalized number */
 		frac1 >>= 1; /* denormalize */
+		
 		while ((frac1 > 0) && (exp < 0)) {
 			frac1 >>= 1;
 			++exp;
 		}
+		
 		if (frac1 == 0) {
 			/* FIXME : underflow */
 			result.parts.exp = 0;
@@ -174,6 +179,7 @@ float32 mul_float32(float32 a, float32 b)
 			return result;
 		}
 	}
+	
 	result.parts.exp = exp; 
 	result.parts.fraction = frac1 & ((1 << FLOAT32_FRACTION_SIZE) - 1);
 	
@@ -378,6 +384,93 @@ float128 mul_float128(float128 a, float128 b)
 	result = finish_float128(exp, frac1_hi, frac1_lo, result.parts.sign, frac2_hi);
 	return result;
 }
+
+#ifdef float32_t
+
+float32_t __mulsf3(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	float32_u res;
+	res.data = mul_float32(ua.data, ub.data);
+	
+	return res.val;
+}
+
+float32_t __aeabi_fmul(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	float32_u res;
+	res.data = mul_float32(ua.data, ub.data);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float64_t
+
+float64_t __muldf3(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	float64_u res;
+	res.data = mul_float64(ua.data, ub.data);
+	
+	return res.val;
+}
+
+float64_t __aeabi_dmul(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	float64_u res;
+	res.data = mul_float64(ua.data, ub.data);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float128_t
+
+float128_t __multf3(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	float128_u res;
+	res.data = mul_float128(ua.data, ub.data);
+	
+	return res.val;
+}
+
+void _Qp_mul(float128_t *c, float128_t *a, float128_t *b)
+{
+	*c = __multf3(*a, *b);
+}
+
+#endif
 
 /** @}
  */

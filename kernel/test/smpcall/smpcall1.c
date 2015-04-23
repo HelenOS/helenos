@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Adam Hraska 
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

@@ -40,6 +40,7 @@
 extern int dhcp_init(void);
 extern int dhcp_link_add(sysarg_t);
 extern int dhcp_link_remove(sysarg_t);
+extern int dhcp_discover(sysarg_t);
 
 #endif
 

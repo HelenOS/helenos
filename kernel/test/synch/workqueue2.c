@@ -128,19 +128,19 @@ const char *test_workqueue_all(void)
 	
 	res = test_custom_workq();
 	if (res) {
-		TPRINTF(res);
+		TPRINTF("%s", res);
 		err = res;
 	}
 	
 	res = test_custom_workq_stop();
 	if (res) {
-		TPRINTF(res);
+		TPRINTF("%s", res);
 		err = res;
 	}
 	
 	res = test_workqueue3();
 	if (res) {
-		TPRINTF(res);
+		TPRINTF("%s", res);
 		err = res;
 	}
 

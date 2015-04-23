@@ -190,53 +190,123 @@ typedef union {
 	#error Unknown endianess
 #endif
 
-typedef union {
-	float val;
-	
+
 #if defined(FLOAT_SIZE_32)
-	float32 data;
+
+#ifndef float32_t
+	#define float32_t  float
+#endif
+
 #elif defined(FLOAT_SIZE_64)
-	float64 data;
+
+#ifndef float64_t
+	#define float64_t  float
+#endif
+
 #elif defined(FLOAT_SIZE_96)
-	float96 data;
+
+#ifndef float96_t
+	#define float96_t  float
+#endif
+
 #elif defined(FLOAT_SIZE_128)
-	float128 data;
-#else
-	#error Unsupported float size
-#endif
-} float_t;
 
-typedef union {
-	double val;
-	
+#ifndef float128_t
+	#define float128_t  float
+#endif
+
+#endif
+
+
 #if defined(DOUBLE_SIZE_32)
-	float32 data;
-#elif defined(DOUBLE_SIZE_64)
-	float64 data;
-#elif defined(DOUBLE_SIZE_96)
-	float96 data;
-#elif defined(DOUBLE_SIZE_128)
-	float128 data;
-#else
-	#error Unsupported double size
+
+#ifndef float32_t
+	#define float32_t  double
 #endif
-} double_t;
+
+#elif defined(DOUBLE_SIZE_64)
+
+#ifndef float64_t
+	#define float64_t  double
+#endif
+
+#elif defined(DOUBLE_SIZE_96)
+
+#ifndef float96_t
+	#define float96_t  double
+#endif
+
+#elif defined(DOUBLE_SIZE_128)
+
+#ifndef float128_t
+	#define float128_t  double
+#endif
+
+#endif
+
+
+#if defined(LONG_DOUBLE_SIZE_32)
+
+#ifndef float32_t
+	#define float32_t  long double
+#endif
+
+#elif defined(LONG_DOUBLE_SIZE_64)
+
+#ifndef float64_t
+	#define float64_t  long double
+#endif
+
+#elif defined(LONG_DOUBLE_SIZE_96)
+
+#ifndef float96_t
+	#define float96_t  long double
+#endif
+
+#elif defined(LONG_DOUBLE_SIZE_128)
+
+#ifndef float128_t
+	#define float128_t  long double
+#endif
+
+#endif
+
+
+#ifdef float32_t
 
 typedef union {
-	long double val;
-	
-#if defined(LONG_DOUBLE_SIZE_32)
+	float32_t val;
 	float32 data;
-#elif defined(LONG_DOUBLE_SIZE_64)
-	float64 data;
-#elif defined(LONG_DOUBLE_SIZE_96)
-	float96 data;
-#elif defined(LONG_DOUBLE_SIZE_128)
-	float128 data;
-#else
-	#error Unsupported long double size
+} float32_u;
+
 #endif
-} long_double_t;
+
+#ifdef float64_t
+
+typedef union {
+	float64_t val;
+	float64 data;
+} float64_u;
+
+#endif
+
+#ifdef float96_t
+
+typedef union {
+	float96_t val;
+	float96 data;
+} float96_u;
+
+#endif
+
+#ifdef float128_t
+
+typedef union {
+	float128_t val;
+	float128 data;
+} float128_u;
+
+#endif
 
 #endif
 

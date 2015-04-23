@@ -47,6 +47,9 @@ GUARD = 'AUTOTOOL_COMMON_H_'
 PROBE_SOURCE = 'probe.c'
 PROBE_OUTPUT = 'probe.s'
 
+PROBE_INT128_SOURCE = 'probe_int128.c'
+PROBE_INT128_OUTPUT = 'probe_int128.s'
+
 PACKAGE_BINUTILS = "usually part of binutils"
 PACKAGE_GCC = "preferably version 4.7.0 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
@@ -84,6 +87,8 @@ PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, strc,
 #define DECLARE_FLOATSIZE(tag, type) \\
 	AUTOTOOL_DECLARE("floatsize", "", tag, #type, "", "", sizeof(type));
 
+extern int main(int, char *[]);
+
 int main(int argc, char *argv[])
 {
 #ifdef __SIZE_TYPE__
@@ -98,6 +103,26 @@ int main(int argc, char *argv[])
 """
 
 PROBE_TAIL = """}
+"""
+
+PROBE_INT128_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, strc, conc, value) \\
+	asm volatile ( \\
+		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" tag "\\t" name "\\t" strc "\\t" conc "\\t%[val]\\n" \\
+		: \\
+		: [val] "n" (value) \\
+	)
+
+#define DECLARE_INTSIZE(tag, type) \\
+	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, "", "", sizeof(unsigned type)); \\
+	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, "", "", sizeof(signed type));
+
+extern int main(int, char *[]);
+
+int main(int argc, char *argv[])
+{
+"""
+
+PROBE_INT128_TAIL = """}
 """
 
 def read_config(fname, config):
@@ -194,36 +219,36 @@ def get_target(config):
 		
 		if (config['CROSS_TARGET'] == "arm32"):
 			gnu_target = "arm-linux-gnueabi"
-			clang_target = "arm-unknown-linux"
+			clang_target = "arm-unknown-none"
 			helenos_target = "arm-helenos-gnueabi"
 		
 		if (config['CROSS_TARGET'] == "ia32"):
 			gnu_target = "i686-pc-linux-gnu"
-			clang_target = "i386-unknown-linux"
+			clang_target = "i686-unknown-none"
 			helenos_target = "i686-pc-helenos"
 		
 		if (config['CROSS_TARGET'] == "mips32"):
+			cc_args.append("-mabi=32")
 			gnu_target = "mipsel-linux-gnu"
-			clang_target = "mipsel-unknown-linux"
+			clang_target = "mipsel-unknown-none"
 			helenos_target = "mipsel-helenos"
-			common['CC_ARGS'].append("-mabi=32")
 	
 	if (config['PLATFORM'] == "amd64"):
 		target = config['PLATFORM']
 		gnu_target = "amd64-linux-gnu"
-		clang_target = "x86_64-unknown-linux"
+		clang_target = "x86_64-unknown-none"
 		helenos_target = "amd64-helenos"
 	
 	if (config['PLATFORM'] == "arm32"):
 		target = config['PLATFORM']
 		gnu_target = "arm-linux-gnueabi"
-		clang_target = "arm-unknown-linux"
+		clang_target = "arm-unknown-none-eabi"
 		helenos_target = "arm-helenos-gnueabi"
 	
 	if (config['PLATFORM'] == "ia32"):
 		target = config['PLATFORM']
 		gnu_target = "i686-pc-linux-gnu"
-		clang_target = "i386-unknown-linux"
+		clang_target = "i686-unknown-none"
 		helenos_target = "i686-pc-helenos"
 	
 	if (config['PLATFORM'] == "ia64"):
@@ -238,13 +263,13 @@ def get_target(config):
 		if ((config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
 			target = config['PLATFORM']
 			gnu_target = "mipsel-linux-gnu"
-			clang_target = "mipsel-unknown-linux"
+			clang_target = "mipsel-unknown-none"
 			helenos_target = "mipsel-helenos"
 		
 		if ((config['MACHINE'] == "bmalta")):
 			target = "mips32eb"
 			gnu_target = "mips-linux-gnu"
-			clang_target = "mips-unknown-linux"
+			clang_target = "mips-unknown-none"
 			helenos_target = "mips-helenos"
 	
 	if (config['PLATFORM'] == "mips64"):
@@ -254,13 +279,13 @@ def get_target(config):
 		if (config['MACHINE'] == "msim"):
 			target = config['PLATFORM']
 			gnu_target = "mips64el-linux-gnu"
-			clang_target = "mips64el-unknown-linux"
+			clang_target = "mips64el-unknown-none"
 			helenos_target = "mips64el-helenos"
 	
 	if (config['PLATFORM'] == "ppc32"):
 		target = config['PLATFORM']
 		gnu_target = "ppc-linux-gnu"
-		clang_target = "powerpc-unknown-linux"
+		clang_target = "ppc-unknown-none"
 		helenos_target = "ppc-helenos"
 	
 	if (config['PLATFORM'] == "sparc32"):
@@ -271,7 +296,7 @@ def get_target(config):
 	if (config['PLATFORM'] == "sparc64"):
 		target = config['PLATFORM']
 		gnu_target = "sparc64-linux-gnu"
-		clang_target = "sparc-unknown-linux"
+		clang_target = "sparc-unknown-none"
 		helenos_target = "sparc64-helenos"
 	
 	return (target, cc_args, gnu_target, clang_target, helenos_target)
@@ -395,7 +420,7 @@ def probe_compiler(common, intsizes, floatsizes):
 		outf.write("\tDECLARE_INTSIZE(\"%s\", %s, %s, %s);\n" % (typedef['tag'], typedef['type'], typedef['strc'], typedef['conc']))
 	
 	for typedef in floatsizes:
-		outf.write("\nDECLARE_FLOATSIZE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
+		outf.write("\tDECLARE_FLOATSIZE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
 	
 	outf.write(PROBE_TAIL)
 	outf.close()
@@ -508,6 +533,72 @@ def probe_compiler(common, intsizes, floatsizes):
 							print_error(["Inconsistent builtin type detection in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
 	
 	return {'unsigned_sizes': unsigned_sizes, 'signed_sizes': signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags, 'unsigned_strcs': unsigned_strcs, 'signed_strcs': signed_strcs, 'unsigned_concs': unsigned_concs, 'signed_concs': signed_concs, 'float_tags': float_tags, 'builtin_sizes': builtin_sizes, 'builtin_signs': builtin_signs}
+
+def probe_int128(common):
+	"Generate, compile and parse probing source for 128-bit integers"
+	
+	check_common(common, "CC")
+	
+	outf = open(PROBE_INT128_SOURCE, 'w')
+	outf.write(PROBE_INT128_HEAD)
+	outf.write("\tDECLARE_INTSIZE(\"INT128\", int __attribute((mode(TI))));\n")
+	outf.write(PROBE_INT128_TAIL)
+	outf.close()
+	
+	args = [common['CC']]
+	args.extend(common['CC_ARGS'])
+	args.extend(["-S", "-o", PROBE_INT128_OUTPUT, PROBE_INT128_SOURCE])
+	
+	try:
+		sys.stderr.write("Checking whether the compiler has intrinsic support for 128-bit integers ... ")
+		output = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE).communicate()
+	except:
+		sys.stderr.write("no\n")
+		return False
+	
+	if (not os.path.isfile(PROBE_INT128_OUTPUT)):
+		sys.stderr.write("no\n")
+		return False
+	
+	inf = open(PROBE_INT128_OUTPUT, 'r')
+	lines = inf.readlines()
+	inf.close()
+	
+	for j in range(len(lines)):
+		tokens = lines[j].strip().split("\t")
+		
+		if (len(tokens) > 0):
+			if (tokens[0] == "AUTOTOOL_DECLARE"):
+				if (len(tokens) < 7):
+					print_error(["Malformed declaration in \"%s\" on line %s." % (PROBE_INT128_OUTPUT, j), COMPILER_FAIL])
+				
+				category = tokens[1]
+				subcategory = tokens[2]
+				tag = tokens[3]
+				name = tokens[4]
+				strc = tokens[5]
+				conc = tokens[6]
+				value = tokens[7]
+				
+				if (category == "intsize"):
+					try:
+						value_int = decode_value(value)
+					except:
+						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_INT128_OUTPUT, j), COMPILER_FAIL])
+					
+					if (subcategory == "unsigned"):
+						if (value_int != 16):
+							sys.stderr.write("no\n")
+							return False
+					elif (subcategory == "signed"):
+						if (value_int != 16):
+							sys.stderr.write("no\n")
+							return False
+					else:
+						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_INT128_OUTPUT, j), COMPILER_FAIL])
+	
+	sys.stderr.write("yes\n")
+	return True
 
 def detect_sizes(probe, bytes, inttags, floattags):
 	"Detect correct types for fixed-size types"
@@ -682,7 +773,7 @@ def create_makefile(mkname, common):
 	
 	outmk.close()
 
-def create_header(hdname, maps):
+def create_header(hdname, maps, int128):
 	"Create header output"
 	
 	outhd = open(hdname, 'w')
@@ -702,6 +793,10 @@ def create_header(hdname, maps):
 	
 	for typedef in maps['typedefs']:
 		outhd.write('typedef %s %s;\n' % (typedef['oldtype'], typedef['newtype']))
+	
+	if (int128):
+		outhd.write('typedef unsigned int __attribute((mode(TI))) uint128_t;\n')
+		outhd.write('typedef signed int __attribute((mode(TI))) int128_t;\n')
 	
 	outhd.write('\n#endif\n')
 	outhd.close()
@@ -797,10 +892,11 @@ def main():
 			common['CC'] = common['GCC']
 		
 		if (config['COMPILER'] == "icc"):
-			common['CC'] = "icc"
 			check_app([common['CC'], "-V"], "Intel C++ Compiler", "support is experimental")
 			check_gcc(None, "", common, PACKAGE_GCC)
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
+			
+			common['CC'] = "icc"
 		
 		if (config['COMPILER'] == "clang"):
 			target, cc_args, gnu_target, clang_target, helenos_target = get_target(config)
@@ -844,15 +940,17 @@ def main():
 			]
 		)
 		
+		int128 = probe_int128(common)
+		
 		maps = detect_sizes(probe, [1, 2, 4, 8], ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG'], ['LONG_DOUBLE', 'DOUBLE', 'FLOAT'])
 		
 	finally:
 		sandbox_leave(owd)
 	
 	common['AUTOGEN'] = "%s/autogen.py" % os.path.dirname(os.path.abspath(sys.argv[0]))
-
+	
 	create_makefile(MAKEFILE, common)
-	create_header(HEADER, maps)
+	create_header(HEADER, maps, int128)
 	
 	return 0
 

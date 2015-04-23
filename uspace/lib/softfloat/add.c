@@ -33,10 +33,10 @@
 /** @file Addition functions.
  */
 
-#include "sftypes.h"
 #include "add.h"
 #include "comparison.h"
 #include "common.h"
+#include "sub.h"
 
 /** Add two single-precision floats with the same sign.
  *
@@ -411,6 +411,143 @@ float128 add_float128(float128 a, float128 b)
 
 	return a;
 }
+
+#ifdef float32_t
+
+float32_t __addsf3(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	float32_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		if (ua.data.parts.sign) {
+			ua.data.parts.sign = 0;
+			res.data = sub_float32(ub.data, ua.data);
+		} else {
+			ub.data.parts.sign = 0;
+			res.data = sub_float32(ua.data, ub.data);
+		}
+	} else
+		res.data = add_float32(ua.data, ub.data);
+	
+	return res.val;
+}
+
+float32_t __aeabi_fadd(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	float32_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		if (ua.data.parts.sign) {
+			ua.data.parts.sign = 0;
+			res.data = sub_float32(ub.data, ua.data);
+		} else {
+			ub.data.parts.sign = 0;
+			res.data = sub_float32(ua.data, ub.data);
+		}
+	} else
+		res.data = add_float32(ua.data, ub.data);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float64_t
+
+float64_t __adddf3(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	float64_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		if (ua.data.parts.sign) {
+			ua.data.parts.sign = 0;
+			res.data = sub_float64(ub.data, ua.data);
+		} else {
+			ub.data.parts.sign = 0;
+			res.data = sub_float64(ua.data, ub.data);
+		}
+	} else
+		res.data = add_float64(ua.data, ub.data);
+	
+	return res.val;
+}
+
+float64_t __aeabi_dadd(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	float64_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		if (ua.data.parts.sign) {
+			ua.data.parts.sign = 0;
+			res.data = sub_float64(ub.data, ua.data);
+		} else {
+			ub.data.parts.sign = 0;
+			res.data = sub_float64(ua.data, ub.data);
+		}
+	} else
+		res.data = add_float64(ua.data, ub.data);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float128_t
+
+float128_t __addtf3(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	float128_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		if (ua.data.parts.sign) {
+			ua.data.parts.sign = 0;
+			res.data = sub_float128(ub.data, ua.data);
+		} else {
+			ub.data.parts.sign = 0;
+			res.data = sub_float128(ua.data, ub.data);
+		}
+	} else
+		res.data = add_float128(ua.data, ub.data);
+	
+	return res.val;
+}
+
+void _Qp_add(float128_t *c, float128_t *a, float128_t *b)
+{
+	*c = __addtf3(*a, *b);
+}
+
+#endif
 
 /** @}
  */

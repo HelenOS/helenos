@@ -35,8 +35,8 @@
 #ifndef LIBMATH_TRIG_H_
 #define LIBMATH_TRIG_H_
 
-extern double double_sin(double);
-extern double double_cos(double);
+extern float64_t float64_sin(float64_t);
+extern float64_t float64_cos(float64_t);
 
 #endif
 

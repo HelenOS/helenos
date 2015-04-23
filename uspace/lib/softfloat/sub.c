@@ -33,10 +33,10 @@
 /** @file Substraction functions.
  */
 
-#include "sftypes.h"
 #include "sub.h"
 #include "comparison.h"
 #include "common.h"
+#include "add.h"
 
 /** Subtract two single-precision floats with the same sign.
  *
@@ -436,6 +436,118 @@ done:
 	
 	return result;
 }
+
+#ifdef float32_t
+
+float32_t __subsf3(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	float32_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		ub.data.parts.sign = !ub.data.parts.sign;
+		res.data = add_float32(ua.data, ub.data);
+	} else
+		res.data = sub_float32(ua.data, ub.data);
+	
+	return res.val;
+}
+
+float32_t __aeabi_fsub(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	float32_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		ub.data.parts.sign = !ub.data.parts.sign;
+		res.data = add_float32(ua.data, ub.data);
+	} else
+		res.data = sub_float32(ua.data, ub.data);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float64_t
+
+float64_t __subdf3(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	float64_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		ub.data.parts.sign = !ub.data.parts.sign;
+		res.data = add_float64(ua.data, ub.data);
+	} else
+		res.data = sub_float64(ua.data, ub.data);
+	
+	return res.val;
+}
+
+float64_t __aeabi_dsub(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	float64_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		ub.data.parts.sign = !ub.data.parts.sign;
+		res.data = add_float64(ua.data, ub.data);
+	} else
+		res.data = sub_float64(ua.data, ub.data);
+	
+	return res.val;
+}
+
+#endif
+
+#ifdef float128_t
+
+float128_t __subtf3(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	float128_u res;
+	
+	if (ua.data.parts.sign != ub.data.parts.sign) {
+		ub.data.parts.sign = !ub.data.parts.sign;
+		res.data = add_float128(ua.data, ub.data);
+	} else
+		res.data = sub_float128(ua.data, ub.data);
+	
+	return res.val;
+}
+
+void _Qp_sub(float128_t *c, float128_t *a, float128_t *b)
+{
+	*c = __subtf3(*a, *b);
+}
+
+#endif
 
 /** @}
  */

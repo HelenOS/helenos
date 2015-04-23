@@ -258,7 +258,7 @@ bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
 	/* Update timeout */
 	struct timeval t1;
 	gettimeofday(&t1, NULL);
-	*timeout -= tv_sub(&t1, &t0);
+	*timeout -= tv_sub_diff(&t1, &t0);
 	
 	return true;
 }

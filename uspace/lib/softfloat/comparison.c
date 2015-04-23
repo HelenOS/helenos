@@ -33,7 +33,6 @@
 /** @file Comparison functions.
  */
 
-#include "sftypes.h"
 #include "comparison.h"
 #include "common.h"
 
@@ -437,6 +436,715 @@ int is_float128_gt(float128 a, float128 b)
 	b.parts.sign = !b.parts.sign;
 	return lt128(b.bin.hi, b.bin.lo, a.bin.hi, a.bin.lo);
 }
+
+#ifdef float32_t
+
+int __gtsf2(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float32_gt(ua.data, ub.data))
+		return 1;
+	
+	return 0;
+}
+
+int __gesf2(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float32_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float32_gt(ua.data, ub.data))
+		return 1;
+	
+	return -1;
+}
+
+int __ltsf2(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float32_lt(ua.data, ub.data))
+		return -1;
+	
+	return 0;
+}
+
+int __lesf2(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float32_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float32_lt(ua.data, ub.data))
+		return -1;
+	
+	return 1;
+}
+
+int __eqsf2(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	return is_float32_eq(ua.data, ub.data) - 1;
+}
+
+int __nesf2(float32_t a, float32_t b)
+{
+	/* Strange, but according to GCC documentation */
+	return __eqsf2(a, b);
+}
+
+int __cmpsf2(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		/* No special constant for unordered - maybe signaled? */
+		return 1;
+	}
+	
+	if (is_float32_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float32_lt(ua.data, ub.data))
+		return -1;
+	
+	return 1;
+}
+
+int __unordsf2(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	return ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data)));
+}
+
+int __aeabi_fcmpgt(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float32_gt(ua.data, ub.data))
+		return 1;
+	
+	return 0;
+}
+
+int __aeabi_fcmplt(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float32_lt(ua.data, ub.data))
+		return -1;
+	
+	return 0;
+}
+
+int __aeabi_fcmpge(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float32_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float32_gt(ua.data, ub.data))
+		return 1;
+	
+	return -1;
+}
+
+int __aeabi_fcmpeq(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+	
+	float32_u ub;
+	ub.val = b;
+	
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	return is_float32_eq(ua.data, ub.data) - 1;
+}
+
+#endif
+
+#ifdef float64_t
+
+int __gtdf2(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float64_gt(ua.data, ub.data))
+		return 1;
+	
+	return 0;
+}
+
+int __gedf2(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float64_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float64_gt(ua.data, ub.data))
+		return 1;
+	
+	return -1;
+}
+
+int __ltdf2(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float64_lt(ua.data, ub.data))
+		return -1;
+	
+	return 0;
+}
+
+int __ledf2(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float64_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float64_lt(ua.data, ub.data))
+		return -1;
+	
+	return 1;
+}
+
+int __eqdf2(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	return is_float64_eq(ua.data, ub.data) - 1;
+}
+
+int __nedf2(float64_t a, float64_t b)
+{
+	/* Strange, but according to GCC documentation */
+	return __eqdf2(a, b);
+}
+
+int __cmpdf2(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		/* No special constant for unordered - maybe signaled? */
+		return 1;
+	}
+	
+	if (is_float64_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float64_lt(ua.data, ub.data))
+		return -1;
+	
+	return 1;
+}
+
+int __unorddf2(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	return ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data)));
+}
+
+int __aeabi_dcmplt(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float64_lt(ua.data, ub.data))
+		return -1;
+	
+	return 0;
+}
+
+int __aeabi_dcmpeq(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	return is_float64_eq(ua.data, ub.data) - 1;
+}
+
+int __aeabi_dcmpgt(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float64_gt(ua.data, ub.data))
+		return 1;
+	
+	return 0;
+}
+
+int __aeabi_dcmpge(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float64_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float64_gt(ua.data, ub.data))
+		return 1;
+	
+	return -1;
+}
+
+int __aeabi_dcmple(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+	
+	float64_u ub;
+	ub.val = b;
+	
+	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float64_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float64_lt(ua.data, ub.data))
+		return -1;
+	
+	return 1;
+}
+
+#endif
+
+#ifdef float128_t
+
+int __gttf2(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float128_gt(ua.data, ub.data))
+		return 1;
+	
+	return 0;
+}
+
+int __getf2(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
+		// TODO: sigNaNs
+		return -1;
+	}
+	
+	if (is_float128_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float128_gt(ua.data, ub.data))
+		return 1;
+	
+	return -1;
+}
+
+int __lttf2(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float128_lt(ua.data, ub.data))
+		return -1;
+	
+	return 0;
+}
+
+int __letf2(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	if (is_float128_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float128_lt(ua.data, ub.data))
+		return -1;
+	
+	return 1;
+}
+
+int __eqtf2(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 1;
+	}
+	
+	return is_float128_eq(ua.data, ub.data) - 1;
+}
+
+int __netf2(float128_t a, float128_t b)
+{
+	/* Strange, but according to GCC documentation */
+	return __eqtf2(a, b);
+}
+
+int __cmptf2(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
+		/* No special constant for unordered - maybe signaled? */
+		return 1;
+	}
+	
+	if (is_float128_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float128_lt(ua.data, ub.data))
+		return -1;
+	
+	return 1;
+}
+
+int __unordtf2(float128_t a, float128_t b)
+{
+	float128_u ua;
+	ua.val = a;
+	
+	float128_u ub;
+	ub.val = b;
+	
+	return ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)));
+}
+
+int _Qp_cmp(float128_t *a, float128_t *b)
+{
+	float128_u ua;
+	ua.val = *a;
+	
+	float128_u ub;
+	ub.val = *b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
+		return 3;
+	
+	if (is_float128_eq(ua.data, ub.data))
+		return 0;
+	
+	if (is_float128_lt(ua.data, ub.data))
+		return 1;
+	
+	return 2;
+}
+
+int _Qp_cmpe(float128_t *a, float128_t *b)
+{
+	/* Strange, but according to SPARC Compliance Definition */
+	return _Qp_cmp(a, b);
+}
+
+int _Qp_fgt(float128_t *a, float128_t *b)
+{
+	float128_u ua;
+	ua.val = *a;
+	
+	float128_u ub;
+	ub.val = *b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
+		return 0;
+	
+	return is_float128_gt(ua.data, ub.data);
+}
+
+int _Qp_fge(float128_t *a, float128_t *b)
+{
+	float128_u ua;
+	ua.val = *a;
+	
+	float128_u ub;
+	ub.val = *b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
+		return 0;
+	
+	return is_float128_eq(ua.data, ub.data) ||
+	    is_float128_gt(ua.data, ub.data);
+}
+
+int _Qp_flt(float128_t *a, float128_t *b)
+{
+	float128_u ua;
+	ua.val = *a;
+	
+	float128_u ub;
+	ub.val = *b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
+		return 0;
+	
+	return is_float128_lt(ua.data, ub.data);
+}
+
+int _Qp_fle(float128_t *a, float128_t *b)
+{
+	float128_u ua;
+	ua.val = *a;
+	
+	float128_u ub;
+	ub.val = *b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
+		return 0;
+	
+	return is_float128_eq(ua.data, ub.data) ||
+	    is_float128_lt(ua.data, ub.data);
+}
+
+int _Qp_feq(float128_t *a, float128_t *b)
+{
+	float128_u ua;
+	ua.val = *a;
+	
+	float128_u ub;
+	ub.val = *b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
+		return 0;
+	
+	return is_float128_eq(ua.data, ub.data);
+}
+
+int _Qp_fne(float128_t *a, float128_t *b)
+{
+	float128_u ua;
+	ua.val = *a;
+	
+	float128_u ub;
+	ub.val = *b;
+	
+	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
+		return 0;
+	
+	return !is_float128_eq(ua.data, ub.data);
+}
+
+#endif
 
 /** @}
  */

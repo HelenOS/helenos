@@ -384,7 +384,13 @@ static void hdaudio_interrupt(ipc_callid_t iid, ipc_call_t *icall,
 			hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
 			hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
 			hda_pcm_event(hda, PCM_EVENT_FRAMES_PLAYED);
+		} else if (hda->capturing) {
+			hda_pcm_event(hda, PCM_EVENT_FRAMES_CAPTURED);
+			hda_pcm_event(hda, PCM_EVENT_FRAMES_CAPTURED);
+			hda_pcm_event(hda, PCM_EVENT_FRAMES_CAPTURED);
+			hda_pcm_event(hda, PCM_EVENT_FRAMES_CAPTURED);
 		}
+
 		hda_unlock(hda);
 	}
 }
