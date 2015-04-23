@@ -39,12 +39,11 @@
 #include <str.h>
 #include <inet/dhcp.h>
 #include <inet/inetcfg.h>
-
 #include "ops/ieee80211.h"
 #include "ieee80211_iface.h"
 #include "nic_iface.h"
 
-#define MAX_STRING_SIZE 32
+#define MAX_STRING_SIZE  32
 
 /** IEEE 802.11 RPC functions IDs. */
 typedef enum {
@@ -55,14 +54,15 @@ typedef enum {
 
 /** Get scan results from IEEE 802.11 device
  *
- * @param[in] dev_sess Device session.
- * @param[out] results Structure where to put scan results.
+ * @param[in]  dev_sess Device session.
+ * @param[out] results  Structure where to put scan results.
  *
  * @return EOK If the operation was successfully completed,
- * negative error code otherwise.
+ *         negative error code otherwise.
+ *
  */
-int ieee80211_get_scan_results(async_sess_t *dev_sess, 
-	ieee80211_scan_results_t *results, bool now)
+int ieee80211_get_scan_results(async_sess_t *dev_sess,
+    ieee80211_scan_results_t *results, bool now)
 {
 	assert(results);
 	
@@ -70,22 +70,23 @@ int ieee80211_get_scan_results(async_sess_t *dev_sess,
 	
 	aid_t aid = async_send_2(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_GET_SCAN_RESULTS, now, NULL);
-	int rc = async_data_read_start(exch, results, sizeof(ieee80211_scan_results_t));
+	int rc = async_data_read_start(exch, results,
+	    sizeof(ieee80211_scan_results_t));
 	async_exchange_end(exch);
-
+	
 	sysarg_t res;
 	async_wait_for(aid, &res);
 	
 	if(res != EOK)
 		return (int) res;
-	else
-		return rc;
+	
+	return rc;
 }
 
 static bool mac_matches(uint8_t *mac1, uint8_t *mac2)
 {
-	for(size_t i = 0; i < ETH_ADDR; i++) {
-		if(mac1[i] != mac2[i])
+	for (size_t i = 0; i < ETH_ADDR; i++) {
+		if (mac1[i] != mac2[i])
 			return false;
 	}
 	
@@ -107,9 +108,8 @@ static sysarg_t get_link_id(uint8_t *mac)
 		if (rc != EOK)
 			return -1;
 		
-		if(mac_matches(mac, link_info.mac_addr)) {
+		if (mac_matches(mac, link_info.mac_addr))
 			return link_list[i];
-		}
 	}
 	
 	return -1;
@@ -117,12 +117,13 @@ static sysarg_t get_link_id(uint8_t *mac)
 
 /** Connect to specified network.
  *
- * @param[in] dev_sess Device session.
+ * @param[in] dev_sess   Device session.
  * @param[in] ssid_start Network SSID prefix.
- * @param[in] password Network password (pass empty string if not needed).
+ * @param[in] password   Network password (pass empty string if not needed).
  *
  * @return EOK If the operation was successfully completed,
- * negative error code otherwise.
+ *         negative error code otherwise.
+ *
  */
 int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 {
@@ -135,21 +136,21 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_CONNECT, NULL);
 	
-	sysarg_t rc = async_data_write_start(exch, ssid_start, 
-		str_size(ssid_start) + 1);
+	sysarg_t rc = async_data_write_start(exch, ssid_start,
+	    str_size(ssid_start) + 1);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_wait_for(aid, &rc_orig);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
-		else
-			return (int) rc_orig;
+		
+		return (int) rc_orig;
 	}
 	
-	if(password == NULL) {
+	// FIXME: Typecasting string literal
+	if (password == NULL)
 		password = (char *) "";
-	}
 	
 	rc = async_data_write_start(exch, password, str_size(password) + 1);
 	if (rc != EOK) {
@@ -158,12 +159,12 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 		
 		if (rc_orig == EOK)
 			return (int) rc;
-		else
-			return (int) rc_orig;
+		
+		return (int) rc_orig;
 	}
 	
 	async_exchange_end(exch);
-
+	
 	async_wait_for(aid, &rc);
 	if (rc != EOK)
 		return rc;
@@ -175,7 +176,7 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 		return rc;
 	
 	sysarg_t link_id = get_link_id(wifi_mac.address);
-	if(link_id == ((sysarg_t) -1))
+	if (link_id == ((sysarg_t) -1))
 		return EINVAL;
 	
 	rc = dhcp_discover(link_id);
@@ -188,7 +189,8 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
  * @param[in] dev_sess Device session.
  *
  * @return EOK If the operation was successfully completed,
- * negative error code otherwise.
+ *         negative error code otherwise.
+ *
  */
 int ieee80211_disconnect(async_sess_t *dev_sess)
 {
@@ -197,7 +199,7 @@ int ieee80211_disconnect(async_sess_t *dev_sess)
 	    IEEE80211_DISCONNECT);
 	async_exchange_end(exch);
 	
-	if(rc != EOK)
+	if (rc != EOK)
 		return rc;
 	
 	nic_address_t wifi_mac;
@@ -226,17 +228,18 @@ int ieee80211_disconnect(async_sess_t *dev_sess)
 		if (rc != EOK)
 			return rc;
 		
-		if(mac_matches(wifi_mac.address, link_info.mac_addr)) {
-			if(str_test_prefix(addr_info.name, "dhcp")) {
+		if (mac_matches(wifi_mac.address, link_info.mac_addr)) {
+			if (str_test_prefix(addr_info.name, "dhcp")) {
 				rc = inetcfg_addr_delete(addr_list[i]);
-				if(rc != EOK)
+				if (rc != EOK)
 					return rc;
+				
 				break;
 			}
 		}
 	}
 	
-	/* 
+	/*
 	 * TODO: At this moment there can be only one DHCP route,
 	 * so it must be reimplemented after this limitation will be
 	 * dropped.
@@ -251,10 +254,11 @@ int ieee80211_disconnect(async_sess_t *dev_sess)
 		if (rc != EOK)
 			return rc;
 		
-		if(str_test_prefix(route_info.name, "dhcp")) {
+		if (str_test_prefix(route_info.name, "dhcp")) {
 			rc = inetcfg_sroute_delete(route_list[i]);
-			if(rc != EOK)
+			if (rc != EOK)
 				return rc;
+			
 			break;
 		}
 	}

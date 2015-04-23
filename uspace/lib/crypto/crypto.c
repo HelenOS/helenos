@@ -27,7 +27,7 @@
  */
 
 /** @file crypto.c
- * 
+ *
  * Cryptographic functions library.
  */
 
@@ -36,32 +36,34 @@
 #include <macros.h>
 #include <errno.h>
 #include <byteorder.h>
-
 #include "crypto.h"
 
-/* Hash function procedure definition. */
-typedef void (*HASH_FUNC)(uint32_t*, uint32_t*);
+/** Hash function procedure definition. */
+typedef void (*hash_fnc_t)(uint32_t *, uint32_t *);
 
-/* Length of HMAC block. */
-#define HMAC_BLOCK_LENGTH 64
+/** Length of HMAC block. */
+#define HMAC_BLOCK_LENGTH  64
 
-/* Ceiling for UINT32. */
-#define ceil_uint32(val) (((val) - (uint32_t)(val)) > 0 ? \
-	(uint32_t)((val) + 1) : (uint32_t)(val))
+/** Ceiling for uint32_t. */
+#define ceil_uint32(val) \
+	(((val) - (uint32_t) (val)) > 0 ? \
+	(uint32_t) ((val) + 1) : (uint32_t) (val))
 
-/* Floor for UINT32. */
-#define floor_uint32(val) (((val) - (uint32_t)(val)) < 0 ? \
-	(uint32_t)((val) - 1) : (uint32_t)(val))
+/** Floor for uint32_t. */
+#define floor_uint32(val) \
+	(((val) - (uint32_t) (val)) < 0 ? \
+	(uint32_t) ((val) - 1) : (uint32_t) (val))
 
-/* Pick value at specified index from array or zero if out of bounds. */
-#define get_at(input, size, i) (i < size ? input[i] : 0)
+/** Pick value at specified index from array or zero if out of bounds. */
+#define get_at(input, size, i) \
+	((i) < (size) ? (input[i]) : 0)
 
-/* Init values used in SHA1 and MD5 functions. */
+/** Init values used in SHA1 and MD5 functions. */
 static const uint32_t hash_init[] = {
-	0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0
+	0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0
 };
 
-/* Shift amount array for MD5 algorithm. */
+/** Shift amount array for MD5 algorithm. */
 static const uint32_t md5_shift[] = {
 	7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
 	5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
@@ -69,7 +71,7 @@ static const uint32_t md5_shift[] = {
 	6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
 };
 
-/* Substitution box for MD5 algorithm. */
+/** Substitution box for MD5 algorithm. */
 static const uint32_t md5_sbox[] = {
 	0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
 	0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -89,184 +91,188 @@ static const uint32_t md5_sbox[] = {
 	0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 };
 
-/**
- * Working procedure of MD5 cryptographic hash function.
- * 
- * @param h Working array with interim hash parts values.
+/** Working procedure of MD5 cryptographic hash function.
+ *
+ * @param h         Working array with interim hash parts values.
  * @param sched_arr Input array with scheduled values from input string.
+ *
  */
 static void md5_proc(uint32_t *h, uint32_t *sched_arr)
 {
 	uint32_t f, g, temp;
-	uint32_t w[HASH_MD5/4];
+	uint32_t w[HASH_MD5 / 4];
 	
-	memcpy(w, h, (HASH_MD5/4) * sizeof(uint32_t));
+	memcpy(w, h, (HASH_MD5 / 4) * sizeof(uint32_t));
 	
-	for(size_t k = 0; k < 64; k++) {
-		if(k < 16) {
+	for (size_t k = 0; k < 64; k++) {
+		if (k < 16) {
 			f = (w[1] & w[2]) | (~w[1] & w[3]);
 			g = k;
-		} else if(k >= 16 && k < 32) {
+		} else if ((k >= 16) && (k < 32)) {
 			f = (w[1] & w[3]) | (w[2] & ~w[3]);
-			g = (5*k + 1) % 16;
-		} else if(k >= 32 && k < 48) {
+			g = (5 * k + 1) % 16;
+		} else if ((k >= 32) && (k < 48)) {
 			f = w[1] ^ w[2] ^ w[3];
-			g = (3*k + 5) % 16;
+			g = (3 * k + 5) % 16;
 		} else {
 			f = w[2] ^ (w[1] | ~w[3]);
-			g = 7*k % 16;
+			g = 7 * k % 16;
 		}
+		
 		temp = w[3];
 		w[3] = w[2];
 		w[2] = w[1];
-		w[1] += rotl_uint32(w[0] + f + md5_sbox[k] + 
-			uint32_t_byteorder_swap(sched_arr[g]),	
-			md5_shift[k]);
+		w[1] += rotl_uint32(w[0] + f + md5_sbox[k] +
+		    uint32_t_byteorder_swap(sched_arr[g]),
+		    md5_shift[k]);
 		w[0] = temp;
 	}
 	
-	for(uint8_t k = 0; k < HASH_MD5/4; k++)
+	for (uint8_t k = 0; k < HASH_MD5 / 4; k++)
 		h[k] += w[k];
 }
 
-/**
- * Working procedure of SHA-1 cryptographic hash function.
- * 
- * @param h Working array with interim hash parts values.
+/** Working procedure of SHA-1 cryptographic hash function.
+ *
+ * @param h         Working array with interim hash parts values.
  * @param sched_arr Input array with scheduled values from input string.
+ *
  */
 static void sha1_proc(uint32_t *h, uint32_t *sched_arr)
 {
 	uint32_t f, cf, temp;
-	uint32_t w[HASH_SHA1/4];
+	uint32_t w[HASH_SHA1 / 4];
 	
-	for(size_t k = 16; k < 80; k++) {
+	for (size_t k = 16; k < 80; k++) {
 		sched_arr[k] = rotl_uint32(
-			sched_arr[k-3] ^
-			sched_arr[k-8] ^
-			sched_arr[k-14] ^
-			sched_arr[k-16], 
-			1);
+		    sched_arr[k-3] ^
+		    sched_arr[k-8] ^
+		    sched_arr[k-14] ^
+		    sched_arr[k-16],
+		    1);
 	}
-
-	memcpy(w, h, (HASH_SHA1/4) * sizeof(uint32_t));
 	
-	for(size_t k = 0; k < 80; k++) {
-		if(k < 20) {
+	memcpy(w, h, (HASH_SHA1 / 4) * sizeof(uint32_t));
+	
+	for (size_t k = 0; k < 80; k++) {
+		if (k < 20) {
 			f = (w[1] & w[2]) | (~w[1] & w[3]);
 			cf = 0x5A827999;
-		} else if(k >= 20 && k < 40) {
+		} else if ((k >= 20) && (k < 40)) {
 			f = w[1] ^ w[2] ^ w[3];
-			cf = 0x6ED9EBA1;
-		} else if(k >= 40 && k < 60) {
+			cf = 0x6ed9eba1;
+		} else if ((k >= 40) && (k < 60)) {
 			f = (w[1] & w[2]) | (w[1] & w[3]) | (w[2] & w[3]);
-			cf = 0x8F1BBCDC;
+			cf = 0x8f1bbcdc;
 		} else {
 			f = w[1] ^ w[2] ^ w[3];
-			cf = 0xCA62C1D6;
+			cf = 0xca62c1d6;
 		}
-
+		
 		temp = rotl_uint32(w[0], 5) + f + w[4] + cf + sched_arr[k];
-
+		
 		w[4] = w[3];
 		w[3] = w[2];
 		w[2] = rotl_uint32(w[1], 30);
 		w[1] = w[0];
 		w[0] = temp;
 	}
-
-	for(uint8_t k = 0; k < HASH_SHA1/4; k++)
+	
+	for (uint8_t k = 0; k < HASH_SHA1 / 4; k++)
 		h[k] += w[k];
 }
 
-/**
- * Create hash based on selected algorithm.
- * 
- * @param input Input message byte sequence.
+/** Create hash based on selected algorithm.
+ *
+ * @param input      Input message byte sequence.
  * @param input_size Size of message sequence.
- * @param output Result hash byte sequence.
- * @param hash_sel Hash function selector.
- * 
- * @return EINVAL when input not specified, ENOMEM when pointer for 
- * output hash result is not allocated, otherwise EOK. 
+ * @param output     Result hash byte sequence.
+ * @param hash_sel   Hash function selector.
+ *
+ * @return EINVAL when input not specified,
+ *         ENOMEM when pointer for output hash result
+ *         is not allocated, otherwise EOK.
+ *
  */
 int create_hash(uint8_t *input, size_t input_size, uint8_t *output,
-	hash_func_t hash_sel)
+    hash_func_t hash_sel)
 {
-	if(!input)
+	if (!input)
 		return EINVAL;
 	
-	if(!output)
+	if (!output)
 		return ENOMEM;
 	
-	HASH_FUNC hash_func = (hash_sel == HASH_MD5) ? md5_proc : sha1_proc;
+	hash_fnc_t hash_func = (hash_sel == HASH_MD5) ? md5_proc : sha1_proc;
 	
 	/* Prepare scheduled input. */
 	uint8_t work_input[input_size + 1];
 	memcpy(work_input, input, input_size);
 	work_input[input_size] = 0x80;
 	
-	size_t blocks = ceil_uint32((((double)input_size + 1) / 4 + 2) / 16);
+	// FIXME: double?
+	size_t blocks = ceil_uint32((((double) input_size + 1) / 4 + 2) / 16);
 	uint32_t work_arr[blocks * 16];
-	for(size_t i = 0; i < blocks; i++) {
-		for(size_t j = 0; j < 16; j++) {
-			work_arr[i*16 + j] = 
-			(get_at(work_input, input_size+1, i*64+j*4) << 24) |
-			(get_at(work_input, input_size+1, i*64+j*4+1) << 16) |
-			(get_at(work_input, input_size+1, i*64+j*4+2) << 8) |
-			get_at(work_input, input_size+1, i*64+j*4+3);
+	for (size_t i = 0; i < blocks; i++) {
+		for (size_t j = 0; j < 16; j++) {
+			work_arr[i*16 + j] =
+			    (get_at(work_input, input_size + 1, i * 64 + j * 4) << 24) |
+			    (get_at(work_input, input_size + 1, i * 64 + j * 4 + 1) << 16) |
+			    (get_at(work_input, input_size + 1, i * 64 + j * 4 + 2) << 8) |
+			    get_at(work_input, input_size + 1, i * 64 + j * 4 + 3);
 		}
 	}
 	
-	uint64_t bits_size = (uint64_t)(input_size * 8);
-	if(hash_sel == HASH_MD5)
+	uint64_t bits_size = (uint64_t) (input_size * 8);
+	if (hash_sel == HASH_MD5)
 		bits_size = uint64_t_byteorder_swap(bits_size);
 	
 	work_arr[(blocks - 1) * 16 + 14] = bits_size >> 32;
-	work_arr[(blocks - 1) * 16 + 15] = bits_size & 0xFFFFFFFF;
+	work_arr[(blocks - 1) * 16 + 15] = bits_size & 0xffffffff;
 	
 	/* Hash computation. */
-	uint32_t h[hash_sel/4];
-	memcpy(h, hash_init, (hash_sel/4) * sizeof(uint32_t));
+	uint32_t h[hash_sel / 4];
+	memcpy(h, hash_init, (hash_sel / 4) * sizeof(uint32_t));
 	uint32_t sched_arr[80];
-	for(size_t i = 0; i < blocks; i++) {
-		for(size_t k = 0; k < 16; k++) {
-			sched_arr[k] = work_arr[i*16 + k];
-		}
+	for (size_t i = 0; i < blocks; i++) {
+		for (size_t k = 0; k < 16; k++)
+			sched_arr[k] = work_arr[i * 16 + k];
 		
 		hash_func(h, sched_arr);
 	}
 	
 	/* Copy hash parts into final result. */
-	for(size_t i = 0; i < hash_sel/4; i++) {
-		if(hash_sel == HASH_SHA1)
+	for (size_t i = 0; i < hash_sel / 4; i++) {
+		if (hash_sel == HASH_SHA1)
 			h[i] = uint32_t_byteorder_swap(h[i]);
-		memcpy(output + i*sizeof(uint32_t), &h[i], sizeof(uint32_t));
+		
+		memcpy(output + i * sizeof(uint32_t), &h[i], sizeof(uint32_t));
 	}
 	
 	return EOK;
 }
 
-/**
- * Hash-based message authentication code.
- * 
- * @param key Cryptographic key sequence.
+/** Hash-based message authentication code.
+ *
+ * @param key      Cryptographic key sequence.
  * @param key_size Size of key sequence.
- * @param msg Message sequence.
+ * @param msg      Message sequence.
  * @param msg_size Size of message sequence.
- * @param hash Output parameter for result hash.
+ * @param hash     Output parameter for result hash.
  * @param hash_sel Hash function selector.
- * 
- * @return EINVAL when key or message not specified, ENOMEM when pointer for 
- * output hash result is not allocated, otherwise EOK.
+ *
+ * @return EINVAL when key or message not specified,
+ *         ENOMEM when pointer for output hash result
+ *         is not allocated, otherwise EOK.
+ *
  */
 int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size, 
-	uint8_t *hash, hash_func_t hash_sel)
+    uint8_t *hash, hash_func_t hash_sel)
 {
-	if(!key || !msg)
+	if ((!key) || (!msg))
 		return EINVAL;
 	
-	if(!hash)
+	if (!hash)
 		return ENOMEM;
 	
 	uint8_t work_key[HMAC_BLOCK_LENGTH];
@@ -275,14 +281,13 @@ int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size,
 	uint8_t temp_hash[hash_sel];
 	memset(work_key, 0, HMAC_BLOCK_LENGTH);
 	
-	if(key_size > HMAC_BLOCK_LENGTH) {
+	if(key_size > HMAC_BLOCK_LENGTH)
 		create_hash(key, key_size, work_key, hash_sel);
-	} else {
+	else
 		memcpy(work_key, key, key_size);
-	}
 	
-	for(size_t i = 0; i < HMAC_BLOCK_LENGTH; i++) {
-		o_key_pad[i] = work_key[i] ^ 0x5C;
+	for (size_t i = 0; i < HMAC_BLOCK_LENGTH; i++) {
+		o_key_pad[i] = work_key[i] ^ 0x5c;
 		i_key_pad[i] = work_key[i] ^ 0x36;
 	}
 	
@@ -290,8 +295,8 @@ int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size,
 	memcpy(temp_work, i_key_pad, HMAC_BLOCK_LENGTH);
 	memcpy(temp_work + HMAC_BLOCK_LENGTH, msg, msg_size);
 	
-	create_hash(temp_work, HMAC_BLOCK_LENGTH + msg_size, temp_hash, 
-		hash_sel);
+	create_hash(temp_work, HMAC_BLOCK_LENGTH + msg_size, temp_hash,
+	    hash_sel);
 	
 	memcpy(temp_work, o_key_pad, HMAC_BLOCK_LENGTH);
 	memcpy(temp_work + HMAC_BLOCK_LENGTH, temp_hash, hash_sel);
@@ -301,27 +306,29 @@ int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size,
 	return EOK;
 }
 
-/**
- * Password-Based Key Derivation Function 2 as defined in RFC 2898,
- * using HMAC-SHA1 with 4096 iterations and 32 bytes key result used
- * for WPA/WPA2.
- * 
- * @param pass Password sequence.
+/** Password-Based Key Derivation Function 2.
+ *
+ * As defined in RFC 2898, using HMAC-SHA1 with 4096 iterations
+ * and 32 bytes key result used for WPA/WPA2.
+ *
+ * @param pass      Password sequence.
  * @param pass_size Password sequence length.
- * @param salt Salt sequence to be used with password.
+ * @param salt      Salt sequence to be used with password.
  * @param salt_size Salt sequence length.
- * @param hash Output parameter for result hash (32 byte value).
- * 
- * @return EINVAL when pass or salt not specified, ENOMEM when pointer for 
- * output hash result is not allocated, otherwise EOK.
+ * @param hash      Output parameter for result hash (32 byte value).
+ *
+ * @return EINVAL when pass or salt not specified,
+ *         ENOMEM when pointer for output hash result
+ *         is not allocated, otherwise EOK.
+ *
  */
-int pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, size_t salt_size, 
-	uint8_t *hash)
+int pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, size_t salt_size,
+    uint8_t *hash)
 {
-	if(!pass || !salt)
+	if ((!pass) || (!salt))
 		return EINVAL;
 	
-	if(!hash)
+	if (!hash)
 		return ENOMEM;
 	
 	uint8_t work_salt[salt_size + 4];
@@ -329,24 +336,26 @@ int pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, size_t salt_size,
 	uint8_t work_hmac[HASH_SHA1];
 	uint8_t temp_hmac[HASH_SHA1];
 	uint8_t xor_hmac[HASH_SHA1];
-	uint8_t temp_hash[HASH_SHA1*2];
+	uint8_t temp_hash[HASH_SHA1 * 2];
 	
-	for(size_t i = 0; i < 2; i++) {
-		uint32_t be_i = host2uint32_t_be(i+1);
+	for (size_t i = 0; i < 2; i++) {
+		uint32_t be_i = host2uint32_t_be(i + 1);
+		
 		memcpy(work_salt + salt_size, &be_i, 4);
 		hmac(pass, pass_size, work_salt, salt_size + 4,
-			work_hmac, HASH_SHA1);
+		    work_hmac, HASH_SHA1);
 		memcpy(xor_hmac, work_hmac, HASH_SHA1);
 		
-		for(size_t k = 1; k < 4096; k++) {
+		for (size_t k = 1; k < 4096; k++) {
 			memcpy(temp_hmac, work_hmac, HASH_SHA1);
-			hmac(pass, pass_size, temp_hmac, HASH_SHA1, 
-				work_hmac, HASH_SHA1);
-			for(size_t t = 0; t < HASH_SHA1; t++) {
+			hmac(pass, pass_size, temp_hmac, HASH_SHA1,
+			    work_hmac, HASH_SHA1);
+			
+			for (size_t t = 0; t < HASH_SHA1; t++)
 				xor_hmac[t] ^= work_hmac[t];
-			}
 		}
-		memcpy(temp_hash + i*HASH_SHA1, xor_hmac, HASH_SHA1);
+		
+		memcpy(temp_hash + i * HASH_SHA1, xor_hmac, HASH_SHA1);
 	}
 	
 	memcpy(hash, temp_hash, PBKDF2_KEY_LENGTH);

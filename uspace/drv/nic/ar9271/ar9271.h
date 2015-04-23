@@ -36,24 +36,23 @@
 #define AR9271_H_
 
 #include <usb/dev/driver.h>
-
 #include "htc.h"
 
 /** Number of transmission queues */
-#define AR9271_QUEUES_COUNT 10
+#define AR9271_QUEUES_COUNT  10
 
 /** Number of GPIO pin used for handling led light */
-#define AR9271_LED_PIN 15
+#define AR9271_LED_PIN  15
 
 /** Nominal value for AR9271 noise floor calibration. */
-#define AR9271_CALIB_NOMINAL_VALUE_2GHZ -118
+#define AR9271_CALIB_NOMINAL_VALUE_2GHZ  -118
 
 /** RX errors values. */
-#define AR9271_RX_ERROR_CRC 0x01
-#define AR9271_RX_ERROR_PHY 0x02
+#define AR9271_RX_ERROR_CRC  0x01
+#define AR9271_RX_ERROR_PHY  0x02
 
 /** Key index used for device in station mode. */
-#define AR9271_STA_KEY_INDEX 4
+#define AR9271_STA_KEY_INDEX  4
 
 /* HW encryption key indicator. */
 enum ath9k_key_type {
@@ -82,16 +81,16 @@ typedef enum {
 	/* Reset MAC interface */
 	AR9271_RC = 0x4000,
 	AR9271_RC_AHB = 0x00000001,
-		
+	
 	/* GPIO registers */
-	AR9271_GPIO_IN_OUT = 0x4048,		/**< GPIO value read/set  */
-	AR9271_GPIO_OE_OUT = 0x404C,		/**< GPIO set to output  */
-	AR9271_GPIO_OE_OUT_ALWAYS = 0x3,	/**< GPIO always drive output */
+	AR9271_GPIO_IN_OUT = 0x4048,       /**< GPIO value read/set  */
+	AR9271_GPIO_OE_OUT = 0x404C,       /**< GPIO set to output  */
+	AR9271_GPIO_OE_OUT_ALWAYS = 0x3,   /**< GPIO always drive output */
 	AR9271_GPIO_OUT_MUX1 = 0x4060,
 	AR9271_GPIO_OUT_MUX2 = 0x4064,
 	AR9271_GPIO_OUT_MUX3 = 0x4068,
-	AR9271_GPIO_OUT_MUX_AS_OUT = 0x0,	/**< GPIO set mux as output */
-    
+	AR9271_GPIO_OUT_MUX_AS_OUT = 0x0,  /**< GPIO set mux as output */
+	
 	/* RTC related registers */
 	AR9271_RTC_RC = 0x7000,
 	AR9271_RTC_RC_MAC_WARM = 0x00000001,
@@ -108,20 +107,20 @@ typedef enum {
 	AR9271_RTC_FORCE_WAKE = 0x704C,
 	AR9271_RTC_FORCE_WAKE_ENABLE = 0x00000001,
 	AR9271_RTC_FORCE_WAKE_ON_INT = 0x00000002,
-		
+	
 	/* MAC Registers */
-	AR9271_STATION_ID0 = 0x8000,	/**< STA Address Lower 32 Bits */
-	AR9271_STATION_ID1 = 0x8004,	/**< STA Address Upper 16 Bits */
-	AR9271_BSSID0 = 0x8008,		/**< BSSID Lower 32 Bits */
-	AR9271_BSSID1 = 0x800C,		/**< BSSID Upper 16 Bits */
-	AR9271_BSSID_MASK0 = 0x80E0,	/**< BSSID Mask Lower 32 Bits */
-	AR9271_BSSID_MASK1 = 0x80E4,	/**< BSSID Mask Upper 16 Bits */
+	AR9271_STATION_ID0 = 0x8000,  /**< STA Address Lower 32 Bits */
+	AR9271_STATION_ID1 = 0x8004,  /**< STA Address Upper 16 Bits */
+	AR9271_BSSID0 = 0x8008,       /**< BSSID Lower 32 Bits */
+	AR9271_BSSID1 = 0x800C,       /**< BSSID Upper 16 Bits */
+	AR9271_BSSID_MASK0 = 0x80E0,  /**< BSSID Mask Lower 32 Bits */
+	AR9271_BSSID_MASK1 = 0x80E4,  /**< BSSID Mask Upper 16 Bits */
 	AR9271_STATION_ID1_MASK = 0x0000FFFF,
 	AR9271_STATION_ID1_POWER_SAVING = 0x00040000,
 	AR9271_MULTICAST_FILTER1 = 0x8040,
-	AR9271_MULTICAST_FILTER2 = 0x8044,	
+	AR9271_MULTICAST_FILTER2 = 0x8044,
 	AR9271_DIAG = 0x8048,
-		
+	
 	/* RX filtering register */
 	AR9271_RX_FILTER = 0x803C,
 	AR9271_RX_FILTER_UNI = 0x00000001,
@@ -133,7 +132,7 @@ typedef enum {
 	AR9271_RX_FILTER_PROBEREQ = 0x00000080,
 	AR9271_RX_FILTER_MYBEACON = 0x00000200,
 	AR9271_RX_FILTER_MCAST_BCAST_ALL = 0x00008000,
-		
+	
 	/* Key related registers */
 	AR9271_KEY_TABLE_BASE = 0x8800,
 	AR9271_KEY_TABLE_TYPE_WEP40 = 0x0,
@@ -141,7 +140,7 @@ typedef enum {
 	AR9271_KEY_TABLE_TYPE_TKIP = 0x4,
 	AR9271_KEY_TABLE_TYPE_CCMP = 0x6,
 	AR9271_KEY_TABLE_TYPE_CLR = 0x7,
-		
+	
 	/* Physical layer registers */
 	AR9271_PHY_ACTIVE = 0x981C,
 	AR9271_ADC_CONTROL = 0x982C,
@@ -167,24 +166,24 @@ typedef enum {
 	AR9271_PHY_CCK_TX_CTRL_JAPAN = 0x00000010,
 	AR9271_PHY_TPCRG1_PD_CALIB = 0x00400000,
 	AR9271_CARRIER_LEAK_CALIB = 0x00000002,
-		
+	
 	AR9271_OPMODE_STATION_AP_MASK =	0x00010000,
 	AR9271_OPMODE_ADHOC_MASK = 0x00020000,
-		
+	
 	AR9271_CLOCK_CONTROL = 0x50040,
 	AR9271_MAX_CPU_CLOCK = 0x304,
-		
+	
 	AR9271_RESET_POWER_DOWN_CONTROL = 0x50044,
 	AR9271_RADIO_RF_RESET = 0x20,
 	AR9271_GATE_MAC_CONTROL = 0x4000,
-    
+	
 	/* FW Addresses */
 	AR9271_FW_ADDRESS = 0x501000,
 	AR9271_FW_OFFSET = 0x903000,
 } ar9271_registers_t;
 
 /** Compute key table base position for key by its id. */
-#define AR9271_KEY_TABLE(id) (AR9271_KEY_TABLE_BASE + (id)*32)
+#define AR9271_KEY_TABLE(id)  (AR9271_KEY_TABLE_BASE + (id) * 32)
 
 /** AR9271 Requests */
 typedef enum {
@@ -216,12 +215,14 @@ typedef struct {
 	htc_device_t *htc_device;
 } ar9271_t;
 
-/**
- * AR9271 init values for 2GHz mode operation.
- * 
+/** AR9271 init values for 2GHz mode operation.
+ *
  * Including settings of noise floor limits.
- * 
- * Taken from Linux sources.
+ *
+ * Taken from the Linux driver (drivers/net/wireless/ath/ath9k/)
+ * Copyright (c) 2008-2011 Atheros Communications Inc.
+ * Licensed under the terms of ISC
+ *
  */
 static const uint32_t ar9271_2g_mode_array[][2] = {
 	{0x00001030, 0x00000160},
@@ -231,10 +232,10 @@ static const uint32_t ar9271_2g_mode_array[][2] = {
 	{0x00008014, 0x08400b00},
 	{0x0000801c, 0x12e0002b},
 	{0x00008318, 0x00003440},
-	{0x00009804, 0x000003c0},/*< note: overridden */
+	{0x00009804, 0x000003c0},  /*< Note: overridden */
 	{0x00009820, 0x02020200},
 	{0x00009824, 0x01000e0e},
-	{0x00009828, 0x0a020001},/*< note: overridden */
+	{0x00009828, 0x0a020001},  /*< Note: overridden */
 	{0x00009834, 0x00000e0e},
 	{0x00009838, 0x00000007},
 	{0x00009840, 0x206a012e},
@@ -529,10 +530,12 @@ static const uint32_t ar9271_2g_mode_array[][2] = {
 	{0x0000a358, 0x7999aa0e}
 };
 
-/**
- * AR9271 TX init values for 2GHz mode operation.
- * 
- * Taken from Linux sources.
+/** AR9271 TX init values for 2GHz mode operation.
+ *
+ * Taken from the Linux driver (drivers/net/wireless/ath/ath9k/)
+ * Copyright (c) 2008-2011 Atheros Communications Inc.
+ * Licensed under the terms of ISC
+ *
  */
 static const uint32_t ar9271_2g_tx_array[][2] = {
 	{0x0000a300, 0x00010000},
@@ -570,10 +573,12 @@ static const uint32_t ar9271_2g_tx_array[][2] = {
 	{0x0000a3e0, 0x00000063}
 };
 
-/**
- * AR9271 hardware init values.
- * 
- * Taken from Linux sources, some values omitted.
+/** AR9271 hardware init values.
+ *
+ * Taken from the Linux driver (drivers/net/wireless/ath/ath9k/)
+ * Copyright (c) 2008-2011 Atheros Communications Inc.
+ * Licensed under the terms of ISC
+ *
  */
 static const uint32_t ar9271_init_array[][2] = {
 	{0x0000000c, 0x00000000},
@@ -765,7 +770,7 @@ static const uint32_t ar9271_init_array[][2] = {
 	{0x00008338, 0x00ff0000},
 	{0x0000833c, 0x00000000},
 	{0x00008340, 0x00010380},
-	{0x00008344, 0x00481083},/*< note: disabled ADHOC_MCAST_KEYID feature */
+	{0x00008344, 0x00481083},  /**< Note: disabled ADHOC_MCAST_KEYID feature */
 	{0x00007010, 0x00000030},
 	{0x00007034, 0x00000002},
 	{0x00007038, 0x000004c2},

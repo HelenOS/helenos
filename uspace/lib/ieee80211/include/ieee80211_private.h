@@ -26,76 +26,76 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** 
+/**
  * @addtogroup libieee80211
  * @{
  */
 
 /** @file ieee80211.h
- * 
+ *
  * Internal IEEE 802.11 header that should not be included.
  */
 
-#ifndef LIBNET_IEEE80211_PRIVATE_H
-#define LIBNET_IEEE80211_PRIVATE_H
+#ifndef LIB_IEEE80211_PRIVATE_H
+#define LIB_IEEE80211_PRIVATE_H
 
 #include <fibril_synch.h>
 #include <byteorder.h>
 #include <ddf/driver.h>
 #include <sys/types.h>
-
 #include <ieee80211/ieee80211.h>
 #include "ieee80211.h"
 
-/* Timeout in us for waiting to authentication/association response. */
-#define AUTH_TIMEOUT 200000
+/** Timeout in us for waiting to authentication/association response. */
+#define AUTH_TIMEOUT  200000
 
-/* Timeout in us for waiting to finish 4-way handshake process. */
-#define HANDSHAKE_TIMEOUT 5000000
+/** Timeout in us for waiting to finish 4-way handshake process. */
+#define HANDSHAKE_TIMEOUT  5000000
 
-/* Scanning period. */
-#define SCAN_PERIOD_USEC 35000000
+/** Scanning period. */
+#define SCAN_PERIOD_USEC  35000000
 
-/* Time to wait for beacons on channel. */
-#define SCAN_CHANNEL_WAIT_USEC 200000
+/** Time to wait for beacons on channel. */
+#define SCAN_CHANNEL_WAIT_USEC  200000
 
-/* Max time to keep scan result. */
-#define MAX_KEEP_SCAN_SPAN_SEC 120
+/** Max time to keep scan result. */
+#define MAX_KEEP_SCAN_SPAN_SEC  120
 
-/* Security bit in capability info field. */
-#define CAP_SECURITY 0x10
+/** Security bit in capability info field. */
+#define CAP_SECURITY  0x10
 
-/* Protocol type used in EAPOL frames. */
-#define ETH_TYPE_PAE 0x888E
+/** Protocol type used in EAPOL frames. */
+#define ETH_TYPE_PAE  0x888e
 
-/* WPA OUI used in vendor specific IE. */
-#define WPA_OUI 0x0050F201
+/** WPA OUI used in vendor specific IE. */
+#define WPA_OUI  0x0050f201
 
-/* GTK OUI used in vendor specific IE. */
-#define GTK_OUI 0x000FAC01
+/** GTK OUI used in vendor specific IE. */
+#define GTK_OUI  0x000fac01
 
-/* Max PTK key length. */
-#define MAX_PTK_LENGTH 64
+/** Max PTK key length. */
+#define MAX_PTK_LENGTH  64
 
-/* Max GTK key length. */
-#define MAX_GTK_LENGTH 64
+/** Max GTK key length. */
+#define MAX_GTK_LENGTH  64
 
-/* KEK offset inside PTK. */
-#define KEK_OFFSET 16
+/** KEK offset inside PTK. */
+#define KEK_OFFSET  16
 
-/* TK offset inside PTK. */
-#define TK_OFFSET 32
+/** TK offset inside PTK. */
+#define TK_OFFSET  32
 
-/* Length of Michael MIC code used in TKIP security suite. */
-#define MIC_LENGTH 8
+/** Length of Michael MIC code used in TKIP security suite. */
+#define MIC_LENGTH  8
 
-/* 
- * Length of data to be encrypted by PRF function:
- * NONCE + SNONCE (2 * 32) + DEST_MAC + SOURCE_MAC (2 * ETH_ADDR) 
+/** Length of data to be encrypted by PRF function.
+ *
+ * NONCE + SNONCE (2 * 32) + DEST_MAC + SOURCE_MAC (2 * ETH_ADDR)
+ *
  */
-#define PRF_CRYPT_DATA_LENGTH 2*32 + 2*ETH_ADDR
+#define PRF_CRYPT_DATA_LENGTH  (2 * 32 + 2 * ETH_ADDR)
 
-/* Special room in header reserved for encryption. */
+/** Special room in header reserved for encryption. */
 typedef enum {
 	IEEE80211_TKIP_HEADER_LENGTH = 8,
 	IEEE80211_CCMP_HEADER_LENGTH = 8
@@ -183,13 +183,13 @@ typedef enum {
 
 /** IEEE 802.11 information element types. */
 typedef enum {
-	IEEE80211_SSID_IE = 0,		/**< Target SSID. */
-	IEEE80211_RATES_IE = 1,		/**< Supported data rates. */
-	IEEE80211_CHANNEL_IE = 3,	/**< Current channel number. */
-	IEEE80211_CHALLENGE_IE = 16,	/**< Challenge text. */
-	IEEE80211_RSN_IE = 48,		/**< RSN. */
-	IEEE80211_EXT_RATES_IE = 50,	/**< Extended data rates. */
-	IEEE80211_VENDOR_IE = 221	/**< Vendor specific IE. */
+	IEEE80211_SSID_IE = 0,        /**< Target SSID. */
+	IEEE80211_RATES_IE = 1,       /**< Supported data rates. */
+	IEEE80211_CHANNEL_IE = 3,     /**< Current channel number. */
+	IEEE80211_CHALLENGE_IE = 16,  /**< Challenge text. */
+	IEEE80211_RSN_IE = 48,        /**< RSN. */
+	IEEE80211_EXT_RATES_IE = 50,  /**< Extended data rates. */
+	IEEE80211_VENDOR_IE = 221     /**< Vendor specific IE. */
 } ieee80211_ie_type_t;
 
 /** IEEE 802.11 authentication phases. */
@@ -248,9 +248,9 @@ struct ieee80211_dev {
 	/** Info about BSSID we are connected to. */
 	ieee80211_bssid_info_t bssid_info;
 	
-	/** 
+	/**
 	 * Flag indicating that data traffic is encrypted by HW key
-	 * that is set up in device. 
+	 * that is set up in device.
 	 */
 	bool using_hw_key;
 	
@@ -289,135 +289,131 @@ struct ieee80211_dev {
 typedef struct {
 	uint8_t dest_addr[ETH_ADDR];
 	uint8_t src_addr[ETH_ADDR];
-	uint16_t proto;			/**< Big Endian value! */
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	eth_header_t;
+	uint16_t proto;  /**< Big Endian value! */
+} __attribute__((packed)) __attribute__((aligned(2)))
+    eth_header_t;
 
 /** IEEE 802.11 management header structure. */
 typedef struct {
-	uint16_t frame_ctrl;		/**< Little Endian value! */
-	uint16_t duration_id;		/**< Little Endian value! */
+	uint16_t frame_ctrl;          /**< Little Endian value! */
+	uint16_t duration_id;         /**< Little Endian value! */
 	uint8_t dest_addr[ETH_ADDR];
 	uint8_t src_addr[ETH_ADDR];
 	uint8_t bssid[ETH_ADDR];
-	uint16_t seq_ctrl;		/**< Little Endian value! */
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	ieee80211_mgmt_header_t;
+	uint16_t seq_ctrl;            /**< Little Endian value! */
+} __attribute__((packed)) __attribute__((aligned(2)))
+    ieee80211_mgmt_header_t;
 
 /** IEEE 802.11 data header structure. */
 typedef struct {
-	uint16_t frame_ctrl;		/**< Little Endian value! */
-	uint16_t duration_id;		/**< Little Endian value! */
+	uint16_t frame_ctrl;         /**< Little Endian value! */
+	uint16_t duration_id;        /**< Little Endian value! */
 	uint8_t address1[ETH_ADDR];
 	uint8_t address2[ETH_ADDR];
 	uint8_t address3[ETH_ADDR];
-	uint16_t seq_ctrl;		/**< Little Endian value! */
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	ieee80211_data_header_t;
+	uint16_t seq_ctrl;           /**< Little Endian value! */
+} __attribute__((packed)) __attribute__((aligned(2)))
+    ieee80211_data_header_t;
 
 /** IEEE 802.11 information element header. */
 typedef struct {
 	uint8_t element_id;
 	uint8_t length;
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	ieee80211_ie_header_t;
+} __attribute__((packed)) __attribute__((aligned(2)))
+    ieee80211_ie_header_t;
 
 /** IEEE 802.11 authentication frame body. */
 typedef struct {
-	uint16_t auth_alg;		/**< Little Endian value! */
-	uint16_t auth_trans_no;		/**< Little Endian value! */
-	uint16_t status;		/**< Little Endian value! */
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	ieee80211_auth_body_t;
+	uint16_t auth_alg;       /**< Little Endian value! */
+	uint16_t auth_trans_no;  /**< Little Endian value! */
+	uint16_t status;         /**< Little Endian value! */
+} __attribute__((packed)) __attribute__((aligned(2)))
+    ieee80211_auth_body_t;
 
 /** IEEE 802.11 deauthentication frame body. */
 typedef struct {
-	uint16_t reason;		/**< Little Endian value! */
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	ieee80211_deauth_body_t;
+	uint16_t reason;    /**< Little Endian value! */
+} __attribute__((packed)) __attribute__((aligned(2)))
+    ieee80211_deauth_body_t;
 
 /** IEEE 802.11 association request frame body. */
 typedef struct {
-	uint16_t capability;		/**< Little Endian value! */
-	uint16_t listen_interval;	/**< Little Endian value! */
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	ieee80211_assoc_req_body_t;
+	uint16_t capability;       /**< Little Endian value! */
+	uint16_t listen_interval;  /**< Little Endian value! */
+} __attribute__((packed)) __attribute__((aligned(2)))
+    ieee80211_assoc_req_body_t;
 
 /** IEEE 802.11 association response frame body. */
 typedef struct {
-	uint16_t capability;		/**< Little Endian value! */
-	uint16_t status;		/**< Little Endian value! */
-	uint16_t aid;			/**< Little Endian value! */
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	ieee80211_assoc_resp_body_t;
+	uint16_t capability;  /**< Little Endian value! */
+	uint16_t status;      /**< Little Endian value! */
+	uint16_t aid;         /**< Little Endian value! */
+} __attribute__((packed)) __attribute__((aligned(2)))
+    ieee80211_assoc_resp_body_t;
 
 /** IEEE 802.11 beacon frame body start. */
 typedef struct {
 	uint8_t timestamp[8];
-	uint16_t beacon_interval;	/**< Little Endian value! */
-	uint16_t capability;		/**< Little Endian value! */
-} __attribute__((packed)) __attribute__ ((aligned(2))) 
-	ieee80211_beacon_start_t;
+	uint16_t beacon_interval;  /**< Little Endian value! */
+	uint16_t capability;       /**< Little Endian value! */
+} __attribute__((packed)) __attribute__((aligned(2)))
+    ieee80211_beacon_start_t;
 
 /** IEEE 802.11i EAPOL-Key frame format. */
 typedef struct {
 	uint8_t proto_version;
 	uint8_t packet_type;
-	uint16_t body_length;		/**< Big Endian value! */
+	uint16_t body_length;      /**< Big Endian value! */
 	uint8_t descriptor_type;
-	uint16_t key_info;		/**< Big Endian value! */
-	uint16_t key_length;		/**< Big Endian value! */
+	uint16_t key_info;         /**< Big Endian value! */
+	uint16_t key_length;       /**< Big Endian value! */
 	uint8_t key_replay_counter[8];
 	uint8_t key_nonce[32];
 	uint8_t eapol_key_iv[16];
 	uint8_t key_rsc[8];
 	uint8_t reserved[8];
 	uint8_t key_mic[16];
-	uint16_t key_data_length;	/**< Big Endian value! */
+	uint16_t key_data_length;  /**< Big Endian value! */
 } __attribute__((packed)) ieee80211_eapol_key_frame_t;
 
 #define ieee80211_scan_result_list_foreach(results, iter) \
-    list_foreach((results).list, link, ieee80211_scan_result_link_t, (iter))
+	list_foreach((results).list, link, ieee80211_scan_result_link_t, (iter))
 
-static inline void ieee80211_scan_result_list_init(
-	ieee80211_scan_result_list_t *results) 
+static inline void
+    ieee80211_scan_result_list_init(ieee80211_scan_result_list_t *results)
 {
 	list_initialize(&results->list);
 	fibril_mutex_initialize(&results->results_mutex);
 }
 
-static inline void ieee80211_scan_result_list_remove(
-	ieee80211_scan_result_list_t *results,
-	ieee80211_scan_result_link_t *result)
+static inline void
+    ieee80211_scan_result_list_remove(ieee80211_scan_result_list_t *results,
+    ieee80211_scan_result_link_t *result)
 {
 	list_remove(&result->link);
 	results->size--;
 }
 
-static inline void ieee80211_scan_result_list_append(
-	ieee80211_scan_result_list_t *results,
-	ieee80211_scan_result_link_t *result)
+static inline void
+    ieee80211_scan_result_list_append(ieee80211_scan_result_list_t *results,
+    ieee80211_scan_result_link_t *result)
 {
 	list_append(&result->link, &results->list);
 	results->size++;
 }
 
-extern bool ieee80211_is_fromds_frame(uint16_t frame_ctrl);
-extern bool ieee80211_is_tods_frame(uint16_t frame_ctrl);
-extern void ieee80211_set_connect_request(ieee80211_dev_t *ieee80211_dev);
-extern bool ieee80211_pending_connect_request(ieee80211_dev_t *ieee80211_dev);
-extern ieee80211_auth_phase_t ieee80211_get_auth_phase(ieee80211_dev_t 
-	*ieee80211_dev);
-extern void ieee80211_set_auth_phase(ieee80211_dev_t *ieee80211_dev,
-	ieee80211_auth_phase_t auth_phase);
-extern int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, 
-	char *ssid);
-extern int ieee80211_authenticate(ieee80211_dev_t *ieee80211_dev);
-extern int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, 
-	char *password);
-extern int ieee80211_deauthenticate(ieee80211_dev_t *ieee80211_dev);
+extern bool ieee80211_is_fromds_frame(uint16_t);
+extern bool ieee80211_is_tods_frame(uint16_t);
+extern void ieee80211_set_connect_request(ieee80211_dev_t *);
+extern bool ieee80211_pending_connect_request(ieee80211_dev_t *);
+extern ieee80211_auth_phase_t ieee80211_get_auth_phase(ieee80211_dev_t *);
+extern void ieee80211_set_auth_phase(ieee80211_dev_t *, ieee80211_auth_phase_t);
+extern int ieee80211_probe_request(ieee80211_dev_t *, char *);
+extern int ieee80211_authenticate(ieee80211_dev_t *);
+extern int ieee80211_associate(ieee80211_dev_t *, char *);
+extern int ieee80211_deauthenticate(ieee80211_dev_t *);
 
-#endif /* LIBN_IEEE80211_H */
+#endif
 
 /** @}
  */

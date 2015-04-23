@@ -35,7 +35,7 @@ LIBS = \
 	$(LIBNIC_PREFIX)/libnic.a \
 	$(LIBIEEE80211_PREFIX)/libieee80211.a \
 	$(LIBCRYPTO_PREFIX)/libcrypto.a
-	
+
 EXTRA_CFLAGS += \
 	-I. \
 	-I$(LIBUSB_PREFIX)/include \
@@ -44,7 +44,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBNIC_PREFIX)/include \
 	-I$(LIBIEEE80211_PREFIX)/include \
 	-I$(LIBCRYPTO_PREFIX)
-	
+
 BINARY = ar9271
 
 SOURCES = \

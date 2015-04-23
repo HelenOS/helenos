@@ -31,30 +31,28 @@
 
 #include <sys/types.h>
 
-#define AES_CIPHER_LENGTH 16
-#define PBKDF2_KEY_LENGTH 32
+#define AES_CIPHER_LENGTH  16
+#define PBKDF2_KEY_LENGTH  32
 
-/* Left rotation for UINT32. */
-#define rotl_uint32(val, shift) (((val) << shift) | ((val) >> (32 - shift)))
+/* Left rotation for uint32_t. */
+#define rotl_uint32(val, shift) \
+	(((val) << shift) | ((val) >> (32 - shift)))
 
-/* Right rotation for UINT32. */
-#define rotr_uint32(val, shift) (((val) >> shift) | ((val) << (32 - shift)))
+/* Right rotation for uint32_t. */
+#define rotr_uint32(val, shift) \
+	(((val) >> shift) | ((val) << (32 - shift)))
 
 /** Hash function selector and also result hash length indicator. */
 typedef enum {
-	HASH_MD5 =	16,
-	HASH_SHA1 =	20
+	HASH_MD5 =  16,
+	HASH_SHA1 = 20
 } hash_func_t;
 
-extern int rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size, 
-	size_t skip, uint8_t *output);
-extern int aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output);
-extern int aes_decrypt(uint8_t *key, uint8_t *input, uint8_t *output);
-extern int create_hash(uint8_t *input, size_t input_size, uint8_t *output, 
-	hash_func_t hash_sel);
-extern int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size, 
-	uint8_t *hash, hash_func_t hash_sel);
-extern int pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, 
-	size_t salt_size, uint8_t *hash);
+extern int rc4(uint8_t *, size_t, uint8_t *, size_t, size_t, uint8_t *);
+extern int aes_encrypt(uint8_t *, uint8_t *, uint8_t *);
+extern int aes_decrypt(uint8_t *, uint8_t *, uint8_t *);
+extern int create_hash(uint8_t *, size_t, uint8_t *, hash_func_t);
+extern int hmac(uint8_t *, size_t, uint8_t *, size_t, uint8_t *, hash_func_t);
+extern int pbkdf2(uint8_t *, size_t, uint8_t *, size_t, uint8_t *);
 
 #endif

@@ -43,10 +43,10 @@
 #include <time.h>
 
 /** Max length of scan results array. */
-#define IEEE80211_MAX_RESULTS_LENGTH 32
+#define IEEE80211_MAX_RESULTS_LENGTH  32
 
 /** Max SSID length including null character. */
-#define IEEE80211_MAX_SSID_LENGTH 35
+#define IEEE80211_MAX_SSID_LENGTH  35
 
 /** WiFi security authentication method indicator. */
 typedef enum {
@@ -96,4 +96,3 @@ typedef struct {
 
 /** @}
  */
-

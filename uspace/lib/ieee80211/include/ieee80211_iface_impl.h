@@ -26,30 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** 
+/**
  * @addtogroup libieee80211
  * @{
  */
 
 /** @file ieee80211_iface_impl.h
- * 
+ *
  * IEEE 802.11 default interface functions definition.
  */
 
 #ifndef LIB_IEEE80211_IFACE_IMPL_H
-#define	LIB_IEEE80211_IFACE_IMPL_H
+#define LIB_IEEE80211_IFACE_IMPL_H
 
 #include <ddf/driver.h>
-
 #include "ieee80211.h"
 
-extern int ieee80211_get_scan_results_impl(ddf_fun_t *fun, 
-	ieee80211_scan_results_t *results, bool now);
-extern int ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, 
-	char *password);
-extern int ieee80211_disconnect_impl(ddf_fun_t *fun);
+extern int ieee80211_get_scan_results_impl(ddf_fun_t *,
+    ieee80211_scan_results_t *, bool);
+extern int ieee80211_connect_impl(ddf_fun_t *, char *, char *);
+extern int ieee80211_disconnect_impl(ddf_fun_t *);
 
-#endif	/* LIB_IEEE80211_IFACE_IMPL_H */
+#endif  /* LIB_IEEE80211_IFACE_IMPL_H */
 
 /** @}
  */

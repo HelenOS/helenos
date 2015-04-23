@@ -33,14 +33,13 @@
  */
 
 #ifndef ATHEROS_ATH_USB_H
-#define	ATHEROS_ATH_USB_H
+#define ATHEROS_ATH_USB_H
 
 #include <usb/dev/driver.h>
-
 #include "ath.h"
 
-#define RX_TAG 0x4e00
-#define TX_TAG 0x697e
+#define RX_TAG  0x4e00
+#define TX_TAG  0x697e
 
 /** Atheros USB wifi device structure */
 typedef struct {
@@ -55,10 +54,10 @@ typedef struct {
 } ath_usb_t;
 
 typedef struct {
-	uint16_t length;		/**< Little Endian value! */
-	uint16_t tag;			/**< Little Endian value! */
+	uint16_t length;  /**< Little Endian value! */
+	uint16_t tag;     /**< Little Endian value! */
 } ath_usb_data_header_t;
 
-extern int ath_usb_init(ath_t *ath, usb_device_t *usb_device);
+extern int ath_usb_init(ath_t *, usb_device_t *);
 
-#endif	/* ATHEROS_ATH_USB_H */
+#endif  /* ATHEROS_ATH_USB_H */

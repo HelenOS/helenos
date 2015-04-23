@@ -33,18 +33,18 @@
  */
 
 #ifndef ATHEROS_HW_H
-#define	ATHEROS_HW_H
+#define ATHEROS_HW_H
 
 #include "ar9271.h"
 
-#define HW_WAIT_LOOPS 1000
-#define HW_WAIT_TIME_US 10
+#define HW_WAIT_LOOPS    1000
+#define HW_WAIT_TIME_US  10
 
-extern int hw_init(ar9271_t *ar9271);
-extern int hw_freq_switch(ar9271_t *, uint16_t freq);
-extern int hw_rx_init(ar9271_t *ar9271);
-extern int hw_reset(ar9271_t *ar9271);
-extern int hw_set_bssid(ar9271_t *ar9271);
-extern int hw_set_rx_filter(ar9271_t *ar9271, bool assoc);
+extern int hw_init(ar9271_t *);
+extern int hw_freq_switch(ar9271_t *, uint16_t);
+extern int hw_rx_init(ar9271_t *);
+extern int hw_reset(ar9271_t *);
+extern int hw_set_bssid(ar9271_t *);
+extern int hw_set_rx_filter(ar9271_t *, bool);
 
-#endif	/* ATHEROS_HW_H */
+#endif  /* ATHEROS_HW_H */

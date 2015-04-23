@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file ieee80211_iface.h
@@ -38,8 +38,8 @@
 #include <ieee80211/ieee80211.h>
 #include <async.h>
 
-extern int ieee80211_get_scan_results(async_sess_t *, 
-	ieee80211_scan_results_t *, bool);
+extern int ieee80211_get_scan_results(async_sess_t *,
+    ieee80211_scan_results_t *, bool);
 extern int ieee80211_connect(async_sess_t *, char *, char *);
 extern int ieee80211_disconnect(async_sess_t *);
 

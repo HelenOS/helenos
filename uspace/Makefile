@@ -251,7 +251,7 @@ LIBS = \
 	lib/posix \
 	lib/mbr \
 	lib/gpt \
-	lib/ieee80211 \
+	lib/ieee80211
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

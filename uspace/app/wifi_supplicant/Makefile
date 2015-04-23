@@ -34,4 +34,4 @@ LIBS = $(LIBDRV_PREFIX)/libdrv.a
 SOURCES = \
 	wifi_supplicant.c
 
-include $(USPACE_PREFIX)/Makefile.common 
+include $(USPACE_PREFIX)/Makefile.common

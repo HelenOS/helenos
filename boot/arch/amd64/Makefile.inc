@@ -60,7 +60,7 @@ RD_DRVS_NON_ESSENTIAL += \
 
 RD_DRV_CFG += \
 	bus/isa
-	
+
 RD_APPS_ESSENTIAL += \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/mixerctl/mixerctl \

@@ -35,20 +35,12 @@
 #include <usb/dev/pipes.h>
 #include <usb/debug.h>
 #include <malloc.h>
-
 #include "ath_usb.h"
 
-static int ath_usb_send_ctrl_message(ath_t *ath, void *buffer, 
-	size_t buffer_size);
-
-static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer, 
-	size_t buffer_size, size_t *transferred_size);
-
-static int ath_usb_send_data_message(ath_t *ath, void *buffer, 
-	size_t buffer_size);
-
-static int ath_usb_read_data_message(ath_t *ath, void *buffer, 
-	size_t buffer_size, size_t *transferred_size);
+static int ath_usb_send_ctrl_message(ath_t *, void *, size_t);
+static int ath_usb_read_ctrl_message(ath_t *, void *, size_t, size_t *);
+static int ath_usb_send_data_message(ath_t *, void *, size_t);
+static int ath_usb_read_data_message(ath_t *, void *, size_t, size_t *);
 
 static ath_ops_t ath_usb_ops = {
 	.send_ctrl_message = ath_usb_send_ctrl_message,
@@ -57,13 +49,13 @@ static ath_ops_t ath_usb_ops = {
 	.read_data_message = ath_usb_read_data_message
 };
 
-/**
- * Initialize Atheros WiFi USB device.
- * 
+/** Initialize Atheros WiFi USB device.
+ *
  * @param ath Generic Atheros WiFi device structure.
- * @param usb_device Connected USB device.
- * 
+ * @param usb_device  Connected USB device.
+ *
  * @return EOK if succeed, negative error code otherwise.
+ *
  */
 int ath_usb_init(ath_t *ath, usb_device_t *usb_device)
 {
@@ -91,101 +83,97 @@ int ath_usb_init(ath_t *ath, usb_device_t *usb_device)
 	return EOK;
 }
 
-/**
- * Send control message.
- * 
- * @param ath Generic Atheros WiFi device structure. 
- * @param buffer Buffer with data to send.
+/** Send control message.
+ *
+ * @param ath         Generic Atheros WiFi device structure.
+ * @param buffer      Buffer with data to send.
  * @param buffer_size Buffer size.
- * 
+ *
  * @return EOK if succeed, negative error code otherwise.
+ *
  */
-static int ath_usb_send_ctrl_message(ath_t *ath, void *buffer, 
-	size_t buffer_size)
+static int ath_usb_send_ctrl_message(ath_t *ath, void *buffer,
+    size_t buffer_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	usb_pipe_t *pipe = 
-		&ath_usb->usb_device->pipes[ath_usb->output_ctrl_pipe_number].
-		pipe;
+	usb_pipe_t *pipe =
+	    &ath_usb->usb_device->pipes[ath_usb->output_ctrl_pipe_number].pipe;
 	
 	return usb_pipe_write(pipe, buffer, buffer_size);
 }
 
-/**
- * Read control message.
- * 
- * @param ath Generic Atheros WiFi device structure. 
- * @param buffer Buffer with data to send.
- * @param buffer_size Buffer size.
+/** Read control message.
+ *
+ * @param ath              Generic Atheros WiFi device structure.
+ * @param buffer           Buffer with data to send.
+ * @param buffer_size      Buffer size.
  * @param transferred_size Real size of read data.
- * 
+ *
  * @return EOK if succeed, negative error code otherwise.
+ *
  */
-static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer, 
-	size_t buffer_size, size_t *transferred_size)
+static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
+    size_t buffer_size, size_t *transferred_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	usb_pipe_t *pipe = 
-		&ath_usb->usb_device->pipes[ath_usb->input_ctrl_pipe_number].
-		pipe;
+	usb_pipe_t *pipe =
+	    &ath_usb->usb_device->pipes[ath_usb->input_ctrl_pipe_number].pipe;
 	
 	return usb_pipe_read(pipe, buffer, buffer_size, transferred_size);
 }
 
-/**
- * Send data message.
- * 
- * @param ath Generic Atheros WiFi device structure. 
- * @param buffer Buffer with data to send.
+/** Send data message.
+ *
+ * @param ath         Generic Atheros WiFi device structure. 
+ * @param buffer      Buffer with data to send.
  * @param buffer_size Buffer size.
- * 
+ *
  * @return EOK if succeed, negative error code otherwise.
+ *
  */
-static int ath_usb_send_data_message(ath_t *ath, void *buffer, 
-	size_t buffer_size)
+static int ath_usb_send_data_message(ath_t *ath, void *buffer,
+    size_t buffer_size)
 {
-	size_t complete_buffer_size = buffer_size + 
-		sizeof(ath_usb_data_header_t);
+	size_t complete_buffer_size = buffer_size +
+	    sizeof(ath_usb_data_header_t);
 	void *complete_buffer = malloc(complete_buffer_size);
-	memcpy(complete_buffer + sizeof(ath_usb_data_header_t), 
-		buffer, buffer_size);
+	memcpy(complete_buffer + sizeof(ath_usb_data_header_t),
+	    buffer, buffer_size);
 	
-	ath_usb_data_header_t *data_header = 
-		(ath_usb_data_header_t *) complete_buffer;
+	ath_usb_data_header_t *data_header =
+	    (ath_usb_data_header_t *) complete_buffer;
 	data_header->length = host2uint16_t_le(buffer_size);
 	data_header->tag = host2uint16_t_le(TX_TAG);
 	
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	usb_pipe_t *pipe = 
-		&ath_usb->usb_device->pipes[ath_usb->output_data_pipe_number].
-		pipe;
+	usb_pipe_t *pipe =
+	    &ath_usb->usb_device->pipes[ath_usb->output_data_pipe_number].pipe;
 	
-	int ret_val = usb_pipe_write(pipe, complete_buffer, 
-		complete_buffer_size);
+	int ret_val = usb_pipe_write(pipe, complete_buffer,
+	    complete_buffer_size);
 	
 	free(complete_buffer);
 	
 	return ret_val;
 }
 
-/**
- * Read data message.
- * 
- * @param ath Generic Atheros WiFi device structure. 
- * @param buffer Buffer with data to send.
- * @param buffer_size Buffer size.
+/** Read data message.
+ *
+ * @param ath              Generic Atheros WiFi device structure.
+ * @param buffer           Buffer with data to send.
+ * @param buffer_size      Buffer size.
  * @param transferred_size Real size of read data.
- * 
+ *
  * @return EOK if succeed, negative error code otherwise.
+ *
  */
-static int ath_usb_read_data_message(ath_t *ath, void *buffer, 
-	size_t buffer_size, size_t *transferred_size)
+static int ath_usb_read_data_message(ath_t *ath, void *buffer,
+    size_t buffer_size, size_t *transferred_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	usb_pipe_t *pipe = 
-		&ath_usb->usb_device->pipes[ath_usb->input_data_pipe_number].
-		pipe;
+	usb_pipe_t *pipe =
+	    &ath_usb->usb_device->pipes[ath_usb->input_data_pipe_number].pipe;
 	
-	return usb_pipe_read(pipe, buffer, buffer_size, 
-		transferred_size);
+	return usb_pipe_read(pipe, buffer, buffer_size,
+	    transferred_size);
 }

@@ -33,7 +33,7 @@
  */
 
 #ifndef ATHEROS_ATH_H
-#define	ATHEROS_ATH_H
+#define ATHEROS_ATH_H
 
 struct ath;
 
@@ -60,4 +60,4 @@ typedef struct ath {
 	const ath_ops_t *ops;
 } ath_t;
 
-#endif	/* ATHEROS_ATH_H */
+#endif  /* ATHEROS_ATH_H */

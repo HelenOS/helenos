@@ -34,26 +34,28 @@
  */
 
 #ifndef ATHEROS_WMI_H
-#define	ATHEROS_WMI_H
+#define ATHEROS_WMI_H
 
 #include "htc.h"
 
 /* Macros for creating service identificators. */
-#define WMI_SERVICE_GROUP 1
-#define CREATE_SERVICE_ID(group, i) (int) (((int) group << 8) | (int) (i))
+#define WMI_SERVICE_GROUP  1
 
-#define WMI_MGMT_CMD_MASK 0x1000
+#define CREATE_SERVICE_ID(group, i) \
+	(unsigned int) (((unsigned int) group << 8) | (unsigned int) (i))
 
-/**
- * WMI header structure.
+#define WMI_MGMT_CMD_MASK  0x1000
+
+/** WMI header structure.
+ *
  */
 typedef struct {
-    uint16_t command_id;		/**< Big Endian value! */
-    uint16_t sequence_number;           /**< Big Endian value! */
+	uint16_t command_id;       /**< Big Endian value! */
+	uint16_t sequence_number;  /**< Big Endian value! */
 } __attribute__((packed)) wmi_command_header_t;
 
-/**
- * WMI services IDs
+/** WMI services IDs
+ *
  */
 typedef enum {
 	WMI_CONTROL_SERVICE = CREATE_SERVICE_ID(WMI_SERVICE_GROUP, 0),
@@ -67,13 +69,13 @@ typedef enum {
 	WMI_DATA_BK_SERVICE = CREATE_SERVICE_ID(WMI_SERVICE_GROUP, 8)
 } wmi_services_t;
 
-/**
- * List of WMI commands
+/** List of WMI commands
+ *
  */
 typedef enum {
 	WMI_ECHO = 0x0001,
 	WMI_ACCESS_MEMORY,
-
+	
 	/* Commands used for HOST -> DEVICE communication */
 	WMI_GET_FW_VERSION,
 	WMI_DISABLE_INTR,
@@ -106,30 +108,21 @@ typedef enum {
 	WMI_BITRATE_MASK
 } wmi_command_t;
 
-/**
- * Structure used when sending registry buffer
+/**Structure used when sending registry buffer
+ *
  */
 typedef struct {
-	uint32_t offset;		/**< Big Endian value! */
-	uint32_t value;			/**< Big Endian value! */
+	uint32_t offset;  /**< Big Endian value! */
+	uint32_t value;   /**< Big Endian value! */
 } wmi_reg_t;
 
-extern int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset, 
-	uint32_t *res);
-extern int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, 
-	uint32_t val);
-extern int wmi_reg_set_clear_bit(htc_device_t *htc_device, 
-	uint32_t reg_offset, uint32_t set_bit, uint32_t clear_bit);
-extern int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset, 
-	uint32_t set_bit);
-extern int wmi_reg_clear_bit(htc_device_t *htc_device, uint32_t reg_offset, 
-	uint32_t clear_bit);
-extern int wmi_reg_buffer_write(htc_device_t *htc_device, 
-	wmi_reg_t *reg_buffer, size_t elements);
-extern int wmi_send_command(htc_device_t *htc_device, 
-	wmi_command_t command_id, 
-	uint8_t *command_buffer, uint32_t command_length, 
-	void *response_buffer);
+extern int wmi_reg_read(htc_device_t *, uint32_t, uint32_t *);
+extern int wmi_reg_write(htc_device_t *, uint32_t, uint32_t);
+extern int wmi_reg_set_clear_bit(htc_device_t *, uint32_t, uint32_t, uint32_t);
+extern int wmi_reg_set_bit(htc_device_t *, uint32_t, uint32_t);
+extern int wmi_reg_clear_bit(htc_device_t *, uint32_t, uint32_t);
+extern int wmi_reg_buffer_write(htc_device_t *, wmi_reg_t *, size_t);
+extern int wmi_send_command(htc_device_t *, wmi_command_t, uint8_t *, uint32_t,
+    void *);
 
-#endif	/* ATHEROS_WMI_H */
-
+#endif  /* ATHEROS_WMI_H */
