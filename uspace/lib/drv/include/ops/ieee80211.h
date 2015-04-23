@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2015 Jan Kolarik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libdrv
  * @{
  */
-/** @file
+/** @file ieee80211.h
+ * @brief IEEE 802.11 WiFi interface definition
  */
 
-#ifndef LIBC_IPC_DHCP_H_
-#define LIBC_IPC_DHCP_H_
+#ifndef LIBDRV_OPS_IEEE80211_H_
+#define LIBDRV_OPS_IEEE80211_H_
 
-#include <ipc/common.h>
+#include <ddf/driver.h>
+#include <ieee80211/ieee80211.h>
 
-/** DHCP service requests */
-typedef enum {
-	DHCP_LINK_ADD = IPC_FIRST_USER_METHOD,
-	DHCP_LINK_REMOVE,
-	DHCP_DISCOVER
-} dhcp_request_t;
+/** IEEE 802.11 interface functions definition. */
+typedef struct ieee80211_iface {
+	/** Fetch scan results from IEEE 802.11 device.
+	 *
+	 * @param fun     IEEE 802.11 function.
+	 * @param results Structure where to put scan results.
+	 * @param now     Whether to initiate scan immediately.
+	 *
+	 * @return EOK if succeed, negative error code otherwise.
+	 *
+	 */
+	int (*get_scan_results)(ddf_fun_t *, ieee80211_scan_results_t *, bool);
+	
+	/** Connect IEEE 802.11 device to specified network.
+	 *
+	 * @param fun      IEEE 802.11 function.
+	 * @param ssid     Network SSID.
+	 * @param password Network password (empty string if not needed).
+	 *
+	 * @return EOK if succeed, negative error code otherwise.
+	 *
+	 */
+	int (*connect)(ddf_fun_t *, char *, char *);
+	
+	/** Disconnect IEEE 802.11 device from network.
+	 *
+	 * @param fun IEEE 802.11 function.
+	 *
+	 * @return EOK if succeed, negative error code otherwise.
+	 *
+	 */
+	int (*disconnect)(ddf_fun_t *);
+} ieee80211_iface_t;
 
 #endif
 

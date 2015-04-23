@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2015 Jan Kolarik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
+/** @file ath_usb.h
+ *
+ * Definitions of Atheros USB wifi device functions.
+ *
  */
-/** @file
- */
 
-#ifndef LIBC_IPC_DHCP_H_
-#define LIBC_IPC_DHCP_H_
+#ifndef ATHEROS_ATH_USB_H
+#define ATHEROS_ATH_USB_H
 
-#include <ipc/common.h>
+#include <usb/dev/driver.h>
+#include "ath.h"
 
-/** DHCP service requests */
-typedef enum {
-	DHCP_LINK_ADD = IPC_FIRST_USER_METHOD,
-	DHCP_LINK_REMOVE,
-	DHCP_DISCOVER
-} dhcp_request_t;
+#define RX_TAG  0x4e00
+#define TX_TAG  0x697e
 
-#endif
+/** Atheros USB wifi device structure */
+typedef struct {
+	/** USB pipes indexes */
+	int input_ctrl_pipe_number;
+	int output_ctrl_pipe_number;
+	int input_data_pipe_number;
+	int output_data_pipe_number;
+	
+	/** Pointer to connected USB device. */
+	usb_device_t *usb_device;
+} ath_usb_t;
 
-/**
- * @}
- */
+typedef struct {
+	uint16_t length;  /**< Little Endian value! */
+	uint16_t tag;     /**< Little Endian value! */
+} ath_usb_data_header_t;
+
+extern int ath_usb_init(ath_t *, usb_device_t *);
+
+#endif  /* ATHEROS_ATH_USB_H */
