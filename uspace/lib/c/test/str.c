@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2015 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,62 @@
  */
 
 #include <stdio.h>
+#include <str.h>
 #include <pcut/pcut.h>
+
+#define BUFFER_SIZE 256
+
+#define SET_BUFFER(str) snprintf(buffer, BUFFER_SIZE, "%s", str)
+#define EQ(expected, value) PCUT_ASSERT_STR_EQUALS(expected, value)
+
+
 
 PCUT_INIT
 
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(str);
+PCUT_TEST_SUITE(str);
 
-PCUT_MAIN()
+static char buffer[BUFFER_SIZE];
+
+PCUT_TEST_BEFORE {
+	memset(buffer, 0, BUFFER_SIZE);
+}
+
+
+PCUT_TEST(rtrim) {
+	SET_BUFFER("foobar");
+	str_rtrim(buffer, ' ');
+	EQ("foobar", buffer);
+
+	SET_BUFFER("  foobar  ");
+	str_rtrim(buffer, ' ');
+	EQ("  foobar", buffer);
+
+	SET_BUFFER("  ššš  ");
+	str_rtrim(buffer, ' ');
+	EQ("  ššš", buffer);
+
+	SET_BUFFER("ššAAAšš");
+	str_rtrim(buffer, L'š');
+	EQ("ššAAA", buffer);
+}
+
+PCUT_TEST(ltrim) {
+	SET_BUFFER("foobar");
+	str_ltrim(buffer, ' ');
+	EQ("foobar", buffer);
+
+	SET_BUFFER("  foobar  ");
+	str_ltrim(buffer, ' ');
+	EQ("foobar  ", buffer);
+
+	SET_BUFFER("  ššš  ");
+	str_ltrim(buffer, ' ');
+	EQ("ššš  ", buffer);
+
+	SET_BUFFER("ššAAAšš");
+	str_ltrim(buffer, L'š');
+	EQ("AAAšš", buffer);
+}
+
+
+PCUT_EXPORT(str);
