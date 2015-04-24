@@ -36,4 +36,8 @@ SOURCES = \
 	src/ini.c \
 	src/text_parse.c
 
+TEST_SOURCES = \
+	test/ini.c \
+	test/main.c
+
 include $(USPACE_PREFIX)/Makefile.common
