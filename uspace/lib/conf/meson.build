@@ -31,3 +31,9 @@ src = files(
 	'src/ini.c',
 	'src/text_parse.c',
 )
+
+
+test_src = files(
+	'test/ini.c',
+	'test/main.c',
+)

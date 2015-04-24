@@ -108,6 +108,8 @@ extern void ini_configuration_deinit(ini_configuration_t *);
 
 extern int ini_parse_file(const char *, ini_configuration_t *, text_parse_t *);
 
+extern int ini_parse_string(const char *, ini_configuration_t *, text_parse_t *);
+
 extern ini_section_t *ini_get_section(ini_configuration_t *, const char *);
 
 extern ini_item_iterator_t ini_section_get_iterator(ini_section_t *, const char *);

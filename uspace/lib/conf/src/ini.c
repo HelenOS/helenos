@@ -52,10 +52,14 @@ typedef struct {
 	char *value;
 } ini_item_t;
 
+/** Line reader for generic parsing */
+typedef char *(*line_reader_t)(char *, int, void *);
 
 /* Necessary forward declarations */
 static void ini_section_destroy(ini_section_t **);
 static void ini_item_destroy(ini_item_t **);
+static ini_section_t *ini_section_create(void);
+static ini_item_t *ini_item_create(void);
 
 /* Hash table functions */
 static size_t ini_section_ht_hash(const ht_link_t *item)
@@ -72,6 +76,10 @@ static size_t ini_section_ht_hash(const ht_link_t *item)
 
 static size_t ini_section_ht_key_hash(void *key)
 {
+	/* Nameless default section */
+	if (key == NULL) {
+		return 0;
+	}
 	return hash_string((const char *)key);
 }
 
@@ -84,8 +92,15 @@ static bool ini_section_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
 
 static bool ini_section_ht_key_equal(void *key, const ht_link_t *item)
 {
-	return str_cmp((const char *)key,
-	    hash_table_get_inst(item, ini_section_t, ht_link)->name) == 0;
+	const char *name = key;
+	ini_section_t *section =
+	    hash_table_get_inst(item, ini_section_t, ht_link);
+
+	if (key == NULL || section->name == NULL) {
+		return section->name == key;
+	}
+
+	return str_cmp(name, section->name) == 0;
 }
 
 static void ini_section_ht_remove(ht_link_t *item)
@@ -144,99 +159,47 @@ static hash_table_ops_t section_ht_ops = {
 	.remove_callback = &ini_item_ht_remove
 };
 
-/* Actual INI functions */
-
-void ini_configuration_init(ini_configuration_t *conf)
-{
-	hash_table_create(&conf->sections, 0, 0, &configuration_ht_ops);
-}
-
-/** INI configuration destructor
- *
- * Release all resources of INI structure but the structure itself.
+/*
+ * Static functions
  */
-void ini_configuration_deinit(ini_configuration_t *conf)
+static char *read_file(char *buffer, int size, void *data)
 {
-	hash_table_destroy(&conf->sections);
+	return fgets(buffer, size, (FILE *)data);
 }
 
-static void ini_section_init(ini_section_t *section)
+static char *read_string(char *buffer, int size, void *data)
 {
-	hash_table_create(&section->items, 0, 0, &section_ht_ops);
-	section->name = NULL;
-}
+	char **string_ptr = (char **)data;
+	char *string = *string_ptr;
 
-static ini_section_t* ini_section_create(void)
-{
-	ini_section_t *section = malloc(sizeof(ini_section_t));
-	if (section != NULL) {
-		ini_section_init(section);
+	int i = 0;
+	while (i < size - 1) {
+		char c = string[i];
+		if (c == '\0') {
+			break;
+		}
+
+		buffer[i++] = c;
+
+		if (c == '\n') {
+			break;
+		}
 	}
-	return section;
-}
 
-static void ini_section_destroy(ini_section_t **section_ptr)
-{
-	ini_section_t *section = *section_ptr;
-	if (section == NULL) {
-		return;
+	if (i == 0) {
+		return NULL;
 	}
-	hash_table_destroy(&section->items);
-	free(section->name);
-	free(section);
-	*section_ptr = NULL;
+
+	buffer[i] = '\0';
+	*string_ptr = string + i;
+	return buffer;
 }
 
-static void ini_item_init(ini_item_t *item)
-{
-	item->key = NULL;
-	item->value = NULL;
-}
-
-static ini_item_t *ini_item_create(void)
-{
-	ini_item_t *item = malloc(sizeof(ini_item_t));
-	if (item != NULL) {
-		ini_item_init(item);
-	}
-	return item;
-}
-
-static void ini_item_destroy(ini_item_t **item_ptr)
-{
-	ini_item_t *item = *item_ptr;
-	if (item == NULL) {
-		return;
-	}
-	free(item->key);
-	free(item->value);
-	free(item);
-	*item_ptr = NULL;
-}
-
-/** Parse file contents to INI structure
- *
- * @param[in]    filename
- * @param[out]   conf      initialized structure for configuration
- * @param[out]   parse     initialized structure to keep parsing errors
- *
- * @return EOK on success
- * @return EIO when file cannot be opened
- * @return ENOMEM
- * @return EINVAL on parse error (details in parse structure)
- */
-int ini_parse_file(const char *filename, ini_configuration_t *conf,
-    text_parse_t *parse)
+static int ini_parse_generic(line_reader_t line_reader, void *reader_data,
+    ini_configuration_t *conf, text_parse_t *parse)
 {
 	int rc = EOK;
-	FILE *f = NULL;
 	char *line_buffer = NULL;
-
-	f = fopen(filename, "r");
-	if (f == NULL) {
-		rc = EIO;
-		goto finish;
-	}
 
 	line_buffer = malloc(LINE_BUFFER);
 	if (line_buffer == NULL) {
@@ -248,7 +211,7 @@ int ini_parse_file(const char *filename, ini_configuration_t *conf,
 	ini_section_t *cur_section = NULL;
 	size_t lineno = 0;
 
-	while ((line = fgets(line_buffer, LINE_BUFFER - 1, f))) {
+	while ((line = line_reader(line_buffer, LINE_BUFFER, reader_data))) {
 		++lineno;
 		size_t line_len = str_size(line);
 		if (line[line_len - 1] != '\n') {
@@ -360,12 +323,127 @@ int ini_parse_file(const char *filename, ini_configuration_t *conf,
 	}
 
 finish:
-	if (f) {
-		fclose(f);
-	}
 	free(line_buffer);
 
 	return rc;
+}
+
+
+
+/*
+ * Actual INI functions
+ */
+
+void ini_configuration_init(ini_configuration_t *conf)
+{
+	hash_table_create(&conf->sections, 0, 0, &configuration_ht_ops);
+}
+
+/** INI configuration destructor
+ *
+ * Release all resources of INI structure but the structure itself.
+ */
+void ini_configuration_deinit(ini_configuration_t *conf)
+{
+	hash_table_destroy(&conf->sections);
+}
+
+static void ini_section_init(ini_section_t *section)
+{
+	hash_table_create(&section->items, 0, 0, &section_ht_ops);
+	section->name = NULL;
+}
+
+static ini_section_t* ini_section_create(void)
+{
+	ini_section_t *section = malloc(sizeof(ini_section_t));
+	if (section != NULL) {
+		ini_section_init(section);
+	}
+	return section;
+}
+
+static void ini_section_destroy(ini_section_t **section_ptr)
+{
+	ini_section_t *section = *section_ptr;
+	if (section == NULL) {
+		return;
+	}
+	hash_table_destroy(&section->items);
+	free(section->name);
+	free(section);
+	*section_ptr = NULL;
+}
+
+static void ini_item_init(ini_item_t *item)
+{
+	item->key = NULL;
+	item->value = NULL;
+}
+
+static ini_item_t *ini_item_create(void)
+{
+	ini_item_t *item = malloc(sizeof(ini_item_t));
+	if (item != NULL) {
+		ini_item_init(item);
+	}
+	return item;
+}
+
+static void ini_item_destroy(ini_item_t **item_ptr)
+{
+	ini_item_t *item = *item_ptr;
+	if (item == NULL) {
+		return;
+	}
+	free(item->key);
+	free(item->value);
+	free(item);
+	*item_ptr = NULL;
+}
+
+
+/** Parse file contents to INI structure
+ *
+ * @param[in]    filename
+ * @param[out]   conf      initialized structure for configuration
+ * @param[out]   parse     initialized structure to keep parsing errors
+ *
+ * @return EOK on success
+ * @return EIO when file cannot be opened
+ * @return ENOMEM
+ * @return EINVAL on parse error (details in parse structure)
+ */
+int ini_parse_file(const char *filename, ini_configuration_t *conf,
+    text_parse_t *parse)
+{
+	FILE *f = NULL;
+	f = fopen(filename, "r");
+	if (f == NULL) {
+		return EIO;
+	}
+
+	int rc = ini_parse_generic(&read_file, f, conf, parse);
+	fclose(f);
+	return rc;
+}
+
+/** Parse string to INI structure
+ *
+ * @param[in]    string
+ * @param[out]   conf      initialized structure for configuration
+ * @param[out]   parse     initialized structure to keep parsing errors
+ *
+ * @return EOK on success
+ * @return ENOMEM
+ * @return EINVAL on parse error (details in parse structure)
+ */
+int ini_parse_string(const char *string, ini_configuration_t *conf,
+    text_parse_t *parse)
+{
+	const char *string_ptr = string;
+
+	return ini_parse_generic(&read_string, &string_ptr, conf, parse);
 }
 
 
