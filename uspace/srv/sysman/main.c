@@ -148,8 +148,16 @@ int main(int argc, char *argv[])
 	fibril_add_ready(event_loop_fibril);
 
 	/* Queue first job for processing */
+	job_add_ref(first_job);
 	sysman_object_observer(first_job, &first_job_handler, NULL);
+	job_add_ref(first_job);
 	sysman_raise_event(&sysman_event_job_process, first_job);
+	
+	/*
+	 * Releasing our own reference (could be merged with previous add_ref,
+	 * this is more explicit though.
+	 */
+	job_del_ref(&first_job);
 
 	/* Start sysman server */
 	async_set_client_connection(sysman_connection);

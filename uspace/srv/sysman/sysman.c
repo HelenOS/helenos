@@ -149,6 +149,7 @@ int sysman_events_loop(void *unused)
 		fibril_mutex_unlock(&event_queue_mtx);
 
 		/* Process event */
+		sysman_log(LVL_DEBUG2, "process(%p, %p)", event->handler, event->data);
 		event->handler(event->data);
 		free(event);
 	}
@@ -156,6 +157,7 @@ int sysman_events_loop(void *unused)
 
 void sysman_raise_event(event_handler_t handler, void *data)
 {
+	sysman_log(LVL_DEBUG2, "%s(%p, %p)", __func__, handler, data);
 	event_t *event = malloc(sizeof(event_t));
 	if (event == NULL) {
 		sysman_log(LVL_FATAL, "%s: cannot allocate event", __func__);
@@ -236,11 +238,16 @@ void sysman_event_job_process(void *arg)
 		goto fail;
 	}
 
+	/*
+	 * If jobs are queued, reference is passed from closure to the queue,
+	 * otherwise, we still have the reference.
+	 */
 	rc = job_queue_add_jobs(&job_closure);
 	if (rc != EOK) {
-		// TODO job_queue_add_jobs should log message
 		goto fail;
 	}
+	/* We don't need job anymore */
+	job_del_ref(&job);
 
 	// TODO explain why calling asynchronously
 	sysman_raise_event(&sysman_event_job_queue_run, NULL);
@@ -249,7 +256,8 @@ void sysman_event_job_process(void *arg)
 fail:
 	job->retval = JOB_FAILED;
 	job_finish(job);
-	// TODO clarify refcount to the main job
+	job_del_ref(&job);
+
 	dyn_array_foreach(job_closure, job_ptr_t, closure_job) {
 		job_del_ref(&(*closure_job));
 	}
@@ -262,10 +270,14 @@ void sysman_event_job_queue_run(void *unused)
 	job_t *job;
 	while ((job = job_queue_pop_runnable())) {
 		job_run(job);
+		job_del_ref(&job);
 	}
 }
 
 void sysman_event_job_changed(void *object)
 {
 	notify_observers(object);
+	/* Unreference the event data */
+	job_t *job = object;
+	job_del_ref(&job);
 }

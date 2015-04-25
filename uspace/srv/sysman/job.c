@@ -47,11 +47,25 @@ static int job_add_blocked_job(job_t *job, job_t *blocked_job)
 	if (rc != EOK) {
 		return ENOMEM;
 	}
-
 	job_add_ref(blocked_job);
+
 	blocked_job->blocking_jobs += 1;
 
 	return EOK;
+}
+
+/** Remove blocking_job from blocked job structure
+ *
+ * @note Caller must remove blocked_job from collection of blocked_jobs
+ */
+static void job_unblock(job_t *blocked_job, job_t *blocking_job)
+{
+	if (blocking_job->retval == JOB_FAILED) {
+		blocked_job->blocking_job_failed = true;
+	}
+	blocked_job->blocking_jobs -= 1;
+
+	job_del_ref(&blocked_job);
 }
 
 static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
@@ -61,8 +75,7 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 
 	link_initialize(&job->job_queue);
 
-	/* Start with one reference for the creator */
-	atomic_set(&job->refcnt, 1);
+	atomic_set(&job->refcnt, 0);
 
 	job->target_state = target_state;
 	job->unit = u;
@@ -99,23 +112,21 @@ static void job_check(void *object, void *data)
 	unit_t *u = object;
 	job_t *job = data;
 
+	/*
+	 * We have one reference from caller for our disposal,	 *
+	 * if needed, pass it to observer.
+	 */
 	if (job_eval_retval(job)) {
 		job_finish(job);
+		job_del_ref(&job);
 	} else {
 		// TODO place for timeout
-		// TODO add reference to job?
 		sysman_object_observer(u, &job_check, job);
 	}
 }
 
 
-static void job_unblock(job_t *blocked_job, job_t *blocking_job)
-{
-	if (blocking_job->retval == JOB_FAILED) {
-		blocked_job->blocking_job_failed = true;
-	}
-	blocked_job->blocking_jobs -= 1;
-}
+
 
 static void job_destroy(job_t **job_ptr)
 {
@@ -125,8 +136,11 @@ static void job_destroy(job_t **job_ptr)
 	}
 
 	assert(!link_used(&job->job_queue));
+
+	dyn_array_foreach(job->blocked_jobs, job_ptr_t, job_it) {
+		job_del_ref(&(*job_it));
+	}
 	dyn_array_destroy(&job->blocked_jobs);
-	// TODO I should decrease referece of blocked jobs
 
 	free(job);
 	*job_ptr = NULL;
@@ -163,8 +177,7 @@ int job_queue_add_jobs(dyn_array_t *jobs)
 	dyn_array_foreach(*jobs, job_ptr_t, job_it) {
 		(*job_it)->state = JOB_QUEUED;
 		list_append(&(*job_it)->job_queue, &job_queue);
-		// TODO explain this reference
-		job_add_ref(*job_it);
+		/* We pass reference from the closure to the queue */
 	}
 
 	return EOK;
@@ -202,7 +215,7 @@ job_t *job_queue_pop_runnable(void)
 	}
 
 	if (result) {
-		// TODO update refcount
+		/* Remove job from queue and pass refernce to caller */
 		list_remove(&result->job_queue);
 		result->state = JOB_DEQUEUED;
 	}
@@ -224,14 +237,14 @@ int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
 	/*
 	 * Traverse dependency graph in BFS fashion and create jobs for every
 	 * necessary unit.
+	 * Closure keeps reference to each job. We've to add reference to the
+	 * main job, other newly created jobs are pased to the closure.
 	 */
 	fifo_push(jobs_fifo, main_job);
 	job_t *job;
+	job_add_ref(main_job);
 	while ((job = fifo_pop(jobs_fifo)) != NULL) {
-		/*
-		 * Do not increase reference count of job, as we're passing it
-		 * to the closure.
-		 */
+		/* No refcount increase, pass it to the closure */
 		dyn_array_append(job_closure, job_ptr_t, job);
 
 		/* Traverse dependencies edges */
@@ -255,7 +268,7 @@ finish:
 	free(fifo_data);
 	/*
 	 * Newly created jobs are already passed to the closure, thus not
-	 * deleting them here.
+	 * deleting reference to them here.
 	 */
 	return rc;
 }
@@ -265,23 +278,38 @@ job_t *job_create(unit_t *u, unit_state_t target_state)
 	job_t *job = malloc(sizeof(job_t));
 	if (job != NULL) {
 		job_init(job, u, target_state);
+
+		/* Start with one reference for the creator */
+		job_add_ref(job);
 	}
 
 	return job;
 }
 
+/** Add one reference to job
+ *
+ * Usage:
+ *   - adding observer which references the job,
+ *   - raising and event that references the job,
+ *   - anytime any other new reference is made.
+ */
 void job_add_ref(job_t *job)
 {
 	atomic_inc(&job->refcnt);
 }
 
+/** Remove one reference from job, last remover destroys the job
+ *
+ * Usage:
+ *   - inside observer callback that references the job,
+ *   - inside event handler that references the job,
+ *   - anytime you dispose a reference to the job.
+ */
 void job_del_ref(job_t **job_ptr)
 {
 	job_t *job = *job_ptr;
-	if (job == NULL) {
-		return;
-	}
 
+	assert(job != NULL);
 	assert(atomic_get(&job->refcnt) > 0);
 	if (atomic_predec(&job->refcnt) == 0) {
 		job_destroy(job_ptr);
@@ -294,8 +322,8 @@ void job_run(job_t *job)
 	assert(job->state != JOB_FINISHED);
 
 	unit_t *u = job->unit;
-	sysman_log(LVL_DEBUG, "%s, %s -> %i",
-	    __func__, unit_name(u), job->target_state);
+	sysman_log(LVL_DEBUG, "%s(%p), %s -> %i",
+	    __func__, job, unit_name(u), job->target_state);
 
 	/* Propagate failure */
 	if (job->blocking_job_failed) {
@@ -315,6 +343,11 @@ void job_run(job_t *job)
 		goto fail;
 	}
 
+	/*
+	 * job_check deletes reference, we want job to remain to caller, thus
+	 * add one dummy ref
+	 */
+	job_add_ref(job);
 	job_check(job->unit, job);
 	return;
 
@@ -332,18 +365,19 @@ void job_finish(job_t *job)
 	assert(job->state != JOB_FINISHED);
 	assert(job->retval != JOB_UNDEFINED_);
 
-	sysman_log(LVL_DEBUG2, "%s(%s) -> %i",
-	    __func__, unit_name(job->unit), job->retval);
+	sysman_log(LVL_DEBUG2, "%s(%p) %s -> %i",
+	    __func__, job, unit_name(job->unit), job->retval);
 
 	job->state = JOB_FINISHED;
 
-	/* Job finished */
+	/* First remove references, then clear the array */
 	dyn_array_foreach(job->blocked_jobs, job_ptr_t, job_it) {
 		job_unblock(*job_it, job);
 	}
-	// TODO remove reference from blocked jobs
+	dyn_array_clear(&job->blocked_jobs);
 
-	// TODO should reference be added (for the created event)
+	/* Add reference for the event */
+	job_add_ref(job);
 	sysman_raise_event(&sysman_event_job_changed, job);
 }
 

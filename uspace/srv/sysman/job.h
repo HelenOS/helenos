@@ -84,7 +84,6 @@ extern job_t *job_create(unit_t *, unit_state_t);
 extern void job_add_ref(job_t *);
 extern void job_del_ref(job_t **);
 
-
 extern void job_run(job_t *);
 extern void job_finish(job_t *);
 #endif
