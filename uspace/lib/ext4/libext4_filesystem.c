@@ -250,6 +250,20 @@ uint32_t ext4_filesystem_index_in_group2blockaddr(ext4_superblock_t *sb,
 		return bgid * blocks_per_group + index + 1;
 }
 
+/** Convert the absolute block number to group number
+ *
+ * @param sb    Pointer to the superblock
+ * @param b     Absolute block number
+ *
+ * @return      Group number
+ */
+uint32_t ext4_filesystem_blockaddr2group(ext4_superblock_t *sb, uint64_t b)
+{
+	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
+
+	return b / blocks_per_group;
+}
+
 /** Initialize block bitmap in block group.
  *
  * @param bg_ref Reference to block group
@@ -259,8 +273,15 @@ uint32_t ext4_filesystem_index_in_group2blockaddr(ext4_superblock_t *sb,
  */
 static int ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 {
+	uint64_t itb;
+	uint32_t sz;
+	uint32_t i;
+
 	/* Load bitmap */
-	uint32_t bitmap_block_addr = ext4_block_group_get_block_bitmap(
+	ext4_superblock_t *sb = bg_ref->fs->superblock;
+	uint64_t bitmap_block_addr = ext4_block_group_get_block_bitmap(
+	    bg_ref->block_group, bg_ref->fs->superblock);
+	uint64_t bitmap_inode_addr = ext4_block_group_get_inode_bitmap(
 	    bg_ref->block_group, bg_ref->fs->superblock);
 	
 	block_t *bitmap_block;
@@ -272,21 +293,42 @@ static int ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 	uint8_t *bitmap = bitmap_block->data;
 	
 	/* Initialize all bitmap bits to zero */
-	uint32_t block_size = ext4_superblock_get_block_size(bg_ref->fs->superblock);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	memset(bitmap, 0, block_size);
 	
-	/* Determine first block and first data block in group */
-	uint32_t first_idx = 0;
-	
-	uint32_t first_data = ext4_balloc_get_first_data_block_in_group(
-	    bg_ref->fs->superblock, bg_ref);
-	uint32_t first_data_idx = ext4_filesystem_blockaddr2_index_in_group(
-	    bg_ref->fs->superblock, first_data);
-	
+	/* Determine the number of reserved blocks in the group */
+	uint32_t reserved_cnt = ext4_filesystem_bg_get_backup_blocks(bg_ref);
+
 	/* Set bits from to first block to first data block - 1 to one (allocated) */
-	for (uint32_t block = first_idx; block < first_data_idx; ++block)
+	for (uint32_t block = 0; block < reserved_cnt; ++block)
 		ext4_bitmap_set_bit(bitmap, block);
-	
+
+	uint32_t bitmap_block_gid = ext4_filesystem_blockaddr2group(sb,
+	    bitmap_block_addr);
+	if (bitmap_block_gid == bg_ref->index) {
+		ext4_bitmap_set_bit(bitmap,
+		    ext4_filesystem_blockaddr2_index_in_group(sb, bitmap_block_addr));
+	}
+
+	uint32_t bitmap_inode_gid = ext4_filesystem_blockaddr2group(sb,
+	    bitmap_inode_addr);
+	if (bitmap_inode_gid == bg_ref->index) {
+		ext4_bitmap_set_bit(bitmap,
+		    ext4_filesystem_blockaddr2_index_in_group(sb, bitmap_inode_addr));
+	}
+
+	itb = ext4_block_group_get_inode_table_first_block(bg_ref->block_group,
+	    sb);
+	sz = ext4_filesystem_bg_get_itable_size(sb, bg_ref);
+
+	for (i = 0; i < sz; ++i, ++itb) {
+		uint32_t gid = ext4_filesystem_blockaddr2group(sb, itb);
+		if (gid == bg_ref->index) {
+			ext4_bitmap_set_bit(bitmap,
+			    ext4_filesystem_blockaddr2_index_in_group(sb, itb));
+		}
+	}
+
 	bitmap_block->dirty = true;
 	
 	/* Save bitmap */
@@ -523,6 +565,35 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 	return crc;
 }
 
+/** Get the size of the block group's inode table
+ *
+ * @param sb     Pointer to the superblock
+ * @param bg_ref Pointer to the block group reference
+ *
+ * @return       Size of the inode table in blocks.
+ */
+uint32_t ext4_filesystem_bg_get_itable_size(ext4_superblock_t *sb,
+    ext4_block_group_ref_t *bg_ref)
+{
+	uint32_t itable_size;
+	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
+	uint16_t inode_table_item_size = ext4_superblock_get_inode_size(sb);
+	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+
+	if (bg_ref->index < block_group_count - 1) {
+		itable_size = inodes_per_group * inode_table_item_size;
+	} else {
+		/* Last block group could be smaller */
+		uint32_t inodes_count_total = ext4_superblock_get_inodes_count(sb);
+		itable_size =
+		    (inodes_count_total - ((block_group_count - 1) * inodes_per_group)) *
+		    inode_table_item_size;
+	}
+
+	return ROUND_UP(itable_size, block_size) / block_size;
+}
+
 /* Check if n is a power of p */
 static bool is_power_of(uint32_t n, unsigned p)
 {
@@ -547,7 +618,7 @@ static bool is_power_of(uint32_t n, unsigned p)
  *
  * @return      Number of blocks
  */
-uint32_t ext4_block_group_get_backup_blocks(ext4_block_group_ref_t *bg)
+uint32_t ext4_filesystem_bg_get_backup_blocks(ext4_block_group_ref_t *bg)
 {
 	uint32_t const idx = bg->index;
 	uint32_t r = 0;
