@@ -123,5 +123,15 @@ PCUT_TEST(iterator) {
 	}
 }
 
+PCUT_TEST(find) {
+	dyn_array_append(&da, data_t, 10);
+	dyn_array_append(&da, data_t, 11);
+	dyn_array_append(&da, data_t, 12);
+	dyn_array_append(&da, data_t, 99);
+
+	PCUT_ASSERT_INT_EQUALS(0, dyn_array_find(&da, data_t, 10));
+	PCUT_ASSERT_INT_EQUALS(3, dyn_array_find(&da, data_t, 99));
+	PCUT_ASSERT_INT_EQUALS(4, dyn_array_find(&da, data_t, 666));
+}
 
 PCUT_EXPORT(dyn_array);

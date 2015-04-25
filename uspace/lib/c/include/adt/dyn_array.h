@@ -96,15 +96,36 @@ typedef struct {
 
 /** Dynamic array iteration
  *
- * @param[in]  it   name of variable used as iterator, it's pointer to @p type
+ * @param[in]  dyn_array   dyn_array_t (not pointer)
+ * @param[in]  it          name of variable used as iterator, it's pointer
+ *                         to @p type
  */
 #define dyn_array_foreach(dyn_array, type, it)                                 \
 	for (type *it = (type *)(dyn_array)._data;                             \
 	    it != ((type *)(dyn_array)._data + (dyn_array).size); ++it)
 
+/** Find first occurence of value
+ *
+ * @param[in]  dyn_array   dyn_array_t *
+ * @param[in]  value       value to search for
+ *
+ * @return  index of found value or size of array when no found
+ */
+#define dyn_array_find(dyn_array, type, value)                                 \
+({                                                                             \
+ 	size_t _result = (dyn_array)->size;                                    \
+	dyn_array_foreach(*(dyn_array), type, _it) {                           \
+ 		if (*_it == value) {                                           \
+			_result = _it - (type *)(dyn_array)->_data;            \
+ 			break;                                                 \
+ 		}                                                              \
+ 	}                                                                      \
+ 	_result;                                                               \
+})
 
 extern void dyn_array_destroy(dyn_array_t *);
 extern void dyn_array_remove(dyn_array_t *, size_t);
+void dyn_array_clear(dyn_array_t *);
 
 extern int _dyn_array_initialize(dyn_array_t *, size_t, size_t);
 extern int  _dyn_array_reserve(dyn_array_t *, size_t);

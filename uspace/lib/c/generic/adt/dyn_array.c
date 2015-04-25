@@ -44,10 +44,7 @@
 #include <stdlib.h>
 
 
-static void dyn_array_clear(dyn_array_t *da)
-{
-	da->size = 0;
-}
+
 
 static int dyn_array_realloc(dyn_array_t *da, size_t capacity)
 {
@@ -79,11 +76,17 @@ void dyn_array_remove(dyn_array_t *da, size_t index)
         assert(rc == EOK);
 }
 
+/** Clear dynamic array (empty) */
+void dyn_array_clear(dyn_array_t *da)
+{
+	da->size = 0;
+}
+
 int _dyn_array_initialize(dyn_array_t *da, size_t item_size, size_t capacity)
 {
 	da->_item_size = item_size;
 	da->_data = NULL;
-	
+
 	da->capacity = 0;
 	da->size = 0;
 
