@@ -260,8 +260,9 @@ uint32_t ext4_filesystem_index_in_group2blockaddr(ext4_superblock_t *sb,
 uint32_t ext4_filesystem_blockaddr2group(ext4_superblock_t *sb, uint64_t b)
 {
 	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
+	uint32_t first_block = ext4_superblock_get_first_data_block(sb);
 
-	return b / blocks_per_group;
+	return (b - first_block) / blocks_per_group;
 }
 
 /** Initialize block bitmap in block group.
