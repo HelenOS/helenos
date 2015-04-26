@@ -290,66 +290,41 @@ static int ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref, uint32_t *goal)
 {
 	*goal = 0;
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
-	
+
 	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	uint32_t inode_block_count = inode_size / block_size;
-	
+
 	if (inode_size % block_size != 0)
 		inode_block_count++;
-	
+
 	/* If inode has some blocks, get last block address + 1 */
 	if (inode_block_count > 0) {
 		int rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
 		    inode_block_count - 1, goal);
 		if (rc != EOK)
 			return rc;
-		
+
 		if (goal != 0) {
 			(*goal)++;
 			return EOK;
 		}
-		
 		/* If goal == 0, sparse file -> continue */
 	}
-	
+
 	/* Identify block group of inode */
 	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
 	uint32_t block_group = (inode_ref->index - 1) / inodes_per_group;
-	block_size = ext4_superblock_get_block_size(sb);
-	
+
 	/* Load block group reference */
 	ext4_block_group_ref_t *bg_ref;
 	int rc = ext4_filesystem_get_block_group_ref(inode_ref->fs,
 	    block_group, &bg_ref);
 	if (rc != EOK)
 		return rc;
-	
-	/* Compute indexes */
-	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
-	uint32_t inode_table_first_block =
-	    ext4_block_group_get_inode_table_first_block(bg_ref->block_group, sb);
-	uint16_t inode_table_item_size = ext4_superblock_get_inode_size(sb);
-	uint32_t inode_table_bytes;
-	
-	/* Check for last block group */
-	if (block_group < block_group_count - 1) {
-		inode_table_bytes = inodes_per_group * inode_table_item_size;
-	} else {
-		/* Last block group could be smaller */
-		uint32_t inodes_count_total = ext4_superblock_get_inodes_count(sb);
-		inode_table_bytes =
-		    (inodes_count_total - ((block_group_count - 1) * inodes_per_group)) *
-		    inode_table_item_size;
-	}
-	
-	uint32_t inode_table_blocks = inode_table_bytes / block_size;
-	
-	if (inode_table_bytes % block_size)
-		inode_table_blocks++;
-	
-	*goal = inode_table_first_block + inode_table_blocks;
-	
+
+	*goal = ext4_balloc_get_first_data_block_in_group(sb, bg_ref);
+
 	return ext4_filesystem_put_block_group_ref(bg_ref);
 }
 
