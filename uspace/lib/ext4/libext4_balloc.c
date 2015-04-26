@@ -258,28 +258,21 @@ uint32_t ext4_balloc_get_first_data_block_in_group(ext4_superblock_t *sb,
 	uint64_t ibmap = ext4_block_group_get_inode_bitmap(bg_ref->block_group,
 	    sb);
 
-	r = ext4_filesystem_bg_get_backup_blocks(bg_ref);
+	r = ext4_filesystem_index_in_group2blockaddr(sb, 0, bg_ref->index);
+	r += ext4_filesystem_bg_get_backup_blocks(bg_ref);
 
-	if (ext4_filesystem_blockaddr2group(sb, bbmap) == bg_ref->index)
-		bbmap = ext4_filesystem_blockaddr2_index_in_group(sb, bbmap);
-	else
+	if (ext4_filesystem_blockaddr2group(sb, bbmap) != bg_ref->index)
 		bbmap = -1; /* Invalid */
 
-	if (ext4_filesystem_blockaddr2group(sb, ibmap) == bg_ref->index)
-		ibmap = ext4_filesystem_blockaddr2_index_in_group(sb, ibmap);
-	else
+	if (ext4_filesystem_blockaddr2group(sb, ibmap) != bg_ref->index)
 		ibmap = -1;
 
 	while (1) {
-		uint64_t r_abs = ext4_filesystem_index_in_group2blockaddr(sb,
-			r, bg_ref->index);
-
 		if (r == bbmap || r == ibmap)
 			r++;
-		else if (r_abs >= itable && r_abs < itable_sz) {
-			r = ext4_filesystem_blockaddr2_index_in_group(sb,
-			    itable + itable_sz);
-		} else
+		else if (r >= itable && r < (itable + itable_sz))
+			r = itable + itable_sz;
+		else
 			break;
 	}
 
