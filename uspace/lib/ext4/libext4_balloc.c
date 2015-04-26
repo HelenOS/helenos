@@ -38,29 +38,6 @@
 #include <sys/types.h>
 #include "libext4.h"
 
-/** Compute number of block group from block address.
- *
- * @param sb         Superblock pointer.
- * @param block_addr Absolute address of block.
- *
- * @return Block group index
- *
- */
-static uint32_t ext4_balloc_get_bgid_of_block(ext4_superblock_t *sb,
-    uint32_t block_addr)
-{
-	uint32_t blocks_per_group =
-	    ext4_superblock_get_blocks_per_group(sb);
-	uint32_t first_block =
-	    ext4_superblock_get_first_data_block(sb);
-	
-	/* First block == 0 or 1 */
-	if (first_block == 0)
-		return block_addr / blocks_per_group;
-	else
-		return (block_addr - 1) / blocks_per_group;
-}
-
 /** Free block.
  *
  * @param inode_ref  Inode, where the block is allocated
@@ -75,7 +52,7 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	ext4_superblock_t *sb = fs->superblock;
 	
 	/* Compute indexes */
-	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, block_addr);
+	uint32_t block_group = ext4_filesystem_blockaddr2group(sb, block_addr);
 	uint32_t index_in_group =
 	    ext4_filesystem_blockaddr2_index_in_group(sb, block_addr);
 	
@@ -141,10 +118,10 @@ static int ext4_balloc_free_blocks_internal(ext4_inode_ref_t *inode_ref,
 	ext4_superblock_t *sb = fs->superblock;
 
 	/* Compute indexes */
-	uint32_t block_group_first =
-	    ext4_balloc_get_bgid_of_block(sb, first);
-	uint32_t block_group_last =
-	    ext4_balloc_get_bgid_of_block(sb, first + count - 1);
+	uint32_t block_group_first = ext4_filesystem_blockaddr2group(sb,
+	    first);
+	uint32_t block_group_last = ext4_filesystem_blockaddr2group(sb,
+	    first + count - 1);
 
 	assert(block_group_first == block_group_last);
 
@@ -409,7 +386,7 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
 	
 	/* Load block group number for goal and relative index */
-	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, goal);
+	uint32_t block_group = ext4_filesystem_blockaddr2group(sb, goal);
 	uint32_t index_in_group =
 	    ext4_filesystem_blockaddr2_index_in_group(sb, goal);
 	
@@ -682,7 +659,7 @@ int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock,
 	ext4_superblock_t *sb = fs->superblock;
 	
 	/* Compute indexes */
-	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, fblock);
+	uint32_t block_group = ext4_filesystem_blockaddr2group(sb, fblock);
 	uint32_t index_in_group =
 	    ext4_filesystem_blockaddr2_index_in_group(sb, fblock);
 	
