@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2015 Jan Kolarik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
- */
-/** @file
- */
+#ifndef LIBCRYPTO_H
+#define LIBCRYPTO_H
 
-#ifndef LIBC_IPC_DHCP_H_
-#define LIBC_IPC_DHCP_H_
+#include <sys/types.h>
 
-#include <ipc/common.h>
+#define AES_CIPHER_LENGTH  16
+#define PBKDF2_KEY_LENGTH  32
 
-/** DHCP service requests */
+/* Left rotation for uint32_t. */
+#define rotl_uint32(val, shift) \
+	(((val) << shift) | ((val) >> (32 - shift)))
+
+/* Right rotation for uint32_t. */
+#define rotr_uint32(val, shift) \
+	(((val) >> shift) | ((val) << (32 - shift)))
+
+/** Hash function selector and also result hash length indicator. */
 typedef enum {
-	DHCP_LINK_ADD = IPC_FIRST_USER_METHOD,
-	DHCP_LINK_REMOVE,
-	DHCP_DISCOVER
-} dhcp_request_t;
+	HASH_MD5 =  16,
+	HASH_SHA1 = 20
+} hash_func_t;
+
+extern int rc4(uint8_t *, size_t, uint8_t *, size_t, size_t, uint8_t *);
+extern int aes_encrypt(uint8_t *, uint8_t *, uint8_t *);
+extern int aes_decrypt(uint8_t *, uint8_t *, uint8_t *);
+extern int create_hash(uint8_t *, size_t, uint8_t *, hash_func_t);
+extern int hmac(uint8_t *, size_t, uint8_t *, size_t, uint8_t *, hash_func_t);
+extern int pbkdf2(uint8_t *, size_t, uint8_t *, size_t, uint8_t *);
 
 #endif
-
-/**
- * @}
- */

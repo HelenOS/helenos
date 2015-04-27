@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2015 Jan Kolarik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
+/** @file ath.h
+ *
+ * Atheros generic wifi device functions definitions.
+ *
  */
-/** @file
- */
 
-#ifndef LIBC_IPC_DHCP_H_
-#define LIBC_IPC_DHCP_H_
+#ifndef ATHEROS_ATH_H
+#define ATHEROS_ATH_H
 
-#include <ipc/common.h>
+struct ath;
 
-/** DHCP service requests */
-typedef enum {
-	DHCP_LINK_ADD = IPC_FIRST_USER_METHOD,
-	DHCP_LINK_REMOVE,
-	DHCP_DISCOVER
-} dhcp_request_t;
+/** Atheros wifi operations. */
+typedef struct {
+	int (*send_ctrl_message)(struct ath *, void *, size_t);
+	int (*read_ctrl_message)(struct ath *, void *, size_t, size_t *);
+	int (*send_data_message)(struct ath *, void *, size_t);
+	int (*read_data_message)(struct ath *, void *, size_t, size_t *);
+} ath_ops_t;
 
-#endif
+/** Atheros wifi device structure */
+typedef struct ath {
+	/** Maximum length of data response message. */
+	size_t data_response_length;
+	
+	/** Maximum length of control response message. */
+	size_t ctrl_response_length;
+	
+	/** Implementation specific data. */
+	void *specific_data;
+	
+	/** Generic Atheros wifi operations. */
+	const ath_ops_t *ops;
+} ath_t;
 
-/**
- * @}
- */
+#endif  /* ATHEROS_ATH_H */

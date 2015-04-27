@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2015 Jan Kolarik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/**
+ * @addtogroup libieee80211
  * @{
  */
-/** @file
+
+/** @file ieee80211_iface_impl.h
+ *
+ * IEEE 802.11 default interface functions definition.
  */
 
-#ifndef LIBC_IPC_DHCP_H_
-#define LIBC_IPC_DHCP_H_
+#ifndef LIB_IEEE80211_IFACE_IMPL_H
+#define LIB_IEEE80211_IFACE_IMPL_H
 
-#include <ipc/common.h>
+#include <ddf/driver.h>
+#include "ieee80211.h"
 
-/** DHCP service requests */
-typedef enum {
-	DHCP_LINK_ADD = IPC_FIRST_USER_METHOD,
-	DHCP_LINK_REMOVE,
-	DHCP_DISCOVER
-} dhcp_request_t;
+extern int ieee80211_get_scan_results_impl(ddf_fun_t *,
+    ieee80211_scan_results_t *, bool);
+extern int ieee80211_connect_impl(ddf_fun_t *, char *, char *);
+extern int ieee80211_disconnect_impl(ddf_fun_t *);
 
-#endif
+#endif  /* LIB_IEEE80211_IFACE_IMPL_H */
 
-/**
- * @}
+/** @}
  */

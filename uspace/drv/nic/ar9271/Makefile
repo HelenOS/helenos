@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2014 Jan Kolarik
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,34 +26,32 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-EXTRA_CFLAGS = \
-	-Iinclude \
-	-Igeneric/private \
+USPACE_PREFIX = ../../..
+
+LIBS = \
+	$(LIBUSBDEV_PREFIX)/libusbdev.a \
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBNIC_PREFIX)/libnic.a \
+	$(LIBIEEE80211_PREFIX)/libieee80211.a \
+	$(LIBCRYPTO_PREFIX)/libcrypto.a
+
+EXTRA_CFLAGS += \
+	-I. \
 	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBPCM_PREFIX)/include
-LIBRARY = libdrv
+	-I$(LIBUSBDEV_PREFIX)/include \
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBNIC_PREFIX)/include \
+	-I$(LIBIEEE80211_PREFIX)/include \
+	-I$(LIBCRYPTO_PREFIX)
+
+BINARY = ar9271
 
 SOURCES = \
-	generic/driver.c \
-	generic/dev_iface.c \
-	generic/interrupt.c \
-	generic/log.c \
-	generic/logbuf.c \
-	generic/remote_audio_mixer.c \
-	generic/remote_audio_pcm.c \
-	generic/remote_hw_res.c \
-	generic/remote_pio_window.c \
-	generic/remote_char_dev.c \
-	generic/remote_nic.c \
-	generic/remote_ieee80211.c \
-	generic/remote_usb.c \
-	generic/remote_pci.c \
-	generic/remote_usbhc.c \
-	generic/remote_usbhid.c \
-	generic/remote_clock_dev.c \
-	generic/remote_led_dev.c \
-	generic/remote_battery_dev.c \
-	generic/remote_ahci.c
+	ath_usb.c \
+	hw.c \
+	wmi.c \
+	htc.c \
+	ar9271.c
 
 include $(USPACE_PREFIX)/Makefile.common
