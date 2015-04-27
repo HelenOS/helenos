@@ -691,7 +691,7 @@ uint32_t ext4_filesystem_bg_get_backup_blocks(ext4_block_group_ref_t *bg)
 
 /** Put reference to block group.
  *
- * @oaram ref Pointer for reference to be put back
+ * @param ref Pointer for reference to be put back
  *
  * @return Error code
  *
