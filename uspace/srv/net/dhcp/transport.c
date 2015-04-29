@@ -94,6 +94,11 @@ static int dhcp_recv_msg(dhcp_transport_t *dt, void **rmsg, size_t *rsize)
 	size_t recv_size;
 	int rc;
 
+	if (dt->fd < 0) {
+		/* Terminated */
+		return EIO;
+	}
+
 	src_addr_size = sizeof(src_addr);
 	rc = recvfrom(dt->fd, msgbuf, MAX_MSG_SIZE, 0,
 	    (struct sockaddr *)&src_addr, &src_addr_size);
@@ -165,6 +170,7 @@ error:
 void dhcp_transport_fini(dhcp_transport_t *dt)
 {
 	closesocket(dt->fd);
+	dt->fd = -1;
 }
 
 static int dhcp_recv_fibril(void *arg)
