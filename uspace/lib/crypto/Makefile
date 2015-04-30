@@ -32,6 +32,7 @@ LIBRARY = libcrypto
 SOURCES = \
 	crypto.c \
 	aes.c \
-	rc4.c
+	rc4.c \
+	crc16_ibm.c
 
 include $(USPACE_PREFIX)/Makefile.common

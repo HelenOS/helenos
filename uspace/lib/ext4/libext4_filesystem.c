@@ -40,6 +40,7 @@
 #include <malloc.h>
 #include <ipc/vfs.h>
 #include <align.h>
+#include <crypto.h>
 #include "libext4.h"
 
 /** Initialize filesystem and read all needed data.
@@ -53,12 +54,13 @@
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
     enum cache_mode cmode)
 {
+	int rc;
 	ext4_superblock_t *temp_superblock = NULL;
 
 	fs->device = service_id;
 
 	/* Initialize block library (4096 is size of communication channel) */
-	int rc = block_init(EXCHANGE_SERIALIZE, fs->device, 4096);
+	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 4096);
 	if (rc != EOK)
 		goto err;
 
@@ -139,7 +141,7 @@ int ext4_filesystem_fini(ext4_filesystem_t *fs)
 	
 	/* Release memory space for superblock */
 	free(fs->superblock);
-	
+
 	/* Finish work with block library */
 	block_cache_fini(fs->device);
 	block_fini(fs->device);
@@ -531,7 +533,7 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 {
 	/* If checksum not supported, 0 will be returned */
 	uint16_t crc = 0;
-	
+
 	/* Compute the checksum only if the filesystem supports it */
 	if (ext4_superblock_has_feature_read_only(sb,
 	    EXT4_FEATURE_RO_COMPAT_GDT_CSUM)) {
@@ -544,13 +546,13 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 		uint32_t le_group = host2uint32_t_le(bgid);
 		
 		/* Initialization */
-		crc = crc16(~0, sb->uuid, sizeof(sb->uuid));
+		crc = crc16_ibm(~0, sb->uuid, sizeof(sb->uuid));
 		
 		/* Include index of block group */
-		crc = crc16(crc, (uint8_t *) &le_group, sizeof(le_group));
+		crc = crc16_ibm(crc, (uint8_t *) &le_group, sizeof(le_group));
 		
 		/* Compute crc from the first part (stop before checksum field) */
-		crc = crc16(crc, (uint8_t *) bg, offset);
+		crc = crc16_ibm(crc, (uint8_t *) bg, offset);
 		
 		/* Skip checksum */
 		offset += sizeof(bg->checksum);
@@ -559,7 +561,7 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 		if ((ext4_superblock_has_feature_incompatible(sb,
 		    EXT4_FEATURE_INCOMPAT_64BIT)) &&
 		    (offset < ext4_superblock_get_desc_size(sb)))
-			crc = crc16(crc, ((uint8_t *) bg) + offset,
+			crc = crc16_ibm(crc, ((uint8_t *) bg) + offset,
 			    ext4_superblock_get_desc_size(sb) - offset);
 	}
 	
