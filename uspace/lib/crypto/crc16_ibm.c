@@ -1,11 +1,40 @@
-#include <malloc.h>
-#include <stddef.h>
+/*
+ * Copyright (c) 2015 Maurizio Lombardi
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @file crc16_ibm.c
+ *
+ * Implementation of CRC16-IBM (polynomial = 0xA001)
+ *
+ */
+
 #include "crypto.h"
 
-/* CRC16-IBM implementation */
-/* POLYNOMIAL = 0xA001 */
-
-static uint16_t crct[256] = {
+static const uint16_t crct[256] = {
 	0x0000,	0xc0c1,	0xc181,	0x0140,	0xc301,	0x03c0,	0x0280,	0xc241,
 	0xc601,	0x06c0,	0x0780,	0xc741,	0x0500,	0xc5c1,	0xc481,	0x0440,
 	0xcc01,	0x0cc0,	0x0d80,	0xcd41,	0x0f00,	0xcfc1,	0xce81,	0x0e40,
@@ -37,7 +66,8 @@ static uint16_t crct[256] = {
 	0x8801,	0x48c0,	0x4980,	0x8941,	0x4b00,	0x8bc1,	0x8a81,	0x4a40,
 	0x4e00,	0x8ec1,	0x8f81,	0x4f40,	0x8d01,	0x4dc0,	0x4c80,	0x8c41,
 	0x4400,	0x84c1,	0x8581,	0x4540,	0x8701,	0x47c0,	0x4680,	0x8641,
-	0x8201,	0x42c0,	0x4380,	0x8341,	0x4100,	0x81c1,	0x8081,	0x4040};
+	0x8201,	0x42c0,	0x4380,	0x8341,	0x4100,	0x81c1,	0x8081,	0x4040
+};
 
 /* Compute a CRC16
  *
