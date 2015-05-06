@@ -49,9 +49,7 @@ DIST_PATH = $(USPACE_PATH)/dist
 DIST_OVERLAY_PATH = $(USPACE_PATH)/overlay
 TOOLS_PATH = $(ROOT_PATH)/tools
 DRVS_PATH = drv
-INITRD_CFG_PATH = $(USPACE_PATH)/cfg
-# TODO configuration separation may change
-ROOTFS_CFG_PATH = $(USPACE_PATH)/cfg
+CFG_PATH = $(USPACE_PATH)/cfg
 
 MKARRAY = $(TOOLS_PATH)/mkarray.py
 MKFAT = $(TOOLS_PATH)/mkfat.py

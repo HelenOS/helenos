@@ -1,3 +1,8 @@
+[Unit]
+; explicit, VFS not instrumented for autostart
+After = fat.svc
+
+[Mount]
 What = devices/\hw\pci0\00:01.0\ata-c1\d0
 Where = /root
 Type = fat
