@@ -14,7 +14,7 @@
  * - The name of the author may not be used to endorse or promote products
  *   derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -26,17 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+#include <ipc/services.h>
+#include <ns.h>
+#include <sysman/sysman.h>
 
-#include "unit.h"
+static async_sess_t *sysman_sess[SYSMAN_PORT_MAX_] = {NULL};
 
-typedef struct {
-	unit_t unit;
+async_exch_t *sysman_exchange_begin(sysman_interface_t iface)
+{
+	// TODO need special session for each iface!
+	if (sysman_sess[iface] == NULL) {
+		// TODO serialize vs parallel
+		sysman_sess[iface] = service_connect_blocking(EXCHANGE_SERIALIZE,
+		    SERVICE_SYSMAN, iface, 0);
+	}
 
-	char *path;
-} unit_cfg_t;
+	if (sysman_sess[iface] == NULL) {
+		return NULL;
+	}
 
-extern unit_vmt_t unit_cfg_vmt;
+	return async_exchange_begin(sysman_sess[iface]);
+}
 
-#endif
+void sysman_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
+}
+

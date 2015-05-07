@@ -26,17 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+#ifndef _SYSMAN_SYSMAN_H
+#define _SYSMAN_SYSMAN_H
 
-#include "unit.h"
+#include <async.h>
+#include <ipc/sysman.h>
 
-typedef struct {
-	unit_t unit;
+async_exch_t *sysman_exchange_begin(sysman_interface_t);
 
-	char *path;
-} unit_cfg_t;
-
-extern unit_vmt_t unit_cfg_vmt;
+void sysman_exchange_end(async_exch_t *);
 
 #endif

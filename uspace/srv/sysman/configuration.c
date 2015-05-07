@@ -147,6 +147,10 @@ static bool configuration_rollback_unit(ht_link_t *ht_link, void *arg)
 	return true;
 }
 
+/** Remove all uncommited units and edges from configuratio
+ *
+ * Memory used by removed object is released.
+ */
 void configuration_rollback(void)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
@@ -185,7 +189,7 @@ static bool configuration_resolve_unit(ht_link_t *ht_link, void *arg)
 /** Resolve unresolved dependencies between any pair of units
  *
  * @return EOK      on success
- * @return ENONENT  when one or more resolution fails, information is logged
+ * @return ENOENT  when one or more resolution fails, information is logged
  */
 int configuration_resolve_dependecies(void)
 {

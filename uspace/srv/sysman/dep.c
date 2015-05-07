@@ -35,10 +35,10 @@
 
 static void dep_dependency_init(unit_dependency_t *dep)
 {
+	memset(dep, 0, sizeof(*dep));
 	link_initialize(&dep->dependants);
 	link_initialize(&dep->dependencies);
 
-	dep->dependency_name = NULL;
 	dep->state = DEP_EMBRYO;
 }
 

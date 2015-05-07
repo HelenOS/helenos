@@ -29,12 +29,17 @@
 
 USPACE_PREFIX = ../..
 LIBS = $(LIBCONF_PREFIX)/libconf.a
-EXTRA_CFLAGS += -I. -I./units -I$(LIBCONF_PREFIX)/include
+EXTRA_CFLAGS += -I. \
+	-I./units \
+	-I$(LIBCONF_PREFIX)/include \
+	-I$(LIBSYSMAN_PREFIX)/include
 BINARY = sysman
 STATIC_NEEDED = y
 
 SOURCES = \
 	configuration.c \
+	connection_broker.c \
+	connection_ctl.c \
 	dep.c \
 	job.c \
 	main.c \
@@ -43,6 +48,7 @@ SOURCES = \
 	units/unit_cfg.c \
 	units/unit_mnt.c \
 	units/unit_tgt.c \
+	units/unit_svc.c \
 	util.c
 
 include $(USPACE_PREFIX)/Makefile.common

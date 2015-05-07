@@ -26,17 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+#ifndef _SYSMAN_CTL_H
+#define _SYSMAN_CTL_H
 
-#include "unit.h"
+#include <sysman/unit.h>
 
-typedef struct {
-	unit_t unit;
-
-	char *path;
-} unit_cfg_t;
-
-extern unit_vmt_t unit_cfg_vmt;
+int sysman_unit_start(const char *, int);
 
 #endif

@@ -30,6 +30,7 @@
  * @{
  */
 
+#include <ipc/services.h>
 #include <loc.h>
 #include <stdio.h>
 

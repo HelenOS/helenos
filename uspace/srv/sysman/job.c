@@ -72,6 +72,7 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 {
 	assert(job);
 	assert(u);
+	memset(job, 0, sizeof(*job));
 
 	link_initialize(&job->job_queue);
 
@@ -102,11 +103,6 @@ static bool job_eval_retval(job_t *job)
 	}
 }
 
-static bool job_is_runnable(job_t *job)
-{
-	return job->state == JOB_QUEUED && job->blocking_jobs == 0;
-}
-
 static void job_check(void *object, void *data)
 {
 	unit_t *u = object;
@@ -124,9 +120,6 @@ static void job_check(void *object, void *data)
 		sysman_object_observer(u, &job_check, job);
 	}
 }
-
-
-
 
 static void job_destroy(job_t **job_ptr)
 {
@@ -146,6 +139,35 @@ static void job_destroy(job_t **job_ptr)
 	*job_ptr = NULL;
 }
 
+static bool job_is_runnable(job_t *job)
+{
+	return job->state == JOB_QUEUED && job->blocking_jobs == 0;
+}
+
+/** Pop next runnable job
+ *
+ * @return runnable job or NULL when there's none
+ */
+static job_t *job_queue_pop_runnable(void)
+{
+	job_t *result = NULL;
+
+	/* Select first runnable job */
+	list_foreach(job_queue, job_queue, job_t, candidate) {
+		if (job_is_runnable(candidate)) {
+			result = candidate;
+			break;
+		}
+	}
+	if (result) {
+		/* Remove job from queue and pass reference to caller */
+		list_remove(&result->job_queue);
+		result->state = JOB_DEQUEUED;
+	}
+
+	return result;
+}
+
 /*
  * Non-static functions
  */
@@ -162,11 +184,11 @@ int job_queue_add_jobs(dyn_array_t *jobs)
 		list_foreach(job_queue, job_queue, job_t, queued_job) {
 			/*
 			 * Currently we have strict strategy not permitting
-			 * multiple jobs for one unit in the queue.
+			 * multiple jobs for one unit in the queue at a time.
 			 */
 			if ((*new_job_it)->unit == queued_job->unit) {
 				sysman_log(LVL_ERROR,
-				    "Cannot queue multiple jobs foor unit '%s'",
+				    "Cannot queue multiple jobs for unit '%s'",
 				    unit_name((*new_job_it)->unit));
 				return EEXIST;
 			}
@@ -183,44 +205,21 @@ int job_queue_add_jobs(dyn_array_t *jobs)
 	return EOK;
 }
 
-/** Pop next runnable job
+/** Process all jobs that aren't transitively blocked
  *
- * @return runnable job or NULL when there's none
+ * Job can be blocked either by another job or by an incoming event, that will
+ * be queued after this job_queue_process call.
+ *
+ * TODO Write down rules from where this function can be called, to avoid stack
+ *      overflow.
  */
-job_t *job_queue_pop_runnable(void)
+void job_queue_process(void)
 {
-	job_t *result = NULL;
-	link_t *first_link = list_first(&job_queue);
-	bool first_iteration = true;
-
-	list_foreach_safe(job_queue, cur_link, next_link) {
-		result = list_get_instance(cur_link, job_t, job_queue);
-		if (job_is_runnable(result)) {
-			break;
-		} else if (!first_iteration && cur_link == first_link) {
-			result = NULL;
-			break;
-		} else {
-			/*
-			 * We make no assuptions about ordering of jobs in the
-			 * queue, so just move the job to the end of the queue.
-			 * If there are exist topologic ordering, eventually
-			 * jobs will be reordered. Furthermore when if there
-			 * exists any runnable job, it's always found.
-			 */
-			list_remove(cur_link);
-			list_append(cur_link, &job_queue);
-		}
-		first_iteration = false;
+	job_t *job;
+	while ((job = job_queue_pop_runnable())) {
+		job_run(job);
+		job_del_ref(&job);
 	}
-
-	if (result) {
-		/* Remove job from queue and pass refernce to caller */
-		list_remove(&result->job_queue);
-		result->state = JOB_DEQUEUED;
-	}
-
-	return result;
 }
 
 int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
@@ -241,11 +240,25 @@ int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
 	 * main job, other newly created jobs are pased to the closure.
 	 */
 	fifo_push(jobs_fifo, main_job);
-	job_t *job;
 	job_add_ref(main_job);
-	while ((job = fifo_pop(jobs_fifo)) != NULL) {
-		/* No refcount increase, pass it to the closure */
-		dyn_array_append(job_closure, job_ptr_t, job);
+	while (jobs_fifo.head != jobs_fifo.tail) {
+		job_t *job = fifo_pop(jobs_fifo);
+		
+		// TODO more sophisticated check? (unit that is in transitional
+		//      state cannot have currently multiple jobs queued)
+		if (job->target_state == job->unit->state) {
+			/*
+			 * Job would do nothing, finish it on spot.
+			 * No need to continue BFS search from it.
+			 */
+			job->retval = JOB_OK;
+			job_finish(job);
+			job_del_ref(&job);
+			continue;
+		} else {
+			/* No refcount increase, pass it to the closure */
+			dyn_array_append(job_closure, job_ptr_t, job);
+		}
 
 		/* Traverse dependencies edges */
 		unit_t *u = job->unit;
@@ -378,6 +391,6 @@ void job_finish(job_t *job)
 
 	/* Add reference for the event */
 	job_add_ref(job);
-	sysman_raise_event(&sysman_event_job_changed, job);
+	sysman_raise_event(&sysman_event_job_finished, job);
 }
 

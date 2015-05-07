@@ -62,5 +62,17 @@ static int unit_tgt_start(unit_t *unit)
 	return EOK;
 }
 
+static void unit_tgt_exposee_created(unit_t *unit)
+{
+	/* Target has no exposees. */
+	assert(false);
+}
+
+static void unit_tgt_fail(unit_t *unit)
+{
+	// TODO define semantics and implement
+}
+
+
 DEFINE_UNIT_VMT(unit_tgt)
 

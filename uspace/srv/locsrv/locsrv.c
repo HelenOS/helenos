@@ -35,19 +35,21 @@
 /** @file
  */
 
-#include <ipc/services.h>
-#include <ns.h>
+#include <assert.h>
 #include <async.h>
-#include <stdio.h>
 #include <errno.h>
-#include <stdbool.h>
+#include <ipc/loc.h>
+#include <ipc/services.h>
 #include <fibril_synch.h>
 #include <macros.h>
+#include <ns.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
-#include <ipc/loc.h>
-#include <assert.h>
+#include <sysman/broker.h>
+#include <sysman/ctl.h>
 
 #include "category.h"
 #include "locsrv.h"
@@ -332,6 +334,38 @@ static void loc_service_unregister_core(loc_service_t *service)
 	free(service);
 }
 
+static int loc_service_request_start(const char *ns_name, const char *name)
+{
+	char *service_name = NULL;
+
+	if (str_cmp(ns_name, LOC_DEVICE_NAMESPACE) == 0) {
+		asprintf(&service_name, "%s", SERVICE_NAME_DEVMAN);
+	} else if (str_cmp(ns_name, "") == 0) {
+		asprintf(&service_name, "%s", name);
+	} else {
+		asprintf(&service_name, "%s%s%s",
+		    ns_name, LOC_UNIT_NAMESPACE_SEPARATOR, name);
+	}
+	if (service_name == NULL) {
+		return ENOMEM;
+	}
+
+	char *unit_name;
+	asprintf(&unit_name, "%s%c%s",
+	    service_name, UNIT_NAME_SEPARATOR, UNIT_SVC_TYPE_NAME);
+	if (unit_name == NULL) {
+		free(service_name);
+		return ENOMEM;
+	}
+
+	printf("%s(%s) before\n", __func__, unit_name);
+	int rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
+	printf("%s(%s) after %i\n", __func__, unit_name, rc);
+	free(unit_name);
+	free(service_name);
+	return rc;
+}
+
 /**
  * Read info about new server and add it into linked list of registered
  * servers.
@@ -530,6 +564,9 @@ static void loc_service_register(ipc_call_t *icall, loc_server_t *server)
 	fibril_mutex_lock(&service->server->services_mutex);
 
 	list_append(&service->server_services, &service->server->services);
+	
+	printf("%s: broadcast new service '%s/%s'\n", NAME, namespace->name,
+	    service->name);
 
 	fibril_mutex_unlock(&service->server->services_mutex);
 	fibril_condvar_broadcast(&services_list_cv);
@@ -541,7 +578,8 @@ static void loc_service_register(ipc_call_t *icall, loc_server_t *server)
 /**
  *
  */
-static void loc_service_unregister(ipc_call_t *icall, loc_server_t *server)
+static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
+    loc_server_t *server)
 {
 	loc_service_t *svc;
 
@@ -761,7 +799,8 @@ static void loc_service_get_id(ipc_call_t *icall)
 
 	fibril_mutex_lock(&services_list_mutex);
 	const loc_service_t *svc;
-
+	int flags = ipc_get_arg1(*icall);
+	
 recheck:
 
 	/*
@@ -770,25 +809,41 @@ recheck:
 	svc = loc_service_find_name(ns_name, name);
 
 	/*
-	 * Device was not found.
+	 * Service was not found.
 	 */
 	if (svc == NULL) {
-		if (ipc_get_arg1(icall) & IPC_FLAG_BLOCKING) {
-			/* Blocking lookup */
+		printf("%s: service '%s/%s' not found\n", NAME, ns_name, name);
+		if (flags & (IPC_FLAG_AUTOSTART | IPC_FLAG_BLOCKING)) {
+			/* TODO:
+			 * consider non-blocking service start, return
+			 * some dummy id and block only after connection
+			 * request (actually makes more sense as those who asks
+			 * for ID might be someone else than those connecting)
+			 */
+			if (flags & IPC_FLAG_AUTOSTART) {
+				rc = loc_service_request_start(ns_name, name);
+				if (rc != EOK) {
+					goto finish;
+				}
+			}
+
 			fibril_condvar_wait(&services_list_cv,
 			    &services_list_mutex);
 			goto recheck;
 		}
-
-		async_answer_0(icall, ENOENT);
-		free(ns_name);
-		free(name);
-		fibril_mutex_unlock(&services_list_mutex);
-		return;
+		rc = ENOENT;
+	} else {
+		printf("%s: service '%s/%s' FOUND\n", NAME, ns_name, name);
+		rc = EOK;
 	}
 
-	async_answer_1(icall, EOK, svc->id);
-
+finish:
+	if (rc == EOK) {
+		async_answer_1(iid, EOK, svc->id);
+	} else {
+		async_answer_0(iid, rc);
+	}
+	
 	fibril_mutex_unlock(&services_list_mutex);
 	free(ns_name);
 	free(name);
@@ -1564,6 +1619,13 @@ int main(int argc, char *argv[])
 	rc = service_register_broker(SERVICE_LOC, loc_forward, NULL);
 	if (rc != EOK) {
 		printf("%s: Error while registering broker service: %s\n", NAME, str_error(rc));
+
+	/* Let sysman know we are broker */
+	printf("%s: sysman_broker_register : pre\n", NAME);
+	rc = sysman_broker_register();
+	printf("%s: sysman_broker_register : post\n", NAME);
+	if (rc != EOK) {
+		printf("%s: Error registering at sysman (%i)\n", NAME, rc);
 		return rc;
 	}
 

@@ -47,7 +47,6 @@
 
 #define NAME "devman"
 
-#define LOC_DEVICE_NAMESPACE "devices"
 #define LOC_SEPARATOR '\\'
 
 struct dev_node;

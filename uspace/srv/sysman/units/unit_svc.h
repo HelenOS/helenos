@@ -26,17 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+#ifndef SYSMAN_UNIT_SVC_H
+#define SYSMAN_UNIT_SVC_H
 
 #include "unit.h"
 
 typedef struct {
 	unit_t unit;
 
-	char *path;
-} unit_cfg_t;
+	char *exec_start;
 
-extern unit_vmt_t unit_cfg_vmt;
+} unit_svc_t;
+
+extern unit_vmt_t unit_svc_vmt;
 
 #endif
+

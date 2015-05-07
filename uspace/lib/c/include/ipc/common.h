@@ -38,7 +38,10 @@
 #include <types/common.h>
 #include <abi/ipc/ipc.h>
 
-#define IPC_FLAG_BLOCKING  0x01
+#define IPC_FLAG_BLOCKING   0x01
+// TODO autostart flag may be united with blocking, this should be later made
+//      implicit, documented or refactor pairs of xxx and xxx_blocking methods
+#define IPC_FLAG_AUTOSTART  0x02
 
 typedef ipc_data_t ipc_call_t;
 

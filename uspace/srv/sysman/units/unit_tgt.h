@@ -35,6 +35,6 @@ typedef struct {
 	unit_t unit;
 } unit_tgt_t;
 
-extern unit_vmt_t unit_tgt_ops;
+extern unit_vmt_t unit_tgt_vmt;
 
 #endif

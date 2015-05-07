@@ -37,9 +37,15 @@ typedef struct {
 	char *type;
 	char *mountpoint;
 	char *device;
+
+	/** Should be underlying units (FS server, device) be autostarted */
+	bool autostart;
+
+	/** Should mount call be blocking */
+	bool blocking;
 } unit_mnt_t;
 
-extern unit_vmt_t unit_mnt_ops;
+extern unit_vmt_t unit_mnt_vmt;
 
 #endif
 

@@ -26,17 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+#ifndef _SYSMAN_BROKER_H
+#define _SYSMAN_BROKER_H
 
-#include "unit.h"
+#include <task.h>
+#include <sysman/unit.h>
 
-typedef struct {
-	unit_t unit;
+int sysman_broker_register(void);
 
-	char *path;
-} unit_cfg_t;
+void sysman_ipc_forwarded(task_id_t, const char *);
 
-extern unit_vmt_t unit_cfg_vmt;
+void sysman_main_exposee_added(const char *, task_id_t);
+
+void sysman_exposee_added(const char *);
+void sysman_exposee_removed(const char *);
 
 #endif

@@ -39,11 +39,13 @@
 
 #include <abi/fourcc.h>
 
+/** Name of service brokered by NS */
 typedef enum {
 	SERVICE_NONE       = 0,
 	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
 	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
 	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
+	SERVICE_SYSMAN     = FOURCC('s', 'y', 's', 'm'),
 	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 } service_t;
@@ -62,6 +64,9 @@ typedef enum {
 #define SERVICE_NAME_TCP      "net/tcp"
 #define SERVICE_NAME_VBD      "vbd"
 #define SERVICE_NAME_VOLSRV   "volsrv"
+
+#define LOC_DEVICE_NAMESPACE         "devices"
+#define LOC_UNIT_NAMESPACE_SEPARATOR "__"
 
 #endif
 

@@ -36,16 +36,18 @@ typedef void (*event_handler_t)(void *);
 typedef void (*callback_handler_t)(void *object, void *data);
 
 extern void sysman_events_init(void);
-
 extern int sysman_events_loop(void *);
+extern int sysman_queue_job(unit_t *, unit_state_t, callback_handler_t, void *);
+
 
 extern void sysman_raise_event(event_handler_t, void *);
-
 extern int sysman_object_observer(void *, callback_handler_t, void *);
 
 
 extern void sysman_event_job_process(void *);
-extern void sysman_event_job_queue_run(void *);
-extern void sysman_event_job_changed(void *);
+extern void sysman_event_job_finished(void *);
+extern void sysman_event_unit_exposee_created(void *);
+extern void sysman_event_unit_failed(void *);
+extern void sysman_event_unit_state_changed(void *);
 
 #endif

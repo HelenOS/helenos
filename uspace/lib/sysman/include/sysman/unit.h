@@ -26,17 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+#ifndef _SYSMAN_UNIT_H
+#define _SYSMAN_UNIT_H
 
-#include "unit.h"
+#define UNIT_NAME_SEPARATOR '.'
 
-typedef struct {
-	unit_t unit;
-
-	char *path;
-} unit_cfg_t;
-
-extern unit_vmt_t unit_cfg_vmt;
+#define UNIT_CFG_TYPE_NAME "cfg"
+#define UNIT_MNT_TYPE_NAME "mnt"
+#define UNIT_TGT_TYPE_NAME "tgt"
+#define UNIT_SVC_TYPE_NAME "svc"
 
 #endif

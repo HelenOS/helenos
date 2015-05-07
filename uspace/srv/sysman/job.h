@@ -36,6 +36,7 @@
 
 #include "unit.h"
 
+// TODO simplify queue states
 /** Run state of job */
 typedef enum {
 	JOB_UNQUEUED, /**< Job not in queue yet */
@@ -76,7 +77,7 @@ typedef job_t *job_ptr_t;
 
 extern void job_queue_init(void);
 extern int job_queue_add_jobs(dyn_array_t *);
-extern job_t *job_queue_pop_runnable(void);
+extern void job_queue_process(void);
 
 extern int job_create_closure(job_t *, dyn_array_t *);
 extern job_t *job_create(unit_t *, unit_state_t);

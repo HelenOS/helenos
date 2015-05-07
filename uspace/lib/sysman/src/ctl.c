@@ -14,7 +14,7 @@
  * - The name of the author may not be used to endorse or promote products
  *   derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -26,17 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+#include <async.h>
+#include <errno.h>
+#include <str.h>
+#include <sysman/ctl.h>
+#include <sysman/sysman.h>
 
-#include "unit.h"
+int sysman_unit_start(const char *unit_name, int flags)
+{
+	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
-typedef struct {
-	unit_t unit;
+	aid_t req = async_send_1(exch, SYSMAN_CTL_UNIT_START, flags, NULL);
+	sysarg_t rc = async_data_write_start(exch, unit_name, str_size(unit_name));
+	sysman_exchange_end(exch);
 
-	char *path;
-} unit_cfg_t;
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
 
-extern unit_vmt_t unit_cfg_vmt;
-
-#endif
+	async_wait_for(req, &rc);
+	return rc;
+}

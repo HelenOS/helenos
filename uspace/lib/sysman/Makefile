@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2015 Michal Koutny
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,13 +27,12 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBSYSMAN_PREFIX)/libsysman.a
-EXTRA_CFLAGS += -I$(LIBSYSMAN_PREFIX)/include
-BINARY = locsrv
-STATIC_NEEDED = y
+LIBRARY = libsysman
+EXTRA_CFLAGS += -I./include
 
 SOURCES = \
-	category.c \
-	locsrv.c
+	src/broker.c \
+	src/ctl.c \
+	src/sysman.c
 
 include $(USPACE_PREFIX)/Makefile.common

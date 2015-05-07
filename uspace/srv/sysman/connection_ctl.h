@@ -26,17 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+#ifndef SYSMAN_CONNECTION_CTL_H
+#define SYSMAN_CONNECTION_CTL_H
 
-#include "unit.h"
+#include <async.h>
 
-typedef struct {
-	unit_t unit;
-
-	char *path;
-} unit_cfg_t;
-
-extern unit_vmt_t unit_cfg_vmt;
+extern void sysman_connection_ctl(ipc_callid_t, ipc_call_t *);
 
 #endif

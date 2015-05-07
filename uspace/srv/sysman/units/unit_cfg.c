@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <str.h>
+#include <sysman/unit.h>
 
 #include "configuration.h"
 #include "log.h"
@@ -65,14 +66,14 @@ static int cfg_parse_file(const char *dirname, const char *filename,
 	ini_configuration_init(&ini_conf);
 	text_parse_init(&text_parse);
 
-	const char *last_dot = str_rchr(filename, '.');
-	if (last_dot == NULL) {
+	const char *last_sep = str_rchr(filename, UNIT_NAME_SEPARATOR);
+	if (last_sep == NULL) {
 		rc = EINVAL;
 		goto finish;
 	}
 
 	const char *unit_name = filename;
-	const char *unit_type_name = last_dot + 1;
+	const char *unit_type_name = last_sep + 1;
 
 	unit_type_t unit_type = unit_type_name_to_type(unit_type_name);
 	if (unit_type == UNIT_TYPE_INVALID) {
@@ -194,11 +195,7 @@ static void unit_cfg_init(unit_t *unit)
 {
 	unit_cfg_t *u_cfg = CAST_CFG(unit);
 	assert(u_cfg);
-
-	u_cfg->path = NULL;
 }
-
-
 
 static void unit_cfg_destroy(unit_t *unit)
 {
@@ -240,6 +237,18 @@ static int unit_cfg_start(unit_t *unit)
 	}
 
 	return rc;
+}
+
+static void unit_cfg_exposee_created(unit_t *unit)
+{
+	/* Configuration has no exposees. */
+	assert(false);
+}
+
+static void unit_cfg_fail(unit_t *unit)
+{
+	/* Configuration cannot async fail. */
+	assert(false);
 }
 
 DEFINE_UNIT_VMT(unit_cfg)

@@ -14,7 +14,7 @@
  * - The name of the author may not be used to endorse or promote products
  *   derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -26,17 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_UNIT_CFG_H
-#define SYSMAN_UNIT_CFG_H
+/** @addtogroup libcipc
+ * @{
+ */
+/** @file
+ */
 
-#include "unit.h"
+#ifndef LIBC_IPC_SYSMAN_H_
+#define LIBC_IPC_SYSMAN_H_
 
-typedef struct {
-	unit_t unit;
+#include <ipc/common.h>
 
-	char *path;
-} unit_cfg_t;
+typedef enum {
+	SYSMAN_BROKER_REGISTER = IPC_FIRST_USER_METHOD,
+	SYSMAN_BROKER_IPC_FWD,
+	SYSMAN_BROKER_MAIN_EXP_ADDED,
+	SYSMAN_BROKER_EXP_ADDED,
+	SYSMAN_BROKER_EXP_REMOVED,
+	SYSMAN_CTL_UNIT_START
+} sysman_ipc_method_t;
 
-extern unit_vmt_t unit_cfg_vmt;
+typedef enum {
+	SYSMAN_PORT_BROKER = 0,
+	SYSMAN_PORT_CTL,
+	SYSMAN_PORT_MAX_
+} sysman_interface_t;
 
 #endif
+
+/** @}
+ */

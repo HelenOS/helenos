@@ -44,6 +44,7 @@ typedef enum {
 	UNIT_TARGET = 0,
 	UNIT_MOUNT,
 	UNIT_CONFIGURATION,
+	UNIT_SERVICE
 } unit_type_t;
 
 typedef enum {
@@ -72,19 +73,21 @@ struct unit_vmt;
 #include "unit_cfg.h"
 #include "unit_mnt.h"
 #include "unit_tgt.h"
+#include "unit_svc.h"
 
-#define DEFINE_CAST(NAME, TYPE, ENUM_TYPE)                           \
-	static inline TYPE *CAST_##NAME(unit_t *u)                   \
-	{                                                            \
-		if (u->type == ENUM_TYPE)                            \
-			return (TYPE *)u;                            \
-		else                                                 \
-			return NULL;                                 \
-	}                                                            \
+#define DEFINE_CAST(NAME, TYPE, ENUM_TYPE)                                     \
+	static inline TYPE *CAST_##NAME(unit_t *u)                             \
+	{                                                                      \
+		if (u->type == ENUM_TYPE)                                      \
+			return (TYPE *)u;                                      \
+		else                                                           \
+			return NULL;                                           \
+	}                                                                      \
 
 DEFINE_CAST(CFG, unit_cfg_t, UNIT_CONFIGURATION)
 DEFINE_CAST(MNT, unit_mnt_t, UNIT_MOUNT)
 DEFINE_CAST(TGT, unit_tgt_t, UNIT_TARGET)
+DEFINE_CAST(SVC, unit_svc_t, UNIT_SERVICE)
 
 struct unit_vmt {
 	size_t size;
@@ -96,17 +99,23 @@ struct unit_vmt {
 	int (*load)(unit_t *, ini_configuration_t *, text_parse_t *);
 
 	int (*start)(unit_t *);
+
+	void (*exposee_created)(unit_t *);
+
+	void (*fail)(unit_t *);
 };
 
 extern unit_vmt_t *unit_type_vmts[];
 
-#define DEFINE_UNIT_VMT(PREFIX)                                      \
-	unit_vmt_t PREFIX##_ops = {                                  \
-		.size    = sizeof(PREFIX##_t),                       \
-		.init    = &PREFIX##_init,                           \
-		.load    = &PREFIX##_load,                           \
-		.destroy = &PREFIX##_destroy,                        \
-		.start   = &PREFIX##_start                           \
+#define DEFINE_UNIT_VMT(PREFIX)                                                \
+	unit_vmt_t PREFIX##_vmt = {                                            \
+		.size            = sizeof(PREFIX##_t),                         \
+		.init            = &PREFIX##_init,                             \
+		.load            = &PREFIX##_load,                             \
+		.destroy         = &PREFIX##_destroy,                          \
+		.start           = &PREFIX##_start,                            \
+		.exposee_created = &PREFIX##_exposee_created,                  \
+		.fail            = &PREFIX##_fail                              \
 	};
 
 #define UNIT_VMT(UNIT) unit_type_vmts[(UNIT)->type]
@@ -114,11 +123,12 @@ extern unit_vmt_t *unit_type_vmts[];
 extern unit_t *unit_create(unit_type_t);
 extern void unit_destroy(unit_t **);
 
-// TODO add flags argument with explicit notification?
-extern void unit_set_state(unit_t *, unit_state_t);
-
 extern int unit_load(unit_t *, ini_configuration_t *, text_parse_t *);
 extern int unit_start(unit_t *);
+extern void unit_exposee_created(unit_t *);
+extern void unit_fail(unit_t *);
+
+extern void unit_notify_state(unit_t *);
 
 extern unit_type_t unit_type_name_to_type(const char *);
 

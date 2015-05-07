@@ -34,6 +34,7 @@
 
 #include "log.h"
 #include "sysman.h"
+#include "unit.h"
 
 
 /* Do not expose this generally named type */
@@ -149,10 +150,33 @@ int sysman_events_loop(void *unused)
 		fibril_mutex_unlock(&event_queue_mtx);
 
 		/* Process event */
-		sysman_log(LVL_DEBUG2, "process(%p, %p)", event->handler, event->data);
+		sysman_log(LVL_DEBUG2, "process_event(%p, %p)",
+		    event->handler, event->data);
 		event->handler(event->data);
 		free(event);
 	}
+}
+
+/** Create and queue job for unit
+ *
+ * @param[in]  callback  callback must explicitly delete reference to job
+ */
+int sysman_queue_job(unit_t *unit, unit_state_t target_state,
+    callback_handler_t callback, void *callback_arg)
+{
+	job_t *job = job_create(unit, target_state);
+	if (job == NULL) {
+		return ENOMEM;
+	}
+
+	job_add_ref(job);
+	sysman_object_observer(job, callback, callback_arg);
+
+	job_add_ref(job);
+	sysman_raise_event(&sysman_event_job_process, job);
+
+	job_del_ref(&job);
+	return EOK;
 }
 
 void sysman_raise_event(event_handler_t handler, void *data)
@@ -225,9 +249,9 @@ fail:
  */
 
 // NOTE must run in main event loop fibril
-void sysman_event_job_process(void *arg)
+void sysman_event_job_process(void *data)
 {
-	job_t *job = arg;
+	job_t *job = data;
 	dyn_array_t job_closure;
 	dyn_array_initialize(&job_closure, job_ptr_t, 0);
 
@@ -249,8 +273,7 @@ void sysman_event_job_process(void *arg)
 	/* We don't need job anymore */
 	job_del_ref(&job);
 
-	// TODO explain why calling asynchronously
-	sysman_raise_event(&sysman_event_job_queue_run, NULL);
+	job_queue_process();
 	return;
 
 fail:
@@ -264,20 +287,30 @@ fail:
 	dyn_array_destroy(&job_closure);
 }
 
-
-void sysman_event_job_queue_run(void *unused)
+void sysman_event_job_finished(void *data)
 {
-	job_t *job;
-	while ((job = job_queue_pop_runnable())) {
-		job_run(job);
-		job_del_ref(&job);
-	}
+	notify_observers(data);
+	/* Unreference the event data */
+	job_t *job = data;
+	job_del_ref(&job);
+
+	/* The finished job, might have been blocking */
+	job_queue_process();
 }
 
-void sysman_event_job_changed(void *object)
+void sysman_event_unit_exposee_created(void *data)
 {
-	notify_observers(object);
-	/* Unreference the event data */
-	job_t *job = object;
-	job_del_ref(&job);
+	unit_t *unit = data;
+	unit_exposee_created(unit);
+}
+
+void sysman_event_unit_failed(void *data)
+{
+	unit_t *unit = data;
+	unit_fail(unit);
+}
+
+void sysman_event_unit_state_changed(void *data)
+{
+	notify_observers(data);
 }
