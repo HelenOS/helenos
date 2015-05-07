@@ -125,3 +125,33 @@ bool config_parse_string(const char *string, void *dst, text_parse_t *parse,
 	*char_dst = my_string;
 	return true;
 }
+
+/** Parse boolean value
+ *
+ * @param[out]  dst      pointer to bool
+ *
+ * @return  true   on success
+ * @return  false  on parse error
+ */
+bool config_parse_bool(const char *string, void *dst, text_parse_t *parse,
+    size_t lineno)
+{
+	bool value;
+	if (stricmp(string, "true") == 0 ||
+	    stricmp(string, "yes") == 0 ||
+	    stricmp(string, "1") == 0) {
+		value = true;
+	} else if (stricmp(string, "false") == 0 ||
+	    stricmp(string, "no") == 0 ||
+	    stricmp(string, "0") == 0) {
+		value = false;
+	} else {
+		text_parse_raise_error(parse, lineno,
+		    CONFIGURATION_EINVAL_BOOL);
+		return false;
+	}
+
+	bool *bool_dst = dst;
+	*bool_dst = value;
+	return true;
+}
