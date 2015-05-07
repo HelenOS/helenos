@@ -64,7 +64,8 @@ typedef struct {
 
 /** Code of configuration processing error */
 typedef enum {
-	CONFIGURATION_EMISSING_ITEM = -1
+	CONFIGURATION_EMISSING_ITEM = -1,
+	CONFIGURATION_EINVAL_BOOL = -2
 } config_error_t;
 
 #define CONFIGURATION_ITEM_SENTINEL {NULL}
@@ -73,5 +74,6 @@ extern int config_load_ini_section(config_item_t *, ini_section_t *, void *,
     text_parse_t *);
 
 extern bool config_parse_string(const char *, void *, text_parse_t *, size_t);
+extern bool config_parse_bool(const char *, void *, text_parse_t *, size_t);
 
 #endif
