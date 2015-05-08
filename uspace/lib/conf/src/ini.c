@@ -488,9 +488,9 @@ ini_item_iterator_t ini_section_get_iterator(ini_section_t *section,
 
 bool ini_item_iterator_valid(ini_item_iterator_t *iterator)
 {
-	bool empty = (iterator->cur_item != NULL);
-	bool looped = (iterator->cur_item == iterator->first_item);
-	return empty || (looped && iterator->incremented);
+	bool empty = (iterator->cur_item == NULL);
+	bool maybe_looped = (iterator->cur_item == iterator->first_item);
+	return !(empty || (maybe_looped && iterator->incremented));
 }
 
 /** Move iterator to next item (of the same key)

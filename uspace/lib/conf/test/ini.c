@@ -108,6 +108,9 @@ PCUT_TEST(multikey) {
 	PCUT_ASSERT_TRUE(
 	    (str_cmp(first, "value") == 0 && str_cmp(second, "value2") == 0) ||
 	    (str_cmp(first, "value2") == 0 && str_cmp(second, "value") == 0));
+
+	ini_item_iterator_inc(&it);
+	PCUT_ASSERT_FALSE(ini_item_iterator_valid(&it));
 }
 
 PCUT_TEST(dup_section) {

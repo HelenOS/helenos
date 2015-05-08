@@ -42,8 +42,8 @@ static int config_load_item(config_item_t *config_item,
 	for (; ini_item_iterator_valid(it); ini_item_iterator_inc(it), ++cnt) {
 		const char *string = ini_item_iterator_value(it);
 		const size_t lineno = ini_item_iterator_lineno(it);
-		has_error = has_error ||
-		    config_item->parse(string, field_dst, parse, lineno);
+		bool success = config_item->parse(string, field_dst, parse, lineno);
+		has_error = has_error || !success;
 	}
 
 	if (cnt == 0) {
@@ -103,7 +103,7 @@ int config_load_ini_section(config_item_t *specification,
 		++config_item;
 	}
 
-	return has_error ? EOK : EINVAL;
+	return has_error ? EINVAL : EOK;
 }
 
 /** Parse string (copy) to destination

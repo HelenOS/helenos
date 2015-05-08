@@ -65,7 +65,8 @@ typedef struct {
 /** Code of configuration processing error */
 typedef enum {
 	CONFIGURATION_EMISSING_ITEM = -1,
-	CONFIGURATION_EINVAL_BOOL = -2
+	CONFIGURATION_EINVAL_BOOL = -2,
+	CONFIGURATION_ELIMIT = -3
 } config_error_t;
 
 #define CONFIGURATION_ITEM_SENTINEL {NULL}
