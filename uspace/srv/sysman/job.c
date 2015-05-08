@@ -88,7 +88,7 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 	u->job = job;
 	job_add_ref(job);
 
-	(void)dyn_array_initialize(&job->blocked_jobs, job_ptr_t, 0);
+	dyn_array_initialize(&job->blocked_jobs, job_ptr_t);
 	job->blocking_jobs = 0;
 	job->blocking_job_failed = false;
 

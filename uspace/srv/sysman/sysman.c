@@ -253,7 +253,7 @@ void sysman_event_job_process(void *data)
 {
 	job_t *job = data;
 	dyn_array_t job_closure;
-	dyn_array_initialize(&job_closure, job_ptr_t, 0);
+	dyn_array_initialize(&job_closure, job_ptr_t);
 
 	int rc = job_create_closure(job, &job_closure);
 	if (rc != EOK) {

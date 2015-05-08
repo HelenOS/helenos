@@ -72,7 +72,7 @@ void dyn_array_remove(dyn_array_t *da, size_t index)
 {
 	assert(index < da->size);
 	_dyn_array_unshift(da, index, 1);
-	int rc = _dyn_array_reserve(da, da->size);
+	int rc = dyn_array_reserve(da, da->size);
         assert(rc == EOK);
 }
 
@@ -82,26 +82,15 @@ void dyn_array_clear(dyn_array_t *da)
 	da->size = 0;
 }
 
-int _dyn_array_initialize(dyn_array_t *da, size_t item_size, size_t capacity)
-{
-	da->_item_size = item_size;
-	da->_data = NULL;
-
-	da->capacity = 0;
-	da->size = 0;
-
-	return _dyn_array_reserve(da, capacity);
-}
-
 /** Grows/shrinks array so that it effeciently stores desired capacity
  *
  * @param      da
- * @param[in]  desired capacity of array
+ * @param[in]  desired capacity of array (items)
  *
  * @return EOK
  * @return ENOMEM
  */
-int _dyn_array_reserve(dyn_array_t *da, size_t capacity)
+int dyn_array_reserve(dyn_array_t *da, size_t capacity)
 {
 	const size_t factor = 2;
 	size_t new_capacity;
@@ -114,6 +103,15 @@ int _dyn_array_reserve(dyn_array_t *da, size_t capacity)
 	}
 
 	return dyn_array_realloc(da, new_capacity);
+}
+
+void _dyn_array_initialize(dyn_array_t *da, size_t item_size)
+{
+	da->_item_size = item_size;
+	da->_data = NULL;
+
+	da->capacity = 0;
+	da->size = 0;
 }
 
 /** Shift block of array

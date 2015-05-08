@@ -54,11 +54,10 @@ typedef struct {
  *
  * @param[in]  capacity  initial capacity of array
  *
- * @return EOK on success
- * @return ENOMEM on low memory
+ * @return void
  */
-#define dyn_array_initialize(dyn_array, type, capacity)                        \
-	_dyn_array_initialize((dyn_array), sizeof(type), capacity)
+#define dyn_array_initialize(dyn_array, type)                                  \
+	_dyn_array_initialize((dyn_array), sizeof(type))
 
 
 /** Dynamic array accessor
@@ -77,7 +76,7 @@ typedef struct {
 ({                                                                             \
  	size_t _index = (index);                                               \
  	dyn_array_t *_da = (dyn_array);                                        \
-	int rc = _dyn_array_reserve(_da, _da->size + 1);                       \
+	int rc = dyn_array_reserve(_da, _da->size + 1);                       \
 	if (!rc) {                                                             \
 		_dyn_array_shift(_da, _index, 1);                              \
 	        dyn_array_at(_da, type, _index) = (value);                     \
@@ -126,9 +125,9 @@ typedef struct {
 extern void dyn_array_destroy(dyn_array_t *);
 extern void dyn_array_remove(dyn_array_t *, size_t);
 void dyn_array_clear(dyn_array_t *);
+extern int  dyn_array_reserve(dyn_array_t *, size_t);
 
-extern int _dyn_array_initialize(dyn_array_t *, size_t, size_t);
-extern int  _dyn_array_reserve(dyn_array_t *, size_t);
+extern void _dyn_array_initialize(dyn_array_t *, size_t);
 extern void _dyn_array_shift(dyn_array_t *, size_t, size_t);
 extern void _dyn_array_unshift(dyn_array_t *, size_t, size_t);
 

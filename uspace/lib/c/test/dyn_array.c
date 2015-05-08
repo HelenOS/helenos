@@ -38,7 +38,8 @@ typedef int data_t;
 static dyn_array_t da;
 
 PCUT_TEST_BEFORE {
-	int rc = dyn_array_initialize(&da, data_t, 3);
+	dyn_array_initialize(&da, data_t);
+	int rc = dyn_array_reserve(&da, 3);
 	assert(rc == EOK);
 }
 
