@@ -77,6 +77,7 @@ static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
 
 	unit_t *unit = configuration_find_unit_by_name(unit_name);
 	if (unit == NULL) {
+		sysman_log(LVL_NOTE, "Unit '%s' not found.", unit_name);
 		retval = ENOENT;
 		goto answer;
 	}

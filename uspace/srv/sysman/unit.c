@@ -69,6 +69,8 @@ static void unit_init(unit_t *unit, unit_type_t type)
 	unit->type = type;
 	unit->state = STATE_EMBRYO;
 
+	link_initialize(&unit->units);
+	link_initialize(&unit->bfs_link);
 	list_initialize(&unit->dependants);
 	list_initialize(&unit->dependencies);
 
@@ -180,19 +182,19 @@ const char *unit_name(const unit_t *unit)
 	return unit->name ? unit->name : "";
 }
 
-bool unit_parse_unit_list(const char *value, void *dst, text_parse_t *parse,
+bool unit_parse_unit_list(const char *string, void *dst, text_parse_t *parse,
     size_t lineno)
 {
 	unit_t *unit = dst;
 	bool result;
-	char *my_value = str_dup(value);
+	char *my_string = str_dup(string);
 
-	if (!my_value) {
+	if (!my_string) {
 		result = false;
 		goto finish;
 	}
 
-	char *to_split = my_value;
+	char *to_split = my_string;
 	char *cur_tok;
 
 	while ((cur_tok = str_tok(to_split, " ", &to_split))) {
@@ -205,6 +207,6 @@ bool unit_parse_unit_list(const char *value, void *dst, text_parse_t *parse,
 	result = true;
 
 finish:
-	free(my_value);
+	free(my_string);
 	return result;
 }

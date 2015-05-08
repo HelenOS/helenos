@@ -1,0 +1,4 @@
+; ia32 only
+[Service]
+ExecStart = /root/srv/i8259
+

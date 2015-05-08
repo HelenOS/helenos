@@ -1,2 +1,5 @@
 [Unit]
+; should there be this dependency?
+; then the target could be used instead of mount in other dependencies
 After = rootfs.mnt
+After = rootfs.cfg

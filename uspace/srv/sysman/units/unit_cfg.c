@@ -100,7 +100,7 @@ static int cfg_parse_file(const char *dirname, const char *filename,
 	}
 	assert(u->type == unit_type);
 
-	fn = compose_path(dirname, filename);
+	fn = util_compose_path(dirname, filename);
 	if (fn == NULL) {
 		rc = ENOMEM;
 		goto finish;

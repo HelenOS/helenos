@@ -150,8 +150,8 @@ int sysman_events_loop(void *unused)
 		fibril_mutex_unlock(&event_queue_mtx);
 
 		/* Process event */
-		sysman_log(LVL_DEBUG2, "process_event(%p, %p)",
-		    event->handler, event->data);
+		//sysman_log(LVL_DEBUG2, "process_event(%p, %p)",
+		//    event->handler, event->data);
 		event->handler(event->data);
 		free(event);
 	}
@@ -181,7 +181,7 @@ int sysman_queue_job(unit_t *unit, unit_state_t target_state,
 
 void sysman_raise_event(event_handler_t handler, void *data)
 {
-	sysman_log(LVL_DEBUG2, "%s(%p, %p)", __func__, handler, data);
+	//sysman_log(LVL_DEBUG2, "%s(%p, %p)", __func__, handler, data);
 	event_t *event = malloc(sizeof(event_t));
 	if (event == NULL) {
 		sysman_log(LVL_FATAL, "%s: cannot allocate event", __func__);

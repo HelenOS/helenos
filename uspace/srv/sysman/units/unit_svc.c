@@ -38,7 +38,7 @@
 static const char *section_name = "Service";
 
 static config_item_t unit_configuration[] = {
-	{"ExecStart", &config_parse_string, offsetof(unit_svc_t, exec_start), NULL},
+	{"ExecStart", &util_parse_command, offsetof(unit_svc_t, exec_start), NULL},
 	CONFIGURATION_ITEM_SENTINEL
 };
 
@@ -46,6 +46,7 @@ static void unit_svc_init(unit_t *unit)
 {
 	unit_svc_t *u_svc = CAST_SVC(unit);
 	assert(u_svc);
+	util_command_init(&u_svc->exec_start);
 }
 
 static void unit_svc_destroy(unit_t *unit)
@@ -53,7 +54,7 @@ static void unit_svc_destroy(unit_t *unit)
 	assert(unit->type == UNIT_SERVICE);
 	unit_svc_t *u_svc = CAST_SVC(unit);
 
-	free(u_svc->exec_start);
+	util_command_deinit(&u_svc->exec_start);
 }
 
 static int unit_svc_load(unit_t *unit, ini_configuration_t *ini_conf,
@@ -83,9 +84,9 @@ static int unit_svc_start(unit_t *unit)
 	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
 	assert(unit->state == STATE_STOPPED);
 
-	// TODO extend the simple implementation
-	const char *args[] = {"warn", NULL};
-	int rc = task_spawnv(NULL, NULL, u_svc->exec_start, args);
+	int rc = task_spawnv(NULL, NULL, u_svc->exec_start.path,
+	    u_svc->exec_start.argv);
+	sysman_log(LVL_DEBUG2, "task_spawn(%s, %s)", u_svc->exec_start.path, u_svc->exec_start.argv[0]);
 	if (rc != EOK) {
 		unit->state = STATE_FAILED;
 		return rc;
@@ -100,6 +101,11 @@ static int unit_svc_start(unit_t *unit)
 	async_usleep(20000);
 	unit->state = STATE_STARTED;
 
+	/*
+	 * Workaround to see log output even after devman starts (and overrides
+	 * kernel's frame buffer. It's here since devman is started as a
+	 * service (however not all services are devman...).
+	 */
 	if (console_kcon()) {
 		sysman_log(LVL_DEBUG2, "%s: Kconsole grabbed.", __func__);
 	} else {

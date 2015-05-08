@@ -30,12 +30,12 @@
 #define SYSMAN_UNIT_SVC_H
 
 #include "unit.h"
+#include "util.h"
 
 typedef struct {
 	unit_t unit;
 
-	char *exec_start;
-
+	command_t exec_start;
 } unit_svc_t;
 
 extern unit_vmt_t unit_svc_vmt;

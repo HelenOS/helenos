@@ -358,9 +358,9 @@ static int loc_service_request_start(const char *ns_name, const char *name)
 		return ENOMEM;
 	}
 
-	printf("%s(%s) before\n", __func__, unit_name);
+	//printf("%s(%s) before\n", __func__, unit_name);//DEBUG
 	int rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
-	printf("%s(%s) after %i\n", __func__, unit_name, rc);
+	//printf("%s(%s) after %i\n", __func__, unit_name, rc);//DEBUG
 	free(unit_name);
 	free(service_name);
 	return rc;
@@ -565,9 +565,6 @@ static void loc_service_register(ipc_call_t *icall, loc_server_t *server)
 
 	list_append(&service->server_services, &service->server->services);
 	
-	printf("%s: broadcast new service '%s/%s'\n", NAME, namespace->name,
-	    service->name);
-
 	fibril_mutex_unlock(&service->server->services_mutex);
 	fibril_condvar_broadcast(&services_list_cv);
 	fibril_mutex_unlock(&services_list_mutex);
@@ -800,6 +797,7 @@ static void loc_service_get_id(ipc_call_t *icall)
 	fibril_mutex_lock(&services_list_mutex);
 	const loc_service_t *svc;
 	int flags = ipc_get_arg1(*icall);
+	bool start_requested = false;
 	
 recheck:
 
@@ -812,7 +810,7 @@ recheck:
 	 * Service was not found.
 	 */
 	if (svc == NULL) {
-		printf("%s: service '%s/%s' not found\n", NAME, ns_name, name);
+		//printf("%s: service '%s/%s' not found\n", NAME, ns_name, name);//DEBUG
 		if (flags & (IPC_FLAG_AUTOSTART | IPC_FLAG_BLOCKING)) {
 			/* TODO:
 			 * consider non-blocking service start, return
@@ -820,11 +818,12 @@ recheck:
 			 * request (actually makes more sense as those who asks
 			 * for ID might be someone else than those connecting)
 			 */
-			if (flags & IPC_FLAG_AUTOSTART) {
+			if (!start_requested && (flags & IPC_FLAG_AUTOSTART)) {
 				rc = loc_service_request_start(ns_name, name);
 				if (rc != EOK) {
 					goto finish;
 				}
+				start_requested = true;
 			}
 
 			fibril_condvar_wait(&services_list_cv,
@@ -833,7 +832,7 @@ recheck:
 		}
 		rc = ENOENT;
 	} else {
-		printf("%s: service '%s/%s' FOUND\n", NAME, ns_name, name);
+		//printf("%s: service '%s/%s' FOUND\n", NAME, ns_name, name);//DEBUG
 		rc = EOK;
 	}
 

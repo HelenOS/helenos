@@ -1,0 +1,7 @@
+[Unit]
+; mountpoint dependency must be explicit
+After = rootfs.mnt
+
+[Service]
+ExecStart = /root/srv/compositor hid/input :0
+

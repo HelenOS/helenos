@@ -53,7 +53,7 @@ typedef enum {
 	JOB_UNDEFINED_ = -1
 } job_retval_t;
 
-typedef struct {
+struct job {
 	link_t job_queue;
 	atomic_t refcnt;
 
@@ -71,8 +71,9 @@ typedef struct {
 	job_state_t state;
 	/** See job_retval_t */
 	job_retval_t retval;
-} job_t;
+};
 
+typedef struct job job_t;
 typedef job_t *job_ptr_t;
 
 extern void job_queue_init(void);

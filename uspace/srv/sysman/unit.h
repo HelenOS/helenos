@@ -41,10 +41,10 @@
 
 typedef enum {
 	UNIT_TYPE_INVALID = -1,
-	UNIT_TARGET = 0,
+	UNIT_CONFIGURATION = 0,
 	UNIT_MOUNT,
-	UNIT_CONFIGURATION,
-	UNIT_SERVICE
+	UNIT_SERVICE,
+	UNIT_TARGET
 } unit_type_t;
 
 typedef enum {
@@ -55,8 +55,27 @@ typedef enum {
 	STATE_FAILED
 } unit_state_t;
 
+/* Forward declarations */
+typedef struct unit_vmt unit_vmt_t;
+struct unit_vmt;
+
+typedef struct job job_t;
+struct job;
+
 typedef struct {
-	ht_link_t units;
+	/** Link to name-to-unit hash table */
+	ht_link_t units_by_name;
+
+	/** Link to list of all units */
+	link_t units;
+
+	/** Link to queue, when BFS traversing units */
+	link_t bfs_link;
+
+	/** Seen tag for BFS traverse, must be reset before each BFS */
+	bool bfs_tag;
+
+	job_t *job;
 
 	unit_type_t type;
 	char *name;
@@ -66,9 +85,6 @@ typedef struct {
 	list_t dependencies;
 	list_t dependants;
 } unit_t;
-
-typedef struct unit_vmt unit_vmt_t;
-struct unit_vmt;
 
 #include "unit_cfg.h"
 #include "unit_mnt.h"

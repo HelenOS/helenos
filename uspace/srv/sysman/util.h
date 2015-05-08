@@ -29,6 +29,27 @@
 #ifndef SYSMAN_UTIL_H
 #define SYSMAN_UTIL_H
 
-extern char *compose_path(const char *, const char *);
+#include <conf/configuration.h>
+
+#define MAX_COMMAND_ARGS 256
+
+/** Represent stuctured execute command */
+typedef struct {
+	/** Path to executable */
+	const char *path;
+	/** No. of command line arguments */
+	size_t argc;
+	/** NULL-terminated vector of command line arguments */
+	const char *argv[MAX_COMMAND_ARGS + 1];
+	/** (internal) Buffer holding raw string data */
+	char *buffer;
+} command_t;
+
+extern char *util_compose_path(const char *, const char *);
+
+extern bool util_parse_command(const char *, void *, text_parse_t *, size_t);
+
+extern void util_command_init(command_t *);
+extern void util_command_deinit(command_t *);
 
 #endif

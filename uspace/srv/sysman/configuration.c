@@ -37,40 +37,42 @@
 #include "dep.h"
 #include "log.h"
 
-static hash_table_t units;
+LIST_INITIALIZE(units);
+
+static hash_table_t units_by_name;
 
 /* Hash table functions */
-static size_t units_ht_hash(const ht_link_t *item)
+static size_t units_by_name_ht_hash(const ht_link_t *item)
 {
 	unit_t *unit =
-	    hash_table_get_inst(item, unit_t, units);
+	    hash_table_get_inst(item, unit_t, units_by_name);
 	return hash_string(unit->name);
 }
 
-static size_t units_ht_key_hash(void *key)
+static size_t units_by_name_ht_key_hash(void *key)
 {
 	return hash_string((const char *)key);
 }
 
-static bool units_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
+static bool units_by_name_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
 {
 	return str_cmp(
-	    hash_table_get_inst(item1, unit_t, units)->name,
-	    hash_table_get_inst(item2, unit_t, units)->name) == 0;
+	    hash_table_get_inst(item1, unit_t, units_by_name)->name,
+	    hash_table_get_inst(item2, unit_t, units_by_name)->name) == 0;
 }
 
-static bool units_ht_key_equal(void *key, const ht_link_t *item)
+static bool units_by_name_ht_key_equal(void *key, const ht_link_t *item)
 {
 	return str_cmp((const char *)key,
-	    hash_table_get_inst(item, unit_t, units)->name) == 0;
+	    hash_table_get_inst(item, unit_t, units_by_name)->name) == 0;
 }
 
 
-static hash_table_ops_t units_ht_ops = {
-	.hash            = &units_ht_hash,
-	.key_hash        = &units_ht_key_hash,
-	.equal           = &units_ht_equal,
-	.key_equal       = &units_ht_key_equal,
+static hash_table_ops_t units_by_name_ht_ops = {
+	.hash            = &units_by_name_ht_hash,
+	.key_hash        = &units_by_name_ht_key_hash,
+	.equal           = &units_by_name_ht_equal,
+	.key_equal       = &units_by_name_ht_key_equal,
 	.remove_callback = NULL // TODO realy unneeded?
 };
 
@@ -78,7 +80,7 @@ static hash_table_ops_t units_ht_ops = {
 
 void configuration_init(void)
 {
-	hash_table_create(&units, 0, 0, &units_ht_ops);
+	hash_table_create(&units_by_name, 0, 0, &units_by_name_ht_ops);
 }
 
 int configuration_add_unit(unit_t *unit)
@@ -88,7 +90,8 @@ int configuration_add_unit(unit_t *unit)
 	assert(unit->name != NULL);
 	sysman_log(LVL_DEBUG2, "%s('%s')", __func__, unit_name(unit));
 
-	if (hash_table_insert_unique(&units, &unit->units)) {
+	if (hash_table_insert_unique(&units_by_name, &unit->units_by_name)) {
+		list_append(&unit->units, &units);
 		return EOK;
 	} else {
 		return EEXISTS;
@@ -101,7 +104,7 @@ void configuration_start_update(void) {
 
 static bool configuration_commit_unit(ht_link_t *ht_link, void *arg)
 {
-	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units);
+	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
 	// TODO state locking?
 	if (unit->state == STATE_EMBRYO) {
 		unit->state = STATE_STOPPED;
@@ -115,21 +118,21 @@ static bool configuration_commit_unit(ht_link_t *ht_link, void *arg)
 	return true;
 }
 
-/** Marks newly added units as usable (via state change) */
+/** Marks newly added units_by_name as usable (via state change) */
 void configuration_commit(void)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
 	/*
-	 * Apply commit to all units, each commited unit commits its outgoing
+	 * Apply commit to all units_by_name, each commited unit commits its outgoing
 	 * deps, thus eventually commiting all embryo deps as well.
 	 */
-	hash_table_apply(&units, &configuration_commit_unit, NULL);
+	hash_table_apply(&units_by_name, &configuration_commit_unit, NULL);
 }
 
 static bool configuration_rollback_unit(ht_link_t *ht_link, void *arg)
 {
-	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units);
+	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
 
 	list_foreach_safe(unit->dependencies, cur_link, next_link) {
 		unit_dependency_t *dep =
@@ -140,14 +143,15 @@ static bool configuration_rollback_unit(ht_link_t *ht_link, void *arg)
 	}
 
 	if (unit->state == STATE_EMBRYO) {
-		hash_table_remove_item(&units, ht_link);
+		hash_table_remove_item(&units_by_name, ht_link);
+		list_remove(&unit->units);
 		unit_destroy(&unit);
 	}
 
 	return true;
 }
 
-/** Remove all uncommited units and edges from configuratio
+/** Remove all uncommited units_by_name and edges from configuratio
  *
  * Memory used by removed object is released.
  */
@@ -155,13 +159,13 @@ void configuration_rollback(void)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
-	hash_table_apply(&units, &configuration_rollback_unit, NULL);
+	hash_table_apply(&units_by_name, &configuration_rollback_unit, NULL);
 }
 
 static bool configuration_resolve_unit(ht_link_t *ht_link, void *arg)
 {
 	bool *has_error_ptr = arg;
-	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units);
+	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
 
 	list_foreach(unit->dependencies, dependencies, unit_dependency_t, dep) {
 		assert(dep->dependant == unit);
@@ -186,7 +190,7 @@ static bool configuration_resolve_unit(ht_link_t *ht_link, void *arg)
 	return true;
 }
 
-/** Resolve unresolved dependencies between any pair of units
+/** Resolve unresolved dependencies between any pair of units_by_name
  *
  * @return EOK      on success
  * @return ENOENT  when one or more resolution fails, information is logged
@@ -196,16 +200,16 @@ int configuration_resolve_dependecies(void)
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
 	bool has_error = false;
-	hash_table_apply(&units, &configuration_resolve_unit, &has_error);
+	hash_table_apply(&units_by_name, &configuration_resolve_unit, &has_error);
 
 	return has_error ? ENOENT : EOK;
 }
 
 unit_t *configuration_find_unit_by_name(const char *name)
 {
-	ht_link_t *ht_link = hash_table_find(&units, (void *)name);
+	ht_link_t *ht_link = hash_table_find(&units_by_name, (void *)name);
 	if (ht_link != NULL) {
-		return hash_table_get_inst(ht_link, unit_t, units);
+		return hash_table_get_inst(ht_link, unit_t, units_by_name);
 	} else {
 		return NULL;
 	}

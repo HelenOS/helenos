@@ -37,7 +37,7 @@
  * @return	pointer to newly allocated string
  * @return	NULL on error
  */
-char *compose_path(const char *dirname, const char *filename)
+char *util_compose_path(const char *dirname, const char *filename)
 {
 	size_t size = str_size(dirname) + str_size(filename) + 2;
 	char *result = malloc(sizeof(char) * size);
@@ -49,4 +49,60 @@ char *compose_path(const char *dirname, const char *filename)
 		return NULL;
 	}
 	return result;
+}
+
+/** Parse command line
+ *
+ * @param[out]  dst      pointer to command_t
+ *                       path and zeroth argument are the equal
+ *
+ * @return  true   on success
+ * @return  false  on (low memory) error
+ */
+bool util_parse_command(const char *string, void *dst, text_parse_t *parse,
+    size_t lineno)
+{
+	command_t *command = dst;
+	util_command_deinit(command);
+
+	command->buffer = str_dup(string);
+	if (!command->buffer) {
+		return false;
+	}
+
+	command->argc = 0;
+	char *to_split = command->buffer;
+	char *cur_tok;
+	bool has_path = false;
+
+	while ((cur_tok = str_tok(to_split, " ", &to_split)) &&
+	    command->argc < MAX_COMMAND_ARGS) {
+		if (!has_path) {
+			command->path = cur_tok;
+			has_path = true;
+		}
+		command->argv[command->argc++] = cur_tok;
+	}
+	command->argv[command->argc] = NULL;
+
+
+	if (command->argc > MAX_COMMAND_ARGS) {
+		text_parse_raise_error(parse, lineno,
+		    CONFIGURATION_ELIMIT);
+		return false;
+	} else {
+		return true;
+	}
+}
+
+
+void util_command_init(command_t *command)
+{
+	memset(command, 0, sizeof(*command));
+}
+
+void util_command_deinit(command_t *command)
+{
+	free(command->buffer);
+	memset(command, 0, sizeof(*command));
 }

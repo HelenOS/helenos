@@ -26,10 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <adt/fifo.h>
+#include <adt/list.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdlib.h>
 
+#include "configuration.h"
 #include "dep.h"
 #include "job.h"
 #include "log.h"
@@ -41,9 +43,10 @@ static list_t job_queue;
  * Static functions
  */
 
-static int job_add_blocked_job(job_t *job, job_t *blocked_job)
+static int job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
 {
-	int rc = dyn_array_append(&job->blocked_jobs, job_ptr_t, blocked_job);
+	int rc = dyn_array_append(&blocking_job->blocked_jobs, job_ptr_t,
+	    blocked_job);
 	if (rc != EOK) {
 		return ENOMEM;
 	}
@@ -72,6 +75,7 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 {
 	assert(job);
 	assert(u);
+	assert(u->job == NULL);
 	memset(job, 0, sizeof(*job));
 
 	link_initialize(&job->job_queue);
@@ -81,7 +85,10 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 	job->target_state = target_state;
 	job->unit = u;
 
-	dyn_array_initialize(&job->blocked_jobs, job_ptr_t, 0);
+	u->job = job;
+	job_add_ref(job);
+
+	(void)dyn_array_initialize(&job->blocked_jobs, job_ptr_t, 0);
 	job->blocking_jobs = 0;
 	job->blocking_job_failed = false;
 
@@ -224,75 +231,98 @@ void job_queue_process(void)
 
 int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
 {
-	// TODO replace hard-coded FIFO size with resizable FIFO
-	FIFO_INITIALIZE_DYNAMIC(jobs_fifo, job_ptr_t, 10);
-	void *fifo_data = fifo_create(jobs_fifo);
 	int rc;
-	if (fifo_data == NULL) {
-		rc = ENOMEM;
-		goto finish;
-	}
+	list_t units_fifo;
+	list_initialize(&units_fifo);
 
-	/*
-	 * Traverse dependency graph in BFS fashion and create jobs for every
-	 * necessary unit.
-	 * Closure keeps reference to each job. We've to add reference to the
-	 * main job, other newly created jobs are pased to the closure.
-	 */
-	fifo_push(jobs_fifo, main_job);
-	job_add_ref(main_job);
-	while (jobs_fifo.head != jobs_fifo.tail) {
-		job_t *job = fifo_pop(jobs_fifo);
+	/* Zero BFS tags before use */
+	list_foreach(units, units, unit_t, u) {
+		u->bfs_tag = false;
+	}
 		
+	unit_t *unit = main_job->unit;
+	list_append(&unit->bfs_link, &units_fifo);
+	unit->bfs_tag = true;
+	
+	while (!list_empty(&units_fifo)) {
+		unit = list_get_instance(list_first(&units_fifo), unit_t,
+		    bfs_link);
+		assert(unit->job);
+		list_remove(&unit->bfs_link);
+		job_t *job = unit->job;
+
+
 		// TODO more sophisticated check? (unit that is in transitional
 		//      state cannot have currently multiple jobs queued)
-		if (job->target_state == job->unit->state) {
+		if (job->target_state == unit->state) {
 			/*
 			 * Job would do nothing, finish it on spot.
 			 * No need to continue BFS search from it.
 			 */
 			job->retval = JOB_OK;
 			job_finish(job);
-			job_del_ref(&job);
 			continue;
-		} else {
-			/* No refcount increase, pass it to the closure */
-			dyn_array_append(job_closure, job_ptr_t, job);
 		}
 
-		/* Traverse dependencies edges */
-		unit_t *u = job->unit;
-		list_foreach(u->dependencies, dependencies, unit_dependency_t, dep) {
-			// TODO prepare for reverse edge direction and
-			//      non-identity state mapping
-			job_t *new_job =
-			    job_create(dep->dependency, job->target_state);
-			if (new_job == NULL) {
-				rc = ENOMEM;
-				goto finish;
+		job_add_ref(job);
+		dyn_array_append(job_closure, job_ptr_t, job);
+
+		/*
+		 * Traverse dependencies edges
+		 * Depending on dependency type and edge direction create
+		 * appropriate jobs.
+		 */
+		list_foreach(unit->dependencies, dependencies, unit_dependency_t, dep) {
+			unit_t *u = dep->dependency;
+			job_t *blocking_job;
+			if (u->bfs_tag) {
+				assert(u->job);
+				blocking_job = u->job;
+			} else {
+				u->bfs_tag = true;
+				blocking_job = job_create(u, job->target_state);
+				if (blocking_job == NULL) {
+					rc = ENOMEM;
+					goto finish;
+				}
+				/* Reference to job is kept in unit */
+				job_del_ref(&blocking_job);
+				list_append(&u->bfs_link, &units_fifo);
 			}
-			job_add_blocked_job(new_job, job);
-			fifo_push(jobs_fifo, new_job);
+			
+			job_add_blocked_job(blocking_job, job);
 		}
+	}
+	sysman_log(LVL_DEBUG2, "%s(%s):", __func__, unit_name(main_job->unit));
+	dyn_array_foreach(*job_closure, job_ptr_t, job_it) {
+		sysman_log(LVL_DEBUG2, "%s\t%s", __func__, unit_name((*job_it)->unit));
 	}
 	rc = EOK;
 
 finish:
-	free(fifo_data);
-	/*
-	 * Newly created jobs are already passed to the closure, thus not
-	 * deleting reference to them here.
-	 */
+	/* Any unprocessed jobs may be referenced by units */
+	list_foreach(units_fifo, bfs_link, unit_t, u) {
+		job_del_ref(&u->job);
+	}
 	return rc;
 }
 
+/** Create job assigned to the unit
+ *
+ * @param[in]  unit          unit to be modified, its job must be empty
+ * @param[in]  target_state
+ *
+ * @return NULL or newly created job
+ *         There are two references to the job, one set in the unit and second
+ *         is the return value.
+ */
 job_t *job_create(unit_t *u, unit_state_t target_state)
 {
 	job_t *job = malloc(sizeof(job_t));
 	if (job != NULL) {
 		job_init(job, u, target_state);
 
-		/* Start with one reference for the creator */
+		/* Add one reference for the creator */
 		job_add_ref(job);
 	}
 
@@ -353,6 +383,8 @@ void job_run(job_t *job)
 		assert(false);
 	}
 	if (rc != EOK) {
+		sysman_log(LVL_DEBUG, "%s(%p), %s -> %i, error: %i",
+		    __func__, job, unit_name(u), job->target_state, rc);
 		goto fail;
 	}
 
@@ -377,6 +409,7 @@ void job_finish(job_t *job)
 {
 	assert(job->state != JOB_FINISHED);
 	assert(job->retval != JOB_UNDEFINED_);
+	assert(job->unit->job == job);
 
 	sysman_log(LVL_DEBUG2, "%s(%p) %s -> %i",
 	    __func__, job, unit_name(job->unit), job->retval);
@@ -389,8 +422,11 @@ void job_finish(job_t *job)
 	}
 	dyn_array_clear(&job->blocked_jobs);
 
-	/* Add reference for the event */
-	job_add_ref(job);
+	/*
+	 * Remove job from unit and pass the reference from the unit to the
+	 * event.
+	 */
+	job->unit->job = NULL;
 	sysman_raise_event(&sysman_event_job_finished, job);
 }
 

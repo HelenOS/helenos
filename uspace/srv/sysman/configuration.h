@@ -29,7 +29,11 @@
 #ifndef SYSMAN_CONFIGURATION_H
 #define SYSMAN_CONFIGURATION_H
 
+#include <adt/list.h>
+
 #include "unit.h"
+
+extern list_t units;
 
 extern void configuration_init(void);
 

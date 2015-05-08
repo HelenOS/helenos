@@ -1,0 +1,9 @@
+[Unit]
+; explicit, VFS not instrumented for autostart
+After = locfs.svc
+
+[Mount]
+What = 
+Where = /loc
+Type = locfs
+

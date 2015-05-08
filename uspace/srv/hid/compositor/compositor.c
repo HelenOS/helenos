@@ -2182,14 +2182,15 @@ static errno_t input_connect(const char *svc)
 {
 	async_sess_t *sess;
 	service_id_t dsid;
+	unsigned int flags = IPC_FLAG_AUTOSTART;
 
-	errno_t rc = loc_service_get_id(svc, &dsid, 0);
+	errno_t rc = loc_service_get_id(svc, &dsid, flags);
 	if (rc != EOK) {
 		printf("%s: Input service %s not found\n", NAME, svc);
 		return rc;
 	}
 
-	sess = loc_service_connect(dsid, INTERFACE_INPUT, 0);
+	sess = loc_service_connect(dsid, INTERFACE_INPUT, flags);
 	if (sess == NULL) {
 		printf("%s: Unable to connect to input service %s\n", NAME,
 		    svc);
