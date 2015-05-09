@@ -782,6 +782,41 @@ static void tcp_conn_recv_wait_srv(tcp_client_t *client, ipc_callid_t iid,
 }
 
 #include <mem.h>
+
+static void tcp_client_init(tcp_client_t *client)
+{
+	memset(client, 0, sizeof(tcp_client_t));
+	client->sess = NULL;
+	list_initialize(&client->cconn);
+	list_initialize(&client->clst);
+}
+
+static void tcp_client_fini(tcp_client_t *client)
+{
+	tcp_cconn_t *cconn;
+	size_t n;
+
+	n = list_count(&client->cconn);
+	if (n != 0) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Client with %zu active "
+		    "connections closed session", n);
+
+		while (!list_empty(&client->cconn)) {
+			cconn = list_get_instance(list_first(&client->cconn),
+			    tcp_cconn_t, lclient);
+			tcp_uc_close(cconn->conn);
+			tcp_cconn_destroy(cconn);
+		}
+	}
+
+	n = list_count(&client->clst);
+	if (n != 0) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Client with %zu active "
+		    "listeners closed session", n);
+		/* XXX Destroy listeners */
+	}
+}
+
 static void tcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	tcp_client_t client;
@@ -792,11 +827,7 @@ static void tcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_client_conn() - client=%p",
 	    &client);
 
-	memset(&client, 0, sizeof(client));
-	client.sess = NULL;
-	list_initialize(&client.cconn);
-	list_initialize(&client.clst);
-//	list_initialize(&client.crcv_queue);
+	tcp_client_init(&client);
 
 	while (true) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_client_conn: wait req");
@@ -809,7 +840,7 @@ static void tcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		if (!method) {
 			/* The other side has hung up */
 			async_answer_0(callid, EOK);
-			return;
+			break;
 		}
 
 		switch (method) {
@@ -851,8 +882,9 @@ static void tcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
-	log_msg(LOG_DEFAULT, LVL_DEBUG,
-	    "tcp_client_conn TERMINATED ***************************");
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_client_conn TERMINATED");
+	tcp_client_fini(&client);
 }
 
 int tcp_service_init(void)

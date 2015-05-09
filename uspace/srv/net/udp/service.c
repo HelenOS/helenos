@@ -492,6 +492,7 @@ static void udp_rmsg_discard_srv(udp_client_t *client, ipc_callid_t iid,
 static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	udp_client_t client;
+	size_t n;
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
@@ -512,7 +513,7 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		if (!method) {
 			/* The other side has hung up */
 			async_answer_0(callid, EOK);
-			return;
+			break;
 		}
 
 		switch (method) {
@@ -542,6 +543,17 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn: terminated");
+
+	n = list_count(&client.cassoc);
+	if (n != 0) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "udp_client_conn: "
+		    "Client with %zu active associations closed session.", n);
+		/* XXX Clean up */
+	}
+
+	/* XXX Clean up client receive queue */
 }
 
 int udp_service_init(void)
