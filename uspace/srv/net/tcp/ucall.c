@@ -304,6 +304,11 @@ void tcp_uc_set_cb(tcp_conn_t *conn, tcp_cb_t *cb, void *arg)
 	conn->cb_arg = arg;
 }
 
+void *tcp_uc_get_userptr(tcp_conn_t *conn)
+{
+	return conn->cb_arg;
+}
+
 /*
  * Arriving segments
  */

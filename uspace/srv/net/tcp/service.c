@@ -55,8 +55,11 @@
 #define MAX_MSG_SIZE DATA_XFER_LIMIT
 
 static void tcp_ev_data(tcp_cconn_t *);
+static void tcp_ev_connected(tcp_cconn_t *);
+static void tcp_ev_conn_failed(tcp_cconn_t *);
+static void tcp_ev_conn_reset(tcp_cconn_t *);
 
-static void tcp_service_cstate_change(tcp_conn_t *, void *);
+static void tcp_service_cstate_change(tcp_conn_t *, void *, tcp_cstate_t);
 static void tcp_service_recv_data(tcp_conn_t *, void *);
 
 static tcp_cb_t tcp_service_cb = {
@@ -64,8 +67,29 @@ static tcp_cb_t tcp_service_cb = {
 	.recv_data = tcp_service_recv_data
 };
 
-static void tcp_service_cstate_change(tcp_conn_t *conn, void *arg)
+static void tcp_service_cstate_change(tcp_conn_t *conn, void *arg,
+    tcp_cstate_t old_state)
 {
+	tcp_cstate_t nstate;
+	tcp_cconn_t *cconn;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_service_cstate_change()");
+	nstate = conn->cstate;
+	cconn = tcp_uc_get_userptr(conn);
+
+	if ((old_state == st_syn_sent || old_state == st_syn_received) &&
+	    (nstate == st_established)) {
+		/* Connection established */
+		tcp_ev_connected(cconn);
+	}
+
+	if (old_state != st_closed && nstate == st_closed && conn->reset) {
+		/* Connection reset */
+		tcp_ev_conn_reset(cconn);
+	}
+
+	/* XXX Failed to establish connection */
+	if (0) tcp_ev_conn_failed(cconn);
 }
 
 static void tcp_service_recv_data(tcp_conn_t *conn, void *arg)
@@ -86,6 +110,45 @@ static void tcp_ev_data(tcp_cconn_t *cconn)
 
 	exch = async_exchange_begin(cconn->client->sess);
 	aid_t req = async_send_1(exch, TCP_EV_DATA, cconn->id, NULL);
+	async_exchange_end(exch);
+
+	async_forget(req);
+}
+
+static void tcp_ev_connected(tcp_cconn_t *cconn)
+{
+	async_exch_t *exch;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ev_connected()");
+
+	exch = async_exchange_begin(cconn->client->sess);
+	aid_t req = async_send_1(exch, TCP_EV_CONNECTED, cconn->id, NULL);
+	async_exchange_end(exch);
+
+	async_forget(req);
+}
+
+static void tcp_ev_conn_failed(tcp_cconn_t *cconn)
+{
+	async_exch_t *exch;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ev_conn_failed()");
+
+	exch = async_exchange_begin(cconn->client->sess);
+	aid_t req = async_send_1(exch, TCP_EV_CONN_FAILED, cconn->id, NULL);
+	async_exchange_end(exch);
+
+	async_forget(req);
+}
+
+static void tcp_ev_conn_reset(tcp_cconn_t *cconn)
+{
+	async_exch_t *exch;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ev_conn_reset()");
+
+	exch = async_exchange_begin(cconn->client->sess);
+	aid_t req = async_send_1(exch, TCP_EV_CONN_RESET, cconn->id, NULL);
 	async_exchange_end(exch);
 
 	async_forget(req);

@@ -273,8 +273,18 @@ void *tcp_listener_userptr(tcp_listener_t *lst)
 
 int tcp_conn_wait_connected(tcp_conn_t *conn)
 {
-	async_usleep(1000 * 1000);
-	return 0;
+	fibril_mutex_lock(&conn->lock);
+	while (!conn->connected && !conn->conn_failed && !conn->conn_reset)
+		fibril_condvar_wait(&conn->cv, &conn->lock);
+
+	if (conn->connected) {
+		fibril_mutex_unlock(&conn->lock);
+		return EOK;
+	} else {
+		assert(conn->conn_failed || conn->conn_reset);
+		fibril_mutex_unlock(&conn->lock);
+		return EIO;
+	}
 }
 
 int tcp_conn_send(tcp_conn_t *conn, const void *data, size_t bytes)
@@ -441,20 +451,77 @@ again:
 
 static void tcp_ev_connected(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
+	tcp_conn_t *conn;
+	sysarg_t conn_id;
+	int rc;
+
 	printf("tcp_ev_connected()\n");
-	async_answer_0(iid, ENOTSUP);
+	conn_id = IPC_GET_ARG1(*icall);
+
+	rc = tcp_conn_get(tcp, conn_id, &conn);
+	if (rc != EOK) {
+		printf("conn ID %zu not found\n",
+		    conn_id);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	fibril_mutex_lock(&conn->lock);
+	conn->connected = true;
+	fibril_condvar_broadcast(&conn->cv);
+	fibril_mutex_unlock(&conn->lock);
+
+	async_answer_0(iid, EOK);
 }
 
 static void tcp_ev_conn_failed(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
+	tcp_conn_t *conn;
+	sysarg_t conn_id;
+	int rc;
+
 	printf("tcp_ev_conn_failed()\n");
-	async_answer_0(iid, ENOTSUP);
+	conn_id = IPC_GET_ARG1(*icall);
+
+	rc = tcp_conn_get(tcp, conn_id, &conn);
+	if (rc != EOK) {
+		printf("conn ID %zu not found\n",
+		    conn_id);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	fibril_mutex_lock(&conn->lock);
+	conn->conn_failed = true;
+	fibril_condvar_broadcast(&conn->cv);
+	fibril_mutex_unlock(&conn->lock);
+
+	async_answer_0(iid, EOK);
 }
 
 static void tcp_ev_conn_reset(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
+	tcp_conn_t *conn;
+	sysarg_t conn_id;
+	int rc;
+
 	printf("tcp_ev_conn_reset()\n");
-	async_answer_0(iid, ENOTSUP);
+	conn_id = IPC_GET_ARG1(*icall);
+
+	rc = tcp_conn_get(tcp, conn_id, &conn);
+	if (rc != EOK) {
+		printf("conn ID %zu not found\n",
+		    conn_id);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	fibril_mutex_lock(&conn->lock);
+	conn->conn_reset = true;
+	fibril_condvar_broadcast(&conn->cv);
+	fibril_mutex_unlock(&conn->lock);
+
+	async_answer_0(iid, EOK);
 }
 
 static void tcp_ev_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)

@@ -276,7 +276,7 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 	/* Run user callback function */
 	if (conn->cb != NULL && conn->cb->cstate_change != NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set() - run user CB");
-		conn->cb->cstate_change(conn, conn->cb_arg);
+		conn->cb->cstate_change(conn, conn->cb_arg, old_state);
 	} else {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set() - no user CB");
 	}

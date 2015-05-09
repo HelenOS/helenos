@@ -51,6 +51,9 @@ typedef struct {
 	void *cb_arg;
 	/** Some received data available in TCP server */
 	bool data_avail;
+	bool connected;
+	bool conn_failed;
+	bool conn_reset;
 } tcp_conn_t;
 
 /** TCP connection listener */

@@ -156,7 +156,7 @@ typedef void (*tcp_cstate_cb_t)(tcp_conn_t *, void *);
 
 /** Connection callbacks */
 typedef struct {
-	void (*cstate_change)(tcp_conn_t *, void *);
+	void (*cstate_change)(tcp_conn_t *, void *, tcp_cstate_t);
 	void (*recv_data)(tcp_conn_t *, void *);
 } tcp_cb_t;
 

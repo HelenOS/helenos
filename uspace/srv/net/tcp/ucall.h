@@ -50,6 +50,7 @@ extern void tcp_uc_abort(tcp_conn_t *);
 extern void tcp_uc_status(tcp_conn_t *, tcp_conn_status_t *);
 extern void tcp_uc_delete(tcp_conn_t *);
 extern void tcp_uc_set_cb(tcp_conn_t *, tcp_cb_t *, void *);
+extern void *tcp_uc_get_userptr(tcp_conn_t *);
 
 /*
  * Arriving segments
