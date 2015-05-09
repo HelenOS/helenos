@@ -47,6 +47,7 @@
 #include "ncsim.h"
 #include "pdu.h"
 #include "rqueue.h"
+#include "service.h"
 #include "std.h"
 #include "tcp.h"
 #include "test.h"
@@ -191,11 +192,11 @@ static int tcp_init(void)
 		return ENOENT;
 	}
 
-//	rc = tcp_sock_init();
-//	if (rc != EOK) {
-//		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing socket service.");
-//		return ENOENT;
-//	}
+	rc = tcp_service_init();
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing service.");
+		return ENOENT;
+	}
 
 	return EOK;
 }

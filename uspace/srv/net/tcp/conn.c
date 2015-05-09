@@ -120,7 +120,7 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	/* Connection state change signalling */
 	fibril_condvar_initialize(&conn->cstate_cv);
 
-	conn->cstate_cb = NULL;
+	conn->cb = NULL;
 
 	conn->cstate = st_listen;
 	conn->reset = false;
@@ -274,9 +274,9 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 	fibril_condvar_broadcast(&conn->cstate_cv);
 
 	/* Run user callback function */
-	if (conn->cstate_cb != NULL) {
+	if (conn->cb != NULL && conn->cb->cstate_change != NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set() - run user CB");
-		conn->cstate_cb(conn, conn->cstate_cb_arg);
+		conn->cb->cstate_change(conn, conn->cb_arg);
 	} else {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set() - no user CB");
 	}
@@ -1006,6 +1006,8 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	/* Signal to the receive function that new data has arrived */
 	fibril_condvar_broadcast(&conn->rcv_buf_cv);
+	if (conn->cb != NULL && conn->cb->recv_data != NULL)
+		conn->cb->recv_data(conn, conn->cb_arg);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received %zu bytes of data.", xfer_size);
 
@@ -1097,6 +1099,8 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 		/* Add FIN to the receive buffer */
 		conn->rcv_buf_fin = true;
 		fibril_condvar_broadcast(&conn->rcv_buf_cv);
+		if (conn->cb != NULL && conn->cb->recv_data != NULL)
+			conn->cb->recv_data(conn, conn->cb_arg);
 
 		tcp_segment_delete(seg);
 		return cp_done;

@@ -36,6 +36,7 @@ SOURCES = \
 	pdu.c \
 	rqueue.c \
 	segment.c \
+	service.c \
 	seq_no.c \
 	tcp.c \
 	test.c \

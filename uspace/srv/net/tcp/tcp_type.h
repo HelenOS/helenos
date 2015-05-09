@@ -95,7 +95,8 @@ typedef enum {
 	/* Precedence not allowed */
 	TCP_EINVPREC,
 	/* Security/compartment not allowed */
-	TCP_EINVCOMP
+	TCP_EINVCOMP,
+	TCP_EAGAIN
 } tcp_error_t;
 
 typedef enum {
@@ -153,15 +154,21 @@ typedef struct tcp_conn tcp_conn_t;
 /** Connection state change callback function */
 typedef void (*tcp_cstate_cb_t)(tcp_conn_t *, void *);
 
+/** Connection callbacks */
+typedef struct {
+	void (*cstate_change)(tcp_conn_t *, void *);
+	void (*recv_data)(tcp_conn_t *, void *);
+} tcp_cb_t;
+
 /** Connection */
 struct tcp_conn {
 	char *name;
 	link_t link;
 
-	/** Connection state change callback function */
-	tcp_cstate_cb_t cstate_cb;
+	/** Connection callbacks function */
+	tcp_cb_t *cb;
 	/** Argument to @c cstate_cb */
-	void *cstate_cb_arg;
+	void *cb_arg;
 
 	/** Connection identification (local and foreign socket) */
 	tcp_sockpair_t ident;
@@ -317,9 +324,37 @@ typedef struct {
 	size_t text_size;
 } tcp_pdu_t;
 
-typedef struct {
+/** TCP client connection */
+typedef struct tcp_cconn {
+	/** Connection */
+	tcp_conn_t *conn;
+	/** Connection ID for the client */
+	sysarg_t id;
+	/** Client */
+	struct tcp_client *client;
+	link_t lclient;
+} tcp_cconn_t;
+
+/** TCP client listener */
+typedef struct tcp_clst {
+	/** Connection */
+	tcp_conn_t *conn;
+	/** Listener ID for the client */
+	sysarg_t id;
+	/** Client */
+	struct tcp_client *client;
+	/** Link to tcp_client_t.clst */
+	link_t lclient;
+} tcp_clst_t;
+
+/** TCP client */
+typedef struct tcp_client {
+	/** Client callbac session */
 	async_sess_t *sess;
-//	socket_cores_t sockets;
+	/** Client's connections */
+	list_t cconn; /* of tcp_cconn_t */
+	/** Client's listeners */
+	list_t clst;
 } tcp_client_t;
 
 #define TCP_SOCK_FRAGMENT_SIZE 1024
@@ -356,7 +391,6 @@ typedef struct tcp_sock_lconn {
 	int index;
 	link_t ready_list;
 } tcp_sock_lconn_t;
-
 
 #endif
 

@@ -40,11 +40,13 @@
 #include <inet/endpoint.h>
 #include <inet/inet.h>
 
+/** UDP link state */
 typedef enum {
 	udp_ls_down,
 	udp_ls_up
 } udp_link_state_t;
 
+/** UDP received message */
 typedef struct {
 	struct udp *udp;
 	sysarg_t assoc_id;
@@ -52,9 +54,11 @@ typedef struct {
 	inet_ep_t remote_ep;
 } udp_rmsg_t;
 
+/** UDP received error */
 typedef struct {
 } udp_rerr_t;
 
+/** UDP association */
 typedef struct {
 	struct udp *udp;
 	link_t ludp;
@@ -63,12 +67,14 @@ typedef struct {
 	void *cb_arg;
 } udp_assoc_t;
 
+/** UDP callbacks */
 typedef struct udp_cb {
 	void (*recv_msg)(udp_assoc_t *, udp_rmsg_t *);
 	void (*recv_err)(udp_assoc_t *, udp_rerr_t *);
 	void (*link_state)(udp_assoc_t *, udp_link_state_t);
 } udp_cb_t;
 
+/** UDP service */
 typedef struct udp {
 	/** UDP session */
 	async_sess_t *sess;

@@ -159,21 +159,13 @@ static int udp_assoc_create_impl(udp_client_t *client, inet_ep2_t *epp,
 	udp_sock_t local;
 	udp_sock_t remote;
 	int rc;
-	char *la, *ra;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_create_impl");
 
 	local.addr = epp->local.addr;
 	local.port = epp->local.port;
 	remote.addr = epp->remote.addr;
 	remote.port = epp->remote.port;
-
-	la = (char *)"xxx";
-	ra = (char *)"yyy";
-
-	(void) inet_addr_format(&epp->local.addr, &la);
-	(void) inet_addr_format(&epp->remote.addr, &ra);
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_create_impl la=%s ra=%s",
-	    la, ra);
 
 	assoc = udp_assoc_new(&local, &remote, NULL, NULL);
 	if (assoc == NULL)

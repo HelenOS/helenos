@@ -187,6 +187,8 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 
 	/* Wait for data to become available */
 	while (conn->rcv_buf_used == 0 && !conn->rcv_buf_fin && !conn->reset) {
+		tcp_conn_unlock(conn);
+		return TCP_EAGAIN;
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_receive() - wait for data");
 		fibril_condvar_wait(&conn->rcv_buf_cv, &conn->lock);
 	}
@@ -293,13 +295,13 @@ void tcp_uc_delete(tcp_conn_t *conn)
 	tcp_conn_delete(conn);
 }
 
-void tcp_uc_set_cstate_cb(tcp_conn_t *conn, tcp_cstate_cb_t cb, void *arg)
+void tcp_uc_set_cb(tcp_conn_t *conn, tcp_cb_t *cb, void *arg)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_set_ctate_cb(%p, %p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_set_cb(%p, %p, %p)",
 	    conn, cb, arg);
 
-	conn->cstate_cb = cb;
-	conn->cstate_cb_arg = arg;
+	conn->cb = cb;
+	conn->cb_arg = arg;
 }
 
 /*

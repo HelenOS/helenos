@@ -35,17 +35,37 @@
 #ifndef LIBC_INET_TCP_H_
 #define LIBC_INET_TCP_H_
 
+#include <fibril_synch.h>
 #include <inet/addr.h>
 #include <inet/endpoint.h>
 #include <inet/inet.h>
 
+/** TCP connection */
 typedef struct {
+	fibril_mutex_t lock;
+	fibril_condvar_t cv;
+	struct tcp *tcp;
+	link_t ltcp;
+	sysarg_t id;
+	struct tcp_cb *cb;
+	void *cb_arg;
+	/** Some received data available in TCP server */
+	bool data_avail;
 } tcp_conn_t;
 
+/** TCP connection listener */
 typedef struct {
+	struct tcp *tcp;
+	link_t ltcp;
+	sysarg_t id;
+	struct tcp_listen_cb *lcb;
+	void *lcb_arg;
+	struct tcp_cb *cb;
+	void *cb_arg;
 } tcp_listener_t;
 
-typedef struct {
+/** TCP connection callbacks */
+typedef struct tcp_cb {
 	void (*connected)(tcp_conn_t *);
 	void (*conn_failed)(tcp_conn_t *);
 	void (*conn_reset)(tcp_conn_t *);
@@ -53,11 +73,19 @@ typedef struct {
 	void (*urg_data)(tcp_conn_t *);
 } tcp_cb_t;
 
-typedef struct {
+/** TCP listener callbacks */
+typedef struct tcp_listen_cb {
 	void (*new_conn)(tcp_listener_t *, tcp_conn_t *);
 } tcp_listen_cb_t;
 
-typedef struct {
+/** TCP service */
+typedef struct tcp {
+	/** TCP session */
+	async_sess_t *sess;
+	/** List of connections */
+	list_t conn; /* of tcp_conn_t */
+	/** List of listeners */
+	list_t listener; /* of tcp_listener_t */
 } tcp_t;
 
 extern int tcp_create(tcp_t **);
@@ -75,7 +103,7 @@ extern int tcp_conn_wait_connected(tcp_conn_t *);
 extern int tcp_conn_send(tcp_conn_t *, const void *, size_t);
 extern int tcp_conn_send_fin(tcp_conn_t *);
 extern int tcp_conn_push(tcp_conn_t *);
-extern void tcp_conn_reset(tcp_conn_t *);
+extern int tcp_conn_reset(tcp_conn_t *);
 
 extern int tcp_conn_recv(tcp_conn_t *, void *, size_t, size_t *);
 extern int tcp_conn_recv_wait(tcp_conn_t *, void *, size_t, size_t *);

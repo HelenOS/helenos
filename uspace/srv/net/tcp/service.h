@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svobda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup tcp
  * @{
  */
-/** @file
+/** @file HelenOS service implementation
  */
 
-#ifndef LIBC_IPC_TCP_H_
-#define LIBC_IPC_TCP_H_
+#ifndef SERVICE_H
+#define SERVICE_H
 
-#include <ipc/common.h>
-
-typedef enum {
-	TCP_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	TCP_CONN_CREATE,
-	TCP_CONN_DESTROY,
-	TCP_LISTENER_CREATE,
-	TCP_LISTENER_DESTROY,
-	TCP_CONN_SEND,
-	TCP_CONN_SEND_FIN,
-	TCP_CONN_PUSH,
-	TCP_CONN_RESET,
-	TCP_CONN_RECV,
-	TCP_CONN_RECV_WAIT
-} tcp_request_t;
-
-typedef enum {
-	TCP_EV_CONNECTED = IPC_FIRST_USER_METHOD,
-	TCP_EV_CONN_FAILED,
-	TCP_EV_CONN_RESET,
-	TCP_EV_DATA,
-	TCP_EV_URG_DATA
-} tcp_event_t;
-
-typedef enum {
-	TCP_LEV_NEW_CONN = IPC_FIRST_USER_METHOD
-} tcp_listen_event_t;
+extern int tcp_service_init(void);
 
 #endif
 

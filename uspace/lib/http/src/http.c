@@ -51,7 +51,7 @@ static ssize_t http_receive(void *client_data, void *buf, size_t buf_size)
 	size_t nrecv;
 	int rc;
 
-	rc = tcp_conn_recv(http->conn, buf, buf_size, &nrecv);
+	rc = tcp_conn_recv_wait(http->conn, buf, buf_size, &nrecv);
 	if (rc != EOK)
 		return rc;
 
