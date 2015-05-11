@@ -136,6 +136,32 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 	fibril_mutex_lock(&fs_list_lock);
 	while (true) {
 		fs_handle = fs_name_to_handle(instance, fsname, false);
+		if (!fs_handle) {
+			if ((flags & IPC_FLAG_AUTOSTART)) {
+				/*
+				 * Temporarily release the lock, we don't need it while
+				 * waiting for start request (which may lead to deadlock).
+				 */
+				fibril_mutex_unlock(&fs_list_lock);
+				rc = vfs_fs_request_start(fs_name, instance);
+				fibril_mutex_lock(&fs_list_lock);
+
+				if (rc != EOK) {
+					fibril_mutex_unlock(&fs_list_lock);
+					async_answer_0(callid, rc);
+					async_answer_0(rid, rc);
+					free(mp);
+					free(fs_name);
+					free(opts);
+					return;
+				}
+				/*
+				 * Succesful start request, new server should be
+				 * registered.
+				 */
+				continue;
+			}
+		}
 
 		if (fs_handle != 0 || !(flags & VFS_MOUNT_BLOCKING))
 			break;
@@ -187,6 +213,28 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 	vfs_exchange_release(exch);
 
 	return EOK;
+}
+
+static int vfs_fs_request_start(const char *fs_name, unsigned int instance)
+{
+	char *unit_name = NULL;
+
+	assert(instance == 0);
+	/*
+	 * Unit name is made simply by considering service of the same name as
+	 * given FS name.
+	 * TODO instance identifier is not implemented.
+	 */
+	asprintf(&unit_name, "%s%c%s", fs_name, UNIT_NAME_SEPARATOR,
+	    UNIT_SVC_TYPE_NAME);
+	if (unit_name == NULL) {
+		return ENOMEM;
+	}
+
+	int rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
+
+	free(unit_name);
+	return rc;
 }
 
 errno_t vfs_op_fsprobe(const char *fs_name, service_id_t sid,

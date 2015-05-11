@@ -86,7 +86,7 @@ static int unit_svc_start(unit_t *unit)
 
 	int rc = task_spawnv(NULL, NULL, u_svc->exec_start.path,
 	    u_svc->exec_start.argv);
-	sysman_log(LVL_DEBUG2, "task_spawn(%s, %s)", u_svc->exec_start.path, u_svc->exec_start.argv[0]);
+
 	if (rc != EOK) {
 		unit->state = STATE_FAILED;
 		return rc;

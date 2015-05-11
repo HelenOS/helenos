@@ -159,7 +159,8 @@ int sysman_events_loop(void *unused)
 
 /** Create and queue job for unit
  *
- * @param[in]  callback  callback must explicitly delete reference to job
+ * @param[in]  callback  (optional) callback must explicitly delete reference
+ *                       to job
  */
 int sysman_queue_job(unit_t *unit, unit_state_t target_state,
     callback_handler_t callback, void *callback_arg)
@@ -169,8 +170,10 @@ int sysman_queue_job(unit_t *unit, unit_state_t target_state,
 		return ENOMEM;
 	}
 
-	job_add_ref(job);
-	sysman_object_observer(job, callback, callback_arg);
+	if (callback != NULL) {
+		job_add_ref(job);
+		sysman_object_observer(job, callback, callback_arg);
+	}
 
 	job_add_ref(job);
 	sysman_raise_event(&sysman_event_job_process, job);

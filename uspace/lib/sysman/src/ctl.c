@@ -32,6 +32,14 @@
 #include <sysman/ctl.h>
 #include <sysman/sysman.h>
 
+/*
+ * TODO
+ * Non-blocking favor of this API is effectively incomplete as it doesn't
+ * provide means how to obtain result of the start operation.
+ * Probably devise individual API for brokers that could exploit the fact that
+ * broker knows when appropriate exposee is created and the request succeeded.
+ * Still though, it's necessary to centralize timeout into sysman.
+ */
 int sysman_unit_start(const char *unit_name, int flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);

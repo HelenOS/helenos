@@ -150,10 +150,11 @@ static int unit_mnt_load(unit_t *unit, ini_configuration_t *ini_conf,
 static int mount_exec(void *arg)
 {
 	mount_data_t *mnt_data = arg;
-	/*sysman_log(LVL_DEBUG2, "%s(%p, %p, %p, %p, %x, %u)",
+	sysman_log(LVL_DEBUG2, "%s(%p, %p, %p, %p, %x, %u)",
 	    __func__,
 	    mnt_data->type, mnt_data->mountpoint, mnt_data->device, mnt_data->options,
-	    mnt_data->flags, mnt_data->instance);*/
+	    mnt_data->flags, mnt_data->instance);
+
 	int rc = mount(mnt_data->type, mnt_data->mountpoint, mnt_data->device,
 	    mnt_data->options ? mnt_data->options : "",
 	    mnt_data->flags, mnt_data->instance);

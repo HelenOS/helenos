@@ -39,16 +39,19 @@
 #include <stdlib.h>
 #include <ipc/services.h>
 #include <abi/ipc/methods.h>
-#include <libarch/config.h>
 #include <ns.h>
+#include <as.h>
 #include <async.h>
+#include <atomic.h>
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
-#include <stdbool.h>
-#include <str.h>
-#include <as.h>
+#include <ipc/services.h>
 #include <macros.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <str.h>
+#include <sysman/broker.h>
 #include "vfs.h"
 
 #define NAME  "vfs"
@@ -143,6 +146,15 @@ int main(int argc, char **argv)
 		return rc;
 	}
 
+	/*
+	 * Let sysman know we are broker
+	 */
+	rc = sysman_broker_register();
+	if (rc != EOK) {
+		printf("%s: Error registering at sysman (%i)\n", NAME, rc);
+		return rc;
+	}
+	
 	/*
 	 * Start accepting connections.
 	 */

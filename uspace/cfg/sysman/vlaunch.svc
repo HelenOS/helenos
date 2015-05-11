@@ -1,13 +1,10 @@
 [Unit]
-; explicit dependency on compositor,
-; until exposee to unit name map in locsrv is defined
-After = compositor.svc 
 ; explicit because of executable path
 After = rootfs.mnt
 ; explicit as vterm->getterm needs it
 After = locfs.mnt
 
-; unclear status of vlaunch as service (more relevant to user session)
+; unclear status of vlaunch as a service (more relevant to user session)
 [Service]
 ExecStart = /root/app/vlaunch comp:0/winreg
 

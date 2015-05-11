@@ -338,6 +338,12 @@ static int loc_service_request_start(const char *ns_name, const char *name)
 {
 	char *service_name = NULL;
 
+	/*
+	 * All services in 'device' namespace are considered to be drivers and
+	 * devman is thus requested to start. Otherwise name of unit is made
+	 * from fully qualified name of service (namespace separator is changed
+	 * for usage in unit name.
+	 */
 	if (str_cmp(ns_name, LOC_DEVICE_NAMESPACE) == 0) {
 		asprintf(&service_name, "%s", SERVICE_NAME_DEVMAN);
 	} else if (str_cmp(ns_name, "") == 0) {
@@ -358,9 +364,7 @@ static int loc_service_request_start(const char *ns_name, const char *name)
 		return ENOMEM;
 	}
 
-	//printf("%s(%s) before\n", __func__, unit_name);//DEBUG
 	int rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
-	//printf("%s(%s) after %i\n", __func__, unit_name, rc);//DEBUG
 	free(unit_name);
 	free(service_name);
 	return rc;
@@ -810,29 +814,35 @@ recheck:
 	 * Service was not found.
 	 */
 	if (svc == NULL) {
-		//printf("%s: service '%s/%s' not found\n", NAME, ns_name, name);//DEBUG
-		if (flags & (IPC_FLAG_AUTOSTART | IPC_FLAG_BLOCKING)) {
-			/* TODO:
-			 * consider non-blocking service start, return
-			 * some dummy id and block only after connection
-			 * request (actually makes more sense as those who asks
-			 * for ID might be someone else than those connecting)
-			 */
-			if (!start_requested && (flags & IPC_FLAG_AUTOSTART)) {
-				rc = loc_service_request_start(ns_name, name);
-				if (rc != EOK) {
-					goto finish;
-				}
-				start_requested = true;
-			}
+		/* TODO:
+		 * consider non-blocking service start, return
+		 * some dummy id and block only after connection
+		 * request (actually makes more sense as those who asks
+		 * for ID might be someone else than those connecting)
+		 * Note:
+		 * service_list_mutex is released as we don't need to keep it
+		 * while waiting for start request to finish.
+		 */
+		if ((flags & IPC_FLAG_AUTOSTART) && !start_requested) {
+			fibril_mutex_unlock(&services_list_mutex);
+			rc = loc_service_request_start(ns_name, name);
+			fibril_mutex_lock(&services_list_mutex);
+			start_requested = true;
 
+			if (rc != EOK) {
+				goto finish;
+			} else {
+				goto recheck;
+			}
+		}
+
+		if (flags & IPC_FLAG_BLOCKING) {
 			fibril_condvar_wait(&services_list_cv,
 			    &services_list_mutex);
 			goto recheck;
 		}
 		rc = ENOENT;
 	} else {
-		//printf("%s: service '%s/%s' FOUND\n", NAME, ns_name, name);//DEBUG
 		rc = EOK;
 	}
 
@@ -1620,9 +1630,7 @@ int main(int argc, char *argv[])
 		printf("%s: Error while registering broker service: %s\n", NAME, str_error(rc));
 
 	/* Let sysman know we are broker */
-	printf("%s: sysman_broker_register : pre\n", NAME);
 	rc = sysman_broker_register();
-	printf("%s: sysman_broker_register : post\n", NAME);
 	if (rc != EOK) {
 		printf("%s: Error registering at sysman (%i)\n", NAME, rc);
 		return rc;

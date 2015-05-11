@@ -1,7 +1,4 @@
 [Unit]
-; explicit dependency on compositor,
-; until exposee to unit name map in locsrv is defined
-After = compositor.svc 
 After = rootfs.mnt
 
 ; unclear status of barber as service (more relevant to user session)
