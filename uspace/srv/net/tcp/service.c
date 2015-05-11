@@ -58,13 +58,22 @@ static void tcp_ev_data(tcp_cconn_t *);
 static void tcp_ev_connected(tcp_cconn_t *);
 static void tcp_ev_conn_failed(tcp_cconn_t *);
 static void tcp_ev_conn_reset(tcp_cconn_t *);
+static void tcp_ev_new_conn(tcp_clst_t *, tcp_cconn_t *);
 
 static void tcp_service_cstate_change(tcp_conn_t *, void *, tcp_cstate_t);
 static void tcp_service_recv_data(tcp_conn_t *, void *);
+static void tcp_service_lst_cstate_change(tcp_conn_t *, void *, tcp_cstate_t);
+
+static int tcp_cconn_create(tcp_client_t *, tcp_conn_t *, tcp_cconn_t **);
 
 static tcp_cb_t tcp_service_cb = {
 	.cstate_change = tcp_service_cstate_change,
 	.recv_data = tcp_service_recv_data
+};
+
+static tcp_cb_t tcp_service_lst_cb = {
+	.cstate_change = tcp_service_lst_cstate_change,
+	.recv_data = NULL
 };
 
 static void tcp_service_cstate_change(tcp_conn_t *conn, void *arg,
@@ -90,6 +99,62 @@ static void tcp_service_cstate_change(tcp_conn_t *conn, void *arg,
 
 	/* XXX Failed to establish connection */
 	if (0) tcp_ev_conn_failed(cconn);
+}
+
+static void tcp_service_lst_cstate_change(tcp_conn_t *conn, void *arg,
+    tcp_cstate_t old_state)
+{
+	tcp_cstate_t nstate;
+	tcp_clst_t *clst;
+	tcp_cconn_t *cconn;
+	int rc;
+	tcp_error_t trc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_service_lst_cstate_change()");
+	nstate = conn->cstate;
+	clst = tcp_uc_get_userptr(conn);
+
+	if ((old_state == st_syn_sent || old_state == st_syn_received) &&
+	    (nstate == st_established)) {
+		/* Connection established */
+		clst->conn = NULL;
+
+		rc = tcp_cconn_create(clst->client, conn, &cconn);
+		if (rc != EOK) {
+			/* XXX Could not create client connection */
+			return;
+		}
+
+		/* XXX Is there a race here (i.e. the connection is already active)? */
+		tcp_uc_set_cb(conn, &tcp_service_cb, cconn);
+
+		/* New incoming connection */
+		tcp_ev_new_conn(clst, cconn);
+	}
+
+	if (old_state != st_closed && nstate == st_closed && conn->reset) {
+		/* Connection reset */
+		/* XXX */
+	}
+
+	/* XXX Failed to establish connection */
+	if (0) {
+		/* XXX */
+	}
+
+	/* Replenish sentinel connection */
+
+	trc = tcp_uc_open(&clst->elocal, NULL, ap_passive, tcp_open_nonblock,
+	    &conn);
+	if (trc != TCP_EOK) {
+		/* XXX Could not replenish connection */
+		return;
+	}
+
+	clst->conn = conn;
+
+	/* XXX Is there a race here (i.e. the connection is already active)? */
+	tcp_uc_set_cb(conn, &tcp_service_lst_cb, clst);
 }
 
 static void tcp_service_recv_data(tcp_conn_t *conn, void *arg)
@@ -149,6 +214,21 @@ static void tcp_ev_conn_reset(tcp_cconn_t *cconn)
 
 	exch = async_exchange_begin(cconn->client->sess);
 	aid_t req = async_send_1(exch, TCP_EV_CONN_RESET, cconn->id, NULL);
+	async_exchange_end(exch);
+
+	async_forget(req);
+}
+
+/** New incoming connection */
+static void tcp_ev_new_conn(tcp_clst_t *clst, tcp_cconn_t *cconn)
+{
+	async_exch_t *exch;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ev_new_conn()");
+
+	exch = async_exchange_begin(clst->client->sess);
+	aid_t req = async_send_2(exch, TCP_EV_NEW_CONN, clst->id, cconn->id,
+	    NULL);
 	async_exchange_end(exch);
 
 	async_forget(req);
@@ -342,7 +422,7 @@ static int tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
 	local.addr = ep->addr;
 	local.port = ep->port;
 
-	trc = tcp_uc_open(&local, NULL, ap_passive, 0, &conn);
+	trc = tcp_uc_open(&local, NULL, ap_passive, tcp_open_nonblock, &conn);
 	if (trc != TCP_EOK)
 		return EIO;
 
@@ -353,8 +433,10 @@ static int tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
 		return ENOMEM;
 	}
 
-//	assoc->cb = &udp_cassoc_cb;
-//	assoc->cb_arg = cassoc;
+	clst->elocal = local;
+
+	/* XXX Is there a race here (i.e. the connection is already active)? */
+	tcp_uc_set_cb(conn, &tcp_service_lst_cb, clst);
 
 	*rlst_id = clst->id;
 	return EOK;

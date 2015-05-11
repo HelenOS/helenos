@@ -33,6 +33,7 @@
  */
 
 #include <errno.h>
+#include <fibril.h>
 #include <inet/endpoint.h>
 #include <inet/tcp.h>
 #include <ipc/services.h>
@@ -42,6 +43,13 @@
 #include <stdio.h>
 
 static void tcp_cb_conn(ipc_callid_t, ipc_call_t *, void *);
+static int tcp_conn_fibril(void *);
+
+/** Incoming TCP connection info */
+typedef struct {
+	tcp_listener_t *lst;
+	tcp_conn_t *conn;
+} tcp_in_conn_t;
 
 static int tcp_callback_create(tcp_t *tcp)
 {
@@ -115,14 +123,12 @@ void tcp_destroy(tcp_t *tcp)
 	free(tcp);
 }
 
-int tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
+static int tcp_conn_new(tcp_t *tcp, sysarg_t id, tcp_cb_t *cb, void *arg,
     tcp_conn_t **rconn)
 {
-	async_exch_t *exch;
 	tcp_conn_t *conn;
-	ipc_call_t answer;
 
-	printf("tcp_conn_create()\n");
+	printf("tcp_conn_new()\n");
 
 	conn = calloc(1, sizeof(tcp_conn_t));
 	if (conn == NULL)
@@ -131,6 +137,26 @@ int tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
 	conn->data_avail = false;
 	fibril_mutex_initialize(&conn->lock);
 	fibril_condvar_initialize(&conn->cv);
+
+	conn->tcp = tcp;
+	conn->id = id;
+	conn->cb = cb;
+	conn->cb_arg = arg;
+
+	list_append(&conn->ltcp, &tcp->conn);
+	*rconn = conn;
+
+	return EOK;
+}
+
+int tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
+    tcp_conn_t **rconn)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	sysarg_t conn_id;
+
+	printf("tcp_conn_create()\n");
 
 	exch = async_exchange_begin(tcp->sess);
 	aid_t req = async_send_0(exch, TCP_CONN_CREATE, &answer);
@@ -150,17 +176,14 @@ int tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
 	if (rc != EOK)
 		goto error;
 
-	conn->tcp = tcp;
-	conn->id = IPC_GET_ARG1(answer);
-	conn->cb = cb;
-	conn->cb_arg = arg;
+	conn_id = IPC_GET_ARG1(answer);
 
-	list_append(&conn->ltcp, &tcp->conn);
-	*rconn = conn;
+	rc = tcp_conn_new(tcp, conn_id, cb, arg, rconn);
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 error:
-	free(conn);
 	return (int) rc;
 }
 
@@ -264,6 +287,18 @@ void tcp_listener_destroy(tcp_listener_t *lst)
 
 	free(lst);
 	(void) rc;
+}
+
+static int tcp_listener_get(tcp_t *tcp, sysarg_t id, tcp_listener_t **rlst)
+{
+	list_foreach(tcp->listener, ltcp, tcp_listener_t, lst) {
+		if (lst->id == id) {
+			*rlst = lst;
+			return EOK;
+		}
+	}
+
+	return EINVAL;
 }
 
 void *tcp_listener_userptr(tcp_listener_t *lst)
@@ -553,6 +588,61 @@ static void tcp_ev_urg_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, ENOTSUP);
 }
 
+static void tcp_ev_new_conn(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
+{
+	tcp_listener_t *lst;
+	tcp_conn_t *conn;
+	sysarg_t lst_id;
+	sysarg_t conn_id;
+	fid_t fid;
+	tcp_in_conn_t *cinfo;
+	int rc;
+
+	printf("tcp_ev_new_conn()\n");
+	lst_id = IPC_GET_ARG1(*icall);
+	conn_id = IPC_GET_ARG2(*icall);
+
+	printf("new conn: lst_id=%zu conn_id=%zu\n", lst_id, conn_id);
+
+	rc = tcp_listener_get(tcp, lst_id, &lst);
+	if (rc != EOK) {
+		printf("listener ID %zu not found\n",
+		    lst_id);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	rc = tcp_conn_new(tcp, conn_id, lst->cb, lst->cb_arg, &conn);
+	if (rc != EOK) {
+		printf("Failed creating new incoming connection.\n");
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	if (lst->lcb != NULL && lst->lcb->new_conn != NULL) {
+		printf("Creating connection fibril\n");
+		cinfo = calloc(1, sizeof(tcp_in_conn_t));
+		if (cinfo == NULL) {
+			printf("Failed creating new incoming connection info.\n");
+			async_answer_0(iid, ENOMEM);
+			return;
+		}
+
+		cinfo->lst = lst;
+		cinfo->conn = conn;
+
+		fid = fibril_create(tcp_conn_fibril, cinfo);
+		if (fid == 0) {
+			printf("Error creating connection fibril.\n");
+			async_answer_0(iid, ENOMEM);
+		}
+
+		fibril_add_ready(fid);
+	}
+
+	async_answer_0(iid, EOK);
+}
+
 static void tcp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	tcp_t *tcp = (tcp_t *)arg;
@@ -588,6 +678,9 @@ static void tcp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case TCP_EV_URG_DATA:
 			tcp_ev_urg_data(tcp, callid, &call);
 			break;
+		case TCP_EV_NEW_CONN:
+			tcp_ev_new_conn(tcp, callid, &call);
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 			break;
@@ -595,6 +688,18 @@ static void tcp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
+/** Fibril for handling incoming TCP connection in background */
+static int tcp_conn_fibril(void *arg)
+{
+	tcp_in_conn_t *cinfo = (tcp_in_conn_t *)arg;
+
+	printf("tcp_conn_fibril: begin\n");
+	cinfo->lst->lcb->new_conn(cinfo->lst, cinfo->conn);
+	printf("tcp_conn_fibril: end\n");
+	tcp_conn_destroy(cinfo->conn);
+
+	return EOK;
+}
 
 /** @}
  */

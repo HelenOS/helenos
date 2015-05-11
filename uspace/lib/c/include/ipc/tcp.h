@@ -56,12 +56,9 @@ typedef enum {
 	TCP_EV_CONN_FAILED,
 	TCP_EV_CONN_RESET,
 	TCP_EV_DATA,
-	TCP_EV_URG_DATA
+	TCP_EV_URG_DATA,
+	TCP_EV_NEW_CONN
 } tcp_event_t;
-
-typedef enum {
-	TCP_LEV_NEW_CONN = IPC_FIRST_USER_METHOD
-} tcp_listen_event_t;
 
 #endif
 

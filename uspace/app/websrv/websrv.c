@@ -141,7 +141,7 @@ static int recv_char(tcp_conn_t *conn, char *c)
 		
 		rc = tcp_conn_recv_wait(conn, rbuf, BUFFER_SIZE, &nrecv);
 		if (rc != EOK) {
-			fprintf(stderr, "recv() failed (%d)\n", rc);
+			fprintf(stderr, "tcp_conn_recv() failed (%d)\n", rc);
 			return rc;
 		}
 		
@@ -371,6 +371,13 @@ static void websrv_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	if (rc != EOK) {
 		fprintf(stderr, "Error processing request (%s)\n",
 		    str_error(rc));
+		return;
+	}
+
+	rc = tcp_conn_send_fin(conn);
+	if (rc != EOK) {
+		fprintf(stderr, "Error sending FIN.\n");
+		return;
 	}
 }
 

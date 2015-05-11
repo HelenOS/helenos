@@ -337,6 +337,8 @@ typedef struct tcp_cconn {
 
 /** TCP client listener */
 typedef struct tcp_clst {
+	/** Local endpoint */
+	tcp_sock_t elocal;
 	/** Connection */
 	tcp_conn_t *conn;
 	/** Listener ID for the client */
