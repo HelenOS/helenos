@@ -175,6 +175,16 @@ typedef struct ns8250 {
 	bool removed;
 } ns8250_t;
 
+static irq_cmd_t ns8250_irq_cmds[] = {
+	{ .cmd = CMD_ACCEPT }
+};
+
+static irq_code_t ns8250_irq_code = {
+	.rangecount = 0,
+	.cmdcount = sizeof(ns8250_irq_cmds) / sizeof(irq_cmd_t),
+	.cmds = ns8250_irq_cmds
+};
+
 /** Obtain soft-state structure from device node */
 static ns8250_t *dev_ns8250(ddf_dev_t *dev)
 {
@@ -782,6 +792,8 @@ static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
 	ns8250_read_from_device(ns);
 }
 
+
+
 /** Register the interrupt handler for the device.
  *
  * @param ns		Serial port device
@@ -789,7 +801,7 @@ static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
 static inline int ns8250_register_interrupt_handler(ns8250_t *ns)
 {
 	return register_interrupt_handler(ns->dev, ns->irq,
-	    ns8250_interrupt_handler, NULL);
+	    ns8250_interrupt_handler, &ns8250_irq_code);
 }
 
 /** Unregister the interrupt handler for the device.
