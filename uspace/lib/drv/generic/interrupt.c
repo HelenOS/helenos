@@ -43,19 +43,6 @@
 #include "ddf/interrupt.h"
 #include "private/driver.h"
 
-static irq_cmd_t default_cmds[] = {
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-
-static const irq_code_t default_pseudocode = {
-	0,
-	NULL,
-	ARRAY_SIZE(default_cmds),
-	default_cmds
-};
-
 int register_interrupt_handler(ddf_dev_t *dev, int irq,
     interrupt_handler_t *handler, const irq_code_t *pseudocode)
 {
