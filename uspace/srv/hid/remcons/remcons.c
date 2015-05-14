@@ -281,28 +281,37 @@ static bool user_can_be_destroyed_no_lock(telnet_user_t *user)
 	    (user->locsrv_connection_count == 0);
 }
 
-/** Fibril for each accepted socket.
+/** Handle network connection.
  *
- * @param arg Corresponding @c telnet_user_t structure.
+ * @param lst  Listener
+ * @param conn Connection
  */
-static int network_user_fibril(void *arg)
+static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 {
-	telnet_user_t *user = arg;
+	telnet_user_t *user = telnet_user_create(conn);
+	assert(user);
+
+	con_srvs_init(&user->srvs);
+	user->srvs.ops = &con_ops;
+	user->srvs.sarg = user;
+	user->srvs.abort_timeout = 1000;
+
+	telnet_user_add(user);
 
 	int rc = loc_service_register(user->service_name, &user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user, "Unable to register %s with loc: %s.",
 		    user->service_name, str_error(rc));
-		return EOK;
+		return;
 	}
 
 	telnet_user_log(user, "Service %s registerd with id %" PRIun ".",
 	    user->service_name, user->service_id);
-	
+
 	fid_t spawn_fibril = fibril_create(spawn_task_fibril, user);
 	assert(spawn_fibril);
 	fibril_add_ready(spawn_fibril);
-	
+
 	/* Wait for all clients to exit. */
 	fibril_mutex_lock(&user->guard);
 	while (!user_can_be_destroyed_no_lock(user)) {
@@ -320,7 +329,7 @@ static int network_user_fibril(void *arg)
 		fibril_condvar_wait_timeout(&user->refcount_cv, &user->guard, 1000);
 	}
 	fibril_mutex_unlock(&user->guard);
-	
+
 	rc = loc_service_unregister(user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user,
@@ -330,25 +339,6 @@ static int network_user_fibril(void *arg)
 
 	telnet_user_log(user, "Destroying...");
 	telnet_user_destroy(user);
-
-	return EOK;
-}
-
-static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
-{
-	telnet_user_t *user = telnet_user_create(conn);
-	assert(user);
-
-	con_srvs_init(&user->srvs);
-	user->srvs.ops = &con_ops;
-	user->srvs.sarg = user;
-	user->srvs.abort_timeout = 1000;
-
-	telnet_user_add(user);
-
-	fid_t fid = fibril_create(network_user_fibril, user);
-	assert(fid);
-	fibril_add_ready(fid);
 }
 
 int main(int argc, char *argv[])
@@ -366,13 +356,13 @@ int main(int argc, char *argv[])
 	}
 
 	rc = tcp_create(&tcp);
-	if (tcp != EOK) {
-		fprintf(stderr, "%s: Error initialzing TCP.\n", NAME);
+	if (rc != EOK) {
+		fprintf(stderr, "%s: Error initializing TCP.\n", NAME);
 		return rc;
 	}
 
 	inet_ep_init(&ep);
-	ep.port = 2223;
+	ep.port = 8080;
 
 	rc = tcp_listener_create(tcp, &ep, &listen_cb, NULL, &conn_cb, NULL,
 	    &lst);

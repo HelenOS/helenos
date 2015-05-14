@@ -756,13 +756,19 @@ int rfb_listen(rfb_t *rfb, uint16_t port)
 	inet_ep_t ep;
 	int rc;
 	
+	rc = tcp_create(&tcp);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error initializing TCP.");
+		goto error;
+	}
+	
 	inet_ep_init(&ep);
 	ep.port = port;
 	
 	rc = tcp_listener_create(tcp, &ep, &listen_cb, rfb, &conn_cb, rfb,
 	    &lst);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating listener.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating listener.");
 		goto error;
 	}
 	
