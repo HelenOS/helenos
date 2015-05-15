@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -232,7 +233,7 @@ int inet_naddr_compare(const inet_naddr_t *naddr, const inet_addr_t *addr)
 {
 	if (naddr->version != addr->version)
 		return 0;
-	
+
 	switch (naddr->version) {
 	case ip_v4:
 		return (naddr->addr == addr->addr);
@@ -259,13 +260,13 @@ int inet_naddr_compare_mask(const inet_naddr_t *naddr, const inet_addr_t *addr)
 	case ip_v6:
 		if (naddr->prefix > 128)
 			return 0;
-		
+
 		size_t pos = 0;
 		for (size_t i = 0; i < 16; i++) {
 			/* Further bits do not matter */
 			if (naddr->prefix < pos)
 				break;
-			
+
 			if (naddr->prefix - pos > 8) {
 				/* Comparison without masking */
 				if (naddr->addr6[i] != addr->addr6[i])
@@ -277,10 +278,10 @@ int inet_naddr_compare_mask(const inet_naddr_t *naddr, const inet_addr_t *addr)
 				if ((naddr->addr6[i] & mask) != (addr->addr6[i] & mask))
 					return 0;
 			}
-			
+
 			pos += 8;
 		}
-		
+
 		return 1;
 	default:
 		return 0;
@@ -304,7 +305,7 @@ static int inet_addr_parse_v4(const char *str, inet_addr_t *raddr,
 
 		i++;
 
-		if (*cur == 0)
+		if (*cur == '\0')
 			break;
 
 		if (*cur != '.')
@@ -320,7 +321,7 @@ static int inet_addr_parse_v4(const char *str, inet_addr_t *raddr,
 			return EINVAL;
 	}
 
-	if (i != 4 || (*cur != 0))
+	if (i != 4 || (*cur != '\0'))
 		return EINVAL;
 
 	raddr->version = ip_v4;
@@ -331,8 +332,93 @@ static int inet_addr_parse_v4(const char *str, inet_addr_t *raddr,
 
 static int inet_addr_parse_v6(const char *str, inet_addr_t *raddr, int *prefix)
 {
-	/* XXX */
-	return EINVAL;
+	uint8_t data[16];
+
+	memset(data, 0, 16);
+
+	const char *cur = str;
+	size_t i = 0;
+	size_t wildcard_pos = (size_t) -1;
+	size_t wildcard_size = 0;
+
+	/* Handle initial wildcard */
+	if ((str[0] == ':') && (str[1] == ':')) {
+		cur = str + 2;
+		wildcard_pos = 0;
+		wildcard_size = 16;
+
+		/* Handle the unspecified address */
+		if (*cur == '\0')
+			goto success;
+	}
+
+	while (i < 16) {
+		uint16_t bioctet;
+		int rc = str_uint16_t(cur, &cur, 16, false, &bioctet);
+		if (rc != EOK)
+			return rc;
+
+		data[i] = (bioctet >> 8) & 0xff;
+		data[i + 1] = bioctet & 0xff;
+
+		if (wildcard_pos != (size_t) -1) {
+			if (wildcard_size < 2)
+				return EINVAL;
+
+			wildcard_size -= 2;
+		}
+
+		i += 2;
+
+		if (*cur != ':')
+			break;
+
+		if (i < 16) {
+			cur++;
+
+			/* Handle wildcard */
+			if (*cur == ':') {
+				if (wildcard_pos != (size_t) -1)
+					return EINVAL;
+
+				wildcard_pos = i;
+				wildcard_size = 16 - i;
+				cur++;
+
+				if (*cur == '\0' || *cur == '/')
+					break;
+			}
+		}
+	}
+
+	if (prefix != NULL) {
+		if (*cur != '/')
+			return EINVAL;
+		cur++;
+
+		*prefix = strtoul(cur, (char **)&cur, 10);
+		if (*prefix > 128)
+			return EINVAL;
+	}
+
+	if (*cur != '\0')
+		return EINVAL;
+
+	/* Create wildcard positions */
+	if ((wildcard_pos != (size_t) -1) && (wildcard_size > 0)) {
+		size_t wildcard_shift = 16 - wildcard_size;
+
+		for (i = wildcard_pos + wildcard_shift; i > wildcard_pos; i--) {
+			size_t j = i - 1;
+			data[j + wildcard_size] = data[j];
+			data[j] = 0;
+		}
+	}
+
+success:
+	raddr->version = ip_v6;
+	memcpy(raddr->addr6, data, 16);
+	return EOK;
 }
 
 /** Parse node address.
@@ -387,22 +473,34 @@ int inet_naddr_parse(const char *text, inet_naddr_t *naddr)
 	return EINVAL;
 }
 
-static int inet_ntop6(const uint8_t *data, char *address, size_t length)
+static int inet_addr_format_v4(addr32_t addr, char **bufp)
 {
-	/* Check output buffer size */
-	if (length < INET6_ADDRSTRLEN)
+	int rc;
+
+	rc = asprintf(bufp, "%u.%u.%u.%u", (addr >> 24) & 0xff,
+	    (addr >> 16) & 0xff, (addr >> 8) & 0xff, addr & 0xff);
+	if (rc < 0)
 		return ENOMEM;
-	
+
+	return EOK;
+}
+
+static int inet_addr_format_v6(const addr128_t addr, char **bufp)
+{
+	*bufp = (char *) malloc(INET6_ADDRSTRLEN);
+	if (*bufp == NULL)
+		return ENOMEM;
+
 	/* Find the longest zero subsequence */
-	
+
 	uint16_t zeroes[8];
 	uint16_t bioctets[8];
-	
+
 	for (size_t i = 8; i > 0; i--) {
 		size_t j = i - 1;
-		
-		bioctets[j] = (data[j << 1] << 8) | data[(j << 1) + 1];
-		
+
+		bioctets[j] = (addr[j << 1] << 8) | addr[(j << 1) + 1];
+
 		if (bioctets[j] == 0) {
 			zeroes[j] = 1;
 			if (j < 7)
@@ -410,22 +508,22 @@ static int inet_ntop6(const uint8_t *data, char *address, size_t length)
 		} else
 			zeroes[j] = 0;
 	}
-	
+
 	size_t wildcard_pos = (size_t) -1;
 	size_t wildcard_size = 0;
-	
+
 	for (size_t i = 0; i < 8; i++) {
 		if (zeroes[i] > wildcard_size) {
 			wildcard_pos = i;
 			wildcard_size = zeroes[i];
 		}
 	}
-	
-	char *cur = address;
-	size_t rest = length;
+
+	char *cur = *bufp;
+	size_t rest = INET6_ADDRSTRLEN;
 	bool tail_zero = false;
 	int ret;
-	
+
 	for (size_t i = 0; i < 8; i++) {
 		if ((i == wildcard_pos) && (wildcard_size > 1)) {
 			ret = snprintf(cur, rest, ":");
@@ -438,23 +536,19 @@ static int inet_ntop6(const uint8_t *data, char *address, size_t length)
 			ret = snprintf(cur, rest, ":%" PRIx16, bioctets[i]);
 			tail_zero = false;
 		}
-		
+
 		if (ret < 0)
 			return EINVAL;
-		
+
 		cur += ret;
 		rest -= ret;
 	}
-	
-	if (tail_zero) {
-		ret = snprintf(cur, rest, ":");
-		if (ret < 0)
-			return EINVAL;
-	}
-	
+
+	if (tail_zero)
+		(void) snprintf(cur, rest, ":");
+
 	return EOK;
 }
-
 
 /** Format node address.
  *
@@ -468,32 +562,26 @@ static int inet_ntop6(const uint8_t *data, char *address, size_t length)
  */
 int inet_addr_format(const inet_addr_t *addr, char **bufp)
 {
-	int rc = 0;
-	
+	int rc;
+
+	rc = ENOTSUP;
+
 	switch (addr->version) {
 	case ip_any:
 		rc = asprintf(bufp, "none");
+		if (rc < 0)
+			return ENOMEM;
+		rc = EOK;
 		break;
 	case ip_v4:
-		rc = asprintf(bufp, "%u.%u.%u.%u", (addr->addr >> 24) & 0xff,
-		    (addr->addr >> 16) & 0xff, (addr->addr >> 8) & 0xff,
-		    addr->addr & 0xff);
+		rc = inet_addr_format_v4(addr->addr, bufp);
 		break;
 	case ip_v6:
-		*bufp = (char *) malloc(INET6_ADDRSTRLEN);
-		if (*bufp == NULL)
-			return ENOMEM;
-		
-		return inet_ntop6(addr->addr6, *bufp, INET6_ADDRSTRLEN);
-	default:
-		asprintf(bufp, "<ver=%d>", addr->version);
-		return ENOTSUP;
+		rc = inet_addr_format_v6(addr->addr6, bufp);
+		break;
 	}
-	
-	if (rc < 0)
-		return ENOMEM;
-	
-	return EOK;
+
+	return rc;
 }
 
 /** Format network address.
@@ -508,49 +596,47 @@ int inet_addr_format(const inet_addr_t *addr, char **bufp)
  */
 int inet_naddr_format(const inet_naddr_t *naddr, char **bufp)
 {
-	int rc = 0;
-	char prefix[INET_PREFIXSTRSIZE];
-	
+	int rc;
+	char *astr;
+
+	rc = ENOTSUP;
+
 	switch (naddr->version) {
 	case ip_any:
 		rc = asprintf(bufp, "none");
+		if (rc < 0)
+			return ENOMEM;
+		rc = EOK;
 		break;
 	case ip_v4:
-		rc = asprintf(bufp, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8
-		    "/%" PRIu8, (naddr->addr >> 24) & 0xff,
-		    (naddr->addr >> 16) & 0xff, (naddr->addr >> 8) & 0xff,
-		    naddr->addr & 0xff, naddr->prefix);
+		rc = inet_addr_format_v4(naddr->addr, &astr);
+		if (rc != EOK)
+			return ENOMEM;
+
+		rc = asprintf(bufp, "%s/%" PRIu8, astr, naddr->prefix);
+		if (rc < 0) {
+			free(astr);
+			return ENOMEM;
+		}
+
+		rc = EOK;
 		break;
 	case ip_v6:
-		*bufp = (char *) malloc(INET6_ADDRSTRLEN + INET_PREFIXSTRSIZE);
-		if (*bufp == NULL)
+		rc = inet_addr_format_v6(naddr->addr6, &astr);
+		if (rc != EOK)
 			return ENOMEM;
-		
-		rc = inet_ntop6(naddr->addr6, *bufp,
-		    INET6_ADDRSTRLEN + INET_PREFIXSTRSIZE);
-		if (rc != EOK) {
-			free(*bufp);
-			return rc;
-		}
-		
-		rc = snprintf(prefix, INET_PREFIXSTRSIZE, "/%" PRIu8,
-		    naddr->prefix);
+
+		rc = asprintf(bufp, "%s/%" PRIu8, astr, naddr->prefix);
 		if (rc < 0) {
-			free(*bufp);
+			free(astr);
 			return ENOMEM;
 		}
-		
-		str_append(*bufp, INET6_ADDRSTRLEN + INET_PREFIXSTRSIZE, prefix);
-		
+
+		rc = EOK;
 		break;
-	default:
-		return ENOTSUP;
 	}
-	
-	if (rc < 0)
-		return ENOMEM;
-	
-	return EOK;
+
+	return rc;
 }
 
 ip_ver_t inet_addr_get(const inet_addr_t *addr, addr32_t *v4, addr128_t *v6)
