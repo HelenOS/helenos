@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
 	}
 
 	inet_ep_init(&ep);
-	ep.port = 8080;
+	ep.port = 2223;
 
 	rc = tcp_listener_create(tcp, &ep, &listen_cb, NULL, &conn_cb, NULL,
 	    &lst);

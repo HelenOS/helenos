@@ -236,6 +236,9 @@ void tcp_conn_delete(tcp_conn_t *conn)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_delete(%p)", conn->name, conn);
 
 	assert(conn->deleted == false);
+	conn->deleted = true;
+	conn->cb = NULL;
+	conn->cb_arg = NULL;
 	tcp_conn_delref(conn);
 }
 

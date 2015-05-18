@@ -404,6 +404,7 @@ static int tcp_conn_destroy_impl(tcp_client_t *client, sysarg_t conn_id)
 	}
 
 	tcp_uc_close(cconn->conn);
+	tcp_uc_delete(cconn->conn);
 	tcp_cconn_destroy(cconn);
 	return EOK;
 }
