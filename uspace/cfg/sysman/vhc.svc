@@ -1,0 +1,3 @@
+[Service]
+ExecStart = /drv/vhc/vhc
+;Broker = devman.svc

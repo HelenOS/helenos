@@ -33,11 +33,14 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <io/log.h>
 #include <vfs/vfs.h>
 #include <loc.h>
-#include <str_error.h>
 #include <stdio.h>
+#include <str_error.h>
+#include <sys/stat.h>
+#include <sysman/ctl.h>
 #include <task.h>
 
 #include "dev.h"
@@ -138,24 +141,10 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 		goto cleanup;
 	str_cpy(drv->name, name_size, name);
 
-	/* Initialize path with driver's binary. */
-	drv->binary_path = get_abs_path(base_path, name, "");
-	if (drv->binary_path == NULL)
-		goto cleanup;
-
-	/* Check whether the driver's binary exists. */
-	vfs_stat_t s;
-	if (vfs_stat_path(drv->binary_path, &s) != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Driver not found at path `%s'.",
-		    drv->binary_path);
-		goto cleanup;
-	}
-
 	suc = true;
 
 cleanup:
 	if (!suc) {
-		free(drv->binary_path);
 		free(drv->name);
 		/* Set the driver structure to the default state. */
 		init_driver(drv);
@@ -270,7 +259,7 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 /** Assign a driver to a device.
  *
  * @param tree		Device tree
- * @param node		The device's node in the device tree.
+ * @param dev		The device's node in the device tree.
  * @param drv		The driver.
  */
 void attach_driver(dev_tree_t *tree, dev_node_t *dev, driver_t *drv)
@@ -329,14 +318,31 @@ bool start_driver(driver_t *drv)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
 
-	rc = task_spawnl(NULL, NULL, drv->binary_path, drv->binary_path, NULL);
+	char *unit_name = NULL;
+	asprintf(&unit_name, "%s%c%s", drv->name, UNIT_NAME_SEPARATOR,
+	    UNIT_SVC_TYPE_NAME);
+	if (unit_name == NULL) {
+		return false;
+	}
+
+	/*
+	 * Non-blocking asynchronous request to start a driver
+	 * FIXME See note about sysman_unit_start non-blocking (asynchronous)
+	 *       API
+	 */
+	int flags = 0;
+	rc = sysman_unit_start(unit_name, flags);
+
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Spawning driver `%s' (%s) failed: %s.",
-		    drv->name, drv->binary_path, str_error(rc));
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Request to start driver `%s' failed: %s.",
+		    drv->name, str_error(rc));
+		free(unit_name);
 		return false;
 	}
 
 	drv->state = DRIVER_STARTING;
+	free(unit_name);
 	return true;
 }
 
@@ -546,7 +552,6 @@ void clean_driver(driver_t *drv)
 	assert(drv != NULL);
 
 	free(drv->name);
-	free(drv->binary_path);
 
 	clean_match_ids(&drv->match_ids);
 
@@ -567,7 +572,7 @@ void delete_driver(driver_t *drv)
 
 /** Find suitable driver for a device and assign the driver to it.
  *
- * @param node		The device node of the device in the device tree.
+ * @param dev		The device node of the device in the device tree.
  * @param drivers_list	The list of available drivers.
  * @return		True if the suitable driver is found and
  *			successfully assigned to the device, false otherwise.
@@ -626,7 +631,7 @@ again:
 /** Pass a device to running driver.
  *
  * @param drv		The driver's structure.
- * @param node		The device's node in the device tree.
+ * @param dev		The device's node in the device tree.
  */
 void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 {

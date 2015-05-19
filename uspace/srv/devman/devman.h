@@ -77,8 +77,6 @@ typedef struct driver {
 	async_sess_t *sess;
 	/** Name of the device driver. */
 	char *name;
-	/** Path to the driver's binary. */
-	char *binary_path;
 	/** List of device ids for device-to-driver matching. */
 	match_id_list_t match_ids;
 	/** List of devices controlled by this driver. */
