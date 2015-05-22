@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 #ifndef TQUEUE_H
 #define TQUEUE_H
 
+#include <inet/endpoint.h>
 #include "std.h"
 #include "tcp_type.h"
 
@@ -47,7 +48,7 @@ extern void tcp_tqueue_new_data(tcp_conn_t *);
 extern void tcp_tqueue_ack_received(tcp_conn_t *);
 extern void tcp_prepare_transmit_segment(tcp_conn_t *, tcp_segment_t *);
 extern void tcp_conn_transmit_segment(tcp_conn_t *, tcp_segment_t *);
-extern void tcp_transmit_segment(tcp_sockpair_t *, tcp_segment_t *);
+extern void tcp_transmit_segment(inet_ep2_t *, tcp_segment_t *);
 extern void tcp_header_setup(tcp_conn_t *, tcp_segment_t *, tcp_header_t *);
 extern void tcp_phdr_setup(tcp_conn_t *, tcp_segment_t *, tcp_phdr_t *);
 

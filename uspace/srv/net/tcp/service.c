@@ -107,6 +107,7 @@ static void tcp_service_lst_cstate_change(tcp_conn_t *conn, void *arg,
 	tcp_cstate_t nstate;
 	tcp_clst_t *clst;
 	tcp_cconn_t *cconn;
+	inet_ep2_t epp;
 	int rc;
 	tcp_error_t trc;
 
@@ -144,7 +145,10 @@ static void tcp_service_lst_cstate_change(tcp_conn_t *conn, void *arg,
 
 	/* Replenish sentinel connection */
 
-	trc = tcp_uc_open(&clst->elocal, NULL, ap_passive, tcp_open_nonblock,
+	inet_ep2_init(&epp);
+	epp.local = clst->elocal;
+
+	trc = tcp_uc_open(&epp, ap_passive, tcp_open_nonblock,
 	    &conn);
 	if (trc != TCP_EOK) {
 		/* XXX Could not replenish connection */
@@ -330,9 +334,7 @@ static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
 {
 	tcp_conn_t *conn;
 	tcp_cconn_t *cconn;
-	tcp_sock_t local;
-	tcp_sock_t remote;
-	inet_addr_t local_addr;
+	inet_ep2_t cepp;
 	int rc;
 	tcp_error_t trc;
 	char *slocal;
@@ -340,11 +342,13 @@ static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl");
 
+	cepp = *epp;
+
 	/* Fill in local address? */
 	if (inet_addr_is_any(&epp->local.addr)) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
 		    "determine local address");
-		rc = inet_get_srcaddr(&epp->remote.addr, 0, &local_addr);
+		rc = inet_get_srcaddr(&epp->remote.addr, 0, &cepp.local.addr);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
 			    "cannot determine local address");
@@ -353,25 +357,26 @@ static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
 	} else {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
 		    "local address specified");
-		local_addr = epp->local.addr;
 	}
 
 	/* Allocate local port? */
-	if (epp->local.port == 0) {
-		epp->local.port = 49152; /* XXX */
+	if (cepp.local.port == 0) {
+		cepp.local.port = 49152; /* XXX */
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
+		    "allocated local port %" PRIu16, cepp.local.port);
+	} else {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
+		    "local port %" PRIu16 " specified", cepp.local.port);
 	}
 
-	local.addr = local_addr;
-	local.port = epp->local.port;
-	remote.addr = epp->remote.addr;
-	remote.port = epp->remote.port;
-
-	inet_addr_format(&local_addr, &slocal);
-	inet_addr_format(&remote.addr, &sremote);
+	inet_addr_format(&cepp.local.addr, &slocal);
+	inet_addr_format(&cepp.remote.addr, &sremote);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create: local=%s remote=%s",
 	    slocal, sremote);
+	free(slocal);
+	free(sremote);
 
-	trc = tcp_uc_open(&local, &remote, ap_active, tcp_open_nonblock, &conn);
+	trc = tcp_uc_open(&cepp, ap_active, tcp_open_nonblock, &conn);
 	if (trc != TCP_EOK)
 		return EIO;
 
@@ -384,9 +389,6 @@ static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
 
 	/* XXX Is there a race here (i.e. the connection is already active)? */
 	tcp_uc_set_cb(conn, &tcp_service_cb, cconn);
-
-//	assoc->cb = &udp_cassoc_cb;
-//	assoc->cb_arg = cassoc;
 
 	*rconn_id = cconn->id;
 	return EOK;
@@ -414,16 +416,17 @@ static int tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
 {
 	tcp_conn_t *conn;
 	tcp_clst_t *clst;
-	tcp_sock_t local;
+	inet_ep2_t epp;
 	int rc;
 	tcp_error_t trc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_listener_create_impl");
 
-	local.addr = ep->addr;
-	local.port = ep->port;
+	inet_ep2_init(&epp);
+	epp.local.addr = ep->addr;
+	epp.local.port = ep->port;
 
-	trc = tcp_uc_open(&local, NULL, ap_passive, tcp_open_nonblock, &conn);
+	trc = tcp_uc_open(&epp, ap_passive, tcp_open_nonblock, &conn);
 	if (trc != TCP_EOK)
 		return EIO;
 
@@ -434,7 +437,7 @@ static int tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
 		return ENOMEM;
 	}
 
-	clst->elocal = local;
+	clst->elocal = epp.local;
 
 	/* XXX Is there a race here (i.e. the connection is already active)? */
 	tcp_uc_set_cb(conn, &tcp_service_lst_cb, clst);

@@ -53,26 +53,26 @@
 
 #define MAX_MSG_SIZE DATA_XFER_LIMIT
 
-static void udp_cassoc_recv_msg(void *, udp_sockpair_t *, udp_msg_t *);
+static void udp_cassoc_recv_msg(void *, inet_ep2_t *, udp_msg_t *);
 
 static udp_assoc_cb_t udp_cassoc_cb = {
 	.recv_msg = udp_cassoc_recv_msg
 };
 
-static int udp_cassoc_queue_msg(udp_cassoc_t *cassoc, udp_sockpair_t *sp,
+static int udp_cassoc_queue_msg(udp_cassoc_t *cassoc, inet_ep2_t *epp,
     udp_msg_t *msg)
 {
 	udp_crcv_queue_entry_t *rqe;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_cassoc_queue_msg(%p, %p, %p)",
-	    cassoc, sp, msg);
+	    cassoc, epp, msg);
 
 	rqe = calloc(1, sizeof(udp_crcv_queue_entry_t));
 	if (rqe == NULL)
 		return ENOMEM;
 
 	link_initialize(&rqe->link);
-	rqe->sp = *sp;
+	rqe->epp = *epp;
 	rqe->msg = msg;
 	rqe->cassoc = cassoc;
 
@@ -143,11 +143,11 @@ static int udp_cassoc_get(udp_client_t *client, sysarg_t id,
 	return ENOENT;
 }
 
-static void udp_cassoc_recv_msg(void *arg, udp_sockpair_t *sp, udp_msg_t *msg)
+static void udp_cassoc_recv_msg(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
 {
 	udp_cassoc_t *cassoc = (udp_cassoc_t *) arg;
 
-	udp_cassoc_queue_msg(cassoc, sp, msg);
+	udp_cassoc_queue_msg(cassoc, epp, msg);
 	udp_ev_data(cassoc->client);
 }
 
@@ -156,18 +156,11 @@ static int udp_assoc_create_impl(udp_client_t *client, inet_ep2_t *epp,
 {
 	udp_assoc_t *assoc;
 	udp_cassoc_t *cassoc;
-	udp_sock_t local;
-	udp_sock_t remote;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_create_impl");
 
-	local.addr = epp->local.addr;
-	local.port = epp->local.port;
-	remote.addr = epp->remote.addr;
-	remote.port = epp->remote.port;
-
-	assoc = udp_assoc_new(&local, &remote, NULL, NULL);
+	assoc = udp_assoc_new(epp, NULL, NULL);
 	if (assoc == NULL)
 		return EIO;
 
@@ -212,7 +205,6 @@ static int udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
     inet_ep_t *dest, void *data, size_t size)
 {
 	udp_msg_t msg;
-	udp_sock_t remote;
 	udp_cassoc_t *cassoc;
 	int rc;
 
@@ -220,12 +212,9 @@ static int udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
 	if (rc != EOK)
 		return rc;
 
-	remote.addr = dest->addr;
-	remote.port = dest->port;
-
 	msg.data = data;
 	msg.data_size = size;
-	rc = udp_assoc_send(cassoc->assoc, &remote, &msg);
+	rc = udp_assoc_send(cassoc->assoc, dest, &msg);
 	if (rc != EOK)
 		return rc;
 
@@ -389,7 +378,6 @@ static void udp_rmsg_info_srv(udp_client_t *client, ipc_callid_t iid,
 {
 	ipc_callid_t callid;
 	size_t size;
-	inet_ep_t ep;
 	udp_crcv_queue_entry_t *enext;
 	sysarg_t assoc_id;
 	int rc;
@@ -409,11 +397,8 @@ static void udp_rmsg_info_srv(udp_client_t *client, ipc_callid_t iid,
 		return;
 	}
 
-	inet_ep_init(&ep);
-	ep.addr = enext->sp.foreign.addr;
-	ep.port = enext->sp.foreign.port;
-
-	rc = async_data_read_finalize(callid, &ep, max(size, (ssize_t)sizeof(ep)));
+	rc = async_data_read_finalize(callid, &enext->epp.remote,
+	    max(size, (ssize_t)sizeof(inet_ep_t)));
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;

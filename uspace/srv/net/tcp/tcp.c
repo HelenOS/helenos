@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -159,7 +159,7 @@ void tcp_transmit_pdu(tcp_pdu_t *pdu)
 static void tcp_received_pdu(tcp_pdu_t *pdu)
 {
 	tcp_segment_t *dseg;
-	tcp_sockpair_t rident;
+	inet_ep2_t rident;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_received_pdu()");
 

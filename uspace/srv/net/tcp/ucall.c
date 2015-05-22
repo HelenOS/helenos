@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,8 +49,7 @@
 
 /** OPEN user call
  *
- * @param lsock		Local socket
- * @param fsock		Foreign socket
+ * @param epp		Endpoint pair
  * @param acpass	Active/passive
  * @param oflags	Open flags
  * @param conn		Connection
@@ -64,16 +63,16 @@
  * XXX We should be able to get connection structure immediately, before
  * establishment.
  */
-tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
+tcp_error_t tcp_uc_open(inet_ep2_t *epp, acpass_t acpass,
     tcp_open_flags_t oflags, tcp_conn_t **conn)
 {
 	tcp_conn_t *nconn;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open(%p, %p, %s, %s, %p)",
-	    lsock, fsock, acpass == ap_active ? "active" : "passive",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open(%p, %s, %s, %p)",
+	    epp, acpass == ap_active ? "active" : "passive",
 	    oflags == tcp_open_nonblock ? "nonblock" : "none", conn);
 
-	nconn = tcp_conn_new(lsock, fsock);
+	nconn = tcp_conn_new(epp);
 	tcp_conn_add(nconn);
 	tcp_conn_lock(nconn);
 
@@ -314,18 +313,18 @@ void *tcp_uc_get_userptr(tcp_conn_t *conn)
  */
 
 /** Segment arrived */
-void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_as_segment_arrived(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_conn_t *conn;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "tcp_as_segment_arrived(f:(%u), l:(%u))",
-	    sp->foreign.port, sp->local.port);
+	    epp->remote.port, epp->local.port);
 
-	conn = tcp_conn_find_ref(sp);
+	conn = tcp_conn_find_ref(epp);
 	if (conn == NULL) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "No connection found.");
-		tcp_unexpected_segment(sp, seg);
+		tcp_unexpected_segment(epp, seg);
 		return;
 	}
 
@@ -333,20 +332,20 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 
 	if (conn->cstate == st_closed) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Connection is closed.");
-		tcp_unexpected_segment(sp, seg);
+		tcp_unexpected_segment(epp, seg);
 		tcp_conn_unlock(conn);
 		tcp_conn_delref(conn);
 		return;
 	}
 
-	if (inet_addr_is_any(&conn->ident.foreign.addr))
-		conn->ident.foreign.addr = sp->foreign.addr;
-	
-	if (conn->ident.foreign.port == TCP_PORT_ANY)
-		conn->ident.foreign.port = sp->foreign.port;
-	
+	if (inet_addr_is_any(&conn->ident.remote.addr))
+		conn->ident.remote.addr = epp->remote.addr;
+
+	if (conn->ident.remote.port == TCP_PORT_ANY)
+		conn->ident.remote.port = epp->remote.port;
+
 	if (inet_addr_is_any(&conn->ident.local.addr))
-		conn->ident.local.addr = sp->local.addr;
+		conn->ident.local.addr = epp->local.addr;
 
 	tcp_conn_segment_arrived(conn, seg);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,13 +35,14 @@
 #ifndef UCALL_H
 #define UCALL_H
 
+#include <inet/endpoint.h>
 #include <sys/types.h>
 #include "tcp_type.h"
 
 /*
  * User calls
  */
-extern tcp_error_t tcp_uc_open(tcp_sock_t *, tcp_sock_t *, acpass_t,
+extern tcp_error_t tcp_uc_open(inet_ep2_t *, acpass_t,
     tcp_open_flags_t, tcp_conn_t **);
 extern tcp_error_t tcp_uc_send(tcp_conn_t *, void *, size_t, xflags_t);
 extern tcp_error_t tcp_uc_receive(tcp_conn_t *, void *, size_t, size_t *, xflags_t *);
@@ -55,7 +56,7 @@ extern void *tcp_uc_get_userptr(tcp_conn_t *);
 /*
  * Arriving segments
  */
-extern void tcp_as_segment_arrived(tcp_sockpair_t *, tcp_segment_t *);
+extern void tcp_as_segment_arrived(inet_ep2_t *, tcp_segment_t *);
 
 /*
  * Timeouts

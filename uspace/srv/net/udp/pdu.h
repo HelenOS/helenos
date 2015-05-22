@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,14 +35,15 @@
 #ifndef PDU_H
 #define PDU_H
 
+#include <inet/endpoint.h>
 #include <sys/types.h>
 #include "std.h"
 #include "udp_type.h"
 
 extern udp_pdu_t *udp_pdu_new(void);
 extern void udp_pdu_delete(udp_pdu_t *);
-extern int udp_pdu_decode(udp_pdu_t *, udp_sockpair_t *, udp_msg_t **);
-extern int udp_pdu_encode(udp_sockpair_t *, udp_msg_t *, udp_pdu_t **);
+extern int udp_pdu_decode(udp_pdu_t *, inet_ep2_t *, udp_msg_t **);
+extern int udp_pdu_encode(inet_ep2_t *, udp_msg_t *, udp_pdu_t **);
 
 #endif
 

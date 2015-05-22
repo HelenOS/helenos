@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,14 +35,15 @@
 #ifndef PDU_H
 #define PDU_H
 
+#include <inet/endpoint.h>
 #include <sys/types.h>
 #include "std.h"
 #include "tcp_type.h"
 
 extern tcp_pdu_t *tcp_pdu_create(void *, size_t, void *, size_t);
 extern void tcp_pdu_delete(tcp_pdu_t *);
-extern int tcp_pdu_decode(tcp_pdu_t *, tcp_sockpair_t *, tcp_segment_t **);
-extern int tcp_pdu_encode(tcp_sockpair_t *, tcp_segment_t *, tcp_pdu_t **);
+extern int tcp_pdu_decode(tcp_pdu_t *, inet_ep2_t *, tcp_segment_t **);
+extern int tcp_pdu_encode(inet_ep2_t *, tcp_segment_t *, tcp_pdu_t **);
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #include <adt/list.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <inet/endpoint.h>
 #include <io/log.h>
 #include <macros.h>
 #include <stdlib.h>
@@ -63,11 +64,10 @@ static void tcp_conn_tw_timer_clear(tcp_conn_t *conn);
 
 /** Create new connection structure.
  *
- * @param lsock		Local socket (will be deeply copied)
- * @param fsock		Foreign socket (will be deeply copied)
+ * @param epp		Endpoint pair (will be deeply copied)
  * @return		New connection or NULL
  */
-tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
+tcp_conn_t *tcp_conn_new(inet_ep2_t *epp)
 {
 	tcp_conn_t *conn = NULL;
 	bool tqueue_inited = false;
@@ -127,9 +127,8 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	conn->deleted = false;
 	conn->ap = ap_passive;
 	conn->fin_is_acked = false;
-	conn->ident.local = *lsock;
-	if (fsock != NULL)
-		conn->ident.foreign = *fsock;
+	if (epp != NULL)
+		conn->ident = *epp;
 
 	return conn;
 
@@ -334,18 +333,18 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 	conn->fin_is_acked = false;
 }
 
-/** Match socket with pattern. */
-static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
+/** Match endpoint with pattern. */
+static bool tcp_ep_match(inet_ep_t *ep, inet_ep_t *patt)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2,
-	    "tcp_socket_match(sock=(%u), pat=(%u))", sock->port, patt->port);
-	
+	    "tcp_ep_match(ep=(%u), pat=(%u))", ep->port, patt->port);
+
 	if ((!inet_addr_is_any(&patt->addr)) &&
-	    (!inet_addr_compare(&patt->addr, &sock->addr)))
+	    (!inet_addr_compare(&patt->addr, &ep->addr)))
 		return false;
 
 	if ((patt->port != TCP_PORT_ANY) &&
-	    (patt->port != sock->port))
+	    (patt->port != ep->port))
 		return false;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, " -> match");
@@ -353,51 +352,51 @@ static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 	return true;
 }
 
-/** Match socket pair with pattern. */
-static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
+/** Match endpoint pair with pattern. */
+static bool tcp_ep2_match(inet_ep2_t *epp, inet_ep2_t *pattern)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_sockpair_match(%p, %p)", sp, pattern);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_ep2_match(%p, %p)", epp, pattern);
 
-	if (!tcp_socket_match(&sp->local, &pattern->local))
+	if (!tcp_ep_match(&epp->local, &pattern->local))
 		return false;
 
-	if (!tcp_socket_match(&sp->foreign, &pattern->foreign))
+	if (!tcp_ep_match(&epp->remote, &pattern->remote))
 		return false;
 
 	return true;
 }
 
-/** Find connection structure for specified socket pair.
+/** Find connection structure for specified endpoint pair.
  *
- * A connection is uniquely identified by a socket pair. Look up our
- * connection map and return connection structure based on socket pair.
+ * A connection is uniquely identified by a endpoint pair. Look up our
+ * connection map and return connection structure based on endpoint pair.
  * The connection reference count is bumped by one.
  *
- * @param sp	Socket pair
+ * @param epp	Endpoint pair
  * @return	Connection structure or NULL if not found.
  */
-tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
+tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", sp);
-	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", epp);
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "compare conn (f:(%u), l:(%u))",
-	    sp->foreign.port, sp->local.port);
-	
+	    epp->remote.port, epp->local.port);
+
 	fibril_mutex_lock(&conn_list_lock);
-	
+
 	list_foreach(conn_list, link, tcp_conn_t, conn) {
-		tcp_sockpair_t *csp = &conn->ident;
-		
+		inet_ep2_t *cepp = &conn->ident;
+
 		log_msg(LOG_DEFAULT, LVL_DEBUG2, " - with (f:(%u), l:(%u))",
-		    csp->foreign.port, csp->local.port);
-		
-		if (tcp_sockpair_match(sp, csp)) {
+		    cepp->remote.port, cepp->local.port);
+
+		if (tcp_ep2_match(epp, cepp)) {
 			tcp_conn_addref(conn);
 			fibril_mutex_unlock(&conn_list_lock);
 			return conn;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&conn_list_lock);
 	return NULL;
 }
@@ -1269,47 +1268,48 @@ void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_segment_trim(seg, left, right);
 }
 
-/** Handle unexpected segment received on a socket pair.
+/** Handle unexpected segment received on an endpoint pair.
  *
  * We reply with an RST unless the received segment has RST.
  *
- * @param sp		Socket pair which received the segment
+ * @param sp		Endpoint pair which received the segment
  * @param seg		Unexpected segment
  */
-void tcp_unexpected_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_unexpected_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_unexpected_segment(%p, %p)", sp, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_unexpected_segment(%p, %p)", epp,
+	    seg);
 
 	if ((seg->ctrl & CTL_RST) == 0)
-		tcp_reply_rst(sp, seg);
+		tcp_reply_rst(epp, seg);
 }
 
-/** Compute flipped socket pair for response.
+/** Compute flipped endpoint pair for response.
  *
- * Flipped socket pair has local and foreign sockets exchanged.
+ * Flipped endpoint pair has local and remote endpoints exchanged.
  *
- * @param sp		Socket pair
- * @param fsp		Place to store flipped socket pair
+ * @param epp		Endpoint pair
+ * @param fepp		Place to store flipped endpoint pair
  */
-void tcp_sockpair_flipped(tcp_sockpair_t *sp, tcp_sockpair_t *fsp)
+void tcp_ep2_flipped(inet_ep2_t *epp, inet_ep2_t *fepp)
 {
-	fsp->local = sp->foreign;
-	fsp->foreign = sp->local;
+	fepp->local = epp->remote;
+	fepp->remote = epp->local;
 }
 
 /** Send RST in response to an incoming segment.
  *
- * @param sp		Socket pair which received the segment
+ * @param epp		Endpoint pair which received the segment
  * @param seg		Incoming segment
  */
-void tcp_reply_rst(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_reply_rst(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_segment_t *rseg;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_reply_rst(%p, %p)", sp, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_reply_rst(%p, %p)", epp, seg);
 
 	rseg = tcp_segment_make_rst(seg);
-	tcp_transmit_segment(sp, rseg);
+	tcp_transmit_segment(epp, rseg);
 }
 
 /**

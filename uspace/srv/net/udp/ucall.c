@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ udp_error_t udp_uc_create(udp_assoc_t **assoc)
 	udp_assoc_t *nassoc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_create()");
-	nassoc = udp_assoc_new(NULL, NULL, NULL, NULL);
+	nassoc = udp_assoc_new(NULL, NULL, NULL);
 	if (nassoc == NULL)
 		return UDP_ENORES;
 
@@ -66,31 +66,31 @@ void udp_uc_set_iplink(udp_assoc_t *assoc, service_id_t iplink)
 	udp_assoc_set_iplink(assoc, iplink);
 }
 
-udp_error_t udp_uc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
+udp_error_t udp_uc_set_remote(udp_assoc_t *assoc, inet_ep_t *ep)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_foreign(%p, %p)", assoc, fsock);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_remote(%p, %p)", assoc, ep);
 
-	udp_assoc_set_foreign(assoc, fsock);
+	udp_assoc_set_remote(assoc, ep);
 	return UDP_EOK;
 }
 
-udp_error_t udp_uc_set_local(udp_assoc_t *assoc, udp_sock_t *lsock)
+udp_error_t udp_uc_set_local(udp_assoc_t *assoc, inet_ep_t *ep)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_local(%p, %p)", assoc, lsock);
-	
-	udp_assoc_set_local(assoc, lsock);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_local(%p, %p)", assoc, ep);
+
+	udp_assoc_set_local(assoc, ep);
 	return UDP_EOK;
 }
 
 udp_error_t udp_uc_set_local_port(udp_assoc_t *assoc, uint16_t lport)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_local(%p, %" PRIu16 ")", assoc, lport);
-	
+
 	udp_assoc_set_local_port(assoc, lport);
 	return UDP_EOK;
 }
 
-udp_error_t udp_uc_send(udp_assoc_t *assoc, udp_sock_t *fsock, void *data,
+udp_error_t udp_uc_send(udp_assoc_t *assoc, inet_ep_t *remote, void *data,
     size_t size, xflags_t flags)
 {
 	int rc;
@@ -101,7 +101,7 @@ udp_error_t udp_uc_send(udp_assoc_t *assoc, udp_sock_t *fsock, void *data,
 	msg.data = data;
 	msg.data_size = size;
 
-	rc = udp_assoc_send(assoc, fsock, &msg);
+	rc = udp_assoc_send(assoc, remote, &msg);
 	switch (rc) {
 	case ENOMEM:
 		return UDP_ENORES;
@@ -114,14 +114,14 @@ udp_error_t udp_uc_send(udp_assoc_t *assoc, udp_sock_t *fsock, void *data,
 }
 
 udp_error_t udp_uc_receive(udp_assoc_t *assoc, void *buf, size_t size,
-    size_t *rcvd, xflags_t *xflags, udp_sock_t *fsock)
+    size_t *rcvd, xflags_t *xflags, inet_ep_t *remote)
 {
 	size_t xfer_size;
 	udp_msg_t *msg;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: udp_uc_receive()", assoc->name);
-	rc = udp_assoc_recv(assoc, &msg, fsock);
+	rc = udp_assoc_recv(assoc, &msg, remote);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_recv -> %d", rc);
 	switch (rc) {
 	case EOK:

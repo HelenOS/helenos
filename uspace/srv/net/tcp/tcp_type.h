@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@
 #include <fibril_synch.h>
 #include <sys/types.h>
 #include <inet/addr.h>
+#include <inet/endpoint.h>
 
 struct tcp_conn;
 
@@ -88,7 +89,7 @@ typedef enum {
 	TCP_ENOTOPEN,
 	/* Connection reset */
 	TCP_ERESET,
-	/* Foreign socket unspecified */
+	/* Remote endpoint unspecified */
 	TCP_EUNSPEC,
 	/* Insufficient resources */
 	TCP_ENORES,
@@ -111,19 +112,9 @@ typedef enum {
 	CTL_ACK		= 0x8
 } tcp_control_t;
 
-typedef struct {
-	inet_addr_t addr;
-	uint16_t port;
-} tcp_sock_t;
-
 enum tcp_port {
 	TCP_PORT_ANY = 0
 };
-
-typedef struct {
-	tcp_sock_t local;
-	tcp_sock_t foreign;
-} tcp_sockpair_t;
 
 /** Connection incoming segments queue */
 typedef struct {
@@ -170,8 +161,8 @@ struct tcp_conn {
 	/** Argument to @c cstate_cb */
 	void *cb_arg;
 
-	/** Connection identification (local and foreign socket) */
-	tcp_sockpair_t ident;
+	/** Connection identification (local and remote endpoint) */
+	inet_ep2_t ident;
 
 	/** Active or passive connection */
 	acpass_t ap;
@@ -279,7 +270,7 @@ typedef struct {
 
 typedef struct {
 	link_t link;
-	tcp_sockpair_t sp;
+	inet_ep2_t epp;
 	tcp_segment_t *seg;
 } tcp_rqueue_entry_t;
 
@@ -287,7 +278,7 @@ typedef struct {
 typedef struct {
 	link_t link;
 	suseconds_t delay;
-	tcp_sockpair_t sp;
+	inet_ep2_t epp;
 	tcp_segment_t *seg;
 } tcp_squeue_entry_t;
 
@@ -338,7 +329,7 @@ typedef struct tcp_cconn {
 /** TCP client listener */
 typedef struct tcp_clst {
 	/** Local endpoint */
-	tcp_sock_t elocal;
+	inet_ep_t elocal;
 	/** Connection */
 	tcp_conn_t *conn;
 	/** Listener ID for the client */
@@ -358,41 +349,6 @@ typedef struct tcp_client {
 	/** Client's listeners */
 	list_t clst;
 } tcp_client_t;
-
-#define TCP_SOCK_FRAGMENT_SIZE 1024
-
-typedef struct tcp_sockdata {
-	/** Lock */
-	fibril_mutex_t lock;
-	/** Socket core */
-//	socket_core_t *sock_core;
-	/** Client */
-	tcp_client_t *client;
-	/** Connection */
-	tcp_conn_t *conn;
-	/** Local address */
-	inet_addr_t laddr;
-	/** Backlog size */
-	int backlog;
-	/** Array of listening connections, @c backlog elements */
-	struct tcp_sock_lconn **lconn;
-	/** List of connections (from lconn) that are ready to be accepted */
-	list_t ready;
-	/** Receiving fibril */
-	fid_t recv_fibril;
-	uint8_t recv_buffer[TCP_SOCK_FRAGMENT_SIZE];
-	size_t recv_buffer_used;
-	fibril_mutex_t recv_buffer_lock;
-	fibril_condvar_t recv_buffer_cv;
-	tcp_error_t recv_error;
-} tcp_sockdata_t;
-
-typedef struct tcp_sock_lconn {
-	tcp_conn_t *conn;
-	tcp_sockdata_t *socket;
-	int index;
-	link_t ready_list;
-} tcp_sock_lconn_t;
 
 #endif
 

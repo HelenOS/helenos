@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -281,12 +281,12 @@ void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_transmit_segment(&conn->ident, seg);
 }
 
-void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_transmit_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "tcp_transmit_segment(l:(%u),f:(%u), %p)",
-	    sp->local.port, sp->foreign.port, seg);
-	
+	    epp->local.port, epp->remote.port, seg);
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
 	    seg->seq, seg->wnd);
 
@@ -300,7 +300,7 @@ void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 
 	tcp_pdu_t *pdu;
 
-	if (tcp_pdu_encode(sp, seg, &pdu) != EOK) {
+	if (tcp_pdu_encode(epp, seg, &pdu) != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
 		return;
 	}
