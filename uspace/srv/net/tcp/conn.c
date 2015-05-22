@@ -343,7 +343,7 @@ static bool tcp_ep_match(inet_ep_t *ep, inet_ep_t *patt)
 	    (!inet_addr_compare(&patt->addr, &ep->addr)))
 		return false;
 
-	if ((patt->port != TCP_PORT_ANY) &&
+	if ((patt->port != inet_port_any) &&
 	    (patt->port != ep->port))
 		return false;
 

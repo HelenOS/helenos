@@ -112,10 +112,6 @@ typedef enum {
 	CTL_ACK		= 0x8
 } tcp_control_t;
 
-enum tcp_port {
-	TCP_PORT_ANY = 0
-};
-
 /** Connection incoming segments queue */
 typedef struct {
 	struct tcp_conn *conn;

@@ -341,7 +341,7 @@ void tcp_as_segment_arrived(inet_ep2_t *epp, tcp_segment_t *seg)
 	if (inet_addr_is_any(&conn->ident.remote.addr))
 		conn->ident.remote.addr = epp->remote.addr;
 
-	if (conn->ident.remote.port == TCP_PORT_ANY)
+	if (conn->ident.remote.port == inet_port_any)
 		conn->ident.remote.port = epp->remote.port;
 
 	if (inet_addr_is_any(&conn->ident.local.addr))

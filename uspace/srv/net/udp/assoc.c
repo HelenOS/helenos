@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <fibril_synch.h>
+#include <inet/endpoint.h>
 #include <io/log.h>
 #include <stdlib.h>
 
@@ -269,7 +270,7 @@ int udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send - check addr any");
 
 	if ((inet_addr_is_any(&epp.remote.addr)) ||
-	    (epp.remote.port == UDP_PORT_ANY))
+	    (epp.remote.port == inet_port_any))
 		return EINVAL;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send - check version");
@@ -421,7 +422,7 @@ static bool udp_ep_match(inet_ep_t *ep, inet_ep_t *patt)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "addr OK");
 
-	if ((patt->port != UDP_PORT_ANY) &&
+	if ((patt->port != inet_port_any) &&
 	    (patt->port != ep->port))
 		return false;
 
@@ -475,7 +476,7 @@ static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *epp)
 		log_msg(LOG_DEFAULT, LVL_NOTE, "find_ref:aepp=%p la=%s ra=%s",
 		    aepp, la, ra);
 		/* Skip unbound associations */
-		if (aepp->local.port == UDP_PORT_ANY) {
+		if (aepp->local.port == inet_port_any) {
 			log_msg(LOG_DEFAULT, LVL_NOTE, "skip unbound");
 			continue;
 		}

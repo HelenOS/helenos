@@ -61,10 +61,6 @@ typedef enum {
 	XF_DUMMY = 0x1
 } xflags_t;
 
-enum udp_port {
-	UDP_PORT_ANY = 0
-};
-
 /** Unencoded UDP message (datagram) */
 typedef struct {
 	/** Message data */
