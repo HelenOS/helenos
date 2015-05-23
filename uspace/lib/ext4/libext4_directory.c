@@ -389,15 +389,11 @@ int ext4_directory_add_entry(ext4_inode_ref_t *parent, const char *name,
 	    EXT4_FEATURE_COMPAT_DIR_INDEX)) &&
 	    (ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX))) {
 		int rc = ext4_directory_dx_add_entry(parent, child, name);
-		
+
 		/* Check if index is not corrupted */
-		if (rc != EXT4_ERR_BAD_DX_DIR) {
-			if (rc != EOK)
-				return rc;
-			
-			return EOK;
-		}
-		
+		if (rc != EXT4_ERR_BAD_DX_DIR)
+			return rc;
+
 		/* Needed to clear dir index flag if corrupted */
 		ext4_inode_clear_flag(parent->inode, EXT4_INODE_FLAG_INDEX);
 		parent->dirty = true;

@@ -47,47 +47,54 @@
 #include "spec/bdl.h"
 #include "stream.h"
 
-static int hda_stream_buffers_alloc(hda_stream_t *stream)
+int hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 {
 	void *bdl;
 	void *buffer;
 	uintptr_t buffer_phys;
+	hda_stream_buffers_t *bufs = NULL;
 	size_t i;
 //	size_t j, k;
 	int rc;
 
-	stream->nbuffers = 4;
-	stream->bufsize = 16384;
+	bufs = calloc(1, sizeof(hda_stream_buffers_t));
+	if (bufs == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	bufs->nbuffers = 4;
+	bufs->bufsize = 16384;
 
 	/*
 	 * BDL must be aligned to 128 bytes. If 64OK is not set,
 	 * it must be within the 32-bit address space.
 	 */
 	bdl = AS_AREA_ANY;
-	rc = dmamem_map_anonymous(stream->nbuffers * sizeof(hda_buffer_desc_t),
-	    stream->hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
-	    0, &stream->bdl_phys, &bdl);
+	rc = dmamem_map_anonymous(bufs->nbuffers * sizeof(hda_buffer_desc_t),
+	    hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
+	    0, &bufs->bdl_phys, &bdl);
 	if (rc != EOK)
 		goto error;
 
-	stream->bdl = bdl;
+	bufs->bdl = bdl;
 
 	/* Allocate arrays of buffer pointers */
 
-	stream->buf = calloc(stream->nbuffers, sizeof(void *));
-	if (stream->buf == NULL)
+	bufs->buf = calloc(bufs->nbuffers, sizeof(void *));
+	if (bufs->buf == NULL)
 		goto error;
 
-	stream->buf_phys = calloc(stream->nbuffers, sizeof(uintptr_t));
-	if (stream->buf_phys == NULL)
+	bufs->buf_phys = calloc(bufs->nbuffers, sizeof(uintptr_t));
+	if (bufs->buf_phys == NULL)
 		goto error;
 
 	/* Allocate buffers */
 /*
-	for (i = 0; i < stream->nbuffers; i++) {
+	for (i = 0; i < bufs->nbuffers; i++) {
 		buffer = AS_AREA_ANY;
-		rc = dmamem_map_anonymous(stream->bufsize,
-		    stream->hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
+		rc = dmamem_map_anonymous(bufs->bufsize,
+		    bufs->hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
 		    0, &buffer_phys, &buffer);
 		if (rc != EOK)
 			goto error;
@@ -95,12 +102,12 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 		ddf_msg(LVL_NOTE, "Stream buf phys=0x%llx virt=%p",
 		    (unsigned long long)buffer_phys, buffer);
 
-		stream->buf[i] = buffer;
-		stream->buf_phys[i] = buffer_phys;
+		bufs->buf[i] = buffer;
+		bufs->buf_phys[i] = buffer_phys;
 
 		k = 0;
-		for (j = 0; j < stream->bufsize / 2; j++) {
-			int16_t *bp = stream->buf[i];
+		for (j = 0; j < bufs->bufsize / 2; j++) {
+			int16_t *bp = bufs->buf[i];
 			bp[j] = (k > 128) ? -100 : 100;
 			++k;
 			if (k >= 256)
@@ -110,24 +117,24 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 */
 	/* audio_pcm_iface requires a single contiguous buffer */
 	buffer = AS_AREA_ANY;
-	rc = dmamem_map_anonymous(stream->bufsize * stream->nbuffers,
-	    stream->hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
+	rc = dmamem_map_anonymous(bufs->bufsize * bufs->nbuffers,
+	    hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
 	    0, &buffer_phys, &buffer);
 	if (rc != EOK) {
 		ddf_msg(LVL_NOTE, "dmamem_map_anon -> %d", rc);
 		goto error;
 	}
 
-	for (i = 0; i < stream->nbuffers; i++) {
-		stream->buf[i] = buffer + i * stream->bufsize;
-		stream->buf_phys[i] = buffer_phys + i * stream->bufsize;
+	for (i = 0; i < bufs->nbuffers; i++) {
+		bufs->buf[i] = buffer + i * bufs->bufsize;
+		bufs->buf_phys[i] = buffer_phys + i * bufs->bufsize;
 
 		ddf_msg(LVL_NOTE, "Stream buf phys=0x%llx virt=%p",
-		    (long long unsigned)(uintptr_t)stream->buf[i],
-		    (void *)stream->buf_phys[i]);
+		    (long long unsigned)(uintptr_t)bufs->buf[i],
+		    (void *)bufs->buf_phys[i]);
 /*		k = 0;
-		for (j = 0; j < stream->bufsize / 2; j++) {
-			int16_t *bp = stream->buf[i];
+		for (j = 0; j < bufs->bufsize / 2; j++) {
+			int16_t *bp = bufs->buf[i];
 			bp[j] = (k > 128) ? -10000 : 10000;
 			++k;
 			if (k >= 256)
@@ -137,20 +144,32 @@ static int hda_stream_buffers_alloc(hda_stream_t *stream)
 	}
 
 	/* Fill in BDL */
-	for (i = 0; i < stream->nbuffers; i++) {
-		stream->bdl[i].address = host2uint64_t_le(stream->buf_phys[i]);
-		stream->bdl[i].length = host2uint32_t_le(stream->bufsize);
-		stream->bdl[i].flags = BIT_V(uint32_t, bdf_ioc);
+	for (i = 0; i < bufs->nbuffers; i++) {
+		bufs->bdl[i].address = host2uint64_t_le(bufs->buf_phys[i]);
+		bufs->bdl[i].length = host2uint32_t_le(bufs->bufsize);
+		bufs->bdl[i].flags = BIT_V(uint32_t, bdf_ioc);
 	}
 
+	*rbufs = bufs;
 	return EOK;
 error:
+	hda_stream_buffers_free(bufs);
 	return ENOMEM;
+}
+
+void hda_stream_buffers_free(hda_stream_buffers_t *bufs)
+{
+	if (bufs == NULL)
+		return;
+
+	/* XXX */
+	free(bufs);
 }
 
 static void hda_stream_desc_configure(hda_stream_t *stream)
 {
 	hda_sdesc_regs_t *sdregs;
+	hda_stream_buffers_t *bufs = stream->buffers;
 	uint8_t ctl1;
 	uint8_t ctl3;
 
@@ -160,11 +179,11 @@ static void hda_stream_desc_configure(hda_stream_t *stream)
 	sdregs = &stream->hda->regs->sdesc[stream->sdid];
 	hda_reg8_write(&sdregs->ctl3, ctl3);
 	hda_reg8_write(&sdregs->ctl1, ctl1);
-	hda_reg32_write(&sdregs->cbl, stream->nbuffers * stream->bufsize);
-	hda_reg16_write(&sdregs->lvi, stream->nbuffers - 1);
+	hda_reg32_write(&sdregs->cbl, bufs->nbuffers * bufs->bufsize);
+	hda_reg16_write(&sdregs->lvi, bufs->nbuffers - 1);
 	hda_reg16_write(&sdregs->fmt, stream->fmt);
-	hda_reg32_write(&sdregs->bdpl, LOWER32(stream->bdl_phys));
-	hda_reg32_write(&sdregs->bdpu, UPPER32(stream->bdl_phys));
+	hda_reg32_write(&sdregs->bdpl, LOWER32(bufs->bdl_phys));
+	hda_reg32_write(&sdregs->bdpu, UPPER32(bufs->bdl_phys));
 }
 
 static void hda_stream_set_run(hda_stream_t *stream, bool run)
@@ -204,33 +223,41 @@ static void hda_stream_reset_noinit(hda_stream_t *stream)
 }
 
 hda_stream_t *hda_stream_create(hda_t *hda, hda_stream_dir_t dir,
-    uint32_t fmt)
+    hda_stream_buffers_t *bufs, uint32_t fmt)
 {
 	hda_stream_t *stream;
-	int rc;
+	uint8_t sdid;
 
 	stream = calloc(1, sizeof(hda_stream_t));
 	if (stream == NULL)
 		return NULL;
 
+	sdid = 0;
+
+	switch (dir) {
+	case sdir_input:
+		sdid = 0; /* XXX Allocate - first input SDESC */
+		break;
+	case sdir_output:
+		sdid = hda->ctl->iss; /* XXX Allocate - First output SDESC */
+		break;
+	case sdir_bidi:
+		sdid = hda->ctl->iss + hda->ctl->oss; /* XXX Allocate - First bidi SDESC */
+		break;
+	}
+
 	stream->hda = hda;
 	stream->dir = dir;
 	stream->sid = 1; /* XXX Allocate this */
-	stream->sdid = hda->ctl->iss; /* XXX Allocate - First output SDESC */
+	stream->sdid = sdid;
 	stream->fmt = fmt;
+	stream->buffers = bufs;
 
 	ddf_msg(LVL_NOTE, "snum=%d sdidx=%d", stream->sid, stream->sdid);
-
-	ddf_msg(LVL_NOTE, "Allocate buffers");
-	rc = hda_stream_buffers_alloc(stream);
-	if (rc != EOK)
-		goto error;
 
 	ddf_msg(LVL_NOTE, "Configure stream descriptor");
 	hda_stream_desc_configure(stream);
 	return stream;
-error:
-	return NULL;
 }
 
 void hda_stream_destroy(hda_stream_t *stream)

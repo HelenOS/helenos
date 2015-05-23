@@ -45,6 +45,7 @@
 #include "remote_led_dev.h"
 #include "remote_battery_dev.h"
 #include "remote_nic.h"
+#include "remote_ieee80211.h"
 #include "remote_usb.h"
 #include "remote_usbhc.h"
 #include "remote_usbhid.h"
@@ -61,6 +62,7 @@ static const iface_dipatch_table_t remote_ifaces = {
 		[PIO_WINDOW_DEV_IFACE] = &remote_pio_window_iface,
 		[CHAR_DEV_IFACE] = &remote_char_dev_iface,
 		[NIC_DEV_IFACE] = &remote_nic_iface,
+		[IEEE80211_DEV_IFACE] = &remote_ieee80211_iface,
 		[PCI_DEV_IFACE] = &remote_pci_iface,
 		[USB_DEV_IFACE] = &remote_usb_iface,
 		[USBHC_DEV_IFACE] = &remote_usbhc_iface,

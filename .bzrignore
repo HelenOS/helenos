@@ -19,11 +19,15 @@ kernel/kernel.raw
 kernel/arch/amd64/_link.ld
 kernel/arch/amd64/include/arch/common.h
 kernel/generic/src/debug/real_map.bin
+uspace/app/barber/barber
+uspace/app/barber/images.c
+uspace/app/barber/images.h
 uspace/app/bdsh/bdsh
 uspace/app/bdsh/test-bdsh
 uspace/app/bithenge/bithenge
 uspace/app/blkdump/blkdump
 uspace/app/bnchmark/bnchmark
+uspace/drv/char/pl050/pl050
 uspace/app/date/date
 uspace/app/devctl/devctl
 uspace/app/dnscfg/dnscfg
@@ -43,6 +47,7 @@ uspace/app/mkbd/mkbd
 uspace/app/mkexfat/mkexfat
 uspace/app/mkfat/mkfat
 uspace/app/mkmfs/mkmfs
+uspace/app/modplay/modplay
 uspace/app/netecho/netecho
 uspace/app/nettest1/nettest1
 uspace/app/nettest2/nettest2
@@ -51,6 +56,8 @@ uspace/app/nic/nic
 uspace/app/nterm/nterm
 uspace/app/ping/ping
 uspace/app/ping6/ping6
+uspace/app/rcubench/rcubench
+uspace/app/rcutest/rcutest
 uspace/app/redir/redir
 uspace/app/sbi/sbi
 uspace/app/sportdmp/sportdmp
@@ -72,6 +79,7 @@ uspace/app/vterm/vterm
 uspace/app/vuhid/vuh
 uspace/app/wavplay/wavplay
 uspace/app/websrv/websrv
+uspace/dist/app/barber
 uspace/dist/app/bdsh
 uspace/dist/app/bithenge
 uspace/dist/app/blkdump
@@ -94,6 +102,7 @@ uspace/dist/app/mkbd
 uspace/dist/app/mkexfat
 uspace/dist/app/mkfat
 uspace/dist/app/mkmfs
+uspace/dist/app/modplay
 uspace/dist/app/netecho
 uspace/dist/app/nettest1
 uspace/dist/app/nettest2
@@ -102,6 +111,8 @@ uspace/dist/app/nic
 uspace/dist/app/nterm
 uspace/dist/app/ping
 uspace/dist/app/ping6
+uspace/dist/app/rcubench
+uspace/dist/app/rcutest
 uspace/dist/app/redir
 uspace/dist/app/sbi
 uspace/dist/app/sportdmp
@@ -133,6 +144,7 @@ uspace/dist/drv/kfb/
 uspace/dist/drv/ne2k/
 uspace/dist/drv/ns8250/
 uspace/dist/drv/ohci/
+uspace/dist/drv/pc/
 uspace/dist/drv/pciintel/
 uspace/dist/drv/ps2mouse/
 uspace/dist/drv/root/
@@ -208,6 +220,8 @@ uspace/drv/char/xtkbd/xtkbd
 uspace/drv/fb/kfb/kfb
 uspace/drv/root/root/root
 uspace/drv/root/virt/virt
+uspace/drv/platform/icp/icp
+uspace/drv/platform/pc/pc
 uspace/drv/platform/rootpc/rootpc
 uspace/drv/nic/e1k/e1k
 uspace/drv/nic/ne2k/ne2k

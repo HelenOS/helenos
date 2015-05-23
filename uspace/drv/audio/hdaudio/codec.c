@@ -436,6 +436,11 @@ static int hda_pin_init(hda_codec_t *codec, uint8_t aw)
 	    	pctl = pctl | BIT_V(uint8_t, pctl_out_enable);
 	}
 
+	if ((pcaps & BIT_V(uint32_t, pwc_input)) != 0) {
+		ddf_msg(LVL_NOTE, "PIN %d will enable input", aw);
+	    	pctl = pctl | BIT_V(uint8_t, pctl_in_enable);
+	}
+
 	if ((pcaps & BIT_V(uint32_t, pwc_hpd)) != 0) {
 		ddf_msg(LVL_NOTE, "PIN %d will enable headphone drive", aw);
 	    	pctl = pctl | BIT_V(uint8_t, pctl_hpd_enable);
@@ -502,6 +507,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 
 	codec->hda = hda;
 	codec->address = address;
+	codec->in_aw = -1;
 
 	rc = hda_get_subnc(codec, 0, &sfg, &nfg);
 	if (rc != EOK)
@@ -586,6 +592,26 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 
 				ddf_msg(LVL_NOTE, "Output widget %d: rates=0x%x formats=0x%x",
 				    aw, rates, formats);
+			} else if (awtype == awt_audio_input) {
+				if (codec->in_aw < 0) {
+					ddf_msg(LVL_NOTE, "Selected input "
+					    "widget %d\n", aw);
+					codec->in_aw = aw;
+				} else {
+					ddf_msg(LVL_NOTE, "Ignoring input "
+					    "widget %d\n", aw);
+				}
+
+				rc = hda_get_supp_rates(codec, aw, &rates);
+				if (rc != EOK)
+					goto error;
+
+				rc = hda_get_supp_formats(codec, aw, &formats);
+				if (rc != EOK)
+					goto error;
+
+				ddf_msg(LVL_NOTE, "Input widget %d: rates=0x%x formats=0x%x",
+				    aw, rates, formats);
 			}
 
 			if ((awcaps & BIT_V(uint32_t, awc_out_amp_present)) != 0)
@@ -622,16 +648,37 @@ int hda_out_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
 
 		/* Configure converter */
 
-		ddf_msg(LVL_NOTE, "Configure converter format");
+		ddf_msg(LVL_NOTE, "Configure output converter format");
 		rc = hda_set_converter_fmt(codec, out_aw, stream->fmt);
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "Configure converter stream, channel");
+		ddf_msg(LVL_NOTE, "Configure output converter stream, channel");
 		rc = hda_set_converter_ctl(codec, out_aw, stream->sid, 0);
 		if (rc != EOK)
 			goto error;
 	}
+
+	return EOK;
+error:
+	return rc;
+}
+
+int hda_in_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
+{
+	int rc;
+
+	/* Configure converter */
+
+	ddf_msg(LVL_NOTE, "Configure input converter format");
+	rc = hda_set_converter_fmt(codec, codec->in_aw, stream->fmt);
+	if (rc != EOK)
+		goto error;
+
+	ddf_msg(LVL_NOTE, "Configure input converter stream, channel");
+	rc = hda_set_converter_ctl(codec, codec->in_aw, stream->sid, 0);
+	if (rc != EOK)
+		goto error;
 
 	return EOK;
 error:

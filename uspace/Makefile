@@ -93,6 +93,7 @@ DIRS = \
 	app/df \
 	app/wavplay \
 	app/websrv \
+	app/wifi_supplicant \
 	srv/audio/hound \
 	srv/clipboard \
 	srv/locsrv \
@@ -140,6 +141,7 @@ DIRS = \
 	drv/root/virt \
 	drv/block/ahci \
 	drv/block/ata_bd \
+	drv/block/ddisk \
 	drv/char/i8042 \
 	drv/char/pl050 \
 	drv/char/ps2mouse \
@@ -161,6 +163,7 @@ DIRS = \
 	drv/nic/e1k \
 	drv/nic/rtl8139 \
 	drv/nic/rtl8169 \
+	drv/nic/ar9271 \
 	drv/platform/icp
 
 ## Platform-specific hardware support
@@ -178,10 +181,15 @@ ifeq ($(UARCH), $(filter $(UARCH),amd64 ia32 ia64))
 endif
 
 ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
+ifeq ($(MACHINE),msim)
+	DIRS += \
+		drv/platform/msim
+else
 	DIRS += \
 		drv/platform/malta \
 		drv/bus/pci/pciintel \
 		drv/bus/isa
+endif
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -210,6 +218,7 @@ LIBC = lib/c
 LIBS = \
 	lib/fs \
 	lib/block \
+	lib/crypto \
 	lib/clui \
 	lib/fmtutil \
 	lib/scsi \
@@ -240,7 +249,8 @@ LIBS = \
 	lib/bithenge \
 	lib/posix \
 	lib/mbr \
-	lib/gpt
+	lib/gpt \
+	lib/ieee80211
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

@@ -46,7 +46,7 @@
 #include "drec.h"
 
 
-#define BUFFER_PARTS   2
+#define BUFFER_PARTS   16
 
 /** Recording format */
 static const pcm_format_t format = {
@@ -102,15 +102,19 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 		case PCM_EVENT_CAPTURE_TERMINATED:
 			printf("Recording terminated\n");
 			record = false;
+			break;
 		case PCM_EVENT_FRAMES_CAPTURED:
 			printf("%" PRIun " frames\n", IPC_GET_ARG1(call));
-			async_answer_0(callid, EOK);
 			break;
 		default:
 			printf("Unknown event %" PRIun ".\n", IPC_GET_IMETHOD(call));
 			async_answer_0(callid, ENOTSUP);
 			continue;
+		}
 
+		if (!record) {
+			async_answer_0(callid, EOK);
+			break;
 		}
 
 		/* Write directly from device buffer to file */
@@ -155,6 +159,10 @@ static void record_fragment(record_t *rec, pcm_format_t f)
 	getchar();
 	printf("\n");
 	audio_pcm_stop_capture(rec->device);
+	/* XXX Control returns even before we can be sure callbacks finished */
+	printf("Delay before playback termination\n");
+	async_usleep(1000000);
+	printf("Terminate playback\n");
 }
 
 /**

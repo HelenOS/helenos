@@ -281,7 +281,10 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 		ddf_log_error("Failed to get new FB\n");
 		return ret;
 	}
+	if (dispc->fb_data)
+		dmamem_unmap_anonymous(dispc->fb_data);
 	
+	dispc->fb_data = buffer;
 	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp *8, (uint32_t)pa);
 	dispc->active_fb.idx = mode.index;
 	dispc->active_fb.width = x;
@@ -289,12 +292,9 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 	dispc->active_fb.pitch = 0;
 	dispc->active_fb.bpp = bpp;
 	dispc->active_fb.pixel2visual = p2v;
-	dispc->fb_data = buffer;
 	dispc->size = size;
 	assert(mode.index < 1);
 
-	if (dispc->fb_data)
-		dmamem_unmap_anonymous(dispc->fb_data);
 	return EOK;
 }
 

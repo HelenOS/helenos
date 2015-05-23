@@ -63,6 +63,12 @@ ifeq ($(MACHINE), $(filter $(MACHINE),bmalta lmalta))
 		bus/isa
 endif
 
+ifeq ($(MACHINE),msim)
+	RD_DRVS_ESSENTIAL += \
+		platform/msim \
+		block/ddisk
+endif
+
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \

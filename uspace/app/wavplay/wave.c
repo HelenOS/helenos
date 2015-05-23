@@ -115,7 +115,7 @@ int wav_parse_header(const void *hdata, const void **data, size_t *data_size,
 	if (channels)
 		*channels = uint16_t_le2host(header->channels);
 	if (format) {
-		const unsigned size = uint32_t_le2host(header->sample_size);
+		const unsigned size = uint16_t_le2host(header->sample_size);
 		switch (size) {
 		case 8: *format = PCM_SAMPLE_UINT8; break;
 		case 16: *format = PCM_SAMPLE_SINT16_LE; break;
@@ -156,7 +156,7 @@ void wav_init_header(wave_header_t *header, pcm_format_t format, size_t size)
 	header->sampling_rate = host2uint32_t_le(format.sampling_rate);
 	header->channels = host2uint32_t_le(format.channels);
 	header->sample_size =
-	    host2uint32_t_le(pcm_sample_format_size(format.sample_format));
+	    host2uint16_t_le(pcm_sample_format_size(format.sample_format) * 8);
 }
 /**
  * @}

@@ -417,6 +417,24 @@ static void dhcp_link_set_failed(dhcp_link_t *dlink)
 	dlink->state = ds_fail;
 }
 
+static int dhcp_discover_proc(dhcp_link_t *dlink)
+{
+	dlink->state = ds_selecting;
+
+	int rc = dhcp_send_discover(dlink);
+	if (rc != EOK)
+		return EIO;
+
+	dlink->retries_left = dhcp_discover_retries;
+	
+	if ((dlink->timeout->state == fts_not_set) ||
+	    (dlink->timeout->state == fts_fired))
+		fibril_timer_set(dlink->timeout, dhcp_discover_timeout_val,
+		    dhcpsrv_discover_timeout, dlink);
+	
+	return rc;
+}
+
 int dhcpsrv_link_add(service_id_t link_id)
 {
 	dhcp_link_t *dlink;
@@ -458,20 +476,14 @@ int dhcpsrv_link_add(service_id_t link_id)
 		goto error;
 	}
 
-	dlink->state = ds_selecting;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPDISCOVER");
-	rc = dhcp_send_discover(dlink);
+	rc = dhcp_discover_proc(dlink);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error sending DHCPDISCOVER.");
 		dhcp_link_set_failed(dlink);
 		rc = EIO;
 		goto error;
 	}
-
-	dlink->retries_left = dhcp_discover_retries;
-	fibril_timer_set(dlink->timeout, dhcp_discover_timeout_val,
-	    dhcpsrv_discover_timeout, dlink);
 
 	list_append(&dlink->links, &dhcp_links);
 
@@ -486,6 +498,21 @@ error:
 int dhcpsrv_link_remove(service_id_t link_id)
 {
 	return ENOTSUP;
+}
+
+int dhcpsrv_discover(service_id_t link_id)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
+	
+	dhcp_link_t *dlink = dhcpsrv_link_find(link_id);
+	
+	if (dlink == NULL) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Link %zu doesn't exist",
+		    link_id);
+		return EINVAL;
+	}
+	
+	return dhcp_discover_proc(dlink);
 }
 
 static void dhcpsrv_recv_offer(dhcp_link_t *dlink, dhcp_offer_t *offer)
@@ -533,6 +560,9 @@ static void dhcpsrv_recv_ack(dhcp_link_t *dlink, dhcp_offer_t *offer)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error creating configuration.");
 		return;
 	}
+
+	/* XXX Work around multiple simultaneous sessions issue */
+	dhcp_transport_fini(&dlink->dt);
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: Successfully configured.",
 	    dlink->link_info.name);

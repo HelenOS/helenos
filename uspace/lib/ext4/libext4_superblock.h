@@ -144,6 +144,7 @@ extern bool ext4_superblock_has_feature_read_only(ext4_superblock_t *,
     uint32_t);
 extern int ext4_superblock_read_direct(service_id_t, ext4_superblock_t **);
 extern int ext4_superblock_write_direct(service_id_t, ext4_superblock_t *);
+extern void ext4_superblock_release(ext4_superblock_t *);
 extern int ext4_superblock_check_sanity(ext4_superblock_t *);
 
 extern uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *);
