@@ -59,17 +59,19 @@ def pre_change_branch_tip(params):
 	if params.old_revid == 'null:':
 		return
 	
-	# First permitted case is appending changesets to main branch.Look for
+	# First permitted case is appending changesets to main branch. Look for
 	# old tip in new main branch.
 	for revision_id in iter_reverse_revision_history(repo, params.new_revid):
 		if revision_id == params.old_revid:
-			return	# Found old tip
+			# Old tip found
+			return
 	
 	# Another permitted case is backing out changesets. Look for new tip
 	# in old branch.
 	for revision_id in iter_reverse_revision_history(repo, params.old_revid):
 		if revision_id == params.new_revid:
-			return	# Found new tip
+			# New tip found
+			return
 	
 	# Trying to do something else. Reject the change.
 	raise TipChangeRejected('Bad tip. Read http://trac.helenos.org/wiki/BazaarWorkflow')
