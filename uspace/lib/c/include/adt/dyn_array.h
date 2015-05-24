@@ -100,8 +100,10 @@ typedef struct {
  *                         to @p type
  */
 #define dyn_array_foreach(dyn_array, type, it)                                 \
-	for (type *it = (type *)(dyn_array)._data;                             \
-	    it != ((type *)(dyn_array)._data + (dyn_array).size); ++it)
+	for (type *it = NULL; it == NULL; it = (type *)1)                      \
+	    for (type *_it = (type *)(dyn_array)._data;                        \
+	    it = _it, _it != ((type *)(dyn_array)._data + (dyn_array).size);   \
+	    ++_it)
 
 /** Find first occurence of value
  *
