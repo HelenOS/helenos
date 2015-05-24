@@ -36,13 +36,12 @@ EXTRA_CFLAGS += -I. \
 BINARY = sysman
 STATIC_NEEDED = y
 
-SOURCES = \
+SYSMAN_SOURCES = \
 	configuration.c \
 	connection_broker.c \
 	connection_ctl.c \
 	dep.c \
 	job.c \
-	main.c \
 	sysman.c \
 	unit.c \
 	units/unit_cfg.c \
@@ -50,5 +49,16 @@ SOURCES = \
 	units/unit_tgt.c \
 	units/unit_svc.c \
 	util.c
+
+SOURCES = \
+	main.c \
+	$(SYSMAN_SOURCES)
+
+TEST_SOURCES = \
+	$(SYSMAN_SOURCES) \
+	test/job_closure.c \
+	test/job_queue.c \
+	test/mock_unit.c \
+	test/main.c
 
 include $(USPACE_PREFIX)/Makefile.common

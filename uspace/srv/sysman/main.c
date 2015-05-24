@@ -58,6 +58,7 @@
 #define UNIT_MNT_INITRD "initrd.mnt"
 #define UNIT_CFG_INITRD "init.cfg"
 
+
 static const char *target_sequence[] = {
 	TARGET_INIT,
 	TARGET_ROOTFS,
@@ -191,7 +192,7 @@ static void prepare_and_run_job(const char **target_name_ptr)
 		return;
 	}
 
-	int rc = sysman_queue_job(tgt, STATE_STARTED, &sequence_job_handler,
+	int rc = sysman_run_job(tgt, STATE_STARTED, &sequence_job_handler,
 	    target_name_ptr);
 
 	if (rc != EOK) {

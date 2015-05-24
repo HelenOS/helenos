@@ -14,7 +14,7 @@
  * - The name of the author may not be used to endorse or promote products
  *   derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -26,29 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_SYSMAN_H
-#define SYSMAN_SYSMAN_H
+#ifndef SYSMAN_TEST_MOCK_UNIT_H
+#define SYSMAN_TEST_MOCK_UNIT_H
 
-#include "job.h"
-#include "unit.h"
+#include <assert.h>
+#include <pcut/pcut.h>
+#include <stdio.h>
 
-typedef void (*event_handler_t)(void *);
-typedef void (*callback_handler_t)(void *object, void *data);
+#include "../unit.h"
 
-extern void sysman_events_init(void);
-extern int sysman_events_loop(void *);
-extern int sysman_run_job(unit_t *, unit_state_t, callback_handler_t, void *);
+#define MAX_UNITS 5
+#define MAX_TYPES 4
 
+extern unit_t *mock_units[MAX_TYPES][MAX_UNITS];
+extern unit_type_t unit_types[];
 
-extern void sysman_raise_event(event_handler_t, void *);
-extern void sysman_process_queue(void);
-extern int sysman_object_observer(void *, callback_handler_t, void *);
+extern void mock_create_units(void);
+extern void mock_destroy_units(void);
 
+extern void mock_set_units_state(unit_state_t state);
+extern void mock_add_dependency(unit_t *dependant, unit_t *dependency);
 
-extern void sysman_event_job_process(void *);
-extern void sysman_event_job_finished(void *);
-extern void sysman_event_unit_exposee_created(void *);
-extern void sysman_event_unit_failed(void *);
-extern void sysman_event_unit_state_changed(void *);
+extern int mock_unit_vmt_start_sync(unit_t *);
+extern int mock_unit_vmt_start_async(unit_t *);
+extern void mock_unit_vmt_exposee_created(unit_t *);
 
 #endif

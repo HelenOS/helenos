@@ -61,7 +61,8 @@ typedef struct {
 
 static LIST_INITIALIZE(event_queue);
 static fibril_mutex_t event_queue_mtx;
-static fibril_condvar_t event_queue_cv;
+static fibril_condvar_t event_queue_nonempty_cv;
+static fibril_condvar_t event_queue_empty_cv;
 
 static hash_table_t observed_objects;
 static fibril_mutex_t observed_objects_mtx;
@@ -122,7 +123,8 @@ static void notify_observers(void *object)
 void sysman_events_init(void)
 {
 	fibril_mutex_initialize(&event_queue_mtx);
-	fibril_condvar_initialize(&event_queue_cv);
+	fibril_condvar_initialize(&event_queue_nonempty_cv);
+	fibril_condvar_initialize(&event_queue_empty_cv);
 
 	bool table =
 	    hash_table_create(&observed_objects, 0, 0, &observed_objects_ht_ops);
@@ -140,7 +142,9 @@ int sysman_events_loop(void *unused)
 		/* Pop event */
 		fibril_mutex_lock(&event_queue_mtx);
 		while (list_empty(&event_queue)) {
-			fibril_condvar_wait(&event_queue_cv, &event_queue_mtx);
+			fibril_condvar_signal(&event_queue_empty_cv);
+			fibril_condvar_wait(&event_queue_nonempty_cv,
+			    &event_queue_mtx);
 		}
 
 		link_t *li_event = list_first(&event_queue);
@@ -159,15 +163,32 @@ int sysman_events_loop(void *unused)
 
 /** Create and queue job for unit
  *
+ * If unit already has the same job assigned callback is set to it.
+ *
  * @param[in]  callback  (optional) callback must explicitly delete reference
- *                       to job
+ *                       to job, void callback(void *job, void *callback_arg)
+ *
+ * return EBUSY  unit already has a job assigned of different type
  */
-int sysman_queue_job(unit_t *unit, unit_state_t target_state,
+int sysman_run_job(unit_t *unit, unit_state_t target_state,
     callback_handler_t callback, void *callback_arg)
 {
-	job_t *job = job_create(unit, target_state);
-	if (job == NULL) {
-		return ENOMEM;
+	job_t *job;
+
+	if (unit->job != NULL) {
+		assert(unit->job->state != JOB_UNQUEUED);
+
+		if (unit->job->target_state != target_state) {
+			return EBUSY;
+		}
+		job = unit->job;
+	} else {
+		job = job_create(unit, target_state);
+		if (job == NULL) {
+			return ENOMEM;
+		}
+		/* Reference in unit is enough */
+		job_del_ref(&job);
 	}
 
 	if (callback != NULL) {
@@ -175,10 +196,11 @@ int sysman_queue_job(unit_t *unit, unit_state_t target_state,
 		sysman_object_observer(job, callback, callback_arg);
 	}
 
-	job_add_ref(job);
-	sysman_raise_event(&sysman_event_job_process, job);
+	if (job->state == JOB_UNQUEUED) {
+		job_add_ref(job);
+		sysman_raise_event(&sysman_event_job_process, job);
+	}
 
-	job_del_ref(&job);
 	return EOK;
 }
 
@@ -198,7 +220,21 @@ void sysman_raise_event(event_handler_t handler, void *data)
 	fibril_mutex_lock(&event_queue_mtx);
 	list_append(&event->event_queue, &event_queue);
 	/* There's only single event loop, broadcast is unnecessary */
-	fibril_condvar_signal(&event_queue_cv);
+	fibril_condvar_signal(&event_queue_nonempty_cv);
+	fibril_mutex_unlock(&event_queue_mtx);
+}
+
+/** Empty current content of event queue
+ *
+ * This is potentially blocking call and as long as fibrils are cooperatively
+ * scheduled, queue will be empty upon return from this function.
+ */
+void sysman_process_queue(void)
+{
+	fibril_mutex_lock(&event_queue_mtx);
+	while (!list_empty(&event_queue)) {
+		fibril_condvar_wait(&event_queue_empty_cv, &event_queue_mtx);
+	}
 	fibril_mutex_unlock(&event_queue_mtx);
 }
 
