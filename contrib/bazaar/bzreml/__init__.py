@@ -69,7 +69,7 @@ def send_smtp(server, sender, to, subject, body):
 		raise errors.SocketConnectionError(host = server, msg = "Unable to connect to SMTP server", orig_error = err)
 	
 	sender_user, sender_email = parseaddr(sender)
-	payload = MIMEText(body.encode("utf-8"), "plain", "utf-8")
+	payload = MIMEText(body.decode("utf-8", 'ignore').encode("utf-8", 'ignore'), "plain", "utf-8")
 	
 	msg = MIMEMultipart()
 	msg["From"] = "%s <%s>" % (Header(unicode(sender_user)), sender_email)

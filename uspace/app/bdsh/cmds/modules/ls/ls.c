@@ -361,7 +361,7 @@ int cmd_ls(char **argv)
 
 	argc = cli_count_args(argv);
 	
-	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
+	for (c = 0, optreset = 1, optind = 0, opt_ind = 0; c != -1;) {
 		c = getopt_long(argc, argv, "hur", long_options, &opt_ind);
 		switch (c) {
 		case 'h':

@@ -34,6 +34,21 @@
 
 #include <ipc/irq.h>
 #include <libc.h>
+#include <stdlib.h>
+#include <macros.h>
+
+static irq_cmd_t default_cmds[] = {
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
+
+static const irq_code_t default_ucode = {
+	0,
+	NULL,
+	ARRAY_SIZE(default_cmds),
+	default_cmds
+};
 
 /** Subscribe to IRQ notification.
  *
@@ -48,6 +63,9 @@
 int ipc_irq_subscribe(int inr, int devno, sysarg_t method,
     const irq_code_t *ucode)
 {
+	if (ucode == NULL)
+		ucode = &default_ucode;
+	
 	return __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, devno, method,
 	    (sysarg_t) ucode);
 }
