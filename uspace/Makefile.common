@@ -414,7 +414,8 @@ ifeq ($(PRECHECK),y)
 endif
 
 $(DEPEND): $(PRE_DEPEND)
-	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -- $(SOURCES) $(TEST_SOURCES) > $@ 2> /dev/null
+	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
+	makedepend -f - -o.test.o -- $(DEPEND_DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS) -- $(TEST_SOURCES) >> $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
 
 ##
