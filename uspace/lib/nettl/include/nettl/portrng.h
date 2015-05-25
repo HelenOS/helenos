@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,77 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup libnettl
  * @{
  */
-
 /**
- * @file UDP (User Datagram Protocol) service
+ * @file Port range allocator.
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#ifndef LIBNETTL_PORTRNG_H_
+#define LIBNETTL_PORTRNG_H_
 
-#include "assoc.h"
-#include "service.h"
-#include "udp_inet.h"
+#include <stdint.h>
 
-#define NAME       "udp"
+typedef struct {
+} portrng_t;
 
-static int udp_init(void)
-{
-	int rc;
+typedef enum {
+	pf_allow_system = 0x1
+} portrng_flags_t;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_init()");
+extern int portrng_create(portrng_t **);
+extern void portrng_destroy(portrng_t *);
+extern int portrng_alloc_specific(portrng_t *, uint16_t, void *,
+    portrng_flags_t);
+extern int portrng_alloc_dynamic(portrng_t *, void *, uint16_t *);
+extern void portrng_free_port(portrng_t *, uint16_t);
 
-	rc = udp_assocs_init();
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing associations.");
-		return ENOMEM;
-	}
+#endif
 
-	rc = udp_inet_init();
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting to internet service.");
-		return ENOENT;
-	}
-
-	rc = udp_service_init();
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing UDP service.");
-		return ENOENT;
-	}
-
-	return EOK;
-}
-
-int main(int argc, char **argv)
-{
-	int rc;
-
-	printf(NAME ": UDP (User Datagram Protocol) service\n");
-
-	rc = log_init(NAME);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
-
-	rc = udp_init();
-	if (rc != EOK)
-		return 1;
-
-	printf(NAME ": Accepting connections.\n");
-	task_retval(0);
-	async_manager();
-
-	/* Not reached */
-	return 0;
-}
-
-/**
- * @}
+/** @}
  */

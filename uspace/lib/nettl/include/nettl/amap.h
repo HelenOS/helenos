@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,77 +26,69 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup libnettl
  * @{
  */
-
 /**
- * @file UDP (User Datagram Protocol) service
+ * @file Association map.
  */
 
-#include <async.h>
-#include <errno.h>
-#include <io/log.h>
-#include <stdio.h>
-#include <task.h>
+#ifndef LIBNETTL_AMAP_H_
+#define LIBNETTL_AMAP_H_
 
-#include "assoc.h"
-#include "service.h"
-#include "udp_inet.h"
+#include <inet/endpoint.h>
+#include <nettl/portrng.h>
+#include <loc.h>
 
-#define NAME       "udp"
+/** Port range for (remote endpoint, local address) */
+typedef struct {
+	/** Remote endpoint */
+	inet_ep_t rep;
+	/* Local address */
+	inet_addr_t laddr;
+	/** Port range */
+	portrng_t *portrng;
+} amap_repla_t;
 
-static int udp_init(void)
-{
-	int rc;
+/** Port range for local address */
+typedef struct {
+	/** Local address */
+	inet_addr_t laddr;
+	/** Port range */
+	portrng_t *portrng;
+} amap_laddr_t;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_init()");
+/** Port range for local link */
+typedef struct {
+	/** Local link ID */
+	service_id_t llink;
+	/** Port range */
+	portrng_t *portrng;
+} amap_llink_t;
 
-	rc = udp_assocs_init();
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing associations.");
-		return ENOMEM;
-	}
+/** Association map */
+typedef struct {
+	/** Remote endpoint, local address */
+	list_t repla; /* of amap_repla_t */
+	/** Local addresses */
+	list_t laddr; /* of amap_laddr_t */
+	/** Local links */
+	list_t llink; /* of amap_llink_t */
+} amap_t;
 
-	rc = udp_inet_init();
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting to internet service.");
-		return ENOENT;
-	}
+typedef enum {
+	/** Allow specifying port number from system range */
+	af_allow_system = 0x1
+} amap_flags_t;
 
-	rc = udp_service_init();
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing UDP service.");
-		return ENOENT;
-	}
+extern int amap_create(amap_t **);
+extern void amap_destroy(amap_t *);
+extern int amap_insert(amap_t *, inet_ep2_t *, void *, amap_flags_t,
+    inet_ep2_t *);
+extern void amap_remove(amap_t *, inet_ep2_t *);
+extern int amap_find(amap_t *, inet_ep2_t *, void **);
 
-	return EOK;
-}
+#endif
 
-int main(int argc, char **argv)
-{
-	int rc;
-
-	printf(NAME ": UDP (User Datagram Protocol) service\n");
-
-	rc = log_init(NAME);
-	if (rc != EOK) {
-		printf(NAME ": Failed to initialize log.\n");
-		return 1;
-	}
-
-	rc = udp_init();
-	if (rc != EOK)
-		return 1;
-
-	printf(NAME ": Accepting connections.\n");
-	task_retval(0);
-	async_manager();
-
-	/* Not reached */
-	return 0;
-}
-
-/**
- * @}
+/** @}
  */

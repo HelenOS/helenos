@@ -40,16 +40,14 @@
 #include <sys/types.h>
 #include "udp_type.h"
 
+extern int udp_assocs_init(void);
 extern udp_assoc_t *udp_assoc_new(inet_ep2_t *, udp_assoc_cb_t *, void *);
 extern void udp_assoc_delete(udp_assoc_t *);
-extern void udp_assoc_add(udp_assoc_t *);
+extern int udp_assoc_add(udp_assoc_t *);
 extern void udp_assoc_remove(udp_assoc_t *);
 extern void udp_assoc_addref(udp_assoc_t *);
 extern void udp_assoc_delref(udp_assoc_t *);
 extern void udp_assoc_set_iplink(udp_assoc_t *, service_id_t);
-extern void udp_assoc_set_remote(udp_assoc_t *, inet_ep_t *);
-extern void udp_assoc_set_local(udp_assoc_t *, inet_ep_t *);
-extern void udp_assoc_set_local_port(udp_assoc_t *, uint16_t);
 extern int udp_assoc_send(udp_assoc_t *, inet_ep_t *, udp_msg_t *);
 extern int udp_assoc_recv(udp_assoc_t *, udp_msg_t **, inet_ep_t *);
 extern void udp_assoc_received(inet_ep2_t *, udp_msg_t *);

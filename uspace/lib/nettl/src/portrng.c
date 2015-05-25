@@ -26,33 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup libnettl
  * @{
  */
-/** @file UDP user calls
+
+/**
+ * @file Port range allocator
+ *
+ * Allocates port numbers from IETF port number ranges.
  */
 
-#ifndef UCALL_H
-#define UCALL_H
+#include <errno.h>
+#include <nettl/portrng.h>
+#include <stdint.h>
 
-#include <ipc/loc.h>
-#include <sys/types.h>
-#include "udp_type.h"
+int portrng_create(portrng_t **rpr)
+{
+	return EOK;
+}
 
-extern udp_error_t udp_uc_create(udp_assoc_t **);
-extern void udp_uc_set_iplink(udp_assoc_t *, service_id_t);
-extern udp_error_t udp_uc_set_remote(udp_assoc_t *, inet_ep_t *);
-extern udp_error_t udp_uc_set_local(udp_assoc_t *, inet_ep_t *);
-extern udp_error_t udp_uc_set_local_port(udp_assoc_t *, uint16_t);
-extern udp_error_t udp_uc_send(udp_assoc_t *, inet_ep_t *, void *, size_t,
-    xflags_t);
-extern udp_error_t udp_uc_receive(udp_assoc_t *, void *, size_t, size_t *,
-    xflags_t *, inet_ep_t *);
-extern void udp_uc_status(udp_assoc_t *, udp_assoc_status_t *);
-extern void udp_uc_destroy(udp_assoc_t *);
-extern void udp_uc_reset(udp_assoc_t *);
+void portrng_destroy(portrng_t *pr)
+{
+}
 
-#endif
+int portrng_alloc_specific(portrng_t *pr, uint16_t pnum, void *arg,
+    portrng_flags_t flags)
+{
+	return EOK;
+}
 
-/** @}
+int portrng_alloc_dynamic(portrng_t *pr, void *arg, uint16_t *rpnum)
+{
+	return EOK;
+}
+
+void portrng_free_port(portrng_t *pr, uint16_t pnum)
+{
+}
+
+/**
+ * @}
  */
+

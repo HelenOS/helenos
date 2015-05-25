@@ -177,7 +177,12 @@ static int udp_assoc_create_impl(udp_client_t *client, inet_ep2_t *epp,
 	assoc->cb = &udp_cassoc_cb;
 	assoc->cb_arg = cassoc;
 
-	udp_assoc_add(assoc);
+	rc = udp_assoc_add(assoc);
+	if (rc != EOK) {
+		udp_cassoc_destroy(cassoc);
+		udp_assoc_delete(assoc);
+		return rc;
+	}
 
 	*rassoc_id = cassoc->id;
 	return EOK;

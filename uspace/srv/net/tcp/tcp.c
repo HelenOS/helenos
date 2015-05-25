@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <task.h>
 
+#include "conn.h"
 #include "ncsim.h"
 #include "pdu.h"
 #include "rqueue.h"
@@ -177,6 +178,13 @@ static int tcp_init(void)
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_init()");
+
+	rc = tcp_conns_init();
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing connections");
+		return ENOMEM;
+	}
 
 	tcp_rqueue_init();
 	tcp_rqueue_fibril_start();

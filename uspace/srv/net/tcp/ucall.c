@@ -34,6 +34,7 @@
  * @file TCP entry points (close to those defined in the RFC)
  */
 
+#include <errno.h>
 #include <fibril_synch.h>
 #include <io/log.h>
 #include <macros.h>
@@ -67,13 +68,19 @@ tcp_error_t tcp_uc_open(inet_ep2_t *epp, acpass_t acpass,
     tcp_open_flags_t oflags, tcp_conn_t **conn)
 {
 	tcp_conn_t *nconn;
+	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open(%p, %s, %s, %p)",
 	    epp, acpass == ap_active ? "active" : "passive",
 	    oflags == tcp_open_nonblock ? "nonblock" : "none", conn);
 
 	nconn = tcp_conn_new(epp);
-	tcp_conn_add(nconn);
+	rc = tcp_conn_add(nconn);
+	if (rc != EOK) {
+		tcp_conn_delete(nconn);
+		return TCP_EEXISTS;
+	}
+
 	tcp_conn_lock(nconn);
 
 	if (acpass == ap_active) {

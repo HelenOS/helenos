@@ -220,6 +220,7 @@ LIBS = \
 	lib/softrend \
 	lib/draw \
 	lib/math \
+	lib/nettl \
 	lib/nic \
 	lib/ext4 \
 	lib/trackmod \

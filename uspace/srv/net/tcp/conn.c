@@ -35,11 +35,12 @@
  */
 
 #include <adt/list.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <inet/endpoint.h>
 #include <io/log.h>
 #include <macros.h>
+#include <nettl/amap.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include "conn.h"
 #include "iqueue.h"
@@ -55,12 +56,27 @@
 #define MAX_SEGMENT_LIFETIME	(15*1000*1000) //(2*60*1000*1000)
 #define TIME_WAIT_TIMEOUT	(2*MAX_SEGMENT_LIFETIME)
 
-LIST_INITIALIZE(conn_list);
-FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
+static LIST_INITIALIZE(conn_list);
+static FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
+static amap_t *amap;
 
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
 static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
 static void tcp_conn_tw_timer_clear(tcp_conn_t *conn);
+
+/** Initialize connections. */
+int tcp_conns_init(void)
+{
+	int rc;
+
+	rc = amap_create(&amap);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		return ENOMEM;
+	}
+
+	return EOK;
+}
 
 /** Create new connection structure.
  *
@@ -245,12 +261,26 @@ void tcp_conn_delete(tcp_conn_t *conn)
  *
  * Add connection to the connection map.
  */
-void tcp_conn_add(tcp_conn_t *conn)
+int tcp_conn_add(tcp_conn_t *conn)
 {
+	inet_ep2_t aepp;
+	int rc;
+
 	tcp_conn_addref(conn);
 	fibril_mutex_lock(&conn_list_lock);
+
+	rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
+	if (rc != EOK) {
+		tcp_conn_delref(conn);
+		fibril_mutex_unlock(&conn_list_lock);
+		return rc;
+	}
+
+	conn->ident = aepp;
 	list_append(&conn->link, &conn_list);
 	fibril_mutex_unlock(&conn_list_lock);
+
+	return EOK;
 }
 
 /** Delist connection.
@@ -260,6 +290,7 @@ void tcp_conn_add(tcp_conn_t *conn)
 void tcp_conn_remove(tcp_conn_t *conn)
 {
 	fibril_mutex_lock(&conn_list_lock);
+	amap_remove(amap, &conn->ident);
 	list_remove(&conn->link);
 	fibril_mutex_unlock(&conn_list_lock);
 	tcp_conn_delref(conn);

@@ -334,7 +334,6 @@ static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
 {
 	tcp_conn_t *conn;
 	tcp_cconn_t *cconn;
-	inet_ep2_t cepp;
 	int rc;
 	tcp_error_t trc;
 	char *slocal;
@@ -342,41 +341,14 @@ static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl");
 
-	cepp = *epp;
-
-	/* Fill in local address? */
-	if (inet_addr_is_any(&epp->local.addr)) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
-		    "determine local address");
-		rc = inet_get_srcaddr(&epp->remote.addr, 0, &cepp.local.addr);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
-			    "cannot determine local address");
-			return rc;
-		}
-	} else {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
-		    "local address specified");
-	}
-
-	/* Allocate local port? */
-	if (cepp.local.port == 0) {
-		cepp.local.port = 49152; /* XXX */
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
-		    "allocated local port %" PRIu16, cepp.local.port);
-	} else {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_impl: "
-		    "local port %" PRIu16 " specified", cepp.local.port);
-	}
-
-	inet_addr_format(&cepp.local.addr, &slocal);
-	inet_addr_format(&cepp.remote.addr, &sremote);
+	inet_addr_format(&epp->local.addr, &slocal);
+	inet_addr_format(&epp->remote.addr, &sremote);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create: local=%s remote=%s",
 	    slocal, sremote);
 	free(slocal);
 	free(sremote);
 
-	trc = tcp_uc_open(&cepp, ap_active, tcp_open_nonblock, &conn);
+	trc = tcp_uc_open(epp, ap_active, tcp_open_nonblock, &conn);
 	if (trc != TCP_EOK)
 		return EIO;
 

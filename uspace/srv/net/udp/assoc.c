@@ -40,22 +40,37 @@
 #include <fibril_synch.h>
 #include <inet/endpoint.h>
 #include <io/log.h>
+#include <nettl/amap.h>
 #include <stdlib.h>
 
 #include "assoc.h"
 #include "msg.h"
 #include "pdu.h"
-#include "ucall.h"
 #include "udp_inet.h"
 #include "udp_type.h"
 
-LIST_INITIALIZE(assoc_list);
-FIBRIL_MUTEX_INITIALIZE(assoc_list_lock);
+static LIST_INITIALIZE(assoc_list);
+static FIBRIL_MUTEX_INITIALIZE(assoc_list_lock);
+static amap_t *amap;
 
 static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *);
 static int udp_assoc_queue_msg(udp_assoc_t *, inet_ep2_t *, udp_msg_t *);
 static bool udp_ep_match(inet_ep_t *, inet_ep_t *);
 static bool udp_ep2_match(inet_ep2_t *, inet_ep2_t *);
+
+/** Initialize associations. */
+int udp_assocs_init(void)
+{
+	int rc;
+
+	rc = amap_create(&amap);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		return ENOMEM;
+	}
+
+	return EOK;
+}
 
 /** Create new association structure.
  *
@@ -167,12 +182,26 @@ void udp_assoc_delete(udp_assoc_t *assoc)
  *
  * Add association to the association map.
  */
-void udp_assoc_add(udp_assoc_t *assoc)
+int udp_assoc_add(udp_assoc_t *assoc)
 {
+	inet_ep2_t aepp;
+	int rc;
+
 	udp_assoc_addref(assoc);
 	fibril_mutex_lock(&assoc_list_lock);
+
+	rc = amap_insert(amap, &assoc->ident, assoc, af_allow_system, &aepp);
+	if (rc != EOK) {
+		udp_assoc_delref(assoc);
+		fibril_mutex_unlock(&assoc_list_lock);
+		return rc;
+	}
+
+	assoc->ident = aepp;
 	list_append(&assoc->link, &assoc_list);
 	fibril_mutex_unlock(&assoc_list_lock);
+
+	return EOK;
 }
 
 /** Delist association.
@@ -182,6 +211,7 @@ void udp_assoc_add(udp_assoc_t *assoc)
 void udp_assoc_remove(udp_assoc_t *assoc)
 {
 	fibril_mutex_lock(&assoc_list_lock);
+	amap_remove(amap, &assoc->ident);
 	list_remove(&assoc->link);
 	fibril_mutex_unlock(&assoc_list_lock);
 	udp_assoc_delref(assoc);
@@ -198,47 +228,6 @@ void udp_assoc_set_iplink(udp_assoc_t *assoc, service_id_t iplink)
 	    assoc, iplink);
 	fibril_mutex_lock(&assoc->lock);
 	assoc->ident.local_link = iplink;
-	fibril_mutex_unlock(&assoc->lock);
-}
-
-/** Set remote endpoint in association.
- *
- * @param assoc		Association
- * @param remote	Remote endpoint (deeply copied)
- */
-void udp_assoc_set_remote(udp_assoc_t *assoc, inet_ep_t *remote)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_remote(%p, %p)", assoc, remote);
-	fibril_mutex_lock(&assoc->lock);
-	assoc->ident.remote = *remote;
-	fibril_mutex_unlock(&assoc->lock);
-}
-
-/** Set local endpoint in association.
- *
- * @param assoc Association
- * @param local Local endpoint (deeply copied)
- *
- */
-void udp_assoc_set_local(udp_assoc_t *assoc, inet_ep_t *local)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_local(%p, %p)", assoc, local);
-	fibril_mutex_lock(&assoc->lock);
-	assoc->ident.local = *local;
-	fibril_mutex_unlock(&assoc->lock);
-}
-
-/** Set local port in association.
- *
- * @param assoc Association
- * @param lport Local port
- *
- */
-void udp_assoc_set_local_port(udp_assoc_t *assoc, uint16_t lport)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_local(%p, %" PRIu16 ")", assoc, lport);
-	fibril_mutex_lock(&assoc->lock);
-	assoc->ident.local.port = lport;
 	fibril_mutex_unlock(&assoc->lock);
 }
 

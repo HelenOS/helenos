@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012 Jiri Svoboda
+# Copyright (c) 2015 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-
-LIBS = \
-	$(LIBNETTL_PREFIX)/libnettl.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBNETTL_PREFIX)/include
-
-BINARY = udp
+USPACE_PREFIX = ../..
+EXTRA_CFLAGS = -Iinclude
+LIBRARY = libnettl
 
 SOURCES = \
-	assoc.c \
-	msg.c \
-	pdu.c \
-	service.c \
-	udp.c \
-	udp_inet.c
+	src/amap.c \
+	src/portrng.c
 
 include $(USPACE_PREFIX)/Makefile.common
