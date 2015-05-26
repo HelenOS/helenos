@@ -135,4 +135,83 @@ PCUT_TEST(find) {
 	PCUT_ASSERT_INT_EQUALS(4, dyn_array_find(&da, data_t, 666));
 }
 
+PCUT_TEST(clear_range_middle) {
+	dyn_array_append(&da, data_t, 10);
+	dyn_array_append(&da, data_t, 11);
+	dyn_array_append(&da, data_t, 12);
+	dyn_array_append(&da, data_t, 99);
+
+	dyn_array_clear_range(&da, 1, 3);
+	PCUT_ASSERT_INT_EQUALS(2, da.size);
+	PCUT_ASSERT_INT_EQUALS(10, dyn_array_at(&da, data_t, 0));
+	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 1));
+}
+
+PCUT_TEST(clear_range_begin) {
+	dyn_array_append(&da, data_t, 10);
+	dyn_array_append(&da, data_t, 11);
+	dyn_array_append(&da, data_t, 12);
+	dyn_array_append(&da, data_t, 99);
+
+	dyn_array_clear_range(&da, 0, 2);
+	PCUT_ASSERT_INT_EQUALS(2, da.size);
+	PCUT_ASSERT_INT_EQUALS(12, dyn_array_at(&da, data_t, 0));
+	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 1));
+}
+
+PCUT_TEST(clear_range_end) {
+	dyn_array_append(&da, data_t, 10);
+	dyn_array_append(&da, data_t, 11);
+	dyn_array_append(&da, data_t, 12);
+	dyn_array_append(&da, data_t, 99);
+
+	dyn_array_clear_range(&da, 2, 4);
+	PCUT_ASSERT_INT_EQUALS(2, da.size);
+	PCUT_ASSERT_INT_EQUALS(10, dyn_array_at(&da, data_t, 0));
+	PCUT_ASSERT_INT_EQUALS(11, dyn_array_at(&da, data_t, 1));
+}
+
+PCUT_TEST(clear_range_empty) {
+	dyn_array_append(&da, data_t, 10);
+	dyn_array_append(&da, data_t, 99);
+
+	dyn_array_clear_range(&da, 0, 0);
+	PCUT_ASSERT_INT_EQUALS(2, da.size);
+	PCUT_ASSERT_INT_EQUALS(10, dyn_array_at(&da, data_t, 0));
+	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 1));
+}
+
+PCUT_TEST(concat_simple) {
+	dyn_array_append(&da, data_t, 10);
+	dyn_array_append(&da, data_t, 99);
+
+	dyn_array_t da2;
+	dyn_array_initialize(&da2, data_t);
+	dyn_array_append(&da2, data_t, 30);
+	dyn_array_append(&da2, data_t, 31);
+
+	dyn_array_concat(&da, &da2);
+	PCUT_ASSERT_INT_EQUALS(4, da.size);
+	PCUT_ASSERT_INT_EQUALS(2, da2.size);
+
+	PCUT_ASSERT_INT_EQUALS(10, dyn_array_at(&da, data_t, 0));
+	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 1));
+	PCUT_ASSERT_INT_EQUALS(30, dyn_array_at(&da, data_t, 2));
+	PCUT_ASSERT_INT_EQUALS(31, dyn_array_at(&da, data_t, 3));
+
+	dyn_array_destroy(&da2);
+}
+PCUT_TEST(concat_self) {
+	dyn_array_append(&da, data_t, 10);
+	dyn_array_append(&da, data_t, 99);
+
+	dyn_array_concat(&da, &da);
+	PCUT_ASSERT_INT_EQUALS(4, da.size);
+
+	PCUT_ASSERT_INT_EQUALS(10, dyn_array_at(&da, data_t, 0));
+	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 1));
+	PCUT_ASSERT_INT_EQUALS(10, dyn_array_at(&da, data_t, 2));
+	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 3));
+}
+
 PCUT_EXPORT(dyn_array);

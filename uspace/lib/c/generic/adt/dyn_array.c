@@ -67,7 +67,7 @@ void dyn_array_destroy(dyn_array_t *da)
 	da->capacity = 0;
 }
 
-/** Remove item at give position, shift rest of array */
+/** Remove item at given position, shift rest of array */
 void dyn_array_remove(dyn_array_t *da, size_t index)
 {
 	assert(index < da->size);
@@ -80,6 +80,47 @@ void dyn_array_remove(dyn_array_t *da, size_t index)
 void dyn_array_clear(dyn_array_t *da)
 {
 	da->size = 0;
+}
+
+/** Clear subsequence of array
+ *
+ * @param[in/out]  da
+ * @param[in]      begin  index of first item to remove
+ * @param[in]      end    index behind last item to remove
+ */
+void dyn_array_clear_range(dyn_array_t *da, size_t begin, size_t end)
+{
+	assert(begin < da->size);
+	assert(end <= da->size);
+
+	_dyn_array_unshift(da, begin, end - begin);
+	int rc = dyn_array_reserve(da, da->size);
+        assert(rc == EOK);
+}
+
+/** Concatenate two arrays
+ *
+ * @param[in/out]  da1  first array and concatenated output
+ * @param[in]      da2  second array, it is untouched
+ *
+ * @return EOK on success
+ * @return ENOMEM when allocation fails
+ */
+int dyn_array_concat(dyn_array_t *da1, dyn_array_t *da2)
+{
+	assert(da1->_item_size == da2->_item_size);
+
+	int rc = dyn_array_reserve(da1, da1->size + da2->size);
+	if (rc != EOK) {
+		return rc;
+	}
+	void *dst = da1->_data + da1->size * da1->_item_size;
+	void *src = da2->_data;
+	size_t size = da1->_item_size * da2->size;
+	memcpy(dst, src, size);
+	da1->size += da2->size;
+
+	return EOK;
 }
 
 /** Grows/shrinks array so that it effeciently stores desired capacity

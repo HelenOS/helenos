@@ -127,7 +127,9 @@ typedef struct {
 extern void dyn_array_destroy(dyn_array_t *);
 extern void dyn_array_remove(dyn_array_t *, size_t);
 void dyn_array_clear(dyn_array_t *);
-extern int  dyn_array_reserve(dyn_array_t *, size_t);
+void dyn_array_clear_range(dyn_array_t *, size_t, size_t);
+extern int dyn_array_concat(dyn_array_t *, dyn_array_t *);
+extern int dyn_array_reserve(dyn_array_t *, size_t);
 
 extern void _dyn_array_initialize(dyn_array_t *, size_t);
 extern void _dyn_array_shift(dyn_array_t *, size_t, size_t);
