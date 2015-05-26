@@ -41,13 +41,7 @@ static bool initialized = false;
 
 static fid_t fibril_event_loop;
 
-#if 0
-static bool async_finished;
-static fibril_condvar_t async_finished_cv;
-static fibril_mutex_t async_finished_mtx;
-#endif
-
-static void async_finished_callback(void *object, void *arg)
+static void job_finished_cb(void *object, void *arg)
 {
 	job_t *job = object;
 	job_t **job_ptr = arg;
@@ -55,24 +49,6 @@ static void async_finished_callback(void *object, void *arg)
 	/* Pass job reference to the caller */
 	*job_ptr = job;
 }
-
-#if 0
-static void reset_wait(void)
-{
-	fibril_mutex_lock(&async_finished_mtx);
-	async_finished = false;
-	fibril_mutex_unlock(&async_finished_mtx);
-}
-
-static void async_wait()
-{
-	fibril_mutex_lock(&async_finished_mtx);
-	while (!async_finished) {
-		fibril_condvar_wait(&async_finished_cv, &async_finished_mtx);
-	}
-	fibril_mutex_unlock(&async_finished_mtx);
-}
-#endif
 
 PCUT_TEST_SUITE(job_queue);
 
@@ -106,7 +82,7 @@ PCUT_TEST(single_start_sync) {
 	unit_t *u = mock_units[UNIT_TARGET][0];
 	job_t *job = NULL;
 
-	int rc = sysman_run_job(u, STATE_STARTED, &async_finished_callback,
+	int rc = sysman_run_job(u, STATE_STARTED, &job_finished_cb,
 	    &job);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
@@ -125,8 +101,7 @@ PCUT_TEST(single_start_async) {
 	unit_t *u = mock_units[UNIT_TARGET][0];
 	job_t *job = NULL;
 
-	int rc = sysman_run_job(u, STATE_STARTED, &async_finished_callback,
-	    &job);
+	int rc = sysman_run_job(u, STATE_STARTED, &job_finished_cb, &job);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	sysman_process_queue();
@@ -139,6 +114,41 @@ PCUT_TEST(single_start_async) {
 	PCUT_ASSERT_EQUALS(STATE_STARTED, u->state);
 
 	job_del_ref(&job);
+}
+
+PCUT_TEST(multipath_to_started_unit) {
+	/* Setup mock behavior */
+	unit_type_vmts[UNIT_SERVICE]->start = &mock_unit_vmt_start_sync;
+
+	unit_type_vmts[UNIT_MOUNT]->start = &mock_unit_vmt_start_async;
+	unit_type_vmts[UNIT_MOUNT]->exposee_created =
+	    &mock_unit_vmt_exposee_created;
+
+	/* Define mock units */
+	unit_t *s0 = mock_units[UNIT_SERVICE][0];
+	unit_t *s1 = mock_units[UNIT_SERVICE][1];
+	unit_t *m0 = mock_units[UNIT_MOUNT][0];
+
+	/* All services require root fs */
+	mock_add_dependency(s0, m0);
+	mock_add_dependency(s1, m0);
+	
+	/* S1 requires another mount and S0 */
+	mock_add_dependency(s1, s0);
+
+	/* Enforce initial state */
+	m0->state = STATE_STARTED;
+
+	/* Run test */
+	job_t *job = NULL;
+	int rc = sysman_run_job(s1, STATE_STARTED, &job_finished_cb, &job);
+	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+
+	sysman_process_queue();
+
+	PCUT_ASSERT_NOT_NULL(job);
+	PCUT_ASSERT_EQUALS(STATE_STARTED, s0->state);
+	PCUT_ASSERT_EQUALS(STATE_STARTED, s1->state);
 }
 
 

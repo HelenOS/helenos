@@ -29,8 +29,8 @@
 #ifndef _SYSMAN_BROKER_H
 #define _SYSMAN_BROKER_H
 
-#include <task.h>
 #include <sysman/unit.h>
+#include <task.h>
 
 int sysman_broker_register(void);
 

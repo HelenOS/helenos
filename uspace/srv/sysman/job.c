@@ -45,13 +45,17 @@ static list_t job_queue;
 
 static int job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
 {
-	int rc = dyn_array_append(&blocking_job->blocked_jobs, job_ptr_t,
+	assert(blocking_job->blocked_jobs.size ==
+    	    blocking_job->blocked_jobs_count);
+
+	int rc = dyn_array_append(&blocking_job->blocked_jobs, job_t *,
 	    blocked_job);
 	if (rc != EOK) {
 		return ENOMEM;
 	}
 	job_add_ref(blocked_job);
 
+	blocking_job->blocked_jobs_count += 1;
 	blocked_job->blocking_jobs += 1;
 
 	return EOK;
@@ -85,20 +89,18 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 	job->target_state = target_state;
 	job->unit = u;
 
-	u->job = job;
-	job_add_ref(job);
-
-	dyn_array_initialize(&job->blocked_jobs, job_ptr_t);
+	dyn_array_initialize(&job->blocked_jobs, job_t *);
 	job->blocking_jobs = 0;
 	job->blocking_job_failed = false;
 
-	job->state = JOB_UNQUEUED;
+	job->state = JOB_EMBRYO;
 	job->retval = JOB_UNDEFINED_;
 }
 
 static bool job_eval_retval(job_t *job)
 {
 	unit_t *u = job->unit;
+
 	if (u->state == job->target_state) {
 		job->retval = JOB_OK;
 		return true;
@@ -116,7 +118,7 @@ static void job_check(void *object, void *data)
 	job_t *job = data;
 
 	/*
-	 * We have one reference from caller for our disposal,	 *
+	 * We have one reference from caller for our disposal,
 	 * if needed, pass it to observer.
 	 */
 	if (job_eval_retval(job)) {
@@ -137,7 +139,7 @@ static void job_destroy(job_t **job_ptr)
 
 	assert(!link_used(&job->job_queue));
 
-	dyn_array_foreach(job->blocked_jobs, job_ptr_t, job_it) {
+	dyn_array_foreach(job->blocked_jobs, job_t *, job_it) {
 		job_del_ref(&(*job_it));
 	}
 	dyn_array_destroy(&job->blocked_jobs);
@@ -148,7 +150,8 @@ static void job_destroy(job_t **job_ptr)
 
 static bool job_is_runnable(job_t *job)
 {
-	return job->state == JOB_QUEUED && job->blocking_jobs == 0;
+	assert(job->state == JOB_PENDING);
+	return job->blocking_jobs == 0;
 }
 
 /** Pop next runnable job
@@ -169,10 +172,55 @@ static job_t *job_queue_pop_runnable(void)
 	if (result) {
 		/* Remove job from queue and pass reference to caller */
 		list_remove(&result->job_queue);
-		result->state = JOB_DEQUEUED;
 	}
 
 	return result;
+}
+
+/** Merge two jobs together
+ *
+ * @param[in/out]  trunk  job that
+ * @param[in]      other  job that will be cleared out
+ *
+ * @return EOK on success
+ * @return error code on fail
+ */
+static int job_pre_merge(job_t *trunk, job_t *other)
+{
+	assert(trunk->unit == other->unit);
+	assert(trunk->target_state == other->target_state);
+	assert(trunk->blocked_jobs.size == trunk->blocked_jobs_count);
+	assert(other->merged_into == NULL);
+
+	int rc = dyn_array_concat(&trunk->blocked_jobs, &other->blocked_jobs);
+	if (rc != EOK) {
+		return rc;
+	}
+	dyn_array_clear(&other->blocked_jobs);
+
+	// TODO allocate observed object
+
+	other->merged_into = trunk;
+
+	return EOK;
+}
+
+static void job_finish_merge(job_t *trunk, job_t *other)
+{
+	assert(trunk->blocked_jobs.size >= trunk->blocked_jobs_count);
+	//TODO aggregate merged blocked_jobs
+	trunk->blocked_jobs_count = other->blocked_jobs.size;
+
+	/* All allocation is done in job_pre_merge, cannot fail here. */
+	int rc = sysman_move_observers(other, trunk);
+	assert(rc == EOK);
+}
+
+static void job_undo_merge(job_t *trunk)
+{
+	assert(trunk->blocked_jobs.size >= trunk->blocked_jobs_count);
+	dyn_array_clear_range(&trunk->blocked_jobs,
+	    trunk->blocked_jobs_count, trunk->blocked_jobs.size);
 }
 
 /*
@@ -184,29 +232,89 @@ void job_queue_init()
 	list_initialize(&job_queue);
 }
 
-int job_queue_add_jobs(dyn_array_t *jobs)
+int job_queue_add_closure(dyn_array_t *closure)
 {
-	/* Check consistency with queue. */
-	dyn_array_foreach(*jobs, job_ptr_t, new_job_it) {
-		list_foreach(job_queue, job_queue, job_t, queued_job) {
-			/*
-			 * Currently we have strict strategy not permitting
-			 * multiple jobs for one unit in the queue at a time.
-			 */
-			if ((*new_job_it)->unit == queued_job->unit) {
+	bool has_error = false;
+	int rc = EOK;
+
+	/* Check consistency with existing jobs. */
+	dyn_array_foreach(*closure, job_t *, job_it) {
+		job_t *job = *job_it;
+		job_t *other_job = job->unit->job;
+
+		if (other_job == NULL) {
+			continue;
+		}
+
+		if (other_job->target_state != job->target_state) {
+			switch (other_job->state) {
+			case JOB_RUNNING:
 				sysman_log(LVL_ERROR,
-				    "Cannot queue multiple jobs for unit '%s'",
-				    unit_name((*new_job_it)->unit));
-				return EEXIST;
+				    "Unit '%s' has already different job running.",
+				    unit_name(job->unit));
+				has_error = true;
+				continue;
+			case JOB_PENDING:
+				/*
+				 * Currently we have strict strategy not
+				 * permitting multiple jobs for one unit in the
+				 * queue at a time.
+				 */
+				sysman_log(LVL_ERROR,
+				    "Cannot queue multiple jobs for unit '%s'.",
+				    unit_name(job->unit));
+				has_error = true;
+				continue;
+			default:
+				assert(false);
+			}
+		} else {
+			// TODO think about other options to merging
+			//      (replacing, cancelling)
+			rc = job_pre_merge(other_job, job);
+			if (rc != EOK) {
+				break;
 			}
 		}
 	}
 
-	/* Enqueue jobs */
-	dyn_array_foreach(*jobs, job_ptr_t, job_it) {
-		(*job_it)->state = JOB_QUEUED;
-		list_append(&(*job_it)->job_queue, &job_queue);
+	/* Aggregate merged jobs, or rollback any changes in existing jobs */
+	bool finish_merge = (rc == EOK) && !has_error;
+	dyn_array_foreach(*closure, job_t *, job_it) {
+		if ((*job_it)->merged_into == NULL) {
+			continue;
+		}
+		if (finish_merge) {
+			job_finish_merge((*job_it)->merged_into, *job_it);
+		} else {
+			job_undo_merge((*job_it)->merged_into);
+		}
+	}
+	if (has_error) {
+		return EBUSY;
+	} else if (rc != EOK) {
+		return rc;
+	}
+
+	/* Unmerged jobs are enqueued, merged are disposed */
+	dyn_array_foreach(*closure, job_t *, job_it) {
+		job_t *job = (*job_it);
+		if (job->merged_into != NULL) {
+			job_del_ref(&job);
+			continue;
+		}
+
+
+		unit_t *u = job->unit;
+		assert(u->bfs_job != NULL);
+		assert(u->job == NULL);
+		u->job = u->bfs_job;
+		u->bfs_job = NULL;
+
+
+		job->state = JOB_PENDING;
 		/* We pass reference from the closure to the queue */
+		list_append(&job->job_queue, &job_queue);
 	}
 
 	return EOK;
@@ -231,90 +339,79 @@ void job_queue_process(void)
 
 int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
 {
+	sysman_log(LVL_DEBUG2, "%s(%s)", __func__, unit_name(main_job->unit));
 	int rc;
 	list_t units_fifo;
 	list_initialize(&units_fifo);
 
-	/* Zero BFS tags before use */
+	/* Check invariant */
 	list_foreach(units, units, unit_t, u) {
-		u->bfs_tag = false;
+		assert(u->bfs_job == false);
 	}
 		
 	unit_t *unit = main_job->unit;
+	job_add_ref(main_job);
+	unit->bfs_job = main_job;
 	list_append(&unit->bfs_link, &units_fifo);
-	unit->bfs_tag = true;
 	
 	while (!list_empty(&units_fifo)) {
 		unit = list_get_instance(list_first(&units_fifo), unit_t,
 		    bfs_link);
-		assert(unit->job);
 		list_remove(&unit->bfs_link);
-		job_t *job = unit->job;
-
-
-		// TODO more sophisticated check? (unit that is in transitional
-		//      state cannot have currently multiple jobs queued)
-		if (job->target_state == unit->state) {
-			/*
-			 * Job would do nothing, finish it on spot.
-			 * No need to continue BFS search from it.
-			 */
-			job->retval = JOB_OK;
-			job_finish(job);
-			continue;
-		}
+		job_t *job = unit->bfs_job;
+		assert(job != NULL);
 
 		job_add_ref(job);
-		dyn_array_append(job_closure, job_ptr_t, job);
+		dyn_array_append(job_closure, job_t *, job);
 
 		/*
 		 * Traverse dependencies edges
-		 * Depending on dependency type and edge direction create
-		 * appropriate jobs.
+		 * According to dependency type and edge direction create
+		 * appropriate jobs (currently "After" only).
 		 */
 		list_foreach(unit->dependencies, dependencies, unit_dependency_t, dep) {
 			unit_t *u = dep->dependency;
 			job_t *blocking_job;
-			if (u->bfs_tag) {
-				assert(u->job);
-				blocking_job = u->job;
-			} else {
-				u->bfs_tag = true;
+
+			if (u->bfs_job == NULL) {
 				blocking_job = job_create(u, job->target_state);
 				if (blocking_job == NULL) {
 					rc = ENOMEM;
 					goto finish;
 				}
-				/* Reference to job is kept in unit */
-				job_del_ref(&blocking_job);
+				/* Pass reference to unit */
+				u->bfs_job = blocking_job;
 				list_append(&u->bfs_link, &units_fifo);
+			} else {
+				blocking_job = u->bfs_job;
 			}
-			
+
 			job_add_blocked_job(blocking_job, job);
 		}
 	}
-	sysman_log(LVL_DEBUG2, "%s(%s):", __func__, unit_name(main_job->unit));
-	dyn_array_foreach(*job_closure, job_ptr_t, job_it) {
-		sysman_log(LVL_DEBUG2, "%s\t%s", __func__, unit_name((*job_it)->unit));
-	}
+//	sysman_log(LVL_DEBUG2, "%s(%s):", __func__, unit_name(main_job->unit));
+//	dyn_array_foreach(*job_closure, job_t *, job_it) {
+//		sysman_log(LVL_DEBUG2, "%s\t%s", __func__, unit_name((*job_it)->unit));
+//	}
 	rc = EOK;
 
 finish:
-	/* Any unprocessed jobs may be referenced by units */
-	list_foreach(units_fifo, bfs_link, unit_t, u) {
-		job_del_ref(&u->job);
+	/* Unreference any jobs in interrupted BFS queue */
+	list_foreach_safe(units_fifo, cur_link, next_link) {
+		unit_t *u = list_get_instance(cur_link, unit_t, bfs_link);
+		job_del_ref(&u->bfs_job);
+		list_remove(cur_link);
 	}
+
 	return rc;
 }
 
 /** Create job assigned to the unit
  *
- * @param[in]  unit          unit to be modified, its job must be empty
+ * @param[in]  unit
  * @param[in]  target_state
  *
- * @return NULL or newly created job
- *         There are two references to the job, one set in the unit and second
- *         is the return value.
+ * @return NULL or newly created job (there is a single refernce for the creator)
  */
 job_t *job_create(unit_t *u, unit_state_t target_state)
 {
@@ -361,9 +458,9 @@ void job_del_ref(job_t **job_ptr)
 
 void job_run(job_t *job)
 {
-	assert(job->state != JOB_RUNNING);
-	assert(job->state != JOB_FINISHED);
+	assert(job->state == JOB_PENDING);
 
+	job->state = JOB_RUNNING;
 	unit_t *u = job->unit;
 	sysman_log(LVL_DEBUG, "%s(%p), %s -> %i",
 	    __func__, job, unit_name(u), job->target_state);
@@ -376,7 +473,13 @@ void job_run(job_t *job)
 	int rc;
 	switch (job->target_state) {
 	case STATE_STARTED:
-		rc = unit_start(u);
+		// TODO put here same evaluation as in job_check
+		//      goal is to have job_run "idempotent"
+		if (u->state == job->target_state) {
+			rc = EOK;
+		} else {
+			rc = unit_start(u);
+		}
 		break;
 	default:
 		// TODO implement other states
@@ -411,13 +514,14 @@ void job_finish(job_t *job)
 	assert(job->retval != JOB_UNDEFINED_);
 	assert(job->unit->job == job);
 
-	sysman_log(LVL_DEBUG2, "%s(%p) %s -> %i",
+	sysman_log(LVL_DEBUG2, "%s(%p) %s ret %i",
 	    __func__, job, unit_name(job->unit), job->retval);
 
 	job->state = JOB_FINISHED;
 
 	/* First remove references, then clear the array */
-	dyn_array_foreach(job->blocked_jobs, job_ptr_t, job_it) {
+	assert(job->blocked_jobs.size == job->blocked_jobs_count);
+	dyn_array_foreach(job->blocked_jobs, job_t *, job_it) {
 		job_unblock(*job_it, job);
 	}
 	dyn_array_clear(&job->blocked_jobs);

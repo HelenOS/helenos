@@ -36,12 +36,11 @@
 
 #include "unit.h"
 
-// TODO simplify queue states
 /** Run state of job */
 typedef enum {
-	JOB_UNQUEUED, /**< Job not in queue yet */
-	JOB_QUEUED,
-	JOB_DEQUEUED, /**< Job not in queue already */
+	JOB_EMBRYO, /**< Job after creation */
+	JOB_CLOSURED, /**< Intermmediate when closure is evaluated */
+	JOB_PENDING, /**< Job is queued */
 	JOB_RUNNING,
 	JOB_FINISHED
 } job_state_t;
@@ -53,6 +52,9 @@ typedef enum {
 	JOB_UNDEFINED_ = -1
 } job_retval_t;
 
+struct job;
+typedef struct job job_t;
+
 struct job {
 	link_t job_queue;
 	atomic_t refcnt;
@@ -62,10 +64,15 @@ struct job {
 
 	/** Jobs that this job is preventing from running */
 	dyn_array_t blocked_jobs;
+	/** No. of jobs that the job is actually blocking (may differ from size
+	 * of blocked_jobs for not fully merged job */
+	size_t blocked_jobs_count;
 	/** No. of jobs that must finish before this job */
 	size_t blocking_jobs;
 	/** Any of blocking jobs failed */
 	bool blocking_job_failed;
+	/** Job that this job was merged to */
+	job_t *merged_into;
 
 	/** See job_state_t */
 	job_state_t state;
@@ -73,11 +80,8 @@ struct job {
 	job_retval_t retval;
 };
 
-typedef struct job job_t;
-typedef job_t *job_ptr_t;
-
 extern void job_queue_init(void);
-extern int job_queue_add_jobs(dyn_array_t *);
+extern int job_queue_add_closure(dyn_array_t *);
 extern void job_queue_process(void);
 
 extern int job_create_closure(job_t *, dyn_array_t *);

@@ -68,7 +68,9 @@ static hash_table_t observed_objects;
 static fibril_mutex_t observed_objects_mtx;
 static fibril_condvar_t observed_objects_cv;
 
-/* Hash table functions */
+/*
+ * Hash table functions
+ */
 static size_t observed_objects_ht_hash(const ht_link_t *item)
 {
 	observed_object_t *callbacks =
@@ -99,6 +101,34 @@ static hash_table_ops_t observed_objects_ht_ops = {
 	.remove_callback = NULL
 };
 
+/*
+ * Static functions
+ */
+
+static observed_object_t *observed_object_create(void *object)
+{
+	observed_object_t *result = malloc(sizeof(observed_object_t));
+	if (result) {
+		result->object = object;
+		list_initialize(&result->callbacks);
+		hash_table_insert(&observed_objects, &result->ht_link);
+	}
+	return result;
+}
+
+static void observed_object_destroy(observed_object_t **ptr_observed_object)
+{
+	observed_object_t *observed_object = *ptr_observed_object;
+	if (observed_object == NULL) {
+		return;
+	}
+
+	ht_link_t *item = &observed_object->ht_link;
+	hash_table_remove_item(&observed_objects, item);
+	free(observed_object);
+	*ptr_observed_object = NULL;
+}
+
 static void notify_observers(void *object)
 {
 	ht_link_t *item = hash_table_find(&observed_objects, &object);
@@ -115,6 +145,8 @@ static void notify_observers(void *object)
 		list_remove(cur_link);
 		free(callback);
 	}
+
+	observed_object_destroy(&observed_object);
 }
 
 /*
@@ -173,22 +205,9 @@ int sysman_events_loop(void *unused)
 int sysman_run_job(unit_t *unit, unit_state_t target_state,
     callback_handler_t callback, void *callback_arg)
 {
-	job_t *job;
-
-	if (unit->job != NULL) {
-		assert(unit->job->state != JOB_UNQUEUED);
-
-		if (unit->job->target_state != target_state) {
-			return EBUSY;
-		}
-		job = unit->job;
-	} else {
-		job = job_create(unit, target_state);
-		if (job == NULL) {
-			return ENOMEM;
-		}
-		/* Reference in unit is enough */
-		job_del_ref(&job);
+	job_t *job = job_create(unit, target_state);
+	if (job == NULL) {
+		return ENOMEM;
 	}
 
 	if (callback != NULL) {
@@ -196,10 +215,8 @@ int sysman_run_job(unit_t *unit, unit_state_t target_state,
 		sysman_object_observer(job, callback, callback_arg);
 	}
 
-	if (job->state == JOB_UNQUEUED) {
-		job_add_ref(job);
-		sysman_raise_event(&sysman_event_job_process, job);
-	}
+	/* Pass reference to event */
+	sysman_raise_event(&sysman_event_job_process, job);
 
 	return EOK;
 }
@@ -241,7 +258,9 @@ void sysman_process_queue(void)
 /** Register single-use object observer callback
  *
  * TODO no one handles return value, it's quite fatal to lack memory for
- *      callbacks...  @return EOK on success
+ *      callbacks...
+ *
+ * @return EOK on success
  * @return ENOMEM
  */
 int sysman_object_observer(void *object, callback_handler_t handler, void *data)
@@ -252,16 +271,12 @@ int sysman_object_observer(void *object, callback_handler_t handler, void *data)
 	ht_link_t *ht_link = hash_table_find(&observed_objects, &object);
 
 	if (ht_link == NULL) {
-		observed_object = malloc(sizeof(observed_object_t));
-		if (observed_object == NULL) {
+		new_observed_object = observed_object_create(object);
+		if (new_observed_object == NULL) {
 			rc = ENOMEM;
 			goto fail;
 		}
-		new_observed_object = observed_object;
-
-		observed_object->object = object;
-		list_initialize(&observed_object->callbacks);
-		hash_table_insert(&observed_objects, &observed_object->ht_link);
+		observed_object = new_observed_object;
 	} else {
 		observed_object =
 		    hash_table_get_inst(ht_link, observed_object_t, ht_link);
@@ -283,6 +298,36 @@ fail:
 	return rc;
 }
 
+int sysman_move_observers(void *src_object, void *dst_object)
+{
+	ht_link_t *src_link = hash_table_find(&observed_objects, &src_object);
+	if (src_link == NULL) {
+		return EOK;
+	}
+
+	ht_link_t *dst_link = hash_table_find(&observed_objects, &dst_object);
+	observed_object_t *dst_observed_object;
+	if (dst_link == NULL) {
+		dst_observed_object = observed_object_create(dst_object);
+		if (dst_observed_object == NULL) {
+			return ENOMEM;
+		}
+	} else {
+		dst_observed_object =
+		    hash_table_get_inst(dst_link, observed_object_t, ht_link);
+	}
+
+	observed_object_t *src_observed_object =
+	    hash_table_get_inst(src_link, observed_object_t, ht_link);
+
+	list_concat(&dst_observed_object->callbacks,
+	    &src_observed_object->callbacks);
+	observed_object_destroy(&src_observed_object);
+
+	return EOK;
+}
+
+
 /*
  * Event handlers
  */
@@ -292,7 +337,7 @@ void sysman_event_job_process(void *data)
 {
 	job_t *job = data;
 	dyn_array_t job_closure;
-	dyn_array_initialize(&job_closure, job_ptr_t);
+	dyn_array_initialize(&job_closure, job_t *);
 
 	int rc = job_create_closure(job, &job_closure);
 	if (rc != EOK) {
@@ -305,7 +350,7 @@ void sysman_event_job_process(void *data)
 	 * If jobs are queued, reference is passed from closure to the queue,
 	 * otherwise, we still have the reference.
 	 */
-	rc = job_queue_add_jobs(&job_closure);
+	rc = job_queue_add_closure(&job_closure);
 	if (rc != EOK) {
 		goto fail;
 	}
@@ -320,7 +365,7 @@ fail:
 	job_finish(job);
 	job_del_ref(&job);
 
-	dyn_array_foreach(job_closure, job_ptr_t, closure_job) {
+	dyn_array_foreach(job_closure, job_t *, closure_job) {
 		job_del_ref(&(*closure_job));
 	}
 	dyn_array_destroy(&job_closure);
