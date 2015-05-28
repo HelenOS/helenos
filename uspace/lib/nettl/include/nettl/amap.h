@@ -36,12 +36,15 @@
 #ifndef LIBNETTL_AMAP_H_
 #define LIBNETTL_AMAP_H_
 
+#include <adt/list.h>
 #include <inet/endpoint.h>
 #include <nettl/portrng.h>
 #include <loc.h>
 
 /** Port range for (remote endpoint, local address) */
 typedef struct {
+	/** Link to amap_t.repla */
+	link_t lamap;
 	/** Remote endpoint */
 	inet_ep_t rep;
 	/* Local address */
@@ -52,6 +55,8 @@ typedef struct {
 
 /** Port range for local address */
 typedef struct {
+	/** Link to amap_t.laddr */
+	link_t lamap;
 	/** Local address */
 	inet_addr_t laddr;
 	/** Port range */
@@ -60,6 +65,8 @@ typedef struct {
 
 /** Port range for local link */
 typedef struct {
+	/** Link to amap_t.llink */
+	link_t lamap;
 	/** Local link ID */
 	service_id_t llink;
 	/** Port range */
@@ -74,6 +81,8 @@ typedef struct {
 	list_t laddr; /* of amap_laddr_t */
 	/** Local links */
 	list_t llink; /* of amap_llink_t */
+	/** Nothing specified (listen on all local adresses) */
+	portrng_t *unspec;
 } amap_t;
 
 typedef enum {

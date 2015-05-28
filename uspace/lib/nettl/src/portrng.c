@@ -36,32 +36,113 @@
  * Allocates port numbers from IETF port number ranges.
  */
 
+#include <adt/list.h>
 #include <errno.h>
+#include <inet/endpoint.h>
 #include <nettl/portrng.h>
 #include <stdint.h>
+#include <stdlib.h>
+
+#include <io/log.h>
 
 int portrng_create(portrng_t **rpr)
 {
+	portrng_t *pr;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_create() - begin");
+
+	pr = calloc(1, sizeof(portrng_t));
+	if (pr == NULL)
+		return ENOMEM;
+
+	list_initialize(&pr->used);
+	*rpr = pr;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_create() - end");
 	return EOK;
 }
 
 void portrng_destroy(portrng_t *pr)
 {
+	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_destroy()");
+	assert(list_empty(&pr->used));
+	free(pr);
 }
 
-int portrng_alloc_specific(portrng_t *pr, uint16_t pnum, void *arg,
-    portrng_flags_t flags)
+int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
+    portrng_flags_t flags, uint16_t *apnum)
 {
-	return EOK;
-}
+	portrng_port_t *p;
+	uint32_t i;
+	bool found;
 
-int portrng_alloc_dynamic(portrng_t *pr, void *arg, uint16_t *rpnum)
-{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_alloc() - begin");
+
+	if (pnum == inet_port_any) {
+
+		for (i = inet_port_dyn_lo; i <= inet_port_dyn_hi; i++) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "trying %" PRIu32, i);
+			found = false;
+			list_foreach(pr->used, lprng, portrng_port_t, port) {
+				if (port->pn == pnum) {
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				pnum = i;
+				break;
+			}
+		}
+
+		if (pnum == inet_port_any) {
+			/* No free port found */
+			return ENOENT;
+		}
+		log_msg(LOG_DEFAULT, LVL_NOTE, "selected %" PRIu16, pnum);
+	} else {
+		if ((flags & pf_allow_system) == 0 &&
+		    pnum < inet_port_user_lo) {
+			return EINVAL;
+		}
+
+		list_foreach(pr->used, lprng, portrng_port_t, port) {
+			if (port->pn == pnum)
+				return EEXISTS;
+		}
+	}
+
+	p = calloc(1, sizeof(portrng_port_t));
+	if (p == NULL)
+		return ENOMEM;
+
+	p->pn = pnum;
+	list_append(&p->lprng, &pr->used);
+	*apnum = pnum;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_alloc() - end OK pn=%" PRIu16,
+	    pnum);
 	return EOK;
 }
 
 void portrng_free_port(portrng_t *pr, uint16_t pnum)
 {
+	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_free_port() - begin");
+	list_foreach(pr->used, lprng, portrng_port_t, port) {
+		if (port->pn == pnum) {
+			list_remove(&port->lprng);
+			free(port);
+			return;
+		}
+	}
+
+	assert(false);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_free_port() - end");
+}
+
+bool portrng_empty(portrng_t *pr)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_empty()");
+	return list_empty(&pr->used);
 }
 
 /**
