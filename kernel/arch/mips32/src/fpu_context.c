@@ -52,7 +52,7 @@ void fpu_enable(void)
 #endif
 }
 
-void fpu_init()
+void fpu_init(void)
 {
 	/* TODO: Zero all registers */
 }

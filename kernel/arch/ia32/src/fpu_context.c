@@ -124,7 +124,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 }
 
 /** Initialize x87 FPU. Mask all exceptions. */
-void fpu_init()
+void fpu_init(void)
 {
 	uint32_t help0 = 0;
 	uint32_t help1 = 0;
