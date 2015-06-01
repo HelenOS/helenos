@@ -47,9 +47,12 @@
 #define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
-extern void memsetb(void *, size_t, uint8_t);
-extern void memsetw(void *, size_t, uint16_t);
-extern void *memmove(void *, const void *, size_t) DO_NOT_DISCARD;
+extern void memsetb(void *, size_t, uint8_t)
+    __attribute__((nonnull(1)));
+extern void memsetw(void *, size_t, uint16_t)
+    __attribute__((nonnull(1)));
+extern void *memmove(void *, const void *, size_t)
+    __attribute__((nonnull(1, 2))) DO_NOT_DISCARD;
 
 #endif
 
