@@ -45,6 +45,8 @@ typedef struct {
 	link_t lprng;
 	/** Port number */
 	uint16_t pn;
+	/** User argument */
+	void *arg;
 } portrng_port_t;
 
 typedef struct {
@@ -59,6 +61,7 @@ extern int portrng_create(portrng_t **);
 extern void portrng_destroy(portrng_t *);
 extern int portrng_alloc(portrng_t *, uint16_t, void *,
     portrng_flags_t, uint16_t *);
+extern int portrng_find_port(portrng_t *, uint16_t, void **);
 extern void portrng_free_port(portrng_t *, uint16_t);
 extern bool portrng_empty(portrng_t *);
 

@@ -55,8 +55,6 @@ static amap_t *amap;
 
 static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *);
 static int udp_assoc_queue_msg(udp_assoc_t *, inet_ep2_t *, udp_msg_t *);
-static bool udp_ep_match(inet_ep_t *, inet_ep_t *);
-static bool udp_ep2_match(inet_ep2_t *, inet_ep2_t *);
 
 /** Initialize associations. */
 int udp_assocs_init(void)
@@ -392,50 +390,6 @@ static int udp_assoc_queue_msg(udp_assoc_t *assoc, inet_ep2_t *epp,
 	return EOK;
 }
 
-/** Match endpoint with pattern. */
-static bool udp_ep_match(inet_ep_t *ep, inet_ep_t *patt)
-{
-	char *sa, *pa;
-
-	sa = pa = (char *)"?";
-	(void) inet_addr_format(&ep->addr, &sa);
-	(void) inet_addr_format(&patt->addr, &pa);
-
-	log_msg(LOG_DEFAULT, LVL_NOTE,
-	    "udp_ep_match(ep=(%s,%u), pat=(%s,%u))",
-	    sa, ep->port, pa, patt->port);
-
-	if ((!inet_addr_is_any(&patt->addr)) &&
-	    (!inet_addr_compare(&patt->addr, &ep->addr)))
-		return false;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "addr OK");
-
-	if ((patt->port != inet_port_any) &&
-	    (patt->port != ep->port))
-		return false;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, " -> match");
-
-	return true;
-}
-
-/** Match endpoint pair with pattern. */
-static bool udp_ep2_match(inet_ep2_t *epp, inet_ep2_t *pattern)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_ep2_match(%p, %p)", epp, pattern);
-
-	if (!udp_ep_match(&epp->local, &pattern->local))
-		return false;
-
-	if (!udp_ep_match(&epp->remote, &pattern->remote))
-		return false;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Endpoint pair matched.");
-	return true;
-}
-
-
 /** Find association structure for specified endpoint pair.
  *
  * An association is uniquely identified by an endpoint pair. Look up our
@@ -447,42 +401,25 @@ static bool udp_ep2_match(inet_ep2_t *epp, inet_ep2_t *pattern)
  */
 static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *epp)
 {
-	char *la, *ra;
+	int rc;
+	void *arg;
+	udp_assoc_t *assoc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_find_ref(%p)", epp);
-
 	fibril_mutex_lock(&assoc_list_lock);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "associations:");
-	list_foreach(assoc_list, link, udp_assoc_t, assoc) {
-		inet_ep2_t *aepp = &assoc->ident;
-
-		la = ra = NULL;
-
-		(void) inet_addr_format(&aepp->local.addr, &la);
-		(void) inet_addr_format(&aepp->remote.addr, &ra);
-
-		log_msg(LOG_DEFAULT, LVL_NOTE, "find_ref:aepp=%p la=%s ra=%s",
-		    aepp, la, ra);
-		/* Skip unbound associations */
-		if (aepp->local.port == inet_port_any) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "skip unbound");
-			continue;
-		}
-
-		if (udp_ep2_match(epp, aepp)) {
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "Returning assoc %p", assoc);
-			udp_assoc_addref(assoc);
-			fibril_mutex_unlock(&assoc_list_lock);
-			return assoc;
-		} else {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "not matched");
-		}
+	rc = amap_find_match(amap, epp, &arg);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		fibril_mutex_unlock(&assoc_list_lock);
+		return NULL;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "associations END");
+	assoc = (udp_assoc_t *)arg;
+	udp_assoc_addref(assoc);
+
 	fibril_mutex_unlock(&assoc_list_lock);
-	return NULL;
+	return assoc;
 }
 
 /**

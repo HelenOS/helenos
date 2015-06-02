@@ -198,7 +198,8 @@ static void tcp_conn_free(tcp_conn_t *conn)
  */
 void tcp_conn_addref(tcp_conn_t *conn)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_addref(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_addref(%p) before=%zu",
+	    conn->name, conn, atomic_get(&conn->refcnt));
 	atomic_inc(&conn->refcnt);
 }
 
@@ -210,7 +211,8 @@ void tcp_conn_addref(tcp_conn_t *conn)
  */
 void tcp_conn_delref(tcp_conn_t *conn)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_delref(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_delref(%p) before=%zu",
+	    conn->name, conn, atomic_get(&conn->refcnt));
 
 	if (atomic_predec(&conn->refcnt) == 0)
 		tcp_conn_free(conn);
@@ -268,6 +270,8 @@ int tcp_conn_add(tcp_conn_t *conn)
 
 	tcp_conn_addref(conn);
 	fibril_mutex_lock(&conn_list_lock);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_conn_add: conn=%p", conn);
 
 	rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
 	if (rc != EOK) {
@@ -364,39 +368,6 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 	conn->fin_is_acked = false;
 }
 
-/** Match endpoint with pattern. */
-static bool tcp_ep_match(inet_ep_t *ep, inet_ep_t *patt)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG2,
-	    "tcp_ep_match(ep=(%u), pat=(%u))", ep->port, patt->port);
-
-	if ((!inet_addr_is_any(&patt->addr)) &&
-	    (!inet_addr_compare(&patt->addr, &ep->addr)))
-		return false;
-
-	if ((patt->port != inet_port_any) &&
-	    (patt->port != ep->port))
-		return false;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, " -> match");
-
-	return true;
-}
-
-/** Match endpoint pair with pattern. */
-static bool tcp_ep2_match(inet_ep2_t *epp, inet_ep2_t *pattern)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_ep2_match(%p, %p)", epp, pattern);
-
-	if (!tcp_ep_match(&epp->local, &pattern->local))
-		return false;
-
-	if (!tcp_ep_match(&epp->remote, &pattern->remote))
-		return false;
-
-	return true;
-}
-
 /** Find connection structure for specified endpoint pair.
  *
  * A connection is uniquely identified by a endpoint pair. Look up our
@@ -408,28 +379,28 @@ static bool tcp_ep2_match(inet_ep2_t *epp, inet_ep2_t *pattern)
  */
 tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", epp);
+	int rc;
+	void *arg;
+	tcp_conn_t *conn;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "compare conn (f:(%u), l:(%u))",
-	    epp->remote.port, epp->local.port);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", epp);
 
 	fibril_mutex_lock(&conn_list_lock);
 
-	list_foreach(conn_list, link, tcp_conn_t, conn) {
-		inet_ep2_t *cepp = &conn->ident;
-
-		log_msg(LOG_DEFAULT, LVL_DEBUG2, " - with (f:(%u), l:(%u))",
-		    cepp->remote.port, cepp->local.port);
-
-		if (tcp_ep2_match(epp, cepp)) {
-			tcp_conn_addref(conn);
-			fibril_mutex_unlock(&conn_list_lock);
-			return conn;
-		}
+	rc = amap_find_match(amap, epp, &arg);
+	if (rc != EOK) {
+		assert(rc == ENOENT);
+		fibril_mutex_unlock(&conn_list_lock);
+		return NULL;
 	}
 
+	conn = (tcp_conn_t *)arg;
+	tcp_conn_addref(conn);
+
 	fibril_mutex_unlock(&conn_list_lock);
-	return NULL;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_conn_find_ref: got conn=%p",
+	    conn);
+	return conn;
 }
 
 /** Reset connection.
@@ -1208,7 +1179,9 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_segment_arrived(%p)",
+	log_msg(LOG_DEFAULT, LVL_NOTE, "conn=%p", conn);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "conn->name=%p", conn->name);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: tcp_conn_segment_arrived(%p)",
 	    conn->name, seg);
 
 	switch (conn->cstate) {

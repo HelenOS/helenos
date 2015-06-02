@@ -178,6 +178,7 @@ int udp_pdu_decode(udp_pdu_t *pdu, inet_ep2_t *epp, udp_msg_t **msg)
 
 	hdr = (udp_header_t *)pdu->data;
 
+	epp->local_link = pdu->iplink;
 	epp->remote.port = uint16_t_be2host(hdr->src_port);
 	epp->remote.addr = pdu->src;
 	epp->local.port = uint16_t_be2host(hdr->dest_port);

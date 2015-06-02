@@ -509,10 +509,72 @@ void amap_remove(amap_t *map, inet_ep2_t *epp)
 	}
 }
 
-int amap_find(amap_t *map, inet_ep2_t *epp, void **rarg)
+/** Find association matching an endpoint pair.
+ *
+ * Used to find which association to deliver a datagram to.
+ *
+ * @param map	Association map
+ * @param epp	Endpoint pair
+ * @param rarg	Place to store user argument for the matching association.
+ *
+ * @return	EOK on success, ENOENT if not found.
+ */
+int amap_find_match(amap_t *map, inet_ep2_t *epp, void **rarg)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_find()");
-	return EOK;
+	int rc;
+	amap_repla_t *repla;
+	amap_laddr_t *laddr;
+	amap_llink_t *llink;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_find_match(llink=%zu)",
+	    epp->local_link);
+
+	/* Remode endpoint, local address */
+	rc = amap_repla_find(map, &epp->remote, &epp->local.addr, &repla);
+	if (rc == EOK) {
+		rc = portrng_find_port(repla->portrng, epp->local.port,
+		    rarg);
+		if (rc == EOK) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Matched repla / "
+			    "port %" PRIu16, epp->local.port);
+			return EOK;
+		}
+	}
+
+	/* Local address */
+	rc = amap_laddr_find(map, &epp->local.addr, &laddr);
+	if (rc == EOK) {
+		rc = portrng_find_port(laddr->portrng, epp->local.port,
+		    rarg);
+		if (rc == EOK) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Matched laddr / "
+			    "port %" PRIu16, epp->local.port);
+			return EOK;
+		}
+	}
+
+	/* Local link */
+	rc = amap_llink_find(map, epp->local_link, &llink);
+	if (epp->local_link != 0 && rc == EOK) {
+		rc = portrng_find_port(llink->portrng, epp->local.port,
+		    rarg);
+		if (rc == EOK) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Matched llink / "
+			    "port %" PRIu16, epp->local.port);
+			return EOK;
+		}
+	}
+
+	/* Unspecified */
+	rc = portrng_find_port(map->unspec, epp->local.port, rarg);
+	if (rc == EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Matched unspec / port %" PRIu16,
+		    epp->local.port);
+		return EOK;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "No match.");
+	return ENOENT;
 }
 
 /**

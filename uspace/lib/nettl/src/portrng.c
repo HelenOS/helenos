@@ -117,11 +117,24 @@ int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
 		return ENOMEM;
 
 	p->pn = pnum;
+	p->arg = arg;
 	list_append(&p->lprng, &pr->used);
 	*apnum = pnum;
 	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_alloc() - end OK pn=%" PRIu16,
 	    pnum);
 	return EOK;
+}
+
+int portrng_find_port(portrng_t *pr, uint16_t pnum, void **rarg)
+{
+	list_foreach(pr->used, lprng, portrng_port_t, port) {
+		if (port->pn == pnum) {
+			*rarg = port->arg;
+			return EOK;
+		}
+	}
+
+	return ENOENT;
 }
 
 void portrng_free_port(portrng_t *pr, uint16_t pnum)

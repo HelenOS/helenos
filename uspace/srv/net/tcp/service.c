@@ -155,6 +155,7 @@ static void tcp_service_lst_cstate_change(tcp_conn_t *conn, void *arg,
 		return;
 	}
 
+	conn->name = (char *) "s";
 	clst->conn = conn;
 
 	/* XXX Is there a race here (i.e. the connection is already active)? */
@@ -352,6 +353,8 @@ static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
 	if (trc != TCP_EOK)
 		return EIO;
 
+	conn->name = (char *) "c";
+
 	rc = tcp_cconn_create(client, conn, &cconn);
 	if (rc != EOK) {
 		assert(rc == ENOMEM);
@@ -401,6 +404,8 @@ static int tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
 	trc = tcp_uc_open(&epp, ap_passive, tcp_open_nonblock, &conn);
 	if (trc != TCP_EOK)
 		return EIO;
+
+	conn->name = (char *) "s";
 
 	rc = tcp_clistener_create(client, conn, &clst);
 	if (rc != EOK) {

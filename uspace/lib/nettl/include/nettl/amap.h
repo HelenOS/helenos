@@ -95,7 +95,7 @@ extern void amap_destroy(amap_t *);
 extern int amap_insert(amap_t *, inet_ep2_t *, void *, amap_flags_t,
     inet_ep2_t *);
 extern void amap_remove(amap_t *, inet_ep2_t *);
-extern int amap_find(amap_t *, inet_ep2_t *, void **);
+extern int amap_find_match(amap_t *, inet_ep2_t *, void **);
 
 #endif
 
