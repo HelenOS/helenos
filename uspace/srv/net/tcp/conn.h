@@ -54,7 +54,8 @@ extern void tcp_conn_delref(tcp_conn_t *);
 extern void tcp_conn_lock(tcp_conn_t *);
 extern void tcp_conn_unlock(tcp_conn_t *);
 extern bool tcp_conn_got_syn(tcp_conn_t *);
-extern void tcp_conn_segment_arrived(tcp_conn_t *, tcp_segment_t *);
+extern void tcp_conn_segment_arrived(tcp_conn_t *, inet_ep2_t *,
+    tcp_segment_t *);
 extern void tcp_conn_trim_seg_to_wnd(tcp_conn_t *, tcp_segment_t *);
 extern void tcp_unexpected_segment(inet_ep2_t *, tcp_segment_t *);
 extern void tcp_ep2_flipped(inet_ep2_t *, inet_ep2_t *);

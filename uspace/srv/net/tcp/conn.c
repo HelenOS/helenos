@@ -57,6 +57,7 @@
 #define TIME_WAIT_TIMEOUT	(2*MAX_SEGMENT_LIFETIME)
 
 static LIST_INITIALIZE(conn_list);
+/** Taken after tcp_conn_t lock */
 static FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
 static amap_t *amap;
 
@@ -1175,20 +1176,73 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 /** Segment arrived on a connection.
  *
  * @param conn		Connection
+ * @param epp		Endpoint pair on which segment was received
  * @param seg		Segment
  */
-void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
+void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
+    tcp_segment_t *seg)
 {
+	inet_ep2_t aepp;
+	inet_ep2_t oldepp;
+	int rc;
+
 	log_msg(LOG_DEFAULT, LVL_NOTE, "conn=%p", conn);
 	log_msg(LOG_DEFAULT, LVL_NOTE, "conn->name=%p", conn->name);
 	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: tcp_conn_segment_arrived(%p)",
 	    conn->name, seg);
 
+	tcp_conn_lock(conn);
+
+	if (conn->cstate == st_closed) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Connection is closed.");
+		tcp_unexpected_segment(epp, seg);
+		tcp_conn_unlock(conn);
+		return;
+	}
+
+	if (inet_addr_is_any(&conn->ident.remote.addr) ||
+	    conn->ident.remote.port == inet_port_any ||
+	    inet_addr_is_any(&conn->ident.local.addr)) {
+
+		log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_conn_segment_arrived: "
+		    "Changing connection ID, updating amap.");
+		oldepp = conn->ident;
+
+		/* Need to remove and re-insert connection with new identity */
+		fibril_mutex_lock(&conn_list_lock);
+
+		if (inet_addr_is_any(&conn->ident.remote.addr))
+			conn->ident.remote.addr = epp->remote.addr;
+
+		if (conn->ident.remote.port == inet_port_any)
+			conn->ident.remote.port = epp->remote.port;
+
+		if (inet_addr_is_any(&conn->ident.local.addr))
+			conn->ident.local.addr = epp->local.addr;
+
+		rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
+		if (rc != EOK) {
+			assert(rc != EEXISTS);
+			assert(rc == ENOMEM);
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
+			fibril_mutex_unlock(&conn_list_lock);
+			tcp_conn_unlock(conn);
+			return;
+		}
+
+		amap_remove(amap, &oldepp);
+		fibril_mutex_unlock(&conn_list_lock);
+
+		conn->name = (char *) "a";
+	}
+
 	switch (conn->cstate) {
 	case st_listen:
-		tcp_conn_sa_listen(conn, seg); break;
+		tcp_conn_sa_listen(conn, seg);
+		break;
 	case st_syn_sent:
-		tcp_conn_sa_syn_sent(conn, seg); break;
+		tcp_conn_sa_syn_sent(conn, seg);
+		break;
 	case st_syn_received:
 	case st_established:
 	case st_fin_wait_1:
@@ -1198,11 +1252,14 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 	case st_last_ack:
 	case st_time_wait:
 		/* Process segments in order of sequence number */
-		tcp_conn_sa_queue(conn, seg); break;
+		tcp_conn_sa_queue(conn, seg);
+		break;
 	case st_closed:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "state=%d", (int) conn->cstate);
 		assert(false);
 	}
+
+	tcp_conn_unlock(conn);
 }
 
 /** Time-Wait timeout handler.

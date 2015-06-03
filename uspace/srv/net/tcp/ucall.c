@@ -335,28 +335,7 @@ void tcp_as_segment_arrived(inet_ep2_t *epp, tcp_segment_t *seg)
 		return;
 	}
 
-	tcp_conn_lock(conn);
-
-	if (conn->cstate == st_closed) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Connection is closed.");
-		tcp_unexpected_segment(epp, seg);
-		tcp_conn_unlock(conn);
-		tcp_conn_delref(conn);
-		return;
-	}
-
-	if (inet_addr_is_any(&conn->ident.remote.addr))
-		conn->ident.remote.addr = epp->remote.addr;
-
-	if (conn->ident.remote.port == inet_port_any)
-		conn->ident.remote.port = epp->remote.port;
-
-	if (inet_addr_is_any(&conn->ident.local.addr))
-		conn->ident.local.addr = epp->local.addr;
-
-	tcp_conn_segment_arrived(conn, seg);
-
-	tcp_conn_unlock(conn);
+	tcp_conn_segment_arrived(conn, epp, seg);
 	tcp_conn_delref(conn);
 }
 
