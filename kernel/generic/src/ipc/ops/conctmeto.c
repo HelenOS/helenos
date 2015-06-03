@@ -43,12 +43,13 @@ static int request_preprocess(call_t *call, phone_t *phone)
 {
 	int newphid = phone_alloc(TASK);
 
+	/* Remember the phoneid or the error. */
+	call->priv = newphid;
 	if (newphid < 0)
 		return ELIMIT;
 		
 	/* Set arg5 for server */
 	IPC_SET_ARG5(call->data, (sysarg_t) &TASK->phones[newphid]);
-	call->priv = newphid;
 
 	return EOK;
 }
@@ -72,10 +73,15 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 static int answer_process(call_t *answer)
 {
-	if (IPC_GET_RETVAL(answer->data))
+	if (IPC_GET_RETVAL(answer->data) && ((int) answer->priv >= 0)) {
+		/*
+		 * Something went wrong and there is a phone that needs to be
+		 * deallocated.
+		 */
 		phone_dealloc(answer->priv);
-	else
+	} else {
 		IPC_SET_ARG5(answer->data, answer->priv);
+	}
 	
 	return EOK;
 }
