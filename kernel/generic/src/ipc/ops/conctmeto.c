@@ -73,14 +73,18 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 static int answer_process(call_t *answer)
 {
-	if (IPC_GET_RETVAL(answer->data) && ((int) answer->priv >= 0)) {
-		/*
-		 * Something went wrong and there is a phone that needs to be
-		 * deallocated.
-		 */
-		phone_dealloc(answer->priv);
+	int newphid = (int) answer->priv;
+
+	if (IPC_GET_RETVAL(answer->data)) {
+		if (newphid >= 0) {
+			/*
+			 * The phone was indeed allocated and now needs
+			 * to be deallocated.
+			 */
+			phone_dealloc(newphid);
+		}
 	} else {
-		IPC_SET_ARG5(answer->data, answer->priv);
+		IPC_SET_ARG5(answer->data, newphid);
 	}
 	
 	return EOK;
