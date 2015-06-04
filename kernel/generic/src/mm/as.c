@@ -833,14 +833,14 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 			
 			if ((cond = (bool) node->keys)) {
 				uintptr_t ptr = node->key[node->keys - 1];
-				size_t size =
+				size_t node_size =
 				    (size_t) node->value[node->keys - 1];
 				size_t i = 0;
 				
-				if (overlaps(ptr, P2SZ(size), area->base,
+				if (overlaps(ptr, P2SZ(node_size), area->base,
 				    P2SZ(pages))) {
 					
-					if (ptr + P2SZ(size) <= start_free) {
+					if (ptr + P2SZ(node_size) <= start_free) {
 						/*
 						 * The whole interval fits
 						 * completely in the resized
@@ -859,14 +859,14 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 					cond = false;
 					i = (start_free - ptr) >> PAGE_WIDTH;
 					if (!used_space_remove(area, start_free,
-					    size - i))
+					    node_size - i))
 						panic("Cannot remove used space.");
 				} else {
 					/*
 					 * The interval of used space can be
 					 * completely removed.
 					 */
-					if (!used_space_remove(area, ptr, size))
+					if (!used_space_remove(area, ptr, node_size))
 						panic("Cannot remove used space.");
 				}
 				
@@ -886,7 +886,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 				    as->asid, area->base + P2SZ(pages),
 				    area->pages - pages);
 		
-				for (; i < size; i++) {
+				for (; i < node_size; i++) {
 					pte_t *pte = page_mapping_find(as,
 					    ptr + P2SZ(i), false);
 					
