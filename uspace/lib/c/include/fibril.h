@@ -93,7 +93,7 @@ extern void context_restore(context_t *ctx) __attribute__((noreturn));
 extern fid_t fibril_create_generic(int (*func)(void *), void *arg, size_t);
 extern void fibril_destroy(fid_t fid);
 extern fibril_t *fibril_setup(void);
-extern void fibril_teardown(fibril_t *f);
+extern void fibril_teardown(fibril_t *f, bool locked);
 extern int fibril_switch(fibril_switch_type_t stype);
 extern void fibril_add_ready(fid_t fid);
 extern void fibril_add_manager(fid_t fid);

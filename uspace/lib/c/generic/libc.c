@@ -121,7 +121,7 @@ void exit(int status)
 	if (env_setup) {
 		__stdio_done();
 		task_retval(status);
-		fibril_teardown(__tcb_get()->fibril_data);
+		fibril_teardown(__tcb_get()->fibril_data, false);
 	}
 	
 	__SYSCALL1(SYS_TASK_EXIT, false);

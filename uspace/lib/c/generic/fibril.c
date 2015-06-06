@@ -56,7 +56,7 @@
 
 /**
  * This futex serializes access to ready_list,
- * serialized_list and manager_list.
+ * serialized_list, manager_list and fibril_list.
  */
 static futex_t fibril_futex = FUTEX_INITIALIZER;
 
@@ -125,14 +125,21 @@ fibril_t *fibril_setup(void)
 	fibril->flags = 0;
 	
 	fibril->waits_for = NULL;
+
+	futex_lock(&fibril_futex);
 	list_append(&fibril->all_link, &fibril_list);
+	futex_unlock(&fibril_futex);
 	
 	return fibril;
 }
 
-void fibril_teardown(fibril_t *fibril)
-{
+void fibril_teardown(fibril_t *fibril, bool locked)
+{	
+	if (!locked)
+		futex_lock(&fibril_futex);
 	list_remove(&fibril->all_link);
+	if (!locked)
+		futex_unlock(&fibril_futex);
 	tls_free(fibril->tcb);
 	free(fibril);
 }
@@ -207,7 +214,7 @@ int fibril_switch(fibril_switch_type_t stype)
 					 */
 					as_area_destroy(stack);
 				}
-				fibril_teardown(srcf->clean_after_me);
+				fibril_teardown(srcf->clean_after_me, true);
 				srcf->clean_after_me = NULL;
 			}
 			
@@ -293,7 +300,7 @@ fid_t fibril_create_generic(int (*func)(void *), void *arg, size_t stksz)
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE);
 	if (fibril->stack == (void *) -1) {
-		fibril_teardown(fibril);
+		fibril_teardown(fibril, false);
 		return 0;
 	}
 	
@@ -320,7 +327,7 @@ void fibril_destroy(fid_t fid)
 	fibril_t *fibril = (fibril_t *) fid;
 	
 	as_area_destroy(fibril->stack);
-	fibril_teardown(fibril);
+	fibril_teardown(fibril, false);
 }
 
 /** Add a fibril to the ready list.
