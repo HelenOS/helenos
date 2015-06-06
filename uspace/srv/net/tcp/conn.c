@@ -411,8 +411,8 @@ tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
 void tcp_conn_reset(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
-	tcp_conn_state_set(conn, st_closed);
 	conn->reset = true;
+	tcp_conn_state_set(conn, st_closed);
 
 	tcp_conn_tw_timer_clear(conn);
 	tcp_tqueue_clear(&conn->retransmit);

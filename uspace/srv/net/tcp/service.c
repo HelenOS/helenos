@@ -93,8 +93,14 @@ static void tcp_service_cstate_change(tcp_conn_t *conn, void *arg,
 	}
 
 	if (old_state != st_closed && nstate == st_closed && conn->reset) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_service_cstate_change: "
+		    "Connection reset");
 		/* Connection reset */
 		tcp_ev_conn_reset(cconn);
+	} else {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_service_cstate_change: "
+		    "old_state=%d nstate=%d conn->reset=%d",
+		    old_state, nstate, conn->reset);
 	}
 
 	/* XXX Failed to establish connection */
