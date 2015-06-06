@@ -101,14 +101,19 @@ int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
 		}
 		log_msg(LOG_DEFAULT, LVL_NOTE, "selected %" PRIu16, pnum);
 	} else {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "user asked for %" PRIu16, pnum);
+
 		if ((flags & pf_allow_system) == 0 &&
 		    pnum < inet_port_user_lo) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "system port not allowed");
 			return EINVAL;
 		}
 
 		list_foreach(pr->used, lprng, portrng_port_t, port) {
-			if (port->pn == pnum)
+			if (port->pn == pnum) {
+				log_msg(LOG_DEFAULT, LVL_NOTE, "port already used");
 				return EEXISTS;
+			}
 		}
 	}
 

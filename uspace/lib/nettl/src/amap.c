@@ -393,16 +393,6 @@ int amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,
 		    "local address specified or remote address not specified");
 	}
 
-	/** Allocate local port? */
-	if (mepp.local.port == inet_port_any) {
-		mepp.local.port = inet_port_dyn_lo; /* XXX */
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert: allocated local "
-		    "port %" PRIu16, mepp.local.port);
-	} else {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert: local "
-		    "port %" PRIu16 " specified", mepp.local.port);
-	}
-
 	raddr = !inet_addr_is_any(&mepp.remote.addr);
 	rport = mepp.remote.port != inet_port_any;
 	laddr = !inet_addr_is_any(&mepp.local.addr);
