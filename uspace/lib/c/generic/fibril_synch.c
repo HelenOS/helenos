@@ -460,11 +460,11 @@ static int fibril_timer_func(void *arg)
 			    timer->lockp, timer->delay);
 			if (rc == ETIMEOUT && timer->state == fts_active) {
 				timer->state = fts_fired;
-				timer->handler_running = true;
+				timer->handler_fid = fibril_get_id();
 				fibril_mutex_unlock(timer->lockp);
 				timer->fun(timer->arg);
 				fibril_mutex_lock(timer->lockp);
-				timer->handler_running = false;
+				timer->handler_fid = 0;
 			}
 			break;
 		case fts_cleanup:
@@ -607,8 +607,18 @@ fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *timer)
 
 	assert(fibril_mutex_is_locked(timer->lockp));
 
-	while (timer->handler_running)
+	while (timer->handler_fid != 0) {
+		if (timer->handler_fid == fibril_get_id()) {
+			printf("Deadlock detected.\n");
+			stacktrace_print();
+			printf("Fibril %zx is trying to clear timer %p from "
+			    "inside its handler %p.\n",
+			    fibril_get_id(), timer, timer->fun);
+			abort();
+		}
+
 		fibril_condvar_wait(&timer->cv, timer->lockp);
+	}
 
 	old_state = timer->state;
 	timer->state = fts_not_set;

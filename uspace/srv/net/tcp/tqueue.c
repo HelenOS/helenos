@@ -350,10 +350,10 @@ static void retransmit_timeout_func(void *arg)
 	tcp_conn_transmit_segment(tqe->conn, rt_seg);
 
 	/* Reset retransmission timer */
-	tcp_tqueue_timer_set(tqe->conn);
+	fibril_timer_set_locked(conn->retransmit.timer, RETRANSMIT_TIMEOUT,
+	    retransmit_timeout_func, (void *) conn);
 
 	tcp_conn_unlock(conn);
-	tcp_conn_delref(conn);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "### %s: retransmit_timeout_func(%p) end", conn->name, conn);
 }
