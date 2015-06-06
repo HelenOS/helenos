@@ -874,6 +874,7 @@ static void tcp_client_fini(tcp_client_t *client)
 			cconn = list_get_instance(list_first(&client->cconn),
 			    tcp_cconn_t, lclient);
 			tcp_uc_close(cconn->conn);
+			tcp_uc_delete(cconn->conn);
 			tcp_cconn_destroy(cconn);
 		}
 	}

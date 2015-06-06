@@ -257,7 +257,6 @@ tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 	if (conn->cstate == st_listen || conn->cstate == st_syn_sent) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_close - listen/syn_sent");
 		tcp_conn_reset(conn);
-		tcp_conn_remove(conn);
 		tcp_conn_unlock(conn);
 		return TCP_EOK;
 	}

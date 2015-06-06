@@ -321,6 +321,7 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 
 	assert(old_state != st_closed);
 	if (nstate == st_closed) {
+		tcp_conn_remove(conn);
 		/* Drop one reference for now being in closed state */
 		tcp_conn_delref(conn);
 	}
@@ -881,7 +882,6 @@ static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	if (conn->fin_is_acked) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN acked -> Closed", conn->name);
-		tcp_conn_remove(conn);
 		tcp_conn_state_set(conn, st_closed);
 		return cp_done;
 	}
@@ -1282,7 +1282,6 @@ static void tw_timeout_func(void *arg)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: TW Timeout -> Closed", conn->name);
-	tcp_conn_remove(conn);
 	tcp_conn_state_set(conn, st_closed);
 
 	tcp_conn_unlock(conn);
