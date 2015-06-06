@@ -50,7 +50,7 @@
 #include <io/log.h>
 #include <io/logctl.h>
 
-#define NAME       "klog"
+#define NAME  "klog"
 
 typedef size_t __attribute__ ((aligned(1))) unaligned_size_t;
 
@@ -97,7 +97,7 @@ static log_t facility_ctx[facility_len];
  * @param data   Pointer to the kernel klog buffer.
  *
  */
-static void producer()
+static void producer(void)
 {
 	int read = klog_read(buffer, BUFFER_SIZE);
 	

@@ -717,7 +717,7 @@ static int ieee80211_implement(ieee80211_dev_t *ieee80211_dev,
  * @return Pointer to allocated IEEE802.11 device structure.
  *
  */
-ieee80211_dev_t *ieee80211_device_create()
+ieee80211_dev_t *ieee80211_device_create(void)
 {
 	return calloc(1, sizeof(ieee80211_dev_t));
 }

@@ -218,7 +218,7 @@ finit:
 	return rc;
 }
 
-void print_pipe_usage()
+void print_pipe_usage(void)
 {
 	printf("Invalid syntax!\n");
 	printf("Usage of redirection (pipes in the future):\n");

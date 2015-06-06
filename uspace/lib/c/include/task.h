@@ -59,7 +59,8 @@ extern int task_spawnvf(task_id_t *, task_wait_t *, const char *path,
     const char *const [], int *const []);
 extern int task_spawn(task_id_t *, task_wait_t *, const char *path, int,
     va_list ap);
-extern int task_spawnl(task_id_t *, task_wait_t *, const char *path, ...);
+extern int task_spawnl(task_id_t *, task_wait_t *, const char *path, ...)
+    __attribute__((sentinel));
 
 extern int task_setup_wait(task_id_t, task_wait_t *);
 extern void task_cancel_wait(task_wait_t *);

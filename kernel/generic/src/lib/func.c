@@ -50,7 +50,7 @@ atomic_t haltstate = {0}; /**< Halt flag */
  * Set halt flag and halt the CPU.
  *
  */
-void halt()
+void halt(void)
 {
 #if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
 	bool rundebugger = false;

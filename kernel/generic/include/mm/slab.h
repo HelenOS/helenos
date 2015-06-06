@@ -141,7 +141,8 @@ extern void slab_print_list(void);
 /* malloc support */
 extern void *malloc(size_t, unsigned int)
     __attribute__((malloc));
-extern void *realloc(void *, size_t, unsigned int);
+extern void *realloc(void *, size_t, unsigned int)
+    __attribute__((warn_unused_result));
 extern void free(void *);
 
 #endif

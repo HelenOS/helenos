@@ -287,7 +287,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 /** Initialize debugger
  *
  */
-void debugger_init()
+void debugger_init(void)
 {
 	unsigned int i;
 	

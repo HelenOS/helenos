@@ -107,7 +107,7 @@ void help_cmd_cat(unsigned int level)
 	return;
 }
 
-static void waitprompt()
+static void waitprompt(void)
 {
 	console_set_pos(console, 0, console_rows-1);
 	console_set_color(console, COLOR_WHITE, COLOR_BLUE, 0);
@@ -119,7 +119,7 @@ static void waitprompt()
 	console_set_style(console, STYLE_NORMAL);
 }
 
-static void waitkey()
+static void waitkey(void)
 {
 	cons_event_t ev;
 	kbd_event_t *kev;
@@ -148,7 +148,7 @@ static void waitkey()
 	assert(false);
 }
 
-static void newpage()
+static void newpage(void)
 {
 	console_clear(console);
 	chars_remaining = console_cols;

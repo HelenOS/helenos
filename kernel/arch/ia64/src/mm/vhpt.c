@@ -81,7 +81,7 @@ void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 	ventry->present.tag.tag_word = tag;
 }
 
-void vhpt_invalidate_all()
+void vhpt_invalidate_all(void)
 {
 	memsetb(vhpt_base, VHPT_SIZE, 0);
 }

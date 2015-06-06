@@ -146,7 +146,7 @@ static int scan_device_tree(devman_handle_t funh)
  *  @return EOK if succeed, error code otherwise.
  *
  */
-static int get_sata_disks()
+static int get_sata_disks(void)
 {
 	devman_handle_t root_fun;
 	int rc;

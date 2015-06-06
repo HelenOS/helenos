@@ -45,7 +45,7 @@
  * is available only on armv7+. This function returns false on all\
  * older archs.
  */
-static inline bool sec_ext_is_implemented()
+static inline bool sec_ext_is_implemented(void)
 {
 #ifdef PROCESSOR_ARCH_armv7_a
 	const uint32_t idpfr = ID_PFR1_read() & ID_PFR1_SEC_EXT_MASK;
@@ -59,7 +59,7 @@ static inline bool sec_ext_is_implemented()
  * @note this is safe to call even on machines that do not implement monitor
  * mode.
  */
-static inline bool sec_ext_is_monitor_mode()
+static inline bool sec_ext_is_monitor_mode(void)
 {
 	return (current_status_reg_read() & MODE_MASK) == MONITOR_MODE;
 }
@@ -74,7 +74,7 @@ static inline bool sec_ext_is_monitor_mode()
  * features and switches to non-secure state during boot.
  * Look for 'secureworld_exit' in arch/arm/cpu/armv7/omap3/board.c.
  */
-static inline bool sec_ext_is_secure()
+static inline bool sec_ext_is_secure(void)
 {
 	return sec_ext_is_implemented()
 	    && (sec_ext_is_monitor_mode() || !(SCR_read() & SCR_NS_FLAG));
