@@ -476,8 +476,8 @@ static int fibril_timer_func(void *arg)
 
 	/* Acknowledge timer fibril has finished cleanup. */
 	timer->state = fts_clean;
+	fibril_condvar_broadcast(&timer->cv);
 	fibril_mutex_unlock(timer->lockp);
-	free(timer);
 
 	return 0;
 }
@@ -524,7 +524,13 @@ void fibril_timer_destroy(fibril_timer_t *timer)
 	/* Request timer fibril to terminate. */
 	timer->state = fts_cleanup;
 	fibril_condvar_broadcast(&timer->cv);
+
+	/* Wait for timer fibril to terminate */
+	while (timer->state != fts_clean)
+		fibril_condvar_wait(&timer->cv, timer->lockp);
 	fibril_mutex_unlock(timer->lockp);
+
+	free(timer);
 }
 
 /** Set timer.
