@@ -316,7 +316,6 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	fibril_mutex_lock(&user->guard);
 	while (!user_can_be_destroyed_no_lock(user)) {
 		if (user->task_finished) {
-			tcp_conn_destroy(user->conn);
 			user->conn = NULL;
 			user->socket_closed = true;
 			user->srvs.aborted = true;
