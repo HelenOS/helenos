@@ -43,9 +43,9 @@
 #include <align.h>
 #include <fibril_synch.h>
 #include <task.h>
-#include <net/in.h>
-#include <net/inet.h>
-#include <net/socket.h>
+#include <inet/addr.h>
+#include <inet/endpoint.h>
+#include <inet/tcp.h>
 #include <io/console.h>
 #include <inttypes.h>
 #include "telnet.h"
@@ -98,6 +98,16 @@ static con_ops_t con_ops = {
 	.get_event = remcons_get_event
 };
 
+static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn);
+
+static tcp_listen_cb_t listen_cb = {
+	.new_conn = remcons_new_conn
+};
+
+static tcp_cb_t conn_cb = {
+	.connected = NULL
+};
+
 static telnet_user_t *srv_to_user(con_srv_t *srv)
 {
 	return srv->srvs->sarg;
@@ -110,8 +120,8 @@ static int remcons_open(con_srvs_t *srvs, con_srv_t *srv)
 	telnet_user_log(user, "New client connected (%p).", srv);
 
 	/* Force character mode. */
-	send(user->socket, (void *)telnet_force_character_mode_command,
-	    telnet_force_character_mode_command_count, 0);
+	(void) tcp_conn_send(user->conn, (void *)telnet_force_character_mode_command,
+	    telnet_force_character_mode_command_count);
 
 	return EOK;
 }
@@ -271,33 +281,42 @@ static bool user_can_be_destroyed_no_lock(telnet_user_t *user)
 	    (user->locsrv_connection_count == 0);
 }
 
-/** Fibril for each accepted socket.
+/** Handle network connection.
  *
- * @param arg Corresponding @c telnet_user_t structure.
+ * @param lst  Listener
+ * @param conn Connection
  */
-static int network_user_fibril(void *arg)
+static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 {
-	telnet_user_t *user = arg;
+	telnet_user_t *user = telnet_user_create(conn);
+	assert(user);
+
+	con_srvs_init(&user->srvs);
+	user->srvs.ops = &con_ops;
+	user->srvs.sarg = user;
+	user->srvs.abort_timeout = 1000;
+
+	telnet_user_add(user);
 
 	int rc = loc_service_register(user->service_name, &user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user, "Unable to register %s with loc: %s.",
 		    user->service_name, str_error(rc));
-		return EOK;
+		return;
 	}
 
 	telnet_user_log(user, "Service %s registerd with id %" PRIun ".",
 	    user->service_name, user->service_id);
-	
+
 	fid_t spawn_fibril = fibril_create(spawn_task_fibril, user);
 	assert(spawn_fibril);
 	fibril_add_ready(spawn_fibril);
-	
+
 	/* Wait for all clients to exit. */
 	fibril_mutex_lock(&user->guard);
 	while (!user_can_be_destroyed_no_lock(user)) {
 		if (user->task_finished) {
-			closesocket(user->socket);
+			user->conn = NULL;
 			user->socket_closed = true;
 			user->srvs.aborted = true;
 			continue;
@@ -309,7 +328,7 @@ static int network_user_fibril(void *arg)
 		fibril_condvar_wait_timeout(&user->refcount_cv, &user->guard, 1000);
 	}
 	fibril_mutex_unlock(&user->guard);
-	
+
 	rc = loc_service_unregister(user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user,
@@ -319,84 +338,43 @@ static int network_user_fibril(void *arg)
 
 	telnet_user_log(user, "Destroying...");
 	telnet_user_destroy(user);
-
-	return EOK;
 }
 
 int main(int argc, char *argv[])
 {
-	int port = 2223;
-	
+	int rc;
+	tcp_listener_t *lst;
+	tcp_t *tcp;
+	inet_ep_t ep;
+
 	async_set_client_connection(client_connection);
-	int rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register server\n", NAME);
 		return rc;
 	}
-	
-	struct sockaddr_in addr;
-	
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	
-	rc = inet_pton(AF_INET, "127.0.0.1", (void *)
-	    &addr.sin_addr.s_addr);
+
+	rc = tcp_create(&tcp);
 	if (rc != EOK) {
-		fprintf(stderr, "Error parsing network address: %s.\n",
-		    str_error(rc));
-		return 2;
+		fprintf(stderr, "%s: Error initializing TCP.\n", NAME);
+		return rc;
 	}
 
-	int listen_sd = socket(PF_INET, SOCK_STREAM, 0);
-	if (listen_sd < 0) {
-		fprintf(stderr, "Error creating listening socket: %s.\n",
-		    str_error(listen_sd));
-		return 3;
-	}
+	inet_ep_init(&ep);
+	ep.port = 2223;
 
-	rc = bind(listen_sd, (struct sockaddr *) &addr, sizeof(addr));
+	rc = tcp_listener_create(tcp, &ep, &listen_cb, NULL, &conn_cb, NULL,
+	    &lst);
 	if (rc != EOK) {
-		fprintf(stderr, "Error binding socket: %s.\n",
-		    str_error(rc));
-		return 4;
-	}
-
-	rc = listen(listen_sd, BACKLOG_SIZE);
-	if (rc != EOK) {
-		fprintf(stderr, "listen() failed: %s.\n", str_error(rc));
-		return 5;
+		fprintf(stderr, "%s: Error creating listener.\n", NAME);
+		return rc;
 	}
 
 	printf("%s: HelenOS Remote console service\n", NAME);
 	task_retval(0);
+	async_manager();
 
-	while (true) {
-		struct sockaddr_in raddr;
-		socklen_t raddr_len = sizeof(raddr);
-		int conn_sd = accept(listen_sd, (struct sockaddr *) &raddr,
-		    &raddr_len);
-
-		if (conn_sd < 0) {
-			fprintf(stderr, "accept() failed: %s.\n",
-			    str_error(rc));
-			continue;
-		}
-
-		telnet_user_t *user = telnet_user_create(conn_sd);
-		assert(user);
-
-		con_srvs_init(&user->srvs);
-		user->srvs.ops = &con_ops;
-		user->srvs.sarg = user;
-		user->srvs.abort_timeout = 1000;
-
-		telnet_user_add(user);
-
-		fid_t fid = fibril_create(network_user_fibril, user);
-		assert(fid);
-		fibril_add_ready(fid);
-	}
-
+	/* Not reached */
 	return 0;
 }
 

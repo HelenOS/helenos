@@ -96,6 +96,9 @@ GENERIC_SOURCES = \
 	generic/task.c \
 	generic/futex.c \
 	generic/inet/addr.c \
+	generic/inet/endpoint.c \
+	generic/inet/tcp.c \
+	generic/inet/udp.c \
 	generic/inet.c \
 	generic/inetcfg.c \
 	generic/inetping.c \
@@ -136,17 +139,12 @@ GENERIC_SOURCES = \
 	generic/adt/checksum.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
-	generic/adt/dynamic_fifo.c \
-	generic/adt/char_map.c \
 	generic/adt/prodcons.c \
 	generic/time.c \
 	generic/stdlib.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
-	generic/net/inet.c \
-	generic/net/socket_client.c \
-	generic/net/socket_parse.c \
 	generic/setjmp.c \
 	generic/stack.c \
 	generic/stacktrace.c \

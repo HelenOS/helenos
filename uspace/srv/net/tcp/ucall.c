@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@
  * @file TCP entry points (close to those defined in the RFC)
  */
 
+#include <errno.h>
 #include <fibril_synch.h>
 #include <io/log.h>
 #include <macros.h>
@@ -49,8 +50,7 @@
 
 /** OPEN user call
  *
- * @param lsock		Local socket
- * @param fsock		Foreign socket
+ * @param epp		Endpoint pair
  * @param acpass	Active/passive
  * @param oflags	Open flags
  * @param conn		Connection
@@ -64,17 +64,23 @@
  * XXX We should be able to get connection structure immediately, before
  * establishment.
  */
-tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
+tcp_error_t tcp_uc_open(inet_ep2_t *epp, acpass_t acpass,
     tcp_open_flags_t oflags, tcp_conn_t **conn)
 {
 	tcp_conn_t *nconn;
+	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open(%p, %p, %s, %s, %p)",
-	    lsock, fsock, acpass == ap_active ? "active" : "passive",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open(%p, %s, %s, %p)",
+	    epp, acpass == ap_active ? "active" : "passive",
 	    oflags == tcp_open_nonblock ? "nonblock" : "none", conn);
 
-	nconn = tcp_conn_new(lsock, fsock);
-	tcp_conn_add(nconn);
+	nconn = tcp_conn_new(epp);
+	rc = tcp_conn_add(nconn);
+	if (rc != EOK) {
+		tcp_conn_delete(nconn);
+		return TCP_EEXISTS;
+	}
+
 	tcp_conn_lock(nconn);
 
 	if (acpass == ap_active) {
@@ -187,6 +193,8 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 
 	/* Wait for data to become available */
 	while (conn->rcv_buf_used == 0 && !conn->rcv_buf_fin && !conn->reset) {
+		tcp_conn_unlock(conn);
+		return TCP_EAGAIN;
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_receive() - wait for data");
 		fibril_condvar_wait(&conn->rcv_buf_cv, &conn->lock);
 	}
@@ -249,7 +257,6 @@ tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 	if (conn->cstate == st_listen || conn->cstate == st_syn_sent) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_close - listen/syn_sent");
 		tcp_conn_reset(conn);
-		tcp_conn_remove(conn);
 		tcp_conn_unlock(conn);
 		return TCP_EOK;
 	}
@@ -293,13 +300,18 @@ void tcp_uc_delete(tcp_conn_t *conn)
 	tcp_conn_delete(conn);
 }
 
-void tcp_uc_set_cstate_cb(tcp_conn_t *conn, tcp_cstate_cb_t cb, void *arg)
+void tcp_uc_set_cb(tcp_conn_t *conn, tcp_cb_t *cb, void *arg)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_set_ctate_cb(%p, %p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_set_cb(%p, %p, %p)",
 	    conn, cb, arg);
 
-	conn->cstate_cb = cb;
-	conn->cstate_cb_arg = arg;
+	conn->cb = cb;
+	conn->cb_arg = arg;
+}
+
+void *tcp_uc_get_userptr(tcp_conn_t *conn)
+{
+	return conn->cb_arg;
 }
 
 /*
@@ -307,43 +319,22 @@ void tcp_uc_set_cstate_cb(tcp_conn_t *conn, tcp_cstate_cb_t cb, void *arg)
  */
 
 /** Segment arrived */
-void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_as_segment_arrived(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_conn_t *conn;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "tcp_as_segment_arrived(f:(%u), l:(%u))",
-	    sp->foreign.port, sp->local.port);
+	    epp->remote.port, epp->local.port);
 
-	conn = tcp_conn_find_ref(sp);
+	conn = tcp_conn_find_ref(epp);
 	if (conn == NULL) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "No connection found.");
-		tcp_unexpected_segment(sp, seg);
+		tcp_unexpected_segment(epp, seg);
 		return;
 	}
 
-	tcp_conn_lock(conn);
-
-	if (conn->cstate == st_closed) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Connection is closed.");
-		tcp_unexpected_segment(sp, seg);
-		tcp_conn_unlock(conn);
-		tcp_conn_delref(conn);
-		return;
-	}
-
-	if (inet_addr_is_any(&conn->ident.foreign.addr))
-		conn->ident.foreign.addr = sp->foreign.addr;
-	
-	if (conn->ident.foreign.port == TCP_PORT_ANY)
-		conn->ident.foreign.port = sp->foreign.port;
-	
-	if (inet_addr_is_any(&conn->ident.local.addr))
-		conn->ident.local.addr = sp->local.addr;
-
-	tcp_conn_segment_arrived(conn, seg);
-
-	tcp_conn_unlock(conn);
+	tcp_conn_segment_arrived(conn, epp, seg);
 	tcp_conn_delref(conn);
 }
 

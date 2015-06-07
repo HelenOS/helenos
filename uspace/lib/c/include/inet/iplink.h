@@ -43,6 +43,7 @@ struct iplink_ev_ops;
 typedef struct {
 	async_sess_t *sess;
 	struct iplink_ev_ops *ev_ops;
+	void *arg;
 } iplink_t;
 
 /** IPv4 link Service Data Unit */
@@ -80,7 +81,7 @@ typedef struct iplink_ev_ops {
 	int (*change_addr)(iplink_t *, addr48_t);
 } iplink_ev_ops_t;
 
-extern int iplink_open(async_sess_t *, iplink_ev_ops_t *, iplink_t **);
+extern int iplink_open(async_sess_t *, iplink_ev_ops_t *, void *, iplink_t **);
 extern void iplink_close(iplink_t *);
 extern int iplink_send(iplink_t *, iplink_sdu_t *);
 extern int iplink_send6(iplink_t *, iplink_sdu6_t *);
@@ -89,6 +90,7 @@ extern int iplink_addr_remove(iplink_t *, inet_addr_t *);
 extern int iplink_get_mtu(iplink_t *, size_t *);
 extern int iplink_get_mac48(iplink_t *, addr48_t *);
 extern int iplink_set_mac48(iplink_t *, addr48_t);
+extern void *iplink_get_userptr(iplink_t *);
 
 #endif
 

@@ -74,6 +74,8 @@ typedef struct {
 } inetping6_client_t;
 
 typedef struct {
+	/** Local link ID */
+	service_id_t link_id;
 	/** Source address */
 	inet_addr_t src;
 	/** Destination address */

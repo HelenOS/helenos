@@ -46,7 +46,7 @@
 
 static void iplink_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
-int iplink_open(async_sess_t *sess, iplink_ev_ops_t *ev_ops,
+int iplink_open(async_sess_t *sess, iplink_ev_ops_t *ev_ops, void *arg,
     iplink_t **riplink)
 {
 	iplink_t *iplink = calloc(1, sizeof(iplink_t));
@@ -55,6 +55,7 @@ int iplink_open(async_sess_t *sess, iplink_ev_ops_t *ev_ops,
 	
 	iplink->sess = sess;
 	iplink->ev_ops = ev_ops;
+	iplink->arg = arg;
 	
 	async_exch_t *exch = async_exchange_begin(sess);
 	
@@ -233,6 +234,11 @@ int iplink_addr_remove(iplink_t *iplink, inet_addr_t *addr)
 	async_wait_for(req, &retval);
 	
 	return (int) retval;
+}
+
+void *iplink_get_userptr(iplink_t *iplink)
+{
+	return iplink->arg;
 }
 
 static void iplink_ev_recv(iplink_t *iplink, ipc_callid_t iid,

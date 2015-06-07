@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,12 +41,14 @@
 #include <inet/inet.h>
 #include <io/log.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <task.h>
 
+#include "conn.h"
 #include "ncsim.h"
 #include "pdu.h"
 #include "rqueue.h"
-#include "sock.h"
+#include "service.h"
 #include "std.h"
 #include "tcp.h"
 #include "test.h"
@@ -158,7 +160,7 @@ void tcp_transmit_pdu(tcp_pdu_t *pdu)
 static void tcp_received_pdu(tcp_pdu_t *pdu)
 {
 	tcp_segment_t *dseg;
-	tcp_sockpair_t rident;
+	inet_ep2_t rident;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_received_pdu()");
 
@@ -177,6 +179,13 @@ static int tcp_init(void)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_init()");
 
+	rc = tcp_conns_init();
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing connections");
+		return ENOMEM;
+	}
+
 	tcp_rqueue_init();
 	tcp_rqueue_fibril_start();
 
@@ -191,9 +200,9 @@ static int tcp_init(void)
 		return ENOENT;
 	}
 
-	rc = tcp_sock_init();
+	rc = tcp_service_init();
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing socket service.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing service.");
 		return ENOENT;
 	}
 

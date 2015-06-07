@@ -36,9 +36,6 @@
 #define LIBC_INET_ADDR_H_
 
 #include <stdint.h>
-#include <net/in.h>
-#include <net/in6.h>
-#include <net/socket.h>
 
 typedef uint32_t addr32_t;
 typedef uint8_t addr48_t[6];
@@ -125,18 +122,9 @@ extern ip_ver_t inet_naddr_get(const inet_naddr_t *, addr32_t *, addr128_t *,
 
 extern void inet_addr_set(addr32_t, inet_addr_t *);
 extern void inet_naddr_set(addr32_t, uint8_t, inet_naddr_t *);
-extern void inet_sockaddr_in_addr(const sockaddr_in_t *, inet_addr_t *);
 
 extern void inet_addr_set6(addr128_t, inet_addr_t *);
 extern void inet_naddr_set6(addr128_t, uint8_t, inet_naddr_t *);
-extern void inet_sockaddr_in6_addr(const sockaddr_in6_t *, inet_addr_t *);
-
-extern uint16_t inet_addr_sockaddr_in(const inet_addr_t *, sockaddr_in_t *,
-    sockaddr_in6_t *);
-
-extern ip_ver_t ipver_from_af(int af);
-extern int inet_addr_sockaddr(const inet_addr_t *, uint16_t, sockaddr_t **,
-    socklen_t *);
 
 #endif
 

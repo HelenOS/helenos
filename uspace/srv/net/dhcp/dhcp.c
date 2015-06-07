@@ -36,6 +36,7 @@
 
 #include <adt/list.h>
 #include <bitops.h>
+#include <byteorder.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <inet/addr.h>

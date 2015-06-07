@@ -29,6 +29,7 @@
 #ifndef RFB_H__
 #define RFB_H__
 
+#include <inet/tcp.h>
 #include <io/pixelmap.h>
 #include <fibril_synch.h>
 
@@ -150,7 +151,8 @@ typedef struct {
 	uint16_t height;
 	rfb_pixel_format_t pixel_format;
 	const char *name;
-	int listen_sd;
+	tcp_t *tcp;
+	tcp_listener_t *lst;
 	pixelmap_t framebuffer;
 	rfb_rectangle_t damage_rect;
 	bool damage_valid;
@@ -164,6 +166,5 @@ typedef struct {
 extern int rfb_init(rfb_t *, uint16_t, uint16_t, const char *);
 extern int rfb_set_size(rfb_t *, uint16_t, uint16_t);
 extern int rfb_listen(rfb_t *, uint16_t);
-extern void rfb_accept(rfb_t *);
 
 #endif

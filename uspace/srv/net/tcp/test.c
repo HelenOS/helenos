@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,22 +49,23 @@
 static int test_srv(void *arg)
 {
 	tcp_conn_t *conn;
-	tcp_sock_t lsock;
-	tcp_sock_t fsock;
+	inet_ep2_t epp;
 	char rcv_buf[RCV_BUF_SIZE + 1];
 	size_t rcvd;
 	xflags_t xflags;
 
 	printf("test_srv()\n");
-	
-	inet_addr(&lsock.addr, 127, 0, 0, 1);
-	lsock.port = 80;
-	
-	inet_addr(&fsock.addr, 127, 0, 0, 1);
-	fsock.port = 1024;
-	
+
+	inet_ep2_init(&epp);
+
+	inet_addr(&epp.local.addr, 127, 0, 0, 1);
+	epp.local.port = 80;
+
+	inet_addr(&epp.remote.addr, 127, 0, 0, 1);
+	epp.remote.port = 1024;
+
 	printf("S: User open...\n");
-	tcp_uc_open(&lsock, &fsock, ap_passive, 0, &conn);
+	tcp_uc_open(&epp, ap_passive, 0, &conn);
 	conn->name = (char *) "S";
 
 	while (true) {
@@ -92,21 +93,22 @@ static int test_srv(void *arg)
 static int test_cli(void *arg)
 {
 	tcp_conn_t *conn;
-	tcp_sock_t lsock;
-	tcp_sock_t fsock;
+	inet_ep2_t epp;
 	const char *msg = "Hello World!";
 
 	printf("test_cli()\n");
-	
-	inet_addr(&lsock.addr, 127, 0, 0, 1);
-	lsock.port = 1024;
-	
-	inet_addr(&fsock.addr, 127, 0, 0, 1);
-	fsock.port = 80;
+
+	inet_ep2_init(&epp);
+
+	inet_addr(&epp.local.addr, 127, 0, 0, 1);
+	epp.local.port = 1024;
+
+	inet_addr(&epp.remote.addr, 127, 0, 0, 1);
+	epp.remote.port = 80;
 
 	async_usleep(1000*1000*3);
 	printf("C: User open...\n");
-	tcp_uc_open(&lsock, &fsock, ap_active, 0, &conn);
+	tcp_uc_open(&epp, ap_active, 0, &conn);
 	conn->name = (char *) "C";
 
 	async_usleep(1000*1000*10);

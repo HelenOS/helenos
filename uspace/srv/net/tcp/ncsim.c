@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@
 #include <adt/list.h>
 #include <async.h>
 #include <errno.h>
+#include <inet/endpoint.h>
 #include <io/log.h>
 #include <stdlib.h>
 #include <fibril.h>
@@ -64,17 +65,17 @@ void tcp_ncsim_init(void)
 
 /** Bounce segment through simulator into receive queue.
  *
- * @param sp	Socket pair, oriented for transmission
+ * @param epp	Endpoint pair, oriented for transmission
  * @param seg	Segment
  */
-void tcp_ncsim_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_ncsim_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_squeue_entry_t *sqe;
 	tcp_squeue_entry_t *old_qe;
 	link_t *link;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_bounce_seg()");
-	tcp_rqueue_bounce_seg(sp, seg);
+	tcp_rqueue_bounce_seg(epp, seg);
 	return;
 
 	if (0 /*random() % 4 == 3*/) {
@@ -91,7 +92,7 @@ void tcp_ncsim_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	}
 
 	sqe->delay = random() % (1000 * 1000);
-	sqe->sp = *sp;
+	sqe->epp = *epp;
 	sqe->seg = seg;
 
 	fibril_mutex_lock(&sim_queue_lock);
@@ -146,7 +147,7 @@ static int tcp_ncsim_fibril(void *arg)
 		fibril_mutex_unlock(&sim_queue_lock);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "NCSim - End Sleep");
-		tcp_rqueue_bounce_seg(&sqe->sp, sqe->seg);
+		tcp_rqueue_bounce_seg(&sqe->epp, sqe->seg);
 		free(sqe);
 	}
 

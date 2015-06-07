@@ -37,6 +37,7 @@
 #ifndef TRANSPORT_H
 #define TRANSPORT_H
 
+#include <inet/udp.h>
 #include <ipc/loc.h>
 #include <sys/types.h>
 
@@ -46,14 +47,14 @@ typedef struct dhcp_transport dhcp_transport_t;
 typedef void (*dhcp_recv_cb_t)(void *, void *, size_t);
 
 struct dhcp_transport {
-	/** Transport socket */
-	int fd;
+	/** UDP */
+	udp_t *udp;
+	/** UDP association */
+	udp_assoc_t *assoc;
 	/** Receive callback */
 	dhcp_recv_cb_t recv_cb;
 	/** Callback argument */
 	void *cb_arg;
-	/** Receive fibril ID */
-	int recv_fid;
 };
 
 extern int dhcp_transport_init(dhcp_transport_t *, service_id_t,
