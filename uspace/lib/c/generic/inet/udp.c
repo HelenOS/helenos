@@ -35,7 +35,6 @@
 #include <errno.h>
 #include <inet/endpoint.h>
 #include <inet/udp.h>
-#include <io/log.h>
 #include <ipc/services.h>
 #include <ipc/udp.h>
 #include <loc.h>
@@ -46,8 +45,6 @@ static void udp_cb_conn(ipc_callid_t, ipc_call_t *, void *);
 static int udp_callback_create(udp_t *udp)
 {
 	async_exch_t *exch = async_exchange_begin(udp->sess);
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_callback_create()");
 
 	aid_t req = async_send_0(exch, UDP_CALLBACK_CREATE, NULL);
 	int rc = async_connect_to_me(exch, 0, 0, 0, udp_cb_conn, udp);
@@ -67,8 +64,6 @@ int udp_create(udp_t **rudp)
 	udp_t *udp;
 	service_id_t udp_svcid;
 	int rc;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_create()");
 
 	udp = calloc(1, sizeof(udp_t));
 	if (udp == NULL) {
@@ -121,8 +116,6 @@ int udp_assoc_create(udp_t *udp, inet_ep2_t *ep2, udp_cb_t *cb, void *arg,
 	udp_assoc_t *assoc;
 	ipc_call_t answer;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_create()");
-
 	assoc = calloc(1, sizeof(udp_assoc_t));
 	if (assoc == NULL)
 		return ENOMEM;
@@ -163,8 +156,6 @@ void udp_assoc_destroy(udp_assoc_t *assoc)
 {
 	async_exch_t *exch;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_destroy()");
-
 	if (assoc == NULL)
 		return;
 
@@ -182,8 +173,6 @@ int udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
     size_t bytes)
 {
 	async_exch_t *exch;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send_msg()");
 
 	exch = async_exchange_begin(assoc->udp->sess);
 	aid_t req = async_send_1(exch, UDP_ASSOC_SEND_MSG, assoc->id, NULL);
@@ -228,28 +217,22 @@ int udp_rmsg_read(udp_rmsg_t *rmsg, size_t off, void *buf, size_t bsize)
 	async_exch_t *exch;
 	ipc_call_t answer;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_rmsg_read()");
-
 	exch = async_exchange_begin(rmsg->udp->sess);
 	aid_t req = async_send_1(exch, UDP_RMSG_READ, off, &answer);
 	int rc = async_data_read_start(exch, buf, bsize);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "udp_rmsg_read() - rc != EOK");
 		async_forget(req);
 		return rc;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_rmsg_read() - wait for req");
 	sysarg_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "udp_rmsg_read() - retval != EOK");
 		return retval;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_rmsg_read() - OK");
 	return EOK;
 }
 
@@ -273,8 +256,6 @@ static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 	async_exch_t *exch;
 	inet_ep_t ep;
 	ipc_call_t answer;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_rmsg_info()");
 
 	exch = async_exchange_begin(udp->sess);
 	aid_t req = async_send_0(exch, UDP_RMSG_INFO, &answer);
@@ -302,8 +283,6 @@ static int udp_rmsg_discard(udp_t *udp)
 {
 	async_exch_t *exch;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_rmsg_discard()");
-
 	exch = async_exchange_begin(udp->sess);
 	sysarg_t rc = async_req_0_0(exch, UDP_RMSG_DISCARD);
 	async_exchange_end(exch);
@@ -329,19 +308,14 @@ static void udp_ev_data(udp_t *udp, ipc_callid_t iid, ipc_call_t *icall)
 	udp_assoc_t *assoc;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_ev_data()");
-
 	while (true) {
 		rc = udp_rmsg_info(udp, &rmsg);
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Error getting message info");
 			break;
 		}
 
 		rc = udp_assoc_get(udp, rmsg.assoc_id, &assoc);
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "assoc ID %zu not found",
-			    rmsg.assoc_id);
 			continue;
 		}
 
@@ -350,7 +324,6 @@ static void udp_ev_data(udp_t *udp, ipc_callid_t iid, ipc_call_t *icall)
 
 		rc = udp_rmsg_discard(udp);
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Error discarding message");
 			break;
 		}
 	}
@@ -364,14 +337,10 @@ static void udp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	async_answer_0(iid, EOK);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_cb_conn()");
-
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 
-		log_msg(LOG_DEFAULT, LVL_NOTE, "udp_cb_conn() - msg %d",
-		    (int)IPC_GET_IMETHOD(call));
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			return;

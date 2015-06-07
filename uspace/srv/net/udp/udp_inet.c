@@ -62,9 +62,6 @@ static int udp_inet_ev_recv(inet_dgram_t *dgram)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_inet_ev_recv()");
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_inet_ev_recv: link=%zu",
-	    dgram->iplink);
-
 	pdu = udp_pdu_new();
 	pdu->iplink = dgram->iplink;
 	pdu->data = dgram->data;

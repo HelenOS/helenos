@@ -49,7 +49,7 @@ int portrng_create(portrng_t **rpr)
 {
 	portrng_t *pr;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_create() - begin");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_create() - begin");
 
 	pr = calloc(1, sizeof(portrng_t));
 	if (pr == NULL)
@@ -57,13 +57,13 @@ int portrng_create(portrng_t **rpr)
 
 	list_initialize(&pr->used);
 	*rpr = pr;
-	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_create() - end");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_create() - end");
 	return EOK;
 }
 
 void portrng_destroy(portrng_t *pr)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_destroy()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_destroy()");
 	assert(list_empty(&pr->used));
 	free(pr);
 }
@@ -75,12 +75,12 @@ int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
 	uint32_t i;
 	bool found;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_alloc() - begin");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_alloc() - begin");
 
 	if (pnum == inet_port_any) {
 
 		for (i = inet_port_dyn_lo; i <= inet_port_dyn_hi; i++) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "trying %" PRIu32, i);
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "trying %" PRIu32, i);
 			found = false;
 			list_foreach(pr->used, lprng, portrng_port_t, port) {
 				if (port->pn == pnum) {
@@ -99,19 +99,19 @@ int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
 			/* No free port found */
 			return ENOENT;
 		}
-		log_msg(LOG_DEFAULT, LVL_NOTE, "selected %" PRIu16, pnum);
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "selected %" PRIu16, pnum);
 	} else {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "user asked for %" PRIu16, pnum);
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "user asked for %" PRIu16, pnum);
 
 		if ((flags & pf_allow_system) == 0 &&
 		    pnum < inet_port_user_lo) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "system port not allowed");
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "system port not allowed");
 			return EINVAL;
 		}
 
 		list_foreach(pr->used, lprng, portrng_port_t, port) {
 			if (port->pn == pnum) {
-				log_msg(LOG_DEFAULT, LVL_NOTE, "port already used");
+				log_msg(LOG_DEFAULT, LVL_DEBUG2, "port already used");
 				return EEXISTS;
 			}
 		}
@@ -125,7 +125,7 @@ int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
 	p->arg = arg;
 	list_append(&p->lprng, &pr->used);
 	*apnum = pnum;
-	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_alloc() - end OK pn=%" PRIu16,
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_alloc() - end OK pn=%" PRIu16,
 	    pnum);
 	return EOK;
 }
@@ -144,7 +144,7 @@ int portrng_find_port(portrng_t *pr, uint16_t pnum, void **rarg)
 
 void portrng_free_port(portrng_t *pr, uint16_t pnum)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_free_port() - begin");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port() - begin");
 	list_foreach(pr->used, lprng, portrng_port_t, port) {
 		if (port->pn == pnum) {
 			list_remove(&port->lprng);
@@ -154,12 +154,12 @@ void portrng_free_port(portrng_t *pr, uint16_t pnum)
 	}
 
 	assert(false);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_free_port() - end");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port() - end");
 }
 
 bool portrng_empty(portrng_t *pr)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "portrng_empty()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_empty()");
 	return list_empty(&pr->used);
 }
 

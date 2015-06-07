@@ -51,7 +51,7 @@ int amap_create(amap_t **rmap)
 	amap_t *map;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_create()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_create()");
 
 	map = calloc(1, sizeof(amap_t));
 	if (map == NULL)
@@ -74,7 +74,7 @@ int amap_create(amap_t **rmap)
 
 void amap_destroy(amap_t *map)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_destroy()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_destroy()");
 	free(map);
 }
 
@@ -87,7 +87,7 @@ static int amap_repla_find(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
 	(void) inet_addr_format(&rep->addr, &sraddr);
 	(void) inet_addr_format(la, &sladdr);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_repla_find(): rep=(%s,%" PRIu16
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_repla_find(): rep=(%s,%" PRIu16
 	    ") la=%s", sraddr, rep->port, sladdr);
 	free(sraddr);
 	free(sladdr);
@@ -95,7 +95,7 @@ static int amap_repla_find(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
 	list_foreach(map->repla, lamap, amap_repla_t, repla) {
 		(void) inet_addr_format(&repla->rep.addr, &sraddr);
 		(void) inet_addr_format(&repla->laddr, &sladdr);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_repla_find(): "
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_repla_find(): "
 		    "compare to rep=(%s, %" PRIu16 ") la=%s",
 		    sraddr, repla->rep.port, sladdr);
 		free(sraddr);
@@ -246,7 +246,7 @@ static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
 	inet_ep2_t mepp;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert_repla()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_repla()");
 
 	rc = amap_repla_find(map, &epp->remote, &epp->local.addr, &repla);
 	if (rc != EOK) {
@@ -278,7 +278,7 @@ static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
 	inet_ep2_t mepp;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert_laddr()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_laddr()");
 
 	rc = amap_laddr_find(map, &epp->local.addr, &laddr);
 	if (rc != EOK) {
@@ -309,7 +309,7 @@ static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
 	inet_ep2_t mepp;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert_llink()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_llink()");
 
 	rc = amap_llink_find(map, epp->local_link, &llink);
 	if (rc != EOK) {
@@ -339,7 +339,7 @@ static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
 	inet_ep2_t mepp;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert_unspec()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_unspec()");
 	mepp = *epp;
 
 	rc = portrng_alloc(map->unspec, epp->local.port, arg, flags,
@@ -373,23 +373,23 @@ int amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,
 	inet_ep2_t mepp;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert()");
 
 	mepp = *epp;
 
 	/* Fill in local address? */
 	if (!inet_addr_is_any(&epp->remote.addr) &&
 	    inet_addr_is_any(&epp->local.addr)) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert: "
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert: "
 		    "determine local address");
 		rc = inet_get_srcaddr(&epp->remote.addr, 0, &mepp.local.addr);
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert: "
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert: "
 			    "cannot determine local address");
 			return rc;
 		}
 	} else {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert: "
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert: "
 		    "local address specified or remote address not specified");
 	}
 
@@ -407,7 +407,7 @@ int amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,
 	} else if (!raddr && !rport && !laddr && !llink) {
 		return amap_insert_unspec(map, &mepp, arg, flags, aepp);
 	} else {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_insert: invalid "
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert: invalid "
 		    "combination of raddr=%d rport=%d laddr=%d llink=%d",
 		    raddr, rport, laddr, llink);
 		return EINVAL;
@@ -423,7 +423,7 @@ static void amap_remove_repla(amap_t *map, inet_ep2_t *epp)
 
 	rc = amap_repla_find(map, &epp->remote, &epp->local.addr, &repla);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_remove_repla: not found");
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_remove_repla: not found");
 		return;
 	}
 
@@ -440,7 +440,7 @@ static void amap_remove_laddr(amap_t *map, inet_ep2_t *epp)
 
 	rc = amap_laddr_find(map, &epp->local.addr, &laddr);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_remove_laddr: not found");
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_remove_laddr: not found");
 		return;
 	}
 
@@ -457,7 +457,7 @@ static void amap_remove_llink(amap_t *map, inet_ep2_t *epp)
 
 	rc = amap_llink_find(map, epp->local_link, &llink);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_remove_llink: not found");
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_remove_llink: not found");
 		return;
 	}
 
@@ -476,7 +476,7 @@ void amap_remove(amap_t *map, inet_ep2_t *epp)
 {
 	bool raddr, rport, laddr, llink;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_remove()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_remove()");
 
 	raddr = !inet_addr_is_any(&epp->remote.addr);
 	rport = epp->remote.port != inet_port_any;
@@ -492,7 +492,7 @@ void amap_remove(amap_t *map, inet_ep2_t *epp)
 	} else if (!raddr && !rport && !laddr && !llink) {
 		amap_remove_unspec(map, epp);
 	} else {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "amap_remove: invalid "
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_remove: invalid "
 		    "combination of raddr=%d rport=%d laddr=%d llink=%d",
 		    raddr, rport, laddr, llink);
 		return;
@@ -516,7 +516,7 @@ int amap_find_match(amap_t *map, inet_ep2_t *epp, void **rarg)
 	amap_laddr_t *laddr;
 	amap_llink_t *llink;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "amap_find_match(llink=%zu)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_find_match(llink=%zu)",
 	    epp->local_link);
 
 	/* Remode endpoint, local address */
@@ -525,7 +525,7 @@ int amap_find_match(amap_t *map, inet_ep2_t *epp, void **rarg)
 		rc = portrng_find_port(repla->portrng, epp->local.port,
 		    rarg);
 		if (rc == EOK) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Matched repla / "
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Matched repla / "
 			    "port %" PRIu16, epp->local.port);
 			return EOK;
 		}
@@ -537,7 +537,7 @@ int amap_find_match(amap_t *map, inet_ep2_t *epp, void **rarg)
 		rc = portrng_find_port(laddr->portrng, epp->local.port,
 		    rarg);
 		if (rc == EOK) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Matched laddr / "
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Matched laddr / "
 			    "port %" PRIu16, epp->local.port);
 			return EOK;
 		}
@@ -549,7 +549,7 @@ int amap_find_match(amap_t *map, inet_ep2_t *epp, void **rarg)
 		rc = portrng_find_port(llink->portrng, epp->local.port,
 		    rarg);
 		if (rc == EOK) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Matched llink / "
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Matched llink / "
 			    "port %" PRIu16, epp->local.port);
 			return EOK;
 		}
@@ -558,12 +558,12 @@ int amap_find_match(amap_t *map, inet_ep2_t *epp, void **rarg)
 	/* Unspecified */
 	rc = portrng_find_port(map->unspec, epp->local.port, rarg);
 	if (rc == EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Matched unspec / port %" PRIu16,
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "Matched unspec / port %" PRIu16,
 		    epp->local.port);
 		return EOK;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "No match.");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "No match.");
 	return ENOENT;
 }
 

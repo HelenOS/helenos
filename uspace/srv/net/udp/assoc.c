@@ -246,7 +246,7 @@ int udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 	inet_ep2_t epp;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send(%p, %p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send(%p, %p, %p)",
 	    assoc, remote, msg);
 
 	/* @a remote can be used to override the remote endpoint */
@@ -254,24 +254,24 @@ int udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 	if (remote != NULL)
 		epp.remote = *remote;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send - check addr any");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - check addr any");
 
 	if ((inet_addr_is_any(&epp.remote.addr)) ||
 	    (epp.remote.port == inet_port_any))
 		return EINVAL;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send - check version");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - check version");
 
 	if (epp.remote.addr.version != epp.local.addr.version)
 		return EINVAL;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send - encode pdu");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - encode pdu");
 
 	rc = udp_pdu_encode(&epp, msg, &pdu);
 	if (rc != EOK)
 		return ENOMEM;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send - transmit");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - transmit");
 
 	rc = udp_transmit_pdu(pdu);
 	udp_pdu_delete(pdu);
@@ -279,7 +279,7 @@ int udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 	if (rc != EOK)
 		return EIO;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_send - success");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - success");
 	return EOK;
 }
 
@@ -292,7 +292,7 @@ int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, inet_ep_t *remote)
 	link_t *link;
 	udp_rcv_queue_entry_t *rqe;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_recv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_recv()");
 
 	fibril_mutex_lock(&assoc->lock);
 	while (list_empty(&assoc->rcv_queue) && !assoc->reset) {
@@ -306,7 +306,7 @@ int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, inet_ep_t *remote)
 		return ENXIO;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_recv() - got a message");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_recv() - got a message");
 	link = list_first(&assoc->rcv_queue);
 	rqe = list_get_instance(link, udp_rcv_queue_entry_t, link);
 	list_remove(link);
@@ -328,11 +328,11 @@ void udp_assoc_received(inet_ep2_t *repp, udp_msg_t *msg)
 	udp_assoc_t *assoc;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_received(%p, %p)", repp, msg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_received(%p, %p)", repp, msg);
 
 	assoc = udp_assoc_find_ref(repp);
 	if (assoc == NULL) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "No association found. Message dropped.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "No association found. Message dropped.");
 		/* XXX Generate ICMP error. */
 		/* XXX Might propagate error directly by error return. */
 		udp_msg_delete(msg);
@@ -347,7 +347,7 @@ void udp_assoc_received(inet_ep2_t *repp, udp_msg_t *msg)
 		}
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "call assoc->cb->recv_msg");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "call assoc->cb->recv_msg");
 	assoc->cb->recv_msg(assoc->cb_arg, repp, msg);
 	udp_assoc_delref(assoc);
 }
@@ -405,7 +405,7 @@ static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *epp)
 	void *arg;
 	udp_assoc_t *assoc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_find_ref(%p)", epp);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_find_ref(%p)", epp);
 	fibril_mutex_lock(&assoc_list_lock);
 
 	rc = amap_find_match(amap, epp, &arg);

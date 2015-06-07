@@ -272,7 +272,7 @@ int tcp_conn_add(tcp_conn_t *conn)
 	tcp_conn_addref(conn);
 	fibril_mutex_lock(&conn_list_lock);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_conn_add: conn=%p", conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_add: conn=%p", conn);
 
 	rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
 	if (rc != EOK) {
@@ -400,7 +400,7 @@ tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
 	tcp_conn_addref(conn);
 
 	fibril_mutex_unlock(&conn_list_lock);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_conn_find_ref: got conn=%p",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref: got conn=%p",
 	    conn);
 	return conn;
 }
@@ -1186,9 +1186,7 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
 	inet_ep2_t oldepp;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "conn=%p", conn);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "conn->name=%p", conn->name);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: tcp_conn_segment_arrived(%p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_segment_arrived(%p)",
 	    conn->name, seg);
 
 	tcp_conn_lock(conn);
@@ -1204,7 +1202,7 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
 	    conn->ident.remote.port == inet_port_any ||
 	    inet_addr_is_any(&conn->ident.local.addr)) {
 
-		log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_conn_segment_arrived: "
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_conn_segment_arrived: "
 		    "Changing connection ID, updating amap.");
 		oldepp = conn->ident;
 
