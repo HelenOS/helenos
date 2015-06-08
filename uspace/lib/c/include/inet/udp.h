@@ -36,9 +36,11 @@
 #define LIBC_INET_UDP_H_
 
 #include <async.h>
+#include <fibril_synch.h>
 #include <inet/addr.h>
 #include <inet/endpoint.h>
 #include <inet/inet.h>
+#include <stdbool.h>
 
 /** UDP link state */
 typedef enum {
@@ -80,6 +82,12 @@ typedef struct udp {
 	async_sess_t *sess;
 	/** List of associations */
 	list_t assoc; /* of udp_assoc_t */
+	/** UDP service lock */
+	fibril_mutex_t lock;
+	/** For waiting on cb_done */
+	fibril_condvar_t cv;
+	/** Set to @a true when callback connection handler has terminated */
+	bool cb_done;
 } udp_t;
 
 extern int udp_create(udp_t **);

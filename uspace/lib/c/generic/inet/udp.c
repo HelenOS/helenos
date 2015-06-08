@@ -72,6 +72,8 @@ int udp_create(udp_t **rudp)
 	}
 
 	list_initialize(&udp->assoc);
+	fibril_mutex_initialize(&udp->lock);
+	fibril_condvar_initialize(&udp->cv);
 
 	rc = loc_service_get_id(SERVICE_NAME_UDP, &udp_svcid,
 	    IPC_FLAG_BLOCKING);
@@ -106,6 +108,12 @@ void udp_destroy(udp_t *udp)
 		return;
 
 	async_hangup(udp->sess);
+
+	fibril_mutex_lock(&udp->lock);
+	while (!udp->cb_done)
+		fibril_condvar_wait(&udp->cv, &udp->lock);
+	fibril_mutex_unlock(&udp->lock);
+
 	free(udp);
 }
 
@@ -342,8 +350,8 @@ static void udp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_callid_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
-			/* TODO: Handle hangup */
-			return;
+			/* Hangup */
+			goto out;
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
@@ -355,6 +363,11 @@ static void udp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
+out:
+	fibril_mutex_lock(&udp->lock);
+	udp->cb_done = true;
+	fibril_mutex_unlock(&udp->lock);
+	fibril_condvar_broadcast(&udp->cv);
 }
 
 /** @}

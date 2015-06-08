@@ -885,6 +885,9 @@ static void tcp_client_fini(tcp_client_t *client)
 		    "listeners closed session", n);
 		/* XXX Destroy listeners */
 	}
+
+	if (client->sess != NULL)
+		async_hangup(client->sess);
 }
 
 static void tcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)

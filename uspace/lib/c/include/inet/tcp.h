@@ -89,6 +89,12 @@ typedef struct tcp {
 	list_t conn; /* of tcp_conn_t */
 	/** List of listeners */
 	list_t listener; /* of tcp_listener_t */
+	/** TCP service lock */
+	fibril_mutex_t lock;
+	/** For waiting on cb_done */
+	fibril_condvar_t cv;
+	/** Set to @a true when callback connection handler has terminated */
+	bool cb_done;
 } tcp_t;
 
 extern int tcp_create(tcp_t **);

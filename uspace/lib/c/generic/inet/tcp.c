@@ -80,6 +80,8 @@ int tcp_create(tcp_t **rtcp)
 
 	list_initialize(&tcp->conn);
 	list_initialize(&tcp->listener);
+	fibril_mutex_initialize(&tcp->lock);
+	fibril_condvar_initialize(&tcp->cv);
 
 	rc = loc_service_get_id(SERVICE_NAME_TCP, &tcp_svcid,
 	    IPC_FLAG_BLOCKING);
@@ -114,6 +116,12 @@ void tcp_destroy(tcp_t *tcp)
 		return;
 
 	async_hangup(tcp->sess);
+
+	fibril_mutex_lock(&tcp->lock);
+	while (!tcp->cb_done)
+		fibril_condvar_wait(&tcp->cv, &tcp->lock);
+	fibril_mutex_unlock(&tcp->lock);
+
 	free(tcp);
 }
 
@@ -592,8 +600,8 @@ static void tcp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_callid_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
-			/* TODO: Handle hangup */
-			return;
+			/* Hangup*/
+			goto out;
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
@@ -620,6 +628,11 @@ static void tcp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
+out:
+	fibril_mutex_lock(&tcp->lock);
+	tcp->cb_done = true;
+	fibril_mutex_unlock(&tcp->lock);
+	fibril_condvar_broadcast(&tcp->cv);
 }
 
 /** Fibril for handling incoming TCP connection in background */

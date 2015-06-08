@@ -489,6 +489,7 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn()");
 
+	client.sess = NULL;
 	list_initialize(&client.cassoc);
 	list_initialize(&client.crcv_queue);
 
@@ -544,6 +545,9 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 
 	/* XXX Clean up client receive queue */
+
+	if (client.sess != NULL)
+		async_hangup(client.sess);
 }
 
 int udp_service_init(void)
