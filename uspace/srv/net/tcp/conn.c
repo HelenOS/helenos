@@ -1010,9 +1010,11 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	conn->rcv_buf_used += xfer_size;
 
 	/* Signal to the receive function that new data has arrived */
-	fibril_condvar_broadcast(&conn->rcv_buf_cv);
-	if (conn->cb != NULL && conn->cb->recv_data != NULL)
-		conn->cb->recv_data(conn, conn->cb_arg);
+	if (xfer_size > 0) {
+		fibril_condvar_broadcast(&conn->rcv_buf_cv);
+		if (conn->cb != NULL && conn->cb->recv_data != NULL)
+			conn->cb->recv_data(conn, conn->cb_arg);
+	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received %zu bytes of data.", xfer_size);
 

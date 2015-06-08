@@ -524,6 +524,9 @@ static void tcp_ev_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 	conn->data_avail = true;
 	fibril_condvar_broadcast(&conn->cv);
 
+	if (conn->cb != NULL && conn->cb->data_avail != NULL)
+		conn->cb->data_avail(conn);
+
 	async_answer_0(iid, EOK);
 }
 

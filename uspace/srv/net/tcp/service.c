@@ -768,7 +768,7 @@ static void tcp_conn_recv_srv(tcp_client_t *client, ipc_callid_t iid,
 		return;
 	}
 
-	size = max(size, 16384);
+	size = min(size, 16384);
 	data = malloc(size);
 	if (data == NULL) {
 		async_answer_0(callid, ENOMEM);
