@@ -399,7 +399,15 @@ sysarg_t sys_futex_sleep(uintptr_t uaddr)
 	if (!futex) 
 		return (sysarg_t) ENOENT;
 
+#ifdef CONFIG_UDEBUG
+	udebug_stoppable_begin();
+#endif
+
 	int rc = waitq_sleep_timeout(&futex->wq, 0, SYNCH_FLAGS_INTERRUPTIBLE); 
+
+#ifdef CONFIG_UDEBUG
+	udebug_stoppable_end();
+#endif
 
 	return (sysarg_t) rc;
 }

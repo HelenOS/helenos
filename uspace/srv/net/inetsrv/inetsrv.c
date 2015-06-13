@@ -468,36 +468,41 @@ static inet_client_t *inet_client_find(uint8_t proto)
 int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 {
 	async_exch_t *exch = async_exchange_begin(client->sess);
-	
+
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, INET_EV_RECV, dgram->tos, &answer);
-	
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_ev_recv: iplink=%zu",
+	    dgram->iplink);
+
+	aid_t req = async_send_2(exch, INET_EV_RECV, dgram->tos,
+	    dgram->iplink, &answer);
+
 	int rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return rc;
 	}
-	
+
 	rc = async_data_write_start(exch, &dgram->dest, sizeof(inet_addr_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return rc;
 	}
-	
+
 	rc = async_data_write_start(exch, dgram->data, dgram->size);
-	
+
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-	
+
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-	
+
 	return (int) retval;
 }
 
@@ -510,7 +515,7 @@ int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 	/* ICMP and ICMPv6 messages are handled internally */
 	if (proto == IP_PROTO_ICMP)
 		return icmp_recv(dgram);
-	
+
 	if (proto == IP_PROTO_ICMPV6)
 		return icmpv6_recv(dgram);
 
@@ -539,6 +544,7 @@ int inet_recv_packet(inet_packet_t *packet)
 		/* Check if packet is a complete datagram */
 		if (packet->offs == 0 && !packet->mf) {
 			/* It is complete deliver it immediately */
+			dgram.iplink = packet->link_id;
 			dgram.src = packet->src;
 			dgram.dest = packet->dest;
 			dgram.tos = packet->tos;

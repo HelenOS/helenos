@@ -134,7 +134,8 @@ typedef struct {
 	fibril_condvar_t cv;
 	fid_t fibril;
 	fibril_timer_state_t state;
-	bool handler_running;
+	/** FID of fibril executing handler or 0 if handler is not running */
+	fid_t handler_fid;
 
 	suseconds_t delay;
 	fibril_timer_fun_t fun;

@@ -176,6 +176,7 @@ static void inet_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
 	inet_dgram_t dgram;
 	
 	dgram.tos = IPC_GET_ARG1(*icall);
+	dgram.iplink = IPC_GET_ARG2(*icall);
 	
 	ipc_callid_t callid;
 	size_t size;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #include <bitops.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <inet/endpoint.h>
 #include <mem.h>
 #include <stdlib.h>
 #include "pdu.h"
@@ -124,13 +125,13 @@ static void tcp_header_encode_flags(tcp_control_t ctl, uint16_t doff_flags0,
 	*rdoff_flags = doff_flags;
 }
 
-static void tcp_header_setup(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_header_t *hdr)
+static void tcp_header_setup(inet_ep2_t *epp, tcp_segment_t *seg, tcp_header_t *hdr)
 {
 	uint16_t doff_flags;
 	uint16_t doff;
 
-	hdr->src_port = host2uint16_t_be(sp->local.port);
-	hdr->dest_port = host2uint16_t_be(sp->foreign.port);
+	hdr->src_port = host2uint16_t_be(epp->local.port);
+	hdr->dest_port = host2uint16_t_be(epp->remote.port);
 	hdr->seq = host2uint32_t_be(seg->seq);
 	hdr->ack = host2uint32_t_be(seg->ack);
 
@@ -189,7 +190,7 @@ static void tcp_header_decode(tcp_header_t *hdr, tcp_segment_t *seg)
 	seg->up = uint16_t_be2host(hdr->urg_ptr);
 }
 
-static int tcp_header_encode(tcp_sockpair_t *sp, tcp_segment_t *seg,
+static int tcp_header_encode(inet_ep2_t *epp, tcp_segment_t *seg,
     void **header, size_t *size)
 {
 	tcp_header_t *hdr;
@@ -198,7 +199,7 @@ static int tcp_header_encode(tcp_sockpair_t *sp, tcp_segment_t *seg,
 	if (hdr == NULL)
 		return ENOMEM;
 
-	tcp_header_setup(sp, seg, hdr);
+	tcp_header_setup(epp, seg, hdr);
 	*header = hdr;
 	*size = sizeof(tcp_header_t);
 
@@ -292,7 +293,7 @@ static void tcp_pdu_set_checksum(tcp_pdu_t *pdu, uint16_t checksum)
 }
 
 /** Decode incoming PDU */
-int tcp_pdu_decode(tcp_pdu_t *pdu, tcp_sockpair_t *sp, tcp_segment_t **seg)
+int tcp_pdu_decode(tcp_pdu_t *pdu, inet_ep2_t *epp, tcp_segment_t **seg)
 {
 	tcp_segment_t *nseg;
 	tcp_header_t *hdr;
@@ -306,17 +307,17 @@ int tcp_pdu_decode(tcp_pdu_t *pdu, tcp_sockpair_t *sp, tcp_segment_t **seg)
 
 	hdr = (tcp_header_t *)pdu->header;
 
-	sp->local.port = uint16_t_be2host(hdr->dest_port);
-	sp->local.addr = pdu->dest;
-	sp->foreign.port = uint16_t_be2host(hdr->src_port);
-	sp->foreign.addr = pdu->src;
+	epp->local.port = uint16_t_be2host(hdr->dest_port);
+	epp->local.addr = pdu->dest;
+	epp->remote.port = uint16_t_be2host(hdr->src_port);
+	epp->remote.addr = pdu->src;
 
 	*seg = nseg;
 	return EOK;
 }
 
 /** Encode outgoing PDU */
-int tcp_pdu_encode(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_pdu_t **pdu)
+int tcp_pdu_encode(inet_ep2_t *epp, tcp_segment_t *seg, tcp_pdu_t **pdu)
 {
 	tcp_pdu_t *npdu;
 	size_t text_size;
@@ -326,9 +327,9 @@ int tcp_pdu_encode(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_pdu_t **pdu)
 	if (npdu == NULL)
 		return ENOMEM;
 
-	npdu->src = sp->local.addr;
-	npdu->dest = sp->foreign.addr;
-	tcp_header_encode(sp, seg, &npdu->header, &npdu->header_size);
+	npdu->src = epp->local.addr;
+	npdu->dest = epp->remote.addr;
+	tcp_header_encode(epp, seg, &npdu->header, &npdu->header_size);
 
 	text_size = tcp_segment_text_size(seg);
 	npdu->text = calloc(1, text_size);

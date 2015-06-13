@@ -33,12 +33,13 @@
  * @file
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <macros.h>
 
-#include <net/socket.h>
+#include <inet/tcp.h>
 
 #include <http/http.h>
 
@@ -148,7 +149,7 @@ int http_send_request(http_t *http, http_request_t *req)
 	if (rc != EOK)
 		return rc;
 	
-	rc = send(http->conn_sd, buf, buf_size, 0);
+	rc = tcp_conn_send(http->conn, buf, buf_size);
 	free(buf);
 	
 	return rc;

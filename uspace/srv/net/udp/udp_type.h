@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,10 +35,11 @@
 #ifndef UDP_TYPE_H
 #define UDP_TYPE_H
 
+#include <async.h>
 #include <fibril.h>
 #include <fibril_synch.h>
+#include <inet/endpoint.h>
 #include <ipc/loc.h>
-#include <socket_core.h>
 #include <sys/types.h>
 #include <inet/addr.h>
 
@@ -48,7 +49,7 @@ typedef enum {
 	UDP_EOK,
 	/* Insufficient resources */
 	UDP_ENORES,
-	/* Foreign socket unspecified */
+	/* Remote endpoint unspecified */
 	UDP_EUNSPEC,
 	/* No route to destination */
 	UDP_ENOROUTE,
@@ -59,21 +60,6 @@ typedef enum {
 typedef enum {
 	XF_DUMMY = 0x1
 } xflags_t;
-
-enum udp_port {
-	UDP_PORT_ANY = 0
-};
-
-typedef struct {
-	inet_addr_t addr;
-	uint16_t port;
-} udp_sock_t;
-
-typedef struct {
-	service_id_t iplink;
-	udp_sock_t local;
-	udp_sock_t foreign;
-} udp_sockpair_t;
 
 /** Unencoded UDP message (datagram) */
 typedef struct {
@@ -98,22 +84,21 @@ typedef struct {
 } udp_pdu_t;
 
 typedef struct {
-	async_sess_t *sess;
-	socket_cores_t sockets;
-} udp_client_t;
+	void (*recv_msg)(void *, inet_ep2_t *, udp_msg_t *);
+} udp_assoc_cb_t;
 
 /** UDP association
  *
  * This is a rough equivalent of a TCP connection endpoint. It allows
  * sending and receiving UDP datagrams and it is uniquely identified
- * by a socket pair.
+ * by an endpoint pair.
  */
 typedef struct {
 	char *name;
 	link_t link;
 
-	/** Association identification (local and foreign socket) */
-	udp_sockpair_t ident;
+	/** Association identification (endpoint pair) */
+	inet_ep2_t ident;
 
 	/** True if association was reset by user */
 	bool reset;
@@ -130,40 +115,52 @@ typedef struct {
 	list_t rcv_queue;
 	/** Receive queue CV. Broadcast when new datagram is inserted */
 	fibril_condvar_t rcv_queue_cv;
+
+	udp_assoc_cb_t *cb;
+	void *cb_arg;
 } udp_assoc_t;
 
 typedef struct {
 } udp_assoc_status_t;
 
-typedef struct udp_sockdata {
-	/** Lock */
-	fibril_mutex_t lock;
-	/** Socket core */
-	socket_core_t *sock_core;
-	/** Client */
-	udp_client_t *client;
-	/** Connection */
+typedef struct {
+	/** Link to receive queue */
+	link_t link;
+	/** Endpoint pair */
+	inet_ep2_t epp;
+	/** Message */
+	udp_msg_t *msg;
+} udp_rcv_queue_entry_t;
+
+typedef struct udp_cassoc {
+	/** Association */
 	udp_assoc_t *assoc;
-	/** User-configured IP link */
-	service_id_t iplink;
-	/** Receiving fibril */
-	fid_t recv_fibril;
-	uint8_t recv_buffer[UDP_FRAGMENT_SIZE];
-	size_t recv_buffer_used;
-	udp_sock_t recv_fsock;
-	fibril_mutex_t recv_buffer_lock;
-	fibril_condvar_t recv_buffer_cv;
-	udp_error_t recv_error;
-} udp_sockdata_t;
+	/** Association ID for the client */
+	sysarg_t id;
+	/** Client */
+	struct udp_client *client;
+	link_t lclient;
+} udp_cassoc_t;
 
 typedef struct {
 	/** Link to receive queue */
 	link_t link;
-	/** Socket pair */
-	udp_sockpair_t sp;
+	/** Endpoint pair */
+	inet_ep2_t epp;
 	/** Message */
 	udp_msg_t *msg;
-} udp_rcv_queue_entry_t;
+	/** Client association */
+	udp_cassoc_t *cassoc;
+} udp_crcv_queue_entry_t;
+
+typedef struct udp_client {
+	/** Client callback session */
+	async_sess_t *sess;
+	/** Client assocations */
+	list_t cassoc; /* of udp_cassoc_t */
+	/** Client receive queue */
+	list_t crcv_queue;
+} udp_client_t;
 
 #endif
 

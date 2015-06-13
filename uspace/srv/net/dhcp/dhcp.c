@@ -36,6 +36,7 @@
 
 #include <adt/list.h>
 #include <bitops.h>
+#include <byteorder.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <inet/addr.h>
@@ -560,9 +561,6 @@ static void dhcpsrv_recv_ack(dhcp_link_t *dlink, dhcp_offer_t *offer)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error creating configuration.");
 		return;
 	}
-
-	/* XXX Work around multiple simultaneous sessions issue */
-	dhcp_transport_fini(&dlink->dt);
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: Successfully configured.",
 	    dlink->link_info.name);

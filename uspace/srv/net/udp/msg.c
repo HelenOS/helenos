@@ -49,6 +49,7 @@ udp_msg_t *udp_msg_new(void)
 /** Delete segment. */
 void udp_msg_delete(udp_msg_t *msg)
 {
+	free(msg->data);
 	free(msg);
 }
 

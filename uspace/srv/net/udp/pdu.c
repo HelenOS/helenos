@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,6 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <inet/addr.h>
-#include <net/socket_codes.h>
 #include "msg.h"
 #include "pdu.h"
 #include "std.h"
@@ -162,7 +161,7 @@ static void udp_pdu_set_checksum(udp_pdu_t *pdu, uint16_t checksum)
 }
 
 /** Decode incoming PDU */
-int udp_pdu_decode(udp_pdu_t *pdu, udp_sockpair_t *sp, udp_msg_t **msg)
+int udp_pdu_decode(udp_pdu_t *pdu, inet_ep2_t *epp, udp_msg_t **msg)
 {
 	udp_msg_t *nmsg;
 	udp_header_t *hdr;
@@ -179,10 +178,11 @@ int udp_pdu_decode(udp_pdu_t *pdu, udp_sockpair_t *sp, udp_msg_t **msg)
 
 	hdr = (udp_header_t *)pdu->data;
 
-	sp->foreign.port = uint16_t_be2host(hdr->src_port);
-	sp->foreign.addr = pdu->src;
-	sp->local.port = uint16_t_be2host(hdr->dest_port);
-	sp->local.addr = pdu->dest;
+	epp->local_link = pdu->iplink;
+	epp->remote.port = uint16_t_be2host(hdr->src_port);
+	epp->remote.addr = pdu->src;
+	epp->local.port = uint16_t_be2host(hdr->dest_port);
+	epp->local.addr = pdu->dest;
 
 	length = uint16_t_be2host(hdr->length);
 	checksum = uint16_t_be2host(hdr->checksum);
@@ -196,15 +196,19 @@ int udp_pdu_decode(udp_pdu_t *pdu, udp_sockpair_t *sp, udp_msg_t **msg)
 	if (nmsg == NULL)
 		return ENOMEM;
 
-	nmsg->data = text;
 	nmsg->data_size = length - sizeof(udp_header_t);
+	nmsg->data = malloc(nmsg->data_size);
+	if (nmsg->data == NULL)
+		return ENOMEM;
+
+	memcpy(nmsg->data, text, nmsg->data_size);
 
 	*msg = nmsg;
 	return EOK;
 }
 
 /** Encode outgoing PDU */
-int udp_pdu_encode(udp_sockpair_t *sp, udp_msg_t *msg, udp_pdu_t **pdu)
+int udp_pdu_encode(inet_ep2_t *epp, udp_msg_t *msg, udp_pdu_t **pdu)
 {
 	udp_pdu_t *npdu;
 	udp_header_t *hdr;
@@ -214,9 +218,9 @@ int udp_pdu_encode(udp_sockpair_t *sp, udp_msg_t *msg, udp_pdu_t **pdu)
 	if (npdu == NULL)
 		return ENOMEM;
 
-	npdu->iplink = sp->iplink;
-	npdu->src = sp->local.addr;
-	npdu->dest = sp->foreign.addr;
+	npdu->iplink = epp->local_link;
+	npdu->src = epp->local.addr;
+	npdu->dest = epp->remote.addr;
 
 	npdu->data_size = sizeof(udp_header_t) + msg->data_size;
 	npdu->data = calloc(1, npdu->data_size);
@@ -226,8 +230,8 @@ int udp_pdu_encode(udp_sockpair_t *sp, udp_msg_t *msg, udp_pdu_t **pdu)
 	}
 
 	hdr = (udp_header_t *)npdu->data;
-	hdr->src_port = host2uint16_t_be(sp->local.port);
-	hdr->dest_port = host2uint16_t_be(sp->foreign.port);
+	hdr->src_port = host2uint16_t_be(epp->local.port);
+	hdr->dest_port = host2uint16_t_be(epp->remote.port);
 	hdr->length = host2uint16_t_be(npdu->data_size);
 	hdr->checksum = 0;
 

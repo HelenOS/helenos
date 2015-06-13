@@ -37,7 +37,6 @@
 
 #define NAME       "remcons"
 #define NAMESPACE  "term"
-#define BACKLOG_SIZE  5
 
 #endif
 
