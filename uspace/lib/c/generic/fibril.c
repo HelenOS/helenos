@@ -95,6 +95,7 @@ static void fibril_main(void)
 	/* Call the implementing function. */
 	fibril->retval = fibril->func(fibril->arg);
 	
+	futex_down(&async_futex);
 	fibril_switch(FIBRIL_FROM_DEAD);
 	/* Not reached */
 }
@@ -146,8 +147,8 @@ void fibril_teardown(fibril_t *fibril, bool locked)
 
 /** Switch from the current fibril.
  *
- * If calling with FIBRIL_TO_MANAGER parameter, the async_futex should be
- * held.
+ * If stype is FIBRIL_TO_MANAGER or FIBRIL_FROM_DEAD, the async_futex must
+ * be held.
  *
  * @param stype Switch type. One of FIBRIL_PREEMPT, FIBRIL_TO_MANAGER,
  *              FIBRIL_FROM_MANAGER, FIBRIL_FROM_DEAD. The parameter
@@ -162,7 +163,7 @@ int fibril_switch(fibril_switch_type_t stype)
 	int retval = 0;
 	
 	futex_lock(&fibril_futex);
-	
+
 	if (stype == FIBRIL_PREEMPT && list_empty(&ready_list))
 		goto ret_0;
 	
@@ -182,6 +183,9 @@ int fibril_switch(fibril_switch_type_t stype)
 	
 	/* If we are going to manager and none exists, create it */
 	if ((stype == FIBRIL_TO_MANAGER) || (stype == FIBRIL_FROM_DEAD)) {
+		/* Make sure the async_futex is held. */
+		assert((atomic_signed_t) async_futex.val.count <= 0);
+
 		while (list_empty(&manager_list)) {
 			futex_unlock(&fibril_futex);
 			async_create_manager();
