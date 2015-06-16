@@ -56,26 +56,13 @@
 
 /**
  * This futex serializes access to ready_list,
- * serialized_list, manager_list and fibril_list.
+ * manager_list and fibril_list.
  */
 static futex_t fibril_futex = FUTEX_INITIALIZER;
 
 static LIST_INITIALIZE(ready_list);
-static LIST_INITIALIZE(serialized_list);
 static LIST_INITIALIZE(manager_list);
 static LIST_INITIALIZE(fibril_list);
-
-/** Number of threads that are executing a manager fibril. */
-static int threads_in_manager;
-
-/**
- * Number of threads that are executing a manager fibril
- * and are serialized. Protected by async_futex.
- */
-static int serialized_threads;
-
-/** Fibril-local count of serialization. If > 0, we must not preempt */
-static fibril_local int serialization_count;
 
 /** Function that spans the whole life-cycle of a fibril.
  *
@@ -160,37 +147,28 @@ void fibril_teardown(fibril_t *fibril, bool locked)
  */
 int fibril_switch(fibril_switch_type_t stype)
 {
-	int retval = 0;
-	
 	futex_lock(&fibril_futex);
 
-	if (stype == FIBRIL_PREEMPT && list_empty(&ready_list))
-		goto ret_0;
-	
-	if (stype == FIBRIL_FROM_MANAGER) {
-		if ((list_empty(&ready_list)) && (list_empty(&serialized_list)))
-			goto ret_0;
-		
-		/*
-		 * Do not preempt if there is not enough threads to run the
-		 * ready fibrils which are not serialized.
-		 */
-		if ((list_empty(&serialized_list)) &&
-		    (threads_in_manager <= serialized_threads)) {
-			goto ret_0;
+	switch (stype) {
+	case FIBRIL_PREEMPT:
+	case FIBRIL_FROM_MANAGER:
+		if (list_empty(&ready_list)) {
+			futex_unlock(&fibril_futex);
+			return 0;
 		}
-	}
-	
-	/* If we are going to manager and none exists, create it */
-	if ((stype == FIBRIL_TO_MANAGER) || (stype == FIBRIL_FROM_DEAD)) {
+		break;
+	case FIBRIL_TO_MANAGER:
+	case FIBRIL_FROM_DEAD:
 		/* Make sure the async_futex is held. */
 		assert((atomic_signed_t) async_futex.val.count <= 0);
 
+		/* If we are going to manager and none exists, create it */
 		while (list_empty(&manager_list)) {
 			futex_unlock(&fibril_futex);
 			async_create_manager();
 			futex_lock(&fibril_futex);
 		}
+		break;
 	}
 	
 	fibril_t *srcf = __tcb_get()->fibril_data;
@@ -198,9 +176,6 @@ int fibril_switch(fibril_switch_type_t stype)
 		
 		/* Save current state */
 		if (!context_save(&srcf->ctx)) {
-			if (serialization_count)
-				srcf->flags &= ~FIBRIL_SERIALIZED;
-			
 			if (srcf->clean_after_me) {
 				/*
 				 * Cleanup after the dead fibril from which we
@@ -225,44 +200,43 @@ int fibril_switch(fibril_switch_type_t stype)
 			return 1;	/* futex_unlock already done here */
 		}
 		
-		/* Save myself to the correct run list */
-		if (stype == FIBRIL_PREEMPT)
+		/* Put the current fibril into the correct run list */
+		switch (stype) {
+		case FIBRIL_PREEMPT:
 			list_append(&srcf->link, &ready_list);
-		else if (stype == FIBRIL_FROM_MANAGER) {
+			break;
+		case FIBRIL_FROM_MANAGER:
 			list_append(&srcf->link, &manager_list);
-			threads_in_manager--;
-		} else {
+			break;
+		default:
+			assert(stype == FIBRIL_TO_MANAGER);
+
 			/*
-			 * If stype == FIBRIL_TO_MANAGER, don't put ourselves to
-			 * any list, we should already be somewhere, or we will
-			 * be lost.
+			 * Don't put the current fibril into any list, it should
+			 * already be somewhere, or it will be lost.
 			 */
+			break;
 		}
 	}
 	
-	/* Choose a new fibril to run */
 	fibril_t *dstf;
-	if ((stype == FIBRIL_TO_MANAGER) || (stype == FIBRIL_FROM_DEAD)) {
+
+	/* Choose a new fibril to run */
+	switch (stype) {
+	case FIBRIL_TO_MANAGER:
+	case FIBRIL_FROM_DEAD:
 		dstf = list_get_instance(list_first(&manager_list), fibril_t,
 		    link);
-		if (serialization_count && stype == FIBRIL_TO_MANAGER) {
-			serialized_threads++;
-			srcf->flags |= FIBRIL_SERIALIZED;
-		}
-		threads_in_manager++;
 		
 		if (stype == FIBRIL_FROM_DEAD) 
 			dstf->clean_after_me = srcf;
-	} else {
-		if (!list_empty(&serialized_list)) {
-			dstf = list_get_instance(list_first(&serialized_list),
-			    fibril_t, link);
-			serialized_threads--;
-		} else {
-			dstf = list_get_instance(list_first(&ready_list),
-			    fibril_t, link);
-		}
+		break;
+	default:
+		dstf = list_get_instance(list_first(&ready_list), fibril_t,
+		    link);
+		break;
 	}
+
 	list_remove(&dstf->link);
 	
 	futex_unlock(&fibril_futex);
@@ -275,10 +249,6 @@ int fibril_switch(fibril_switch_type_t stype)
 	
 	context_restore(&dstf->ctx);
 	/* not reached */
-	
-ret_0:
-	futex_unlock(&fibril_futex);
-	return retval;
 }
 
 /** Create a new fibril.
@@ -345,12 +315,7 @@ void fibril_add_ready(fid_t fid)
 	fibril_t *fibril = (fibril_t *) fid;
 	
 	futex_lock(&fibril_futex);
-	
-	if ((fibril->flags & FIBRIL_SERIALIZED))
-		list_append(&fibril->link, &serialized_list);
-	else
-		list_append(&fibril->link, &ready_list);
-	
+	list_append(&fibril->link, &ready_list);
 	futex_unlock(&fibril_futex);
 }
 
@@ -373,10 +338,8 @@ void fibril_add_manager(fid_t fid)
 void fibril_remove_manager(void)
 {
 	futex_lock(&fibril_futex);
-	
 	if (!list_empty(&manager_list))
 		list_remove(list_first(&manager_list));
-	
 	futex_unlock(&fibril_futex);
 }
 
@@ -388,31 +351,6 @@ void fibril_remove_manager(void)
 fid_t fibril_get_id(void)
 {
 	return (fid_t) __tcb_get()->fibril_data;
-}
-
-/** Disable preemption
- *
- * If the fibril wants to send several message in a row and does not want to be
- * preempted, it should start async_serialize_start() in the beginning of
- * communication and async_serialize_end() in the end. If it is a true
- * multithreaded application, it should protect the communication channel by a
- * futex as well.
- *
- */
-void fibril_inc_sercount(void)
-{
-	serialization_count++;
-}
-
-/** Restore the preemption counter to the previous state. */
-void fibril_dec_sercount(void)
-{
-	serialization_count--;
-}
-
-int fibril_get_sercount(void)
-{
-	return serialization_count;
 }
 
 /** @}
