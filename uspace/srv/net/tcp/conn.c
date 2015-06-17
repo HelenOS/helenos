@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,10 +35,12 @@
  */
 
 #include <adt/list.h>
-#include <stdbool.h>
 #include <errno.h>
+#include <inet/endpoint.h>
 #include <io/log.h>
 #include <macros.h>
+#include <nettl/amap.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include "conn.h"
 #include "iqueue.h"
@@ -54,20 +56,35 @@
 #define MAX_SEGMENT_LIFETIME	(15*1000*1000) //(2*60*1000*1000)
 #define TIME_WAIT_TIMEOUT	(2*MAX_SEGMENT_LIFETIME)
 
-LIST_INITIALIZE(conn_list);
-FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
+static LIST_INITIALIZE(conn_list);
+/** Taken after tcp_conn_t lock */
+static FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
+static amap_t *amap;
 
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
 static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
 static void tcp_conn_tw_timer_clear(tcp_conn_t *conn);
 
+/** Initialize connections. */
+int tcp_conns_init(void)
+{
+	int rc;
+
+	rc = amap_create(&amap);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		return ENOMEM;
+	}
+
+	return EOK;
+}
+
 /** Create new connection structure.
  *
- * @param lsock		Local socket (will be deeply copied)
- * @param fsock		Foreign socket (will be deeply copied)
+ * @param epp		Endpoint pair (will be deeply copied)
  * @return		New connection or NULL
  */
-tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
+tcp_conn_t *tcp_conn_new(inet_ep2_t *epp)
 {
 	tcp_conn_t *conn = NULL;
 	bool tqueue_inited = false;
@@ -120,16 +137,15 @@ tcp_conn_t *tcp_conn_new(tcp_sock_t *lsock, tcp_sock_t *fsock)
 	/* Connection state change signalling */
 	fibril_condvar_initialize(&conn->cstate_cv);
 
-	conn->cstate_cb = NULL;
+	conn->cb = NULL;
 
 	conn->cstate = st_listen;
 	conn->reset = false;
 	conn->deleted = false;
 	conn->ap = ap_passive;
 	conn->fin_is_acked = false;
-	conn->ident.local = *lsock;
-	if (fsock != NULL)
-		conn->ident.foreign = *fsock;
+	if (epp != NULL)
+		conn->ident = *epp;
 
 	return conn;
 
@@ -183,7 +199,8 @@ static void tcp_conn_free(tcp_conn_t *conn)
  */
 void tcp_conn_addref(tcp_conn_t *conn)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_addref(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_addref(%p) before=%zu",
+	    conn->name, conn, atomic_get(&conn->refcnt));
 	atomic_inc(&conn->refcnt);
 }
 
@@ -195,7 +212,8 @@ void tcp_conn_addref(tcp_conn_t *conn)
  */
 void tcp_conn_delref(tcp_conn_t *conn)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_delref(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_delref(%p) before=%zu",
+	    conn->name, conn, atomic_get(&conn->refcnt));
 
 	if (atomic_predec(&conn->refcnt) == 0)
 		tcp_conn_free(conn);
@@ -236,6 +254,9 @@ void tcp_conn_delete(tcp_conn_t *conn)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_delete(%p)", conn->name, conn);
 
 	assert(conn->deleted == false);
+	conn->deleted = true;
+	conn->cb = NULL;
+	conn->cb_arg = NULL;
 	tcp_conn_delref(conn);
 }
 
@@ -243,12 +264,28 @@ void tcp_conn_delete(tcp_conn_t *conn)
  *
  * Add connection to the connection map.
  */
-void tcp_conn_add(tcp_conn_t *conn)
+int tcp_conn_add(tcp_conn_t *conn)
 {
+	inet_ep2_t aepp;
+	int rc;
+
 	tcp_conn_addref(conn);
 	fibril_mutex_lock(&conn_list_lock);
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_add: conn=%p", conn);
+
+	rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
+	if (rc != EOK) {
+		tcp_conn_delref(conn);
+		fibril_mutex_unlock(&conn_list_lock);
+		return rc;
+	}
+
+	conn->ident = aepp;
 	list_append(&conn->link, &conn_list);
 	fibril_mutex_unlock(&conn_list_lock);
+
+	return EOK;
 }
 
 /** Delist connection.
@@ -258,6 +295,7 @@ void tcp_conn_add(tcp_conn_t *conn)
 void tcp_conn_remove(tcp_conn_t *conn)
 {
 	fibril_mutex_lock(&conn_list_lock);
+	amap_remove(amap, &conn->ident);
 	list_remove(&conn->link);
 	fibril_mutex_unlock(&conn_list_lock);
 	tcp_conn_delref(conn);
@@ -274,15 +312,16 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 	fibril_condvar_broadcast(&conn->cstate_cv);
 
 	/* Run user callback function */
-	if (conn->cstate_cb != NULL) {
+	if (conn->cb != NULL && conn->cb->cstate_change != NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set() - run user CB");
-		conn->cstate_cb(conn, conn->cstate_cb_arg);
+		conn->cb->cstate_change(conn, conn->cb_arg, old_state);
 	} else {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set() - no user CB");
 	}
 
 	assert(old_state != st_closed);
 	if (nstate == st_closed) {
+		tcp_conn_remove(conn);
 		/* Drop one reference for now being in closed state */
 		tcp_conn_delref(conn);
 	}
@@ -331,72 +370,39 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 	conn->fin_is_acked = false;
 }
 
-/** Match socket with pattern. */
-static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG2,
-	    "tcp_socket_match(sock=(%u), pat=(%u))", sock->port, patt->port);
-	
-	if ((!inet_addr_is_any(&patt->addr)) &&
-	    (!inet_addr_compare(&patt->addr, &sock->addr)))
-		return false;
-
-	if ((patt->port != TCP_PORT_ANY) &&
-	    (patt->port != sock->port))
-		return false;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, " -> match");
-
-	return true;
-}
-
-/** Match socket pair with pattern. */
-static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_sockpair_match(%p, %p)", sp, pattern);
-
-	if (!tcp_socket_match(&sp->local, &pattern->local))
-		return false;
-
-	if (!tcp_socket_match(&sp->foreign, &pattern->foreign))
-		return false;
-
-	return true;
-}
-
-/** Find connection structure for specified socket pair.
+/** Find connection structure for specified endpoint pair.
  *
- * A connection is uniquely identified by a socket pair. Look up our
- * connection map and return connection structure based on socket pair.
+ * A connection is uniquely identified by a endpoint pair. Look up our
+ * connection map and return connection structure based on endpoint pair.
  * The connection reference count is bumped by one.
  *
- * @param sp	Socket pair
+ * @param epp	Endpoint pair
  * @return	Connection structure or NULL if not found.
  */
-tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
+tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", sp);
-	
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "compare conn (f:(%u), l:(%u))",
-	    sp->foreign.port, sp->local.port);
-	
+	int rc;
+	void *arg;
+	tcp_conn_t *conn;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", epp);
+
 	fibril_mutex_lock(&conn_list_lock);
-	
-	list_foreach(conn_list, link, tcp_conn_t, conn) {
-		tcp_sockpair_t *csp = &conn->ident;
-		
-		log_msg(LOG_DEFAULT, LVL_DEBUG2, " - with (f:(%u), l:(%u))",
-		    csp->foreign.port, csp->local.port);
-		
-		if (tcp_sockpair_match(sp, csp)) {
-			tcp_conn_addref(conn);
-			fibril_mutex_unlock(&conn_list_lock);
-			return conn;
-		}
+
+	rc = amap_find_match(amap, epp, &arg);
+	if (rc != EOK) {
+		assert(rc == ENOENT);
+		fibril_mutex_unlock(&conn_list_lock);
+		return NULL;
 	}
-	
+
+	conn = (tcp_conn_t *)arg;
+	tcp_conn_addref(conn);
+
 	fibril_mutex_unlock(&conn_list_lock);
-	return NULL;
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref: got conn=%p",
+	    conn);
+	return conn;
 }
 
 /** Reset connection.
@@ -406,8 +412,8 @@ tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
 void tcp_conn_reset(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
-	tcp_conn_state_set(conn, st_closed);
 	conn->reset = true;
+	tcp_conn_state_set(conn, st_closed);
 
 	tcp_conn_tw_timer_clear(conn);
 	tcp_tqueue_clear(&conn->retransmit);
@@ -876,7 +882,6 @@ static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 
 	if (conn->fin_is_acked) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN acked -> Closed", conn->name);
-		tcp_conn_remove(conn);
 		tcp_conn_state_set(conn, st_closed);
 		return cp_done;
 	}
@@ -1005,7 +1010,11 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	conn->rcv_buf_used += xfer_size;
 
 	/* Signal to the receive function that new data has arrived */
-	fibril_condvar_broadcast(&conn->rcv_buf_cv);
+	if (xfer_size > 0) {
+		fibril_condvar_broadcast(&conn->rcv_buf_cv);
+		if (conn->cb != NULL && conn->cb->recv_data != NULL)
+			conn->cb->recv_data(conn, conn->cb_arg);
+	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received %zu bytes of data.", xfer_size);
 
@@ -1097,6 +1106,8 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 		/* Add FIN to the receive buffer */
 		conn->rcv_buf_fin = true;
 		fibril_condvar_broadcast(&conn->rcv_buf_cv);
+		if (conn->cb != NULL && conn->cb->recv_data != NULL)
+			conn->cb->recv_data(conn, conn->cb_arg);
 
 		tcp_segment_delete(seg);
 		return cp_done;
@@ -1167,18 +1178,71 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 /** Segment arrived on a connection.
  *
  * @param conn		Connection
+ * @param epp		Endpoint pair on which segment was received
  * @param seg		Segment
  */
-void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
+void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
+    tcp_segment_t *seg)
 {
+	inet_ep2_t aepp;
+	inet_ep2_t oldepp;
+	int rc;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_segment_arrived(%p)",
 	    conn->name, seg);
 
+	tcp_conn_lock(conn);
+
+	if (conn->cstate == st_closed) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Connection is closed.");
+		tcp_unexpected_segment(epp, seg);
+		tcp_conn_unlock(conn);
+		return;
+	}
+
+	if (inet_addr_is_any(&conn->ident.remote.addr) ||
+	    conn->ident.remote.port == inet_port_any ||
+	    inet_addr_is_any(&conn->ident.local.addr)) {
+
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_conn_segment_arrived: "
+		    "Changing connection ID, updating amap.");
+		oldepp = conn->ident;
+
+		/* Need to remove and re-insert connection with new identity */
+		fibril_mutex_lock(&conn_list_lock);
+
+		if (inet_addr_is_any(&conn->ident.remote.addr))
+			conn->ident.remote.addr = epp->remote.addr;
+
+		if (conn->ident.remote.port == inet_port_any)
+			conn->ident.remote.port = epp->remote.port;
+
+		if (inet_addr_is_any(&conn->ident.local.addr))
+			conn->ident.local.addr = epp->local.addr;
+
+		rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
+		if (rc != EOK) {
+			assert(rc != EEXISTS);
+			assert(rc == ENOMEM);
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
+			fibril_mutex_unlock(&conn_list_lock);
+			tcp_conn_unlock(conn);
+			return;
+		}
+
+		amap_remove(amap, &oldepp);
+		fibril_mutex_unlock(&conn_list_lock);
+
+		conn->name = (char *) "a";
+	}
+
 	switch (conn->cstate) {
 	case st_listen:
-		tcp_conn_sa_listen(conn, seg); break;
+		tcp_conn_sa_listen(conn, seg);
+		break;
 	case st_syn_sent:
-		tcp_conn_sa_syn_sent(conn, seg); break;
+		tcp_conn_sa_syn_sent(conn, seg);
+		break;
 	case st_syn_received:
 	case st_established:
 	case st_fin_wait_1:
@@ -1188,11 +1252,14 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 	case st_last_ack:
 	case st_time_wait:
 		/* Process segments in order of sequence number */
-		tcp_conn_sa_queue(conn, seg); break;
+		tcp_conn_sa_queue(conn, seg);
+		break;
 	case st_closed:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "state=%d", (int) conn->cstate);
 		assert(false);
 	}
+
+	tcp_conn_unlock(conn);
 }
 
 /** Time-Wait timeout handler.
@@ -1215,7 +1282,6 @@ static void tw_timeout_func(void *arg)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: TW Timeout -> Closed", conn->name);
-	tcp_conn_remove(conn);
 	tcp_conn_state_set(conn, st_closed);
 
 	tcp_conn_unlock(conn);
@@ -1262,47 +1328,48 @@ void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_segment_trim(seg, left, right);
 }
 
-/** Handle unexpected segment received on a socket pair.
+/** Handle unexpected segment received on an endpoint pair.
  *
  * We reply with an RST unless the received segment has RST.
  *
- * @param sp		Socket pair which received the segment
+ * @param sp		Endpoint pair which received the segment
  * @param seg		Unexpected segment
  */
-void tcp_unexpected_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_unexpected_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_unexpected_segment(%p, %p)", sp, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_unexpected_segment(%p, %p)", epp,
+	    seg);
 
 	if ((seg->ctrl & CTL_RST) == 0)
-		tcp_reply_rst(sp, seg);
+		tcp_reply_rst(epp, seg);
 }
 
-/** Compute flipped socket pair for response.
+/** Compute flipped endpoint pair for response.
  *
- * Flipped socket pair has local and foreign sockets exchanged.
+ * Flipped endpoint pair has local and remote endpoints exchanged.
  *
- * @param sp		Socket pair
- * @param fsp		Place to store flipped socket pair
+ * @param epp		Endpoint pair
+ * @param fepp		Place to store flipped endpoint pair
  */
-void tcp_sockpair_flipped(tcp_sockpair_t *sp, tcp_sockpair_t *fsp)
+void tcp_ep2_flipped(inet_ep2_t *epp, inet_ep2_t *fepp)
 {
-	fsp->local = sp->foreign;
-	fsp->foreign = sp->local;
+	fepp->local = epp->remote;
+	fepp->remote = epp->local;
 }
 
 /** Send RST in response to an incoming segment.
  *
- * @param sp		Socket pair which received the segment
+ * @param epp		Endpoint pair which received the segment
  * @param seg		Incoming segment
  */
-void tcp_reply_rst(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_reply_rst(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_segment_t *rseg;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_reply_rst(%p, %p)", sp, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_reply_rst(%p, %p)", epp, seg);
 
 	rseg = tcp_segment_make_rst(seg);
-	tcp_transmit_segment(sp, rseg);
+	tcp_transmit_segment(epp, rseg);
 }
 
 /**

@@ -150,7 +150,7 @@ static int usb_request_set_address(usb_pipe_t *pipe, usb_address_t new_address)
  * @retval ENOENT Connection to HC not opened.
  * @retval EADDRNOTAVAIL Failed retrieving free address from host controller.
  * @retval EBUSY Failed reserving default USB address.
- * @retval ENOTCONN Problem connecting to the host controller via USB pipe.
+ * @retval ENXIO Problem connecting to the host controller via USB pipe.
  * @retval ESTALL Problem communication with device (either SET_ADDRESS
  *	request or requests for descriptors when creating match ids).
  */
@@ -183,7 +183,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, ddf_fun_t *fun,
 	rc = usb_device_connection_initialize(
 	    &dev_conn, hc_conn, USB_ADDRESS_DEFAULT);
 	if (rc != EOK) {
-		rc = ENOTCONN;
+		rc = ENXIO;
 		goto leave_release_free_address;
 	}
 
@@ -191,7 +191,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, ddf_fun_t *fun,
 	usb_pipe_t ctrl_pipe;
 	rc = usb_pipe_initialize_default_control(&ctrl_pipe, &dev_conn);
 	if (rc != EOK) {
-		rc = ENOTCONN;
+		rc = ENXIO;
 		goto leave_release_free_address;
 	}
 
@@ -216,7 +216,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, ddf_fun_t *fun,
 	/* Register control pipe on default address. 0 means no interval. */
 	rc = usb_pipe_register(&ctrl_pipe, 0);
 	if (rc != EOK) {
-		rc = ENOTCONN;
+		rc = ENXIO;
 		goto leave_release_default_address;
 	}
 	
@@ -277,7 +277,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, ddf_fun_t *fun,
 	rc = usb_hub_register_device(hc_conn, &new_device);
 	if (rc != EOK) {
 		/* The child function is already created. */
-		rc = EDESTADDRREQ;
+		rc = EIO;
 		goto leave_release_free_address;
 	}
 

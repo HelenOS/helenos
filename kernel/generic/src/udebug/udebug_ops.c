@@ -374,6 +374,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	/* Verify task state */
 	if (TASK->udebug.dt_state != UDEBUG_TS_ACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
+		free(id_buffer);
 		return EINVAL;
 	}
 	
@@ -455,9 +456,6 @@ int udebug_name_read(char **data, size_t *data_size)
  */
 int udebug_args_read(thread_t *thread, void **buffer)
 {
-	/* Prepare a buffer to hold the arguments. */
-	sysarg_t *arg_buffer = malloc(6 * sizeof(sysarg_t), 0);
-	
 	/* On success, this will lock t->udebug.lock. */
 	int rc = _thread_op_begin(thread, false);
 	if (rc != EOK)
@@ -469,6 +467,9 @@ int udebug_args_read(thread_t *thread, void **buffer)
 		_thread_op_end(thread);
 		return EINVAL;
 	}
+	
+	/* Prepare a buffer to hold the arguments. */
+	sysarg_t *arg_buffer = malloc(6 * sizeof(sysarg_t), 0);
 	
 	/* Copy to a local buffer before releasing the lock. */
 	memcpy(arg_buffer, thread->udebug.syscall_args, 6 * sizeof(sysarg_t));
@@ -498,9 +499,6 @@ int udebug_args_read(thread_t *thread, void **buffer)
  */
 int udebug_regs_read(thread_t *thread, void **buffer)
 {
-	/* Prepare a buffer to hold the data. */
-	istate_t *state_buf = malloc(sizeof(istate_t), 0);
-	
 	/* On success, this will lock t->udebug.lock */
 	int rc = _thread_op_begin(thread, false);
 	if (rc != EOK)
@@ -511,6 +509,9 @@ int udebug_regs_read(thread_t *thread, void **buffer)
 		_thread_op_end(thread);
 		return EBUSY;
 	}
+	
+	/* Prepare a buffer to hold the data. */
+	istate_t *state_buf = malloc(sizeof(istate_t), 0);
 	
 	/* Copy to the allocated buffer */
 	memcpy(state_buf, state, sizeof(istate_t));

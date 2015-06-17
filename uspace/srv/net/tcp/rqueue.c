@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,12 +66,12 @@ void tcp_rqueue_init(void)
  *
  * This is for testing purposes only.
  *
- * @param sp	Socket pair, oriented for transmission
+ * @param sp	Endpoint pair, oriented for transmission
  * @param seg	Segment
  */
-void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_rqueue_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 {
-	tcp_sockpair_t rident;
+	inet_ep2_t rident;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_bounce_seg()");
 
@@ -79,7 +79,7 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_pdu_t *pdu;
 	tcp_segment_t *dseg;
 
-	if (tcp_pdu_encode(sp, seg, &pdu) != EOK) {
+	if (tcp_pdu_encode(epp, seg, &pdu) != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
 		return;
 	}
@@ -96,7 +96,7 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_segment_delete(seg);
 #else
 	/* Reverse the identification */
-	tcp_sockpair_flipped(sp, &rident);
+	tcp_ep2_flipped(epp, &rident);
 
 	/* Insert segment back into rqueue */
 	tcp_rqueue_insert_seg(&rident, seg);
@@ -105,10 +105,10 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 
 /** Insert segment into receive queue.
  *
- * @param sp	Socket pair, oriented for reception
+ * @param epp	Endpoint pair, oriented for reception
  * @param seg	Segment
  */
-void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
+void tcp_rqueue_insert_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_rqueue_entry_t *rqe;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_insert_seg()");
@@ -121,7 +121,7 @@ void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 		return;
 	}
 
-	rqe->sp = *sp;
+	rqe->epp = *epp;
 	rqe->seg = seg;
 
 	prodcons_produce(&rqueue, &rqe->link);
@@ -139,7 +139,7 @@ static int tcp_rqueue_fibril(void *arg)
 		link = prodcons_consume(&rqueue);
 		rqe = list_get_instance(link, tcp_rqueue_entry_t, link);
 
-		tcp_as_segment_arrived(&rqe->sp, rqe->seg);
+		tcp_as_segment_arrived(&rqe->epp, rqe->seg);
 		free(rqe);
 	}
 

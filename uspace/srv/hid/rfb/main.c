@@ -149,14 +149,6 @@ static void client_connection(ipc_callid_t callid, ipc_call_t *call, void *data)
 	graph_visualizer_connection(vis, callid, call, data);
 }
 
-static int socket_fibril(void *unused)
-{
-	rfb_accept(&rfb);
-	
-	/* Not reached */
-	return EOK;
-}
-
 int main(int argc, char **argv)
 {
 	log_init(NAME);
@@ -265,14 +257,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, NAME ": Unable to listen at rfb port\n");
 		return 2;
 	}
-	
-	fid_t fib = fibril_create(socket_fibril, NULL);
-	if (!fib) {
-		fprintf(stderr, NAME ": Unable to create socket fibril.\n");
-		return 2;
-	}
-	
-	fibril_add_ready(fib);
 	
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);

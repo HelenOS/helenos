@@ -387,17 +387,17 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode, bool slow)
 {
 	call_t *call = get_call(callid);
-	phone_t *phone;
-	bool need_old = answer_need_old(call);
-	bool after_forward = false;
-	ipc_data_t old;
-	int rc;
-
 	if (!call)
 		return ENOENT;
-
+	
+	ipc_data_t old;
+	bool need_old = answer_need_old(call);
 	if (need_old)
 		old = call->data;
+	
+	bool after_forward = false;
+	int rc;
+	phone_t *phone;
 	
 	if (phone_get(phoneid, &phone) != EOK) {
 		rc = ENOENT;
@@ -408,7 +408,7 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 		rc = EPERM;
 		goto error;
 	}
-
+	
 	call->flags |= IPC_CALL_FORWARDED;
 	
 	/*

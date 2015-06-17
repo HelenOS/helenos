@@ -37,8 +37,8 @@
 #include <errno.h>
 #include <fibril.h>
 #include <inet/dnsr.h>
-#include <net/inet.h>
-#include <net/socket.h>
+#include <inet/endpoint.h>
+#include <inet/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str_error.h>
@@ -47,104 +47,104 @@
 #include "conn.h"
 #include "nterm.h"
 
-static int conn_fd;
-static fid_t rcv_fid;
+static tcp_t *tcp;
+static tcp_conn_t *conn;
 
 #define RECV_BUF_SIZE 1024
 static uint8_t recv_buf[RECV_BUF_SIZE];
 
-static int rcv_fibril(void *arg)
+static void conn_conn_reset(tcp_conn_t *);
+static void conn_data_avail(tcp_conn_t *);
+
+static tcp_cb_t conn_cb = {
+	.conn_reset = conn_conn_reset,
+	.data_avail = conn_data_avail
+};
+
+static void conn_conn_reset(tcp_conn_t *conn)
 {
-	ssize_t nr;
+	printf("\n[Connection reset]\n");
+}
+
+static void conn_data_avail(tcp_conn_t *conn)
+{
+	int rc;
+	size_t nrecv;
 
 	while (true) {
-		nr = recv(conn_fd, recv_buf, RECV_BUF_SIZE, 0);
-		if (nr < 0)
+		rc = tcp_conn_recv(conn, recv_buf, RECV_BUF_SIZE, &nrecv);
+		if (rc != EOK) {
+			printf("\n[Receive error %d]\n", rc);
 			break;
+		}
 
-		nterm_received(recv_buf, nr);
+		nterm_received(recv_buf, nrecv);
+
+		if (nrecv != RECV_BUF_SIZE)
+			break;
 	}
-
-	if (nr == ENOTCONN)
-		printf("\n[Other side has closed the connection]\n");
-	else
-		printf("'\n[Receive errror (%s)]\n", str_error(nr));
-
-	exit(0);
-	return 0;
 }
 
 int conn_open(const char *host, const char *port_s)
 {
-	int conn_fd = -1;
-	struct sockaddr *saddr = NULL;
-	socklen_t saddrlen;
-	
+	inet_ep2_t epp;
+
 	/* Interpret as address */
 	inet_addr_t iaddr;
 	int rc = inet_addr_parse(host, &iaddr);
-	
+
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
 		rc = dnsr_name2host(host, &hinfo, ip_any);
-		
+
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", host);
 			goto error;
 		}
-		
+
 		iaddr = hinfo->addr;
 	}
-	
+
 	char *endptr;
 	uint16_t port = strtol(port_s, &endptr, 10);
 	if (*endptr != '\0') {
 		printf("Invalid port number %s\n", port_s);
 		goto error;
 	}
-	
-	rc = inet_addr_sockaddr(&iaddr, port, &saddr, &saddrlen);
-	if (rc != EOK) {
-		assert(rc == ENOMEM);
-		printf("Out of memory.\n");
-		return ENOMEM;
-	}
-	
+
+	inet_ep2_init(&epp);
+	epp.remote.addr = iaddr;
+	epp.remote.port = port;
+
 	printf("Connecting to host %s port %u\n", host, port);
-	
-	conn_fd = socket(saddr->sa_family, SOCK_STREAM, 0);
-	if (conn_fd < 0)
-		goto error;
-	
-	rc = connect(conn_fd, saddr, saddrlen);
+
+	rc = tcp_create(&tcp);
 	if (rc != EOK)
 		goto error;
-	
-	rcv_fid = fibril_create(rcv_fibril, NULL);
-	if (rcv_fid == 0)
+
+	rc = tcp_conn_create(tcp, &epp, &conn_cb, NULL, &conn);
+	if (rc != EOK)
 		goto error;
-	
-	fibril_add_ready(rcv_fid);
-	
-	free(saddr);
+
+	rc = tcp_conn_wait_connected(conn);
+	if (rc != EOK)
+		goto error;
+
 	return EOK;
 error:
-	if (conn_fd >= 0) {
-		closesocket(conn_fd);
-		conn_fd = -1;
-	}
-	free(saddr);
-	
+	tcp_conn_destroy(conn);
+	tcp_destroy(tcp);
+
 	return EIO;
 }
 
 int conn_send(void *data, size_t size)
 {
-	int rc = send(conn_fd, data, size, 0);
+	int rc = tcp_conn_send(conn, data, size);
 	if (rc != EOK)
 		return EIO;
-	
+
 	return EOK;
 }
 

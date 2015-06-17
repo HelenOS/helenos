@@ -72,7 +72,7 @@ static void inet_link_local_node_ip(addr48_t mac_addr,
     addr128_t ip_addr)
 {
 	memcpy(ip_addr, link_local_node_ip, 16);
-	
+
 	ip_addr[8] = mac_addr[0] ^ 0x02;
 	ip_addr[9] = mac_addr[1];
 	ip_addr[10] = mac_addr[2];
@@ -84,32 +84,38 @@ static void inet_link_local_node_ip(addr48_t mac_addr,
 static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t ver)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_recv()");
-	
+
 	int rc;
 	inet_packet_t packet;
-	
+	inet_link_t *ilink;
+
+	ilink = (inet_link_t *)iplink_get_userptr(iplink);
+
 	switch (ver) {
 	case ip_v4:
-		rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
+		rc = inet_pdu_decode(sdu->data, sdu->size, ilink->svc_id,
+		    &packet);
 		break;
 	case ip_v6:
-		rc = inet_pdu_decode6(sdu->data, sdu->size, &packet);
+		rc = inet_pdu_decode6(sdu->data, sdu->size, ilink->svc_id,
+		    &packet);
 		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "invalid IP version");
 		return EINVAL;
 	}
-	
+
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "failed decoding PDU");
 		return rc;
 	}
-	
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_iplink_recv: link_id=%zu", packet.link_id);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet()");
 	rc = inet_recv_packet(&packet);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet -> %d", rc);
 	free(packet.data);
-	
+
 	return rc;
 }
 
@@ -176,7 +182,7 @@ int inet_link_open(service_id_t sid)
 		goto error;
 	}
 
-	rc = iplink_open(ilink->sess, &inet_iplink_ev_ops, &ilink->iplink);
+	rc = iplink_open(ilink->sess, &inet_iplink_ev_ops, ilink, &ilink->iplink);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed opening IP link '%s'",
 		    ilink->svc_name);

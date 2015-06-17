@@ -35,14 +35,12 @@
  */
 
 #include <bitops.h>
+#include <errno.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>
 #include <inet/inetcfg.h>
 #include <io/log.h>
 #include <loc.h>
-#include <net/in.h>
-#include <net/inet.h>
-#include <net/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -66,131 +64,110 @@ typedef struct {
 	inet_addr_t dns_server;
 } dhcp_offer_t;
 
-static int dhcp_recv_fibril(void *);
+static void dhcp_recv_msg(udp_assoc_t *, udp_rmsg_t *);
+static void dhcp_recv_err(udp_assoc_t *, udp_rerr_t *);
+static void dhcp_link_state(udp_assoc_t *, udp_link_state_t);
+
+static udp_cb_t dhcp_transport_cb = {
+	.recv_msg = dhcp_recv_msg,
+	.recv_err = dhcp_recv_err,
+	.link_state = dhcp_link_state
+};
 
 int dhcp_send(dhcp_transport_t *dt, void *msg, size_t size)
 {
-	struct sockaddr_in addr;
+	inet_ep_t ep;
 	int rc;
 
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(dhcp_server_port);
-	addr.sin_addr.s_addr = htonl(addr32_broadcast_all_hosts);
+	inet_ep_init(&ep);
+	ep.port = dhcp_server_port;
+	inet_addr_set(addr32_broadcast_all_hosts, &ep.addr);
 
-	rc = sendto(dt->fd, msg, size, 0,
-	    (struct sockaddr *)&addr, sizeof(addr));
+	rc = udp_assoc_send_msg(dt->assoc, &ep, msg, size);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Sending failed");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed sending message");
 		return rc;
 	}
 
 	return EOK;
 }
 
-static int dhcp_recv_msg(dhcp_transport_t *dt, void **rmsg, size_t *rsize)
+static void dhcp_recv_msg(udp_assoc_t *assoc, udp_rmsg_t *rmsg)
 {
-	struct sockaddr_in src_addr;
-	socklen_t src_addr_size;
-	size_t recv_size;
+	dhcp_transport_t *dt;
+	size_t s;
 	int rc;
 
-	if (dt->fd < 0) {
-		/* Terminated */
-		return EIO;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "dhcp_recv_msg()");
+
+	dt = (dhcp_transport_t *)udp_assoc_userptr(assoc);
+	s = udp_rmsg_size(rmsg);
+	if (s > MAX_MSG_SIZE)
+		s = MAX_MSG_SIZE; /* XXX */
+
+	rc = udp_rmsg_read(rmsg, 0, msgbuf, s);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error receiving message.");
+		return;
 	}
 
-	src_addr_size = sizeof(src_addr);
-	rc = recvfrom(dt->fd, msgbuf, MAX_MSG_SIZE, 0,
-	    (struct sockaddr *)&src_addr, &src_addr_size);
-	if (rc < 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "recvfrom failed (%d)", rc);
-		return rc;
-	}
+	log_msg(LOG_DEFAULT, LVL_NOTE, "dhcp_recv_msg() - call recv_cb");
+	dt->recv_cb(dt->cb_arg, msgbuf, s);
+}
 
-	recv_size = (size_t)rc;
-	*rmsg = msgbuf;
-	*rsize = recv_size;
+static void dhcp_recv_err(udp_assoc_t *assoc, udp_rerr_t *rerr)
+{
+	log_msg(LOG_DEFAULT, LVL_WARN, "Ignoring ICMP error");
+}
 
-	return EOK;
+static void dhcp_link_state(udp_assoc_t *assoc, udp_link_state_t ls)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Link state change");
 }
 
 int dhcp_transport_init(dhcp_transport_t *dt, service_id_t link_id,
     dhcp_recv_cb_t recv_cb, void *arg)
 {
-	int fd;
-	struct sockaddr_in laddr;
-	int fid;
+	udp_t *udp = NULL;
+	udp_assoc_t *assoc = NULL;
+	inet_ep2_t epp;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcptransport_init()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_transport_init()");
 
-	laddr.sin_family = AF_INET;
-	laddr.sin_port = htons(dhcp_client_port);
-	laddr.sin_addr.s_addr = INADDR_ANY;
+	inet_ep2_init(&epp);
+	epp.local.addr.version = ip_v4;
+	epp.local.port = dhcp_client_port;
+	epp.local_link = link_id;
 
-	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (fd < 0) {
-		rc = EIO;
-		goto error;
-	}
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Bind socket.");
-	rc = bind(fd, (struct sockaddr *)&laddr, sizeof(laddr));
+	rc = udp_create(&udp);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Set socket options");
-	rc = setsockopt(fd, SOL_SOCKET, SO_IPLINK, &link_id, sizeof(link_id));
+	rc = udp_assoc_create(udp, &epp, &dhcp_transport_cb, dt, &assoc);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	dt->fd = fd;
+	dt->udp = udp;
+	dt->assoc = assoc;
 	dt->recv_cb = recv_cb;
 	dt->cb_arg = arg;
 
-	fid = fibril_create(dhcp_recv_fibril, dt);
-	if (fid == 0) {
-		rc = ENOMEM;
-		goto error;
-	}
-
-	dt->recv_fid = fid;
-	fibril_add_ready(fid);
-
 	return EOK;
 error:
-	closesocket(fd);
+	udp_assoc_destroy(assoc);
+	udp_destroy(udp);
 	return rc;
 }
 
 void dhcp_transport_fini(dhcp_transport_t *dt)
 {
-	closesocket(dt->fd);
-	dt->fd = -1;
-}
-
-static int dhcp_recv_fibril(void *arg)
-{
-	dhcp_transport_t *dt = (dhcp_transport_t *)arg;
-	void *msg;
-	size_t size = (size_t) -1;
-	int rc;
-
-	while (true) {
-		rc = dhcp_recv_msg(dt, &msg, &size);
-		if (rc != EOK)
-			break;
-
-		assert(size != (size_t) -1);
-
-		dt->recv_cb(dt->cb_arg, msg, size);
-	}
-
-	return EOK;
+	udp_assoc_destroy(dt->assoc);
+	udp_destroy(dt->udp);
 }
 
 /** @}

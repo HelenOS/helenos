@@ -66,9 +66,12 @@
 
 /* From mem.h */
 // #define bzero(ptr, len)  memset((ptr), 0, (len))
-extern void *memset(void *, int, size_t);
-extern void *memcpy(void *, const void *, size_t);
-extern void *memmove(void *, const void *, size_t);
+extern void *memset(void *, int, size_t)
+    __attribute__((nonnull(1)));
+extern void *memcpy(void *, const void *, size_t)
+    __attribute__((nonnull(1, 2)));
+extern void *memmove(void *, const void *, size_t)
+    __attribute__((nonnull(1, 2)));
 
 
 /* Copying and Concatenation */

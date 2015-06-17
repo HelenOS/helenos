@@ -115,9 +115,12 @@ extern unsigned long long int __POSIX_DEF__(strtoull)(
     const char *restrict nptr, char **restrict endptr, int base);
 
 /* Memory Allocation */
-extern void *__POSIX_DEF__(malloc)(size_t size);
-extern void *__POSIX_DEF__(calloc)(size_t nelem, size_t elsize);
-extern void *__POSIX_DEF__(realloc)(void *ptr, size_t size);
+extern void *__POSIX_DEF__(malloc)(size_t size)
+    __attribute__((malloc));
+extern void *__POSIX_DEF__(calloc)(size_t nelem, size_t elsize)
+    __attribute__((malloc));
+extern void *__POSIX_DEF__(realloc)(void *ptr, size_t size)
+    __attribute__((warn_unused_result));
 extern void __POSIX_DEF__(free)(void *ptr);
 
 /* Temporary Files */

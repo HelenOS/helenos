@@ -40,8 +40,9 @@
 #include <stdio.h>
 #include <task.h>
 
+#include "assoc.h"
+#include "service.h"
 #include "udp_inet.h"
-#include "sock.h"
 
 #define NAME       "udp"
 
@@ -51,15 +52,21 @@ static int udp_init(void)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_init()");
 
+	rc = udp_assocs_init();
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing associations.");
+		return ENOMEM;
+	}
+
 	rc = udp_inet_init();
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting to internet service.");
 		return ENOENT;
 	}
 
-	rc = udp_sock_init();
+	rc = udp_service_init();
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing socket service.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing UDP service.");
 		return ENOENT;
 	}
 

@@ -79,6 +79,7 @@ uspace/app/vterm/vterm
 uspace/app/vuhid/vuh
 uspace/app/wavplay/wavplay
 uspace/app/websrv/websrv
+uspace/app/wifi_supplicant/wifi_supplicant
 uspace/dist/app/barber
 uspace/dist/app/bdsh
 uspace/dist/app/bithenge
@@ -132,7 +133,9 @@ uspace/dist/app/vterm
 uspace/dist/app/vuh
 uspace/dist/app/wavplay
 uspace/dist/app/websrv
+uspace/dist/app/wifi_supplicant
 uspace/dist/drv/ahci/
+uspace/dist/drv/ar9271/
 uspace/dist/drv/ata_bd/
 uspace/dist/drv/cmos-rtc/
 uspace/dist/drv/e1k/
@@ -201,6 +204,7 @@ uspace/drv/audio/hdaudio/hdaudio
 uspace/drv/audio/sb16/sb16
 uspace/drv/block/ahci/ahci
 uspace/drv/block/ata_bd/ata_bd
+uspace/drv/block/ddisk/ddisk
 uspace/drv/bus/isa/isa
 uspace/drv/bus/pci/pciintel/pciintel
 uspace/drv/bus/usb/ehci/ehci
@@ -223,6 +227,7 @@ uspace/drv/root/virt/virt
 uspace/drv/platform/icp/icp
 uspace/drv/platform/pc/pc
 uspace/drv/platform/rootpc/rootpc
+uspace/drv/nic/ar9271/ar9271
 uspace/drv/nic/e1k/e1k
 uspace/drv/nic/ne2k/ne2k
 uspace/drv/nic/rtl8139/rtl8139

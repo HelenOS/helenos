@@ -87,7 +87,7 @@ void __thread_main(uspace_arg_t *uarg)
 	rcu_deregister_fibril();
 #endif
 	
-	fibril_teardown(fibril);
+	fibril_teardown(fibril, false);
 	
 	thread_exit(0);
 }

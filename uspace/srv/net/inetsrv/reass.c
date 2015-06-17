@@ -324,6 +324,8 @@ static int reass_dgram_deliver(reass_dgram_t *rdg)
 	if (dgram.data == NULL)
 		return ENOMEM;
 
+	/* XXX What if different fragments came from different link? */
+	dgram.iplink = frag->packet.link_id;
 	dgram.size = dgram_size;
 	dgram.src = frag->packet.src;
 	dgram.dest = frag->packet.dest;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,9 +40,9 @@
 #include <stdbool.h>
 #include <fibril.h>
 #include <fibril_synch.h>
-#include <socket_core.h>
 #include <sys/types.h>
 #include <inet/addr.h>
+#include <inet/endpoint.h>
 
 struct tcp_conn;
 
@@ -89,14 +89,15 @@ typedef enum {
 	TCP_ENOTOPEN,
 	/* Connection reset */
 	TCP_ERESET,
-	/* Foreign socket unspecified */
+	/* Remote endpoint unspecified */
 	TCP_EUNSPEC,
 	/* Insufficient resources */
 	TCP_ENORES,
 	/* Precedence not allowed */
 	TCP_EINVPREC,
 	/* Security/compartment not allowed */
-	TCP_EINVCOMP
+	TCP_EINVCOMP,
+	TCP_EAGAIN
 } tcp_error_t;
 
 typedef enum {
@@ -110,20 +111,6 @@ typedef enum {
 	CTL_RST		= 0x4,
 	CTL_ACK		= 0x8
 } tcp_control_t;
-
-typedef struct {
-	inet_addr_t addr;
-	uint16_t port;
-} tcp_sock_t;
-
-enum tcp_port {
-	TCP_PORT_ANY = 0
-};
-
-typedef struct {
-	tcp_sock_t local;
-	tcp_sock_t foreign;
-} tcp_sockpair_t;
 
 /** Connection incoming segments queue */
 typedef struct {
@@ -154,18 +141,24 @@ typedef struct tcp_conn tcp_conn_t;
 /** Connection state change callback function */
 typedef void (*tcp_cstate_cb_t)(tcp_conn_t *, void *);
 
+/** Connection callbacks */
+typedef struct {
+	void (*cstate_change)(tcp_conn_t *, void *, tcp_cstate_t);
+	void (*recv_data)(tcp_conn_t *, void *);
+} tcp_cb_t;
+
 /** Connection */
 struct tcp_conn {
 	char *name;
 	link_t link;
 
-	/** Connection state change callback function */
-	tcp_cstate_cb_t cstate_cb;
+	/** Connection callbacks function */
+	tcp_cb_t *cb;
 	/** Argument to @c cstate_cb */
-	void *cstate_cb_arg;
+	void *cb_arg;
 
-	/** Connection identification (local and foreign socket) */
-	tcp_sockpair_t ident;
+	/** Connection identification (local and remote endpoint) */
+	inet_ep2_t ident;
 
 	/** Active or passive connection */
 	acpass_t ap;
@@ -273,7 +266,7 @@ typedef struct {
 
 typedef struct {
 	link_t link;
-	tcp_sockpair_t sp;
+	inet_ep2_t epp;
 	tcp_segment_t *seg;
 } tcp_rqueue_entry_t;
 
@@ -281,7 +274,7 @@ typedef struct {
 typedef struct {
 	link_t link;
 	suseconds_t delay;
-	tcp_sockpair_t sp;
+	inet_ep2_t epp;
 	tcp_segment_t *seg;
 } tcp_squeue_entry_t;
 
@@ -318,46 +311,40 @@ typedef struct {
 	size_t text_size;
 } tcp_pdu_t;
 
-typedef struct {
-	async_sess_t *sess;
-	socket_cores_t sockets;
-} tcp_client_t;
-
-#define TCP_SOCK_FRAGMENT_SIZE 1024
-
-typedef struct tcp_sockdata {
-	/** Lock */
-	fibril_mutex_t lock;
-	/** Socket core */
-	socket_core_t *sock_core;
-	/** Client */
-	tcp_client_t *client;
+/** TCP client connection */
+typedef struct tcp_cconn {
 	/** Connection */
 	tcp_conn_t *conn;
-	/** Local address */
-	inet_addr_t laddr;
-	/** Backlog size */
-	int backlog;
-	/** Array of listening connections, @c backlog elements */
-	struct tcp_sock_lconn **lconn;
-	/** List of connections (from lconn) that are ready to be accepted */
-	list_t ready;
-	/** Receiving fibril */
-	fid_t recv_fibril;
-	uint8_t recv_buffer[TCP_SOCK_FRAGMENT_SIZE];
-	size_t recv_buffer_used;
-	fibril_mutex_t recv_buffer_lock;
-	fibril_condvar_t recv_buffer_cv;
-	tcp_error_t recv_error;
-} tcp_sockdata_t;
+	/** Connection ID for the client */
+	sysarg_t id;
+	/** Client */
+	struct tcp_client *client;
+	link_t lclient;
+} tcp_cconn_t;
 
-typedef struct tcp_sock_lconn {
+/** TCP client listener */
+typedef struct tcp_clst {
+	/** Local endpoint */
+	inet_ep_t elocal;
+	/** Connection */
 	tcp_conn_t *conn;
-	tcp_sockdata_t *socket;
-	int index;
-	link_t ready_list;
-} tcp_sock_lconn_t;
+	/** Listener ID for the client */
+	sysarg_t id;
+	/** Client */
+	struct tcp_client *client;
+	/** Link to tcp_client_t.clst */
+	link_t lclient;
+} tcp_clst_t;
 
+/** TCP client */
+typedef struct tcp_client {
+	/** Client callbac session */
+	async_sess_t *sess;
+	/** Client's connections */
+	list_t cconn; /* of tcp_cconn_t */
+	/** Client's listeners */
+	list_t clst;
+} tcp_client_t;
 
 #endif
 

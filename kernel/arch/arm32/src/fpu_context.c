@@ -100,6 +100,7 @@ enum {
 
 	FPSCR_EN_ALL = FPSCR_DENORMAL_EN_FLAG | FPSCR_INEXACT_EN_FLAG | FPSCR_UNDERFLOW_EN_FLAG | FPSCR_OVERFLOW_EN_FLAG | FPSCR_ZERO_DIV_EN_FLAG | FPSCR_INVALID_OP_EN_FLAG,
 };
+
 extern uint32_t fpscr_read(void);
 extern void fpscr_write(uint32_t);
 
@@ -113,9 +114,10 @@ extern void fpu_context_restore_d32(fpu_context_t *);
 static void (*save_context)(fpu_context_t *ctx);
 static void (*restore_context)(fpu_context_t *ctx);
 
-static int fpu_have_coprocessor_access()
+static int fpu_have_coprocessor_access(void)
 {
-/* The register containing the information (CPACR) is not available on armv6-
+/*
+ * The register containing the information (CPACR) is not available on armv6-
  * rely on user decision to use CONFIG_FPU.
  */
 #ifdef PROCESSOR_ARCH_armv7_a
@@ -142,9 +144,10 @@ static int fpu_have_coprocessor_access()
  *
  * @note do we need to call secure monitor here?
  */
-static void fpu_enable_coprocessor_access()
+static void fpu_enable_coprocessor_access(void)
 {
-/* The register containing the information (CPACR) is not available on armv6-
+/*
+ * The register containing the information (CPACR) is not available on armv6-
  * rely on user decision to use CONFIG_FPU.
  */
 #ifdef PROCESSOR_ARCH_armv7_a

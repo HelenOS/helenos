@@ -191,7 +191,7 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 		async_usleep(100000);
 		if (!tries--) {
 			usb_log_error("Can't remove hub, still running.\n");
-			return EINPROGRESS;
+			return EBUSY;
 		}
 	}
 

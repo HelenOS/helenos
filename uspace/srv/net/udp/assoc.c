@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,33 +35,49 @@
  */
 
 #include <adt/list.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <fibril_synch.h>
+#include <inet/endpoint.h>
 #include <io/log.h>
+#include <nettl/amap.h>
 #include <stdlib.h>
 
 #include "assoc.h"
 #include "msg.h"
 #include "pdu.h"
-#include "ucall.h"
 #include "udp_inet.h"
 #include "udp_type.h"
 
-LIST_INITIALIZE(assoc_list);
-FIBRIL_MUTEX_INITIALIZE(assoc_list_lock);
+static LIST_INITIALIZE(assoc_list);
+static FIBRIL_MUTEX_INITIALIZE(assoc_list_lock);
+static amap_t *amap;
 
-static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *);
-static int udp_assoc_queue_msg(udp_assoc_t *, udp_sockpair_t *, udp_msg_t *);
-static bool udp_socket_match(udp_sock_t *, udp_sock_t *);
-static bool udp_sockpair_match(udp_sockpair_t *, udp_sockpair_t *);
+static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *);
+static int udp_assoc_queue_msg(udp_assoc_t *, inet_ep2_t *, udp_msg_t *);
+
+/** Initialize associations. */
+int udp_assocs_init(void)
+{
+	int rc;
+
+	rc = amap_create(&amap);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		return ENOMEM;
+	}
+
+	return EOK;
+}
 
 /** Create new association structure.
  *
- * @param lsock		Local socket (will be deeply copied)
- * @param fsock		Foreign socket (will be deeply copied)
+ * @param epp		Endpoint pair (will be copied)
+ * @param cb		Callbacks
+ * @param cb_arg	Callback argument
  * @return		New association or NULL
  */
-udp_assoc_t *udp_assoc_new(udp_sock_t *lsock, udp_sock_t *fsock)
+udp_assoc_t *udp_assoc_new(inet_ep2_t *epp, udp_assoc_cb_t *cb, void *cb_arg)
 {
 	udp_assoc_t *assoc = NULL;
 
@@ -79,12 +95,11 @@ udp_assoc_t *udp_assoc_new(udp_sock_t *lsock, udp_sock_t *fsock)
 	list_initialize(&assoc->rcv_queue);
 	fibril_condvar_initialize(&assoc->rcv_queue_cv);
 
-	if (lsock != NULL)
-		assoc->ident.local = *lsock;
-	
-	if (fsock != NULL)
-		assoc->ident.foreign = *fsock;
+	if (epp != NULL)
+		assoc->ident = *epp;
 
+	assoc->cb = cb;
+	assoc->cb_arg = cb_arg;
 	return assoc;
 error:
 	return NULL;
@@ -165,12 +180,26 @@ void udp_assoc_delete(udp_assoc_t *assoc)
  *
  * Add association to the association map.
  */
-void udp_assoc_add(udp_assoc_t *assoc)
+int udp_assoc_add(udp_assoc_t *assoc)
 {
+	inet_ep2_t aepp;
+	int rc;
+
 	udp_assoc_addref(assoc);
 	fibril_mutex_lock(&assoc_list_lock);
+
+	rc = amap_insert(amap, &assoc->ident, assoc, af_allow_system, &aepp);
+	if (rc != EOK) {
+		udp_assoc_delref(assoc);
+		fibril_mutex_unlock(&assoc_list_lock);
+		return rc;
+	}
+
+	assoc->ident = aepp;
 	list_append(&assoc->link, &assoc_list);
 	fibril_mutex_unlock(&assoc_list_lock);
+
+	return EOK;
 }
 
 /** Delist association.
@@ -180,6 +209,7 @@ void udp_assoc_add(udp_assoc_t *assoc)
 void udp_assoc_remove(udp_assoc_t *assoc)
 {
 	fibril_mutex_lock(&assoc_list_lock);
+	amap_remove(amap, &assoc->ident);
 	list_remove(&assoc->link);
 	fibril_mutex_unlock(&assoc_list_lock);
 	udp_assoc_delref(assoc);
@@ -195,83 +225,53 @@ void udp_assoc_set_iplink(udp_assoc_t *assoc, service_id_t iplink)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_iplink(%p, %zu)",
 	    assoc, iplink);
 	fibril_mutex_lock(&assoc->lock);
-	assoc->ident.iplink = iplink;
-	fibril_mutex_unlock(&assoc->lock);
-}
-
-/** Set foreign socket in association.
- *
- * @param assoc		Association
- * @param fsock		Foreign socket (deeply copied)
- */
-void udp_assoc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_foreign(%p, %p)", assoc, fsock);
-	fibril_mutex_lock(&assoc->lock);
-	assoc->ident.foreign = *fsock;
-	fibril_mutex_unlock(&assoc->lock);
-}
-
-/** Set local socket in association.
- *
- * @param assoc Association
- * @param lsock Local socket (deeply copied)
- *
- */
-void udp_assoc_set_local(udp_assoc_t *assoc, udp_sock_t *lsock)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_local(%p, %p)", assoc, lsock);
-	fibril_mutex_lock(&assoc->lock);
-	assoc->ident.local = *lsock;
-	fibril_mutex_unlock(&assoc->lock);
-}
-
-/** Set local port in association.
- *
- * @param assoc Association
- * @param lport Local port
- *
- */
-void udp_assoc_set_local_port(udp_assoc_t *assoc, uint16_t lport)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_local(%p, %" PRIu16 ")", assoc, lport);
-	fibril_mutex_lock(&assoc->lock);
-	assoc->ident.local.port = lport;
+	assoc->ident.local_link = iplink;
 	fibril_mutex_unlock(&assoc->lock);
 }
 
 /** Send message to association.
  *
  * @param assoc		Association
- * @param fsock		Foreign socket or NULL not to override @a assoc
+ * @param remote	Remote endpoint or NULL not to override @a assoc
  * @param msg		Message
  *
  * @return		EOK on success
- *			EINVAL if foreign socket is not set
+ *			EINVAL if remote endpoint is not set
  *			ENOMEM if out of resources
  *			EIO if no route to destination exists
  */
-int udp_assoc_send(udp_assoc_t *assoc, udp_sock_t *fsock, udp_msg_t *msg)
+int udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 {
 	udp_pdu_t *pdu;
-	udp_sockpair_t sp;
+	inet_ep2_t epp;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send(%p, %p, %p)",
-	    assoc, fsock, msg);
+	    assoc, remote, msg);
 
-	/* @a fsock can be used to override the foreign socket */
-	sp = assoc->ident;
-	if (fsock != NULL)
-		sp.foreign = *fsock;
+	/* @a remote can be used to override the remote endpoint */
+	epp = assoc->ident;
+	if (remote != NULL)
+		epp.remote = *remote;
 
-	if ((inet_addr_is_any(&sp.foreign.addr)) ||
-	    (sp.foreign.port == UDP_PORT_ANY))
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - check addr any");
+
+	if ((inet_addr_is_any(&epp.remote.addr)) ||
+	    (epp.remote.port == inet_port_any))
 		return EINVAL;
 
-	rc = udp_pdu_encode(&sp, msg, &pdu);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - check version");
+
+	if (epp.remote.addr.version != epp.local.addr.version)
+		return EINVAL;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - encode pdu");
+
+	rc = udp_pdu_encode(&epp, msg, &pdu);
 	if (rc != EOK)
 		return ENOMEM;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - transmit");
 
 	rc = udp_transmit_pdu(pdu);
 	udp_pdu_delete(pdu);
@@ -279,6 +279,7 @@ int udp_assoc_send(udp_assoc_t *assoc, udp_sock_t *fsock, udp_msg_t *msg)
 	if (rc != EOK)
 		return EIO;
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - success");
 	return EOK;
 }
 
@@ -286,7 +287,7 @@ int udp_assoc_send(udp_assoc_t *assoc, udp_sock_t *fsock, udp_msg_t *msg)
  *
  * Pull one message from the association's receive queue.
  */
-int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, udp_sock_t *fsock)
+int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, inet_ep_t *remote)
 {
 	link_t *link;
 	udp_rcv_queue_entry_t *rqe;
@@ -302,7 +303,7 @@ int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, udp_sock_t *fsock)
 	if (assoc->reset) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_recv() - association was reset");
 		fibril_mutex_unlock(&assoc->lock);
-		return ECONNABORTED;
+		return ENXIO;
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_recv() - got a message");
@@ -312,7 +313,7 @@ int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, udp_sock_t *fsock)
 	fibril_mutex_unlock(&assoc->lock);
 
 	*msg = rqe->msg;
-	*fsock = rqe->sp.foreign;
+	*remote = rqe->epp.remote;
 	free(rqe);
 
 	return EOK;
@@ -322,14 +323,14 @@ int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, udp_sock_t *fsock)
  *
  * Find the association to which the message belongs and queue it.
  */
-void udp_assoc_received(udp_sockpair_t *rsp, udp_msg_t *msg)
+void udp_assoc_received(inet_ep2_t *repp, udp_msg_t *msg)
 {
 	udp_assoc_t *assoc;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_received(%p, %p)", rsp, msg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_received(%p, %p)", repp, msg);
 
-	assoc = udp_assoc_find_ref(rsp);
+	assoc = udp_assoc_find_ref(repp);
 	if (assoc == NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "No association found. Message dropped.");
 		/* XXX Generate ICMP error. */
@@ -338,11 +339,17 @@ void udp_assoc_received(udp_sockpair_t *rsp, udp_msg_t *msg)
 		return;
 	}
 
-	rc = udp_assoc_queue_msg(assoc, rsp, msg);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Out of memory. Message dropped.");
+	if (0) {
+		rc = udp_assoc_queue_msg(assoc, repp, msg);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Out of memory. Message dropped.");
 		/* XXX Generate ICMP error? */
+		}
 	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "call assoc->cb->recv_msg");
+	assoc->cb->recv_msg(assoc->cb_arg, repp, msg);
+	udp_assoc_delref(assoc);
 }
 
 /** Reset association.
@@ -358,20 +365,20 @@ void udp_assoc_reset(udp_assoc_t *assoc)
 	fibril_mutex_unlock(&assoc->lock);
 }
 
-static int udp_assoc_queue_msg(udp_assoc_t *assoc, udp_sockpair_t *sp,
+static int udp_assoc_queue_msg(udp_assoc_t *assoc, inet_ep2_t *epp,
     udp_msg_t *msg)
 {
 	udp_rcv_queue_entry_t *rqe;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_queue_msg(%p, %p, %p)",
-	    assoc, sp, msg);
+	    assoc, epp, msg);
 
 	rqe = calloc(1, sizeof(udp_rcv_queue_entry_t));
 	if (rqe == NULL)
 		return ENOMEM;
 
 	link_initialize(&rqe->link);
-	rqe->sp = *sp;
+	rqe->epp = *epp;
 	rqe->msg = msg;
 
 	fibril_mutex_lock(&assoc->lock);
@@ -383,73 +390,36 @@ static int udp_assoc_queue_msg(udp_assoc_t *assoc, udp_sockpair_t *sp,
 	return EOK;
 }
 
-/** Match socket with pattern. */
-static bool udp_socket_match(udp_sock_t *sock, udp_sock_t *patt)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG,
-	    "udp_socket_match(sock=(%u), pat=(%u))", sock->port, patt->port);
-	
-	if ((!inet_addr_is_any(&patt->addr)) &&
-	    (!inet_addr_compare(&patt->addr, &sock->addr)))
-		return false;
-	
-	if ((patt->port != UDP_PORT_ANY) &&
-	    (patt->port != sock->port))
-		return false;
-	
-	log_msg(LOG_DEFAULT, LVL_DEBUG, " -> match");
-	
-	return true;
-}
-
-/** Match socket pair with pattern. */
-static bool udp_sockpair_match(udp_sockpair_t *sp, udp_sockpair_t *pattern)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sockpair_match(%p, %p)", sp, pattern);
-
-	if (!udp_socket_match(&sp->local, &pattern->local))
-		return false;
-
-	if (!udp_socket_match(&sp->foreign, &pattern->foreign))
-		return false;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Socket pair matched.");
-	return true;
-}
-
-
-/** Find association structure for specified socket pair.
+/** Find association structure for specified endpoint pair.
  *
- * An association is uniquely identified by a socket pair. Look up our
- * association map and return association structure based on socket pair.
+ * An association is uniquely identified by an endpoint pair. Look up our
+ * association map and return association structure based on endpoint pair.
  * The association reference count is bumped by one.
  *
- * @param sp	Socket pair
+ * @param epp	Endpoint pair
  * @return	Association structure or NULL if not found.
  */
-static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *sp)
+static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *epp)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_find_ref(%p)", sp);
-	
+	int rc;
+	void *arg;
+	udp_assoc_t *assoc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_find_ref(%p)", epp);
 	fibril_mutex_lock(&assoc_list_lock);
-	
-	list_foreach(assoc_list, link, udp_assoc_t, assoc) {
-		udp_sockpair_t *asp = &assoc->ident;
-		
-		/* Skip unbound associations */
-		if (asp->local.port == UDP_PORT_ANY)
-			continue;
-		
-		if (udp_sockpair_match(sp, asp)) {
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "Returning assoc %p", assoc);
-			udp_assoc_addref(assoc);
-			fibril_mutex_unlock(&assoc_list_lock);
-			return assoc;
-		}
+
+	rc = amap_find_match(amap, epp, &arg);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		fibril_mutex_unlock(&assoc_list_lock);
+		return NULL;
 	}
-	
+
+	assoc = (udp_assoc_t *)arg;
+	udp_assoc_addref(assoc);
+
 	fibril_mutex_unlock(&assoc_list_lock);
-	return NULL;
+	return assoc;
 }
 
 /**

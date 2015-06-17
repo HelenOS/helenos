@@ -107,7 +107,10 @@ typedef struct async_exch async_exch_t;
 extern atomic_t threads_in_ipc_wait;
 
 #define async_manager() \
-	fibril_switch(FIBRIL_TO_MANAGER)
+	do { \
+		futex_down(&async_futex); \
+		fibril_switch(FIBRIL_FROM_DEAD); \
+	} while (0)
 
 #define async_get_call(data) \
 	async_get_call_timeout(data, 0)
