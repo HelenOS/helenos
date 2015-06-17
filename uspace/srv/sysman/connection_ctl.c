@@ -83,7 +83,7 @@ static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
 	}
 
 	if (!(flags & IPC_FLAG_BLOCKING)) {
-		retval = sysman_queue_job(unit, STATE_STARTED, NULL, NULL);
+		retval = sysman_run_job(unit, STATE_STARTED, NULL, NULL);
 		goto answer;
 	}
 
@@ -92,7 +92,7 @@ static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
 		retval = ENOMEM;
 		goto answer;
 	}
-	retval = sysman_queue_job(unit, STATE_STARTED, &answer_callback,
+	retval = sysman_run_job(unit, STATE_STARTED, &answer_callback,
 	    iid_ptr);
 	if (retval != EOK) {
 		goto answer;

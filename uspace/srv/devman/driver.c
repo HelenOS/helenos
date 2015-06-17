@@ -187,6 +187,28 @@ int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 	return drv_cnt;
 }
 
+/** Get name of unit that represents the driver
+ *
+ * @param[in]  drv
+ * @param[out] unit_name_ptr  should be free'd after use, not touched on fail
+ *
+ * @return     EOK on success
+ * @return     ENOMEM
+ */
+errno_t driver_unit_name(driver_t *drv, char **unit_name_ptr)
+{
+	char *unit_name = NULL;
+	asprintf(&unit_name, "%s%c%s", drv->name, UNIT_NAME_SEPARATOR,
+	    UNIT_SVC_TYPE_NAME);
+
+	if (unit_name == NULL) {
+		return ENOMEM;
+	} else {
+		*unit_name_ptr = unit_name;
+		return EOK;
+	}
+}
+
 /** Lookup the next best matching driver for a device.
  *
  * A match between a device and a driver is found if one of the driver's match
@@ -319,9 +341,7 @@ bool start_driver(driver_t *drv)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
 
 	char *unit_name = NULL;
-	asprintf(&unit_name, "%s%c%s", drv->name, UNIT_NAME_SEPARATOR,
-	    UNIT_SVC_TYPE_NAME);
-	if (unit_name == NULL) {
+	if (driver_unit_name(drv, &unit_name) != EOK) {
 		return false;
 	}
 
@@ -332,17 +352,16 @@ bool start_driver(driver_t *drv)
 	 */
 	int flags = 0;
 	rc = sysman_unit_start(unit_name, flags);
+	free(unit_name);
 
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Request to start driver `%s' failed: %s.",
 		    drv->name, str_error(rc));
-		free(unit_name);
 		return false;
 	}
 
 	drv->state = DRIVER_STARTING;
-	free(unit_name);
 	return true;
 }
 

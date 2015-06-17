@@ -35,21 +35,21 @@
  * @brief
  */
 
-#include <ipc/services.h>
-#include <async.h>
-#include <fibril.h>
-#include <fibril_synch.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <str.h>
-#include <ctype.h>
-#include <stdbool.h>
 #include <adt/list.h>
 #include <as.h>
 #include <assert.h>
-#include <stdatomic.h>
-#include <vfs/vfs.h>
+#include <async.h>
+#include <atomic.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fibril.h>
+#include <fibril_synch.h>
+#include <ipc/services.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <str.h>
+#include <sysman/broker.h>
 #include "vfs.h"
 
 FIBRIL_CONDVAR_INITIALIZE(fs_list_cv);
@@ -148,8 +148,8 @@ void vfs_register(ipc_call_t *req)
 	/*
 	 * Check for duplicit registrations.
 	 */
-	if (fs_name_to_handle(fs_info->vfs_info.instance,
-	    fs_info->vfs_info.name, false)) {
+	if (fs_name_to_handle(fs_info->vfs_info.name,
+	    fs_info->vfs_info.instance, false)) {
 		/*
 		 * We already register a fs like this.
 		 */
@@ -160,6 +160,20 @@ void vfs_register(ipc_call_t *req)
 		return;
 	}
 
+	/* Notify sysman about started FS server */
+	char *unit_name = NULL;
+	rc = fs_unit_name(fs_info->vfs_info.name, fs_info->vfs_info.instance,
+	    &unit_name);
+	if (rc != EOK) {
+		dprintf("Unknow unit name for FS server.\n");
+		fibril_mutex_unlock(&fs_list_lock);
+		free(fs_info);
+		async_answer_0(rid, rc);
+		return;
+	}
+	sysman_main_exposee_added(unit_name, request->in_task_id);
+	free(unit_name);
+	
 	/*
 	 * Add fs_info to the list of registered FS's.
 	 */
@@ -287,13 +301,14 @@ void vfs_exchange_release(async_exch_t *exch)
 /** Convert file system name to its handle.
  *
  * @param name File system name.
+ * @param instance
  * @param lock If true, the function will lock and unlock the
  *             fs_list_lock.
  *
  * @return File system handle or zero if file system not found.
  *
  */
-fs_handle_t fs_name_to_handle(unsigned int instance, const char *name, bool lock)
+fs_handle_t fs_name_to_handle(const char *name, unsigned int instance, bool lock)
 {
 	int handle = 0;
 
@@ -390,6 +405,36 @@ errno_t vfs_get_fstypes(vfs_fstypes_t *fstypes)
 
 	fibril_mutex_unlock(&fs_list_lock);
 	return EOK;
+}
+
+/** Get name of unit that represents the filesystem server
+ *
+ * Unit name is made simply by considering service of the same name as
+ * given FS name.
+ * TODO instance identifier is not implemented.
+ *
+ * @param[in]  fs_name
+ * @param[in]  instance
+ * @param[out] unit_name_ptr  should be free'd after use, not touched on fail
+ *
+ * @return     EOK on success
+ * @return     ENOMEM
+ */
+errno_t fs_unit_name(const char *fs_name, unsigned int instance,
+    char **unit_name_ptr)
+{
+	assert(instance == 0);
+
+	char *unit_name = NULL;
+	asprintf(&unit_name, "%s%c%s", fs_name, UNIT_NAME_SEPARATOR,
+	    UNIT_SVC_TYPE_NAME);
+
+	if (unit_name == NULL) {
+		return ENOMEM;
+	} else {
+		*unit_name_ptr = unit_name;
+		return EOK;
+	}
 }
 
 /**

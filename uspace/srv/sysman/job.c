@@ -486,6 +486,7 @@ void job_run(job_t *job)
 		assert(false);
 	}
 	if (rc != EOK) {
+		//TODO here is 'rc' value "lost" (not propagated further)
 		sysman_log(LVL_DEBUG, "%s(%p), %s -> %i, error: %i",
 		    __func__, job, unit_name(u), job->target_state, rc);
 		goto fail;

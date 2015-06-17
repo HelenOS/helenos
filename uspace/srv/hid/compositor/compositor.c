@@ -2266,7 +2266,6 @@ static void discover_viewports(void)
 
 	if (!list_empty(&viewport_list))
 		input_activate(input);
-
 ret:
 	fibril_mutex_unlock(&discovery_mtx);
 }
@@ -2284,37 +2283,8 @@ static errno_t compositor_srv_init(char *input_svc, char *name)
 	/* Color of the viewport background. Must be opaque. */
 	bg_color = PIXEL(255, 69, 51, 103);
 
-	/* Register compositor server. */
-	async_set_fallback_port_handler(client_connection, NULL);
-
-	errno_t rc = loc_server_register(NAME);
-	if (rc != EOK) {
-		printf("%s: Unable to register server (%s)\n", NAME, str_error(rc));
-		return -1;
-	}
-
-	server_name = name;
-
-	char svc[LOC_NAME_MAXLEN + 1];
-	snprintf(svc, LOC_NAME_MAXLEN, "%s/%s", NAMESPACE, server_name);
-
-	service_id_t service_id;
-	rc = loc_service_register(svc, &service_id);
-	if (rc != EOK) {
-		printf("%s: Unable to register service %s\n", NAME, svc);
-		return rc;
-	}
-
-	/* Prepare window registrator (entrypoint for clients). */
-	char winreg[LOC_NAME_MAXLEN + 1];
-	snprintf(winreg, LOC_NAME_MAXLEN, "%s%s/winreg", NAMESPACE, server_name);
-	if (loc_service_register(winreg, &winreg_id) != EOK) {
-		printf("%s: Unable to register service %s\n", NAME, winreg);
-		return -1;
-	}
-
 	/* Establish input bidirectional connection. */
-	rc = input_connect(input_svc);
+	errno_t rc = input_connect(input_svc);
 	if (rc != EOK) {
 		printf("%s: Failed to connect to input service.\n", NAME);
 		return rc;
@@ -2331,6 +2301,25 @@ static errno_t compositor_srv_init(char *input_svc, char *name)
 
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+
+	/* Finally, register compositor server. */
+	async_set_fallback_port_handler(client_connection);
+	
+	rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register server (%s)\n", NAME, str_error(rc));
+		return rc;
+	}
+	
+	server_name = name;
+	
+	/* Prepare window registrator (entrypoint for clients). */
+	char winreg[LOC_NAME_MAXLEN + 1];
+	snprintf(winreg, LOC_NAME_MAXLEN, "%s%s/winreg", NAMESPACE, server_name);
+	if (loc_service_register(winreg, &winreg_id) != EOK) {
+		printf("%s: Unable to register service %s\n", NAME, winreg);
+		return rc;
+	}
 
 	return EOK;
 }

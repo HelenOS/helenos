@@ -135,7 +135,7 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 
 	fibril_mutex_lock(&fs_list_lock);
 	while (true) {
-		fs_handle = fs_name_to_handle(instance, fsname, false);
+		fs_handle = fs_name_to_handle(fsname, instance, false);
 		if (!fs_handle) {
 			if ((flags & IPC_FLAG_AUTOSTART)) {
 				/*
@@ -219,19 +219,12 @@ static int vfs_fs_request_start(const char *fs_name, unsigned int instance)
 {
 	char *unit_name = NULL;
 
-	assert(instance == 0);
-	/*
-	 * Unit name is made simply by considering service of the same name as
-	 * given FS name.
-	 * TODO instance identifier is not implemented.
-	 */
-	asprintf(&unit_name, "%s%c%s", fs_name, UNIT_NAME_SEPARATOR,
-	    UNIT_SVC_TYPE_NAME);
-	if (unit_name == NULL) {
-		return ENOMEM;
+	errno_t rc = fs_unit_name(fs_name, instance, &unit_name);
+	if (rc != EOK) {
+		return rc;
 	}
 
-	int rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
+	rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
 
 	free(unit_name);
 	return rc;
@@ -245,7 +238,7 @@ errno_t vfs_op_fsprobe(const char *fs_name, service_id_t sid,
 	errno_t retval;
 
 	fibril_mutex_lock(&fs_list_lock);
-	fs_handle = fs_name_to_handle(0, fs_name, false);
+	fs_handle = fs_name_to_handle(fs_name, 0, false);
 	fibril_mutex_unlock(&fs_list_lock);
 
 	if (fs_handle == 0)

@@ -41,6 +41,7 @@ extern void init_driver_list(driver_list_t *);
 extern driver_t *create_driver(void);
 extern bool get_driver_info(const char *, const char *, driver_t *);
 extern int lookup_available_drivers(driver_list_t *, const char *);
+extern int driver_unit_name(driver_t *, char **);
 
 extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
 extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);

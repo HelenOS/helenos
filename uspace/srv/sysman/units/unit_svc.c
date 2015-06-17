@@ -92,24 +92,32 @@ static int unit_svc_start(unit_t *unit)
 		return rc;
 	}
 
+	unit->state = STATE_STARTING;
+
 	/*
 	 * This is temporary workaround, until proper reporting from brokers
 	 * about exposees will work. We assume the service succesfully starts
-	 * in a moment.
+	 * in a moment. Applies to naming service only.
 	 */
-	unit->state = STATE_STARTING;
-	async_usleep(20000);
-	unit->state = STATE_STARTED;
+	// TODO this is even hack in the workaround, exposees doesn't work properly
+	if (true || str_cmp(unit->name, "devman.svc") == 0 ||
+	    str_cmp(unit->name, "logger.svc") == 0 ||
+	    str_cmp(unit->name, "irc.svc") == 0) {
+		async_usleep(100000);
+		unit->state = STATE_STARTED;
+	}
 
 	/*
 	 * Workaround to see log output even after devman starts (and overrides
-	 * kernel's frame buffer. It's here since devman is started as a
-	 * service (however not all services are devman...).
+	 * kernel's frame buffer.
 	 */
-	if (console_kcon()) {
-		sysman_log(LVL_DEBUG2, "%s: Kconsole grabbed.", __func__);
-	} else {
-		sysman_log(LVL_DEBUG2, "%s: no kconsole.", __func__);
+	if (str_cmp(unit->name, "devman.svc") == 0) {
+		async_usleep(100000);
+		if (console_kcon()) {
+			sysman_log(LVL_DEBUG2, "%s: Kconsole grabbed.", __func__);
+		} else {
+			sysman_log(LVL_DEBUG2, "%s: no kconsole.", __func__);
+		}
 	}
 
 	return EOK;
@@ -117,7 +125,11 @@ static int unit_svc_start(unit_t *unit)
 
 static void unit_svc_exposee_created(unit_t *unit)
 {
-	// TODO implement
+	assert(CAST_SVC(unit));
+	assert(unit->state == STATE_STOPPED || unit->state == STATE_STARTING || unit->state==STATE_STARTED);
+
+	unit->state = STATE_STARTED;
+	unit_notify_state(unit);
 }
 
 static void unit_svc_fail(unit_t *unit)

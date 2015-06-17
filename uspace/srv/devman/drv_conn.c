@@ -35,19 +35,21 @@
  */
 
 #include <assert.h>
-#include <ipc/services.h>
-#include <ns.h>
 #include <async.h>
-#include <stdio.h>
 #include <errno.h>
-#include <str_error.h>
-#include <stdbool.h>
 #include <fibril_synch.h>
-#include <stdlib.h>
-#include <str.h>
 #include <io/log.h>
 #include <ipc/devman.h>
+#include <ipc/driver.h>
+#include <ipc/services.h>
 #include <loc.h>
+#include <ns.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <str.h>
+#include <str_error.h>
+#include <sysman/broker.h>
 
 #include "client_conn.h"
 #include "dev.h"
@@ -66,6 +68,7 @@ static driver_t *devman_driver_register(ipc_call_t *call)
 {
 	driver_t *driver = NULL;
 	char *drv_name = NULL;
+	char *unit_name = NULL;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_driver_register");
 
@@ -103,6 +106,16 @@ static driver_t *devman_driver_register(ipc_call_t *call)
 		return NULL;
 	}
 
+	/* Notify sysman about started driver */
+	rc = driver_unit_name(driver, &unit_name);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&driver->driver_mutex);
+		async_answer_0(callid, rc);
+		return NULL;
+	}
+	sysman_main_exposee_added(unit_name, call->in_task_id);
+	free(unit_name);
+	
 	switch (driver->state) {
 	case DRIVER_NOT_STARTED:
 		/* Somebody started the driver manually. */

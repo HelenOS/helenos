@@ -28,9 +28,12 @@
 
 #include <errno.h>
 #include <ipc/sysman.h>
+#include <stdlib.h>
 
+#include "configuration.h"
 #include "connection_broker.h"
 #include "log.h"
+#include "sysman.h"
 
 static void sysman_broker_register(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -53,16 +56,53 @@ static void sysman_ipc_forwarded(ipc_callid_t iid, ipc_call_t *icall)
 
 static void sysman_main_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
 {
-	sysman_log(LVL_DEBUG2, "%s", __func__);
-	async_answer_0(iid, ENOTSUP);
-	// TODO implement
+	char *unit_name = NULL;
+	sysarg_t retval;
+
+	int rc = async_data_write_accept((void **) &unit_name, true,
+	    0, 0, 0, NULL);
+	if (rc != EOK) {
+		retval = rc;
+		goto finish;
+	}
+
+	unit_t *unit = configuration_find_unit_by_name(unit_name);
+	if (unit == NULL) {
+		//sysman_log(LVL_NOTE, "Unit '%s' not found.", unit_name);
+		retval = ENOENT;
+		goto finish;
+	}
+
+	// TODO propagate caller task ID
+	sysman_raise_event(&sysman_event_unit_exposee_created, unit);
+
+	retval = EOK;
+
+finish:
+	async_answer_0(iid, retval);
+	free(unit_name);
 }
 
 static void sysman_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
 {
-	sysman_log(LVL_DEBUG2, "%s", __func__);
-	async_answer_0(iid, ENOTSUP);
-	// TODO implement
+	char *exposee = NULL;
+	sysarg_t retval;
+
+	/* Just accept data and further not supported. */
+	int rc = async_data_write_accept((void **) &exposee, true,
+	    0, 0, 0, NULL);
+	if (rc != EOK) {
+		retval = rc;
+		goto finish;
+	}
+
+	//sysman_log(LVL_DEBUG2, "%s(%s)", __func__, exposee);
+
+	retval = ENOTSUP;
+
+finish:
+	async_answer_0(iid, retval);
+	free(exposee);
 }
 
 static void sysman_exposee_removed(ipc_callid_t iid, ipc_call_t *icall)

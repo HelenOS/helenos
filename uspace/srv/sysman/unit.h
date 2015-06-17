@@ -72,9 +72,11 @@ typedef struct {
 	/** Link to queue, when BFS traversing units */
 	link_t bfs_link;
 
-	/** Seen tag for BFS traverse, must be reset before each BFS */
-	bool bfs_tag;
+	/** Auxiliary job created during BFS traverse, its presence serves also
+	 * as BFS tag */
+	job_t *bfs_job;
 
+	/** Job assigned to unit in transitional state */
 	job_t *job;
 
 	unit_type_t type;

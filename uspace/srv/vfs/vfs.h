@@ -175,9 +175,9 @@ extern fibril_rwlock_t namespace_rwlock;
 extern async_exch_t *vfs_exchange_grab(fs_handle_t);
 extern void vfs_exchange_release(async_exch_t *);
 
-extern fs_handle_t fs_name_to_handle(unsigned int instance, const char *, bool);
+extern fs_handle_t fs_name_to_handle(const char *, unsigned int instance, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
-extern errno_t vfs_get_fstypes(vfs_fstypes_t *);
+extern errno_t fs_unit_name(const char *, unsigned int, char **);
 
 extern errno_t vfs_lookup_internal(vfs_node_t *, char *, int, vfs_lookup_res_t *);
 extern errno_t vfs_link_internal(vfs_node_t *, char *, vfs_triplet_t *);

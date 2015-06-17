@@ -63,6 +63,11 @@ typedef struct {
 	async_sess_t *sess;
 } cb_sess_t;
 
+typedef enum {
+	NAME_TO_START,
+	NAME_TO_EXPOSE
+} unit_name_t;
+
 LIST_INITIALIZE(services_list);
 LIST_INITIALIZE(namespaces_list);
 LIST_INITIALIZE(servers_list);
@@ -334,17 +339,19 @@ static void loc_service_unregister_core(loc_service_t *service)
 	free(service);
 }
 
-static int loc_service_request_start(const char *ns_name, const char *name)
+/** Derive unit name from service name according to purpose
+ *
+ * All services in 'device' namespace are considered to be drivers and
+ * devman is thus requested to start. Otherwise name of unit is made
+ * from fully qualified name of service (namespace separator is changed
+ * for usage in unit name.
+ */
+static int loc_service_unit_name(const char *ns_name, const char *name,
+    unit_name_t name_type, char **unit_name_ptr)
 {
 	char *service_name = NULL;
-
-	/*
-	 * All services in 'device' namespace are considered to be drivers and
-	 * devman is thus requested to start. Otherwise name of unit is made
-	 * from fully qualified name of service (namespace separator is changed
-	 * for usage in unit name.
-	 */
-	if (str_cmp(ns_name, LOC_DEVICE_NAMESPACE) == 0) {
+	if (name_type == NAME_TO_START &&
+	    str_cmp(ns_name, LOC_DEVICE_NAMESPACE) == 0) {
 		asprintf(&service_name, "%s", SERVICE_NAME_DEVMAN);
 	} else if (str_cmp(ns_name, "") == 0) {
 		asprintf(&service_name, "%s", name);
@@ -364,9 +371,20 @@ static int loc_service_request_start(const char *ns_name, const char *name)
 		return ENOMEM;
 	}
 
-	int rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
+	*unit_name_ptr = unit_name;
+	return EOK;
+}
+
+static int loc_service_request_start(const char *ns_name, const char *name)
+{
+	char *unit_name;
+	int rc = loc_service_unit_name(ns_name, name, NAME_TO_START, &unit_name);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
 	free(unit_name);
-	free(service_name);
 	return rc;
 }
 
@@ -554,6 +572,27 @@ static void loc_service_register(ipc_call_t *icall, loc_server_t *server)
 		async_answer_0(icall, EEXIST);
 		return;
 	}
+
+	/* Notify sysman about new exposee */
+	char *unit_name = NULL;
+	rc = loc_service_unit_name(namespace->name, service->name,
+	    NAME_TO_EXPOSE, &unit_name);
+	if (rc != EOK) {
+		loc_namespace_destroy(namespace);
+		fibril_mutex_unlock(&services_list_mutex);
+		free(service->name);
+		free(service);
+		free(unit_name);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	if (str_cmp(namespace->name, LOC_DEVICE_NAMESPACE) == 0) {
+		sysman_exposee_added(unit_name);
+	} else {
+		sysman_main_exposee_added(unit_name, icall->in_task_id);
+	}
+	free(unit_name);
 
 	/* Get unique service ID */
 	service->id = loc_create_id();
@@ -836,7 +875,7 @@ recheck:
 			}
 		}
 
-		if (flags & IPC_FLAG_BLOCKING) {
+		if ((flags & IPC_FLAG_BLOCKING) || flags & IPC_FLAG_AUTOSTART) {
 			fibril_condvar_wait(&services_list_cv,
 			    &services_list_mutex);
 			goto recheck;
