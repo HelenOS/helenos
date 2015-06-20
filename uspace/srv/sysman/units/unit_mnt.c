@@ -233,6 +233,9 @@ static void unit_mnt_exposee_created(unit_t *unit)
 	assert(CAST_MNT(unit));
 	assert(unit->state == STATE_STOPPED || unit->state == STATE_STARTING);
 
+	if (str_cmp(unit_name(unit), "rootfs.mnt") == 0) {
+		sysman_log_tofile();
+	}
 	unit->state = STATE_STARTED;
 	unit_notify_state(unit);
 }

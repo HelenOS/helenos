@@ -26,19 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_LOG_H
-#define SYSMAN_LOG_H
-
-#include <io/log.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <str_error.h>
 
-/*
- * Temporarily use only simple printfs, later add some smart logging,
- * that would use logger as soon as it's ready.
- */
-//#define sysman_log(level, fmt, ...) if(level > LVL_DEBUG2) printf("sysman: " fmt "\n", ##__VA_ARGS__)
+#include "log.h"
 
-extern void sysman_log(log_level_t, const char *, ...) PRINTF_ATTRIBUTE(2, 3);
+static FILE *log_file = NULL;
 
-extern void sysman_log_tofile(void);
-#endif
+void sysman_log(log_level_t level, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	
+	vprintf(fmt, args);
+	printf("\n");
+	if (log_file != NULL) {
+		vfprintf(log_file, fmt, args);
+		fprintf(log_file, "\n");
+		fflush(log_file);
+	}
+
+	va_end(args);
+}
+
+void sysman_log_tofile(void)
+{
+	assert(log_file == NULL);
+	log_file = fopen("/root/sysman.log", "a");
+	if (log_file == NULL) {
+		sysman_log(LVL_ERROR, "Failed opening logfile: %s", str_error(errno));
+	} else {
+		sysman_log(LVL_NOTE, "--- Begin sysman log ---");
+	}
+
+	assert(log_file != NULL);
+}

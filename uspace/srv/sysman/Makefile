@@ -42,6 +42,7 @@ SYSMAN_SOURCES = \
 	connection_ctl.c \
 	dep.c \
 	job.c \
+	log.c \
 	sysman.c \
 	unit.c \
 	units/unit_cfg.c \
