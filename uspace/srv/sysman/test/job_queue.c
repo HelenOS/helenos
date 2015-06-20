@@ -151,5 +151,55 @@ PCUT_TEST(multipath_to_started_unit) {
 	PCUT_ASSERT_EQUALS(STATE_STARTED, s1->state);
 }
 
+PCUT_TEST(merge_jobs_with_callback) {
+	/* Setup mock behavior */
+	unit_type_vmts[UNIT_SERVICE]->start = &mock_unit_vmt_start_async;
+	unit_type_vmts[UNIT_SERVICE]->exposee_created =
+	    &mock_unit_vmt_exposee_created;
+
+	/* Define mock units */
+	unit_t *s0 = mock_units[UNIT_SERVICE][0];
+
+	/* Create and start first job */
+	job_t *j0 = NULL;
+	int rc = sysman_run_job(s0, STATE_STARTED, &job_finished_cb, &j0);
+	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+
+	sysman_process_queue();
+	/* Job not finished */
+	PCUT_ASSERT_NULL(j0);
+
+
+	/*
+	 * While s0 is starting in j0, create second job that should be merged
+	 * into the existing one.
+	 */
+	job_t *j1 = NULL;
+	rc = sysman_run_job(s0, STATE_STARTED, &job_finished_cb, &j1);
+	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+
+	sysman_process_queue();
+	/* Job not finished */
+	PCUT_ASSERT_NULL(j1);
+
+	sysman_raise_event(&sysman_event_unit_exposee_created, s0);
+	sysman_process_queue();
+
+	PCUT_ASSERT_NOT_NULL(j0);
+	PCUT_ASSERT_NOT_NULL(j1);
+	
+	/*
+	 * Jobs were, merged so both callbacks should have been called with the
+	 * same job
+	 */
+	PCUT_ASSERT_EQUALS(j0, j1);
+
+	/* And there should be exactly two references (per each callback) */
+	job_del_ref(&j0);
+	job_del_ref(&j0);
+
+	PCUT_ASSERT_NULL(j0);
+}
+
 
 PCUT_EXPORT(job_queue);

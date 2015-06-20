@@ -195,7 +195,7 @@ int sysman_events_loop(void *unused)
 
 /** Create and queue job for unit
  *
- * If unit already has the same job assigned callback is set to it.
+ * If unit already has the same job assigned callback is moved to it.
  *
  * @param[in]  callback  (optional) callback must explicitly delete reference
  *                       to job, void callback(void *job, void *callback_arg)
@@ -212,6 +212,7 @@ int sysman_run_job(unit_t *unit, unit_state_t target_state,
 
 	if (callback != NULL) {
 		job_add_ref(job);
+		//TODO sysman_object_observer is not fibril-safe CANNOT BE CALLED HERE!
 		sysman_object_observer(job, callback, callback_arg);
 	}
 
@@ -327,6 +328,20 @@ int sysman_move_observers(void *src_object, void *dst_object)
 	return EOK;
 }
 
+size_t sysman_observers_count(void *object)
+{
+	ht_link_t *ht_link = hash_table_find(&observed_objects, &object);
+
+	if (ht_link == NULL) {
+		return 0;
+	}
+
+	observed_object_t *observed_object =
+	    hash_table_get_inst(ht_link, observed_object_t, ht_link);
+
+	return list_count(&observed_object->callbacks);
+}
+
 
 /*
  * Event handlers
@@ -354,6 +369,7 @@ void sysman_event_job_process(void *data)
 	if (rc != EOK) {
 		goto fail;
 	}
+
 	/* We don't need job anymore */
 	job_del_ref(&job);
 

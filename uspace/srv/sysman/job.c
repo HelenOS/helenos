@@ -79,7 +79,6 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 {
 	assert(job);
 	assert(u);
-	assert(u->job == NULL);
 	memset(job, 0, sizeof(*job));
 
 	link_initialize(&job->job_queue);
@@ -177,6 +176,30 @@ static job_t *job_queue_pop_runnable(void)
 	return result;
 }
 
+/** Add multiple references to job
+ *
+ * Non-atomicity doesn't mind as long as individual increments are atomic.
+ *
+ * @note Function is not exported as other modules shouldn't need it.
+ */
+static inline void job_add_refs(job_t *job, size_t refs)
+{
+	for (size_t i = 0; i < refs; ++i) {
+		job_add_ref(job);
+	}
+}
+
+/** Delete multiple references to job
+ *
+ * Behavior of concurrent runs with job_add_refs aren't specified.
+ */
+static inline void job_del_refs(job_t **job_ptr, size_t refs)
+{
+	for (size_t i = 0; i < refs; ++i) {
+		job_del_ref(job_ptr);
+	}
+}
+
 /** Merge two jobs together
  *
  * @param[in/out]  trunk  job that
@@ -211,9 +234,17 @@ static void job_finish_merge(job_t *trunk, job_t *other)
 	//TODO aggregate merged blocked_jobs
 	trunk->blocked_jobs_count = other->blocked_jobs.size;
 
-	/* All allocation is done in job_pre_merge, cannot fail here. */
+	/*
+	 * Note, the sysman_move_observers cannot fail here sice all necessary
+	 * allocation is done in job_pre_merge.
+	 */
+	size_t observers_refs = sysman_observers_count(other);
 	int rc = sysman_move_observers(other, trunk);
 	assert(rc == EOK);
+
+	/* When we move observers, don't forget to pass their references too. */
+	job_add_refs(trunk, observers_refs);
+	job_del_refs(&other, observers_refs);
 }
 
 static void job_undo_merge(job_t *trunk)
@@ -232,6 +263,14 @@ void job_queue_init()
 	list_initialize(&job_queue);
 }
 
+/** Consistenly add jobs to the queue
+ *
+ * @param[in/out]  closure    jobs closure, on success it's emptied, otherwise
+ *                            you should take care of remaining jobs
+ *
+ * @return EOK on success
+ * @return EBUSY when any job in closure is conflicting
+ */
 int job_queue_add_closure(dyn_array_t *closure)
 {
 	bool has_error = false;
@@ -306,16 +345,18 @@ int job_queue_add_closure(dyn_array_t *closure)
 
 
 		unit_t *u = job->unit;
-		assert(u->bfs_job != NULL);
 		assert(u->job == NULL);
-		u->job = u->bfs_job;
-		u->bfs_job = NULL;
+		/* Pass reference from the closure to the unit */
+		u->job = job;
 
-
+		/* Enqueue job (new reference) */
 		job->state = JOB_PENDING;
-		/* We pass reference from the closure to the queue */
+		job_add_ref(job);
 		list_append(&job->job_queue, &job_queue);
 	}
+
+	/* We've stolen references from the closure, so erase it */
+	dyn_array_clear(closure);
 
 	return EOK;
 }
@@ -346,7 +387,7 @@ int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
 
 	/* Check invariant */
 	list_foreach(units, units, unit_t, u) {
-		assert(u->bfs_job == false);
+		assert(u->bfs_job == NULL);
 	}
 		
 	unit_t *unit = main_job->unit;
@@ -389,10 +430,11 @@ int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
 			job_add_blocked_job(blocking_job, job);
 		}
 	}
-//	sysman_log(LVL_DEBUG2, "%s(%s):", __func__, unit_name(main_job->unit));
-//	dyn_array_foreach(*job_closure, job_t *, job_it) {
-//		sysman_log(LVL_DEBUG2, "%s\t%s", __func__, unit_name((*job_it)->unit));
-//	}
+	sysman_log(LVL_DEBUG2, "%s(%s):", __func__, unit_name(main_job->unit));
+	dyn_array_foreach(*job_closure, job_t *, job_it) {
+		sysman_log(LVL_DEBUG2, "%s\t%s, refs: %u", __func__,
+		    unit_name((*job_it)->unit), atomic_get(&(*job_it)->refcnt));
+	}
 	rc = EOK;
 
 finish:
@@ -401,6 +443,13 @@ finish:
 		unit_t *u = list_get_instance(cur_link, unit_t, bfs_link);
 		job_del_ref(&u->bfs_job);
 		list_remove(cur_link);
+	}
+	
+	/* Clean after ourselves (BFS tag jobs) */
+	dyn_array_foreach(*job_closure, job_t *, job_it) {
+		assert(*job_it == (*job_it)->unit->bfs_job);
+		job_del_ref(&(*job_it)->unit->bfs_job);
+		(*job_it)->unit->bfs_job = NULL;
 	}
 
 	return rc;
@@ -513,10 +562,11 @@ void job_finish(job_t *job)
 {
 	assert(job->state != JOB_FINISHED);
 	assert(job->retval != JOB_UNDEFINED_);
-	assert(job->unit->job == job);
+	assert(!job->unit->job || job->unit->job == job);
 
-	sysman_log(LVL_DEBUG2, "%s(%p) %s ret %i",
-	    __func__, job, unit_name(job->unit), job->retval);
+	sysman_log(LVL_DEBUG2, "%s(%p) %s ret %i, ref %i",
+	    __func__, job, unit_name(job->unit), job->retval,
+	    atomic_get(&job->refcnt));
 
 	job->state = JOB_FINISHED;
 
@@ -527,11 +577,13 @@ void job_finish(job_t *job)
 	}
 	dyn_array_clear(&job->blocked_jobs);
 
-	/*
-	 * Remove job from unit and pass the reference from the unit to the
-	 * event.
-	 */
-	job->unit->job = NULL;
+	/* Add reference for event handler */
+	if (job->unit->job == NULL) {
+		job_add_ref(job);
+	} else {
+		/* Pass reference from unit */
+		job->unit->job = NULL;
+	}
 	sysman_raise_event(&sysman_event_job_finished, job);
 }
 

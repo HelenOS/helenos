@@ -44,6 +44,7 @@ extern void sysman_raise_event(event_handler_t, void *);
 extern void sysman_process_queue(void);
 extern int sysman_object_observer(void *, callback_handler_t, void *);
 extern int sysman_move_observers(void *, void *);
+extern size_t sysman_observers_count(void *);
 
 
 extern void sysman_event_job_process(void *);

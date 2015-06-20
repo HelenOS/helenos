@@ -99,8 +99,7 @@ static int unit_svc_start(unit_t *unit)
 	 * about exposees will work. We assume the service succesfully starts
 	 * in a moment. Applies to naming service only.
 	 */
-	// TODO this is even hack in the workaround, exposees doesn't work properly
-	if (true || str_cmp(unit->name, "devman.svc") == 0 ||
+	if (str_cmp(unit->name, "devman.svc") == 0 ||
 	    str_cmp(unit->name, "logger.svc") == 0 ||
 	    str_cmp(unit->name, "irc.svc") == 0) {
 		async_usleep(100000);
