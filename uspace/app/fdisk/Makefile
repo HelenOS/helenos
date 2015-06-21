@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Jiri Svoboda
+# Copyright (c) 2015 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,18 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -I.
-LIBRARY = libclui
+LIBS = \
+	$(LIBCLUI_PREFIX)/libclui.a \
+	$(LIBFDISK_PREFIX)/libfdisk.a \
+	$(LIBBLOCK_PREFIX)/libblock.a
+
+EXTRA_CFLAGS = \
+	-I$(LIBCLUI_PREFIX) \
+	-I$(LIBFDISK_PREFIX)/include
+
+BINARY = fdisk
 
 SOURCES = \
-	nchoice.c \
-	tinput.c
+	fdisk.c
 
 include $(USPACE_PREFIX)/Makefile.common

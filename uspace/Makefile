@@ -44,6 +44,7 @@ DIRS = \
 	app/dnsres \
 	app/download \
 	app/edit \
+	app/fdisk \
 	app/fontviewer \
 	app/getterm \
 	app/hdisk \
@@ -216,6 +217,7 @@ LIBS = \
 	lib/block \
 	lib/crypto \
 	lib/clui \
+	lib/fdisk \
 	lib/fmtutil \
 	lib/scsi \
 	lib/compress \

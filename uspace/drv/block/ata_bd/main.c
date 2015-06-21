@@ -199,6 +199,7 @@ int ata_fun_create(disk_t *disk)
 	}
 
 	ddf_fun_add_to_category(fun, "bd");
+	ddf_fun_add_to_category(fun, "disk");
 
 	free(fun_name);
 	disk->afun = afun;
