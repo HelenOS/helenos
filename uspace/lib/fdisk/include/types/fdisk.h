@@ -40,6 +40,43 @@
 #include <loc.h>
 #include <stdint.h>
 
+typedef enum {
+	cu_byte = 0,
+	cu_kbyte,
+	cu_mbyte,
+	cu_gbyte,
+	cu_tbyte,
+	cu_pbyte,
+	cu_ebyte,
+	cu_zbyte,
+	cu_ybyte
+} fdisk_cunit_t;
+
+#define CU_LIMIT (cu_ybyte + 1)
+
+/** File system type */
+typedef enum {
+	fdfs_none = 0,
+	fdfs_unknown,
+	fdfs_exfat,
+	fdfs_fat,
+	fdfs_minix,
+	fdfs_ext4
+} fdisk_fstype_t;
+
+/** Highest fstype value + 1 */
+#define FDFS_LIMIT (fdfs_ext4 + 1)
+/** Lowest fstype allowed for creation */
+#define FDFS_CREATE_LO fdfs_exfat
+/** Highest fstype allowed for creation + 1 */
+#define FDFS_CREATE_HI (fdfs_ext4 + 1)
+
+/** Partition capacity */
+typedef struct {
+	uint64_t value;
+	fdisk_cunit_t cunit;
+} fdisk_cap_t;
+
 /** List of devices available for managing by fdisk */
 typedef struct {
 	list_t devinfos; /* of fdisk_dev_info_t */
@@ -69,9 +106,21 @@ typedef enum {
 	fdl_gpt
 } fdisk_label_type_t;
 
+/** Highest label type + 1 */
+#define FDL_LIMIT (fdl_gpt + 1)
+/** Lowest label type allowed for creation */
+#define FDL_CREATE_LO fdl_mbr
+/** Highest label type allowed for creation + 1 */
+#define FDL_CREATE_HI (fdl_gpt + 1)
+
 /** Open fdisk device */
 typedef struct {
+	/** Label type */
 	fdisk_label_type_t ltype;
+	/** Partitions */
+	list_t parts; /* of fdisk_part_t */
+	/** Service ID */
+	service_id_t sid;
 } fdisk_dev_t;
 
 typedef struct {
@@ -81,29 +130,30 @@ typedef struct {
 
 /** Partition */
 typedef struct {
+	/** Containing device */
+	fdisk_dev_t *dev;
+	/** Link to fdisk_dev_t.parts */
+	link_t ldev;
+	/** Capacity */
+	fdisk_cap_t capacity;
+	/** File system type */
+	fdisk_fstype_t fstype;
 } fdisk_part_t;
-
-typedef enum {
-	cu_byte = 0,
-	cu_kbyte,
-	cu_mbyte,
-	cu_gbyte,
-	cu_tbyte,
-	cu_pbyte,
-	cu_ebyte,
-	cu_zbyte,
-	cu_ybyte
-} fdisk_cunit_t;
-
-/** Partition capacity */
-typedef struct {
-	uint64_t value;
-	fdisk_cunit_t cunit;
-} fdisk_cap_t;
 
 /** Specification of new partition */
 typedef struct {
-} fdisk_partspec_t;
+	/** Desired capacity */
+	fdisk_cap_t capacity;
+	/** File system type */
+	fdisk_fstype_t fstype;
+} fdisk_part_spec_t;
+
+/** Partition info */
+typedef struct {
+	fdisk_cap_t capacity;
+	/** File system type */
+	fdisk_fstype_t fstype;
+} fdisk_part_info_t;
 
 #endif
 

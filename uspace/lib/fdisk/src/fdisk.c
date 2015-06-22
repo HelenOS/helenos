@@ -38,9 +38,22 @@
 #include <errno.h>
 #include <fdisk.h>
 #include <loc.h>
+#include <mem.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+
+static const char *cu_str[] = {
+	[cu_byte] = "B",
+	[cu_kbyte] = "kB",
+	[cu_mbyte] = "MB",
+	[cu_gbyte] = "GB",
+	[cu_tbyte] = "TB",
+	[cu_pbyte] = "PB",
+	[cu_ebyte] = "EB",
+	[cu_zbyte] = "ZB",
+	[cu_ybyte] = "YB"
+};
 
 static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 {
@@ -143,12 +156,12 @@ fdisk_dev_info_t *fdisk_dev_next(fdisk_dev_info_t *devinfo)
 	    ldevlist);
 }
 
-void fdisk_dev_get_svcid(fdisk_dev_info_t *info, service_id_t *rsid)
+void fdisk_dev_info_get_svcid(fdisk_dev_info_t *info, service_id_t *rsid)
 {
 	*rsid = info->svcid;
 }
 
-int fdisk_dev_get_svcname(fdisk_dev_info_t *info, char **rname)
+int fdisk_dev_info_get_svcname(fdisk_dev_info_t *info, char **rname)
 {
 	char *name;
 	int rc;
@@ -168,7 +181,7 @@ int fdisk_dev_get_svcname(fdisk_dev_info_t *info, char **rname)
 	return EOK;
 }
 
-int fdisk_dev_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
+int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 {
 	size_t bsize;
 	aoff64_t nblocks;
@@ -178,6 +191,8 @@ int fdisk_dev_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 		rc = block_init(EXCHANGE_SERIALIZE, info->svcid, 2048);
 		if (rc != EOK)
 			return rc;
+
+		info->blk_inited = true;
 	}
 
 	rc = block_get_bsize(info->svcid, &bsize);
@@ -203,6 +218,8 @@ int fdisk_dev_open(service_id_t sid, fdisk_dev_t **rdev)
 		return ENOMEM;
 
 	dev->ltype = fdl_none;
+	dev->sid = sid;
+	list_initialize(&dev->parts);
 	*rdev = dev;
 	return EOK;
 }
@@ -210,6 +227,45 @@ int fdisk_dev_open(service_id_t sid, fdisk_dev_t **rdev)
 void fdisk_dev_close(fdisk_dev_t *dev)
 {
 	free(dev);
+}
+
+int fdisk_dev_get_svcname(fdisk_dev_t *dev, char **rname)
+{
+	char *name;
+	int rc;
+
+	rc = loc_service_get_name(dev->sid, &name);
+	if (rc != EOK)
+		return rc;
+
+	*rname = name;
+	return EOK;
+}
+
+int fdisk_dev_capacity(fdisk_dev_t *dev, fdisk_cap_t *cap)
+{
+	size_t bsize;
+	aoff64_t nblocks;
+	int rc;
+
+	rc = block_init(EXCHANGE_SERIALIZE, dev->sid, 2048);
+	if (rc != EOK)
+		return rc;
+
+	rc = block_get_bsize(dev->sid, &bsize);
+	if (rc != EOK)
+		return EIO;
+
+	rc = block_get_nblocks(dev->sid, &nblocks);
+	if (rc != EOK)
+		return EIO;
+
+	block_fini(dev->sid);
+
+	cap->value = bsize * nblocks;
+	cap->cunit = cu_byte;
+
+	return EOK;
 }
 
 int fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
@@ -229,8 +285,16 @@ int fdisk_label_create(fdisk_dev_t *dev, fdisk_label_type_t ltype)
 
 int fdisk_label_destroy(fdisk_dev_t *dev)
 {
+	fdisk_part_t *part;
+
 	if (dev->ltype == fdl_none)
 		return ENOENT;
+
+	part = fdisk_part_first(dev);
+	while (part != NULL) {
+		(void) fdisk_part_destroy(part); /* XXX */
+		part = fdisk_part_first(dev);
+	}
 
 	dev->ltype = fdl_none;
 	return EOK;
@@ -238,12 +302,31 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 
 fdisk_part_t *fdisk_part_first(fdisk_dev_t *dev)
 {
-	return NULL;
+	link_t *link;
+
+	link = list_first(&dev->parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, fdisk_part_t, ldev);
 }
 
 fdisk_part_t *fdisk_part_next(fdisk_part_t *part)
 {
-	return NULL;
+	link_t *link;
+
+	link = list_next(&part->ldev, &part->dev->parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, fdisk_part_t, ldev);
+}
+
+int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
+{
+	info->capacity = part->capacity;
+	info->fstype = part->fstype;
+	return EOK;
 }
 
 int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_cap_t *cap)
@@ -251,25 +334,87 @@ int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_cap_t *cap)
 	return EOK;
 }
 
-int fdisk_part_create(fdisk_dev_t *dev, fdisk_partspec_t *pspec,
+int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     fdisk_part_t **rpart)
 {
+	fdisk_part_t *part;
+
+	part = calloc(1, sizeof(fdisk_part_t));
+	if (part == NULL)
+		return ENOMEM;
+
+	part->dev = dev;
+	list_append(&part->ldev, &dev->parts);
+	part->capacity = pspec->capacity;
+	part->fstype = pspec->fstype;
+
+	if (rpart != NULL)
+		*rpart = part;
 	return EOK;
 }
 
 int fdisk_part_destroy(fdisk_part_t *part)
 {
+	list_remove(&part->ldev);
+	free(part);
 	return EOK;
+}
+
+void fdisk_pspec_init(fdisk_part_spec_t *pspec)
+{
+	memset(pspec, 0, sizeof(fdisk_part_spec_t));
 }
 
 int fdisk_cap_format(fdisk_cap_t *cap, char **rstr)
 {
 	int rc;
+	const char *sunit;
 
-	rc = asprintf(rstr, "%" PRIu64 " B", cap->value);
+	sunit = NULL;
+
+	if (cap->cunit < 0 || cap->cunit >= CU_LIMIT)
+		assert(false);
+
+	sunit = cu_str[cap->cunit];
+	rc = asprintf(rstr, "%" PRIu64 " %s", cap->value, sunit);
 	if (rc < 0)
 		return ENOMEM;
 
+	return EOK;
+}
+
+int fdisk_cap_parse(const char *str, fdisk_cap_t *cap)
+{
+	char *eptr;
+	char *p;
+	unsigned long val;
+	int i;
+
+	val = strtoul(str, &eptr, 10);
+
+	while (*eptr == ' ')
+		++eptr;
+
+	if (*eptr == '\0') {
+		cap->cunit = cu_byte;
+	} else {
+		for (i = 0; i < CU_LIMIT; i++) {
+			if (str_lcasecmp(eptr, cu_str[i],
+			    str_length(cu_str[i])) == 0) {
+				p = eptr + str_size(cu_str[i]);
+				while (*p == ' ')
+					++p;
+				if (*p == '\0')
+					goto found;
+			}
+		}
+
+		return EINVAL;
+found:
+		cap->cunit = i;
+	}
+
+	cap->value = val;
 	return EOK;
 }
 
@@ -295,6 +440,41 @@ int fdisk_ltype_format(fdisk_label_type_t ltype, char **rstr)
 	}
 
 	s = str_dup(sltype);
+	if (s == NULL)
+		return ENOMEM;
+
+	*rstr = s;
+	return EOK;
+}
+
+int fdisk_fstype_format(fdisk_fstype_t fstype, char **rstr)
+{
+	const char *sfstype;
+	char *s;
+
+	sfstype = NULL;
+	switch (fstype) {
+	case fdfs_none:
+		sfstype = "None";
+		break;
+	case fdfs_unknown:
+		sfstype = "Unknown";
+		break;
+	case fdfs_exfat:
+		sfstype = "ExFAT";
+		break;
+	case fdfs_fat:
+		sfstype = "FAT";
+		break;
+	case fdfs_minix:
+		sfstype = "MINIX";
+		break;
+	case fdfs_ext4:
+		sfstype = "Ext4";
+		break;
+	}
+
+	s = str_dup(sfstype);
 	if (s == NULL)
 		return ENOMEM;
 

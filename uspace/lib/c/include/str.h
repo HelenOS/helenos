@@ -81,6 +81,8 @@ extern bool chr_check(wchar_t ch);
 
 extern int str_cmp(const char *s1, const char *s2);
 extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
+extern int str_casecmp(const char *s1, const char *s2);
+extern int str_lcasecmp(const char *s1, const char *s2, size_t max_len);
 
 extern bool str_test_prefix(const char *s, const char *p);
 
