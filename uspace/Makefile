@@ -114,6 +114,7 @@ DIRS = \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
+	srv/bd/vbd \
 	srv/fs/exfat \
 	srv/fs/udf \
 	srv/fs/fat \
@@ -230,6 +231,7 @@ LIBS = \
 	lib/http \
 	lib/softrend \
 	lib/draw \
+	lib/label \
 	lib/math \
 	lib/nettl \
 	lib/nic \

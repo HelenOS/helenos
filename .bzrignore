@@ -201,6 +201,8 @@ uspace/dist/srv/tcp
 uspace/dist/srv/tmpfs
 uspace/dist/srv/udf
 uspace/dist/srv/udp
+uspace/dist/srv/vbd
+uspace/dist/srv/volsrv
 uspace/dist/test/*
 uspace/drv/audio/hdaudio/hdaudio
 uspace/drv/audio/sb16/sb16
@@ -257,6 +259,7 @@ uspace/srv/bd/part/guid_part/g_part
 uspace/srv/bd/part/mbr_part/mbr_part
 uspace/srv/bd/rd/rd
 uspace/srv/bd/sata_bd/sata_bd
+uspace/srv/bd/vbd/vbd
 uspace/srv/clipboard/clipboard
 uspace/srv/devman/devman
 uspace/srv/fs/cdfs/cdfs
@@ -291,6 +294,7 @@ uspace/srv/net/tcp/tcp
 uspace/srv/net/udp/udp
 uspace/srv/ns/ns
 uspace/srv/taskmon/taskmon
+uspace/srv/volsrv/volsrv
 uspace/srv/vfs/vfs
 kernel/arch/ia32/_link.ld
 uspace/lib/c/arch/ia32/_link-dlexe.ld

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,44 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup liblabel
  * @{
  */
 /**
- * @file  services.h
- * @brief List of all known services and their codes.
+ * @file Disk label library.
  */
-
-#ifndef LIBC_SERVICES_H_
-#define LIBC_SERVICES_H_
-
-#include <fourcc.h>
-
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
-	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-} services_t;
-
-#define SERVICE_NAME_CORECFG	"corecfg"
-#define SERVICE_NAME_DHCP       "net/dhcp"
-#define SERVICE_NAME_DNSR       "net/dnsr"
-#define SERVICE_NAME_INET       "net/inet"
-#define SERVICE_NAME_INETCFG    "net/inetcfg"
-#define SERVICE_NAME_INETPING   "net/inetping"
-#define SERVICE_NAME_INETPING6  "net/inetping6"
-#define SERVICE_NAME_NETCONF    "net/netconf"
-#define SERVICE_NAME_UDP	"net/udp"
-#define SERVICE_NAME_TCP	"net/tcp"
-#define SERVICE_NAME_VBD	"vbd"
-#define SERVICE_NAME_VOLSRV	"volsrv"
-
-#endif
 
 /** @}
  */
