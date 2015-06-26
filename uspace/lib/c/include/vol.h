@@ -26,32 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup volsrv
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef TYPES_DISK_H_
-#define TYPES_DISK_H_
+#ifndef LIBC_VOL_H_
+#define LIBC_VOL_H_
 
+#include <async.h>
+#include <loc.h>
+#include <stdint.h>
 #include <types/label.h>
 
-/** Disk */
+/** Volume service */
+typedef struct vol {
+	/** Volume service session */
+	async_sess_t *sess;
+} vol_t;
+
+/** Disk information */
 typedef struct {
-	/** Link to vol_disks */
-	link_t ldisks;
-	/** Service ID */
-	service_id_t svc_id;
-	/** Service name */
-	char *svc_name;
 	/** Disk contents */
 	label_disk_cnt_t dcnt;
-	/** Label type */
+	/** Label type, if disk contents is label */
 	label_type_t ltype;
-} vol_disk_t;
+} vol_disk_info_t;
+
+extern int vol_create(vol_t **);
+extern void vol_destroy(vol_t *);
+extern int vol_get_disks(vol_t *, service_id_t **, size_t *);
+extern int vol_disk_info(vol_t *, service_id_t, vol_disk_info_t *);
+extern int vol_label_create(vol_t *, service_id_t, label_type_t);
+extern int vol_disk_empty(vol_t *, service_id_t);
 
 #endif
 

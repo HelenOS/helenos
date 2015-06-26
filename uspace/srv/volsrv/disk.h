@@ -38,8 +38,12 @@
 #define DISK_H_
 
 #include <sys/types.h>
+#include "types/disk.h"
 
+extern int vol_disk_init(void);
 extern int vol_disk_discovery_start(void);
+extern int vol_disk_get_ids(service_id_t *, size_t, size_t *);
+extern int vol_disk_find_by_id(service_id_t, vol_disk_t **);
 
 #endif
 

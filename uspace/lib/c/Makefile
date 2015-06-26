@@ -152,7 +152,9 @@ GENERIC_SOURCES = \
 	generic/sort.c \
 	generic/stats.c \
 	generic/assert.c \
-	generic/pio_trace.c
+	generic/pio_trace.c \
+	generic/vbd.c \
+	generic/vol.c
 
 ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \

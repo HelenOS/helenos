@@ -41,14 +41,16 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <str.h>
+#include <vbd.h>
 
 #include "disk.h"
 #include "types/disk.h"
 
 static int vol_disk_add(service_id_t);
 
-static LIST_INITIALIZE(vol_disks);
+static LIST_INITIALIZE(vol_disks); /* of vol_disk_t */
 static FIBRIL_MUTEX_INITIALIZE(vol_disks_lock);
+static vbd_t *vbd;
 
 /** Check for new disk devices */
 static int vol_disk_check_new(void)
@@ -112,6 +114,7 @@ static vol_disk_t *vol_disk_new(void)
 	}
 
 	link_initialize(&disk->ldisks);
+	disk->dcnt = dc_empty;
 
 	return disk;
 }
@@ -128,6 +131,7 @@ static void vol_disk_delete(vol_disk_t *disk)
 static int vol_disk_add(service_id_t sid)
 {
 	vol_disk_t *disk;
+	vbd_disk_info_t dinfo;
 	int rc;
 
 	assert(fibril_mutex_is_locked(&vol_disks_lock));
@@ -146,13 +150,28 @@ static int vol_disk_add(service_id_t sid)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe disk %s", disk->svc_name);
-/*	rc = inetcfg_link_add(sid);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed configuring link "
-		    "'%s'.\n", nlink->svc_name);
-		goto error;
+
+	rc = vbd_disk_add(vbd, sid);
+	if (rc == EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Disk %s accepted by VBD.",
+		    disk->svc_name);
+
+		rc = vbd_disk_info(vbd, sid, &dinfo);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Cannot get disk label "
+			    "information.");
+			rc = EIO;
+			goto error;
+		}
+
+		disk->dcnt = dc_label;
+		disk->ltype = dinfo.ltype;
+	} else {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Disk %s not accepted by VBD.",
+		    disk->svc_name);
+		disk->dcnt = dc_unknown;
 	}
-*/
+
 	list_append(&disk->ldisks, &vol_disks);
 
 	return EOK;
@@ -167,6 +186,19 @@ static void vol_disk_cat_change_cb(void)
 	(void) vol_disk_check_new();
 }
 
+int vol_disk_init(void)
+{
+	int rc;
+
+	rc = vbd_create(&vbd);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing VBD.");
+		return EIO;
+	}
+
+	return EOK;
+}
+
 int vol_disk_discovery_start(void)
 {
 	int rc;
@@ -179,6 +211,48 @@ int vol_disk_discovery_start(void)
 	}
 
 	return vol_disk_check_new();
+}
+
+/** Get list of disks as array of service IDs. */
+int vol_disk_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
+{
+	size_t act_cnt;
+	size_t buf_cnt;
+
+	fibril_mutex_lock(&vol_disks_lock);
+
+	buf_cnt = buf_size / sizeof(service_id_t);
+
+	act_cnt = list_count(&vol_disks);
+	*act_size = act_cnt * sizeof(service_id_t);
+
+	if (buf_size % sizeof(service_id_t) != 0) {
+		fibril_mutex_unlock(&vol_disks_lock);
+		return EINVAL;
+	}
+
+	size_t pos = 0;
+	list_foreach(vol_disks, ldisks, vol_disk_t, disk) {
+		if (pos < buf_cnt)
+			id_buf[pos] = disk->svc_id;
+		pos++;
+	}
+
+	fibril_mutex_unlock(&vol_disks_lock);
+	return EOK;
+}
+
+int vol_disk_find_by_id(service_id_t sid, vol_disk_t **rdisk)
+{
+	list_foreach(vol_disks, ldisks, vol_disk_t, disk) {
+		if (disk->svc_id == sid) {
+			*rdisk = disk;
+			/* XXX Add reference */
+			return EOK;
+		}
+	}
+
+	return ENOENT;
 }
 
 /** @}

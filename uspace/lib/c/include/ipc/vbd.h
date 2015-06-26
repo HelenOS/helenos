@@ -26,32 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup volsrv
+/** @addtogroup libcipc
  * @{
  */
-/**
- * @file
- * @brief
- */
 
-#ifndef TYPES_DISK_H_
-#define TYPES_DISK_H_
+#ifndef LIBC_IPC_VBD_H_
+#define LIBC_IPC_VBD_H_
 
-#include <types/label.h>
+#include <ipc/common.h>
 
-/** Disk */
-typedef struct {
-	/** Link to vol_disks */
-	link_t ldisks;
-	/** Service ID */
-	service_id_t svc_id;
-	/** Service name */
-	char *svc_name;
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
-	/** Label type */
-	label_type_t ltype;
-} vol_disk_t;
+typedef enum {
+	VBD_DISK_ADD = IPC_FIRST_USER_METHOD,
+	VBD_DISK_REMOVE,
+	VBD_DISK_INFO,
+	VBD_LABEL_CREATE,
+	VBD_LABEL_DELETE
+} vbd_request_t;
 
 #endif
 

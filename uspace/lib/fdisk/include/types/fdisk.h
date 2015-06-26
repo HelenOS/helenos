@@ -39,6 +39,8 @@
 #include <adt/list.h>
 #include <loc.h>
 #include <stdint.h>
+#include <types/label.h>
+#include <vol.h>
 
 typedef enum {
 	cu_byte = 0,
@@ -94,38 +96,23 @@ typedef struct {
 	bool blk_inited;
 } fdisk_dev_info_t;
 
-/** Fdisk label type */
-typedef enum {
-	/** None */
-	fdl_none = 0,
-	/** Unknown */
-	fdl_unknown,
-	/** BIOS Master Boot Record */
-	fdl_mbr,
-	/** UEFI GUID Partition Table */
-	fdl_gpt
-} fdisk_label_type_t;
-
-/** Highest label type + 1 */
-#define FDL_LIMIT (fdl_gpt + 1)
-/** Lowest label type allowed for creation */
-#define FDL_CREATE_LO fdl_mbr
-/** Highest label type allowed for creation + 1 */
-#define FDL_CREATE_HI (fdl_gpt + 1)
-
 /** Open fdisk device */
 typedef struct {
-	/** Label type */
-	fdisk_label_type_t ltype;
-	/** Partitions */
-	list_t parts; /* of fdisk_part_t */
+	/** Fdisk instance */
+	struct fdisk *fdisk;
+	/** Disk contents */
+	label_disk_cnt_t dcnt;
 	/** Service ID */
 	service_id_t sid;
+	/** Partitions */
+	list_t parts; /* of fdisk_part_t */
 } fdisk_dev_t;
 
 typedef struct {
+	/** Disk contents */
+	label_disk_cnt_t dcnt;
 	/** Label type */
-	fdisk_label_type_t ltype;
+	label_type_t ltype;
 } fdisk_label_info_t;
 
 /** Partition */
@@ -154,6 +141,12 @@ typedef struct {
 	/** File system type */
 	fdisk_fstype_t fstype;
 } fdisk_part_info_t;
+
+/** Fdisk instance */
+typedef struct fdisk {
+	/** Volume service */
+	vol_t *vol;
+} fdisk_t;
 
 #endif
 

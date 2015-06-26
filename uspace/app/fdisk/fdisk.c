@@ -42,6 +42,7 @@
 #include <fdisk.h>
 
 static bool quit = false;
+static fdisk_t *fdisk;
 
 /** Device menu actions */
 typedef enum {
@@ -87,7 +88,7 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 		goto error;
 	}
 
-	rc = fdisk_dev_list_get(&devlist);
+	rc = fdisk_dev_list_get(fdisk, &devlist);
 	if (rc != EOK) {
 		printf("Error getting device list.\n");
 		goto error;
@@ -206,7 +207,7 @@ static int fdsk_create_label(fdisk_dev_t *dev)
 		goto error;
 	}
 
-	for (i = FDL_CREATE_LO; i < FDL_CREATE_HI; i++) {
+	for (i = 0; i < LT_LIMIT; i++) {
 		rc = fdisk_ltype_format(i, &sltype);
 		if (rc != EOK)
 			goto error;
@@ -228,7 +229,7 @@ static int fdsk_create_label(fdisk_dev_t *dev)
 		goto error;
 	}
 
-	rc = fdisk_label_create(dev, (fdisk_label_type_t)sel);
+	rc = fdisk_label_create(dev, (label_type_t)sel);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
 		goto error;
@@ -504,25 +505,39 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		goto error;
 	}
 
+	printf("Device: %s, %s\n", sdcap, svcname);
+	free(sdcap);
+	sdcap = NULL;
+
 	rc = fdisk_label_get_info(dev, &linfo);
 	if (rc != EOK) {
 		printf("Error getting label information.\n");
 		goto error;
 	}
 
-	rc = fdisk_ltype_format(linfo.ltype, &sltype);
-	if (rc != EOK) {
-		assert(rc == ENOMEM);
-		printf("Out of memory.\n");
-		goto error;
-	}
+	switch (linfo.dcnt) {
+	case dc_empty:
+		printf("Disk is empty.\n");
+		break;
+	case dc_label:
+		rc = fdisk_ltype_format(linfo.ltype, &sltype);
+		if (rc != EOK) {
+			assert(rc == ENOMEM);
+			printf("Out of memory.\n");
+			goto error;
+		}
 
-	printf("Device: %s, %s\n", sdcap, svcname);
-	printf("Label type: %s\n", sltype);
-	free(sltype);
-	sltype = NULL;
-	free(sdcap);
-	sdcap = NULL;
+		printf("Label type: %s\n", sltype);
+		free(sltype);
+		sltype = NULL;
+		break;
+	case dc_fs:
+		printf("Disk contains a file system.\n");
+		break;
+	case dc_unknown:
+		printf("Disk contains unknown data.\n");
+		break;
+	}
 
 	part = fdisk_part_first(dev);
 	npart = 0;
@@ -562,7 +577,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		goto error;
 	}
 
-	if (linfo.ltype != fdl_none) {
+	if (linfo.dcnt == dc_label) {
 		rc = nchoice_add(choice, "Create partition",
 		    (void *)devac_create_part);
 		if (rc != EOK) {
@@ -582,7 +597,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		}
 	}
 
-	if (linfo.ltype == fdl_none) {
+	if (linfo.dcnt == dc_empty) {
 		rc = nchoice_add(choice, "Create label",
 		    (void *)devac_create_label);
 		if (rc != EOK) {
@@ -615,24 +630,16 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 
 	switch ((devac_t)sel) {
 	case devac_create_label:
-		rc = fdsk_create_label(dev);
-		if (rc != EOK)
-			goto error;
+		(void) fdsk_create_label(dev);
 		break;
 	case devac_delete_label:
-		rc = fdsk_delete_label(dev);
-		if (rc != EOK)
-			goto error;
+		(void) fdsk_delete_label(dev);
 		break;
 	case devac_create_part:
-		rc = fdsk_create_part(dev);
-		if (rc != EOK)
-			goto error;
+		(void) fdsk_create_part(dev);
 		break;
 	case devac_delete_part:
-		rc = fdsk_delete_part(dev);
-		if (rc != EOK)
-			goto error;
+		(void) fdsk_delete_part(dev);
 		break;
 	case devac_exit:
 		quit = true;
@@ -657,6 +664,12 @@ int main(int argc, char *argv[])
 	fdisk_dev_t *dev;
 	int rc;
 
+	rc = fdisk_create(&fdisk);
+	if (rc != EOK) {
+		printf("Error initializing Fdisk.\n");
+		return 1;
+	}
+
 	rc = fdsk_dev_sel_choice(&svcid);
 	if (rc != EOK)
 		return 1;
@@ -664,7 +677,7 @@ int main(int argc, char *argv[])
 	if (svcid == 0)
 		return 0;
 
-	rc = fdisk_dev_open(svcid, &dev);
+	rc = fdisk_dev_open(fdisk, svcid, &dev);
 	if (rc != EOK) {
 		printf("Error opening device.\n");
 		return 1;
@@ -679,6 +692,7 @@ int main(int argc, char *argv[])
 	}
 
 	fdisk_dev_close(dev);
+	fdisk_destroy(fdisk);
 
 	return 0;
 }

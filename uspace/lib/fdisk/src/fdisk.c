@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <vol.h>
 
 static const char *cu_str[] = {
 	[cu_byte] = "B",
@@ -67,11 +68,35 @@ static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 	free(info);
 }
 
-int fdisk_dev_list_get(fdisk_dev_list_t **rdevlist)
+int fdisk_create(fdisk_t **rfdisk)
+{
+	fdisk_t *fdisk;
+	int rc;
+
+	fdisk = calloc(1, sizeof(fdisk_t));
+	if (fdisk == NULL)
+		return ENOMEM;
+
+	rc = vol_create(&fdisk->vol);
+	if (rc != EOK) {
+		free(fdisk);
+		return EIO;
+	}
+
+	*rfdisk = fdisk;
+	return EOK;
+}
+
+void fdisk_destroy(fdisk_t *fdisk)
+{
+	vol_destroy(fdisk->vol);
+	free(fdisk);
+}
+
+int fdisk_dev_list_get(fdisk_t *fdisk, fdisk_dev_list_t **rdevlist)
 {
 	fdisk_dev_list_t *devlist = NULL;
 	fdisk_dev_info_t *info;
-	category_id_t disk_cat;
 	service_id_t *svcs = NULL;
 	size_t count, i;
 	int rc;
@@ -82,13 +107,7 @@ int fdisk_dev_list_get(fdisk_dev_list_t **rdevlist)
 
 	list_initialize(&devlist->devinfos);
 
-	rc = loc_category_get_id("disk", &disk_cat, 0);
-	if (rc != EOK) {
-		rc = EIO;
-		goto error;
-	}
-
-	rc = loc_category_get_svcs(disk_cat, &svcs, &count);
+	rc = vol_get_disks(fdisk->vol, &svcs, &count);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -209,7 +228,7 @@ int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 	return EOK;
 }
 
-int fdisk_dev_open(service_id_t sid, fdisk_dev_t **rdev)
+int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 {
 	fdisk_dev_t *dev;
 
@@ -217,7 +236,7 @@ int fdisk_dev_open(service_id_t sid, fdisk_dev_t **rdev)
 	if (dev == NULL)
 		return ENOMEM;
 
-	dev->ltype = fdl_none;
+	dev->fdisk = fdisk;
 	dev->sid = sid;
 	list_initialize(&dev->parts);
 	*rdev = dev;
@@ -270,25 +289,31 @@ int fdisk_dev_capacity(fdisk_dev_t *dev, fdisk_cap_t *cap)
 
 int fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
 {
-	info->ltype = dev->ltype;
+	vol_disk_info_t vinfo;
+	int rc;
+
+	rc = vol_disk_info(dev->fdisk->vol, dev->sid, &vinfo);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	info->dcnt = vinfo.dcnt;
+	info->ltype = vinfo.ltype;
 	return EOK;
+error:
+	return rc;
 }
 
-int fdisk_label_create(fdisk_dev_t *dev, fdisk_label_type_t ltype)
+int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 {
-	if (dev->ltype != fdl_none)
-		return EEXISTS;
-
-	dev->ltype = ltype;
-	return EOK;
+	return vol_label_create(dev->fdisk->vol, dev->sid, ltype);
 }
 
 int fdisk_label_destroy(fdisk_dev_t *dev)
 {
 	fdisk_part_t *part;
-
-	if (dev->ltype == fdl_none)
-		return ENOENT;
+	int rc;
 
 	part = fdisk_part_first(dev);
 	while (part != NULL) {
@@ -296,7 +321,11 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 		part = fdisk_part_first(dev);
 	}
 
-	dev->ltype = fdl_none;
+	rc = vol_disk_empty(dev->fdisk->vol, dev->sid);
+	if (rc != EOK)
+		return EIO;
+
+	dev->dcnt = dc_empty;
 	return EOK;
 }
 
@@ -418,23 +447,17 @@ found:
 	return EOK;
 }
 
-int fdisk_ltype_format(fdisk_label_type_t ltype, char **rstr)
+int fdisk_ltype_format(label_type_t ltype, char **rstr)
 {
 	const char *sltype;
 	char *s;
 
 	sltype = NULL;
 	switch (ltype) {
-	case fdl_none:
-		sltype = "None";
-		break;
-	case fdl_unknown:
-		sltype = "Unknown";
-		break;
-	case fdl_mbr:
+	case lt_mbr:
 		sltype = "MBR";
 		break;
-	case fdl_gpt:
+	case lt_gpt:
 		sltype = "GPT";
 		break;
 	}

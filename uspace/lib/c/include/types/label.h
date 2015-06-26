@@ -26,32 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup volsrv
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef TYPES_DISK_H_
-#define TYPES_DISK_H_
+#ifndef LIBC_TYPES_LABEL_H_
+#define LIBC_TYPES_LABEL_H_
 
-#include <types/label.h>
+/** Disk contents */
+typedef enum {
+	/** Disk is considered empty */
+	dc_empty = 0,
+	/** Disk contains a recognized label */
+	dc_label,
+	/** Disk contains a recognized filesystem */
+	dc_fs,
+	/** Disk contains unrecognized data */
+	dc_unknown
+} label_disk_cnt_t;
 
-/** Disk */
-typedef struct {
-	/** Link to vol_disks */
-	link_t ldisks;
-	/** Service ID */
-	service_id_t svc_id;
-	/** Service name */
-	char *svc_name;
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
-	/** Label type */
-	label_type_t ltype;
-} vol_disk_t;
+/** Disk label type */
+typedef enum {
+	/** BIOS Master Boot Record */
+	lt_mbr,
+	/** UEFI GUID Partition Table */
+	lt_gpt
+} label_type_t;
+
+#define LT_LIMIT (lt_gpt + 1)
+
 
 #endif
 
