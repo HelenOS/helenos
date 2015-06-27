@@ -30,82 +30,48 @@
  * @{
  */
 /**
- * @file Disk label library.
+ * @file Disk label library types.
  */
 
-#include <errno.h>
-#include <label.h>
-#include <mem.h>
-#include <stdlib.h>
+#ifndef LIBLABEL_TYPES_H_
+#define LIBLABEL_TYPES_H_
 
-int label_open(service_id_t sid, label_t **rlabel)
-{
-	label_t *label;
+#include <adt/list.h>
+#include <types/label.h>
+#include <vol.h>
 
-	label = calloc(1, sizeof(label_t));
-	if (label == NULL)
-		return ENOMEM;
+typedef struct {
+	/** Disk contents */
+	label_disk_cnt_t dcnt;
+	/** Label type */
+	label_type_t ltype;
+} label_info_t;
 
-	*rlabel = label;
-	return EOK;
-}
+/** Partition */
+typedef struct {
+	/** Containing label */
+	struct label *label;
+	/** Link to fdisk_dev_t.parts */
+	link_t ldev;
+	/** Capacity */
+//	fdisk_cap_t capacity;
+	/** File system type */
+//	fdisk_fstype_t fstype;
+} label_part_t;
 
-int label_create(service_id_t sid, label_type_t ltype, label_t **rlabel)
-{
-	label_t *label;
+/** Specification of new partition */
+typedef struct {
+	/** Desired capacity */
+//	fdisk_cap_t capacity;
+	/** File system type */
+//	fdisk_fstype_t fstype;
+} label_part_spec_t;
 
-	label = calloc(1, sizeof(label_t));
-	if (label == NULL)
-		return ENOMEM;
+/** Label instance */
+typedef struct label {
+} label_t;
 
-	*rlabel = label;
-	return EOK;
-}
-
-void label_close(label_t *label)
-{
-	free(label);
-}
-
-int label_destroy(label_t *label)
-{
-	free(label);
-	return EOK;
-}
-
-int label_get_info(label_t *label, label_info_t *linfo)
-{
-	memset(linfo, 0, sizeof(label_info_t));
-	linfo->dcnt = dc_empty;
-	return EOK;
-}
-
-label_part_t *label_part_first(label_t *label)
-{
-	return NULL;
-}
-
-label_part_t *label_part_next(label_part_t *oart)
-{
-	return NULL;
-}
-
-
-int label_part_create(label_t *label, label_part_spec_t *pspec,
-    label_part_t **rpart)
-{
-	return ENOTSUP;
-}
-
-int label_part_destroy(label_part_t *part)
-{
-	return EOK;
-}
-
-void label_pspec_init(label_part_spec_t *pspec)
-{
-	memset(pspec, 0, sizeof(label_part_spec_t));
-}
+#endif
 
 /** @}
  */

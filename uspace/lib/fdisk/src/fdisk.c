@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <vbd.h>
 #include <vol.h>
 
 static const char *cu_str[] = {
@@ -70,26 +71,42 @@ static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 
 int fdisk_create(fdisk_t **rfdisk)
 {
-	fdisk_t *fdisk;
+	fdisk_t *fdisk = NULL;
 	int rc;
 
 	fdisk = calloc(1, sizeof(fdisk_t));
-	if (fdisk == NULL)
-		return ENOMEM;
+	if (fdisk == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
 
 	rc = vol_create(&fdisk->vol);
 	if (rc != EOK) {
-		free(fdisk);
-		return EIO;
+		rc = EIO;
+		goto error;
+	}
+
+	rc = vbd_create(&fdisk->vbd);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
 	}
 
 	*rfdisk = fdisk;
 	return EOK;
+error:
+	fdisk_destroy(fdisk);
+
+	return rc;
 }
 
 void fdisk_destroy(fdisk_t *fdisk)
 {
+	if (fdisk == NULL)
+		return;
+
 	vol_destroy(fdisk->vol);
+	vbd_destroy(fdisk->vbd);
 	free(fdisk);
 }
 
@@ -367,15 +384,25 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     fdisk_part_t **rpart)
 {
 	fdisk_part_t *part;
+	vbd_part_spec_t vpspec;
+	vbd_part_id_t partid;
+	int rc;
 
 	part = calloc(1, sizeof(fdisk_part_t));
 	if (part == NULL)
 		return ENOMEM;
 
+	rc = vbd_part_create(dev->fdisk->vbd, dev->sid, &vpspec, &partid);
+	if (rc != EOK) {
+		free(part);
+		return EIO;
+	}
+
 	part->dev = dev;
 	list_append(&part->ldev, &dev->parts);
 	part->capacity = pspec->capacity;
 	part->fstype = pspec->fstype;
+	part->part_id = partid;
 
 	if (rpart != NULL)
 		*rpart = part;
@@ -384,6 +411,12 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 
 int fdisk_part_destroy(fdisk_part_t *part)
 {
+	int rc;
+
+	rc = vbd_part_delete(part->dev->fdisk->vbd, part->part_id);
+	if (rc != EOK)
+		return EIO;
+
 	list_remove(&part->ldev);
 	free(part);
 	return EOK;

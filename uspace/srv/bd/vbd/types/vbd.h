@@ -34,16 +34,48 @@
  * @brief
  */
 
-#ifndef TYPES_VBD_H_
-#define TYPES_VBD_H_
+#ifndef TYPES_VBDS_H_
+#define TYPES_VBDS_H_
 
+#include <adt/list.h>
+#include <label.h>
+#include <loc.h>
 #include <types/label.h>
 
 /** Disk info */
 typedef struct {
+	/** Label */
+	label_t *label;
 	/** Label type */
 	label_type_t ltype;
-} vbd_disk_info_t;
+} vbds_disk_info_t;
+
+/** Partition */
+typedef struct {
+	/** Disk this partition belongs to */
+	struct vbds_disk *disk;
+	/** Link to vbds_disk_t.parts */
+	link_t ldisk;
+	/** Label partition */
+	label_part_t *lpart;
+} vbds_part_t;
+
+/** Disk */
+typedef struct vbds_disk {
+	/** Link to vbds_disks */
+	link_t ldisks;
+	/** Service ID */
+	service_id_t svc_id;
+	/** Label */
+	label_t *label;
+	/** Partitions */
+	list_t parts; /* of vbds_part_t */
+} vbds_disk_t;
+
+typedef struct {
+} vbds_part_info_t;
+
+typedef sysarg_t vbds_part_id_t;
 
 #endif
 

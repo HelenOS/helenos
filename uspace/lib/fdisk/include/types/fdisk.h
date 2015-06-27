@@ -40,6 +40,7 @@
 #include <loc.h>
 #include <stdint.h>
 #include <types/label.h>
+#include <vbd.h>
 #include <vol.h>
 
 typedef enum {
@@ -125,6 +126,8 @@ typedef struct {
 	fdisk_cap_t capacity;
 	/** File system type */
 	fdisk_fstype_t fstype;
+	/** Partition ID */
+	vbd_part_id_t part_id;
 } fdisk_part_t;
 
 /** Specification of new partition */
@@ -146,6 +149,8 @@ typedef struct {
 typedef struct fdisk {
 	/** Volume service */
 	vol_t *vol;
+	/** Virtual Block Device */
+	vbd_t *vbd;
 } fdisk_t;
 
 #endif

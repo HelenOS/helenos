@@ -51,6 +51,14 @@ typedef struct {
 	label_type_t ltype;
 } vbd_disk_info_t;
 
+typedef struct {
+} vbd_part_spec_t;
+
+typedef struct {
+} vbd_part_info_t;
+
+typedef sysarg_t vbd_part_id_t;
+
 extern int vbd_create(vbd_t **);
 extern void vbd_destroy(vbd_t *);
 extern int vbd_disk_add(vbd_t *, service_id_t);
@@ -58,6 +66,13 @@ extern int vbd_disk_remove(vbd_t *, service_id_t);
 extern int vbd_disk_info(vbd_t *, service_id_t, vbd_disk_info_t *);
 extern int vbd_label_create(vbd_t *, service_id_t, label_type_t);
 extern int vbd_label_delete(vbd_t *, service_id_t);
+extern int vbd_label_get_parts(vbd_t *, service_id_t, service_id_t **,
+    size_t *);
+extern int vbd_part_get_info(vbd_t *, vbd_part_id_t, vbd_part_info_t *);
+extern int vbd_part_create(vbd_t *, service_id_t, vbd_part_spec_t *,
+    vbd_part_id_t *);
+extern int vbd_part_delete(vbd_t *, vbd_part_id_t);
+extern void vbd_pspec_init(vbd_part_spec_t *);
 
 #endif
 

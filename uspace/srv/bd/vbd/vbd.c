@@ -43,18 +43,21 @@
 #include <stdlib.h>
 #include <task.h>
 
+#include "disk.h"
 #include "types/vbd.h"
 
 #define NAME  "vbd"
 
-static void vbd_client_conn(ipc_callid_t, ipc_call_t *, void *);
+static void vbds_client_conn(ipc_callid_t, ipc_call_t *, void *);
 
-static int vbd_init(void)
+static int vbds_init(void)
 {
 	int rc;
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_init()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_init()");
 
-	async_set_client_connection(vbd_client_conn);
+	vbds_disks_init();
+
+	async_set_client_connection(vbds_client_conn);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
@@ -72,107 +75,124 @@ static int vbd_init(void)
 	return EOK;
 }
 
-static int vbd_disk_add(service_id_t sid)
-{
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_add(%zu)", sid);
-	return EOK;
-}
 
-static int vbd_disk_remove(service_id_t sid)
-{
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_remove(%zu)", sid);
-	return EOK;
-}
-
-static int vbd_disk_info(service_id_t sid, vbd_disk_info_t *info)
-{
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info(%zu)", sid);
-	info->ltype = lt_mbr;
-	return EOK;
-}
-
-static int vbd_label_create(service_id_t sid, label_type_t ltype)
-{
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_label_create(%zu, %d)", sid,
-	    ltype);
-	return EOK;
-}
-
-static int vbd_label_delete(service_id_t sid, label_type_t ltype)
-{
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_label_delete(%zu, %d)", sid,
-	    ltype);
-	return EOK;
-}
-
-static void vbd_disk_add_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_disk_add_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_add_srv()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_add_srv()");
 
 	disk_sid = IPC_GET_ARG1(*icall);
-	rc = vbd_disk_add(disk_sid);
+	rc = vbds_disk_add(disk_sid);
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
-static void vbd_disk_remove_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_disk_remove_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_remove_srv()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_remove_srv()");
 
 	disk_sid = IPC_GET_ARG1(*icall);
-	rc = vbd_disk_remove(disk_sid);
+	rc = vbds_disk_remove(disk_sid);
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
-static void vbd_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
-	vbd_disk_info_t dinfo;
+	vbds_disk_info_t dinfo;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info_srv()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_info_srv()");
 
 	disk_sid = IPC_GET_ARG1(*icall);
-	rc = vbd_disk_info(disk_sid, &dinfo);
+	rc = vbds_disk_info(disk_sid, &dinfo);
 	async_answer_1(iid, (sysarg_t)rc, (sysarg_t)dinfo.ltype);
 }
 
-static void vbd_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	label_type_t ltype;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_label_create_srv()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create_srv()");
 
 	disk_sid = IPC_GET_ARG1(*icall);
 	ltype = IPC_GET_ARG2(*icall);
-	rc = vbd_label_create(disk_sid, ltype);
+	rc = vbds_label_create(disk_sid, ltype);
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
-static void vbd_label_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_label_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
-	label_type_t ltype;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_label_delete_srv()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_delete_srv()");
 
 	disk_sid = IPC_GET_ARG1(*icall);
-	ltype = IPC_GET_ARG2(*icall);
-	rc = vbd_label_delete(disk_sid, ltype);
+	rc = vbds_label_delete(disk_sid);
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
-static void vbd_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_client_conn()");
+//	service_id_t disk_sid;
+//	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_get_parts_srv()");
+
+//	disk_sid = IPC_GET_ARG1(*icall);
+//	rc = vbds_label_delete(disk_sid);
+//	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, ENOTSUP);
+}
+
+static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
+{
+	vbds_part_id_t part;
+	vbds_part_info_t pinfo;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_get_info_srv()");
+
+	part = IPC_GET_ARG1(*icall);
+	rc = vbds_part_get_info(part, &pinfo);
+	async_answer_0(iid, (sysarg_t)rc);
+}
+
+static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
+{
+	service_id_t disk_sid;
+	vbds_part_id_t part;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_create_srv()");
+
+	disk_sid = IPC_GET_ARG1(*icall);
+	rc = vbds_part_create(disk_sid, &part);
+	async_answer_1(iid, (sysarg_t)rc, (sysarg_t)part);
+}
+
+static void vbds_part_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
+{
+	vbds_part_id_t part;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_delete_srv()");
+
+	part = IPC_GET_ARG1(*icall);
+	rc = vbds_part_delete(part);
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
+static void vbds_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_client_conn()");
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
@@ -190,19 +210,31 @@ static void vbd_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 		switch (method) {
 		case VBD_DISK_ADD:
-			vbd_disk_add_srv(callid, &call);
+			vbds_disk_add_srv(callid, &call);
 			break;
 		case VBD_DISK_REMOVE:
-			vbd_disk_remove_srv(callid, &call);
+			vbds_disk_remove_srv(callid, &call);
 			break;
 		case VBD_DISK_INFO:
-			vbd_disk_info_srv(callid, &call);
+			vbds_disk_info_srv(callid, &call);
 			break;
 		case VBD_LABEL_CREATE:
-			vbd_label_create_srv(callid, &call);
+			vbds_label_create_srv(callid, &call);
 			break;
 		case VBD_LABEL_DELETE:
-			vbd_label_delete_srv(callid, &call);
+			vbds_label_delete_srv(callid, &call);
+			break;
+		case VBD_LABEL_GET_PARTS:
+			vbds_label_get_parts_srv(callid, &call);
+			break;
+		case VBD_PART_GET_INFO:
+			vbds_part_get_info_srv(callid, &call);
+			break;
+		case VBD_PART_CREATE:
+			vbds_part_create_srv(callid, &call);
+			break;
+		case VBD_PART_DELETE:
+			vbds_part_delete_srv(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL);
@@ -221,7 +253,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = vbd_init();
+	rc = vbds_init();
 	if (rc != EOK)
 		return 1;
 

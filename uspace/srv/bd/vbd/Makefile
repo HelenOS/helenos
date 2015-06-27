@@ -27,9 +27,18 @@
 #
 
 USPACE_PREFIX = ../../..
+
+LIBS = \
+	$(LIBLABEL_PREFIX)/liblabel.a \
+	$(LIBBLOCK_PREFIX)/libblock.a
+
+EXTRA_CFLAGS = \
+	-I$(LIBLABEL_PREFIX)/include
+
 BINARY = vbd
 
 SOURCES = \
+	disk.c \
 	vbd.c
 
 include $(USPACE_PREFIX)/Makefile.common

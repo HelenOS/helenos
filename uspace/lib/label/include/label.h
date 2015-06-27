@@ -33,79 +33,28 @@
  * @file Disk label library.
  */
 
-#include <errno.h>
-#include <label.h>
-#include <mem.h>
-#include <stdlib.h>
+#ifndef LIBLABEL_LABEL_H_
+#define LIBLABEL_LABEL_H_
 
-int label_open(service_id_t sid, label_t **rlabel)
-{
-	label_t *label;
+#include <loc.h>
+#include <types/label.h>
+#include <types/liblabel.h>
 
-	label = calloc(1, sizeof(label_t));
-	if (label == NULL)
-		return ENOMEM;
+extern int label_open(service_id_t, label_t **);
+extern int label_create(service_id_t, label_type_t, label_t **);
+extern void label_close(label_t *);
+extern int label_destroy(label_t *);
+extern int label_get_info(label_t *, label_info_t *);
 
-	*rlabel = label;
-	return EOK;
-}
+extern label_part_t *label_part_first(label_t *);
+extern label_part_t *label_part_next(label_part_t *);
 
-int label_create(service_id_t sid, label_type_t ltype, label_t **rlabel)
-{
-	label_t *label;
+extern int label_part_create(label_t *, label_part_spec_t *,
+    label_part_t **);
+extern int label_part_destroy(label_part_t *);
+extern void label_pspec_init(label_part_spec_t *);
 
-	label = calloc(1, sizeof(label_t));
-	if (label == NULL)
-		return ENOMEM;
-
-	*rlabel = label;
-	return EOK;
-}
-
-void label_close(label_t *label)
-{
-	free(label);
-}
-
-int label_destroy(label_t *label)
-{
-	free(label);
-	return EOK;
-}
-
-int label_get_info(label_t *label, label_info_t *linfo)
-{
-	memset(linfo, 0, sizeof(label_info_t));
-	linfo->dcnt = dc_empty;
-	return EOK;
-}
-
-label_part_t *label_part_first(label_t *label)
-{
-	return NULL;
-}
-
-label_part_t *label_part_next(label_part_t *oart)
-{
-	return NULL;
-}
-
-
-int label_part_create(label_t *label, label_part_spec_t *pspec,
-    label_part_t **rpart)
-{
-	return ENOTSUP;
-}
-
-int label_part_destroy(label_part_t *part)
-{
-	return EOK;
-}
-
-void label_pspec_init(label_part_spec_t *pspec)
-{
-	memset(pspec, 0, sizeof(label_part_spec_t));
-}
+#endif
 
 /** @}
  */

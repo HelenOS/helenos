@@ -36,6 +36,7 @@
 #include <ipc/services.h>
 #include <ipc/vbd.h>
 #include <loc.h>
+#include <mem.h>
 #include <stdlib.h>
 #include <types/label.h>
 #include <vbd.h>
@@ -150,6 +151,159 @@ int vbd_label_delete(vbd_t *vbd, service_id_t sid)
 		return EIO;
 
 	return EOK;
+}
+
+/** Get list of IDs into a buffer of fixed size.
+ *
+ * @param vbd      Virtual Block Device
+ * @param method   IPC method
+ * @param arg1     First argument
+ * @param id_buf   Buffer to store IDs
+ * @param buf_size Buffer size
+ * @param act_size Place to store actual size of complete data.
+ *
+ * @return EOK on success or negative error code.
+ */
+static int vbd_get_ids_once(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
+    sysarg_t *id_buf, size_t buf_size, size_t *act_size)
+{
+	async_exch_t *exch = async_exchange_begin(vbd->sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, method, arg1, &answer);
+	int rc = async_data_read_start(exch, id_buf, buf_size);
+
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK) {
+		return retval;
+	}
+
+	*act_size = IPC_GET_ARG1(answer);
+	return EOK;
+}
+
+/** Get list of IDs.
+ *
+ * Returns an allocated array of service IDs.
+ *
+ * @param vbd    Virtual Block Device
+ * @param method IPC method
+ * @param arg1   IPC argument 1
+ * @param data   Place to store pointer to array of IDs
+ * @param count  Place to store number of IDs
+ * @return       EOK on success or negative error code
+ */
+static int vbd_get_ids_internal(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
+    sysarg_t **data, size_t *count)
+{
+	*data = NULL;
+	*count = 0;
+
+	size_t act_size = 0;
+	int rc = vbd_get_ids_once(vbd, method, arg1, NULL, 0, &act_size);
+	if (rc != EOK)
+		return rc;
+
+	size_t alloc_size = act_size;
+	service_id_t *ids = malloc(alloc_size);
+	if (ids == NULL)
+		return ENOMEM;
+
+	while (true) {
+		rc = vbd_get_ids_once(vbd, method, arg1, ids, alloc_size,
+		    &act_size);
+		if (rc != EOK)
+			return rc;
+
+		if (act_size <= alloc_size)
+			break;
+
+		alloc_size = act_size;
+		ids = realloc(ids, alloc_size);
+		if (ids == NULL)
+			return ENOMEM;
+	}
+
+	*count = act_size / sizeof(service_id_t);
+	*data = ids;
+	return EOK;
+}
+
+/** Get list of disks as array of service IDs.
+ *
+ * @param vbd   Virtual Block Device
+ * @param data  Place to store pointer to array
+ * @param count Place to store length of array (number of entries)
+ *
+ * @return EOK on success or negative error code
+ */
+int vbd_label_get_parts(vbd_t *vbd, service_id_t disk,
+    service_id_t **data, size_t *count)
+{
+	return vbd_get_ids_internal(vbd, VBD_LABEL_GET_PARTS, disk,
+	    data, count);
+}
+
+int vbd_part_get_info(vbd_t *vbd, vbd_part_id_t part, vbd_part_info_t *pinfo)
+{
+	async_exch_t *exch;
+	int retval;
+
+	exch = async_exchange_begin(vbd->sess);
+	retval = async_req_1_0(exch, VBD_PART_GET_INFO, part);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return EIO;
+
+	return EOK;
+}
+
+int vbd_part_create(vbd_t *vbd, service_id_t disk, vbd_part_spec_t *pspec,
+    vbd_part_id_t *rpart)
+{
+	async_exch_t *exch;
+	sysarg_t part;
+	int retval;
+
+	exch = async_exchange_begin(vbd->sess);
+	retval = async_req_1_1(exch, VBD_PART_CREATE, disk, &part);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return EIO;
+
+	*rpart = (vbd_part_id_t)part;
+	return EOK;
+}
+
+int vbd_part_delete(vbd_t *vbd, vbd_part_id_t part)
+{
+	async_exch_t *exch;
+	int retval;
+
+	exch = async_exchange_begin(vbd->sess);
+	retval = async_req_1_0(exch, VBD_PART_DELETE, part);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return EIO;
+
+	return EOK;
+}
+
+void vbd_pspec_init(vbd_part_spec_t *pspec)
+{
+	memset(pspec, 0, sizeof(vbd_part_spec_t));
 }
 
 /** @}
