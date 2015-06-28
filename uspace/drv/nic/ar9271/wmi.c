@@ -33,6 +33,7 @@
  */
 
 #include <usb/debug.h>
+#include <errno.h>
 #include <malloc.h>
 #include <mem.h>
 #include <byteorder.h>

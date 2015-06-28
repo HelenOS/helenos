@@ -39,6 +39,7 @@
 #include <usb/debug.h>
 #include <stdio.h>
 #include <ddf/interrupt.h>
+#include <errno.h>
 #include <nic.h>
 #include <macros.h>
 #include "ath_usb.h"

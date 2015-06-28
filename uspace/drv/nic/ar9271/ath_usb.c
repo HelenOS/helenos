@@ -35,6 +35,7 @@
 #include <usb/dev/pipes.h>
 #include <usb/debug.h>
 #include <malloc.h>
+#include <errno.h>
 #include "ath_usb.h"
 
 static int ath_usb_send_ctrl_message(ath_t *, void *, size_t);
