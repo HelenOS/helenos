@@ -58,7 +58,7 @@ int td_error(const td_t *td)
 		return ESTALL;
 	}
 	if (status & TD_STATUS_ACTIVE_FLAG)
-		return EINPROGRESS;
+		return EBUSY;
 	return EOK;
 }
 

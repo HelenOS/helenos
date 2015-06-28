@@ -276,7 +276,7 @@ ssize_t hcd_send_batch_sync(
     void *data, size_t size, uint64_t setup_data, const char* name)
 {
 	assert(hcd);
-	sync_data_t sd = { .done = 0, .ret = EINPROGRESS, .size = size };
+	sync_data_t sd = { .done = 0, .ret = EBUSY, .size = size };
 
 	const int ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
 	    dir == USB_DIRECTION_IN ? transfer_in_cb : NULL,
