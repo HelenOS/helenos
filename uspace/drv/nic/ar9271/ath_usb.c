@@ -97,9 +97,9 @@ static int ath_usb_send_ctrl_message(ath_t *ath, void *buffer,
     size_t buffer_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	usb_pipe_t *pipe =
-	    &ath_usb->usb_device->pipes[ath_usb->output_ctrl_pipe_number].pipe;
-	
+	usb_pipe_t *pipe = &usb_device_get_mapped_ep(
+	    ath_usb->usb_device, ath_usb->output_ctrl_pipe_number)->pipe;
+
 	return usb_pipe_write(pipe, buffer, buffer_size);
 }
 
@@ -117,9 +117,9 @@ static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
     size_t buffer_size, size_t *transferred_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	usb_pipe_t *pipe =
-	    &ath_usb->usb_device->pipes[ath_usb->input_ctrl_pipe_number].pipe;
-	
+	usb_pipe_t *pipe = &usb_device_get_mapped_ep(
+	    ath_usb->usb_device, ath_usb->input_ctrl_pipe_number)->pipe;
+
 	return usb_pipe_read(pipe, buffer, buffer_size, transferred_size);
 }
 
@@ -140,21 +140,21 @@ static int ath_usb_send_data_message(ath_t *ath, void *buffer,
 	void *complete_buffer = malloc(complete_buffer_size);
 	memcpy(complete_buffer + sizeof(ath_usb_data_header_t),
 	    buffer, buffer_size);
-	
+
 	ath_usb_data_header_t *data_header =
 	    (ath_usb_data_header_t *) complete_buffer;
 	data_header->length = host2uint16_t_le(buffer_size);
 	data_header->tag = host2uint16_t_le(TX_TAG);
-	
+
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	usb_pipe_t *pipe =
-	    &ath_usb->usb_device->pipes[ath_usb->output_data_pipe_number].pipe;
-	
+	usb_pipe_t *pipe = &usb_device_get_mapped_ep(
+	    ath_usb->usb_device, ath_usb->output_data_pipe_number)->pipe;
+
 	int ret_val = usb_pipe_write(pipe, complete_buffer,
 	    complete_buffer_size);
-	
+
 	free(complete_buffer);
-	
+
 	return ret_val;
 }
 
@@ -172,9 +172,8 @@ static int ath_usb_read_data_message(ath_t *ath, void *buffer,
     size_t buffer_size, size_t *transferred_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	usb_pipe_t *pipe =
-	    &ath_usb->usb_device->pipes[ath_usb->input_data_pipe_number].pipe;
-	
-	return usb_pipe_read(pipe, buffer, buffer_size,
-	    transferred_size);
+	usb_pipe_t *pipe = &usb_device_get_mapped_ep(
+	    ath_usb->usb_device, ath_usb->input_data_pipe_number)->pipe;
+
+	return usb_pipe_read(pipe, buffer, buffer_size, transferred_size);
 }
