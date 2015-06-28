@@ -34,19 +34,11 @@ RD_SRVS_ESSENTIAL += \
 
 
 RD_DRVS_ESSENTIAL += \
+	audio/sb16 \
 	platform/pc \
 	block/ata_bd \
 	bus/pci/pciintel \
 	bus/isa \
-	audio/sb16 \
-	char/i8042 \
-	char/ps2mouse \
-	char/xtkbd
-
-RD_DRVS_NON_ESSENTIAL += \
-	audio/hdaudio \
-	char/ns8250 \
-	time/cmos-rtc \
 	bus/usb/ehci\
 	bus/usb/ohci \
 	bus/usb/uhci \
@@ -55,7 +47,15 @@ RD_DRVS_NON_ESSENTIAL += \
 	bus/usb/usbhid \
 	bus/usb/usbmast \
 	bus/usb/usbmid \
-	bus/usb/vhc
+	bus/usb/vhc \
+	char/i8042 \
+	char/ps2mouse \
+	char/xtkbd
+
+RD_DRVS_NON_ESSENTIAL += \
+	audio/hdaudio \
+	char/ns8250 \
+	time/cmos-rtc
 
 RD_DRV_CFG += \
 	bus/isa
@@ -63,7 +63,8 @@ RD_DRV_CFG += \
 RD_APPS_ESSENTIAL += \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/mixerctl/mixerctl \
-	$(USPACE_PATH)/app/wavplay/wavplay
+	$(USPACE_PATH)/app/wavplay/wavplay \
+	$(USPACE_PATH)/app/usbinfo/usbinfo
 
 BOOT_OUTPUT = $(ROOT_PATH)/image.iso
 PREBUILD = $(INITRD).img
