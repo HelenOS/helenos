@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <mem.h>
+#include <str_error.h>
 #include <sys/types.h>
 
 #include <usb/classes/hub.h>
@@ -144,6 +145,8 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 	    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
 	    batch->buffer, batch->buffer_size, &batch->transfered_size);
 	if (batch->error == ENAK) {
+		usb_log_debug("EHCI RH(%p): BATCH(%p) adding as unfinished\n",
+		    instance, batch);
 		/* This is safe because only status change interrupt transfers
 		 * return NAK. The assertion holds true because the batch
 		 * existence prevents communication with that ep */
@@ -152,6 +155,8 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 	} else {
 		usb_transfer_batch_finish(batch, NULL);
 		usb_transfer_batch_destroy(batch);
+		usb_log_debug("EHCI RH(%p): BATCH(%p) virtual request: %s\n",
+		    instance, batch, str_error(batch->error));
 	}
 	return EOK;
 }
