@@ -129,10 +129,14 @@ int ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 
 	memcpy(code->cmds, ehci_irq_commands, sizeof(ehci_irq_commands));
 	ehci_caps_regs_t *caps = NULL;
+
 	int ret = pio_enable_range(&regs, (void**)&caps);
 	if (ret != EOK) {
+		free(code->ranges);
+		free(code->cmds);
 		return ret;
 	}
+
 	ehci_regs_t *registers =
 	    (ehci_regs_t *)(RNGABSPTR(regs) + EHCI_RD8(caps->caplength));
 	code->cmds[0].addr = (void *) &registers->usbsts;
