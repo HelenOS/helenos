@@ -35,6 +35,7 @@
 #define DRV_EHCI_HW_MEM_ACCESS_H
 
 #include <byteorder.h>
+#include <libarch/barrier.h>
 
 #define EHCI_MEM32_WR(reg, val) reg = host2uint32_t_le(val)
 #define EHCI_MEM32_RD(reg) uint32_t_le2host(reg)
