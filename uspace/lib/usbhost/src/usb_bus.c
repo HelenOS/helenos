@@ -33,6 +33,7 @@
  */
 
 #include <usb/host/usb_bus.h>
+#include <usb/debug.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -243,6 +244,9 @@ int usb_bus_register_ep(usb_bus_t *instance, endpoint_t *ep, size_t data_size)
 	list_append(&ep->link, get_list(instance, ep->address));
 
 	instance->free_bw -= ep->bandwidth;
+	usb_log_debug("Registered EP(%d:%d:%s:%s)\n", ep->address, ep->endpoint,
+	    usb_str_transfer_type_short(ep->transfer_type),
+	    usb_str_direction(ep->direction));
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
@@ -266,6 +270,9 @@ int usb_bus_unregister_ep(usb_bus_t *instance, endpoint_t *ep)
 	}
 	list_remove(&ep->link);
 	instance->free_bw += ep->bandwidth;
+	usb_log_debug("Unregistered EP(%d:%d:%s:%s)\n", ep->address,
+	    ep->endpoint, usb_str_transfer_type_short(ep->transfer_type),
+	    usb_str_direction(ep->direction));
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }

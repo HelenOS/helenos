@@ -471,6 +471,8 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 		return ret;
 	}
 
+	usb_log_debug("Found new %s speed USB device\n", usb_str_speed(speed));
+
 	static const usb_target_t default_target = {{
 		.address = USB_ADDRESS_DEFAULT,
 		.endpoint = 0,
@@ -480,6 +482,8 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	if (address < 0)
 		return address;
 
+	usb_log_debug("Reserved new address: %d\n", address);
+
 	const usb_target_t target = {{
 		.address = address,
 		.endpoint = 0,
@@ -488,11 +492,11 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	const usb_address_t tt_address = hub ? hub->tt_address : -1;
 
 	/* Add default pipe on default address */
+	usb_log_debug("Device(%d): Adding default target(0:0)\n", address);
 	ret = hcd_add_ep(hcd,
 	    default_target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
 	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1,
 	    tt_address, port);
-
 	if (ret != EOK) {
 		hcd_release_address(hcd, address);
 		return ret;
@@ -504,6 +508,8 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
 
 	// TODO CALLBACKS
+	usb_log_debug("Device(%d): Requesting first 8B of device descriptor\n",
+	    address);
 	ssize_t got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_IN,
 	    &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
 	    "read first 8 bytes of dev descriptor");
@@ -515,6 +521,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	}
 
 	/* Register EP on the new address */
+	usb_log_debug("Device(%d): Registering control EP\n", address);
 	ret = hcd_add_ep(hcd, target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
 	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
 	    ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
@@ -531,9 +538,11 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	const usb_device_request_setup_packet_t set_address =
 	    SET_ADDRESS(target.address);
 
+	usb_log_debug("Device(%d): Setting USB address.\n", address);
 	got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
 	    NULL, 0, *(uint64_t *)&set_address, "set address");
 
+	usb_log_debug("Device(%d): Removing default (0:0) EP\n", address);
 	hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
 
 	if (got != 0) {
@@ -546,6 +555,8 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	const usb_device_request_setup_packet_t get_device_desc =
 	    GET_DEVICE_DESC(sizeof(desc));
 
+	usb_log_debug("Device(%d): Requesting full device descriptor\n",
+	    address);
 	got = hcd_send_batch_sync(hcd, target, USB_DIRECTION_IN,
 	    &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
 	    "read device descriptor");
@@ -559,6 +570,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	match_id_list_t mids;
 	init_match_ids(&mids);
 
+	usb_log_debug("Device(%d): Creating match IDs\n", address);
 	ret = create_match_ids(&mids, &desc);
 	if (ret != EOK) {
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
@@ -567,6 +579,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	}
 
 	/* Register device */
+	usb_log_debug("Device(%d): Registering DDF device\n", address);
 	ret = hcd_ddf_add_device(device, hub, port, address, speed, NULL, &mids);
 	clean_match_ids(&mids);
 	if (ret != EOK) {
@@ -847,7 +860,7 @@ int ddf_hcd_device_setup_all(ddf_dev_t *device, usb_speed_t speed, size_t bw,
 	ret = driver_init(hcd, &hw_res, !(irq < 0));
 	hw_res_list_parsed_clean(&hw_res);
 	if (ret != EOK) {
-		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(ret));
+		usb_log_error("Failed to init HCD: %s.\n", str_error(ret));
 		goto irq_unregister;
 	}
 
@@ -870,7 +883,7 @@ int ddf_hcd_device_setup_all(ddf_dev_t *device, usb_speed_t speed, size_t bw,
 	 */
 	ret = hcd_ddf_setup_root_hub(device);
 	if (ret != EOK) {
-		usb_log_error("Failed to setup UHCI root hub: %s.\n",
+		usb_log_error("Failed to setup HC root hub: %s.\n",
 		    str_error(ret));
 		driver_fini(dev_to_hcd(device));
 irq_unregister:
