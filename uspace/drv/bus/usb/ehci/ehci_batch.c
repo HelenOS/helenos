@@ -62,9 +62,6 @@ static void ehci_transfer_batch_dispose(ehci_transfer_batch_t *ehci_batch)
 	if (!ehci_batch)
 		return;
 	if (ehci_batch->tds) {
-		const ehci_endpoint_t *ehci_ep =
-		    ehci_endpoint_get(ehci_batch->usb_batch->ep);
-		assert(ehci_ep);
 		for (size_t i = 0; i < ehci_batch->td_count; ++i) {
 			free32(ehci_batch->tds[i]);
 		}
@@ -133,6 +130,7 @@ ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 			usb_log_error("Failed to allocate TD %d.", i);
 			goto dispose;
 		}
+		memset(ehci_batch->tds[i], 0, sizeof(td_t));
 	}
 
 
@@ -237,6 +235,7 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 	/* Clear TD pointers */
 	ehci_batch->qh->next = LINK_POINTER_TERM;
 	ehci_batch->qh->current = LINK_POINTER_TERM;
+	usb_log_debug("Batch %p complete.\n", ehci_batch->usb_batch);
 
 	return true;
 }
@@ -282,8 +281,7 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	const usb_direction_t status_dir = reverse_dir[dir];
 
 	/* Setup stage */
-	td_init(
-	    ehci_batch->tds[0], ehci_batch->tds[1], USB_DIRECTION_BOTH,
+	td_init(ehci_batch->tds[0], ehci_batch->tds[1], USB_DIRECTION_BOTH,
 	    buffer, ehci_batch->usb_batch->setup_size, toggle, false);
 	usb_log_debug2("Created CONTROL SETUP TD(%"PRIxn"): %08x:%08x:%08x",
 	    addr_to_phys(ehci_batch->tds[0]),
