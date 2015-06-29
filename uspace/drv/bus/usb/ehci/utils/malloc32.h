@@ -64,21 +64,6 @@ static inline uintptr_t addr_to_phys(const void *addr)
 	return result;
 }
 
-/** Physical mallocator simulator
- *
- * @param[in] size Size of the required memory space
- * @return Address of the aligned and big enough memory place, NULL on failure.
- */
-static inline void * malloc32(size_t size)
-	{ return memalign(EHCI_ALIGN, size); }
-
-/** Physical mallocator simulator
- *
- * @param[in] addr Address of the place allocated by malloc32
- */
-static inline void free32(void *addr)
-	{ free(addr); }
-
 /** Create 4KB page mapping
  *
  * @return Address of the mapped page, NULL on failure.
@@ -99,6 +84,27 @@ static inline void return_page(void *page)
 {
 	dmamem_unmap_anonymous(page);
 }
+
+/** Physical mallocator simulator
+ *
+ * @param[in] size Size of the required memory space
+ * @return Address of the aligned and big enough memory place, NULL on failure.
+ */
+static inline void * malloc32(size_t size)
+{
+	assert(size < PAGE_SIZE);
+	return get_page();
+}
+
+/** Physical mallocator simulator
+ *
+ * @param[in] addr Address of the place allocated by malloc32
+ */
+static inline void free32(void *addr)
+{
+	return_page(addr);
+}
+
 #endif
 /**
  * @}
