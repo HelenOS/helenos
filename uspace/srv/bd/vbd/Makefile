@@ -33,7 +33,8 @@ LIBS = \
 	$(LIBBLOCK_PREFIX)/libblock.a
 
 EXTRA_CFLAGS = \
-	-I$(LIBLABEL_PREFIX)/include
+	-I$(LIBLABEL_PREFIX)/include \
+	-I$(LIBBLOCK_PREFIX)
 
 BINARY = vbd
 

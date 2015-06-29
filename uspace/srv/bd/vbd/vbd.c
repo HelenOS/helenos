@@ -50,6 +50,8 @@
 
 static void vbds_client_conn(ipc_callid_t, ipc_call_t *, void *);
 
+static service_id_t ctl_sid;
+
 static int vbds_init(void)
 {
 	int rc;
@@ -65,8 +67,7 @@ static int vbds_init(void)
 		return EEXIST;
 	}
 
-	service_id_t sid;
-	rc = loc_service_register(SERVICE_NAME_VBD, &sid);
+	rc = loc_service_register(SERVICE_NAME_VBD, &ctl_sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
@@ -190,7 +191,7 @@ static void vbds_part_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
-static void vbds_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void vbds_ctl_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_client_conn()");
 
@@ -240,6 +241,20 @@ static void vbds_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_0(callid, EINVAL);
 		}
 	}
+}
+
+static void vbds_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	service_id_t sid;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_client_conn()");
+
+	sid = (service_id_t)IPC_GET_ARG1(*icall);
+
+	if (sid == ctl_sid)
+		vbds_ctl_conn(iid, icall, arg);
+	else
+		vbds_bd_conn(iid, icall, arg);
 }
 
 int main(int argc, char *argv[])

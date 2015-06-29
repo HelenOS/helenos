@@ -342,6 +342,7 @@ static int fdsk_create_part(fdisk_dev_t *dev)
 	}
 
 	tinput_destroy(tinput);
+	tinput = NULL;
 
 	rc = fdsk_select_fstype(&fstype);
 	if (rc != EOK)

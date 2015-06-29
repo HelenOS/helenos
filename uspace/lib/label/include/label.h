@@ -48,6 +48,7 @@ extern int label_get_info(label_t *, label_info_t *);
 
 extern label_part_t *label_part_first(label_t *);
 extern label_part_t *label_part_next(label_part_t *);
+extern void label_part_get_info(label_part_t *, label_part_info_t *);
 
 extern int label_part_create(label_t *, label_part_spec_t *,
     label_part_t **);

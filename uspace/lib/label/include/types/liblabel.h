@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <types/label.h>
+#include <sys/types.h>
 #include <vol.h>
 
 typedef struct {
@@ -47,28 +48,29 @@ typedef struct {
 	label_type_t ltype;
 } label_info_t;
 
+typedef struct {
+	/** Address of first block */
+	aoff64_t block0;
+	/** Number of blocks */
+	aoff64_t nblocks;
+} label_part_info_t;
+
 /** Partition */
 typedef struct {
 	/** Containing label */
 	struct label *label;
-	/** Link to fdisk_dev_t.parts */
-	link_t ldev;
-	/** Capacity */
-//	fdisk_cap_t capacity;
-	/** File system type */
-//	fdisk_fstype_t fstype;
+	/** Link to label_t.parts */
+	link_t llabel;
 } label_part_t;
 
 /** Specification of new partition */
 typedef struct {
-	/** Desired capacity */
-//	fdisk_cap_t capacity;
-	/** File system type */
-//	fdisk_fstype_t fstype;
 } label_part_spec_t;
 
 /** Label instance */
 typedef struct label {
+	/** Partitions */
+	list_t parts; /* of label_part_t */
 } label_t;
 
 #endif

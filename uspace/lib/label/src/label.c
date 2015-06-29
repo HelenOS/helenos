@@ -33,6 +33,7 @@
  * @file Disk label library.
  */
 
+#include <adt/list.h>
 #include <errno.h>
 #include <label.h>
 #include <mem.h>
@@ -46,6 +47,7 @@ int label_open(service_id_t sid, label_t **rlabel)
 	if (label == NULL)
 		return ENOMEM;
 
+	list_initialize(&label->parts);
 	*rlabel = label;
 	return EOK;
 }
@@ -58,12 +60,16 @@ int label_create(service_id_t sid, label_type_t ltype, label_t **rlabel)
 	if (label == NULL)
 		return ENOMEM;
 
+	list_initialize(&label->parts);
 	*rlabel = label;
 	return EOK;
 }
 
 void label_close(label_t *label)
 {
+	if (label == NULL)
+		return;
+
 	free(label);
 }
 
@@ -82,23 +88,51 @@ int label_get_info(label_t *label, label_info_t *linfo)
 
 label_part_t *label_part_first(label_t *label)
 {
-	return NULL;
+	link_t *link;
+
+	link = list_first(&label->parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, llabel);
 }
 
-label_part_t *label_part_next(label_part_t *oart)
+label_part_t *label_part_next(label_part_t *part)
 {
-	return NULL;
+	link_t *link;
+
+	link = list_next(&part->llabel, &part->label->parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, llabel);
 }
 
+void label_part_get_info(label_part_t *part, label_part_info_t *pinfo)
+{
+	pinfo->block0 = 0;
+	pinfo->nblocks = 0;
+}
 
 int label_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
-	return ENOTSUP;
+	label_part_t *part;
+
+	part = calloc(1, sizeof(label_part_t));
+	if (part == NULL)
+		return ENOMEM;
+
+	part->label = label;
+	list_append(&part->llabel, &label->parts);
+	*rpart = part;
+	return EOK;
 }
 
 int label_part_destroy(label_part_t *part)
 {
+	list_remove(&part->llabel);
+	free(part);
 	return EOK;
 }
 

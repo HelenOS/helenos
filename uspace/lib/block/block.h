@@ -119,6 +119,7 @@ extern int block_read_toc(service_id_t, uint8_t, void *, size_t);
 extern int block_read_direct(service_id_t, aoff64_t, size_t, void *);
 extern int block_read_bytes_direct(service_id_t, aoff64_t, size_t, void *);
 extern int block_write_direct(service_id_t, aoff64_t, size_t, const void *);
+extern int block_sync_cache(service_id_t, aoff64_t, size_t);
 
 #endif
 
