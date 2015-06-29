@@ -59,13 +59,11 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 		usb_log_error("Failed to allocate list head.\n");
 		return ENOMEM;
 	}
-	/* Make sure the address translation exists by initializing first */
 	qh_init(instance->list_head, NULL);
 
-	instance->list_head_pa = addr_to_phys(instance->list_head);
 	list_initialize(&instance->endpoint_list);
-	usb_log_debug2("Transfer list %s setup with ED: %p(0x%0" PRIx32 ")).\n",
-	    name, instance->list_head, instance->list_head_pa);
+	usb_log_debug2("Transfer list %s setup with ED: %p(%x).\n",
+	    name, instance->list_head, addr_to_phys(instance->list_head));
 
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;
@@ -78,7 +76,7 @@ void endpoint_list_chain(endpoint_list_t *instance, const endpoint_list_t *next)
 	assert(instance->list_head);
 	assert(next->list_head);
 
-	instance->list_head->horizontal = LINK_POINTER_QH(next->list_head_pa);
+	qh_append_qh(instance->list_head, next->list_head);
 }
 
 /** Add endpoint to the end of the list and queue.
@@ -126,8 +124,8 @@ void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).\n",
 		ep, instance->name, first, first->qh);
 	if (last_qh == instance->list_head) {
-		usb_log_debug2("%s head ED(%p-0x%0" PRIx32 "): %x:%x.\n",
-		    instance->name, last_qh, instance->list_head_pa,
+		usb_log_debug2("%s head ED(%p-%x): %x:%x.\n",
+		    instance->name, last_qh, addr_to_phys(instance->list_head),
 		    last_qh->status, last_qh->horizontal);
 	}
 	fibril_mutex_unlock(&instance->guard);

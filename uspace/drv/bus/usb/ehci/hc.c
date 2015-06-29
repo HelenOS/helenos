@@ -391,7 +391,7 @@ void hc_start(hc_t *instance)
 
 	/* Enable periodic list */
 	assert(instance->periodic_list_base);
-	const uintptr_t phys_base =
+	uintptr_t phys_base =
 	    addr_to_phys((void*)instance->periodic_list_base);
 	assert((phys_base & USB_PERIODIC_LIST_BASE_MASK) == phys_base);
 	EHCI_WR(instance->registers->periodiclistbase, phys_base);
@@ -399,10 +399,9 @@ void hc_start(hc_t *instance)
 
 
 	/* Enable Async schedule */
-	assert((instance->async_list.list_head_pa & USB_ASYNCLIST_MASK) ==
-	    instance->async_list.list_head_pa);
-	EHCI_WR(instance->registers->asynclistaddr,
-	    instance->async_list.list_head_pa);
+	phys_base = addr_to_phys((void*)instance->async_list.list_head);
+	assert((phys_base & USB_ASYNCLIST_MASK) == phys_base);
+	EHCI_WR(instance->registers->asynclistaddr, phys_base);
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_ASYNC_SCHEDULE_FLAG);
 
 	/* Start hc and get all ports */
@@ -433,6 +432,11 @@ int hc_init_memory(hc_t *instance)
 		usb_log_error("Failed to setup ASYNC list: %s", str_error(ret));
 		return ret;
 	}
+	/* Specs say "Software must set queue head horizontal pointer T-bits to
+	 * a zero for queue heads in the asynchronous schedule" (4.4.0).
+	 * So we must maintain circular buffer (all horizontal pointers
+	 * have to be valid */
+	endpoint_list_chain(&instance->async_list, &instance->async_list);
 
 	ret = endpoint_list_init(&instance->int_list, "INT");
 	if (ret != EOK) {
@@ -440,8 +444,6 @@ int hc_init_memory(hc_t *instance)
 		endpoint_list_fini(&instance->async_list);
 		return ret;
 	}
-	/* Loop async list */
-	endpoint_list_chain(&instance->async_list, &instance->async_list);
 
 	/* Take 1024 periodic list heads, we ignore low mem options */
 	instance->periodic_list_base = get_page();
@@ -456,7 +458,7 @@ int hc_init_memory(hc_t *instance)
 	{
 		/* Disable everything for now */
 		instance->periodic_list_base[i] =
-		    LINK_POINTER_QH(instance->int_list.list_head_pa);
+		    LINK_POINTER_QH(addr_to_phys(instance->int_list.list_head));
 	}
 	return EOK;
 }

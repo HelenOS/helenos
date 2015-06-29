@@ -49,8 +49,6 @@ typedef struct endpoint_list {
 	fibril_mutex_t guard;
 	/** EHCI hw structure at the beginning of the queue */
 	qh_t *list_head;
-	/** Physical address of the first(dummy) ED */
-	uint32_t list_head_pa;
 	/** Assigned name, provides nicer debug output */
 	const char *name;
 	/** Sw list of all active EDs */
@@ -68,7 +66,6 @@ static inline void endpoint_list_fini(endpoint_list_t *instance)
 	assert(instance);
 	free32(instance->list_head);
 	instance->list_head = NULL;
-	instance->list_head_pa = 0;
 }
 
 int endpoint_list_init(endpoint_list_t *instance, const char *name);
