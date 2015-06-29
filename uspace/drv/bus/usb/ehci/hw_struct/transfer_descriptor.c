@@ -118,6 +118,7 @@ void td_init(td_t *instance, const td_t *next,
 
 	EHCI_MEM32_WR(instance->alternate, LINK_POINTER_TERM);
 	EHCI_MEM32_SET(instance->status, TD_STATUS_ACTIVE_FLAG);
+	write_barrier();
 }
 /**
  * @}
