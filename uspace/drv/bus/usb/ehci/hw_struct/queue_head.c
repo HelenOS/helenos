@@ -38,10 +38,9 @@
 #include <macros.h>
 
 #include "mem_access.h"
-
 #include "queue_head.h"
 
-const uint32_t speed[] = {
+static const uint32_t speed[] = {
 	[USB_SPEED_LOW] = QH_EP_CHAR_EPS_LS,
 	[USB_SPEED_FULL] = QH_EP_CHAR_EPS_FS,
 	[USB_SPEED_HIGH] = QH_EP_CHAR_EPS_HS,
@@ -53,12 +52,12 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	memset(instance, 0, sizeof(*instance));
 
 	EHCI_MEM32_WR(instance->horizontal, LINK_POINTER_TERM);
-	EHCI_MEM32_WR(instance->current, LINK_POINTER_TERM);
+//	EHCI_MEM32_WR(instance->current, LINK_POINTER_TERM);
 	EHCI_MEM32_WR(instance->next, LINK_POINTER_TERM);
 	EHCI_MEM32_WR(instance->alternate, LINK_POINTER_TERM);
 	if (ep == NULL) {
-		/* Mark as halted and list head, used by endpoint lists
-		 * as dummy */
+		/* Mark as halted and list head,
+		 * used by endpoint lists as dummy */
 		EHCI_MEM32_WR(instance->ep_char, QH_EP_CHAR_H_FLAG);
 		EHCI_MEM32_WR(instance->status, QH_STATUS_HALTED_FLAG);
 		return;
@@ -77,21 +76,21 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 		 * CONTROL needs special toggle handling anyway */
 		EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_DTC_FLAG);
 	}
+	uint32_t ep_cap = QH_EP_CAP_C_MASK_SET(3 << 2) |
+		    QH_EP_CAP_MULTI_SET(ep->packets);
+	if (ep->speed != USB_SPEED_HIGH) {
+		ep_cap |=
+		    QH_EP_CAP_TT_PORT_SET(ep->tt.port) |
+		    QH_EP_CAP_TT_ADDR_SET(ep->tt.address);
+	}
+	if (ep->transfer_type == USB_TRANSFER_INTERRUPT) {
+		ep_cap |= QH_EP_CAP_S_MASK_SET(3);
+	}
 
 	// TODO Figure out how to correctly use CMASK and SMASK for LS/FS
 	// INT transfers. Current values are just guesses
-	/* Setting TT stuff on HS endpoints is OK, the fields are ignored,
-	 * and so is setting multi on async (should be 1 anyway)*/
-	EHCI_MEM32_WR(instance->ep_cap,
-	    QH_EP_CAP_MULTI_SET(ep->packets) |
-	    QH_EP_CAP_TT_PORT_SET(ep->tt.port) |
-	    QH_EP_CAP_TT_ADDR_SET(ep->tt.address) |
-	    QH_EP_CAP_C_MASK_SET(3 << 2)
-	);
+	EHCI_MEM32_WR(instance->ep_cap, ep_cap);
 
-	if (ep->transfer_type == USB_TRANSFER_INTERRUPT) {
-		EHCI_MEM32_SET(instance->ep_cap, QH_EP_CAP_S_MASK_SET(3));
-	}
 	/* The rest of the fields are transfer working area, it should be ok to
 	 * leave it NULL */
 }
