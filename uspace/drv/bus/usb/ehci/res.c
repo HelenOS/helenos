@@ -75,7 +75,7 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 		usb_log_error("Failed to read USBLEGSUP: %s.\n", str_error(ret));
 		return ret;
 	}
-	usb_log_debug("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
+	usb_log_debug2("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
 
 	/* Request control from firmware/BIOS by writing 1 to highest
 	 * byte. (OS Control semaphore)*/
@@ -132,7 +132,7 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 			    str_error(ret));
 			return ret;
 		}
-		usb_log_debug("USBLEGCTLSTS: %" PRIx32 ".\n", usblegctlsts);
+		usb_log_debug2("USBLEGCTLSTS: %" PRIx32 ".\n", usblegctlsts);
 		/*
 		 * Zero SMI enables in legacy control register.
 		 * It should prevent pre-OS code from
@@ -155,7 +155,7 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 			    str_error(ret));
 			return ret;
 		}
-		usb_log_debug("Zeroed USBLEGCTLSTS: %" PRIx32 ".\n",
+		usb_log_debug2("Zeroed USBLEGCTLSTS: %" PRIx32 ".\n",
 		    usblegctlsts);
 	}
 
@@ -167,7 +167,7 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 		    str_error(ret));
 		return ret;
 	}
-	usb_log_debug("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
+	usb_log_debug2("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
 	return ret;
 }
 
@@ -207,18 +207,18 @@ int disable_legacy(ddf_dev_t *device)
 		goto clean;
 	}
 
-	usb_log_debug2("Registers mapped at: %p.\n", regs);
+	usb_log_debug("Registers mapped at: %p.\n", regs);
 
 	ehci_caps_regs_t *ehci_caps = regs;
 
 	const uint32_t hcc_params = EHCI_RD(ehci_caps->hccparams);
-	usb_log_debug("Value of hcc params register: %x.\n", hcc_params);
+	usb_log_debug2("Value of hcc params register: %x.\n", hcc_params);
 
 	/* Read value of EHCI Extended Capabilities Pointer
 	 * position of EEC registers (points to PCI config space) */
 	const uint32_t eecp =
 	    (hcc_params >> EHCI_CAPS_HCC_EECP_SHIFT) & EHCI_CAPS_HCC_EECP_MASK;
-	usb_log_debug("Value of EECP: %x.\n", eecp);
+	usb_log_debug2("Value of EECP: %x.\n", eecp);
 
 	ret = disable_extended_caps(parent_sess, eecp);
 	if (ret != EOK) {
