@@ -59,12 +59,14 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 		usb_log_error("Failed to allocate list head.\n");
 		return ENOMEM;
 	}
+	/* Make sure the address translation exists by initializing first */
+	qh_init(instance->list_head, NULL);
+
 	instance->list_head_pa = addr_to_phys(instance->list_head);
+	list_initialize(&instance->endpoint_list);
 	usb_log_debug2("Transfer list %s setup with ED: %p(0x%0" PRIx32 ")).\n",
 	    name, instance->list_head, instance->list_head_pa);
 
-	qh_init(instance->list_head, NULL);
-	list_initialize(&instance->endpoint_list);
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;
 }
@@ -107,7 +109,7 @@ void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 		last_qh = last->qh;
 	}
 	assert(last_qh);
-	/* Keep link */
+	/* Keep link, this might point to the queue QH, or next chained queue */
 	ep->qh->horizontal = last_qh->horizontal;
 	/* Make sure QH update is written to the memory */
 	write_barrier();
@@ -155,9 +157,7 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 		prev_qh = instance->list_head;
 		qpos = "FIRST";
 	} else {
-		ehci_endpoint_t *prev =
-		    list_get_instance(ep->link.prev, ehci_endpoint_t, link);
-		prev_qh = prev->qh;
+		prev_qh = ehci_endpoint_list_instance(ep->link.prev)->qh;
 		qpos = "NOT FIRST";
 	}
 	assert(qh_next(prev_qh) == addr_to_phys(ep->qh));
