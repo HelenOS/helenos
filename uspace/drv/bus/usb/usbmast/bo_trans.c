@@ -43,14 +43,9 @@
 #include "cmdw.h"
 #include "usbmast.h"
 
-bool usb_mast_verbose = false;
 
 #define MASTLOG(format, ...) \
-	do { \
-		if (usb_mast_verbose) { \
-			usb_log_debug2("USB cl08: " format, ##__VA_ARGS__); \
-		} \
-	} while (false)
+	usb_log_debug2("USB cl08: " format, ##__VA_ARGS__)
 
 /** Send command via bulk-only transport.
  *
@@ -92,8 +87,10 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	MASTLOG("CBW '%s' sent: %s.\n",
 	    usb_debug_str_buffer((uint8_t *) &cbw, sizeof(cbw), 0),
 	    str_error(rc));
-	if (rc != EOK)
+	if (rc != EOK) {
+		usb_log_error("Bulk out write failed: %s\n", str_error(rc));
 		return EIO;
+	}
 
 	MASTLOG("Transferring data.\n");
 	if (cmd->data_in) {
@@ -118,6 +115,7 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 		usb_pipe_clear_halt(
 		    usb_device_get_default_pipe(mfun->mdev->usb_dev), dpipe);
         } else if (rc != EOK) {
+		usb_log_error("Failed to transfer data: %s", str_error(rc));
 		return EIO;
 	}
 
@@ -130,17 +128,18 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	    usb_debug_str_buffer((uint8_t *) &csw, csw_size, 0), csw_size,
 	    str_error(rc));
 	if (rc != EOK) {
-		MASTLOG("rc != EOK\n");
+		usb_log_error("Failed to read CSW: %s", str_error(rc));
 		return EIO;
 	}
 
 	if (csw_size != sizeof(csw)) {
-		MASTLOG("csw_size != sizeof(csw)\n");
+		usb_log_error("Received CSW of incorrect size.");
 		return EIO;
 	}
 
 	if (csw.dCSWTag != tag) {
-		MASTLOG("csw.dCSWTag != tag\n");
+		usb_log_error("Received CSW with incorrect tag. (expected: %"
+		    PRIX32" received: %"PRIx32, tag, csw.dCSWTag);
 		return EIO;
 	}
 
@@ -152,21 +151,23 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 		cmd->status = CMDS_GOOD;
 		break;
 	case cbs_failed:
-		MASTLOG("Command failed\n");
 		cmd->status = CMDS_FAILED;
+		usb_log_error("CBS Failed.\n");
 		break;
 	case cbs_phase_error:
-		MASTLOG("Phase error\n");
+		usb_log_error("CBS phase error.\n");
 		rc = EIO;
 		break;
 	default:
+		usb_log_error("CBS other error.\n");
 		rc = EIO;
 		break;
 	}
 
 	const size_t residue = uint32_usb2host(csw.dCSWDataResidue);
 	if (residue > dbuf_size) {
-		MASTLOG("residue > dbuf_size\n");
+		usb_log_error("Residue > buffer size (%zu > %zu).\n",
+		    residue, dbuf_size);
 		return EIO;
 	}
 
