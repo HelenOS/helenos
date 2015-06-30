@@ -333,9 +333,7 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
 		fibril_mutex_lock(&instance->guard);
 
-		link_t *current = list_first(&instance->pending_batches);
-		while (current && current != &instance->pending_batches.head) {
-			link_t *next = current->next;
+		list_foreach_safe(instance->pending_batches, current, next) {
 			ehci_transfer_batch_t *batch =
 			    ehci_transfer_batch_from_link(current);
 
@@ -343,7 +341,6 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 				list_remove(current);
 				ehci_transfer_batch_finish_dispose(batch);
 			}
-			current = next;
 		}
 		fibril_mutex_unlock(&instance->guard);
 	}
