@@ -37,6 +37,7 @@
 #include <device/hw_res.h>
 #include <errno.h>
 #include <str_error.h>
+#include <io/logctl.h>
 
 #include <usb_iface.h>
 #include <usb/debug.h>
@@ -130,6 +131,7 @@ static int ehci_dev_add(ddf_dev_t *device)
 int main(int argc, char *argv[])
 {
 	log_init(NAME);
+	logctl_set_log_level(NAME, LVL_NOTE);
 	return ddf_driver_main(&ehci_driver);
 }
 /**
