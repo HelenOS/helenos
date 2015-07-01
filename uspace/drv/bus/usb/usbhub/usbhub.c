@@ -158,8 +158,9 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 		return opResult;
 	}
 	hub_dev->running = true;
-	usb_log_info("Controlling hub '%s' (%zu ports).\n",
-	    usb_device_get_name(hub_dev->usb_device), hub_dev->port_count);
+	usb_log_info("Controlling hub '%s' (%p: %zu ports).\n",
+	    usb_device_get_name(hub_dev->usb_device), hub_dev,
+	    hub_dev->port_count);
 
 	return EOK;
 }
@@ -189,7 +190,8 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	while (hub->running) {
 		async_usleep(100000);
 		if (!tries--) {
-			usb_log_error("Can't remove hub, still running.\n");
+			usb_log_error("(%p): Can't remove hub, still running.",
+			    hub);
 			return EBUSY;
 		}
 	}
@@ -205,13 +207,13 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 
 	const int ret = ddf_fun_unbind(hub->hub_fun);
 	if (ret != EOK) {
-		usb_log_error("Failed to unbind '%s' function: %s.\n",
-		   HUB_FNC_NAME, str_error(ret));
+		usb_log_error("(%p) Failed to unbind '%s' function: %s.",
+		   hub, HUB_FNC_NAME, str_error(ret));
 		return ret;
 	}
 	ddf_fun_destroy(hub->hub_fun);
 
-	usb_log_info("USB hub driver, stopped and cleaned.\n");
+	usb_log_info("(%p) USB hub driver stopped and cleaned.", hub);
 	return EOK;
 }
 
@@ -226,7 +228,7 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg)
 {
-	usb_log_debug("hub_port_changes_callback\n");
+//	usb_log_debug("hub_port_changes_callback\n");
 	usb_hub_dev_t *hub = arg;
 	assert(hub);
 
@@ -267,7 +269,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	assert(hub_dev);
 
 	/* Get hub descriptor. */
-	usb_log_debug("Retrieving descriptor\n");
+	usb_log_debug("(%p): Retrieving descriptor.", hub_dev);
 	usb_pipe_t *control_pipe =
 	    usb_device_get_default_pipe(hub_dev->usb_device);
 
@@ -278,12 +280,13 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	    USB_DESCTYPE_HUB, 0, 0, &descriptor,
 	    sizeof(usb_hub_descriptor_header_t), &received_size);
 	if (opResult != EOK) {
-		usb_log_error("Failed to receive hub descriptor: %s.\n",
-		    str_error(opResult));
+		usb_log_error("(%p): Failed to receive hub descriptor: %s.\n",
+		    hub_dev, str_error(opResult));
 		return opResult;
 	}
 
-	usb_log_debug("Setting port count to %d.\n", descriptor.port_count);
+	usb_log_debug("(%p): Setting port count to %d.\n", hub_dev,
+	    descriptor.port_count);
 	hub_dev->port_count = descriptor.port_count;
 
 	hub_dev->ports = calloc(hub_dev->port_count, sizeof(usb_hub_port_t));
@@ -302,26 +305,27 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	    descriptor.characteristics & HUB_CHAR_POWER_PER_PORT_FLAG;
 
 	if (!hub_dev->power_switched) {
-		usb_log_info(
-		   "Power switching not supported, ports always powered.\n");
+		usb_log_info("(%p): Power switching not supported, "
+		    "ports always powered.", hub_dev);
 		return EOK;
 	}
 
-	usb_log_info("Hub port power switching enabled (%s).\n",
+	usb_log_info("(%p): Hub port power switching enabled (%s).\n", hub_dev,
 	    hub_dev->per_port_power ? "per port" : "ganged");
 
 	for (size_t port = 0; port < hub_dev->port_count; ++port) {
-		usb_log_debug("Powering port %zu.\n", port);
+		usb_log_debug("(%p): Powering port %zu.", hub_dev, port);
 		const int ret = usb_hub_port_set_feature(
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 
 		if (ret != EOK) {
-			usb_log_error("Cannot power on port %u: %s.\n",
-			    hub_dev->ports[port].port_number, str_error(ret));
+			usb_log_error("(%p-%zu): Cannot power on port: %s.\n",
+			    hub_dev, hub_dev->ports[port].port_number,
+			    str_error(ret));
 		} else {
 			if (!hub_dev->per_port_power) {
-				usb_log_debug("Ganged power switching, "
-				    "one port is enough.\n");
+				usb_log_debug("(%p) Ganged power switching, "
+				    "one port is enough.", hub_dev);
 				break;
 			}
 		}
@@ -350,7 +354,6 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 		return EINVAL;
 	}
 
-	// TODO: Make sure that the cast is correct
 	const size_t config_size =
 	    usb_device_descriptors(usb_device)->full_config_size;
 	const usb_standard_configuration_descriptor_t *config_descriptor =
@@ -390,8 +393,8 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
 {
 	if (status & USB_HUB_STATUS_OVER_CURRENT) {
 		/* Hub should remove power from all ports if it detects OC */
-		usb_log_warning("Detected hub over-current condition, "
-		    "all ports should be powered off.");
+		usb_log_warning("(%p) Detected hub over-current condition, "
+		    "all ports should be powered off.", hub_dev);
 		return;
 	}
 
@@ -404,9 +407,9 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
 		const int ret = usb_hub_port_set_feature(
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 		if (ret != EOK) {
-			usb_log_warning("HUB OVER-CURRENT GONE: Cannot power on"
-			    " port %u: %s\n", hub_dev->ports[port].port_number,
-			    str_error(ret));
+			usb_log_warning("(%p-%u): HUB OVER-CURRENT GONE: Cannot"
+			    " power on port: %s\n", hub_dev,
+			    hub_dev->ports[port].port_number, str_error(ret));
 		} else {
 			if (!hub_dev->per_port_power)
 				return;
@@ -425,7 +428,7 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 {
 	assert(hub_dev);
 	assert(hub_dev->usb_device);
-	usb_log_debug("Global interrupt on a hub\n");
+	usb_log_debug("(%p): Global interrupt on th hub.",  hub_dev);
 	usb_pipe_t *control_pipe =
 	    usb_device_get_default_pipe(hub_dev->usb_device);
 
@@ -437,12 +440,13 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 	    &get_hub_status_request, sizeof(get_hub_status_request),
 	    &status, sizeof(usb_hub_status_t), &rcvd_size);
 	if (opResult != EOK) {
-		usb_log_error("Could not get hub status: %s\n",
+		usb_log_error("(%p): Could not get hub status: %s.", hub_dev,
 		    str_error(opResult));
 		return;
 	}
 	if (rcvd_size != sizeof(usb_hub_status_t)) {
-		usb_log_error("Received status has incorrect size\n");
+		usb_log_error("(%p): Received status has incorrect size: "
+		    "%zu != %zu", hub_dev, rcvd_size, sizeof(usb_hub_status_t));
 		return;
 	}
 
@@ -455,8 +459,8 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 		    USB_REQUEST_RECIPIENT_DEVICE,
 		    USB_HUB_FEATURE_C_HUB_OVER_CURRENT, 0);
 		if (ret != EOK) {
-			usb_log_error("Failed to clear hub over-current "
-			    "change flag: %s.\n", str_error(opResult));
+			usb_log_error("(%p): Failed to clear hub over-current "
+			    "change flag: %s.\n", hub_dev, str_error(opResult));
 		}
 	}
 
@@ -479,8 +483,8 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 		    USB_REQUEST_RECIPIENT_DEVICE,
 		    USB_HUB_FEATURE_C_HUB_LOCAL_POWER, 0);
 		if (opResult != EOK) {
-			usb_log_error("Failed to clear hub power change "
-			    "flag: %s.\n", str_error(ret));
+			usb_log_error("(%p): Failed to clear hub power change "
+			    "flag: %s.\n", hub_dev, str_error(ret));
 		}
 	}
 }

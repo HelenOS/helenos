@@ -54,7 +54,7 @@ struct add_device_phase1 {
 
 static int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub);
 static void usb_hub_port_reset_completed(usb_hub_port_t *port,
-    usb_port_status_t status);
+    usb_hub_dev_t *hub, usb_port_status_t status);
 static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
 static int add_device_phase1_worker_fibril(void *arg);
 static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
@@ -242,7 +242,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 
 	/* Port reset, set on port reset complete. */
 	if (status & USB_HUB_PORT_C_STATUS_RESET) {
-		usb_hub_port_reset_completed(port, status);
+		usb_hub_port_reset_completed(port, hub, status);
 	}
 
 	usb_log_debug2("(%p-%u): Port status %#08" PRIx32, hub,
@@ -281,7 +281,7 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
  * @param port Port structure
  * @param status Port status mask
  */
-void usb_hub_port_reset_completed(usb_hub_port_t *port,
+void usb_hub_port_reset_completed(usb_hub_port_t *port, usb_hub_dev_t *hub,
     usb_port_status_t status)
 {
 	assert(port);
@@ -291,11 +291,12 @@ void usb_hub_port_reset_completed(usb_hub_port_t *port,
 
 	if (enabled) {
 		port->reset_status = RESET_OK;
-		usb_log_debug("Port %u reset complete.\n", port->port_number);
+		usb_log_debug("(%p-%u): Port reset complete.\n", hub,
+		    port->port_number);
 	} else {
 		port->reset_status = RESET_FAIL;
-		usb_log_warning("Port %u reset complete but port not enabled.",
-		    port->port_number);
+		usb_log_warning("(%p-%u): Port reset complete but port not "
+		    "enabled.", hub, port->port_number);
 	}
 	fibril_condvar_broadcast(&port->reset_cv);
 	fibril_mutex_unlock(&port->mutex);
@@ -303,8 +304,8 @@ void usb_hub_port_reset_completed(usb_hub_port_t *port,
 	/* Clear the port reset change. */
 	int rc = usb_hub_port_clear_feature(port, USB_HUB_FEATURE_C_PORT_RESET);
 	if (rc != EOK) {
-		usb_log_error("Failed to clear port %u reset change: %s.",
-		    port->port_number, str_error(rc));
+		usb_log_error("(%p-%u): Failed to clear port reset change: %s.",
+		    hub, port->port_number, str_error(rc));
 	}
 }
 
@@ -348,14 +349,14 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
 	return EOK;
 }
 
-static int port_enable(usb_hub_port_t *port, bool enable)
+static int port_enable(usb_hub_port_t *port, usb_hub_dev_t *hub, bool enable)
 {
 	if (enable) {
 		const int rc =
 		    usb_hub_port_set_feature(port, USB_HUB_FEATURE_PORT_RESET);
 		if (rc != EOK) {
-			usb_log_error("Port reset failed: %s.\n",
-			    str_error(rc));
+			usb_log_error("(%p-%u): Port reset failed: %s.\n",
+			    hub, port->port_number, str_error(rc));
 			return rc;
 		}
 		/* Wait until reset completes. */
@@ -416,11 +417,13 @@ int add_device_phase1_worker_fibril(void *arg)
 	usb_log_debug("(%p-%u): Got default address reseting port.", hub,
 	    port->port_number);
 	/* Reset port */
-	ret = port_enable(port, true);
+	ret = port_enable(port, hub, true);
 	if (ret != EOK) {
-		usb_log_error("Failed to reset port %u\n", port->port_number);
+		usb_log_error("(%p-%u): Failed to reset port.", hub,
+		    port->port_number);
 		if (usb_release_default_address(exch) != EOK)
-			usb_log_warning("Failed to release default address\n");
+			usb_log_warning("(%p-%u): Failed to release default "
+			    "address.", hub, port->port_number);
 		ret = EIO;
 		goto out;
 	}
@@ -431,7 +434,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	if (ret != EOK) {
 		usb_log_error("(%p-%u): Failed to enumerate device: %s", hub,
 		    port->port_number, str_error(ret));
-		const int ret = port_enable(port, false);
+		const int ret = port_enable(port, hub, false);
 		if (ret != EOK) {
 			usb_log_warning("(%p-%u)Failed to disable port (%s), "
 			    "NOT releasing default address.", hub,
