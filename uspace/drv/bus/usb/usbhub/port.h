@@ -51,12 +51,15 @@ typedef struct {
 	fibril_mutex_t mutex;
 	/** CV for waiting to port reset completion. */
 	fibril_condvar_t reset_cv;
-	/** Whether port reset is completed.
+	/** Port reset status.
 	 * Guarded by @c reset_mutex.
 	 */
-	bool reset_completed;
-	/** Whether to announce the port reset as successful. */
-	bool reset_okay;
+	enum {
+		NO_RESET,
+		IN_RESET,
+		RESET_OK,
+		RESET_FAIL,
+	} reset_status;
 	/** Device reported to USB bus driver */
 	bool device_attached;
 } usb_hub_port_t;
@@ -71,8 +74,7 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, unsigned port_number,
 	assert(port);
 	port->port_number = port_number;
 	port->control_pipe = control_pipe;
-	port->reset_completed = false;
-	port->reset_okay = false;
+	port->reset_status = NO_RESET;
 	port->device_attached = false;
 	fibril_mutex_initialize(&port->mutex);
 	fibril_condvar_initialize(&port->reset_cv);

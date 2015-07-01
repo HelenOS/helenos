@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <async.h>
 #include <stdio.h>
+#include <io/logctl.h>
 
 #include <usb/dev/driver.h>
 #include <usb/classes/classes.h>
@@ -66,7 +67,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB hub driver.\n");
 	log_init(NAME);
-
+	logctl_set_log_level(NAME, LVL_DEBUG);
 	return usb_driver_main(&usb_hub_driver);
 }
 

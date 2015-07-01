@@ -121,8 +121,8 @@ void usb_hub_port_reset_fail(usb_hub_port_t *port)
 {
 	assert(port);
 	fibril_mutex_lock(&port->mutex);
-	port->reset_completed = true;
-	port->reset_okay = false;
+	if (port->reset_status == IN_RESET)
+		port->reset_status = RESET_FAIL;
 	fibril_condvar_broadcast(&port->reset_cv);
 	fibril_mutex_unlock(&port->mutex);
 }
@@ -138,12 +138,12 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 {
 	assert(port);
 	assert(hub);
-	usb_log_debug("Interrupt at port %u\n", port->port_number);
+	usb_log_debug2("(%p-%u): Interrupt.\n", hub, port->port_number);
 
 	usb_port_status_t status = 0;
 	const int opResult = get_port_status(port, &status);
 	if (opResult != EOK) {
-		usb_log_error("Failed to get port %u status: %s.\n",
+		usb_log_error("(%p-%u): Failed to get port status: %s.\n", hub,
 		    port->port_number, str_error(opResult));
 		return;
 	}
@@ -152,26 +152,29 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	if (status & USB_HUB_PORT_C_STATUS_CONNECTION) {
 		const bool connected =
 		    (status & USB_HUB_PORT_STATUS_CONNECTION) != 0;
-		usb_log_debug("Connection change on port %u: device %s.\n",
+		usb_log_debug("(%p-%u): Connection change: device %s.\n", hub,
 		    port->port_number, connected ? "attached" : "removed");
 
 		/* ACK the change */
 		const int opResult = usb_hub_port_clear_feature(port,
 		    USB_HUB_FEATURE_C_PORT_CONNECTION);
 		if (opResult != EOK) {
-			usb_log_warning("Failed to clear port-change-connection"
-			    " flag: %s.\n", str_error(opResult));
+			usb_log_warning("(%p-%u): Failed to clear "
+			    "port-change-connection flag: %s.\n", hub,
+			    port->port_number, str_error(opResult));
 		}
 
 		if (connected) {
 			const int opResult = create_add_device_fibril(port, hub,
 			    usb_port_speed(status));
 			if (opResult != EOK) {
-				usb_log_error(
-				    "Cannot handle change on port %u: %s.\n",
-				    port->port_number, str_error(opResult));
+				usb_log_error("(%p-%u): Cannot handle change on"
+				   " port: %s.\n", hub, port->port_number,
+				   str_error(opResult));
 			}
 		} else {
+			/* Handle the case we were in reset */
+			usb_hub_port_reset_fail(port);
 			/* If enabled change was reported leave the removal
 			 * to that handler, it shall ACK the change too. */
 			if (!(status & USB_HUB_PORT_C_STATUS_ENABLED)) {
@@ -182,35 +185,38 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 
 	/* Enable change, ports are automatically disabled on errors. */
 	if (status & USB_HUB_PORT_C_STATUS_ENABLED) {
-		usb_log_info("Port %u, disabled because of errors.\n",
+		//TODO: maybe HS reset failed?
+		usb_log_info("(%p-%u): Port disabled because of errors.\n", hub,
 		   port->port_number);
 		usb_hub_port_device_gone(port, hub);
 		const int rc = usb_hub_port_clear_feature(port,
 		        USB_HUB_FEATURE_C_PORT_ENABLE);
 		if (rc != EOK) {
-			usb_log_error(
-			    "Failed to clear port %u enable change feature: "
-			    "%s.\n", port->port_number, str_error(rc));
+			usb_log_error("(%p-%u): Failed to clear port enable "
+			    "change feature: %s.", hub, port->port_number,
+			    str_error(rc));
 		}
 
 	}
 
 	/* Suspend change */
 	if (status & USB_HUB_PORT_C_STATUS_SUSPEND) {
-		usb_log_error("Port %u went to suspend state, this should"
-		    "NOT happen as we do not support suspend state!",
+		usb_log_error("(%p-%u): Port went to suspend state, this should"
+		    " NOT happen as we do not support suspend state!", hub,
 		    port->port_number);
 		const int rc = usb_hub_port_clear_feature(port,
 		        USB_HUB_FEATURE_C_PORT_SUSPEND);
 		if (rc != EOK) {
-			usb_log_error(
-			    "Failed to clear port %u suspend change feature: "
-			    "%s.\n", port->port_number, str_error(rc));
+			usb_log_error("(%p-%u): Failed to clear port suspend "
+			    "change feature: %s.", hub, port->port_number,
+			    str_error(rc));
 		}
 	}
 
 	/* Over current */
 	if (status & USB_HUB_PORT_C_STATUS_OC) {
+		usb_log_debug("(%p-%u): Port OC reported!.", hub,
+		    port->port_number);
 		/* According to the USB specs:
 		 * 11.13.5 Over-current Reporting and Recovery
 		 * Hub device is responsible for putting port in power off
@@ -219,17 +225,17 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 		const int rc = usb_hub_port_clear_feature(port,
 		    USB_HUB_FEATURE_C_PORT_OVER_CURRENT);
 		if (rc != EOK) {
-			usb_log_error(
-			    "Failed to clear port %u OC change feature: %s.\n",
-			    port->port_number, str_error(rc));
+			usb_log_error("(%p-%u): Failed to clear port OC change "
+			    "feature: %s.\n", hub, port->port_number,
+			    str_error(rc));
 		}
 		if (!(status & ~USB_HUB_PORT_STATUS_OC)) {
 			const int rc = usb_hub_port_set_feature(
 			    port, USB_HUB_FEATURE_PORT_POWER);
 			if (rc != EOK) {
-				usb_log_error(
-				    "Failed to set port %u power after OC:"
-				    " %s.\n", port->port_number, str_error(rc));
+				usb_log_error("(%p-%u): Failed to set port "
+				    "power after OC: %s.", hub,
+				    port->port_number, str_error(rc));
 			}
 		}
 	}
@@ -239,7 +245,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 		usb_hub_port_reset_completed(port, status);
 	}
 
-	usb_log_debug("Port %u status %#08" PRIx32 "\n",
+	usb_log_debug2("(%p-%u): Port status %#08" PRIx32, hub,
 	    port->port_number, status);
 }
 
@@ -280,15 +286,15 @@ void usb_hub_port_reset_completed(usb_hub_port_t *port,
 {
 	assert(port);
 	fibril_mutex_lock(&port->mutex);
+	const bool enabled = (status & USB_HUB_PORT_STATUS_ENABLED) != 0;
 	/* Finalize device adding. */
-	port->reset_completed = true;
-	port->reset_okay = (status & USB_HUB_PORT_STATUS_ENABLED) != 0;
 
-	if (port->reset_okay) {
+	if (enabled) {
+		port->reset_status = RESET_OK;
 		usb_log_debug("Port %u reset complete.\n", port->port_number);
 	} else {
-		usb_log_warning(
-		    "Port %u reset complete but port not enabled.\n",
+		port->reset_status = RESET_FAIL;
+		usb_log_warning("Port %u reset complete but port not enabled.",
 		    port->port_number);
 	}
 	fibril_condvar_broadcast(&port->reset_cv);
@@ -297,8 +303,7 @@ void usb_hub_port_reset_completed(usb_hub_port_t *port,
 	/* Clear the port reset change. */
 	int rc = usb_hub_port_clear_feature(port, USB_HUB_FEATURE_C_PORT_RESET);
 	if (rc != EOK) {
-		usb_log_error(
-		    "Failed to clear port %u reset change feature: %s.\n",
+		usb_log_error("Failed to clear port %u reset change: %s.",
 		    port->port_number, str_error(rc));
 	}
 }
@@ -351,16 +356,17 @@ static int port_enable(usb_hub_port_t *port, bool enable)
 		if (rc != EOK) {
 			usb_log_error("Port reset failed: %s.\n",
 			    str_error(rc));
-		} else {
-			/* Wait until reset completes. */
-			fibril_mutex_lock(&port->mutex);
-			while (!port->reset_completed) {
-				fibril_condvar_wait(&port->reset_cv,
-				    &port->mutex);
-			}
-			fibril_mutex_unlock(&port->mutex);
+			return rc;
 		}
-		return port->reset_okay ? EOK : ESTALL;
+		/* Wait until reset completes. */
+		fibril_mutex_lock(&port->mutex);
+		port->reset_status = IN_RESET;
+		while (port->reset_status == IN_RESET) {
+			fibril_condvar_wait(&port->reset_cv,
+			    &port->mutex);
+		}
+		fibril_mutex_unlock(&port->mutex);
+		return port->reset_status == RESET_OK ? EOK : ESTALL;
 	} else {
 		return usb_hub_port_clear_feature(port,
 				USB_HUB_FEATURE_PORT_ENABLE);
@@ -386,9 +392,13 @@ int add_device_phase1_worker_fibril(void *arg)
 	const usb_speed_t speed = params->speed;
 	free(arg);
 
+	usb_log_debug("(%p-%u): New device detected.", hub,
+	    port->port_number);
+
 	async_exch_t *exch = usb_device_bus_exchange_begin(hub->usb_device);
 	if (!exch) {
-		usb_log_error("Failed to begin bus exchange\n");
+		usb_log_error("(%p-%u): Failed to begin bus exchange.", hub,
+		    port->port_number);
 		ret = ENOMEM;
 		goto out;
 	}
@@ -398,40 +408,48 @@ int add_device_phase1_worker_fibril(void *arg)
 		async_usleep(1000000);
 	}
 	if (ret != EOK) {
-		usb_log_error("Failed to reserve default address: %s\n",
-		    str_error(ret));
+		usb_log_error("(%p-%u): Failed to reserve default address: %s",
+		    hub, port->port_number, str_error(ret));
 		goto out;
 	}
 
+	usb_log_debug("(%p-%u): Got default address reseting port.", hub,
+	    port->port_number);
 	/* Reset port */
-	port_enable(port, true);
-	if (!port->reset_completed || !port->reset_okay) {
+	ret = port_enable(port, true);
+	if (ret != EOK) {
 		usb_log_error("Failed to reset port %u\n", port->port_number);
 		if (usb_release_default_address(exch) != EOK)
 			usb_log_warning("Failed to release default address\n");
 		ret = EIO;
 		goto out;
 	}
+	usb_log_debug("(%p-%u): Port reset, enumerating device", hub,
+	    port->port_number);
 
 	ret = usb_device_enumerate(exch, port->port_number);
 	if (ret != EOK) {
-		usb_log_error("Failed to enumerate device on port %u: %s",
+		usb_log_error("(%p-%u): Failed to enumerate device: %s", hub,
 		    port->port_number, str_error(ret));
 		const int ret = port_enable(port, false);
 		if (ret != EOK) {
-			usb_log_warning("Failed to disable port %u (%s), NOT "
-			    "releasing default address.", port->port_number,
-			    str_error(ret));
+			usb_log_warning("(%p-%u)Failed to disable port (%s), "
+			    "NOT releasing default address.", hub,
+			    port->port_number, str_error(ret));
 		} else {
 			const int ret = usb_release_default_address(exch);
 			if (ret != EOK)
-				usb_log_warning("Failed to release default "
-				    "address: %s", str_error(ret));
+				usb_log_warning("(%p-%u): Failed to release "
+				    "default address: %s", hub,
+				    port->port_number, str_error(ret));
 		}
 	} else {
+		usb_log_debug("(%p-%u): Device enumerated", hub,
+		    port->port_number);
 		port->device_attached = true;
 		if (usb_release_default_address(exch) != EOK)
-			usb_log_warning("Failed to release default address\n");
+			usb_log_warning("(%p-%u): Failed to release default "
+			    "address", hub, port->port_number);
 	}
 out:
 	usb_device_bus_exchange_end(exch);
@@ -467,10 +485,6 @@ static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
 	data->hub = hub;
 	data->port = port;
 	data->speed = speed;
-
-	fibril_mutex_lock(&port->mutex);
-	port->reset_completed = false;
-	fibril_mutex_unlock(&port->mutex);
 
 	fid_t fibril = fibril_create(add_device_phase1_worker_fibril, data);
 	if (fibril == 0) {
