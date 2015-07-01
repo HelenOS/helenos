@@ -304,6 +304,7 @@ static int stop_reset(void *arg)
 {
 	ehci_rh_job_t *job = arg;
 	async_usleep(50000);
+	usb_log_debug("EHCI_RH(%p-%u): Clearing reset", job->hub, job->port);
 	EHCI_CLR(job->hub->registers->portsc[job->port],
 	    USB_PORTSC_PORT_RESET_FLAG);
 	/* wait for reset to complete */
@@ -311,10 +312,13 @@ static int stop_reset(void *arg)
 	    USB_PORTSC_PORT_RESET_FLAG) {
 		async_usleep(1);
 	};
+	usb_log_debug("EHCI_RH(%p-%u): Reset complete", job->hub, job->port);
 	/* Handle port ownership, if the port is not enabled
 	 * after reset it's a full speed device */
 	if (!(EHCI_RD(job->hub->registers->portsc[job->port]) &
 	    USB_PORTSC_ENABLED_FLAG)) {
+		usb_log_debug("EHCI_RH(%p-%u): Port not enabled after reset, "
+		"giving up ownership", job->hub, job->port);
 		EHCI_SET(job->hub->registers->portsc[job->port],
 		    USB_PORTSC_PORT_OWNER_FLAG);
 	} else {
