@@ -86,7 +86,7 @@ static int polling_fibril(void *arg)
 	if (params->debug > 0) {
 		const usb_endpoint_mapping_t *mapping
 		    = data->polling_mapping;
-		usb_log_debug("Poll%p: started polling of `%s' - " \
+		usb_log_debug("Poll (%p): started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
 		    data, usb_device_get_name(data->dev),
 		    (int) mapping->interface->interface_number,
