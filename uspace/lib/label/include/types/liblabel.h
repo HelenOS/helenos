@@ -97,6 +97,14 @@ struct label_part {
 
 /** Specification of new partition */
 struct label_part_spec {
+	/** Partition index */
+	int index;
+	/** First block */
+	aoff64_t block0;
+	/** Number of blocks */
+	aoff64_t nblocks;
+	/** Partition type */
+	uint64_t ptype;
 };
 
 /** Label instance */

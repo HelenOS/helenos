@@ -58,9 +58,19 @@ typedef struct {
 	size_t block_size;
 } vbd_disk_info_t;
 
+/** Specification of new partition */
 typedef struct {
+	/** Partition index */
+	int index;
+	/** First block */
+	aoff64_t block0;
+	/** Number of blocks */
+	aoff64_t nblocks;
+	/** Partition type */
+	uint64_t ptype;
 } vbd_part_spec_t;
 
+/** Partition info */
 typedef struct {
 	/** Partition index */
 	int index;

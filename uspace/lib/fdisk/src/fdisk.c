@@ -57,6 +57,9 @@ static const char *cu_str[] = {
 	[cu_ybyte] = "YB"
 };
 
+static int fdisk_part_spec_prepare(fdisk_dev_t *, fdisk_part_spec_t *,
+    vbd_part_spec_t *);
+
 static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 {
 	if (info == NULL)
@@ -496,26 +499,31 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	vbd_part_id_t partid;
 	int rc;
 
-	part = calloc(1, sizeof(fdisk_part_t));
-	if (part == NULL)
-		return ENOMEM;
+	printf("fdisk_part_create()\n");
 
-	rc = vbd_part_create(dev->fdisk->vbd, dev->sid, &vpspec, &partid);
-	if (rc != EOK) {
-		free(part);
+	rc = fdisk_part_spec_prepare(dev, pspec, &vpspec);
+	if (rc != EOK)
 		return EIO;
-	}
 
-	rc = fdisk_part_add(dev, partid, rpart);
+	printf("fdisk_part_create() - call vbd_part_create\n");
+	rc = vbd_part_create(dev->fdisk->vbd, dev->sid, &vpspec, &partid);
+	if (rc != EOK)
+		return EIO;
+
+	printf("fdisk_part_create() - call fdisk_part_add\n");
+	rc = fdisk_part_add(dev, partid, &part);
 	if (rc != EOK) {
 		/* Try rolling back */
 		(void) vbd_part_delete(dev->fdisk->vbd, partid);
 		return EIO;
 	}
 
-	(*rpart)->fstype = pspec->fstype;
-	(*rpart)->capacity = pspec->capacity;
+	printf("fdisk_part_create() - done\n");
+	part->fstype = pspec->fstype;
+	part->capacity = pspec->capacity;
 
+	if (rpart != NULL)
+		*rpart = part;
 	return EOK;
 }
 
@@ -646,6 +654,107 @@ int fdisk_fstype_format(fdisk_fstype_t fstype, char **rstr)
 		return ENOMEM;
 
 	*rstr = s;
+	return EOK;
+}
+
+/** Get free partition index. */
+static int fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
+{
+	link_t *link;
+	fdisk_part_t *part;
+	int nidx;
+
+	link = list_first(&dev->parts_idx);
+	nidx = 1;
+	while (link != NULL) {
+		part = list_get_instance(link, fdisk_part_t, ldev_idx);
+		if (part->index > nidx)
+			break;
+		nidx = part->index;
+		link = list_next(link, &dev->parts_idx);
+	}
+
+	if (nidx > 4 /* XXXX actual number of slots*/) {
+		return ELIMIT;
+	}
+
+	*rindex = nidx;
+	return EOK;
+}
+
+/** Get free range of blocks.
+ *
+ * Get free range of blocks of at least the specified size (first fit).
+ */
+static int fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
+    aoff64_t *rblock0, aoff64_t *rnblocks)
+{
+	link_t *link;
+	fdisk_part_t *part;
+	uint64_t avail;
+	int nba;
+
+	link = list_first(&dev->parts_ba);
+	nba = dev->dinfo.ablock0;
+	while (link != NULL) {
+		part = list_get_instance(link, fdisk_part_t, ldev_ba);
+		if (part->block0 - nba >= nblocks)
+			break;
+		nba = part->block0 + part->nblocks;
+		link = list_next(link, &dev->parts_ba);
+	}
+
+	if (link != NULL) {
+		/* Free range before a partition */
+		avail = part->block0 - nba;
+	} else {
+		/* Free range at the end */
+		avail = dev->dinfo.ablock0 + dev->dinfo.anblocks - nba;
+
+		/* Verify that the range is large enough */
+		if (avail < nblocks)
+			return ELIMIT;
+	}
+
+	*rblock0 = nba;
+	*rnblocks = avail;
+	return EOK;
+}
+
+/** Prepare new partition specification for VBD. */
+static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
+    vbd_part_spec_t *vpspec)
+{
+	uint64_t cbytes;
+	aoff64_t req_blocks;
+	aoff64_t fblock0;
+	aoff64_t fnblocks;
+	uint64_t block_size;
+	unsigned i;
+	int index;
+	int rc;
+
+//	pspec->fstype
+	printf("fdisk_part_spec_prepare()\n");
+	block_size = dev->dinfo.block_size;
+	cbytes = pspec->capacity.value;
+	for (i = 0; i < pspec->capacity.cunit; i++)
+		cbytes = cbytes * 1000;
+
+	req_blocks = (cbytes + block_size - 1) / block_size;
+
+	rc = fdisk_part_get_free_idx(dev, &index);
+	if (rc != EOK)
+		return EIO;
+
+	rc = fdisk_part_get_free_range(dev, req_blocks, &fblock0, &fnblocks);
+	if (rc != EOK)
+		return EIO;
+
+	vpspec->index = index;
+	vpspec->block0 = fblock0;
+	vpspec->nblocks = req_blocks;
+	vpspec->ptype = 42;
 	return EOK;
 }
 

@@ -241,7 +241,25 @@ static void gpt_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 static int gpt_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
-	return ENOTSUP;
+	label_part_t *part;
+
+	part = calloc(1, sizeof(label_part_t));
+	if (part == NULL)
+		return ENOMEM;
+
+	/* XXX Verify index, block0, nblocks */
+
+	part->index = pspec->index;
+	part->block0 = pspec->block0;
+	part->nblocks = pspec->nblocks;
+
+	/* XXX Modify partition table */
+
+	part->label = label;
+	list_append(&part->llabel, &label->parts);
+
+	*rpart = part;
+	return EOK;
 }
 
 static int gpt_part_destroy(label_part_t *part)

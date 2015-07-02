@@ -205,7 +205,20 @@ static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
-	return ENOTSUP;
+	label_part_t *part;
+
+	part = calloc(1, sizeof(label_part_t));
+	if (part == NULL)
+		return ENOMEM;
+
+	part->index = pspec->index;
+	part->block0 = pspec->block0;
+	part->nblocks = pspec->nblocks;
+
+	part->label = label;
+
+	*rpart = part;
+	return EOK;
 }
 
 static int mbr_part_destroy(label_part_t *part)

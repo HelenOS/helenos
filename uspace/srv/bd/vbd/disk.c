@@ -111,7 +111,8 @@ static int vbds_part_by_id(vbds_part_id_t partid, vbds_part_t **rpart)
 	return ENOENT;
 }
 
-static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart)
+static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
+    vbds_part_t **rpart)
 {
 	vbds_part_t *part;
 	service_id_t psid;
@@ -162,6 +163,8 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart)
 	list_append(&part->ldisk, &disk->parts);
 	list_append(&part->lparts, &vbds_parts);
 
+	if (rpart != NULL)
+		*rpart = part;
 	return EOK;
 }
 
@@ -229,7 +232,7 @@ int vbds_disk_add(service_id_t sid)
 
 	part = label_part_first(label);
 	while (part != NULL) {
-		rc = vbds_part_add(disk, part);
+		rc = vbds_part_add(disk, part, NULL);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding partitio "
 			    "(disk %s)", disk->svc_name);
@@ -388,17 +391,14 @@ int vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
 	return EOK;
 }
 
-int vbds_part_create(service_id_t sid, vbds_part_id_t *rpart)
+int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
+    vbds_part_id_t *rpart)
 {
 	vbds_disk_t *disk;
 	vbds_part_t *part;
-	label_part_spec_t pspec;
+	label_part_spec_t lpspec;
 	label_part_t *lpart;
 	int rc;
-
-	part = calloc(1, sizeof(vbds_part_t));
-	if (part == NULL)
-		return ENOMEM;
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK) {
@@ -407,14 +407,19 @@ int vbds_part_create(service_id_t sid, vbds_part_id_t *rpart)
 		goto error;
 	}
 
-	label_pspec_init(&pspec);
-	rc = label_part_create(disk->label, &pspec, &lpart);
+	label_pspec_init(&lpspec);
+	lpspec.index = pspec->index;
+	lpspec.block0 = pspec->block0;
+	lpspec.nblocks = pspec->nblocks;
+	lpspec.ptype = pspec->ptype;
+
+	rc = label_part_create(disk->label, &lpspec, &lpart);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating partition.");
 		goto error;
 	}
 
-	rc = vbds_part_add(disk, lpart);
+	rc = vbds_part_add(disk, lpart, &part);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed while creating "
 		    "partition.");
@@ -426,9 +431,10 @@ int vbds_part_create(service_id_t sid, vbds_part_id_t *rpart)
 		goto error;
 	}
 
+	if (rpart != NULL)
+		*rpart = part->id;
 	return EOK;
 error:
-	free(part);
 	return rc;
 }
 

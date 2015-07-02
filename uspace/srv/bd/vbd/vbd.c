@@ -114,30 +114,24 @@ static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	disk_sid = IPC_GET_ARG1(*icall);
 	rc = vbds_disk_info(disk_sid, &dinfo);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() call failed");
 		async_answer_0(iid, rc);
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() data_read_receive");
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() failed");
 		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() check size");
 	if (size != sizeof(vbds_disk_info_t)) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() wrong size");
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() data_read_finalize");
 	rc = async_data_read_finalize(callid, &dinfo,
 	    min(size, sizeof(dinfo)));
 	if (rc != EOK) {
@@ -146,7 +140,6 @@ static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() reply EOK");
 	async_answer_0(iid, EOK);
 }
 
@@ -233,13 +226,41 @@ static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
+	vbd_part_spec_t pspec;
 	vbds_part_id_t part;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_create_srv()");
 
 	disk_sid = IPC_GET_ARG1(*icall);
-	rc = vbds_part_create(disk_sid, &part);
+
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(vbd_part_spec_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(callid, &pspec, sizeof(vbd_part_spec_t));
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	rc = vbds_part_create(disk_sid, &pspec, &part);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+
 	async_answer_1(iid, (sysarg_t)rc, (sysarg_t)part);
 }
 

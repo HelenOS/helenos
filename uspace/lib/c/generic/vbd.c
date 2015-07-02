@@ -106,7 +106,6 @@ int vbd_disk_remove(vbd_t *vbd, service_id_t disk_sid)
 	return (int)rc;
 }
 
-#include <io/log.h>
 /** Get disk information. */
 int vbd_disk_info(vbd_t *vbd, service_id_t sid, vbd_disk_info_t *vinfo)
 {
@@ -114,12 +113,9 @@ int vbd_disk_info(vbd_t *vbd, service_id_t sid, vbd_disk_info_t *vinfo)
 	sysarg_t retval;
 	ipc_call_t answer;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() begin exchange");
 	exch = async_exchange_begin(vbd->sess);
 	aid_t req = async_send_1(exch, VBD_DISK_INFO, sid, &answer);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() read start");
 	int rc = async_data_read_start(exch, vinfo, sizeof(vbd_disk_info_t));
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() end exch");
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -127,12 +123,10 @@ int vbd_disk_info(vbd_t *vbd, service_id_t sid, vbd_disk_info_t *vinfo)
 		return EIO;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() wait fore req reply");
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return EIO;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() done");
 	return EOK;
 }
 
@@ -292,18 +286,26 @@ int vbd_part_create(vbd_t *vbd, service_id_t disk, vbd_part_spec_t *pspec,
     vbd_part_id_t *rpart)
 {
 	async_exch_t *exch;
-	sysarg_t part;
-	int retval;
+	sysarg_t retval;
+	ipc_call_t answer;
 
 	exch = async_exchange_begin(vbd->sess);
-	retval = async_req_1_1(exch, VBD_PART_CREATE, disk, &part);
+	aid_t req = async_send_1(exch, VBD_PART_CREATE, disk, &answer);
+	int rc = async_data_write_start(exch, pspec, sizeof(vbd_part_spec_t));
 	async_exchange_end(exch);
 
+	if (rc != EOK) {
+		async_forget(req);
+		return EIO;
+	}
+
+	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return EIO;
 
-	*rpart = (vbd_part_id_t)part;
+	*rpart = (vbd_part_id_t)IPC_GET_ARG1(answer);
 	return EOK;
+
 }
 
 int vbd_part_delete(vbd_t *vbd, vbd_part_id_t part)
