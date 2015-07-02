@@ -28,7 +28,7 @@
 
 USPACE_PREFIX = ../../../..
 LIBS = $(LIBBLOCK_PREFIX)/libblock.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBLABEL_PREFIX)/include
 
 # Correct name is 'guid_part' but must use this because of FAT 8.3 names.
 BINARY = g_part

@@ -32,6 +32,8 @@ EXTRA_CFLAGS = -Iinclude -I$(LIBBLOCK_PREFIX)
 LIBRARY = liblabel
 
 SOURCES = \
+	src/mbr.c \
+	src/gpt.c \
 	src/label.c
 
 include $(USPACE_PREFIX)/Makefile.common

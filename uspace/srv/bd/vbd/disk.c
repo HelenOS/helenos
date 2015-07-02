@@ -95,13 +95,18 @@ static int vbds_disk_by_svcid(service_id_t sid, vbds_disk_t **rdisk)
 
 static int vbds_part_by_id(vbds_part_id_t partid, vbds_part_t **rpart)
 {
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_by_id(%zu)", partid);
+
 	list_foreach(vbds_parts, lparts, vbds_part_t, part) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "%zu == %zu ?", part->id, partid);
 		if (part->id == partid) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Found match.");
 			*rpart = part;
 			return EOK;
 		}
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "No match.");
 	return ENOENT;
 }
 
@@ -145,6 +150,7 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart)
 
 	part->lpart = lpart;
 	part->disk = disk;
+	part->id = (vbds_part_id_t)psid;
 	part->block0 = lpinfo.block0;
 	part->nblocks = lpinfo.nblocks;
 
@@ -160,7 +166,7 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart)
 
 int vbds_disk_add(service_id_t sid)
 {
-	label_t *label;
+	label_t *label = NULL;
 	label_part_t *part;
 	vbds_disk_t *disk = NULL;
 	bool block_inited = false;
@@ -205,6 +211,8 @@ int vbds_disk_add(service_id_t sid)
 
 	rc = label_open(sid, &label);
 	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Label in disk %s not recognized.",
+		    disk->svc_name);
 		rc = EIO;
 		goto error;
 	}
@@ -215,6 +223,8 @@ int vbds_disk_add(service_id_t sid)
 
 	list_initialize(&disk->parts);
 	list_append(&disk->ldisks, &vbds_disks);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Recognized disk label. Adding partitions.");
 
 	part = label_part_first(label);
 	while (part != NULL) {
@@ -461,13 +471,19 @@ static int vbds_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 
 static int vbds_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
+	vbds_part_t *part = bd_srv_part(bd);
+
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_get_block_size()");
+	*rsize = part->disk->block_size;
 	return EOK;
 }
 
 static int vbds_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
+	vbds_part_t *part = bd_srv_part(bd);
+
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_get_num_blocks()");
+	*rnb = part->nblocks;
 	return EOK;
 }
 
@@ -477,14 +493,21 @@ void vbds_bd_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	int rc;
 	service_id_t partid;
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn()");
+
 	partid = IPC_GET_ARG1(*icall);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn() - partid=%zu", partid);
 
 	rc = vbds_part_by_id(partid, &part);
 	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_bd_conn() - partition "
+		    "not found.");
 		async_answer_0(iid, EINVAL);
 		return;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn() - call bd_conn");
 	bd_conn(iid, icall, &part->bds);
 }
 

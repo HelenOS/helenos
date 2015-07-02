@@ -30,72 +30,15 @@
  * @{
  */
 /**
- * @file Disk label library types.
+ * @file Master Boot Record label
  */
 
-#ifndef LIBLABEL_TYPES_H_
-#define LIBLABEL_TYPES_H_
+#ifndef LIBLABEL_MBR_H_
+#define LIBLABEL_MBR_H_
 
-#include <adt/list.h>
-#include <types/label.h>
-#include <sys/types.h>
-#include <vol.h>
+#include <types/liblabel.h>
 
-typedef struct label label_t;
-typedef struct label_part label_part_t;
-typedef struct label_part_info label_part_info_t;
-typedef struct label_part_spec label_part_spec_t;
-
-/** Ops for individual label type */
-typedef struct {
-	int (*open)(service_id_t, label_t **);
-	int (*create)(service_id_t, label_t **);
-	void (*close)(label_t *);
-	int (*destroy)(label_t *);
-	label_part_t *(*part_first)(label_t *);
-	label_part_t *(*part_next)(label_part_t *);
-	void (*part_get_info)(label_part_t *, label_part_info_t *);
-	int (*part_create)(label_t *, label_part_spec_t *, label_part_t **);
-	int (*part_destroy)(label_part_t *);
-} label_ops_t;
-
-typedef struct {
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
-	/** Label type */
-	label_type_t ltype;
-} label_info_t;
-
-struct label_part_info {
-	/** Address of first block */
-	aoff64_t block0;
-	/** Number of blocks */
-	aoff64_t nblocks;
-};
-
-/** Partition */
-struct label_part {
-	/** Containing label */
-	struct label *label;
-	/** Link to label_t.parts */
-	link_t llabel;
-	aoff64_t block0;
-	aoff64_t nblocks;
-};
-
-/** Specification of new partition */
-struct label_part_spec {
-};
-
-/** Label instance */
-struct label {
-	/** Label type ops */
-	label_ops_t *ops;
-	/** Label type */
-	label_type_t ltype;
-	/** Partitions */
-	list_t parts; /* of label_part_t */
-};
+extern label_ops_t mbr_label_ops;
 
 #endif
 

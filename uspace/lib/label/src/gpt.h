@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup bd
+/** @addtogroup liblabel
  * @{
  */
-/** @file
+/**
+ * @file GUID Partition Table label.
  */
 
-#ifndef __GPT_H__
-#define __GPT_H__
+#ifndef LIBLABEL_GPT_H_
+#define LIBLABEL_GPT_H_
 
-#include <sys/types.h>
+#include <types/liblabel.h>
 
-/** Block address of GPT header. */
-#define GPT_HDR_BA	1
-
-/** GPT header */
-typedef struct {
-	uint8_t efi_signature[8];
-	uint32_t revision;
-	uint32_t header_size;
-	uint32_t header_crc32;
-	uint32_t reserved;
-	uint64_t my_lba;
-	uint64_t alternate_lba;
-	uint64_t first_usable_lba;
-	uint64_t last_usable_lba;
-	uint8_t disk_guid[16];
-	uint64_t entry_lba;
-	uint32_t num_entries;
-	uint32_t entry_size;
-	uint32_t pe_array_crc32;
-} __attribute__((packed)) gpt_header_t;
-
-/** GPT partition entry */
-typedef struct {
-	uint8_t part_type[16];
-	uint8_t part_id[16];
-	uint64_t start_lba;
-	uint64_t end_lba;
-	uint64_t attributes;
-	uint16_t part_name[36];
-} __attribute__((packed)) gpt_entry_t;
+extern label_ops_t gpt_label_ops;
 
 #endif
 

@@ -26,76 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup liblabel
+/** @addtogroup bd
  * @{
  */
-/**
- * @file Disk label library types.
+/** @file
  */
 
-#ifndef LIBLABEL_TYPES_H_
-#define LIBLABEL_TYPES_H_
+#ifndef LIBLABEL_STD_MBR_H_
+#define LIBLABEL_STD_MBR_H_
 
-#include <adt/list.h>
-#include <types/label.h>
-#include <sys/types.h>
-#include <vol.h>
+#include <stdint.h>
 
-typedef struct label label_t;
-typedef struct label_part label_part_t;
-typedef struct label_part_info label_part_info_t;
-typedef struct label_part_spec label_part_spec_t;
+/** Block address of Master Boot Record. */
+#define MBR_BA	0
 
-/** Ops for individual label type */
+enum {
+	/** Number of primary partition records */
+	mbr_nprimary = 4,
+
+	/** Boot record signature */
+	mbr_br_signature = 0xAA55
+};
+
+enum ptype {
+	/** Unused partition entry */
+	mbr_pt_unused	= 0x00,
+	/** Extended partition */
+	mbr_pt_extended	= 0x05
+};
+
+/** Structure of a partition table entry */
 typedef struct {
-	int (*open)(service_id_t, label_t **);
-	int (*create)(service_id_t, label_t **);
-	void (*close)(label_t *);
-	int (*destroy)(label_t *);
-	label_part_t *(*part_first)(label_t *);
-	label_part_t *(*part_next)(label_part_t *);
-	void (*part_get_info)(label_part_t *, label_part_info_t *);
-	int (*part_create)(label_t *, label_part_spec_t *, label_part_t **);
-	int (*part_destroy)(label_part_t *);
-} label_ops_t;
+	uint8_t status;
+	/** CHS of fist block in partition */
+	uint8_t first_chs[3];
+	/** Partition type */
+	uint8_t ptype;
+	/** CHS of last block in partition */
+	uint8_t last_chs[3];
+	/** LBA of first block in partition */
+	uint32_t first_lba;
+	/** Number of blocks in partition */
+	uint32_t length;
+} __attribute__((packed)) mbr_pte_t;
 
+/** Structure of a boot-record block */
 typedef struct {
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
-	/** Label type */
-	label_type_t ltype;
-} label_info_t;
+	/* Area for boot code */
+	uint8_t code_area[440];
 
-struct label_part_info {
-	/** Address of first block */
-	aoff64_t block0;
-	/** Number of blocks */
-	aoff64_t nblocks;
-};
+	/* Optional media ID */
+	uint32_t media_id;
 
-/** Partition */
-struct label_part {
-	/** Containing label */
-	struct label *label;
-	/** Link to label_t.parts */
-	link_t llabel;
-	aoff64_t block0;
-	aoff64_t nblocks;
-};
+	uint16_t pad0;
 
-/** Specification of new partition */
-struct label_part_spec {
-};
+	/** Partition table entries */
+	mbr_pte_t pte[mbr_nprimary];
 
-/** Label instance */
-struct label {
-	/** Label type ops */
-	label_ops_t *ops;
-	/** Label type */
-	label_type_t ltype;
-	/** Partitions */
-	list_t parts; /* of label_part_t */
-};
+	/** Boot record block signature (@c BR_SIGNATURE) */
+	uint16_t signature;
+} __attribute__((packed)) mbr_br_block_t;
 
 #endif
 

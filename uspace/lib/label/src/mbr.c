@@ -1,0 +1,221 @@
+/*
+ * Copyright (c) 2015 Jiri Svoboda
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup liblabel
+ * @{
+ */
+/**
+ * @file Master Boot Record label
+ */
+
+#include <block.h>
+#include <byteorder.h>
+#include <errno.h>
+#include <stdlib.h>
+
+#include "std/mbr.h"
+#include "mbr.h"
+
+static int mbr_open(service_id_t, label_t **);
+static int mbr_create(service_id_t, label_t **);
+static void mbr_close(label_t *);
+static int mbr_destroy(label_t *);
+static label_part_t *mbr_part_first(label_t *);
+static label_part_t *mbr_part_next(label_part_t *);
+static void mbr_part_get_info(label_part_t *, label_part_info_t *);
+static int mbr_part_create(label_t *, label_part_spec_t *, label_part_t **);
+static int mbr_part_destroy(label_part_t *);
+
+static int mbr_pte_to_part(label_t *, mbr_pte_t *);
+
+label_ops_t mbr_label_ops = {
+	.open = mbr_open,
+	.create = mbr_create,
+	.close = mbr_close,
+	.destroy = mbr_destroy,
+	.part_first = mbr_part_first,
+	.part_next = mbr_part_next,
+	.part_get_info = mbr_part_get_info,
+	.part_create = mbr_part_create,
+	.part_destroy = mbr_part_destroy
+};
+
+static int mbr_open(service_id_t sid, label_t **rlabel)
+{
+	label_t *label = NULL;
+	mbr_br_block_t *mbr = NULL;
+	mbr_pte_t *eptr;
+	uint16_t sgn;
+	size_t bsize;
+	uint32_t entry;
+	int rc;
+
+	rc = block_get_bsize(sid, &bsize);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	if (bsize < 512 || (bsize % 512) != 0) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	mbr = calloc(1, bsize);
+	if (mbr == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = block_read_direct(sid, MBR_BA, 1, mbr);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	label = calloc(1, sizeof(label_t));
+	if (label == NULL)
+		return ENOMEM;
+
+	list_initialize(&label->parts);
+
+	/* Verify boot record signature */
+	sgn = uint16_t_le2host(mbr->signature);
+	if (sgn != mbr_br_signature) {
+		rc = EIO;
+		goto error;
+	}
+
+	for (entry = 0; entry < mbr_nprimary; entry++) {
+		eptr = &mbr->pte[entry];
+		rc = mbr_pte_to_part(label, eptr);
+		if (rc != EOK)
+			goto error;
+	}
+
+	free(mbr);
+	mbr = NULL;
+
+	label->ops = &mbr_label_ops;
+	label->ltype = lt_mbr;
+	*rlabel = label;
+	return EOK;
+error:
+	free(mbr);
+	free(label);
+	return rc;
+}
+
+static int mbr_create(service_id_t sid, label_t **rlabel)
+{
+	return EOK;
+}
+
+static void mbr_close(label_t *label)
+{
+	free(label);
+}
+
+static int mbr_destroy(label_t *label)
+{
+	return EOK;
+}
+
+static label_part_t *mbr_part_first(label_t *label)
+{
+	link_t *link;
+
+	link = list_first(&label->parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, llabel);
+}
+
+static label_part_t *mbr_part_next(label_part_t *part)
+{
+	link_t *link;
+
+	link = list_next(&part->llabel, &part->label->parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, llabel);
+}
+
+static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
+{
+	pinfo->block0 = part->block0;
+	pinfo->nblocks = part->nblocks;
+}
+
+static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
+    label_part_t **rpart)
+{
+	return EOK;
+}
+
+static int mbr_part_destroy(label_part_t *part)
+{
+	return EOK;
+}
+
+static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte)
+{
+	label_part_t *part;
+	uint32_t block0;
+	uint32_t nblocks;
+
+	block0 = uint32_t_le2host(pte->first_lba);
+	nblocks = uint32_t_le2host(pte->length);
+
+	/* See UEFI specification 2.0 section 5.2.1 Legacy Master Boot Record */
+	if (pte->ptype == mbr_pt_unused || pte->ptype == mbr_pt_extended ||
+	    nblocks == 0)
+		return EOK;
+
+	part = calloc(1, sizeof(label_part_t));
+	if (part == NULL)
+		return ENOMEM;
+
+	part->block0 = block0;
+	part->nblocks = nblocks;
+
+	/*
+	 * TODO: Verify
+	 *   - partition must reside on disk
+	 *   - partition must not overlap any other partition
+	 */
+
+	part->label = label;
+	list_append(&part->llabel, &label->parts);
+	return EOK;
+}
+
+/** @}
+ */

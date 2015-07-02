@@ -39,30 +39,46 @@
 #include <mem.h>
 #include <stdlib.h>
 
+#include "gpt.h"
+
+static label_ops_t *probe_list[] = {
+	&gpt_label_ops,
+	NULL
+};
+
 int label_open(service_id_t sid, label_t **rlabel)
 {
-	label_t *label;
+	label_ops_t **ops;
+	int rc;
 
-	label = calloc(1, sizeof(label_t));
-	if (label == NULL)
-		return ENOMEM;
+	ops = &probe_list[0];
+	while (ops[0] != NULL) {
+		rc = ops[0]->open(sid, rlabel);
+		if (rc == EOK)
+			return EOK;
+		++ops;
+	}
 
-	list_initialize(&label->parts);
-	*rlabel = label;
-	return EOK;
+	return ENOTSUP;
 }
 
 int label_create(service_id_t sid, label_type_t ltype, label_t **rlabel)
 {
-	label_t *label;
+	label_ops_t *ops = NULL;
 
-	label = calloc(1, sizeof(label_t));
-	if (label == NULL)
-		return ENOMEM;
+	switch (ltype) {
+	case lt_gpt:
+		ops = &gpt_label_ops;
+		break;
+	case lt_mbr:
+		ops = NULL;
+		break;
+	}
 
-	list_initialize(&label->parts);
-	*rlabel = label;
-	return EOK;
+	if (ops == NULL)
+		return ENOTSUP;
+
+	return ops->create(sid, rlabel);
 }
 
 void label_close(label_t *label)
@@ -70,70 +86,46 @@ void label_close(label_t *label)
 	if (label == NULL)
 		return;
 
-	free(label);
+	label->ops->close(label);
 }
 
 int label_destroy(label_t *label)
 {
-	free(label);
-	return EOK;
+	return label->ops->destroy(label);
 }
 
 int label_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
-	linfo->dcnt = dc_empty;
+	linfo->dcnt = dc_label;
+	linfo->ltype = label->ltype;
 	return EOK;
 }
 
 label_part_t *label_part_first(label_t *label)
 {
-	link_t *link;
-
-	link = list_first(&label->parts);
-	if (link == NULL)
-		return NULL;
-
-	return list_get_instance(link, label_part_t, llabel);
+	return label->ops->part_first(label);
 }
 
 label_part_t *label_part_next(label_part_t *part)
 {
-	link_t *link;
-
-	link = list_next(&part->llabel, &part->label->parts);
-	if (link == NULL)
-		return NULL;
-
-	return list_get_instance(link, label_part_t, llabel);
+	return part->label->ops->part_next(part);
 }
 
 void label_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 {
-	pinfo->block0 = 0;
-	pinfo->nblocks = 0;
+	return part->label->ops->part_get_info(part, pinfo);
 }
 
 int label_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
-	label_part_t *part;
-
-	part = calloc(1, sizeof(label_part_t));
-	if (part == NULL)
-		return ENOMEM;
-
-	part->label = label;
-	list_append(&part->llabel, &label->parts);
-	*rpart = part;
-	return EOK;
+	return label->ops->part_create(label, pspec, rpart);
 }
 
 int label_part_destroy(label_part_t *part)
 {
-	list_remove(&part->llabel);
-	free(part);
-	return EOK;
+	return part->label->ops->part_destroy(part);
 }
 
 void label_pspec_init(label_part_spec_t *pspec)

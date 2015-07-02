@@ -63,7 +63,7 @@
 #include <macros.h>
 #include <task.h>
 
-#include "gpt.h"
+#include <std/gpt.h>
 
 #define NAME "guid_part"
 

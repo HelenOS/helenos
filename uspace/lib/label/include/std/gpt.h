@@ -26,76 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup liblabel
+/** @addtogroup bd
  * @{
  */
-/**
- * @file Disk label library types.
+/** @file
  */
 
-#ifndef LIBLABEL_TYPES_H_
-#define LIBLABEL_TYPES_H_
+#ifndef LIBLABEL_STD_GPT_H_
+#define LIBLABEL_STD_GPT_H_
 
-#include <adt/list.h>
-#include <types/label.h>
 #include <sys/types.h>
-#include <vol.h>
 
-typedef struct label label_t;
-typedef struct label_part label_part_t;
-typedef struct label_part_info label_part_info_t;
-typedef struct label_part_spec label_part_spec_t;
+/** Block address of GPT header. */
+#define GPT_HDR_BA	1
 
-/** Ops for individual label type */
+/** GPT header */
 typedef struct {
-	int (*open)(service_id_t, label_t **);
-	int (*create)(service_id_t, label_t **);
-	void (*close)(label_t *);
-	int (*destroy)(label_t *);
-	label_part_t *(*part_first)(label_t *);
-	label_part_t *(*part_next)(label_part_t *);
-	void (*part_get_info)(label_part_t *, label_part_info_t *);
-	int (*part_create)(label_t *, label_part_spec_t *, label_part_t **);
-	int (*part_destroy)(label_part_t *);
-} label_ops_t;
+	uint8_t efi_signature[8];
+	uint32_t revision;
+	uint32_t header_size;
+	uint32_t header_crc32;
+	uint32_t reserved;
+	uint64_t my_lba;
+	uint64_t alternate_lba;
+	uint64_t first_usable_lba;
+	uint64_t last_usable_lba;
+	uint8_t disk_guid[16];
+	uint64_t entry_lba;
+	uint32_t num_entries;
+	uint32_t entry_size;
+	uint32_t pe_array_crc32;
+} __attribute__((packed)) gpt_header_t;
 
+/** GPT partition entry */
 typedef struct {
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
-	/** Label type */
-	label_type_t ltype;
-} label_info_t;
-
-struct label_part_info {
-	/** Address of first block */
-	aoff64_t block0;
-	/** Number of blocks */
-	aoff64_t nblocks;
-};
-
-/** Partition */
-struct label_part {
-	/** Containing label */
-	struct label *label;
-	/** Link to label_t.parts */
-	link_t llabel;
-	aoff64_t block0;
-	aoff64_t nblocks;
-};
-
-/** Specification of new partition */
-struct label_part_spec {
-};
-
-/** Label instance */
-struct label {
-	/** Label type ops */
-	label_ops_t *ops;
-	/** Label type */
-	label_type_t ltype;
-	/** Partitions */
-	list_t parts; /* of label_part_t */
-};
+	uint8_t part_type[16];
+	uint8_t part_id[16];
+	uint64_t start_lba;
+	uint64_t end_lba;
+	uint64_t attributes;
+	uint16_t part_name[36];
+} __attribute__((packed)) gpt_entry_t;
 
 #endif
 
