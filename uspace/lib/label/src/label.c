@@ -96,10 +96,7 @@ int label_destroy(label_t *label)
 
 int label_get_info(label_t *label, label_info_t *linfo)
 {
-	memset(linfo, 0, sizeof(label_info_t));
-	linfo->dcnt = dc_label;
-	linfo->ltype = label->ltype;
-	return EOK;
+	return label->ops->get_info(label, linfo);
 }
 
 label_part_t *label_part_first(label_t *label)

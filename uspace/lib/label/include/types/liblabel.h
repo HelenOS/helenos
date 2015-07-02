@@ -42,6 +42,7 @@
 #include <vol.h>
 
 typedef struct label label_t;
+typedef struct label_info label_info_t;
 typedef struct label_part label_part_t;
 typedef struct label_part_info label_part_info_t;
 typedef struct label_part_spec label_part_spec_t;
@@ -52,6 +53,7 @@ typedef struct {
 	int (*create)(service_id_t, label_t **);
 	void (*close)(label_t *);
 	int (*destroy)(label_t *);
+	int (*get_info)(label_t *, label_info_t *);
 	label_part_t *(*part_first)(label_t *);
 	label_part_t *(*part_next)(label_part_t *);
 	void (*part_get_info)(label_part_t *, label_part_info_t *);
@@ -59,14 +61,20 @@ typedef struct {
 	int (*part_destroy)(label_part_t *);
 } label_ops_t;
 
-typedef struct {
+struct label_info {
 	/** Disk contents */
 	label_disk_cnt_t dcnt;
 	/** Label type */
 	label_type_t ltype;
-} label_info_t;
+	/** First block that can be allocated */
+	aoff64_t ablock0;
+	/** Number of blocks that can be allocated */
+	aoff64_t anblocks;
+};
 
 struct label_part_info {
+	/** Partition index */
+	int index;
 	/** Address of first block */
 	aoff64_t block0;
 	/** Number of blocks */
@@ -79,7 +87,11 @@ struct label_part {
 	struct label *label;
 	/** Link to label_t.parts */
 	link_t llabel;
+	/** Index */
+	int index;
+	/** First block */
 	aoff64_t block0;
+	/** Number of blocks */
 	aoff64_t nblocks;
 };
 
@@ -95,6 +107,10 @@ struct label {
 	label_type_t ltype;
 	/** Partitions */
 	list_t parts; /* of label_part_t */
+	/** First block that can be allocated */
+	aoff64_t ablock0;
+	/** Number of blocks that can be allocated */
+	aoff64_t anblocks;
 };
 
 #endif

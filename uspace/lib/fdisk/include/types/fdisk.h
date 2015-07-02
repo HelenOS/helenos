@@ -105,8 +105,12 @@ typedef struct {
 	label_disk_cnt_t dcnt;
 	/** Service ID */
 	service_id_t sid;
-	/** Partitions */
-	list_t parts; /* of fdisk_part_t */
+	/** Partitions sorted by index */
+	list_t parts_idx; /* of fdisk_part_t */
+	/** Partitions sorted by block address */
+	list_t parts_ba;
+	/** Disk info */
+	vbd_disk_info_t dinfo;
 } fdisk_dev_t;
 
 typedef struct {
@@ -120,14 +124,22 @@ typedef struct {
 typedef struct {
 	/** Containing device */
 	fdisk_dev_t *dev;
-	/** Link to fdisk_dev_t.parts */
-	link_t ldev;
+	/** Link to fdisk_dev_t.parts_idx */
+	link_t ldev_idx;
+	/** Link to fdisk_dev_t.parts_ba */
+	link_t ldev_ba;
 	/** Capacity */
 	fdisk_cap_t capacity;
 	/** File system type */
 	fdisk_fstype_t fstype;
 	/** Partition ID */
 	vbd_part_id_t part_id;
+	/** Partition index */
+	int index;
+	/** First block */
+	aoff64_t block0;
+	/** Number of blocks */
+	aoff64_t nblocks;
 } fdisk_part_t;
 
 /** Specification of new partition */

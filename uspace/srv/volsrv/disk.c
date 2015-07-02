@@ -136,7 +136,7 @@ static int vol_disk_add(service_id_t sid)
 
 	assert(fibril_mutex_is_locked(&vol_disks_lock));
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_disk_add()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_disk_add()");
 	disk = vol_disk_new();
 	if (disk == NULL)
 		return ENOMEM;
@@ -157,6 +157,7 @@ static int vol_disk_add(service_id_t sid)
 		    disk->svc_name);
 
 		rc = vbd_disk_info(vbd, sid, &dinfo);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Got disk info.");
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_NOTE, "Cannot get disk label "
 			    "information.");

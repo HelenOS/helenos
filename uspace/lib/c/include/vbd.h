@@ -38,6 +38,7 @@
 #include <async.h>
 #include <loc.h>
 #include <types/label.h>
+#include <sys/types.h>
 
 /** VBD service */
 typedef struct vbd {
@@ -49,12 +50,24 @@ typedef struct vbd {
 typedef struct {
 	/** Label type */
 	label_type_t ltype;
+	/** First block that can be allocated */
+	aoff64_t ablock0;
+	/** Number of blocks that can be allocated */
+	aoff64_t anblocks;
+	/** Block size */
+	size_t block_size;
 } vbd_disk_info_t;
 
 typedef struct {
 } vbd_part_spec_t;
 
 typedef struct {
+	/** Partition index */
+	int index;
+	/** First block */
+	aoff64_t block0;
+	/** Number of blocks */
+	aoff64_t nblocks;
 } vbd_part_info_t;
 
 typedef sysarg_t vbd_part_id_t;

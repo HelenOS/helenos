@@ -44,6 +44,7 @@ extern void vbds_disks_init(void);
 extern int vbds_disk_add(service_id_t);
 extern int vbds_disk_remove(service_id_t);
 extern int vbds_disk_info(service_id_t, vbds_disk_info_t *);
+extern int vbds_get_parts(service_id_t, service_id_t *, size_t, size_t *);
 extern int vbds_label_create(service_id_t, label_type_t);
 extern int vbds_label_delete(service_id_t);
 extern int vbds_part_get_info(vbds_part_id_t, vbds_part_info_t *);

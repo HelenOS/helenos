@@ -245,9 +245,78 @@ int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 	return EOK;
 }
 
+static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
+    fdisk_part_t **rpart)
+{
+	fdisk_part_t *part, *p;
+	vbd_part_info_t pinfo;
+	link_t *link;
+	int rc;
+
+	part = calloc(1, sizeof(fdisk_part_t));
+	if (part == NULL)
+		return ENOMEM;
+
+	rc = vbd_part_get_info(dev->fdisk->vbd, partid, &pinfo);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	part->dev = dev;
+	part->index = pinfo.index;
+	part->block0 = pinfo.block0;
+	part->nblocks = pinfo.nblocks;
+
+	/* Insert to list by block address */
+	link = list_first(&dev->parts_ba);
+	while (link != NULL) {
+		p = list_get_instance(link, fdisk_part_t, ldev_ba);
+		if (p->block0 > part->block0) {
+			list_insert_before(&part->ldev_ba, &p->ldev_ba);
+			break;
+		}
+
+		link = list_next(link, &dev->parts_ba);
+	}
+
+	if (link == NULL)
+		list_append(&part->ldev_ba, &dev->parts_ba);
+
+	/* Insert to list by index */
+	link = list_first(&dev->parts_idx);
+	while (link != NULL) {
+		p = list_get_instance(link, fdisk_part_t, ldev_idx);
+		if (p->index > part->index) {
+			list_insert_before(&part->ldev_idx, &p->ldev_idx);
+			break;
+		}
+
+		link = list_next(link, &dev->parts_idx);
+	}
+
+	if (link == NULL)
+		list_append(&part->ldev_idx, &dev->parts_idx);
+
+	part->capacity.cunit = cu_byte;
+	part->capacity.value = part->nblocks * dev->dinfo.block_size;
+	part->part_id = partid;
+
+	if (rpart != NULL)
+		*rpart = part;
+	return EOK;
+error:
+	free(part);
+	return rc;
+}
+
+
 int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 {
-	fdisk_dev_t *dev;
+	fdisk_dev_t *dev = NULL;
+	service_id_t *psids = NULL;
+	size_t nparts, i;
+	int rc;
 
 	dev = calloc(1, sizeof(fdisk_dev_t));
 	if (dev == NULL)
@@ -255,13 +324,52 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 
 	dev->fdisk = fdisk;
 	dev->sid = sid;
-	list_initialize(&dev->parts);
+	list_initialize(&dev->parts_idx);
+	list_initialize(&dev->parts_ba);
+
+	printf("get info\n");
+	rc = vbd_disk_info(fdisk->vbd, sid, &dev->dinfo);
+	if (rc != EOK) {
+		printf("failed\n");
+		rc = EIO;
+		goto error;
+	}
+
+	printf("block size: %zu\n", dev->dinfo.block_size);
+	printf("get partitions\n");
+	rc = vbd_label_get_parts(fdisk->vbd, sid, &psids, &nparts);
+	if (rc != EOK) {
+		printf("failed\n");
+		rc = EIO;
+		goto error;
+	}
+	printf("OK\n");
+
+	printf("found %zu partitions.\n", nparts);
+	for (i = 0; i < nparts; i++) {
+		printf("add partition sid=%zu\n", psids[i]);
+		rc = fdisk_part_add(dev, psids[i], NULL);
+		if (rc != EOK) {
+			printf("failed\n");
+			goto error;
+		}
+		printf("OK\n");
+	}
+
+	free(psids);
 	*rdev = dev;
 	return EOK;
+error:
+	fdisk_dev_close(dev);
+	return rc;
 }
 
 void fdisk_dev_close(fdisk_dev_t *dev)
 {
+	if (dev == NULL)
+		return;
+
+	/* XXX Clean up partitions */
 	free(dev);
 }
 
@@ -350,22 +458,22 @@ fdisk_part_t *fdisk_part_first(fdisk_dev_t *dev)
 {
 	link_t *link;
 
-	link = list_first(&dev->parts);
+	link = list_first(&dev->parts_ba);
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, fdisk_part_t, ldev);
+	return list_get_instance(link, fdisk_part_t, ldev_ba);
 }
 
 fdisk_part_t *fdisk_part_next(fdisk_part_t *part)
 {
 	link_t *link;
 
-	link = list_next(&part->ldev, &part->dev->parts);
+	link = list_next(&part->ldev_ba, &part->dev->parts_ba);
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, fdisk_part_t, ldev);
+	return list_get_instance(link, fdisk_part_t, ldev_ba);
 }
 
 int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
@@ -398,14 +506,16 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		return EIO;
 	}
 
-	part->dev = dev;
-	list_append(&part->ldev, &dev->parts);
-	part->capacity = pspec->capacity;
-	part->fstype = pspec->fstype;
-	part->part_id = partid;
+	rc = fdisk_part_add(dev, partid, rpart);
+	if (rc != EOK) {
+		/* Try rolling back */
+		(void) vbd_part_delete(dev->fdisk->vbd, partid);
+		return EIO;
+	}
 
-	if (rpart != NULL)
-		*rpart = part;
+	(*rpart)->fstype = pspec->fstype;
+	(*rpart)->capacity = pspec->capacity;
+
 	return EOK;
 }
 
@@ -417,7 +527,8 @@ int fdisk_part_destroy(fdisk_part_t *part)
 	if (rc != EOK)
 		return EIO;
 
-	list_remove(&part->ldev);
+	list_remove(&part->ldev_ba);
+	list_remove(&part->ldev_idx);
 	free(part);
 	return EOK;
 }

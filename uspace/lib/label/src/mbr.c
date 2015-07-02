@@ -36,6 +36,7 @@
 #include <block.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <mem.h>
 #include <stdlib.h>
 
 #include "std/mbr.h"
@@ -45,19 +46,21 @@ static int mbr_open(service_id_t, label_t **);
 static int mbr_create(service_id_t, label_t **);
 static void mbr_close(label_t *);
 static int mbr_destroy(label_t *);
+static int mbr_get_info(label_t *, label_info_t *);
 static label_part_t *mbr_part_first(label_t *);
 static label_part_t *mbr_part_next(label_part_t *);
 static void mbr_part_get_info(label_part_t *, label_part_info_t *);
 static int mbr_part_create(label_t *, label_part_spec_t *, label_part_t **);
 static int mbr_part_destroy(label_part_t *);
 
-static int mbr_pte_to_part(label_t *, mbr_pte_t *);
+static int mbr_pte_to_part(label_t *, mbr_pte_t *, int);
 
 label_ops_t mbr_label_ops = {
 	.open = mbr_open,
 	.create = mbr_create,
 	.close = mbr_close,
 	.destroy = mbr_destroy,
+	.get_info = mbr_get_info,
 	.part_first = mbr_part_first,
 	.part_next = mbr_part_next,
 	.part_get_info = mbr_part_get_info,
@@ -72,10 +75,17 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 	mbr_pte_t *eptr;
 	uint16_t sgn;
 	size_t bsize;
+	aoff64_t nblocks;
 	uint32_t entry;
 	int rc;
 
 	rc = block_get_bsize(sid, &bsize);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = block_get_nblocks(sid, &nblocks);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -86,13 +96,18 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
+	if (nblocks < mbr_ablock0) {
+		rc = EINVAL;
+		goto error;
+	}
+
 	mbr = calloc(1, bsize);
 	if (mbr == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 
-	rc = block_read_direct(sid, MBR_BA, 1, mbr);
+	rc = block_read_direct(sid, mbr_ba, 1, mbr);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -113,7 +128,7 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 
 	for (entry = 0; entry < mbr_nprimary; entry++) {
 		eptr = &mbr->pte[entry];
-		rc = mbr_pte_to_part(label, eptr);
+		rc = mbr_pte_to_part(label, eptr, entry + 1);
 		if (rc != EOK)
 			goto error;
 	}
@@ -123,6 +138,8 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 
 	label->ops = &mbr_label_ops;
 	label->ltype = lt_mbr;
+	label->ablock0 = mbr_ablock0;
+	label->anblocks = nblocks - mbr_ablock0;
 	*rlabel = label;
 	return EOK;
 error:
@@ -143,6 +160,16 @@ static void mbr_close(label_t *label)
 
 static int mbr_destroy(label_t *label)
 {
+	return EOK;
+}
+
+static int mbr_get_info(label_t *label, label_info_t *linfo)
+{
+	memset(linfo, 0, sizeof(label_info_t));
+	linfo->dcnt = dc_label;
+	linfo->ltype = lt_mbr;
+	linfo->ablock0 = label->ablock0;
+	linfo->anblocks = label->anblocks;
 	return EOK;
 }
 
@@ -170,6 +197,7 @@ static label_part_t *mbr_part_next(label_part_t *part)
 
 static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 {
+	pinfo->index = part->index;
 	pinfo->block0 = part->block0;
 	pinfo->nblocks = part->nblocks;
 }
@@ -177,15 +205,15 @@ static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
-	return EOK;
+	return ENOTSUP;
 }
 
 static int mbr_part_destroy(label_part_t *part)
 {
-	return EOK;
+	return ENOTSUP;
 }
 
-static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte)
+static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
 {
 	label_part_t *part;
 	uint32_t block0;
@@ -203,6 +231,7 @@ static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte)
 	if (part == NULL)
 		return ENOMEM;
 
+	part->index = index;
 	part->block0 = block0;
 	part->nblocks = nblocks;
 

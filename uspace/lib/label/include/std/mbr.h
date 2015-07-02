@@ -37,10 +37,13 @@
 
 #include <stdint.h>
 
-/** Block address of Master Boot Record. */
-#define MBR_BA	0
-
 enum {
+	/** Block address of Master Boot Record. */
+	mbr_ba = 0,
+
+	/** First block allowed for allocation */
+	mbr_ablock0 = 18,
+
 	/** Number of primary partition records */
 	mbr_nprimary = 4,
 

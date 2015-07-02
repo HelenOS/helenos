@@ -267,10 +267,55 @@ int vbds_disk_remove(service_id_t sid)
 
 int vbds_disk_info(service_id_t sid, vbds_disk_info_t *info)
 {
+	vbds_disk_t *disk;
+	label_info_t linfo;
+	int rc;
+
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_info(%zu)", sid);
-	info->ltype = lt_mbr;
+
+	rc = vbds_disk_by_svcid(sid, &disk);
+	if (rc != EOK)
+		return rc;
+
+	rc = label_get_info(disk->label, &linfo);
+
+	info->ltype = linfo.ltype;
+	info->ablock0 = linfo.ablock0;
+	info->anblocks = linfo.anblocks;
+	info->block_size = disk->block_size;
 	return EOK;
 }
+
+int vbds_get_parts(service_id_t sid, service_id_t *id_buf, size_t buf_size,
+    size_t *act_size)
+{
+	vbds_disk_t *disk;
+	size_t act_cnt;
+	size_t buf_cnt;
+	int rc;
+
+	rc = vbds_disk_by_svcid(sid, &disk);
+	if (rc != EOK)
+		return rc;
+
+	buf_cnt = buf_size / sizeof(service_id_t);
+
+	act_cnt = list_count(&disk->parts);
+	*act_size = act_cnt * sizeof(service_id_t);
+
+	if (buf_size % sizeof(service_id_t) != 0)
+		return EINVAL;
+
+	size_t pos = 0;
+	list_foreach(disk->parts, ldisk, vbds_part_t, part) {
+		if (pos < buf_cnt)
+			id_buf[pos] = part->id;
+		pos++;
+	}
+
+	return EOK;
+}
+
 
 int vbds_label_create(service_id_t sid, label_type_t ltype)
 {
@@ -327,12 +372,18 @@ int vbds_label_delete(service_id_t sid)
 int vbds_part_get_info(vbds_part_id_t partid, vbds_part_info_t *pinfo)
 {
 	vbds_part_t *part;
+	label_part_info_t lpinfo;
 	int rc;
 
 	rc = vbds_part_by_id(partid, &part);
 	if (rc != EOK)
 		return rc;
 
+	label_part_get_info(part->lpart, &lpinfo);
+
+	pinfo->index = lpinfo.index;
+	pinfo->block0 = lpinfo.block0;
+	pinfo->nblocks = lpinfo.nblocks;
 	return EOK;
 }
 

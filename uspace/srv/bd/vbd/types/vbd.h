@@ -41,16 +41,21 @@
 #include <bd_srv.h>
 #include <label.h>
 #include <loc.h>
+#include <sys/types.h>
 #include <types/label.h>
 
 typedef sysarg_t vbds_part_id_t;
 
 /** Disk info */
 typedef struct {
-	/** Label */
-	label_t *label;
 	/** Label type */
 	label_type_t ltype;
+	/** First block that can be allocated */
+	aoff64_t ablock0;
+	/** Number of blocks that can be allocated */
+	aoff64_t anblocks;
+	/** Block size */
+	size_t block_size;
 } vbds_disk_info_t;
 
 /** Partition */
@@ -91,7 +96,14 @@ typedef struct vbds_disk {
 	size_t block_size;
 } vbds_disk_t;
 
+/** Partition info */
 typedef struct {
+	/** Partition index */
+	int index;
+	/** First block */
+	aoff64_t block0;
+	/** Number of blocks */
+	aoff64_t nblocks;
 } vbds_part_info_t;
 
 #endif

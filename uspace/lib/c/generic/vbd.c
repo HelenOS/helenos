@@ -36,6 +36,7 @@
 #include <ipc/services.h>
 #include <ipc/vbd.h>
 #include <loc.h>
+#include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <types/label.h>
@@ -105,21 +106,33 @@ int vbd_disk_remove(vbd_t *vbd, service_id_t disk_sid)
 	return (int)rc;
 }
 
+#include <io/log.h>
 /** Get disk information. */
 int vbd_disk_info(vbd_t *vbd, service_id_t sid, vbd_disk_info_t *vinfo)
 {
 	async_exch_t *exch;
-	sysarg_t ltype;
-	int retval;
+	sysarg_t retval;
+	ipc_call_t answer;
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() begin exchange");
 	exch = async_exchange_begin(vbd->sess);
-	retval = async_req_1_1(exch, VBD_DISK_INFO, sid, &ltype);
+	aid_t req = async_send_1(exch, VBD_DISK_INFO, sid, &answer);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() read start");
+	int rc = async_data_read_start(exch, vinfo, sizeof(vbd_disk_info_t));
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() end exch");
 	async_exchange_end(exch);
 
+	if (rc != EOK) {
+		async_forget(req);
+		return EIO;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() wait fore req reply");
+	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return EIO;
 
-	vinfo->ltype = (label_type_t)ltype;
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_disk_info() done");
 	return EOK;
 }
 
@@ -256,15 +269,22 @@ int vbd_label_get_parts(vbd_t *vbd, service_id_t disk,
 int vbd_part_get_info(vbd_t *vbd, vbd_part_id_t part, vbd_part_info_t *pinfo)
 {
 	async_exch_t *exch;
+	sysarg_t index;
+	sysarg_t b0_lo, b0_hi;
+	sysarg_t nb_lo, nb_hi;
 	int retval;
 
 	exch = async_exchange_begin(vbd->sess);
-	retval = async_req_1_0(exch, VBD_PART_GET_INFO, part);
+	retval = async_req_1_5(exch, VBD_PART_GET_INFO, part, &index,
+	    &b0_lo, &b0_hi, &nb_lo, &nb_hi);
 	async_exchange_end(exch);
 
 	if (retval != EOK)
 		return EIO;
 
+	pinfo->index = index;
+	pinfo->block0 = MERGE_LOUP32(b0_lo, b0_hi);
+	pinfo->nblocks = MERGE_LOUP32(nb_lo, nb_hi);
 	return EOK;
 }
 

@@ -39,6 +39,7 @@
 #include <ipc/services.h>
 #include <ipc/vbd.h>
 #include <loc.h>
+#include <macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <task.h>
@@ -111,7 +112,41 @@ static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 
 	disk_sid = IPC_GET_ARG1(*icall);
 	rc = vbds_disk_info(disk_sid, &dinfo);
-	async_answer_1(iid, (sysarg_t)rc, (sysarg_t)dinfo.ltype);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() call failed");
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() data_read_receive");
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_read_receive(&callid, &size)) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() failed");
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() check size");
+	if (size != sizeof(vbds_disk_info_t)) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() wrong size");
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() data_read_finalize");
+	rc = async_data_read_finalize(callid, &dinfo,
+	    min(size, sizeof(dinfo)));
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_disk_info() reply EOK");
+	async_answer_0(iid, EOK);
 }
 
 static void vbds_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
@@ -142,16 +177,42 @@ static void vbds_label_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 
 static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
-//	service_id_t disk_sid;
-//	int rc;
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	service_id_t sid;
+	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_get_parts_srv()");
 
-//	disk_sid = IPC_GET_ARG1(*icall);
-//	rc = vbds_label_delete(disk_sid);
-//	async_answer_0(iid, (sysarg_t) rc);
-	async_answer_0(iid, ENOTSUP);
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	sid = IPC_GET_ARG1(*icall);
+
+	category_id_t *id_buf = (category_id_t *) malloc(size);
+	if (id_buf == NULL) {
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	rc = vbds_get_parts(sid, id_buf, size, &act_size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	free(id_buf);
+
+	async_answer_1(iid, retval, act_size);
 }
+
 
 static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -163,7 +224,9 @@ static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 
 	part = IPC_GET_ARG1(*icall);
 	rc = vbds_part_get_info(part, &pinfo);
-	async_answer_0(iid, (sysarg_t)rc);
+	async_answer_5(iid, (sysarg_t)rc, pinfo.index,
+	    LOWER32(pinfo.block0), UPPER32(pinfo.block0),
+	    LOWER32(pinfo.nblocks), UPPER32(pinfo.nblocks));
 }
 
 static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
