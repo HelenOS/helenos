@@ -96,16 +96,6 @@ typedef struct vbds_disk {
 	size_t block_size;
 } vbds_disk_t;
 
-/** Partition info */
-typedef struct {
-	/** Partition index */
-	int index;
-	/** First block */
-	aoff64_t block0;
-	/** Number of blocks */
-	aoff64_t nblocks;
-} vbds_part_info_t;
-
 #endif
 
 /** @}

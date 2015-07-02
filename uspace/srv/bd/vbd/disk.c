@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <task.h>
+#include <vbd.h>
 
 #include "disk.h"
 #include "types/vbd.h"
@@ -369,7 +370,7 @@ int vbds_label_delete(service_id_t sid)
 	return EOK;
 }
 
-int vbds_part_get_info(vbds_part_id_t partid, vbds_part_info_t *pinfo)
+int vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
 {
 	vbds_part_t *part;
 	label_part_info_t lpinfo;

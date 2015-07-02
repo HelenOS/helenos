@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <task.h>
+#include <vbd.h>
 
 #include "disk.h"
 #include "types/vbd.h"
@@ -217,7 +218,7 @@ static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	vbds_part_id_t part;
-	vbds_part_info_t pinfo;
+	vbd_part_info_t pinfo;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_get_info_srv()");
