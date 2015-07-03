@@ -396,9 +396,6 @@ void hc_start(hc_t *instance)
 	}
 	usb_log_debug("HC(%p): HW reset OK.", instance);
 
-	//TODO: Do this last
-	/* Enable interrupts */
-	EHCI_WR(instance->registers->usbintr, EHCI_USED_INTERRUPTS);
 	/* Use the lowest 4G segment */
 	EHCI_WR(instance->registers->ctrldssegment, 0);
 
@@ -434,6 +431,9 @@ void hc_start(hc_t *instance)
 	    &instance->registers->usbsts, EHCI_RD(instance->registers->usbsts),
 	    &instance->registers->usbintr, EHCI_RD(instance->registers->usbintr),
 	    &instance->registers->configflag, EHCI_RD(instance->registers->configflag));
+	/* Clear and Enable interrupts */
+	EHCI_WR(instance->registers->usbsts, EHCI_RD(instance->registers->usbsts));
+	EHCI_WR(instance->registers->usbintr, EHCI_USED_INTERRUPTS);
 }
 
 /** Initialize memory structures used by the EHCI hcd.
