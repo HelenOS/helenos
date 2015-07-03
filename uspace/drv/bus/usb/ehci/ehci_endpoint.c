@@ -35,8 +35,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <usb/debug.h>
+#include <usb/host/utils/malloc32.h>
 
-#include "utils/malloc32.h"
 #include "ehci_endpoint.h"
 #include "hc.h"
 

@@ -38,10 +38,10 @@
 #include <assert.h>
 #include <fibril_synch.h>
 #include <sys/types.h>
+#include <usb/host/utils/malloc32.h>
 
 #include "ehci_endpoint.h"
 #include "hw_struct/queue_head.h"
-#include "utils/malloc32.h"
 
 /** Structure maintains both EHCI queue and software list of active endpoints.*/
 typedef struct endpoint_list {

@@ -39,7 +39,6 @@
 
 #include <usb/debug.h>
 
-#include "utils/malloc32.h"
 #include "endpoint_list.h"
 
 /** Initialize transfer list structures.

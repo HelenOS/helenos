@@ -34,6 +34,7 @@
 #ifndef DRV_EHCI_UTILS_MALLOC32_H
 #define DRV_EHCI_UTILS_MALLOC32_H
 
+#include <align.h>
 #include <as.h>
 #include <ddi.h>
 #include <errno.h>
@@ -64,27 +65,6 @@ static inline uintptr_t addr_to_phys(const void *addr)
 	return result;
 }
 
-/** Create 4KB page mapping
- *
- * @return Address of the mapped page, NULL on failure.
- */
-static inline void *get_page(void)
-{
-	uintptr_t phys;
-	void *address = AS_AREA_ANY;
-
-	const int ret = dmamem_map_anonymous(EHCI_REQUIRED_PAGE_SIZE,
-	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
-	    &address);
-
-	return ((ret == EOK) ? address : NULL);
-}
-
-static inline void return_page(void *page)
-{
-	dmamem_unmap_anonymous(page);
-}
-
 /** Physical mallocator simulator
  *
  * @param[in] size Size of the required memory space
@@ -92,8 +72,21 @@ static inline void return_page(void *page)
  */
 static inline void * malloc32(size_t size)
 {
-	assert(size < PAGE_SIZE);
-	return get_page();
+	uintptr_t phys;
+	void *address = AS_AREA_ANY;
+	size_t real_size = ALIGN_UP(size, PAGE_SIZE);
+
+	const int ret = dmamem_map_anonymous(real_size,
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
+	    &address);
+
+	if (ret == EOK) {
+		/* Poison, accessing it should be enough to make sure
+		 * the location is mapped, but poison works better */
+		memset(address, 0x5, real_size);
+		return address;
+	}
+	return NULL;
 }
 
 /** Physical mallocator simulator
@@ -102,8 +95,23 @@ static inline void * malloc32(size_t size)
  */
 static inline void free32(void *addr)
 {
-	return_page(addr);
+	dmamem_unmap_anonymous(addr);
 }
+
+/** Create 4KB page mapping
+ *
+ * @return Address of the mapped page, NULL on failure.
+ */
+static inline void *get_page()
+{
+	return malloc32(PAGE_SIZE);
+}
+
+static inline void return_page(void *page)
+{
+	free32(page);
+}
+
 
 #endif
 /**

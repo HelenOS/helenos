@@ -44,10 +44,9 @@
 
 #include <usb/debug.h>
 #include <usb/usb.h>
+#include <usb/host/utils/malloc32.h>
 
-//#include "ehci_endpoint.h"
 #include "ehci_batch.h"
-#include "utils/malloc32.h"
 
 #include "hc.h"
 
