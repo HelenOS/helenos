@@ -322,8 +322,9 @@ static int stop_reset(void *arg)
 	 * after reset it's a full speed device */
 	if (!(EHCI_RD(job->hub->registers->portsc[job->port]) &
 	    USB_PORTSC_ENABLED_FLAG)) {
-		usb_log_debug("RH(%p-%u): Port not enabled after reset, "
-		"giving up ownership", job->hub, job->port);
+		usb_log_info("RH(%p-%u): Port not enabled after reset (%"PRIX32
+		"), giving up ownership", job->hub, job->port,
+		EHCI_RD(job->hub->registers->portsc[job->port]));
 		EHCI_SET(job->hub->registers->portsc[job->port],
 		    USB_PORTSC_PORT_OWNER_FLAG);
 	} else {
