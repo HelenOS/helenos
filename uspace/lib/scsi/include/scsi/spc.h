@@ -41,8 +41,9 @@
 
 /** SCSI command codes defined in SCSI-SPC */
 enum scsi_cmd_spc {
-	SCSI_CMD_INQUIRY	= 0x12,
-	SCSI_CMD_REQUEST_SENSE	= 0x03
+	SCSI_CMD_TEST_UNIT_READY = 0x00,
+	SCSI_CMD_REQUEST_SENSE	 = 0x03,
+	SCSI_CMD_INQUIRY	 = 0x12,
 };
 
 /** SCSI Inquiry command
@@ -218,6 +219,16 @@ extern const char *scsi_sense_key_str[SCSI_SK_LIMIT];
 
 extern const char *scsi_get_dev_type_str(unsigned);
 extern const char *scsi_get_sense_key_str(unsigned);
+
+/** SCSI Test Unit Ready command */
+typedef struct {
+	/** Operation code (SCSI_CMD_TEST_UNIT_READY) */
+	uint8_t op_code;
+	/** Reserved */
+	uint32_t reserved;
+	/* Control */
+	uint8_t control;
+} __attribute__((packed)) scsi_cdb_test_unit_ready_t;
 
 #endif
 

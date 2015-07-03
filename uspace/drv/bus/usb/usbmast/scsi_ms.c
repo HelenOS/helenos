@@ -62,14 +62,36 @@ const char *usbmast_scsi_dev_type_str(unsigned type)
 
 static void usbmast_dump_sense(scsi_sense_data_t *sense_buf)
 {
-	unsigned sense_key;
-
-	sense_key = sense_buf->flags_key & 0x0f;
+	const unsigned sense_key = sense_buf->flags_key & 0x0f;
 	printf("Got sense data. Sense key: 0x%x (%s), ASC 0x%02x, "
 	    "ASCQ 0x%02x.\n", sense_key,
 	    scsi_get_sense_key_str(sense_key),
 	    sense_buf->additional_code,
 	    sense_buf->additional_cqual);
+}
+
+static int usb_massstor_unit_ready(usbmast_fun_t *mfun)
+{
+	scsi_cmd_t cmd;
+	scsi_cdb_test_unit_ready_t cdb;
+	int rc;
+
+	memset(&cdb, 0, sizeof(cdb));
+	cdb.op_code = SCSI_CMD_TEST_UNIT_READY;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.cdb = &cdb;
+	cmd.cdb_size = sizeof(cdb);
+
+	rc = usb_massstor_cmd(mfun, 0xDEADBEEF, &cmd);
+
+        if (rc != EOK || cmd.status != CMDS_GOOD) {
+		usb_log_error("Test Unit Ready failed, device %s: %s.\n",
+		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+		return rc;
+	}
+
+	return EOK;
 }
 
 /** Run SCSI command.
@@ -84,6 +106,13 @@ static int usbmast_run_cmd(usbmast_fun_t *mfun, scsi_cmd_t *cmd)
 	int rc;
 
 	do {
+		rc = usb_massstor_unit_ready(mfun);
+		if (rc != EOK) {
+			usb_log_error("Inquiry transport failed, device %s: %s.\n",
+			   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+			return rc;
+		}
+
 		rc = usb_massstor_cmd(mfun, 0xDEADBEEF, cmd);
 		if (rc != EOK) {
 			usb_log_error("Inquiry transport failed, device %s: %s.\n",
