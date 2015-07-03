@@ -55,16 +55,19 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 	instance->name = name;
 	instance->list_head = malloc32(sizeof(qh_t));
 	if (!instance->list_head) {
-		usb_log_error("Failed to allocate list head.\n");
+		usb_log_error("EPL(%p-%s): Failed to allocate list head.",
+		    instance, name);
 		return ENOMEM;
 	}
 	qh_init(instance->list_head, NULL);
 
 	list_initialize(&instance->endpoint_list);
-	usb_log_debug2("Transfer list %s setup with ED: %p(%"PRIxn").\n",
-	    name, instance->list_head, addr_to_phys(instance->list_head));
-
 	fibril_mutex_initialize(&instance->guard);
+
+	usb_log_debug2("EPL(%p-%s): Transfer list setup with ED: %p(%"PRIxn").",
+	    instance, name, instance->list_head,
+	    addr_to_phys(instance->list_head));
+
 	return EOK;
 }
 
@@ -74,6 +77,9 @@ void endpoint_list_chain(endpoint_list_t *instance, const endpoint_list_t *next)
 	assert(next);
 	assert(instance->list_head);
 	assert(next->list_head);
+
+	usb_log_debug2("EPL(%p-%s): Chained with EPL(%p-%s).",
+	    instance, instance->name, next, next->name);
 
 	qh_append_qh(instance->list_head, next->list_head);
 }
@@ -90,7 +96,8 @@ void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	assert(instance);
 	assert(ep);
 	assert(ep->qh);
-	usb_log_debug2("Queue %s: Append endpoint(%p).\n", instance->name, ep);
+	usb_log_debug2("EPL(%p-%s): Append endpoint(%p).\n",
+	    instance, instance->name, ep);
 
 	fibril_mutex_lock(&instance->guard);
 
@@ -120,11 +127,12 @@ void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 
 	ehci_endpoint_t *first = ehci_endpoint_list_instance(
 	    list_first(&instance->endpoint_list));
-	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).\n",
-		ep, instance->name, first, first->qh);
+	usb_log_debug("EPL(%p-%s): EP(%p) added to list, first is %p(%p).\n",
+	    instance, instance->name, ep, first, first->qh);
 	if (last_qh == instance->list_head) {
-		usb_log_debug2("%s head ED(%p-%"PRIxn"): %x:%x.\n",
-		    instance->name, last_qh, addr_to_phys(instance->list_head),
+		usb_log_debug2("EPL(%p-%s): head EP(%p-%"PRIxn"): %x:%x.\n",
+		    instance, instance->name, last_qh,
+		    addr_to_phys(instance->list_head),
 		    last_qh->status, last_qh->horizontal);
 	}
 	fibril_mutex_unlock(&instance->guard);
@@ -144,7 +152,8 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 
 	fibril_mutex_lock(&instance->guard);
 
-	usb_log_debug2("Queue %s: removing endpoint(%p).\n", instance->name, ep);
+	usb_log_debug2("EPL(%p-%s): removing EP(%p).\n",
+	    instance, instance->name, ep);
 
 	const char *qpos = NULL;
 	qh_t *prev_qh;
@@ -162,8 +171,8 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	/* Make sure ED is updated */
 	write_barrier();
 
-	usb_log_debug("HCD EP(%p) removed (%s) from %s, horizontal %x.\n",
-	    ep, qpos, instance->name, ep->qh->horizontal);
+	usb_log_debug("EPL(%p-%s): EP(%p) removed (%s), horizontal %x.\n",
+	    instance, instance->name,  ep, qpos, ep->qh->horizontal);
 
 	/* Remove from the endpoint list */
 	list_remove(&ep->link);
