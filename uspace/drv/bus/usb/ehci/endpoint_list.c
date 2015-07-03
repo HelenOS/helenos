@@ -61,7 +61,7 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 	qh_init(instance->list_head, NULL);
 
 	list_initialize(&instance->endpoint_list);
-	usb_log_debug2("Transfer list %s setup with ED: %p(%x).\n",
+	usb_log_debug2("Transfer list %s setup with ED: %p(%"PRIxn").\n",
 	    name, instance->list_head, addr_to_phys(instance->list_head));
 
 	fibril_mutex_initialize(&instance->guard);
@@ -123,7 +123,7 @@ void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).\n",
 		ep, instance->name, first, first->qh);
 	if (last_qh == instance->list_head) {
-		usb_log_debug2("%s head ED(%p-%x): %x:%x.\n",
+		usb_log_debug2("%s head ED(%p-%"PRIxn"): %x:%x.\n",
 		    instance->name, last_qh, addr_to_phys(instance->list_head),
 		    last_qh->status, last_qh->horizontal);
 	}

@@ -313,13 +313,13 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	usb_log_info("(%p): Hub port power switching enabled (%s).\n", hub_dev,
 	    hub_dev->per_port_power ? "per port" : "ganged");
 
-	for (size_t port = 0; port < hub_dev->port_count; ++port) {
-		usb_log_debug("(%p): Powering port %zu.", hub_dev, port);
+	for (unsigned port = 0; port < hub_dev->port_count; ++port) {
+		usb_log_debug("(%p): Powering port %u.", hub_dev, port);
 		const int ret = usb_hub_port_set_feature(
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 
 		if (ret != EOK) {
-			usb_log_error("(%p-%zu): Cannot power on port: %s.\n",
+			usb_log_error("(%p-%u): Cannot power on port: %s.\n",
 			    hub_dev, hub_dev->ports[port].port_number,
 			    str_error(ret));
 		} else {
