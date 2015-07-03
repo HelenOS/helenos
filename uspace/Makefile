@@ -263,7 +263,8 @@ DIRS += \
 	lib/bithenge \
 	lib/posix \
 	lib/ieee80211 \
-	lib/virtio
+	lib/virtio \
+	lib/sysman
 
 BUILDS := $(addsuffix .build,$(DIRS))
 BUILDS_TESTS := $(addsuffix .build-test,$(DIRS))
