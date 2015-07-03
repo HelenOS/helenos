@@ -350,12 +350,12 @@ static int req_set_port_feature(usbvirt_device_t *dev,
 static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 	{
 		STD_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
-		.name = "GetDescriptor",
+		.name = "GetStdDescriptor",
 		.callback = req_get_descriptor
 	},
 	{
 		CLASS_REQ_IN(REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
-		.name = "GetDescriptor",
+		.name = "GetClassDescriptor",
 		.callback = req_get_descriptor
 	},
 	{
