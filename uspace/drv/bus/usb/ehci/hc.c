@@ -167,16 +167,16 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 	int ret = pio_enable_range(&hw_res->mem_ranges.ranges[0],
 	    (void **)&instance->caps);
 	if (ret != EOK) {
-		usb_log_error("Failed to gain access to device registers: %s.\n",
-		    str_error(ret));
+		usb_log_error("HC(%p): Failed to gain access to device "
+		    "registers: %s.\n", instance, str_error(ret));
 		return ret;
 	}
-	usb_log_info("Device registers at %" PRIx64 " (%zuB) accessible.\n",
-	    hw_res->mem_ranges.ranges[0].address.absolute,
+	usb_log_info("HC(%p): Device registers at %"PRIx64" (%zuB) accessible.",
+	    instance, hw_res->mem_ranges.ranges[0].address.absolute,
 	    hw_res->mem_ranges.ranges[0].size);
 	instance->registers =
 	    (void*)instance->caps + EHCI_RD8(instance->caps->caplength);
-	usb_log_info("Device control registers at %" PRIx64 "\n",
+	usb_log_info("HC(%p): Device control registers at %" PRIx64, instance,
 	    hw_res->mem_ranges.ranges[0].address.absolute
 	    + EHCI_RD8(instance->caps->caplength));
 
@@ -186,13 +186,15 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 
 	ret = hc_init_memory(instance);
 	if (ret != EOK) {
-		usb_log_error("Failed to create EHCI memory structures: %s.\n",
-		    str_error(ret));
+		usb_log_error("HC(%p): Failed to create EHCI memory structures:"
+		    " %s.", instance, str_error(ret));
 		return ret;
 	}
 
+	usb_log_info("HC(%p): Initializing RH(%p).", instance, &instance->rh);
 	ehci_rh_init(
 	    &instance->rh, instance->caps, instance->registers, "ehci rh");
+	usb_log_debug("HC(%p): Starting HW.", instance);
 	hc_start(instance);
 
 	return EOK;
@@ -218,7 +220,7 @@ void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 	assert(instance);
 	assert(ep);
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
-	usb_log_debug("HCD(%p) enqueue EP(%d:%d:%s:%s)\n", instance,
+	usb_log_debug("HC(%p) enqueue EP(%d:%d:%s:%s)\n", instance,
 	    ep->address, ep->endpoint,
 	    usb_str_transfer_type_short(ep->transfer_type),
 	    usb_str_direction(ep->direction));
@@ -242,7 +244,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	assert(instance);
 	assert(ep);
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
-	usb_log_debug("HCD(%p) dequeue EP(%d:%d:%s:%s)\n", instance,
+	usb_log_debug("HC(%p) dequeue EP(%d:%d:%s:%s)\n", instance,
 	    ep->address, ep->endpoint,
 	    usb_str_transfer_type_short(ep->transfer_type),
 	    usb_str_direction(ep->direction));
@@ -260,8 +262,10 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 		break;
 	}
 	fibril_mutex_lock(&instance->guard);
+	usb_log_debug("HC(%p): Waiting for doorbell", instance);
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_IRQ_ASYNC_DOORBELL);
 	fibril_condvar_wait(&instance->async_doorbell, &instance->guard);
+	usb_log_debug2("HC(%p): Got doorbell", instance);
 	fibril_mutex_unlock(&instance->guard);
 }
 
@@ -276,6 +280,7 @@ int ehci_hc_status(hcd_t *hcd, uint32_t *status)
 		*status = EHCI_RD(instance->registers->usbsts);
 		EHCI_WR(instance->registers->usbsts, *status);
 	}
+	usb_log_debug2("HC(%p): Read status: %x", instance, *status);
 	return EOK;
 }
 
@@ -293,6 +298,8 @@ int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 	/* Check for root hub communication */
 	if (batch->ep->address == ehci_rh_get_address(&instance->rh)) {
+		usb_log_debug("HC(%p): Scheduling BATCH(%p) for RH(%p)",
+		    instance, batch, &instance->rh);
 		return ehci_rh_schedule(&instance->rh, batch);
 	}
 	ehci_transfer_batch_t *ehci_batch = ehci_transfer_batch_get(batch);
@@ -300,7 +307,9 @@ int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 		return ENOMEM;
 
 	fibril_mutex_lock(&instance->guard);
+	usb_log_debug2("HC(%p): Appending BATCH(%p)", instance, batch);
 	list_append(&ehci_batch->link, &instance->pending_batches);
+	usb_log_debug("HC(%p): Committing BATCH(%p)", instance, batch);
 	ehci_transfer_batch_commit(ehci_batch);
 
 	fibril_mutex_unlock(&instance->guard);
@@ -319,12 +328,14 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	status = EHCI_RD(status);
 	assert(instance);
 
+	usb_log_debug2("HC(%p): Interrupt: %"PRIx32, instance, status);
 	if (status & USB_STS_PORT_CHANGE_FLAG) {
 		ehci_rh_interrupt(&instance->rh);
 	}
 
 	if (status & USB_STS_IRQ_ASYNC_ADVANCE_FLAG) {
 		fibril_mutex_lock(&instance->guard);
+		usb_log_debug2("HC(%p): Signaling doorbell", instance);
 		fibril_condvar_broadcast(&instance->async_doorbell);
 		fibril_mutex_unlock(&instance->guard);
 	}
@@ -332,6 +343,8 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
 		fibril_mutex_lock(&instance->guard);
 
+		usb_log_debug2("HC(%p): Scanning %u pending batches", instance,
+			list_count(&instance->pending_batches));
 		list_foreach_safe(instance->pending_batches, current, next) {
 			ehci_transfer_batch_t *batch =
 			    ehci_transfer_batch_from_link(current);
@@ -345,7 +358,7 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	}
 
 	if (status & USB_STS_HOST_ERROR_FLAG) {
-		usb_log_fatal("HOST CONTROLLER SYSTEM ERROR!\n");
+		usb_log_fatal("HCD(%p): HOST SYSTEM ERROR!", instance);
 		//TODO do something here
 	}
 }
@@ -370,16 +383,20 @@ void hc_start(hc_t *instance)
 		while ((EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG) == 0) {
 			async_usleep(1);
 		}
-		usb_log_info("EHCI turned off.\n");
+		usb_log_info("HC(%p): EHCI turned off.", instance);
 	} else {
-		usb_log_info("EHCI was not running.\n");
+		usb_log_info("HC(%p): EHCI was not running.", instance);
 	}
 
 	/* Hw initialization sequence, see page 53 (pdf 63) */
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_HC_RESET_FLAG);
+	usb_log_info("HC(%p): Waiting for HW reset.", instance);
 	while (EHCI_RD(instance->registers->usbcmd) & USB_CMD_HC_RESET_FLAG) {
 		async_usleep(1);
 	}
+	usb_log_debug("HC(%p): HW reset OK.", instance);
+
+	//TODO: Do this last
 	/* Enable interrupts */
 	EHCI_WR(instance->registers->usbintr, EHCI_USED_INTERRUPTS);
 	/* Use the lowest 4G segment */
@@ -392,6 +409,7 @@ void hc_start(hc_t *instance)
 	assert((phys_base & USB_PERIODIC_LIST_BASE_MASK) == phys_base);
 	EHCI_WR(instance->registers->periodiclistbase, phys_base);
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_PERIODIC_SCHEDULE_FLAG);
+	usb_log_debug("HC(%p): Enabled periodic list.", instance);
 
 
 	/* Enable Async schedule */
@@ -399,16 +417,19 @@ void hc_start(hc_t *instance)
 	assert((phys_base & USB_ASYNCLIST_MASK) == phys_base);
 	EHCI_WR(instance->registers->asynclistaddr, phys_base);
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_ASYNC_SCHEDULE_FLAG);
+	usb_log_debug("HC(%p): Enabled async list.", instance);
 
 	/* Start hc and get all ports */
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_RUN_FLAG);
 	EHCI_SET(instance->registers->configflag, USB_CONFIG_FLAG_FLAG);
+	usb_log_debug("HC(%p): HW started.", instance);
 
-	usb_log_debug("Registers: \n"
-	    "\t USBCMD(%p): %x(0x00080000 = at least 1ms between interrupts)\n"
-	    "\t USBSTS(%p): %x(0x00001000 = HC halted)\n"
-	    "\t USBINT(%p): %x(0x0 = no interrupts).\n"
-	    "\t CONFIG(%p): %x(0x0 = ports controlled by companion hc).\n",
+	usb_log_debug2("HC(%p): Registers: \n"
+	    "\tUSBCMD(%p): %x(0x00080000 = at least 1ms between interrupts)\n"
+	    "\tUSBSTS(%p): %x(0x00001000 = HC halted)\n"
+	    "\tUSBINT(%p): %x(0x0 = no interrupts).\n"
+	    "\tCONFIG(%p): %x(0x0 = ports controlled by companion hc).\n",
+	    instance,
 	    &instance->registers->usbcmd, EHCI_RD(instance->registers->usbcmd),
 	    &instance->registers->usbsts, EHCI_RD(instance->registers->usbsts),
 	    &instance->registers->usbintr, EHCI_RD(instance->registers->usbintr),
@@ -423,9 +444,12 @@ void hc_start(hc_t *instance)
 int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
+	usb_log_debug2("HC(%p): Initializing Async list(%p).", instance,
+	    &instance->async_list);
 	int ret = endpoint_list_init(&instance->async_list, "ASYNC");
 	if (ret != EOK) {
-		usb_log_error("Failed to setup ASYNC list: %s", str_error(ret));
+		usb_log_error("HC(%p): Failed to setup ASYNC list: %s",
+		    instance, str_error(ret));
 		return ret;
 	}
 	/* Specs say "Software must set queue head horizontal pointer T-bits to
@@ -434,9 +458,12 @@ int hc_init_memory(hc_t *instance)
 	 * have to be valid */
 	endpoint_list_chain(&instance->async_list, &instance->async_list);
 
+	usb_log_debug2("HC(%p): Initializing Interrupt list (%p).", instance,
+	    &instance->int_list);
 	ret = endpoint_list_init(&instance->int_list, "INT");
 	if (ret != EOK) {
-		usb_log_error("Failed to setup INT list: %s", str_error(ret));
+		usb_log_error("HC(%p): Failed to setup INT list: %s",
+		    instance, str_error(ret));
 		endpoint_list_fini(&instance->async_list);
 		return ret;
 	}
@@ -444,11 +471,14 @@ int hc_init_memory(hc_t *instance)
 	/* Take 1024 periodic list heads, we ignore low mem options */
 	instance->periodic_list_base = get_page();
 	if (!instance->periodic_list_base) {
-		usb_log_error("Failed to get ISO schedule page.");
+		usb_log_error("HC(%p): Failed to get ISO schedule page.",
+		    instance);
 		endpoint_list_fini(&instance->async_list);
 		endpoint_list_fini(&instance->int_list);
 		return ENOMEM;
 	}
+
+	usb_log_debug2("HC(%p): Initializing Periodic list.", instance);
 	for (unsigned i = 0;
 	    i < PAGE_SIZE/sizeof(instance->periodic_list_base[0]); ++i)
 	{
