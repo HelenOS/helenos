@@ -105,13 +105,15 @@ const char *name)
 	instance->port_count =
 	    (EHCI_RD(caps->hcsparams) >> EHCI_CAPS_HCS_N_PORTS_SHIFT) &
 	    EHCI_CAPS_HCS_N_PORTS_MASK;
-	usb_log_debug2("hcsparams: %x.\n", EHCI_RD(caps->hcsparams));
-	usb_log_info("%s: Found %u ports.\n", name, instance->port_count);
+	usb_log_debug2("RH(%p): hcsparams: %x.\n", instance,
+	    EHCI_RD(caps->hcsparams));
+	usb_log_info("RH(%p): Found %u ports.\n", instance,
+	    instance->port_count);
 
 	if (EHCI_RD(caps->hcsparams) & EHCI_CAPS_HCS_PPC_FLAG) {
-		usb_log_info("%s: Per-port power switching.\n", name);
+		usb_log_info("RH(%p): Per-port power switching.", instance);
 	} else {
-		usb_log_info("%s: No power switching.\n", name);
+		usb_log_info("RH(%p): No power switching.", instance);
 	}
 
 	for (unsigned i = 0; i < EHCI_MAX_PORTS; ++i) {
@@ -145,7 +147,7 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 	    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
 	    batch->buffer, batch->buffer_size, &batch->transfered_size);
 	if (batch->error == ENAK) {
-		usb_log_debug("EHCI RH(%p): BATCH(%p) adding as unfinished\n",
+		usb_log_debug("RH(%p): BATCH(%p) adding as unfinished",
 		    instance, batch);
 		/* This is safe because only status change interrupt transfers
 		 * return NAK. The assertion holds true because the batch
@@ -155,7 +157,7 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 	} else {
 		usb_transfer_batch_finish(batch, NULL);
 		usb_transfer_batch_destroy(batch);
-		usb_log_debug("EHCI RH(%p): BATCH(%p) virtual request: %s\n",
+		usb_log_debug("RH(%p): BATCH(%p) virtual request complete: %s",
 		    instance, batch, str_error(batch->error));
 	}
 	return EOK;
@@ -173,6 +175,8 @@ int ehci_rh_interrupt(ehci_rh_t *instance)
 	//TODO atomic swap needed
 	usb_transfer_batch_t *batch = instance->unfinished_interrupt_transfer;
 	instance->unfinished_interrupt_transfer = NULL;
+	usb_log_debug2("RH(%p): Interrupt. Processing batch: %p",
+	    instance, batch);
 	if (batch) {
 		const usb_target_t target = {{
 			.address = batch->ep->address,
@@ -289,7 +293,8 @@ static int req_get_port_status(usbvirt_device_t *device,
 	    (hub->reset_flag[port] ? (1 << USB_HUB_FEATURE_C_PORT_RESET): 0)
 	);
 	/* Note feature numbers for test and indicator feature do not
-	 * corespond to the port status bit locations */
+	 * correspond to the port status bit locations */
+	usb_log_debug2("RH(%p-%u) port status: %"PRIx32, hub, port, status);
 	memcpy(data, &status, sizeof(status));
 	*act_size = sizeof(status);
 	return EOK;
@@ -304,7 +309,7 @@ static int stop_reset(void *arg)
 {
 	ehci_rh_job_t *job = arg;
 	async_usleep(50000);
-	usb_log_debug("EHCI_RH(%p-%u): Clearing reset", job->hub, job->port);
+	usb_log_debug("RH(%p-%u): Clearing reset", job->hub, job->port);
 	EHCI_CLR(job->hub->registers->portsc[job->port],
 	    USB_PORTSC_PORT_RESET_FLAG);
 	/* wait for reset to complete */
@@ -312,12 +317,12 @@ static int stop_reset(void *arg)
 	    USB_PORTSC_PORT_RESET_FLAG) {
 		async_usleep(1);
 	};
-	usb_log_debug("EHCI_RH(%p-%u): Reset complete", job->hub, job->port);
+	usb_log_debug("RH(%p-%u): Reset complete", job->hub, job->port);
 	/* Handle port ownership, if the port is not enabled
 	 * after reset it's a full speed device */
 	if (!(EHCI_RD(job->hub->registers->portsc[job->port]) &
 	    USB_PORTSC_ENABLED_FLAG)) {
-		usb_log_debug("EHCI_RH(%p-%u): Port not enabled after reset, "
+		usb_log_debug("RH(%p-%u): Port not enabled after reset, "
 		"giving up ownership", job->hub, job->port);
 		EHCI_SET(job->hub->registers->portsc[job->port],
 		    USB_PORTSC_PORT_OWNER_FLAG);
@@ -333,6 +338,7 @@ static int stop_resume(void *arg)
 {
 	ehci_rh_job_t *job = arg;
 	async_usleep(20000);
+	usb_log_debug("RH(%p-%u): Stopping resume", job->hub, job->port);
 	EHCI_CLR(job->hub->registers->portsc[job->port],
 	    USB_PORTSC_RESUME_FLAG);
 	job->hub->resume_flag[job->port] = true;
@@ -354,6 +360,7 @@ static int delayed_job(int (*func)(void*), ehci_rh_t *rh, unsigned port)
 		return ENOMEM;
 	}
 	fibril_add_ready(fib);
+	usb_log_debug2("RH(%p-%u): Scheduled delayed stop job.", rh, port);
 	return EOK;
 }
 
@@ -378,16 +385,19 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	switch (feature)
 	{
 	case USB_HUB_FEATURE_PORT_POWER:          /*8*/
+		usb_log_debug2("RH(%p-%u): Clear port power.", hub, port);
 		EHCI_CLR(hub->registers->portsc[port],
 		    USB_PORTSC_PORT_POWER_FLAG);
 		return EOK;
 
 	case USB_HUB_FEATURE_PORT_ENABLE:         /*1*/
+		usb_log_debug2("RH(%p-%u): Clear port enable.", hub, port);
 		EHCI_CLR(hub->registers->portsc[port],
 		    USB_PORTSC_ENABLED_FLAG);
 		return EOK;
 
 	case USB_HUB_FEATURE_PORT_SUSPEND:        /*2*/
+		usb_log_debug2("RH(%p-%u): Clear port suspend.", hub, port);
 		/* If not in suspend it's noop */
 		if ((EHCI_RD(hub->registers->portsc[port]) &
 		    USB_PORTSC_SUSPEND_FLAG) == 0)
@@ -395,29 +405,41 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		/* Host driven resume */
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_RESUME_FLAG);
-		delayed_job(stop_resume, hub, port);
-		return EOK;
+		//TODO: What if creating the delayed job fails?
+		return delayed_job(stop_resume, hub, port);
 
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
+		usb_log_debug2("RH(%p-%u): Clear port connection change.",
+		    hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_CONNECT_CH_FLAG);
 		return EOK;
 	case USB_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
+		usb_log_debug2("RH(%p-%u): Clear port enable change.",
+		    hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_CONNECT_CH_FLAG);
 		return EOK;
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
+		usb_log_debug2("RH(%p-%u): Clear port OC change.",
+		    hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_OC_CHANGE_FLAG);
 		return EOK;
 	case USB_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
+		usb_log_debug2("RH(%p-%u): Clear port suspend change.",
+		    hub, port);
 		hub->resume_flag[port] = false;
 		return EOK;
 	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
+		usb_log_debug2("RH(%p-%u): Clear port reset change.",
+		    hub, port);
 		hub->reset_flag[port] = false;
 		return EOK;
 
 	default:
+		usb_log_warning("RH(%p-%u): Clear unknown feature: %u",
+		    hub, port, feature);
 		return ENOTSUP;
 	}
 }
@@ -440,23 +462,29 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	switch (feature) {
 	case USB_HUB_FEATURE_PORT_ENABLE:  /*1*/
+		usb_log_debug2("RH(%p-%u): Set port enable.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_ENABLED_FLAG);
 		return EOK;
 	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
+		usb_log_debug2("RH(%p-%u): Set port suspend.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_SUSPEND_FLAG);
 		return EOK;
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
+		usb_log_debug2("RH(%p-%u): Set port reset.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_PORT_RESET_FLAG);
-		delayed_job(stop_reset, hub, port);
-		return EOK;
+		//TODO: What if creating the delayed job fails?
+		return delayed_job(stop_reset, hub, port);
 	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
+		usb_log_debug2("RH(%p-%u): Set port power.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_PORT_POWER_FLAG);
 		return EOK;
 	default:
+		usb_log_warning("RH(%p-%u): Set unknown feature: %u",
+		    hub, port, feature);
 		return ENOTSUP;
 	}
 }
@@ -500,7 +528,7 @@ static int req_status_change_handler(usbvirt_device_t *device,
 		}
 	}
 
-	usb_log_debug2("EHCI root hub interrupt mask: %hx.\n", mask);
+	usb_log_debug2("RH(%p): root hub interrupt mask: %"PRIx16, hub, mask);
 
 	if (mask == 0)
 		return ENAK;
