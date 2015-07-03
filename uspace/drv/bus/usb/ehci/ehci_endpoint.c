@@ -51,7 +51,8 @@ static void ehci_ep_toggle_set(void *ehci_ep, int toggle)
 	assert(instance);
 	assert(instance->qh);
 	if (qh_toggle_from_td(instance->qh))
-		usb_log_warning("Setting toggle bit for transfer directed EP\n");
+		usb_log_warning("EP(%p): Setting toggle bit for transfer "
+		    "directed EP", instance);
 	qh_toggle_set(instance->qh, toggle);
 }
 
@@ -66,7 +67,7 @@ static int ehci_ep_toggle_get(void *ehci_ep)
 	assert(instance);
 	assert(instance->qh);
 	if (qh_toggle_from_td(instance->qh))
-		usb_log_warning("Reading useless toggle bit\n");
+		usb_log_warning("EP(%p): Reading useless toggle bit", instance);
 	return qh_toggle_get(instance->qh);
 }
 
@@ -88,6 +89,7 @@ int ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 		return ENOMEM;
 	}
 
+	usb_log_debug2("EP(%p): Creating for %p", ehci_ep, ep);
 	link_initialize(&ehci_ep->link);
 	qh_init(ehci_ep->qh, ep);
 	endpoint_set_hc_data(
@@ -108,6 +110,7 @@ void ehci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 	ehci_endpoint_t *instance = ehci_endpoint_get(ep);
 	hc_dequeue_endpoint(hcd->driver.data, ep);
 	endpoint_clear_hc_data(ep);
+	usb_log_debug2("EP(%p): Destroying for %p", instance, ep);
 	if (instance) {
 		free32(instance->qh);
 		free(instance);
