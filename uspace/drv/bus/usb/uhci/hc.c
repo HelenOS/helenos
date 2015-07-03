@@ -47,9 +47,9 @@
 
 #include <usb/debug.h>
 #include <usb/usb.h>
+#include <usb/host/utils/malloc32.h>
 
 #include "uhci_batch.h"
-#include "utils/malloc32.h"
 #include "hc.h"
 
 #define UHCI_INTR_ALLOW_INTERRUPTS \

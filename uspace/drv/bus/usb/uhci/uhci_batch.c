@@ -41,10 +41,10 @@
 #include <usb/usb.h>
 #include <usb/debug.h>
 #include <usb/host/endpoint.h>
+#include <usb/host/utils/malloc32.h>
 
 #include "uhci_batch.h"
 #include "hw_struct/transfer_descriptor.h"
-#include "utils/malloc32.h"
 
 #define DEFAULT_ERROR_COUNT 3
 

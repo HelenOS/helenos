@@ -36,10 +36,10 @@
 
 #include <assert.h>
 #include <sys/types.h>
+#include <usb/host/utils/malloc32.h>
 
 #include "link_pointer.h"
 #include "transfer_descriptor.h"
-#include "../utils/malloc32.h"
 
 /** This structure is defined in UHCI design guide p. 31 */
 typedef struct queue_head {

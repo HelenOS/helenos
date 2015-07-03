@@ -39,8 +39,8 @@
 #include <sys/types.h>
 #include <usb/debug.h>
 #include <usb/host/usb_transfer_batch.h>
+#include <usb/host/utils/malloc32.h>
 
-#include "utils/malloc32.h"
 #include "hw_struct/link_pointer.h"
 #include "transfer_list.h"
 
