@@ -226,7 +226,7 @@ usbvirt_control_request_handler_t library_handlers[] = {
 	},
 	{
 		STD_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
-		.name = "GetDescriptor",
+		.name = "GetStdDescriptor",
 		.callback = req_get_descriptor
 	},
 	{
