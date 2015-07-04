@@ -74,8 +74,11 @@ static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 		return ENOMEM;
 
 	const int ret = hc_init(instance, res, irq);
-	if (ret == EOK)
+	if (ret == EOK) {
 		hcd_set_implementation(hcd, instance, &ohci_hc_driver.ops);
+	} else {
+		free(instance);
+	}
 	return ret;
 }
 
