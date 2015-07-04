@@ -39,8 +39,8 @@
 #include <sys/types.h>
 
 #include <usb/host/endpoint.h>
+#include <usb/host/utils/malloc32.h>
 
-#include "../utils/malloc32.h"
 #include "transfer_descriptor.h"
 
 #include "completion_codes.h"

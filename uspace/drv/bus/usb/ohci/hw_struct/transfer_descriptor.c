@@ -36,8 +36,8 @@
 #include <mem.h>
 
 #include <usb/usb.h>
+#include <usb/host/utils/malloc32.h>
 
-#include "../utils/malloc32.h"
 #include "completion_codes.h"
 #include "mem_access.h"
 #include "transfer_descriptor.h"

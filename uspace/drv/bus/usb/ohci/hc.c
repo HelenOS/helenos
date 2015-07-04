@@ -47,7 +47,6 @@
 
 #include "ohci_endpoint.h"
 #include "ohci_batch.h"
-#include "utils/malloc32.h"
 
 #include "hc.h"
 

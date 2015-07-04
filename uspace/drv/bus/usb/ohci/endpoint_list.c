@@ -38,8 +38,8 @@
 #include <libarch/barrier.h>
 
 #include <usb/debug.h>
+#include <usb/host/utils/malloc32.h>
 
-#include "utils/malloc32.h"
 #include "endpoint_list.h"
 
 /** Initialize transfer list structures.

@@ -40,10 +40,10 @@
 
 #include <usb/usb.h>
 #include <usb/debug.h>
+#include <usb/host/utils/malloc32.h>
 
 #include "ohci_batch.h"
 #include "ohci_endpoint.h"
-#include "utils/malloc32.h"
 
 static void (*const batch_setup[])(ohci_transfer_batch_t*, usb_direction_t);
 
