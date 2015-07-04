@@ -105,6 +105,15 @@ static int disable_legacy(ddf_dev_t *device)
 	async_hangup(parent_sess);
 	return rc;
 }
+static const ddf_hc_driver_t uhci_hc_driver = {
+        .claim = disable_legacy,
+        .hc_speed = USB_SPEED_FULL,
+        .irq_code_gen = uhci_hc_gen_irq_code,
+        .init = uhci_driver_init,
+        .fini = uhci_driver_fini,
+        .name = "UHCI"
+};
+
 
 /** Initialize a new ddf driver instance for uhci hc and hub.
  *
@@ -115,28 +124,7 @@ int uhci_dev_add(ddf_dev_t *device)
 {
 	usb_log_debug2("uhci_dev_add() called\n");
 	assert(device);
-
-	int ret = disable_legacy(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to disable legacy USB: %s.\n",
-		    str_error(ret));
-		return ret;
-	}
-
-
-	ret = ddf_hcd_device_setup_all(device, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11,
-	    ddf_hcd_gen_irq_handler, uhci_hc_gen_irq_code,
-	    uhci_driver_init, uhci_driver_fini);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize UHCI driver: %s.\n",
-		    str_error(ret));
-	} else {
-		usb_log_info("Controlling new UHCI device '%s'.\n",
-		    ddf_dev_get_name(device));
-	}
-
-	return ret;
+	return hcd_ddf_add_hc(device, &uhci_hc_driver);
 }
 
 /** Initialize global driver structures (NONE).

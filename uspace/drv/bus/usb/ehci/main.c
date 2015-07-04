@@ -88,6 +88,15 @@ static const driver_t ehci_driver = {
 };
 
 
+static const ddf_hc_driver_t ehci_hc_driver = {
+	.claim = disable_legacy,
+	.hc_speed = USB_SPEED_HIGH,
+	.irq_code_gen = ehci_hc_gen_irq_code,
+	.init = ehci_driver_init,
+	.fini = ehci_driver_fini,
+	.name = "EHCI-PCI"
+};
+
 /** Initializes a new ddf driver instance of EHCI hcd.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -98,26 +107,8 @@ static int ehci_dev_add(ddf_dev_t *device)
 	usb_log_debug("ehci_dev_add() called\n");
 	assert(device);
 
-	int ret = disable_legacy(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to disable EHCI legacy support: %s\n",
-		    str_error(ret));
-		return ret;
-	}
+	return hcd_ddf_add_hc(device, &ehci_hc_driver);
 
-	ret = ddf_hcd_device_setup_all(device, USB_SPEED_HIGH,
-	    BANDWIDTH_AVAILABLE_USB20, bandwidth_count_usb11,
-	    ddf_hcd_gen_irq_handler, ehci_hc_gen_irq_code,
-	    ehci_driver_init, ehci_driver_fini);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize EHCI driver: %s.\n",
-		    str_error(ret));
-		return ret;
-	}
-	usb_log_info("Controlling new EHCI device '%s'.\n",
-	    ddf_dev_get_name(device));
-
-	return EOK;
 }
 
 /** Initializes global driver structures (NONE).

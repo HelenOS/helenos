@@ -73,6 +73,14 @@ static void ohci_driver_fini(hcd_t *hcd)
 	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
+static const ddf_hc_driver_t ohci_hc_driver = {
+        .hc_speed = USB_SPEED_FULL,
+        .irq_code_gen = ohci_hc_gen_irq_code,
+        .init = ohci_driver_init,
+        .fini = ohci_driver_fini,
+        .name = "OHCI"
+};
+
 /** Initializes a new ddf driver instance of OHCI hcd.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -82,19 +90,7 @@ static int ohci_dev_add(ddf_dev_t *device)
 {
 	usb_log_debug("ohci_dev_add() called\n");
 	assert(device);
-
-	const int ret = ddf_hcd_device_setup_all(device, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11,
-	    ddf_hcd_gen_irq_handler, ohci_hc_gen_irq_code,
-	    ohci_driver_init, ohci_driver_fini);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize OHCI driver: %s.\n",
-		    str_error(ret));
-	}
-	usb_log_info("Controlling new OHCI device '%s'.\n",
-	    ddf_dev_get_name(device));
-
-	return ret;
+	return hcd_ddf_add_hc(device, &ohci_hc_driver);
 }
 
 static const driver_ops_t ohci_driver_ops = {
