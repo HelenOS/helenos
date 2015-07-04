@@ -44,6 +44,24 @@
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
 
+typedef int (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *, bool);
+typedef void (*driver_fini_t)(hcd_t *);
+typedef int (*claim_t)(ddf_dev_t *);
+typedef int (*irq_code_gen_t)(irq_code_t *, const hw_res_list_parsed_t *);
+
+typedef struct {
+	hc_driver_t ops;
+	claim_t claim;
+	usb_speed_t hc_speed;
+	driver_init_t init;
+	driver_fini_t fini;
+	interrupt_handler_t *irq_handler;
+	irq_code_gen_t irq_code_gen;
+	const char *name;
+} ddf_hc_driver_t;
+
+int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver);
+
 int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
     size_t bw, bw_count_func_t bw_count);
 void hcd_ddf_clean_hc(ddf_dev_t *device);

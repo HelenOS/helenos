@@ -48,6 +48,7 @@
 #include <devman.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str_error.h>
@@ -605,6 +606,48 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
 	const int ret = hcd_ddf_new_device(device, NULL, 0);
 	hcd_release_default_address(hcd);
 	return ret;
+}
+
+int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
+{
+	assert(driver);
+	static const struct { size_t bw; bw_count_func_t bw_count; }bw[] = {
+	    [USB_SPEED_FULL] = { .bw = BANDWIDTH_AVAILABLE_USB11,
+	                         .bw_count = bandwidth_count_usb11 },
+	    [USB_SPEED_HIGH] = { .bw = BANDWIDTH_AVAILABLE_USB11,
+	                         .bw_count = bandwidth_count_usb11 },
+	};
+
+	int ret = EOK;
+	const usb_speed_t speed = driver->hc_speed;
+	if (speed >= ARRAY_SIZE(bw) || bw[speed].bw == 0) {
+		usb_log_error("Driver `%s' reported unsupported speed: %s",
+		    driver->name, usb_str_speed(speed));
+		return ENOTSUP;
+	}
+
+	if (driver->claim)
+		ret = driver->claim(device);
+	if (ret != EOK) {
+		usb_log_error("Failed to claim `%s' for driver `%s'",
+		    ddf_dev_get_name(device), driver->name);
+		return ret;
+	}
+	interrupt_handler_t *irq_handler =
+	    driver->irq_handler ? driver->irq_handler : ddf_hcd_gen_irq_handler;
+
+	ret = ddf_hcd_device_setup_all(device, speed, bw[speed].bw,
+	    bw[speed].bw_count, irq_handler, driver->irq_code_gen,
+	    driver->init, driver->fini);
+	if (ret != EOK) {
+		usb_log_error("Failed to setup `%s' for driver `%s'",
+		    ddf_dev_get_name(device), driver->name);
+		return ret;
+	}
+
+	usb_log_info("Controlling new `%s' device `%s'.\n",
+	    driver->name, ddf_dev_get_name(device));
+	return EOK;
 }
 
 /** Initialize hc structures.
