@@ -111,6 +111,7 @@ static int vbds_part_by_id(vbds_part_id_t partid, vbds_part_t **rpart)
 	return ENOENT;
 }
 
+/** Add partition to our inventory based on liblabel partition structure */
 static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
     vbds_part_t **rpart)
 {
@@ -118,7 +119,6 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	service_id_t psid;
 	label_part_info_t lpinfo;
 	char *name;
-	int pno;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_add(%s, %p)",
@@ -131,8 +131,7 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	}
 
 	/* XXX Proper service name */
-	pno = list_count(&disk->parts);
-	rc = asprintf(&name, "%sp%u", disk->svc_name, pno);
+	rc = asprintf(&name, "%sp%u", disk->svc_name, lpart->index);
 	if (rc < 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
 		return ENOMEM;
@@ -165,6 +164,34 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 
 	if (rpart != NULL)
 		*rpart = part;
+	return EOK;
+}
+
+/** Remove partition from our inventory leaving only the underlying liblabel
+ * partition structure.
+ */
+static int vbds_part_remove(vbds_part_t *part, label_part_t **rlpart)
+{
+	label_part_t *lpart;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_remove(%p)", part);
+
+	lpart = part->lpart;
+
+	if (part->open_cnt > 0)
+		return EBUSY;
+
+	rc = loc_service_unregister((service_id_t)part->id);
+	if (rc != EOK)
+		return EIO;
+
+	list_remove(&part->ldisk);
+	list_remove(&part->lparts);
+	free(part);
+
+	if (rlpart != NULL)
+		*rlpart = lpart;
 	return EOK;
 }
 
@@ -441,19 +468,32 @@ error:
 int vbds_part_delete(vbds_part_id_t partid)
 {
 	vbds_part_t *part;
+	vbds_disk_t *disk;
+	label_part_t *lpart;
 	int rc;
 
 	rc = vbds_part_by_id(partid, &part);
 	if (rc != EOK)
 		return rc;
 
-	rc = label_part_destroy(part->lpart);
+	disk = part->disk;
+
+	rc = vbds_part_remove(part, &lpart);
 	if (rc != EOK)
 		return rc;
 
-	list_remove(&part->ldisk);
-	list_remove(&part->lparts);
-	free(part);
+	rc = label_part_destroy(lpart);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed deleting partition");
+
+		/* Try rolling back */
+		rc = vbds_part_add(disk, lpart, NULL);
+		if (rc != EOK)
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed rolling back.");
+
+		return EIO;
+	}
+
 	return EOK;
 }
 

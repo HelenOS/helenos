@@ -93,6 +93,8 @@ struct label_part {
 	aoff64_t block0;
 	/** Number of blocks */
 	aoff64_t nblocks;
+	/** Partition type */
+	uint64_t ptype;
 };
 
 /** Specification of new partition */
@@ -107,18 +109,36 @@ struct label_part_spec {
 	uint64_t ptype;
 };
 
+typedef struct {
+	uint64_t ptable_ba[2];
+	size_t esize;
+} label_gpt_t;
+
+typedef struct {
+} label_mbr_t;
+
 /** Label instance */
 struct label {
 	/** Label type ops */
 	label_ops_t *ops;
 	/** Label type */
 	label_type_t ltype;
+	/** Block device service ID */
+	service_id_t svcid;
 	/** Partitions */
 	list_t parts; /* of label_part_t */
 	/** First block that can be allocated */
 	aoff64_t ablock0;
 	/** Number of blocks that can be allocated */
 	aoff64_t anblocks;
+	/** Number of primary partition entries */
+	int pri_entries;
+	/** Block size */
+	size_t block_size;
+	union {
+		label_gpt_t gpt;
+		label_mbr_t mbr;
+	} lt;
 };
 
 #endif

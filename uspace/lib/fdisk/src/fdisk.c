@@ -670,7 +670,7 @@ static int fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
 		part = list_get_instance(link, fdisk_part_t, ldev_idx);
 		if (part->index > nidx)
 			break;
-		nidx = part->index;
+		nidx = part->index + 1;
 		link = list_next(link, &dev->parts_idx);
 	}
 

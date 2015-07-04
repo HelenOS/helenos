@@ -53,7 +53,10 @@ static void mbr_part_get_info(label_part_t *, label_part_info_t *);
 static int mbr_part_create(label_t *, label_part_spec_t *, label_part_t **);
 static int mbr_part_destroy(label_part_t *);
 
+static void mbr_unused_pte(mbr_pte_t *);
+static int mbr_part_to_pte(label_part_t *, mbr_pte_t *);
 static int mbr_pte_to_part(label_t *, mbr_pte_t *, int);
+static int mbr_pte_update(label_t *, mbr_pte_t *, int);
 
 label_ops_t mbr_label_ops = {
 	.open = mbr_open,
@@ -140,6 +143,7 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 	label->ltype = lt_mbr;
 	label->ablock0 = mbr_ablock0;
 	label->anblocks = nblocks - mbr_ablock0;
+	label->pri_entries = mbr_nprimary;
 	*rlabel = label;
 	return EOK;
 error:
@@ -206,24 +210,86 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
 	label_part_t *part;
+	mbr_pte_t pte;
+	int rc;
 
 	part = calloc(1, sizeof(label_part_t));
 	if (part == NULL)
 		return ENOMEM;
 
+	/* XXX Verify index, block0, nblocks */
+
+	if (pspec->index < 1 || pspec->index > label->pri_entries) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	/* XXX Check if index is used */
+
+	part->label = label;
 	part->index = pspec->index;
 	part->block0 = pspec->block0;
 	part->nblocks = pspec->nblocks;
+	part->ptype = pspec->ptype;
 
-	part->label = label;
+	rc = mbr_part_to_pte(part, &pte);
+	if (rc != EOK) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = mbr_pte_update(label, &pte, pspec->index - 1);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	list_append(&part->llabel, &label->parts);
 
 	*rpart = part;
 	return EOK;
+error:
+	free(part);
+	return rc;
 }
 
 static int mbr_part_destroy(label_part_t *part)
 {
-	return ENOTSUP;
+	mbr_pte_t pte;
+	int rc;
+
+	/* Prepare unused partition table entry */
+	mbr_unused_pte(&pte);
+
+	/* Modify partition table */
+	rc = mbr_pte_update(part->label, &pte, part->index - 1);
+	if (rc != EOK)
+		return EIO;
+
+	list_remove(&part->llabel);
+	free(part);
+	return EOK;
+}
+
+static void mbr_unused_pte(mbr_pte_t *pte)
+{
+	memset(pte, 0, sizeof(mbr_pte_t));
+}
+
+static int mbr_part_to_pte(label_part_t *part, mbr_pte_t *pte)
+{
+	if ((part->block0 >> 32) != 0)
+		return EINVAL;
+	if ((part->nblocks >> 32) != 0)
+		return EINVAL;
+	if ((part->ptype >> 8) != 0)
+		return EINVAL;
+
+	memset(pte, 0, sizeof(mbr_pte_t));
+	pte->ptype = part->ptype;
+	pte->first_lba = host2uint32_t_le(part->block0);
+	pte->length = host2uint32_t_le(part->nblocks);
+	return EOK;
 }
 
 static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
@@ -257,6 +323,41 @@ static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
 	part->label = label;
 	list_append(&part->llabel, &label->parts);
 	return EOK;
+}
+
+/** Update partition table entry at specified index.
+ *
+ * Replace partition entry at index @a index with the contents of
+ * @a pte.
+ */
+static int mbr_pte_update(label_t *label, mbr_pte_t *pte, int index)
+{
+	mbr_br_block_t *br;
+	int rc;
+
+	br = calloc(1, label->block_size);
+	if (br == NULL)
+		return ENOMEM;
+
+	rc = block_read_direct(label->svcid, mbr_ba, 1, br);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	br->pte[index] = *pte;
+
+	rc = block_write_direct(label->svcid, mbr_ba, 1, br);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	free(br);
+	return EOK;
+error:
+	free(br);
+	return rc;
 }
 
 /** @}
