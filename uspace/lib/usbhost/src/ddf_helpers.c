@@ -608,48 +608,6 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
 	return ret;
 }
 
-int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
-{
-	assert(driver);
-	static const struct { size_t bw; bw_count_func_t bw_count; }bw[] = {
-	    [USB_SPEED_FULL] = { .bw = BANDWIDTH_AVAILABLE_USB11,
-	                         .bw_count = bandwidth_count_usb11 },
-	    [USB_SPEED_HIGH] = { .bw = BANDWIDTH_AVAILABLE_USB11,
-	                         .bw_count = bandwidth_count_usb11 },
-	};
-
-	int ret = EOK;
-	const usb_speed_t speed = driver->hc_speed;
-	if (speed >= ARRAY_SIZE(bw) || bw[speed].bw == 0) {
-		usb_log_error("Driver `%s' reported unsupported speed: %s",
-		    driver->name, usb_str_speed(speed));
-		return ENOTSUP;
-	}
-
-	if (driver->claim)
-		ret = driver->claim(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to claim `%s' for driver `%s'",
-		    ddf_dev_get_name(device), driver->name);
-		return ret;
-	}
-	interrupt_handler_t *irq_handler =
-	    driver->irq_handler ? driver->irq_handler : ddf_hcd_gen_irq_handler;
-
-	ret = ddf_hcd_device_setup_all(device, speed, bw[speed].bw,
-	    bw[speed].bw_count, irq_handler, driver->irq_code_gen,
-	    driver->init, driver->fini);
-	if (ret != EOK) {
-		usb_log_error("Failed to setup `%s' for driver `%s'",
-		    ddf_dev_get_name(device), driver->name);
-		return ret;
-	}
-
-	usb_log_info("Controlling new `%s' device `%s'.\n",
-	    driver->name, ddf_dev_get_name(device));
-	return EOK;
-}
-
 /** Initialize hc structures.
  *
  * @param[in] device DDF instance of the device to use.
@@ -866,41 +824,59 @@ static int interrupt_polling(void *arg)
  *  - calls driver specific initialization
  *  - registers root hub
  */
-int ddf_hcd_device_setup_all(ddf_dev_t *device, usb_speed_t speed, size_t bw,
-    bw_count_func_t bw_count,
-    interrupt_handler_t irq_handler,
-    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *hw_res),
-    int (*driver_init)(hcd_t *, const hw_res_list_parsed_t *, bool),
-    void (*driver_fini)(hcd_t *)
-    )
+int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 {
-	assert(device);
+	assert(driver);
+	static const struct { size_t bw; bw_count_func_t bw_count; }bw[] = {
+	    [USB_SPEED_FULL] = { .bw = BANDWIDTH_AVAILABLE_USB11,
+	                         .bw_count = bandwidth_count_usb11 },
+	    [USB_SPEED_HIGH] = { .bw = BANDWIDTH_AVAILABLE_USB11,
+	                         .bw_count = bandwidth_count_usb11 },
+	};
+
+	int ret = EOK;
+	const usb_speed_t speed = driver->hc_speed;
+	if (speed >= ARRAY_SIZE(bw) || bw[speed].bw == 0) {
+		usb_log_error("Driver `%s' reported unsupported speed: %s",
+		    driver->name, usb_str_speed(speed));
+		return ENOTSUP;
+	}
+
+	if (driver->claim)
+		ret = driver->claim(device);
+	if (ret != EOK) {
+		usb_log_error("Failed to claim `%s' for driver `%s'",
+		    ddf_dev_get_name(device), driver->name);
+		return ret;
+	}
 
 	hw_res_list_parsed_t hw_res;
-	int ret = hcd_ddf_get_registers(device, &hw_res);
+	ret = hcd_ddf_get_registers(device, &hw_res);
 	if (ret != EOK) {
 		usb_log_error("Failed to get register memory addresses "
-		    "for %" PRIun ": %s.\n", ddf_dev_get_handle(device),
+		    "for `%s': %s.\n", ddf_dev_get_name(device),
 		    str_error(ret));
 		return ret;
 	}
 
-	ret = hcd_ddf_setup_hc(device, speed, bw, bw_count);
+	ret = hcd_ddf_setup_hc(device, speed, bw[speed].bw, bw[speed].bw_count);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup generic HCD.\n");
 		hw_res_list_parsed_clean(&hw_res);
 		return ret;
 	}
 
+	interrupt_handler_t *irq_handler =
+	    driver->irq_handler ? driver->irq_handler : ddf_hcd_gen_irq_handler;
 	const int irq = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler,
-	    gen_irq_code);
+	    driver->irq_code_gen);
 	if (!(irq < 0)) {
 		usb_log_debug("Hw interrupts enabled.\n");
 	}
 
 	/* Init hw driver */
 	hcd_t *hcd = dev_to_hcd(device);
-	ret = driver_init(hcd, &hw_res, !(irq < 0));
+	ret = driver->init(hcd, &hw_res, !(irq < 0));
 	hw_res_list_parsed_clean(&hw_res);
 	if (ret != EOK) {
 		usb_log_error("Failed to init HCD: %s.\n", str_error(ret));
@@ -928,13 +904,17 @@ int ddf_hcd_device_setup_all(ddf_dev_t *device, usb_speed_t speed, size_t bw,
 	if (ret != EOK) {
 		usb_log_error("Failed to setup HC root hub: %s.\n",
 		    str_error(ret));
-		driver_fini(dev_to_hcd(device));
+		driver->fini(dev_to_hcd(device));
 irq_unregister:
 		/* Unregistering non-existent should be ok */
 		unregister_interrupt_handler(device, irq);
 		hcd_ddf_clean_hc(device);
+		return ret;
 	}
-	return ret;
+
+	usb_log_info("Controlling new `%s' device `%s'.\n",
+	    driver->name, ddf_dev_get_name(device));
+	return EOK;
 }
 /**
  * @}
