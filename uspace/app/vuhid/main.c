@@ -52,7 +52,7 @@
 #include "ifaces.h"
 #include "stdreq.h"
 
-#define DEFAULT_CONTROLLER   "/virt/usbhc/ctl"
+#define DEFAULT_CONTROLLER   "/virt/usbhc/virtual"
 
 static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 	{

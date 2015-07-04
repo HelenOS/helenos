@@ -54,7 +54,7 @@ static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 	assert(dev);
 	assert(fun);
 
-	*fun = ddf_fun_create(dev, fun_exposed, "ctl");
+	*fun = ddf_fun_create(dev, fun_exposed, "virtual");
 	if (!*fun)
 		return ENOMEM;
 
