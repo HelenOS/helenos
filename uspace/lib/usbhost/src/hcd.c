@@ -53,8 +53,8 @@ static int register_helper(endpoint_t *ep, void *arg)
 	hcd_t *hcd = arg;
 	assert(ep);
 	assert(hcd);
-	if (hcd->driver.ep_add_hook)
-		return hcd->driver.ep_add_hook(hcd, ep);
+	if (hcd->ops.ep_add_hook)
+		return hcd->ops.ep_add_hook(hcd, ep);
 	return EOK;
 }
 
@@ -67,8 +67,8 @@ static void unregister_helper(endpoint_t *ep, void *arg)
 	hcd_t *hcd = arg;
 	assert(ep);
 	assert(hcd);
-	if (hcd->driver.ep_remove_hook)
-		hcd->driver.ep_remove_hook(hcd, ep);
+	if (hcd->ops.ep_remove_hook)
+		hcd->ops.ep_remove_hook(hcd, ep);
 }
 
 /** Calls ep_remove_hook upon endpoint removal. Prints warning.
@@ -98,10 +98,7 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	assert(hcd);
 	usb_bus_init(&hcd->bus, bandwidth, bw_count, max_speed);
 
-	hcd->driver.data = NULL;
-	hcd->driver.schedule = NULL;
-	hcd->driver.ep_add_hook = NULL;
-	hcd->driver.ep_remove_hook = NULL;
+	hcd_set_implementation(hcd, NULL, NULL);
 }
 
 usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
@@ -126,8 +123,7 @@ int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
 {
 	assert(hcd);
 	usb_address_t address = 0;
-	return usb_bus_request_address(
-	    &hcd->bus, &address, true, speed);
+	return usb_bus_request_address(&hcd->bus, &address, true, speed);
 }
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
@@ -208,7 +204,7 @@ int hcd_send_batch(
 		    ep->address, ep->endpoint, name, bw, ep->bandwidth);
 		return ENOSPC;
 	}
-	if (!hcd->driver.schedule) {
+	if (!hcd->ops.schedule) {
 		usb_log_error("HCD does not implement scheduler.\n");
 		return ENOTSUP;
 	}
@@ -240,7 +236,7 @@ int hcd_send_batch(
 		return ENOMEM;
 	}
 
-	const int ret = hcd->driver.schedule(hcd, batch);
+	const int ret = hcd->ops.schedule(hcd, batch);
 	if (ret != EOK)
 		usb_transfer_batch_destroy(batch);
 

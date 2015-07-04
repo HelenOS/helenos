@@ -689,6 +689,7 @@ int hcd_ddf_enable_interrupts(ddf_dev_t *device)
 	return enabled ? EOK : EIO;
 }
 
+//TODO: Move this to generic ddf?
 int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
 {
 	assert(device);
@@ -778,23 +779,23 @@ void ddf_hcd_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 {
 	assert(dev);
 	hcd_t *hcd = dev_to_hcd(dev);
-	if (!hcd || !hcd->driver.irq_hook) {
+	if (!hcd || !hcd->ops.irq_hook) {
 		usb_log_error("Interrupt on not yet initialized device.\n");
 		return;
 	}
 	const uint32_t status = IPC_GET_ARG1(*call);
-	hcd->driver.irq_hook(hcd, status);
+	hcd->ops.irq_hook(hcd, status);
 }
 
 static int interrupt_polling(void *arg)
 {
 	hcd_t *hcd = arg;
 	assert(hcd);
-	if (!hcd->driver.status_hook || !hcd->driver.irq_hook)
+	if (!hcd->ops.status_hook || !hcd->ops.irq_hook)
 		return ENOTSUP;
 	uint32_t status = 0;
-	while (hcd->driver.status_hook(hcd, &status) == EOK) {
-		hcd->driver.irq_hook(hcd, status);
+	while (hcd->ops.status_hook(hcd, &status) == EOK) {
+		hcd->ops.irq_hook(hcd, status);
 		status = 0;
 		/* We should wait 1 frame - 1ms here, but this polling is a
 		 * lame crutch anyway so don't hog the system. 10ms is still
@@ -884,7 +885,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	}
 
 	/* Need working irq replacement to setup root hub */
-	if ((irq < 0) && hcd->driver.status_hook) {
+	if ((irq < 0) && hcd->ops.status_hook) {
 		hcd->polling_fibril = fibril_create(interrupt_polling, hcd);
 		if (hcd->polling_fibril == 0) {
 			usb_log_error("Failed to create polling fibril\n");

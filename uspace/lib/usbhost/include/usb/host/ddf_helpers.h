@@ -50,7 +50,7 @@ typedef int (*claim_t)(ddf_dev_t *);
 typedef int (*irq_code_gen_t)(irq_code_t *, const hw_res_list_parsed_t *);
 
 typedef struct {
-	hc_driver_t ops;
+	hcd_ops_t ops;
 	claim_t claim;
 	usb_speed_t hc_speed;
 	driver_init_t init;

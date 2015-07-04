@@ -45,11 +45,29 @@
 #include "hc.h"
 
 #define NAME "ohci"
+static int ohci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static void ohci_driver_fini(hcd_t *);
+
+static const ddf_hc_driver_t ohci_hc_driver = {
+        .hc_speed = USB_SPEED_FULL,
+        .irq_code_gen = ohci_hc_gen_irq_code,
+        .init = ohci_driver_init,
+        .fini = ohci_driver_fini,
+        .name = "OHCI",
+	.ops = {
+                .schedule       = ohci_hc_schedule,
+                .ep_add_hook    = ohci_endpoint_init,
+                .ep_remove_hook = ohci_endpoint_fini,
+                .irq_hook       = ohci_hc_interrupt,
+                .status_hook    = ohci_hc_status,
+	},
+};
+
 
 static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
 {
 	assert(hcd);
-	assert(hcd->driver.data == NULL);
+	assert(hcd_get_driver_data(hcd) == NULL);
 
 	hc_t *instance = malloc(sizeof(hc_t));
 	if (!instance)
@@ -57,29 +75,20 @@ static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 
 	const int ret = hc_init(instance, res, irq);
 	if (ret == EOK)
-		hcd_set_implementation(hcd, instance, ohci_hc_schedule,
-		    ohci_endpoint_init, ohci_endpoint_fini, ohci_hc_interrupt,
-		    ohci_hc_status);
+		hcd_set_implementation(hcd, instance, &ohci_hc_driver.ops);
 	return ret;
 }
 
 static void ohci_driver_fini(hcd_t *hcd)
 {
 	assert(hcd);
-	if (hcd->driver.data)
-		hc_fini(hcd->driver.data);
+	hc_t *hc = hcd_get_driver_data(hcd);
+	if (hc)
+		hc_fini(hc);
 
-	free(hcd->driver.data);
-	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL, NULL);
+	hcd_set_implementation(hcd, NULL, NULL);
+	free(hc);
 }
-
-static const ddf_hc_driver_t ohci_hc_driver = {
-        .hc_speed = USB_SPEED_FULL,
-        .irq_code_gen = ohci_hc_gen_irq_code,
-        .init = ohci_driver_init,
-        .fini = ohci_driver_fini,
-        .name = "OHCI"
-};
 
 /** Initializes a new ddf driver instance of OHCI hcd.
  *

@@ -272,7 +272,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 int ehci_hc_status(hcd_t *hcd, uint32_t *status)
 {
 	assert(hcd);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 	assert(status);
 	*status = 0;
@@ -293,7 +293,7 @@ int ehci_hc_status(hcd_t *hcd, uint32_t *status)
 int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 
 	/* Check for root hub communication */
@@ -324,7 +324,7 @@ int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 {
 	assert(hcd);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	status = EHCI_RD(status);
 	assert(instance);
 

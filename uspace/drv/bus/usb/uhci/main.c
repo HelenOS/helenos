@@ -47,10 +47,28 @@
 
 #define NAME "uhci"
 
+static int uhci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static void uhci_driver_fini(hcd_t *);
+static int disable_legacy(ddf_dev_t *);
+
+static const ddf_hc_driver_t uhci_hc_driver = {
+        .claim = disable_legacy,
+        .hc_speed = USB_SPEED_FULL,
+        .irq_code_gen = uhci_hc_gen_irq_code,
+        .init = uhci_driver_init,
+        .fini = uhci_driver_fini,
+        .name = "UHCI",
+	.ops = {
+		.schedule    = uhci_hc_schedule,
+		.irq_hook    = uhci_hc_interrupt,
+		.status_hook = uhci_hc_status,
+	},
+};
+
 static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
 {
 	assert(hcd);
-	assert(hcd->driver.data == NULL);
+	assert(hcd_get_driver_data(hcd) == NULL);
 
 	hc_t *instance = malloc(sizeof(hc_t));
 	if (!instance)
@@ -58,31 +76,20 @@ static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 
 	const int ret = hc_init(instance, res, irq);
 	if (ret == EOK)
-		hcd_set_implementation(hcd, instance, uhci_hc_schedule, NULL,
-		    NULL, uhci_hc_interrupt, uhci_hc_status);
+		hcd_set_implementation(hcd, instance, &uhci_hc_driver.ops);
 	return ret;
 }
 
 static void uhci_driver_fini(hcd_t *hcd)
 {
 	assert(hcd);
-	if (hcd->driver.data)
-		hc_fini(hcd->driver.data);
+	hc_t *hc = hcd_get_driver_data(hcd);
+	if (hc)
+		hc_fini(hc);
 
-	free(hcd->driver.data);
-	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL, NULL);
+	hcd_set_implementation(hcd, NULL, NULL);
+	free(hc);
 }
-
-static int uhci_dev_add(ddf_dev_t *device);
-
-static const driver_ops_t uhci_driver_ops = {
-	.dev_add = uhci_dev_add,
-};
-
-static const driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
 
 /** Call the PCI driver with a request to clear legacy support register
  *
@@ -105,27 +112,28 @@ static int disable_legacy(ddf_dev_t *device)
 	async_hangup(parent_sess);
 	return rc;
 }
-static const ddf_hc_driver_t uhci_hc_driver = {
-        .claim = disable_legacy,
-        .hc_speed = USB_SPEED_FULL,
-        .irq_code_gen = uhci_hc_gen_irq_code,
-        .init = uhci_driver_init,
-        .fini = uhci_driver_fini,
-        .name = "UHCI"
-};
-
 
 /** Initialize a new ddf driver instance for uhci hc and hub.
  *
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-int uhci_dev_add(ddf_dev_t *device)
+static int uhci_dev_add(ddf_dev_t *device)
 {
 	usb_log_debug2("uhci_dev_add() called\n");
 	assert(device);
 	return hcd_ddf_add_hc(device, &uhci_hc_driver);
 }
+
+static const driver_ops_t uhci_driver_ops = {
+	.dev_add = uhci_dev_add,
+};
+
+static const driver_t uhci_driver = {
+	.name = NAME,
+	.driver_ops = &uhci_driver_ops
+};
+
 
 /** Initialize global driver structures (NONE).
  *

@@ -156,7 +156,7 @@ int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
 {
 	assert(hcd);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
@@ -411,7 +411,7 @@ int uhci_hc_status(hcd_t *hcd, uint32_t *status)
 {
 	assert(hcd);
 	assert(status);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 
 	*status = 0;
@@ -434,7 +434,7 @@ int uhci_hc_status(hcd_t *hcd, uint32_t *status)
 int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 	assert(batch);
 

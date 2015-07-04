@@ -79,6 +79,8 @@ static int ehci_ep_toggle_get(void *ehci_ep)
 int ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 {
 	assert(ep);
+	hc_t *hc = hcd_get_driver_data(hcd);
+
 	ehci_endpoint_t *ehci_ep = malloc(sizeof(ehci_endpoint_t));
 	if (ehci_ep == NULL)
 		return ENOMEM;
@@ -94,7 +96,7 @@ int ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 	qh_init(ehci_ep->qh, ep);
 	endpoint_set_hc_data(
 	    ep, ehci_ep, ehci_ep_toggle_get, ehci_ep_toggle_set);
-	hc_enqueue_endpoint(hcd->driver.data, ep);
+	hc_enqueue_endpoint(hc, ep);
 	return EOK;
 }
 
@@ -107,8 +109,10 @@ void ehci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 {
 	assert(hcd);
 	assert(ep);
+	hc_t *hc = hcd_get_driver_data(hcd);
+
 	ehci_endpoint_t *instance = ehci_endpoint_get(ep);
-	hc_dequeue_endpoint(hcd->driver.data, ep);
+	hc_dequeue_endpoint(hc, ep);
 	endpoint_clear_hc_data(ep);
 	usb_log_debug2("EP(%p): Destroying for %p", instance, ep);
 	if (instance) {

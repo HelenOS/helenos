@@ -166,7 +166,7 @@ int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
 	assert(batch);
-	vhc_data_t *vhc = hcd->driver.data;
+	vhc_data_t *vhc = hcd_get_driver_data(hcd);
 	assert(vhc);
 
 	vhc_transfer_t *transfer = malloc(sizeof(vhc_transfer_t));

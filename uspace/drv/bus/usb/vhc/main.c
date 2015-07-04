@@ -73,6 +73,10 @@ static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 	return EOK;
 }
 
+hcd_ops_t vhc_hc_ops = {
+	.schedule = vhc_schedule,
+};
+
 static int vhc_dev_add(ddf_dev_t *dev)
 {
 	/* Initialize virtual structure */
@@ -94,7 +98,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 		return ret;
 	}
 
-	hcd_set_implementation(dev_to_hcd(dev), data, vhc_schedule, NULL, NULL, NULL, NULL);
+	hcd_set_implementation(dev_to_hcd(dev), data, &vhc_hc_ops);
 
 	/* Add virtual hub device */
 	ret = vhc_virtdev_plug_hub(data, &data->hub, NULL, 0);

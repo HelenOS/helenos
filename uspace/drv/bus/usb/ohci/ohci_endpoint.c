@@ -94,7 +94,7 @@ int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 	ed_init(ohci_ep->ed, ep, ohci_ep->td);
 	endpoint_set_hc_data(
 	    ep, ohci_ep, ohci_ep_toggle_get, ohci_ep_toggle_set);
-	hc_enqueue_endpoint(hcd->driver.data, ep);
+	hc_enqueue_endpoint(hcd_get_driver_data(hcd), ep);
 	return EOK;
 }
 
@@ -108,13 +108,13 @@ void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 	assert(hcd);
 	assert(ep);
 	ohci_endpoint_t *instance = ohci_endpoint_get(ep);
-	hc_dequeue_endpoint(hcd->driver.data, ep);
+	hc_dequeue_endpoint(hcd_get_driver_data(hcd), ep);
+	endpoint_clear_hc_data(ep);
 	if (instance) {
 		free32(instance->ed);
 		free32(instance->td);
 		free(instance);
 	}
-	endpoint_clear_hc_data(ep);
 }
 /**
  * @}

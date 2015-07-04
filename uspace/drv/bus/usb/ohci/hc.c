@@ -270,7 +270,7 @@ int ohci_hc_status(hcd_t *hcd, uint32_t *status)
 {
 	assert(hcd);
 	assert(status);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 
 	if (instance->registers){
@@ -289,7 +289,7 @@ int ohci_hc_status(hcd_t *hcd, uint32_t *status)
 int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 
 	/* Check for root hub communication */
@@ -329,7 +329,7 @@ int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 void ohci_hc_interrupt(hcd_t *hcd, uint32_t status)
 {
 	assert(hcd);
-	hc_t *instance = hcd->driver.data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	status = OHCI_RD(status);
 	assert(instance);
 	if ((status & ~I_SF) == 0) /* ignore sof status */
