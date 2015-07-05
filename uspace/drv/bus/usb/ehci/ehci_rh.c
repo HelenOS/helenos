@@ -327,9 +327,8 @@ static int stop_reset(void *arg)
 		EHCI_RD(job->hub->registers->portsc[job->port]));
 		EHCI_SET(job->hub->registers->portsc[job->port],
 		    USB_PORTSC_PORT_OWNER_FLAG);
-	} else {
-		job->hub->reset_flag[job->port] = true;
 	}
+	job->hub->reset_flag[job->port] = true;
 	ehci_rh_interrupt(job->hub);
 	free(job);
 	return 0;
