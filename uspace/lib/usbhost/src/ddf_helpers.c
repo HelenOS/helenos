@@ -469,10 +469,11 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	/* This checks whether the default address is reserved and gets speed */
 	int ret = usb_bus_get_speed(&hcd->bus, USB_ADDRESS_DEFAULT, &speed);
 	if (ret != EOK) {
+		usb_log_error("Failed to verify speed: %s.", str_error(ret));
 		return ret;
 	}
 
-	usb_log_debug("Found new %s speed USB device\n", usb_str_speed(speed));
+	usb_log_debug("Found new %s speed USB device.", usb_str_speed(speed));
 
 	static const usb_target_t default_target = {{
 		.address = USB_ADDRESS_DEFAULT,
@@ -480,8 +481,11 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	}};
 
 	const usb_address_t address = hcd_request_address(hcd, speed);
-	if (address < 0)
+	if (address < 0) {
+		usb_log_error("Failed to reserve new address: %s.",
+		    str_error(address));
 		return address;
+	}
 
 	usb_log_debug("Reserved new address: %d\n", address);
 
@@ -499,6 +503,8 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1,
 	    tt_address, port);
 	if (ret != EOK) {
+		usb_log_error("Device(%d): Failed to add default target: %s.",
+		    address, str_error(ret));
 		hcd_release_address(hcd, address);
 		return ret;
 	}
@@ -509,26 +515,31 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
 
 	// TODO CALLBACKS
-	usb_log_debug("Device(%d): Requesting first 8B of device descriptor\n",
+	usb_log_debug("Device(%d): Requesting first 8B of device descriptor.",
 	    address);
 	ssize_t got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_IN,
 	    &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
 	    "read first 8 bytes of dev descriptor");
 
 	if (got != CTRL_PIPE_MIN_PACKET_SIZE) {
+		ret = got < 0 ? got : EOVERFLOW;
+		usb_log_error("Device(%d): Failed to get 8B of dev descr: %s.",
+		    address, str_error(ret));
 		hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
 		hcd_release_address(hcd, address);
-		return got < 0 ? got : EOVERFLOW;
+		return ret;
 	}
 
 	/* Register EP on the new address */
-	usb_log_debug("Device(%d): Registering control EP\n", address);
+	usb_log_debug("Device(%d): Registering control EP.", address);
 	ret = hcd_add_ep(hcd, target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
 	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
 	    ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
 	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
 	    tt_address, port);
 	if (ret != EOK) {
+		usb_log_error("Device(%d): Failed to register EP0: %s",
+		    address, str_error(ret));
 		hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
 		hcd_release_address(hcd, address);
@@ -539,14 +550,16 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	const usb_device_request_setup_packet_t set_address =
 	    SET_ADDRESS(target.address);
 
-	usb_log_debug("Device(%d): Setting USB address.\n", address);
+	usb_log_debug("Device(%d): Setting USB address.", address);
 	got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
 	    NULL, 0, *(uint64_t *)&set_address, "set address");
 
-	usb_log_debug("Device(%d): Removing default (0:0) EP\n", address);
+	usb_log_debug("Device(%d): Removing default (0:0) EP.", address);
 	hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
 
 	if (got != 0) {
+		usb_log_error("Device(%d): Failed to set new address: %s.",
+		    address, str_error(got));
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
 		hcd_release_address(hcd, address);
 		return got;
@@ -556,34 +569,40 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	const usb_device_request_setup_packet_t get_device_desc =
 	    GET_DEVICE_DESC(sizeof(desc));
 
-	usb_log_debug("Device(%d): Requesting full device descriptor\n",
+	usb_log_debug("Device(%d): Requesting full device descriptor.",
 	    address);
 	got = hcd_send_batch_sync(hcd, target, USB_DIRECTION_IN,
 	    &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
 	    "read device descriptor");
 	if (ret != EOK) {
+		usb_log_error("Device(%d): Failed to set get dev descriptor: %s",
+		    address, str_error(ret));
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
 		hcd_release_address(hcd, target.address);
-		return got < 0 ? got : EOVERFLOW;
+		return ret;
 	}
 
 	/* Create match ids from the device descriptor */
 	match_id_list_t mids;
 	init_match_ids(&mids);
 
-	usb_log_debug("Device(%d): Creating match IDs\n", address);
+	usb_log_debug("Device(%d): Creating match IDs.", address);
 	ret = create_match_ids(&mids, &desc);
 	if (ret != EOK) {
+		usb_log_error("Device(%d): Failed to create match ids: %s",
+		    address, str_error(ret));
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
 		hcd_release_address(hcd, target.address);
 		return ret;
 	}
 
 	/* Register device */
-	usb_log_debug("Device(%d): Registering DDF device\n", address);
+	usb_log_debug("Device(%d): Registering DDF device.", address);
 	ret = hcd_ddf_add_device(device, hub, port, address, speed, NULL, &mids);
 	clean_match_ids(&mids);
 	if (ret != EOK) {
+		usb_log_error("Device(%d): Failed to register: %s.",
+		    address, str_error(ret));
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
 		hcd_release_address(hcd, target.address);
 	}
@@ -843,14 +862,6 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 		return ENOTSUP;
 	}
 
-	if (driver->claim)
-		ret = driver->claim(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to claim `%s' for driver `%s'",
-		    ddf_dev_get_name(device), driver->name);
-		return ret;
-	}
-
 	hw_res_list_parsed_t hw_res;
 	ret = hcd_ddf_get_registers(device, &hw_res);
 	if (ret != EOK) {
@@ -874,6 +885,15 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	if (!(irq < 0)) {
 		usb_log_debug("Hw interrupts enabled.\n");
 	}
+
+	if (driver->claim)
+		ret = driver->claim(device);
+	if (ret != EOK) {
+		usb_log_error("Failed to claim `%s' for driver `%s'",
+		    ddf_dev_get_name(device), driver->name);
+		return ret;
+	}
+
 
 	/* Init hw driver */
 	hcd_t *hcd = dev_to_hcd(device);
