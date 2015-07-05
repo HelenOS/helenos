@@ -167,11 +167,11 @@ do { \
 	assert(hub);\
 } while (0)
 
-#define RH_DEBUG(d, port, msg, ...) \
+#define RH_DEBUG(hub, port, msg, ...) \
 	if ((int)port >= 0) \
-		usb_log_debug("%s: rh-%d: " msg, d->name, port, ##__VA_ARGS__); \
+		usb_log_debug("RH(%p-%d): " msg, hub, port, ##__VA_ARGS__); \
 	else \
-		usb_log_debug("%s: rh: " msg, d->name, ##__VA_ARGS__) \
+		usb_log_debug("RH(%p):" msg, hub, ##__VA_ARGS__) \
 
 /** USB HUB port state request handler.
  * @param device Virtual hub device
@@ -197,7 +197,7 @@ static int req_get_port_state(usbvirt_device_t *device,
 	const uint16_t value = pio_read_16(hub->ports[port]);
 	data[0] = ((value & STATUS_LINE_D_MINUS) ? 1 : 0)
 	    | ((value & STATUS_LINE_D_PLUS) ? 2 : 0);
-	RH_DEBUG(device, port, "Bus state %" PRIx8 "(source %" PRIx16")\n",
+	RH_DEBUG(hub, port, "Bus state %" PRIx8 "(source %" PRIx16")\n",
 	    data[0], value);
 	*act_size = 1;
 	return EOK;
@@ -242,7 +242,7 @@ static int req_get_port_status(usbvirt_device_t *device,
 //	    UHCI2USB(val, STATUS_SUSPEND, USB_HUB_FEATURE_C_PORT_SUSPEND) |
 	    ((hub->reset_changed[port] ? 1 : 0) << USB_HUB_FEATURE_C_PORT_RESET)
 	);
-	RH_DEBUG(device, port, "Port status %" PRIx32 " (source %" PRIx16
+	RH_DEBUG(hub, port, "Port status %" PRIx32 " (source %" PRIx16
 	    "%s)\n", uint32_usb2host(status), val,
 	    hub->reset_changed[port] ? "-reset" : "");
 	memcpy(data, &status, sizeof(status));
@@ -270,51 +270,51 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	const uint16_t val = status & (~STATUS_WC_BITS);
 	switch (feature) {
 	case USB_HUB_FEATURE_PORT_ENABLE:
-		RH_DEBUG(device, port, "Clear port enable (status %"
+		RH_DEBUG(hub, port, "Clear port enable (status %"
 		    PRIx16 ")\n", status);
 		pio_write_16(hub->ports[port], val & ~STATUS_ENABLED);
 		break;
 	case USB_HUB_FEATURE_PORT_SUSPEND:
-		RH_DEBUG(device, port, "Clear port suspend (status %"
+		RH_DEBUG(hub, port, "Clear port suspend (status %"
 		    PRIx16 ")\n", status);
 		pio_write_16(hub->ports[port], val & ~STATUS_SUSPEND);
 		// TODO we should do resume magic
 		usb_log_warning("Resume is not implemented on port %u\n", port);
 		break;
 	case USB_HUB_FEATURE_PORT_POWER:
-		RH_DEBUG(device, port, "Clear port power (status %" PRIx16 ")\n",
+		RH_DEBUG(hub, port, "Clear port power (status %" PRIx16 ")\n",
 		    status);
 		/* We are always powered */
 		usb_log_warning("Tried to power off port %u\n", port);
 		break;
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:
-		RH_DEBUG(device, port, "Clear port conn change (status %"
+		RH_DEBUG(hub, port, "Clear port conn change (status %"
 		    PRIx16 ")\n", status);
 		pio_write_16(hub->ports[port], val | STATUS_CONNECTED_CHANGED);
 		break;
 	case USB_HUB_FEATURE_C_PORT_RESET:
-		RH_DEBUG(device, port, "Clear port reset change (status %"
+		RH_DEBUG(hub, port, "Clear port reset change (status %"
 		    PRIx16 ")\n", status);
 		hub->reset_changed[port] = false;
 		break;
 	case USB_HUB_FEATURE_C_PORT_ENABLE:
-		RH_DEBUG(device, port, "Clear port enable change (status %"
+		RH_DEBUG(hub, port, "Clear port enable change (status %"
 		    PRIx16 ")\n", status);
 		pio_write_16(hub->ports[port], status | STATUS_ENABLED_CHANGED);
 		break;
 	case USB_HUB_FEATURE_C_PORT_SUSPEND:
-		RH_DEBUG(device, port, "Clear port suspend change (status %"
+		RH_DEBUG(hub, port, "Clear port suspend change (status %"
 		    PRIx16 ")\n", status);
 		//TODO
 		return ENOTSUP;
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
-		RH_DEBUG(device, port, "Clear port OC change (status %"
+		RH_DEBUG(hub, port, "Clear port OC change (status %"
 		    PRIx16 ")\n", status);
 		/* UHCI Does not report over current */
-		//TODO: newer chips do, but some have broken wiring 
+		//TODO: newer chips do, but some have broken wiring
 		break;
 	default:
-		RH_DEBUG(device, port, "Clear unknown feature %d (status %"
+		RH_DEBUG(hub, port, "Clear unknown feature %d (status %"
 		    PRIx16 ")\n", feature, status);
 		usb_log_warning("Clearing feature %d is unsupported\n",
 		    feature);
@@ -342,22 +342,22 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	const uint16_t status = pio_read_16(hub->ports[port]);
 	switch (feature) {
 	case USB_HUB_FEATURE_PORT_RESET:
-		RH_DEBUG(device, port, "Set port reset before (status %" PRIx16
+		RH_DEBUG(hub, port, "Set port reset before (status %" PRIx16
 		    ")\n", status);
 		uhci_port_reset_enable(hub->ports[port]);
 		hub->reset_changed[port] = true;
-		RH_DEBUG(device, port, "Set port reset after (status %" PRIx16
+		RH_DEBUG(hub, port, "Set port reset after (status %" PRIx16
 		    ")\n", pio_read_16(hub->ports[port]));
 		break;
 	case USB_HUB_FEATURE_PORT_SUSPEND:
-		RH_DEBUG(device, port, "Set port suspend (status %" PRIx16
+		RH_DEBUG(hub, port, "Set port suspend (status %" PRIx16
 		    ")\n", status);
 		pio_write_16(hub->ports[port],
 		    (status & ~STATUS_WC_BITS) | STATUS_SUSPEND);
 		usb_log_warning("Suspend is not implemented on port %u\n", port);
 		break;
 	case USB_HUB_FEATURE_PORT_POWER:
-		RH_DEBUG(device, port, "Set port power (status %" PRIx16
+		RH_DEBUG(hub, port, "Set port power (status %" PRIx16
 		    ")\n", status);
 		/* We are always powered */
 		usb_log_warning("Tried to power port %u\n", port);
@@ -366,13 +366,13 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	case USB_HUB_FEATURE_C_PORT_ENABLE:
 	case USB_HUB_FEATURE_C_PORT_SUSPEND:
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
-		RH_DEBUG(device, port, "Set port change flag (status %" PRIx16
+		RH_DEBUG(hub, port, "Set port change flag (status %" PRIx16
 		    ")\n", status);
 		/* These are voluntary and don't have to be set
 		 * there is no way we could do it on UHCI anyway */
 		break;
 	default:
-		RH_DEBUG(device, port, "Set unknown feature %d (status %" PRIx16
+		RH_DEBUG(hub, port, "Set unknown feature %d (status %" PRIx16
 		    ")\n", feature, status);
 		usb_log_warning("Setting feature %d is unsupported\n",
 		    feature);
@@ -411,7 +411,7 @@ static int req_status_change_handler(usbvirt_device_t *device,
 	    ((((status_b & STATUS_CHANGE_BITS) != 0) || hub->reset_changed[1]) ?
 	        0x4 : 0);
 
-	RH_DEBUG(device, -1, "Event mask %" PRIx8
+	RH_DEBUG(hub, -1, "Event mask %" PRIx8
 	    " (status_a %" PRIx16 "%s),"
 	    " (status_b %" PRIx16 "%s)\n", status,
 	    status_a, hub->reset_changed[0] ? "-reset" : "",
