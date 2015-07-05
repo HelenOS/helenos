@@ -37,6 +37,7 @@
 #include <devman.h>
 #include <errno.h>
 #include <io/log.h>
+#include <io/logctl.h>
 #include <pci_dev_iface.h>
 #include <stdio.h>
 #include <str_error.h>
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS UHCI driver.\n");
 	log_init(NAME);
-
+	logctl_set_log_level(NAME, LVL_NOTE);
 	return ddf_driver_main(&uhci_driver);
 }
 /**
