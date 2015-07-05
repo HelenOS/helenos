@@ -106,9 +106,15 @@ int uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 		.address = batch->ep->address,
 		.endpoint = batch->ep->endpoint
 	}};
-	batch->error = virthub_base_request(&instance->base, target,
-	    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
-	    batch->buffer, batch->buffer_size, &batch->transfered_size);
+	do {
+		batch->error = virthub_base_request(&instance->base, target,
+		    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
+		    batch->buffer, batch->buffer_size, &batch->transfered_size);
+		if (batch->error == ENAK)
+			async_usleep(instance->base.endpoint_descriptor.poll_interval * 1000);
+		//TODO This is flimsy, but we can't exit early because
+		//ENAK is technically an error condition
+	} while (batch->error == ENAK);
 	usb_transfer_batch_finish(batch, NULL);
 	usb_transfer_batch_destroy(batch);
 	return EOK;
@@ -420,7 +426,7 @@ static int req_status_change_handler(usbvirt_device_t *device,
 		    status_b, hub->reset_changed[1] ? "-reset" : "" );
 	((uint8_t *)buffer)[0] = status;
 	*actual_size = 1;
-	return EOK;
+	return (status != 0 ? EOK : ENAK);
 }
 
 /** UHCI root hub request handlers */
