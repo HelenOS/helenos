@@ -145,8 +145,11 @@ static void vol_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	disk->dcnt = dc_label;
-	disk->ltype = ltype;
+	rc = vol_disk_label_create(disk, ltype);
+	if (rc != EOK) {
+		async_answer_0(iid, EIO);
+		return;
+	}
 
 	async_answer_0(iid, EOK);
 }
@@ -165,7 +168,11 @@ static void vol_disk_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	disk->dcnt = dc_empty;
+	rc = vol_disk_empty(disk);
+	if (rc != EOK) {
+		async_answer_0(iid, EIO);
+		return;
+	}
 
 	async_answer_0(iid, EOK);
 }

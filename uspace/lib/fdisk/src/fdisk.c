@@ -316,6 +316,7 @@ error:
 
 int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 {
+	vol_disk_info_t vinfo;
 	fdisk_dev_t *dev = NULL;
 	service_id_t *psids = NULL;
 	size_t nparts, i;
@@ -330,7 +331,18 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 	list_initialize(&dev->parts_idx);
 	list_initialize(&dev->parts_ba);
 
-	printf("get info\n");
+	rc = vol_disk_info(fdisk->vol, sid, &vinfo);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	dev->dcnt = vinfo.dcnt;
+
+	if (dev->dcnt != dc_label)
+		goto done;
+
+	printf("get label info\n");
 	rc = vbd_disk_info(fdisk->vbd, sid, &dev->dinfo);
 	if (rc != EOK) {
 		printf("failed\n");
@@ -360,6 +372,7 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 	}
 
 	free(psids);
+done:
 	*rdev = dev;
 	return EOK;
 error:

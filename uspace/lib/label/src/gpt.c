@@ -119,7 +119,7 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
-	rc = block_read_direct(sid, GPT_HDR_BA, 1, gpt_hdr[0]);
+	rc = block_read_direct(sid, gpt_hdr_ba, 1, gpt_hdr[0]);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -199,12 +199,14 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 
 	label->ops = &gpt_label_ops;
 	label->ltype = lt_gpt;
-	label->svcid = sid;
+	label->svc_id = sid;
 	label->ablock0 = ba_min;
 	label->anblocks = ba_max - ba_min + 1;
 	label->pri_entries = num_entries;
 	label->block_size = bsize;
 
+	label->lt.gpt.hdr_ba[0] = gpt_hdr_ba;
+	label->lt.gpt.hdr_ba[1] = h1ba;
 	label->lt.gpt.ptable_ba[0] = ptba[0];
 	label->lt.gpt.ptable_ba[1] = ptba[1];
 	label->lt.gpt.esize = esize;
@@ -221,17 +223,204 @@ error:
 
 static int gpt_create(service_id_t sid, label_t **rlabel)
 {
+	label_t *label = NULL;
+	gpt_header_t *gpt_hdr = NULL;
+	uint8_t *etable = NULL;
+	size_t bsize;
+	uint32_t num_entries;
+	uint32_t esize;
+	uint64_t ptba[2];
+	uint64_t hdr_ba[2];
+	uint64_t pt_blocks;
+	uint64_t ba_min, ba_max;
+	aoff64_t nblocks;
+	uint64_t resv_blocks;
+	int i, j;
+	int rc;
+
+	rc = block_get_bsize(sid, &bsize);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	if (bsize < 512 || (bsize % 512) != 0) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = block_get_nblocks(sid, &nblocks);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	/* Number of blocks of a partition table */
+	pt_blocks = gpt_ptable_min_size / bsize;
+	/* Minimum number of reserved (not allocatable) blocks */
+	resv_blocks = 3 + 2 * pt_blocks;
+
+	if (nblocks <= resv_blocks) {
+		rc = ENOSPC;
+		goto error;
+	}
+
+	hdr_ba[0] = gpt_hdr_ba;
+	hdr_ba[1] = nblocks - 1;
+	ptba[0] = 2;
+	ptba[1] = nblocks - 1 - pt_blocks;
+	ba_min = ptba[0] + pt_blocks;
+	ba_max = ptba[1] - 1;
+	esize = sizeof(gpt_entry_t);
+
+	num_entries = pt_blocks * bsize / sizeof(gpt_entry_t);
+
+	for (i = 0; i < 2; i++) {
+		gpt_hdr = calloc(1, bsize);
+		if (gpt_hdr == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		for (j = 0; j < 8; ++j)
+			gpt_hdr->efi_signature[j] = efi_signature[j];
+		gpt_hdr->revision = host2uint32_t_le(gpt_revision);
+		gpt_hdr->header_size = host2uint32_t_le(sizeof(gpt_header_t));
+		gpt_hdr->header_crc32 = 0; /* XXX */
+		gpt_hdr->my_lba = host2uint64_t_le(hdr_ba[i]);
+		gpt_hdr->alternate_lba = host2uint64_t_le(hdr_ba[1 - i]);
+		gpt_hdr->first_usable_lba = host2uint64_t_le(ba_min);
+		gpt_hdr->last_usable_lba = host2uint64_t_le(ba_max);
+		//gpt_hdr->disk_guid
+		gpt_hdr->entry_lba = host2uint64_t_le(ptba[i]);
+		gpt_hdr->num_entries = host2uint32_t_le(num_entries);
+		gpt_hdr->entry_size = host2uint32_t_le(esize);
+		gpt_hdr->pe_array_crc32 = 0; /* XXXX */
+
+		rc = block_write_direct(sid, hdr_ba[i], 1, gpt_hdr);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		free(gpt_hdr);
+		gpt_hdr = NULL;
+
+		etable = calloc(num_entries, esize);
+		if (etable == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		rc = block_write_direct(sid, ptba[i], pt_blocks, etable);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		free(etable);
+		etable = 0;
+	}
+
+	label = calloc(1, sizeof(label_t));
+	if (label == NULL)
+		return ENOMEM;
+
+	list_initialize(&label->parts);
+
+	label->ops = &gpt_label_ops;
+	label->ltype = lt_gpt;
+	label->svc_id = sid;
+	label->ablock0 = ba_min;
+	label->anblocks = ba_max - ba_min + 1;
+	label->pri_entries = num_entries;
+	label->block_size = bsize;
+
+	label->lt.gpt.hdr_ba[0] = hdr_ba[0];
+	label->lt.gpt.hdr_ba[1] = hdr_ba[1];
+	label->lt.gpt.ptable_ba[0] = ptba[0];
+	label->lt.gpt.ptable_ba[1] = ptba[1];
+	label->lt.gpt.esize = esize;
+
+	*rlabel = label;
 	return EOK;
+error:
+	free(etable);
+	free(gpt_hdr);
+	free(label);
+	return rc;
 }
 
 static void gpt_close(label_t *label)
 {
+	label_part_t *part;
+
+	part = gpt_part_first(label);
+	while (part != NULL) {
+		list_remove(&part->llabel);
+		free(part);
+		part = gpt_part_first(label);
+	}
+
 	free(label);
 }
 
 static int gpt_destroy(label_t *label)
 {
+	gpt_header_t *gpt_hdr = NULL;
+	uint8_t *etable = NULL;
+	label_part_t *part;
+	uint64_t pt_blocks;
+	int i;
+	int rc;
+
+	part = gpt_part_first(label);
+	if (part != NULL) {
+		rc = ENOTEMPTY;
+		goto error;
+	}
+
+	pt_blocks = label->pri_entries * label->lt.gpt.esize /
+	    label->block_size;
+
+	for (i = 0; i < 2; i++) {
+		gpt_hdr = calloc(1, label->block_size);
+		if (gpt_hdr == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		rc = block_write_direct(label->svc_id, label->lt.gpt.hdr_ba[i],
+		    1, gpt_hdr);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		free(gpt_hdr);
+		gpt_hdr = NULL;
+
+		etable = calloc(label->pri_entries, label->lt.gpt.esize);
+		if (etable == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		rc = block_write_direct(label->svc_id,
+		    label->lt.gpt.ptable_ba[i], pt_blocks, etable);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		free(etable);
+		etable = 0;
+	}
+
+	free(label);
 	return EOK;
+error:
+	return rc;
 }
 
 static int gpt_get_info(label_t *label, label_info_t *linfo)
@@ -425,7 +614,7 @@ static int gpt_pte_update(label_t *label, gpt_entry_t *pte, int index)
 		ba = label->lt.gpt.ptable_ba[i] +
 		    pos / label->block_size;
 
-		rc = block_read_direct(label->svcid, ba, 1, buf);
+		rc = block_read_direct(label->svc_id, ba, 1, buf);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -435,7 +624,7 @@ static int gpt_pte_update(label_t *label, gpt_entry_t *pte, int index)
 		e = (gpt_entry_t *)(&buf[offs]);
 		*e = *pte;
 
-		rc = block_write_direct(label->svcid, ba, 1, buf);
+		rc = block_write_direct(label->svc_id, ba, 1, buf);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;

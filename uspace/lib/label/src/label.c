@@ -40,9 +40,11 @@
 #include <stdlib.h>
 
 #include "gpt.h"
+#include "mbr.h"
 
 static label_ops_t *probe_list[] = {
 	&gpt_label_ops,
+	&mbr_label_ops,
 	NULL
 };
 
@@ -71,7 +73,7 @@ int label_create(service_id_t sid, label_type_t ltype, label_t **rlabel)
 		ops = &gpt_label_ops;
 		break;
 	case lt_mbr:
-		ops = NULL;
+		ops = &mbr_label_ops;
 		break;
 	}
 

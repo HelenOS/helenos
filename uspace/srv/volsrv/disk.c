@@ -256,5 +256,35 @@ int vol_disk_find_by_id(service_id_t sid, vol_disk_t **rdisk)
 	return ENOENT;
 }
 
+int vol_disk_label_create(vol_disk_t *disk, label_type_t ltype)
+{
+	int rc;
+
+	rc = vbd_label_create(vbd, disk->svc_id, ltype);
+	if (rc != EOK)
+		return rc;
+
+	disk->dcnt = dc_label;
+	disk->ltype = ltype;
+
+	return EOK;
+}
+
+int vol_disk_empty(vol_disk_t *disk)
+{
+	int rc;
+
+	if (disk->dcnt == dc_label) {
+		rc = vbd_label_delete(vbd, disk->svc_id);
+		if (rc != EOK)
+			return rc;
+	}
+
+	disk->dcnt = dc_empty;
+
+	return EOK;
+}
+
+
 /** @}
  */

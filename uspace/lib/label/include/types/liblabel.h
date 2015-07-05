@@ -110,6 +110,7 @@ struct label_part_spec {
 };
 
 typedef struct {
+	uint64_t hdr_ba[2];
 	uint64_t ptable_ba[2];
 	size_t esize;
 } label_gpt_t;
@@ -124,7 +125,7 @@ struct label {
 	/** Label type */
 	label_type_t ltype;
 	/** Block device service ID */
-	service_id_t svcid;
+	service_id_t svc_id;
 	/** Partitions */
 	list_t parts; /* of label_part_t */
 	/** First block that can be allocated */

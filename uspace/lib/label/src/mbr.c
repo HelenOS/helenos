@@ -141,6 +141,8 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 
 	label->ops = &mbr_label_ops;
 	label->ltype = lt_mbr;
+	label->svc_id = sid;
+	label->block_size = bsize;
 	label->ablock0 = mbr_ablock0;
 	label->anblocks = nblocks - mbr_ablock0;
 	label->pri_entries = mbr_nprimary;
@@ -154,17 +156,115 @@ error:
 
 static int mbr_create(service_id_t sid, label_t **rlabel)
 {
+	label_t *label = NULL;
+	mbr_br_block_t *mbr = NULL;
+	aoff64_t nblocks;
+	size_t bsize;
+	int i;
+	int rc;
+
+	rc = block_get_bsize(sid, &bsize);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = block_get_nblocks(sid, &nblocks);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	mbr = calloc(1, bsize);
+	if (mbr == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	label = calloc(1, sizeof(label_t));
+	if (label == NULL)
+		return ENOMEM;
+
+	list_initialize(&label->parts);
+
+	mbr->media_id = 0;
+	mbr->pad0 = 0;
+	for (i = 0; i < mbr_nprimary; i++)
+		mbr_unused_pte(&mbr->pte[i]);
+	mbr->signature = host2uint16_t_le(mbr_br_signature);
+
+	rc = block_write_direct(sid, mbr_ba, 1, mbr);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	free(mbr);
+	mbr = NULL;
+
+	label->ops = &mbr_label_ops;
+	label->ltype = lt_mbr;
+	label->block_size = bsize;
+	label->svc_id = sid;
+	label->ablock0 = mbr_ablock0;
+	label->anblocks = nblocks - mbr_ablock0;
+	label->pri_entries = mbr_nprimary;
+
+	*rlabel = label;
 	return EOK;
+error:
+	free(mbr);
+	free(label);
+	return rc;
 }
 
 static void mbr_close(label_t *label)
 {
+	label_part_t *part;
+
+	part = mbr_part_first(label);
+	while (part != NULL) {
+		list_remove(&part->llabel);
+		free(part);
+
+		part = mbr_part_first(label);
+	}
+
 	free(label);
 }
 
 static int mbr_destroy(label_t *label)
 {
+	mbr_br_block_t *mbr = NULL;
+	label_part_t *part;
+	int rc;
+
+	part = mbr_part_first(label);
+	if (part != NULL) {
+		rc = ENOTEMPTY;
+		goto error;
+	}
+
+	mbr = calloc(1, label->block_size);
+	if (mbr == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = block_write_direct(label->svc_id, mbr_ba, 1, mbr);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	free(mbr);
+	mbr = NULL;
+
+	free(label);
 	return EOK;
+error:
+	free(mbr);
+	return rc;
 }
 
 static int mbr_get_info(label_t *label, label_info_t *linfo)
@@ -339,7 +439,7 @@ static int mbr_pte_update(label_t *label, mbr_pte_t *pte, int index)
 	if (br == NULL)
 		return ENOMEM;
 
-	rc = block_read_direct(label->svcid, mbr_ba, 1, br);
+	rc = block_read_direct(label->svc_id, mbr_ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -347,7 +447,7 @@ static int mbr_pte_update(label_t *label, mbr_pte_t *pte, int index)
 
 	br->pte[index] = *pte;
 
-	rc = block_write_direct(label->svcid, mbr_ba, 1, br);
+	rc = block_write_direct(label->svc_id, mbr_ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;

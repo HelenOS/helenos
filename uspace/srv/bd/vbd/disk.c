@@ -222,6 +222,7 @@ int vbds_disk_add(service_id_t sid)
 		goto error;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "block_init(%zu)", sid);
 	rc = block_init(EXCHANGE_SERIALIZE, sid, 2048);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed opening block device %s.",
@@ -271,8 +272,10 @@ int vbds_disk_add(service_id_t sid)
 	return EOK;
 error:
 	label_close(label);
-	if (block_inited)
+	if (block_inited) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
 		block_fini(sid);
+	}
 	if (disk != NULL)
 		free(disk->svc_name);
 	free(disk);
@@ -292,6 +295,8 @@ int vbds_disk_remove(service_id_t sid)
 
 	list_remove(&disk->ldisks);
 	label_close(disk->label);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
+	block_fini(sid);
 	free(disk);
 	return EOK;
 }
@@ -352,18 +357,52 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 {
 	label_t *label;
 	vbds_disk_t *disk;
+	bool block_inited = false;
+	size_t block_size;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu)", sid);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - chkdup", sid);
 
 	/* Check for duplicates */
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc == EOK)
 		return EEXISTS;
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - alloc", sid);
+
 	disk = calloc(1, sizeof(vbds_disk_t));
 	if (disk == NULL)
 		return ENOMEM;
+
+	rc = loc_service_get_name(sid, &disk->svc_name);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting disk service name.");
+		rc = EIO;
+		goto error;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "block_init(%zu)", sid);
+	rc = block_init(EXCHANGE_SERIALIZE, sid, 2048);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed opening block device %s.",
+		    disk->svc_name);
+		rc = EIO;
+		goto error;
+	}
+
+	rc = block_get_bsize(sid, &block_size);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting block size of %s.",
+		    disk->svc_name);
+		rc = EIO;
+		goto error;
+	}
+
+	block_inited = true;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - label_create", sid);
 
 	rc = label_create(sid, ltype, &label);
 	if (rc != EOK)
@@ -371,9 +410,21 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 
 	disk->svc_id = sid;
 	disk->label = label;
+	disk->block_size = block_size;
+	list_initialize(&disk->parts);
+
 	list_append(&disk->ldisks, &vbds_disks);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - success", sid);
 	return EOK;
 error:
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - failure", sid);
+	if (block_inited) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
+		block_fini(sid);
+	}
+	if (disk != NULL)
+		free(disk->svc_name);
 	free(disk);
 	return rc;
 }
@@ -396,6 +447,8 @@ int vbds_label_delete(service_id_t sid)
 	}
 
 	list_remove(&disk->ldisks);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
+	block_fini(sid);
 	free(disk);
 	return EOK;
 }

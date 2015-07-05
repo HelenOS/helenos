@@ -249,7 +249,7 @@ static int gpt_read(void)
 		return ENOMEM;
 	}
 
-	rc = block_read_direct(indev_sid, GPT_HDR_BA, 1, gpt_hdr);
+	rc = block_read_direct(indev_sid, gpt_hdr_ba, 1, gpt_hdr);
 	if (rc != EOK) {
 		printf(NAME ": Failed reading GPT header block.\n");
 		return rc;

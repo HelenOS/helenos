@@ -37,8 +37,16 @@
 
 #include <sys/types.h>
 
-/** Block address of GPT header. */
-#define GPT_HDR_BA	1
+enum {
+	/** Block address of primary GPT header. */
+	gpt_hdr_ba = 1,
+
+	/** Minimum size of partition table in bytes, required by std. */
+	gpt_ptable_min_size = 16384,
+
+	/** GPT revision */
+	gpt_revision = 0x00010000
+};
 
 /** GPT header */
 typedef struct {
