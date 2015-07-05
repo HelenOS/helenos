@@ -102,19 +102,19 @@ static int polling_fibril(void *arg)
 		const int rc = usb_pipe_read(pipe, data->buffer,
 		    data->request_size, &actual_size);
 
-		if (params->debug > 1) {
-			if (rc == EOK) {
+		if (rc == EOK) {
+			if (params->debug > 1) {
 				usb_log_debug(
 				    "Poll%p: received: '%s' (%zuB).\n",
 				    data,
 				    usb_debug_str_buffer(data->buffer,
 				        actual_size, 16),
 				    actual_size);
-			} else {
+			}
+		} else {
 				usb_log_debug(
 				    "Poll%p: polling failed: %s.\n",
 				    data, str_error(rc));
-			}
 		}
 
 		/* If the pipe stalled, we can try to reset the stall. */
