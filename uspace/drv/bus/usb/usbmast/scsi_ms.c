@@ -85,11 +85,17 @@ static int usb_massstor_unit_ready(usbmast_fun_t *mfun)
 
 	rc = usb_massstor_cmd(mfun, 0xDEADBEEF, &cmd);
 
-        if (rc != EOK || cmd.status != CMDS_GOOD) {
-		usb_log_error("Test Unit Ready failed, device %s: %s.\n",
+        if (rc != EOK) {
+		usb_log_error("Test Unit Ready failed on device %s: %s.",
 		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
 	}
+	/* Ignore command error here. If there's something wrong
+	 * with the device the following commands will fail too.
+	 */
+	if (cmd.status != CMDS_GOOD)
+		usb_log_warning("Test Unit Ready command failed on device %s.",
+		   usb_device_get_name(mfun->mdev->usb_dev));
 
 	return EOK;
 }

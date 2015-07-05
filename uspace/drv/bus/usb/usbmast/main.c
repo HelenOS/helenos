@@ -43,6 +43,7 @@
 #include <usb/classes/classes.h>
 #include <usb/classes/massstor.h>
 #include <errno.h>
+#include <io/logctl.h>
 #include <str_error.h>
 #include "cmdw.h"
 #include "bo_trans.h"
@@ -399,7 +400,7 @@ static const usb_driver_t usbmast_driver = {
 int main(int argc, char *argv[])
 {
 	log_init(NAME);
-
+	logctl_set_log_level(NAME, LVL_NOTE);
 	return usb_driver_main(&usbmast_driver);
 }
 
