@@ -168,10 +168,12 @@ do { \
 } while (0)
 
 #define RH_DEBUG(hub, port, msg, ...) \
+do { \
 	if ((int)port >= 0) \
 		usb_log_debug("RH(%p-%d): " msg, hub, port, ##__VA_ARGS__); \
 	else \
-		usb_log_debug("RH(%p):" msg, hub, ##__VA_ARGS__) \
+		usb_log_debug("RH(%p):" msg, hub, ##__VA_ARGS__); \
+} while (0)
 
 /** USB HUB port state request handler.
  * @param device Virtual hub device
@@ -410,12 +412,12 @@ static int req_status_change_handler(usbvirt_device_t *device,
 	        0x2 : 0) |
 	    ((((status_b & STATUS_CHANGE_BITS) != 0) || hub->reset_changed[1]) ?
 	        0x4 : 0);
-
-	RH_DEBUG(hub, -1, "Event mask %" PRIx8
-	    " (status_a %" PRIx16 "%s),"
-	    " (status_b %" PRIx16 "%s)\n", status,
-	    status_a, hub->reset_changed[0] ? "-reset" : "",
-	    status_b, hub->reset_changed[1] ? "-reset" : "" );
+	if (status)
+		RH_DEBUG(hub, -1, "Event mask %" PRIx8
+		    " (status_a %" PRIx16 "%s),"
+		    " (status_b %" PRIx16 "%s)\n", status,
+		    status_a, hub->reset_changed[0] ? "-reset" : "",
+		    status_b, hub->reset_changed[1] ? "-reset" : "" );
 	((uint8_t *)buffer)[0] = status;
 	*actual_size = 1;
 	return EOK;
