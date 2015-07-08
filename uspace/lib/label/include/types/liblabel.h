@@ -111,8 +111,11 @@ struct label_part_spec {
 
 typedef struct {
 	uint64_t hdr_ba[2];
+	uint32_t hdr_size;
 	uint64_t ptable_ba[2];
+	uint64_t pt_blocks;
 	size_t esize;
+	uint32_t pt_crc;
 } label_gpt_t;
 
 typedef struct {
