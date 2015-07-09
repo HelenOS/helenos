@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <uuid.h>
 
 #include "std/gpt.h"
 #include "gpt.h"
@@ -334,6 +335,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 	aoff64_t nblocks;
 	uint64_t resv_blocks;
 	uint32_t pt_crc;
+	uuid_t disk_uuid;
 	int i, j;
 	int rc;
 
@@ -399,6 +401,8 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 			goto error;
 		}
 
+		uuid_generate(&disk_uuid);
+
 		for (j = 0; j < 8; ++j)
 			gpt_hdr->efi_signature[j] = efi_signature[j];
 		gpt_hdr->revision = host2uint32_t_le(gpt_revision);
@@ -408,7 +412,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 		gpt_hdr->alternate_lba = host2uint64_t_le(hdr_ba[1 - i]);
 		gpt_hdr->first_usable_lba = host2uint64_t_le(ba_min);
 		gpt_hdr->last_usable_lba = host2uint64_t_le(ba_max);
-		//gpt_hdr->disk_guid XXX
+		uuid_encode(&disk_uuid, gpt_hdr->disk_guid);
 		gpt_hdr->entry_lba = host2uint64_t_le(ptba[i]);
 		gpt_hdr->num_entries = host2uint32_t_le(num_entries);
 		gpt_hdr->entry_size = host2uint32_t_le(esize);
@@ -593,6 +597,7 @@ static int gpt_part_create(label_t *label, label_part_spec_t *pspec,
 	part->block0 = pspec->block0;
 	part->nblocks = pspec->nblocks;
 	part->ptype = pspec->ptype;
+	uuid_generate(&part->part_uuid);
 
 	/* Prepare partition table entry */
 	rc = gpt_part_to_pte(part, &pte);
@@ -650,7 +655,7 @@ static int gpt_part_to_pte(label_part_t *part, gpt_entry_t *pte)
 
 	memset(pte, 0, sizeof(gpt_entry_t));
 	pte->part_type[0] = 0x12;
-	pte->part_id[0] = 0x34;
+	uuid_encode(&part->part_uuid, pte->part_id);
 	pte->start_lba = host2uint64_t_le(part->block0);
 	pte->end_lba = host2uint64_t_le(eblock);
 //	pte->attributes
@@ -685,6 +690,7 @@ static int gpt_pte_to_part(label_t *label, gpt_entry_t *pte, int index)
 	part->index = index;
 	part->block0 = b0;
 	part->nblocks = b1 - b0 + 1;
+	uuid_decode(pte->part_id, &part->part_uuid);
 
 	part->label = label;
 	list_append(&part->llabel, &label->parts);

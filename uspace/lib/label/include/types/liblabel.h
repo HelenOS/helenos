@@ -40,6 +40,7 @@
 #include <types/label.h>
 #include <sys/types.h>
 #include <vol.h>
+#include <uuid.h>
 
 typedef struct label label_t;
 typedef struct label_info label_info_t;
@@ -95,6 +96,8 @@ struct label_part {
 	aoff64_t nblocks;
 	/** Partition type */
 	uint64_t ptype;
+	/** Partition UUID */
+	uuid_t part_uuid;
 };
 
 /** Specification of new partition */

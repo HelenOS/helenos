@@ -153,6 +153,7 @@ GENERIC_SOURCES = \
 	generic/stats.c \
 	generic/assert.c \
 	generic/pio_trace.c \
+	generic/uuid.c \
 	generic/vbd.c \
 	generic/vol.c
 
