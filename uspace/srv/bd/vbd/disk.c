@@ -61,6 +61,8 @@ static int vbds_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 static int vbds_bsa_translate(vbds_part_t *, aoff64_t, size_t, aoff64_t *);
 
+static vbd_part_id_t vbds_part_id = 1;
+
 static bd_ops_t vbds_bd_ops = {
 	.open = vbds_bd_open,
 	.close = vbds_bd_close,
@@ -94,13 +96,30 @@ static int vbds_disk_by_svcid(service_id_t sid, vbds_disk_t **rdisk)
 	return ENOENT;
 }
 
-static int vbds_part_by_id(vbds_part_id_t partid, vbds_part_t **rpart)
+static int vbds_part_by_pid(vbds_part_id_t partid, vbds_part_t **rpart)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_by_id(%zu)", partid);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_by_pid(%zu)", partid);
 
 	list_foreach(vbds_parts, lparts, vbds_part_t, part) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "%zu == %zu ?", part->id, partid);
-		if (part->id == partid) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "%zu == %zu ?", part->pid, partid);
+		if (part->pid == partid) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Found match.");
+			*rpart = part;
+			return EOK;
+		}
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "No match.");
+	return ENOENT;
+}
+
+static int vbds_part_by_svcid(service_id_t svcid, vbds_part_t **rpart)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_by_svcid(%zu)", svcid);
+
+	list_foreach(vbds_parts, lparts, vbds_part_t, part) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "%zu == %zu ?", part->svc_id, svcid);
+		if (part->svc_id == svcid) {
 			log_msg(LOG_DEFAULT, LVL_NOTE, "Found match.");
 			*rpart = part;
 			return EOK;
@@ -116,7 +135,7 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
     vbds_part_t **rpart)
 {
 	vbds_part_t *part;
-	service_id_t psid;
+	service_id_t psid = 0;
 	label_part_info_t lpinfo;
 	char *name;
 	int rc;
@@ -132,27 +151,30 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 		return ENOMEM;
 	}
 
-	/* XXX Proper service name */
-	rc = asprintf(&name, "%sp%u", disk->svc_name, lpart->index);
-	if (rc < 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
-		return ENOMEM;
-	}
+	if (lpinfo.pkind != lpk_extended) {
+		/* XXX Proper service name */
+		rc = asprintf(&name, "%sp%u", disk->svc_name, lpart->index);
+		if (rc < 0) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
+			return ENOMEM;
+		}
 
-	rc = loc_service_register(name, &psid);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "
-		    "service %s.", name);
+		rc = loc_service_register(name, &psid);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "
+			    "service %s.", name);
+			free(name);
+			free(part);
+			return EIO;
+		}
+
 		free(name);
-		free(part);
-		return EIO;
 	}
-
-	free(name);
 
 	part->lpart = lpart;
 	part->disk = disk;
-	part->id = (vbds_part_id_t)psid;
+	part->pid = ++vbds_part_id;
+	part->svc_id = psid;
 	part->block0 = lpinfo.block0;
 	part->nblocks = lpinfo.nblocks;
 
@@ -183,9 +205,11 @@ static int vbds_part_remove(vbds_part_t *part, label_part_t **rlpart)
 	if (part->open_cnt > 0)
 		return EBUSY;
 
-	rc = loc_service_unregister((service_id_t)part->id);
-	if (rc != EOK)
-		return EIO;
+	if (part->svc_id != 0) {
+		rc = loc_service_unregister(part->svc_id);
+		if (rc != EOK)
+			return EIO;
+	}
 
 	list_remove(&part->ldisk);
 	list_remove(&part->lparts);
@@ -347,7 +371,7 @@ int vbds_get_parts(service_id_t sid, service_id_t *id_buf, size_t buf_size,
 	size_t pos = 0;
 	list_foreach(disk->parts, ldisk, vbds_part_t, part) {
 		if (pos < buf_cnt)
-			id_buf[pos] = part->id;
+			id_buf[pos] = part->pid;
 		pos++;
 	}
 
@@ -461,7 +485,7 @@ int vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
 	label_part_info_t lpinfo;
 	int rc;
 
-	rc = vbds_part_by_id(partid, &part);
+	rc = vbds_part_by_pid(partid, &part);
 	if (rc != EOK)
 		return rc;
 
@@ -516,7 +540,7 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 	}
 
 	if (rpart != NULL)
-		*rpart = part->id;
+		*rpart = part->pid;
 	return EOK;
 error:
 	return rc;
@@ -529,7 +553,7 @@ int vbds_part_delete(vbds_part_id_t partid)
 	label_part_t *lpart;
 	int rc;
 
-	rc = vbds_part_by_id(partid, &part);
+	rc = vbds_part_by_pid(partid, &part);
 	if (rc != EOK)
 		return rc;
 
@@ -646,15 +670,15 @@ void vbds_bd_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	vbds_part_t *part;
 	int rc;
-	service_id_t partid;
+	service_id_t svcid;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn()");
 
-	partid = IPC_GET_ARG1(*icall);
+	svcid = IPC_GET_ARG1(*icall);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn() - partid=%zu", partid);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn() - svcid=%zu", svcid);
 
-	rc = vbds_part_by_id(partid, &part);
+	rc = vbds_part_by_svcid(svcid, &part);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_bd_conn() - partition "
 		    "not found.");

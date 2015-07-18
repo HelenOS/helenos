@@ -55,7 +55,9 @@ typedef struct {
 	/** Link to vbds_parts */
 	link_t lparts;
 	/** Partition ID */
-	vbds_part_id_t id;
+	vbds_part_id_t pid;
+	/** Service ID */
+	service_id_t svc_id;
 	/** Label partition */
 	label_part_t *lpart;
 	/** Block device service */
