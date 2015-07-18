@@ -50,6 +50,8 @@ typedef struct vbd {
 typedef struct {
 	/** Label type */
 	label_type_t ltype;
+	/** Label flags */
+	label_flags_t flags;
 	/** First block that can be allocated */
 	aoff64_t ablock0;
 	/** Number of blocks that can be allocated */
@@ -66,6 +68,8 @@ typedef struct {
 	aoff64_t block0;
 	/** Number of blocks */
 	aoff64_t nblocks;
+	/** Partition kind */
+	label_pkind_t pkind;
 	/** Partition type */
 	uint64_t ptype;
 } vbd_part_spec_t;
@@ -74,6 +78,8 @@ typedef struct {
 typedef struct {
 	/** Partition index */
 	int index;
+	/** Partition kind */
+	label_pkind_t pkind;
 	/** First block */
 	aoff64_t block0;
 	/** Number of blocks */

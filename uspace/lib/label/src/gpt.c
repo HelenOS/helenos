@@ -149,6 +149,8 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 		return ENOMEM;
 
 	list_initialize(&label->parts);
+	list_initialize(&label->pri_parts);
+	list_initialize(&label->log_parts);
 
 	for (j = 0; j < 2; j++) {
 		for (i = 0; i < 8; ++i) {
@@ -299,6 +301,7 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 	label->anblocks = ba_max - ba_min + 1;
 	label->pri_entries = num_entries;
 	label->block_size = bsize;
+	label->ext_part_idx = -1;
 
 	label->lt.gpt.hdr_ba[0] = gpt_hdr_ba;
 	label->lt.gpt.hdr_ba[1] = h1ba;
@@ -435,6 +438,8 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 		return ENOMEM;
 
 	list_initialize(&label->parts);
+	list_initialize(&label->pri_parts);
+	list_initialize(&label->log_parts);
 
 	label->ops = &gpt_label_ops;
 	label->ltype = lt_gpt;
@@ -443,6 +448,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 	label->anblocks = ba_max - ba_min + 1;
 	label->pri_entries = num_entries;
 	label->block_size = bsize;
+	label->ext_part_idx = -1;
 
 	label->lt.gpt.hdr_ba[0] = hdr_ba[0];
 	label->lt.gpt.hdr_ba[1] = hdr_ba[1];
@@ -467,7 +473,8 @@ static void gpt_close(label_t *label)
 
 	part = gpt_part_first(label);
 	while (part != NULL) {
-		list_remove(&part->llabel);
+		list_remove(&part->lparts);
+		list_remove(&part->lpri);
 		free(part);
 		part = gpt_part_first(label);
 	}
@@ -531,11 +538,19 @@ error:
 	return rc;
 }
 
+static bool gpt_can_create_pri(label_t *label)
+{
+	return list_count(&label->parts) < (size_t)label->pri_entries;
+}
+
 static int gpt_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
 	linfo->dcnt = dc_label;
 	linfo->ltype = lt_gpt;
+	linfo->flags = 0;
+	if (gpt_can_create_pri(label))
+		linfo->flags = linfo->flags | lf_can_create_pri;
 	linfo->ablock0 = label->ablock0;
 	linfo->anblocks = label->anblocks;
 	return EOK;
@@ -549,23 +564,24 @@ static label_part_t *gpt_part_first(label_t *label)
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, label_part_t, llabel);
+	return list_get_instance(link, label_part_t, lparts);
 }
 
 static label_part_t *gpt_part_next(label_part_t *part)
 {
 	link_t *link;
 
-	link = list_next(&part->llabel, &part->label->parts);
+	link = list_next(&part->lparts, &part->label->parts);
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, label_part_t, llabel);
+	return list_get_instance(link, label_part_t, lparts);
 }
 
 static void gpt_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 {
 	pinfo->index = part->index;
+	pinfo->pkind = lpk_primary;
 	pinfo->block0 = part->block0;
 	pinfo->nblocks = part->nblocks;
 }
@@ -586,6 +602,12 @@ static int gpt_part_create(label_t *label, label_part_spec_t *pspec,
 	/* XXX Verify index, block0, nblocks */
 
 	if (pspec->index < 1 || pspec->index > label->pri_entries) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	/* GPT only has primary partitions */
+	if (pspec->pkind != lpk_primary) {
 		rc = EINVAL;
 		goto error;
 	}
@@ -613,7 +635,8 @@ static int gpt_part_create(label_t *label, label_part_spec_t *pspec,
 		goto error;
 	}
 
-	list_append(&part->llabel, &label->parts);
+	list_append(&part->lparts, &label->parts);
+	list_append(&part->lpri, &label->pri_parts);
 
 	*rpart = part;
 	return EOK;
@@ -635,7 +658,8 @@ static int gpt_part_destroy(label_part_t *part)
 	if (rc != EOK)
 		return EIO;
 
-	list_remove(&part->llabel);
+	list_remove(&part->lparts);
+	list_remove(&part->lpri);
 	free(part);
 	return EOK;
 }
@@ -693,7 +717,8 @@ static int gpt_pte_to_part(label_t *label, gpt_entry_t *pte, int index)
 	uuid_decode(pte->part_id, &part->part_uuid);
 
 	part->label = label;
-	list_append(&part->llabel, &label->parts);
+	list_append(&part->lparts, &label->parts);
+	list_append(&part->lpri, &label->pri_parts);
 	return EOK;
 }
 

@@ -118,6 +118,8 @@ typedef struct {
 	label_disk_cnt_t dcnt;
 	/** Label type */
 	label_type_t ltype;
+	/** Label flags */
+	label_flags_t flags;
 } fdisk_label_info_t;
 
 /** Partition */
@@ -130,6 +132,8 @@ typedef struct {
 	link_t ldev_ba;
 	/** Capacity */
 	fdisk_cap_t capacity;
+	/** Partition kind */
+	label_pkind_t pkind;
 	/** File system type */
 	fdisk_fstype_t fstype;
 	/** Partition ID */
@@ -146,13 +150,18 @@ typedef struct {
 typedef struct {
 	/** Desired capacity */
 	fdisk_cap_t capacity;
+	/** Partition kind */
+	label_pkind_t pkind;
 	/** File system type */
 	fdisk_fstype_t fstype;
 } fdisk_part_spec_t;
 
 /** Partition info */
 typedef struct {
+	/** Capacity */
 	fdisk_cap_t capacity;
+	/** Partition kind */
+	label_pkind_t pkind;
 	/** File system type */
 	fdisk_fstype_t fstype;
 } fdisk_part_info_t;

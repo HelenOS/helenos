@@ -270,7 +270,7 @@ int vol_disk_label_create(vol_disk_t *disk, label_type_t ltype)
 	return EOK;
 }
 
-int vol_disk_empty(vol_disk_t *disk)
+int vol_disk_empty_disk(vol_disk_t *disk)
 {
 	int rc;
 
@@ -281,6 +281,25 @@ int vol_disk_empty(vol_disk_t *disk)
 	}
 
 	disk->dcnt = dc_empty;
+
+	return EOK;
+}
+
+int vol_disk_get_info(vol_disk_t *disk, vol_disk_info_t *dinfo)
+{
+	vbd_disk_info_t vdinfo;
+	int rc;
+
+	dinfo->dcnt = disk->dcnt;
+
+	if (disk->dcnt == dc_label) {
+		rc = vbd_disk_info(vbd, disk->svc_id, &vdinfo);
+		if (rc != EOK)
+			return rc;
+
+		dinfo->ltype = vdinfo.ltype;
+		dinfo->flags = vdinfo.flags;
+	}
 
 	return EOK;
 }

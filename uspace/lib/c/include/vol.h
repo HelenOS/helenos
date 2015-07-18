@@ -52,6 +52,8 @@ typedef struct {
 	label_disk_cnt_t dcnt;
 	/** Label type, if disk contents is label */
 	label_type_t ltype;
+	/** Label flags */
+	label_flags_t flags;
 } vol_disk_info_t;
 
 extern int vol_create(vol_t **);

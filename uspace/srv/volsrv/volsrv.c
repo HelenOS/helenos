@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <task.h>
+#include <vol.h>
 
 #include "disk.h"
 
@@ -117,6 +118,7 @@ static void vol_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_disk_t *disk;
+	vol_disk_info_t dinfo;
 	int rc;
 
 	sid = IPC_GET_ARG1(*icall);
@@ -126,7 +128,13 @@ static void vol_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	async_answer_2(iid, rc, disk->dcnt, disk->ltype);
+	rc = vol_disk_get_info(disk, &dinfo);
+	if (rc != EOK) {
+		async_answer_0(iid, EIO);
+		return;
+	}
+
+	async_answer_3(iid, rc, dinfo.dcnt, dinfo.ltype, dinfo.flags);
 }
 
 static void vol_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
@@ -168,7 +176,7 @@ static void vol_disk_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	rc = vol_disk_empty(disk);
+	rc = vol_disk_empty_disk(disk);
 	if (rc != EOK) {
 		async_answer_0(iid, EIO);
 		return;

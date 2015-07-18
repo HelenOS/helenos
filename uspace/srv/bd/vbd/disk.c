@@ -124,6 +124,8 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_add(%s, %p)",
 	    disk->svc_name, lpart);
 
+	label_part_get_info(lpart, &lpinfo);
+
 	part = calloc(1, sizeof(vbds_part_t));
 	if (part == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
@@ -147,7 +149,6 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	}
 
 	free(name);
-	label_part_get_info(lpart, &lpinfo);
 
 	part->lpart = lpart;
 	part->disk = disk;
@@ -301,7 +302,7 @@ int vbds_disk_remove(service_id_t sid)
 	return EOK;
 }
 
-int vbds_disk_info(service_id_t sid, vbds_disk_info_t *info)
+int vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
 {
 	vbds_disk_t *disk;
 	label_info_t linfo;
@@ -316,6 +317,7 @@ int vbds_disk_info(service_id_t sid, vbds_disk_info_t *info)
 	rc = label_get_info(disk->label, &linfo);
 
 	info->ltype = linfo.ltype;
+	info->flags = linfo.flags;
 	info->ablock0 = linfo.ablock0;
 	info->anblocks = linfo.anblocks;
 	info->block_size = disk->block_size;
@@ -466,6 +468,7 @@ int vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
 	label_part_get_info(part->lpart, &lpinfo);
 
 	pinfo->index = lpinfo.index;
+	pinfo->pkind = lpinfo.pkind;
 	pinfo->block0 = lpinfo.block0;
 	pinfo->nblocks = lpinfo.nblocks;
 	return EOK;
@@ -491,6 +494,7 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 	lpspec.index = pspec->index;
 	lpspec.block0 = pspec->block0;
 	lpspec.nblocks = pspec->nblocks;
+	lpspec.pkind = pspec->pkind;
 	lpspec.ptype = pspec->ptype;
 
 	rc = label_part_create(disk->label, &lpspec, &lpart);

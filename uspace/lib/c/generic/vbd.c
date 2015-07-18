@@ -263,22 +263,23 @@ int vbd_label_get_parts(vbd_t *vbd, service_id_t disk,
 int vbd_part_get_info(vbd_t *vbd, vbd_part_id_t part, vbd_part_info_t *pinfo)
 {
 	async_exch_t *exch;
-	sysarg_t index;
-	sysarg_t b0_lo, b0_hi;
-	sysarg_t nb_lo, nb_hi;
-	int retval;
+	sysarg_t retval;
+	ipc_call_t answer;
 
 	exch = async_exchange_begin(vbd->sess);
-	retval = async_req_1_5(exch, VBD_PART_GET_INFO, part, &index,
-	    &b0_lo, &b0_hi, &nb_lo, &nb_hi);
+	aid_t req = async_send_1(exch, VBD_PART_GET_INFO, part, &answer);
+	int rc = async_data_read_start(exch, pinfo, sizeof(vbd_part_info_t));
 	async_exchange_end(exch);
 
+	if (rc != EOK) {
+		async_forget(req);
+		return EIO;
+	}
+
+	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return EIO;
 
-	pinfo->index = index;
-	pinfo->block0 = MERGE_LOUP32(b0_lo, b0_hi);
-	pinfo->nblocks = MERGE_LOUP32(nb_lo, nb_hi);
 	return EOK;
 }
 

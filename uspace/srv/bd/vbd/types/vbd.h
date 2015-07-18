@@ -46,18 +46,6 @@
 
 typedef sysarg_t vbds_part_id_t;
 
-/** Disk info */
-typedef struct {
-	/** Label type */
-	label_type_t ltype;
-	/** First block that can be allocated */
-	aoff64_t ablock0;
-	/** Number of blocks that can be allocated */
-	aoff64_t anblocks;
-	/** Block size */
-	size_t block_size;
-} vbds_disk_info_t;
-
 /** Partition */
 typedef struct {
 	/** Disk this partition belongs to */

@@ -270,6 +270,7 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	part->index = pinfo.index;
 	part->block0 = pinfo.block0;
 	part->nblocks = pinfo.nblocks;
+	part->pkind = pinfo.pkind;
 
 	/* Insert to list by block address */
 	link = list_first(&dev->parts_ba);
@@ -441,6 +442,7 @@ int fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
 
 	info->dcnt = vinfo.dcnt;
 	info->ltype = vinfo.ltype;
+	info->flags = vinfo.flags;
 	return EOK;
 error:
 	return rc;
@@ -496,6 +498,7 @@ int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 {
 	info->capacity = part->capacity;
 	info->fstype = part->fstype;
+	info->pkind = part->pkind;
 	return EOK;
 }
 
@@ -670,6 +673,32 @@ int fdisk_fstype_format(fdisk_fstype_t fstype, char **rstr)
 	return EOK;
 }
 
+int fdisk_pkind_format(label_pkind_t pkind, char **rstr)
+{
+	const char *spkind;
+	char *s;
+
+	spkind = NULL;
+	switch (pkind) {
+	case lpk_primary:
+		spkind = "Primary";
+		break;
+	case lpk_extended:
+		spkind = "Extended";
+		break;
+	case lpk_logical:
+		spkind = "Logical";
+		break;
+	}
+
+	s = str_dup(spkind);
+	if (s == NULL)
+		return ENOMEM;
+
+	*rstr = s;
+	return EOK;
+}
+
 /** Get free partition index. */
 static int fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
 {
@@ -764,10 +793,14 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	if (rc != EOK)
 		return EIO;
 
+	memset(vpspec, 0, sizeof(vbd_part_spec_t));
 	vpspec->index = index;
 	vpspec->block0 = fblock0;
 	vpspec->nblocks = req_blocks;
-	vpspec->ptype = 42;
+	vpspec->pkind = pspec->pkind;
+	if (pspec->pkind != lpk_extended)
+		vpspec->ptype = 42;
+
 	return EOK;
 }
 

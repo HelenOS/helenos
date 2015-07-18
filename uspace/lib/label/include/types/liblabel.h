@@ -67,6 +67,8 @@ struct label_info {
 	label_disk_cnt_t dcnt;
 	/** Label type */
 	label_type_t ltype;
+	/** Label flags */
+	label_flags_t flags;
 	/** First block that can be allocated */
 	aoff64_t ablock0;
 	/** Number of blocks that can be allocated */
@@ -76,6 +78,8 @@ struct label_info {
 struct label_part_info {
 	/** Partition index */
 	int index;
+	/** Partition kind */
+	label_pkind_t pkind;
 	/** Address of first block */
 	aoff64_t block0;
 	/** Number of blocks */
@@ -87,7 +91,11 @@ struct label_part {
 	/** Containing label */
 	struct label *label;
 	/** Link to label_t.parts */
-	link_t llabel;
+	link_t lparts;
+	/** Link to label_t.pri_parts */
+	link_t lpri;
+	/** Link to label_t.log_parts */
+	link_t llog;
 	/** Index */
 	int index;
 	/** First block */
@@ -108,6 +116,8 @@ struct label_part_spec {
 	aoff64_t block0;
 	/** Number of blocks */
 	aoff64_t nblocks;
+	/** Partition kind */
+	label_pkind_t pkind;
 	/** Partition type */
 	uint64_t ptype;
 };
@@ -134,12 +144,18 @@ struct label {
 	service_id_t svc_id;
 	/** Partitions */
 	list_t parts; /* of label_part_t */
+	/** Primary partitions */
+	list_t pri_parts; /* of label_part_t */
+	/** Logical partitions */
+	list_t log_parts; /* of label_part_t */
 	/** First block that can be allocated */
 	aoff64_t ablock0;
 	/** Number of blocks that can be allocated */
 	aoff64_t anblocks;
 	/** Number of primary partition entries */
 	int pri_entries;
+	/** Index of extended partition or -1 if there is none */
+	int ext_part_idx;
 	/** Block size */
 	size_t block_size;
 	union {

@@ -191,11 +191,12 @@ int vol_get_disks(vol_t *vol, service_id_t **data, size_t *count)
 int vol_disk_info(vol_t *vol, service_id_t sid, vol_disk_info_t *vinfo)
 {
 	async_exch_t *exch;
-	sysarg_t dcnt, ltype;
+	sysarg_t dcnt, ltype, flags;
 	int retval;
 
 	exch = async_exchange_begin(vol->sess);
-	retval = async_req_1_2(exch, VOL_DISK_INFO, sid, &dcnt, &ltype);
+	retval = async_req_1_3(exch, VOL_DISK_INFO, sid, &dcnt, &ltype,
+	    &flags);
 	async_exchange_end(exch);
 
 	if (retval != EOK)
@@ -203,6 +204,7 @@ int vol_disk_info(vol_t *vol, service_id_t sid, vol_disk_info_t *vinfo)
 
 	vinfo->dcnt = (label_disk_cnt_t)dcnt;
 	vinfo->ltype = (label_type_t)ltype;
+	vinfo->flags = (label_flags_t)flags;
 	return EOK;
 }
 

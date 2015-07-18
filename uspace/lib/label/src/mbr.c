@@ -121,6 +121,8 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 		return ENOMEM;
 
 	list_initialize(&label->parts);
+	list_initialize(&label->pri_parts);
+	list_initialize(&label->log_parts);
 
 	/* Verify boot record signature */
 	sgn = uint16_t_le2host(mbr->signature);
@@ -129,6 +131,7 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
+	label->ext_part_idx = -1;
 	for (entry = 0; entry < mbr_nprimary; entry++) {
 		eptr = &mbr->pte[entry];
 		rc = mbr_pte_to_part(label, eptr, entry + 1);
@@ -186,6 +189,8 @@ static int mbr_create(service_id_t sid, label_t **rlabel)
 		return ENOMEM;
 
 	list_initialize(&label->parts);
+	list_initialize(&label->pri_parts);
+	list_initialize(&label->log_parts);
 
 	mbr->media_id = 0;
 	mbr->pad0 = 0;
@@ -209,6 +214,7 @@ static int mbr_create(service_id_t sid, label_t **rlabel)
 	label->ablock0 = mbr_ablock0;
 	label->anblocks = nblocks - mbr_ablock0;
 	label->pri_entries = mbr_nprimary;
+	label->ext_part_idx = -1;
 
 	*rlabel = label;
 	return EOK;
@@ -224,7 +230,11 @@ static void mbr_close(label_t *label)
 
 	part = mbr_part_first(label);
 	while (part != NULL) {
-		list_remove(&part->llabel);
+		list_remove(&part->lparts);
+		if (link_used(&part->lpri))
+			list_remove(&part->lpri);
+		if (link_used(&part->llog))
+			list_remove(&part->llog);
 		free(part);
 
 		part = mbr_part_first(label);
@@ -272,8 +282,23 @@ static int mbr_get_info(label_t *label, label_info_t *linfo)
 	memset(linfo, 0, sizeof(label_info_t));
 	linfo->dcnt = dc_label;
 	linfo->ltype = lt_mbr;
+
+	/* We support extended partitions */
+	linfo->flags = lf_ext_supp;
+
+	/** Can create primary if there is a free slot */
+	if (list_count(&label->pri_parts) < mbr_nprimary)
+		linfo->flags |= lf_can_create_pri;
+	/* Can create extended if there is a free slot and no extended */
+	if ((linfo->flags & lf_can_create_pri) != 0 && label->ext_part_idx < 0)
+		linfo->flags |= lf_can_create_ext;
+	/* Can create logical if there is an extended partition */
+	if (label->ext_part_idx >= 0)
+		linfo->flags |= lf_can_create_log;
+
 	linfo->ablock0 = label->ablock0;
 	linfo->anblocks = label->anblocks;
+
 	return EOK;
 }
 
@@ -285,25 +310,35 @@ static label_part_t *mbr_part_first(label_t *label)
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, label_part_t, llabel);
+	return list_get_instance(link, label_part_t, lparts);
 }
 
 static label_part_t *mbr_part_next(label_part_t *part)
 {
 	link_t *link;
 
-	link = list_next(&part->llabel, &part->label->parts);
+	link = list_next(&part->lparts, &part->label->parts);
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, label_part_t, llabel);
+	return list_get_instance(link, label_part_t, lparts);
 }
 
+#include <io/log.h>
 static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 {
 	pinfo->index = part->index;
 	pinfo->block0 = part->block0;
 	pinfo->nblocks = part->nblocks;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_get_info: index=%d ptype=%d",
+	    (int)part->index, (int)part->ptype);
+	if (link_used(&part->llog))
+		pinfo->pkind = lpk_logical;
+	else if (part->ptype == mbr_pt_extended)
+		pinfo->pkind = lpk_extended;
+	else
+		pinfo->pkind = lpk_primary;
 }
 
 static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
@@ -317,12 +352,6 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 	if (part == NULL)
 		return ENOMEM;
 
-	/* XXX Verify index, block0, nblocks */
-
-	if (pspec->index < 1 || pspec->index > label->pri_entries) {
-		rc = EINVAL;
-		goto error;
-	}
 
 	/* XXX Check if index is used */
 
@@ -330,21 +359,62 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 	part->index = pspec->index;
 	part->block0 = pspec->block0;
 	part->nblocks = pspec->nblocks;
-	part->ptype = pspec->ptype;
 
-	rc = mbr_part_to_pte(part, &pte);
-	if (rc != EOK) {
-		rc = EINVAL;
-		goto error;
+	switch (pspec->pkind) {
+	case lpk_primary:
+		part->ptype = pspec->ptype;
+		break;
+	case lpk_extended:
+		part->ptype = mbr_pt_extended;
+		if (pspec->ptype != 0) {
+			rc = EINVAL;
+			goto error;
+		}
+		if (label->ext_part_idx >= 0) {
+			rc = EEXISTS;
+			goto error;
+		}
+		break;
+	case lpk_logical:
+		part->ptype = pspec->ptype;
+		if (pspec->index != 0) {
+			rc = EINVAL;
+			goto error;
+		}
+		break;
 	}
 
-	rc = mbr_pte_update(label, &pte, pspec->index - 1);
-	if (rc != EOK) {
-		rc = EIO;
+	if (pspec->pkind != lpk_logical) {
+		/* Primary or extended partition */
+		/* XXX Verify index, block0, nblocks */
+
+		if (pspec->index < 1 || pspec->index > label->pri_entries) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		rc = mbr_part_to_pte(part, &pte);
+		if (rc != EOK) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		rc = mbr_pte_update(label, &pte, pspec->index - 1);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		list_append(&part->lparts, &label->parts);
+		list_append(&part->lpri, &label->pri_parts);
+
+		if (pspec->pkind == lpk_extended)
+			label->ext_part_idx = pspec->index - 1;
+	} else {
+		/* Logical partition */
+		rc = ENOTSUP;
 		goto error;
 	}
-
-	list_append(&part->llabel, &label->parts);
 
 	*rpart = part;
 	return EOK;
@@ -366,7 +436,15 @@ static int mbr_part_destroy(label_part_t *part)
 	if (rc != EOK)
 		return EIO;
 
-	list_remove(&part->llabel);
+	/* If it was the extended partition, clear ext. part. index */
+	if (part->index - 1 == part->label->ext_part_idx)
+		part->label->ext_part_idx = -1;
+
+	list_remove(&part->lparts);
+	if (link_used(&part->lpri))
+		list_remove(&part->lpri);
+	if (link_used(&part->llog))
+		list_remove(&part->llog);
 	free(part);
 	return EOK;
 }
@@ -385,6 +463,9 @@ static int mbr_part_to_pte(label_part_t *part, mbr_pte_t *pte)
 	if ((part->ptype >> 8) != 0)
 		return EINVAL;
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_to_pte: a0=%" PRIu64
+	    " len=%" PRIu64 " ptype=%d", part->block0, part->nblocks,
+	    (int)part->ptype);
 	memset(pte, 0, sizeof(mbr_pte_t));
 	pte->ptype = part->ptype;
 	pte->first_lba = host2uint32_t_le(part->block0);
@@ -402,14 +483,14 @@ static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
 	nblocks = uint32_t_le2host(pte->length);
 
 	/* See UEFI specification 2.0 section 5.2.1 Legacy Master Boot Record */
-	if (pte->ptype == mbr_pt_unused || pte->ptype == mbr_pt_extended ||
-	    nblocks == 0)
+	if (pte->ptype == mbr_pt_unused || nblocks == 0)
 		return EOK;
 
 	part = calloc(1, sizeof(label_part_t));
 	if (part == NULL)
 		return ENOMEM;
 
+	part->ptype = pte->ptype;
 	part->index = index;
 	part->block0 = block0;
 	part->nblocks = nblocks;
@@ -421,7 +502,11 @@ static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
 	 */
 
 	part->label = label;
-	list_append(&part->llabel, &label->parts);
+	list_append(&part->lparts, &label->parts);
+	list_append(&part->lpri, &label->pri_parts);
+
+	if (pte->ptype == mbr_pt_extended)
+		label->ext_part_idx = index - 1;
 	return EOK;
 }
 

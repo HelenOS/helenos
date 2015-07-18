@@ -50,8 +50,12 @@ typedef enum {
 	devac_create_label,
 	/** Delete label */
 	devac_delete_label,
-	/** Create partition */
-	devac_create_part,
+	/** Create (primary) partition */
+	devac_create_pri_part,
+	/** Create extended partition */
+	devac_create_ext_part,
+	/** Create logical partition */
+	devac_create_log_part,
 	/** Delete partition */
 	devac_delete_part,
 	/** Exit */
@@ -311,12 +315,12 @@ error:
 	return rc;
 }
 
-static int fdsk_create_part(fdisk_dev_t *dev)
+static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 {
 	int rc;
 	fdisk_part_spec_t pspec;
 	fdisk_cap_t cap;
-	fdisk_fstype_t fstype;
+	fdisk_fstype_t fstype = fdfs_none;
 	tinput_t *tinput = NULL;
 	char *scap;
 
@@ -344,12 +348,15 @@ static int fdsk_create_part(fdisk_dev_t *dev)
 	tinput_destroy(tinput);
 	tinput = NULL;
 
-	rc = fdsk_select_fstype(&fstype);
-	if (rc != EOK)
-		goto error;
+	if (pkind != lpk_extended) {
+		rc = fdsk_select_fstype(&fstype);
+		if (rc != EOK)
+			goto error;
+	}
 
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = cap;
+	pspec.pkind = pkind;
 	pspec.fstype = fstype;
 
 	rc = fdisk_part_create(dev, &pspec, NULL);
@@ -470,6 +477,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	char *scap = NULL;
 	char *sfstype = NULL;
 	char *svcname = NULL;
+	char *spkind;
 	int rc;
 	int npart;
 	void *sel;
@@ -562,7 +570,22 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		printf("Partition %d: %s, %s\n", npart, scap, sfstype);
+		printf("Partition %d: %s", npart, scap);
+		if ((linfo.flags & lf_ext_supp) != 0) {
+			rc = fdisk_pkind_format(pinfo.pkind, &spkind);
+			if (rc != EOK) {
+				printf("\nOut of memory.\n");
+				goto error;
+			}
+
+			printf(", %s", spkind);
+			free(spkind);
+		}
+
+		if (pinfo.pkind != lpk_extended)
+			printf(", %s", sfstype);
+		printf("\n");
+
 		free(scap);
 		scap = NULL;
 		free(sfstype);
@@ -579,12 +602,49 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	}
 
 	if (linfo.dcnt == dc_label) {
-		rc = nchoice_add(choice, "Create partition",
-		    (void *)devac_create_part);
-		if (rc != EOK) {
-			assert(rc == ENOMEM);
-			printf("Out of memory.\n");
-			goto error;
+		if ((linfo.flags & lf_ext_supp) != 0) {
+			if ((linfo.flags & lf_can_create_pri) != 0) {
+				rc = nchoice_add(choice, "Create primary "
+				    "partition",
+				    (void *)devac_create_pri_part);
+				if (rc != EOK) {
+					assert(rc == ENOMEM);
+					printf("Out of memory.\n");
+					goto error;
+				}
+			}
+
+			if ((linfo.flags & lf_can_create_ext) != 0) {
+				rc = nchoice_add(choice, "Create extended "
+				    "partition",
+				    (void *)devac_create_ext_part);
+				if (rc != EOK) {
+					assert(rc == ENOMEM);
+					printf("Out of memory.\n");
+					goto error;
+				}
+			}
+
+			if ((linfo.flags & lf_can_create_log) != 0) {
+				rc = nchoice_add(choice, "Create logical "
+				    "partition",
+				    (void *)devac_create_log_part);
+				if (rc != EOK) {
+					assert(rc == ENOMEM);
+					printf("Out of memory.\n");
+					goto error;
+				}
+			}
+		} else { /* (linfo.flags & lf_ext_supp) == 0 */
+			if ((linfo.flags & lf_can_create_pri) != 0) {
+				rc = nchoice_add(choice, "Create partition",
+				    (void *)devac_create_pri_part);
+				if (rc != EOK) {
+					assert(rc == ENOMEM);
+					printf("Out of memory.\n");
+					goto error;
+				}
+			}
 		}
 	}
 
@@ -636,8 +696,14 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	case devac_delete_label:
 		(void) fdsk_delete_label(dev);
 		break;
-	case devac_create_part:
-		(void) fdsk_create_part(dev);
+	case devac_create_pri_part:
+		(void) fdsk_create_part(dev, lpk_primary);
+		break;
+	case devac_create_ext_part:
+		(void) fdsk_create_part(dev, lpk_extended);
+		break;
+	case devac_create_log_part:
+		(void) fdsk_create_part(dev, lpk_logical);
 		break;
 	case devac_delete_part:
 		(void) fdsk_delete_part(dev);

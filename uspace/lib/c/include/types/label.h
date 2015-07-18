@@ -57,6 +57,27 @@ typedef enum {
 
 #define LT_LIMIT (lt_gpt + 1)
 
+/** Partition kind */
+typedef enum {
+	/** Primary partition */
+	lpk_primary,
+	/** Extended partition */
+	lpk_extended,
+	/** Logical partition */
+	lpk_logical
+} label_pkind_t;
+
+/** Label flags */
+typedef enum {
+	/** Label supports extended (and logical) partitions */
+	lf_ext_supp = 0x1,
+	/** Currently it is possible to create a primary partition */
+	lf_can_create_pri = 0x2,
+	/** Currently it is possible to create an extended partition */
+	lf_can_create_ext = 0x4,
+	/** Currrently it is possible to create a logical partition */
+	lf_can_create_log = 0x8
+} label_flags_t;
 
 #endif
 
