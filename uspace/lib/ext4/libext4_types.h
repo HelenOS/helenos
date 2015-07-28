@@ -82,9 +82,9 @@ typedef struct ext4_superblock {
 	 * Performance hints. Directory preallocation should only
 	 * happen if the EXT4_FEATURE_COMPAT_DIR_PREALLOC flag is on.
 	 */
-	uint8_t s_prealloc_blocks;       /* Number of blocks to try to preallocate */
-	uint8_t s_prealloc_dir_blocks;   /* Number to preallocate for dirs */
-	uint16_t s_reserved_gdt_blocks;  /* Per group desc for online growth */
+	uint8_t prealloc_blocks;        /* Number of blocks to try to preallocate */
+	uint8_t prealloc_dir_blocks;    /* Number to preallocate for dirs */
+	uint16_t reserved_gdt_blocks;   /* Per group desc for online growth */
 	
 	/*
 	 * Journaling support valid if EXT4_FEATURE_COMPAT_HAS_JOURNAL set.
@@ -132,8 +132,13 @@ typedef struct ext4_superblock {
 	uint32_t last_error_line;           /* Line number where error happened */
 	uint64_t last_error_block;          /* Block involved of last error */
 	uint8_t last_error_func[32];        /* Function where the error happened */
-	uint8_t mount_opts[64];
-	uint32_t padding[112];              /* Padding to the end of the block */
+	uint8_t mount_opts[64];             /* String containing the mount options */
+	uint32_t usr_quota_inum;            /* Inode number of user quota file */
+	uint32_t grp_quota_inum;            /* Inode number of group quota file */
+	uint32_t overhead_blocks;           /* Overhead blocks/clusters */
+	uint32_t backup_bgs[2];             /* Block groups containing superblock backups (if SPARSE_SUPER2) */
+	uint32_t encrypt_algos;             /* Encrypt algorithm in use */
+	uint32_t padding[105];              /* Padding to the end of the block */
 } __attribute__((packed)) ext4_superblock_t;
 
 
@@ -175,6 +180,7 @@ typedef struct ext4_superblock {
 #define EXT4_FEATURE_COMPAT_EXT_ATTR       0x0008
 #define EXT4_FEATURE_COMPAT_RESIZE_INODE   0x0010
 #define EXT4_FEATURE_COMPAT_DIR_INDEX      0x0020
+#define EXT4_FEATURE_COMPAT_SPARSE_SUPER2  0x0200
 
 /*
  * Read-only compatible features
@@ -207,7 +213,8 @@ typedef struct ext4_superblock {
 #define EXT4_FEATURE_INCOMPAT_SUPP \
 	(EXT4_FEATURE_INCOMPAT_FILETYPE | \
 	EXT4_FEATURE_INCOMPAT_EXTENTS | \
-	EXT4_FEATURE_INCOMPAT_64BIT)
+	EXT4_FEATURE_INCOMPAT_64BIT | \
+	EXT4_FEATURE_INCOMPAT_FLEX_BG)
 
 #define EXT4_FEATURE_RO_COMPAT_SUPP \
 	(EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER | \

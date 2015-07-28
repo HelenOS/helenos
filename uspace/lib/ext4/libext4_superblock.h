@@ -134,6 +134,15 @@ extern void ext4_superblock_set_desc_size(ext4_superblock_t *, uint16_t);
 extern uint32_t ext4_superblock_get_flags(ext4_superblock_t *);
 extern void ext4_superblock_set_flags(ext4_superblock_t *, uint32_t);
 
+extern void ext4_superblock_get_backup_groups_sparse2(ext4_superblock_t *sb,
+    uint32_t *g1, uint32_t *g2);
+extern void ext4_superblock_set_backup_groups_sparse2(ext4_superblock_t *sb,
+    uint32_t g1, uint32_t g2);
+
+extern uint32_t ext4_superblock_get_reserved_gdt_blocks(ext4_superblock_t *sb);
+extern void ext4_superblock_set_reserved_gdt_blocks(ext4_superblock_t *sb,
+    uint32_t n);
+
 /* More complex superblock functions */
 extern bool ext4_superblock_has_flag(ext4_superblock_t *, uint32_t);
 extern bool ext4_superblock_has_feature_compatible(ext4_superblock_t *,
