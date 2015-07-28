@@ -43,7 +43,8 @@ extern void *calloc(const size_t nmemb, const size_t size)
     __attribute__((malloc));
 extern void *memalign(const size_t align, const size_t size)
     __attribute__((malloc));
-extern void *realloc(const void *addr, const size_t size);
+extern void *realloc(const void *addr, const size_t size)
+    __attribute__((warn_unused_result));
 extern void free(const void *addr);
 extern void *heap_check(void);
 

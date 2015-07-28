@@ -729,7 +729,7 @@ static void main_init(void)
 	proto_register(SERVICE_VFS, p);
 }
 
-static void print_syntax()
+static void print_syntax(void)
 {
 	printf("Syntax:\n");
 	printf("\ttrace [+<events>] <executable> [<arg1> [...]]\n");

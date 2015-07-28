@@ -36,9 +36,9 @@
 #ifndef HTTP_HTTP_H_
 #define HTTP_HTTP_H_
 
-#include <net/socket.h>
 #include <adt/list.h>
 #include <inet/addr.h>
+#include <inet/tcp.h>
 
 #include "receive-buffer.h"
 
@@ -47,9 +47,9 @@ typedef struct {
 	uint16_t port;
 	inet_addr_t addr;
 
-	bool connected;
-	int conn_sd;
-	
+	tcp_t *tcp;
+	tcp_conn_t *conn;
+
 	size_t buffer_size;
 	receive_buffer_t recv_buffer;
 } http_t;

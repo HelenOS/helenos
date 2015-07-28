@@ -34,6 +34,6 @@
 
 extern void jump_to_kernel(void *, void *, size_t, void *)
     __attribute__((noreturn));
-extern void real_mode();
+extern void real_mode(void);
 
 #endif

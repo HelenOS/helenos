@@ -43,9 +43,7 @@
 #include <as.h>
 #include <fibril_synch.h>
 #include <task.h>
-#include <net/in.h>
-#include <net/inet.h>
-#include <net/socket.h>
+#include <inet/tcp.h>
 #include <io/console.h>
 #include <inttypes.h>
 #include <assert.h>
@@ -57,10 +55,10 @@ static LIST_INITIALIZE(users);
 
 /** Create new telnet user.
  *
- * @param socket Socket the user communicates through.
+ * @param conn Incoming connection.
  * @return New telnet user or NULL when out of memory.
  */
-telnet_user_t *telnet_user_create(int socket)
+telnet_user_t *telnet_user_create(tcp_conn_t *conn)
 {
 	static int telnet_user_id_counter = 0;
 
@@ -77,7 +75,7 @@ telnet_user_t *telnet_user_create(int socket)
 		return NULL;
 	}
 
-	user->socket = socket;
+	user->conn = conn;
 	user->service_id = (service_id_t) -1;
 	prodcons_initialize(&user->in_events);
 	link_initialize(&user->link);
@@ -192,15 +190,20 @@ static int telnet_user_recv_next_byte_no_lock(telnet_user_t *user, char *byte)
 {
 	/* No more buffered data? */
 	if (user->socket_buffer_len <= user->socket_buffer_pos) {
-		int recv_length = recv(user->socket, user->socket_buffer, BUFFER_SIZE, 0);
-		if ((recv_length == 0) || (recv_length == ENOTCONN)) {
+		int rc;
+		size_t recv_length;
+
+		rc = tcp_conn_recv_wait(user->conn, user->socket_buffer,
+		    BUFFER_SIZE, &recv_length);
+		if (rc != EOK)
+			return rc;
+
+		if (recv_length == 0) {
 			user->socket_closed = true;
 			user->srvs.aborted = true;
 			return ENOENT;
 		}
-		if (recv_length < 0) {
-			return recv_length;
-		}
+
 		user->socket_buffer_len = recv_length;
 		user->socket_buffer_pos = 0;
 	}
@@ -358,7 +361,7 @@ static int telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data, siz
 	}
 
 
-	int rc = send(user->socket, converted, converted_size, 0);
+	int rc = tcp_conn_send(user->conn, converted, converted_size);
 	free(converted);
 
 	return rc;

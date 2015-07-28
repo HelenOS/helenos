@@ -157,7 +157,7 @@ void cpu_halt(void)
 }
 
 /** Reboot. */
-void arch_reboot()
+void arch_reboot(void)
 {
 	/* not implemented */
 	while (true);

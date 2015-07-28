@@ -39,11 +39,15 @@
 #include <cc.h>
 
 extern void *memset(void *, int, size_t)
+    __attribute__((nonnull(1)))
     ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
 extern void *memcpy(void *, const void *, size_t)
+    __attribute__((nonnull(1, 2)))
     ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
-extern void *memmove(void *, const void *, size_t);
-extern int memcmp(const void *, const void *, size_t);
+extern void *memmove(void *, const void *, size_t)
+    __attribute__((nonnull(1, 2)));
+extern int memcmp(const void *, const void *, size_t)
+    __attribute__((nonnull(1, 2)));
 
 #endif
 

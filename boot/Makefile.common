@@ -177,9 +177,6 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
 	$(USPACE_PATH)/app/corecfg/corecfg \
 	$(USPACE_PATH)/app/devctl/devctl \
-	$(USPACE_PATH)/app/dltest/dltest \
-	$(USPACE_PATH)/app/dltest2/dltest2 \
-	$(USPACE_PATH)/app/dload/dload \
 	$(USPACE_PATH)/app/dnscfg/dnscfg \
 	$(USPACE_PATH)/app/dnsres/dnsres \
 	$(USPACE_PATH)/app/download/download \
@@ -207,11 +204,6 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/testwrit/testwrit \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
-	$(USPACE_PATH)/app/nettest1/nettest1 \
-	$(USPACE_PATH)/app/nettest2/nettest2 \
-	$(USPACE_PATH)/app/nettest3/nettest3 \
-	$(USPACE_PATH)/app/netecho/netecho \
-	$(USPACE_PATH)/app/netspeed/netspeed \
 	$(USPACE_PATH)/app/nterm/nterm \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \

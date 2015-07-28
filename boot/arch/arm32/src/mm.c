@@ -192,9 +192,10 @@ static void init_boot_pt(void)
 	TTBR0_write(val);
 }
 
-static void enable_paging()
+static void enable_paging(void)
 {
-	/* c3   - each two bits controls access to the one of domains (16)
+	/*
+	 * c3   - each two bits controls access to the one of domains (16)
 	 * 0b01 - behave as a client (user) of a domain
 	 */
 	asm volatile (
@@ -231,7 +232,8 @@ static void enable_paging()
 }
 
 /** Start the MMU - initialize page table and enable paging. */
-void mmu_start() {
+void mmu_start(void)
+{
 	disable_paging();
 #ifdef PROCESSOR_ARCH_armv7_a
 	/* Make sure we run in memory code when caches are enabled,

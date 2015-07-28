@@ -512,7 +512,8 @@ build_target() {
 	change_title "GDB: configure (${PLATFORM})"
 	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" ./configure \
 		"--target=${TARGET}" \
-		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-"
+		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
+		--enable-werror=no
 	check_error $? "Error configuring GDB."
 	
 	change_title "GDB: make (${PLATFORM})"

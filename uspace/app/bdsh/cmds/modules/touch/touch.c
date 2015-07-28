@@ -89,7 +89,7 @@ int cmd_touch(char **argv)
 	
 	DIR *dirp;
 	
-	for (c = 0, optind = 0, longind = 0; c != -1; ) {
+	for (c = 0, optreset = 1, optind = 0, longind = 0; c != -1; ) {
 		c = getopt_long(argc, argv, "c", long_options, &longind);
 		switch (c) {
 		case 'c':

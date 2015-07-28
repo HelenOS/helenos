@@ -31,7 +31,7 @@
 #include "hub/virthub.h"
 
 
-static vhc_virtdev_t *vhc_virtdev_create()
+static vhc_virtdev_t *vhc_virtdev_create(void)
 {
 	vhc_virtdev_t *dev = malloc(sizeof(vhc_virtdev_t));
 	if (dev == NULL) {

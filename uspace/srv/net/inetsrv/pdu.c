@@ -297,16 +297,18 @@ int inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
 
 /** Decode IPv4 datagram
  *
- * @param data   Serialized IPv4 datagram
- * @param size   Length of serialized IPv4 datagram
- * @param packet IP datagram structure to be filled
+ * @param data    Serialized IPv4 datagram
+ * @param size    Length of serialized IPv4 datagram
+ * @param link_id Link on which PDU was received
+ * @param packet  IP datagram structure to be filled
  *
  * @return EOK on success
  * @return EINVAL if the datagram is invalid or damaged
  * @return ENOMEM if not enough memory
  *
  */
-int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
+int inet_pdu_decode(void *data, size_t size, service_id_t link_id,
+    inet_packet_t *packet)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode()");
 	
@@ -365,22 +367,25 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	}
 	
 	memcpy(packet->data, (uint8_t *) data + data_offs, packet->size);
+	packet->link_id = link_id;
 	
 	return EOK;
 }
 
 /** Decode IPv6 datagram
  *
- * @param data   Serialized IPv6 datagram
- * @param size   Length of serialized IPv6 datagram
- * @param packet IP datagram structure to be filled
+ * @param data    Serialized IPv6 datagram
+ * @param size    Length of serialized IPv6 datagram
+ * @param link_id Link on which PDU was received
+ * @param packet  IP datagram structure to be filled
  *
  * @return EOK on success
  * @return EINVAL if the datagram is invalid or damaged
  * @return ENOMEM if not enough memory
  *
  */
-int inet_pdu_decode6(void *data, size_t size, inet_packet_t *packet)
+int inet_pdu_decode6(void *data, size_t size, service_id_t link_id,
+    inet_packet_t *packet)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode6()");
 	
@@ -456,7 +461,7 @@ int inet_pdu_decode6(void *data, size_t size, inet_packet_t *packet)
 	}
 	
 	memcpy(packet->data, (uint8_t *) data + data_offs, packet->size);
-	
+	packet->link_id = link_id;
 	return EOK;
 }
 

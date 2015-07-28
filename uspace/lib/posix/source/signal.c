@@ -381,7 +381,7 @@ static int _raise_sigaction(int signo, posix_siginfo_t *siginfo)
 /**
  * Raise all unblocked previously queued signals.
  */
-static void _dequeue_unblocked_signals()
+static void _dequeue_unblocked_signals(void)
 {
 	link_t *iterator = _signal_queue.head.next;
 	link_t *next;

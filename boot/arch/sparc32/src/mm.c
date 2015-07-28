@@ -75,7 +75,7 @@ static void mmu_enable(void)
 	asi_u32_write(ASI_MMUREGS, 0x000, cr);
 }
 
-static void mmu_disable()
+static void mmu_disable(void)
 {
 	uint32_t cr = asi_u32_read(ASI_MMUREGS, 0x000);
 	cr &= ~1;

@@ -36,10 +36,10 @@
 #include <adt/list.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/addr.h>
+#include <inet/endpoint.h>
+#include <inet/udp.h>
 #include <io/log.h>
-#include <net/in.h>
-#include <net/inet.h>
-#include <net/socket.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -71,58 +71,55 @@ typedef struct {
 } trans_req_t;
 
 static uint8_t recv_buf[RECV_BUF_SIZE];
-static fid_t recv_fid;
-static int transport_fd = -1;
+static udp_t *transport_udp;
+static udp_assoc_t *transport_assoc;
 
 /** Outstanding requests */
 static LIST_INITIALIZE(treq_list);
 static FIBRIL_MUTEX_INITIALIZE(treq_lock);
 
-static int transport_recv_fibril(void *arg);
+static void transport_recv_msg(udp_assoc_t *, udp_rmsg_t *);
+static void transport_recv_err(udp_assoc_t *, udp_rerr_t *);
+static void transport_link_state(udp_assoc_t *, udp_link_state_t);
+
+static udp_cb_t transport_cb = {
+	.recv_msg = transport_recv_msg,
+	.recv_err = transport_recv_err,
+	.link_state = transport_link_state
+};
 
 int transport_init(void)
 {
-	struct sockaddr_in laddr;
-	int fd;
-	fid_t fid;
+	inet_ep2_t epp;
 	int rc;
 
-	laddr.sin_family = AF_INET;
-	laddr.sin_port = htons(12345);
-	laddr.sin_addr.s_addr = INADDR_ANY;
+	inet_ep2_init(&epp);
 
-	fd = -1;
-
-	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (fd < 0) {
+	rc = udp_create(&transport_udp);
+	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	rc = bind(fd, (struct sockaddr *)&laddr, sizeof(laddr));
-	if (rc != EOK)
+	rc = udp_assoc_create(transport_udp, &epp, &transport_cb, NULL,
+	    &transport_assoc);
+	if (rc != EOK) {
+		rc = EIO;
 		goto error;
+	}
 
-	transport_fd = fd;
-
-	fid = fibril_create(transport_recv_fibril, NULL);
-	if (fid == 0)
-		goto error;
-
-	fibril_add_ready(fid);
-	recv_fid = fid;
 	return EOK;
 error:
-	log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing network socket.");
-	if (fd >= 0)
-		closesocket(fd);
+	log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing network.");
+	udp_assoc_destroy(transport_assoc);
+	udp_destroy(transport_udp);
 	return rc;
 }
 
 void transport_fini(void)
 {
-	if (transport_fd >= 0)
-		closesocket(transport_fd);
+	udp_assoc_destroy(transport_assoc);
+	udp_destroy(transport_udp);
 }
 
 static trans_req_t *treq_create(dns_message_t *req)
@@ -181,36 +178,32 @@ static void treq_complete(trans_req_t *treq, dns_message_t *resp)
 int dns_request(dns_message_t *req, dns_message_t **rresp)
 {
 	trans_req_t *treq = NULL;
-	struct sockaddr *saddr = NULL;
-	socklen_t saddrlen;
-	
+	inet_ep_t ep;
+
 	void *req_data;
 	size_t req_size;
 	int rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)
 		goto error;
-	
-	rc = inet_addr_sockaddr(&dns_server_addr, DNS_SERVER_PORT,
-	    &saddr, &saddrlen);
-	if (rc != EOK) {
-		assert(rc == ENOMEM);
-		goto error;
-	}
-	
+
+	inet_ep_init(&ep);
+	ep.addr = dns_server_addr;
+	ep.port = DNS_SERVER_PORT;
+
 	size_t ntry = 0;
-	
+
 	while (ntry < REQ_RETRY_MAX) {
-		rc = sendto(transport_fd, req_data, req_size, 0,
-		    saddr, saddrlen);
+		rc = udp_assoc_send_msg(transport_assoc, &ep, req_data,
+		    req_size);
 		if (rc != EOK)
 			goto error;
-		
+
 		treq = treq_create(req);
 		if (treq == NULL) {
 			rc = ENOMEM;
 			goto error;
 		}
-		
+
 		fibril_mutex_lock(&treq->done_lock);
 		while (treq->done != true) {
 			rc = fibril_condvar_wait_timeout(&treq->done_cv, &treq->done_lock,
@@ -220,97 +213,88 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 				break;
 			}
 		}
-		
+
 		fibril_mutex_unlock(&treq->done_lock);
-		
+
 		if (rc != ETIMEOUT)
 			break;
 	}
-	
+
 	if (ntry >= REQ_RETRY_MAX) {
 		rc = EIO;
 		goto error;
 	}
-	
+
 	if (treq->status != EOK) {
 		rc = treq->status;
 		goto error;
 	}
-	
+
 	*rresp = treq->resp;
 	treq_destroy(treq);
 	free(req_data);
-	free(saddr);
 	return EOK;
-	
+
 error:
 	if (treq != NULL)
 		treq_destroy(treq);
-	
+
 	free(req_data);
-	free(saddr);
 	return rc;
 }
 
-static int transport_recv_msg(dns_message_t **rresp)
-{
-	struct sockaddr_in src_addr;
-	socklen_t src_addr_size;
-	size_t recv_size;
-	dns_message_t *resp;
-	int rc;
-
-	src_addr_size = sizeof(src_addr);
-	rc = recvfrom(transport_fd, recv_buf, RECV_BUF_SIZE, 0,
-	    (struct sockaddr *)&src_addr, &src_addr_size);
-	if (rc < 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "recvfrom returns error - %d", rc);
-		goto error;
-	}
-
-	recv_size = (size_t)rc;
-
-	rc = dns_message_decode(recv_buf, recv_size, &resp);
-	if (rc != EOK) {
-		rc = EIO;
-		goto error;
-	}
-
-	*rresp = resp;
-	return EOK;
-
-error:
-	return rc;
-}
-
-static int transport_recv_fibril(void *arg)
+static void transport_recv_msg(udp_assoc_t *assoc, udp_rmsg_t *rmsg)
 {
 	dns_message_t *resp = NULL;
 	trans_req_t *treq;
+	size_t size;
+	inet_ep_t remote_ep;
 	int rc;
 
-	while (true) {
-		rc = transport_recv_msg(&resp);
-		if (rc != EOK)
-			continue;
+	size = udp_rmsg_size(rmsg);
+	if (size > RECV_BUF_SIZE)
+		size = RECV_BUF_SIZE; /* XXX */
 
-		assert(resp != NULL);
-
-		fibril_mutex_lock(&treq_lock);
-		treq = treq_match_resp(resp);
-		if (treq == NULL) {
-			fibril_mutex_unlock(&treq_lock);
-			continue;
-		}
-
-		list_remove(&treq->lreq);
-		fibril_mutex_unlock(&treq_lock);
-
-		treq_complete(treq, resp);
+	rc = udp_rmsg_read(rmsg, 0, recv_buf, size);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error reading message.");
+		return;
 	}
 
-	return 0;
+	udp_rmsg_remote_ep(rmsg, &remote_ep);
+	/* XXX */
+
+	rc = dns_message_decode(recv_buf, size, &resp);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error decoding message.");
+		return;
+	}
+
+	assert(resp != NULL);
+
+	fibril_mutex_lock(&treq_lock);
+	treq = treq_match_resp(resp);
+	if (treq == NULL) {
+		fibril_mutex_unlock(&treq_lock);
+		return;
+	}
+
+	list_remove(&treq->lreq);
+	fibril_mutex_unlock(&treq_lock);
+
+	treq_complete(treq, resp);
 }
+
+static void transport_recv_err(udp_assoc_t *assoc, udp_rerr_t *rerr)
+{
+	log_msg(LOG_DEFAULT, LVL_WARN, "Ignoring ICMP error");
+}
+
+static void transport_link_state(udp_assoc_t *assoc, udp_link_state_t ls)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Link state change");
+}
+
 
 /** @}
  */

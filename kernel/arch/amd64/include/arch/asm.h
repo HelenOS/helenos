@@ -338,7 +338,7 @@ NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
  * Enable local APIC in MSR.
  *
  */
-NO_TRACE static inline void enable_l_apic_in_msr()
+NO_TRACE static inline void enable_l_apic_in_msr(void)
 {
 	asm volatile (
 		"movl $0x1b, %%ecx\n"

@@ -94,20 +94,17 @@ static const char illoptstring[] = "unknown option -- %s\n";
 /*
  * Compute the greatest common divisor of a and b.
  */
-static int
-gcd(a, b)
-	int a;
-	int b;
+static int gcd(int a, int b)
 {
 	int c;
-
+	
 	c = a % b;
 	while (c != 0) {
 		a = b;
 		b = c;
 		c = a % b;
 	}
-	   
+	
 	return b;
 }
 
@@ -116,12 +113,8 @@ gcd(a, b)
  * from nonopt_end to opt_end (keeping the same order of arguments
  * in each block).
  */
-static void
-permute_args(panonopt_start, panonopt_end, opt_end, nargv)
-	int panonopt_start;
-	int panonopt_end;
-	int opt_end;
-	char **nargv;
+static void permute_args(int panonopt_start, int panonopt_end, int opt_end,
+    char **nargv)
 {
 	int cstart, cyclelen, i, j, ncycle, nnonopts, nopts, pos;
 	char *swap;
@@ -156,11 +149,7 @@ permute_args(panonopt_start, panonopt_end, opt_end, nargv)
  *	Parse argc/argv argument vector.  Called by user level routines.
  *  Returns -2 if -- is found (can be long option or end of options marker).
  */
-static int
-getopt_internal(nargc, nargv, options)
-	int nargc;
-	char **nargv;
-	const char *options;
+static int getopt_internal(int nargc, char **nargv, const char *options)
 {
 	const char *oli;				/* option letter list index */
 	int optchar;
@@ -298,11 +287,7 @@ start:
  * getopt --
  *	Parse argc/argv argument vector.
  */
-int
-getopt(nargc, nargv, options)
-	int nargc;
-	char * const *nargv;
-	const char *options;
+int getopt(int nargc, char * const *nargv, const char *options)
 {
 	int retval;
 
@@ -331,13 +316,8 @@ getopt(nargc, nargv, options)
  * getopt_long --
  *	Parse argc/argv argument vector.
  */
-int
-getopt_long(nargc, nargv, options, long_options, idx)
-	int nargc;
-	char * const *nargv;
-	const char *options;
-	const struct option *long_options;
-	int *idx;
+int getopt_long(int nargc, char * const *nargv, const char *options,
+    const struct option *long_options, int *idx)
 {
 	int retval;
 

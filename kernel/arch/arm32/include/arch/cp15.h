@@ -46,7 +46,7 @@
  * for the list */
 
 #define CONTROL_REG_GEN_READ(name, crn, opc1, crm, opc2) \
-static inline uint32_t name##_read() \
+static inline uint32_t name##_read(void) \
 { \
 	uint32_t val; \
 	asm volatile ( "mrc p15, "#opc1", %0, "#crn", "#crm", "#opc2"\n" : "=r" (val) ); \

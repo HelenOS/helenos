@@ -57,7 +57,7 @@ static bool amba_fake;
 
 static void ambapp_scan_area(uintptr_t, unsigned int);
 
-void ambapp_scan()
+void ambapp_scan(void)
 {
 	amba_fake = false;
 	
@@ -103,7 +103,7 @@ static void ambapp_scan_area(uintptr_t master_bar, unsigned int max_entries)
 	}
 }
 
-void ambapp_qemu_fake_scan()
+void ambapp_qemu_fake_scan(void)
 {
 	/* UART */
 	amba_devices[0].vendor_id = GAISLER;
@@ -133,12 +133,12 @@ void ambapp_qemu_fake_scan()
 	amba_devices_found = 3;
 }
 
-bool ambapp_fake()
+bool ambapp_fake(void)
 {
 	return amba_fake;
 }
 
-void ambapp_print_devices()
+void ambapp_print_devices(void)
 {
 	printf("ABMA devices:\n");
 	

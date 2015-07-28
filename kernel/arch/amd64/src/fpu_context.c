@@ -53,7 +53,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 	);
 }
 
-void fpu_init()
+void fpu_init(void)
 {
 	/* TODO: Zero all SSE, MMX etc. registers */
 	/* Default value of SCR register is 0x1f80,

@@ -609,6 +609,8 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
     size_t size, size_t align, int (*constructor)(void *obj,
     unsigned int kmflag), size_t (*destructor)(void *obj), unsigned int flags)
 {
+	ASSERT(size > 0);
+	
 	memsetb(cache, sizeof(*cache), 0);
 	cache->name = name;
 	
@@ -887,7 +889,7 @@ void slab_cache_init(void)
 {
 	/* Initialize magazine cache */
 	_slab_cache_create(&mag_cache, "slab_magazine_t",
-	    sizeof(slab_magazine_t) + SLAB_MAG_SIZE * sizeof(void*),
+	    sizeof(slab_magazine_t) + SLAB_MAG_SIZE * sizeof(void *),
 	    sizeof(uintptr_t), NULL, NULL, SLAB_CACHE_NOMAGAZINE |
 	    SLAB_CACHE_SLINSIDE);
 	

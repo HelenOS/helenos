@@ -35,16 +35,13 @@
  *
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
 #include <task.h>
 #include <macros.h>
-
-#include <net/in.h>
-#include <net/inet.h>
-#include <net/socket.h>
 
 #include <http/http.h>
 #include <uri.h>
