@@ -48,7 +48,12 @@ enum {
 	mbr_nprimary = 4,
 
 	/** Boot record signature */
-	mbr_br_signature = 0xAA55
+	mbr_br_signature = 0xAA55,
+
+	/** EBR PTE slot describing partition corresponding to this EBR */
+	mbr_ebr_pte_this = 0,
+	/** EBR PTE slot describing the next EBR */
+	mbr_ebr_pte_next = 1
 };
 
 enum ptype {

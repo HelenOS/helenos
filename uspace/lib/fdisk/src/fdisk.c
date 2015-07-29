@@ -59,6 +59,9 @@ static const char *cu_str[] = {
 
 static int fdisk_part_spec_prepare(fdisk_dev_t *, fdisk_part_spec_t *,
     vbd_part_spec_t *);
+static void fdisk_pri_part_insert_lists(fdisk_dev_t *, fdisk_part_t *);
+static void fdisk_log_part_insert_lists(fdisk_dev_t *, fdisk_part_t *);
+static int fdisk_update_dev_info(fdisk_dev_t *);
 
 static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 {
@@ -251,9 +254,8 @@ int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
     fdisk_part_t **rpart)
 {
-	fdisk_part_t *part, *p;
+	fdisk_part_t *part;
 	vbd_part_info_t pinfo;
-	link_t *link;
 	int rc;
 
 	part = calloc(1, sizeof(fdisk_part_t));
@@ -272,35 +274,20 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	part->nblocks = pinfo.nblocks;
 	part->pkind = pinfo.pkind;
 
-	/* Insert to list by block address */
-	link = list_first(&dev->parts_ba);
-	while (link != NULL) {
-		p = list_get_instance(link, fdisk_part_t, ldev_ba);
-		if (p->block0 > part->block0) {
-			list_insert_before(&part->ldev_ba, &p->ldev_ba);
-			break;
-		}
-
-		link = list_next(link, &dev->parts_ba);
+	switch (part->pkind) {
+	case lpk_primary:
+	case lpk_extended:
+		fdisk_pri_part_insert_lists(dev, part);
+		break;
+	case lpk_logical:
+		fdisk_log_part_insert_lists(dev, part);
+		break;
 	}
 
-	if (link == NULL)
-		list_append(&part->ldev_ba, &dev->parts_ba);
+	list_append(&part->lparts, &dev->parts);
 
-	/* Insert to list by index */
-	link = list_first(&dev->parts_idx);
-	while (link != NULL) {
-		p = list_get_instance(link, fdisk_part_t, ldev_idx);
-		if (p->index > part->index) {
-			list_insert_before(&part->ldev_idx, &p->ldev_idx);
-			break;
-		}
-
-		link = list_next(link, &dev->parts_idx);
-	}
-
-	if (link == NULL)
-		list_append(&part->ldev_idx, &dev->parts_idx);
+	if (part->pkind == lpk_extended)
+		dev->ext_part = part;
 
 	part->capacity.cunit = cu_byte;
 	part->capacity.value = part->nblocks * dev->dinfo.block_size;
@@ -314,6 +301,62 @@ error:
 	return rc;
 }
 
+static void fdisk_pri_part_insert_lists(fdisk_dev_t *dev, fdisk_part_t *part)
+{
+	link_t *link;
+	fdisk_part_t *p;
+
+	/* Insert to list by block address */
+	link = list_first(&dev->pri_ba);
+	while (link != NULL) {
+		p = list_get_instance(link, fdisk_part_t, lpri_ba);
+		if (p->block0 > part->block0) {
+			list_insert_before(&part->lpri_ba, &p->lpri_ba);
+			break;
+		}
+
+		link = list_next(link, &dev->pri_ba);
+	}
+
+	if (link == NULL)
+		list_append(&part->lpri_ba, &dev->pri_ba);
+
+	/* Insert to list by index */
+	link = list_first(&dev->pri_idx);
+	while (link != NULL) {
+		p = list_get_instance(link, fdisk_part_t, lpri_idx);
+		if (p->index > part->index) {
+			list_insert_before(&part->lpri_idx, &p->lpri_idx);
+			break;
+		}
+
+		link = list_next(link, &dev->pri_idx);
+	}
+
+	if (link == NULL)
+		list_append(&part->lpri_idx, &dev->pri_idx);
+}
+
+static void fdisk_log_part_insert_lists(fdisk_dev_t *dev, fdisk_part_t *part)
+{
+	link_t *link;
+	fdisk_part_t *p;
+
+	/* Insert to list by block address */
+	link = list_first(&dev->log_ba);
+	while (link != NULL) {
+		p = list_get_instance(link, fdisk_part_t, llog_ba);
+		if (p->block0 > part->block0) {
+			list_insert_before(&part->llog_ba, &p->llog_ba);
+			break;
+		}
+
+		link = list_next(link, &dev->log_ba);
+	}
+
+	if (link == NULL)
+		list_append(&part->llog_ba, &dev->log_ba);
+}
 
 int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 {
@@ -329,8 +372,10 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 
 	dev->fdisk = fdisk;
 	dev->sid = sid;
-	list_initialize(&dev->parts_idx);
-	list_initialize(&dev->parts_ba);
+	list_initialize(&dev->parts);
+	list_initialize(&dev->pri_idx);
+	list_initialize(&dev->pri_ba);
+	list_initialize(&dev->log_ba);
 
 	rc = vol_disk_info(fdisk->vol, sid, &vinfo);
 	if (rc != EOK) {
@@ -344,7 +389,7 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 		goto done;
 
 	printf("get label info\n");
-	rc = vbd_disk_info(fdisk->vbd, sid, &dev->dinfo);
+	rc = fdisk_update_dev_info(dev);
 	if (rc != EOK) {
 		printf("failed\n");
 		rc = EIO;
@@ -450,7 +495,17 @@ error:
 
 int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 {
-	return vol_label_create(dev->fdisk->vol, dev->sid, ltype);
+	int rc;
+
+	rc = vol_label_create(dev->fdisk->vol, dev->sid, ltype);
+	if (rc != EOK)
+		return rc;
+
+	rc = fdisk_update_dev_info(dev);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 int fdisk_label_destroy(fdisk_dev_t *dev)
@@ -476,22 +531,22 @@ fdisk_part_t *fdisk_part_first(fdisk_dev_t *dev)
 {
 	link_t *link;
 
-	link = list_first(&dev->parts_ba);
+	link = list_first(&dev->parts);
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, fdisk_part_t, ldev_ba);
+	return list_get_instance(link, fdisk_part_t, lparts);
 }
 
 fdisk_part_t *fdisk_part_next(fdisk_part_t *part)
 {
 	link_t *link;
 
-	link = list_next(&part->ldev_ba, &part->dev->parts_ba);
+	link = list_next(&part->lparts, &part->dev->parts);
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, fdisk_part_t, ldev_ba);
+	return list_get_instance(link, fdisk_part_t, lparts);
 }
 
 int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
@@ -551,8 +606,13 @@ int fdisk_part_destroy(fdisk_part_t *part)
 	if (rc != EOK)
 		return EIO;
 
-	list_remove(&part->ldev_ba);
-	list_remove(&part->ldev_idx);
+	list_remove(&part->lparts);
+	if (link_used(&part->lpri_ba))
+		list_remove(&part->lpri_ba);
+	if (link_used(&part->lpri_idx))
+		list_remove(&part->lpri_idx);
+	if (link_used(&part->llog_ba))
+		list_remove(&part->llog_ba);
 	free(part);
 	return EOK;
 }
@@ -706,14 +766,14 @@ static int fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
 	fdisk_part_t *part;
 	int nidx;
 
-	link = list_first(&dev->parts_idx);
+	link = list_first(&dev->pri_idx);
 	nidx = 1;
 	while (link != NULL) {
-		part = list_get_instance(link, fdisk_part_t, ldev_idx);
+		part = list_get_instance(link, fdisk_part_t, lpri_idx);
 		if (part->index > nidx)
 			break;
 		nidx = part->index + 1;
-		link = list_next(link, &dev->parts_idx);
+		link = list_next(link, &dev->pri_idx);
 	}
 
 	if (nidx > 4 /* XXXX actual number of slots*/) {
@@ -736,14 +796,14 @@ static int fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
 	uint64_t avail;
 	int nba;
 
-	link = list_first(&dev->parts_ba);
+	link = list_first(&dev->pri_ba);
 	nba = dev->dinfo.ablock0;
 	while (link != NULL) {
-		part = list_get_instance(link, fdisk_part_t, ldev_ba);
+		part = list_get_instance(link, fdisk_part_t, lpri_ba);
 		if (part->block0 - nba >= nblocks)
 			break;
 		nba = part->block0 + part->nblocks;
-		link = list_next(link, &dev->parts_ba);
+		link = list_next(link, &dev->pri_ba);
 	}
 
 	if (link != NULL) {
@@ -763,12 +823,59 @@ static int fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
 	return EOK;
 }
 
+/** Get free range of blocks in extended partition.
+ *
+ * Get free range of blocks in extended partition that can accomodate
+ * a partition of at least the specified size plus the header (EBR + padding).
+ * Returns the header size in blocks, the start and length of the partition.
+ */
+static int fdisk_part_get_log_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
+    aoff64_t *rhdrb, aoff64_t *rblock0, aoff64_t *rnblocks)
+{
+	link_t *link;
+	fdisk_part_t *part;
+	uint64_t avail;
+	uint64_t hdrb;
+	int nba;
+
+	/* Number of header blocks */
+	hdrb = max(1, dev->align);
+
+	link = list_first(&dev->log_ba);
+	nba = dev->ext_part->block0;
+	while (link != NULL) {
+		part = list_get_instance(link, fdisk_part_t, llog_ba);
+		if (part->block0 - nba >= nblocks)
+			break;
+		nba = part->block0 + part->nblocks;
+		link = list_next(link, &dev->log_ba);
+	}
+
+	if (link != NULL) {
+		/* Free range before a partition */
+		avail = part->block0 - nba;
+	} else {
+		/* Free range at the end */
+		avail = dev->ext_part->block0 + dev->ext_part->nblocks - nba;
+
+		/* Verify that the range is large enough */
+		if (avail < hdrb + nblocks)
+			return ELIMIT;
+	}
+
+	*rhdrb = hdrb;
+	*rblock0 = nba + hdrb;
+	*rnblocks = avail;
+	return EOK;
+}
+
 /** Prepare new partition specification for VBD. */
 static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     vbd_part_spec_t *vpspec)
 {
 	uint64_t cbytes;
 	aoff64_t req_blocks;
+	aoff64_t fhdr;
 	aoff64_t fblock0;
 	aoff64_t fnblocks;
 	uint64_t block_size;
@@ -777,30 +884,75 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	int rc;
 
 //	pspec->fstype
-	printf("fdisk_part_spec_prepare()\n");
+	printf("fdisk_part_spec_prepare() - dev=%p pspec=%p vpspec=%p\n", dev, pspec,
+	    vpspec);
+	printf("fdisk_part_spec_prepare() - block size\n");
 	block_size = dev->dinfo.block_size;
+	printf("fdisk_part_spec_prepare() - cbytes\n");
 	cbytes = pspec->capacity.value;
+	printf("fdisk_part_spec_prepare() - cunit\n");
 	for (i = 0; i < pspec->capacity.cunit; i++)
 		cbytes = cbytes * 1000;
 
+	printf("fdisk_part_spec_prepare() - req_blocks block_size=%zu\n",
+	    block_size);
 	req_blocks = (cbytes + block_size - 1) / block_size;
 
-	rc = fdisk_part_get_free_idx(dev, &index);
-	if (rc != EOK)
-		return EIO;
+	printf("fdisk_part_spec_prepare() - switch\n");
+	switch (pspec->pkind) {
+	case lpk_primary:
+	case lpk_extended:
+		printf("fdisk_part_spec_prepare() - pri/ext\n");
+		rc = fdisk_part_get_free_idx(dev, &index);
+		if (rc != EOK)
+			return EIO;
 
-	rc = fdisk_part_get_free_range(dev, req_blocks, &fblock0, &fnblocks);
-	if (rc != EOK)
-		return EIO;
+		printf("fdisk_part_spec_prepare() - get free range\n");
+		rc = fdisk_part_get_free_range(dev, req_blocks, &fblock0, &fnblocks);
+		if (rc != EOK)
+			return EIO;
 
-	memset(vpspec, 0, sizeof(vbd_part_spec_t));
-	vpspec->index = index;
-	vpspec->block0 = fblock0;
-	vpspec->nblocks = req_blocks;
-	vpspec->pkind = pspec->pkind;
-	if (pspec->pkind != lpk_extended)
+		printf("fdisk_part_spec_prepare() - memset\n");
+		memset(vpspec, 0, sizeof(vbd_part_spec_t));
+		vpspec->index = index;
+		vpspec->block0 = fblock0;
+		vpspec->nblocks = req_blocks;
+		vpspec->pkind = pspec->pkind;
+		if (pspec->pkind != lpk_extended)
+			vpspec->ptype = 42;
+		break;
+	case lpk_logical:
+		printf("fdisk_part_spec_prepare() - log\n");
+		rc = fdisk_part_get_log_free_range(dev, req_blocks, &fhdr,
+		    &fblock0, &fnblocks);
+		if (rc != EOK)
+			return EIO;
+
+		memset(vpspec, 0, sizeof(vbd_part_spec_t));
+		vpspec->hdr_blocks = fhdr;
+		vpspec->block0 = fblock0;
+		vpspec->nblocks = req_blocks;
+		vpspec->pkind = lpk_logical;
 		vpspec->ptype = 42;
+		break;
+	}
 
+	return EOK;
+}
+
+static int fdisk_update_dev_info(fdisk_dev_t *dev)
+{
+	int rc;
+	size_t align_bytes;
+
+	rc = vbd_disk_info(dev->fdisk->vbd, dev->sid, &dev->dinfo);
+	if (rc != EOK)
+		return EIO;
+
+	align_bytes = 512; //1024 * 1024; /* 1 MiB */ /* XXX */
+	dev->align = align_bytes / dev->dinfo.block_size;
+	if (dev->align < 1)
+		dev->align = 1;
 	return EOK;
 }
 

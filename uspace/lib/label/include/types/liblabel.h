@@ -98,6 +98,8 @@ struct label_part {
 	link_t llog;
 	/** Index */
 	int index;
+	/** Number of EBR blocks preceding a logical partition */
+	aoff64_t hdr_blocks;
 	/** First block */
 	aoff64_t block0;
 	/** Number of blocks */
@@ -116,6 +118,8 @@ struct label_part_spec {
 	aoff64_t block0;
 	/** Number of blocks */
 	aoff64_t nblocks;
+	/** Number of header blocks (EBR for logical partitions) */
+	aoff64_t hdr_blocks;
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** Partition type */
@@ -154,8 +158,8 @@ struct label {
 	aoff64_t anblocks;
 	/** Number of primary partition entries */
 	int pri_entries;
-	/** Index of extended partition or -1 if there is none */
-	int ext_part_idx;
+	/** Extended partition or NULL if there is none */
+	label_part_t *ext_part;
 	/** Block size */
 	size_t block_size;
 	union {

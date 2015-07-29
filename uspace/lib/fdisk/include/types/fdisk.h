@@ -105,12 +105,20 @@ typedef struct {
 	label_disk_cnt_t dcnt;
 	/** Service ID */
 	service_id_t sid;
-	/** Partitions sorted by index */
-	list_t parts_idx; /* of fdisk_part_t */
-	/** Partitions sorted by block address */
-	list_t parts_ba;
+	/** All partitions */
+	list_t parts;
+	/** Primary partitions sorted by index */
+	list_t pri_idx; /* of fdisk_part_t */
+	/** Primary partitions sorted by block address */
+	list_t pri_ba;
+	/** Logical partitions sorted by block address */
+	list_t log_ba;
+	/** Extended partition or NULL */
+	struct fdisk_part *ext_part;
 	/** Disk info */
 	vbd_disk_info_t dinfo;
+	/** Alignment in blocks */
+	uint64_t align;
 } fdisk_dev_t;
 
 typedef struct {
@@ -123,13 +131,17 @@ typedef struct {
 } fdisk_label_info_t;
 
 /** Partition */
-typedef struct {
+typedef struct fdisk_part {
 	/** Containing device */
 	fdisk_dev_t *dev;
-	/** Link to fdisk_dev_t.parts_idx */
-	link_t ldev_idx;
-	/** Link to fdisk_dev_t.parts_ba */
-	link_t ldev_ba;
+	/** Link to fdisk_dev_t.parts */
+	link_t lparts;
+	/** Link to fdisk_dev_t.pri_idx */
+	link_t lpri_idx;
+	/** Link to fdisk_dev_t.pri_ba */
+	link_t lpri_ba;
+	/** Link to fdisk_dev_t.log_ba */
+	link_t llog_ba;
 	/** Capacity */
 	fdisk_cap_t capacity;
 	/** Partition kind */

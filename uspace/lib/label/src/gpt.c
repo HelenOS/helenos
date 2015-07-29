@@ -301,7 +301,6 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 	label->anblocks = ba_max - ba_min + 1;
 	label->pri_entries = num_entries;
 	label->block_size = bsize;
-	label->ext_part_idx = -1;
 
 	label->lt.gpt.hdr_ba[0] = gpt_hdr_ba;
 	label->lt.gpt.hdr_ba[1] = h1ba;
@@ -448,7 +447,6 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 	label->anblocks = ba_max - ba_min + 1;
 	label->pri_entries = num_entries;
 	label->block_size = bsize;
-	label->ext_part_idx = -1;
 
 	label->lt.gpt.hdr_ba[0] = hdr_ba[0];
 	label->lt.gpt.hdr_ba[1] = hdr_ba[1];

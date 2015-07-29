@@ -345,6 +345,8 @@ int vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
 	info->ablock0 = linfo.ablock0;
 	info->anblocks = linfo.anblocks;
 	info->block_size = disk->block_size;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_info - block_size=%zu",
+	    info->block_size);
 	return EOK;
 }
 
@@ -437,6 +439,8 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 	disk->svc_id = sid;
 	disk->label = label;
 	disk->block_size = block_size;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create: block_size=%zu",
+	    block_size);
 	list_initialize(&disk->parts);
 
 	list_append(&disk->ldisks, &vbds_disks);
@@ -518,6 +522,7 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 	lpspec.index = pspec->index;
 	lpspec.block0 = pspec->block0;
 	lpspec.nblocks = pspec->nblocks;
+	lpspec.hdr_blocks = pspec->hdr_blocks;
 	lpspec.pkind = pspec->pkind;
 	lpspec.ptype = pspec->ptype;
 

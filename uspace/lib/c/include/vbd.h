@@ -68,6 +68,8 @@ typedef struct {
 	aoff64_t block0;
 	/** Number of blocks */
 	aoff64_t nblocks;
+	/** Number of header blocks (EBR for logical partitions) */
+	aoff64_t hdr_blocks;
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** Partition type */

@@ -43,6 +43,7 @@
 #include "mbr.h"
 
 static int mbr_open(service_id_t, label_t **);
+static int mbr_open_ext(label_t *);
 static int mbr_create(service_id_t, label_t **);
 static void mbr_close(label_t *);
 static int mbr_destroy(label_t *);
@@ -56,7 +57,14 @@ static int mbr_part_destroy(label_part_t *);
 static void mbr_unused_pte(mbr_pte_t *);
 static int mbr_part_to_pte(label_part_t *, mbr_pte_t *);
 static int mbr_pte_to_part(label_t *, mbr_pte_t *, int);
+static int mbr_pte_to_log_part(label_t *, uint64_t, mbr_pte_t *);
+static void mbr_log_part_to_ptes(label_part_t *, mbr_pte_t *, mbr_pte_t *);
 static int mbr_pte_update(label_t *, mbr_pte_t *, int);
+static int mbr_log_part_insert(label_t *, label_part_t *);
+static int mbr_ebr_create(label_t *, label_part_t *);
+static int mbr_ebr_delete(label_t *, label_part_t *);
+static int mbr_ebr_update_next(label_t *, label_part_t *);
+static void mbr_update_log_indices(label_t *);
 
 label_ops_t mbr_label_ops = {
 	.open = mbr_open,
@@ -131,7 +139,8 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
-	label->ext_part_idx = -1;
+
+	label->ext_part = NULL;
 	for (entry = 0; entry < mbr_nprimary; entry++) {
 		eptr = &mbr->pte[entry];
 		rc = mbr_pte_to_part(label, eptr, entry + 1);
@@ -149,11 +158,118 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 	label->ablock0 = mbr_ablock0;
 	label->anblocks = nblocks - mbr_ablock0;
 	label->pri_entries = mbr_nprimary;
+
+	if (label->ext_part != NULL) {
+		/* Open extended partition */
+		rc = mbr_open_ext(label);
+		if (rc != EOK)
+			goto error;
+	}
+
 	*rlabel = label;
 	return EOK;
 error:
 	free(mbr);
-	free(label);
+	mbr_close(label);
+	return rc;
+}
+
+/** Open extended partition */
+static int mbr_open_ext(label_t *label)
+{
+	mbr_br_block_t *ebr = NULL;
+	mbr_pte_t *ethis;
+	mbr_pte_t *enext;
+	uint64_t ebr_b0;
+	uint64_t ebr_nblocks_min;
+	uint64_t ebr_nblocks_max;
+	uint64_t pebr_b0;
+	uint64_t pebr_nblocks;
+	uint64_t pb0;
+	uint64_t pnblocks;
+	uint64_t ep_b0;
+	int rc;
+
+	ebr = calloc(1, label->block_size);
+	if (ebr == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	/* First block of extended partition */
+	ep_b0 = label->ext_part->block0;
+
+	/* First block of current EBR */
+	ebr_b0 = label->ext_part->block0;
+
+	/*
+	 * We don't have bounds for the first EBR, so for purpose of
+	 * verification let's say it contains at least one block and
+	 * at most all blocks from the extended partition.
+	 */
+	ebr_nblocks_min = 1;
+	ebr_nblocks_max = label->ext_part->nblocks;
+
+	while (true) {
+		/* Read EBR */
+		rc = block_read_direct(label->svc_id, ebr_b0, 1, ebr);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		ethis = &ebr->pte[mbr_ebr_pte_this];
+		enext = &ebr->pte[mbr_ebr_pte_next];
+
+		pb0 = ebr_b0 + uint32_t_le2host(ethis->first_lba);
+		pnblocks = uint32_t_le2host(ethis->length);
+
+		if (ethis->ptype == mbr_pt_unused || pnblocks == 0)
+			break;
+
+		/* Verify partition lies within the range of EBR */
+		if (pb0 + pnblocks > ebr_b0 + ebr_nblocks_max) {
+			rc = EIO;
+			goto error;
+		}
+
+		/* Create partition structure */
+		rc = mbr_pte_to_log_part(label, ebr_b0, ethis);
+		if (rc != EOK) {
+			rc= EIO;
+			goto error;
+		}
+
+		/* Save previous EBR range */
+		pebr_b0 = ebr_b0;
+		pebr_nblocks = ebr_nblocks_min;
+
+		/* Proceed to next EBR */
+		ebr_b0 = ep_b0 + uint32_t_le2host(enext->first_lba);
+		ebr_nblocks_min = uint32_t_le2host(enext->length);
+		ebr_nblocks_max = ebr_nblocks_min;
+
+		if (enext->ptype == mbr_pt_unused || ebr_nblocks_min == 0)
+			break;
+
+		/* Verify next EBR does not overlap this EBR */
+		if (ebr_b0 < pebr_b0 + pebr_nblocks) {
+			rc = EIO;
+			goto error;
+		}
+
+		/* Verify next EBR does not extend beyond end of label */
+		if (ebr_b0 + ebr_nblocks_max > label->ablock0 + label->anblocks) {
+			rc = EIO;
+			goto error;
+		}
+	}
+
+	free(ebr);
+	return EOK;
+error:
+	/* Note that logical partitions need to be deleted by caller */
+	free(ebr);
 	return rc;
 }
 
@@ -214,7 +330,7 @@ static int mbr_create(service_id_t sid, label_t **rlabel)
 	label->ablock0 = mbr_ablock0;
 	label->anblocks = nblocks - mbr_ablock0;
 	label->pri_entries = mbr_nprimary;
-	label->ext_part_idx = -1;
+	label->ext_part = NULL;
 
 	*rlabel = label;
 	return EOK;
@@ -227,6 +343,9 @@ error:
 static void mbr_close(label_t *label)
 {
 	label_part_t *part;
+
+	if (label == NULL)
+		return;
 
 	part = mbr_part_first(label);
 	while (part != NULL) {
@@ -290,10 +409,10 @@ static int mbr_get_info(label_t *label, label_info_t *linfo)
 	if (list_count(&label->pri_parts) < mbr_nprimary)
 		linfo->flags |= lf_can_create_pri;
 	/* Can create extended if there is a free slot and no extended */
-	if ((linfo->flags & lf_can_create_pri) != 0 && label->ext_part_idx < 0)
+	if ((linfo->flags & lf_can_create_pri) != 0 && label->ext_part == NULL)
 		linfo->flags |= lf_can_create_ext;
 	/* Can create logical if there is an extended partition */
-	if (label->ext_part_idx >= 0)
+	if (label->ext_part != NULL)
 		linfo->flags |= lf_can_create_log;
 
 	linfo->ablock0 = label->ablock0;
@@ -324,6 +443,39 @@ static label_part_t *mbr_part_next(label_part_t *part)
 	return list_get_instance(link, label_part_t, lparts);
 }
 
+static label_part_t *mbr_log_part_first(label_t *label)
+{
+	link_t *link;
+
+	link = list_first(&label->log_parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, llog);
+}
+
+static label_part_t *mbr_log_part_next(label_part_t *part)
+{
+	link_t *link;
+
+	link = list_next(&part->llog, &part->label->log_parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, llog);
+}
+
+static label_part_t *mbr_log_part_prev(label_part_t *part)
+{
+	link_t *link;
+
+	link = list_prev(&part->llog, &part->label->log_parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, llog);
+}
+
 #include <io/log.h>
 static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 {
@@ -345,6 +497,8 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
 	label_part_t *part;
+	label_part_t *prev;
+	label_part_t *next;
 	mbr_pte_t pte;
 	int rc;
 
@@ -359,6 +513,7 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 	part->index = pspec->index;
 	part->block0 = pspec->block0;
 	part->nblocks = pspec->nblocks;
+	part->hdr_blocks = pspec->hdr_blocks;
 
 	switch (pspec->pkind) {
 	case lpk_primary:
@@ -370,12 +525,13 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 			rc = EINVAL;
 			goto error;
 		}
-		if (label->ext_part_idx >= 0) {
+		if (label->ext_part != NULL) {
 			rc = EEXISTS;
 			goto error;
 		}
 		break;
 	case lpk_logical:
+		log_msg(LOG_DEFAULT, LVL_NOTE, "check index");
 		part->ptype = pspec->ptype;
 		if (pspec->index != 0) {
 			rc = EINVAL;
@@ -389,6 +545,11 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 		/* XXX Verify index, block0, nblocks */
 
 		if (pspec->index < 1 || pspec->index > label->pri_entries) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		if (pspec->hdr_blocks != 0) {
 			rc = EINVAL;
 			goto error;
 		}
@@ -409,13 +570,51 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 		list_append(&part->lpri, &label->pri_parts);
 
 		if (pspec->pkind == lpk_extended)
-			label->ext_part_idx = pspec->index - 1;
+			label->ext_part = part;
 	} else {
 		/* Logical partition */
-		rc = ENOTSUP;
-		goto error;
+
+		log_msg(LOG_DEFAULT, LVL_NOTE, "call mbr_log_part_insert");
+		rc = mbr_log_part_insert(label, part);
+		if (rc != EOK)
+			goto error;
+
+		log_msg(LOG_DEFAULT, LVL_NOTE, "call mbr_ebr_create");
+		/* Create EBR for new partition */
+		rc = mbr_ebr_create(label, part);
+		if (rc != EOK)
+			goto error;
+
+		prev = mbr_log_part_prev(part);
+		if (prev != NULL) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "update next");
+			/* Update 'next' PTE in EBR of previous partition */
+			rc = mbr_ebr_update_next(label, prev);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_NOTE, "failed to update next");
+				goto error;
+			}
+		} else {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "relocate first EBR");
+			/* New partition is now the first one */
+			next = mbr_log_part_next(part);
+			if (next != NULL) {
+				/*
+				 * Create new, relocated EBR for the former
+				 * first partition
+				 */
+				next->hdr_blocks = pspec->hdr_blocks;
+				rc = mbr_ebr_create(label, next);
+				if (rc != EOK)
+					goto error;
+			}
+		}
+
+		/* This also sets index for the new partition. */
+		mbr_update_log_indices(label);
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_create success");
 	*rpart = part;
 	return EOK;
 error:
@@ -426,25 +625,48 @@ error:
 static int mbr_part_destroy(label_part_t *part)
 {
 	mbr_pte_t pte;
+	label_part_t *prev;
 	int rc;
 
-	/* Prepare unused partition table entry */
-	mbr_unused_pte(&pte);
+	if (link_used(&part->lpri)) {
+		/* Primary/extended partition */
 
-	/* Modify partition table */
-	rc = mbr_pte_update(part->label, &pte, part->index - 1);
-	if (rc != EOK)
-		return EIO;
+		/* Prepare unused partition table entry */
+		mbr_unused_pte(&pte);
 
-	/* If it was the extended partition, clear ext. part. index */
-	if (part->index - 1 == part->label->ext_part_idx)
-		part->label->ext_part_idx = -1;
+		/* Modify partition table */
+		rc = mbr_pte_update(part->label, &pte, part->index - 1);
+		if (rc != EOK)
+			return EIO;
+
+		/* If it was the extended partition, clear ext. part. pointer */
+		if (part == part->label->ext_part)
+			part->label->ext_part = NULL;
+
+		list_remove(&part->lpri);
+	} else {
+		/* Logical partition */
+
+		prev = mbr_log_part_prev(part);
+		if (prev != NULL) {
+			/* Update next link in previous EBR */
+			list_remove(&part->llog);
+
+			rc = mbr_ebr_update_next(part->label, prev);
+			if (rc != EOK) {
+				/* Roll back */
+				list_insert_after(&part->llog, &prev->llog);
+				return EIO;
+			}
+		} else {
+			list_remove(&part->llog);
+		}
+
+		/* Delete EBR */
+		mbr_ebr_delete(part->label, part);
+	}
 
 	list_remove(&part->lparts);
-	if (link_used(&part->lpri))
-		list_remove(&part->lpri);
-	if (link_used(&part->llog))
-		list_remove(&part->llog);
 	free(part);
 	return EOK;
 }
@@ -506,8 +728,82 @@ static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
 	list_append(&part->lpri, &label->pri_parts);
 
 	if (pte->ptype == mbr_pt_extended)
-		label->ext_part_idx = index - 1;
+		label->ext_part = part;
 	return EOK;
+}
+
+static int mbr_pte_to_log_part(label_t *label, uint64_t ebr_b0,
+    mbr_pte_t *pte)
+{
+	label_part_t *part;
+	uint32_t block0;
+	uint32_t nblocks;
+	size_t nlparts;
+
+	block0 = ebr_b0 + uint32_t_le2host(pte->first_lba);
+	nblocks = uint32_t_le2host(pte->length);
+
+	if (pte->ptype == mbr_pt_unused || nblocks == 0)
+		return EOK;
+
+	part = calloc(1, sizeof(label_part_t));
+	if (part == NULL)
+		return ENOMEM;
+
+	nlparts = list_count(&label->log_parts);
+
+	part->ptype = pte->ptype;
+	part->index = mbr_nprimary + 1 + nlparts;
+	part->block0 = block0;
+	part->nblocks = nblocks;
+
+	part->label = label;
+	list_append(&part->lparts, &label->parts);
+	list_append(&part->llog, &label->log_parts);
+
+	return EOK;
+}
+#include <stdio.h>
+static void mbr_log_part_to_ptes(label_part_t *part, mbr_pte_t *pthis,
+    mbr_pte_t *pnext)
+{
+	label_part_t *next;
+	uint64_t ep_b0;
+	uint64_t totsize;
+
+	/* First block of extended partition */
+	ep_b0 = part->label->ext_part->block0;
+
+	assert(link_used(&part->llog));
+	assert(part->block0 >= ep_b0);
+	printf("part->hdr_blocks = %" PRIu64 "\n", part->hdr_blocks);
+	printf("part->block0 = %" PRIu64 "\n", part->block0);
+	printf("ep_b0 = %" PRIu64 "\n", ep_b0);
+	assert(part->hdr_blocks <= part->block0 - ep_b0);
+
+	/* 'This' EBR entry */
+	if (pthis != NULL) {
+		memset(pthis, 0, sizeof(mbr_pte_t));
+		pthis->ptype = part->ptype;
+		pthis->first_lba = host2uint32_t_le(part->hdr_blocks);
+		pthis->length = host2uint32_t_le(part->nblocks);
+	}
+
+	/* 'Next' EBR entry */
+	if (pnext != NULL) {
+		next = mbr_part_next(part);
+
+		memset(pnext, 0, sizeof(mbr_pte_t));
+		if (next != NULL) {
+			/* Total size of EBR + partition */
+			totsize = next->hdr_blocks + next->nblocks;
+
+			pnext->ptype = mbr_pt_extended;
+			pnext->first_lba = host2uint32_t_le(next->block0 -
+			    next->hdr_blocks - ep_b0);
+			pnext->length = host2uint32_t_le(totsize);
+		}
+	}
 }
 
 /** Update partition table entry at specified index.
@@ -543,6 +839,158 @@ static int mbr_pte_update(label_t *label, mbr_pte_t *pte, int index)
 error:
 	free(br);
 	return rc;
+}
+
+/** Insert logical partition into logical partition list. */
+static int mbr_log_part_insert(label_t *label, label_part_t *part)
+{
+	label_part_t *cur;
+
+	cur = mbr_log_part_first(label);
+	while (cur != NULL) {
+		if (cur->block0 + cur->nblocks > part->block0)
+			break;
+		cur = mbr_log_part_next(part);
+	}
+
+	if (cur != NULL)
+		list_insert_before(&part->llog, &cur->llog);
+	else
+		list_append(&part->llog, &label->log_parts);
+
+	return EOK;
+}
+
+/** Create EBR for partition. */
+static int mbr_ebr_create(label_t *label, label_part_t *part)
+{
+	mbr_br_block_t *br;
+	uint64_t ba;
+	int rc;
+
+	br = calloc(1, label->block_size);
+	if (br == NULL)
+		return ENOMEM;
+
+	mbr_log_part_to_ptes(part, &br->pte[mbr_ebr_pte_this],
+	    &br->pte[mbr_ebr_pte_next]);
+	br->signature = host2uint16_t_le(mbr_br_signature);
+
+	ba = part->block0 - part->hdr_blocks;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Write EBR to ba=%" PRIu64, ba);
+	rc = block_write_direct(label->svc_id, ba, 1, br);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	free(br);
+	return EOK;
+error:
+	free(br);
+	return rc;
+}
+
+static int mbr_ebr_delete(label_t *label, label_part_t *part)
+{
+	mbr_br_block_t *br;
+	uint64_t ba;
+	int rc;
+
+	br = calloc(1, label->block_size);
+	if (br == NULL)
+		return ENOMEM;
+
+	ba = part->block0 - part->hdr_blocks;
+
+	rc = block_write_direct(label->svc_id, ba, 1, br);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	free(br);
+	return EOK;
+error:
+	free(br);
+	return rc;
+}
+
+/** Update 'next' PTE in EBR of partition. */
+static int mbr_ebr_update_next(label_t *label, label_part_t *part)
+{
+	mbr_br_block_t *br;
+	uint64_t ba;
+	uint16_t sgn;
+	int rc;
+
+	ba = part->block0 - part->hdr_blocks;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next ba=%" PRIu64,
+	    ba);
+
+	br = calloc(1, label->block_size);
+	if (br == NULL)
+		return ENOMEM;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next read ba=%" PRIu64,
+	    ba);
+
+	rc = block_read_direct(label->svc_id, ba, 1, br);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	/* Verify boot record signature */
+	sgn = uint16_t_le2host(br->signature);
+	if (sgn != mbr_br_signature) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next signature error");
+		rc = EIO;
+		goto error;
+	}
+
+	mbr_log_part_to_ptes(part, NULL, &br->pte[mbr_ebr_pte_next]);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next write ba=%" PRIu64,
+	    ba);
+
+	rc = block_write_direct(label->svc_id, ba, 1, br);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next success");
+
+	free(br);
+	return EOK;
+error:
+	free(br);
+	return rc;
+}
+
+/** Update indices of logical partitions.
+ *
+ * Logical partition indices are unstable, i.e. they can change during
+ * the lifetime of a logical partition. Since the index corresponds to the
+ * position of the partition in order of block address, anytime a partition
+ * is created or deleted, indices of all partitions at higher addresses
+ * change.
+ */
+static void mbr_update_log_indices(label_t *label)
+{
+	label_part_t *part;
+	int idx;
+
+	idx = mbr_nprimary + 1;
+
+	part = mbr_log_part_first(label);
+	while (part != NULL) {
+		part->index = idx++;
+		part = mbr_log_part_next(part);
+	}
 }
 
 /** @}
