@@ -664,6 +664,9 @@ static int mbr_part_destroy(label_part_t *part)
 
 		/* Delete EBR */
 		mbr_ebr_delete(part->label, part);
+
+		/* Update indices */
+		mbr_update_log_indices(part->label);
 	}
 
 	list_remove(&part->lparts);
@@ -756,6 +759,7 @@ static int mbr_pte_to_log_part(label_t *label, uint64_t ebr_b0,
 	part->index = mbr_nprimary + 1 + nlparts;
 	part->block0 = block0;
 	part->nblocks = nblocks;
+	part->hdr_blocks = block0 - ebr_b0;
 
 	part->label = label;
 	list_append(&part->lparts, &label->parts);
