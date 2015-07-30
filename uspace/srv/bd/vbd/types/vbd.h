@@ -58,6 +58,8 @@ typedef struct {
 	vbds_part_id_t pid;
 	/** Service ID */
 	service_id_t svc_id;
+	/** Index under which partition is registered */
+	int reg_idx;
 	/** Label partition */
 	label_part_t *lpart;
 	/** Block device service */

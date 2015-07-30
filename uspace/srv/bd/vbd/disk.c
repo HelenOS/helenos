@@ -61,6 +61,10 @@ static int vbds_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 static int vbds_bsa_translate(vbds_part_t *, aoff64_t, size_t, aoff64_t *);
 
+static int vbds_part_svc_register(vbds_part_t *);
+static int vbds_part_svc_unregister(vbds_part_t *);
+static int vbds_part_indices_update(vbds_disk_t *);
+
 static vbd_part_id_t vbds_part_id = 1;
 
 static bd_ops_t vbds_bd_ops = {
@@ -137,7 +141,6 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	vbds_part_t *part;
 	service_id_t psid = 0;
 	label_part_info_t lpinfo;
-	char *name;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_add(%s, %p)",
@@ -151,26 +154,6 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 		return ENOMEM;
 	}
 
-	if (lpinfo.pkind != lpk_extended) {
-		/* XXX Proper service name */
-		rc = asprintf(&name, "%sp%u", disk->svc_name, lpart->index);
-		if (rc < 0) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
-			return ENOMEM;
-		}
-
-		rc = loc_service_register(name, &psid);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "
-			    "service %s.", name);
-			free(name);
-			free(part);
-			return EIO;
-		}
-
-		free(name);
-	}
-
 	part->lpart = lpart;
 	part->disk = disk;
 	part->pid = ++vbds_part_id;
@@ -181,6 +164,12 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	bd_srvs_init(&part->bds);
 	part->bds.ops = &vbds_bd_ops;
 	part->bds.sarg = part;
+
+	if (lpinfo.pkind != lpk_extended) {
+		rc = vbds_part_svc_register(part);
+		if (rc != EOK)
+			return EIO;
+	}
 
 	list_append(&part->ldisk, &disk->parts);
 	list_append(&part->lparts, &vbds_parts);
@@ -206,7 +195,7 @@ static int vbds_part_remove(vbds_part_t *part, label_part_t **rlpart)
 		return EBUSY;
 
 	if (part->svc_id != 0) {
-		rc = loc_service_unregister(part->svc_id);
+		rc = vbds_part_svc_unregister(part);
 		if (rc != EOK)
 			return EIO;
 	}
@@ -532,6 +521,12 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 		goto error;
 	}
 
+	rc = vbds_part_indices_update(disk);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error updating partition indices");
+		goto error;
+	}
+
 	rc = vbds_part_add(disk, lpart, &part);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed while creating "
@@ -577,6 +572,12 @@ int vbds_part_delete(vbds_part_id_t partid)
 		if (rc != EOK)
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed rolling back.");
 
+		return EIO;
+	}
+
+	rc = vbds_part_indices_update(disk);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error updating partition indices");
 		return EIO;
 	}
 
@@ -703,6 +704,87 @@ static int vbds_bsa_translate(vbds_part_t *part, aoff64_t ba, size_t cnt,
 		return ELIMIT;
 
 	*gba = part->block0 + ba;
+	return EOK;
+}
+
+/** Register service for partition */
+static int vbds_part_svc_register(vbds_part_t *part)
+{
+	char *name;
+	service_id_t psid;
+	int idx;
+	int rc;
+
+	idx = part->lpart->index;
+
+	rc = asprintf(&name, "%sp%u", part->disk->svc_name, idx);
+	if (rc < 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
+		return ENOMEM;
+	}
+
+	rc = loc_service_register(name, &psid);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "
+		    "service %s.", name);
+		free(name);
+		free(part);
+		return EIO;
+	}
+
+	free(name);
+	part->svc_id = psid;
+	part->reg_idx = idx;
+	return EOK;
+}
+
+/** Unregister service for partition */
+static int vbds_part_svc_unregister(vbds_part_t *part)
+{
+	int rc;
+
+	rc = loc_service_unregister(part->svc_id);
+	if (rc != EOK)
+		return EIO;
+
+	part->svc_id = 0;
+	part->reg_idx = 0;
+	return EOK;
+}
+
+/** Update service names for any partition whose index has changed. */
+static int vbds_part_indices_update(vbds_disk_t *disk)
+{
+	label_part_info_t lpinfo;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_indices_update()");
+
+	/* First unregister services for partitions whose index has changed */
+	list_foreach(disk->parts, ldisk, vbds_part_t, part) {
+		if (part->svc_id != 0 && part->lpart->index != part->reg_idx) {
+			rc = vbds_part_svc_unregister(part);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_NOTE, "Error "
+				    "un-registering partition.");
+				return EIO;
+			}
+		}
+	}
+
+	/* Now re-register those services under the new indices */
+	list_foreach(disk->parts, ldisk, vbds_part_t, part) {
+		label_part_get_info(part->lpart, &lpinfo);
+		if (part->svc_id == 0 && lpinfo.pkind != lpk_extended) {
+			rc = vbds_part_svc_register(part);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_NOTE, "Error "
+				    "re-registering partition.");
+				return EIO;
+			}
+		}
+	}
+
 	return EOK;
 }
 
