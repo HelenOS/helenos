@@ -671,9 +671,10 @@ static int mbr_part_destroy(label_part_t *part)
 
 			if (next != NULL) {
 				/*
-				 * Relocate next partitions EBR to the beginning
-				 * of extended partition. This also overwrites
-				 * the EBR of the former first partition.
+				 * Relocate next partition's EBR to the beginning
+				 * of the extended partition. This also
+				 * overwrites the EBR of the former first
+				 * partition.
 				 */
 
 				/* First block of extended partition */
