@@ -236,7 +236,7 @@ static int mbr_open_ext(label_t *label)
 		/* Create partition structure */
 		rc = mbr_pte_to_log_part(label, ebr_b0, ethis);
 		if (rc != EOK) {
-			rc= EIO;
+			rc = EIO;
 			goto error;
 		}
 
@@ -626,6 +626,8 @@ static int mbr_part_destroy(label_part_t *part)
 {
 	mbr_pte_t pte;
 	label_part_t *prev;
+	label_part_t *next;
+	uint64_t ep_b0;
 	int rc;
 
 	if (link_used(&part->lpri)) {
@@ -658,12 +660,39 @@ static int mbr_part_destroy(label_part_t *part)
 				list_insert_after(&part->llog, &prev->llog);
 				return EIO;
 			}
-		} else {
-			list_remove(&part->llog);
-		}
 
-		/* Delete EBR */
-		mbr_ebr_delete(part->label, part);
+			/* Delete EBR */
+			rc = mbr_ebr_delete(part->label, part);
+			if (rc != EOK)
+				return EIO;
+		} else {
+			next = mbr_log_part_next(part);
+			list_remove(&part->llog);
+
+			if (next != NULL) {
+				/*
+				 * Relocate next partitions EBR to the beginning
+				 * of extended partition. This also overwrites
+				 * the EBR of the former first partition.
+				 */
+
+				/* First block of extended partition */
+				ep_b0 = part->label->ext_part->block0;
+
+				next->hdr_blocks = next->block0 - ep_b0;
+
+				rc = mbr_ebr_create(part->label, next);
+				if (rc != EOK) {
+					list_prepend(&part->llog, &part->label->log_parts);
+					return EIO;
+				}
+			} else {
+				/* Delete EBR */
+				rc = mbr_ebr_delete(part->label, part);
+				if (rc != EOK)
+					return EIO;
+			}
+		}
 
 		/* Update indices */
 		mbr_update_log_indices(part->label);
@@ -767,7 +796,7 @@ static int mbr_pte_to_log_part(label_t *label, uint64_t ebr_b0,
 
 	return EOK;
 }
-#include <stdio.h>
+
 static void mbr_log_part_to_ptes(label_part_t *part, mbr_pte_t *pthis,
     mbr_pte_t *pnext)
 {
@@ -780,9 +809,6 @@ static void mbr_log_part_to_ptes(label_part_t *part, mbr_pte_t *pthis,
 
 	assert(link_used(&part->llog));
 	assert(part->block0 >= ep_b0);
-	printf("part->hdr_blocks = %" PRIu64 "\n", part->hdr_blocks);
-	printf("part->block0 = %" PRIu64 "\n", part->block0);
-	printf("ep_b0 = %" PRIu64 "\n", ep_b0);
 	assert(part->hdr_blocks <= part->block0 - ep_b0);
 
 	/* 'This' EBR entry */
@@ -795,7 +821,7 @@ static void mbr_log_part_to_ptes(label_part_t *part, mbr_pte_t *pthis,
 
 	/* 'Next' EBR entry */
 	if (pnext != NULL) {
-		next = mbr_part_next(part);
+		next = mbr_log_part_next(part);
 
 		memset(pnext, 0, sizeof(mbr_pte_t));
 		if (next != NULL) {
