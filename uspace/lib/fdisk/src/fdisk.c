@@ -62,6 +62,8 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *, fdisk_part_spec_t *,
 static void fdisk_pri_part_insert_lists(fdisk_dev_t *, fdisk_part_t *);
 static void fdisk_log_part_insert_lists(fdisk_dev_t *, fdisk_part_t *);
 static int fdisk_update_dev_info(fdisk_dev_t *);
+static uint64_t fdisk_ba_align_up(fdisk_dev_t *, uint64_t);
+static uint64_t fdisk_ba_align_down(fdisk_dev_t *, uint64_t);
 
 static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 {
@@ -794,29 +796,43 @@ static int fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
 	link_t *link;
 	fdisk_part_t *part;
 	uint64_t avail;
-	int nba;
+	uint64_t pb0;
+	uint64_t nba;
+
+	printf("fdisk_part_get_free_range: align=%" PRIu64 "\n",
+	    dev->align);
 
 	link = list_first(&dev->pri_ba);
-	nba = dev->dinfo.ablock0;
+	nba = fdisk_ba_align_up(dev, dev->dinfo.ablock0);
 	while (link != NULL) {
 		part = list_get_instance(link, fdisk_part_t, lpri_ba);
-		if (part->block0 - nba >= nblocks)
+		pb0 = fdisk_ba_align_down(dev, part->block0);
+		if (pb0 >= nba && pb0 - nba >= nblocks)
 			break;
-		nba = part->block0 + part->nblocks;
+		nba = fdisk_ba_align_up(dev, part->block0 + part->nblocks);
 		link = list_next(link, &dev->pri_ba);
 	}
 
 	if (link != NULL) {
+		printf("nba=%" PRIu64 " pb0=%" PRIu64 "\n",
+		    nba, pb0);
 		/* Free range before a partition */
-		avail = part->block0 - nba;
+		avail = pb0 - nba;
 	} else {
 		/* Free range at the end */
-		avail = dev->dinfo.ablock0 + dev->dinfo.anblocks - nba;
-
-		/* Verify that the range is large enough */
-		if (avail < nblocks)
+		pb0 = fdisk_ba_align_down(dev, dev->dinfo.ablock0 +
+		    dev->dinfo.anblocks);
+		if (pb0 < nba)
 			return ELIMIT;
+		avail = pb0 - nba;
+		printf("nba=%" PRIu64 " avail=%" PRIu64 "\n",
+		    nba, avail);
+
 	}
+
+	/* Verify that the range is large enough */
+	if (avail < nblocks)
+		return ELIMIT;
 
 	*rblock0 = nba;
 	*rnblocks = avail;
@@ -836,36 +852,52 @@ static int fdisk_part_get_log_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
 	fdisk_part_t *part;
 	uint64_t avail;
 	uint64_t hdrb;
-	int nba;
+	uint64_t pb0;
+	uint64_t nba;
 
+	printf("fdisk_part_get_log_free_range\n");
 	/* Number of header blocks */
 	hdrb = max(1, dev->align);
 
 	link = list_first(&dev->log_ba);
-	nba = dev->ext_part->block0;
+	nba = fdisk_ba_align_up(dev, dev->ext_part->block0);
 	while (link != NULL) {
 		part = list_get_instance(link, fdisk_part_t, llog_ba);
-		if (part->block0 - nba >= nblocks)
+		pb0 = fdisk_ba_align_down(dev, part->block0);
+		if (pb0 >= nba && pb0 - nba >= nblocks)
 			break;
-		nba = part->block0 + part->nblocks;
+		nba = fdisk_ba_align_up(dev, part->block0 + part->nblocks);
 		link = list_next(link, &dev->log_ba);
 	}
 
 	if (link != NULL) {
 		/* Free range before a partition */
-		avail = part->block0 - nba;
+		avail = pb0 - nba;
 	} else {
 		/* Free range at the end */
-		avail = dev->ext_part->block0 + dev->ext_part->nblocks - nba;
-
-		/* Verify that the range is large enough */
-		if (avail < hdrb + nblocks)
+		pb0 = fdisk_ba_align_down(dev, dev->ext_part->block0 +
+		    dev->ext_part->nblocks);
+		if (pb0 < nba) {
+			printf("not enough space\n");
 			return ELIMIT;
+		}
+
+		avail = pb0 - nba;
+
+		printf("nba=%" PRIu64 " pb0=%" PRIu64" avail=%" PRIu64 "\n",
+		    nba, pb0, avail);
+	}
+	/* Verify that the range is large enough */
+	if (avail < hdrb + nblocks) {
+		printf("not enough space\n");
+		return ELIMIT;
 	}
 
 	*rhdrb = hdrb;
 	*rblock0 = nba + hdrb;
 	*rnblocks = avail;
+	printf("hdrb=%" PRIu64 " block0=%" PRIu64" avail=%" PRIu64 "\n",
+	    hdrb, nba + hdrb, avail);
 	return EOK;
 }
 
@@ -897,6 +929,7 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	printf("fdisk_part_spec_prepare() - req_blocks block_size=%zu\n",
 	    block_size);
 	req_blocks = (cbytes + block_size - 1) / block_size;
+	req_blocks = fdisk_ba_align_up(dev, req_blocks);
 
 	printf("fdisk_part_spec_prepare() - switch\n");
 	switch (pspec->pkind) {
@@ -944,16 +977,35 @@ static int fdisk_update_dev_info(fdisk_dev_t *dev)
 {
 	int rc;
 	size_t align_bytes;
+	uint64_t avail_cap;
 
 	rc = vbd_disk_info(dev->fdisk->vbd, dev->sid, &dev->dinfo);
 	if (rc != EOK)
 		return EIO;
 
-	align_bytes = 512; //1024 * 1024; /* 1 MiB */ /* XXX */
+	/* Capacity available for partition in bytes */
+	avail_cap = dev->dinfo.anblocks * dev->dinfo.block_size;
+
+	/* Determine optimum alignment */
+	align_bytes = 1024 * 1024; /* 1 MiB */
+	while (align_bytes > 1 && avail_cap / align_bytes < 256) {
+		align_bytes = align_bytes / 16;
+	}
+
 	dev->align = align_bytes / dev->dinfo.block_size;
 	if (dev->align < 1)
 		dev->align = 1;
 	return EOK;
+}
+
+static uint64_t fdisk_ba_align_up(fdisk_dev_t *dev, uint64_t ba)
+{
+	return ((ba + dev->align - 1) / dev->align) * dev->align;
+}
+
+static uint64_t fdisk_ba_align_down(fdisk_dev_t *dev, uint64_t ba)
+{
+	return ba - (ba % dev->align);
 }
 
 /** @}
