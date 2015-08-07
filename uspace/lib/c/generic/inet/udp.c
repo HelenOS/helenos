@@ -42,6 +42,11 @@
 
 static void udp_cb_conn(ipc_callid_t, ipc_call_t *, void *);
 
+/** Create callback connection from UDP service.
+ *
+ * @param udp UDP service
+ * @return EOK on success or negative error code
+ */
 static int udp_callback_create(udp_t *udp)
 {
 	async_exch_t *exch = async_exchange_begin(udp->sess);
@@ -59,6 +64,12 @@ static int udp_callback_create(udp_t *udp)
 	return retval;
 }
 
+/** Create UDP client instance.
+ *
+ * @param  rudp Place to store pointer to new UDP client
+ * @return EOK on success, ENOMEM if out of memory, EIO if service
+ *         cannot be contacted
+ */
 int udp_create(udp_t **rudp)
 {
 	udp_t *udp;
@@ -102,6 +113,10 @@ error:
 	return rc;
 }
 
+/** Destroy UDP client instance.
+ *
+ * @param udp UDP client
+ */
 void udp_destroy(udp_t *udp)
 {
 	if (udp == NULL)
@@ -117,7 +132,30 @@ void udp_destroy(udp_t *udp)
 	free(udp);
 }
 
-int udp_assoc_create(udp_t *udp, inet_ep2_t *ep2, udp_cb_t *cb, void *arg,
+/** Create new UDP association.
+ *
+ * Create a UDP association that allows sending and receiving messages.
+ *
+ * @a epp may specify remote address and port, in which case only messages
+ * from that remote endpoint will be received. Also, that remote endpoint
+ * is used as default when @c NULL is passed as destination to
+ * udp_assoc_send_msg.
+ *
+ * @a epp may specify a local link or address. If it does not, the association
+ * will listen on all local links/addresses. If @a epp does not specify
+ * a local port number, a free dynamic port number will be allocated.
+ *
+ * The caller is informed about incoming data by invoking @a cb->recv_msg
+ *
+ * @param udp    UDP client
+ * @param epp    Internet endpoint pair
+ * @param cb     Callbacks
+ * @param arg    Argument to callbacks
+ * @param rassoc Place to store pointer to new association
+ *
+ * @return EOK on success or negative error code.
+ */
+int udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
     udp_assoc_t **rassoc)
 {
 	async_exch_t *exch;
@@ -130,7 +168,7 @@ int udp_assoc_create(udp_t *udp, inet_ep2_t *ep2, udp_cb_t *cb, void *arg,
 
 	exch = async_exchange_begin(udp->sess);
 	aid_t req = async_send_0(exch, UDP_ASSOC_CREATE, &answer);
-	sysarg_t rc = async_data_write_start(exch, (void *)ep2,
+	sysarg_t rc = async_data_write_start(exch, (void *)epp,
 	    sizeof(inet_ep2_t));
 	async_exchange_end(exch);
 
@@ -160,6 +198,13 @@ error:
 	return (int) rc;
 }
 
+/** Destroy UDP association.
+ *
+ * Destroy UDP association. The caller should destroy all associations
+ * he created before destroying the UDP client and before terminating.
+ *
+ * @param assoc UDP association
+ */
 void udp_assoc_destroy(udp_assoc_t *assoc)
 {
 	async_exch_t *exch;
@@ -177,6 +222,15 @@ void udp_assoc_destroy(udp_assoc_t *assoc)
 	(void) rc;
 }
 
+/** Send message via UDP association.
+ *
+ * @param assoc Association
+ * @param dest	Destination endpoint or @c NULL to use association's remote ep.
+ * @param data	Message data
+ * @param bytes Message size in bytes
+ *
+ * @return EOK on success or negative error code
+ */
 int udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
     size_t bytes)
 {
@@ -210,16 +264,39 @@ int udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
 	return rc;
 }
 
+/** Get the user/callback argument for an association.
+ *
+ * @param assoc UDP association
+ * @return User argument associated with association
+ */
 void *udp_assoc_userptr(udp_assoc_t *assoc)
 {
 	return assoc->cb_arg;
 }
 
+/** Get size of received message in bytes.
+ *
+ * Assuming jumbo messages can be received, the caller first needs to determine
+ * the size of the received message by calling this function, then they can
+ * read the message piece-wise using udp_rmsg_read().
+ *
+ * @param rmsg Received message
+ * @return Size of received message in bytes
+ */
 size_t udp_rmsg_size(udp_rmsg_t *rmsg)
 {
 	return rmsg->size;
 }
 
+/** Read part of received message.
+ *
+ * @param rmsg  Received message
+ * @param off   Start offset
+ * @param buf   Buffer for storing data
+ * @param bsize Buffer size
+ *
+ * @return EOK on success or negative error code.
+ */
 int udp_rmsg_read(udp_rmsg_t *rmsg, size_t off, void *buf, size_t bsize)
 {
 	async_exch_t *exch;
@@ -244,21 +321,46 @@ int udp_rmsg_read(udp_rmsg_t *rmsg, size_t off, void *buf, size_t bsize)
 	return EOK;
 }
 
+/** Get remote endpoint of received message.
+ *
+ * Place the remote endpoint (the one from which the message was supposedly
+ * sent) to @a ep.
+ *
+ * @param rmsg Received message
+ * @param ep   Place to store remote endpoint
+ */
 void udp_rmsg_remote_ep(udp_rmsg_t *rmsg, inet_ep_t *ep)
 {
 	*ep = rmsg->remote_ep;
 }
 
+/** Get type of received ICMP error message.
+ *
+ * @param rerr Received error message
+ * @return Error message type
+ */
 uint8_t udp_rerr_type(udp_rerr_t *rerr)
 {
 	return 0;
 }
 
+/** Get code of received ICMP error message.
+ *
+ * @param rerr Received error message
+ * @return Error message code
+ */
 uint8_t udp_rerr_code(udp_rerr_t *rerr)
 {
 	return 0;
 }
 
+/** Get information about the next received message from UDP service.
+ *
+ * @param udp  UDP client
+ * @param rmsg Place to store message information
+ *
+ * @return EOK on success or negative error code
+ */
 static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 {
 	async_exch_t *exch;
@@ -287,6 +389,11 @@ static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 	return EOK;
 }
 
+/** Discard next received message in UDP service.
+ *
+ * @param udp UDP client
+ * @return EOK on success or negative error code
+ */
 static int udp_rmsg_discard(udp_t *udp)
 {
 	async_exch_t *exch;
@@ -298,6 +405,14 @@ static int udp_rmsg_discard(udp_t *udp)
 	return rc;
 }
 
+/** Get association based on its ID.
+ *
+ * @param udp    UDP client
+ * @param id     Association ID
+ * @param rassoc Place to store pointer to association
+ *
+ * @return EOK on success, EINVAL if no association with the given ID exists
+ */
 static int udp_assoc_get(udp_t *udp, sysarg_t id, udp_assoc_t **rassoc)
 {
 	list_foreach(udp->assoc, ludp, udp_assoc_t, assoc) {
@@ -310,6 +425,15 @@ static int udp_assoc_get(udp_t *udp, sysarg_t id, udp_assoc_t **rassoc)
 	return EINVAL;
 }
 
+/** Handle 'data' event, i.e. some message(s) arrived.
+ *
+ * For each received message, get information about it, call @c recv_msg
+ * callback and discard it.
+ *
+ * @param udp UDP client
+ * @param iid IPC message ID
+ * @param icall IPC message
+ */
 static void udp_ev_data(udp_t *udp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	udp_rmsg_t rmsg;
@@ -339,6 +463,12 @@ static void udp_ev_data(udp_t *udp, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+/** UDP service callback connection.
+ *
+ * @param iid Connect message ID
+ * @param icall Connect message
+ * @param arg Argument, UDP client
+ */
 static void udp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	udp_t *udp = (udp_t *)arg;

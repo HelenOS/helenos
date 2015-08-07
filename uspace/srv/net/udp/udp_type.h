@@ -45,6 +45,7 @@
 
 #define UDP_FRAGMENT_SIZE 65535
 
+/** UDP error codes */
 typedef enum {
 	UDP_EOK,
 	/* Insufficient resources */
@@ -83,7 +84,9 @@ typedef struct {
 	size_t data_size;
 } udp_pdu_t;
 
+/** Association callbacks */
 typedef struct {
+	/** Message received */
 	void (*recv_msg)(void *, inet_ep2_t *, udp_msg_t *);
 } udp_assoc_cb_t;
 
@@ -123,6 +126,7 @@ typedef struct {
 typedef struct {
 } udp_assoc_status_t;
 
+/** UDP receive queue entry */
 typedef struct {
 	/** Link to receive queue */
 	link_t link;
@@ -132,6 +136,10 @@ typedef struct {
 	udp_msg_t *msg;
 } udp_rcv_queue_entry_t;
 
+/** UDP client association.
+ *
+ * Ties a UDP association into the namespace of a client
+ */
 typedef struct udp_cassoc {
 	/** Association */
 	udp_assoc_t *assoc;
@@ -142,6 +150,7 @@ typedef struct udp_cassoc {
 	link_t lclient;
 } udp_cassoc_t;
 
+/** UDP client receive queue entry */
 typedef struct {
 	/** Link to receive queue */
 	link_t link;
@@ -153,6 +162,7 @@ typedef struct {
 	udp_cassoc_t *cassoc;
 } udp_crcv_queue_entry_t;
 
+/** UDP client */
 typedef struct udp_client {
 	/** Client callback session */
 	async_sess_t *sess;

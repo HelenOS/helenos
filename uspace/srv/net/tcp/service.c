@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup tcp
  * @{
  */
 
@@ -43,6 +43,7 @@
 #include <ipc/tcp.h>
 #include <loc.h>
 #include <macros.h>
+#include <mem.h>
 #include <stdlib.h>
 
 #include "conn.h"
@@ -52,6 +53,7 @@
 
 #define NAME "tcp"
 
+/** Maximum amount of data transferred in one send call */
 #define MAX_MSG_SIZE DATA_XFER_LIMIT
 
 static void tcp_ev_data(tcp_cconn_t *);
@@ -66,16 +68,24 @@ static void tcp_service_lst_cstate_change(tcp_conn_t *, void *, tcp_cstate_t);
 
 static int tcp_cconn_create(tcp_client_t *, tcp_conn_t *, tcp_cconn_t **);
 
+/** Connection callbacks to tie us to lower layer */
 static tcp_cb_t tcp_service_cb = {
 	.cstate_change = tcp_service_cstate_change,
 	.recv_data = tcp_service_recv_data
 };
 
+/** Sentinel connection callbacks to tie us to lower layer */
 static tcp_cb_t tcp_service_lst_cb = {
 	.cstate_change = tcp_service_lst_cstate_change,
 	.recv_data = NULL
 };
 
+/** Connection state has changed.
+ *
+ * @param conn      Connection
+ * @param arg       Argument (not used)
+ * @param old_state Previous connection state
+ */
 static void tcp_service_cstate_change(tcp_conn_t *conn, void *arg,
     tcp_cstate_t old_state)
 {
@@ -107,6 +117,12 @@ static void tcp_service_cstate_change(tcp_conn_t *conn, void *arg,
 	if (0) tcp_ev_conn_failed(cconn);
 }
 
+/** Sentinel connection state has changed.
+ *
+ * @param conn      Connection
+ * @param arg       Argument (not used)
+ * @param old_state Previous connection state
+ */
 static void tcp_service_lst_cstate_change(tcp_conn_t *conn, void *arg,
     tcp_cstate_t old_state)
 {
@@ -168,6 +184,11 @@ static void tcp_service_lst_cstate_change(tcp_conn_t *conn, void *arg,
 	tcp_uc_set_cb(conn, &tcp_service_lst_cb, clst);
 }
 
+/** Received data became available on connection.
+ *
+ * @param conn Connection
+ * @param arg  Client connection
+ */
 static void tcp_service_recv_data(tcp_conn_t *conn, void *arg)
 {
 	tcp_cconn_t *cconn = (tcp_cconn_t *)arg;
@@ -175,6 +196,10 @@ static void tcp_service_recv_data(tcp_conn_t *conn, void *arg)
 	tcp_ev_data(cconn);
 }
 
+/** Send 'data' event to client.
+ *
+ * @param cconn Client connection
+ */
 static void tcp_ev_data(tcp_cconn_t *cconn)
 {
 	async_exch_t *exch;
@@ -191,6 +216,10 @@ static void tcp_ev_data(tcp_cconn_t *cconn)
 	async_forget(req);
 }
 
+/** Send 'connected' event to client.
+ *
+ * @param cconn Client connection
+ */
 static void tcp_ev_connected(tcp_cconn_t *cconn)
 {
 	async_exch_t *exch;
@@ -204,6 +233,10 @@ static void tcp_ev_connected(tcp_cconn_t *cconn)
 	async_forget(req);
 }
 
+/** Send 'conn_failed' event to client.
+ *
+ * @param cconn Client connection
+ */
 static void tcp_ev_conn_failed(tcp_cconn_t *cconn)
 {
 	async_exch_t *exch;
@@ -217,6 +250,10 @@ static void tcp_ev_conn_failed(tcp_cconn_t *cconn)
 	async_forget(req);
 }
 
+/** Send 'conn_reset' event to client.
+ *
+ * @param cconn Client connection
+ */
 static void tcp_ev_conn_reset(tcp_cconn_t *cconn)
 {
 	async_exch_t *exch;
@@ -230,7 +267,11 @@ static void tcp_ev_conn_reset(tcp_cconn_t *cconn)
 	async_forget(req);
 }
 
-/** New incoming connection */
+/** Send 'new_conn' event to client.
+ *
+ * @param clst Client listener that received the connection
+ * @param cconn New client connection
+ */
 static void tcp_ev_new_conn(tcp_clst_t *clst, tcp_cconn_t *cconn)
 {
 	async_exch_t *exch;
@@ -245,6 +286,16 @@ static void tcp_ev_new_conn(tcp_clst_t *clst, tcp_cconn_t *cconn)
 	async_forget(req);
 }
 
+/** Create client connection.
+ *
+ * This effectively adds a connection into a client's namespace.
+ *
+ * @param client TCP client
+ * @param conn   Connection
+ * @param rcconn Place to store pointer to new client connection
+ *
+ * @return EOK on success or ENOMEM if out of memory
+ */
 static int tcp_cconn_create(tcp_client_t *client, tcp_conn_t *conn,
     tcp_cconn_t **rcconn)
 {
@@ -271,12 +322,27 @@ static int tcp_cconn_create(tcp_client_t *client, tcp_conn_t *conn,
 	return EOK;
 }
 
+/** Destroy client connection.
+ *
+ * @param cconn Client connection
+ */
 static void tcp_cconn_destroy(tcp_cconn_t *cconn)
 {
 	list_remove(&cconn->lclient);
 	free(cconn);
 }
 
+/** Create client listener.
+ *
+ * Create client listener based on sentinel connection.
+ * XXX Implement actual listener in protocol core
+ *
+ * @param client TCP client
+ * @param conn   Sentinel connection
+ * @param rclst  Place to store pointer to new client listener
+ *
+ * @return EOK on success or ENOMEM if out of memory
+ */
 static int tcp_clistener_create(tcp_client_t *client, tcp_conn_t *conn,
     tcp_clst_t **rclst)
 {
@@ -303,12 +369,25 @@ static int tcp_clistener_create(tcp_client_t *client, tcp_conn_t *conn,
 	return EOK;
 }
 
+/** Destroy client listener.
+ *
+ * @param clst Client listener
+ */
 static void tcp_clistener_destroy(tcp_clst_t *clst)
 {
 	list_remove(&clst->lclient);
 	free(clst);
 }
 
+/** Get client connection by ID.
+ *
+ * @param client Client
+ * @param id     Client connection ID
+ * @param rcconn Place to store pointer to client connection
+ *
+ * @return EOK on success, ENOENT if no client connection with the given ID
+ *         is found.
+ */
 static int tcp_cconn_get(tcp_client_t *client, sysarg_t id,
     tcp_cconn_t **rcconn)
 {
@@ -322,6 +401,15 @@ static int tcp_cconn_get(tcp_client_t *client, sysarg_t id,
 	return ENOENT;
 }
 
+/** Get client listener by ID.
+ *
+ * @param client Client
+ * @param id     Client connection ID
+ * @param rclst  Place to store pointer to client listener
+ *
+ * @return EOK on success, ENOENT if no client listener with the given ID
+ *         is found.
+ */
 static int tcp_clistener_get(tcp_client_t *client, sysarg_t id,
     tcp_clst_t **rclst)
 {
@@ -335,7 +423,16 @@ static int tcp_clistener_get(tcp_client_t *client, sysarg_t id,
 	return ENOENT;
 }
 
-
+/** Create connection.
+ *
+ * Handle client request to create connection (with parameters unmarshalled).
+ *
+ * @param client   TCP client
+ * @param epp      Endpoint pair
+ * @param rconn_id Place to store ID of new connection
+ *
+ * @return EOK on success or negative error code
+ */
 static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
     sysarg_t *rconn_id)
 {
@@ -375,6 +472,14 @@ static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
 	return EOK;
 }
 
+/** Destroy connection.
+ *
+ * Handle client request to destroy connection (with parameters unmarshalled).
+ *
+ * @param client  TCP client
+ * @param conn_id Connection ID
+ * @return EOK on success, ENOENT if no such connection is found
+ */
 static int tcp_conn_destroy_impl(tcp_client_t *client, sysarg_t conn_id)
 {
 	tcp_cconn_t *cconn;
@@ -392,6 +497,16 @@ static int tcp_conn_destroy_impl(tcp_client_t *client, sysarg_t conn_id)
 	return EOK;
 }
 
+/** Create listener.
+ *
+ * Handle client request to create listener (with parameters unmarshalled).
+ *
+ * @param client  TCP client
+ * @param ep      Endpoint
+ * @param rlst_id Place to store ID of new listener
+ *
+ * @return EOK on success or negative error code
+*/
 static int tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
     sysarg_t *rlst_id)
 {
@@ -429,6 +544,15 @@ static int tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
 	return EOK;
 }
 
+/** Destroy listener.
+ *
+ * Handle client request to destroy listener (with parameters unmarshalled).
+ *
+ * @param client TCP client
+ * @param lst_id Listener ID
+ *
+ * @return EOK on success, ENOENT if no such listener is found
+ */
 static int tcp_listener_destroy_impl(tcp_client_t *client, sysarg_t lst_id)
 {
 	tcp_clst_t *clst;
@@ -445,6 +569,15 @@ static int tcp_listener_destroy_impl(tcp_client_t *client, sysarg_t lst_id)
 	return EOK;
 }
 
+/** Send FIN.
+ *
+ * Handle client request to send FIN (with parameters unmarshalled).
+ *
+ * @param client  TCP client
+ * @param conn_id Connection ID
+ *
+ * @return EOK on success or negative error code
+ */
 static int tcp_conn_send_fin_impl(tcp_client_t *client, sysarg_t conn_id)
 {
 	tcp_cconn_t *cconn;
@@ -461,6 +594,15 @@ static int tcp_conn_send_fin_impl(tcp_client_t *client, sysarg_t conn_id)
 	return EOK;
 }
 
+/** Push connection.
+ *
+ * Handle client request to push connection (with parameters unmarshalled).
+ *
+ * @param client  TCP client
+ * @param conn_id Connection ID
+ *
+ * @return EOK on success or negative error code
+ */
 static int tcp_conn_push_impl(tcp_client_t *client, sysarg_t conn_id)
 {
 	tcp_cconn_t *cconn;
@@ -477,6 +619,15 @@ static int tcp_conn_push_impl(tcp_client_t *client, sysarg_t conn_id)
 	return EOK;
 }
 
+/** Reset connection.
+ *
+ * Handle client request to reset connection (with parameters unmarshalled).
+ *
+ * @param client  TCP client
+ * @param conn_id Connection ID
+ *
+ * @return EOK on success or negative error code
+ */
 static int tcp_conn_reset_impl(tcp_client_t *client, sysarg_t conn_id)
 {
 	tcp_cconn_t *cconn;
@@ -492,6 +643,17 @@ static int tcp_conn_reset_impl(tcp_client_t *client, sysarg_t conn_id)
 	return EOK;
 }
 
+/** Send data over connection..
+ *
+ * Handle client request to send data (with parameters unmarshalled).
+ *
+ * @param client  TCP client
+ * @param conn_id Connection ID
+ * @param data    Data buffer
+ * @param size    Data size in bytes
+ *
+ * @return EOK on success or negative error code
+ */
 static int tcp_conn_send_impl(tcp_client_t *client, sysarg_t conn_id,
     void *data, size_t size)
 {
@@ -509,6 +671,18 @@ static int tcp_conn_send_impl(tcp_client_t *client, sysarg_t conn_id,
 	return EOK;
 }
 
+/** Receive data from connection.
+ *
+ * Handle client request to receive data (with parameters unmarshalled).
+ *
+ * @param client  TCP client
+ * @param conn_id Connection ID
+ * @param data    Data buffer
+ * @param size    Buffer size in bytes
+ * @param nrecv   Place to store actual number of bytes received
+ *
+ * @return EOK on success or negative error code
+ */
 static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
     void *data, size_t size, size_t *nrecv)
 {
@@ -539,6 +713,14 @@ static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
 	return EOK;
 }
 
+/** Create client callback session.
+ *
+ * Handle client request to create callback session.
+ *
+ * @param client  TCP client
+ * @param iid     Async request ID
+ * @param icall   Async request data
+ */
 static void tcp_callback_create_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -554,6 +736,14 @@ static void tcp_callback_create_srv(tcp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, EOK);
 }
 
+/** Create connection.
+ *
+ * Handle client request to create connection.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_conn_create_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -593,6 +783,14 @@ static void tcp_conn_create_srv(tcp_client_t *client, ipc_callid_t iid,
 	async_answer_1(iid, EOK, conn_id);
 }
 
+/** Destroy connection.
+ *
+ * Handle client request to destroy connection.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_conn_destroy_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -606,6 +804,14 @@ static void tcp_conn_destroy_srv(tcp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
+/** Create listener.
+ *
+ * Handle client request to create listener.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_listener_create_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -645,6 +851,14 @@ static void tcp_listener_create_srv(tcp_client_t *client, ipc_callid_t iid,
 	async_answer_1(iid, EOK, lst_id);
 }
 
+/** Destroy listener.
+ *
+ * Handle client request to destroy listener.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_listener_destroy_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -658,6 +872,14 @@ static void tcp_listener_destroy_srv(tcp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
+/** Send FIN.
+ *
+ * Handle client request to send FIN.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_conn_send_fin_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -671,6 +893,14 @@ static void tcp_conn_send_fin_srv(tcp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
+/** Push connection.
+ *
+ * Handle client request to push connection.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_conn_push_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -684,6 +914,14 @@ static void tcp_conn_push_srv(tcp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
+/** Reset connection.
+ *
+ * Handle client request to reset connection.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_conn_reset_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -697,6 +935,14 @@ static void tcp_conn_reset_srv(tcp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
+/** Send data via connection..
+ *
+ * Handle client request to send data via connection.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_conn_send_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -749,6 +995,14 @@ static void tcp_conn_send_srv(tcp_client_t *client, ipc_callid_t iid,
 	free(data);
 }
 
+/** Read received data from connection without blocking.
+ *
+ * Handle client request to read received data via connection without blocking.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_conn_recv_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -797,6 +1051,14 @@ static void tcp_conn_recv_srv(tcp_client_t *client, ipc_callid_t iid,
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_srv(): OK");
 }
 
+/** Read received data from connection with blocking.
+ *
+ * Handle client request to read received data via connection with blocking.
+ *
+ * @param client   TCP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void tcp_conn_recv_wait_srv(tcp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -850,8 +1112,10 @@ static void tcp_conn_recv_wait_srv(tcp_client_t *client, ipc_callid_t iid,
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv(): OK");
 }
 
-#include <mem.h>
-
+/** Initialize TCP client structure.
+ *
+ * @param client TCP client
+ */
 static void tcp_client_init(tcp_client_t *client)
 {
 	memset(client, 0, sizeof(tcp_client_t));
@@ -860,6 +1124,10 @@ static void tcp_client_init(tcp_client_t *client)
 	list_initialize(&client->clst);
 }
 
+/** Finalize TCP client structure.
+ *
+ * @param client TCP client
+ */
 static void tcp_client_fini(tcp_client_t *client)
 {
 	tcp_cconn_t *cconn;
@@ -890,6 +1158,12 @@ static void tcp_client_fini(tcp_client_t *client)
 		async_hangup(client->sess);
 }
 
+/** Handle TCP client connection.
+ *
+ * @param iid   Connect call ID
+ * @param icall Connect call data
+ * @param arg   Connection argument
+ */
 static void tcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	tcp_client_t client;
@@ -960,6 +1234,10 @@ static void tcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	tcp_client_fini(&client);
 }
 
+/** Initialize TCP service.
+ *
+ * @return EOK on success or negative error code.
+ */
 int tcp_service_init(void)
 {
 	int rc;

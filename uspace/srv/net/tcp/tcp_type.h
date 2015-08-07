@@ -46,6 +46,7 @@
 
 struct tcp_conn;
 
+/** Connection state */
 typedef enum {
 	/** Listen */
 	st_listen,
@@ -100,11 +101,16 @@ typedef enum {
 	TCP_EAGAIN
 } tcp_error_t;
 
+/** Transfer flags */
 typedef enum {
 	XF_PUSH		= 0x1,
 	XF_URGENT	= 0x2
 } xflags_t;
 
+/** Control message bits
+ *
+ * Note this is not the actual on-the-wire encoding
+ */
 typedef enum {
 	CTL_SYN		= 0x1,
 	CTL_FIN		= 0x2,
@@ -127,11 +133,13 @@ typedef struct {
 	fibril_timer_t *timer;
 } tcp_tqueue_t;
 
+/** Active or passive connection */
 typedef enum {
 	ap_active,
 	ap_passive
 } acpass_t;
 
+/** Flags for TCP open operation */
 typedef enum {
 	tcp_open_nonblock = 1
 } tcp_open_flags_t;
@@ -263,7 +271,7 @@ typedef struct {
 	void *dfptr;
 } tcp_segment_t;
 
-
+/** Receive queue entry */
 typedef struct {
 	link_t link;
 	inet_ep2_t epp;
@@ -278,6 +286,7 @@ typedef struct {
 	tcp_segment_t *seg;
 } tcp_squeue_entry_t;
 
+/** Incoming queue entry */
 typedef struct {
 	link_t link;
 	tcp_segment_t *seg;
@@ -290,6 +299,11 @@ typedef struct {
 	tcp_segment_t *seg;
 } tcp_tqueue_entry_t;
 
+/** Continuation of processing.
+ *
+ * When processing incoming segment, are we done or should we continue
+ * processing it?
+ */
 typedef enum {
 	cp_continue,
 	cp_done

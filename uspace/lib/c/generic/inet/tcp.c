@@ -43,12 +43,23 @@
 static void tcp_cb_conn(ipc_callid_t, ipc_call_t *, void *);
 static int tcp_conn_fibril(void *);
 
-/** Incoming TCP connection info */
+/** Incoming TCP connection info
+ *
+ * Used to pass information about incoming TCP connection to the connection
+ * fibril
+ */
 typedef struct {
+	/** Listener who received the connection */
 	tcp_listener_t *lst;
+	/** Incoming connection */
 	tcp_conn_t *conn;
 } tcp_in_conn_t;
 
+/** Create callback connection from TCP service.
+ *
+ * @param tcp TCP service
+ * @return EOK on success or negative error code
+ */
 static int tcp_callback_create(tcp_t *tcp)
 {
 	async_exch_t *exch = async_exchange_begin(tcp->sess);
@@ -66,6 +77,12 @@ static int tcp_callback_create(tcp_t *tcp)
 	return retval;
 }
 
+/** Create TCP client instance.
+ *
+ * @param  rtcp Place to store pointer to new TCP client
+ * @return EOK on success, ENOMEM if out of memory, EIO if service
+ *         cannot be contacted
+ */
 int tcp_create(tcp_t **rtcp)
 {
 	tcp_t *tcp;
@@ -110,6 +127,10 @@ error:
 	return rc;
 }
 
+/** Destroy TCP client instance.
+ *
+ * @param tcp TCP client
+ */
 void tcp_destroy(tcp_t *tcp)
 {
 	if (tcp == NULL)
@@ -125,6 +146,16 @@ void tcp_destroy(tcp_t *tcp)
 	free(tcp);
 }
 
+/** Create new TCP connection
+ *
+ * @param tcp   TCP client instance
+ * @param id    Connection ID
+ * @param cb    Callbacks
+ * @param arg   Callback argument
+ * @param rconn Place to store pointer to new connection
+ *
+ * @return EOK on success, ENOMEM if out of memory
+ */
 static int tcp_conn_new(tcp_t *tcp, sysarg_t id, tcp_cb_t *cb, void *arg,
     tcp_conn_t **rconn)
 {
@@ -149,6 +180,28 @@ static int tcp_conn_new(tcp_t *tcp, sysarg_t id, tcp_cb_t *cb, void *arg,
 	return EOK;
 }
 
+/** Create new TCP connection.
+ *
+ * Open a connection to the specified destination. This function returns
+ * even before the connection is established (or not). When the connection
+ * is established, @a cb->connected is called. If the connection fails,
+ * @a cb->conn_failed is called. Alternatively, the caller can call
+ * @c tcp_conn_wait_connected() to wait for connection to complete or fail.
+ * Other callbacks are available to monitor the changes in connection state.
+ *
+ * @a epp must specify the remote address and port. Both local address and
+ * port are optional. If local address is not specified, address selection
+ * will take place. If local port number is not specified, a suitable
+ * free dynamic port number will be allocated.
+ *
+ * @param tcp   TCP client
+ * @param epp   Internet endpoint pair
+ * @param cb    Callbacks
+ * @param arg   Argument to callbacks
+ * @param rconn Place to store pointer to new connection
+ *
+ * @return EOK on success or negative error code.
+ */
 int tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
     tcp_conn_t **rconn)
 {
@@ -185,6 +238,13 @@ error:
 	return (int) rc;
 }
 
+/** Destroy TCP connection.
+ *
+ * Destroy TCP connection. The caller should destroy all connections
+ * he created before destroying the TCP client and before terminating.
+ *
+ * @param conn TCP connection
+ */
 void tcp_conn_destroy(tcp_conn_t *conn)
 {
 	async_exch_t *exch;
@@ -202,6 +262,14 @@ void tcp_conn_destroy(tcp_conn_t *conn)
 	(void) rc;
 }
 
+/** Get connection based on its ID.
+ *
+ * @param tcp   TCP client
+ * @param id    Connection ID
+ * @param rconn Place to store pointer to connection
+ *
+ * @return EOK on success, EINVAL if no connection with the given ID exists
+ */
 static int tcp_conn_get(tcp_t *tcp, sysarg_t id, tcp_conn_t **rconn)
 {
 	list_foreach(tcp->conn, ltcp, tcp_conn_t, conn) {
@@ -214,11 +282,37 @@ static int tcp_conn_get(tcp_t *tcp, sysarg_t id, tcp_conn_t **rconn)
 	return EINVAL;
 }
 
+/** Get the user/callback argument for a connection.
+ *
+ * @param conn TCP connection
+ * @return User argument associated with connection
+ */
 void *tcp_conn_userptr(tcp_conn_t *conn)
 {
 	return conn->cb_arg;
 }
 
+/** Create a TCP connection listener.
+ *
+ * A listener listens for connections on the set of endpoints specified
+ * by @a ep. Each time a new incoming connection is established,
+ * @a lcb->new_conn is called (and passed @a larg). Also, the new connection
+ * will have callbacks set to @a cb and argument to @a arg.
+ *
+ * @a ep must specify a valid port number. @a ep may specify an address
+ * or link to listen on. If it does not, the listener will listen on
+ * all links/addresses.
+ *
+ * @param tcp  TCP client
+ * @param ep   Internet endpoint
+ * @param lcb  Listener callbacks
+ * @param larg Listener callback argument
+ * @param cb   Connection callbacks for every new connection
+ * @param arg  Connection argument for every new connection
+ * @param rlst Place to store pointer to new listener
+ *
+ * @return EOK on success or negative error code
+ */
 int tcp_listener_create(tcp_t *tcp, inet_ep_t *ep, tcp_listen_cb_t *lcb,
     void *larg, tcp_cb_t *cb, void *arg, tcp_listener_t **rlst)
 {
@@ -264,6 +358,10 @@ error:
 	return (int) rc;
 }
 
+/** Destroy TCP connection listener.
+ *
+ * @param lst Listener
+ */
 void tcp_listener_destroy(tcp_listener_t *lst)
 {
 	async_exch_t *exch;
@@ -281,6 +379,14 @@ void tcp_listener_destroy(tcp_listener_t *lst)
 	(void) rc;
 }
 
+/** Get TCP connection listener based on its ID.
+ *
+ * @param tcp TCP client
+ * @param id  Listener ID
+ * @param rlst Place to store pointer to listener
+ *
+ * @return EOK on success, EINVAL if no listener with the given ID is found
+ */
 static int tcp_listener_get(tcp_t *tcp, sysarg_t id, tcp_listener_t **rlst)
 {
 	list_foreach(tcp->listener, ltcp, tcp_listener_t, lst) {
@@ -293,11 +399,26 @@ static int tcp_listener_get(tcp_t *tcp, sysarg_t id, tcp_listener_t **rlst)
 	return EINVAL;
 }
 
+/** Get callback/user argument associated with listener.
+ *
+ * @param lst Listener
+ * @return Callback/user argument
+ */
 void *tcp_listener_userptr(tcp_listener_t *lst)
 {
 	return lst->lcb_arg;
 }
 
+/** Wait until connection is either established or connection fails.
+ *
+ * Can be called after calling tcp_conn_create() to block until connection
+ * either completes or fails. If the connection fails, EIO is returned.
+ * In this case the connection still exists, but is in a failed
+ * state.
+ *
+ * @param conn Connection
+ * @return EOK if connection is established, EIO otherwise
+ */
 int tcp_conn_wait_connected(tcp_conn_t *conn)
 {
 	fibril_mutex_lock(&conn->lock);
@@ -314,6 +435,14 @@ int tcp_conn_wait_connected(tcp_conn_t *conn)
 	}
 }
 
+/** Send data over TCP connection.
+ *
+ * @param conn  Connection
+ * @param data  Data
+ * @param bytes Data size in bytes
+ *
+ * @return EOK on success or negative error code
+ */
 int tcp_conn_send(tcp_conn_t *conn, const void *data, size_t bytes)
 {
 	async_exch_t *exch;
@@ -339,7 +468,13 @@ int tcp_conn_send(tcp_conn_t *conn, const void *data, size_t bytes)
 	return rc;
 }
 
-
+/** Send FIN.
+ *
+ * Send FIN, indicating no more data will be send over the connection.
+ *
+ * @param conn Connection
+ * @return EOK on success or negative error code
+ */
 int tcp_conn_send_fin(tcp_conn_t *conn)
 {
 	async_exch_t *exch;
@@ -351,6 +486,11 @@ int tcp_conn_send_fin(tcp_conn_t *conn)
 	return rc;
 }
 
+/** Push connection.
+ *
+ * @param conn Connection
+ * @return EOK on success or negative error code
+ */
 int tcp_conn_push(tcp_conn_t *conn)
 {
 	async_exch_t *exch;
@@ -362,6 +502,11 @@ int tcp_conn_push(tcp_conn_t *conn)
 	return rc;
 }
 
+/** Reset connection.
+ *
+ * @param conn Connection
+ * @return EOK on success or negative error code
+ */
 int tcp_conn_reset(tcp_conn_t *conn)
 {
 	async_exch_t *exch;
@@ -373,6 +518,23 @@ int tcp_conn_reset(tcp_conn_t *conn)
 	return rc;
 }
 
+/** Read received data from connection without blocking.
+ *
+ * If any received data is pending on the connection, up to @a bsize bytes
+ * are copied to @a buf and the acutal number is stored in @a *nrecv.
+ * The entire buffer of @a bsize bytes is filled except when less data
+ * is currently available or FIN is received. EOK is returned.
+ *
+ * If no received data is pending, returns EAGAIN.
+ *
+ * @param conn Connection
+ * @param buf  Buffer
+ * @param bsize Buffer size
+ * @param nrecv Place to store actual number of received bytes
+ *
+ * @return EOK on success, EAGAIN if no received data is pending, or other
+ *         negative error code in case of other error
+ */
 int tcp_conn_recv(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
 {
 	async_exch_t *exch;
@@ -407,7 +569,22 @@ int tcp_conn_recv(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
 	return EOK;
 }
 
-int tcp_conn_recv_wait(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
+/** Read received data from connection with blocking.
+ *
+ * Wait for @a bsize bytes of data to be received and copy them to
+ * @a buf. Less data may be returned if FIN is received on the connection.
+ * The actual If any received data is written to @a *nrecv and EOK
+ * is returned on success.
+ *
+ * @param conn Connection
+ * @param buf  Buffer
+ * @param bsize Buffer size
+ * @param nrecv Place to store actual number of received bytes
+ *
+ * @return EOK on success or negative error code
+ */
+int tcp_conn_recv_wait(tcp_conn_t *conn, void *buf, size_t bsize,
+    size_t *nrecv)
 {
 	async_exch_t *exch;
 	ipc_call_t answer;
@@ -449,6 +626,12 @@ again:
 	return EOK;
 }
 
+/** Connection established event.
+ *
+ * @param tcp TCP client
+ * @param iid Call ID
+ * @param icall Call data
+ */
 static void tcp_ev_connected(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
@@ -471,6 +654,12 @@ static void tcp_ev_connected(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+/** Connection failed event.
+ *
+ * @param tcp TCP client
+ * @param iid Call ID
+ * @param icall Call data
+ */
 static void tcp_ev_conn_failed(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
@@ -493,6 +682,12 @@ static void tcp_ev_conn_failed(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+/** Connection reset event.
+ *
+ * @param tcp TCP client
+ * @param iid Call ID
+ * @param icall Call data
+ */
 static void tcp_ev_conn_reset(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
@@ -515,6 +710,12 @@ static void tcp_ev_conn_reset(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+/** Data available event.
+ *
+ * @param tcp TCP client
+ * @param iid Call ID
+ * @param icall Call data
+ */
 static void tcp_ev_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
@@ -538,11 +739,23 @@ static void tcp_ev_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+/** Urgent data event.
+ *
+ * @param tcp TCP client
+ * @param iid Call ID
+ * @param icall Call data
+ */
 static void tcp_ev_urg_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	async_answer_0(iid, ENOTSUP);
 }
 
+/** New connection event.
+ *
+ * @param tcp TCP client
+ * @param iid Call ID
+ * @param icall Call data
+ */
 static void tcp_ev_new_conn(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	tcp_listener_t *lst;
@@ -589,6 +802,12 @@ static void tcp_ev_new_conn(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+/** Callback connection handler.
+ *
+ * @param iid Connect call ID
+ * @param icall Connect call data
+ * @param arg Argument, TCP client
+ */
 static void tcp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	tcp_t *tcp = (tcp_t *)arg;
@@ -635,7 +854,10 @@ out:
 	fibril_condvar_broadcast(&tcp->cv);
 }
 
-/** Fibril for handling incoming TCP connection in background */
+/** Fibril for handling incoming TCP connection in background.
+ *
+ * @param arg Argument, incoming connection information (@c tcp_in_conn_t)
+ */
 static int tcp_conn_fibril(void *arg)
 {
 	tcp_in_conn_t *cinfo = (tcp_in_conn_t *)arg;

@@ -45,6 +45,11 @@
 
 #include <io/log.h>
 
+/** Create port range.
+ *
+ * @param rpr Place to store pointer to new port range
+ * @return EOK on success, ENOMEM if out of memory
+ */
 int portrng_create(portrng_t **rpr)
 {
 	portrng_t *pr;
@@ -61,6 +66,10 @@ int portrng_create(portrng_t **rpr)
 	return EOK;
 }
 
+/** Destroy port range.
+ *
+ * @param pr Port range
+ */
 void portrng_destroy(portrng_t *pr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_destroy()");
@@ -68,6 +77,21 @@ void portrng_destroy(portrng_t *pr)
 	free(pr);
 }
 
+/** Allocate port number from port range.
+ *
+ * @param pr    Port range
+ * @param pnum  Port number to allocate specific port, or zero to allocate
+ *              any valid port from range
+ * @param arg   User argument to set for port
+ * @param flags Flags, @c pf_allow_system to allow ports from system range
+ *              to be specified by @a pnum.
+ * @param apnum Place to store allocated port number
+ *
+ * @return EOK on success, ENOENT if no free port number found, EEXISTS
+ *         if @a pnum is specified but it is already allocated,
+ *         EINVAL if @a pnum is specified from the system range, but
+ *         @c pf_allow_system was not set.
+ */
 int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
     portrng_flags_t flags, uint16_t *apnum)
 {
@@ -130,6 +154,14 @@ int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
 	return EOK;
 }
 
+/** Find allocated port number and return its argument.
+ *
+ * @param pr   Port range
+ * @param pnum Port number
+ * @param rarg Place to store user argument
+ *
+ * @return EOK on success, ENOENT if specified port number is not allocated
+ */
 int portrng_find_port(portrng_t *pr, uint16_t pnum, void **rarg)
 {
 	list_foreach(pr->used, lprng, portrng_port_t, port) {
@@ -142,6 +174,11 @@ int portrng_find_port(portrng_t *pr, uint16_t pnum, void **rarg)
 	return ENOENT;
 }
 
+/** Free port in port range.
+ *
+ * @param pr   Port range
+ * @param pnum Port number
+ */
 void portrng_free_port(portrng_t *pr, uint16_t pnum)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port() - begin");
@@ -157,6 +194,11 @@ void portrng_free_port(portrng_t *pr, uint16_t pnum)
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port() - end");
 }
 
+/** Determine if port range is empty.
+ *
+ * @param pr Port range
+ * @return @c true if no ports are allocated from @a pr, @c false otherwise
+ */
 bool portrng_empty(portrng_t *pr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_empty()");
