@@ -43,6 +43,8 @@ typedef enum event_type {
 	EVENT_KCONSOLE,
 	/** A task/thread has faulted and will be terminated */
 	EVENT_FAULT,
+	/** A task terminated (on its own or it was killed) */
+	EVENT_EXIT,
 	/** New data available in kernel log */
 	EVENT_KLOG,
 	EVENT_END

@@ -585,12 +585,12 @@ errno_t task_kill(task_id_t id)
 
 /** Kill the currently running task.
  *
- * @param notify Send out fault notifications.
+ * @param fault Send out fault notifications.
  *
  * @return Zero on success or an error code from errno.h.
  *
  */
-void task_kill_self(bool notify)
+void task_kill_self(bool fault)
 {
 	/*
 	 * User space can subscribe for FAULT events to take action
@@ -598,7 +598,7 @@ void task_kill_self(bool notify)
 	 * The notification is always available, but unless udebug is enabled,
 	 * that's all you get.
 	 */
-	if (notify) {
+	if (fault) {
 		/* Notify the subscriber that a fault occurred. */
 		if (event_notify_3(EVENT_FAULT, false, LOWER32(TASK->taskid),
 		    UPPER32(TASK->taskid), (sysarg_t) THREAD) == EOK) {
@@ -618,12 +618,12 @@ void task_kill_self(bool notify)
 
 /** Process syscall to terminate the current task.
  *
- * @param notify Send out fault notifications.
+ * @param fault Send out fault notifications.
  *
  */
-sys_errno_t sys_task_exit(sysarg_t notify)
+sys_errno_t sys_task_exit(sysarg_t fault)
 {
-	task_kill_self(notify);
+	task_kill_self(fault);
 	unreachable();
 }
 

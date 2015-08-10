@@ -521,6 +521,13 @@ void thread_exit(void)
 			ipc_cleanup();
 			sys_waitq_task_cleanup();
 			LOG("Cleanup of task %" PRIu64 " completed.", TASK->taskid);
+
+			/*
+			 * Notify about task exit, it is meant to be signalled
+			 * after any IPC cleanup operations. Ignore any errors.
+			 */
+			(void)event_notify_2(EVENT_EXIT, false,
+			    LOWER32(TASK->taskid), UPPER32(TASK->taskid));
 		}
 	}
 
