@@ -37,6 +37,7 @@
 
 #include <typedefs.h>
 
+struct answerbox;
 struct task;
 struct thread;
 
@@ -54,7 +55,8 @@ typedef struct program {
 
 extern void *program_loader;
 
-extern errno_t program_create(as_t *, uspace_addr_t, char *, program_t *);
+extern errno_t program_create(as_t *, uspace_addr_t, char *, struct answerbox *,
+	program_t *);
 extern errno_t program_create_from_image(void *, char *, program_t *);
 extern errno_t program_create_loader(program_t *, char *);
 extern void program_ready(program_t *);

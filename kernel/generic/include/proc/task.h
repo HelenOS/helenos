@@ -138,7 +138,7 @@ extern odict_t tasks;
 
 extern void task_init(void);
 extern void task_done(void);
-extern task_t *task_create(as_t *, const char *);
+extern task_t *task_create(as_t *, const char *, answerbox_t *);
 extern void task_destroy(task_t *);
 extern void task_hold(task_t *);
 extern void task_release(task_t *);

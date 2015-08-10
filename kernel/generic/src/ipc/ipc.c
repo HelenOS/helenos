@@ -64,7 +64,7 @@
 
 static void ipc_forget_call(call_t *);
 
-/** Answerbox that new tasks are automatically connected to */
+/** Answerbox that is assigned to boot-time tasks */
 answerbox_t *ipc_box_0 = NULL;
 
 static slab_cache_t *call_cache;

@@ -189,13 +189,14 @@ size_t tsk_destructor(void *obj)
 
 /** Create new task with no threads.
  *
- * @param as   Task's address space.
- * @param name Symbolic name (a copy is made).
+ * @param as         Task's address space.
+ * @param name       Symbolic name (a copy is made).
+ * @param answerbox  (Optional) answerbox where box 0 is connected to.
  *
  * @return New task's structure.
  *
  */
-task_t *task_create(as_t *as, const char *name)
+task_t *task_create(as_t *as, const char *name, answerbox_t *answerbox)
 {
 	task_t *task = (task_t *) slab_alloc(task_cache, FRAME_ATOMIC);
 	if (!task)
@@ -233,8 +234,8 @@ task_t *task_create(as_t *as, const char *name)
 	task->kb.finished = false;
 #endif
 
-	if ((ipc_box_0) &&
-	    (container_check(ipc_box_0->task->container, task->container))) {
+	if ((answerbox) &&
+	    (container_check(answerbox->task->container, task->container))) {
 		cap_phone_handle_t phone_handle;
 		errno_t rc = phone_alloc(task, true, &phone_handle, NULL);
 		if (rc != EOK) {
@@ -246,7 +247,7 @@ task_t *task_create(as_t *as, const char *name)
 
 		kobject_t *phone_obj = kobject_get(task, phone_handle,
 		    KOBJECT_TYPE_PHONE);
-		(void) ipc_phone_connect(phone_obj->phone, ipc_box_0);
+		(void) ipc_phone_connect(phone_obj->phone, answerbox);
 	}
 
 	irq_spinlock_lock(&tasks_lock, true);

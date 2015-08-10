@@ -63,12 +63,14 @@ void *program_loader = NULL;
  * @param as         Address space containing a binary program image.
  * @param entry_addr Program entry-point address in program address space.
  * @param name       Name to set for the program's task.
+ * @param answerbox  Answerbox where box 0 is connected to (may be NULL).
  * @param prg        Buffer for storing program information.
  *
  * @return EOK on success or an error code.
  *
  */
-errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t *prg)
+errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name,
+	struct answerbox *answerbox, program_t *prg)
 {
 	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
 	    malloc(sizeof(uspace_arg_t));
@@ -76,7 +78,7 @@ errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t
 		return ENOMEM;
 
 	prg->loader_status = EOK;
-	prg->task = task_create(as, name);
+	prg->task = task_create(as, name, answerbox);
 	if (!prg->task) {
 		free(kernel_uarg);
 		return ELIMIT;
@@ -156,7 +158,7 @@ errno_t program_create_from_image(void *image_addr, char *name, program_t *prg)
 	}
 
 	return program_create(as, ((elf_header_t *) image_addr)->e_entry,
-	    name, prg);
+	    name, ipc_box_0, prg);
 }
 
 /** Create a task from the program loader image.
@@ -190,7 +192,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 	}
 
 	return program_create(as, ((elf_header_t *) program_loader)->e_entry,
-	    name, prg);
+	    name, &TASK->answerbox, prg);
 }
 
 /** Make program ready.
