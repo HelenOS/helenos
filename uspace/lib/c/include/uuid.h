@@ -36,19 +36,13 @@
 #define LIBC_UUID_H_
 
 #include <stdint.h>
-
-enum {
-	uuid_bytes = 16
-};
-
-/** Universally Unique Identifier */
-typedef struct {
-	uint8_t b[uuid_bytes];
-} uuid_t;
+#include <types/uuid.h>
 
 extern int uuid_generate(uuid_t *);
 extern void uuid_encode(uuid_t *, uint8_t *);
 extern void uuid_decode(uint8_t *, uuid_t *);
+extern int uuid_parse(const char *, uuid_t *, const char **);
+extern int uuid_format(uuid_t *, char **);
 
 #endif
 

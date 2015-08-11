@@ -51,6 +51,7 @@ extern int vbds_label_delete(service_id_t);
 extern int vbds_part_get_info(vbds_part_id_t, vbd_part_info_t *);
 extern int vbds_part_create(service_id_t, vbd_part_spec_t *,vbds_part_id_t *);
 extern int vbds_part_delete(vbds_part_id_t);
+extern int vbds_suggest_ptype(service_id_t, label_pcnt_t, label_ptype_t *);
 extern void vbds_bd_conn(ipc_callid_t, ipc_call_t *, void *);
 
 #endif

@@ -60,6 +60,7 @@ typedef struct {
 	void (*part_get_info)(label_part_t *, label_part_info_t *);
 	int (*part_create)(label_t *, label_part_spec_t *, label_part_t **);
 	int (*part_destroy)(label_part_t *);
+	int (*suggest_ptype)(label_t *, label_pcnt_t, label_ptype_t *);
 } label_ops_t;
 
 struct label_info {
@@ -105,7 +106,7 @@ struct label_part {
 	/** Number of blocks */
 	aoff64_t nblocks;
 	/** Partition type */
-	uint64_t ptype;
+	label_ptype_t ptype;
 	/** Partition UUID */
 	uuid_t part_uuid;
 };
@@ -123,7 +124,7 @@ struct label_part_spec {
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** Partition type */
-	uint64_t ptype;
+	label_ptype_t ptype;
 };
 
 typedef struct {

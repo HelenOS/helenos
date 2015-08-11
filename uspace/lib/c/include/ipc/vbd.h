@@ -45,6 +45,7 @@ typedef enum {
 	VBD_PART_GET_INFO,
 	VBD_PART_CREATE,
 	VBD_PART_DELETE,
+	VBD_SUGGEST_PTYPE
 } vbd_request_t;
 
 #endif

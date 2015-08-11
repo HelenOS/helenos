@@ -73,7 +73,7 @@ typedef struct {
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** Partition type */
-	uint64_t ptype;
+	label_ptype_t ptype;
 } vbd_part_spec_t;
 
 /** Partition info */
@@ -104,6 +104,8 @@ extern int vbd_part_create(vbd_t *, service_id_t, vbd_part_spec_t *,
     vbd_part_id_t *);
 extern int vbd_part_delete(vbd_t *, vbd_part_id_t);
 extern void vbd_pspec_init(vbd_part_spec_t *);
+extern int vbd_suggest_ptype(vbd_t *, service_id_t, label_pcnt_t,
+    label_ptype_t *);
 
 #endif
 

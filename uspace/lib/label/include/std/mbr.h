@@ -56,11 +56,23 @@ enum {
 	mbr_ebr_pte_next = 1
 };
 
-enum ptype {
+enum mbr_ptype {
 	/** Unused partition entry */
-	mbr_pt_unused	= 0x00,
+	mbr_pt_unused	    = 0x00,
 	/** Extended partition */
-	mbr_pt_extended	= 0x05
+	mbr_pt_extended	    = 0x05,
+	/** Extended partition with LBA */
+	mbr_pt_extended_lba = 0x0f,
+	/** FAT16 with LBA */
+	mbr_pt_fat16_lba    = 0x0e,
+	/** FAT32 with LBA */
+	mbr_pt_fat32_lba    = 0x0c,
+	/** IFS, HPFS, NTFS, exFAT */
+	mbr_pt_ms_advanced  = 0x07,
+	/** Minix */
+	mbr_pt_minix        = 0x81,
+	/** Linux */
+	mbr_pt_linux        = 0x83
 };
 
 /** Structure of a partition table entry */

@@ -132,5 +132,11 @@ void label_pspec_init(label_part_spec_t *pspec)
 	memset(pspec, 0, sizeof(label_part_spec_t));
 }
 
+int label_suggest_ptype(label_t *label, label_pcnt_t pcnt,
+    label_ptype_t *ptype)
+{
+	return label->ops->suggest_ptype(label, pcnt, ptype);
+}
+
 /** @}
  */

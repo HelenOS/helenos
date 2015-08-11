@@ -35,6 +35,8 @@
 #ifndef LIBC_TYPES_LABEL_H_
 #define LIBC_TYPES_LABEL_H_
 
+#include <types/uuid.h>
+
 /** Disk contents */
 typedef enum {
 	/** Disk is considered empty */
@@ -71,13 +73,50 @@ typedef enum {
 typedef enum {
 	/** Label supports extended (and logical) partitions */
 	lf_ext_supp = 0x1,
+	/** Partition type is in UUID format (otherwise in small number format) */
+	lf_ptype_uuid = 0x2,
 	/** Currently it is possible to create a primary partition */
-	lf_can_create_pri = 0x2,
+	lf_can_create_pri = 0x4,
 	/** Currently it is possible to create an extended partition */
-	lf_can_create_ext = 0x4,
+	lf_can_create_ext = 0x8,
 	/** Currrently it is possible to create a logical partition */
-	lf_can_create_log = 0x8
+	lf_can_create_log = 0x10
 } label_flags_t;
+
+/** Partition type format */
+typedef enum {
+	/** Small number */
+	lptf_num,
+	/** UUID */
+	lptf_uuid
+} label_pt_fmt;
+
+/** Partition type */
+typedef struct {
+	/** Type format */
+	label_pt_fmt fmt;
+	/** Depending on @c fmt */
+	union {
+		/* Small number */
+		uint8_t num;
+		/** UUID */
+		uuid_t uuid;
+	} t;
+} label_ptype_t;
+
+/** Partition content (used to get partition type suggestion) */
+typedef enum {
+	/** ExFAT */
+	lpc_exfat,
+	/** Ext4 */
+	lpc_ext4,
+	/** FAT12 or FAT16 */
+	lpc_fat12_16,
+	/** FAT32 */
+	lpc_fat32,
+	/** Minix file system */
+	lpc_minix
+} label_pcnt_t;
 
 #endif
 

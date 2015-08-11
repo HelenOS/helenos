@@ -53,6 +53,7 @@ static label_part_t *mbr_part_next(label_part_t *);
 static void mbr_part_get_info(label_part_t *, label_part_info_t *);
 static int mbr_part_create(label_t *, label_part_spec_t *, label_part_t **);
 static int mbr_part_destroy(label_part_t *);
+static int mbr_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
 
 static void mbr_unused_pte(mbr_pte_t *);
 static int mbr_part_to_pte(label_part_t *, mbr_pte_t *);
@@ -76,7 +77,8 @@ label_ops_t mbr_label_ops = {
 	.part_next = mbr_part_next,
 	.part_get_info = mbr_part_get_info,
 	.part_create = mbr_part_create,
-	.part_destroy = mbr_part_destroy
+	.part_destroy = mbr_part_destroy,
+	.suggest_ptype = mbr_suggest_ptype
 };
 
 static int mbr_open(service_id_t sid, label_t **rlabel)
@@ -484,10 +486,10 @@ static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 	pinfo->nblocks = part->nblocks;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_get_info: index=%d ptype=%d",
-	    (int)part->index, (int)part->ptype);
+	    (int)part->index, (int)part->ptype.t.num);
 	if (link_used(&part->llog))
 		pinfo->pkind = lpk_logical;
-	else if (part->ptype == mbr_pt_extended)
+	else if (part->ptype.t.num == mbr_pt_extended)
 		pinfo->pkind = lpk_extended;
 	else
 		pinfo->pkind = lpk_primary;
@@ -501,6 +503,9 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 	label_part_t *next;
 	mbr_pte_t pte;
 	int rc;
+
+	if (pspec->ptype.fmt != lptf_num)
+		return EINVAL;
 
 	part = calloc(1, sizeof(label_part_t));
 	if (part == NULL)
@@ -520,8 +525,9 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 		part->ptype = pspec->ptype;
 		break;
 	case lpk_extended:
-		part->ptype = mbr_pt_extended;
-		if (pspec->ptype != 0) {
+		part->ptype.fmt = lptf_num;
+		part->ptype.t.num = mbr_pt_extended;
+		if (pspec->ptype.t.num != 0) {
 			rc = EINVAL;
 			goto error;
 		}
@@ -704,6 +710,37 @@ static int mbr_part_destroy(label_part_t *part)
 	return EOK;
 }
 
+static int mbr_suggest_ptype(label_t *label, label_pcnt_t pcnt,
+    label_ptype_t *ptype)
+{
+	ptype->fmt = lptf_num;
+	ptype->t.num = 0;
+
+	switch (pcnt) {
+	case lpc_exfat:
+		ptype->t.num = mbr_pt_ms_advanced;
+		break;
+	case lpc_ext4:
+		ptype->t.num = mbr_pt_linux;
+		break;
+	case lpc_fat12_16:
+		ptype->t.num = mbr_pt_fat16_lba;
+		break;
+	case lpc_fat32:
+		ptype->t.num = mbr_pt_fat32_lba;
+		break;
+	case lpc_minix:
+		ptype->t.num = mbr_pt_minix;
+		break;
+	}
+
+	if (ptype->t.num == 0)
+		return EINVAL;
+
+	return EOK;
+}
+
+
 static void mbr_unused_pte(mbr_pte_t *pte)
 {
 	memset(pte, 0, sizeof(mbr_pte_t));
@@ -715,14 +752,14 @@ static int mbr_part_to_pte(label_part_t *part, mbr_pte_t *pte)
 		return EINVAL;
 	if ((part->nblocks >> 32) != 0)
 		return EINVAL;
-	if ((part->ptype >> 8) != 0)
+	if ((part->ptype.t.num >> 8) != 0)
 		return EINVAL;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_to_pte: a0=%" PRIu64
 	    " len=%" PRIu64 " ptype=%d", part->block0, part->nblocks,
-	    (int)part->ptype);
+	    (int)part->ptype.t.num);
 	memset(pte, 0, sizeof(mbr_pte_t));
-	pte->ptype = part->ptype;
+	pte->ptype = part->ptype.t.num;
 	pte->first_lba = host2uint32_t_le(part->block0);
 	pte->length = host2uint32_t_le(part->nblocks);
 	return EOK;
@@ -745,7 +782,8 @@ static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
 	if (part == NULL)
 		return ENOMEM;
 
-	part->ptype = pte->ptype;
+	part->ptype.fmt = lptf_num;
+	part->ptype.t.num = pte->ptype;
 	part->index = index;
 	part->block0 = block0;
 	part->nblocks = nblocks;
@@ -785,7 +823,8 @@ static int mbr_pte_to_log_part(label_t *label, uint64_t ebr_b0,
 
 	nlparts = list_count(&label->log_parts);
 
-	part->ptype = pte->ptype;
+	part->ptype.fmt = lptf_num;
+	part->ptype.t.num = pte->ptype;
 	part->index = mbr_nprimary + 1 + nlparts;
 	part->block0 = block0;
 	part->nblocks = nblocks;
@@ -815,7 +854,7 @@ static void mbr_log_part_to_ptes(label_part_t *part, mbr_pte_t *pthis,
 	/* 'This' EBR entry */
 	if (pthis != NULL) {
 		memset(pthis, 0, sizeof(mbr_pte_t));
-		pthis->ptype = part->ptype;
+		pthis->ptype = part->ptype.t.num;
 		pthis->first_lba = host2uint32_t_le(part->hdr_blocks);
 		pthis->length = host2uint32_t_le(part->nblocks);
 	}

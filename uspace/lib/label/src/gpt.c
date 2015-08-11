@@ -54,6 +54,7 @@ static label_part_t *gpt_part_next(label_part_t *);
 static void gpt_part_get_info(label_part_t *, label_part_info_t *);
 static int gpt_part_create(label_t *, label_part_spec_t *, label_part_t **);
 static int gpt_part_destroy(label_part_t *);
+static int gpt_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
 
 static void gpt_unused_pte(gpt_entry_t *);
 static int gpt_part_to_pte(label_part_t *, gpt_entry_t *);
@@ -79,7 +80,8 @@ label_ops_t gpt_label_ops = {
 	.part_next = gpt_part_next,
 	.part_get_info = gpt_part_get_info,
 	.part_create = gpt_part_create,
-	.part_destroy = gpt_part_destroy
+	.part_destroy = gpt_part_destroy,
+	.suggest_ptype = gpt_suggest_ptype
 };
 
 static int gpt_open(service_id_t sid, label_t **rlabel)
@@ -546,7 +548,7 @@ static int gpt_get_info(label_t *label, label_info_t *linfo)
 	memset(linfo, 0, sizeof(label_info_t));
 	linfo->dcnt = dc_label;
 	linfo->ltype = lt_gpt;
-	linfo->flags = 0;
+	linfo->flags = lf_ptype_uuid; /* Partition type is in UUID format */
 	if (gpt_can_create_pri(label))
 		linfo->flags = linfo->flags | lf_can_create_pri;
 	linfo->ablock0 = label->ablock0;
@@ -610,6 +612,12 @@ static int gpt_part_create(label_t *label, label_part_spec_t *pspec,
 		goto error;
 	}
 
+	/* Partition type must be in UUID format */
+	if (pspec->ptype.fmt != lptf_uuid) {
+		rc = EINVAL;
+		goto error;
+	}
+
 	/* XXX Check if index is used */
 
 	part->label = label;
@@ -662,6 +670,38 @@ static int gpt_part_destroy(label_part_t *part)
 	return EOK;
 }
 
+static int gpt_suggest_ptype(label_t *label, label_pcnt_t pcnt,
+    label_ptype_t *ptype)
+{
+	const char *ptid;
+	int rc;
+
+	ptid = NULL;
+
+	switch (pcnt) {
+	case lpc_fat12_16:
+	case lpc_exfat:
+	case lpc_fat32:
+		ptid = GPT_MS_BASIC_DATA;
+		break;
+	case lpc_ext4:
+		ptid = GPT_LINUX_FS_DATA;
+		break;
+	case lpc_minix:
+		ptid = GPT_MINIX_FAKE;
+		break;
+	}
+
+	if (ptid == NULL)
+		return EINVAL;
+
+	ptype->fmt = lptf_uuid;
+	rc = uuid_parse(ptid, &ptype->t.uuid, NULL);
+	assert(rc == EOK);
+
+	return EOK;
+}
+
 static void gpt_unused_pte(gpt_entry_t *pte)
 {
 	memset(pte, 0, sizeof(gpt_entry_t));
@@ -676,7 +716,7 @@ static int gpt_part_to_pte(label_part_t *part, gpt_entry_t *pte)
 		return EINVAL;
 
 	memset(pte, 0, sizeof(gpt_entry_t));
-	pte->part_type[0] = 0x12;
+	uuid_encode(&part->ptype.t.uuid, pte->part_type);
 	uuid_encode(&part->part_uuid, pte->part_id);
 	pte->start_lba = host2uint64_t_le(part->block0);
 	pte->end_lba = host2uint64_t_le(eblock);
@@ -712,6 +752,8 @@ static int gpt_pte_to_part(label_t *label, gpt_entry_t *pte, int index)
 	part->index = index;
 	part->block0 = b0;
 	part->nblocks = b1 - b0 + 1;
+	part->ptype.fmt = lptf_uuid;
+	uuid_decode(pte->part_type, &part->ptype.t.uuid);
 	uuid_decode(pte->part_id, &part->part_uuid);
 
 	part->label = label;

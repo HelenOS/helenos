@@ -502,7 +502,7 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Partition %zu not found",
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Disk %zu not found",
 		    sid);
 		goto error;
 	}
@@ -582,6 +582,30 @@ int vbds_part_delete(vbds_part_id_t partid)
 	}
 
 	return EOK;
+}
+
+int vbds_suggest_ptype(service_id_t sid, label_pcnt_t pcnt,
+    label_ptype_t *ptype)
+{
+	vbds_disk_t *disk;
+	int rc;
+
+	rc = vbds_disk_by_svcid(sid, &disk);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Disk %zu not found",
+		    sid);
+		goto error;
+	}
+
+	rc = label_suggest_ptype(disk->label, pcnt, ptype);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "label_suggest_ptype() failed");
+		goto error;
+	}
+
+	return EOK;
+error:
+	return rc;
 }
 
 static int vbds_bd_open(bd_srvs_t *bds, bd_srv_t *bd)

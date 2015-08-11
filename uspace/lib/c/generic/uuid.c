@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <uuid.h>
 #include <stdlib.h>
+#include <str.h>
 
 /** Generate UUID.
  *
@@ -85,6 +86,89 @@ void uuid_decode(uint8_t *buf, uuid_t *uuid)
 	for (i = 0; i < uuid_bytes; i++)
 		uuid->b[i] = buf[i];
 }
+
+/** Parse string UUID.
+ *
+ * If @a endptr is not NULL, it is set to point to the first character
+ * following the UUID. If @a endptr is NULL, the string must not contain
+ * any characters following the UUID, otherwise an error is returned.
+ *
+ * @param str    String beginning with UUID string representation
+ * @param uuid   Place to store UUID
+ * @param endptr Place to store pointer to end of UUID or @c NULL
+ *
+ * @return EOK on success or negative error code
+ */
+int uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
+{
+	int rc;
+	const char *eptr;
+	uint32_t time_low;
+	uint16_t time_mid;
+	uint16_t time_ver;
+	uint16_t clock;
+	uint64_t node;
+	int i;
+
+	rc = str_uint32_t(str, &eptr, 16, false, &time_low);
+	if (rc != EOK || eptr != str + 8 || *eptr != '-')
+		return EINVAL;
+
+	rc = str_uint16_t(str + 9, &eptr, 16, false, &time_mid);
+	if (rc != EOK || eptr != str + 13 || *eptr != '-')
+		return EINVAL;
+
+	rc = str_uint16_t(str + 14, &eptr, 16, false, &time_ver);
+	if (rc != EOK || eptr != str + 18 || *eptr != '-')
+		return EINVAL;
+
+	rc = str_uint16_t(str + 19, &eptr, 16, false, &clock);
+	if (rc != EOK || eptr != str + 23 || *eptr != '-')
+		return EINVAL;
+
+	rc = str_uint64_t(str + 24, &eptr, 16, false, &node);
+	if (rc != EOK || eptr != str + 36 || *eptr != '\0')
+		return EINVAL;
+
+	uuid->b[0] = time_low >> 24;
+	uuid->b[1] = (time_low >> 16) & 0xff;
+	uuid->b[2] = (time_low >> 8) & 0xff;
+	uuid->b[3] = time_low & 0xff;
+
+	uuid->b[4] = time_mid >> 8;
+	uuid->b[5] = time_mid & 0xff;
+
+	uuid->b[6] = time_ver >> 8;
+	uuid->b[7] = time_ver & 0xff;
+
+	uuid->b[8] = clock >> 8;
+	uuid->b[9] = clock & 0xff;
+
+	for (i = 0; i < 6; i++)
+		uuid->b[10 + i] = (node >> 8 * (5 - i)) & 0xff;
+
+	if (endptr != NULL) {
+		*endptr = str + 36;
+	} else {
+		if (*(str + 36) != '\0')
+			return EINVAL;
+	}
+
+	return EOK;
+}
+
+/** Format UUID into string representation.
+ *
+ * @param uuid UUID
+ * @param rstr Place to store pointer to newly allocated string
+ *
+ * @return EOK on success, ENOMEM if out of memory
+ */
+int uuid_format(uuid_t *uuid, char **rstr)
+{
+	return ENOTSUP;
+}
+
 
 /** @}
  */

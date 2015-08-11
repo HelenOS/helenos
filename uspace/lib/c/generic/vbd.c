@@ -329,5 +329,39 @@ void vbd_pspec_init(vbd_part_spec_t *pspec)
 	memset(pspec, 0, sizeof(vbd_part_spec_t));
 }
 
+/** Suggest partition type based on partition content.
+ *
+ * @param vbd   Virtual Block Device
+ * @param disk  Disk on which the partition will be created
+ * @param pcnt  Partition content
+ * @param ptype Place to store suggested partition type
+ *
+ * @return EOK on success or negative error code
+ */
+int vbd_suggest_ptype(vbd_t *vbd, service_id_t disk, label_pcnt_t pcnt,
+    label_ptype_t *ptype)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	ipc_call_t answer;
+
+	exch = async_exchange_begin(vbd->sess);
+	aid_t req = async_send_2(exch, VBD_SUGGEST_PTYPE, disk, pcnt, &answer);
+	int rc = async_data_read_start(exch, ptype, sizeof(label_ptype_t));
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		return EIO;
+	}
+
+	async_wait_for(req, &retval);
+	if (retval != EOK)
+		return EIO;
+
+	return EOK;
+}
+
+
 /** @}
  */

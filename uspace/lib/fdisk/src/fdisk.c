@@ -911,6 +911,7 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	aoff64_t fblock0;
 	aoff64_t fnblocks;
 	uint64_t block_size;
+	label_pcnt_t pcnt;
 	unsigned i;
 	int index;
 	int rc;
@@ -930,6 +931,29 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	    block_size);
 	req_blocks = (cbytes + block_size - 1) / block_size;
 	req_blocks = fdisk_ba_align_up(dev, req_blocks);
+
+	pcnt = -1;
+
+	switch (pspec->fstype) {
+	case fdfs_none:
+	case fdfs_unknown:
+		break;
+	case fdfs_exfat:
+		pcnt = lpc_exfat;
+		break;
+	case fdfs_fat:
+		pcnt = lpc_fat32; /* XXX Detect FAT12/16 vs FAT32 */
+		break;
+	case fdfs_minix:
+		pcnt = lpc_minix;
+		break;
+	case fdfs_ext4:
+		pcnt = lpc_ext4;
+		break;
+	}
+
+	if (pcnt < 0)
+		return EINVAL;
 
 	printf("fdisk_part_spec_prepare() - switch\n");
 	switch (pspec->pkind) {
@@ -951,8 +975,6 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		vpspec->block0 = fblock0;
 		vpspec->nblocks = req_blocks;
 		vpspec->pkind = pspec->pkind;
-		if (pspec->pkind != lpk_extended)
-			vpspec->ptype = 42;
 		break;
 	case lpk_logical:
 		printf("fdisk_part_spec_prepare() - log\n");
@@ -966,8 +988,16 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		vpspec->block0 = fblock0;
 		vpspec->nblocks = req_blocks;
 		vpspec->pkind = lpk_logical;
-		vpspec->ptype = 42;
+		vpspec->ptype.fmt = lptf_num;
+		vpspec->ptype.t.num = 42;
 		break;
+	}
+
+	if (pspec->pkind != lpk_extended) {
+		rc = vbd_suggest_ptype(dev->fdisk->vbd, dev->sid, pcnt,
+		    &vpspec->ptype);
+		if (rc != EOK)
+			return EIO;
 	}
 
 	return EOK;

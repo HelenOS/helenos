@@ -54,6 +54,7 @@ extern int label_part_create(label_t *, label_part_spec_t *,
     label_part_t **);
 extern int label_part_destroy(label_part_t *);
 extern void label_pspec_init(label_part_spec_t *);
+extern int label_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
 
 #endif
 
