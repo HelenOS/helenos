@@ -370,6 +370,8 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
+	uuid_generate(&disk_uuid);
+
 	hdr_ba[0] = gpt_hdr_ba;
 	hdr_ba[1] = nblocks - 1;
 	ptba[0] = 2;
@@ -404,8 +406,6 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 			rc = ENOMEM;
 			goto error;
 		}
-
-		uuid_generate(&disk_uuid);
 
 		for (j = 0; j < 8; ++j)
 			gpt_hdr->efi_signature[j] = efi_signature[j];
