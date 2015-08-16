@@ -72,8 +72,6 @@ static async_sess_t *taskman_connect_to_ns(async_sess_t *session_tm)
  */
 async_sess_t *taskman_handshake(void)
 {
-	printf("%s:%i\n", __func__, __LINE__);
-
 	int rc = taskman_ask_callback(session_primary);
 	if (rc != EOK) {
 		errno = rc;
