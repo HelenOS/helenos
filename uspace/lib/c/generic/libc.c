@@ -102,9 +102,14 @@ void __libc_main(void *pcb_ptr)
 			abort();
 	}
 #endif
-
+	
+	/* Setup async framework */
 	__async_server_init();
-	__async_client_init();
+	if (__pcb == NULL) {
+		__async_client_init(NULL);
+	} else {
+		__async_client_init(__pcb->session_primary);
+	}
 	__async_ports_init();
 
 	/* The basic run-time environment is setup */

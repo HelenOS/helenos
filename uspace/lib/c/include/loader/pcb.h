@@ -45,6 +45,10 @@ struct pcb_inbox_entry {
 	int file;
 };
 
+/* Forward declaration */
+struct async_sess;
+typedef struct async_sess async_sess_t;
+
 /** Program Control Block.
  *
  * Holds pointers to data passed from the program loader to the program
@@ -56,6 +60,9 @@ typedef struct {
 	/** Program entry point. */
 	entry_point_t entry;
 
+	/** Primary session to broker. */
+	async_sess_t *session_primary;
+	
 	/** Current working directory. */
 	char *cwd;
 

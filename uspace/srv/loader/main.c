@@ -33,29 +33,36 @@
  * @file
  *
  * The program loader is a special init binary. Its image is used
- * to create a new task upon a @c task_spawn syscall. The syscall
- * returns the id of a phone connected to the newly created task.
+ * to create a new task upon a @c task_spawn syscall. It has a phone connected
+ * to the caller of te syscall. The formal caller (taskman) performs a
+ * handshake with loader so that apparent caller can communicate with the
+ * loader.
  *
- * The caller uses this phone to send the pathname and various other
+ * The apparent caller uses his phone to send the pathname and various other
  * information to the loader. This is normally done by the C library
  * and completely hidden from applications.
  */
+
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <ipc/services.h>
-#include <ipc/loader.h>
-#include <ns.h>
-#include <loader/pcb.h>
-#include <entry_point.h>
-#include <errno.h>
-#include <async.h>
-#include <str.h>
 #include <as.h>
+#include <async.h>
 #include <elf/elf.h>
 #include <elf/elf_load.h>
+#include <entry_point.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <fibril_synch.h>
+#include <ipc/loader.h>
+#include <loader/pcb.h>
+#include <str.h>
+#include <sys/types.h>
+#include <taskman.h>
+#include <unistd.h>
 #include <vfs/vfs.h>
 #include <vfs/inbox.h>
 #include <libc.h>
@@ -72,6 +79,9 @@ static int program_fd = -1;
 
 /** The Program control block */
 static pcb_t pcb;
+
+/** Primary IPC session */
+static async_sess_t *session_primary = NULL;
 
 /** Current working directory */
 static char *cwd = NULL;
@@ -91,6 +101,11 @@ static elf_info_t prog_info;
 
 /** Used to limit number of connections to one. */
 static bool connected = false;
+
+/** Ensure synchronization of handshake and connection fibrils. */
+static bool handshake_complete = false;
+FIBRIL_MUTEX_INITIALIZE(handshake_mtx);
+FIBRIL_CONDVAR_INITIALIZE(handshake_cv);
 
 static void ldr_get_taskid(ipc_call_t *req)
 {
@@ -318,6 +333,8 @@ static int ldr_load(ipc_call_t *req)
 
 	DPRINTF("PCB set.\n");
 
+	pcb.session_primary = session_primary;
+
 	pcb.cwd = cwd;
 
 	pcb.argc = argc;
@@ -372,6 +389,13 @@ static __attribute__((noreturn)) void ldr_run(ipc_call_t *req)
  */
 static void ldr_connection(ipc_call_t *icall, void *arg)
 {
+	/* Wait for handshake */
+	fibril_mutex_lock(&handshake_mtx);
+	while (!handshake_complete) {
+		fibril_condvar_wait(&handshake_cv, &handshake_mtx);
+	}
+	fibril_mutex_unlock(&handshake_mtx);
+
 	/* Already have a connection? */
 	if (connected) {
 		async_answer_0(icall, ELIMIT);
@@ -427,24 +451,47 @@ static void ldr_connection(ipc_call_t *icall, void *arg)
 	}
 }
 
+static errno_t ldr_taskman_handshake(void)
+{
+	errno_t retval = EOK;
+
+	fibril_mutex_lock(&handshake_mtx);
+	session_primary = taskman_handshake();
+	if (session_primary == NULL) {
+		retval = errno;
+		goto finish;
+	}
+
+	async_sess_t *session_tm = async_session_primary_swap(session_primary);
+	(void)async_hangup(session_tm);
+
+	handshake_complete = true;
+
+finish:
+	fibril_condvar_signal(&handshake_cv);
+	fibril_mutex_unlock(&handshake_mtx);
+
+	return retval;
+}
+
 /** Program loader main function.
  */
 int main(int argc, char *argv[])
 {
-	/* Introduce this task to the NS (give it our task ID). */
-	task_id_t id = task_get_id();
-	errno_t rc = ns_intro(id);
-	if (rc != EOK)
+	/* Set a handler of incomming connections. */
+	async_set_fallback_port_handler(ldr_connection, NULL);
+	
+	/* Handshake with taskman */
+	int rc = ldr_taskman_handshake();
+	if (rc != EOK) {
+		DPRINTF("Failed taskman handshake (%i).\n", errno);
 		return rc;
+	}
 
-	/* Register at naming service. */
-	rc = service_register(SERVICE_LOADER, INTERFACE_LOADER,
-	    ldr_connection, NULL);
-	if (rc != EOK)
-		return rc;
-
+	/* Handle client connections */
 	async_manager();
-
+	//TODO retval?
+	
 	/* Never reached */
 	return 0;
 }

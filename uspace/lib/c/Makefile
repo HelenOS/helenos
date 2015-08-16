@@ -164,6 +164,7 @@ GENERIC_SOURCES = \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/stats.c \
+	generic/taskman.c \
 	generic/assert.c \
 	generic/bsearch.c \
 	generic/pci.c \

@@ -95,7 +95,7 @@ struct async_exch {
 
 extern void __async_server_init(void);
 extern void __async_server_fini(void);
-extern void __async_client_init(void);
+extern void __async_client_init(async_sess_t *);
 extern void __async_client_fini(void);
 extern void __async_ports_init(void);
 extern void __async_ports_fini(void);

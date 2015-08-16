@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2015 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,67 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ns
+/** @addtogroup libc
  * @{
  */
+/** @file
+ */
 
-#ifndef NS_CLONABLE_H__
-#define NS_CLONABLE_H__
+#include <errno.h>
+#include <ipc/taskman.h>
+#include <taskman.h>
 
-#include <ipc/common.h>
-#include <ipc/services.h>
-#include <abi/ipc/interfaces.h>
-#include <stdbool.h>
+#include <stdio.h>
 
-extern errno_t ns_clonable_init(void);
+//TODO better filename?
+#include "private/ns.h"
 
-extern bool ns_service_is_clonable(service_t, iface_t);
-extern void ns_clonable_register(ipc_call_t *);
-extern void ns_clonable_forward(service_t, iface_t, ipc_call_t *);
+static int taskman_ask_callback(async_sess_t *session_tm)
+{
+	async_exch_t *exch = async_exchange_begin(session_tm);
+	int rc = async_connect_to_me(
+	    exch, TASKMAN_LOADER_CALLBACK, 0, 0, NULL, NULL);
+	async_exchange_end(exch);
 
-#endif
+	return rc;
+}
 
-/**
- * @}
+static async_sess_t *taskman_connect_to_ns(async_sess_t *session_tm)
+{
+	async_exch_t *exch = async_exchange_begin(session_tm);
+	async_sess_t *session_ns = async_connect_me_to(EXCHANGE_ATOMIC,
+	    exch, TASKMAN_LOADER_TO_NS, 0, 0);
+	async_exchange_end(exch);
+
+	return session_ns;
+}
+
+/** Set up phones upon being spawned by taskman
+ *
+ * Assumes primary session exists that is connected to taskman.
+ * After handshake, taskman is connected to us (see, it's opposite) and broker
+ * session is set up according to taskman.
+ *
+ *
+ * @return Session to broker (naming service) or NULL (sets errno).
+ */
+async_sess_t *taskman_handshake(void)
+{
+	printf("%s:%i\n", __func__, __LINE__);
+
+	int rc = taskman_ask_callback(session_primary);
+	if (rc != EOK) {
+		errno = rc;
+		return NULL;
+	}
+
+	async_sess_t *session_ns = taskman_connect_to_ns(session_primary);
+	if (session_ns == NULL) {
+		errno = ENOENT;
+	}
+
+	return session_ns;
+}
+
+/** @}
  */

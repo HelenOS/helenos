@@ -215,6 +215,7 @@ void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 	async_client_data_destroy = dtor;
 }
 
+static async_client_conn_t implicit_connection = NULL;
 static fibril_rmutex_t client_mutex;
 static hash_table_t client_hash_table;
 
@@ -963,8 +964,13 @@ static void handle_call(ipc_call_t *call)
 
 	/* Route the call according to its request label */
 	errno_t rc = route_call(call);
-	if (rc == EOK)
+	if (rc == EOK) {
 		return;
+	} else if (implicit_connection != NULL) {
+		async_new_connection(call->in_task_id, call->in_phone_hash,
+		    callid, call, implicit_connection, NULL);
+		return;
+	}
 
 	// TODO: Log the error.
 

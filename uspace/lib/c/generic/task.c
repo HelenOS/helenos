@@ -324,11 +324,12 @@ errno_t task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...
  */
 errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
 {
-	async_sess_t *sess_ns = ns_session_get();
+	async_sess_t *sess_ns = get_session_primary();
 	if (sess_ns == NULL)
 		return EIO;
 
 	async_exch_t *exch = async_exchange_begin(sess_ns);
+
 	wait->aid = async_send_2(exch, NS_TASK_WAIT, LOWER32(id), UPPER32(id),
 	    &wait->result);
 	async_exchange_end(exch);
@@ -406,7 +407,7 @@ errno_t task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)
 
 errno_t task_retval(int val)
 {
-	async_sess_t *sess_ns = ns_session_get();
+	async_sess_t *sess_ns = get_session_primary();
 	if (sess_ns == NULL)
 		return EIO;
 

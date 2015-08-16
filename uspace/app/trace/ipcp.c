@@ -301,7 +301,9 @@ static void parse_answer(cap_call_handle_t call_handle, pending_call_t *pcall,
 		}
 	}
 
-	if ((phone == PHONE_NS) && (method == IPC_M_CONNECT_ME_TO) &&
+	// TODO obsoleted (initial phone needn't to be phone to NS anymore)
+	//      actually what connections should it monitor?
+	if ((phone == PHONE_INITIAL) && (method == IPC_M_CONNECT_ME_TO) &&
 	    (retval == 0)) {
 		/* Connected to a service (through NS) */
 		service = ipc_get_arg2(&pcall->question);

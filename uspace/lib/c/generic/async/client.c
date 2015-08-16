@@ -123,8 +123,8 @@
 
 static fibril_rmutex_t message_mutex;
 
-/** Naming service session */
-async_sess_t session_ns;
+/** Primary session (spawn parent, later naming service) */
+async_sess_t *session_primary = NULL;
 
 /** Message data */
 typedef struct {
@@ -167,27 +167,48 @@ static LIST_INITIALIZE(inactive_exch_list);
  */
 static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 
+
+static async_sess_t *create_session_primary(void)
+{
+	async_sess_t *session = (async_sess_t *) malloc(sizeof(async_sess_t));
+
+	if (session != NULL) {
+		session_ns->iface = 0;
+		session->mgmt = EXCHANGE_ATOMIC;
+		session->phone = PHONE_INITIAL;
+		session->arg1 = 0;
+		session->arg2 = 0;
+		session->arg3 = 0;
+		
+		fibril_mutex_initialize(&session->remote_state_mtx);
+		session->remote_state_data = NULL;
+		
+		list_initialize(&session->exch_list);
+		fibril_mutex_initialize(&session->mutex);
+		atomic_set(&session->refcnt, 0);
+		&session.exchanges = 0;
+	}
+
+	return session;
+}
+
+
 /** Initialize the async framework.
  *
  */
-void __async_client_init(void)
+void __async_client_init(async_sess_t *session)
 {
 	if (fibril_rmutex_initialize(&message_mutex) != EOK)
 		abort();
 
-	session_ns.iface = 0;
-	session_ns.mgmt = EXCHANGE_ATOMIC;
-	session_ns.phone = PHONE_NS;
-	session_ns.arg1 = 0;
-	session_ns.arg2 = 0;
-	session_ns.arg3 = 0;
+	if (session == NULL) {
+		session_primary = create_session_primary();
+	} else {
+		session_primary = session;
+	}
 
-	fibril_mutex_initialize(&session_ns.remote_state_mtx);
-	session_ns.remote_state_data = NULL;
-
-	list_initialize(&session_ns.exch_list);
-	fibril_mutex_initialize(&session_ns.mutex);
-	session_ns.exchanges = 0;
+	if (session_primary == NULL)
+		abort();
 }
 
 void __async_client_fini(void)
@@ -806,6 +827,21 @@ static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
 
 	*out_phone = (cap_phone_handle_t) ipc_get_arg5(&result);
 	return EOK;
+}
+
+/** Injects another session instead of original primary session
+ *
+ * @param  session  Session to naming service.
+ *
+ * @return old primary session (to spawn parent)
+ */
+async_sess_t *async_session_primary_swap(async_sess_t *session)
+{
+	assert(session_primary->phone == PHONE_INITIAL);
+
+	async_sess_t *old_primary = session_primary;
+	session_primary = session;
+	return old_primary;
 }
 
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.

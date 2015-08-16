@@ -40,15 +40,15 @@
 #include "private/ns.h"
 
 /*
- * XXX ns does not know about session_ns, so we create an extra session for
+ * XXX ns does not know about session_primary, so we create an extra session for
  * actual communicaton
  */
-static async_sess_t *sess_ns = NULL;
+static async_sess_t *sess_primary = NULL;
 
 errno_t service_register(service_t service, iface_t iface,
     async_port_handler_t handler, void *data)
 {
-	async_sess_t *sess = ns_session_get();
+	async_sess_t *sess = get_session_primary();
 	if (sess == NULL)
 		return EIO;
 
@@ -80,7 +80,7 @@ errno_t service_register_broker(service_t service, async_port_handler_t handler,
 {
 	async_set_fallback_port_handler(handler, data);
 
-	async_sess_t *sess = ns_session_get();
+	async_sess_t *sess = get_session_primary();
 	if (sess == NULL)
 		return EIO;
 
@@ -104,7 +104,7 @@ errno_t service_register_broker(service_t service, async_port_handler_t handler,
 
 async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 {
-	async_sess_t *sess = ns_session_get();
+	async_sess_t *sess = get_session_primary();
 	if (sess == NULL)
 		return NULL;
 
@@ -132,7 +132,7 @@ async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 async_sess_t *service_connect_blocking(service_t service, iface_t iface,
     sysarg_t arg3)
 {
-	async_sess_t *sess = ns_session_get();
+	async_sess_t *sess = get_session_primary();
 	if (sess == NULL)
 		return NULL;
 
@@ -156,7 +156,7 @@ async_sess_t *service_connect_blocking(service_t service, iface_t iface,
 
 errno_t ns_ping(void)
 {
-	async_sess_t *sess = ns_session_get();
+	async_sess_t *sess = get_session_primary();
 	if (sess == NULL)
 		return EIO;
 
@@ -167,33 +167,20 @@ errno_t ns_ping(void)
 	return rc;
 }
 
-errno_t ns_intro(task_id_t id)
-{
-	async_exch_t *exch;
-	async_sess_t *sess = ns_session_get();
-	if (sess == NULL)
-		return EIO;
 
-	exch = async_exchange_begin(sess);
-	errno_t rc = async_req_2_0(exch, NS_ID_INTRO, LOWER32(id), UPPER32(id));
-	async_exchange_end(exch);
-
-	return rc;
-}
-
-async_sess_t *ns_session_get(void)
+async_sess_t *get_session_primary(void)
 {
 	async_exch_t *exch;
 
-	if (sess_ns == NULL) {
-		exch = async_exchange_begin(&session_ns);
-		sess_ns = async_connect_me_to(exch, 0, 0, 0);
+	if (sess_primary == NULL) {
+		exch = async_exchange_begin(&session_primary);
+		sess_primary = async_connect_me_to(exch, 0, 0, 0);
 		async_exchange_end(exch);
-		if (sess_ns == NULL)
+		if (sess_primary == NULL)
 			return NULL;
 	}
 
-	return sess_ns;
+	return sess_primary;
 }
 
 /** @}

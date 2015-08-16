@@ -75,7 +75,8 @@ INIT_TASKS = \
 	$(USPACE_PATH)/srv/locsrv/locsrv \
 	$(USPACE_PATH)/srv/bd/rd/rd \
 	$(USPACE_PATH)/srv/vfs/vfs \
-	$(USPACE_PATH)/srv/logger/logger
+	$(USPACE_PATH)/srv/logger/logger \
+	$(USPACE_PATH)/srv/taskman/taskman
 
 ifeq ($(RDFMT),tmpfs)
 	INIT_TASKS += $(USPACE_PATH)/srv/fs/tmpfs/tmpfs

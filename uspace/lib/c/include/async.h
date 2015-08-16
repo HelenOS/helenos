@@ -131,6 +131,8 @@ extern void *async_get_client_data(void);
 extern void *async_get_client_data_by_id(task_id_t);
 extern void async_put_client_data_by_id(task_id_t);
 
+extern void async_set_implicit_connection(async_client_conn_t);
+
 extern errno_t async_create_port(iface_t, async_port_handler_t, void *,
     port_id_t *);
 extern void async_set_fallback_port_handler(async_port_handler_t, void *);
@@ -273,6 +275,7 @@ extern errno_t async_req_5_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern errno_t async_accept_0(ipc_call_t *);
 extern sysarg_t async_get_label(void);
 
+extern async_sess_t *async_session_primary_swap(async_sess_t *);
 extern async_sess_t *async_connect_me_to(async_exch_t *, iface_t, sysarg_t,
     sysarg_t);
 extern async_sess_t *async_connect_me_to_blocking(async_exch_t *, iface_t,

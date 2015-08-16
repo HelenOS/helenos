@@ -32,17 +32,18 @@
 /** @file
  */
 
-#include <ipc/loader.h>
-#include <ipc/services.h>
-#include <ns.h>
-#include <libc.h>
-#include <task.h>
-#include <str.h>
-#include <stdlib.h>
 #include <async.h>
 #include <errno.h>
-#include <vfs/vfs.h>
+#include <ipc/loader.h>
+#include <ipc/services.h>
+#include <ipc/taskman.h>
+#include <libc.h>
 #include <loader/loader.h>
+#include <ns.h>
+#include <stdlib.h>
+#include <str.h>
+#include <task.h>
+#include <vfs/vfs.h>
 #include "private/loader.h"
 
 /** Connect to a new program loader.
@@ -66,7 +67,7 @@ loader_t *loader_connect(void)
 		return NULL;
 
 	async_sess_t *sess =
-	    service_connect_blocking(SERVICE_LOADER, INTERFACE_LOADER, 0);
+	    service_connect_blocking(SERVICE_TASKMAN, TASKMAN_CONNECT_TO_LOADER, 0);
 	if (sess == NULL) {
 		free(ldr);
 		return NULL;

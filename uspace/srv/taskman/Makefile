@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2015 Michal Koutny
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,12 +27,10 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = ns
+BINARY = taskman
 STATIC_NEEDED = y
 
 SOURCES = \
-	ns.c \
-	service.c \
-	task.c
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common
