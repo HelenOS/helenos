@@ -2239,7 +2239,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	bg_color = PIXEL(255, 69, 51, 103);
 	
 	/* Register compositor server. */
-	async_set_client_connection(client_connection);
+	async_set_fallback_port_handler(client_connection, NULL);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {

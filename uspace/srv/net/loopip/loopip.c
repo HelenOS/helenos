@@ -99,7 +99,7 @@ static int loopip_recv_fibril(void *arg)
 
 static int loopip_init(void)
 {
-	async_set_client_connection(loopip_client_conn);
+	async_set_fallback_port_handler(loopip_client_conn, NULL);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {

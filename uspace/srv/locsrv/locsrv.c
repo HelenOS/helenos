@@ -1536,7 +1536,7 @@ int main(int argc, char *argv[])
 	}
 	
 	/* Set a handler of incomming connections */
-	async_set_client_connection(loc_connection);
+	async_set_fallback_port_handler(loc_connection, NULL);
 	
 	/* Register location service at naming service */
 	int rc = service_register(SERVICE_LOC);

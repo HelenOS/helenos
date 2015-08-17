@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
 	printf("%s: HelenOS output service\n", NAME);
 	
 	/* Register server */
-	async_set_client_connection(client_connection);
+	async_set_fallback_port_handler(client_connection, NULL);
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver\n", NAME);

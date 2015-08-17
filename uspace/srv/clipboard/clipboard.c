@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS clipboard service\n", NAME);
 	
-	async_set_client_connection(clip_connection);
+	async_set_fallback_port_handler(clip_connection, NULL);
 	int rc = service_register(SERVICE_CLIPBOARD);
 	if (rc != EOK)
 		return rc;

@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	/*
 	 * Set a connection handling function/fibril.
 	 */
-	async_set_client_connection(vfs_connection);
+	async_set_fallback_port_handler(vfs_connection, NULL);
 
 	/*
 	 * Subscribe to notifications.

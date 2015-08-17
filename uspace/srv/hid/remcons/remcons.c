@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
 	tcp_t *tcp;
 	inet_ep_t ep;
 
-	async_set_client_connection(client_connection);
+	async_set_fallback_port_handler(client_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register server\n", NAME);

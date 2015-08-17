@@ -78,7 +78,7 @@ static iplink_ops_t ethip_iplink_ops = {
 
 static int ethip_init(void)
 {
-	async_set_client_connection(ethip_client_conn);
+	async_set_fallback_port_handler(ethip_client_conn, NULL);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {

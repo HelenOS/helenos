@@ -64,7 +64,7 @@ static int dhcp_init(void)
 		return EIO;
 	}
 
-	async_set_client_connection(dhcp_client_conn);
+	async_set_fallback_port_handler(dhcp_client_conn, NULL);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {

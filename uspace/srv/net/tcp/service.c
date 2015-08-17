@@ -1243,7 +1243,7 @@ int tcp_service_init(void)
 	int rc;
 	service_id_t sid;
 
-	async_set_client_connection(tcp_client_conn);
+	async_set_fallback_port_handler(tcp_client_conn, NULL);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {

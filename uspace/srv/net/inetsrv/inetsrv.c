@@ -85,7 +85,7 @@ static int inet_init(void)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_init()");
 	
-	async_set_client_connection(inet_client_conn);
+	async_set_fallback_port_handler(inet_client_conn, NULL);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {

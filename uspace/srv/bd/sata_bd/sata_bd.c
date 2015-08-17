@@ -246,7 +246,7 @@ int main(int argc, char **argv)
 {
 	int rc;
 	
-	async_set_client_connection(sata_bd_connection);
+	async_set_fallback_port_handler(sata_bd_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");

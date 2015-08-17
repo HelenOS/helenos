@@ -305,7 +305,7 @@ int main(int argc, char **argv)
 	/* From this on, state is to be used only by read_fibril */
 	fibril_add_ready(fibril);
 
-	async_set_client_connection(mouse_connection);
+	async_set_fallback_port_handler(mouse_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);

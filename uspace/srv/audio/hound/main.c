@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
 	hound_iface.server = &hound;
 	hound_service_set_server_iface(&hound_iface);
-	async_set_client_connection(hound_connection_handler);
+	async_set_fallback_port_handler(hound_connection_handler, NULL);
 
 	service_id_t id = 0;
 	ret = hound_server_register(NAME, &id);

@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 	/* Set handlers for incoming connections. */
 	async_set_client_data_constructor(devman_client_data_create);
 	async_set_client_data_destructor(devman_client_data_destroy);
-	async_set_client_connection(devman_connection);
+	async_set_fallback_port_handler(devman_connection, NULL);
 	
 	if (!devman_init()) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error while initializing service.");

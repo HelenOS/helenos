@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 		parse_level_settings(argv[i]);
 	}
 
-	async_set_client_connection(connection_handler);
+	async_set_fallback_port_handler(connection_handler, NULL);
 	
 	int rc = service_register(SERVICE_LOGGER);
 	if (rc != EOK) {

@@ -108,7 +108,7 @@ async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, services_t service,
  *
  */
 async_sess_t *service_bind(services_t service, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, async_client_conn_t client_receiver)
+    sysarg_t arg3, async_port_handler_t client_receiver)
 {
 	/* Connect to the needed service */
 	async_sess_t *sess =

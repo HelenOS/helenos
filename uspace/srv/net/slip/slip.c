@@ -299,7 +299,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	iplink_srv_init(&slip_iplink);
 	slip_iplink.ops = &slip_iplink_ops;
 
-	async_set_client_connection(slip_client_conn);
+	async_set_fallback_port_handler(slip_client_conn, NULL);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {

@@ -76,7 +76,7 @@
  *     async_manager();
  *   }
  *
- *   my_client_connection(icallid, *icall)
+ *   port_handler(icallid, *icall)
  *   {
  *     if (want_refuse) {
  *       async_answer_0(icallid, ELIMIT);
@@ -231,16 +231,18 @@ typedef struct {
 	
 	/** Identification of the opening call. */
 	ipc_callid_t callid;
+	
 	/** Call data of the opening call. */
 	ipc_call_t call;
-	/** Local argument or NULL if none. */
-	void *carg;
 	
 	/** Identification of the closing call. */
 	ipc_callid_t close_callid;
 	
 	/** Fibril function that will be used to handle the connection. */
-	async_client_conn_t cfibril;
+	async_port_handler_t handler;
+	
+	/** Client data */
+	void *data;
 } connection_t;
 
 /* Notification data */
@@ -334,34 +336,27 @@ void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 	async_client_data_destroy = dtor;
 }
 
-/** Default fibril function that gets called to handle new connection.
+/** Default fallback fibril function.
  *
- * This function is defined as a weak symbol - to be redefined in user code.
+ * This fallback fibril function gets called on incomming
+ * connections that do not have a specific handler defined.
  *
  * @param callid Hash of the incoming call.
  * @param call   Data of the incoming call.
  * @param arg    Local argument
  *
  */
-static void default_client_connection(ipc_callid_t callid, ipc_call_t *call,
+static void default_fallback_port_handler(ipc_callid_t callid, ipc_call_t *call,
     void *arg)
 {
 	ipc_answer_0(callid, ENOENT);
 }
 
-static async_client_conn_t client_connection = default_client_connection;
-static size_t notification_handler_stksz = FIBRIL_DFLT_STK_SIZE;
+static async_port_handler_t fallback_port_handler =
+    default_fallback_port_handler;
+static void *fallback_port_data = NULL;
 
-/** Setter for client_connection function pointer.
- *
- * @param conn Function that will implement a new connection fibril.
- *
- */
-void async_set_client_connection(async_client_conn_t conn)
-{
-	assert(client_connection == default_client_connection);
-	client_connection = conn;
-}
+static size_t notification_handler_stksz = FIBRIL_DFLT_STK_SIZE;
 
 /** Set the stack size for the notification handler notification fibrils.
  *
@@ -386,6 +381,14 @@ static LIST_INITIALIZE(inactive_exch_list);
  *
  */
 static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
+
+void async_set_fallback_port_handler(async_port_handler_t handler, void *data)
+{
+	assert(handler != NULL);
+	
+	fallback_port_handler = handler;
+	fallback_port_data = data;
+}
 
 static hash_table_t client_hash_table;
 static hash_table_t conn_hash_table;
@@ -958,7 +961,7 @@ void async_put_client_data_by_id(task_id_t client_id)
 /** Wrapper for client connection fibril.
  *
  * When a new connection arrives, a fibril with this implementing function is
- * created. It calls client_connection() and does the final cleanup.
+ * created. It calls handler() and does the final cleanup.
  *
  * @param arg Connection structure pointer.
  *
@@ -991,8 +994,8 @@ static int connection_fibril(void *arg)
 	/*
 	 * Call the connection handler function.
 	 */
-	fibril_connection->cfibril(fibril_connection->callid,
-	    &fibril_connection->call, fibril_connection->carg);
+	fibril_connection->handler(fibril_connection->callid,
+	    &fibril_connection->call, fibril_connection->data);
 	
 	/*
 	 * Remove the reference for this client task connection.
@@ -1043,16 +1046,16 @@ static int connection_fibril(void *arg)
  *                      accepting the IPC_M_CONNECT_TO_ME call and this function
  *                      is called directly by the server.
  * @param call          Call data of the opening call.
- * @param cfibril       Fibril function that should be called upon opening the
+ * @param handler       Fibril function that should be called upon opening the
  *                      connection.
- * @param carg          Extra argument to pass to the connection fibril
+ * @param data          Extra argument to pass to the connection fibril
  *
  * @return New fibril id or NULL on failure.
  *
  */
 fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
     ipc_callid_t callid, ipc_call_t *call,
-    async_client_conn_t cfibril, void *carg)
+    async_port_handler_t handler, void *data)
 {
 	connection_t *conn = malloc(sizeof(*conn));
 	if (!conn) {
@@ -1067,14 +1070,14 @@ fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 	list_initialize(&conn->msg_queue);
 	conn->callid = callid;
 	conn->close_callid = 0;
-	conn->carg = carg;
+	conn->data = data;
 	
 	if (call)
 		conn->call = *call;
 	
 	/* We will activate the fibril ASAP */
 	conn->wdata.active = true;
-	conn->cfibril = cfibril;
+	conn->handler = handler;
 	conn->wdata.fid = fibril_create(connection_fibril, conn);
 	
 	if (conn->wdata.fid == 0) {
@@ -1110,7 +1113,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
 	assert(call);
 	
-	/* Unrouted call - take some default action */
+	/* Kernel notification */
 	if ((callid & IPC_CALLID_NOTIFICATION)) {
 		process_notification(callid, call);
 		return;
@@ -1121,7 +1124,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril, etc. */
 		async_new_connection(call->in_task_id, IPC_GET_ARG5(*call),
-		    callid, call, client_connection, NULL);
+		    callid, call, fallback_port_handler, fallback_port_data);
 		return;
 	}
 	
@@ -1819,7 +1822,7 @@ int async_forward_slow(ipc_callid_t callid, async_exch_t *exch,
  *
  */
 int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, async_client_conn_t client_receiver, void *carg)
+    sysarg_t arg3, async_port_handler_t client_receiver, void *data)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -1839,7 +1842,7 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 
 	if (client_receiver != NULL)
 		async_new_connection(answer.in_task_id, phone_hash, 0, NULL,
-		    client_receiver, carg);
+		    client_receiver, data);
 	
 	return EOK;
 }

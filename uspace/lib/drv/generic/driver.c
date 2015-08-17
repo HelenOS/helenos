@@ -915,7 +915,7 @@ void ddf_fun_set_ops(ddf_fun_t *fun, ddf_dev_ops_t *dev_ops)
  *
  * This allows handling connections the non-devman way.
  */
-void ddf_fun_set_conn_handler(ddf_fun_t *fun, async_client_conn_t conn)
+void ddf_fun_set_conn_handler(ddf_fun_t *fun, async_port_handler_t conn)
 {
 	assert(fun->ops == NULL);
 	fun->conn_handler = conn;
@@ -954,7 +954,7 @@ int ddf_driver_main(const driver_t *drv)
 	 * Register driver with device manager using generic handler for
 	 * incoming connections.
 	 */
-	async_set_client_connection(driver_connection);
+	async_set_fallback_port_handler(driver_connection, NULL);
 	int rc = devman_driver_register(driver->name);
 	if (rc != EOK) {
 		printf("Error: Failed to register driver with device manager "

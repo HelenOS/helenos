@@ -125,7 +125,7 @@ int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_callback_create(async_sess_t *dev_sess, async_client_conn_t cfun,
+int nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
     void *carg)
 {
 	ipc_call_t answer;

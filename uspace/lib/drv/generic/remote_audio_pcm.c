@@ -315,7 +315,7 @@ int audio_pcm_test_format(audio_pcm_sess_t *sess, unsigned *channels,
  * @return Error code.
  */
 int audio_pcm_register_event_callback(audio_pcm_sess_t *sess,
-    async_client_conn_t event_callback, void *arg)
+    async_port_handler_t event_callback, void *arg)
 {
 	if (!event_callback)
 		return EINVAL;

@@ -743,7 +743,7 @@ bool init_terminal(terminal_t *term, widget_t *parent, sysarg_t width,
 	chargrid_clear(term->backbuf);
 	term->top_row = 0;
 	
-	async_set_client_connection(term_connection);
+	async_set_fallback_port_handler(term_connection, NULL);
 	con_srvs_init(&term->srvs);
 	term->srvs.ops = &con_ops;
 	term->srvs.sarg = term;

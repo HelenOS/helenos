@@ -149,7 +149,7 @@ static int icpic_init(void)
 
 	icpic_regs = (icpic_regs_t *)regs;
 
-	async_set_client_connection(icpic_connection);
+	async_set_fallback_port_handler(icpic_connection, NULL);
 	service_register(SERVICE_IRC);
 
 	free(platform);

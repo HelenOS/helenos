@@ -95,7 +95,7 @@ struct ddf_fun {
 	ddf_dev_ops_t *ops;
 	
 	/** Connection handler or @c NULL to use the DDF default handler. */
-	async_client_conn_t conn_handler;
+	async_port_handler_t conn_handler;
 	
 	/** Link in the list of functions handled by the driver */
 	link_t link;

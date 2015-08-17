@@ -45,7 +45,7 @@ extern async_sess_t *service_connect(exch_mgmt_t, services_t, sysarg_t, sysarg_t
 extern async_sess_t *service_connect_blocking(exch_mgmt_t, services_t, sysarg_t,
     sysarg_t);
 extern async_sess_t *service_bind(services_t, sysarg_t, sysarg_t, sysarg_t,
-    async_client_conn_t);
+    async_port_handler_t);
 
 extern int ns_ping(void);
 extern int ns_intro(task_id_t);

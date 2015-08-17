@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 		adb_dev[i].service_id = 0;
 	}
 
-	async_set_client_connection(cuda_connection);
+	async_set_fallback_port_handler(cuda_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register server.\n");
