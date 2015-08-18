@@ -49,7 +49,7 @@ typedef enum {
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-} services_t;
+} service_t;
 
 #define SERVICE_NAME_CORECFG	"corecfg"
 #define SERVICE_NAME_DHCP       "net/dhcp"

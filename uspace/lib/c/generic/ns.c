@@ -48,7 +48,7 @@ int service_register(sysarg_t service)
 	return rc;
 }
 
-async_sess_t *service_connect(exch_mgmt_t mgmt, services_t service, sysarg_t arg2,
+async_sess_t *service_connect(exch_mgmt_t mgmt, service_t service, sysarg_t arg2,
     sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
@@ -72,7 +72,7 @@ async_sess_t *service_connect(exch_mgmt_t mgmt, services_t service, sysarg_t arg
 	return sess;
 }
 
-async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, services_t service,
+async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, service_t service,
     sysarg_t arg2, sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
@@ -107,7 +107,7 @@ async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, services_t service,
  * @return Other error codes as defined by async_connect_to_me().
  *
  */
-async_sess_t *service_bind(services_t service, sysarg_t arg1, sysarg_t arg2,
+async_sess_t *service_bind(service_t service, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3, async_port_handler_t client_receiver)
 {
 	/* Connect to the needed service */

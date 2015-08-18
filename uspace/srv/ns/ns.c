@@ -37,6 +37,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/ns.h>
+#include <ipc/services.h>
 #include <stdio.h>
 #include <errno.h>
 #include <macros.h>
@@ -72,34 +73,38 @@ int main(int argc, char **argv)
 		task_id_t id;
 		sysarg_t retval;
 		
+		service_t service;
+		sysarg_t phone;
+		
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			retval = ns_task_disconnect(&call);
 			break;
 		case IPC_M_CONNECT_TO_ME:
+			service = IPC_GET_ARG1(call);
+			phone = IPC_GET_ARG5(call);
+			
 			/*
 			 * Server requests service registration.
 			 */
-			if (service_clonable(IPC_GET_ARG1(call))) {
-				register_clonable(IPC_GET_ARG1(call),
-				    IPC_GET_ARG5(call), &call, callid);
+			if (service_clonable(service)) {
+				register_clonable(service, phone, &call, callid);
 				continue;
-			} else {
-				retval = register_service(IPC_GET_ARG1(call),
-				    IPC_GET_ARG5(call), &call);
-			}
+			} else
+				retval = register_service(service, phone, &call);
+			
 			break;
 		case IPC_M_CONNECT_ME_TO:
+			service = IPC_GET_ARG1(call);
+			
 			/*
 			 * Client requests to be connected to a service.
 			 */
-			if (service_clonable(IPC_GET_ARG1(call))) {
-				connect_to_clonable(IPC_GET_ARG1(call),
-				    &call, callid);
+			if (service_clonable(service)) {
+				connect_to_clonable(service, &call, callid);
 				continue;
 			} else {
-				connect_to_service(IPC_GET_ARG1(call), &call,
-				    callid);
+				connect_to_service(service, &call, callid);
 				continue;
 			}
 			break;
