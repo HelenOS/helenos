@@ -51,7 +51,7 @@ static int irc_init(void)
 	assert(irc_sess == NULL);
 
 	irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_IRC, 0, 0);
+	    SERVICE_IRC, 0);
 
 	if (irc_sess == NULL)
 		return EIO;

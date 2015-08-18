@@ -75,7 +75,7 @@ async_exch_t *vfs_exchange_begin(void)
 	
 	while (vfs_sess == NULL)
 		vfs_sess = service_connect_blocking(EXCHANGE_PARALLEL, SERVICE_VFS,
-		    0, 0);
+		    0);
 	
 	fibril_mutex_unlock(&vfs_mutex);
 	

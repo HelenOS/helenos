@@ -165,7 +165,8 @@ int log_init(const char *prog_name)
 	if (log_prog_name == NULL)
 		return ENOMEM;
 
-	logger_session = service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_LOGGER, LOGGER_INTERFACE_WRITER, 0);
+	logger_session = service_connect_blocking_iface(EXCHANGE_SERIALIZE,
+	    LOGGER_INTERFACE_WRITER, SERVICE_LOGGER, 0);
 	if (logger_session == NULL) {
 		return ENOMEM;
 	}

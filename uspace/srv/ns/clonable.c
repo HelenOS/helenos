@@ -93,7 +93,7 @@ void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
 	
 	ipc_answer_0(callid, EOK);
 	
-	ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(csr->call),
+	ipc_forward_fast(csr->callid, phone, IPC_GET_ARG1(csr->call),
 	    IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
 	
 	free(csr);

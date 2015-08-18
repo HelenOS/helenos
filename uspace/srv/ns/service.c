@@ -39,7 +39,6 @@
 #include "service.h"
 #include "ns.h"
 
-
 /** Service hash table item. */
 typedef struct {
 	ht_link_t link;
@@ -83,7 +82,7 @@ typedef struct {
 	link_t link;
 	sysarg_t service;        /**< Number of the service. */
 	ipc_callid_t callid;     /**< Call ID waiting for the connection */
-	sysarg_t arg2;           /**< Second argument */
+	sysarg_t iface;          /**< Interface argument */
 	sysarg_t arg3;           /**< Third argument */
 } pending_conn_t;
 
@@ -111,8 +110,8 @@ loop:
 			continue;
 		
 		hashed_service_t *hs = hash_table_get_inst(link, hashed_service_t, link);
-		(void) ipc_forward_fast(pr->callid, hs->phone, pr->arg2,
-		    pr->arg3, 0, IPC_FF_NONE);
+		(void) ipc_forward_fast(pr->callid, hs->phone, pr->iface, pr->arg3, 0,
+		    IPC_FF_NONE);
 		
 		list_remove(&pr->link);
 		free(pr);
@@ -173,17 +172,18 @@ void connect_to_service(sysarg_t service, ipc_call_t *call, ipc_callid_t callid)
 			link_initialize(&pr->link);
 			pr->service = service;
 			pr->callid = callid;
-			pr->arg2 = IPC_GET_ARG2(*call);
+			pr->iface = IPC_GET_ARG1(*call);
 			pr->arg3 = IPC_GET_ARG3(*call);
 			list_append(&pr->link, &pending_conn);
 			return;
 		}
+		
 		retval = ENOENT;
 		goto out;
 	}
 	
 	hashed_service_t *hs = hash_table_get_inst(link, hashed_service_t, link);
-	(void) ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call),
+	(void) ipc_forward_fast(callid, hs->phone, IPC_GET_ARG1(*call),
 	    IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
 	return;
 	

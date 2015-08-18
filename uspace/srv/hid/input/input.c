@@ -745,7 +745,7 @@ int main(int argc, char **argv)
 	if (irc_service) {
 		while (irc_sess == NULL)
 			irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-			    SERVICE_IRC, 0, 0);
+			    SERVICE_IRC, 0);
 	}
 	
 	/* Add legacy keyboard devices. */

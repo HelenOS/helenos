@@ -146,8 +146,8 @@ async_exch_t *loc_exchange_begin_blocking(loc_interface_t iface)
 			
 			if (loc_supp_block_sess == NULL)
 				loc_supp_block_sess =
-				    service_connect_blocking(EXCHANGE_SERIALIZE,
-				    SERVICE_LOC, LOC_PORT_SUPPLIER, 0);
+				    service_connect_blocking_iface(EXCHANGE_SERIALIZE,
+				    LOC_PORT_SUPPLIER, SERVICE_LOC, 0);
 		}
 		
 		fibril_mutex_unlock(&loc_supp_block_mutex);
@@ -165,8 +165,8 @@ async_exch_t *loc_exchange_begin_blocking(loc_interface_t iface)
 			
 			if (loc_cons_block_sess == NULL)
 				loc_cons_block_sess =
-				    service_connect_blocking(EXCHANGE_SERIALIZE,
-				    SERVICE_LOC, LOC_PORT_CONSUMER, 0);
+				    service_connect_blocking_iface(EXCHANGE_SERIALIZE,
+				    LOC_PORT_CONSUMER, SERVICE_LOC, 0);
 		}
 		
 		fibril_mutex_unlock(&loc_cons_block_mutex);
@@ -195,8 +195,8 @@ async_exch_t *loc_exchange_begin(loc_interface_t iface)
 		
 		if (loc_supplier_sess == NULL)
 			loc_supplier_sess =
-			    service_connect(EXCHANGE_SERIALIZE, SERVICE_LOC,
-			    LOC_PORT_SUPPLIER, 0);
+			    service_connect_iface(EXCHANGE_SERIALIZE, LOC_PORT_SUPPLIER,
+			    SERVICE_LOC, 0);
 		
 		fibril_mutex_unlock(&loc_supplier_mutex);
 		
@@ -209,8 +209,8 @@ async_exch_t *loc_exchange_begin(loc_interface_t iface)
 		
 		if (loc_consumer_sess == NULL)
 			loc_consumer_sess =
-			    service_connect(EXCHANGE_SERIALIZE, SERVICE_LOC,
-			    LOC_PORT_CONSUMER, 0);
+			    service_connect_iface(EXCHANGE_SERIALIZE, LOC_PORT_CONSUMER,
+			    SERVICE_LOC, 0);
 		
 		fibril_mutex_unlock(&loc_consumer_mutex);
 		
@@ -574,11 +574,11 @@ async_sess_t *loc_service_connect(exch_mgmt_t mgmt, service_id_t handle,
 	async_sess_t *sess;
 	
 	if (flags & IPC_FLAG_BLOCKING)
-		sess = service_connect_blocking(mgmt, SERVICE_LOC,
-		    LOC_CONNECT_TO_SERVICE, handle);
+		sess = service_connect_blocking_iface(mgmt, LOC_CONNECT_TO_SERVICE,
+		    SERVICE_LOC, handle);
 	else
-		sess = service_connect(mgmt, SERVICE_LOC,
-		    LOC_CONNECT_TO_SERVICE, handle);
+		sess = service_connect_iface(mgmt, LOC_CONNECT_TO_SERVICE,
+		    SERVICE_LOC, handle);
 	
 	return sess;
 }

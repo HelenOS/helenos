@@ -68,7 +68,7 @@ loader_t *loader_connect(void)
 		return NULL;
 	
 	async_sess_t *sess =
-	    service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_LOAD, 0, 0);
+	    service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_LOAD, 0);
 	if (sess == NULL) {
 		free(ldr);
 		return NULL;

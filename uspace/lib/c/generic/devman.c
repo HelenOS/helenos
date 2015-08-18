@@ -88,8 +88,8 @@ async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
 			
 			if (devman_driver_block_sess == NULL)
 				devman_driver_block_sess =
-				    service_connect_blocking(EXCHANGE_PARALLEL,
-				    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
+				    service_connect_blocking_iface(EXCHANGE_PARALLEL,
+				    DEVMAN_DRIVER, SERVICE_DEVMAN, 0);
 		}
 		
 		fibril_mutex_unlock(&devman_driver_block_mutex);
@@ -107,8 +107,8 @@ async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
 			
 			if (devman_client_block_sess == NULL)
 				devman_client_block_sess =
-				    service_connect_blocking(EXCHANGE_SERIALIZE,
-				    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
+				    service_connect_blocking_iface(EXCHANGE_SERIALIZE,
+				    DEVMAN_CLIENT, SERVICE_DEVMAN, 0);
 		}
 		
 		fibril_mutex_unlock(&devman_client_block_mutex);
@@ -137,8 +137,8 @@ async_exch_t *devman_exchange_begin(devman_interface_t iface)
 		
 		if (devman_driver_sess == NULL)
 			devman_driver_sess =
-			    service_connect(EXCHANGE_PARALLEL, SERVICE_DEVMAN,
-			    DEVMAN_DRIVER, 0);
+			    service_connect_iface(EXCHANGE_PARALLEL, DEVMAN_DRIVER,
+			    SERVICE_DEVMAN, 0);
 		
 		fibril_mutex_unlock(&devman_driver_mutex);
 		
@@ -151,8 +151,8 @@ async_exch_t *devman_exchange_begin(devman_interface_t iface)
 		
 		if (devman_client_sess == NULL)
 			devman_client_sess =
-			    service_connect(EXCHANGE_SERIALIZE, SERVICE_DEVMAN,
-			    DEVMAN_CLIENT, 0);
+			    service_connect_iface(EXCHANGE_SERIALIZE, DEVMAN_CLIENT,
+			    SERVICE_DEVMAN, 0);
 		
 		fibril_mutex_unlock(&devman_client_mutex);
 		
@@ -292,11 +292,11 @@ async_sess_t *devman_device_connect(exch_mgmt_t mgmt, devman_handle_t handle,
 	async_sess_t *sess;
 	
 	if (flags & IPC_FLAG_BLOCKING)
-		sess = service_connect_blocking(mgmt, SERVICE_DEVMAN,
-			    DEVMAN_CONNECT_TO_DEVICE, handle);
+		sess = service_connect_blocking_iface(mgmt, DEVMAN_CONNECT_TO_DEVICE,
+		    SERVICE_DEVMAN, handle);
 	else
-		sess = service_connect(mgmt, SERVICE_DEVMAN,
-			    DEVMAN_CONNECT_TO_DEVICE, handle);
+		sess = service_connect_iface(mgmt, DEVMAN_CONNECT_TO_DEVICE,
+		    SERVICE_DEVMAN, handle);
 	
 	return sess;
 }
@@ -350,11 +350,11 @@ async_sess_t *devman_parent_device_connect(exch_mgmt_t mgmt,
 	async_sess_t *sess;
 	
 	if (flags & IPC_FLAG_BLOCKING)
-		sess = service_connect_blocking(mgmt, SERVICE_DEVMAN,
-			    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
+		sess = service_connect_blocking_iface(mgmt,
+			    DEVMAN_CONNECT_TO_PARENTS_DEVICE, SERVICE_DEVMAN, handle);
 	else
-		sess = service_connect(mgmt, SERVICE_DEVMAN,
-			    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
+		sess = service_connect_iface(mgmt,
+			    DEVMAN_CONNECT_TO_PARENTS_DEVICE, SERVICE_DEVMAN, handle);
 	
 	return sess;
 }

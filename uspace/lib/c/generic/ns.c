@@ -42,21 +42,21 @@
 int service_register(sysarg_t service)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
-	int rc = async_connect_to_me(exch, service, 0, 0, NULL, NULL);
+	int rc = async_connect_to_me(exch, 0, service, 0, NULL, NULL);
 	async_exchange_end(exch);
 	
 	return rc;
 }
 
-async_sess_t *service_connect(exch_mgmt_t mgmt, service_t service, sysarg_t arg2,
-    sysarg_t arg3)
+async_sess_t *service_connect_iface(exch_mgmt_t mgmt, sysarg_t iface,
+    service_t service, sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
 	if (!exch)
 		return NULL;
 	
 	async_sess_t *sess =
-	    async_connect_me_to(mgmt, exch, service, arg2, arg3);
+	    async_connect_me_to(mgmt, exch, iface, service, arg3);
 	async_exchange_end(exch);
 	
 	if (!sess)
@@ -67,19 +67,65 @@ async_sess_t *service_connect(exch_mgmt_t mgmt, service_t service, sysarg_t arg2
 	 * parallel exchanges using multiple connections. Shift out
 	 * first argument for non-initial connections.
 	 */
-	async_sess_args_set(sess, arg2, arg3, 0);
+	async_sess_args_set(sess, iface, arg3, 0);
+	
+	return sess;
+}
+
+async_sess_t *service_connect(exch_mgmt_t mgmt, service_t service, sysarg_t arg3)
+{
+	async_exch_t *exch = async_exchange_begin(session_ns);
+	if (!exch)
+		return NULL;
+	
+	async_sess_t *sess =
+	    async_connect_me_to(mgmt, exch, 0, service, arg3);
+	async_exchange_end(exch);
+	
+	if (!sess)
+		return NULL;
+	
+	/*
+	 * FIXME Ugly hack to work around limitation of implementing
+	 * parallel exchanges using multiple connections. Shift out
+	 * first argument for non-initial connections.
+	 */
+	async_sess_args_set(sess, 0, arg3, 0);
+	
+	return sess;
+}
+
+async_sess_t *service_connect_blocking_iface(exch_mgmt_t mgmt, sysarg_t iface,
+    service_t service, sysarg_t arg3)
+{
+	async_exch_t *exch = async_exchange_begin(session_ns);
+	if (!exch)
+		return NULL;
+	async_sess_t *sess =
+	    async_connect_me_to_blocking(mgmt, exch, iface, service, arg3);
+	async_exchange_end(exch);
+	
+	if (!sess)
+		return NULL;
+	
+	/*
+	 * FIXME Ugly hack to work around limitation of implementing
+	 * parallel exchanges using multiple connections. Shift out
+	 * first argument for non-initial connections.
+	 */
+	async_sess_args_set(sess, iface, arg3, 0);
 	
 	return sess;
 }
 
 async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, service_t service,
-    sysarg_t arg2, sysarg_t arg3)
+    sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
 	if (!exch)
 		return NULL;
 	async_sess_t *sess =
-	    async_connect_me_to_blocking(mgmt, exch, service, arg2, arg3);
+	    async_connect_me_to_blocking(mgmt, exch, 0, service, arg3);
 	async_exchange_end(exch);
 	
 	if (!sess)
@@ -90,7 +136,7 @@ async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, service_t service,
 	 * parallel exchanges using multiple connections. Shift out
 	 * first argument for non-initial connections.
 	 */
-	async_sess_args_set(sess, arg2, arg3, 0);
+	async_sess_args_set(sess, 0, arg3, 0);
 	
 	return sess;
 }
@@ -112,7 +158,7 @@ async_sess_t *service_bind(service_t service, sysarg_t arg1, sysarg_t arg2,
 {
 	/* Connect to the needed service */
 	async_sess_t *sess =
-	    service_connect_blocking(EXCHANGE_SERIALIZE, service, 0, 0);
+	    service_connect_blocking(EXCHANGE_SERIALIZE, service, 0);
 	if (sess != NULL) {
 		/* Request callback connection */
 		async_exch_t *exch = async_exchange_begin(sess);

@@ -38,6 +38,7 @@
 #include <ipc/ipc.h>
 #include <ipc/ns.h>
 #include <ipc/services.h>
+#include <abi/ipc/interfaces.h>
 #include <stdio.h>
 #include <errno.h>
 #include <macros.h>
@@ -73,6 +74,7 @@ int main(int argc, char **argv)
 		task_id_t id;
 		sysarg_t retval;
 		
+		iface_t iface;
 		service_t service;
 		sysarg_t phone;
 		
@@ -81,8 +83,11 @@ int main(int argc, char **argv)
 			retval = ns_task_disconnect(&call);
 			break;
 		case IPC_M_CONNECT_TO_ME:
-			service = IPC_GET_ARG1(call);
+			iface = IPC_GET_ARG1(call);
+			service = IPC_GET_ARG2(call);
 			phone = IPC_GET_ARG5(call);
+			
+			(void) iface;
 			
 			/*
 			 * Server requests service registration.
@@ -95,7 +100,10 @@ int main(int argc, char **argv)
 			
 			break;
 		case IPC_M_CONNECT_ME_TO:
-			service = IPC_GET_ARG1(call);
+			iface = IPC_GET_ARG1(call);
+			service = IPC_GET_ARG2(call);
+			
+			(void) iface;
 			
 			/*
 			 * Client requests to be connected to a service.

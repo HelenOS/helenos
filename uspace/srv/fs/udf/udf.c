@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 	}
 	
 	async_sess_t *vfs_sess =
-	    service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_VFS, 0, 0);
+	    service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_VFS, 0);
 	if (!vfs_sess) {
 		log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to connect to VFS");
 		return 2;
