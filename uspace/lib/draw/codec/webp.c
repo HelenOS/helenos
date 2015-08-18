@@ -37,8 +37,9 @@
 #include <byteorder.h>
 #include <align.h>
 #include <stdbool.h>
-#include <fourcc.h>
 #include <pixconv.h>
+#include <sys/types.h>
+#include <abi/fourcc.h>
 #include "webp.h"
 
 /** Check for input buffer overrun condition */

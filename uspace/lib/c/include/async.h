@@ -47,8 +47,10 @@
 #include <abi/proc/task.h>
 #include <abi/ddi/irq.h>
 #include <abi/ipc/event.h>
+#include <abi/ipc/interfaces.h>
 
 typedef ipc_callid_t aid_t;
+typedef sysarg_t port_id_t;
 
 typedef void *(*async_client_data_ctor_t)(void);
 typedef void (*async_client_data_dtor_t)(void *);
@@ -86,7 +88,7 @@ typedef enum {
 	 * mind cloned phones.
 	 *
 	 */
-	EXCHANGE_PARALLEL,
+	EXCHANGE_PARALLEL = 1,
 	
 	/** Exchange management via mutual exclusion
 	 *
@@ -94,7 +96,7 @@ typedef enum {
 	 * but can limit parallelism.
 	 *
 	 */
-	EXCHANGE_SERIALIZE
+	EXCHANGE_SERIALIZE = 2
 } exch_mgmt_t;
 
 /** Forward declarations */

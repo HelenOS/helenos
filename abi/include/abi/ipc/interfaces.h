@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup genericipc
  * @{
  */
-/** @file
+/**
+ * @file interface.h
+ * @brief List of all known interfaces and their codes.
  */
 
-#ifndef LIBC_SYS_TYPES_H_
-#define LIBC_SYS_TYPES_H_
+#ifndef ABI_IPC_INTERFACES_H_
+#define ABI_IPC_INTERFACES_H_
 
-#include <libarch/types.h>
+#include <abi/fourcc.h>
 
-typedef unsigned int mode_t;
+#define IFACE_EXCHANGE_MASK  0x03
+#define IFACE_MOD_MASK       0x04
 
-/** Relative offset */
-typedef int64_t off64_t;
+/** Interface exchange management style
+ *
+ */
+typedef enum {
+	/** No explicit exchange management
+	 *
+	 * Suitable for protocols which use a single
+	 * IPC message per exchange only.
+	 */
+	IFACE_EXCHANGE_ATOMIC = 0x00,
+	
+	/** Exchange management via mutual exclusion
+	 *
+	 * Suitable for any kind of client/server
+	 * communication, but with possibly limited
+	 * parallelism.
+	 */
+	IFACE_EXCHANGE_SERIALIZE = 0x01,
+	
+	/** Exchange management via connection cloning
+	 *
+	 * Suitable for servers which support client
+	 * connection tracking and connection cloning.
+	 */
+	IFACE_EXCHANGE_PARALLEL = 0x02
+} iface_exch_mgmt_t;
 
-/** Absolute offset */
-typedef uint64_t aoff64_t;
+/** Interface modifiers
+ *
+ */
+typedef enum {
+	IFACE_MOD_NONE = 0x00,
+	IFACE_MOD_CALLBACK = 0x04
+} iface_mod_t;
 
-typedef uint32_t fourcc_t;
-
-typedef volatile uint8_t ioport8_t;
-typedef volatile uint16_t ioport16_t;
-typedef volatile uint32_t ioport32_t;
-
-typedef int16_t unaligned_int16_t __attribute__ ((aligned(1)));
-typedef int32_t unaligned_int32_t __attribute__ ((aligned(1)));
-typedef int64_t unaligned_int64_t __attribute__ ((aligned(1)));
-
-typedef uint16_t unaligned_uint16_t __attribute__ ((aligned(1)));
-typedef uint32_t unaligned_uint32_t __attribute__ ((aligned(1)));
-typedef uint64_t unaligned_uint64_t __attribute__ ((aligned(1)));
+typedef enum {
+	INTERFACE_LOADER =
+	    FOURCC_COMPACT('l', 'o', 'a', 'd') | IFACE_EXCHANGE_PARALLEL
+} iface_t;
 
 #endif
 
