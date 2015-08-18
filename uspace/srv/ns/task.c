@@ -230,9 +230,8 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 
 int ns_task_id_intro(ipc_call_t *call)
 {
-	
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-
+	
 	ht_link_t *link = hash_table_find(&phone_to_id, &call->in_phone_hash);
 	if (link != NULL)
 		return EEXISTS;
