@@ -101,7 +101,7 @@ int bithenge_new_block_blob(bithenge_node_t **out, service_id_t service_id)
 
 	// Initialize libblock
 	int rc;
-	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
+	rc = block_init(service_id, 2048);
 	if (rc != EOK)
 		return rc;
 

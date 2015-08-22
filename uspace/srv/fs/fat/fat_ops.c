@@ -938,7 +938,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	}
 
 	/* initialize libblock */
-	rc = block_init(EXCHANGE_SERIALIZE, service_id, BS_SIZE);
+	rc = block_init(service_id, BS_SIZE);
 	if (rc != EOK) {
 		free(instance);
 		return rc;

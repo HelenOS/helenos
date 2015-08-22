@@ -209,7 +209,7 @@ static int mbr_init(const char *dev_name)
 		return rc;
 	}
 
-	rc = block_init(EXCHANGE_SERIALIZE, indev_sid, 2048);
+	rc = block_init(indev_sid, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": could not init libblock.\n");
 		return rc;

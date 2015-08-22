@@ -160,7 +160,7 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		cmode = CACHE_MODE_WB;
 
 	/* initialize libblock */
-	rc = block_init(EXCHANGE_SERIALIZE, service_id, 4096);
+	rc = block_init(service_id, 4096);
 	if (rc != EOK)
 		return rc;
 

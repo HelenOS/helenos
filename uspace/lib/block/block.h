@@ -98,7 +98,7 @@ enum cache_mode {
 	CACHE_MODE_WB
 };
 
-extern int block_init(exch_mgmt_t, service_id_t, size_t);
+extern int block_init(service_id_t, size_t);
 extern void block_fini(service_id_t);
 
 extern int block_bb_read(service_id_t, aoff64_t);

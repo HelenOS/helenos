@@ -60,7 +60,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
 	fs->device = service_id;
 
 	/* Initialize block library (4096 is size of communication channel) */
-	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 4096);
+	rc = block_init(fs->device, 4096);
 	if (rc != EOK)
 		goto err;
 

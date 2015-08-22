@@ -143,12 +143,11 @@ static void devcon_remove(devcon_t *devcon)
 	fibril_mutex_unlock(&dcl_lock);
 }
 
-int block_init(exch_mgmt_t mgmt, service_id_t service_id,
-    size_t comm_size)
+int block_init(service_id_t service_id, size_t comm_size)
 {
 	bd_t *bd;
 
-	async_sess_t *sess = loc_service_connect(mgmt, service_id,
+	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, service_id,
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
 		return ENOENT;

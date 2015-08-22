@@ -324,7 +324,7 @@ static int udf_mounted(service_id_t service_id, const char *opts,
 		instance->sector_size = 2048;
 	
 	/* initialize block cache */
-	int rc = block_init(EXCHANGE_SERIALIZE, service_id, MAX_SIZE);
+	int rc = block_init(service_id, MAX_SIZE);
 	if (rc != EOK)
 		return rc;
 	
