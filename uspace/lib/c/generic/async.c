@@ -188,10 +188,10 @@ typedef struct {
 	
 	/** If reply was received. */
 	bool done;
-
+	
 	/** If the message / reply should be discarded on arrival. */
 	bool forget;
-
+	
 	/** If already destroyed. */
 	bool destroyed;
 	
@@ -265,7 +265,7 @@ static fibril_local connection_t *fibril_connection;
 static void to_event_initialize(to_event_t *to)
 {
 	struct timeval tv = { 0, 0 };
-
+	
 	to->inlist = false;
 	to->occurred = false;
 	link_initialize(&to->link);
@@ -288,9 +288,7 @@ void awaiter_initialize(awaiter_t *aw)
 
 static amsg_t *amsg_create(void)
 {
-	amsg_t *msg;
-
-	msg = malloc(sizeof(amsg_t));
+	amsg_t *msg = malloc(sizeof(amsg_t));
 	if (msg) {
 		msg->done = false;
 		msg->forget = false;
@@ -299,7 +297,7 @@ static amsg_t *amsg_create(void)
 		msg->retval = (sysarg_t) EINVAL;
 		awaiter_initialize(&msg->wdata);
 	}
-
+	
 	return msg;
 }
 
@@ -868,7 +866,8 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		}
 	}
 	
-	msg_t *msg = list_get_instance(list_first(&conn->msg_queue), msg_t, link);
+	msg_t *msg = list_get_instance(list_first(&conn->msg_queue),
+	    msg_t, link);
 	list_remove(&msg->link);
 	
 	ipc_callid_t callid = msg->callid;
@@ -936,24 +935,25 @@ void *async_get_client_data_by_id(task_id_t client_id)
 	client_t *client = async_client_get(client_id, false);
 	if (!client)
 		return NULL;
+	
 	if (!client->data) {
 		async_client_put(client);
 		return NULL;
 	}
-
+	
 	return client->data;
 }
 
 void async_put_client_data_by_id(task_id_t client_id)
 {
 	client_t *client = async_client_get(client_id, false);
-
+	
 	assert(client);
 	assert(client->data);
-
+	
 	/* Drop the reference we got in async_get_client_data_by_hash(). */
 	async_client_put(client);
-
+	
 	/* Drop our own reference we got at the beginning of this function. */
 	async_client_put(client);
 }
@@ -1345,7 +1345,7 @@ void reply_received(void *arg, int retval, ipc_call_t *data)
 		list_remove(&msg->wdata.to_event.link);
 	
 	msg->done = true;
-
+	
 	if (msg->forget) {
 		assert(msg->wdata.active);
 		amsg_destroy(msg);
@@ -1353,7 +1353,7 @@ void reply_received(void *arg, int retval, ipc_call_t *data)
 		msg->wdata.active = true;
 		fibril_add_ready(msg->wdata.fid);
 	}
-
+	
 	futex_up(&async_futex);
 }
 
@@ -1445,10 +1445,10 @@ void async_wait_for(aid_t amsgid, sysarg_t *retval)
 	amsg_t *msg = (amsg_t *) amsgid;
 	
 	futex_down(&async_futex);
-
+	
 	assert(!msg->forget);
 	assert(!msg->destroyed);
-
+	
 	if (msg->done) {
 		futex_up(&async_futex);
 		goto done;
@@ -1489,12 +1489,12 @@ int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 	assert(amsgid);
 	
 	amsg_t *msg = (amsg_t *) amsgid;
-
+	
 	futex_down(&async_futex);
-
+	
 	assert(!msg->forget);
 	assert(!msg->destroyed);
-
+	
 	if (msg->done) {
 		futex_up(&async_futex);
 		goto done;
@@ -1506,7 +1506,7 @@ int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 	 */
 	if (timeout < 0)
 		timeout = 0;
-
+	
 	getuptime(&msg->wdata.to_event.expires);
 	tv_add_diff(&msg->wdata.to_event.expires, timeout);
 	
@@ -1559,18 +1559,20 @@ done:
 void async_forget(aid_t amsgid)
 {
 	amsg_t *msg = (amsg_t *) amsgid;
-
+	
 	assert(msg);
 	assert(!msg->forget);
 	assert(!msg->destroyed);
-
+	
 	futex_down(&async_futex);
+	
 	if (msg->done) {
 		amsg_destroy(msg);
 	} else {
 		msg->dataptr = NULL;
 		msg->forget = true;
 	}
+	
 	futex_up(&async_futex);
 }
 
@@ -2696,28 +2698,28 @@ int async_data_write_accept(void **data, const bool nullterm,
 		return EINVAL;
 	}
 	
-	void *_data;
+	void *arg_data;
 	
 	if (nullterm)
-		_data = malloc(size + 1);
+		arg_data = malloc(size + 1);
 	else
-		_data = malloc(size);
+		arg_data = malloc(size);
 	
-	if (_data == NULL) {
+	if (arg_data == NULL) {
 		ipc_answer_0(callid, ENOMEM);
 		return ENOMEM;
 	}
 	
-	int rc = async_data_write_finalize(callid, _data, size);
+	int rc = async_data_write_finalize(callid, arg_data, size);
 	if (rc != EOK) {
-		free(_data);
+		free(arg_data);
 		return rc;
 	}
 	
 	if (nullterm)
-		((char *) _data)[size] = 0;
+		((char *) arg_data)[size] = 0;
 	
-	*data = _data;
+	*data = arg_data;
 	if (received != NULL)
 		*received = size;
 	
@@ -2936,10 +2938,10 @@ bool async_state_change_receive(ipc_callid_t *callid, sysarg_t *arg1,
     sysarg_t *arg2, sysarg_t *arg3)
 {
 	assert(callid);
-
+	
 	ipc_call_t call;
 	*callid = async_get_call(&call);
-
+	
 	if (IPC_GET_IMETHOD(call) != IPC_M_STATE_CHANGE_AUTHORIZE)
 		return false;
 	
@@ -2949,7 +2951,7 @@ bool async_state_change_receive(ipc_callid_t *callid, sysarg_t *arg1,
 		*arg2 = IPC_GET_ARG2(call);
 	if (arg3)
 		*arg3 = IPC_GET_ARG3(call);
-
+	
 	return true;
 }
 
