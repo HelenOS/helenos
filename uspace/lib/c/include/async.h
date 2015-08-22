@@ -164,6 +164,9 @@ extern void async_put_client_data_by_id(task_id_t);
 extern int async_create_port(iface_t, async_port_handler_t, void *,
     port_id_t *);
 extern void async_set_fallback_port_handler(async_port_handler_t, void *);
+extern int async_create_callback_port(async_exch_t *, iface_t, sysarg_t,
+    sysarg_t, async_port_handler_t, void *, port_id_t *);
+
 extern void async_set_notification_handler_stack_size(size_t);
 
 extern int async_irq_subscribe(int, int, async_notification_handler_t, void *,

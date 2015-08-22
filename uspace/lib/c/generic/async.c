@@ -630,6 +630,73 @@ static hash_table_ops_t conn_hash_table_ops = {
 	.remove_callback = NULL
 };
 
+/** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
+ *
+ * Ask through phone for a new connection to some service.
+ *
+ * @param exch    Exchange for sending the message.
+ * @param iface   Callback interface.
+ * @param arg1    User defined argument.
+ * @param arg2    User defined argument.
+ * @param handler Callback handler.
+ * @param data    Handler data.
+ * @param port_id ID of the newly created port.
+ *
+ * @return Zero on success or a negative error code.
+ *
+ */
+int async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t arg1,
+    sysarg_t arg2, async_port_handler_t handler, void *data, port_id_t *port_id)
+{
+	if ((iface & IFACE_MOD_CALLBACK) != IFACE_MOD_CALLBACK)
+		return EINVAL;
+	
+	if (exch == NULL)
+		return ENOENT;
+	
+	ipc_call_t answer;
+	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, iface, arg1, arg2,
+	    &answer);
+	
+	sysarg_t ret;
+	async_wait_for(req, &ret);
+	if (ret != EOK)
+		return (int) ret;
+	
+	sysarg_t phone_hash = IPC_GET_ARG5(answer);
+	interface_t *interface;
+	
+	futex_down(&async_futex);
+	
+	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
+	if (link)
+		interface = hash_table_get_inst(link, interface_t, link);
+	else
+		interface = async_new_interface(iface);
+	
+	if (!interface) {
+		futex_up(&async_futex);
+		return ENOMEM;
+	}
+	
+	port_t *port = async_new_port(interface, handler, data);
+	if (!port) {
+		futex_up(&async_futex);
+		return ENOMEM;
+	}
+	
+	*port_id = port->id;
+	
+	futex_up(&async_futex);
+	
+	fid_t fid = async_new_connection(answer.in_task_id, phone_hash,
+	    0, NULL, handler, data);
+	if (fid == (uintptr_t) NULL)
+		return ENOMEM;
+	
+	return EOK;
+}
+
 static size_t notification_key_hash(void *key)
 {
 	sysarg_t id = *(sysarg_t *) key;

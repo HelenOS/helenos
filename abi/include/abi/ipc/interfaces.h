@@ -79,7 +79,11 @@ typedef enum {
 
 typedef enum {
 	INTERFACE_LOADER =
-	    FOURCC_COMPACT('l', 'o', 'a', 'd') | IFACE_EXCHANGE_PARALLEL
+	    FOURCC_COMPACT('l', 'o', 'a', 'd') | IFACE_EXCHANGE_PARALLEL,
+	INTERFACE_TCP_CB =
+	    FOURCC_COMPACT('t', 'c', 'p', ' ') | IFACE_EXCHANGE_SERIALIZE | IFACE_MOD_CALLBACK,
+	INTERFACE_UDP_CB =
+	    FOURCC_COMPACT('u', 'd', 'p', ' ') | IFACE_EXCHANGE_SERIALIZE | IFACE_MOD_CALLBACK
 } iface_t;
 
 #endif
