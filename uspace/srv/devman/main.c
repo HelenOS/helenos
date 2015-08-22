@@ -220,7 +220,7 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		/* Connect client to selected device. */
 		devman_forward(iid, icall, false);
 		break;
-	case DEVMAN_CONNECT_FROM_LOC:
+	case INTERFACE_DDF_CLIENT:
 		/* Someone connected through loc node. */
 		devman_connection_loc(iid, icall);
 		break;

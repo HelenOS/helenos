@@ -266,7 +266,7 @@ static void loc_callback(void)
 			
 			link_initialize(&dev->link);
 			dev->svc_id = svcs[i];
-			dev->sess = loc_service_connect(EXCHANGE_SERIALIZE, svcs[i], 0);
+			dev->sess = loc_service_connect_iface(svcs[i], INTERFACE_DDF_CLIENT, 0);
 			
 			list_append(&dev->link, &led_devs);
 		}

@@ -568,6 +568,19 @@ loc_object_type_t loc_id_probe(service_id_t handle)
 	return (loc_object_type_t) type;
 }
 
+async_sess_t *loc_service_connect_iface(service_id_t handle, iface_t iface,
+    unsigned int flags)
+{
+	async_sess_t *sess;
+	
+	if (flags & IPC_FLAG_BLOCKING)
+		sess = service_connect_blocking_iface_extended(SERVICE_LOC, iface, handle);
+	else
+		sess = service_connect_iface_extended(SERVICE_LOC, iface, handle);
+	
+	return sess;
+}
+
 async_sess_t *loc_service_connect(exch_mgmt_t mgmt, service_id_t handle,
     unsigned int flags)
 {

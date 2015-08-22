@@ -64,6 +64,8 @@ extern int loc_category_get_name(category_id_t, char **);
 extern int loc_category_get_svcs(category_id_t, category_id_t **, size_t *);
 extern loc_object_type_t loc_id_probe(service_id_t);
 
+extern async_sess_t *loc_service_connect_iface(service_id_t, iface_t,
+    unsigned int);
 extern async_sess_t *loc_service_connect(exch_mgmt_t, service_id_t,
     unsigned int);
 

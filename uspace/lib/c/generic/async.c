@@ -2284,6 +2284,57 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 	return sess;
 }
 
+/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
+ *
+ * Ask through phone for a new connection to some service and block until
+ * success.
+ *
+ * @param exch  Exchange for sending the message.
+ * @param iface Connection interface.
+ * @param arg2  User defined argument.
+ * @param arg3  User defined argument.
+ *
+ * @return New session on success or NULL on error.
+ *
+ */
+async_sess_t *async_connect_me_to_iface(async_exch_t *exch, iface_t iface,
+    sysarg_t arg2, sysarg_t arg3)
+{
+	if (exch == NULL) {
+		errno = ENOENT;
+		return NULL;
+	}
+	
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	int phone = async_connect_me_to_internal(exch->phone, iface, arg2,
+	    arg3, 0);
+	if (phone < 0) {
+		errno = phone;
+		free(sess);
+		return NULL;
+	}
+	
+	sess->iface = iface;
+	sess->phone = phone;
+	sess->arg1 = iface;
+	sess->arg2 = arg2;
+	sess->arg3 = arg3;
+	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
+	
+	return sess;
+}
+
 /** Set arguments for new connections.
  *
  * FIXME This is an ugly hack to work around the problem that parallel

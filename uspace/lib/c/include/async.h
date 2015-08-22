@@ -349,6 +349,8 @@ extern sysarg_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern async_sess_t *async_clone_establish(exch_mgmt_t, async_exch_t *);
 extern async_sess_t *async_connect_me_to(exch_mgmt_t, async_exch_t *, sysarg_t,
     sysarg_t, sysarg_t);
+extern async_sess_t *async_connect_me_to_iface(async_exch_t *, iface_t,
+    sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_me_to_blocking(exch_mgmt_t, async_exch_t *,
     sysarg_t, sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *, iface_t,

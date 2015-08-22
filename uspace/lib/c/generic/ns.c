@@ -72,6 +72,30 @@ async_sess_t *service_connect_iface(exch_mgmt_t mgmt, sysarg_t iface,
 	return sess;
 }
 
+async_sess_t *service_connect_iface_extended(service_t service, iface_t iface,
+    sysarg_t arg3)
+{
+	async_exch_t *exch = async_exchange_begin(session_ns);
+	if (!exch)
+		return NULL;
+	
+	async_sess_t *sess =
+	    async_connect_me_to_iface(exch, iface, service, arg3);
+	async_exchange_end(exch);
+	
+	if (!sess)
+		return NULL;
+	
+	/*
+	 * FIXME Ugly hack to work around limitation of implementing
+	 * parallel exchanges using multiple connections. Shift out
+	 * first argument for non-initial connections.
+	 */
+	async_sess_args_set(sess, iface, arg3, 0);
+	
+	return sess;
+}
+
 async_sess_t *service_connect(exch_mgmt_t mgmt, service_t service, sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
