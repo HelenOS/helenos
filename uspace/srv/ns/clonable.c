@@ -45,9 +45,10 @@
 /** Request for connection to a clonable service. */
 typedef struct {
 	link_t link;
-	sysarg_t service;
-	ipc_call_t call;
+	service_t service;
+	iface_t iface;
 	ipc_callid_t callid;
+	sysarg_t arg3;
 } cs_req_t;
 
 /** List of clonable-service connection requests. */
@@ -60,7 +61,7 @@ int clonable_init(void)
 }
 
 /** Return true if @a service is clonable. */
-bool service_clonable(int service)
+bool service_clonable(service_t service)
 {
 	return (service == SERVICE_LOAD);
 }
@@ -72,12 +73,10 @@ bool service_clonable(int service)
  * @param call    Pointer to call structure.
  *
  */
-void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
+void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
     ipc_callid_t callid)
 {
-	link_t *req_link;
-
-	req_link = list_first(&cs_req);
+	link_t *req_link = list_first(&cs_req);
 	if (req_link == NULL) {
 		/* There was no pending connection request. */
 		printf("%s: Unexpected clonable server.\n", NAME);
@@ -93,8 +92,8 @@ void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
 	
 	ipc_answer_0(callid, EOK);
 	
-	ipc_forward_fast(csr->callid, phone, IPC_GET_ARG1(csr->call),
-	    IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
+	ipc_forward_fast(csr->callid, phone, csr->iface, csr->arg3, 0,
+	    IPC_FF_NONE);
 	
 	free(csr);
 	ipc_hangup(phone);
@@ -103,13 +102,14 @@ void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
 /** Connect client to clonable service.
  *
  * @param service Service to be connected to.
+ * @param iface   Interface to be connected to.
  * @param call    Pointer to call structure.
  * @param callid  Call ID of the request.
  *
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-void connect_to_clonable(sysarg_t service, ipc_call_t *call,
+void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
     ipc_callid_t callid)
 {
 	assert(service == SERVICE_LOAD);
@@ -131,8 +131,9 @@ void connect_to_clonable(sysarg_t service, ipc_call_t *call,
 	
 	link_initialize(&csr->link);
 	csr->service = service;
-	csr->call = *call;
+	csr->iface = iface;
 	csr->callid = callid;
+	csr->arg3 = IPC_GET_ARG3(*call);
 	
 	/*
 	 * We can forward the call only after the server we spawned connects

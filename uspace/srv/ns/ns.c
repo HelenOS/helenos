@@ -83,11 +83,8 @@ int main(int argc, char **argv)
 			retval = ns_task_disconnect(&call);
 			break;
 		case IPC_M_CONNECT_TO_ME:
-			iface = IPC_GET_ARG1(call);
 			service = IPC_GET_ARG2(call);
 			phone = IPC_GET_ARG5(call);
-			
-			(void) iface;
 			
 			/*
 			 * Server requests service registration.
@@ -103,16 +100,14 @@ int main(int argc, char **argv)
 			iface = IPC_GET_ARG1(call);
 			service = IPC_GET_ARG2(call);
 			
-			(void) iface;
-			
 			/*
 			 * Client requests to be connected to a service.
 			 */
 			if (service_clonable(service)) {
-				connect_to_clonable(service, &call, callid);
+				connect_to_clonable(service, iface, &call, callid);
 				continue;
 			} else {
-				connect_to_service(service, &call, callid);
+				connect_to_service(service, iface, &call, callid);
 				continue;
 			}
 			break;
