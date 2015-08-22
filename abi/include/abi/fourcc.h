@@ -40,11 +40,11 @@
 	    (((UINT32_T) (c)) << 16) | (((UINT32_T) (d)) << 24))
 
 #define CC_COMPACT(a) \
-	((((UINT32_T) (a)) & 0x7c) >> 2)
+	((UINT32_T) (a) & 0x7f)
 
 #define FOURCC_COMPACT(a, b, c, d) \
-	((CC_COMPACT(a) << 12) | (CC_COMPACT(b) << 17) | \
-	    (CC_COMPACT(c) << 22) | (CC_COMPACT(d) << 27))
+	((CC_COMPACT(a) << 4) | (CC_COMPACT(b) << 11) | \
+	    (CC_COMPACT(c) << 18) | (CC_COMPACT(d) << 25))
 
 #endif
 
