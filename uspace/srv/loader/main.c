@@ -442,7 +442,6 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
  */
 int main(int argc, char *argv[])
 {
-	/* Set a handler of incomming connections. */
 	async_set_fallback_port_handler(ldr_connection, NULL);
 	
 	/* Introduce this task to the NS (give it our task ID). */
@@ -451,8 +450,14 @@ int main(int argc, char *argv[])
 	if (rc != EOK)
 		return rc;
 	
+	/* Create port */
+	port_id_t port;
+	rc = async_create_port(INTERFACE_LOADER, ldr_connection, NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
 	/* Register at naming service. */
-	rc = service_register(SERVICE_LOAD);
+	rc = service_register(SERVICE_LOADER);
 	if (rc != EOK)
 		return rc;
 	

@@ -63,7 +63,7 @@ int clonable_init(void)
 /** Return true if @a service is clonable. */
 bool service_clonable(service_t service)
 {
-	return (service == SERVICE_LOAD);
+	return (service == SERVICE_LOADER);
 }
 
 /** Register clonable service.
@@ -88,7 +88,7 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
 	list_remove(req_link);
 	
 	/* Currently we can only handle a single type of clonable service. */
-	assert(csr->service == SERVICE_LOAD);
+	assert(csr->service == SERVICE_LOADER);
 	
 	ipc_answer_0(callid, EOK);
 	
@@ -112,7 +112,7 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
 void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
     ipc_callid_t callid)
 {
-	assert(service == SERVICE_LOAD);
+	assert(service == SERVICE_LOADER);
 	
 	cs_req_t *csr = malloc(sizeof(cs_req_t));
 	if (csr == NULL) {

@@ -122,6 +122,9 @@ struct async_sess {
 	/** List of inactive exchanges */
 	list_t exch_list;
 	
+	/** Session interface */
+	iface_t iface;
+	
 	/** Exchange management style */
 	exch_mgmt_t mgmt;
 	
@@ -245,6 +248,37 @@ typedef struct {
 	void *data;
 } connection_t;
 
+/** Interface data */
+typedef struct {
+	ht_link_t link;
+	
+	/** Interface ID */
+	iface_t iface;
+	
+	/** Futex protecting the hash table */
+	futex_t futex;
+	
+	/** Interface ports */
+	hash_table_t port_hash_table;
+	
+	/** Next available port ID */
+	port_id_t port_id_avail;
+} interface_t;
+
+/* Port data */
+typedef struct {
+	ht_link_t link;
+	
+	/** Port ID */
+	port_id_t id;
+	
+	/** Port connection handler */
+	async_port_handler_t handler;
+	
+	/** Client data */
+	void *data;
+} port_t;
+
 /* Notification data */
 typedef struct {
 	ht_link_t link;
@@ -354,6 +388,110 @@ static async_port_handler_t fallback_port_handler =
     default_fallback_port_handler;
 static void *fallback_port_data = NULL;
 
+static hash_table_t interface_hash_table;
+
+static size_t interface_key_hash(void *key)
+{
+	iface_t iface = *(iface_t *) key;
+	return iface;
+}
+
+static size_t interface_hash(const ht_link_t *item)
+{
+	interface_t *interface = hash_table_get_inst(item, interface_t, link);
+	return interface_key_hash(&interface->iface);
+}
+
+static bool interface_key_equal(void *key, const ht_link_t *item)
+{
+	iface_t iface = *(iface_t *) key;
+	interface_t *interface = hash_table_get_inst(item, interface_t, link);
+	return iface == interface->iface;
+}
+
+/** Operations for the port hash table. */
+static hash_table_ops_t interface_hash_table_ops = {
+	.hash = interface_hash,
+	.key_hash = interface_key_hash,
+	.key_equal = interface_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL
+};
+
+static size_t port_key_hash(void *key)
+{
+	port_id_t port_id = *(port_id_t *) key;
+	return port_id;
+}
+
+static size_t port_hash(const ht_link_t *item)
+{
+	port_t *port = hash_table_get_inst(item, port_t, link);
+	return port_key_hash(&port->id);
+}
+
+static bool port_key_equal(void *key, const ht_link_t *item)
+{
+	port_id_t port_id = *(port_id_t *) key;
+	port_t *port = hash_table_get_inst(item, port_t, link);
+	return port_id == port->id;
+}
+
+/** Operations for the port hash table. */
+static hash_table_ops_t port_hash_table_ops = {
+	.hash = port_hash,
+	.key_hash = port_key_hash,
+	.key_equal = port_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL
+};
+
+static interface_t *async_new_interface(iface_t iface)
+{
+	interface_t *interface =
+	    (interface_t *) malloc(sizeof(interface_t));
+	if (!interface)
+		return NULL;
+	
+	bool ret = hash_table_create(&interface->port_hash_table, 0, 0,
+	    &port_hash_table_ops);
+	if (!ret) {
+		free(interface);
+		return NULL;
+	}
+	
+	interface->iface = iface;
+	futex_initialize(&interface->futex, 1);
+	interface->port_id_avail = 0;
+	
+	hash_table_insert(&interface_hash_table, &interface->link);
+	
+	return interface;
+}
+
+static port_t *async_new_port(interface_t *interface,
+    async_port_handler_t handler, void *data)
+{
+	port_t *port = (port_t *) malloc(sizeof(port_t));
+	if (!port)
+		return NULL;
+	
+	futex_down(&interface->futex);
+	
+	port_id_t id = interface->port_id_avail;
+	interface->port_id_avail++;
+	
+	port->id = id;
+	port->handler = handler;
+	port->data = data;
+	
+	hash_table_insert(&interface->port_hash_table, &port->link);
+	
+	futex_up(&interface->futex);
+	
+	return port;
+}
+
 static size_t notification_handler_stksz = FIBRIL_DFLT_STK_SIZE;
 
 /** Set the stack size for the notification handler notification fibrils.
@@ -379,6 +517,40 @@ static LIST_INITIALIZE(inactive_exch_list);
  *
  */
 static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
+
+int async_create_port(iface_t iface, async_port_handler_t handler,
+    void *data, port_id_t *port_id)
+{
+	if ((iface & IFACE_MOD_MASK) == IFACE_MOD_CALLBACK)
+		return EINVAL;
+	
+	interface_t *interface;
+	
+	futex_down(&async_futex);
+	
+	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
+	if (link)
+		interface = hash_table_get_inst(link, interface_t, link);
+	else
+		interface = async_new_interface(iface);
+	
+	if (!interface) {
+		futex_up(&async_futex);
+		return ENOMEM;
+	}
+	
+	port_t *port = async_new_port(interface, handler, data);
+	if (!port) {
+		futex_up(&async_futex);
+		return ENOMEM;
+	}
+	
+	*port_id = port->id;
+	
+	futex_up(&async_futex);
+	
+	return EOK;
+}
 
 void async_set_fallback_port_handler(async_port_handler_t handler, void *data)
 {
@@ -958,6 +1130,27 @@ void async_put_client_data_by_id(task_id_t client_id)
 	async_client_put(client);
 }
 
+static port_t *async_find_port(iface_t iface, port_id_t port_id)
+{
+	port_t *port = NULL;
+	
+	futex_down(&async_futex);
+	
+	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
+	if (link) {
+		interface_t *interface =
+		    hash_table_get_inst(link, interface_t, link);
+		
+		link = hash_table_find(&interface->port_hash_table, &port_id);
+		if (link)
+			port = hash_table_get_inst(link, port_t, link);
+	}
+	
+	futex_up(&async_futex);
+	
+	return port;
+}
+
 /** Wrapper for client connection fibril.
  *
  * When a new connection arrives, a fibril with this implementing function is
@@ -1119,9 +1312,30 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
-	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_CLONE_ESTABLISH:
-	case IPC_M_CONNECT_ME_TO:
+	/* New connection */
+	if (IPC_GET_IMETHOD(*call) == IPC_M_CONNECT_ME_TO) {
+		iface_t iface = (iface_t) IPC_GET_ARG1(*call);
+		sysarg_t in_phone_hash = IPC_GET_ARG5(*call);
+		
+		async_notification_handler_t handler = fallback_port_handler;
+		void *data = fallback_port_data;
+		
+		// TODO: Currently ignores all ports but the first one
+		port_t *port = async_find_port(iface, 0);
+		if (port) {
+			handler = port->handler;
+			data = port->data;
+		}
+		
+		async_new_connection(call->in_task_id, in_phone_hash, callid,
+		    call, handler, data);
+		return;
+	}
+	
+	/* Cloned connection */
+	if (IPC_GET_IMETHOD(*call) == IPC_M_CLONE_ESTABLISH) {
+		// TODO: Currently ignores ports altogether
+		
 		/* Open new connection with fibril, etc. */
 		async_new_connection(call->in_task_id, IPC_GET_ARG5(*call),
 		    callid, call, fallback_port_handler, fallback_port_data);
@@ -1285,6 +1499,10 @@ void async_destroy_manager(void)
  */
 void __async_init(void)
 {
+	if (!hash_table_create(&interface_hash_table, 0, 0,
+	    &interface_hash_table_ops))
+		abort();
+	
 	if (!hash_table_create(&client_hash_table, 0, 0, &client_hash_table_ops))
 		abort();
 	
@@ -1299,6 +1517,7 @@ void __async_init(void)
 	if (session_ns == NULL)
 		abort();
 	
+	session_ns->iface = 0;
 	session_ns->mgmt = EXCHANGE_ATOMIC;
 	session_ns->phone = PHONE_NS;
 	session_ns->arg1 = 0;
@@ -1904,6 +2123,7 @@ async_sess_t *async_clone_establish(exch_mgmt_t mgmt, async_exch_t *exch)
 		return NULL;
 	}
 	
+	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phone;
 	sess->arg1 = 0;
@@ -1980,6 +2200,7 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 		return NULL;
 	}
 	
+	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phone;
 	sess->arg1 = arg1;
@@ -2051,9 +2272,61 @@ async_sess_t *async_connect_me_to_blocking(exch_mgmt_t mgmt, async_exch_t *exch,
 		return NULL;
 	}
 	
+	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phone;
 	sess->arg1 = arg1;
+	sess->arg2 = arg2;
+	sess->arg3 = arg3;
+	
+	fibril_mutex_initialize(&sess->remote_state_mtx);
+	sess->remote_state_data = NULL;
+	
+	list_initialize(&sess->exch_list);
+	fibril_mutex_initialize(&sess->mutex);
+	atomic_set(&sess->refcnt, 0);
+	
+	return sess;
+}
+
+/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
+ *
+ * Ask through phone for a new connection to some service and block until
+ * success.
+ *
+ * @param exch  Exchange for sending the message.
+ * @param iface Connection interface.
+ * @param arg2  User defined argument.
+ * @param arg3  User defined argument.
+ *
+ * @return New session on success or NULL on error.
+ *
+ */
+async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *exch, iface_t iface,
+    sysarg_t arg2, sysarg_t arg3)
+{
+	if (exch == NULL) {
+		errno = ENOENT;
+		return NULL;
+	}
+	
+	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	if (sess == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	int phone = async_connect_me_to_internal(exch->phone, iface, arg2,
+	    arg3, IPC_FLAG_BLOCKING);
+	if (phone < 0) {
+		errno = phone;
+		free(sess);
+		return NULL;
+	}
+	
+	sess->iface = iface;
+	sess->phone = phone;
+	sess->arg1 = iface;
 	sess->arg2 = arg2;
 	sess->arg3 = arg3;
 	
@@ -2085,6 +2358,7 @@ async_sess_t *async_connect_kbox(task_id_t id)
 		return NULL;
 	}
 	
+	sess->iface = 0;
 	sess->mgmt = EXCHANGE_ATOMIC;
 	sess->phone = phone;
 	sess->arg1 = 0;
@@ -2162,7 +2436,11 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 	if (sess == NULL)
 		return NULL;
 	
-	async_exch_t *exch;
+	exch_mgmt_t mgmt = sess->mgmt;
+	if (sess->iface != 0)
+		mgmt = sess->iface & IFACE_EXCHANGE_MASK;
+	
+	async_exch_t *exch = NULL;
 	
 	fibril_mutex_lock(&async_sess_mutex);
 	
@@ -2181,8 +2459,8 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 		 * There are no available exchanges in the session.
 		 */
 		
-		if ((sess->mgmt == EXCHANGE_ATOMIC) ||
-		    (sess->mgmt == EXCHANGE_SERIALIZE)) {
+		if ((mgmt == EXCHANGE_ATOMIC) ||
+		    (mgmt == EXCHANGE_SERIALIZE)) {
 			exch = (async_exch_t *) malloc(sizeof(async_exch_t));
 			if (exch != NULL) {
 				link_initialize(&exch->sess_link);
@@ -2190,14 +2468,13 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 				exch->sess = sess;
 				exch->phone = sess->phone;
 			}
-		} else {  /* EXCHANGE_PARALLEL */
+		} else if (mgmt == EXCHANGE_PARALLEL) {
+			int phone;
+			
+		retry:
 			/*
 			 * Make a one-time attempt to connect a new data phone.
 			 */
-			
-			int phone;
-			
-retry:
 			phone = async_connect_me_to_internal(sess->phone, sess->arg1,
 			    sess->arg2, sess->arg3, 0);
 			if (phone >= 0) {
@@ -2239,7 +2516,7 @@ retry:
 	if (exch != NULL) {
 		atomic_inc(&sess->refcnt);
 		
-		if (sess->mgmt == EXCHANGE_SERIALIZE)
+		if (mgmt == EXCHANGE_SERIALIZE)
 			fibril_mutex_lock(&sess->mutex);
 	}
 	
@@ -2259,9 +2536,13 @@ void async_exchange_end(async_exch_t *exch)
 	async_sess_t *sess = exch->sess;
 	assert(sess != NULL);
 	
+	exch_mgmt_t mgmt = sess->mgmt;
+	if (sess->iface != 0)
+		mgmt = sess->iface & IFACE_EXCHANGE_MASK;
+	
 	atomic_dec(&sess->refcnt);
 	
-	if (sess->mgmt == EXCHANGE_SERIALIZE)
+	if (mgmt == EXCHANGE_SERIALIZE)
 		fibril_mutex_unlock(&sess->mutex);
 	
 	fibril_mutex_lock(&async_sess_mutex);
@@ -2817,6 +3098,7 @@ async_sess_t *async_clone_receive(exch_mgmt_t mgmt)
 		return NULL;
 	}
 	
+	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phone;
 	sess->arg1 = 0;
@@ -2866,6 +3148,7 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 		return NULL;
 	}
 	
+	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phone;
 	sess->arg1 = 0;
@@ -2911,6 +3194,7 @@ async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 	if (sess == NULL)
 		return NULL;
 	
+	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phone;
 	sess->arg1 = 0;

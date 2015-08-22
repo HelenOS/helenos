@@ -42,7 +42,7 @@
 
 typedef enum {
 	SERVICE_NONE       = 0,
-	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
+	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
 	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
 	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
 	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),

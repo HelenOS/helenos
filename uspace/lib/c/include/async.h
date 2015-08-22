@@ -161,6 +161,8 @@ extern void *async_get_client_data(void);
 extern void *async_get_client_data_by_id(task_id_t);
 extern void async_put_client_data_by_id(task_id_t);
 
+extern int async_create_port(iface_t, async_port_handler_t, void *,
+    port_id_t *);
 extern void async_set_fallback_port_handler(async_port_handler_t, void *);
 extern void async_set_notification_handler_stack_size(size_t);
 
@@ -346,6 +348,8 @@ extern async_sess_t *async_connect_me_to(exch_mgmt_t, async_exch_t *, sysarg_t,
     sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_me_to_blocking(exch_mgmt_t, async_exch_t *,
     sysarg_t, sysarg_t, sysarg_t);
+extern async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *, iface_t,
+    sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_kbox(task_id_t);
 
 extern int async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,

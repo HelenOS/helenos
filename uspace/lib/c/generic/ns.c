@@ -39,7 +39,7 @@
 #include <errno.h>
 #include "private/ns.h"
 
-int service_register(sysarg_t service)
+int service_register(service_t service)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
 	int rc = async_connect_to_me(exch, 0, service, 0, NULL, NULL);
@@ -118,12 +118,31 @@ async_sess_t *service_connect_blocking_iface(exch_mgmt_t mgmt, sysarg_t iface,
 	return sess;
 }
 
+async_sess_t *service_connect_blocking_iface_extended(service_t service,
+    iface_t iface, sysarg_t arg3)
+{
+	async_exch_t *exch = async_exchange_begin(session_ns);
+	async_sess_t *sess =
+	    async_connect_me_to_blocking_iface(exch, iface, service, arg3);
+	async_exchange_end(exch);
+	
+	if (!sess)
+		return NULL;
+	
+	/*
+	 * FIXME Ugly hack to work around limitation of implementing
+	 * parallel exchanges using multiple connections. Shift out
+	 * first argument for non-initial connections.
+	 */
+	async_sess_args_set(sess, iface, arg3, 0);
+	
+	return sess;
+}
+
 async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, service_t service,
     sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
-	if (!exch)
-		return NULL;
 	async_sess_t *sess =
 	    async_connect_me_to_blocking(mgmt, exch, 0, service, arg3);
 	async_exchange_end(exch);

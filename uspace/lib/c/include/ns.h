@@ -40,10 +40,12 @@
 #include <task.h>
 #include <async.h>
 
-extern int service_register(sysarg_t);
+extern int service_register(service_t);
 extern async_sess_t *service_connect(exch_mgmt_t, service_t, sysarg_t);
 extern async_sess_t *service_connect_iface(exch_mgmt_t, sysarg_t, service_t, sysarg_t);
 extern async_sess_t *service_connect_blocking(exch_mgmt_t, service_t, sysarg_t);
+extern async_sess_t *service_connect_blocking_iface_extended(service_t, iface_t,
+    sysarg_t);
 extern async_sess_t *service_connect_blocking_iface(exch_mgmt_t, sysarg_t, service_t,
     sysarg_t);
 extern async_sess_t *service_bind(service_t, sysarg_t, sysarg_t, sysarg_t,
