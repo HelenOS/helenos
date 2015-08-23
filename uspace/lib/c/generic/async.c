@@ -630,6 +630,193 @@ static hash_table_ops_t conn_hash_table_ops = {
 	.remove_callback = NULL
 };
 
+static client_t *async_client_get(task_id_t client_id, bool create)
+{
+	client_t *client = NULL;
+	
+	futex_down(&async_futex);
+	ht_link_t *link = hash_table_find(&client_hash_table, &client_id);
+	if (link) {
+		client = hash_table_get_inst(link, client_t, link);
+		atomic_inc(&client->refcnt);
+	} else if (create) {
+		client = malloc(sizeof(client_t));
+		if (client) {
+			client->in_task_id = client_id;
+			client->data = async_client_data_create();
+			
+			atomic_set(&client->refcnt, 1);
+			hash_table_insert(&client_hash_table, &client->link);
+		}
+	}
+	
+	futex_up(&async_futex);
+	return client;
+}
+
+static void async_client_put(client_t *client)
+{
+	bool destroy;
+	
+	futex_down(&async_futex);
+	
+	if (atomic_predec(&client->refcnt) == 0) {
+		hash_table_remove(&client_hash_table, &client->in_task_id);
+		destroy = true;
+	} else
+		destroy = false;
+	
+	futex_up(&async_futex);
+	
+	if (destroy) {
+		if (client->data)
+			async_client_data_destroy(client->data);
+		
+		free(client);
+	}
+}
+
+/** Wrapper for client connection fibril.
+ *
+ * When a new connection arrives, a fibril with this implementing
+ * function is created.
+ *
+ * @param arg Connection structure pointer.
+ *
+ * @return Always zero.
+ *
+ */
+static int connection_fibril(void *arg)
+{
+	assert(arg);
+	
+	/*
+	 * Setup fibril-local connection pointer.
+	 */
+	fibril_connection = (connection_t *) arg;
+	
+	/*
+	 * Add our reference for the current connection in the client task
+	 * tracking structure. If this is the first reference, create and
+	 * hash in a new tracking structure.
+	 */
+	
+	client_t *client = async_client_get(fibril_connection->in_task_id, true);
+	if (!client) {
+		ipc_answer_0(fibril_connection->callid, ENOMEM);
+		return 0;
+	}
+	
+	fibril_connection->client = client;
+	
+	/*
+	 * Call the connection handler function.
+	 */
+	fibril_connection->handler(fibril_connection->callid,
+	    &fibril_connection->call, fibril_connection->data);
+	
+	/*
+	 * Remove the reference for this client task connection.
+	 */
+	async_client_put(client);
+	
+	/*
+	 * Remove myself from the connection hash table.
+	 */
+	futex_down(&async_futex);
+	hash_table_remove(&conn_hash_table, &fibril_connection->in_phone_hash);
+	futex_up(&async_futex);
+	
+	/*
+	 * Answer all remaining messages with EHANGUP.
+	 */
+	while (!list_empty(&fibril_connection->msg_queue)) {
+		msg_t *msg =
+		    list_get_instance(list_first(&fibril_connection->msg_queue),
+		    msg_t, link);
+		
+		list_remove(&msg->link);
+		ipc_answer_0(msg->callid, EHANGUP);
+		free(msg);
+	}
+	
+	/*
+	 * If the connection was hung-up, answer the last call,
+	 * i.e. IPC_M_PHONE_HUNGUP.
+	 */
+	if (fibril_connection->close_callid)
+		ipc_answer_0(fibril_connection->close_callid, EOK);
+	
+	free(fibril_connection);
+	return 0;
+}
+
+/** Create a new fibril for a new connection.
+ *
+ * Create new fibril for connection, fill in connection structures
+ * and insert it into the hash table, so that later we can easily
+ * do routing of messages to particular fibrils.
+ *
+ * @param in_task_id    Identification of the incoming connection.
+ * @param in_phone_hash Identification of the incoming connection.
+ * @param callid        Hash of the opening IPC_M_CONNECT_ME_TO call.
+ *                      If callid is zero, the connection was opened by
+ *                      accepting the IPC_M_CONNECT_TO_ME call and this
+ *                      function is called directly by the server.
+ * @param call          Call data of the opening call.
+ * @param handler       Connection handler.
+ * @param data          Client argument to pass to the connection handler.
+ *
+ * @return New fibril id or NULL on failure.
+ *
+ */
+static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
+    ipc_callid_t callid, ipc_call_t *call, async_port_handler_t handler,
+    void *data)
+{
+	connection_t *conn = malloc(sizeof(*conn));
+	if (!conn) {
+		if (callid)
+			ipc_answer_0(callid, ENOMEM);
+		
+		return (uintptr_t) NULL;
+	}
+	
+	conn->in_task_id = in_task_id;
+	conn->in_phone_hash = in_phone_hash;
+	list_initialize(&conn->msg_queue);
+	conn->callid = callid;
+	conn->close_callid = 0;
+	conn->handler = handler;
+	conn->data = data;
+	
+	if (call)
+		conn->call = *call;
+	
+	/* We will activate the fibril ASAP */
+	conn->wdata.active = true;
+	conn->wdata.fid = fibril_create(connection_fibril, conn);
+	
+	if (conn->wdata.fid == 0) {
+		free(conn);
+		
+		if (callid)
+			ipc_answer_0(callid, ENOMEM);
+		
+		return (uintptr_t) NULL;
+	}
+	
+	/* Add connection to the connection hash table */
+	
+	futex_down(&async_futex);
+	hash_table_insert(&conn_hash_table, &conn->link);
+	futex_up(&async_futex);
+	
+	fibril_add_ready(conn->wdata.fid);
+	
+	return conn->wdata.fid;
+}
+
 /** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
  *
  * Ask through phone for a new connection to some service.
@@ -1117,52 +1304,6 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	return callid;
 }
 
-static client_t *async_client_get(task_id_t client_id, bool create)
-{
-	client_t *client = NULL;
-
-	futex_down(&async_futex);
-	ht_link_t *link = hash_table_find(&client_hash_table, &client_id);
-	if (link) {
-		client = hash_table_get_inst(link, client_t, link);
-		atomic_inc(&client->refcnt);
-	} else if (create) {
-		client = malloc(sizeof(client_t));
-		if (client) {
-			client->in_task_id = client_id;
-			client->data = async_client_data_create();
-		
-			atomic_set(&client->refcnt, 1);
-			hash_table_insert(&client_hash_table, &client->link);
-		}
-	}
-
-	futex_up(&async_futex);
-	return client;
-}
-
-static void async_client_put(client_t *client)
-{
-	bool destroy;
-
-	futex_down(&async_futex);
-	
-	if (atomic_predec(&client->refcnt) == 0) {
-		hash_table_remove(&client_hash_table, &client->in_task_id);
-		destroy = true;
-	} else
-		destroy = false;
-	
-	futex_up(&async_futex);
-	
-	if (destroy) {
-		if (client->data)
-			async_client_data_destroy(client->data);
-		
-		free(client);
-	}
-}
-
 void *async_get_client_data(void)
 {
 	assert(fibril_connection);
@@ -1216,148 +1357,6 @@ static port_t *async_find_port(iface_t iface, port_id_t port_id)
 	futex_up(&async_futex);
 	
 	return port;
-}
-
-/** Wrapper for client connection fibril.
- *
- * When a new connection arrives, a fibril with this implementing function is
- * created. It calls handler() and does the final cleanup.
- *
- * @param arg Connection structure pointer.
- *
- * @return Always zero.
- *
- */
-static int connection_fibril(void *arg)
-{
-	assert(arg);
-	
-	/*
-	 * Setup fibril-local connection pointer.
-	 */
-	fibril_connection = (connection_t *) arg;
-	
-	/*
-	 * Add our reference for the current connection in the client task
-	 * tracking structure. If this is the first reference, create and
-	 * hash in a new tracking structure.
-	 */
-
-	client_t *client = async_client_get(fibril_connection->in_task_id, true);
-	if (!client) {
-		ipc_answer_0(fibril_connection->callid, ENOMEM);
-		return 0;
-	}
-
-	fibril_connection->client = client;
-	
-	/*
-	 * Call the connection handler function.
-	 */
-	fibril_connection->handler(fibril_connection->callid,
-	    &fibril_connection->call, fibril_connection->data);
-	
-	/*
-	 * Remove the reference for this client task connection.
-	 */
-	async_client_put(client);
-	
-	/*
-	 * Remove myself from the connection hash table.
-	 */
-	futex_down(&async_futex);
-	hash_table_remove(&conn_hash_table, &fibril_connection->in_phone_hash);
-	futex_up(&async_futex);
-	
-	/*
-	 * Answer all remaining messages with EHANGUP.
-	 */
-	while (!list_empty(&fibril_connection->msg_queue)) {
-		msg_t *msg =
-		    list_get_instance(list_first(&fibril_connection->msg_queue),
-		    msg_t, link);
-		
-		list_remove(&msg->link);
-		ipc_answer_0(msg->callid, EHANGUP);
-		free(msg);
-	}
-	
-	/*
-	 * If the connection was hung-up, answer the last call,
-	 * i.e. IPC_M_PHONE_HUNGUP.
-	 */
-	if (fibril_connection->close_callid)
-		ipc_answer_0(fibril_connection->close_callid, EOK);
-	
-	free(fibril_connection);
-	return 0;
-}
-
-/** Create a new fibril for a new connection.
- *
- * Create new fibril for connection, fill in connection structures and insert
- * it into the hash table, so that later we can easily do routing of messages to
- * particular fibrils.
- *
- * @param in_task_id    Identification of the incoming connection.
- * @param in_phone_hash Identification of the incoming connection.
- * @param callid        Hash of the opening IPC_M_CONNECT_ME_TO call.
- *                      If callid is zero, the connection was opened by
- *                      accepting the IPC_M_CONNECT_TO_ME call and this function
- *                      is called directly by the server.
- * @param call          Call data of the opening call.
- * @param handler       Fibril function that should be called upon opening the
- *                      connection.
- * @param data          Extra argument to pass to the connection fibril
- *
- * @return New fibril id or NULL on failure.
- *
- */
-fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
-    ipc_callid_t callid, ipc_call_t *call,
-    async_port_handler_t handler, void *data)
-{
-	connection_t *conn = malloc(sizeof(*conn));
-	if (!conn) {
-		if (callid)
-			ipc_answer_0(callid, ENOMEM);
-		
-		return (uintptr_t) NULL;
-	}
-	
-	conn->in_task_id = in_task_id;
-	conn->in_phone_hash = in_phone_hash;
-	list_initialize(&conn->msg_queue);
-	conn->callid = callid;
-	conn->close_callid = 0;
-	conn->data = data;
-	
-	if (call)
-		conn->call = *call;
-	
-	/* We will activate the fibril ASAP */
-	conn->wdata.active = true;
-	conn->handler = handler;
-	conn->wdata.fid = fibril_create(connection_fibril, conn);
-	
-	if (conn->wdata.fid == 0) {
-		free(conn);
-		
-		if (callid)
-			ipc_answer_0(callid, ENOMEM);
-		
-		return (uintptr_t) NULL;
-	}
-	
-	/* Add connection to the connection hash table */
-	
-	futex_down(&async_futex);
-	hash_table_insert(&conn_hash_table, &conn->link);
-	futex_up(&async_futex);
-	
-	fibril_add_ready(conn->wdata.fid);
-	
-	return conn->wdata.fid;
 }
 
 /** Handle a call that was received.
