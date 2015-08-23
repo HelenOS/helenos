@@ -263,8 +263,8 @@ restart:
 			 */
 			fibril_mutex_unlock(&services_mutex);
 			
-			async_sess_t *sess = loc_service_connect(
-			    EXCHANGE_SERIALIZE, node->service_id, 0);
+			async_sess_t *sess = loc_service_connect(node->service_id,
+			    INTERFACE_FS, 0);
 			
 			fibril_mutex_lock(&services_mutex);
 			

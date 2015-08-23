@@ -80,7 +80,7 @@ int get_my_registers(ddf_dev_t *dev,
 	assert(dev);
 	
 	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
+	    ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 	
@@ -114,7 +114,7 @@ int get_my_registers(ddf_dev_t *dev,
 int enable_interrupts(ddf_dev_t *device)
 {
 	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
+	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 	
@@ -137,7 +137,7 @@ static int disable_extended_caps(ddf_dev_t *device, unsigned eecp)
 		return EOK;
 
 	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
+	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 

@@ -116,7 +116,7 @@ extern void *ddf_dev_data_alloc(ddf_dev_t *, size_t);
 extern void *ddf_dev_data_get(ddf_dev_t *);
 extern devman_handle_t ddf_dev_get_handle(ddf_dev_t *);
 extern const char *ddf_dev_get_name(ddf_dev_t *);
-extern async_sess_t *ddf_dev_parent_sess_create(ddf_dev_t *, exch_mgmt_t);
+extern async_sess_t *ddf_dev_parent_sess_create(ddf_dev_t *);
 extern async_sess_t *ddf_dev_parent_sess_get(ddf_dev_t *);
 extern ddf_fun_t *ddf_fun_create(ddf_dev_t *, fun_type_t, const char *);
 extern devman_handle_t ddf_fun_get_handle(ddf_fun_t *);

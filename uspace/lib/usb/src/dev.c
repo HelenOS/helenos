@@ -49,8 +49,7 @@ int usb_get_info_by_handle(devman_handle_t device_handle,
     devman_handle_t *hc_handle, usb_address_t *address, int *iface)
 {
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_ATOMIC, device_handle,
-	        IPC_FLAG_BLOCKING);
+	    devman_parent_device_connect(device_handle, IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 

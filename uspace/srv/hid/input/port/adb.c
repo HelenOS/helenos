@@ -68,7 +68,7 @@ static int adb_port_init(kbd_dev_t *kdev)
 	if (rc != EOK)
 		return rc;
 	
-	dev_sess = loc_service_connect(EXCHANGE_ATOMIC, service_id, 0);
+	dev_sess = loc_service_connect(service_id, INTERFACE_DDF, 0);
 	if (dev_sess == NULL) {
 		printf("%s: Failed to connect to device\n", NAME);
 		return ENOENT;
@@ -81,7 +81,10 @@ static int adb_port_init(kbd_dev_t *kdev)
 		return ENOMEM;
 	}
 	
-	rc = async_connect_to_me(exch, 0, 0, 0, kbd_port_events, NULL);
+	port_id_t port;
+	rc = async_create_callback_port(exch, INTERFACE_ADB_CB, 0, 0,
+	    kbd_port_events, NULL, &port);
+	
 	async_exchange_end(exch);
 	if (rc != EOK) {
 		printf("%s: Failed to create callback from device\n", NAME);

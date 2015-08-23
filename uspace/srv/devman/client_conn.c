@@ -725,7 +725,7 @@ static void devman_driver_load(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Function for handling connections from a client to the device manager. */
-void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
+void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection. */
 	async_answer_0(iid, EOK);

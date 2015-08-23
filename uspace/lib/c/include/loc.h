@@ -41,14 +41,12 @@
 
 typedef void (*loc_cat_change_cb_t)(void);
 
-extern async_exch_t *loc_exchange_begin_blocking(loc_interface_t);
-extern async_exch_t *loc_exchange_begin(loc_interface_t);
+extern async_exch_t *loc_exchange_begin_blocking(iface_t);
+extern async_exch_t *loc_exchange_begin(iface_t);
 extern void loc_exchange_end(async_exch_t *);
 
 extern int loc_server_register(const char *);
 extern int loc_service_register(const char *, service_id_t *);
-extern int loc_service_register_with_iface(const char *, service_id_t *,
-    sysarg_t);
 extern int loc_service_unregister(service_id_t);
 extern int loc_service_add_to_cat(service_id_t, category_id_t);
 
@@ -64,9 +62,7 @@ extern int loc_category_get_name(category_id_t, char **);
 extern int loc_category_get_svcs(category_id_t, category_id_t **, size_t *);
 extern loc_object_type_t loc_id_probe(service_id_t);
 
-extern async_sess_t *loc_service_connect_iface(service_id_t, iface_t,
-    unsigned int);
-extern async_sess_t *loc_service_connect(exch_mgmt_t, service_id_t,
+extern async_sess_t *loc_service_connect(service_id_t, iface_t,
     unsigned int);
 
 extern int loc_null_create(void);

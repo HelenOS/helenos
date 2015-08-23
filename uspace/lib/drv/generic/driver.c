@@ -52,8 +52,6 @@
 #include <inttypes.h>
 #include <devman.h>
 
-#include <ipc/driver.h>
-
 #include "dev_iface.h"
 #include "ddf/driver.h"
 #include "ddf/interrupt.h"
@@ -129,7 +127,12 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	dev->handle = dev_handle;
 	
 	char *dev_name = NULL;
-	async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
+	int rc = async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	
 	dev->name = dev_name;
 	
 	/*
@@ -277,7 +280,8 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
-static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
@@ -435,47 +439,16 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	}
 }
 
-static void driver_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_connection_driver(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	driver_connection_gen(iid, icall, true);
 }
 
-static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
 	driver_connection_gen(iid, icall, false);
-}
-
-/** Function for handling connections to device driver. */
-static void driver_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	sysarg_t conn_type;
-
-	if (iid == 0) {
-		/* Callback connection from devman */
-		/* XXX Use separate handler for this type of connection */
-		conn_type = DRIVER_DEVMAN;
-	} else {
-		conn_type = IPC_GET_ARG1(*icall);
-	}
-
-	/* Select interface */
-	switch (conn_type) {
-	case DRIVER_DEVMAN:
-		/* Handle request from device manager */
-		driver_connection_devman(iid, icall);
-		break;
-	case DRIVER_DRIVER:
-		/* Handle request from drivers of child devices */
-		driver_connection_driver(iid, icall);
-		break;
-	case DRIVER_CLIENT:
-		/* Handle request from client applications */
-		driver_connection_client(iid, icall);
-		break;
-	default:
-		/* No such interface */
-		async_answer_0(iid, ENOENT);
-	}
 }
 
 /** Create new device structure.
@@ -619,14 +592,15 @@ const char *ddf_dev_get_name(ddf_dev_t *dev)
  *
  * The session will be automatically closed when @a dev is destroyed.
  *
- * @param dev	Device
- * @param mgmt	Exchange management style
- * @return	New session or NULL if session could not be created
+ * @param dev Device
+ *
+ * @return New session or NULL if session could not be created
+ *
  */
-async_sess_t *ddf_dev_parent_sess_create(ddf_dev_t *dev, exch_mgmt_t mgmt)
+async_sess_t *ddf_dev_parent_sess_create(ddf_dev_t *dev)
 {
 	assert(dev->parent_sess == NULL);
-	dev->parent_sess = devman_parent_device_connect(mgmt, dev->handle,
+	dev->parent_sess = devman_parent_device_connect(dev->handle,
 	    IPC_FLAG_BLOCKING);
 
 	return dev->parent_sess;
@@ -954,8 +928,20 @@ int ddf_driver_main(const driver_t *drv)
 	 * Register driver with device manager using generic handler for
 	 * incoming connections.
 	 */
-	async_set_fallback_port_handler(driver_connection, NULL);
-	int rc = devman_driver_register(driver->name);
+	port_id_t port;
+	int rc = async_create_port(INTERFACE_DDF_DRIVER, driver_connection_driver,
+	    NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
+	rc = async_create_port(INTERFACE_DDF_DEVMAN, driver_connection_devman,
+	    NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
+	async_set_fallback_port_handler(driver_connection_client, NULL);
+	
+	rc = devman_driver_register(driver->name);
 	if (rc != EOK) {
 		printf("Error: Failed to register driver with device manager "
 		    "(%s).\n", (rc == EEXISTS) ? "driver already started" :

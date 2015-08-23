@@ -76,40 +76,39 @@ static inet_addr_t multicast_all_nodes = {
 	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
 };
 
-static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-
 static FIBRIL_MUTEX_INITIALIZE(client_list_lock);
 static LIST_INITIALIZE(client_list);
+
+static void inet_default_conn(ipc_callid_t, ipc_call_t *, void *);
 
 static int inet_init(void)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_init()");
 	
-	async_set_fallback_port_handler(inet_client_conn, NULL);
+	port_id_t port;
+	int rc = async_create_port(INTERFACE_INET,
+	    inet_default_conn, NULL, &port);
+	if (rc != EOK)
+		return rc;
 	
-	int rc = loc_server_register(NAME);
+	rc = async_create_port(INTERFACE_INETCFG,
+	    inet_cfg_conn, NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
+	rc = async_create_port(INTERFACE_INETPING,
+	    inetping_conn, NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server (%d).", rc);
 		return EEXIST;
 	}
 	
 	service_id_t sid;
-	rc = loc_service_register_with_iface(SERVICE_NAME_INET, &sid,
-	    INET_PORT_DEFAULT);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
-		return EEXIST;
-	}
-	
-	rc = loc_service_register_with_iface(SERVICE_NAME_INETCFG, &sid,
-	    INET_PORT_CFG);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
-		return EEXIST;
-	}
-	
-	rc = loc_service_register_with_iface(SERVICE_NAME_INETPING, &sid,
-	    INET_PORT_PING);
+	rc = loc_service_register(SERVICE_NAME_INET, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
@@ -426,28 +425,6 @@ static void inet_default_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 
 	inet_client_fini(&client);
-}
-
-static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	sysarg_t port;
-
-	port = IPC_GET_ARG1(*icall);
-
-	switch (port) {
-	case INET_PORT_DEFAULT:
-		inet_default_conn(iid, icall, arg);
-		break;
-	case INET_PORT_CFG:
-		inet_cfg_conn(iid, icall, arg);
-		break;
-	case INET_PORT_PING:
-		inetping_conn(iid, icall, arg);
-		break;
-	default:
-		async_answer_0(iid, ENOTSUP);
-		break;
-	}
 }
 
 static inet_client_t *inet_client_find(uint8_t proto)

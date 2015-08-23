@@ -610,8 +610,8 @@ void gettimeofday(struct timeval *tv, struct timezone *tz)
 		if (rc != EOK)
 			goto fallback;
 		
-		clock_conn = loc_service_connect(EXCHANGE_SERIALIZE,
-		    svc_id, IPC_FLAG_BLOCKING);
+		clock_conn = loc_service_connect(svc_id, INTERFACE_DDF,
+		    IPC_FLAG_BLOCKING);
 		if (!clock_conn)
 			goto fallback;
 	}

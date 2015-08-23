@@ -98,7 +98,7 @@ static async_sess_t *get_nic_by_index(size_t i)
 
 	printf("Using device: %s\n", svc_name);
 
-	sess = loc_service_connect(EXCHANGE_SERIALIZE, nics[i], 0);
+	sess = loc_service_connect(nics[i], INTERFACE_DDF, 0);
 	if (sess == NULL) {
 		printf("Error connecting to service.\n");
 		goto error;
@@ -116,12 +116,12 @@ static int nic_get_info(service_id_t svc_id, char *svc_name,
 	nic_role_t role;
 	int rc;
 
-	sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id, 0);
+	sess = loc_service_connect(svc_id, INTERFACE_DDF, 0);
 	if (sess == NULL) {
 		printf("Error connecting to service.\n");
 		goto error;
 	}
-
+	
 	rc = nic_get_address(sess, &info->address);
 	if (rc != EOK) {
 		printf("Error getting NIC address.\n");

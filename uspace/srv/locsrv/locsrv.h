@@ -106,9 +106,6 @@ typedef struct {
 	
 	/** Supplier of this service */
 	loc_server_t *server;
-	
-	/** Use this interface when forwarding to server. */
-	sysarg_t forward_interface;
 } loc_service_t;
 
 extern fibril_mutex_t services_list_mutex;

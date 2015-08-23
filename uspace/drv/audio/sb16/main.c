@@ -177,7 +177,7 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 	assert(device);
 
 	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
+	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 
@@ -244,7 +244,7 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 int sb_enable_interrupts(ddf_dev_t *device)
 {
 	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
+	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 

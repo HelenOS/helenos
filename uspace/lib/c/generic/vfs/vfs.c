@@ -74,7 +74,7 @@ async_exch_t *vfs_exchange_begin(void)
 	fibril_mutex_lock(&vfs_mutex);
 	
 	while (vfs_sess == NULL)
-		vfs_sess = service_connect_blocking(EXCHANGE_PARALLEL, SERVICE_VFS,
+		vfs_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_VFS,
 		    0);
 	
 	fibril_mutex_unlock(&vfs_mutex);
@@ -795,7 +795,7 @@ char *getcwd(char *buf, size_t size)
 	return buf;
 }
 
-async_sess_t *fd_session(exch_mgmt_t mgmt, int fildes)
+async_sess_t *fd_session(int fildes, iface_t iface)
 {
 	struct stat stat;
 	int rc = fstat(fildes, &stat);
@@ -809,7 +809,7 @@ async_sess_t *fd_session(exch_mgmt_t mgmt, int fildes)
 		return NULL;
 	}
 	
-	return loc_service_connect(mgmt, stat.service, 0);
+	return loc_service_connect(stat.service, iface, 0);
 }
 
 int dup2(int oldfd, int newfd)

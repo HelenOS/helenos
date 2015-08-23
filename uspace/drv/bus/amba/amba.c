@@ -332,7 +332,7 @@ static int amba_dev_add(ddf_dev_t *dnode)
 	}
 	
 	bus->dnode = dnode;
-	async_sess_t *sess = ddf_dev_parent_sess_create(dnode, EXCHANGE_SERIALIZE);
+	async_sess_t *sess = ddf_dev_parent_sess_create(dnode);
 	if (sess == NULL) {
 		ddf_msg(LVL_ERROR, "amba_dev_add failed to connect to the "
 		    "parent driver.");

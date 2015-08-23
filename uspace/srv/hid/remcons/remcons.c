@@ -216,7 +216,7 @@ static int remcons_get_event(con_srv_t *srv, cons_event_t *event)
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Find the user. */
-	telnet_user_t *user = telnet_user_get_for_client_connection(IPC_GET_ARG1(*icall));
+	telnet_user_t *user = telnet_user_get_for_client_connection(IPC_GET_ARG2(*icall));
 	if (user == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;

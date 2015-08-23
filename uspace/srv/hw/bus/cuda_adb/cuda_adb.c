@@ -213,7 +213,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	int dev_addr, i;
 
 	/* Get the device handle. */
-	dsid = IPC_GET_ARG1(*icall);
+	dsid = IPC_GET_ARG2(*icall);
 
 	/* Determine which disk device is the client connecting to. */
 	dev_addr = -1;

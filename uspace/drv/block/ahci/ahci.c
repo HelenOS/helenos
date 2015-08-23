@@ -1139,7 +1139,7 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 		return NULL;
 	
 	/* Connect to parent device */
-	ahci->parent_sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
+	ahci->parent_sess = ddf_dev_parent_sess_create(dev);
 	if (ahci->parent_sess == NULL)
 		return NULL;
 	

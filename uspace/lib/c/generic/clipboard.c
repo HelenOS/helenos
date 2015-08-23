@@ -60,8 +60,8 @@ static async_exch_t *clip_exchange_begin(void)
 	fibril_mutex_lock(&clip_mutex);
 	
 	while (clip_sess == NULL)
-		clip_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-		    SERVICE_CLIPBOARD, 0);
+		clip_sess = service_connect_blocking(SERVICE_CLIPBOARD,
+		    INTERFACE_CLIPBOARD, 0);
 	
 	fibril_mutex_unlock(&clip_mutex);
 	

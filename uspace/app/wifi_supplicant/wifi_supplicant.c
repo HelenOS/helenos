@@ -120,7 +120,7 @@ static async_sess_t *get_wifi_by_index(size_t i)
 	}
 	
 	async_sess_t *sess =
-	    loc_service_connect(EXCHANGE_SERIALIZE, wifis[i], 0);
+	    loc_service_connect(wifis[i], INTERFACE_DDF, 0);
 	if (sess == NULL) {
 		printf("Error connecting to service.\n");
 		free(wifis);

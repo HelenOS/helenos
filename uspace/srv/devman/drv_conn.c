@@ -48,7 +48,6 @@
 #include <str.h>
 #include <io/log.h>
 #include <ipc/devman.h>
-#include <ipc/driver.h>
 #include <loc.h>
 
 #include "client_conn.h"
@@ -130,7 +129,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 		return NULL;
 	}
 	/* FIXME: Work around problem with callback sessions */
-	async_sess_args_set(driver->sess, DRIVER_DEVMAN, 0, 0);
+	async_sess_args_set(driver->sess, INTERFACE_DDF_DEVMAN, 0, 0);
 	
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "The `%s' driver was successfully registered as running.",
@@ -586,7 +585,7 @@ static int init_running_drv(void *drv)
 }
 
 /** Function for handling connections from a driver to the device manager. */
-void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
+void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	client_t *client;
 	driver_t *driver = NULL;

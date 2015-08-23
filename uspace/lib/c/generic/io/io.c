@@ -747,11 +747,11 @@ int fileno(FILE *stream)
 	return stream->fd;
 }
 
-async_sess_t *fsession(exch_mgmt_t mgmt, FILE *stream)
+async_sess_t *fsession(FILE *stream, iface_t iface)
 {
 	if (stream->fd >= 0) {
 		if (stream->sess == NULL)
-			stream->sess = fd_session(mgmt, stream->fd);
+			stream->sess = fd_session(stream->fd, iface);
 		
 		return stream->sess;
 	}

@@ -68,7 +68,7 @@ static const char *test_virtchar1_internal(const char *path)
 	TPRINTF("   ...file handle %d\n", fd);
 	
 	TPRINTF(" Asking for session...\n");
-	async_sess_t *sess = fd_session(EXCHANGE_SERIALIZE, fd);
+	async_sess_t *sess = fd_session(fd, INTERFACE_DDF);
 	if (!sess) {
 		close(fd);
 		TPRINTF("   ...error: %s\n", str_error(errno));

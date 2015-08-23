@@ -47,21 +47,16 @@
 #include <malloc.h>
 #include "logger.h"
 
-static void connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void connection_handler_control(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
 {
-	logger_interface_t iface = IPC_GET_ARG1(*icall);
+	logger_connection_handler_control(iid);
+}
 
-	switch (iface) {
-	case LOGGER_INTERFACE_CONTROL:
-		logger_connection_handler_control(iid);
-		break;
-	case LOGGER_INTERFACE_WRITER:
-		logger_connection_handler_writer(iid);
-		break;
-	default:
-		async_answer_0(iid, EINVAL);
-		break;
-	}
+static void connection_handler_writer(ipc_callid_t iid, ipc_call_t *icall,
+    void *arg)
+{
+	logger_connection_handler_writer(iid);
 }
 
 int main(int argc, char *argv[])
@@ -72,10 +67,19 @@ int main(int argc, char *argv[])
 	for (int i = 1; i < argc; i++) {
 		parse_level_settings(argv[i]);
 	}
-
-	async_set_fallback_port_handler(connection_handler, NULL);
 	
-	int rc = service_register(SERVICE_LOGGER);
+	port_id_t port;
+	int rc = async_create_port(INTERFACE_LOGGER_CONTROL,
+	    connection_handler_control, NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
+	rc = async_create_port(INTERFACE_LOGGER_WRITER,
+	    connection_handler_writer, NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
+	rc = service_register(SERVICE_LOGGER);
 	if (rc != EOK) {
 		printf(NAME ": failed to register: %s.\n", str_error(rc));
 		return -1;

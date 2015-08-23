@@ -60,8 +60,7 @@ static int get_my_registers(ddf_dev_t *dev, addr_range_t *p_io_reg,
 {
 	assert(dev);
 	
-	async_sess_t *parent_sess = ddf_dev_parent_sess_create(
-	    dev, EXCHANGE_SERIALIZE);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_create(dev);
 	if (parent_sess == NULL)
 		return ENOMEM;
 	

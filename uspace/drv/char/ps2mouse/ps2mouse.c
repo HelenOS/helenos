@@ -115,7 +115,7 @@ static ddf_dev_ops_t mouse_ops = {
 int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 {
 	mouse->client_sess = NULL;
-	mouse->parent_sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
+	mouse->parent_sess = ddf_dev_parent_sess_create(dev);
 	if (!mouse->parent_sess)
 		return ENOMEM;
 

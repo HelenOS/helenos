@@ -49,7 +49,7 @@ int corecfg_init(void)
 	if (rc != EOK)
 		return ENOENT;
 
-	corecfg_sess = loc_service_connect(EXCHANGE_SERIALIZE, corecfg_svc,
+	corecfg_sess = loc_service_connect(corecfg_svc, INTERFACE_CORECFG,
 	    IPC_FLAG_BLOCKING);
 	if (corecfg_sess == NULL)
 		return ENOENT;

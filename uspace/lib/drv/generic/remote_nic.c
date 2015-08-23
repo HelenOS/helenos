@@ -136,7 +136,9 @@ int nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_CALLBACK_CREATE, &answer);
 	
-	rc = async_connect_to_me(exch, 0, 0, 0, cfun, carg);
+	port_id_t port;
+	rc = async_create_callback_port(exch, INTERFACE_NIC_CB, 0, 0,
+	    cfun, carg, &port);
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;

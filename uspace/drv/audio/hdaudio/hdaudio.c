@@ -174,8 +174,7 @@ static int hda_dev_add(ddf_dev_t *dev)
 	fibril_mutex_initialize(&hda->lock);
 
 	ddf_msg(LVL_NOTE, "create parent sess");
-	hda->parent_sess = ddf_dev_parent_sess_create(dev,
-	    EXCHANGE_SERIALIZE);
+	hda->parent_sess = ddf_dev_parent_sess_create(dev);
 	if (hda->parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed connecting parent driver.\n");
 		rc = ENOMEM;

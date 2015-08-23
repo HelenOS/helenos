@@ -507,7 +507,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	console_t *cons = NULL;
 	
 	for (size_t i = 0; i < CONSOLE_COUNT; i++) {
-		if (consoles[i].dsid == (service_id_t) IPC_GET_ARG1(*icall)) {
+		if (consoles[i].dsid == (service_id_t) IPC_GET_ARG2(*icall)) {
 			cons = &consoles[i];
 			break;
 		}
@@ -535,7 +535,7 @@ static int input_connect(const char *svc)
 		return rc;
 	}
 
-	sess = loc_service_connect(EXCHANGE_ATOMIC, dsid, 0);
+	sess = loc_service_connect(dsid, INTERFACE_INPUT, 0);
 	if (sess == NULL) {
 		printf("%s: Unable to connect to input service %s\n", NAME,
 		    svc);
@@ -560,7 +560,7 @@ static async_sess_t *output_connect(const char *svc)
 	
 	int rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc == EOK) {
-		sess = loc_service_connect(EXCHANGE_SERIALIZE, dsid, 0);
+		sess = loc_service_connect(dsid, INTERFACE_OUTPUT, 0);
 		if (sess == NULL) {
 			printf("%s: Unable to connect to output service %s\n",
 			    NAME, svc);

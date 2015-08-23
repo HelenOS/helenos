@@ -68,13 +68,6 @@ typedef enum {
 	LOGGER_WRITER_MESSAGE
 } logger_writer_request_t;
 
-typedef enum {
-	/** Interface for controlling logger behavior. */
-	LOGGER_INTERFACE_CONTROL,
-	/** Interface for servers writing to the log. */
-	LOGGER_INTERFACE_WRITER
-} logger_interface_t;
-
 #endif
 
 /** @}

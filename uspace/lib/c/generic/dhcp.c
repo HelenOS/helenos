@@ -55,7 +55,7 @@ int dhcp_init(void)
 	if (rc != EOK)
 		return ENOENT;
 
-	dhcp_sess = loc_service_connect(EXCHANGE_SERIALIZE, dhcp_svc,
+	dhcp_sess = loc_service_connect(dhcp_svc, INTERFACE_DHCP,
 	    IPC_FLAG_BLOCKING);
 	if (dhcp_sess == NULL)
 		return ENOENT;

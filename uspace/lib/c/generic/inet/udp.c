@@ -97,7 +97,7 @@ int udp_create(udp_t **rudp)
 		goto error;
 	}
 
-	udp->sess = loc_service_connect(EXCHANGE_SERIALIZE, udp_svcid,
+	udp->sess = loc_service_connect(udp_svcid, INTERFACE_UDP,
 	    IPC_FLAG_BLOCKING);
 	if (udp->sess == NULL) {
 		rc = EIO;

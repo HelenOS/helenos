@@ -117,8 +117,7 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 
 static int mousedev_proto_init(mouse_dev_t *mdev)
 {
-	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE,
-	    mdev->svc_id, 0);
+	async_sess_t *sess = loc_service_connect(mdev->svc_id, INTERFACE_DDF, 0);
 	if (sess == NULL) {
 		printf("%s: Failed starting session with '%s'\n", NAME,
 		    mdev->svc_name);
@@ -142,7 +141,10 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 		return ENOENT;
 	}
 	
-	int rc = async_connect_to_me(exch, 0, 0, 0, mousedev_callback_conn, mousedev);
+	port_id_t port;
+	int rc = async_create_callback_port(exch, INTERFACE_MOUSE_CB, 0, 0,
+	    mousedev_callback_conn, mousedev, &port);
+	
 	async_exchange_end(exch);
 	async_hangup(sess);
 	

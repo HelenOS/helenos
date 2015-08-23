@@ -50,8 +50,7 @@ static int usb_hc_connection_add_ref(usb_hc_connection_t *connection)
 	if (connection->ref_count == 0) {
 		assert(connection->hc_sess == NULL);
 		/* Parallel exchange for us */
-		connection->hc_sess = devman_device_connect(EXCHANGE_PARALLEL,
-		        connection->hc_handle, 0);
+		connection->hc_sess = devman_device_connect(connection->hc_handle, 0);
 		if (!connection->hc_sess) {
 			fibril_mutex_unlock(&connection->guard);
 			return ENOMEM;

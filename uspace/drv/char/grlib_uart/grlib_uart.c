@@ -380,8 +380,7 @@ static int grlib_uart_dev_initialize(grlib_uart_t *ns)
 	int ret = EOK;
 	
 	/* Connect to the parent's driver. */
-	async_sess_t *parent_sess = ddf_dev_parent_sess_create(ns->dev,
-	    EXCHANGE_SERIALIZE);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_create(ns->dev);
 	if (parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed to connect to parent driver of "
 		    "device %s.", ddf_dev_get_name(ns->dev));

@@ -158,7 +158,7 @@ static inline void dsp_report_event(sb_dsp_t *dsp, pcm_event_t event)
 
 static inline int setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
-	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
+	async_sess_t *sess = devman_parent_device_connect(
 	    ddf_dev_get_handle(dsp->sb_dev), IPC_FLAG_BLOCKING);
 
 	const int ret = hw_res_dma_channel_setup(sess,
@@ -306,7 +306,7 @@ int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 		return ENOENT;
 
 	assert(dsp->buffer.data);
-	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
+	async_sess_t *sess = devman_parent_device_connect(
 	    ddf_dev_get_handle(dsp->sb_dev), IPC_FLAG_BLOCKING);
 
 	// TODO: Assumes DMA 16

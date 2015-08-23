@@ -230,8 +230,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 	
-	async_sess_t *sess = devman_device_connect(EXCHANGE_SERIALIZE,
-	    dev_handle, 0);
+	async_sess_t *sess = devman_device_connect(dev_handle, 0);
 	if (!sess) {
 		printf(NAME ": failed to connect to the device (handle %"
 		       PRIun "): %s.\n", dev_handle, str_error(errno));

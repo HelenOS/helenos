@@ -58,8 +58,7 @@ void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 		return;
 	}
 	
-	loc_service_register_with_iface(loc_pathname,
-	    &fun->service_id, INTERFACE_DDF_CLIENT);
+	loc_service_register(loc_pathname, &fun->service_id);
 	
 	tree_add_loc_function(tree, fun);
 	

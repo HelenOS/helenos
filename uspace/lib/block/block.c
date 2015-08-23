@@ -147,7 +147,7 @@ int block_init(service_id_t service_id, size_t comm_size)
 {
 	bd_t *bd;
 
-	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, service_id,
+	async_sess_t *sess = loc_service_connect(service_id, INTERFACE_BLOCK,
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
 		return ENOENT;

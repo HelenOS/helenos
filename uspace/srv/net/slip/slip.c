@@ -327,7 +327,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	 * Create two sessions to allow to both read and write from the
 	 * char_dev at the same time.
 	 */
-	sess_out = loc_service_connect(EXCHANGE_SERIALIZE, svcid, 0);
+	sess_out = loc_service_connect(svcid, INTERFACE_DDF, 0);
 	if (!sess_out) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to connect to service %s (ID=%d)",
@@ -336,7 +336,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	}
 	slip_iplink.arg = sess_out;
 
-	sess_in = loc_service_connect(EXCHANGE_SERIALIZE, svcid, 0);
+	sess_in = loc_service_connect(svcid, INTERFACE_DDF, 0);
 	if (!sess_in) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to connect to service %s (ID=%d)",

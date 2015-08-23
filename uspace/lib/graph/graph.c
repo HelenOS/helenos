@@ -605,8 +605,8 @@ terminate:
 void graph_client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Find the visualizer or renderer with the given service ID. */
-	visualizer_t *vs = graph_get_visualizer(IPC_GET_ARG1(*icall));
-	renderer_t *rnd = graph_get_renderer(IPC_GET_ARG1(*icall));
+	visualizer_t *vs = graph_get_visualizer(IPC_GET_ARG2(*icall));
+	renderer_t *rnd = graph_get_renderer(IPC_GET_ARG2(*icall));
 	
 	if (vs != NULL)
 		graph_visualizer_connection(vs, iid, icall, arg);

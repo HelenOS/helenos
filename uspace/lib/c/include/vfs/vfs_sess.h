@@ -38,8 +38,8 @@
 #include <async.h>
 #include <stdio.h>
 
-extern async_sess_t *fd_session(exch_mgmt_t, int);
-extern async_sess_t *fsession(exch_mgmt_t, FILE *);
+extern async_sess_t *fd_session(int, iface_t);
+extern async_sess_t *fsession(FILE *, iface_t);
 
 #endif
 

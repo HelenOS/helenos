@@ -111,7 +111,7 @@ int tcp_create(tcp_t **rtcp)
 		goto error;
 	}
 
-	tcp->sess = loc_service_connect(EXCHANGE_SERIALIZE, tcp_svcid,
+	tcp->sess = loc_service_connect(tcp_svcid, INTERFACE_TCP,
 	    IPC_FLAG_BLOCKING);
 	if (tcp->sess == NULL) {
 		rc = EIO;

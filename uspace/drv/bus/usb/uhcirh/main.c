@@ -130,8 +130,8 @@ static int uhci_rh_dev_add(ddf_dev_t *device)
 int hc_get_my_registers(ddf_dev_t *dev, addr_range_t *io_regs_p)
 {
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
-	    ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
+	    devman_parent_device_connect(ddf_dev_get_handle(dev),
+	    IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 

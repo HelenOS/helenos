@@ -415,9 +415,9 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	part_t *part;
 
 	/* Get the device handle. */
-	dh = IPC_GET_ARG1(*icall);
+	dh = IPC_GET_ARG2(*icall);
 
-	/* 
+	/*
 	 * Determine which partition device is the client connecting to.
 	 * A linear search is not terribly fast, but we only do this
 	 * once for each connection.

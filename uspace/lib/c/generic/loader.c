@@ -68,8 +68,7 @@ loader_t *loader_connect(void)
 		return NULL;
 	
 	async_sess_t *sess =
-	    service_connect_blocking_iface_extended(SERVICE_LOADER,
-	    INTERFACE_LOADER, 0);
+	    service_connect_blocking(SERVICE_LOADER, INTERFACE_LOADER, 0);
 	if (sess == NULL) {
 		free(ldr);
 		return NULL;

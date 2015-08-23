@@ -35,7 +35,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <io/log.h>
-#include <ipc/driver.h>
 #include <loc.h>
 #include <str_error.h>
 #include <stdio.h>
@@ -572,13 +571,13 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
-		/* TODO handle error */
+		async_forget(req);
+	} else {
+		/* Wait for answer from the driver. */
+		async_wait_for(req, &rc);
 	}
 
-	/* Wait for answer from the driver. */
-	async_wait_for(req, &rc);
-
-	switch(rc) {
+	switch (rc) {
 	case EOK:
 		dev->state = DEVICE_USABLE;
 		break;
@@ -591,8 +590,6 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	}
 	
 	dev->passed_to_driver = true;
-
-	return;
 }
 
 int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)

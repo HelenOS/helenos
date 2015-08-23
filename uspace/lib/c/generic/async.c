@@ -2104,33 +2104,24 @@ int async_forward_slow(ipc_callid_t callid, async_exch_t *exch,
  * @param arg1            User defined argument.
  * @param arg2            User defined argument.
  * @param arg3            User defined argument.
- * @param client_receiver Connection handing routine.
  *
  * @return Zero on success or a negative error code.
  *
  */
 int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, async_port_handler_t client_receiver, void *data)
+    sysarg_t arg3)
 {
 	if (exch == NULL)
 		return ENOENT;
 	
-	sysarg_t phone_hash;
-	sysarg_t rc;
-
-	aid_t req;
 	ipc_call_t answer;
-	req = async_send_3(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
 	    &answer);
+	
+	sysarg_t rc;
 	async_wait_for(req, &rc);
 	if (rc != EOK)
 		return (int) rc;
-
-	phone_hash = IPC_GET_ARG5(answer);
-
-	if (client_receiver != NULL)
-		async_new_connection(answer.in_task_id, phone_hash, 0, NULL,
-		    client_receiver, data);
 	
 	return EOK;
 }
@@ -2260,7 +2251,6 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 	
 	int phone = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
 	    0);
-	
 	if (phone < 0) {
 		errno = phone;
 		free(sess);

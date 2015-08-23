@@ -51,7 +51,7 @@ static async_exch_t *dnsr_exchange_begin(void)
 		(void) loc_service_get_id(SERVICE_NAME_DNSR, &dnsr_svc,
 		    IPC_FLAG_BLOCKING);
 		
-		dnsr_sess = loc_service_connect(EXCHANGE_SERIALIZE, dnsr_svc,
+		dnsr_sess = loc_service_connect(dnsr_svc, INTERFACE_DNSR,
 		    IPC_FLAG_BLOCKING);
 	}
 	
