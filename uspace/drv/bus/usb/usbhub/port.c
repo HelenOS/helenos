@@ -174,7 +174,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 			}
 		} else {
 			/* Handle the case we were in reset */
-			usb_hub_port_reset_fail(port);
+			//usb_hub_port_reset_fail(port);
 			/* If enabled change was reported leave the removal
 			 * to that handler, it shall ACK the change too. */
 			if (!(status & USB_HUB_PORT_C_STATUS_ENABLED)) {
@@ -352,22 +352,21 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
 static int port_enable(usb_hub_port_t *port, usb_hub_dev_t *hub, bool enable)
 {
 	if (enable) {
-		const int rc =
+		int rc =
 		    usb_hub_port_set_feature(port, USB_HUB_FEATURE_PORT_RESET);
 		if (rc != EOK) {
-			usb_log_error("(%p-%u): Port reset failed: %s.\n",
+			usb_log_error("(%p-%u): Port reset request failed: %s.",
 			    hub, port->port_number, str_error(rc));
 			return rc;
 		}
 		/* Wait until reset completes. */
 		fibril_mutex_lock(&port->mutex);
 		port->reset_status = IN_RESET;
-		while (port->reset_status == IN_RESET) {
-			fibril_condvar_wait(&port->reset_cv,
-			    &port->mutex);
-		}
+		while (port->reset_status == IN_RESET)
+			fibril_condvar_wait(&port->reset_cv, &port->mutex);
+		rc = port->reset_status == RESET_OK ? EOK : ESTALL;
 		fibril_mutex_unlock(&port->mutex);
-		return port->reset_status == RESET_OK ? EOK : ESTALL;
+		return rc;
 	} else {
 		return usb_hub_port_clear_feature(port,
 				USB_HUB_FEATURE_PORT_ENABLE);
@@ -393,8 +392,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	const usb_speed_t speed = params->speed;
 	free(arg);
 
-	usb_log_debug("(%p-%u): New device detected.", hub,
-	    port->port_number);
+	usb_log_debug("(%p-%u): New device sequence.", hub, port->port_number);
 
 	async_exch_t *exch = usb_device_bus_exchange_begin(hub->usb_device);
 	if (!exch) {
