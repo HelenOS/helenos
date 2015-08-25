@@ -153,6 +153,9 @@ static int polling_fibril(void *arg)
 		failed_attempts = 0;
 
 		/* Take a rest before next request. */
+		//TODO: This is broken, the time is in ms not us.
+		// but first we need to fix drivers to actually stop using this,
+		// since polling dealy should be implemented in HC schedule
 		async_usleep(params->delay);
 	}
 
