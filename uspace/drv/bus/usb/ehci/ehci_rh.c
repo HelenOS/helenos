@@ -98,7 +98,7 @@ static void ehci_rh_hub_desc_init(ehci_rh_t *instance, unsigned hcs)
  * initializes internal virtual hub.
  */
 int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,
-const char *name)
+    const char *name)
 {
 	assert(instance);
 	instance->registers = regs;
@@ -115,6 +115,9 @@ const char *name)
 	} else {
 		usb_log_info("RH(%p): No power switching.", instance);
 	}
+	for (unsigned i = 0; i < instance->port_count; ++i)
+		usb_log_debug2("RH(%p-%u): status: %"PRIx32, instance, i,
+		    EHCI_RD(regs->portsc[i]));
 
 	for (unsigned i = 0; i < EHCI_MAX_PORTS; ++i) {
 		instance->reset_flag[i] = false;
@@ -294,7 +297,8 @@ static int req_get_port_status(usbvirt_device_t *device,
 	);
 	/* Note feature numbers for test and indicator feature do not
 	 * correspond to the port status bit locations */
-	usb_log_debug2("RH(%p-%u) port status: %"PRIx32, hub, port, status);
+	usb_log_debug2("RH(%p-%u) port status: %"PRIx32"(%"PRIx32")", hub, port,
+	    status, reg);
 	memcpy(data, &status, sizeof(status));
 	*act_size = sizeof(status);
 	return EOK;
@@ -323,8 +327,8 @@ static int stop_reset(void *arg)
 	if (!(EHCI_RD(job->hub->registers->portsc[job->port]) &
 	    USB_PORTSC_ENABLED_FLAG)) {
 		usb_log_info("RH(%p-%u): Port not enabled after reset (%"PRIX32
-		"), giving up ownership", job->hub, job->port,
-		EHCI_RD(job->hub->registers->portsc[job->port]));
+		    "), giving up ownership", job->hub, job->port,
+		    EHCI_RD(job->hub->registers->portsc[job->port]));
 		EHCI_SET(job->hub->registers->portsc[job->port],
 		    USB_PORTSC_PORT_OWNER_FLAG);
 	}
@@ -515,8 +519,7 @@ static int req_status_change_handler(usbvirt_device_t *device,
 	for (unsigned port = 0; port < hub->port_count; ++port) {
 		/* Write-clean bits are those that indicate change */
 		uint32_t status = EHCI_RD(hub->registers->portsc[port]);
-		if ((status & USB_PORTSC_WC_MASK)
-		    || hub->reset_flag[port] || hub->reset_flag[port]) {
+		if ((status & USB_PORTSC_WC_MASK) || hub->reset_flag[port]) {
 			/* Ignore new LS device */
 			if ((status & USB_PORTSC_CONNECT_CH_FLAG) &&
 			    (status & USB_PORTSC_LINE_STATUS_MASK) ==
