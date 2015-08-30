@@ -1131,7 +1131,7 @@ static void tcp_client_init(tcp_client_t *client)
 static void tcp_client_fini(tcp_client_t *client)
 {
 	tcp_cconn_t *cconn;
-	size_t n;
+	unsigned long n;
 
 	n = list_count(&client->cconn);
 	if (n != 0) {

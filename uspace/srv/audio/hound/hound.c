@@ -419,7 +419,7 @@ int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 		return EINVAL;
 
 	fibril_mutex_lock(&hound->list_guard);
-	const size_t count = list_count(&hound->sources);
+	const unsigned long count = list_count(&hound->sources);
 	if (count == 0) {
 		*list = NULL;
 		*size = 0;
@@ -428,7 +428,7 @@ int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 	}
 	const char **names = calloc(count, sizeof(char *));
 	int ret = names ? EOK : ENOMEM;
-	for (size_t i = 0; i < count && ret == EOK; ++i) {
+	for (unsigned long i = 0; i < count && ret == EOK; ++i) {
 		link_t *slink = list_nth(&hound->sources, i);
 		audio_source_t *source = audio_source_list_instance(slink);
 		names[i] = str_dup(source->name);

@@ -216,7 +216,7 @@ int devman_driver_register(const char *name)
 int devman_add_function(const char *name, fun_type_t ftype,
     match_id_list_t *match_ids, devman_handle_t devh, devman_handle_t *funh)
 {
-	int match_count = list_count(&match_ids->ids);
+	unsigned long match_count = list_count(&match_ids->ids);
 	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
 	
 	ipc_call_t answer;

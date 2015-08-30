@@ -626,7 +626,7 @@ static void udp_rmsg_discard_srv(udp_client_t *client, ipc_callid_t iid,
 static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	udp_client_t client;
-	size_t n;
+	unsigned long n;
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
