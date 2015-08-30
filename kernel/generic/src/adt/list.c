@@ -51,7 +51,7 @@
  * @return true if link is contained in list, false otherwise.
  *
  */
-int list_member(const link_t *link, const list_t *list)
+bool list_member(const link_t *link, const list_t *list)
 {
 	bool found = false;
 	link_t *hlp = list->head.next;
@@ -98,9 +98,9 @@ void list_splice(list_t *list, link_t *pos)
  * @param list		List to count.
  * @return		Number of items in the list.
  */
-unsigned int list_count(const list_t *list)
+unsigned long list_count(const list_t *list)
 {
-	unsigned int count = 0;
+	unsigned long count = 0;
 	
 	link_t *link = list_first(list);
 	while (link != NULL) {
