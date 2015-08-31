@@ -1135,7 +1135,7 @@ static void tcp_client_fini(tcp_client_t *client)
 
 	n = list_count(&client->cconn);
 	if (n != 0) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Client with %zu active "
+		log_msg(LOG_DEFAULT, LVL_WARN, "Client with %lu active "
 		    "connections closed session", n);
 
 		while (!list_empty(&client->cconn)) {
@@ -1149,7 +1149,7 @@ static void tcp_client_fini(tcp_client_t *client)
 
 	n = list_count(&client->clst);
 	if (n != 0) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Client with %zu active "
+		log_msg(LOG_DEFAULT, LVL_WARN, "Client with %lu active "
 		    "listeners closed session", n);
 		/* XXX Destroy listeners */
 	}

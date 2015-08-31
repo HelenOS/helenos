@@ -684,7 +684,7 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	n = list_count(&client.cassoc);
 	if (n != 0) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "udp_client_conn: "
-		    "Client with %zu active associations closed session.", n);
+		    "Client with %lu active associations closed session.", n);
 		/* XXX Clean up */
 	}
 
