@@ -38,6 +38,14 @@ static double arguments[OPERANDS] = {
 	3.5, -2.1, 100.0, 50.0, -1024.0, 0.0, 768.3156, 1080.499999, -600.0, 1.0
 };
 
+static double results_ceil[OPERANDS] = {
+	4.0, -2.0, 100.0, 50.0, -1024.0, 0.0, 769.0, 1081.0, -600.0, 1.0
+};
+
+static double results_floor[OPERANDS] = {
+	3.0, -3.0, 100.0, 50.0, -1024.0, 0.0, 768.0, 1080.0, -600.0, 1.0
+};
+
 static double results_trunc[OPERANDS] = {
 	3.0, -2.0, 100.0, 50.0, -1024.0, 0.0, 768.0, 1080.0, -600.0, 1.0
 };
@@ -58,6 +66,30 @@ const char *test_float2(void)
 {
 	bool fail = false;
 	
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		double res = floor(arguments[i]);
+		int64_t res_int = (int64_t) (res * PRECISION);
+		int64_t corr_int = (int64_t) (results_floor[i] * PRECISION);
+		
+		if (res_int != corr_int) {
+			TPRINTF("Double floor failed (%" PRId64 " != %" PRId64
+			    ", arg %u)\n", res_int, corr_int, i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		double res = ceil(arguments[i]);
+		int64_t res_int = (int64_t) (res * PRECISION);
+		int64_t corr_int = (int64_t) (results_ceil[i] * PRECISION);
+		
+		if (res_int != corr_int) {
+			TPRINTF("Double ceil failed (%" PRId64 " != %" PRId64
+			    ", arg %u)\n", res_int, corr_int, i);
+			fail = true;
+		}
+	}
+
 	for (unsigned int i = 0; i < OPERANDS; i++) {
 		double res = trunc(arguments[i]);
 		int64_t res_int = (int64_t) (res * PRECISION);

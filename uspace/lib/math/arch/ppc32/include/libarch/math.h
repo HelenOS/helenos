@@ -35,6 +35,8 @@
 #ifndef LIBMATH_ppc32_MATH_H_
 #define LIBMATH_ppc32_MATH_H_
 
+#include <ceil.h>
+#include <floor.h>
 #include <mathtypes.h>
 #include <mod.h>
 #include <trunc.h>
@@ -52,6 +54,28 @@ static inline double trunc(double val)
 	
 	float64_u ret;
 	ret.data = trunc_float64(arg.data);
+	
+	return ret.val;
+}
+
+static inline float64_t ceil(float64_t val)
+{
+	float64_u arg;
+	arg.val = val;
+	
+	float64_u ret;
+	ret.data = ceil_float64(arg.data);
+	
+	return ret.val;
+}
+
+static inline float64_t floor(float64_t val)
+{
+	float64_u arg;
+	arg.val = val;
+	
+	float64_u ret;
+	ret.data = floor_float64(arg.data);
 	
 	return ret.val;
 }

@@ -35,6 +35,8 @@
 #ifndef LIBMATH_amd64_MATH_H_
 #define LIBMATH_amd64_MATH_H_
 
+#include <ceil.h>
+#include <floor.h>
 #include <mathtypes.h>
 #include <mod.h>
 
@@ -45,6 +47,29 @@ static inline float64_t fmod(float64_t dividend, float64_t divisor)
 
 extern float64_t sin(float64_t);
 extern float64_t cos(float64_t);
+
+static inline float64_t ceil(float64_t val)
+{
+	float64_u arg;
+	arg.val = val;
+	
+	float64_u ret;
+	ret.data = ceil_float64(arg.data);
+	
+	return ret.val;
+}
+
+static inline float64_t floor(float64_t val)
+{
+	float64_u arg;
+	arg.val = val;
+	
+	float64_u ret;
+	ret.data = floor_float64(arg.data);
+	
+	return ret.val;
+}
+
 extern float64_t trunc(float64_t);
 
 #endif

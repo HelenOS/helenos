@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,71 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libmathsparc32
+/** @addtogroup libmath
  * @{
  */
 /** @file
  */
 
-#ifndef LIBMATH_sparc32_MATH_H_
-#define LIBMATH_sparc32_MATH_H_
-
 #include <ceil.h>
-#include <floor.h>
 #include <mathtypes.h>
-#include <mod.h>
 #include <trunc.h>
-#include <trig.h>
 
-static inline float64_t fmod(float64_t dividend, float64_t divisor)
+/** Ceiling (round towards positive infinity)
+ *
+ * @param val Floating point number.
+ *
+ * @return Number rounded towards positive infinity.
+ */
+float64 ceil_float64(float64 val)
 {
-	return float64_mod(dividend, divisor);
-}
+	float64_u t;
+	float64_u v;
+	float64_u r;
 
-static inline float64_t trunc(float64_t val)
-{
-	float64_u arg;
-	arg.val = val;
-	
-	float64_u ret;
-	ret.data = trunc_float64(arg.data);
-	
-	return ret.val;
-}
+	v.data = val;
+	t.data = trunc_float64(val);
 
-static inline float64_t ceil(float64_t val)
-{
-	float64_u arg;
-	arg.val = val;
-	
-	float64_u ret;
-	ret.data = ceil_float64(arg.data);
-	
-	return ret.val;
-}
+	if (val.parts.sign == 1 || v.val == t.val) {
+		r = t;
+	} else {
+		r.val = t.val + 1.0;
+	}
 
-static inline float64_t floor(float64_t val)
-{
-	float64_u arg;
-	arg.val = val;
-	
-	float64_u ret;
-	ret.data = floor_float64(arg.data);
-	
-	return ret.val;
+	return r.data;
 }
-
-static inline float64_t sin(float64_t val)
-{
-	return float64_sin(val);
-}
-
-static inline float64_t cos(float64_t val)
-{
-	return float64_cos(val);
-}
-
-#endif
 
 /** @}
  */
