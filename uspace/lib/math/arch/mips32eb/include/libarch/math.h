@@ -36,9 +36,12 @@
 #define LIBMATH_mips32eb_MATH_H_
 
 #include <ceil.h>
+#include <exp.h>
 #include <floor.h>
+#include <log.h>
 #include <mathtypes.h>
 #include <mod.h>
+#include <pow.h>
 #include <trunc.h>
 #include <trig.h>
 
@@ -69,6 +72,16 @@ static inline float64_t ceil(float64_t val)
 	return ret.val;
 }
 
+static inline float32_t expf(float32_t val)
+{
+	return float32_exp(val);
+}
+
+static inline float64_t exp(float64_t val)
+{
+	return float64_exp(val);
+}
+
 static inline float64_t floor(float64_t val)
 {
 	float64_u arg;
@@ -78,6 +91,26 @@ static inline float64_t floor(float64_t val)
 	ret.data = floor_float64(arg.data);
 	
 	return ret.val;
+}
+
+static inline float32_t logf(float32_t val)
+{
+	return float32_log(val);
+}
+
+static inline float64_t log(float64_t val)
+{
+	return float64_log(val);
+}
+
+static inline float32_t powf(float32_t x, float32_t y)
+{
+	return float32_pow(x, y);
+}
+
+static inline float64_t pow(float64_t x, float64_t y)
+{
+	return float64_pow(x, y);
 }
 
 static inline float64_t sin(float64_t val)
