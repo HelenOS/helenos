@@ -37,6 +37,44 @@
 
 /** Truncate fractional part (round towards zero)
  *
+ * Truncate the fractional part of IEEE 754 single
+ * precision floating point number by zeroing fraction
+ * bits, effectively rounding the number towards zero
+ * to the nearest whole number.
+ *
+ * If the argument is infinity or NaN, an exception
+ * should be indicated. This is not implemented yet.
+ *
+ * @param val Floating point number.
+ *
+ * @return Number rounded towards zero.
+ *
+ */
+float32 trunc_float32(float32 val)
+{
+	int32_t exp = val.parts.exp - FLOAT32_BIAS;
+	
+	if (exp < 0) {
+		/* -1 < val < 1 => result is +0 or -0 */
+		val.parts.exp = 0;
+		val.parts.fraction = 0;
+	} else if (exp >= FLOAT32_FRACTION_SIZE) {
+		if (exp == 1024) {
+			/* val is +inf, -inf or NaN => trigger an exception */
+			// FIXME TODO
+		}
+		
+		/* All bits in val are relevant for the result */
+	} else {
+		/* Truncate irrelevant fraction bits */
+		val.parts.fraction &= ~(UINT32_C(0x007fffff) >> exp);
+	}
+	
+	return val;
+}
+
+/** Truncate fractional part (round towards zero)
+ *
  * Truncate the fractional part of IEEE 754 double
  * precision floating point number by zeroing fraction
  * bits, effectively rounding the number towards zero

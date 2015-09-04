@@ -32,34 +32,15 @@
 /** @file
  */
 
-#include <floor.h>
+#ifndef LIBMATH_EXP_H_
+#define LIBMATH_EXP_H_
+
 #include <mathtypes.h>
-#include <trunc.h>
 
-/** Ceiling (round towards negative infinity)
- *
- * @param val Floating point number.
- *
- * @return Number rounded towards negative infinity.
- */
+extern float32_t float32_exp(float32_t);
+extern float64_t float64_exp(float64_t);
 
-float64 floor_float64(float64 val)
-{
-	float64_u t;
-	float64_u v;
-	float64_u r;
-	
-	v.data = val;
-	t.data = trunc_float64(val);
-	
-	if (val.parts.sign == 0 || v.val == t.val) {
-		r = t;
-	} else {
-		r.val = t.val - 1.0;
-	}
-	
-	return r.data;
-}
+#endif
 
 /** @}
  */

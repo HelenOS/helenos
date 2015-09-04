@@ -37,6 +37,7 @@
 
 #include <mathtypes.h>
 
+extern float32 trunc_float32(float32);
 extern float64 trunc_float64(float64);
 
 #endif

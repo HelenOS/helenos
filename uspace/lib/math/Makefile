@@ -41,8 +41,11 @@ MATH = y
 
 GENERIC_SOURCES = \
 	generic/ceil.c \
+	generic/exp.c \
 	generic/floor.c \
+	generic/log.c \
 	generic/trig.c \
+	generic/pow.c \
 	generic/mod.c \
 	generic/trunc.c
 

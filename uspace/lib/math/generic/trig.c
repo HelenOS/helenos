@@ -35,12 +35,15 @@
 #include <math.h>
 #include <trig.h>
 
-#define TAYLOR_DEGREE  13
+#define TAYLOR_DEGREE_32 13
+#define TAYLOR_DEGREE_64 21
 
 /** Precomputed values for factorial (starting from 1!) */
-static float64_t factorials[TAYLOR_DEGREE] = {
+static float64_t factorials[TAYLOR_DEGREE_64] = {
 	1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800,
-	479001600, 6227020800
+	479001600, 6227020800.0L, 87178291200.0L, 1307674368000.0L,
+	20922789888000.0L, 355687428096000.0L, 6402373705728000.0L,
+	121645100408832000.0L, 2432902008176640000.0L, 51090942171709440000.0L
 };
 
 /** Sine approximation by Taylor series
@@ -60,7 +63,7 @@ static float64_t taylor_sin(float64_t arg)
 	float64_t ret = 0;
 	float64_t nom = 1;
 	
-	for (unsigned int i = 0; i < TAYLOR_DEGREE; i++) {
+	for (unsigned int i = 0; i < TAYLOR_DEGREE_64; i++) {
 		nom *= arg;
 		
 		if ((i % 4) == 0)
@@ -89,7 +92,7 @@ static float64_t taylor_cos(float64_t arg)
 	float64_t ret = 1;
 	float64_t nom = 1;
 	
-	for (unsigned int i = 0; i < TAYLOR_DEGREE; i++) {
+	for (unsigned int i = 0; i < TAYLOR_DEGREE_64; i++) {
 		nom *= arg;
 		
 		if ((i % 4) == 1)
