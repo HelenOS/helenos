@@ -37,6 +37,7 @@
 
 #include <mathtypes.h>
 
+extern float32_t float32_ceil(float32_t);
 extern float64_t float64_ceil(float64_t);
 
 #endif

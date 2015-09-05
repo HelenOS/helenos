@@ -35,6 +35,7 @@
 #ifndef LIBMATH_MOD_H_
 #define LIBMATH_MOD_H_
 
+extern float32_t float32_mod(float32_t, float32_t);
 extern float64_t float64_mod(float64_t, float64_t);
 
 #endif

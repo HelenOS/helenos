@@ -30,9 +30,9 @@
 
 .text
 
-.global sin
+.global sin_f64
 
-sin:
+sin_f64:
 	# compute sine (no stack frame)
 	
 	fldl 4(%esp)

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2015 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *

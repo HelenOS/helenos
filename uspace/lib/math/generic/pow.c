@@ -51,7 +51,7 @@
 float32_t float32_pow(float32_t x, float32_t y)
 {
 	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return float32_exp(float32_log(x) * y);
+	return exp_f32(log_f32(x) * y);
 }
 
 /** Double precision power
@@ -67,7 +67,7 @@ float32_t float32_pow(float32_t x, float32_t y)
 float64_t float64_pow(float64_t x, float64_t y)
 {
 	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return float64_exp(float64_log(x) * y);
+	return exp_f64(log_f64(x) * y);
 }
 
 /** @}

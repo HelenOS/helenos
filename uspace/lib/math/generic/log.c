@@ -39,7 +39,7 @@
 #define TAYLOR_DEGREE_32  31
 #define TAYLOR_DEGREE_64  63
 
-/** Single precision log(1 - arg) approximation by Taylor series
+/** log(1 - arg) approximation by Taylor series (32-bit floating point)
  *
  * Compute the approximation of log(1 - arg) by a Taylor
  * series (using the first TAYLOR_DEGREE terms).
@@ -67,7 +67,7 @@ static float32_t taylor_log_32(float32_t arg)
 	return ret;
 }
 
-/** Double precision log(1 - arg) approximation by Taylor series
+/** log(1 - arg) approximation by Taylor series (64-bit floating point)
  *
  * Compute the approximation of log(1 - arg) by a Taylor
  * series (using the first TAYLOR_DEGREE terms).
@@ -95,7 +95,7 @@ static float64_t taylor_log_64(float64_t arg)
 	return ret;
 }
 
-/** Single precision logarithm
+/** Natural logarithm (32-bit floating point)
  *
  * @param arg Argument.
  *
@@ -125,7 +125,7 @@ float32_t float32_log(float32_t arg)
 	return - taylor_log_32(m.val - 1.0) + e / M_LOG2E;
 }
 
-/** Double precision logarithm
+/** Natural logarithm (64-bit floating point)
  *
  * @param arg Argument.
  *

@@ -30,9 +30,9 @@
 
 .text
 
-.global cos
+.global cos_f64
 
-cos:
+cos_f64:
 	pushq %rbp
 	movq %rsp, %rbp
 	

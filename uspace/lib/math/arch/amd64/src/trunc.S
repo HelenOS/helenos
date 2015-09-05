@@ -30,9 +30,9 @@
 
 .text
 
-.global trunc
+.global trunc_f64
 
-trunc:
+trunc_f64:
 	pushq %rbp
 	movq %rsp, %rbp
 	

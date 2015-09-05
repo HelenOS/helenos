@@ -37,6 +37,7 @@
 
 #include <mathtypes.h>
 
+extern float32_t float32_floor(float32_t);
 extern float64_t float64_floor(float64_t);
 
 #endif

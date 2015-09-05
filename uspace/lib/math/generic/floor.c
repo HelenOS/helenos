@@ -33,10 +33,31 @@
  */
 
 #include <floor.h>
+#include <math.h>
 #include <mathtypes.h>
-#include <trunc.h>
 
-/** Ceiling (round towards negative infinity)
+/** Ceiling (round towards negative infinity, 32-bit floating point)
+ *
+ * @param val Floating point number.
+ *
+ * @return Number rounded towards negative infinity.
+ */
+
+float32_t float32_floor(float32_t val)
+{
+	float32_t t;
+	float32_u v;
+	
+	v.val = val;
+	t = trunc_f32(val);
+	
+	if (v.data.parts.sign == 0 || val == t)
+		return t;
+	else
+		return t - 1.0;
+}
+
+/** Ceiling (round towards negative infinity, 64-bit floating point)
  *
  * @param val Floating point number.
  *
@@ -49,7 +70,7 @@ float64_t float64_floor(float64_t val)
 	float64_u v;
 	
 	v.val = val;
-	t = float64_trunc(val);
+	t = trunc_f64(val);
 	
 	if (v.data.parts.sign == 0 || val == t)
 		return t;

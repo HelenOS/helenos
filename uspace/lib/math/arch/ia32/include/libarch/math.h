@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,56 +43,179 @@
 #include <mathtypes.h>
 #include <mod.h>
 #include <pow.h>
+#include <trunc.h>
+#include <trig.h>
 
-static inline float64_t fmod(float64_t dividend, float64_t divisor)
-{
-	return float64_mod(dividend, divisor);
-}
-
-extern float64_t sin(float64_t);
-extern float64_t cos(float64_t);
-
-static inline float64_t ceil(float64_t val)
+static inline float64_t ceil_f64(float64_t val)
 {
 	return float64_ceil(val);
 }
 
-static inline float64_t floor(float64_t val)
+static inline float32_t ceil_f32(float32_t val)
 {
-	return float64_floor(val);
+	return float32_ceil(val);
 }
 
-static inline float32_t expf(float32_t val)
+extern float64_t cos_f64(float64_t);
+
+static inline float32_t cos_f32(float32_t val)
 {
-	return float32_exp(val);
+	return (float32_t)cos_f64((float64_t)val);
 }
 
-static inline float64_t exp(float64_t val)
+static inline float64_t exp_f64(float64_t val)
 {
 	return float64_exp(val);
 }
 
-static inline float32_t logf(float32_t val)
+static inline float32_t exp_f32(float32_t val)
 {
-	return float32_log(val);
+	return float32_exp(val);
 }
 
-static inline float64_t log(float64_t val)
+static inline float64_t floor_f64(float64_t val)
+{
+	return float64_floor(val);
+}
+
+static inline float32_t floor_f32(float32_t val)
+{
+	return float32_floor(val);
+}
+
+static inline float64_t fmod_f64(float64_t dividend, float64_t divisor)
+{
+	return float64_mod(dividend, divisor);
+}
+
+static inline float64_t fmod_f32(float32_t dividend, float32_t divisor)
+{
+	return float32_mod(dividend, divisor);
+}
+
+static inline float64_t log_f64(float64_t val)
 {
 	return float64_log(val);
 }
 
-static inline float32_t powf(float32_t x, float32_t y)
+static inline float32_t log_f32(float32_t val)
 {
-	return float32_pow(x, y);
+	return float32_log(val);
 }
 
-static inline float64_t pow(float64_t x, float64_t y)
+static inline float64_t pow_f64(float64_t x, float64_t y)
 {
 	return float64_pow(x, y);
 }
 
-extern float64_t trunc(float64_t);
+static inline float32_t pow_f32(float32_t x, float32_t y)
+{
+	return float32_pow(x, y);
+}
+
+extern float64_t sin_f64(float64_t);
+
+static inline float32_t sin_f32(float32_t val)
+{
+	return (float32_t)sin_f64((float64_t)val);
+}
+
+extern float64_t trunc_f64(float64_t);
+
+static inline float32_t trunc_f32(float32_t val)
+{
+	return (float32_t)trunc_f64((float64_t)val);
+}
+
+static inline float64_t ceil(float64_t val)
+{
+	return ceil_f64(val);
+}
+
+static inline float32_t ceilf(float32_t val)
+{
+	return ceil_f32(val);
+}
+
+static inline float64_t cos(float64_t val)
+{
+	return cos_f64(val);
+}
+
+static inline float32_t cosf(float32_t val)
+{
+	return cos_f32(val);
+}
+
+static inline float64_t exp(float64_t val)
+{
+	return exp_f64(val);
+}
+
+static inline float32_t expf(float32_t val)
+{
+	return exp_f32(val);
+}
+
+static inline float64_t floor(float64_t val)
+{
+	return floor_f64(val);
+}
+
+static inline float32_t floorf(float32_t val)
+{
+	return floor_f32(val);
+}
+
+static inline float64_t fmod(float64_t dividend, float64_t divisor)
+{
+	return fmod_f64(dividend, divisor);
+}
+
+static inline float32_t fmodf(float32_t dividend, float32_t divisor)
+{
+	return fmod_f32(dividend, divisor);
+}
+
+static inline float64_t log(float64_t val)
+{
+	return log_f64(val);
+}
+
+static inline float32_t logf(float32_t val)
+{
+	return log_f32(val);
+}
+
+static inline float64_t pow(float64_t x, float64_t y)
+{
+	return pow_f64(x, y);
+}
+
+static inline float32_t powf(float32_t x, float32_t y)
+{
+	return pow_f32(x, y);
+}
+
+static inline float64_t sin(float64_t val)
+{
+	return sin_f64(val);
+}
+
+static inline float32_t sinf(float32_t val)
+{
+	return sin_f32(val);
+}
+
+static inline float64_t trunc(float64_t val)
+{
+	return trunc_f64(val);
+}
+
+static inline float32_t truncf(float32_t val)
+{
+	return trunc_f32(val);
+}
 
 #endif
 

@@ -35,7 +35,32 @@
 #include <math.h>
 #include <mod.h>
 
-/** Double precision modulo
+/** Remainder function (32-bit floating point)
+ *
+ * Calculate the modulo of dividend by divisor.
+ *
+ * This is a very basic implementation that uses
+ * division and multiplication (instead of exact
+ * arithmetics). Thus the result might be very
+ * imprecise (depending on the magnitude of the
+ * arguments).
+ *
+ * @param dividend Dividend.
+ * @param divisor  Divisor.
+ *
+ * @return Modulo.
+ *
+ */
+float32_t float32_mod(float32_t dividend, float32_t divisor)
+{
+	// FIXME: replace with exact arithmetics
+	
+	float32_t quotient = trunc_f32(dividend / divisor);
+	
+	return (dividend - quotient * divisor);
+}
+
+/** Remainder function (64-bit floating point)
  *
  * Calculate the modulo of dividend by divisor.
  *
@@ -55,7 +80,7 @@ float64_t float64_mod(float64_t dividend, float64_t divisor)
 {
 	// FIXME: replace with exact arithmetics
 	
-	float64_t quotient = trunc(dividend / divisor);
+	float64_t quotient = trunc_f64(dividend / divisor);
 	
 	return (dividend - quotient * divisor);
 }

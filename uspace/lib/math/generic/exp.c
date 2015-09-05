@@ -48,7 +48,7 @@ static float64_t factorials[TAYLOR_DEGREE_64] = {
 	121645100408832000.0L, 2432902008176640000.0L, 51090942171709440000.0L
 };
 
-/** Exponential approximation by Taylor series (32-))
+/** Exponential approximation by Taylor series (32-bit floating point)
  *
  * Compute the approximation of exponential by a Taylor
  * series (using the first TAYLOR_DEGREE terms).
@@ -60,10 +60,10 @@ static float64_t factorials[TAYLOR_DEGREE_64] = {
  * @return Exponential value approximation.
  *
  */
-static float64_t taylor_exp_32(float64_t arg)
+static float32_t taylor_exp_32(float32_t arg)
 {
-	float64_t ret = 1;
-	float64_t nom = 1;
+	float32_t ret = 1;
+	float32_t nom = 1;
 	
 	for (unsigned int i = 0; i < TAYLOR_DEGREE_32; i++) {
 		nom *= arg;
@@ -73,7 +73,7 @@ static float64_t taylor_exp_32(float64_t arg)
 	return ret;
 }
 
-/** Exponential approximation by Taylor series
+/** Exponential approximation by Taylor series (64-bit floating point)
  *
  * Compute the approximation of exponential by a Taylor
  * series (using the first TAYLOR_DEGREE terms).
@@ -98,7 +98,7 @@ static float64_t taylor_exp_64(float64_t arg)
 	return ret;
 }
 
-/** Single precision exponential
+/** Exponential (32-bit floating point)
  *
  * Compute exponential value.
  *
@@ -120,7 +120,7 @@ float32_t float32_exp(float32_t arg)
 	 * e^(log(2)*f) * 2^i
 	 */
 
-	i = float32_trunc(arg * M_LOG2E);
+	i = trunc_f32(arg * M_LOG2E);
 	f = arg * M_LOG2E - i;
 
 	r.val = taylor_exp_32(M_LN2 * f);
@@ -128,7 +128,7 @@ float32_t float32_exp(float32_t arg)
 	return r.val;
 }
 
-/** Double precision exponential
+/** Exponential (64-bit floating point)
  *
  * Compute exponential value.
  *
@@ -150,7 +150,7 @@ float64_t float64_exp(float64_t arg)
 	 * e^(log(2)*f) * 2^i
 	 */
 
-	i = float64_trunc(arg * M_LOG2E);
+	i = trunc_f64(arg * M_LOG2E);
 	f = arg * M_LOG2E - i;
 
 	r.val = taylor_exp_64(M_LN2 * f);

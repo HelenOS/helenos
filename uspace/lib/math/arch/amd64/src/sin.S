@@ -30,9 +30,9 @@
 
 .text
 
-.global sin
+.global sin_f64
 
-sin:
+sin_f64:
 	pushq %rbp
 	movq %rsp, %rbp
 	

@@ -30,9 +30,9 @@
 
 .text
 
-.global cos
+.global cos_f64
 
-cos:
+cos_f64:
 	# compute cosine (no stack frame)
 	
 	fldl 4(%esp)

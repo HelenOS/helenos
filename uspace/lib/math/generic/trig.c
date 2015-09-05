@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2015 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -46,7 +47,7 @@ static float64_t factorials[TAYLOR_DEGREE_64] = {
 	121645100408832000.0L, 2432902008176640000.0L, 51090942171709440000.0L
 };
 
-/** Sine approximation by Taylor series
+/** Sine approximation by Taylor series (32-bit floating point)
  *
  * Compute the approximation of sine by a Taylor
  * series (using the first TAYLOR_DEGREE terms).
@@ -58,7 +59,36 @@ static float64_t factorials[TAYLOR_DEGREE_64] = {
  * @return Sine value approximation.
  *
  */
-static float64_t taylor_sin(float64_t arg)
+static float32_t taylor_sin_32(float32_t arg)
+{
+	float32_t ret = 0;
+	float32_t nom = 1;
+	
+	for (unsigned int i = 0; i < TAYLOR_DEGREE_32; i++) {
+		nom *= arg;
+		
+		if ((i % 4) == 0)
+			ret += nom / factorials[i];
+		else if ((i % 4) == 2)
+			ret -= nom / factorials[i];
+	}
+	
+	return ret;
+}
+
+/** Sine approximation by Taylor series (64-bit floating point)
+ *
+ * Compute the approximation of sine by a Taylor
+ * series (using the first TAYLOR_DEGREE terms).
+ * The approximation is reasonably accurate for
+ * arguments within the interval [-pi/4, pi/4].
+ *
+ * @param arg Sine argument.
+ *
+ * @return Sine value approximation.
+ *
+ */
+static float64_t taylor_sin_64(float64_t arg)
 {
 	float64_t ret = 0;
 	float64_t nom = 1;
@@ -75,7 +105,7 @@ static float64_t taylor_sin(float64_t arg)
 	return ret;
 }
 
-/** Cosine approximation by Taylor series
+/** Cosine approximation by Taylor series (32-bit floating point)
  *
  * Compute the approximation of cosine by a Taylor
  * series (using the first TAYLOR_DEGREE terms).
@@ -87,7 +117,36 @@ static float64_t taylor_sin(float64_t arg)
  * @return Cosine value approximation.
  *
  */
-static float64_t taylor_cos(float64_t arg)
+static float32_t taylor_cos_32(float32_t arg)
+{
+	float32_t ret = 1;
+	float32_t nom = 1;
+	
+	for (unsigned int i = 0; i < TAYLOR_DEGREE_32; i++) {
+		nom *= arg;
+		
+		if ((i % 4) == 1)
+			ret -= nom / factorials[i];
+		else if ((i % 4) == 3)
+			ret += nom / factorials[i];
+	}
+	
+	return ret;
+}
+
+/** Cosine approximation by Taylor series (64-bit floating point)
+ *
+ * Compute the approximation of cosine by a Taylor
+ * series (using the first TAYLOR_DEGREE terms).
+ * The approximation is reasonably accurate for
+ * arguments within the interval [-pi/4, pi/4].
+ *
+ * @param arg Cosine argument.
+ *
+ * @return Cosine value approximation.
+ *
+ */
+static float64_t taylor_cos_64(float64_t arg)
 {
 	float64_t ret = 1;
 	float64_t nom = 1;
@@ -104,7 +163,7 @@ static float64_t taylor_cos(float64_t arg)
 	return ret;
 }
 
-/** Sine value for values within base period
+/** Sine value for values within base period (32-bit floating point)
  *
  * Compute the value of sine for arguments within
  * the base period [0, 2pi]. For arguments outside
@@ -116,28 +175,61 @@ static float64_t taylor_cos(float64_t arg)
  * @return Sine value.
  *
  */
-static float64_t base_sin(float64_t arg)
+static float32_t base_sin_32(float32_t arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 	
 	switch (period) {
 	case 0:
-		return taylor_sin(arg);
+		return taylor_sin_32(arg);
 	case 1:
 	case 2:
-		return taylor_cos(arg - M_PI / 2);
+		return taylor_cos_32(arg - M_PI / 2);
 	case 3:
 	case 4:
-		return -taylor_sin(arg - M_PI);
+		return -taylor_sin_32(arg - M_PI);
 	case 5:
 	case 6:
-		return -taylor_cos(arg - 3 * M_PI / 2);
+		return -taylor_cos_32(arg - 3 * M_PI / 2);
 	default:
-		return taylor_sin(arg - 2 * M_PI);
+		return taylor_sin_32(arg - 2 * M_PI);
 	}
 }
 
-/** Cosine value for values within base period
+/** Sine value for values within base period (64-bit floating point)
+ *
+ * Compute the value of sine for arguments within
+ * the base period [0, 2pi]. For arguments outside
+ * the base period the returned values can be
+ * very inaccurate or even completely wrong.
+ *
+ * @param arg Sine argument.
+ *
+ * @return Sine value.
+ *
+ */
+static float64_t base_sin_64(float64_t arg)
+{
+	unsigned int period = arg / (M_PI / 4);
+	
+	switch (period) {
+	case 0:
+		return taylor_sin_64(arg);
+	case 1:
+	case 2:
+		return taylor_cos_64(arg - M_PI / 2);
+	case 3:
+	case 4:
+		return -taylor_sin_64(arg - M_PI);
+	case 5:
+	case 6:
+		return -taylor_cos_64(arg - 3 * M_PI / 2);
+	default:
+		return taylor_sin_64(arg - 2 * M_PI);
+	}
+}
+
+/** Cosine value for values within base period (32-bit floating point)
  *
  * Compute the value of cosine for arguments within
  * the base period [0, 2pi]. For arguments outside
@@ -149,28 +241,80 @@ static float64_t base_sin(float64_t arg)
  * @return Cosine value.
  *
  */
-static float64_t base_cos(float64_t arg)
+static float32_t base_cos_32(float32_t arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 	
 	switch (period) {
 	case 0:
-		return taylor_cos(arg);
+		return taylor_cos_32(arg);
 	case 1:
 	case 2:
-		return -taylor_sin(arg - M_PI / 2);
+		return -taylor_sin_32(arg - M_PI / 2);
 	case 3:
 	case 4:
-		return -taylor_cos(arg - M_PI);
+		return -taylor_cos_32(arg - M_PI);
 	case 5:
 	case 6:
-		return taylor_sin(arg - 3 * M_PI / 2);
+		return taylor_sin_32(arg - 3 * M_PI / 2);
 	default:
-		return taylor_cos(arg - 2 * M_PI);
+		return taylor_cos_32(arg - 2 * M_PI);
 	}
 }
 
-/** Double precision sine
+/** Cosine value for values within base period (64-bit floating point)
+ *
+ * Compute the value of cosine for arguments within
+ * the base period [0, 2pi]. For arguments outside
+ * the base period the returned values can be
+ * very inaccurate or even completely wrong.
+ *
+ * @param arg Cosine argument.
+ *
+ * @return Cosine value.
+ *
+ */
+static float64_t base_cos_64(float64_t arg)
+{
+	unsigned int period = arg / (M_PI / 4);
+	
+	switch (period) {
+	case 0:
+		return taylor_cos_64(arg);
+	case 1:
+	case 2:
+		return -taylor_sin_64(arg - M_PI / 2);
+	case 3:
+	case 4:
+		return -taylor_cos_64(arg - M_PI);
+	case 5:
+	case 6:
+		return taylor_sin_64(arg - 3 * M_PI / 2);
+	default:
+		return taylor_cos_64(arg - 2 * M_PI);
+	}
+}
+
+/** Sine (32-bit floating point)
+ *
+ * Compute sine value.
+ *
+ * @param arg Sine argument.
+ *
+ * @return Sine value.
+ *
+ */
+float32_t float32_sin(float32_t arg)
+{
+	float32_t base_arg = fmod_f32(arg, 2 * M_PI);
+	
+	if (base_arg < 0)
+		return -base_sin_32(-base_arg);
+	
+	return base_sin_32(base_arg);
+}
+
+/** Sine (64-bit floating point)
  *
  * Compute sine value.
  *
@@ -181,15 +325,34 @@ static float64_t base_cos(float64_t arg)
  */
 float64_t float64_sin(float64_t arg)
 {
-	float64_t base_arg = fmod(arg, 2 * M_PI);
+	float64_t base_arg = fmod_f64(arg, 2 * M_PI);
 	
 	if (base_arg < 0)
-		return -base_sin(-base_arg);
+		return -base_sin_64(-base_arg);
 	
-	return base_sin(base_arg);
+	return base_sin_64(base_arg);
 }
 
-/** Double precision cosine
+/** Cosine (32-bit floating point)
+ *
+ * Compute cosine value.
+ *
+ * @param arg Cosine argument.
+ *
+ * @return Cosine value.
+ *
+ */
+float32_t float32_cos(float32_t arg)
+{
+	float32_t base_arg = fmod_f32(arg, 2 * M_PI);
+	
+	if (base_arg < 0)
+		return base_cos_32(-base_arg);
+	
+	return base_cos_32(base_arg);
+}
+
+/** Cosine (64-bit floating point)
  *
  * Compute cosine value.
  *
@@ -200,12 +363,12 @@ float64_t float64_sin(float64_t arg)
  */
 float64_t float64_cos(float64_t arg)
 {
-	float64_t base_arg = fmod(arg, 2 * M_PI);
+	float64_t base_arg = fmod_f64(arg, 2 * M_PI);
 	
 	if (base_arg < 0)
-		return base_cos(-base_arg);
+		return base_cos_64(-base_arg);
 	
-	return base_cos(base_arg);
+	return base_cos_64(base_arg);
 }
 
 /** @}
