@@ -43,22 +43,18 @@
  * @return Number rounded towards negative infinity.
  */
 
-float64 floor_float64(float64 val)
+float64_t float64_floor(float64_t val)
 {
-	float64_u t;
+	float64_t t;
 	float64_u v;
-	float64_u r;
 	
-	v.data = val;
-	t.data = trunc_float64(val);
+	v.val = val;
+	t = float64_trunc(val);
 	
-	if (val.parts.sign == 0 || v.val == t.val) {
-		r = t;
-	} else {
-		r.val = t.val - 1.0;
-	}
-	
-	return r.data;
+	if (v.data.parts.sign == 0 || val == t)
+		return t;
+	else
+		return t - 1.0;
 }
 
 /** @}

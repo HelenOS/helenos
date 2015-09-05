@@ -42,22 +42,22 @@
  *
  * @return Number rounded towards positive infinity.
  */
-float64 ceil_float64(float64 val)
+float64_t float64_ceil(float64_t val)
 {
 	float64_u t;
 	float64_u v;
 	float64_u r;
 	
-	v.data = val;
-	t.data = trunc_float64(val);
+	v.val = val;
+	t.val = float64_trunc(val);
 	
-	if (val.parts.sign == 1 || v.val == t.val) {
+	if (v.data.parts.sign == 1 || val == t.val) {
 		r = t;
 	} else {
 		r.val = t.val + 1.0;
 	}
 	
-	return r.data;
+	return r.val;
 }
 
 /** @}

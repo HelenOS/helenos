@@ -50,14 +50,18 @@
  * @return Number rounded towards zero.
  *
  */
-float32 trunc_float32(float32 val)
+float32_t float32_trunc(float32_t val)
 {
-	int32_t exp = val.parts.exp - FLOAT32_BIAS;
+	float32_u v;
+	int32_t exp;
+	
+	v.val = val;
+	exp = v.data.parts.exp - FLOAT32_BIAS;
 	
 	if (exp < 0) {
 		/* -1 < val < 1 => result is +0 or -0 */
-		val.parts.exp = 0;
-		val.parts.fraction = 0;
+		v.data.parts.exp = 0;
+		v.data.parts.fraction = 0;
 	} else if (exp >= FLOAT32_FRACTION_SIZE) {
 		if (exp == 1024) {
 			/* val is +inf, -inf or NaN => trigger an exception */
@@ -67,10 +71,10 @@ float32 trunc_float32(float32 val)
 		/* All bits in val are relevant for the result */
 	} else {
 		/* Truncate irrelevant fraction bits */
-		val.parts.fraction &= ~(UINT32_C(0x007fffff) >> exp);
+		v.data.parts.fraction &= ~(UINT32_C(0x007fffff) >> exp);
 	}
 	
-	return val;
+	return v.val;
 }
 
 /** Truncate fractional part (round towards zero)
@@ -88,14 +92,18 @@ float32 trunc_float32(float32 val)
  * @return Number rounded towards zero.
  *
  */
-float64 trunc_float64(float64 val)
+float64_t float64_trunc(float64_t val)
 {
-	int32_t exp = val.parts.exp - FLOAT64_BIAS;
+	float64_u v;
+	int32_t exp;
+	
+	v.val = val;
+	exp = v.data.parts.exp - FLOAT64_BIAS;
 	
 	if (exp < 0) {
 		/* -1 < val < 1 => result is +0 or -0 */
-		val.parts.exp = 0;
-		val.parts.fraction = 0;
+		v.data.parts.exp = 0;
+		v.data.parts.fraction = 0;
 	} else if (exp >= FLOAT64_FRACTION_SIZE) {
 		if (exp == 1024) {
 			/* val is +inf, -inf or NaN => trigger an exception */
@@ -105,10 +113,10 @@ float64 trunc_float64(float64 val)
 		/* All bits in val are relevant for the result */
 	} else {
 		/* Truncate irrelevant fraction bits */
-		val.parts.fraction &= ~(UINT64_C(0x000fffffffffffff) >> exp);
+		v.data.parts.fraction &= ~(UINT64_C(0x000fffffffffffff) >> exp);
 	}
 	
-	return val;
+	return v.val;
 }
 
 /** @}

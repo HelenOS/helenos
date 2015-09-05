@@ -110,8 +110,7 @@ static float64_t taylor_exp_64(float64_t arg)
 float32_t float32_exp(float32_t arg)
 {
 	float32_t f;
-	float32_u i;
-	float32_u m;
+	float32_t i;
 	float32_u r;
 
 	/*
@@ -121,12 +120,11 @@ float32_t float32_exp(float32_t arg)
 	 * e^(log(2)*f) * 2^i
 	 */
 
-	m.val = arg * M_LOG2E;
-	i.data = trunc_float32(m.data);
-	f = arg * M_LOG2E - i.val;
+	i = float32_trunc(arg * M_LOG2E);
+	f = arg * M_LOG2E - i;
 
 	r.val = taylor_exp_32(M_LN2 * f);
-	r.data.parts.exp += i.val;
+	r.data.parts.exp += i;
 	return r.val;
 }
 
@@ -142,8 +140,7 @@ float32_t float32_exp(float32_t arg)
 float64_t float64_exp(float64_t arg)
 {
 	float64_t f;
-	float64_u i;
-	float64_u m;
+	float64_t i;
 	float64_u r;
 
 	/*
@@ -153,12 +150,11 @@ float64_t float64_exp(float64_t arg)
 	 * e^(log(2)*f) * 2^i
 	 */
 
-	m.val = arg * M_LOG2E;
-	i.data = trunc_float64(m.data);
-	f = arg * M_LOG2E - i.val;
+	i = float64_trunc(arg * M_LOG2E);
+	f = arg * M_LOG2E - i;
 
 	r.val = taylor_exp_64(M_LN2 * f);
-	r.data.parts.exp += i.val;
+	r.data.parts.exp += i;
 	return r.val;
 }
 

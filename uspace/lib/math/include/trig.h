@@ -35,6 +35,8 @@
 #ifndef LIBMATH_TRIG_H_
 #define LIBMATH_TRIG_H_
 
+#include <mathtypes.h>
+
 extern float64_t float64_sin(float64_t);
 extern float64_t float64_cos(float64_t);
 

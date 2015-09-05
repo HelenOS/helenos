@@ -53,13 +53,7 @@ extern float64_t cos(float64_t);
 
 static inline float64_t ceil(float64_t val)
 {
-	float64_u arg;
-	arg.val = val;
-	
-	float64_u ret;
-	ret.data = ceil_float64(arg.data);
-	
-	return ret.val;
+	return float64_ceil(val);
 }
 
 static inline float32_t expf(float32_t val)
@@ -74,13 +68,7 @@ static inline float64_t exp(float64_t val)
 
 static inline float64_t floor(float64_t val)
 {
-	float64_u arg;
-	arg.val = val;
-	
-	float64_u ret;
-	ret.data = floor_float64(arg.data);
-	
-	return ret.val;
+	return float64_floor(val);
 }
 
 static inline float32_t logf(float32_t val)
