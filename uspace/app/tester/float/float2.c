@@ -126,107 +126,147 @@ const char *test_float2(void)
 	bool fail = false;
 
 	for (unsigned int i = 0; i < OPERANDS; i++) {
-		double res = floor(arguments[i]);
-		int64_t res_int = (int64_t) (res * PRECISION);
-		int64_t corr_int = (int64_t) (results_floor[i] * PRECISION);
-		
-		if (res_int != corr_int) {
-			TPRINTF("Double precision floor failed (%" PRId64
-			    " != %" PRId64 ", arg %u)\n", res_int, corr_int, i);
+		double res = ceil(arguments[i]);
+
+		if (!cmp_double(res, results_ceil[i])) {
+			TPRINTF("Double precision ceil failed "
+			    "(%lf != %lf, arg %u)\n", res, results_ceil[i], i);
 			fail = true;
 		}
 	}
 
 	for (unsigned int i = 0; i < OPERANDS; i++) {
-		double res = ceil(arguments[i]);
-		int64_t res_int = (int64_t) (res * PRECISION);
-		int64_t corr_int = (int64_t) (results_ceil[i] * PRECISION);
-		
-		if (res_int != corr_int) {
-			TPRINTF("Double precision ceil failed (%" PRId64
-			    " != %" PRId64 ", arg %u)\n", res_int, corr_int, i);
+		float res = ceilf(arguments[i]);
+
+		if (!cmp_float(res, results_ceil[i])) {
+			TPRINTF("Single precision ceil failed "
+			    "(%f != %lf, arg %u)\n", res, results_ceil[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		double res = cos(arguments[i]);
+
+		if (!cmp_double(res, results_cos[i])) {
+			TPRINTF("Double precision cos failed "
+			    "(%lf != %lf, arg %u)\n", res, results_cos[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		float res = cosf(arguments[i]);
+
+		if (!cmp_float(res, results_cos[i])) {
+			TPRINTF("Single precision cos failed "
+			    "(%f != %lf, arg %u)\n", res, results_cos[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		double res = exp(arguments_exp[i]);
+
+		if (!cmp_double(res, results_exp[i])) {
+			TPRINTF("Double precision exp failed "
+			    "(%lf != %lf, arg %u)\n", res, results_exp[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		float res = expf(arguments_exp[i]);
+
+		if (!cmp_float(res, results_exp[i])) {
+			TPRINTF("Single precision exp failed "
+			    "(%f != %lf, arg %u)\n", res, results_exp[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		double res = floor(arguments[i]);
+
+		if (!cmp_double(res, results_floor[i])) {
+			TPRINTF("Double precision floor failed "
+			    "(%lf != %lf, arg %u)\n", res, results_floor[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		float res = floorf(arguments[i]);
+
+		if (!cmp_float(res, results_floor[i])) {
+			TPRINTF("Single precision floor failed "
+			    "(%f != %lf, arg %u)\n", res, results_floor[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		double res = log(arguments_log[i]);
+
+		if (!cmp_double(res, results_log[i])) {
+			TPRINTF("Double precision log failed "
+			    "(%lf != %lf, arg %u)\n", res, results_log[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		float res = logf(arguments_log[i]);
+
+		if (!cmp_float(res, results_log[i])) {
+			TPRINTF("Single precision log failed "
+			    "(%f != %lf, arg %u)\n", res, results_log[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		double res = sin(arguments[i]);
+
+		if (!cmp_double(res, results_sin[i])) {
+			TPRINTF("Double precision sin failed "
+			    "(%lf != %lf, arg %u)\n", res, results_sin[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		float res = sinf(arguments[i]);
+
+		if (!cmp_float(res, results_sin[i])) {
+			TPRINTF("Single precision sin failed "
+			    "(%f != %lf, arg %u)\n", res, results_sin[i], i);
 			fail = true;
 		}
 	}
 
 	for (unsigned int i = 0; i < OPERANDS; i++) {
 		double res = trunc(arguments[i]);
-		int64_t res_int = (int64_t) (res * PRECISION);
-		int64_t corr_int = (int64_t) (results_trunc[i] * PRECISION);
-		
-		if (res_int != corr_int) {
-			TPRINTF("Double precisiontruncation failed (%" PRId64
-			    " != %" PRId64 ", arg %u)\n", res_int, corr_int, i);
+
+		if (!cmp_double(res, results_trunc[i])) {
+			TPRINTF("Double precision trunc failed "
+			    "(%lf != %lf, arg %u)\n", res, results_trunc[i], i);
 			fail = true;
 		}
 	}
-	
+
 	for (unsigned int i = 0; i < OPERANDS; i++) {
-		double res = sin(arguments[i]);
-		int64_t res_int = (int64_t) (res * PRECISION);
-		int64_t corr_int = (int64_t) (results_sin[i] * PRECISION);
-		
-		if (res_int != corr_int) {
-			TPRINTF("Double precision sine failed (%" PRId64
-			    " != %" PRId64 ", arg %u)\n", res_int, corr_int, i);
+		float res = truncf(arguments[i]);
+
+		if (!cmp_float(res, results_trunc[i])) {
+			TPRINTF("truncgle precision trunc failed "
+			    "(%f != %lf, arg %u)\n", res, results_trunc[i], i);
 			fail = true;
 		}
 	}
-	
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		double res = cos(arguments[i]);
-		int64_t res_int = (int64_t) (res * PRECISION);
-		int64_t corr_int = (int64_t) (results_cos[i] * PRECISION);
-		
-		if (res_int != corr_int) {
-			TPRINTF("Double precision cosine failed (%" PRId64
-			    " != %" PRId64 ", arg %u)\n", res_int, corr_int, i);
-			fail = true;
-		}
-	}
-	
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		float res = logf(arguments_log[i]);
-		
-		if (!cmp_float(res, results_log[i])) {
-			TPRINTF("Single precision logarithm failed "
-			    "(%lf != %lf, arg %u)\n", res, results_log[i], i);
-			fail = true;
-		}
-	}
-	
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		double res = log(arguments_log[i]);
-		
-		if (!cmp_double(res, results_log[i])) {
-			TPRINTF("Double precision logarithm failed "
-			    "(%lf != %lf, arg %u)\n", res, results_log[i], i);
-			fail = true;
-		}
-	}
-	
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		float res = exp(arguments_exp[i]);
-		
-		if (!cmp_float(res, results_exp[i])) {
-			TPRINTF("Single precision exponential failed "
-			    "(%lf != %lf, arg %u)\n", res, results_exp[i], i);
-			fail = true;
-		}
-	}
-	
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		double res = exp(arguments_exp[i]);
-		
-		if (!cmp_double(res, results_exp[i])) {
-			TPRINTF("Double precision exponential failed "
-			    "(%lf != %lf, arg %u)\n", res, results_exp[i], i);
-			fail = true;
-		}
-	}
-	
+
 	if (fail)
 		return "Floating point imprecision";
-	
+
 	return NULL;
 }
