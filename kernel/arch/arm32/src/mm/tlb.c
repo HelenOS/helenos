@@ -78,8 +78,13 @@ void tlb_invalidate_asid(asid_t asid)
  */
 static inline void invalidate_page(uintptr_t page)
 {
+#if defined(PROCESSOR_arm920t)
+	ITLBIMVA_write(page);
+	DTLBIMVA_write(page);
+#else
 	//TODO: What about TLBIMVAA?
 	TLBIMVA_write(page);
+#endif
 	/*
 	 * "A TLB maintenance operation is only guaranteed to be complete after
 	 * the execution of a DSB instruction."

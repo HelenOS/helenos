@@ -414,31 +414,47 @@ CONTROL_REG_GEN_WRITE(ATS1HR, c7, 4, c8, 0);
 CONTROL_REG_GEN_WRITE(ATS1HW, c7, 4, c8, 1);
 
 /* TLB maintenance */
+#if defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(TLBIALLIS, c8, 0, c3, 0); /* Inner shareable */
 CONTROL_REG_GEN_WRITE(TLBIMVAIS, c8, 0, c3, 1); /* Inner shareable */
 CONTROL_REG_GEN_WRITE(TLBIASIDIS, c8, 0, c3, 2); /* Inner shareable */
 CONTROL_REG_GEN_WRITE(TLBIMVAAIS, c8, 0, c3, 3); /* Inner shareable */
+#endif
 
 CONTROL_REG_GEN_WRITE(ITLBIALL, c8, 0, c5, 0);
 CONTROL_REG_GEN_WRITE(ITLBIMVA, c8, 0, c5, 1);
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(ITLBIASID, c8, 0, c5, 2);
+#endif
 
 CONTROL_REG_GEN_WRITE(DTLBIALL, c8, 0, c6, 0);
 CONTROL_REG_GEN_WRITE(DTLBIMVA, c8, 0, c6, 1);
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(DTLBIASID, c8, 0, c6, 2);
+#endif
 
 CONTROL_REG_GEN_WRITE(TLBIALL, c8, 0, c7, 0);
+#if !defined(PROCESSOR_arm920t)
 CONTROL_REG_GEN_WRITE(TLBIMVA, c8, 0, c7, 1);
+#endif
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(TLBIASID, c8, 0, c7, 2);
+#endif
+#if defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(TLBIMVAA, c8, 0, c7, 3);
+#endif
 
+#if defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(TLBIALLHIS, c8, 4, c3, 0); /* Inner shareable */
 CONTROL_REG_GEN_WRITE(TLBIMVAHIS, c8, 4, c3, 1); /* Inner shareable */
 CONTROL_REG_GEN_WRITE(TLBIALLNSNHIS, c8, 4, c3, 4); /* Inner shareable */
+#endif
 
+#if defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(TLBIALLH, c8, 4, c7, 0);
 CONTROL_REG_GEN_WRITE(TLBIMVAH, c8, 4, c7, 1);
 CONTROL_REG_GEN_WRITE(TLBIALLNSNHS, c8, 4, c7, 4);
+#endif
 
 /* c9 are performance monitoring resgisters */
 enum {
