@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2015 Jiri Svoboda
- * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,38 +33,34 @@
  */
 
 #include <math.h>
-#include <pow.h>
+#include <sqrt.h>
 
-/** Single precision power
+/** Single precision square root
  *
- * Compute power value.
+ * Compute square root.
  *
- * @param x Base
- * @param y Exponent
+ * @param val Value
  *
- * @return Cosine value.
+ * @return Square root.
  *
  */
-float32_t float32_pow(float32_t x, float32_t y)
+float32_t float32_sqrt(float32_t val)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f32(log_f32(x) * y);
+	return pow_f32(val, 0.5);
 }
 
-/** Double precision power
+/** Double precision square root
  *
- * Compute power value.
+ * Compute squre root.
  *
- * @param x Base
- * @param y Exponent
+ * @param val Value
  *
- * @return Cosine value.
+ * @return Square root.
  *
  */
-float64_t float64_pow(float64_t x, float64_t y)
+float64_t float64_sqrt(float64_t val)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f64(log_f64(x) * y);
+	return pow_f64(val, 0.5);
 }
 
 /** @}

@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2015 Jiri Svoboda
- * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,40 +32,15 @@
 /** @file
  */
 
-#include <math.h>
-#include <pow.h>
+#ifndef LIBMATH_TANH_H_
+#define LIBMATH_TANH_H_
 
-/** Single precision power
- *
- * Compute power value.
- *
- * @param x Base
- * @param y Exponent
- *
- * @return Cosine value.
- *
- */
-float32_t float32_pow(float32_t x, float32_t y)
-{
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f32(log_f32(x) * y);
-}
+#include <mathtypes.h>
 
-/** Double precision power
- *
- * Compute power value.
- *
- * @param x Base
- * @param y Exponent
- *
- * @return Cosine value.
- *
- */
-float64_t float64_pow(float64_t x, float64_t y)
-{
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f64(log_f64(x) * y);
-}
+extern float32_t float32_tanh(float32_t);
+extern float64_t float64_tanh(float64_t);
+
+#endif
 
 /** @}
  */

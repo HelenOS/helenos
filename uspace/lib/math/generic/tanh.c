@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2015 Jiri Svoboda
- * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,38 +33,50 @@
  */
 
 #include <math.h>
-#include <pow.h>
+#include <tanh.h>
 
-/** Single precision power
+/** Hyperbolic tangent (32-bit floating point)
  *
- * Compute power value.
+ * Compute hyperbolic tangent value.
  *
- * @param x Base
- * @param y Exponent
+ * @param arg Hyperbolic angle
  *
- * @return Cosine value.
+ * @return Hyperbolic tangent.
  *
  */
-float32_t float32_pow(float32_t x, float32_t y)
+float32_t float32_tanh(float32_t arg)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f32(log_f32(x) * y);
+	float32_t em2x;
+
+	if (arg > 9.0)
+		return 1.0;
+	if (arg < -9.0)
+		return -1.0;
+
+	em2x = exp_f32(-2.0 * arg);
+	return (1.0 - em2x) / (1.0 + em2x);
 }
 
-/** Double precision power
+/** Hyperbolic tangent (64-bit floating point)
  *
- * Compute power value.
+ * Compute hyperbolic tangent value.
  *
- * @param x Base
- * @param y Exponent
+ * @param arg Hyperbolic angle
  *
- * @return Cosine value.
+ * @return Hyperbolic tangent.
  *
  */
-float64_t float64_pow(float64_t x, float64_t y)
+float64_t float64_tanh(float64_t arg)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f64(log_f64(x) * y);
+	float64_t em2x;
+
+	if (arg > 19.0)
+		return 1.0;
+	if (arg < -19.0)
+		return -1.0;
+
+	em2x = exp_f64(-2.0 * arg);
+	return (1.0 - em2x) / (1.0 + em2x);
 }
 
 /** @}

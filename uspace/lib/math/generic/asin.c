@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2015 Jiri Svoboda
- * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,39 +32,58 @@
 /** @file
  */
 
+#include <asin.h>
+#include <errno.h>
 #include <math.h>
-#include <pow.h>
 
-/** Single precision power
+/** Inverse sine (32-bit floating point)
  *
- * Compute power value.
+ * Compute inverse sine value.
  *
- * @param x Base
- * @param y Exponent
+ * @param arg Inverse sine argument.
  *
- * @return Cosine value.
+ * @return Inverse sine value.
  *
  */
-float32_t float32_pow(float32_t x, float32_t y)
+float32_t float32_asin(float32_t arg)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f32(log_f32(x) * y);
+	float32_t aval;
+	
+	if (arg < -1.0 || arg > 1.0) {
+		errno = EDOM;
+		return FLOAT32_NAN;
+	}
+	
+	aval = 2.0 * atan_f32(arg / (1.0 + sqrt_f32(1.0 - arg*arg)));
+	if (arg > 0.0)
+		return aval;
+	else
+		return -aval;
 }
 
-/** Double precision power
+/** Inverse sine (64-bit floating point)
  *
- * Compute power value.
+ * Compute inverse sine value.
  *
- * @param x Base
- * @param y Exponent
+ * @param arg Inverse sine argument.
  *
- * @return Cosine value.
+ * @return Inverse sine value.
  *
  */
-float64_t float64_pow(float64_t x, float64_t y)
+float64_t float64_asin(float64_t arg)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f64(log_f64(x) * y);
+	float64_t aval;
+	
+	if (arg < -1.0 || arg > 1.0) {
+		errno = EDOM;
+		return FLOAT64_NAN;
+	}
+	
+	aval = 2.0 * atan_f64(arg / (1.0 + sqrt_f64(1.0 - arg*arg)));
+	if (arg > 0.0)
+		return aval;
+	else
+		return -aval;
 }
 
 /** @}

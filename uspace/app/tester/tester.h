@@ -59,7 +59,7 @@ extern char **test_argv;
 #define TPRINTF(format, ...) \
 	do { \
 		if (!test_quiet) { \
-			fprintf(stderr, (format), ##__VA_ARGS__); \
+			fprintf(stdout, (format), ##__VA_ARGS__); \
 		} \
 	} while (0)
 

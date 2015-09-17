@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,58 +32,15 @@
 /** @file
  */
 
-#include <math.h>
-#include <mod.h>
+#ifndef LIBMATH_SINH_H_
+#define LIBMATH_SINH_H_
 
-/** Remainder function (32-bit floating point)
- *
- * Calculate the modulo of dividend by divisor.
- *
- * This is a very basic implementation that uses
- * division and multiplication (instead of exact
- * arithmetics). Thus the result might be very
- * imprecise (depending on the magnitude of the
- * arguments).
- *
- * @param dividend Dividend.
- * @param divisor  Divisor.
- *
- * @return Modulo.
- *
- */
-float32_t float32_mod(float32_t dividend, float32_t divisor)
-{
-	// FIXME: replace with exact arithmetics
-	
-	float32_t quotient = trunc_f32(dividend / divisor);
-	
-	return (dividend - quotient * divisor);
-}
+#include <mathtypes.h>
 
-/** Remainder function (64-bit floating point)
- *
- * Calculate the modulo of dividend by divisor.
- *
- * This is a very basic implementation that uses
- * division and multiplication (instead of exact
- * arithmetics). Thus the result might be very
- * imprecise (depending on the magnitude of the
- * arguments).
- *
- * @param dividend Dividend.
- * @param divisor  Divisor.
- *
- * @return Modulo.
- *
- */
-float64_t float64_mod(float64_t dividend, float64_t divisor)
-{
-	// FIXME: replace with exact arithmetics
-	
-	float64_t quotient = trunc_f64(dividend / divisor);
-	
-	return (dividend - quotient * divisor);
-}
+extern float32_t float32_sinh(float32_t);
+extern float64_t float64_sinh(float64_t);
+
+#endif
 
 /** @}
  */
