@@ -308,6 +308,7 @@ CONTROL_REG_GEN_WRITE(HACR, c1, 4, c1, 7);
 /* Memory protection and control registers */
 enum {
 	TTBR_ADDR_MASK = 0xffffff80,
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 	TTBR_NOS_FLAG = 1 << 5,
 	TTBR_RGN_MASK = 0x3 << 3,
 	TTBR_RGN_NO_CACHE = 0x0 << 3,
@@ -316,14 +317,19 @@ enum {
 	TTBR_RGN_WB_CACHE = 0x3 << 3,
 	TTBR_S_FLAG = 1 << 1,
 	TTBR_C_FLAG = 1 << 0,
+#endif
 };
 CONTROL_REG_GEN_READ(TTBR0, c2, 0, c0, 0);
 CONTROL_REG_GEN_WRITE(TTBR0, c2, 0, c0, 0);
+
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_READ(TTBR1, c2, 0, c0, 1);
 CONTROL_REG_GEN_WRITE(TTBR1, c2, 0, c0, 1);
 CONTROL_REG_GEN_READ(TTBCR, c2, 0, c0, 2);
 CONTROL_REG_GEN_WRITE(TTBCR, c2, 0, c0, 2);
+#endif
 
+#if defined(PROCESSOR_ARCH_armv7)
 CONTROL_REG_GEN_READ(HTCR, c2, 4, c0, 2);
 CONTROL_REG_GEN_WRITE(HTCR, c2, 4, c0, 2);
 CONTROL_REG_GEN_READ(VTCR, c2, 4, c1, 2);
@@ -338,6 +344,7 @@ CONTROL_REG_GEN_READ(HTTBRH, c2, 0, c2, 4);
 CONTROL_REG_GEN_WRITE(HTTBRH, c2, 0, c2, 4);
 CONTROL_REG_GEN_READ(VTTBRH, c2, 0, c2, 6);
 CONTROL_REG_GEN_WRITE(VTTBRH, c2, 0, c2, 6);
+#endif
 
 CONTROL_REG_GEN_READ(DACR, c3, 0, c0, 0);
 CONTROL_REG_GEN_WRITE(DACR, c3, 0, c0, 0);
