@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2015 Jiri Svoboda
- * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,39 +32,76 @@
 /** @file
  */
 
+#include <errno.h>
+#include <ldexp.h>
 #include <math.h>
-#include <pow.h>
 
-/** Single precision power
+/** Single precision multiply by power of two
  *
- * Compute power value.
+ * Compute x * 2^exp.
  *
- * @param x Base
- * @param y Exponent
+ * @param x Number
+ * @param exp Exponent
  *
- * @return Cosine value.
+ * @return x * 2^exp
  *
  */
-float32_t float32_pow(float32_t x, float32_t y)
+float32_t float32_ldexp(float32_t x, int exp)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f32(log_f32(x) * y);
+	float32_u u;
+	int e;
+
+	u.val = x;
+	e = u.data.parts.exp + exp;
+
+	if (e < 0) {
+		/* XXX Can we return denormalized numbers? */
+		return 0.0;
+	} else if (e > FLOAT32_MAX_EXPONENT) {
+		errno = ERANGE;
+		if (e < 0)
+			return -FLOAT32_INF;
+		else
+			return FLOAT32_INF;
+	} else {
+		/* Adjust exponent */
+		u.data.parts.exp = e;
+		return u.val;
+	}
 }
 
-/** Double precision power
+/** Double precision multiply by power of two
  *
- * Compute power value.
+ * Compute x * 2^exp.
  *
- * @param x Base
+ * @param x Number
  * @param y Exponent
  *
- * @return Cosine value.
+ * @return x * 2^exp
  *
  */
-float64_t float64_pow(float64_t x, float64_t y)
+float64_t float64_ldexp(float64_t x, int exp)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f64(log_f64(x) * y);
+	float64_u u;
+	int e;
+
+	u.val = x;
+	e = u.data.parts.exp + exp;
+
+	if (e < 0) {
+		/* XXX Can we return denormalized numbers? */
+		return 0.0;
+	} else if (e > FLOAT64_MAX_EXPONENT) {
+		errno = ERANGE;
+		if (e < 0)
+			return -FLOAT64_INF;
+		else
+			return FLOAT64_INF;
+	} else {
+		/* Adjust exponent */
+		u.data.parts.exp = e;
+		return u.val;
+	}
 }
 
 /** @}

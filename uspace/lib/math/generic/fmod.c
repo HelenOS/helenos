@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -33,39 +32,57 @@
 /** @file
  */
 
+#include <fmod.h>
 #include <math.h>
-#include <pow.h>
 
-/** Single precision power
+/** Remainder function (32-bit floating point)
  *
- * Compute power value.
+ * Calculate the modulo of dividend by divisor.
  *
- * @param x Base
- * @param y Exponent
+ * This is a very basic implementation that uses
+ * division and multiplication (instead of exact
+ * arithmetics). Thus the result might be very
+ * imprecise (depending on the magnitude of the
+ * arguments).
  *
- * @return Cosine value.
+ * @param dividend Dividend.
+ * @param divisor  Divisor.
+ *
+ * @return Modulo.
  *
  */
-float32_t float32_pow(float32_t x, float32_t y)
+float32_t float32_fmod(float32_t dividend, float32_t divisor)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f32(log_f32(x) * y);
+	// FIXME: replace with exact arithmetics
+	
+	float32_t quotient = trunc_f32(dividend / divisor);
+	
+	return (dividend - quotient * divisor);
 }
 
-/** Double precision power
+/** Remainder function (64-bit floating point)
  *
- * Compute power value.
+ * Calculate the modulo of dividend by divisor.
  *
- * @param x Base
- * @param y Exponent
+ * This is a very basic implementation that uses
+ * division and multiplication (instead of exact
+ * arithmetics). Thus the result might be very
+ * imprecise (depending on the magnitude of the
+ * arguments).
  *
- * @return Cosine value.
+ * @param dividend Dividend.
+ * @param divisor  Divisor.
+ *
+ * @return Modulo.
  *
  */
-float64_t float64_pow(float64_t x, float64_t y)
+float64_t float64_fmod(float64_t dividend, float64_t divisor)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f64(log_f64(x) * y);
+	// FIXME: replace with exact arithmetics
+	
+	float64_t quotient = trunc_f64(dividend / divisor);
+	
+	return (dividend - quotient * divisor);
 }
 
 /** @}

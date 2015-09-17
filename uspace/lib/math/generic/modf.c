@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2015 Jiri Svoboda
- * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,38 +33,50 @@
  */
 
 #include <math.h>
-#include <pow.h>
+#include <modf.h>
 
-/** Single precision power
+/** Remainder function (32-bit floating point)
  *
- * Compute power value.
+ * Calculate the modulo of dividend by divisor.
  *
- * @param x Base
- * @param y Exponent
+ * This is a very basic implementation that uses
+ * division and multiplication (instead of exact
+ * arithmetics). Thus the result might be very
+ * imprecise (depending on the magnitude of the
+ * arguments).
  *
- * @return Cosine value.
+ * @param dividend Dividend.
+ * @param divisor  Divisor.
+ *
+ * @return Modulo.
  *
  */
-float32_t float32_pow(float32_t x, float32_t y)
+float32_t float32_modf(float32_t value, float32_t *iptr)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f32(log_f32(x) * y);
+	*iptr = trunc_f32(value);
+	return value - *iptr;
 }
 
-/** Double precision power
+/** Remainder function (64-bit floating point)
  *
- * Compute power value.
+ * Calculate the modulo of dividend by divisor.
  *
- * @param x Base
- * @param y Exponent
+ * This is a very basic implementation that uses
+ * division and multiplication (instead of exact
+ * arithmetics). Thus the result might be very
+ * imprecise (depending on the magnitude of the
+ * arguments).
  *
- * @return Cosine value.
+ * @param dividend Dividend.
+ * @param divisor  Divisor.
+ *
+ * @return Modulo.
  *
  */
-float64_t float64_pow(float64_t x, float64_t y)
+float64_t float64_modf(float64_t value, float64_t *iptr)
 {
-	/* x^y = (e ^ log(x))^y = e ^ (log(x) * y) */
-	return exp_f64(log_f64(x) * y);
+	*iptr = trunc_f64(value);
+	return value - *iptr;
 }
 
 /** @}

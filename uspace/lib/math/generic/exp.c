@@ -35,7 +35,6 @@
 
 #include <exp.h>
 #include <math.h>
-#include <trunc.h>
 
 #define TAYLOR_DEGREE_32 13
 #define TAYLOR_DEGREE_64 21

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,13 +32,45 @@
 /** @file
  */
 
-#ifndef LIBMATH_MOD_H_
-#define LIBMATH_MOD_H_
+#include <atan2.h>
+#include <errno.h>
+#include <math.h>
 
-extern float32_t float32_mod(float32_t, float32_t);
-extern float64_t float64_mod(float64_t, float64_t);
+/** Inverse tangent of two variables (32-bit floating point)
+ *
+ * @param y
+ * @param x
+ *
+ * @return Inverse tangent of @a y / @a x.
+ *
+ */
+float32_t float32_atan2(float32_t y, float32_t x)
+{
+	if (x >= 0)
+		return atan_f32(y / x);
+	else if (y >= 0)
+		return M_PI - atan_f32(y / -x);
+	else
+		return -M_PI + atan_f32(y / -x);
+}
 
-#endif
+/** Inverse tangent of two variables (64-bit floating point)
+ *
+ * @param y
+ * @param x
+ *
+ * @return Inverse tangent of @a y / @a x.
+ *
+ */
+float64_t float64_atan2(float64_t y, float64_t x)
+{
+	if (x >= 0)
+		return atan_f64(y / x);
+	else if (y >= 0)
+		return M_PI - atan_f64(y / -x);
+	else
+		return -M_PI + atan_f64(y / -x);
+}
 
 /** @}
  */
