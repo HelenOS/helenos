@@ -194,8 +194,20 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 		uint32_t free_inodes = ext4_block_group_get_free_inodes_count(bg, sb);
 		uint32_t used_dirs = ext4_block_group_get_used_dirs_count(bg, sb);
 		
-		/* Check if this block group is good candidate for allocation */
-		if ((free_inodes >= avg_free_inodes) && (free_blocks > 0)) {
+		/*
+		 * Check if this block group is a good candidate
+		 * for allocation.
+		 *
+		 * The criterion is based on the average number
+		 * of free inodes, unless we examine the last block
+		 * group. In that case the last block group might
+		 * have less than the average number of free inodes,
+		 * but it still needs to be taken as a candidate
+		 * because the previous block groups have zero free
+		 * blocks.
+		 */
+		if (((free_inodes >= avg_free_inodes) || (bgid == bg_count - 1)) &&
+		    (free_blocks > 0)) {
 			/* Load block with bitmap */
 			uint32_t bitmap_block_addr = ext4_block_group_get_inode_bitmap(
 			    bg_ref->block_group, sb);
