@@ -232,6 +232,11 @@ void savescores(void)
 	int rc;
 
 	f = fopen("/data/tetris.sco", "wb");
+	if (f == NULL) {
+		printf("Error creating table\n");
+		return;
+	}
+	
 	cnt = fwrite(scores, sizeof(struct highscore), NUMSPOTS, f);
 	rc = fclose(f);
 
