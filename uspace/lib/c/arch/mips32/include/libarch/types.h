@@ -37,6 +37,7 @@
 #define LIBC_mips32_TYPES_H_
 
 #include <libarch/common.h>
+#include <libarch/stddef.h>
 #include <libarch/stdint.h>
 
 #define __32_BITS__

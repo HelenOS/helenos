@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
- *  @brief Definitions of basic types like #uintptr_t.
  */
 
-#ifndef LIBC_arm32_TYPES_H_
-#define LIBC_arm32_TYPES_H_
+#ifndef LIBC_sparc64_STDDEF_H_
+#define LIBC_sparc64_STDDEF_H_
 
 #include <libarch/common.h>
-#include <libarch/stddef.h>
-#include <libarch/stdint.h>
 
-#define __32_BITS__
-
-#define SSIZE_MIN  INT32_MIN
-#define SSIZE_MAX  INT32_MAX
-
-typedef uint32_t sysarg_t;
-typedef int32_t native_t;
-
-typedef int32_t ssize_t;
-
-typedef uint32_t atomic_count_t;
-typedef int32_t atomic_signed_t;
+typedef uint64_t size_t;
+typedef int64_t ptrdiff_t;
 
 #endif
 

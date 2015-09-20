@@ -37,10 +37,7 @@
 
 #include <libarch/common.h>
 
-#define SIZE_MIN  UINT32_MIN
-#define SIZE_MAX  UINT32_MAX
-
-typedef uint32_t size_t;
+#define SIZE_MAX UINT32_MAX
 
 #define UINTPTR_MAX UINT32_MAX
 typedef uint32_t uintptr_t;

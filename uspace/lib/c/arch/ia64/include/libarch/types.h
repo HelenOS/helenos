@@ -36,6 +36,7 @@
 #define LIBC_ia64_TYPES_H_
 
 #include <libarch/common.h>
+#include <libarch/stddef.h>
 #include <libarch/stdint.h>
 
 #define __64_BITS__

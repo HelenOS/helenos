@@ -40,8 +40,6 @@
 #define SIZE_MIN  UINT64_MIN
 #define SIZE_MAX  UINT64_MAX
 
-typedef uint64_t size_t;
-
 #define UINTPTR_MAX UINT64_MAX
 typedef uint64_t uintptr_t;
 

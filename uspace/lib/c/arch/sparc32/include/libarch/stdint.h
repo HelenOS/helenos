@@ -40,8 +40,6 @@
 #define SIZE_MIN  UINT32_MIN
 #define SIZE_MAX  UINT32_MAX
 
-typedef uint32_t size_t;
-
 #define UINTPTR_MAX UINT32_MAX
 typedef uint32_t uintptr_t;
 

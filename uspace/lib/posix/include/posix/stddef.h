@@ -47,9 +47,6 @@
 
 #define offsetof(type,member) ((size_t) &(((type *) 0)->member))
 
-typedef ssize_t __POSIX_DEF__(ptrdiff_t);
-
-
 #endif /* POSIX_STDDEF_H_ */
 
 /** @}

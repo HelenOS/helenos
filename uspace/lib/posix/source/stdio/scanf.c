@@ -747,8 +747,8 @@ static inline int _internal_scanf(
 							*pz = (ssize_t) sres;
 							break;
 						case LMOD_t: ;
-							posix_ptrdiff_t *pt = va_arg(arg, posix_ptrdiff_t *);
-							*pt = (posix_ptrdiff_t) sres;
+							ptrdiff_t *pt = va_arg(arg, ptrdiff_t *);
+							*pt = (ptrdiff_t) sres;
 							break;
 						default:
 							assert(false);
