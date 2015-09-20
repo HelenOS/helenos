@@ -697,8 +697,8 @@ static inline int _internal_scanf(
 							*pll = (unsigned long long) ures;
 							break;
 						case LMOD_j: ;
-							posix_uintmax_t *pj = va_arg(arg, posix_uintmax_t *);
-							*pj = (posix_uintmax_t) ures;
+							uintmax_t *pj = va_arg(arg, uintmax_t *);
+							*pj = (uintmax_t) ures;
 							break;
 						case LMOD_z: ;
 							size_t *pz = va_arg(arg, size_t *);
@@ -739,8 +739,8 @@ static inline int _internal_scanf(
 							*pll = (long long) sres;
 							break;
 						case LMOD_j: ;
-							posix_intmax_t *pj = va_arg(arg, posix_intmax_t *);
-							*pj = (posix_intmax_t) sres;
+							intmax_t *pj = va_arg(arg, intmax_t *);
+							*pj = (intmax_t) sres;
 							break;
 						case LMOD_z: ;
 							ssize_t *pz = va_arg(arg, ssize_t *);

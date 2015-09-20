@@ -26,35 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia64
+/** @addtogroup libcamd64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ia64_TYPES_H_
-#define LIBC_ia64_TYPES_H_
+#ifndef LIBC_amd64_STDINT_H_
+#define LIBC_amd64_STDINT_H_
 
 #include <libarch/common.h>
-#include <libarch/stdint.h>
 
-#define __64_BITS__
+#define SIZE_MIN  UINT64_MIN
+#define SIZE_MAX  UINT64_MAX
 
-#define SSIZE_MIN  INT64_MIN
-#define SSIZE_MAX  INT64_MAX
+typedef uint64_t size_t;
 
-typedef uint64_t sysarg_t;
-typedef int64_t native_t;
+#define UINTPTR_MAX UINT64_MAX
+typedef uint64_t uintptr_t;
 
-typedef int64_t ssize_t;
+#define INTPTR_MIN INT64_MIN
+#define INTPTR_MAX INT64_MAX
+typedef int64_t intptr_t;
 
-typedef uint64_t atomic_count_t;
-typedef int64_t atomic_signed_t;
+#define UINTMAX_MAX UINT64_MAX
+typedef uint64_t uintmax_t;
 
-typedef struct {
-	uintptr_t fnc;
-	uintptr_t gp;
-} __attribute__((may_alias)) fncptr_t;
+#define INTMAX_MAX INT64_MAX
+typedef int64_t intmax_t;
 
 #endif
 

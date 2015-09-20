@@ -103,14 +103,12 @@
 
 #include "libc/sys/types.h"
 
-typedef int64_t __POSIX_DEF__(intmax_t);
-typedef uint64_t __POSIX_DEF__(uintmax_t);
-
-
 /*
  * Fast* and least* integer types.
  *
- * The definitions below are definitely safe if not the best.
+ * The definitions below are correct as long as uint8/16/32/64_t are defined.
+ * Considering the entire rest of the system would break down if they were not,
+ * these definitions are just fine.
  */
 typedef uint8_t uint_least8_t;
 typedef uint16_t uint_least16_t;
