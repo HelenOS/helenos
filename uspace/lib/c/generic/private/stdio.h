@@ -39,6 +39,9 @@
 #include <stdio.h>
 #include <async.h>
 
+/** Maximum characters that can be pushed back by ungetc() */
+#define UNGETC_MAX 1
+
 struct _IO_FILE {
 	/** Linked list pointer. */
 	link_t link;
@@ -81,6 +84,12 @@ struct _IO_FILE {
 	
 	/** Points to end of occupied space when in read mode. */
 	uint8_t *buf_tail;
+
+	/** Pushed back characters */
+	uint8_t ungetc_buf[UNGETC_MAX];
+
+	/** Number of pushed back characters */
+	int ungetc_chars;
 };
 
 #endif

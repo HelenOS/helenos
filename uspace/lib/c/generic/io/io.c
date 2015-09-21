@@ -63,7 +63,7 @@ static FILE stdin_null = {
 	.buf_size = 0,
 	.buf_head = NULL,
 	.buf_tail = NULL,
-	.buf_state = _bs_empty
+	.buf_state = _bs_empty,
 };
 
 static FILE stdout_kio = {
@@ -465,10 +465,20 @@ size_t fread(void *dest, size_t size, size_t nmemb, FILE *stream)
 	if (size == 0 || nmemb == 0)
 		return 0;
 
+	bytes_left = size * nmemb;
+	total_read = 0;
+	dp = (uint8_t *) dest;
+
+	/* Bytes from ungetc() buffer */
+	while (stream->ungetc_chars > 0 && bytes_left > 0) {
+		*dp++ = stream->ungetc_buf[--stream->ungetc_chars];
+		++total_read;
+	}
+
 	/* If not buffered stream, read in directly. */
 	if (stream->btype == _IONBF) {
-		now = _fread(dest, size, nmemb, stream);
-		return now;
+		total_read += _fread(dest, 1, bytes_left, stream);
+		return total_read / size;
 	}
 
 	/* Make sure no data is pending write. */
@@ -480,10 +490,6 @@ size_t fread(void *dest, size_t size, size_t nmemb, FILE *stream)
 		if (_fallocbuf(stream) != 0)
 			return 0; /* Errno set by _fallocbuf(). */
 	}
-
-	bytes_left = size * nmemb;
-	total_read = 0;
-	dp = (uint8_t *) dest;
 
 	while ((!stream->error) && (!stream->eof) && (bytes_left > 0)) {
 		if (stream->buf_head == stream->buf_tail)
@@ -673,11 +679,27 @@ int getchar(void)
 	return fgetc(stdin);
 }
 
+int ungetc(int c, FILE *stream)
+{
+	if (c == EOF)
+		return EOF;
+
+	if (stream->ungetc_chars >= UNGETC_MAX)
+		return EOF;
+
+	stream->ungetc_buf[stream->ungetc_chars++] =
+	    (uint8_t)c;
+
+	stream->eof = false;
+	return (uint8_t)c;
+}
+
 int fseek(FILE *stream, off64_t offset, int whence)
 {
 	off64_t rc;
 
 	_fflushbuf(stream);
+	stream->ungetc_chars = 0;
 
 	rc = lseek(stream->fd, offset, whence);
 	if (rc == (off64_t) (-1)) {
@@ -692,7 +714,7 @@ int fseek(FILE *stream, off64_t offset, int whence)
 off64_t ftell(FILE *stream)
 {
 	_fflushbuf(stream);
-	return lseek(stream->fd, 0, SEEK_CUR);
+	return lseek(stream->fd, 0, SEEK_CUR) - stream->ungetc_chars;
 }
 
 void rewind(FILE *stream)

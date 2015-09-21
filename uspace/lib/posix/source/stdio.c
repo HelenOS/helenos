@@ -117,35 +117,7 @@ int posix_fputs(const char *restrict s, FILE *restrict stream)
  */
 int posix_ungetc(int c, FILE *stream)
 {
-	uint8_t b = (uint8_t) c;
-
-	bool can_unget =
-	    /* Provided character is legal. */
-	    c != EOF &&
-	    /* Stream is consistent. */
-	    !stream->error &&
-	    /* Stream is buffered. */
-	    stream->btype != _IONBF &&
-	    /* Last operation on the stream was a read operation. */
-	    stream->buf_state == _bs_read &&
-	    /* Stream buffer is already allocated (i.e. there was already carried
-	     * out either write or read operation on the stream). This is probably
-	     * redundant check but let's be safe. */
-	    stream->buf != NULL &&
-	    /* There is still space in the stream to retreat. POSIX demands the
-	     * possibility to unget at least 1 character. It should be always
-	     * possible, assuming the last operation on the stream read at least 1
-	     * character, because the buffer is refilled in the lazily manner. */
-	    stream->buf_tail > stream->buf;
-
-	if (can_unget) {
-		--stream->buf_tail;
-		stream->buf_tail[0] = b;
-		stream->eof = false;
-		return (int) b;
-	} else {
-		return EOF;
-	}
+	return ungetc(c, stream);
 }
 
 /**

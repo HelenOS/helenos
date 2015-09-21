@@ -108,6 +108,8 @@ extern int fputs(const char *, FILE *);
 extern int putchar(wchar_t);
 extern int puts(const char *);
 
+extern int ungetc(int, FILE *);
+
 /* Formatted string output functions */
 extern int fprintf(FILE *, const char*, ...)
     PRINTF_ATTRIBUTE(2, 3);
