@@ -63,7 +63,7 @@ static FILE stdin_null = {
 	.buf_size = 0,
 	.buf_head = NULL,
 	.buf_tail = NULL,
-	.buf_state = _bs_empty,
+	.buf_state = _bs_empty
 };
 
 static FILE stdout_kio = {
