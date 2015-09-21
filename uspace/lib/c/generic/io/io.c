@@ -298,7 +298,8 @@ FILE *fdopen(int fd, const char *mode)
 	return stream;
 }
 
-int fclose(FILE *stream)
+
+static int _fclose_nofree(FILE *stream)
 {
 	int rc = 0;
 	
@@ -312,19 +313,49 @@ int fclose(FILE *stream)
 	
 	list_remove(&stream->link);
 	
-	if ((stream != &stdin_null)
-	    && (stream != &stdout_kio)
-	    && (stream != &stderr_kio))
-		free(stream);
-	
-	stream = NULL;
-	
 	if (rc != 0) {
 		/* errno was set by close() */
 		return EOF;
 	}
 	
 	return 0;
+}
+
+int fclose(FILE *stream)
+{
+	int rc = _fclose_nofree(stream);
+	
+	if ((stream != &stdin_null)
+	    && (stream != &stdout_kio)
+	    && (stream != &stderr_kio))
+		free(stream);
+	
+	return rc;
+}
+
+FILE *freopen(const char *path, const char *mode, FILE *stream)
+{
+	FILE *nstr;
+	
+	if (path == NULL) {
+		/* Changing mode is not supported */
+		return NULL;
+	}
+	
+	(void) _fclose_nofree(stream);
+	nstr = fopen(path, mode);
+	if (nstr == NULL) {
+		free(stream);
+		return NULL;
+	}
+	
+	list_remove(&nstr->link);
+	*stream = *nstr;
+	list_append(&stream->link, &files);
+	
+	free(nstr);
+	
+	return stream;
 }
 
 /** Read from a stream (unbuffered).

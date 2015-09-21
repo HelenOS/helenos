@@ -133,6 +133,7 @@ extern int vprintf_size(const char *, va_list);
 /* File stream functions */
 extern FILE *fopen(const char *, const char *);
 extern FILE *fdopen(int, const char *);
+extern FILE *freopen(const char *, const char *, FILE *);
 extern int fclose(FILE *);
 
 extern size_t fread(void *, size_t, size_t, FILE *);
