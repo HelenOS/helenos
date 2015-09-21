@@ -100,12 +100,7 @@ char *posix_ctermid(char *s)
  */
 int posix_fputs(const char *restrict s, FILE *restrict stream)
 {
-	int rc = fputs(s, stream);
-	if (rc == 0) {
-		return EOF;
-	} else {
-		return 0;
-	}
+	return fputs(s, stream);
 }
 
 /**
