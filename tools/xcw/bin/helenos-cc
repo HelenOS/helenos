@@ -45,6 +45,7 @@ echo helenos-cc "$@"
     -std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings -ggdb \
     -fno-omit-frame-pointer \
     -D "$ENDIAN" \
+    "$@" \
     -I"$SRC_ROOT"/uspace/lib/c/include \
     -I"$SRC_ROOT"/abi/include \
-    -I"$SRC_ROOT"/uspace/lib/c/arch/"$UARCH"/include "$@"
+    -I"$SRC_ROOT"/uspace/lib/c/arch/"$UARCH"/include
