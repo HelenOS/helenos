@@ -117,10 +117,21 @@ enum {
 	CTR_ICACHE_LEN_SHIFT = 0,
 };
 CONTROL_REG_GEN_READ(CTR, c0, 0, c0, 1);
+
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_READ(TCMR, c0, 0, c0, 2);
+
+enum {
+	TLBTR_SEP_FLAG = 1,
+};
+
 CONTROL_REG_GEN_READ(TLBTR, c0, 0, c0, 3);
+#endif
+
+#if defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_READ(MPIDR, c0, 0, c0, 5);
 CONTROL_REG_GEN_READ(REVIDR, c0, 0, c0, 6);
+#endif
 
 enum {
 	ID_PFR0_THUMBEE_MASK = 0xf << 12,
@@ -441,9 +452,7 @@ CONTROL_REG_GEN_WRITE(DTLBIASID, c8, 0, c6, 2);
 #endif
 
 CONTROL_REG_GEN_WRITE(TLBIALL, c8, 0, c7, 0);
-#if !defined(PROCESSOR_arm920t)
 CONTROL_REG_GEN_WRITE(TLBIMVA, c8, 0, c7, 1);
-#endif
 #if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(TLBIASID, c8, 0, c7, 2);
 #endif
