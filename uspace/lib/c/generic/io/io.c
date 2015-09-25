@@ -504,6 +504,7 @@ size_t fread(void *dest, size_t size, size_t nmemb, FILE *stream)
 	while (stream->ungetc_chars > 0 && bytes_left > 0) {
 		*dp++ = stream->ungetc_buf[--stream->ungetc_chars];
 		++total_read;
+		--bytes_left;
 	}
 
 	/* If not buffered stream, read in directly. */
