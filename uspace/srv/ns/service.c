@@ -142,7 +142,7 @@ loop:
 int register_service(service_t service, sysarg_t phone, ipc_call_t *call)
 {
 	if (hash_table_find(&service_hash_table, &service))
-		return EEXISTS;
+		return EEXIST;
 	
 	hashed_service_t *hashed_service =
 	    (hashed_service_t *) malloc(sizeof(hashed_service_t));

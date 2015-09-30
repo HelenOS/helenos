@@ -411,7 +411,7 @@ static loc_server_t *loc_server_register(void)
 static int loc_server_unregister(loc_server_t *server)
 {
 	if (server == NULL)
-		return EEXISTS;
+		return EEXIST;
 	
 	fibril_mutex_lock(&servers_list_mutex);
 	
@@ -510,7 +510,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		fibril_mutex_unlock(&services_list_mutex);
 		free(service->name);
 		free(service);
-		async_answer_0(iid, EEXISTS);
+		async_answer_0(iid, EEXIST);
 		return;
 	}
 	
@@ -950,7 +950,7 @@ static void loc_get_service_count(ipc_callid_t iid, ipc_call_t *icall)
 	loc_namespace_t *namespace =
 	    loc_namespace_find_id(IPC_GET_ARG1(*icall));
 	if (namespace == NULL)
-		async_answer_0(iid, EEXISTS);
+		async_answer_0(iid, EEXIST);
 	else
 		async_answer_1(iid, EOK, namespace->refcnt);
 	

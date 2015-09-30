@@ -87,7 +87,7 @@ void portrng_destroy(portrng_t *pr)
  *              to be specified by @a pnum.
  * @param apnum Place to store allocated port number
  *
- * @return EOK on success, ENOENT if no free port number found, EEXISTS
+ * @return EOK on success, ENOENT if no free port number found, EEXIST
  *         if @a pnum is specified but it is already allocated,
  *         EINVAL if @a pnum is specified from the system range, but
  *         @c pf_allow_system was not set.
@@ -136,7 +136,7 @@ int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
 		list_foreach(pr->used, lprng, portrng_port_t, port) {
 			if (port->pn == pnum) {
 				log_msg(LOG_DEFAULT, LVL_DEBUG2, "port already used");
-				return EEXISTS;
+				return EEXIST;
 			}
 		}
 	}

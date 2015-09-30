@@ -185,7 +185,7 @@ static int test1_dev_add(ddf_dev_t *dev)
 		    "virtual&test1", 10, EOK, &test1->clone);
 		(void) register_fun_verbose(dev,
 		    "cloning myself twice ;-)", "clone",
-		    "virtual&test1", 10, EEXISTS, NULL);
+		    "virtual&test1", 10, EEXIST, NULL);
 	} else if (str_cmp(dev_name, "clone") == 0) {
 		(void) register_fun_verbose(dev,
 		    "run by the same task", "child",

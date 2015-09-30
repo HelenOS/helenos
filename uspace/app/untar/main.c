@@ -103,7 +103,7 @@ static int handle_normal_file(const tar_header_t *header, FILE *tarfile)
 static int handle_directory(const tar_header_t *header, FILE *tarfile)
 {
 	int rc = mkdir(header->filename, 0755);
-	if ((rc == EEXIST) || (rc == EEXISTS)) {
+	if (rc == EEXIST) {
 		// printf("Note: directory %s already exists.\n", header->filename);
 		rc = EOK;
 	}

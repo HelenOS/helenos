@@ -161,7 +161,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		dprintf("FS is already registered.\n");
 		fibril_mutex_unlock(&fs_list_lock);
 		free(fs_info);
-		async_answer_0(rid, EEXISTS);
+		async_answer_0(rid, EEXIST);
 		return;
 	}
 	

@@ -1222,7 +1222,7 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
 
 		rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
 		if (rc != EOK) {
-			assert(rc != EEXISTS);
+			assert(rc != EEXIST);
 			assert(rc == ENOMEM);
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
 			fibril_mutex_unlock(&conn_list_lock);

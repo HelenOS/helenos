@@ -348,7 +348,7 @@ static void amap_llink_remove(amap_t *map, amap_llink_t *llink)
  * @param flags Flags
  * @param aepp Place to store actual endpoint pair, possibly with allocated port
  *
- * @return EOK on success, EEXISTS if conflicting epp exists,
+ * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
 static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
@@ -393,7 +393,7 @@ static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
  * @param flags Flags
  * @param aepp Place to store actual endpoint pair, possibly with allocated port
  *
- * @return EOK on success, EEXISTS if conflicting epp exists,
+ * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
 static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
@@ -437,7 +437,7 @@ static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
  * @param flags Flags
  * @param aepp Place to store actual endpoint pair, possibly with allocated port
  *
- * @return EOK on success, EEXISTS if conflicting epp exists,
+ * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
 static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
@@ -481,7 +481,7 @@ static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
  * @param flags Flags
  * @param aepp Place to store actual endpoint pair, possibly with allocated port
  *
- * @return EOK on success, EEXISTS if conflicting epp exists,
+ * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
 static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
@@ -514,7 +514,7 @@ static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
  * @param flags Flags
  * @param aepp Place to store actual endpoint pair, possibly with allocated port
  *
- * @return EOK on success, EEXISTS if conflicting epp exists,
+ * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
 int amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,

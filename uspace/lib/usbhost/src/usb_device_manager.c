@@ -149,7 +149,7 @@ int usb_device_manager_bind_address(usb_device_manager_t *instance,
 	/* Already bound */
 	if (instance->devices[address].handle != 0) {
 		fibril_mutex_unlock(&instance->guard);
-		return EEXISTS;
+		return EEXIST;
 	}
 	instance->devices[address].handle = handle;
 	fibril_mutex_unlock(&instance->guard);

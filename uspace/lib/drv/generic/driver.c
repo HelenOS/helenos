@@ -944,7 +944,7 @@ int ddf_driver_main(const driver_t *drv)
 	rc = devman_driver_register(driver->name);
 	if (rc != EOK) {
 		printf("Error: Failed to register driver with device manager "
-		    "(%s).\n", (rc == EEXISTS) ? "driver already started" :
+		    "(%s).\n", (rc == EEXIST) ? "driver already started" :
 		    str_error(rc));
 		
 		return rc;

@@ -350,7 +350,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
 		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 		
 		free(irq);
-		return EEXISTS;
+		return EEXIST;
 	}
 	
 	/* Locking is not really necessary, but paranoid */

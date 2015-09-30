@@ -250,7 +250,7 @@ int event_task_notify(task_t *task, event_task_type_t evno, bool mask,
  * @param answerbox Answerbox to send the notifications to.
  *
  * @return EOK if the subscription was successful.
- * @return EEXISTS if the notifications of the given type are
+ * @return EEXIST if the notifications of the given type are
  *         already subscribed.
  *
  */
@@ -268,7 +268,7 @@ static int event_subscribe(event_t *event, sysarg_t imethod,
 		event->masked = false;
 		res = EOK;
 	} else
-		res = EEXISTS;
+		res = EEXIST;
 	
 	spinlock_unlock(&event->lock);
 	
@@ -281,7 +281,7 @@ static int event_subscribe(event_t *event, sysarg_t imethod,
  * @param answerbox Answerbox used to send the notifications to.
  *
  * @return EOK if the subscription was successful.
- * @return EEXISTS if the notifications of the given type are
+ * @return EEXIST if the notifications of the given type are
  *         already subscribed.
  *
  */
@@ -333,7 +333,7 @@ static void event_unmask(event_t *event)
  *
  * @return EOK on success.
  * @return ELIMIT on unknown event type.
- * @return EEXISTS if the notifications of the given type are
+ * @return EEXIST if the notifications of the given type are
  *         already subscribed.
  *
  */

@@ -189,7 +189,7 @@ static int process_endpoint(
 	}
 
 	if (ep_mapping->present) {
-		return EEXISTS;
+		return EEXIST;
 	}
 
 	int rc = usb_pipe_initialize(&ep_mapping->pipe, wire,

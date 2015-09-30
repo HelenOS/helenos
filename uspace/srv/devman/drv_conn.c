@@ -100,7 +100,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Driver '%s' already started.\n",
 		    driver->name);
 		fibril_mutex_unlock(&driver->driver_mutex);
-		async_answer_0(callid, EEXISTS);
+		async_answer_0(callid, EEXIST);
 		return NULL;
 	}
 	
@@ -277,7 +277,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		fun_del_ref(tfun);	/* drop the new unwanted reference */
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		dev_del_ref(pdev);
-		async_answer_0(callid, EEXISTS);
+		async_answer_0(callid, EEXIST);
 		printf(NAME ": Warning, driver tried to register `%s' twice.\n",
 		    fun_name);
 		free(fun_name);

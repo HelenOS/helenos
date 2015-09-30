@@ -234,7 +234,7 @@ int ns_task_id_intro(ipc_call_t *call)
 	
 	ht_link_t *link = hash_table_find(&phone_to_id, &call->in_phone_hash);
 	if (link != NULL)
-		return EEXISTS;
+		return EEXIST;
 	
 	p2i_entry_t *entry = (p2i_entry_t *) malloc(sizeof(p2i_entry_t));
 	if (entry == NULL)
