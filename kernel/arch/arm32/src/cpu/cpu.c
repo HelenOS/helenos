@@ -321,7 +321,35 @@ void cpu_dcache_flush_invalidate(void)
 
 void icache_invalidate(void)
 {
+#if defined(PROCESSOR_ARCH_armv7_a)
 	ICIALLU_write(0);
+#else
+	ICIALL_write(0);
+#endif
+}
+
+#if !defined(PROCESSOR_ARCH_armv7_a)
+static bool cache_is_unified(void)
+{
+	if (MIDR_read() != CTR_read()) {
+		/* We have the CTR register */
+		return (CTR_read() & CTR_SEP_FLAG) != CTR_SEP_FLAG;
+	} else {
+		panic("Unknown cache type");
+	}
+}
+#endif
+
+void dcache_clean_mva_pou(uintptr_t mva)
+{
+#if defined(PROCESSOR_ARCH_armv7_a)
+	DCCMVAU_write(mva);
+#else
+	if (cache_is_unified())
+		CCMVA_write(mva);
+	else
+		DCCMVA_write(mva);
+#endif
 }
 
 /** @}

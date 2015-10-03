@@ -37,6 +37,7 @@
 #define KERN_arm32_BARRIER_H_
 
 #ifdef KERNEL
+#include <arch/cache.h>
 #include <arch/cp15.h>
 #else
 #include <libarch/cp15.h>
@@ -70,10 +71,18 @@
  * Although at least mcr p15, 0, r0, c7, c10, 4 is mentioned in earlier archs,
  * CP15 implementation is mandatory only for armv6+.
  */
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 #define memory_barrier()  CP15DMB_write(0)
-#define read_barrier()    CP15DSB_write(0)
+#else
+#define memory_barrier()  CP15DSB_write(0)
+#endif
+#define read_barrier()    CP15DSB_write(0) 
 #define write_barrier()   read_barrier()
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 #define inst_barrier()    CP15ISB_write(0)
+#else
+#define inst_barrier()
+#endif
 #else
 /* Older manuals mention syscalls as a way to implement cache coherency and
  * barriers. See for example ARM Architecture Reference Manual Version D
@@ -102,14 +111,12 @@
  */
 
 #if defined PROCESSOR_ARCH_armv7_a | defined PROCESSOR_ARCH_armv6 | defined KERNEL
-/* Available on all supported arms,
- * invalidates entire ICache so the written value does not matter. */
 //TODO might be PL1 only on armv5-
 #define smc_coherence(a) \
 do { \
-	DCCMVAU_write((uint32_t)(a));  /* Flush changed memory */\
+	dcache_clean_mva_pou((uintptr_t) a);\
 	write_barrier();               /* Wait for completion */\
-	ICIALLU_write(0);              /* Flush ICache */\
+	icache_invalidate();\
 	inst_barrier();                /* Wait for Inst refetch */\
 } while (0)
 /* @note: Cache type register is not available in uspace. We would need

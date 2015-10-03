@@ -390,46 +390,116 @@ CONTROL_REG_GEN_WRITE(HIFAR, c6, 4, c0, 2);
 CONTROL_REG_GEN_READ(HPFAR, c6, 4, c0, 4);
 CONTROL_REG_GEN_WRITE(HPFAR, c6, 4, c0, 4);
 
-/* Cache maintenance, address translation and other */
-CONTROL_REG_GEN_WRITE(WFI, c7, 0, c0, 4); /* armv6 only */
-CONTROL_REG_GEN_WRITE(ICIALLLUIS, c7, 0, c1, 0);
-CONTROL_REG_GEN_WRITE(BPIALLIS, c7, 0, c1, 6);
-CONTROL_REG_GEN_READ(PAR, c7, 0, c4, 0);
-CONTROL_REG_GEN_WRITE(PAR, c7, 0, c4, 0);
-CONTROL_REG_GEN_READ(PARH, c7, 0, c7, 0);   /* PAE */
-CONTROL_REG_GEN_WRITE(PARH, c7, 0, c7, 0);   /* PAE */
-CONTROL_REG_GEN_WRITE(ICIALLU, c7, 0, c5, 0);
-CONTROL_REG_GEN_WRITE(ICIMVAU, c7, 0, c5, 1);
+/*
+ * Cache maintenance, address translation and other
+ */
+
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(CP15ISB, c7, 0, c5, 4);
 CONTROL_REG_GEN_WRITE(BPIALL, c7, 0, c5, 6);
 CONTROL_REG_GEN_WRITE(BPIMVA, c7, 0, c5, 7);
+#endif
 
-CONTROL_REG_GEN_WRITE(DCIMVAC, c7, 0, c6, 1);
+#if !defined(PROCESSOR_arm920t)
 CONTROL_REG_GEN_WRITE(DCISW, c7, 0, c6, 2);
+#endif
 
-CONTROL_REG_GEN_WRITE(ATS1CPR, c7, 0, c8, 0);
-CONTROL_REG_GEN_WRITE(ATS1CPW, c7, 0, c8, 1);
-CONTROL_REG_GEN_WRITE(ATS1CUR, c7, 0, c8, 2);
-CONTROL_REG_GEN_WRITE(ATS1CUW, c7, 0, c8, 3);
-CONTROL_REG_GEN_WRITE(ATS12NSOPR, c7, 0, c8, 4);
-CONTROL_REG_GEN_WRITE(ATS12NSOPW, c7, 0, c8, 5);
-CONTROL_REG_GEN_WRITE(ATS12NSOUR, c7, 0, c8, 6);
-CONTROL_REG_GEN_WRITE(ATS12NSOUW, c7, 0, c8, 7);
-
-
-CONTROL_REG_GEN_WRITE(DCCMVAC, c7, 0, c10, 1);
+#if defined(PROCESSOR_arm920t) || !defined(PROCESSOR_ARCH_armv4)
 CONTROL_REG_GEN_WRITE(DCCSW, c7, 0, c10, 2);
+#endif
+
 CONTROL_REG_GEN_WRITE(CP15DSB, c7, 0, c10, 4);
+
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(CP15DMB, c7, 0, c10, 5);
-CONTROL_REG_GEN_WRITE(DCCMVAU, c7, 0, c11, 1);
+#endif
 
-CONTROL_REG_GEN_WRITE(PFI, c7, 0, c13, 1); /* armv6 only */
-
-CONTROL_REG_GEN_WRITE(DCCIMVAC, c7, 0, c14, 1);
+#if defined(PROCESSOR_arm920t) || !defined(PROCESSOR_ARCH_armv4)
 CONTROL_REG_GEN_WRITE(DCCISW, c7, 0, c14, 2);
+#endif
 
-CONTROL_REG_GEN_WRITE(ATS1HR, c7, 4, c8, 0);
-CONTROL_REG_GEN_WRITE(ATS1HW, c7, 4, c8, 1);
+#if defined(PROCESSOR_ARCH_armv7_a)
+CONTROL_REG_GEN_WRITE(ICIALLLUIS, c7, 0, c1, 0);
+CONTROL_REG_GEN_WRITE(BPIALLIS, c7, 0, c1, 6);
+CONTROL_REG_GEN_READ(PAR, c7, 0, c4, 0); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(PAR, c7, 0, c4, 0); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ICIALLU, c7, 0, c5, 0);
+CONTROL_REG_GEN_WRITE(ICIMVAU, c7, 0, c5, 1);
+CONTROL_REG_GEN_WRITE(DCIMVAC, c7, 0, c6, 1);
+CONTROL_REG_GEN_READ(PARH, c7, 0, c7, 0); /* PAE */
+CONTROL_REG_GEN_WRITE(PARH, c7, 0, c7, 0); /* PAE */
+CONTROL_REG_GEN_WRITE(ATS1CPR, c7, 0, c8, 0); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ATS1CPW, c7, 0, c8, 1); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ATS1CUR, c7, 0, c8, 2); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ATS1CUW, c7, 0, c8, 3); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ATS12NSOPR, c7, 0, c8, 4); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ATS12NSOPW, c7, 0, c8, 5); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ATS12NSOUR, c7, 0, c8, 6); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ATS12NSOUW, c7, 0, c8, 7); /* Security Extensions */
+CONTROL_REG_GEN_WRITE(ATS1HR, c7, 4, c8, 0); /* Virtualization Extensions */
+CONTROL_REG_GEN_WRITE(ATS1HW, c7, 4, c8, 1); /* Virtualization Extensions */
+CONTROL_REG_GEN_WRITE(DCCMVAC, c7, 0, c10, 1);
+CONTROL_REG_GEN_WRITE(DCCMVAU, c7, 0, c11, 1);
+CONTROL_REG_GEN_WRITE(DCCIMVAC, c7, 0, c14, 1);
+#else
+
+#if defined(PROCESSOR_arm920t) || !defined(PROCESSOR_ARCH_armv4)
+CONTROL_REG_GEN_WRITE(WFI, c7, 0, c0, 4);
+#endif
+
+CONTROL_REG_GEN_WRITE(ICIALL, c7, 0, c5, 0);
+CONTROL_REG_GEN_WRITE(ICIMVA, c7, 0, c5, 1);
+
+#if !defined(PROCESSOR_ARCH_armv4)
+CONTROL_REG_GEN_WRITE(ICISW, c7, 0, c5, 2);
+#endif
+
+CONTROL_REG_GEN_WRITE(DCIALL, c7, 0, c6, 0);
+CONTROL_REG_GEN_WRITE(DCIMVA, c7, 0, c6, 1);
+CONTROL_REG_GEN_WRITE(CIALL, c7, 0, c7, 0);
+CONTROL_REG_GEN_WRITE(CIMVA, c7, 0, c7, 1);
+
+#if !defined(PROCESSOR_ARCH_armv4)
+CONTROL_REG_GEN_WRITE(CISW, c7, 0, c7, 2);
+#endif
+
+#if defined(PROCESSOR_ARCH_armv4) || defined(PROCESSOR_ARCH_armv6)
+CONTROL_REG_GEN_WRITE(DCCALL, c7, 0, c10, 0);
+#endif
+
+CONTROL_REG_GEN_WRITE(DCCMVA, c7, 0, c10, 1);
+
+#if defined(PROCESSOR_ARCH_armv4) || defined(PROCESSOR_ARCH_armv6)
+CONTROL_REG_GEN_WRITE(CCALL, c7, 0, c11, 0);
+#endif
+
+CONTROL_REG_GEN_WRITE(CCMVA, c7, 0, c11, 1);
+
+#if !defined(PROCESSOR_ARCH_armv4)
+CONTROL_REG_GEN_WRITE(CCSW, c7, 0, c11, 2);
+#endif
+
+#if defined(PROCESSOR_arm920t) || !defined(PROCESSOR_ARCH_armv4)
+CONTROL_REG_GEN_WRITE(PFIMVA, c7, 0, c13, 1);
+#endif
+
+#if defined(PROCESSOR_ARCH_armv4) || defined(PROCESSOR_ARCH_armv6)
+CONTROL_REG_GEN_WRITE(DCCIALL, c7, 0, c14, 0);
+#endif
+
+CONTROL_REG_GEN_WRITE(DCCIMVA, c7, 0, c14, 1);
+
+#if defined(PROCESSOR_ARCH_armv4) || defined(PROCESSOR_ARCH_armv6)
+CONTROL_REG_GEN_WRITE(CCIALL, c7, 0, c15, 0);
+#endif
+
+CONTROL_REG_GEN_WRITE(CCIMVA, c7, 0, c15, 1);
+
+#if defined(PROCESSOR_ARCH_armv5) || defined(PROCESSOR_ARCH_armv6)
+CONTROL_REG_GEN_WRITE(CCISW, c7, 0, c15, 2);
+#endif
+
+#endif
 
 /* TLB maintenance */
 #if defined(PROCESSOR_ARCH_armv7_a)
