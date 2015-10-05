@@ -42,7 +42,6 @@
 #include <abi/ipc/interfaces.h>
 #include <stdio.h>
 #include <errno.h>
-#include <macros.h>
 #include "ns.h"
 #include "service.h"
 #include "task.h"
@@ -95,18 +94,8 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 		case NS_PING:
 			retval = EOK;
 			break;
-		case NS_TASK_WAIT:
-			id = (task_id_t)
-			    MERGE_LOUP32(ipc_get_arg1(&call), ipc_get_arg2(&call));
-			wait_for_task(id, &call);
-			continue;
 		case NS_ID_INTRO:
 			retval = ns_task_id_intro(&call);
-			break;
-		case NS_RETVAL:
-			// TODO move to taskman
-			retval = EOK;
-			//retval = ns_task_retval(&call);
 			break;
 		default:
 			printf("%s: Method not supported (%" PRIun ")\n",

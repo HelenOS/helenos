@@ -41,13 +41,15 @@
 #include <async.h>
 #include <types/task.h>
 
+#define TASK_WAIT_EXIT   0x1
+#define TASK_WAIT_RETVAL 0x2
+
 typedef struct {
+	int flags;
 	ipc_call_t result;
 	aid_t aid;
 } task_wait_t;
 
-struct _TASK;
-typedef struct _TASK task_t;
 
 extern task_id_t task_get_id(void);
 extern errno_t task_set_name(const char *);
@@ -62,11 +64,23 @@ extern errno_t task_spawn(task_id_t *, task_wait_t *, const char *path, int,
 extern errno_t task_spawnl(task_id_t *, task_wait_t *, const char *path, ...)
     __attribute__((sentinel));
 
-extern errno_t task_setup_wait(task_id_t, task_wait_t *);
-extern void task_cancel_wait(task_wait_t *);
+// if there is possibility for further wait, modify task_wait
 extern errno_t task_wait(task_wait_t *, task_exit_t *, int *);
-extern errno_t task_wait_task_id(task_id_t, task_exit_t *, int *);
+extern errno_t task_wait_task_id(task_id_t, int, task_exit_t *, int *);
+// similar to listen and socket duplication
+extern errno_t task_wait_any(task_wait_t *, task_id_t *, task_exit_t *, int *,
+    task_wait_t *);
+
+//extern int task_wait_any(int, task_exit_t *, int *);
+// alternative
+// task_wait_t is output param, actual result is obtained via task_wait call
+//extern int task_wait_any(task_wait_t *, int);
+
+extern void task_cancel_wait(task_wait_t *);
+
 extern errno_t task_retval(int);
+//TODO
+//extern int task_exit(int);
 
 #endif
 

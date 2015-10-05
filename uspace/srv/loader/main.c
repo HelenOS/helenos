@@ -83,6 +83,9 @@ static pcb_t pcb;
 /** Primary IPC session */
 static async_sess_t *session_primary = NULL;
 
+/** Session to taskman (typically our spawner) */
+static async_sess_t *session_taskman = NULL;
+
 /** Current working directory */
 static char *cwd = NULL;
 
@@ -334,6 +337,7 @@ static int ldr_load(ipc_call_t *req)
 	DPRINTF("PCB set.\n");
 
 	pcb.session_primary = session_primary;
+	pcb.session_taskman = session_taskman;
 
 	pcb.cwd = cwd;
 
@@ -451,8 +455,19 @@ static void ldr_connection(ipc_call_t *icall, void *arg)
 	}
 }
 
+/** Handshake with taskman
+ *
+ * Taskman is our spawn parent, i.e. PHONE_INITIAL is connected to it.
+ * Goal of the handshake is to obtain phone to naming service and also keep the
+ * session to taskman.
+ *
+ * @return EOK on success, for errors see taskman_handshake()
+ */
 static errno_t ldr_taskman_handshake(void)
 {
+	assert(session_primary == NULL);
+	assert(session_taskman == NULL);
+
 	errno_t retval = EOK;
 
 	fibril_mutex_lock(&handshake_mtx);
@@ -462,8 +477,7 @@ static errno_t ldr_taskman_handshake(void)
 		goto finish;
 	}
 
-	async_sess_t *session_tm = async_session_primary_swap(session_primary);
-	(void)async_hangup(session_tm);
+	session_taskman = async_session_primary_swap(session_primary);
 
 	handshake_complete = true;
 

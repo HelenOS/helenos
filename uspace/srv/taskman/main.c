@@ -33,11 +33,13 @@
 #include <ipc/services.h>
 #include <ipc/taskman.h>
 #include <loader/loader.h>
+#include <macros.h>
 #include <ns.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NAME "taskman"
+#include "task.h"
+#include "taskman.h"
 
 //TODO move to appropriate header file
 extern async_sess_t *session_primary;
@@ -55,6 +57,7 @@ static prodcons_t sess_queue;
  */
 static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
 {
+	//TODO explain why we don't explicitly accept connection request
 	/* Spawn a loader. */
 	int rc = loader_spawn("loader");
 	
@@ -98,6 +101,55 @@ static void loader_to_ns(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+static void taskman_ctl_wait(ipc_callid_t iid, ipc_call_t *icall)
+{
+	task_id_t id = (task_id_t)
+	    MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
+	int flags = IPC_GET_ARG3(*icall);
+
+	wait_for_task(id, flags, iid, icall);
+}
+
+static void taskman_ctl_retval(ipc_callid_t iid, ipc_call_t *icall)
+{
+	printf("%s:%i\n", __func__, __LINE__);
+	int rc = task_set_retval(icall);
+	async_answer_0(iid, rc);
+}
+
+static void control_connection_loop(void)
+{
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+
+		if (!IPC_GET_IMETHOD(call)) {
+			/* Client disconnected */
+			break;
+		}
+
+		switch (IPC_GET_IMETHOD(call)) {
+		case TASKMAN_WAIT:
+			taskman_ctl_wait(callid, &call);
+			break;
+		case TASKMAN_RETVAL:
+			taskman_ctl_retval(callid, &call);
+			break;
+		default:
+			async_answer_0(callid, ENOENT);
+		}
+	}
+}
+
+static void control_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	/* First, accept connection */
+	async_answer_0(iid, EOK);
+
+	// TODO register task to hash table
+	control_connection_loop();
+}
+
 static void loader_callback(ipc_callid_t iid, ipc_call_t *icall)
 {
 	// TODO check that loader is expected, would probably discard prodcons
@@ -133,6 +185,12 @@ static void taskman_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	case TASKMAN_LOADER_TO_NS:
 		loader_to_ns(iid, icall);
 		break;
+	case TASKMAN_CONTROL:
+		control_connection(iid, icall);
+		// ---- interrupt here ----
+		//   implement control connection body (setup wait)
+		// ------------------------
+		break;
 	default:
 		/* Unknown interface */
 		async_answer_0(iid, ENOENT);
@@ -145,6 +203,8 @@ static void implicit_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	switch (iface) {
 	case TASKMAN_LOADER_CALLBACK:
 		loader_callback(iid, icall);
+		// TODO register task to hashtable
+		control_connection_loop();
 		break;
 	default:
 		/* Unknown interface on implicit connection */
@@ -160,9 +220,13 @@ int main(int argc, char *argv[])
 	printf(NAME ": HelenOS task manager\n");
 
 	prodcons_initialize(&sess_queue);
+	int rc = task_init();
+	if (rc != EOK) {
+		return rc;
+	}
 
 	/* We're service too */
-	int rc = service_register(SERVICE_TASKMAN);
+	rc = service_register(SERVICE_TASKMAN);
 	if (rc != EOK) {
 		printf("Cannot register at naming service (%i).", rc);
 		return rc;

@@ -173,6 +173,7 @@ static async_sess_t *create_session_primary(void)
 	async_sess_t *session = (async_sess_t *) malloc(sizeof(async_sess_t));
 
 	if (session != NULL) {
+		// TODO extract common part with async_connect_me_to
 		session_ns->iface = 0;
 		session->mgmt = EXCHANGE_ATOMIC;
 		session->phone = PHONE_INITIAL;
@@ -194,17 +195,18 @@ static async_sess_t *create_session_primary(void)
 
 
 /** Initialize the async framework.
+ * @param arg_session_primary Primary session (to naming service).
  *
  */
-void __async_client_init(async_sess_t *session)
+void __async_client_init(async_sess_t *arg_session_primary)
 {
 	if (fibril_rmutex_initialize(&message_mutex) != EOK)
 		abort();
 
-	if (session == NULL) {
+	if (arg_session_primary == NULL) {
 		session_primary = create_session_primary();
 	} else {
-		session_primary = session;
+		session_primary = arg_session_primary;
 	}
 
 	if (session_primary == NULL)

@@ -47,9 +47,12 @@
 #include <io/kio.h>
 #include "private/libc.h"
 #include "private/async.h"
-#include "private/malloc.h"
 #include "private/io.h"
 #include "private/fibril.h"
+#include "private/malloc.h"
+#include "private/ns.h" // TODO maybe better filename for session_primary
+#include "private/task.h"
+
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
@@ -107,8 +110,10 @@ void __libc_main(void *pcb_ptr)
 	__async_server_init();
 	if (__pcb == NULL) {
 		__async_client_init(NULL);
+		__task_init(NULL);
 	} else {
 		__async_client_init(__pcb->session_primary);
+		__task_init(__pcb->session_taskman);
 	}
 	__async_ports_init();
 

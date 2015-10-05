@@ -39,7 +39,8 @@
 
 
 typedef enum {
-	TASKMAN_HELLO = IPC_FIRST_USER_METHOD,
+	TASKMAN_WAIT = IPC_FIRST_USER_METHOD,
+	TASKMAN_RETVAL
 } taskman_request_t;
 
 typedef enum {

@@ -34,20 +34,24 @@
 /** @file
  */
 
-#include <task.h>
-#include <loader/loader.h>
-#include <stdarg.h>
-#include <str.h>
-#include <ipc/ns.h>
-#include <macros.h>
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
 #include <ns.h>
 #include <stdlib.h>
+#include <ipc/taskman.h>
 #include <libc.h>
-#include "private/ns.h"
+#include <loader/loader.h>
+#include <macros.h>
+#include <malloc.h>
+#include <stdarg.h>
+#include <str.h>
+#include <task.h>
 #include <vfs/vfs.h>
+#include "private/ns.h"
+#include "private/task.h"
+
+static async_sess_t *session_taskman = NULL;
 
 task_id_t task_get_id(void)
 {
@@ -61,6 +65,30 @@ task_id_t task_get_id(void)
 #ifdef __64_BITS__
 	return (task_id_t) __SYSCALL0(SYS_TASK_GET_ID);
 #endif  /* __64_BITS__ */
+}
+
+static async_exch_t *taskman_exchange_begin(void)
+{
+	/* Lazy connection */
+	if (session_taskman == NULL) {
+		// TODO unify exchange mgmt with taskman_handshake/__init
+		session_taskman = service_connect_blocking(EXCHANGE_SERIALIZE,
+		    SERVICE_TASKMAN,
+		    TASKMAN_CONTROL,
+		    0);
+	}
+
+	if (session_taskman == NULL) {
+		return NULL;
+	}
+
+	async_exch_t *exch = async_exchange_begin(session_taskman);
+	return exch;
+}
+
+static void taskman_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
 }
 
 /** Set the task name.
@@ -87,6 +115,30 @@ errno_t task_set_name(const char *name)
 errno_t task_kill(task_id_t task_id)
 {
 	return (errno_t) __SYSCALL1(SYS_TASK_KILL, (sysarg_t) &task_id);
+}
+
+/** Setup waiting for a task.
+ *
+ * If the task finishes after this call succeeds, it is guaranteed that
+ * task_wait(wait, &texit, &retval) will return correct return value for
+ * the task.
+ *
+ * @param id   ID of the task to setup waiting for.
+ * @param wait Information necessary for the later task_wait call is stored here.
+ *
+ * @return EOK on success, else error code.
+ */
+static errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
+{
+	async_exch_t *exch = taskman_exchange_begin();
+	if (exch == NULL)
+			return EIO;
+
+	wait->aid = async_send_3(exch, TASKMAN_WAIT, LOWER32(id), UPPER32(id),
+	    wait->flags, &wait->result);
+	taskman_exchange_end(exch);
+
+	return EOK;
 }
 
 /** Create a new task by running an executable from the filesystem.
@@ -311,32 +363,6 @@ errno_t task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...
 	return rc;
 }
 
-/** Setup waiting for a task.
- *
- * If the task finishes after this call succeeds, it is guaranteed that
- * task_wait(wait, &texit, &retval) will return correct return value for
- * the task.
- *
- * @param id   ID of the task to setup waiting for.
- * @param wait Information necessary for the later task_wait call is stored here.
- *
- * @return EOK on success, else error code.
- */
-errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
-{
-	async_sess_t *sess_ns = get_session_primary();
-	if (sess_ns == NULL)
-		return EIO;
-
-	async_exch_t *exch = async_exchange_begin(sess_ns);
-
-	wait->aid = async_send_2(exch, NS_TASK_WAIT, LOWER32(id), UPPER32(id),
-	    &wait->result);
-	async_exchange_end(exch);
-
-	return EOK;
-}
-
 /** Cancel waiting for a task.
  *
  * This can be called *instead of* task_wait if the caller is not interested
@@ -390,15 +416,18 @@ errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
  * wait for it.
  *
  * @param id ID of the task to wait for.
+ * @param flags  Specify for which task output we wait
  * @param texit  Store type of task exit here.
  * @param retval Store return value of the task here.
  *
  * @return EOK on success, else error code.
  */
-errno_t task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)
+errno_t task_wait_task_id(task_id_t id, int flags, task_exit_t *texit, int *retval)
 {
 	task_wait_t wait;
+	wait.flags = flags;
 	errno_t rc = task_setup_wait(id, &wait);
+
 	if (rc != EOK)
 		return rc;
 
@@ -407,15 +436,21 @@ errno_t task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)
 
 errno_t task_retval(int val)
 {
-	async_sess_t *sess_ns = get_session_primary();
-	if (sess_ns == NULL)
+	async_exch_t *exch = taskman_exchange_begin();
+	if (exch == NULL)
 		return EIO;
 
-	async_exch_t *exch = async_exchange_begin(sess_ns);
-	errno_t rc = (errno_t) async_req_1_0(exch, NS_RETVAL, val);
-	async_exchange_end(exch);
-
+	int rc = (int) async_req_1_0(exch, TASKMAN_RETVAL, val);
+	taskman_exchange_end(exch);
+	
 	return rc;
+}
+
+
+void __task_init(async_sess_t *sess)
+{
+	assert(session_taskman == NULL);
+	session_taskman = sess;
 }
 
 /** @}

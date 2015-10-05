@@ -31,6 +31,7 @@ BINARY = taskman
 STATIC_NEEDED = y
 
 SOURCES = \
-	main.c
+	main.c \
+	task.c
 
 include $(USPACE_PREFIX)/Makefile.common
