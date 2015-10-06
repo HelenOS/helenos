@@ -45,6 +45,7 @@ struct statfs {
 };
 
 extern int statfs(const char *, struct statfs *);
+
 #endif
 
 /** @}

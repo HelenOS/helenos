@@ -243,7 +243,6 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		}
 		
 		bytes = read(fd, buff + copied_bytes, bytes_to_read);
-		bytes += copied_bytes;
 		copied_bytes = 0;
 
 		if (bytes > 0) {

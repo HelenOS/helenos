@@ -248,7 +248,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 			break;
 		}
 		async_state_change_finalize(callid, vfs_exch);
-		fd = fd_wait();
+		fd = vfs_fd_wait();
 		assert(fd == (int) filc);
 	}
 

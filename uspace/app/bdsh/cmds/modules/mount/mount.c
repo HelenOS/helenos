@@ -71,7 +71,7 @@ static void print_mtab_list(void)
 	char *svc_name;
 	int rc;
 
-	get_mtab_list(&mtab_list);
+	vfs_get_mtab_list(&mtab_list);
 
 	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
 		if (old_ent)
@@ -149,7 +149,7 @@ int cmd_mount(char **argv)
 	if (argc == 5)
 		mopts = t_argv[4];
 
-	rc = mount(t_argv[1], t_argv[2], dev, mopts, 0, instance);
+	rc = vfs_mount(t_argv[1], t_argv[2], dev, mopts, 0, instance);
 	if (rc != EOK) {
 		printf("Unable to mount %s filesystem to %s on %s (rc=%d)\n",
 		    t_argv[1], t_argv[2], t_argv[3], rc);

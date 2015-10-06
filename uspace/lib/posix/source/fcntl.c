@@ -111,13 +111,7 @@ int posix_open(const char *pathname, int flags, ...)
 		va_end(args);
 	}
 
-	int rc = open(pathname, flags, mode);
-	if (rc < 0) {
-		errno = -rc;
-		rc = -1;
-	}
-
-	return rc;
+	return negerrno(open, pathname, flags, mode);
 }
 
 /** @}

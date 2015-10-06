@@ -265,7 +265,7 @@ static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 	return rc;
 }
 
-void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
+void vfs_mount_srv(ipc_callid_t rid, ipc_call_t *request)
 {
 	service_id_t service_id;
 
@@ -404,7 +404,7 @@ recheck:
 	async_answer_0(callid, EOK);
 }
 
-void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
+void vfs_unmount_srv(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
 	char *mp;

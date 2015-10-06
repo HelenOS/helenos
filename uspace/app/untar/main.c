@@ -102,15 +102,12 @@ static int handle_normal_file(const tar_header_t *header, FILE *tarfile)
 
 static int handle_directory(const tar_header_t *header, FILE *tarfile)
 {
-	int rc = mkdir(header->filename, 0755);
-	if (rc == EEXIST) {
-		// printf("Note: directory %s already exists.\n", header->filename);
-		rc = EOK;
-	}
-	if (rc != EOK) {
-		fprintf(stderr, "Failed to create directory %s: %s.\n",
-		    header->filename, str_error(rc));
-		return rc;
+	if (mkdir(header->filename, 0755) != 0) {
+		if (errno != EEXIST) {
+			fprintf(stderr, "Failed to create directory %s: %s.\n",
+			    header->filename, str_error(errno));
+			return errno;
+		}
 	}
 
 	return skip_blocks(tarfile, header->size);

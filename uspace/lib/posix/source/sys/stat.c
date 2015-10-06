@@ -79,12 +79,9 @@ static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 int posix_fstat(int fd, struct posix_stat *st)
 {
 	struct stat hst;
-	int rc = fstat(fd, &hst);
-	if (rc < 0) {
-		/* fstat() returns negative error code instead of using errno. */
-		errno = -rc;
-		return -1;
-	}
+	int rc = negerrno(fstat, fd, &hst);
+	if (rc < 0)
+		return rc;
 	stat_to_posix(st, &hst);
 	return 0;
 }
@@ -112,12 +109,9 @@ int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
 int posix_stat(const char *restrict path, struct posix_stat *restrict st)
 {
 	struct stat hst;
-	int rc = stat(path, &hst);
-	if (rc < 0) {
-		/* stat() returns negative error code instead of using errno. */
-		errno = -rc;
-		return -1;
-	}
+	int rc = negerrno(stat, path, &hst);
+	if (rc < 0)
+		return rc;
 	stat_to_posix(st, &hst);
 	return 0;
 }

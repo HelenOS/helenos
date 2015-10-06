@@ -49,19 +49,20 @@ enum vfs_change_state_type {
 };
 
 
-extern char *absolutize(const char *, size_t *);
+extern char *vfs_absolutize(const char *, size_t *);
 
-extern int mount(const char *, const char *, const char *, const char *,
+extern int vfs_mount(const char *, const char *, const char *, const char *,
     unsigned int, unsigned int);
-extern int unmount(const char *);
+extern int vfs_unmount(const char *);
 
-extern int fhandle(FILE *, int *);
+extern int vfs_fhandle(FILE *, int *);
 
-extern int fd_wait(void);
-extern int get_mtab_list(list_t *mtab_list);
+extern int vfs_fd_wait(void);
+extern int vfs_get_mtab_list(list_t *mtab_list);
 
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
+
 #endif
 
 /** @}

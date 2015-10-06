@@ -96,7 +96,7 @@ int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
 
 	int fd;
 	int rc;
-	
+
 	fd = open(file_name, O_RDONLY);
 	if (fd < 0) {
 		DPRINTF("failed opening file\n");
@@ -146,7 +146,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 	elf_header_t *header = &header_buf;
 	int i, rc;
 
-	rc = read_all(elf->fd, header, sizeof(elf_header_t));
+	rc = read(elf->fd, header, sizeof(elf_header_t));
 	if (rc != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n"); 
 		return EE_INVALID;
@@ -208,7 +208,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		lseek(elf->fd, header->e_phoff
 		        + i * sizeof(elf_segment_header_t), SEEK_SET);
 
-		rc = read_all(elf->fd, &segment_hdr,
+		rc = read(elf->fd, &segment_hdr,
 		    sizeof(elf_segment_header_t));
 		if (rc != sizeof(elf_segment_header_t)) {
 			DPRINTF("Read error.\n");
@@ -230,7 +230,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		lseek(elf->fd, header->e_shoff
 		    + i * sizeof(elf_section_header_t), SEEK_SET);
 
-		rc = read_all(elf->fd, &section_hdr,
+		rc = read(elf->fd, &section_hdr,
 		    sizeof(elf_section_header_t));
 		if (rc != sizeof(elf_section_header_t)) {
 			DPRINTF("Read error.\n");
@@ -398,7 +398,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		now = 16384;
 		if (now > left) now = left;
 
-		rc = read_all(elf->fd, dp, now);
+		rc = read(elf->fd, dp, now);
 
 		if (rc != (ssize_t) now) { 
 			DPRINTF("Read error.\n");

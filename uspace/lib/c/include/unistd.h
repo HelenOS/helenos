@@ -62,9 +62,6 @@ extern int dup2(int, int);
 extern ssize_t write(int, const void *, size_t);
 extern ssize_t read(int, void *, size_t);
 
-extern ssize_t read_all(int, void *, size_t);
-extern ssize_t write_all(int, const void *, size_t);
-
 extern off64_t lseek(int, off64_t, int);
 extern int ftruncate(int, aoff64_t);
 

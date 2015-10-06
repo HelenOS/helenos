@@ -88,20 +88,18 @@ static unsigned int
 create_directory(const char *user_path, bool create_parents)
 {
 	/* Ensure we would always work with absolute and canonified path. */
-	char *path = absolutize(user_path, NULL);
+	char *path = vfs_absolutize(user_path, NULL);
 	if (path == NULL) {
 		cli_error(CL_ENOMEM, "%s: path too big?", cmdname);
 		return 1;
 	}
 
-	int rc;
 	int ret = 0;
 
 	if (!create_parents) {
-		rc = mkdir(path, 0);
-		if (rc != EOK) {
+		if (mkdir(path, 0) != 0) {
 			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-			    cmdname, path, str_error(rc));
+			    cmdname, path, str_error(errno));
 			ret = 1;
 		}
 	} else {
@@ -136,14 +134,10 @@ create_directory(const char *user_path, bool create_parents)
 			 */
 			char slash_char = path[prev_off];
 			path[prev_off] = 0;
-			rc = mkdir(path, 0);
-			if (rc == EEXIST) {
-				rc = EOK;
-			}
 
-			if (rc != EOK) {
+			if (mkdir(path, 0) != 0 && errno != EEXIST) {
 				cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-				    cmdname, path, str_error(rc));
+				    cmdname, path, str_error(errno));
 				ret = 1;
 				goto leave;
 			}
@@ -151,10 +145,9 @@ create_directory(const char *user_path, bool create_parents)
 			path[prev_off] = slash_char;
 		}
 		/* Create the final directory. */
-		rc = mkdir(path, 0);
-		if (rc != EOK) {
+		if (mkdir(path, 0) != 0) {
 			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-			    cmdname, path, str_error(rc));
+			    cmdname, path, str_error(errno));
 			ret = 1;
 		}
 	}
@@ -213,7 +206,8 @@ int cmd_mkdir(char **argv)
 	}
 
 	if (follow && (argv[optind] != NULL)) {
-		chdir(argv[optind]);
+		if (chdir(argv[optind]) != 0)
+			printf("%s: Error switching to directory.", cmdname);
 	}
 
 	if (ret)

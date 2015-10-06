@@ -59,9 +59,9 @@ int cmd_mv(char **argv)
 	}
 
 	rc = rename(argv[1], argv[2]);
-	if (rc != EOK) {
-		printf("Unable to rename %s to %s (rc=%d)\n",
-		    argv[1], argv[2], rc);
+	if (rc != 0) {
+		printf("Unable to rename %s to %s (error=%d)\n",
+		    argv[1], argv[2], errno);
 		return CMD_FAILURE;
 	}
 

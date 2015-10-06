@@ -97,12 +97,12 @@ static void on_keyboard_event(widget_t *widget, void *data)
 static bool img_load(const char *fname)
 {
 	int fd = open(fname, O_RDONLY);
-	if (fd < 0)
+	if (fd != 0)
 		return false;
 	
 	struct stat stat;
 	int rc = fstat(fd, &stat);
-	if (rc != EOK) {
+	if (rc != 0) {
 		close(fd);
 		return false;
 	}
@@ -113,7 +113,7 @@ static bool img_load(const char *fname)
 		return false;
 	}
 	
-	ssize_t rd = read_all(fd, tga, stat.size);
+	ssize_t rd = read(fd, tga, stat.size);
 	if ((rd < 0) || (rd != (ssize_t) stat.size)) {
 		free(tga);
 		close(fd);

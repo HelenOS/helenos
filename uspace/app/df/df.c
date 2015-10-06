@@ -118,12 +118,16 @@ int main(int argc, char *argv[])
 	}
 
 	LIST_INITIALIZE(mtab_list);
-	get_mtab_list(&mtab_list);
+	vfs_get_mtab_list(&mtab_list);
 
 	print_header();
 	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
-		statfs(mtab_ent->mp, &st);
-		print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
+		if (statfs(mtab_ent->mp, &st) == 0) {
+			print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
+		} else {
+			fprintf(stderr, "Cannot get information for '%s' (%d).\n",
+			    mtab_ent->mp, errno);
+		}
 	}
 
 	putchar('\n');

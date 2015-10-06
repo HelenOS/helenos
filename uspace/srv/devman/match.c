@@ -30,6 +30,7 @@
  * @{
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <io/log.h>
 #include <str.h>
@@ -196,7 +197,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
-		    conf_path, str_error(fd));
+		    conf_path, str_error(errno));
 		goto cleanup;
 	}
 	opened = true;
@@ -216,10 +217,10 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	
-	ssize_t read_bytes = read_all(fd, buf, len);
+	ssize_t read_bytes = read(fd, buf, len);
 	if (read_bytes <= 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
-		    read_bytes);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%d).", conf_path,
+		    errno);
 		goto cleanup;
 	}
 	buf[read_bytes] = 0;

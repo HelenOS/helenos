@@ -56,10 +56,8 @@ static int chdir_and_remember(const char *new_dir) {
 	previous_directory_valid = ok != NULL;
 	previous_directory_set = true;
 
-	int rc = chdir(new_dir);
-	if (rc != EOK) {
-		return rc;
-	}
+	if (chdir(new_dir) != 0)
+		return errno;
 
 	str_cpy(previous_directory, PATH_MAX, previous_directory_tmp);
 	return EOK;

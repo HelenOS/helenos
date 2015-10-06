@@ -56,7 +56,7 @@
 /* Temporary: service and method names */
 #include "proto.h"
 #include <ipc/services.h>
-#include "../../srv/vfs/vfs.h"
+#include <ipc/vfs.h>
 #include <ipc/console.h>
 
 #include "syscalls.h"
@@ -527,17 +527,17 @@ static loader_t *preload_task(const char *path, char **argv,
 	int fd_stdout;
 	int fd_stderr;
 	
-	if ((stdin != NULL) && (fhandle(stdin, &fd_stdin) == EOK))
+	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK))
 		files[0] = &fd_stdin;
 	else
 		files[0] = NULL;
 	
-	if ((stdout != NULL) && (fhandle(stdout, &fd_stdout) == EOK))
+	if ((stdout != NULL) && (vfs_fhandle(stdout, &fd_stdout) == EOK))
 		files[1] = &fd_stdout;
 	else
 		files[1] = NULL;
 	
-	if ((stderr != NULL) && (fhandle(stderr, &fd_stderr) == EOK))
+	if ((stderr != NULL) && (vfs_fhandle(stderr, &fd_stderr) == EOK))
 		files[2] = &fd_stderr;
 	else
 		files[2] = NULL;

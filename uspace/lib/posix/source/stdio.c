@@ -314,13 +314,7 @@ posix_off_t posix_ftello(FILE *stream)
  */
 int posix_fflush(FILE *stream)
 {
-	int rc = fflush(stream);
-	if (rc < 0) {
-		errno = -rc;
-		return EOF;
-	} else {
-		return 0;
-	}
+	return negerrno(fflush, stream);
 }
 
 /**
@@ -350,6 +344,8 @@ int posix_dprintf(int fildes, const char *restrict format, ...)
 static int _dprintf_str_write(const char *str, size_t size, void *fd)
 {
 	ssize_t wr = write(*(int *) fd, str, size);
+	if (wr < 0)
+		return errno;
 	return str_nlength(str, wr);
 }
 
@@ -578,25 +574,7 @@ int posix_putchar_unlocked(int c)
  */
 int posix_remove(const char *path)
 {
-	struct stat st;
-	int rc = stat(path, &st);
-	
-	if (rc != EOK) {
-		errno = -rc;
-		return -1;
-	}
-	
-	if (st.is_directory) {
-		rc = rmdir(path);
-	} else {
-		rc = unlink(path);
-	}
-	
-	if (rc != EOK) {
-		errno = -rc;
-		return -1;
-	}
-	return 0;
+	return negerrno(remove, path);
 }
 
 /**
@@ -608,7 +586,7 @@ int posix_remove(const char *path)
  */
 int posix_rename(const char *old, const char *new)
 {
-	return errnify(rename, old, new);
+	return negerrno(rename, old, new);
 }
 
 /**

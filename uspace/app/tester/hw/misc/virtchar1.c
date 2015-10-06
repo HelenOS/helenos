@@ -57,7 +57,7 @@ static const char *test_virtchar1_internal(const char *path)
 	TPRINTF("Opening `%s'...\n", path);
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
-		TPRINTF("   ...error: %s\n", str_error(fd));
+		TPRINTF("   ...error: %s\n", str_error(errno));
 		if (fd == ENOENT) {
 			TPRINTF("   (error was ENOENT: " \
 			    "have you compiled test drivers?)\n");
@@ -68,7 +68,7 @@ static const char *test_virtchar1_internal(const char *path)
 	TPRINTF("   ...file handle %d\n", fd);
 	
 	TPRINTF(" Asking for session...\n");
-	async_sess_t *sess = fd_session(fd, INTERFACE_DDF);
+	async_sess_t *sess = vfs_fd_session(fd, INTERFACE_DDF);
 	if (!sess) {
 		close(fd);
 		TPRINTF("   ...error: %s\n", str_error(errno));

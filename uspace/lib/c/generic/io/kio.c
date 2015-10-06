@@ -42,14 +42,13 @@
 #include <io/kio.h>
 #include <io/printf_core.h>
 
-size_t kio_write(const void *buf, size_t size)
+int kio_write(const void *buf, size_t size, size_t *nwritten)
 {
-	ssize_t ret = (ssize_t) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) buf, size);
+	int rc = (int) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) buf, size);
 	
-	if (ret >= 0)
-		return (size_t) ret;
-	
-	return 0;
+	if (rc == EOK)
+		*nwritten = size;
+	return rc;
 }
 
 void kio_update(void)
@@ -83,7 +82,10 @@ int kio_printf(const char *fmt, ...)
 
 static int kio_vprintf_str_write(const char *str, size_t size, void *data)
 {
-	size_t wr = kio_write(str, size);
+	size_t wr;
+	
+	wr = 0;
+	(void) kio_write(str, size, &wr);
 	return str_nlength(str, wr);
 }
 
@@ -91,13 +93,14 @@ static int kio_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 {
 	size_t offset = 0;
 	size_t chars = 0;
+	size_t wr;
 	
 	while (offset < size) {
 		char buf[STR_BOUNDS(1)];
 		size_t sz = 0;
 		
 		if (chr_encode(str[chars], buf, &sz, STR_BOUNDS(1)) == EOK)
-			kio_write(buf, sz);
+			kio_write(buf, sz, &wr);
 		
 		chars++;
 		offset += sizeof(wchar_t);

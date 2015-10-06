@@ -39,7 +39,7 @@
 #include <stdarg.h>
 #include <io/verify.h>
 
-extern size_t kio_write(const void *, size_t);
+extern int kio_write(const void *, size_t, size_t *);
 extern void kio_update(void);
 extern void kio_command(const void *, size_t);
 extern int kio_printf(const char *, ...)

@@ -87,7 +87,7 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 		return ENOENT;
 	}
 
-	rc = read_all(fd, &elf_hdr, sizeof(elf_header_t));
+	rc = read(fd, &elf_hdr, sizeof(elf_header_t));
 	if (rc != sizeof(elf_header_t)) {
 		printf("failed reading elf header\n");
 		free(stab);
@@ -309,7 +309,7 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
 	if (rc == (off64_t) -1)
 		return EIO;
 
-	rc = read_all(fd, sec_hdr, sizeof(elf_section_header_t));
+	rc = read(fd, sec_hdr, sizeof(elf_section_header_t));
 	if (rc != sizeof(elf_section_header_t))
 		return EIO;
 
@@ -345,7 +345,7 @@ static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 		return ENOMEM;
 	}
 
-	rc = read_all(fd, *ptr, size);
+	rc = read(fd, *ptr, size);
 	if (rc != (ssize_t) size) {
 		printf("failed reading chunk\n");
 		free(*ptr);

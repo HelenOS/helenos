@@ -359,7 +359,7 @@ static int compl_get_next(void *state, char **compl)
 				char *ent_path;
 				asprintf(&ent_path, "%s/%s", *cs->path, dent->d_name);
 				struct stat ent_stat;
-				if (stat(ent_path, &ent_stat) != EOK) {
+				if (stat(ent_path, &ent_stat) != 0) {
 					/* Error */
 					free(ent_path);
 					continue;

@@ -125,7 +125,7 @@ static bool mount_root(const char *fstype)
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
 	
-	int rc = mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
+	int rc = vfs_mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
 	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Root filesystem", ROOT_MOUNT_POINT, fstype,
 	    ROOT_DEVICE, rc);
@@ -142,7 +142,7 @@ static bool mount_root(const char *fstype)
  */
 static bool mount_locfs(void)
 {
-	int rc = mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
+	int rc = vfs_mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
 	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
 	    LOCFS_FS_TYPE, NULL, rc);
@@ -151,7 +151,7 @@ static bool mount_locfs(void)
 static int srv_startl(const char *path, ...)
 {
 	struct stat s;
-	if (stat(path, &s) == ENOENT) {
+	if (stat(path, &s) != 0) {
 		printf("%s: Unable to stat %s\n", NAME, path);
 		return ENOENT;
 	}
@@ -298,7 +298,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 
 static bool mount_tmpfs(void)
 {
-	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0, 0);
+	int rc = vfs_mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0, 0);
 	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
 	    TMPFS_FS_TYPE, NULL, rc);
 }

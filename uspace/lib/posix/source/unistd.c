@@ -104,33 +104,14 @@ int posix_isatty(int fd)
  */
 char *posix_getcwd(char *buf, size_t size)
 {
-	/* Native getcwd() does not set any errno despite the fact that general
-	 * usage pattern of this function depends on it (caller is repeatedly
-	 * guessing the required size of the buffer by checking for ERANGE on
-	 * failure). */
-	if (size == 0) {
-		errno = EINVAL;
+	char *p = getcwd(buf, size);
+
+	if (p == NULL) {
+		errno = -errno;
 		return NULL;
 	}
-	
-	/* Save the original value to comply with the "no modification on
-	 * success" semantics.
-	 */
-	int orig_errno = errno;
-	errno = EOK;
-	
-	char *ret = getcwd(buf, size);
-	if (ret == NULL) {
-		/* Check errno to avoid shadowing other possible errors. */
-		if (errno == EOK) {
-			errno = ERANGE;
-		}
-	} else {
-		/* Success, restore previous errno value. */
-		errno = orig_errno;
-	}
-	
-	return ret;
+
+	return p;
 }
 
 /**
@@ -140,7 +121,7 @@ char *posix_getcwd(char *buf, size_t size)
  */
 int posix_chdir(const char *path)
 {
-	return errnify(chdir, path);
+	return negerrno(chdir, path);
 }
 
 /**
@@ -193,7 +174,7 @@ posix_gid_t posix_getgid(void)
  */
 int posix_close(int fildes)
 {
-	return errnify(close, fildes);
+	return negerrno(close, fildes);
 }
 
 /**
@@ -206,7 +187,7 @@ int posix_close(int fildes)
  */
 ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 {
-	return errnify(read, fildes, buf, nbyte);
+	return negerrno(read, fildes, buf, nbyte);
 }
 
 /**
@@ -219,7 +200,7 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
  */
 ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 {
-	return errnify(write, fildes, buf, nbyte);
+	return negerrno(write, fildes, buf, nbyte);
 }
 
 /**
@@ -233,7 +214,7 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
  */
 posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 {
-	return errnify(lseek, fildes, offset, whence);
+	return negerrno(lseek, fildes, offset, whence);
 }
 
 /**
@@ -244,7 +225,7 @@ posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
  */
 int posix_fsync(int fildes)
 {
-	return errnify(fsync, fildes);
+	return negerrno(fsync, fildes);
 }
 
 /**
@@ -256,7 +237,7 @@ int posix_fsync(int fildes)
  */
 int posix_ftruncate(int fildes, posix_off_t length)
 {
-	return errnify(ftruncate, fildes, (aoff64_t) length);
+	return negerrno(ftruncate, fildes, (aoff64_t) length);
 }
 
 /**
@@ -267,7 +248,7 @@ int posix_ftruncate(int fildes, posix_off_t length)
  */
 int posix_rmdir(const char *path)
 {
-	return errnify(rmdir, path);
+	return negerrno(rmdir, path);
 }
 
 /**
@@ -278,7 +259,7 @@ int posix_rmdir(const char *path)
  */
 int posix_unlink(const char *path)
 {
-	return errnify(unlink, path);
+	return negerrno(unlink, path);
 }
 
 /**
@@ -302,7 +283,7 @@ int posix_dup(int fildes)
  */
 int posix_dup2(int fildes, int fildes2)
 {
-	return errnify(dup2, fildes, fildes2);
+	return negerrno(dup2, fildes, fildes2);
 }
 
 /**
@@ -320,9 +301,9 @@ int posix_access(const char *path, int amode)
 		 *
 		 * Check file existence by attempting to open it.
 		 */
-		int fd = open(path, O_RDONLY);
+		int fd = negerrno(open, path, O_RDONLY);
 		if (fd < 0) {
-			errno = -fd;
+			/* errno was set by open() */
 			return -1;
 		}
 		close(fd);

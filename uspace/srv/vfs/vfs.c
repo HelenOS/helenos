@@ -73,10 +73,10 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			cont = false;
 			break;
 		case VFS_IN_MOUNT:
-			vfs_mount(callid, &call);
+			vfs_mount_srv(callid, &call);
 			break;
 		case VFS_IN_UNMOUNT:
-			vfs_unmount(callid, &call);
+			vfs_unmount_srv(callid, &call);
 			break;
 		case VFS_IN_OPEN:
 			vfs_open(callid, &call);

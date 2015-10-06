@@ -436,7 +436,7 @@ sysarg_t sys_kio(int cmd, const void *buf, size_t size)
 		free(data);
 	}
 
-	return size;
+	return EOK;
 }
 
 /** @}

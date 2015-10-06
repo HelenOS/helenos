@@ -55,9 +55,8 @@ int cmd_pwd(char *argv[])
 	}
 
 	memset(buff, 0, PATH_MAX);
-	getcwd(buff, PATH_MAX);
 
-	if (! buff) {
+	if (getcwd(buff, PATH_MAX) == NULL) {
 		cli_error(CL_EFAIL,
 			"Unable to determine the current working directory");
 		free(buff);

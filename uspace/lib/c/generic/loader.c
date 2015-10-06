@@ -123,7 +123,7 @@ int loader_set_cwd(loader_t *ldr)
 	if (!cwd)
 		return ENOMEM;
 	
-	if (!getcwd(cwd, MAX_PATH_LEN + 1))
+	if (getcwd(cwd, MAX_PATH_LEN + 1) == NULL)
 		str_cpy(cwd, MAX_PATH_LEN + 1, "/");
 	
 	size_t len = str_length(cwd);
@@ -161,7 +161,7 @@ int loader_set_cwd(loader_t *ldr)
 int loader_set_pathname(loader_t *ldr, const char *path)
 {
 	size_t pa_len;
-	char *pa = absolutize(path, &pa_len);
+	char *pa = vfs_absolutize(path, &pa_len);
 	if (!pa)
 		return ENOMEM;
 	

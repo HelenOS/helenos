@@ -48,13 +48,13 @@ console_ctrl_t *console_init(FILE *ifile, FILE *ofile)
 	if (!ctrl)
 		return NULL;
 	
-	ctrl->input_sess = fsession(ifile, INTERFACE_CONSOLE);
+	ctrl->input_sess = vfs_fsession(ifile, INTERFACE_CONSOLE);
 	if (!ctrl->input_sess) {
 		free(ctrl);
 		return NULL;
 	}
 	
-	ctrl->output_sess = fsession(ofile, INTERFACE_CONSOLE);
+	ctrl->output_sess = vfs_fsession(ofile, INTERFACE_CONSOLE);
 	if (!ctrl->output_sess) {
 		free(ctrl);
 		return NULL;
