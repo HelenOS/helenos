@@ -39,6 +39,7 @@
 #ifdef KERNEL
 #include <arch/cache.h>
 #include <arch/cp15.h>
+#include <align.h>
 #else
 #include <libarch/cp15.h>
 #endif
@@ -114,7 +115,7 @@
 //TODO might be PL1 only on armv5-
 #define smc_coherence(a) \
 do { \
-	dcache_clean_mva_pou((uintptr_t) a);\
+	dcache_clean_mva_pou(ALIGN_DOWN((uintptr_t) a, CP15_C7_MVA_ALIGN)); \
 	write_barrier();               /* Wait for completion */\
 	icache_invalidate();\
 	inst_barrier();                /* Wait for Inst refetch */\
@@ -123,7 +124,8 @@ do { \
  * to export the cache line value, or use syscall for uspace smc_coherence */
 #define smc_coherence_block(a, l) \
 do { \
-	for (uintptr_t addr = (uintptr_t)a; addr < (uintptr_t)a + l; addr += 4)\
+	for (uintptr_t addr = (uintptr_t) a; addr < (uintptr_t) a + l; \
+	    addr += CP15_C7_MVA_ALIGN) \
 		smc_coherence(addr); \
 } while (0)
 #else

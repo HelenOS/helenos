@@ -394,6 +394,18 @@ CONTROL_REG_GEN_WRITE(HPFAR, c6, 4, c0, 4);
  * Cache maintenance, address translation and other
  */
 
+#if defined(PROCESSOR_cortex_a8)
+#define CP15_C7_MVA_ALIGN	64
+#elif defined(PROCESSOR_arm1176)
+#define CP15_C7_MVA_ALIGN	32
+#elif defined(PROCESSOR_arm926ej_s)
+#define CP15_C7_MVA_ALIGN	32
+#elif defined(PROCESSOR_arm920t)
+#define CP15_C7_MVA_ALIGN	32
+#else
+#error Unknow MVA alignment
+#endif
+
 #if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 CONTROL_REG_GEN_WRITE(CP15ISB, c7, 0, c5, 4);
 CONTROL_REG_GEN_WRITE(BPIALL, c7, 0, c5, 6);
