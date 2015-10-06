@@ -74,20 +74,20 @@ jump_to_kernel:
 	# D-cache before the kernel is started.
 	bic	r4, r4, #(1 << CP15_C1_DC)
 
-	# Disable I-cache and Branche predictors.
+	# Disable I-cache and Branch predictors.
 	bic	r4, r4, #(1 << CP15_C1_IC)
+#ifdef PROCESSOR_ARCH_armv6
 	bic	r4, r4, #(1 << CP15_C1_BP)
+#endif
 	
 	mcr	p15, 0, r4, c1, c0, 0
 #endif
-
-
 	
-	#Wait for the operations to complete
+	# Wait for the operations to complete
 #ifdef PROCESSOR_ARCH_armv7_a
 	dsb
 #else
-	#cp15 dsb, r4 is ignored (should be zero)
+	# cp15 dsb, r4 is ignored (should be zero)
 	mov r4, #0
 	mcr p15, 0, r4, c7, c10, 4
 #endif
@@ -97,11 +97,11 @@ jump_to_kernel:
 	mcr p15, 0, r4, c7, c5, 0
 	nop
 
-	#Wait for the operations to complete
+	# Wait for the operations to complete
 #ifdef PROCESSOR_ARCH_armv7_a
 	isb
 	nop
-#else
+#elif PROCESSOR_ARCH_armv6
 	# cp15 isb
 	mcr p15, 0, r4, c7, c5, 4
 	nop
