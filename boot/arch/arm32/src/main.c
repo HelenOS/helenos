@@ -46,6 +46,7 @@
 #include <str.h>
 #include <errno.h>
 #include <inflate.h>
+#include <arch/cp15.h>
 
 #define TOP2ADDR(top)  (((void *) PA2KA(BOOT_OFFSET)) + (top))
 
@@ -54,10 +55,28 @@ extern void *bdata_end;
 
 static inline void clean_dcache_poc(void *address, size_t size)
 {
-	const uintptr_t addr = (uintptr_t)address;
-	for (uintptr_t a = addr; a < addr + size; a += 4) {
-		/* DCCMVAC - clean by address to the point of coherence */
-		asm volatile ("mcr p15, 0, %[a], c7, c10, 1\n" :: [a]"r"(a) : );
+	const uintptr_t addr = (uintptr_t) address;
+
+#if !defined(PROCESSOR_ARCH_armv7_a)
+	bool sep;
+	if (MIDR_read() != CTR_read()) {
+		sep = (CTR_read() & CTR_SEP_FLAG) == CTR_SEP_FLAG;
+	} else {
+		printf("Unknown cache type.\n");
+		halt();
+	}
+#endif
+
+	for (uintptr_t a = ALIGN_DOWN(addr, CP15_C7_MVA_ALIGN); a < addr + size;
+	    a += CP15_C7_MVA_ALIGN) {
+#if defined(PROCESSOR_ARCH_armv7_a)
+		DCCMVAC_write(a);
+#else
+		if (sep)
+			DCCMVA_write(a);
+		else
+			CCMVA_write(a);
+#endif
 	}
 }
 
