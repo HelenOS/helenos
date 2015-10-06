@@ -47,16 +47,6 @@
 		__not_implemented_counter++; \
 	} while (0)
 
-/* Convert negative error return value to positive errno */
-#define errnify(func, ...) ({ \
-	int rc = func(__VA_ARGS__); \
-	if (rc < 0) { \
-		errno = -rc; \
-		rc = -1; \
-	} \
-	rc; \
-})
-
 /* Convert negative errno to positive errno */
 #define negerrno(func, ...) ({ \
 	int rc = func(__VA_ARGS__); \
