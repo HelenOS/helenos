@@ -101,7 +101,7 @@ jump_to_kernel:
 #ifdef PROCESSOR_ARCH_armv7_a
 	isb
 	nop
-#elif PROCESSOR_ARCH_armv6
+#elif defined(PROCESSOR_ARCH_armv6)
 	# cp15 isb
 	mcr p15, 0, r4, c7, c5, 4
 	nop
