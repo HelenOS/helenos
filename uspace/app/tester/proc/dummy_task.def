@@ -1,0 +1,6 @@
+{
+	"proc_dummy_task",
+	"Dummy task",
+	&test_proc_dummy_task,
+	true
+},

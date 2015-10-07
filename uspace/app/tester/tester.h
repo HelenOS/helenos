@@ -110,6 +110,8 @@ extern const char *test_serial1(void);
 extern const char *test_devman1(void);
 extern const char *test_devman2(void);
 extern const char *test_chardev1(void);
+extern const char *test_proc_dummy_task(void);
+extern const char *test_proc_task_wait(void);
 
 extern test_t tests[];
 

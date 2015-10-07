@@ -50,6 +50,10 @@ typedef struct {
 	aid_t aid;
 } task_wait_t;
 
+static inline void task_wait_set(task_wait_t *wait, int flags)
+{
+	wait->flags = flags;
+}
 
 extern task_id_t task_get_id(void);
 extern errno_t task_set_name(const char *);

@@ -1,0 +1,6 @@
+{
+	"proc_task_wait",
+	"Task wait API",
+	&test_proc_task_wait,
+	true
+},
