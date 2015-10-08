@@ -78,6 +78,7 @@ static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
 	    0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
+	// TODO leak? what happens with referenced sessions
 	free(sess_ref);
 
 	if (rc != EOK) {
@@ -115,6 +116,14 @@ static void taskman_ctl_retval(ipc_callid_t iid, ipc_call_t *icall)
 	printf("%s:%i\n", __func__, __LINE__);
 	int rc = task_set_retval(icall);
 	async_answer_0(iid, rc);
+}
+
+static void task_exit_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	printf("%s:%i\n", __func__, __LINE__);
+	// TODO design substitution for taskmon (monitoring)
+	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
+	task_terminated(id, (task_exit_t)arg);
 }
 
 static void control_connection_loop(void)
@@ -160,7 +169,6 @@ static void loader_callback(ipc_callid_t iid, ipc_call_t *icall)
 	if (sess_ref == NULL) {
 		async_answer_0(iid, ENOMEM);
 	}
-	
 
 	/* Create callback connection */
 	sess_ref->sess = async_callback_receive_start(EXCHANGE_ATOMIC, icall);
@@ -169,8 +177,18 @@ static void loader_callback(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EINVAL);
 		return;
 	}
+
+	/* Remember task_id */
+	int rc = task_id_intro(icall);
+
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		free(sess_ref);
+		return;
+	}
 	async_answer_0(iid, EOK);
 
+	/* Notify spawners */
 	link_initialize(&sess_ref->link);
 	prodcons_produce(&sess_queue, &sess_ref->link);
 }
@@ -219,16 +237,29 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS task manager\n");
 
+	/* Initialization */
 	prodcons_initialize(&sess_queue);
 	int rc = task_init();
 	if (rc != EOK) {
 		return rc;
 	}
 
+	rc = async_event_subscribe(EVENT_EXIT, task_exit_event, (void *)EVENT_EXIT);
+	if (rc != EOK) {
+		printf("Cannot register for exit events (%i).\n", rc);
+		return rc;
+	}
+
+	rc = async_event_subscribe(EVENT_FAULT, task_exit_event, (void *)EVENT_FAULT);
+	if (rc != EOK) {
+		printf("Cannot register for fault events (%i).\n", rc);
+		return rc;
+	}
+
 	/* We're service too */
 	rc = service_register(SERVICE_TASKMAN);
 	if (rc != EOK) {
-		printf("Cannot register at naming service (%i).", rc);
+		printf("Cannot register at naming service (%i).\n", rc);
 		return rc;
 	}
 

@@ -51,7 +51,7 @@ typedef struct {
 	ht_link_t link;
 	
 	task_id_t id;    /**< Task ID. */
-	bool finished;   /**< Task is done. */
+	task_exit_t exit;/**< Task is done. */
 	bool have_rval;  /**< Task returned a value. */
 	int retval;      /**< The return value. */
 } hashed_task_t;
@@ -184,12 +184,11 @@ loop:
 			continue;
 		
 		hashed_task_t *ht = hash_table_get_inst(link, hashed_task_t, link);
-		if (!ht->finished)
+		if (ht->exit == TASK_EXIT_RUNNING)
 			continue;
 		
 		if (!(pr->callid & IPC_CALLID_NOTIFICATION)) {
-			texit = ht->have_rval ? TASK_EXIT_NORMAL :
-			    TASK_EXIT_UNEXPECTED;
+			texit = ht->exit;
 			async_answer_2(pr->callid, EOK, texit,
 			    ht->retval);
 		}
@@ -215,9 +214,8 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid, ipc_call_t *cal
 		return;
 	}
 	
-	if (ht->finished) {
-		task_exit_t texit = ht->have_rval ? TASK_EXIT_NORMAL :
-		    TASK_EXIT_UNEXPECTED;
+	if (ht->exit != TASK_EXIT_RUNNING) {
+		task_exit_t texit = ht->exit;
 		async_answer_2(callid, EOK, texit, ht->retval);
 		return;
 	}
@@ -241,52 +239,29 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid, ipc_call_t *cal
 	// W unlock
 }
 
-int ns_task_id_intro(ipc_call_t *call)
+int task_id_intro(ipc_call_t *call)
 {
-	
-	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-
-	ht_link_t *link = hash_table_find(&phone_to_id, &call->in_phone_hash);
+	// TODO think about task_id reuse and this
+	// R lock
+	ht_link_t *link = hash_table_find(&task_hash_table, &call->in_task_id);
+	// R unlock
 	if (link != NULL)
 		return EEXISTS;
-	
-	p2i_entry_t *entry = (p2i_entry_t *) malloc(sizeof(p2i_entry_t));
-	if (entry == NULL)
-		return ENOMEM;
 	
 	hashed_task_t *ht = (hashed_task_t *) malloc(sizeof(hashed_task_t));
 	if (ht == NULL)
 		return ENOMEM;
-	
-	/*
-	 * Insert into the phone-to-id map.
-	 */
-	
-	entry->in_phone_hash = call->in_phone_hash;
-	entry->id = id;
-	hash_table_insert(&phone_to_id, &entry->link);
-	
+
 	/*
 	 * Insert into the main table.
 	 */
-	
-	ht->id = id;
-	ht->finished = false;
+	ht->id = call->in_task_id;
+	ht->exit = TASK_EXIT_RUNNING;
 	ht->have_rval = false;
 	ht->retval = -1;
+	// W lock
 	hash_table_insert(&task_hash_table, &ht->link);
-	
-	return EOK;
-}
-
-static int get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
-{
-	ht_link_t *link = hash_table_find(&phone_to_id, &phone_hash);
-	if (link == NULL)
-		return ENOENT;
-	
-	p2i_entry_t *entry = hash_table_get_inst(link, p2i_entry_t, link);
-	*id = entry->id;
+	// W unlock
 	
 	return EOK;
 }
@@ -301,10 +276,10 @@ int task_set_retval(ipc_call_t *call)
 	hashed_task_t *ht = (link != NULL) ?
 	    hash_table_get_inst(link, hashed_task_t, link) : NULL;
 	
-	if ((ht == NULL) || (ht->finished))
-		return EOK; // TODO EINVAL when registration works;
+	if ((ht == NULL) || (ht->exit != TASK_EXIT_RUNNING))
+		return EINVAL;
 	
-	ht->finished = true;
+	// TODO process additional flag to retval
 	ht->have_rval = true;
 	ht->retval = IPC_GET_ARG1(*call);
 	
@@ -313,29 +288,23 @@ int task_set_retval(ipc_call_t *call)
 	return EOK;
 }
 
-int ns_task_disconnect(ipc_call_t *call)
+void task_terminated(task_id_t id, task_exit_t texit)
 {
-	task_id_t id;
-	int rc = get_id_by_phone(call->in_phone_hash, &id);
-	if (rc != EOK)
-		return rc;
-	
-	/* Delete from phone-to-id map. */
-	hash_table_remove(&phone_to_id, &call->in_phone_hash);
-	
 	/* Mark task as finished. */
+	// R lock
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
+	// R unlock
 	if (link == NULL)
-		return EOK;
+		return;
 
 	hashed_task_t *ht = hash_table_get_inst(link, hashed_task_t, link);
 	
-	ht->finished = true;
-	
+	ht->exit = texit;
 	process_pending_wait();
-	hash_table_remove(&task_hash_table, &id);
-	
-	return EOK;
+
+	// W lock
+	hash_table_remove_item(&task_hash_table, &ht->link);
+	// W unlock
 }
 
 /**

@@ -36,6 +36,7 @@
 #define _LIBC_TYPES_TASK_H_
 
 typedef enum {
+	TASK_EXIT_RUNNING,   /**< Internal taskman value. */
 	TASK_EXIT_NORMAL,
 	TASK_EXIT_UNEXPECTED
 } task_exit_t;

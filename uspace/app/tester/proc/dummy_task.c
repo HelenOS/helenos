@@ -47,6 +47,8 @@ static const char *err = NULL;
 
 static void dummy_fail(void)
 {
+	task_id_t id = task_get_id();
+	printf("Gonna shoot myself (%" PRIu64 ").\n", id);
 	behavior_func_t func = NULL;
 	func();
 }

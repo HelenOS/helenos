@@ -66,125 +66,143 @@ const char *test_proc_task_wait(void)
 	int retval;
 	task_exit_t texit;
 
-	TPRINTF("11 match");
+	TPRINTF("11 match\n");
 
 	task_wait_set(&wait, TASK_WAIT_EXIT);
 	rc = dummy_task_spawn(&tid, &wait, STR_FAIL);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	TASSERT(texit == TASK_EXIT_UNEXPECTED);
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 	
-	TPRINTF("12 lost wait");
+	TPRINTF("12 lost wait\n");
 
 	task_wait_set(&wait, TASK_WAIT_RETVAL);
 	rc = dummy_task_spawn(&tid, &wait, STR_FAIL);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EINVAL);
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 
-	TPRINTF("13 partial match");
+	TPRINTF("13 partial match\n");
 
 	task_wait_set(&wait, TASK_WAIT_RETVAL | TASK_WAIT_EXIT);
 	rc = dummy_task_spawn(&tid, &wait, STR_BYPASS);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	TASSERT(texit == TASK_EXIT_UNEXPECTED);
 	/* retval is undefined */
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 
-	TPRINTF("21 ignore retval");
+	TPRINTF("21 ignore retval\n");
 
 	task_wait_set(&wait, TASK_WAIT_EXIT);
 	rc = dummy_task_spawn(&tid, &wait, STR_JOB_OK);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	TASSERT(texit == TASK_EXIT_NORMAL);
 	/* retval is unknown */
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 
-	TPRINTF("22 good match");
+	TPRINTF("22 good match\n");
 
 	task_wait_set(&wait, TASK_WAIT_RETVAL);
 	rc = dummy_task_spawn(&tid, &wait, STR_DAEMON);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	/* exit is not expected */
 	TASSERT(retval == EOK);
 	task_kill(tid); /* Terminate daemon */
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 
-	TPRINTF("23 partial match (non-exited task)");
+	TPRINTF("23 partial match (non-exited task)\n");
 
 	// TODO should update wait for synchronized exit waiting
 	task_wait_set(&wait, TASK_WAIT_RETVAL | TASK_WAIT_EXIT);
 	rc = dummy_task_spawn(&tid, &wait, STR_DAEMON);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	/* exit is not expected */
 	TASSERT(retval == EOK);
 	task_kill(tid); /* Terminate daemon */
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 
-	TPRINTF("31 on exit return");
+	TPRINTF("31 on exit return\n");
 
 	task_wait_set(&wait, TASK_WAIT_EXIT);
 	rc = dummy_task_spawn(&tid, &wait, STR_JOB_OK);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	TASSERT(texit == TASK_EXIT_NORMAL);
 	/* retval is unknown */
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 
 
-	TPRINTF("32 keep retval until exit");
+	TPRINTF("32 keep retval until exit\n");
 
 	task_wait_set(&wait, TASK_WAIT_RETVAL);
 	rc = dummy_task_spawn(&tid, &wait, STR_JOB_OK);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	/* exit is unknown */
 	TASSERT(retval == EOK);
 	/* check task already exited */
 	rc = task_kill(tid);
 	TASSERT(rc == ENOENT);
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 
-	TPRINTF("33 double good match");
+	TPRINTF("33 double good match\n");
 
 	task_wait_set(&wait, TASK_WAIT_RETVAL | TASK_WAIT_EXIT);
 	rc = dummy_task_spawn(&tid, &wait, STR_JOB_OK);
 	TASSERT(rc == EOK);
 
+	TPRINTF("waiting...");
 	rc = task_wait(&wait, &texit, &retval);
+	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	TASSERT(texit == TASK_EXIT_NORMAL);
 	TASSERT(retval == EOK);
-	TPRINTF("OK");
+	TPRINTF("OK\n");
 	/* ---- */
 
 	TPRINTF("All task waiting tests finished");
