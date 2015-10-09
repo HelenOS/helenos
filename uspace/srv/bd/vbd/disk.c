@@ -53,6 +53,9 @@ static list_t vbds_parts; /* of vbds_part_t */
 
 static category_id_t part_cid;
 
+static int vbds_disk_parts_add(vbds_disk_t *, label_t *);
+static int vbds_disk_parts_remove(vbds_disk_t *);
+
 static int vbds_bd_open(bd_srvs_t *, bd_srv_t *);
 static int vbds_bd_close(bd_srv_t *);
 static int vbds_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
@@ -241,6 +244,8 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	list_append(&part->ldisk, &disk->parts);
 	list_append(&part->lparts, &vbds_parts);
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_add -> %p", part);
+
 	if (rpart != NULL)
 		*rpart = part;
 	return EOK;
@@ -258,8 +263,11 @@ static int vbds_part_remove(vbds_part_t *part, label_part_t **rlpart)
 
 	lpart = part->lpart;
 
-	if (part->open_cnt > 0)
+	if (part->open_cnt > 0) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "part->open_cnt = %d",
+		    part->open_cnt);
 		return EBUSY;
+	}
 
 	if (part->svc_id != 0) {
 		rc = vbds_part_svc_unregister(part);
@@ -273,6 +281,49 @@ static int vbds_part_remove(vbds_part_t *part, label_part_t **rlpart)
 
 	if (rlpart != NULL)
 		*rlpart = lpart;
+	return EOK;
+}
+
+/** Remove all disk partitions from our inventory leaving only the underlying
+ * liblabel partition structures. */
+static int vbds_disk_parts_add(vbds_disk_t *disk, label_t *label)
+{
+	label_part_t *part;
+	int rc;
+
+	part = label_part_first(label);
+	while (part != NULL) {
+		rc = vbds_part_add(disk, part, NULL);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding partition "
+			    "(disk %s)", disk->svc_name);
+			return rc;
+		}
+
+		part = label_part_next(part);
+	}
+
+	return EOK;
+}
+
+/** Remove all disk partitions from our inventory leaving only the underlying
+ * liblabel partition structures. */
+static int vbds_disk_parts_remove(vbds_disk_t *disk)
+{
+	link_t *link;
+	vbds_part_t *part;
+	int rc;
+
+	link = list_first(&disk->parts);
+	while (link != NULL) {
+		part = list_get_instance(link, vbds_part_t, ldisk);
+		rc = vbds_part_remove(part, NULL);
+		if (rc != EOK)
+			return rc;
+
+		link = list_first(&disk->parts);
+	}
+
 	return EOK;
 }
 
@@ -298,7 +349,6 @@ int vbds_disk_discovery_start(void)
 int vbds_disk_add(service_id_t sid)
 {
 	label_t *label = NULL;
-	label_part_t *part;
 	vbds_disk_t *disk = NULL;
 	bool block_inited = false;
 	size_t block_size;
@@ -343,7 +393,7 @@ int vbds_disk_add(service_id_t sid)
 
 	rc = label_open(sid, &label);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Label in disk %s not recognized.",
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Failed to open label in disk %s.",
 		    disk->svc_name);
 		rc = EIO;
 		goto error;
@@ -358,17 +408,7 @@ int vbds_disk_add(service_id_t sid)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Recognized disk label. Adding partitions.");
 
-	part = label_part_first(label);
-	while (part != NULL) {
-		rc = vbds_part_add(disk, part, NULL);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding partition "
-			    "(disk %s)", disk->svc_name);
-		}
-
-		part = label_part_next(part);
-	}
-
+	(void) vbds_disk_parts_add(disk, label);
 	return EOK;
 error:
 	label_close(label);
@@ -392,6 +432,12 @@ int vbds_disk_remove(service_id_t sid)
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK)
 		return rc;
+
+	rc = vbds_disk_parts_remove(disk);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed removing disk.");
+		return rc;
+	}
 
 	list_remove(&disk->ldisks);
 	label_close(disk->label);
@@ -484,55 +530,30 @@ int vbds_get_parts(service_id_t sid, service_id_t *id_buf, size_t buf_size,
 	return EOK;
 }
 
-
 int vbds_label_create(service_id_t sid, label_type_t ltype)
 {
 	label_t *label;
 	vbds_disk_t *disk;
-	bool block_inited = false;
-	size_t block_size;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu)", sid);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - chkdup", sid);
-
-	/* Check for duplicates */
+	/* Find disk */
 	rc = vbds_disk_by_svcid(sid, &disk);
-	if (rc == EOK)
-		return EEXISTS;
+	if (rc != EOK)
+		return rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - alloc", sid);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - label_close", sid);
 
-	disk = calloc(1, sizeof(vbds_disk_t));
-	if (disk == NULL)
-		return ENOMEM;
-
-	rc = loc_service_get_name(sid, &disk->svc_name);
+	/* Close dummy label first */
+	rc = vbds_disk_parts_remove(disk);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting disk service name.");
-		rc = EIO;
-		goto error;
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed removing disk.");
+		return rc;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "block_init(%zu)", sid);
-	rc = block_init(EXCHANGE_SERIALIZE, sid, 2048);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed opening block device %s.",
-		    disk->svc_name);
-		rc = EIO;
-		goto error;
-	}
-
-	rc = block_get_bsize(sid, &block_size);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting block size of %s.",
-		    disk->svc_name);
-		rc = EIO;
-		goto error;
-	}
-
-	block_inited = true;
+	label_close(disk->label);
+	disk->label = NULL;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - label_create", sid);
 
@@ -540,32 +561,28 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 	if (rc != EOK)
 		goto error;
 
-	disk->svc_id = sid;
+	(void) vbds_disk_parts_add(disk, label);
 	disk->label = label;
-	disk->block_size = block_size;
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create: block_size=%zu",
-	    block_size);
-	list_initialize(&disk->parts);
-
-	list_append(&disk->ldisks, &vbds_disks);
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - success", sid);
 	return EOK;
 error:
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - failure", sid);
-	if (block_inited) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
-		block_fini(sid);
+	if (disk->label == NULL) {
+		rc = label_open(sid, &label);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Failed to open label in disk %s.",
+			    disk->svc_name);
+		}
 	}
-	if (disk != NULL)
-		free(disk->svc_name);
-	free(disk);
+
 	return rc;
 }
 
 int vbds_label_delete(service_id_t sid)
 {
 	vbds_disk_t *disk;
+	label_t *label;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_delete(%zu)", sid);
@@ -574,16 +591,29 @@ int vbds_label_delete(service_id_t sid)
 	if (rc != EOK)
 		return rc;
 
+	rc = vbds_disk_parts_remove(disk);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed deleting label.");
+		return rc;
+	}
+
 	rc = label_destroy(disk->label);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed deleting label.");
 		return rc;
 	}
 
-	list_remove(&disk->ldisks);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
-	block_fini(sid);
-	free(disk);
+	disk->label = NULL;
+
+	rc = label_open(disk->svc_id, &label);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Failed to open label in disk %s.",
+		    disk->svc_name);
+		return EIO;
+	}
+
+	(void) vbds_disk_parts_add(disk, label);
+	disk->label = label;
 	return EOK;
 }
 
@@ -896,6 +926,9 @@ static int vbds_part_svc_register(vbds_part_t *part)
 static int vbds_part_svc_unregister(vbds_part_t *part)
 {
 	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_svc_unregister("
+	    "disk->svc_name='%s', id=%zu)", part->disk->svc_name, part->svc_id);
 
 	rc = loc_service_unregister(part->svc_id);
 	if (rc != EOK)
