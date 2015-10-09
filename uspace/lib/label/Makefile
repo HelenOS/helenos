@@ -32,6 +32,7 @@ EXTRA_CFLAGS = -Iinclude -I$(LIBBLOCK_PREFIX)
 LIBRARY = liblabel
 
 SOURCES = \
+	src/dummy.c \
 	src/mbr.c \
 	src/gpt.c \
 	src/label.c

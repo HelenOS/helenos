@@ -36,10 +36,9 @@
 #include <ipc/common.h>
 
 typedef enum {
-	VOL_GET_DISKS = IPC_FIRST_USER_METHOD,
-	VOL_DISK_INFO,
-	VOL_LABEL_CREATE,
-	VOL_DISK_EMPTY
+	VOL_GET_PARTS = IPC_FIRST_USER_METHOD,
+	VOL_PART_INFO,
+	VOL_PART_EMPTY
 } vol_request_t;
 
 #endif

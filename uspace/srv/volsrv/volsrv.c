@@ -44,7 +44,7 @@
 #include <task.h>
 #include <vol.h>
 
-#include "disk.h"
+#include "part.h"
 
 #define NAME  "volsrv"
 
@@ -55,11 +55,11 @@ static int vol_init(void)
 	int rc;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_init()");
 
-	rc = vol_disk_init();
+	rc = vol_part_init();
 	if (rc != EOK)
 		return rc;
 
-	rc = vol_disk_discovery_start();
+	rc = vol_part_discovery_start();
 	if (rc != EOK)
 		return rc;
 
@@ -81,7 +81,7 @@ static int vol_init(void)
 	return EOK;
 }
 
-static void vol_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	size_t size;
@@ -101,7 +101,7 @@ static void vol_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	rc = vol_disk_get_ids(id_buf, size, &act_size);
+	rc = vol_part_get_ids(id_buf, size, &act_size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
@@ -114,69 +114,44 @@ static void vol_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
-static void vol_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
-	vol_disk_t *disk;
-	vol_disk_info_t dinfo;
+	vol_part_t *part;
+	vol_part_info_t pinfo;
 	int rc;
 
 	sid = IPC_GET_ARG1(*icall);
-	rc = vol_disk_find_by_id(sid, &disk);
+	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
-	rc = vol_disk_get_info(disk, &dinfo);
+	rc = vol_part_get_info(part, &pinfo);
 	if (rc != EOK) {
 		async_answer_0(iid, EIO);
 		return;
 	}
 
-	async_answer_3(iid, rc, dinfo.dcnt, dinfo.ltype, dinfo.flags);
+	async_answer_3(iid, rc, pinfo.dcnt, pinfo.ltype, pinfo.flags);
 }
 
-static void vol_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
-	vol_disk_t *disk;
-	label_type_t ltype;
+	vol_part_t *part;
 	int rc;
 
 	sid = IPC_GET_ARG1(*icall);
-	ltype = IPC_GET_ARG2(*icall);
 
-	rc = vol_disk_find_by_id(sid, &disk);
+	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
-	rc = vol_disk_label_create(disk, ltype);
-	if (rc != EOK) {
-		async_answer_0(iid, EIO);
-		return;
-	}
-
-	async_answer_0(iid, EOK);
-}
-
-static void vol_disk_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
-{
-	service_id_t sid;
-	vol_disk_t *disk;
-	int rc;
-
-	sid = IPC_GET_ARG1(*icall);
-
-	rc = vol_disk_find_by_id(sid, &disk);
-	if (rc != EOK) {
-		async_answer_0(iid, ENOENT);
-		return;
-	}
-
-	rc = vol_disk_empty_disk(disk);
+	rc = vol_part_empty_part(part);
 	if (rc != EOK) {
 		async_answer_0(iid, EIO);
 		return;
@@ -204,17 +179,14 @@ static void vol_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		}
 
 		switch (method) {
-		case VOL_GET_DISKS:
-			vol_get_disks_srv(callid, &call);
+		case VOL_GET_PARTS:
+			vol_get_parts_srv(callid, &call);
 			break;
-		case VOL_DISK_INFO:
-			vol_disk_info_srv(callid, &call);
+		case VOL_PART_INFO:
+			vol_part_info_srv(callid, &call);
 			break;
-		case VOL_LABEL_CREATE:
-			vol_label_create_srv(callid, &call);
-			break;
-		case VOL_DISK_EMPTY:
-			vol_disk_empty_srv(callid, &call);
+		case VOL_PART_EMPTY:
+			vol_part_empty_srv(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL);

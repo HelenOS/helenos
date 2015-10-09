@@ -174,7 +174,7 @@ static int vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
 	return EOK;
 }
 
-/** Get list of disks as array of service IDs.
+/** Get list of partitions as array of service IDs.
  *
  * @param vol Volume service
  * @param data Place to store pointer to array
@@ -182,20 +182,20 @@ static int vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
  *
  * @return EOK on success or negative error code
  */
-int vol_get_disks(vol_t *vol, service_id_t **data, size_t *count)
+int vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
 {
-	return vol_get_ids_internal(vol, VOL_GET_DISKS, 0, data, count);
+	return vol_get_ids_internal(vol, VOL_GET_PARTS, 0, data, count);
 }
 
-/** Get disk information. */
-int vol_disk_info(vol_t *vol, service_id_t sid, vol_disk_info_t *vinfo)
+/** Get partition information. */
+int vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 {
 	async_exch_t *exch;
 	sysarg_t dcnt, ltype, flags;
 	int retval;
 
 	exch = async_exchange_begin(vol->sess);
-	retval = async_req_1_3(exch, VOL_DISK_INFO, sid, &dcnt, &ltype,
+	retval = async_req_1_3(exch, VOL_PART_INFO, sid, &dcnt, &ltype,
 	    &flags);
 	async_exchange_end(exch);
 
@@ -208,31 +208,15 @@ int vol_disk_info(vol_t *vol, service_id_t sid, vol_disk_info_t *vinfo)
 	return EOK;
 }
 
-/** Create new label. */
-int vol_label_create(vol_t *vol, service_id_t sid, label_type_t ltype)
+/** Erase partition (to the extent where we will consider it not containing
+ * a file system. */
+int vol_part_empty(vol_t *vol, service_id_t sid)
 {
 	async_exch_t *exch;
 	int retval;
 
 	exch = async_exchange_begin(vol->sess);
-	retval = async_req_2_0(exch, VOL_LABEL_CREATE, sid, ltype);
-	async_exchange_end(exch);
-
-	if (retval != EOK)
-		return EIO;
-
-	return EOK;
-}
-
-/** Erase disk (to the extent where we will consider it not containing
- * a label or file system. */
-int vol_disk_empty(vol_t *vol, service_id_t sid)
-{
-	async_exch_t *exch;
-	int retval;
-
-	exch = async_exchange_begin(vol->sess);
-	retval = async_req_1_0(exch, VOL_DISK_EMPTY, sid);
+	retval = async_req_1_0(exch, VOL_PART_EMPTY, sid);
 	async_exchange_end(exch);
 
 	if (retval != EOK)

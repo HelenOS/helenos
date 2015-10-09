@@ -26,28 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup volsrv
+/** @addtogroup liblabel
  * @{
  */
 /**
- * @file
- * @brief
+ * @file Dummy label (fallback for disks that have no recognized label).
  */
 
-#ifndef DISK_H_
-#define DISK_H_
+#ifndef LIBLABEL_DUMMY_H_
+#define LIBLABEL_DUMMY_H_
 
-#include <sys/types.h>
-#include <vol.h>
-#include "types/disk.h"
+#include <types/liblabel.h>
 
-extern int vol_disk_init(void);
-extern int vol_disk_discovery_start(void);
-extern int vol_disk_get_ids(service_id_t *, size_t, size_t *);
-extern int vol_disk_find_by_id(service_id_t, vol_disk_t **);
-extern int vol_disk_label_create(vol_disk_t *, label_type_t);
-extern int vol_disk_empty_disk(vol_disk_t *);
-extern int vol_disk_get_info(vol_disk_t *, vol_disk_info_t *);
+extern label_ops_t dummy_label_ops;
 
 #endif
 

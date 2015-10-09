@@ -132,7 +132,9 @@ int fdisk_dev_list_get(fdisk_t *fdisk, fdisk_dev_list_t **rdevlist)
 
 	list_initialize(&devlist->devinfos);
 
-	rc = vol_get_disks(fdisk->vol, &svcs, &count);
+	printf("vbd_get_disks()\n");
+	rc = vbd_get_disks(fdisk->vbd, &svcs, &count);
+	printf(" -> %d\n", rc);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -362,7 +364,7 @@ static void fdisk_log_part_insert_lists(fdisk_dev_t *dev, fdisk_part_t *part)
 
 int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 {
-	vol_disk_info_t vinfo;
+	vbd_disk_info_t vinfo;
 	fdisk_dev_t *dev = NULL;
 	service_id_t *psids = NULL;
 	size_t nparts, i;
@@ -379,16 +381,13 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 	list_initialize(&dev->pri_ba);
 	list_initialize(&dev->log_ba);
 
-	rc = vol_disk_info(fdisk->vol, sid, &vinfo);
+	rc = vbd_disk_info(fdisk->vbd, sid, &vinfo);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	dev->dcnt = vinfo.dcnt;
-
-	if (dev->dcnt != dc_label)
-		goto done;
+	dev->dcnt = dc_label;
 
 	printf("get label info\n");
 	rc = fdisk_update_dev_info(dev);
@@ -420,7 +419,6 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 	}
 
 	free(psids);
-done:
 	*rdev = dev;
 	return EOK;
 error:
@@ -478,16 +476,16 @@ int fdisk_dev_capacity(fdisk_dev_t *dev, fdisk_cap_t *cap)
 
 int fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
 {
-	vol_disk_info_t vinfo;
+	vbd_disk_info_t vinfo;
 	int rc;
 
-	rc = vol_disk_info(dev->fdisk->vol, dev->sid, &vinfo);
+	rc = vbd_disk_info(dev->fdisk->vbd, dev->sid, &vinfo);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	info->dcnt = vinfo.dcnt;
+	info->dcnt = dc_label;
 	info->ltype = vinfo.ltype;
 	info->flags = vinfo.flags;
 	return EOK;
@@ -499,7 +497,7 @@ int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 {
 	int rc;
 
-	rc = vol_label_create(dev->fdisk->vol, dev->sid, ltype);
+	rc = vbd_label_create(dev->fdisk->vbd, dev->sid, ltype);
 	if (rc != EOK)
 		return rc;
 
@@ -517,11 +515,13 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 
 	part = fdisk_part_first(dev);
 	while (part != NULL) {
-		(void) fdisk_part_destroy(part); /* XXX */
+		rc = fdisk_part_destroy(part);
+		if (rc != EOK)
+			return EIO;
 		part = fdisk_part_first(dev);
 	}
 
-	rc = vol_disk_empty(dev->fdisk->vol, dev->sid);
+	rc = vbd_label_delete(dev->fdisk->vbd, dev->sid);
 	if (rc != EOK)
 		return EIO;
 
@@ -684,6 +684,9 @@ int fdisk_ltype_format(label_type_t ltype, char **rstr)
 
 	sltype = NULL;
 	switch (ltype) {
+	case lt_none:
+		sltype = "None";
+		break;
 	case lt_mbr:
 		sltype = "MBR";
 		break;

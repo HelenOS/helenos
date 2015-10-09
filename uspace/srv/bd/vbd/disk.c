@@ -47,8 +47,11 @@
 #include "disk.h"
 #include "types/vbd.h"
 
+static fibril_mutex_t vbds_disks_lock;
 static list_t vbds_disks; /* of vbds_disk_t */
 static list_t vbds_parts; /* of vbds_part_t */
+
+static category_id_t part_cid;
 
 static int vbds_bd_open(bd_srvs_t *, bd_srv_t *);
 static int vbds_bd_close(bd_srv_t *);
@@ -82,11 +85,75 @@ static vbds_part_t *bd_srv_part(bd_srv_t *bd)
 	return (vbds_part_t *)bd->srvs->sarg;
 }
 
-void vbds_disks_init(void)
+int vbds_disks_init(void)
 {
+	int rc;
+
+	fibril_mutex_initialize(&vbds_disks_lock);
 	list_initialize(&vbds_disks);
 	list_initialize(&vbds_parts);
+
+	rc = loc_category_get_id("partition", &part_cid, 0);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error looking up partition "
+		    "category.");
+		return EIO;
+	}
+
+	return EOK;
 }
+
+/** Check for new disk devices */
+static int vbds_disks_check_new(void)
+{
+	bool already_known;
+	category_id_t disk_cat;
+	service_id_t *svcs;
+	size_t count, i;
+	int rc;
+
+	fibril_mutex_lock(&vbds_disks_lock);
+
+	rc = loc_category_get_id("disk", &disk_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'disk'.");
+		fibril_mutex_unlock(&vbds_disks_lock);
+		return ENOENT;
+	}
+
+	rc = loc_category_get_svcs(disk_cat, &svcs, &count);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting list of disk "
+		    "devices.");
+		fibril_mutex_unlock(&vbds_disks_lock);
+		return EIO;
+	}
+
+	for (i = 0; i < count; i++) {
+		already_known = false;
+
+		list_foreach(vbds_disks, ldisks, vbds_disk_t, disk) {
+			if (disk->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+
+		if (!already_known) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Found disk '%lu'",
+			    (unsigned long) svcs[i]);
+			rc = vbds_disk_add(svcs[i]);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not add "
+				    "disk.");
+			}
+		}
+	}
+
+	fibril_mutex_unlock(&vbds_disks_lock);
+	return EOK;
+}
+
 
 static int vbds_disk_by_svcid(service_id_t sid, vbds_disk_t **rdisk)
 {
@@ -209,6 +276,25 @@ static int vbds_part_remove(vbds_part_t *part, label_part_t **rlpart)
 	return EOK;
 }
 
+static void vbds_disk_cat_change_cb(void)
+{
+	(void) vbds_disks_check_new();
+}
+
+int vbds_disk_discovery_start(void)
+{
+	int rc;
+
+	rc = loc_register_cat_change_cb(vbds_disk_cat_change_cb);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback "
+		    "for disk discovery (%d).", rc);
+		return rc;
+	}
+
+	return vbds_disks_check_new();
+}
+
 int vbds_disk_add(service_id_t sid)
 {
 	label_t *label = NULL;
@@ -276,7 +362,7 @@ int vbds_disk_add(service_id_t sid)
 	while (part != NULL) {
 		rc = vbds_part_add(disk, part, NULL);
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding partitio "
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding partition "
 			    "(disk %s)", disk->svc_name);
 		}
 
@@ -312,6 +398,35 @@ int vbds_disk_remove(service_id_t sid)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
 	block_fini(sid);
 	free(disk);
+	return EOK;
+}
+
+/** Get list of disks as array of service IDs. */
+int vbds_disk_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
+{
+	size_t act_cnt;
+	size_t buf_cnt;
+
+	fibril_mutex_lock(&vbds_disks_lock);
+
+	buf_cnt = buf_size / sizeof(service_id_t);
+
+	act_cnt = list_count(&vbds_disks);
+	*act_size = act_cnt * sizeof(service_id_t);
+
+	if (buf_size % sizeof(service_id_t) != 0) {
+		fibril_mutex_unlock(&vbds_disks_lock);
+		return EINVAL;
+	}
+
+	size_t pos = 0;
+	list_foreach(vbds_disks, ldisks, vbds_disk_t, disk) {
+		if (pos < buf_cnt)
+			id_buf[pos] = disk->svc_id;
+		pos++;
+	}
+
+	fibril_mutex_unlock(&vbds_disks_lock);
 	return EOK;
 }
 
@@ -750,9 +865,24 @@ static int vbds_part_svc_register(vbds_part_t *part)
 	rc = loc_service_register(name, &psid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "
-		    "service %s.", name);
+		    "service %s (%d).", name, rc);
 		free(name);
 		free(part);
+		return EIO;
+	}
+
+	rc = loc_service_add_to_cat(psid, part_cid);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failled adding partition "
+		    "service %s to partition category.", name);
+		free(name);
+		free(part);
+
+		rc = loc_service_unregister(psid);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error unregistering "
+			    "service. Rollback failed.");
+		}
 		return EIO;
 	}
 

@@ -92,8 +92,7 @@ typedef sysarg_t vbd_part_id_t;
 
 extern int vbd_create(vbd_t **);
 extern void vbd_destroy(vbd_t *);
-extern int vbd_disk_add(vbd_t *, service_id_t);
-extern int vbd_disk_remove(vbd_t *, service_id_t);
+extern int vbd_get_disks(vbd_t *, service_id_t **, size_t *);
 extern int vbd_disk_info(vbd_t *, service_id_t, vbd_disk_info_t *);
 extern int vbd_label_create(vbd_t *, service_id_t, label_type_t);
 extern int vbd_label_delete(vbd_t *, service_id_t);

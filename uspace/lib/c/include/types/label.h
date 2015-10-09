@@ -51,12 +51,15 @@ typedef enum {
 
 /** Disk label type */
 typedef enum {
+	/** No label */
+	lt_none,
 	/** BIOS Master Boot Record */
 	lt_mbr,
 	/** UEFI GUID Partition Table */
 	lt_gpt
 } label_type_t;
 
+#define LT_FIRST (lt_mbr)
 #define LT_LIMIT (lt_gpt + 1)
 
 /** Partition kind */

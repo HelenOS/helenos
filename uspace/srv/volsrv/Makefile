@@ -30,7 +30,7 @@ USPACE_PREFIX = ../..
 BINARY = volsrv
 
 SOURCES = \
-	disk.c \
+	part.c \
 	volsrv.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -34,15 +34,15 @@
  * @brief
  */
 
-#ifndef TYPES_DISK_H_
-#define TYPES_DISK_H_
+#ifndef TYPES_PART_H_
+#define TYPES_PART_H_
 
 #include <types/label.h>
 
-/** Disk */
+/** Partition */
 typedef struct {
-	/** Link to vol_disks */
-	link_t ldisks;
+	/** Link to vol_parts */
+	link_t lparts;
 	/** Service ID */
 	service_id_t svc_id;
 	/** Service name */
@@ -51,7 +51,7 @@ typedef struct {
 	label_disk_cnt_t dcnt;
 	/** Label type */
 	label_type_t ltype;
-} vol_disk_t;
+} vol_part_t;
 
 #endif
 

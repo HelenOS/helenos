@@ -211,7 +211,7 @@ static int fdsk_create_label(fdisk_dev_t *dev)
 		goto error;
 	}
 
-	for (i = 0; i < LT_LIMIT; i++) {
+	for (i = LT_FIRST; i < LT_LIMIT; i++) {
 		rc = fdisk_ltype_format(i, &sltype);
 		if (rc != EOK)
 			goto error;

@@ -39,12 +39,14 @@
 #include <mem.h>
 #include <stdlib.h>
 
+#include "dummy.h"
 #include "gpt.h"
 #include "mbr.h"
 
 static label_ops_t *probe_list[] = {
 	&gpt_label_ops,
 	&mbr_label_ops,
+	&dummy_label_ops,
 	NULL
 };
 
@@ -69,6 +71,8 @@ int label_create(service_id_t sid, label_type_t ltype, label_t **rlabel)
 	label_ops_t *ops = NULL;
 
 	switch (ltype) {
+	case lt_none:
+		return EINVAL;
 	case lt_gpt:
 		ops = &gpt_label_ops;
 		break;

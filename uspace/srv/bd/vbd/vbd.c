@@ -59,7 +59,13 @@ static int vbds_init(void)
 	int rc;
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_init()");
 
-	vbds_disks_init();
+	rc = vbds_disks_init();
+	if (rc != EOK)
+		return rc;
+
+	rc = vbds_disk_discovery_start();
+	if (rc != EOK)
+		return rc;
 
 	async_set_client_connection(vbds_client_conn);
 
@@ -78,29 +84,37 @@ static int vbds_init(void)
 	return EOK;
 }
 
-
-static void vbds_disk_add_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
-	service_id_t disk_sid;
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_add_srv()");
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
 
-	disk_sid = IPC_GET_ARG1(*icall);
-	rc = vbds_disk_add(disk_sid);
-	async_answer_0(iid, (sysarg_t) rc);
-}
+	service_id_t *id_buf = (service_id_t *) malloc(size);
+	if (id_buf == NULL) {
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
 
-static void vbds_disk_remove_srv(ipc_callid_t iid, ipc_call_t *icall)
-{
-	service_id_t disk_sid;
-	int rc;
+	rc = vbds_disk_get_ids(id_buf, size, &act_size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_remove_srv()");
+	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	free(id_buf);
 
-	disk_sid = IPC_GET_ARG1(*icall);
-	rc = vbds_disk_remove(disk_sid);
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_1(iid, retval, act_size);
 }
 
 static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
@@ -361,11 +375,8 @@ static void vbds_ctl_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		}
 
 		switch (method) {
-		case VBD_DISK_ADD:
-			vbds_disk_add_srv(callid, &call);
-			break;
-		case VBD_DISK_REMOVE:
-			vbds_disk_remove_srv(callid, &call);
+		case VBD_GET_DISKS:
+			vbds_get_disks_srv(callid, &call);
 			break;
 		case VBD_DISK_INFO:
 			vbds_disk_info_srv(callid, &call);

@@ -42,6 +42,9 @@
 #include <types/label.h>
 #include <vbd.h>
 
+static int vbd_get_ids_internal(vbd_t *, sysarg_t, sysarg_t, sysarg_t **,
+    size_t *);
+
 int vbd_create(vbd_t **rvbd)
 {
 	vbd_t *vbd;
@@ -84,26 +87,17 @@ void vbd_destroy(vbd_t *vbd)
 	free(vbd);
 }
 
-int vbd_disk_add(vbd_t *vbd, service_id_t disk_sid)
+/** Get list of partitions as array of service IDs.
+ *
+ * @param vbd Virtual block device service
+ * @param data Place to store pointer to array
+ * @param count Place to store length of array (number of entries)
+ *
+ * @return EOK on success or negative error code
+ */
+int vbd_get_disks(vbd_t *vbd, service_id_t **data, size_t *count)
 {
-	async_exch_t *exch;
-
-	exch = async_exchange_begin(vbd->sess);
-	sysarg_t rc = async_req_1_0(exch, VBD_DISK_ADD, disk_sid);
-	async_exchange_end(exch);
-
-	return (int)rc;
-}
-
-int vbd_disk_remove(vbd_t *vbd, service_id_t disk_sid)
-{
-	async_exch_t *exch;
-
-	exch = async_exchange_begin(vbd->sess);
-	sysarg_t rc = async_req_1_0(exch, VBD_DISK_REMOVE, disk_sid);
-	async_exchange_end(exch);
-
-	return (int)rc;
+	return vbd_get_ids_internal(vbd, VBD_GET_DISKS, 0, data, count);
 }
 
 /** Get disk information. */

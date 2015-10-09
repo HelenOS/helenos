@@ -46,22 +46,21 @@ typedef struct vol {
 	async_sess_t *sess;
 } vol_t;
 
-/** Disk information */
+/** Partition information */
 typedef struct {
-	/** Disk contents */
+	/** Partition contents */
 	label_disk_cnt_t dcnt;
-	/** Label type, if disk contents is label */
+	/** Label type, if partition contents is label XXX */
 	label_type_t ltype;
 	/** Label flags */
 	label_flags_t flags;
-} vol_disk_info_t;
+} vol_part_info_t;
 
 extern int vol_create(vol_t **);
 extern void vol_destroy(vol_t *);
-extern int vol_get_disks(vol_t *, service_id_t **, size_t *);
-extern int vol_disk_info(vol_t *, service_id_t, vol_disk_info_t *);
-extern int vol_label_create(vol_t *, service_id_t, label_type_t);
-extern int vol_disk_empty(vol_t *, service_id_t);
+extern int vol_get_parts(vol_t *, service_id_t **, size_t *);
+extern int vol_part_info(vol_t *, service_id_t, vol_part_info_t *);
+extern int vol_part_empty(vol_t *, service_id_t);
 
 #endif
 
