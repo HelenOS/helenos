@@ -489,6 +489,8 @@ int vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
 		return rc;
 
 	rc = label_get_info(disk->label, &linfo);
+	if (rc != EOK)
+		return rc;
 
 	info->ltype = linfo.ltype;
 	info->flags = linfo.flags;
@@ -533,6 +535,7 @@ int vbds_get_parts(service_id_t sid, service_id_t *id_buf, size_t buf_size,
 int vbds_label_create(service_id_t sid, label_type_t ltype)
 {
 	label_t *label;
+	label_info_t linfo;
 	vbds_disk_t *disk;
 	int rc;
 
@@ -544,6 +547,16 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 		return rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - label_close", sid);
+
+	/* Verify that current label is a dummy label */
+	rc = label_get_info(disk->label, &linfo);
+	if (rc != EOK)
+		return rc;
+
+	if (linfo.ltype != lt_none) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Label already exists.");
+		return EEXIST;
+	}
 
 	/* Close dummy label first */
 	rc = vbds_disk_parts_remove(disk);
