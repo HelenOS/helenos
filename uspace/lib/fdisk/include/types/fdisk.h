@@ -101,8 +101,6 @@ typedef struct {
 typedef struct {
 	/** Fdisk instance */
 	struct fdisk *fdisk;
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
 	/** Service ID */
 	service_id_t sid;
 	/** All partitions */
@@ -122,8 +120,6 @@ typedef struct {
 } fdisk_dev_t;
 
 typedef struct {
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
 	/** Label type */
 	label_type_t ltype;
 	/** Label flags */

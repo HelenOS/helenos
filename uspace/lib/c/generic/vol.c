@@ -191,20 +191,23 @@ int vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
 int vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 {
 	async_exch_t *exch;
-	sysarg_t dcnt, ltype, flags;
-	int retval;
+	sysarg_t retval;
+	ipc_call_t answer;
 
 	exch = async_exchange_begin(vol->sess);
-	retval = async_req_1_3(exch, VOL_PART_INFO, sid, &dcnt, &ltype,
-	    &flags);
+	aid_t req = async_send_1(exch, VOL_PART_INFO, sid, &answer);
+	int rc = async_data_read_start(exch, vinfo, sizeof(vol_part_info_t));
 	async_exchange_end(exch);
 
+	if (rc != EOK) {
+		async_forget(req);
+		return EIO;
+	}
+
+	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return EIO;
 
-	vinfo->dcnt = (label_disk_cnt_t)dcnt;
-	vinfo->ltype = (label_type_t)ltype;
-	vinfo->flags = (label_flags_t)flags;
 	return EOK;
 }
 

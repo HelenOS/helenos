@@ -401,7 +401,6 @@ error:
 static int mbr_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
-	linfo->dcnt = dc_label;
 	linfo->ltype = lt_mbr;
 
 	/* We support extended partitions */

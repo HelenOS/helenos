@@ -546,7 +546,6 @@ static bool gpt_can_create_pri(label_t *label)
 static int gpt_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
-	linfo->dcnt = dc_label;
 	linfo->ltype = lt_gpt;
 	linfo->flags = lf_ptype_uuid; /* Partition type is in UUID format */
 	if (gpt_can_create_pri(label))

@@ -39,6 +39,7 @@
 #include <ipc/services.h>
 #include <ipc/vol.h>
 #include <loc.h>
+#include <macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <task.h>
@@ -134,7 +135,29 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	async_answer_3(iid, rc, pinfo.dcnt, pinfo.ltype, pinfo.flags);
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(vol_part_info_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	rc = async_data_read_finalize(callid, &pinfo,
+	    min(size, sizeof(pinfo)));
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	async_answer_0(iid, EOK);
 }
 
 static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)

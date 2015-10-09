@@ -156,7 +156,6 @@ static int dummy_destroy(label_t *label)
 static int dummy_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
-	linfo->dcnt = dc_label;
 	linfo->ltype = lt_none;
 	linfo->flags = 0;
 	linfo->ablock0 = label->ablock0;

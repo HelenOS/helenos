@@ -387,8 +387,6 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 		goto error;
 	}
 
-	dev->dcnt = dc_label;
-
 	printf("get label info\n");
 	rc = fdisk_update_dev_info(dev);
 	if (rc != EOK) {
@@ -485,7 +483,6 @@ int fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
 		goto error;
 	}
 
-	info->dcnt = dc_label;
 	info->ltype = vinfo.ltype;
 	info->flags = vinfo.flags;
 	return EOK;
@@ -525,7 +522,6 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 	if (rc != EOK)
 		return EIO;
 
-	dev->dcnt = dc_empty;
 	return EOK;
 }
 

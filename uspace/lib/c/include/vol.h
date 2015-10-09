@@ -46,14 +46,29 @@ typedef struct vol {
 	async_sess_t *sess;
 } vol_t;
 
+typedef enum {
+	/** Partition is empty */
+	vpc_empty,
+	/** Partition contains a recognized filesystem */
+	vpc_fs,
+	/** Partition contains unrecognized data */
+	vpc_unknown
+} vol_part_cnt_t;
+
+/** File system type */
+typedef enum {
+	fs_exfat,
+	fs_fat,
+	fs_minix,
+	fs_ext4
+} vol_fstype_t;
+
 /** Partition information */
 typedef struct {
-	/** Partition contents */
-	label_disk_cnt_t dcnt;
-	/** Label type, if partition contents is label XXX */
-	label_type_t ltype;
-	/** Label flags */
-	label_flags_t flags;
+	/** Partition content type */
+	vol_part_cnt_t pcnt;
+	/** Filesystem type */
+	vol_fstype_t fstype;
 } vol_part_info_t;
 
 extern int vol_create(vol_t **);

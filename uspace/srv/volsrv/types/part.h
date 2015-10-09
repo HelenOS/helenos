@@ -47,10 +47,10 @@ typedef struct {
 	service_id_t svc_id;
 	/** Service name */
 	char *svc_name;
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
-	/** Label type */
-	label_type_t ltype;
+	/** Partition contents */
+	vol_part_cnt_t pcnt;
+	/** Filesystem type */
+	vol_fstype_t fstype;
 } vol_part_t;
 
 #endif

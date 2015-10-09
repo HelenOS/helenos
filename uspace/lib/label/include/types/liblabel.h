@@ -64,8 +64,6 @@ typedef struct {
 } label_ops_t;
 
 struct label_info {
-	/** Disk contents */
-	label_disk_cnt_t dcnt;
 	/** Label type */
 	label_type_t ltype;
 	/** Label flags */

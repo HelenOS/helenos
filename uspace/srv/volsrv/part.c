@@ -112,7 +112,7 @@ static vol_part_t *vol_part_new(void)
 	}
 
 	link_initialize(&part->lparts);
-	part->dcnt = dc_empty;
+	part->pcnt = vpc_empty;
 
 	return part;
 }
@@ -148,7 +148,7 @@ static int vol_part_add(service_id_t sid)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
 
-	part->dcnt = dc_unknown;
+	part->pcnt = vpc_unknown;
 	list_append(&part->lparts, &vol_parts);
 
 	return EOK;
@@ -226,14 +226,15 @@ int vol_part_find_by_id(service_id_t sid, vol_part_t **rpart)
 
 int vol_part_empty_part(vol_part_t *part)
 {
-	part->dcnt = dc_empty;
+	part->pcnt = vpc_empty;
 
 	return EOK;
 }
 
-int vol_part_get_info(vol_part_t *part, vol_part_info_t *dinfo)
+int vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
 {
-	dinfo->dcnt = part->dcnt;
+	pinfo->pcnt = part->pcnt;
+	pinfo->fstype = part->fstype;
 	return EOK;
 }
 

@@ -37,17 +37,15 @@
 
 #include <types/uuid.h>
 
-/** Disk contents */
+/** Partition contents */
 typedef enum {
-	/** Disk is considered empty */
-	dc_empty = 0,
-	/** Disk contains a recognized label */
-	dc_label,
-	/** Disk contains a recognized filesystem */
-	dc_fs,
-	/** Disk contains unrecognized data */
-	dc_unknown
-} label_disk_cnt_t;
+	/** Partition is considered empty */
+	ptc_empty = 0,
+	/** Partition contains a recognized filesystem */
+	ptc_fs,
+	/** Partition contains unrecognized data */
+	ptc_unknown
+} label_part_cnt_t;
 
 /** Disk label type */
 typedef enum {
