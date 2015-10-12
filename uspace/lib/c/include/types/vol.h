@@ -32,34 +32,27 @@
 /** @file
  */
 
-#ifndef LIBC_VOL_H_
-#define LIBC_VOL_H_
+#ifndef LIBC_TYPES_VOL_H_
+#define LIBC_TYPES_VOL_H_
 
-#include <async.h>
-#include <loc.h>
-#include <stdint.h>
-#include <types/label.h>
-#include <types/vol.h>
+typedef enum {
+	/** Partition is empty */
+	vpc_empty,
+	/** Partition contains a recognized filesystem */
+	vpc_fs,
+	/** Partition contains unrecognized data */
+	vpc_unknown
+} vol_part_cnt_t;
 
-/** Volume service */
-typedef struct vol {
-	/** Volume service session */
-	async_sess_t *sess;
-} vol_t;
+/** File system type */
+typedef enum {
+	fs_exfat,
+	fs_fat,
+	fs_minix,
+	fs_ext4
+} vol_fstype_t;
 
-/** Partition information */
-typedef struct {
-	/** Partition content type */
-	vol_part_cnt_t pcnt;
-	/** Filesystem type */
-	vol_fstype_t fstype;
-} vol_part_info_t;
-
-extern int vol_create(vol_t **);
-extern void vol_destroy(vol_t *);
-extern int vol_get_parts(vol_t *, service_id_t **, size_t *);
-extern int vol_part_info(vol_t *, service_id_t, vol_part_info_t *);
-extern int vol_part_empty(vol_t *, service_id_t);
+#define VOL_FSTYPE_LIMIT (fs_ext4 + 1)
 
 #endif
 

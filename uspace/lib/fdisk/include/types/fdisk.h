@@ -40,6 +40,7 @@
 #include <loc.h>
 #include <stdint.h>
 #include <types/label.h>
+#include <types/vol.h>
 #include <vbd.h>
 #include <vol.h>
 
@@ -56,23 +57,6 @@ typedef enum {
 } fdisk_cunit_t;
 
 #define CU_LIMIT (cu_ybyte + 1)
-
-/** File system type */
-typedef enum {
-	fdfs_none = 0,
-	fdfs_unknown,
-	fdfs_exfat,
-	fdfs_fat,
-	fdfs_minix,
-	fdfs_ext4
-} fdisk_fstype_t;
-
-/** Highest fstype value + 1 */
-#define FDFS_LIMIT (fdfs_ext4 + 1)
-/** Lowest fstype allowed for creation */
-#define FDFS_CREATE_LO fdfs_exfat
-/** Highest fstype allowed for creation + 1 */
-#define FDFS_CREATE_HI (fdfs_ext4 + 1)
 
 /** Partition capacity */
 typedef struct {
@@ -142,8 +126,10 @@ typedef struct fdisk_part {
 	fdisk_cap_t capacity;
 	/** Partition kind */
 	label_pkind_t pkind;
+	/** Partition contents */
+	vol_part_cnt_t pcnt;
 	/** File system type */
-	fdisk_fstype_t fstype;
+	vol_fstype_t fstype;
 	/** Partition ID */
 	vbd_part_id_t part_id;
 	/** Partition index */
@@ -152,6 +138,8 @@ typedef struct fdisk_part {
 	aoff64_t block0;
 	/** Number of blocks */
 	aoff64_t nblocks;
+	/** Service ID */
+	service_id_t svc_id;
 } fdisk_part_t;
 
 /** Specification of new partition */
@@ -161,7 +149,7 @@ typedef struct {
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** File system type */
-	fdisk_fstype_t fstype;
+	vol_fstype_t fstype;
 } fdisk_part_spec_t;
 
 /** Partition info */
@@ -170,8 +158,10 @@ typedef struct {
 	fdisk_cap_t capacity;
 	/** Partition kind */
 	label_pkind_t pkind;
+	/** Partition contents */
+	vol_part_cnt_t pcnt;
 	/** File system type */
-	fdisk_fstype_t fstype;
+	vol_fstype_t fstype;
 } fdisk_part_info_t;
 
 /** Fdisk instance */

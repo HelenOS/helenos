@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <str.h>
 
+#include "empty.h"
 #include "part.h"
 #include "types/part.h"
 
@@ -129,6 +130,7 @@ static void vol_part_delete(vol_part_t *part)
 static int vol_part_add(service_id_t sid)
 {
 	vol_part_t *part;
+	bool empty;
 	int rc;
 
 	assert(fibril_mutex_is_locked(&vol_parts_lock));
@@ -147,8 +149,14 @@ static int vol_part_add(service_id_t sid)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
+	rc = vol_part_is_empty(sid, &empty);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed determining if "
+		    "partition is empty.");
+		goto error;
+	}
 
-	part->pcnt = vpc_unknown;
+	part->pcnt = empty ? vpc_empty : vpc_unknown;
 	list_append(&part->lparts, &vol_parts);
 
 	return EOK;

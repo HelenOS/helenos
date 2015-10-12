@@ -86,6 +86,8 @@ typedef struct {
 	aoff64_t block0;
 	/** Number of blocks */
 	aoff64_t nblocks;
+	/** Service ID */
+	service_id_t svc_id;
 } vbd_part_info_t;
 
 typedef sysarg_t vbd_part_id_t;

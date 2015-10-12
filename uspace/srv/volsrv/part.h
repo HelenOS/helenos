@@ -35,8 +35,9 @@
  */
 
 #ifndef PART_H_
-#define pART_H_
+#define PART_H_
 
+#include <loc.h>
 #include <sys/types.h>
 #include <vol.h>
 #include "types/part.h"

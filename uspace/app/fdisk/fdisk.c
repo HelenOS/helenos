@@ -261,7 +261,7 @@ static int fdsk_delete_label(fdisk_dev_t *dev)
 	return EOK;
 }
 
-static int fdsk_select_fstype(fdisk_fstype_t *fstype)
+static int fdsk_select_fstype(vol_fstype_t *fstype)
 {
 	nchoice_t *choice = NULL;
 	void *sel;
@@ -283,7 +283,7 @@ static int fdsk_select_fstype(fdisk_fstype_t *fstype)
 		goto error;
 	}
 
-	for (i = FDFS_CREATE_LO; i < FDFS_CREATE_HI; i++) {
+	for (i = 0; i < VOL_FSTYPE_LIMIT; i++) {
 		rc = fdisk_fstype_format(i, &sfstype);
 		if (rc != EOK)
 			goto error;
@@ -306,7 +306,7 @@ static int fdsk_select_fstype(fdisk_fstype_t *fstype)
 	}
 
 	nchoice_destroy(choice);
-	*fstype = (fdisk_fstype_t)sel;
+	*fstype = (vol_fstype_t)sel;
 	return EOK;
 error:
 	free(sfstype);
@@ -320,7 +320,7 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	int rc;
 	fdisk_part_spec_t pspec;
 	fdisk_cap_t cap;
-	fdisk_fstype_t fstype = fdfs_none;
+	vol_fstype_t fstype = 0;
 	tinput_t *tinput = NULL;
 	char *scap;
 
@@ -576,8 +576,20 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			free(spkind);
 		}
 
-		if (pinfo.pkind != lpk_extended)
-			printf(", %s", sfstype);
+		if (pinfo.pkind != lpk_extended) {
+			switch (pinfo.pcnt) {
+			case vpc_empty:
+				printf(", Empty");
+				break;
+			case vpc_fs:
+				printf(", %s", sfstype);
+				break;
+			case vpc_unknown:
+				printf(", Unknown");
+				break;
+			}
+		}
+
 		printf("\n");
 
 		free(scap);

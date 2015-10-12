@@ -70,7 +70,7 @@ extern void fdisk_pspec_init(fdisk_part_spec_t *);
 extern int fdisk_cap_format(fdisk_cap_t *, char **);
 extern int fdisk_cap_parse(const char *, fdisk_cap_t *);
 extern int fdisk_ltype_format(label_type_t, char **);
-extern int fdisk_fstype_format(fdisk_fstype_t, char **);
+extern int fdisk_fstype_format(vol_fstype_t, char **);
 extern int fdisk_pkind_format(label_pkind_t, char **);
 
 #endif

@@ -260,6 +260,7 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 {
 	fdisk_part_t *part;
 	vbd_part_info_t pinfo;
+	vol_part_info_t vpinfo;
 	int rc;
 
 	part = calloc(1, sizeof(fdisk_part_t));
@@ -272,11 +273,20 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 		goto error;
 	}
 
+	rc = vol_part_info(dev->fdisk->vol, pinfo.svc_id, &vpinfo);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
 	part->dev = dev;
 	part->index = pinfo.index;
 	part->block0 = pinfo.block0;
 	part->nblocks = pinfo.nblocks;
 	part->pkind = pinfo.pkind;
+	part->svc_id = pinfo.svc_id;
+	part->pcnt = vpinfo.pcnt;
+	part->fstype = vpinfo.fstype;
 
 	switch (part->pkind) {
 	case lpk_primary:
@@ -550,6 +560,7 @@ fdisk_part_t *fdisk_part_next(fdisk_part_t *part)
 int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 {
 	info->capacity = part->capacity;
+	info->pcnt = part->pcnt;
 	info->fstype = part->fstype;
 	info->pkind = part->pkind;
 	return EOK;
@@ -588,6 +599,7 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	}
 
 	printf("fdisk_part_create() - done\n");
+	part->pcnt = vpc_fs;
 	part->fstype = pspec->fstype;
 	part->capacity = pspec->capacity;
 
@@ -699,29 +711,23 @@ int fdisk_ltype_format(label_type_t ltype, char **rstr)
 	return EOK;
 }
 
-int fdisk_fstype_format(fdisk_fstype_t fstype, char **rstr)
+int fdisk_fstype_format(vol_fstype_t fstype, char **rstr)
 {
 	const char *sfstype;
 	char *s;
 
 	sfstype = NULL;
 	switch (fstype) {
-	case fdfs_none:
-		sfstype = "None";
-		break;
-	case fdfs_unknown:
-		sfstype = "Unknown";
-		break;
-	case fdfs_exfat:
+	case fs_exfat:
 		sfstype = "ExFAT";
 		break;
-	case fdfs_fat:
+	case fs_fat:
 		sfstype = "FAT";
 		break;
-	case fdfs_minix:
+	case fs_minix:
 		sfstype = "MINIX";
 		break;
-	case fdfs_ext4:
+	case fs_ext4:
 		sfstype = "Ext4";
 		break;
 	}
@@ -915,7 +921,6 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	int index;
 	int rc;
 
-//	pspec->fstype
 	printf("fdisk_part_spec_prepare() - dev=%p pspec=%p vpspec=%p\n", dev, pspec,
 	    vpspec);
 	printf("fdisk_part_spec_prepare() - block size\n");
@@ -934,19 +939,16 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	pcnt = -1;
 
 	switch (pspec->fstype) {
-	case fdfs_none:
-	case fdfs_unknown:
-		break;
-	case fdfs_exfat:
+	case fs_exfat:
 		pcnt = lpc_exfat;
 		break;
-	case fdfs_fat:
+	case fs_fat:
 		pcnt = lpc_fat32; /* XXX Detect FAT12/16 vs FAT32 */
 		break;
-	case fdfs_minix:
+	case fs_minix:
 		pcnt = lpc_minix;
 		break;
-	case fdfs_ext4:
+	case fs_ext4:
 		pcnt = lpc_ext4;
 		break;
 	}

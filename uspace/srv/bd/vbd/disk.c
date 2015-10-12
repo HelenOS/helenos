@@ -646,6 +646,7 @@ int vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
 	pinfo->pkind = lpinfo.pkind;
 	pinfo->block0 = lpinfo.block0;
 	pinfo->nblocks = lpinfo.nblocks;
+	pinfo->svc_id = part->svc_id;
 	return EOK;
 }
 
