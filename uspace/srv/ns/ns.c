@@ -44,7 +44,6 @@
 #include <errno.h>
 #include "ns.h"
 #include "service.h"
-#include "task.h"
 
 static void ns_connection(ipc_call_t *icall, void *arg)
 {
@@ -94,9 +93,6 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 		case NS_PING:
 			retval = EOK;
 			break;
-		case NS_ID_INTRO:
-			retval = ns_task_id_intro(&call);
-			break;
 		default:
 			printf("%s: Method not supported (%" PRIun ")\n",
 			    NAME, ipc_get_imethod(&call));
@@ -116,10 +112,6 @@ int main(int argc, char **argv)
 	printf("%s: HelenOS IPC Naming Service\n", NAME);
 
 	errno_t rc = ns_service_init();
-	if (rc != EOK)
-		return rc;
-
-	rc = task_init();
 	if (rc != EOK)
 		return rc;
 

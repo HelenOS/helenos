@@ -33,7 +33,6 @@ STATIC_NEEDED = y
 
 SOURCES = \
 	ns.c \
-	service.c \
-	task.c
+	service.c
 
 include $(USPACE_PREFIX)/Makefile.common
