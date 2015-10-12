@@ -254,6 +254,7 @@ errno_t os_exec(char *const cmd[])
 	errno_t rc;
 	int retval;
 
+	task_wait_set(&twait, TASK_WAIT_EXIT);
 	rc = task_spawnv(&tid, &twait, cmd[0], (char const *const *) cmd);
 	if (rc != EOK) {
 		printf("Error: Failed spawning '%s' (%s).\n", cmd[0],
@@ -262,7 +263,7 @@ errno_t os_exec(char *const cmd[])
 	}
 
 	/* XXX Handle exit status and return value. */
-	rc = task_wait(&twait, &texit, &retval);
+	rc = task_wait(&twait, NULL, NULL);
 	(void) rc;
 
 	return EOK;

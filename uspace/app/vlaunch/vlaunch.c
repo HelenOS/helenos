@@ -65,17 +65,17 @@ static int app_launch(const char *app)
 
 	task_id_t id;
 	task_wait_t wait;
+	task_wait_set(&wait, TASK_WAIT_RETVAL);
 	errno_t rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
 		    winreg, str_error(rc));
 		return -1;
 	}
-
-	task_exit_t texit;
+	
 	int retval;
-	rc = task_wait(&wait, &texit, &retval);
-	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL)) {
+	rc = task_wait(&wait, NULL, &retval);
+	if ((rc != EOK)) {
 		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
 		    app, str_error(rc));
 		return -1;

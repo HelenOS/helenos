@@ -175,6 +175,7 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	int status = PCUT_OUTCOME_PASS;
 
 	task_wait_t test_task_wait;
+	task_wait_set(&test_task_wait, TASK_WAIT_EXIT | TASK_WAIT_RETVAL);
 	rc = task_spawnvf(&test_task_id, &test_task_wait, self_path, arguments,
 	    fileno(stdin), tempfile, tempfile);
 	if (rc != EOK) {

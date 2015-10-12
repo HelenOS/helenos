@@ -168,17 +168,16 @@ int main(int argc, char *argv[])
 
 	task_id_t id;
 	task_wait_t twait;
-
+	task_wait_set(&twait, TASK_WAIT_EXIT);
 	errno_t rc = task_spawnv(&id, &twait, cmd, (const char *const *) args);
+
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));
 		return rc;
 	}
-
-	task_exit_t texit;
-	int retval;
-	rc = task_wait(&twait, &texit, &retval);
+	
+	rc = task_wait(&twait, NULL, NULL);
 	if (rc != EOK) {
 		printf("%s: Error waiting for %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));

@@ -140,6 +140,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 		vfs_fhandle(files[i], &file_handles[i]);
 	}
 
+	task_wait_set(&twait, TASK_WAIT_EXIT | TASK_WAIT_RETVAL);
 	rc = task_spawnvf(&tid, &twait, tmp, (const char **) argv,
 	    file_handles[0], file_handles[1], file_handles[2]);
 	free(tmp);

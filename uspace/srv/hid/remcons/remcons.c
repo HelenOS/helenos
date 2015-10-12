@@ -238,6 +238,7 @@ static errno_t spawn_task_fibril(void *arg)
 
 	task_id_t task;
 	task_wait_t wait;
+	task_wait_set(&wait, TASK_WAIT_EXIT | TASK_WAIT_RETVAL);
 	errno_t rc = task_spawnl(&task, &wait, APP_GETTERM, APP_GETTERM, user->service_name,
 	    "/loc", "--msg", "--", APP_SHELL, NULL);
 	if (rc != EOK) {
