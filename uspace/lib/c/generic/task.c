@@ -394,15 +394,14 @@ void task_cancel_wait(task_wait_t *wait)
  */
 errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 {
-	assert(texit);
-	assert(retval);
-
 	errno_t rc;
 	async_wait_for(wait->aid, &rc);
-
+	
 	if (rc == EOK) {
-		*texit = ipc_get_arg1(&wait->result);
-		*retval = ipc_get_arg2(&wait->result);
+		if (wait->flags & TASK_WAIT_EXIT && texit)
+			*texit = ipc_get_arg1(wait->result);
+		if (wait->flags & TASK_WAIT_RETVAL && retval)
+			*retval = ipc_get_arg2(wait->result);
 	}
 
 	return rc;
