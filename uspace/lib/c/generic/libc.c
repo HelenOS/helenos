@@ -189,7 +189,7 @@ void __libc_exit(int status)
 
 	if (env_setup) {
 		__stdio_done();
-		task_retval(status);
+		task_retval_internal(status, true);
 	}
 
 	__SYSCALL1(SYS_TASK_EXIT, false);

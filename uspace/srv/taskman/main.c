@@ -57,8 +57,8 @@ static prodcons_t sess_queue;
  */
 static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
 {
-	//TODO explain why we don't explicitly accept connection request
-	/* Spawn a loader. */
+	/* We don't accept the connection request, we forward it instead to
+	 * freshly spawned loader. */
 	int rc = loader_spawn("loader");
 	
 	if (rc != EOK) {
@@ -78,7 +78,8 @@ static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
 	    0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
-	// TODO leak? what happens with referenced sessions
+	/* After forward we can dispose all session-related resources */
+	async_hangup(sess_ref->sess);
 	free(sess_ref);
 
 	if (rc != EOK) {
@@ -152,10 +153,20 @@ static void control_connection_loop(void)
 
 static void control_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	/* First, accept connection */
-	async_answer_0(iid, EOK);
+	/* TODO remove/redesign the workaround
+	 * Call task_intro here for boot-time tasks,
+	 * probably they should announce themselves explicitly
+	 * or taskman should detect them from kernel's list of tasks.
+	 */
+	int rc = task_intro(icall, false);
 
-	// TODO register task to hash table
+	/* First, accept connection */
+	async_answer_0(iid, rc);
+
+	if (rc != EOK) {
+		return;
+	}
+
 	control_connection_loop();
 }
 
@@ -173,13 +184,12 @@ static void loader_callback(ipc_callid_t iid, ipc_call_t *icall)
 	/* Create callback connection */
 	sess_ref->sess = async_callback_receive_start(EXCHANGE_ATOMIC, icall);
 	if (sess_ref->sess == NULL) {
-		//TODO different error code?
 		async_answer_0(iid, EINVAL);
 		return;
 	}
 
 	/* Remember task_id */
-	int rc = task_id_intro(icall);
+	int rc = task_intro(icall, true);
 
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
@@ -221,7 +231,6 @@ static void implicit_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	switch (iface) {
 	case TASKMAN_LOADER_CALLBACK:
 		loader_callback(iid, icall);
-		// TODO register task to hashtable
 		control_connection_loop();
 		break;
 	default:
@@ -244,13 +253,13 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = async_event_subscribe(EVENT_EXIT, task_exit_event, (void *)EVENT_EXIT);
+	rc = async_event_subscribe(EVENT_EXIT, task_exit_event, (void *)TASK_EXIT_NORMAL);
 	if (rc != EOK) {
 		printf("Cannot register for exit events (%i).\n", rc);
 		return rc;
 	}
 
-	rc = async_event_subscribe(EVENT_FAULT, task_exit_event, (void *)EVENT_FAULT);
+	rc = async_event_subscribe(EVENT_FAULT, task_exit_event, (void *)TASK_EXIT_UNEXPECTED);
 	if (rc != EOK) {
 		printf("Cannot register for fault events (%i).\n", rc);
 		return rc;

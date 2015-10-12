@@ -39,6 +39,8 @@
 
 void __task_init(async_sess_t *);
 
+int task_retval_internal(int, bool);
+
 #endif
 
 /** @}

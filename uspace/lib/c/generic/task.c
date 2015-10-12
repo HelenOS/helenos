@@ -130,6 +130,7 @@ errno_t task_kill(task_id_t task_id)
  */
 static errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
 {
+	assert(wait->flags);
 	async_exch_t *exch = taskman_exchange_begin();
 	if (exch == NULL)
 			return EIO;
@@ -434,16 +435,21 @@ errno_t task_wait_task_id(task_id_t id, int flags, task_exit_t *texit, int *retv
 	return task_wait(&wait, texit, retval);
 }
 
-errno_t task_retval(int val)
+errno_t task_retval_internal(int val, bool wait_for_exit)
 {
 	async_exch_t *exch = taskman_exchange_begin();
 	if (exch == NULL)
 		return EIO;
 
-	int rc = (int) async_req_1_0(exch, TASKMAN_RETVAL, val);
+	errno_t rc = (int) async_req_2_0(exch, TASKMAN_RETVAL, val, wait_for_exit);
 	taskman_exchange_end(exch);
 	
 	return rc;
+}
+
+errno_t task_retval(int val)
+{
+	return task_retval_internal(val, false);
 }
 
 
