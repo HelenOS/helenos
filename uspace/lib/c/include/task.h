@@ -43,16 +43,23 @@
 
 #define TASK_WAIT_EXIT   0x1
 #define TASK_WAIT_RETVAL 0x2
+#define TASK_WAIT_BOTH   0x4
 
 typedef struct {
 	int flags;
 	ipc_call_t result;
 	aid_t aid;
+	task_id_t tid;
 } task_wait_t;
 
 static inline void task_wait_set(task_wait_t *wait, int flags)
 {
 	wait->flags = flags;
+}
+
+static inline int task_wait_get(task_wait_t *wait)
+{
+	return wait->flags;
 }
 
 extern task_id_t task_get_id(void);
@@ -83,8 +90,6 @@ extern errno_t task_wait_any(task_wait_t *, task_id_t *, task_exit_t *, int *,
 extern void task_cancel_wait(task_wait_t *);
 
 extern errno_t task_retval(int);
-//TODO
-//extern int task_exit(int);
 
 #endif
 

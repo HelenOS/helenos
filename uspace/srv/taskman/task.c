@@ -109,7 +109,8 @@ static FIBRIL_RWLOCK_INITIALIZE(task_hash_table_lock);
 /** Pending task wait structure. */
 typedef struct {
 	link_t link;
-	task_id_t id;         /**< Task ID. */
+	task_id_t id;         /**< Task ID who we wait for. */
+	task_id_t waiter_id;  /**< Task ID who waits. */
 	ipc_callid_t callid;  /**< Call ID waiting for the connection */
 	int flags;            /**< Wait flags */
 } pending_wait_t;
@@ -153,8 +154,15 @@ loop:
 			notify_flags |= TASK_WAIT_RETVAL;
 		}
 
+		/*
+		 * In current implementation you can wait for single retval,
+		 * thus it can be never present in rest flags.
+		 */
+		int rest = (~notify_flags & pr->flags) & ~TASK_WAIT_RETVAL;
+		rest &= ~TASK_WAIT_BOTH;
 		int match = notify_flags & pr->flags;
 		bool answer = !(pr->callid & IPC_CALLID_NOTIFICATION);
+		printf("%s: %x; %x, %x\n", __func__, pr->flags, rest, match);
 
 		if (match == 0) {
 			if (notify_flags & TASK_WAIT_EXIT) {
@@ -167,9 +175,20 @@ loop:
 				continue;
 			}
 		} else if (answer) {
-			/* Send both exit status and retval, caller should know
-			 * what is valid */
-			async_answer_2(pr->callid, EOK, ht->exit, ht->retval);
+			if ((pr->flags & TASK_WAIT_BOTH) && match == TASK_WAIT_EXIT) {
+				async_answer_1(pr->callid, EINVAL, ht->exit);
+			} else {
+				/* Send both exit status and retval, caller
+				 * should know what is valid */
+				async_answer_3(pr->callid, EOK, ht->exit,
+				    ht->retval, rest);
+			}
+
+			/* Pending wait has one more chance  */
+			if (rest && (pr->flags & TASK_WAIT_BOTH)) {
+				pr->flags = rest | TASK_WAIT_BOTH;
+				continue;
+			}
 		}
 
 		
@@ -182,6 +201,9 @@ loop:
 
 void wait_for_task(task_id_t id, int flags, ipc_callid_t callid, ipc_call_t *call)
 {
+	assert(!(flags & TASK_WAIT_BOTH) ||
+	    ((flags & TASK_WAIT_RETVAL) && (flags & TASK_WAIT_EXIT)));
+
 	fibril_rwlock_read_lock(&task_hash_table_lock);
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	fibril_rwlock_read_unlock(&task_hash_table_lock);
@@ -196,29 +218,64 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid, ipc_call_t *cal
 	}
 	
 	if (ht->exit != TASK_EXIT_RUNNING) {
-		task_exit_t texit = ht->exit;
-		async_answer_2(callid, EOK, texit, ht->retval);
+		//TODO are flags BOTH processed correctly here?
+		async_answer_3(callid, EOK, ht->exit, ht->retval, 0);
 		return;
 	}
 	
-	/* Add to pending list */
-	pending_wait_t *pr =
-	    (pending_wait_t *) malloc(sizeof(pending_wait_t));
-	if (!pr) {
-		// TODO why IPC_CALLID_NOTIFICATION? explain!
-		if (!(callid & IPC_CALLID_NOTIFICATION))
-			async_answer_0(callid, ENOMEM);
-		return;
-	}
-	
-	link_initialize(&pr->link);
-	pr->id = id;
-	pr->flags = flags;
-	pr->callid = callid;
-
+	/*
+	 * Add request to pending list or reuse existing item for a second
+	 * wait.
+	 */
+	task_id_t waiter_id = call->in_task_id;
 	fibril_rwlock_write_lock(&pending_wait_lock);
-	list_append(&pr->link, &pending_wait);
+	pending_wait_t *pr = NULL;
+	list_foreach(pending_wait, link, pending_wait_t, it) {
+		if (it->id == id && it->waiter_id == waiter_id) {
+			pr = it;
+			break;
+		}
+	}
+
+	int rc = EOK;
+	bool reuse = false;
+	if (pr == NULL) {
+		pr = malloc(sizeof(pending_wait_t));
+		if (!pr) {
+			rc = ENOMEM;
+			goto finish;
+		}
+	
+		link_initialize(&pr->link);
+		pr->id = id;
+		pr->waiter_id = waiter_id;
+		pr->flags = flags;
+		pr->callid = callid;
+
+		list_append(&pr->link, &pending_wait);
+		rc = EOK;
+	} else if (!(pr->flags & TASK_WAIT_BOTH)) {
+		/*
+		 * One task can wait for another task only once (per task, not
+		 * fibril).
+		 */
+		rc = EEXISTS;
+	} else {
+		/*
+		 * Reuse pending wait for the second time.
+		 */
+		pr->flags &= ~TASK_WAIT_BOTH; // TODO maybe new flags should be set?
+		pr->callid = callid;
+		reuse = true;
+	}
+	printf("%s: %llu: %x, %x, %i\n", __func__, pr->id, flags, pr->flags, reuse);
+
+finish:
 	fibril_rwlock_write_unlock(&pending_wait_lock);
+	// TODO why IPC_CALLID_NOTIFICATION? explain!
+	if (rc != EOK && !(callid & IPC_CALLID_NOTIFICATION))
+		async_answer_0(callid, rc);
+
 }
 
 int task_intro(ipc_call_t *call, bool check_unique)
@@ -248,6 +305,7 @@ int task_intro(ipc_call_t *call, bool check_unique)
 	ht->retval = -1;
 
 	hash_table_insert(&task_hash_table, &ht->link);
+	printf("%s: %llu\n", __func__, ht->id);
 	
 finish:
 	fibril_rwlock_write_unlock(&task_hash_table_lock);
@@ -259,7 +317,7 @@ int task_set_retval(ipc_call_t *call)
 	int rc = EOK;
 	task_id_t id = call->in_task_id;
 	
-	fibril_rwlock_read_lock(&task_hash_table_lock);
+	fibril_rwlock_write_lock(&task_hash_table_lock);
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 
 	hashed_task_t *ht = (link != NULL) ?
@@ -276,7 +334,7 @@ int task_set_retval(ipc_call_t *call)
 	process_pending_wait();
 	
 finish:
-	fibril_rwlock_read_unlock(&task_hash_table_lock);
+	fibril_rwlock_write_unlock(&task_hash_table_lock);
 	return rc;
 }
 
@@ -291,7 +349,11 @@ void task_terminated(task_id_t id, task_exit_t texit)
 
 	hashed_task_t *ht = hash_table_get_inst(link, hashed_task_t, link);
 	
-	if (ht->retval_type == RVAL_UNSET) {
+	/*
+	 * If daemon returns a value and then fails/is killed, it's unexpected
+	 * termination.
+	 */
+	if (ht->retval_type == RVAL_UNSET || texit == TASK_EXIT_UNEXPECTED) {
 		ht->exit = TASK_EXIT_UNEXPECTED;
 	} else {
 		ht->exit = texit;

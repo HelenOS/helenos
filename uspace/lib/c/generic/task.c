@@ -127,10 +127,15 @@ errno_t task_kill(task_id_t task_id)
  * @param wait Information necessary for the later task_wait call is stored here.
  *
  * @return EOK on success, else error code.
+ * @return TODO check this doesn't return EINVAL -- clash with task_wait
  */
 static errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
 {
 	assert(wait->flags);
+	if (wait->flags & TASK_WAIT_BOTH) {
+		wait->flags |= (TASK_WAIT_RETVAL | TASK_WAIT_EXIT);
+	}
+	wait->tid = id;
 	async_exch_t *exch = taskman_exchange_begin();
 	if (exch == NULL)
 			return EIO;
@@ -390,18 +395,31 @@ void task_cancel_wait(task_wait_t *wait)
  * @param texit  Store type of task exit here.
  * @param retval Store return value of the task here.
  *
- * @return EOK on success, else error code.
+ * @return EOK on success
+ * @return EINVAL on lost wait TODO other error codes
  */
 errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 {
 	errno_t rc;
 	async_wait_for(wait->aid, &rc);
-	
-	if (rc == EOK) {
+
+	if (rc == EOK || rc == EINVAL) {
 		if (wait->flags & TASK_WAIT_EXIT && texit)
 			*texit = ipc_get_arg1(wait->result);
 		if (wait->flags & TASK_WAIT_RETVAL && retval)
 			*retval = ipc_get_arg2(wait->result);
+		
+	}
+
+	if (rc == EOK) {
+		/* Is there another wait to be done? Wait for it! */
+		int old_flags = wait->flags;
+		wait->flags = ipc_get_arg3(wait->result);
+		if (wait->flags != 0 && (old_flags & TASK_WAIT_BOTH)) {
+			rc = task_setup_wait(wait->tid, wait);
+		}
+	} else {
+		wait->flags = 0;
 	}
 
 	return rc;

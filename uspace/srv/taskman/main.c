@@ -114,16 +114,16 @@ static void taskman_ctl_wait(ipc_callid_t iid, ipc_call_t *icall)
 
 static void taskman_ctl_retval(ipc_callid_t iid, ipc_call_t *icall)
 {
-	printf("%s:%i\n", __func__, __LINE__);
+	printf("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
 	int rc = task_set_retval(icall);
 	async_answer_0(iid, rc);
 }
 
 static void task_exit_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	printf("%s:%i\n", __func__, __LINE__);
 	// TODO design substitution for taskmon (monitoring)
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
+	printf("%s:%i from %llu/%i\n", __func__, __LINE__, id, (task_exit_t)arg);
 	task_terminated(id, (task_exit_t)arg);
 }
 
