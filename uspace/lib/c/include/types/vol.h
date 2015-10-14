@@ -54,6 +54,20 @@ typedef enum {
 
 #define VOL_FSTYPE_LIMIT (fs_ext4 + 1)
 
+/** Volume service */
+typedef struct vol {
+	/** Volume service session */
+	async_sess_t *sess;
+} vol_t;
+
+/** Partition information */
+typedef struct {
+	/** Partition content type */
+	vol_part_cnt_t pcnt;
+	/** Filesystem type */
+	vol_fstype_t fstype;
+} vol_part_info_t;
+
 #endif
 
 /** @}

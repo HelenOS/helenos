@@ -906,6 +906,8 @@ static int vbds_part_svc_register(vbds_part_t *part)
 		return ENOMEM;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "loc_service_register('%s')",
+	    name);
 	rc = loc_service_register(name, &psid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "

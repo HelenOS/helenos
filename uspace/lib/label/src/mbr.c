@@ -398,6 +398,11 @@ error:
 	return rc;
 }
 
+static bool mbr_can_delete_part(label_t *label)
+{
+	return list_count(&label->parts) > 0;
+}
+
 static int mbr_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
@@ -415,6 +420,9 @@ static int mbr_get_info(label_t *label, label_info_t *linfo)
 	/* Can create logical if there is an extended partition */
 	if (label->ext_part != NULL)
 		linfo->flags |= lf_can_create_log;
+	/* Can delete partition */
+	if (mbr_can_delete_part(label))
+		linfo->flags |= lf_can_delete_part;
 
 	linfo->ablock0 = label->ablock0;
 	linfo->anblocks = label->anblocks;

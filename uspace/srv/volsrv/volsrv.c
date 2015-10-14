@@ -43,7 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <task.h>
-#include <vol.h>
+#include <types/vol.h>
 
 #include "part.h"
 
@@ -115,6 +115,23 @@ static void vol_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
+static void vol_part_add_srv(ipc_callid_t iid, ipc_call_t *icall)
+{
+	service_id_t sid;
+	int rc;
+
+	sid = IPC_GET_ARG1(*icall);
+
+	rc = vol_part_add(sid);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	async_answer_0(iid, EOK);
+}
+
+
 static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
@@ -123,15 +140,21 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 
 	sid = IPC_GET_ARG1(*icall);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu)",
+	    sid);
 	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {
 		async_answer_0(iid, ENOENT);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
+		    "not found", sid);
 		return;
 	}
 
 	rc = vol_part_get_info(part, &pinfo);
 	if (rc != EOK) {
 		async_answer_0(iid, EIO);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
+		    "get info failed (%d)", sid, rc);
 		return;
 	}
 
@@ -140,12 +163,16 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
+		    "read receive failed", sid);
 		return;
 	}
 
 	if (size != sizeof(vol_part_info_t)) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
+		    "incorrect size", sid);
 		return;
 	}
 
@@ -154,9 +181,13 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
+		    "data read failed", sid);
 		return;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
+	    "success", sid);
 	async_answer_0(iid, EOK);
 }
 
@@ -204,6 +235,9 @@ static void vol_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		switch (method) {
 		case VOL_GET_PARTS:
 			vol_get_parts_srv(callid, &call);
+			break;
+		case VOL_PART_ADD:
+			vol_part_add_srv(callid, &call);
 			break;
 		case VOL_PART_INFO:
 			vol_part_info_srv(callid, &call);

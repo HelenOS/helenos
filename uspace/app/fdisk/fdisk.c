@@ -564,7 +564,11 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		printf("Partition %d: %s", npart, scap);
+		if (linfo.ltype == lt_none)
+			printf("Entire disk: %s", scap);
+		else
+			printf("Partition %d: %s", npart, scap);
+
 		if ((linfo.flags & lf_ext_supp) != 0) {
 			rc = fdisk_pkind_format(pinfo.pkind, &spkind);
 			if (rc != EOK) {
@@ -652,7 +656,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		}
 	}
 
-	if (npart > 0) {
+	if ((linfo.flags & lf_can_delete_part) != 0) {
 		rc = nchoice_add(choice, "Delete partition",
 		    (void *)devac_delete_part);
 		if (rc != EOK) {

@@ -543,6 +543,11 @@ static bool gpt_can_create_pri(label_t *label)
 	return list_count(&label->parts) < (size_t)label->pri_entries;
 }
 
+static bool gpt_can_delete_part(label_t *label)
+{
+	return list_count(&label->parts) > 0;
+}
+
 static int gpt_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
@@ -550,6 +555,8 @@ static int gpt_get_info(label_t *label, label_info_t *linfo)
 	linfo->flags = lf_ptype_uuid; /* Partition type is in UUID format */
 	if (gpt_can_create_pri(label))
 		linfo->flags = linfo->flags | lf_can_create_pri;
+	if (gpt_can_delete_part(label))
+		linfo->flags = linfo->flags | lf_can_delete_part;
 	linfo->ablock0 = label->ablock0;
 	linfo->anblocks = label->anblocks;
 	return EOK;

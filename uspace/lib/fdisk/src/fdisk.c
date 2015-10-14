@@ -57,6 +57,8 @@ static const char *cu_str[] = {
 	[cu_ybyte] = "YB"
 };
 
+static int fdisk_dev_add_parts(fdisk_dev_t *);
+static void fdisk_dev_remove_parts(fdisk_dev_t *);
 static int fdisk_part_spec_prepare(fdisk_dev_t *, fdisk_part_spec_t *,
     vbd_part_spec_t *);
 static void fdisk_pri_part_insert_lists(fdisk_dev_t *, fdisk_part_t *);
@@ -255,6 +257,7 @@ int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 	return EOK;
 }
 
+/** Add partition to our inventory. */
 static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
     fdisk_part_t **rpart)
 {
@@ -267,13 +270,28 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	if (part == NULL)
 		return ENOMEM;
 
+	printf("vbd_part_get_info(%zu)\n", partid);
 	rc = vbd_part_get_info(dev->fdisk->vbd, partid, &pinfo);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
+	printf("vol_part_add(%zu)...\n", pinfo.svc_id);
+	/*
+	 * Normally vol service discovers the partition asynchronously.
+	 * Here we need to make sure the partition is already known to it.
+	 */
+	rc = vol_part_add(dev->fdisk->vol, pinfo.svc_id);
+	printf("vol_part_add->rc = %d\n", rc);
+	if (rc != EOK && rc != EEXIST) {
+		rc = EIO;
+		goto error;
+	}
+
+	printf("vol_part_info(%zu)\n", pinfo.svc_id);
 	rc = vol_part_info(dev->fdisk->vol, pinfo.svc_id, &vpinfo);
+	printf("vol_part_info->rc = %d\n", rc);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -313,6 +331,19 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 error:
 	free(part);
 	return rc;
+}
+
+/** Remove partition from our inventory. */
+static void fdisk_part_remove(fdisk_part_t *part)
+{
+	list_remove(&part->lparts);
+	if (link_used(&part->lpri_ba))
+		list_remove(&part->lpri_ba);
+	if (link_used(&part->lpri_idx))
+		list_remove(&part->lpri_idx);
+	if (link_used(&part->llog_ba))
+		list_remove(&part->llog_ba);
+	free(part);
 }
 
 static void fdisk_pri_part_insert_lists(fdisk_dev_t *dev, fdisk_part_t *part)
@@ -370,6 +401,59 @@ static void fdisk_log_part_insert_lists(fdisk_dev_t *dev, fdisk_part_t *part)
 
 	if (link == NULL)
 		list_append(&part->llog_ba, &dev->log_ba);
+}
+
+static int fdisk_dev_add_parts(fdisk_dev_t *dev)
+{
+	service_id_t *psids = NULL;
+	size_t nparts, i;
+	int rc;
+
+	printf("get label info\n");
+	rc = fdisk_update_dev_info(dev);
+	if (rc != EOK) {
+		printf("failed\n");
+		rc = EIO;
+		goto error;
+	}
+
+	printf("block size: %zu\n", dev->dinfo.block_size);
+	printf("get partitions\n");
+	rc = vbd_label_get_parts(dev->fdisk->vbd, dev->sid, &psids, &nparts);
+	if (rc != EOK) {
+		printf("failed\n");
+		rc = EIO;
+		goto error;
+	}
+	printf("OK\n");
+
+	printf("found %zu partitions.\n", nparts);
+	for (i = 0; i < nparts; i++) {
+		printf("add partition sid=%zu\n", psids[i]);
+		rc = fdisk_part_add(dev, psids[i], NULL);
+		if (rc != EOK) {
+			printf("failed\n");
+			goto error;
+		}
+		printf("OK\n");
+	}
+
+	free(psids);
+	return EOK;
+error:
+	fdisk_dev_remove_parts(dev);
+	return rc;
+}
+
+static void fdisk_dev_remove_parts(fdisk_dev_t *dev)
+{
+	fdisk_part_t *part;
+
+	part = fdisk_part_first(dev);
+	while (part != NULL) {
+		fdisk_part_remove(part);
+		part = fdisk_part_first(dev);
+	}
 }
 
 int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
@@ -439,7 +523,7 @@ void fdisk_dev_close(fdisk_dev_t *dev)
 	if (dev == NULL)
 		return;
 
-	/* XXX Clean up partitions */
+	fdisk_dev_remove_parts(dev);
 	free(dev);
 }
 
@@ -504,6 +588,9 @@ int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 {
 	int rc;
 
+	/* Remove dummy partition */
+	fdisk_dev_remove_parts(dev);
+
 	rc = vbd_label_create(dev->fdisk->vbd, dev->sid, ltype);
 	if (rc != EOK)
 		return rc;
@@ -531,6 +618,10 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 	rc = vbd_label_delete(dev->fdisk->vbd, dev->sid);
 	if (rc != EOK)
 		return EIO;
+
+	rc = fdisk_dev_add_parts(dev);
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 }
@@ -616,14 +707,7 @@ int fdisk_part_destroy(fdisk_part_t *part)
 	if (rc != EOK)
 		return EIO;
 
-	list_remove(&part->lparts);
-	if (link_used(&part->lpri_ba))
-		list_remove(&part->lpri_ba);
-	if (link_used(&part->lpri_idx))
-		list_remove(&part->lpri_idx);
-	if (link_used(&part->llog_ba))
-		list_remove(&part->llog_ba);
-	free(part);
+	fdisk_part_remove(part);
 	return EOK;
 }
 

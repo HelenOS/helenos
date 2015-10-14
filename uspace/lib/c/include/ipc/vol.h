@@ -37,6 +37,7 @@
 
 typedef enum {
 	VOL_GET_PARTS = IPC_FIRST_USER_METHOD,
+	VOL_PART_ADD,
 	VOL_PART_INFO,
 	VOL_PART_EMPTY
 } vol_request_t;

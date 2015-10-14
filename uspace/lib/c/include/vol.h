@@ -41,23 +41,10 @@
 #include <types/label.h>
 #include <types/vol.h>
 
-/** Volume service */
-typedef struct vol {
-	/** Volume service session */
-	async_sess_t *sess;
-} vol_t;
-
-/** Partition information */
-typedef struct {
-	/** Partition content type */
-	vol_part_cnt_t pcnt;
-	/** Filesystem type */
-	vol_fstype_t fstype;
-} vol_part_info_t;
-
 extern int vol_create(vol_t **);
 extern void vol_destroy(vol_t *);
 extern int vol_get_parts(vol_t *, service_id_t **, size_t *);
+extern int vol_part_add(vol_t *, service_id_t);
 extern int vol_part_info(vol_t *, service_id_t, vol_part_info_t *);
 extern int vol_part_empty(vol_t *, service_id_t);
 

@@ -80,8 +80,10 @@ typedef enum {
 	lf_can_create_pri = 0x4,
 	/** Currently it is possible to create an extended partition */
 	lf_can_create_ext = 0x8,
-	/** Currrently it is possible to create a logical partition */
-	lf_can_create_log = 0x10
+	/** Currently it is possible to create a logical partition */
+	lf_can_create_log = 0x10,
+	/** Currently it is possible to delete a partition */
+	lf_can_delete_part = 0x20
 } label_flags_t;
 
 /** Partition type format */

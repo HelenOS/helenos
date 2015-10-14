@@ -187,6 +187,27 @@ int vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
 	return vol_get_ids_internal(vol, VOL_GET_PARTS, 0, data, count);
 }
 
+/** Add partition.
+ *
+ * After a partition is created (e.g. as a result of deleting a label
+ * the dummy partition is created), it can take some (unknown) time
+ * until it is discovered.
+ */
+int vol_part_add(vol_t *vol, service_id_t sid)
+{
+	async_exch_t *exch;
+	int retval;
+
+	exch = async_exchange_begin(vol->sess);
+	retval = async_req_1_0(exch, VOL_PART_ADD, sid);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
+
 /** Get partition information. */
 int vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 {

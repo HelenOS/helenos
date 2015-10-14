@@ -46,8 +46,7 @@
 #include "part.h"
 #include "types/part.h"
 
-static int vol_part_add(service_id_t);
-
+static int vol_part_add_locked(service_id_t);
 static LIST_INITIALIZE(vol_parts); /* of vol_part_t */
 static FIBRIL_MUTEX_INITIALIZE(vol_parts_lock);
 
@@ -90,7 +89,7 @@ static int vol_part_check_new(void)
 		if (!already_known) {
 			log_msg(LOG_DEFAULT, LVL_NOTE, "Found partition '%lu'",
 			    (unsigned long) svcs[i]);
-			rc = vol_part_add(svcs[i]);
+			rc = vol_part_add_locked(svcs[i]);
 			if (rc != EOK) {
 				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not add "
 				    "partition.");
@@ -127,13 +126,18 @@ static void vol_part_delete(vol_part_t *part)
 	free(part);
 }
 
-static int vol_part_add(service_id_t sid)
+static int vol_part_add_locked(service_id_t sid)
 {
 	vol_part_t *part;
 	bool empty;
 	int rc;
 
 	assert(fibril_mutex_is_locked(&vol_parts_lock));
+
+	/* Check for duplicates */
+	rc = vol_part_find_by_id(sid, &part);
+	if (rc == EOK)
+		return EEXIST;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_add()");
 	part = vol_part_new();
@@ -159,10 +163,23 @@ static int vol_part_add(service_id_t sid)
 	part->pcnt = empty ? vpc_empty : vpc_unknown;
 	list_append(&part->lparts, &vol_parts);
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Added partition %zu", part->svc_id);
+
 	return EOK;
 
 error:
 	vol_part_delete(part);
+	return rc;
+}
+
+int vol_part_add(service_id_t sid)
+{
+	int rc;
+
+	fibril_mutex_lock(&vol_parts_lock);
+	rc = vol_part_add_locked(sid);
+	fibril_mutex_unlock(&vol_parts_lock);
+
 	return rc;
 }
 
