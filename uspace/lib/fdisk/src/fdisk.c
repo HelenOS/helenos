@@ -527,6 +527,56 @@ void fdisk_dev_close(fdisk_dev_t *dev)
 	free(dev);
 }
 
+/** Erase contents of unlabeled disk. */
+int fdisk_dev_erase(fdisk_dev_t *dev)
+{
+	fdisk_part_t *part;
+	int rc;
+
+	printf("fdisk_dev_erase.. check ltype\n");
+	if (dev->dinfo.ltype != lt_none)
+		return EINVAL;
+
+	printf("fdisk_dev_erase.. get first part\n");
+	part = fdisk_part_first(dev);
+	assert(part != NULL);
+	printf("fdisk_dev_erase.. check part\n");
+	if (part->pcnt == vpc_empty)
+		return EINVAL;
+
+	printf("fdisk_dev_erase.. check part\n");
+	rc = vol_part_empty(dev->fdisk->vol, part->svc_id);
+	if (rc != EOK) {
+		printf("vol_part_empty -> %d\n", rc);
+		return rc;
+	}
+
+	part->pcnt = vpc_empty;
+	return EOK;
+}
+
+void fdisk_dev_get_flags(fdisk_dev_t *dev, fdisk_dev_flags_t *rflags)
+{
+	fdisk_dev_flags_t flags;
+	fdisk_part_t *part;
+
+	flags = 0;
+
+	/* fdf_can_create_label */
+	if (dev->dinfo.ltype == lt_none) {
+		part = fdisk_part_first(dev);
+		assert(part != NULL);
+		if (part->pcnt == vpc_empty)
+			flags |= fdf_can_create_label;
+		else
+			flags |= fdf_can_erase_dev;
+	} else {
+		flags |= fdf_can_delete_label;
+	}
+
+	*rflags = flags;
+}
+
 int fdisk_dev_get_svcname(fdisk_dev_t *dev, char **rname)
 {
 	char *name;
@@ -586,7 +636,18 @@ error:
 
 int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 {
+	fdisk_part_t *part;
 	int rc;
+
+	/* Disk must not contain a label. */
+	if (dev->dinfo.ltype != lt_none)
+		return EEXIST;
+
+	/* Dummy partition spanning entire disk must be considered empty */
+	part = fdisk_part_first(dev);
+	assert(part != NULL);
+	if (part->pcnt != vpc_empty)
+		return EEXIST;
 
 	/* Remove dummy partition */
 	fdisk_dev_remove_parts(dev);
@@ -605,7 +666,10 @@ int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 int fdisk_label_destroy(fdisk_dev_t *dev)
 {
 	fdisk_part_t *part;
+	fdisk_dev_flags_t dflags;
 	int rc;
+
+	printf("fdisk_label_destroy: begin\n");
 
 	part = fdisk_part_first(dev);
 	while (part != NULL) {
@@ -615,14 +679,27 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 		part = fdisk_part_first(dev);
 	}
 
+	printf("fdisk_label_destroy: vbd_label_delete\n");
+
 	rc = vbd_label_delete(dev->fdisk->vbd, dev->sid);
 	if (rc != EOK)
 		return EIO;
 
+	printf("fdisk_label_destroy: add parts\n");
 	rc = fdisk_dev_add_parts(dev);
 	if (rc != EOK)
 		return rc;
 
+	printf("fdisk_label_destroy: erase dev\n");
+	/* Make sure device is considered empty */
+	fdisk_dev_get_flags(dev, &dflags);
+	if ((dflags & fdf_can_erase_dev) != 0) {
+		rc = fdisk_dev_erase(dev);
+		if (rc != EOK)
+			return rc;
+	}
+
+	printf("fdisk_label_destroy: done\n");
 	return EOK;
 }
 

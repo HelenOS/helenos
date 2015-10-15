@@ -50,6 +50,8 @@ typedef enum {
 	devac_create_label,
 	/** Delete label */
 	devac_delete_label,
+	/** Erase disk */
+	devac_erase_disk,
 	/** Create (primary) partition */
 	devac_create_pri_part,
 	/** Create extended partition */
@@ -255,6 +257,19 @@ static int fdsk_delete_label(fdisk_dev_t *dev)
 	rc = fdisk_label_destroy(dev);
 	if (rc != EOK) {
 		printf("Error deleting label.\n");
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int fdsk_erase_disk(fdisk_dev_t *dev)
+{
+	int rc;
+
+	rc = fdisk_dev_erase(dev);
+	if (rc != EOK) {
+		printf("Error erasing disk.\n");
 		return rc;
 	}
 
@@ -472,6 +487,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	fdisk_part_t *part;
 	fdisk_part_info_t pinfo;
 	fdisk_cap_t cap;
+	fdisk_dev_flags_t dflags;
 	char *sltype = NULL;
 	char *sdcap = NULL;
 	char *scap = NULL;
@@ -513,6 +529,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		printf("Error getting device service name.\n");
 		goto error;
 	}
+
+	fdisk_dev_get_flags(dev, &dflags);
 
 	printf("Device: %s, %s\n", sdcap, svcname);
 	free(sdcap);
@@ -666,7 +684,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		}
 	}
 
-	if (linfo.ltype == lt_none) {
+	if ((dflags & fdf_can_create_label) != 0) {
 		rc = nchoice_add(choice, "Create label",
 		    (void *)devac_create_label);
 		if (rc != EOK) {
@@ -674,9 +692,21 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			printf("Out of memory.\n");
 			goto error;
 		}
-	} else {
+	}
+
+	if ((dflags & fdf_can_delete_label) != 0) {
 		rc = nchoice_add(choice, "Delete label",
 		    (void *)devac_delete_label);
+		if (rc != EOK) {
+			assert(rc == ENOMEM);
+			printf("Out of memory.\n");
+			goto error;
+		}
+	}
+
+	if ((dflags & fdf_can_erase_dev) != 0) {
+		rc = nchoice_add(choice, "Erase disk",
+		    (void *)devac_erase_disk);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -703,6 +733,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		break;
 	case devac_delete_label:
 		(void) fdsk_delete_label(dev);
+		break;
+	case devac_erase_disk:
+		(void) fdsk_erase_disk(dev);
 		break;
 	case devac_create_pri_part:
 		(void) fdsk_create_part(dev, lpk_primary);

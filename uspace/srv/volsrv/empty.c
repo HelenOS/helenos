@@ -56,6 +56,34 @@ static bool mem_is_zero(void *buf, size_t size)
 	return true;
 }
 
+/** Calculate number of blocks to check.
+ *
+ * Will store to @a *ncb the number of blocks that should be checked
+ * at the beginning and end of device each.
+ *
+ * @param nblocks Total number of blocks on block device
+ * @param block_size Block size
+ * @param ncb Place to store number of blocks to check.
+ */
+static void calc_num_check_blocks(aoff64_t nblocks, size_t block_size,
+    aoff64_t *ncb)
+{
+	aoff64_t n;
+
+	/* Check first 16 kiB / 16 blocks, whichever is more */
+	n = (16384 + block_size - 1) / block_size;
+	if (n < 16)
+		n = 16;
+	/*
+	 * Limit to half of the device so we do not process the same blocks
+	 * twice
+	 */
+	if (n > (nblocks + 1) / 2)
+		n = (nblocks + 1) / 2;
+
+	*ncb = n;
+}
+
 int vol_part_is_empty(service_id_t sid, bool *rempty)
 {
 	int rc;
@@ -93,16 +121,7 @@ int vol_part_is_empty(service_id_t sid, bool *rempty)
 		goto error;
 	}
 
-	/* Check first 16 kiB / 16 blocks, whichever is more */
-	n = (16384 + block_size - 1) / block_size;
-	if (n < 16)
-		n = 16;
-	/*
-	 * Limit to half of the device so we do not process the same blocks
-	 * twice
-	 */
-	if (n > (nblocks + 1) / 2)
-		n = (nblocks + 1) / 2;
+	calc_num_check_blocks(nblocks, block_size, &n);
 
 	buf = calloc(block_size, 1);
 	if (buf == NULL) {
@@ -147,6 +166,82 @@ done:
 	block_fini(sid);
 	free(buf);
 	*rempty = empty;
+	return EOK;
+error:
+	if (block_inited)
+		block_fini(sid);
+	if (buf != NULL)
+		free(buf);
+	return rc;
+}
+
+int vol_part_empty(service_id_t sid)
+{
+	int rc;
+	bool block_inited = false;
+	void *buf = NULL;
+	aoff64_t nblocks;
+	aoff64_t n;
+	aoff64_t i;
+	size_t block_size;
+
+	rc = block_init(EXCHANGE_SERIALIZE, sid, 2048);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error opening "
+		    "block device service %zu", sid);
+		rc = EIO;
+		goto error;
+	}
+
+	block_inited = true;
+
+	rc = block_get_bsize(sid, &block_size);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting "
+		    "block size.");
+		rc = EIO;
+		goto error;
+	}
+
+	rc = block_get_nblocks(sid, &nblocks);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting "
+		    "number of blocks.");
+		rc = EIO;
+		goto error;
+	}
+
+	calc_num_check_blocks(nblocks, block_size, &n);
+
+	buf = calloc(block_size, 1);
+	if (buf == NULL) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error allocating buffer.");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	for (i = 0; i < n; i++) {
+		rc = block_write_direct(sid, i, 1, buf);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error "
+			    "reading blocks.");
+			rc = EIO;
+			goto error;
+		}
+	}
+
+	for (i = 0; i < n; i++) {
+		rc = block_write_direct(sid, nblocks - n + i, 1, buf);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error "
+			    "reading blocks.");
+			rc = EIO;
+			goto error;
+		}
+	}
+
+	block_fini(sid);
+	free(buf);
 	return EOK;
 error:
 	if (block_inited)

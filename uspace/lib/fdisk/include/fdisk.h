@@ -51,6 +51,8 @@ extern int fdisk_dev_info_capacity(fdisk_dev_info_t *, fdisk_cap_t *);
 
 extern int fdisk_dev_open(fdisk_t *, service_id_t, fdisk_dev_t **);
 extern void fdisk_dev_close(fdisk_dev_t *);
+extern int fdisk_dev_erase(fdisk_dev_t *);
+extern void fdisk_dev_get_flags(fdisk_dev_t *, fdisk_dev_flags_t *);
 extern int fdisk_dev_get_svcname(fdisk_dev_t *, char **);
 extern int fdisk_dev_capacity(fdisk_dev_t *, fdisk_cap_t *);
 

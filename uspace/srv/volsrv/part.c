@@ -251,8 +251,19 @@ int vol_part_find_by_id(service_id_t sid, vol_part_t **rpart)
 
 int vol_part_empty_part(vol_part_t *part)
 {
-	part->pcnt = vpc_empty;
+	int rc;
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part()");
+
+	rc = vol_part_empty(part->svc_id);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part() - failed %d",
+		    rc);
+		return rc;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part() - success");
+	part->pcnt = vpc_empty;
 	return EOK;
 }
 

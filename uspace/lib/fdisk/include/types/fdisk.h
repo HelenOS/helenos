@@ -56,6 +56,16 @@ typedef enum {
 	cu_ybyte
 } fdisk_cunit_t;
 
+/** Fdisk device flags */
+typedef enum {
+	/** Currently we can create a label */
+	fdf_can_create_label = 0x1,
+	/** Currently we can delete the label */
+	fdf_can_delete_label = 0x2,
+	/** Currently we can erase unknown data from disk */
+	fdf_can_erase_dev = 0x4
+} fdisk_dev_flags_t;
+
 #define CU_LIMIT (cu_ybyte + 1)
 
 /** Partition capacity */
@@ -75,9 +85,11 @@ typedef struct {
 	fdisk_dev_list_t *devlist;
 	/** Link in fdisk_dev_list_t.devinfos */
 	link_t ldevlist;
+	/** Service ID */
 	service_id_t svcid;
 	/** Service name or NULL if not determined yet */
 	char *svcname;
+	/** Device is initialized in libblock */
 	bool blk_inited;
 } fdisk_dev_info_t;
 

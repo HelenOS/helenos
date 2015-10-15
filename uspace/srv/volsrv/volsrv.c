@@ -198,13 +198,18 @@ static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 
 	sid = IPC_GET_ARG1(*icall);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_srv(%zu)", sid);
 
 	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_srv(%zu) - "
+		    "partition not found", sid);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_srv(%zu) - "
+	    "call vol_part_empty_part()", sid);
 	rc = vol_part_empty_part(part);
 	if (rc != EOK) {
 		async_answer_0(iid, EIO);

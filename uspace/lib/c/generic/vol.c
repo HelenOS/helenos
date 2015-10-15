@@ -244,7 +244,7 @@ int vol_part_empty(vol_t *vol, service_id_t sid)
 	async_exchange_end(exch);
 
 	if (retval != EOK)
-		return EIO;
+		return retval;
 
 	return EOK;
 }
