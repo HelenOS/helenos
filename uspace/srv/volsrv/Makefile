@@ -35,6 +35,7 @@ BINARY = volsrv
 
 SOURCES = \
 	empty.c \
+	mkfs.c \
 	part.c \
 	volsrv.c
 

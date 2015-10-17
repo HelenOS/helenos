@@ -249,5 +249,21 @@ int vol_part_empty(vol_t *vol, service_id_t sid)
 	return EOK;
 }
 
+/** Create file system. */
+int vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype)
+{
+	async_exch_t *exch;
+	int retval;
+
+	exch = async_exchange_begin(vol->sess);
+	retval = async_req_2_0(exch, VOL_PART_MKFS, sid, fstype);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
+
 /** @}
  */

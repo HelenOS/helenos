@@ -219,6 +219,38 @@ static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+static void vol_part_mkfs_srv(ipc_callid_t iid, ipc_call_t *icall)
+{
+	service_id_t sid;
+	vol_part_t *part;
+	vol_fstype_t fstype;
+	int rc;
+
+	sid = IPC_GET_ARG1(*icall);
+	fstype = IPC_GET_ARG2(*icall);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv(%zu, %d)", sid,
+	    fstype);
+
+	rc = vol_part_find_by_id(sid, &part);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv(%zu) - "
+		    "partition not found", sid);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv(%zu) - "
+	    "call vol_part_mkfs_part()", sid);
+	rc = vol_part_mkfs_part(part, fstype);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	async_answer_0(iid, EOK);
+}
+
 static void vol_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_client_conn()");
@@ -249,6 +281,9 @@ static void vol_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VOL_PART_EMPTY:
 			vol_part_empty_srv(callid, &call);
+			break;
+		case VOL_PART_MKFS:
+			vol_part_mkfs_srv(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, EINVAL);

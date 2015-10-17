@@ -659,6 +659,8 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 	label_part_t *lpart;
 	int rc;
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_create(%zu)", sid);
+
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Disk %zu not found",

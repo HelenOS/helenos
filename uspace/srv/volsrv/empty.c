@@ -84,7 +84,7 @@ static void calc_num_check_blocks(aoff64_t nblocks, size_t block_size,
 	*ncb = n;
 }
 
-int vol_part_is_empty(service_id_t sid, bool *rempty)
+int volsrv_part_is_empty(service_id_t sid, bool *rempty)
 {
 	int rc;
 	bool block_inited = false;
@@ -175,7 +175,7 @@ error:
 	return rc;
 }
 
-int vol_part_empty(service_id_t sid)
+int volsrv_part_empty(service_id_t sid)
 {
 	int rc;
 	bool block_inited = false;

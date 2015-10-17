@@ -766,6 +766,14 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		return EIO;
 	}
 
+	rc = vol_part_mkfs(dev->fdisk->vol, part->svc_id, pspec->fstype);
+	if (rc != EOK && rc != ENOTSUP) {
+		printf("mkfs failed\n");
+		fdisk_part_remove(part);
+		(void) vbd_part_delete(dev->fdisk->vbd, partid);
+		return EIO;
+	}
+
 	printf("fdisk_part_create() - done\n");
 	part->pcnt = vpc_fs;
 	part->fstype = pspec->fstype;

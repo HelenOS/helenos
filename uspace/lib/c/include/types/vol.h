@@ -35,6 +35,8 @@
 #ifndef LIBC_TYPES_VOL_H_
 #define LIBC_TYPES_VOL_H_
 
+#include <async.h>
+
 typedef enum {
 	/** Partition is empty */
 	vpc_empty,

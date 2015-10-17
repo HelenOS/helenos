@@ -26,28 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup volsrv
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief
  */
 
-#ifndef LIBC_VOL_H_
-#define LIBC_VOL_H_
+#ifndef MKFS_H_
+#define MKFS_H_
 
-#include <async.h>
 #include <loc.h>
-#include <stdint.h>
-#include <types/label.h>
 #include <types/vol.h>
 
-extern int vol_create(vol_t **);
-extern void vol_destroy(vol_t *);
-extern int vol_get_parts(vol_t *, service_id_t **, size_t *);
-extern int vol_part_add(vol_t *, service_id_t);
-extern int vol_part_info(vol_t *, service_id_t, vol_part_info_t *);
-extern int vol_part_empty(vol_t *, service_id_t);
-extern int vol_part_mkfs(vol_t *, service_id_t, vol_fstype_t);
+extern int volsrv_part_mkfs(service_id_t, vol_fstype_t);
 
 #endif
 

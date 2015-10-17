@@ -43,6 +43,7 @@
 #include <str.h>
 
 #include "empty.h"
+#include "mkfs.h"
 #include "part.h"
 #include "types/part.h"
 
@@ -153,7 +154,7 @@ static int vol_part_add_locked(service_id_t sid)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
-	rc = vol_part_is_empty(sid, &empty);
+	rc = volsrv_part_is_empty(sid, &empty);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed determining if "
 		    "partition is empty.");
@@ -255,7 +256,7 @@ int vol_part_empty_part(vol_part_t *part)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part()");
 
-	rc = vol_part_empty(part->svc_id);
+	rc = volsrv_part_empty(part->svc_id);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part() - failed %d",
 		    rc);
@@ -264,6 +265,25 @@ int vol_part_empty_part(vol_part_t *part)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part() - success");
 	part->pcnt = vpc_empty;
+	return EOK;
+}
+
+int vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype)
+{
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_part()");
+
+	rc = volsrv_part_mkfs(part->svc_id, fstype);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_part() - failed %d",
+		    rc);
+		return rc;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_part() - success");
+	part->pcnt = vpc_fs;
+	part->fstype = fstype;
 	return EOK;
 }
 
