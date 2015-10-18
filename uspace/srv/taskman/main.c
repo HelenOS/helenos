@@ -121,10 +121,17 @@ static void taskman_ctl_retval(ipc_callid_t iid, ipc_call_t *icall)
 
 static void task_exit_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	// TODO design substitution for taskmon (monitoring)
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
-	printf("%s:%i from %llu/%i\n", __func__, __LINE__, id, (task_exit_t)arg);
-	task_terminated(id, (task_exit_t)arg);
+	exit_reason_t exit_reason = IPC_GET_ARG3(*icall);
+	printf("%s:%i from %llu/%i\n", __func__, __LINE__, id, exit_reason);
+	task_terminated(id, exit_reason);
+}
+
+static void task_fault_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
+	printf("%s:%i from %llu\n", __func__, __LINE__, id);
+	task_failed(id);
 }
 
 static void control_connection_loop(void)
@@ -253,13 +260,13 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = async_event_subscribe(EVENT_EXIT, task_exit_event, (void *)TASK_EXIT_NORMAL);
+	rc = async_event_subscribe(EVENT_EXIT, task_exit_event, NULL);
 	if (rc != EOK) {
 		printf("Cannot register for exit events (%i).\n", rc);
 		return rc;
 	}
 
-	rc = async_event_subscribe(EVENT_FAULT, task_exit_event, (void *)TASK_EXIT_UNEXPECTED);
+	rc = async_event_subscribe(EVENT_FAULT, task_fault_event, NULL);
 	if (rc != EOK) {
 		printf("Cannot register for fault events (%i).\n", rc);
 		return rc;

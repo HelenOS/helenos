@@ -261,7 +261,7 @@ const char *test_proc_task_wait(void)
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
 	TASSERT(task_wait_get(&wait) == 0);
-	//TASSERT(texit == TASK_EXIT_UNEXPECTED); // TODO resolve this in taskman/kernel
+	TASSERT(texit == TASK_EXIT_UNEXPECTED);
 	TPRINTF("OK\n");
 	/* ---- */
 

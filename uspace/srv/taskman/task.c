@@ -63,10 +63,11 @@ typedef enum {
 typedef struct {
 	ht_link_t link;
 	
-	task_id_t id;        /**< task id. */
-	task_exit_t exit;    /**< task is done. */
+	task_id_t id;          /**< task id. */
+	task_exit_t exit;      /**< task's uspace exit status. */
+	bool failed;           /**< task failed. */
 	retval_t retval_type;  /**< task returned a value. */
-	int retval;          /**< the return value. */
+	int retval;            /**< the return value. */
 } hashed_task_t;
 
 
@@ -301,6 +302,7 @@ int task_intro(ipc_call_t *call, bool check_unique)
 	 */
 	ht->id = call->in_task_id;
 	ht->exit = TASK_EXIT_RUNNING;
+	ht->failed = false;
 	ht->retval_type = RVAL_UNSET;
 	ht->retval = -1;
 
@@ -338,7 +340,7 @@ finish:
 	return rc;
 }
 
-void task_terminated(task_id_t id, task_exit_t texit)
+void task_terminated(task_id_t id, exit_reason_t exit_reason)
 {
 	/* Mark task as finished. */
 	fibril_rwlock_write_lock(&task_hash_table_lock);
@@ -350,17 +352,37 @@ void task_terminated(task_id_t id, task_exit_t texit)
 	hashed_task_t *ht = hash_table_get_inst(link, hashed_task_t, link);
 	
 	/*
-	 * If daemon returns a value and then fails/is killed, it's unexpected
-	 * termination.
+	 * If daemon returns a value and then fails/is killed, it's an
+	 * unexpected termination.
 	 */
-	if (ht->retval_type == RVAL_UNSET || texit == TASK_EXIT_UNEXPECTED) {
+	if (ht->retval_type == RVAL_UNSET || exit_reason == EXIT_REASON_KILLED) {
 		ht->exit = TASK_EXIT_UNEXPECTED;
-	} else {
-		ht->exit = texit;
+	} else if (ht->failed) {
+		ht->exit = TASK_EXIT_UNEXPECTED;
+	} else  {
+		ht->exit = TASK_EXIT_NORMAL;
 	}
 	process_pending_wait();
 
 	hash_table_remove_item(&task_hash_table, &ht->link);
+finish:
+	fibril_rwlock_write_unlock(&task_hash_table_lock);
+}
+
+void task_failed(task_id_t id)
+{
+	/* Mark task as failed. */
+	fibril_rwlock_write_lock(&task_hash_table_lock);
+	ht_link_t *link = hash_table_find(&task_hash_table, &id);
+	if (link == NULL) {
+		goto finish;
+	}
+
+	hashed_task_t *ht = hash_table_get_inst(link, hashed_task_t, link);
+	
+	ht->failed = true;
+	// TODO design substitution for taskmon (monitoring) = invoke dump utility
+
 finish:
 	fibril_rwlock_write_unlock(&task_hash_table_lock);
 }
