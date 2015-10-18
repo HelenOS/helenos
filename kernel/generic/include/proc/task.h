@@ -96,6 +96,9 @@ typedef struct task {
 	/** Capabilities */
 	cap_info_t *cap_info;
 
+	/** Exit reason. */
+	exit_reason_t exit_reason;
+	
 	/* IPC stuff */
 
 	/** Receiving communication endpoint */

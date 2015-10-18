@@ -82,7 +82,7 @@ static task_id_t task_counter = 0;
 static slab_cache_t *task_cache;
 
 /* Forward declarations. */
-static void task_kill_internal(task_t *);
+static void task_kill_internal(task_t *, exit_reason_t);
 static errno_t tsk_constructor(void *, unsigned int);
 static size_t tsk_destructor(void *);
 
@@ -526,10 +526,12 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 	*kcycles = kret;
 }
 
-static void task_kill_internal(task_t *task)
+static void task_kill_internal(task_t *task, exit_reason_t exit_reason)
 {
 	irq_spinlock_lock(&task->lock, false);
 	irq_spinlock_lock(&threads_lock, false);
+
+	task->exit_reason = exit_reason;
 
 	/*
 	 * Interrupt all threads.
@@ -577,7 +579,7 @@ errno_t task_kill(task_id_t id)
 		return ENOENT;
 	}
 
-	task_kill_internal(task);
+	task_kill_internal(task, EXIT_REASON_KILLED);
 	irq_spinlock_unlock(&tasks_lock, true);
 
 	return EOK;
@@ -610,7 +612,7 @@ void task_kill_self(bool fault)
 	}
 
 	irq_spinlock_lock(&tasks_lock, true);
-	task_kill_internal(TASK);
+	task_kill_internal(TASK, EXIT_REASON_SELF);
 	irq_spinlock_unlock(&tasks_lock, true);
 
 	thread_exit();

@@ -39,6 +39,13 @@
 
 typedef uint64_t task_id_t;
 
+typedef enum {
+	/** Task terminated synchronously on its own request. */
+	EXIT_REASON_SELF,
+	/** Task was killed by kill request (own or outer). */
+	EXIT_REASON_KILLED
+} exit_reason_t;
+
 #endif
 
 /** @}
