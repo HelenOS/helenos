@@ -1,0 +1,6 @@
+{
+	"proc_task_anywait",
+	"Task anywait API",
+	&test_proc_task_anywait,
+	true
+},

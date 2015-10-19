@@ -69,6 +69,17 @@ extern char **test_argv;
 		} \
 	} while (0)
 
+#define S(x) #x
+#define S_(x) S(x)
+#define S__LINE__ S_(__LINE__)
+
+#define TASSERT(expr) \
+	do { \
+		if (!(expr)) \
+			return "Failed " #expr " " __FILE__ ":" S__LINE__ ; \
+	} while (0)
+
+
 typedef const char *(*test_entry_t)(void);
 
 typedef struct {
@@ -111,6 +122,7 @@ extern const char *test_devman1(void);
 extern const char *test_devman2(void);
 extern const char *test_chardev1(void);
 extern const char *test_proc_dummy_task(void);
+extern const char *test_proc_task_anywait(void);
 extern const char *test_proc_task_wait(void);
 
 extern test_t tests[];

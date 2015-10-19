@@ -35,26 +35,6 @@
 #include "../tester.h"
 #include "common.h"
 
-#define DUMMY_TASK     "/root/app/tester"
-#define DUMMY_TASK_ARG "proc_dummy_task"
-
-#define S(x) #x
-#define S_(x) S(x)
-#define S__LINE__ S_(__LINE__)
-
-#define TASSERT(expr) \
-	do { \
-		if (!(expr)) \
-			return "Failed " #expr " " __FILE__ ":" S__LINE__ ; \
-	} while (0)
-
-static int dummy_task_spawn(task_id_t *task_id, task_wait_t *wait,
-    const char *behavior)
-{
-	return task_spawnl(task_id, wait,
-	    DUMMY_TASK, DUMMY_TASK, DUMMY_TASK_ARG, behavior,
-	    NULL);
-}
 
 const char *test_proc_task_wait(void)
 {

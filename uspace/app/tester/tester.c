@@ -78,6 +78,7 @@ test_t tests[] = {
 #include "hw/serial/serial1.def"
 #include "chardev/chardev1.def"
 #include "proc/dummy_task.def"
+#include "proc/task_anywait.def"
 #include "proc/task_wait.def"
 	{NULL, NULL, NULL, false}
 };

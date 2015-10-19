@@ -41,6 +41,15 @@ typedef enum {
 	TASK_EXIT_UNEXPECTED
 } task_exit_t;
 
+typedef struct {
+	int flags;
+	ipc_call_t result;
+	aid_t aid;
+	task_id_t tid;
+} task_wait_t;
+
+typedef void (* task_event_handler_t)(task_id_t, int, task_exit_t, int);
+
 #endif
 
 /** @}

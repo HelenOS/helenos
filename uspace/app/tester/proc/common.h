@@ -43,4 +43,15 @@ typedef enum {
 #define STR_JOB_FAIL    "job-fail"
 #define STR_JOB_OK      "job-ok"
 
+#define DUMMY_TASK     "/root/app/tester"
+#define DUMMY_TASK_ARG "proc_dummy_task"
+
+static inline int dummy_task_spawn(task_id_t *task_id, task_wait_t *wait,
+    const char *behavior)
+{
+	return task_spawnl(task_id, wait,
+	    DUMMY_TASK, DUMMY_TASK, DUMMY_TASK_ARG, behavior,
+	    NULL);
+}
+
 #endif

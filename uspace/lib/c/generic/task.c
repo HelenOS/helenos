@@ -2,6 +2,7 @@
  * Copyright (c) 2006 Jakub Jermar
  * Copyright (c) 2008 Jiri Svoboda
  * Copyright (c) 2014 Martin Sucha
+ * Copyright (c) 2015 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +53,7 @@
 #include "private/task.h"
 
 static async_sess_t *session_taskman = NULL;
+static task_event_handler_t task_event_handler = NULL;
 
 task_id_t task_get_id(void)
 {
@@ -469,6 +471,11 @@ errno_t task_retval(int val)
 	return task_retval_internal(val, false);
 }
 
+void task_set_event_handler(task_event_handler_t handler)
+{
+	task_event_handler = handler;
+	// TODO implement logic for calling the handler
+}
 
 void __task_init(async_sess_t *sess)
 {

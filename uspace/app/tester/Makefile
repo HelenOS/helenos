@@ -67,6 +67,7 @@ SOURCES = \
 	hw/serial/serial1.c \
 	chardev/chardev1.c \
 	proc/dummy_task.c \
+	proc/task_anywait.c \
 	proc/task_wait.c
 
 include $(USPACE_PREFIX)/Makefile.common
