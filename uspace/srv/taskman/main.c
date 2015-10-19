@@ -78,7 +78,9 @@ static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
 	    0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
-	/* After forward we can dispose all session-related resources */
+	/* After forward we can dispose all session-related resources
+	 * TODO later could be recycled for notification API
+	 */
 	async_hangup(sess_ref->sess);
 	free(sess_ref);
 
@@ -119,6 +121,12 @@ static void taskman_ctl_retval(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
+static void taskman_ctl_ev_callback(ipc_callid_t iid, ipc_call_t *icall)
+{
+	printf("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
+	async_answer_0(iid, ENOTSUP); // TODO interrupt here
+}
+
 static void task_exit_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
@@ -151,6 +159,9 @@ static void control_connection_loop(void)
 			break;
 		case TASKMAN_RETVAL:
 			taskman_ctl_retval(callid, &call);
+			break;
+		case TASKMAN_EVENT_CALLBACK:
+			taskman_ctl_ev_callback(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);
@@ -222,9 +233,6 @@ static void taskman_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		break;
 	case TASKMAN_CONTROL:
 		control_connection(iid, icall);
-		// ---- interrupt here ----
-		//   implement control connection body (setup wait)
-		// ------------------------
 		break;
 	default:
 		/* Unknown interface */

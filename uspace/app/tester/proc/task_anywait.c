@@ -101,7 +101,8 @@ const char *test_proc_task_anywait(void)
 
 	int rc;
 
-	task_set_event_handler(task_event_handler);
+	rc = task_register_event_handler(task_event_handler);
+	TASSERT(rc == EOK);
 
 	TPRINTF("1 exit only\n");
 

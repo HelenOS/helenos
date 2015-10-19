@@ -74,7 +74,7 @@ extern errno_t task_wait_task_id(task_id_t, int, task_exit_t *, int *);
 extern void task_cancel_wait(task_wait_t *);
 
 extern errno_t task_retval(int);
-extern void task_set_event_handler(task_event_handler_t);
+extern int task_register_event_handler(task_event_handler_t);
 
 #endif
 
