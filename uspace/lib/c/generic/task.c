@@ -53,7 +53,6 @@
 #include "private/task.h"
 
 static async_sess_t *session_taskman = NULL;
-static task_event_handler_t task_event_handler = NULL;
 
 task_id_t task_get_id(void)
 {
@@ -69,7 +68,7 @@ task_id_t task_get_id(void)
 #endif  /* __64_BITS__ */
 }
 
-static async_exch_t *taskman_exchange_begin(void)
+async_exch_t *taskman_exchange_begin(void)
 {
 	/* Lazy connection */
 	if (session_taskman == NULL) {
@@ -88,7 +87,7 @@ static async_exch_t *taskman_exchange_begin(void)
 	return exch;
 }
 
-static void taskman_exchange_end(async_exch_t *exch)
+void taskman_exchange_end(async_exch_t *exch)
 {
 	async_exchange_end(exch);
 }
@@ -469,74 +468,6 @@ errno_t task_retval_internal(int val, bool wait_for_exit)
 errno_t task_retval(int val)
 {
 	return task_retval_internal(val, false);
-}
-
-// TODO extract to separate module
-static void taskman_task_event(ipc_callid_t iid, ipc_call_t *icall)
-{
-	task_id_t tid = (task_id_t)
-	    MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
-	int flags = IPC_GET_ARG3(*icall);
-	task_exit_t texit = IPC_GET_ARG4(*icall);
-	int retval = IPC_GET_ARG5(*icall);
-
-	task_event_handler(tid, flags, texit, retval);
-
-	async_answer_0(iid, EOK);
-}
-
-static void taskman_event_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	/* Accept connection */
-	async_answer_0(iid, EOK);
-
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-
-		if (!IPC_GET_IMETHOD(call)) {
-			/* Hangup, TODO explain or handle differntly */
-			break;
-		}
-
-		switch (IPC_GET_IMETHOD(call)) {
-		case TASKMAN_EV_TASK:
-			taskman_task_event(callid, &call);
-			break;
-		default:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		}
-	}
-}
-
-/**
- * Blocks, calls handler in another fibril
- */
-int task_register_event_handler(task_event_handler_t handler)
-{
-	/*
-	 * so far support assign once, modification cannot be naïve due to
-	 * races
-	 */
-	assert(task_event_handler == NULL);
-	assert(handler != NULL); /* no support for "unregistration" */
-
-	task_event_handler = handler;
-
-	async_exch_t *exch = taskman_exchange_begin();
-	aid_t req = async_send_0(exch, TASKMAN_EVENT_CALLBACK, NULL);
-
-	int rc = async_connect_to_me(exch, 0, 0, 0, taskman_event_conn, NULL);
-	taskman_exchange_end(exch);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	sysarg_t retval;
-	async_wait_for(req, &retval);
-	return retval;
 }
 
 void __task_init(async_sess_t *sess)

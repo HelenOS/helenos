@@ -81,6 +81,7 @@ GENERIC_SOURCES = \
 	generic/pcb.c \
 	generic/smc.c \
 	generic/task.c \
+	generic/task_event.c \
 	generic/imath.c \
 	generic/inet/addr.c \
 	generic/inet/endpoint.c \
