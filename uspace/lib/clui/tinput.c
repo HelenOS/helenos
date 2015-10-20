@@ -456,7 +456,7 @@ static void tinput_history_insert(tinput_t *ti, char *str)
 	}
 }
 
-static void tinput_set_str(tinput_t *ti, char *str)
+static void tinput_set_str(tinput_t *ti, const char *str)
 {
 	str_to_wstr(ti->buffer, INPUT_MAX_SIZE, str);
 	ti->nc = wstr_length(ti->buffer);
@@ -852,26 +852,26 @@ static void tinput_pos(tinput_t *ti, pos_event_t *ev)
 	}
 }
 
-/** Read in one line of input.
+/** Read in one line of input with initial text provided.
  *
- * @param ti   Text input.
- * @param dstr Place to save pointer to new string.
+ * @param ti   Text input
+ * @param istr Initial string
+ * @param dstr Place to save pointer to new string
  *
  * @return EOK on success
  * @return ENOENT if user requested abort
  * @return EIO if communication with console failed
  *
  */
-int tinput_read(tinput_t *ti, char **dstr)
+int tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
 {
 	console_flush(ti->console);
 	if (console_get_size(ti->console, &ti->con_cols, &ti->con_rows) != EOK)
 		return EIO;
 	
-	ti->pos = 0;
+	tinput_set_str(ti, istr);
+
 	ti->sel_start = 0;
-	ti->nc = 0;
-	ti->buffer[0] = '\0';
 	ti->done = false;
 	ti->exit_clui = false;
 	
@@ -913,6 +913,21 @@ int tinput_read(tinput_t *ti, char **dstr)
 	
 	*dstr = str;
 	return EOK;
+}
+
+/** Read in one line of input.
+ *
+ * @param ti   Text input
+ * @param dstr Place to save pointer to new string.
+ *
+ * @return EOK on success
+ * @return ENOENT if user requested abort
+ * @return EIO if communication with console failed
+ *
+ */
+int tinput_read(tinput_t *ti, char **dstr)
+{
+	return tinput_read_i(ti, "", dstr);
 }
 
 static void tinput_key_ctrl(tinput_t *ti, kbd_event_t *ev)

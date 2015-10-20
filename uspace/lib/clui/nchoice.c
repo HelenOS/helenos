@@ -34,6 +34,7 @@
 
 #include <errno.h>
 #include <nchoice.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <tinput.h>
@@ -93,9 +94,9 @@ int nchoice_set_prompt(nchoice_t *choice, const char *prompt)
 	return EOK;
 }
 
-#include <stdio.h>
 /** Add option to numerical choice */
-int nchoice_add(nchoice_t *choice, const char *opttext, void *arg)
+int nchoice_add(nchoice_t *choice, const char *opttext, void *arg,
+    nchoice_flag_t flags)
 {
 	nchoice_opt_t *opt;
 	char *ptext;
@@ -113,6 +114,14 @@ int nchoice_add(nchoice_t *choice, const char *opttext, void *arg)
 	opt->text = ptext;
 	opt->arg = arg;
 	list_append(&opt->lchoice, &choice->opts);
+
+	if ((flags & ncf_default) != 0) {
+		/* Set this option as the default */
+		assert(choice->def_opt == NULL);
+
+		choice->def_opt = opt;
+	}
+
 	return EOK;
 }
 
@@ -124,17 +133,35 @@ int nchoice_get(nchoice_t *choice, void **rarg)
 	char *str;
 	unsigned long c;
 	char *eptr;
+	char *istr;
+	int def_i;
 
 again:
 	printf("%s\n", choice->prompt);
 
+	def_i = 0;
 	i = 1;
 	list_foreach(choice->opts, lchoice, nchoice_opt_t, opt) {
-		printf("%d: %s\n", i, opt->text);
+		printf("%d: %s%s\n", i, opt->text, opt == choice->def_opt ?
+		    " [default]" : "");
+		if (opt == choice->def_opt)
+			def_i = i;
 		++i;
 	}
 
-	rc = tinput_read(choice->tinput, &str);
+	if (def_i > 0) {
+		rc = asprintf(&istr, "%d", def_i);
+		if (rc < 0)
+			return ENOMEM;
+	} else {
+		istr = str_dup("");
+		if (istr == NULL)
+			return ENOMEM;
+	}
+
+	rc = tinput_read_i(choice->tinput, istr, &str);
+	free(istr);
+
 	if (rc != EOK) {
 		assert(rc == EIO || rc == ENOENT);
 

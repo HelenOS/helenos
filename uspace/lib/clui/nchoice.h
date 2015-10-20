@@ -39,6 +39,11 @@
 #include <adt/list.h>
 #include <tinput.h>
 
+typedef enum {
+	/** This is the default option */
+	ncf_default = 1
+} nchoice_flag_t;
+
 typedef struct {
 	/** Link to nchoice_t.opts */
 	link_t lchoice;
@@ -55,12 +60,14 @@ typedef struct {
 	list_t opts; /* of nchoice_opt_t */
 	/** Text input */
 	tinput_t *tinput;
+	/** Default option */
+	nchoice_opt_t *def_opt;
 } nchoice_t;
 
 extern int nchoice_create(nchoice_t **);
 extern void nchoice_destroy(nchoice_t *);
 extern int nchoice_set_prompt(nchoice_t *, const char *);
-extern int nchoice_add(nchoice_t *, const char *, void *);
+extern int nchoice_add(nchoice_t *, const char *, void *, nchoice_flag_t);
 extern int nchoice_get(nchoice_t *, void **);
 
 #endif

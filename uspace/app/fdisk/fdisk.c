@@ -136,7 +136,7 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 		free(scap);
 		scap = NULL;
 
-		rc = nchoice_add(choice, dtext, info);
+		rc = nchoice_add(choice, dtext, info, 0);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -155,7 +155,7 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 		goto error;
 	}
 
-	rc = nchoice_add(choice, "Exit", NULL);
+	rc = nchoice_add(choice, "Exit", NULL, 0);
 	if (rc != EOK) {
 		assert(rc == ENOMEM);
 		printf("Out of memory.\n");
@@ -218,7 +218,8 @@ static int fdsk_create_label(fdisk_dev_t *dev)
 		if (rc != EOK)
 			goto error;
 
-		rc = nchoice_add(choice, sltype, (void *)(uintptr_t)i);
+		rc = nchoice_add(choice, sltype, (void *)(uintptr_t)i,
+		    i == LT_DEFAULT);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -303,7 +304,8 @@ static int fdsk_select_fstype(vol_fstype_t *fstype)
 		if (rc != EOK)
 			goto error;
 
-		rc = nchoice_add(choice, sfstype, (void *)(uintptr_t)i);
+		rc = nchoice_add(choice, sfstype, (void *)(uintptr_t)i,
+		    i == VOL_FSTYPE_DEFAULT);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -438,7 +440,7 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		rc = nchoice_add(choice, sdesc, (void *)part);
+		rc = nchoice_add(choice, sdesc, (void *)part, 0);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -633,7 +635,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		if ((linfo.flags & lf_can_create_pri) != 0) {
 			rc = nchoice_add(choice, "Create primary "
 			    "partition",
-			    (void *)devac_create_pri_part);
+			    (void *)devac_create_pri_part, 0);
 			if (rc != EOK) {
 				assert(rc == ENOMEM);
 				printf("Out of memory.\n");
@@ -644,7 +646,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		if ((linfo.flags & lf_can_create_ext) != 0) {
 			rc = nchoice_add(choice, "Create extended "
 			    "partition",
-			    (void *)devac_create_ext_part);
+			    (void *)devac_create_ext_part, 0);
 			if (rc != EOK) {
 				assert(rc == ENOMEM);
 				printf("Out of memory.\n");
@@ -655,7 +657,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		if ((linfo.flags & lf_can_create_log) != 0) {
 			rc = nchoice_add(choice, "Create logical "
 			    "partition",
-			    (void *)devac_create_log_part);
+			    (void *)devac_create_log_part, 0);
 			if (rc != EOK) {
 				assert(rc == ENOMEM);
 				printf("Out of memory.\n");
@@ -665,7 +667,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	} else { /* (linfo.flags & lf_ext_supp) == 0 */
 		if ((linfo.flags & lf_can_create_pri) != 0) {
 			rc = nchoice_add(choice, "Create partition",
-			    (void *)devac_create_pri_part);
+			    (void *)devac_create_pri_part, 0);
 			if (rc != EOK) {
 				assert(rc == ENOMEM);
 					printf("Out of memory.\n");
@@ -676,7 +678,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 
 	if ((linfo.flags & lf_can_delete_part) != 0) {
 		rc = nchoice_add(choice, "Delete partition",
-		    (void *)devac_delete_part);
+		    (void *)devac_delete_part, 0);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -686,7 +688,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 
 	if ((dflags & fdf_can_create_label) != 0) {
 		rc = nchoice_add(choice, "Create label",
-		    (void *)devac_create_label);
+		    (void *)devac_create_label, 0);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -696,7 +698,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 
 	if ((dflags & fdf_can_delete_label) != 0) {
 		rc = nchoice_add(choice, "Delete label",
-		    (void *)devac_delete_label);
+		    (void *)devac_delete_label, 0);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -706,7 +708,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 
 	if ((dflags & fdf_can_erase_dev) != 0) {
 		rc = nchoice_add(choice, "Erase disk",
-		    (void *)devac_erase_disk);
+		    (void *)devac_erase_disk, 0);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -714,7 +716,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		}
 	}
 
-	rc = nchoice_add(choice, "Exit", (void *)devac_exit);
+	rc = nchoice_add(choice, "Exit", (void *)devac_exit, 0);
 	if (rc != EOK) {
 		assert(rc == ENOMEM);
 		printf("Out of memory.\n");

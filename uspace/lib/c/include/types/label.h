@@ -57,8 +57,10 @@ typedef enum {
 	lt_gpt
 } label_type_t;
 
-#define LT_FIRST (lt_mbr)
+#define LT_FIRST lt_mbr
 #define LT_LIMIT (lt_gpt + 1)
+
+#define LT_DEFAULT lt_mbr
 
 /** Partition kind */
 typedef enum {
