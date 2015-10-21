@@ -44,6 +44,7 @@
 #include <vbd.h>
 #include <vol.h>
 
+/** Capacity unit */
 typedef enum {
 	cu_byte = 0,
 	cu_kbyte,
@@ -55,6 +56,13 @@ typedef enum {
 	cu_zbyte,
 	cu_ybyte
 } fdisk_cunit_t;
+
+typedef enum {
+	/** Primary partition space */
+	spc_pri,
+	/** Logical partition space */
+	spc_log
+} fdisk_spc_t;
 
 /** Fdisk device flags */
 typedef enum {
@@ -175,6 +183,19 @@ typedef struct {
 	/** File system type */
 	vol_fstype_t fstype;
 } fdisk_part_info_t;
+
+/** Free range iterator */
+typedef struct {
+	/** Device */
+	fdisk_dev_t *dev;
+	/** Primary or logical partition space */
+	fdisk_spc_t spc;
+	/** First block of free range */
+	aoff64_t b0;
+	/** Next partition following the free range or @c NULL if the range
+	  * is at the end. */
+	fdisk_part_t *npart;
+} fdisk_free_range_t;
 
 /** Fdisk instance */
 typedef struct fdisk {

@@ -668,6 +668,12 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 		goto error;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_crate(%zu): "
+	    "index=%d block0=%" PRIu64 " nblocks=%" PRIu64
+	    " hdr_blocks=%" PRIu64 " pkind=%d",
+	    sid, pspec->index, pspec->block0, pspec->nblocks, pspec->hdr_blocks,
+	    pspec->pkind);
+
 	label_pspec_init(&lpspec);
 	lpspec.index = pspec->index;
 	lpspec.block0 = pspec->block0;

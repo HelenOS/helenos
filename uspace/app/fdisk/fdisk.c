@@ -337,9 +337,29 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	int rc;
 	fdisk_part_spec_t pspec;
 	fdisk_cap_t cap;
+	fdisk_cap_t mcap;
 	vol_fstype_t fstype = 0;
 	tinput_t *tinput = NULL;
+	fdisk_spc_t spc;
 	char *scap;
+	char *smcap = NULL;
+
+	if (pkind == lpk_logical)
+		spc = spc_log;
+	else
+		spc = spc_pri;
+
+	rc = fdisk_part_get_max_avail(dev, spc, &mcap);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = fdisk_cap_format(&mcap, &smcap);
+	if (rc != EOK) {
+		rc = ENOMEM;
+		goto error;
+	}
 
 	tinput = tinput_new();
 	if (tinput == NULL) {
@@ -353,7 +373,7 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 
 	while (true) {
 		printf("Enter capacity of new partition.\n");
-		rc = tinput_read(tinput, &scap);
+		rc = tinput_read_i(tinput, smcap, &scap);
 		if (rc != EOK)
 			goto error;
 
@@ -364,6 +384,8 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 
 	tinput_destroy(tinput);
 	tinput = NULL;
+	free(smcap);
+	smcap = NULL;
 
 	if (pkind != lpk_extended) {
 		rc = fdsk_select_fstype(&fstype);
@@ -384,6 +406,7 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 
 	return EOK;
 error:
+	free(smcap);
 	if (tinput != NULL)
 		tinput_destroy(tinput);
 	return rc;

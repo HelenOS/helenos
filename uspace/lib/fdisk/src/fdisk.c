@@ -66,6 +66,11 @@ static void fdisk_log_part_insert_lists(fdisk_dev_t *, fdisk_part_t *);
 static int fdisk_update_dev_info(fdisk_dev_t *);
 static uint64_t fdisk_ba_align_up(fdisk_dev_t *, uint64_t);
 static uint64_t fdisk_ba_align_down(fdisk_dev_t *, uint64_t);
+static int fdisk_part_get_max_free_range(fdisk_dev_t *, fdisk_spc_t, aoff64_t *,
+    aoff64_t *);
+static void fdisk_free_range_first(fdisk_dev_t *, fdisk_spc_t, fdisk_free_range_t *);
+static bool fdisk_free_range_next(fdisk_free_range_t *);
+static bool fdisk_free_range_get(fdisk_free_range_t *, aoff64_t *, aoff64_t *);
 
 static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 {
@@ -277,24 +282,29 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 		goto error;
 	}
 
-	printf("vol_part_add(%zu)...\n", pinfo.svc_id);
-	/*
-	 * Normally vol service discovers the partition asynchronously.
-	 * Here we need to make sure the partition is already known to it.
-	 */
-	rc = vol_part_add(dev->fdisk->vol, pinfo.svc_id);
-	printf("vol_part_add->rc = %d\n", rc);
-	if (rc != EOK && rc != EEXIST) {
-		rc = EIO;
-		goto error;
-	}
+	if (pinfo.svc_id != 0) {
+		printf("vol_part_add(%zu)...\n", pinfo.svc_id);
+		/*
+		 * Normally vol service discovers the partition asynchronously.
+		 * Here we need to make sure the partition is already known to it.
+		 */
+		rc = vol_part_add(dev->fdisk->vol, pinfo.svc_id);
+		printf("vol_part_add->rc = %d\n", rc);
+		if (rc != EOK && rc != EEXIST) {
+			rc = EIO;
+			goto error;
+		}
 
-	printf("vol_part_info(%zu)\n", pinfo.svc_id);
-	rc = vol_part_info(dev->fdisk->vol, pinfo.svc_id, &vpinfo);
-	printf("vol_part_info->rc = %d\n", rc);
-	if (rc != EOK) {
-		rc = EIO;
-		goto error;
+		printf("vol_part_info(%zu)\n", pinfo.svc_id);
+		rc = vol_part_info(dev->fdisk->vol, pinfo.svc_id, &vpinfo);
+		printf("vol_part_info->rc = %d\n", rc);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		part->pcnt = vpinfo.pcnt;
+		part->fstype = vpinfo.fstype;
 	}
 
 	part->dev = dev;
@@ -303,8 +313,6 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	part->nblocks = pinfo.nblocks;
 	part->pkind = pinfo.pkind;
 	part->svc_id = pinfo.svc_id;
-	part->pcnt = vpinfo.pcnt;
-	part->fstype = vpinfo.fstype;
 
 	switch (part->pkind) {
 	case lpk_primary:
@@ -619,6 +627,8 @@ int fdisk_dev_capacity(fdisk_dev_t *dev, fdisk_cap_t *cap)
 int fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
 {
 	vbd_disk_info_t vinfo;
+	uint64_t b0, nb;
+	uint64_t hdrb;
 	int rc;
 
 	rc = vbd_disk_info(dev->fdisk->vbd, dev->sid, &vinfo);
@@ -629,6 +639,24 @@ int fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
 
 	info->ltype = vinfo.ltype;
 	info->flags = vinfo.flags;
+
+	if ((info->flags & lf_can_create_pri) != 0 ||
+	    (info->flags & lf_can_create_ext) != 0) {
+		/* Verify there is enough space to create partition */
+
+		rc = fdisk_part_get_max_free_range(dev, spc_pri, &b0, &nb);
+		if (rc != EOK)
+			info->flags &= ~(lf_can_create_pri | lf_can_create_ext);
+	}
+
+	if ((info->flags & lf_can_create_log) != 0) {
+		/* Verify there is enough space to create logical partition */
+		hdrb = max(1, dev->align);
+		rc = fdisk_part_get_max_free_range(dev, spc_log, &b0, &nb);
+		if (rc != EOK || nb <= hdrb)
+			info->flags &= ~lf_can_create_log;
+	}
+
 	return EOK;
 error:
 	return rc;
@@ -734,8 +762,27 @@ int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 	return EOK;
 }
 
-int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_cap_t *cap)
+int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, fdisk_cap_t *cap)
 {
+	int rc;
+	uint64_t b0;
+	uint64_t nb;
+	aoff64_t hdrb;
+
+	rc = fdisk_part_get_max_free_range(dev, spc, &b0, &nb);
+	if (rc != EOK)
+		return rc;
+
+	/* For logical partitions we need to subtract header size */
+	if (spc == spc_log) {
+		hdrb = max(1, dev->align);
+		if (nb <= hdrb)
+			return ENOSPC;
+		nb -= hdrb;
+	}
+
+	cap->value = nb * dev->dinfo.block_size;
+	cap->cunit = cu_byte;
 	return EOK;
 }
 
@@ -766,17 +813,22 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		return EIO;
 	}
 
-	rc = vol_part_mkfs(dev->fdisk->vol, part->svc_id, pspec->fstype);
-	if (rc != EOK && rc != ENOTSUP) {
-		printf("mkfs failed\n");
-		fdisk_part_remove(part);
-		(void) vbd_part_delete(dev->fdisk->vbd, partid);
-		return EIO;
+	if (part->svc_id != 0) {
+		rc = vol_part_mkfs(dev->fdisk->vol, part->svc_id, pspec->fstype);
+		if (rc != EOK && rc != ENOTSUP) {
+			printf("mkfs failed\n");
+			fdisk_part_remove(part);
+			(void) vbd_part_delete(dev->fdisk->vbd, partid);
+			return EIO;
+		}
 	}
 
 	printf("fdisk_part_create() - done\n");
-	part->pcnt = vpc_fs;
-	part->fstype = pspec->fstype;
+	if (part->svc_id != 0) {
+		part->pcnt = vpc_fs;
+		part->fstype = pspec->fstype;
+	}
+
 	part->capacity = pspec->capacity;
 
 	if (rpart != NULL)
@@ -965,113 +1017,59 @@ static int fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
  * Get free range of blocks of at least the specified size (first fit).
  */
 static int fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
-    aoff64_t *rblock0, aoff64_t *rnblocks)
+    fdisk_spc_t spc, aoff64_t *rblock0, aoff64_t *rnblocks)
 {
-	link_t *link;
-	fdisk_part_t *part;
-	uint64_t avail;
-	uint64_t pb0;
-	uint64_t nba;
+	fdisk_free_range_t fr;
+	uint64_t b0;
+	uint64_t nb;
 
-	printf("fdisk_part_get_free_range: align=%" PRIu64 "\n",
-	    dev->align);
+	fdisk_free_range_first(dev, spc, &fr);
+	do {
+		if (fdisk_free_range_get(&fr, &b0, &nb)) {
+			printf("free range: [%" PRIu64 ",+%" PRIu64 "]\n",
+			    b0, nb);
+			if (nb >= nblocks) {
+				printf("accepted.\n");
+				*rblock0 = b0;
+				*rnblocks = nb;
+				return EOK;
+			}
+		}
+	} while (fdisk_free_range_next(&fr));
 
-	link = list_first(&dev->pri_ba);
-	nba = fdisk_ba_align_up(dev, dev->dinfo.ablock0);
-	while (link != NULL) {
-		part = list_get_instance(link, fdisk_part_t, lpri_ba);
-		pb0 = fdisk_ba_align_down(dev, part->block0);
-		if (pb0 >= nba && pb0 - nba >= nblocks)
-			break;
-		nba = fdisk_ba_align_up(dev, part->block0 + part->nblocks);
-		link = list_next(link, &dev->pri_ba);
-	}
-
-	if (link != NULL) {
-		printf("nba=%" PRIu64 " pb0=%" PRIu64 "\n",
-		    nba, pb0);
-		/* Free range before a partition */
-		avail = pb0 - nba;
-	} else {
-		/* Free range at the end */
-		pb0 = fdisk_ba_align_down(dev, dev->dinfo.ablock0 +
-		    dev->dinfo.anblocks);
-		if (pb0 < nba)
-			return ELIMIT;
-		avail = pb0 - nba;
-		printf("nba=%" PRIu64 " avail=%" PRIu64 "\n",
-		    nba, avail);
-
-	}
-
-	/* Verify that the range is large enough */
-	if (avail < nblocks)
-		return ELIMIT;
-
-	*rblock0 = nba;
-	*rnblocks = avail;
-	return EOK;
+	/* No conforming free range found */
+	return ENOSPC;
 }
 
-/** Get free range of blocks in extended partition.
+/** Get largest free range of blocks.
  *
- * Get free range of blocks in extended partition that can accomodate
- * a partition of at least the specified size plus the header (EBR + padding).
- * Returns the header size in blocks, the start and length of the partition.
+ * Get free range of blocks of the maximum size.
  */
-static int fdisk_part_get_log_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
-    aoff64_t *rhdrb, aoff64_t *rblock0, aoff64_t *rnblocks)
+static int fdisk_part_get_max_free_range(fdisk_dev_t *dev, fdisk_spc_t spc,
+    aoff64_t *rblock0, aoff64_t *rnblocks)
 {
-	link_t *link;
-	fdisk_part_t *part;
-	uint64_t avail;
-	uint64_t hdrb;
-	uint64_t pb0;
-	uint64_t nba;
+	fdisk_free_range_t fr;
+	uint64_t b0;
+	uint64_t nb;
+	uint64_t best_b0;
+	uint64_t best_nb;
 
-	printf("fdisk_part_get_log_free_range\n");
-	/* Number of header blocks */
-	hdrb = max(1, dev->align);
-
-	link = list_first(&dev->log_ba);
-	nba = fdisk_ba_align_up(dev, dev->ext_part->block0);
-	while (link != NULL) {
-		part = list_get_instance(link, fdisk_part_t, llog_ba);
-		pb0 = fdisk_ba_align_down(dev, part->block0);
-		if (pb0 >= nba && pb0 - nba >= nblocks)
-			break;
-		nba = fdisk_ba_align_up(dev, part->block0 + part->nblocks);
-		link = list_next(link, &dev->log_ba);
-	}
-
-	if (link != NULL) {
-		/* Free range before a partition */
-		avail = pb0 - nba;
-	} else {
-		/* Free range at the end */
-		pb0 = fdisk_ba_align_down(dev, dev->ext_part->block0 +
-		    dev->ext_part->nblocks);
-		if (pb0 < nba) {
-			printf("not enough space\n");
-			return ELIMIT;
+	best_b0 = best_nb = 0;
+	fdisk_free_range_first(dev, spc, &fr);
+	do {
+		if (fdisk_free_range_get(&fr, &b0, &nb)) {
+			if (nb > best_nb) {
+				best_b0 = b0;
+				best_nb = nb;
+			}
 		}
+	} while (fdisk_free_range_next(&fr));
 
-		avail = pb0 - nba;
+	if (best_nb == 0)
+		return ENOSPC;
 
-		printf("nba=%" PRIu64 " pb0=%" PRIu64" avail=%" PRIu64 "\n",
-		    nba, pb0, avail);
-	}
-	/* Verify that the range is large enough */
-	if (avail < hdrb + nblocks) {
-		printf("not enough space\n");
-		return ELIMIT;
-	}
-
-	*rhdrb = hdrb;
-	*rblock0 = nba + hdrb;
-	*rnblocks = avail;
-	printf("hdrb=%" PRIu64 " block0=%" PRIu64" avail=%" PRIu64 "\n",
-	    hdrb, nba + hdrb, avail);
+	*rblock0 = best_b0;
+	*rnblocks = best_nb;
 	return EOK;
 }
 
@@ -1081,9 +1079,9 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 {
 	uint64_t cbytes;
 	aoff64_t req_blocks;
-	aoff64_t fhdr;
 	aoff64_t fblock0;
 	aoff64_t fnblocks;
+	aoff64_t hdrb;
 	uint64_t block_size;
 	label_pcnt_t pcnt;
 	unsigned i;
@@ -1135,7 +1133,8 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 			return EIO;
 
 		printf("fdisk_part_spec_prepare() - get free range\n");
-		rc = fdisk_part_get_free_range(dev, req_blocks, &fblock0, &fnblocks);
+		rc = fdisk_part_get_free_range(dev, req_blocks, spc_pri,
+		    &fblock0, &fnblocks);
 		if (rc != EOK)
 			return EIO;
 
@@ -1148,18 +1147,17 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		break;
 	case lpk_logical:
 		printf("fdisk_part_spec_prepare() - log\n");
-		rc = fdisk_part_get_log_free_range(dev, req_blocks, &fhdr,
+		hdrb = max(1, dev->align);
+		rc = fdisk_part_get_free_range(dev, hdrb + req_blocks, spc_log,
 		    &fblock0, &fnblocks);
 		if (rc != EOK)
 			return EIO;
 
 		memset(vpspec, 0, sizeof(vbd_part_spec_t));
-		vpspec->hdr_blocks = fhdr;
-		vpspec->block0 = fblock0;
+		vpspec->hdr_blocks = hdrb;
+		vpspec->block0 = fblock0 + hdrb;
 		vpspec->nblocks = req_blocks;
 		vpspec->pkind = lpk_logical;
-		vpspec->ptype.fmt = lptf_num;
-		vpspec->ptype.t.num = 42;
 		break;
 	}
 
@@ -1206,6 +1204,90 @@ static uint64_t fdisk_ba_align_up(fdisk_dev_t *dev, uint64_t ba)
 static uint64_t fdisk_ba_align_down(fdisk_dev_t *dev, uint64_t ba)
 {
 	return ba - (ba % dev->align);
+}
+
+static void fdisk_free_range_first(fdisk_dev_t *dev, fdisk_spc_t spc,
+    fdisk_free_range_t *fr)
+{
+	link_t *link;
+
+	fr->dev = dev;
+	fr->spc = spc;
+
+	if (fr->spc == spc_pri) {
+		/* Primary partitions */
+		fr->b0 = fdisk_ba_align_up(fr->dev, fr->dev->dinfo.ablock0);
+
+		link = list_first(&dev->pri_ba);
+		if (link != NULL)
+			fr->npart = list_get_instance(link, fdisk_part_t, lpri_ba);
+		else
+			fr->npart = NULL;
+	} else { /* fr->spc == spc_log */
+		/* Logical partitions */
+		fr->b0 = fdisk_ba_align_up(fr->dev, fr->dev->ext_part->block0);
+
+		link = list_first(&dev->log_ba);
+		if (link != NULL)
+			fr->npart = list_get_instance(link, fdisk_part_t, llog_ba);
+		else
+			fr->npart = NULL;
+	}
+}
+
+static bool fdisk_free_range_next(fdisk_free_range_t *fr)
+{
+	link_t *link;
+
+	if (fr->npart == NULL)
+		return false;
+
+	fr->b0 = fdisk_ba_align_up(fr->dev, fr->npart->block0 +
+	    fr->npart->nblocks);
+
+	if (fr->spc == spc_pri) {
+		/* Primary partitions */
+		link = list_next(&fr->npart->lpri_ba, &fr->dev->pri_ba);
+		if (link != NULL)
+			fr->npart = list_get_instance(link, fdisk_part_t, lpri_ba);
+		else
+			fr->npart = NULL;
+	} else { /* fr->spc == spc_log */
+		/* Logical partitions */
+		link = list_next(&fr->npart->llog_ba, &fr->dev->log_ba);
+		if (link != NULL)
+			fr->npart = list_get_instance(link, fdisk_part_t, llog_ba);
+		else
+			fr->npart = NULL;
+	}
+
+	return true;
+}
+
+static bool fdisk_free_range_get(fdisk_free_range_t *fr,
+    aoff64_t *b0, aoff64_t *nb)
+{
+	aoff64_t b1;
+
+	if (fr->npart != NULL) {
+		b1 = fdisk_ba_align_down(fr->dev, fr->npart->block0);
+	} else {
+		if (fr->spc == spc_pri) {
+			b1 = fdisk_ba_align_down(fr->dev,
+			    fr->dev->dinfo.ablock0 + fr->dev->dinfo.anblocks);
+		} else { /* fr->spc == spc_log */
+			b1 = fdisk_ba_align_down(fr->dev,
+			    fr->dev->ext_part->block0 + fr->dev->ext_part->nblocks);
+		}
+	}
+
+	if (b1 < fr->b0)
+		return false;
+
+	*b0 = fr->b0;
+	*nb = b1 - fr->b0;
+
+	return true;
 }
 
 /** @}
