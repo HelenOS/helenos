@@ -418,6 +418,7 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 	fdisk_part_t *part;
 	fdisk_part_info_t pinfo;
 	char *scap = NULL;
+	char *spkind = NULL;
 	char *sfstype = NULL;
 	char *sdesc = NULL;
 	void *sel;
@@ -451,16 +452,31 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		rc = fdisk_fstype_format(pinfo.fstype, &sfstype);
+		rc = fdisk_pkind_format(pinfo.pkind, &spkind);
 		if (rc != EOK) {
-			printf("Out of memory.\n");
+			printf("\nOut of memory.\n");
 			goto error;
 		}
 
-		rc = asprintf(&sdesc, "%s, %s", scap, sfstype);
-		if (rc < 0) {
-			rc = ENOMEM;
-			goto error;
+		if (pinfo.pkind != lpk_extended) {
+			rc = fdisk_fstype_format(pinfo.fstype, &sfstype);
+			if (rc != EOK) {
+				printf("Out of memory.\n");
+				goto error;
+			}
+
+			rc = asprintf(&sdesc, "%s, %s, %s", scap, spkind, sfstype);
+			if (rc < 0) {
+				rc = ENOMEM;
+				goto error;
+			}
+
+		} else {
+			rc = asprintf(&sdesc, "%s, %s", scap, spkind);
+			if (rc < 0) {
+				rc = ENOMEM;
+				goto error;
+			}
 		}
 
 		rc = nchoice_add(choice, sdesc, (void *)part, 0);
@@ -472,6 +488,8 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 
 		free(scap);
 		scap = NULL;
+		free(spkind);
+		spkind = NULL;
 		free(sfstype);
 		sfstype = NULL;
 		free(sdesc);
@@ -480,22 +498,32 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 		part = fdisk_part_next(part);
 	}
 
+	rc = nchoice_add(choice, "Cancel", NULL, 0);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
 	rc = nchoice_get(choice, &sel);
 	if (rc != EOK) {
 		printf("Error getting user selection.\n");
 		goto error;
 	}
 
-	rc = fdisk_part_destroy((fdisk_part_t *)sel);
-	if (rc != EOK) {
-		printf("Error deleting partition.\n");
-		return rc;
+	if (sel != NULL) {
+		rc = fdisk_part_destroy((fdisk_part_t *)sel);
+		if (rc != EOK) {
+			printf("Error deleting partition.\n");
+			return rc;
+		}
 	}
 
 	nchoice_destroy(choice);
 	return EOK;
 error:
 	free(scap);
+	free(spkind);
 	free(sfstype);
 	free(sdesc);
 
