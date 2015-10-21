@@ -762,6 +762,7 @@ int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 	return EOK;
 }
 
+/** Get size of largest free block. */
 int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, fdisk_cap_t *cap)
 {
 	int rc;
@@ -782,6 +783,35 @@ int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, fdisk_cap_t *cap
 	}
 
 	cap->value = nb * dev->dinfo.block_size;
+	cap->cunit = cu_byte;
+	return EOK;
+}
+
+/** Get total free space capacity. */
+int fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
+    fdisk_cap_t *cap)
+{
+	fdisk_free_range_t fr;
+	uint64_t hdrb;
+	uint64_t b0;
+	uint64_t nb;
+	uint64_t totb;
+
+	if (spc == spc_log)
+		hdrb = max(1, dev->align);
+	else
+		hdrb = 0;
+
+	totb = 0;
+	fdisk_free_range_first(dev, spc, &fr);
+	do {
+		if (fdisk_free_range_get(&fr, &b0, &nb)) {
+			if (nb > hdrb)
+				totb += nb - hdrb;
+		}
+	} while (fdisk_free_range_next(&fr));
+
+	cap->value = totb * dev->dinfo.block_size;
 	cap->cunit = cu_byte;
 	return EOK;
 }

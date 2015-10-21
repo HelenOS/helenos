@@ -64,6 +64,7 @@ extern fdisk_part_t *fdisk_part_first(fdisk_dev_t *);
 extern fdisk_part_t *fdisk_part_next(fdisk_part_t *);
 extern int fdisk_part_get_info(fdisk_part_t *, fdisk_part_info_t *);
 extern int fdisk_part_get_max_avail(fdisk_dev_t *, fdisk_spc_t, fdisk_cap_t *);
+extern int fdisk_part_get_tot_avail(fdisk_dev_t *, fdisk_spc_t, fdisk_cap_t *);
 extern int fdisk_part_create(fdisk_dev_t *, fdisk_part_spec_t *,
     fdisk_part_t **);
 extern int fdisk_part_destroy(fdisk_part_t *);

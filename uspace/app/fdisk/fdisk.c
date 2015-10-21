@@ -512,10 +512,12 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	fdisk_part_t *part;
 	fdisk_part_info_t pinfo;
 	fdisk_cap_t cap;
+	fdisk_cap_t mcap;
 	fdisk_dev_flags_t dflags;
 	char *sltype = NULL;
 	char *sdcap = NULL;
 	char *scap = NULL;
+	char *smcap = NULL;
 	char *sfstype = NULL;
 	char *svcname = NULL;
 	char *spkind;
@@ -645,6 +647,84 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		sfstype = NULL;
 
 		part = fdisk_part_next(part);
+	}
+
+	/* Display available space */
+	if ((linfo.flags & lf_can_create_pri) != 0) {
+		rc = fdisk_part_get_max_avail(dev, spc_pri, &mcap);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = fdisk_cap_format(&mcap, &smcap);
+		if (rc != EOK) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		if ((linfo.flags & lf_ext_supp) != 0)
+			printf("Maximum free primary block: %s\n", smcap);
+		else
+			printf("Maximum free block: %s\n", smcap);
+
+		free(smcap);
+		smcap = NULL;
+
+		rc = fdisk_part_get_tot_avail(dev, spc_pri, &mcap);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = fdisk_cap_format(&mcap, &smcap);
+		if (rc != EOK) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		if ((linfo.flags & lf_ext_supp) != 0)
+			printf("Total free primary space: %s\n", smcap);
+		else
+			printf("Total free space: %s\n", smcap);
+
+		free(smcap);
+		smcap = NULL;
+	}
+
+	/* Display available space */
+	if ((linfo.flags & lf_can_create_log) != 0) {
+		rc = fdisk_part_get_max_avail(dev, spc_log, &mcap);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = fdisk_cap_format(&mcap, &smcap);
+		if (rc != EOK) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		printf("Maximum free logical block: %s\n", smcap);
+		free(smcap);
+		smcap = NULL;
+
+		rc = fdisk_part_get_tot_avail(dev, spc_log, &mcap);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = fdisk_cap_format(&mcap, &smcap);
+		if (rc != EOK) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		printf("Total free logical space: %s\n", smcap);
+		free(smcap);
+		smcap = NULL;
 	}
 
 	rc = nchoice_set_prompt(choice, "Select action");
@@ -784,6 +864,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 error:
 	free(sdcap);
 	free(scap);
+	free(smcap);
 	free(sfstype);
 	free(svcname);
 	if (choice != NULL)
