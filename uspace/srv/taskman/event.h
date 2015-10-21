@@ -31,45 +31,23 @@
  * @{
  */
 
-#ifndef TASKMAN_TASK_H__
-#define TASKMAN_TASK_H__
+#ifndef TASKMAN_EVENT_H__
+#define TASKMAN_EVENT_H__
 
-#include <abi/proc/task.h>
-#include <adt/hash_table.h>
-#include <adt/list.h>
-#include <fibril_synch.h>
+#include <async.h>
 #include <ipc/common.h>
+#include <abi/proc/task.h>
 
-/** What type of retval from the task we have */
-typedef enum {
-	RVAL_UNSET,     /**< unset */
-	RVAL_SET,       /**< retval set, e.g. by server */
-	RVAL_SET_EXIT   /**< retval set, wait for expected task exit */
-} retval_t;
+extern int event_init(void);
 
-/** Holds necessary information of each (registered) task. */
-typedef struct {
-	ht_link_t link;
-	
-	task_id_t id;          /**< Task id. */
-	task_exit_t exit;      /**< Task's uspace exit status. */
-	bool failed;           /**< Task failed (task can exit unexpectedly
-				    even w/out failure). */
-	retval_t retval_type;  /**< Task returned a value. */
-	int retval;            /**< The return value. */
 
-	link_t listeners;      /**< Link to listeners list. */
-	async_sess_t *sess;    /**< Session for notifications to task. */
-} task_t;
+// TODO unify this API for all call/connection handlers
+extern int event_register_listener(task_id_t, async_sess_t *);
+extern void wait_for_task(task_id_t, int, ipc_callid_t, ipc_call_t *);
+extern int task_set_retval(ipc_call_t *);
 
-extern hash_table_t task_hash_table;
-extern fibril_rwlock_t task_hash_table_lock;
-
-extern int task_init(void);
-
-extern task_t *task_get_by_id(task_id_t);
-
-extern int task_intro(ipc_call_t *, bool);
+extern void task_terminated(task_id_t, exit_reason_t);
+extern void task_failed(task_id_t);
 
 #endif
 

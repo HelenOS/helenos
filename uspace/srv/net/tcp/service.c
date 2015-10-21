@@ -34,7 +34,6 @@
  * @file HelenOS service implementation
  */
 
-#include <async.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inet/endpoint.h>

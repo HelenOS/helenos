@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "event.h"
 #include "task.h"
 #include "taskman.h"
 
@@ -62,6 +63,7 @@ static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
 	int rc = loader_spawn("loader");
 	
 	if (rc != EOK) {
+		printf(NAME ": %s -> %i\n", __func__, rc);
 		async_answer_0(iid, rc);
 		return;
 	}
@@ -124,7 +126,15 @@ static void taskman_ctl_retval(ipc_callid_t iid, ipc_call_t *icall)
 static void taskman_ctl_ev_callback(ipc_callid_t iid, ipc_call_t *icall)
 {
 	printf("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
-	async_answer_0(iid, ENOTSUP); // TODO interrupt here
+	/* Atomic -- will be used for notifications only */
+	async_sess_t *sess = async_callback_receive(EXCHANGE_ATOMIC);
+	if (sess == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	int rc = event_register_listener(icall->in_task_id, sess);
+	async_answer_0(iid, rc);
 }
 
 static void task_exit_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -264,6 +274,10 @@ int main(int argc, char *argv[])
 	/* Initialization */
 	prodcons_initialize(&sess_queue);
 	int rc = task_init();
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = event_init();
 	if (rc != EOK) {
 		return rc;
 	}

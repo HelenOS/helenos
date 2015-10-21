@@ -59,6 +59,15 @@ static void task_event_handler(task_id_t tid, int flags, task_exit_t texit,
 	}
 
 	handler_hit = true;
+	if (flags & TASK_WAIT_EXIT) {
+		last_texit = texit;
+	}
+
+	last_has_retval = flags & TASK_WAIT_RETVAL;
+	if (last_has_retval) {
+		last_retval = retval;
+	}
+
 finish:
 	fibril_condvar_signal(&sync_cv);
 	fibril_mutex_unlock(&sync_mtx);

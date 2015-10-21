@@ -31,6 +31,7 @@ BINARY = taskman
 STATIC_NEEDED = y
 
 SOURCES = \
+	event.c \
 	main.c \
 	task.c
 
