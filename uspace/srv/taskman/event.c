@@ -188,7 +188,8 @@ finish:
 	return rc;
 }
 
-void wait_for_task(task_id_t id, int flags, ipc_callid_t callid, ipc_call_t *call)
+void wait_for_task(task_id_t id, int flags, ipc_callid_t callid,
+     task_id_t waiter_id)
 {
 	assert(!(flags & TASK_WAIT_BOTH) ||
 	    ((flags & TASK_WAIT_RETVAL) && (flags & TASK_WAIT_EXIT)));
@@ -213,7 +214,6 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid, ipc_call_t *cal
 	 * Add request to pending list or reuse existing item for a second
 	 * wait.
 	 */
-	task_id_t waiter_id = call->in_task_id;
 	fibril_rwlock_write_lock(&pending_wait_lock);
 	pending_wait_t *pr = NULL;
 	list_foreach(pending_waits, link, pending_wait_t, it) {
@@ -263,21 +263,20 @@ finish:
 }
 
 
-int task_set_retval(ipc_call_t *call)
+int task_set_retval(task_id_t sender, int retval, bool wait_for_exit)
 {
 	int rc = EOK;
-	task_id_t id = call->in_task_id;
 	
 	fibril_rwlock_write_lock(&task_hash_table_lock);
-	task_t *t = task_get_by_id(id);
+	task_t *t = task_get_by_id(sender);
 
 	if ((t == NULL) || (t->exit != TASK_EXIT_RUNNING)) {
 		rc = EINVAL;
 		goto finish;
 	}
 	
-	t->retval = IPC_GET_ARG1(*call);
-	t->retval_type = IPC_GET_ARG2(*call) ? RVAL_SET_EXIT : RVAL_SET;
+	t->retval = retval;
+	t->retval_type = wait_for_exit ? RVAL_SET_EXIT : RVAL_SET;
 	
 	event_notify(t);
 	process_pending_wait();

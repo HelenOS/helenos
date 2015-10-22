@@ -28,16 +28,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * locking order: (TODO move to main?)
- * - task_hash_table_lock,
- * - pending_wait_lock.
- * - listeners_lock
- *
- * @addtogroup taskman
- * @{
- */
-
 #include <assert.h>
 #include <async.h>
 #include <errno.h>

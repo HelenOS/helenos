@@ -40,11 +40,9 @@
 
 extern int event_init(void);
 
-
-// TODO unify this API for all call/connection handlers
 extern int event_register_listener(task_id_t, async_sess_t *);
-extern void wait_for_task(task_id_t, int, ipc_callid_t, ipc_call_t *);
-extern int task_set_retval(ipc_call_t *);
+extern void wait_for_task(task_id_t, int, ipc_callid_t, task_id_t);
+extern int task_set_retval(task_id_t, int, bool);
 
 extern void task_terminated(task_id_t, exit_reason_t);
 extern void task_failed(task_id_t);

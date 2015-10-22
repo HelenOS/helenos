@@ -26,6 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * Locking order:
+ * - task_hash_table_lock (task.c),
+ * - pending_wait_lock (event.c),
+ * - listeners_lock (event.c).
+ *
+ * @addtogroup taskman
+ * @{
+ */
+
 #include <adt/prodcons.h>
 #include <assert.h>
 #include <async.h>
@@ -112,14 +122,19 @@ static void taskman_ctl_wait(ipc_callid_t iid, ipc_call_t *icall)
 	task_id_t id = (task_id_t)
 	    MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
 	int flags = IPC_GET_ARG3(*icall);
+	task_id_t waiter_id = icall->in_task_id;
 
-	wait_for_task(id, flags, iid, icall);
+	wait_for_task(id, flags, iid, waiter_id);
 }
 
 static void taskman_ctl_retval(ipc_callid_t iid, ipc_call_t *icall)
 {
 	printf("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
-	int rc = task_set_retval(icall);
+	task_id_t sender = icall->in_task_id;
+	int retval = IPC_GET_ARG1(*icall);
+	bool wait_for_exit = IPC_GET_ARG2(*icall);
+
+	int rc = task_set_retval(sender, retval, wait_for_exit);
 	async_answer_0(iid, rc);
 }
 
@@ -264,8 +279,6 @@ static void implicit_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-/** Build hard coded configuration */
-
 
 int main(int argc, char *argv[])
 {
@@ -312,3 +325,7 @@ int main(int argc, char *argv[])
 	/* not reached */
 	return 0;
 }
+
+/**
+ * @}
+ */
