@@ -64,6 +64,55 @@ typedef enum {
 	devac_exit
 } devac_t;
 
+/** Confirm user selection. */
+static int fdsk_confirm(const char *msg, bool *rconfirm)
+{
+	tinput_t *tinput = NULL;
+	char *answer;
+	int rc;
+
+	tinput = tinput_new();
+	if (tinput == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = tinput_set_prompt(tinput, "y/n> ");
+	if (rc != EOK)
+		goto error;
+
+	while (true) {
+		printf("%s\n", msg);
+
+		rc = tinput_read(tinput, &answer);
+		if (rc == ENOENT) {
+			*rconfirm = false;
+			free(answer);
+			break;
+		}
+
+		if (rc != EOK)
+			goto error;
+
+		if (str_cmp(answer, "y") == 0) {
+			*rconfirm = true;
+			free(answer);
+			break;
+		} else if (str_cmp(answer, "n") == 0) {
+			*rconfirm = false;
+			free(answer);
+			break;
+		}
+	}
+
+	tinput_destroy(tinput);
+	return EOK;
+error:
+	if (tinput != NULL)
+		tinput_destroy(tinput);
+	return rc;
+}
+
 /** Device selection */
 static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 {
@@ -253,7 +302,18 @@ error:
 
 static int fdsk_delete_label(fdisk_dev_t *dev)
 {
+	bool confirm;
 	int rc;
+
+	rc = fdsk_confirm("Warning. Any data on disk will be lost. "
+	    "Really delete label?", &confirm);
+	if (rc != EOK) {
+		printf("Error getting user confirmation.\n");
+		return rc;
+	}
+
+	if (!confirm)
+		return EOK;
 
 	rc = fdisk_label_destroy(dev);
 	if (rc != EOK) {
@@ -266,7 +326,18 @@ static int fdsk_delete_label(fdisk_dev_t *dev)
 
 static int fdsk_erase_disk(fdisk_dev_t *dev)
 {
+	bool confirm;
 	int rc;
+
+	rc = fdsk_confirm("Warning. Any data on disk will be lost. "
+	    "Really erase disk?", &confirm);
+	if (rc != EOK) {
+		printf("Error getting user confirmation.\n");
+		return rc;
+	}
+
+	if (!confirm)
+		return EOK;
 
 	rc = fdisk_dev_erase(dev);
 	if (rc != EOK) {
@@ -421,6 +492,7 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 	char *spkind = NULL;
 	char *sfstype = NULL;
 	char *sdesc = NULL;
+	bool confirm;
 	void *sel;
 	int rc;
 
@@ -506,20 +578,36 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 	}
 
 	rc = nchoice_get(choice, &sel);
+	if (rc == ENOENT)
+		return EOK;
 	if (rc != EOK) {
 		printf("Error getting user selection.\n");
 		goto error;
 	}
 
-	if (sel != NULL) {
-		rc = fdisk_part_destroy((fdisk_part_t *)sel);
-		if (rc != EOK) {
-			printf("Error deleting partition.\n");
-			return rc;
-		}
-	}
 
 	nchoice_destroy(choice);
+	choice = NULL;
+
+	if (sel == NULL)
+		return EOK;
+
+	rc = fdsk_confirm("Warning. Any data in partition will be lost. "
+	    "Really delete partition?", &confirm);
+	if (rc != EOK) {
+		printf("Error getting user confirmation.\n");
+		goto error;
+	}
+
+	if (!confirm)
+		return EOK;
+
+	rc = fdisk_part_destroy((fdisk_part_t *)sel);
+	if (rc != EOK) {
+		printf("Error deleting partition.\n");
+		return rc;
+	}
+
 	return EOK;
 error:
 	free(scap);
