@@ -72,6 +72,10 @@ extern void fdisk_pspec_init(fdisk_part_spec_t *);
 
 extern int fdisk_cap_format(fdisk_cap_t *, char **);
 extern int fdisk_cap_parse(const char *, fdisk_cap_t *);
+extern void fdisk_cap_simplify(fdisk_cap_t *);
+extern void fdisk_cap_from_blocks(uint64_t, size_t, fdisk_cap_t *);
+extern int fdisk_cap_to_blocks(fdisk_cap_t *, size_t, uint64_t *);
+
 extern int fdisk_ltype_format(label_type_t, char **);
 extern int fdisk_fstype_format(vol_fstype_t, char **);
 extern int fdisk_pkind_format(label_pkind_t, char **);

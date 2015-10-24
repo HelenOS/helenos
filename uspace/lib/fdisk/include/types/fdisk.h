@@ -76,9 +76,24 @@ typedef enum {
 
 #define CU_LIMIT (cu_ybyte + 1)
 
-/** Partition capacity */
+/** Partition capacity.
+ *
+ * Partition capacity represents both value and precision.
+ * It is a decimal floating point value combined with a decimal
+ * capacity unit. There is an integer mantisa @c m which in combination
+ * with the number of decimal positions @c dp gives a decimal floating-point
+ * number. E.g. for m = 1025 and dp = 2 the number is 10.25. If the unit
+ * cunit = cu_kbyte, the capacity is 10.25 kByte, i.e. 10 250 bytes.
+ *
+ * Note that 1.000 kByte is equivalent to 1000 Byte, but 1 kByte is less
+ * precise.
+ */
 typedef struct {
-	uint64_t value;
+	/** Mantisa */
+	uint64_t m;
+	/** Decimal positions */
+	unsigned dp;
+	/** Capacity unit */
 	fdisk_cunit_t cunit;
 } fdisk_cap_t;
 

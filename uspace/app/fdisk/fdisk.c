@@ -166,6 +166,8 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 			goto error;
 		}
 
+		fdisk_cap_simplify(&cap);
+
 		rc = fdisk_cap_format(&cap, &scap);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
@@ -518,6 +520,8 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 			goto error;
 		}
 
+		fdisk_cap_simplify(&pinfo.capacity);
+
 		rc = fdisk_cap_format(&pinfo.capacity, &scap);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
@@ -661,6 +665,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		goto error;
 	}
 
+	fdisk_cap_simplify(&cap);
+
 	rc = fdisk_cap_format(&cap, &sdcap);
 	if (rc != EOK) {
 		printf("Out of memory.\n");
@@ -712,6 +718,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			printf("Error getting partition information.\n");
 			goto error;
 		}
+
+		fdisk_cap_simplify(&pinfo.capacity);
 
 		rc = fdisk_cap_format(&pinfo.capacity, &scap);
 		if (rc != EOK) {
@@ -773,6 +781,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
+		fdisk_cap_simplify(&mcap);
+
 		rc = fdisk_cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
@@ -792,6 +802,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			rc = EIO;
 			goto error;
 		}
+
+		fdisk_cap_simplify(&mcap);
 
 		rc = fdisk_cap_format(&mcap, &smcap);
 		if (rc != EOK) {
@@ -816,6 +828,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
+		fdisk_cap_simplify(&mcap);
+
 		rc = fdisk_cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
@@ -831,6 +845,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			rc = EIO;
 			goto error;
 		}
+
+		fdisk_cap_simplify(&mcap);
 
 		rc = fdisk_cap_format(&mcap, &smcap);
 		if (rc != EOK) {

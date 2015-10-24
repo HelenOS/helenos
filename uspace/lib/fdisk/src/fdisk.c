@@ -45,18 +45,6 @@
 #include <vbd.h>
 #include <vol.h>
 
-static const char *cu_str[] = {
-	[cu_byte] = "B",
-	[cu_kbyte] = "kB",
-	[cu_mbyte] = "MB",
-	[cu_gbyte] = "GB",
-	[cu_tbyte] = "TB",
-	[cu_pbyte] = "PB",
-	[cu_ebyte] = "EB",
-	[cu_zbyte] = "ZB",
-	[cu_ybyte] = "YB"
-};
-
 static int fdisk_dev_add_parts(fdisk_dev_t *);
 static void fdisk_dev_remove_parts(fdisk_dev_t *);
 static int fdisk_part_spec_prepare(fdisk_dev_t *, fdisk_part_spec_t *,
@@ -256,9 +244,7 @@ int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 	if (rc != EOK)
 		return EIO;
 
-	cap->value = bsize * nblocks;
-	cap->cunit = cu_byte;
-
+	fdisk_cap_from_blocks(nblocks, bsize, cap);
 	return EOK;
 }
 
@@ -329,8 +315,8 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	if (part->pkind == lpk_extended)
 		dev->ext_part = part;
 
-	part->capacity.cunit = cu_byte;
-	part->capacity.value = part->nblocks * dev->dinfo.block_size;
+	fdisk_cap_from_blocks(part->nblocks, dev->dinfo.block_size,
+	    &part->capacity);
 	part->part_id = partid;
 
 	if (rpart != NULL)
@@ -618,9 +604,7 @@ int fdisk_dev_capacity(fdisk_dev_t *dev, fdisk_cap_t *cap)
 
 	block_fini(dev->sid);
 
-	cap->value = bsize * nblocks;
-	cap->cunit = cu_byte;
-
+	fdisk_cap_from_blocks(nblocks, bsize, cap);
 	return EOK;
 }
 
@@ -782,8 +766,7 @@ int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, fdisk_cap_t *cap
 		nb -= hdrb;
 	}
 
-	cap->value = nb * dev->dinfo.block_size;
-	cap->cunit = cu_byte;
+	fdisk_cap_from_blocks(nb, dev->dinfo.block_size, cap);
 	return EOK;
 }
 
@@ -811,8 +794,7 @@ int fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
 		}
 	} while (fdisk_free_range_next(&fr));
 
-	cap->value = totb * dev->dinfo.block_size;
-	cap->cunit = cu_byte;
+	fdisk_cap_from_blocks(totb, dev->dinfo.block_size, cap);
 	return EOK;
 }
 
@@ -881,59 +863,6 @@ int fdisk_part_destroy(fdisk_part_t *part)
 void fdisk_pspec_init(fdisk_part_spec_t *pspec)
 {
 	memset(pspec, 0, sizeof(fdisk_part_spec_t));
-}
-
-int fdisk_cap_format(fdisk_cap_t *cap, char **rstr)
-{
-	int rc;
-	const char *sunit;
-
-	sunit = NULL;
-
-	if (cap->cunit < 0 || cap->cunit >= CU_LIMIT)
-		assert(false);
-
-	sunit = cu_str[cap->cunit];
-	rc = asprintf(rstr, "%" PRIu64 " %s", cap->value, sunit);
-	if (rc < 0)
-		return ENOMEM;
-
-	return EOK;
-}
-
-int fdisk_cap_parse(const char *str, fdisk_cap_t *cap)
-{
-	char *eptr;
-	char *p;
-	unsigned long val;
-	int i;
-
-	val = strtoul(str, &eptr, 10);
-
-	while (*eptr == ' ')
-		++eptr;
-
-	if (*eptr == '\0') {
-		cap->cunit = cu_byte;
-	} else {
-		for (i = 0; i < CU_LIMIT; i++) {
-			if (str_lcasecmp(eptr, cu_str[i],
-			    str_length(cu_str[i])) == 0) {
-				p = eptr + str_size(cu_str[i]);
-				while (*p == ' ')
-					++p;
-				if (*p == '\0')
-					goto found;
-			}
-		}
-
-		return EINVAL;
-found:
-		cap->cunit = i;
-	}
-
-	cap->value = val;
-	return EOK;
 }
 
 int fdisk_ltype_format(label_type_t ltype, char **rstr)
@@ -1107,30 +1036,18 @@ static int fdisk_part_get_max_free_range(fdisk_dev_t *dev, fdisk_spc_t spc,
 static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     vbd_part_spec_t *vpspec)
 {
-	uint64_t cbytes;
 	aoff64_t req_blocks;
 	aoff64_t fblock0;
 	aoff64_t fnblocks;
 	aoff64_t hdrb;
-	uint64_t block_size;
 	label_pcnt_t pcnt;
-	unsigned i;
 	int index;
 	int rc;
 
 	printf("fdisk_part_spec_prepare() - dev=%p pspec=%p vpspec=%p\n", dev, pspec,
 	    vpspec);
-	printf("fdisk_part_spec_prepare() - block size\n");
-	block_size = dev->dinfo.block_size;
-	printf("fdisk_part_spec_prepare() - cbytes\n");
-	cbytes = pspec->capacity.value;
-	printf("fdisk_part_spec_prepare() - cunit\n");
-	for (i = 0; i < pspec->capacity.cunit; i++)
-		cbytes = cbytes * 1000;
+	fdisk_cap_to_blocks(&pspec->capacity, dev->dinfo.block_size, &req_blocks);
 
-	printf("fdisk_part_spec_prepare() - req_blocks block_size=%zu\n",
-	    block_size);
-	req_blocks = (cbytes + block_size - 1) / block_size;
 	req_blocks = fdisk_ba_align_up(dev, req_blocks);
 
 	pcnt = -1;

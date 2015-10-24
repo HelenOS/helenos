@@ -95,6 +95,7 @@ GENERIC_SOURCES = \
 	generic/tls.c \
 	generic/task.c \
 	generic/futex.c \
+	generic/imath.c \
 	generic/inet/addr.c \
 	generic/inet/endpoint.c \
 	generic/inet/tcp.c \

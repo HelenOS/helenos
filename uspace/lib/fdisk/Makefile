@@ -32,6 +32,7 @@ EXTRA_CFLAGS = -Iinclude -I$(LIBBLOCK_PREFIX)
 LIBRARY = libfdisk
 
 SOURCES = \
+	src/cap.c \
 	src/fdisk.c
 
 include $(USPACE_PREFIX)/Makefile.common
