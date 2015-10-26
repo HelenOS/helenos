@@ -129,7 +129,10 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 void cpu_arch_init(void)
 {
 	uint32_t control_reg = SCTLR_read();
-	
+
+	dcache_invalidate();
+	read_barrier();
+
 	/* Turn off tex remap, RAZ/WI prior to armv7 */
 	control_reg &= ~SCTLR_TEX_REMAP_EN_FLAG;
 	/* Turn off accessed flag, RAZ/WI prior to armv7 */
@@ -339,6 +342,18 @@ static bool cache_is_unified(void)
 	}
 }
 #endif
+
+void dcache_invalidate(void)
+{
+#if defined(PROCESSOR_ARCH_armv7_a)
+	dcache_flush_invalidate();
+#else
+	if (cache_is_unified())
+		CIALL_write(0);
+	else
+		DCIALL_write(0);
+#endif
+}
 
 void dcache_clean_mva_pou(uintptr_t mva)
 {
