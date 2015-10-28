@@ -142,7 +142,7 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 	pte->domain = 0;
 	pte->should_be_zero_1 = 0;
 	pte->access_permission_0 = PTE_AP_USER_NO_KERNEL_RW;
-#ifdef PROCESSOR_ARCH_armv7_a
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 	/*
 	 * Keeps this setting in sync with memory type attributes in:
 	 * init_boot_pt (boot/arch/arm32/src/mm.c)
@@ -151,9 +151,9 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 	 */
 	pte->tex = section_cacheable(frame) ? 5 : 0;
 	pte->cacheable = section_cacheable(frame) ? 0 : 0;
-	pte->bufferable = section_cacheable(frame) ? 1 : 0;
+	pte->bufferable = section_cacheable(frame) ? 1 : 1;
 #else
-	pte->bufferable = 1;
+	pte->bufferable = section_cacheable(frame);
 	pte->cacheable = section_cacheable(frame);
 	pte->tex = 0;
 #endif
@@ -188,7 +188,10 @@ static void init_boot_pt(void)
 	 * set_ptl0_addr (kernel/arch/arm32/include/arch/mm/page.h)
 	 */
 	uint32_t val = (uint32_t)boot_pt & TTBR_ADDR_MASK;
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
+	// FIXME: TTBR_RGN_WBWA_CACHE is unpredictable on ARMv6
 	val |= TTBR_RGN_WBWA_CACHE | TTBR_C_FLAG;
+#endif
 	TTBR0_write(val);
 }
 

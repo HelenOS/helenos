@@ -77,7 +77,8 @@ NO_TRACE static inline void atomic_inc(atomic_t *val)
  * @param val Variable to be decremented.
  *
  */
-NO_TRACE static inline void atomic_dec(atomic_t *val) {
+NO_TRACE static inline void atomic_dec(atomic_t *val)
+{
 	atomic_add(val, -1);
 }
 

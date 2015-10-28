@@ -122,7 +122,7 @@ typedef union {
 #define pt_coherence_m(pt, count) \
 do { \
 	for (unsigned i = 0; i < count; ++i) \
-		DCCMVAU_write((uintptr_t)(pt + i)); \
+		dcache_clean_mva_pou((uintptr_t)(pt + i)); \
 	read_barrier(); \
 } while (0)
 

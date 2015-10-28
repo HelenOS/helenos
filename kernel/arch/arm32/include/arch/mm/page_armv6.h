@@ -155,10 +155,9 @@ typedef union {
 #define pt_coherence_m(pt, count) \
 do { \
 	for (unsigned i = 0; i < count; ++i) \
-		DCCMVAU_write((uintptr_t)(pt + i)); \
+		dcache_clean_mva_pou((uintptr_t)(pt + i)); \
 	read_barrier(); \
 } while (0)
-
 
 /** Returns level 0 page table entry flags.
  *
@@ -257,8 +256,10 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 
 	if (flags & PAGE_CACHEABLE) {
 		/*
-		 * Write-through, write-allocate memory, see ch. B3.8.2
-		 * (p. B3-1358) of ARM Architecture reference manual.
+		 * Outer and inner write-back, write-allocate memory,
+		 * see ch. B3.8.2 (p. B3-1358) of ARM Architecture reference
+		 * manual.
+		 *
 		 * Make sure the memory type is correct, and in sync with:
 		 * init_boot_pt (boot/arch/arm32/src/mm.c)
 		 * init_ptl0_section (boot/arch/arm32/src/mm.c)
@@ -277,14 +278,9 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		p->bufferable = 1;
 	}
 	
-#if defined(PROCESSOR_ARCH_armv6)
-	/* FIXME: this disables caches */
-	p->shareable = 1;
-#else
 	/* Shareable is ignored for devices (non-cacheable),
 	 * turn it off for normal memory. */
 	p->shareable = 0;
-#endif
 	
 	p->non_global = !(flags & PAGE_GLOBAL);
 	
