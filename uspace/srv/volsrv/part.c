@@ -140,7 +140,7 @@ static int vol_part_add_locked(service_id_t sid)
 	if (rc == EOK)
 		return EEXIST;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_add()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_add_locked()");
 	part = vol_part_new();
 	if (part == NULL)
 		return ENOMEM;
@@ -153,7 +153,7 @@ static int vol_part_add_locked(service_id_t sid)
 		goto error;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Probe partition %s", part->svc_name);
 	rc = volsrv_part_is_empty(sid, &empty);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed determining if "
@@ -254,16 +254,15 @@ int vol_part_empty_part(vol_part_t *part)
 {
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_part()");
 
 	rc = volsrv_part_empty(part->svc_id);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part() - failed %d",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_part() - failed %d",
 		    rc);
 		return rc;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_part() - success");
 	part->pcnt = vpc_empty;
 	return EOK;
 }
@@ -272,16 +271,15 @@ int vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype)
 {
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_part()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part()");
 
 	rc = volsrv_part_mkfs(part->svc_id, fstype);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_part() - failed %d",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part() - failed %d",
 		    rc);
 		return rc;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_part() - success");
 	part->pcnt = vpc_fs;
 	part->fstype = fstype;
 	return EOK;

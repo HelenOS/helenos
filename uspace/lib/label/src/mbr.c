@@ -485,15 +485,12 @@ static label_part_t *mbr_log_part_prev(label_part_t *part)
 	return list_get_instance(link, label_part_t, llog);
 }
 
-#include <io/log.h>
 static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 {
 	pinfo->index = part->index;
 	pinfo->block0 = part->block0;
 	pinfo->nblocks = part->nblocks;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_get_info: index=%d ptype=%d",
-	    (int)part->index, (int)part->ptype.t.num);
 	if (link_used(&part->llog))
 		pinfo->pkind = lpk_logical;
 	else if (part->ptype.t.num == mbr_pt_extended)
@@ -511,7 +508,6 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 	mbr_pte_t pte;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_create");
 	if (pspec->ptype.fmt != lptf_num)
 		return EINVAL;
 
@@ -620,7 +616,6 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 		mbr_update_log_indices(label);
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_create success");
 	*rpart = part;
 	return EOK;
 error:
@@ -755,9 +750,6 @@ static int mbr_part_to_pte(label_part_t *part, mbr_pte_t *pte)
 	if ((part->ptype.t.num >> 8) != 0)
 		return EINVAL;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_to_pte: a0=%" PRIu64
-	    " len=%" PRIu64 " ptype=%d", part->block0, part->nblocks,
-	    (int)part->ptype.t.num);
 	memset(pte, 0, sizeof(mbr_pte_t));
 	pte->ptype = part->ptype.t.num;
 	pte->first_lba = host2uint32_t_le(part->block0);
@@ -948,7 +940,6 @@ static int mbr_ebr_create(label_t *label, label_part_t *part)
 
 	ba = part->block0 - part->hdr_blocks;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Write EBR to ba=%" PRIu64, ba);
 	rc = block_write_direct(label->svc_id, ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
@@ -997,15 +988,9 @@ static int mbr_ebr_update_next(label_t *label, label_part_t *part)
 
 	ba = part->block0 - part->hdr_blocks;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next ba=%" PRIu64,
-	    ba);
-
 	br = calloc(1, label->block_size);
 	if (br == NULL)
 		return ENOMEM;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next read ba=%" PRIu64,
-	    ba);
 
 	rc = block_read_direct(label->svc_id, ba, 1, br);
 	if (rc != EOK) {
@@ -1016,23 +1001,17 @@ static int mbr_ebr_update_next(label_t *label, label_part_t *part)
 	/* Verify boot record signature */
 	sgn = uint16_t_le2host(br->signature);
 	if (sgn != mbr_br_signature) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next signature error");
 		rc = EIO;
 		goto error;
 	}
 
 	mbr_log_part_to_ptes(part, NULL, &br->pte[mbr_ebr_pte_next]);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next write ba=%" PRIu64,
-	    ba);
-
 	rc = block_write_direct(label->svc_id, ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_ebr_update_next success");
 
 	free(br);
 	return EOK;

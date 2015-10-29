@@ -127,9 +127,7 @@ int fdisk_dev_list_get(fdisk_t *fdisk, fdisk_dev_list_t **rdevlist)
 
 	list_initialize(&devlist->devinfos);
 
-	printf("vbd_get_disks()\n");
 	rc = vbd_get_disks(fdisk->vbd, &svcs, &count);
-	printf(" -> %d\n", rc);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -261,7 +259,6 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	if (part == NULL)
 		return ENOMEM;
 
-	printf("vbd_part_get_info(%zu)\n", partid);
 	rc = vbd_part_get_info(dev->fdisk->vbd, partid, &pinfo);
 	if (rc != EOK) {
 		rc = EIO;
@@ -269,21 +266,17 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	}
 
 	if (pinfo.svc_id != 0) {
-		printf("vol_part_add(%zu)...\n", pinfo.svc_id);
 		/*
 		 * Normally vol service discovers the partition asynchronously.
 		 * Here we need to make sure the partition is already known to it.
 		 */
 		rc = vol_part_add(dev->fdisk->vol, pinfo.svc_id);
-		printf("vol_part_add->rc = %d\n", rc);
 		if (rc != EOK && rc != EEXIST) {
 			rc = EIO;
 			goto error;
 		}
 
-		printf("vol_part_info(%zu)\n", pinfo.svc_id);
 		rc = vol_part_info(dev->fdisk->vol, pinfo.svc_id, &vpinfo);
-		printf("vol_part_info->rc = %d\n", rc);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -403,33 +396,23 @@ static int fdisk_dev_add_parts(fdisk_dev_t *dev)
 	size_t nparts, i;
 	int rc;
 
-	printf("get label info\n");
 	rc = fdisk_update_dev_info(dev);
 	if (rc != EOK) {
-		printf("failed\n");
 		rc = EIO;
 		goto error;
 	}
 
-	printf("block size: %zu\n", dev->dinfo.block_size);
-	printf("get partitions\n");
 	rc = vbd_label_get_parts(dev->fdisk->vbd, dev->sid, &psids, &nparts);
 	if (rc != EOK) {
-		printf("failed\n");
 		rc = EIO;
 		goto error;
 	}
-	printf("OK\n");
 
-	printf("found %zu partitions.\n", nparts);
 	for (i = 0; i < nparts; i++) {
-		printf("add partition sid=%zu\n", psids[i]);
 		rc = fdisk_part_add(dev, psids[i], NULL);
 		if (rc != EOK) {
-			printf("failed\n");
 			goto error;
 		}
-		printf("OK\n");
 	}
 
 	free(psids);
@@ -475,33 +458,23 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 		goto error;
 	}
 
-	printf("get label info\n");
 	rc = fdisk_update_dev_info(dev);
 	if (rc != EOK) {
-		printf("failed\n");
 		rc = EIO;
 		goto error;
 	}
 
-	printf("block size: %zu\n", dev->dinfo.block_size);
-	printf("get partitions\n");
 	rc = vbd_label_get_parts(fdisk->vbd, sid, &psids, &nparts);
 	if (rc != EOK) {
-		printf("failed\n");
 		rc = EIO;
 		goto error;
 	}
-	printf("OK\n");
 
-	printf("found %zu partitions.\n", nparts);
 	for (i = 0; i < nparts; i++) {
-		printf("add partition sid=%zu\n", psids[i]);
 		rc = fdisk_part_add(dev, psids[i], NULL);
 		if (rc != EOK) {
-			printf("failed\n");
 			goto error;
 		}
-		printf("OK\n");
 	}
 
 	free(psids);
@@ -527,21 +500,16 @@ int fdisk_dev_erase(fdisk_dev_t *dev)
 	fdisk_part_t *part;
 	int rc;
 
-	printf("fdisk_dev_erase.. check ltype\n");
 	if (dev->dinfo.ltype != lt_none)
 		return EINVAL;
 
-	printf("fdisk_dev_erase.. get first part\n");
 	part = fdisk_part_first(dev);
 	assert(part != NULL);
-	printf("fdisk_dev_erase.. check part\n");
 	if (part->pcnt == vpc_empty)
 		return EINVAL;
 
-	printf("fdisk_dev_erase.. check part\n");
 	rc = vol_part_empty(dev->fdisk->vol, part->svc_id);
 	if (rc != EOK) {
-		printf("vol_part_empty -> %d\n", rc);
 		return rc;
 	}
 
@@ -681,8 +649,6 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 	fdisk_dev_flags_t dflags;
 	int rc;
 
-	printf("fdisk_label_destroy: begin\n");
-
 	part = fdisk_part_first(dev);
 	while (part != NULL) {
 		rc = fdisk_part_destroy(part);
@@ -691,18 +657,14 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 		part = fdisk_part_first(dev);
 	}
 
-	printf("fdisk_label_destroy: vbd_label_delete\n");
-
 	rc = vbd_label_delete(dev->fdisk->vbd, dev->sid);
 	if (rc != EOK)
 		return EIO;
 
-	printf("fdisk_label_destroy: add parts\n");
 	rc = fdisk_dev_add_parts(dev);
 	if (rc != EOK)
 		return rc;
 
-	printf("fdisk_label_destroy: erase dev\n");
 	/* Make sure device is considered empty */
 	fdisk_dev_get_flags(dev, &dflags);
 	if ((dflags & fdf_can_erase_dev) != 0) {
@@ -711,7 +673,6 @@ int fdisk_label_destroy(fdisk_dev_t *dev)
 			return rc;
 	}
 
-	printf("fdisk_label_destroy: done\n");
 	return EOK;
 }
 
@@ -806,18 +767,14 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	vbd_part_id_t partid;
 	int rc;
 
-	printf("fdisk_part_create()\n");
-
 	rc = fdisk_part_spec_prepare(dev, pspec, &vpspec);
 	if (rc != EOK)
 		return EIO;
 
-	printf("fdisk_part_create() - call vbd_part_create\n");
 	rc = vbd_part_create(dev->fdisk->vbd, dev->sid, &vpspec, &partid);
 	if (rc != EOK)
 		return EIO;
 
-	printf("fdisk_part_create() - call fdisk_part_add\n");
 	rc = fdisk_part_add(dev, partid, &part);
 	if (rc != EOK) {
 		/* Try rolling back */
@@ -828,14 +785,12 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	if (part->svc_id != 0) {
 		rc = vol_part_mkfs(dev->fdisk->vol, part->svc_id, pspec->fstype);
 		if (rc != EOK && rc != ENOTSUP) {
-			printf("mkfs failed\n");
 			fdisk_part_remove(part);
 			(void) vbd_part_delete(dev->fdisk->vbd, partid);
 			return EIO;
 		}
 	}
 
-	printf("fdisk_part_create() - done\n");
 	if (part->svc_id != 0) {
 		part->pcnt = vpc_fs;
 		part->fstype = pspec->fstype;
@@ -985,10 +940,7 @@ static int fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
 	fdisk_free_range_first(dev, spc, &fr);
 	do {
 		if (fdisk_free_range_get(&fr, &b0, &nb)) {
-			printf("free range: [%" PRIu64 ",+%" PRIu64 "]\n",
-			    b0, nb);
 			if (nb >= nblocks) {
-				printf("accepted.\n");
 				*rblock0 = b0;
 				*rnblocks = nb;
 				return EOK;
@@ -1048,8 +1000,6 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	int index;
 	int rc;
 
-	printf("fdisk_part_spec_prepare() - dev=%p pspec=%p vpspec=%p\n", dev, pspec,
-	    vpspec);
 	rc = fdisk_cap_to_blocks(&pspec->capacity, fcv_nom, dev->dinfo.block_size,
 	    &nom_blocks);
 	if (rc != EOK)
@@ -1068,9 +1018,6 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	nom_blocks = fdisk_ba_align_up(dev, nom_blocks);
 	min_blocks = fdisk_ba_align_up(dev, min_blocks);
 	max_blocks = fdisk_ba_align_up(dev, max_blocks);
-
-	printf("fdisk_part_spec_prepare: nom=%" PRIu64 ", min=%" PRIu64
-	    ", max=%" PRIu64, nom_blocks, min_blocks, max_blocks);
 
 	pcnt = -1;
 
@@ -1154,10 +1101,6 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		if (rc != EOK)
 			return EIO;
 	}
-
-	printf("fdisk_part_spec_prepare: hdrb=%" PRIu64 ", b0=%" PRIu64
-	    ", nblocks=%" PRIu64 ", pkind=%d\n", vpspec->hdr_blocks,
-	    vpspec->block0, vpspec->nblocks, vpspec->pkind);
 
 	return EOK;
 }

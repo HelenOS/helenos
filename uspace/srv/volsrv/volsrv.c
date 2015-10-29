@@ -140,21 +140,17 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 
 	sid = IPC_GET_ARG1(*icall);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_info_srv(%zu)",
 	    sid);
 	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {
 		async_answer_0(iid, ENOENT);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
-		    "not found", sid);
 		return;
 	}
 
 	rc = vol_part_get_info(part, &pinfo);
 	if (rc != EOK) {
 		async_answer_0(iid, EIO);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
-		    "get info failed (%d)", sid, rc);
 		return;
 	}
 
@@ -163,16 +159,12 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
-		    "read receive failed", sid);
 		return;
 	}
 
 	if (size != sizeof(vol_part_info_t)) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
-		    "incorrect size", sid);
 		return;
 	}
 
@@ -181,13 +173,9 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
-		    "data read failed", sid);
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_info_srv(%zu) - "
-	    "success", sid);
 	async_answer_0(iid, EOK);
 }
 
@@ -198,18 +186,14 @@ static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 
 	sid = IPC_GET_ARG1(*icall);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_srv(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_srv(%zu)", sid);
 
 	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_srv(%zu) - "
-		    "partition not found", sid);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_empty_srv(%zu) - "
-	    "call vol_part_empty_part()", sid);
 	rc = vol_part_empty_part(part);
 	if (rc != EOK) {
 		async_answer_0(iid, EIO);
@@ -229,19 +213,12 @@ static void vol_part_mkfs_srv(ipc_callid_t iid, ipc_call_t *icall)
 	sid = IPC_GET_ARG1(*icall);
 	fstype = IPC_GET_ARG2(*icall);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv(%zu, %d)", sid,
-	    fstype);
-
 	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv(%zu) - "
-		    "partition not found", sid);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv(%zu) - "
-	    "call vol_part_mkfs_part()", sid);
 	rc = vol_part_mkfs_part(part, fstype);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);

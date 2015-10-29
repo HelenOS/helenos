@@ -172,35 +172,35 @@ static int vbds_disk_by_svcid(service_id_t sid, vbds_disk_t **rdisk)
 
 static int vbds_part_by_pid(vbds_part_id_t partid, vbds_part_t **rpart)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_by_pid(%zu)", partid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_by_pid(%zu)", partid);
 
 	list_foreach(vbds_parts, lparts, vbds_part_t, part) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "%zu == %zu ?", part->pid, partid);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%zu == %zu ?", part->pid, partid);
 		if (part->pid == partid) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Found match.");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Found match.");
 			*rpart = part;
 			return EOK;
 		}
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "No match.");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "No match.");
 	return ENOENT;
 }
 
 static int vbds_part_by_svcid(service_id_t svcid, vbds_part_t **rpart)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_by_svcid(%zu)", svcid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_by_svcid(%zu)", svcid);
 
 	list_foreach(vbds_parts, lparts, vbds_part_t, part) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "%zu == %zu ?", part->svc_id, svcid);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%zu == %zu ?", part->svc_id, svcid);
 		if (part->svc_id == svcid) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Found match.");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Found match.");
 			*rpart = part;
 			return EOK;
 		}
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "No match.");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "No match.");
 	return ENOENT;
 }
 
@@ -213,7 +213,7 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	label_part_info_t lpinfo;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_add(%s, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_add(%s, %p)",
 	    disk->svc_name, lpart);
 
 	label_part_get_info(lpart, &lpinfo);
@@ -244,7 +244,7 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	list_append(&part->ldisk, &disk->parts);
 	list_append(&part->lparts, &vbds_parts);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_add -> %p", part);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_add -> %p", part);
 
 	if (rpart != NULL)
 		*rpart = part;
@@ -259,12 +259,12 @@ static int vbds_part_remove(vbds_part_t *part, label_part_t **rlpart)
 	label_part_t *lpart;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_remove(%p)", part);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_remove(%p)", part);
 
 	lpart = part->lpart;
 
 	if (part->open_cnt > 0) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "part->open_cnt = %d",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "part->open_cnt = %d",
 		    part->open_cnt);
 		return EBUSY;
 	}
@@ -354,7 +354,7 @@ int vbds_disk_add(service_id_t sid)
 	size_t block_size;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_add(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_add(%zu)", sid);
 
 	/* Check for duplicates */
 	rc = vbds_disk_by_svcid(sid, &disk);
@@ -372,7 +372,7 @@ int vbds_disk_add(service_id_t sid)
 		goto error;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "block_init(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "block_init(%zu)", sid);
 	rc = block_init(EXCHANGE_SERIALIZE, sid, 2048);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed opening block device %s.",
@@ -393,7 +393,7 @@ int vbds_disk_add(service_id_t sid)
 
 	rc = label_open(sid, &label);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Failed to open label in disk %s.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to open label in disk %s.",
 		    disk->svc_name);
 		rc = EIO;
 		goto error;
@@ -413,7 +413,7 @@ int vbds_disk_add(service_id_t sid)
 error:
 	label_close(label);
 	if (block_inited) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "block_fini(%zu)", sid);
 		block_fini(sid);
 	}
 	if (disk != NULL)
@@ -427,7 +427,7 @@ int vbds_disk_remove(service_id_t sid)
 	vbds_disk_t *disk;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_remove(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_remove(%zu)", sid);
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK)
@@ -441,7 +441,7 @@ int vbds_disk_remove(service_id_t sid)
 
 	list_remove(&disk->ldisks);
 	label_close(disk->label);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "block_fini(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "block_fini(%zu)", sid);
 	block_fini(sid);
 	free(disk);
 	return EOK;
@@ -482,7 +482,7 @@ int vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
 	label_info_t linfo;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_info(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_info(%zu)", sid);
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK)
@@ -497,7 +497,7 @@ int vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
 	info->ablock0 = linfo.ablock0;
 	info->anblocks = linfo.anblocks;
 	info->block_size = disk->block_size;
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_disk_info - block_size=%zu",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_info - block_size=%zu",
 	    info->block_size);
 	return EOK;
 }
@@ -539,14 +539,14 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 	vbds_disk_t *disk;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu)", sid);
 
 	/* Find disk */
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK)
 		return rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - label_close", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu) - label_close", sid);
 
 	/* Verify that current label is a dummy label */
 	rc = label_get_info(disk->label, &linfo);
@@ -568,7 +568,7 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 	label_close(disk->label);
 	disk->label = NULL;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - label_create", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu) - label_create", sid);
 
 	rc = label_create(sid, ltype, &label);
 	if (rc != EOK)
@@ -577,14 +577,14 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 	(void) vbds_disk_parts_add(disk, label);
 	disk->label = label;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - success", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu) - success", sid);
 	return EOK;
 error:
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_create(%zu) - failure", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu) - failure", sid);
 	if (disk->label == NULL) {
 		rc = label_open(sid, &label);
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Failed to open label in disk %s.",
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to open label in disk %s.",
 			    disk->svc_name);
 		}
 	}
@@ -598,7 +598,7 @@ int vbds_label_delete(service_id_t sid)
 	label_t *label;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_label_delete(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_delete(%zu)", sid);
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK)
@@ -620,7 +620,7 @@ int vbds_label_delete(service_id_t sid)
 
 	rc = label_open(disk->svc_id, &label);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Failed to open label in disk %s.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to open label in disk %s.",
 		    disk->svc_name);
 		return EIO;
 	}
@@ -659,16 +659,16 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 	label_part_t *lpart;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_create(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_create(%zu)", sid);
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Disk %zu not found",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Disk %zu not found",
 		    sid);
 		goto error;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_crate(%zu): "
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_crate(%zu): "
 	    "index=%d block0=%" PRIu64 " nblocks=%" PRIu64
 	    " hdr_blocks=%" PRIu64 " pkind=%d",
 	    sid, pspec->index, pspec->block0, pspec->nblocks, pspec->hdr_blocks,
@@ -759,14 +759,14 @@ int vbds_suggest_ptype(service_id_t sid, label_pcnt_t pcnt,
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Disk %zu not found",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Disk %zu not found",
 		    sid);
 		goto error;
 	}
 
 	rc = label_suggest_ptype(disk->label, pcnt, ptype);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "label_suggest_ptype() failed");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "label_suggest_ptype() failed");
 		goto error;
 	}
 
@@ -779,7 +779,7 @@ static int vbds_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_open()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_open()");
 	part->open_cnt++;
 	return EOK;
 }
@@ -788,7 +788,7 @@ static int vbds_bd_close(bd_srv_t *bd)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_close()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_close()");
 	part->open_cnt--;
 	return EOK;
 }
@@ -799,7 +799,7 @@ static int vbds_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	vbds_part_t *part = bd_srv_part(bd);
 	aoff64_t gba;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_read_blocks()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_bd_read_blocks()");
 
 	if (cnt * part->disk->block_size < size)
 		return EINVAL;
@@ -815,7 +815,7 @@ static int vbds_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 	vbds_part_t *part = bd_srv_part(bd);
 	aoff64_t gba;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_sync_cache()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_bd_sync_cache()");
 
 	/* XXX Allow full-disk sync? */
 	if (ba != 0 || cnt != 0) {
@@ -834,7 +834,7 @@ static int vbds_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	vbds_part_t *part = bd_srv_part(bd);
 	aoff64_t gba;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_write_blocks()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_bd_write_blocks()");
 
 	if (cnt * part->disk->block_size < size)
 		return EINVAL;
@@ -849,7 +849,7 @@ static int vbds_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_get_block_size()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_bd_get_block_size()");
 	*rsize = part->disk->block_size;
 	return EOK;
 }
@@ -858,7 +858,7 @@ static int vbds_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_get_num_blocks()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_bd_get_num_blocks()");
 	*rnb = part->nblocks;
 	return EOK;
 }
@@ -869,21 +869,21 @@ void vbds_bd_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	int rc;
 	service_id_t svcid;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_conn()");
 
 	svcid = IPC_GET_ARG1(*icall);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn() - svcid=%zu", svcid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_conn() - svcid=%zu", svcid);
 
 	rc = vbds_part_by_svcid(svcid, &part);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vbd_bd_conn() - partition "
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "vbd_bd_conn() - partition "
 		    "not found.");
 		async_answer_0(iid, EINVAL);
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_bd_conn() - call bd_conn");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_conn() - call bd_conn");
 	bd_conn(iid, icall, &part->bds);
 }
 
@@ -914,7 +914,7 @@ static int vbds_part_svc_register(vbds_part_t *part)
 		return ENOMEM;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "loc_service_register('%s')",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loc_service_register('%s')",
 	    name);
 	rc = loc_service_register(name, &psid);
 	if (rc != EOK) {
@@ -951,7 +951,7 @@ static int vbds_part_svc_unregister(vbds_part_t *part)
 {
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_svc_unregister("
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_svc_unregister("
 	    "disk->svc_name='%s', id=%zu)", part->disk->svc_name, part->svc_id);
 
 	rc = loc_service_unregister(part->svc_id);
@@ -969,14 +969,14 @@ static int vbds_part_indices_update(vbds_disk_t *disk)
 	label_part_info_t lpinfo;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vbds_part_indices_update()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_indices_update()");
 
 	/* First unregister services for partitions whose index has changed */
 	list_foreach(disk->parts, ldisk, vbds_part_t, part) {
 		if (part->svc_id != 0 && part->lpart->index != part->reg_idx) {
 			rc = vbds_part_svc_unregister(part);
 			if (rc != EOK) {
-				log_msg(LOG_DEFAULT, LVL_NOTE, "Error "
+				log_msg(LOG_DEFAULT, LVL_ERROR, "Error "
 				    "un-registering partition.");
 				return EIO;
 			}
@@ -989,7 +989,7 @@ static int vbds_part_indices_update(vbds_disk_t *disk)
 		if (part->svc_id == 0 && lpinfo.pkind != lpk_extended) {
 			rc = vbds_part_svc_register(part);
 			if (rc != EOK) {
-				log_msg(LOG_DEFAULT, LVL_NOTE, "Error "
+				log_msg(LOG_DEFAULT, LVL_ERROR, "Error "
 				    "re-registering partition.");
 				return EIO;
 			}

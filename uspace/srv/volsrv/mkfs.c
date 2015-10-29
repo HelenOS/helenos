@@ -58,15 +58,11 @@ static int cmd_runl(const char *path, ...)
 	} while (arg != NULL);
 	va_end(ap);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Calling task_spawn()");
-
 	va_start(ap, path);
 	task_id_t id;
 	task_wait_t wait;
 	int rc = task_spawn(&id, &wait, path, cnt, ap);
 	va_end(ap);
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "task_spawn() -> rc = %d", rc);
 
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error spawning %s (%s)",
@@ -74,34 +70,27 @@ static int cmd_runl(const char *path, ...)
 		return rc;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "task_spawn() -> id = %d", (int)id);
-
 	if (!id) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error spawning %s "
 		    "(invalid task ID)", path);
 		return EINVAL;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "call task_wait()");
-
 	task_exit_t texit;
 	int retval;
 	rc = task_wait(&wait, &texit, &retval);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "task_wait() -> rc = %d", rc);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error waiting for %s (%s)",
 		    path, str_error(rc));
 		return rc;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "task_wait() -> texit = %d", (int)texit);
 	if (texit != TASK_EXIT_NORMAL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Command %s unexpectedly "
 		    "terminated", path);
 		return EINVAL;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "task_wait() -> retval = %d", (int)retval);
 	if (retval != 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Command %s returned non-zero "
 		    "exit code %d)", path, retval);
@@ -139,9 +128,6 @@ int volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype)
 	rc = loc_service_get_name(sid, &svc_name);
 	if (rc != EOK)
 		return rc;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "volsrv_part_mkfs: Run '%s %s'.",
-	    cmd, svc_name);
 
 	rc = cmd_runl(cmd, cmd, svc_name, NULL);
 	free(svc_name);

@@ -92,9 +92,6 @@ int fdisk_cap_to_blocks(fdisk_cap_t *cap, fdisk_cvsel_t cvsel,
 	uint64_t rem;
 	int rc;
 
-	printf("fdisk_cap_to_blocks: m=%" PRIu64 ", dp=%d, cunit=%d\n",
-	    cap->m, cap->dp, cap->cunit);
-
 	exp = cap->cunit * 3 - cap->dp;
 	if (exp < 0) {
 		rc = ipow10_u64(-exp, &f);
@@ -121,9 +118,7 @@ int fdisk_cap_to_blocks(fdisk_cap_t *cap, fdisk_cvsel_t cvsel,
 			break;
 		}
 
-		printf("f=%" PRIu64 ", adj=%" PRId64 "\n", f, adj);
 		bytes = cap->m * f + adj;
-		printf("bytes=%" PRIu64 "\n", bytes);
 		if ((bytes - adj) / f != cap->m)
 			return ERANGE;
 	}
@@ -133,7 +128,6 @@ int fdisk_cap_to_blocks(fdisk_cap_t *cap, fdisk_cvsel_t cvsel,
 		return ERANGE;
 
 	blocks = (bytes + rem) / block_size;
-	printf("blocks=%" PRIu64 "\n", blocks);
 
 	*rblocks = blocks;
 	return EOK;
@@ -151,9 +145,6 @@ void fdisk_cap_simplify(fdisk_cap_t *cap)
 	unsigned sdig;
 	unsigned rdig;
 	int rc;
-
-	printf("before: m=%" PRIu64 " dp=%u cunit=%d\n",
-	    cap->m, cap->dp, cap->cunit);
 
 	/* Change units so that we have at most @c scap_max_idig integer digits */
 	rc = ipow10_u64(scap_max_idig, &maxv);
@@ -182,9 +173,6 @@ void fdisk_cap_simplify(fdisk_cap_t *cap)
 		cap->m = (cap->m + (div / 2)) / div;
 		cap->dp -= rdig;
 	}
-
-	printf("after: m=%" PRIu64 " dp=%u cunit=%d\n",
-	    cap->m, cap->dp, cap->cunit);
 }
 
 int fdisk_cap_format(fdisk_cap_t *cap, char **rstr)
