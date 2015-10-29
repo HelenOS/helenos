@@ -75,16 +75,25 @@ void fdisk_cap_from_blocks(uint64_t nblocks, size_t block_size,
  * If the value of bytes is not integer, it is properly rounded. If the number
  * of bytes is not divisible by the number of blocks, it is rounded
  * up to an integer number of blocks.
+ *
+ * A capacity value entails precision, i.e. it corresponds to a range
+ * of values. @a cvsel selects the value to return. @c fcv_nom gives
+ * the nominal (middle) value, @c fcv_min gives the minimum value
+ * and @c fcv_max gives the maximum value.
  */
-int fdisk_cap_to_blocks(fdisk_cap_t *cap, size_t block_size,
-    uint64_t *blocks)
+int fdisk_cap_to_blocks(fdisk_cap_t *cap, fdisk_cvsel_t cvsel,
+    size_t block_size, uint64_t *rblocks)
 {
 	int exp;
 	uint64_t bytes;
 	uint64_t f;
+	uint64_t adj;
+	uint64_t blocks;
+	uint64_t rem;
 	int rc;
 
-	// XXX Check for overflow
+	printf("fdisk_cap_to_blocks: m=%" PRIu64 ", dp=%d, cunit=%d\n",
+	    cap->m, cap->dp, cap->cunit);
 
 	exp = cap->cunit * 3 - cap->dp;
 	if (exp < 0) {
@@ -92,14 +101,41 @@ int fdisk_cap_to_blocks(fdisk_cap_t *cap, size_t block_size,
 		if (rc != EOK)
 			return ERANGE;
 		bytes = (cap->m + (f / 2)) / f;
+		if (bytes * f - (f / 2) != cap->m)
+			return ERANGE;
 	} else {
 		rc = ipow10_u64(exp, &f);
 		if (rc != EOK)
 			return ERANGE;
-		bytes = cap->m * f;
+
+		adj = 0;
+		switch (cvsel) {
+		case fcv_nom:
+			adj = 0;
+			break;
+		case fcv_min:
+			adj = -(f / 2);
+			break;
+		case fcv_max:
+			adj = f / 2 - 1;
+			break;
+		}
+
+		printf("f=%" PRIu64 ", adj=%" PRId64 "\n", f, adj);
+		bytes = cap->m * f + adj;
+		printf("bytes=%" PRIu64 "\n", bytes);
+		if ((bytes - adj) / f != cap->m)
+			return ERANGE;
 	}
 
-	*blocks = (bytes + block_size - 1) / block_size;
+	rem = bytes % block_size;
+	if ((bytes + rem) < bytes)
+		return ERANGE;
+
+	blocks = (bytes + rem) / block_size;
+	printf("blocks=%" PRIu64 "\n", blocks);
+
+	*rblocks = blocks;
 	return EOK;
 }
 
@@ -184,14 +220,54 @@ int fdisk_cap_format(fdisk_cap_t *cap, char **rstr)
 	return EOK;
 }
 
+static int fdisk_digit_val(char c, int *val)
+{
+	switch (c) {
+	case '0': *val = 0; break;
+	case '1': *val = 1; break;
+	case '2': *val = 2; break;
+	case '3': *val = 3; break;
+	case '4': *val = 4; break;
+	case '5': *val = 5; break;
+	case '6': *val = 6; break;
+	case '7': *val = 7; break;
+	case '8': *val = 8; break;
+	case '9': *val = 9; break;
+	default:
+		return EINVAL;
+	}
+
+	return EOK;
+}
+
 int fdisk_cap_parse(const char *str, fdisk_cap_t *cap)
 {
-	char *eptr;
-	char *p;
-	unsigned long val;
+	const char *eptr;
+	const char *p;
+	int d;
+	int dp;
+	unsigned long m;
 	int i;
 
-	val = strtoul(str, &eptr, 10);
+	m = 0;
+
+	eptr = str;
+	while (fdisk_digit_val(*eptr, &d) == EOK) {
+		m = m * 10 + d;
+		++eptr;
+	}
+
+	if (*eptr == '.') {
+		++eptr;
+		dp = 0;
+		while (fdisk_digit_val(*eptr, &d) == EOK) {
+			m = m * 10 + d;
+			++dp;
+			++eptr;
+		}
+	} else {
+		m = 0; dp = 0;
+	}
 
 	while (*eptr == ' ')
 		++eptr;
@@ -215,8 +291,8 @@ found:
 		cap->cunit = i;
 	}
 
-	cap->m = val;
-	cap->dp = 0;
+	cap->m = m;
+	cap->dp = dp;
 	return EOK;
 }
 

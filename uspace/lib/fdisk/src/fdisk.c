@@ -1036,19 +1036,41 @@ static int fdisk_part_get_max_free_range(fdisk_dev_t *dev, fdisk_spc_t spc,
 static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     vbd_part_spec_t *vpspec)
 {
-	aoff64_t req_blocks;
+	aoff64_t nom_blocks;
+	aoff64_t min_blocks;
+	aoff64_t max_blocks;
+	aoff64_t act_blocks;
 	aoff64_t fblock0;
 	aoff64_t fnblocks;
 	aoff64_t hdrb;
 	label_pcnt_t pcnt;
+	fdisk_spc_t spc;
 	int index;
 	int rc;
 
 	printf("fdisk_part_spec_prepare() - dev=%p pspec=%p vpspec=%p\n", dev, pspec,
 	    vpspec);
-	fdisk_cap_to_blocks(&pspec->capacity, dev->dinfo.block_size, &req_blocks);
+	rc = fdisk_cap_to_blocks(&pspec->capacity, fcv_nom, dev->dinfo.block_size,
+	    &nom_blocks);
+	if (rc != EOK)
+		return rc;
 
-	req_blocks = fdisk_ba_align_up(dev, req_blocks);
+	rc = fdisk_cap_to_blocks(&pspec->capacity, fcv_min, dev->dinfo.block_size,
+	    &min_blocks);
+	if (rc != EOK)
+		return rc;
+
+	rc = fdisk_cap_to_blocks(&pspec->capacity, fcv_max, dev->dinfo.block_size,
+	    &max_blocks);
+	if (rc != EOK)
+		return rc;
+
+	nom_blocks = fdisk_ba_align_up(dev, nom_blocks);
+	min_blocks = fdisk_ba_align_up(dev, min_blocks);
+	max_blocks = fdisk_ba_align_up(dev, max_blocks);
+
+	printf("fdisk_part_spec_prepare: nom=%" PRIu64 ", min=%" PRIu64
+	    ", max=%" PRIu64, nom_blocks, min_blocks, max_blocks);
 
 	pcnt = -1;
 
@@ -1070,43 +1092,61 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	if (pcnt < 0)
 		return EINVAL;
 
-	printf("fdisk_part_spec_prepare() - switch\n");
-	switch (pspec->pkind) {
-	case lpk_primary:
-	case lpk_extended:
-		printf("fdisk_part_spec_prepare() - pri/ext\n");
+	if (pspec->pkind == lpk_logical) {
+		hdrb = max(1, dev->align);
+		spc = spc_log;
+	} else {
+		hdrb = 0;
+		spc = spc_pri;
+	}
+
+	rc = fdisk_part_get_free_range(dev, hdrb + nom_blocks, spc,
+	    &fblock0, &fnblocks);
+
+	if (rc == EOK) {
+		/*
+		 * If the size of the free range would still give the same capacity
+		 * when rounded, allocate entire range. Otherwise allocate exactly
+		 * what we were asked for.
+		 */
+		if (fnblocks <= max_blocks) {
+			act_blocks = fnblocks;
+		} else {
+			act_blocks = hdrb + nom_blocks;
+		}
+	} else {
+		assert(rc == ENOSPC);
+
+		/*
+		 * There is no free range that can contain exactly the requested
+		 * capacity. Try to allocate at least such number of blocks
+		 * that would still fullfill the request within the limits
+		 * of the precision with witch the capacity was specified
+		 * (i.e. when rounded up).
+		 */
+		rc = fdisk_part_get_free_range(dev, hdrb + min_blocks, spc,
+		    &fblock0, &fnblocks);
+		if (rc != EOK)
+			return rc;
+
+		assert(fnblocks < hdrb + nom_blocks);
+		act_blocks = fnblocks;
+	}
+
+	if (pspec->pkind != lpk_logical) {
 		rc = fdisk_part_get_free_idx(dev, &index);
 		if (rc != EOK)
 			return EIO;
-
-		printf("fdisk_part_spec_prepare() - get free range\n");
-		rc = fdisk_part_get_free_range(dev, req_blocks, spc_pri,
-		    &fblock0, &fnblocks);
-		if (rc != EOK)
-			return EIO;
-
-		printf("fdisk_part_spec_prepare() - memset\n");
-		memset(vpspec, 0, sizeof(vbd_part_spec_t));
-		vpspec->index = index;
-		vpspec->block0 = fblock0;
-		vpspec->nblocks = req_blocks;
-		vpspec->pkind = pspec->pkind;
-		break;
-	case lpk_logical:
-		printf("fdisk_part_spec_prepare() - log\n");
-		hdrb = max(1, dev->align);
-		rc = fdisk_part_get_free_range(dev, hdrb + req_blocks, spc_log,
-		    &fblock0, &fnblocks);
-		if (rc != EOK)
-			return EIO;
-
-		memset(vpspec, 0, sizeof(vbd_part_spec_t));
-		vpspec->hdr_blocks = hdrb;
-		vpspec->block0 = fblock0 + hdrb;
-		vpspec->nblocks = req_blocks;
-		vpspec->pkind = lpk_logical;
-		break;
+	} else {
+		index = 0;
 	}
+
+	memset(vpspec, 0, sizeof(vbd_part_spec_t));
+	vpspec->index = index;
+	vpspec->hdr_blocks = hdrb;
+	vpspec->block0 = fblock0 + hdrb;
+	vpspec->nblocks = act_blocks;
+	vpspec->pkind = pspec->pkind;
 
 	if (pspec->pkind != lpk_extended) {
 		rc = vbd_suggest_ptype(dev->fdisk->vbd, dev->sid, pcnt,
@@ -1114,6 +1154,10 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		if (rc != EOK)
 			return EIO;
 	}
+
+	printf("fdisk_part_spec_prepare: hdrb=%" PRIu64 ", b0=%" PRIu64
+	    ", nblocks=%" PRIu64 ", pkind=%d\n", vpspec->hdr_blocks,
+	    vpspec->block0, vpspec->nblocks, vpspec->pkind);
 
 	return EOK;
 }

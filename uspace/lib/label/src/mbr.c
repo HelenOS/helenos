@@ -511,6 +511,7 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 	mbr_pte_t pte;
 	int rc;
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "mbr_part_create");
 	if (pspec->ptype.fmt != lptf_num)
 		return EINVAL;
 
@@ -520,7 +521,6 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 
 
 	/* XXX Check if index is used */
-
 	part->label = label;
 	part->index = pspec->index;
 	part->block0 = pspec->block0;
@@ -544,7 +544,6 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 		}
 		break;
 	case lpk_logical:
-		log_msg(LOG_DEFAULT, LVL_NOTE, "check index");
 		part->ptype = pspec->ptype;
 		if (pspec->index != 0) {
 			rc = EINVAL;
@@ -586,13 +585,10 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 			label->ext_part = part;
 	} else {
 		/* Logical partition */
-
-		log_msg(LOG_DEFAULT, LVL_NOTE, "call mbr_log_part_insert");
 		rc = mbr_log_part_insert(label, part);
 		if (rc != EOK)
 			goto error;
 
-		log_msg(LOG_DEFAULT, LVL_NOTE, "call mbr_ebr_create");
 		/* Create EBR for new partition */
 		rc = mbr_ebr_create(label, part);
 		if (rc != EOK)
@@ -600,15 +596,12 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 
 		prev = mbr_log_part_prev(part);
 		if (prev != NULL) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "update next");
 			/* Update 'next' PTE in EBR of previous partition */
 			rc = mbr_ebr_update_next(label, prev);
 			if (rc != EOK) {
-				log_msg(LOG_DEFAULT, LVL_NOTE, "failed to update next");
 				goto error;
 			}
 		} else {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "relocate first EBR");
 			/* New partition is now the first one */
 			next = mbr_log_part_next(part);
 			if (next != NULL) {

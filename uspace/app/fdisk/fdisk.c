@@ -428,6 +428,8 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		goto error;
 	}
 
+	fdisk_cap_simplify(&mcap);
+
 	rc = fdisk_cap_format(&mcap, &smcap);
 	if (rc != EOK) {
 		rc = ENOMEM;

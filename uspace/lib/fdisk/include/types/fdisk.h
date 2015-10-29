@@ -57,6 +57,16 @@ typedef enum {
 	cu_ybyte
 } fdisk_cunit_t;
 
+/** Which of values within the precision of the capacity */
+typedef enum {
+	/** The nominal (middling) value */
+	fcv_nom,
+	/** The minimum value */
+	fcv_min,
+	/** The maximum value */
+	fcv_max
+} fdisk_cvsel_t;
+
 typedef enum {
 	/** Primary partition space */
 	spc_pri,
