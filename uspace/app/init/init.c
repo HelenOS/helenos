@@ -336,6 +336,9 @@ int main(int argc, char *argv[])
 	srv_start("/srv/s3c24xx_uart");
 	srv_start("/srv/s3c24xx_ts");
 	
+	srv_start("/srv/vbd");
+	srv_start("/srv/volsrv");
+	
 	srv_start("/srv/loopip");
 	srv_start("/srv/ethip");
 	srv_start("/srv/inetsrv");
