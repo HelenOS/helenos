@@ -279,12 +279,13 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 			goto error;
 		}
 
-		for (entry = 0; entry < num_entries; entry++) {
-			eptr = (gpt_entry_t *)(etable[j] + entry * esize);
-			rc = gpt_pte_to_part(label, eptr, entry + 1);
-			if (rc != EOK)
-				goto error;
-		}
+	}
+
+	for (entry = 0; entry < num_entries; entry++) {
+		eptr = (gpt_entry_t *)(etable[0] + entry * esize);
+		rc = gpt_pte_to_part(label, eptr, entry + 1);
+		if (rc != EOK)
+			goto error;
 	}
 
 	free(etable[0]);
