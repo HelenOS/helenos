@@ -225,6 +225,9 @@ static void vol_part_mkfs_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
+	part->pcnt = vpc_fs;
+	part->fstype = fstype;
+
 	async_answer_0(iid, EOK);
 }
 

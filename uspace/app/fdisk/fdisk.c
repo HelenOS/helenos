@@ -64,6 +64,34 @@ typedef enum {
 	devac_exit
 } devac_t;
 
+static int fdsk_pcnt_fs_format(vol_part_cnt_t pcnt, vol_fstype_t fstype,
+    char **rstr)
+{
+	int rc;
+	char *s;
+
+	switch (pcnt) {
+	case vpc_empty:
+		s = str_dup("Empty");
+		if (s == NULL)
+			return ENOMEM;
+		break;
+	case vpc_fs:
+		rc = fdisk_fstype_format(fstype, &s);
+		if (rc != EOK)
+			return ENOMEM;
+		break;
+	case vpc_unknown:
+		s = str_dup("Unknown");
+		if (s == NULL)
+			return ENOMEM;
+		break;
+	}
+
+	*rstr = s;
+	return EOK;
+}
+
 /** Confirm user selection. */
 static int fdsk_confirm(const char *msg, bool *rconfirm)
 {
@@ -537,7 +565,7 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 		}
 
 		if (pinfo.pkind != lpk_extended) {
-			rc = fdisk_fstype_format(pinfo.fstype, &sfstype);
+			rc = fdsk_pcnt_fs_format(pinfo.pcnt, pinfo.fstype, &sfstype);
 			if (rc != EOK) {
 				printf("Out of memory.\n");
 				goto error;
@@ -729,7 +757,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		rc = fdisk_fstype_format(pinfo.fstype, &sfstype);
+		rc = fdsk_pcnt_fs_format(pinfo.pcnt, pinfo.fstype, &sfstype);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
@@ -752,17 +780,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		}
 
 		if (pinfo.pkind != lpk_extended) {
-			switch (pinfo.pcnt) {
-			case vpc_empty:
-				printf(", Empty");
-				break;
-			case vpc_fs:
-				printf(", %s", sfstype);
-				break;
-			case vpc_unknown:
-				printf(", Unknown");
-				break;
-			}
+			printf(", %s", sfstype);
 		}
 
 		printf("\n");

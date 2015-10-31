@@ -789,14 +789,10 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 			(void) vbd_part_delete(dev->fdisk->vbd, partid);
 			return EIO;
 		}
-	}
 
-	if (part->svc_id != 0) {
 		part->pcnt = vpc_fs;
 		part->fstype = pspec->fstype;
 	}
-
-	part->capacity = pspec->capacity;
 
 	if (rpart != NULL)
 		*rpart = part;

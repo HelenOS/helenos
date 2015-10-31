@@ -254,7 +254,7 @@ int fdisk_cap_parse(const char *str, fdisk_cap_t *cap)
 			++eptr;
 		}
 	} else {
-		m = 0; dp = 0;
+		dp = 0;
 	}
 
 	while (*eptr == ' ')
