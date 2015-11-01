@@ -43,6 +43,7 @@
 #include "job.h"
 #include "log.h"
 #include "sysman.h"
+#include "sm_task.h"
 #include "unit.h"
 
 #define NAME "sysman"
@@ -207,9 +208,11 @@ int main(int argc, char *argv[])
 	/*
 	 * Initialize global structures
 	 */
+	// TODO check return values and abort start
 	configuration_init();
 	sysman_events_init();
 	job_queue_init();
+	sm_task_init();
 
 	/*
 	 * Create initial configuration while we are in a single fibril
@@ -229,7 +232,8 @@ int main(int argc, char *argv[])
 	fibril_add_ready(event_loop_fibril);
 
 	sysman_log(LVL_DEBUG, "Debugging pause...\n");
-	async_usleep(10 * 1000000);
+	async_usleep(1 * 1000000);
+	sysman_log(LVL_DEBUG, "Debugging pause ended.\n");
 	/* Queue first job from sequence */
 	prepare_and_run_job(&target_sequence[0]);
 

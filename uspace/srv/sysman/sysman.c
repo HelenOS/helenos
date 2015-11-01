@@ -34,6 +34,7 @@
 
 #include "log.h"
 #include "sysman.h"
+#include "task.h"
 #include "unit.h"
 
 
@@ -400,17 +401,16 @@ void sysman_event_job_finished(void *data)
 
 void sysman_event_unit_exposee_created(void *data)
 {
-	unit_t *unit = data;
-	unit_exposee_created(unit);
+	unit_exposee_created(data);
 }
 
 void sysman_event_unit_failed(void *data)
 {
-	unit_t *unit = data;
-	unit_fail(unit);
+	unit_fail(data);
 }
 
 void sysman_event_unit_state_changed(void *data)
 {
 	notify_observers(data);
 }
+

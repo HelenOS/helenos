@@ -37,6 +37,7 @@
 #include "sysman.h"
 
 
+// TODO possibly provide as type-safe function + macro in sysman.h for generic boxing
 static ipc_callid_t *box_callid(ipc_callid_t iid)
 {
 	ipc_callid_t *result = malloc(sizeof(ipc_callid_t));

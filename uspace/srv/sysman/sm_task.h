@@ -26,32 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_SYSMAN_H
-#define SYSMAN_SYSMAN_H
+#ifndef SYSMAN_TASK_H
+#define SYSMAN_TASK_H
 
-#include "job.h"
-#include "unit.h"
+struct sm_task_event;
+typedef struct sm_task_event sm_task_event_t;
 
-typedef void (*event_handler_t)(void *);
-typedef void (*callback_handler_t)(void *object, void *data);
-
-extern void sysman_events_init(void);
-extern int sysman_events_loop(void *);
-extern int sysman_run_job(unit_t *, unit_state_t, callback_handler_t, void *);
-
-
-extern void sysman_raise_event(event_handler_t, void *);
-extern void sysman_process_queue(void);
-extern int sysman_object_observer(void *, callback_handler_t, void *);
-extern int sysman_move_observers(void *, void *);
-extern size_t sysman_observers_count(void *);
-
-// TODO move particular events to separate file? (or move event impl there?)
-
-extern void sysman_event_job_process(void *);
-extern void sysman_event_job_finished(void *);
-extern void sysman_event_unit_exposee_created(void *);
-extern void sysman_event_unit_failed(void *);
-extern void sysman_event_unit_state_changed(void *);
+extern int sm_task_init(void);
 
 #endif

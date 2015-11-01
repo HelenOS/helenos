@@ -84,7 +84,7 @@ static int unit_svc_start(unit_t *unit)
 	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
 	assert(unit->state == STATE_STOPPED);
 
-	int rc = task_spawnv(NULL, NULL, u_svc->exec_start.path,
+	int rc = task_spawnv(&u_svc->main_task_id, NULL, u_svc->exec_start.path,
 	    u_svc->exec_start.argv);
 
 	if (rc != EOK) {
@@ -95,20 +95,9 @@ static int unit_svc_start(unit_t *unit)
 	unit->state = STATE_STARTING;
 
 	/*
-	 * This is temporary workaround, until proper reporting from brokers
-	 * about exposees will work. We assume the service succesfully starts
-	 * in a moment. Applies to naming service only.
-	 */
-	if (str_cmp(unit->name, "devman.svc") == 0 ||
-	    str_cmp(unit->name, "logger.svc") == 0 ||
-	    str_cmp(unit->name, "irc.svc") == 0) {
-		async_usleep(100000);
-		unit->state = STATE_STARTED;
-	}
-
-	/*
 	 * Workaround to see log output even after devman starts (and overrides
 	 * kernel's frame buffer.
+	 * TODO move to task retval/exposee created handler
 	 */
 	if (str_cmp(unit->name, "devman.svc") == 0) {
 		async_usleep(100000);
@@ -127,8 +116,9 @@ static void unit_svc_exposee_created(unit_t *unit)
 	assert(CAST_SVC(unit));
 	assert(unit->state == STATE_STOPPED || unit->state == STATE_STARTING || unit->state==STATE_STARTED);
 
-	unit->state = STATE_STARTED;
-	unit_notify_state(unit);
+	/* Exposee itself doesn't represent started unit. */
+	//unit->state = STATE_STARTED;
+	//unit_notify_state(unit);
 }
 
 static void unit_svc_fail(unit_t *unit)

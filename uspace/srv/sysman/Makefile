@@ -49,6 +49,7 @@ SYSMAN_SOURCES = \
 	units/unit_mnt.c \
 	units/unit_tgt.c \
 	units/unit_svc.c \
+	sm_task.c \
 	util.c
 
 SOURCES = \

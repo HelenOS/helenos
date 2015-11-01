@@ -29,6 +29,8 @@
 #ifndef SYSMAN_UNIT_SVC_H
 #define SYSMAN_UNIT_SVC_H
 
+#include <task.h>
+
 #include "unit.h"
 #include "util.h"
 
@@ -36,6 +38,8 @@ typedef struct {
 	unit_t unit;
 
 	command_t exec_start;
+
+	task_id_t main_task_id;
 } unit_svc_t;
 
 extern unit_vmt_t unit_svc_vmt;
