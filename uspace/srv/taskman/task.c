@@ -108,13 +108,13 @@ task_t *task_get_by_id(task_id_t id)
 	return t;
 }
 
-int task_intro(ipc_call_t *call, bool check_unique)
+int task_intro(task_id_t id)
 {
 	int rc = EOK;
 
 	fibril_rwlock_write_lock(&task_hash_table_lock);
 
-	task_t *t = task_get_by_id(call->in_task_id);
+	task_t *t = task_get_by_id(id);
 	if (t != NULL) {
 		rc = EEXISTS;
 		goto finish;
@@ -129,7 +129,7 @@ int task_intro(ipc_call_t *call, bool check_unique)
 	/*
 	 * Insert into the main table.
 	 */
-	t->id = call->in_task_id;
+	t->id = id;
 	t->exit = TASK_EXIT_RUNNING;
 	t->failed = false;
 	t->retval_type = RVAL_UNSET;

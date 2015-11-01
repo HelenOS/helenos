@@ -41,7 +41,9 @@
 typedef enum {
 	TASKMAN_WAIT = IPC_FIRST_USER_METHOD,
 	TASKMAN_RETVAL,
-	TASKMAN_EVENT_CALLBACK
+	TASKMAN_EVENT_CALLBACK,
+	TASKMAN_NEW_TASK,
+	TASKMAN_I_AM_NS
 } taskman_request_t;
 
 typedef enum {
@@ -49,11 +51,10 @@ typedef enum {
 } taskman_event_t;
 
 typedef enum {
-	TASKMAN_CONNECT_TO_LOADER = 0,
-	TASKMAN_LOADER_TO_NS,
-	TASKMAN_LOADER_CALLBACK,
-	TASKMAN_CONTROL
-} taskman_interface_t;
+	TASKMAN_CONNECT_TO_NS = 0,
+	TASKMAN_CONNECT_TO_LOADER,
+	TASKMAN_LOADER_CALLBACK
+} taskman_connect_t;
 
 #endif
 

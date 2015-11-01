@@ -275,7 +275,6 @@ extern errno_t async_req_5_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern errno_t async_accept_0(ipc_call_t *);
 extern sysarg_t async_get_label(void);
 
-extern async_sess_t *async_session_primary_swap(async_sess_t *);
 extern async_sess_t *async_connect_me_to(async_exch_t *, iface_t, sysarg_t,
     sysarg_t);
 extern async_sess_t *async_connect_me_to_blocking(async_exch_t *, iface_t,

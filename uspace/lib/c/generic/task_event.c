@@ -37,7 +37,7 @@
 #include <macros.h>
 #include <task.h>
 
-#include "private/task.h"
+#include "private/taskman.h"
 
 static task_event_handler_t task_event_handler = NULL;
 
@@ -64,7 +64,7 @@ static void taskman_event_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_callid_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
-			/* Hangup, TODO explain or handle differntly */
+			/* Hangup, end of game */
 			break;
 		}
 

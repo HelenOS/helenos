@@ -210,6 +210,12 @@ void kinit(void *arg)
 		sysinfo_set_item_data(item_name, NULL, arguments_copy, arguments_size);
 	}
 
+	/*
+	 * Initialize and prepare init tasks for start.
+	 *
+	 * All tasks' phone no 0 is connected to answerbox of the first of the
+	 * init tasks (except for the first task itself).
+	 */
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].paddr % FRAME_SIZE) {
 			log(LF_OTHER, LVL_ERROR,

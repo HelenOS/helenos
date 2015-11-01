@@ -32,18 +32,101 @@
 /** @file
  */
 
+
+#include <async.h>
 #include <errno.h>
+#include <ipc/common.h>
 #include <ipc/taskman.h>
+#include <task.h>
 #include <taskman.h>
 
-#include <stdio.h>
+#include "private/async.h"
+#include "private/taskman.h"
 
-//TODO better filename?
-#include "private/ns.h"
+async_sess_t *session_taskman = NULL;
 
-static int taskman_ask_callback(async_sess_t *session_tm)
+void __task_init(async_sess_t *sess)
 {
-	async_exch_t *exch = async_exchange_begin(session_tm);
+	assert(session_taskman == NULL);
+	session_taskman = sess;
+}
+
+async_exch_t *taskman_exchange_begin(void)
+{
+	assert(session_taskman);
+
+	async_exch_t *exch = async_exchange_begin(session_taskman);
+	return exch;
+}
+
+void taskman_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
+}
+
+/** Wrap PHONE_INITIAL with session and introduce to taskman
+ */
+async_sess_t *taskman_connect(void)
+{
+	/*
+	 *  EXCHANGE_ATOMIC would require single calls only,
+	 *  EXCHANGE_PARALLEL not sure about implementation via multiple phones,
+	 * >EXCHANGE_SERIALIZE perhaphs no harm, except the client serialization
+	 */
+	const exch_mgmt_t mgmt = EXCHANGE_SERIALIZE;
+	async_sess_t *sess = create_session(PHONE_INITIAL, mgmt, 0, 0, 0);
+
+	if (sess != NULL) {
+		/* Introduce ourselves and ignore answer */
+		async_exch_t *exch = async_exchange_begin(sess);
+		aid_t req = async_send_0(exch, TASKMAN_NEW_TASK, NULL);
+		async_exchange_end(exch);
+		
+		if (req) {
+			async_forget(req);
+		}
+	}
+
+	return sess;
+}
+
+/** Ask taskman to pass/share its NS */
+async_sess_t *taskman_session_ns(void)
+{
+	assert(session_taskman);
+
+	async_exch_t *exch = async_exchange_begin(session_taskman);
+	assert(exch);
+
+	async_sess_t *sess = async_connect_me_to(EXCHANGE_ATOMIC,
+	    exch, TASKMAN_CONNECT_TO_NS, 0, 0);
+	async_exchange_end(exch);
+
+	return sess;
+}
+
+/** Ask taskman to connect to (a new) loader instance */
+async_sess_t *taskman_session_loader(void)
+{
+	assert(session_taskman);
+
+	async_exch_t *exch = async_exchange_begin(session_taskman);
+	async_sess_t *sess = async_connect_me_to(EXCHANGE_SERIALIZE,
+	    exch, TASKMAN_CONNECT_TO_LOADER, 0, 0);
+	async_exchange_end(exch);
+
+	return sess;
+}
+
+/** Introduce as loader to taskman
+ *
+ * @return EOK on success, otherwise propagated error code
+ */
+int taskman_intro_loader(void)
+{
+	assert(session_taskman);
+
+	async_exch_t *exch = async_exchange_begin(session_taskman);
 	int rc = async_connect_to_me(
 	    exch, TASKMAN_LOADER_CALLBACK, 0, 0, NULL, NULL);
 	async_exchange_end(exch);
@@ -51,40 +134,35 @@ static int taskman_ask_callback(async_sess_t *session_tm)
 	return rc;
 }
 
-static async_sess_t *taskman_connect_to_ns(async_sess_t *session_tm)
-{
-	async_exch_t *exch = async_exchange_begin(session_tm);
-	async_sess_t *session_ns = async_connect_me_to(EXCHANGE_ATOMIC,
-	    exch, TASKMAN_LOADER_TO_NS, 0, 0);
-	async_exchange_end(exch);
-
-	return session_ns;
-}
-
-/** Set up phones upon being spawned by taskman
+/** Tell taskman we are his NS
  *
- * Assumes primary session exists that is connected to taskman.
- * After handshake, taskman is connected to us (see, it's opposite) and broker
- * session is set up according to taskman.
- *
- *
- * @return Session to broker (naming service) or NULL (sets errno).
+ * @return EOK on success, otherwise propagated error code
  */
-async_sess_t *taskman_handshake(void)
+int taskman_intro_ns(void)
 {
-	int rc = taskman_ask_callback(session_primary);
+	assert(session_taskman);
+
+	async_exch_t *exch = async_exchange_begin(session_taskman);
+	aid_t req = async_send_0(exch, TASKMAN_I_AM_NS, NULL);
+
+	int rc = async_connect_to_me(exch, 0, 0, 0, NULL, NULL);
+	taskman_exchange_end(exch);
+
 	if (rc != EOK) {
-		errno = rc;
-		return NULL;
+		return rc;
 	}
 
-	async_sess_t *session_ns = taskman_connect_to_ns(session_primary);
-	if (session_ns == NULL) {
-		errno = ENOENT;
-	}
-
-	return session_ns;
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	return retval;
 }
+
+async_sess_t *taskman_get_session(void)
+{
+	return session_taskman;
+}
+
+
 
 /** @}
  */

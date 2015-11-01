@@ -45,7 +45,6 @@ typedef enum {
 	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
 	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
 	SERVICE_SYSMAN     = FOURCC('s', 'y', 's', 'm'),
-	SERVICE_TASKMAN    = FOURCC('t', 's', 'k', 'm'),
 	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 } service_t;

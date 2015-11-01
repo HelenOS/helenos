@@ -69,7 +69,7 @@ extern int task_init(void);
 
 extern task_t *task_get_by_id(task_id_t);
 
-extern int task_intro(ipc_call_t *, bool);
+extern int task_intro(task_id_t);
 
 #endif
 

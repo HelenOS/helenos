@@ -72,7 +72,7 @@ const char *test_proc_task_wait(void)
 	texit = TASK_EXIT_RUNNING; retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
-	TASSERT(rc == EINVAL);
+	TASSERT(rc == EINTR);
 	TASSERT(task_wait_get(&wait) == 0);
 	TPRINTF("OK\n");
 	/* ---- */
@@ -214,7 +214,7 @@ const char *test_proc_task_wait(void)
 	texit = TASK_EXIT_RUNNING; retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
-	TASSERT(rc == EINVAL);
+	TASSERT(rc == EINTR);
 	TASSERT(task_wait_get(&wait) == 0);
 	TASSERT(texit == TASK_EXIT_UNEXPECTED);
 	/* retval is undefined */

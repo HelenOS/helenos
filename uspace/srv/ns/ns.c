@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2015 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +43,10 @@
 #include <abi/ipc/interfaces.h>
 #include <stdio.h>
 #include <errno.h>
+#define TASKMAN_DISABLE_ASYNC
+#include <taskman.h>
+#undef TASKMAN_DISABLE_ASYNC
+
 #include "ns.h"
 #include "service.h"
 
@@ -114,6 +119,12 @@ int main(int argc, char **argv)
 	errno_t rc = ns_service_init();
 	if (rc != EOK)
 		return rc;
+	
+	rc = taskman_intro_ns();
+	if (rc != EOK) {
+		printf("%s: not accepted by taskman (%i)\n", NAME, rc);
+		return rc;
+	}
 
 	async_set_fallback_port_handler(ns_connection, NULL);
 

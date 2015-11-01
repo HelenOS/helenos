@@ -37,7 +37,26 @@
 #include <async.h>
 #include <macros.h>
 #include <errno.h>
-#include "private/ns.h"
+
+#include "private/taskman.h"
+
+static async_sess_t *session_ns = NULL;
+
+static async_exch_t *ns_exchange_begin(void)
+{
+	/* Lazily connect to our NS */
+	if (session_ns == NULL) {
+		session_ns = taskman_session_ns();
+	}
+
+	async_exch_t *exch = async_exchange_begin(session_ns);
+	return exch;
+}
+
+static void ns_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
+}
 
 /*
  * XXX ns does not know about session_primary, so we create an extra session for
@@ -48,22 +67,18 @@ static async_sess_t *sess_primary = NULL;
 errno_t service_register(service_t service, iface_t iface,
     async_port_handler_t handler, void *data)
 {
-	async_sess_t *sess = get_session_primary();
-	if (sess == NULL)
-		return EIO;
-
 	port_id_t port;
 	errno_t rc = async_create_port(iface, handler, data, &port);
 	if (rc != EOK)
 		return rc;
 
-	async_exch_t *exch = async_exchange_begin(sess);
+	async_exch_t *exch = ns_exchange_begin();
 
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, NS_REGISTER, service, iface, &answer);
 	rc = async_connect_to_me(exch, iface, service, 0);
 
-	async_exchange_end(exch);
+	ns_exchange_end(exch);
 
 	if (rc != EOK) {
 		async_forget(req);
@@ -104,19 +119,15 @@ errno_t service_register_broker(service_t service, async_port_handler_t handler,
 
 async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 {
-	async_sess_t *sess = get_session_primary();
-	if (sess == NULL)
-		return NULL;
-
-	async_exch_t *exch = async_exchange_begin(sess);
+	async_exch_t *exch = ns_exchange_begin();
 	if (exch == NULL)
 		return NULL;
 
-	async_sess_t *csess =
+	async_sess_t *sess =
 	    async_connect_me_to(exch, iface, service, arg3);
-	async_exchange_end(exch);
+	ns_exchange_end(exch);
 
-	if (csess == NULL)
+	if (sess == NULL)
 		return NULL;
 
 	/*
@@ -124,7 +135,7 @@ async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 	 * parallel exchanges using multiple connections. Shift out
 	 * first argument for non-initial connections.
 	 */
-	async_sess_args_set(csess, iface, arg3, 0);
+	async_sess_args_set(sess, iface, arg3, 0);
 
 	return csess;
 }
@@ -132,16 +143,12 @@ async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 async_sess_t *service_connect_blocking(service_t service, iface_t iface,
     sysarg_t arg3)
 {
-	async_sess_t *sess = get_session_primary();
-	if (sess == NULL)
-		return NULL;
-
-	async_exch_t *exch = async_exchange_begin(sess);
-	async_sess_t *csess =
+	async_exch_t *exch = ns_exchange_begin();
+	async_sess_t *sess =
 	    async_connect_me_to_blocking(exch, iface, service, arg3);
-	async_exchange_end(exch);
+	ns_exchange_end(exch);
 
-	if (csess == NULL)
+	if (sess == NULL)
 		return NULL;
 
 	/*
@@ -149,38 +156,18 @@ async_sess_t *service_connect_blocking(service_t service, iface_t iface,
 	 * parallel exchanges using multiple connections. Shift out
 	 * first argument for non-initial connections.
 	 */
-	async_sess_args_set(csess, iface, arg3, 0);
+	async_sess_args_set(sess, iface, arg3, 0);
 
-	return csess;
+	return sess;
 }
 
 errno_t ns_ping(void)
 {
-	async_sess_t *sess = get_session_primary();
-	if (sess == NULL)
-		return EIO;
-
-	async_exch_t *exch = async_exchange_begin(sess);
+	async_exch_t *exch = ns_exchange_begin(sess);
 	errno_t rc = async_req_0_0(exch, NS_PING);
-	async_exchange_end(exch);
+	ns_exchange_end(exch);
 
 	return rc;
-}
-
-
-async_sess_t *get_session_primary(void)
-{
-	async_exch_t *exch;
-
-	if (sess_primary == NULL) {
-		exch = async_exchange_begin(&session_primary);
-		sess_primary = async_connect_me_to(exch, 0, 0, 0);
-		async_exchange_end(exch);
-		if (sess_primary == NULL)
-			return NULL;
-	}
-
-	return sess_primary;
 }
 
 /** @}

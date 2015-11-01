@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2015 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,12 +32,21 @@
 /** @file
  */
 
-#ifndef _LIBC_PRIVATE_NS_H_
-#define _LIBC_PRIVATE_NS_H_
+#ifndef LIBC_PRIVATE_TASKMAN_H_
+#define LIBC_PRIVATE_TASKMAN_H_
 
 #include <async.h>
 
-extern async_sess_t *session_primary;
+extern async_sess_t *session_taskman;
+
+void __task_init(async_sess_t *);
+
+async_exch_t *taskman_exchange_begin(void);
+void taskman_exchange_end(async_exch_t *);
+
+extern async_sess_t *taskman_connect(void);
+extern async_sess_t *taskman_session_ns(void);
+extern async_sess_t *taskman_session_loader(void);
 
 #endif
 

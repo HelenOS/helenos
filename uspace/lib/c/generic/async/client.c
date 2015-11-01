@@ -123,9 +123,6 @@
 
 static fibril_rmutex_t message_mutex;
 
-/** Primary session (spawn parent, later naming service) */
-async_sess_t *session_primary = NULL;
-
 /** Message data */
 typedef struct {
 	fibril_event_t received;
@@ -168,18 +165,23 @@ static LIST_INITIALIZE(inactive_exch_list);
 static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 
 
-static async_sess_t *create_session_primary(void)
+/** Create session for existing phone
+ *
+ * @return session on success, NULL on error
+ */
+ 
+async_sess_t *create_session(cap_phone_handle_t phone, exch_mgmt_t mgmt,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
 {
 	async_sess_t *session = (async_sess_t *) malloc(sizeof(async_sess_t));
 
 	if (session != NULL) {
-		// TODO extract common part with async_connect_me_to
-		session_ns->iface = 0;
-		session->mgmt = EXCHANGE_ATOMIC;
-		session->phone = PHONE_INITIAL;
-		session->arg1 = 0;
-		session->arg2 = 0;
-		session->arg3 = 0;
+		session->iface = 0;
+		session->mgmt = mgmt;
+		session->phone = phone;
+		session->arg1 = arg1;
+		session->arg2 = arg2;
+		session->arg3 = arg3;
 		
 		fibril_mutex_initialize(&session->remote_state_mtx);
 		session->remote_state_data = NULL;
@@ -188,6 +190,8 @@ static async_sess_t *create_session_primary(void)
 		fibril_mutex_initialize(&session->mutex);
 		atomic_set(&session->refcnt, 0);
 		&session.exchanges = 0;
+	} else {
+		errno = ENOMEM;
 	}
 
 	return session;
@@ -195,21 +199,11 @@ static async_sess_t *create_session_primary(void)
 
 
 /** Initialize the async framework.
- * @param arg_session_primary Primary session (to naming service).
  *
  */
-void __async_client_init(async_sess_t *arg_session_primary)
+void __async_client_init(void)
 {
 	if (fibril_rmutex_initialize(&message_mutex) != EOK)
-		abort();
-
-	if (arg_session_primary == NULL) {
-		session_primary = create_session_primary();
-	} else {
-		session_primary = arg_session_primary;
-	}
-
-	if (session_primary == NULL)
 		abort();
 }
 
@@ -831,21 +825,6 @@ static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
 	return EOK;
 }
 
-/** Injects another session instead of original primary session
- *
- * @param  session  Session to naming service.
- *
- * @return old primary session (to spawn parent)
- */
-async_sess_t *async_session_primary_swap(async_sess_t *session)
-{
-	assert(session_primary->phone == PHONE_INITIAL);
-
-	async_sess_t *old_primary = session_primary;
-	session_primary = session;
-	return old_primary;
-}
-
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
  *
  * Ask through phone for a new connection to some service and block until
@@ -867,30 +846,18 @@ async_sess_t *async_connect_me_to(async_exch_t *exch, iface_t iface,
 		return NULL;
 	}
 
-	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
-	if (sess == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-
 	cap_phone_handle_t phone;
 	errno_t rc = async_connect_me_to_internal(exch->phone, iface, arg2,
 	    arg3, 0, &phone);
 	if (rc != EOK) {
 		errno = rc;
-		free(sess);
 		return NULL;
 	}
 
-	sess->iface = iface;
-	sess->phone = phone;
-	sess->arg1 = iface;
-	sess->arg2 = arg2;
-	sess->arg3 = arg3;
-
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
+	async_sess_t *sess = create_session(phone, mgmt, iface, arg2, arg3);
+	if (sess == NULL) {
+		ipc_hangup(phone);
+	}
 
 	return sess;
 }
@@ -935,12 +902,6 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
 		return NULL;
 	}
 
-	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
-	if (sess == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-
 	cap_phone_handle_t phone;
 	errno_t rc = async_connect_me_to_internal(exch->phone, iface, arg2,
 	    arg3, IPC_FLAG_BLOCKING, &phone);
@@ -950,15 +911,10 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
 		return NULL;
 	}
 
-	sess->iface = iface;
-	sess->phone = phone;
-	sess->arg1 = iface;
-	sess->arg2 = arg2;
-	sess->arg3 = arg3;
-
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
+	async_sess_t *sess = create_session(phone, mgmt, iface, arg2, arg3);
+	if (sess == NULL) {
+		ipc_hangup(phone);
+	}
 
 	return sess;
 }
@@ -968,27 +924,17 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
  */
 async_sess_t *async_connect_kbox(task_id_t id)
 {
-	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
-	if (sess == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-
 	cap_phone_handle_t phone;
 	errno_t rc = ipc_connect_kbox(id, &phone);
 	if (rc != EOK) {
 		errno = rc;
-		free(sess);
 		return NULL;
 	}
 
-	sess->iface = 0;
-	sess->mgmt = EXCHANGE_ATOMIC;
-	sess->phone = phone;
-
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
+	async_sess_t *sess = create_session(phone, EXCHANGE_ATOMIC, 0, 0, 0);
+	if (sess == NULL) {
+		ipc_hangup(phone);
+	}
 
 	return sess;
 }

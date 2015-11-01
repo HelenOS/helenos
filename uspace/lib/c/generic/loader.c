@@ -44,7 +44,9 @@
 #include <str.h>
 #include <task.h>
 #include <vfs/vfs.h>
+
 #include "private/loader.h"
+#include "private/taskman.h"
 
 /** Connect to a new program loader.
  *
@@ -65,9 +67,8 @@ loader_t *loader_connect(void)
 	loader_t *ldr = malloc(sizeof(loader_t));
 	if (ldr == NULL)
 		return NULL;
-
-	async_sess_t *sess =
-	    service_connect_blocking(SERVICE_TASKMAN, TASKMAN_CONNECT_TO_LOADER, 0);
+	
+	async_sess_t *sess = taskman_session_loader();
 	if (sess == NULL) {
 		free(ldr);
 		return NULL;

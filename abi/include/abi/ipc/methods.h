@@ -37,9 +37,6 @@
 
 #include <abi/cap.h>
 
-/* Well known phone descriptors */
-static cap_phone_handle_t const PHONE_INITIAL = (cap_phone_handle_t) (CAP_NIL + 1);
-
 /** Kernel IPC interfaces
  *
  */

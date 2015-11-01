@@ -35,15 +35,7 @@
 #ifndef LIBC_PRIVATE_TASK_H_
 #define LIBC_PRIVATE_TASK_H_
 
-#include <async.h>
-
-void __task_init(async_sess_t *);
-
 int task_retval_internal(int, bool);
-
-async_exch_t *taskman_exchange_begin(void);
-
-void taskman_exchange_end(async_exch_t *);
 
 #endif
 

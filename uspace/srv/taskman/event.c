@@ -136,7 +136,7 @@ loop:
 			if (notify_flags & TASK_WAIT_EXIT) {
 				/* Nothing to wait for anymore */
 				if (answer) {
-					async_answer_0(pr->callid, EINVAL);
+					async_answer_0(pr->callid, EINTR);
 				}
 			} else {
 				/* Maybe later */
@@ -144,7 +144,8 @@ loop:
 			}
 		} else if (answer) {
 			if ((pr->flags & TASK_WAIT_BOTH) && match == TASK_WAIT_EXIT) {
-				async_answer_1(pr->callid, EINVAL, t->exit);
+				/* No sense to wait for both anymore */
+				async_answer_1(pr->callid, EINTR, t->exit);
 			} else {
 				/* Send both exit status and retval, caller
 				 * should know what is valid */
@@ -252,7 +253,6 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid,
 		pr->flags &= ~TASK_WAIT_BOTH; // TODO maybe new flags should be set?
 		pr->callid = callid;
 	}
-	// TODO remove printf("%s: %llu: %x, %x, %i\n", __func__, pr->id, flags, pr->flags, reuse);
 
 finish:
 	fibril_rwlock_write_unlock(&pending_wait_lock);

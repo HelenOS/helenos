@@ -390,10 +390,11 @@ sysarg_t async_get_label(void)
  *                    label of the connected phone and request_label of incoming
  *                    calls routed through that phone.
  * @param in_task_id  Identification of the incoming connection.
- * @param call        Call data of the opening call. If call is NULL, the
- *                    connection was opened by accepting the
- *                    IPC_M_CONNECT_TO_ME call and this function is called
- *                    directly by the server.
+ * @param call        Call data of the opening call. If call is NULL, it's
+ *                    either a callback connection that was opened by
+ *                    accepting the IPC_M_CONNECT_TO_ME call.
+ *                    Alternatively, it is zero when we are opening
+ *                    implicit connection.
  * @param handler     Connection handler.
  * @param data        Client argument to pass to the connection handler.
  *
@@ -1745,22 +1746,14 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 		return NULL;
 	}
 
-	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
+	async_sess_t *sess = create_session(phandle, mgmt, 0, 0, 0);
 	if (sess == NULL) {
-		async_answer_0(&call, ENOMEM);
-		return NULL;
+		ipc_hangup(phone);
+		async_answer_0(&call, errno);
+	} else {
+		/* Acknowledge the connected phone */
+		async_answer_0(&call, EOK);
 	}
-
-	sess->iface = 0;
-	sess->mgmt = mgmt;
-	sess->phone = phandle;
-
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
-
-	/* Acknowledge the connected phone */
-	async_answer_0(&call, EOK);
 
 	return sess;
 }
@@ -1787,19 +1780,7 @@ async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 	    !cap_handle_valid((phandle)))
 		return NULL;
 
-	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
-	if (sess == NULL)
-		return NULL;
-
-	sess->iface = 0;
-	sess->mgmt = mgmt;
-	sess->phone = phandle;
-
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
-
-	return sess;
+	return create_session(phandle, mgmt, 0, 0, 0);
 }
 
 bool async_state_change_receive(ipc_call_t *call)

@@ -60,9 +60,6 @@ typedef struct {
 	/** Program entry point. */
 	entry_point_t entry;
 
-	/** Primary session to broker. */
-	async_sess_t *session_primary;
-	
 	/** Session to taskman (typically spawn parent) */
 	async_sess_t *session_taskman;
 	

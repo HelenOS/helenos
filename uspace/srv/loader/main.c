@@ -34,7 +34,7 @@
  *
  * The program loader is a special init binary. Its image is used
  * to create a new task upon a @c task_spawn syscall. It has a phone connected
- * to the caller of te syscall. The formal caller (taskman) performs a
+ * to the caller of the syscall. The formal caller (taskman) performs a
  * handshake with loader so that apparent caller can communicate with the
  * loader.
  *
@@ -59,8 +59,10 @@
 #include <fibril_synch.h>
 #include <ipc/loader.h>
 #include <loader/pcb.h>
+#include <ns.h>
 #include <str.h>
 #include <sys/types.h>
+#include <task.h>
 #include <taskman.h>
 #include <unistd.h>
 #include <vfs/vfs.h>
@@ -71,6 +73,7 @@
 #include <rtld/rtld.h>
 #endif
 
+#define NAME "loader"
 #define DPRINTF(...) ((void) 0)
 
 /** File that will be loaded */
@@ -79,12 +82,6 @@ static int program_fd = -1;
 
 /** The Program control block */
 static pcb_t pcb;
-
-/** Primary IPC session */
-static async_sess_t *session_primary = NULL;
-
-/** Session to taskman (typically our spawner) */
-static async_sess_t *session_taskman = NULL;
 
 /** Current working directory */
 static char *cwd = NULL;
@@ -104,11 +101,6 @@ static elf_info_t prog_info;
 
 /** Used to limit number of connections to one. */
 static bool connected = false;
-
-/** Ensure synchronization of handshake and connection fibrils. */
-static bool handshake_complete = false;
-FIBRIL_MUTEX_INITIALIZE(handshake_mtx);
-FIBRIL_CONDVAR_INITIALIZE(handshake_cv);
 
 static void ldr_get_taskid(ipc_call_t *req)
 {
@@ -336,8 +328,7 @@ static int ldr_load(ipc_call_t *req)
 
 	DPRINTF("PCB set.\n");
 
-	pcb.session_primary = session_primary;
-	pcb.session_taskman = session_taskman;
+	pcb.session_taskman = taskman_get_session();
 
 	pcb.cwd = cwd;
 
@@ -393,13 +384,6 @@ static __attribute__((noreturn)) void ldr_run(ipc_call_t *req)
  */
 static void ldr_connection(ipc_call_t *icall, void *arg)
 {
-	/* Wait for handshake */
-	fibril_mutex_lock(&handshake_mtx);
-	while (!handshake_complete) {
-		fibril_condvar_wait(&handshake_cv, &handshake_mtx);
-	}
-	fibril_mutex_unlock(&handshake_mtx);
-
 	/* Already have a connection? */
 	if (connected) {
 		async_answer_0(icall, ELIMIT);
@@ -455,39 +439,6 @@ static void ldr_connection(ipc_call_t *icall, void *arg)
 	}
 }
 
-/** Handshake with taskman
- *
- * Taskman is our spawn parent, i.e. PHONE_INITIAL is connected to it.
- * Goal of the handshake is to obtain phone to naming service and also keep the
- * session to taskman.
- *
- * @return EOK on success, for errors see taskman_handshake()
- */
-static errno_t ldr_taskman_handshake(void)
-{
-	assert(session_primary == NULL);
-	assert(session_taskman == NULL);
-
-	errno_t retval = EOK;
-
-	fibril_mutex_lock(&handshake_mtx);
-	session_primary = taskman_handshake();
-	if (session_primary == NULL) {
-		retval = errno;
-		goto finish;
-	}
-
-	session_taskman = async_session_primary_swap(session_primary);
-
-	handshake_complete = true;
-
-finish:
-	fibril_condvar_signal(&handshake_cv);
-	fibril_mutex_unlock(&handshake_mtx);
-
-	return retval;
-}
-
 /** Program loader main function.
  */
 int main(int argc, char *argv[])
@@ -495,16 +446,19 @@ int main(int argc, char *argv[])
 	/* Set a handler of incomming connections. */
 	async_set_fallback_port_handler(ldr_connection, NULL);
 	
-	/* Handshake with taskman */
-	int rc = ldr_taskman_handshake();
+	/* Announce to taskman. */
+	errno_t rc = taskman_intro_loader();
 	if (rc != EOK) {
-		DPRINTF("Failed taskman handshake (%i).\n", errno);
+		printf("%s: did not receive connectin from taskman (%i)\n",
+		    NAME, rc);
 		return rc;
 	}
 
-	/* Handle client connections */
+	/*
+	 * We are not a regular server, thus no retval is set, just wait for
+	 * forwarded connections by taskman.
+	 */
 	async_manager();
-	//TODO retval?
 	
 	/* Never reached */
 	return 0;

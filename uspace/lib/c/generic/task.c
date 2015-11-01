@@ -48,11 +48,11 @@
 #include <stdarg.h>
 #include <str.h>
 #include <task.h>
+#include <taskman.h>
 #include <vfs/vfs.h>
-#include "private/ns.h"
-#include "private/task.h"
 
-static async_sess_t *session_taskman = NULL;
+#include "private/task.h"
+#include "private/taskman.h"
 
 task_id_t task_get_id(void)
 {
@@ -66,30 +66,6 @@ task_id_t task_get_id(void)
 #ifdef __64_BITS__
 	return (task_id_t) __SYSCALL0(SYS_TASK_GET_ID);
 #endif  /* __64_BITS__ */
-}
-
-async_exch_t *taskman_exchange_begin(void)
-{
-	/* Lazy connection */
-	if (session_taskman == NULL) {
-		// TODO unify exchange mgmt with taskman_handshake/__init
-		session_taskman = service_connect_blocking(EXCHANGE_SERIALIZE,
-		    SERVICE_TASKMAN,
-		    TASKMAN_CONTROL,
-		    0);
-	}
-
-	if (session_taskman == NULL) {
-		return NULL;
-	}
-
-	async_exch_t *exch = async_exchange_begin(session_taskman);
-	return exch;
-}
-
-void taskman_exchange_end(async_exch_t *exch)
-{
-	async_exchange_end(exch);
 }
 
 /** Set the task name.
@@ -128,7 +104,6 @@ errno_t task_kill(task_id_t task_id)
  * @param wait Information necessary for the later task_wait call is stored here.
  *
  * @return EOK on success, else error code.
- * @return TODO check this doesn't return EINVAL -- clash with task_wait
  */
 static errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
 {
@@ -392,19 +367,22 @@ void task_cancel_wait(task_wait_t *wait)
  * This function cannot be called more than once with the same task_wait_t
  * (it can be reused, but must be reinitialized with task_setup_wait first)
  *
- * @param wait   task_wait_t previously initialized by task_setup_wait.
- * @param texit  Store type of task exit here.
- * @param retval Store return value of the task here.
+ * @param[in/out] wait   task_wait_t previously initialized by task_setup_wait
+ *                       or returned by task_wait with non-zero flags. the
+ *                       flags are updated so that they represent what can be
+ *                       still waited for.
+ * @param[out]    texit  Store type of task exit here.
+ * @param[out]    retval Store return value of the task here.
  *
  * @return EOK on success
- * @return EINVAL on lost wait TODO other error codes
+ * @return EINTR on lost wait
  */
 errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 {
 	errno_t rc;
 	async_wait_for(wait->aid, &rc);
 
-	if (rc == EOK || rc == EINVAL) {
+	if (rc == EOK || rc == EINTR) {
 		if (wait->flags & TASK_WAIT_EXIT && texit)
 			*texit = ipc_get_arg1(wait->result);
 		if (wait->flags & TASK_WAIT_RETVAL && retval)
@@ -468,12 +446,6 @@ errno_t task_retval_internal(int val, bool wait_for_exit)
 errno_t task_retval(int val)
 {
 	return task_retval_internal(val, false);
-}
-
-void __task_init(async_sess_t *sess)
-{
-	assert(session_taskman == NULL);
-	session_taskman = sess;
 }
 
 /** @}

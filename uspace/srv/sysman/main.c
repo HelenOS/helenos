@@ -228,6 +228,8 @@ int main(int argc, char *argv[])
 	fid_t event_loop_fibril = fibril_create(sysman_events_loop, NULL);
 	fibril_add_ready(event_loop_fibril);
 
+	sysman_log(LVL_DEBUG, "Debugging pause...\n");
+	async_usleep(10 * 1000000);
 	/* Queue first job from sequence */
 	prepare_and_run_job(&target_sequence[0]);
 

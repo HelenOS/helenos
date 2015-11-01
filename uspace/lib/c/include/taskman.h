@@ -35,9 +35,18 @@
 #ifndef LIBC_TASKMAN_H_
 #define LIBC_TASKMAN_H_
 
+#ifndef TASKMAN_DISABLE_ASYNC
 #include <async.h>
+#endif
 
-extern async_sess_t *taskman_handshake(void);
+/* Internal functions to be used by loader only */
+#ifndef TASKMAN_DISABLE_ASYNC
+extern async_sess_t *taskman_get_session(void);
+#endif
+extern int taskman_intro_loader(void);
+
+/* Internal functions to be used by NS only */
+extern int taskman_intro_ns(void);
 
 #endif
 

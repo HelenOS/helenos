@@ -50,8 +50,8 @@
 #include "private/io.h"
 #include "private/fibril.h"
 #include "private/malloc.h"
-#include "private/ns.h" // TODO maybe better filename for session_primary
 #include "private/task.h"
+#include "private/taskman.h"
 
 
 #ifdef CONFIG_RTLD
@@ -62,6 +62,19 @@ progsymbols_t __progsymbols;
 
 static bool env_setup;
 static fibril_t main_fibril;
+
+static void initialize_taskman(pcb_t *pcb)
+{
+	if (__pcb == NULL) {
+		async_sess_t *session_tm = taskman_connect();
+		if (session_tm == NULL) {
+			abort();
+		}
+		__task_init(session_tm);
+	} else {
+		__task_init(__pcb->session_taskman);
+	}
+}
 
 void __libc_main(void *pcb_ptr)
 {
@@ -106,16 +119,11 @@ void __libc_main(void *pcb_ptr)
 	}
 #endif
 	
-	/* Setup async framework */
+	/* Setup async framework and taskman connection */
 	__async_server_init();
-	if (__pcb == NULL) {
-		__async_client_init(NULL);
-		__task_init(NULL);
-	} else {
-		__async_client_init(__pcb->session_primary);
-		__task_init(__pcb->session_taskman);
-	}
+	__async_client_init();
 	__async_ports_init();
+	initialize_taskman(__pcb);
 
 	/* The basic run-time environment is setup */
 	env_setup = true;

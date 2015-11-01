@@ -38,6 +38,9 @@
 #include <types/common.h>
 #include <abi/ipc/ipc.h>
 
+/* Well known phone descriptors */
+#define PHONE_INITIAL  0
+
 #define IPC_FLAG_BLOCKING   0x01
 // TODO autostart flag may be united with blocking, this should be later made
 //      implicit, documented or refactor pairs of xxx and xxx_blocking methods
