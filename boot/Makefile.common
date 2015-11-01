@@ -70,14 +70,6 @@ INITRD = initrd
 # NOTE: Order of tasks here is important since kernel connects initial phone of
 # all these tasks to answerbox of the first one in this list (its phone is left
 # untouched).
-# INIT_TASKS = \
-# 	$(USPACE_PATH)/srv/taskman/taskman \
-# 	$(USPACE_PATH)/srv/ns/ns \
-# 	$(USPACE_PATH)/srv/locsrv/locsrv \
-# 	$(USPACE_PATH)/srv/vfs/vfs \
-# 	$(USPACE_PATH)/srv/loader/loader \
-# 	$(USPACE_PATH)/srv/bd/rd/rd
-
 INIT_TASKS = \
 	$(USPACE_PATH)/srv/taskman/taskman \
 	$(USPACE_PATH)/srv/ns/ns \
