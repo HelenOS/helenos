@@ -37,31 +37,29 @@
 #ifndef LIBC_SERVICES_H_
 #define LIBC_SERVICES_H_
 
-#include <fourcc.h>
+#include <sys/types.h>
+#include <abi/fourcc.h>
 
 typedef enum {
 	SERVICE_NONE       = 0,
-	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
+	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
 	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
 	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
 	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-} services_t;
+} service_t;
 
-#define SERVICE_NAME_CORECFG	"corecfg"
-#define SERVICE_NAME_DHCP       "net/dhcp"
-#define SERVICE_NAME_DNSR       "net/dnsr"
-#define SERVICE_NAME_INET       "net/inet"
-#define SERVICE_NAME_INETCFG    "net/inetcfg"
-#define SERVICE_NAME_INETPING   "net/inetping"
-#define SERVICE_NAME_INETPING6  "net/inetping6"
-#define SERVICE_NAME_NETCONF    "net/netconf"
-#define SERVICE_NAME_UDP	"net/udp"
-#define SERVICE_NAME_TCP	"net/tcp"
-#define SERVICE_NAME_VBD	"vbd"
-#define SERVICE_NAME_VOLSRV	"volsrv"
+#define SERVICE_NAME_CORECFG  "corecfg"
+#define SERVICE_NAME_DHCP     "net/dhcp"
+#define SERVICE_NAME_DNSR     "net/dnsr"
+#define SERVICE_NAME_INET     "net/inet"
+#define SERVICE_NAME_NETCONF  "net/netconf"
+#define SERVICE_NAME_UDP      "net/udp"
+#define SERVICE_NAME_TCP      "net/tcp"
+#define SERVICE_NAME_VBD      "vbd"
+#define SERVICE_NAME_VOLSRV   "volsrv"
 
 #endif
 

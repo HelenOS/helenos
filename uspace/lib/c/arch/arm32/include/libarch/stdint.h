@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Frantisek Princ
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libext4
+/** @addtogroup libcarm32
  * @{
  */
-
-/**
- * @file  libext4_crc.c
+/** @file
  */
 
-#include "libext4.h"
+#ifndef LIBC_arm32_STDINT_H_
+#define LIBC_arm32_STDINT_H_
 
-uint16_t crc16(uint16_t crc, const uint8_t *buffer, size_t len)
-{
-	// TODO
-	return 0;
-}
+#include <libarch/common.h>
 
-/**
- * @}
+#define SIZE_MIN  UINT32_MIN
+#define SIZE_MAX  UINT32_MAX
+
+#define UINTPTR_MAX UINT32_MAX
+typedef uint32_t uintptr_t;
+
+#define INTPTR_MIN INT32_MIN
+#define INTPTR_MAX INT32_MAX
+typedef int32_t intptr_t;
+
+#define UINTMAX_MAX UINT64_MAX
+typedef uint64_t uintmax_t;
+
+#define INTMAX_MAX INT64_MAX
+typedef int64_t intmax_t;
+
+#endif
+
+/** @}
  */

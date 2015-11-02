@@ -63,7 +63,7 @@ static int dnsr_init(void)
 		return EIO;
 	}
 
-	async_set_client_connection(dnsr_client_conn);
+	async_set_fallback_port_handler(dnsr_client_conn, NULL);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {

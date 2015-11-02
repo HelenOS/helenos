@@ -57,7 +57,10 @@ int input_open(async_sess_t *sess, input_ev_ops_t *ev_ops,
 
 	async_exch_t *exch = async_exchange_begin(sess);
 
-	int rc = async_connect_to_me(exch, 0, 0, 0, input_cb_conn, input);
+	port_id_t port;
+	int rc = async_create_callback_port(exch, INTERFACE_INPUT_CB, 0, 0,
+	    input_cb_conn, input, &port);
+	
 	async_exchange_end(exch);
 
 	if (rc != EOK)

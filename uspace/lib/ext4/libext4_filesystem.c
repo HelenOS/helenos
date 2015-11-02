@@ -39,6 +39,8 @@
 #include <errno.h>
 #include <malloc.h>
 #include <ipc/vfs.h>
+#include <align.h>
+#include <crypto.h>
 #include "libext4.h"
 
 /** Initialize filesystem and read all needed data.
@@ -52,12 +54,13 @@
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
     enum cache_mode cmode)
 {
+	int rc;
 	ext4_superblock_t *temp_superblock = NULL;
 
 	fs->device = service_id;
 
 	/* Initialize block library (4096 is size of communication channel) */
-	int rc = block_init(EXCHANGE_SERIALIZE, fs->device, 4096);
+	rc = block_init(fs->device, 4096);
 	if (rc != EOK)
 		goto err;
 
@@ -138,7 +141,7 @@ int ext4_filesystem_fini(ext4_filesystem_t *fs)
 	
 	/* Release memory space for superblock */
 	free(fs->superblock);
-	
+
 	/* Finish work with block library */
 	block_cache_fini(fs->device);
 	block_fini(fs->device);
@@ -249,6 +252,21 @@ uint32_t ext4_filesystem_index_in_group2blockaddr(ext4_superblock_t *sb,
 		return bgid * blocks_per_group + index + 1;
 }
 
+/** Convert the absolute block number to group number
+ *
+ * @param sb    Pointer to the superblock
+ * @param b     Absolute block number
+ *
+ * @return      Group number
+ */
+uint32_t ext4_filesystem_blockaddr2group(ext4_superblock_t *sb, uint64_t b)
+{
+	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
+	uint32_t first_block = ext4_superblock_get_first_data_block(sb);
+
+	return (b - first_block) / blocks_per_group;
+}
+
 /** Initialize block bitmap in block group.
  *
  * @param bg_ref Reference to block group
@@ -258,8 +276,15 @@ uint32_t ext4_filesystem_index_in_group2blockaddr(ext4_superblock_t *sb,
  */
 static int ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 {
+	uint64_t itb;
+	uint32_t sz;
+	uint32_t i;
+
 	/* Load bitmap */
-	uint32_t bitmap_block_addr = ext4_block_group_get_block_bitmap(
+	ext4_superblock_t *sb = bg_ref->fs->superblock;
+	uint64_t bitmap_block_addr = ext4_block_group_get_block_bitmap(
+	    bg_ref->block_group, bg_ref->fs->superblock);
+	uint64_t bitmap_inode_addr = ext4_block_group_get_inode_bitmap(
 	    bg_ref->block_group, bg_ref->fs->superblock);
 	
 	block_t *bitmap_block;
@@ -271,21 +296,42 @@ static int ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 	uint8_t *bitmap = bitmap_block->data;
 	
 	/* Initialize all bitmap bits to zero */
-	uint32_t block_size = ext4_superblock_get_block_size(bg_ref->fs->superblock);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	memset(bitmap, 0, block_size);
 	
-	/* Determine first block and first data block in group */
-	uint32_t first_idx = 0;
-	
-	uint32_t first_data = ext4_balloc_get_first_data_block_in_group(
-	    bg_ref->fs->superblock, bg_ref);
-	uint32_t first_data_idx = ext4_filesystem_blockaddr2_index_in_group(
-	    bg_ref->fs->superblock, first_data);
-	
+	/* Determine the number of reserved blocks in the group */
+	uint32_t reserved_cnt = ext4_filesystem_bg_get_backup_blocks(bg_ref);
+
 	/* Set bits from to first block to first data block - 1 to one (allocated) */
-	for (uint32_t block = first_idx; block < first_data_idx; ++block)
+	for (uint32_t block = 0; block < reserved_cnt; ++block)
 		ext4_bitmap_set_bit(bitmap, block);
-	
+
+	uint32_t bitmap_block_gid = ext4_filesystem_blockaddr2group(sb,
+	    bitmap_block_addr);
+	if (bitmap_block_gid == bg_ref->index) {
+		ext4_bitmap_set_bit(bitmap,
+		    ext4_filesystem_blockaddr2_index_in_group(sb, bitmap_block_addr));
+	}
+
+	uint32_t bitmap_inode_gid = ext4_filesystem_blockaddr2group(sb,
+	    bitmap_inode_addr);
+	if (bitmap_inode_gid == bg_ref->index) {
+		ext4_bitmap_set_bit(bitmap,
+		    ext4_filesystem_blockaddr2_index_in_group(sb, bitmap_inode_addr));
+	}
+
+	itb = ext4_block_group_get_inode_table_first_block(bg_ref->block_group,
+	    sb);
+	sz = ext4_filesystem_bg_get_itable_size(sb, bg_ref);
+
+	for (i = 0; i < sz; ++i, ++itb) {
+		uint32_t gid = ext4_filesystem_blockaddr2group(sb, itb);
+		if (gid == bg_ref->index) {
+			ext4_bitmap_set_bit(bitmap,
+			    ext4_filesystem_blockaddr2_index_in_group(sb, itb));
+		}
+	}
+
 	bitmap_block->dirty = true;
 	
 	/* Save bitmap */
@@ -422,7 +468,7 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 		return rc;
 	}
 	
-	/* Inititialize in-memory representation */
+	/* Initialize in-memory representation */
 	newref->block_group = newref->block->data + offset;
 	newref->fs = fs;
 	newref->index = bgid;
@@ -487,7 +533,7 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 {
 	/* If checksum not supported, 0 will be returned */
 	uint16_t crc = 0;
-	
+
 	/* Compute the checksum only if the filesystem supports it */
 	if (ext4_superblock_has_feature_read_only(sb,
 	    EXT4_FEATURE_RO_COMPAT_GDT_CSUM)) {
@@ -500,13 +546,13 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 		uint32_t le_group = host2uint32_t_le(bgid);
 		
 		/* Initialization */
-		crc = crc16(~0, sb->uuid, sizeof(sb->uuid));
+		crc = crc16_ibm(~0, sb->uuid, sizeof(sb->uuid));
 		
 		/* Include index of block group */
-		crc = crc16(crc, (uint8_t *) &le_group, sizeof(le_group));
+		crc = crc16_ibm(crc, (uint8_t *) &le_group, sizeof(le_group));
 		
 		/* Compute crc from the first part (stop before checksum field) */
-		crc = crc16(crc, (uint8_t *) bg, offset);
+		crc = crc16_ibm(crc, (uint8_t *) bg, offset);
 		
 		/* Skip checksum */
 		offset += sizeof(bg->checksum);
@@ -515,16 +561,139 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 		if ((ext4_superblock_has_feature_incompatible(sb,
 		    EXT4_FEATURE_INCOMPAT_64BIT)) &&
 		    (offset < ext4_superblock_get_desc_size(sb)))
-			crc = crc16(crc, ((uint8_t *) bg) + offset,
+			crc = crc16_ibm(crc, ((uint8_t *) bg) + offset,
 			    ext4_superblock_get_desc_size(sb) - offset);
 	}
 	
 	return crc;
 }
 
+/** Get the size of the block group's inode table
+ *
+ * @param sb     Pointer to the superblock
+ * @param bg_ref Pointer to the block group reference
+ *
+ * @return       Size of the inode table in blocks.
+ */
+uint32_t ext4_filesystem_bg_get_itable_size(ext4_superblock_t *sb,
+    ext4_block_group_ref_t *bg_ref)
+{
+	uint32_t itable_size;
+	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
+	uint16_t inode_table_item_size = ext4_superblock_get_inode_size(sb);
+	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+
+	if (bg_ref->index < block_group_count - 1) {
+		itable_size = inodes_per_group * inode_table_item_size;
+	} else {
+		/* Last block group could be smaller */
+		uint32_t inodes_count_total = ext4_superblock_get_inodes_count(sb);
+		itable_size =
+		    (inodes_count_total - ((block_group_count - 1) * inodes_per_group)) *
+		    inode_table_item_size;
+	}
+
+	return ROUND_UP(itable_size, block_size) / block_size;
+}
+
+/* Check if n is a power of p */
+static bool is_power_of(uint32_t n, unsigned p)
+{
+	if (p == 1 && n != p)
+		return false;
+
+	while (n != p) {
+		if (n < p)
+			return false;
+		else if ((n % p) != 0)
+			return false;
+
+		n /= p;
+	}
+
+	return true;
+}
+
+/** Get the number of blocks used by superblock + gdt + reserved gdt backups
+ *
+ * @param bg    Pointer to block group
+ *
+ * @return      Number of blocks
+ */
+uint32_t ext4_filesystem_bg_get_backup_blocks(ext4_block_group_ref_t *bg)
+{
+	uint32_t const idx = bg->index;
+	uint32_t r = 0;
+	bool has_backups = false;
+	ext4_superblock_t *sb = bg->fs->superblock;
+
+	/* First step: determine if the block group contains the backups */
+
+	if (idx <= 1)
+		has_backups = true;
+	else {
+		if (ext4_superblock_has_feature_compatible(sb,
+		    EXT4_FEATURE_COMPAT_SPARSE_SUPER2)) {
+			uint32_t g1, g2;
+
+			ext4_superblock_get_backup_groups_sparse2(sb,
+			    &g1, &g2);
+
+			if (idx == g1 || idx == g2)
+				has_backups = true;
+		} else if (!ext4_superblock_has_feature_read_only(sb,
+		    EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER)) {
+			/* Very old fs were all block groups have
+			 * superblock and block descriptors backups.
+			 */
+			has_backups = true;
+		} else {
+			if ((idx & 1) && (is_power_of(idx, 3) ||
+			    is_power_of(idx, 5) || is_power_of(idx, 7)))
+				has_backups = true;
+		}
+	}
+
+	if (has_backups) {
+		uint32_t bg_count;
+		uint32_t bg_desc_sz;
+		uint32_t gdt_table; /* Size of the GDT in blocks */
+		uint32_t block_size = ext4_superblock_get_block_size(sb);
+
+		/* Now we know that this block group has backups,
+		 * we have to compute how many blocks are reserved
+		 * for them
+		 */
+
+		if (idx == 0 && block_size == 1024) {
+			/* Special case for first group were the boot block
+			 * resides
+			 */
+			r++;
+		}
+
+		/* This accounts for the superblock */
+		r++;
+
+		/* Add the number of blocks used for the GDT */
+		bg_count = ext4_superblock_get_block_group_count(sb);
+		bg_desc_sz = ext4_superblock_get_desc_size(sb);
+		gdt_table = ROUND_UP(bg_count * bg_desc_sz, block_size) /
+		    block_size;
+
+		r += gdt_table;
+
+		/* And now the number of reserved GDT blocks */
+		r += ext4_superblock_get_reserved_gdt_blocks(sb);
+	}
+
+	return r;
+}
+
 /** Put reference to block group.
  *
- * @oaram ref Pointer for reference to be put back
+ * @param ref Pointer for reference to be put back
  *
  * @return Error code
  *

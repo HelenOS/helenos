@@ -86,7 +86,7 @@ int inet_addrobj_add(inet_addrobj_t *addr)
 	if (aobj != NULL) {
 		/* Duplicate address name */
 		fibril_mutex_unlock(&addr_list_lock);
-		return EEXISTS;
+		return EEXIST;
 	}
 
 	list_append(&addr->addr_list, &addr_list);

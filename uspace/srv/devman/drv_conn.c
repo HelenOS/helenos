@@ -48,7 +48,6 @@
 #include <str.h>
 #include <io/log.h>
 #include <ipc/devman.h>
-#include <ipc/driver.h>
 #include <loc.h>
 
 #include "client_conn.h"
@@ -101,7 +100,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Driver '%s' already started.\n",
 		    driver->name);
 		fibril_mutex_unlock(&driver->driver_mutex);
-		async_answer_0(callid, EEXISTS);
+		async_answer_0(callid, EEXIST);
 		return NULL;
 	}
 	
@@ -130,7 +129,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 		return NULL;
 	}
 	/* FIXME: Work around problem with callback sessions */
-	async_sess_args_set(driver->sess, DRIVER_DEVMAN, 0, 0);
+	async_sess_args_set(driver->sess, INTERFACE_DDF_DEVMAN, 0, 0);
 	
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "The `%s' driver was successfully registered as running.",
@@ -278,7 +277,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		fun_del_ref(tfun);	/* drop the new unwanted reference */
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		dev_del_ref(pdev);
-		async_answer_0(callid, EEXISTS);
+		async_answer_0(callid, EEXIST);
 		printf(NAME ": Warning, driver tried to register `%s' twice.\n",
 		    fun_name);
 		free(fun_name);
@@ -586,7 +585,7 @@ static int init_running_drv(void *drv)
 }
 
 /** Function for handling connections from a driver to the device manager. */
-void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
+void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	client_t *client;
 	driver_t *driver = NULL;

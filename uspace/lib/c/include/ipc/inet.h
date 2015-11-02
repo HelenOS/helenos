@@ -37,18 +37,6 @@
 
 #include <ipc/common.h>
 
-/** Inet ports */
-typedef enum {
-	/** Default port */
-	INET_PORT_DEFAULT = 1,
-	/** Configuration port */
-	INET_PORT_CFG,
-	/** Ping service port */
-	INET_PORT_PING,
-	/** Ping6 service port */
-	INET_PORT_PING6
-} inet_port_t;
-
 /** Requests on Inet default port */
 typedef enum {
 	INET_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,

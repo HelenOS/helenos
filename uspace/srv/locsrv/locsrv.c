@@ -411,7 +411,7 @@ static loc_server_t *loc_server_register(void)
 static int loc_server_unregister(loc_server_t *server)
 {
 	if (server == NULL)
-		return EEXISTS;
+		return EEXIST;
 	
 	fibril_mutex_lock(&servers_list_mutex);
 	
@@ -466,9 +466,6 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	
-	/* Set the interface, if any. */
-	service->forward_interface = IPC_GET_ARG1(*icall);
-
 	/* Get fqsn */
 	char *fqsn;
 	int rc = async_data_write_accept((void **) &fqsn, true, 0,
@@ -513,7 +510,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		fibril_mutex_unlock(&services_list_mutex);
 		free(service->name);
 		free(service);
-		async_answer_0(iid, EEXISTS);
+		async_answer_0(iid, EEXIST);
 		return;
 	}
 	
@@ -701,13 +698,14 @@ static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
  * the message to it.
  *
  */
-static void loc_forward(ipc_callid_t callid, ipc_call_t *call)
+static void loc_forward(ipc_callid_t callid, ipc_call_t *call, void *arg)
 {
 	fibril_mutex_lock(&services_list_mutex);
 	
 	/*
 	 * Get ID from request
 	 */
+	iface_t iface = IPC_GET_ARG1(*call);
 	service_id_t id = IPC_GET_ARG2(*call);
 	loc_service_t *svc = loc_service_find_id(id);
 	
@@ -718,13 +716,7 @@ static void loc_forward(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	async_exch_t *exch = async_exchange_begin(svc->server->sess);
-	
-	if (svc->forward_interface == 0)
-		async_forward_fast(callid, exch, svc->id, 0, 0, IPC_FF_NONE);
-	else
-		async_forward_fast(callid, exch, svc->forward_interface,
-		    svc->id, 0, IPC_FF_NONE);
-	
+	async_forward_fast(callid, exch, iface, svc->id, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 	
 	fibril_mutex_unlock(&services_list_mutex);
@@ -958,7 +950,7 @@ static void loc_get_service_count(ipc_callid_t iid, ipc_call_t *icall)
 	loc_namespace_t *namespace =
 	    loc_namespace_find_id(IPC_GET_ARG1(*icall));
 	if (namespace == NULL)
-		async_answer_0(iid, EEXISTS);
+		async_answer_0(iid, EEXIST);
 	else
 		async_answer_1(iid, EOK, namespace->refcnt);
 	
@@ -1381,7 +1373,7 @@ static bool loc_init(void)
 /** Handle connection on supplier port.
  *
  */
-static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
@@ -1439,7 +1431,7 @@ static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall)
 /** Handle connection on consumer port.
  *
  */
-static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
@@ -1506,29 +1498,6 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-/** Function for handling connections to location service
- *
- */
-static void loc_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	/* Select interface */
-	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
-	case LOC_PORT_SUPPLIER:
-		loc_connection_supplier(iid, icall);
-		break;
-	case LOC_PORT_CONSUMER:
-		loc_connection_consumer(iid, icall);
-		break;
-	case LOC_CONNECT_TO_SERVICE:
-		/* Connect client to selected service */
-		loc_forward(iid, icall);
-		break;
-	default:
-		/* No such interface */
-		async_answer_0(iid, ENOENT);
-	}
-}
-
 /**
  *
  */
@@ -1541,11 +1510,22 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
+	port_id_t port;
+	int rc = async_create_port(INTERFACE_LOC_SUPPLIER,
+	    loc_connection_supplier, NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
+	rc = async_create_port(INTERFACE_LOC_CONSUMER,
+	    loc_connection_consumer, NULL, &port);
+	if (rc != EOK)
+		return rc;
+	
 	/* Set a handler of incomming connections */
-	async_set_client_connection(loc_connection);
+	async_set_fallback_port_handler(loc_forward, NULL);
 	
 	/* Register location service at naming service */
-	int rc = service_register(SERVICE_LOC);
+	rc = service_register(SERVICE_LOC);
 	if (rc != EOK)
 		return rc;
 	

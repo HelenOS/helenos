@@ -535,7 +535,7 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 			goto error;
 		}
 		if (label->ext_part != NULL) {
-			rc = EEXISTS;
+			rc = EEXIST;
 			goto error;
 		}
 		break;

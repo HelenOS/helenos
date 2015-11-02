@@ -119,12 +119,12 @@ int inetcfg_init(void)
 
 	assert(inetcfg_sess == NULL);
 	
-	rc = loc_service_get_id(SERVICE_NAME_INETCFG, &inet_svc,
+	rc = loc_service_get_id(SERVICE_NAME_INET, &inet_svc,
 	    IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return ENOENT;
 	
-	inetcfg_sess = loc_service_connect(EXCHANGE_SERIALIZE, inet_svc,
+	inetcfg_sess = loc_service_connect(inet_svc, INTERFACE_INETCFG,
 	    IPC_FLAG_BLOCKING);
 	if (inetcfg_sess == NULL)
 		return ENOENT;

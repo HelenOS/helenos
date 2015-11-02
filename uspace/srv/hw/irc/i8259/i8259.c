@@ -152,7 +152,7 @@ static bool i8259_init(void)
 		return false;
 	}
 	
-	async_set_client_connection(i8259_connection);
+	async_set_fallback_port_handler(i8259_connection, NULL);
 	service_register(SERVICE_IRC);
 	
 	return true;

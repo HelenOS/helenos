@@ -93,8 +93,8 @@ static void kbdev_destroy(kbdev_t *kbdev)
 
 static int kbdev_ctl_init(kbd_dev_t *kdev)
 {
-	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE,
-	    kdev->svc_id, 0);
+	async_sess_t *sess = loc_service_connect(kdev->svc_id,
+	    INTERFACE_DDF, 0);
 	if (sess == NULL) {
 		printf("%s: Failed starting session with '%s.'\n", NAME,
 		    kdev->svc_name);
@@ -119,7 +119,10 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 		return ENOENT;
 	}
 	
-	int rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn, kbdev);
+	port_id_t port;
+	int rc = async_create_callback_port(exch, INTERFACE_KBD_CB, 0, 0,
+	    kbdev_callback_conn, kbdev, &port);
+	
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
 		    NAME, kdev->svc_name);

@@ -227,7 +227,7 @@ int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 	int rc;
 
 	if (!info->blk_inited) {
-		rc = block_init(EXCHANGE_SERIALIZE, info->svcid, 2048);
+		rc = block_init(info->svcid, 2048);
 		if (rc != EOK)
 			return rc;
 
@@ -558,7 +558,7 @@ int fdisk_dev_capacity(fdisk_dev_t *dev, fdisk_cap_t *cap)
 	aoff64_t nblocks;
 	int rc;
 
-	rc = block_init(EXCHANGE_SERIALIZE, dev->sid, 2048);
+	rc = block_init(dev->sid, 2048);
 	if (rc != EOK)
 		return rc;
 

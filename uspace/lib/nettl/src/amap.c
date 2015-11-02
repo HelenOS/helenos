@@ -35,6 +35,18 @@
  *
  * Manages allocations of endpoints / endpoint pairs (corresponding to
  * UDP associations, TCP listeners and TCP connections)
+ *
+ * An association map contains different types of entries, based on which
+ * set of attributes (key) they specify. In order from most specific to the
+ * least specific one:
+ *
+ *  - repla (remote endpoint, local address)
+ *  - laddr (local address)
+ *  - llink (local link)
+ *  - unspec (unspecified)
+ *
+ * In the unspecified case only the local port is known and the entry matches
+ * all remote and local addresses.
  */
 
 #include <adt/list.h>
@@ -46,6 +58,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+/** Create association map.
+ *
+ * @param rmap Place to store pointer to new association map
+ * @return EOk on success, ENOMEM if out of memory
+ */
 int amap_create(amap_t **rmap)
 {
 	amap_t *map;
@@ -72,13 +89,27 @@ int amap_create(amap_t **rmap)
 	return EOK;
 }
 
+/** Destroy association map.
+ *
+ * @param map Association map
+ */
 void amap_destroy(amap_t *map)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_destroy()");
 	free(map);
 }
 
-/** Find exact repla */
+/** Find exact repla.
+ *
+ * Find repla (remote endpoint, local address) entry by exact match.
+ *
+ * @param map Association map
+ * @param rep Remote endpoint
+ * @param la  Local address
+ * @param rrepla Place to store pointer to repla
+ *
+ * @return EOK on success, ENOENT if not found
+ */
 static int amap_repla_find(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
     amap_repla_t **rrepla)
 {
@@ -112,6 +143,17 @@ static int amap_repla_find(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
 	return ENOENT;
 }
 
+/** Insert repla.
+ *
+ * Insert new repla (remote endpoint, local address) entry to association map.
+ *
+ * @param amap   Association map
+ * @param rep    Remote endpoint
+ * @param la     Local address
+ * @param rrepla Place to store pointer to new repla
+ *
+ * @return EOK on success, ENOMEM if out of memory
+ */
 static int amap_repla_insert(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
     amap_repla_t **rrepla)
 {
@@ -138,6 +180,13 @@ static int amap_repla_insert(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
 	return EOK;
 }
 
+/** Remove repla from association map.
+ *
+ * Remove repla (remote endpoint, local address) from association map.
+ *
+ * @param map   Association map
+ * @param repla Repla
+ */
 static void amap_repla_remove(amap_t *map, amap_repla_t *repla)
 {
 	list_remove(&repla->lamap);
@@ -145,7 +194,16 @@ static void amap_repla_remove(amap_t *map, amap_repla_t *repla)
 	free(repla);
 }
 
-/** Find exact laddr */
+/** Find exact laddr.
+ *
+ * Find laddr (local address) entry by exact match.
+ *
+ * @param map    Association map
+ * @param addr   Address
+ * @param rladdr Place to store pointer to laddr entry
+ *
+ * @return EOK on success, ENOENT if not found.
+ */
 static int amap_laddr_find(amap_t *map, inet_addr_t *addr,
     amap_laddr_t **rladdr)
 {
@@ -160,6 +218,15 @@ static int amap_laddr_find(amap_t *map, inet_addr_t *addr,
 	return ENOENT;
 }
 
+/** Insert laddr.
+ *
+ * Insert new laddr (local address) entry to association map.
+ *
+ * @param addr   Local address
+ * @param rladdr Place to store pointer to new laddr
+ *
+ * @return EOK on success, ENOMEM if out of memory
+ */
 static int amap_laddr_insert(amap_t *map, inet_addr_t *addr,
     amap_laddr_t **rladdr)
 {
@@ -185,6 +252,13 @@ static int amap_laddr_insert(amap_t *map, inet_addr_t *addr,
 	return EOK;
 }
 
+/** Remove laddr from association map.
+ *
+ * Remove laddr (local address) entry from association map.
+ *
+ * @param map   Association map
+ * @param laddr Laddr entry
+ */
 static void amap_laddr_remove(amap_t *map, amap_laddr_t *laddr)
 {
 	list_remove(&laddr->lamap);
@@ -192,7 +266,16 @@ static void amap_laddr_remove(amap_t *map, amap_laddr_t *laddr)
 	free(laddr);
 }
 
-/** Find exact llink */
+/** Find exact llink.
+ *
+ * Find llink (local link) entry by exact match.
+ *
+ * @param map     Association map
+ * @param link_id Local link ID
+ * @param rllink  Place to store pointer to llink entry
+ *
+ * @return EOK on success, ENOENT if not found.
+ */
 static int amap_llink_find(amap_t *map, sysarg_t link_id,
     amap_llink_t **rllink)
 {
@@ -207,6 +290,15 @@ static int amap_llink_find(amap_t *map, sysarg_t link_id,
 	return ENOENT;
 }
 
+/** Insert llink.
+ *
+ * Insert new llink (local link) entry to association map.
+ *
+ * @param link_id Local link
+ * @param rllink  Place to store pointer to new llink
+ *
+ * @return EOK on success, ENOMEM if out of memory
+ */
 static int amap_llink_insert(amap_t *map, sysarg_t link_id,
     amap_llink_t **rllink)
 {
@@ -232,6 +324,13 @@ static int amap_llink_insert(amap_t *map, sysarg_t link_id,
 	return EOK;
 }
 
+/** Remove llink from association map.
+ *
+ * Remove llink (local link) entry from association map.
+ *
+ * @param map   Association map
+ * @param llink Llink entry
+ */
 static void amap_llink_remove(amap_t *map, amap_llink_t *llink)
 {
 	list_remove(&llink->lamap);
@@ -239,6 +338,19 @@ static void amap_llink_remove(amap_t *map, amap_llink_t *llink)
 	free(llink);
 }
 
+/** Insert endpoint pair into map with repla as key.
+ *
+ * If local port number is not specified, it is allocated.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair, possibly with local port inet_port_any
+ * @param arg arg User value
+ * @param flags Flags
+ * @param aepp Place to store actual endpoint pair, possibly with allocated port
+ *
+ * @return EOK on success, EEXIST if conflicting epp exists,
+ *         ENOMEM if out of memory
+ */
 static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
     amap_flags_t flags, inet_ep2_t *aepp)
 {
@@ -271,6 +383,19 @@ static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
 	return EOK;
 }
 
+/** Insert endpoint pair into map with laddr as key.
+ *
+ * If local port number is not specified, it is allocated.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair, possibly with local port inet_port_any
+ * @param arg arg User value
+ * @param flags Flags
+ * @param aepp Place to store actual endpoint pair, possibly with allocated port
+ *
+ * @return EOK on success, EEXIST if conflicting epp exists,
+ *         ENOMEM if out of memory
+ */
 static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
     amap_flags_t flags, inet_ep2_t *aepp)
 {
@@ -302,6 +427,19 @@ static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
 	return EOK;
 }
 
+/** Insert endpoint pair into map with llink as key.
+ *
+ * If local port number is not specified, it is allocated.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair, possibly with local port inet_port_any
+ * @param arg arg User value
+ * @param flags Flags
+ * @param aepp Place to store actual endpoint pair, possibly with allocated port
+ *
+ * @return EOK on success, EEXIST if conflicting epp exists,
+ *         ENOMEM if out of memory
+ */
 static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
     amap_flags_t flags, inet_ep2_t *aepp)
 {
@@ -333,6 +471,19 @@ static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
 	return EOK;
 }
 
+/** Insert endpoint pair into map with unspec as key.
+ *
+ * If local port number is not specified, it is allocated.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair, possibly with local port inet_port_any
+ * @param arg arg User value
+ * @param flags Flags
+ * @param aepp Place to store actual endpoint pair, possibly with allocated port
+ *
+ * @return EOK on success, EEXIST if conflicting epp exists,
+ *         ENOMEM if out of memory
+ */
 static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
     amap_flags_t flags, inet_ep2_t *aepp)
 {
@@ -363,7 +514,7 @@ static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
  * @param flags Flags
  * @param aepp Place to store actual endpoint pair, possibly with allocated port
  *
- * @return EOK on success, EEXISTS if conflicting epp exists,
+ * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
 int amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,
@@ -416,6 +567,14 @@ int amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,
 	return EOK;
 }
 
+/** Remove endpoint pair using repla as key from map.
+ *
+ * The endpoint pair must be present in the map, otherwise behavior
+ * is unspecified.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair
+ */
 static void amap_remove_repla(amap_t *map, inet_ep2_t *epp)
 {
 	amap_repla_t *repla;
@@ -433,6 +592,14 @@ static void amap_remove_repla(amap_t *map, inet_ep2_t *epp)
 		amap_repla_remove(map, repla);
 }
 
+/** Remove endpoint pair using laddr as key from map.
+ *
+ * The endpoint pair must be present in the map, otherwise behavior
+ * is unspecified.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair
+ */
 static void amap_remove_laddr(amap_t *map, inet_ep2_t *epp)
 {
 	amap_laddr_t *laddr;
@@ -450,6 +617,14 @@ static void amap_remove_laddr(amap_t *map, inet_ep2_t *epp)
 		amap_laddr_remove(map, laddr);
 }
 
+/** Remove endpoint pair using llink as key from map.
+ *
+ * The endpoint pair must be present in the map, otherwise behavior
+ * is unspecified.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair
+ */
 static void amap_remove_llink(amap_t *map, inet_ep2_t *epp)
 {
 	amap_llink_t *llink;
@@ -467,11 +642,27 @@ static void amap_remove_llink(amap_t *map, inet_ep2_t *epp)
 		amap_llink_remove(map, llink);
 }
 
+/** Remove endpoint pair using unspec as key from map.
+ *
+ * The endpoint pair must be present in the map, otherwise behavior
+ * is unspecified.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair
+ */
 static void amap_remove_unspec(amap_t *map, inet_ep2_t *epp)
 {
 	portrng_free_port(map->unspec, epp->local.port);
 }
 
+/** Remove endpoint pair from map.
+ *
+ * The endpoint pair must be present in the map, otherwise behavior
+ * is unspecified.
+ *
+ * @param map Association map
+ * @param epp Endpoint pair
+ */
 void amap_remove(amap_t *map, inet_ep2_t *epp)
 {
 	bool raddr, rport, laddr, llink;

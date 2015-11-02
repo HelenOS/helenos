@@ -154,8 +154,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	async_sess_t *session = loc_service_connect(
-	    EXCHANGE_ATOMIC, mixer_sid, 0);
+	async_sess_t *session = loc_service_connect(mixer_sid, INTERFACE_DDF, 0);
 	if (!session) {
 		printf("Failed connecting mixer service '%s'.\n", service);
 		return 1;

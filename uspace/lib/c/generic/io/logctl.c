@@ -47,8 +47,8 @@ static int start_logger_exchange(async_exch_t **exchange_out)
 	assert(exchange_out != NULL);
 
 	if (logger_session == NULL) {
-		logger_session = service_connect_blocking(EXCHANGE_SERIALIZE,
-		    SERVICE_LOGGER, LOGGER_INTERFACE_CONTROL, 0);
+		logger_session = service_connect_blocking(SERVICE_LOGGER,
+		    INTERFACE_LOGGER_CONTROL, 0);
 		if (logger_session == NULL)
 			return ENOMEM;
 	}

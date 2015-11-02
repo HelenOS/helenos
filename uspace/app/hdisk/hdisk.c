@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 	init_label();
 	label.device = dev_handle;
 	
-	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
+	rc = block_init(dev_handle, 512);
 	if (rc != EOK) {
 		printf("Error during libblock init: %d - %s.\n", rc, str_error(rc));
 		return 3;

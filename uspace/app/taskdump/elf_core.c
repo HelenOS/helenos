@@ -206,7 +206,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		foff += ainfo[i].size;
 	}
 
-	rc = write_all(fd, &elf_hdr, sizeof(elf_hdr));
+	rc = write(fd, &elf_hdr, sizeof(elf_hdr));
 	if (rc != sizeof(elf_hdr)) {
 		printf("Failed writing ELF header.\n");
 		free(p_hdr);
@@ -214,7 +214,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	}
 
 	for (i = 0; i < n_ph; ++i) {
-		rc = write_all(fd, &p_hdr[i], sizeof(p_hdr[i]));
+		rc = write(fd, &p_hdr[i], sizeof(p_hdr[i]));
 		if (rc != sizeof(p_hdr[i])) {
 			printf("Failed writing program header.\n");
 			free(p_hdr);
@@ -235,14 +235,14 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	note.descsz = sizeof(elf_prstatus_t);
 	note.type = NT_PRSTATUS;
 
-	rc = write_all(fd, &note, sizeof(elf_note_t));
+	rc = write(fd, &note, sizeof(elf_note_t));
 	if (rc != sizeof(elf_note_t)) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
 		return EIO;
 	}
 
-	rc = write_all(fd, "CORE", note.namesz);
+	rc = write(fd, "CORE", note.namesz);
 	if (rc != (ssize_t) note.namesz) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
@@ -256,7 +256,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		return EIO;
 	}
 
-	rc = write_all(fd, &pr_status, sizeof(elf_prstatus_t));
+	rc = write(fd, &pr_status, sizeof(elf_prstatus_t));
 	if (rc != sizeof(elf_prstatus_t)) {
 		printf("Failed writing register data.\n");
 		free(p_hdr);
@@ -320,7 +320,7 @@ static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
 			return EIO;
 		}
 
-		rc = write_all(fd, buffer, to_copy);
+		rc = write(fd, buffer, to_copy);
 		if (rc != (ssize_t) to_copy) {
 			printf("Failed writing memory contents.\n");
 			return EIO;

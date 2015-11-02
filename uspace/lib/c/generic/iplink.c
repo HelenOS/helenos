@@ -58,8 +58,11 @@ int iplink_open(async_sess_t *sess, iplink_ev_ops_t *ev_ops, void *arg,
 	iplink->arg = arg;
 	
 	async_exch_t *exch = async_exchange_begin(sess);
+
+	port_id_t port;
+	int rc = async_create_callback_port(exch, INTERFACE_IPLINK_CB, 0, 0,
+	    iplink_cb_conn, iplink, &port);
 	
-	int rc = async_connect_to_me(exch, 0, 0, 0, iplink_cb_conn, iplink);
 	async_exchange_end(exch);
 	
 	if (rc != EOK)

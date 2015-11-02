@@ -122,7 +122,7 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 
 	/* Already used interface. */
 	if (iface->vuhid_data != NULL) {
-		return EEXISTS;
+		return EEXIST;
 	}
 
 	vuhid_data_t *hid_data = dev->device_data;

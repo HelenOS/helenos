@@ -45,6 +45,8 @@ typedef int64_t off64_t;
 /** Absolute offset */
 typedef uint64_t aoff64_t;
 
+typedef uint32_t fourcc_t;
+
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;

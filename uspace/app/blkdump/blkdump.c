@@ -141,7 +141,7 @@ devname:
 		return 2;
 	}
 
-	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
+	rc = block_init(service_id, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;

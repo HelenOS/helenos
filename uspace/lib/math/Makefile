@@ -40,8 +40,27 @@ MATH = y
 -include arch/$(UARCH)/Makefile.inc
 
 GENERIC_SOURCES = \
+	generic/acos.c \
+	generic/asin.c \
+	generic/atan.c \
+	generic/atan2.c \
+	generic/ceil.c \
+	generic/cosh.c \
+	generic/exp.c \
+	generic/fabs.c \
+	generic/floor.c \
+	generic/fmod.c \
+	generic/frexp.c \
+	generic/ldexp.c \
+	generic/log.c \
+	generic/log10.c \
+	generic/modf.c \
+	generic/pow.c \
+	generic/sinh.c \
+	generic/sqrt.c \
+	generic/tan.c \
+	generic/tanh.c \
 	generic/trig.c \
-	generic/mod.c \
 	generic/trunc.c
 
 SOURCES = \

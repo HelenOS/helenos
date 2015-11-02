@@ -112,7 +112,7 @@ static bool vfs_info_sane(vfs_info_t *info)
  */
 void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 {
-	dprintf("Processing VFS_REGISTER request received from %p.\n",
+	dprintf("Processing VFS_REGISTER request received from %zx.\n",
 	    request->in_phone_hash);
 	
 	vfs_info_t *vfs_info;
@@ -161,7 +161,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		dprintf("FS is already registered.\n");
 		fibril_mutex_unlock(&fs_list_lock);
 		free(fs_info);
-		async_answer_0(rid, EEXISTS);
+		async_answer_0(rid, EEXIST);
 		return;
 	}
 	
@@ -195,7 +195,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	size_t size;
 	ipc_callid_t callid;
 	if (!async_share_in_receive(&callid, &size)) {
-		dprintf("Unexpected call, method = %d\n", IPC_GET_IMETHOD(call));
+		dprintf("Unexpected call\n");
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_list_lock);
 		async_hangup(fs_info->sess);
@@ -209,7 +209,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * We can only send the client address space area PLB_SIZE bytes long.
 	 */
 	if (size != PLB_SIZE) {
-		dprintf("Client suggests wrong size of PFB, size = %d\n", size);
+		dprintf("Client suggests wrong size of PFB, size = %zu\n", size);
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_list_lock);
 		async_hangup(fs_info->sess);

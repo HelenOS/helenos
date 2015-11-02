@@ -1024,7 +1024,7 @@ static int cdfs_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size, unsigned int *lnkcnt)
 {
 	/* Initialize the block layer */
-	int rc = block_init(EXCHANGE_SERIALIZE, service_id, BLOCK_SIZE);
+	int rc = block_init(service_id, BLOCK_SIZE);
 	if (rc != EOK)
 		return rc;
 	

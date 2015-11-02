@@ -36,7 +36,6 @@
 #include "libext4_balloc.h"
 #include "libext4_bitmap.h"
 #include "libext4_block_group.h"
-#include "libext4_crc.h"
 #include "libext4_directory.h"
 #include "libext4_directory_index.h"
 #include "libext4_extent.h"

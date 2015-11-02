@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libmath
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_FOURCC_H_
-#define LIBC_FOURCC_H_
+#include <atan2.h>
+#include <errno.h>
+#include <math.h>
 
-#include <libarch/common.h>
+/** Inverse tangent of two variables (32-bit floating point)
+ *
+ * @param y
+ * @param x
+ *
+ * @return Inverse tangent of @a y / @a x.
+ *
+ */
+float32_t float32_atan2(float32_t y, float32_t x)
+{
+	if (x >= 0)
+		return atan_f32(y / x);
+	else if (y >= 0)
+		return M_PI - atan_f32(y / -x);
+	else
+		return -M_PI + atan_f32(y / -x);
+}
 
-typedef uint32_t fourcc_t;
-
-#define FOURCC(a, b, c, d) \
-	(((UINT32_T) (a)) | (((UINT32_T) (b)) << 8) | \
-	    (((UINT32_T) (c)) << 16) | (((UINT32_T) (d)) << 24))
-
-#endif
+/** Inverse tangent of two variables (64-bit floating point)
+ *
+ * @param y
+ * @param x
+ *
+ * @return Inverse tangent of @a y / @a x.
+ *
+ */
+float64_t float64_atan2(float64_t y, float64_t x)
+{
+	if (x >= 0)
+		return atan_f64(y / x);
+	else if (y >= 0)
+		return M_PI - atan_f64(y / -x);
+	else
+		return -M_PI + atan_f64(y / -x);
+}
 
 /** @}
  */

@@ -39,31 +39,39 @@
 #include "service.h"
 #include "ns.h"
 
-
 /** Service hash table item. */
 typedef struct {
 	ht_link_t link;
-	sysarg_t service;        /**< Service ID. */
-	sysarg_t phone;          /**< Phone registered with the service. */
-	sysarg_t in_phone_hash;  /**< Incoming phone hash. */
+	
+	/** Service ID */
+	service_t service;
+	
+	/** Phone registered with the interface */
+	sysarg_t phone;
+	
+	/** Incoming phone hash */
+	sysarg_t in_phone_hash;
 } hashed_service_t;
-
 
 static size_t service_key_hash(void *key)
 {
-	return *(sysarg_t*)key;
+	return *(service_t *) key;
 }
 
 static size_t service_hash(const ht_link_t *item)
 {
-	hashed_service_t *hs = hash_table_get_inst(item, hashed_service_t, link);
-	return hs->service;
+	hashed_service_t *service =
+	    hash_table_get_inst(item, hashed_service_t, link);
+	
+	return service->service;
 }
 
 static bool service_key_equal(void *key, const ht_link_t *item)
 {
-	hashed_service_t *hs = hash_table_get_inst(item, hashed_service_t, link);
-	return hs->service == *(sysarg_t*)key;
+	hashed_service_t *service =
+	    hash_table_get_inst(item, hashed_service_t, link);
+	
+	return service->service == *(service_t *) key;
 }
 
 /** Operations for service hash table. */
@@ -81,18 +89,19 @@ static hash_table_t service_hash_table;
 /** Pending connection structure. */
 typedef struct {
 	link_t link;
-	sysarg_t service;        /**< Number of the service. */
-	ipc_callid_t callid;     /**< Call ID waiting for the connection */
-	sysarg_t arg2;           /**< Second argument */
-	sysarg_t arg3;           /**< Third argument */
+	service_t service;    /**< Service ID */
+	iface_t iface;        /**< Interface ID */
+	ipc_callid_t callid;  /**< Call ID waiting for the connection */
+	sysarg_t arg3;        /**< Third argument */
 } pending_conn_t;
 
 static list_t pending_conn;
 
 int service_init(void)
 {
-	if (!hash_table_create(&service_hash_table, 0, 0, &service_hash_table_ops)) {
-		printf(NAME ": No memory available for services\n");
+	if (!hash_table_create(&service_hash_table, 0, 0,
+	    &service_hash_table_ops)) {
+		printf("%s: No memory available for services\n", NAME);
 		return ENOMEM;
 	}
 	
@@ -105,17 +114,18 @@ int service_init(void)
 void process_pending_conn(void)
 {
 loop:
-	list_foreach(pending_conn, link, pending_conn_t, pr) {
-		ht_link_t *link = hash_table_find(&service_hash_table, &pr->service);
+	list_foreach(pending_conn, link, pending_conn_t, pending) {
+		ht_link_t *link = hash_table_find(&service_hash_table, &pending->service);
 		if (!link)
 			continue;
 		
-		hashed_service_t *hs = hash_table_get_inst(link, hashed_service_t, link);
-		(void) ipc_forward_fast(pr->callid, hs->phone, pr->arg2,
-		    pr->arg3, 0, IPC_FF_NONE);
+		hashed_service_t *hashed_service = hash_table_get_inst(link, hashed_service_t, link);
+		(void) ipc_forward_fast(pending->callid, hashed_service->phone,
+		    pending->iface, pending->arg3, 0, IPC_FF_NONE);
 		
-		list_remove(&pr->link);
-		free(pr);
+		list_remove(&pending->link);
+		free(pending);
+		
 		goto loop;
 	}
 }
@@ -129,19 +139,21 @@ loop:
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-int register_service(sysarg_t service, sysarg_t phone, ipc_call_t *call)
+int register_service(service_t service, sysarg_t phone, ipc_call_t *call)
 {
 	if (hash_table_find(&service_hash_table, &service))
-		return EEXISTS;
+		return EEXIST;
 	
-	hashed_service_t *hs = (hashed_service_t *) malloc(sizeof(hashed_service_t));
-	if (!hs)
+	hashed_service_t *hashed_service =
+	    (hashed_service_t *) malloc(sizeof(hashed_service_t));
+	if (!hashed_service)
 		return ENOMEM;
 	
-	hs->service = service;
-	hs->phone = phone;
-	hs->in_phone_hash = call->in_phone_hash;
-	hash_table_insert(&service_hash_table, &hs->link);
+	hashed_service->service = service;
+	hashed_service->phone = phone;
+	hashed_service->in_phone_hash = call->in_phone_hash;
+	
+	hash_table_insert(&service_hash_table, &hashed_service->link);
 	
 	return EOK;
 }
@@ -149,42 +161,48 @@ int register_service(sysarg_t service, sysarg_t phone, ipc_call_t *call)
 /** Connect client to service.
  *
  * @param service Service to be connected to.
+ * @param iface   Interface to be connected to.
  * @param call    Pointer to call structure.
  * @param callid  Call ID of the request.
  *
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-void connect_to_service(sysarg_t service, ipc_call_t *call, ipc_callid_t callid)
+void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
+    ipc_callid_t callid)
 {
+	sysarg_t arg3 = IPC_GET_ARG3(*call);
+	sysarg_t flags = IPC_GET_ARG4(*call);
 	sysarg_t retval;
 	
 	ht_link_t *link = hash_table_find(&service_hash_table, &service);
 	if (!link) {
-		if (IPC_GET_ARG4(*call) & IPC_FLAG_BLOCKING) {
+		if (flags & IPC_FLAG_BLOCKING) {
 			/* Blocking connection, add to pending list */
-			pending_conn_t *pr =
+			pending_conn_t *pending =
 			    (pending_conn_t *) malloc(sizeof(pending_conn_t));
-			if (!pr) {
+			if (!pending) {
 				retval = ENOMEM;
 				goto out;
 			}
 			
-			link_initialize(&pr->link);
-			pr->service = service;
-			pr->callid = callid;
-			pr->arg2 = IPC_GET_ARG2(*call);
-			pr->arg3 = IPC_GET_ARG3(*call);
-			list_append(&pr->link, &pending_conn);
+			link_initialize(&pending->link);
+			pending->service = service;
+			pending->iface = iface;
+			pending->callid = callid;
+			pending->arg3 = arg3;
+			
+			list_append(&pending->link, &pending_conn);
 			return;
 		}
+		
 		retval = ENOENT;
 		goto out;
 	}
 	
-	hashed_service_t *hs = hash_table_get_inst(link, hashed_service_t, link);
-	(void) ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call),
-	    IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
+	hashed_service_t *hashed_service = hash_table_get_inst(link, hashed_service_t, link);
+	(void) ipc_forward_fast(callid, hashed_service->phone, iface, arg3,
+	    0, IPC_FF_NONE);
 	return;
 	
 out:

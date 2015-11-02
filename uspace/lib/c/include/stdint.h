@@ -59,7 +59,7 @@
 #define UINT64_MIN  UINT64_C(0)
 #define UINT64_MAX  UINT64_C(0xFFFFFFFFFFFFFFFF)
 
-#include <libarch/types.h>
+#include <libarch/stdint.h>
 
 /* off64_t */
 #define OFF64_MIN  INT64_MIN

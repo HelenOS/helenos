@@ -209,7 +209,7 @@ static int mbr_init(const char *dev_name)
 		return rc;
 	}
 
-	rc = block_init(EXCHANGE_SERIALIZE, indev_sid, 2048);
+	rc = block_init(indev_sid, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": could not init libblock.\n");
 		return rc;
@@ -234,7 +234,7 @@ static int mbr_init(const char *dev_name)
 		return rc;
 
 	/* Register server with location service. */
-	async_set_client_connection(mbr_connection);
+	async_set_fallback_port_handler(mbr_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register server.\n");
@@ -415,9 +415,9 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	part_t *part;
 
 	/* Get the device handle. */
-	dh = IPC_GET_ARG1(*icall);
+	dh = IPC_GET_ARG2(*icall);
 
-	/* 
+	/*
 	 * Determine which partition device is the client connecting to.
 	 * A linear search is not terribly fast, but we only do this
 	 * once for each connection.

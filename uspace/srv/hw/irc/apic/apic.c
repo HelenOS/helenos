@@ -214,7 +214,7 @@ static bool apic_init(void)
 		return false;	
 	}
 	
-	async_set_client_connection(apic_connection);
+	async_set_fallback_port_handler(apic_connection, NULL);
 	service_register(SERVICE_IRC);
 	
 	return true;

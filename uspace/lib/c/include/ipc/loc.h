@@ -75,22 +75,6 @@ typedef enum {
 	LOC_EVENT_CAT_CHANGE = IPC_FIRST_USER_METHOD
 } loc_event_t;
 
-/** Ports provided by location service.
- *
- * Every process that connects to loc must ask one of following
- * ports, otherwise connection will be refused.
- *
- */
-typedef enum {
-	/** Service supplier (server) port */
-	LOC_PORT_SUPPLIER = 1,
-	/** Service consumer (client) port */
-	LOC_PORT_CONSUMER,
-	/** Create new connection to instance of device that
-	    is specified by second argument of call. */
-	LOC_CONNECT_TO_SERVICE
-} loc_interface_t;
-
 typedef struct {
 	service_id_t id;
 	char name[LOC_NAME_MAXLEN + 1];

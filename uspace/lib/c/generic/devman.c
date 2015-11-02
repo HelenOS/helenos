@@ -76,10 +76,10 @@ static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
  * @return New exchange.
  *
  */
-async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
+async_exch_t *devman_exchange_begin_blocking(iface_t iface)
 {
 	switch (iface) {
-	case DEVMAN_DRIVER:
+	case INTERFACE_DDF_DRIVER:
 		fibril_mutex_lock(&devman_driver_block_mutex);
 		
 		while (devman_driver_block_sess == NULL) {
@@ -88,8 +88,8 @@ async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
 			
 			if (devman_driver_block_sess == NULL)
 				devman_driver_block_sess =
-				    service_connect_blocking(EXCHANGE_PARALLEL,
-				    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
+				    service_connect_blocking(SERVICE_DEVMAN,
+				    INTERFACE_DDF_DRIVER, 0);
 		}
 		
 		fibril_mutex_unlock(&devman_driver_block_mutex);
@@ -98,7 +98,7 @@ async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
 		    &devman_driver_sess);
 		
 		return async_exchange_begin(devman_driver_block_sess);
-	case DEVMAN_CLIENT:
+	case INTERFACE_DDF_CLIENT:
 		fibril_mutex_lock(&devman_client_block_mutex);
 		
 		while (devman_client_block_sess == NULL) {
@@ -107,8 +107,8 @@ async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
 			
 			if (devman_client_block_sess == NULL)
 				devman_client_block_sess =
-				    service_connect_blocking(EXCHANGE_SERIALIZE,
-				    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
+				    service_connect_blocking(SERVICE_DEVMAN,
+				    INTERFACE_DDF_CLIENT, 0);
 		}
 		
 		fibril_mutex_unlock(&devman_client_block_mutex);
@@ -129,16 +129,16 @@ async_exch_t *devman_exchange_begin_blocking(devman_interface_t iface)
  * @return New exchange.
  *
  */
-async_exch_t *devman_exchange_begin(devman_interface_t iface)
+async_exch_t *devman_exchange_begin(iface_t iface)
 {
 	switch (iface) {
-	case DEVMAN_DRIVER:
+	case INTERFACE_DDF_DRIVER:
 		fibril_mutex_lock(&devman_driver_mutex);
 		
 		if (devman_driver_sess == NULL)
 			devman_driver_sess =
-			    service_connect(EXCHANGE_PARALLEL, SERVICE_DEVMAN,
-			    DEVMAN_DRIVER, 0);
+			    service_connect(SERVICE_DEVMAN,
+			    INTERFACE_DDF_DRIVER, 0);
 		
 		fibril_mutex_unlock(&devman_driver_mutex);
 		
@@ -146,13 +146,13 @@ async_exch_t *devman_exchange_begin(devman_interface_t iface)
 			return NULL;
 		
 		return async_exchange_begin(devman_driver_sess);
-	case DEVMAN_CLIENT:
+	case INTERFACE_DDF_CLIENT:
 		fibril_mutex_lock(&devman_client_mutex);
 		
 		if (devman_client_sess == NULL)
 			devman_client_sess =
-			    service_connect(EXCHANGE_SERIALIZE, SERVICE_DEVMAN,
-			    DEVMAN_CLIENT, 0);
+			    service_connect(SERVICE_DEVMAN,
+			    INTERFACE_DDF_CLIENT, 0);
 		
 		fibril_mutex_unlock(&devman_client_mutex);
 		
@@ -178,7 +178,7 @@ void devman_exchange_end(async_exch_t *exch)
 /** Register running driver with device manager. */
 int devman_driver_register(const char *name)
 {
-	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
+	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, DEVMAN_DRIVER_REGISTER, 0, 0, &answer);
@@ -191,8 +191,8 @@ int devman_driver_register(const char *name)
 		return retval;
 	}
 	
-	exch = devman_exchange_begin(DEVMAN_DRIVER);
-	async_connect_to_me(exch, 0, 0, 0, NULL, NULL);
+	exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
+	async_connect_to_me(exch, 0, 0, 0);
 	devman_exchange_end(exch);
 	
 	async_wait_for(req, &retval);
@@ -216,8 +216,8 @@ int devman_driver_register(const char *name)
 int devman_add_function(const char *name, fun_type_t ftype,
     match_id_list_t *match_ids, devman_handle_t devh, devman_handle_t *funh)
 {
-	int match_count = list_count(&match_ids->ids);
-	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
+	unsigned long match_count = list_count(&match_ids->ids);
+	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_3(exch, DEVMAN_ADD_FUNCTION, (sysarg_t) ftype,
@@ -267,7 +267,7 @@ int devman_add_function(const char *name, fun_type_t ftype,
 int devman_add_device_to_category(devman_handle_t devman_handle,
     const char *cat_name)
 {
-	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
+	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CATEGORY,
@@ -286,17 +286,16 @@ int devman_add_device_to_category(devman_handle_t devman_handle,
 	return retval;
 }
 
-async_sess_t *devman_device_connect(exch_mgmt_t mgmt, devman_handle_t handle,
-    unsigned int flags)
+async_sess_t *devman_device_connect(devman_handle_t handle, unsigned int flags)
 {
 	async_sess_t *sess;
 	
 	if (flags & IPC_FLAG_BLOCKING)
-		sess = service_connect_blocking(mgmt, SERVICE_DEVMAN,
-			    DEVMAN_CONNECT_TO_DEVICE, handle);
+		sess = service_connect_blocking(SERVICE_DEVMAN,
+		    INTERFACE_DEVMAN_DEVICE, handle);
 	else
-		sess = service_connect(mgmt, SERVICE_DEVMAN,
-			    DEVMAN_CONNECT_TO_DEVICE, handle);
+		sess = service_connect(SERVICE_DEVMAN,
+		    INTERFACE_DEVMAN_DEVICE, handle);
 	
 	return sess;
 }
@@ -313,7 +312,7 @@ int devman_remove_function(devman_handle_t funh)
 	async_exch_t *exch;
 	sysarg_t retval;
 	
-	exch = devman_exchange_begin_blocking(DEVMAN_DRIVER);
+	exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
 	retval = async_req_1_0(exch, DEVMAN_REMOVE_FUNCTION, (sysarg_t) funh);
 	devman_exchange_end(exch);
 	
@@ -322,7 +321,7 @@ int devman_remove_function(devman_handle_t funh)
 
 int devman_drv_fun_online(devman_handle_t funh)
 {
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_DRIVER);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -334,7 +333,7 @@ int devman_drv_fun_online(devman_handle_t funh)
 
 int devman_drv_fun_offline(devman_handle_t funh)
 {
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_DRIVER);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -344,17 +343,17 @@ int devman_drv_fun_offline(devman_handle_t funh)
 	return (int) retval;
 }
 
-async_sess_t *devman_parent_device_connect(exch_mgmt_t mgmt,
-    devman_handle_t handle, unsigned int flags)
+async_sess_t *devman_parent_device_connect(devman_handle_t handle,
+    unsigned int flags)
 {
 	async_sess_t *sess;
 	
 	if (flags & IPC_FLAG_BLOCKING)
-		sess = service_connect_blocking(mgmt, SERVICE_DEVMAN,
-			    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
+		sess = service_connect_blocking(SERVICE_DEVMAN,
+		    INTERFACE_DEVMAN_PARENT, handle);
 	else
-		sess = service_connect(mgmt, SERVICE_DEVMAN,
-			    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
+		sess = service_connect_blocking(SERVICE_DEVMAN,
+		    INTERFACE_DEVMAN_PARENT, handle);
 	
 	return sess;
 }
@@ -365,9 +364,9 @@ int devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
 	async_exch_t *exch;
 	
 	if (flags & IPC_FLAG_BLOCKING)
-		exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
+		exch = devman_exchange_begin_blocking(INTERFACE_DDF_CLIENT);
 	else {
-		exch = devman_exchange_begin(DEVMAN_CLIENT);
+		exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 		if (exch == NULL)
 			return ENOMEM;
 	}
@@ -408,7 +407,7 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1,
 	size_t act_size;
 	sysarg_t dretval;
 	
-	exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
+	exch = devman_exchange_begin_blocking(INTERFACE_DDF_CLIENT);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, method, arg1, arg2, &answer);
@@ -473,7 +472,7 @@ int devman_fun_get_driver_name(devman_handle_t handle, char *buf, size_t buf_siz
 
 int devman_fun_online(devman_handle_t funh)
 {
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -485,7 +484,7 @@ int devman_fun_online(devman_handle_t funh)
 
 int devman_fun_offline(devman_handle_t funh)
 {
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -498,7 +497,7 @@ int devman_fun_offline(devman_handle_t funh)
 static int devman_get_handles_once(sysarg_t method, sysarg_t arg1,
     devman_handle_t *handle_buf, size_t buf_size, size_t *act_size)
 {
-	async_exch_t *exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
+	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_CLIENT);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, arg1, &answer);
@@ -577,7 +576,7 @@ static int devman_get_handles_internal(sysarg_t method, sysarg_t arg1,
 
 int devman_fun_get_child(devman_handle_t funh, devman_handle_t *devh)
 {
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -597,7 +596,7 @@ int devman_dev_get_functions(devman_handle_t devh, devman_handle_t **funcs,
 
 int devman_dev_get_parent(devman_handle_t devh, devman_handle_t *funh)
 {
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -610,7 +609,7 @@ int devman_dev_get_parent(devman_handle_t devh, devman_handle_t *funh)
 
 int devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
 {
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -638,7 +637,7 @@ int devman_driver_get_handle(const char *drvname, devman_handle_t *handle)
 {
 	async_exch_t *exch;
 
-	exch = devman_exchange_begin(DEVMAN_CLIENT);
+	exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -693,7 +692,7 @@ int devman_driver_get_name(devman_handle_t handle, char *buf, size_t buf_size)
 int devman_driver_get_state(devman_handle_t drvh, driver_state_t *rstate)
 {
 	sysarg_t state;
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 	if (exch == NULL)
 		return ENOMEM;
 	
@@ -710,7 +709,7 @@ int devman_driver_get_state(devman_handle_t drvh, driver_state_t *rstate)
 
 int devman_driver_load(devman_handle_t drvh)
 {
-	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
 	if (exch == NULL)
 		return ENOMEM;
 	

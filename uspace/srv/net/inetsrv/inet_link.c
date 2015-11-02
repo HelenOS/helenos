@@ -176,7 +176,7 @@ int inet_link_open(service_id_t sid)
 		goto error;
 	}
 
-	ilink->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
+	ilink->sess = loc_service_connect(sid, INTERFACE_IPLINK, 0);
 	if (ilink->sess == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting '%s'", ilink->svc_name);
 		goto error;

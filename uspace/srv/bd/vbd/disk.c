@@ -359,7 +359,7 @@ int vbds_disk_add(service_id_t sid)
 	/* Check for duplicates */
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc == EOK)
-		return EEXISTS;
+		return EEXIST;
 
 	disk = calloc(1, sizeof(vbds_disk_t));
 	if (disk == NULL)
@@ -373,7 +373,7 @@ int vbds_disk_add(service_id_t sid)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "block_init(%zu)", sid);
-	rc = block_init(EXCHANGE_SERIALIZE, sid, 2048);
+	rc = block_init(sid, 2048);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed opening block device %s.",
 		    disk->svc_name);
@@ -871,7 +871,7 @@ void vbds_bd_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_conn()");
 
-	svcid = IPC_GET_ARG1(*icall);
+	svcid = IPC_GET_ARG2(*icall);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_conn() - svcid=%zu", svcid);
 

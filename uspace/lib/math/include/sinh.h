@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,13 @@
 /** @file
  */
 
-#ifndef LIBMATH_MOD_H_
-#define LIBMATH_MOD_H_
+#ifndef LIBMATH_SINH_H_
+#define LIBMATH_SINH_H_
 
-extern float64_t float64_mod(float64_t, float64_t);
+#include <mathtypes.h>
+
+extern float32_t float32_sinh(float32_t);
+extern float64_t float64_sinh(float64_t);
 
 #endif
 

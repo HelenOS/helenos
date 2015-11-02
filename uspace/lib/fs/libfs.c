@@ -341,7 +341,9 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	/*
 	 * Ask VFS for callback connection.
 	 */
-	async_connect_to_me(exch, 0, 0, 0, vfs_connection, NULL);
+	port_id_t port;
+	rc = async_create_callback_port(exch, INTERFACE_VFS_DRIVER_CB, 0, 0,
+	    vfs_connection, NULL, &port);
 	
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
@@ -370,7 +372,7 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	 * Tell the async framework that other connections are to be handled by
 	 * the same connection fibril as well.
 	 */
-	async_set_client_connection(vfs_connection);
+	async_set_fallback_port_handler(vfs_connection, NULL);
 	
 	return IPC_GET_RETVAL(answer);
 }

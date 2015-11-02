@@ -35,12 +35,11 @@
 #ifndef LIBC_ia64_TYPES_H_
 #define LIBC_ia64_TYPES_H_
 
-#define __64_BITS__
-
 #include <libarch/common.h>
+#include <libarch/stddef.h>
+#include <libarch/stdint.h>
 
-#define SIZE_MIN  UINT64_MIN
-#define SIZE_MAX  UINT64_MAX
+#define __64_BITS__
 
 #define SSIZE_MIN  INT64_MIN
 #define SSIZE_MAX  INT64_MAX
@@ -49,10 +48,7 @@ typedef uint64_t sysarg_t;
 typedef int64_t native_t;
 
 typedef int64_t ssize_t;
-typedef uint64_t size_t;
 
-typedef uint64_t uintptr_t;
-typedef int64_t intptr_t;
 typedef uint64_t atomic_count_t;
 typedef int64_t atomic_signed_t;
 

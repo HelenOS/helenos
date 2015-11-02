@@ -41,7 +41,7 @@
 #define CL_EPERM   5
 #define CL_ENOTSUP 6
 #define CL_EEXEC   7
-#define CL_EEXISTS 8
+#define CL_EEXIST  8
 #define CL_ETOOBIG 9
 
 /* Just like 'errno' */

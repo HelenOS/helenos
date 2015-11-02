@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Frantisek Princ
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libext4
+/** @addtogroup libcmips32
  * @{
  */
+/** @file
+ */
 
-#ifndef LIBEXT4_LIBEXT4_CRC_H_
-#define LIBEXT4_LIBEXT4_CRC_H_
+#ifndef LIBC_mips32_STDDEF_H_
+#define LIBC_mips32_STDDEF_H_
 
-extern uint16_t crc16(uint16_t, const uint8_t *, size_t);
+#include <libarch/common.h>
+
+typedef uint32_t size_t;
+typedef int32_t ptrdiff_t;
 
 #endif
 
-/**
- * @}
+/** @}
  */

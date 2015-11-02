@@ -108,7 +108,7 @@ int mbr_read_mbr(mbr_label_t *label, service_id_t dev_handle)
 			return ENOMEM;
 	}
 	
-	int rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
+	int rc = block_init(dev_handle, 512);
 	if (rc != EOK)
 		return rc;
 	
@@ -132,7 +132,7 @@ int mbr_read_mbr(mbr_label_t *label, service_id_t dev_handle)
  */
 int mbr_write_mbr(mbr_label_t *label, service_id_t dev_handle)
 {
-	int rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
+	int rc = block_init(dev_handle, 512);
 	if (rc != EOK)
 		return rc;
 	
@@ -226,7 +226,7 @@ int mbr_write_partitions(mbr_label_t *label, service_id_t dev_handle)
 	if (label->mbr == NULL)
 		label->mbr = mbr_alloc_mbr();
 	
-	int rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
+	int rc = block_init(dev_handle, 512);
 	if (rc != EOK)
 		return rc;
 	
@@ -412,7 +412,7 @@ mbr_partitions_t *mbr_alloc_partitions(void)
  */
 mbr_err_val mbr_add_partition(mbr_label_t *label, mbr_part_t *part)
 {
-	int rc = block_init(EXCHANGE_ATOMIC, label->device, 512);
+	int rc = block_init(label->device, 512);
 	if ((rc != EOK) && (rc != EEXIST))
 		return ERR_LIBBLOCK;
 	
@@ -621,7 +621,7 @@ static int decode_logical(mbr_label_t *label, mbr_part_t *extended)
 	uint32_t base = extended->start_addr;
 	uint32_t addr = base;
 	
-	int rc = block_init(EXCHANGE_ATOMIC, label->device, 512);
+	int rc = block_init(label->device, 512);
 	if (rc != EOK)
 		goto end;
 	

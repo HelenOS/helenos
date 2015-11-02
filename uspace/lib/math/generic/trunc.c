@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2015 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -37,6 +38,48 @@
 
 /** Truncate fractional part (round towards zero)
  *
+ * Truncate the fractional part of IEEE 754 single
+ * precision floating point number by zeroing fraction
+ * bits, effectively rounding the number towards zero
+ * to the nearest whole number.
+ *
+ * If the argument is infinity or NaN, an exception
+ * should be indicated. This is not implemented yet.
+ *
+ * @param val Floating point number.
+ *
+ * @return Number rounded towards zero.
+ *
+ */
+float32_t float32_trunc(float32_t val)
+{
+	float32_u v;
+	int32_t exp;
+	
+	v.val = val;
+	exp = v.data.parts.exp - FLOAT32_BIAS;
+	
+	if (exp < 0) {
+		/* -1 < val < 1 => result is +0 or -0 */
+		v.data.parts.exp = 0;
+		v.data.parts.fraction = 0;
+	} else if (exp >= FLOAT32_FRACTION_SIZE) {
+		if (exp == 1024) {
+			/* val is +inf, -inf or NaN => trigger an exception */
+			// FIXME TODO
+		}
+		
+		/* All bits in val are relevant for the result */
+	} else {
+		/* Truncate irrelevant fraction bits */
+		v.data.parts.fraction &= ~(UINT32_C(0x007fffff) >> exp);
+	}
+	
+	return v.val;
+}
+
+/** Truncate fractional part (round towards zero)
+ *
  * Truncate the fractional part of IEEE 754 double
  * precision floating point number by zeroing fraction
  * bits, effectively rounding the number towards zero
@@ -50,14 +93,18 @@
  * @return Number rounded towards zero.
  *
  */
-float64 trunc_float64(float64 val)
+float64_t float64_trunc(float64_t val)
 {
-	int32_t exp = val.parts.exp - FLOAT64_BIAS;
+	float64_u v;
+	int32_t exp;
+	
+	v.val = val;
+	exp = v.data.parts.exp - FLOAT64_BIAS;
 	
 	if (exp < 0) {
 		/* -1 < val < 1 => result is +0 or -0 */
-		val.parts.exp = 0;
-		val.parts.fraction = 0;
+		v.data.parts.exp = 0;
+		v.data.parts.fraction = 0;
 	} else if (exp >= FLOAT64_FRACTION_SIZE) {
 		if (exp == 1024) {
 			/* val is +inf, -inf or NaN => trigger an exception */
@@ -67,10 +114,10 @@ float64 trunc_float64(float64 val)
 		/* All bits in val are relevant for the result */
 	} else {
 		/* Truncate irrelevant fraction bits */
-		val.parts.fraction &= ~(UINT64_C(0x000fffffffffffff) >> exp);
+		v.data.parts.fraction &= ~(UINT64_C(0x000fffffffffffff) >> exp);
 	}
 	
-	return val;
+	return v.val;
 }
 
 /** @}

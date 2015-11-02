@@ -30,9 +30,9 @@
 
 .text
 
-.global trunc
+.global trunc_f64
 
-trunc:
+trunc_f64:
 	pushl %ebp
 	movl %esp, %ebp
 	subl $8, %esp

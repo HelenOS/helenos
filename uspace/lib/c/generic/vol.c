@@ -32,6 +32,7 @@
 /** @file Volume service API
  */
 
+#include <abi/ipc/interfaces.h>
 #include <errno.h>
 #include <ipc/services.h>
 #include <ipc/vol.h>
@@ -59,11 +60,11 @@ int vol_create(vol_t **rvol)
 
 	rc = loc_service_get_id(SERVICE_NAME_VOLSRV, &vol_svcid, 0);
 	if (rc != EOK) {
-		rc = EIO;
+		rc = ENOENT;
 		goto error;
 	}
 
-	vol->sess = loc_service_connect(EXCHANGE_SERIALIZE, vol_svcid, 0);
+	vol->sess = loc_service_connect(vol_svcid, INTERFACE_VOL, 0);
 	if (vol->sess == NULL) {
 		rc = EIO;
 		goto error;

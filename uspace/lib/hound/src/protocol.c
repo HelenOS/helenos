@@ -96,7 +96,7 @@ hound_sess_t *hound_service_connect(const char *service)
 	    loc_service_get_id(service, &id, IPC_FLAG_BLOCKING);
 	if (ret != EOK)
 		return NULL;
-	return loc_service_connect(EXCHANGE_PARALLEL, id, IPC_FLAG_BLOCKING);
+	return loc_service_connect(id, INTERFACE_HOUND, IPC_FLAG_BLOCKING);
 }
 
 /**

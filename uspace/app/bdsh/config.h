@@ -45,8 +45,8 @@
 
 /* How many words (arguments) are permitted, how big can a whole
  * sentence be? Similar to ARG_MAX */
-#define WORD_MAX 255
-#define INPUT_MAX 1024
+#define WORD_MAX 1023
+#define INPUT_MAX 4096
 
 /* Leftovers from Autoconf */
 #define PACKAGE_MAINTAINER "Tim Post"

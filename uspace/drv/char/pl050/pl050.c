@@ -166,8 +166,7 @@ static int pl050_init(pl050_t *pl050)
 	fibril_condvar_initialize(&pl050->buf_cv);
 	pl050->buf_rp = pl050->buf_wp = 0;
 
-	pl050->parent_sess = ddf_dev_parent_sess_create(pl050->dev,
-	    EXCHANGE_SERIALIZE);
+	pl050->parent_sess = ddf_dev_parent_sess_create(pl050->dev);
 	if (pl050->parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed connecitng parent driver.");
 		rc = ENOMEM;

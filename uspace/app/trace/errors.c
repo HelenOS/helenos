@@ -45,7 +45,7 @@ const err_desc_t err_desc[] = {
 	[-EFORWARD]	= { "EFORWARD",		"Forward error" },
 	[-EPERM]	= { "EPERM",		"Permission denied" },
 	[-EHANGUP]	= { "EHANGUP",		"Answerbox closed connection" },
-	[-EEXISTS]	= { "EEXISTS",		"Entry already exists" },
+	[-EEXIST]	= { "EEXIST",		"Entry already exists" },
 	[-EBADMEM]	= { "EBADMEM",		"Bad memory pointer" },
 
 	[-ENOTSUP]	= { "ENOTSUP",		"Not supported" },

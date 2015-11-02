@@ -269,7 +269,7 @@ static char *fun_conf_read(const char *conf_path)
 		goto cleanup;
 	}
 
-	r = read_all(fd, buf, len);
+	r = read(fd, buf, len);
 	if (r < 0) {
 		ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
 		goto cleanup;
@@ -615,7 +615,7 @@ static int isa_dev_add(ddf_dev_t *dev)
 	isa->dev = dev;
 	list_initialize(&isa->functions);
 
-	sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
+	sess = ddf_dev_parent_sess_create(dev);
 	if (sess == NULL) {
 		ddf_msg(LVL_ERROR, "isa_dev_add failed to connect to the "
 		    "parent driver.");

@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
@@ -165,10 +166,12 @@ int cmd_mkfile(char **argv)
 		const char byte = 0x00;
 
 		if ((rc2 = lseek(fd, file_size - 1, SEEK_SET)) < 0)
-			goto exit;
+			goto error;
 
 		rc2 = write(fd, &byte, sizeof(char));
-		goto exit;
+		if (rc2 < 0)
+			goto error;
+		return CMD_SUCCESS;
 	}
 
 	buffer = calloc(BUFFER_SIZE, 1);
@@ -182,7 +185,7 @@ int cmd_mkfile(char **argv)
 		to_write = min(file_size - total_written, BUFFER_SIZE);
 		rc = write(fd, buffer, to_write);
 		if (rc <= 0) {
-			printf("%s: Error writing file (%zd).\n", cmdname, rc);
+			printf("%s: Error writing file (%d).\n", cmdname, errno);
 			close(fd);
 			return CMD_FAILURE;
 		}
@@ -190,13 +193,12 @@ int cmd_mkfile(char **argv)
 	}
 
 	free(buffer);
-exit:
-	rc = close(fd);
 
-	if (rc != 0 || rc2 < 0) {
-		printf("%s: Error writing file (%zd).\n", cmdname, rc);
-		return CMD_FAILURE;
-	}
+	if (close(fd) < 0)
+		goto error;
 
 	return CMD_SUCCESS;
+error:
+	printf("%s: Error writing file (%d).\n", cmdname, errno);
+	return CMD_FAILURE;
 }

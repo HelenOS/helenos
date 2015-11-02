@@ -40,12 +40,9 @@
 #include <task.h>
 #include <async.h>
 
-extern int service_register(sysarg_t);
-extern async_sess_t *service_connect(exch_mgmt_t, services_t, sysarg_t, sysarg_t);
-extern async_sess_t *service_connect_blocking(exch_mgmt_t, services_t, sysarg_t,
-    sysarg_t);
-extern async_sess_t *service_bind(services_t, sysarg_t, sysarg_t, sysarg_t,
-    async_client_conn_t);
+extern int service_register(service_t);
+extern async_sess_t *service_connect(service_t, iface_t, sysarg_t);
+extern async_sess_t *service_connect_blocking(service_t, iface_t, sysarg_t);
 
 extern int ns_ping(void);
 extern int ns_intro(task_id_t);

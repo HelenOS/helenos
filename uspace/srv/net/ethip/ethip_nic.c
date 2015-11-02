@@ -161,7 +161,7 @@ static int ethip_nic_open(service_id_t sid)
 		goto error;
 	}
 	
-	nic->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
+	nic->sess = loc_service_connect(sid, INTERFACE_DDF, 0);
 	if (nic->sess == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting '%s'", nic->svc_name);
 		goto error;

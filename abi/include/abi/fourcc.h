@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libmath
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#include <math.h>
-#include <mod.h>
+#ifndef ABI_FOURCC_H_
+#define ABI_FOURCC_H_
 
-/** Double precision modulo
- *
- * Calculate the modulo of dividend by divisor.
- *
- * This is a very basic implementation that uses
- * division and multiplication (instead of exact
- * arithmetics). Thus the result might be very
- * imprecise (depending on the magnitude of the
- * arguments).
- *
- * @param dividend Dividend.
- * @param divisor  Divisor.
- *
- * @return Modulo.
- *
- */
-float64_t float64_mod(float64_t dividend, float64_t divisor)
-{
-	// FIXME: replace with exact arithmetics
-	
-	float64_t quotient = trunc(dividend / divisor);
-	
-	return (dividend - quotient * divisor);
-}
+#include "../../../common.h"
+
+#define FOURCC(a, b, c, d) \
+	(((UINT32_T) (a)) | (((UINT32_T) (b)) << 8) | \
+	    (((UINT32_T) (c)) << 16) | (((UINT32_T) (d)) << 24))
+
+#define CC_COMPACT(a) \
+	((UINT32_T) (a) & 0x7f)
+
+#define FOURCC_COMPACT(a, b, c, d) \
+	((CC_COMPACT(a) << 4) | (CC_COMPACT(b) << 11) | \
+	    (CC_COMPACT(c) << 18) | (CC_COMPACT(d) << 25))
+
+#endif
 
 /** @}
  */

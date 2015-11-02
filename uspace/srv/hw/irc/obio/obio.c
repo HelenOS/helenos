@@ -136,7 +136,7 @@ static bool obio_init(void)
 	
 	printf("%s: OBIO registers with base at %zu\n", NAME, base_phys);
 	
-	async_set_client_connection(obio_connection);
+	async_set_fallback_port_handler(obio_connection, NULL);
 	service_register(SERVICE_IRC);
 	
 	return true;

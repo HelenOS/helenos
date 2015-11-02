@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	async_set_client_connection(corecfg_client_conn);
+	async_set_fallback_port_handler(corecfg_client_conn, NULL);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {

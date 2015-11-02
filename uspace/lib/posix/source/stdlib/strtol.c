@@ -43,9 +43,6 @@
 #include "posix/inttypes.h"
 #include "posix/limits.h"
 
-#define intmax_t posix_intmax_t
-#define uintmax_t posix_uintmax_t
-
 /**
  * Decides whether a digit belongs to a particular base.
  *

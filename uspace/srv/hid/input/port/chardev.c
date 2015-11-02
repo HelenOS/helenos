@@ -83,7 +83,7 @@ static int chardev_port_init(kbd_dev_t *kdev)
 		return -1;
 	}
 	
-	dev_sess = loc_service_connect(EXCHANGE_ATOMIC, service_id,
+	dev_sess = loc_service_connect(service_id, INTERFACE_DDF,
 	    IPC_FLAG_BLOCKING);
 	if (dev_sess == NULL) {
 		printf("%s: Failed connecting to device\n", NAME);
@@ -97,8 +97,10 @@ static int chardev_port_init(kbd_dev_t *kdev)
 		return ENOMEM;
 	}
 	
-	/* NB: The callback connection is slotted for removal */
-	rc = async_connect_to_me(exch, 0, 0, 0, kbd_port_events, NULL);
+	port_id_t port;
+	rc = async_create_callback_port(exch, INTERFACE_CHAR_CB, 0, 0,
+	    kbd_port_events, NULL, &port);
+	
 	async_exchange_end(exch);
 	
 	if (rc != 0) {

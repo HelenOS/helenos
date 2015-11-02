@@ -63,7 +63,7 @@ static int vbds_init(void)
 	if (rc != EOK)
 		return rc;
 
-	async_set_client_connection(vbds_client_conn);
+	async_set_fallback_port_handler(vbds_client_conn, NULL);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
@@ -414,7 +414,7 @@ static void vbds_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_client_conn()");
 
-	sid = (service_id_t)IPC_GET_ARG1(*icall);
+	sid = (service_id_t)IPC_GET_ARG2(*icall);
 
 	if (sid == ctl_sid)
 		vbds_ctl_conn(iid, icall, arg);

@@ -66,7 +66,6 @@ GENERIC_SOURCES = \
 	generic/bd.c \
 	generic/bd_srv.c \
 	generic/cap.c \
-	generic/cfg.c \
 	generic/clipboard.c \
 	generic/corecfg.c \
 	generic/devman.c \

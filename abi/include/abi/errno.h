@@ -61,7 +61,7 @@
  */
 #define EPARTY         -8
 
-#define EEXISTS        -9   /* Entry already exists */
+#define EEXIST         -9   /* Entry already exists */
 #define EBADMEM        -10  /* Bad memory pointer */
 #define ENOTSUP        -11  /* Not supported */
 #define EADDRNOTAVAIL  -12  /* Address not available. */

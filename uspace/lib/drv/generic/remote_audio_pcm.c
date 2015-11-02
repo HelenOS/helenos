@@ -145,8 +145,7 @@ audio_pcm_sess_t *audio_pcm_open(const char *name)
 	const int ret = devman_fun_get_handle(name, &device_handle, 0);
 	if (ret != EOK)
 		return NULL;
-	return devman_device_connect(EXCHANGE_SERIALIZE, device_handle,
-	    IPC_FLAG_BLOCKING);
+	return devman_device_connect(device_handle, IPC_FLAG_BLOCKING);
 }
 
 /**
@@ -157,7 +156,7 @@ audio_pcm_sess_t *audio_pcm_open(const char *name)
  */
 audio_pcm_sess_t *audio_pcm_open_service(service_id_t id)
 {
-	return loc_service_connect(EXCHANGE_SERIALIZE, id, IPC_FLAG_BLOCKING);
+	return loc_service_connect(id, INTERFACE_DDF, IPC_FLAG_BLOCKING);
 }
 
 /**
@@ -315,17 +314,21 @@ int audio_pcm_test_format(audio_pcm_sess_t *sess, unsigned *channels,
  * @return Error code.
  */
 int audio_pcm_register_event_callback(audio_pcm_sess_t *sess,
-    async_client_conn_t event_callback, void *arg)
+    async_port_handler_t event_callback, void *arg)
 {
 	if (!event_callback)
 		return EINVAL;
 
 	async_exch_t *exch = async_exchange_begin(sess);
+	
 	int ret = async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_REGISTER_EVENTS);
 	if (ret == EOK) {
-		ret = async_connect_to_me(exch, 0, 0, 0, event_callback, arg);
+		port_id_t port;
+		ret = async_create_callback_port(exch, INTERFACE_AUDIO_PCM_CB, 0, 0,
+		    event_callback, arg, &port);
 	}
+	
 	async_exchange_end(exch);
 	return ret;
 }

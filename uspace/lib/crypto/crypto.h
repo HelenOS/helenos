@@ -55,4 +55,6 @@ extern int create_hash(uint8_t *, size_t, uint8_t *, hash_func_t);
 extern int hmac(uint8_t *, size_t, uint8_t *, size_t, uint8_t *, hash_func_t);
 extern int pbkdf2(uint8_t *, size_t, uint8_t *, size_t, uint8_t *);
 
+extern uint16_t crc16_ibm(uint16_t crc, uint8_t *buf, size_t len);
+
 #endif

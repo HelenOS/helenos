@@ -277,7 +277,7 @@ char *posix_realpath(const char *restrict name, char *restrict resolved)
 	 * so far (as far as I can tell), although this function will need
 	 * to be updated when that support is implemented.
 	 */
-	char* absolute = absolutize(name, NULL);
+	char* absolute = vfs_absolutize(name, NULL);
 	
 	if (absolute == NULL) {
 		/* POSIX requires some specific errnos to be set

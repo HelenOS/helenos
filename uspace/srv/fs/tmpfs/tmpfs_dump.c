@@ -168,7 +168,7 @@ bool tmpfs_restore(service_id_t dsid)
 	fs_node_t *fn;
 	int rc;
 
-	rc = block_init(EXCHANGE_SERIALIZE, dsid, TMPFS_COMM_SIZE);
+	rc = block_init(dsid, TMPFS_COMM_SIZE);
 	if (rc != EOK)
 		return false; 
 	

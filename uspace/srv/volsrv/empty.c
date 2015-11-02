@@ -95,7 +95,7 @@ int volsrv_part_is_empty(service_id_t sid, bool *rempty)
 	size_t block_size;
 	bool empty;
 
-	rc = block_init(EXCHANGE_SERIALIZE, sid, 2048);
+	rc = block_init(sid, 2048);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error opening "
 		    "block device service %zu", sid);
@@ -185,7 +185,7 @@ int volsrv_part_empty(service_id_t sid)
 	aoff64_t i;
 	size_t block_size;
 
-	rc = block_init(EXCHANGE_SERIALIZE, sid, 2048);
+	rc = block_init(sid, 2048);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error opening "
 		    "block device service %zu", sid);

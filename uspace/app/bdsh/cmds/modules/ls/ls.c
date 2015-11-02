@@ -30,6 +30,7 @@
  * This is a bit of an ugly hack, working around the absence of fstat / etc.
  * As more stuff is completed and exposed in libc, this will improve */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -186,7 +187,7 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		rc = stat(buff, &tosort[nbdirs++].s);
 		if (rc != 0) {
 			printf("ls: skipping bogus node %s\n", buff);
-			printf("rc=%d\n", rc);
+			printf("error=%d\n", errno);
 			goto out;
 		}
 	}
@@ -313,7 +314,7 @@ out:
 
 static unsigned int ls_scope(const char *path, struct dir_elem_t *de)
 {
-	if (stat(path, &de->s)) {
+	if (stat(path, &de->s) != 0) {
 		cli_error(CL_ENOENT, "%s", path);
 		return LS_BOGUS;
 	}
@@ -375,20 +376,25 @@ int cmd_ls(char **argv)
 			break;
 		}
 	}
-	
+
 	argc -= optind;
-	
+
 	de.name = (char *) malloc(PATH_MAX);
 	if (!de.name) {
-		cli_error(CL_ENOMEM, "%s: ", cmdname);
+		cli_error(CL_ENOMEM, "%s: Out of memory", cmdname);
 		return CMD_FAILURE;
 	}
 	memset(de.name, 0, PATH_MAX);
-	
-	if (argc == 0)
-		getcwd(de.name, PATH_MAX);
-	else
+
+	if (argc == 0) {
+		if (getcwd(de.name, PATH_MAX) == NULL) {
+			cli_error(CL_EFAIL, "%s: Failed determining working "
+			    "directory", cmdname);
+			return CMD_FAILURE;
+		}
+	} else {
 		str_cpy(de.name, PATH_MAX, argv[optind]);
+	}
 
 	scope = ls_scope(de.name, &de);
 	switch (scope) {

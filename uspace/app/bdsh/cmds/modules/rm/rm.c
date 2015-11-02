@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -130,7 +131,7 @@ static void rm_end(rm_job_t *rm)
 
 static unsigned int rm_single(const char *path)
 {
-	if (unlink(path)) {
+	if (unlink(path) != 0) {
 		cli_error(CL_EFAIL, "rm: could not remove file %s", path);
 		return 1;
 	}
@@ -149,7 +150,7 @@ static unsigned int rm_scope(const char *path)
 	}
 
 	fd = open(path, O_RDONLY);
-	if (fd > 0) {
+	if (fd >= 0) {
 		close(fd);
 		return RM_FILE;
 	}
@@ -209,7 +210,7 @@ static unsigned int rm_recursive(const char *path)
 	/* Delete directory */
 	rc = rmdir(path);
 	if (rc == 0)
-		return ret;
+		return errno;
 
 	cli_error(CL_ENOTSUP, "Can not remove %s", path);
 

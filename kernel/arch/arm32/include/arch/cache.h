@@ -36,13 +36,17 @@
 #ifndef KERN_arm32_CACHE_H_
 #define KERN_arm32_CACHE_H_
 
+#include <typedefs.h>
+
 unsigned dcache_levels(void);
 
 void dcache_flush(void);
 void dcache_flush_invalidate(void);
 void cpu_dcache_flush(void);
 void cpu_dcache_flush_invalidate(void);
-void icache_invalidate(void);
+extern void icache_invalidate(void);
+extern void dcache_invalidate(void);
+extern void dcache_clean_mva_pou(uintptr_t);
 
 #endif
 /** @}

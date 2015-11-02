@@ -108,6 +108,8 @@ extern int fputs(const char *, FILE *);
 extern int putchar(wchar_t);
 extern int puts(const char *);
 
+extern int ungetc(int, FILE *);
+
 /* Formatted string output functions */
 extern int fprintf(FILE *, const char*, ...)
     PRINTF_ATTRIBUTE(2, 3);
@@ -131,6 +133,7 @@ extern int vprintf_size(const char *, va_list);
 /* File stream functions */
 extern FILE *fopen(const char *, const char *);
 extern FILE *fdopen(int, const char *);
+extern FILE *freopen(const char *, const char *, FILE *);
 extern int fclose(FILE *);
 
 extern size_t fread(void *, size_t, size_t, FILE *);

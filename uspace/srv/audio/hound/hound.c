@@ -266,14 +266,14 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 	list_foreach(hound->devices, link, audio_device_t, dev) {
 		if (dev->id == id) {
 			log_debug("Device with id %zu is already present", id);
-			return EEXISTS;
+			return EEXIST;
 		}
 	}
 
 	audio_device_t *dev = find_device_by_name(&hound->devices, name);
 	if (dev) {
 		log_debug("Device with name %s is already present", name);
-		return EEXISTS;
+		return EEXIST;
 	}
 
 	dev = malloc(sizeof(audio_device_t));
@@ -340,7 +340,7 @@ int hound_add_source(hound_t *hound, audio_source_t *source)
 	if (find_source_by_name(&hound->sources, source->name)) {
 		log_debug("Source by that name already exists");
 		fibril_mutex_unlock(&hound->list_guard);
-		return EEXISTS;
+		return EEXIST;
 	}
 	list_append(&source->link, &hound->sources);
 	fibril_mutex_unlock(&hound->list_guard);
@@ -364,7 +364,7 @@ int hound_add_sink(hound_t *hound, audio_sink_t *sink)
 	if (find_sink_by_name(&hound->sinks, sink->name)) {
 		log_debug("Sink by that name already exists");
 		fibril_mutex_unlock(&hound->list_guard);
-		return EEXISTS;
+		return EEXIST;
 	}
 	list_append(&sink->link, &hound->sinks);
 	fibril_mutex_unlock(&hound->list_guard);
@@ -419,7 +419,7 @@ int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 		return EINVAL;
 
 	fibril_mutex_lock(&hound->list_guard);
-	const size_t count = list_count(&hound->sources);
+	const unsigned long count = list_count(&hound->sources);
 	if (count == 0) {
 		*list = NULL;
 		*size = 0;
@@ -428,7 +428,7 @@ int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 	}
 	const char **names = calloc(count, sizeof(char *));
 	int ret = names ? EOK : ENOMEM;
-	for (size_t i = 0; i < count && ret == EOK; ++i) {
+	for (unsigned long i = 0; i < count && ret == EOK; ++i) {
 		link_t *slink = list_nth(&hound->sources, i);
 		audio_source_t *source = audio_source_list_instance(slink);
 		names[i] = str_dup(source->name);

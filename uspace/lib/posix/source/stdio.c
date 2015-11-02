@@ -54,20 +54,13 @@
 #include "libc/adt/list.h"
 #include "libc/sys/stat.h"
 
-
-/* not the best of solutions, but freopen and ungetc will eventually
- * need to be implemented in libc anyway
- */
-#include "../../c/generic/private/stdio.h"
-
 /** Clears the stream's error and end-of-file indicators.
  *
  * @param stream Stream whose indicators shall be cleared.
  */
 void posix_clearerr(FILE *stream)
 {
-	stream->error = 0;
-	stream->eof = 0;
+	clearerr(stream);
 }
 
 /**
@@ -100,12 +93,7 @@ char *posix_ctermid(char *s)
  */
 int posix_fputs(const char *restrict s, FILE *restrict stream)
 {
-	int rc = fputs(s, stream);
-	if (rc == 0) {
-		return EOF;
-	} else {
-		return 0;
-	}
+	return fputs(s, stream);
 }
 
 /**
@@ -117,35 +105,7 @@ int posix_fputs(const char *restrict s, FILE *restrict stream)
  */
 int posix_ungetc(int c, FILE *stream)
 {
-	uint8_t b = (uint8_t) c;
-
-	bool can_unget =
-	    /* Provided character is legal. */
-	    c != EOF &&
-	    /* Stream is consistent. */
-	    !stream->error &&
-	    /* Stream is buffered. */
-	    stream->btype != _IONBF &&
-	    /* Last operation on the stream was a read operation. */
-	    stream->buf_state == _bs_read &&
-	    /* Stream buffer is already allocated (i.e. there was already carried
-	     * out either write or read operation on the stream). This is probably
-	     * redundant check but let's be safe. */
-	    stream->buf != NULL &&
-	    /* There is still space in the stream to retreat. POSIX demands the
-	     * possibility to unget at least 1 character. It should be always
-	     * possible, assuming the last operation on the stream read at least 1
-	     * character, because the buffer is refilled in the lazily manner. */
-	    stream->buf_tail > stream->buf;
-
-	if (can_unget) {
-		--stream->buf_tail;
-		stream->buf_tail[0] = b;
-		stream->eof = false;
-		return (int) b;
-	} else {
-		return EOF;
-	}
+	return ungetc(c, stream);
 }
 
 /**
@@ -253,45 +213,7 @@ ssize_t posix_getline(char **restrict lineptr, size_t *restrict n,
 FILE *posix_freopen(const char *restrict filename, 
     const char *restrict mode, FILE *restrict stream)
 {
-	assert(mode != NULL);
-	assert(stream != NULL);
-	
-	if (filename == NULL) {
-		/* POSIX allows this to be imlementation-defined. HelenOS currently
-		 * does not support changing the mode. */
-		// FIXME: handle mode change once it is supported
-		return stream;
-	}
-	
-	/* Open a new stream. */
-	FILE* new = fopen(filename, mode);
-	if (new == NULL) {
-		fclose(stream);
-		/* errno was set by fopen() */
-		return NULL;
-	}
-	
-	/* Close the original stream without freeing it (ignoring errors). */
-	if (stream->buf != NULL) {
-		fflush(stream);
-	}
-	if (stream->sess != NULL) {
-		async_hangup(stream->sess);
-	}
-	if (stream->fd >= 0) {
-		close(stream->fd);
-	}
-	list_remove(&stream->link);
-	
-	/* Move the new stream to the original location. */
-	memcpy(stream, new, sizeof (FILE));
-	free(new);
-	
-	/* Update references in the file list. */
-	stream->link.next->prev = &stream->link;
-	stream->link.prev->next = &stream->link;
-	
-	return stream;
+	return freopen(filename, mode, stream);
 }
 
 /**
@@ -392,13 +314,7 @@ posix_off_t posix_ftello(FILE *stream)
  */
 int posix_fflush(FILE *stream)
 {
-	int rc = fflush(stream);
-	if (rc < 0) {
-		errno = -rc;
-		return EOF;
-	} else {
-		return 0;
-	}
+	return negerrno(fflush, stream);
 }
 
 /**
@@ -428,6 +344,8 @@ int posix_dprintf(int fildes, const char *restrict format, ...)
 static int _dprintf_str_write(const char *str, size_t size, void *fd)
 {
 	ssize_t wr = write(*(int *) fd, str, size);
+	if (wr < 0)
+		return errno;
 	return str_nlength(str, wr);
 }
 
@@ -656,25 +574,7 @@ int posix_putchar_unlocked(int c)
  */
 int posix_remove(const char *path)
 {
-	struct stat st;
-	int rc = stat(path, &st);
-	
-	if (rc != EOK) {
-		errno = -rc;
-		return -1;
-	}
-	
-	if (st.is_directory) {
-		rc = rmdir(path);
-	} else {
-		rc = unlink(path);
-	}
-	
-	if (rc != EOK) {
-		errno = -rc;
-		return -1;
-	}
-	return 0;
+	return negerrno(remove, path);
 }
 
 /**
@@ -686,7 +586,7 @@ int posix_remove(const char *path)
  */
 int posix_rename(const char *old, const char *new)
 {
-	return errnify(rename, old, new);
+	return negerrno(rename, old, new);
 }
 
 /**

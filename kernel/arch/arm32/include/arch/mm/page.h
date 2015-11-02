@@ -153,7 +153,10 @@
 NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 {
 	uint32_t val = (uint32_t)pt & TTBR_ADDR_MASK;
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
+	// FIXME: TTBR_RGN_WBWA_CACHE is unpredictable on ARMv6
 	val |= TTBR_RGN_WBWA_CACHE | TTBR_C_FLAG;
+#endif
 	TTBR0_write(val);
 }
 

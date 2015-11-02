@@ -69,9 +69,8 @@ static const char *read_root(void)
 
 const char *test_vfs1(void)
 {
-	int rc;
-	if ((rc = mkdir(TEST_DIRECTORY, 0)) != 0) {
-		TPRINTF("rc=%d\n", rc);
+	if (mkdir(TEST_DIRECTORY, 0) != 0) {
+		TPRINTF("rc=%d\n", errno);
 		return "mkdir() failed";
 	}
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
@@ -92,7 +91,9 @@ const char *test_vfs1(void)
 	TPRINTF("Sought to position 0\n");
 	
 	char buf[BUF_SIZE];
+	TPRINTF("read..\n");
 	while ((cnt = read(fd0, buf, BUF_SIZE))) {
+		TPRINTF("read returns %zd\n", cnt);
 		if (cnt < 0)
 			return "read() failed";
 		
@@ -111,15 +112,15 @@ const char *test_vfs1(void)
 	if (rv != NULL)
 		return rv;
 	
-	if (rename(TEST_FILE, TEST_FILE2))
+	if (rename(TEST_FILE, TEST_FILE2) != 0)
 		return "rename() failed";
 	TPRINTF("Renamed %s to %s\n", TEST_FILE, TEST_FILE2);
 	
-	if (unlink(TEST_FILE2))
+	if (unlink(TEST_FILE2) != 0)
 		return "unlink() failed";
 	TPRINTF("Unlinked %s\n", TEST_FILE2);
 	
-	if (rmdir(TEST_DIRECTORY))
+	if (rmdir(TEST_DIRECTORY) != 0)
 		return "rmdir() failed";
 	TPRINTF("Removed directory %s\n", TEST_DIRECTORY);
 	

@@ -156,7 +156,7 @@ static int file_bd_init(const char *fname)
 	bd_srvs_init(&bd_srvs);
 	bd_srvs.ops = &file_bd_ops;
 	
-	async_set_client_connection(file_bd_connection);
+	async_set_fallback_port_handler(file_bd_connection, NULL);
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);

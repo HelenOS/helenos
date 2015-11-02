@@ -68,10 +68,12 @@ static void mouse_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	
 	async_sess_t *sess =
 	    async_callback_receive(EXCHANGE_SERIALIZE);
+	
 	fibril_mutex_lock(&client_mutex);
-		if (client_sess == NULL) {
-			client_sess = sess;
-		}
+	
+	if (client_sess == NULL)
+		client_sess = sess;
+	
 	fibril_mutex_unlock(&client_mutex);
 
 	while (true) {
@@ -261,7 +263,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": Using serial port %s\n", serial_port_name);
 
-	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id,
+	async_sess_t *sess = loc_service_connect(svc_id, INTERFACE_DDF,
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
 		fprintf(stderr, "Failed connecting to service\n");
@@ -305,7 +307,7 @@ int main(int argc, char **argv)
 	/* From this on, state is to be used only by read_fibril */
 	fibril_add_ready(fibril);
 
-	async_set_client_connection(mouse_connection);
+	async_set_fallback_port_handler(mouse_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);

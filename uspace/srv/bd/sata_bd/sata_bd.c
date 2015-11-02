@@ -171,7 +171,7 @@ static void sata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	int disk_id, i;
 
 	/* Get the device service ID. */
-	dsid = IPC_GET_ARG1(*icall);
+	dsid = IPC_GET_ARG2(*icall);
 
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
 {
 	int rc;
 	
-	async_set_client_connection(sata_bd_connection);
+	async_set_fallback_port_handler(sata_bd_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");

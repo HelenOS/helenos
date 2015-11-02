@@ -78,8 +78,22 @@ void tlb_invalidate_asid(asid_t asid)
  */
 static inline void invalidate_page(uintptr_t page)
 {
-	//TODO: What about TLBIMVAA?
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
+	if (TLBTR_read() & TLBTR_SEP_FLAG) {
+		ITLBIMVA_write(page);
+		DTLBIMVA_write(page);
+	} else {
+		TLBIMVA_write(page);
+	}
+#elif defined(PROCESSOR_arm920t)
+	ITLBIMVA_write(page);
+	DTLBIMVA_write(page);
+#elif defined(PROCESSOR_arm926ej_s)
 	TLBIMVA_write(page);
+#else
+#error Unknown TLB type
+#endif
+
 	/*
 	 * "A TLB maintenance operation is only guaranteed to be complete after
 	 * the execution of a DSB instruction."

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup libcamd64
  * @{
  */
 /** @file
  */
 
-#ifndef IPC_DRIVER_H_
-#define IPC_DRIVER_H_
+#ifndef LIBC_amd64_STDINT_H_
+#define LIBC_amd64_STDINT_H_
 
-typedef enum {
-	DRIVER_DEVMAN = 1,
-	DRIVER_CLIENT,
-	DRIVER_DRIVER
-} driver_interface_t;
+#include <libarch/common.h>
 
+#define SIZE_MIN  UINT64_MIN
+#define SIZE_MAX  UINT64_MAX
+
+#define UINTPTR_MAX UINT64_MAX
+typedef uint64_t uintptr_t;
+
+#define INTPTR_MIN INT64_MIN
+#define INTPTR_MAX INT64_MAX
+typedef int64_t intptr_t;
+
+#define UINTMAX_MAX UINT64_MAX
+typedef uint64_t uintmax_t;
+
+#define INTMAX_MAX INT64_MAX
+typedef int64_t intmax_t;
 
 #endif
 
-
-/**
- * @}
+/** @}
  */

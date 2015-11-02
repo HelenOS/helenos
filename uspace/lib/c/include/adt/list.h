@@ -132,7 +132,7 @@ typedef struct list {
 	assert(!link_used(link))
 
 /** Returns true if the link is definitely part of a list. False if not sure. */
-static inline int link_in_use(link_t *link)
+static inline bool link_in_use(link_t *link)
 {
 	return link->prev != NULL && link->next != NULL;
 }
@@ -236,7 +236,7 @@ static inline void list_remove(link_t *link)
  * @param list Pointer to lins_t structure.
  *
  */
-static inline int list_empty(const list_t *list)
+static inline bool list_empty(const list_t *list)
 {
 	return (list->head.next == &list->head);
 }
@@ -356,9 +356,9 @@ static inline void headless_list_concat(link_t *part1, link_t *part2)
  * @return NULL if no n-th item found.
  *
  */
-static inline link_t *list_nth(list_t *list, unsigned int n)
+static inline link_t *list_nth(list_t *list, unsigned long n)
 {
-	unsigned int cnt = 0;
+	unsigned long cnt = 0;
 	
 	link_t *link = list_first(list);
 	while (link != NULL) {
@@ -395,9 +395,9 @@ static inline bool link_used(link_t *link)
 	return true;
 }
 
-extern int list_member(const link_t *, const list_t *);
+extern bool list_member(const link_t *, const list_t *);
 extern void list_concat(list_t *, list_t *);
-extern unsigned int list_count(const list_t *);
+extern unsigned long list_count(const list_t *);
 
 #endif
 

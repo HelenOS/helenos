@@ -78,7 +78,7 @@ static iplink_ops_t ethip_iplink_ops = {
 
 static int ethip_init(void)
 {
-	async_set_client_connection(ethip_client_conn);
+	async_set_fallback_port_handler(ethip_client_conn, NULL);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
@@ -146,7 +146,7 @@ static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ethip_nic_t *nic;
 	service_id_t sid;
 
-	sid = (service_id_t)IPC_GET_ARG1(*icall);
+	sid = (service_id_t) IPC_GET_ARG2(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_client_conn(%u)", (unsigned)sid);
 	nic = ethip_nic_find_by_iplink_sid(sid);
 	if (nic == NULL) {

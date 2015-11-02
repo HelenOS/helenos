@@ -56,7 +56,10 @@ int bd_open(async_sess_t *sess, bd_t **rbd)
 	
 	async_exch_t *exch = async_exchange_begin(sess);
 	
-	int rc = async_connect_to_me(exch, 0, 0, 0, bd_cb_conn, bd);
+	port_id_t port;
+	int rc = async_create_callback_port(exch, INTERFACE_BLOCK_CB, 0, 0,
+	    bd_cb_conn, bd, &port);
+	
 	async_exchange_end(exch);
 	
 	if (rc != EOK)

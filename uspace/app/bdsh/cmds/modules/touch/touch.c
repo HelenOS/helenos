@@ -122,7 +122,7 @@ int cmd_touch(char **argv)
 		}
 		
 		/* Check whether file exists if -c (--no-create) option is given */
-		if ((!no_create) || ((no_create) && (stat(buff, &file_stat) == EOK)))
+		if ((!no_create) || ((no_create) && (stat(buff, &file_stat) == 0)))
 			fd = open(buff, O_RDWR | O_CREAT);
 		
 		if (fd < 0) {

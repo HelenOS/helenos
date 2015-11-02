@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -83,7 +84,7 @@ static dentry_type_t get_type(const char *path)
 
 	int r = stat(path, &s);
 
-	if (r)
+	if (r != 0)
 		return TYPE_NONE;
 	else if (s.is_directory)
 		return TYPE_DIR;
@@ -233,7 +234,7 @@ static int64_t do_copy(const char *src, const char *dest,
 			 * if interactive is set user input is required.
 			 */
 			if (force && !interactive) {
-				if (unlink(dest_path)) {
+				if (unlink(dest_path) != 0) {
 					printf("Unable to remove %s\n",
 					    dest_path);
 					goto exit;
@@ -244,7 +245,7 @@ static int64_t do_copy(const char *src, const char *dest,
 				    dest_path);
 				if (overwrite) {
 					printf("Overwriting file: %s\n", dest_path);
-					if (unlink(dest_path)) {
+					if (unlink(dest_path) != 0) {
 						printf("Unable to remove %s\n", dest_path);
 						goto exit;
 					}
@@ -293,7 +294,7 @@ static int64_t do_copy(const char *src, const char *dest,
 				 */
 				merge_paths(dest_path, PATH_MAX, src_dirname);
 
-				if (mkdir(dest_path, 0) == -1) {
+				if (mkdir(dest_path, 0) != 0) {
 					printf("Unable to create "
 					    "dest directory %s\n", dest_path);
 					goto exit;
@@ -307,7 +308,7 @@ static int64_t do_copy(const char *src, const char *dest,
 			 *
 			 * e.g. cp -r /src /data/new_dir_src
 			 */
-			if (mkdir(dest_path, 0)) {
+			if (mkdir(dest_path, 0) != 0) {
 				printf("Unable to create "
 				    "dest directory %s\n", dest_path);
 				goto exit;
@@ -404,14 +405,14 @@ static int64_t copy_file(const char *src, const char *dest,
 		goto out;
 	}
 
-	while ((bytes = read_all(fd1, buff, blen)) > 0) {
-		if ((bytes = write_all(fd2, buff, bytes)) < 0)
+	while ((bytes = read(fd1, buff, blen)) > 0) {
+		if ((bytes = write(fd2, buff, bytes)) < 0)
 			break;
 		copied += bytes;
 	}
 
 	if (bytes < 0) {
-		printf("\nError copying %s, (%d)\n", src, bytes);
+		printf("\nError copying %s, (%d)\n", src, errno);
 		copied = bytes;
 	}
 

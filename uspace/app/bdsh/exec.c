@@ -60,7 +60,7 @@ static int try_access(const char *f)
 	int fd;
 
 	fd = open(f, O_RDONLY);
-	if (fd > -1) {
+	if (fd >= 0) {
 		close(fd);
 		return 0;
 	} else
@@ -112,7 +112,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	files[2] = io->stderr;
 	
 	for (i = 0; i < 3 && files[i] != NULL; i++) {
-		if (fhandle(files[i], &file_handles[i]) == EOK) {
+		if (vfs_fhandle(files[i], &file_handles[i]) == EOK) {
 			file_handles_p[i] = &file_handles[i];
 		}
 		else {

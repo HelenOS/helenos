@@ -35,12 +35,14 @@
 
 #include <sys/types.h>
 #include <ipc/common.h>
+#include <ipc/services.h>
+#include <abi/ipc/interfaces.h>
 
 extern int service_init(void);
 extern void process_pending_conn(void);
 
-extern int register_service(sysarg_t, sysarg_t, ipc_call_t *);
-extern void connect_to_service(sysarg_t, ipc_call_t *, ipc_callid_t);
+extern int register_service(service_t, sysarg_t, ipc_call_t *);
+extern void connect_to_service(service_t, iface_t, ipc_call_t *, ipc_callid_t);
 
 #endif
 

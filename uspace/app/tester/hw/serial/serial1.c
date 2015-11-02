@@ -75,7 +75,7 @@ const char *test_serial1(void)
 	if (res != EOK)
 		return "Failed getting serial port service ID";
 	
-	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id,
+	async_sess_t *sess = loc_service_connect(svc_id, INTERFACE_DDF,
 	    IPC_FLAG_BLOCKING);
 	if (!sess)
 		return "Failed connecting to serial device";

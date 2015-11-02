@@ -73,10 +73,10 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			cont = false;
 			break;
 		case VFS_IN_MOUNT:
-			vfs_mount(callid, &call);
+			vfs_mount_srv(callid, &call);
 			break;
 		case VFS_IN_UNMOUNT:
-			vfs_unmount(callid, &call);
+			vfs_unmount_srv(callid, &call);
 			break;
 		case VFS_IN_OPEN:
 			vfs_open(callid, &call);
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	/*
 	 * Set a connection handling function/fibril.
 	 */
-	async_set_client_connection(vfs_connection);
+	async_set_fallback_port_handler(vfs_connection, NULL);
 
 	/*
 	 * Subscribe to notifications.

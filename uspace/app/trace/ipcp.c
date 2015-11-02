@@ -302,7 +302,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	if ((phone == PHONE_NS) && (method == IPC_M_CONNECT_ME_TO) &&
 	    (retval == 0)) {
 		/* Connected to a service (through NS) */
-		service = IPC_GET_ARG1(pcall->question);
+		service = IPC_GET_ARG2(pcall->question);
 		proto = proto_get_by_srv(service);
 		if (proto == NULL)
 			proto = proto_unknown;

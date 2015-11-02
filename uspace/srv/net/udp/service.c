@@ -51,14 +51,24 @@
 
 #define NAME "udp"
 
+/** Maximum message size */
 #define MAX_MSG_SIZE DATA_XFER_LIMIT
 
 static void udp_cassoc_recv_msg(void *, inet_ep2_t *, udp_msg_t *);
 
+/** Callbacks to tie us to association layer */
 static udp_assoc_cb_t udp_cassoc_cb = {
 	.recv_msg = udp_cassoc_recv_msg
 };
 
+/** Add message to client receive queue.
+ *
+ * @param cassoc Client association
+ * @param epp    Endpoint pair on which message was received
+ * @param msg    Message
+ *
+ * @return EOK on success, ENOMEM if out of memory
+ */
 static int udp_cassoc_queue_msg(udp_cassoc_t *cassoc, inet_ep2_t *epp,
     udp_msg_t *msg)
 {
@@ -85,6 +95,10 @@ static int udp_cassoc_queue_msg(udp_cassoc_t *cassoc, inet_ep2_t *epp,
 	return EOK;
 }
 
+/** Send 'data' event to client.
+ *
+ * @param client Client
+ */
 static void udp_ev_data(udp_client_t *client)
 {
 	async_exch_t *exch;
@@ -98,6 +112,16 @@ static void udp_ev_data(udp_client_t *client)
 	async_forget(req);
 }
 
+/** Create client association.
+ *
+ * This effectively adds an association into a client's namespace.
+ *
+ * @param client  Client
+ * @param assoc   Association
+ * @param rcassoc Place to store pointer to new client association
+ *
+ * @return EOK on soccess, ENOMEM if out of memory
+ */
 static int udp_cassoc_create(udp_client_t *client, udp_assoc_t *assoc,
     udp_cassoc_t **rcassoc)
 {
@@ -124,12 +148,25 @@ static int udp_cassoc_create(udp_client_t *client, udp_assoc_t *assoc,
 	return EOK;
 }
 
+/** Destroy client association.
+ *
+ * @param cassoc Client association
+ */
 static void udp_cassoc_destroy(udp_cassoc_t *cassoc)
 {
 	list_remove(&cassoc->lclient);
 	free(cassoc);
 }
 
+/** Get client association by ID.
+ *
+ * @param client  Client
+ * @param id      Client association ID
+ * @param rcassoc Place to store pointer to client association
+ *
+ * @return EOK on success, ENOENT if no client association with the given ID
+ *         is found.
+ */
 static int udp_cassoc_get(udp_client_t *client, sysarg_t id,
     udp_cassoc_t **rcassoc)
 {
@@ -143,6 +180,14 @@ static int udp_cassoc_get(udp_client_t *client, sysarg_t id,
 	return ENOENT;
 }
 
+/** Message received on client association.
+ *
+ * Used as udp_assoc_cb.recv_msg callback.
+ *
+ * @param arg Callback argument, client association
+ * @param epp Endpoint pair where message was received
+ * @param msg Message
+ */
 static void udp_cassoc_recv_msg(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
 {
 	udp_cassoc_t *cassoc = (udp_cassoc_t *) arg;
@@ -151,6 +196,16 @@ static void udp_cassoc_recv_msg(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
 	udp_ev_data(cassoc->client);
 }
 
+/** Create association.
+ *
+ * Handle client request to create association (with parameters unmarshalled).
+ *
+ * @param client    UDP client
+ * @param epp       Endpoint pair
+ * @param rassoc_id Place to store ID of new association
+ *
+ * @return EOK on success or negative error code
+ */
 static int udp_assoc_create_impl(udp_client_t *client, inet_ep2_t *epp,
     sysarg_t *rassoc_id)
 {
@@ -188,6 +243,14 @@ static int udp_assoc_create_impl(udp_client_t *client, inet_ep2_t *epp,
 	return EOK;
 }
 
+/** Destroy association.
+ *
+ * Handle client request to destroy association (with parameters unmarshalled).
+ *
+ * @param client   UDP client
+ * @param assoc_id Association ID
+ * @return EOK on success, ENOENT if no such association is found
+ */
 static int udp_assoc_destroy_impl(udp_client_t *client, sysarg_t assoc_id)
 {
 	udp_cassoc_t *cassoc;
@@ -206,6 +269,19 @@ static int udp_assoc_destroy_impl(udp_client_t *client, sysarg_t assoc_id)
 	return EOK;
 }
 
+/** Send message via association.
+ *
+ * Handle client request to send message (with parameters unmarshalled).
+ *
+ * @param client   UDP client
+ * @param assoc_id Association ID
+ * @param dest     Destination endpoint or @c NULL to use the default from
+ *                 association
+ * @param data     Message data
+ * @param size     Message size
+ *
+ * @return EOK on success or negative error code
+ */
 static int udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
     inet_ep_t *dest, void *data, size_t size)
 {
@@ -226,6 +302,14 @@ static int udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
 	return EOK;
 }
 
+/** Create callback session.
+ *
+ * Handle client request to create callback session.
+ *
+ * @param client   UDP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void udp_callback_create_srv(udp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -241,6 +325,14 @@ static void udp_callback_create_srv(udp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, EOK);
 }
 
+/** Create association.
+ *
+ * Handle client request to create association.
+ *
+ * @param client   UDP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void udp_assoc_create_srv(udp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -280,6 +372,14 @@ static void udp_assoc_create_srv(udp_client_t *client, ipc_callid_t iid,
 	async_answer_1(iid, EOK, assoc_id);
 }
 
+/** Destroy association.
+ *
+ * Handle client request to destroy association.
+ *
+ * @param client   UDP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void udp_assoc_destroy_srv(udp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -293,6 +393,14 @@ static void udp_assoc_destroy_srv(udp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
+/** Send message via association.
+ *
+ * Handle client request to send message.
+ *
+ * @param client   UDP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void udp_assoc_send_msg_srv(udp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -367,6 +475,11 @@ static void udp_assoc_send_msg_srv(udp_client_t *client, ipc_callid_t iid,
 	free(data);
 }
 
+/** Get next received message.
+ *
+ * @param client UDP Client
+ * @return Pointer to queue entry for next received message
+ */
 static udp_crcv_queue_entry_t *udp_rmsg_get_next(udp_client_t *client)
 {
 	link_t *link;
@@ -378,6 +491,14 @@ static udp_crcv_queue_entry_t *udp_rmsg_get_next(udp_client_t *client)
 	return list_get_instance(link, udp_crcv_queue_entry_t, link);
 }
 
+/** Get info on first received message.
+ *
+ * Handle client request to get information on received message.
+ *
+ * @param client   UDP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void udp_rmsg_info_srv(udp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -417,6 +538,14 @@ static void udp_rmsg_info_srv(udp_client_t *client, ipc_callid_t iid,
 	async_answer_2(iid, EOK, assoc_id, size);
 }
 
+/** Read data from first received message.
+ *
+ * Handle client request to read data from first received message.
+ *
+ * @param client   UDP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void udp_rmsg_read_srv(udp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -459,6 +588,15 @@ static void udp_rmsg_read_srv(udp_client_t *client, ipc_callid_t iid,
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_rmsg_read_srv(): OK");
 }
 
+/** Discard first received message.
+ *
+ * Handle client request to discard first received message, advancing
+ * to the next one.
+ *
+ * @param client   UDP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
 static void udp_rmsg_discard_srv(udp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -479,10 +617,16 @@ static void udp_rmsg_discard_srv(udp_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, EOK);
 }
 
+/** Handle UDP client connection.
+ *
+ * @param iid   Connect call ID
+ * @param icall Connect call data
+ * @param arg   Connection argument
+ */
 static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	udp_client_t client;
-	size_t n;
+	unsigned long n;
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
@@ -540,7 +684,7 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	n = list_count(&client.cassoc);
 	if (n != 0) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "udp_client_conn: "
-		    "Client with %zu active associations closed session.", n);
+		    "Client with %lu active associations closed session.", n);
 		/* XXX Clean up */
 	}
 
@@ -550,12 +694,16 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_hangup(client.sess);
 }
 
+/** Initialize UDP service.
+ *
+ * @return EOK on success or negative error code.
+ */
 int udp_service_init(void)
 {
 	int rc;
 	service_id_t sid;
 
-	async_set_client_connection(udp_client_conn);
+	async_set_fallback_port_handler(udp_client_conn, NULL);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {

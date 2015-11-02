@@ -136,7 +136,7 @@ void gpt_free_gpt(gpt_t *gpt)
  */
 int gpt_read_header(gpt_label_t *label, service_id_t dev_handle)
 {
-	int rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
+	int rc = block_init(dev_handle, 512);
 	if (rc != EOK)
 		return rc;
 	
@@ -190,7 +190,7 @@ end:
 int gpt_write_header(gpt_label_t *label, service_id_t dev_handle)
 {
 	/* The comm_size argument (the last one) is ignored */
-	int rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
+	int rc = block_init(dev_handle, 4096);
 	if ((rc != EOK) && (rc != EEXIST))
 		return rc;
 	
@@ -287,8 +287,7 @@ int gpt_read_partitions(gpt_label_t *label)
 			return ENOMEM;
 	}
 	
-	int rc = block_init(EXCHANGE_SERIALIZE, label->device,
-	    sizeof(gpt_entry_t));
+	int rc = block_init(label->device, sizeof(gpt_entry_t));
 	if (rc != EOK) {
 		gpt_free_partitions(label->parts);
 		label->parts = NULL;
@@ -347,7 +346,7 @@ end:
 int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 {
 	/* comm_size of 4096 is ignored */
-	int rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
+	int rc = block_init(dev_handle, 4096);
 	if ((rc != EOK) && (rc != EEXIST))
 		return rc;
 	

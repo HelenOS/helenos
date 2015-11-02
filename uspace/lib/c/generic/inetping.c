@@ -52,19 +52,22 @@ int inetping_init(inetping_ev_ops_t *ev_ops)
 
 	inetping_ev_ops = ev_ops;
 
-	rc = loc_service_get_id(SERVICE_NAME_INETPING, &inetping_svc,
+	rc = loc_service_get_id(SERVICE_NAME_INET, &inetping_svc,
 	    IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return ENOENT;
 
-	inetping_sess = loc_service_connect(EXCHANGE_SERIALIZE, inetping_svc,
+	inetping_sess = loc_service_connect(inetping_svc, INTERFACE_INETPING,
 	    IPC_FLAG_BLOCKING);
 	if (inetping_sess == NULL)
 		return ENOENT;
 
 	async_exch_t *exch = async_exchange_begin(inetping_sess);
 
-	rc = async_connect_to_me(exch, 0, 0, 0, inetping_cb_conn, NULL);
+	port_id_t port;
+	rc = async_create_callback_port(exch, INTERFACE_INETPING_CB, 0, 0,
+	    inetping_cb_conn, NULL, &port);
+	
 	async_exchange_end(exch);
 
 	if (rc != EOK) {

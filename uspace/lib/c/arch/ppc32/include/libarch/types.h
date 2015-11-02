@@ -35,12 +35,11 @@
 #ifndef LIBC_ppc32_TYPES_H_
 #define LIBC_ppc32_TYPES_H_
 
-#define __32_BITS__
-
 #include <libarch/common.h>
+#include <libarch/stddef.h>
+#include <libarch/stdint.h>
 
-#define SIZE_MIN  UINT32_MIN
-#define SIZE_MAX  UINT32_MAX
+#define __32_BITS__
 
 #define SSIZE_MIN  INT32_MIN
 #define SSIZE_MAX  INT32_MAX
@@ -49,10 +48,7 @@ typedef uint32_t sysarg_t;
 typedef int32_t native_t;
 
 typedef int32_t ssize_t;
-typedef uint32_t size_t;
 
-typedef uint32_t uintptr_t;
-typedef int32_t intptr_t;
 typedef uint32_t atomic_count_t;
 typedef int32_t atomic_signed_t;
 

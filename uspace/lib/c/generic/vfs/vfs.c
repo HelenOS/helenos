@@ -74,8 +74,8 @@ async_exch_t *vfs_exchange_begin(void)
 	fibril_mutex_lock(&vfs_mutex);
 	
 	while (vfs_sess == NULL)
-		vfs_sess = service_connect_blocking(EXCHANGE_PARALLEL, SERVICE_VFS,
-		    0, 0);
+		vfs_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_VFS,
+		    0);
 	
 	fibril_mutex_unlock(&vfs_mutex);
 	
@@ -92,7 +92,7 @@ void vfs_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-char *absolutize(const char *path, size_t *retlen)
+char *vfs_absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
 	char *ncwd_path_nc;
@@ -100,12 +100,12 @@ char *absolutize(const char *path, size_t *retlen)
 	fibril_mutex_lock(&cwd_mutex);
 	size_t size = str_size(path);
 	if (*path != '/') {
-		if (!cwd_path) {
+		if (cwd_path == NULL) {
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
 		ncwd_path_nc = malloc(cwd_size + 1 + size + 1);
-		if (!ncwd_path_nc) {
+		if (ncwd_path_nc == NULL) {
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
@@ -114,7 +114,7 @@ char *absolutize(const char *path, size_t *retlen)
 		ncwd_path_nc[cwd_size + 1] = '\0';
 	} else {
 		ncwd_path_nc = malloc(size + 1);
-		if (!ncwd_path_nc) {
+		if (ncwd_path_nc == NULL) {
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
@@ -122,7 +122,7 @@ char *absolutize(const char *path, size_t *retlen)
 	}
 	str_append(ncwd_path_nc, cwd_size + 1 + size + 1, path);
 	ncwd_path = canonify(ncwd_path_nc, retlen);
-	if (!ncwd_path) {
+	if (ncwd_path == NULL) {
 		fibril_mutex_unlock(&cwd_mutex);
 		free(ncwd_path_nc);
 		return NULL;
@@ -134,7 +134,7 @@ char *absolutize(const char *path, size_t *retlen)
 	 */
 	ncwd_path = str_dup(ncwd_path);
 	free(ncwd_path_nc);
-	if (!ncwd_path) {
+	if (ncwd_path == NULL) {
 		fibril_mutex_unlock(&cwd_mutex);
 		return NULL;
 	}
@@ -142,7 +142,7 @@ char *absolutize(const char *path, size_t *retlen)
 	return ncwd_path;
 }
 
-int mount(const char *fs_name, const char *mp, const char *fqsn,
+int vfs_mount(const char *fs_name, const char *mp, const char *fqsn,
     const char *opts, unsigned int flags, unsigned int instance)
 {
 	int null_id = -1;
@@ -170,8 +170,8 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 	}
 	
 	size_t mpa_size;
-	char *mpa = absolutize(mp, &mpa_size);
-	if (!mpa) {
+	char *mpa = vfs_absolutize(mp, &mpa_size);
+	if (mpa == NULL) {
 		if (null_id != -1)
 			loc_null_destroy(null_id);
 		
@@ -254,7 +254,7 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 	return (int) rc;
 }
 
-int unmount(const char *mp)
+int vfs_unmount(const char *mp)
 {
 	sysarg_t rc;
 	sysarg_t rc_orig;
@@ -262,8 +262,8 @@ int unmount(const char *mp)
 	size_t mpa_size;
 	char *mpa;
 	
-	mpa = absolutize(mp, &mpa_size);
-	if (!mpa)
+	mpa = vfs_absolutize(mp, &mpa_size);
+	if (mpa == NULL)
 		return ENOMEM;
 	
 	async_exch_t *exch = vfs_exchange_begin();
@@ -288,7 +288,18 @@ int unmount(const char *mp)
 	return (int) rc;
 }
 
-static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
+/** Open file (internal).
+ *
+ * @param abs Absolute path to file
+ * @param abs_size Size of @a abs string
+ * @param lflag L_xxx flags
+ * @param oflag O_xxx flags
+ * @param fd Place to store new file descriptor
+ *
+ * @return EOK on success, non-zero error code on error
+ */
+static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag,
+    int *fd)
 {
 	async_exch_t *exch = vfs_exchange_begin();
 	
@@ -314,22 +325,46 @@ static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 	if (rc != EOK)
 	    return (int) rc;
 	
-	return (int) IPC_GET_ARG1(answer);
+	*fd = (int) IPC_GET_ARG1(answer);
+	return EOK;
 }
 
+/** Open file.
+ *
+ * @param path File path
+ * @param oflag O_xxx flags
+ * @param mode File mode (only with O_CREAT)
+ *
+ * @return Nonnegative file descriptor on success. On error -1 is returned
+ *         and errno is set.
+ */
 int open(const char *path, int oflag, ...)
 {
 	size_t abs_size;
-	char *abs = absolutize(path, &abs_size);
-	if (!abs)
-		return ENOMEM;
+	char *abs = vfs_absolutize(path, &abs_size);
+	int fd = -1;
 	
-	int ret = open_internal(abs, abs_size, L_FILE, oflag);
+	if (abs == NULL) {
+		errno = ENOMEM;
+		return -1;
+	}
+	
+	int rc = open_internal(abs, abs_size, L_FILE, oflag, &fd);
 	free(abs);
 	
-	return ret;
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	
+	return fd;
 }
 
+/** Close file.
+ *
+ * @param fildes File descriptor
+ * @return Zero on success. On error -1 is returned and errno is set.
+ */
 int close(int fildes)
 {
 	sysarg_t rc;
@@ -338,10 +373,29 @@ int close(int fildes)
 	rc = async_req_1_0(exch, VFS_IN_CLOSE, fildes);
 	vfs_exchange_end(exch);
 	
-	return (int) rc;
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	
+	return 0;
 }
 
-ssize_t read(int fildes, void *buf, size_t nbyte)
+/** Read bytes from file.
+ *
+ * Read up to @a nbyte bytes from file. The actual number of bytes read
+ * may be lower, but greater than zero if there are any bytes available.
+ * If there are no bytes available for reading, then the function will
+ * return success with zero bytes read.
+ *
+ * @param fildes File descriptor
+ * @param buf Buffer
+ * @param nbyte Maximum number of bytes to read
+ * @param nread Place to store actual number of bytes read (0 or more)
+ *
+ * @return EOK on success, non-zero error code on error.
+ */
+static int _read_short(int fildes, void *buf, size_t nbyte, ssize_t *nread)
 {
 	sysarg_t rc;
 	ipc_call_t answer;
@@ -356,24 +410,40 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	rc = async_data_read_start(exch, (void *) buf, nbyte);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
-
+		
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
-
+		
 		if (rc_orig == EOK)
-			return (ssize_t) rc;
+			return rc;
 		else
-			return (ssize_t) rc_orig;
+			return rc_orig;
 	}
+	
 	vfs_exchange_end(exch);
 	async_wait_for(req, &rc);
-	if (rc == EOK)
-		return (ssize_t) IPC_GET_ARG1(answer);
-	else
+	
+	if (rc != EOK)
 		return rc;
+	
+	*nread = (ssize_t) IPC_GET_ARG1(answer);
+	return EOK;
 }
 
-ssize_t write(int fildes, const void *buf, size_t nbyte) 
+/** Write bytes to file.
+ *
+ * Write up to @a nbyte bytes from file. The actual number of bytes written
+ * may be lower, but greater than zero.
+ *
+ * @param fildes File descriptor
+ * @param buf Buffer
+ * @param nbyte Maximum number of bytes to write
+ * @param nread Place to store actual number of bytes written (0 or more)
+ *
+ * @return EOK on success, non-zero error code on error.
+ */
+static int _write_short(int fildes, const void *buf, size_t nbyte,
+    ssize_t *nwritten)
 {
 	sysarg_t rc;
 	ipc_call_t answer;
@@ -388,54 +458,60 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	rc = async_data_write_start(exch, (void *) buf, nbyte);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
-
+		
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
-
+		
 		if (rc_orig == EOK)
-			return (ssize_t) rc;
+			return rc;
 		else
-			return (ssize_t) rc_orig;
+			return rc_orig;
 	}
+	
 	vfs_exchange_end(exch);
 	async_wait_for(req, &rc);
-	if (rc == EOK)
-		return (ssize_t) IPC_GET_ARG1(answer);
-	else
-		return -1;
+	
+	if (rc != EOK)
+		return rc;
+	
+	*nwritten = (ssize_t) IPC_GET_ARG1(answer);
+	return EOK;
 }
 
-/** Read entire buffer.
+/** Read data.
  *
- * In face of short reads this function continues reading until either
- * the entire buffer is read or no more data is available (at end of file).
+ * Read up to @a nbytes bytes from file if available. This function always reads
+ * all the available bytes up to @a nbytes.
  *
  * @param fildes	File descriptor
  * @param buf		Buffer, @a nbytes bytes long
  * @param nbytes	Number of bytes to read
  *
- * @return		On success, positive number of bytes read.
- *			On failure, negative error code from read().
+ * @return		On success, nonnegative number of bytes read.
+ *			On failure, -1 and sets errno.
  */
-ssize_t read_all(int fildes, void *buf, size_t nbyte)
+ssize_t read(int fildes, void *buf, size_t nbyte)
 {
 	ssize_t cnt = 0;
 	size_t nread = 0;
 	uint8_t *bp = (uint8_t *) buf;
-
+	int rc;
+	
 	do {
 		bp += cnt;
 		nread += cnt;
-		cnt = read(fildes, bp, nbyte - nread);
-	} while (cnt > 0 && (nbyte - nread - cnt) > 0);
-
-	if (cnt < 0)
-		return cnt;
-
+		rc = _read_short(fildes, bp, nbyte - nread, &cnt);
+	} while (rc == EOK && cnt > 0 && (nbyte - nread - cnt) > 0);
+	
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	
 	return nread + cnt;
 }
 
-/** Write entire buffer.
+/** Write data.
  *
  * This function fails if it cannot write exactly @a len bytes to the file.
  *
@@ -443,39 +519,58 @@ ssize_t read_all(int fildes, void *buf, size_t nbyte)
  * @param buf		Data, @a nbytes bytes long
  * @param nbytes	Number of bytes to write
  *
- * @return		EOK on error, return value from write() if writing
- *			failed.
+ * @return		On success, nonnegative number of bytes written.
+ *			On failure, -1 and sets errno.
  */
-ssize_t write_all(int fildes, const void *buf, size_t nbyte)
+ssize_t write(int fildes, const void *buf, size_t nbyte)
 {
 	ssize_t cnt = 0;
 	ssize_t nwritten = 0;
 	const uint8_t *bp = (uint8_t *) buf;
+	int rc;
 
 	do {
 		bp += cnt;
 		nwritten += cnt;
-		cnt = write(fildes, bp, nbyte - nwritten);
-	} while (cnt > 0 && ((ssize_t )nbyte - nwritten - cnt) > 0);
+		rc = _write_short(fildes, bp, nbyte - nwritten, &cnt);
+	} while (rc == EOK && ((ssize_t )nbyte - nwritten - cnt) > 0);
 
-	if (cnt < 0)
-		return cnt;
-
-	if ((ssize_t)nbyte - nwritten - cnt > 0)
-		return EIO;
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
 
 	return nbyte;
 }
 
+/** Synchronize file.
+ *
+ * @param fildes File descriptor
+ * @return 0 on success. On error returns -1 and sets errno.
+ */
 int fsync(int fildes)
 {
 	async_exch_t *exch = vfs_exchange_begin();
 	sysarg_t rc = async_req_1_0(exch, VFS_IN_SYNC, fildes);
 	vfs_exchange_end(exch);
 	
-	return (int) rc;
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	
+	return 0;
 }
 
+/** Seek to a position.
+ *
+ * @param fildes File descriptor
+ * @param offset Offset
+ * @param whence SEEK_SET, SEEK_CUR or SEEK_END
+ *
+ * @return On success the nonnegative offset from start of file. On error
+ *         returns (off64_t)-1 and sets errno.
+ */
 off64_t lseek(int fildes, off64_t offset, int whence)
 {
 	async_exch_t *exch = vfs_exchange_begin();
@@ -488,12 +583,23 @@ off64_t lseek(int fildes, off64_t offset, int whence)
 	
 	vfs_exchange_end(exch);
 	
-	if (rc != EOK)
+	if (rc != EOK) {
+		errno = rc;
 		return (off64_t) -1;
+	}
 	
 	return (off64_t) MERGE_LOUP32(newoff_lo, newoff_hi);
 }
 
+/** Truncate file to a specified length.
+ *
+ * Truncate file so that its size is exactly @a length
+ *
+ * @param fildes File descriptor
+ * @param length Length
+ *
+ * @return 0 on success, -1 on error and sets errno.
+ */
 int ftruncate(int fildes, aoff64_t length)
 {
 	sysarg_t rc;
@@ -503,9 +609,21 @@ int ftruncate(int fildes, aoff64_t length)
 	    LOWER32(length), UPPER32(length));
 	vfs_exchange_end(exch);
 	
-	return (int) rc;
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	
+	return 0;
 }
 
+/** Get file status.
+ *
+ * @param fildes File descriptor
+ * @param stat Place to store file information
+ *
+ * @return 0 on success, -1 on error and sets errno.
+ */
 int fstat(int fildes, struct stat *stat)
 {
 	sysarg_t rc;
@@ -517,21 +635,38 @@ int fstat(int fildes, struct stat *stat)
 	rc = async_data_read_start(exch, (void *) stat, sizeof(struct stat));
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
-
+		
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
-
-		if (rc_orig == EOK)
-			return (ssize_t) rc;
-		else
-			return (ssize_t) rc_orig;
+		
+		if (rc_orig != EOK)
+			rc = rc_orig;
+		if (rc != EOK) {
+			errno = rc;
+			return -1;
+		}
+		
+		return 0;
 	}
+	
 	vfs_exchange_end(exch);
 	async_wait_for(req, &rc);
-
-	return rc;
+	
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	
+	return 0;
 }
 
+/** Get file status.
+ *
+ * @param path Path to file
+ * @param stat Place to store file information
+ *
+ * @return 0 on success, -1 on error and sets errno.
+ */
 int stat(const char *path, struct stat *stat)
 {
 	sysarg_t rc;
@@ -539,9 +674,11 @@ int stat(const char *path, struct stat *stat)
 	aid_t req;
 	
 	size_t pa_size;
-	char *pa = absolutize(path, &pa_size);
-	if (!pa)
-		return ENOMEM;
+	char *pa = vfs_absolutize(path, &pa_size);
+	if (pa == NULL) {
+		errno = ENOMEM;
+		return -1;
+	}
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
@@ -551,81 +688,135 @@ int stat(const char *path, struct stat *stat)
 		vfs_exchange_end(exch);
 		free(pa);
 		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+		if (rc_orig != EOK)
+			rc = rc_orig;
+		if (rc != EOK) {
+			errno = rc;
+			return -1;
+		}
 	}
 	rc = async_data_read_start(exch, stat, sizeof(struct stat));
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
 		free(pa);
 		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+		if (rc_orig != EOK)
+			rc = rc_orig;
+		if (rc != EOK) {
+			errno = rc;
+			return -1;
+		}
 	}
 	vfs_exchange_end(exch);
 	free(pa);
 	async_wait_for(req, &rc);
-	return rc;
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	return 0;
 }
 
+/** Open directory.
+ *
+ * @param dirname Directory pathname
+ *
+ * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
+ */
 DIR *opendir(const char *dirname)
 {
 	DIR *dirp = malloc(sizeof(DIR));
-	if (!dirp)
+	int fd = -1;
+	
+	if (dirp == NULL) {
+		errno = ENOMEM;
 		return NULL;
+	}
 	
 	size_t abs_size;
-	char *abs = absolutize(dirname, &abs_size);
-	if (!abs) {
+	char *abs = vfs_absolutize(dirname, &abs_size);
+	if (abs == NULL) {
 		free(dirp);
+		errno = ENOMEM;
 		return NULL;
 	}
 	
-	int ret = open_internal(abs, abs_size, L_DIRECTORY, 0);
+	int rc = open_internal(abs, abs_size, L_DIRECTORY, 0, &fd);
 	free(abs);
 	
-	if (ret < 0) {
+	if (rc != EOK) {
 		free(dirp);
+		errno = rc;
 		return NULL;
 	}
 	
-	dirp->fd = ret;
+	dirp->fd = fd;
 	return dirp;
 }
 
+/** Read directory entry.
+ *
+ * @param dirp Open directory
+ * @return Non-NULL pointer to directory entry on success. On error returns
+ *         @c NULL and sets errno.
+ */
 struct dirent *readdir(DIR *dirp)
 {
-	ssize_t len = read(dirp->fd, &dirp->res.d_name[0], NAME_MAX + 1);
-	if (len <= 0)
+	int rc;
+	ssize_t len;
+	
+	rc = _read_short(dirp->fd, &dirp->res.d_name[0], NAME_MAX + 1, &len);
+	if (rc != EOK) {
+		errno = rc;
 		return NULL;
+	}
+	
+	(void) len;
 	return &dirp->res;
 }
 
+/** Rewind directory position to the beginning.
+ *
+ * @param dirp Open directory
+ */
 void rewinddir(DIR *dirp)
 {
 	(void) lseek(dirp->fd, 0, SEEK_SET);
 }
 
+/** Close directory.
+ *
+ * @param dirp Open directory
+ * @return 0 on success. On error returns -1 and sets errno.
+ */
 int closedir(DIR *dirp)
 {
-	(void) close(dirp->fd);
+	int rc;
+	
+	rc = close(dirp->fd);
 	free(dirp);
-	return 0;
+
+	/* On error errno was set by close() */
+	return rc;
 }
 
+/** Create directory.
+ *
+ * @param path Path
+ * @param mode File mode
+ * @return 0 on success. On error returns -1 and sets errno.
+ */
 int mkdir(const char *path, mode_t mode)
 {
 	sysarg_t rc;
 	aid_t req;
 	
 	size_t pa_size;
-	char *pa = absolutize(path, &pa_size);
-	if (!pa)
-		return ENOMEM;
+	char *pa = vfs_absolutize(path, &pa_size);
+	if (pa == NULL) {
+		errno = ENOMEM;
+		return -1;
+	}
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
@@ -634,29 +825,47 @@ int mkdir(const char *path, mode_t mode)
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
 		free(pa);
-
+		
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
-
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+		
+		if (rc_orig != EOK)
+			rc = rc_orig;
+		
+		if (rc != EOK) {
+			errno = rc;
+			return -1;
+		}
+		
+		return 0;
 	}
+	
 	vfs_exchange_end(exch);
 	free(pa);
 	async_wait_for(req, &rc);
-	return rc;
+	
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	
+	return 0;
 }
 
+/** Unlink a file or directory.
+ *
+ * @param path Path to file or empty directory
+ * @param lflag L_xxx flag (L_NONE, L_FILE or L_DIRECTORY)
+ * @return EOK on success, non-zero error code on error
+ */
 static int _unlink(const char *path, int lflag)
 {
 	sysarg_t rc;
 	aid_t req;
 	
 	size_t pa_size;
-	char *pa = absolutize(path, &pa_size);
-	if (!pa)
+	char *pa = vfs_absolutize(path, &pa_size);
+	if (pa == NULL)
 		return ENOMEM;
 	
 	async_exch_t *exch = vfs_exchange_begin();
@@ -681,16 +890,49 @@ static int _unlink(const char *path, int lflag)
 	return rc;
 }
 
+/** Unlink file or directory.
+ *
+ * @param path Path
+ * @return EOk on success, error code on error
+ */
 int unlink(const char *path)
 {
-	return _unlink(path, L_NONE);
+	int rc;
+
+	rc = _unlink(path, L_NONE);
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+
+	return 0;
 }
 
+/** Remove empty directory.
+ *
+ * @param path Path
+ * @return 0 on success. On error returns -1 and sets errno.
+ */
 int rmdir(const char *path)
 {
-	return _unlink(path, L_DIRECTORY);
+	int rc;
+
+	rc = _unlink(path, L_DIRECTORY);
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+
+	return 0;
 }
 
+/** Rename directory entry.
+ *
+ * @param old Old name
+ * @param new New name
+ *
+ * @return 0 on success. On error returns -1 and sets errno.
+ */
 int rename(const char *old, const char *new)
 {
 	sysarg_t rc;
@@ -698,15 +940,18 @@ int rename(const char *old, const char *new)
 	aid_t req;
 	
 	size_t olda_size;
-	char *olda = absolutize(old, &olda_size);
-	if (!olda)
-		return ENOMEM;
+	char *olda = vfs_absolutize(old, &olda_size);
+	if (olda == NULL) {
+		errno = ENOMEM;
+		return -1;
+	}
 
 	size_t newa_size;
-	char *newa = absolutize(new, &newa_size);
-	if (!newa) {
+	char *newa = vfs_absolutize(new, &newa_size);
+	if (newa == NULL) {
 		free(olda);
-		return ENOMEM;
+		errno = ENOMEM;
+		return -1;
 	}
 	
 	async_exch_t *exch = vfs_exchange_begin();
@@ -718,10 +963,13 @@ int rename(const char *old, const char *new)
 		free(olda);
 		free(newa);
 		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+		if (rc_orig != EOK)
+			rc = rc_orig;
+		if (rc != EOK) {
+			errno = rc;
+			return -1;
+		}
+		return 0;
 	}
 	rc = async_data_write_start(exch, newa, newa_size);
 	if (rc != EOK) {
@@ -729,42 +977,65 @@ int rename(const char *old, const char *new)
 		free(olda);
 		free(newa);
 		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+		if (rc_orig != EOK)
+			rc = rc_orig;
+		if (rc != EOK) {
+			errno = rc;
+			return -1;
+		}
+		return 0;
 	}
 	vfs_exchange_end(exch);
 	free(olda);
 	free(newa);
 	async_wait_for(req, &rc);
-	return rc;
+
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+
+	return 0;
 }
 
+/** Remove directory entry.
+ *
+ * @param path Path
+ * @return 0 on success. On error returns -1 and sets errno.
+ */
 int remove(const char *path)
 {
 	return unlink(path);
 }
 
+/** Change working directory.
+ *
+ * @param path Path
+ * @return 0 on success. On error returns -1 and sets errno.
+ */
 int chdir(const char *path)
 {
 	size_t abs_size;
-	char *abs = absolutize(path, &abs_size);
-	if (!abs)
-		return ENOMEM;
+	char *abs = vfs_absolutize(path, &abs_size);
+	int fd = -1;
 	
-	int fd = open_internal(abs, abs_size, L_DIRECTORY, O_DESC);
+	if (abs == NULL) {
+		errno = ENOMEM;
+		return -1;
+	}
 	
-	if (fd < 0) {
+	int rc = open_internal(abs, abs_size, L_DIRECTORY, O_DESC, &fd);
+	
+	if (rc != EOK) {
 		free(abs);
-		return ENOENT;
+		errno = rc;
+		return -1;
 	}
 	
 	fibril_mutex_lock(&cwd_mutex);
 	
 	if (cwd_fd >= 0)
 		close(cwd_fd);
-	
 	
 	if (cwd_path)
 		free(cwd_path);
@@ -774,18 +1045,27 @@ int chdir(const char *path)
 	cwd_size = abs_size;
 	
 	fibril_mutex_unlock(&cwd_mutex);
-	return EOK;
+	return 0;
 }
 
+/** Get current working directory path.
+ *
+ * @param buf Buffer
+ * @param size Size of @a buf
+ * @return On success returns @a buf. On failure returns @c NULL and sets errno.
+ */
 char *getcwd(char *buf, size_t size)
 {
-	if (size == 0)
+	if (size == 0) {
+		errno = EINVAL;
 		return NULL;
+	}
 	
 	fibril_mutex_lock(&cwd_mutex);
 	
 	if ((cwd_size == 0) || (size < cwd_size + 1)) {
 		fibril_mutex_unlock(&cwd_mutex);
+		errno = ERANGE;
 		return NULL;
 	}
 	
@@ -795,23 +1075,36 @@ char *getcwd(char *buf, size_t size)
 	return buf;
 }
 
-async_sess_t *fd_session(exch_mgmt_t mgmt, int fildes)
+/** Open session to service represented by a special file.
+ *
+ * Given that the file referred to by @a fildes represents a service,
+ * open a session to that service.
+ *
+ * @param fildes File descriptor
+ * @param iface Interface to connect to (XXX Should be automatic)
+ * @return On success returns session pointer. On error returns @c NULL.
+ */
+async_sess_t *vfs_fd_session(int fildes, iface_t iface)
 {
 	struct stat stat;
 	int rc = fstat(fildes, &stat);
-	if (rc != 0) {
-		errno = rc;
+	if (rc != 0)
 		return NULL;
-	}
 	
-	if (!stat.service) {
-		errno = ENOENT;
+	if (stat.service == 0)
 		return NULL;
-	}
 	
-	return loc_service_connect(mgmt, stat.service, 0);
+	return loc_service_connect(stat.service, iface, 0);
 }
 
+/** Duplicate open file.
+ *
+ * Duplicate open file under a new file descriptor.
+ *
+ * @param oldfd Old file descriptor
+ * @param newfd New file descriptor
+ * @return 0 on success. On error -1 is returned and errno is set
+ */
 int dup2(int oldfd, int newfd)
 {
 	async_exch_t *exch = vfs_exchange_begin();
@@ -822,12 +1115,17 @@ int dup2(int oldfd, int newfd)
 	vfs_exchange_end(exch);
 	
 	if (rc == EOK)
-		return (int) ret;
+		rc = ret;
 	
-	return (int) rc;
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	
+	return 0;
 }
 
-int fd_wait(void)
+int vfs_fd_wait(void)
 {
 	async_exch_t *exch = vfs_exchange_begin();
 	
@@ -842,7 +1140,7 @@ int fd_wait(void)
 	return (int) rc;
 }
 
-int get_mtab_list(list_t *mtab_list)
+int vfs_get_mtab_list(list_t *mtab_list)
 {
 	sysarg_t rc;
 	aid_t req;
@@ -862,7 +1160,7 @@ int get_mtab_list(list_t *mtab_list)
 		mtab_ent_t *mtab_ent;
 
 		mtab_ent = malloc(sizeof(mtab_ent_t));
-		if (!mtab_ent) {
+		if (mtab_ent == NULL) {
 			rc = ENOMEM;
 			goto exit;
 		}
@@ -903,15 +1201,23 @@ exit:
 	return rc;
 }
 
+/** Get filesystem statistics.
+ *
+ * @param path Mount point path
+ * @param st Buffer for storing information
+ * @return 0 on success. On error -1 is returned and errno is set.
+ */
 int statfs(const char *path, struct statfs *st)
 {
 	sysarg_t rc, rc_orig;
 	aid_t req;
 	size_t pa_size;
 
-	char *pa = absolutize(path, &pa_size);
-	if (!pa)
-		return ENOMEM;
+	char *pa = vfs_absolutize(path, &pa_size);
+	if (pa == NULL) {
+		errno = ENOMEM;
+		return -1;
+	}
 
 	async_exch_t *exch = vfs_exchange_begin();
 
@@ -926,7 +1232,14 @@ exit:
 	vfs_exchange_end(exch);
 	free(pa);
 	async_wait_for(req, &rc_orig);
-	return (int) (rc_orig != EOK ? rc_orig : rc);
+	rc = (rc_orig != EOK ? rc_orig : rc);
+
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+
+	return 0;
 }
 
 /** @}

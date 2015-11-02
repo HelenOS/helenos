@@ -135,8 +135,7 @@ main(int argc, char **argv)
 	}
 
 	/* Connect to the device */
-	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE,
-	    svc_id, 0);
+	async_sess_t *sess = loc_service_connect(svc_id, INTERFACE_DDF, 0);
 	if (!sess) {
 		printf(NAME ": Cannot connect to the device\n");
 		goto exit;

@@ -92,7 +92,7 @@ int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 		return rc;
 	
 	async_sess_t *hcd_sess =
-	    devman_device_connect(EXCHANGE_SERIALIZE, handle, 0);
+	    devman_device_connect(handle, 0);
 	if (!hcd_sess)
 		return ENOMEM;
 	
@@ -100,7 +100,11 @@ int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 	dev->vhc_sess = hcd_sess;
 	
 	async_exch_t *exch = async_exchange_begin(hcd_sess);
-	rc = async_connect_to_me(exch, 0, 0, 0, callback_connection, NULL);
+	
+	port_id_t port;
+	rc = async_create_callback_port(exch, INTERFACE_USBVIRT_CB, 0, 0,
+	    callback_connection, NULL, &port);
+	
 	async_exchange_end(exch);
 	
 	if (rc != EOK)

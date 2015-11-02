@@ -305,7 +305,7 @@ static int inet_addr_parse_v4(const char *str, inet_addr_t *raddr,
 
 		i++;
 
-		if (*cur == '\0')
+		if (*cur == '\0' || *cur == '/')
 			break;
 
 		if (*cur != '.')
@@ -316,6 +316,10 @@ static int inet_addr_parse_v4(const char *str, inet_addr_t *raddr,
 	}
 
 	if (prefix != NULL) {
+		if (*cur != '/')
+			return EINVAL;
+		cur++;
+
 		*prefix = strtoul(cur, &cur, 10);
 		if (*prefix > 32)
 			return EINVAL;

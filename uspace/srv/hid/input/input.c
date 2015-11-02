@@ -744,8 +744,8 @@ int main(int argc, char **argv)
 	
 	if (irc_service) {
 		while (irc_sess == NULL)
-			irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-			    SERVICE_IRC, 0, 0);
+			irc_sess = service_connect_blocking(SERVICE_IRC,
+			    INTERFACE_IRC, 0);
 	}
 	
 	/* Add legacy keyboard devices. */
@@ -757,7 +757,7 @@ int main(int argc, char **argv)
 	/* Register driver */
 	async_set_client_data_constructor(client_data_create);
 	async_set_client_data_destructor(client_data_destroy);
-	async_set_client_connection(client_connection);
+	async_set_fallback_port_handler(client_connection, NULL);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {

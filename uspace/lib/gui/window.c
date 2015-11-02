@@ -622,8 +622,8 @@ window_t *window_open(const char *winreg, window_flags_t flags,
 		return NULL;
 	}
 	
-	async_sess_t *reg_sess = loc_service_connect(EXCHANGE_SERIALIZE,
-	    reg_dsid, 0);
+	async_sess_t *reg_sess =
+	    loc_service_connect(reg_dsid, INTERFACE_COMPOSITOR, 0);
 	if (reg_sess == NULL) {
 		free(win);
 		return NULL;
@@ -638,13 +638,13 @@ window_t *window_open(const char *winreg, window_flags_t flags,
 		return NULL;
 	}
 	
-	win->osess = loc_service_connect(EXCHANGE_SERIALIZE, out_dsid, 0);
+	win->osess = loc_service_connect(out_dsid, INTERFACE_COMPOSITOR, 0);
 	if (win->osess == NULL) {
 		free(win);
 		return NULL;
 	}
 	
-	win->isess = loc_service_connect(EXCHANGE_SERIALIZE, in_dsid, 0);
+	win->isess = loc_service_connect(in_dsid, INTERFACE_COMPOSITOR, 0);
 	if (win->isess == NULL) {
 		async_hangup(win->osess);
 		free(win);

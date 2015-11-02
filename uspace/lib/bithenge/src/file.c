@@ -113,7 +113,7 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 
 	struct stat stat;
 	int rc = fstat(fd, &stat);
-	if (rc != EOK) {
+	if (rc != 0) {
 		if (needs_close)
 			close(fd);
 		return rc;
@@ -156,7 +156,7 @@ int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 
 	int fd = open(filename, O_RDONLY);
 	if (fd < 0)
-		return fd;
+		return errno;
 
 	return new_file_blob(out, fd, true);
 }

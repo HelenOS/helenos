@@ -32,6 +32,7 @@
 /** @file Virtual Block Device client API
  */
 
+#include <abi/ipc/interfaces.h>
 #include <errno.h>
 #include <ipc/services.h>
 #include <ipc/vbd.h>
@@ -64,7 +65,7 @@ int vbd_create(vbd_t **rvbd)
 		goto error;
 	}
 
-	vbd->sess = loc_service_connect(EXCHANGE_SERIALIZE, vbd_svcid,
+	vbd->sess = loc_service_connect(vbd_svcid, INTERFACE_VBD,
 	    IPC_FLAG_BLOCKING);
 	if (vbd->sess == NULL) {
 		rc = EIO;

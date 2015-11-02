@@ -52,9 +52,9 @@ typedef struct list {
 } list_t;
 
 
-extern int list_member(const link_t *, const list_t *);
+extern bool list_member(const link_t *, const list_t *);
 extern void list_splice(list_t *, link_t *);
-extern unsigned int list_count(const list_t *);
+extern unsigned long list_count(const list_t *);
 
 
 /** Declare and initialize statically allocated list.
@@ -219,7 +219,7 @@ NO_TRACE static inline void list_remove(link_t *link)
  * @param list Pointer to lins_t structure.
  *
  */
-NO_TRACE static inline int list_empty(const list_t *list)
+NO_TRACE static inline bool list_empty(const list_t *list)
 {
 	return (list->head.next == &list->head);
 }
@@ -352,9 +352,9 @@ NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
  * @return NULL if no n-th item found.
  *
  */
-static inline link_t *list_nth(list_t *list, unsigned int n)
+static inline link_t *list_nth(list_t *list, unsigned long n)
 {
-	unsigned int cnt = 0;
+	unsigned long cnt = 0;
 	link_t *link;
 	
 	link = list_first(list);

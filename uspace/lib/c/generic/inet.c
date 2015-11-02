@@ -47,7 +47,11 @@ static int inet_callback_create(void)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, INET_CALLBACK_CREATE, &answer);
-	int rc = async_connect_to_me(exch, 0, 0, 0, inet_cb_conn, NULL);
+	
+	port_id_t port;
+	int rc = async_create_callback_port(exch, INTERFACE_INET_CB, 0, 0,
+	    inet_cb_conn, NULL, &port);
+	
 	async_exchange_end(exch);
 	
 	if (rc != EOK)
@@ -82,7 +86,7 @@ int inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 	if (rc != EOK)
 		return ENOENT;
 	
-	inet_sess = loc_service_connect(EXCHANGE_SERIALIZE, inet_svc,
+	inet_sess = loc_service_connect(inet_svc, INTERFACE_INET,
 	    IPC_FLAG_BLOCKING);
 	if (inet_sess == NULL)
 		return ENOENT;

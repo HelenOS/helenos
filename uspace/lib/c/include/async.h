@@ -47,21 +47,24 @@
 #include <abi/proc/task.h>
 #include <abi/ddi/irq.h>
 #include <abi/ipc/event.h>
+#include <abi/ipc/interfaces.h>
 
 typedef ipc_callid_t aid_t;
+typedef sysarg_t port_id_t;
 
 typedef void *(*async_client_data_ctor_t)(void);
 typedef void (*async_client_data_dtor_t)(void *);
 
-/** Client connection handler
+/** Port connection handler
  *
  * @param callid ID of incoming call or 0 if connection initiated from
- *               inside using async_connect_to_me()
+ *               inside using async_create_callback_port()
  * @param call   Incoming call or 0 if connection initiated from inside
- * @param arg    Local argument passed from async_new_connection() or
- *               async_connect_to_me()
+ *               using async_create_callback_port()
+ * @param arg    Local argument.
+ *
  */
-typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *, void *);
+typedef void (*async_port_handler_t)(ipc_callid_t, ipc_call_t *, void *);
 
 /** Notification handler */
 typedef void (*async_notification_handler_t)(ipc_callid_t, ipc_call_t *,
@@ -79,6 +82,14 @@ typedef enum {
 	 */
 	EXCHANGE_ATOMIC = 0,
 	
+	/** Exchange management via mutual exclusion
+	 *
+	 * Suitable for any kind of client/server communication,
+	 * but can limit parallelism.
+	 *
+	 */
+	EXCHANGE_SERIALIZE = 1,
+	
 	/** Exchange management via phone cloning
 	 *
 	 * Suitable for servers which support client
@@ -86,15 +97,7 @@ typedef enum {
 	 * mind cloned phones.
 	 *
 	 */
-	EXCHANGE_PARALLEL,
-	
-	/** Exchange management via mutual exclusion
-	 *
-	 * Suitable for any kind of client/server communication,
-	 * but can limit parallelism.
-	 *
-	 */
-	EXCHANGE_SERIALIZE
+	EXCHANGE_PARALLEL = 2
 } exch_mgmt_t;
 
 /** Forward declarations */
@@ -146,9 +149,6 @@ extern void async_wait_for(aid_t, sysarg_t *);
 extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
 extern void async_forget(aid_t);
 
-extern fid_t async_new_connection(task_id_t, sysarg_t, ipc_callid_t,
-    ipc_call_t *, async_client_conn_t, void *);
-
 extern void async_usleep(suseconds_t);
 extern void async_create_manager(void);
 extern void async_destroy_manager(void);
@@ -159,7 +159,12 @@ extern void *async_get_client_data(void);
 extern void *async_get_client_data_by_id(task_id_t);
 extern void async_put_client_data_by_id(task_id_t);
 
-extern void async_set_client_connection(async_client_conn_t);
+extern int async_create_port(iface_t, async_port_handler_t, void *,
+    port_id_t *);
+extern void async_set_fallback_port_handler(async_port_handler_t, void *);
+extern int async_create_callback_port(async_exch_t *, iface_t, sysarg_t,
+    sysarg_t, async_port_handler_t, void *, port_id_t *);
+
 extern void async_set_notification_handler_stack_size(size_t);
 
 extern int async_irq_subscribe(int, int, async_notification_handler_t, void *,
@@ -342,12 +347,15 @@ extern sysarg_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern async_sess_t *async_clone_establish(exch_mgmt_t, async_exch_t *);
 extern async_sess_t *async_connect_me_to(exch_mgmt_t, async_exch_t *, sysarg_t,
     sysarg_t, sysarg_t);
+extern async_sess_t *async_connect_me_to_iface(async_exch_t *, iface_t,
+    sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_me_to_blocking(exch_mgmt_t, async_exch_t *,
     sysarg_t, sysarg_t, sysarg_t);
+extern async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *, iface_t,
+    sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_kbox(task_id_t);
 
-extern int async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
-    async_client_conn_t, void *);
+extern int async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t);
 
 extern int async_hangup(async_sess_t *);
 extern void async_poke(void);

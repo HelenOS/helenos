@@ -35,7 +35,11 @@
 #ifndef LIBMATH_TRIG_H_
 #define LIBMATH_TRIG_H_
 
+#include <mathtypes.h>
+
+extern float32_t float32_sin(float32_t);
 extern float64_t float64_sin(float64_t);
+extern float32_t float32_cos(float32_t);
 extern float64_t float64_cos(float64_t);
 
 #endif

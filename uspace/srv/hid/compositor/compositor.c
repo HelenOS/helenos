@@ -895,7 +895,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_call_t call;
 	ipc_callid_t callid;
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*icall);
+	service_id_t service_id = (service_id_t) IPC_GET_ARG2(*icall);
 
 	/* Allocate resources for new window and register it to the location service. */
 	if (service_id == winreg_id) {
@@ -1174,14 +1174,18 @@ static async_sess_t *vsl_connect(service_id_t sid, const char *svc)
 	int rc;
 	async_sess_t *sess;
 
-	sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
+	sess = loc_service_connect(sid, INTERFACE_DDF, 0);
 	if (sess == NULL) {
 		printf("%s: Unable to connect to visualizer %s\n", NAME, svc);
 		return NULL;
 	}
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_connect_to_me(exch, sid, 0, 0, vsl_notifications, NULL);
+	
+	port_id_t port;
+	rc = async_create_callback_port(exch, INTERFACE_VISUALIZER_CB, 0, 0,
+	    vsl_notifications, NULL, &port);
+	
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -2144,7 +2148,7 @@ static int input_connect(const char *svc)
 		return rc;
 	}
 
-	sess = loc_service_connect(EXCHANGE_ATOMIC, dsid, 0);
+	sess = loc_service_connect(dsid, INTERFACE_INPUT, 0);
 	if (sess == NULL) {
 		printf("%s: Unable to connect to input service %s\n", NAME,
 		    svc);
@@ -2239,7 +2243,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	bg_color = PIXEL(255, 69, 51, 103);
 	
 	/* Register compositor server. */
-	async_set_client_connection(client_connection);
+	async_set_fallback_port_handler(client_connection, NULL);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {

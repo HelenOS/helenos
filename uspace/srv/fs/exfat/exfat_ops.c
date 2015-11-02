@@ -1066,7 +1066,7 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		cmode = CACHE_MODE_WB;
 
 	/* initialize libblock */
-	rc = block_init(EXCHANGE_SERIALIZE, service_id, BS_SIZE);
+	rc = block_init(service_id, BS_SIZE);
 	if (rc != EOK)
 		return rc;
 

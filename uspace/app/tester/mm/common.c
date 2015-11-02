@@ -308,7 +308,7 @@ mem_block_t *get_random_block(void)
 	if (mem_blocks_count == 0)
 		return NULL;
 	
-	unsigned int idx = rand() % mem_blocks_count;
+	unsigned long idx = rand() % mem_blocks_count;
 	link_t *entry = list_nth(&mem_blocks, idx);
 	
 	if (entry == NULL) {

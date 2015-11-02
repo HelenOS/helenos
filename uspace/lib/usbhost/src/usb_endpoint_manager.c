@@ -252,7 +252,7 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 	    find_locked(instance, ep->address, ep->endpoint, ep->direction);
 	if (endpoint != NULL) {
 		fibril_mutex_unlock(&instance->guard);
-		return EEXISTS;
+		return EEXIST;
 	}
 	list_append(&ep->link, get_list(instance, ep->address));
 
@@ -338,7 +338,7 @@ int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
 	endpoint_t *ep = find_locked(instance, address, endpoint, direction);
 	if (ep != NULL) {
 		fibril_mutex_unlock(&instance->guard);
-		return EEXISTS;
+		return EEXIST;
 	}
 
 	ep = endpoint_create(

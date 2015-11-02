@@ -35,13 +35,16 @@
 
 #include <ipc/common.h>
 #include <sys/types.h>
+#include <ipc/services.h>
+#include <abi/ipc/interfaces.h>
 #include <stdbool.h>
 
 extern int clonable_init(void);
 
-extern bool service_clonable(int);
-extern void register_clonable(sysarg_t, sysarg_t, ipc_call_t *, ipc_callid_t);
-extern void connect_to_clonable(sysarg_t, ipc_call_t *, ipc_callid_t);
+extern bool service_clonable(service_t);
+extern void register_clonable(service_t, sysarg_t, ipc_call_t *,
+    ipc_callid_t);
+extern void connect_to_clonable(service_t, iface_t, ipc_call_t *, ipc_callid_t);
 
 #endif
 

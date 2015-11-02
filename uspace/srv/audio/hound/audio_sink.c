@@ -102,7 +102,7 @@ int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 	assert(format);
 	if (!pcm_format_is_any(&sink->format)) {
 		log_debug("Sink %s already has a format", sink->name);
-		return EEXISTS;
+		return EEXIST;
 	}
 	const pcm_format_t old_format = sink->format;
 
