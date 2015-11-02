@@ -457,6 +457,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 	label->lt.gpt.ptable_ba[1] = ptba[1];
 	label->lt.gpt.esize = esize;
 	label->lt.gpt.pt_blocks = pt_blocks;
+	label->lt.gpt.pt_crc = pt_crc;
 	label->lt.gpt.hdr_size = sizeof(gpt_header_t);
 
 	*rlabel = label;
@@ -831,6 +832,7 @@ static int gpt_pte_update(label_t *label, gpt_entry_t *pte, int index)
 		}
 	}
 
+	label->lt.gpt.pt_crc = crc;
 	free(buf);
 	return EOK;
 error:
