@@ -63,10 +63,6 @@ static int vbds_init(void)
 	if (rc != EOK)
 		return rc;
 
-	rc = vbds_disk_discovery_start();
-	if (rc != EOK)
-		return rc;
-
 	async_set_client_connection(vbds_client_conn);
 
 	rc = loc_server_register(NAME);
@@ -80,6 +76,10 @@ static int vbds_init(void)
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
+
+	rc = vbds_disk_discovery_start();
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 }
