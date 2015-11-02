@@ -38,7 +38,7 @@
 #include <str.h>
 #include <sysman/unit.h>
 
-#include "dep.h"
+#include "edge.h"
 #include "log.h"
 #include "sysman.h"
 #include "unit.h"
@@ -71,8 +71,8 @@ static void unit_init(unit_t *unit, unit_type_t type)
 
 	link_initialize(&unit->units);
 	link_initialize(&unit->bfs_link);
-	list_initialize(&unit->dependants);
-	list_initialize(&unit->dependencies);
+	list_initialize(&unit->edges_in);
+	list_initialize(&unit->edges_out);
 
 	UNIT_VMT(unit)->init(unit);
 }
@@ -158,6 +158,7 @@ void unit_notify_state(unit_t *unit)
 	sysman_raise_event(&sysman_event_unit_state_changed, unit);
 }
 
+// TODO move to libsysman
 unit_type_t unit_type_name_to_type(const char *type_name)
 {
 	if (str_cmp(type_name, UNIT_CFG_TYPE_NAME) == 0)
@@ -198,7 +199,7 @@ bool unit_parse_unit_list(const char *string, void *dst, text_parse_t *parse,
 	char *cur_tok;
 
 	while ((cur_tok = str_tok(to_split, " ", &to_split))) {
-		if (dep_sprout_dependency(unit, cur_tok) != EOK) {
+		if (edge_sprout_out(unit, cur_tok) != EOK) {
 			result = false;
 			goto finish;
 		}

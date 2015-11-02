@@ -39,7 +39,7 @@
 #include "repo.h"
 #include "connection_broker.h"
 #include "connection_ctl.h"
-#include "dep.h"
+#include "edge.h"
 #include "job.h"
 #include "log.h"
 #include "sysman.h"
@@ -136,12 +136,12 @@ static int create_entry_configuration(void) {
 	repo_add_unit(cfg_init);
 	repo_add_unit(tgt_init);
 
-	rc = dep_add_dependency(tgt_init, cfg_init);
+	rc = edge_connect(tgt_init, cfg_init);
 	if (rc != EOK) {
 		goto rollback;
 	}
 
-	rc = dep_add_dependency(cfg_init, mnt_initrd);
+	rc = edge_connect(cfg_init, mnt_initrd);
 	if (rc != EOK) {
 		goto rollback;
 	}

@@ -139,9 +139,9 @@ PCUT_TEST(job_closure_linear) {
 	/*
 	 * u0 -> u1 -> u2 -> u3
 	 */
-	mock_add_dependency(u0, u1);
-	mock_add_dependency(u1, u2);
-	mock_add_dependency(u2, u3);
+	mock_add_edge(u0, u1);
+	mock_add_edge(u1, u2);
+	mock_add_edge(u2, u3);
 
 	/* Intentionally omit u0 */
 	job_t *main_job = job_create(u1, STATE_STARTED);
@@ -171,9 +171,9 @@ PCUT_TEST(job_closure_fork) {
 	 * u0 -> u1 ->  u2
 	 *          \-> u3
 	 */
-	mock_add_dependency(u0, u1);
-	mock_add_dependency(u1, u2);
-	mock_add_dependency(u1, u3);
+	mock_add_edge(u0, u1);
+	mock_add_edge(u1, u2);
+	mock_add_edge(u1, u3);
 
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);
@@ -203,10 +203,10 @@ PCUT_TEST(job_closure_triangle) {
 	 *         \     v
 	 *          \-> u3
 	 */
-	mock_add_dependency(u0, u1);
-	mock_add_dependency(u1, u2);
-	mock_add_dependency(u1, u3);
-	mock_add_dependency(u2, u3);
+	mock_add_edge(u0, u1);
+	mock_add_edge(u1, u2);
+	mock_add_edge(u1, u3);
+	mock_add_edge(u2, u3);
 
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);

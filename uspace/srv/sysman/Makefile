@@ -39,7 +39,7 @@ STATIC_NEEDED = y
 SYSMAN_SOURCES = \
 	connection_broker.c \
 	connection_ctl.c \
-	dep.c \
+	edge.c \
 	job.c \
 	log.c \
 	repo.c \

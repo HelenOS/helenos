@@ -28,7 +28,7 @@
 
 #include <assert.h>
 
-#include "../dep.h"
+#include "../edge.h"
 
 #include "mock_unit.h"
 
@@ -75,15 +75,15 @@ void mock_set_units_state(unit_state_t state)
 	}
 }
 
-void mock_add_dependency(unit_t *dependant, unit_t *dependency)
+void mock_add_edge(unit_t *input, unit_t *output)
 {
-	int rc = dep_add_dependency(dependant, dependency);
+	int rc = edge_connect(input, output);
 	assert(rc == EOK);
 
-	link_t *link = list_last(&dependant->dependencies);
-	unit_dependency_t *dep =
-	    list_get_instance(link, unit_dependency_t, dependencies);
-	dep->state = DEP_VALID;
+	link_t *link = list_last(&input->edges_out);
+	unit_edge_t *e =
+	    list_get_instance(link, unit_edge_t, edges_out);
+	e->commited = true;
 }
 
 int mock_unit_vmt_start_sync(unit_t *unit)

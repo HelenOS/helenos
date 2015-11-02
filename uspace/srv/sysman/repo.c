@@ -34,7 +34,7 @@
 #include <fibril_synch.h>
 
 #include "repo.h"
-#include "dep.h"
+#include "edge.h"
 #include "log.h"
 
 // TODO rename to repository (dynamic nature of units storage, and do not name it godlike Manager :-)
@@ -147,15 +147,12 @@ void repo_begin_update(void) {
 static bool repo_commit_unit(ht_link_t *ht_link, void *arg)
 {
 	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
-	// TODO state locking?
 	if (unit->state == STATE_EMBRYO) {
 		unit->state = STATE_STOPPED;
 	}
 
-	list_foreach(unit->dependencies, dependencies, unit_dependency_t, dep) {
-		if (dep->state == DEP_EMBRYO) {
-			dep->state = DEP_VALID;
-		}
+	list_foreach(unit->edges_out, edges_out, unit_edge_t, e) {
+		e->commited = true;
 	}
 	return true;
 }
@@ -176,11 +173,11 @@ static bool repo_rollback_unit(ht_link_t *ht_link, void *arg)
 {
 	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
 
-	list_foreach_safe(unit->dependencies, cur_link, next_link) {
-		unit_dependency_t *dep =
-		    list_get_instance(cur_link, unit_dependency_t, dependencies);
-		if (dep->state == DEP_EMBRYO) {
-			dep_remove_dependency(&dep);
+	list_foreach_safe(unit->edges_out, cur_link, next_link) {
+		unit_edge_t *e =
+		    list_get_instance(cur_link, unit_edge_t, edges_out);
+		if (!e->commited) {
+			edge_remove(&e);
 		}
 	}
 
@@ -209,23 +206,23 @@ static bool repo_resolve_unit(ht_link_t *ht_link, void *arg)
 	bool *has_error_ptr = arg;
 	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
 
-	list_foreach(unit->dependencies, dependencies, unit_dependency_t, dep) {
-		assert(dep->dependant == unit);
-		assert((dep->dependency != NULL) != (dep->dependency_name != NULL));
-		if (dep->dependency) {
+	list_foreach(unit->edges_out, edges_out, unit_edge_t, e) {
+		assert(e->input == unit);
+		assert((e->output != NULL) != (e->output_name != NULL));
+		if (e->output) {
 			continue;
 		}
 
-		unit_t *dependency =
-		    repo_find_unit_by_name(dep->dependency_name);
-		if (dependency == NULL) {
+		unit_t *output =
+		    repo_find_unit_by_name(e->output_name);
+		if (output == NULL) {
 			sysman_log(LVL_ERROR,
 			    "Cannot resolve dependency of '%s' to unit '%s'",
-			    unit_name(unit), dep->dependency_name);
+			    unit_name(unit), e->output_name);
 			*has_error_ptr = true;
 			// TODO should we just leave the sprout untouched?
 		} else {
-			dep_resolve_dependency(dep, dependency);
+			edge_resolve_output(e, output);
 		}
 	}
 
@@ -237,7 +234,7 @@ static bool repo_resolve_unit(ht_link_t *ht_link, void *arg)
  * @return EOK      on success
  * @return ENOENT  when one or more resolution fails, information is logged
  */
-int repo_resolve_dependecies(void)
+int repo_resolve_references(void)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 

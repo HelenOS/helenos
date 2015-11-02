@@ -181,7 +181,7 @@ static int cfg_load_configuration(const char *path)
 	}
 	closedir(dir);
 
-	int rc = repo_resolve_dependecies();
+	int rc = repo_resolve_references();
 	if (rc != EOK) {
 		repo_rollback();
 		return rc;

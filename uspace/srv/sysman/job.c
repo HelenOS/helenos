@@ -32,7 +32,7 @@
 #include <stdlib.h>
 
 #include "repo.h"
-#include "dep.h"
+#include "edge.h"
 #include "job.h"
 #include "log.h"
 #include "sysman.h"
@@ -410,8 +410,8 @@ int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
 		 * According to dependency type and edge direction create
 		 * appropriate jobs (currently "After" only).
 		 */
-		list_foreach(unit->dependencies, dependencies, unit_dependency_t, dep) {
-			unit_t *u = dep->dependency;
+		list_foreach(unit->edges_out, edges_out, unit_edge_t, e) {
+			unit_t *u = e->output;
 			job_t *blocking_job;
 
 			if (u->bfs_job == NULL) {

@@ -31,79 +31,77 @@
 #include <stdlib.h>
 #include <str.h>
 
-#include "dep.h"
+#include "edge.h"
 
-static void dep_dependency_init(unit_dependency_t *dep)
+static void edge_init(unit_edge_t *e)
 {
-	memset(dep, 0, sizeof(*dep));
-	link_initialize(&dep->dependants);
-	link_initialize(&dep->dependencies);
-
-	dep->state = DEP_EMBRYO;
+	memset(e, 0, sizeof(*e));
+	link_initialize(&e->edges_in);
+	link_initialize(&e->edges_out);
 }
 
-unit_dependency_t *dep_dependency_create(void)
+unit_edge_t *edge_create(void)
 {
-	unit_dependency_t *dep = malloc(sizeof(unit_dependency_t));
-	if (dep) {
-		dep_dependency_init(dep);
+	unit_edge_t *e = malloc(sizeof(unit_edge_t));
+	if (e) {
+		edge_init(e);
 	}
-	return dep;
+	return e;
 }
 
-void dep_dependency_destroy(unit_dependency_t **dep_ptr)
+void edge_destroy(unit_edge_t **e_ptr)
 {
-	unit_dependency_t *dep = *dep_ptr;
-	if (dep == NULL) {
+	unit_edge_t *e = *e_ptr;
+	if (e == NULL) {
 		return;
 	}
 
-	list_remove(&dep->dependencies);
-	list_remove(&dep->dependants);
+	list_remove(&e->edges_in);
+	list_remove(&e->edges_out);
 
-	free(dep->dependency_name);
-	free(dep);
+	free(e->output_name);
+	free(e);
 
-	*dep_ptr = NULL;
+	*e_ptr = NULL;
 }
 
-int dep_sprout_dependency(unit_t *dependant, const char *dependency_name)
+int edge_sprout_out(unit_t *input, const char *output_name)
 {
-	unit_dependency_t *dep = dep_dependency_create();
+	unit_edge_t *e = edge_create();
 	int rc;
 
-	if (dep == NULL) {
+	if (e == NULL) {
 		rc = ENOMEM;
 		goto finish;
 	}
 
-	dep->dependency_name = str_dup(dependency_name);
-	if (dep->dependency_name == NULL) {
+	e->output_name = str_dup(output_name);
+	if (e->output_name == NULL) {
 		rc = ENOMEM;
 		goto finish;
 	}
 
-	list_append(&dep->dependencies, &dependant->dependencies);
-	dep->dependant = dependant;
+	list_append(&e->edges_out, &input->edges_out);
+	e->input = input;
 
 	rc = EOK;
 
 finish:
 	if (rc != EOK) {
-		dep_dependency_destroy(&dep);
+		edge_destroy(&e);
 	}
 	return rc;
 }
 
-void dep_resolve_dependency(unit_dependency_t *dep, unit_t *unit)
+void edge_resolve_output(unit_edge_t *e, unit_t *unit)
 {
-	assert(dep->dependency == NULL);
-	assert(dep->dependency_name != NULL);
+	assert(e->output == NULL);
+	assert(e->output_name != NULL);
 
-	// TODO add to other side dependants list
-	dep->dependency = unit;
-	free(dep->dependency_name);
-	dep->dependency_name = NULL;
+	// TODO add to other side edges_in list
+	e->output = unit;
+	free(e->output_name);
+	e->output_name = NULL;
 }
 
 
@@ -111,31 +109,31 @@ void dep_resolve_dependency(unit_dependency_t *dep, unit_t *unit)
  * @return        EOK on success
  * @return        ENOMEM
  */
-int dep_add_dependency(unit_t *dependant, unit_t *dependency)
+int edge_connect(unit_t *input, unit_t *output)
 {
-	unit_dependency_t *dep = dep_dependency_create();
-	if (dep == NULL) {
+	unit_edge_t *e = edge_create();
+	if (e == NULL) {
 		return ENOMEM;
 	}
 
-	// TODO check existence of the dep
+	// TODO check existence of the e
 	// TODO locking
 	// TODO check types and states of connected units
-	list_append(&dep->dependants, &dependency->dependants);
-	list_append(&dep->dependencies, &dependant->dependencies);
+	list_append(&e->edges_in, &output->edges_in);
+	list_append(&e->edges_out, &input->edges_out);
 
-	dep->dependant = dependant;
-	dep->dependency = dependency;
+	e->input = input;
+	e->output = output;
 	return EOK;
 }
 
-/** Remove dependency from dependency graph
+/** Remove output from output graph
  *
- * Given dependency is removed from graph and unallocated.
+ * Given output is removed from graph and unallocated.
  */
-void dep_remove_dependency(unit_dependency_t **dep_ptr)
+void edge_remove(unit_edge_t **e_ptr)
 {
 	// TODO here should be some checks, othewise replace this wrapper with
 	//      direct destroy
-	dep_dependency_destroy(dep_ptr);
+	edge_destroy(e_ptr);
 }

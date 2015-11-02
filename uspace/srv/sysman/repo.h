@@ -46,7 +46,7 @@ extern void repo_commit(void);
 
 extern void repo_rollback(void);
 
-extern int repo_resolve_dependecies(void);
+extern int repo_resolve_references(void);
 
 extern unit_t *repo_find_unit_by_name(const char *);
 extern unit_t *repo_find_unit_by_handle(unit_handle_t);

@@ -66,7 +66,7 @@ typedef enum {
 } unit_type_t;
 
 typedef enum {
-	STATE_EMBRYO = 0,
+	STATE_EMBRYO = 0, // embryo is orthogonal to states (again convergence to systemd...)
 	STATE_STARTING,
 	STATE_STARTED,
 	STATE_STOPPED,

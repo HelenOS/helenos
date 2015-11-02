@@ -73,8 +73,8 @@ typedef struct {
 
 	unit_state_t state;
 
-	list_t dependencies;
-	list_t dependants;
+	list_t edges_in;
+	list_t edges_out;
 } unit_t;
 
 #include "unit_cfg.h"

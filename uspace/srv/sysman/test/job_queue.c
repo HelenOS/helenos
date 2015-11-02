@@ -130,11 +130,11 @@ PCUT_TEST(multipath_to_started_unit) {
 	unit_t *m0 = mock_units[UNIT_MOUNT][0];
 
 	/* All services require root fs */
-	mock_add_dependency(s0, m0);
-	mock_add_dependency(s1, m0);
+	mock_add_edge(s0, m0);
+	mock_add_edge(s1, m0);
 	
 	/* S1 requires another mount and S0 */
-	mock_add_dependency(s1, s0);
+	mock_add_edge(s1, s0);
 
 	/* Enforce initial state */
 	m0->state = STATE_STARTED;
