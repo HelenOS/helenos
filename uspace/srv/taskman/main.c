@@ -155,7 +155,7 @@ static void taskman_i_am_ns(ipc_callid_t iid, ipc_call_t *icall)
 		printf("%s: Cannot connect to NS\n", NAME);
 	}
 
-	fibril_condvar_signal(&session_ns_cv);
+	fibril_condvar_broadcast(&session_ns_cv);
 finish:
 	fibril_mutex_unlock(&session_ns_mtx);
 	async_answer_0(iid, rc);
