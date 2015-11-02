@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <str.h>
 
-#include "configuration.h"
+#include "repo.h"
 #include "connection_ctl.h"
 #include "job.h"
 #include "log.h"
@@ -78,7 +78,7 @@ static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
 	sysman_log(LVL_DEBUG2, "%s(%s, %x)", __func__, unit_name, flags);
 
 	// TODO this is connection fibril, UNSYNCHRONIZED access to units!
-	unit_t *unit = configuration_find_unit_by_name(unit_name);
+	unit_t *unit = repo_find_unit_by_name(unit_name);
 	if (unit == NULL) {
 		sysman_log(LVL_NOTE, "Unit '%s' not found.", unit_name);
 		retval = ENOENT;
@@ -179,7 +179,7 @@ static void sysman_unit_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	// TODO UNSYNCHRONIZED access to units!
-	unit_t *u = configuration_find_unit_by_handle(IPC_GET_ARG1(*icall));
+	unit_t *u = repo_find_unit_by_handle(IPC_GET_ARG1(*icall));
 	if (u == NULL) {
 		async_answer_0(callid, ENOENT);
 		async_answer_0(iid, ENOENT);
@@ -195,7 +195,7 @@ static void sysman_unit_get_name(ipc_callid_t iid, ipc_call_t *icall)
 static void sysman_unit_get_state(ipc_callid_t iid, ipc_call_t *icall)
 {
 	// TODO UNSYNCHRONIZED access to units!
-	unit_t *u = configuration_find_unit_by_handle(IPC_GET_ARG1(*icall));
+	unit_t *u = repo_find_unit_by_handle(IPC_GET_ARG1(*icall));
 	if (u == NULL) {
 		async_answer_0(iid, ENOENT);
 	} else {

@@ -37,7 +37,7 @@
 #include <str.h>
 #include <sysman/unit.h>
 
-#include "configuration.h"
+#include "repo.h"
 #include "log.h"
 #include "unit.h"
 #include "util.h"
@@ -81,7 +81,7 @@ static int cfg_parse_file(const char *dirname, const char *filename,
 		goto finish;
 	}
 	
-	unit_t *u = configuration_find_unit_by_name(unit_name);
+	unit_t *u = repo_find_unit_by_name(unit_name);
 	if (u != NULL) {
 		// TODO allow updating configuration of existing unit
 		rc = EEXISTS;
@@ -161,7 +161,7 @@ static int cfg_load_configuration(const char *path)
 		return EIO;
 	}
 
-	configuration_start_update();
+	repo_begin_update();
 
 	while ((de = readdir(dir))) {
 		unit_t *unit = NULL;
@@ -177,17 +177,17 @@ static int cfg_load_configuration(const char *path)
 		}
 
 		assert(unit->state == STATE_EMBRYO);
-		configuration_add_unit(unit);
+		repo_add_unit(unit);
 	}
 	closedir(dir);
 
-	int rc = configuration_resolve_dependecies();
+	int rc = repo_resolve_dependecies();
 	if (rc != EOK) {
-		configuration_rollback();
+		repo_rollback();
 		return rc;
 	}
 
-	configuration_commit();
+	repo_commit();
 	return EOK;
 }
 

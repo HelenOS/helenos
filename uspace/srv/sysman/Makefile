@@ -37,19 +37,19 @@ BINARY = sysman
 STATIC_NEEDED = y
 
 SYSMAN_SOURCES = \
-	configuration.c \
 	connection_broker.c \
 	connection_ctl.c \
 	dep.c \
 	job.c \
 	log.c \
+	repo.c \
+	sm_task.c \
 	sysman.c \
 	unit.c \
 	units/unit_cfg.c \
 	units/unit_mnt.c \
-	units/unit_tgt.c \
 	units/unit_svc.c \
-	sm_task.c \
+	units/unit_tgt.c \
 	util.c
 
 SOURCES = \

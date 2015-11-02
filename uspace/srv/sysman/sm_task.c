@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <task.h>
 
-#include "configuration.h"
+#include "repo.h"
 #include "log.h"
 #include "sysman.h"
 #include "sm_task.h"

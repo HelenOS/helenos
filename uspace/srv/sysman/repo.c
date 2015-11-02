@@ -33,7 +33,7 @@
 #include <errno.h>
 #include <fibril_synch.h>
 
-#include "configuration.h"
+#include "repo.h"
 #include "dep.h"
 #include "log.h"
 
@@ -112,15 +112,15 @@ static hash_table_ops_t units_by_name_ht_ops = {
 	.remove_callback = NULL // TODO realy unneeded?
 };
 
-/* Configuration functions */
+/* Repository functions */
 
-void configuration_init(void)
+void repo_init(void)
 {
 	hash_table_create(&units_by_name, 0, 0, &units_by_name_ht_ops);
 	hash_table_create(&units_by_handle, 0, 0, &units_by_handle_ht_ops);
 }
 
-int configuration_add_unit(unit_t *unit)
+int repo_add_unit(unit_t *unit)
 {
 	assert(unit);
 	assert(unit->state == STATE_EMBRYO);
@@ -140,11 +140,11 @@ int configuration_add_unit(unit_t *unit)
 	}
 }
 
-void configuration_start_update(void) {
+void repo_begin_update(void) {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 }
 
-static bool configuration_commit_unit(ht_link_t *ht_link, void *arg)
+static bool repo_commit_unit(ht_link_t *ht_link, void *arg)
 {
 	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
 	// TODO state locking?
@@ -161,7 +161,7 @@ static bool configuration_commit_unit(ht_link_t *ht_link, void *arg)
 }
 
 /** Marks newly added units_by_name as usable (via state change) */
-void configuration_commit(void)
+void repo_commit(void)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
@@ -169,10 +169,10 @@ void configuration_commit(void)
 	 * Apply commit to all units_by_name, each commited unit commits its outgoing
 	 * deps, thus eventually commiting all embryo deps as well.
 	 */
-	hash_table_apply(&units_by_name, &configuration_commit_unit, NULL);
+	hash_table_apply(&units_by_name, &repo_commit_unit, NULL);
 }
 
-static bool configuration_rollback_unit(ht_link_t *ht_link, void *arg)
+static bool repo_rollback_unit(ht_link_t *ht_link, void *arg)
 {
 	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
 
@@ -197,14 +197,14 @@ static bool configuration_rollback_unit(ht_link_t *ht_link, void *arg)
  *
  * Memory used by removed object is released.
  */
-void configuration_rollback(void)
+void repo_rollback(void)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
-	hash_table_apply(&units_by_name, &configuration_rollback_unit, NULL);
+	hash_table_apply(&units_by_name, &repo_rollback_unit, NULL);
 }
 
-static bool configuration_resolve_unit(ht_link_t *ht_link, void *arg)
+static bool repo_resolve_unit(ht_link_t *ht_link, void *arg)
 {
 	bool *has_error_ptr = arg;
 	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
@@ -217,7 +217,7 @@ static bool configuration_resolve_unit(ht_link_t *ht_link, void *arg)
 		}
 
 		unit_t *dependency =
-		    configuration_find_unit_by_name(dep->dependency_name);
+		    repo_find_unit_by_name(dep->dependency_name);
 		if (dependency == NULL) {
 			sysman_log(LVL_ERROR,
 			    "Cannot resolve dependency of '%s' to unit '%s'",
@@ -237,17 +237,17 @@ static bool configuration_resolve_unit(ht_link_t *ht_link, void *arg)
  * @return EOK      on success
  * @return ENOENT  when one or more resolution fails, information is logged
  */
-int configuration_resolve_dependecies(void)
+int repo_resolve_dependecies(void)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
 	bool has_error = false;
-	hash_table_apply(&units_by_name, &configuration_resolve_unit, &has_error);
+	hash_table_apply(&units_by_name, &repo_resolve_unit, &has_error);
 
 	return has_error ? ENOENT : EOK;
 }
 
-unit_t *configuration_find_unit_by_name(const char *name)
+unit_t *repo_find_unit_by_name(const char *name)
 {
 	ht_link_t *ht_link = hash_table_find(&units_by_name, (void *)name);
 	if (ht_link != NULL) {
@@ -257,7 +257,7 @@ unit_t *configuration_find_unit_by_name(const char *name)
 	}
 }
 
-unit_t *configuration_find_unit_by_handle(unit_handle_t handle)
+unit_t *repo_find_unit_by_handle(unit_handle_t handle)
 {
 	ht_link_t *ht_link = hash_table_find(&units_by_handle, &handle);
 	if (ht_link != NULL) {

@@ -30,7 +30,7 @@
 #include <ipc/sysman.h>
 #include <stdlib.h>
 
-#include "configuration.h"
+#include "repo.h"
 #include "connection_broker.h"
 #include "log.h"
 #include "sysman.h"
@@ -66,7 +66,7 @@ static void sysman_main_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
 		goto finish;
 	}
 
-	unit_t *unit = configuration_find_unit_by_name(unit_name);
+	unit_t *unit = repo_find_unit_by_name(unit_name);
 	if (unit == NULL) {
 		//sysman_log(LVL_NOTE, "Unit '%s' not found.", unit_name);
 		retval = ENOENT;

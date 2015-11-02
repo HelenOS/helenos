@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <str.h>
 
-#include "configuration.h"
+#include "repo.h"
 #include "connection_broker.h"
 #include "connection_ctl.h"
 #include "dep.h"
@@ -130,11 +130,11 @@ static int create_entry_configuration(void) {
 	/*
 	 * Add units to configuration and start the default target.
 	 */
-	configuration_start_update();
+	repo_begin_update();
 
-	configuration_add_unit(mnt_initrd);
-	configuration_add_unit(cfg_init);
-	configuration_add_unit(tgt_init);
+	repo_add_unit(mnt_initrd);
+	repo_add_unit(cfg_init);
+	repo_add_unit(tgt_init);
 
 	rc = dep_add_dependency(tgt_init, cfg_init);
 	if (rc != EOK) {
@@ -146,7 +146,7 @@ static int create_entry_configuration(void) {
 		goto rollback;
 	}
 
-	configuration_commit();
+	repo_commit();
 
 	return EOK;
 
@@ -157,7 +157,7 @@ fail:
 	return rc;
 
 rollback:
-	configuration_rollback();
+	repo_rollback();
 	return rc;
 }
 
@@ -185,7 +185,7 @@ static void prepare_and_run_job(const char **target_name_ptr)
 	}
 
 	/* Previous targets should have loaded new units */
-	unit_t *tgt = configuration_find_unit_by_name(target_name);
+	unit_t *tgt = repo_find_unit_by_name(target_name);
 	if (tgt == NULL) {
 		sysman_log(LVL_ERROR,
 		    "Expected unit '%s' not found in configuration.",
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 	 * Initialize global structures
 	 */
 	// TODO check return values and abort start
-	configuration_init();
+	repo_init();
 	sysman_events_init();
 	job_queue_init();
 	sm_task_init();

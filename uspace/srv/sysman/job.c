@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include "configuration.h"
+#include "repo.h"
 #include "dep.h"
 #include "job.h"
 #include "log.h"

@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_CONFIGURATION_H
-#define SYSMAN_CONFIGURATION_H
+#ifndef SYSMAN_REPO_H
+#define SYSMAN_REPO_H
 
 #include <adt/list.h>
 #include <ipc/sysman.h>
@@ -36,20 +36,20 @@
 
 extern list_t units;
 
-extern void configuration_init(void);
+extern void repo_init(void);
 
-extern int configuration_add_unit(unit_t *);
+extern int repo_add_unit(unit_t *);
 
-extern void configuration_start_update(void);
+extern void repo_begin_update(void);
 
-extern void configuration_commit(void);
+extern void repo_commit(void);
 
-extern void configuration_rollback(void);
+extern void repo_rollback(void);
 
-extern int configuration_resolve_dependecies(void);
+extern int repo_resolve_dependecies(void);
 
-extern unit_t *configuration_find_unit_by_name(const char *);
-extern unit_t *configuration_find_unit_by_handle(unit_handle_t);
+extern unit_t *repo_find_unit_by_name(const char *);
+extern unit_t *repo_find_unit_by_handle(unit_handle_t);
 
 
 #endif
