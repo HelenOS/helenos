@@ -71,6 +71,7 @@ DIRS = \
 	app/sbi \
 	app/sportdmp \
 	app/stats \
+	app/sysctl \
 	app/taskdump \
 	app/tester \
 	app/testread \

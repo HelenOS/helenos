@@ -30,6 +30,7 @@
 #define SYSMAN_CONFIGURATION_H
 
 #include <adt/list.h>
+#include <ipc/sysman.h>
 
 #include "unit.h"
 
@@ -48,6 +49,7 @@ extern void configuration_rollback(void);
 extern int configuration_resolve_dependecies(void);
 
 extern unit_t *configuration_find_unit_by_name(const char *);
+extern unit_t *configuration_find_unit_by_handle(unit_handle_t);
 
 
 #endif

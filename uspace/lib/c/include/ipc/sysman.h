@@ -43,7 +43,10 @@ typedef enum {
 	SYSMAN_BROKER_MAIN_EXP_ADDED,
 	SYSMAN_BROKER_EXP_ADDED,
 	SYSMAN_BROKER_EXP_REMOVED,
-	SYSMAN_CTL_UNIT_START
+	SYSMAN_CTL_UNIT_START,
+	SYSMAN_CTL_GET_UNITS,
+	SYSMAN_CTL_UNIT_GET_NAME,
+	SYSMAN_CTL_UNIT_GET_STATE
 } sysman_ipc_method_t;
 
 typedef enum {
@@ -51,6 +54,24 @@ typedef enum {
 	SYSMAN_PORT_CTL,
 	SYSMAN_PORT_MAX_
 } sysman_interface_t;
+
+typedef sysarg_t unit_handle_t;
+
+typedef enum {
+	UNIT_TYPE_INVALID = -1,
+	UNIT_CONFIGURATION = 0,
+	UNIT_MOUNT,
+	UNIT_SERVICE,
+	UNIT_TARGET
+} unit_type_t;
+
+typedef enum {
+	STATE_EMBRYO = 0,
+	STATE_STARTING,
+	STATE_STARTED,
+	STATE_STOPPED,
+	STATE_FAILED
+} unit_state_t;
 
 #endif
 

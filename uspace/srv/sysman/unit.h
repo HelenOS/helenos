@@ -38,22 +38,7 @@
 #include <conf/ini.h>
 #include <conf/text_parse.h>
 #include <fibril_synch.h>
-
-typedef enum {
-	UNIT_TYPE_INVALID = -1,
-	UNIT_CONFIGURATION = 0,
-	UNIT_MOUNT,
-	UNIT_SERVICE,
-	UNIT_TARGET
-} unit_type_t;
-
-typedef enum {
-	STATE_EMBRYO = 0,
-	STATE_STARTING,
-	STATE_STARTED,
-	STATE_STOPPED,
-	STATE_FAILED
-} unit_state_t;
+#include <ipc/sysman.h>
 
 /* Forward declarations */
 typedef struct unit_vmt unit_vmt_t;
@@ -65,6 +50,9 @@ struct job;
 typedef struct {
 	/** Link to name-to-unit hash table */
 	ht_link_t units_by_name;
+
+	/** Link to handle-to-unit hash table */
+	ht_link_t units_by_handle;
 
 	/** Link to list of all units */
 	link_t units;
@@ -79,6 +67,7 @@ typedef struct {
 	/** Job assigned to unit in transitional state */
 	job_t *job;
 
+	unit_handle_t handle;
 	unit_type_t type;
 	char *name;
 

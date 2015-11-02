@@ -42,8 +42,42 @@
 LIST_INITIALIZE(units);
 
 static hash_table_t units_by_name;
+static hash_table_t units_by_handle;
 
 /* Hash table functions */
+static size_t units_by_handle_ht_hash(const ht_link_t *item)
+{
+	unit_t *unit =
+	    hash_table_get_inst(item, unit_t, units_by_handle);
+	return unit->handle;
+}
+
+static size_t units_by_handle_ht_key_hash(void *key)
+{
+	return *(unit_handle_t *)key;
+}
+
+static bool units_by_handle_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
+{
+	return
+	    hash_table_get_inst(item1, unit_t, units_by_handle) ==
+	    hash_table_get_inst(item2, unit_t, units_by_handle);
+}
+
+static bool units_by_handle_ht_key_equal(void *key, const ht_link_t *item)
+{
+	return *(unit_handle_t *)key ==
+	    hash_table_get_inst(item, unit_t, units_by_handle)->handle;
+}
+
+static hash_table_ops_t units_by_handle_ht_ops = {
+	.hash            = &units_by_handle_ht_hash,
+	.key_hash        = &units_by_handle_ht_key_hash,
+	.equal           = &units_by_handle_ht_equal,
+	.key_equal       = &units_by_handle_ht_key_equal,
+	.remove_callback = NULL // TODO realy unneeded?
+};
+
 static size_t units_by_name_ht_hash(const ht_link_t *item)
 {
 	unit_t *unit =
@@ -58,9 +92,9 @@ static size_t units_by_name_ht_key_hash(void *key)
 
 static bool units_by_name_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
 {
-	return str_cmp(
-	    hash_table_get_inst(item1, unit_t, units_by_name)->name,
-	    hash_table_get_inst(item2, unit_t, units_by_name)->name) == 0;
+	return
+	    hash_table_get_inst(item1, unit_t, units_by_handle) ==
+	    hash_table_get_inst(item2, unit_t, units_by_handle);
 }
 
 static bool units_by_name_ht_key_equal(void *key, const ht_link_t *item)
@@ -83,16 +117,22 @@ static hash_table_ops_t units_by_name_ht_ops = {
 void configuration_init(void)
 {
 	hash_table_create(&units_by_name, 0, 0, &units_by_name_ht_ops);
+	hash_table_create(&units_by_handle, 0, 0, &units_by_handle_ht_ops);
 }
 
 int configuration_add_unit(unit_t *unit)
 {
 	assert(unit);
 	assert(unit->state == STATE_EMBRYO);
+	assert(unit->handle == 0);
 	assert(unit->name != NULL);
 	sysman_log(LVL_DEBUG2, "%s('%s')", __func__, unit_name(unit));
 
 	if (hash_table_insert_unique(&units_by_name, &unit->units_by_name)) {
+		/* Pointers are same size as unit_handle_t both on 32b and 64b */
+		unit->handle = (unit_handle_t)unit;
+
+		hash_table_insert(&units_by_handle, &unit->units_by_handle);
 		list_append(&unit->units, &units);
 		return EOK;
 	} else {
@@ -212,6 +252,16 @@ unit_t *configuration_find_unit_by_name(const char *name)
 	ht_link_t *ht_link = hash_table_find(&units_by_name, (void *)name);
 	if (ht_link != NULL) {
 		return hash_table_get_inst(ht_link, unit_t, units_by_name);
+	} else {
+		return NULL;
+	}
+}
+
+unit_t *configuration_find_unit_by_handle(unit_handle_t handle)
+{
+	ht_link_t *ht_link = hash_table_find(&units_by_handle, &handle);
+	if (ht_link != NULL) {
+		return hash_table_get_inst(ht_link, unit_t, units_by_handle);
 	} else {
 		return NULL;
 	}

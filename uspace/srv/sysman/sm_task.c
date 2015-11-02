@@ -88,6 +88,8 @@ static void sysman_event_task_event(void *data)
 {
 	sm_task_event_t *tev = data;
 
+	sysman_log(LVL_DEBUG2, "%s, %" PRIu64 " %i",
+	    __func__, tev->task_id, tev->flags);
 	unit_svc_t *u_svc = sm_task_find_service(tev->task_id);
 	if (u_svc == NULL) {
 		goto finish;

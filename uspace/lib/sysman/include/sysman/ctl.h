@@ -29,8 +29,13 @@
 #ifndef _SYSMAN_CTL_H
 #define _SYSMAN_CTL_H
 
+#include <ipc/sysman.h>
 #include <sysman/unit.h>
 
 int sysman_unit_start(const char *, int);
 
+int sysman_get_units(unit_handle_t **, size_t *);
+
+int sysman_unit_get_name(unit_handle_t, char *, size_t);
+int sysman_unit_get_state(unit_handle_t, unit_state_t *);
 #endif
