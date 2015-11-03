@@ -40,6 +40,17 @@ static void edge_init(unit_edge_t *e)
 	link_initialize(&e->edges_out);
 }
 
+static unit_edge_t *edge_extract_internal(unit_t *input, unit_t *output)
+{
+	list_foreach(input->edges_out, edges_out, unit_edge_t, e) {
+		if (e->output == output) {
+			return e;
+		}
+	}
+
+	return NULL;
+}
+
 unit_edge_t *edge_create(void)
 {
 	unit_edge_t *e = malloc(sizeof(unit_edge_t));
@@ -67,14 +78,15 @@ void edge_destroy(unit_edge_t **e_ptr)
 
 int edge_sprout_out(unit_t *input, const char *output_name)
 {
-	unit_edge_t *e = edge_create();
 	int rc;
+	unit_edge_t *e = edge_create();
 
 	if (e == NULL) {
 		rc = ENOMEM;
 		goto finish;
 	}
 
+	//TODO check multi-edges
 	e->output_name = str_dup(output_name);
 	if (e->output_name == NULL) {
 		rc = ENOMEM;
@@ -93,13 +105,14 @@ finish:
 	return rc;
 }
 
-void edge_resolve_output(unit_edge_t *e, unit_t *unit)
+void edge_resolve_output(unit_edge_t *e, unit_t *output)
 {
 	assert(e->output == NULL);
 	assert(e->output_name != NULL);
 
-	// TODO add to other side edges_in list
-	e->output = unit;
+	e->output = output;
+	list_append(&e->edges_in, output->edges_id);
+
 	free(e->output_name);
 	e->output_name = NULL;
 }
@@ -108,17 +121,19 @@ void edge_resolve_output(unit_edge_t *e, unit_t *unit)
 /**
  * @return        EOK on success
  * @return        ENOMEM
+ * @return        EEXISTS
  */
 int edge_connect(unit_t *input, unit_t *output)
 {
+	if (edge_extract_internal(input, output)) {
+		return EEXISTS;
+	}
+
 	unit_edge_t *e = edge_create();
 	if (e == NULL) {
 		return ENOMEM;
 	}
 
-	// TODO check existence of the e
-	// TODO locking
-	// TODO check types and states of connected units
 	list_append(&e->edges_in, &output->edges_in);
 	list_append(&e->edges_out, &input->edges_out);
 
@@ -127,13 +142,15 @@ int edge_connect(unit_t *input, unit_t *output)
 	return EOK;
 }
 
-/** Remove output from output graph
+/** Remove edge from dependency graph
  *
- * Given output is removed from graph and unallocated.
+ * Given edge is removed from graph and unallocated.
  */
 void edge_remove(unit_edge_t **e_ptr)
 {
-	// TODO here should be some checks, othewise replace this wrapper with
-	//      direct destroy
+	/*
+	 * So far it's just passing, however, edge_destroy is considered
+	 * low-level and edge_remove could later e.g. support transactions.
+	 */
 	edge_destroy(e_ptr);
 }
