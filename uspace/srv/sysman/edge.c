@@ -111,7 +111,7 @@ void edge_resolve_output(unit_edge_t *e, unit_t *output)
 	assert(e->output_name != NULL);
 
 	e->output = output;
-	list_append(&e->edges_in, output->edges_id);
+	list_append(&e->edges_in, &output->edges_in);
 
 	free(e->output_name);
 	e->output_name = NULL;
