@@ -30,7 +30,7 @@
 #include <pcut/pcut.h>
 #include <stdio.h>
 
-#include "../job.h"
+#include "../job_closure.h"
 
 #include "mock_unit.h"
 

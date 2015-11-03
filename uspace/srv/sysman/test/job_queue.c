@@ -32,7 +32,7 @@
 #include <stdbool.h>
 
 #include "mock_unit.h"
-#include "../job.h"
+#include "../job_queue.h"
 #include "../sysman.h"
 
 PCUT_INIT

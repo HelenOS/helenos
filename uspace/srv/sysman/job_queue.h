@@ -26,65 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SYSMAN_JOB_H
-#define SYSMAN_JOB_H
+#ifndef SYSMAN_JOB_QUEUE_H
+#define SYSMAN_JOB_QUEUE_H
 
-#include <adt/dyn_array.h>
-#include <adt/list.h>
-#include <atomic.h>
-#include <stdbool.h>
+#include "job_closure.h"
 
-#include "unit.h"
+extern void job_queue_init(void);
+extern int job_queue_add_closure(job_closure_t *);
+extern void job_queue_process(void);
 
-/** Run state of job */
-typedef enum {
-	JOB_EMBRYO, /**< Job after creation */
-	JOB_CLOSURED, /**< Intermmediate when closure is evaluated */
-	JOB_PENDING, /**< Job is queued */
-	JOB_RUNNING,
-	JOB_FINISHED
-} job_state_t;
-
-/** Return value of job */
-typedef enum {
-	JOB_OK,
-	JOB_FAILED,
-	JOB_UNDEFINED_ = -1
-} job_retval_t;
-
-struct job;
-typedef struct job job_t;
-
-struct job {
-	link_t job_queue;
-	atomic_t refcnt;
-
-	unit_state_t target_state;
-	unit_t *unit;
-
-	/** Jobs that this job is preventing from running */
-	dyn_array_t blocked_jobs;
-	/** No. of jobs that the job is actually blocking (may differ from size
-	 * of blocked_jobs for not fully merged job */
-	size_t blocked_jobs_count;
-	/** No. of jobs that must finish before this job */
-	size_t blocking_jobs;
-	/** Any of blocking jobs failed */
-	bool blocking_job_failed;
-	/** Job that this job was merged to */
-	job_t *merged_into;
-
-	/** See job_state_t */
-	job_state_t state;
-	/** See job_retval_t */
-	job_retval_t retval;
-};
-
-extern job_t *job_create(unit_t *, unit_state_t);
-
-extern void job_add_ref(job_t *);
-extern void job_del_ref(job_t **);
-
-extern void job_run(job_t *);
-extern void job_finish(job_t *);
 #endif

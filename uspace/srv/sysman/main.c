@@ -40,7 +40,7 @@
 #include "connection_broker.h"
 #include "connection_ctl.h"
 #include "edge.h"
-#include "job.h"
+#include "job_queue.h"
 #include "log.h"
 #include "sysman.h"
 #include "sm_task.h"

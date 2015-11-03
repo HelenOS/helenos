@@ -41,6 +41,8 @@ SYSMAN_SOURCES = \
 	connection_ctl.c \
 	edge.c \
 	job.c \
+	job_closure.c \
+	job_queue.c \
 	log.c \
 	repo.c \
 	sm_task.c \

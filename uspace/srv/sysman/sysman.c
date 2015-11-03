@@ -32,6 +32,8 @@
 #include <fibril_synch.h>
 #include <stdlib.h>
 
+#include "job_closure.h"
+#include "job_queue.h"
 #include "log.h"
 #include "sysman.h"
 #include "task.h"
