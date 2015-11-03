@@ -37,8 +37,6 @@
 #include "edge.h"
 #include "log.h"
 
-// TODO rename to repository (dynamic nature of units storage, and do not name it godlike Manager :-)
-
 LIST_INITIALIZE(units);
 
 static hash_table_t units_by_name;
