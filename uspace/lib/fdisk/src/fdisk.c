@@ -1088,7 +1088,7 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	vpspec->index = index;
 	vpspec->hdr_blocks = hdrb;
 	vpspec->block0 = fblock0 + hdrb;
-	vpspec->nblocks = act_blocks;
+	vpspec->nblocks = act_blocks - hdrb;
 	vpspec->pkind = pspec->pkind;
 
 	if (pspec->pkind != lpk_extended) {

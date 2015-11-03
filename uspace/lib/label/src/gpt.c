@@ -56,6 +56,9 @@ static int gpt_part_create(label_t *, label_part_spec_t *, label_part_t **);
 static int gpt_part_destroy(label_part_t *);
 static int gpt_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
 
+static int gpt_check_free_idx(label_t *, int);
+static int gpt_check_free_range(label_t *, uint64_t, uint64_t);
+
 static void gpt_unused_pte(gpt_entry_t *);
 static int gpt_part_to_pte(label_part_t *, gpt_entry_t *);
 static int gpt_pte_to_part(label_t *, gpt_entry_t *, int);
@@ -607,9 +610,16 @@ static int gpt_part_create(label_t *label, label_part_spec_t *pspec,
 		goto error;
 	}
 
-	/* XXX Verify index, block0, nblocks */
+	/* Verify index is within bounds and free */
+	rc = gpt_check_free_idx(label, pspec->index);
+	if (rc != EOK) {
+		rc = EINVAL;
+		goto error;
+	}
 
-	if (pspec->index < 1 || pspec->index > label->pri_entries) {
+	/* Verify range is within bounds and free */
+	rc = gpt_check_free_range(label, pspec->block0, pspec->nblocks);
+	if (rc != EOK) {
 		rc = EINVAL;
 		goto error;
 	}
@@ -706,6 +716,50 @@ static int gpt_suggest_ptype(label_t *label, label_pcnt_t pcnt,
 	ptype->fmt = lptf_uuid;
 	rc = uuid_parse(ptid, &ptype->t.uuid, NULL);
 	assert(rc == EOK);
+
+	return EOK;
+}
+
+/** Verify that the specified index is valid and free. */
+static int gpt_check_free_idx(label_t *label, int index)
+{
+	label_part_t *part;
+
+	if (index < 1 || index > label->pri_entries)
+		return EINVAL;
+
+	part = gpt_part_first(label);
+	while (part != NULL) {
+		if (part->index == index)
+			return EEXIST;
+		part = gpt_part_next(part);
+	}
+
+	return EOK;
+}
+
+/** Determine if two block address ranges overlap. */
+static bool gpt_overlap(uint64_t a0, uint64_t an, uint64_t b0, uint64_t bn)
+{
+	return !(a0 + an <= b0 || b0 + bn <= a0);
+}
+
+static int gpt_check_free_range(label_t *label, uint64_t block0,
+    uint64_t nblocks)
+{
+	label_part_t *part;
+
+	if (block0 < label->ablock0)
+		return EINVAL;
+	if (block0 + nblocks > label->ablock0 + label->anblocks)
+		return EINVAL;
+
+	part = gpt_part_first(label);
+	while (part != NULL) {
+		if (gpt_overlap(block0, nblocks, part->block0, part->nblocks))
+			return EEXIST;
+		part = gpt_part_next(part);
+	}
 
 	return EOK;
 }

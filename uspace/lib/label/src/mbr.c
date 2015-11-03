@@ -55,6 +55,10 @@ static int mbr_part_create(label_t *, label_part_spec_t *, label_part_t **);
 static int mbr_part_destroy(label_part_t *);
 static int mbr_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
 
+static int mbr_check_free_idx(label_t *, int);
+static int mbr_check_free_pri_range(label_t *, uint64_t, uint64_t);
+static int mbr_check_free_log_range(label_t *, uint64_t, uint64_t, uint64_t);
+
 static void mbr_unused_pte(mbr_pte_t *);
 static int mbr_part_to_pte(label_part_t *, mbr_pte_t *);
 static int mbr_pte_to_part(label_t *, mbr_pte_t *, int);
@@ -485,6 +489,28 @@ static label_part_t *mbr_log_part_prev(label_part_t *part)
 	return list_get_instance(link, label_part_t, llog);
 }
 
+static label_part_t *mbr_pri_part_first(label_t *label)
+{
+	link_t *link;
+
+	link = list_first(&label->pri_parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, lpri);
+}
+
+static label_part_t *mbr_pri_part_next(label_part_t *part)
+{
+	link_t *link;
+
+	link = list_next(&part->lpri, &part->label->pri_parts);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, label_part_t, lpri);
+}
+
 static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 {
 	pinfo->index = part->index;
@@ -514,7 +540,6 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 	part = calloc(1, sizeof(label_part_t));
 	if (part == NULL)
 		return ENOMEM;
-
 
 	/* XXX Check if index is used */
 	part->label = label;
@@ -550,9 +575,17 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 
 	if (pspec->pkind != lpk_logical) {
 		/* Primary or extended partition */
-		/* XXX Verify index, block0, nblocks */
 
-		if (pspec->index < 1 || pspec->index > label->pri_entries) {
+		/* Verify index is within bounds and free */
+		rc = mbr_check_free_idx(label, pspec->index);
+		if (rc != EOK) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		/* Verify range is within bounds and free */
+		rc = mbr_check_free_pri_range(label, pspec->block0, pspec->nblocks);
+		if (rc != EOK) {
 			rc = EINVAL;
 			goto error;
 		}
@@ -574,12 +607,29 @@ static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
 			goto error;
 		}
 
+		if (pspec->pkind == lpk_extended) {
+			label->ext_part = part;
+
+			/* Create EBR for empty partition chain */
+			rc = mbr_ebr_create(label, NULL);
+			if (rc != EOK) {
+				label->ext_part = NULL;
+				rc = EIO;
+				goto error;
+			}
+		}
+
 		list_append(&part->lparts, &label->parts);
 		list_append(&part->lpri, &label->pri_parts);
-
-		if (pspec->pkind == lpk_extended)
-			label->ext_part = part;
 	} else {
+		/* Verify range is within bounds and free */
+		rc = mbr_check_free_log_range(label, pspec->hdr_blocks,
+		    pspec->block0, pspec->nblocks);
+		if (rc != EOK) {
+			rc = EINVAL;
+			goto error;
+		}
+
 		/* Logical partition */
 		rc = mbr_log_part_insert(label, part);
 		if (rc != EOK)
@@ -731,6 +781,71 @@ static int mbr_suggest_ptype(label_t *label, label_pcnt_t pcnt,
 
 	if (ptype->t.num == 0)
 		return EINVAL;
+
+	return EOK;
+}
+
+/** Determine if two block address ranges overlap. */
+static bool mbr_overlap(uint64_t a0, uint64_t an, uint64_t b0, uint64_t bn)
+{
+	return !(a0 + an <= b0 || b0 + bn <= a0);
+}
+
+/** Verify that the specified index is valid and free. */
+static int mbr_check_free_idx(label_t *label, int index)
+{
+	label_part_t *part;
+
+	if (index < 1 || index > label->pri_entries)
+		return EINVAL;
+
+	part = mbr_pri_part_first(label);
+	while (part != NULL) {
+		if (part->index == index)
+			return EEXIST;
+		part = mbr_pri_part_next(part);
+	}
+
+	return EOK;
+}
+
+static int mbr_check_free_pri_range(label_t *label, uint64_t block0,
+    uint64_t nblocks)
+{
+	label_part_t *part;
+
+	if (block0 < label->ablock0)
+		return EINVAL;
+	if (block0 + nblocks > label->ablock0 + label->anblocks)
+		return EINVAL;
+
+	part = mbr_pri_part_first(label);
+	while (part != NULL) {
+		if (mbr_overlap(block0, nblocks, part->block0, part->nblocks))
+			return EEXIST;
+		part = mbr_pri_part_next(part);
+	}
+
+	return EOK;
+}
+
+static int mbr_check_free_log_range(label_t *label, uint64_t hdr_blocks,
+    uint64_t block0, uint64_t nblocks)
+{
+	label_part_t *part;
+
+	if (block0 - hdr_blocks < label->ext_part->block0)
+		return EINVAL;
+	if (block0 + nblocks > label->ext_part->block0 + label->ext_part->nblocks)
+		return EINVAL;
+
+	part = mbr_log_part_first(label);
+	while (part != NULL) {
+		if (mbr_overlap(block0 - hdr_blocks, nblocks + hdr_blocks,
+		    part->block0 - part->hdr_blocks, part->nblocks + part->hdr_blocks))
+			return EEXIST;
+		part = mbr_log_part_next(part);
+	}
 
 	return EOK;
 }
@@ -923,7 +1038,13 @@ static int mbr_log_part_insert(label_t *label, label_part_t *part)
 	return EOK;
 }
 
-/** Create EBR for partition. */
+/** Create EBR for partition.
+ *
+ * @param label Label
+ * @param part Partition for which to create EBR or @c NULL to create
+ *        EBR for empty partition chain
+ * @return EOK on success or non-zero error code
+ */
 static int mbr_ebr_create(label_t *label, label_part_t *part)
 {
 	mbr_br_block_t *br;
@@ -934,11 +1055,15 @@ static int mbr_ebr_create(label_t *label, label_part_t *part)
 	if (br == NULL)
 		return ENOMEM;
 
-	mbr_log_part_to_ptes(part, &br->pte[mbr_ebr_pte_this],
-	    &br->pte[mbr_ebr_pte_next]);
-	br->signature = host2uint16_t_le(mbr_br_signature);
+	if (part != NULL) {
+		ba = part->block0 - part->hdr_blocks;
+		mbr_log_part_to_ptes(part, &br->pte[mbr_ebr_pte_this],
+		    &br->pte[mbr_ebr_pte_next]);
+	} else {
+		ba = label->ext_part->block0;
+	}
 
-	ba = part->block0 - part->hdr_blocks;
+	br->signature = host2uint16_t_le(mbr_br_signature);
 
 	rc = block_write_direct(label->svc_id, ba, 1, br);
 	if (rc != EOK) {
