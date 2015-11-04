@@ -518,7 +518,7 @@ int str_cmp(const char *s1, const char *s2)
 {
 	wchar_t c1 = 0;
 	wchar_t c2 = 0;
-	
+
 	size_t off1 = 0;
 	size_t off2 = 0;
 
@@ -528,12 +528,12 @@ int str_cmp(const char *s1, const char *s2)
 
 		if (c1 < c2)
 			return -1;
-		
+
 		if (c1 > c2)
 			return 1;
 
 		if (c1 == 0 || c2 == 0)
-			break;		
+			break;
 	}
 
 	return 0;
@@ -565,6 +565,106 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
 {
 	wchar_t c1 = 0;
 	wchar_t c2 = 0;
+
+	size_t off1 = 0;
+	size_t off2 = 0;
+
+	size_t len = 0;
+
+	while (true) {
+		if (len >= max_len)
+			break;
+
+		c1 = str_decode(s1, &off1, STR_NO_LIMIT);
+		c2 = str_decode(s2, &off2, STR_NO_LIMIT);
+
+		if (c1 < c2)
+			return -1;
+
+		if (c1 > c2)
+			return 1;
+
+		if (c1 == 0 || c2 == 0)
+			break;
+
+		++len;
+	}
+
+	return 0;
+
+}
+
+/** Compare two NULL terminated strings in case-insensitive manner.
+ *
+ * Do a char-by-char comparison of two NULL-terminated strings.
+ * The strings are considered equal iff their length is equal
+ * and both strings consist of the same sequence of characters
+ * when converted to lower case.
+ *
+ * A string S1 is less than another string S2 if it has a character with
+ * lower value at the first character position where the strings differ.
+ * If the strings differ in length, the shorter one is treated as if
+ * padded by characters with a value of zero.
+ *
+ * @param s1 First string to compare.
+ * @param s2 Second string to compare.
+ *
+ * @return 0 if the strings are equal, -1 if the first is less than the second,
+ *         1 if the second is less than the first.
+ *
+ */
+int str_casecmp(const char *s1, const char *s2)
+{
+	wchar_t c1 = 0;
+	wchar_t c2 = 0;
+
+	size_t off1 = 0;
+	size_t off2 = 0;
+
+	while (true) {
+		c1 = tolower(str_decode(s1, &off1, STR_NO_LIMIT));
+		c2 = tolower(str_decode(s2, &off2, STR_NO_LIMIT));
+
+		if (c1 < c2)
+			return -1;
+
+		if (c1 > c2)
+			return 1;
+
+		if (c1 == 0 || c2 == 0)
+			break;
+	}
+
+	return 0;
+}
+
+/** Compare two NULL terminated strings with length limit in case-insensitive
+ * manner.
+ *
+ * Do a char-by-char comparison of two NULL-terminated strings.
+ * The strings are considered equal iff
+ * min(str_length(s1), max_len) == min(str_length(s2), max_len)
+ * and both strings consist of the same sequence of characters,
+ * up to max_len characters.
+ *
+ * A string S1 is less than another string S2 if it has a character with
+ * lower value at the first character position where the strings differ.
+ * If the strings differ in length, the shorter one is treated as if
+ * padded by characters with a value of zero. Only the first max_len
+ * characters are considered.
+ *
+ * @param s1      First string to compare.
+ * @param s2      Second string to compare.
+ * @param max_len Maximum number of characters to consider.
+ *
+ * @return 0 if the strings are equal, -1 if the first is less than the second,
+ *         1 if the second is less than the first.
+ *
+ */
+int str_lcasecmp(const char *s1, const char *s2, size_t max_len)
+{
+	wchar_t c1 = 0;
+	wchar_t c2 = 0;
 	
 	size_t off1 = 0;
 	size_t off2 = 0;
@@ -575,8 +675,8 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
 		if (len >= max_len)
 			break;
 
-		c1 = str_decode(s1, &off1, STR_NO_LIMIT);
-		c2 = str_decode(s2, &off2, STR_NO_LIMIT);
+		c1 = tolower(str_decode(s1, &off1, STR_NO_LIMIT));
+		c2 = tolower(str_decode(s2, &off2, STR_NO_LIMIT));
 
 		if (c1 < c2)
 			return -1;

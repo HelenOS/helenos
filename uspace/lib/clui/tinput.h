@@ -158,6 +158,7 @@ extern int tinput_set_prompt(tinput_t *, const char *);
 extern void tinput_set_compl_ops(tinput_t *, tinput_compl_ops_t *);
 extern void tinput_destroy(tinput_t *);
 extern int tinput_read(tinput_t *, char **);
+extern int tinput_read_i(tinput_t *, const char *, char **);
 
 #endif
 

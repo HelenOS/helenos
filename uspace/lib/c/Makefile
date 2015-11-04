@@ -94,6 +94,7 @@ GENERIC_SOURCES = \
 	generic/tls.c \
 	generic/task.c \
 	generic/futex.c \
+	generic/imath.c \
 	generic/inet/addr.c \
 	generic/inet/endpoint.c \
 	generic/inet/tcp.c \
@@ -151,7 +152,10 @@ GENERIC_SOURCES = \
 	generic/sort.c \
 	generic/stats.c \
 	generic/assert.c \
-	generic/pio_trace.c
+	generic/pio_trace.c \
+	generic/uuid.c \
+	generic/vbd.c \
+	generic/vol.c
 
 ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \

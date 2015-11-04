@@ -31,6 +31,7 @@ EXTRA_CFLAGS = -I.
 LIBRARY = libclui
 
 SOURCES = \
+	nchoice.c \
 	tinput.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -33,6 +33,7 @@ uspace/app/devctl/devctl
 uspace/app/dnscfg/dnscfg
 uspace/app/dnsres/dnsres
 uspace/app/edit/edit
+uspace/app/fdisk/fdisk
 uspace/app/fontviewer/fontviewer
 uspace/app/getterm/getterm
 uspace/app/inet/inet
@@ -90,6 +91,7 @@ uspace/dist/app/devctl
 uspace/dist/app/dnscfg
 uspace/dist/app/dnsres
 uspace/dist/app/edit
+uspace/dist/app/fdisk
 uspace/dist/app/fontviewer
 uspace/dist/app/getterm
 uspace/dist/app/inet
@@ -180,7 +182,6 @@ uspace/dist/srv/exfat
 uspace/dist/srv/ext4fs
 uspace/dist/srv/fat
 uspace/dist/srv/file_bd
-uspace/dist/srv/g_part
 uspace/dist/srv/hound
 uspace/dist/srv/i8259
 uspace/dist/srv/inetsrv
@@ -188,7 +189,6 @@ uspace/dist/srv/input
 uspace/dist/srv/isdv4_tablet
 uspace/dist/srv/locfs
 uspace/dist/srv/loopip
-uspace/dist/srv/mbr_part
 uspace/dist/srv/mfs
 uspace/dist/srv/output
 uspace/dist/srv/remcons
@@ -199,6 +199,8 @@ uspace/dist/srv/tcp
 uspace/dist/srv/tmpfs
 uspace/dist/srv/udf
 uspace/dist/srv/udp
+uspace/dist/srv/vbd
+uspace/dist/srv/volsrv
 uspace/dist/test/*
 uspace/drv/audio/hdaudio/hdaudio
 uspace/drv/audio/sb16/sb16
@@ -251,10 +253,9 @@ uspace/lib/posix/test-libposix
 uspace/lib/uri/test-liburi
 uspace/srv/audio/hound/hound
 uspace/srv/bd/file_bd/file_bd
-uspace/srv/bd/part/guid_part/g_part
-uspace/srv/bd/part/mbr_part/mbr_part
 uspace/srv/bd/rd/rd
 uspace/srv/bd/sata_bd/sata_bd
+uspace/srv/bd/vbd/vbd
 uspace/srv/clipboard/clipboard
 uspace/srv/devman/devman
 uspace/srv/fs/cdfs/cdfs
@@ -289,6 +290,7 @@ uspace/srv/net/tcp/tcp
 uspace/srv/net/udp/udp
 uspace/srv/ns/ns
 uspace/srv/taskmon/taskmon
+uspace/srv/volsrv/volsrv
 uspace/srv/vfs/vfs
 kernel/arch/ia32/_link.ld
 uspace/lib/c/arch/ia32/_link-dlexe.ld
@@ -312,8 +314,6 @@ uspace/app/download/download
 uspace/dist/app/download
 uspace/app/viewer/viewer
 uspace/dist/app/viewer
-uspace/app/hdisk/hdisk
-uspace/dist/app/hdisk
 uspace/app/untar/untar
 uspace/dist/app/untar
 uspace/lib/posix/redefs-hide-libc-symbols.list

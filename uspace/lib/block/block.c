@@ -787,6 +787,24 @@ int block_write_direct(service_id_t service_id, aoff64_t ba, size_t cnt,
 	return write_blocks(devcon, ba, cnt, (void *)data, devcon->pblock_size * cnt);
 }
 
+/** Synchronize blocks to persistent storage.
+ *
+ * @param service_id	Service ID of the block device.
+ * @param ba		Address of first block (physical).
+ * @param cnt		Number of blocks.
+ *
+ * @return		EOK on success or negative error code on failure.
+ */
+int block_sync_cache(service_id_t service_id, aoff64_t ba, size_t cnt)
+{
+	devcon_t *devcon;
+
+	devcon = devcon_search(service_id);
+	assert(devcon);
+
+	return bd_sync_cache(devcon->bd, ba, cnt);
+}
+
 /** Get device block size.
  *
  * @param service_id	Service ID of the block device.

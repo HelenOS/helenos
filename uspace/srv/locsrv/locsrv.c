@@ -1316,6 +1316,12 @@ static bool loc_init(void)
 	cat = category_new("bd");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("disk");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("partition");
+	categ_dir_add_cat(&cdir, cat);
+
 	cat = category_new("iplink");
 	categ_dir_add_cat(&cdir, cat);
 

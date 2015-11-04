@@ -100,9 +100,8 @@ RD_SRVS_ESSENTIAL = \
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
-	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
-	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
 	$(USPACE_PATH)/srv/bd/sata_bd/sata_bd \
+	$(USPACE_PATH)/srv/bd/vbd/vbd \
 	$(USPACE_PATH)/srv/clipboard/clipboard \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
@@ -123,7 +122,8 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/slip/slip \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
-	$(USPACE_PATH)/srv/taskmon/taskmon
+	$(USPACE_PATH)/srv/taskmon/taskmon \
+	$(USPACE_PATH)/srv/volsrv/volsrv
 
 RD_DRVS_ESSENTIAL = \
 	root/root \
@@ -181,7 +181,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dnsres/dnsres \
 	$(USPACE_PATH)/app/download/download \
 	$(USPACE_PATH)/app/edit/edit \
-	$(USPACE_PATH)/app/hdisk/hdisk \
+	$(USPACE_PATH)/app/fdisk/fdisk \
 	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \

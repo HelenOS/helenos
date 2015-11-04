@@ -44,9 +44,9 @@ DIRS = \
 	app/dnsres \
 	app/download \
 	app/edit \
+	app/fdisk \
 	app/fontviewer \
 	app/getterm \
-	app/hdisk \
 	app/init \
 	app/inet \
 	app/kill \
@@ -111,8 +111,7 @@ DIRS = \
 	srv/bd/sata_bd \
 	srv/bd/file_bd \
 	srv/bd/rd \
-	srv/bd/part/guid_part \
-	srv/bd/part/mbr_part \
+	srv/bd/vbd \
 	srv/fs/exfat \
 	srv/fs/udf \
 	srv/fs/fat \
@@ -121,6 +120,7 @@ DIRS = \
 	srv/fs/mfs \
 	srv/fs/locfs \
 	srv/fs/ext4fs \
+	srv/volsrv \
 	srv/hid/compositor \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
@@ -216,6 +216,7 @@ LIBS = \
 	lib/block \
 	lib/crypto \
 	lib/clui \
+	lib/fdisk \
 	lib/fmtutil \
 	lib/scsi \
 	lib/compress \
@@ -228,6 +229,7 @@ LIBS = \
 	lib/http \
 	lib/softrend \
 	lib/draw \
+	lib/label \
 	lib/math \
 	lib/nettl \
 	lib/nic \
@@ -244,8 +246,6 @@ LIBS = \
 	lib/pcut \
 	lib/bithenge \
 	lib/posix \
-	lib/mbr \
-	lib/gpt \
 	lib/ieee80211
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))

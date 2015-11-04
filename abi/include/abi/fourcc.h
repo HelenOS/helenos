@@ -35,6 +35,8 @@
 #ifndef ABI_FOURCC_H_
 #define ABI_FOURCC_H_
 
+#include "../../../common.h"
+
 #define FOURCC(a, b, c, d) \
 	(((UINT32_T) (a)) | (((UINT32_T) (b)) << 8) | \
 	    (((UINT32_T) (c)) << 16) | (((UINT32_T) (d)) << 24))
