@@ -37,6 +37,23 @@
 #include "log.h"
 
 
+/** Struct describes how to traverse units graph */
+typedef struct {
+	enum {
+		BFS_FORWARD,  /**< Follow oriented edges */
+		BFS_BACKWARD  /**< Go against oriented edges */
+	} direction;
+
+	/** Visit a unit via edge
+	 * unit, incoming edge, user data
+	 * return result of visit (error stops further traversal)
+	 */
+	int (* visit)(unit_t *, unit_edge_t *, void *);
+
+	/** Clean units remaining in BFS queue after error */
+	void (* clean)(unit_t *, void *);
+} bfs_ops_t;
+
 /*
  * Static functions
  */
@@ -59,82 +76,183 @@ static int job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
 	return EOK;
 }
 
-
-/*
- * Non-static functions
+/** During visit creates job and appends it to closure
+ *
+ * @note Assumes BFS start unit's job is already present in closure!
+ *
+ * @return EOK on success
  */
-int job_create_closure(job_t *main_job, dyn_array_t *job_closure)
+static int start_visit(unit_t *u, unit_edge_t *e, void *arg)
 {
-	sysman_log(LVL_DEBUG2, "%s(%s)", __func__, unit_name(main_job->unit));
+	int rc = EOK;
+	job_t *created_job = NULL;
+	job_closure_t *closure = arg;
+
+	if (e == NULL) {
+		assert(u->bfs_data == NULL);
+		job_t *first_job = dyn_array_last(closure, job_t *);
+
+		job_add_ref(first_job);
+		u->bfs_data = first_job;
+
+		goto finish;
+	}
+
+	job_t *job = e->input->bfs_data;
+	assert(job != NULL);
+
+	if (u->bfs_data == NULL) {
+		created_job = job_create(u, job->target_state);
+		if (created_job == NULL) {
+			rc = ENOMEM;
+			goto finish;
+		}
+
+		/* Pass job reference to closure and add one for unit */
+		rc = dyn_array_append(closure, job_t *, created_job);
+		if (rc != EOK) {
+			goto finish;
+		}
+
+		job_add_ref(created_job);
+		u->bfs_data = created_job;
+	}
+
+	/* Depending on edge type block existing jobs */
+	rc = job_add_blocked_job(u->bfs_data, job);
+
+finish:
+	if (rc != EOK) {
+		job_del_ref(&created_job);
+	}
+	return rc;
+}
+
+static void traverse_clean(unit_t *u, void *arg)
+{
+	job_t *job = u->bfs_data;
+	job_del_ref(&job);
+}
+
+static int bfs_traverse_component_internal(unit_t *origin, bfs_ops_t *ops,
+    void *arg)
+{
 	int rc;
 	list_t units_fifo;
 	list_initialize(&units_fifo);
 
-	/* Check invariant */
-	list_foreach(units, units, unit_t, u) {
-		assert(u->bfs_job == NULL);
+	unit_t *unit = origin;
+
+	rc = ops->visit(unit, NULL, arg);
+	if (rc != EOK) {
+		goto finish;
 	}
-		
-	unit_t *unit = main_job->unit;
-	job_add_ref(main_job);
-	unit->bfs_job = main_job;
+	unit->bfs_tag = true;
 	list_append(&unit->bfs_link, &units_fifo);
 	
 	while (!list_empty(&units_fifo)) {
 		unit = list_get_instance(list_first(&units_fifo), unit_t,
 		    bfs_link);
 		list_remove(&unit->bfs_link);
-		job_t *job = unit->bfs_job;
-		assert(job != NULL);
 
-		job_add_ref(job);
-		dyn_array_append(job_closure, job_t *, job);
 
-		/*
-		 * Traverse dependencies edges
-		 * According to dependency type and edge direction create
-		 * appropriate jobs (currently "After" only).
-		 */
-		list_foreach(unit->edges_out, edges_out, unit_edge_t, e) {
+		if (ops->direction == BFS_FORWARD)
+		    list_foreach(unit->edges_out, edges_out, unit_edge_t, e) {
 			unit_t *u = e->output;
-			job_t *blocking_job;
-
-			if (u->bfs_job == NULL) {
-				blocking_job = job_create(u, job->target_state);
-				if (blocking_job == NULL) {
-					rc = ENOMEM;
-					goto finish;
-				}
-				/* Pass reference to unit */
-				u->bfs_job = blocking_job;
+			if (!u->bfs_tag) {
+				u->bfs_tag = true;
 				list_append(&u->bfs_link, &units_fifo);
-			} else {
-				blocking_job = u->bfs_job;
 			}
-
-			job_add_blocked_job(blocking_job, job);
+			rc = ops->visit(u, e, arg);
+			if (rc != EOK) {
+				goto finish;
+			}
+		} else
+		    list_foreach(unit->edges_in, edges_in, unit_edge_t, e) {
+			unit_t *u = e->input;
+			if (!u->bfs_tag) {
+				u->bfs_tag = true;
+				list_append(&u->bfs_link, &units_fifo);
+			}
+			rc = ops->visit(u, e, arg);
+			if (rc != EOK) {
+				goto finish;
+			}
 		}
-	}
-	sysman_log(LVL_DEBUG2, "%s(%s):", __func__, unit_name(main_job->unit));
-	dyn_array_foreach(*job_closure, job_t *, job_it) {
-		sysman_log(LVL_DEBUG2, "%s\t%s, refs: %u", __func__,
-		    unit_name((*job_it)->unit), atomic_get(&(*job_it)->refcnt));
 	}
 	rc = EOK;
 
 finish:
-	/* Unreference any jobs in interrupted BFS queue */
+	/* Let user clean partially processed units */
 	list_foreach_safe(units_fifo, cur_link, next_link) {
 		unit_t *u = list_get_instance(cur_link, unit_t, bfs_link);
-		job_del_ref(&u->bfs_job);
+		ops->clean(u, arg);
 		list_remove(cur_link);
 	}
 	
+	return rc;
+}
+
+static int bfs_traverse_component(unit_t *origin, bfs_ops_t *ops, void *arg)
+{
+	/* Check invariant */
+	list_foreach(units, units, unit_t, u) {
+		assert(u->bfs_tag == false);
+	}
+	int rc = bfs_traverse_component_internal(origin, ops, arg);
+
+	/* Clean after ourselves (BFS tag jobs) */
+	list_foreach(units, units, unit_t, u) {
+		u->bfs_tag = false;
+	}
+	return rc;
+}
+
+// TODO bfs_traverse_all
+
+
+/*
+ * Non-static functions
+ */
+
+/** Creates job closure for given basic job
+ *
+ * @note It is caller's responsibility to clean job_closure (event on error).
+ *
+ * @return EOK on success otherwise propagated error
+ */
+int job_create_closure(job_t *main_job, job_closure_t *job_closure)
+{
+	sysman_log(LVL_DEBUG2, "%s(%s)", __func__, unit_name(main_job->unit));
+
+	static bfs_ops_t ops = {
+		.direction = BFS_FORWARD,
+		.visit = start_visit,
+		.clean = traverse_clean,
+	};
+	int rc = dyn_array_append(job_closure, job_t *, main_job);
+	if (rc != EOK) {
+		return rc;
+	}
+	job_add_ref(main_job); /* Add one for the closure */
+
+	rc = bfs_traverse_component(main_job->unit, &ops, job_closure);
+
+	if (rc == EOK) {
+		sysman_log(LVL_DEBUG2, "%s(%s):", __func__, unit_name(main_job->unit));
+		dyn_array_foreach(*job_closure, job_t *, job_it) {
+			sysman_log(LVL_DEBUG2, "%s\t%s, refs: %u", __func__,
+			    unit_name((*job_it)->unit), atomic_get(&(*job_it)->refcnt));
+		}
+	}
+
+	
 	/* Clean after ourselves (BFS tag jobs) */
 	dyn_array_foreach(*job_closure, job_t *, job_it) {
-		assert(*job_it == (*job_it)->unit->bfs_job);
-		job_del_ref(&(*job_it)->unit->bfs_job);
-		(*job_it)->unit->bfs_job = NULL;
+		job_t *j = (*job_it)->unit->bfs_data;
+		assert(*job_it == j);
+		job_del_ref(&j);
+		(*job_it)->unit->bfs_data = NULL;
 	}
 
 	return rc;
