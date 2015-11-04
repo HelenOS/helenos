@@ -120,6 +120,7 @@ DIRS = \
 	srv/fs/mfs \
 	srv/fs/locfs \
 	srv/fs/ext4fs \
+	srv/volsrv \
 	srv/hid/compositor \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
