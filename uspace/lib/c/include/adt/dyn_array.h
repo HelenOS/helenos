@@ -67,6 +67,15 @@ typedef struct {
 #define dyn_array_at(dyn_array, type, index)                                   \
 	(*((type *) (dyn_array)->_data + index))
 
+
+/** Access last element
+ *
+ * @return lvalue for the last item
+ */
+#define dyn_array_last(dyn_array, type)                                        \
+	(*((type *) (dyn_array)->_data + ((dyn_array)->size - 1)))
+
+
 /** Insert item at given position, shift rest of array
  *
  * @return EOK on success
@@ -76,7 +85,7 @@ typedef struct {
 ({                                                                             \
  	size_t _index = (index);                                               \
  	dyn_array_t *_da = (dyn_array);                                        \
-	int rc = dyn_array_reserve(_da, _da->size + 1);                       \
+	int rc = dyn_array_reserve(_da, _da->size + 1);                        \
 	if (!rc) {                                                             \
 		_dyn_array_shift(_da, _index, 1);                              \
 	        dyn_array_at(_da, type, _index) = (value);                     \
