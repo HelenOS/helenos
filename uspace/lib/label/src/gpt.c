@@ -38,9 +38,11 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <mem.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <uuid.h>
 
+#include "std/mbr.h"
 #include "std/gpt.h"
 #include "gpt.h"
 
@@ -67,6 +69,9 @@ static int gpt_pte_update(label_t *, gpt_entry_t *, int);
 static int gpt_update_pt_crc(label_t *, uint32_t);
 static void gpt_hdr_compute_crc(gpt_header_t *, size_t);
 static int gpt_hdr_get_crc(gpt_header_t *, size_t, uint32_t *);
+
+static int gpt_pmbr_create(service_id_t, size_t, uint64_t);
+static int gpt_pmbr_destroy(service_id_t, size_t);
 
 const uint8_t efi_signature[8] = {
 	/* "EFI PART" in ASCII */
@@ -374,6 +379,12 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
+	rc = gpt_pmbr_create(sid, bsize, nblocks);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
 	uuid_generate(&disk_uuid);
 
 	hdr_ba[0] = gpt_hdr_ba;
@@ -536,6 +547,10 @@ static int gpt_destroy(label_t *label)
 		free(etable);
 		etable = 0;
 	}
+
+	rc = gpt_pmbr_destroy(label->svc_id, label->block_size);
+	if (rc != EOK)
+		goto error;
 
 	free(label);
 	return EOK;
@@ -954,6 +969,69 @@ static int gpt_hdr_get_crc(gpt_header_t *hdr, size_t hdr_size, uint32_t *crc)
 	free(c);
 
 	return EOK;
+}
+
+/** Create GPT Protective MBR */
+static int gpt_pmbr_create(service_id_t sid, size_t bsize, uint64_t nblocks)
+{
+	mbr_br_block_t *pmbr = NULL;
+	uint64_t pmbr_nb;
+	int rc;
+
+	pmbr = calloc(1, bsize);
+	if (pmbr == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	pmbr_nb = nblocks - gpt_hdr_ba;
+
+	pmbr->pte[0].ptype = mbr_pt_gpt_protect;
+	pmbr->pte[0].first_lba = gpt_hdr_ba;
+
+	if (pmbr_nb <= UINT32_MAX)
+		pmbr->pte[0].length = host2uint32_t_le((uint32_t)pmbr_nb);
+	else
+		pmbr->pte[0].length = host2uint32_t_le(UINT32_MAX);
+
+	pmbr->signature = host2uint16_t_le(mbr_br_signature);
+
+	rc = block_write_direct(sid, mbr_ba, 1, pmbr);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	free(pmbr);
+	return EOK;
+error:
+	free(pmbr);
+	return rc;
+}
+
+/** Destroy GPT Protective MBR */
+static int gpt_pmbr_destroy(service_id_t sid, size_t bsize)
+{
+	mbr_br_block_t *pmbr = NULL;
+	int rc;
+
+	pmbr = calloc(1, bsize);
+	if (pmbr == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = block_write_direct(sid, mbr_ba, 1, pmbr);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	free(pmbr);
+	return EOK;
+error:
+	free(pmbr);
+	return rc;
 }
 
 /** @}

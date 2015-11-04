@@ -72,7 +72,9 @@ enum mbr_ptype {
 	/** Minix */
 	mbr_pt_minix        = 0x81,
 	/** Linux */
-	mbr_pt_linux        = 0x83
+	mbr_pt_linux        = 0x83,
+	/** GPT Protective */
+	mbr_pt_gpt_protect  = 0xee 
 };
 
 /** Structure of a partition table entry */
