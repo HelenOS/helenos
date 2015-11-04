@@ -944,7 +944,7 @@ static int gpt_hdr_get_crc(gpt_header_t *hdr, size_t hdr_size, uint32_t *crc)
 {
 	gpt_header_t *c;
 
-	c = calloc(1, sizeof(gpt_header_t));
+	c = calloc(1, hdr_size);
 	if (c == NULL)
 		return ENOMEM;
 
