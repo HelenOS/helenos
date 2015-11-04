@@ -100,8 +100,6 @@ RD_SRVS_ESSENTIAL = \
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
-	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
-	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
 	$(USPACE_PATH)/srv/bd/sata_bd/sata_bd \
 	$(USPACE_PATH)/srv/bd/vbd/vbd \
 	$(USPACE_PATH)/srv/clipboard/clipboard \
@@ -184,7 +182,6 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/download/download \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/fdisk/fdisk \
-	$(USPACE_PATH)/app/hdisk/hdisk \
 	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \

@@ -182,7 +182,6 @@ uspace/dist/srv/exfat
 uspace/dist/srv/ext4fs
 uspace/dist/srv/fat
 uspace/dist/srv/file_bd
-uspace/dist/srv/g_part
 uspace/dist/srv/hound
 uspace/dist/srv/i8259
 uspace/dist/srv/inetsrv
@@ -190,7 +189,6 @@ uspace/dist/srv/input
 uspace/dist/srv/isdv4_tablet
 uspace/dist/srv/locfs
 uspace/dist/srv/loopip
-uspace/dist/srv/mbr_part
 uspace/dist/srv/mfs
 uspace/dist/srv/output
 uspace/dist/srv/remcons
@@ -255,8 +253,6 @@ uspace/lib/posix/test-libposix
 uspace/lib/uri/test-liburi
 uspace/srv/audio/hound/hound
 uspace/srv/bd/file_bd/file_bd
-uspace/srv/bd/part/guid_part/g_part
-uspace/srv/bd/part/mbr_part/mbr_part
 uspace/srv/bd/rd/rd
 uspace/srv/bd/sata_bd/sata_bd
 uspace/srv/bd/vbd/vbd
@@ -318,8 +314,6 @@ uspace/app/download/download
 uspace/dist/app/download
 uspace/app/viewer/viewer
 uspace/dist/app/viewer
-uspace/app/hdisk/hdisk
-uspace/dist/app/hdisk
 uspace/app/untar/untar
 uspace/dist/app/untar
 uspace/lib/posix/redefs-hide-libc-symbols.list
