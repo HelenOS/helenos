@@ -62,6 +62,35 @@ static void answer_callback(void *object, void *arg)
 	free(iid_ptr);
 	job_del_ref(&job);
 }
+
+static void sysman_unit_handle(ipc_callid_t iid, ipc_call_t *icall)
+{
+	char *unit_name = NULL;
+	sysarg_t retval;
+
+	int rc = async_data_write_accept((void **) &unit_name, true,
+	    0, 0, 0, NULL);
+	if (rc != EOK) {
+		retval = rc;
+		goto fail;
+	}
+
+	// TODO this is connection fibril, UNSYNCHRONIZED access to units!
+	unit_t *unit = repo_find_unit_by_name(unit_name);
+	if (unit == NULL) {
+		retval = ENOENT;
+		goto fail;
+	}
+
+	async_answer_1(iid, EOK, unit->handle);
+	goto finish;
+
+fail:
+	async_answer_0(iid, retval);
+finish:
+	free(unit_name);
+}
+
 static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
 {
 	char *unit_name = NULL;
@@ -108,6 +137,44 @@ answer:
 	async_answer_0(iid, retval);
 finish:
 	free(unit_name);
+}
+
+static void sysman_unit_stop(ipc_callid_t iid, ipc_call_t *icall)
+{
+	sysarg_t retval;
+
+	unit_handle_t handle = IPC_GET_ARG1(*icall);
+	int flags = IPC_GET_ARG2(*icall);
+	sysman_log(LVL_DEBUG2, "%s(%i, %x)", __func__, handle, flags);
+
+	// TODO this is connection fibril, UNSYNCHRONIZED access to units!
+	unit_t *unit = repo_find_unit_by_handle(handle);
+	if (unit == NULL) {
+		retval = ENOENT;
+		goto answer;
+	}
+
+	if (!(flags & IPC_FLAG_BLOCKING)) {
+		retval = sysman_run_job(unit, STATE_STOPPED, NULL, NULL);
+		goto answer;
+	}
+
+	ipc_callid_t *iid_ptr = box_callid(iid);
+	if (iid_ptr == NULL) {
+		retval = ENOMEM;
+		goto answer;
+	}
+	retval = sysman_run_job(unit, STATE_STOPPED, &answer_callback,
+	    iid_ptr);
+	if (retval != EOK) {
+		goto answer;
+	}
+
+	/* Answer asynchronously from callback */
+	return;
+
+answer:
+	async_answer_0(iid, retval);
 }
 
 static int fill_handles_buffer(unit_handle_t *buffer, size_t size,
@@ -219,8 +286,14 @@ void sysman_connection_ctl(ipc_callid_t iid, ipc_call_t *icall)
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
+		case SYSMAN_CTL_UNIT_HANDLE:
+			sysman_unit_handle(callid, &call);
+			break;
 		case SYSMAN_CTL_UNIT_START:
 			sysman_unit_start(callid, &call);
+			break;
+		case SYSMAN_CTL_UNIT_STOP:
+			sysman_unit_stop(callid, &call);
 			break;
 		case SYSMAN_CTL_GET_UNITS:
 			sysman_get_units(callid, &call);

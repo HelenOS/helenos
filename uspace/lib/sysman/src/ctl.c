@@ -33,6 +33,27 @@
 #include <sysman/ctl.h>
 #include <sysman/sysman.h>
 
+int sysman_unit_handle(const char *unit_name, unit_handle_t *handle_ptr)
+{
+	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
+
+	ipc_call_t call;
+	aid_t req = async_send_0(exch, SYSMAN_CTL_UNIT_HANDLE, &call);
+	sysarg_t rc = async_data_write_start(exch, unit_name, str_size(unit_name));
+	sysman_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc == EOK) {
+		*handle_ptr = IPC_GET_ARG1(call);
+	}
+	return rc;
+}
+
 /*
  * TODO
  * Non-blocking favor of this API is effectively incomplete as it doesn't
@@ -40,6 +61,7 @@
  * Probably devise individual API for brokers that could exploit the fact that
  * broker knows when appropriate exposee is created and the request succeeded.
  * Still though, it's necessary to centralize timeout into sysman.
+ * TODO convert to name->handle API
  */
 int sysman_unit_start(const char *unit_name, int flags)
 {
@@ -55,6 +77,16 @@ int sysman_unit_start(const char *unit_name, int flags)
 	}
 
 	async_wait_for(req, &rc);
+	return rc;
+}
+
+int sysman_unit_stop(unit_handle_t handle, int flags)
+{
+	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
+
+	int rc = async_req_2_0(exch, SYSMAN_CTL_UNIT_STOP, handle, flags);
+	sysman_exchange_end(exch);
+	
 	return rc;
 }
 

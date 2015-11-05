@@ -111,6 +111,31 @@ static int unit_svc_start(unit_t *unit)
 	return EOK;
 }
 
+static int unit_svc_stop(unit_t *unit)
+{
+	unit_svc_t *u_svc = CAST_SVC(unit);
+	assert(u_svc);
+
+	
+	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
+	// note: May change when job cancellation is possible.
+	assert(unit->state == STATE_STARTED);
+
+	int rc = task_kill(u_svc->main_task_id);
+
+	if (rc != EOK) {
+		/* Task may still be running, but be conservative about unit's
+		 * state. */
+		unit->state = STATE_FAILED;
+		return rc;
+	}
+
+	unit->state = STATE_STOPPING;
+
+	return EOK;
+}
+
+
 static void unit_svc_exposee_created(unit_t *unit)
 {
 	assert(CAST_SVC(unit));

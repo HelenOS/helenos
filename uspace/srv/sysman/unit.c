@@ -141,6 +141,16 @@ int unit_start(unit_t *unit)
 	return UNIT_VMT(unit)->start(unit);
 }
 
+/** Issue request to restarter to stop a unit
+ *
+ * Same semantics like for unit_start applies.
+ */
+int unit_stop(unit_t *unit)
+{
+	sysman_log(LVL_DEBUG, "%s('%s')", __func__, unit_name(unit));
+	return UNIT_VMT(unit)->stop(unit);
+}
+
 void unit_exposee_created(unit_t *unit)
 {
 	sysman_log(LVL_DEBUG, "%s('%s')", __func__, unit_name(unit));

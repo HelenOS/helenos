@@ -228,6 +228,42 @@ static int unit_mnt_start(unit_t *unit)
 	return EOK;
 }
 
+static int unit_mnt_stop(unit_t *unit)
+{
+	unit_mnt_t *u_mnt = CAST_MNT(unit);
+	assert(u_mnt);
+	/* autostart implies blocking */
+	assert(!u_mnt->autostart || u_mnt->blocking);
+
+	
+	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
+	// note: we should never hit STATE_STARTING, since it'd mean there are
+	//       two jobs running at once (unless job cancellation is implemented)
+	assert(unit->state == STATE_STARTED);
+
+	/*
+	 * We don't expect unmount to be blocking, since if some files are
+	 * being used, it'd return EBUSY immediately. That's why we call
+	 * unmount synchronously in the event loop fibril.
+	 */
+	int rc = unmount(u_mnt->mountpoint);
+
+	if (rc == EOK) {
+		unit->state = STATE_STOPPED;
+		return EOK;
+	} else if (rc == EBUSY) {
+		assert(unit->state == STATE_STARTED);
+		return EBUSY;
+	} else {
+		/*
+		 * Mount may be still usable, but be conservative and mark unit
+		 * as failed.
+		 */
+		unit->state = STATE_FAILED;
+		return rc;
+	}
+}
+
 static void unit_mnt_exposee_created(unit_t *unit)
 {
 	assert(CAST_MNT(unit));

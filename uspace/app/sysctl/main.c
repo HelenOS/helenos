@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <sysman/ctl.h>
 
 #define NAME "sysctl"
@@ -90,7 +91,30 @@ static int list_units(int argc, char *argv[])
 		printf("%-25s\t%s\n", name, unit_state(state));
 		continue;
 fail:
-		printf(" -- unit skipped due to IPC error (%i) --\n", rc);
+		printf(" -- unit skipped due to IPC error (%s) --\n",
+		    str_error(rc));
+	}
+
+	return 0;
+}
+
+static int stop(int argc, char *argv[])
+{
+	unit_handle_t handle;
+	char *unit_name = argv[1];
+
+	int rc = sysman_unit_handle(unit_name, &handle);
+	if (rc != EOK) {
+		printf("Cannot obtain handle for unit '%s' (%s).\n",
+		    unit_name, str_error(rc));
+		return rc;
+	}
+
+	rc = sysman_unit_stop(handle, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("Error when stopping unit '%s' handle (%s).\n",
+		    unit_name, str_error(rc));
+		return rc;
 	}
 
 	return 0;
@@ -98,6 +122,7 @@ fail:
 
 command_t commands[] = {
 	{ "list-units", 0, &list_units },
+	{ "stop",       1, &stop },
 	{ 0 }
 };
 

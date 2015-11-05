@@ -38,21 +38,24 @@
 
 
 /** Struct describes how to traverse units graph */
-typedef struct {
+struct bfs_ops;
+typedef struct bfs_ops bfs_ops_t;
+
+struct bfs_ops {
 	enum {
 		BFS_FORWARD,  /**< Follow oriented edges */
 		BFS_BACKWARD  /**< Go against oriented edges */
 	} direction;
 
 	/** Visit a unit via edge
-	 * unit, incoming edge, user data
+	 * unit, incoming edge, traversing ops, user data
 	 * return result of visit (error stops further traversal)
 	 */
-	int (* visit)(unit_t *, unit_edge_t *, void *);
+	int (* visit)(unit_t *, unit_edge_t *, bfs_ops_t *, void *);
 
 	/** Clean units remaining in BFS queue after error */
-	void (* clean)(unit_t *, void *);
-} bfs_ops_t;
+	void (* clean)(unit_t *, bfs_ops_t *, void *);
+};
 
 /*
  * Static functions
@@ -82,7 +85,8 @@ static int job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
  *
  * @return EOK on success
  */
-static int start_visit(unit_t *u, unit_edge_t *e, void *arg)
+static int visit_propagate_job(unit_t *u, unit_edge_t *e, bfs_ops_t *ops,
+    void *arg)
 {
 	int rc = EOK;
 	job_t *created_job = NULL;
@@ -98,7 +102,10 @@ static int start_visit(unit_t *u, unit_edge_t *e, void *arg)
 		goto finish;
 	}
 
-	job_t *job = e->input->bfs_data;
+	job_t *job = (ops->direction == BFS_FORWARD) ?
+	    e->input->bfs_data :
+	    e->output->bfs_data;
+
 	assert(job != NULL);
 
 	if (u->bfs_data == NULL) {
@@ -128,7 +135,7 @@ finish:
 	return rc;
 }
 
-static void traverse_clean(unit_t *u, void *arg)
+static void traverse_clean(unit_t *u, bfs_ops_t *ops, void *arg)
 {
 	job_t *job = u->bfs_data;
 	job_del_ref(&job);
@@ -143,7 +150,7 @@ static int bfs_traverse_component_internal(unit_t *origin, bfs_ops_t *ops,
 
 	unit_t *unit = origin;
 
-	rc = ops->visit(unit, NULL, arg);
+	rc = ops->visit(unit, NULL, ops, arg);
 	if (rc != EOK) {
 		goto finish;
 	}
@@ -163,7 +170,7 @@ static int bfs_traverse_component_internal(unit_t *origin, bfs_ops_t *ops,
 				u->bfs_tag = true;
 				list_append(&u->bfs_link, &units_fifo);
 			}
-			rc = ops->visit(u, e, arg);
+			rc = ops->visit(u, e, ops, arg);
 			if (rc != EOK) {
 				goto finish;
 			}
@@ -174,7 +181,7 @@ static int bfs_traverse_component_internal(unit_t *origin, bfs_ops_t *ops,
 				u->bfs_tag = true;
 				list_append(&u->bfs_link, &units_fifo);
 			}
-			rc = ops->visit(u, e, arg);
+			rc = ops->visit(u, e, ops, arg);
 			if (rc != EOK) {
 				goto finish;
 			}
@@ -186,7 +193,7 @@ finish:
 	/* Let user clean partially processed units */
 	list_foreach_safe(units_fifo, cur_link, next_link) {
 		unit_t *u = list_get_instance(cur_link, unit_t, bfs_link);
-		ops->clean(u, arg);
+		ops->clean(u, ops, arg);
 		list_remove(cur_link);
 	}
 	
@@ -226,10 +233,21 @@ int job_create_closure(job_t *main_job, job_closure_t *job_closure)
 	sysman_log(LVL_DEBUG2, "%s(%s)", __func__, unit_name(main_job->unit));
 
 	static bfs_ops_t ops = {
-		.direction = BFS_FORWARD,
-		.visit = start_visit,
 		.clean = traverse_clean,
+		.visit = visit_propagate_job
 	};
+
+	switch (main_job->target_state) {
+	case STATE_STARTED:
+		ops.direction = BFS_FORWARD;
+		break;
+	case STATE_STOPPED:
+		ops.direction = BFS_BACKWARD;
+		break;
+	default:
+		assert(false);
+	}
+
 	int rc = dyn_array_append(job_closure, job_t *, main_job);
 	if (rc != EOK) {
 		return rc;

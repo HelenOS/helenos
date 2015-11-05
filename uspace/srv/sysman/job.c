@@ -198,18 +198,25 @@ void job_run(job_t *job)
 	}
 
 	int rc;
+	// TODO put here similar evaluation as in job_check
+	//      goal is to have job_run "idempotent"
 	switch (job->target_state) {
 	case STATE_STARTED:
-		// TODO put here same evaluation as in job_check
-		//      goal is to have job_run "idempotent"
 		if (u->state == job->target_state) {
 			rc = EOK;
 		} else {
 			rc = unit_start(u);
 		}
 		break;
+	case STATE_STOPPED:
+		if (u->state == job->target_state) {
+			rc = EOK;
+		} else {
+			rc = unit_stop(u);
+		}
+		break;
 	default:
-		// TODO implement other states
+		// TODO implement other states?
 		assert(false);
 	}
 	if (rc != EOK) {

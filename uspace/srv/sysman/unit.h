@@ -69,8 +69,13 @@ typedef struct {
 	/** Job assigned to unit in transitional state */
 	job_t *job;
 
+	/** Handle for IPC (immutable) */
 	unit_handle_t handle;
+
+	/** Unit type (immutable) */
 	unit_type_t type;
+
+	/** Unit name (immutable) */
 	char *name;
 
 	unit_state_t state;
@@ -109,6 +114,8 @@ struct unit_vmt {
 
 	int (*start)(unit_t *);
 
+	int (*stop)(unit_t *);
+
 	void (*exposee_created)(unit_t *);
 
 	void (*fail)(unit_t *);
@@ -123,6 +130,7 @@ extern unit_vmt_t *unit_type_vmts[];
 		.load            = &PREFIX##_load,                             \
 		.destroy         = &PREFIX##_destroy,                          \
 		.start           = &PREFIX##_start,                            \
+		.stop            = &PREFIX##_stop,                             \
 		.exposee_created = &PREFIX##_exposee_created,                  \
 		.fail            = &PREFIX##_fail                              \
 	};
@@ -134,6 +142,7 @@ extern void unit_destroy(unit_t **);
 
 extern int unit_load(unit_t *, ini_configuration_t *, text_parse_t *);
 extern int unit_start(unit_t *);
+extern int unit_stop(unit_t *);
 extern void unit_exposee_created(unit_t *);
 extern void unit_fail(unit_t *);
 

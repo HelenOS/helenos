@@ -100,12 +100,19 @@ static void sysman_event_task_event(void *data)
 	unit_t *u = &u_svc->unit;
 	sysman_log(LVL_DEBUG2, "%s, %s(%i)@%" PRIu64 " %i",
 	    __func__, unit_name(u), u->state, tev->task_id, tev->flags);
-	assert(u->state == STATE_STARTING);
 
 	if (tev->flags & TASK_WAIT_EXIT) {
 		// TODO maybe call unit_fail (would be nice to contain reason)
-		u->state = STATE_FAILED;
-	} else {
+		//      or move this whole logic to unit_svc.c
+		if (u->state == STATE_STOPPING) {
+			u->state = STATE_STOPPED;
+		} else {
+			// if it has also retval == 0 then it's not fail
+			u->state = STATE_FAILED;
+		}
+	}
+	if (tev->flags & TASK_WAIT_RETVAL) {
+		assert(u->state == STATE_STARTING);
 		u->state = STATE_STARTED;
 	}
 

@@ -239,6 +239,20 @@ static int unit_cfg_start(unit_t *unit)
 	return rc;
 }
 
+static int unit_cfg_stop(unit_t *unit)
+{
+	unit_cfg_t *u_cfg = CAST_CFG(unit);
+	assert(u_cfg);
+
+	/*
+	 * It makes no sense to stop configuration (i.e. unload it), however,
+	 * lets virtually stop it not to make obstructions for potential
+	 * restart = reload of configuration.
+	 */
+	unit->state = STATE_STOPPED;
+	return EOK;
+}
+
 static void unit_cfg_exposee_created(unit_t *unit)
 {
 	/* Configuration has no exposees. */

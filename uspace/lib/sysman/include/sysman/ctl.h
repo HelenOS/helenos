@@ -32,7 +32,10 @@
 #include <ipc/sysman.h>
 #include <sysman/unit.h>
 
+int sysman_unit_handle(const char *, unit_handle_t *);
+
 int sysman_unit_start(const char *, int);
+int sysman_unit_stop(unit_handle_t, int);
 
 int sysman_get_units(unit_handle_t **, size_t *);
 
