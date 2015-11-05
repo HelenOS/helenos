@@ -93,8 +93,7 @@ static void event_notify(task_t *sender)
 	list_foreach(listeners, listeners, task_t, t) {
 		assert(t->sess);
 		async_exch_t *exch = async_exchange_begin(t->sess);
-		/* Just send a notification and don't wait for anything */
-		async_send_5(exch, TASKMAN_EV_TASK,
+		aid_t req = async_send_5(exch, TASKMAN_EV_TASK,
 		    LOWER32(sender->id),
 		    UPPER32(sender->id),
 		    flags,
@@ -103,6 +102,9 @@ static void event_notify(task_t *sender)
 		    NULL);
 
 		async_exchange_end(exch);
+
+		/* Just send a notification and don't wait for anything */
+		async_forget(req);
 	}
 	fibril_rwlock_read_unlock(&listeners_lock);
 }
