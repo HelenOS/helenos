@@ -38,7 +38,7 @@
 
 static task_id_t task_id;
 static task_exit_t last_texit;
-static bool last_has_retval;
+static bool last_flags;
 static int last_retval;
 static bool handler_hit;
 
@@ -63,8 +63,8 @@ static void task_event_handler(task_id_t tid, int flags, task_exit_t texit,
 		last_texit = texit;
 	}
 
-	last_has_retval = flags & TASK_WAIT_RETVAL;
-	if (last_has_retval) {
+	last_flags = flags;
+	if (last_flags & TASK_WAIT_RETVAL) {
 		last_retval = retval;
 	}
 
@@ -80,7 +80,7 @@ static void reset_wait(bool purge)
 	handler_hit = false;
 	if (purge) {
 		last_texit = TASK_EXIT_RUNNING;
-		last_has_retval = false;
+		last_flags = 0;
 		last_retval = 255;
 	}
 	fibril_mutex_unlock(&sync_mtx);
@@ -119,7 +119,7 @@ const char *test_proc_task_anywait(void)
 	rc = safe_dummy_task_spawn(&task_id, NULL, STR_FAIL);
 	TASSERT(rc == EOK);
 	wait_for_handler();
-	TASSERT(last_has_retval == false);
+	TASSERT(last_flags == (TASK_WAIT_EXIT));
 	TASSERT(last_texit == TASK_EXIT_UNEXPECTED);
 	/* --- */
 
@@ -129,13 +129,14 @@ const char *test_proc_task_anywait(void)
 	rc = safe_dummy_task_spawn(&task_id, NULL, STR_DAEMON);
 	TASSERT(rc == EOK);
 	wait_for_handler();
-	TASSERT(last_has_retval == true);
+	TASSERT(last_flags == (TASK_WAIT_RETVAL));
 	TASSERT(last_retval == EOK);
 	TASSERT(last_texit == TASK_EXIT_RUNNING);
 
 	reset_wait(false);
 	task_kill(task_id);
 	wait_for_handler();
+	TASSERT(last_flags == (TASK_WAIT_EXIT));
 	TASSERT(last_texit == TASK_EXIT_UNEXPECTED);
 	/* --- */
 
@@ -145,7 +146,7 @@ const char *test_proc_task_anywait(void)
 	rc = safe_dummy_task_spawn(&task_id, NULL, STR_JOB_OK);
 	TASSERT(rc == EOK);
 	wait_for_handler(); /* job is notified in a single handler call */
-	TASSERT(last_has_retval == true);
+	TASSERT(last_flags == (TASK_WAIT_RETVAL | TASK_WAIT_EXIT));
 	TASSERT(last_retval == EOK);
 	TASSERT(last_texit == TASK_EXIT_NORMAL);
 	/* --- */
@@ -159,7 +160,7 @@ const char *test_proc_task_anywait(void)
 	rc = dummy_task_spawn(NULL, NULL, STR_JOB_OK);
 	TASSERT(rc == EOK);
 	wait_for_handler();
-	TASSERT(last_has_retval == true);
+	TASSERT(last_flags == (TASK_WAIT_RETVAL | TASK_WAIT_EXIT));
 	TASSERT(last_retval == EOK);
 	TASSERT(last_texit == TASK_EXIT_NORMAL);
 	/* --- */
