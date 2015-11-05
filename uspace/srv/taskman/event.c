@@ -311,7 +311,10 @@ void task_terminated(task_id_t id, exit_reason_t exit_reason)
 	process_pending_wait();
 
 	hash_table_remove_item(&task_hash_table, &t->link);
-	// TODO remove from listeners too!
+
+	fibril_rwlock_write_lock(&listeners_lock);
+	list_remove(&t->listeners);
+	fibril_rwlock_write_unlock(&listeners_lock);
 
 finish:
 	fibril_rwlock_write_unlock(&task_hash_table_lock);
