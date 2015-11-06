@@ -38,7 +38,7 @@
 
 static task_id_t task_id;
 static task_exit_t last_texit;
-static bool last_flags;
+static int last_flags;
 static int last_retval;
 static bool handler_hit;
 

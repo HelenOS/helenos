@@ -68,16 +68,19 @@ int event_init(void)
 static int event_flags(task_t *task)
 {
 	int flags = 0;
-	if (task->exit != TASK_EXIT_RUNNING) {
-		flags |= TASK_WAIT_EXIT;
-		if (task->retval_type == RVAL_SET_EXIT) {
-			flags |= TASK_WAIT_RETVAL;
-		}
-	}
 	if (task->retval_type == RVAL_SET) {
 		flags |= TASK_WAIT_RETVAL;
 	}
 
+	if (task->exit != TASK_EXIT_RUNNING) {
+		flags |= TASK_WAIT_EXIT;
+		if (task->retval_type == RVAL_SET_EXIT) {
+			flags |= TASK_WAIT_RETVAL;
+		} else {
+			/* Don't notify retval of exited task */
+			flags &= ~TASK_WAIT_RETVAL;
+		}
+	}
 	return flags;
 }
 
