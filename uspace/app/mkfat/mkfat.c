@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	cfg.total_sectors = 0;
 	cfg.addt_res_sectors = 0;
 	cfg.root_ent_max = 128;
-	cfg.fat_type = FAT16;
+	cfg.fat_type = FATAUTO;
 
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
@@ -188,7 +188,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (cfg.fat_type != FAT12 && cfg.fat_type != FAT16 && cfg.fat_type != FAT32) {
+	if (cfg.fat_type != FATAUTO && cfg.fat_type != FAT12 && cfg.fat_type != FAT16 &&
+	    cfg.fat_type != FAT32) {
 		printf(NAME ": Error. Unknown FAT type.\n");
 		return 2;
 	}
@@ -246,11 +247,22 @@ static int fat_params_compute(struct fat_cfg *cfg)
 	cfg->total_clusters = div_round_up(cfg->total_sectors - non_data_sectors_lb,
 	    cfg->sectors_per_cluster);
 
-	if ((cfg->fat_type == FAT12 && cfg->total_clusters > FAT12_CLST_MAX) ||
-	    (cfg->fat_type == FAT16 && (cfg->total_clusters <= FAT12_CLST_MAX ||
-	    cfg->total_clusters > FAT16_CLST_MAX)) ||
-	    (cfg->fat_type == FAT32 && cfg->total_clusters <= FAT16_CLST_MAX))
-		return ENOSPC;
+	if (cfg->total_clusters <= FAT12_CLST_MAX) {
+		if (cfg->fat_type == FATAUTO)
+			cfg->fat_type = FAT12;
+		else if (cfg->fat_type != FAT12)
+			return EINVAL;
+	} else if (cfg->total_clusters <= FAT16_CLST_MAX) {
+		if (cfg->fat_type == FATAUTO)
+			cfg->fat_type = FAT16;
+		else if (cfg->fat_type != FAT16)
+			return EINVAL;
+	} else {
+		if (cfg->fat_type == FATAUTO)
+			cfg->fat_type = FAT32;
+		else if (cfg->fat_type != FAT32)
+			return EINVAL;
+	}
 
 	fat_bytes = div_round_up((cfg->total_clusters + 2) *
 	    FAT_CLUSTER_DOUBLE_SIZE(cfg->fat_type), 2);

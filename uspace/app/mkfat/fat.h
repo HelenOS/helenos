@@ -42,6 +42,7 @@
 #define FAT12_CLST_MAX    4085
 #define FAT16_CLST_MAX    65525
 
+#define FATAUTO	0
 #define FAT12	12
 #define FAT16	16
 #define FAT32	32
