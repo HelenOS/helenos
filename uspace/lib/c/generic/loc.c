@@ -328,7 +328,7 @@ errno_t loc_service_get_id(const char *fqdn, service_id_t *handle,
 {
 	async_exch_t *exch;
 
-	if ((flags & IPC_FLAG_BLOCKING) || flags & IPC_FLAG_AUTOSTART)
+	if ((flags & IPC_FLAG_BLOCKING))
 		exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 	else {
 		exch = loc_exchange_begin(INTERFACE_LOC_CONSUMER);

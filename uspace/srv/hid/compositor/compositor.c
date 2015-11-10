@@ -2182,7 +2182,7 @@ static errno_t input_connect(const char *svc)
 {
 	async_sess_t *sess;
 	service_id_t dsid;
-	unsigned int flags = IPC_FLAG_AUTOSTART;
+	unsigned int flags = IPC_AUTOSTART;
 
 	errno_t rc = loc_service_get_id(svc, &dsid, flags);
 	if (rc != EOK) {

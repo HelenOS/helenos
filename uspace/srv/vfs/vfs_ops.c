@@ -137,7 +137,7 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 	while (true) {
 		fs_handle = fs_name_to_handle(fsname, instance, false);
 		if (!fs_handle) {
-			if ((flags & IPC_FLAG_AUTOSTART)) {
+			if ((flags & IPC_FLAG_AUTOSTART_)) {
 				/*
 				 * Temporarily release the lock, we don't need it while
 				 * waiting for start request (which may lead to deadlock).

@@ -209,7 +209,7 @@ static int unit_mnt_start(unit_t *unit)
 	 */
 
 	mnt_data.flags |= u_mnt->blocking ? IPC_FLAG_BLOCKING : 0;
-	mnt_data.flags |= u_mnt->autostart ? IPC_FLAG_AUTOSTART : 0;
+	mnt_data.flags |= u_mnt->autostart ? IPC_AUTOSTART : 0;
 	mnt_data.unit = unit;
 
 	if (u_mnt->blocking) {

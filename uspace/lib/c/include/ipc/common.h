@@ -42,9 +42,17 @@
 #define PHONE_INITIAL  0
 
 #define IPC_FLAG_BLOCKING   0x01
-// TODO autostart flag may be united with blocking, this should be later made
-//      implicit, documented or refactor pairs of xxx and xxx_blocking methods
-#define IPC_FLAG_AUTOSTART  0x02
+
+/**
+ * IPC_FLAG_AUTOSTART_ is for use in brokers only. In clinet code use
+ * IPC_AUTOSTART that includes implies blocking behavior. */
+#define IPC_FLAG_AUTOSTART_  0x02
+
+/**
+ * Similar to blocking IPC_FLAG_BLOCKING behavior, broker will attempt to
+ * start the server.
+ */
+#define IPC_AUTOSTART (IPC_FLAG_BLOCKING | IPC_FLAG_AUTOSTART_)
 
 typedef ipc_data_t ipc_call_t;
 

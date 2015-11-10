@@ -38,7 +38,8 @@ typedef struct {
 	char *mountpoint;
 	char *device;
 
-	/** Should be underlying units (FS server, device) be autostarted */
+	/** Should be underlying units (FS server, device) be autostarted
+	 * (implies blocking) */
 	bool autostart;
 
 	/** Should mount call be blocking */

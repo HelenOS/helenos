@@ -854,15 +854,16 @@ recheck:
 	 */
 	if (svc == NULL) {
 		/* TODO:
-		 * consider non-blocking service start, return
-		 * some dummy id and block only after connection
-		 * request (actually makes more sense as those who asks
-		 * for ID might be someone else than those connecting)
+		 * Consider non-blocking service start, return some dummy id
+		 * and block only after connection request (actually makes more
+		 * sense as those who asks for ID might be someone else than
+		 * those connecting)
+		 *
 		 * Note:
 		 * service_list_mutex is released as we don't need to keep it
 		 * while waiting for start request to finish.
 		 */
-		if ((flags & IPC_FLAG_AUTOSTART) && !start_requested) {
+		if ((flags & IPC_FLAG_AUTOSTART_) && !start_requested) {
 			fibril_mutex_unlock(&services_list_mutex);
 			rc = loc_service_request_start(ns_name, name);
 			fibril_mutex_lock(&services_list_mutex);
@@ -875,7 +876,7 @@ recheck:
 			}
 		}
 
-		if ((flags & IPC_FLAG_BLOCKING) || flags & IPC_FLAG_AUTOSTART) {
+		if ((flags & IPC_FLAG_BLOCKING) || flags & IPC_FLAG_AUTOSTART_) {
 			fibril_condvar_wait(&services_list_cv,
 			    &services_list_mutex);
 			goto recheck;
