@@ -42,6 +42,7 @@
 #include <inet/addr.h>
 #include <io/log.h>
 #include <loc.h>
+#include <ipc/services.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -114,8 +115,8 @@ static errno_t loopip_init(void)
 	loopip_iplink.arg = NULL;
 
 	prodcons_initialize(&loopip_rcv_queue);
-
-	const char *svc_name = "net/loopback";
+	
+	const char *svc_name = SERVICE_NAME_LOOPBACK;
 	service_id_t sid;
 	rc = loc_service_register(svc_name, &sid);
 	if (rc != EOK) {

@@ -53,12 +53,13 @@ errno_t inetping_init(inetping_ev_ops_t *ev_ops)
 	inetping_ev_ops = ev_ops;
 
 	rc = loc_service_get_id(SERVICE_NAME_INET, &inetping_svc,
-	    IPC_FLAG_BLOCKING);
+	    IPC_AUTOSTART);
 	if (rc != EOK)
 		return ENOENT;
 
 	inetping_sess = loc_service_connect(inetping_svc, INTERFACE_INETPING,
-	    IPC_FLAG_BLOCKING);
+	    IPC_AUTOSTART);
+
 	if (inetping_sess == NULL)
 		return ENOENT;
 

@@ -1,0 +1,7 @@
+[Unit]
+; TODO change to Requires, communicates via category
+After = net__ethip.svc
+
+[Service]
+ExecStart = /root/srv/tcp
+

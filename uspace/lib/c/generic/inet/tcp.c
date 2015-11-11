@@ -105,14 +105,14 @@ errno_t tcp_create(tcp_t **rtcp)
 	fibril_condvar_initialize(&tcp->cv);
 
 	rc = loc_service_get_id(SERVICE_NAME_TCP, &tcp_svcid,
-	    IPC_FLAG_BLOCKING);
+	    IPC_AUTOSTART);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
 	tcp->sess = loc_service_connect(tcp_svcid, INTERFACE_TCP,
-	    IPC_FLAG_BLOCKING);
+	    IPC_AUTOSTART);
 	if (tcp->sess == NULL) {
 		rc = EIO;
 		goto error;

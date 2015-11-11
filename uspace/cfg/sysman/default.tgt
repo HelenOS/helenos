@@ -1,2 +1,4 @@
 [Unit]
 After = vlaunch.svc barber.svc
+; TODO change to Requires
+After = network.tgt

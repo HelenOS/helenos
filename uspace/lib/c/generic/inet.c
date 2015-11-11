@@ -82,12 +82,12 @@ errno_t inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 	assert(inet_protocol == 0);
 
 	rc = loc_service_get_id(SERVICE_NAME_INET, &inet_svc,
-	    IPC_FLAG_BLOCKING);
+	    IPC_AUTOSTART);
 	if (rc != EOK)
 		return ENOENT;
 
 	inet_sess = loc_service_connect(inet_svc, INTERFACE_INET,
-	    IPC_FLAG_BLOCKING);
+	    IPC_AUTOSTART);
 	if (inet_sess == NULL)
 		return ENOENT;
 
