@@ -67,7 +67,8 @@ static void unit_init(unit_t *unit, unit_type_t type)
 	memset(unit, 0, size);
 	
 	unit->type = type;
-	unit->state = STATE_EMBRYO;
+	unit->state = STATE_STOPPED;
+	unit->repo_state = REPO_EMBRYO;
 
 	link_initialize(&unit->units);
 	link_initialize(&unit->bfs_link);

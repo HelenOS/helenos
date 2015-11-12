@@ -27,13 +27,16 @@
  */
 
 #include <adt/list.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <task.h>
+#include <sysman/unit.h>
 
 #include "repo.h"
 #include "log.h"
 #include "sysman.h"
 #include "sm_task.h"
+
 
 /** Structure for boxing task event */
 struct sm_task_event {
@@ -84,6 +87,62 @@ static unit_svc_t *sm_task_find_service(task_id_t tid)
 	return NULL;
 }
 
+static unit_svc_t *sm_task_create_service(task_id_t tid)
+{
+	unit_t *u_svc = unit_create(UNIT_SERVICE);
+	bool in_repo_update = false;
+	int rc = EOK;
+
+	if (u_svc == NULL) {
+		goto fail;
+	}
+
+	rc = asprintf(&u_svc->name, ANONYMOUS_SERVICE_MASK "%c%s", tid,
+	    UNIT_NAME_SEPARATOR, UNIT_SVC_TYPE_NAME);
+	if (rc < 0) {
+		goto fail;
+	}
+
+	CAST_SVC(u_svc)->main_task_id = tid;
+	CAST_SVC(u_svc)->anonymous = true;
+	/* exec_start is left undefined, maybe could be hinted by kernel's task
+	 * name */
+
+	repo_begin_update();
+	in_repo_update = true;
+
+	rc = repo_add_unit(u_svc);
+	if (rc != EOK) {
+		goto fail;
+	}
+
+	repo_commit();
+
+	return CAST_SVC(u_svc);
+	
+fail:
+	if (in_repo_update) {
+		repo_rollback();
+	}
+
+	unit_destroy(&u_svc);
+	return NULL;
+}
+
+static void sm_task_delete_service(unit_svc_t *u_svc)
+{
+	repo_begin_update();
+	int rc = repo_remove_unit(&u_svc->unit);
+	if (rc != EOK) {
+		sysman_log(LVL_WARN, "Can't remove unit %s (%i).",
+		    unit_name(&u_svc->unit), rc);
+		repo_rollback();
+		return;
+	}
+
+	repo_commit();
+}
+
 static void sysman_event_task_event(void *data)
 {
 	sm_task_event_t *tev = data;
@@ -91,8 +150,26 @@ static void sysman_event_task_event(void *data)
 	sysman_log(LVL_DEBUG2, "%s, %" PRIu64 " %i",
 	    __func__, tev->task_id, tev->flags);
 	unit_svc_t *u_svc = sm_task_find_service(tev->task_id);
+
 	if (u_svc == NULL) {
-		goto finish;
+		if (tev->flags & TASK_WAIT_EXIT) {
+			/* Non-service task exited, ignore. */
+			goto finish;
+		}
+
+		u_svc = sm_task_create_service(tev->task_id);
+		if (u_svc == NULL) {
+			sysman_log(LVL_WARN,
+			    "Unable to create anonymous service for task %" PRIu64 ".",
+			    tev->task_id);
+			goto finish;
+		}
+
+		sysman_log(LVL_DEBUG, "Created anonymous service %s.",
+		    unit_name(&u_svc->unit));
+
+		/* Inject state so that further processing makes sense */
+		u_svc->unit.state = STATE_STARTING;
 	}
 
 
@@ -110,6 +187,7 @@ static void sysman_event_task_event(void *data)
 			// if it has also retval == 0 then it's not fail
 			u->state = STATE_FAILED;
 		}
+
 	}
 	if (tev->flags & TASK_WAIT_RETVAL) {
 		assert(u->state == STATE_STARTING);
@@ -118,6 +196,11 @@ static void sysman_event_task_event(void *data)
 
 	unit_notify_state(u);
 
+	if ((tev->flags & TASK_WAIT_EXIT) && u_svc->anonymous) {
+		sysman_log(LVL_DEBUG, "Deleted anonymous service %s.",
+		    unit_name(&u_svc->unit));
+		sm_task_delete_service(u_svc);
+	}
 finish:
 	free(tev);
 }

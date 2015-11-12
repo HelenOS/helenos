@@ -73,7 +73,7 @@ static hash_table_ops_t units_by_handle_ht_ops = {
 	.key_hash        = &units_by_handle_ht_key_hash,
 	.equal           = &units_by_handle_ht_equal,
 	.key_equal       = &units_by_handle_ht_key_equal,
-	.remove_callback = NULL // TODO realy unneeded?
+	.remove_callback = NULL
 };
 
 static size_t units_by_name_ht_hash(const ht_link_t *item)
@@ -107,10 +107,20 @@ static hash_table_ops_t units_by_name_ht_ops = {
 	.key_hash        = &units_by_name_ht_key_hash,
 	.equal           = &units_by_name_ht_equal,
 	.key_equal       = &units_by_name_ht_key_equal,
-	.remove_callback = NULL // TODO realy unneeded?
+	.remove_callback = NULL
 };
 
 /* Repository functions */
+
+static void repo_remove_unit_internal(unit_t *u)
+{
+	hash_table_remove_item(&units_by_name, &u->units_by_name);
+	hash_table_remove_item(&units_by_handle, &u->units_by_handle);
+	list_remove(&u->units);
+
+	// TODO decrease refcount of unit
+	// unit may be referenced e.g. from running job, thus we cannot simply destroy it
+}
 
 void repo_init(void)
 {
@@ -121,7 +131,7 @@ void repo_init(void)
 int repo_add_unit(unit_t *unit)
 {
 	assert(unit);
-	assert(unit->state == STATE_EMBRYO);
+	assert(unit->repo_state == REPO_EMBRYO);
 	assert(unit->handle == 0);
 	assert(unit->name != NULL);
 	sysman_log(LVL_DEBUG2, "%s('%s')", __func__, unit_name(unit));
@@ -138,6 +148,12 @@ int repo_add_unit(unit_t *unit)
 	}
 }
 
+int repo_remove_unit(unit_t *unit)
+{
+	unit->repo_state = REPO_ZOMBIE;
+	return EOK; /* We could check that unit is present in repo etc... */
+}
+
 void repo_begin_update(void) {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 }
@@ -145,8 +161,13 @@ void repo_begin_update(void) {
 static bool repo_commit_unit(ht_link_t *ht_link, void *arg)
 {
 	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
-	if (unit->state == STATE_EMBRYO) {
-		unit->state = STATE_STOPPED;
+	if (unit->repo_state == REPO_ZOMBIE) {
+		repo_remove_unit_internal(unit);
+		return true;
+	}
+
+	if (unit->repo_state == REPO_EMBRYO) {
+		unit->repo_state = REPO_LIVING;
 	}
 
 	list_foreach(unit->edges_out, edges_out, unit_edge_t, e) {
@@ -161,8 +182,10 @@ void repo_commit(void)
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
 	/*
-	 * Apply commit to all units_by_name, each commited unit commits its outgoing
-	 * deps, thus eventually commiting all embryo deps as well.
+	 * Apply commit to all units_by_name, each commited unit commits its
+	 * outgoing deps, thus eventually commiting all embryo deps as well.
+	 *
+	 * TODO why not iterate over units list?
 	 */
 	hash_table_apply(&units_by_name, &repo_commit_unit, NULL);
 }
@@ -179,10 +202,10 @@ static bool repo_rollback_unit(ht_link_t *ht_link, void *arg)
 		}
 	}
 
-	if (unit->state == STATE_EMBRYO) {
-		hash_table_remove_item(&units_by_name, ht_link);
-		list_remove(&unit->units);
-		unit_destroy(&unit);
+	if (unit->repo_state == REPO_EMBRYO) {
+		repo_remove_unit_internal(unit);
+	} else if (unit->repo_state == REPO_ZOMBIE) {
+		unit->repo_state = REPO_LIVING;
 	}
 
 	return true;

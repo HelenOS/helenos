@@ -31,14 +31,18 @@
 
 #include <adt/list.h>
 #include <ipc/sysman.h>
+#include <stdio.h>
 
 #include "unit.h"
+
+#define ANONYMOUS_SERVICE_MASK "service_%" PRIu64
 
 extern list_t units;
 
 extern void repo_init(void);
 
 extern int repo_add_unit(unit_t *);
+extern int repo_remove_unit(unit_t *);
 
 extern void repo_begin_update(void);
 

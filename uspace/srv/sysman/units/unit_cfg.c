@@ -176,7 +176,7 @@ static int cfg_load_configuration(const char *path)
 			continue;
 		}
 
-		assert(unit->state == STATE_EMBRYO);
+		assert(unit->repo_state == REPO_EMBRYO);
 		repo_add_unit(unit);
 	}
 	closedir(dir);

@@ -47,6 +47,13 @@ struct unit_vmt;
 typedef struct job job_t;
 struct job;
 
+/* Represents presence of unit in repo during modifications */
+typedef enum {
+	REPO_EMBRYO,
+	REPO_LIVING,
+	REPO_ZOMBIE
+} repo_state_t;
+
 typedef struct {
 	/** Link to name-to-unit hash table */
 	ht_link_t units_by_name;
@@ -79,6 +86,8 @@ typedef struct {
 	char *name;
 
 	unit_state_t state;
+
+	repo_state_t repo_state;
 
 	list_t edges_in;
 	list_t edges_out;
