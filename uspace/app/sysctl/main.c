@@ -51,8 +51,6 @@ typedef struct {
 static const char *unit_state(unit_state_t s)
 {
 	switch (s) {
-	case STATE_EMBRYO:
-		return "embryo";
 	case STATE_STARTING:
 		return "starting";
 	case STATE_STARTED:
