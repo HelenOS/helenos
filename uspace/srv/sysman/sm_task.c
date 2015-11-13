@@ -205,10 +205,8 @@ finish:
 	free(tev);
 }
 
-int sm_task_init(void)
+int sm_task_start(void)
 {
-	int rc = task_register_event_handler(&sm_task_event_handler);
-
-	//TODO dump taskman info for boot time tasks
+	int rc = task_register_event_handler(&sm_task_event_handler, true);
 	return rc;
 }

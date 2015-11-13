@@ -39,8 +39,6 @@
 #include <async.h>
 #endif
 
-extern int taskman_dump_events(void);
-
 /* Internal functions to be used by loader only */
 #ifndef TASKMAN_DISABLE_ASYNC
 extern async_sess_t *taskman_get_session(void);

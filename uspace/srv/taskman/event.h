@@ -40,7 +40,8 @@
 
 extern int event_init(void);
 
-extern int event_register_listener(task_id_t, async_sess_t *);
+extern void event_register_listener(task_id_t, bool, async_sess_t *,
+    ipc_callid_t);
 extern void dump_events(task_id_t, ipc_callid_t);
 extern void wait_for_task(task_id_t, int, ipc_callid_t, task_id_t);
 extern int task_set_retval(task_id_t, int, bool);

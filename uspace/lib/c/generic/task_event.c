@@ -82,7 +82,7 @@ static void taskman_event_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 /**
  * Blocks, calls handler in another fibril
  */
-int task_register_event_handler(task_event_handler_t handler)
+int task_register_event_handler(task_event_handler_t handler, bool past_events)
 {
 	/*
 	 * so far support assign once, modification cannot be naïve due to
@@ -94,7 +94,7 @@ int task_register_event_handler(task_event_handler_t handler)
 	task_event_handler = handler;
 
 	async_exch_t *exch = taskman_exchange_begin();
-	aid_t req = async_send_0(exch, TASKMAN_EVENT_CALLBACK, NULL);
+	aid_t req = async_send_1(exch, TASKMAN_EVENT_CALLBACK, past_events, NULL);
 
 	int rc = async_connect_to_me(exch, 0, 0, 0, taskman_event_conn, NULL);
 	taskman_exchange_end(exch);

@@ -185,6 +185,8 @@ static void taskman_ctl_ev_callback(ipc_callid_t iid, ipc_call_t *icall)
 {
 	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
 
+	bool past_events = IPC_GET_ARG1(*icall);
+
 	/* Atomic -- will be used for notifications only */
 	async_sess_t *sess = async_callback_receive(EXCHANGE_ATOMIC);
 	if (sess == NULL) {
@@ -192,15 +194,7 @@ static void taskman_ctl_ev_callback(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	int rc = event_register_listener(icall->in_task_id, sess);
-	async_answer_0(iid, rc);
-}
-
-static void taskman_ctl_dump_events(ipc_callid_t iid, ipc_call_t *icall)
-{
-	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
-
-	dump_events(icall->in_task_id, iid);
+	event_register_listener(icall->in_task_id, past_events, sess, iid);
 }
 
 static void task_exit_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -262,9 +256,6 @@ static bool handle_call(ipc_callid_t iid, ipc_call_t *icall)
 	case TASKMAN_EVENT_CALLBACK:
 		taskman_ctl_ev_callback(iid, icall);
 		break;
-	case TASKMAN_DUMP_EVENTS:
-		taskman_ctl_dump_events(iid, icall);
-		break;
 	default:
 		return false;
 	}
@@ -273,10 +264,10 @@ static bool handle_call(ipc_callid_t iid, ipc_call_t *icall)
 
 static bool handle_implicit_call(ipc_callid_t iid, ipc_call_t *icall)
 {
-	DPRINTF("%s:%i %i(%i) from %llu\n", __func__, __LINE__,
+	/*DPRINTF("%s:%i %i(%i) from %llu\n", __func__, __LINE__,
 	    IPC_GET_IMETHOD(*icall),
 	    IPC_GET_ARG1(*icall),
-	    icall->in_task_id);
+	    icall->in_task_id);*/
 
 	if (IPC_GET_IMETHOD(*icall) < IPC_FIRST_USER_METHOD) {
 		switch (IPC_GET_ARG1(*icall)) {

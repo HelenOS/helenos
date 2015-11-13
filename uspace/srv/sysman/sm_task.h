@@ -32,6 +32,6 @@
 struct sm_task_event;
 typedef struct sm_task_event sm_task_event_t;
 
-extern int sm_task_init(void);
+extern int sm_task_start(void);
 
 #endif

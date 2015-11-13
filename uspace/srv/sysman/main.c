@@ -214,7 +214,6 @@ int main(int argc, char *argv[])
 	repo_init();
 	sysman_events_init();
 	job_queue_init();
-	sm_task_init();
 
 	/*
 	 * Create initial configuration while we are in a single fibril
@@ -245,8 +244,8 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	/* We're almost ready, scan for boot time tasks */
-	rc = taskman_dump_events();
+	/* Start listening task events and scan boot time tasks */
+	rc = sm_task_start();
 	if (rc != EOK) {
 		sysman_log(LVL_FATAL,
 		    "Cannot scan boot time tasks (%i).", rc);

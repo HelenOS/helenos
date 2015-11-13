@@ -187,9 +187,21 @@ loop:
 	fibril_rwlock_write_unlock(&pending_wait_lock);
 }
 
-int event_register_listener(task_id_t id, async_sess_t *sess)
+static bool dump_walker(task_t *t, void *arg)
+{
+	event_notify(t, arg);
+	return true;
+}
+
+void event_register_listener(task_id_t id, bool past_events, async_sess_t *sess,
+    ipc_callid_t iid)
 {
 	int rc = EOK;
+	/*
+	 * We have lock of tasks structures so that we can guarantee
+	 * that dump receiver will receive tasks correctly ordered (retval,
+	 * exit updates are serialized via exclusive lock).
+	 */
 	fibril_rwlock_write_lock(&task_hash_table_lock);
 	fibril_rwlock_write_lock(&listeners_lock);
 
@@ -202,47 +214,18 @@ int event_register_listener(task_id_t id, async_sess_t *sess)
 	list_append(&t->listeners, &listeners);
 	t->sess = sess;
 
-finish:
-	fibril_rwlock_write_unlock(&listeners_lock);
-	fibril_rwlock_write_unlock(&task_hash_table_lock);
-	return rc;
-}
-
-static bool dump_walker(task_t *t, void *arg)
-{
-	event_notify(t, arg);
-	return true;
-}
-
-void dump_events(task_id_t receiver_id, ipc_callid_t iid)
-{
-	int rc = EOK;
-	/*
-	 * We have shared lock of tasks structures so that we can guarantee
-	 * that dump receiver will receive tasks correctly ordered (retval,
-	 * exit updates are serialized via exclusive lock).
-	 */
-	fibril_rwlock_read_lock(&task_hash_table_lock);
-
-	task_t *receiver = task_get_by_id(receiver_id);
-	if (receiver == NULL) {
-		rc = ENOENT;
-		goto finish;
-	}
-	if (receiver->sess == NULL) {
-		rc = ENOENT;
-		goto finish;
-	}
-
 	/*
 	 * Answer caller first, so that they are not unnecessarily waiting
 	 * while we dump events.
 	 */
 	async_answer_0(iid, rc);
-	task_foreach(&dump_walker, receiver->sess);
+	if (past_events) {
+		task_foreach(&dump_walker, t->sess);
+	}
 
 finish:
-	fibril_rwlock_read_unlock(&task_hash_table_lock);
+	fibril_rwlock_write_unlock(&listeners_lock);
+	fibril_rwlock_write_unlock(&task_hash_table_lock);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 	}
