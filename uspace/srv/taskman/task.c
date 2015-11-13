@@ -41,43 +41,84 @@
 #include "task.h"
 #include "taskman.h"
 
-static size_t task_key_hash(void *key)
+typedef struct {
+	task_walker_t walker;
+	void *arg;
+} walker_context_t;
+	
+/*
+ * Forwards
+ */
+
+static void task_destroy(task_t **);
+
+/*
+ * Hash table functions
+ */
+
+static size_t ht_task_key_hash(void *key)
 {
 	return *(task_id_t*)key;
 }
 
-static size_t task_hash(const ht_link_t  *item)
+static size_t ht_task_hash(const ht_link_t  *item)
 {
 	task_t *ht = hash_table_get_inst(item, task_t, link);
 	return ht->id;
 }
 
-static bool task_key_equal(void *key, const ht_link_t *item)
+static bool ht_task_key_equal(void *key, const ht_link_t *item)
 {
 	task_t *ht = hash_table_get_inst(item, task_t, link);
 	return ht->id == *(task_id_t*)key;
 }
 
 /** Perform actions after removal of item from the hash table. */
-static void task_remove(ht_link_t *item)
+static void ht_task_remove(ht_link_t *item)
 {
-	free(hash_table_get_inst(item, task_t, link));
+	task_t *t = hash_table_get_inst(item, task_t, link);
+	task_destroy(&t);
 }
 
 /** Operations for task hash table. */
 static hash_table_ops_t task_hash_table_ops = {
-	.hash = task_hash,
-	.key_hash = task_key_hash,
-	.key_equal = task_key_equal,
+	.hash = ht_task_hash,
+	.key_hash = ht_task_key_hash,
+	.key_equal = ht_task_key_equal,
 	.equal = NULL,
-	.remove_callback = task_remove
+	.remove_callback = ht_task_remove
 };
 
 /** Task hash table structure. */
-hash_table_t task_hash_table;
+static hash_table_t task_hash_table;
 fibril_rwlock_t task_hash_table_lock;
 
-int task_init(void)
+static void task_init(task_t *t)
+{
+	t->exit = TASK_EXIT_RUNNING;
+	t->failed = false;
+	t->retval_type = RVAL_UNSET;
+	t->retval = -1;
+	link_initialize(&t->listeners);
+	t->sess = NULL;
+}
+
+static void task_destroy(task_t **t_ptr)
+{
+	task_t *t = *t_ptr;
+	if (t == NULL) {
+		return;
+	}
+
+	if (t->sess != NULL) {
+		async_hangup(t->sess);
+	}
+	free(t);
+
+	*t_ptr = NULL;
+}
+
+int tasks_init(void)
 {
 	if (!hash_table_create(&task_hash_table, 0, 0, &task_hash_table_ops)) {
 		printf(NAME ": No memory available for tasks\n");
@@ -108,6 +149,47 @@ task_t *task_get_by_id(task_id_t id)
 	return t;
 }
 
+static bool internal_walker(ht_link_t *ht_link, void *arg)
+{
+	task_t *t = hash_table_get_inst(ht_link, task_t, link);
+	walker_context_t *ctx = arg;
+	return ctx->walker(t, ctx->arg);
+}
+
+/** Iterate over all tasks
+ *
+ * @note Assumes task_hash_table lock is held.
+ *
+ * @param[in]  walker
+ * @param[in]  arg     generic argument passed to walker function
+ */
+void task_foreach(task_walker_t walker, void *arg)
+{
+	walker_context_t ctx;
+	ctx.walker = walker;
+	ctx.arg = arg;
+
+	hash_table_apply(&task_hash_table, &internal_walker, &ctx);
+}
+
+/** Remove task from our structures
+ *
+ * @note Assumes task_hash_table exclusive lock is held.
+ *
+ * @param[in|out]  ptr_t  Pointer to task pointer that should be removed, nulls
+ *                        task pointer.
+ */
+void task_remove(task_t **ptr_t)
+{
+	task_t *t = *ptr_t;
+	if (t == NULL) {
+		return;
+	}
+
+	hash_table_remove_item(&task_hash_table, &t->link);
+	*ptr_t = NULL;
+}
+
 int task_intro(task_id_t id)
 {
 	int rc = EOK;
@@ -129,16 +211,11 @@ int task_intro(task_id_t id)
 	/*
 	 * Insert into the main table.
 	 */
+	task_init(t);
 	t->id = id;
-	t->exit = TASK_EXIT_RUNNING;
-	t->failed = false;
-	t->retval_type = RVAL_UNSET;
-	t->retval = -1;
-	link_initialize(&t->listeners);
-	t->sess = NULL;
 
 	hash_table_insert(&task_hash_table, &t->link);
-	printf("%s: %llu\n", __func__, t->id);
+	DPRINTF("%s: %llu\n", __func__, t->id);
 	
 finish:
 	fibril_rwlock_write_unlock(&task_hash_table_lock);

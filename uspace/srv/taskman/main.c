@@ -53,8 +53,6 @@
 #include "task.h"
 #include "taskman.h"
 
-//#define DPRINTF(...) printf(__VA_ARGS__)
-#define DPRINTF(...) /* empty */
 
 typedef struct {
 	link_t link;
@@ -198,6 +196,13 @@ static void taskman_ctl_ev_callback(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
+static void taskman_ctl_dump_events(ipc_callid_t iid, ipc_call_t *icall)
+{
+	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
+
+	dump_events(icall->in_task_id, iid);
+}
+
 static void task_exit_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
@@ -256,6 +261,9 @@ static bool handle_call(ipc_callid_t iid, ipc_call_t *icall)
 		break;
 	case TASKMAN_EVENT_CALLBACK:
 		taskman_ctl_ev_callback(iid, icall);
+		break;
+	case TASKMAN_DUMP_EVENTS:
+		taskman_ctl_dump_events(iid, icall);
 		break;
 	default:
 		return false;
@@ -339,7 +347,7 @@ int main(int argc, char *argv[])
 
 	/* Initialization */
 	prodcons_initialize(&sess_queue);
-	int rc = task_init();
+	int rc = tasks_init();
 	if (rc != EOK) {
 		return rc;
 	}

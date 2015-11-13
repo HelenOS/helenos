@@ -43,7 +43,8 @@ typedef enum {
 	TASKMAN_RETVAL,
 	TASKMAN_EVENT_CALLBACK,
 	TASKMAN_NEW_TASK,
-	TASKMAN_I_AM_NS
+	TASKMAN_I_AM_NS,
+	TASKMAN_DUMP_EVENTS
 } taskman_request_t;
 
 typedef enum {

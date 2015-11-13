@@ -45,6 +45,10 @@
 
 async_sess_t *session_taskman = NULL;
 
+/*
+ * Private functions
+ */
+
 void __task_init(async_sess_t *sess)
 {
 	assert(session_taskman == NULL);
@@ -118,6 +122,26 @@ async_sess_t *taskman_session_loader(void)
 	return sess;
 }
 
+/*
+ * Public functions
+ */
+
+int taskman_dump_events(void)
+{
+	assert(session_taskman);
+
+	async_exch_t *exch = async_exchange_begin(session_taskman);
+	int rc = async_req_0_0(exch, TASKMAN_DUMP_EVENTS);
+	taskman_exchange_end(exch);
+
+	return rc;
+}
+
+async_sess_t *taskman_get_session(void)
+{
+	return session_taskman;
+}
+
 /** Introduce as loader to taskman
  *
  * @return EOK on success, otherwise propagated error code
@@ -155,11 +179,6 @@ int taskman_intro_ns(void)
 	sysarg_t retval;
 	async_wait_for(req, &retval);
 	return retval;
-}
-
-async_sess_t *taskman_get_session(void)
-{
-	return session_taskman;
 }
 
 

@@ -41,6 +41,7 @@
 
 #include "event.h"
 #include "task.h"
+#include "taskman.h"
 
 /** Pending task wait structure. */
 typedef struct {
@@ -84,9 +85,34 @@ static int event_flags(task_t *task)
 	return flags;
 }
 
-static void event_notify(task_t *sender)
+static void event_notify(task_t *sender, async_sess_t *sess)
 {
-	// TODO should rlock task_hash_table?
+	int flags = event_flags(sender);
+	if (flags == 0) {
+		return;
+	}
+
+	async_exch_t *exch = async_exchange_begin(sess);
+	aid_t req = async_send_5(exch, TASKMAN_EV_TASK,
+	    LOWER32(sender->id),
+	    UPPER32(sender->id),
+	    flags,
+	    sender->exit,
+	    sender->retval,
+	    NULL);
+
+	async_exchange_end(exch);
+
+	/* Just send a notification and don't wait for anything */
+	async_forget(req);
+}
+
+/** Notify all registered listeners about sender's event
+ *
+ * @note Assumes share lock of task_hash_table is held.
+ */
+static void event_notify_all(task_t *sender)
+{
 	int flags = event_flags(sender);
 	if (flags == 0) {
 		return;
@@ -95,19 +121,7 @@ static void event_notify(task_t *sender)
 	fibril_rwlock_read_lock(&listeners_lock);
 	list_foreach(listeners, listeners, task_t, t) {
 		assert(t->sess);
-		async_exch_t *exch = async_exchange_begin(t->sess);
-		aid_t req = async_send_5(exch, TASKMAN_EV_TASK,
-		    LOWER32(sender->id),
-		    UPPER32(sender->id),
-		    flags,
-		    sender->exit,
-		    sender->retval,
-		    NULL);
-
-		async_exchange_end(exch);
-
-		/* Just send a notification and don't wait for anything */
-		async_forget(req);
+		event_notify(sender, t->sess);
 	}
 	fibril_rwlock_read_unlock(&listeners_lock);
 }
@@ -192,6 +206,46 @@ finish:
 	fibril_rwlock_write_unlock(&listeners_lock);
 	fibril_rwlock_write_unlock(&task_hash_table_lock);
 	return rc;
+}
+
+static bool dump_walker(task_t *t, void *arg)
+{
+	event_notify(t, arg);
+	return true;
+}
+
+void dump_events(task_id_t receiver_id, ipc_callid_t iid)
+{
+	int rc = EOK;
+	/*
+	 * We have shared lock of tasks structures so that we can guarantee
+	 * that dump receiver will receive tasks correctly ordered (retval,
+	 * exit updates are serialized via exclusive lock).
+	 */
+	fibril_rwlock_read_lock(&task_hash_table_lock);
+
+	task_t *receiver = task_get_by_id(receiver_id);
+	if (receiver == NULL) {
+		rc = ENOENT;
+		goto finish;
+	}
+	if (receiver->sess == NULL) {
+		rc = ENOENT;
+		goto finish;
+	}
+
+	/*
+	 * Answer caller first, so that they are not unnecessarily waiting
+	 * while we dump events.
+	 */
+	async_answer_0(iid, rc);
+	task_foreach(&dump_walker, receiver->sess);
+
+finish:
+	fibril_rwlock_read_unlock(&task_hash_table_lock);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+	}
 }
 
 void wait_for_task(task_id_t id, int flags, ipc_callid_t callid,
@@ -283,7 +337,7 @@ int task_set_retval(task_id_t sender, int retval, bool wait_for_exit)
 	t->retval = retval;
 	t->retval_type = wait_for_exit ? RVAL_SET_EXIT : RVAL_SET;
 	
-	event_notify(t);
+	event_notify_all(t);
 	process_pending_wait();
 	
 finish:
@@ -312,14 +366,19 @@ void task_terminated(task_id_t id, exit_reason_t exit_reason)
 		t->exit = TASK_EXIT_NORMAL;
 	}
 
-	event_notify(t);
-	process_pending_wait();
-
-	hash_table_remove_item(&task_hash_table, &t->link);
-
+	/*
+	 * First remove terminated task from listeners and only after that
+	 * notify all others.
+	 */
 	fibril_rwlock_write_lock(&listeners_lock);
 	list_remove(&t->listeners);
 	fibril_rwlock_write_unlock(&listeners_lock);
+
+	event_notify_all(t);
+	process_pending_wait();
+
+	/* Eventually, get rid of task_t. */
+	task_remove(&t);
 
 finish:
 	fibril_rwlock_write_unlock(&task_hash_table_lock);

@@ -33,7 +33,12 @@
 #ifndef TASKMAN_TASKMAN_H__
 #define TASKMAN_TASKMAN_H__
 
+#include <stdio.h>
+
 #define NAME  "taskman"
+
+//#define DPRINTF(...) printf(__VA_ARGS__)
+#define DPRINTF(...) /* empty */
 
 #endif
 
