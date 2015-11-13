@@ -129,6 +129,7 @@ int main(int argc, char **argv)
 	async_set_fallback_port_handler(ns_connection, NULL);
 
 	printf("%s: Accepting connections\n", NAME);
+	// TODO enable NS to use task_retval(0)
 	async_manager();
 
 	/* Not reached */

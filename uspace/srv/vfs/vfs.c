@@ -159,6 +159,7 @@ int main(int argc, char **argv)
 	 * Start accepting connections.
 	 */
 	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
 	return 0;
 }

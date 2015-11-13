@@ -217,6 +217,7 @@ int main(int argc, char **argv)
 		return -1;
 
 	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
 
 	/* Never reached */

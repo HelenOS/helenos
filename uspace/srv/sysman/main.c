@@ -35,6 +35,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <str.h>
+#include <taskman.h>
 
 #include "repo.h"
 #include "connection_broker.h"
@@ -203,6 +204,7 @@ static void prepare_and_run_job(const char **target_name_ptr)
 
 int main(int argc, char *argv[])
 {
+	async_set_client_connection(sysman_connection);
 	printf(NAME ": HelenOS system daemon\n");
 
 	/*
@@ -234,8 +236,6 @@ int main(int argc, char *argv[])
 	sysman_log(LVL_DEBUG, "Debugging pause...\n");
 	async_usleep(1 * 1000000);
 	sysman_log(LVL_DEBUG, "Debugging pause ended.\n");
-	/* Queue first job from sequence */
-	prepare_and_run_job(&target_sequence[0]);
 
 	/* We're service too */
 	rc = service_register(SERVICE_SYSMAN);
@@ -245,10 +245,21 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
+	/* We're almost ready, scan for boot time tasks */
+	rc = taskman_dump_events();
+	if (rc != EOK) {
+		sysman_log(LVL_FATAL,
+		    "Cannot scan boot time tasks (%i).", rc);
+		return rc;
+	}
+
+	/* Queue first job from sequence */
+	prepare_and_run_job(&target_sequence[0]);
+
 	/* Start sysman server */
-	async_set_client_connection(sysman_connection);
 
 	printf(NAME ": Accepting connections\n");
+	task_retval(0);
 	async_manager();
 
 	/* not reached */
