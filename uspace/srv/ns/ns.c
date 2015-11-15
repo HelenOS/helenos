@@ -43,9 +43,8 @@
 #include <abi/ipc/interfaces.h>
 #include <stdio.h>
 #include <errno.h>
-#define TASKMAN_DISABLE_ASYNC
-#include <taskman.h>
-#undef TASKMAN_DISABLE_ASYNC
+#include <ipc/taskman.h>
+#include <taskman_noasync.h>
 
 #include "ns.h"
 #include "service.h"
@@ -120,16 +119,17 @@ int main(int argc, char **argv)
 	if (rc != EOK)
 		return rc;
 	
-	rc = taskman_intro_ns();
+	rc = taskman_intro_ns_noasync();
 	if (rc != EOK) {
 		printf("%s: not accepted by taskman (%i)\n", NAME, rc);
 		return rc;
 	}
-
+	task_retval_noasync(0);
+	
 	async_set_fallback_port_handler(ns_connection, NULL);
 
 	printf("%s: Accepting connections\n", NAME);
-	// TODO enable NS to use task_retval(0)
+	
 	async_manager();
 
 	/* Not reached */

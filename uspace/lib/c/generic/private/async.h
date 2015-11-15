@@ -107,6 +107,7 @@ extern async_port_handler_t async_get_port_handler(iface_t, port_id_t, void **);
 extern void async_reply_received(ipc_call_t *);
 extern async_sess_t *create_session(int, exch_mgmt_t,
 	sysarg_t, sysarg_t, sysarg_t);
+extern int async_session_phone(async_sess_t *);
 
 #endif
 

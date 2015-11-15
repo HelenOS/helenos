@@ -38,7 +38,6 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <abi/proc/task.h>
-#include <async.h>
 #include <types/task.h>
 
 #define TASK_WAIT_EXIT   0x1
@@ -76,7 +75,7 @@ extern void task_cancel_wait(task_wait_t *);
 extern errno_t task_retval(int);
 
 /* Implemented in task_event.c */
-extern int task_register_event_handler(task_event_handler_t);
+extern int task_register_event_handler(task_event_handler_t, bool);
 
 #endif
 

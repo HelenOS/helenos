@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2015 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,27 +32,49 @@
 /** @file
  */
 
-#ifndef _LIBC_TYPES_TASK_H_
-#define _LIBC_TYPES_TASK_H_
+#define LIBC_ASYNC_C_
+#include <ipc/ipc.h>
+#include "private/async.h"
+#include "private/taskman.h"
+#undef LIBC_ASYNC_C_
 
-#include <async.h>
+#include <errno.h>
+#include <ipc/taskman.h>
+#include <taskman_noasync.h>
 
-typedef enum {
-	TASK_EXIT_RUNNING,   /**< Internal taskman value. */
-	TASK_EXIT_NORMAL,
-	TASK_EXIT_UNEXPECTED
-} task_exit_t;
 
-typedef struct {
-	int flags;
-	ipc_call_t result;
-	aid_t aid;
-	task_id_t tid;
-} task_wait_t;
 
-typedef void (* task_event_handler_t)(task_id_t, int, task_exit_t, int);
 
-#endif
+/** Tell taskman we are his NS
+ *
+ * @return EOK on success, otherwise propagated error code
+ */
+int taskman_intro_ns_noasync(void)
+{
+	assert(session_taskman);
+	int phone = async_session_phone(session_taskman);
+
+	ipc_call_async_0(phone, TASKMAN_I_AM_NS, NULL, NULL, false);
+
+	ipc_call_async_3(phone, IPC_M_CONNECT_TO_ME, 0, 0, 0, NULL, NULL, false);
+
+	/*
+	 * Since this is a workaround for NS's low-level implementation, we can
+	 * assume positive answer and return EOK.
+	 */
+	return EOK;
+}
+
+
+void task_retval_noasync(int retval)
+{
+	assert(session_taskman);
+	int phone = async_session_phone(session_taskman);
+
+	/* Just send it and don't wait for an answer. */
+	ipc_call_async_2(phone, TASKMAN_RETVAL, retval, false,
+	    NULL, NULL, false);
+}
 
 /** @}
  */

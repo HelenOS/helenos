@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2015 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +32,14 @@
 /** @file
  */
 
-#ifndef _LIBC_TYPES_TASK_H_
-#define _LIBC_TYPES_TASK_H_
+#ifndef LIBC_TASKMAN_NOASYNC_H_
+#define LIBC_TASKMAN_NOASYNC_H_
 
-#include <async.h>
 
-typedef enum {
-	TASK_EXIT_RUNNING,   /**< Internal taskman value. */
-	TASK_EXIT_NORMAL,
-	TASK_EXIT_UNEXPECTED
-} task_exit_t;
+/* Internal functions to be used by NS only */
+extern int taskman_intro_ns_noasync(void);
 
-typedef struct {
-	int flags;
-	ipc_call_t result;
-	aid_t aid;
-	task_id_t tid;
-} task_wait_t;
-
-typedef void (* task_event_handler_t)(task_id_t, int, task_exit_t, int);
+extern void task_retval_noasync(int);
 
 #endif
 

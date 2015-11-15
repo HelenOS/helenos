@@ -197,6 +197,10 @@ async_sess_t *create_session(cap_phone_handle_t phone, exch_mgmt_t mgmt,
 	return session;
 }
 
+int async_session_phone(async_sess_t *sess)
+{
+	return sess->phone;
+}
 
 /** Initialize the async framework.
  *
