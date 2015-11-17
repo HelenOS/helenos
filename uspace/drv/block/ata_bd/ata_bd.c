@@ -73,7 +73,6 @@
 #include "main.h"
 
 #define NAME       "ata_bd"
-#define NAMESPACE  "bd"
 
 /** Number of defined legacy controller base addresses. */
 #define LEGACY_CTLS 4

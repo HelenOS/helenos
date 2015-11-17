@@ -245,6 +245,7 @@ static int sata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 int main(int argc, char **argv)
 {
 	int rc;
+	category_id_t disk_cat;
 	
 	async_set_fallback_port_handler(sata_bd_connection, NULL);
 	rc = loc_server_register(NAME);
@@ -258,7 +259,13 @@ int main(int argc, char **argv)
 		return rc;
 	}
 
-	for(int i=0; i < disk_count; i++) {
+	rc = loc_category_get_id("disk", &disk_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category 'disk'.\n", NAME);
+		return rc;
+	}
+
+	for(int i = 0; i < disk_count; i++) {
 		char name[1024];
 		snprintf(name, 1024, "%s/%s", NAMESPACE, disk[i].dev_name);
 		rc = loc_service_register(name, &disk[i].service_id);
@@ -266,8 +273,15 @@ int main(int argc, char **argv)
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
+
+		rc = loc_service_add_to_cat(disk[i].service_id, disk_cat);
+		if (rc != EOK) {
+			printf("%s: Failed adding %s to category.",
+			    NAME, disk[i].dev_name);
+			return rc;
+		}
 	}
-		
+
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
 	async_manager();

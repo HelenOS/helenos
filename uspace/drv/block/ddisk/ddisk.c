@@ -336,7 +336,7 @@ static int ddisk_fun_create(ddisk_t *ddisk)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "bd");
+	ddf_fun_add_to_category(fun, "disk");
 	ddisk->fun = fun;
 
 	return EOK;

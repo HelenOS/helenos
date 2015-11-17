@@ -291,6 +291,8 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
+	ddf_fun_add_to_category(fun, "disk");
+
 	free(fun_name);
 	mdev->luns[lun] = fun;
 

@@ -1313,9 +1313,6 @@ static bool loc_init(void)
 	
 	categ_dir_init(&cdir);
 
-	cat = category_new("bd");
-	categ_dir_add_cat(&cdir, cat);
-
 	cat = category_new("disk");
 	categ_dir_add_cat(&cdir, cat);
 

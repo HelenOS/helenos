@@ -89,6 +89,7 @@ int main(int argc, char **argv)
 	int rc;
 	char *image_name;
 	char *device_name;
+	category_id_t disk_cat;
 
 	printf(NAME ": File-backed block device driver\n");
 
@@ -137,7 +138,20 @@ int main(int argc, char **argv)
 		    NAME, device_name);
 		return rc;
 	}
-	
+
+	rc = loc_category_get_id("disk", &disk_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category 'disk'.\n", NAME);
+		return rc;
+	}
+
+	rc = loc_service_add_to_cat(service_id, disk_cat);
+	if (rc != EOK) {
+		printf("%s: Failed adding %s to category.",
+		    NAME, device_name);
+		return rc;
+	}
+
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
