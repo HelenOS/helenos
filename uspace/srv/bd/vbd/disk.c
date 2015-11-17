@@ -537,7 +537,7 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 	label_t *label;
 	label_info_t linfo;
 	vbds_disk_t *disk;
-	int rc;
+	int rc, rc2;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu)", sid);
 
@@ -582,11 +582,15 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 error:
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu) - failure", sid);
 	if (disk->label == NULL) {
-		rc = label_open(sid, &label);
-		if (rc != EOK) {
+		rc2 = label_open(sid, &label);
+		if (rc2 != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to open label in disk %s.",
 			    disk->svc_name);
+			return rc2;
 		}
+
+		disk->label = label;
+		(void) vbds_disk_parts_add(disk, label);
 	}
 
 	return rc;

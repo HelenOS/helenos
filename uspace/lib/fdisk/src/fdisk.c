@@ -39,7 +39,6 @@
 #include <fdisk.h>
 #include <loc.h>
 #include <mem.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <vbd.h>
@@ -633,8 +632,11 @@ int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 	fdisk_dev_remove_parts(dev);
 
 	rc = vbd_label_create(dev->fdisk->vbd, dev->sid, ltype);
-	if (rc != EOK)
+	if (rc != EOK) {
+		/* Re-add dummy partition */
+		(void) fdisk_dev_add_parts(dev);
 		return rc;
+	}
 
 	rc = fdisk_update_dev_info(dev);
 	if (rc != EOK)
