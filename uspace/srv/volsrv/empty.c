@@ -42,6 +42,20 @@
 
 #include "empty.h"
 
+/*
+ * The partition will be considered empty if at least a minimum number of
+ * bytes *and* blocks (whichever is larger) at the beginning and end of
+ * the partition is zero.
+ */
+enum {
+	min_empty_bytes = 16384,
+	/*
+	 * First block in ISO 9660 that cannot be empty is the first
+	 * volume descriptor at LBA 16
+	 */
+	min_empty_blocks = 17
+};
+
 static bool mem_is_zero(void *buf, size_t size)
 {
 	uint8_t *bp;
@@ -71,9 +85,9 @@ static void calc_num_check_blocks(aoff64_t nblocks, size_t block_size,
 	aoff64_t n;
 
 	/* Check first 16 kiB / 16 blocks, whichever is more */
-	n = (16384 + block_size - 1) / block_size;
-	if (n < 16)
-		n = 16;
+	n = (min_empty_bytes + block_size - 1) / block_size;
+	if (n < min_empty_blocks)
+		n = min_empty_blocks;
 	/*
 	 * Limit to half of the device so we do not process the same blocks
 	 * twice
