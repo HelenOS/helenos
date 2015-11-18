@@ -180,18 +180,21 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 	info = fdisk_dev_first(devlist);
 	ndevs = 0;
 	while (info != NULL) {
-		++ndevs;
-
 		rc = fdisk_dev_info_get_svcname(info, &svcname);
 		if (rc != EOK) {
-			printf("Error getting device service name.\n");
-			goto error;
+			fdisk_dev_info_get_svcid(info, &svcid);
+			printf("Error getting device service name "
+			    "(service ID %zu).\n", svcid);
+			info = fdisk_dev_next(info);
+			continue;
 		}
 
 		rc = fdisk_dev_info_capacity(info, &cap);
 		if (rc != EOK) {
-			printf("Error getting device capacity.\n");
-			goto error;
+			printf("Error getting device capacity "
+			    "(device %s).\n", svcname);
+			info = fdisk_dev_next(info);
+			continue;
 		}
 
 		fdisk_cap_simplify(&cap);
@@ -221,6 +224,8 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 			printf("Out of memory.\n");
 			goto error;
 		}
+
+		++ndevs;
 
 		free(dtext);
 		dtext = NULL;
