@@ -188,8 +188,7 @@ static void sysman_event_task_event(void *data)
 			u->state = STATE_FAILED;
 		}
 
-	}
-	if (tev->flags & TASK_WAIT_RETVAL) {
+	} else if (tev->flags & TASK_WAIT_RETVAL) {
 		assert(u->state == STATE_STARTING);
 		u->state = STATE_STARTED;
 	}
