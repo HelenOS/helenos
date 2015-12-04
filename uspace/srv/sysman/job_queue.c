@@ -229,7 +229,11 @@ int job_queue_add_closure(job_closure_t *closure)
 		return rc;
 	}
 
-	/* Unmerged jobs are enqueued, merged are disposed */
+	/* Unmerged jobs are enqueued, merged are disposed
+	 *
+	 * TODO Ensure that jobs that block merged jobs contain the corrent job
+	 *      in their blocked_jobs array.
+	 */
 	dyn_array_foreach(*closure, job_t *, job_it) {
 		job_t *job = (*job_it);
 		if (job->merged_into != NULL) {
