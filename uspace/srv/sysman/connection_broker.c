@@ -68,7 +68,6 @@ static void sysman_main_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
 
 	unit_t *unit = repo_find_unit_by_name(unit_name);
 	if (unit == NULL) {
-		//sysman_log(LVL_NOTE, "Unit '%s' not found.", unit_name);
 		retval = ENOENT;
 		goto finish;
 	}
@@ -96,7 +95,6 @@ static void sysman_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
 		goto finish;
 	}
 
-	//sysman_log(LVL_DEBUG2, "%s(%s)", __func__, exposee);
 
 	retval = ENOTSUP;
 
