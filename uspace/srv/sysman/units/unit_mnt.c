@@ -195,7 +195,6 @@ static int unit_mnt_start(unit_t *unit)
 	assert(!u_mnt->autostart || u_mnt->blocking);
 
 	
-	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
 	assert(unit->state == STATE_STOPPED);
 
 	mount_data_t mnt_data;
@@ -236,7 +235,6 @@ static int unit_mnt_stop(unit_t *unit)
 	assert(!u_mnt->autostart || u_mnt->blocking);
 
 	
-	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
 	// note: we should never hit STATE_STARTING, since it'd mean there are
 	//       two jobs running at once (unless job cancellation is implemented)
 	assert(unit->state == STATE_STARTED);

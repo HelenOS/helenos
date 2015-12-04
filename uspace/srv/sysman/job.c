@@ -216,7 +216,6 @@ void job_run(job_t *job)
 		}
 		break;
 	default:
-		// TODO implement other states?
 		assert(false);
 	}
 	if (rc != EOK) {

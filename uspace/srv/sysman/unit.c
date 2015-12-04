@@ -97,9 +97,7 @@ void unit_destroy(unit_t **unit_ptr)
 
 	UNIT_VMT(unit)->destroy(unit);
 	/* TODO:
-	 * 	edges,
-	 * 	check it's not an active unit,
-	 * 	other resources to come
+	 * 	edges
 	 */
 	free(unit->name);
 	free(unit);

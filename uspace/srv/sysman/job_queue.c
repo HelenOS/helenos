@@ -260,8 +260,6 @@ int job_queue_add_closure(job_closure_t *closure)
  * Job can be blocked either by another job or by an incoming event, that will
  * be queued after this job_queue_process call.
  *
- * TODO Write down rules from where this function can be called, to avoid stack
- *      overflow.
  */
 void job_queue_process(void)
 {

@@ -79,7 +79,6 @@ static void unit_tgt_exposee_created(unit_t *unit)
 
 static void unit_tgt_fail(unit_t *unit)
 {
-	// TODO define semantics and implement
 }
 
 

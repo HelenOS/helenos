@@ -39,10 +39,10 @@ static void sysman_broker_register(ipc_callid_t iid, ipc_call_t *icall)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 	async_answer_0(iid, EOK);
-	/* TODO implement
-	 *  What exactly? Similar behavior that has locsrv with servers,
-	 *  so that subsequent calls can be assigned to broker. Still that
-	 *  makes sense only when brokers will somehow scope unit/exposee
+	/*
+	 *  What exactly do here? Similar behavior that has locsrv with
+	 *  servers, so that subsequent calls can be assigned to broker. Still
+	 *  that makes sense only when brokers will somehow scope unit/exposee
 	 *  names. Why I wanted this registration?
 	 */
 }

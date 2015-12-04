@@ -81,7 +81,6 @@ static int unit_svc_start(unit_t *unit)
 	assert(u_svc);
 
 	
-	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
 	assert(unit->state == STATE_STOPPED);
 
 	int rc = task_spawnv(&u_svc->main_task_id, NULL, u_svc->exec_start.path,
@@ -117,7 +116,6 @@ static int unit_svc_stop(unit_t *unit)
 	assert(u_svc);
 
 	
-	// TODO think about unit's lifecycle (is STOPPED only acceptable?)
 	// note: May change when job cancellation is possible.
 	assert(unit->state == STATE_STARTED);
 

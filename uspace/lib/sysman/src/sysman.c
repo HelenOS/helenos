@@ -34,7 +34,6 @@ static async_sess_t *sysman_sess[SYSMAN_PORT_MAX_] = {NULL};
 
 async_exch_t *sysman_exchange_begin(sysman_interface_t iface)
 {
-	// TODO need special session for each iface!
 	if (sysman_sess[iface] == NULL) {
 		// TODO serialize vs parallel
 		sysman_sess[iface] = service_connect_blocking(EXCHANGE_SERIALIZE,
