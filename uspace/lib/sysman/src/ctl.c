@@ -63,11 +63,11 @@ int sysman_unit_handle(const char *unit_name, unit_handle_t *handle_ptr)
  * Still though, it's necessary to centralize timeout into sysman.
  * TODO convert to name->handle API
  */
-int sysman_unit_start(const char *unit_name, int flags)
+int sysman_unit_start_by_name(const char *unit_name, int flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
-	aid_t req = async_send_1(exch, SYSMAN_CTL_UNIT_START, flags, NULL);
+	aid_t req = async_send_1(exch, SYSMAN_CTL_UNIT_START_BY_NAME, flags, NULL);
 	sysarg_t rc = async_data_write_start(exch, unit_name, str_size(unit_name));
 	sysman_exchange_end(exch);
 

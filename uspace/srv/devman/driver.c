@@ -347,11 +347,11 @@ bool start_driver(driver_t *drv)
 
 	/*
 	 * Non-blocking asynchronous request to start a driver
-	 * FIXME See note about sysman_unit_start non-blocking (asynchronous)
+	 * FIXME See note about sysman_unit_start_by_name non-blocking (asynchronous)
 	 *       API
 	 */
 	int flags = 0;
-	rc = sysman_unit_start(unit_name, flags);
+	rc = sysman_unit_start_by_name(unit_name, flags);
 	free(unit_name);
 
 	if (rc != EOK) {

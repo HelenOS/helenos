@@ -90,7 +90,7 @@ finish:
 	free(unit_name);
 }
 
-static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_unit_start_by_name(ipc_callid_t iid, ipc_call_t *icall)
 {
 	char *unit_name = NULL;
 	sysarg_t retval;
@@ -285,8 +285,8 @@ void sysman_connection_ctl(ipc_callid_t iid, ipc_call_t *icall)
 		case SYSMAN_CTL_UNIT_HANDLE:
 			sysman_unit_handle(callid, &call);
 			break;
-		case SYSMAN_CTL_UNIT_START:
-			sysman_unit_start(callid, &call);
+		case SYSMAN_CTL_UNIT_START_BY_NAME:
+			sysman_unit_start_by_name(callid, &call);
 			break;
 		case SYSMAN_CTL_UNIT_STOP:
 			sysman_unit_stop(callid, &call);

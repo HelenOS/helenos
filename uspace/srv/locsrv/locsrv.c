@@ -383,7 +383,7 @@ static int loc_service_request_start(const char *ns_name, const char *name)
 		return rc;
 	}
 
-	rc = sysman_unit_start(unit_name, IPC_FLAG_BLOCKING);
+	rc = sysman_unit_start_by_name(unit_name, IPC_FLAG_BLOCKING);
 	free(unit_name);
 	return rc;
 }
