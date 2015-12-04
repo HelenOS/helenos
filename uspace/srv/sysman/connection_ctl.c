@@ -75,7 +75,6 @@ static void sysman_unit_handle(ipc_callid_t iid, ipc_call_t *icall)
 		goto fail;
 	}
 
-	// TODO this is connection fibril, UNSYNCHRONIZED access to units!
 	unit_t *unit = repo_find_unit_by_name(unit_name);
 	if (unit == NULL) {
 		retval = ENOENT;
@@ -106,7 +105,6 @@ static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
 	int flags = IPC_GET_ARG1(*icall);
 	sysman_log(LVL_DEBUG2, "%s(%s, %x)", __func__, unit_name, flags);
 
-	// TODO this is connection fibril, UNSYNCHRONIZED access to units!
 	unit_t *unit = repo_find_unit_by_name(unit_name);
 	if (unit == NULL) {
 		sysman_log(LVL_NOTE, "Unit '%s' not found.", unit_name);
@@ -147,7 +145,6 @@ static void sysman_unit_stop(ipc_callid_t iid, ipc_call_t *icall)
 	int flags = IPC_GET_ARG2(*icall);
 	sysman_log(LVL_DEBUG2, "%s(%i, %x)", __func__, handle, flags);
 
-	// TODO this is connection fibril, UNSYNCHRONIZED access to units!
 	unit_t *unit = repo_find_unit_by_handle(handle);
 	if (unit == NULL) {
 		retval = ENOENT;
@@ -187,12 +184,14 @@ static int fill_handles_buffer(unit_handle_t *buffer, size_t size,
 	size_t filled = 0;
 	size_t to_fill = size / sizeof(unit_handle_t);
 	size_t total = 0;
+	repo_rlock();
 	list_foreach(units, units, unit_t, u) {
 		if (filled < to_fill) {
 			buffer[filled++] = u->handle;
 		}
 		++total;
 	}
+	repo_runlock();
 	*act_size = total * sizeof(unit_handle_t);
 	return EOK;
 }
@@ -219,7 +218,6 @@ static void sysman_get_units(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	
-	// TODO UNSYNCHRONIZED access to units!
 	rc = fill_handles_buffer(handles, size, &act_size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -245,7 +243,6 @@ static void sysman_unit_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	// TODO UNSYNCHRONIZED access to units!
 	unit_t *u = repo_find_unit_by_handle(IPC_GET_ARG1(*icall));
 	if (u == NULL) {
 		async_answer_0(callid, ENOENT);
@@ -261,7 +258,6 @@ static void sysman_unit_get_name(ipc_callid_t iid, ipc_call_t *icall)
 
 static void sysman_unit_get_state(ipc_callid_t iid, ipc_call_t *icall)
 {
-	// TODO UNSYNCHRONIZED access to units!
 	unit_t *u = repo_find_unit_by_handle(IPC_GET_ARG1(*icall));
 	if (u == NULL) {
 		async_answer_0(iid, ENOENT);

@@ -37,6 +37,10 @@
 
 #define ANONYMOUS_SERVICE_MASK "service_%" PRIu64
 
+/*
+ * If you access units out of the main event-loop fibril call repo_rlock(),
+ * repo_runlock().
+ */
 extern list_t units;
 
 extern void repo_init(void);
@@ -55,6 +59,8 @@ extern int repo_resolve_references(void);
 extern unit_t *repo_find_unit_by_name(const char *);
 extern unit_t *repo_find_unit_by_handle(unit_handle_t);
 
+extern void repo_rlock(void);
+extern void repo_runlock(void);
 
 #endif
 

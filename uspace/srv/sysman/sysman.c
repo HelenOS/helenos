@@ -358,9 +358,10 @@ size_t sysman_observers_count(void *object)
 
 /*
  * Event handlers
+ *
+ * NOTE must run in main event loop fibril
  */
 
-// NOTE must run in main event loop fibril
 void sysman_event_job_process(void *data)
 {
 	job_args_t *job_args = data;

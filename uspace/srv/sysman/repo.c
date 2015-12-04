@@ -41,6 +41,10 @@ LIST_INITIALIZE(units);
 
 static hash_table_t units_by_name;
 static hash_table_t units_by_handle;
+/** Lock to protect units_by_name and units_by_handle, so that
+ * repo_find_unit_by_* can be called also from non-event loop fibrils.
+ */
+static FIBRIL_RWLOCK_INITIALIZE(repo_lock);
 
 /* Hash table functions */
 static size_t units_by_handle_ht_hash(const ht_link_t *item)
@@ -136,14 +140,17 @@ int repo_add_unit(unit_t *unit)
 	assert(unit->name != NULL);
 	sysman_log(LVL_DEBUG2, "%s('%s')", __func__, unit_name(unit));
 
+	fibril_rwlock_write_lock(&repo_lock);
 	if (hash_table_insert_unique(&units_by_name, &unit->units_by_name)) {
 		/* Pointers are same size as unit_handle_t both on 32b and 64b */
 		unit->handle = (unit_handle_t)unit;
 
 		hash_table_insert(&units_by_handle, &unit->units_by_handle);
 		list_append(&unit->units, &units);
+		fibril_rwlock_write_unlock(&repo_lock);
 		return EOK;
 	} else {
+		fibril_rwlock_write_unlock(&repo_lock);
 		return EEXISTS;
 	}
 }
@@ -267,7 +274,10 @@ int repo_resolve_references(void)
 
 unit_t *repo_find_unit_by_name(const char *name)
 {
+	fibril_rwlock_read_lock(&repo_lock);
 	ht_link_t *ht_link = hash_table_find(&units_by_name, (void *)name);
+	fibril_rwlock_read_unlock(&repo_lock);
+
 	if (ht_link != NULL) {
 		return hash_table_get_inst(ht_link, unit_t, units_by_name);
 	} else {
@@ -277,7 +287,10 @@ unit_t *repo_find_unit_by_name(const char *name)
 
 unit_t *repo_find_unit_by_handle(unit_handle_t handle)
 {
+	fibril_rwlock_read_lock(&repo_lock);
 	ht_link_t *ht_link = hash_table_find(&units_by_handle, &handle);
+	fibril_rwlock_read_unlock(&repo_lock);
+
 	if (ht_link != NULL) {
 		return hash_table_get_inst(ht_link, unit_t, units_by_handle);
 	} else {
@@ -285,3 +298,12 @@ unit_t *repo_find_unit_by_handle(unit_handle_t handle)
 	}
 }
 
+void repo_rlock(void)
+{
+	fibril_rwlock_read_lock(&repo_lock);
+}
+
+void repo_runlock(void)
+{
+	fibril_rwlock_read_unlock(&repo_lock);
+}
