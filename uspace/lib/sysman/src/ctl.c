@@ -80,6 +80,16 @@ int sysman_unit_start_by_name(const char *unit_name, int flags)
 	return rc;
 }
 
+int sysman_unit_start(unit_handle_t handle, int flags)
+{
+	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
+
+	int rc = async_req_2_0(exch, SYSMAN_CTL_UNIT_START, handle, flags);
+	sysman_exchange_end(exch);
+	
+	return rc;
+}
+
 int sysman_unit_stop(unit_handle_t handle, int flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);

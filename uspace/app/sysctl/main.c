@@ -96,6 +96,28 @@ fail:
 	return 0;
 }
 
+static int start(int argc, char *argv[])
+{
+	unit_handle_t handle;
+	char *unit_name = argv[1];
+
+	int rc = sysman_unit_handle(unit_name, &handle);
+	if (rc != EOK) {
+		printf("Cannot obtain handle for unit '%s' (%s).\n",
+		    unit_name, str_error(rc));
+		return rc;
+	}
+
+	rc = sysman_unit_start(handle, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("Error when starting unit '%s' error (%s).\n",
+		    unit_name, str_error(rc));
+		return rc;
+	}
+
+	return 0;
+}
+
 static int stop(int argc, char *argv[])
 {
 	unit_handle_t handle;
@@ -110,7 +132,7 @@ static int stop(int argc, char *argv[])
 
 	rc = sysman_unit_stop(handle, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("Error when stopping unit '%s' handle (%s).\n",
+		printf("Error when stopping unit '%s' error (%s).\n",
 		    unit_name, str_error(rc));
 		return rc;
 	}
@@ -120,15 +142,21 @@ static int stop(int argc, char *argv[])
 
 command_t commands[] = {
 	{ "list-units", 0, &list_units },
+	{ "start",      1, &start },
 	{ "stop",       1, &stop },
 	{ 0 }
 };
 
 static void print_syntax(void)
 {
-	printf("syntax:\n");
-	printf("\t%s\n", NAME);
-	// TODO update as functionality grows
+	printf("%s commands:\n", NAME);
+	for (command_t *it = commands; it->name != NULL; ++it) {
+		printf("\t%s", it->name);
+		for (int i = 0; i < it->args; ++i) {
+			printf(" <arg%i>", i + 1);
+		}
+		printf("\n");
+	}
 }
 
 

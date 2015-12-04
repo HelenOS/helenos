@@ -137,13 +137,14 @@ finish:
 	free(unit_name);
 }
 
-static void sysman_unit_stop(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_unit_operation(ipc_callid_t iid, ipc_call_t *icall,
+    unit_state_t state)
 {
 	sysarg_t retval;
 
 	unit_handle_t handle = IPC_GET_ARG1(*icall);
 	int flags = IPC_GET_ARG2(*icall);
-	sysman_log(LVL_DEBUG2, "%s(%i, %x)", __func__, handle, flags);
+	sysman_log(LVL_DEBUG2, "%s(%i, %x, %i)", __func__, handle, flags, state);
 
 	unit_t *unit = repo_find_unit_by_handle(handle);
 	if (unit == NULL) {
@@ -152,7 +153,7 @@ static void sysman_unit_stop(ipc_callid_t iid, ipc_call_t *icall)
 	}
 
 	if (!(flags & IPC_FLAG_BLOCKING)) {
-		retval = sysman_run_job(unit, STATE_STOPPED, NULL, NULL);
+		retval = sysman_run_job(unit, state, NULL, NULL);
 		goto answer;
 	}
 
@@ -161,7 +162,7 @@ static void sysman_unit_stop(ipc_callid_t iid, ipc_call_t *icall)
 		retval = ENOMEM;
 		goto answer;
 	}
-	retval = sysman_run_job(unit, STATE_STOPPED, &answer_callback,
+	retval = sysman_run_job(unit, state, &answer_callback,
 	    iid_ptr);
 	if (retval != EOK) {
 		goto answer;
@@ -172,6 +173,16 @@ static void sysman_unit_stop(ipc_callid_t iid, ipc_call_t *icall)
 
 answer:
 	async_answer_0(iid, retval);
+}
+
+static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
+{
+	sysman_unit_operation(iid, icall, STATE_STARTED);
+}
+
+static void sysman_unit_stop(ipc_callid_t iid, ipc_call_t *icall)
+{
+	sysman_unit_operation(iid, icall, STATE_STOPPED);
 }
 
 static int fill_handles_buffer(unit_handle_t *buffer, size_t size,
@@ -287,6 +298,9 @@ void sysman_connection_ctl(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case SYSMAN_CTL_UNIT_START_BY_NAME:
 			sysman_unit_start_by_name(callid, &call);
+			break;
+		case SYSMAN_CTL_UNIT_START:
+			sysman_unit_start(callid, &call);
 			break;
 		case SYSMAN_CTL_UNIT_STOP:
 			sysman_unit_stop(callid, &call);
