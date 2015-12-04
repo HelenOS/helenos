@@ -62,6 +62,12 @@ typedef struct {
 	list_t callbacks;
 } observed_object_t;
 
+typedef struct {
+	job_t *job;
+	callback_handler_t callback;
+	void *callback_arg;
+} job_args_t;
+
 static LIST_INITIALIZE(event_queue);
 static fibril_mutex_t event_queue_mtx;
 static fibril_condvar_t event_queue_nonempty_cv;
@@ -213,14 +219,18 @@ int sysman_run_job(unit_t *unit, unit_state_t target_state,
 		return ENOMEM;
 	}
 
-	if (callback != NULL) {
-		job_add_ref(job);
-		//TODO sysman_object_observer is not fibril-safe CANNOT BE CALLED HERE!
-		sysman_object_observer(job, callback, callback_arg);
+	job_args_t *job_args = malloc(sizeof(job_args_t));
+	if (job_args == NULL) {
+		job_del_ref(&job);
+		return ENOMEM;
 	}
 
-	/* Pass reference to event */
-	sysman_raise_event(&sysman_event_job_process, job);
+	/* Pass reference to job_args */
+	job_args->job = job;
+	job_args->callback = callback;
+	job_args->callback_arg = callback_arg;
+
+	sysman_raise_event(&sysman_event_job_process, job_args);
 
 	return EOK;
 }
@@ -353,9 +363,16 @@ size_t sysman_observers_count(void *object)
 // NOTE must run in main event loop fibril
 void sysman_event_job_process(void *data)
 {
-	job_t *job = data;
+	job_args_t *job_args = data;
+	job_t *job = job_args->job;
 	dyn_array_t job_closure;
 	dyn_array_initialize(&job_closure, job_t *);
+
+	if (job_args->callback != NULL) {
+		job_add_ref(job);
+		sysman_object_observer(job, job_args->callback, job_args->callback_arg);
+	}
+	free(job_args);
 
 	int rc = job_create_closure(job, &job_closure);
 	if (rc != EOK) {
