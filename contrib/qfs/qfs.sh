@@ -28,14 +28,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-VERSION=2.4.1
+VERSION=2.5.0
 BASENAME=qemu-${VERSION}
 BASENAME_MASTER=qemu-master
 TARBALL=${BASENAME}.tar.bz2
 SOURCEDIR=${BASENAME}
 URL=http://wiki.qemu-project.org/download/${TARBALL}
 REPO=git://git.qemu.org/qemu.git
-MD5="a895e93ec1dafc34bc64ed676f0d55a6"
+MD5="f469f2330bbe76e3e39db10e9ac4f8db"
 
 if [ "$1" == "--master" ]; then
 	git clone ${REPO} ${BASENAME_MASTER}
