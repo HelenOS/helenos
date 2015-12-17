@@ -99,7 +99,7 @@ def qemu_bd_options():
 	if not os.path.exists('hdisk.img'):
 		subprocess.call('tools/mkfat.py 1048576 uspace/dist/data hdisk.img', shell = True)
 
-	return ' -hda hdisk.img'
+	return ' -drive file=hdisk.img,index=0,media=disk,format=raw'
 
 def qemu_nic_ne2k_options():
 	return ' -device ne2k_isa,irq=5,vlan=0'
