@@ -382,8 +382,8 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	nucleus_enter();
 
 	for (i = 0; i < cnt; i++) {
-		__hypercall_fast5(MMU_DEMAP_PAGE, 0, 0, page, asid,
-			MMU_FLAG_DTLB | MMU_FLAG_ITLB);
+		__hypercall_fast5(MMU_DEMAP_PAGE, 0, 0, page + i * PAGE_SIZE,
+		    asid, MMU_FLAG_DTLB | MMU_FLAG_ITLB);
 	}
 
 	nucleus_leave();
