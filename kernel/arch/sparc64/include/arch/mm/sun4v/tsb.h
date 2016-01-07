@@ -43,9 +43,10 @@
  * again, is nice because TSBs need to be locked
  * in TLBs - only one TLB entry will do.
  */
-#define TSB_SIZE			3	/* when changing this, change
-						 * as.c as well */
-#define TSB_ENTRY_COUNT			(512 * (1 << TSB_SIZE))
+#define TSB_ENTRY_COUNT			4096
+#define TSB_ENTRY_MASK			(TSB_ENTRY_COUNT - 1)
+#define TSB_SIZE			(TSB_ENTRY_COUNT * sizeof(tsb_entry_t))
+#define TSB_FRAMES			SIZE2FRAMES(TSB_SIZE)
 
 #ifndef __ASM__
 

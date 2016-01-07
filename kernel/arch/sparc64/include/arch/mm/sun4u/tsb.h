@@ -42,10 +42,16 @@
  * again, is nice because TSBs need to be locked
  * in TLBs - only one TLB entry will do.
  */
-#define TSB_SIZE			2	/* when changing this, change
-						 * as.c as well */
-#define ITSB_ENTRY_COUNT		(512 * (1 << TSB_SIZE))
-#define DTSB_ENTRY_COUNT		(512 * (1 << TSB_SIZE))
+#define TSB_BASE_REG_SIZE	2	/* keep in sync with as.c */
+#define ITSB_ENTRY_COUNT	(512 * (1 << TSB_BASE_REG_SIZE))
+#define DTSB_ENTRY_COUNT	(512 * (1 << TSB_BASE_REG_SIZE))
+
+#define ITSB_ENTRY_MASK		(ITSB_ENTRY_COUNT - 1)
+#define DTSB_ENTRY_MASK		(DTSB_ENTRY_COUNT - 1)
+
+#define TSB_ENTRY_COUNT		(ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT)
+#define TSB_SIZE		(TSB_ENTRY_COUNT * sizeof(tsb_entry_t))
+#define TSB_FRAMES		SIZE2FRAMES(TSB_SIZE)
 
 #define TSB_TAG_TARGET_CONTEXT_SHIFT	48
 

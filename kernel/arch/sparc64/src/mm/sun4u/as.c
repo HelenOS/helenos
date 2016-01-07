@@ -62,19 +62,15 @@ void as_arch_init(void)
 int as_constructor_arch(as_t *as, unsigned int flags)
 {
 #ifdef CONFIG_TSB
-	uintptr_t tsb_phys =
-	    frame_alloc(SIZE2FRAMES((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-	    sizeof(tsb_entry_t)), flags, 0);
-	if (!tsb_phys)
+	uintptr_t tsb_base = frame_alloc(TSB_FRAMES, flags, TSB_SIZE - 1);
+	if (!tsb_base)
 		return -1;
-	
-	tsb_entry_t *tsb = (tsb_entry_t *) PA2KA(tsb_phys);
+
+	tsb_entry_t *tsb = (tsb_entry_t *) PA2KA(tsb_base);
+	memsetb(tsb, TSB_SIZE, 0);
 	
 	as->arch.itsb = tsb;
 	as->arch.dtsb = tsb + ITSB_ENTRY_COUNT;
-	
-	memsetb(as->arch.itsb, (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-	    sizeof(tsb_entry_t), 0);
 #endif
 	
 	return 0;
@@ -83,11 +79,9 @@ int as_constructor_arch(as_t *as, unsigned int flags)
 int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
-	size_t frames = SIZE2FRAMES((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-	    sizeof(tsb_entry_t));
-	frame_free(KA2PA((uintptr_t) as->arch.itsb), frames);
+	frame_free(KA2PA((uintptr_t) as->arch.itsb), TSB_FRAMES);
 	
-	return frames;
+	return TSB_FRAMES;
 #else
 	return 0;
 #endif
@@ -135,11 +129,12 @@ void as_install_arch(as_t *as)
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 	
-	ASSERT(as->arch.itsb && as->arch.dtsb);
+	ASSERT(as->arch.itsb);
+	ASSERT(as->arch.dtsb);
 	
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 	
-	if (!overlaps(tsb, 8 * MMU_PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
+	if (!overlaps(tsb, TSB_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered
 		 * by the locked 4M kernel DTLB entry. We need
@@ -154,16 +149,16 @@ void as_install_arch(as_t *as)
 	 * Setup TSB Base registers.
 	 *
 	 */
-	tsb_base_reg_t tsb_base;
+	tsb_base_reg_t tsb_base_reg;
 	
-	tsb_base.value = 0;
-	tsb_base.size = TSB_SIZE;
-	tsb_base.split = 0;
+	tsb_base_reg.value = 0;
+	tsb_base_reg.size = TSB_BASE_REG_SIZE;
+	tsb_base_reg.split = 0;
 	
-	tsb_base.base = ((uintptr_t) as->arch.itsb) >> MMU_PAGE_WIDTH;
-	itsb_base_write(tsb_base.value);
-	tsb_base.base = ((uintptr_t) as->arch.dtsb) >> MMU_PAGE_WIDTH;
-	dtsb_base_write(tsb_base.value);
+	tsb_base_reg.base = ((uintptr_t) as->arch.itsb) >> MMU_PAGE_WIDTH;
+	itsb_base_write(tsb_base_reg.value);
+	tsb_base_reg.base = ((uintptr_t) as->arch.dtsb) >> MMU_PAGE_WIDTH;
+	dtsb_base_write(tsb_base_reg.value);
 	
 #if defined (US3)
 	/*
@@ -206,11 +201,12 @@ void as_deinstall_arch(as_t *as)
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 	
-	ASSERT(as->arch.itsb && as->arch.dtsb);
+	ASSERT(as->arch.itsb);
+	ASSERT(as->arch.dtsb);
 	
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 	
-	if (!overlaps(tsb, 8 * MMU_PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
+	if (!overlaps(tsb, TSB_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered
 		 * by the locked 4M kernel DTLB entry. We need

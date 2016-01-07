@@ -43,8 +43,6 @@
 #include <macros.h>
 #include <debug.h>
 
-#define TSB_INDEX_MASK	((1 << (21 + 1 + TSB_SIZE - MMU_PAGE_WIDTH)) - 1)
-
 /** Invalidate portion of TSB.
  *
  * We assume that the address space is already locked. Note that respective
@@ -57,23 +55,22 @@
  */
 void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 {
+	tsb_entry_t *tsb;
 	size_t i0, i;
 	size_t cnt;
 	
 	ASSERT(as->arch.tsb_description.tsb_base);
 	
-	i0 = (page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK;
-	ASSERT(i0 < TSB_ENTRY_COUNT);
+	i0 = (page >> MMU_PAGE_WIDTH) & TSB_ENTRY_MASK;
 
-	if (pages == (size_t) - 1 || (pages) > TSB_ENTRY_COUNT)
+	if (pages == (size_t) -1 || pages > TSB_ENTRY_COUNT)
 		cnt = TSB_ENTRY_COUNT;
 	else
 		cnt = pages;
 	
-	for (i = 0; i < cnt; i++) {
-		((tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base))[
-			(i0 + i) & (TSB_ENTRY_COUNT - 1)].data.v = false;
-	}
+	tsb = (tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base);
+	for (i = 0; i < cnt; i++)
+		tsb[(i0 + i) & TSB_ENTRY_MASK].data.v = false;
 }
 
 /** Copy software PTE to ITSB.
@@ -84,12 +81,14 @@ void itsb_pte_copy(pte_t *t)
 {
 	as_t *as;
 	tsb_entry_t *tsb;
-	size_t entry;
+	tsb_entry_t *tte;
+	size_t index;
 
 	as = t->as;
-	entry = (t->page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK; 
-	ASSERT(entry < TSB_ENTRY_COUNT);
-	tsb = &((tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base))[entry];
+	index = (t->page >> MMU_PAGE_WIDTH) & TSB_ENTRY_MASK; 
+	
+	tsb = (tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base);
+	tte = &tsb[index];
 
 	/*
 	 * We use write barriers to make sure that the TSB load
@@ -97,27 +96,27 @@ void itsb_pte_copy(pte_t *t)
 	 * be repeated.
 	 */
 
-	tsb->data.v = false;
+	tte->data.v = false;
 
 	write_barrier();
 
-	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+	tte->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
 
-	tsb->data.value = 0;
-	tsb->data.nfo = false;
-	tsb->data.ra = t->frame >> MMU_FRAME_WIDTH;
-	tsb->data.ie = false;
-	tsb->data.e = false;
-	tsb->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
-	tsb->data.cv = false;
-	tsb->data.p = t->k;	/* p as privileged, k as kernel */
-	tsb->data.x = true;
-	tsb->data.w = false;
-	tsb->data.size = PAGESIZE_8K;
+	tte->data.value = 0;
+	tte->data.nfo = false;
+	tte->data.ra = t->frame >> MMU_FRAME_WIDTH;
+	tte->data.ie = false;
+	tte->data.e = false;
+	tte->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
+	tte->data.cv = false;
+	tte->data.p = t->k;	/* p as privileged, k as kernel */
+	tte->data.x = true;
+	tte->data.w = false;
+	tte->data.size = PAGESIZE_8K;
 	
 	write_barrier();
 	
-	tsb->data.v = t->p;	/* v as valid, p as present */
+	tte->data.v = t->p;	/* v as valid, p as present */
 }
 
 /** Copy software PTE to DTSB.
@@ -129,12 +128,13 @@ void dtsb_pte_copy(pte_t *t, bool ro)
 {
 	as_t *as;
 	tsb_entry_t *tsb;
-	size_t entry;
+	tsb_entry_t *tte;
+	size_t index;
 
 	as = t->as;
-	entry = (t->page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK; 
-	ASSERT(entry < TSB_ENTRY_COUNT);
-	tsb = &((tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base))[entry];
+	index = (t->page >> MMU_PAGE_WIDTH) & TSB_ENTRY_MASK;
+	tsb = (tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base);
+	tte = &tsb[index];
 
 	/*
 	 * We use write barriers to make sure that the TSB load
@@ -142,29 +142,29 @@ void dtsb_pte_copy(pte_t *t, bool ro)
 	 * be repeated.
 	 */
 
-	tsb->data.v = false;
+	tte->data.v = false;
 
 	write_barrier();
 
-	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+	tte->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
 
-	tsb->data.value = 0;
-	tsb->data.nfo = false;
-	tsb->data.ra = t->frame >> MMU_FRAME_WIDTH;
-	tsb->data.ie = false;
-	tsb->data.e = false;
-	tsb->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
+	tte->data.value = 0;
+	tte->data.nfo = false;
+	tte->data.ra = t->frame >> MMU_FRAME_WIDTH;
+	tte->data.ie = false;
+	tte->data.e = false;
+	tte->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
 #ifdef CONFIG_VIRT_IDX_DCACHE
-	tsb->data.cv = t->c;
+	tte->data.cv = t->c;
 #endif /* CONFIG_VIRT_IDX_DCACHE */
-	tsb->data.p = t->k;	/* p as privileged, k as kernel */
-	tsb->data.x = true;
-	tsb->data.w = ro ? false : t->w;
-	tsb->data.size = PAGESIZE_8K;
+	tte->data.p = t->k;	/* p as privileged, k as kernel */
+	tte->data.x = true;
+	tte->data.w = ro ? false : t->w;
+	tte->data.size = PAGESIZE_8K;
 	
 	write_barrier();
 	
-	tsb->data.v = t->p;	/* v as valid, p as present */
+	tte->data.v = t->p;	/* v as valid, p as present */
 }
 
 /** @}

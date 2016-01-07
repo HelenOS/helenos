@@ -41,8 +41,6 @@
 #include <macros.h>
 #include <debug.h>
 
-#define TSB_INDEX_MASK	((1 << (21 + 1 + TSB_SIZE - MMU_PAGE_WIDTH)) - 1)
-
 /** Invalidate portion of TSB.
  *
  * We assume that the address space is already locked. Note that respective
@@ -59,10 +57,10 @@ void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 	size_t i;
 	size_t cnt;
 	
-	ASSERT(as->arch.itsb && as->arch.dtsb);
+	ASSERT(as->arch.itsb);
+	ASSERT(as->arch.dtsb);
 	
-	i0 = (page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK;
-	ASSERT(i0 < ITSB_ENTRY_COUNT && i0 < DTSB_ENTRY_COUNT);
+	i0 = (page >> MMU_PAGE_WIDTH) & ITSB_ENTRY_MASK;
 
 	if (pages == (size_t) -1 || (pages * 2) > ITSB_ENTRY_COUNT)
 		cnt = ITSB_ENTRY_COUNT;
@@ -70,10 +68,8 @@ void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 		cnt = pages * 2;
 	
 	for (i = 0; i < cnt; i++) {
-		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT - 1)].tag.invalid =
-		    true;
-		as->arch.dtsb[(i0 + i) & (DTSB_ENTRY_COUNT - 1)].tag.invalid =
-		    true;
+		as->arch.itsb[(i0 + i) & ITSB_ENTRY_MASK].tag.invalid = true;
+		as->arch.dtsb[(i0 + i) & DTSB_ENTRY_MASK].tag.invalid = true;
 	}
 }
 
@@ -85,15 +81,14 @@ void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 void itsb_pte_copy(pte_t *t, size_t index)
 {
 	as_t *as;
-	tsb_entry_t *tsb;
+	tsb_entry_t *tte;
 	size_t entry;
 
 	ASSERT(index <= 1);
 	
 	as = t->as;
-	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & TSB_INDEX_MASK; 
-	ASSERT(entry < ITSB_ENTRY_COUNT);
-	tsb = &as->arch.itsb[entry];
+	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & ITSB_ENTRY_MASK;
+	tte = &as->arch.itsb[entry];
 
 	/*
 	 * We use write barriers to make sure that the TSB load
@@ -101,25 +96,25 @@ void itsb_pte_copy(pte_t *t, size_t index)
 	 * be repeated.
 	 */
 
-	tsb->tag.invalid = true;	/* invalidate the entry
+	tte->tag.invalid = true;	/* invalidate the entry
 					 * (tag target has this
 					 * set to 0) */
 
 	write_barrier();
 
-	tsb->tag.context = as->asid;
+	tte->tag.context = as->asid;
 	/* the shift is bigger than PAGE_WIDTH, do not bother with index  */
-	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
-	tsb->data.value = 0;
-	tsb->data.size = PAGESIZE_8K;
-	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
-	tsb->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
-	tsb->data.p = t->k;	/* p as privileged, k as kernel */
-	tsb->data.v = t->p;	/* v as valid, p as present */
+	tte->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+	tte->data.value = 0;
+	tte->data.size = PAGESIZE_8K;
+	tte->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
+	tte->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
+	tte->data.p = t->k;	/* p as privileged, k as kernel */
+	tte->data.v = t->p;	/* v as valid, p as present */
 	
 	write_barrier();
 	
-	tsb->tag.invalid = false;	/* mark the entry as valid */
+	tte->tag.invalid = false;	/* mark the entry as valid */
 }
 
 /** Copy software PTE to DTSB.
@@ -131,15 +126,14 @@ void itsb_pte_copy(pte_t *t, size_t index)
 void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 {
 	as_t *as;
-	tsb_entry_t *tsb;
+	tsb_entry_t *tte;
 	size_t entry;
 	
 	ASSERT(index <= 1);
 
 	as = t->as;
-	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & TSB_INDEX_MASK;
-	ASSERT(entry < DTSB_ENTRY_COUNT);
-	tsb = &as->arch.dtsb[entry];
+	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & DTSB_ENTRY_MASK;
+	tte = &as->arch.dtsb[entry];
 
 	/*
 	 * We use write barriers to make sure that the TSB load
@@ -147,29 +141,29 @@ void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 	 * be repeated.
 	 */
 
-	tsb->tag.invalid = true;	/* invalidate the entry
+	tte->tag.invalid = true;	/* invalidate the entry
 					 * (tag target has this
 					 * set to 0) */
 
 	write_barrier();
 
-	tsb->tag.context = as->asid;
+	tte->tag.context = as->asid;
 	/* the shift is bigger than PAGE_WIDTH, do not bother with index */
-	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
-	tsb->data.value = 0;
-	tsb->data.size = PAGESIZE_8K;
-	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
-	tsb->data.cp = t->c;
+	tte->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+	tte->data.value = 0;
+	tte->data.size = PAGESIZE_8K;
+	tte->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
+	tte->data.cp = t->c;
 #ifdef CONFIG_VIRT_IDX_DCACHE
-	tsb->data.cv = t->c;
+	tte->data.cv = t->c;
 #endif /* CONFIG_VIRT_IDX_DCACHE */
-	tsb->data.p = t->k;		/* p as privileged */
-	tsb->data.w = ro ? false : t->w;
-	tsb->data.v = t->p;
+	tte->data.p = t->k;		/* p as privileged */
+	tte->data.w = ro ? false : t->w;
+	tte->data.v = t->p;
 	
 	write_barrier();
 	
-	tsb->tag.invalid = false;	/* mark the entry as valid */
+	tte->tag.invalid = false;	/* mark the entry as valid */
 }
 
 /** @}
