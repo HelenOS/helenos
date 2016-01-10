@@ -139,6 +139,7 @@ static void traverse_clean(unit_t *u, bfs_ops_t *ops, void *arg)
 {
 	job_t *job = u->bfs_data;
 	job_del_ref(&job);
+	u->bfs_data = NULL;
 }
 
 static int bfs_traverse_component_internal(unit_t *origin, bfs_ops_t *ops,
