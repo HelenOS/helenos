@@ -31,6 +31,7 @@
 #include <stdio.h>
 
 #include "../job_closure.h"
+#include "../repo.h"
 
 #include "mock_unit.h"
 
@@ -49,8 +50,8 @@ static bool same_job(job_t *expected, job_t *actual)
 static bool same_jobs(dyn_array_t *expected, dyn_array_t *actual)
 {
 	if (expected->size != actual->size) {
-		printf("%s: |expected| - |actual| = %u\n",
-		    __func__, expected->size - actual->size);
+		printf("%s: |expected|, |actual| = %u, %u\n",
+		    __func__, expected->size, actual->size);
 		return false;
 	}
 
@@ -118,6 +119,8 @@ PCUT_TEST_BEFORE {
 	dyn_array_initialize(&act_closure, job_t *);
 	rc = dyn_array_reserve(&act_closure, MAX_TYPES * MAX_UNITS);
 	assert(rc == EOK);
+
+	repo_init();
 }
 
 PCUT_TEST_AFTER {
@@ -147,7 +150,7 @@ PCUT_TEST(job_closure_linear) {
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);
 
-	int rc = job_create_closure(main_job, &act_closure);
+	int rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
@@ -178,7 +181,7 @@ PCUT_TEST(job_closure_fork) {
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);
 
-	int rc = job_create_closure(main_job, &act_closure);
+	int rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
@@ -211,7 +214,7 @@ PCUT_TEST(job_closure_triangle) {
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);
 
-	int rc = job_create_closure(main_job, &act_closure);
+	int rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
@@ -226,5 +229,58 @@ PCUT_TEST(job_closure_triangle) {
 	PCUT_ASSERT_TRUE(job_blocked(u2->job, u3->job));
 }
 
+PCUT_TEST(job_closure_isolate_linears) {
+	unit_t *u0 = mock_units[UNIT_SERVICE][0];
+	unit_t *u1 = mock_units[UNIT_SERVICE][1];
+	unit_t *u2 = mock_units[UNIT_SERVICE][2];
+	unit_t *u3 = mock_units[UNIT_SERVICE][3];
+	unit_t *u4 = mock_units[UNIT_SERVICE][4];
+	unit_t *u5 = mock_units[UNIT_SERVICE][5];
+	unit_t *u6 = mock_units[UNIT_SERVICE][6];
+	repo_begin_update();
+	for (int i = 0; i < 7; ++i) {
+		repo_add_unit(mock_units[UNIT_SERVICE][i]);
+	}
+	repo_commit();
+
+	/*
+	 *
+	 * u0 -> u1 -> u2
+	 *
+	 * u3 -> u4 -> u5
+	 *
+	 * u6
+	 */
+	mock_add_edge(u0, u1);
+	mock_add_edge(u1, u2);
+
+	mock_add_edge(u3, u4);
+	mock_add_edge(u4, u5);
+
+	job_t *main_job = job_create(u1, STATE_STARTED);
+	assert(main_job);
+
+	int rc = job_create_closure(main_job, &act_closure, CLOSURE_ISOLATE);
+	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+
+	dyn_array_append(&exp_closure, job_t *, dummy_job(u0, STATE_STOPPED));
+	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
+	dyn_array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
+	dyn_array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STOPPED));
+	dyn_array_append(&exp_closure, job_t *, dummy_job(u4, STATE_STOPPED));
+	dyn_array_append(&exp_closure, job_t *, dummy_job(u5, STATE_STOPPED));
+	dyn_array_append(&exp_closure, job_t *, dummy_job(u6, STATE_STOPPED));
+
+	dummy_add_closure(&act_closure);
+
+	PCUT_ASSERT_TRUE(same_jobs(&exp_closure, &act_closure));
+	PCUT_ASSERT_TRUE(job_blocked(u1->job, u2->job));
+
+	PCUT_ASSERT_TRUE(job_blocked(u5->job, u4->job));
+	PCUT_ASSERT_TRUE(job_blocked(u4->job, u3->job));
+
+	PCUT_ASSERT_INT_EQUALS(0, u6->job->blocking_jobs);
+	PCUT_ASSERT_INT_EQUALS(0, u0->job->blocking_jobs);
+}
 
 PCUT_EXPORT(job_closure);

@@ -81,7 +81,8 @@ static int job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
 
 /** During visit creates job and appends it to closure
  *
- * @note Assumes BFS start unit's job is already present in closure!
+ * @note Assumes BFS origin unit's job is already present in the closure on the
+ *       last position!
  *
  * @return EOK on success
  */
@@ -93,7 +94,9 @@ static int visit_propagate_job(unit_t *u, unit_edge_t *e, bfs_ops_t *ops,
 	job_closure_t *closure = arg;
 
 	if (e == NULL) {
-		assert(u->bfs_data == NULL);
+		if (u->bfs_data != NULL) {
+			goto finish;
+		}
 		job_t *first_job = dyn_array_last(closure, job_t *);
 
 		job_add_ref(first_job);
@@ -132,6 +135,48 @@ finish:
 	if (rc != EOK) {
 		job_del_ref(&created_job);
 	}
+	return rc;
+}
+
+static int visit_isolate(unit_t *u, unit_edge_t *e, bfs_ops_t *ops, void *arg)
+{
+	int rc = EOK;
+	job_t *created_job = NULL;
+	job_closure_t *closure = arg;
+
+	sysman_log(LVL_DEBUG2, "%s(%s)", __func__, unit_name(u));
+	/*
+	 * Unit can have starting job from original request or from isolation
+	 * BFS with different origin.
+	 *
+	 * Don't check u->state == STATE_STOPPED, closure is created stateless
+	 * and its upon merging procedure to correctly resolve conflicting
+	 * jobs.
+	 *
+	 * If we're at the origin (no BFS incoming edge), create a stop job,
+	 * put it to the closure and let propagate as if called the propagate
+	 * visitor.
+	 */
+	if (e == NULL && u->bfs_data == NULL) {
+		created_job = job_create(u, STATE_STOPPED);
+		if (created_job == NULL) {
+			rc = ENOMEM;
+			goto finish;
+		}
+
+		/* Pass job reference to closure and add one for unit */
+		rc = dyn_array_append(closure, job_t *, created_job);
+		if (rc != EOK) {
+			goto finish;
+		}
+	}
+	rc = visit_propagate_job(u, e, ops, closure);
+
+finish:
+	if (rc != EOK) {
+		job_del_ref(&created_job);
+	}
+	sysman_log(LVL_DEBUG2, "%s(%s) -> %i", __func__, unit_name(u), rc);
 	return rc;
 }
 
@@ -216,8 +261,32 @@ static int bfs_traverse_component(unit_t *origin, bfs_ops_t *ops, void *arg)
 	return rc;
 }
 
-// TODO bfs_traverse_all
+static int bfs_traverse_all(bfs_ops_t *ops, void *arg)
+{
+	/* Check invariant */
+	repo_foreach(u) {
+		assert(u->bfs_tag == false);
+	}
+	int rc = EOK;
 
+	repo_foreach(origin) {
+		sysman_log(LVL_DEBUG2, "%s: %p, %i", __func__, origin, origin->bfs_tag);
+		if (origin->bfs_tag == true) {
+			continue;
+		}
+		rc = bfs_traverse_component_internal(origin, ops, arg);
+		if (rc != EOK) {
+			goto finish;
+		}
+	}
+
+finish:
+	/* Clean after ourselves (BFS tag jobs) */
+	repo_foreach(u) {
+		u->bfs_tag = false;
+	}
+	return rc;
+}
 
 /*
  * Non-static functions
@@ -229,24 +298,13 @@ static int bfs_traverse_component(unit_t *origin, bfs_ops_t *ops, void *arg)
  *
  * @return EOK on success otherwise propagated error
  */
-int job_create_closure(job_t *main_job, job_closure_t *job_closure)
+int job_create_closure(job_t *main_job, job_closure_t *job_closure, int flags)
 {
 	sysman_log(LVL_DEBUG2, "%s(%s)", __func__, unit_name(main_job->unit));
 
-	static bfs_ops_t ops = {
-		.clean = traverse_clean,
-		.visit = visit_propagate_job
-	};
-
-	switch (main_job->target_state) {
-	case STATE_STARTED:
-		ops.direction = BFS_FORWARD;
-		break;
-	case STATE_STOPPED:
-		ops.direction = BFS_BACKWARD;
-		break;
-	default:
-		assert(false);
+	if ((flags & CLOSURE_ISOLATE) && main_job->target_state != STATE_STARTED) {
+		// TODO EINVAL?
+		return ENOTSUP;
 	}
 
 	int rc = dyn_array_append(job_closure, job_t *, main_job);
@@ -255,10 +313,35 @@ int job_create_closure(job_t *main_job, job_closure_t *job_closure)
 	}
 	job_add_ref(main_job); /* Add one for the closure */
 
-	rc = bfs_traverse_component(main_job->unit, &ops, job_closure);
+	/* Propagate main_job to other (dependent) units */
+	static bfs_ops_t propagate_ops = {
+		.clean = traverse_clean,
+		.visit = visit_propagate_job
+	};
+	switch (main_job->target_state) {
+	case STATE_STARTED:
+		propagate_ops.direction = BFS_FORWARD;
+		break;
+	case STATE_STOPPED:
+		propagate_ops.direction = BFS_BACKWARD;
+		break;
+	default:
+		assert(false);
+	}
+
+	rc = bfs_traverse_component(main_job->unit, &propagate_ops, job_closure);
+
+	sysman_log(LVL_DEBUG2, "%s: %i&%i", __func__, flags, CLOSURE_ISOLATE);
+	if (flags & CLOSURE_ISOLATE) {
+		static bfs_ops_t isolate_ops = {
+			.direction = BFS_BACKWARD,
+			.clean = traverse_clean,
+			.visit = visit_isolate
+		};
+		rc = bfs_traverse_all(&isolate_ops, job_closure);
+	}
 
 	if (rc == EOK) {
-		sysman_log(LVL_DEBUG2, "%s(%s):", __func__, unit_name(main_job->unit));
 		dyn_array_foreach(*job_closure, job_t *, job_it) {
 			sysman_log(LVL_DEBUG2, "%s\t%s, refs: %u", __func__,
 			    unit_name((*job_it)->unit), atomic_get(&(*job_it)->refcnt));

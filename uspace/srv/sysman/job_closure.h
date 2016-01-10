@@ -32,10 +32,11 @@
 #include <adt/dyn_array.h>
 
 #include "job.h"
-#include "unit.h"
+
+#define CLOSURE_ISOLATE 0x1
 
 typedef dyn_array_t job_closure_t;
 
-extern int job_create_closure(job_t *, job_closure_t *);
+extern int job_create_closure(job_t *, job_closure_t *, int);
 
 #endif

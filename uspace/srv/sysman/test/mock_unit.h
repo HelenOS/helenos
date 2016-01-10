@@ -35,7 +35,7 @@
 
 #include "../unit.h"
 
-#define MAX_UNITS 5
+#define MAX_UNITS 7
 #define MAX_TYPES 4
 
 extern unit_t *mock_units[MAX_TYPES][MAX_UNITS];

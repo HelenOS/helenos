@@ -175,7 +175,7 @@ int repo_remove_unit(unit_t *unit)
 	return EOK; /* We could check that unit is present in repo etc... */
 }
 
-void repo_begin_update_(void) {
+void repo_begin_update(void) {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 	fibril_rwlock_write_lock(&repo_lock);
 }
@@ -292,7 +292,7 @@ int repo_resolve_references(void)
 /**
  * The function can be safely called from non-event loop fibrils
  */
-unit_t *repo_find_unit_by_name_(const char *name)
+unit_t *repo_find_unit_by_name(const char *name)
 {
 	return repo_find_unit_by_name_internal(name, true);
 }
