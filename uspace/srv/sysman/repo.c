@@ -37,7 +37,7 @@
 #include "edge.h"
 #include "log.h"
 
-LIST_INITIALIZE(units);
+LIST_INITIALIZE(units_);
 
 static hash_table_t units_by_name;
 static hash_table_t units_by_handle;
@@ -118,12 +118,28 @@ static hash_table_ops_t units_by_name_ht_ops = {
 
 static void repo_remove_unit_internal(unit_t *u)
 {
+	assert(fibril_rwlock_is_write_locked(&repo_lock));
+
 	hash_table_remove_item(&units_by_name, &u->units_by_name);
 	hash_table_remove_item(&units_by_handle, &u->units_by_handle);
 	list_remove(&u->units);
 
 	// TODO decrease refcount of unit
 	// unit may be referenced e.g. from running job, thus we cannot simply destroy it
+}
+
+static unit_t *repo_find_unit_by_name_internal(const char *name, bool lock)
+{
+	sysman_log(LVL_DEBUG2, "%s(%s, %i)", __func__, name, lock);
+	if (lock) fibril_rwlock_read_lock(&repo_lock);
+	ht_link_t *ht_link = hash_table_find(&units_by_name, (void *)name);
+	if (lock) fibril_rwlock_read_unlock(&repo_lock);
+
+	if (ht_link != NULL) {
+		return hash_table_get_inst(ht_link, unit_t, units_by_name);
+	} else {
+		return NULL;
+	}
 }
 
 void repo_init(void)
@@ -138,19 +154,17 @@ int repo_add_unit(unit_t *unit)
 	assert(unit->repo_state == REPO_EMBRYO);
 	assert(unit->handle == 0);
 	assert(unit->name != NULL);
+	assert(fibril_rwlock_is_write_locked(&repo_lock));
 	sysman_log(LVL_DEBUG2, "%s('%s')", __func__, unit_name(unit));
 
-	fibril_rwlock_write_lock(&repo_lock);
 	if (hash_table_insert_unique(&units_by_name, &unit->units_by_name)) {
 		/* Pointers are same size as unit_handle_t both on 32b and 64b */
 		unit->handle = (unit_handle_t)unit;
 
 		hash_table_insert(&units_by_handle, &unit->units_by_handle);
-		list_append(&unit->units, &units);
-		fibril_rwlock_write_unlock(&repo_lock);
+		list_append(&unit->units, &units_);
 		return EOK;
 	} else {
-		fibril_rwlock_write_unlock(&repo_lock);
 		return EEXISTS;
 	}
 }
@@ -161,8 +175,9 @@ int repo_remove_unit(unit_t *unit)
 	return EOK; /* We could check that unit is present in repo etc... */
 }
 
-void repo_begin_update(void) {
+void repo_begin_update_(void) {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
+	fibril_rwlock_write_lock(&repo_lock);
 }
 
 static bool repo_commit_unit(ht_link_t *ht_link, void *arg)
@@ -195,6 +210,7 @@ void repo_commit(void)
 	 * TODO why not iterate over units list?
 	 */
 	hash_table_apply(&units_by_name, &repo_commit_unit, NULL);
+	fibril_rwlock_write_unlock(&repo_lock);
 }
 
 static bool repo_rollback_unit(ht_link_t *ht_link, void *arg)
@@ -227,6 +243,7 @@ void repo_rollback(void)
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 
 	hash_table_apply(&units_by_name, &repo_rollback_unit, NULL);
+	fibril_rwlock_write_unlock(&repo_lock);
 }
 
 static bool repo_resolve_unit(ht_link_t *ht_link, void *arg)
@@ -242,7 +259,7 @@ static bool repo_resolve_unit(ht_link_t *ht_link, void *arg)
 		}
 
 		unit_t *output =
-		    repo_find_unit_by_name(e->output_name);
+		    repo_find_unit_by_name_unsafe(e->output_name);
 		if (output == NULL) {
 			sysman_log(LVL_ERROR,
 			    "Cannot resolve dependency of '%s' to unit '%s'",
@@ -272,21 +289,28 @@ int repo_resolve_references(void)
 	return has_error ? ENOENT : EOK;
 }
 
-unit_t *repo_find_unit_by_name(const char *name)
+/**
+ * The function can be safely called from non-event loop fibrils
+ */
+unit_t *repo_find_unit_by_name_(const char *name)
 {
-	fibril_rwlock_read_lock(&repo_lock);
-	ht_link_t *ht_link = hash_table_find(&units_by_name, (void *)name);
-	fibril_rwlock_read_unlock(&repo_lock);
-
-	if (ht_link != NULL) {
-		return hash_table_get_inst(ht_link, unit_t, units_by_name);
-	} else {
-		return NULL;
-	}
+	return repo_find_unit_by_name_internal(name, true);
 }
 
+/**
+ * @note Caller must hold repo_lock (at least reader)
+ */
+unit_t *repo_find_unit_by_name_unsafe(const char *name)
+{
+	return repo_find_unit_by_name_internal(name, false);
+}
+
+/**
+ * The function can be safely called from non-event loop fibrils
+ */
 unit_t *repo_find_unit_by_handle(unit_handle_t handle)
 {
+	sysman_log(LVL_DEBUG2, "%s", __func__);
 	fibril_rwlock_read_lock(&repo_lock);
 	ht_link_t *ht_link = hash_table_find(&units_by_handle, &handle);
 	fibril_rwlock_read_unlock(&repo_lock);
@@ -300,10 +324,12 @@ unit_t *repo_find_unit_by_handle(unit_handle_t handle)
 
 void repo_rlock(void)
 {
+	sysman_log(LVL_DEBUG2, "%s", __func__);
 	fibril_rwlock_read_lock(&repo_lock);
 }
 
 void repo_runlock(void)
 {
+	sysman_log(LVL_DEBUG2, "%s", __func__);
 	fibril_rwlock_read_unlock(&repo_lock);
 }

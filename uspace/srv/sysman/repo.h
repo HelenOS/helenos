@@ -37,11 +37,29 @@
 
 #define ANONYMOUS_SERVICE_MASK "service_%" PRIu64
 
-/*
- * If you access units out of the main event-loop fibril call repo_rlock(),
- * repo_runlock().
+/**
+ * Don't access this structure directly, use repo_foreach instead.
  */
-extern list_t units;
+extern list_t units_;
+
+/**
+ * If you iterate units out of the main event-loop fibril, wrap the foreach
+ * into repo_rlock() and repo_runlock().
+ *
+ * @param  it  name of unit_t * loop iterator variable
+ */
+#define repo_foreach(_it) \
+	list_foreach(units_, units, unit_t, _it)
+
+/**
+ * @see repo_foreach
+ *
+ * @param type  unit_type_t  restrict to units of type only
+ * @param it                 name of unit_t * loop iterator variable
+ */
+#define repo_foreach_t(_type, _it) \
+	list_foreach(units_, units, unit_t, _it) \
+		if (_it->type == (_type))
 
 extern void repo_init(void);
 
@@ -57,6 +75,7 @@ extern void repo_rollback(void);
 extern int repo_resolve_references(void);
 
 extern unit_t *repo_find_unit_by_name(const char *);
+extern unit_t *repo_find_unit_by_name_unsafe(const char *);
 extern unit_t *repo_find_unit_by_handle(unit_handle_t);
 
 extern void repo_rlock(void);

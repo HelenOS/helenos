@@ -74,10 +74,7 @@ static unit_svc_t *sm_task_find_service(task_id_t tid)
 	 * Unit to task is about to be developed, so use plain linear search
 	 * instead of specialized structures.
 	 */
-	list_foreach(units, units, unit_t, u) {
-		if (u->type != UNIT_SERVICE) {
-			continue;
-		}
+	repo_foreach_t(UNIT_SERVICE, u) {
 		if (CAST_SVC(u)->main_task_id == tid) {
 			return CAST_SVC(u);
 		}

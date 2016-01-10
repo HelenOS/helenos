@@ -81,7 +81,8 @@ static int cfg_parse_file(const char *dirname, const char *filename,
 		goto finish;
 	}
 	
-	unit_t *u = repo_find_unit_by_name(unit_name);
+	/* We parse files as part of ongoing repo transaction (locked). */
+	unit_t *u = repo_find_unit_by_name_unsafe(unit_name);
 	if (u != NULL) {
 		// TODO allow updating configuration of existing unit
 		rc = EEXISTS;

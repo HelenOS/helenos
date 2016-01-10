@@ -204,13 +204,13 @@ finish:
 static int bfs_traverse_component(unit_t *origin, bfs_ops_t *ops, void *arg)
 {
 	/* Check invariant */
-	list_foreach(units, units, unit_t, u) {
+	repo_foreach(u) {
 		assert(u->bfs_tag == false);
 	}
 	int rc = bfs_traverse_component_internal(origin, ops, arg);
 
 	/* Clean after ourselves (BFS tag jobs) */
-	list_foreach(units, units, unit_t, u) {
+	repo_foreach(u) {
 		u->bfs_tag = false;
 	}
 	return rc;

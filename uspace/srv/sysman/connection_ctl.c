@@ -196,7 +196,7 @@ static int fill_handles_buffer(unit_handle_t *buffer, size_t size,
 	size_t to_fill = size / sizeof(unit_handle_t);
 	size_t total = 0;
 	repo_rlock();
-	list_foreach(units, units, unit_t, u) {
+	repo_foreach(u) {
 		if (filled < to_fill) {
 			buffer[filled++] = u->handle;
 		}
