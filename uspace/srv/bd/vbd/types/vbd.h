@@ -41,6 +41,7 @@
 #include <bd_srv.h>
 #include <label.h>
 #include <loc.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <types/label.h>
 
@@ -86,6 +87,8 @@ typedef struct vbds_disk {
 	list_t parts; /* of vbds_part_t */
 	/** Block size */
 	size_t block_size;
+	/** Used to mark disks still present during re-discovery */
+	bool present;
 } vbds_disk_t;
 
 #endif

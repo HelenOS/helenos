@@ -444,6 +444,7 @@ static int loc_server_unregister(loc_server_t *server)
 	
 	free(server);
 	
+	loc_category_change_event();
 	return EOK;
 }
 
@@ -556,6 +557,8 @@ static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
 	fibril_mutex_unlock(&cdir.mutex);
 	fibril_mutex_unlock(&services_list_mutex);
 	async_answer_0(iid, EOK);
+
+	loc_category_change_event();
 }
 
 static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)

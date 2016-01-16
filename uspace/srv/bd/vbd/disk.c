@@ -88,6 +88,31 @@ static vbds_part_t *bd_srv_part(bd_srv_t *bd)
 	return (vbds_part_t *)bd->srvs->sarg;
 }
 
+static vbds_disk_t *vbds_disk_first(void)
+{
+	link_t *link;
+
+	link = list_first(&vbds_disks);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, vbds_disk_t, ldisks);
+}
+
+static vbds_disk_t *vbds_disk_next(vbds_disk_t *disk)
+{
+	link_t *link;
+
+	if (disk == NULL)
+		return NULL;
+
+	link = list_next(&disk->ldisks, &vbds_disks);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, vbds_disk_t, ldisks);
+}
+
 int vbds_disks_init(void)
 {
 	int rc;
@@ -106,14 +131,17 @@ int vbds_disks_init(void)
 	return EOK;
 }
 
-/** Check for new disk devices */
+/** Check for new/removed disk devices */
 static int vbds_disks_check_new(void)
 {
 	bool already_known;
 	category_id_t disk_cat;
 	service_id_t *svcs;
 	size_t count, i;
+	vbds_disk_t *cur, *next;
 	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disks_check_new()");
 
 	fibril_mutex_lock(&vbds_disks_lock);
 
@@ -132,12 +160,16 @@ static int vbds_disks_check_new(void)
 		return EIO;
 	}
 
+	list_foreach(vbds_disks, ldisks, vbds_disk_t, disk)
+		disk->present = false;
+
 	for (i = 0; i < count; i++) {
 		already_known = false;
 
 		list_foreach(vbds_disks, ldisks, vbds_disk_t, disk) {
 			if (disk->svc_id == svcs[i]) {
 				already_known = true;
+				disk->present = true;
 				break;
 			}
 		}
@@ -150,7 +182,26 @@ static int vbds_disks_check_new(void)
 				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not add "
 				    "disk.");
 			}
+		} else {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Disk %lu already known",
+			    (unsigned long) svcs[i]);
 		}
+	}
+
+	cur = vbds_disk_first();
+	while (cur != NULL) {
+		next = vbds_disk_next(cur);
+		if (!cur->present) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Disk '%lu' is gone",
+			    (unsigned long) cur->svc_id);
+			rc = vbds_disk_remove(cur->svc_id);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not "
+				    "remove disk.");
+			}
+		}
+
+		cur = next;
 	}
 
 	fibril_mutex_unlock(&vbds_disks_lock);
@@ -402,6 +453,7 @@ int vbds_disk_add(service_id_t sid)
 	disk->svc_id = sid;
 	disk->label = label;
 	disk->block_size = block_size;
+	disk->present = true;
 
 	list_initialize(&disk->parts);
 	list_append(&disk->ldisks, &vbds_disks);
