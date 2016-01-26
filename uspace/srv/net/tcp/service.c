@@ -972,6 +972,7 @@ static void tcp_conn_send_srv(tcp_client_t *client, ipc_callid_t iid,
 	if (data == NULL) {
 		async_answer_0(callid, ENOMEM);
 		async_answer_0(iid, ENOMEM);
+		return;
 	}
 
 	rc = async_data_write_finalize(callid, data, size);
