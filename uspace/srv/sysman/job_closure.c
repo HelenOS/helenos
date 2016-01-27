@@ -294,7 +294,7 @@ finish:
 
 /** Creates job closure for given basic job
  *
- * @note It is caller's responsibility to clean job_closure (event on error).
+ * @note It is caller's responsibility to clean job_closure (even on error).
  *
  * @return EOK on success otherwise propagated error
  */

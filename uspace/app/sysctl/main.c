@@ -38,6 +38,7 @@
 #include <str.h>
 #include <str_error.h>
 #include <sysman/ctl.h>
+#include <unistd.h>
 
 #define NAME "sysctl"
 #define NAME_BUFFER 256
@@ -140,10 +141,25 @@ static int stop(int argc, char *argv[])
 	return 0;
 }
 
+static int shutdown(int argc, char *argv[])
+{
+	const int delay = 3;
+	printf("Will shutdown in %i seconds...\n", delay);
+	sleep(delay);
+	printf("Shutdown now.\n");
+
+	int rc = sysman_shutdown();
+	if (rc != EOK) {
+		printf("Shutdown request failed: %s.\n", str_error(rc));
+	}
+	return rc;
+}
+
 command_t commands[] = {
 	{ "list-units", 0, &list_units },
 	{ "start",      1, &start },
 	{ "stop",       1, &stop },
+	{ "shutdown",   0, &shutdown },
 	{ 0 }
 };
 

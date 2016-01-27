@@ -119,6 +119,15 @@ static int unit_svc_stop(unit_t *unit)
 	// note: May change when job cancellation is possible.
 	assert(unit->state == STATE_STARTED);
 
+	/*
+	 * Ugly trick -- critical service is running despite being stopped
+	 * circumvent killing ourselves during shutdown (TODO dependencies).
+	 */
+	if (u_svc->critical) {
+		unit->state = STATE_STOPPED;
+		return EOK;
+	}
+
 	int rc = task_kill(u_svc->main_task_id);
 
 	if (rc != EOK) {

@@ -42,6 +42,9 @@ typedef struct {
 	task_id_t main_task_id;
 
 	bool anonymous;
+
+	/** Service can't be stopped, temporary workaround for shutdown */
+	bool critical;
 } unit_svc_t;
 
 extern unit_vmt_t unit_svc_vmt;

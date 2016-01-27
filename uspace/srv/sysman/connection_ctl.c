@@ -35,7 +35,9 @@
 #include "repo.h"
 #include "connection_ctl.h"
 #include "job.h"
+#include "job_closure.h"
 #include "log.h"
+#include "shutdown.h"
 #include "sysman.h"
 
 
@@ -113,7 +115,7 @@ static void sysman_unit_start_by_name(ipc_callid_t iid, ipc_call_t *icall)
 	}
 
 	if (!(flags & IPC_FLAG_BLOCKING)) {
-		retval = sysman_run_job(unit, STATE_STARTED, NULL, NULL);
+		retval = sysman_run_job(unit, STATE_STARTED, 0, NULL, NULL);
 		goto answer;
 	}
 
@@ -122,7 +124,7 @@ static void sysman_unit_start_by_name(ipc_callid_t iid, ipc_call_t *icall)
 		retval = ENOMEM;
 		goto answer;
 	}
-	retval = sysman_run_job(unit, STATE_STARTED, &answer_callback,
+	retval = sysman_run_job(unit, STATE_STARTED, 0, &answer_callback,
 	    iid_ptr);
 	if (retval != EOK) {
 		goto answer;
@@ -153,7 +155,7 @@ static void sysman_unit_operation(ipc_callid_t iid, ipc_call_t *icall,
 	}
 
 	if (!(flags & IPC_FLAG_BLOCKING)) {
-		retval = sysman_run_job(unit, state, NULL, NULL);
+		retval = sysman_run_job(unit, state, 0, NULL, NULL);
 		goto answer;
 	}
 
@@ -162,7 +164,7 @@ static void sysman_unit_operation(ipc_callid_t iid, ipc_call_t *icall,
 		retval = ENOMEM;
 		goto answer;
 	}
-	retval = sysman_run_job(unit, state, &answer_callback,
+	retval = sysman_run_job(unit, state, 0, &answer_callback,
 	    iid_ptr);
 	if (retval != EOK) {
 		goto answer;
@@ -277,6 +279,22 @@ static void sysman_unit_get_state(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+static void sysman_shutdown(ipc_callid_t iid, ipc_call_t *icall)
+{
+	int retval;
+	unit_t *u = repo_find_unit_by_name(TARGET_SHUTDOWN);
+	if (u == NULL) {
+		retval = ENOENT;
+		goto finish;
+	}
+
+	retval = sysman_run_job(u, STATE_STARTED, CLOSURE_ISOLATE,
+	    shutdown_cb, NULL);
+
+finish:
+	async_answer_0(iid, retval);
+}
+
 void sysman_connection_ctl(ipc_callid_t iid, ipc_call_t *icall)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
@@ -313,6 +331,9 @@ void sysman_connection_ctl(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case SYSMAN_CTL_UNIT_GET_STATE:
 			sysman_unit_get_state(callid, &call);
+			break;
+		case SYSMAN_CTL_SHUTDOWN:
+			sysman_shutdown(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);

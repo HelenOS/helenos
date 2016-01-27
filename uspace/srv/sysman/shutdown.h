@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Michal Koutny
+ * Copyright (c) 2016 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _SYSMAN_CTL_H
-#define _SYSMAN_CTL_H
+#ifndef SYSMAN_SHUTDOWN_H
+#define SYSMAN_SHUTDOWN_H
 
-#include <ipc/sysman.h>
-#include <sysman/unit.h>
+extern void shutdown_cb(void *, void *);
 
-int sysman_unit_handle(const char *, unit_handle_t *);
-
-int sysman_unit_start_by_name(const char *, int);
-int sysman_unit_start(unit_handle_t, int);
-int sysman_unit_stop(unit_handle_t, int);
-
-int sysman_get_units(unit_handle_t **, size_t *);
-
-int sysman_unit_get_name(unit_handle_t, char *, size_t);
-int sysman_unit_get_state(unit_handle_t, unit_state_t *);
-
-int sysman_shutdown(void);
 #endif

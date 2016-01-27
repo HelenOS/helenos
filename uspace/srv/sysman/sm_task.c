@@ -105,6 +105,14 @@ static unit_svc_t *sm_task_create_service(task_id_t tid)
 	/* exec_start is left undefined, maybe could be hinted by kernel's task
 	 * name */
 
+	/*
+	 * Temporary workaround to avoid killing ourselves during shutdown,
+	 * eventually should be captured by dependencies.
+	 */
+	if (tid == task_get_id() || tid == 2 /*taskman*/) {
+		CAST_SVC(u_svc)->critical = true;
+	}
+
 	repo_begin_update();
 	in_repo_update = true;
 

@@ -191,3 +191,12 @@ int sysman_unit_get_state(unit_handle_t handle, unit_state_t *state)
 
 	return rc;
 }
+
+int sysman_shutdown(void)
+{
+	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
+	int rc = async_req_0_0(exch, SYSMAN_CTL_SHUTDOWN);
+	sysman_exchange_end(exch);
+
+	return rc;
+}

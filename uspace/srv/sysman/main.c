@@ -37,29 +37,17 @@
 #include <str.h>
 #include <taskman.h>
 
-#include "repo.h"
 #include "connection_broker.h"
 #include "connection_ctl.h"
 #include "edge.h"
 #include "job_queue.h"
 #include "log.h"
-#include "sysman.h"
+#include "repo.h"
 #include "sm_task.h"
+#include "sysman.h"
 #include "unit.h"
 
 #define NAME "sysman"
-
-#define INITRD_DEVICE       "bd/initrd"
-#define INITRD_MOUNT_POINT  "/"
-#define INITRD_CFG_PATH     "/cfg/sysman"
-
-#define TARGET_INIT     "initrd.tgt"
-#define TARGET_ROOTFS   "rootfs.tgt"
-#define TARGET_DEFAULT  "default.tgt"
-
-#define UNIT_MNT_INITRD "initrd.mnt"
-#define UNIT_CFG_INITRD "init.cfg"
-
 
 static const char *target_sequence[] = {
 	TARGET_INIT,
@@ -194,7 +182,7 @@ static void prepare_and_run_job(const char **target_name_ptr)
 		return;
 	}
 
-	int rc = sysman_run_job(tgt, STATE_STARTED, &sequence_job_handler,
+	int rc = sysman_run_job(tgt, STATE_STARTED, 0, &sequence_job_handler,
 	    target_name_ptr);
 
 	if (rc != EOK) {

@@ -29,6 +29,19 @@
 #ifndef SYSMAN_SYSMAN_H
 #define SYSMAN_SYSMAN_H
 
+#define INITRD_DEVICE       "bd/initrd"
+#define INITRD_MOUNT_POINT  "/"
+#define INITRD_CFG_PATH     "/cfg/sysman"
+
+// TODO configurable
+#define TARGET_INIT     "initrd.tgt"
+#define TARGET_ROOTFS   "rootfs.tgt"
+#define TARGET_DEFAULT  "default.tgt"
+#define TARGET_SHUTDOWN "shutdown.tgt"
+
+#define UNIT_MNT_INITRD "initrd.mnt"
+#define UNIT_CFG_INITRD "init.cfg"
+
 #include "job.h"
 #include "unit.h"
 
@@ -37,7 +50,7 @@ typedef void (*callback_handler_t)(void *object, void *data);
 
 extern void sysman_events_init(void);
 extern int sysman_events_loop(void *);
-extern int sysman_run_job(unit_t *, unit_state_t, callback_handler_t, void *);
+extern int sysman_run_job(unit_t *, unit_state_t, int, callback_handler_t, void *);
 
 
 extern void sysman_raise_event(event_handler_t, void *);

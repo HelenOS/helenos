@@ -45,6 +45,7 @@ SYSMAN_SOURCES = \
 	job_queue.c \
 	log.c \
 	repo.c \
+	shutdown.c \
 	sm_task.c \
 	sysman.c \
 	unit.c \

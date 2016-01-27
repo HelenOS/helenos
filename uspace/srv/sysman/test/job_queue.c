@@ -82,7 +82,7 @@ PCUT_TEST(single_start_sync) {
 	unit_t *u = mock_units[UNIT_TARGET][0];
 	job_t *job = NULL;
 
-	int rc = sysman_run_job(u, STATE_STARTED, &job_finished_cb,
+	int rc = sysman_run_job(u, STATE_STARTED, 0, &job_finished_cb,
 	    &job);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
@@ -101,7 +101,7 @@ PCUT_TEST(single_start_async) {
 	unit_t *u = mock_units[UNIT_TARGET][0];
 	job_t *job = NULL;
 
-	int rc = sysman_run_job(u, STATE_STARTED, &job_finished_cb, &job);
+	int rc = sysman_run_job(u, STATE_STARTED, 0, &job_finished_cb, &job);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	sysman_process_queue();
@@ -141,7 +141,7 @@ PCUT_TEST(multipath_to_started_unit) {
 
 	/* Run test */
 	job_t *job = NULL;
-	int rc = sysman_run_job(s1, STATE_STARTED, &job_finished_cb, &job);
+	int rc = sysman_run_job(s1, STATE_STARTED, 0, &job_finished_cb, &job);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	sysman_process_queue();
@@ -162,7 +162,7 @@ PCUT_TEST(merge_jobs_with_callback) {
 
 	/* Create and start first job */
 	job_t *j0 = NULL;
-	int rc = sysman_run_job(s0, STATE_STARTED, &job_finished_cb, &j0);
+	int rc = sysman_run_job(s0, STATE_STARTED, 0, &job_finished_cb, &j0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	sysman_process_queue();
@@ -175,7 +175,7 @@ PCUT_TEST(merge_jobs_with_callback) {
 	 * into the existing one.
 	 */
 	job_t *j1 = NULL;
-	rc = sysman_run_job(s0, STATE_STARTED, &job_finished_cb, &j1);
+	rc = sysman_run_job(s0, STATE_STARTED, 0, &job_finished_cb, &j1);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	sysman_process_queue();

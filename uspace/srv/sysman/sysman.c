@@ -64,6 +64,7 @@ typedef struct {
 
 typedef struct {
 	job_t *job;
+	int flags;
 	callback_handler_t callback;
 	void *callback_arg;
 } job_args_t;
@@ -204,12 +205,14 @@ int sysman_events_loop(void *unused)
  *
  * If unit already has the same job assigned callback is moved to it.
  *
- * @param[in]  callback  (optional) callback must explicitly delete reference
- *                       to job, void callback(void *job, void *callback_arg)
+ * @param[in]  flags        additional flags for job
+ * @param[in]  callback     (optional) callback must explicitly delete reference
+ *                          to job, void callback(void *job, void *callback_arg)
+ * @param[in]  callback_arg
  *
- * return EBUSY  unit already has a job assigned of different type
+ * @return EOK on successfully queued job
  */
-int sysman_run_job(unit_t *unit, unit_state_t target_state,
+int sysman_run_job(unit_t *unit, unit_state_t target_state, int flags,
     callback_handler_t callback, void *callback_arg)
 {
 	job_t *job = job_create(unit, target_state);
@@ -225,6 +228,7 @@ int sysman_run_job(unit_t *unit, unit_state_t target_state,
 
 	/* Pass reference to job_args */
 	job_args->job = job;
+	job_args->flags = flags;
 	job_args->callback = callback;
 	job_args->callback_arg = callback_arg;
 
@@ -363,6 +367,7 @@ void sysman_event_job_process(void *data)
 {
 	job_args_t *job_args = data;
 	job_t *job = job_args->job;
+	int flags = job_args->flags;
 	dyn_array_t job_closure;
 	dyn_array_initialize(&job_closure, job_t *);
 
@@ -372,7 +377,7 @@ void sysman_event_job_process(void *data)
 	}
 	free(job_args);
 
-	int rc = job_create_closure(job, &job_closure, 0);
+	int rc = job_create_closure(job, &job_closure, flags);
 	if (rc != EOK) {
 		sysman_log(LVL_ERROR, "Cannot create closure for job %p (%i)",
 		    job, rc);

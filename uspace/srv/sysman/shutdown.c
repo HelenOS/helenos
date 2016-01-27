@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Michal Koutny
+ * Copyright (c) 2016 Michal Koutny
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _SYSMAN_CTL_H
-#define _SYSMAN_CTL_H
+#include <io/console.h>
+#include <str_error.h>
 
-#include <ipc/sysman.h>
-#include <sysman/unit.h>
+#include "job.h"
+#include "log.h"
+#include "shutdown.h"
+#include "sysman.h"
 
-int sysman_unit_handle(const char *, unit_handle_t *);
+/** Callback when shutdown job is done
+ *
+ * Possibly delay the job completion until other jobs of the CLOSURE_ISOLATE
+ * are completed.
+ */
+void shutdown_cb(void *object, void *arg)
+{
+	job_t *job = object;
+	assert(job->state == JOB_FINISHED);
+	assert(job->retval != JOB_UNDEFINED_);
 
-int sysman_unit_start_by_name(const char *, int);
-int sysman_unit_start(unit_handle_t, int);
-int sysman_unit_stop(unit_handle_t, int);
+	/* Clean any remnants of compositor */
+	console_kcon();
 
-int sysman_get_units(unit_handle_t **, size_t *);
-
-int sysman_unit_get_name(unit_handle_t, char *, size_t);
-int sysman_unit_get_state(unit_handle_t, unit_state_t *);
-
-int sysman_shutdown(void);
-#endif
+	if (job->retval == JOB_OK) {
+		sysman_log(LVL_NOTE, "Shutdown unit '%s' started.\n",
+		    TARGET_SHUTDOWN);
+	} else {
+		sysman_log(LVL_WARN, "Start of unit '%s' failed (%s).\n",
+		    TARGET_SHUTDOWN, str_error(job->retval));
+	}
+}
