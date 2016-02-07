@@ -36,9 +36,18 @@
 #include "log.h"
 
 static FILE *log_file = NULL;
+static log_level_t max_level = LVL_NOTE;
+
+extern void sysman_log_init(log_level_t level)
+{
+	max_level = level;
+}
 
 void sysman_log(log_level_t level, const char *fmt, ...)
 {
+	if (level > max_level) {
+		return;
+	}
 	va_list args;
 	va_start(args, fmt);
 	

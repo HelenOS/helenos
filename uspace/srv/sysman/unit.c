@@ -136,7 +136,7 @@ int unit_load(unit_t *unit, ini_configuration_t *ini_conf,
  */
 int unit_start(unit_t *unit)
 {
-	sysman_log(LVL_DEBUG, "%s('%s')", __func__, unit_name(unit));
+	sysman_log(LVL_NOTE, "%s('%s')", __func__, unit_name(unit));
 	return UNIT_VMT(unit)->start(unit);
 }
 
@@ -146,19 +146,19 @@ int unit_start(unit_t *unit)
  */
 int unit_stop(unit_t *unit)
 {
-	sysman_log(LVL_DEBUG, "%s('%s')", __func__, unit_name(unit));
+	sysman_log(LVL_NOTE, "%s('%s')", __func__, unit_name(unit));
 	return UNIT_VMT(unit)->stop(unit);
 }
 
 void unit_exposee_created(unit_t *unit)
 {
-	sysman_log(LVL_DEBUG, "%s('%s')", __func__, unit_name(unit));
+	sysman_log(LVL_DEBUG2, "%s('%s')", __func__, unit_name(unit));
 	return UNIT_VMT(unit)->exposee_created(unit);
 }
 
 void unit_fail(unit_t *unit)
 {
-	sysman_log(LVL_DEBUG, "%s('%s')", __func__, unit_name(unit));
+	sysman_log(LVL_WARN, "%s('%s')", __func__, unit_name(unit));
 	return UNIT_VMT(unit)->fail(unit);
 }
 

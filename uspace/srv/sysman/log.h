@@ -32,6 +32,8 @@
 #include <io/log.h>
 #include <stdio.h>
 
+extern void sysman_log_init(log_level_t);
+
 /*
  * Temporarily use only simple printfs, later add some smart logging,
  * that would use logger as soon as it's ready.
