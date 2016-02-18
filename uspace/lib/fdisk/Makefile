@@ -27,7 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBBLOCK_PREFIX)
+EXTRA_CFLAGS = -Iinclude
 
 LIBRARY = libfdisk
 

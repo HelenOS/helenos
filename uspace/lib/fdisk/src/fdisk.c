@@ -34,10 +34,10 @@
  */
 
 #include <adt/list.h>
-#include <block.h>
 #include <errno.h>
 #include <fdisk.h>
 #include <loc.h>
+#include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <str.h>
@@ -63,9 +63,6 @@ static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 {
 	if (info == NULL)
 		return;
-
-	if (info->blk_inited)
-		block_fini(info->svcid);
 
 	free(info->svcname);
 	free(info);
@@ -124,6 +121,7 @@ int fdisk_dev_list_get(fdisk_t *fdisk, fdisk_dev_list_t **rdevlist)
 	if (devlist == NULL)
 		return ENOMEM;
 
+	devlist->fdisk = fdisk;
 	list_initialize(&devlist->devinfos);
 
 	rc = vbd_get_disks(fdisk->vbd, &svcs, &count);
@@ -221,27 +219,14 @@ int fdisk_dev_info_get_svcname(fdisk_dev_info_t *info, char **rname)
 
 int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 {
-	size_t bsize;
-	aoff64_t nblocks;
+	vbd_disk_info_t vinfo;
 	int rc;
 
-	if (!info->blk_inited) {
-		rc = block_init(info->svcid, 2048);
-		if (rc != EOK)
-			return rc;
-
-		info->blk_inited = true;
-	}
-
-	rc = block_get_bsize(info->svcid, &bsize);
+	rc = vbd_disk_info(info->devlist->fdisk->vbd, info->svcid, &vinfo);
 	if (rc != EOK)
 		return EIO;
 
-	rc = block_get_nblocks(info->svcid, &nblocks);
-	if (rc != EOK)
-		return EIO;
-
-	fdisk_cap_from_blocks(nblocks, bsize, cap);
+	fdisk_cap_from_blocks(vinfo.nblocks, vinfo.block_size, cap);
 	return EOK;
 }
 
@@ -434,7 +419,6 @@ static void fdisk_dev_remove_parts(fdisk_dev_t *dev)
 
 int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 {
-	vbd_disk_info_t vinfo;
 	fdisk_dev_t *dev = NULL;
 	service_id_t *psids = NULL;
 	size_t nparts, i;
@@ -450,12 +434,6 @@ int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 	list_initialize(&dev->pri_idx);
 	list_initialize(&dev->pri_ba);
 	list_initialize(&dev->log_ba);
-
-	rc = vbd_disk_info(fdisk->vbd, sid, &vinfo);
-	if (rc != EOK) {
-		rc = EIO;
-		goto error;
-	}
 
 	rc = fdisk_update_dev_info(dev);
 	if (rc != EOK) {
@@ -553,25 +531,7 @@ int fdisk_dev_get_svcname(fdisk_dev_t *dev, char **rname)
 
 int fdisk_dev_capacity(fdisk_dev_t *dev, fdisk_cap_t *cap)
 {
-	size_t bsize;
-	aoff64_t nblocks;
-	int rc;
-
-	rc = block_init(dev->sid, 2048);
-	if (rc != EOK)
-		return rc;
-
-	rc = block_get_bsize(dev->sid, &bsize);
-	if (rc != EOK)
-		return EIO;
-
-	rc = block_get_nblocks(dev->sid, &nblocks);
-	if (rc != EOK)
-		return EIO;
-
-	block_fini(dev->sid);
-
-	fdisk_cap_from_blocks(nblocks, bsize, cap);
+	fdisk_cap_from_blocks(dev->dinfo.nblocks, dev->dinfo.block_size, cap);
 	return EOK;
 }
 

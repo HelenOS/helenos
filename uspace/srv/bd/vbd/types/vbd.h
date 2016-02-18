@@ -99,6 +99,8 @@ typedef struct vbds_disk {
 	list_t parts; /* of vbds_part_t */
 	/** Block size */
 	size_t block_size;
+	/** Total number of blocks */
+	aoff64_t nblocks;
 	/** Used to mark disks still present during re-discovery */
 	bool present;
 } vbds_disk_t;

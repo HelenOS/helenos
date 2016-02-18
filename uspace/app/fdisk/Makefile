@@ -29,8 +29,7 @@
 USPACE_PREFIX = ../..
 LIBS = \
 	$(LIBCLUI_PREFIX)/libclui.a \
-	$(LIBFDISK_PREFIX)/libfdisk.a \
-	$(LIBBLOCK_PREFIX)/libblock.a
+	$(LIBFDISK_PREFIX)/libfdisk.a
 
 EXTRA_CFLAGS = \
 	-I$(LIBCLUI_PREFIX) \

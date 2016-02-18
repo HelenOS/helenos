@@ -451,6 +451,7 @@ int vbds_disk_add(service_id_t sid)
 	vbds_disk_t *disk = NULL;
 	bool block_inited = false;
 	size_t block_size;
+	aoff64_t nblocks;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_add(%zu)", sid);
@@ -488,6 +489,14 @@ int vbds_disk_add(service_id_t sid)
 		goto error;
 	}
 
+	rc = block_get_nblocks(sid, &nblocks);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting number of "
+		    "blocks of %s.", disk->svc_name);
+		rc = EIO;
+		goto error;
+	}
+
 	block_inited = true;
 
 	rc = label_open(sid, &label);
@@ -501,6 +510,7 @@ int vbds_disk_add(service_id_t sid)
 	disk->svc_id = sid;
 	disk->label = label;
 	disk->block_size = block_size;
+	disk->nblocks = nblocks;
 	disk->present = true;
 
 	list_initialize(&disk->parts);
@@ -597,6 +607,7 @@ int vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
 	info->ablock0 = linfo.ablock0;
 	info->anblocks = linfo.anblocks;
 	info->block_size = disk->block_size;
+	info->nblocks = disk->nblocks;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_info - block_size=%zu",
 	    info->block_size);
 	return EOK;

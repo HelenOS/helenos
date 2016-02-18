@@ -109,6 +109,9 @@ typedef struct {
 
 /** List of devices available for managing by fdisk */
 typedef struct {
+	/** Fdisk instance */
+	struct fdisk *fdisk;
+	/** List of device info structures */
 	list_t devinfos; /* of fdisk_dev_info_t */
 } fdisk_dev_list_t;
 
@@ -122,8 +125,6 @@ typedef struct {
 	service_id_t svcid;
 	/** Service name or NULL if not determined yet */
 	char *svcname;
-	/** Device is initialized in libblock */
-	bool blk_inited;
 } fdisk_dev_info_t;
 
 /** Open fdisk device */

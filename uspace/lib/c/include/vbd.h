@@ -58,6 +58,8 @@ typedef struct {
 	aoff64_t anblocks;
 	/** Block size */
 	size_t block_size;
+	/** Total number of blocks */
+	aoff64_t nblocks;
 } vbd_disk_info_t;
 
 /** Specification of new partition */
