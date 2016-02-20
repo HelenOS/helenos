@@ -44,4 +44,4 @@ entry_point_jmp:
 	mov %rsi, %rdi
 	
 	# jump to entry point
-	jmp %rdx
+	jmp *%rdx
