@@ -127,8 +127,8 @@ endif
 # Mind the mutual ordering with the inclusion of the arch Makefile.inc.
 # AFLAGS and LFLAGS must be initialized before the inclusion.
 #
-AFLAGS =
-LFLAGS = -n -T $(LINK) -M
+AFLAGS = --fatal-warnings
+LFLAGS = -n -T $(LINK) -M --fatal-warnings
 
 #
 # Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.

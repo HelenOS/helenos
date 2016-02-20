@@ -160,6 +160,9 @@ LIBNETTL_PREFIX = $(LIB_PREFIX)/nettl
 
 LIBURCU_PREFIX = $(LIB_PREFIX)/urcu
 
+AFLAGS = --fatal-warnings
+LFLAGS = --fatal-warnings
+
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
 else
@@ -200,7 +203,7 @@ ifeq ($(STATIC_BUILD),y)
 	endif
 else
 	BASE_LIBS = $(LIBC_PREFIX)/libc.so0 $(LIBSOFTINT_PREFIX)/libsofti.so0
-	LFLAGS = -Bdynamic
+	LFLAGS += -Bdynamic
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 	ifeq ($(MATH),y)
 		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.so0

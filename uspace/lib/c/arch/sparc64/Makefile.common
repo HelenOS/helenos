@@ -34,7 +34,7 @@ endif
 
 GCC_CFLAGS += -m64 -mcmodel=medlow
 
-LFLAGS = -no-check-sections
+LFLAGS += -no-check-sections
 
 ENDIANESS = BE
 

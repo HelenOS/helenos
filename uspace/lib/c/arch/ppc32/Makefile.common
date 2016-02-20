@@ -35,7 +35,7 @@ endif
 
 GCC_CFLAGS += -mcpu=powerpc -m$(FLOATS)-float -m32
 BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
-AFLAGS = -a32
+AFLAGS += -a32
 
 ENDIANESS = BE
 
