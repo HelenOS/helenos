@@ -26,19 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/fibril_context.h>
 
 .text
-
-.global context_save
-.global context_restore
 
 ## Save current CPU context
 #
 # Save CPU context to the context_t variable
 # pointed by the 1st argument. Returns 1 in EAX.
 #
-context_save:
+FUNCTION_BEGIN(context_save)
 	movl 0(%esp), %eax  # the caller's return %eip
 	movl 4(%esp), %edx  # address of the context variable to save context to
 	
@@ -57,13 +55,14 @@ context_save:
 	xorl %eax, %eax		# context_save returns 1
 	incl %eax
 	ret
+FUNCTION_END(context_save)
 
 ## Restore saved CPU context
 #
 # Restore CPU context from context_t variable
 # pointed by the 1st argument. Returns 0 in EAX.
 #
-context_restore:
+FUNCTION_BEGIN(context_restore)
 	movl 4(%esp), %eax  # address of the context variable to restore context from
 	
 	# restore registers from the context structure
@@ -85,4 +84,5 @@ context_restore:
 	
 	xorl %eax, %eax		# context_restore returns 0
 	ret
+FUNCTION_END(context_restore)
 

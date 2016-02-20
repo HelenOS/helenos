@@ -26,13 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/x87.h>
 
 .text
 
-.global cos_f64
-
-cos_f64:
+FUNCTION_BEGIN(cos_f64)
 	# compute cosine (no stack frame)
 	
 	fldl 4(%esp)
@@ -63,3 +62,5 @@ cos_f64:
 	fcos
 	
 	ret
+FUNCTION_END(cos_f64)
+
