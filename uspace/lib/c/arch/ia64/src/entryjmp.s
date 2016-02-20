@@ -27,6 +27,7 @@
 #
 
 .text
+.explicit
 .globl entry_point_jmp
 
 ## void entry_point_jmp(void *entry_point, void *pcb);
