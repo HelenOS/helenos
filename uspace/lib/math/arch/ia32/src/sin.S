@@ -59,7 +59,7 @@ sin_f64:
 		andw $X87_STATUS_WORD_C2_MASK, %ax
 		jnz reduce
 	
-	fstpl %st(1)
+	fstp %st(1)
 	fsin
 	
 	ret
