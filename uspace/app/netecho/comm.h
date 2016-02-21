@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2016 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nterm
+/** @addtogroup netecho
  * @{
  */
 /**
  * @file
  */
 
-#ifndef NTERM_H
-#define NTERM_H
+#ifndef COMM_H
+#define COMM_H
 
 #include <sys/types.h>
 
-extern void nterm_received(void *, size_t);
+extern int comm_open(const char *, const char *);
+extern void comm_close(void);
+extern int comm_send(void *, size_t);
 
 #endif
 

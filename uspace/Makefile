@@ -59,6 +59,7 @@ DIRS = \
 	app/mkexfat \
 	app/mkmfs \
 	app/modplay \
+	app/netecho \
 	app/nterm \
 	app/redir \
 	app/rcutest \

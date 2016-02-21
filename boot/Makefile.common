@@ -204,6 +204,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/testwrit/testwrit \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
+	$(USPACE_PATH)/app/netecho/netecho \
 	$(USPACE_PATH)/app/nterm/nterm \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \
