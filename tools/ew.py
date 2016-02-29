@@ -92,13 +92,16 @@ def platform_to_qemu_options(platform, machine):
 	elif platform == 'sparc64':
 		return 'system-sparc64', ''
 
-def qemu_bd_options():
-	if is_override('nohdd'):
-		return ''
-
+def hdisk_mk():
 	if not os.path.exists('hdisk.img'):
 		subprocess.call('tools/mkfat.py 1048576 uspace/dist/data hdisk.img', shell = True)
 
+def qemu_bd_options():
+	if is_override('nohdd'):
+		return ''
+	
+	hdisk_mk()
+	
 	return ' -drive file=hdisk.img,index=0,media=disk,format=raw'
 
 def qemu_nic_ne2k_options():
@@ -177,6 +180,7 @@ def ski_run(platform, machine):
 	run_in_console('ski -i contrib/conf/ski.conf', 'HelenOS/ia64 on ski')
 
 def msim_run(platform, machine):
+	hdisk_mk()
 	run_in_console('msim -c contrib/conf/msim.conf', 'HelenOS/mips32 on msim')
 
 
