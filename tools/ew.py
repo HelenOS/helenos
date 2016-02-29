@@ -32,9 +32,9 @@
 Emulator wrapper for running HelenOS
 """
 
-import os 
+import os
 import sys
-import subprocess 
+import subprocess
 import autotool
 import platform
 
