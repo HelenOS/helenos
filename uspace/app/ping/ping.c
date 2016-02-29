@@ -36,8 +36,8 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
-#include <inet/dnsr.h>
 #include <inet/addr.h>
+#include <inet/host.h>
 #include <inet/inetping.h>
 #include <io/console.h>
 #include <getopt.h>
@@ -213,10 +213,11 @@ static int input_fibril(void *arg)
 
 int main(int argc, char *argv[])
 {
-	dnsr_hostinfo_t *hinfo = NULL;
 	char *asrc = NULL;
 	char *adest = NULL;
 	char *sdest = NULL;
+	char *host;
+	const char *errmsg;
 	ip_ver_t ip_ver = ip_any;
 	
 	int rc = inetping_init(&ev_ops);
@@ -259,17 +260,13 @@ int main(int argc, char *argv[])
 		goto error;
 	}
 	
-	/* Parse destination address */
-	rc = inet_addr_parse(argv[optind], &dest_addr);
+	host = argv[optind];
+	
+	/* Look up host */
+	rc = inet_host_plookup_one(host, ip_ver, &dest_addr, NULL, &errmsg);
 	if (rc != EOK) {
-		/* Try interpreting as a host name */
-		rc = dnsr_name2host(argv[optind], &hinfo, ip_ver);
-		if (rc != EOK) {
-			printf("Error resolving host '%s'.\n", argv[optind]);
-			goto error;
-		}
-		
-		dest_addr = hinfo->addr;
+		printf("Error resolving host '%s' (%s).\n", host, errmsg);
+		goto error;
 	}
 	
 	/* Determine source address */
@@ -291,15 +288,10 @@ int main(int argc, char *argv[])
 		goto error;
 	}
 	
-	if (hinfo != NULL) {
-		rc = asprintf(&sdest, "%s (%s)", hinfo->cname, adest);
-		if (rc < 0) {
-			printf("Out of memory.\n");
-			goto error;
-		}
-	} else {
-		sdest = adest;
-		adest = NULL;
+	rc = asprintf(&sdest, "%s (%s)", host, adest);
+	if (rc < 0) {
+		printf("Out of memory.\n");
+		goto error;
 	}
 	
 	printf("Sending ICMP echo request from %s to %s (Ctrl+Q to quit)\n",
@@ -329,14 +321,12 @@ int main(int argc, char *argv[])
 	free(asrc);
 	free(adest);
 	free(sdest);
-	dnsr_hostinfo_destroy(hinfo);
 	return 0;
 	
 error:
 	free(asrc);
 	free(adest);
 	free(sdest);
-	dnsr_hostinfo_destroy(hinfo);
 	return 1;
 }
 

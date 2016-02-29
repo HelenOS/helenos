@@ -289,7 +289,7 @@ int inet_naddr_compare_mask(const inet_naddr_t *naddr, const inet_addr_t *addr)
 }
 
 static int inet_addr_parse_v4(const char *str, inet_addr_t *raddr,
-    int *prefix)
+    int *prefix, char **endptr)
 {
 	uint32_t a = 0;
 	uint8_t b;
@@ -305,11 +305,8 @@ static int inet_addr_parse_v4(const char *str, inet_addr_t *raddr,
 
 		i++;
 
-		if (*cur == '\0' || *cur == '/')
-			break;
-
 		if (*cur != '.')
-			return EINVAL;
+			break;
 
 		if (i < 4)
 			cur++;
@@ -325,18 +322,26 @@ static int inet_addr_parse_v4(const char *str, inet_addr_t *raddr,
 			return EINVAL;
 	}
 
-	if (i != 4 || (*cur != '\0'))
+	if (i != 4)
+		return EINVAL;
+
+	if (endptr == NULL && *cur != '\0')
 		return EINVAL;
 
 	raddr->version = ip_v4;
 	raddr->addr = a;
 
+	if (endptr != NULL)
+		*endptr = cur;
+
 	return EOK;
 }
 
-static int inet_addr_parse_v6(const char *str, inet_addr_t *raddr, int *prefix)
+static int inet_addr_parse_v6(const char *str, inet_addr_t *raddr, int *prefix,
+    char **endptr)
 {
 	uint8_t data[16];
+	int explicit_groups;
 
 	memset(data, 0, 16);
 
@@ -350,17 +355,14 @@ static int inet_addr_parse_v6(const char *str, inet_addr_t *raddr, int *prefix)
 		cur = str + 2;
 		wildcard_pos = 0;
 		wildcard_size = 16;
-
-		/* Handle the unspecified address */
-		if (*cur == '\0')
-			goto success;
 	}
 
 	while (i < 16) {
 		uint16_t bioctet;
-		int rc = str_uint16_t(cur, &cur, 16, false, &bioctet);
+		const char *gend;
+		int rc = str_uint16_t(cur, &gend, 16, false, &bioctet);
 		if (rc != EOK)
-			return rc;
+			break;
 
 		data[i] = (bioctet >> 8) & 0xff;
 		data[i + 1] = bioctet & 0xff;
@@ -374,26 +376,26 @@ static int inet_addr_parse_v6(const char *str, inet_addr_t *raddr, int *prefix)
 
 		i += 2;
 
-		if (*cur != ':')
+		if (*gend != ':') {
+			cur = gend;
 			break;
+		}
 
 		if (i < 16) {
-			cur++;
-
 			/* Handle wildcard */
-			if (*cur == ':') {
+			if (gend[1] == ':') {
 				if (wildcard_pos != (size_t) -1)
 					return EINVAL;
 
 				wildcard_pos = i;
 				wildcard_size = 16 - i;
-				cur++;
-
-				if (*cur == '\0' || *cur == '/')
-					break;
+				cur = gend + 2;
 			}
 		}
 	}
+
+	/* Number of explicitly specified groups */
+	explicit_groups = i;
 
 	if (prefix != NULL) {
 		if (*cur != '/')
@@ -405,7 +407,7 @@ static int inet_addr_parse_v6(const char *str, inet_addr_t *raddr, int *prefix)
 			return EINVAL;
 	}
 
-	if (*cur != '\0')
+	if (endptr == NULL && *cur != '\0')
 		return EINVAL;
 
 	/* Create wildcard positions */
@@ -417,31 +419,40 @@ static int inet_addr_parse_v6(const char *str, inet_addr_t *raddr, int *prefix)
 			data[j + wildcard_size] = data[j];
 			data[j] = 0;
 		}
+	} else {
+		/* Verify that all groups have been specified */
+		if (explicit_groups != 16)
+			return EINVAL;
 	}
 
-success:
 	raddr->version = ip_v6;
 	memcpy(raddr->addr6, data, 16);
+	if (endptr != NULL)
+		*endptr = (char *)cur;
 	return EOK;
 }
 
 /** Parse node address.
  *
+ * Will fail if @a text contains extra characters at the and and @a endptr
+ * is @c NULL.
+ *
  * @param text Network address in common notation.
  * @param addr Place to store node address.
+ * @param endptr Place to store pointer to next character oc @c NULL
  *
  * @return EOK on success, EINVAL if input is not in valid format.
  *
  */
-int inet_addr_parse(const char *text, inet_addr_t *addr)
+int inet_addr_parse(const char *text, inet_addr_t *addr, char **endptr)
 {
 	int rc;
 
-	rc = inet_addr_parse_v4(text, addr, NULL);
+	rc = inet_addr_parse_v4(text, addr, NULL, endptr);
 	if (rc == EOK)
 		return EOK;
 
-	rc = inet_addr_parse_v6(text, addr, NULL);
+	rc = inet_addr_parse_v6(text, addr, NULL, endptr);
 	if (rc == EOK)
 		return EOK;
 
@@ -450,25 +461,29 @@ int inet_addr_parse(const char *text, inet_addr_t *addr)
 
 /** Parse network address.
  *
+ * Will fail if @a text contains extra characters at the and and @a endptr
+ * is @c NULL.
+ *
  * @param text  Network address in common notation.
  * @param naddr Place to store network address.
+ * @param endptr Place to store pointer to next character oc @c NULL
  *
  * @return EOK on success, EINVAL if input is not in valid format.
  *
  */
-int inet_naddr_parse(const char *text, inet_naddr_t *naddr)
+int inet_naddr_parse(const char *text, inet_naddr_t *naddr, char **endptr)
 {
 	int rc;
 	inet_addr_t addr;
 	int prefix;
 
-	rc = inet_addr_parse_v4(text, &addr, &prefix);
+	rc = inet_addr_parse_v4(text, &addr, &prefix, endptr);
 	if (rc == EOK) {
 		inet_addr_naddr(&addr, prefix, naddr);
 		return EOK;
 	}
 
-	rc = inet_addr_parse_v6(text, &addr, &prefix);
+	rc = inet_addr_parse_v6(text, &addr, &prefix, endptr);
 	if (rc == EOK) {
 		inet_addr_naddr(&addr, prefix, naddr);
 		return EOK;

@@ -97,6 +97,9 @@ GENERIC_SOURCES = \
 	generic/imath.c \
 	generic/inet/addr.c \
 	generic/inet/endpoint.c \
+	generic/inet/host.c \
+	generic/inet/hostname.c \
+	generic/inet/hostport.c \
 	generic/inet/tcp.c \
 	generic/inet/udp.c \
 	generic/inet.c \

@@ -36,8 +36,8 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril.h>
-#include <inet/dnsr.h>
 #include <inet/endpoint.h>
+#include <inet/hostport.h>
 #include <inet/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,39 +85,25 @@ static void conn_data_avail(tcp_conn_t *conn)
 	}
 }
 
-int conn_open(const char *host, const char *port_s)
+int conn_open(const char *hostport)
 {
 	inet_ep2_t epp;
+	const char *errmsg;
+	int rc;
 
-	/* Interpret as address */
-	inet_addr_t iaddr;
-	int rc = inet_addr_parse(host, &iaddr);
-
+	inet_ep2_init(&epp);
+	rc = inet_hostport_plookup_one(hostport, ip_any, &epp.remote, NULL,
+	    &errmsg);
 	if (rc != EOK) {
-		/* Interpret as a host name */
-		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(host, &hinfo, ip_any);
-
-		if (rc != EOK) {
-			printf("Error resolving host '%s'.\n", host);
-			goto error;
-		}
-
-		iaddr = hinfo->addr;
-	}
-
-	char *endptr;
-	uint16_t port = strtol(port_s, &endptr, 10);
-	if (*endptr != '\0') {
-		printf("Invalid port number %s\n", port_s);
+		printf("Error: %s (host:port %s).\n", errmsg, hostport);
 		goto error;
 	}
 
-	inet_ep2_init(&epp);
-	epp.remote.addr = iaddr;
-	epp.remote.port = port;
-
-	printf("Connecting to host %s port %u\n", host, port);
+	printf("Connecting to %s\n", hostport);
+	char *s;
+	rc = inet_addr_format(&epp.remote.addr, &s);
+	if (rc != EOK)
+		goto error;
 
 	rc = tcp_create(&tcp);
 	if (rc != EOK)

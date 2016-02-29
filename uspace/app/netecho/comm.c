@@ -36,8 +36,8 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril.h>
-#include <inet/dnsr.h>
 #include <inet/endpoint.h>
+#include <inet/hostport.h>
 #include <inet/udp.h>
 #include <macros.h>
 #include <stdio.h>
@@ -108,30 +108,10 @@ static void comm_udp_link_state(udp_assoc_t *assoc, udp_link_state_t lstate)
 	printf("Link state change: %s.\n", sstate);
 }
 
-int comm_open(const char *host, const char *port_s)
+int comm_open_listen(const char *port_s)
 {
 	inet_ep2_t epp;
-	inet_addr_t iaddr;
 	int rc;
-
-	if (host != NULL) {
-		/* Interpret as address */
-		inet_addr_t iaddr;
-		int rc = inet_addr_parse(host, &iaddr);
-
-		if (rc != EOK) {
-			/* Interpret as a host name */
-			dnsr_hostinfo_t *hinfo = NULL;
-			rc = dnsr_name2host(host, &hinfo, ip_any);
-
-			if (rc != EOK) {
-				printf("Error resolving host '%s'.\n", host);
-				goto error;
-			}
-
-			iaddr = hinfo->addr;
-		}
-	}
 
 	char *endptr;
 	uint16_t port = strtol(port_s, &endptr, 10);
@@ -141,18 +121,41 @@ int comm_open(const char *host, const char *port_s)
 	}
 
 	inet_ep2_init(&epp);
-	if (host != NULL) {
-		/* Talk to remote host */
-		remote.addr = iaddr;
-		remote.port = port;
+	epp.local.port = port;
 
-		printf("Talking to host %s port %u\n", host, port);
-	} else {
-		/* Listen on local port */
-		epp.local.port = port;
+	printf("Listening on port %u\n", port);
 
-		printf("Listening on port %u\n", port);
+	rc = udp_create(&udp);
+	if (rc != EOK)
+		goto error;
+
+	rc = udp_assoc_create(udp, &epp, &comm_udp_cb, NULL, &assoc);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	udp_assoc_destroy(assoc);
+	udp_destroy(udp);
+
+	return EIO;
+}
+
+int comm_open_talkto(const char *hostport)
+{
+	inet_ep2_t epp;
+	const char *errmsg;
+	int rc;
+
+	inet_ep2_init(&epp);
+	rc = inet_hostport_plookup_one(hostport, ip_any, &epp.remote, NULL,
+	    &errmsg);
+	if (rc != EOK) {
+		printf("Error: %s (host:port %s).\n", errmsg, hostport);
+		goto error;
 	}
+
+	printf("Talking to %s\n", hostport);
 
 	rc = udp_create(&udp);
 	if (rc != EOK)

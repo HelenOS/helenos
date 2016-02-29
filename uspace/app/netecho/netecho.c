@@ -114,7 +114,7 @@ static void print_syntax(void)
 {
 	printf("syntax:\n");
 	printf("\t%s -l <port>\n", NAME);
-	printf("\t%s -d <host> <port> [<message> [<message...>]]\n", NAME);
+	printf("\t%s -d <host>:<port> [<message> [<message...>]]\n", NAME);
 }
 
 /* Interactive mode */
@@ -150,7 +150,7 @@ static void netecho_send_messages(char **msgs)
 
 int main(int argc, char *argv[])
 {
-	char *host;
+	char *hostport;
 	char *port;
 	char **msgs;
 	int rc;
@@ -166,26 +166,31 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 
-		host = NULL;
 		port = argv[2];
 		msgs = NULL;
+
+		rc = comm_open_listen(port);
+		if (rc != EOK) {
+			printf("Error setting up communication.\n");
+			return 1;
+		}
 	} else if (str_cmp(argv[1], "-d") == 0) {
-		if (argc < 4) {
+		if (argc < 3) {
 			print_syntax();
 			return 1;
 		}
 
-		host = argv[2];
-		port = argv[3];
-		msgs = argv + 4;
+		hostport = argv[2];
+		port = NULL;
+		msgs = argv + 3;
+
+		rc = comm_open_talkto(hostport);
+		if (rc != EOK) {
+			printf("Error setting up communication.\n");
+			return 1;
+		}
 	} else {
 		print_syntax();
-		return 1;
-	}
-
-	rc = comm_open(host, port);
-	if (rc != EOK) {
-		printf("Error setting up communication.\n");
 		return 1;
 	}
 

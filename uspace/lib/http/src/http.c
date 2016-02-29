@@ -39,7 +39,8 @@
 #include <str.h>
 #include <macros.h>
 
-#include <inet/dnsr.h>
+#include <inet/endpoint.h>
+#include <inet/host.h>
 #include <inet/tcp.h>
 
 #include <http/http.h>
@@ -87,20 +88,10 @@ int http_connect(http_t *http)
 	if (http->conn != NULL)
 		return EBUSY;
 	
-	/* Interpret as address */
-	int rc = inet_addr_parse(http->host, &http->addr);
-	
-	if (rc != EOK) {
-		/* Interpret as a host name */
-		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(http->host, &hinfo, ip_any);
-		
-		if (rc != EOK)
-			return rc;
-		
-		http->addr = hinfo->addr;
-		dnsr_hostinfo_destroy(hinfo);
-	}
+	int rc = inet_host_plookup_one(http->host, ip_any, &http->addr, NULL,
+	    NULL);
+	if (rc != EOK)
+		return rc;
 	
 	inet_ep2_t epp;
 	

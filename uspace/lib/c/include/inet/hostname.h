@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2016 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nterm
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#ifndef CONN_H
-#define CONN_H
+#ifndef LIBC_INET_HOSTNAME_H_
+#define LIBC_INET_HOSTNAME_H_
 
-#include <sys/types.h>
-
-extern int conn_open(const char *);
-extern int conn_send(void *, size_t);
+extern int inet_hostname_parse(const char *, char **, char **);
 
 #endif
 

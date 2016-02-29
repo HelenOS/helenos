@@ -71,7 +71,7 @@ static int dnscfg_set_ns(int argc, char *argv[])
 	char *srv_addr  = argv[0];
 	
 	inet_addr_t addr;
-	int rc = inet_addr_parse(srv_addr, &addr);
+	int rc = inet_addr_parse(srv_addr, &addr, NULL);
 	
 	if (rc != EOK) {
 		printf("%s: Invalid address format '%s'.\n", NAME, srv_addr);

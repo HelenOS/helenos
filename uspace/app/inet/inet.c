@@ -87,7 +87,7 @@ static int addr_create_static(int argc, char *argv[])
 		return ENOENT;
 	}
 
-	rc = inet_naddr_parse(addr_spec, &naddr);
+	rc = inet_naddr_parse(addr_spec, &naddr, NULL);
 	if (rc != EOK) {
 		printf(NAME ": Invalid network address format '%s'.\n",
 		    addr_spec);
@@ -176,14 +176,14 @@ static int sroute_create(int argc, char *argv[])
 	router_str = argv[1];
 	route_name = argv[2];
 
-	rc = inet_naddr_parse(dest_str, &dest);
+	rc = inet_naddr_parse(dest_str, &dest, NULL);
 	if (rc != EOK) {
 		printf(NAME ": Invalid network address format '%s'.\n",
 		    dest_str);
 		return EINVAL;
 	}
 
-	rc = inet_addr_parse(router_str, &router);
+	rc = inet_addr_parse(router_str, &router, NULL);
 	if (rc != EOK) {
 		printf(NAME ": Invalid address format '%s'.\n", router_str);
 		return EINVAL;

@@ -38,7 +38,8 @@
 
 #include <sys/types.h>
 
-extern int comm_open(const char *, const char *);
+extern int comm_open_listen(const char *);
+extern int comm_open_talkto(const char *);
 extern void comm_close(void);
 extern int comm_send(void *, size_t);
 

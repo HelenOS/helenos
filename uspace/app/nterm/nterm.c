@@ -103,7 +103,7 @@ void nterm_received(void *data, size_t size)
 
 static void print_syntax(void)
 {
-	printf("syntax: nterm <host> <port>\n");
+	printf("syntax: nterm <host>:<port>\n");
 }
 
 int main(int argc, char *argv[])
@@ -111,12 +111,12 @@ int main(int argc, char *argv[])
 	cons_event_t ev;
 	int rc;
 
-	if (argc != 3) {
+	if (argc != 2) {
 		print_syntax();
 		return 1;
 	}
 
-	rc = conn_open(argv[1], argv[2]);
+	rc = conn_open(argv[1]);
 	if (rc != EOK) {
 		printf("Error connecting.\n");
 		return 1;

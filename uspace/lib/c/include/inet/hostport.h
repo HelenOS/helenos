@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2016 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nterm
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#ifndef CONN_H
-#define CONN_H
+#ifndef LIBC_INET_HOSTPORT_H_
+#define LIBC_INET_HOSTPORT_H_
 
-#include <sys/types.h>
+#include <inet/addr.h>
+#include <inet/endpoint.h>
+#include <types/inet/hostport.h>
 
-extern int conn_open(const char *);
-extern int conn_send(void *, size_t);
+extern int inet_hostport_parse(const char *, inet_hostport_t **, char **);
+extern int inet_hostport_format(inet_hostport_t *, char **);
+extern void inet_hostport_destroy(inet_hostport_t *);
+extern int inet_hostport_lookup_one(inet_hostport_t *, ip_ver_t, inet_ep_t *);
+extern int inet_hostport_plookup_one(const char *, ip_ver_t, inet_ep_t *,
+    char **, const char **);
 
 #endif
 

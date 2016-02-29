@@ -110,8 +110,8 @@ extern int inet_addr_is_any(const inet_addr_t *);
 extern int inet_naddr_compare(const inet_naddr_t *, const inet_addr_t *);
 extern int inet_naddr_compare_mask(const inet_naddr_t *, const inet_addr_t *);
 
-extern int inet_addr_parse(const char *, inet_addr_t *);
-extern int inet_naddr_parse(const char *, inet_naddr_t *);
+extern int inet_addr_parse(const char *, inet_addr_t *, char **);
+extern int inet_naddr_parse(const char *, inet_naddr_t *, char **);
 
 extern int inet_addr_format(const inet_addr_t *, char **);
 extern int inet_naddr_format(const inet_naddr_t *, char **);
