@@ -227,7 +227,7 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 	output[0] = 0;
 	
 	while ((hint = hints_enum(name, NULL, &pos))) {
-		if ((found == 0) || (str_length(output) > str_length(hint)))
+		if ((found == 0) || (str_length(hint) > str_length(output)))
 			str_cpy(output, MAX_CMDLINE, hint);
 		
 		found++;
