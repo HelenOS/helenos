@@ -42,6 +42,9 @@
 #define MAX_CMDLINE       256
 #define KCONSOLE_HISTORY  10
 
+/** Callback to be used to enum hints for cmd tab completion. */
+typedef const char *(*hints_enum_func_t)(const char *, const char **, void **);
+
 typedef enum {
 	ARG_TYPE_INVALID = 0,
 	ARG_TYPE_INT,

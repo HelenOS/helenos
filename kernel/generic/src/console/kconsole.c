@@ -164,9 +164,10 @@ NO_TRACE static void print_cc(wchar_t ch, size_t count)
 }
 
 /** Try to find a command beginning with prefix */
-NO_TRACE static const char *cmdtab_search_one(const char *name,
-    link_t **startpos)
+NO_TRACE static const char *cmdtab_enum(const char *name,
+    const char **h, void **ctx)
 {
+	link_t **startpos = (link_t**)ctx;
 	size_t namelen = str_length(name);
 	
 	spinlock_lock(&cmd_lock);
@@ -182,6 +183,10 @@ NO_TRACE static const char *cmdtab_search_one(const char *name,
 			continue;
 		
 		if (str_lcmp(curname, name, namelen) == 0) {
+			*startpos = (*startpos)->next;
+			if (h) {
+				*h = hlp->description;
+			}
 			spinlock_unlock(&cmd_lock);
 			return (curname + str_lsize(curname, namelen));
 		}
@@ -199,7 +204,8 @@ NO_TRACE static const char *cmdtab_search_one(const char *name,
  * @return Number of found matches
  *
  */
-NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev)
+NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
+    hints_enum_func_t hints_enum)
 {
 	const char *name = input;
 	
@@ -211,9 +217,9 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev)
 	 */
 	size_t max_match_len = size;
 	size_t max_match_len_tmp = size;
-	size_t input_len = str_length(input);
-	link_t *pos = NULL;
+	void *pos = NULL;
 	const char *hint;
+	const char *help;
 	char *output = malloc(MAX_CMDLINE, 0);
 	size_t hints_to_show = MAX_TAB_HINTS - 1;
 	size_t total_hints_shown = 0;
@@ -221,11 +227,10 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev)
 	
 	output[0] = 0;
 	
-	while ((hint = cmdtab_search_one(name, &pos))) {
+	while ((hint = hints_enum(name, NULL, &pos))) {
 		if ((found == 0) || (str_length(output) > str_length(hint)))
 			str_cpy(output, MAX_CMDLINE, hint);
 		
-		pos = pos->next;
 		found++;
 	}
 	
@@ -242,11 +247,15 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev)
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = NULL;
-		while (cmdtab_search_one(name, &pos)) {
-			cmd_info_t *hlp = list_get_instance(pos, cmd_info_t, link);
+		while ((hint = hints_enum(name, &help, &pos))) {
 			
 			if (continue_showing_hints) {
-				printf("%s (%s)\n", hlp->name, hlp->description);
+				
+				if (help)
+					printf("%s%s (%s)\n", name, hint, help);
+				else
+					printf("%s%s\n", name, hint);
+				
 				--hints_to_show;
 				++total_hints_shown;
 				
@@ -257,11 +266,9 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev)
 				}
 			}
 			
-			pos = pos->next;
-			
 			for (max_match_len_tmp = 0;
 			    (output[max_match_len_tmp] ==
-			    hlp->name[input_len + max_match_len_tmp]) &&
+			    hint[max_match_len_tmp]) &&
 			    (max_match_len_tmp < max_match_len); ++max_match_len_tmp);
 			
 			max_match_len = max_match_len_tmp;
@@ -337,7 +344,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			int found;
 			if (beg == 0) {
 				/* Command completion */
-				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev);
+				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev, cmdtab_enum);
 			} else {
 				/* Symbol completion */
 				found = symtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev);
