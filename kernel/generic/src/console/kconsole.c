@@ -285,6 +285,43 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 	return found;
 }
 
+NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
+{
+	size_t start = 0;
+	size_t end;
+	char *tmp;
+	
+	while (isspace(cmdline[start]))
+		start++;
+	end = start + 1;
+	while (!isspace(cmdline[end]))
+		end++;
+	
+	tmp = malloc(STR_BOUNDS(end - start + 1), 0);
+	
+	wstr_to_str(tmp, end - start + 1, &cmdline[start]);
+	
+	spinlock_lock(&cmd_lock);
+	
+	list_foreach(cmd_list, link, cmd_info_t, hlp) {
+		spinlock_lock(&hlp->lock);
+		
+		if (str_cmp(hlp->name, tmp) == 0) {
+			spinlock_unlock(&hlp->lock);
+			spinlock_unlock(&cmd_lock);
+			free(tmp);
+			return hlp;
+		}
+		
+		spinlock_unlock(&hlp->lock);
+	}
+	
+	free(tmp);
+	spinlock_unlock(&cmd_lock);
+	
+	return NULL;
+}
+
 NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 {
 	printf("%s> ", prompt);
@@ -344,10 +381,15 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			int found;
 			if (beg == 0) {
 				/* Command completion */
-				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev, cmdtab_enum);
+				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev,
+				    cmdtab_enum);
 			} else {
-				/* Symbol completion */
-				found = symtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev);
+				/* Arguments completion */
+				cmd_info_t *cmd = parse_cmd(current);
+				if (!cmd || !cmd->hints_enum)
+					continue;
+				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev,
+				    cmd->hints_enum);
 			}
 			
 			if (found == 0)

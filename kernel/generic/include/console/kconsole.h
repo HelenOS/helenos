@@ -87,6 +87,8 @@ typedef struct {
 	cmd_arg_t *argv;
 	/** Function for printing detailed help. */
 	void (* help)(void);
+	/** Function for enumerating hints for arguments. */
+	hints_enum_func_t hints_enum;
 } cmd_info_t;
 
 extern bool kconsole_notify;
