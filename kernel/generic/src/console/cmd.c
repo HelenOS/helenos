@@ -205,7 +205,8 @@ static cmd_info_t test_info = {
 	.description = "<test> List kernel tests or run a test.",
 	.func = cmd_test,
 	.argc = 1,
-	.argv = test_argv
+	.argv = test_argv,
+	.hints_enum = tests_hints_enum
 };
 
 /* Data and methods for 'bench' command. */

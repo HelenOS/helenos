@@ -84,6 +84,8 @@ extern const char *test_rcu1(void);
 
 extern test_t tests[];
 
+extern const char* tests_hints_enum(const char *, const char **, void **);
+
 #endif
 
 /** @}
