@@ -246,7 +246,8 @@ static cmd_info_t desc_info = {
 	.help = desc_help,
 	.func = cmd_desc,
 	.argc = 1,
-	.argv = &desc_argv
+	.argv = &desc_argv,
+	.hints_enum = cmdtab_enum
 };
 
 /* Data and methods for 'symaddr' command. */
@@ -262,7 +263,8 @@ static cmd_info_t symaddr_info = {
 	.description = "<symbol> Return symbol address.",
 	.func = cmd_symaddr,
 	.argc = 1,
-	.argv = &symaddr_argv
+	.argv = &symaddr_argv,
+	.hints_enum = symtab_hints_enum,
 };
 
 /* Data and methods for 'set4' command. */

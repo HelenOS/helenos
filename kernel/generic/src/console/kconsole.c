@@ -164,8 +164,7 @@ NO_TRACE static void print_cc(wchar_t ch, size_t count)
 }
 
 /** Try to find a command beginning with prefix */
-NO_TRACE static const char *cmdtab_enum(const char *name,
-    const char **h, void **ctx)
+const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 {
 	link_t **startpos = (link_t**)ctx;
 	size_t namelen = str_length(name);

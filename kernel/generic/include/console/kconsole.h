@@ -104,6 +104,7 @@ extern void kconsole(const char *prompt, const char *msg, bool kcon);
 extern void kconsole_thread(void *data);
 
 extern bool cmd_register(cmd_info_t *cmd);
+extern const char *cmdtab_enum(const char *name, const char **h, void **ctx);
 
 #endif
 
