@@ -61,7 +61,7 @@
 #define STR_NO_LIMIT  ((size_t) -1)
 
 /**< Maximum size of a string containing cnt characters */
-#define STR_BOUNDS(cnt)  (cnt << 2)
+#define STR_BOUNDS(cnt)  ((cnt) << 2)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern int chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
