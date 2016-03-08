@@ -302,7 +302,8 @@ static cmd_info_t call0_info = {
 	.description = "<function> Call function().",
 	.func = cmd_call0,
 	.argc = 1,
-	.argv = &call0_argv
+	.argv = &call0_argv,
+	.hints_enum = symtab_hints_enum
 };
 
 /* Data and methods for 'mcall0' command. */
@@ -317,7 +318,8 @@ static cmd_info_t mcall0_info = {
 	.description = "<function> Call function() on each CPU.",
 	.func = cmd_mcall0,
 	.argc = 1,
-	.argv = &mcall0_argv
+	.argv = &mcall0_argv,
+	.hints_enum = symtab_hints_enum
 };
 
 /* Data and methods for 'call1' command. */
@@ -339,7 +341,8 @@ static cmd_info_t call1_info = {
 	.description = "<function> <arg1> Call function(arg1).",
 	.func = cmd_call1,
 	.argc = 2,
-	.argv = call1_argv
+	.argv = call1_argv,
+	.hints_enum = symtab_hints_enum
 };
 
 /* Data and methods for 'call2' command. */
@@ -366,7 +369,8 @@ static cmd_info_t call2_info = {
 	.description = "<function> <arg1> <arg2> Call function(arg1, arg2).",
 	.func = cmd_call2,
 	.argc = 3,
-	.argv = call2_argv
+	.argv = call2_argv,
+	.hints_enum = symtab_hints_enum
 };
 
 /* Data and methods for 'call3' command. */
@@ -399,7 +403,8 @@ static cmd_info_t call3_info = {
 	.description = "<function> <arg1> <arg2> <arg3> Call function(arg1, arg2, arg3).",
 	.func = cmd_call3,
 	.argc = 4,
-	.argv = call3_argv
+	.argv = call3_argv,
+	.hints_enum = symtab_hints_enum
 };
 
 /* Data and methods for 'halt' command. */
