@@ -42,6 +42,9 @@
 #define MAX_CMDLINE       256
 #define KCONSOLE_HISTORY  10
 
+/** Callback to be used to enum hints for cmd tab completion. */
+typedef const char *(*hints_enum_func_t)(const char *, const char **, void **);
+
 typedef enum {
 	ARG_TYPE_INVALID = 0,
 	ARG_TYPE_INT,
@@ -84,6 +87,8 @@ typedef struct {
 	cmd_arg_t *argv;
 	/** Function for printing detailed help. */
 	void (* help)(void);
+	/** Function for enumerating hints for arguments. */
+	hints_enum_func_t hints_enum;
 } cmd_info_t;
 
 extern bool kconsole_notify;
@@ -99,6 +104,7 @@ extern void kconsole(const char *prompt, const char *msg, bool kcon);
 extern void kconsole_thread(void *data);
 
 extern bool cmd_register(cmd_info_t *cmd);
+extern const char *cmdtab_enum(const char *name, const char **h, void **ctx);
 
 #endif
 
