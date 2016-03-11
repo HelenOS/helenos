@@ -1044,5 +1044,22 @@ void btree_print(btree_t *t)
 	printf("\n");
 }
 
+/** Return number of B-tree elements.
+ *
+ * @param t    B-tree to count.
+ * @return Return number of B-tree elements.
+ *
+ */
+unsigned long btree_count(btree_t *t)
+{
+	unsigned long count = 0;
+
+	list_foreach(t->leaf_list, leaf_link, btree_node_t, node) {
+		count += node->keys;
+	}
+
+	return count;
+}
+
 /** @}
  */

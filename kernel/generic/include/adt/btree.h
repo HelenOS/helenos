@@ -107,6 +107,9 @@ extern btree_node_t *btree_leaf_node_right_neighbour(btree_t *t,
     btree_node_t *node);
 
 extern void btree_print(btree_t *t);
+
+extern unsigned long btree_count(btree_t *t);
+
 #endif
 
 /** @}
