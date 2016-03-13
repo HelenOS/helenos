@@ -50,6 +50,9 @@
 #define WINDOW_WIDTH   1024
 #define WINDOW_HEIGHT  768
 
+#define DECORATION_WIDTH	8
+#define DECORATION_HEIGHT	28
+
 static size_t imgs_count;
 static size_t imgs_current = 0;
 static char **imgs;
@@ -58,7 +61,11 @@ static window_t *main_window;
 static surface_t *surface = NULL;
 static canvas_t *canvas = NULL;
 
-static bool img_load(const char *);
+static surface_coord_t img_width;
+static surface_coord_t img_height;
+
+static bool img_load(const char *, surface_t **);
+static bool img_setup(surface_t *);
 
 static void on_keyboard_event(widget_t *widget, void *data)
 {
@@ -87,14 +94,20 @@ static void on_keyboard_event(widget_t *widget, void *data)
 	}
 	
 	if (update) {
-		if (!img_load(imgs[imgs_current])) {
+		surface_t *lsface;
+
+		if (!img_load(imgs[imgs_current], &lsface)) {
 			printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
-			exit(2);
+			exit(4);
+		}
+		if (!img_setup(lsface)) {
+			printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
+			exit(6);
 		}
 	}
 }
 
-static bool img_load(const char *fname)
+static bool img_load(const char *fname, surface_t **p_local_surface)
 {
 	int fd = open(fname, O_RDONLY);
 	if (fd < 0)
@@ -122,14 +135,21 @@ static bool img_load(const char *fname)
 	
 	close(fd);
 	
-	surface_t *local_surface = decode_tga(tga, stat.size, 0);
-	if (local_surface == NULL) {
+	*p_local_surface = decode_tga(tga, stat.size, 0);
+	if (*p_local_surface == NULL) {
 		free(tga);
 		return false;
 	}
 	
 	free(tga);
+
+	surface_get_resolution(*p_local_surface, &img_width, &img_height);
 	
+	return true;
+}
+
+static bool img_setup(surface_t *local_surface)
+{
 	if (canvas != NULL) {
 		if (!update_canvas(canvas, local_surface)) {
 			surface_destroy(local_surface);
@@ -137,7 +157,7 @@ static bool img_load(const char *fname)
 		}
 	} else {
 		canvas = create_canvas(window_root(main_window),
-		    WINDOW_WIDTH, WINDOW_HEIGHT, local_surface);
+		    img_width, img_height, local_surface);
 		if (canvas == NULL) {
 			surface_destroy(local_surface);
 			return false;
@@ -150,12 +170,17 @@ static bool img_load(const char *fname)
 		surface_destroy(surface);
 	
 	surface = local_surface;
-	
 	return true;
 }
 
 int main(int argc, char *argv[])
 {
+	window_flags_t flags;
+	surface_t *lsface;
+	bool fullscreen;
+	sysarg_t dwidth;
+	sysarg_t dheight;
+
 	if (argc < 2) {
 		printf("Compositor server not specified.\n");
 		return 1;
@@ -165,35 +190,56 @@ int main(int argc, char *argv[])
 		printf("No image files specified.\n");
 		return 1;
 	}
-	
-	main_window = window_open(argv[1], WINDOW_MAIN, "viewer");
-	if (!main_window) {
-		printf("Cannot open main window.\n");
-		return 2;
-	}
-	
+
 	imgs_count = argc - 2;
 	imgs = calloc(imgs_count, sizeof(char *));
 	if (imgs == NULL) {
 		printf("Out of memory.\n");
-		return 3;
+		return 2;
 	}
 	
 	for (int i = 0; i < argc - 2; i++) {
 		imgs[i] = str_dup(argv[i + 2]);
 		if (imgs[i] == NULL) {
 			printf("Out of memory.\n");
-			return 4;
+			return 3;
 		}
 	}
-	
-	if (!img_load(imgs[imgs_current])) {
+
+	if (!img_load(imgs[imgs_current], &lsface)) {
 		printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
-		return 2;
+		return 4;
+	}
+
+	fullscreen = ((img_width == WINDOW_WIDTH) &&
+	    (img_height == WINDOW_HEIGHT));
+
+	flags = WINDOW_MAIN;
+	if (!fullscreen)
+		flags |= WINDOW_DECORATED;
+
+	main_window = window_open(argv[1], flags, "viewer");
+	if (!main_window) {
+		printf("Cannot open main window.\n");
+		return 5;
 	}
 	
-	window_resize(main_window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
-	    WINDOW_PLACEMENT_ABSOLUTE);
+	
+	if (!img_setup(lsface)) {
+		printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
+		return 6;
+	}
+
+	if (!fullscreen) {
+		dwidth = DECORATION_WIDTH;
+		dheight = DECORATION_HEIGHT;
+	} else {
+		dwidth = 0;
+		dheight = 0;
+	}
+
+	window_resize(main_window, 0, 0, img_width + dwidth,
+	    img_height + dheight, WINDOW_PLACEMENT_ANY);
 	window_exec(main_window);
 	
 	task_retval(0);
