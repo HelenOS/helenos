@@ -817,14 +817,14 @@ static int gpt_pte_to_part(label_t *label, gpt_entry_t *pte, int index)
 	if (!present)
 		return EOK;
 
-	part = calloc(1, sizeof(label_part_t));
-	if (part == NULL)
-		return ENOMEM;
-
 	b0 = uint64_t_le2host(pte->start_lba);
 	b1 = uint64_t_le2host(pte->end_lba);
 	if (b1 <= b0)
 		return EINVAL;
+
+	part = calloc(1, sizeof(label_part_t));
+	if (part == NULL)
+		return ENOMEM;
 
 	part->index = index;
 	part->block0 = b0;
