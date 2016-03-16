@@ -498,6 +498,8 @@ static void delete_device(ddf_dev_t *dev)
 		async_hangup(dev->parent_sess);
 	if (dev->driver_data != NULL)
 		free(dev->driver_data);
+	if (dev->name)
+		free(dev->name);
 	free(dev);
 }
 
