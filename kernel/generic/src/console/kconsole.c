@@ -361,8 +361,6 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			    position++)
 				putchar(current[position]);
 			
-			if (position == 0)
-				continue;
 			
 			/*
 			 * Find the beginning of the word
@@ -370,13 +368,19 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			 */
 			size_t beg;
 			unsigned sp = 0, narg = 0;
-			for (beg = position - 1; (beg > 0) && (!isspace(current[beg]));
-			    beg--);
-			
-			if (isspace(current[beg]))
-				beg++;
-			
-			wstr_to_str(tmp, position - beg + 1, current + beg);
+			if (position == 0) {
+				tmp[0] = '\0';
+				beg = 0;
+			}
+			else {
+				for (beg = position - 1; (beg > 0) && (!isspace(current[beg]));
+				    beg--);
+				
+				if (isspace(current[beg]))
+					beg++;
+				
+				wstr_to_str(tmp, position - beg + 1, current + beg);
+			}
 			
 			/* Count which argument number are we tabbing (narg=0 is cmd) */
 			for (; beg > 0; beg--) {
