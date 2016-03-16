@@ -221,7 +221,11 @@ void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
 	    (size_t) DEV_IPC_GET_ARG1(*call);
 	
 	char* sata_dev_name = malloc(sata_dev_name_length);
-	
+	if (sata_dev_name == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return;
+	}	
+
 	const int ret = ahci_iface->get_sata_device_name(fun,
 	    sata_dev_name_length, sata_dev_name);
 	
@@ -230,7 +234,8 @@ void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
 	if ((async_data_read_receive(&cid, &real_size)) &&
 	    (real_size == sata_dev_name_length))
 		async_data_read_finalize(cid, sata_dev_name, sata_dev_name_length);
-	
+
+	free(sata_dev_name);
 	async_answer_0(callid, ret);
 }
 
