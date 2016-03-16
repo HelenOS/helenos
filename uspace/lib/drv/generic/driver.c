@@ -120,19 +120,18 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
 	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
 	
-	ddf_dev_t *dev = create_device();
-	
-	/* Add one reference that will be dropped by driver_dev_remove() */
-	dev_add_ref(dev);
-	dev->handle = dev_handle;
-	
 	char *dev_name = NULL;
 	int rc = async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
+	ddf_dev_t *dev = create_device();
+
+	/* Add one reference that will be dropped by driver_dev_remove() */
+	dev_add_ref(dev);
+	dev->handle = dev_handle;
 	dev->name = dev_name;
 	
 	/*
