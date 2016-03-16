@@ -361,31 +361,52 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			    position++)
 				putchar(current[position]);
 			
-			if (position == 0)
-				continue;
 			
 			/*
 			 * Find the beginning of the word
 			 * and copy it to tmp
 			 */
 			size_t beg;
-			for (beg = position - 1; (beg > 0) && (!isspace(current[beg]));
-			    beg--);
+			unsigned narg = 0;
+			if (position == 0) {
+				tmp[0] = '\0';
+				beg = 0;
+			} else {
+				for (beg = position - 1;
+				    (beg > 0) && (!isspace(current[beg]));
+				    beg--) {
+					;
+				}
+				
+				if (isspace(current[beg]))
+					beg++;
+				
+				wstr_to_str(tmp, position - beg + 1, current + beg);
+			}
 			
-			if (isspace(current[beg]))
-				beg++;
-			
-			wstr_to_str(tmp, position - beg + 1, current + beg);
-			
+			/* Count which argument number are we tabbing (narg=0 is cmd) */
+			bool sp = false;
+			for (; beg > 0; beg--) {
+				if (isspace(current[beg])) {
+					if (!sp) {
+						narg++;
+						sp = true;
+					}
+				} else
+					sp = false;
+			}
+			if (narg && isspace(current[0]))
+				narg--;
+
 			int found;
-			if (beg == 0) {
+			if (narg == 0) {
 				/* Command completion */
 				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev,
 				    cmdtab_enum);
 			} else {
 				/* Arguments completion */
 				cmd_info_t *cmd = parse_cmd(current);
-				if (!cmd || !cmd->hints_enum)
+				if (!cmd || !cmd->hints_enum || cmd->argc < narg)
 					continue;
 				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev,
 				    cmd->hints_enum);
