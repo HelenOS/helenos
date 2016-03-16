@@ -369,6 +369,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			 * and copy it to tmp
 			 */
 			size_t beg;
+			unsigned sp = 0, narg = 0;
 			for (beg = position - 1; (beg > 0) && (!isspace(current[beg]));
 			    beg--);
 			
@@ -377,15 +378,29 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			
 			wstr_to_str(tmp, position - beg + 1, current + beg);
 			
+			/* Count which argument number are we tabbing (narg=0 is cmd) */
+			for (; beg > 0; beg--) {
+				if (isspace(current[beg])) {
+					if (!sp) {
+						narg++;
+						sp = 1;
+					}
+				}
+				else
+					sp = 0;
+			}
+			if (narg && isspace(current[0]))
+				narg--;
+
 			int found;
-			if (beg == 0) {
+			if (narg == 0) {
 				/* Command completion */
 				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev,
 				    cmdtab_enum);
 			} else {
 				/* Arguments completion */
 				cmd_info_t *cmd = parse_cmd(current);
-				if (!cmd || !cmd->hints_enum)
+				if (!cmd || !cmd->hints_enum || cmd->argc < narg)
 					continue;
 				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev,
 				    cmd->hints_enum);
