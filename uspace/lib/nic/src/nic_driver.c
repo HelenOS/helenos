@@ -484,8 +484,6 @@ int nic_report_address(nic_t *nic_data, const nic_address_t *address)
 void nic_query_address(nic_t *nic_data, nic_address_t *addr) {
 	if (!addr)
 		return;
-	if (!nic_data)
-		memset(addr, 0, sizeof(nic_address_t));
 
 	memcpy(addr, &nic_data->mac, sizeof(nic_address_t));
 };
