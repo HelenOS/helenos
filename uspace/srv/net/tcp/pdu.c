@@ -248,6 +248,7 @@ error:
 		free(pdu->header);
 	if (pdu->text != NULL)
 		free(pdu->text);
+	free(pdu);
 
 	return NULL;
 }
