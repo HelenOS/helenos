@@ -30,7 +30,6 @@
 #include <str.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <stdarg.h>
 
 #include "config.h"
 #include "errors.h"

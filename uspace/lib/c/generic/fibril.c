@@ -48,7 +48,6 @@
 #include <futex.h>
 #include <assert.h>
 #include <async.h>
-#include <futex.h>
 
 #ifdef FUTEX_UPGRADABLE
 #include <rcu.h>

@@ -38,7 +38,6 @@
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 #include <typedefs.h>
-#include <typedefs.h>
 #include <str.h>
 
 static int vprintf_str_write(const char *str, size_t size, void *data)

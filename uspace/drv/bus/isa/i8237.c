@@ -40,8 +40,6 @@
 #include <ddi.h>
 #include <ddf/log.h>
 #include <fibril_synch.h>
-#include <ddi.h>
-#include <ddf/log.h>
 #include "i8237.h"
 
 /** DMA Slave controller I/O Address. */

@@ -45,8 +45,6 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <async.h>
-#include <align.h>
-#include <async.h>
 #include <stdio.h>
 #include <ipc/loc.h>
 

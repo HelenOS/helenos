@@ -48,8 +48,6 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <async.h>
-#include <align.h>
-#include <async.h>
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <loc.h>

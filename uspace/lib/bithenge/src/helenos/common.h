@@ -37,7 +37,6 @@
 #include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <str.h>
 #include <str_error.h>
 

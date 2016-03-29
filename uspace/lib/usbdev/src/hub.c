@@ -40,7 +40,6 @@
 #include <usb/debug.h>
 #include <errno.h>
 #include <assert.h>
-#include <usb/debug.h>
 #include <time.h>
 #include <async.h>
 

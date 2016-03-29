@@ -44,7 +44,6 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <arch.h>
-#include <arch/asm.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>

@@ -45,7 +45,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <ns.h>
 #include <async.h>
 #include <errno.h>

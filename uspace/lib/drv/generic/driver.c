@@ -48,7 +48,6 @@
 #include <str.h>
 #include <str_error.h>
 #include <ctype.h>
-#include <errno.h>
 #include <inttypes.h>
 #include <devman.h>
 

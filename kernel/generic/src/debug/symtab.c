@@ -40,7 +40,6 @@
 #include <str.h>
 #include <print.h>
 #include <typedefs.h>
-#include <typedefs.h>
 #include <errno.h>
 #include <console/prompt.h>
 

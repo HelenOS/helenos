@@ -40,7 +40,6 @@
 #include <arch/asm.h>
 
 #include <print.h>
-#include <arch/cpu.h>
 
 extern void syscall_entry(void);
 

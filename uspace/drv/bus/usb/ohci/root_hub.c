@@ -43,7 +43,6 @@
 #include <usb/classes/hub.h>
 
 #include <usb/classes/classes.h>
-#include <usb/classes/hub.h>
 #include <usb/dev/driver.h>
 #include "ohci_regs.h"
 #include "root_hub.h"

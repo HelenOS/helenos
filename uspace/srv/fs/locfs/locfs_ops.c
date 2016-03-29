@@ -45,7 +45,6 @@
 #include <adt/hash_table.h>
 #include <ipc/loc.h>
 #include <sys/stat.h>
-#include <libfs.h>
 #include <assert.h>
 #include "locfs.h"
 #include "locfs_ops.h"

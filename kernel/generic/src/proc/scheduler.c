@@ -65,7 +65,6 @@
 #include <log.h>
 #include <debug.h>
 #include <stacktrace.h>
-#include <cpu.h>
 
 static void scheduler_separated_stack(void);
 

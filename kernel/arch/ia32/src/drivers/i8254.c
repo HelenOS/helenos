@@ -49,7 +49,6 @@
 #include <arch/asm.h>
 #include <arch/cpuid.h>
 #include <arch.h>
-#include <time/delay.h>
 #include <ddi/irq.h>
 #include <ddi/device.h>
 

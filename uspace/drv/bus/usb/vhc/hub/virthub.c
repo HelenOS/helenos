@@ -37,7 +37,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <str_error.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <ddf/driver.h>
 
