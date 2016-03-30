@@ -323,6 +323,7 @@ int tcp_pdu_encode(inet_ep2_t *epp, tcp_segment_t *seg, tcp_pdu_t **pdu)
 	tcp_pdu_t *npdu;
 	size_t text_size;
 	uint16_t checksum;
+	int rc;
 
 	npdu = tcp_pdu_new();
 	if (npdu == NULL)
@@ -330,12 +331,19 @@ int tcp_pdu_encode(inet_ep2_t *epp, tcp_segment_t *seg, tcp_pdu_t **pdu)
 
 	npdu->src = epp->local.addr;
 	npdu->dest = epp->remote.addr;
-	tcp_header_encode(epp, seg, &npdu->header, &npdu->header_size);
+	rc = tcp_header_encode(epp, seg, &npdu->header, &npdu->header_size);
+	if (rc != EOK) {
+		free(npdu);
+		return rc;
+	}
 
 	text_size = tcp_segment_text_size(seg);
 	npdu->text = calloc(1, text_size);
-	if (npdu->text == NULL)
+	if (npdu->text == NULL) {
+		free(npdu->header);
+		free(npdu);
 		return ENOMEM;
+	}
 
 	npdu->text_size = text_size;
 	memcpy(npdu->text, seg->data, text_size);
