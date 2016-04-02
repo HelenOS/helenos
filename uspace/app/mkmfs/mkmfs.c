@@ -639,8 +639,10 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	ibmap_buf = malloc(ibmap_nblocks * sb->block_size);
 	zbmap_buf = malloc(zbmap_nblocks * sb->block_size);
 
-	if (!ibmap_buf || !zbmap_buf)
-		return ENOMEM;
+	if (!ibmap_buf || !zbmap_buf) {
+		rc = ENOMEM;
+		goto exit;
+	}
 
 	memset(ibmap_buf, 0xFF, ibmap_nblocks * sb->block_size);
 	memset(zbmap_buf, 0xFF, zbmap_nblocks * sb->block_size);
@@ -670,6 +672,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 			return rc;
 	}
 
+exit:
 	free(ibmap_buf);
 	free(zbmap_buf);
 
