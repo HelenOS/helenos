@@ -64,12 +64,12 @@ function grub_files_update()
 if [ ! -d "$workdir" ] ; then
 	rm -rf "$workdir" "$builddir" || exit 1
 	git clone "$git_repo" "$workdir" || exit 1
-	cd "$workdir" || exit 1
-else
-	cd "$workdir" || exit 1
-	git pull || exit 1
-	git reset --hard "$grub_rev" || exit 1
 fi
+
+cd "$workdir" || exit 1
+git pull || exit 1
+git reset --hard "$grub_rev" || exit 1
+
 echo "$grub_rev" >"$helenosdir"/boot/grub.pc/REVISION || exit 1
 echo "$grub_rev" > "$helenosdir"/boot/grub.efi/REVISION || exit 1
 
