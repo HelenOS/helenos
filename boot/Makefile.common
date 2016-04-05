@@ -157,8 +157,8 @@ endif
 
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_LIBS += \
-		$(USPACE_PATH)/lib/c/libc.so0 \
-		$(USPACE_PATH)/lib/softint/libsofti.so0
+		$(USPACE_PATH)/lib/c/libc.so.0 \
+		$(USPACE_PATH)/lib/softint/libsofti.so.0
 	RD_APPS += \
 		$(USPACE_PATH)/app/dltest/dltest
 endif

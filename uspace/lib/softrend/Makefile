@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libsoftrend
 SLIBRARY = libsoftrend.so.0.0
-LSONAME = libsoftrend.so0
+LSONAME = libsoftrend.so.0
 MATH = y
 
 SOURCES = \

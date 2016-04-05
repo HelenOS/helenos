@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libgraph
 SLIBRARY = libgraph.so.0.0
-LSONAME = libgraph.so0
+LSONAME = libgraph.so.0
 
 SOURCES = \
 	graph.c

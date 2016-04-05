@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libdraw
 SLIBRARY = libdraw.so.0.0
-LSONAME = libdraw.so0
+LSONAME = libdraw.so.0
 EXTRA_CFLAGS += -I$(LIBSOFTREND_PREFIX) -I$(LIBCOMPRESS_PREFIX)
 
 SOURCES = \

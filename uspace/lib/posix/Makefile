@@ -30,7 +30,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libposix
 SLIBRARY = libposix.so.0.0
-LSONAME = libposix.so0
+LSONAME = libposix.so.0
 
 EXTRA_CFLAGS = -Iinclude/
 
