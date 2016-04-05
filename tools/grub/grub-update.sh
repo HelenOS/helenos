@@ -57,6 +57,7 @@ function grub_files_update()
 	rm -rf "$helenosdir"/boot/"$gdir"/"$platform" || exit 1
 	cp -R "$builddir"/"$platform"/lib64/grub/"$platform" "$helenosdir"/boot/"$gdir" || exit 1
 	rm -f "$helenosdir"/boot/"$gdir"/"$platform"/*.image || exit 1
+	rm -f "$helenosdir"/boot/"$gdir"/"$platform"/*.module || exit 1
 	bzr add "$helenosdir"/boot/"$gdir"/"$platform" || exit 1
 }
 
@@ -107,8 +108,5 @@ rm -f i386-efi.img || exit 1
 grub_files_update grub.pc i386-pc
 grub_files_update grub.efi i386-efi
 grub_files_update grub.efi x86_64-efi
-
-# Clean up
-rm -rf "$builddir" || exit 1
 
 echo "GRUB update successful."
