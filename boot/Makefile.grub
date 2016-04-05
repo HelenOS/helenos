@@ -32,17 +32,16 @@ include Makefile.common
 
 GRUB = grub.$(GRUB_ARCH)
 BOOT = $(DISTROOT)/boot
+BOOT_CONFIG = $(BOOT)/grub/grub.cfg
 
 ELTORITO = boot/grub/$(GRUB_ARCH).img
 IMAGE = $(DISTROOT)/$(ELTORITO)
 
 ifeq ($(GRUB_ARCH),pc)
-	BOOT_CONFIG = $(BOOT)/grub/i386-pc/grub.cfg
 	MULTIBOOT_CMD = multiboot
 	MODULE_CMD = module
 endif
 ifeq ($(GRUB_ARCH),efi)
-	BOOT_CONFIG = $(BOOT)/grub/grub.cfg
 	MULTIBOOT_CMD = multiboot2
 	MODULE_CMD = module2
 endif

@@ -48,6 +48,7 @@ multiboot2_header_start:
 	.long -(MULTIBOOT2_HEADER_MAGIC + MULTIBOOT2_HEADER_ARCH_I386 + (multiboot2_header_end - multiboot2_header_start))
 	
 	/* Information request tag */
+	.align 8
 	tag_info_req_start:
 		.word MULTIBOOT2_TAG_INFO_REQ
 		.word MULTIBOOT2_FLAGS_REQUIRED
@@ -60,6 +61,7 @@ multiboot2_header_start:
 	tag_info_req_end:
 	
 	/* Address tag */
+	.align 8
 	tag_address_start:
 		.word MULTIBOOT2_TAG_ADDRESS
 		.word MULTIBOOT2_FLAGS_REQUIRED
@@ -71,6 +73,7 @@ multiboot2_header_start:
 	tag_address_end:
 	
 	/* Entry address tag */
+	.align 8
 	tag_entry_address_start:
 		.word MULTIBOOT2_TAG_ENTRY_ADDRESS
 		.word MULTIBOOT2_FLAGS_REQUIRED
@@ -79,6 +82,7 @@ multiboot2_header_start:
 	tag_entry_address_end:
 	
 	/* Flags tag */
+	.align 8
 	tag_flags_start:
 		.word MULTIBOOT2_TAG_FLAGS
 		.word MULTIBOOT2_FLAGS_REQUIRED
@@ -88,6 +92,7 @@ multiboot2_header_start:
 	
 #ifdef CONFIG_FB
 	/* Framebuffer tag */
+	.align 8
 	tag_framebuffer_start:
 		.word MULTIBOOT2_TAG_FRAMEBUFFER
 		.word MULTIBOOT2_FLAGS_REQUIRED
@@ -99,6 +104,7 @@ multiboot2_header_start:
 #endif
 	
 	/* Module alignment tag */
+	.align 8
 	tag_module_align_start:
 		.word MULTIBOOT2_TAG_MODULE_ALIGN
 		.word MULTIBOOT2_FLAGS_REQUIRED
@@ -107,6 +113,7 @@ multiboot2_header_start:
 	tag_module_align_end:
 	
 	/* Tag terminator */
+	.align 8
 	tag_terminator_start:
 		.word MULTIBOOT2_TAG_TERMINATOR
 		.word MULTIBOOT2_FLAGS_REQUIRED
