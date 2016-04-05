@@ -106,6 +106,7 @@ static void vbds_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
 
 	rc = vbds_disk_get_ids(id_buf, size, &act_size);
 	if (rc != EOK) {
+		free(id_buf);
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
 		return;
