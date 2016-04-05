@@ -32,10 +32,10 @@
 # Be sure you know what you are doing!
 #
 
-origdir="$(pwd)"
+origdir="$(cd "$(dirname "$0")" && pwd)"
 helenosdir="$origdir/../.."
-workdir="$(pwd)/grub-src"
-builddir="$(pwd)/grub-build"
+workdir="$origdir/grub-src"
+builddir="$origdir/grub-build"
 git_repo="git://git.savannah.gnu.org/grub.git"
 grub_rev="bc220962e366b1b46769ed6f9fa5be603ba58ab5"
 
