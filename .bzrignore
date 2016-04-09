@@ -65,6 +65,7 @@ uspace/app/sbi/sbi
 uspace/app/sportdmp/sportdmp
 uspace/app/stats/stats
 uspace/app/sysinfo/sysinfo
+uspace/app/sysinst/sysinst
 uspace/app/taskdump/taskdump
 uspace/app/tester/tester
 uspace/app/testread/testread
@@ -123,6 +124,7 @@ uspace/dist/app/sbi
 uspace/dist/app/sportdmp
 uspace/dist/app/stats
 uspace/dist/app/sysinfo
+uspace/dist/app/sysinst
 uspace/dist/app/taskdump
 uspace/dist/app/tester
 uspace/dist/app/testread

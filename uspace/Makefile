@@ -80,6 +80,7 @@ DIRS = \
 	app/nic \
 	app/ping \
 	app/sysinfo \
+	app/sysinst \
 	app/mkbd \
 	app/date \
 	app/vdemo \

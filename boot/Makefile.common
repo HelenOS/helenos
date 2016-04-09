@@ -209,6 +209,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
+	$(USPACE_PATH)/app/sysinst/sysinst \
 	$(USPACE_PATH)/app/top/top \
 	$(USPACE_PATH)/app/untar/untar \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
