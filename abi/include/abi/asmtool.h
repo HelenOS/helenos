@@ -35,13 +35,25 @@
 #ifndef ABI_ASMTOOL_H_
 #define ABI_ASMTOOL_H_
 
-#define FUNCTION_BEGIN(func) \
-	.global func; \
-	.type func, @function; \
-	func: 	
+#define SYMBOL(sym) \
+	.global sym; \
+	sym:
+#define SYMBOL_BEGIN(sym) \
+	SYMBOL(sym)
+#define SYMBOL_END(sym) \
+	.size sym, . - sym
 
+#define OBJECT_BEGIN(obj) \
+	.type obj, @object; \
+	SYMBOL_BEGIN(obj)
+#define OBJECT_END(obj) \
+	SYMBOL_END(obj)
+
+#define FUNCTION_BEGIN(func) \
+	.type func, @function; \
+	SYMBOL_BEGIN(func) 	
 #define FUNCTION_END(func) \
-	.size func, . - func
+	SYMBOL_END(func)
 
 #endif
 

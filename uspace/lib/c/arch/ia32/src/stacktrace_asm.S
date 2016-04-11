@@ -26,19 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.global stacktrace_prepare
-.global stacktrace_fp_get
-.global stacktrace_pc_get
-
-stacktrace_prepare:
+FUNCTION_BEGIN(stacktrace_prepare)
 	ret
+FUNCTION_END(stacktrace_prepare)
 
-stacktrace_fp_get:
+FUNCTION_BEGIN(stacktrace_fp_get)
 	movl %ebp, %eax
 	ret
+FUNCTION_END(stacktrace_fp_get)
 
-stacktrace_pc_get:
+FUNCTION_BEGIN(stacktrace_pc_get)
 	movl (%esp), %eax
 	ret
+FUNCTION_END(stacktrace_pc_get)

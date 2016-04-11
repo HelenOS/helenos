@@ -26,12 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .data
 
-.global __syscall_fast_func
-__syscall_fast_func:
+OBJECT_BEGIN(__syscall_fast_func)
 	.long __syscall_slow
-	.size __syscall_fast_func, . - __syscall_fast_func
+OBJECT_END(__syscall_fast_func)
 
 .text
 
@@ -41,8 +42,7 @@ __syscall_fast_func:
  * scratch registers. An optimized version of this wrapper for fewer arguments
  * could benefit from this and not save unused registers on the stack.
  */
-.global __syscall_slow
-__syscall_slow:
+FUNCTION_BEGIN(__syscall_slow)
 	pushl %ebx
 	pushl %esi
 	pushl %edi
@@ -60,6 +60,7 @@ __syscall_slow:
 	popl %esi
 	popl %ebx
 	ret
+FUNCTION_END(__syscall_slow)
 
 
 /** Syscall wrapper - SYSENTER version.
@@ -70,10 +71,7 @@ __syscall_slow:
  * these to the selector immediately following CS (it must be the flat data
  * segment, otherwise the SYSENTER wouldn't work in the first place).
  */
-.global __syscall_fast
-	.type __syscall_fast, @function
-
-__syscall_fast:
+FUNCTION_BEGIN(__syscall_fast)
 	pushl %ebx
 	pushl %esi
 	pushl %edi
@@ -97,5 +95,4 @@ ra:
 	popl %esi
 	popl %ebx
 	ret
-
-	.size __syscall_fast, . - __syscall_fast
+FUNCTION_END(__syscall_fast)

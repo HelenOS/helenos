@@ -28,8 +28,8 @@
 
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.S \
-	arch/$(UARCH)/src/entryjmp.s \
-	arch/$(UARCH)/src/thread_entry.s \
+	arch/$(UARCH)/src/entryjmp.S \
+	arch/$(UARCH)/src/thread_entry.S \
 	arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \

@@ -31,6 +31,7 @@
  * Init code for application processors.
  */
 
+#include <abi/asmtool.h>
 #include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
@@ -39,8 +40,6 @@
 .section K_TEXT_START, "ax"
 
 #ifdef CONFIG_SMP
-
-.global unmapped_ap_boot
 
 KTEXT=8
 KDATA=16
@@ -52,7 +51,7 @@ KDATA=16
  */
 
 .align 4096
-unmapped_ap_boot:
+SYMBOL(unmapped_ap_boot)
 .code16
 	cli
 	xorw %ax, %ax
@@ -98,9 +97,7 @@ jump_to_kernel:
 
 #ifdef CONFIG_SMP
 
-.global unmapped_ap_gdtr
-
-unmapped_ap_gdtr:
+SYMBOL(unmapped_ap_gdtr)
 	.word 0
 	.long 0
 

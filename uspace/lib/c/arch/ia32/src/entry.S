@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 INTEL_CPUID_STANDARD = 1
 INTEL_SEP = 11
 
@@ -33,13 +35,11 @@ INTEL_SEP = 11
 
 .org 0
 
-.globl __entry
-
 ## User-space task entry point
 #
 # %edi contains the PCB pointer
 #
-__entry:
+SYMBOL(__entry)
 	mov %ss, %ax
 	mov %ax, %ds
 	mov %ax, %es

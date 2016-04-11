@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2001-2004 Jakub Jermar
+# Copyright (c) 2006 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,34 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#
-# Micro second delay loop functions.
-#
+#include <abi/asmtool.h>
 
 .text
 
-.global asm_delay_loop
-.global asm_fake_loop
-
-asm_delay_loop:
-	movl 4(%esp),%ecx	# move argument to %ecx
-0:	lahf
-	dec %ecx
-	jnz 0b
-	ret
-
-asm_fake_loop:
-	movl 4(%esp),%ecx	# move argument to %ecx
-0:	lahf
-	dec %ecx
-	jz 0b
-	ret
+## User-space thread entry point for all but the first threads.
+#
+#
+SYMBOL_BEGIN(__thread_entry)
+	mov %ss, %dx
+	mov %dx, %ds
+	mov %dx, %es
+	mov %dx, %fs
+	# Do not set %gs, it contains descriptor that can see TLS
+	
+	#
+	# Create the first stack frame.
+	#
+	pushl $0
+	pushl $0
+	mov %esp, %ebp
+	
+	#
+	# EAX contains address of uarg.
+	#
+	pushl %eax
+	call __thread_main
+	
+	#
+	# Not reached.
+	#
+SYMBOL_END(__thread_entry)

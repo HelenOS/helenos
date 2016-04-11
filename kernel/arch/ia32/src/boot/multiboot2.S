@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
 #include <arch/boot/boot.h>
 #include <arch/pm.h>
 #include <arch/cpuid.h>
@@ -38,7 +39,6 @@
 .code32
 
 .align 8
-.global multiboot2_image_start
 multiboot2_header_start:
 	.long MULTIBOOT2_HEADER_MAGIC
 	.long MULTIBOOT2_HEADER_ARCH_I386
@@ -119,7 +119,7 @@ multiboot2_header_start:
 	tag_terminator_end:
 multiboot2_header_end:
 
-multiboot2_image_start:
+SYMBOL(multiboot2_image_start)
 	cli
 	cld
 	

@@ -26,16 +26,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
 #ifdef CONFIG_SMP
 
-.global spinlock_arch
-
 #
 # This is a bus-and-hyperthreading-friendly implementation of spinlock 
 #
-spinlock_arch:
+FUNCTION_BEGIN(spinlock_arch)
 	pushl %eax
 	pushl %ebx
 	
@@ -54,5 +54,6 @@ spinlock_arch:
 	popl %ebx
 	popl %eax
 	ret
+FUNCTION_END(spinlock_arch)
 	
 #endif

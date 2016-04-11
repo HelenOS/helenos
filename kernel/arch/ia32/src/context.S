@@ -26,20 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/context_struct.h>
 
 .text
-
-.global context_save_arch
-.global context_restore_arch
-
 
 ## Save current CPU context
 #
 # Save CPU context to the context_t variable
 # pointed by the 1st argument. Returns 1 in EAX.
 #
-context_save_arch:
+FUNCTION_BEGIN(context_save_arch)
 	movl 0(%esp), %eax	# save pc value into eax	
 	movl 4(%esp), %edx	# address of the context variable to save context to 
 
@@ -54,6 +51,7 @@ context_save_arch:
 	xorl %eax, %eax		# context_save returns 1
 	incl %eax
 	ret
+FUNCTION_END(context_save_arch)
 
 
 ## Restore saved CPU context
@@ -61,7 +59,7 @@ context_save_arch:
 # Restore CPU context from context_t variable
 # pointed by the 1st argument. Returns 0 in EAX.
 #
-context_restore_arch:
+FUNCTION_BEGIN(context_restore_arch)
 	movl 4(%esp), %eax	# address of the context variable to restore context from
 
 	# restore registers from given structure
@@ -75,4 +73,4 @@ context_restore_arch:
 	movl %edx, 0(%esp)	# put saved pc on stack
 	xorl %eax, %eax		# context_restore returns 0
 	ret
-
+FUNCTION_END(context_restore_arch)

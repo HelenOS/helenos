@@ -30,19 +30,13 @@
  *
  */
 
+#include <abi/asmtool.h>
 #include <arch/pm.h>
 #include <arch/cpu.h>
 #include <arch/mm/page.h>
 #include <arch/istate_struct.h>
 
 .text
-.global paging_on
-.global enable_l_apic_in_msr
-.global memcpy_from_uspace
-.global memcpy_from_uspace_failover_address
-.global memcpy_to_uspace
-.global memcpy_to_uspace_failover_address
-.global early_putchar
 
 #define MEMCPY_DST   4
 #define MEMCPY_SRC   8
@@ -63,8 +57,8 @@
  * @return MEMCPY_DST(%esp) on success and 0 on failure.
  *
  */
-memcpy_from_uspace:
-memcpy_to_uspace:
+FUNCTION_BEGIN(memcpy_from_uspace)
+FUNCTION_BEGIN(memcpy_to_uspace)
 	movl %edi, %edx  /* save %edi */
 	movl %esi, %eax  /* save %esi */
 	
@@ -92,13 +86,15 @@ memcpy_to_uspace:
 		/* MEMCPY_DST(%esp), success */
 		movl MEMCPY_DST(%esp), %eax
 		ret
+FUNCTION_END(memcpy_from_uspace)
+FUNCTION_END(memcpy_to_uspace)
 
 /*
  * We got here from as_page_fault() after the memory operations
  * above had caused a page fault.
  */
-memcpy_from_uspace_failover_address:
-memcpy_to_uspace_failover_address:
+SYMBOL(memcpy_from_uspace_failover_address)
+SYMBOL(memcpy_to_uspace_failover_address)
 	movl %edx, %edi
 	movl %eax, %esi
 	
@@ -111,7 +107,7 @@ memcpy_to_uspace_failover_address:
  * Enable paging and write-back caching in CR0.
  *
  */
-paging_on:
+FUNCTION_BEGIN(paging_on)
 	movl %cr0, %edx
 	orl $(1 << 31), %edx  /* paging on */
 	
@@ -122,19 +118,21 @@ paging_on:
 	
 	0:
 		ret
+FUNCTION_END(paging_on)
 
 /** Enable local APIC
  *
  * Enable local APIC in MSR.
  *
  */
-enable_l_apic_in_msr:
+FUNCTION_BEGIN(enable_l_apic_in_msr)
 	movl $0x1b, %ecx
 	rdmsr
 	orl $(1 << 11), %eax
 	orl $(0xfee00000), %eax
 	wrmsr
 	ret
+FUNCTION_END(enable_l_apic_in_msr)
 
 /*
  * Size of the istate structure without the hardware-saved part
@@ -151,8 +149,7 @@ enable_l_apic_in_msr:
  * can actually handle six arguments plus the syscall number
  * entirely in registers.
  */
-.global sysenter_handler
-sysenter_handler:
+SYMBOL(sysenter_handler)
 
 	/*
 	 * Note that the space needed for the istate structure has been
@@ -231,8 +228,7 @@ sysenter_handler:
 /*
  * This is the legacy syscall handler using the interrupt mechanism.
  */
-.global int_syscall
-int_syscall:
+SYMBOL(int_syscall)
 	subl $(ISTATE_SOFT_SIZE + 4), %esp
 
 	/*
@@ -318,8 +314,7 @@ int_syscall:
 #define ERROR_WORD_INTERRUPT_LIST  0x00027d00
 
 .macro handler i
-.global int_\i
-int_\i:
+SYMBOL(int_\i)
 	/*
 	 * This macro distinguishes between two versions of ia32
 	 * exceptions. One version has error word and the other
@@ -461,7 +456,7 @@ interrupt_handlers:
  * @param %ebp+0x08 Unicode character to be printed.
  *
  */
-early_putchar:
+FUNCTION_BEGIN(early_putchar)
 	
 #if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
 	
@@ -593,4 +588,5 @@ early_putchar:
 #endif
 	
 	ret
+FUNCTION_END(early_putchar)
 

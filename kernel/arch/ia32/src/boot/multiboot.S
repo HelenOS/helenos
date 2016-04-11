@@ -28,6 +28,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
 #include <arch/boot/boot.h>
 #include <arch/mm/page.h>
 #include <arch/pm.h>
@@ -60,7 +61,6 @@
 .endm
 
 .align 4
-.global multiboot_image_start
 multiboot_header:
 	.long MULTIBOOT_HEADER_MAGIC
 	.long MULTIBOOT_HEADER_FLAGS
@@ -71,7 +71,7 @@ multiboot_header:
 	.long 0
 	.long multiboot_image_start
 
-multiboot_image_start:
+SYMBOL(multiboot_image_start)
 	cli
 	cld
 	
@@ -161,7 +161,7 @@ multiboot_image_start:
  * of the kernel. For simplicity, we map the entire 4G space.
  *
  */
-.global map_kernel_pse
+FUNCTION_BEGIN(map_kernel_pse)
 map_kernel_pse:
 	/* Paging features */
 	movl %cr4, %ecx
@@ -193,6 +193,7 @@ map_kernel_pse:
 	orl $(1 << 31), %ebx  /* paging on */
 	movl %ebx, %cr0
 	ret
+FUNCTION_END(map_kernel_pse)
 
 /** Setup mapping for the kernel (non-PSE variant).
  *
@@ -200,8 +201,7 @@ map_kernel_pse:
  * of the kernel. For simplicity, we map the entire 4G space.
  *
  */
-.global map_kernel_non_pse
-map_kernel_non_pse:
+FUNCTION_BEGIN(map_kernel_non_pse)
 	/* Paging features */
 	movl %cr4, %ecx
 	andl $(~(1 << 5)), %ecx  /* PAE off */
@@ -280,6 +280,7 @@ map_kernel_non_pse:
 		movl %ebx, %cr0
 		
 		ret
+FUNCTION_END(map_kernel_non_pse)
 
 /** Calculate unmapped address of the end of the kernel. */
 calc_kernel_end:
@@ -706,22 +707,18 @@ early_puts:
 page_directory:
 	.space 4096, 0
 
-.global bootstrap_idtr
-bootstrap_idtr:
+SYMBOL(bootstrap_idtr)
 	.word 0
 	.long 0
 
-.global bootstrap_gdtr
-bootstrap_gdtr:
+SYMBOL(bootstrap_gdtr)
 	.word GDT_SELECTOR(GDT_ITEMS)
 	.long KA2PA(gdt)
 
-.global multiboot_eax
-multiboot_eax:
+SYMBOL(multiboot_eax)
 	.long 0
 
-.global multiboot_ebx
-multiboot_ebx:
+SYMBOL(multiboot_ebx)
 	.long 0
 
 pt_loc:
