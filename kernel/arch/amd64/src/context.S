@@ -26,19 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
-
-.global context_save_arch
-.global context_restore_arch
-
+#include <abi/asmtool.h>
 #include <arch/context_struct.h>
+
+.text
 
 ## Save current CPU context
 #
 # Save CPU context to context_t variable
 # pointed by the 1st argument. Returns 1 in EAX.
 #
-context_save_arch:
+FUNCTION_BEGIN(context_save_arch)
 	movq (%rsp), %rdx     # the caller's return %eip
 	
 	# 1st argument passed in %edi
@@ -55,6 +53,7 @@ context_save_arch:
 	xorl %eax, %eax       # context_save returns 1
 	incl %eax
 	ret
+FUNCTION_END(context_save_arch)
 
 
 ## Restore current CPU context
@@ -62,7 +61,7 @@ context_save_arch:
 # Restore CPU context from context_t variable
 # pointed by the 1st argument. Returns 0 in EAX.
 #
-context_restore_arch:
+FUNCTION_BEGIN(context_restore_arch)
 	movq CONTEXT_OFFSET_R15(%rdi), %r15
 	movq CONTEXT_OFFSET_R14(%rdi), %r14
 	movq CONTEXT_OFFSET_R13(%rdi), %r13
@@ -78,4 +77,5 @@ context_restore_arch:
 	
 	xorl %eax, %eax       # context_restore returns 0
 	ret
+FUNCTION_END(context_restore_arch)
 

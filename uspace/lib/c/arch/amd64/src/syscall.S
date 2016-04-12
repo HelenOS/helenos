@@ -26,9 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
-	
-.global __syscall
 	
 ## Make a system call.
 #
@@ -42,7 +42,7 @@
 #
 # @return		The return value will be stored in RAX.
 #
-__syscall:
+FUNCTION_BEGIN(__syscall)
 	#
 	# Move the syscall number into RAX.
 	movslq 8(%rsp), %rax
@@ -54,4 +54,5 @@ __syscall:
 	movq %rcx, %r10
 	syscall
 	ret
+FUNCTION_END(__syscall)
 

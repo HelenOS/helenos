@@ -26,22 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
 #include <arch/pm.h>
 #include <arch/mm/page.h>
 #include <arch/istate_struct.h>
 
 .text
-.global interrupt_handlers
-.global syscall_entry
-.global cpuid
-.global has_cpuid
-.global read_efer_flag
-.global set_efer_flag
-.global memcpy_from_uspace
-.global memcpy_to_uspace
-.global memcpy_from_uspace_failover_address
-.global memcpy_to_uspace_failover_address
-.global early_putchar
 
 #define MEMCPY_DST   %rdi
 #define MEMCPY_SRC   %rsi
@@ -63,8 +53,8 @@
  * @retrun MEMCPY_DST on success, 0 on failure.
  *
  */
-memcpy_from_uspace:
-memcpy_to_uspace:
+FUNCTION_BEGIN(memcpy_from_uspace)
+FUNCTION_BEGIN(memcpy_to_uspace)
 	movq MEMCPY_DST, %rax
 	
 	movq MEMCPY_SIZE, %rcx
@@ -80,9 +70,11 @@ memcpy_to_uspace:
 	
 	0:
 		ret                 /* return MEMCPY_SRC, success */
+FUNCTION_END(memcpy_from_uspace)
+FUNCTION_END(memcpy_to_uspace)
 
-memcpy_from_uspace_failover_address:
-memcpy_to_uspace_failover_address:
+SYMBOL(memcpy_from_uspace_failover_address)
+SYMBOL(memcpy_to_uspace_failover_address)
 	xorl %eax, %eax         /* return 0, failure */
 	ret
 
@@ -91,7 +83,7 @@ memcpy_to_uspace_failover_address:
 * @return 0 in EAX if CPUID is not support, 1 if supported.
 *
 */
-has_cpuid:
+FUNCTION_BEGIN(has_cpuid)
 	/* Load RFLAGS */
 	pushfq
 	popq %rax
@@ -113,8 +105,9 @@ has_cpuid:
 	/* 0 if not supported, 1 if supported */
 	xorl %edx, %eax
 	ret
+FUNCTION_END(has_cpuid)
 
-cpuid:
+FUNCTION_BEGIN(cpuid)
 	/* Preserve %rbx across function calls */
 	movq %rbx, %r10
 	
@@ -129,18 +122,21 @@ cpuid:
 	
 	movq %r10, %rbx
 	ret
+FUNCTION_END(cpuid)
 
-set_efer_flag:
+FUNCTION_BEGIN(set_efer_flag)
 	movl $0xc0000080, %ecx
 	rdmsr
 	btsl %edi, %eax
 	wrmsr
 	ret
+FUNCTION_END(set_efer_flag)
 
-read_efer_flag:
+FUNCTION_BEGIN(read_efer_flag)
 	movl $0xc0000080, %ecx
 	rdmsr
 	ret
+FUNCTION_END(read_efer_flag)
 
 /*
  * Size of the istate structure without the hardware-saved part and without the
@@ -156,8 +152,7 @@ read_efer_flag:
 #define ERROR_WORD_INTERRUPT_LIST  0x00027D00
 
 .macro handler i
-.global int_\i
-int_\i:
+SYMBOL(int_\i)
 
 	/*
 	 * Choose between version with error code and version without error
@@ -248,7 +243,7 @@ int_\i:
 	28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,\
 	53,54,55,56,57,58,59,60,61,62,63
 
-interrupt_handlers:
+SYMBOL(interrupt_handlers)
 .irp cnt, LIST_0_63
 	handler \cnt 
 .endr
@@ -272,7 +267,7 @@ interrupt_handlers:
  * @return Return value is in %rax.
  *
  */
-syscall_entry:
+SYMBOL(syscall_entry)
 	/* Switch to hidden %gs */
 	swapgs
 	
@@ -395,8 +390,7 @@ bad_rip_msg:
  * @param %rdi Unicode character to be printed.
  *
  */
-early_putchar:
-	
+FUNCTION_BEGIN(early_putchar)
 #if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
 	
 	/* Prologue, save preserved registers */
@@ -524,4 +518,5 @@ early_putchar:
 #endif
 	
 	ret
+FUNCTION_END(early_putchar)
 

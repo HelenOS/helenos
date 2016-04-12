@@ -31,6 +31,7 @@
 # Init code for application processors.
 #
 
+#include <abi/asmtool.h>
 #include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
@@ -42,14 +43,12 @@
 
 #ifdef CONFIG_SMP
 
-.global unmapped_ap_boot
-
 # This piece of code is real-mode and is meant to be alligned at 4K boundary.
 # The requirement for such an alignment comes from MP Specification's STARTUP
 # IPI requirements.
 
 .align 4096
-unmapped_ap_boot:
+SYMBOL(unmapped_ap_boot)
 .code16
 	cli
 	xorw %ax, %ax
@@ -112,8 +111,7 @@ start64:
 
 #ifdef CONFIG_SMP
 
-.global unmapped_ap_gdtr
-unmapped_ap_gdtr:
+SYMBOL(unmapped_ap_gdtr)
 	.word 0
 	.long 0
 

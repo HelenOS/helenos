@@ -26,14 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
+#include <abi/asmtool.h>
 
-.globl __thread_entry
+.text
 
 ## User-space thread entry point for all but the first threads.
 #
 #
-__thread_entry:
+SYMBOL_BEGIN(__thread_entry)
 	#
 	# Create the first stack frame.
 	#
@@ -46,5 +46,4 @@ __thread_entry:
 	#
 	movq %rax, %rdi
 	call __thread_main
-	
-.end __thread_entry
+SYMBOL_END(__thread_entry)

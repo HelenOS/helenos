@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.globl entry_point_jmp
+#include <abi/asmtool.h>
 
 ## void entry_point_jmp(void *entry_point, void *pcb);
 #
@@ -34,7 +34,7 @@
 # %rsi	contains pcb
 #
 # Jump to program entry point
-entry_point_jmp:
+SYMBOL(entry_point_jmp)
 	# use standard amd32 prologue not to confuse anybody
 	push %rbp
 	movq %rsp, %rbp

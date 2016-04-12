@@ -26,13 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/x87.h>
 
 .text
 
-.global trunc_f64
-
-trunc_f64:
+FUNCTION_BEGIN(trunc_f64)
 	pushq %rbp
 	movq %rsp, %rbp
 	
@@ -62,3 +61,4 @@ trunc_f64:
 	
 	leave
 	retq
+FUNCTION_END(trunc_f64)

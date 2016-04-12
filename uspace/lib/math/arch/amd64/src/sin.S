@@ -26,13 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/x87.h>
 
 .text
 
-.global sin_f64
-
-sin_f64:
+FUNCTION_BEGIN(sin_f64)
 	pushq %rbp
 	movq %rsp, %rbp
 	
@@ -76,3 +75,5 @@ sin_f64:
 	
 	leave
 	retq
+FUNCTION_END(sin_f64)
+

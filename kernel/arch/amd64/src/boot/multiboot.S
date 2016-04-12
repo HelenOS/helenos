@@ -28,6 +28,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
 #include <arch/boot/boot.h>
 #include <arch/mm/page.h>
 #include <arch/mm/ptl.h>
@@ -63,7 +64,6 @@
 .endm
 
 .align 4
-.global multiboot_image_start
 multiboot_header:
 	.long MULTIBOOT_HEADER_MAGIC
 	.long MULTIBOOT_HEADER_FLAGS
@@ -74,7 +74,7 @@ multiboot_header:
 	.long 0
 	.long multiboot_image_start
 
-multiboot_image_start:
+SYMBOL(multiboot_image_start)
 	cli
 	cld
 	
@@ -639,30 +639,25 @@ ptl_1:
 
 
 .align 4096
-.global ptl_0
-ptl_0:
+SYMBOL(ptl_0)
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 	.fill 510, 8, 0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 
 .section K_DATA_START, "aw", @progbits
 
-.global bootstrap_idtr
-bootstrap_idtr:
+SYMBOL(bootstrap_idtr)
 	.word 0
 	.long 0
 
-.global bootstrap_gdtr
-bootstrap_gdtr:
+SYMBOL(bootstrap_gdtr)
 	.word GDT_SELECTOR(GDT_ITEMS)
 	.long KA2PA(gdt)
 
-.global multiboot_eax
-multiboot_eax:
+SYMBOL(multiboot_eax)
 	.long 0
 
-.global multiboot_ebx
-multiboot_ebx:
+SYMBOL(multiboot_ebx)
 	.long 0
 
 err_extended_cpuid:

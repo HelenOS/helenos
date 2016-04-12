@@ -26,17 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .section .init, "ax"
 
 .org 0
-
-.globl __entry
 
 ## User-space task entry point
 #
 # %rdi contains the PCB pointer
 #
-__entry:
+SYMBOL(__entry)
 	#
 	# Create the first stack frame.
 	#

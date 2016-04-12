@@ -26,13 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/x87.h>
 
 .text
 
-.global cos_f64
-
-cos_f64:
+FUNCTION_BEGIN(cos_f64)
 	pushq %rbp
 	movq %rsp, %rbp
 	
@@ -76,3 +75,4 @@ cos_f64:
 	
 	leave
 	retq
+FUNCTION_END(cos_f64)
