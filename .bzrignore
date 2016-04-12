@@ -2,6 +2,9 @@
 *.map
 *.prev
 *.ag.probe.[cs]
+*.lo
+*.la
+*.so.*
 Makefile.depend
 Makefile.common
 Makefile.config
