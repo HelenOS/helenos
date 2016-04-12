@@ -80,7 +80,7 @@ void *dlsym(void *mod, const char *sym_name)
 	module_t *sm;
 
 	printf("dlsym(0x%lx, \"%s\")\n", (long)mod, sym_name);
-	sd = symbol_bfs_find(sym_name, (module_t *) mod, &sm);
+	sd = symbol_bfs_find(sym_name, (module_t *) mod, ssf_none, &sm);
 	if (sd != NULL) {
 		return symbol_get_addr(sd, sm);
 	}

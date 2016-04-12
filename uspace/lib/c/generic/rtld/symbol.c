@@ -110,10 +110,13 @@ static elf_symbol_t *def_find_in_module(const char *name, module_t *m)
  *
  * @param name		Name of the symbol to search for.
  * @param start		Module in which to start the search..
+ * @param flags		@c ssf_none or @c ssf_noroot to not look for the symbol
+ *			in @a start
  * @param mod		(output) Will be filled with a pointer to the module 
  *			that contains the symbol.
  */
-elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod)
+elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
+    symbol_search_flags_t flags, module_t **mod)
 {
 	module_t *m, *dm;
 	elf_symbol_t *sym, *s;
@@ -144,12 +147,15 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod)
 		m = list_get_instance(list_first(&queue), module_t, queue_link);
 		list_remove(&m->queue_link);
 
-		s = def_find_in_module(name, m);
-		if (s != NULL) {
-			/* Symbol found */
-			sym = s;
-			*mod = m;
-			break;
+		/* If ssf_noroot is specified, do not look in start module */
+		if (m != start || (flags & ssf_noroot) == 0) { 
+			s = def_find_in_module(name, m);
+			if (s != NULL) {
+				/* Symbol found */
+				sym = s;
+				*mod = m;
+				break;
+			}
 		}
 
 		/*
@@ -178,7 +184,7 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod)
 }
 
 
-/** Find the definition of a symbol..
+/** Find the definition of a symbol.
  *
  * By definition in System V ABI, if module origin has the flag DT_SYMBOLIC,
  * origin is searched first. Otherwise, or if the symbol hasn't been found,
@@ -187,10 +193,13 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod)
  *
  * @param name		Name of the symbol to search for.
  * @param origin	Module in which the dependency originates.
+ * @param flags		@c ssf_none or @c ssf_noroot to not look for the symbol
+ *			in the executable program.
  * @param mod		(output) Will be filled with a pointer to the module 
  *			that contains the symbol.
  */
-elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod)
+elf_symbol_t *symbol_def_find(const char *name, module_t *origin,
+    symbol_search_flags_t flags, module_t **mod)
 {
 	elf_symbol_t *s;
 
@@ -211,10 +220,10 @@ elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod
 
 	if (runtime_env->program) {
 		/* Program is dynamic -- start with program as root. */
-		return symbol_bfs_find(name, runtime_env->program, mod);
+		return symbol_bfs_find(name, runtime_env->program, flags, mod);
 	} else {
 		/* Program is static -- start with @a origin as root. */
-		return symbol_bfs_find(name, origin, mod);
+		return symbol_bfs_find(name, origin, ssf_none, mod);
 	}
 }
 

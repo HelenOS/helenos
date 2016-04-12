@@ -68,7 +68,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 	uint32_t *r_ptr;
 	uint32_t sym_size;
 	char *str_tab;
-	
+
 	elf_symbol_t *sym_def;
 	module_t *dest;
 
@@ -79,7 +79,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 	str_tab = m->dyn.str_tab;
 
 	DPRINTF("address: 0x%x, entries: %d\n", (uintptr_t)rt, rt_entries);
-	
+
 	for (i = 0; i < rt_entries; ++i) {
 //		DPRINTF("symbol %d: ", i);
 		r_offset = rt[i].r_offset;
@@ -99,7 +99,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 		if (sym->st_name != 0) {
 //			DPRINTF("rel_type: %x, rel_offset: 0x%x\n", rel_type, r_offset);
 			sym_def = symbol_def_find(str_tab + sym->st_name,
-			    m, &dest);
+			    m, ssf_none, &dest);
 //			DPRINTF("dest name: '%s'\n", dest->dyn.soname);
 //			DPRINTF("dest bias: 0x%x\n", dest->bias);
 			if (sym_def) {
@@ -136,9 +136,24 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 		case R_386_COPY:
 			/*
 			 * Copy symbol data from shared object to specified
-			 * location.
+			 * location. Need to find the 'source', i.e. the
+			 * other instance of the object than the one in the
+			 * executable program.
 			 */
 			DPRINTF("fixup R_386_COPY (s)\n");
+
+			sym_def = symbol_def_find(str_tab + sym->st_name,
+			    m, ssf_noroot, &dest);
+
+			if (sym_def) {
+				sym_addr = (uint32_t)
+				    symbol_get_addr(sym_def, dest);
+			} else {
+				printf("Source definition of '%s' not found.\n",
+				    str_tab + sym->st_name);
+				continue;
+			}
+
 			sym_size = sym->st_size;
 			if (sym_size != sym_def->st_size) {
 				printf("Warning: Mismatched symbol sizes.\n");
@@ -146,9 +161,10 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 				if (sym_size > sym_def->st_size)
 					sym_size = sym_def->st_size;
 			}
+
 			memcpy(r_ptr, (const void *)sym_addr, sym_size);
 			break;
-			
+
 		case R_386_RELATIVE:
 			DPRINTF("fixup R_386_RELATIVE (b+a)\n");
 			*r_ptr += m->bias;

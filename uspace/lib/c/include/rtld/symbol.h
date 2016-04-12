@@ -38,9 +38,19 @@
 #include <elf/elf.h>
 #include <rtld/rtld.h>
 
-elf_symbol_t *symbol_bfs_find(const char *name, module_t *start, module_t **mod);
-elf_symbol_t *symbol_def_find(const char *name, module_t *origin, module_t **mod);
-void *symbol_get_addr(elf_symbol_t *sym, module_t *m);
+/** Symbol search flags */
+typedef enum {
+	/** No flags */
+	ssf_none = 0,
+	/** Do not search tree root */
+	ssf_noroot = 0x1
+} symbol_search_flags_t;
+
+extern elf_symbol_t *symbol_bfs_find(const char *, module_t *,
+    symbol_search_flags_t, module_t **);
+extern elf_symbol_t *symbol_def_find(const char *, module_t *,
+    symbol_search_flags_t, module_t **);
+extern void *symbol_get_addr(elf_symbol_t *, module_t *);
 
 #endif
 
