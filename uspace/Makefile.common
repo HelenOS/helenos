@@ -202,7 +202,7 @@ ifeq ($(STATIC_BUILD),y)
 		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
 	endif
 else
-	BASE_LIBS = $(LIBC_PREFIX)/libc.so.0 $(LIBSOFTINT_PREFIX)/libsofti.so.0
+	BASE_LIBS = $(LIBC_PREFIX)/libc.so.0 $(LIBSOFTINT_PREFIX)/libsoftint.so.0
 	LFLAGS += -Bdynamic
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 	ifeq ($(MATH),y)
