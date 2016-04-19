@@ -88,7 +88,7 @@ void __main(void *pcb_ptr)
 	int argc;
 	char **argv;
 	
-#ifdef __IN_SHARED_LIBC__
+#ifdef __PIC__
 	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
 		runtime_env = (runtime_env_t *) __pcb->rtld_runtime;
 	}

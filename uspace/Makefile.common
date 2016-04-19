@@ -269,7 +269,7 @@ CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-integrated-as -pipe -g -target $(CLANG_TARGET) -D__$(ENDIANESS)__
 
-LIB_CFLAGS = $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
+LIB_CFLAGS = $(CFLAGS) -fPIC
 LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
 
 ifeq ($(CONFIG_DEBUG),y)

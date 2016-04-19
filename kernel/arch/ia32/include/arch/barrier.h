@@ -53,7 +53,7 @@
 
 NO_TRACE static inline void cpuid_serialization(void)
 {
-#ifndef __IN_SHARED_LIBC__
+#ifndef __PIC__
 	asm volatile (
 		"xorl %%eax, %%eax\n"
 		"cpuid\n"
