@@ -36,7 +36,7 @@
 #include <errno.h>
 #include <stdio.h>
 
-#define NAME "dnscfg"
+#define NAME "corecfg"
 
 static void print_syntax(void)
 {
