@@ -174,13 +174,13 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 	}
 
 	if (header->e_phentsize != sizeof(elf_segment_header_t)) {
-		DPRINTF("e_phentsize:%d != %d\n", header->e_phentsize,
+		DPRINTF("e_phentsize: %u != %zu\n", header->e_phentsize,
 		    sizeof(elf_segment_header_t));
 		return EE_INCOMPATIBLE;
 	}
 
 	if (header->e_shentsize != sizeof(elf_section_header_t)) {
-		DPRINTF("e_shentsize:%d != %d\n", header->e_shentsize,
+		DPRINTF("e_shentsize: %u != %zu\n", header->e_shentsize,
 		    sizeof(elf_section_header_t));
 		return EE_INCOMPATIBLE;
 	}
@@ -287,8 +287,8 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 		/* Record pointer to dynamic section into info structure */
 		elf->info->dynamic =
 		    (void *)((uint8_t *)entry->p_vaddr + elf->bias);
-		DPRINTF("dynamic section found at 0x%x\n",
-			(uintptr_t)elf->info->dynamic);
+		DPRINTF("dynamic section found at %p\n",
+			(void *)elf->info->dynamic);
 		break;
 	case 0x70000000:
 		/* FIXME: MIPS reginfo */
@@ -327,17 +327,16 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	seg_addr = entry->p_vaddr + bias;
 	seg_ptr = (void *) seg_addr;
 
-	DPRINTF("Load segment at addr %p, size 0x%x\n", (void *) seg_addr,
+	DPRINTF("Load segment at addr %p, size 0x%zx\n", (void *) seg_addr,
 		entry->p_memsz);
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
 		    (seg_addr % entry->p_align)) {
-			DPRINTF("Align check 1 failed offset%%align=%d, "
-			    "vaddr%%align=%d\n",
+			DPRINTF("Align check 1 failed offset%%align=0x%zx, "
+			    "vaddr%%align=0x%zx\n",
 			    entry->p_offset % entry->p_align,
-			    seg_addr % entry->p_align
-			);
+			    seg_addr % entry->p_align);
 			return EE_INVALID;
 		}
 	}
@@ -366,8 +365,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	a = as_area_create((uint8_t *) base + bias, mem_sz,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	if (a == AS_MAP_FAILED) {
-		DPRINTF("memory mapping failed (0x%x, %d)\n",
-		    base + bias, mem_sz);
+		DPRINTF("memory mapping failed (%p, %zu)\n",
+		    (void *) (base + bias), mem_sz);
 		return EE_MEMORY;
 	}
 
