@@ -38,35 +38,16 @@
 #include <sys/types.h>
 #include <rtld/dynamic.h>
 #include <adt/list.h>
+#include <types/rtld/module.h>
+#include <types/rtld/rtld.h>
 
-typedef struct module {
-	dyn_info_t dyn;
-	size_t bias;
+extern void module_process_relocs(module_t *);
+extern module_t *module_find(rtld_t *, const char *);
+extern module_t *module_load(rtld_t *, const char *);
+extern void module_load_deps(module_t *);
 
-	/** Array of pointers to directly dependent modules */
-	struct module **deps;
-	/** Number of fields in deps */
-	size_t n_deps;
-
-	/** True iff relocations have already been processed in this module. */
-	bool relocated;
-
-	/** Link to list of all modules in runtime environment */
-	link_t modules_link;
-
-	/** Link to BFS queue. Only used when doing a BFS of the module graph */
-	link_t queue_link;
-	/** Tag for modules already processed during a BFS */
-	bool bfs_tag;
-} module_t;
-
-void module_process_relocs(module_t *m);
-module_t *module_find(const char *name);
-module_t *module_load(const char *name);
-void module_load_deps(module_t *m);
-
-void modules_process_relocs(module_t *start);
-void modules_untag(void);
+extern void modules_process_relocs(rtld_t *, module_t *);
+extern void modules_untag(rtld_t *);
 
 #endif
 

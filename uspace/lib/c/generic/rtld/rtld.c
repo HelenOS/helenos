@@ -34,18 +34,79 @@
  * @file
  */
 
+#include <errno.h>
+#include <rtld/module.h>
 #include <rtld/rtld.h>
+#include <rtld/rtld_debug.h>
+#include <stdlib.h>
 
-runtime_env_t *runtime_env;
-static runtime_env_t rt_env_static;
+rtld_t *runtime_env;
+static rtld_t rt_env_static;
+static module_t prog_mod;
 
-/** Initialize the loder for use in a statically-linked binary. */
+/** Initialize the runtime linker for use in a statically-linked executable. */
 void rtld_init_static(void)
 {
 	runtime_env = &rt_env_static;
 	list_initialize(&runtime_env->modules);
 	runtime_env->next_bias = 0x2000000;
 	runtime_env->program = NULL;
+}
+
+/** Initialize and process a dynamically linked executable.
+ *
+ * @param p_info Program info
+ * @return EOK on success or non-zero error code
+ */
+int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
+{
+	rtld_t *env;
+
+	DPRINTF("Load dynamically linked program.\n");
+
+	/* Allocate new RTLD environment to pass to the loaded program */
+	env = calloc(1, sizeof(rtld_t));
+	if (env == NULL)
+		return ENOMEM;
+
+	/*
+	 * First we need to process dynamic sections of the executable
+	 * program and insert it into the module graph.
+	 */
+
+	DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
+	dynamic_parse(p_info->dynamic, 0, &prog_mod.dyn);
+	prog_mod.bias = 0;
+	prog_mod.dyn.soname = "[program]";
+	prog_mod.rtld = env;
+
+	/* Initialize list of loaded modules */
+	list_initialize(&env->modules);
+	list_append(&prog_mod.modules_link, &env->modules);
+
+	/* Pointer to program module. Used as root of the module graph. */
+	env->program = &prog_mod;
+
+	/* Work around non-existent memory space allocation. */
+	env->next_bias = 0x1000000;
+
+	/*
+	 * Now we can continue with loading all other modules.
+	 */
+
+	DPRINTF("Load all program dependencies\n");
+	module_load_deps(&prog_mod);
+
+	/*
+	 * Now relocate/link all modules together.
+	 */
+
+	/* Process relocations in all modules */
+	DPRINTF("Relocate all modules\n");
+	modules_process_relocs(env, &prog_mod);
+
+	*rre = env;
+	return EOK;
 }
 
 /** @}

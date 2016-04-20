@@ -35,6 +35,8 @@
 #ifndef LIBC_RTLD_RTLD_DEBUG_H_
 #define LIBC_RTLD_RTLD_DEBUG_H_
 
+#include <stdio.h>
+
 /* Define to enable debugging mode. */
 #undef RTLD_DEBUG
 

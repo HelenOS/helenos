@@ -78,6 +78,7 @@ GENERIC_SOURCES = \
 	generic/dnsr.c \
 	generic/dlfcn.c \
 	generic/elf/elf_load.c \
+	generic/elf/elf_mod.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/loc.c \

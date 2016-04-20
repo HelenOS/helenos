@@ -90,7 +90,7 @@ void module_process_relocs(module_t *m)
  * Modules are compared according to their soname, i.e. possible
  * path components are ignored.
  */
-module_t *module_find(const char *name)
+module_t *module_find(rtld_t *rtld, const char *name)
 {
 	const char *p, *soname;
 
@@ -105,7 +105,7 @@ module_t *module_find(const char *name)
 	soname = p ? (p + 1) : name;
 
 	/* Traverse list of all modules. Not extremely fast, but simple */
-	list_foreach(runtime_env->modules, modules_link, module_t, m) {
+	list_foreach(rtld->modules, modules_link, module_t, m) {
 		DPRINTF("m = %p\n", m);
 		if (str_cmp(m->dyn.soname, soname) == 0) {
 			return m; /* Found */
@@ -121,9 +121,9 @@ module_t *module_find(const char *name)
  *
  * Currently this trivially tries to load '/<name>'.
  */
-module_t *module_load(const char *name)
+module_t *module_load(rtld_t *rtld, const char *name)
 {
-	elf_info_t info;
+	elf_finfo_t info;
 	char name_buf[NAME_BUF_SIZE];
 	module_t *m;
 	int rc;
@@ -133,6 +133,8 @@ module_t *module_load(const char *name)
 		printf("malloc failed\n");
 		exit(1);
 	}
+
+	m->rtld = rtld;
 
 	if (str_size(name) > NAME_BUF_SIZE - 2) {
 		printf("soname too long. increase NAME_BUF_SIZE\n");
@@ -144,8 +146,8 @@ module_t *module_load(const char *name)
 	str_cpy(name_buf + 5, NAME_BUF_SIZE - 5, name);
 
 	/* FIXME: need to real allocation of address space */
-	m->bias = runtime_env->next_bias;
-	runtime_env->next_bias += 0x100000;
+	m->bias = rtld->next_bias;
+	rtld->next_bias += 0x100000;
 
 	DPRINTF("filename:'%s'\n", name_buf);
 	DPRINTF("load '%s' at 0x%x\n", name_buf, m->bias);
@@ -170,7 +172,7 @@ module_t *module_load(const char *name)
 	dynamic_parse(info.dynamic, m->bias, &m->dyn);
 
 	/* Insert into the list of loaded modules */
-	list_append(&m->modules_link, &runtime_env->modules);
+	list_append(&m->modules_link, &rtld->modules);
 
 	return m;
 }
@@ -220,9 +222,9 @@ void module_load_deps(module_t *m)
 			dep_name = m->dyn.str_tab + dp->d_un.d_val;
 
 			DPRINTF("%s needs %s\n", m->dyn.soname, dep_name);
-			dm = module_find(dep_name);
+			dm = module_find(m->rtld, dep_name);
 			if (!dm) {
-				dm = module_load(dep_name);
+				dm = module_load(m->rtld, dep_name);
 				module_load_deps(dm);
 			}
 
@@ -240,11 +242,11 @@ void module_load_deps(module_t *m)
  *
  * @param	start	The module where to start from.
  */
-void modules_process_relocs(module_t *start)
+void modules_process_relocs(rtld_t *rtld, module_t *start)
 {
-	list_foreach(runtime_env->modules, modules_link, module_t, m) {
-		/* Skip rtld, since it has already been processed */
-		if (m != &runtime_env->rtld) {
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		/* Skip rtld module, since it has already been processed */
+		if (m != &rtld->rtld) {
 			module_process_relocs(m);
 		}
 	}
@@ -252,9 +254,9 @@ void modules_process_relocs(module_t *start)
 
 /** Clear BFS tags of all modules.
  */
-void modules_untag(void)
+void modules_untag(rtld_t *rtld)
 {
-	list_foreach(runtime_env->modules, modules_link, module_t, m) {
+	list_foreach(rtld->modules, modules_link, module_t, m) {
 		m->bfs_tag = false;
 	}
 }

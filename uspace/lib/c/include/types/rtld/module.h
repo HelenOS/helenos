@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Jiri Svoboda
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief
  */
 
-#ifndef ELF_LOAD_H_
-#define ELF_LOAD_H_
+#ifndef LIBC_TYPES_RTLD_MODULE_H_
+#define LIBC_TYPES_RTLD_MODULE_H_
 
-#include <elf/elf_mod.h>
-#include <rtld/rtld.h>
+#include <adt/list.h>
+#include <sys/types.h>
 
-/** Information on loaded ELF program */
-typedef struct {
-	elf_finfo_t finfo;
-	rtld_t *env;
-} elf_info_t;
+typedef struct module {
+	dyn_info_t dyn;
+	size_t bias;
 
-extern int elf_load(const char *, elf_info_t *);
-extern void elf_set_pcb(elf_info_t *, pcb_t *);
+	/** Containing rtld */
+	struct rtld *rtld;
+	/** Array of pointers to directly dependent modules */
+	struct module **deps;
+	/** Number of fields in deps */
+	size_t n_deps;
+
+	/** True iff relocations have already been processed in this module. */
+	bool relocated;
+
+	/** Link to list of all modules in runtime environment */
+	link_t modules_link;
+
+	/** Link to BFS queue. Only used when doing a BFS of the module graph */
+	link_t queue_link;
+	/** Tag for modules already processed during a BFS */
+	bool bfs_tag;
+} module_t;
 
 #endif
 

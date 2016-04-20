@@ -38,6 +38,7 @@
 #include <stdlib.h>
 
 #include <elf/elf.h>
+#include <rtld/module.h>
 #include <rtld/rtld.h>
 #include <rtld/rtld_debug.h>
 #include <rtld/symbol.h>
@@ -131,7 +132,7 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
 	 */
 
 	/* Mark all vertices (modules) as unvisited */	
-	modules_untag();
+	modules_untag(start->rtld);
 
 	/* Insert root (the program) into the queue and tag it */
 	list_initialize(&queue);
@@ -218,9 +219,9 @@ elf_symbol_t *symbol_def_find(const char *name, module_t *origin,
 
 	/* Not DT_SYMBOLIC or no match. Now try other locations. */
 
-	if (runtime_env->program) {
+	if (origin->rtld->program) {
 		/* Program is dynamic -- start with program as root. */
-		return symbol_bfs_find(name, runtime_env->program, flags, mod);
+		return symbol_bfs_find(name, origin->rtld->program, flags, mod);
 	} else {
 		/* Program is static -- start with @a origin as root. */
 		return symbol_bfs_find(name, origin, ssf_none, mod);

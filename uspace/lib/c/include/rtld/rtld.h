@@ -35,28 +35,17 @@
 #ifndef LIBC_RTLD_H_
 #define LIBC_RTLD_H_
 
-#include <sys/types.h>
 #include <adt/list.h>
+#include <elf/elf_mod.h>
+#include <sys/types.h>
 
 #include <rtld/dynamic.h>
-#include <rtld/module.h>
+#include <types/rtld/rtld.h>
 
-typedef struct {
-	elf_dyn_t *rtld_dynamic;
-	module_t rtld;
-
-	module_t *program;
-
-	/** List of all loaded modules including rtld and the program */
-	list_t modules;
-
-	/** Temporary hack to place each module at different address. */
-	uintptr_t next_bias;
-} runtime_env_t;
-
-extern runtime_env_t *runtime_env;
+extern rtld_t *runtime_env;
 
 extern void rtld_init_static(void);
+extern int rtld_prog_process(elf_finfo_t *, rtld_t **);
 
 #endif
 

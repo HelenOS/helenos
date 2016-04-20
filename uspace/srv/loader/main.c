@@ -62,14 +62,6 @@
 #include <elf/elf_load.h>
 #include <vfs/vfs.h>
 
-#ifdef CONFIG_RTLD
-#include <rtld/rtld.h>
-#include <rtld/dynamic.h>
-#include <rtld/module.h>
-
-static int ldr_load_dyn_linked(elf_info_t *p_info);
-#endif
-
 #define DPRINTF(...)
 
 /** Pathname of the file that will be loaded */
@@ -95,12 +87,6 @@ static elf_info_t prog_info;
 
 /** Used to limit number of connections to one. */
 static bool connected = false;
-
-#ifdef CONFIG_RTLD
-/** State structure of the dynamic linker. */
-runtime_env_t dload_re;
-static module_t prog_mod;
-#endif
 
 static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -267,14 +253,14 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
 	
-	rc = elf_load_file(pathname, 0, 0, &prog_info);
+	rc = elf_load(pathname, &prog_info);
 	if (rc != EE_OK) {
 		DPRINTF("Failed to load executable '%s'.\n", pathname);
 		async_answer_0(rid, EINVAL);
 		return 1;
 	}
 	
-	elf_create_pcb(&prog_info, &pcb);
+	elf_set_pcb(&prog_info, &pcb);
 	
 	pcb.cwd = cwd;
 	
@@ -282,75 +268,11 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	pcb.argv = argv;
 	
 	pcb.filc = filc;
+	printf("dynamic=%p rtld_env=%p\n", pcb.dynamic, pcb.rtld_runtime);
 	
-	if (prog_info.interp == NULL) {
-		/* Statically linked program */
-		async_answer_0(rid, EOK);
-		return 0;
-	}
-	
-	DPRINTF("Binary is dynamically linked.\n");
-#ifdef CONFIG_RTLD
-	DPRINTF(" - pcb address: %p\n", &pcb);
-	DPRINTF( "- prog dynamic: %p\n", prog_info.dynamic);
-
-	rc = ldr_load_dyn_linked(&prog_info);
-#else
-	rc = ENOTSUP;
-#endif
 	async_answer_0(rid, rc);
 	return 0;
 }
-
-#ifdef CONFIG_RTLD
-
-static int ldr_load_dyn_linked(elf_info_t *p_info)
-{
-	runtime_env = &dload_re;
-
-	DPRINTF("Load dynamically linked program.\n");
-
-	/*
-	 * First we need to process dynamic sections of the executable
-	 * program and insert it into the module graph.
-	 */
-
-	DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
-	dynamic_parse(p_info->dynamic, 0, &prog_mod.dyn);
-	prog_mod.bias = 0;
-	prog_mod.dyn.soname = "[program]";
-
-	/* Initialize list of loaded modules */
-	list_initialize(&runtime_env->modules);
-	list_append(&prog_mod.modules_link, &runtime_env->modules);
-
-	/* Pointer to program module. Used as root of the module graph. */
-	runtime_env->program = &prog_mod;
-
-	/* Work around non-existent memory space allocation. */
-	runtime_env->next_bias = 0x1000000;
-
-	/*
-	 * Now we can continue with loading all other modules.
-	 */
-
-	DPRINTF("Load all program dependencies\n");
-	module_load_deps(&prog_mod);
-
-	/*
-	 * Now relocate/link all modules together.
-	 */
-
-	/* Process relocations in all modules */
-	DPRINTF("Relocate all modules\n");
-	modules_process_relocs(&prog_mod);
-
-	/* Pass runtime evironment pointer through PCB. */
-	pcb.rtld_runtime = (void *) runtime_env;
-
-	return 0;
-}
-#endif
 
 /** Run the previously loaded program.
  *
@@ -373,7 +295,7 @@ static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
 	DPRINTF("Reply OK\n");
 	async_answer_0(rid, EOK);
 	DPRINTF("Jump to entry point at %p\n", pcb.entry);
-	entry_point_jmp(prog_info.entry, &pcb);
+	entry_point_jmp(prog_info.finfo.entry, &pcb);
 	
 	/* Not reached */
 }

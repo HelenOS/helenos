@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Jiri Svoboda
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief
  */
 
-#ifndef ELF_LOAD_H_
-#define ELF_LOAD_H_
+#ifndef LIBC_TYPES_RTLD_RTLD_H_
+#define LIBC_TYPES_RTLD_RTLD_H_
 
+#include <adt/list.h>
 #include <elf/elf_mod.h>
-#include <rtld/rtld.h>
+#include <sys/types.h>
 
-/** Information on loaded ELF program */
-typedef struct {
-	elf_finfo_t finfo;
-	rtld_t *env;
-} elf_info_t;
+#include <types/rtld/module.h>
 
-extern int elf_load(const char *, elf_info_t *);
-extern void elf_set_pcb(elf_info_t *, pcb_t *);
+typedef struct rtld {
+	elf_dyn_t *rtld_dynamic;
+	module_t rtld;
+
+	module_t *program;
+
+	/** List of all loaded modules including rtld and the program */
+	list_t modules;
+
+	/** Temporary hack to place each module at different address. */
+	uintptr_t next_bias;
+} rtld_t;
 
 #endif
 
