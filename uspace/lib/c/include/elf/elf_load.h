@@ -37,12 +37,11 @@
 #define ELF_LOAD_H_
 
 #include <elf/elf_mod.h>
-#include <rtld/rtld.h>
 
 /** Information on loaded ELF program */
 typedef struct {
 	elf_finfo_t finfo;
-	rtld_t *env;
+	struct rtld *env;
 } elf_info_t;
 
 extern int elf_load(const char *, elf_info_t *);

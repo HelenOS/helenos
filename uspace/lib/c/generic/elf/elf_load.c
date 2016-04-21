@@ -35,12 +35,15 @@
  * @brief	Userspace ELF loader.
  */
 
-#include <errno.h>
-#include <stdio.h>
 #include <elf/elf_load.h>
 #include <elf/elf_mod.h>
-#include <rtld/rtld.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+#ifdef CONFIG_RTLD
+#include <rtld/rtld.h>
+#endif
 
 #define DPRINTF(...)
 
