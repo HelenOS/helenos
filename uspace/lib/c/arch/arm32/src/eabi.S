@@ -26,36 +26,30 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.global __aeabi_read_tp
-
-.global __aeabi_idiv
-.global __aeabi_uidiv
-
-.global __aeabi_idivmod
-.global __aeabi_uidivmod
-
-.global __aeabi_ldivmod
-.global __aeabi_uldivmod
-
-__aeabi_read_tp:
+FUNCTION_BEGIN(__aeabi_read_tp)
 	mov r0, r9
 	mov pc, lr
+FUNCTION_END(__aeabi_read_tp)
 
-__aeabi_idiv:
+FUNCTION_BEGIN(__aeabi_idiv)
 	push {lr}
 	bl __divsi3
 	pop {lr}
 	mov pc, lr
+FUNCTION_END(__aeabi_idiv)
 
-__aeabi_uidiv:
+FUNCTION_BEGIN(__aeabi_uidiv)
 	push {lr}
 	bl __udivsi3
 	pop {lr}
 	mov pc, lr
+FUNCTION_END(__aeabi_uidiv)
 
-__aeabi_idivmod:
+FUNCTION_BEGIN(__aeabi_idivmod)
 	push {lr}
 	sub sp, sp, #12
 	add r2, sp, #4
@@ -64,8 +58,9 @@ __aeabi_idivmod:
 	add sp, sp, #12
 	pop {lr}
 	mov pc, lr
+FUNCTION_END(__aeabi_idivmod)
 
-__aeabi_uidivmod:
+FUNCTION_BEGIN(__aeabi_uidivmod)
 	push {lr}
 	sub sp, sp, #12
 	add r2, sp, #4
@@ -74,8 +69,9 @@ __aeabi_uidivmod:
 	add sp, sp, #12
 	pop {lr}
 	mov pc, lr
+FUNCTION_END(__aeabi_uidivmod)
 
-__aeabi_ldivmod:
+FUNCTION_BEGIN(__aeabi_ldivmod)
 	push {lr}
 	sub sp, sp, #24
 	push {sp}
@@ -85,8 +81,9 @@ __aeabi_ldivmod:
 	add sp, sp, #16
 	pop {lr}
 	mov pc, lr
+FUNCTION_END(__aeabi_ldivmod)
 
-__aeabi_uldivmod:
+FUNCTION_BEGIN(__aeabi_uldivmod)
 	push {lr}
 	sub sp, sp, #24
 	push {sp}
@@ -96,3 +93,5 @@ __aeabi_uldivmod:
 	add sp, sp, #16
 	pop {lr}
 	mov pc, lr
+FUNCTION_END(__aeabi_uldivmod)
+

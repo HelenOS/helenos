@@ -32,7 +32,7 @@ BFD = binary
 
 ATSIGN = %
 
-GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
+GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access -mfpu=vfpv3
 
 ifeq ($(CONFIG_FPU),y)
 	# This is necessary to allow vmsr insn and fpexc manipulation
@@ -69,7 +69,7 @@ ARCH_SOURCES = \
 
 ifeq ($(CONFIG_FPU),y)
 	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu_context.c
-	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu.s
+	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu.S
 endif
 
 ifeq ($(MACHINE),gta02)

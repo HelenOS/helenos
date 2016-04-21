@@ -26,75 +26,73 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
+
 .text
 
-.global fpsid_read
-.global mvfr0_read
-.global fpscr_read
-.global fpscr_write
-.global fpexc_read
-.global fpexc_write
-
-.global fpu_context_save_s32
-.global fpu_context_restore_s32
-.global fpu_context_save_d16
-.global fpu_context_restore_d16
-.global fpu_context_save_d32
-.global fpu_context_restore_d32
-
-fpsid_read:
+FUNCTION_BEGIN(fpsid_read)
 	vmrs r0, fpsid
 	mov pc, lr
+FUNCTION_END(fpsid_read)
 
-mvfr0_read:
+FUNCTION_BEGIN(mvfr0_read)
 	vmrs r0, mvfr0
 	mov pc, lr
+FUNCTION_END(mvfr0_read)
 
-fpscr_read:
+FUNCTION_BEGIN(fpscr_read)
 	vmrs r0, fpscr
 	mov pc, lr
+FUNCTION_END(fpscr_read)
 
-fpscr_write:
+FUNCTION_BEGIN(fpscr_write)
 	vmsr fpscr, r0
 	mov pc, lr
+FUNCTION_END(fpscr_write)
 
-fpexc_read:
+FUNCTION_BEGIN(fpexc_read)
 	vmrs r0, fpexc
 	mov pc, lr
+FUNCTION_END(fpexc_read)
 
-fpexc_write:
+FUNCTION_BEGIN(fpexc_write)
 	vmsr fpexc, r0
 	mov pc, lr
+FUNCTION_END(fpexc_write)
 
-fpu_context_save_s32:
+FUNCTION_BEGIN(fpu_context_save_s32)
 	vmrs r1, fpexc
 	vmrs r2, fpscr
 	stmia r0!, {r1, r2}
 	vstmia r0!, {s0-s31}
 	mov pc, lr
+FUNCTION_END(fpu_context_save_s32)
 
-fpu_context_restore_s32:
+FUNCTION_BEGIN(fpu_context_restore_s32)
 	ldmia r0!, {r1, r2}
 	vmsr fpexc, r1
 	vmsr fpscr, r2
 	vldmia r0!, {s0-s31}
 	mov pc, lr
+FUNCTION_END(fpu_context_restore_s32)
 
-fpu_context_save_d16:
+FUNCTION_BEGIN(fpu_context_save_d16)
 	vmrs r1, fpexc
 	vmrs r2, fpscr
 	stmia r0!, {r1, r2}
 	vstmia r0!, {d0-d15}
 	mov pc, lr
+FUNCTION_END(fpu_context_save_d16)
 
-fpu_context_restore_d16:
+FUNCTION_BEGIN(fpu_context_restore_d16)
 	ldmia r0!, {r1, r2}
 	vmsr fpexc, r1
 	vmsr fpscr, r2
 	vldmia r0!, {d0-d15}
 	mov pc, lr
+FUNCTION_END(fpu_context_restore_d16)
 
-fpu_context_save_d32:
+FUNCTION_BEGIN(fpu_context_save_d32)
 	vmrs r1, fpexc
 	stmia r0!, {r1}
 	vmrs r1, fpscr
@@ -102,14 +100,14 @@ fpu_context_save_d32:
 	vstmia r0!, {d0-d15}
 	vstmia r0!, {d16-d31}
 	mov pc, lr
+FUNCTION_END(fpu_context_save_d32)
 
-fpu_context_restore_d32:
+FUNCTION_BEGIN(fpu_context_restore_d32)
 	ldmia r0!, {r1, r2}
 	vmsr fpexc, r1
 	vmsr fpscr, r2
 	vldmia r0!, {d0-d15}
 	vldmia r0!, {d16-d31}
 	mov pc, lr
-
-
+FUNCTION_END(fpu_context_restore_d32)
 

@@ -26,24 +26,25 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.global context_save
-.global context_restore
-
-context_save:
+FUNCTION_BEGIN(context_save)
 	stmia r0!, {sp, lr}
 	stmia r0!, {r4-r11}
 	
 	# return 1
 	mov r0, #1
 	mov pc, lr
+FUNCTION_END(context_save)
 
-context_restore:
+FUNCTION_BEGIN(context_restore)
 	ldmia r0!, {sp, lr}
 	ldmia r0!, {r4-r11}
 	
 	# return 0
 	mov r0, #0
 	mov pc, lr
+FUNCTION_END(context_restore)
 
