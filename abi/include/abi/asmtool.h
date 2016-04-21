@@ -44,13 +44,13 @@
 	.size sym, . - sym
 
 #define OBJECT_BEGIN(obj) \
-	.type obj, @object; \
+	.type obj STT_OBJECT; \
 	SYMBOL_BEGIN(obj)
 #define OBJECT_END(obj) \
 	SYMBOL_END(obj)
 
 #define FUNCTION_BEGIN(func) \
-	.type func, @function; \
+	.type func STT_FUNC; \
 	SYMBOL_BEGIN(func) 	
 #define FUNCTION_END(func) \
 	SYMBOL_END(func)

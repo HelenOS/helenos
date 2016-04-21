@@ -26,16 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text   
-
-.global irq_exception_entry
-.global fiq_exception_entry
-.global data_abort_exception_entry
-.global prefetch_abort_exception_entry
-.global undef_instr_exception_entry
-.global swi_exception_entry
-.global reset_exception_entry
-
 
 # Switches to kernel stack and saves all registers there.
 #
@@ -155,14 +148,14 @@
 	ldmfd r13!, {r0-r12, pc}^
 .endm
 
-reset_exception_entry:
+SYMBOL(reset_exception_entry)
 	SAVE_REGS_TO_STACK
 	mov r0, #0
 	mov r1, r13
 	bl ras_check
 	LOAD_REGS_FROM_STACK
 
-irq_exception_entry:
+SYMBOL(irq_exception_entry)
 	sub lr, lr, #4
 	SAVE_REGS_TO_STACK
 	mov r0, #5
@@ -170,7 +163,7 @@ irq_exception_entry:
 	bl ras_check
 	LOAD_REGS_FROM_STACK
 
-fiq_exception_entry:
+SYMBOL(fiq_exception_entry)
 	sub lr, lr, #4
 	SAVE_REGS_TO_STACK
 	mov r0, #6
@@ -178,14 +171,14 @@ fiq_exception_entry:
 	bl ras_check
 	LOAD_REGS_FROM_STACK
 
-undef_instr_exception_entry:
+SYMBOL(undef_instr_exception_entry)
 	SAVE_REGS_TO_STACK
 	mov r0, #1
 	mov r1, r13
 	bl ras_check
 	LOAD_REGS_FROM_STACK
 
-prefetch_abort_exception_entry:
+SYMBOL(prefetch_abort_exception_entry)
 	sub lr, lr, #4
 	SAVE_REGS_TO_STACK
 	mov r0, #3
@@ -193,7 +186,7 @@ prefetch_abort_exception_entry:
 	bl ras_check
 	LOAD_REGS_FROM_STACK
 
-data_abort_exception_entry:
+SYMBOL(data_abort_exception_entry)
 	sub lr, lr, #8
 	SAVE_REGS_TO_STACK
 	mov r0, #4
@@ -201,7 +194,7 @@ data_abort_exception_entry:
 	bl ras_check
 	LOAD_REGS_FROM_STACK
 
-swi_exception_entry:
+SYMBOL(swi_exception_entry)
 	ldr r13, =exc_stack
 	SAVE_REGS_TO_STACK
 	mov r0, #2

@@ -26,12 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text   
 
-.global context_save_arch
-.global context_restore_arch
-
-context_save_arch:
+FUNCTION_BEGIN(context_save_arch)
 	stmfd sp!, {r1}
 	mrs r1, cpsr
 	and r1, r1, #0x1f
@@ -43,9 +42,9 @@ context_save_arch:
 
 	mov r0, #1
 	mov pc, lr
+FUNCTION_END(context_save_arch)
 
-
-context_restore_arch:
+FUNCTION_BEGIN(context_restore_arch)
 	ldmia r0!, {r4}
 	mrs r5, cpsr
 	bic r5, r5, #0x1f
@@ -57,3 +56,5 @@ context_restore_arch:
 	
 	mov r0, #0
 	mov pc, lr
+FUNCTION_END(context_restore_arch)
+

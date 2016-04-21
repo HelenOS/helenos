@@ -30,25 +30,25 @@
 
 include Makefile.common
 
-INCLUDES = generic/include
+INCLUDES = -Igeneric/include -I$(ROOT_PATH)/abi/include
 OPTIMIZATION = 3
 
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 LFLAGS = --fatal-warnings
 
-GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+GCC_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe
 
-ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+ICC_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
 
-CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+CLANG_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \

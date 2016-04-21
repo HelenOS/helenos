@@ -26,18 +26,18 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .section .init, "ax"
 
 .org 0
-
-.global __entry
 
 ## User-space task entry point
 #
 # r1 contains the PCB pointer
 # r2 contains the RAS page address
 #
-__entry:
+SYMBOL(__entry)
 	# Store the RAS page address into the ras_page variable
 	ldr r0, =ras_page
 	str r2, [r0]
@@ -56,6 +56,5 @@ __entry:
 
 .data
 
-.global ras_page
-ras_page:
+SYMBOL(ras_page)
 	.long 0

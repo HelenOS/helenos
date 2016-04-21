@@ -26,34 +26,30 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 
 .section BOOTSTRAP
 
-.global start
-.global boot_pt
-.global boot_stack
-.global halt
-.global jump_to_kernel
-
-start:
+SYMBOL(start)
 	ldr sp, =boot_stack
 	b bootstrap
 
 .section BOOTPT
-boot_pt:
+SYMBOL(boot_pt)
 	.space PTL0_ENTRIES * PTL0_ENTRY_SIZE
 
 .section BOOTSTACK
 	.space 4096
-boot_stack:
+SYMBOL(boot_stack)
 
 .text
 
-halt:
+FUNCTION_BEGIN(halt)
 	b halt
+FUNCTION_END(halt)
 
-jump_to_kernel:
+FUNCTION_BEGIN(jump_to_kernel)
 	#
 	# Make sure that the I-cache, D-cache and memory are mutually coherent
 	# before passing control to the copied code.
@@ -107,3 +103,5 @@ jump_to_kernel:
 	nop
 #endif
 	mov pc, r0
+FUNCTION_END(jump_to_kernel)
+
