@@ -26,17 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.global calibrate_delay_loop
-.global asm_delay_loop
-.global cpu_sleep
-.global dummy
-
-calibrate_delay_loop:
-asm_delay_loop:
-cpu_sleep:
-
-dummy:
+FUNCTION_BEGIN(calibrate_delay_loop)
+FUNCTION_BEGIN(asm_delay_loop)
+FUNCTION_BEGIN(cpu_sleep)
 	br.ret.sptk.many b0
+FUNCTION_END(calibrate_delay_loop)
+FUNCTION_END(asm_delay_loop)
+FUNCTION_END(cpu_sleep)
 

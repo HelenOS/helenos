@@ -26,15 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.global frame_pointer_get
-.global program_counter_get
-
-frame_pointer_get:
+FUNCTION_BEGIN(frame_pointer_get)
 	mov r8 = r0
 	br.ret.sptk.many b0
+FUNCTION_END(frame_pointer_get)
 
-program_counter_get:
+FUNCTION_BEGIN(program_counter_get)
 	mov r8 = r0
 	br.ret.sptk.many b0
+FUNCTION_END(program_counter_get)
+

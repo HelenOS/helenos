@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/register.h>
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
@@ -40,8 +41,6 @@
 
 .section K_TEXT_START, "ax"
 
-.global kernel_image_start
-
 stack0:
 
 #
@@ -52,7 +51,7 @@ stack0:
 #
 #	r2	Address of the boot code's bootinfo structure.
 #
-kernel_image_start:
+SYMBOL(kernel_image_start)
 	.auto
 	
 	mov psr.l = r0
@@ -112,7 +111,6 @@ kernel_image_start:
 	 */
 	rfi ;;
 
-.global paging_start
 paging_start:
 	
 	/*

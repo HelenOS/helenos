@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2008 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
+.explicit
 
-.globl __thread_entry
-
-## User-space thread entry point for all but the first threads.
+## void entry_point_jmp(void *entry_point, void *pcb);
 #
+# in0 (r32)	contains entry_point
+# in1 (r33)	contains pcb
 #
-__thread_entry:
-	alloc loc0 = ar.pfs, 0, 1, 1, 0
+# Jump to program entry point
+SYMBOL(entry_point_jmp)
+	# Pass pcb to the entry point in r2
 
-	movl gp = __gp
-	
-	#
-	# r8 contains address of uarg structure.
-	#
-	
-	mov out0 = r8
-	br.call.sptk.many b0 = __thread_main
-	
-	#
-	# Not reached.
-	#
-	
-.end __thread_entry
+	mov b6 = r32
+	mov r2 = r33 ;;
+	br b6 ;;

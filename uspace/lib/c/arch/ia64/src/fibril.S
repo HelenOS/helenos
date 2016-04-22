@@ -26,14 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/fibril_context.h>
 
 .text
 
-.global context_save
-.global context_restore
-
-context_save:
+FUNCTION_BEGIN(context_save)
 	alloc loc0 = ar.pfs, 1, 49, 0, 0
 	mov loc1 = ar.unat ;;
 	mov loc3 = ar.rsc
@@ -181,8 +179,9 @@ context_save:
 	
 	add r8 = r0, r0, 1 	/* context_save returns 1 */
 	br.ret.sptk.many b0
+FUNCTION_END(context_save)
 
-context_restore:
+FUNCTION_BEGIN(context_restore)
 	alloc loc0 = ar.pfs, 1, 50, 0, 0	;;
 
 	add loc9 = CONTEXT_OFFSET_AR_PFS, in0
@@ -337,3 +336,5 @@ context_restore:
 	
 	mov r8 = r0			/* context_restore returns 0 */
 	br.ret.sptk.many b0
+FUNCTION_END(context_restore)
+

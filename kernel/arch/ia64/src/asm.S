@@ -26,13 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
 #include <arch/register.h>
 
 .text
-.global memcpy_from_uspace
-.global memcpy_to_uspace
-.global memcpy_from_uspace_failover_address
-.global memcpy_to_uspace_failover_address
 
 /** Copy memory from/to userspace.
  *
@@ -45,8 +42,8 @@
  * @param in2 Number of byte to copy.
  *
  */
-memcpy_from_uspace:
-memcpy_to_uspace:
+FUNCTION_BEGIN(memcpy_from_uspace)
+FUNCTION_BEGIN(memcpy_to_uspace)
 	alloc loc0 = ar.pfs, 3, 1, 0, 0
 	
 	adds r14 = 7, in1
@@ -131,17 +128,19 @@ memcpy_to_uspace:
 		mov ar.lc = r2
 		mov ar.pfs = loc0
 		br.ret.sptk.many rp
+FUNCTION_END(memcpy_from_uspace)
+FUNCTION_END(memcpy_to_uspace)
 
-memcpy_from_uspace_failover_address:
-memcpy_to_uspace_failover_address:
+SYMBOL(memcpy_from_uspace_failover_address)
+SYMBOL(memcpy_to_uspace_failover_address)
 	/* Return 0 on failure */
 	mov r8 = r0
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
 
-.global cpu_halt
-cpu_halt:
+FUNCTION_BEGIN(cpu_halt)
 	br cpu_halt
+FUNCTION_END(cpu_halt)
 
 /** Switch to userspace - low level code.
  *
@@ -153,8 +152,7 @@ cpu_halt:
  * @param in5 Value to be stored in RSC.
  *
  */
-.global switch_to_userspace
-switch_to_userspace:
+FUNCTION_BEGIN(switch_to_userspace)
 	alloc loc0 = ar.pfs, 6, 3, 0, 0
 	
 	/* Disable interruption collection and interrupts */
@@ -190,7 +188,8 @@ switch_to_userspace:
 	mov r8 = in3
 	
 	rfi ;;
+FUNCTION_END(switch_to_userspace)
 
-.global early_putchar
-early_putchar:
+FUNCTION_BEGIN(early_putchar)
 	br.ret.sptk.many b0
+FUNCTION_END(early_putchar)

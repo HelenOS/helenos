@@ -42,7 +42,7 @@ ENDIANESS = LE
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \
 	arch/$(KARCH)/src/asm.S \
-	arch/$(KARCH)/src/dummy.s \
+	arch/$(KARCH)/src/dummy.S \
 	arch/$(KARCH)/src/ia64.c \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/context.S \
