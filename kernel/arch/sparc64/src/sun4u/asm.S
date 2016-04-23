@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 #include <arch/stack.h>
 #include <arch/regdef.h>
@@ -54,25 +55,25 @@
 	wrpr %g1, 0, %pstate				! restore PSTATE.PEF
 .endm
 
-.global write_to_ag_g6
-write_to_ag_g6:
+FUNCTION_BEGIN(write_to_ag_g6)
 	WRITE_ALTERNATE_REGISTER %g6, PSTATE_AG_BIT
+FUNCTION_END(write_to_ag_g6)
 
-.global write_to_ag_g7
-write_to_ag_g7:
+FUNCTION_BEGIN(write_to_ag_g7)
 	WRITE_ALTERNATE_REGISTER %g7, PSTATE_AG_BIT
+FUNCTION_END(write_to_ag_g7)
 
-.global write_to_ig_g6
-write_to_ig_g6:
+FUNCTION_BEGIN(write_to_ig_g6)
 	WRITE_ALTERNATE_REGISTER %g6, PSTATE_IG_BIT
+FUNCTION_END(write_to_ig_g6)
 
-.global read_from_ag_g6
-read_from_ag_g6:
+FUNCTION_BEGIN(read_from_ag_g6)
 	READ_ALTERNATE_REGISTER %g6, PSTATE_AG_BIT
+FUNCTION_END(read_from_ag_g6)
 
-.global read_from_ag_g7
-read_from_ag_g7:
+FUNCTION_BEGIN(read_from_ag_g7)
 	READ_ALTERNATE_REGISTER %g7, PSTATE_AG_BIT
+FUNCTION_END(read_from_ag_g7)
 
 /** Switch to userspace.
  *
@@ -80,8 +81,7 @@ read_from_ag_g7:
  * %o1	Userspace stack pointer address.
  * %o2  Userspace address of uarg structure.
  */
-.global switch_to_userspace
-switch_to_userspace:
+FUNCTION_BEGIN(switch_to_userspace)
 	save %o1, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
 	flushw
 	wrpr %g0, 0, %cleanwin		! avoid information leak
@@ -118,4 +118,5 @@ switch_to_userspace:
 	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
 	
 	done				! jump to userspace
+FUNCTION_END(switch_to_userspace)
 

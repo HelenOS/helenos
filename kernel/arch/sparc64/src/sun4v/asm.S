@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/mm/mmu.h>
 #include <arch/regdef.h>
 #include <arch/stack.h>
@@ -38,8 +39,7 @@
  * %o1	Userspace stack pointer address.
  * %o2  Userspace address of uarg structure.
  */
-.global switch_to_userspace
-switch_to_userspace:
+FUNCTION_BEGIN(switch_to_userspace)
 	save %o1, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
 	flushw
 	wrpr %g0, 0, %cleanwin		! avoid information leak
@@ -74,3 +74,4 @@ switch_to_userspace:
 	 */
 	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
 	done				! jump to userspace
+FUNCTION_END(switch_to_userspace)

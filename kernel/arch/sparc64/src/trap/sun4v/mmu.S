@@ -36,6 +36,7 @@
 
 .text
 
+#include <abi/asmtool.h>
 #include <arch/trap/sun4v/mmu.h>
 #include <arch/trap/trap_table.h>
 #include <arch/sun4v/regdef.h>
@@ -47,9 +48,7 @@
  * The routine expects the following values of registers:
  *	 %g1	virtual address that has caused the miss
  */
-.global install_identity_mapping
-install_identity_mapping:
-
+SYMBOL(install_identity_mapping)
 	/* output registers mustn't be clobbered during the hypercall, SAVE is too risky */
 	mov %o0, %g3
 	mov %o1, %g4

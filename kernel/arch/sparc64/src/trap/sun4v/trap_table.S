@@ -37,6 +37,7 @@
 
 .text
 
+#include <abi/asmtool.h>
 #include <arch/trap/trap_table.h>
 #include <arch/trap/regwin.h>
 #include <arch/trap/interrupt.h>
@@ -57,153 +58,134 @@
  * Kernel trap table.
  */
 .align TABLE_SIZE
-.global trap_table
-trap_table:
+SYMBOL(trap_table)
 
 /* TT = 0x08, TL = 0, instruction_access_exception */
 /* TT = 0x08, TL = 0, IAE_privilege_violation on UltraSPARC T2 */
 .org trap_table + TT_INSTRUCTION_ACCESS_EXCEPTION*ENTRY_SIZE
-.global instruction_access_exception_tl0
-instruction_access_exception_tl0:
+SYMBOL(instruction_access_exception_tl0)
 	mov TT_INSTRUCTION_ACCESS_EXCEPTION, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x09, TL = 0, instruction_access_mmu_miss */
 .org trap_table + TT_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
-.global instruction_access_mmu_miss_handler_tl0
+SYMBOL(instruction_access_mmu_miss_handler_tl0)
 	ba,a %xcc, fast_instruction_access_mmu_miss_handler_tl0
 
 /* TT = 0x0a, TL = 0, instruction_access_error */
 .org trap_table + TT_INSTRUCTION_ACCESS_ERROR*ENTRY_SIZE
-.global instruction_access_error_tl0
-instruction_access_error_tl0:
+SYMBOL(instruction_access_error_tl0)
 	mov TT_INSTRUCTION_ACCESS_ERROR, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x0b, TL = 0, IAE_unauth_access */
 .org trap_table + TT_IAE_UNAUTH_ACCESS*ENTRY_SIZE
-.global iae_unauth_access_tl0
-iae_unauth_access_tl0:
+SYMBOL(iae_unauth_access_tl0)
 	mov TT_IAE_UNAUTH_ACCESS, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x0c, TL = 0, IAE_nfo_page */
 .org trap_table + TT_IAE_NFO_PAGE*ENTRY_SIZE
-.global iae_nfo_page_tl0
-iae_nfo_page_tl0:
+SYMBOL(iae_nfo_page_tl0)
 	mov TT_IAE_NFO_PAGE, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x10, TL = 0, illegal_instruction */
 .org trap_table + TT_ILLEGAL_INSTRUCTION*ENTRY_SIZE
-.global illegal_instruction_tl0
-illegal_instruction_tl0:
+SYMBOL(illegal_instruction_tl0)
 	mov TT_ILLEGAL_INSTRUCTION, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x11, TL = 0, privileged_opcode */
 .org trap_table + TT_PRIVILEGED_OPCODE*ENTRY_SIZE
-.global privileged_opcode_tl0
-privileged_opcode_tl0:
+SYMBOL(privileged_opcode_tl0)
 	mov TT_PRIVILEGED_OPCODE, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x12, TL = 0, unimplemented_LDD */
 .org trap_table + TT_UNIMPLEMENTED_LDD*ENTRY_SIZE
-.global unimplemented_LDD_tl0
-unimplemented_LDD_tl0:
+SYMBOL(unimplemented_LDD_tl0)
 	mov TT_UNIMPLEMENTED_LDD, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x13, TL = 0, unimplemented_STD */
 .org trap_table + TT_UNIMPLEMENTED_STD*ENTRY_SIZE
-.global unimplemented_STD_tl0
-unimplemented_STD_tl0:
+SYMBOL(unimplemented_STD_tl0)
 	mov TT_UNIMPLEMENTED_STD, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x14, TL = 0, DAE_invalid_asi */
 .org trap_table + TT_DAE_INVALID_ASI*ENTRY_SIZE
-.global dae_invalid_asi_tl0
-dae_invalid_asi_tl0:
+SYMBOL(dae_invalid_asi_tl0)
 	mov TT_DAE_INVALID_ASI, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x15, TL = 0, DAE_privilege_violation */
 .org trap_table + TT_DAE_PRIVILEGE_VIOLATION*ENTRY_SIZE
-.global dae_privilege_violation_tl0
-dae_privilege_violation_tl0:
+SYMBOL(dae_privilege_violation_tl0)
 	mov TT_DAE_PRIVILEGE_VIOLATION, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x16, TL = 0, DAE_nc_page */
 .org trap_table + TT_DAE_NC_PAGE*ENTRY_SIZE
-.global dae_nc_page_tl0
-dae_nc_page_tl0:
+SYMBOL(dae_nc_page_tl0)
 	mov TT_DAE_NC_PAGE, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x17, TL = 0, DAE_nfo_page */
 .org trap_table + TT_DAE_NFO_PAGE*ENTRY_SIZE
-.global dae_nfo_page_tl0
-dae_nfo_page_tl0:
+SYMBOL(dae_nfo_page_tl0)
 	mov TT_DAE_NFO_PAGE, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x20, TL = 0, fb_disabled handler */
 .org trap_table + TT_FP_DISABLED*ENTRY_SIZE
-.global fb_disabled_tl0
-fp_disabled_tl0:
+SYMBOL(fp_disabled_tl0)
 	mov TT_FP_DISABLED, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x21, TL = 0, fb_exception_ieee_754 handler */
 .org trap_table + TT_FP_EXCEPTION_IEEE_754*ENTRY_SIZE
-.global fb_exception_ieee_754_tl0
-fp_exception_ieee_754_tl0:
+SYMBOL(fp_exception_ieee_754_tl0)
 	mov TT_FP_EXCEPTION_IEEE_754, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x22, TL = 0, fb_exception_other handler */
 .org trap_table + TT_FP_EXCEPTION_OTHER*ENTRY_SIZE
-.global fb_exception_other_tl0
-fp_exception_other_tl0:
+SYMBOL(fp_exception_other_tl)
 	mov TT_FP_EXCEPTION_OTHER, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x23, TL = 0, tag_overflow */
 .org trap_table + TT_TAG_OVERFLOW*ENTRY_SIZE
-.global tag_overflow_tl0
-tag_overflow_tl0:
+SYMBOL(tag_overflow_tl0)
 	mov TT_TAG_OVERFLOW, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x24, TL = 0, clean_window handler */
 .org trap_table + TT_CLEAN_WINDOW*ENTRY_SIZE
-.global clean_window_tl0
-clean_window_tl0:
+SYMBOL(clean_window_tl0)
 	CLEAN_WINDOW_HANDLER
 
 /* TT = 0x28, TL = 0, division_by_zero */
 .org trap_table + TT_DIVISION_BY_ZERO*ENTRY_SIZE
-.global division_by_zero_tl0
-division_by_zero_tl0:
+SYMBOL(division_by_zero_tl0)
 	mov TT_DIVISION_BY_ZERO, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
@@ -211,254 +193,220 @@ division_by_zero_tl0:
 /* TT = 0x30, TL = 0, data_access_exception */
 /* TT = 0x30, TL = 0, DAE_side_effect_page for UltraPSARC T2 */
 .org trap_table + TT_DATA_ACCESS_EXCEPTION*ENTRY_SIZE
-.global data_access_exception_tl0
-data_access_exception_tl0:
+SYMBOL(data_access_exception_tl0)
 	mov TT_DATA_ACCESS_EXCEPTION, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x31, TL = 0, data_access_mmu_miss */
 .org trap_table + TT_DATA_ACCESS_MMU_MISS*ENTRY_SIZE
-.global data_access_mmu_miss_tl0
-data_access_mmu_miss_tl0:
+SYMBOL(data_access_mmu_miss_tl0)
 	ba,a %xcc, fast_data_access_mmu_miss_handler_tl0
 
 /* TT = 0x32, TL = 0, data_access_error */
 .org trap_table + TT_DATA_ACCESS_ERROR*ENTRY_SIZE
-.global data_access_error_tl0
-data_access_error_tl0:
+SYMBOL(data_access_error_tl0)
 	mov TT_DATA_ACCESS_ERROR, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x34, TL = 0, mem_address_not_aligned */
 .org trap_table + TT_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
-.global mem_address_not_aligned_tl0
-mem_address_not_aligned_tl0:
+SYMBOL(mem_address_not_aligned_tl0)
 	mov TT_MEM_ADDRESS_NOT_ALIGNED, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x35, TL = 0, LDDF_mem_address_not_aligned */
 .org trap_table + TT_LDDF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
-.global LDDF_mem_address_not_aligned_tl0
-LDDF_mem_address_not_aligned_tl0:
+SYMBOL(LDDF_mem_address_not_aligned_tl0)
 	mov TT_LDDF_MEM_ADDRESS_NOT_ALIGNED, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x36, TL = 0, STDF_mem_address_not_aligned */
 .org trap_table + TT_STDF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
-.global STDF_mem_address_not_aligned_tl0
-STDF_mem_address_not_aligned_tl0:
+SYMBOL(STDF_mem_address_not_aligned_tl0)
 	mov TT_STDF_MEM_ADDRESS_NOT_ALIGNED, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x37, TL = 0, privileged_action */
 .org trap_table + TT_PRIVILEGED_ACTION*ENTRY_SIZE
-.global privileged_action_tl0
-privileged_action_tl0:
+SYMBOL(privileged_action_tl0)
 	mov TT_PRIVILEGED_ACTION, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x38, TL = 0, LDQF_mem_address_not_aligned */
 .org trap_table + TT_LDQF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
-.global LDQF_mem_address_not_aligned_tl0
-LDQF_mem_address_not_aligned_tl0:
+SYMBOL(LDQF_mem_address_not_aligned_tl0)
 	mov TT_LDQF_MEM_ADDRESS_NOT_ALIGNED, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x39, TL = 0, STQF_mem_address_not_aligned */
 .org trap_table + TT_STQF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
-.global STQF_mem_address_not_aligned_tl0
-STQF_mem_address_not_aligned_tl0:
+SYMBOL(STQF_mem_address_not_aligned_tl0)
 	mov TT_STQF_MEM_ADDRESS_NOT_ALIGNED, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x41, TL = 0, interrupt_level_1 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_1*ENTRY_SIZE
-.global interrupt_level_1_handler_tl0
-interrupt_level_1_handler_tl0:
+SYMBOL(interrupt_level_1_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_1, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x42, TL = 0, interrupt_level_2 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_2*ENTRY_SIZE
-.global interrupt_level_2_handler_tl0
-interrupt_level_2_handler_tl0:
+SYMBOL(interrupt_level_2_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_2, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x43, TL = 0, interrupt_level_3 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_3*ENTRY_SIZE
-.global interrupt_level_3_handler_tl0
-interrupt_level_3_handler_tl0:
+SYMBOL(interrupt_level_3_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_3, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x44, TL = 0, interrupt_level_4 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_4*ENTRY_SIZE
-.global interrupt_level_4_handler_tl0
-interrupt_level_4_handler_tl0:
+SYMBOL(interrupt_level_4_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_4, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x45, TL = 0, interrupt_level_5 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_5*ENTRY_SIZE
-.global interrupt_level_5_handler_tl0
-interrupt_level_5_handler_tl0:
+SYMBOL(interrupt_level_5_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_5, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x46, TL = 0, interrupt_level_6 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_6*ENTRY_SIZE
-.global interrupt_level_6_handler_tl0
-interrupt_level_6_handler_tl0:
+SYMBOL(interrupt_level_6_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_6, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x47, TL = 0, interrupt_level_7 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_7*ENTRY_SIZE
-.global interrupt_level_7_handler_tl0
-interrupt_level_7_handler_tl0:
+SYMBOL(interrupt_level_7_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_7, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x48, TL = 0, interrupt_level_8 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_8*ENTRY_SIZE
-.global interrupt_level_8_handler_tl0
-interrupt_level_8_handler_tl0:
+SYMBOL(interrupt_level_8_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_8, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x49, TL = 0, interrupt_level_9 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_9*ENTRY_SIZE
-.global interrupt_level_9_handler_tl0
-interrupt_level_9_handler_tl0:
+SYMBOL(interrupt_level_9_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_9, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4a, TL = 0, interrupt_level_10 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_10*ENTRY_SIZE
-.global interrupt_level_10_handler_tl0
-interrupt_level_10_handler_tl0:
+SYMBOL(interrupt_level_10_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_10, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4b, TL = 0, interrupt_level_11 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_11*ENTRY_SIZE
-.global interrupt_level_11_handler_tl0
-interrupt_level_11_handler_tl0:
+SYMBOL(interrupt_level_11_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_11, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4c, TL = 0, interrupt_level_12 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_12*ENTRY_SIZE
-.global interrupt_level_12_handler_tl0
-interrupt_level_12_handler_tl0:
+SYMBOL(interrupt_level_12_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_12, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4d, TL = 0, interrupt_level_13 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_13*ENTRY_SIZE
-.global interrupt_level_13_handler_tl0
-interrupt_level_13_handler_tl0:
+SYMBOL(interrupt_level_13_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_13, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4e, TL = 0, interrupt_level_14 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_14*ENTRY_SIZE
-.global interrupt_level_14_handler_tl0
-interrupt_level_14_handler_tl0:
+SYMBOL(interrupt_level_14_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_14, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x4f, TL = 0, interrupt_level_15 handler */
 .org trap_table + TT_INTERRUPT_LEVEL_15*ENTRY_SIZE
-.global interrupt_level_15_handler_tl0
-interrupt_level_15_handler_tl0:
+SYMBOL(interrupt_level_15_handler_tl0)
 	mov TT_INTERRUPT_LEVEL_15, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x64, TL = 0, fast_instruction_access_MMU_miss */
 .org trap_table + TT_FAST_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
-.global fast_instruction_access_mmu_miss_handler_tl0
-fast_instruction_access_mmu_miss_handler_tl0:
+SYMBOL(fast_instruction_access_mmu_miss_handler_tl0)
 	FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
 
 /* TT = 0x68, TL = 0, fast_data_access_MMU_miss */
 .org trap_table + TT_FAST_DATA_ACCESS_MMU_MISS*ENTRY_SIZE
-.global fast_data_access_mmu_miss_handler_tl0
-fast_data_access_mmu_miss_handler_tl0:
+SYMBOL(fast_data_access_mmu_miss_handler_tl0)
 	FAST_DATA_ACCESS_MMU_MISS_HANDLER 0
 
 /* TT = 0x6c, TL = 0, fast_data_access_protection */
 .org trap_table + TT_FAST_DATA_ACCESS_PROTECTION*ENTRY_SIZE
-.global fast_data_access_protection_handler_tl0
-fast_data_access_protection_handler_tl0:
+SYMBOL(fast_data_access_protection_handler_tl0)
 	FAST_DATA_ACCESS_PROTECTION_HANDLER 0
 
 /* TT = 0x7c, TL = 0, cpu_mondo */
 .org trap_table + TT_CPU_MONDO*ENTRY_SIZE
-.global cpu_mondo_handler_tl0
-cpu_mondo_handler_tl0:
+SYMBOL(cpu_mondo_handler_tl0)
 	mov TT_CPU_MONDO, %g2
 	clr %g5
 	PREEMPTIBLE_HANDLER exc_dispatch 
 
 /* TT = 0x80, TL = 0, spill_0_normal handler */
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
-.global spill_0_normal_tl0
-spill_0_normal_tl0:
+SYMBOL(spill_0_normal_tl0)
 	SPILL_NORMAL_HANDLER_KERNEL
 
 /* TT = 0x84, TL = 0, spill_1_normal handler */
 .org trap_table + TT_SPILL_1_NORMAL*ENTRY_SIZE
-.global spill_1_normal_tl0
-spill_1_normal_tl0:
+SYMBOL(spill_1_normal_tl0)
 	SPILL_NORMAL_HANDLER_USERSPACE
 
 /* TT = 0x88, TL = 0, spill_2_normal handler */
 .org trap_table + TT_SPILL_2_NORMAL*ENTRY_SIZE
-.global spill_2_normal_tl0
-spill_2_normal_tl0:
+SYMBOL(spill_2_normal_tl0)
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
 /* TT = 0xa0, TL = 0, spill_0_other handler */
 .org trap_table + TT_SPILL_0_OTHER*ENTRY_SIZE
-.global spill_0_other_tl0
-spill_0_other_tl0:
+SYMBOL(spill_0_other_tl0)
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
 /* TT = 0xc0, TL = 0, fill_0_normal handler */
 .org trap_table + TT_FILL_0_NORMAL*ENTRY_SIZE
-.global fill_0_normal_tl0
-fill_0_normal_tl0:
+SYMBOL(fill_0_normal_tl0)
 	FILL_NORMAL_HANDLER_KERNEL
 
 /* TT = 0xc4, TL = 0, fill_1_normal handler */
 .org trap_table + TT_FILL_1_NORMAL*ENTRY_SIZE
-.global fill_1_normal_tl0
-fill_1_normal_tl0:
+SYMBOL(fill_1_normal_tl0)
 	FILL_NORMAL_HANDLER_USERSPACE
 
 /* TT = 0x100 - 0x17f, TL = 0, trap_instruction_0 - trap_instruction_7f */
@@ -471,8 +419,7 @@ fill_1_normal_tl0:
     112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,\
     127
 .org trap_table + (TT_TRAP_INSTRUCTION_0+\cur)*ENTRY_SIZE
-.global trap_instruction_\cur\()_tl0
-trap_instruction_\cur\()_tl0:
+SYMBOL(trap_instruction_\cur\()_tl0)
 	mov \cur, %g2
 	ba %xcc, trap_instruction_handler
 	clr %g5
@@ -485,8 +432,7 @@ trap_instruction_\cur\()_tl0:
 /* TT = 0x08, TL > 0, instruction_access_exception */
 /* TT = 0x08, TL > 0, IAE_privilege_violation on UltraSPARC T2 */
 .org trap_table + (TT_INSTRUCTION_ACCESS_EXCEPTION+512)*ENTRY_SIZE
-.global instruction_access_exception_tl1
-instruction_access_exception_tl1:
+SYMBOL(instruction_access_exception_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_INSTRUCTION_ACCESS_EXCEPTION, %g2
 	clr %g5
@@ -494,14 +440,13 @@ instruction_access_exception_tl1:
 
 /* TT = 0x09, TL > 0, instruction_access_mmu_miss */
 .org trap_table + (TT_INSTRUCTION_ACCESS_MMU_MISS+512)*ENTRY_SIZE
-.global instruction_access_mmu_miss_handler_tl1
+SYMBOL(instruction_access_mmu_miss_handler_tl1)
 	wrpr %g0, 1, %tl
 	ba,a %xcc, fast_instruction_access_mmu_miss_handler_tl0
 
 /* TT = 0x0a, TL > 0, instruction_access_error */
 .org trap_table + (TT_INSTRUCTION_ACCESS_ERROR+512)*ENTRY_SIZE
-.global instruction_access_error_tl1
-instruction_access_error_tl1:
+SYMBOL(instruction_access_error_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_INSTRUCTION_ACCESS_ERROR, %g2
 	clr %g5
@@ -509,8 +454,7 @@ instruction_access_error_tl1:
 
 /* TT = 0x0b, TL > 0, IAE_unauth_access */
 .org trap_table + (TT_IAE_UNAUTH_ACCESS+512)*ENTRY_SIZE
-.global iae_unauth_access_tl1
-iae_unauth_access_tl1:
+SYMBOL(iae_unauth_access_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_IAE_UNAUTH_ACCESS, %g2
 	clr %g5
@@ -518,8 +462,7 @@ iae_unauth_access_tl1:
 
 /* TT = 0x0c, TL > 0, IAE_nfo_page */
 .org trap_table + (TT_IAE_NFO_PAGE+512)*ENTRY_SIZE
-.global iae_nfo_page_tl1
-iae_nfo_page_tl1:
+SYMBOL(iae_nfo_page_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_IAE_NFO_PAGE, %g2
 	clr %g5
@@ -527,8 +470,7 @@ iae_nfo_page_tl1:
 
 /* TT = 0x10, TL > 0, illegal_instruction */
 .org trap_table + (TT_ILLEGAL_INSTRUCTION+512)*ENTRY_SIZE
-.global illegal_instruction_tl1
-illegal_instruction_tl1:
+SYMBOL(illegal_instruction_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_ILLEGAL_INSTRUCTION, %g2
 	clr %g5
@@ -536,8 +478,7 @@ illegal_instruction_tl1:
 
 /* TT = 0x14, TL > 0, DAE_invalid_asi */
 .org trap_table + (TT_DAE_INVALID_ASI+512)*ENTRY_SIZE
-.global dae_invalid_asi_tl1
-dae_invalid_asi_tl1:
+SYMBOL(dae_invalid_asi_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_DAE_INVALID_ASI, %g2
 	clr %g5
@@ -545,8 +486,7 @@ dae_invalid_asi_tl1:
 
 /* TT = 0x15, TL > 0, DAE_privilege_violation */
 .org trap_table + (TT_DAE_PRIVILEGE_VIOLATION+512)*ENTRY_SIZE
-.global dae_privilege_violation_tl1
-dae_privilege_violation_tl1:
+SYMBOL(dae_privilege_violation_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_DAE_PRIVILEGE_VIOLATION, %g2
 	clr %g5
@@ -554,8 +494,7 @@ dae_privilege_violation_tl1:
 
 /* TT = 0x16, TL > 0, DAE_nc_page */
 .org trap_table + (TT_DAE_NC_PAGE+512)*ENTRY_SIZE
-.global dae_nc_page_tl1
-dae_nc_page_tl1:
+SYMBOL(dae_nc_page_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_DAE_NC_PAGE, %g2
 	clr %g5
@@ -563,8 +502,7 @@ dae_nc_page_tl1:
 
 /* TT = 0x17, TL > 0, DAE_nfo_page */
 .org trap_table + (TT_DAE_NFO_PAGE+512)*ENTRY_SIZE
-.global dae_nfo_page_tl1
-dae_nfo_page_tl1:
+SYMBOL(dae_nfo_page_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_DAE_NFO_PAGE, %g2
 	clr %g5
@@ -572,14 +510,12 @@ dae_nfo_page_tl1:
 
 /* TT = 0x24, TL > 0, clean_window handler */
 .org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
-.global clean_window_tl1
-clean_window_tl1:
+SYMBOL(clean_window_tl1)
 	CLEAN_WINDOW_HANDLER
 
 /* TT = 0x28, TL > 0, division_by_zero */
 .org trap_table + (TT_DIVISION_BY_ZERO+512)*ENTRY_SIZE
-.global division_by_zero_tl1
-division_by_zero_tl1:
+SYMBOL(division_by_zero_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_DIVISION_BY_ZERO, %g2
 	clr %g5
@@ -587,8 +523,7 @@ division_by_zero_tl1:
 
 /* TT = 0x30, TL > 0, data_access_exception */
 .org trap_table + (TT_DATA_ACCESS_EXCEPTION+512)*ENTRY_SIZE
-.global data_access_exception_tl1
-data_access_exception_tl1:
+SYMBOL(data_access_exception_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_DATA_ACCESS_EXCEPTION, %g2
 	clr %g5
@@ -596,14 +531,12 @@ data_access_exception_tl1:
 
 /* TT = 0x31, TL > 0, data_access_mmu_miss */
 .org trap_table + (TT_DATA_ACCESS_MMU_MISS+512)*ENTRY_SIZE
-.global data_access_mmu_miss_tl1
-data_access_mmu_miss_tl1:
+SYMBOL(data_access_mmu_miss_tl1)
 	ba,a %xcc, fast_data_access_mmu_miss_handler_tl1
 
 /* TT = 0x32, TL > 0, data_access_error */
 .org trap_table + (TT_DATA_ACCESS_ERROR+512)*ENTRY_SIZE
-.global data_access_error_tl1
-data_access_error_tl1:
+SYMBOL(data_access_error_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_DATA_ACCESS_ERROR, %g2
 	clr %g5
@@ -611,8 +544,7 @@ data_access_error_tl1:
 
 /* TT = 0x34, TL > 0, mem_address_not_aligned */
 .org trap_table + (TT_MEM_ADDRESS_NOT_ALIGNED+512)*ENTRY_SIZE
-.global mem_address_not_aligned_tl1
-mem_address_not_aligned_tl1:
+SYMBOL(mem_address_not_aligned_tl1)
 	wrpr %g0, 1, %tl
 	mov TT_MEM_ADDRESS_NOT_ALIGNED, %g2
 	clr %g5
@@ -620,20 +552,17 @@ mem_address_not_aligned_tl1:
 
 /* TT = 0x68, TL > 0, fast_data_access_MMU_miss */
 .org trap_table + (TT_FAST_DATA_ACCESS_MMU_MISS+512)*ENTRY_SIZE
-.global fast_data_access_mmu_miss_handler_tl1
-fast_data_access_mmu_miss_handler_tl1:
+SYMBOL(fast_data_access_mmu_miss_handler_tl1)
 	FAST_DATA_ACCESS_MMU_MISS_HANDLER 1
 
 /* TT = 0x6c, TL > 0, fast_data_access_protection */
 .org trap_table + (TT_FAST_DATA_ACCESS_PROTECTION+512)*ENTRY_SIZE
-.global fast_data_access_protection_handler_tl1
-fast_data_access_protection_handler_tl1:
+SYMBOL(fast_data_access_protection_handler_tl1)
 	FAST_DATA_ACCESS_PROTECTION_HANDLER 1
 
 /* TT = 0x7c, TL > 0, cpu_mondo */
 .org trap_table + (TT_CPU_MONDO+512)*ENTRY_SIZE
-.global cpu_mondo_handler_tl1
-cpu_mondo_handler_tl1:
+SYMBOL(cpu_mondo_handler_tl1)
 	wrpr %g0, %tl
 	mov TT_CPU_MONDO, %g2
 	clr %g5
@@ -641,26 +570,22 @@ cpu_mondo_handler_tl1:
 
 /* TT = 0x80, TL > 0, spill_0_normal handler */
 .org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE
-.global spill_0_normal_tl1
-spill_0_normal_tl1:
+SYMBOL(spill_0_normal_tl1)
 	SPILL_NORMAL_HANDLER_KERNEL
 
 /* TT = 0x88, TL > 0, spill_2_normal handler */
 .org trap_table + (TT_SPILL_2_NORMAL+512)*ENTRY_SIZE
-.global spill_2_normal_tl1
-spill_2_normal_tl1:
+SYMBOL(spill_2_normal_tl1)
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
 /* TT = 0xa0, TL > 0, spill_0_other handler */
 .org trap_table + (TT_SPILL_0_OTHER+512)*ENTRY_SIZE
-.global spill_0_other_tl1
-spill_0_other_tl1:
+SYMBOL(spill_0_other_tl1)
 	SPILL_TO_USPACE_WINDOW_BUFFER
 
 /* TT = 0xc0, TL > 0, fill_0_normal handler */
 .org trap_table + (TT_FILL_0_NORMAL+512)*ENTRY_SIZE
-.global fill_0_normal_tl1
-fill_0_normal_tl1:
+SYMBOL(fill_0_normal_tl1)
 	FILL_NORMAL_HANDLER_KERNEL
 
 .align TABLE_SIZE
@@ -1177,10 +1102,8 @@ fill_0_normal_tl1:
 	101:
 .endm
 
-.global preemptible_handler
-preemptible_handler:
+SYMBOL(preemptible_handler)
 	PREEMPTIBLE_HANDLER_TEMPLATE 0
 
-.global trap_instruction_handler
-trap_instruction_handler:
+SYMBOL(trap_instruction_handler)
 	PREEMPTIBLE_HANDLER_TEMPLATE 1

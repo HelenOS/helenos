@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 #include <arch/arch.h>
 #include <arch/cpu.h>
 #include <arch/regdef.h>
@@ -75,8 +77,7 @@
  *
  */
 
-.global kernel_image_start
-kernel_image_start:
+SYMBOL(kernel_image_start)
 	mov BSP_FLAG, %l0
 	and %o0, %l0, %l7			! l7 <= bootstrap processor?
 	andn %o0, %l0, %l6			! l6 <= start of physical memory
@@ -395,8 +396,7 @@ temporary_boot_stack:
 .data
 
 .align 8
-.global physmem_base		! copy of the physical memory base address
-physmem_base:
+SYMBOL(physmem_base)	! copy of the physical memory base address
 	.quad 0
 
 /*
@@ -404,29 +404,25 @@ physmem_base:
  * kernel_8k_tlb_data_template and tlb_tag_access_context_mask variables
  * are meant to stay together, aligned on a 32B boundary.
  */
-.global fast_data_access_mmu_miss_data_hi
-.global end_of_identity 
-.global kernel_8k_tlb_data_template
-.global tlb_tag_access_context_mask
 
 .align 32 
 /*
  * This label is used by the fast_data_access_MMU_miss trap handler.
  */
-fast_data_access_mmu_miss_data_hi:
+SYMBOL(fast_data_access_mmu_miss_data_hi)
 /*
  * This variable is used by the fast_data_access_MMU_miss trap handler.
  * In runtime, it is modified to contain the address of the end of physical
  * memory.
  */
-end_of_identity:
+SYMBOL(end_of_identity)
 	.quad -1 
 /*
  * This variable is used by the fast_data_access_MMU_miss trap handler.
  * In runtime, it is further modified to reflect the starting address of
  * physical memory.
  */
-kernel_8k_tlb_data_template:
+SYMBOL(kernel_8k_tlb_data_template)
 #ifdef CONFIG_VIRT_IDX_DCACHE
 	.quad ((1 << TTE_V_SHIFT) | (PAGESIZE_8K << TTE_SIZE_SHIFT) | TTE_CP | \
 		 TTE_CV | TTE_P | TTE_W)
@@ -439,6 +435,6 @@ kernel_8k_tlb_data_template:
  * This variable is used by the fast_data_access_MMU_miss trap handler.
  * It allows us to save one precious instruction slot of this handler.
  */
-tlb_tag_access_context_mask:
+SYMBOL(tlb_tag_access_context_mask)
 	.quad TLB_TAG_ACCESS_CONTEXT_MASK
 
