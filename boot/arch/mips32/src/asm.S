@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 #include <arch/regname.h>
 
@@ -33,13 +34,9 @@
 .set noreorder
 .set nomacro
 
-.global start
-.global halt
-.global jump_to_kernel
-
 .section BOOTSTRAP
 
-start:
+SYMBOL(start)
 	/*
 	 * Setup the CP0 configuration
 	 *  - Disable 64-bit kernel addressing mode
@@ -144,11 +141,12 @@ start:
 
 .text
 
-halt:
+FUNCTION_BEGIN(halt)
 	j halt
 	nop
+FUNCTION_END(halt)
 
-jump_to_kernel:
+FUNCTION_BEGIN(jump_to_kernel)
 	/*
 	 * TODO:
 	 *
@@ -157,3 +155,4 @@ jump_to_kernel:
 	 */
 	j $a0
 	nop
+FUNCTION_END(jump_to_kernel)

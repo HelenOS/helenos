@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/context_struct.h>
 
 .text
@@ -34,10 +35,7 @@
 .set noreorder
 .set nomacro
 
-.global context_save_arch
-.global context_restore_arch
-
-context_save_arch:
+FUNCTION_BEGIN(context_save_arch)
 	sw $s0, CONTEXT_OFFSET_S0($a0)
 	sw $s1, CONTEXT_OFFSET_S1($a0)
 	sw $s2, CONTEXT_OFFSET_S2($a0)
@@ -55,8 +53,9 @@ context_save_arch:
 	# context_save returns 1
 	j $31
 	li $2, 1
+FUNCTION_END(context_save_arch)
 
-context_restore_arch:
+FUNCTION_BEGIN(context_restore_arch)
 	lw $s0, CONTEXT_OFFSET_S0($a0)
 	lw $s1, CONTEXT_OFFSET_S1($a0)
 	lw $s2, CONTEXT_OFFSET_S2($a0)
@@ -74,3 +73,4 @@ context_restore_arch:
 	# context_restore returns 0
 	j $31
 	xor $2, $2
+FUNCTION_END(context_restore_arch)
