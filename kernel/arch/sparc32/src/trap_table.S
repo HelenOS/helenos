@@ -26,21 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/trap.h>
 #include <arch/regwin.h>
 
 .text
-
-.global trap_table
-.global reset_trap
-.global preemptible_trap
-.global interrupt_trap
-.global syscall_trap
-.global window_overflow_trap
-.global window_underflow_trap
-.global write_to_invalid
-.global read_from_invalid
-.global flush_windows
 
 .macro get_wim_number reg
 	clr \reg
@@ -217,7 +207,7 @@
 	nop
 .endm
 
-write_to_invalid:
+FUNCTION_BEGIN(write_to_invalid)
 	! Write value 1
 	mov %o0, %g7
 	switch_to_invalid %g3, %g4
@@ -235,8 +225,9 @@ write_to_invalid:
 	switch_back %g3, %g4
 	retl
 	nop
+FUNCTION_END(write_to_invalid)
 
-read_from_invalid:
+FUNCTION_BEGIN(read_from_invalid)
 	! Read value 1
 	mov %o0, %g7
 	switch_to_invalid %g3, %g4
@@ -254,14 +245,15 @@ read_from_invalid:
 	switch_back %g3, %g4
 	retl
 	nop
+FUNCTION_END(read_from_invalid)
 
-reset_trap:
+SYMBOL(reset_trap)
 	set 0x80000100, %l0
 	set 'r', %l1
 	sta %l1, [%l0] 0x1c
 	rett
 
-window_overflow_trap:
+SYMBOL(window_overflow_trap)
 	mov %g7, %l0
 	
 	/* Check whether previous mode was usermode */
@@ -392,7 +384,7 @@ window_overflow_trap:
 		jmp %l1
 		rett %l2
 
-window_underflow_trap:
+SYMBOL(window_underflow_trap)
 	mov %g7, %l0
 	
 	/* Check whether previous mode was usermode */
@@ -478,7 +470,7 @@ window_underflow_trap:
 		jmp %l1
 		rett %l2
 
-flush_windows:
+FUNCTION_BEGIN(flush_windows)
 	mov 7, %g1
 	1:
 		subcc %g1, 1, %g1
@@ -493,8 +485,9 @@ flush_windows:
 	
 	retl
 	nop
+FUNCTION_END(flush_windows)
 
-preemptible_trap:
+SYMBOL(preemptible_trap)
 	/* Save %g7 */
 	mov %g7, %l0
 	
@@ -669,7 +662,7 @@ preemptible_trap:
 		jmp %l1
 		rett %l2
 
-interrupt_trap:
+SYMBOL(interrupt_trap)
 	/* Save %g7 */
 	mov %g7, %l0
 	
@@ -843,7 +836,7 @@ interrupt_trap:
 		jmp %l1
 		rett %l2
 
-syscall_trap:
+SYMBOL(syscall_trap)
 	/* Save %g7 */
 	mov %g7, %l0
 	
@@ -1050,7 +1043,7 @@ syscall_trap:
 	ta 0 ;
 
 .align TRAP_TABLE_SIZE
-trap_table:
+SYMBOL(trap_table)
 	STRAP(0x0, reset_trap)
 	TRAP(0x1, instruction_access_exception)
 	TRAP(0x2, illegal_instruction)

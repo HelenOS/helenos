@@ -26,15 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/context_offset.h>
 
 .text
 
-.global flush_windows
-.global context_save
-.global context_restore
-
-context_save:
+FUNCTION_BEGIN(context_save)
 	#
 	# We rely on the kernel to flush our active register windows to memory
 	# should a thread switch occur.
@@ -55,8 +52,9 @@ context_save:
 	CONTEXT_SAVE_ARCH_CORE %o0
 	retl
 	mov 1, %o0              ! context_save_arch returns 1
+FUNCTION_END(context_save)
 
-context_restore:
+FUNCTION_BEGIN(context_restore)
 	#
 	# Flush all active windows.
 	# This is essential, because CONTEXT_RESTORE_ARCH_CORE overwrites %sp of
@@ -83,3 +81,4 @@ context_restore:
 	CONTEXT_RESTORE_ARCH_CORE %o0
 	retl
 	xor %o0, %o0, %o0       ! context_restore_arch returns 0
+FUNCTION_END(context_restore)

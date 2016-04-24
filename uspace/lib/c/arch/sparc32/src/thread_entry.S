@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2006 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.section .init, "ax"
+#include <abi/asmtool.h>
 
-.org 0
+.text
 
-.globl __entry
-
-## User-space task entry point
+## User-space thread entry point for all but the first threads.
 #
-# %o0 contains uarg
-# %o1 contains pcb_ptr
 #
-__entry:
+SYMBOL(__thread_entry)
 	#
 	# Create the first stack frame.
 	#
 	
 	save %sp, -176, %sp
-	## XXX	flushw
+	## XXX flushw
 	mov 7, %g1
 	1:
 		subcc %g1, 1, %g1
@@ -54,14 +50,18 @@ __entry:
 	1:
 		subcc %g1, 1, %g1
 		bg 1b
-		restore
 	
-	## XXX end flush
-	## add %g0, -0x7ff, %fp
+	## XXX end flushw
 	set 0x80000000, %fp
 	
-	# Pass pcb_ptr as the first argument to __main()
-	mov %i1, %o0
+	#
+	# Propagate the input arguments to the new window.
+	#
+	
+	mov %i0, %o0
+	
 	sethi %hi(_gp), %l7
-	call __main
+	call __thread_main      ! %o0 contains address of uarg
 	or %l7, %lo(_gp), %l7
+	
+	! not reached

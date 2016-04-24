@@ -27,19 +27,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/context_offset.h>
 #include <arch/arch.h>
 
 .text
 
-.global context_save_arch
-.global context_restore_arch
-
 /*
  * context_save_arch() is required not to create its own stack frame. See the
  * generic context.h for explanation.
  */
-context_save_arch:
+FUNCTION_BEGIN(context_save_arch)
 	#
 	# Force all our active register windows to memory so that we can find
 	# them there even if e.g. the thread is migrated to another processor.
@@ -61,8 +59,9 @@ context_save_arch:
 	CONTEXT_SAVE_ARCH_CORE %o0
 	retl
 	mov 1, %o0		! context_save_arch returns 1
+FUNCTION_END(context_save_arch)
 
-context_restore_arch:
+FUNCTION_BEGIN(context_restore_arch)
 	#
 	# Forget all previous windows, they are not going to be needed again.
 	# Enforce a window fill on the next RESTORE instruction by setting
@@ -96,3 +95,4 @@ context_restore_arch:
 	CONTEXT_RESTORE_ARCH_CORE %o0
 	retl
 	xor %o0, %o0, %o0	! context_restore_arch returns 0
+FUNCTION_END(context_restore_arch)

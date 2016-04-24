@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.globl entry_point_jmp
+#include <abi/asmtool.h>
 
 ## void entry_point_jmp(void *entry_point, void *pcb);
 #
@@ -34,9 +34,10 @@
 # %o1	contains pcb
 #
 # Jump to program entry point
-entry_point_jmp:
+FUNCTION_BEGIN(entry_point_jmp)
 	# Pass pcb pointer to entry point in %o1. As it is already
 	# there, no action is needed.
 	call %o0
 	nop
 	# FIXME: use branch instead of call
+FUNCTION_END(entry_point_jmp)
