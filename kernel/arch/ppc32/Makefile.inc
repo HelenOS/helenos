@@ -44,7 +44,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/fpu_context.S \
 	arch/$(KARCH)/src/boot/boot.S \
 	arch/$(KARCH)/src/ppc32.c \
-	arch/$(KARCH)/src/dummy.s \
+	arch/$(KARCH)/src/dummy.S \
 	arch/$(KARCH)/src/exception.S \
 	arch/$(KARCH)/src/interrupt.c \
 	arch/$(KARCH)/src/asm.S \

@@ -26,25 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.section .init, "ax"
+#include <abi/asmtool.h>
 
-.org 0
-
-.globl __entry
-
-## User-space task entry point
+.text
+	
+## User-space thread entry point for all but the first threads.
 #
-# r6 contains the PCB pointer
 #
-__entry:
+SYMBOL(__thread_entry)
 	#
 	# Create the first stack frame.
 	#
-	li %r3, 0
-	stw %r3, 0(%r1)
+	li %r4, 0
+	stw %r4, 0(%r1)
 	stwu %r1, -16(%r1)
-	
-	# Pass the PCB pointer to __main() as the first argument.
-	# The first argument is passed in r3.
-	mr %r3, %r6
-	bl __main
+
+	b __thread_main
+

@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/asm/regname.h>
 #include <arch/msr.h>
 #include <arch/mm/page.h>
@@ -125,127 +126,111 @@
 .endm
 
 .org 0x100
-.global exc_system_reset
-exc_system_reset:
+SYMBOL(exc_system_reset)
 	CONTEXT_STORE
 	
 	li r3, 0
 	b jump_to_kernel
 
 .org 0x200
-.global exc_machine_check
-exc_machine_check:
+SYMBOL(exc_machine_check)
 	CONTEXT_STORE
 	
 	li r3, 1
 	b jump_to_kernel
 
 .org 0x300
-.global exc_data_storage
-exc_data_storage:
+SYMBOL(exc_data_storage)
 	CONTEXT_STORE
 	
 	li r3, 2
 	b jump_to_kernel
 
 .org 0x400
-.global exc_instruction_storage
-exc_instruction_storage:
+SYMBOL(exc_instruction_storage)
 	CONTEXT_STORE
 	
 	li r3, 3
 	b jump_to_kernel
 
 .org 0x500
-.global exc_external
-exc_external:
+SYMBOL(exc_external)
 	CONTEXT_STORE
 	
 	li r3, 4
 	b jump_to_kernel
 
 .org 0x600
-.global exc_alignment
-exc_alignment:
+SYMBOL(exc_alignment)
 	CONTEXT_STORE
 	
 	li r3, 5
 	b jump_to_kernel
 
 .org 0x700
-.global exc_program
-exc_program:
+SYMBOL(exc_program)
 	CONTEXT_STORE
 	
 	li r3, 6
 	b jump_to_kernel
 
 .org 0x800
-.global exc_fp_unavailable
-exc_fp_unavailable:
+SYMBOL(exc_fp_unavailable)
 	CONTEXT_STORE
 	
 	li r3, 7
 	b jump_to_kernel
 
 .org 0x900
-.global exc_decrementer
-exc_decrementer:
+SYMBOL(exc_decrementer)
 	CONTEXT_STORE
 	
 	li r3, 8
 	b jump_to_kernel
 
 .org 0xa00
-.global exc_reserved0
-exc_reserved0:
+SYMBOL(exc_reserved0)
 	CONTEXT_STORE
 	
 	li r3, 9
 	b jump_to_kernel
 
 .org 0xb00
-.global exc_reserved1
-exc_reserved1:
+SYMBOL(exc_reserved1)
 	CONTEXT_STORE
 	
 	li r3, 10
 	b jump_to_kernel
 
 .org 0xc00
-.global exc_syscall
-exc_syscall:
+SYMBOL(exc_syscall)
 	CONTEXT_STORE
 	
 	b jump_to_kernel_syscall
 
 .org 0xd00
-.global exc_trace
-exc_trace:
+SYMBOL(exc_trace)
 	CONTEXT_STORE
 	
 	li r3, 12
 	b jump_to_kernel
 
 .org 0x1000
-.global exc_itlb_miss
-exc_itlb_miss:
+SYMBOL(exc_itlb_miss)
 	CONTEXT_STORE
 	
 	li r3, 13
 	b jump_to_kernel
 
 .org 0x1100
-.global exc_dtlb_miss_load
-exc_dtlb_miss_load:
+SYMBOL(exc_dtlb_miss_load)
 	CONTEXT_STORE
 	
 	li r3, 14
 	b jump_to_kernel
 
 .org 0x1200
-.global exc_dtlb_miss_store
-exc_dtlb_miss_store:
+SYMBOL(exc_dtlb_miss_store)
 	CONTEXT_STORE
 	
 	li r3, 15
