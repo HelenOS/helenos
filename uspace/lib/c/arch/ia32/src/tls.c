@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2016 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,10 @@
 #include <sys/types.h>
 #include <align.h>
 
+#ifdef CONFIG_RTLD
+#include <rtld/rtld.h>
+#endif
+
 tcb_t *tls_alloc_arch(void **data, size_t size)
 {
 	return tls_alloc_variant_2(data, size);
@@ -67,11 +72,17 @@ void __attribute__ ((__regparm__ (1)))
 	uint8_t *tls;
 
 	/* Calculate size of TLS block */
-	tls_size = ALIGN_UP(&_tbss_end - &_tdata_start, &_tls_alignment);
+	tls_size = tls_get_size();
 
 	/* The TLS block is just before TCB */
 	tls = (uint8_t *)__tcb_get() - tls_size;
 
+#ifdef CONFIG_RTLD
+	if (runtime_env != NULL) {
+		return rtld_tls_get_addr(runtime_env, tls, ti->ti_module,
+		    ti->ti_offset);
+	}
+#endif
 	return tls + ti->ti_offset;
 }
 

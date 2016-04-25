@@ -170,12 +170,12 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 			*r_ptr += m->bias;
 			break;
 
+//		case R_386_TLS_DTPOFF32:
+//			*r_ptr = sym_def->st_value;
+//			break; 
+
 		case R_386_TLS_DTPMOD32:
-			/*
-			 * We can ignore this as long as the only module
-			 * with TLS variables is libc.so.
-			 */
-			DPRINTF("Ignoring R_386_TLS_DTPMOD32\n");
+			*r_ptr = dest->id;
 			break;
 
 		default:

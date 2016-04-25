@@ -42,7 +42,6 @@
 
 rtld_t *runtime_env;
 static rtld_t rt_env_static;
-static module_t prog_mod;
 
 /** Initialize the runtime linker for use in a statically-linked executable. */
 void rtld_init_static(void)
@@ -61,6 +60,7 @@ void rtld_init_static(void)
 int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 {
 	rtld_t *env;
+	module_t *prog;
 
 	DPRINTF("Load dynamically linked program.\n");
 
@@ -69,23 +69,39 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	if (env == NULL)
 		return ENOMEM;
 
+	env->next_id = 1;
+
+	prog = calloc(1, sizeof(module_t));
+	if (prog == NULL) {
+		free(env);
+		return ENOMEM;
+	}
+
 	/*
 	 * First we need to process dynamic sections of the executable
 	 * program and insert it into the module graph.
 	 */
 
 	DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
-	dynamic_parse(p_info->dynamic, 0, &prog_mod.dyn);
-	prog_mod.bias = 0;
-	prog_mod.dyn.soname = "[program]";
-	prog_mod.rtld = env;
+	dynamic_parse(p_info->dynamic, 0, &prog->dyn);
+	prog->bias = 0;
+	prog->dyn.soname = "[program]";
+	prog->rtld = env;
+	prog->id = rtld_get_next_id(env);
+
+	prog->tdata = p_info->tls.tdata;
+	prog->tdata_size = p_info->tls.tdata_size;
+	prog->tbss_size = p_info->tls.tbss_size;
+
+	printf("prog tdata at %p size %zu, tbss size %zu\n",
+	    prog->tdata, prog->tdata_size, prog->tbss_size);
 
 	/* Initialize list of loaded modules */
 	list_initialize(&env->modules);
-	list_append(&prog_mod.modules_link, &env->modules);
+	list_append(&prog->modules_link, &env->modules);
 
 	/* Pointer to program module. Used as root of the module graph. */
-	env->program = &prog_mod;
+	env->program = prog;
 
 	/* Work around non-existent memory space allocation. */
 	env->next_bias = 0x1000000;
@@ -95,7 +111,7 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 */
 
 	DPRINTF("Load all program dependencies\n");
-	module_load_deps(&prog_mod);
+	module_load_deps(prog);
 
 	/*
 	 * Now relocate/link all modules together.
@@ -103,11 +119,60 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 
 	/* Process relocations in all modules */
 	DPRINTF("Relocate all modules\n");
-	modules_process_relocs(env, &prog_mod);
+	modules_process_relocs(env, prog);
+
+	modules_process_tls(env);
 
 	*rre = env;
 	return EOK;
 }
+
+/** Create TLS (Thread Local Storage) data structures.
+ *
+ * @return Pointer to TCB.
+ */
+tcb_t *rtld_tls_make(rtld_t *rtld)
+{
+	void *data;
+	tcb_t *tcb;
+	size_t offset;
+
+	tcb = tls_alloc_arch(&data, rtld->tls_size);
+	if (tcb == NULL)
+		return NULL;
+
+	/*
+	 * Copy thread local data from the modules' initialization images.
+	 * Zero out thread-local uninitialized data.
+	 */
+
+	offset = 0;
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		memcpy(data + offset, m->tdata, m->tdata_size);
+		offset += m->tdata_size;
+		memset(data + offset, 0, m->tbss_size);
+		offset += m->tbss_size;
+	}
+
+	return tcb;
+}
+
+unsigned long rtld_get_next_id(rtld_t *rtld)
+{
+	return rtld->next_id++;
+}
+
+void *rtld_tls_get_addr(rtld_t *rtld, void *tls, unsigned long mod_id,
+    unsigned long offset)
+{
+	module_t *m;
+
+	m = module_by_id(rtld, mod_id);
+	assert(m != NULL);
+
+	return tls + m->ioffs + offset;
+}
+
 
 /** @}
  */

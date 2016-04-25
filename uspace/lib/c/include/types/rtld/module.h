@@ -39,8 +39,21 @@
 #include <sys/types.h>
 
 typedef struct module {
+	/** Module ID */
+	unsigned long id;
+	/** Dynamic info for this module */
 	dyn_info_t dyn;
+	/** Load bias */
 	size_t bias;
+
+	/** tdata image start */
+	void *tdata;
+	/** tdata image size */
+	size_t tdata_size;
+	/** tbss size */
+	size_t tbss_size;
+
+	size_t ioffs;
 
 	/** Containing rtld */
 	struct rtld *rtld;

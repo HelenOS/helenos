@@ -45,8 +45,10 @@ extern void module_process_relocs(module_t *);
 extern module_t *module_find(rtld_t *, const char *);
 extern module_t *module_load(rtld_t *, const char *);
 extern void module_load_deps(module_t *);
+extern module_t *module_by_id(rtld_t *, unsigned long);
 
 extern void modules_process_relocs(rtld_t *, module_t *);
+extern void modules_process_tls(rtld_t *);
 extern void modules_untag(rtld_t *);
 
 #endif

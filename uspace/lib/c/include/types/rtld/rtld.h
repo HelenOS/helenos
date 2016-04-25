@@ -47,6 +47,12 @@ typedef struct rtld {
 
 	module_t *program;
 
+	/** Next module ID */
+	unsigned long next_id;
+
+	/** Size of initial TLS tdata + tbss */
+	size_t tls_size;
+
 	/** List of all loaded modules including rtld and the program */
 	list_t modules;
 

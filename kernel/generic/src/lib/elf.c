@@ -162,6 +162,8 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 		break;
 	case PT_LOAD:
 		return load_segment(entry, elf, as);
+	case PT_TLS:
+		break;
 	case PT_DYNAMIC:
 	case PT_INTERP:
 		// FIXME

@@ -36,6 +36,7 @@
 
 #include <adt/list.h>
 #include <elf/elf_load.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <loader/pcb.h>
 #include <stdio.h>
@@ -128,13 +129,14 @@ module_t *module_load(rtld_t *rtld, const char *name)
 	module_t *m;
 	int rc;
 	
-	m = malloc(sizeof(module_t));
-	if (!m) {
+	m = calloc(1, sizeof(module_t));
+	if (m == NULL) {
 		printf("malloc failed\n");
 		exit(1);
 	}
 
 	m->rtld = rtld;
+	m->id = rtld_get_next_id(rtld);
 
 	if (str_size(name) > NAME_BUF_SIZE - 2) {
 		printf("soname too long. increase NAME_BUF_SIZE\n");
@@ -173,6 +175,14 @@ module_t *module_load(rtld_t *rtld, const char *name)
 
 	/* Insert into the list of loaded modules */
 	list_append(&m->modules_link, &rtld->modules);
+
+	/* Copy TLS info */
+	m->tdata = info.tls.tdata;
+	m->tdata_size = info.tls.tdata_size;
+	m->tbss_size = info.tls.tbss_size;
+
+	printf("tdata at %p size %zu, tbss size %zu\n",
+	    m->tdata, m->tdata_size, m->tbss_size);
 
 	return m;
 }
@@ -235,6 +245,17 @@ void module_load_deps(module_t *m)
 	}
 }
 
+/** Find module structure by ID. */
+module_t *module_by_id(rtld_t *rtld, unsigned long id)
+{
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		if (m->id == id)
+			return m;
+	}
+
+	return NULL;
+}
+
 /** Process relocations in modules.
  *
  * Processes relocations in @a start and all its dependencies.
@@ -249,6 +270,14 @@ void modules_process_relocs(rtld_t *rtld, module_t *start)
 		if (m != &rtld->rtld) {
 			module_process_relocs(m);
 		}
+	}
+}
+
+void modules_process_tls(rtld_t *rtld)
+{
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		m->ioffs = rtld->tls_size;
+		rtld->tls_size += m->tdata_size + m->tbss_size;
 	}
 }
 
