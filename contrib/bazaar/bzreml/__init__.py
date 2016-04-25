@@ -207,7 +207,7 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 				try:
 					tree_ac.lock_read()
 					try:
-						diff = DiffTree.from_trees_options(tree_prev, tree_ac, body, "utf8", None, "", "", None)
+						diff = DiffTree.from_trees_options(tree_prev, tree_ac, body, "utf8", None, "", "", None, 3)
 						diff.show_diff(None, None)
 					finally:
 						tree_ac.unlock()
