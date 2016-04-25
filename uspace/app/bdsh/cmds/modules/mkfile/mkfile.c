@@ -164,12 +164,16 @@ int cmd_mkfile(char **argv)
 	if (create_sparse && file_size > 0) {
 		const char byte = 0x00;
 
-		if ((rc2 = lseek(fd, file_size - 1, SEEK_SET)) < 0)
+		if ((rc2 = lseek(fd, file_size - 1, SEEK_SET)) < 0) {
+			close(fd);
 			goto error;
+		}
 
 		rc2 = write(fd, &byte, sizeof(char));
-		if (rc2 < 0)
+		if (rc2 < 0) {
+			close(fd);
 			goto error;
+		}
 		return CMD_SUCCESS;
 	}
 
@@ -186,6 +190,7 @@ int cmd_mkfile(char **argv)
 		if (rc <= 0) {
 			printf("%s: Error writing file (%d).\n", cmdname, errno);
 			close(fd);
+			free(buffer);
 			return CMD_FAILURE;
 		}
 		total_written += rc;
