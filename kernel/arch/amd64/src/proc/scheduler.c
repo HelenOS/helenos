@@ -41,6 +41,7 @@
 #include <print.h>
 #include <arch/pm.h>
 #include <arch/ddi/ddi.h>
+#include <arch/kseg_struct.h>
 
 /** Perform amd64 specific tasks needed before the new task is run.
  *
@@ -54,18 +55,10 @@ void before_task_runs_arch(void)
 /** Perform amd64 specific tasks needed before the new thread is scheduled. */
 void before_thread_runs_arch(void)
 {
-	CPU->arch.tss->rsp0 =
-	    (uintptr_t) &THREAD->kstack[STACK_SIZE];
-	
-	/*
-	 * Syscall support.
-	 */
-	swapgs();
-	write_msr(AMD_MSR_GS, (uintptr_t) THREAD->arch.syscall_rsp);
-	swapgs();
-	
-	/* TLS support - set FS to thread local storage */
-	write_msr(AMD_MSR_FS, THREAD->arch.tls);
+	CPU->arch.tss->rsp0 = (uintptr_t) &THREAD->kstack[STACK_SIZE];
+
+	kseg_t *kseg = (kseg_t *) read_msr(AMD_MSR_GS_KERNEL);	
+	kseg->kstack_rsp = THREAD->arch.kstack_rsp;
 }
 
 void after_thread_ran_arch(void)

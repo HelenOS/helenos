@@ -74,6 +74,10 @@
                         name : r15,
                         type : uint64_t
                 },
+                {
+                        name : tp,
+                        type : uint64_t
+                },
 
                 {
                         name : ipl,

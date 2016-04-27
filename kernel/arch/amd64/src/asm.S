@@ -30,6 +30,8 @@
 #include <arch/pm.h>
 #include <arch/mm/page.h>
 #include <arch/istate_struct.h>
+#include <arch/kseg_struct.h>
+#include <arch/cpu.h>
 
 .text
 
@@ -177,7 +179,7 @@ SYMBOL(int_\i)
 		 */
 		subq $(ISTATE_SOFT_SIZE + 8), %rsp
 	.endif
-	
+
 	/*
 	 * Save the general purpose registers.
 	 */
@@ -198,11 +200,26 @@ SYMBOL(int_\i)
 	movq %r15, ISTATE_OFFSET_R15(%rsp)
 
 	/*
+	 * Is this trap from the kernel?
+	 */
+	cmpq $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%rsp)
+	jz 0f
+
+	/*
+	 * Switch to kernel FS base.
+	 */
+	swapgs
+	movl $AMD_MSR_FS, %ecx
+	movl %gs:KSEG_OFFSET_FSBASE, %eax
+	movl %gs:KSEG_OFFSET_FSBASE+4, %edx
+	wrmsr
+	swapgs
+
+	/*
 	 * Imitate a regular stack frame linkage.
 	 * Stop stack traces here if we came from userspace.
 	 */
-	xorl %edx, %edx
-	cmpq $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%rsp)
+0:	movl $0x0, %edx
 	cmovnzq %rdx, %rbp
 
 	movq %rbp, ISTATE_OFFSET_RBP_FRAME(%rsp)
@@ -271,14 +288,9 @@ SYMBOL(syscall_entry)
 	/* Switch to hidden %gs */
 	swapgs
 	
-	/*
-	 * %gs:0 Scratch space for this thread's user RSP
-	 * %gs:8 Address to be used as this thread's kernel RSP
-	 */
-	
-	movq %rsp, %gs:0  /* save this thread's user RSP */
-	movq %gs:8, %rsp  /* set this thread's kernel RSP */
-	
+	movq %rsp, %gs:KSEG_OFFSET_USTACK_RSP  /* save this thread's user RSP */
+	movq %gs:KSEG_OFFSET_KSTACK_RSP, %rsp  /* set this thread's kernel RSP */
+
 	/*
 	 * Note that the space needed for the imitated istate structure has been
 	 * preallocated for us in thread_create_arch() and set in
@@ -307,10 +319,19 @@ SYMBOL(syscall_entry)
 	movq %r15, ISTATE_OFFSET_R15(%rsp)  /* observability */
 
 	/*
+	 * Switch to kernel FS base.
+	 */
+	movl $AMD_MSR_FS, %ecx
+	movl %gs:KSEG_OFFSET_FSBASE, %eax
+	movl %gs:KSEG_OFFSET_FSBASE+4, %edx
+	wrmsr
+	movq ISTATE_OFFSET_RDX(%rsp), %rdx	/* restore 3rd argument */
+
+	/*
 	 * Save the return address and the userspace stack on locations that
 	 * would normally be taken by them.
 	 */
-	movq %gs:0, %rax
+	movq %gs:KSEG_OFFSET_USTACK_RSP, %rax
 	movq %rax, ISTATE_OFFSET_RSP(%rsp)
 	movq %rcx, ISTATE_OFFSET_RIP(%rsp)
 
@@ -324,7 +345,7 @@ SYMBOL(syscall_entry)
 	/* Switch back to normal %gs */
 	swapgs
 	sti
-	
+
 	/* Copy the 4th argument where it is expected  */
 	movq %r10, %rcx
 

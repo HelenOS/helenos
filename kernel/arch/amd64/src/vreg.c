@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,71 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64
+/** @addtogroup amd64 
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_amd64_CPU_H_
-#define KERN_amd64_CPU_H_
-
-#define RFLAGS_CF  (1 << 0)
-#define RFLAGS_PF  (1 << 2)
-#define RFLAGS_AF  (1 << 4)
-#define RFLAGS_ZF  (1 << 6)
-#define RFLAGS_SF  (1 << 7)
-#define RFLAGS_TF  (1 << 8)
-#define RFLAGS_IF  (1 << 9)
-#define RFLAGS_DF  (1 << 10)
-#define RFLAGS_OF  (1 << 11)
-#define RFLAGS_NT  (1 << 14)
-#define RFLAGS_RF  (1 << 16)
-
-#define EFER_MSR_NUM    0xc0000080
-#define AMD_SCE_FLAG    0
-#define AMD_LME_FLAG    8
-#define AMD_LMA_FLAG    10
-#define AMD_FFXSR_FLAG  14
-#define AMD_NXE_FLAG    11
-
-/* MSR registers */
-#define AMD_MSR_STAR		0xc0000081
-#define AMD_MSR_LSTAR		0xc0000082
-#define AMD_MSR_SFMASK		0xc0000084
-#define AMD_MSR_FS		0xc0000100
-#define AMD_MSR_GS		0xc0000101
-#define AMD_MSR_GS_KERNEL	0xc0000102
-
-#ifndef __ASM__
-
+#include <arch/vreg.h>
 #include <arch/pm.h>
+#include <config.h>
+#include <typedefs.h>
+#include <arch/asm.h>
+#include <panic.h>
+#include <mm/km.h>
+#include <mm/frame.h>
 
-typedef struct {
-	int vendor;
-	int family;
-	int model;
-	int stepping;
-	tss_t *tss;
-	
-	unsigned int id; /** CPU's local, ie physical, APIC ID. */
-	
-	size_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
-} cpu_arch_t;
+/*
+ * During initialization, we need to make sure that context_save() and
+ * context_restore() touch some meaningful address when saving/restoring VREGs.
+ * When a processor is initialized, we set its FS base to a private page and
+ * vreg_ptr to zero.
+ */
+static uint64_t vreg_tp_dummy;
+uint64_t *vreg_ptr = &vreg_tp_dummy;
 
-struct star_msr {
-};
+/**
+ * Allocate and initialize a per-CPU user page to be accessible via the FS
+ * segment register and to hold the virtual registers.
+ */
+void vreg_init(void)
+{
+	uintptr_t frame;
+	uint64_t *page;
 
-struct lstar_msr {
-};
+	frame = frame_alloc(1, FRAME_ATOMIC | FRAME_HIGHMEM, 0);
+	if (!frame)
+		frame = frame_alloc(1, FRAME_ATOMIC | FRAME_LOWMEM, 0);
+	if (!frame)
+		panic("Cannot allocate VREG frame.");
 
-extern void set_efer_flag(int flag);
-extern uint64_t read_efer_flag(void);
-void cpu_setup_fpu(void);
+	page = (uint64_t *) km_map(frame, PAGE_SIZE,
+	    PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
 
-#endif /* __ASM__ */
+	write_msr(AMD_MSR_FS, (uintptr_t) page);
 
-#endif
+	vreg_ptr = NULL; 
+}
 
 /** @}
  */

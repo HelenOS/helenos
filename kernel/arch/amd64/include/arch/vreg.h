@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,67 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64
+/** @addtogroup amd64 
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_amd64_CPU_H_
-#define KERN_amd64_CPU_H_
+#ifndef KERN_amd64_VREG_H_
+#define KERN_amd64_VREG_H_
 
-#define RFLAGS_CF  (1 << 0)
-#define RFLAGS_PF  (1 << 2)
-#define RFLAGS_AF  (1 << 4)
-#define RFLAGS_ZF  (1 << 6)
-#define RFLAGS_SF  (1 << 7)
-#define RFLAGS_TF  (1 << 8)
-#define RFLAGS_IF  (1 << 9)
-#define RFLAGS_DF  (1 << 10)
-#define RFLAGS_OF  (1 << 11)
-#define RFLAGS_NT  (1 << 14)
-#define RFLAGS_RF  (1 << 16)
-
-#define EFER_MSR_NUM    0xc0000080
-#define AMD_SCE_FLAG    0
-#define AMD_LME_FLAG    8
-#define AMD_LMA_FLAG    10
-#define AMD_FFXSR_FLAG  14
-#define AMD_NXE_FLAG    11
-
-/* MSR registers */
-#define AMD_MSR_STAR		0xc0000081
-#define AMD_MSR_LSTAR		0xc0000082
-#define AMD_MSR_SFMASK		0xc0000084
-#define AMD_MSR_FS		0xc0000100
-#define AMD_MSR_GS		0xc0000101
-#define AMD_MSR_GS_KERNEL	0xc0000102
+#define VREG_TP	0
 
 #ifndef __ASM__
 
-#include <arch/pm.h>
+#include <typedefs.h>
 
-typedef struct {
-	int vendor;
-	int family;
-	int model;
-	int stepping;
-	tss_t *tss;
-	
-	unsigned int id; /** CPU's local, ie physical, APIC ID. */
-	
-	size_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
-} cpu_arch_t;
+extern uint64_t *vreg_ptr;
 
-struct star_msr {
-};
-
-struct lstar_msr {
-};
-
-extern void set_efer_flag(int flag);
-extern uint64_t read_efer_flag(void);
-void cpu_setup_fpu(void);
+extern void vreg_init(void);
 
 #endif /* __ASM__ */
 

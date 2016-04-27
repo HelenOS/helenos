@@ -50,7 +50,6 @@ FUNCTION_BEGIN(context_save)
 	movq %r14, CONTEXT_OFFSET_R14(%rdi)
 	movq %r15, CONTEXT_OFFSET_R15(%rdi)
 	
-	# save TLS
 	movq %fs:0, %rax
 	movq %rax, CONTEXT_OFFSET_TLS(%rdi)
 	
@@ -78,10 +77,8 @@ FUNCTION_BEGIN(context_restore)
 	
 	movq %rdx,(%rsp)
 	
-	# Set thread local storage
-	movq CONTEXT_OFFSET_TLS(%rdi), %rdi  # Set arg1 to TLS addr
-	movl $1, %eax                        # SYS_TLS_SET
-	syscall
+	movq CONTEXT_OFFSET_TLS(%rdi), %rdi
+	movq %rdi, %fs:0
 	
 	xorl %eax, %eax                      # context_restore returns 0
 	ret
