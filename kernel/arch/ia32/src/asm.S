@@ -182,17 +182,13 @@ SYMBOL(sysenter_handler)
 	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
 
 	/*
-	 * Save TLS.
-	 */
-	movl %gs, %edx
-	movl %edx, ISTATE_OFFSET_GS(%esp)
-
-	/*
 	 * Switch to kernel selectors.
 	 */
-	movw $(GDT_SELECTOR(KDATA_DES)), %ax
-	movw %ax, %ds
-	movw %ax, %es
+	movl $(GDT_SELECTOR(KDATA_DES)), %eax
+	movl %eax, %ds
+	movl %eax, %es
+	movl $(GDT_SELECTOR(VREG_DES)), %eax
+	movl %eax, %gs
 	
 	/*
 	 * Sanitize EFLAGS.
@@ -210,12 +206,6 @@ SYMBOL(sysenter_handler)
 	popfl	            /* set bits from the mask, clear or ignore others */
 
 	call syscall_handler
-	
-	/*
-	 * Restore TLS.
-	 */
-	movl ISTATE_OFFSET_GS(%esp), %edx
-	movl %edx, %gs
 	
 	/*
 	 * Prepare return address and userspace stack for SYSEXIT.
@@ -251,7 +241,7 @@ SYMBOL(int_syscall)
 	movl %ebp, ISTATE_OFFSET_EBP(%esp)
 
 	/*
-	 * Save the selector registers.
+	 * Save the segment registers.
 	 */
 	movl %gs, %ecx
 	movl %fs, %edx
@@ -271,6 +261,8 @@ SYMBOL(int_syscall)
 	movl $(GDT_SELECTOR(KDATA_DES)), %eax
 	movl %eax, %ds
 	movl %eax, %es
+	movl $(GDT_SELECTOR(VREG_DES)), %eax
+	movl %eax, %gs
 		
 	movl $0, ISTATE_OFFSET_EBP_FRAME(%esp)
 	movl ISTATE_OFFSET_EIP(%esp), %eax
@@ -283,7 +275,7 @@ SYMBOL(int_syscall)
 	call syscall_handler
 			
 	/*
-	 * Restore the selector registers.
+	 * Restore the segment registers.
 	 */
 	movl ISTATE_OFFSET_GS(%esp), %ecx
 	movl ISTATE_OFFSET_FS(%esp), %edx
@@ -353,7 +345,7 @@ SYMBOL(int_\i)
 	movl %ebp, ISTATE_OFFSET_EBP(%esp)
 	
 	/*
-	 * Save the selector registers.
+	 * Save the segment registers.
 	 */
 	movl %gs, %ecx
 	movl %fs, %edx
@@ -373,6 +365,8 @@ SYMBOL(int_\i)
 	movl $(GDT_SELECTOR(KDATA_DES)), %eax
 	movl %eax, %ds
 	movl %eax, %es
+	movl $(GDT_SELECTOR(VREG_DES)), %eax
+	movl %eax, %gs
 	
 	/*
 	 * Imitate a regular stack frame linkage.

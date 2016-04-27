@@ -46,17 +46,14 @@ typedef struct {
 
 static inline void __tcb_set(tcb_t *tcb)
 {
-	__SYSCALL1(SYS_TLS_SET, (sysarg_t) tcb);
+	asm volatile ("movl %0, %%gs:0" :: "r" (tcb));
 }
 
 static inline tcb_t * __tcb_get(void)
 {
 	void *retval;
 	
-	asm (
-		"movl %%gs:0, %0"
-		: "=r" (retval)
-	);
+	asm volatile ("movl %%gs:0, %0" : "=r" (retval));
 	
 	return retval;
 }

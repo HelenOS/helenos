@@ -44,7 +44,7 @@
 #define UTEXT_DES  3
 #define UDATA_DES  4
 #define TSS_DES    5
-#define TLS_DES    6  /* Pointer to Thread-Local-Storage data */
+#define VREG_DES   6  /* Virtual registers */
 
 #ifdef CONFIG_FB
 
@@ -168,7 +168,6 @@ extern void idt_init(void);
 extern void idt_setoffset(idescriptor_t *d, uintptr_t offset);
 
 extern void tss_initialize(tss_t *t);
-extern void set_tls_desc(uintptr_t tls);
 
 #endif /* __ASM__ */
 

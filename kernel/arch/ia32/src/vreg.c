@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32proc
+/** @addtogroup ia32
  * @{
  */
 /** @file
  */
 
-#include <proc/thread.h>
+#include <arch/vreg.h>
+#include <arch/pm.h>
+#include <config.h>
+#include <typedefs.h>
+#include <arch/asm.h>
+#include <panic.h>
+#include <mm/km.h>
+#include <mm/frame.h>
 
-/** Perform ia32 specific thread initialization.
- *
- * @param t Thread to be initialized.
+/*
+ * During initialization, we need to make sure that context_save() and
+ * context_restore() touch some meaningful address when saving/restoring VREGs.
+ * When a processor is initialized, we set its GS base to a private page and
+ * vreg_ptr to zero.
  */
-void thread_create_arch(thread_t *t)
+static uint32_t vreg_tp_dummy;
+uint32_t *vreg_ptr = &vreg_tp_dummy;
+
+void vreg_init(void)
 {
+	uintptr_t frame;
+	uint32_t *page;
+	descriptor_t *gdt_p = (descriptor_t *) gdtr.base;
+
+	frame = frame_alloc(1, FRAME_ATOMIC | FRAME_HIGHMEM, 0);
+	if (!frame)
+		frame = frame_alloc(1, FRAME_ATOMIC | FRAME_LOWMEM, 0);
+	if (!frame)
+		panic("Cannot allocate VREG frame.");
+
+	page = (uint32_t *) km_map(frame, PAGE_SIZE,
+	    PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
+
+	gdt_setbase(&gdt_p[VREG_DES], (uintptr_t) page);
+	gdt_setlimit(&gdt_p[VREG_DES], sizeof(uint32_t));
+
+	gs_load(GDT_SELECTOR(VREG_DES));
+
+	vreg_ptr = NULL; 
 }
 
 /** @}

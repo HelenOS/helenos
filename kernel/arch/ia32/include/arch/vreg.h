@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32proc
+/** @addtogroup ia32
  * @{
  */
 /** @file
  */
 
-#include <proc/thread.h>
+#ifndef KERN_ia32_VREG_H_
+#define KERN_ia32_VREG_H_
 
-/** Perform ia32 specific thread initialization.
- *
- * @param t Thread to be initialized.
- */
-void thread_create_arch(thread_t *t)
-{
-}
+#define VREG_TP	0
+
+#ifndef __ASM__
+
+#include <typedefs.h>
+
+extern uint32_t *vreg_ptr;
+
+extern void vreg_init(void);
+
+#endif /* __ASM__ */
+
+#endif
 
 /** @}
  */

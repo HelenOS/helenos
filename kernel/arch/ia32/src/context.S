@@ -28,6 +28,7 @@
 
 #include <abi/asmtool.h>
 #include <arch/context_struct.h>
+#include <arch/vreg.h>
 
 .text
 
@@ -47,6 +48,10 @@ FUNCTION_BEGIN(context_save_arch)
 	movl %esi, CONTEXT_OFFSET_ESI(%edx)	# %esi -> ctx->esi
 	movl %edi, CONTEXT_OFFSET_EDI(%edx)	# %edi -> ctx->edi
 	movl %ebp, CONTEXT_OFFSET_EBP(%edx)	# %ebp -> ctx->ebp
+
+	mov vreg_ptr, %ecx
+	movl %gs:VREG_TP(%ecx), %ecx
+	movl %ecx, CONTEXT_OFFSET_TP(%edx)
 
 	xorl %eax, %eax		# context_save returns 1
 	incl %eax
@@ -71,6 +76,10 @@ FUNCTION_BEGIN(context_restore_arch)
 	movl CONTEXT_OFFSET_EBP(%eax), %ebp	# ctx->ebp -> %ebp
 
 	movl %edx, 0(%esp)	# put saved pc on stack
+
+	mov vreg_ptr, %ecx
+	movl CONTEXT_OFFSET_TP(%eax), %edx
+	movl %edx, %gs:VREG_TP(%ecx)
+
 	xorl %eax, %eax		# context_restore returns 0
 	ret
-FUNCTION_END(context_restore_arch)

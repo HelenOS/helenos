@@ -58,8 +58,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"push %%eax\n"
 		"popfl\n"
 		
-		/* Set up GS register (TLS) */
-		"movl %[tls_des], %%gs\n"
+		/* Set up GS register (virtual register segment) */
+		"movl %[vreg_des], %%gs\n"
 		
 		"pushl %[udata_des]\n"
 		"pushl %[stack_top]\n"
@@ -80,7 +80,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		  [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
 		  [entry] "r" (kernel_uarg->uspace_entry),
 		  [uarg] "r" (kernel_uarg->uspace_uarg),
-		  [tls_des] "r" (GDT_SELECTOR(TLS_DES))
+		  [vreg_des] "r" (GDT_SELECTOR(VREG_DES))
 		: "eax");
 	
 	/* Unreachable */

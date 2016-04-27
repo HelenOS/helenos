@@ -76,11 +76,8 @@ FUNCTION_BEGIN(context_restore)
 	movl %edx, 0(%esp)  # ctx->pc -> saver's return %eip
 	
 	# set thread local storage
-	pushl %edx
 	movl CONTEXT_OFFSET_TLS(%eax), %edx	# Set arg1 to TLS addr
-	movl $1, %eax				# Syscall SYS_TLS_SET
-	int $0x30
-	popl %edx
+	movl %edx, %gs:0
 	
 	xorl %eax, %eax		# context_restore returns 0
 	ret

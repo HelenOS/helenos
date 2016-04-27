@@ -40,6 +40,8 @@
 #include <arch/context.h>
 #include <panic.h>
 #include <arch/mm/page.h>
+#include <mm/km.h>
+#include <mm/frame.h>
 #include <mm/slab.h>
 #include <memstr.h>
 #include <arch/boot/boot.h>
@@ -50,12 +52,12 @@
  */
 
 /*
- * We have no use for segmentation so we set up flat mode. In this
- * mode, we use, for each privilege level, two segments spanning the
+ * We don't have much use for segmentation so we set up flat mode.
+ * In this mode, we use, for each privilege level, two segments spanning the
  * whole memory. One is for code and one is for data.
  *
- * One is for GS register which holds pointer to the TLS thread
- * structure in it's base.
+ * One special segment apart of that is for the GS register which holds
+ * a pointer to the VREG page in its base.
  */
 descriptor_t gdt[GDT_ITEMS] = {
 	/* NULL descriptor */
@@ -70,8 +72,8 @@ descriptor_t gdt[GDT_ITEMS] = {
 	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
 	/* TSS descriptor - set up will be completed later */
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	/* TLS descriptor */
-	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
+	/* VREG descriptor - segment used for virtual registers, will be reinitialized later */
+	{ 0xffff, 0 , 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
 	/* VESA Init descriptor */
 #ifdef CONFIG_FB
 	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | AR_READABLE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 },
@@ -81,7 +83,7 @@ descriptor_t gdt[GDT_ITEMS] = {
 
 static idescriptor_t idt[IDT_ITEMS];
 
-static tss_t tss;
+static tss_t tss0;
 
 tss_t *tss_p = NULL;
 
@@ -94,8 +96,8 @@ ptr_16_32_t gdtr = {
 void gdt_setbase(descriptor_t *d, uintptr_t base)
 {
 	d->base_0_15 = base & 0xffff;
-	d->base_16_23 = ((base) >> 16) & 0xff;
-	d->base_24_31 = ((base) >> 24) & 0xff;
+	d->base_16_23 = (base >> 16) & 0xff;
+	d->base_24_31 = (base >> 24) & 0xff;
 }
 
 void gdt_setlimit(descriptor_t *d, uint32_t limit)
@@ -264,9 +266,8 @@ void pm_init(void)
 		 * NOTE: bootstrap CPU has statically allocated TSS, because
 		 * the heap hasn't been initialized so far.
 		 */
-		tss_p = &tss;
-	}
-	else {
+		tss_p = &tss0;
+	} else {
 		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
 		if (!tss_p)
 			panic("Cannot allocate TSS.");
@@ -289,18 +290,6 @@ void pm_init(void)
 	
 	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels and clear NT flag. */
 	clean_AM_flag();          /* Disable alignment check */
-}
-
-void set_tls_desc(uintptr_t tls)
-{
-	ptr_16_32_t cpugdtr;
-	descriptor_t *gdt_p;
-
-	gdtr_store(&cpugdtr);
-	gdt_p = (descriptor_t *) cpugdtr.base;
-	gdt_setbase(&gdt_p[TLS_DES], tls);
-	/* Reload gdt register to update GS in CPU */
-	gdtr_load(&cpugdtr);
 }
 
 /** @}

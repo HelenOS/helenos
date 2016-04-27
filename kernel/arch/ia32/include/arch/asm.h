@@ -442,6 +442,19 @@ NO_TRACE static inline void tr_load(uint16_t sel)
 	);
 }
 
+/** Load GS from descriptor table.
+ *
+ * @param sel Selector specifying descriptor of the GS segment.
+ *
+ */
+NO_TRACE static inline void gs_load(uint16_t sel)
+{
+	asm volatile (
+		"mov %[sel], %%gs"
+		:: [sel] "r" (sel)
+	);
+}
+
 extern void paging_on(void);
 extern void enable_l_apic_in_msr(void);
 
