@@ -267,19 +267,6 @@ void calibrate_delay_loop(void)
 	}
 }
 
-/** Set thread-local-storage pointer
- *
- * TLS pointer is set in FS register. Unfortunately the 64-bit
- * part can be set only in CPL0 mode.
- *
- * The specs say, that on %fs:0 there is stored contents of %fs register,
- * we need not to go to CPL0 to read it.
- */
-sysarg_t sys_tls_set(uintptr_t addr)
-{
-	return EOK;
-}
-
 /** Construct function pointer
  *
  * @param fptr   function pointer structure

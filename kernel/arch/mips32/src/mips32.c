@@ -186,16 +186,6 @@ void after_thread_ran_arch(void)
 {
 }
 
-/** Set thread-local-storage pointer
- *
- * We have it currently in K1, it is
- * possible to have it separately in the future.
- */
-sysarg_t sys_tls_set(uintptr_t addr)
-{
-	return EOK;
-}
-
 void arch_reboot(void)
 {
 	___halt();

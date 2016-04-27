@@ -31,11 +31,9 @@
 .text
 
 FUNCTION_BEGIN(cpu_sleep)
-FUNCTION_BEGIN(sys_tls_set)
 	retl
 	nop
 FUNCTION_END(cpu_sleep)
-FUNCTION_END(sys_tls_set)
 
 FUNCTION_BEGIN(cpu_halt)
 	ba %xcc, cpu_halt

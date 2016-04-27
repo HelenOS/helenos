@@ -37,7 +37,6 @@
 
 typedef enum {
 	SYS_KIO = 0,
-	SYS_TLS_SET = 1,  /* Hardcoded for AMD64, IA-32 (fibril.S in uspace) */
 	
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,

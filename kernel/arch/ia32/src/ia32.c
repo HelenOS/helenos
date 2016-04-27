@@ -220,16 +220,6 @@ void calibrate_delay_loop(void)
 	}
 }
 
-/** Set thread-local-storage pointer
- *
- * TLS pointer is set in GS register. That means, the GS contains
- * selector, and the descriptor->base is the correct address.
- */
-sysarg_t sys_tls_set(uintptr_t addr)
-{
-	return EOK;
-}
-
 /** Construct function pointer
  *
  * @param fptr   function pointer structure

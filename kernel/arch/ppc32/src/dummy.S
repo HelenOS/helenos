@@ -30,10 +30,6 @@
 
 .text
 
-FUNCTION_BEGIN(sys_tls_set)
-	b sys_tls_set
-FUNCTION_END(sys_tls_set)
-
 FUNCTION_BEGIN(asm_delay_loop)
 	blr
 FUNCTION_END(asm_delay_loop)

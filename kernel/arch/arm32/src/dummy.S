@@ -37,11 +37,3 @@ FUNCTION_END(calibrate_delay_loop)
 FUNCTION_BEGIN(asm_delay_loop)
 	mov	pc, lr
 FUNCTION_END(asm_delay_loop)
-
-# not used on ARM
-FUNCTION_BEGIN(sys_tls_set)
-FUNCTION_BEGIN(dummy)
-	mov pc, lr
-FUNCTION_END(dummy)
-FUNCTION_END(sys_tls_set)
-

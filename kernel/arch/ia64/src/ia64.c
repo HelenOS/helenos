@@ -249,15 +249,6 @@ void userspace(uspace_arg_t *kernel_uarg)
 	while (1);
 }
 
-/** Set thread-local-storage pointer.
- *
- * We use r13 (a.k.a. tp) for this purpose.
- */
-sysarg_t sys_tls_set(uintptr_t addr)
-{
-	return EOK;
-}
-
 void arch_reboot(void)
 {
 	pio_write_8((ioport8_t *)0x64, 0xfe);

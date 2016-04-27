@@ -1,7 +1,6 @@
 /* Protocol according to which libc uses kernel syscalls */
 (
 	!sys_kio.sys_kio +
-	!sys_tls.sys_tls_set +
 	!sys_thread.sys_thread_create +
 	!sys_thread.sys_thread_get_id +
 	!sys_thread.sys_thread_exit +
