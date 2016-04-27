@@ -50,6 +50,10 @@
 static uint32_t vreg_tp_dummy;
 uint32_t *vreg_ptr = &vreg_tp_dummy;
 
+/**
+ * Allocate and initialize a per-CPU user page to be accessible via the GS
+ * segment register and to hold the virtual registers.
+ */
 void vreg_init(void)
 {
 	uintptr_t frame;
