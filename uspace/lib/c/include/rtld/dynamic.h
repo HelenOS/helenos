@@ -47,9 +47,6 @@
  * and indices into the symbol table are converted to pointers.
  */
 typedef struct dyn_info {
-	/** Type of relocations used for the PLT, either DT_REL or DT_RELA */
-	int plt_rel;
-
 	/** Relocation table without explicit addends */
 	void *rel;
 	size_t rel_sz;
@@ -63,6 +60,8 @@ typedef struct dyn_info {
 	/** PLT relocation table */
 	void *jmp_rel;
 	size_t plt_rel_sz;
+	/** Type of relocations used for the PLT, either DT_REL or DT_RELA */
+	int plt_rel;
 
 	/** Pointer to PLT/GOT (processor-specific) */
 	void *plt_got;

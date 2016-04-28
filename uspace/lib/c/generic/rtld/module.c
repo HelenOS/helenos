@@ -61,24 +61,29 @@ void module_process_relocs(module_t *m)
 
 	module_process_pre_arch(m);
 
-	if (m->dyn.plt_rel == DT_REL) {
-		DPRINTF("table type DT_REL\n");
-		if (m->dyn.rel != NULL) {
-			DPRINTF("non-empty\n");
-			rel_table_process(m, m->dyn.rel, m->dyn.rel_sz);
-		}
-		/* FIXME: this seems wrong */
-		if (m->dyn.jmp_rel != NULL) {
-		DPRINTF("table type jmp-rel\n");
-			DPRINTF("non-empty\n");
+	/* jmp_rel table */
+	if (m->dyn.jmp_rel != NULL) {
+		DPRINTF("jmp_rel table\n");
+		if (m->dyn.plt_rel == DT_REL) {
+			DPRINTF("jmp_rel table type DT_REL\n");
 			rel_table_process(m, m->dyn.jmp_rel, m->dyn.plt_rel_sz);
+		} else {
+			assert(m->dyn.plt_rel == DT_RELA);
+			DPRINTF("jmp_rel table type DT_RELA\n");
+			rela_table_process(m, m->dyn.jmp_rel, m->dyn.plt_rel_sz);
 		}
-	} else { /* (m->dyn.plt_rel == DT_RELA) */
-		DPRINTF("table type DT_RELA\n");
-		if (m->dyn.rela != NULL) {
-			DPRINTF("non-empty\n");
-			rela_table_process(m, m->dyn.rela, m->dyn.rela_sz);
-		}
+	}
+
+	/* rel table */
+	if (m->dyn.rel != NULL) {
+		DPRINTF("rel table\n");
+		rel_table_process(m, m->dyn.rel, m->dyn.rel_sz);
+	}
+
+	/* rela table */
+	if (m->dyn.rela != NULL) {
+		DPRINTF("rela table\n");
+		rela_table_process(m, m->dyn.rela, m->dyn.rela_sz);
 	}
 
 	m->relocated = true;
