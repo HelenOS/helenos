@@ -26,11 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .explicit
 
-.global pal_static_call
-
-pal_static_call:
+FUNCTION_BEGIN(pal_static_call)
 	alloc loc0 = ar.pfs, 7, 6, 0, 0
 
 	mov loc1 = psr ;;
@@ -73,4 +73,5 @@ pal_static_call:
 	
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
+FUNCTION_END(pal_static_call)
 

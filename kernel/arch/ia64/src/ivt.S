@@ -27,6 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/stack.h>
 #include <arch/register.h>
 #include <arch/mm/page.h>
@@ -100,8 +101,7 @@
 	br heavyweight_handler
 .endm
 
-.global heavyweight_handler
-heavyweight_handler:
+SYMBOL(heavyweight_handler)
     /* 1. copy interrupt registers into bank 0 */
     
 	/*
@@ -296,8 +296,7 @@ heavyweight_handler:
     	ld8 r12 = [r31]				/* load stack pointer */ 
 	rfi ;;
 
-.global heavyweight_handler_inner
-heavyweight_handler_inner:
+FUNCTION_BEGIN(heavyweight_handler_inner)
 	/*
 	 * From this point, the rest of the interrupted context
 	 * will be preserved in stacked registers and backing store.
@@ -537,10 +536,10 @@ heavyweight_handler_inner:
 	mov R_RET = loc1
 	mov ar.pfs = loc0
 	br.ret.sptk.many b0
+FUNCTION_END(heavyweight_handler_inner)
 
-.global ivt
 .align 32768
-ivt:
+SYMBOL(ivt)
 	HEAVYWEIGHT_HANDLER 0x00
 	HEAVYWEIGHT_HANDLER 0x04
 	HEAVYWEIGHT_HANDLER 0x08

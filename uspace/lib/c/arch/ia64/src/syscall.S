@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 /**
  * Immediate operand for break instruction.
  * Be carefull about the value as Ski simulator
@@ -36,9 +38,10 @@
  */
 #define SYSCALL_IMM	1
 
-.global __syscall
-__syscall:
+FUNCTION_BEGIN(__syscall)
 	alloc r14 = ar.pfs, 7, 0, 0, 0 ;;
 	break SYSCALL_IMM
 	mov ar.pfs = r14 ;;
 	br.ret.sptk.many b0
+FUNCTION_END(__syscall)
+

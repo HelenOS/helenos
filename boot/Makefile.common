@@ -159,9 +159,8 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_LIBS += \
 		$(USPACE_PATH)/lib/c/libc.so.0 \
 		$(USPACE_PATH)/lib/softint/libsoftint.so.0 \
-		$(USPACE_PATH)/lib/math/libmath.so.0
-	RD_APPS += \
-		$(USPACE_PATH)/app/dltest/dltest
+		$(USPACE_PATH)/lib/math/libmath.so.0 \
+		$(USPACE_PATH)/lib/dltest/libdltest.so.0
 endif
 
 RD_APPS_ESSENTIAL = \
@@ -223,6 +222,11 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/df/df \
 	$(USPACE_PATH)/app/fontviewer/fontviewer \
 	$(USPACE_PATH)/app/wifi_supplicant/wifi_supplicant
+
+ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
+	RD_APPS_NON_ESSENTIAL += \
+		$(USPACE_PATH)/app/dltest/dltest
+endif
 
 RD_TESTS = \
 	$(USPACE_PATH)/lib/c/test-libc \

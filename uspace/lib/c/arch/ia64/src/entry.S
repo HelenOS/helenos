@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2008 Jiri Svoboda
+# Copyright (c) 2006 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,21 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.globl entry_point_jmp
+#include <abi/asmtool.h>
 
-## void entry_point_jmp(void *entry_point, void *pcb);
+.section .init, "ax"
+
+.org 0
+
+## User-space task entry point
 #
-# r0	contains entry_point
-# r1	contains pcb
+# r2 contains the PCB pointer
 #
-# Jump to program entry point
-entry_point_jmp:
-	# load ras_page address to r2
-	ldr r2, =ras_page
-	ldr r2, [r2]
-	# pcb is passed to the entry point in r1 (where it already is)
-	mov r15, r0
+SYMBOL(__entry)
+	alloc loc0 = ar.pfs, 0, 1, 2, 0
+	movl gp = __gp
+	
+	# Pass PCB pointer as the first argument to __main
+	mov out0 = r2
+	br.call.sptk.many b0 = __main
+

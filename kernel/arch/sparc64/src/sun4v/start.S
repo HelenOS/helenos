@@ -27,6 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 #include <arch/stack.h>
 #include <arch/regdef.h>
@@ -105,8 +106,7 @@
  *  - identity mapping for the kernel image
  *
  */
-.global kernel_image_start
-kernel_image_start:
+SYMBOL(kernel_image_start)
 	mov BSP_FLAG, %l0
 	and %o0, %l0, %l7			! l7 <= bootstrap processor?
 	andn %o0, %l0, %l6			! l6 <= start of physical memory
@@ -309,8 +309,7 @@ kernel_image_start:
 	ba,a %xcc, 0b
 
 .align 8
-.global temp_cpu_mondo_handler
-temp_cpu_mondo_handler:
+SYMBOL(temp_cpu_mondo_handler)
 
 	set 0x3c, %o0
 	set 0x15, %o5
@@ -340,8 +339,7 @@ temporary_boot_stack:
 .data
 
 .align 8
-.global physmem_base		! copy of the physical memory base address
-physmem_base:
+SYMBOL(physmem_base)	! copy of the physical memory base address
 	.quad 0
 
 /*
@@ -349,16 +347,13 @@ physmem_base:
  * In runtime, it is modified to contain the address of the end of physical
  * memory.
  */
-.global end_of_identity
-end_of_identity:
+SYMBOL(end_of_identity)
 	.quad -1
 
-.global kernel_8k_tlb_data_template
-kernel_8k_tlb_data_template:
+SYMBOL(kernel_8k_tlb_data_template)
 	.quad 0
 
 /* MMU fault status areas for all CPUs */
 .align MMU_FSA_ALIGNMENT
-.global mmu_fsas
-mmu_fsas:
+SYMBOL(mmu_fsas)
 	.space (MMU_FSA_SIZE * MAX_NUM_STRANDS)

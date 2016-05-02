@@ -6,7 +6,7 @@ setup(
 	name = 'bzreml',
 	description = 'Commit email plugin for Bazaar',
 	keywords = 'plugin bzr email',
-	version = '1.4',
+	version = '1.5',
 	url = 'http://www.decky.cz/',
 	license = 'BSD',
 	author = 'Martin Decky',

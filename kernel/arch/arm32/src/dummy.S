@@ -26,22 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.global calibrate_delay_loop
-.global asm_delay_loop
-
-.global sys_tls_set
-.global dummy
-
-calibrate_delay_loop:
+FUNCTION_BEGIN(calibrate_delay_loop)
 	mov	pc, lr
+FUNCTION_END(calibrate_delay_loop)
 
-asm_delay_loop:
+FUNCTION_BEGIN(asm_delay_loop)
 	mov	pc, lr
-
-# not used on ARM
-sys_tls_set:
-
-dummy:
-	mov pc, lr
+FUNCTION_END(asm_delay_loop)

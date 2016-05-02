@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2005 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.globl __thread_entry
+FUNCTION_BEGIN(calibrate_delay_loop)
+FUNCTION_BEGIN(asm_delay_loop)
+FUNCTION_BEGIN(cpu_sleep)
+	br.ret.sptk.many b0
+FUNCTION_END(calibrate_delay_loop)
+FUNCTION_END(asm_delay_loop)
+FUNCTION_END(cpu_sleep)
 
-## User-space thread entry point for all but the first threads.
-#
-#
-__thread_entry:
-	alloc loc0 = ar.pfs, 0, 1, 1, 0
-
-	movl gp = __gp
-	
-	#
-	# r8 contains address of uarg structure.
-	#
-	
-	mov out0 = r8
-	br.call.sptk.many b0 = __thread_main
-	
-	#
-	# Not reached.
-	#
-	
-.end __thread_entry

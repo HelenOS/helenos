@@ -59,9 +59,9 @@ void *dlopen(const char *path, int flag)
 	m = module_find(runtime_env, path);
 	if (m == NULL) {
 		printf("NULL. module_load('%s')\n", path);
-		m = module_load(runtime_env, path);
+		m = module_load(runtime_env, path, mlf_local);
 		printf("module_load_deps(m)\n");
-		module_load_deps(m);
+		module_load_deps(m, mlf_local);
 		/* Now relocate. */
 		printf("module_process_relocs(m)\n");
 		module_process_relocs(m);
@@ -81,7 +81,7 @@ void *dlsym(void *mod, const char *sym_name)
 	module_t *sm;
 
 	printf("dlsym(0x%lx, \"%s\")\n", (long)mod, sym_name);
-	sd = symbol_bfs_find(sym_name, (module_t *) mod, ssf_none, &sm);
+	sd = symbol_bfs_find(sym_name, (module_t *) mod, &sm);
 	if (sd != NULL) {
 		return symbol_get_addr(sd, sm);
 	}

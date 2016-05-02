@@ -26,23 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
 #include <arch/asm/regname.h>
 #include <arch/msr.h>
 #include <arch/istate_struct.h>
 
 .text
 
-.global userspace_asm
-.global iret
-.global iret_syscall
-.global memcpy_from_uspace
-.global memcpy_to_uspace
-.global memcpy_from_uspace_failover_address
-.global memcpy_to_uspace_failover_address
-.global early_putchar
-
-userspace_asm:
-	
+FUNCTION_BEGIN(userspace_asm)
 	/*
 	 * r3 = uspace_uarg
 	 * r4 = stack
@@ -77,9 +68,9 @@ userspace_asm:
 	/* Jump to userspace */
 	
 	rfi
+FUNCTION_END(userspace_asm)
 
-iret:
-	
+SYMBOL(iret)
 	/* Disable interrupts */
 	
 	mfmsr r31
@@ -141,8 +132,7 @@ iret:
 	
 	rfi
 
-iret_syscall:
-	
+SYMBOL(iret_syscall)
 	/* Disable interrupts */
 	
 	mfmsr r31
@@ -203,9 +193,8 @@ iret_syscall:
 	
 	rfi
 
-memcpy_from_uspace:
-memcpy_to_uspace:
-	
+FUNCTION_BEGIN(memcpy_from_uspace)
+FUNCTION_BEGIN(memcpy_to_uspace)
 	srwi. r7, r5, 3
 	addi r6, r3, -4
 	addi r4, r4, -4
@@ -266,12 +255,15 @@ memcpy_to_uspace:
 		beq 2b
 		mtctr r7
 		b 1b
+FUNCTION_END(memcpy_from_uspace)
+FUNCTION_END(memcpy_to_uspace)
 
-memcpy_from_uspace_failover_address:
-memcpy_to_uspace_failover_address:
+SYMBOL(memcpy_from_uspace_failover_address)
+SYMBOL(memcpy_to_uspace_failover_address)
 	/* Return zero, failure */
 	xor r3, r3, r3
 	blr
 
-early_putchar:
+FUNCTION_BEGIN(early_putchar)
 	blr
+FUNCTION_END(early_putchar)

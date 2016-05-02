@@ -28,13 +28,11 @@
 
 .text
 
-.global context_save
-.global context_restore
-
+#include <abi/asmtool.h>
 #include <libarch/regname.h>
 #include <libarch/fibril_context.h>
 
-context_save:
+FUNCTION_BEGIN(context_save)
 	stw sp, CONTEXT_OFFSET_SP(r3)
 	stw r2, CONTEXT_OFFSET_TLS(r3)
 	stw r13, CONTEXT_OFFSET_R13(r3)
@@ -66,9 +64,9 @@ context_save:
 	# context_save returns 1
 	li r3, 1
 	blr
+FUNCTION_END(context_save)
 
-
-context_restore:
+FUNCTION_BEGIN(context_restore)
 	lwz sp, CONTEXT_OFFSET_SP(r3)
 	lwz r2, CONTEXT_OFFSET_TLS(r3)
 	lwz r13, CONTEXT_OFFSET_R13(r3)
@@ -100,3 +98,4 @@ context_restore:
 	# context_restore returns 0
 	li r3, 0
 	blr
+FUNCTION_END(context_restore)

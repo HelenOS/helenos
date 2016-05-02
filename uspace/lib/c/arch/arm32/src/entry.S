@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2007 Michal Kebrt, Pavel Jancik
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,35 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .section .init, "ax"
 
 .org 0
 
-.globl __entry
-
 ## User-space task entry point
 #
-# r6 contains the PCB pointer
+# r1 contains the PCB pointer
+# r2 contains the RAS page address
 #
-__entry:
+SYMBOL(__entry)
+	# Store the RAS page address into the ras_page variable
+	ldr r0, =ras_page
+	str r2, [r0]
+	
 	#
 	# Create the first stack frame.
 	#
-	li %r3, 0
-	stw %r3, 0(%r1)
-	stwu %r1, -16(%r1)
+	mov fp, #0
+	mov ip, sp
+	push {fp, ip, lr, pc}
+	sub fp, ip, #4
 	
-	# Pass the PCB pointer to __main() as the first argument.
-	# The first argument is passed in r3.
-	mr %r3, %r6
+	# Pass pcb_ptr to __main as the first argument (in r0)
+	mov r0, r1
 	bl __main
+
+.data
+
+SYMBOL(ras_page)
+	.long 0

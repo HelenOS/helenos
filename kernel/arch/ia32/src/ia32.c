@@ -56,6 +56,8 @@
 #include <genarch/srln/srln.h>
 #include <genarch/multiboot/multiboot.h>
 #include <genarch/multiboot/multiboot2.h>
+#include <arch/pm.h>
+#include <arch/vreg.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -95,6 +97,8 @@ void arch_pre_mm_init(void)
 
 void arch_post_mm_init(void)
 {
+	vreg_init();
+
 	if (config.cpu_active == 1) {
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
@@ -121,6 +125,7 @@ void arch_post_mm_init(void)
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
+
 }
 
 void arch_post_cpu_init(void)
@@ -213,19 +218,6 @@ void calibrate_delay_loop(void)
 		 */
 		i8254_normal_operation();
 	}
-}
-
-/** Set thread-local-storage pointer
- *
- * TLS pointer is set in GS register. That means, the GS contains
- * selector, and the descriptor->base is the correct address.
- */
-sysarg_t sys_tls_set(uintptr_t addr)
-{
-	THREAD->arch.tls = addr;
-	set_tls_desc(addr);
-	
-	return EOK;
 }
 
 /** Construct function pointer

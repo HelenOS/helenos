@@ -27,6 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 
 #if defined(PROCESSOR_us) || defined(PROCESSOR_us3)
@@ -41,13 +42,9 @@
 .register %g6, #scratch
 .register %g7, #scratch
 
-.global start
-.global halt
-.global jump_to_kernel
-
 .section BOOTSTRAP, "ax"
 
-start:
+SYMBOL(start)
 	ba %xcc, 1f
 	nop
 
@@ -95,11 +92,12 @@ initial_stack:
 
 .text
 
-halt:
+FUNCTION_BEGIN(halt)
 	ba %xcc, halt
 	nop
+FUNCTION_END(halt)
 
-jump_to_kernel:
+FUNCTION_BEGIN(jump_to_kernel)
 	/*
 	 * Guarantee cache coherence:
 	 * 1. Make sure that the code we have moved has drained to main memory.
@@ -132,6 +130,7 @@ jump_to_kernel:
 	! Jump to kernel
 	jmp %o3
 	nop
+FUNCTION_END(jump_to_kernel)
 
 # Flush I-cache
 icache_flush:
@@ -157,8 +156,7 @@ icache_flush:
 	nop
 #endif	/* PROCESSOR_us || PROCESSOR_us3 */
 
-.global ofw
-ofw:
+FUNCTION_BEGIN(ofw)
 	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
 	set ofw_cif, %l0
 	ldx [%l0], %l0
@@ -174,3 +172,4 @@ ofw:
 	
 	ret
 	restore %o0, 0, %o0
+FUNCTION_END(ofw)

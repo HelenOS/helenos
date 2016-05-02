@@ -69,9 +69,6 @@ void before_thread_runs_arch(void)
 	/* Set kernel stack for CPL3 -> CPL0 switch via interrupt */
 	CPU->arch.tss->esp0 = kstk;
 	CPU->arch.tss->ss0 = GDT_SELECTOR(KDATA_DES);
-	
-	/* Set up TLS in GS register */
-	set_tls_desc(THREAD->arch.tls);
 }
 
 void after_thread_ran_arch(void)

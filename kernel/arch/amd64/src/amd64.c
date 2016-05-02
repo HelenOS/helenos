@@ -55,6 +55,9 @@
 #include <genarch/srln/srln.h>
 #include <genarch/multiboot/multiboot.h>
 #include <genarch/multiboot/multiboot2.h>
+#include <arch/pm.h>
+#include <arch/vreg.h>
+#include <arch/kseg.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -138,6 +141,9 @@ void arch_pre_mm_init(void)
 
 void arch_post_mm_init(void)
 {
+	vreg_init();
+	kseg_init();
+
 	if (config.cpu_active == 1) {
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
@@ -259,22 +265,6 @@ void calibrate_delay_loop(void)
 		 */
 		i8254_normal_operation();
 	}
-}
-
-/** Set thread-local-storage pointer
- *
- * TLS pointer is set in FS register. Unfortunately the 64-bit
- * part can be set only in CPL0 mode.
- *
- * The specs say, that on %fs:0 there is stored contents of %fs register,
- * we need not to go to CPL0 to read it.
- */
-sysarg_t sys_tls_set(uintptr_t addr)
-{
-	THREAD->arch.tls = addr;
-	write_msr(AMD_MSR_FS, addr);
-	
-	return EOK;
 }
 
 /** Construct function pointer

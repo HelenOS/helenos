@@ -143,7 +143,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 			DPRINTF("fixup R_386_COPY (s)\n");
 
 			sym_def = symbol_def_find(str_tab + sym->st_name,
-			    m, ssf_noroot, &dest);
+			    m, ssf_noexec, &dest);
 
 			if (sym_def) {
 				sym_addr = (uint32_t)

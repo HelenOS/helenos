@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/asm/regname.h>
 #include <arch/mm/page.h>
 #include <arch/asm/boot.h>
@@ -37,12 +38,6 @@
 .set noat
 .set noreorder
 .set nomacro
-
-.global kernel_image_start
-.global tlb_refill_entry
-.global cache_error_entry
-.global exception_entry
-.global userspace_asm
 
 /*
  * Which status bits are thread-local:
@@ -191,7 +186,7 @@
 .endm
 
 .org 0x0
-kernel_image_start:
+SYMBOL(kernel_image_start)
 	/* load temporary stack */
 	lui $sp, %hi(end_stack)
 	ori $sp, $sp, %lo(end_stack)
@@ -209,15 +204,15 @@ kernel_image_start:
 .space TEMP_STACK_SIZE
 end_stack:
 
-tlb_refill_entry:
+SYMBOL(tlb_refill_entry)
 	j tlb_refill_handler
 	nop
 
-cache_error_entry:
+SYMBOL(cache_error_entry)
 	j cache_error_handler
 	nop
 
-exception_entry:
+SYMBOL(exception_entry)
 	j exception_handler
 	nop
 
@@ -344,10 +339,11 @@ cache_error_handler:
 	REGISTERS_LOAD $sp
 	eret
 
-userspace_asm:
+FUNCTION_BEGIN(userspace_asm)
 	move $sp, $a0
 	move $v0, $a1
 	move $t9, $a2      /* set up correct entry into PIC code */
 	xor $a0, $a0, $a0  /* $a0 is defined to hold pcb_ptr */
 	                   /* set it to 0 */
 	eret
+FUNCTION_END(userspace_asm)

@@ -88,6 +88,8 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	prog->dyn.soname = "[program]";
 	prog->rtld = env;
 	prog->id = rtld_get_next_id(env);
+	prog->exec = true;
+	prog->local = false;
 
 	prog->tdata = p_info->tls.tdata;
 	prog->tdata_size = p_info->tls.tdata_size;
@@ -111,7 +113,7 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 */
 
 	DPRINTF("Load all program dependencies\n");
-	module_load_deps(prog);
+	module_load_deps(prog, 0);
 
 	/*
 	 * Now relocate/link all modules together.

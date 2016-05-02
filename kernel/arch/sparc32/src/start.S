@@ -26,14 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.global kernel_image_start
-.global early_putchar
-.global kernel_sp
-.global uspace_wbuf
-
-kernel_image_start:
+SYMBOL(kernel_image_start)
 	# Install trap handlers
 	set trap_table, %g1
 	mov %g1, %tbr
@@ -67,7 +64,7 @@ kernel_image_start:
 	call main_bsp
 	nop
 
-early_putchar:
+FUNCTION_BEGIN(early_putchar)
 	set 0x80000100, %l0
 	cmp %o0, '\n'
 	bne skip
@@ -79,11 +76,12 @@ early_putchar:
 		sta %o0, [%l0] 0x1c
 		retl
 		nop
+FUNCTION_END(early_putchar)
 
-kernel_sp:
+SYMBOL(kernel_sp)
 .space 4
 
-uspace_wbuf:
+SYMBOL(uspace_wbuf)
 .space 4
 
 .align 16

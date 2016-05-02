@@ -26,14 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/asm/regname.h>
 #include <config.h>
 
 .section K_TEXT_START, "ax"
 
-.global kernel_image_start
-kernel_image_start:
-	
+SYMBOL(kernel_image_start)
 	# load temporal kernel stack
 	
 	lis sp, kernel_stack@ha

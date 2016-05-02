@@ -26,16 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/asm/boot.h>
 
 .text
 
-.global kernel_image_start
-.global exc_stack
-.global supervisor_sp
-
-kernel_image_start:
-
+SYMBOL(kernel_image_start)
 	# initialize Stack pointer for exception modes
 	mrs r4, cpsr
 	bic r4, r4, #0x1f
@@ -82,7 +78,7 @@ kernel_image_start:
 temp_stack:
 
 	.space 1024
-exc_stack:
+SYMBOL(exc_stack)
 
-supervisor_sp:
+SYMBOL(supervisor_sp)
 	.space 4

@@ -33,6 +33,7 @@ uspace/app/bnchmark/bnchmark
 uspace/drv/char/pl050/pl050
 uspace/app/date/date
 uspace/app/devctl/devctl
+uspace/app/dltest/dltest
 uspace/app/dnscfg/dnscfg
 uspace/app/dnsres/dnsres
 uspace/app/edit/edit
@@ -93,6 +94,7 @@ uspace/dist/app/blkdump
 uspace/dist/app/bnchmark
 uspace/dist/app/date
 uspace/dist/app/devctl
+uspace/dist/app/dltest
 uspace/dist/app/dnscfg
 uspace/dist/app/dnsres
 uspace/dist/app/edit

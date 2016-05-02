@@ -27,20 +27,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 
 .text
 
-.global halt
-.global memcpy
-.global jump_to_kernel
-
-halt:
+FUNCTION_BEGIN(halt)
 	br halt
+FUNCTION_END(halt)
 
-jump_to_kernel:
+FUNCTION_BEGIN(jump_to_kernel)
 	alloc loc0 = ar.pfs, 1, 1, 0, 0
 	mov r2 = in0 ;;			# Pass bootinfo address
 	movl r8 = KERNEL_ADDRESS;;
 	mov b1 = r8 ;;
 	br.call.sptk.many b0 = b1;;
+FUNCTION_END(jump_to_kernel)
+

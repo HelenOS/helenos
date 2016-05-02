@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 #include <arch/stack.h>
 
@@ -37,8 +38,7 @@
 /*
  * Almost the same as memcpy() except the loads are from userspace.
  */
-.global memcpy_from_uspace
-memcpy_from_uspace:
+FUNCTION_BEGIN(memcpy_from_uspace)
 	mov %o0, %o3  /* save dst */
 	add %o1, 7, %g1
 	and %g1, -8, %g1
@@ -107,12 +107,12 @@ memcpy_from_uspace:
 		
 		jmp %o7 + 8  /* exit point */
 		mov %o3, %o0
+FUNCTION_END(memcpy_from_uspace)
 
 /*
  * Almost the same as memcpy() except the stores are to userspace.
  */
-.global memcpy_to_uspace
-memcpy_to_uspace:
+FUNCTION_BEGIN(memcpy_to_uspace)
 	mov %o0, %o3  /* save dst */
 	add %o1, 7, %g1
 	and %g1, -8, %g1
@@ -181,15 +181,14 @@ memcpy_to_uspace:
 		
 		jmp	%o7 + 8  /* exit point */
 		mov	%o3, %o0
+FUNCTION_END(memcpy_to_uspace)
 
-.global memcpy_from_uspace_failover_address
-.global memcpy_to_uspace_failover_address
-memcpy_from_uspace_failover_address:
-memcpy_to_uspace_failover_address:
+SYMBOL(memcpy_from_uspace_failover_address)
+SYMBOL(memcpy_to_uspace_failover_address)
 	jmp %o7 + 8   /* exit point */
 	mov %g0, %o0  /* return 0 on failure */
 
-.global early_putchar
-early_putchar:
+FUNCTION_BEGIN(early_putchar)
 	retl
 	nop
+FUNCTION_END(early_putchar)

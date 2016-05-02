@@ -27,12 +27,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 
 .section BOOTSTRAP, "ax"
 
-.global start
-start:
+SYMBOL(start)
 	movl gp = __gp
 
 	#
@@ -68,8 +68,7 @@ start:
 
 .bss
 
-.global bootpar
-bootpar:
+SYMBOL(bootpar)
 	.quad 0
 
 .align STACK_SIZE

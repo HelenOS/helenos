@@ -65,6 +65,11 @@
                         type : uint32_t
                 },
                 {
+                        name : tp,
+                        type : uint32_t
+                },
+
+                {
                         name : ipl,
                         type : ipl_t
                 }

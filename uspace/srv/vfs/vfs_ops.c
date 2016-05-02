@@ -636,6 +636,11 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 	else
 		fibril_rwlock_read_unlock(&namespace_rwlock);
+
+	if (!node) {
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
 	
 	/* Truncate the file if requested and if necessary. */
 	if (oflag & O_TRUNC) {

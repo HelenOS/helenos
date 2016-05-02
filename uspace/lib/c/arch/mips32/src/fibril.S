@@ -31,12 +31,10 @@
 .set noat
 .set noreorder
 
+#include <abi/asmtool.h>
 #include <libarch/fibril_context.h>
 
-.global context_save
-.global context_restore
-
-context_save:
+FUNCTION_BEGIN(context_save)
 	sw $s0, CONTEXT_OFFSET_S0($a0)
 	sw $s1, CONTEXT_OFFSET_S1($a0)
 	sw $s2, CONTEXT_OFFSET_S2($a0)
@@ -91,8 +89,9 @@ context_save:
 	# context_save returns 1
 	j $ra
 	li $v0, 1
+FUNCTION_END(context_save)
 
-context_restore:
+FUNCTION_BEGIN(context_restore)
 	lw $s0, CONTEXT_OFFSET_S0($a0)
 	lw $s1, CONTEXT_OFFSET_S1($a0)
 	lw $s2, CONTEXT_OFFSET_S2($a0)
@@ -150,3 +149,4 @@ context_restore:
 	# context_restore returns 0
 	j $ra
 	xor $v0, $v0
+FUNCTION_END(context_restore)

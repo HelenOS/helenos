@@ -26,17 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
-.global asm_delay_loop
-.global sys_tls_set
-.global cpu_halt
-
-sys_tls_set:
-	b sys_tls_set
-
-asm_delay_loop:
+FUNCTION_BEGIN(asm_delay_loop)
 	blr
+FUNCTION_END(asm_delay_loop)
 
-cpu_halt:
+FUNCTION_BEGIN(cpu_halt)
 	b cpu_halt
+FUNCTION_END(cpu_halt)

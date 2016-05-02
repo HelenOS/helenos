@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/stack.h>
 
 .text
@@ -34,13 +35,11 @@
 .set noreorder
 .option pic2
 
-.globl __thread_entry
-
 ## User-space thread entry point for all but the first threads.
 #
 #
-.ent __thread_entry
-__thread_entry:
+SYMBOL(__thread_entry)
+	.ent __thread_entry
 	.frame $sp, ABI_STACK_FRAME, $ra
 	.cpload $t9
 	
@@ -62,4 +61,3 @@ __thread_entry:
 	# Not reached.
 	#
 	addiu $sp, ABI_STACK_FRAME
-.end __thread_entry

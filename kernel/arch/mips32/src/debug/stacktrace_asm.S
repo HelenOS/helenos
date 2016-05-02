@@ -26,18 +26,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .text
 
 .set noat
 .set noreorder
 
-.global frame_pointer_get
-.global program_counter_get
-
-frame_pointer_get:
+FUNCTION_BEGIN(frame_pointer_get)
 	j $ra
 	move $v0, $sp
+FUNCTION_END(frame_pointer_get)
 
-program_counter_get:
+FUNCTION_BEGIN(program_counter_get)
 	j $ra
 	move $v0, $ra
+FUNCTION_END(program_counter_get)

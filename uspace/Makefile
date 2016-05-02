@@ -40,6 +40,7 @@ DIRS = \
 	app/bnchmark \
 	app/corecfg \
 	app/devctl \
+	app/dltest \
 	app/dnscfg \
 	app/dnsres \
 	app/download \
@@ -218,6 +219,7 @@ LIBS = \
 	lib/block \
 	lib/crypto \
 	lib/clui \
+	lib/dltest \
 	lib/fdisk \
 	lib/fmtutil \
 	lib/scsi \

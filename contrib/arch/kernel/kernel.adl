@@ -22,13 +22,6 @@ interface sys_console {
 		)*
 };
 
-interface sys_tls {
-		/* Set thread-local storage pointer (on architectures where kernel mode is required) */
-		sysarg_t sys_tls_set(sysarg_t addr);
-	protocol:
-		?sys_tls_set*
-};
-
 interface sys_thread {
 		/* Create new thread */
 		sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name, size_t name_len, thread_id_t *uspace_thread_id);

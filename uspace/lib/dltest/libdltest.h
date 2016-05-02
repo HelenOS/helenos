@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jan Vesely
+ * Copyright (c) 2016 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,90 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-.text
+/** @addtogroup libdltest
+ * @brief Dynamic linking test library
+ * @{
+ */
+/** @file
+ */
 
-.global fpsid_read
-.global mvfr0_read
-.global fpscr_read
-.global fpscr_write
-.global fpexc_read
-.global fpexc_write
+#ifndef LIBDLTEST_H
+#define LIBDLTEST_H
 
-.global fpu_context_save_s32
-.global fpu_context_restore_s32
-.global fpu_context_save_d16
-.global fpu_context_restore_d16
-.global fpu_context_save_d32
-.global fpu_context_restore_d32
+enum {
+	dl_constant = 110011,
+	dl_private_var_val = 220022,
+	dl_public_var_val = 330033
+};
 
-fpsid_read:
-	vmrs r0, fpsid
-	mov pc, lr
+extern int dl_get_constant(void);
+extern int dl_get_private_var(void);
+extern int dl_get_private_uvar(void);
+extern int dl_get_public_var(void);
+extern int dl_get_public_uvar(void);
 
-mvfr0_read:
-	vmrs r0, mvfr0
-	mov pc, lr
+extern int dl_public_var;
+extern int dl_public_uvar;
 
-fpscr_read:
-	vmrs r0, fpscr
-	mov pc, lr
+#endif
 
-fpscr_write:
-	vmsr fpscr, r0
-	mov pc, lr
-
-fpexc_read:
-	vmrs r0, fpexc
-	mov pc, lr
-
-fpexc_write:
-	vmsr fpexc, r0
-	mov pc, lr
-
-fpu_context_save_s32:
-	vmrs r1, fpexc
-	vmrs r2, fpscr
-	stmia r0!, {r1, r2}
-	vstmia r0!, {s0-s31}
-	mov pc, lr
-
-fpu_context_restore_s32:
-	ldmia r0!, {r1, r2}
-	vmsr fpexc, r1
-	vmsr fpscr, r2
-	vldmia r0!, {s0-s31}
-	mov pc, lr
-
-fpu_context_save_d16:
-	vmrs r1, fpexc
-	vmrs r2, fpscr
-	stmia r0!, {r1, r2}
-	vstmia r0!, {d0-d15}
-	mov pc, lr
-
-fpu_context_restore_d16:
-	ldmia r0!, {r1, r2}
-	vmsr fpexc, r1
-	vmsr fpscr, r2
-	vldmia r0!, {d0-d15}
-	mov pc, lr
-
-fpu_context_save_d32:
-	vmrs r1, fpexc
-	stmia r0!, {r1}
-	vmrs r1, fpscr
-	stmia r0!, {r1}
-	vstmia r0!, {d0-d15}
-	vstmia r0!, {d16-d31}
-	mov pc, lr
-
-fpu_context_restore_d32:
-	ldmia r0!, {r1, r2}
-	vmsr fpexc, r1
-	vmsr fpscr, r2
-	vldmia r0!, {d0-d15}
-	vldmia r0!, {d16-d31}
-	mov pc, lr
-
-
-
+/**
+ * @}
+ */

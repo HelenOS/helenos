@@ -26,15 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/context_struct.h>
 #include <arch/asm/regname.h>
 
 .text
 
-.global context_save_arch
-.global context_restore_arch
-
-context_save_arch:
+FUNCTION_BEGIN(context_save_arch)
 	stw sp, CONTEXT_OFFSET_SP(r3)
 	stw r2, CONTEXT_OFFSET_R2(r3)
 	stw r13, CONTEXT_OFFSET_R13(r3)
@@ -66,8 +64,9 @@ context_save_arch:
 	# context_save returns 1
 	li r3, 1
 	blr
+FUNCTION_END(context_save_arch)
 
-context_restore_arch:
+FUNCTION_BEGIN(context_restore_arch)
 	lwz sp, CONTEXT_OFFSET_SP(r3)
 	lwz r2, CONTEXT_OFFSET_R2(r3)
 	lwz r13, CONTEXT_OFFSET_R13(r3)
@@ -99,3 +98,4 @@ context_restore_arch:
 	# context_restore returns 0
 	li r3, 0
 	blr
+FUNCTION_END(context_restore_arch)

@@ -28,19 +28,19 @@
 
 .text
 
+#include <abi/asmtool.h>
 #include <libarch/regname.h>
 
-.global stacktrace_prepare
-.global stacktrace_fp_get
-.global stacktrace_pc_get
-
-stacktrace_prepare:
+FUNCTION_BEGIN(stacktrace_prepare)
 	blr
+FUNCTION_END(stacktrace_prepare)
 
-stacktrace_fp_get:
+FUNCTION_BEGIN(stacktrace_fp_get)
 	mr r3, sp
 	blr
+FUNCTION_END(stacktrace_fp_get)
 
-stacktrace_pc_get:
+FUNCTION_BEGIN(stacktrace_pc_get)
 	mflr r3
 	blr
+FUNCTION_END(stacktrace_pc_get)

@@ -26,14 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
+
 .explicit
 
 #define STACK_SCRATCH_AREA	16
 #define STACK_IN8		(0 + STACK_SCRATCH_AREA)
 #define STACK_IN9		(8 + STACK_SCRATCH_AREA)
 #define STACK_IN10		(16 + STACK_SCRATCH_AREA)
-
-.global sal_call
 
 #
 # Assume the following PSR bits are already 0, as expected by SAL:
@@ -42,7 +42,7 @@
 #
 # Assume PSR.bn is 1, as expected by SAL.
 #
-sal_call:
+FUNCTION_BEGIN(sal_call)
 	alloc loc0 = ar.pfs, 8, 8, 8, 0
 	
 	adds sp = -STACK_SCRATCH_AREA, sp
@@ -91,4 +91,5 @@ sal_call:
 	
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
+FUNCTION_END(sal_call)
 

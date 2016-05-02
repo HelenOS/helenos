@@ -26,27 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.section .init, "ax"
+#include <abi/asmtool.h>
 
-.org 0
-
-.globl __entry
-
-## User-space task entry point
+.text
+	
+## User-space thread entry point for all but the first threads.
 #
-# %o0 contains uarg
-# %o1 contains pcb_ptr
 #
-__entry:
+SYMBOL(__thread_entry)
 	#
 	# Create the first stack frame.
 	#
-	save %sp, -176, %sp
-	flushw
-	add %g0, -0x7ff, %fp
-	
-	# Pass pcb_ptr as the first argument to __main()
-	mov %i1, %o0
-	sethi %hi(_gp), %l7
-	call __main
-	or %l7, %lo(_gp), %l7
+	li %r4, 0
+	stw %r4, 0(%r1)
+	stwu %r1, -16(%r1)
+
+	b __thread_main
+

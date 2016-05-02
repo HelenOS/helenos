@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2005 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.section .init, "ax"
+#include <abi/asmtool.h>
 
-.org 0
+.text
 
-.globl __entry
+FUNCTION_BEGIN(cpu_sleep)
+	retl
+	nop
+FUNCTION_END(cpu_sleep)
 
-## User-space task entry point
-#
-# r2 contains the PCB pointer
-#
-__entry:
-	alloc loc0 = ar.pfs, 0, 1, 2, 0
-	movl gp = __gp
-	
-	# Pass PCB pointer as the first argument to __main
-	mov out0 = r2
-	br.call.sptk.many b0 = __main
+FUNCTION_BEGIN(cpu_halt)
+	ba %xcc, cpu_halt
+	nop
+FUNCTION_END(cpu_halt)
+

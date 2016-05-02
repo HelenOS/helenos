@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <abi/asmtool.h>
 #include <arch/asm/regname.h>
 #include <arch/fpu_context_struct.h>
 
@@ -47,22 +48,18 @@
 .set noreorder
 .set nomacro
 
-.global asm_delay_loop
-asm_delay_loop:
+FUNCTION_BEGIN(asm_delay_loop)
 	j $31
 	nop
+FUNCTION_END(asm_delay_loop)
 
-.global cpu_halt
-cpu_halt:
+FUNCTION_BEGIN(cpu_halt)
 	j cpu_halt
 	nop
+FUNCTION_END(cpu_halt)
 
-.global memcpy_from_uspace
-.global memcpy_to_uspace
-.global memcpy_from_uspace_failover_address
-.global memcpy_to_uspace_failover_address
-memcpy_from_uspace:
-memcpy_to_uspace:
+FUNCTION_BEGIN(memcpy_from_uspace)
+FUNCTION_BEGIN(memcpy_to_uspace)
 	move $t2, $a0  /* save dst */
 	
 	addiu $v0, $a1, 3
@@ -128,9 +125,11 @@ memcpy_to_uspace:
 		
 		jr $ra
 		move $v0, $t2
+FUNCTION_END(memcpy_from_uspace)
+FUNCTION_END(memcpy_to_uspace)
 
-memcpy_from_uspace_failover_address:
-memcpy_to_uspace_failover_address:
+SYMBOL(memcpy_from_uspace_failover_address)
+SYMBOL(memcpy_to_uspace_failover_address)
 	jr $ra
 	move $v0, $zero
 
@@ -154,8 +153,7 @@ memcpy_to_uspace_failover_address:
 	ctc1 $t0, $\reg
 .endm
 
-.global fpu_context_save
-fpu_context_save:
+FUNCTION_BEGIN(fpu_context_save)
 #ifdef CONFIG_FPU
 	fpu_gp_save 0, $a0
 	fpu_gp_save 1, $a0
@@ -224,9 +222,9 @@ fpu_context_save:
 #endif
 	j $ra
 	nop
+FUNCTION_END(fpu_context_save)
 
-.global fpu_context_restore
-fpu_context_restore:
+FUNCTION_BEGIN(fpu_context_restore)
 #ifdef CONFIG_FPU
 	fpu_gp_restore 0, $a0
 	fpu_gp_restore 1, $a0
@@ -295,8 +293,9 @@ fpu_context_restore:
 #endif
 	j $ra
 	nop
+FUNCTION_END(fpu_context_restore)
 
-.global early_putchar
-early_putchar:
+FUNCTION_BEGIN(early_putchar)
 	j $ra
 	nop
+FUNCTION_END(early_putchar)

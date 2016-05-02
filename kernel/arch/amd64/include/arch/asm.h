@@ -207,14 +207,6 @@ NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 		*port = val;
 }
 
-/** Swap Hidden part of GS register with visible one */
-NO_TRACE static inline void swapgs(void)
-{
-	asm volatile (
-		"swapgs"
-	);
-}
-
 /** Enable interrupts.
  *
  * Enable interrupts and return previous

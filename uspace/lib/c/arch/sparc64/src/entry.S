@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2008 Jiri Svoboda
+# Copyright (c) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,27 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.globl entry_point_jmp
+#include <abi/asmtool.h>
 
-## void entry_point_jmp(void *entry_point, void *pcb);
+.section .init, "ax"
+
+.org 0
+
+## User-space task entry point
 #
-# %r3	contains entry_point
-# %r4	contains pcb
+# %o0 contains uarg
+# %o1 contains pcb_ptr
 #
-# Jump to program entry point
-entry_point_jmp:
-	mtctr %r3
-	mr %r6, %r4	# Pass pcb to the entry point in %r6
-	bctr
+SYMBOL(__entry)
+	#
+	# Create the first stack frame.
+	#
+	save %sp, -176, %sp
+	flushw
+	add %g0, -0x7ff, %fp
+	
+	# Pass pcb_ptr as the first argument to __main()
+	mov %i1, %o0
+	sethi %hi(_gp), %l7
+	call __main
+	or %l7, %lo(_gp), %l7

@@ -26,41 +26,37 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 
 .section BOOTSTRAP
 
-.global start
-.global boot_pt
-.global boot_ctx_table
-.global boot_stack
-.global halt
-.global jump_to_kernel
-
-start:
+SYMBOL(start)
 	b bootstrap
 	nop
 
 .section BOOTPT
 .align 4096
-boot_pt:
+SYMBOL(boot_pt)
 	.space PTL0_ENTRIES * PTL0_ENTRY_SIZE
 
-boot_ctx_table:
+SYMBOL(boot_ctx_table)
 	.space 4
 
 .section BOOTSTACK
 	.space 4096
-boot_stack:
+SYMBOL(boot_stack)
 
 .text
 
-halt:
+FUNCTION_BEGIN(halt)
 	b halt
 	nop
+FUNCTION_END(halt)
 
-jump_to_kernel:
+FUNCTION_BEGIN(jump_to_kernel)
 	set 0x80a00000, %l0
 	mov %i1, %o0
 	jmp %l0
 	nop
+FUNCTION_END(jump_to_kernel)

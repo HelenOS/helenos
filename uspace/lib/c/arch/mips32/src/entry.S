@@ -26,12 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <libarch/stack.h>
 
 .text
 .section .init, "ax"
-
-.global __entry
 
 .set noreorder
 .option pic2
@@ -40,8 +39,8 @@
 #
 # $a0 ($4) contains the PCB pointer
 #
-.ent __entry
-__entry:
+FUNCTION_BEGIN(__entry)
+	.ent __entry
 	.frame $sp, ABI_STACK_FRAME, $ra
 	.cpload $t9
 	
@@ -62,4 +61,4 @@ __entry:
 	# Not reached.
 	#
 	addiu $sp, ABI_STACK_FRAME
-.end __entry
+FUNCTION_END(__entry)

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2016 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,44 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
+USPACE_PREFIX = ../..
+LIBRARY = libdltest
+SLIBRARY = libdltest.so.0.0
+LSONAME = libdltest.so.0
 
-.globl __thread_entry
+SOURCES = \
+	dltest.c
 
-## User-space thread entry point for all but the first threads.
-#
-#
-__thread_entry:
-	#
-	# Create the first stack frame.
-	#
-	
-	save %sp, -176, %sp
-	## XXX flushw
-	mov 7, %g1
-	1:
-		subcc %g1, 1, %g1
-		bg 1b
-		save %sp, -64, %sp
-	
-	mov 7, %g1
-	1:
-		subcc %g1, 1, %g1
-		bg 1b
-	
-	## XXX end flushw
-	set 0x80000000, %fp
-	
-	#
-	# Propagate the input arguments to the new window.
-	#
-	
-	mov %i0, %o0
-	
-	sethi %hi(_gp), %l7
-	call __thread_main      ! %o0 contains address of uarg
-	or %l7, %lo(_gp), %l7
-	
-	! not reached
-	
-.end __thread_entry
+include $(USPACE_PREFIX)/Makefile.common

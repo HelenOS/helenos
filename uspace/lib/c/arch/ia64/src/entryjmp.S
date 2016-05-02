@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2007 Michal Kebrt, Pavel Jancik
+# Copyright (c) 2008 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.section .init, "ax"
+#include <abi/asmtool.h>
 
-.org 0
+.text
+.explicit
 
-.global __entry
-
-## User-space task entry point
+## void entry_point_jmp(void *entry_point, void *pcb);
 #
-# r1 contains the PCB pointer
-# r2 contains the RAS page address
+# in0 (r32)	contains entry_point
+# in1 (r33)	contains pcb
 #
-__entry:
-	# Store the RAS page address into the ras_page variable
-	ldr r0, =ras_page
-	str r2, [r0]
-	
-	#
-	# Create the first stack frame.
-	#
-	mov fp, #0
-	mov ip, sp
-	push {fp, ip, lr, pc}
-	sub fp, ip, #4
-	
-	# Pass pcb_ptr to __main as the first argument (in r0)
-	mov r0, r1
-	bl __main
+# Jump to program entry point
+SYMBOL(entry_point_jmp)
+	# Pass pcb to the entry point in r2
 
-.data
-
-.global ras_page
-ras_page:
-	.long 0
+	mov b6 = r32
+	mov r2 = r33 ;;
+	br b6 ;;

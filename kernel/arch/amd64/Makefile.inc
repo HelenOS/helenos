@@ -56,6 +56,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/debug/stacktrace.c \
 	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/pm.c \
+	arch/$(KARCH)/src/vreg.c \
+	arch/$(KARCH)/src/kseg.c \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/i8254.c \
@@ -89,4 +91,5 @@ endif
 
 ARCH_AUTOGENS_AG = \
 	arch/$(KARCH)/include/arch/istate_struct.ag \
-	arch/$(KARCH)/include/arch/context_struct.ag
+	arch/$(KARCH)/include/arch/context_struct.ag \
+	arch/$(KARCH)/include/arch/kseg_struct.ag

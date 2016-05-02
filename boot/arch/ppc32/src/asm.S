@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <abi/asmtool.h>
 #include <arch/arch.h>
 #include <arch/regname.h>
 
@@ -103,14 +104,9 @@
 	ori \lower, \lower, 0x0002
 .endm
 
-.global start
-.global halt
-.global jump_to_kernel
-.global real_mode
-
 .section BOOTSTRAP, "ax"
 
-start:
+SYMBOL(start)
 	lis r4, ofw_cif@ha
 	addi r4, r4, ofw_cif@l
 	stw r5, 0(r4)
@@ -120,11 +116,11 @@ start:
 
 .text
 
-halt:
+FUNCTION_BEGIN(halt)
 	b halt
+FUNCTION_END(halt)
 
-jump_to_kernel:
-	
+FUNCTION_BEGIN(jump_to_kernel)
 	# arguments:
 	# r3 = bootinfo (physical address)
 	# r4 = translate table (physical address)
@@ -152,11 +148,12 @@ jump_to_kernel:
 	sync
 	isync
 	rfi
+FUNCTION_END(jump_to_kernel)
 
 .section REALMODE, "ax"
 
 .align PAGE_WIDTH
-real_mode:
+SYMBOL(real_mode)
 	
 	# arguments:
 	# r3 = bootinfo (physical address)

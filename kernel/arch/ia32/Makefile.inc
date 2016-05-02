@@ -88,6 +88,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/atomic.S \
 	arch/$(KARCH)/src/smp/ipi.c \
 	arch/$(KARCH)/src/ia32.c \
+	arch/$(KARCH)/src/vreg.c \
 	arch/$(KARCH)/src/interrupt.c \
 	arch/$(KARCH)/src/pm.c \
 	arch/$(KARCH)/src/userspace.c \
