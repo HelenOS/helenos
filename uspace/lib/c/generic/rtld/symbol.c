@@ -111,13 +111,11 @@ static elf_symbol_t *def_find_in_module(const char *name, module_t *m)
  *
  * @param name		Name of the symbol to search for.
  * @param start		Module in which to start the search..
- * @param flags		@c ssf_none or @c ssf_noroot to not look for the symbol
- *			in @a start
  * @param mod		(output) Will be filled with a pointer to the module 
  *			that contains the symbol.
  */
 elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
-    symbol_search_flags_t flags, module_t **mod)
+    module_t **mod)
 {
 	module_t *m, *dm;
 	elf_symbol_t *sym, *s;
@@ -149,14 +147,12 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
 		list_remove(&m->queue_link);
 
 		/* If ssf_noroot is specified, do not look in start module */
-		if (m != start || (flags & ssf_noroot) == 0) { 
-			s = def_find_in_module(name, m);
-			if (s != NULL) {
-				/* Symbol found */
-				sym = s;
-				*mod = m;
-				break;
-			}
+		s = def_find_in_module(name, m);
+		if (s != NULL) {
+			/* Symbol found */
+			sym = s;
+			*mod = m;
+			break;
 		}
 
 		/*
@@ -188,13 +184,12 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
 /** Find the definition of a symbol.
  *
  * By definition in System V ABI, if module origin has the flag DT_SYMBOLIC,
- * origin is searched first. Otherwise, or if the symbol hasn't been found,
- * the module dependency graph is searched breadth-first, beginning
- * from the executable program.
+ * origin is searched first. Otherwise, search global modules in the default
+ * order.
  *
  * @param name		Name of the symbol to search for.
  * @param origin	Module in which the dependency originates.
- * @param flags		@c ssf_none or @c ssf_noroot to not look for the symbol
+ * @param flags		@c ssf_none or @c ssf_noexec to not look for the symbol
  *			in the executable program.
  * @param mod		(output) Will be filled with a pointer to the module 
  *			that contains the symbol.
@@ -204,28 +199,53 @@ elf_symbol_t *symbol_def_find(const char *name, module_t *origin,
 {
 	elf_symbol_t *s;
 
-	if (origin->dyn.symbolic) {
-		/* 
+	DPRINTF("symbol_def_find('%s', origin='%s'\n",
+	    name, origin->dyn.soname);
+	if (origin->dyn.symbolic && (!origin->exec || (flags & ssf_noexec) == 0)) {
+		DPRINTF("symbolic->find '%s' in module '%s'\n", name, origin->dyn.soname);
+		/*
 		 * Origin module has a DT_SYMBOLIC flag.
 		 * Try this module first
 		 */
-		 s = def_find_in_module(name, origin);
-		 if (s != NULL) {
+		s = def_find_in_module(name, origin);
+		if (s != NULL) {
 			/* Found */
 			*mod = origin;
 			return s;
-		 }
+		}
 	}
 
 	/* Not DT_SYMBOLIC or no match. Now try other locations. */
 
-	if (origin->rtld->program) {
-		/* Program is dynamic -- start with program as root. */
-		return symbol_bfs_find(name, origin->rtld->program, flags, mod);
-	} else {
-		/* Program is static -- start with @a origin as root. */
-		return symbol_bfs_find(name, origin, ssf_none, mod);
+	list_foreach(origin->rtld->modules, modules_link, module_t, m) {
+		DPRINTF("module '%s' local?\n", m->dyn.soname);
+		if (!m->local && (!m->exec || (flags & ssf_noexec) == 0)) {
+			DPRINTF("!local->find '%s' in module '%s'\n", name, m->dyn.soname);
+			s = def_find_in_module(name, m);
+			if (s != NULL) {
+				/* Found */
+				*mod = m;
+				return s;
+			}
+		}
 	}
+
+	/* Finally, try origin. */
+
+	DPRINTF("try finding '%s' in origin '%s'\n", name,
+	    origin->dyn.soname);
+
+	if (!origin->exec || (flags & ssf_noexec) == 0) {
+		s = def_find_in_module(name, origin);
+		if (s != NULL) {
+			/* Found */
+			*mod = origin;
+			return s;
+		}
+	}
+
+	DPRINTF("'%s' not found\n", name);
+	return NULL;
 }
 
 void *symbol_get_addr(elf_symbol_t *sym, module_t *m)

@@ -116,7 +116,7 @@ module_t *module_find(rtld_t *rtld, const char *name)
 			return m; /* Found */
 		}
 	}
-	
+
 	return NULL; /* Not found */
 }
 
@@ -126,20 +126,22 @@ module_t *module_find(rtld_t *rtld, const char *name)
  *
  * Currently this trivially tries to load '/<name>'.
  */
-module_t *module_load(rtld_t *rtld, const char *name)
+module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 {
 	elf_finfo_t info;
 	char name_buf[NAME_BUF_SIZE];
 	module_t *m;
 	int rc;
-	
-	m = malloc(sizeof(module_t));
+
+	m = calloc(1, sizeof(module_t));
 	if (!m) {
 		printf("malloc failed\n");
 		exit(1);
 	}
 
 	m->rtld = rtld;
+	if ((flags & mlf_local) != 0)
+		m->local = true;
 
 	if (str_size(name) > NAME_BUF_SIZE - 2) {
 		printf("soname too long. increase NAME_BUF_SIZE\n");
@@ -184,7 +186,7 @@ module_t *module_load(rtld_t *rtld, const char *name)
 
 /** Load all modules on which m (transitively) depends.
  */
-void module_load_deps(module_t *m)
+void module_load_deps(module_t *m, mlflags_t flags)
 {
 	elf_dyn_t *dp;
 	char *dep_name;
@@ -229,8 +231,8 @@ void module_load_deps(module_t *m)
 			DPRINTF("%s needs %s\n", m->dyn.soname, dep_name);
 			dm = module_find(m->rtld, dep_name);
 			if (!dm) {
-				dm = module_load(m->rtld, dep_name);
-				module_load_deps(dm);
+				dm = module_load(m->rtld, dep_name, flags);
+				module_load_deps(dm, flags);
 			}
 
 			/* Save into deps table */

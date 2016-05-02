@@ -38,6 +38,12 @@
 #include <adt/list.h>
 #include <sys/types.h>
 
+typedef enum {
+	/** Do not export symbols to global namespace */
+	mlf_local = 0x1
+} mlflags_t;
+
+/** Dynamically linked module */
 typedef struct module {
 	dyn_info_t dyn;
 	size_t bias;
@@ -59,6 +65,10 @@ typedef struct module {
 	link_t queue_link;
 	/** Tag for modules already processed during a BFS */
 	bool bfs_tag;
+	/** If @c true, does not export symbols to global namespace */
+	bool local;
+	/** This is the dynamically linked executable */
+	bool exec;
 } module_t;
 
 #endif

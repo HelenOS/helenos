@@ -79,6 +79,8 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	prog_mod.bias = 0;
 	prog_mod.dyn.soname = "[program]";
 	prog_mod.rtld = env;
+	prog_mod.exec = true;
+	prog_mod.local = false;
 
 	/* Initialize list of loaded modules */
 	list_initialize(&env->modules);
@@ -95,7 +97,7 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 */
 
 	DPRINTF("Load all program dependencies\n");
-	module_load_deps(&prog_mod);
+	module_load_deps(&prog_mod, 0);
 
 	/*
 	 * Now relocate/link all modules together.
