@@ -27,14 +27,10 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -I$(LIBDLTEST_PREFIX) -DDLTEST_LINKED
-LIBS = $(LIBDLTEST_PREFIX)/libdltest.so.0.0
-# Need a dynamic link, but possibly still use static libc
-LINK_DYNAMIC = y
-
-BINARY = dltest
+EXTRA_CFLAGS = -I$(LIBDLTEST_PREFIX)
+BINARY = dltests
 
 SOURCES = \
-	dltest.c
+	dltests.c
 
 include $(USPACE_PREFIX)/Makefile.common

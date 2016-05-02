@@ -225,7 +225,8 @@ RD_APPS_NON_ESSENTIAL = \
 
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_APPS_NON_ESSENTIAL += \
-		$(USPACE_PATH)/app/dltest/dltest
+		$(USPACE_PATH)/app/dltest/dltest \
+		$(USPACE_PATH)/app/dltests/dltests
 endif
 
 RD_TESTS = \

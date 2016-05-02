@@ -44,6 +44,7 @@
 /** libdltest library handle */
 void *handle;
 
+
 /** Test dlsym() function */
 static bool test_dlsym(void)
 {
@@ -254,6 +255,151 @@ static bool test_dlfcn_read_public_uvar(void)
 	return true;
 }
 
+#ifdef DLTEST_LINKED
+
+/** Test directly calling function that returns a constant */
+static bool test_lnk_dl_get_constant(void)
+{
+	int val;
+
+	printf("Call linked dl_get_constant...\n");
+
+	val = dl_get_constant();
+
+	printf("Got %d, expected %d... ", val, dl_constant);
+	if (val != dl_constant) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test dircetly calling a function that returns contents of a private
+ * initialized variable.
+ */
+static bool test_lnk_dl_get_private_var(void)
+{
+	int val;
+
+	printf("Call linked dl_get_private_var...\n");
+
+	val = dl_get_private_var();
+
+	printf("Got %d, expected %d... ", val, dl_private_var_val);
+	if (val != dl_private_var_val) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test dircetly calling a function that returns contents of a private
+ * uninitialized variable.
+ */
+static bool test_lnk_dl_get_private_uvar(void)
+{
+	int val;
+
+	printf("Call linked dl_get_private_uvar...\n");
+
+	val = dl_get_private_uvar();
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly calling a function that returns the contents of a public
+ * initialized variable.
+ */
+static bool test_lnk_dl_get_public_var(void)
+{
+	int val;
+
+	printf("Call linked dl_get_public_var...\n");
+
+	val = dl_get_public_var();
+
+	printf("Got %d, expected %d... ", val, dl_public_var_val);
+	if (val != dl_public_var_val) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly calling a function that returns the contents of a public
+ * uninitialized variable.
+ */
+static bool test_lnk_dl_get_public_uvar(void)
+{
+	int val;
+
+	printf("Call linked dl_get_public_uvar...\n");
+
+	val = dl_get_public_uvar();
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly reading a public initialized variable. */
+static bool test_lnk_read_public_var(void)
+{
+	int val;
+
+	printf("Read linked dl_public_var...\n");
+
+	val = dl_public_var;
+
+	printf("Got %d, expected %d... ", val, dl_public_var_val);
+	if (val != dl_public_var_val) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly reading a public uninitialized variable. */
+static bool test_lnk_read_public_uvar(void)
+{
+	int val;
+
+	printf("Read linked dl_public_uvar...\n");
+
+	val = dl_public_uvar;
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+#endif
+
 int main(int argc, char *argv[])
 {
 
@@ -292,6 +438,28 @@ int main(int argc, char *argv[])
 	if (!test_dlfcn_read_public_uvar())
 		return 1;
 
+#ifdef DLTEST_LINKED
+	if (!test_lnk_dl_get_constant())
+		return 1;
+
+	if (!test_lnk_dl_get_private_var())
+		return 1;
+
+	if (!test_lnk_dl_get_private_uvar())
+		return 1;
+
+	if (!test_lnk_dl_get_public_var())
+		return 1;
+
+	if (!test_lnk_dl_get_public_uvar())
+		return 1;
+
+	if (!test_lnk_read_public_var())
+		return 1;
+
+	if (!test_lnk_read_public_uvar())
+		return 1;
+#endif
 //	printf("dlclose()... ");
 //	dlclose(handle);
 //	printf("Passed\n");
