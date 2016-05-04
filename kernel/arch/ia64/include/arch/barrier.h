@@ -55,6 +55,8 @@
 #define sync_i()		\
 	asm volatile (";; sync.i\n" ::: "memory")
 
+#ifdef KERNEL
+
 #define smc_coherence(a)	\
 {				\
 	fc_i((a));		\
@@ -71,6 +73,8 @@
 	sync_i();				\
 	srlz_i();				\
 }
+
+#endif	/* KERNEL */
 
 #endif
 

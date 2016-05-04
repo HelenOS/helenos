@@ -97,6 +97,8 @@ NO_TRACE static inline void cpuid_serialization(void)
 	#endif
 #endif
 
+#ifdef KERNEL
+
 /*
  * On ia32, the hardware takes care about instruction and data cache coherence,
  * even on SMP systems.  We issue a write barrier to be sure that writes
@@ -105,6 +107,8 @@ NO_TRACE static inline void cpuid_serialization(void)
  */
 #define smc_coherence(a)           write_barrier()
 #define smc_coherence_block(a, l)  write_barrier()
+
+#endif	/* KERNEL */
 
 #endif
 

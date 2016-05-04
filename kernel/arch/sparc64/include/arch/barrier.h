@@ -115,7 +115,9 @@ NO_TRACE static inline void membar(void)
 	);
 }
 
-#if defined (US)
+#ifdef KERNEL
+
+#if defined(US)
 
 #define FLUSH_INVAL_MIN  4
 
@@ -149,6 +151,8 @@ NO_TRACE static inline void membar(void)
 	} while (0)
 
 #endif  /* defined(US3) */
+
+#endif	/* KERNEL */
 
 #endif
 
