@@ -36,6 +36,7 @@
 #include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
 #include <arch/pm.h>
+#include <arch/cpu.h>
 
 .section K_TEXT_START, "ax"
 
@@ -62,7 +63,7 @@ SYMBOL(unmapped_ap_boot)
 	
 	/* switch to protected mode */
 	movl %cr0, %eax
-	orl $1, %eax
+	orl $CR0_PE, %eax
 	movl %eax, %cr0
 	jmpl $KTEXT, $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 	

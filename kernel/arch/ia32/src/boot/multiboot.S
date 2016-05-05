@@ -34,6 +34,7 @@
 #include <arch/pm.h>
 #include <genarch/multiboot/multiboot.h>
 #include <arch/cpuid.h>
+#include <arch/cpu.h>
 
 #define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
 
@@ -165,8 +166,8 @@ FUNCTION_BEGIN(map_kernel_pse)
 map_kernel_pse:
 	/* Paging features */
 	movl %cr4, %ecx
-	orl $(1 << 4), %ecx      /* PSE on */
-	andl $(~(1 << 5)), %ecx  /* PAE off */
+	orl $CR4_PSE, %ecx	/* PSE on */
+	andl $~CR4_PAE, %ecx	/* PAE off */
 	movl %ecx, %cr4
 	
 	movl $(page_directory + 0), %esi
@@ -190,7 +191,7 @@ map_kernel_pse:
 	movl %esi, %cr3
 	
 	movl %cr0, %ebx
-	orl $(1 << 31), %ebx  /* paging on */
+	orl $CR0_PG, %ebx	/* paging on */
 	movl %ebx, %cr0
 	ret
 FUNCTION_END(map_kernel_pse)
@@ -204,7 +205,7 @@ FUNCTION_END(map_kernel_pse)
 FUNCTION_BEGIN(map_kernel_non_pse)
 	/* Paging features */
 	movl %cr4, %ecx
-	andl $(~(1 << 5)), %ecx  /* PAE off */
+	andl $~CR4_PAE, %ecx  /* PAE off */
 	movl %ecx, %cr4
 	
 	call calc_kernel_end
@@ -276,7 +277,7 @@ FUNCTION_BEGIN(map_kernel_non_pse)
 		movl %esi, %cr3
 		
 		movl %cr0, %ebx
-		orl $(1 << 31), %ebx  /* paging on */
+		orl $CR0_PG, %ebx  /* paging on */
 		movl %ebx, %cr0
 		
 		ret

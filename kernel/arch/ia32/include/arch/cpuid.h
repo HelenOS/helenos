@@ -43,6 +43,7 @@
 #ifndef __ASM__
 
 #include <typedefs.h>
+#include <arch/cpu.h>
 
 typedef struct {
 	uint32_t cpuid_eax;
@@ -83,21 +84,22 @@ static inline uint32_t has_cpuid(void)
 	uint32_t ret;
 	
 	asm volatile (
-		"pushf\n"                    /* read flags */
+		"pushf\n"			/* read flags */
 		"popl %[ret]\n"
 		"movl %[ret], %[val]\n"
 		
-		"btcl $21, %[val]\n"         /* swap the ID bit */
+		"xorl %[eflags_id], %[val]\n"	/* swap the ID bit */
 		
-		"pushl %[val]\n"             /* propagate the change into flags */
+		"pushl %[val]\n"		/* propagate the change into flags */
 		"popf\n"
 		"pushf\n"
 		"popl %[val]\n"
 		
-		"andl $(1 << 21), %[ret]\n"  /* interrested only in ID bit */
-		"andl $(1 << 21), %[val]\n"
+		"andl %[eflags_id], %[ret]\n"	/* interrested only in ID bit */
+		"andl %[eflags_id], %[val]\n"
 		"xorl %[val], %[ret]\n"
 		: [ret] "=r" (ret), [val] "=r" (val)
+		: [eflags_id] "i" (EFLAGS_ID)
 	);
 	
 	return ret;

@@ -48,7 +48,7 @@ vesa_idtr:
 .code16
 vesa_init_real:
 	mov %cr0, %eax
-	and $~1, %eax
+	and $~CR0_PE, %eax
 	mov %eax, %cr0
 	
 	jmp $VESA_INIT_SEGMENT, $vesa_init_real2 - vesa_init
@@ -351,7 +351,7 @@ vesa_init_real2:
 		vesa_leave_real:
 		
 			mov %cr0, %ecx
-			or $1, %ecx
+			or $CR0_PE, %ecx
 			mov %ecx, %cr0
 			
 			jmp vesa_leave_real2

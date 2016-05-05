@@ -71,22 +71,12 @@ static const char *vendor_str[] = {
 
 void fpu_disable(void)
 {
-	asm volatile (
-		"mov %%cr0, %%eax\n"
-		"or $8, %%eax\n"
-		"mov %%eax, %%cr0\n"
-		::: "%eax"
-	);
+	write_cr0(read_cr0() & ~CR0_TS); 
 }
 
 void fpu_enable(void)
 {
-	asm volatile (
-		"mov %%cr0, %%eax\n"
-		"and $0xffFFffF7, %%eax\n"
-		"mov %%eax,%%cr0\n"
-		::: "%eax"
-	);
+	write_cr0(read_cr0() | CR0_TS); 
 }
 
 void cpu_arch_init(void)
@@ -114,7 +104,7 @@ void cpu_arch_init(void)
 			"or %[mask], %[help]\n"
 			"mov %[help], %%cr4\n"
 			: [help] "+r" (help)
-			: [mask] "i" (CR4_OSFXSR_MASK | CR4_OSXMMEXCPT_MASK)
+			: [mask] "i" (CR4_OSFXSR | CR4_OSXMMEXCPT)
 		);
 	}
 	

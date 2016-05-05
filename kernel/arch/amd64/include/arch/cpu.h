@@ -49,6 +49,7 @@
 #define RFLAGS_RF 	(1 << 16)
 #define RFLAGS_ID	(1 << 21)
 
+#define CR0_PE		(1 << 0)
 #define CR0_MP		(1 << 1)
 #define CR0_EM		(1 << 2)
 #define CR0_TS		(1 << 3)

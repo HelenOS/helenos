@@ -57,7 +57,7 @@ SYMBOL(unmapped_ap_boot)
 	lgdtl ap_gdtr       # initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
-	orl $1, %eax
+	orl $CR0_PE, %eax
 	movl %eax, %cr0     # switch to protected mode
 	jmpl $GDT_SELECTOR(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 
