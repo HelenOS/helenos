@@ -176,7 +176,7 @@ map_kernel_pse:
 	xorl %ebx, %ebx
 	
 	floop_pse:
-		movl $((1 << 7) | (1 << 1) | (1 << 0)), %eax
+		movl $(PDE_4M | PDE_RW | PDE_P), %eax
 		orl %ebx, %eax
 		/* Mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
 		movl %eax, (%esi, %ecx, 4)
@@ -242,7 +242,7 @@ FUNCTION_BEGIN(map_kernel_non_pse)
 		xorl %ebx, %ebx
 		
 		floop_pt:
-			movl $((1 << 1) | (1 << 0)), %eax
+			movl $(PTE_RW | PTE_P), %eax
 			orl %ebx, %eax
 			movl %eax, (%esi, %ecx, 4)
 			addl $(4 * 1024), %ebx
@@ -259,7 +259,7 @@ FUNCTION_BEGIN(map_kernel_non_pse)
 		movl pt_loc, %ebx
 		
 		floop:
-			movl $((1 << 1) | (1 << 0)), %eax
+			movl $(PDE_RW | PDE_P), %eax
 			orl %ebx, %eax
 			
 			/* Mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */

@@ -41,6 +41,13 @@
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
 
+#define PTE_P		(1 << 0)
+#define PTE_RW		(1 << 1)
+
+#define PDE_P		(1 << 0)
+#define PDE_RW		(1 << 1)
+#define PDE_4M		(1 << 7)
+
 #ifndef __ASM__
 
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x80000000))
