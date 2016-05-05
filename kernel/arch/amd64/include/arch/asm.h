@@ -207,80 +207,75 @@ NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 		*port = val;
 }
 
-/** Enable interrupts.
- *
- * Enable interrupts and return previous
- * value of EFLAGS.
- *
- * @return Old interrupt priority level.
- *
- */
-NO_TRACE static inline ipl_t interrupts_enable(void) {
-	ipl_t v;
-	
+NO_TRACE static inline uint64_t read_rflags(void)
+{
+	uint64_t rflags;
+
 	asm volatile (
 		"pushfq\n"
 		"popq %[v]\n"
-		"sti\n"
-		: [v] "=r" (v)
+		: [v] "=r" (rflags)
 	);
-	
-	return v;
+
+	return rflags;
 }
 
-/** Disable interrupts.
- *
- * Disable interrupts and return previous
- * value of EFLAGS.
- *
- * @return Old interrupt priority level.
- *
- */
-NO_TRACE static inline ipl_t interrupts_disable(void) {
-	ipl_t v;
-	
+NO_TRACE static inline void write_rflags(uint64_t rflags)
+{
 	asm volatile (
-		"pushfq\n"
-		"popq %[v]\n"
-		"cli\n"
-		: [v] "=r" (v)
-	);
-	
-	return v;
-}
-
-/** Restore interrupt priority level.
- *
- * Restore EFLAGS.
- *
- * @param ipl Saved interrupt priority level.
- *
- */
-NO_TRACE static inline void interrupts_restore(ipl_t ipl) {
-	asm volatile (
-		"pushq %[ipl]\n"
+		"pushq %[v]\n"
 		"popfq\n"
-		:: [ipl] "r" (ipl)
+		:: [v] "r" (rflags)
 	);
 }
 
 /** Return interrupt priority level.
  *
- * Return EFLAFS.
+ * Return the current interrupt priority level.
  *
  * @return Current interrupt priority level.
- *
  */
 NO_TRACE static inline ipl_t interrupts_read(void) {
-	ipl_t v;
+	return (ipl_t) read_rflags();
+}
+
+/** Enable interrupts.
+ *
+ * Enable interrupts and return the previous interrupt priority level.
+ *
+ * @return Old interrupt priority level.
+ */
+NO_TRACE static inline ipl_t interrupts_enable(void) {
+	ipl_t ipl = interrupts_read();
 	
-	asm volatile (
-		"pushfq\n"
-		"popq %[v]\n"
-		: [v] "=r" (v)
-	);
+	asm volatile ("sti\n");
 	
-	return v;
+	return ipl;
+}
+
+/** Disable interrupts.
+ *
+ * Disable interrupts and return the previous interrupt priority level.
+ *
+ * @return Old interrupt priority level.
+ */
+NO_TRACE static inline ipl_t interrupts_disable(void) {
+	ipl_t ipl = interrupts_read();
+	
+	asm volatile ("cli\n");
+	
+	return ipl;
+}
+
+/** Restore interrupt priority level.
+ *
+ * Restore the previously save interrupt priority level.
+ *
+ * @param ipl Saved interrupt priority level.
+ *
+ */
+NO_TRACE static inline void interrupts_restore(ipl_t ipl) {
+	write_rflags((uint64_t) ipl);
 }
 
 /** Check interrupts state.
@@ -290,15 +285,7 @@ NO_TRACE static inline ipl_t interrupts_read(void) {
  */
 NO_TRACE static inline bool interrupts_disabled(void)
 {
-	ipl_t v;
-	
-	asm volatile (
-		"pushfq\n"
-		"popq %[v]\n"
-		: [v] "=r" (v)
-	);
-	
-	return ((v & RFLAGS_IF) == 0);
+	return ((read_rflags() & RFLAGS_IF) == 0);
 }
 
 /** Write to MSR */
@@ -323,23 +310,6 @@ NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
 	);
 	
 	return ((uint64_t) dx << 32) | ax;
-}
-
-/** Enable local APIC
- *
- * Enable local APIC in MSR.
- *
- */
-NO_TRACE static inline void enable_l_apic_in_msr(void)
-{
-	asm volatile (
-		"movl $0x1b, %%ecx\n"
-		"rdmsr\n"
-		"orl $(1 << 11),%%eax\n"
-		"orl $(0xfee00000),%%eax\n"
-		"wrmsr\n"
-		::: "%eax", "%ecx", "%edx"
-	);
 }
 
 /** Invalidate TLB Entry.
@@ -425,9 +395,12 @@ NO_TRACE static inline void tr_load(uint16_t sel)
 	}
 
 GEN_READ_REG(cr0)
+GEN_WRITE_REG(cr0)
 GEN_READ_REG(cr2)
 GEN_READ_REG(cr3)
 GEN_WRITE_REG(cr3)
+GEN_READ_REG(cr4)
+GEN_WRITE_REG(cr4)
 
 GEN_READ_REG(dr0)
 GEN_READ_REG(dr1)
@@ -510,6 +483,8 @@ extern uintptr_t int_60;
 extern uintptr_t int_61;
 extern uintptr_t int_62;
 extern uintptr_t int_63;
+
+extern void enable_l_apic_in_msr(void);
 
 #endif
 

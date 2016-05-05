@@ -75,17 +75,8 @@ static const char *vendor_str[] = {
  */
 void cpu_setup_fpu(void)
 {
-	asm volatile (
-		"movq %%cr0, %%rax\n"
-		"btsq $1, %%rax\n"  /* cr0.mp */
-		"btrq $2, %%rax\n"  /* cr0.em */
-		"movq %%rax, %%cr0\n"
-		
-		"movq %%cr4, %%rax\n"
-		"bts $9, %%rax\n"   /* cr4.osfxsr */
-		"movq %%rax, %%cr4\n"
-		::: "%rax"
-	);
+	write_cr0((read_cr0() & ~CR0_EM) | CR0_MP);
+	write_cr4(read_cr4() | CR4_OSFXSR);
 }
 
 /** Set the TS flag to 1.
@@ -96,22 +87,12 @@ void cpu_setup_fpu(void)
  */
 void fpu_disable(void)
 {
-	asm volatile (
-		"mov %%cr0, %%rax\n"
-		"bts $3, %%rax\n"
-		"mov %%rax, %%cr0\n"
-		::: "%rax"
-	);
+	write_cr0(read_cr0() | CR0_TS);
 }
 
 void fpu_enable(void)
 {
-	asm volatile (
-		"mov %%cr0, %%rax\n"
-		"btr $3, %%rax\n"
-		"mov %%rax, %%cr0\n"
-		::: "%rax"
-	);
+	write_cr0(read_cr0() & ~CR0_TS);
 }
 
 void cpu_arch_init(void)

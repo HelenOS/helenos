@@ -208,7 +208,7 @@ SYMBOL(multiboot2_image_start)
 	 */
 	
 	movl %cr4, %eax
-	btsl $5, %eax
+	orl $CR4_PAE, %eax
 	movl %eax, %cr4
 	
 	/* Set up paging tables */
@@ -216,14 +216,14 @@ SYMBOL(multiboot2_image_start)
 	movl %eax, %cr3
 	
 	/* Enable long mode */
-	movl $EFER_MSR_NUM, %ecx
+	movl $AMD_MSR_EFER, %ecx
 	rdmsr                     /* read EFER */
-	btsl $AMD_LME_FLAG, %eax  /* set LME = 1 */
+	orl $AMD_LME, %eax        /* set LME = 1 */
 	wrmsr
 	
 	/* Enable paging to activate long mode (set CR0.PG = 1) */
 	movl %cr0, %eax
-	btsl $31, %eax
+	orl $CR0_PG, %eax
 	movl %eax, %cr0
 	
 	/* At this point we are in compatibility mode */

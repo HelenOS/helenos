@@ -32,6 +32,7 @@
 #include <arch/istate_struct.h>
 #include <arch/kseg_struct.h>
 #include <arch/cpu.h>
+#include <arch/smp/apic.h>
 
 .text
 
@@ -92,7 +93,7 @@ FUNCTION_BEGIN(has_cpuid)
 	movq %rax, %rdx
 	
 	/* Flip the ID bit */
-	btcl $21, %edx
+	xorl $RFLAGS_ID, %edx
 	
 	/* Store RFLAGS */
 	pushq %rdx
@@ -101,8 +102,8 @@ FUNCTION_BEGIN(has_cpuid)
 	
 	/* Get the ID bit again */
 	popq %rdx
-	andl $(1 << 21), %eax
-	andl $(1 << 21), %edx
+	andl $RFLAGS_ID, %eax
+	andl $RFLAGS_ID, %edx
 	
 	/* 0 if not supported, 1 if supported */
 	xorl %edx, %eax
@@ -126,19 +127,18 @@ FUNCTION_BEGIN(cpuid)
 	ret
 FUNCTION_END(cpuid)
 
-FUNCTION_BEGIN(set_efer_flag)
-	movl $0xc0000080, %ecx
+/** Enable local APIC
+ *
+ * Enable local APIC in MSR.
+ *
+ */
+FUNCTION_BEGIN(enable_l_apic_in_msr)
+	movl $AMD_MSR_APIC_BASE, %ecx
 	rdmsr
-	btsl %edi, %eax
+	orl $(L_APIC_BASE | AMD_APIC_BASE_GE), %eax
 	wrmsr
 	ret
-FUNCTION_END(set_efer_flag)
-
-FUNCTION_BEGIN(read_efer_flag)
-	movl $0xc0000080, %ecx
-	rdmsr
-	ret
-FUNCTION_END(read_efer_flag)
+FUNCTION_END(enable_l_apic_in_msr)
 
 /*
  * Size of the istate structure without the hardware-saved part and without the
@@ -540,4 +540,3 @@ FUNCTION_BEGIN(early_putchar)
 	
 	ret
 FUNCTION_END(early_putchar)
-

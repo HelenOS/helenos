@@ -47,7 +47,7 @@ extern void syscall_entry(void);
 void syscall_setup_cpu(void)
 {
 	/* Enable SYSCALL/SYSRET */
-	set_efer_flag(AMD_SCE_FLAG);
+	write_msr(AMD_MSR_EFER, read_msr(AMD_MSR_EFER) | AMD_SCE);
 
 	/* Setup syscall entry address */
 	
