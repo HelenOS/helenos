@@ -35,6 +35,11 @@
 #ifndef KERN_ia32_APIC_H_
 #define KERN_ia32_APIC_H_
 
+#define L_APIC_BASE	0xfee00000
+#define IO_APIC_BASE	0xfec00000
+
+#ifndef __ASM__
+
 #include <typedefs.h>
 #include <cpu.h>
 
@@ -362,6 +367,8 @@ extern void io_apic_write(uint8_t, uint32_t);
 extern void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t v, unsigned int);
 extern void io_apic_disable_irqs(uint16_t);
 extern void io_apic_enable_irqs(uint16_t);
+
+#endif	/* __ASM__ */
 
 #endif
 

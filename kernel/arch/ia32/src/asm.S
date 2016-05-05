@@ -35,6 +35,7 @@
 #include <arch/cpu.h>
 #include <arch/mm/page.h>
 #include <arch/istate_struct.h>
+#include <arch/smp/apic.h>
 
 .text
 
@@ -109,10 +110,10 @@ SYMBOL(memcpy_to_uspace_failover_address)
  */
 FUNCTION_BEGIN(paging_on)
 	movl %cr0, %edx
-	orl $(1 << 31), %edx  /* paging on */
+	orl $CR0_PG, %edx  /* paging on */
 	
 	/* Clear Cache Disable and not Write Though */
-	andl $~((1 << 30) | (1 << 29)), %edx
+	andl $~(CR0_CD | CR0_NW), %edx
 	movl %edx, %cr0
 	jmp 0f
 	
@@ -126,10 +127,9 @@ FUNCTION_END(paging_on)
  *
  */
 FUNCTION_BEGIN(enable_l_apic_in_msr)
-	movl $0x1b, %ecx
+	movl $IA32_MSR_APIC_BASE, %ecx
 	rdmsr
-	orl $(1 << 11), %eax
-	orl $(0xfee00000), %eax
+	orl $(L_APIC_BASE | IA32_APIC_BASE_GE), %eax
 	wrmsr
 	ret
 FUNCTION_END(enable_l_apic_in_msr)

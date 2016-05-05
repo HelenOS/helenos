@@ -86,6 +86,8 @@ GEN_READ_REG(cr2)
 GEN_READ_REG(cr3)
 GEN_WRITE_REG(cr3)
 
+GEN_WRITE_REG(cr0)
+
 GEN_READ_REG(dr0)
 GEN_READ_REG(dr1)
 GEN_READ_REG(dr2)
@@ -231,82 +233,77 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 		return (uint32_t) *port;
 }
 
-/** Enable interrupts.
- *
- * Enable interrupts and return previous
- * value of EFLAGS.
- *
- * @return Old interrupt priority level.
- *
- */
-NO_TRACE static inline ipl_t interrupts_enable(void)
+NO_TRACE static inline uint32_t read_eflags(void)
 {
-	ipl_t v;
-	
+	uint32_t eflags;
+
 	asm volatile (
 		"pushf\n"
 		"popl %[v]\n"
-		"sti\n"
-		: [v] "=r" (v)
+		: [v] "=r" (eflags)
 	);
 	
-	return v;
+	return eflags;
+}
+
+NO_TRACE static inline void write_eflags(uint32_t eflags)
+{
+	asm volatile (
+		"pushl %[v]\n"
+		"popf\n"
+		:: [v] "r" (eflags)
+	);
+}
+
+/** Return interrupt priority level.
+ *
+ * @return Current interrupt priority level.
+ */
+NO_TRACE static inline ipl_t interrupts_read(void)
+{
+	return (ipl_t) read_eflags();
+}
+
+/** Enable interrupts.
+ *
+ * Enable interrupts and return the previous interrupt priority level.
+ *
+ * @return Old interrupt priority level.
+ */
+NO_TRACE static inline ipl_t interrupts_enable(void)
+{
+	ipl_t ipl = interrupts_read();
+	
+	asm volatile ("sti\n");
+	
+	return ipl;
 }
 
 /** Disable interrupts.
  *
- * Disable interrupts and return previous
- * value of EFLAGS.
+ * Disable interrupts and return the previous interrupt priority level.
  *
  * @return Old interrupt priority level.
- *
  */
 NO_TRACE static inline ipl_t interrupts_disable(void)
 {
-	ipl_t v;
+	ipl_t ipl = interrupts_read();
 	
-	asm volatile (
-		"pushf\n"
-		"popl %[v]\n"
-		"cli\n"
-		: [v] "=r" (v)
-	);
+	asm volatile ("cli\n");
 	
-	return v;
+	return ipl;
 }
 
 /** Restore interrupt priority level.
  *
- * Restore EFLAGS.
+ * Restore a saved interrupt priority level.
  *
  * @param ipl Saved interrupt priority level.
  *
  */
 NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 {
-	asm volatile (
-		"pushl %[ipl]\n"
-		"popf\n"
-		:: [ipl] "r" (ipl)
-	);
-}
-
-/** Return interrupt priority level.
- *
- * @return EFLAFS.
- *
- */
-NO_TRACE static inline ipl_t interrupts_read(void)
-{
-	ipl_t v;
-	
-	asm volatile (
-		"pushf\n"
-		"popl %[v]\n"
-		: [v] "=r" (v)
-	);
-	
-	return v;
+	write_eflags((uint32_t) ipl);
 }
 
 /** Check interrupts state.
@@ -316,15 +313,7 @@ NO_TRACE static inline ipl_t interrupts_read(void)
  */
 NO_TRACE static inline bool interrupts_disabled(void)
 {
-	ipl_t v;
-	
-	asm volatile (
-		"pushf\n"
-		"popl %[v]\n"
-		: [v] "=r" (v)
-	);
-	
-	return ((v & EFLAGS_IF) == 0);
+	return ((read_eflags() & EFLAGS_IF) == 0);
 }
 
 #ifndef PROCESSOR_i486

@@ -46,6 +46,7 @@
 #include <memstr.h>
 #include <arch/boot/boot.h>
 #include <interrupt.h>
+#include <arch/cpu.h>
 
 /*
  * Early ia32 configuration functions and data structures.
@@ -255,30 +256,6 @@ void idt_init(void)
 	idt_setoffset(&idt[VECTOR_SYSCALL], (uintptr_t) &int_syscall);
 }
 
-/* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
-static void clean_IOPL_NT_flags(void)
-{
-	asm volatile (
-		"pushfl\n"
-		"pop %%eax\n"
-		"and $0xffff8fff, %%eax\n"
-		"push %%eax\n"
-		"popfl\n"
-		::: "eax"
-	);
-}
-
-/* Clean AM(18) flag in CR0 register */
-static void clean_AM_flag(void)
-{
-	asm volatile (
-		"mov %%cr0, %%eax\n"
-		"and $0xfffbffff, %%eax\n"
-		"mov %%eax, %%cr0\n"
-		::: "eax"
-	);
-}
-
 void pm_init(void)
 {
 	descriptor_t *gdt_p = (descriptor_t *) gdtr.base;
@@ -325,8 +302,11 @@ void pm_init(void)
 	 */
 	tr_load(GDT_SELECTOR(TSS_DES));
 	
-	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels and clear NT flag. */
-	clean_AM_flag();          /* Disable alignment check */
+	/* Disable I/O on nonprivileged levels and clear NT flag. */
+	write_eflags(read_eflags() & ~(EFLAGS_IOPL | EFLAGS_NT));
+
+	/* Disable alignment check */
+	write_cr0(read_cr0() & ~CR0_AM);
 }
 
 /** @}

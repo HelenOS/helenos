@@ -71,8 +71,8 @@
  * always be 32-bit, would use byte oriented instructions.
  *
  */
-volatile uint32_t *l_apic = (uint32_t *) UINT32_C(0xfee00000);
-volatile uint32_t *io_apic = (uint32_t *) UINT32_C(0xfec00000);
+volatile uint32_t *l_apic = (uint32_t *) L_APIC_BASE;
+volatile uint32_t *io_apic = (uint32_t *) IO_APIC_BASE;
 
 uint32_t apic_id_mask = 0;
 uint8_t bsp_l_apic = 0;
