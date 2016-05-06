@@ -150,6 +150,7 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 
 	offset = 0;
 	list_foreach(rtld->modules, modules_link, module_t, m) {
+		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
 		memcpy(data + offset, m->tdata, m->tdata_size);
 		offset += m->tdata_size;
 		memset(data + offset, 0, m->tbss_size);

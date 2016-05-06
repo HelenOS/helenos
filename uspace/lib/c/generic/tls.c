@@ -46,6 +46,10 @@
 
 size_t tls_get_size(void)
 {
+#ifdef CONFIG_RTLD
+	if (runtime_env != NULL)
+		return runtime_env->tls_size;
+#endif
 	return &_tbss_end - &_tdata_start;
 }
 
@@ -82,13 +86,7 @@ tcb_t *tls_make(void)
 
 void tls_free(tcb_t *tcb)
 {
-	size_t tls_size = &_tbss_end - &_tdata_start;
-
-#ifdef CONFIG_RTLD
-	if (runtime_env != NULL)
-		tls_size = runtime_env->tls_size;
-#endif
-	tls_free_arch(tcb, tls_size);
+	tls_free_arch(tcb, tls_get_size());
 }
 
 #ifdef CONFIG_TLS_VARIANT_1
