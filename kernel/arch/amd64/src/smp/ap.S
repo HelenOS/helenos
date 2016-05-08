@@ -38,6 +38,7 @@
 #include <arch/pm.h>
 #include <arch/cpu.h>
 #include <arch/cpuid.h>
+#include <arch/context_struct.h>
 
 .section K_TEXT_START, "ax"
 
@@ -97,7 +98,7 @@ jump_to_kernel:
 .code64
 start64:
 	movabsq $ctx, %rsp
-	movq (%rsp), %rsp
+	movq CONTEXT_OFFSET_SP(%rsp), %rsp
 	
 	pushq $0
 	movq %rsp, %rbp
