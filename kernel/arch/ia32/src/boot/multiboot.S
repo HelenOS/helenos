@@ -220,18 +220,17 @@ FUNCTION_BEGIN(map_kernel_non_pse)
 		mov %ecx, %esi
 		
 		/* Align address down to 4k */
-		andl $(~4095), %esi
+		andl $(~(PAGE_SIZE - 1)), %esi
 		
 	use_kernel_end:
 		
 		/* Align address to 4k */
-		addl $4095, %esi
-		andl $(~4095), %esi
+		addl $(PAGE_SIZE - 1), %esi
+		andl $(~(PAGE_SIZE - 1)), %esi
 		
 		/* Allocate space for page tables */
 		movl %esi, pt_loc
-		movl $ballocs, %edi
-		andl $0x7fffffff, %edi
+		movl $KA2PA(ballocs), %edi
 		
 		movl %esi, (%edi)
 		addl $4, %edi
@@ -245,7 +244,7 @@ FUNCTION_BEGIN(map_kernel_non_pse)
 			movl $(PTE_RW | PTE_P), %eax
 			orl %ebx, %eax
 			movl %eax, (%esi, %ecx, 4)
-			addl $(4 * 1024), %ebx
+			addl $PAGE_SIZE, %ebx
 			
 			incl %ecx
 			cmpl $(512 * 1024), %ecx
@@ -267,7 +266,7 @@ FUNCTION_BEGIN(map_kernel_non_pse)
 			
 			/* Mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
 			movl %eax, (%edi, %ecx, 4)
-			addl $(4 * 1024), %ebx
+			addl $PAGE_SIZE, %ebx
 			
 			incl %ecx
 			cmpl $512, %ecx
@@ -285,20 +284,17 @@ FUNCTION_END(map_kernel_non_pse)
 
 /** Calculate unmapped address of the end of the kernel. */
 calc_kernel_end:
-	movl $hardcoded_load_address, %edi
-	andl $0x7fffffff, %edi
+	movl $KA2PA(hardcoded_load_address), %edi
 	movl (%edi), %esi
-	andl $0x7fffffff, %esi
+	leal KA2PA(0)(%esi), %esi
 	
-	movl $hardcoded_ktext_size, %edi
-	andl $0x7fffffff, %edi
+	movl $KA2PA(hardcoded_ktext_size), %edi
 	addl (%edi), %esi
-	andl $0x7fffffff, %esi
+	leal KA2PA(0)(%esi), %esi
 	
-	movl $hardcoded_kdata_size, %edi
-	andl $0x7fffffff, %edi
+	movl $KA2PA(hardcoded_kdata_size), %edi
 	addl (%edi), %esi
-	andl $0x7fffffff, %esi
+	leal KA2PA(0)(%esi), %esi
 	movl %esi, kernel_end
 	
 	ret
