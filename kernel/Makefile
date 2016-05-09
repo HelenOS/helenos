@@ -376,6 +376,10 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
+GENARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(GENARCH_AUTOGENS_AG)))
+GENARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(GENARCH_AUTOGENS_AG)))
+GENARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(GENARCH_AUTOGENS_AG)))
+
 ARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(ARCH_AUTOGENS_AG)))
 ARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(ARCH_AUTOGENS_AG)))
 ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG)))
@@ -459,7 +463,7 @@ endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
-$(DEPEND): $(COMMON_HEADER_ARCH) $(ARCH_AUTOGENS_H)
+$(DEPEND): $(COMMON_HEADER_ARCH) $(ARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_H)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
 
@@ -468,3 +472,4 @@ $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 
 autogen_clean:
 	-rm $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
+	-rm $(GENARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_PROBE_C) $(GENARCH_AUTOGENS_PROBE_S)

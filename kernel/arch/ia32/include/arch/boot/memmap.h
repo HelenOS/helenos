@@ -35,6 +35,8 @@
 #ifndef KERN_ia32_MEMMAP_H_
 #define KERN_ia32_MEMMAP_H_
 
+#include <arch/boot/memmap_struct.h>
+
 /* E820h memory range types */
 
 /* Free memory */
@@ -61,12 +63,6 @@
 #ifndef __ASM__
 
 #include <typedefs.h>
-
-typedef struct {
-	uint64_t base_address;
-	uint64_t size;
-	uint32_t type;
-} __attribute__ ((packed)) e820memmap_t;
 
 extern e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
 extern uint8_t e820counter;

@@ -30,6 +30,7 @@
 
 #include <abi/asmtool.h>
 #include <arch/boot/boot.h>
+#include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
 #include <arch/pm.h>
 #include <genarch/multiboot/multiboot.h>
@@ -314,7 +315,7 @@ find_mem_for_pt:
 		
 		/* Check if memory map flag is present */
 		movl (%ebx), %edx
-		andl $(1 << 6), %edx
+		andl $MULTIBOOT_INFO_FLAGS_MMAP, %edx
 		jnz use_multiboot_map
 			
 			ret
@@ -322,26 +323,25 @@ find_mem_for_pt:
 	use_multiboot_map:
 		
 		/* Copy address of the memory map to edx */
-		movl 48(%ebx), %edx
+		movl MULTIBOOT_INFO_OFFSET_MMAP_ADDR(%ebx), %edx
 		movl %edx, %ecx
 		
-		addl 44(%ebx), %ecx
+		addl MULTIBOOT_INFO_OFFSET_MMAP_LENGTH(%ebx), %ecx
 		
 		/* Find a free region at least 2M in size */
 		check_memmap_loop:
 			
 			/* Is this a free region? */
-			cmp $1, 20(%edx)
+			cmpl $MEMMAP_MEMORY_AVAILABLE, MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_TYPE(%edx)
 			jnz next_region
 			
 			/* Check size */
-			cmp $0, 16(%edx)
+			cmpl $0, MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_SIZE + 4(%edx)
 			jnz next_region
-			
-			cmpl $(2 * 1024 * 1024 + 4 * 1024), 12(%edx)
+			cmpl $(2 * 1024 * 1024 + PAGE_SIZE), MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_SIZE(%edx)
 			jbe next_region
 			
-			cmp $0, 8(%edx)
+			cmpl $0, MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_BASE_ADDRESS + 4(%edx)
 			jz found_region
 		
 		next_region:
@@ -353,15 +353,15 @@ find_mem_for_pt:
 		
 		next_region_do:
 			
-			addl (%edx), %edx
-			addl $4, %edx
+			addl MULTIBOOT_MEMMAP_OFFSET_SIZE(%edx), %edx
+			addl $MULTIBOOT_MEMMAP_SIZE_SIZE, %edx
 			jmp check_memmap_loop
 			
 		found_region:
 			
 			/* Use end of the found region */
-			mov 4(%edx), %ecx
-			add 12(%edx), %ecx
+			mov MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_BASE_ADDRESS(%edx), %ecx
+			add MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_SIZE(%edx), %ecx
 			sub $(2 * 1024 * 1024), %ecx
 			mov %ecx, free_area
 			
