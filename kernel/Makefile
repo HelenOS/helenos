@@ -47,6 +47,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 ## Common names
 #
 
+AGDEPEND = Makefile.ag.depend
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
 RAW = kernel.raw
@@ -137,6 +138,7 @@ LFLAGS = -n -T $(LINK) -M --fatal-warnings
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
 -include $(DEPEND)
+-include $(AGDEPEND)
 
 ## The at-sign
 #
@@ -384,6 +386,9 @@ ARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(ARCH_AUTOGENS_AG)))
 ARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(ARCH_AUTOGENS_AG)))
 ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG)))
 
+AUTOGENS_H := $(ARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_H)
+AUTOGENS_AG := $(ARCH_AUTOGENS_AG) $(GENARCH_AUTOGENS_AG)
+
 LFLAGS_LTO := $(addprefix -Xlinker ,$(LFLAGS))
 
 ifeq ($(CONFIG_SYMTAB),y)
@@ -463,7 +468,18 @@ endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
-$(DEPEND): $(COMMON_HEADER_ARCH) $(ARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_H)
+$(AUTOGENS_H): $(AGDEPEND)
+
+$(AGDEPEND): $(AUTOGENS_AG)
+	touch $@
+	for g in $?; do \
+		h=`dirname $$g`/`basename $$g .ag`.h; \
+		for l in `$(AUTOGEN) depend $$g`; do \
+			echo "$$h: $$l" >>$@; \
+		done \
+	done
+
+$(DEPEND): $(COMMON_HEADER_ARCH) $(AUTOGENS_H)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
 
@@ -473,3 +489,4 @@ $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 autogen_clean:
 	-rm $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
 	-rm $(GENARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_PROBE_C) $(GENARCH_AUTOGENS_PROBE_S)
+	-rm $(AGDEPEND)

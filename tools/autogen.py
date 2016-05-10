@@ -33,8 +33,15 @@ import re
 
 def usage():
 	print("%s - Automated structure and offsets generator" % sys.argv[0])
-	print("%s file.ag probe|generate struct.ag" % sys.argv[0])
+	print("%s file.ag depend|probe|generate struct.ag" % sys.argv[0])
 	sys.exit()
+
+def depend(struct):
+	deps = ""
+	for include in struct['includes']:
+		if 'depends' in include.keys():
+			deps = deps + include['depends'] + "\n"
+	return deps.strip()
 
 def generate_includes(struct):
 	code = ""
@@ -159,7 +166,10 @@ def run():
 	with open(sys.argv[2], "rb") as fp:
 		struct = yaml.load(fp)
 
-	if sys.argv[1] == "probe":
+	if sys.argv[1] == "depend":
+		deps = depend(struct)
+		print(deps)
+	elif sys.argv[1] == "probe":
 		code = probe(struct)
 		print(code)
 	elif sys.argv[1] == "generate":

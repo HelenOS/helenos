@@ -34,7 +34,8 @@
                         include : <typedefs.h>
                 },
                 {
-                        include : <arch/boot/memmap_struct.h>
+                        include : <arch/boot/memmap_struct.h>,
+                        depends: arch/$(KARCH)/include/arch/boot/memmap_struct.h,
                 }
         ],
 
