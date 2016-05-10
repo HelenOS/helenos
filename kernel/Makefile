@@ -471,8 +471,8 @@ endif
 $(AUTOGENS_H): $(AGDEPEND)
 
 $(AGDEPEND): $(AUTOGENS_AG)
-	touch $@
-	for g in $?; do \
+	echo "# DO NOT EDIT" >$@
+	for g in $^; do \
 		h=`dirname $$g`/`basename $$g .ag`.h; \
 		for l in `$(AUTOGEN) depend $$g`; do \
 			echo "$$h: $$l" >>$@; \
