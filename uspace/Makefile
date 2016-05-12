@@ -143,6 +143,7 @@ DIRS = \
 	drv/char/i8042 \
 	drv/char/pl050 \
 	drv/char/ps2mouse \
+	drv/char/atkbd \
 	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \

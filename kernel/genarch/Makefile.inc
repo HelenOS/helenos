@@ -140,6 +140,12 @@ GENARCH_SOURCES += \
 	genarch/src/kbrd/scanc_pc.c
 endif
 
+ifeq ($(CONFIG_AT_KBD),y)
+GENARCH_SOURCES += \
+	genarch/src/kbrd/kbrd_at.c \
+	genarch/src/kbrd/scanc_at.c
+endif
+
 ifeq ($(CONFIG_SUN_KBD),y)
 GENARCH_SOURCES += \
 	genarch/src/kbrd/kbrd.c \

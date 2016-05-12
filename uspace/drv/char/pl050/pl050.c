@@ -322,7 +322,7 @@ static int pl050_dev_add(ddf_dev_t *dev)
 		goto error;
 
 	if (str_cmp(pl050->name, "kbd") == 0)
-		mname = "char/xtkbd";
+		mname = "char/atkbd";
 	else
 		mname = "char/ps2mouse";
 

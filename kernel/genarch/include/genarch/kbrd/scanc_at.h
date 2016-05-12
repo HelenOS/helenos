@@ -31,11 +31,11 @@
  */
 /**
  * @file
- * @brief	Scan codes for pl050 keyboards.
+ * @brief	Scan codes for PC/AT keyboards.
  */
 
-#ifndef KERN_SCANC_PL050_H_
-#define KERN_SCANC_PL050_H_
+#ifndef KERN_SCANC_AT_H_
+#define KERN_SCANC_AT_H_
 
 #define SC_SCAN_ESCAPE	0xE0
 #define SC_ESC		0x76
