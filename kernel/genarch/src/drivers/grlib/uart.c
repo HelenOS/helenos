@@ -51,10 +51,11 @@ static void grlib_uart_sendb(outdev_t *dev, uint8_t byte)
 {
 	grlib_uart_status_t *status;
 	grlib_uart_t *uart = (grlib_uart_t *) dev->data;
+	uint32_t reg;
 	
 	/* Wait for space becoming available in Tx FIFO. */
 	do {
-		uint32_t reg = pio_read_32(&uart->io->status);
+		reg = pio_read_32(&uart->io->status);
 		status = (grlib_uart_status_t *) &reg;
 	} while (status->tf != 0);
 	
