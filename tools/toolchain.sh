@@ -310,7 +310,20 @@ unpack_tarball() {
 	change_title "Unpacking ${DESC}"
 	echo " >>> Unpacking ${DESC}"
 	
-	tar -xjf "${FILE}"
+	case "${FILE}" in
+		*.gz)
+			tar -xzf "${FILE}"
+			;;
+		*.xz)
+			tar -xJf "${FILE}"
+			;;
+		*.bz2)
+			tar -xjf "${FILE}"
+			;;
+		*)
+			check_error 1 "Don't know how to unpack ${DESC}."
+			;;
+	esac
 	check_error $? "Error unpacking ${DESC}."
 }
 
