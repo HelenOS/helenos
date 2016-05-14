@@ -639,7 +639,7 @@ void __posix_fnmatch_test()
 	#define match(s1, s2, flags) assert(posix_fnmatch(s1, s2, flags) == 0)
 	#define nomatch(s1, s2, flags) assert(posix_fnmatch(s1, s2, flags) == FNM_NOMATCH)
 
-	assert(FNM_PATHNAME == FNM_FILE_NAME);
+	static_assert(FNM_PATHNAME == FNM_FILE_NAME);
 	match("", "", 0);
 	match("*", "hello", 0);
 	match("hello", "hello", 0);

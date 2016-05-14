@@ -36,6 +36,8 @@
 #ifndef LIBC_ASSERT_H_
 #define LIBC_ASSERT_H_
 
+#define static_assert(expr)	_Static_assert(expr, "")
+
 /** Debugging assert macro
  *
  * If NDEBUG is not set, the assert() macro

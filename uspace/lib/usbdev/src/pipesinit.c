@@ -339,7 +339,7 @@ int usb_pipe_initialize_from_configuration(
 int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 {
 	assert(pipe);
-	assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
+	static_assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
 
 	if ((pipe->direction != USB_DIRECTION_BOTH) ||
 	    (pipe->transfer_type != USB_TRANSFER_CONTROL) ||
