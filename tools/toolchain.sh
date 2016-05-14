@@ -52,19 +52,19 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
-BINUTILS_VERSION="2.23.1"
+BINUTILS_VERSION="2.26"
 BINUTILS_RELEASE=""
-BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
-GCC_VERSION="4.8.1"
-GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
-GDB_VERSION="7.6.1"
-GDB_PATCHES="toolchain-gdb-7.6.1.patch"
+#BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
+GCC_VERSION="6.1.0"
+#GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
+GDB_VERSION="7.11"
+#GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC="gcc-${GCC_VERSION}.tar.bz2"
-GDB="gdb-${GDB_VERSION}.tar.bz2"
+GDB="gdb-${GDB_VERSION}.tar.gz"
 
 REAL_INSTALL=true
 USE_HELENOS_TARGET=false
@@ -348,9 +348,9 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "33adb18c3048d057ac58d07a3f1adb38"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "3b2386c114cd74185aa3754b58a79304"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "fbc4dab4181e6e9937075b43a4ce2732"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "64146a0faa3b411ba774f47d41de239f"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "8fb6cb98b8459f5863328380fbf06bd1"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "f585059252836a981ea5db9a5f8ce97f"
 }
 
 set_target_from_platform() {
