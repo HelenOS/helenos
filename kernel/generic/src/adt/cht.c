@@ -525,7 +525,7 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load,
 	ASSERT(h);
 	ASSERT(op && op->hash && op->key_hash && op->equal && op->key_equal);
 	/* Memoized hashes are stored in the rcu_link.func function pointer. */
-	ASSERT(sizeof(size_t) == sizeof(rcu_func_t));
+	STATIC_ASSERT(sizeof(size_t) == sizeof(rcu_func_t));
 	ASSERT(sentinel.hash == (uintptr_t)sentinel.rcu_link.func);
 
 	/* All operations are compulsory. */
@@ -1310,7 +1310,7 @@ static inline bool mark_deleted(cht_link_t *cur, walk_mode_t walk_mode,
 			return false;
 		}
 	} else {
-		ASSERT(N_JOIN == N_JOIN_FOLLOWS);
+		STATIC_ASSERT(N_JOIN == N_JOIN_FOLLOWS);
 		
 		/* Keep the N_JOIN/N_JOIN_FOLLOWS mark but strip N_DELETED. */
 		mark_t cur_mark = get_mark(cur->link) & N_JOIN_FOLLOWS;
