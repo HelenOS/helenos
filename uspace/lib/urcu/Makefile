@@ -28,8 +28,6 @@
 
 USPACE_PREFIX = ../..
 
-LIBS = $(LIBC_PREFIX)/libc.a 
-
 EXTRA_CFLAGS = -I. -I$(LIBC_PREFIX)/include
 
 LIBRARY = liburcu

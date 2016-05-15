@@ -265,7 +265,7 @@ CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .c
 
 all: $(BUILDS) $(BUILDS_TESTS)
 
-$(BUILDS_TESTS): $(BUILDS)
+$(BUILDS_TESTS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
 	$(MAKE) -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)

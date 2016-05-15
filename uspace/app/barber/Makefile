@@ -84,5 +84,5 @@ EXTRA_CLEAN = images.c images.h
 
 include $(USPACE_PREFIX)/Makefile.common
 
-images.c images.h: $(IMAGES)
-	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES $^
+image%.c image%.h: $(IMAGES)
+	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES $(IMAGES)

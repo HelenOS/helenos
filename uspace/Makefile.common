@@ -197,7 +197,7 @@ ifneq ($(TEST_SOURCES),)
 endif
 
 ifeq ($(STATIC_BUILD),y)
-	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
+	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBURCU_PREFIX)/liburcu.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 	ifeq ($(MATH),y)
 		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
@@ -330,7 +330,10 @@ ifeq ($(COMPILER),clang)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
+
+ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPEND)
+endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
@@ -370,12 +373,12 @@ $(LSONAME):
 endif
 
 ifneq ($(LIBRARY),)
-%.a: $(OBJECTS)
+$(LIBRARY).a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
 endif
 
 ifneq ($(SLIBRARY),)
-%.la: $(LOBJECTS)
+$(SLIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 endif
 

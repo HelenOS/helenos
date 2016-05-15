@@ -46,7 +46,6 @@ LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so.0
 
-LIBS = $(LIBURCU_PREFIX)/liburcu.a
 EXTRA_CFLAGS += -I$(LIBURCU_PREFIX)
 
 -include $(CONFIG_MAKEFILE)
