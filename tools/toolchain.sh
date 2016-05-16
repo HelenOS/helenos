@@ -52,13 +52,17 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
+ISL_MAIN=<<EOF
+isl_ctx_get_max_operations (isl_ctx_alloc ());
+EOF
+
 BINUTILS_VERSION="2.26"
 BINUTILS_RELEASE=""
-#BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
+## BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
 GCC_VERSION="6.1.0"
-#GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
+## GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
 GDB_VERSION="7.11"
-#GDB_PATCHES="toolchain-gdb-7.6.1.patch"
+## GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"
@@ -113,6 +117,7 @@ check_dependecies() {
 	check_dependency "GMP" "<gmp.h>" "${GMP_MAIN}"
 	check_dependency "MPFR" "<mpfr.h>" "${MPFR_MAIN}"
 	check_dependency "MPC" "<mpc.h>" "${MPC_MAIN}"
+	check_dependency "isl" "<isl/ctx.h>" "${ISL_MAIN}"
 	echo
 }
 
@@ -214,18 +219,13 @@ show_dependencies() {
 	echo
 	echo " - SED, AWK, Flex, Bison, gzip, bzip2, Bourne Shell"
 	echo " - gettext, zlib, Texinfo, libelf, libgomp"
-	echo " - terminfo"
+	echo " - GNU Make, Coreutils, Sharutils, tar"
 	echo " - GNU Multiple Precision Library (GMP)"
-	echo " - GNU Make"
-	echo " - GNU tar"
-	echo " - GNU Coreutils"
-	echo " - GNU Sharutils"
 	echo " - MPFR"
 	echo " - MPC"
-	echo " - Parma Polyhedra Library (PPL)"
-	echo " - ClooG-PPL"
-	echo " - native C compiler, assembler and linker"
-	echo " - native C library with headers"
+	echo " - integer point manipulation library (isl)"
+	echo " - native C and C++ compiler, assembler and linker"
+	echo " - native C and C++ standard library with headers"
 	echo
 }
 
