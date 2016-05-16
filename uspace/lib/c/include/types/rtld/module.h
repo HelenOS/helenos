@@ -75,6 +75,8 @@ typedef struct module {
 
 	/** Link to list of all modules in runtime environment */
 	link_t modules_link;
+	/** Link to list of initial modules */
+	link_t imodules_link;
 
 	/** Link to BFS queue. Only used when doing a BFS of the module graph */
 	link_t queue_link;

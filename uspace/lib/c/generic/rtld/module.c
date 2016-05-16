@@ -287,6 +287,7 @@ void modules_process_tls(rtld_t *rtld)
 #ifdef CONFIG_TLS_VARIANT_1
 	list_foreach(rtld->modules, modules_link, module_t, m) {
 		m->ioffs = rtld->tls_size;
+		list_append(&m->imodules_link, &rtmd->imodules);
 		rtld->tls_size += m->tdata_size + m->tbss_size;
 	}
 #else /* CONFIG_TLS_VARIANT_2 */
@@ -300,6 +301,7 @@ void modules_process_tls(rtld_t *rtld)
 	list_foreach(rtld->modules, modules_link, module_t, m) {
 		offs += m->tdata_size + m->tbss_size;
 		m->ioffs = rtld->tls_size - offs;
+		list_append(&m->imodules_link, &rtld->imodules);
 	}
 #endif
 }

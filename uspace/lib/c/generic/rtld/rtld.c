@@ -48,6 +48,7 @@ void rtld_init_static(void)
 {
 	runtime_env = &rt_env_static;
 	list_initialize(&runtime_env->modules);
+	list_initialize(&runtime_env->imodules);
 	runtime_env->next_bias = 0x2000000;
 	runtime_env->program = NULL;
 }
@@ -101,6 +102,7 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 
 	/* Initialize list of loaded modules */
 	list_initialize(&env->modules);
+	list_initialize(&env->imodules);
 	list_append(&prog->modules_link, &env->modules);
 
 	/* Pointer to program module. Used as root of the module graph. */
@@ -155,7 +157,7 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 	 * Ascending addresses
 	 */
 	offset = 0;
-	list_foreach(rtld->modules, modules_link, module_t, m) {
+	list_foreach(rtld->imodules, imodules_link, module_t, m) {
 		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
 		memcpy(data + offset, m->tdata, m->tdata_size);
 		offset += m->tdata_size;
@@ -167,7 +169,7 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 	 * Descending addresses
 	 */
 	offset = 0;
-	list_foreach(rtld->modules, modules_link, module_t, m) {
+	list_foreach(rtld->imodules, imodules_link, module_t, m) {
 		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
 		offset += m->tbss_size;
 		memset(data + rtld->tls_size - offset, 0, m->tbss_size);
