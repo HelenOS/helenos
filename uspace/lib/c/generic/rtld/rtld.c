@@ -94,6 +94,7 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	prog->tdata = p_info->tls.tdata;
 	prog->tdata_size = p_info->tls.tdata_size;
 	prog->tbss_size = p_info->tls.tbss_size;
+	prog->tls_align = p_info->tls.tls_align;
 
 	printf("prog tdata at %p size %zu, tbss size %zu\n",
 	    prog->tdata, prog->tdata_size, prog->tbss_size);
@@ -115,6 +116,9 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	DPRINTF("Load all program dependencies\n");
 	module_load_deps(prog, 0);
 
+	/* Compute static TLS size */
+	modules_process_tls(env);
+
 	/*
 	 * Now relocate/link all modules together.
 	 */
@@ -122,8 +126,6 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	/* Process relocations in all modules */
 	DPRINTF("Relocate all modules\n");
 	modules_process_relocs(env, prog);
-
-	modules_process_tls(env);
 
 	*rre = env;
 	return EOK;
@@ -148,6 +150,10 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 	 * Zero out thread-local uninitialized data.
 	 */
 
+#ifdef CONFIG_TLS_VARIANT_1
+	/*
+	 * Ascending addresses
+	 */
 	offset = 0;
 	list_foreach(rtld->modules, modules_link, module_t, m) {
 		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
@@ -156,6 +162,19 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 		memset(data + offset, 0, m->tbss_size);
 		offset += m->tbss_size;
 	}
+#else /* CONFIG_TLS_VARIANT_2 */
+	/*
+	 * Descending addresses
+	 */
+	offset = 0;
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
+		offset += m->tbss_size;
+		memset(data + rtld->tls_size - offset, 0, m->tbss_size);
+		offset += m->tdata_size;
+		memcpy(data + rtld->tls_size - offset, m->tdata, m->tdata_size);
+	}
+#endif
 
 	return tcb;
 }

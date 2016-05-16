@@ -65,6 +65,8 @@ typedef struct {
 	size_t tdata_size;
 	/** Size of tbss section */
 	size_t tbss_size;
+	/** Alignment of TLS initialization image */
+	size_t tls_align;
 } elf_tls_info_t;
 
 /**

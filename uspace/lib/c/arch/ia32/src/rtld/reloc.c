@@ -114,6 +114,12 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 		} else {
 			sym_addr = 0;
 			sym_def = NULL;
+
+			/*
+			 * DTPMOD with null st_name should return the index
+			 * of the current module.
+			 */
+			dest = m;
 		}
 
 		switch (rel_type) {
@@ -170,11 +176,18 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 			*r_ptr += m->bias;
 			break;
 
-//		case R_386_TLS_DTPOFF32:
-//			*r_ptr = sym_def->st_value;
-//			break; 
+		case R_386_TLS_TPOFF:
+			DPRINTF("fixup R_386_TLS_TPOFF\n");
+			*r_ptr = (dest->ioffs + sym_def->st_value) - dest->rtld->tls_size;
+			break;
+
+		case R_386_TLS_DTPOFF32:
+			DPRINTF("fixup R_386_TLS_DTPOFF32\n");
+			*r_ptr = sym_def->st_value;
+			break;
 
 		case R_386_TLS_DTPMOD32:
+			DPRINTF("fixup R_386_TLS_DTPMOD32\n");
 			*r_ptr = dest->id;
 			break;
 

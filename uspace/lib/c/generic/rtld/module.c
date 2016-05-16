@@ -188,6 +188,7 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	m->tdata = info.tls.tdata;
 	m->tdata_size = info.tls.tdata_size;
 	m->tbss_size = info.tls.tbss_size;
+	m->tls_align = info.tls.tls_align;
 
 	printf("tdata at %p size %zu, tbss size %zu\n",
 	    m->tdata, m->tdata_size, m->tbss_size);
@@ -283,10 +284,24 @@ void modules_process_relocs(rtld_t *rtld, module_t *start)
 
 void modules_process_tls(rtld_t *rtld)
 {
+#ifdef CONFIG_TLS_VARIANT_1
 	list_foreach(rtld->modules, modules_link, module_t, m) {
 		m->ioffs = rtld->tls_size;
 		rtld->tls_size += m->tdata_size + m->tbss_size;
 	}
+#else /* CONFIG_TLS_VARIANT_2 */
+	size_t offs;
+
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		rtld->tls_size += m->tdata_size + m->tbss_size;
+	}
+
+	offs = 0;
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		offs += m->tdata_size + m->tbss_size;
+		m->ioffs = rtld->tls_size - offs;
+	}
+#endif
 }
 
 /** Clear BFS tags of all modules.

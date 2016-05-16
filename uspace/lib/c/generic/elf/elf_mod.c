@@ -259,6 +259,7 @@ static void tls_program_header(elf_ld_t *elf, elf_segment_header_t *hdr,
 	info->tdata = (void *)((uint8_t *)hdr->p_vaddr + elf->bias);
 	info->tdata_size = hdr->p_filesz;
 	info->tbss_size = hdr->p_memsz - hdr->p_filesz;
+	info->tls_align = hdr->p_align;
 }
 
 /** Process segment header.

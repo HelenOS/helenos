@@ -58,6 +58,8 @@ typedef struct module {
 	size_t tdata_size;
 	/** tbss size */
 	size_t tbss_size;
+	/** TLS alignment */
+	size_t tls_align;
 
 	size_t ioffs;
 

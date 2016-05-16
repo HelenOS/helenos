@@ -42,8 +42,10 @@
 #include <stdlib.h>
 
 /** libdltest library handle */
-void *handle;
+static void *handle;
 
+/** If true, do not run dlfcn tests */
+static bool no_dlfcn = false;
 
 /** Test dlsym() function */
 static bool test_dlsym(void)
@@ -690,11 +692,8 @@ static bool test_lnk_read_public_fib_uvar(void)
 
 #endif
 
-int main(int argc, char *argv[])
+static int test_dlfcn(void)
 {
-
-	printf("Dynamic linking test\n");
-
 	printf("dlopen()... ");
 	handle = dlopen("libdltest.so.0", 0);
 	if (handle == NULL) {
@@ -746,7 +745,17 @@ int main(int argc, char *argv[])
 	if (!test_dlfcn_read_public_fib_uvar())
 		return 1;
 
+//	printf("dlclose()... ");
+//	dlclose(handle);
+//	printf("Passed\n");
+
+	return 0;
+}
+
 #ifdef DLTEST_LINKED
+
+static int test_lnk(void)
+{
 	if (!test_lnk_dl_get_constant())
 		return 1;
 
@@ -785,10 +794,45 @@ int main(int argc, char *argv[])
 
 	if (!test_lnk_read_public_fib_uvar())
 		return 1;
+
+	return 0;
+}
+
 #endif
-//	printf("dlclose()... ");
-//	dlclose(handle);
-//	printf("Passed\n");
+
+static void print_syntax(void)
+{
+	fprintf(stderr, "syntax: dltest [-n]\n");
+	fprintf(stderr, "\t-n Do not run dlfcn tests\n");
+}
+
+int main(int argc, char *argv[])
+{
+	printf("Dynamic linking test\n");
+
+	if (argc > 1) {
+		if (argc > 2) {
+			print_syntax();
+			return 1;
+		}
+
+		if (str_cmp(argv[1], "-n") == 0) {
+			no_dlfcn = true;
+		} else {
+			print_syntax();
+			return 1;
+		}
+	}
+
+	if (!no_dlfcn) {
+		if (test_dlfcn() != 0)
+			return 1;
+	}
+
+#ifdef DLTEST_LINKED
+	if (test_lnk() != 0)
+		return 1;
+#endif
 
 	printf("All passed.\n");
 	return 0;
