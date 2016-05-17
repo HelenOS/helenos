@@ -42,8 +42,8 @@ enum {
 	dl_constant = 110011,
 	dl_private_var_val = 220022,
 	dl_public_var_val = 330033,
-	dl_private_fib_var_val = 220022,
-	dl_public_fib_var_val = 330033
+	dl_private_fib_var_val = 440044,
+	dl_public_fib_var_val = 550055
 };
 
 extern int dl_get_constant(void);

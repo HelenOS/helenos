@@ -186,14 +186,22 @@ unsigned long rtld_get_next_id(rtld_t *rtld)
 	return rtld->next_id++;
 }
 
-void *rtld_tls_get_addr(rtld_t *rtld, void *tls, unsigned long mod_id,
+void *rtld_tls_get_addr(rtld_t *rtld, unsigned long mod_id,
     unsigned long offset)
 {
 	module_t *m;
+	uint8_t *tls;
 
 	m = module_by_id(rtld, mod_id);
 	assert(m != NULL);
 
+	if (!link_used(&m->imodules_link)) {
+		printf("module '%s' is not initial. aborting.\n",
+		    m->dyn.soname);
+		abort();
+	}
+
+	tls = tls_get();
 	return tls + m->ioffs + offset;
 }
 

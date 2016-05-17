@@ -68,21 +68,16 @@ void __attribute__ ((__regparm__ (1)))
 void __attribute__ ((__regparm__ (1)))
     *___tls_get_addr(tls_index *ti)
 {
-	size_t tls_size;
 	uint8_t *tls;
-
-	/* Calculate size of TLS block */
-	tls_size = tls_get_size();
-
-	/* The TLS block is just before TCB */
-	tls = (uint8_t *)__tcb_get() - tls_size;
 
 #ifdef CONFIG_RTLD
 	if (runtime_env != NULL) {
-		return rtld_tls_get_addr(runtime_env, tls, ti->ti_module,
+		return rtld_tls_get_addr(runtime_env, ti->ti_module,
 		    ti->ti_offset);
 	}
 #endif
+	/* Get address of static TLS block */
+	tls = tls_get();
 	return tls + ti->ti_offset;
 }
 

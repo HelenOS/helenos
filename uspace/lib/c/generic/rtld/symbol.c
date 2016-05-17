@@ -250,7 +250,9 @@ elf_symbol_t *symbol_def_find(const char *name, module_t *origin,
 
 void *symbol_get_addr(elf_symbol_t *sym, module_t *m)
 {
-	if (sym->st_shndx == SHN_ABS) {
+	if (ELF_ST_TYPE(sym->st_info) == STT_TLS) {
+		return rtld_tls_get_addr(m->rtld, m->id, sym->st_value);
+	} else if (sym->st_shndx == SHN_ABS) {
 		/* Do not add bias to absolute symbols */
 		return (void *) sym->st_value;
 	} else {

@@ -580,7 +580,7 @@ static bool test_lnk_dl_get_private_fib_var(void)
 	val = dl_get_private_fib_var();
 
 	printf("Got %d, expected %d... ", val, dl_private_fib_var_val);
-	if (val != dl_private_var_val) {
+	if (val != dl_private_fib_var_val) {
 		printf("FAILED\n");
 		return false;
 	}

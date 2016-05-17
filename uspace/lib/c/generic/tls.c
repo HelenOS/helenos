@@ -53,6 +53,16 @@ size_t tls_get_size(void)
 	return &_tbss_end - &_tdata_start;
 }
 
+/** Get address of static TLS block */
+void *tls_get(void)
+{
+#ifdef CONFIG_TLS_VARIANT_1
+	return (uint8_t *)__tcb_get() + sizeof(tcb_t);
+#else /* CONFIG_TLS_VARIANT_2 */
+	return (uint8_t *)__tcb_get() - tls_get_size();
+#endif
+}
+
 /** Create TLS (Thread Local Storage) data structures.
  *
  * @return Pointer to TCB.
