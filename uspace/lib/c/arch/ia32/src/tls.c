@@ -72,8 +72,8 @@ void __attribute__ ((__regparm__ (1)))
 
 #ifdef CONFIG_RTLD
 	if (runtime_env != NULL) {
-		return rtld_tls_get_addr(runtime_env, ti->ti_module,
-		    ti->ti_offset);
+		return rtld_tls_get_addr(runtime_env, __tcb_get(),
+		    ti->ti_module, ti->ti_offset);
 	}
 #endif
 	/* Get address of static TLS block */

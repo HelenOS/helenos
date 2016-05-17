@@ -100,11 +100,11 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 //			DPRINTF("rel_type: %x, rel_offset: 0x%x\n", rel_type, r_offset);
 			sym_def = symbol_def_find(str_tab + sym->st_name,
 			    m, ssf_none, &dest);
-//			DPRINTF("dest name: '%s'\n", dest->dyn.soname);
+			DPRINTF("dest name: '%s'\n", dest->dyn.soname);
 //			DPRINTF("dest bias: 0x%x\n", dest->bias);
 			if (sym_def) {
 				sym_addr = (uint32_t)
-				    symbol_get_addr(sym_def, dest);
+				    symbol_get_addr(sym_def, dest, NULL);
 //				DPRINTF("symbol definition found, addr=0x%x\n", sym_addr);
 			} else {
 				printf("Definition of '%s' not found.\n",
@@ -153,7 +153,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 
 			if (sym_def) {
 				sym_addr = (uint32_t)
-				    symbol_get_addr(sym_def, dest);
+				    symbol_get_addr(sym_def, dest, NULL);
 			} else {
 				printf("Source definition of '%s' not found.\n",
 				    str_tab + sym->st_name);

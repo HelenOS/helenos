@@ -142,23 +142,42 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 	void *data;
 	tcb_t *tcb;
 	size_t offset;
+	void **dtv;
+	size_t nmods;
+	size_t i;
 
 	tcb = tls_alloc_arch(&data, rtld->tls_size);
 	if (tcb == NULL)
 		return NULL;
 
+	/** Allocate dynamic thread vector */
+	nmods = list_count(&rtld->imodules);
+	dtv = malloc((nmods + 1) * sizeof(void *));
+	if (dtv == NULL) {
+		tls_free(tcb);
+		return NULL;
+	}
+
 	/*
-	 * Copy thread local data from the modules' initialization images.
-	 * Zero out thread-local uninitialized data.
+	 * We define generation number to be equal to vector length.
+	 * We start with a vector covering the initially loaded modules.
+	 */
+	DTV_GN(dtv) = nmods;
+
+	/*
+	 * Copy thread local data from the initialization images of initial
+	 * modules. Zero out thread-local uninitialized data.
 	 */
 
 #ifdef CONFIG_TLS_VARIANT_1
 	/*
 	 * Ascending addresses
 	 */
-	offset = 0;
+	offset = 0; i = 1;
 	list_foreach(rtld->imodules, imodules_link, module_t, m) {
+		assert(i == m->id);
 		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
+		dtv[i++] = data + offset;
 		memcpy(data + offset, m->tdata, m->tdata_size);
 		offset += m->tdata_size;
 		memset(data + offset, 0, m->tbss_size);
@@ -168,16 +187,19 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 	/*
 	 * Descending addresses
 	 */
-	offset = 0;
+	offset = 0; i = 1;
 	list_foreach(rtld->imodules, imodules_link, module_t, m) {
+		assert(i == m->id);
 		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
 		offset += m->tbss_size;
 		memset(data + rtld->tls_size - offset, 0, m->tbss_size);
 		offset += m->tdata_size;
 		memcpy(data + rtld->tls_size - offset, m->tdata, m->tdata_size);
+		dtv[i++] = data + rtld->tls_size - offset;
 	}
 #endif
 
+	tcb->dtv = dtv;
 	return tcb;
 }
 
@@ -186,25 +208,25 @@ unsigned long rtld_get_next_id(rtld_t *rtld)
 	return rtld->next_id++;
 }
 
-void *rtld_tls_get_addr(rtld_t *rtld, unsigned long mod_id,
+/** Get address of thread-local variable.
+ *
+ * @param rtld RTLD instance
+ * @param tcb TCB of the thread whose instance to return
+ * @param mod_id Module ID
+ * @param offset Offset within TLS block of the module
+ *
+ * @return Address of thread-local variable
+ */
+void *rtld_tls_get_addr(rtld_t *rtld, tcb_t *tcb, unsigned long mod_id,
     unsigned long offset)
 {
-	module_t *m;
-	uint8_t *tls;
-
-	m = module_by_id(rtld, mod_id);
-	assert(m != NULL);
-
-	if (!link_used(&m->imodules_link)) {
-		printf("module '%s' is not initial. aborting.\n",
-		    m->dyn.soname);
+	if (DTV_GN(tcb->dtv) < mod_id || tcb->dtv[mod_id] == NULL) {
+		printf("Module is not initial. aborting.\n");
 		abort();
 	}
 
-	tls = tls_get();
-	return tls + m->ioffs + offset;
+	return (uint8_t *)(tcb->dtv[mod_id]) + offset;
 }
-
 
 /** @}
  */

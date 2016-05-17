@@ -38,6 +38,9 @@
 #include <libarch/tls.h>
 #include <sys/types.h>
 
+/** DTV Generation number - equals vector length */
+#define DTV_GN(dtv) (((uintptr_t *)(dtv))[0])
+
 /*
  * Symbols defined in the respective linker script.
  */

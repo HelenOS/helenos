@@ -96,6 +96,7 @@ tcb_t *tls_make(void)
 
 void tls_free(tcb_t *tcb)
 {
+	free(tcb->dtv);
 	tls_free_arch(tcb, tls_get_size());
 }
 
@@ -108,14 +109,15 @@ void tls_free(tcb_t *tcb)
  */
 tcb_t *tls_alloc_variant_1(void **data, size_t size)
 {
-	tcb_t *result;
+	tcb_t *tcb;
 
-	result = malloc(sizeof(tcb_t) + size);
-	if (!result)
+	tcb = malloc(sizeof(tcb_t) + size);
+	if (!tcb)
 		return NULL;
-	*data = ((void *)result) + sizeof(tcb_t);
+	*data = ((void *)tcb) + sizeof(tcb_t);
+	tcb->dtv = NULL;
 
-	return result;
+	return tcb;
 }
 
 /** Free TLS variant I data structures.
@@ -146,6 +148,7 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
 		return NULL;
 	tcb = (tcb_t *) (*data + size);
 	tcb->self = tcb;
+	tcb->dtv = NULL;
 
 	return tcb;
 }
