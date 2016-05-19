@@ -220,9 +220,40 @@ unsigned long rtld_get_next_id(rtld_t *rtld)
 void *rtld_tls_get_addr(rtld_t *rtld, tcb_t *tcb, unsigned long mod_id,
     unsigned long offset)
 {
-	if (DTV_GN(tcb->dtv) < mod_id || tcb->dtv[mod_id] == NULL) {
-		printf("Module is not initial. aborting.\n");
-		abort();
+	module_t *m;
+	size_t dtv_len;
+	void *tls_block;
+
+	dtv_len = DTV_GN(tcb->dtv);
+	if (dtv_len < mod_id) {
+		/* Vector is short */
+
+		tcb->dtv = realloc(tcb->dtv, (1 + mod_id) * sizeof(void *));
+		/* XXX This can fail if OOM */
+		assert(tcb->dtv != NULL);
+		/* Zero out new part of vector */
+		memset(tcb->dtv + (1 + dtv_len), 0, (mod_id - dtv_len) *
+		    sizeof(void *));
+	}
+
+	if (tcb->dtv[mod_id] == NULL) {
+		/* TLS block is not allocated */
+
+		m = module_by_id(rtld, mod_id);
+		assert(m != NULL);
+		/* Should not be initial module, those have TLS pre-allocated */
+		assert(!link_used(&m->imodules_link));
+
+		tls_block = malloc(m->tdata_size + m->tbss_size);
+		/* XXX This can fail if OOM */
+		assert(tls_block != NULL);
+
+		/* Copy tdata */
+		memcpy(tls_block, m->tdata, m->tdata_size);
+		/* Zero out tbss */
+		memset(tls_block + m->tdata_size, 0, m->tbss_size);
+
+		tcb->dtv[mod_id] = tls_block;
 	}
 
 	return (uint8_t *)(tcb->dtv[mod_id]) + offset;
