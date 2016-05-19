@@ -48,13 +48,21 @@ enum {
 
 extern int dl_get_constant(void);
 extern int dl_get_private_var(void);
+extern int *dl_get_private_var_addr(void);
 extern int dl_get_private_uvar(void);
+extern int *dl_get_private_uvar_addr(void);
 extern int dl_get_public_var(void);
+extern int *dl_get_public_var_addr(void);
 extern int dl_get_public_uvar(void);
+extern int *dl_get_public_uvar_addr(void);
 extern int dl_get_private_fib_var(void);
+extern int *dl_get_private_fib_var_addr(void);
 extern int dl_get_private_fib_uvar(void);
+extern int *dl_get_private_fib_uvar_addr(void);
 extern int dl_get_public_fib_var(void);
+extern int *dl_get_public_fib_var_addr(void);
 extern int dl_get_public_fib_uvar(void);
+extern int *dl_get_public_fib_uvar_addr(void);
 
 extern int dl_public_var;
 extern int dl_public_uvar;

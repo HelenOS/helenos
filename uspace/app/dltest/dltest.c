@@ -95,6 +95,7 @@ static bool test_dlfcn_dl_get_constant(void)
 static bool test_dlfcn_dl_get_private_var(void)
 {
 	int (*p_dl_get_private_var)(void);
+	int *(*p_dl_get_private_var_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_private_var...\n");
@@ -105,10 +106,18 @@ static bool test_dlfcn_dl_get_private_var(void)
 		return false;
 	}
 
+	p_dl_get_private_var_addr = dlsym(handle, "dl_get_private_var_addr");
+	if (p_dl_get_private_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_private_var();
 
 	printf("Got %d, expected %d... ", val, dl_private_var_val);
 	if (val != dl_private_var_val) {
+		printf("dl_get_private_var_addr -> %p\n",
+		    p_dl_get_private_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -123,6 +132,7 @@ static bool test_dlfcn_dl_get_private_var(void)
 static bool test_dlfcn_dl_get_private_uvar(void)
 {
 	int (*p_dl_get_private_uvar)(void);
+	int *(*p_dl_get_private_uvar_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_private_uvar...\n");
@@ -133,10 +143,18 @@ static bool test_dlfcn_dl_get_private_uvar(void)
 		return false;
 	}
 
+	p_dl_get_private_uvar_addr = dlsym(handle, "dl_get_private_uvar_addr");
+	if (p_dl_get_private_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_private_uvar();
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_private_uvar_addr -> %p\n",
+		    p_dl_get_private_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -151,6 +169,7 @@ static bool test_dlfcn_dl_get_private_uvar(void)
 static bool test_dlfcn_dl_get_public_var(void)
 {
 	int (*p_dl_get_public_var)(void);
+	int *(*p_dl_get_public_var_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_public_var...\n");
@@ -161,10 +180,18 @@ static bool test_dlfcn_dl_get_public_var(void)
 		return false;
 	}
 
+	p_dl_get_public_var_addr = dlsym(handle, "dl_get_public_var_addr");
+	if (p_dl_get_public_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_public_var();
 
 	printf("Got %d, expected %d... ", val, dl_public_var_val);
 	if (val != dl_public_var_val) {
+		printf("dl_get_public_var_addr -> %p\n",
+		    p_dl_get_public_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -179,6 +206,7 @@ static bool test_dlfcn_dl_get_public_var(void)
 static bool test_dlfcn_dl_get_public_uvar(void)
 {
 	int (*p_dl_get_public_uvar)(void);
+	int *(*p_dl_get_public_uvar_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_public_uvar...\n");
@@ -189,10 +217,18 @@ static bool test_dlfcn_dl_get_public_uvar(void)
 		return false;
 	}
 
+	p_dl_get_public_uvar_addr = dlsym(handle, "dl_get_public_uvar_addr");
+	if (p_dl_get_public_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_public_uvar();
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_public_uvar_addr -> %p\n",
+		    p_dl_get_public_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -207,6 +243,7 @@ static bool test_dlfcn_dl_get_public_uvar(void)
 static bool test_dlfcn_read_public_var(void)
 {
 	int *p_dl_public_var;
+	int *(*p_dl_get_public_var_addr)(void);
 	int val;
 
 	printf("Read dlsym/dl_public_var...\n");
@@ -217,10 +254,19 @@ static bool test_dlfcn_read_public_var(void)
 		return false;
 	}
 
+	p_dl_get_public_var_addr = dlsym(handle, "dl_get_public_var_addr");
+	if (p_dl_get_public_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = *p_dl_public_var;
 
 	printf("Got %d, expected %d... ", val, dl_public_var_val);
 	if (val != dl_public_var_val) {
+		printf("&dl_public_var = %p, "
+		    "dl_get_public_var_addr -> %p\n",
+		    p_dl_public_var, p_dl_get_public_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -235,6 +281,7 @@ static bool test_dlfcn_read_public_var(void)
 static bool test_dlfcn_read_public_uvar(void)
 {
 	int *p_dl_public_uvar;
+	int *(*p_dl_get_public_uvar_addr)(void);
 	int val;
 
 	printf("Read dlsym/dl_public_uvar...\n");
@@ -245,10 +292,19 @@ static bool test_dlfcn_read_public_uvar(void)
 		return false;
 	}
 
+	p_dl_get_public_uvar_addr = dlsym(handle, "dl_get_public_uvar_addr");
+	if (p_dl_get_public_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = *p_dl_public_uvar;
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("&dl_public_uvar = %p, "
+		    "dl_get_public_uvar_addr -> %p\n",
+		    p_dl_public_uvar, p_dl_get_public_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -263,6 +319,7 @@ static bool test_dlfcn_read_public_uvar(void)
 static bool test_dlfcn_dl_get_private_fib_var(void)
 {
 	int (*p_dl_get_private_fib_var)(void);
+	int *(*p_dl_get_private_fib_var_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_private_fib_var...\n");
@@ -273,10 +330,18 @@ static bool test_dlfcn_dl_get_private_fib_var(void)
 		return false;
 	}
 
+	p_dl_get_private_fib_var_addr = dlsym(handle, "dl_get_private_fib_var_addr");
+	if (p_dl_get_private_fib_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_private_fib_var();
 
 	printf("Got %d, expected %d... ", val, dl_private_fib_var_val);
 	if (val != dl_private_fib_var_val) {
+		printf("dl_get_private_fib_var_addr -> %p\n",
+		    p_dl_get_private_fib_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -291,6 +356,7 @@ static bool test_dlfcn_dl_get_private_fib_var(void)
 static bool test_dlfcn_dl_get_private_fib_uvar(void)
 {
 	int (*p_dl_get_private_fib_uvar)(void);
+	int *(*p_dl_get_private_fib_uvar_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_private_fib_uvar...\n");
@@ -301,10 +367,18 @@ static bool test_dlfcn_dl_get_private_fib_uvar(void)
 		return false;
 	}
 
+	p_dl_get_private_fib_uvar_addr = dlsym(handle, "dl_get_private_fib_uvar_addr");
+	if (p_dl_get_private_fib_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_private_fib_uvar();
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_private_fib_uvar_addr -> %p\n",
+		    p_dl_get_private_fib_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -319,6 +393,7 @@ static bool test_dlfcn_dl_get_private_fib_uvar(void)
 static bool test_dlfcn_dl_get_public_fib_var(void)
 {
 	int (*p_dl_get_public_fib_var)(void);
+	int *(*p_dl_get_public_fib_var_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_public_fib_var...\n");
@@ -329,10 +404,18 @@ static bool test_dlfcn_dl_get_public_fib_var(void)
 		return false;
 	}
 
+	p_dl_get_public_fib_var_addr = dlsym(handle, "dl_get_public_fib_var_addr");
+	if (p_dl_get_public_fib_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_public_fib_var();
 
 	printf("Got %d, expected %d... ", val, dl_public_fib_var_val);
 	if (val != dl_public_fib_var_val) {
+		printf("dl_get_public_fib_var_addr -> %p\n",
+		    p_dl_get_public_fib_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -347,6 +430,7 @@ static bool test_dlfcn_dl_get_public_fib_var(void)
 static bool test_dlfcn_dl_get_public_fib_uvar(void)
 {
 	int (*p_dl_get_public_fib_uvar)(void);
+	int *(*p_dl_get_public_fib_uvar_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_public_fib_uvar...\n");
@@ -357,10 +441,18 @@ static bool test_dlfcn_dl_get_public_fib_uvar(void)
 		return false;
 	}
 
+	p_dl_get_public_fib_uvar_addr = dlsym(handle, "dl_get_public_fib_uvar_addr");
+	if (p_dl_get_public_fib_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_public_fib_uvar();
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_public_fib_uvar_addr -> %p\n",
+		    p_dl_get_public_fib_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -375,6 +467,7 @@ static bool test_dlfcn_dl_get_public_fib_uvar(void)
 static bool test_dlfcn_read_public_fib_var(void)
 {
 	int *p_dl_public_fib_var;
+	int *(*p_dl_get_public_fib_var_addr)(void);
 	int val;
 
 	printf("Read dlsym/dl_public_fib_var...\n");
@@ -385,10 +478,19 @@ static bool test_dlfcn_read_public_fib_var(void)
 		return false;
 	}
 
+	p_dl_get_public_fib_var_addr = dlsym(handle, "dl_get_public_fib_var_addr");
+	if (p_dl_get_public_fib_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = *p_dl_public_fib_var;
 
 	printf("Got %d, expected %d... ", val, dl_public_fib_var_val);
 	if (val != dl_public_fib_var_val) {
+		printf("&dl_public_fib_var = %p, "
+		    "dl_get_public_fib_var_addr -> %p\n",
+		    p_dl_public_fib_var, p_dl_get_public_fib_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -403,6 +505,7 @@ static bool test_dlfcn_read_public_fib_var(void)
 static bool test_dlfcn_read_public_fib_uvar(void)
 {
 	int *p_dl_public_fib_uvar;
+	int *(*p_dl_get_public_fib_uvar_addr)(void);
 	int val;
 
 	printf("Read dlsym/dl_public_fib_uvar...\n");
@@ -413,10 +516,19 @@ static bool test_dlfcn_read_public_fib_uvar(void)
 		return false;
 	}
 
+	p_dl_get_public_fib_uvar_addr = dlsym(handle, "dl_get_public_fib_uvar_addr");
+	if (p_dl_get_public_fib_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = *p_dl_public_fib_uvar;
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("&dl_public_fib_uvar = %p, "
+		    "dl_get_public_fib_uvar_addr -> %p\n",
+		    p_dl_public_fib_uvar, p_dl_get_public_fib_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -459,6 +571,8 @@ static bool test_lnk_dl_get_private_var(void)
 
 	printf("Got %d, expected %d... ", val, dl_private_var_val);
 	if (val != dl_private_var_val) {
+		printf("dl_get_private_var_addr -> %p\n",
+		    dl_get_private_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -480,6 +594,8 @@ static bool test_lnk_dl_get_private_uvar(void)
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_private_uvar_addr -> %p\n",
+		    dl_get_private_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -501,6 +617,8 @@ static bool test_lnk_dl_get_public_var(void)
 
 	printf("Got %d, expected %d... ", val, dl_public_var_val);
 	if (val != dl_public_var_val) {
+		printf("dl_get_public_var_addr -> %p\n",
+		    dl_get_public_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -522,6 +640,8 @@ static bool test_lnk_dl_get_public_uvar(void)
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_public_uvar_addr -> %p\n",
+		    dl_get_public_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -541,6 +661,8 @@ static bool test_lnk_read_public_var(void)
 
 	printf("Got %d, expected %d... ", val, dl_public_var_val);
 	if (val != dl_public_var_val) {
+		printf("&dl_public_var = %p, dl_get_public_var_addr -> %p\n",
+		    &dl_public_var, dl_get_public_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -560,6 +682,8 @@ static bool test_lnk_read_public_uvar(void)
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("&dl_public_uvar = %p, dl_get_public_uvar_addr -> %p\n",
+		    &dl_public_uvar, dl_get_public_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -581,6 +705,8 @@ static bool test_lnk_dl_get_private_fib_var(void)
 
 	printf("Got %d, expected %d... ", val, dl_private_fib_var_val);
 	if (val != dl_private_fib_var_val) {
+		printf("dl_get_private_fib_var_addr -> %p\n",
+		    dl_get_private_fib_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -602,6 +728,8 @@ static bool test_lnk_dl_get_private_fib_uvar(void)
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_private_fib_uvar_addr -> %p\n",
+		    dl_get_private_fib_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -623,6 +751,8 @@ static bool test_lnk_dl_get_public_fib_var(void)
 
 	printf("Got %d, expected %d... ", val, dl_public_fib_var_val);
 	if (val != dl_public_fib_var_val) {
+		printf("dl_get_public_fib_var_addr -> %p\n",
+		    dl_get_public_fib_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -644,6 +774,8 @@ static bool test_lnk_dl_get_public_fib_uvar(void)
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_public_fib_uvar_addr -> %p\n",
+		    dl_get_public_fib_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -663,6 +795,9 @@ static bool test_lnk_read_public_fib_var(void)
 
 	printf("Got %d, expected %d... ", val, dl_public_fib_var_val);
 	if (val != dl_public_fib_var_val) {
+		printf("&dl_public_fib_var = %p, "
+		    "dl_get_public_fib_var_addr -> %p\n",
+		    &dl_public_fib_var, dl_get_public_fib_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -682,6 +817,9 @@ static bool test_lnk_read_public_fib_uvar(void)
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("&dl_public_fib_uvar = %p, "
+		    "dl_get_public_fib_uvar_addr -> %p\n",
+		    &dl_public_fib_uvar, dl_get_public_fib_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
