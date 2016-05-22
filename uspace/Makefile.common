@@ -159,8 +159,6 @@ LIBURI_PREFIX = $(LIB_PREFIX)/uri
 
 LIBNETTL_PREFIX = $(LIB_PREFIX)/nettl
 
-LIBURCU_PREFIX = $(LIB_PREFIX)/urcu
-
 AFLAGS = --fatal-warnings
 LFLAGS = --fatal-warnings
 
@@ -184,12 +182,6 @@ ifneq ($(findstring usb, $(LIBS)),)
 	STATIC_BUILD = y
 endif
 
-# Build static because liburcu is linked against libc which uses thread
-# local variables
-ifneq ($(findstring urcu, $(LIBS)),)
-	STATIC_BUILD = y
-endif
-
 # Build static because libpcut is linked against libc which uses thread
 # local variables
 ifneq ($(TEST_SOURCES),)
@@ -197,7 +189,7 @@ ifneq ($(TEST_SOURCES),)
 endif
 
 ifeq ($(STATIC_BUILD),y)
-	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBURCU_PREFIX)/liburcu.a $(LIBSOFTINT_PREFIX)/libsoftint.a
+	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 	ifeq ($(MATH),y)
 		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
@@ -299,11 +291,6 @@ endif
 #
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
-
-ifeq ($(FUTEX_UPGRADABLE),y)
-	CFLAGS += -I$(LIBURCU_PREFIX)/
-	LIBS += $(LIBURCU_PREFIX)/liburcu.a
-endif
 
 ifeq ($(COMPILER),gcc_cross)
 	CFLAGS += $(GCC_CFLAGS)
