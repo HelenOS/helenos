@@ -313,6 +313,8 @@ static bool test_dlfcn_read_public_uvar(void)
 	return true;
 }
 
+#ifndef STATIC_EXE
+
 /** Test calling a function that returns contents of a private initialized
  * fibril-local variable.
  */
@@ -536,6 +538,8 @@ static bool test_dlfcn_read_public_fib_uvar(void)
 	printf("Passed\n");
 	return true;
 }
+
+#endif /* STATIC_EXE */
 
 #ifdef DLTEST_LINKED
 
@@ -828,7 +832,7 @@ static bool test_lnk_read_public_fib_uvar(void)
 	return true;
 }
 
-#endif
+#endif /* DLTEST_LINKED */
 
 static int test_dlfcn(void)
 {
@@ -865,6 +869,7 @@ static int test_dlfcn(void)
 	if (!test_dlfcn_read_public_uvar())
 		return 1;
 
+#ifndef STATIC_EXE
 	if (!test_dlfcn_dl_get_private_fib_var())
 		return 1;
 
@@ -882,6 +887,7 @@ static int test_dlfcn(void)
 
 	if (!test_dlfcn_read_public_fib_uvar())
 		return 1;
+#endif /* STATIC_EXE */
 
 //	printf("dlclose()... ");
 //	dlclose(handle);
@@ -936,7 +942,7 @@ static int test_lnk(void)
 	return 0;
 }
 
-#endif
+#endif /* DLTEST_LINKED */
 
 static void print_syntax(void)
 {

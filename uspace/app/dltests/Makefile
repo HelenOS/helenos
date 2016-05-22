@@ -34,3 +34,7 @@ SOURCES = \
 	dltests.c
 
 include $(USPACE_PREFIX)/Makefile.common
+
+ifeq ($(STATIC_BUILD), y)
+	EXTRA_CFLAGS += -DSTATIC_EXE
+endif
