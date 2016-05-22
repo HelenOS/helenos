@@ -96,7 +96,9 @@ tcb_t *tls_make(void)
 
 void tls_free(tcb_t *tcb)
 {
+#ifdef CONFIG_RTLD
 	free(tcb->dtv);
+#endif
 	tls_free_arch(tcb, tls_get_size());
 }
 
@@ -115,7 +117,9 @@ tcb_t *tls_alloc_variant_1(void **data, size_t size)
 	if (!tcb)
 		return NULL;
 	*data = ((void *)tcb) + sizeof(tcb_t);
+#ifdef CONFIG_RTLD
 	tcb->dtv = NULL;
+#endif
 
 	return tcb;
 }
@@ -148,7 +152,9 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
 		return NULL;
 	tcb = (tcb_t *) (*data + size);
 	tcb->self = tcb;
+#ifdef CONFIG_RTLD
 	tcb->dtv = NULL;
+#endif
 
 	return tcb;
 }
