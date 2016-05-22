@@ -50,6 +50,8 @@
 		"isync\n" \
 	)
 
+#ifdef KERNEL
+
 #define COHERENCE_INVAL_MIN  4
 
 /*
@@ -91,6 +93,8 @@ NO_TRACE static inline void smc_coherence_block(void *addr, unsigned int len)
 	
 	instruction_barrier();
 }
+
+#endif	/* KERNEL */
 
 #endif
 

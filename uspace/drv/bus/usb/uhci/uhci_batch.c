@@ -86,7 +86,7 @@ static void (*const batch_setup[])(uhci_transfer_batch_t*, usb_direction_t);
  */
 uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 {
-	assert((sizeof(td_t) % 16) == 0);
+	static_assert((sizeof(td_t) % 16) == 0);
 #define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
 	if (ptr == NULL) { \
 		usb_log_error(message); \

@@ -48,78 +48,80 @@
  */
 
 descriptor_t gdt[GDT_ITEMS] = {
-	/* NULL descriptor */
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	/* KTEXT descriptor */
-	{ .limit_0_15  = 0xffffU,
-	  .base_0_15   = 0,
-	  .base_16_23  = 0,
-	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE,
-	  .limit_16_19 = 0x0fU,
-	  .available   = 0,
-	  .longmode    = 1,
-	  .special     = 0,
-	  .granularity = 1,
-	  .base_24_31  = 0 },
-	/* KDATA descriptor */
-	{ .limit_0_15  = 0xffffU,
-	  .base_0_15   = 0,
-	  .base_16_23  = 0,
-	  .access      = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL,
-	  .limit_16_19 = 0x0fU,
-	  .available   = 0,
-	  .longmode    = 0,
-	  .special     = 0,
-	  .granularity = 1,
-	  .base_24_31  = 0 },
-	/* UDATA descriptor */
-	{ .limit_0_15  = 0xffffU,
-	  .base_0_15   = 0,
-	  .base_16_23  = 0,
-	  .access      = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER,
-	  .limit_16_19 = 0x0fU,
-	  .available   = 0,
-	  .longmode    = 0,
-	  .special     = 1,
-	  .granularity = 1,
-	  .base_24_31  = 0 },
-	/* UTEXT descriptor */
-	{ .limit_0_15  = 0xffffU,
-	  .base_0_15   = 0,
-	  .base_16_23  = 0,
-	  .access      = AR_PRESENT | AR_CODE | DPL_USER,
-	  .limit_16_19 = 0x0fU,
-	  .available   = 0,
-	  .longmode    = 1,
-	  .special     = 0,
-	  .granularity = 1,
-	  .base_24_31  = 0 },
-	/* KTEXT 32-bit protected, for protected mode before long mode */
-	{ .limit_0_15  = 0xffffU,
-	  .base_0_15   = 0,
-	  .base_16_23  = 0,
-	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE,
-	  .limit_16_19 = 0x0fU,
-	  .available   = 0,
-	  .longmode    = 0,
-	  .special     = 1,
-	  .granularity = 1,
-	  .base_24_31  = 0 },
-	/* TSS descriptor - set up will be completed later,
-	 * on AMD64 it is 64-bit - 2 items in table */
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	[NULL_DES] = {
+		0
+	},
+	[KTEXT_DES] = {
+		.limit_0_15 = 0xffffU,
+		.limit_16_19 = 0xfU,
+	  	.access = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE,
+		.longmode = 1,
+		.granularity = 1
+	},
+	[KDATA_DES] = {
+		.limit_0_15 = 0xffffU,
+		.limit_16_19 = 0xfU,
+		.access = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL,
+		.granularity = 1
+	},
+	[UDATA_DES] = {
+		.limit_0_15 = 0xffffU,
+		.limit_16_19 = 0xfU,
+		.access = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER,
+		.special = 1,
+		.granularity = 1
+	},
+	[UTEXT_DES] = {
+		.limit_0_15 = 0xffffU,
+		.limit_16_19 = 0xfU,
+		.access = AR_PRESENT | AR_CODE | DPL_USER,
+		.longmode = 1,
+		.granularity = 1
+	},
+	[KTEXT32_DES] = {
+		.limit_0_15 = 0xffffU,
+		.limit_16_19 = 0xfU,
+		.access = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE,
+		.special = 1,
+		.granularity = 1
+	},
+	/*
+	 * TSS descriptor - set up will be completed later,
+	 * on AMD64 it is 64-bit - 2 items in the table
+	 */
+	[TSS_DES] = {
+		0
+	},
+	[TSS_DES + 1] = {
+		0
+	},
 	/* VESA Init descriptor */
 #ifdef CONFIG_FB
-	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | AR_READABLE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 },
-	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 }
+	[VESA_INIT_CODE_DES] = {
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.base_16_23 = VESA_INIT_SEGMENT >> 12,
+		.access = AR_PRESENT | AR_CODE | AR_READABLE | DPL_KERNEL
+	},
+	[VESA_INIT_DATA_DES] = {
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.base_16_23 = VESA_INIT_SEGMENT >> 12,
+		.access = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL
+	}
 #endif
 };
 
 idescriptor_t idt[IDT_ITEMS];
 
-ptr_16_64_t gdtr = {.limit = sizeof(gdt), .base = (uint64_t) gdt };
-ptr_16_64_t idtr = {.limit = sizeof(idt), .base = (uint64_t) idt };
+ptr_16_64_t gdtr = {
+	.limit = sizeof(gdt),
+	.base = (uint64_t) gdt
+};
+ptr_16_64_t idtr = {
+	.limit = sizeof(idt),
+	.base = (uint64_t) idt
+};
 
 static tss_t tss;
 tss_t *tss_p = NULL;

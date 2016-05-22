@@ -5,7 +5,7 @@
 USPACE_PREFIX = ../..
 PCUT_TEST_PREFIX = test-libpcut-
 
-EXTRA_OUTPUT = \
+SELF_TESTS = \
 	$(PCUT_TEST_PREFIX)abort$(PCUT_TEST_SUFFIX) \
 	$(PCUT_TEST_PREFIX)asserts$(PCUT_TEST_SUFFIX) \
 	$(PCUT_TEST_PREFIX)beforeafter$(PCUT_TEST_SUFFIX) \
@@ -24,11 +24,15 @@ EXTRA_OUTPUT = \
 	$(PCUT_TEST_PREFIX)timeout$(PCUT_TEST_SUFFIX) \
 	$(PCUT_TEST_PREFIX)xmlreport$(PCUT_TEST_SUFFIX) 
 
+EXTRA_CLEAN = $(SELF_TESTS)
+
 include helenos.mak
 
 include $(USPACE_PREFIX)/Makefile.common
 
 include helenos.test.mak
+
+all-test: $(SELF_TESTS)
 
 test-libpcut-%: $(OUTPUT)
 	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -o $@ $^ $(OUTPUT) $(BASE_LIBS)

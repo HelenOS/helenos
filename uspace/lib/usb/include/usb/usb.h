@@ -167,7 +167,7 @@ typedef enum {
 #define _MAKE_PID(tag, type) \
 	( \
 	    _MAKE_PID_NIBBLE(tag, type) \
-	    | ((~_MAKE_PID_NIBBLE(tag, type)) << 4) \
+	    | (((~_MAKE_PID_NIBBLE(tag, type)) & 0xf) << 4) \
 	)
 	USB_PID_OUT = _MAKE_PID(0, 1),
 	USB_PID_IN = _MAKE_PID(2, 1),

@@ -49,6 +49,13 @@
 #define IVT_IRQBASE   (IVT_EXCBASE + EXC_COUNT)
 #define IVT_FREEBASE  (IVT_IRQBASE + IRQ_COUNT)
 
+#define EXC_DE 0
+#define EXC_NM 7
+#define EXC_SS 12
+#define EXC_GP 13
+#define EXC_PF 14
+#define EXC_XM 19
+
 #define IRQ_CLK       0
 #define IRQ_KBD       1
 #define IRQ_PIC1      2
@@ -64,7 +71,12 @@
 #error Wrong definition of VECTOR_APIC_SPUR
 #endif
 
-#define VECTOR_DEBUG              1
+#define VECTOR_DE                 (IVT_EXCBASE + EXC_DE)
+#define VECTOR_NM                 (IVT_EXCBASE + EXC_NM)
+#define VECTOR_SS                 (IVT_EXCBASE + EXC_SS)
+#define VECTOR_GP                 (IVT_EXCBASE + EXC_GP)
+#define VECTOR_PF                 (IVT_EXCBASE + EXC_PF)
+#define VECTOR_XM                 (IVT_EXCBASE + EXC_XM)
 #define VECTOR_CLK                (IVT_IRQBASE + IRQ_CLK)
 #define VECTOR_PIC_SPUR           (IVT_IRQBASE + IRQ_PIC_SPUR)
 #define VECTOR_SYSCALL            IVT_FREEBASE

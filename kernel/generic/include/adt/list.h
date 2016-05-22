@@ -75,15 +75,15 @@ extern unsigned long list_count(const list_t *);
 
 #define list_foreach(list, member, itype, iterator) \
 	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
-	    for (link_t *_link = (list).head.next; \
-	    iterator = list_get_instance(_link, itype, member), \
-	    _link != &(list).head; _link = _link->next)
+		for (link_t *_link = (list).head.next; \
+		    iterator = list_get_instance(_link, itype, member), \
+		    _link != &(list).head; _link = _link->next)
 
 #define list_foreach_rev(list, member, itype, iterator) \
 	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
-	    for (link_t *_link = (list).head.prev; \
-	    iterator = list_get_instance(_link, itype, member), \
-	    _link != &(list).head; _link = _link->prev)
+		for (link_t *_link = (list).head.prev; \
+	            iterator = list_get_instance(_link, itype, member), \
+		    _link != &(list).head; _link = _link->prev)
 
 /** Unlike list_foreach(), allows removing items while traversing a list.
  * 
@@ -112,9 +112,9 @@ extern unsigned long list_count(const list_t *);
  */
 #define list_foreach_safe(list, iterator, next_iter) \
 	for (link_t *iterator = (list).head.next, \
-		*next_iter = iterator->next; \
-		iterator != &(list).head; \
-		iterator = next_iter, next_iter = iterator->next)
+	    *next_iter = iterator->next; \
+	    iterator != &(list).head; \
+	    iterator = next_iter, next_iter = iterator->next)
 
 	
 #define assert_link_not_used(link) \

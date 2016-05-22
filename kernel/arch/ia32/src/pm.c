@@ -46,6 +46,7 @@
 #include <memstr.h>
 #include <arch/boot/boot.h>
 #include <interrupt.h>
+#include <arch/cpu.h>
 
 /*
  * Early ia32 configuration functions and data structures.
@@ -60,24 +61,61 @@
  * a pointer to the VREG page in its base.
  */
 descriptor_t gdt[GDT_ITEMS] = {
-	/* NULL descriptor */
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	/* KTEXT descriptor */
-	{ 0xffff, 0, 0, AR_PRESENT | AR_CODE | DPL_KERNEL, 0xf, 0, 0, 1, 1, 0 },
-	/* KDATA descriptor */
-	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL, 0xf, 0, 0, 1, 1, 0 },
-	/* UTEXT descriptor */
-	{ 0xffff, 0, 0, AR_PRESENT | AR_CODE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
-	/* UDATA descriptor */
-	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
-	/* TSS descriptor - set up will be completed later */
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	/* VREG descriptor - segment used for virtual registers, will be reinitialized later */
-	{ 0xffff, 0 , 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
+	[NULL_DES] = {
+		0
+	},
+	[KTEXT_DES] = {
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.access = AR_PRESENT | AR_CODE | DPL_KERNEL,
+		.special = 1,
+		.granularity = 1
+	},
+	[KDATA_DES] = {
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.access = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL,
+		.special = 1,
+		.granularity = 1
+	},
+	[UTEXT_DES] = {
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.access = AR_PRESENT | AR_CODE | DPL_USER,
+		.special = 1,
+		.granularity = 1
+	},
+	[UDATA_DES] = {
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.access = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER,
+		.special = 1,
+		.granularity = 1
+	},
+	[TSS_DES] = {		/* set up will be completed later */
+		0,
+	},
+	[VREG_DES] = {		/* will be reinitialized later */
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.access = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER,
+		.special = 1,
+		.granularity = 1
+	},
 	/* VESA Init descriptor */
 #ifdef CONFIG_FB
-	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | AR_READABLE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 },
-	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 }
+	[VESA_INIT_CODE_DES] = {
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.base_16_23 = VESA_INIT_SEGMENT >> 12,
+		.access = AR_PRESENT | AR_CODE | AR_READABLE | DPL_KERNEL
+	},
+	[VESA_INIT_DATA_DES] = {
+		.limit_0_15 = 0xffff,
+		.limit_16_19 = 0xf,
+		.base_16_23 = VESA_INIT_SEGMENT >> 12,
+		.access = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL
+	}
 #endif
 };
 
@@ -218,30 +256,6 @@ void idt_init(void)
 	idt_setoffset(&idt[VECTOR_SYSCALL], (uintptr_t) &int_syscall);
 }
 
-/* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
-static void clean_IOPL_NT_flags(void)
-{
-	asm volatile (
-		"pushfl\n"
-		"pop %%eax\n"
-		"and $0xffff8fff, %%eax\n"
-		"push %%eax\n"
-		"popfl\n"
-		::: "eax"
-	);
-}
-
-/* Clean AM(18) flag in CR0 register */
-static void clean_AM_flag(void)
-{
-	asm volatile (
-		"mov %%cr0, %%eax\n"
-		"and $0xfffbffff, %%eax\n"
-		"mov %%eax, %%cr0\n"
-		::: "eax"
-	);
-}
-
 void pm_init(void)
 {
 	descriptor_t *gdt_p = (descriptor_t *) gdtr.base;
@@ -288,8 +302,11 @@ void pm_init(void)
 	 */
 	tr_load(GDT_SELECTOR(TSS_DES));
 	
-	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels and clear NT flag. */
-	clean_AM_flag();          /* Disable alignment check */
+	/* Disable I/O on nonprivileged levels and clear NT flag. */
+	write_eflags(read_eflags() & ~(EFLAGS_IOPL | EFLAGS_NT));
+
+	/* Disable alignment check */
+	write_cr0(read_cr0() & ~CR0_AM);
 }
 
 /** @}

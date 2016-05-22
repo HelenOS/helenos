@@ -64,7 +64,7 @@ typedef struct hcca {
  */
 static inline hcca_t * hcca_get(void)
 {
-	assert(sizeof(hcca_t) == 256);
+	static_assert(sizeof(hcca_t) == 256);
 	hcca_t *hcca = memalign(256, sizeof(hcca_t));
 	if (hcca)
 		memset(hcca, 0, sizeof(hcca_t));

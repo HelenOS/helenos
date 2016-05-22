@@ -45,8 +45,12 @@
 #define read_barrier()   asm volatile ("" ::: "memory")
 #define write_barrier()  asm volatile ("" ::: "memory")
 
+#ifdef KERNEL
+
 #define smc_coherence(a)
 #define smc_coherence_block(a, l)
+
+#endif	/* KERNEL */
 
 #endif
 

@@ -239,7 +239,7 @@ void kinit(void *arg)
 		if (name[0] == 0)
 			name = "<unknown>";
 		
-		ASSERT(TASK_NAME_BUFLEN >= INIT_PREFIX_LEN);
+		STATIC_ASSERT(TASK_NAME_BUFLEN >= INIT_PREFIX_LEN);
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);

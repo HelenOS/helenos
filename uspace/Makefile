@@ -142,6 +142,7 @@ DIRS = \
 	drv/char/i8042 \
 	drv/char/pl050 \
 	drv/char/ps2mouse \
+	drv/char/atkbd \
 	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
@@ -248,7 +249,6 @@ LIBS = \
 	lib/ext4 \
 	lib/trackmod \
 	lib/uri \
-	lib/urcu \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
@@ -272,7 +272,7 @@ CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .c
 
 all: $(BUILDS) $(BUILDS_TESTS)
 
-$(BUILDS_TESTS): $(BUILDS)
+$(BUILDS_TESTS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
 	$(MAKE) -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)

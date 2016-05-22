@@ -71,7 +71,7 @@ void page_arch_init(void)
 		
 	page_table_unlock(AS_KERNEL, true);
 		
-	exc_register(14, "page_fault", true, (iroutine_t) page_fault);
+	exc_register(VECTOR_PF, "page_fault", true, (iroutine_t) page_fault);
 	write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 }
 

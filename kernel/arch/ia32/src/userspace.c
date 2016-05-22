@@ -38,6 +38,8 @@
 #include <arch.h>
 #include <abi/proc/uarg.h>
 #include <mm/as.h>
+#include <arch/cpu.h>
+#include <arch/asm.h>
 
 /** Enter userspace
  *
@@ -46,24 +48,15 @@
  */
 void userspace(uspace_arg_t *kernel_uarg)
 {
-	ipl_t ipl = interrupts_disable();
+	uint32_t eflags = read_eflags();
 	
 	asm volatile (
-		/*
-		 * Clear nested task flag.
-		 */
-		"pushfl\n"
-		"pop %%eax\n"
-		"and $0xffffbfff, %%eax\n"
-		"push %%eax\n"
-		"popfl\n"
-		
 		/* Set up GS register (virtual register segment) */
 		"movl %[vreg_des], %%gs\n"
 		
 		"pushl %[udata_des]\n"
 		"pushl %[stack_top]\n"
-		"pushl %[ipl]\n"
+		"pushl %[eflags]\n"
 		"pushl %[utext_des]\n"
 		"pushl %[entry]\n"
 		"movl %[uarg], %%eax\n"
@@ -73,10 +66,11 @@ void userspace(uspace_arg_t *kernel_uarg)
 		
 		"iret\n"
 		:
-		: [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
+		: [eflags_mask] "i" (~EFLAGS_NT),
+		  [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
 		  [stack_top] "r" ((uint8_t *) kernel_uarg->uspace_stack +
 		      kernel_uarg->uspace_stack_size),
-		  [ipl] "r" (ipl),
+		  [eflags] "r" ((eflags & ~(EFLAGS_NT)) | EFLAGS_IF),
 		  [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
 		  [entry] "r" (kernel_uarg->uspace_entry),
 		  [uarg] "r" (kernel_uarg->uspace_uarg),

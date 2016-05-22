@@ -47,15 +47,15 @@
  */
 void userspace(uspace_arg_t *kernel_uarg)
 {
-	ipl_t ipl = interrupts_disable();
+	uint64_t rflags = read_rflags();
 	
-	ipl &= ~(RFLAGS_CF | RFLAGS_PF | RFLAGS_AF | RFLAGS_ZF | RFLAGS_SF |
-	    RFLAGS_DF | RFLAGS_OF);
+	rflags &= ~RFLAGS_NT;
+	rflags |= RFLAGS_IF;
 	
 	asm volatile (
 		"pushq %[udata_des]\n"
 		"pushq %[stack_top]\n"
-		"pushq %[ipl]\n"
+		"pushq %[rflags]\n"
 		"pushq %[utext_des]\n"
 		"pushq %[entry]\n"
 		"movq %[uarg], %%rax\n"
@@ -66,7 +66,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		:: [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
 		   [stack_top] "r" ((uint8_t *) kernel_uarg->uspace_stack +
 		       kernel_uarg->uspace_stack_size),
-		   [ipl] "r" (ipl),
+		   [rflags] "r" (rflags),
 		   [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
 		   [entry] "r" (kernel_uarg->uspace_entry),
 		   [uarg] "r" (kernel_uarg->uspace_uarg)

@@ -179,10 +179,10 @@ do { \
 	ioport32_t rh_desc_b;
 /** Device removable mask */
 #define RHDB_DR_SHIFT   0
-#define RHDB_DR_MASK    0xffff
+#define RHDB_DR_MASK    0xffffU
 /** Power control mask */
-#define RHDB_PCC_MASK (0xffff)
-#define RHDB_PCC_SHIFT 16
+#define RHDB_PCC_MASK	0xffffU
+#define RHDB_PCC_SHIFT	16
 
 	/** Root hub status register */
 	ioport32_t rh_status;

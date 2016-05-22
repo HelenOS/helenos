@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup drvkbd
  * @{
  */
 /** @file
+ * @brief AT keyboard driver
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef _AT_KBD_H_
+#define _AT_KBD_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#include <ddf/driver.h>
+#include <fibril.h>
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+/** PC/AT keyboard driver structure. */
+typedef struct {
+	ddf_fun_t *kbd_fun;        /**< Keyboard function. */
+	async_sess_t *parent_sess; /**< Connection to device providing data. */
+	async_sess_t *client_sess; /**< Callback connection to client. */
+	fid_t polling_fibril;      /**< Fibril retrieving an parsing data. */
+} at_kbd_t;
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#ifdef KERNEL
-
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
-
-#endif	/* KERNEL*/
+extern int at_kbd_init(at_kbd_t *, ddf_dev_t *);
 
 #endif
 
-/** @}
+/**
+ * @}
  */

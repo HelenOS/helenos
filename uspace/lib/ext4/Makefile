@@ -29,7 +29,6 @@
 USPACE_PREFIX = ../..
 LIBRARY = libext4
 EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBCRYPTO_PREFIX)
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBCRYPTO_PREFIX)/libcrypto.a
 
 SOURCES = \
 	libext4_balloc.c \

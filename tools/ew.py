@@ -133,7 +133,7 @@ def qemu_net_options():
 		# Use the default NIC
 		nic_options += qemu_nic_e1k_options()
 
-	return nic_options + ' -net user -redir udp:8080::8080 -redir udp:8081::8081 -redir tcp:8080::8080 -redir tcp:8081::8081 -redir tcp:2223::2223'
+	return nic_options + ' -net user,hostfwd=udp::8080-:8080,hostfwd=udp::8081-:8081,hostfwd=tcp::8080-:8080,hostfwd=tcp::8081-:8081,hostfwd=tcp::2223-:2223'
 
 def qemu_usb_options():
 	if is_override('nousb'):

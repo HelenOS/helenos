@@ -38,6 +38,7 @@
 #include <arch/pm.h>
 #include <arch/cpu.h>
 #include <arch/cpuid.h>
+#include <arch/context_struct.h>
 
 .section K_TEXT_START, "ax"
 
@@ -57,7 +58,7 @@ SYMBOL(unmapped_ap_boot)
 	lgdtl ap_gdtr       # initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
-	orl $1, %eax
+	orl $CR0_PE, %eax
 	movl %eax, %cr0     # switch to protected mode
 	jmpl $GDT_SELECTOR(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 
@@ -74,21 +75,21 @@ jump_to_kernel:
 	# Paging is not enabled until after long mode is enabled
 	
 	movl %cr4, %eax
-	btsl $5, %eax
+	orl $CR4_PAE, %eax
 	movl %eax, %cr4
 	
 	leal ptl_0, %eax
 	movl %eax, %cr3
 	
 	# Enable long mode
-	movl $EFER_MSR_NUM, %ecx  # EFER MSR number
+	movl $AMD_MSR_EFER, %ecx  # EFER MSR number
 	rdmsr                     # Read EFER
-	btsl $AMD_LME_FLAG, %eax  # Set LME=1
+	orl $AMD_LME, %eax        # Set LME=1
 	wrmsr                     # Write EFER
 	
 	# Enable paging to activate long mode (set CR0.PG = 1)
 	movl %cr0, %eax
-	btsl $31, %eax
+	orl $CR0_PG, %eax
 	movl %eax, %cr0
 	
 	# At this point we are in compatibility mode
@@ -97,7 +98,7 @@ jump_to_kernel:
 .code64
 start64:
 	movabsq $ctx, %rsp
-	movq (%rsp), %rsp
+	movq CONTEXT_OFFSET_SP(%rsp), %rsp
 	
 	pushq $0
 	movq %rsp, %rbp

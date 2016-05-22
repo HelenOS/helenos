@@ -38,9 +38,8 @@
 # pointed by the 1st argument. Returns 1 in EAX.
 #
 FUNCTION_BEGIN(context_save_arch)
-	movq (%rsp), %rdx     # the caller's return %eip
+	movq (%rsp), %rdx     # the caller's return %rip
 	
-	# 1st argument passed in %edi
 	movq %rdx, CONTEXT_OFFSET_PC(%rdi)
 	movq %rsp, CONTEXT_OFFSET_SP(%rdi)
 	
@@ -74,7 +73,7 @@ FUNCTION_BEGIN(context_restore_arch)
 	movq CONTEXT_OFFSET_RBP(%rdi), %rbp
 	movq CONTEXT_OFFSET_RBX(%rdi), %rbx
 	
-	movq CONTEXT_OFFSET_SP(%rdi), %rsp   # ctx->sp -> %rsp
+	movq CONTEXT_OFFSET_SP(%rdi), %rsp
 	
 	movq CONTEXT_OFFSET_PC(%rdi), %rdx
 	movq %rdx, (%rsp)

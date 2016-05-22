@@ -58,7 +58,7 @@ cat >Makefile <<'EOF_MAKEFILE_HEAD'
 USPACE_PREFIX = ../..
 PCUT_TEST_PREFIX = test-libpcut-
 
-EXTRA_OUTPUT = \
+SELF_TESTS = \
 EOF_MAKEFILE_HEAD
 
 for testfile in tests/*.expected; do
@@ -68,11 +68,15 @@ done | sed '$s/\\$//' >>Makefile
 
 cat >>Makefile <<'EOF_MAKEFILE_TAIL'
 
+EXTRA_CLEAN = $(SELF_TESTS)
+
 include helenos.mak
 
 include $(USPACE_PREFIX)/Makefile.common
 
 include helenos.test.mak
+
+all-test: $(SELF_TESTS)
 
 test-libpcut-%: $(OUTPUT)
 	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -o $@ $^ $(OUTPUT) $(BASE_LIBS)

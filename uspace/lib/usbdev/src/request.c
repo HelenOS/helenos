@@ -39,6 +39,8 @@
 
 #define MAX_DATA_LENGTH ((size_t)(0xFFFF))
 
+static_assert(sizeof(usb_device_request_setup_packet_t) == 8);
+
 /** Generic wrapper for SET requests using standard control request format.
  *
  * @see usb_pipe_control_write

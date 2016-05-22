@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012 Adam Hraska
+# Copyright (c) 2011 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-
-LIBS = $(LIBC_PREFIX)/libc.a 
-
-EXTRA_CFLAGS = -I. -I$(LIBC_PREFIX)/include
-
-LIBRARY = liburcu
+USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = atkbd
 
 SOURCES = \
-	rcu.c
+	main.c \
+	atkbd.c
 
 include $(USPACE_PREFIX)/Makefile.common

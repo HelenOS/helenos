@@ -1,7 +1,4 @@
-#!/bin/bash
-
-#
-# Copyright (c) 2014 Jakub Jermar
+# Copyright (c) 2016 Jakub Jermar 
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,32 +25,28 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-VERSION=2.6.0
-BASENAME=qemu-${VERSION}
-BASENAME_MASTER=qemu-master
-TARBALL=${BASENAME}.tar.bz2
-SOURCEDIR=${BASENAME}
-URL=http://wiki.qemu-project.org/download/${TARBALL}
-REPO=git://git.qemu.org/qemu.git
-MD5="ca3f70b43f093e33e9e014f144067f13"
+{
+        name : e820memmap,
+        packed : true,
 
-if [ "$1" == "--master" ]; then
-	git clone ${REPO} ${BASENAME_MASTER}
-	cd ${BASENAME_MASTER}
-else
-	if [ ! -f ${TARBALL} ]; then
-		wget ${URL}
-	fi
-	
-	if [ "`md5sum ${TARBALL} | cut -f 1 -d " "`" != ${MD5} ]; then
-		echo Wrong MD5 checksum
-		exit
-	fi
-	
-	tar xvfj ${TARBALL}
-	cd ${SOURCEDIR}
-fi
+        includes : [
+                {
+                        include : <typedefs.h>
+                },
+        ],
 
-./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,ppc-softmmu,sparc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --audio-drv-list=pa
-make -j 4
-sudo make install
+        members : [
+                {
+                        name : base_address,
+                        type : uint64_t
+                },
+                {
+                        name : size,
+                        type : uint64_t
+                },
+                {
+                        name : type,
+                        type : uint32_t
+                }
+        ]
+}

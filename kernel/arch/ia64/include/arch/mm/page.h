@@ -58,8 +58,8 @@
 
 #define REGION_REGISTERS  8
 
-#define KA2PA(x)  ((uintptr_t) ((x) - (VRN_KERNEL << VRN_SHIFT)))
-#define PA2KA(x)  ((uintptr_t) ((x) + (VRN_KERNEL << VRN_SHIFT)))
+#define KA2PA(x)  (((uintptr_t) (x)) - (VRN_KERNEL << VRN_SHIFT))
+#define PA2KA(x)  (((uintptr_t) (x)) + (VRN_KERNEL << VRN_SHIFT))
 
 #define VHPT_WIDTH  20  /* 1M */
 #define VHPT_SIZE   (1 << VHPT_WIDTH)

@@ -96,6 +96,8 @@
 #define inst_barrier()    asm volatile ("" ::: "memory")
 #endif
 
+#ifdef KERNEL
+
 /*
  * There are multiple ways ICache can be implemented on ARM machines. Namely
  * PIPT, VIPT, and ASID and VMID tagged VIVT (see ARM Architecture Reference
@@ -133,6 +135,7 @@ do { \
 #define smc_coherence_block(a, l)
 #endif
 
+#endif	/* KERNEL */
 
 #endif
 

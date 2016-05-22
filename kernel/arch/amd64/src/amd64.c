@@ -63,36 +63,6 @@
 #include <arch/smp/apic.h>
 #endif
 
-/** Disable I/O on non-privileged levels
- *
- * Clean IOPL(12,13) and NT(14) flags in EFLAGS register
- */
-static void clean_IOPL_NT_flags(void)
-{
-	asm volatile (
-		"pushfq\n"
-		"pop %%rax\n"
-		"and $~(0x7000), %%rax\n"
-		"pushq %%rax\n"
-		"popfq\n"
-		::: "%rax"
-	);
-}
-
-/** Disable alignment check
- *
- * Clean AM(18) flag in CR0 register 
- */
-static void clean_AM_flag(void)
-{
-	asm volatile (
-		"mov %%cr0, %%rax\n"
-		"and $~(0x40000), %%rax\n"
-		"mov %%rax, %%cr0\n"
-		::: "%rax"
-	);
-}
-
 /** Perform amd64-specific initialization before main_bsp() is called.
  *
  * @param signature Multiboot signature.
@@ -115,19 +85,17 @@ void arch_pre_main(uint32_t signature, void *info)
 void arch_pre_mm_init(void)
 {
 	/* Enable no-execute pages */
-	set_efer_flag(AMD_NXE_FLAG);
+	write_msr(AMD_MSR_EFER, read_msr(AMD_MSR_EFER) | AMD_NXE);
 	/* Enable FPU */
 	cpu_setup_fpu();
 	
 	/* Initialize segmentation */
 	pm_init();
 	
-	/* Disable I/O on nonprivileged levels
-	 * clear the NT (nested-thread) flag 
-	 */
-	clean_IOPL_NT_flags();
+	/* Disable I/O on nonprivileged levels, clear the nested-thread flag */
+	write_rflags(read_rflags() & ~(RFLAGS_IOPL | RFLAGS_NT));
 	/* Disable alignment check */
-	clean_AM_flag();
+	write_cr0(read_cr0() & ~CR0_AM);
 	
 	if (config.cpu_active == 1) {
 		interrupt_init();

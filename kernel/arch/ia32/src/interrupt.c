@@ -228,11 +228,11 @@ void interrupt_init(void)
 			    (iroutine_t) irq_interrupt);
 	}
 	
-	exc_register(0, "de_fault", true, (iroutine_t) de_fault);
-	exc_register(7, "nm_fault", true, (iroutine_t) nm_fault);
-	exc_register(12, "ss_fault", true, (iroutine_t) ss_fault);
-	exc_register(13, "gp_fault", true, (iroutine_t) gp_fault);
-	exc_register(19, "simd_fp", true, (iroutine_t) simd_fp_exception);
+	exc_register(VECTOR_DE, "de_fault", true, (iroutine_t) de_fault);
+	exc_register(VECTOR_NM, "nm_fault", true, (iroutine_t) nm_fault);
+	exc_register(VECTOR_SS, "ss_fault", true, (iroutine_t) ss_fault);
+	exc_register(VECTOR_GP, "gp_fault", true, (iroutine_t) gp_fault);
+	exc_register(VECTOR_XM, "simd_fp", true, (iroutine_t) simd_fp_exception);
 	
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,

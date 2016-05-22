@@ -113,9 +113,14 @@ fibril_t *fibril_setup(void)
 	
 	fibril->waits_for = NULL;
 
-	futex_lock(&fibril_futex);
+	/*
+	 * We are called before __tcb_set(), so we need to use
+	 * futex_down/up() instead of futex_lock/unlock() that
+	 * may attempt to access TLS.
+	 */
+	futex_down(&fibril_futex);
 	list_append(&fibril->all_link, &fibril_list);
-	futex_unlock(&fibril_futex);
+	futex_up(&fibril_futex);
 	
 	return fibril;
 }

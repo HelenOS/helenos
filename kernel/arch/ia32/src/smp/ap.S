@@ -36,6 +36,8 @@
 #include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
 #include <arch/pm.h>
+#include <arch/cpu.h>
+#include <arch/context_struct.h>
 
 .section K_TEXT_START, "ax"
 
@@ -62,7 +64,7 @@ SYMBOL(unmapped_ap_boot)
 	
 	/* switch to protected mode */
 	movl %cr0, %eax
-	orl $1, %eax
+	orl $CR0_PE, %eax
 	movl %eax, %cr0
 	jmpl $KTEXT, $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 	
@@ -72,9 +74,9 @@ jump_to_kernel:
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
-	movl $KA2PA(ctx), %eax  /* KA2PA((uintptr_t) &ctx) */
-	movl (%eax), %esp
-	subl $0x80000000, %esp  /* KA2PA(ctx.sp) */
+	movl $KA2PA(ctx), %eax		/* KA2PA((uintptr_t) &ctx) */
+	movl CONTEXT_OFFSET_SP(%eax), %esp
+	leal KA2PA(0)(%esp), %esp	/* KA2PA(ctx.sp) */
 
 	/*
 	 * Map kernel and turn paging on.
@@ -82,7 +84,7 @@ jump_to_kernel:
 	 */
 	call map_kernel_pse
 	
-	addl $0x80000000, %esp  /*  PA2KA(ctx.sp) */
+	addl $PA2KA(0), %esp		/* PA2KA(ctx.sp) */
 	
 	/* create the first stack frame */
 	pushl $0

@@ -69,8 +69,10 @@
 		::: "memory" \
 	)
 
+#ifdef KERNEL
 #define smc_coherence(addr)
 #define smc_coherence_block(addr, size)
+#endif	/* KERNEL */
 
 #endif
 

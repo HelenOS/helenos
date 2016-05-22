@@ -159,8 +159,6 @@ LIBURI_PREFIX = $(LIB_PREFIX)/uri
 
 LIBNETTL_PREFIX = $(LIB_PREFIX)/nettl
 
-LIBURCU_PREFIX = $(LIB_PREFIX)/urcu
-
 AFLAGS = --fatal-warnings
 LFLAGS = --fatal-warnings
 
@@ -181,12 +179,6 @@ endif
 # Build static whenever we use libusb because that library uses 
 # thread local variables
 ifneq ($(findstring usb, $(LIBS)),)
-	STATIC_BUILD = y
-endif
-
-# Build static because liburcu is linked against libc which uses thread
-# local variables
-ifneq ($(findstring urcu, $(LIBS)),)
 	STATIC_BUILD = y
 endif
 
@@ -305,11 +297,6 @@ endif
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
-ifeq ($(FUTEX_UPGRADABLE),y)
-	CFLAGS += -I$(LIBURCU_PREFIX)/
-	LIBS += $(LIBURCU_PREFIX)/liburcu.a
-endif
-
 ifeq ($(COMPILER),gcc_cross)
 	CFLAGS += $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
@@ -335,7 +322,10 @@ ifeq ($(COMPILER),clang)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
+
+ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPEND)
+endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
@@ -375,12 +365,12 @@ $(LSONAME):
 endif
 
 ifneq ($(LIBRARY),)
-%.a: $(OBJECTS)
+$(LIBRARY).a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
 endif
 
-ifneq ($(SLIBRARY),)
-%.la: $(LOBJECTS)
+ifneq ($(LARCHIVE),)
+$(LARCHIVE): $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 endif
 
