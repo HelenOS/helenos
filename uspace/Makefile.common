@@ -377,8 +377,8 @@ $(LIBRARY).a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
 endif
 
-ifneq ($(SLIBRARY),)
-$(SLIBRARY).la: $(LOBJECTS)
+ifneq ($(LARCHIVE),)
+$(LARCHIVE): $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 endif
 
