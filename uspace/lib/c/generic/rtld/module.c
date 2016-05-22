@@ -49,6 +49,39 @@
 #include <rtld/rtld_arch.h>
 #include <rtld/module.h>
 
+/** Create module for static executable.
+ *
+ * @param rtld Run-time dynamic linker
+ * @param rmodule Place to store pointer to new module or @c NULL
+ * @return EOK on success, ENOMEM if out of memory
+ */
+int module_create_static_exec(rtld_t *rtld, module_t **rmodule)
+{
+	module_t *module;
+
+	module = calloc(1, sizeof(module_t));
+	if (module == NULL)
+		return ENOMEM;
+
+	module->id = rtld_get_next_id(rtld);
+	module->dyn.soname = "[program]";
+
+	module->rtld = rtld;
+	module->exec = true;
+	module->local = true;
+
+	module->tdata = &_tdata_start;
+	module->tdata_size = &_tdata_end - &_tdata_start;
+	module->tbss_size = &_tbss_end - &_tbss_start;
+	module->tls_align = (uintptr_t)&_tls_alignment;
+
+	list_append(&module->modules_link, &rtld->modules);
+
+	if (rmodule != NULL)
+		*rmodule = module;
+	return EOK;
+}
+
 /** (Eagerly) process all relocation tables in a module.
  *
  * Currently works as if LD_BIND_NOW was specified.
@@ -190,7 +223,7 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	m->tbss_size = info.tls.tbss_size;
 	m->tls_align = info.tls.tls_align;
 
-	printf("tdata at %p size %zu, tbss size %zu\n",
+	DPRINTF("tdata at %p size %zu, tbss size %zu\n",
 	    m->tdata, m->tdata_size, m->tbss_size);
 
 	return m;

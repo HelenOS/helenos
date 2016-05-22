@@ -40,6 +40,7 @@
 /** @file
  */
 
+#include <errno.h>
 #include <libc.h>
 #include <stdlib.h>
 #include <tls.h>
@@ -64,16 +65,20 @@ static bool env_setup = false;
 
 void __main(void *pcb_ptr)
 {
+	/* Initialize user task run-time environment */
+	__malloc_init();
+	
 	/* Save the PCB pointer */
 	__pcb = (pcb_t *) pcb_ptr;
 	
 #ifdef CONFIG_RTLD
 	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
 		runtime_env = (rtld_t *) __pcb->rtld_runtime;
+	} else {
+		if (rtld_init_static() != EOK)
+			abort();
 	}
 #endif
-	/* Initialize user task run-time environment */
-	__malloc_init();
 	
 	fibril_t *fibril = fibril_setup();
 	if (fibril == NULL)

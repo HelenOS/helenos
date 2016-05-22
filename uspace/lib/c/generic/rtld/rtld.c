@@ -44,13 +44,24 @@ rtld_t *runtime_env;
 static rtld_t rt_env_static;
 
 /** Initialize the runtime linker for use in a statically-linked executable. */
-void rtld_init_static(void)
+int rtld_init_static(void)
 {
+	int rc;
+
 	runtime_env = &rt_env_static;
 	list_initialize(&runtime_env->modules);
 	list_initialize(&runtime_env->imodules);
 	runtime_env->next_bias = 0x2000000;
 	runtime_env->program = NULL;
+	runtime_env->next_id = 1;
+
+	rc = module_create_static_exec(runtime_env, NULL);
+	if (rc != EOK)
+		return rc;
+
+	modules_process_tls(runtime_env);
+
+	return EOK;
 }
 
 /** Initialize and process a dynamically linked executable.
@@ -97,7 +108,7 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	prog->tbss_size = p_info->tls.tbss_size;
 	prog->tls_align = p_info->tls.tls_align;
 
-	printf("prog tdata at %p size %zu, tbss size %zu\n",
+	DPRINTF("prog tdata at %p size %zu, tbss size %zu\n",
 	    prog->tdata, prog->tdata_size, prog->tbss_size);
 
 	/* Initialize list of loaded modules */
