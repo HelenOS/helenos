@@ -248,9 +248,23 @@ elf_symbol_t *symbol_def_find(const char *name, module_t *origin,
 	return NULL;
 }
 
-void *symbol_get_addr(elf_symbol_t *sym, module_t *m)
+/** Get symbol address.
+ *
+ * @param sym Symbol
+ * @param m Module contaning the symbol
+ * @param tcb TCB of the thread whose thread-local variable instance should
+ *            be returned. If @a tcb is @c NULL then @c NULL is returned for
+ *            thread-local variables.
+ *
+ * @return Symbol address
+ */
+void *symbol_get_addr(elf_symbol_t *sym, module_t *m, tcb_t *tcb)
 {
-	if (sym->st_shndx == SHN_ABS) {
+	if (ELF_ST_TYPE(sym->st_info) == STT_TLS) {
+		if (tcb == NULL)
+			return NULL;
+		return rtld_tls_get_addr(m->rtld, tcb, m->id, sym->st_value);
+	} else if (sym->st_shndx == SHN_ABS) {
 		/* Do not add bias to absolute symbols */
 		return (void *) sym->st_value;
 	} else {

@@ -33,20 +33,37 @@
  *
  * Support for thread-local storage, as described in:
  * 	Drepper U.: ELF Handling For Thread-Local Storage, 2005
- *
- * Only static model is supported.
- */ 
+ */
 
 #include <tls.h>
 #include <malloc.h>
 #include <str.h>
-#include <align.h>
 #include <unistd.h>
 
+#ifdef CONFIG_RTLD
+#include <rtld/rtld.h>
+#endif
+
+size_t tls_get_size(void)
+{
+#ifdef CONFIG_RTLD
+	if (runtime_env != NULL)
+		return runtime_env->tls_size;
+#endif
+	return &_tbss_end - &_tdata_start;
+}
+
+/** Get address of static TLS block */
+void *tls_get(void)
+{
+#ifdef CONFIG_TLS_VARIANT_1
+	return (uint8_t *)__tcb_get() + sizeof(tcb_t);
+#else /* CONFIG_TLS_VARIANT_2 */
+	return (uint8_t *)__tcb_get() - tls_get_size();
+#endif
+}
+
 /** Create TLS (Thread Local Storage) data structures.
- *
- * The code requires, that sections .tdata and .tbss are adjacent. It may be
- * changed in the future.
  *
  * @return Pointer to TCB.
  */
@@ -55,11 +72,15 @@ tcb_t *tls_make(void)
 	void *data;
 	tcb_t *tcb;
 	size_t tls_size = &_tbss_end - &_tdata_start;
-	
+
+#ifdef CONFIG_RTLD
+	if (runtime_env != NULL)
+		return rtld_tls_make(runtime_env);
+#endif
 	tcb = tls_alloc_arch(&data, tls_size);
 	if (!tcb)
 		return NULL;
-	
+
 	/*
 	 * Copy thread local data from the initialization image.
 	 */
@@ -75,8 +96,10 @@ tcb_t *tls_make(void)
 
 void tls_free(tcb_t *tcb)
 {
-	size_t tls_size = &_tbss_end - &_tdata_start;
-	tls_free_arch(tcb, tls_size);
+#ifdef CONFIG_RTLD
+	free(tcb->dtv);
+#endif
+	tls_free_arch(tcb, tls_get_size());
 }
 
 #ifdef CONFIG_TLS_VARIANT_1
@@ -88,14 +111,17 @@ void tls_free(tcb_t *tcb)
  */
 tcb_t *tls_alloc_variant_1(void **data, size_t size)
 {
-	tcb_t *result;
+	tcb_t *tcb;
 
-	result = malloc(sizeof(tcb_t) + size);
-	if (!result)
+	tcb = malloc(sizeof(tcb_t) + size);
+	if (!tcb)
 		return NULL;
-	*data = ((void *)result) + sizeof(tcb_t);
+	*data = ((void *)tcb) + sizeof(tcb_t);
+#ifdef CONFIG_RTLD
+	tcb->dtv = NULL;
+#endif
 
-	return result;
+	return tcb;
 }
 
 /** Free TLS variant I data structures.
@@ -120,13 +146,15 @@ void tls_free_variant_1(tcb_t *tcb, size_t size)
 tcb_t * tls_alloc_variant_2(void **data, size_t size)
 {
 	tcb_t *tcb;
-	
-	size = ALIGN_UP(size, &_tls_alignment);
-	*data = memalign((uintptr_t) &_tls_alignment, sizeof(tcb_t) + size);
-	if (!*data)
+
+	*data = malloc(sizeof(tcb_t) + size);
+	if (*data == NULL)
 		return NULL;
 	tcb = (tcb_t *) (*data + size);
 	tcb->self = tcb;
+#ifdef CONFIG_RTLD
+	tcb->dtv = NULL;
+#endif
 
 	return tcb;
 }
@@ -138,7 +166,6 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
  */
 void tls_free_variant_2(tcb_t *tcb, size_t size)
 {
-	size = ALIGN_UP(size, &_tls_alignment);
 	void *start = ((void *) tcb) - size;
 	free(start);
 }

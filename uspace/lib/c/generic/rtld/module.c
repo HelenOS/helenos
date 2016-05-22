@@ -36,6 +36,7 @@
 
 #include <adt/list.h>
 #include <elf/elf_load.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <loader/pcb.h>
 #include <stdio.h>
@@ -47,6 +48,39 @@
 #include <rtld/dynamic.h>
 #include <rtld/rtld_arch.h>
 #include <rtld/module.h>
+
+/** Create module for static executable.
+ *
+ * @param rtld Run-time dynamic linker
+ * @param rmodule Place to store pointer to new module or @c NULL
+ * @return EOK on success, ENOMEM if out of memory
+ */
+int module_create_static_exec(rtld_t *rtld, module_t **rmodule)
+{
+	module_t *module;
+
+	module = calloc(1, sizeof(module_t));
+	if (module == NULL)
+		return ENOMEM;
+
+	module->id = rtld_get_next_id(rtld);
+	module->dyn.soname = "[program]";
+
+	module->rtld = rtld;
+	module->exec = true;
+	module->local = true;
+
+	module->tdata = &_tdata_start;
+	module->tdata_size = &_tdata_end - &_tdata_start;
+	module->tbss_size = &_tbss_end - &_tbss_start;
+	module->tls_align = (uintptr_t)&_tls_alignment;
+
+	list_append(&module->modules_link, &rtld->modules);
+
+	if (rmodule != NULL)
+		*rmodule = module;
+	return EOK;
+}
 
 /** (Eagerly) process all relocation tables in a module.
  *
@@ -134,12 +168,14 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	int rc;
 
 	m = calloc(1, sizeof(module_t));
-	if (!m) {
+	if (m == NULL) {
 		printf("malloc failed\n");
 		exit(1);
 	}
 
 	m->rtld = rtld;
+	m->id = rtld_get_next_id(rtld);
+
 	if ((flags & mlf_local) != 0)
 		m->local = true;
 
@@ -180,6 +216,15 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 
 	/* Insert into the list of loaded modules */
 	list_append(&m->modules_link, &rtld->modules);
+
+	/* Copy TLS info */
+	m->tdata = info.tls.tdata;
+	m->tdata_size = info.tls.tdata_size;
+	m->tbss_size = info.tls.tbss_size;
+	m->tls_align = info.tls.tls_align;
+
+	DPRINTF("tdata at %p size %zu, tbss size %zu\n",
+	    m->tdata, m->tdata_size, m->tbss_size);
 
 	return m;
 }
@@ -242,6 +287,17 @@ void module_load_deps(module_t *m, mlflags_t flags)
 	}
 }
 
+/** Find module structure by ID. */
+module_t *module_by_id(rtld_t *rtld, unsigned long id)
+{
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		if (m->id == id)
+			return m;
+	}
+
+	return NULL;
+}
+
 /** Process relocations in modules.
  *
  * Processes relocations in @a start and all its dependencies.
@@ -257,6 +313,30 @@ void modules_process_relocs(rtld_t *rtld, module_t *start)
 			module_process_relocs(m);
 		}
 	}
+}
+
+void modules_process_tls(rtld_t *rtld)
+{
+#ifdef CONFIG_TLS_VARIANT_1
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		m->ioffs = rtld->tls_size;
+		list_append(&m->imodules_link, &rtmd->imodules);
+		rtld->tls_size += m->tdata_size + m->tbss_size;
+	}
+#else /* CONFIG_TLS_VARIANT_2 */
+	size_t offs;
+
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		rtld->tls_size += m->tdata_size + m->tbss_size;
+	}
+
+	offs = 0;
+	list_foreach(rtld->modules, modules_link, module_t, m) {
+		offs += m->tdata_size + m->tbss_size;
+		m->ioffs = rtld->tls_size - offs;
+		list_append(&m->imodules_link, &rtld->imodules);
+	}
+#endif
 }
 
 /** Clear BFS tags of all modules.

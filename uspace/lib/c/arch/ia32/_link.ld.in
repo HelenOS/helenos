@@ -11,6 +11,7 @@ PHDRS {
 	text PT_LOAD FLAGS(5);
 #endif
 	data PT_LOAD FLAGS(6);
+	tls PT_TLS;
 #if defined(SHLIB) || defined(DLEXE)
 	dynamic PT_DYNAMIC;
 #endif
@@ -94,17 +95,27 @@ SECTIONS {
 	} :data
 #endif
 	
-#ifndef DLEXE
 	.tdata : {
+#ifndef DLEXE
 		_tdata_start = .;
+#endif
 		*(.tdata);
 		*(.gnu.linkonce.tb.*);
+#ifndef DLEXE
 		_tdata_end = .;
+#endif
+	} :data :tls
+	.tbss : {
+#ifndef DLEXE
 		_tbss_start = .;
+#endif
 		*(.tbss);
+#ifndef DLEXE
 		_tbss_end = .;
-	} :data
+#endif
+	} :data :tls
 	
+#ifndef DLEXE
 	_tls_alignment = ALIGNOF(.tdata);
 #endif
 	

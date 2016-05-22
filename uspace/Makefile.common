@@ -176,31 +176,24 @@ else
 	endif
 endif
 
-# Build static whenever we use libusb because that library uses 
-# thread local variables
-ifneq ($(findstring usb, $(LIBS)),)
-	STATIC_BUILD = y
-endif
-
-# Build static because libpcut is linked against libc which uses thread
-# local variables
-ifneq ($(TEST_SOURCES),)
-	STATIC_BUILD = y
-endif
-
 ifeq ($(STATIC_BUILD),y)
 	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
-	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 	ifeq ($(MATH),y)
 		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
 	endif
 else
 	BASE_LIBS = $(LIBC_PREFIX)/libc.so.0 $(LIBSOFTINT_PREFIX)/libsoftint.so.0
-	LFLAGS += -Bdynamic
-	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+	LINK_DYNAMIC = y
 	ifeq ($(MATH),y)
 		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.so.0
 	endif
+endif
+
+ifeq ($(LINK_DYNAMIC),y)
+	LFLAGS += -Bdynamic
+	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+else
+	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 endif
 
 ifeq ($(MATH),y)

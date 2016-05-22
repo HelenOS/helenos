@@ -268,7 +268,6 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	pcb.argv = argv;
 	
 	pcb.filc = filc;
-	printf("dynamic=%p rtld_env=%p\n", pcb.dynamic, pcb.rtld_runtime);
 	
 	async_answer_0(rid, rc);
 	return 0;
