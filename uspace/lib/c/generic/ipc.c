@@ -126,12 +126,9 @@ static inline async_call_t *ipc_prepare_async(void *private,
  * @param callid      Value returned by the SYS_IPC_CALL_ASYNC_* syscall.
  * @param phoneid     Phone handle through which the call was made.
  * @param call        Structure returned by ipc_prepare_async().
- * @param can_preempt If true, the current fibril can be preempted
- *                    in this call.
- *
  */
 static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
-    async_call_t *call, bool can_preempt)
+    async_call_t *call)
 {
 	if (!call) {
 		/* Nothing to do regardless if failed or not */
@@ -158,14 +155,9 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 		futex_down(&async_futex);
 		list_append(&call->list, &queued_calls);
 		
-		if (can_preempt) {
-			call->fid = fibril_get_id();
-			fibril_switch(FIBRIL_TO_MANAGER);
-			/* Async futex unlocked by previous call */
-		} else {
-			call->fid = 0;
-			futex_up(&async_futex);
-		}
+		call->fid = fibril_get_id();
+		fibril_switch(FIBRIL_TO_MANAGER);
+		/* Async futex unlocked by previous call */
 		
 		return;
 	}
@@ -196,14 +188,10 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
  * @param arg4        Service-defined payload argument.
  * @param private     Argument to be passed to the answer/error callback.
  * @param callback    Answer or error callback.
- * @param can_preempt If true, the current fibril will be preempted in
- *                    case the kernel temporarily refuses to accept more
- *                    asynchronous calls.
- *
  */
 void ipc_call_async_fast(int phoneid, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, void *private,
-    ipc_async_callback_t callback, bool can_preempt)
+    ipc_async_callback_t callback)
 {
 	async_call_t *call = NULL;
 	
@@ -245,7 +233,7 @@ void ipc_call_async_fast(int phoneid, sysarg_t imethod, sysarg_t arg1,
 		IPC_SET_ARG5(call->u.msg.data, 0);
 	}
 	
-	ipc_finish_async(callid, phoneid, call, can_preempt);
+	ipc_finish_async(callid, phoneid, call);
 }
 
 /** Asynchronous call transmitting the entire payload.
@@ -265,14 +253,10 @@ void ipc_call_async_fast(int phoneid, sysarg_t imethod, sysarg_t arg1,
  * @param arg5        Service-defined payload argument.
  * @param private     Argument to be passed to the answer/error callback.
  * @param callback    Answer or error callback.
- * @param can_preempt If true, the current fibril will be preempted in
- *                    case the kernel temporarily refuses to accept more
- *                    asynchronous calls.
- *
  */
 void ipc_call_async_slow(int phoneid, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, void *private,
-    ipc_async_callback_t callback, bool can_preempt)
+    ipc_async_callback_t callback)
 {
 	async_call_t *call = ipc_prepare_async(private, callback);
 	if (!call)
@@ -294,7 +278,7 @@ void ipc_call_async_slow(int phoneid, sysarg_t imethod, sysarg_t arg1,
 	ipc_callid_t callid =
 	    ipc_call_async_internal(phoneid, &call->u.msg.data);
 	
-	ipc_finish_async(callid, phoneid, call, can_preempt);
+	ipc_finish_async(callid, phoneid, call);
 }
 
 /** Answer received call (fast version).
@@ -374,8 +358,8 @@ static void dispatch_queued_calls(void)
 		
 		futex_up(&async_futex);
 		
-		if (call->fid)
-			fibril_add_ready(call->fid);
+		assert(call->fid);
+		fibril_add_ready(call->fid);
 		
 		if (callid == (ipc_callid_t) IPC_CALLRET_FATAL) {
 			if (call->callback)
