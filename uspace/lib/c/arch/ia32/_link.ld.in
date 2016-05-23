@@ -116,7 +116,7 @@ SECTIONS {
 	} :data :tls
 	
 #ifndef DLEXE
-	_tls_alignment = ALIGNOF(.tdata);
+	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
 #endif
 	
 	.bss : {
