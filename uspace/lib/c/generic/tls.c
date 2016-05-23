@@ -35,6 +35,7 @@
  * 	Drepper U.: ELF Handling For Thread-Local Storage, 2005
  */
 
+#include <align.h>
 #include <tls.h>
 #include <malloc.h>
 #include <str.h>
@@ -147,7 +148,8 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
 {
 	tcb_t *tcb;
 
-	*data = malloc(sizeof(tcb_t) + size);
+	size = ALIGN_UP(size, &_tls_alignment);
+	*data = memalign((uintptr_t) &_tls_alignment, sizeof(tcb_t) + size);
 	if (*data == NULL)
 		return NULL;
 	tcb = (tcb_t *) (*data + size);
@@ -166,6 +168,7 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
  */
 void tls_free_variant_2(tcb_t *tcb, size_t size)
 {
+	size = ALIGN_UP(size, &_tls_alignment);
 	void *start = ((void *) tcb) - size;
 	free(start);
 }
