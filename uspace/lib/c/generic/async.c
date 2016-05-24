@@ -492,17 +492,6 @@ static port_t *async_new_port(interface_t *interface,
 	return port;
 }
 
-static size_t notification_handler_stksz = FIBRIL_DFLT_STK_SIZE;
-
-/** Set the stack size for the notification handler notification fibrils.
- *
- * @param size Stack size in bytes.
- */
-void async_set_notification_handler_stack_size(size_t size)
-{
-	notification_handler_stksz = size;
-}
-
 /** Mutex protecting inactive_exch_list and avail_phone_cv.
  *
  */
@@ -997,29 +986,22 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 	return true;
 }
 
-/** Notification fibril.
+/** Process notification.
  *
- * When a notification arrives, a fibril with this implementing function is
- * created. It calls the corresponding notification handler and does the final
- * cleanup.
- *
- * @param arg Message structure pointer.
- *
- * @return Always zero.
- *
+ * @param callid Hash of the incoming call.
+ * @param call   Data of the incoming call.
  */
-static int notification_fibril(void *arg)
+static void process_notification(ipc_callid_t callid, ipc_call_t *call)
 {
-	assert(arg);
-	
-	msg_t *msg = (msg_t *) arg;
 	async_notification_handler_t handler = NULL;
 	void *data = NULL;
+
+	assert(call);
 	
 	futex_down(&async_futex);
 	
 	ht_link_t *link = hash_table_find(&notification_hash_table,
-	    &IPC_GET_IMETHOD(msg->call));
+	    &IPC_GET_IMETHOD(*call));
 	if (link) {
 		notification_t *notification =
 		    hash_table_get_inst(link, notification_t, link);
@@ -1030,50 +1012,7 @@ static int notification_fibril(void *arg)
 	futex_up(&async_futex);
 	
 	if (handler)
-		handler(msg->callid, &msg->call, data);
-	
-	free(msg);
-	return 0;
-}
-
-/** Process notification.
- *
- * A new fibril is created which would process the notification.
- *
- * @param callid Hash of the incoming call.
- * @param call   Data of the incoming call.
- *
- * @return False if an error occured.
- *         True if the call was passed to the notification fibril.
- *
- */
-static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
-{
-	assert(call);
-	
-	futex_down(&async_futex);
-	
-	msg_t *msg = malloc(sizeof(*msg));
-	if (!msg) {
-		futex_up(&async_futex);
-		return false;
-	}
-	
-	msg->callid = callid;
-	msg->call = *call;
-	
-	fid_t fid = fibril_create_generic(notification_fibril, msg,
-	    notification_handler_stksz);
-	if (fid == 0) {
-		free(msg);
-		futex_up(&async_futex);
-		return false;
-	}
-	
-	fibril_add_ready(fid);
-	
-	futex_up(&async_futex);
-	return true;
+		handler(callid, call, data);
 }
 
 /** Subscribe to IRQ notification.
@@ -1374,7 +1313,26 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	
 	/* Kernel notification */
 	if ((callid & IPC_CALLID_NOTIFICATION)) {
+		fibril_t *fibril = (fibril_t *) __tcb_get()->fibril_data;
+		unsigned oldsw = fibril->switches;
+
 		process_notification(callid, call);
+
+		if (oldsw != fibril->switches) {
+			/*
+			 * The notification handler did not execute atomically
+			 * and so the current manager fibril assumed the role of
+			 * a notification fibril. While waiting for its
+			 * resources, it switched to another manager fibril that
+			 * had already existed or it created a new one. We
+			 * therefore know there is at least yet another
+			 * manager fibril that can take over. We now kill the
+			 * current 'notification' fibril to prevent fibril
+			 * population explosion.
+			 */
+			futex_down(&async_futex);
+			fibril_switch(FIBRIL_FROM_DEAD);
+		}
 		return;
 	}
 	
@@ -1549,7 +1507,7 @@ static int async_manager_fibril(void *arg)
 /** Add one manager to manager list. */
 void async_create_manager(void)
 {
-	fid_t fid = fibril_create(async_manager_fibril, NULL);
+	fid_t fid = fibril_create_generic(async_manager_fibril, NULL, PAGE_SIZE);
 	if (fid != 0)
 		fibril_add_manager(fid);
 }
@@ -1673,7 +1631,7 @@ aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	msg->wdata.active = true;
 	
 	ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4, msg,
-	    reply_received, true);
+	    reply_received);
 	
 	return (aid_t) msg;
 }
@@ -1711,7 +1669,7 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	msg->wdata.active = true;
 	
 	ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4, arg5,
-	    msg, reply_received, true);
+	    msg, reply_received);
 	
 	return (aid_t) msg;
 }
@@ -2000,21 +1958,20 @@ sysarg_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 void async_msg_0(async_exch_t *exch, sysarg_t imethod)
 {
 	if (exch != NULL)
-		ipc_call_async_0(exch->phone, imethod, NULL, NULL, true);
+		ipc_call_async_0(exch->phone, imethod, NULL, NULL);
 }
 
 void async_msg_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1)
 {
 	if (exch != NULL)
-		ipc_call_async_1(exch->phone, imethod, arg1, NULL, NULL, true);
+		ipc_call_async_1(exch->phone, imethod, arg1, NULL, NULL);
 }
 
 void async_msg_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2)
 {
 	if (exch != NULL)
-		ipc_call_async_2(exch->phone, imethod, arg1, arg2, NULL, NULL,
-		    true);
+		ipc_call_async_2(exch->phone, imethod, arg1, arg2, NULL, NULL);
 }
 
 void async_msg_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
@@ -2022,7 +1979,7 @@ void async_msg_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch != NULL)
 		ipc_call_async_3(exch->phone, imethod, arg1, arg2, arg3, NULL,
-		    NULL, true);
+		    NULL);
 }
 
 void async_msg_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
@@ -2030,7 +1987,7 @@ void async_msg_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch != NULL)
 		ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4,
-		    NULL, NULL, true);
+		    NULL, NULL);
 }
 
 void async_msg_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
@@ -2038,7 +1995,7 @@ void async_msg_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch != NULL)
 		ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4,
-		    arg5, NULL, NULL, true);
+		    arg5, NULL, NULL);
 }
 
 sysarg_t async_answer_0(ipc_callid_t callid, sysarg_t retval)
@@ -2161,7 +2118,7 @@ async_sess_t *async_clone_establish(exch_mgmt_t mgmt, async_exch_t *exch)
 	msg->wdata.active = true;
 	
 	ipc_call_async_0(exch->phone, IPC_M_CLONE_ESTABLISH, msg,
-	    reply_received, true);
+	    reply_received);
 	
 	sysarg_t rc;
 	async_wait_for((aid_t) msg, &rc);
@@ -2210,7 +2167,7 @@ static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
 	msg->wdata.active = true;
 	
 	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, arg4,
-	    msg, reply_received, true);
+	    msg, reply_received);
 	
 	sysarg_t rc;
 	async_wait_for((aid_t) msg, &rc);

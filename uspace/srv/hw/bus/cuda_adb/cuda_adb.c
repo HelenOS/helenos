@@ -46,7 +46,6 @@
 #include <sysinfo.h>
 #include <errno.h>
 #include <ipc/adb.h>
-#include <async.h>
 #include <assert.h>
 #include "cuda_adb.h"
 
@@ -157,12 +156,6 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": VIA-CUDA Apple Desktop Bus driver\n");
 	
-	/*
-	 * Alleviate the virtual memory / page table pressure caused by
-	 * interrupt storms when the default large stacks are used.
-	 */
-	async_set_notification_handler_stack_size(PAGE_SIZE);
-
 	for (i = 0; i < ADB_MAX_ADDR; ++i) {
 		adb_dev[i].client_sess = NULL;
 		adb_dev[i].service_id = 0;

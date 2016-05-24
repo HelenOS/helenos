@@ -88,34 +88,31 @@ extern sysarg_t ipc_answer_slow(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
  * to m.
  */
 
-#define ipc_call_async_0(phoneid, method, private, callback, can_preempt) \
+#define ipc_call_async_0(phoneid, method, private, callback) \
 	ipc_call_async_fast((phoneid), (method), 0, 0, 0, 0, (private), \
-	    (callback), (can_preempt))
-#define ipc_call_async_1(phoneid, method, arg1, private, callback, \
-    can_preempt) \
+	    (callback))
+#define ipc_call_async_1(phoneid, method, arg1, private, callback) \
 	ipc_call_async_fast((phoneid), (method), (arg1), 0, 0, 0, (private), \
-	    (callback), (can_preempt))
-#define ipc_call_async_2(phoneid, method, arg1, arg2, private, callback, \
-    can_preempt) \
+	    (callback))
+#define ipc_call_async_2(phoneid, method, arg1, arg2, private, callback) \
 	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), 0, 0, \
-	    (private), (callback), (can_preempt))
-#define ipc_call_async_3(phoneid, method, arg1, arg2, arg3, private, callback, \
-    can_preempt) \
+	    (private), (callback))
+#define ipc_call_async_3(phoneid, method, arg1, arg2, arg3, private, callback) \
 	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, \
-	    (private), (callback), (can_preempt))
+	    (private), (callback))
 #define ipc_call_async_4(phoneid, method, arg1, arg2, arg3, arg4, private, \
-    callback, can_preempt) \
+    callback) \
 	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), (arg3), \
-	    (arg4), (private), (callback), (can_preempt))
+	    (arg4), (private), (callback))
 #define ipc_call_async_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, \
-    private, callback, can_preempt) \
+    private, callback) \
 	ipc_call_async_slow((phoneid), (method), (arg1), (arg2), (arg3), \
-	    (arg4), (arg5), (private), (callback), (can_preempt))
+	    (arg4), (arg5), (private), (callback))
 
 extern void ipc_call_async_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, void *, ipc_async_callback_t, bool);
+    sysarg_t, void *, ipc_async_callback_t);
 extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, void *, ipc_async_callback_t, bool);
+    sysarg_t, sysarg_t, void *, ipc_async_callback_t);
 
 extern int ipc_hangup(int);
 
