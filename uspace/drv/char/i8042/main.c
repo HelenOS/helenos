@@ -42,7 +42,6 @@
 #include <str_error.h>
 #include <ddf/log.h>
 #include <stdio.h>
-#include <async.h>
 #include "i8042.h"
 
 /** Get address of I/O registers.
@@ -151,12 +150,6 @@ int main(int argc, char *argv[])
 	printf("%s: HelenOS PS/2 driver.\n", NAME);
 	ddf_log_init(NAME);
 	
-	/*
-	 * Alleviate the virtual memory / page table pressure caused by
-	 * interrupt storms when the default large stacks are used.
-	 */
-	async_set_notification_handler_stack_size(PAGE_SIZE);
-
 	return ddf_driver_main(&i8042_driver);
 }
 

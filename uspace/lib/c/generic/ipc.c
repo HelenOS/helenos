@@ -95,7 +95,7 @@ static ipc_callid_t ipc_call_async_internal(int phoneid, ipc_call_t *data)
 	return __SYSCALL2(SYS_IPC_CALL_ASYNC_SLOW, phoneid, (sysarg_t) data);
 }
 
-/** Prolog for ipc_call_async_*() functions.
+/** Prologue for ipc_call_async_*() functions.
  *
  * @param private  Argument for the answer/error callback.
  * @param callback Answer/error callback.
@@ -121,7 +121,7 @@ static inline async_call_t *ipc_prepare_async(void *private,
 	return call;
 }
 
-/** Epilog for ipc_call_async_*() functions.
+/** Epilogue for ipc_call_async_*() functions.
  *
  * @param callid      Value returned by the SYS_IPC_CALL_ASYNC_* syscall.
  * @param phoneid     Phone handle through which the call was made.
