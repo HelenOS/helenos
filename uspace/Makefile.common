@@ -159,8 +159,6 @@ LIBURI_PREFIX = $(LIB_PREFIX)/uri
 
 LIBNETTL_PREFIX = $(LIB_PREFIX)/nettl
 
-LIBURCU_PREFIX = $(LIB_PREFIX)/urcu
-
 AFLAGS = --fatal-warnings
 LFLAGS = --fatal-warnings
 
@@ -178,37 +176,24 @@ else
 	endif
 endif
 
-# Build static whenever we use libusb because that library uses 
-# thread local variables
-ifneq ($(findstring usb, $(LIBS)),)
-	STATIC_BUILD = y
-endif
-
-# Build static because liburcu is linked against libc which uses thread
-# local variables
-ifneq ($(findstring urcu, $(LIBS)),)
-	STATIC_BUILD = y
-endif
-
-# Build static because libpcut is linked against libc which uses thread
-# local variables
-ifneq ($(TEST_SOURCES),)
-	STATIC_BUILD = y
-endif
-
 ifeq ($(STATIC_BUILD),y)
-	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBURCU_PREFIX)/liburcu.a $(LIBSOFTINT_PREFIX)/libsoftint.a
-	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
+	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 	ifeq ($(MATH),y)
 		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
 	endif
 else
 	BASE_LIBS = $(LIBC_PREFIX)/libc.so.0 $(LIBSOFTINT_PREFIX)/libsoftint.so.0
-	LFLAGS += -Bdynamic
-	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+	LINK_DYNAMIC = y
 	ifeq ($(MATH),y)
 		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.so.0
 	endif
+endif
+
+ifeq ($(LINK_DYNAMIC),y)
+	LFLAGS += -Bdynamic
+	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+else
+	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 endif
 
 ifeq ($(MATH),y)
@@ -300,11 +285,6 @@ endif
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
-ifeq ($(FUTEX_UPGRADABLE),y)
-	CFLAGS += -I$(LIBURCU_PREFIX)/
-	LIBS += $(LIBURCU_PREFIX)/liburcu.a
-endif
-
 ifeq ($(COMPILER),gcc_cross)
 	CFLAGS += $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
@@ -377,8 +357,8 @@ $(LIBRARY).a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
 endif
 
-ifneq ($(SLIBRARY),)
-$(SLIBRARY).la: $(LOBJECTS)
+ifneq ($(LARCHIVE),)
+$(LARCHIVE): $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 endif
 

@@ -28,10 +28,6 @@
 
 USPACE_PREFIX = ../..
 
-LIBS = $(LIBURCU_PREFIX)/liburcu.a
-
-EXTRA_CFLAGS += -I$(LIBURCU_PREFIX)
-	
 BINARY = rcubench
 
 SOURCES = \

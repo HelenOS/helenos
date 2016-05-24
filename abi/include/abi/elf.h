@@ -156,6 +156,7 @@
 #define STT_FUNC     2
 #define STT_SECTION  3
 #define STT_FILE     4
+#define STT_TLS      6
 #define STT_LOPROC   13
 #define STT_HIPROC   15
 
@@ -169,6 +170,7 @@
 #define PT_NOTE     4
 #define PT_SHLIB    5
 #define PT_PHDR     6
+#define PT_TLS      7
 #define PT_LOPROC   0x70000000
 #define PT_HIPROC   0x7fffffff
 

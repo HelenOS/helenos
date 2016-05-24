@@ -42,7 +42,10 @@
 #include <stdlib.h>
 
 /** libdltest library handle */
-void *handle;
+static void *handle;
+
+/** If true, do not run dlfcn tests */
+static bool no_dlfcn = false;
 
 /** Test dlsym() function */
 static bool test_dlsym(void)
@@ -92,6 +95,7 @@ static bool test_dlfcn_dl_get_constant(void)
 static bool test_dlfcn_dl_get_private_var(void)
 {
 	int (*p_dl_get_private_var)(void);
+	int *(*p_dl_get_private_var_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_private_var...\n");
@@ -102,10 +106,18 @@ static bool test_dlfcn_dl_get_private_var(void)
 		return false;
 	}
 
+	p_dl_get_private_var_addr = dlsym(handle, "dl_get_private_var_addr");
+	if (p_dl_get_private_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_private_var();
 
 	printf("Got %d, expected %d... ", val, dl_private_var_val);
 	if (val != dl_private_var_val) {
+		printf("dl_get_private_var_addr -> %p\n",
+		    p_dl_get_private_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -120,6 +132,7 @@ static bool test_dlfcn_dl_get_private_var(void)
 static bool test_dlfcn_dl_get_private_uvar(void)
 {
 	int (*p_dl_get_private_uvar)(void);
+	int *(*p_dl_get_private_uvar_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_private_uvar...\n");
@@ -130,10 +143,18 @@ static bool test_dlfcn_dl_get_private_uvar(void)
 		return false;
 	}
 
+	p_dl_get_private_uvar_addr = dlsym(handle, "dl_get_private_uvar_addr");
+	if (p_dl_get_private_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_private_uvar();
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_private_uvar_addr -> %p\n",
+		    p_dl_get_private_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -148,6 +169,7 @@ static bool test_dlfcn_dl_get_private_uvar(void)
 static bool test_dlfcn_dl_get_public_var(void)
 {
 	int (*p_dl_get_public_var)(void);
+	int *(*p_dl_get_public_var_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_public_var...\n");
@@ -158,10 +180,18 @@ static bool test_dlfcn_dl_get_public_var(void)
 		return false;
 	}
 
+	p_dl_get_public_var_addr = dlsym(handle, "dl_get_public_var_addr");
+	if (p_dl_get_public_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_public_var();
 
 	printf("Got %d, expected %d... ", val, dl_public_var_val);
 	if (val != dl_public_var_val) {
+		printf("dl_get_public_var_addr -> %p\n",
+		    p_dl_get_public_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -176,6 +206,7 @@ static bool test_dlfcn_dl_get_public_var(void)
 static bool test_dlfcn_dl_get_public_uvar(void)
 {
 	int (*p_dl_get_public_uvar)(void);
+	int *(*p_dl_get_public_uvar_addr)(void);
 	int val;
 
 	printf("Call dlsym/dl_get_public_uvar...\n");
@@ -186,10 +217,18 @@ static bool test_dlfcn_dl_get_public_uvar(void)
 		return false;
 	}
 
+	p_dl_get_public_uvar_addr = dlsym(handle, "dl_get_public_uvar_addr");
+	if (p_dl_get_public_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = p_dl_get_public_uvar();
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("dl_get_public_uvar_addr -> %p\n",
+		    p_dl_get_public_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -204,6 +243,7 @@ static bool test_dlfcn_dl_get_public_uvar(void)
 static bool test_dlfcn_read_public_var(void)
 {
 	int *p_dl_public_var;
+	int *(*p_dl_get_public_var_addr)(void);
 	int val;
 
 	printf("Read dlsym/dl_public_var...\n");
@@ -214,10 +254,19 @@ static bool test_dlfcn_read_public_var(void)
 		return false;
 	}
 
+	p_dl_get_public_var_addr = dlsym(handle, "dl_get_public_var_addr");
+	if (p_dl_get_public_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = *p_dl_public_var;
 
 	printf("Got %d, expected %d... ", val, dl_public_var_val);
 	if (val != dl_public_var_val) {
+		printf("&dl_public_var = %p, "
+		    "dl_get_public_var_addr -> %p\n",
+		    p_dl_public_var, p_dl_get_public_var_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -232,6 +281,7 @@ static bool test_dlfcn_read_public_var(void)
 static bool test_dlfcn_read_public_uvar(void)
 {
 	int *p_dl_public_uvar;
+	int *(*p_dl_get_public_uvar_addr)(void);
 	int val;
 
 	printf("Read dlsym/dl_public_uvar...\n");
@@ -242,10 +292,19 @@ static bool test_dlfcn_read_public_uvar(void)
 		return false;
 	}
 
+	p_dl_get_public_uvar_addr = dlsym(handle, "dl_get_public_uvar_addr");
+	if (p_dl_get_public_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
 	val = *p_dl_public_uvar;
 
 	printf("Got %d, expected %d... ", val, 0);
 	if (val != 0) {
+		printf("&dl_public_uvar = %p, "
+		    "dl_get_public_uvar_addr -> %p\n",
+		    p_dl_public_uvar, p_dl_get_public_uvar_addr());
 		printf("FAILED\n");
 		return false;
 	}
@@ -254,11 +313,529 @@ static bool test_dlfcn_read_public_uvar(void)
 	return true;
 }
 
-int main(int argc, char *argv[])
+#ifndef STATIC_EXE
+
+/** Test calling a function that returns contents of a private initialized
+ * fibril-local variable.
+ */
+static bool test_dlfcn_dl_get_private_fib_var(void)
 {
+	int (*p_dl_get_private_fib_var)(void);
+	int *(*p_dl_get_private_fib_var_addr)(void);
+	int val;
 
-	printf("Dynamic linking test\n");
+	printf("Call dlsym/dl_get_private_fib_var...\n");
 
+	p_dl_get_private_fib_var = dlsym(handle, "dl_get_private_fib_var");
+	if (p_dl_get_private_fib_var == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	p_dl_get_private_fib_var_addr = dlsym(handle, "dl_get_private_fib_var_addr");
+	if (p_dl_get_private_fib_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	val = p_dl_get_private_fib_var();
+
+	printf("Got %d, expected %d... ", val, dl_private_fib_var_val);
+	if (val != dl_private_fib_var_val) {
+		printf("dl_get_private_fib_var_addr -> %p\n",
+		    p_dl_get_private_fib_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test calling a function that returns contents of a private uninitialized
+ * fibril-local variable.
+ */
+static bool test_dlfcn_dl_get_private_fib_uvar(void)
+{
+	int (*p_dl_get_private_fib_uvar)(void);
+	int *(*p_dl_get_private_fib_uvar_addr)(void);
+	int val;
+
+	printf("Call dlsym/dl_get_private_fib_uvar...\n");
+
+	p_dl_get_private_fib_uvar = dlsym(handle, "dl_get_private_fib_uvar");
+	if (p_dl_get_private_fib_uvar == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	p_dl_get_private_fib_uvar_addr = dlsym(handle, "dl_get_private_fib_uvar_addr");
+	if (p_dl_get_private_fib_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	val = p_dl_get_private_fib_uvar();
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("dl_get_private_fib_uvar_addr -> %p\n",
+		    p_dl_get_private_fib_uvar_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test calling a function that returns the contents of a public initialized
+ * fibril-local variable.
+ */
+static bool test_dlfcn_dl_get_public_fib_var(void)
+{
+	int (*p_dl_get_public_fib_var)(void);
+	int *(*p_dl_get_public_fib_var_addr)(void);
+	int val;
+
+	printf("Call dlsym/dl_get_public_fib_var...\n");
+
+	p_dl_get_public_fib_var = dlsym(handle, "dl_get_public_fib_var");
+	if (p_dl_get_public_fib_var == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	p_dl_get_public_fib_var_addr = dlsym(handle, "dl_get_public_fib_var_addr");
+	if (p_dl_get_public_fib_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	val = p_dl_get_public_fib_var();
+
+	printf("Got %d, expected %d... ", val, dl_public_fib_var_val);
+	if (val != dl_public_fib_var_val) {
+		printf("dl_get_public_fib_var_addr -> %p\n",
+		    p_dl_get_public_fib_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test calling a function that returns the contents of a public uninitialized
+ * fibril-local variable.
+ */
+static bool test_dlfcn_dl_get_public_fib_uvar(void)
+{
+	int (*p_dl_get_public_fib_uvar)(void);
+	int *(*p_dl_get_public_fib_uvar_addr)(void);
+	int val;
+
+	printf("Call dlsym/dl_get_public_fib_uvar...\n");
+
+	p_dl_get_public_fib_uvar = dlsym(handle, "dl_get_public_fib_uvar");
+	if (p_dl_get_public_fib_uvar == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	p_dl_get_public_fib_uvar_addr = dlsym(handle, "dl_get_public_fib_uvar_addr");
+	if (p_dl_get_public_fib_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	val = p_dl_get_public_fib_uvar();
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("dl_get_public_fib_uvar_addr -> %p\n",
+		    p_dl_get_public_fib_uvar_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly reading a public initialized fibril-local variable
+ * whose address was obtained using dlsym.
+ */
+static bool test_dlfcn_read_public_fib_var(void)
+{
+	int *p_dl_public_fib_var;
+	int *(*p_dl_get_public_fib_var_addr)(void);
+	int val;
+
+	printf("Read dlsym/dl_public_fib_var...\n");
+
+	p_dl_public_fib_var = dlsym(handle, "dl_public_fib_var");
+	if (p_dl_public_fib_var == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	p_dl_get_public_fib_var_addr = dlsym(handle, "dl_get_public_fib_var_addr");
+	if (p_dl_get_public_fib_var_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	val = *p_dl_public_fib_var;
+
+	printf("Got %d, expected %d... ", val, dl_public_fib_var_val);
+	if (val != dl_public_fib_var_val) {
+		printf("&dl_public_fib_var = %p, "
+		    "dl_get_public_fib_var_addr -> %p\n",
+		    p_dl_public_fib_var, p_dl_get_public_fib_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly reading a public uninitialized fibril-local variable
+ * whose address was obtained using dlsym.
+ */
+static bool test_dlfcn_read_public_fib_uvar(void)
+{
+	int *p_dl_public_fib_uvar;
+	int *(*p_dl_get_public_fib_uvar_addr)(void);
+	int val;
+
+	printf("Read dlsym/dl_public_fib_uvar...\n");
+
+	p_dl_public_fib_uvar = dlsym(handle, "dl_public_fib_uvar");
+	if (p_dl_public_fib_uvar == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	p_dl_get_public_fib_uvar_addr = dlsym(handle, "dl_get_public_fib_uvar_addr");
+	if (p_dl_get_public_fib_uvar_addr == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	val = *p_dl_public_fib_uvar;
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("&dl_public_fib_uvar = %p, "
+		    "dl_get_public_fib_uvar_addr -> %p\n",
+		    p_dl_public_fib_uvar, p_dl_get_public_fib_uvar_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+#endif /* STATIC_EXE */
+
+#ifdef DLTEST_LINKED
+
+/** Test directly calling function that returns a constant */
+static bool test_lnk_dl_get_constant(void)
+{
+	int val;
+
+	printf("Call linked dl_get_constant...\n");
+
+	val = dl_get_constant();
+
+	printf("Got %d, expected %d... ", val, dl_constant);
+	if (val != dl_constant) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test dircetly calling a function that returns contents of a private
+ * initialized variable.
+ */
+static bool test_lnk_dl_get_private_var(void)
+{
+	int val;
+
+	printf("Call linked dl_get_private_var...\n");
+
+	val = dl_get_private_var();
+
+	printf("Got %d, expected %d... ", val, dl_private_var_val);
+	if (val != dl_private_var_val) {
+		printf("dl_get_private_var_addr -> %p\n",
+		    dl_get_private_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test dircetly calling a function that returns contents of a private
+ * uninitialized variable.
+ */
+static bool test_lnk_dl_get_private_uvar(void)
+{
+	int val;
+
+	printf("Call linked dl_get_private_uvar...\n");
+
+	val = dl_get_private_uvar();
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("dl_get_private_uvar_addr -> %p\n",
+		    dl_get_private_uvar_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly calling a function that returns the contents of a public
+ * initialized variable.
+ */
+static bool test_lnk_dl_get_public_var(void)
+{
+	int val;
+
+	printf("Call linked dl_get_public_var...\n");
+
+	val = dl_get_public_var();
+
+	printf("Got %d, expected %d... ", val, dl_public_var_val);
+	if (val != dl_public_var_val) {
+		printf("dl_get_public_var_addr -> %p\n",
+		    dl_get_public_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly calling a function that returns the contents of a public
+ * uninitialized variable.
+ */
+static bool test_lnk_dl_get_public_uvar(void)
+{
+	int val;
+
+	printf("Call linked dl_get_public_uvar...\n");
+
+	val = dl_get_public_uvar();
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("dl_get_public_uvar_addr -> %p\n",
+		    dl_get_public_uvar_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly reading a public initialized variable. */
+static bool test_lnk_read_public_var(void)
+{
+	int val;
+
+	printf("Read linked dl_public_var...\n");
+
+	val = dl_public_var;
+
+	printf("Got %d, expected %d... ", val, dl_public_var_val);
+	if (val != dl_public_var_val) {
+		printf("&dl_public_var = %p, dl_get_public_var_addr -> %p\n",
+		    &dl_public_var, dl_get_public_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly reading a public uninitialized variable. */
+static bool test_lnk_read_public_uvar(void)
+{
+	int val;
+
+	printf("Read linked dl_public_uvar...\n");
+
+	val = dl_public_uvar;
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("&dl_public_uvar = %p, dl_get_public_uvar_addr -> %p\n",
+		    &dl_public_uvar, dl_get_public_uvar_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test dircetly calling a function that returns contents of a private
+ * initialized fibril-local variable.
+ */
+static bool test_lnk_dl_get_private_fib_var(void)
+{
+	int val;
+
+	printf("Call linked dl_get_private_fib_var...\n");
+
+	val = dl_get_private_fib_var();
+
+	printf("Got %d, expected %d... ", val, dl_private_fib_var_val);
+	if (val != dl_private_fib_var_val) {
+		printf("dl_get_private_fib_var_addr -> %p\n",
+		    dl_get_private_fib_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test dircetly calling a function that returns contents of a private
+ * uninitialized fibril-local variable.
+ */
+static bool test_lnk_dl_get_private_fib_uvar(void)
+{
+	int val;
+
+	printf("Call linked dl_get_private_fib_uvar...\n");
+
+	val = dl_get_private_fib_uvar();
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("dl_get_private_fib_uvar_addr -> %p\n",
+		    dl_get_private_fib_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly calling a function that returns the contents of a public
+ * initialized fibril-local variable.
+ */
+static bool test_lnk_dl_get_public_fib_var(void)
+{
+	int val;
+
+	printf("Call linked dl_get_public_fib_var...\n");
+
+	val = dl_get_public_fib_var();
+
+	printf("Got %d, expected %d... ", val, dl_public_fib_var_val);
+	if (val != dl_public_fib_var_val) {
+		printf("dl_get_public_fib_var_addr -> %p\n",
+		    dl_get_public_fib_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly calling a function that returns the contents of a public
+ * uninitialized fibril-local variable.
+ */
+static bool test_lnk_dl_get_public_fib_uvar(void)
+{
+	int val;
+
+	printf("Call linked dl_get_public_fib_uvar...\n");
+
+	val = dl_get_public_fib_uvar();
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("dl_get_public_fib_uvar_addr -> %p\n",
+		    dl_get_public_fib_uvar_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly reading a public initialized fibril-local variable. */
+static bool test_lnk_read_public_fib_var(void)
+{
+	int val;
+
+	printf("Read linked dl_public_fib_var...\n");
+
+	val = dl_public_fib_var;
+
+	printf("Got %d, expected %d... ", val, dl_public_fib_var_val);
+	if (val != dl_public_fib_var_val) {
+		printf("&dl_public_fib_var = %p, "
+		    "dl_get_public_fib_var_addr -> %p\n",
+		    &dl_public_fib_var, dl_get_public_fib_var_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+/** Test directly reading a public uninitialized fibril-local variable. */
+static bool test_lnk_read_public_fib_uvar(void)
+{
+	int val;
+
+	printf("Read linked dl_public_fib_uvar...\n");
+
+	val = dl_public_fib_uvar;
+
+	printf("Got %d, expected %d... ", val, 0);
+	if (val != 0) {
+		printf("&dl_public_fib_uvar = %p, "
+		    "dl_get_public_fib_uvar_addr -> %p\n",
+		    &dl_public_fib_uvar, dl_get_public_fib_uvar_addr());
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
+#endif /* DLTEST_LINKED */
+
+static int test_dlfcn(void)
+{
 	printf("dlopen()... ");
 	handle = dlopen("libdltest.so.0", 0);
 	if (handle == NULL) {
@@ -292,9 +869,114 @@ int main(int argc, char *argv[])
 	if (!test_dlfcn_read_public_uvar())
 		return 1;
 
+#ifndef STATIC_EXE
+	if (!test_dlfcn_dl_get_private_fib_var())
+		return 1;
+
+	if (!test_dlfcn_dl_get_private_fib_uvar())
+		return 1;
+
+	if (!test_dlfcn_dl_get_public_fib_var())
+		return 1;
+
+	if (!test_dlfcn_dl_get_public_fib_uvar())
+		return 1;
+
+	if (!test_dlfcn_read_public_fib_var())
+		return 1;
+
+	if (!test_dlfcn_read_public_fib_uvar())
+		return 1;
+#endif /* STATIC_EXE */
+
 //	printf("dlclose()... ");
 //	dlclose(handle);
 //	printf("Passed\n");
+
+	return 0;
+}
+
+#ifdef DLTEST_LINKED
+
+static int test_lnk(void)
+{
+	if (!test_lnk_dl_get_constant())
+		return 1;
+
+	if (!test_lnk_dl_get_private_var())
+		return 1;
+
+	if (!test_lnk_dl_get_private_uvar())
+		return 1;
+
+	if (!test_lnk_dl_get_public_var())
+		return 1;
+
+	if (!test_lnk_dl_get_public_uvar())
+		return 1;
+
+	if (!test_lnk_read_public_var())
+		return 1;
+
+	if (!test_lnk_read_public_uvar())
+		return 1;
+
+	if (!test_lnk_dl_get_private_fib_var())
+		return 1;
+
+	if (!test_lnk_dl_get_private_fib_uvar())
+		return 1;
+
+	if (!test_lnk_dl_get_public_fib_var())
+		return 1;
+
+	if (!test_lnk_dl_get_public_fib_uvar())
+		return 1;
+
+	if (!test_lnk_read_public_fib_var())
+		return 1;
+
+	if (!test_lnk_read_public_fib_uvar())
+		return 1;
+
+	return 0;
+}
+
+#endif /* DLTEST_LINKED */
+
+static void print_syntax(void)
+{
+	fprintf(stderr, "syntax: dltest [-n]\n");
+	fprintf(stderr, "\t-n Do not run dlfcn tests\n");
+}
+
+int main(int argc, char *argv[])
+{
+	printf("Dynamic linking test\n");
+
+	if (argc > 1) {
+		if (argc > 2) {
+			print_syntax();
+			return 1;
+		}
+
+		if (str_cmp(argv[1], "-n") == 0) {
+			no_dlfcn = true;
+		} else {
+			print_syntax();
+			return 1;
+		}
+	}
+
+	if (!no_dlfcn) {
+		if (test_dlfcn() != 0)
+			return 1;
+	}
+
+#ifdef DLTEST_LINKED
+	if (test_lnk() != 0)
+		return 1;
+#endif
 
 	printf("All passed.\n");
 	return 0;

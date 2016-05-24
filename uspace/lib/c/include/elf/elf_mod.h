@@ -57,6 +57,18 @@ typedef enum {
 	ELDF_RW = 1
 } eld_flags_t;
 
+/** TLS info for a module */
+typedef struct {
+	/** tdata section image */
+	void *tdata;
+	/** Size of tdata section image in bytes */
+	size_t tdata_size;
+	/** Size of tbss section */
+	size_t tbss_size;
+	/** Alignment of TLS initialization image */
+	size_t tls_align;
+} elf_tls_info_t;
+
 /**
  * Some data extracted from the headers are stored here
  */
@@ -69,6 +81,9 @@ typedef struct {
 
 	/** Pointer to the dynamic section */
 	void *dynamic;
+
+	/** TLS info */
+	elf_tls_info_t tls;
 } elf_finfo_t;
 
 /**

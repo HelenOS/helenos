@@ -35,7 +35,7 @@
 #ifndef LIBC_ia32_RTLD_ELF_DYN_H_
 #define LIBC_ia32_RTLD_ELF_DYN_H_
 
-/* 
+/*
  * ia32 dynamic relocation types
  */
 
@@ -46,7 +46,9 @@
 #define R_386_JUMP_SLOT	7
 #define R_386_RELATIVE	8
 
+#define R_386_TLS_TPOFF    14
 #define R_386_TLS_DTPMOD32 35
+#define R_386_TLS_DTPOFF32 36
 
 #endif
 

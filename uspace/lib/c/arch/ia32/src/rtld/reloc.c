@@ -100,11 +100,11 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 //			DPRINTF("rel_type: %x, rel_offset: 0x%x\n", rel_type, r_offset);
 			sym_def = symbol_def_find(str_tab + sym->st_name,
 			    m, ssf_none, &dest);
-//			DPRINTF("dest name: '%s'\n", dest->dyn.soname);
+			DPRINTF("dest name: '%s'\n", dest->dyn.soname);
 //			DPRINTF("dest bias: 0x%x\n", dest->bias);
 			if (sym_def) {
 				sym_addr = (uint32_t)
-				    symbol_get_addr(sym_def, dest);
+				    symbol_get_addr(sym_def, dest, NULL);
 //				DPRINTF("symbol definition found, addr=0x%x\n", sym_addr);
 			} else {
 				printf("Definition of '%s' not found.\n",
@@ -114,6 +114,12 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 		} else {
 			sym_addr = 0;
 			sym_def = NULL;
+
+			/*
+			 * DTPMOD with null st_name should return the index
+			 * of the current module.
+			 */
+			dest = m;
 		}
 
 		switch (rel_type) {
@@ -147,7 +153,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 
 			if (sym_def) {
 				sym_addr = (uint32_t)
-				    symbol_get_addr(sym_def, dest);
+				    symbol_get_addr(sym_def, dest, NULL);
 			} else {
 				printf("Source definition of '%s' not found.\n",
 				    str_tab + sym->st_name);
@@ -170,12 +176,19 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 			*r_ptr += m->bias;
 			break;
 
+		case R_386_TLS_TPOFF:
+			DPRINTF("fixup R_386_TLS_TPOFF\n");
+			*r_ptr = (dest->ioffs + sym_def->st_value) - dest->rtld->tls_size;
+			break;
+
+		case R_386_TLS_DTPOFF32:
+			DPRINTF("fixup R_386_TLS_DTPOFF32\n");
+			*r_ptr = sym_def->st_value;
+			break;
+
 		case R_386_TLS_DTPMOD32:
-			/*
-			 * We can ignore this as long as the only module
-			 * with TLS variables is libc.so.
-			 */
-			DPRINTF("Ignoring R_386_TLS_DTPMOD32\n");
+			DPRINTF("fixup R_386_TLS_DTPMOD32\n");
+			*r_ptr = dest->id;
 			break;
 
 		default:

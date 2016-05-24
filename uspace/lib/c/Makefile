@@ -46,8 +46,6 @@ LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so.0
 
-EXTRA_CFLAGS += -I$(LIBURCU_PREFIX)
-
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
@@ -148,6 +146,7 @@ GENERIC_SOURCES = \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
+	generic/rcu.c \
 	generic/setjmp.c \
 	generic/stack.c \
 	generic/stacktrace.c \

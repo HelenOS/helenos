@@ -40,6 +40,7 @@
 /** @file
  */
 
+#include <errno.h>
 #include <libc.h>
 #include <stdlib.h>
 #include <tls.h>
@@ -67,14 +68,24 @@ void __main(void *pcb_ptr)
 	/* Initialize user task run-time environment */
 	__malloc_init();
 	
+	/* Save the PCB pointer */
+	__pcb = (pcb_t *) pcb_ptr;
+	
+#ifdef CONFIG_RTLD
+	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
+		runtime_env = (rtld_t *) __pcb->rtld_runtime;
+	} else {
+		if (rtld_init_static() != EOK)
+			abort();
+	}
+#endif
+	
 	fibril_t *fibril = fibril_setup();
 	if (fibril == NULL)
 		abort();
 	
 	__tcb_set(fibril->tcb);
 	
-	/* Save the PCB pointer */
-	__pcb = (pcb_t *) pcb_ptr;
 	
 #ifdef FUTEX_UPGRADABLE
 	rcu_register_fibril();
@@ -88,11 +99,6 @@ void __main(void *pcb_ptr)
 	int argc;
 	char **argv;
 	
-#ifdef CONFIG_RTLD
-	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
-		runtime_env = (rtld_t *) __pcb->rtld_runtime;
-	}
-#endif
 	/*
 	 * Get command line arguments and initialize
 	 * standard input and output

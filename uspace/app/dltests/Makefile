@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012 Adam Hraska
+# Copyright (c) 2016 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,12 +27,14 @@
 #
 
 USPACE_PREFIX = ../..
-
-EXTRA_CFLAGS = -I. -I$(LIBC_PREFIX)/include
-
-LIBRARY = liburcu
+EXTRA_CFLAGS = -I$(LIBDLTEST_PREFIX)
+BINARY = dltests
 
 SOURCES = \
-	rcu.c
+	dltests.c
 
 include $(USPACE_PREFIX)/Makefile.common
+
+ifeq ($(STATIC_BUILD), y)
+	EXTRA_CFLAGS += -DSTATIC_EXE
+endif

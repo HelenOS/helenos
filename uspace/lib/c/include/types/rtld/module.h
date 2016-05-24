@@ -45,8 +45,23 @@ typedef enum {
 
 /** Dynamically linked module */
 typedef struct module {
+	/** Module ID */
+	unsigned long id;
+	/** Dynamic info for this module */
 	dyn_info_t dyn;
+	/** Load bias */
 	size_t bias;
+
+	/** tdata image start */
+	void *tdata;
+	/** tdata image size */
+	size_t tdata_size;
+	/** tbss size */
+	size_t tbss_size;
+	/** TLS alignment */
+	size_t tls_align;
+
+	size_t ioffs;
 
 	/** Containing rtld */
 	struct rtld *rtld;
@@ -60,6 +75,8 @@ typedef struct module {
 
 	/** Link to list of all modules in runtime environment */
 	link_t modules_link;
+	/** Link to list of initial modules */
+	link_t imodules_link;
 
 	/** Link to BFS queue. Only used when doing a BFS of the module graph */
 	link_t queue_link;

@@ -247,8 +247,24 @@ const char *elf_error(unsigned int rc)
 	return error_codes[rc];
 }
 
+/** Process TLS program header.
+ *
+ * @param elf  Pointer to loader state buffer.
+ * @param hdr  TLS program header
+ * @param info Place to store TLS info
+ */
+static void tls_program_header(elf_ld_t *elf, elf_segment_header_t *hdr,
+    elf_tls_info_t *info)
+{
+	info->tdata = (void *)((uint8_t *)hdr->p_vaddr + elf->bias);
+	info->tdata_size = hdr->p_filesz;
+	info->tbss_size = hdr->p_memsz - hdr->p_filesz;
+	info->tls_align = hdr->p_align;
+}
+
 /** Process segment header.
  *
+ * @param elf   Pointer to loader state buffer.
  * @param entry	Segment header.
  *
  * @return EE_OK on success, error code otherwise.
@@ -276,6 +292,12 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 		break;
 	case 0x70000000:
 		/* FIXME: MIPS reginfo */
+		break;
+	case PT_TLS:
+		/* Parse TLS program header */
+		tls_program_header(elf, entry, &elf->info->tls);
+		DPRINTF("TLS header found at %p\n",
+		    (void *)((uint8_t *)entry->p_vaddr + elf->bias));
 		break;
 	case PT_SHLIB:
 //	case PT_LOPROC:

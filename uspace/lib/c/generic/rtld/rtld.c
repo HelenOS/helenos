@@ -42,15 +42,26 @@
 
 rtld_t *runtime_env;
 static rtld_t rt_env_static;
-static module_t prog_mod;
 
 /** Initialize the runtime linker for use in a statically-linked executable. */
-void rtld_init_static(void)
+int rtld_init_static(void)
 {
+	int rc;
+
 	runtime_env = &rt_env_static;
 	list_initialize(&runtime_env->modules);
+	list_initialize(&runtime_env->imodules);
 	runtime_env->next_bias = 0x2000000;
 	runtime_env->program = NULL;
+	runtime_env->next_id = 1;
+
+	rc = module_create_static_exec(runtime_env, NULL);
+	if (rc != EOK)
+		return rc;
+
+	modules_process_tls(runtime_env);
+
+	return EOK;
 }
 
 /** Initialize and process a dynamically linked executable.
@@ -61,6 +72,7 @@ void rtld_init_static(void)
 int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 {
 	rtld_t *env;
+	module_t *prog;
 
 	DPRINTF("Load dynamically linked program.\n");
 
@@ -69,25 +81,43 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	if (env == NULL)
 		return ENOMEM;
 
+	env->next_id = 1;
+
+	prog = calloc(1, sizeof(module_t));
+	if (prog == NULL) {
+		free(env);
+		return ENOMEM;
+	}
+
 	/*
 	 * First we need to process dynamic sections of the executable
 	 * program and insert it into the module graph.
 	 */
 
 	DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
-	dynamic_parse(p_info->dynamic, 0, &prog_mod.dyn);
-	prog_mod.bias = 0;
-	prog_mod.dyn.soname = "[program]";
-	prog_mod.rtld = env;
-	prog_mod.exec = true;
-	prog_mod.local = false;
+	dynamic_parse(p_info->dynamic, 0, &prog->dyn);
+	prog->bias = 0;
+	prog->dyn.soname = "[program]";
+	prog->rtld = env;
+	prog->id = rtld_get_next_id(env);
+	prog->exec = true;
+	prog->local = false;
+
+	prog->tdata = p_info->tls.tdata;
+	prog->tdata_size = p_info->tls.tdata_size;
+	prog->tbss_size = p_info->tls.tbss_size;
+	prog->tls_align = p_info->tls.tls_align;
+
+	DPRINTF("prog tdata at %p size %zu, tbss size %zu\n",
+	    prog->tdata, prog->tdata_size, prog->tbss_size);
 
 	/* Initialize list of loaded modules */
 	list_initialize(&env->modules);
-	list_append(&prog_mod.modules_link, &env->modules);
+	list_initialize(&env->imodules);
+	list_append(&prog->modules_link, &env->modules);
 
 	/* Pointer to program module. Used as root of the module graph. */
-	env->program = &prog_mod;
+	env->program = prog;
 
 	/* Work around non-existent memory space allocation. */
 	env->next_bias = 0x1000000;
@@ -97,7 +127,10 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 */
 
 	DPRINTF("Load all program dependencies\n");
-	module_load_deps(&prog_mod, 0);
+	module_load_deps(prog, 0);
+
+	/* Compute static TLS size */
+	modules_process_tls(env);
 
 	/*
 	 * Now relocate/link all modules together.
@@ -105,10 +138,136 @@ int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 
 	/* Process relocations in all modules */
 	DPRINTF("Relocate all modules\n");
-	modules_process_relocs(env, &prog_mod);
+	modules_process_relocs(env, prog);
 
 	*rre = env;
 	return EOK;
+}
+
+/** Create TLS (Thread Local Storage) data structures.
+ *
+ * @return Pointer to TCB.
+ */
+tcb_t *rtld_tls_make(rtld_t *rtld)
+{
+	void *data;
+	tcb_t *tcb;
+	size_t offset;
+	void **dtv;
+	size_t nmods;
+	size_t i;
+
+	tcb = tls_alloc_arch(&data, rtld->tls_size);
+	if (tcb == NULL)
+		return NULL;
+
+	/** Allocate dynamic thread vector */
+	nmods = list_count(&rtld->imodules);
+	dtv = malloc((nmods + 1) * sizeof(void *));
+	if (dtv == NULL) {
+		tls_free(tcb);
+		return NULL;
+	}
+
+	/*
+	 * We define generation number to be equal to vector length.
+	 * We start with a vector covering the initially loaded modules.
+	 */
+	DTV_GN(dtv) = nmods;
+
+	/*
+	 * Copy thread local data from the initialization images of initial
+	 * modules. Zero out thread-local uninitialized data.
+	 */
+
+#ifdef CONFIG_TLS_VARIANT_1
+	/*
+	 * Ascending addresses
+	 */
+	offset = 0; i = 1;
+	list_foreach(rtld->imodules, imodules_link, module_t, m) {
+		assert(i == m->id);
+		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
+		dtv[i++] = data + offset;
+		memcpy(data + offset, m->tdata, m->tdata_size);
+		offset += m->tdata_size;
+		memset(data + offset, 0, m->tbss_size);
+		offset += m->tbss_size;
+	}
+#else /* CONFIG_TLS_VARIANT_2 */
+	/*
+	 * Descending addresses
+	 */
+	offset = 0; i = 1;
+	list_foreach(rtld->imodules, imodules_link, module_t, m) {
+		assert(i == m->id);
+		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
+		offset += m->tbss_size;
+		memset(data + rtld->tls_size - offset, 0, m->tbss_size);
+		offset += m->tdata_size;
+		memcpy(data + rtld->tls_size - offset, m->tdata, m->tdata_size);
+		dtv[i++] = data + rtld->tls_size - offset;
+	}
+#endif
+
+	tcb->dtv = dtv;
+	return tcb;
+}
+
+unsigned long rtld_get_next_id(rtld_t *rtld)
+{
+	return rtld->next_id++;
+}
+
+/** Get address of thread-local variable.
+ *
+ * @param rtld RTLD instance
+ * @param tcb TCB of the thread whose instance to return
+ * @param mod_id Module ID
+ * @param offset Offset within TLS block of the module
+ *
+ * @return Address of thread-local variable
+ */
+void *rtld_tls_get_addr(rtld_t *rtld, tcb_t *tcb, unsigned long mod_id,
+    unsigned long offset)
+{
+	module_t *m;
+	size_t dtv_len;
+	void *tls_block;
+
+	dtv_len = DTV_GN(tcb->dtv);
+	if (dtv_len < mod_id) {
+		/* Vector is short */
+
+		tcb->dtv = realloc(tcb->dtv, (1 + mod_id) * sizeof(void *));
+		/* XXX This can fail if OOM */
+		assert(tcb->dtv != NULL);
+		/* Zero out new part of vector */
+		memset(tcb->dtv + (1 + dtv_len), 0, (mod_id - dtv_len) *
+		    sizeof(void *));
+	}
+
+	if (tcb->dtv[mod_id] == NULL) {
+		/* TLS block is not allocated */
+
+		m = module_by_id(rtld, mod_id);
+		assert(m != NULL);
+		/* Should not be initial module, those have TLS pre-allocated */
+		assert(!link_used(&m->imodules_link));
+
+		tls_block = malloc(m->tdata_size + m->tbss_size);
+		/* XXX This can fail if OOM */
+		assert(tls_block != NULL);
+
+		/* Copy tdata */
+		memcpy(tls_block, m->tdata, m->tdata_size);
+		/* Zero out tbss */
+		memset(tls_block + m->tdata_size, 0, m->tbss_size);
+
+		tcb->dtv[mod_id] = tls_block;
+	}
+
+	return (uint8_t *)(tcb->dtv[mod_id]) + offset;
 }
 
 /** @}
