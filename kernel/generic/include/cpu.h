@@ -89,7 +89,7 @@ typedef struct cpu {
 	unsigned int id;
 	
 	bool active;
-	bool tlb_active;
+	volatile bool tlb_active;
 	
 	uint16_t frequency_mhz;
 	uint32_t delay_loop_const;
