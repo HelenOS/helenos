@@ -289,17 +289,21 @@ void thread_ready(thread_t *thread)
 	int i = (thread->priority < RQ_COUNT - 1) ?
 	    ++thread->priority : thread->priority;
 
-	/* Check that thread->cpu is set whenever it needs to be. */
-	ASSERT(thread->cpu != NULL || 
-		(!thread->wired && !thread->nomigrate && !thread->fpu_context_engaged));
-
-	/* 
-	 * Prefer to run on the same cpu as the last time. Used by wired 
-	 * threads as well as threads with disabled migration.
-	 */
-	cpu_t *cpu = thread->cpu;
-	if (cpu == NULL) 
+	cpu_t *cpu;
+	if (thread->wired || thread->nomigrate || thread->fpu_context_engaged) {
+		/* Cannot ready to another CPU */
+		ASSERT(thread->cpu != NULL);
+		cpu = thread->cpu;
+	} else if (thread->stolen) {
+		/* Ready to the stealing CPU */
 		cpu = CPU;
+	} else if (thread->cpu) {
+		/* Prefer the CPU on which the thread ran last */
+		ASSERT(thread->cpu != NULL);
+		cpu = thread->cpu;
+	} else {
+		cpu = CPU;
+	}
 	
 	thread->state = Ready;
 	
@@ -315,8 +319,6 @@ void thread_ready(thread_t *thread)
 	irq_spinlock_unlock(&(cpu->rq[i].lock), true);
 	
 	atomic_inc(&nrdy);
-	// FIXME: Why is the avg value not used
-	// avg = atomic_get(&nrdy) / config.cpu_active;
 	atomic_inc(&cpu->nrdy);
 }
 
