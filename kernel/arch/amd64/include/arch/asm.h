@@ -235,7 +235,8 @@ NO_TRACE static inline void write_rflags(uint64_t rflags)
  *
  * @return Current interrupt priority level.
  */
-NO_TRACE static inline ipl_t interrupts_read(void) {
+NO_TRACE static inline ipl_t interrupts_read(void)
+{
 	return (ipl_t) read_rflags();
 }
 
@@ -245,7 +246,8 @@ NO_TRACE static inline ipl_t interrupts_read(void) {
  *
  * @return Old interrupt priority level.
  */
-NO_TRACE static inline ipl_t interrupts_enable(void) {
+NO_TRACE static inline ipl_t interrupts_enable(void)
+{
 	ipl_t ipl = interrupts_read();
 	
 	asm volatile ("sti\n");
@@ -259,7 +261,8 @@ NO_TRACE static inline ipl_t interrupts_enable(void) {
  *
  * @return Old interrupt priority level.
  */
-NO_TRACE static inline ipl_t interrupts_disable(void) {
+NO_TRACE static inline ipl_t interrupts_disable(void)
+{
 	ipl_t ipl = interrupts_read();
 	
 	asm volatile ("cli\n");
@@ -274,7 +277,8 @@ NO_TRACE static inline ipl_t interrupts_disable(void) {
  * @param ipl Saved interrupt priority level.
  *
  */
-NO_TRACE static inline void interrupts_restore(ipl_t ipl) {
+NO_TRACE static inline void interrupts_restore(ipl_t ipl)
+{
 	write_rflags((uint64_t) ipl);
 }
 
