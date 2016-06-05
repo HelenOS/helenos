@@ -192,7 +192,7 @@ def gem5_console_thread():
 	time.sleep(1)
 	term = os.environ['M5_PATH'] + '/gem5/util/term/m5term'
 	port = 3457
-	run_in_console(term + ' %d' % port, 'HelenOS/sun4v on gem5')
+	run_in_console('expect -c \'spawn %s %d; expect "ok " { send "boot\n" } timeout exp_continue; interact\'' % (term, port), 'HelenOS/sun4v on gem5')
 
 def gem5_run(platform, machine, processor):
 	try:
