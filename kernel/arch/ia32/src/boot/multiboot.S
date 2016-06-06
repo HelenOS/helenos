@@ -141,10 +141,10 @@ SYMBOL(multiboot_image_start)
 	
 	pm2_status $status_prot3
 	
-	/* Call arch_pre_main(multiboot_eax, multiboot_ebx) */
+	/* Call ia32_pre_main(multiboot_eax, multiboot_ebx) */
 	pushl multiboot_ebx
 	pushl multiboot_eax
-	call arch_pre_main
+	call ia32_pre_main
 	
 	pm2_status $status_main
 	

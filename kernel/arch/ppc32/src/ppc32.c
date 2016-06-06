@@ -32,8 +32,9 @@
 /** @file
  */
 
-#include <config.h>
 #include <arch.h>
+#include <arch/arch.h>
+#include <config.h>
 #include <arch/boot/boot.h>
 #include <genarch/drivers/via-cuda/cuda.h>
 #include <genarch/kbrd/kbrd.h>
@@ -60,13 +61,25 @@
 #define IRQ_COUNT  64
 #define IRQ_CUDA   10
 
+static void ppc32_pre_mm_init(void);
+static void ppc32_post_mm_init(void);
+static void ppc32_post_smp_init(void);
+
+arch_ops_t ppc32_ops = {
+	.pre_mm_init = ppc32_pre_mm_init,
+	.post_mm_init = ppc32_post_mm_init,
+	.post_smp_init = ppc32_post_smp_init,
+};
+
+arch_ops_t *arch_ops = &ppc32_ops;
+
 bootinfo_t bootinfo;
 
 static cir_t pic_cir;
 static void *pic_cir_arg;
 
 /** Performs ppc32-specific initialization before main_bsp() is called. */
-void arch_pre_main(bootinfo_t *bootinfo)
+void ppc32_pre_main(bootinfo_t *bootinfo)
 {
 	/* Copy tasks map. */
 	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
@@ -94,7 +107,7 @@ void arch_pre_main(bootinfo_t *bootinfo)
 	ofw_tree_init(bootinfo->ofw_root);
 }
 
-void arch_pre_mm_init(void)
+void ppc32_pre_mm_init(void)
 {
 	/* Initialize dispatch table */
 	interrupt_init();
@@ -191,7 +204,7 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 }
 #endif
 
-void arch_post_mm_init(void)
+void ppc32_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 #ifdef CONFIG_FB
@@ -206,14 +219,6 @@ void arch_post_mm_init(void)
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
 	}
-}
-
-void arch_post_cpu_init(void)
-{
-}
-
-void arch_pre_smp_init(void)
-{
 }
 
 static bool macio_register(ofw_tree_node_t *node, void *arg)
@@ -272,7 +277,7 @@ void irq_initialize_arch(irq_t *irq)
 	irq->preack = true;
 }
 
-void arch_post_smp_init(void)
+void ppc32_post_smp_init(void)
 {
 	/* Currently the only supported platform for ppc32 is 'mac'. */
 	static const char *platform = "mac";

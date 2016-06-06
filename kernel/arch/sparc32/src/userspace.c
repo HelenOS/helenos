@@ -34,7 +34,7 @@
 
 #include <userspace.h>
 #include <typedefs.h>
-#include <arch.h>
+#include <arch/arch.h>
 #include <arch/asm.h>
 #include <abi/proc/uarg.h>
 #include <mm/as.h>

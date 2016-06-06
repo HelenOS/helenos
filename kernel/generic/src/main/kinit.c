@@ -159,7 +159,7 @@ void kinit(void *arg)
 	/*
 	 * At this point SMP, if present, is configured.
 	 */
-	arch_post_smp_init();
+	ARCH_OP(post_smp_init);
 	
 	/* Start thread computing system load */
 	thread = thread_create(kload, NULL, TASK, THREAD_FLAG_NONE,

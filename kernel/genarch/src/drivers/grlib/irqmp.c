@@ -35,6 +35,7 @@
  */
 
 #include <genarch/drivers/grlib/irqmp.h>
+#include <arch/arch.h>
 #include <arch/asm.h>
 #include <mm/km.h>
 

@@ -426,10 +426,10 @@ start64:
 	
 	long_status $status_long
 	
-	/* Call arch_pre_main(multiboot_eax, multiboot_ebx) */
+	/* Call amd64_pre_main(multiboot_eax, multiboot_ebx) */
 	movl multiboot_eax, %edi
 	movl multiboot_ebx, %esi
-	callq arch_pre_main
+	callq amd64_pre_main
 
 	long_status $status_main
 	

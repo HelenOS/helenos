@@ -58,7 +58,7 @@ SYMBOL(kernel_image_start)
 	nop
 	
 	mov %l1, %o1
-	call arch_pre_main
+	call sparc32_pre_main
 	nop
 	
 	call main_bsp

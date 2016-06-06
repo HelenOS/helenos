@@ -47,7 +47,7 @@ SYMBOL(kernel_image_start)
 	# r3 contains physical address of bootinfo_t
 	
 	addis r3, r3, 0x8000
-	bl arch_pre_main
+	bl ppc32_pre_main
 	b main_bsp
 
 .section K_DATA_START, "aw", @progbits

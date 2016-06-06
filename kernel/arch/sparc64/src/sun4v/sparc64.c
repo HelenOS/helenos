@@ -33,6 +33,7 @@
  */
 
 #include <arch.h>
+#include <arch/arch.h>
 #include <debug.h>
 #include <config.h>
 #include <macros.h>
@@ -53,10 +54,22 @@
 #include <arch/drivers/niagara.h>
 #include <sysinfo/sysinfo.h>
 
+static void sparc64_pre_mm_init(void);
+static void sparc64_post_mm_init(void);
+static void sparc64_post_smp_init(void);
+
+arch_ops_t sparc64_ops = {
+	.pre_mm_init = sparc64_pre_mm_init,
+	.post_mm_init = sparc64_post_mm_init,
+	.post_smp_init = sparc64_post_smp_init,
+};
+
+arch_ops_t *arch_ops = &sparc64_ops;
+
 memmap_t memmap;
 
 /** Perform sparc64-specific initialization before main_bsp() is called. */
-void arch_pre_main(bootinfo_t *bootinfo)
+void sparc64_pre_main(bootinfo_t *bootinfo)
 {
 	/* Copy init task info. */
 	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
@@ -81,7 +94,7 @@ void arch_pre_main(bootinfo_t *bootinfo)
 }
 
 /** Perform sparc64 specific initialization before mm is initialized. */
-void arch_pre_mm_init(void)
+void sparc64_pre_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		trap_init();
@@ -90,7 +103,7 @@ void arch_pre_mm_init(void)
 }
 
 /** Perform sparc64 specific initialization afterr mm is initialized. */
-void arch_post_mm_init(void)
+void sparc64_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		/* Map OFW information into sysinfo */
@@ -104,15 +117,7 @@ void arch_post_mm_init(void)
 	}
 }
 
-void arch_post_cpu_init(void)
-{
-}
-
-void arch_pre_smp_init(void)
-{
-}
-
-void arch_post_smp_init(void)
+void sparc64_post_smp_init(void)
 {
 	/* Currently the only supported platform for sparc64/sun4v is 'sun4v'. */
 	static const char *platform = "sun4v";

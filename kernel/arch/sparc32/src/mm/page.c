@@ -45,6 +45,7 @@
 #include <config.h>
 #include <func.h>
 #include <arch/interrupt.h>
+#include <arch/arch.h>
 #include <arch/asm.h>
 #include <debug.h>
 #include <memstr.h>

@@ -50,14 +50,18 @@
 #include <console/console.h>
 #include <memstr.h>
 
+static void abs32le_post_mm_init(void);
+
+arch_ops_t abs32le_ops = {
+	.post_mm_init = abs32le_post_mm_init,
+};
+
+arch_ops_t *arch_ops = &abs32le_ops;
+
 char memcpy_from_uspace_failover_address;
 char memcpy_to_uspace_failover_address;
 
-void arch_pre_mm_init(void)
-{
-}
-
-void arch_post_mm_init(void)
+void abs32le_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		/* Initialize IRQ routing */
@@ -66,18 +70,6 @@ void arch_post_mm_init(void)
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
-}
-
-void arch_post_cpu_init(void)
-{
-}
-
-void arch_pre_smp_init(void)
-{
-}
-
-void arch_post_smp_init(void)
-{
 }
 
 void calibrate_delay_loop(void)

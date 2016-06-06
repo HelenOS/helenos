@@ -62,7 +62,7 @@ SYMBOL(kernel_image_start)
 	
 	ldr sp, =temp_stack
 	
-	bl arch_pre_main
+	bl arm32_pre_main
 	
 	#
 	# Create the first stack frame.

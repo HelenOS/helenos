@@ -195,7 +195,7 @@ SYMBOL(kernel_image_start)
 	lui $gp, 0x8000
 	
 	/* $a1 contains physical address of bootinfo_t */
-	jal arch_pre_main
+	jal mips32_pre_main
 	addiu $sp, -ABI_STACK_FRAME
 	
 	j main_bsp

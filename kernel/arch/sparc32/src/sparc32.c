@@ -33,6 +33,7 @@
  */
 
 #include <arch.h>
+#include <arch/arch.h>
 #include <typedefs.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
@@ -53,12 +54,22 @@
 #include <memstr.h>
 #include <str.h>
 
+static void sparc32_post_mm_init(void);
+static void sparc32_post_smp_init(void);
+
+arch_ops_t sparc32_ops = {
+	.post_mm_init = sparc32_post_mm_init,
+	.post_smp_init = sparc32_post_smp_init,
+};
+
+arch_ops_t *arch_ops = &sparc32_ops;
+
 char memcpy_from_uspace_failover_address;
 char memcpy_to_uspace_failover_address;
 
 static bootinfo_t machine_bootinfo;
 
-void arch_pre_main(void *unused, bootinfo_t *bootinfo)
+void sparc32_pre_main(void *unused, bootinfo_t *bootinfo)
 {
 	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	memcpy(&machine_bootinfo, bootinfo, sizeof(machine_bootinfo));
@@ -73,13 +84,7 @@ void arch_pre_main(void *unused, bootinfo_t *bootinfo)
 	machine_ops_init();
 }
 
-void arch_pre_mm_init(void)
-{
-}
-
-extern void func1(void);
-
-void arch_post_mm_init(void)
+void sparc32_post_mm_init(void)
 {
 	machine_init(&machine_bootinfo);
 	
@@ -94,16 +99,7 @@ void arch_post_mm_init(void)
 	machine_output_init();
 }
 
-
-void arch_post_cpu_init(void)
-{
-}
-
-void arch_pre_smp_init(void)
-{
-}
-
-void arch_post_smp_init(void)
+void sparc32_post_smp_init(void)
 {
 	machine_input_init();
 }

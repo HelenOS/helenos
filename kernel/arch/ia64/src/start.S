@@ -157,7 +157,7 @@ paging_start:
 	srlz.i
 	srlz.d ;;
 	
-	br.call.sptk.many b0 = arch_pre_main
+	br.call.sptk.many b0 = ia64_pre_main
 0:
 	br.call.sptk.many b0 = main_bsp
 0:

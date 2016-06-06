@@ -291,9 +291,9 @@ SYMBOL(kernel_image_start)
 	sub %sp, STACK_BIAS, %sp
 	
 	/*
-	 * Call arch_pre_main(bootinfo)
+	 * Call sparc64_pre_main(bootinfo)
 	 */
-	call arch_pre_main
+	call sparc64_pre_main
 	mov %o1, %o0
 	
 	/*

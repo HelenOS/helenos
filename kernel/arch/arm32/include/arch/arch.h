@@ -54,7 +54,7 @@ typedef struct {
 	utask_t tasks[TASKMAP_MAX_RECORDS];
 } bootinfo_t;
 
-extern void arch_pre_main(void *entry, bootinfo_t *bootinfo);
+extern void arm32_pre_main(void *entry, bootinfo_t *bootinfo);
 
 #endif
 

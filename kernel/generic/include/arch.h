@@ -35,7 +35,6 @@
 #ifndef KERN_ARCH_H_
 #define KERN_ARCH_H_
 
-#include <arch/arch.h>  /* arch_pre_main() */
 #include <arch/asm.h>   /* get_stack_base() */
 #include <config.h>
 
@@ -79,21 +78,30 @@ typedef struct {
 	uint32_t magic;        /**< Magic value */
 } the_t;
 
+typedef struct {
+	void (* pre_mm_init)(void);
+	void (* post_mm_init)(void);
+	void (* post_cpu_init)(void);
+	void (* pre_smp_init)(void);
+	void (* post_smp_init)(void);
+} arch_ops_t;
+
+extern arch_ops_t *arch_ops;
+
+#define ARCH_OP(op) \
+	do { \
+		if (arch_ops->op) \
+			arch_ops->op(); \
+	} while (0)
+
 extern void the_initialize(the_t *);
 extern void the_copy(the_t *, the_t *);
-
-extern void arch_pre_mm_init(void);
-extern void arch_post_mm_init(void);
-extern void arch_post_cpu_init(void);
-extern void arch_pre_smp_init(void);
-extern void arch_post_smp_init(void);
 
 extern void calibrate_delay_loop(void);
 
 extern void reboot(void);
 extern void arch_reboot(void);
 extern void *arch_construct_function(fncptr_t *, void *, void *);
-
 
 #endif
 

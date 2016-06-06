@@ -33,6 +33,7 @@
  */
 
 #include <arch.h>
+#include <arch/arch.h>
 #include <typedefs.h>
 #include <errno.h>
 #include <memstr.h>
@@ -63,13 +64,29 @@
 #include <arch/smp/apic.h>
 #endif
 
+static void amd64_pre_mm_init(void);
+static void amd64_post_mm_init(void);
+static void amd64_post_cpu_init(void);
+static void amd64_pre_smp_init(void);
+static void amd64_post_smp_init(void);
+
+arch_ops_t amd64_ops = {
+	.pre_mm_init = amd64_pre_mm_init,
+	.post_mm_init = amd64_post_mm_init,
+	.post_cpu_init = amd64_post_cpu_init,
+	.pre_smp_init = amd64_pre_smp_init,
+	.post_smp_init = amd64_post_smp_init
+};
+
+arch_ops_t *arch_ops = &amd64_ops;
+
 /** Perform amd64-specific initialization before main_bsp() is called.
  *
  * @param signature Multiboot signature.
  * @param info      Multiboot information structure.
  *
  */
-void arch_pre_main(uint32_t signature, void *info)
+void amd64_pre_main(uint32_t signature, void *info)
 {
 	/* Parse multiboot information obtained from the bootloader. */
 	multiboot_info_parse(signature, (multiboot_info_t *) info);
@@ -82,7 +99,7 @@ void arch_pre_main(uint32_t signature, void *info)
 #endif
 }
 
-void arch_pre_mm_init(void)
+void amd64_pre_mm_init(void)
 {
 	/* Enable no-execute pages */
 	write_msr(AMD_MSR_EFER, read_msr(AMD_MSR_EFER) | AMD_NXE);
@@ -106,8 +123,7 @@ void arch_pre_mm_init(void)
 	}
 }
 
-
-void arch_post_mm_init(void)
+void amd64_post_mm_init(void)
 {
 	vreg_init();
 	kseg_init();
@@ -143,7 +159,7 @@ void arch_post_mm_init(void)
 	syscall_setup_cpu();
 }
 
-void arch_post_cpu_init(void)
+void amd64_post_cpu_init(void)
 {
 #ifdef CONFIG_SMP
 	if (config.cpu_active > 1) {
@@ -153,7 +169,7 @@ void arch_post_cpu_init(void)
 #endif
 }
 
-void arch_pre_smp_init(void)
+void amd64_pre_smp_init(void)
 {
 	if (config.cpu_active == 1) {
 #ifdef CONFIG_SMP
@@ -162,7 +178,7 @@ void arch_pre_smp_init(void)
 	}
 }
 
-void arch_post_smp_init(void)
+void amd64_post_smp_init(void)
 {
 	/* Currently the only supported platform for amd64 is 'pc'. */
 	static const char *platform = "pc";

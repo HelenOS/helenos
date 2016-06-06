@@ -237,7 +237,7 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Memory management subsystems initialization.
 	 */
-	arch_pre_mm_init();
+	ARCH_OP(pre_mm_init);
 	km_identity_init();
 	frame_init();
 	slab_cache_init();
@@ -249,9 +249,9 @@ void main_bsp_separated_stack(void)
 	tlb_init();
 	km_non_identity_init();
 	ddi_init();
-	arch_post_mm_init();
+	ARCH_OP(post_mm_init);
 	reserve_init();
-	arch_pre_smp_init();
+	ARCH_OP(pre_smp_init);
 	smp_init();
 	
 	/* Slab must be initialized after we know the number of processors. */
@@ -265,7 +265,7 @@ void main_bsp_separated_stack(void)
 	
 	cpu_init();
 	calibrate_delay_loop();
-	arch_post_cpu_init();
+	ARCH_OP(post_cpu_init);
 
 	smp_call_init();
 	workq_global_init();
@@ -340,15 +340,15 @@ void main_ap(void)
 	 */
 	the_initialize(THE);
 	
-	arch_pre_mm_init();
+	ARCH_OP(pre_mm_init);
 	frame_init();
 	page_init();
 	tlb_init();
-	arch_post_mm_init();
+	ARCH_OP(post_mm_init);
 	
 	cpu_init();
 	calibrate_delay_loop();
-	arch_post_cpu_init();
+	ARCH_OP(post_cpu_init);
 	
 	the_copy(THE, (the_t *) CPU->stack);
 	

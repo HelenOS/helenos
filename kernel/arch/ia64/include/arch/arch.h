@@ -35,7 +35,7 @@
 #ifndef KERN_ia64_ARCH_H_
 #define KERN_ia64_ARCH_H_
 
-extern void arch_pre_main(void);
+extern void ia64_pre_main(void);
 
 #endif
 

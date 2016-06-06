@@ -36,7 +36,7 @@
 #include <stacktrace.h>
 #include <syscall/copy.h>
 #include <typedefs.h>
-#include <arch.h>
+#include <arch/arch.h>
 #include <arch/stack.h>
 #include <proc/thread.h>
 

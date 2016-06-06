@@ -177,10 +177,10 @@ SYMBOL(multiboot2_image_start)
 	pushl $0
 	movl %esp, %ebp
 	
-	/* Call arch_pre_main(multiboot_eax, multiboot_ebx) */
+	/* Call ia32_pre_main(multiboot_eax, multiboot_ebx) */
 	pushl multiboot_ebx
 	pushl multiboot_eax
-	call arch_pre_main
+	call ia32_pre_main
 	
 	/* Call main_bsp() */
 	call main_bsp

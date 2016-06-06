@@ -33,6 +33,7 @@
  */
 
 #include <arch.h>
+#include <arch/arch.h>
 #include <typedefs.h>
 #include <errno.h>
 #include <interrupt.h>
@@ -55,6 +56,17 @@
 #define NORM_EXC   ((char *) 0x80000180)
 #define CACHE_EXC  ((char *) 0x80000100)
 
+static void mips32_pre_mm_init(void);
+static void mips32_post_mm_init(void);
+static void mips32_post_smp_init(void);
+
+arch_ops_t mips32_ops = {
+	.pre_mm_init = mips32_pre_mm_init,
+	.post_mm_init = mips32_post_mm_init,
+	.post_smp_init = mips32_post_smp_init,
+};
+
+arch_ops_t *arch_ops = &mips32_ops;
 
 /* Why the linker moves the variable 64K away in assembler
  * when not in .text section?
@@ -70,7 +82,7 @@ size_t sdram_size = 0;
 #endif
 
 /** Performs mips32-specific initialization before main_bsp() is called. */
-void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
+void mips32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
 	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	
@@ -95,7 +107,7 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 	machine_ops_init();
 }
 
-void arch_pre_mm_init(void)
+void mips32_pre_mm_init(void)
 {
 	/* It is not assumed by default */
 	interrupts_disable();
@@ -126,7 +138,7 @@ void arch_pre_mm_init(void)
 	debugger_init();
 }
 
-void arch_post_mm_init(void)
+void mips32_post_mm_init(void)
 {
 	interrupt_init();
 
@@ -134,15 +146,7 @@ void arch_post_mm_init(void)
 	machine_output_init();
 }
 
-void arch_post_cpu_init(void)
-{
-}
-
-void arch_pre_smp_init(void)
-{
-}
-
-void arch_post_smp_init(void)
+void mips32_post_smp_init(void)
 {
 	/* Set platform name. */
 	sysinfo_set_item_data("platform", NULL,

@@ -38,7 +38,7 @@
 #define KERN_GRLIB_IRQMP_H_
 
 #include <typedefs.h>
-#include <arch.h>
+#include <arch/arch.h>
 
 #define GRLIB_IRQMP_MASK_OFFSET   0x40
 #define GRLIB_IRQMP_FORCE_OFFSET  0x80

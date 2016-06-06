@@ -33,6 +33,7 @@
  */
 
 #include <arch.h>
+#include <arch/arch.h>
 #include <typedefs.h>
 #include <errno.h>
 #include <interrupt.h>
@@ -59,6 +60,18 @@
 #include <arch/drivers/ski.h>
 #endif
 
+static void ia64_pre_mm_init(void);
+static void ia64_post_mm_init(void);
+static void ia64_post_smp_init(void);
+
+arch_ops_t ia64_ops = {
+	.pre_mm_init = ia64_pre_mm_init,
+	.post_mm_init = ia64_post_mm_init,
+	.post_smp_init = ia64_post_smp_init,
+};
+
+arch_ops_t *arch_ops = &ia64_ops;
+
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)
 
@@ -68,7 +81,7 @@ static uint64_t iosapic_base = 0xfec00000;
 uintptr_t legacyio_virt_base = 0;
 
 /** Performs ia64-specific initialization before main_bsp() is called. */
-void arch_pre_main(void)
+void ia64_pre_main(void)
 {
 	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS,
 	    CONFIG_INIT_TASKS);
@@ -83,7 +96,7 @@ void arch_pre_main(void)
 	}
 }
 
-void arch_pre_mm_init(void)
+void ia64_pre_mm_init(void)
 {
 	if (config.cpu_active == 1)
 		exception_init();
@@ -116,7 +129,7 @@ static void iosapic_init(void)
 
 }
 
-void arch_post_mm_init(void)
+void ia64_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		/* Map the page with legacy I/O. */
@@ -129,15 +142,7 @@ void arch_post_mm_init(void)
 	it_init();	
 }
 
-void arch_post_cpu_init(void)
-{
-}
-
-void arch_pre_smp_init(void)
-{
-}
-
-void arch_post_smp_init(void)
+void ia64_post_smp_init(void)
 {
 	static const char *platform;
 

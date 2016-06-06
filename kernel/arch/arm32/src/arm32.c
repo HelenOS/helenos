@@ -34,6 +34,7 @@
  */
 
 #include <arch.h>
+#include <arch/arch.h>
 #include <config.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
@@ -50,8 +51,21 @@
 #include <arch/ras.h>
 #include <sysinfo/sysinfo.h>
 
+static void arm32_pre_mm_init(void);
+static void arm32_post_mm_init(void);
+static void arm32_post_smp_init(void);
+
+arch_ops_t arm32_ops = {
+	.pre_mm_init = arm32_pre_mm_init,
+	.post_mm_init = arm32_post_mm_init,
+	.post_smp_init = arm32_post_smp_init,
+};
+
+arch_ops_t *arch_ops = &arm32_ops;
+
+
 /** Performs arm32-specific initialization before main_bsp() is called. */
-void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
+void arm32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
 	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	
@@ -68,14 +82,14 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 }
 
 /** Performs arm32 specific initialization before mm is initialized. */
-void arch_pre_mm_init(void)
+void arm32_pre_mm_init(void)
 {
 	/* It is not assumed by default */
 	interrupts_disable();
 }
 
 /** Performs arm32 specific initialization afterr mm is initialized. */
-void arch_post_mm_init(void)
+void arm32_post_mm_init(void)
 {
 	machine_init();
 	
@@ -89,31 +103,12 @@ void arch_post_mm_init(void)
 	machine_output_init();
 }
 
-/** Performs arm32 specific tasks needed after cpu is initialized.
- *
- * Currently the function is empty.
- */
-void arch_post_cpu_init(void)
-{
-}
-
-
-/** Performs arm32 specific tasks needed before the multiprocessing is
- * initialized.
- *
- * Currently the function is empty because SMP is not supported.
- */
-void arch_pre_smp_init(void)
-{
-}
-
-
 /** Performs arm32 specific tasks needed after the multiprocessing is
  * initialized.
  *
  * Currently the function is empty because SMP is not supported.
  */
-void arch_post_smp_init(void)
+void arm32_post_smp_init(void)
 {
 	machine_input_init();
 	const char *platform = machine_get_platform_name();

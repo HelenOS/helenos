@@ -39,6 +39,7 @@
 
 #include <arch/machine_func.h>
 #include <arch/machine/leon3/leon3.h>
+#include <arch/arch.h>
 
 /** Pointer to machine_ops structure being used. */
 struct sparc_machine_ops *machine_ops;

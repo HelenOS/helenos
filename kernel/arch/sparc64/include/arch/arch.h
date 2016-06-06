@@ -52,7 +52,7 @@
 
 #ifndef __ASM__
 
-extern void arch_pre_main(bootinfo_t *);
+extern void sparc64_pre_main(bootinfo_t *);
 
 #endif /* __ASM__ */
 

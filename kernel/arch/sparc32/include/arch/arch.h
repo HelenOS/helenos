@@ -74,7 +74,7 @@ typedef struct {
 	uint32_t memsize;
 } bootinfo_t;
 
-extern void arch_pre_main(void *, bootinfo_t *);
+extern void sparc32_pre_main(void *, bootinfo_t *);
 extern void write_to_invalid(uint32_t, uint32_t, uint32_t);
 extern void read_from_invalid(uint32_t *, uint32_t *, uint32_t *);
 extern void preemptible_save_uspace(uintptr_t, istate_t *);

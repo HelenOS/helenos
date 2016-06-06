@@ -37,7 +37,7 @@
 
 #include <arch/boot/boot.h>
 
-extern void arch_pre_main(bootinfo_t *);
+extern void ppc32_pre_main(bootinfo_t *);
 
 #endif
 

@@ -35,9 +35,7 @@
 #ifndef KERN_amd64_ARCH_H_
 #define KERN_amd64_ARCH_H_
 
-#include <genarch/multiboot/multiboot.h>
-
-extern void arch_pre_main(uint32_t, void *);
+extern void amd64_pre_main(uint32_t, void *);
 
 #endif
 

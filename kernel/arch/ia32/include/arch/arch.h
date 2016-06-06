@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 
-extern void arch_pre_main(uint32_t, void *);
+extern void ia32_pre_main(uint32_t, void *);
 
 #endif
 

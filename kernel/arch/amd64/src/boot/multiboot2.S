@@ -249,10 +249,10 @@ start64:
 	pushq $0
 	movq %rsp, %rbp
 	
-	/* Call arch_pre_main(multiboot_eax, multiboot_ebx) */
+	/* Call amd64_pre_main(multiboot_eax, multiboot_ebx) */
 	movl multiboot_eax, %edi
 	movl multiboot_ebx, %esi
-	callq arch_pre_main 
+	callq amd64_pre_main 
 	
 	/* Call main_bsp() */
 	callq main_bsp 

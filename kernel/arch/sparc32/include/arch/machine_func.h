@@ -41,7 +41,7 @@
 #ifndef KERN_sparc32_MACHINE_FUNC_H_
 #define KERN_sparc32_MACHINE_FUNC_H_
 
-#include <arch.h>
+#include <arch/arch.h>
 
 #include <console/console.h>
 #include <typedefs.h>
