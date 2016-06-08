@@ -88,11 +88,13 @@ typedef struct {
 
 extern arch_ops_t *arch_ops;
 
-#define ARCH_OP(op) \
+#define ARCH_STRUCT_OP(s, op) \
 	do { \
-		if (arch_ops->op) \
-			arch_ops->op(); \
+		if ((s)->op) \
+			(s)->op(); \
 	} while (0)
+
+#define ARCH_OP(op)	ARCH_STRUCT_OP(arch_ops, op)
 
 extern void the_initialize(the_t *);
 extern void the_copy(the_t *, the_t *);

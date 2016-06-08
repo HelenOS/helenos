@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,40 +29,54 @@
 /** @addtogroup sparc64
  * @{
  */
-/**
- * @file
- * @brief Various sparc64-specific macros.
+/** @file
  */
 
-#ifndef KERN_sparc64_ARCH_H_
-#define KERN_sparc64_ARCH_H_
-
-#ifndef __ASM__
 #include <arch.h>
-#endif
+#include <arch/arch.h>
 
-#include <arch/boot/boot.h>
+#define SPARC64_ARCH_OP(op)	ARCH_STRUCT_OP(sparc64_ops, op)
 
-#if defined (SUN4U)
-#include <arch/sun4u/arch.h>
-#elif defined (SUN4V)
-#include <arch/sun4v/arch.h>
-#endif
+static void sparc64_pre_mm_init(void);
+static void sparc64_post_mm_init(void);
+static void sparc64_post_cpu_init(void);
+static void sparc64_pre_smp_init(void);
+static void sparc64_post_smp_init(void);
 
-#define ASI_AIUP  0x10  /** Access to primary context with user privileges. */
-#define ASI_AIUS  0x11  /** Access to secondary context with user privileges. */
+arch_ops_t sparc64_arch_ops = {
+	.pre_mm_init = sparc64_pre_mm_init,
+	.post_mm_init = sparc64_post_mm_init,
+	.post_cpu_init = sparc64_post_cpu_init,
+	.pre_smp_init = sparc64_pre_smp_init,
+	.post_smp_init = sparc64_post_smp_init,
+};
 
-#define NWINDOWS  8  /** Number of register window sets. */
+arch_ops_t *arch_ops = &sparc64_arch_ops;
 
-#ifndef __ASM__
+void sparc64_pre_mm_init(void)
+{
+	SPARC64_ARCH_OP(pre_mm_init);
+}
 
-extern arch_ops_t *sparc64_ops;
+void sparc64_post_mm_init(void)
+{
+	SPARC64_ARCH_OP(post_mm_init);
+}
 
-extern void sparc64_pre_main(bootinfo_t *);
+void sparc64_post_cpu_init(void)
+{
+	SPARC64_ARCH_OP(post_cpu_init);
+}
 
-#endif /* __ASM__ */
+void sparc64_pre_smp_init(void)
+{
+	SPARC64_ARCH_OP(pre_smp_init);
+}
 
-#endif
+void sparc64_post_smp_init(void)
+{
+	SPARC64_ARCH_OP(post_smp_init);
+}
 
 /** @}
  */

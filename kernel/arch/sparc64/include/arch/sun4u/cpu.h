@@ -57,6 +57,7 @@
 #include <arch/register.h>
 #include <arch/regdef.h>
 #include <arch/asm.h>
+#include <arch/arch.h>
 #include <trace.h>
 
 typedef struct {

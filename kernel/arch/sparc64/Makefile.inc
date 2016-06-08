@@ -57,6 +57,7 @@ ifeq ($(PROCESSOR),sun4v)
 endif
 
 ARCH_SOURCES = \
+	arch/$(KARCH)/src/sparc64.c \
 	arch/$(KARCH)/src/cpu/$(USARCH)/cpu.c \
 	arch/$(KARCH)/src/debug/stacktrace.c \
 	arch/$(KARCH)/src/debug/stacktrace_asm.S \

@@ -35,7 +35,6 @@
 #ifndef KERN_sparc64_ASM_H_
 #define KERN_sparc64_ASM_H_
 
-#include <arch/arch.h>
 #include <typedefs.h>
 #include <align.h>
 #include <arch/register.h>
