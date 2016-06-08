@@ -34,6 +34,11 @@
 
 #include <arch.h>
 #include <arch/arch.h>
+#include <mm/slab.h>
+#include <config.h>
+#include <arch/proc/thread.h>
+#include <arch/trap/regwin.h>
+#include <debug.h>
 
 #define SPARC64_ARCH_OP(op)	ARCH_STRUCT_OP(sparc64_ops, op)
 
@@ -61,6 +66,13 @@ void sparc64_pre_mm_init(void)
 void sparc64_post_mm_init(void)
 {
 	SPARC64_ARCH_OP(post_mm_init);
+
+	if (config.cpu_active == 1) {
+		STATIC_ASSERT(UWB_SIZE <= UWB_ALIGNMENT);
+		/* Create slab cache for the userspace window buffers */
+		uwb_cache = slab_cache_create("uwb_cache", UWB_SIZE,
+		    UWB_ALIGNMENT, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
+	}
 }
 
 void sparc64_post_cpu_init(void)

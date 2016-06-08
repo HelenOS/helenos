@@ -37,6 +37,9 @@
 
 #include <typedefs.h>
 #include <arch/arch.h>
+#include <mm/slab.h>
+
+extern slab_cache_t *uwb_cache;
 
 typedef struct {
 	/** Buffer for register windows with userspace content. */

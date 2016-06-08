@@ -38,6 +38,8 @@
 #include <arch/trap/regwin.h>
 #include <align.h>
 
+slab_cache_t *uwb_cache = NULL;
+
 void thr_constructor_arch(thread_t *t)
 {
 	/*
@@ -54,7 +56,8 @@ void thr_destructor_arch(thread_t *t)
 		 * Mind the possible alignment of the userspace window buffer
 		 * belonging to a killed thread.
 		 */
-		free((uint8_t *) ALIGN_DOWN(uw_buf, UWB_ALIGNMENT));
+		slab_free(uwb_cache, (uint8_t *) ALIGN_DOWN(uw_buf,
+		    UWB_ALIGNMENT));
 	}
 }
 
@@ -66,7 +69,7 @@ void thread_create_arch(thread_t *t)
 		 * The thread needs userspace window buffer and the object
 		 * returned from the slab allocator doesn't have any.
 		 */
-		t->arch.uspace_window_buffer = malloc(UWB_ASIZE, 0);
+		t->arch.uspace_window_buffer = slab_alloc(uwb_cache, 0);
 	} else {
 		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
 
@@ -75,7 +78,7 @@ void thread_create_arch(thread_t *t)
 		 * belonging to a killed thread.
 		 */
 		t->arch.uspace_window_buffer = (uint8_t *) ALIGN_DOWN(uw_buf,
-		    UWB_ASIZE);
+		    UWB_ALIGNMENT);
 	}
 }
 

@@ -76,7 +76,6 @@
 /* Uspace Window Buffer constants. */
 #define UWB_SIZE	((NWINDOWS - 1) * STACK_WINDOW_SAVE_AREA_SIZE)
 #define UWB_ALIGNMENT	1024
-#define UWB_ASIZE	ALIGN_UP(UWB_SIZE, UWB_ALIGNMENT)
 
 #ifdef __ASM__
 
