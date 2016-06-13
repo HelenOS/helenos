@@ -1,13 +1,12 @@
-diff -r d1f8610cdffd configs/example/fs.py
---- a/configs/example/fs.py	Fri Jan 15 11:30:13 2016 +0000
-+++ b/configs/example/fs.py	Sun Jan 17 19:11:50 2016 +0100
-@@ -123,6 +123,9 @@
-                                              voltage_domain =
-                                              test_sys.cpu_voltage_domain)
+diff -r a22c4bac7e15 configs/common/FSConfig.py
+--- a/configs/common/FSConfig.py	Sat May 07 14:43:06 2016 -0400
++++ b/configs/common/FSConfig.py	Sun Jun 12 22:35:43 2016 +0200
+@@ -169,7 +169,7 @@
+     self.partition_desc.port = self.membus.master
+     self.intrctrl = IntrControl()
+     self.disk0 = CowMmDisk()
+-    self.disk0.childImage(disk('disk.s10hw2'))
++    self.disk0.childImage(mdesc.disk())
+     self.disk0.pio = self.iobus.master
  
-+    if options.disk_image is not None:
-+        test_sys.disk0.childImage(disk(options.disk_image))
-+
-     if options.kernel is not None:
-         test_sys.kernel = binary(options.kernel)
- 
+     # The puart0 and hvuart are placed on the IO bus, so create ranges

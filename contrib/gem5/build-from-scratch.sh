@@ -106,13 +106,6 @@ echo "==== Extracting OpenSPARC binaries ===="
     done
 )
 
-echo "==== Creating phony disk image ===="
-
-(
-    mkdir -p disks;
-    touch disks/disk.s10hw2
-)
-
 echo "==== Copying configs ===="
 
 cp -r gem5/configs .
