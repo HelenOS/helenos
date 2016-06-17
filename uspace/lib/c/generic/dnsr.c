@@ -131,6 +131,11 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 
 	info->cname = str_dup(cname_buf);
 
+	if (info->cname == NULL) {
+		free(info);
+		return ENOMEM;
+	}
+
 	*rinfo = info;
 	return EOK;
 }
