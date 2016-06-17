@@ -68,10 +68,6 @@ static void dnsr_exchange_end(async_exch_t *exch)
 
 int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 {
-	dnsr_hostinfo_t *info = calloc(1, sizeof(dnsr_hostinfo_t));
-	if (info == NULL)
-		return ENOMEM;
-	
 	async_exch_t *exch = dnsr_exchange_begin();
 	
 	ipc_call_t answer;
@@ -84,6 +80,10 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 		async_forget(req);
 		return rc;
 	}
+
+	dnsr_hostinfo_t *info = calloc(1, sizeof(dnsr_hostinfo_t));
+	if (info == NULL)
+		return ENOMEM;
 	
 	ipc_call_t answer_addr;
 	aid_t req_addr = async_data_read(exch, &info->addr,
@@ -95,6 +95,7 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 	if (retval_addr != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
+		free(info);
 		return (int) retval_addr;
 	}
 	
@@ -110,22 +111,26 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 	
 	if (retval_cname != EOK) {
 		async_forget(req);
+		free(info);
 		return (int) retval_cname;
 	}
 	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
 	
-	if (retval != EOK)
+	if (retval != EOK) {
+		async_forget(req);
+		free(info);
 		return (int) retval;
-	
+	}
+
 	size_t act_size = IPC_GET_ARG2(answer_cname);
 	assert(act_size <= DNSR_NAME_MAX_SIZE);
 	
 	cname_buf[act_size] = '\0';
-	
+
 	info->cname = str_dup(cname_buf);
-	
+
 	*rinfo = info;
 	return EOK;
 }
