@@ -247,15 +247,18 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 	 * Allocate a frame, preferably from high memory.
 	 */
 	uintptr_t page;
-	uintptr_t frame =
-	    frame_alloc(1, FRAME_HIGHMEM | FRAME_ATOMIC | flags, 0);
+	uintptr_t frame;
+
+	frame = frame_alloc(1, FRAME_HIGHMEM | FRAME_ATOMIC | flags, 0);
 	if (frame) {
 		page = km_map(frame, PAGE_SIZE,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
-		
-		// FIXME
-		ASSERT(page);
+		if (!page) {	
+			frame_free(frame, 1);
+			goto lowmem;
+		}
 	} else {
+lowmem:
 		frame = frame_alloc(1, FRAME_LOWMEM | flags, 0);
 		if (!frame)
 			return (uintptr_t) NULL;
