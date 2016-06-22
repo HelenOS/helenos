@@ -918,7 +918,7 @@ static int gpt_update_pt_crc(label_t *label, uint32_t crc)
 	gpt_hdr = calloc(1, label->block_size);
 	if (gpt_hdr == NULL) {
 		rc = ENOMEM;
-		goto error;
+		goto exit;
 	}
 
 	for (i = 0; i < 2; i++) {
@@ -926,7 +926,7 @@ static int gpt_update_pt_crc(label_t *label, uint32_t crc)
 		    label->lt.gpt.hdr_ba[i], 1, gpt_hdr);
 		if (rc != EOK) {
 			rc = EIO;
-			goto error;
+			goto exit;
 		}
 
 		gpt_hdr->pe_array_crc32 = host2uint32_t_le(crc);
@@ -936,13 +936,14 @@ static int gpt_update_pt_crc(label_t *label, uint32_t crc)
 		    label->lt.gpt.hdr_ba[i], 1, gpt_hdr);
 		if (rc != EOK) {
 			rc = EIO;
-			goto error;
+			goto exit;
 		}
 	}
-
+	
+	rc = EOK;
+	
+exit:
 	free(gpt_hdr);
-	return EOK;
-error:
 	return rc;
 }
 
