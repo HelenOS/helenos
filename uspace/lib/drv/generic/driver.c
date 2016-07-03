@@ -334,8 +334,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 
 	fibril_mutex_lock(&functions_mutex);
 	ddf_fun_t *fun = driver_get_function(handle);
+	if (fun != NULL)
+		fun_add_ref(fun);
 	fibril_mutex_unlock(&functions_mutex);
-	/* XXX Need a lock on fun */
 	
 	if (fun == NULL) {
 		printf("%s: driver_connection_gen error - no function with handle"
@@ -347,6 +348,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	if (fun->conn_handler != NULL) {
 		/* Driver has a custom connection handler. */
 		(*fun->conn_handler)(iid, icall, (void *)fun);
+		fun_del_ref(fun);
 		return;
 	}
 	
@@ -361,8 +363,10 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		ret = (*fun->ops->open)(fun);
 	
 	async_answer_0(iid, ret);
-	if (ret != EOK)
+	if (ret != EOK) {
+		fun_del_ref(fun);
 		return;
+	}
 	
 	while (true) {
 		ipc_callid_t callid;
@@ -375,6 +379,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			if (fun->ops != NULL && fun->ops->close != NULL)
 				(*fun->ops->close)(fun);
 			async_answer_0(callid, EOK);
+			fun_del_ref(fun);
 			return;
 		}
 		
