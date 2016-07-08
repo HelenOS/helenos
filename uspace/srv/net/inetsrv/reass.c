@@ -192,8 +192,10 @@ static int reass_dgram_insert_frag(reass_dgram_t *rdg, inet_packet_t *packet)
 	/* Clone the packet */
 
 	data_copy = malloc(packet->size);
-	if (data_copy == NULL)
+	if (data_copy == NULL) {
+		free(frag);
 		return ENOMEM;
+	}
 
 	memcpy(data_copy, packet->data, packet->size);
 
