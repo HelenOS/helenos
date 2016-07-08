@@ -241,8 +241,10 @@ int ns_task_id_intro(ipc_call_t *call)
 		return ENOMEM;
 	
 	hashed_task_t *ht = (hashed_task_t *) malloc(sizeof(hashed_task_t));
-	if (ht == NULL)
+	if (ht == NULL) {
+		free(entry);
 		return ENOMEM;
+	}
 	
 	/*
 	 * Insert into the phone-to-id map.
