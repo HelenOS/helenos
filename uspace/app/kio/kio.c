@@ -84,7 +84,7 @@ static void producer(size_t length, wchar_t *data)
 	
 	size_t sz = sizeof(wchar_t) * length;
 	wchar_t *buf = (wchar_t *) malloc(sz);
-	if (data == NULL) {
+	if (buf == NULL) {
 		free(item);
 		return;
 	}
