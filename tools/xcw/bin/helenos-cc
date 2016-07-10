@@ -46,6 +46,7 @@ echo helenos-cc "$@"
     -fno-omit-frame-pointer \
     -D "$ENDIAN" \
     "$@" \
+    -I"$XCW"/../include \
     -I"$SRC_ROOT"/uspace/lib/c/include \
     -I"$SRC_ROOT"/abi/include \
     -I"$SRC_ROOT"/uspace/lib/c/arch/"$UARCH"/include
