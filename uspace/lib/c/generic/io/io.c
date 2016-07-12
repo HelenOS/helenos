@@ -270,6 +270,7 @@ FILE *fopen(const char *path, const char *mode)
 	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
+	stream->ungetc_chars = 0;
 	
 	list_append(&stream->link, &files);
 	
@@ -292,6 +293,7 @@ FILE *fdopen(int fd, const char *mode)
 	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
+	stream->ungetc_chars = 0;
 	
 	list_append(&stream->link, &files);
 	
