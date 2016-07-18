@@ -1889,7 +1889,8 @@ static void mark_join_follows(cht_t *h, marked_ptr_t *psrc_head,
 {
 	/* See comment in split_bucket(). */
 	
-	bool done;
+	bool done = false;
+
 	do {
 		bool resizing = false;
 		wnd->ppred = psrc_head;
@@ -2059,7 +2060,8 @@ static void join_buckets(cht_t *h, marked_ptr_t *psrc_head,
 static void link_to_join_node(cht_t *h, marked_ptr_t *pdest_head, 
 	cht_link_t *join_node, size_t split_hash)
 {
-	bool done;
+	bool done = false;
+
 	do {
 		wnd_t wnd = {
 			.ppred = pdest_head,
