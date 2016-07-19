@@ -2162,9 +2162,10 @@ static void resize_table(work_t *arg)
 	ASSERT(0 < atomic_get(&h->resize_reqs));
 #endif
 
-	bool done;
+	bool done = false;
+
 	do {
-		/* Load the most recent  h->item_cnt. */
+		/* Load the most recent h->item_cnt. */
 		read_barrier();
 		size_t cur_items = (size_t) atomic_get(&h->item_cnt);
 		size_t bucket_cnt = (1 << h->b->order);
