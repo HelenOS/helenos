@@ -631,6 +631,7 @@ static void devman_driver_get_match_id(ipc_callid_t iid, ipc_call_t *icall)
 	link_t *link = list_nth(&drv->match_ids.ids, index);
 	if (link == NULL) {
 		fibril_mutex_unlock(&drv->driver_mutex);
+		free(buffer);
 		async_answer_0(data_callid, ENOMEM);
 		async_answer_0(iid, ENOMEM);
 		return;
