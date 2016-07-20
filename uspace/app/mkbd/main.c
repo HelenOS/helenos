@@ -122,12 +122,7 @@ static int initialize_report_parser(async_sess_t *dev_sess,
 	rc = usb_hid_parse_report_descriptor(*report, desc, report_desc_size);
 	free(desc);
 	
-	if (rc != EOK) {
-		free(desc);
-		return rc;
-	}
-	
-	return EOK;
+	return rc;
 }
 
 static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
