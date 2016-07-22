@@ -63,6 +63,10 @@ typedef uint32_t usb_port_status_t;
     (uint32_usb2host(1 << (USB_HUB_FEATURE_PORT_LOW_SPEED)))
 #define USB_HUB_PORT_STATUS_HIGH_SPEED \
     (uint32_usb2host(1 << 10))
+#define USB_HUB_PORT_STATUS_TEST_MODE \
+    (uint32_usb2host(1 << 11))
+#define USB_HUB_PORT_INDICATOR_CONTROL \
+    (uint32_usb2host(1 << 12))
 
 #define USB_HUB_PORT_C_STATUS_CONNECTION \
     (uint32_usb2host(1 << (USB_HUB_FEATURE_C_PORT_CONNECTION)))

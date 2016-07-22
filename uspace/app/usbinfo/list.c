@@ -43,50 +43,88 @@
 #include <getopt.h>
 #include <devman.h>
 #include <loc.h>
-#include <usb/dev/hub.h>
-#include <usb/hc.h>
+#include <usb_iface.h>
 
 #include "usbinfo.h"
 
-#define MAX_USB_ADDRESS USB11_ADDRESS_MAX
 #define MAX_PATH_LENGTH 1024
 
-static void print_found_hc(service_id_t sid, const char *path)
+static void print_usb_device(devman_handle_t handle)
 {
-	printf("Bus %" PRIun ": %s\n", sid, path);
-}
-static void print_found_dev(usb_address_t addr, const char *path)
-{
-	printf("  Device %02d: %s\n", addr, path);
-}
-
-static void print_hc_devices(devman_handle_t hc_handle)
-{
-	int rc;
-	usb_hc_connection_t conn;
-
-	usb_hc_connection_initialize(&conn, hc_handle);
-	rc = usb_hc_connection_open(&conn);
+	char path[MAX_PATH_LENGTH];
+	int rc = devman_fun_get_path(handle, path, MAX_PATH_LENGTH);
 	if (rc != EOK) {
-		printf(NAME ": failed to connect to HC: %s.\n",
-		    str_error(rc));
+		printf(NAME "Failed to get path for device %"PRIun"\n", handle);
 		return;
 	}
-	usb_address_t addr;
-	for (addr = 1; addr < MAX_USB_ADDRESS; addr++) {
-		devman_handle_t dev_handle;
-		rc = usb_hc_get_handle_by_address(&conn, addr, &dev_handle);
-		if (rc != EOK) {
-			continue;
-		}
-		char path[MAX_PATH_LENGTH];
-		rc = devman_fun_get_path(dev_handle, path, MAX_PATH_LENGTH);
-		if (rc != EOK) {
-			continue;
-		}
-		print_found_dev(addr, path);
+	printf("\tDevice %" PRIun ": %s\n", handle, path);
+}
+
+static void print_usb_bus(service_id_t svc)
+{
+	devman_handle_t hc_handle = 0;
+	int rc = devman_fun_sid_to_handle(svc, &hc_handle);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving handle of HC with SID %"
+		    PRIun ", skipping.\n", svc);
+		return;
 	}
-	usb_hc_connection_close(&conn);
+
+	char path[MAX_PATH_LENGTH];
+	rc = devman_fun_get_path(hc_handle, path, sizeof(path));
+	if (rc != EOK) {
+		printf(NAME ": Error resolving path of HC with SID %"
+		    PRIun ", skipping.\n", svc);
+		return;
+	}
+	printf("Bus %" PRIun ": %s\n", svc, path);
+
+	/* Construct device's path.
+	 * That's "hc function path" - ( '/' + "hc function name" ) */
+	// TODO replace this with something sane
+
+	/* Get function name */
+	char name[10];
+	rc = devman_fun_get_name(hc_handle, name, sizeof(name));
+	if (rc != EOK) {
+		printf(NAME ": Error resolving name of HC with SID %"
+		    PRIun ", skipping.\n", svc);
+		return;
+	}
+
+	/* Get handle of parent device */
+	devman_handle_t fh;
+	path[str_size(path) - str_size(name) - 1] = '\0';
+	rc = devman_fun_get_handle(path, &fh, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving parent handle of HC with"
+		    " SID %" PRIun ", skipping.\n", svc);
+		return;
+	}
+
+	/* Get child handle */
+	devman_handle_t dh;
+	rc = devman_fun_get_child(fh, &dh);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving parent handle of HC with"
+		    " SID %" PRIun ", skipping.\n", svc);
+		return;
+	}
+	
+	devman_handle_t *fhs = 0;
+	size_t count;
+	rc = devman_dev_get_functions(dh, &fhs, &count);
+	if (rc != EOK) {
+		printf(NAME ": Error siblings of HC with"
+		    " SID %" PRIun ", skipping.\n", svc);
+		return;
+	}
+
+	for (size_t i = 0; i < count; ++i) {
+		if (fhs[i] != hc_handle)
+			print_usb_device(fhs[i]);
+	}
+	free(fhs);
 }
 
 void list(void)
@@ -94,7 +132,6 @@ void list(void)
 	category_id_t usbhc_cat;
 	service_id_t *svcs;
 	size_t count;
-	size_t i;
 	int rc;
 
 	rc = loc_category_get_id(USB_HC_CATEGORY, &usbhc_cat, 0);
@@ -110,23 +147,8 @@ void list(void)
 		return;
 	}
 
-	for (i = 0; i < count; i++) {
-		devman_handle_t hc_handle = 0;
-		int rc = usb_ddf_get_hc_handle_by_sid(svcs[i], &hc_handle);
-		if (rc != EOK) {
-			printf(NAME ": Error resolving handle of HC with SID %"
-			    PRIun ", skipping.\n", svcs[i]);
-			continue;
-		}
-		char path[MAX_PATH_LENGTH];
-		rc = devman_fun_get_path(hc_handle, path, MAX_PATH_LENGTH);
-		if (rc != EOK) {
-			printf(NAME ": Error resolving path of HC with SID %"
-			    PRIun ", skipping.\n", svcs[i]);
-			continue;
-		}
-		print_found_hc(svcs[i], path);
-		print_hc_devices(hc_handle);
+	for (unsigned i = 0; i < count; ++i) {
+		print_usb_bus(svcs[i]);
 	}
 
 	free(svcs);

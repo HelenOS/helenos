@@ -99,7 +99,7 @@ const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 };
 
 const char *HID_KBD_FUN_NAME = "keyboard";
-const char *HID_KBD_CATEGORY = "keyboard";
+const char *HID_KBD_CATEGORY_NAME = "keyboard";
 
 static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
 
@@ -260,8 +260,8 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 
 	if (rc != EOK) {
-		usb_log_warning("Error translating LED output to output report"
-		    ".\n");
+		usb_log_warning("Could not translate LED output to output"
+		    "report.\n");
 		return;
 	}
 
@@ -269,8 +269,10 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	    usb_debug_str_buffer(kbd_dev->output_buffer, kbd_dev->output_size,
 	        0));
 
-	rc = usbhid_req_set_report(&hid_dev->usb_dev->ctrl_pipe,
-	    hid_dev->usb_dev->interface_no, USB_HID_REPORT_TYPE_OUTPUT,
+	rc = usbhid_req_set_report(
+	    usb_device_get_default_pipe(hid_dev->usb_dev),
+	    usb_device_get_iface_number(hid_dev->usb_dev),
+	    USB_HID_REPORT_TYPE_OUTPUT,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 	if (rc != EOK) {
 		usb_log_warning("Failed to set kbd indicators.\n");
@@ -475,68 +477,12 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	usb_kbd_check_key_changes(hid_dev, kbd_dev);
 }
 
-/* API functions                                                              */
+/* HID/KBD structure manipulation                                             */
 
-/**
- * Initialization of the USB/HID keyboard structure.
- *
- * This functions initializes required structures from the device's descriptors.
- *
- * During initialization, the keyboard is switched into boot protocol, the idle
- * rate is set to 0 (infinity), resulting in the keyboard only reporting event
- * when a key is pressed or released. Finally, the LED lights are turned on 
- * according to the default setup of lock keys.
- *
- * @note By default, the keyboards is initialized with Num Lock turned on and 
- *       other locks turned off.
- *
- * @param kbd_dev Keyboard device structure to be initialized.
- * @param dev DDF device structure of the keyboard.
- *
- * @retval EOK if successful.
- * @retval EINVAL if some parameter is not given.
- * @return Other value inherited from function usbhid_dev_init().
- */
-int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
+static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 {
-	ddf_fun_t *fun = NULL;
-	usb_kbd_t *kbd_dev = NULL;
-	usb_hid_report_path_t *path = NULL;
-	bool bound = false;
-	fid_t fid = 0;
-	int rc;
-
-	usb_log_debug("Initializing HID/KBD structure...\n");
-
-	if (hid_dev == NULL) {
-		usb_log_error(
-		    "Failed to init keyboard structure: no structure given.\n");
-		rc = EINVAL;
-		goto error;
-	}
-
-	/* Create the exposed function. */
-	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
-	fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed,
-	    HID_KBD_FUN_NAME);
-	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node.\n");
-		rc = ENOMEM;
-		goto error;
-	}
-
-	/* Store the initialized HID device and HID ops
-	 * to the DDF function. */
-	ddf_fun_set_ops(fun, &kbdops);
-
-	kbd_dev = ddf_fun_data_alloc(fun, sizeof(usb_kbd_t));
-	if (kbd_dev == NULL) {
-		usb_log_error("Failed to allocate KBD device structure.\n");
-		rc = ENOMEM;
-		goto error;
-	}
-
-	kbd_dev->fun = fun;
+	assert(kbd_dev);
+	assert(hid_dev);
 
 	/* Default values */
 	fibril_mutex_initialize(&kbd_dev->repeat_mtx);
@@ -553,17 +499,20 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	kbd_dev->repeat.delay_between = DEFAULT_REPEAT_DELAY;
 
 	// TODO: make more general
-	path = usb_hid_report_path();
+	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL) {
 		usb_log_error("Failed to create kbd report path.\n");
-		rc = ENOMEM;
-		goto error;
+		usb_kbd_destroy(kbd_dev);
+		return ENOMEM;
 	}
 
-	rc = usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
-	if (rc != EOK) {
+	int ret =
+	    usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
+	if (ret != EOK) {
 		usb_log_error("Failed to append item to kbd report path.\n");
-		goto error;
+		usb_hid_report_path_free(path);
+		usb_kbd_destroy(kbd_dev);
+		return ret;
 	}
 
 	usb_hid_report_path_set_report_id(path, 0);
@@ -572,22 +521,21 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	    usb_hid_report_size(&hid_dev->report, 0, USB_HID_REPORT_TYPE_INPUT);
 
 	usb_hid_report_path_free(path);
-	path = NULL;
 
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
 
 	kbd_dev->keys = calloc(kbd_dev->key_count, sizeof(int32_t));
 	if (kbd_dev->keys == NULL) {
 		usb_log_error("Failed to allocate key buffer.\n");
-		rc = ENOMEM;
-		goto error;
+		usb_kbd_destroy(kbd_dev);
+		return ENOMEM;
 	}
 
 	kbd_dev->keys_old = calloc(kbd_dev->key_count, sizeof(int32_t));
 	if (kbd_dev->keys_old == NULL) {
 		usb_log_error("Failed to allocate old_key buffer.\n");
-		rc = ENOMEM;
-		goto error;
+		usb_kbd_destroy(kbd_dev);
+		return ENOMEM;
 	}
 
 	/* Output report */
@@ -596,8 +544,8 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	    &kbd_dev->output_size, 0);
 	if (kbd_dev->output_buffer == NULL) {
 		usb_log_error("Error creating output report buffer.\n");
-		rc = ENOMEM;
-		goto error;
+		usb_kbd_destroy(kbd_dev);
+		return ENOMEM;
 	}
 
 	usb_log_debug("Output buffer size: %zu\n", kbd_dev->output_size);
@@ -605,15 +553,16 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	kbd_dev->led_path = usb_hid_report_path();
 	if (kbd_dev->led_path == NULL) {
 		usb_log_error("Failed to create kbd led report path.\n");
-		rc = ENOMEM;
-		goto error;
+		usb_kbd_destroy(kbd_dev);
+		return ENOMEM;
 	}
 
-	rc = usb_hid_report_path_append_item(
+	ret = usb_hid_report_path_append_item(
 	    kbd_dev->led_path, USB_HIDUT_PAGE_LED, 0);
-	if (rc != EOK) {
+	if (ret != EOK) {
 		usb_log_error("Failed to append to kbd/led report path.\n");
-		goto error;
+		usb_kbd_destroy(kbd_dev);
+		return ret;
 	}
 
 	kbd_dev->led_output_size = usb_hid_report_size(
@@ -625,75 +574,127 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	kbd_dev->led_data = calloc(kbd_dev->led_output_size, sizeof(int32_t));
 	if (kbd_dev->led_data == NULL) {
 		usb_log_error("Error creating buffer for LED output report.\n");
-		rc = ENOMEM;
-		goto error;
+		usb_kbd_destroy(kbd_dev);
+		return ENOMEM;
 	}
 
 	/* Set LEDs according to initial setup.
 	 * Set Idle rate */
 	usb_kbd_set_led(hid_dev, kbd_dev);
 
-	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe,
-	    hid_dev->usb_dev->interface_no, IDLE_RATE);
+	usbhid_req_set_idle(usb_device_get_default_pipe(hid_dev->usb_dev),
+	    usb_device_get_iface_number(hid_dev->usb_dev), IDLE_RATE);
 
-	/* Create new fibril for auto-repeat. */
-	fid = fibril_create(usb_kbd_repeat_fibril, kbd_dev);
-	if (fid == 0) {
-		usb_log_error("Failed to start fibril for KBD auto-repeat");
-		rc = ENOMEM;
-		goto error;
-	}
 
 	kbd_dev->initialized = USB_KBD_STATUS_INITIALIZED;
 	usb_log_debug("HID/KBD device structure initialized.\n");
 
-	rc = ddf_fun_bind(fun);
-	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function: %s.\n",
-		    str_error(rc));
-		goto error;
+	return EOK;
+}
+
+
+/* API functions                                                              */
+
+/**
+ * Initialization of the USB/HID keyboard structure.
+ *
+ * This functions initializes required structures from the device's descriptors.
+ *
+ * During initialization, the keyboard is switched into boot protocol, the idle
+ * rate is set to 0 (infinity), resulting in the keyboard only reporting event
+ * when a key is pressed or released. Finally, the LED lights are turned on
+ * according to the default setup of lock keys.
+ *
+ * @note By default, the keyboards is initialized with Num Lock turned on and
+ *       other locks turned off.
+ *
+ * @param kbd_dev Keyboard device structure to be initialized.
+ * @param dev DDF device structure of the keyboard.
+ *
+ * @retval EOK if successful.
+ * @retval EINVAL if some parameter is not given.
+ * @return Other value inherited from function usbhid_dev_init().
+ */
+int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
+{
+	usb_log_debug("Initializing HID/KBD structure...\n");
+
+	if (hid_dev == NULL) {
+		usb_log_error(
+		    "Failed to init keyboard structure: no structure given.\n");
+		return EINVAL;
 	}
 
-	bound = true;
+	/* Create the exposed function. */
+	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
+	ddf_fun_t *fun = usb_device_ddf_fun_create(hid_dev->usb_dev,
+	    fun_exposed, HID_KBD_FUN_NAME);
+	if (fun == NULL) {
+		usb_log_error("Could not create DDF function node.\n");
+		return ENOMEM;
+	}
+
+	usb_kbd_t *kbd_dev = ddf_fun_data_alloc(fun, sizeof(usb_kbd_t));
+	if (kbd_dev == NULL) {
+		usb_log_error("Failed to allocate KBD device structure.\n");
+		ddf_fun_destroy(fun);
+		return ENOMEM;
+	}
+
+	int ret = kbd_dev_init(kbd_dev, hid_dev);
+	if (ret != EOK) {
+		usb_log_error("Failed to initialize KBD device  structure.\n");
+		ddf_fun_destroy(fun);
+		return ret;
+	}
+
+	/* Store the initialized HID device and HID ops
+	 * to the DDF function. */
+	ddf_fun_set_ops(fun, &kbdops);
+
+	ret = ddf_fun_bind(fun);
+	if (ret != EOK) {
+		usb_log_error("Could not bind DDF function: %s.\n",
+		    str_error(ret));
+		usb_kbd_destroy(kbd_dev);
+		ddf_fun_destroy(fun);
+		return ret;
+	}
 
 	usb_log_debug("%s function created. Handle: %" PRIun "\n",
 	    HID_KBD_FUN_NAME, ddf_fun_get_handle(fun));
 
 	usb_log_debug("Adding DDF function to category %s...\n",
-	    HID_KBD_CATEGORY);
-	rc = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY);
-	if (rc != EOK) {
+	    HID_KBD_CATEGORY_NAME);
+	ret = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY_NAME);
+	if (ret != EOK) {
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
-		    HID_KBD_CATEGORY, str_error(rc));
-		goto error;
+		    HID_KBD_CATEGORY_NAME, str_error(ret));
+		usb_kbd_destroy(kbd_dev);
+		if (ddf_fun_unbind(fun) == EOK) {
+			ddf_fun_destroy(fun);
+		} else {
+			usb_log_error(
+			    "Failed to unbind `%s', will not destroy.\n",
+			    ddf_fun_get_name(fun));
+		}
+		return ret;
 	}
 
+	/* Create new fibril for auto-repeat. */
+	fid_t fid = fibril_create(usb_kbd_repeat_fibril, kbd_dev);
+	if (fid == 0) {
+		usb_log_error("Failed to start fibril for KBD auto-repeat");
+		usb_kbd_destroy(kbd_dev);
+		return ENOMEM;
+	}
 	fibril_add_ready(fid);
-
+	kbd_dev->fun = fun;
 	/* Save the KBD device structure into the HID device structure. */
 	*data = kbd_dev;
 
 	return EOK;
-error:
-	if (bound)
-		ddf_fun_unbind(fun);
-	if (fid != 0)
-		fibril_destroy(fid);
-	if (kbd_dev != NULL) {
-		free(kbd_dev->led_data);
-		if (kbd_dev->led_path != NULL)
-			usb_hid_report_path_free(kbd_dev->led_path);
-		if (kbd_dev->output_buffer != NULL)
-			usb_hid_report_output_free(kbd_dev->output_buffer);
-		free(kbd_dev->keys_old);
-		free(kbd_dev->keys);
-	}
-	if (path != NULL)
-		usb_hid_report_path_free(path);
-	if (fun != NULL)
-		ddf_fun_destroy(fun);
-	return rc;
 }
 
 bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data)
@@ -748,8 +749,16 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	usb_hid_report_path_free(kbd_dev->led_path);
 	usb_hid_report_output_free(kbd_dev->output_buffer);
 
-	ddf_fun_unbind(kbd_dev->fun);
-	ddf_fun_destroy(kbd_dev->fun);
+	if (kbd_dev->fun) {
+		if (ddf_fun_unbind(kbd_dev->fun) != EOK) {
+			usb_log_warning("Failed to unbind %s.\n",
+			    ddf_fun_get_name(kbd_dev->fun));
+		} else {
+			usb_log_debug2("%s unbound.\n",
+			    ddf_fun_get_name(kbd_dev->fun));
+			ddf_fun_destroy(kbd_dev->fun);
+		}
+	}
 }
 
 void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
@@ -778,8 +787,10 @@ int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 		return rc;
 	}
 
-	rc = usbhid_req_set_protocol(&hid_dev->usb_dev->ctrl_pipe,
-	    hid_dev->usb_dev->interface_no, USB_HID_PROTOCOL_BOOT);
+	rc = usbhid_req_set_protocol(
+	    usb_device_get_default_pipe(hid_dev->usb_dev),
+	    usb_device_get_iface_number(hid_dev->usb_dev),
+	    USB_HID_PROTOCOL_BOOT);
 
 	if (rc != EOK) {
 		usb_log_warning("Failed to set boot protocol to the device: "

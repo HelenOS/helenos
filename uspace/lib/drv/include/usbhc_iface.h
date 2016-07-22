@@ -43,43 +43,21 @@
 #include <usb/usb.h>
 #include <stdbool.h>
 
-int usbhc_request_address(async_exch_t *, usb_address_t *, bool, usb_speed_t);
-int usbhc_bind_address(async_exch_t *, usb_address_t, devman_handle_t);
-int usbhc_get_handle(async_exch_t *, usb_address_t, devman_handle_t *);
-int usbhc_release_address(async_exch_t *, usb_address_t);
-int usbhc_register_endpoint(async_exch_t *, usb_address_t, usb_endpoint_t,
-    usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
-int usbhc_unregister_endpoint(async_exch_t *, usb_address_t, usb_endpoint_t,
-    usb_direction_t);
 int usbhc_read(async_exch_t *, usb_address_t, usb_endpoint_t,
     uint64_t, void *, size_t, size_t *);
 int usbhc_write(async_exch_t *, usb_address_t, usb_endpoint_t,
     uint64_t, const void *, size_t);
 
 /** Callback for outgoing transfer. */
-typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *, int, void *);
+typedef void (*usbhc_iface_transfer_out_callback_t)(int, void *);
 
 /** Callback for incoming transfer. */
-typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,
-    int, size_t, void *);
+typedef void (*usbhc_iface_transfer_in_callback_t)(int, size_t, void *);
 
 /** USB host controller communication interface. */
 typedef struct {
-	int (*request_address)(ddf_fun_t *, usb_address_t *, bool, usb_speed_t);
-	int (*bind_address)(ddf_fun_t *, usb_address_t, devman_handle_t);
-	int (*get_handle)(ddf_fun_t *, usb_address_t,
-	    devman_handle_t *);
-	int (*release_address)(ddf_fun_t *, usb_address_t);
-
-	int (*register_endpoint)(ddf_fun_t *,
-	    usb_address_t, usb_endpoint_t,
-	    usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
-	int (*unregister_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
-	    usb_direction_t);
-
 	int (*read)(ddf_fun_t *, usb_target_t, uint64_t, uint8_t *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
-
 	int (*write)(ddf_fun_t *, usb_target_t, uint64_t, const uint8_t *,
 	    size_t, usbhc_iface_transfer_out_callback_t, void *);
 } usbhc_iface_t;

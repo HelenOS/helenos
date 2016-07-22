@@ -32,10 +32,10 @@
  * @brief UHCI host controller driver structure
  */
 
+#include <usb/host/endpoint.h>
+
 #include <assert.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <usb/host/endpoint.h>
 
 /** Allocate ad initialize endpoint_t structure.
  * @param address USB address.
@@ -49,7 +49,8 @@
  */
 endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
     usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
-    size_t max_packet_size, size_t bw)
+    size_t max_packet_size, unsigned packets, size_t bw,
+    usb_address_t tt_address, unsigned tt_p)
 {
 	endpoint_t *instance = malloc(sizeof(endpoint_t));
 	if (instance) {
@@ -59,9 +60,12 @@ endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
 		instance->transfer_type = type;
 		instance->speed = speed;
 		instance->max_packet_size = max_packet_size;
+		instance->packets = packets;
 		instance->bandwidth = bw;
 		instance->toggle = 0;
 		instance->active = false;
+		instance->tt.address = tt_address;
+		instance->tt.port = tt_p;
 		instance->hc_data.data = NULL;
 		instance->hc_data.toggle_get = NULL;
 		instance->hc_data.toggle_set = NULL;
@@ -108,11 +112,7 @@ void endpoint_set_hc_data(endpoint_t *instance,
 void endpoint_clear_hc_data(endpoint_t *instance)
 {
 	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	instance->hc_data.data = NULL;
-	instance->hc_data.toggle_get = NULL;
-	instance->hc_data.toggle_set = NULL;
-	fibril_mutex_unlock(&instance->guard);
+	endpoint_set_hc_data(instance, NULL, NULL, NULL);
 }
 
 /** Mark the endpoint as active and block access for further fibrils.

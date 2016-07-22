@@ -25,55 +25,119 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver initialization
  */
+
+#include <assert.h>
 #include <ddf/driver.h>
+#include <devman.h>
 #include <errno.h>
+#include <io/log.h>
+#include <io/logctl.h>
+#include <pci_dev_iface.h>
+#include <stdio.h>
 #include <str_error.h>
-
-#include <usb/ddfiface.h>
 #include <usb/debug.h>
+#include <usb/host/ddf_helpers.h>
 
-#include "uhci.h"
+#include "hc.h"
 
 #define NAME "uhci"
 
-static int uhci_dev_add(ddf_dev_t *device);
+static int uhci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static void uhci_driver_fini(hcd_t *);
+static int disable_legacy(ddf_dev_t *);
 
-static driver_ops_t uhci_driver_ops = {
-	.dev_add = uhci_dev_add,
+static const ddf_hc_driver_t uhci_hc_driver = {
+        .claim = disable_legacy,
+        .hc_speed = USB_SPEED_FULL,
+        .irq_code_gen = uhci_hc_gen_irq_code,
+        .init = uhci_driver_init,
+        .fini = uhci_driver_fini,
+        .name = "UHCI",
+	.ops = {
+		.schedule    = uhci_hc_schedule,
+		.irq_hook    = uhci_hc_interrupt,
+		.status_hook = uhci_hc_status,
+	},
 };
 
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
+static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+{
+	assert(hcd);
+	assert(hcd_get_driver_data(hcd) == NULL);
+
+	hc_t *instance = malloc(sizeof(hc_t));
+	if (!instance)
+		return ENOMEM;
+
+	const int ret = hc_init(instance, res, irq);
+	if (ret == EOK) {
+		hcd_set_implementation(hcd, instance, &uhci_hc_driver.ops);
+	} else {
+		free(instance);
+	}
+	return ret;
+}
+
+static void uhci_driver_fini(hcd_t *hcd)
+{
+	assert(hcd);
+	hc_t *hc = hcd_get_driver_data(hcd);
+	if (hc)
+		hc_fini(hc);
+
+	hcd_set_implementation(hcd, NULL, NULL);
+	free(hc);
+}
+
+/** Call the PCI driver with a request to clear legacy support register
+ *
+ * @param[in] device Device asking to disable interrupts
+ * @return Error code.
+ */
+static int disable_legacy(ddf_dev_t *device)
+{
+	assert(device);
+
+	async_sess_t *parent_sess = devman_parent_device_connect(
+	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
+	if (!parent_sess)
+		return ENOMEM;
+
+	/* See UHCI design guide page 45 for these values.
+	 * Write all WC bits in USB legacy register */
+	const int rc = pci_config_space_write_16(parent_sess, 0xc0, 0xaf00);
+
+	async_hangup(parent_sess);
+	return rc;
+}
 
 /** Initialize a new ddf driver instance for uhci hc and hub.
  *
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-int uhci_dev_add(ddf_dev_t *device)
+static int uhci_dev_add(ddf_dev_t *device)
 {
 	usb_log_debug2("uhci_dev_add() called\n");
 	assert(device);
-
-	const int ret = device_setup_uhci(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize UHCI driver: %s.\n",
-		    str_error(ret));
-	} else {
-		usb_log_info("Controlling new UHCI device '%s'.\n",
-		    ddf_dev_get_name(device));
-	}
-
-	return ret;
+	return hcd_ddf_add_hc(device, &uhci_hc_driver);
 }
+
+static const driver_ops_t uhci_driver_ops = {
+	.dev_add = uhci_dev_add,
+};
+
+static const driver_t uhci_driver = {
+	.name = NAME,
+	.driver_ops = &uhci_driver_ops
+};
+
 
 /** Initialize global driver structures (NONE).
  *
@@ -87,7 +151,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS UHCI driver.\n");
 	log_init(NAME);
-
+	logctl_set_log_level(NAME, LVL_NOTE);
 	return ddf_driver_main(&uhci_driver);
 }
 /**

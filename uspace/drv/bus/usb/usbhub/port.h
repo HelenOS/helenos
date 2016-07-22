@@ -36,44 +36,46 @@
 #define DRV_USBHUB_PORT_H
 
 #include <usb/dev/driver.h>
-#include <usb/dev/hub.h>
 #include <usb/classes/hub.h>
+#include <usb_iface.h>
 
 typedef struct usb_hub_dev usb_hub_dev_t;
 
 /** Information about single port on a hub. */
 typedef struct {
-	/* Port number as reported in descriptors. */
-	size_t port_number;
+	/** Port number as reported in descriptors. */
+	unsigned port_number;
 	/** Device communication pipe. */
 	usb_pipe_t *control_pipe;
 	/** Mutex needed not only by CV for checking port reset. */
 	fibril_mutex_t mutex;
 	/** CV for waiting to port reset completion. */
 	fibril_condvar_t reset_cv;
-	/** Whether port reset is completed.
+	/** Port reset status.
 	 * Guarded by @c reset_mutex.
 	 */
-	bool reset_completed;
-	/** Whether to announce the port reset as successful. */
-	bool reset_okay;
-
-	/** Information about attached device. */
-	usb_hub_attached_device_t attached_device;
+	enum {
+		NO_RESET,
+		IN_RESET,
+		RESET_OK,
+		RESET_FAIL,
+	} reset_status;
+	/** Device reported to USB bus driver */
+	bool device_attached;
 } usb_hub_port_t;
 
 /** Initialize hub port information.
  *
  * @param port Port to be initialized.
  */
-static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
+static inline void usb_hub_port_init(usb_hub_port_t *port, unsigned port_number,
     usb_pipe_t *control_pipe)
 {
 	assert(port);
-	port->attached_device.address = -1;
-	port->attached_device.fun = NULL;
 	port->port_number = port_number;
 	port->control_pipe = control_pipe;
+	port->reset_status = NO_RESET;
+	port->device_attached = false;
 	fibril_mutex_initialize(&port->mutex);
 	fibril_condvar_initialize(&port->reset_cv);
 }

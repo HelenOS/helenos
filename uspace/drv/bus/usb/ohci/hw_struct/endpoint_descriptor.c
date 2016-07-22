@@ -31,6 +31,16 @@
 /** @file
  * @brief OHCI driver
  */
+
+#include <assert.h>
+#include <macros.h>
+#include <mem.h>
+
+#include <usb/usb.h>
+#include <usb/host/utils/malloc32.h>
+
+#include "mem_access.h"
+
 #include "endpoint_descriptor.h"
 
 /** USB direction to OHCI values translation table. */
@@ -47,12 +57,12 @@ static const uint32_t dir[] = {
  * @param ep Driver endpoint to use.
  * @param td TD to put in the list.
  *
- * If @param ep is NULL, dummy ED is initalized with only skip flag set.
+ * If @param ep is NULL, dummy ED is initialized with only skip flag set.
  */
 void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 {
 	assert(instance);
-	memset(instance, 0, sizeof(ed_t));
+	memset(instance, 0, sizeof(*instance));
 
 	if (ep == NULL) {
 		/* Mark as dead, used for dummy EDs at the beginning of
@@ -60,8 +70,10 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 		OHCI_MEM32_WR(instance->status, ED_STATUS_K_FLAG);
 		return;
 	}
-	/* Non-dummy ED must have TD assigned */
+	/* Non-dummy ED must have corresponding EP and TD assigned */
 	assert(td);
+	assert(ep);
+	assert(ep->direction < ARRAY_SIZE(dir));
 
 	/* Status: address, endpoint nr, direction mask and max packet size. */
 	OHCI_MEM32_WR(instance->status,
@@ -76,6 +88,7 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 		OHCI_MEM32_SET(instance->status, ED_STATUS_S_FLAG);
 
 	/* Isochronous format flag */
+	// TODO: We need iTD instead of TD for iso transfers
 	if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
 		OHCI_MEM32_SET(instance->status, ED_STATUS_F_FLAG);
 

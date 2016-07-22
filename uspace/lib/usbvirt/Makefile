@@ -33,7 +33,8 @@ EXTRA_CFLAGS = \
 	-I$(LIBDRV_PREFIX)/include \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBUSBDEV_PREFIX)/include \
-	-Iinclude
+	-Iinclude \
+	-Iinclude/usbvirt
 
 SOURCES = \
 	src/ctrltransfer.c \
@@ -41,6 +42,8 @@ SOURCES = \
 	src/ipc_dev.c \
 	src/ipc_hc.c \
 	src/stdreq.c \
-	src/transfer.c
+	src/transfer.c \
+	src/virthub_base.c \
+	src/virthub_descriptors.c
 
 include $(USPACE_PREFIX)/Makefile.common

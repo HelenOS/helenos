@@ -34,38 +34,13 @@
  */
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
-#include <errno.h>
+#include <usb/usb.h>
+#include <usb_iface.h>
+
 #include <assert.h>
-
-/** Prepare pipe for a long transfer.
- *
- * Long transfer is transfer consisting of several requests to the HC.
- * Calling this function is optional and it has positive effect of
- * improved performance because IPC session is initiated only once.
- *
- * @param pipe Pipe over which the transfer will happen.
- * @return Error code.
- */
-int usb_pipe_start_long_transfer(usb_pipe_t *pipe)
-{
-	assert(pipe);
-	assert(pipe->wire);
-	assert(pipe->wire->hc_connection);
-	return usb_hc_connection_open(pipe->wire->hc_connection);
-}
-
-/** Terminate a long transfer on a pipe.
- * @param pipe Pipe where to end the long transfer.
- * @return Error code.
- * @see usb_pipe_start_long_transfer
- */
-int usb_pipe_end_long_transfer(usb_pipe_t *pipe)
-{
-	assert(pipe);
-	assert(pipe->wire);
-	assert(pipe->wire->hc_connection);
-	return usb_hc_connection_close(pipe->wire->hc_connection);
-}
+#include <async.h>
+#include <errno.h>
+#include <mem.h>
 
 /** Try to clear endpoint halt of default control pipe.
  *
@@ -120,9 +95,11 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc = usb_device_control_read(pipe->wire,
+	const int rc = usb_read(exch,
 	    pipe->endpoint_no, setup_packet, buffer, buffer_size, &act_size);
+	async_exchange_end(exch);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
@@ -172,8 +149,10 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
-	const int rc = usb_device_control_write(pipe->wire,
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	const int rc = usb_write(exch,
 	    pipe->endpoint_no, setup_packet, buffer, buffer_size);
+	async_exchange_end(exch);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
@@ -216,9 +195,11 @@ int usb_pipe_read(usb_pipe_t *pipe,
 	    pipe->transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc = usb_device_read(pipe->wire,
-	    pipe->endpoint_no, buffer, size, &act_size);
+	const int rc =
+	    usb_read(exch, pipe->endpoint_no, 0, buffer, size, &act_size);
+	async_exchange_end(exch);
 
 	if (rc == EOK && size_transfered != NULL) {
 		*size_transfered = act_size;
@@ -255,34 +236,34 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 	    pipe->transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
-	return usb_device_write(pipe->wire,
-	    pipe->endpoint_no, buffer, size);
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	const int rc = usb_write(exch, pipe->endpoint_no, 0, buffer, size);
+	async_exchange_end(exch);
+	return rc;
 }
 
 /** Initialize USB endpoint pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
  * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
  * @param transfer_type Transfer type (e.g. interrupt or bulk).
  * @param max_packet_size Maximum packet size in bytes.
  * @param direction Endpoint direction (in/out).
  * @return Error code.
  */
-int usb_pipe_initialize(usb_pipe_t *pipe,
-    usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
+int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_direction_t direction)
+    usb_direction_t direction, unsigned packets, usb_dev_session_t *bus_session)
 {
 	assert(pipe);
-	assert(connection);
 
-	pipe->wire = connection;
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
+	pipe->packets = packets;
 	pipe->max_packet_size = max_packet_size;
 	pipe->direction = direction;
 	pipe->auto_reset_halt = false;
+	pipe->bus_session = bus_session;
 
 	return EOK;
 }
@@ -290,17 +271,15 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 /** Initialize USB endpoint pipe as the default zero control pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
  * @return Error code.
  */
 int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
-    usb_device_connection_t *connection)
+    usb_dev_session_t *bus_session)
 {
 	assert(pipe);
-	assert(connection);
 
-	int rc = usb_pipe_initialize(pipe, connection, 0, USB_TRANSFER_CONTROL,
-	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH);
+	const int rc = usb_pipe_initialize(pipe, 0, USB_TRANSFER_CONTROL,
+	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH, 1, bus_session);
 
 	pipe->auto_reset_halt = true;
 
@@ -316,11 +295,15 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
 int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 {
 	assert(pipe);
-	assert(pipe->wire);
-
-	return usb_device_register_endpoint(pipe->wire,
-	   pipe->endpoint_no, pipe->transfer_type,
-	   pipe->direction, pipe->max_packet_size, interval);
+	assert(pipe->bus_session);
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	if (!exch)
+		return ENOMEM;
+	const int ret = usb_register_endpoint(exch, pipe->endpoint_no,
+	    pipe->transfer_type, pipe->direction, pipe->max_packet_size,
+	    pipe->packets, interval);
+	async_exchange_end(exch);
+	return ret;
 }
 
 /** Revert endpoint registration with the host controller.
@@ -331,10 +314,14 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 int usb_pipe_unregister(usb_pipe_t *pipe)
 {
 	assert(pipe);
-	assert(pipe->wire);
-
-	return usb_device_unregister_endpoint(pipe->wire,
-	    pipe->endpoint_no, pipe->direction);
+	assert(pipe->bus_session);
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	if (!exch)
+		return ENOMEM;
+	const int ret = usb_unregister_endpoint(exch, pipe->endpoint_no,
+	    pipe->direction);
+	async_exchange_end(exch);
+	return ret;
 }
 
 /**

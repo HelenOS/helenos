@@ -35,6 +35,7 @@
 #ifndef AR9271_H_
 #define AR9271_H_
 
+#include <fibril_synch.h>
 #include <usb/dev/driver.h>
 #include "htc.h"
 

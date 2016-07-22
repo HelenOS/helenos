@@ -33,9 +33,13 @@
  * @brief OHCI driver transfer list implementation
  */
 
+#include <assert.h>
 #include <errno.h>
-#include <usb/debug.h>
 #include <libarch/barrier.h>
+
+#include <usb/debug.h>
+#include <usb/host/utils/malloc32.h>
+
 #include "endpoint_list.h"
 
 /** Initialize transfer list structures.

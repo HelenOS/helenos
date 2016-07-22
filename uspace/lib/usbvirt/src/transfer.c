@@ -50,7 +50,7 @@
  * @return Error code.
  */
 static int usbvirt_control_transfer(usbvirt_device_t *dev,
-    void *setup, size_t setup_size,
+    const void *setup, size_t setup_size,
     void *data, size_t data_size, size_t *data_size_sent)
 {
 	assert(dev);
@@ -59,7 +59,7 @@ static int usbvirt_control_transfer(usbvirt_device_t *dev,
 	if (setup_size != sizeof(usb_device_request_setup_packet_t)) {
 		return ESTALL;
 	}
-	usb_device_request_setup_packet_t *setup_packet = setup;
+	const usb_device_request_setup_packet_t *setup_packet = setup;
 	if (data_size != setup_packet->length) {
 		return ESTALL;
 	}
@@ -99,8 +99,8 @@ static int usbvirt_control_transfer(usbvirt_device_t *dev,
  * @param data_size Size of extra data buffer in bytes.
  * @return Error code.
  */
-int usbvirt_control_write(usbvirt_device_t *dev, void *setup, size_t setup_size,
-    void *data, size_t data_size)
+int usbvirt_control_write(usbvirt_device_t *dev, const void *setup,
+    size_t setup_size, void *data, size_t data_size)
 {
 	return usbvirt_control_transfer(dev, setup, setup_size,
 	    data, data_size, NULL);
@@ -118,7 +118,7 @@ int usbvirt_control_write(usbvirt_device_t *dev, void *setup, size_t setup_size,
  * @param data_size_sent Number of actually send bytes during the transfer.
  * @return Error code.
  */
-int usbvirt_control_read(usbvirt_device_t *dev, void *setup, size_t setup_size,
+int usbvirt_control_read(usbvirt_device_t *dev, const void *setup, size_t setup_size,
     void *data, size_t data_size, size_t *data_size_sent)
 {
 	return usbvirt_control_transfer(dev, setup, setup_size,
@@ -135,7 +135,7 @@ int usbvirt_control_read(usbvirt_device_t *dev, void *setup, size_t setup_size,
  * @return Error code.
  */
 int usbvirt_data_out(usbvirt_device_t *dev, usb_transfer_type_t transf_type,
-    usb_endpoint_t endpoint, void *data, size_t data_size)
+    usb_endpoint_t endpoint, const void *data, size_t data_size)
 {
 	if ((endpoint <= 0) || (endpoint >= USBVIRT_ENDPOINT_MAX)) {
 		return ERANGE;

@@ -32,14 +32,13 @@
 /** @file
  * Descriptor dumping.
  */
-#include <adt/list.h>
-#include <fibril_synch.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/classes/classes.h>
+#include <usb/classes/hub.h>
+#include <usb/usb.h>
 
 /** Mapping between descriptor id and dumping function. */
 typedef struct {
@@ -275,7 +274,55 @@ static void usb_dump_descriptor_hub(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
-	/* TODO */
+	usb_hub_descriptor_header_t *d =
+	    (usb_hub_descriptor_header_t *) descriptor;
+	if (descriptor_length < sizeof(d))
+		return;
+
+	PRINTLINE("bDescLength: = %d", d->length);
+	PRINTLINE("bDescriptorType = 0x%02x", d->descriptor_type);
+	PRINTLINE("bNbrPorts = %d", d->port_count);
+	PRINTLINE("bHubCharacteristics = 0x%02x%02x (%s;%s%s)",
+	    d->characteristics_reserved, d->characteristics,
+	    (d->characteristics & HUB_CHAR_NO_POWER_SWITCH_FLAG) ?
+	        "No Power Switching" :
+		((d->characteristics & HUB_CHAR_POWER_PER_PORT_FLAG) ?
+		    "Per-Port Switching" : "Ganged Power Switching"),
+	    (d->characteristics & HUB_CHAR_COMPOUND_DEVICE) ?
+	        "Compound Device;" : "",
+	    (d->characteristics & HUB_CHAR_NO_OC_FLAG) ?
+	        "No OC Protection" :
+		    ((d->characteristics & HUB_CHAR_OC_PER_PORT_FLAG) ?
+		        "Individual Port OC Protection" :
+	                    "Global OC Protection")
+	);
+	PRINTLINE("bPwrOn2PwrGood = %d (%d ms)",
+	    d->power_good_time, d->power_good_time * 2);
+	PRINTLINE("bHubContrCurrent = %d (%d mA)",
+	    d->max_current, d->max_current);
+	const size_t port_bytes = (descriptor_length - sizeof(*d)) / 2;
+	const uint8_t *removable_mask = descriptor + sizeof(*d);
+	const uint8_t *powered_mask = descriptor + sizeof(*d) + port_bytes;
+
+	if (port_bytes == 0
+	    || port_bytes > (((d->port_count / (unsigned)8) + 1) * 2)) {
+		PRINTLINE("::CORRUPTED DESCRIPTOR:: (%zu bytes remain)",
+		    port_bytes * 2);
+	}
+
+	fprintf(output, "%sDeviceRemovable = 0x",
+	    line_prefix ? line_prefix : " - ");
+	for (unsigned i = port_bytes; i > 0; --i)
+		fprintf(output, "%02x", removable_mask[i - 1]);
+	fprintf(output, " (0b1 - Device non-removable)%s",
+	    line_suffix ? line_suffix : "\n");
+
+	fprintf(output, "%sPortPwrCtrlMask = 0x",
+	    line_prefix ? line_prefix : " - ");
+	for (unsigned i = port_bytes; i > 0; --i)
+		fprintf(output, "%02x", powered_mask[i - 1]);
+	fprintf(output, " (Legacy - All should be 0b1)%s",
+	    line_suffix ? line_suffix : "\n");
 }
 
 static void usb_dump_descriptor_generic(FILE *output,

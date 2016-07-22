@@ -39,6 +39,7 @@
 #include <usb/debug.h>
 #include <stdio.h>
 #include <ddf/interrupt.h>
+#include <errno.h>
 #include <nic.h>
 #include <macros.h>
 #include "ath_usb.h"
@@ -770,7 +771,8 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 	while (remain_size > 0) {
 		size_t chunk_size = min(remain_size, MAX_TRANSFER_SIZE);
 		memcpy(buffer, current_data, chunk_size);
-		int rc = usb_control_request_set(&usb_device->ctrl_pipe,
+		usb_pipe_t *ctrl_pipe = usb_device_get_default_pipe(usb_device);
+		int rc = usb_control_request_set(ctrl_pipe,
 		    USB_REQUEST_TYPE_VENDOR,
 		    USB_REQUEST_RECIPIENT_DEVICE,
 		    AR9271_FW_DOWNLOAD,
@@ -797,7 +799,8 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 	 * This should initiate creating confirmation message in
 	 * device side buffer which we will check in htc_check_ready function.
 	*/
-	int rc = usb_control_request_set(&usb_device->ctrl_pipe,
+	usb_pipe_t *ctrl_pipe = usb_device_get_default_pipe(usb_device);
+	int rc = usb_control_request_set(ctrl_pipe,
 	    USB_REQUEST_TYPE_VENDOR,
 	    USB_REQUEST_RECIPIENT_DEVICE,
 	    AR9271_FW_DOWNLOAD_COMP,
@@ -827,16 +830,9 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 {
 	/* USB framework initialization. */
-	usb_device_t *usb_device = calloc(1, sizeof(usb_device_t));
-	if (usb_device == NULL) {
-		usb_log_error("USB device structure allocation failed.\n");
-		return NULL;
-	}
-	
 	const char *err_msg = NULL;
-	int rc = usb_device_init(usb_device, dev, endpoints, &err_msg);
+	int rc = usb_device_create_ddf(dev, endpoints, &err_msg);
 	if (rc != EOK) {
-		free(usb_device);
 		usb_log_error("Failed to create USB device: %s, "
 		    "ERR_NUM = %d\n", err_msg, rc);
 		return NULL;
@@ -845,7 +841,6 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	/* AR9271 structure initialization. */
 	ar9271_t *ar9271 = calloc(1, sizeof(ar9271_t));
 	if (!ar9271) {
-		free(usb_device);
 		usb_log_error("Failed to allocate memory for device "
 		    "structure.\n");
 		return NULL;
@@ -853,10 +848,9 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	
 	ar9271->ddf_dev = dev;
 	
-	rc = ar9271_init(ar9271, usb_device);
+	rc = ar9271_init(ar9271, usb_device_get(dev));
 	if (rc != EOK) {
 		free(ar9271);
-		free(usb_device);
 		usb_log_error("Failed to initialize AR9271 structure: %d\n",
 		    rc);
 		return NULL;

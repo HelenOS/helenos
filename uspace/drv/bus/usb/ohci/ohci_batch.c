@@ -31,16 +31,19 @@
 /** @file
  * @brief OHCI driver USB transaction structure
  */
+
+#include <assert.h>
 #include <errno.h>
-#include <str_error.h>
 #include <macros.h>
+#include <mem.h>
+#include <stdbool.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>
+#include <usb/host/utils/malloc32.h>
 
 #include "ohci_batch.h"
 #include "ohci_endpoint.h"
-#include "utils/malloc32.h"
 
 static void (*const batch_setup[])(ohci_transfer_batch_t*, usb_direction_t);
 
@@ -93,17 +96,13 @@ void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *ohci_batch)
 ohci_transfer_batch_t * ohci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 {
 	assert(usb_batch);
-#define CHECK_NULL_DISPOSE_RET(ptr, message...) \
-if (ptr == NULL) { \
-	usb_log_error(message); \
-	ohci_transfer_batch_dispose(ohci_batch); \
-	return NULL; \
-} else (void)0
 
 	ohci_transfer_batch_t *ohci_batch =
 	    calloc(1, sizeof(ohci_transfer_batch_t));
-	CHECK_NULL_DISPOSE_RET(ohci_batch,
-	    "Failed to allocate OHCI batch data.\n");
+	if (!ohci_batch) {
+		usb_log_error("Failed to allocate OHCI batch data.");
+		goto dispose;
+	}
 	link_initialize(&ohci_batch->link);
 	ohci_batch->td_count =
 	    (usb_batch->buffer_size + OHCI_TD_MAX_TRANSFER - 1)
@@ -115,8 +114,10 @@ if (ptr == NULL) { \
 
 	/* We need an extra place for TD that was left at ED */
 	ohci_batch->tds = calloc(ohci_batch->td_count + 1, sizeof(td_t*));
-	CHECK_NULL_DISPOSE_RET(ohci_batch->tds,
-	    "Failed to allocate OHCI transfer descriptors.\n");
+	if (!ohci_batch->tds) {
+		usb_log_error("Failed to allocate OHCI transfer descriptors.");
+		goto dispose;
+	}
 
 	/* Add TD left over by the previous transfer */
 	ohci_batch->ed = ohci_endpoint_get(usb_batch->ep)->ed;
@@ -124,8 +125,10 @@ if (ptr == NULL) { \
 
 	for (unsigned i = 1; i <= ohci_batch->td_count; ++i) {
 		ohci_batch->tds[i] = malloc32(sizeof(td_t));
-		CHECK_NULL_DISPOSE_RET(ohci_batch->tds[i],
-		    "Failed to allocate TD %d.\n", i );
+		if (!ohci_batch->tds[i]) {
+			usb_log_error("Failed to allocate TD %d.", i);
+			goto dispose;
+		}
 	}
 
 
@@ -137,8 +140,10 @@ if (ptr == NULL) { \
 		/* Use one buffer for setup and data stage */
 		ohci_batch->device_buffer =
 		    malloc32(usb_batch->setup_size + usb_batch->buffer_size);
-                CHECK_NULL_DISPOSE_RET(ohci_batch->device_buffer,
-                    "Failed to allocate device accessible buffer.\n");
+		if (!ohci_batch->device_buffer) {
+			usb_log_error("Failed to allocate device buffer");
+			goto dispose;
+		}
 		/* Copy setup data */
                 memcpy(ohci_batch->device_buffer, usb_batch->setup_buffer,
 		    usb_batch->setup_size);
@@ -155,7 +160,9 @@ if (ptr == NULL) { \
 	batch_setup[usb_batch->ep->transfer_type](ohci_batch, dir);
 
 	return ohci_batch;
-#undef CHECK_NULL_DISPOSE_RET
+dispose:
+	ohci_transfer_batch_dispose(ohci_batch);
+	return NULL;
 }
 
 /** Check batch TDs' status.

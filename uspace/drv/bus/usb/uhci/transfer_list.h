@@ -34,6 +34,7 @@
 #ifndef DRV_UHCI_TRANSFER_LIST_H
 #define DRV_UHCI_TRANSFER_LIST_H
 
+#include <adt/list.h>
 #include <fibril_synch.h>
 
 #include "hw_struct/queue_head.h"

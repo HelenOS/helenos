@@ -43,6 +43,7 @@
 #include <usb/classes/classes.h>
 #include <usb/classes/massstor.h>
 #include <errno.h>
+#include <io/logctl.h>
 #include <str_error.h>
 #include "cmdw.h"
 #include "bo_trans.h"
@@ -50,9 +51,6 @@
 #include "usbmast.h"
 
 #define NAME "usbmast"
-
-#define GET_BULK_IN(dev) ((dev)->pipes[BULK_IN_EP].pipe)
-#define GET_BULK_OUT(dev) ((dev)->pipes[BULK_OUT_EP].pipe)
 
 static const usb_endpoint_description_t bulk_in_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
@@ -111,7 +109,7 @@ static usbmast_fun_t *bd_srv_usbmast(bd_srv_t *bd)
  */
 static int usbmast_device_gone(usb_device_t *dev)
 {
-	usbmast_dev_t *mdev = dev->driver_data;
+	usbmast_dev_t *mdev = usb_device_data_get(dev);
 	assert(mdev);
 
 	for (size_t i = 0; i < mdev->lun_count; ++i) {
@@ -151,6 +149,15 @@ static int usbmast_device_add(usb_device_t *dev)
 	usbmast_dev_t *mdev = NULL;
 	unsigned i;
 
+	usb_endpoint_mapping_t *epm_in =
+	    usb_device_get_mapped_ep_desc(dev, &bulk_in_ep);
+	usb_endpoint_mapping_t *epm_out =
+	    usb_device_get_mapped_ep_desc(dev, &bulk_out_ep);
+	if (!epm_in || !epm_out || !epm_in->present || !epm_out->present) {
+		usb_log_error("Required EPs were not mapped.\n");
+		return ENOENT;
+	}
+
 	/* Allocate softstate */
 	mdev = usb_device_data_alloc(dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
@@ -158,16 +165,14 @@ static int usbmast_device_add(usb_device_t *dev)
 		return ENOMEM;
 	}
 
-	mdev->ddf_dev = dev->ddf_dev;
 	mdev->usb_dev = dev;
 
-	usb_log_info("Initializing mass storage `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
+	usb_log_info("Initializing mass storage `%s'.\n",
+	    usb_device_get_name(dev));
 	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_IN_EP].pipe.endpoint_no,
-	    dev->pipes[BULK_IN_EP].pipe.max_packet_size);
+	    epm_in->pipe.endpoint_no, epm_in->pipe.max_packet_size);
 	usb_log_debug("Bulk out endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_OUT_EP].pipe.endpoint_no,
-	    dev->pipes[BULK_OUT_EP].pipe.max_packet_size);
+	    epm_out->pipe.endpoint_no, epm_out->pipe.max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");
 	mdev->lun_count = usb_masstor_get_lun_count(mdev);
@@ -178,6 +183,8 @@ static int usbmast_device_add(usb_device_t *dev)
 		goto error;
 	}
 
+	mdev->bulk_in_pipe = &epm_in->pipe;
+	mdev->bulk_out_pipe = &epm_out->pipe;
 	for (i = 0; i < mdev->lun_count; i++) {
 		rc = usbmast_fun_create(mdev, i);
 		if (rc != EOK)
@@ -222,7 +229,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
-	fun = ddf_fun_create(mdev->ddf_dev, fun_exposed, fun_name);
+	fun = usb_device_ddf_fun_create(mdev->usb_dev, fun_exposed, fun_name);
 	if (fun == NULL) {
 		usb_log_error("Failed to create DDF function %s.\n", fun_name);
 		rc = ENOMEM;
@@ -253,14 +260,14 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	rc = usbmast_inquiry(mfun, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
-		    ddf_dev_get_name(mdev->ddf_dev), str_error(rc));
+		    usb_device_get_name(mdev->usb_dev), str_error(rc));
 		rc = EIO;
 		goto error;
 	}
 
 	usb_log_info("Mass storage `%s' LUN %u: " \
 	    "%s by %s rev. %s is %s (%s).\n",
-	    ddf_dev_get_name(mdev->ddf_dev),
+	    usb_device_get_name(mdev->usb_dev),
 	    lun,
 	    inquiry.product,
 	    inquiry.vendor,
@@ -273,7 +280,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	rc = usbmast_read_capacity(mfun, &nblocks, &block_size);
 	if (rc != EOK) {
 		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
-		    ddf_dev_get_name(mdev->ddf_dev), str_error(rc));
+		    usb_device_get_name(mdev->usb_dev), str_error(rc));
 		rc = EIO;
 		goto error;
 	}
@@ -395,7 +402,7 @@ static const usb_driver_t usbmast_driver = {
 int main(int argc, char *argv[])
 {
 	log_init(NAME);
-
+	logctl_set_log_level(NAME, LVL_NOTE);
 	return usb_driver_main(&usbmast_driver);
 }
 

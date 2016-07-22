@@ -31,16 +31,26 @@
 /** @file
  * @brief UHCI Host controller driver routines
  */
-#include <errno.h>
-#include <str_error.h>
+
 #include <adt/list.h>
+#include <assert.h>
+#include <async.h>
 #include <ddi.h>
+#include <device/hw_res_parsed.h>
+#include <fibril.h>
+#include <errno.h>
+#include <macros.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <str_error.h>
+#include <sys/types.h>
 
 #include <usb/debug.h>
 #include <usb/usb.h>
+#include <usb/host/utils/malloc32.h>
 
-#include "hc.h"
 #include "uhci_batch.h"
+#include "hc.h"
 
 #define UHCI_INTR_ALLOW_INTERRUPTS \
     (UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET)
@@ -84,94 +94,58 @@ static const irq_cmd_t uhci_irq_commands[] = {
 static void hc_init_hw(const hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
-static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
-static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
 
-enum {
-	/** Number of PIO ranges used in IRQ code */
-	hc_irq_pio_range_count =
-	    sizeof(uhci_irq_pio_ranges) / sizeof(irq_pio_range_t),
-
-	/* Number of commands used in IRQ code */
-	hc_irq_cmd_count =
-	    sizeof(uhci_irq_commands) / sizeof(irq_cmd_t)
-};
 
 /** Generate IRQ code.
- * @param[out] ranges PIO ranges buffer.
- * @param[in] ranges_size Size of the ranges buffer (bytes).
- * @param[out] cmds Commands buffer.
- * @param[in] cmds_size Size of the commands buffer (bytes).
- * @param[in] regs Device's register range.
+ * @param[out] code IRQ code structure.
+ * @param[in] hw_res Device's resources.
  *
  * @return Error code.
  */
-int
-hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
-    size_t cmds_size, addr_range_t *regs)
+int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 {
-	if ((ranges_size < sizeof(uhci_irq_pio_ranges)) ||
-	    (cmds_size < sizeof(uhci_irq_commands)) ||
-	    (RNGSZ(*regs) < sizeof(uhci_regs_t)))
+	assert(code);
+	assert(hw_res);
+
+	if (hw_res->irqs.count != 1 || hw_res->io_ranges.count != 1)
+		return EINVAL;
+	const addr_range_t regs = hw_res->io_ranges.ranges[0];
+
+	if (RNGSZ(regs) < sizeof(uhci_regs_t))
 		return EOVERFLOW;
 
-	memcpy(ranges, uhci_irq_pio_ranges, sizeof(uhci_irq_pio_ranges));
-	ranges[0].base = RNGABS(*regs);
+	code->ranges = malloc(sizeof(uhci_irq_pio_ranges));
+	if (code->ranges == NULL)
+		return ENOMEM;
 
-	memcpy(cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
-	uhci_regs_t *registers = (uhci_regs_t *) RNGABSPTR(*regs);
-	cmds[0].addr = (void *) &registers->usbsts;
-	cmds[3].addr = (void *) &registers->usbsts;
-
-	return EOK;
-}
-
-/** Register interrupt handler.
- *
- * @param[in] device Host controller DDF device
- * @param[in] regs Register range
- * @param[in] irq Interrupt number
- * @paran[in] handler Interrupt handler
- *
- * @return EOK on success or negative error code
- */
-int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
-    interrupt_handler_t handler)
-{
-	int rc;
-	irq_pio_range_t irq_ranges[hc_irq_pio_range_count];
-	irq_cmd_t irq_cmds[hc_irq_cmd_count];
-	rc = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
-	    sizeof(irq_cmds), regs);
-	if (rc != EOK) {
-		usb_log_error("Failed to generate IRQ commands: %s.\n",
-		    str_error(rc));
-		return rc;
+	code->cmds = malloc(sizeof(uhci_irq_commands));
+	if (code->cmds == NULL) {
+		free(code->ranges);
+		return ENOMEM;
 	}
-	
-	irq_code_t irq_code = {
-		.rangecount = hc_irq_pio_range_count,
-		.ranges = irq_ranges,
-		.cmdcount = hc_irq_cmd_count,
-		.cmds = irq_cmds
-	};
-	
-	/* Register handler to avoid interrupt lockup */
-	rc = register_interrupt_handler(device, irq, handler, &irq_code);
-	if (rc != EOK) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-	
-	return EOK;
+
+	code->rangecount = ARRAY_SIZE(uhci_irq_pio_ranges);
+	code->cmdcount = ARRAY_SIZE(uhci_irq_commands);
+
+	memcpy(code->ranges, uhci_irq_pio_ranges, sizeof(uhci_irq_pio_ranges));
+	code->ranges[0].base = RNGABS(regs);
+
+	memcpy(code->cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
+	uhci_regs_t *registers = (uhci_regs_t *) RNGABSPTR(regs);
+	code->cmds[0].addr = (void*)&registers->usbsts;
+	code->cmds[3].addr = (void*)&registers->usbsts;
+
+	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
+
+	return hw_res->irqs.irqs[0];
 }
 
 /** Take action based on the interrupt cause.
  *
- * @param[in] instance UHCI structure to use.
+ * @param[in] hcd HCD structure to use.
  * @param[in] status Value of the status register at the time of interrupt.
  *
  * Interrupt might indicate:
@@ -179,8 +153,10 @@ int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
  * - some kind of device error
  * - resume from suspend state (not implemented)
  */
-void hc_interrupt(hc_t *instance, uint16_t status)
+void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
 {
+	assert(hcd);
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
@@ -194,11 +170,10 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 		transfer_list_remove_finished(
 		    &instance->transfers_bulk_full, &done);
 
-		while (!list_empty(&done)) {
-			link_t *item = list_first(&done);
-			list_remove(item);
+		list_foreach_safe(done, current, next) {
+			list_remove(current);
 			uhci_transfer_batch_t *batch =
-			    uhci_transfer_batch_from_link(item);
+			    uhci_transfer_batch_from_link(current);
 			uhci_transfer_batch_finish_dispose(batch);
 		}
 	}
@@ -229,7 +204,6 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 /** Initialize UHCI hc driver structure
  *
  * @param[in] instance Memory place to initialize.
- * @param[in] HC function node
  * @param[in] regs Range of device's I/O control registers.
  * @param[in] interrupts True if hw interrupts should be used.
  * @return Error code.
@@ -238,56 +212,54 @@ void hc_interrupt(hc_t *instance, uint16_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_init(hc_t *instance, ddf_fun_t *fun, addr_range_t *regs, bool interrupts)
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 {
-	assert(regs->size >= sizeof(uhci_regs_t));
-	int rc;
+	assert(instance);
+	assert(hw_res);
+	if (hw_res->io_ranges.count != 1 ||
+	    hw_res->io_ranges.ranges[0].size < sizeof(uhci_regs_t))
+	    return EINVAL;
 
 	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
-	uhci_regs_t *io;
-	rc = pio_enable_range(regs, (void **) &io);
-	if (rc != EOK) {
-		usb_log_error("Failed to gain access to registers at %p: %s.\n",
-		    io, str_error(rc));
-		return rc;
+	int ret = pio_enable_range(&hw_res->io_ranges.ranges[0],
+	    (void **) &instance->registers);
+	if (ret != EOK) {
+		usb_log_error("Failed to gain access to registers: %s.\n",
+	            str_error(ret));
+		return ret;
 	}
 
-	instance->registers = io;
-	usb_log_debug(
-	    "Device registers at %p (%zuB) accessible.\n", io, regs->size);
+	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.\n",
+	    hw_res->io_ranges.ranges[0].address.absolute,
+	    hw_res->io_ranges.ranges[0].size);
 
-	rc = hc_init_mem_structures(instance);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize UHCI memory structures: %s.\n",
-		    str_error(rc));
-		return rc;
+	ret = hc_init_mem_structures(instance);
+	if (ret != EOK) {
+		usb_log_error("Failed to init UHCI memory structures: %s.\n",
+		    str_error(ret));
+		// TODO: we should disable pio here
+		return ret;
 	}
-
-	instance->generic = ddf_fun_data_alloc(fun, sizeof(hcd_t));
-	if (instance->generic == NULL) {
-		usb_log_error("Out of memory.\n");
-		return ENOMEM;
-	}
-
-	hcd_init(instance->generic, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
-
-	instance->generic->private_data = instance;
-	instance->generic->schedule = hc_schedule;
-	instance->generic->ep_add_hook = NULL;
 
 	hc_init_hw(instance);
-	if (!interrupts) {
-		instance->interrupt_emulator =
-		    fibril_create(hc_interrupt_emulator, instance);
-		fibril_add_ready(instance->interrupt_emulator);
-	}
 	(void)hc_debug_checker;
 
+	uhci_rh_init(&instance->rh, instance->registers->ports, "uhci");
+
 	return EOK;
+}
+
+/** Safely dispose host controller internal structures
+ *
+ * @param[in] instance Host controller structure to use.
+ */
+void hc_fini(hc_t *instance)
+{
+	assert(instance);
+	//TODO Implement
 }
 
 /** Initialize UHCI hc hw resources.
@@ -431,9 +403,23 @@ do { \
 	  &instance->transfers_control_slow;
 	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_BULK] =
 	  &instance->transfers_bulk_full;
-	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_BULK] =
-	  &instance->transfers_bulk_full;
 
+	return EOK;
+}
+
+int uhci_hc_status(hcd_t *hcd, uint32_t *status)
+{
+	assert(hcd);
+	assert(status);
+	hc_t *instance = hcd_get_driver_data(hcd);
+	assert(instance);
+
+	*status = 0;
+	if (instance->registers) {
+		uint16_t s = pio_read_16(&instance->registers->usbsts);
+		pio_write_16(&instance->registers->usbsts, s);
+		*status = s;
+	}
 	return EOK;
 }
 
@@ -445,12 +431,16 @@ do { \
  *
  * Checks for bandwidth availability and appends the batch to the proper queue.
  */
-int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
-	hc_t *instance = hcd->private_data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 	assert(batch);
+
+	if (batch->ep->address == uhci_rh_get_address(&instance->rh))
+		return uhci_rh_schedule(&instance->rh, batch);
+
 	uhci_transfer_batch_t *uhci_batch = uhci_transfer_batch_get(batch);
 	if (!uhci_batch) {
 		usb_log_error("Failed to create UHCI transfer structures.\n");
@@ -462,29 +452,6 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	assert(list);
 	transfer_list_add_batch(list, uhci_batch);
 
-	return EOK;
-}
-
-/** Polling function, emulates interrupts.
- *
- * @param[in] arg UHCI hc structure to use.
- * @return EOK (should never return)
- */
-int hc_interrupt_emulator(void* arg)
-{
-	usb_log_debug("Started interrupt emulator.\n");
-	hc_t *instance = arg;
-	assert(instance);
-
-	while (1) {
-		/* Read and clear status register */
-		uint16_t status = pio_read_16(&instance->registers->usbsts);
-		pio_write_16(&instance->registers->usbsts, status);
-		if (status != 0)
-			usb_log_debug2("UHCI status: %x.\n", status);
-		hc_interrupt(instance, status);
-		async_usleep(UHCI_INT_EMULATOR_TIMEOUT);
-	}
 	return EOK;
 }
 

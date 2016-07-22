@@ -37,8 +37,10 @@
 #include <errno.h>
 #include <ddf/driver.h>
 #include <usbvirt/ipc.h>
+#include <usb/debug.h>
 #include <async.h>
-#include "conn.h"
+
+#include "vhcd.h"
 
 static fibril_local uintptr_t plugged_device_handle = 0;
 #define PLUGGED_DEVICE_NAME_MAXLEN 256
@@ -93,7 +95,7 @@ static void receive_device_name(async_sess_t *sess)
 void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
     ipc_call_t *icall)
 {
-	vhc_data_t *vhc = ddf_dev_data_get(ddf_fun_get_dev(fun));
+	vhc_data_t *vhc = ddf_fun_data_get(fun);
 	
 	async_sess_t *callback =
 	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
@@ -124,7 +126,7 @@ void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
  */
 void on_client_close(ddf_fun_t *fun)
 {
-	vhc_data_t *vhc = ddf_dev_data_get(ddf_fun_get_dev(fun));
+	vhc_data_t *vhc = ddf_fun_data_get(fun);
 
 	if (plugged_device_handle != 0) {
 		usb_log_info("Virtual device `%s' disconnected (id: %" PRIxn ").\n",

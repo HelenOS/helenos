@@ -47,29 +47,9 @@
  */
 static int usbfallback_device_add(usb_device_t *dev)
 {
-	int rc;
-	const char *fun_name = "ctl";
-
-	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed,
-	    fun_name);
-	if (ctl_fun == NULL) {
-		usb_log_error("Failed to create control function.\n");
-		return ENOMEM;
-	}
-	rc = ddf_fun_bind(ctl_fun);
-	if (rc != EOK) {
-		usb_log_error("Failed to bind control function: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-
-	dev->driver_data = ctl_fun;
-
-	usb_log_info("Pretending to control %s `%s'" \
-	    " (node `%s', handle %" PRIun ").\n",
-	    dev->interface_no < 0 ? "device" : "interface",
-	    ddf_dev_get_name(dev->ddf_dev), fun_name, ddf_dev_get_handle(dev->ddf_dev));
-
+	usb_log_info("Pretending to control %s `%s'.\n",
+	    usb_device_get_iface_number(dev) < 0 ? "device" : "interface",
+	    usb_device_get_name(dev));
 	return EOK;
 }
 
@@ -81,15 +61,6 @@ static int usbfallback_device_add(usb_device_t *dev)
 static int usbfallback_device_gone(usb_device_t *dev)
 {
 	assert(dev);
-	ddf_fun_t *ctl_fun = dev->driver_data;
-	const int ret = ddf_fun_unbind(ctl_fun);
-	if (ret != EOK) {
-		usb_log_error("Failed to unbind %s.\n", ddf_fun_get_name(ctl_fun));
-		return ret;
-	}
-	ddf_fun_destroy(ctl_fun);
-	dev->driver_data = NULL;
-
 	return EOK;
 }
 

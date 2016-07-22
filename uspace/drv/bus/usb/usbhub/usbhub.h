@@ -38,7 +38,6 @@
 #include <ipc/devman.h>
 #include <ddf/driver.h>
 
-#include <usb/dev/hub.h>
 #include <usb/classes/hub.h>
 
 #include <usb/dev/pipes.h>
@@ -79,6 +78,8 @@ struct usb_hub_dev {
 	/** Each port is switched individually. */
 	bool per_port_power;
 };
+
+extern const usb_endpoint_description_t hub_status_change_endpoint_description;
 
 int usb_hub_device_add(usb_device_t *usb_dev);
 int usb_hub_device_remove(usb_device_t *usb_dev);

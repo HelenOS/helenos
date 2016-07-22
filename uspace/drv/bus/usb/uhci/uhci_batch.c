@@ -31,17 +31,20 @@
 /** @file
  * @brief UHCI driver USB transfer structure
  */
+
+#include <assert.h>
 #include <errno.h>
-#include <str_error.h>
 #include <macros.h>
+#include <mem.h>
+#include <stdlib.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>
+#include <usb/host/endpoint.h>
+#include <usb/host/utils/malloc32.h>
 
 #include "uhci_batch.h"
-#include "transfer_list.h"
 #include "hw_struct/transfer_descriptor.h"
-#include "utils/malloc32.h"
 
 #define DEFAULT_ERROR_COUNT 3
 
@@ -66,6 +69,7 @@ void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
+	assert(!link_in_use(&uhci_batch->link));
 	usb_transfer_batch_finish(uhci_batch->usb_batch,
 	    uhci_transfer_batch_data_buffer(uhci_batch));
 	uhci_transfer_batch_dispose(uhci_batch);

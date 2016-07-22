@@ -35,8 +35,12 @@
 #ifndef LIBUSBDEV_POLL_H_
 #define LIBUSBDEV_POLL_H_
 
-#include <usb/dev/driver.h>
-#include <time.h>
+#include <usb/usb.h>
+#include <usb/dev/device.h>
+#include <usb/dev/pipes.h>
+
+#include <stdbool.h>
+#include <sys/types.h>
 
 /** Parameters and callbacks for automated polling. */
 typedef struct {
@@ -86,15 +90,22 @@ typedef struct {
 	void *arg;
 } usb_device_auto_polling_t;
 
-int usb_device_auto_polling(usb_device_t *, size_t,
-    const usb_device_auto_polling_t *, size_t);
-
-typedef bool (*usb_polling_callback_t)(usb_device_t *,
-    uint8_t *, size_t, void *);
+typedef bool (*usb_polling_callback_t)(usb_device_t *, uint8_t *, size_t, void *);
 typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
 
-int usb_device_auto_poll(usb_device_t *, size_t,
-    usb_polling_callback_t, size_t, usb_polling_terminted_callback_t, void *);
+int usb_device_auto_polling(usb_device_t *, usb_endpoint_t,
+    const usb_device_auto_polling_t *, size_t);
+
+int usb_device_auto_poll(usb_device_t *, usb_endpoint_t,
+    usb_polling_callback_t, size_t, int, usb_polling_terminted_callback_t, void *);
+
+int usb_device_auto_polling_desc(usb_device_t *,
+    const usb_endpoint_description_t *, const usb_device_auto_polling_t *,
+    size_t);
+
+int usb_device_auto_poll_desc(usb_device_t *,
+    const usb_endpoint_description_t *, usb_polling_callback_t, size_t, int,
+    usb_polling_terminted_callback_t, void *);
 
 #endif
 /**

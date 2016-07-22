@@ -33,10 +33,12 @@
  * @brief
  */
 #include <usb/classes/classes.h>
+#include <usb/classes/hub.h>
 #include <usbvirt/device.h>
 #include <assert.h>
 #include <errno.h>
 #include <str_error.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <ddf/driver.h>
 
@@ -74,7 +76,7 @@ hub_descriptor_t hub_descriptor = {
 	.length = sizeof(hub_descriptor_t),
 	.type = USB_DESCTYPE_HUB,
 	.port_count = HUB_PORT_COUNT,
-	.characteristics = 0, 
+	.characteristics = HUB_CHAR_NO_POWER_SWITCH_FLAG | HUB_CHAR_NO_OC_FLAG,
 	.power_on_warm_up = 50, /* Huh? */
 	.max_current = 100, /* Huh again. */
 	.removable_device = { 0 },
@@ -95,7 +97,7 @@ usb_standard_endpoint_descriptor_t endpoint_descriptor = {
 usb_standard_configuration_descriptor_t std_configuration_descriptor = {
 	.length = sizeof(usb_standard_configuration_descriptor_t),
 	.descriptor_type = USB_DESCTYPE_CONFIGURATION,
-	.total_length = 
+	.total_length =
 		sizeof(usb_standard_configuration_descriptor_t)
 		+ sizeof(std_interface_descriptor)
 		+ sizeof(hub_descriptor)
@@ -143,16 +145,21 @@ usbvirt_descriptors_t descriptors = {
  * @param dev Virtual USB device backend.
  * @return Error code.
  */
-int virthub_init(usbvirt_device_t *dev)
+int virthub_init(usbvirt_device_t *dev, const char* name)
 {
 	if (dev == NULL) {
 		return EBADMEM;
 	}
 	dev->ops = &hub_ops;
 	dev->descriptors = &descriptors;
+	dev->address = 0;
+	dev->name = str_dup(name);
+	if (!dev->name)
+		return ENOMEM;
 
 	hub_t *hub = malloc(sizeof(hub_t));
 	if (hub == NULL) {
+		free(dev->name);
 		return ENOMEM;
 	}
 

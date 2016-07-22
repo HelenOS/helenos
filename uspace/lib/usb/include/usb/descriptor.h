@@ -35,7 +35,7 @@
 #ifndef LIBUSB_DESCRIPTOR_H_
 #define LIBUSB_DESCRIPTOR_H_
 
-#include <async.h>
+#include <sys/types.h>
 
 /** Descriptor type. */
 typedef enum {
@@ -44,6 +44,11 @@ typedef enum {
 	USB_DESCTYPE_STRING = 3,
 	USB_DESCTYPE_INTERFACE = 4,
 	USB_DESCTYPE_ENDPOINT = 5,
+	/* New in USB2.0 */
+	USB_DESCTYPE_DEVICE_QUALIFIER = 6,
+	USB_DESCTYPE_OTHER_SPEED_CONFIGURATION = 7,
+	USB_DESCTYPE_INTERFACE_POWER = 8,
+	/* Class specific */
 	USB_DESCTYPE_HID = 0x21,
 	USB_DESCTYPE_HID_REPORT = 0x22,
 	USB_DESCTYPE_HID_PHYSICAL = 0x23,
@@ -88,6 +93,34 @@ typedef struct {
 	uint8_t configuration_count;
 } __attribute__ ((packed)) usb_standard_device_descriptor_t;
 
+/** USB device qualifier decriptor is basically a cut down version of the device
+ * descriptor with values that would be valid if the device operated on the
+ * other speed (HIGH vs. FULL)
+ */
+typedef struct {
+	/** Size of this descriptor in bytes */
+	uint8_t length;
+	/** Descriptor type (USB_DESCTYPE_DEVICE_QUALIFIER) */
+	uint8_t descriptor_type;
+	/** USB specification release number.
+	 * The number shall be coded as binary-coded decimal (BCD).
+	 */
+	uint16_t usb_spec_version;
+	/** Device class. */
+	uint8_t device_class;
+	/** Device sub-class. */
+	uint8_t device_subclass;
+	/** Device protocol. */
+	uint8_t device_protocol;
+	/** Maximum packet size for endpoint zero.
+	 * Valid values are only 8, 16, 32, 64).
+	 */
+	uint8_t max_packet_size;
+	/** Number of possible configurations. */
+	uint8_t configuration_count;
+	uint8_t reserved;
+} __attribute__ ((packed)) usb_standard_device_qualifier_descriptor_t;
+
 /** Standard USB configuration descriptor.
  */
 typedef struct {
@@ -114,6 +147,13 @@ typedef struct {
 	 */
 	uint8_t max_power;
 } __attribute__ ((packed)) usb_standard_configuration_descriptor_t;
+
+/** USB Other Speed Configuration descriptor shows values that would change
+ * in the configuration descriptor if the device operated at its other
+ * possible speed (HIGH vs. FULL)
+ */
+typedef usb_standard_configuration_descriptor_t
+    usb_other_speed_configuration_descriptor_t;
 
 /** Standard USB interface descriptor.
  */
@@ -156,8 +196,16 @@ typedef struct {
 	 * Includes transfer type (usb_transfer_type_t).
 	 */
 	uint8_t attributes;
-	/** Maximum packet size. */
+	/** Maximum packet size.
+	 * Lower 10 bits represent the actuall size
+	 * Bits 11,12 specify addtional transfer opportunitities for
+	 * HS INT and ISO transfers. */
 	uint16_t max_packet_size;
+#define ED_MPS_PACKET_SIZE_MASK  0x3ff
+#define ED_MPS_PACKET_SIZE_GET(value) \
+	((value) & ED_MPS_PACKET_SIZE_MASK)
+#define ED_MPS_TRANS_OPPORTUNITIES_GET(value) \
+	((((value) >> 10) & 0x3) + 1)
 	/** Polling interval in milliseconds.
 	 * Ignored for bulk and control endpoints.
 	 * Isochronous endpoints must use value 1.

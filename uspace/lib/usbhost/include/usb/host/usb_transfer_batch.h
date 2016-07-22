@@ -36,11 +36,13 @@
 #ifndef LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 #define LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 
-#include <adt/list.h>
-
-#include <usbhc_iface.h>
-#include <usb/usb.h>
 #include <usb/host/endpoint.h>
+#include <usb/usb.h>
+
+#include <assert.h>
+#include <stdbool.h>
+#include <sys/types.h>
+#include <usbhc_iface.h>
 
 #define USB_SETUP_PACKET_SIZE 8
 
@@ -66,8 +68,6 @@ typedef struct usb_transfer_batch {
 	 * unused for all other transfers. Thus, this field is either 0 or 8.
 	 */
 	size_t setup_size;
-	/** Host controller function, passed to callback function */
-	ddf_fun_t *fun;
 
 	/** Actually used portion of the buffer
 	 * This member is never accessed by functions provided in this header,
@@ -79,11 +79,6 @@ typedef struct usb_transfer_batch {
 	 * with the exception of usb_transfer_batch_finish. For external use.
 	 */
 	int error;
-
-	/** Driver specific data */
-	void *private_data;
-	/** Callback to properly remove driver data during destruction */
-	void (*private_data_dtor)(void *p_data);
 } usb_transfer_batch_t;
 
 /** Printf formatting string for dumping usb_transfer_batch_t. */
@@ -107,10 +102,7 @@ usb_transfer_batch_t * usb_transfer_batch_create(
     uint64_t setup_buffer,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
-    void *arg,
-    ddf_fun_t *fun,
-    void *private_data,
-    void (*private_data_dtor)(void *p_data)
+    void *arg
 );
 void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance);
 

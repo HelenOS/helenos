@@ -33,12 +33,14 @@
  * Non trivial initialization of endpoint pipes.
  *
  */
-#include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
-#include <errno.h>
+#include <usb/usb.h>
+#include <usb/descriptor.h>
+
 #include <assert.h>
+#include <errno.h>
 
 #define DEV_DESCR_MAX_PACKET_SIZE_OFFSET 7
 
@@ -147,14 +149,13 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
  * @param mapping_count Number of endpoint mappings in @p mapping.
  * @param interface Interface descriptor under which belongs the @p endpoint.
  * @param endpoint Endpoint descriptor.
- * @param wire Connection backing the endpoint pipes.
  * @return Error code.
  */
 static int process_endpoint(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     usb_standard_interface_descriptor_t *interface,
     usb_standard_endpoint_descriptor_t *endpoint_desc,
-    usb_device_connection_t *wire)
+    usb_dev_session_t *bus_session)
 {
 
 	/*
@@ -192,10 +193,13 @@ static int process_endpoint(
 		return EEXIST;
 	}
 
-	int rc = usb_pipe_initialize(&ep_mapping->pipe, wire,
+	int rc = usb_pipe_initialize(&ep_mapping->pipe,
 	    ep_no, description.transfer_type,
-	    uint16_usb2host(endpoint_desc->max_packet_size),
-	    description.direction);
+	    ED_MPS_PACKET_SIZE_GET(
+	        uint16_usb2host(endpoint_desc->max_packet_size)),
+	    description.direction,
+	    ED_MPS_TRANS_OPPORTUNITIES_GET(
+	        uint16_usb2host(endpoint_desc->max_packet_size)), bus_session);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -219,7 +223,7 @@ static int process_endpoint(
 static int process_interface(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     const usb_dp_parser_t *parser, const usb_dp_parser_data_t *parser_data,
-    const uint8_t *interface_descriptor)
+    const uint8_t *interface_descriptor, usb_dev_session_t *bus_session)
 {
 	const uint8_t *descriptor = usb_dp_get_nested_descriptor(parser,
 	    parser_data, interface_descriptor);
@@ -235,7 +239,7 @@ static int process_interface(
 			        interface_descriptor,
 			    (usb_standard_endpoint_descriptor_t *)
 			        descriptor,
-			    (usb_device_connection_t *) parser_data->arg);
+			    bus_session);
 		}
 
 		descriptor = usb_dp_get_sibling_descriptor(parser, parser_data,
@@ -279,9 +283,8 @@ static int process_interface(
 int usb_pipe_initialize_from_configuration(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     const uint8_t *config_descriptor, size_t config_descriptor_size,
-    usb_device_connection_t *connection)
+    usb_dev_session_t *bus_session)
 {
-	assert(connection);
 
 	if (config_descriptor == NULL) {
 		return EBADMEM;
@@ -305,7 +308,6 @@ int usb_pipe_initialize_from_configuration(
 	const usb_dp_parser_data_t dp_data = {
 		.data = config_descriptor,
 		.size = config_descriptor_size,
-		.arg = connection
 	};
 
 	/*
@@ -318,7 +320,7 @@ int usb_pipe_initialize_from_configuration(
 	}
 	do {
 		(void) process_interface(mapping, mapping_count,
-		    &dp_parser, &dp_data, interface);
+		    &dp_parser, &dp_data, interface, bus_session);
 		interface = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
 		    config_descriptor, interface);
 	} while (interface != NULL);
@@ -347,9 +349,6 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 		return EINVAL;
 	}
 
-
-	usb_pipe_start_long_transfer(pipe);
-
 	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
 	size_t transferred_size;
 	int rc;
@@ -366,7 +365,6 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 			break;
 		}
 	}
-	usb_pipe_end_long_transfer(pipe);
 	if (rc != EOK) {
 		return rc;
 	}

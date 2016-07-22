@@ -34,13 +34,12 @@
 #ifndef LIBUSBDEV_PIPES_H_
 #define LIBUSBDEV_PIPES_H_
 
-#include <sys/types.h>
-#include <ipc/devman.h>
-#include <ddf/driver.h>
-#include <fibril_synch.h>
 #include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usb/dev/usb_device_connection.h>
+#include <usb_iface.h>
+
+#include <stdbool.h>
+#include <sys/types.h>
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
 /** Abstraction of a logical connection to USB device endpoint.
@@ -49,9 +48,6 @@
  * (i.e. the wire to send data over).
  */
 typedef struct {
-	/** The connection used for sending the data. */
-	usb_device_connection_t *wire;
-
 	/** Endpoint number. */
 	usb_endpoint_t endpoint_no;
 
@@ -64,10 +60,17 @@ typedef struct {
 	/** Maximum packet size for the endpoint. */
 	size_t max_packet_size;
 
+	/** Number of packets per frame/uframe.
+	 * Only valid for HS INT and ISO transfers. All others should set to 1*/
+	unsigned packets;
+
 	/** Whether to automatically reset halt on the endpoint.
 	 * Valid only for control endpoint zero.
 	 */
 	bool auto_reset_halt;
+
+	/** The connection used for sending the data. */
+	usb_dev_session_t *bus_session;
 } usb_pipe_t;
 
 /** Description of endpoint characteristics. */
@@ -104,20 +107,16 @@ typedef struct {
 	bool present;
 } usb_endpoint_mapping_t;
 
-int usb_pipe_initialize(usb_pipe_t *, usb_device_connection_t *,
-    usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t);
-int usb_pipe_initialize_default_control(usb_pipe_t *,
-    usb_device_connection_t *);
+int usb_pipe_initialize(usb_pipe_t *, usb_endpoint_t, usb_transfer_type_t,
+    size_t, usb_direction_t, unsigned, usb_dev_session_t *);
+int usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
 
 int usb_pipe_probe_default_control(usb_pipe_t *);
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
-    size_t, const uint8_t *, size_t, usb_device_connection_t *);
+    size_t, const uint8_t *, size_t, usb_dev_session_t *);
 
 int usb_pipe_register(usb_pipe_t *, unsigned);
 int usb_pipe_unregister(usb_pipe_t *);
-
-int usb_pipe_start_long_transfer(usb_pipe_t *);
-int usb_pipe_end_long_transfer(usb_pipe_t *);
 
 int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
 int usb_pipe_write(usb_pipe_t *, const void *, size_t);

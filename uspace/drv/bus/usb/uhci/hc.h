@@ -35,13 +35,17 @@
 #ifndef DRV_UHCI_HC_H
 #define DRV_UHCI_HC_H
 
-#include <ddf/driver.h>
-#include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
 #include <fibril.h>
+#include <macros.h>
+#include <stdbool.h>
+#include <sys/types.h>
 #include <usb/host/hcd.h>
+#include <usb/host/usb_transfer_batch.h>
 
+#include "uhci_rh.h"
 #include "transfer_list.h"
+#include "hw_struct/link_pointer.h"
 
 /** UHCI I/O registers layout */
 typedef struct uhci_regs {
@@ -82,19 +86,18 @@ typedef struct uhci_regs {
 
 	/** SOF modification to match external timers */
 	ioport8_t sofmod;
+
+	PADD8[3];
+	ioport16_t ports[];
 } uhci_regs_t;
 
 #define UHCI_FRAME_LIST_COUNT 1024
-#define UHCI_INT_EMULATOR_TIMEOUT 10000
 #define UHCI_DEBUGER_TIMEOUT 5000000
 #define UHCI_ALLOWED_HW_FAIL 5
-#define UHCI_NEEDED_IRQ_COMMANDS 5
 
 /** Main UHCI driver structure */
 typedef struct hc {
-	/** Generic HCD driver structure */
-	hcd_t *generic;
-
+	uhci_rh_t rh;
 	/** Addresses of I/O registers */
 	uhci_regs_t *registers;
 
@@ -112,8 +115,6 @@ typedef struct hc {
 
 	/** Pointer table to the above lists, helps during scheduling */
 	transfer_list_t *transfers[2][4];
-	/** Fibril periodically checking status register*/
-	fid_t interrupt_emulator;
 	/** Indicator of hw interrupts availability */
 	bool hw_interrupts;
 
@@ -121,18 +122,15 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
-    interrupt_handler_t);
-int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t,
-    addr_range_t *);
-void hc_interrupt(hc_t *instance, uint16_t status);
-int hc_init(hc_t *, ddf_fun_t *, addr_range_t *, bool);
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interupts);
+void hc_fini(hc_t *instance);
 
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) {} /* TODO: implement*/
+int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
+
+void uhci_hc_interrupt(hcd_t *hcd, uint32_t status);
+int uhci_hc_status(hcd_t *hcd, uint32_t *status);
+int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+
 #endif
 
 /**

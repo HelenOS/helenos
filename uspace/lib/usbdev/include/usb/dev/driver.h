@@ -36,79 +36,8 @@
 #ifndef LIBUSBDEV_DRIVER_H_
 #define LIBUSBDEV_DRIVER_H_
 
-#include <usb/hc.h>
-#include <usb/dev/usb_device_connection.h>
+#include <usb/dev/device.h>
 #include <usb/dev/pipes.h>
-
-/** Descriptors for USB device. */
-typedef struct {
-	/** Standard device descriptor. */
-	usb_standard_device_descriptor_t device;
-	/** Full configuration descriptor of current configuration. */
-	const uint8_t *configuration;
-	size_t configuration_size;
-} usb_device_descriptors_t;
-
-/** Wrapper for data related to alternate interface setting.
- * The pointers will typically point inside configuration descriptor and
- * thus you shall not deallocate them.
- */
-typedef struct {
-	/** Interface descriptor. */
-	const usb_standard_interface_descriptor_t *interface;
-	/** Pointer to start of descriptor tree bound with this interface. */
-	const uint8_t *nested_descriptors;
-	/** Size of data pointed by nested_descriptors in bytes. */
-	size_t nested_descriptors_size;
-} usb_alternate_interface_descriptors_t;
-
-/** Alternate interface settings. */
-typedef struct {
-	/** Array of alternate interfaces descriptions. */
-	usb_alternate_interface_descriptors_t *alternatives;
-	/** Size of @c alternatives array. */
-	size_t alternative_count;
-	/** Index of currently selected one. */
-	size_t current;
-} usb_alternate_interfaces_t;
-
-/** USB device structure. */
-typedef struct {
-	/** Connection to USB hc, used by wire and arbitrary requests. */
-	usb_hc_connection_t hc_conn;
-	/** Connection backing the pipes.
-	 * Typically, you will not need to use this attribute at all.
-	 */
-	usb_device_connection_t wire;
-	/** The default control pipe. */
-	usb_pipe_t ctrl_pipe;
-	/** Other endpoint pipes.
-	 * This is an array of other endpoint pipes in the same order as
-	 * in usb_driver_t.
-	 */
-	usb_endpoint_mapping_t *pipes;
-	/** Number of other endpoint pipes. */
-	size_t pipes_count;
-	/** Current interface.
-	 * Usually, drivers operate on single interface only.
-	 * This item contains the value of the interface or -1 for any.
-	 */
-	int interface_no;
-
-	/** Alternative interfaces. */
-	usb_alternate_interfaces_t alternate_interfaces;
-
-	/** Some useful descriptors. */
-	usb_device_descriptors_t descriptors;
-
-	/** Generic DDF device backing this one. DO NOT TOUCH! */
-	ddf_dev_t *ddf_dev;
-	/** Custom driver data.
-	 * Do not use the entry in generic device, that is already used
-	 * by the framework.
-	 */
-	void *driver_data;
-} usb_device_t;
 
 /** USB driver ops. */
 typedef struct {
@@ -163,27 +92,6 @@ static usb_driver_t hub_driver = {
 
 int usb_driver_main(const usb_driver_t *);
 
-int usb_device_init(usb_device_t *, ddf_dev_t *,
-    const usb_endpoint_description_t **, const char **);
-void usb_device_deinit(usb_device_t *);
-
-int usb_device_select_interface(usb_device_t *, uint8_t,
-    const usb_endpoint_description_t **);
-
-int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
-void usb_device_release_descriptors(usb_device_descriptors_t *);
-
-int usb_device_create_pipes(usb_device_connection_t *,
-    const usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
-    usb_endpoint_mapping_t **, size_t *);
-void usb_device_destroy_pipes(usb_endpoint_mapping_t *, size_t);
-
-void * usb_device_data_alloc(usb_device_t *, size_t);
-
-size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
-int usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
-    const uint8_t *, size_t, int);
-void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *);
 #endif
 /**
  * @}

@@ -33,7 +33,6 @@
  * @brief Class related functions.
  */
 #include <usb/classes/classes.h>
-#include <errno.h>
 
 /** Tell string representation of USB class.
  *

@@ -50,7 +50,7 @@
  */
 void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size,
-    void *actual_data, size_t actual_data_size)
+    const void *actual_data, size_t actual_data_size)
 {
 	size_t expected_size = setup_packet->length;
 	if (expected_size < actual_data_size) {
@@ -62,6 +62,14 @@ void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *setup
 	if (act_size != NULL) {
 		*act_size = actual_data_size;
 	}
+}
+
+/** NOP handler */
+int req_nop(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
+	return EOK;
 }
 
 /** GET_DESCRIPTOR handler. */
@@ -97,8 +105,8 @@ static int req_get_descriptor(usbvirt_device_t *device,
 			return EFORWARD;
 		}
 		/* Copy the data. */
-		usbvirt_device_configuration_t *config = &device->descriptors
-		    ->configuration[index];
+		const usbvirt_device_configuration_t *config =
+		    &device->descriptors->configuration[index];
 		uint8_t *all_data = malloc(config->descriptor->total_length);
 		if (all_data == NULL) {
 			return ENOMEM;
@@ -109,7 +117,7 @@ static int req_get_descriptor(usbvirt_device_t *device,
 		ptr += config->descriptor->length;
 		size_t i;
 		for (i = 0; i < config->extra_count; i++) {
-			usbvirt_device_configuration_extras_t *extra
+			const usbvirt_device_configuration_extras_t *extra
 			    = &config->extra[i];
 			memcpy(ptr, extra->data, extra->length);
 			ptr += extra->length;
@@ -188,33 +196,60 @@ static int req_set_configuration(usbvirt_device_t *device,
 	return EOK;
 }
 
+static int req_get_dev_status(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet, uint8_t *data, size_t *act_size)
+{
+	if (setup_packet->length != 2)
+		return ESTALL;
+	data[0] = (device->self_powered ? 1 : 0) | (device->remote_wakeup ? 2 : 0);
+	data[1] = 0;
+	*act_size = 2;
+	return EOK;
+}
+static int req_get_iface_ep_status(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet, uint8_t *data, size_t *act_size)
+{
+	if (setup_packet->length != 2)
+		return ESTALL;
+	data[0] = 0;
+	data[1] = 0;
+	*act_size = 2;
+	return EOK;
+}
+
 /** Standard request handlers. */
 usbvirt_control_request_handler_t library_handlers[] = {
 	{
-		.req_direction = USB_DIRECTION_OUT,
-		.req_recipient = USB_REQUEST_RECIPIENT_DEVICE,
-		.req_type = USB_REQUEST_TYPE_STANDARD,
-		.request = USB_DEVREQ_SET_ADDRESS,
+		STD_REQ_OUT(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_SET_ADDRESS),
 		.name = "SetAddress",
 		.callback = req_set_address
 	},
 	{
-		.req_direction = USB_DIRECTION_IN,
-		.req_recipient = USB_REQUEST_RECIPIENT_DEVICE,
-		.req_type = USB_REQUEST_TYPE_STANDARD,
-		.request = USB_DEVREQ_GET_DESCRIPTOR,
-		.name = "GetDescriptor",
+		STD_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		.name = "GetStdDescriptor",
 		.callback = req_get_descriptor
 	},
 	{
-		.req_direction = USB_DIRECTION_OUT,
-		.req_recipient = USB_REQUEST_RECIPIENT_DEVICE,
-		.req_type = USB_REQUEST_TYPE_STANDARD,
-		.request = USB_DEVREQ_SET_CONFIGURATION,
+		STD_REQ_OUT(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_SET_CONFIGURATION),
 		.name = "SetConfiguration",
 		.callback = req_set_configuration
 	},
-
+	{
+		STD_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_STATUS),
+		.name = "GetDeviceStatus",
+		.callback = req_get_dev_status,
+	},
+	{
+		STD_REQ_IN(USB_REQUEST_RECIPIENT_INTERFACE, USB_DEVREQ_GET_STATUS),
+		.name = "GetInterfaceStatus",
+		.callback = req_get_iface_ep_status,
+	},
+	{
+		/* virtual EPs by default cannot be stalled */
+		STD_REQ_IN(USB_REQUEST_RECIPIENT_ENDPOINT, USB_DEVREQ_GET_STATUS),
+		.name = "GetEndpointStatus",
+		.callback = req_get_iface_ep_status,
+	},
 	{ .callback = NULL }
 };
 

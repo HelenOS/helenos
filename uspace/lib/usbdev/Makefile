@@ -35,10 +35,10 @@ EXTRA_CFLAGS += \
 
 SOURCES = \
 	src/altiface.c \
+	src/driver.c \
 	src/devdrv.c \
 	src/devpoll.c \
 	src/dp.c \
-	src/hub.c \
 	src/pipes.c \
 	src/pipesinit.c \
 	src/recognise.c \

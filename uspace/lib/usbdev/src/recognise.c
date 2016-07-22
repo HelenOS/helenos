@@ -33,23 +33,15 @@
  * Functions for recognition of attached devices.
  */
 
-#include <sys/types.h>
-#include <fibril_synch.h>
-#include <usb/debug.h>
-#include <usb/dev/hub.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/recognise.h>
-#include <usb/ddfiface.h>
 #include <usb/dev/request.h>
 #include <usb/classes/classes.h>
-#include <stdio.h>
-#include <errno.h>
-#include <assert.h>
 
-/** DDF operations of child devices. */
-static ddf_dev_ops_t child_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
-};
+#include <assert.h>
+#include <errno.h>
+#include <stdio.h>
+#include <sys/types.h>
 
 /** Get integer part from BCD coded number. */
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
@@ -241,25 +233,18 @@ int usb_device_create_match_ids_from_device_descriptor(
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id,
 		    BCD_ARGS(device_descriptor->device_version));
-		
+
 		/* Next, without release number. */
 		ADD_MATCHID_OR_RETURN(matches, 90,
 		    "usb&vendor=0x%04x&product=0x%04x",
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id);
-	}	
-
-	/*
-	 * If the device class points to interface we skip adding
-	 * class directly but we add a multi interface device.
-	 */
-	if (device_descriptor->device_class != USB_CLASS_USE_INTERFACE) {
-		ADD_MATCHID_OR_RETURN(matches, 50, "usb&class=%s",
-		    usb_str_class(device_descriptor->device_class));
-	} else {
-		ADD_MATCHID_OR_RETURN(matches, 50, "usb&mid");
 	}
-	
+
+	/* Class match id */
+	ADD_MATCHID_OR_RETURN(matches, 50, "usb&class=%s",
+	    usb_str_class(device_descriptor->device_class));
+
 	/* As a last resort, try fallback driver. */
 	ADD_MATCHID_OR_RETURN(matches, 10, "usb&fallback");
 
@@ -299,98 +284,6 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
 	}
 
 	return EOK;
-}
-
-/** Probe for device kind and register it in devman.
- *
- * @param[in] ctrl_pipe Control pipe to the device.
- * @param[in] parent Parent device.
- * @param[in] dev_ops Child device ops. Default child_ops will be used if NULL.
- * @param[in] dev_data Arbitrary pointer to be stored in the child
- *	as @c driver_data.
- * @param[out] child_fun Storage where pointer to allocated child function
- *	will be written.
- * @return Error code.
- *
- */
-int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
-    ddf_dev_t *parent, ddf_fun_t *fun, ddf_dev_ops_t *dev_ops)
-{
-	if (ctrl_pipe == NULL)
-		return EINVAL;
-	
-	if (!dev_ops && ddf_fun_data_get(fun) != NULL) {
-		usb_log_warning("Using standard fun ops with arbitrary "
-		    "driver data. This does not have to work.\n");
-	}
-	
-	/** Index to append after device name for uniqueness. */
-	static atomic_t device_name_index = {0};
-	const size_t this_device_name_index =
-	    (size_t) atomic_preinc(&device_name_index);
-	
-	int rc;
-	
-	/*
-	 * TODO: Once the device driver framework support persistent
-	 * naming etc., something more descriptive could be created.
-	 */
-	char child_name[12];  /* The format is: "usbAB_aXYZ", length 11 */
-	rc = snprintf(child_name, sizeof(child_name),
-	    "usb%02zu_a%d", this_device_name_index, ctrl_pipe->wire->address);
-	if (rc < 0) {
-		goto failure;
-	}
-	
-	rc = ddf_fun_set_name(fun, child_name);
-	if (rc != EOK)
-		goto failure;
-	
-	if (dev_ops != NULL)
-		ddf_fun_set_ops(fun, dev_ops);
-	else
-		ddf_fun_set_ops(fun, &child_ops);
-	
-	/*
-	 * Store the attached device in fun
-	 * driver data if there is no other data
-	 */
-	if (ddf_fun_data_get(fun) == NULL) {
-		usb_hub_attached_device_t *new_device = ddf_fun_data_alloc(
-		    fun, sizeof(usb_hub_attached_device_t));
-		if (!new_device) {
-			rc = ENOMEM;
-			goto failure;
-		}
-		
-		new_device->address = ctrl_pipe->wire->address;
-		new_device->fun = fun;
-	}
-	
-	match_id_list_t match_ids;
-	init_match_ids(&match_ids);
-	rc = usb_device_create_match_ids(ctrl_pipe, &match_ids);
-	if (rc != EOK)
-		goto failure;
-	
-	list_foreach(match_ids.ids, link, match_id_t, match_id) {
-		rc = ddf_fun_add_match_id(fun, match_id->id, match_id->score);
-		if (rc != EOK) {
-			clean_match_ids(&match_ids);
-			goto failure;
-		}
-	}
-	
-	clean_match_ids(&match_ids);
-	
-	rc = ddf_fun_bind(fun);
-	if (rc != EOK)
-		goto failure;
-	
-	return EOK;
-	
-failure:
-	return rc;
 }
 
 /**

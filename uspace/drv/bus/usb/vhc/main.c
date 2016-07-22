@@ -33,96 +33,93 @@
  * Virtual host controller.
  */
 
-#include <loc.h>
-#include <async.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sysinfo.h>
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/driver.h>
 
-#include <usb/usb.h>
-#include <usb/ddfiface.h>
-#include <usb_iface.h>
+#include <usb/host/ddf_helpers.h>
+
+#include <usb/debug.h>
 #include "vhcd.h"
-#include "hub.h"
-#include "conn.h"
+
 
 static ddf_dev_ops_t vhc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &vhc_iface,
-	.interfaces[USB_DEV_IFACE] = &vhc_usb_iface,
 	.close = on_client_close,
 	.default_handler = default_connection_handler
 };
 
+static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
+{
+	assert(dev);
+	assert(fun);
+
+	*fun = ddf_fun_create(dev, fun_exposed, "virtual");
+	if (!*fun)
+		return ENOMEM;
+
+	vhc_data_t *vhc = ddf_fun_data_alloc(*fun, sizeof(vhc_data_t));
+	if (!vhc) {
+		ddf_fun_destroy(*fun);
+	}
+	ddf_fun_set_ops(*fun, &vhc_ops);
+	const int ret = ddf_fun_bind(*fun);
+	if (ret != EOK) {
+		ddf_fun_destroy(*fun);
+		*fun = NULL;
+		return ret;
+	}
+	vhc_init(vhc);
+	return EOK;
+}
+
+hcd_ops_t vhc_hc_ops = {
+	.schedule = vhc_schedule,
+};
+
 static int vhc_dev_add(ddf_dev_t *dev)
 {
-	static int vhc_count = 0;
-	int rc;
+	/* Initialize virtual structure */
+	ddf_fun_t *ctl_fun = NULL;
+	int ret = vhc_control_node(dev, &ctl_fun);
+	if (ret != EOK) {
+		usb_log_error("Failed to setup control node.\n");
+		return ret;
+	}
+	vhc_data_t *data = ddf_fun_data_get(ctl_fun);
 
-	if (vhc_count > 0) {
-		return ELIMIT;
+	/* Initialize generic structures */
+	ret = hcd_ddf_setup_hc(dev, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
+	if (ret != EOK) {
+		usb_log_error("Failed to init HCD structures: %s.\n",
+		   str_error(ret));
+		ddf_fun_destroy(ctl_fun);
+		return ret;
 	}
 
-	vhc_data_t *data = ddf_dev_data_alloc(dev, sizeof(vhc_data_t));
-	if (data == NULL) {
-		usb_log_fatal("Failed to allocate memory.\n");
-		return ENOMEM;
-	}
-	data->magic = 0xDEADBEEF;
-	rc = usb_endpoint_manager_init(&data->ep_manager, (size_t) -1,
-	    bandwidth_count_usb11);
-	if (rc != EOK) {
-		usb_log_fatal("Failed to initialize endpoint manager.\n");
-		free(data);
-		return rc;
-	}
-	usb_device_manager_init(&data->dev_manager, USB_SPEED_MAX);
+	hcd_set_implementation(dev_to_hcd(dev), data, &vhc_hc_ops);
 
-	ddf_fun_t *hc = ddf_fun_create(dev, fun_exposed, "hc");
-	if (hc == NULL) {
-		usb_log_fatal("Failed to create device function.\n");
-		free(data);
-		return ENOMEM;
+	/* Add virtual hub device */
+	ret = vhc_virtdev_plug_hub(data, &data->hub, NULL, 0);
+	if (ret != EOK) {
+		usb_log_error("Failed to plug root hub: %s.\n", str_error(ret));
+		ddf_fun_destroy(ctl_fun);
+		return ret;
 	}
 
-	ddf_fun_set_ops(hc, &vhc_ops);
-	list_initialize(&data->devices);
-	fibril_mutex_initialize(&data->guard);
-	data->hub = &virtual_hub_device;
-	data->hc_fun = hc;
-
-	rc = ddf_fun_bind(hc);
-	if (rc != EOK) {
-		usb_log_fatal("Failed to bind HC function: %s.\n",
-		    str_error(rc));
-		free(data);
-		return rc;
+	/*
+	 * Creating root hub registers a new USB device so HC
+	 * needs to be ready at this time.
+	 */
+	ret = hcd_ddf_setup_root_hub(dev);
+	if (ret != EOK) {
+		usb_log_error("Failed to init VHC root hub: %s\n",
+			str_error(ret));
+		// TODO do something here...
 	}
 
-	rc = ddf_fun_add_to_category(hc, USB_HC_CATEGORY);
-	if (rc != EOK) {
-		usb_log_fatal("Failed to add function to HC class: %s.\n",
-		    str_error(rc));
-		free(data);
-		return rc;
-	}
-
-	virtual_hub_device_init(hc);
-
-	usb_log_info("Virtual USB host controller ready (dev %zu, hc %zu).\n",
-	    (size_t) ddf_dev_get_handle(dev), (size_t) ddf_fun_get_handle(hc));
-
-	rc = vhc_virtdev_plug_hub(data, data->hub, NULL);
-	if (rc != EOK) {
-		usb_log_fatal("Failed to plug root hub: %s.\n", str_error(rc));
-		free(data);
-		return rc;
-	}
-
-	return EOK;
+	return ret;
 }
 
 static driver_ops_t vhc_driver_ops = {
@@ -134,16 +131,13 @@ static driver_t vhc_driver = {
 	.driver_ops = &vhc_driver_ops
 };
 
-
 int main(int argc, char * argv[])
-{	
+{
 	log_init(NAME);
-
 	printf(NAME ": virtual USB host controller driver.\n");
 
 	return ddf_driver_main(&vhc_driver);
 }
-
 
 /**
  * @}

@@ -34,27 +34,26 @@
 #ifndef DRV_OHCI_HC_H
 #define DRV_OHCI_HC_H
 
-#include <ddf/driver.h>
-#include <ddf/interrupt.h>
-#include <fibril.h>
-#include <fibril_synch.h>
 #include <adt/list.h>
 #include <ddi.h>
+#include <ddf/driver.h>
+#include <device/hw_res_parsed.h>
+#include <fibril.h>
+#include <fibril_synch.h>
+#include <stdbool.h>
+#include <sys/types.h>
 
-#include <usb/usb.h>
 #include <usb/host/hcd.h>
+#include <usb/host/endpoint.h>
+#include <usb/host/usb_transfer_batch.h>
 
-#include "ohci_batch.h"
 #include "ohci_regs.h"
-#include "root_hub.h"
+#include "ohci_rh.h"
 #include "endpoint_list.h"
 #include "hw_struct/hcca.h"
 
 /** Main OHCI driver structure */
 typedef struct hc {
-	/** Generic USB hc driver */
-	hcd_t *generic;
-
 	/** Memory mapped I/O registers area */
 	ohci_regs_t *registers;
 	/** Host controller communication area structure */
@@ -71,27 +70,24 @@ typedef struct hc {
 	/** Guards schedule and endpoint manipulation */
 	fibril_mutex_t guard;
 
+	/** interrupts available */
+	bool hw_interrupts;
+
 	/** USB hub emulation structure */
-	rh_t rh;
+	ohci_rh_t rh;
 } hc_t;
 
-int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t,
-    addr_range_t *);
-int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
-    interrupt_handler_t);
-int hc_register_hub(hc_t *, ddf_fun_t *);
-int hc_init(hc_t *, ddf_fun_t *, addr_range_t *, bool);
-
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts);
+void hc_fini(hc_t *instance);
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep);
 void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep);
 
-void hc_interrupt(hc_t *instance, uint32_t status);
+int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
+
+void ohci_hc_interrupt(hcd_t *hcd, uint32_t status);
+int ohci_hc_status(hcd_t *hcd, uint32_t *status);
+int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 #endif
 /**
  * @}

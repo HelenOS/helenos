@@ -32,11 +32,7 @@
 /** @file
  * Debugging and logging support.
  */
-#include <adt/list.h>
 #include <fibril_synch.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <ddf/log.h>
 #include <usb/debug.h>
 

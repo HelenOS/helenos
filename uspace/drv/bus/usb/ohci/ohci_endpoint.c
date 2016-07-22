@@ -31,7 +31,11 @@
 /** @file
  * @brief OHCI driver
  */
-#include "utils/malloc32.h"
+
+#include <assert.h>
+#include <stdlib.h>
+#include <usb/host/utils/malloc32.h>
+
 #include "ohci_endpoint.h"
 #include "hc.h"
 
@@ -86,10 +90,11 @@ int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 		return ENOMEM;
 	}
 
+	link_initialize(&ohci_ep->link);
 	ed_init(ohci_ep->ed, ep, ohci_ep->td);
 	endpoint_set_hc_data(
 	    ep, ohci_ep, ohci_ep_toggle_get, ohci_ep_toggle_set);
-	hc_enqueue_endpoint(hcd->private_data, ep);
+	hc_enqueue_endpoint(hcd_get_driver_data(hcd), ep);
 	return EOK;
 }
 
@@ -103,13 +108,13 @@ void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 	assert(hcd);
 	assert(ep);
 	ohci_endpoint_t *instance = ohci_endpoint_get(ep);
-	hc_dequeue_endpoint(hcd->private_data, ep);
+	hc_dequeue_endpoint(hcd_get_driver_data(hcd), ep);
+	endpoint_clear_hc_data(ep);
 	if (instance) {
 		free32(instance->ed);
 		free32(instance->td);
 		free(instance);
 	}
-	endpoint_clear_hc_data(ep);
 }
 /**
  * @}

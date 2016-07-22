@@ -43,7 +43,6 @@
 #include <getopt.h>
 #include <devman.h>
 #include <loc.h>
-#include <usb/dev/hub.h>
 #include <usbhid_iface.h>
 #include <usb/dev/pipes.h>
 #include <async.h>
@@ -218,7 +217,7 @@ int main(int argc, char *argv[])
 	
 	devman_handle_t dev_handle = 0;
 	
-	int rc = usb_resolve_device_handle(devpath, NULL, NULL, &dev_handle);
+	int rc = usb_resolve_device_handle(devpath, &dev_handle);
 	if (rc != EOK) {
 		printf("Device not found or not of USB kind: %s.\n",
 		    str_error(rc));

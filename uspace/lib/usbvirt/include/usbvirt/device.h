@@ -39,6 +39,8 @@
 #include <usb/usb.h>
 #include <usb/dev/request.h>
 #include <async.h>
+#include <errno.h>
+
 
 /** Maximum number of endpoints supported by virtual USB. */
 #define USBVIRT_ENDPOINT_MAX 16
@@ -56,7 +58,7 @@ typedef struct usbvirt_device usbvirt_device_t;
  */
 typedef int (*usbvirt_on_data_to_device_t)(usbvirt_device_t *dev,
     usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    void *buffer, size_t buffer_size);
+    const void *buffer, size_t buffer_size);
 
 /** Callback for data from device (IN transaction).
  *
@@ -87,18 +89,50 @@ typedef int (*usbvirt_on_control_t)(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_data_size);
 
+/** Create a class request to get data from device
+ *
+ * @param rec Request recipient.
+ * @param req Request code.
+ */
+#define CLASS_REQ_IN(rec, req) \
+	.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_CLASS, rec), \
+	.request = req
+
+/** Create a class request to send data to device
+ *
+ * @param rec Request recipient.
+ * @param req Request code.
+ */
+#define CLASS_REQ_OUT(rec, req) \
+	.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_CLASS, rec), \
+	.request = req
+
+/** Create a standard request to get data from device
+ *
+ * @param rec Request recipient.
+ * @param req Request code.
+ */
+#define STD_REQ_IN(rec, req) \
+	.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, rec), \
+	.request = req
+
+/** Create a standard request to send data to device
+ *
+ * @param rec Request recipient.
+ * @param req Request code.
+ */
+#define STD_REQ_OUT(rec, req) \
+	.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_STANDARD, rec), \
+	.request = req
+
 /** Callback for control request on a virtual USB device.
  *
  * See usbvirt_control_reply_helper() for simple way of answering
  * control read requests.
  */
 typedef struct {
-	/** Request direction (in or out). */
-	usb_direction_t req_direction;
-	/** Request recipient (device, interface or endpoint). */
-	usb_request_recipient_t req_recipient;
-	/** Request type (standard, class or vendor). */
-	usb_request_type_t req_type;
+	/* Request type. See usb/request.h */
+	uint8_t request_type;
 	/** Actual request code. */
 	uint8_t request;
 	/** Request handler name for debugging purposes. */
@@ -110,7 +144,7 @@ typedef struct {
 /** Extra configuration data for GET_CONFIGURATION request. */
 typedef struct {
 	/** Actual data. */
-	uint8_t *data;
+	const uint8_t *data;
 	/** Data length. */
 	size_t length;
 } usbvirt_device_configuration_extras_t;
@@ -120,7 +154,7 @@ typedef struct {
 	/** Standard configuration descriptor. */
 	usb_standard_configuration_descriptor_t *descriptor;
 	/** Array of extra data. */
-	usbvirt_device_configuration_extras_t *extra;
+	const usbvirt_device_configuration_extras_t *extra;
 	/** Length of @c extra array. */
 	size_t extra_count;
 } usbvirt_device_configuration_t;
@@ -130,7 +164,7 @@ typedef struct {
 	/** Standard device descriptor.
 	 * There is always only one such descriptor for the device.
 	 */
-	usb_standard_device_descriptor_t *device;
+	const usb_standard_device_descriptor_t *device;
 
 	/** Configurations. */
 	usbvirt_device_configuration_t *configuration;
@@ -163,7 +197,7 @@ typedef struct {
 	/** Array of control handlers.
 	 * Last handler is expected to have the @c callback field set to NULL
 	 */
-	usbvirt_control_request_handler_t *control;
+	const usbvirt_control_request_handler_t *control;
 	/** Callback when device changes state.
 	 *
 	 * The value of @c state attribute of @p dev device is not
@@ -179,6 +213,10 @@ typedef struct {
 
 /** Virtual USB device. */
 struct usbvirt_device {
+	/** Device does not require USB bus power */
+	bool self_powered;
+	/** Device is allowed to signal remote wakeup */
+	bool remote_wakeup;
 	/** Name for debugging purposes. */
 	const char *name;
 	/** Custom device data. */
@@ -186,7 +224,7 @@ struct usbvirt_device {
 	/** Device ops. */
 	usbvirt_device_ops_t *ops;
 	/** Device descriptors. */
-	usbvirt_descriptors_t *descriptors;
+	const usbvirt_descriptors_t *descriptors;
 	/** Current device address.
 	 * You shall treat this field as read only in your code.
 	 */
@@ -201,16 +239,21 @@ struct usbvirt_device {
 	async_sess_t *vhc_sess;
 };
 
+
+int req_nop(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
+
 int usbvirt_device_plug(usbvirt_device_t *, const char *);
 void usbvirt_device_unplug(usbvirt_device_t *);
 
 void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *,
-    uint8_t *, size_t *, void *, size_t);
+    uint8_t *, size_t *, const void *, size_t);
 
-int usbvirt_control_write(usbvirt_device_t *, void *, size_t, void *, size_t);
-int usbvirt_control_read(usbvirt_device_t *, void *, size_t, void *, size_t, size_t *);
+int usbvirt_control_write(usbvirt_device_t *, const void *, size_t, void *, size_t);
+int usbvirt_control_read(usbvirt_device_t *, const void *, size_t, void *, size_t, size_t *);
 int usbvirt_data_out(usbvirt_device_t *, usb_transfer_type_t, usb_endpoint_t,
-    void *, size_t);
+    const void *, size_t);
 int usbvirt_data_in(usbvirt_device_t *, usb_transfer_type_t, usb_endpoint_t,
     void *, size_t, size_t *);
 

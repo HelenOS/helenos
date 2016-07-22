@@ -34,6 +34,7 @@
  * USB blink(1) subdriver.
  */
 
+#include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
 #include <ops/led_dev.h>
@@ -77,9 +78,10 @@ static int usb_blink1_color_set(ddf_fun_t *fun, pixel_t pixel)
 	report.arg4 = 0;
 	report.arg5 = 0;
 	
-	return usbhid_req_set_report(&blink1_dev->hid_dev->usb_dev->ctrl_pipe,
-	    blink1_dev->hid_dev->usb_dev->interface_no, USB_HID_REPORT_TYPE_FEATURE,
-	    (uint8_t *) &report, sizeof(report));
+	return usbhid_req_set_report(
+	    usb_device_get_default_pipe(blink1_dev->hid_dev->usb_dev),
+	    usb_device_get_iface_number(blink1_dev->hid_dev->usb_dev),
+	    USB_HID_REPORT_TYPE_FEATURE, (uint8_t *) &report, sizeof(report));
 }
 
 static led_dev_ops_t usb_blink1_iface = {
@@ -99,8 +101,8 @@ int usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 	}
 	
 	/* Create the exposed function. */
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed,
-	    HID_BLINK1_FUN_NAME);
+	ddf_fun_t *fun = usb_device_ddf_fun_create(hid_dev->usb_dev,
+	    fun_exposed, HID_BLINK1_FUN_NAME);
 	if (fun == NULL) {
 		usb_log_error("Could not create DDF function node `%s'.\n",
 		    HID_BLINK1_FUN_NAME);

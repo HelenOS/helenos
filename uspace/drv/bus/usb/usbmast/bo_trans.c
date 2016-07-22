@@ -43,14 +43,9 @@
 #include "cmdw.h"
 #include "usbmast.h"
 
-bool usb_mast_verbose = false;
 
 #define MASTLOG(format, ...) \
-	do { \
-		if (usb_mast_verbose) { \
-			usb_log_debug2("USB cl08: " format, ##__VA_ARGS__); \
-		} \
-	} while (false)
+	usb_log_debug2("USB cl08: " format, ##__VA_ARGS__)
 
 /** Send command via bulk-only transport.
  *
@@ -64,24 +59,21 @@ bool usb_mast_verbose = false;
 int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 {
 	int rc;
-	int retval = EOK;
-	size_t act_size;
-	usb_pipe_t *bulk_in_pipe = &mfun->mdev->usb_dev->pipes[BULK_IN_EP].pipe;
-	usb_pipe_t *bulk_out_pipe = &mfun->mdev->usb_dev->pipes[BULK_OUT_EP].pipe;
-	usb_direction_t ddir;
-	void *dbuf;
-	size_t dbuf_size;
 
-	if (cmd->data_out != NULL && cmd->data_in == NULL) {
-		ddir = USB_DIRECTION_OUT;
-		dbuf = (void *)cmd->data_out;
-		dbuf_size = cmd->data_out_size;
-	} else if (cmd->data_out == NULL && cmd->data_in != NULL) {
+	if (cmd->data_in && cmd->data_out)
+		return EINVAL;
+
+	usb_pipe_t *bulk_in_pipe = mfun->mdev->bulk_in_pipe;
+	usb_pipe_t *bulk_out_pipe = mfun->mdev->bulk_out_pipe;
+
+	usb_pipe_t *dpipe = bulk_out_pipe;
+	usb_direction_t ddir = USB_DIRECTION_OUT;
+	size_t dbuf_size = cmd->data_out_size;
+
+	if (cmd->data_in) {
 		ddir = USB_DIRECTION_IN;
-		dbuf = cmd->data_in;
 		dbuf_size = cmd->data_in_size;
-	} else {
-		assert(false);
+		dpipe = bulk_in_pipe;
 	}
 
 	/* Prepare CBW - command block wrapper */
@@ -95,34 +87,35 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	MASTLOG("CBW '%s' sent: %s.\n",
 	    usb_debug_str_buffer((uint8_t *) &cbw, sizeof(cbw), 0),
 	    str_error(rc));
-	if (rc != EOK)
+	if (rc != EOK) {
+		usb_log_error("Bulk out write failed: %s\n", str_error(rc));
 		return EIO;
+	}
 
 	MASTLOG("Transferring data.\n");
-	if (ddir == USB_DIRECTION_IN) {
+	if (cmd->data_in) {
+		size_t act_size;
 		/* Recieve data from the device. */
-		rc = usb_pipe_read(bulk_in_pipe, dbuf, dbuf_size, &act_size);
+		rc = usb_pipe_read(dpipe, cmd->data_in, cmd->data_in_size,
+		    &act_size);
 		MASTLOG("Received %zu bytes (%s): %s.\n", act_size,
-		    usb_debug_str_buffer((uint8_t *) dbuf, act_size, 0),
+		    usb_debug_str_buffer(cmd->data_in, act_size, 0),
 		    str_error(rc));
-	} else {
+	}
+	if (cmd->data_out) {
 		/* Send data to the device. */
-		rc = usb_pipe_write(bulk_out_pipe, dbuf, dbuf_size);
-		MASTLOG("Sent %zu bytes (%s): %s.\n", act_size,
-		    usb_debug_str_buffer((uint8_t *) dbuf, act_size, 0),
+		rc = usb_pipe_write(dpipe, cmd->data_out, cmd->data_out_size);
+		MASTLOG("Sent %zu bytes (%s): %s.\n", cmd->data_out_size,
+		    usb_debug_str_buffer(cmd->data_out, cmd->data_out_size, 0),
 		    str_error(rc));
 	}
 
 	if (rc == ESTALL) {
 		/* Clear stall condition and continue below to read CSW. */
-		if (ddir == USB_DIRECTION_IN) {
-			usb_pipe_clear_halt(&mfun->mdev->usb_dev->ctrl_pipe,
-			    &mfun->mdev->usb_dev->pipes[BULK_IN_EP].pipe);
-		} else {
-			usb_pipe_clear_halt(&mfun->mdev->usb_dev->ctrl_pipe,
-			    &mfun->mdev->usb_dev->pipes[BULK_OUT_EP].pipe);
-		}
+		usb_pipe_clear_halt(
+		    usb_device_get_default_pipe(mfun->mdev->usb_dev), dpipe);
         } else if (rc != EOK) {
+		usb_log_error("Failed to transfer data: %s", str_error(rc));
 		return EIO;
 	}
 
@@ -135,17 +128,18 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	    usb_debug_str_buffer((uint8_t *) &csw, csw_size, 0), csw_size,
 	    str_error(rc));
 	if (rc != EOK) {
-		MASTLOG("rc != EOK\n");
+		usb_log_error("Failed to read CSW: %s", str_error(rc));
 		return EIO;
 	}
 
 	if (csw_size != sizeof(csw)) {
-		MASTLOG("csw_size != sizeof(csw)\n");
+		usb_log_error("Received CSW of incorrect size.");
 		return EIO;
 	}
 
 	if (csw.dCSWTag != tag) {
-		MASTLOG("csw.dCSWTag != tag\n");
+		usb_log_error("Received CSW with incorrect tag. (expected: %"
+		    PRIX32" received: %"PRIx32, tag, csw.dCSWTag);
 		return EIO;
 	}
 
@@ -157,21 +151,23 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 		cmd->status = CMDS_GOOD;
 		break;
 	case cbs_failed:
-		MASTLOG("Command failed\n");
 		cmd->status = CMDS_FAILED;
+		usb_log_error("CBS Failed.\n");
 		break;
 	case cbs_phase_error:
-		MASTLOG("Phase error\n");
-		retval = EIO;
+		usb_log_error("CBS phase error.\n");
+		rc = EIO;
 		break;
 	default:
-		retval = EIO;
+		usb_log_error("CBS other error.\n");
+		rc = EIO;
 		break;
 	}
 
-	size_t residue = (size_t) uint32_usb2host(csw.dCSWDataResidue);
+	const size_t residue = uint32_usb2host(csw.dCSWDataResidue);
 	if (residue > dbuf_size) {
-		MASTLOG("residue > dbuf_size\n");
+		usb_log_error("Residue > buffer size (%zu > %zu).\n",
+		    residue, dbuf_size);
 		return EIO;
 	}
 
@@ -183,10 +179,10 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	 * received (sent).
 	 */
 
-	if (ddir == USB_DIRECTION_IN)
+	if (cmd->data_in)
 		cmd->rcvd_size = dbuf_size - residue;
 
-	return retval;
+	return rc;
 }
 
 /** Perform bulk-only mass storage reset.
@@ -196,9 +192,10 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
  */
 int usb_massstor_reset(usbmast_dev_t *mdev)
 {
-	return usb_control_request_set(&mdev->usb_dev->ctrl_pipe,
+	return usb_control_request_set(
+	    usb_device_get_default_pipe(mdev->usb_dev),
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
-	    0xFF, 0, mdev->usb_dev->interface_no, NULL, 0);
+	    0xFF, 0, usb_device_get_iface_number(mdev->usb_dev), NULL, 0);
 }
 
 /** Perform complete reset recovery of bulk-only mass storage.
@@ -214,10 +211,10 @@ void usb_massstor_reset_recovery(usbmast_dev_t *mdev)
 	 * we are doomed anyway and any following transaction would fail.
 	 */
 	usb_massstor_reset(mdev);
-	usb_pipe_clear_halt(&mdev->usb_dev->ctrl_pipe,
-	    &mdev->usb_dev->pipes[BULK_IN_EP].pipe);
-	usb_pipe_clear_halt(&mdev->usb_dev->ctrl_pipe,
-	    &mdev->usb_dev->pipes[BULK_OUT_EP].pipe);
+	usb_pipe_clear_halt(usb_device_get_default_pipe(mdev->usb_dev),
+	    mdev->bulk_in_pipe);
+	usb_pipe_clear_halt(usb_device_get_default_pipe(mdev->usb_dev),
+	    mdev->bulk_out_pipe);
 }
 
 /** Get max LUN of a mass storage device.
@@ -235,9 +232,11 @@ int usb_massstor_get_max_lun(usbmast_dev_t *mdev)
 {
 	uint8_t max_lun;
 	size_t data_recv_len;
-	int rc = usb_control_request_get(&mdev->usb_dev->ctrl_pipe,
+	int rc = usb_control_request_get(
+	    usb_device_get_default_pipe(mdev->usb_dev),
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
-	    0xFE, 0, mdev->usb_dev->interface_no, &max_lun, 1, &data_recv_len);
+	    0xFE, 0, usb_device_get_iface_number(mdev->usb_dev), &max_lun, 1,
+	    &data_recv_len);
 	if (rc != EOK) {
 		return rc;
 	}

@@ -33,13 +33,11 @@
  * Handling alternate interface settings.
  */
 
-#include <usb/dev/driver.h>
-#include <usb/dev/request.h>
-#include <usb/debug.h>
+#include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/dp.h>
-#include <errno.h>
-#include <str_error.h>
 #include <assert.h>
+#include <errno.h>
+#include <stdlib.h>
 
 /** Count number of alternate settings of a interface.
  *
@@ -104,17 +102,16 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		return EOK;
 	}
 
-	alternates->alternative_count
-	    = usb_interface_count_alternates(config_descr, config_descr_size,
-	        interface_number);
+	const size_t alt_count = usb_interface_count_alternates(config_descr,
+	    config_descr_size, interface_number);
 
-	if (alternates->alternative_count == 0) {
+	if (alt_count == 0) {
 		return ENOENT;
 	}
 
-	alternates->alternatives = calloc(alternates->alternative_count,
+	usb_alternate_interface_descriptors_t *alts = calloc(alt_count,
 	    sizeof(usb_alternate_interface_descriptors_t));
-	if (alternates->alternatives == NULL) {
+	if (alts == NULL) {
 		return ENOMEM;
 	}
 
@@ -127,16 +124,12 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		.arg = NULL
 	};
 
-	usb_alternate_interface_descriptors_t *iterator
-	    = &alternates->alternatives[0];
-
-	const usb_alternate_interface_descriptors_t *end
-	    = &alternates->alternatives[alternates->alternative_count];
 
 	const void *iface_ptr =
 	    usb_dp_get_nested_descriptor(&dp_parser, &dp_data, dp_data.data);
 
-	while (iface_ptr != NULL && iterator < end) {
+	usb_alternate_interface_descriptors_t *iterator = alts;
+	for (; iface_ptr != NULL && iterator < &alts[alt_count]; ++iterator) {
 		const usb_standard_interface_descriptor_t *iface = iface_ptr;
 
 		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE)
@@ -158,11 +151,12 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		const uint8_t *next = (iface_ptr == NULL) ?
 		    dp_data.data + dp_data.size : iface_ptr;
 
-		iterator->nested_descriptors_size
-		    = next - iterator->nested_descriptors;
-
-		++iterator;
+		iterator->nested_descriptors_size =
+		    next - iterator->nested_descriptors;
 	}
+
+	alternates->alternatives = alts;
+	alternates->alternative_count = alt_count;
 
 	return EOK;
 }

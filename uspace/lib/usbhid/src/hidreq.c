@@ -181,12 +181,12 @@ int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 	
 	uint16_t value = duration << 8;
 	
-	rc = usb_control_request_set(ctrl_pipe, 
-	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
+	rc = usb_control_request_set(ctrl_pipe,
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_HIDREQ_SET_IDLE, value, iface_no, NULL, 0);
 
 	if (rc != EOK) {
-		usb_log_warning("Error sending Set Idle request to the device: "
+		usb_log_warning("Device did not accept Set Idle request: "
 		    "%s.\n", str_error(rc));
 		return rc;
 	}

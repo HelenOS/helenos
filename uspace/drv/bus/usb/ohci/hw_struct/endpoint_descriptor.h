@@ -35,11 +35,12 @@
 #define DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
 
 #include <assert.h>
-#include <stdint.h>
+#include <stdbool.h>
+#include <sys/types.h>
 
 #include <usb/host/endpoint.h>
+#include <usb/host/utils/malloc32.h>
 
-#include "../utils/malloc32.h"
 #include "transfer_descriptor.h"
 
 #include "completion_codes.h"

@@ -31,14 +31,16 @@
 /** @file
  * USB transfer transaction structures (implementation).
  */
-#include <errno.h>
-#include <macros.h>
-
-#include <usb/usb.h>
-#include <usb/debug.h>
 
 #include <usb/host/usb_transfer_batch.h>
-#include <usb/host/hcd.h>
+#include <usb/debug.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <macros.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <usbhc_iface.h>
 
 /** Allocate and initialize usb_transfer_batch structure.
  * @param ep endpoint used by the transfer batch.
@@ -60,10 +62,7 @@ usb_transfer_batch_t * usb_transfer_batch_create(
     uint64_t setup_buffer,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
-    void *arg,
-    ddf_fun_t *fun,
-    void *private_data,
-    void (*private_data_dtor)(void *)
+    void *arg
     )
 {
 	if (func_in == NULL && func_out == NULL)
@@ -80,9 +79,6 @@ usb_transfer_batch_t * usb_transfer_batch_create(
 		instance->buffer = buffer;
 		instance->buffer_size = buffer_size;
 		instance->setup_size = 0;
-		instance->fun = fun;
-		instance->private_data = private_data;
-		instance->private_data_dtor = private_data_dtor;
 		instance->transfered_size = 0;
 		instance->error = EOK;
 		if (ep && ep->transfer_type == USB_TRANSFER_CONTROL) {
@@ -109,10 +105,6 @@ void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance)
 	if (instance->ep) {
 		endpoint_release(instance->ep);
 	}
-	if (instance->private_data) {
-		assert(instance->private_data_dtor);
-		instance->private_data_dtor(instance->private_data);
-	}
 	free(instance);
 }
 
@@ -132,15 +124,7 @@ void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
 
 	/* NOTE: Only one of these pointers should be set. */
         if (instance->callback_out) {
-		/* Check for commands that reset toggle bit */
-		if (instance->ep->transfer_type == USB_TRANSFER_CONTROL
-		    && error == EOK) {
-			const usb_target_t target =
-			    {{ instance->ep->address, instance->ep->endpoint }};
-			reset_ep_if_need(fun_to_hcd(instance->fun), target,
-			    instance->setup_buffer);
-		}
-		instance->callback_out(instance->fun, error, instance->arg);
+		instance->callback_out(error, instance->arg);
 	}
 
         if (instance->callback_in) {
@@ -149,8 +133,7 @@ void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
 		if (data) {
 	                memcpy(instance->buffer, data, safe_size);
 		}
-		instance->callback_in(instance->fun, error,
-		    safe_size, instance->arg);
+		instance->callback_in(error, safe_size, instance->arg);
 	}
 }
 /**

@@ -53,7 +53,8 @@ typedef enum {
 	/* ... */
 	L18N_WIN_LOCALE_SPANISH_TRADITIONAL = 0x040A,
 	/* ... */
-	L18N_WIN_LOCALE_ZULU = 0x0435
+	L18N_WIN_LOCALE_ZULU = 0x0435,
+	L18N_WIN_LOCALE_MAX = 0xFFFF
 } l18_win_locales_t;
 
 const char *str_l18_win_locale(l18_win_locales_t);

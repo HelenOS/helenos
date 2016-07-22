@@ -92,7 +92,7 @@ struct ddf_fun {
 	void *driver_data;
 	
 	/** Implementation of operations provided by this function */
-	ddf_dev_ops_t *ops;
+	const ddf_dev_ops_t *ops;
 	
 	/** Connection handler or @c NULL to use the DDF default handler. */
 	async_port_handler_t conn_handler;

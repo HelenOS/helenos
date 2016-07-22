@@ -38,30 +38,42 @@
 #include <str_error.h>
 #include <stdlib.h>
 #include <usb_iface.h>
-#include <usb/ddfiface.h>
 #include <usb/dev/pipes.h>
 #include <usb/classes/classes.h>
 #include <usb/dev/recognise.h>
 #include "usbmid.h"
 
-/** Callback for DDF USB interface. */
-static int usb_iface_get_interface_impl(ddf_fun_t *fun, int *iface_no)
+/** Get USB device handle by calling the parent usb_device_t.
+ *
+ * @param[in] fun Device function the operation is running on.
+ * @param[out] handle Device handle.
+ * @return Error code.
+ */
+static int usb_iface_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
+{
+	assert(fun);
+	assert(handle);
+	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
+	*handle = usb_device_get_devman_handle(usb_dev);
+	return EOK;
+}
+
+/** Callback for DDF USB get interface. */
+static int usb_iface_iface_no(ddf_fun_t *fun, int *iface_no)
 {
 	usbmid_interface_t *iface = ddf_fun_data_get(fun);
 	assert(iface);
 
-	if (iface_no != NULL) {
+	if (iface_no)
 		*iface_no = iface->interface_no;
-	}
 
 	return EOK;
 }
 
-/** DDF interface of the child - interface function. */
+/** DDF interface of the child - USB functions. */
 static usb_iface_t child_usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
-	.get_my_address = usb_iface_get_my_address_forward_impl,
-	.get_my_interface = usb_iface_get_interface_impl,
+	.get_my_device_handle = usb_iface_device_handle,
+	.get_my_interface = usb_iface_iface_no,
 };
 
 /** Operations for children - interface functions. */
@@ -77,11 +89,7 @@ int usbmid_interface_destroy(usbmid_interface_t *mid_iface)
 	if (ret != EOK) {
 		return ret;
 	}
-	/* NOTE: usbmid->interface points somewhere, but we did not
-	 * allocate that space, so don't touch */
 	ddf_fun_destroy(mid_iface->fun);
-	/* NOTE: mid_iface is invalid at this point, it was assigned to
-	 * mid_iface->fun->driver_data and freed in ddf_fun_destroy */
 	return EOK;
 }
 
@@ -94,10 +102,11 @@ int usbmid_interface_destroy(usbmid_interface_t *mid_iface)
  * @return Error code.
  */
 int usbmid_spawn_interface_child(usb_device_t *parent,
-    usbmid_interface_t *iface,
+    usbmid_interface_t **iface_ret,
     const usb_standard_device_descriptor_t *device_descriptor,
     const usb_standard_interface_descriptor_t *interface_descriptor)
 {
+	ddf_fun_t *child = NULL;
 	char *child_name = NULL;
 	int rc;
 
@@ -109,36 +118,51 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	rc = asprintf(&child_name, "%s%hhu",
 	    usb_str_class(interface_descriptor->interface_class),
 	    interface_descriptor->interface_number);
-	if (rc < 0)
+	if (rc < 0) {
 		return ENOMEM;
+	}
 
-	rc = ddf_fun_set_name(iface->fun, child_name);
+	/* Create the device. */
+	child = usb_device_ddf_fun_create(parent, fun_inner, child_name);
 	free(child_name);
-	if (rc != EOK)
+	if (child == NULL) {
 		return ENOMEM;
+	}
 
 	match_id_list_t match_ids;
 	init_match_ids(&match_ids);
 
 	rc = usb_device_create_match_ids_from_interface(device_descriptor,
 	    interface_descriptor, &match_ids);
-	if (rc != EOK)
+	if (rc != EOK) {
+		ddf_fun_destroy(child);
 		return rc;
+	}
 
 	list_foreach(match_ids.ids, link, match_id_t, match_id) {
-		rc = ddf_fun_add_match_id(iface->fun, match_id->id, match_id->score);
+		rc = ddf_fun_add_match_id(child, match_id->id, match_id->score);
 		if (rc != EOK) {
 			clean_match_ids(&match_ids);
+			ddf_fun_destroy(child);
 			return rc;
 		}
 	}
 	clean_match_ids(&match_ids);
+	ddf_fun_set_ops(child, &child_device_ops);
 
-	ddf_fun_set_ops(iface->fun, &child_device_ops);
+	usbmid_interface_t *iface = ddf_fun_data_alloc(child, sizeof(*iface));
 
-	rc = ddf_fun_bind(iface->fun);
-	if (rc != EOK)
+	iface->fun = child;
+	iface->interface_no = interface_descriptor->interface_number;
+	link_initialize(&iface->link);
+
+	rc = ddf_fun_bind(child);
+	if (rc != EOK) {
+		/* This takes care of match_id deallocation as well. */
+		ddf_fun_destroy(child);
 		return rc;
+	}
+	*iface_ret = iface;
 
 	return EOK;
 }

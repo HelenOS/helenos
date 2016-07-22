@@ -60,8 +60,8 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	};
 	
 	usb_dp_parser_data_t parser_data = {
-		.data = dev->descriptors.configuration,
-		.size = dev->descriptors.configuration_size,
+		.data = usb_device_descriptors(dev)->full_config,
+		.size = usb_device_descriptors(dev)->full_config_size,
 		.arg = NULL
 	};
 	
@@ -70,21 +70,21 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	 */
 	const uint8_t *d =
 	    usb_dp_get_nested_descriptor(&parser, &parser_data,
-	    dev->descriptors.configuration);
+	        usb_device_descriptors(dev)->full_config);
 	
 	/*
 	 * Find the interface descriptor corresponding to our interface number.
 	 */
 	int i = 0;
-	while (d != NULL && i < dev->interface_no) {
+	while (d != NULL && i < usb_device_get_iface_number(dev)) {
 		d = usb_dp_get_sibling_descriptor(&parser, &parser_data,
-		    dev->descriptors.configuration, d);
+		    usb_device_descriptors(dev)->full_config, d);
 		++i;
 	}
 	
 	if (d == NULL) {
 		usb_log_error("The %d. interface descriptor not found!\n",
-		    dev->interface_no);
+		    usb_device_get_iface_number(dev));
 		return ENOENT;
 	}
 	
@@ -134,9 +134,9 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	/*
 	 * Get the descriptor from the device.
 	 */
-	int rc = usb_request_get_descriptor(&dev->ctrl_pipe,
+	int rc = usb_request_get_descriptor(usb_device_get_default_pipe(dev),
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE,
-	    USB_DESCTYPE_HID_REPORT, 0, dev->interface_no,
+	    USB_DESCTYPE_HID_REPORT, 0, usb_device_get_iface_number(dev),
 	    *report_desc, length, &actual_size);
 
 	if (rc != EOK) {

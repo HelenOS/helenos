@@ -38,9 +38,7 @@
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
 
-int get_my_registers(ddf_dev_t *, addr_range_t *, int *);
-int enable_interrupts(ddf_dev_t *);
-int disable_legacy(ddf_dev_t *, addr_range_t *);
+int disable_legacy(ddf_dev_t *);
 
 #endif
 /**

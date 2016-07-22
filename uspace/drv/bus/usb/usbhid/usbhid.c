@@ -40,7 +40,9 @@
 #include <usb/hid/hidparser.h>
 #include <usb/hid/hidreport.h>
 #include <usb/hid/request.h>
+
 #include <errno.h>
+#include <macros.h>
 #include <str_error.h>
 
 #include "usbhid.h"
@@ -113,13 +115,14 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 static bool usb_hid_ids_match(const usb_hid_dev_t *hid_dev,
     const usb_hid_subdriver_mapping_t *mapping)
 {
-	assert(hid_dev != NULL);
-	assert(hid_dev->usb_dev != NULL);
+	assert(hid_dev);
+	assert(hid_dev->usb_dev);
+	assert(mapping);
+	const usb_standard_device_descriptor_t *d =
+	    &usb_device_descriptors(hid_dev->usb_dev)->device;
 
-	return (hid_dev->usb_dev->descriptors.device.vendor_id
-	    == mapping->vendor_id
-	    && hid_dev->usb_dev->descriptors.device.product_id
-	    == mapping->product_id);
+	return (d->vendor_id == mapping->vendor_id)
+	    && (d->product_id == mapping->product_id);
 }
 
 static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
@@ -263,27 +266,26 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 	return usb_hid_save_subdrivers(hid_dev, subdrivers, count);
 }
 
-static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, const usb_device_t *dev)
+static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 {
 	assert(hid_dev);
 	assert(dev);
 
 	static const struct {
-		unsigned ep_number;
+		const usb_endpoint_description_t *desc;
 		const char* description;
 	} endpoints[] = {
-		{USB_HID_KBD_POLL_EP_NO, "Keyboard endpoint"},
-		{USB_HID_MOUSE_POLL_EP_NO, "Mouse endpoint"},
-		{USB_HID_GENERIC_POLL_EP_NO, "Generic HID endpoint"},
+		{&usb_hid_kbd_poll_endpoint_description, "Keyboard endpoint"},
+		{&usb_hid_mouse_poll_endpoint_description, "Mouse endpoint"},
+		{&usb_hid_generic_poll_endpoint_description, "Generic HID endpoint"},
 	};
 
-	for (unsigned i = 0; i < sizeof(endpoints)/sizeof(endpoints[0]); ++i) {
-		if (endpoints[i].ep_number >= dev->pipes_count) {
-			return EINVAL;
-		}
-		if (dev->pipes[endpoints[i].ep_number].present) {
+	for (unsigned i = 0; i < ARRAY_SIZE(endpoints); ++i) {
+		usb_endpoint_mapping_t *epm =
+		    usb_device_get_mapped_ep_desc(dev, endpoints[i].desc);
+		if (epm && epm->present) {
 			usb_log_debug("Found: %s.\n", endpoints[i].description);
-			hid_dev->poll_pipe_index = endpoints[i].ep_number;
+			hid_dev->poll_pipe_mapping = epm;
 			return EOK;
 		}
 	}
@@ -350,7 +352,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 
 	/* The USB device should already be initialized, save it in structure */
 	hid_dev->usb_dev = dev;
-	hid_dev->poll_pipe_index = -1;
+	hid_dev->poll_pipe_mapping = NULL;
 
 	int rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {
@@ -380,15 +382,15 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		usb_log_info("No subdrivers found to handle device, trying "
 		    "boot protocol.\n");
 
-		switch (hid_dev->poll_pipe_index) {
-		case USB_HID_KBD_POLL_EP_NO:
+		switch (hid_dev->poll_pipe_mapping->interface->interface_protocol) {
+		case USB_HID_PROTOCOL_KEYBOARD:
 			usb_log_info("Falling back to kbd boot protocol.\n");
 			rc = usb_kbd_set_boot_protocol(hid_dev);
 			if (rc == EOK) {
 				usb_hid_set_boot_kbd_subdriver(hid_dev);
 			}
 			break;
-		case USB_HID_MOUSE_POLL_EP_NO:
+		case USB_HID_PROTOCOL_MOUSE:
 			usb_log_info("Falling back to mouse boot protocol.\n");
 			rc = usb_mouse_set_boot_protocol(hid_dev);
 			if (rc == EOK) {
@@ -396,8 +398,6 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 			}
 			break;
 		default:
-			assert(hid_dev->poll_pipe_index
-			    == USB_HID_GENERIC_POLL_EP_NO);
 			usb_log_info("Falling back to generic HID driver.\n");
 			usb_hid_set_generic_hid_subdriver(hid_dev);
 		}
@@ -475,7 +475,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	const int rc = usb_hid_parse_report(
 	    &hid_dev->report, buffer, buffer_size, &hid_dev->report_id);
 	if (rc != EOK) {
-		usb_log_warning("Error in usb_hid_parse_report():"
+		usb_log_warning("Failure in usb_hid_parse_report():"
 		    "%s\n", str_error(rc));
 	}
 

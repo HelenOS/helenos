@@ -34,8 +34,9 @@
 #ifndef DRV_OHCI_HW_STRUCT_HCCA_H
 #define DRV_OHCI_HW_STRUCT_HCCA_H
 
-#include <stdint.h>
 #include <malloc.h>
+#include <sys/types.h>
+#include <macros.h>
 
 #include "mem_access.h"
 
@@ -49,12 +50,14 @@ typedef struct hcca {
 	uint32_t int_ep[HCCA_INT_EP_COUNT];
 	/** Frame number. */
 	uint16_t frame_number;
-	uint16_t pad1;
+	PADD16;
 	/** Pointer to the last completed TD. (useless) */
 	uint32_t done_head;
 	/** Padding to make the size 256B */
-	uint32_t reserved[30];
+	PADD32[30];
 } hcca_t;
+
+STATIC_ASSERT(sizeof(hcca_t) == 256);
 
 /** Allocate properly aligned structure.
  *
@@ -64,8 +67,7 @@ typedef struct hcca {
  */
 static inline hcca_t * hcca_get(void)
 {
-	static_assert(sizeof(hcca_t) == 256);
-	hcca_t *hcca = memalign(256, sizeof(hcca_t));
+	hcca_t *hcca = memalign(sizeof(hcca_t), sizeof(hcca_t));
 	if (hcca)
 		memset(hcca, 0, sizeof(hcca_t));
 	return hcca;
@@ -79,9 +81,8 @@ static inline hcca_t * hcca_get(void)
 static inline void hcca_set_int_ep(hcca_t *hcca, unsigned index, uintptr_t pa)
 {
 	assert(hcca);
-	assert(index < HCCA_INT_EP_COUNT);
+	assert(index < ARRAY_SIZE(hcca->int_ep));
 	OHCI_MEM32_WR(hcca->int_ep[index], pa);
-
 }
 #endif
 /**

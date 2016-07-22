@@ -34,8 +34,12 @@
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
 
-#include <usb/host/usb_transfer_batch.h>
 #include <adt/list.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <sys/types.h>
+#include <usb/host/usb_transfer_batch.h>
 
 #include "hw_struct/queue_head.h"
 #include "hw_struct/transfer_descriptor.h"

@@ -33,18 +33,22 @@
  * @brief OHCI Host controller driver routines
  */
 
+#include <assert.h>
+#include <async.h>
 #include <errno.h>
-#include <stdbool.h>
+#include <macros.h>
+#include <mem.h>
+#include <stdlib.h>
 #include <str_error.h>
-#include <adt/list.h>
-#include <libarch/ddi.h>
+#include <sys/types.h>
 
 #include <usb/debug.h>
 #include <usb/usb.h>
-#include <usb/ddfiface.h>
+
+#include "ohci_endpoint.h"
+#include "ohci_batch.h"
 
 #include "hc.h"
-#include "ohci_endpoint.h"
 
 #define OHCI_USED_INTERRUPTS \
     (I_SO | I_WDH | I_UE | I_RHSC)
@@ -83,232 +87,116 @@ static const irq_cmd_t ohci_irq_commands[] = {
 	}
 };
 
-enum {
-	/** Number of PIO ranges used in IRQ code */
-	hc_irq_pio_range_count = 
-	    sizeof(ohci_pio_ranges) / sizeof(irq_pio_range_t),
-
-	/** Number of commands used in IRQ code */
-	hc_irq_cmd_count =
-	    sizeof(ohci_irq_commands) / sizeof(irq_cmd_t)
-};
-
 static void hc_gain_control(hc_t *instance);
 static void hc_start(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
-static int interrupt_emulator(hc_t *instance);
-static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
  * @param[in] ranges_size Size of the ranges buffer (bytes).
  * @param[out] cmds Commands buffer.
  * @param[in] cmds_size Size of the commands buffer (bytes).
- * @param[in] regs Device's register range.
+ * @param[in] hw_res Device's resources.
  *
  * @return Error code.
  */
-int
-hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
-    size_t cmds_size, addr_range_t *regs)
+int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 {
-	if ((ranges_size < sizeof(ohci_pio_ranges)) ||
-	    (cmds_size < sizeof(ohci_irq_commands)) ||
-	    (RNGSZ(*regs) < sizeof(ohci_regs_t)))
+	assert(code);
+	assert(hw_res);
+
+	if (hw_res->irqs.count != 1 || hw_res->mem_ranges.count != 1)
+		return EINVAL;
+
+	const addr_range_t regs = hw_res->mem_ranges.ranges[0];
+
+	if (RNGSZ(regs) < sizeof(ohci_regs_t))
 		return EOVERFLOW;
 
-	memcpy(ranges, ohci_pio_ranges, sizeof(ohci_pio_ranges));
-	ranges[0].base = RNGABS(*regs);
+	code->ranges = malloc(sizeof(ohci_pio_ranges));
+	if (code->ranges == NULL)
+		return ENOMEM;
 
-	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
-	ohci_regs_t *registers = (ohci_regs_t *) RNGABSPTR(*regs);
-	cmds[0].addr = (void *) &registers->interrupt_status;
-	cmds[3].addr = (void *) &registers->interrupt_status;
-	OHCI_WR(cmds[1].value, OHCI_USED_INTERRUPTS);
-
-	return EOK;
-}
-
-/** Register interrupt handler.
- *
- * @param[in] device Host controller DDF device
- * @param[in] regs Register range
- * @param[in] irq Interrupt number
- * @paran[in] handler Interrupt handler
- *
- * @return EOK on success or negative error code
- */
-int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
-    interrupt_handler_t handler)
-{
-	int rc;
-
-	irq_pio_range_t irq_ranges[hc_irq_pio_range_count];
-	irq_cmd_t irq_cmds[hc_irq_cmd_count];
-
-	irq_code_t irq_code = {
-		.rangecount = hc_irq_pio_range_count,
-		.ranges = irq_ranges,
-		.cmdcount = hc_irq_cmd_count,
-		.cmds = irq_cmds
-	};
-
-	rc = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
-	    sizeof(irq_cmds), regs);
-	if (rc != EOK) {
-		usb_log_error("Failed to generate IRQ code: %s.\n",
-		    str_error(rc));
-		return rc;
+	code->cmds = malloc(sizeof(ohci_irq_commands));
+	if (code->cmds == NULL) {
+		free(code->ranges);
+		return ENOMEM;
 	}
 
-	/* Register handler to avoid interrupt lockup */
-	rc = register_interrupt_handler(device, irq, handler, &irq_code);
-	if (rc != EOK) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
+	code->rangecount = ARRAY_SIZE(ohci_pio_ranges);
+	code->cmdcount = ARRAY_SIZE(ohci_irq_commands);
 
-	return EOK;
-}
+	memcpy(code->ranges, ohci_pio_ranges, sizeof(ohci_pio_ranges));
+	code->ranges[0].base = RNGABS(regs);
 
-/** Announce OHCI root hub to the DDF
- *
- * @param[in] instance OHCI driver intance
- * @param[in] hub_fun DDF fuction representing OHCI root hub
- * @return Error code
- */
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
-{
-	bool addr_reqd = false;
-	bool ep_added = false;
-	bool fun_bound = false;
-	int rc;
+	memcpy(code->cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
+	ohci_regs_t *registers = (ohci_regs_t *) RNGABSPTR(regs);
+	code->cmds[0].addr = (void *) &registers->interrupt_status;
+	code->cmds[3].addr = (void *) &registers->interrupt_status;
+	OHCI_WR(code->cmds[1].value, OHCI_USED_INTERRUPTS);
 
-	assert(instance);
-	assert(hub_fun);
+	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
 
-	/* Try to get address 1 for root hub. */
-	instance->rh.address = 1;
-	rc = usb_device_manager_request_address(
-	    &instance->generic->dev_manager, &instance->rh.address, false,
-	    USB_SPEED_FULL);
-	if (rc != EOK) {
-		usb_log_error("Failed to get OHCI root hub address: %s\n",
-		    str_error(rc));
-		goto error;
-	}
-
-	addr_reqd = true;
-
-	rc = usb_endpoint_manager_add_ep(
-	    &instance->generic->ep_manager, instance->rh.address, 0,
-	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
-	    0, NULL, NULL);
-	if (rc != EOK) {
-    	        usb_log_error("Failed to register root hub control endpoint: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
-
-	ep_added = true;
-
-	rc = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
-	if (rc != EOK) {
-		usb_log_error("Failed to add root hub match-id: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
-
-	rc = ddf_fun_bind(hub_fun);
-	if (rc != EOK) {
-		usb_log_error("Failed to bind root hub function: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
-
-	fun_bound = true;
-
-	rc = usb_device_manager_bind_address(&instance->generic->dev_manager,
-	    instance->rh.address, ddf_fun_get_handle(hub_fun));
-	if (rc != EOK) {
-		usb_log_warning("Failed to bind root hub address: %s.\n",
-		    str_error(rc));
-	}
-
-	return EOK;
-error:
-	if (fun_bound)
-		ddf_fun_unbind(hub_fun);
-	if (ep_added) {
-		usb_endpoint_manager_remove_ep(
-		    &instance->generic->ep_manager, instance->rh.address, 0,
-		    USB_DIRECTION_BOTH, NULL, NULL);
-	}
-	if (addr_reqd) {
-		usb_device_manager_release_address(
-		    &instance->generic->dev_manager, instance->rh.address);
-	}
-	return rc;
+	return hw_res->irqs.irqs[0];
 }
 
 /** Initialize OHCI hc driver structure
  *
  * @param[in] instance Memory place for the structure.
- * @param[in] HC function node
- * @param[in] regs Device's I/O registers range.
+ * @param[in] regs Device's resources
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, ddf_fun_t *fun, addr_range_t *regs, bool interrupts)
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 {
 	assert(instance);
+	assert(hw_res);
+	if (hw_res->mem_ranges.count != 1 ||
+	    hw_res->mem_ranges.ranges[0].size < sizeof(ohci_regs_t))
+	    return EINVAL;
 
-	int rc = pio_enable_range(regs, (void **) &instance->registers);
-	if (rc != EOK) {
-		usb_log_error("Failed to gain access to device registers: %s.\n",
-		    str_error(rc));
-		return rc;
+	int ret = pio_enable_range(&hw_res->mem_ranges.ranges[0],
+	    (void **) &instance->registers);
+	if (ret != EOK) {
+		usb_log_error("Failed to gain access to registers: %s.\n",
+		    str_error(ret));
+		return ret;
 	}
+	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.\n",
+	    hw_res->mem_ranges.ranges[0].address.absolute,
+	    hw_res->mem_ranges.ranges[0].size);
 
 	list_initialize(&instance->pending_batches);
-
-	instance->generic = ddf_fun_data_alloc(fun, sizeof(hcd_t));
-	if (instance->generic == NULL) {
-		usb_log_error("Out of memory.\n");
-		return ENOMEM;
-	}
-
-	hcd_init(instance->generic, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
-	instance->generic->private_data = instance;
-	instance->generic->schedule = hc_schedule;
-	instance->generic->ep_add_hook = ohci_endpoint_init;
-	instance->generic->ep_remove_hook = ohci_endpoint_fini;
-
-	rc = hc_init_memory(instance);
-	if (rc != EOK) {
-		usb_log_error("Failed to create OHCI memory structures: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-
 	fibril_mutex_initialize(&instance->guard);
+	instance->hw_interrupts = interrupts;
+
+	ret = hc_init_memory(instance);
+	if (ret != EOK) {
+		usb_log_error("Failed to create OHCI memory structures: %s.\n",
+		    str_error(ret));
+		//TODO: We should disable pio access here
+		return ret;
+	}
 
 	hc_gain_control(instance);
 
-	if (!interrupts) {
-		instance->interrupt_emulator =
-		    fibril_create((int(*)(void*))interrupt_emulator, instance);
-		fibril_add_ready(instance->interrupt_emulator);
-	}
-
-	rh_init(&instance->rh, instance->registers);
+	ohci_rh_init(&instance->rh, instance->registers, "ohci rh");
 	hc_start(instance);
 
 	return EOK;
 }
+
+/** Safely dispose host controller internal structures
+ *
+ * @param[in] instance Host controller structure to use.
+ */
+void hc_fini(hc_t *instance)
+{
+	assert(instance);
+	/* TODO: implement*/
+};
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
@@ -378,23 +266,36 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	}
 }
 
+int ohci_hc_status(hcd_t *hcd, uint32_t *status)
+{
+	assert(hcd);
+	assert(status);
+	hc_t *instance = hcd_get_driver_data(hcd);
+	assert(instance);
+
+	if (instance->registers){
+		*status = OHCI_RD(instance->registers->interrupt_status);
+		OHCI_WR(instance->registers->interrupt_status, *status);
+	}
+	return EOK;
+}
+
 /** Add USB transfer to the schedule.
  *
- * @param[in] instance OHCI hc driver structure.
+ * @param[in] hcd HCD driver structure.
  * @param[in] batch Batch representing the transfer.
  * @return Error code.
  */
-int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
-	hc_t *instance = hcd->private_data;
+	hc_t *instance = hcd_get_driver_data(hcd);
 	assert(instance);
 
 	/* Check for root hub communication */
-	if (batch->ep->address == instance->rh.address) {
+	if (batch->ep->address == ohci_rh_get_address(&instance->rh)) {
 		usb_log_debug("OHCI root hub request.\n");
-		rh_request(&instance->rh, batch);
-		return EOK;
+		return ohci_rh_schedule(&instance->rh, batch);
 	}
 	ohci_transfer_batch_t *ohci_batch = ohci_transfer_batch_get(batch);
 	if (!ohci_batch)
@@ -422,18 +323,20 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 /** Interrupt handling routine
  *
- * @param[in] instance OHCI hc driver structure.
+ * @param[in] hcd HCD driver structure.
  * @param[in] status Value of the status register at the time of interrupt.
  */
-void hc_interrupt(hc_t *instance, uint32_t status)
+void ohci_hc_interrupt(hcd_t *hcd, uint32_t status)
 {
+	assert(hcd);
+	hc_t *instance = hcd_get_driver_data(hcd);
 	status = OHCI_RD(status);
 	assert(instance);
 	if ((status & ~I_SF) == 0) /* ignore sof status */
 		return;
 	usb_log_debug2("OHCI(%p) interrupt: %x.\n", instance, status);
 	if (status & I_RHSC)
-		rh_interrupt(&instance->rh);
+		ohci_rh_interrupt(&instance->rh);
 
 	if (status & I_WDH) {
 		fibril_mutex_lock(&instance->guard);
@@ -466,24 +369,6 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 
 }
 
-/** Check status register regularly
- *
- * @param[in] instance OHCI hc driver structure.
- * @return Error code
- */
-int interrupt_emulator(hc_t *instance)
-{
-	assert(instance);
-	usb_log_info("Started interrupt emulator.\n");
-	while (1) {
-		const uint32_t status = instance->registers->interrupt_status;
-		instance->registers->interrupt_status = status;
-		hc_interrupt(instance, status);
-		async_usleep(10000);
-	}
-	return EOK;
-}
-
 /** Turn off any (BIOS)driver that might be in control of the device.
  *
  * This function implements routines described in chapter 5.1.1.3 of the OHCI
@@ -507,6 +392,7 @@ void hc_gain_control(hc_t *instance)
 		usb_log_debug("OHCI legacy register %p: %x.\n",
 		    ohci_emulation_reg, OHCI_RD(*ohci_emulation_reg));
 		/* Zero everything but A20State */
+		//TODO: should we ack interrupts before doing this?
 		OHCI_CLR(*ohci_emulation_reg, ~0x100);
 		usb_log_debug(
 		    "OHCI legacy register (should be 0 or 0x100) %p: %x.\n",
@@ -516,9 +402,10 @@ void hc_gain_control(hc_t *instance)
 	/* Interrupt routing enabled => smm driver is active */
 	if (OHCI_RD(instance->registers->control) & C_IR) {
 		usb_log_debug("SMM driver: request ownership change.\n");
+		//TODO: should we ack interrupts before doing this?
 		OHCI_SET(instance->registers->command_status, CS_OCR);
 		/* Hope that SMM actually knows its stuff or we can hang here */
-		while (OHCI_RD(instance->registers->control & C_IR)) {
+		while (OHCI_RD(instance->registers->control) & C_IR) {
 			async_usleep(1000);
 		}
 		usb_log_info("SMM driver: Ownership taken.\n");
@@ -602,10 +489,13 @@ void hc_start(hc_t *instance)
 	    OHCI_RD(instance->registers->control));
 
 	/* Enable interrupts */
-	OHCI_WR(instance->registers->interrupt_enable, OHCI_USED_INTERRUPTS);
-	usb_log_debug("Enabled interrupts: %x.\n",
-	    OHCI_RD(instance->registers->interrupt_enable));
-	OHCI_WR(instance->registers->interrupt_enable, I_MI);
+	if (instance->hw_interrupts) {
+		OHCI_WR(instance->registers->interrupt_enable,
+		    OHCI_USED_INTERRUPTS);
+		usb_log_debug("Enabled interrupts: %x.\n",
+		    OHCI_RD(instance->registers->interrupt_enable));
+		OHCI_WR(instance->registers->interrupt_enable, I_MI);
+	}
 
 	/* Set periodic start to 90% */
 	const uint32_t frame_length =
@@ -631,7 +521,7 @@ int hc_init_transfer_lists(hc_t *instance)
 #define SETUP_ENDPOINT_LIST(type) \
 do { \
 	const char *name = usb_str_transfer_type(type); \
-	int ret = endpoint_list_init(&instance->lists[type], name); \
+	const int ret = endpoint_list_init(&instance->lists[type], name); \
 	if (ret != EOK) { \
 		usb_log_error("Failed to setup %s endpoint list: %s.\n", \
 		    name, str_error(ret)); \

@@ -34,11 +34,14 @@
 #ifndef DRV_OHCI_ENDPOINT_LIST_H
 #define DRV_OHCI_ENDPOINT_LIST_H
 
+#include <adt/list.h>
+#include <assert.h>
 #include <fibril_synch.h>
+#include <sys/types.h>
+#include <usb/host/utils/malloc32.h>
 
 #include "ohci_endpoint.h"
 #include "hw_struct/endpoint_descriptor.h"
-#include "utils/malloc32.h"
 
 /** Structure maintains both OHCI queue and software list of active endpoints.*/
 typedef struct endpoint_list {
@@ -64,6 +67,7 @@ static inline void endpoint_list_fini(endpoint_list_t *instance)
 {
 	assert(instance);
 	free32(instance->list_head);
+	instance->list_head = NULL;
 }
 
 int endpoint_list_init(endpoint_list_t *instance, const char *name);

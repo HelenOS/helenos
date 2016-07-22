@@ -37,6 +37,7 @@
 #define ATHEROS_HTC_H
 
 #include <ieee80211.h>
+#include <fibril_synch.h>
 #include <usb/dev/driver.h>
 #include <sys/types.h>
 #include <nic.h>

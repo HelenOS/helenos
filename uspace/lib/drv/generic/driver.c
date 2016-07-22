@@ -785,6 +785,7 @@ int ddf_fun_bind(ddf_fun_t *fun)
 {
 	assert(fun->bound == false);
 	assert(fun->name != NULL);
+	assert(fun->dev != NULL);
 	
 	add_to_functions_list(fun);
 	int res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
@@ -889,7 +890,7 @@ int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
 }
 
 /** Set function ops. */
-void ddf_fun_set_ops(ddf_fun_t *fun, ddf_dev_ops_t *dev_ops)
+void ddf_fun_set_ops(ddf_fun_t *fun, const ddf_dev_ops_t *dev_ops)
 {
 	assert(fun->conn_handler == NULL);
 	fun->ops = dev_ops;

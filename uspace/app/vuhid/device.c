@@ -59,7 +59,7 @@ static int on_data_from_device(usbvirt_device_t *dev,
 
 static int on_data_to_device(usbvirt_device_t *dev,
     usb_endpoint_t ep, usb_transfer_type_t tr_type,
-    void *data, size_t data_size)
+    const void *data, size_t data_size)
 {
 	vuhid_data_t *vuhid = dev->device_data;
 	vuhid_interface_t *iface = vuhid->out_endpoints_mapping[ep];
@@ -253,9 +253,8 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	}
 
 	/* Extend existing extra descriptors with these ones. */
-	usbvirt_device_configuration_extras_t *extra_descriptors
-	    = dev->descriptors->configuration->extra;
-	extra_descriptors = realloc(extra_descriptors,
+	usbvirt_device_configuration_extras_t *extra_descriptors;
+	extra_descriptors = realloc(dev->descriptors->configuration->extra,
 	    sizeof(usbvirt_device_configuration_extras_t)
 	    * (dev->descriptors->configuration->extra_count + descr_count));
 	if (extra_descriptors == NULL) {

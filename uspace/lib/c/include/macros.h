@@ -68,5 +68,7 @@
 #define PADD16 _padd(16, __LINE__)
 #define PADD8 _padd(8, __LINE__)
 
+#define STATIC_ASSERT(cond) int sassert[(cond) ? 1 : -1]
+
 /** @}
  */
