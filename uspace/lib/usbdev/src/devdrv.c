@@ -473,6 +473,8 @@ int usb_device_create_ddf(ddf_dev_t *ddf_dev,
 
 	async_sess_t *sess = devman_parent_device_connect(
 	    ddf_dev_get_handle(ddf_dev), IPC_FLAG_BLOCKING);
+	if (sess == NULL)
+		return ENOMEM;
 	const int ret = usb_device_get_info(sess, &h, &iface_no);
 	async_hangup(sess);
 	if (ret != EOK)
