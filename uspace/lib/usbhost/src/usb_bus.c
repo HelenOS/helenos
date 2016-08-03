@@ -241,6 +241,8 @@ int usb_bus_register_ep(usb_bus_t *instance, endpoint_t *ep, size_t data_size)
 		fibril_mutex_unlock(&instance->guard);
 		return EEXIST;
 	}
+	/* Add endpoint list's reference to ep. */
+	endpoint_add_ref(ep);
 	list_append(&ep->link, get_list(instance, ep->address));
 
 	instance->free_bw -= ep->bandwidth;
@@ -273,6 +275,8 @@ int usb_bus_unregister_ep(usb_bus_t *instance, endpoint_t *ep)
 	usb_log_debug("Unregistered EP(%d:%d:%s:%s)\n", ep->address,
 	    ep->endpoint, usb_str_transfer_type_short(ep->transfer_type),
 	    usb_str_direction(ep->direction));
+	/* Drop endpoint list's reference to ep. */
+	endpoint_del_ref(ep);
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
@@ -288,6 +292,10 @@ endpoint_t * usb_bus_find_ep(usb_bus_t *instance,
 
 	fibril_mutex_lock(&instance->guard);
 	endpoint_t *ep = find_locked(instance, address, endpoint, direction);
+	if (ep) {
+		/* We are exporting ep to the outside world, add reference. */
+		endpoint_add_ref(ep);
+	}
 	fibril_mutex_unlock(&instance->guard);
 	return ep;
 }
@@ -349,18 +357,28 @@ int usb_bus_add_ep(usb_bus_t *instance,
 		return ENOMEM;
 	}
 
+	/* Add our reference to ep. */
+	endpoint_add_ref(ep);
+
 	if (callback) {
 		const int ret = callback(ep, arg);
 		if (ret != EOK) {
 			fibril_mutex_unlock(&instance->guard);
-			endpoint_destroy(ep);
+			endpoint_del_ref(ep);
 			return ret;
 		}
 	}
+	
+	/* Add endpoint list's reference to ep. */
+	endpoint_add_ref(ep);
 	list_append(&ep->link, get_list(instance, ep->address));
 
 	instance->free_bw -= ep->bandwidth;
 	fibril_mutex_unlock(&instance->guard);
+
+	/* Drop our reference to ep. */
+	endpoint_del_ref(ep);
+
 	return EOK;
 }
 
@@ -391,7 +409,8 @@ int usb_bus_remove_ep(usb_bus_t *instance,
 	if (callback) {
 		callback(ep, arg);
 	}
-	endpoint_destroy(ep);
+	/* Drop endpoint list's reference to ep. */
+	endpoint_del_ref(ep);
 	return EOK;
 }
 
@@ -444,7 +463,8 @@ int usb_bus_remove_address(usb_bus_t *instance,
 			list_remove(&ep->link);
 			if (callback)
 				callback(ep, arg);
-			endpoint_destroy(ep);
+			/* Drop endpoint list's reference to ep. */
+			endpoint_del_ref(ep);
 		}
 	}
 	fibril_mutex_unlock(&instance->guard);

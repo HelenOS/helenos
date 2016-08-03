@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup libusbhost
  * @{
  */
@@ -36,6 +37,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <atomic.h>
 
 /** Allocate ad initialize endpoint_t structure.
  * @param address USB address.
@@ -54,6 +56,7 @@ endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
 {
 	endpoint_t *instance = malloc(sizeof(endpoint_t));
 	if (instance) {
+		atomic_set(&instance->refcnt, 0);
 		instance->address = address;
 		instance->endpoint = endpoint;
 		instance->direction = direction;
@@ -82,10 +85,20 @@ endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
 void endpoint_destroy(endpoint_t *instance)
 {
 	assert(instance);
-	//TODO: Do something about waiting fibrils.
 	assert(!instance->active);
 	assert(instance->hc_data.data == NULL);
 	free(instance);
+}
+
+void endpoint_add_ref(endpoint_t *instance)
+{
+	atomic_inc(&instance->refcnt);
+}
+
+void endpoint_del_ref(endpoint_t *instance)
+{
+	if (atomic_predec(&instance->refcnt) == 0)
+		endpoint_destroy(instance);
 }
 
 /** Set device specific data and hooks.
@@ -121,6 +134,8 @@ void endpoint_clear_hc_data(endpoint_t *instance)
 void endpoint_use(endpoint_t *instance)
 {
 	assert(instance);
+	/* Add reference for active endpoint. */
+	endpoint_add_ref(instance);
 	fibril_mutex_lock(&instance->guard);
 	while (instance->active)
 		fibril_condvar_wait(&instance->avail, &instance->guard);
@@ -138,6 +153,8 @@ void endpoint_release(endpoint_t *instance)
 	instance->active = false;
 	fibril_mutex_unlock(&instance->guard);
 	fibril_condvar_signal(&instance->avail);
+	/* Drop reference for active endpoint. */
+	endpoint_del_ref(instance);
 }
 
 /** Get the value of toggle bit.
@@ -170,6 +187,7 @@ void endpoint_toggle_set(endpoint_t *instance, int toggle)
 		instance->hc_data.toggle_set(instance->hc_data.data, toggle);
 	fibril_mutex_unlock(&instance->guard);
 }
+
 /**
  * @}
  */

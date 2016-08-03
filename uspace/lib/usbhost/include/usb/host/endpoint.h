@@ -39,9 +39,12 @@
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
+#include <atomic.h>
 
 /** Host controller side endpoint structure. */
 typedef struct endpoint {
+	/** Reference count. */
+	atomic_t refcnt;	
 	/** Part of linked list. */
 	link_t link;
 	/** USB address. */
@@ -89,6 +92,9 @@ endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
     size_t max_packet_size, unsigned packets, size_t bw,
     usb_address_t tt_address, unsigned tt_port);
 void endpoint_destroy(endpoint_t *instance);
+
+void endpoint_add_ref(endpoint_t *instance);
+void endpoint_del_ref(endpoint_t *instance);
 
 void endpoint_set_hc_data(endpoint_t *instance,
     void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int));

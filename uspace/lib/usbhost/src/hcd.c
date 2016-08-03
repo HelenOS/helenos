@@ -240,6 +240,9 @@ int hcd_send_batch(
 	if (ret != EOK)
 		usb_transfer_batch_destroy(batch);
 
+	/* Drop our own reference to ep. */
+	endpoint_del_ref(ep);
+
 	return ret;
 }
 
