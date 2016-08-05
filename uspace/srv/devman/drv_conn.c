@@ -543,7 +543,7 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	} else {
 		if (fun->service_id != 0) {
 			/* Unregister from location service */
-			rc = loc_service_unregister(fun->service_id);
+			rc = loc_unregister_tree_function(fun, &device_tree);
 			if (rc != EOK) {
 				log_msg(LOG_DEFAULT, LVL_ERROR, "Failed unregistering tree "
 				    "service.");

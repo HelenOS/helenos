@@ -412,7 +412,7 @@ int fun_offline(fun_node_t *fun)
 		}
 	} else {
 		/* Unregister from location service */
-		rc = loc_service_unregister(fun->service_id);
+		rc = loc_unregister_tree_function(fun, &device_tree);
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&device_tree.rwlock);
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed unregistering tree service.");

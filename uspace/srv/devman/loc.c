@@ -66,6 +66,13 @@ void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 	free(loc_pathname);
 }
 
+int loc_unregister_tree_function(fun_node_t *fun, dev_tree_t *tree)
+{
+	int rc = loc_service_unregister(fun->service_id);
+	tree_rem_loc_function(tree, fun);
+	return rc;
+}
+
 fun_node_t *find_loc_tree_function(dev_tree_t *tree, service_id_t service_id)
 {
 	fun_node_t *fun = NULL;
@@ -86,6 +93,13 @@ void tree_add_loc_function(dev_tree_t *tree, fun_node_t *fun)
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
 	hash_table_insert(&tree->loc_functions, &fun->loc_fun);
+}
+
+void tree_rem_loc_function(dev_tree_t *tree, fun_node_t *fun)
+{
+	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
+	
+	hash_table_remove(&tree->loc_functions, &fun->service_id);
 }
 
 /** @}
