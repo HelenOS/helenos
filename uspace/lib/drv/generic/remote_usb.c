@@ -544,6 +544,7 @@ void remote_usb_read(
 		async_answer_0(trans->data_caller, ENOMEM);
 		async_answer_0(callid, ENOMEM);
 		async_transaction_destroy(trans);
+		return;
 	}
 
 	const int rc = usb_iface->read(
