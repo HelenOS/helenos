@@ -536,6 +536,7 @@ void remote_usb_read(
 	size_t size = 0;
 	if (!async_data_read_receive(&trans->data_caller, &size)) {
 		async_answer_0(callid, EPARTY);
+		async_transaction_destroy(trans);
 		return;
 	}
 
