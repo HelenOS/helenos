@@ -65,6 +65,7 @@
 #define EM_SPARCV9      43   /* SPARC64 */
 #define EM_IA_64        50   /* IA-64 */
 #define EM_X86_64       62   /* AMD64/EMT64 */
+#define EM_RISCV        243  /* RISC-V */
 
 /**
  * ELF identification indexes
