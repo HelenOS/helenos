@@ -164,7 +164,6 @@ DIRS = \
 	drv/nic/ar9271 \
 	drv/platform/icp
 
-
 ## Platform-specific hardware support
 #
 

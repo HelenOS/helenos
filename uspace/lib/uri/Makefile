@@ -30,7 +30,6 @@ USPACE_PREFIX = ../..
 LIBRARY = liburi
 SLIBRARY = liburi.so.0.0
 LSONAME = liburi.so.0
-#EXTRA_CFLAGS += 
 
 SOURCES = \
 	uri.c
