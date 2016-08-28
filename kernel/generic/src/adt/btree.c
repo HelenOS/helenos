@@ -1046,7 +1046,8 @@ void btree_print(btree_t *t)
 
 /** Return number of B-tree elements.
  *
- * @param t    B-tree to count.
+ * @param t B-tree to count.
+ *
  * @return Return number of B-tree elements.
  *
  */

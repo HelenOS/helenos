@@ -57,4 +57,3 @@ FUNCTION_BEGIN(context_restore_arch)
 	mov r0, #0
 	mov pc, lr
 FUNCTION_END(context_restore_arch)
-

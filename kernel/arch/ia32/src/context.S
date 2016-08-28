@@ -58,7 +58,6 @@ FUNCTION_BEGIN(context_save_arch)
 	ret
 FUNCTION_END(context_save_arch)
 
-
 ## Restore saved CPU context
 #
 # Restore CPU context from context_t variable

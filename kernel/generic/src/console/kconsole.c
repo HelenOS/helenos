@@ -165,7 +165,7 @@ NO_TRACE static void print_cc(wchar_t ch, size_t count)
 /** Try to find a command beginning with prefix */
 const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 {
-	link_t **startpos = (link_t**)ctx;
+	link_t **startpos = (link_t**) ctx;
 	size_t namelen = str_length(name);
 	
 	spinlock_lock(&cmd_lock);
@@ -182,9 +182,9 @@ const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 		
 		if (str_lcmp(curname, name, namelen) == 0) {
 			*startpos = (*startpos)->next;
-			if (h) {
+			if (h)
 				*h = hlp->description;
-			}
+			
 			spinlock_unlock(&cmd_lock);
 			return (curname + str_lsize(curname, namelen));
 		}
@@ -248,7 +248,6 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 		while ((hint = hints_enum(name, &help, &pos))) {
 			
 			if (continue_showing_hints) {
-				
 				if (help)
 					printf("%s%s (%s)\n", name, hint, help);
 				else
@@ -291,7 +290,9 @@ NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
 	
 	while (isspace(cmdline[start]))
 		start++;
+	
 	end = start + 1;
+	
 	while (!isspace(cmdline[end]))
 		end++;
 	
@@ -373,9 +374,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			} else {
 				for (beg = position - 1;
 				    (beg > 0) && (!isspace(current[beg]));
-				    beg--) {
-					;
-				}
+				    beg--);
 				
 				if (isspace(current[beg]))
 					beg++;
@@ -394,9 +393,10 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				} else
 					sp = false;
 			}
+			
 			if (narg && isspace(current[0]))
 				narg--;
-
+			
 			int found;
 			if (narg == 0) {
 				/* Command completion */

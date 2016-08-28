@@ -179,7 +179,7 @@ SYMBOL(int_\i)
 		 */
 		subq $(ISTATE_SOFT_SIZE + 8), %rsp
 	.endif
-
+	
 	/*
 	 * Save the general purpose registers.
 	 */
@@ -345,7 +345,7 @@ SYMBOL(syscall_entry)
 	/* Switch back to normal %gs */
 	swapgs
 	sti
-
+	
 	/* Copy the 4th argument where it is expected  */
 	movq %r10, %rcx
 

@@ -39,4 +39,3 @@ FUNCTION_BEGIN(program_counter_get)
 	mov r8 = r0
 	br.ret.sptk.many b0
 FUNCTION_END(program_counter_get)
-

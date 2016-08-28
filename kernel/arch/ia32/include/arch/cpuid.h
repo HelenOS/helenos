@@ -84,18 +84,18 @@ static inline uint32_t has_cpuid(void)
 	uint32_t ret;
 	
 	asm volatile (
-		"pushf\n"			/* read flags */
+		"pushf\n"                      /* read flags */
 		"popl %[ret]\n"
 		"movl %[ret], %[val]\n"
 		
-		"xorl %[eflags_id], %[val]\n"	/* swap the ID bit */
+		"xorl %[eflags_id], %[val]\n"  /* swap the ID bit */
 		
-		"pushl %[val]\n"		/* propagate the change into flags */
+		"pushl %[val]\n"               /* propagate the change into flags */
 		"popf\n"
 		"pushf\n"
 		"popl %[val]\n"
 		
-		"andl %[eflags_id], %[ret]\n"	/* interrested only in ID bit */
+		"andl %[eflags_id], %[ret]\n"  /* interrested only in ID bit */
 		"andl %[eflags_id], %[val]\n"
 		"xorl %[val], %[ret]\n"
 		: [ret] "=r" (ret), [val] "=r" (val)

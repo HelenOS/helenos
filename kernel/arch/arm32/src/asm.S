@@ -100,4 +100,3 @@ SYMBOL(memcpy_to_uspace_failover_address)
 FUNCTION_BEGIN(early_putchar)
 	mov pc, lr
 FUNCTION_END(early_putchar)
-
