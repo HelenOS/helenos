@@ -43,6 +43,11 @@
 #define AS_AREA_GUARD        0x10
 #define AS_AREA_LATE_RESERVE 0x20
 
+#define AS_AREA_ANY    ((void *) -1)
+#define AS_MAP_FAILED  ((void *) -1)
+
+#define AS_AREA_UNPAGED -1
+
 /** Address space area info exported to uspace. */
 typedef struct {
 	/** Starting address */

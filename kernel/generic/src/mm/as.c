@@ -573,8 +573,9 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
  * @param backend      Address space area backend. NULL if no backend is used.
  * @param backend_data NULL or a pointer to custom backend data.
  * @param base         Starting virtual address of the area.
- *                     If set to -1, a suitable mappable area is found.
- * @param bound        Lowest address bound if base is set to -1.
+ *                     If set to AS_AREA_ANY, a suitable mappable area is
+ *                     found.
+ * @param bound        Lowest address bound if base is set to AS_AREA_ANY.
  *                     Otherwise ignored.
  *
  * @return Address space area on success or NULL on failure.
@@ -584,7 +585,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
     unsigned int attrs, mem_backend_t *backend,
     mem_backend_data_t *backend_data, uintptr_t *base, uintptr_t bound)
 {
-	if ((*base != (uintptr_t) -1) && !IS_ALIGNED(*base, PAGE_SIZE))
+	if ((*base != (uintptr_t) AS_AREA_ANY) && !IS_ALIGNED(*base, PAGE_SIZE))
 		return NULL;
 	
 	if (size == 0)
@@ -600,7 +601,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	
 	mutex_lock(&as->lock);
 	
-	if (*base == (uintptr_t) -1) {
+	if (*base == (uintptr_t) AS_AREA_ANY) {
 		*base = as_get_unmapped_area(as, bound, size, guarded);
 		if (*base == (uintptr_t) -1) {
 			mutex_unlock(&as->lock);
@@ -2187,7 +2188,7 @@ sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
 	as_area_t *area = as_area_create(AS, flags, size,
 	    AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, bound);
 	if (area == NULL)
-		return (sysarg_t) -1;
+		return (sysarg_t) AS_MAP_FAILED;
 	
 	return (sysarg_t) virt;
 }
