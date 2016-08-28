@@ -53,7 +53,7 @@ void *posix_mmap(void *start, size_t length, int prot, int flags, int fd,
 	if (!(flags & MAP_ANONYMOUS))
 		return MAP_FAILED;
 	
-	return as_area_create(start, length, prot);
+	return as_area_create(start, length, prot, AS_AREA_UNPAGED);
 }
 
 int posix_munmap(void *start, size_t length)

@@ -49,15 +49,18 @@
  *              the kernel finds a mappable area.
  * @param size  Size of the area.
  * @param flags Flags describing type of the area.
+ * @param pager If non-negative, phone to the external pager backing the area.
+ *              If AS_AREA_UNPAGED (-1), the area is anonymous.
  *
  * @return Starting virtual address of the created area on success.
  * @return AS_MAP_FAILED ((void *) -1) otherwise.
  *
  */
-void *as_area_create(void *base, size_t size, unsigned int flags)
+void *as_area_create(void *base, size_t size, unsigned int flags, int pager)
 {
-	return (void *) __SYSCALL4(SYS_AS_AREA_CREATE, (sysarg_t) base,
-	    (sysarg_t) size, (sysarg_t) flags, (sysarg_t) __entry);
+	return (void *) __SYSCALL5(SYS_AS_AREA_CREATE, (sysarg_t) base,
+	    (sysarg_t) size, (sysarg_t) flags, (sysarg_t) __entry,
+	    (sysarg_t) pager);
 }
 
 /** Resize address space area.

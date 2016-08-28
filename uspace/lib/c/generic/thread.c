@@ -115,7 +115,7 @@ int thread_create(void (* function)(void *), void *arg, const char *name,
 	size_t stack_size = stack_size_get();
 	void *stack = as_area_create(AS_AREA_ANY, stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
-	    AS_AREA_LATE_RESERVE);
+	    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
 	if (stack == AS_MAP_FAILED) {
 		free(uarg);
 		return ENOMEM;

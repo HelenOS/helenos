@@ -369,7 +369,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 * and writeable.
 	 */
 	a = as_area_create((uint8_t *) base + bias, mem_sz,
-	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+	    AS_AREA_UNPAGED);
 	if (a == AS_MAP_FAILED) {
 		DPRINTF("memory mapping failed (%p, %zu)\n",
 		    (void *) (base + bias), mem_sz);

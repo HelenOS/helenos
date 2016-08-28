@@ -2181,7 +2181,7 @@ success:
  */
 
 sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
-    uintptr_t bound)
+    uintptr_t bound, int pager)
 {
 	uintptr_t virt = base;
 	as_area_t *area = as_area_create(AS, flags, size,

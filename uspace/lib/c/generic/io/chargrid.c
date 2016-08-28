@@ -59,7 +59,8 @@ chargrid_t *chargrid_create(sysarg_t cols, sysarg_t rows,
 	
 	if ((flags & CHARGRID_FLAG_SHARED) == CHARGRID_FLAG_SHARED) {
 		scrbuf = (chargrid_t *) as_area_create(AS_AREA_ANY, size,
-		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+		    AS_AREA_UNPAGED);
 		if (scrbuf == AS_MAP_FAILED)
 			return NULL;
 	} else {
