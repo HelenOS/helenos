@@ -50,6 +50,11 @@
 
 #define NAME  "vfs"
 
+static void vfs_pager(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	async_answer_0(iid, ENOTSUP);
+}
+
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	bool cont = true;
@@ -149,6 +154,8 @@ static void notification_handler(ipc_callid_t callid, ipc_call_t *call, void *ar
 
 int main(int argc, char **argv)
 {
+	int rc;
+
 	printf("%s: HelenOS VFS server\n", NAME);
 	
 	/*
@@ -178,6 +185,14 @@ int main(int argc, char **argv)
 	async_set_client_data_destructor(vfs_client_data_destroy);
 
 	/*
+	 * Create a port for the pager.
+	 */
+	port_id_t port;
+	rc = async_create_port(INTERFACE_PAGER, vfs_pager, NULL, &port);
+	if (rc != EOK)
+		return rc;
+		
+	/*
 	 * Set a connection handling function/fibril.
 	 */
 	async_set_fallback_port_handler(vfs_connection, NULL);
@@ -191,7 +206,7 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	int rc = service_register(SERVICE_VFS);
+	rc = service_register(SERVICE_VFS);
 	if (rc != EOK) {
 		printf("%s: Cannot register VFS service\n", NAME);
 		return rc;
