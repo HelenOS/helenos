@@ -2185,8 +2185,17 @@ sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
     uintptr_t bound, int pager)
 {
 	uintptr_t virt = base;
+	mem_backend_t *backend;
+	mem_backend_data_t backend_data;
+
+	if (pager == AS_AREA_UNPAGED)
+		backend = &anon_backend;
+	else {
+		backend = &user_backend;
+		backend_data.pager = pager;
+	}
 	as_area_t *area = as_area_create(AS, flags, size,
-	    AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, bound);
+	    AS_AREA_ATTR_NONE, backend, &backend_data, &virt, bound);
 	if (area == NULL)
 		return (sysarg_t) AS_MAP_FAILED;
 	
