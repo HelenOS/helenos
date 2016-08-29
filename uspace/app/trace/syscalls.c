@@ -48,7 +48,7 @@ const sc_desc_t syscall_desc[] = {
     [SYS_FUTEX_SLEEP] = { "futex_sleep_timeout",	3,	V_ERRNO },
     [SYS_FUTEX_WAKEUP] = { "futex_wakeup",		1,	V_ERRNO },
 
-    [SYS_AS_AREA_CREATE] = { "as_area_create",		3,	V_ERRNO },
+    [SYS_AS_AREA_CREATE] = { "as_area_create",		5,	V_ERRNO },
     [SYS_AS_AREA_RESIZE] = { "as_area_resize",		3,	V_ERRNO },
     [SYS_AS_AREA_DESTROY] = { "as_area_destroy",	1,	V_ERRNO },
 
