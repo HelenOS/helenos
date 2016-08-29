@@ -258,6 +258,49 @@ static int process_request(answerbox_t *box, call_t *call)
 	return SYSIPC_OP(request_process, call, box);
 }
 
+/** Make a call over IPC and wait for reply.
+ *
+ * @param phoneid     Phone handle for the call.
+ * @param data[inout] Structure with request/reply data.
+ *
+ * @return EOK on success.
+ * @return ENOENT if there is no such phone handle.
+ *
+ */
+int ipc_req_internal(int phoneid, ipc_data_t *data)
+{
+	phone_t *phone;
+	if (phone_get(phoneid, &phone) != EOK)
+		return ENOENT;
+	
+	call_t *call = ipc_call_alloc(0);
+	memcpy(call->data.args, data->args, sizeof(data->args));
+	
+	int rc = request_preprocess(call, phone);
+	if (!rc) {
+#ifdef CONFIG_UDEBUG
+		udebug_stoppable_begin();
+#endif
+
+		rc = ipc_call_sync(phone, call); 
+
+#ifdef CONFIG_UDEBUG
+		udebug_stoppable_end();
+#endif
+
+		if (rc != EOK)
+			return EINTR;
+
+		process_answer(call);
+	} else
+		IPC_SET_RETVAL(call->data, rc);
+	
+	memcpy(data->args, call->data.args, sizeof(data->args));
+	ipc_call_free(call);
+	
+	return EOK;
+}
+
 /** Check that the task did not exceed the allowed limit of asynchronous calls
  * made over a phone.
  *

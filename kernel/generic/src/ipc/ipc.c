@@ -187,6 +187,34 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
 	atomic_set(&phone->active_calls, 0);
 }
 
+/** Helper function to facilitate synchronous calls.
+ *
+ * @param phone   Destination kernel phone structure.
+ * @param request Call structure with request.
+ *
+ * @return EOK on success or a negative error code.
+ *
+ */
+int ipc_call_sync(phone_t *phone, call_t *request)
+{
+	answerbox_t *mybox = slab_alloc(ipc_answerbox_slab, 0);
+	ipc_answerbox_init(mybox, TASK);
+	
+	/* We will receive data in a special box. */
+	request->callerbox = mybox;
+	
+	int rc = ipc_call(phone, request);
+	if (rc != EOK) {
+		slab_free(ipc_answerbox_slab, mybox);
+		return rc;
+	}
+	// TODO: forget the call if interrupted
+	(void) ipc_wait_for_call(mybox, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+	
+	slab_free(ipc_answerbox_slab, mybox);
+	return EOK;
+}
+
 /** Answer a message which was not dispatched and is not listed in any queue.
  *
  * @param call       Call structure to be answered.
@@ -755,7 +783,7 @@ void ipc_cleanup(void)
 	ipc_cleanup_call_list(&TASK->answerbox, &TASK->answerbox.calls);
 	ipc_cleanup_call_list(&TASK->answerbox,
 	    &TASK->answerbox.dispatched_calls);
-
+ 	
 	ipc_forget_all_active_calls();
 	ipc_wait_for_all_answered_calls();
 }
