@@ -76,6 +76,7 @@ static void _ipc_call_init(call_t *call)
 	call->active = false;
 	call->forget = false;
 	call->sender = NULL;
+	call->callerbox = &TASK->answerbox;
 	call->buffer = NULL;
 }
 
@@ -219,7 +220,7 @@ void _ipc_answer_free_call(call_t *call, bool selflocked)
 	}
 	spinlock_unlock(&call->forget_lock);
 
-	answerbox_t *callerbox = &call->sender->answerbox;
+	answerbox_t *callerbox = call->callerbox;
 	bool do_lock = ((!selflocked) || (callerbox != &TASK->answerbox));
 	
 	call->flags |= IPC_CALL_ANSWERED;

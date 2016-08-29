@@ -146,6 +146,13 @@ typedef struct {
 	 */
 	struct task *sender;
 	
+	/*
+	 * Answerbox that will receive the answer.
+	 * This will most of the times be the sender's answerbox,
+	 * but we allow for useful exceptions.
+	 */
+	answerbox_t *callerbox;
+
 	/** Phone which was used to send the call. */
 	phone_t *caller_phone;
 	
