@@ -115,6 +115,7 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <macros.h>
+#include <as.h>
 #include "private/libc.h"
 
 /** Session data */
@@ -3376,6 +3377,12 @@ void async_remote_state_release_exchange(async_exch_t *exch)
 	
 	async_exchange_end(exch);
 	fibril_mutex_unlock(&sess->remote_state_mtx);
+}
+
+void *async_as_area_create(void *base, size_t size, unsigned int flags,
+    async_sess_t *pager)
+{
+	return as_area_create(base, size, flags, pager->phone);
 }
 
 /** @}

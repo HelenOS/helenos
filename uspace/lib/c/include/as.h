@@ -37,7 +37,6 @@
 
 #include <sys/types.h>
 #include <abi/mm/as.h>
-#include <task.h>
 #include <libarch/config.h>
 
 static inline size_t SIZE2PAGES(size_t size)
