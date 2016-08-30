@@ -1,0 +1,6 @@
+{
+	"pager1",
+	"Pager test",
+	&test_pager1,
+	true
+},
