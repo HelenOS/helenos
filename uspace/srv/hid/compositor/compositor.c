@@ -54,6 +54,7 @@
 
 #include <async.h>
 #include <loc.h>
+#include <task.h>
 
 #include <io/keycode.h>
 #include <io/mode.h>
