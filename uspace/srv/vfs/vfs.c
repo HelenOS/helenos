@@ -36,7 +36,10 @@
  */
 
 #include <vfs/vfs.h>
+#include <stdlib.h>
 #include <ipc/services.h>
+#include <abi/ipc/methods.h>
+#include <libarch/config.h>
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
@@ -52,7 +55,33 @@
 
 static void vfs_pager(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	async_answer_0(iid, ENOTSUP);
+	async_answer_0(iid, EOK);
+
+	char *buf = memalign(PAGE_SIZE, 1);
+	const char hello[] = "Hello world!";
+
+	memcpy(buf, hello, sizeof(hello));
+
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case IPC_M_PAGE_IN:
+			if (buf)
+				async_answer_1(callid, EOK, (sysarg_t) buf);
+			else
+				async_answer_0(callid, ENOMEM);
+			break;
+			
+		default:
+			async_answer_0(callid, ENOTSUP);
+			break;
+		}
+	}
 }
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
