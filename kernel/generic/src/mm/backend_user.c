@@ -38,10 +38,14 @@
 
 #include <mm/as.h>
 #include <mm/page.h>
+#include <abi/ipc/methods.h>
+#include <ipc/sysipc.h>
 #include <synch/mutex.h>
 #include <typedefs.h>
 #include <align.h>
 #include <debug.h>
+#include <errno.h>
+#include <log.h>
 
 static bool user_create(as_area_t *);
 static bool user_resize(as_area_t *, size_t);
@@ -124,7 +128,39 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	ASSERT(mutex_locked(&area->lock));
 	ASSERT(IS_ALIGNED(upage, PAGE_SIZE));
 
-	return AS_PF_FAULT;
+	if (!as_area_check_access(area, access))
+		return AS_PF_FAULT;
+
+	ipc_data_t data = {};
+	IPC_SET_IMETHOD(data, IPC_M_PAGE_IN);
+	IPC_SET_ARG1(data, upage - area->base);
+	IPC_SET_ARG2(data, PAGE_SIZE);
+
+	int rc = ipc_req_internal(area->backend_data.pager, &data);
+
+	if (rc != EOK) {
+		log(LF_USPACE, LVL_FATAL,
+		    "Page-in request for page %#" PRIxn
+		    " at pager %d failed with error %d.",
+		    upage, area->backend_data.pager, rc);
+		return AS_PF_FAULT;
+	}
+
+	if (IPC_GET_RETVAL(data) != EOK)
+		return AS_PF_FAULT;
+
+	/*
+	 * A successful reply will contain the physical frame in ARG1.
+	 * The physical frame will have the reference count already
+	 * incremented.
+	 */
+
+	uintptr_t frame = IPC_GET_ARG1(data);
+	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
+	if (!used_space_insert(area, upage, 1))
+		panic("Cannot insert used space.");
+
+	return AS_PF_OK;
 }
 
 /** Free a frame that is backed by the user memory backend.
