@@ -152,7 +152,7 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	/*
 	 * A successful reply will contain the physical frame in ARG1.
 	 * The physical frame will have the reference count already
-	 * incremented.
+	 * incremented (if applicable).
 	 */
 
 	uintptr_t frame = IPC_GET_ARG1(data);

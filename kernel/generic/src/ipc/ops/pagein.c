@@ -53,7 +53,14 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		pte = page_mapping_find(AS, IPC_GET_ARG1(answer->data), false);
 		if (pte) {
 			frame = PTE_GET_FRAME(pte);
-			frame_reference_add(ADDR2PFN(frame));
+			pfn_t pfn = ADDR2PFN(frame);
+			if (find_zone(pfn, 1, 0) != (size_t) -1) {
+				/*
+				 * The frame is in physical memory managed by
+				 * the frame allocator.
+				 */
+				frame_reference_add(ADDR2PFN(frame));
+			}
 			IPC_SET_ARG1(answer->data, frame);
 		} else {
 			IPC_SET_RETVAL(answer->data, ENOENT);
