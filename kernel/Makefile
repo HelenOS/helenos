@@ -278,6 +278,7 @@ GENERIC_SOURCES = \
 	generic/src/ipc/ops/dataread.c \
 	generic/src/ipc/ops/datawrite.c \
 	generic/src/ipc/ops/debug.c \
+	generic/src/ipc/ops/pagein.c \
 	generic/src/ipc/ops/sharein.c \
 	generic/src/ipc/ops/shareout.c \
 	generic/src/ipc/ops/stchngath.c \

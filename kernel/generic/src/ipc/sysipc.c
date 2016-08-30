@@ -105,6 +105,7 @@ static inline bool method_is_forwardable(sysarg_t imethod)
 static inline bool method_is_immutable(sysarg_t imethod)
 {
 	switch (imethod) {
+	case IPC_M_PAGE_IN:
 	case IPC_M_SHARE_OUT:
 	case IPC_M_SHARE_IN:
 	case IPC_M_DATA_WRITE:
@@ -136,6 +137,7 @@ static inline bool answer_need_old(call_t *call)
 	case IPC_M_CLONE_ESTABLISH:
 	case IPC_M_CONNECT_TO_ME:
 	case IPC_M_CONNECT_ME_TO:
+	case IPC_M_PAGE_IN:
 	case IPC_M_SHARE_OUT:
 	case IPC_M_SHARE_IN:
 	case IPC_M_DATA_WRITE:

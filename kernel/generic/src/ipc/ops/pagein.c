@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jakub Jermar 
+ * Copyright (c) 2016 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,82 +33,45 @@
  */
 
 #include <ipc/sysipc_ops.h>
-#include <abi/ipc/methods.h>
+#include <ipc/ipc.h>
+#include <mm/as.h>
+#include <mm/page.h>
+#include <genarch/mm/page_pt.h>
+#include <genarch/mm/page_ht.h>
+#include <mm/frame.h>
+#include <proc/task.h>
 #include <abi/errno.h>
+#include <arch.h>
 
-/* Forward declarations. */
-sysipc_ops_t ipc_m_connection_clone_ops;
-sysipc_ops_t ipc_m_clone_establish_ops;
-sysipc_ops_t ipc_m_connect_to_me_ops;
-sysipc_ops_t ipc_m_connect_me_to_ops;
-sysipc_ops_t ipc_m_page_in_ops;
-sysipc_ops_t ipc_m_share_out_ops;
-sysipc_ops_t ipc_m_share_in_ops;
-sysipc_ops_t ipc_m_data_write_ops;
-sysipc_ops_t ipc_m_data_read_ops;
-sysipc_ops_t ipc_m_state_change_authorize_ops;
-sysipc_ops_t ipc_m_debug_ops;
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	if (!IPC_GET_RETVAL(answer->data)) {
+		pte_t *pte;
+		uintptr_t frame;
 
-static sysipc_ops_t *sysipc_ops[] = {
-	[IPC_M_CONNECTION_CLONE] = &ipc_m_connection_clone_ops,
-	[IPC_M_CLONE_ESTABLISH] = &ipc_m_clone_establish_ops,
-	[IPC_M_CONNECT_TO_ME] = &ipc_m_connect_to_me_ops,
-	[IPC_M_CONNECT_ME_TO] = &ipc_m_connect_me_to_ops,
-	[IPC_M_PAGE_IN] = &ipc_m_page_in_ops,
-	[IPC_M_SHARE_OUT] = &ipc_m_share_out_ops,
-	[IPC_M_SHARE_IN] = &ipc_m_share_in_ops,
-	[IPC_M_DATA_WRITE] = &ipc_m_data_write_ops,
-	[IPC_M_DATA_READ] = &ipc_m_data_read_ops,
-	[IPC_M_STATE_CHANGE_AUTHORIZE] = &ipc_m_state_change_authorize_ops,
-	[IPC_M_DEBUG] = &ipc_m_debug_ops
-};
+		page_table_lock(AS, true);
+		pte = page_mapping_find(AS, IPC_GET_ARG1(answer->data), false);
+		if (pte) {
+			frame = PTE_GET_FRAME(pte);
+			frame_reference_add(ADDR2PFN(frame));
+			IPC_SET_ARG1(answer->data, frame);
+		} else {
+			IPC_SET_RETVAL(answer->data, ENOENT);
+		}
+		page_table_unlock(AS, true);
+	}
+	
+	return EOK;
+}
 
-static sysipc_ops_t null_ops = {
+sysipc_ops_t ipc_m_page_in_ops = {
 	.request_preprocess = null_request_preprocess,
 	.request_forget = null_request_forget,
 	.request_process = null_request_process,
 	.answer_cleanup = null_answer_cleanup,
-	.answer_preprocess = null_answer_preprocess,
+	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };
-
-int null_request_preprocess(call_t *call, phone_t *phone)
-{
-	return EOK;
-}
-
-int null_request_forget(call_t *call)
-{
-	return EOK;
-}
-
-int null_request_process(call_t *call, answerbox_t *box)
-{
-	return EOK;
-}
-
-int null_answer_cleanup(call_t *call, ipc_data_t *data)
-{
-	return EOK;
-}
-
-int null_answer_preprocess(call_t *call, ipc_data_t *data)
-{
-	return EOK;
-}
-
-int null_answer_process(call_t *call)
-{
-	return EOK;
-}
-
-sysipc_ops_t *sysipc_ops_get(sysarg_t imethod)
-{
-	if (imethod < sizeof(sysipc_ops) / (sizeof(sysipc_ops_t *)))
-		return sysipc_ops[imethod] ? sysipc_ops[imethod] : &null_ops;
-
-	return &null_ops;
-}
 
 /** @}
  */
