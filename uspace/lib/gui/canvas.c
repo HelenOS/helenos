@@ -122,10 +122,10 @@ static void canvas_handle_position_event(widget_t *widget, pos_event_t event)
 	sig_send(&canvas->position_event, &tevent);
 }
 
-bool init_canvas(canvas_t *canvas, widget_t *parent, sysarg_t width,
-    sysarg_t height, surface_t *surface)
+bool init_canvas(canvas_t *canvas, widget_t *parent, const void *data,
+    sysarg_t width, sysarg_t height, surface_t *surface)
 {
-	widget_init(&canvas->widget, parent);
+	widget_init(&canvas->widget, parent, data);
 	
 	canvas->widget.width = width;
 	canvas->widget.height = height;
@@ -160,14 +160,14 @@ bool update_canvas(canvas_t *canvas, surface_t *surface)
 	return true;
 }
 
-canvas_t *create_canvas(widget_t *parent, sysarg_t width, sysarg_t height,
-    surface_t *surface)
+canvas_t *create_canvas(widget_t *parent, const void *data, sysarg_t width,
+    sysarg_t height, surface_t *surface)
 {
 	canvas_t *canvas = (canvas_t *) malloc(sizeof(canvas_t));
 	if (!canvas)
 		return NULL;
 	
-	if (init_canvas(canvas, parent, width, height, surface))
+	if (init_canvas(canvas, parent, data, width, height, surface))
 		return canvas;
 	
 	free(canvas);

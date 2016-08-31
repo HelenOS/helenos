@@ -695,10 +695,10 @@ static void term_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	con_conn(iid, icall, &term->srvs);
 }
 
-bool init_terminal(terminal_t *term, widget_t *parent, sysarg_t width,
-    sysarg_t height)
+bool init_terminal(terminal_t *term, widget_t *parent, const void *data,
+    sysarg_t width, sysarg_t height)
 {
-	widget_init(&term->widget, parent);
+	widget_init(&term->widget, parent, data);
 	
 	link_initialize(&term->link);
 	fibril_mutex_initialize(&term->mtx);
@@ -770,13 +770,14 @@ bool init_terminal(terminal_t *term, widget_t *parent, sysarg_t width,
 	return true;
 }
 
-terminal_t *create_terminal(widget_t *parent, sysarg_t width, sysarg_t height)
+terminal_t *create_terminal(widget_t *parent, const void *data, sysarg_t width,
+    sysarg_t height)
 {
 	terminal_t *term = (terminal_t *) malloc(sizeof(terminal_t));
 	if (!term)
 		return NULL;
 	
-	bool ret = init_terminal(term, parent, width, height);
+	bool ret = init_terminal(term, parent, data, width, height);
 	if (!ret) {
 		free(term);
 		return NULL;

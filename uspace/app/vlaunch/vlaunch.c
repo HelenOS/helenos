@@ -84,19 +84,10 @@ static int app_launch(const char *app)
 	return retval;
 }
 
-static void on_vterm(widget_t *widget, void *data)
+static void on_btn_click(widget_t *widget, void *data)
 {
-	app_launch("/app/vterm");
-}
-
-static void on_vdemo(widget_t *widget, void *data)
-{
-	app_launch("/app/vdemo");
-}
-
-static void on_vlaunch(widget_t *widget, void *data)
-{
-	app_launch("/app/vlaunch");
+	const char *app = (const char *) widget_get_data(widget);
+	app_launch(app);
 }
 
 int main(int argc, char *argv[])
@@ -113,7 +104,7 @@ int main(int argc, char *argv[])
 	}
 	
 	winreg = argv[1];
-	window_t *main_window = window_open(argv[1],
+	window_t *main_window = window_open(argv[1], NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, "vlaunch");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
@@ -129,17 +120,17 @@ int main(int argc, char *argv[])
 	pixel_t lbl_bg = PIXEL(255, 255, 255, 255);
 	pixel_t lbl_text = PIXEL(255, 0, 0, 0);
 	
-	canvas_t *logo_canvas = create_canvas(NULL, LOGO_WIDTH, LOGO_HEIGHT,
+	canvas_t *logo_canvas = create_canvas(NULL, NULL, LOGO_WIDTH, LOGO_HEIGHT,
 	    logo);
-	label_t *lbl_caption = create_label(NULL, "Launch application:", 16,
-	    lbl_bg, lbl_text);
-	button_t *btn_vterm = create_button(NULL, "vterm", 16, btn_bg,
-	    btn_fg, btn_text);
-	button_t *btn_vdemo = create_button(NULL, "vdemo", 16, btn_bg,
-	    btn_fg, btn_text);
-	button_t *btn_vlaunch = create_button(NULL, "vlaunch", 16, btn_bg,
-	    btn_fg, btn_text);
-	grid_t *grid = create_grid(window_root(main_window), 1, 5, grd_bg);
+	label_t *lbl_caption = create_label(NULL, NULL, "Launch application:",
+	    16, lbl_bg, lbl_text);
+	button_t *btn_vterm = create_button(NULL, "/app/vterm", "vterm",
+	    16, btn_bg, btn_fg, btn_text);
+	button_t *btn_vdemo = create_button(NULL, "/app/vdemo", "vdemo",
+	    16, btn_bg, btn_fg, btn_text);
+	button_t *btn_vlaunch = create_button(NULL, "/app/vlaunch", "vlaunch",
+	    16, btn_bg, btn_fg, btn_text);
+	grid_t *grid = create_grid(window_root(main_window), NULL, 1, 5, grd_bg);
 	
 	if ((!logo_canvas) || (!lbl_caption) || (!btn_vterm) ||
 	    (!btn_vdemo) || (!btn_vlaunch) || (!grid)) {
@@ -148,9 +139,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	sig_connect(&btn_vterm->clicked, NULL, on_vterm);
-	sig_connect(&btn_vdemo->clicked, NULL, on_vdemo);
-	sig_connect(&btn_vlaunch->clicked, NULL, on_vlaunch);
+	sig_connect(&btn_vterm->clicked, &btn_vterm->widget, on_btn_click);
+	sig_connect(&btn_vdemo->clicked, &btn_vdemo->widget, on_btn_click);
+	sig_connect(&btn_vlaunch->clicked, &btn_vlaunch->widget, on_btn_click);
 	
 	grid->add(grid, &logo_canvas->widget, 0, 0, 1, 1);
 	grid->add(grid, &lbl_caption->widget, 0, 1, 1, 1);

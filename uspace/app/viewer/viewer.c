@@ -156,7 +156,7 @@ static bool img_setup(surface_t *local_surface)
 			return false;
 		}
 	} else {
-		canvas = create_canvas(window_root(main_window),
+		canvas = create_canvas(window_root(main_window), NULL,
 		    img_width, img_height, local_surface);
 		if (canvas == NULL) {
 			surface_destroy(local_surface);
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
 	if (!fullscreen)
 		flags |= WINDOW_DECORATED;
 
-	main_window = window_open(argv[1], flags, "viewer");
+	main_window = window_open(argv[1], NULL, flags, "viewer");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 5;

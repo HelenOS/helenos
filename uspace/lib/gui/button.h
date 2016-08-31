@@ -55,10 +55,10 @@ typedef struct button {
 	signal_t clicked;
 } button_t;
 
-extern bool init_button(button_t *, widget_t *, const char *, uint16_t, pixel_t,
-    pixel_t, pixel_t);
-extern button_t *create_button(widget_t *, const char *, uint16_t, pixel_t,
-    pixel_t, pixel_t);
+extern bool init_button(button_t *, widget_t *, const void *, const char *,
+    uint16_t, pixel_t, pixel_t, pixel_t);
+extern button_t *create_button(widget_t *, const void *, const char *, uint16_t,
+    pixel_t, pixel_t, pixel_t);
 extern void deinit_button(button_t *);
 
 #endif

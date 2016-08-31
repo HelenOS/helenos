@@ -197,15 +197,15 @@ void sig_post(signal_t *signal, void *data, size_t data_size)
 
 	list_foreach(sig_node->slots, link, slot_node_t, cur) {
 		void *data_copy = NULL;
-		if (data != NULL) {
+		if (data != NULL)
 			data_copy = malloc(data_size);
-		}
-		if (data_copy != NULL) {
+		
+		if (data_copy != NULL)
 			memcpy(data_copy, data, data_size);
-		}
+		
 		window_event_t *event =
-			(window_event_t *) malloc(sizeof(window_event_t));
-
+		    (window_event_t *) malloc(sizeof(window_event_t));
+		
 		if (event) {
 			link_initialize(&event->link);
 			event->type = ET_SIGNAL_EVENT;
@@ -214,9 +214,8 @@ void sig_post(signal_t *signal, void *data, size_t data_size)
 			event->data.signal.argument = (sysarg_t) data_copy;
 			prodcons_produce(&cur->widget->window->events, &event->link);
 		} else {
-			if (data_copy != NULL) {
+			if (data_copy != NULL)
 				free(data_copy);
-			}
 		}
 	}
 

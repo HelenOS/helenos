@@ -54,10 +54,10 @@ typedef struct label {
 	slot_t rewrite;
 } label_t;
 
-extern bool init_label(label_t *, widget_t *, const char *, uint16_t, pixel_t,
-    pixel_t);
-extern label_t *create_label(widget_t *, const char *, uint16_t, pixel_t,
-    pixel_t);
+extern bool init_label(label_t *, widget_t *, const void *, const char *,
+    uint16_t, pixel_t, pixel_t);
+extern label_t *create_label(widget_t *, const void *, const char *, uint16_t,
+    pixel_t, pixel_t);
 extern void deinit_label(label_t *);
 
 #endif

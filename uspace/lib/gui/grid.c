@@ -362,8 +362,8 @@ static bool grid_add(struct grid *grid, widget_t *widget, size_t col,
 	return true;
 }
 
-bool init_grid(grid_t *grid, widget_t *parent, size_t cols, size_t rows,
-    pixel_t background)
+bool init_grid(grid_t *grid, widget_t *parent, const void *data, size_t cols,
+    size_t rows, pixel_t background)
 {
 	if ((cols == 0) || (rows == 0))
 		return false;
@@ -375,7 +375,7 @@ bool init_grid(grid_t *grid, widget_t *parent, size_t cols, size_t rows,
 	
 	memset(grid->layout, 0, cols * rows * sizeof(grid_cell_t));
 	
-	widget_init(&grid->widget, parent);
+	widget_init(&grid->widget, parent, data);
 	
 	grid->widget.destroy = grid_destroy;
 	grid->widget.reconfigure = grid_reconfigure;
@@ -392,13 +392,14 @@ bool init_grid(grid_t *grid, widget_t *parent, size_t cols, size_t rows,
 	return true;
 }
 
-grid_t *create_grid(widget_t *parent, size_t cols, size_t rows, pixel_t background)
+grid_t *create_grid(widget_t *parent, const void *data, size_t cols,
+    size_t rows, pixel_t background)
 {
 	grid_t *grid = (grid_t *) malloc(sizeof(grid_t));
 	if (!grid)
 		return NULL;
 	
-	if (init_grid(grid, parent, cols, rows, background))
+	if (init_grid(grid, parent, data, cols, rows, background))
 		return grid;
 	
 	free(grid);

@@ -66,7 +66,8 @@ struct window {
  * If the window is declared as main, its closure causes termination of the
  * whole application. Note that opened window does not have any surface yet.
  */
-extern window_t *window_open(const char *, window_flags_t, const char *);
+extern window_t *window_open(const char *, const void *, window_flags_t,
+    const char *);
 
 /**
  * Post resize event into event loop. Window negotiates new surface with

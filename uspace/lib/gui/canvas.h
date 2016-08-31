@@ -52,9 +52,10 @@ typedef struct {
 	signal_t position_event;
 } canvas_t;
 
-extern bool init_canvas(canvas_t *, widget_t *, sysarg_t, sysarg_t,
+extern bool init_canvas(canvas_t *, widget_t *, const void *, sysarg_t,
+    sysarg_t, surface_t *);
+extern canvas_t *create_canvas(widget_t *, const void *, sysarg_t, sysarg_t,
     surface_t *);
-extern canvas_t *create_canvas(widget_t *, sysarg_t, sysarg_t, surface_t *);
 extern bool update_canvas(canvas_t *, surface_t *);
 extern void deinit_canvas(canvas_t *);
 

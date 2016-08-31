@@ -69,8 +69,10 @@ typedef struct terminal {
 	con_srvs_t srvs;
 } terminal_t;
 
-extern bool init_terminal(terminal_t *, widget_t *, sysarg_t, sysarg_t);
-extern terminal_t *create_terminal(widget_t *, sysarg_t, sysarg_t);
+extern bool init_terminal(terminal_t *, widget_t *, const void *, sysarg_t,
+    sysarg_t);
+extern terminal_t *create_terminal(widget_t *, const void *, sysarg_t,
+    sysarg_t);
 extern void deinit_terminal(terminal_t *);
 
 #endif

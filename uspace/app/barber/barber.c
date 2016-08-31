@@ -307,14 +307,14 @@ int main(int argc, char *argv[])
 		return 1;
 	
 	winreg = argv[1];
-	window_t *main_window = window_open(argv[1],
+	window_t *main_window = window_open(argv[1], NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "barber");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 1;
 	}
 	
-	frame_canvas = create_canvas(window_root(main_window),
+	frame_canvas = create_canvas(window_root(main_window), NULL,
 	    FRAME_WIDTH, FRAME_HEIGHT, frames[frame]);
 	
 	if (!frame_canvas) {

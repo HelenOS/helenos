@@ -111,9 +111,10 @@ static void minimal_handle_position_event(widget_t *widget, pos_event_t event)
 	/* no-op */
 }
 
-bool init_minimal(minimal_t *min, widget_t *parent, pixel_t a, pixel_t b)
+bool init_minimal(minimal_t *min, widget_t *parent, const void *data, pixel_t a,
+    pixel_t b)
 {
-	widget_init(&min->widget, parent);
+	widget_init(&min->widget, parent, data);
 
 	min->widget.destroy = minimal_destroy;
 	min->widget.reconfigure = minimal_reconfigure;
@@ -128,14 +129,15 @@ bool init_minimal(minimal_t *min, widget_t *parent, pixel_t a, pixel_t b)
 	return true;
 }
 
-minimal_t *create_minimal(widget_t *parent, pixel_t a, pixel_t b)
+minimal_t *create_minimal(widget_t *parent, const void *data, pixel_t a,
+    pixel_t b)
 {
 	minimal_t *min = (minimal_t *) malloc(sizeof(minimal_t));
 	if (!min) {
 		return NULL;
 	}
 
-	if (init_minimal(min, parent, a, b)) {
+	if (init_minimal(min, parent, data, a, b)) {
 		return min;
 	} else {
 		free(min);
