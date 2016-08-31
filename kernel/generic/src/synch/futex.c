@@ -290,18 +290,22 @@ static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *paddr)
 	page_table_lock(AS, false);
 	spinlock_lock(&futex_ht_lock);
 
-	bool found = false;
-	pte_t *t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), true);
-	
-	if (t && PTE_VALID(t) && PTE_PRESENT(t)) {
-		found = true;
-		*paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
+	bool success = false;
+
+	pte_t t;
+	bool found;
+
+	found = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), true, &t);
+	if (found && PTE_VALID(&t) && PTE_PRESENT(&t)) {
+		success = true;
+		*paddr = PTE_GET_FRAME(&t) +
+		    (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	}
 	
 	spinlock_unlock(&futex_ht_lock);
 	page_table_unlock(AS, false);
 	
-	return found;
+	return success;
 }
 
 /** Returns the futex cached in this task with the virtual address uaddr. */

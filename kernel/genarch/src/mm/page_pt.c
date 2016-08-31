@@ -52,7 +52,7 @@
 
 static void pt_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void pt_mapping_remove(as_t *, uintptr_t);
-static pte_t *pt_mapping_find(as_t *, uintptr_t, bool);
+static bool pt_mapping_find(as_t *, uintptr_t, bool, pte_t *pte);
 static void pt_mapping_make_global(uintptr_t, size_t);
 
 page_mapping_operations_t pt_mapping_operations = {
@@ -290,27 +290,26 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 
 /** Find mapping for virtual page in hierarchical page tables.
  *
- * @param as     Address space to which page belongs.
- * @param page   Virtual page.
- * @param nolock True if the page tables need not be locked.
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param[out] pte Structure that will receive a copy of the found PTE.
  *
- * @return NULL if there is no such mapping; entry from PTL3 describing
- *         the mapping otherwise.
- *
+ * @return True if the mapping was found, false otherwise.
  */
-pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
+bool pt_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 {
 	ASSERT(nolock || page_table_locked(as));
 
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
-		return NULL;
+		return false;
 
 	read_barrier();
 	
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
-		return NULL;
+		return false;
 
 #if (PTL1_ENTRIES != 0)
 	/*
@@ -321,7 +320,7 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
-		return NULL;
+		return false;
 
 #if (PTL2_ENTRIES != 0)
 	/*
@@ -332,7 +331,8 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 	
-	return &ptl3[PTL3_INDEX(page)];
+	*pte = ptl3[PTL3_INDEX(page)];
+	return true;
 }
 
 /** Return the size of the region mapped by a single PTL0 entry.

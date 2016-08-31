@@ -887,18 +887,19 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 				    area->pages - pages);
 		
 				for (; i < node_size; i++) {
-					pte_t *pte = page_mapping_find(as,
-					    ptr + P2SZ(i), false);
+					pte_t pte;
+					bool found = page_mapping_find(as,
+					    ptr + P2SZ(i), false, &pte);
 					
-					ASSERT(pte);
-					ASSERT(PTE_VALID(pte));
-					ASSERT(PTE_PRESENT(pte));
+					ASSERT(found);
+					ASSERT(PTE_VALID(&pte));
+					ASSERT(PTE_PRESENT(&pte));
 					
 					if ((area->backend) &&
 					    (area->backend->frame_free)) {
 						area->backend->frame_free(area,
 						    ptr + P2SZ(i),
-						    PTE_GET_FRAME(pte));
+						    PTE_GET_FRAME(&pte));
 					}
 					
 					page_mapping_remove(as, ptr + P2SZ(i));
@@ -1001,18 +1002,19 @@ int as_area_destroy(as_t *as, uintptr_t address)
 			size_t size;
 			
 			for (size = 0; size < (size_t) node->value[i]; size++) {
-				pte_t *pte = page_mapping_find(as,
-				     ptr + P2SZ(size), false);
+				pte_t pte;
+				bool found = page_mapping_find(as,
+				     ptr + P2SZ(size), false, &pte);
 				
-				ASSERT(pte);
-				ASSERT(PTE_VALID(pte));
-				ASSERT(PTE_PRESENT(pte));
+				ASSERT(found);
+				ASSERT(PTE_VALID(&pte));
+				ASSERT(PTE_PRESENT(&pte));
 				
 				if ((area->backend) &&
 				    (area->backend->frame_free)) {
 					area->backend->frame_free(area,
 					    ptr + P2SZ(size),
-					    PTE_GET_FRAME(pte));
+					    PTE_GET_FRAME(&pte));
 				}
 				
 				page_mapping_remove(as, ptr + P2SZ(size));
@@ -1313,14 +1315,15 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 			size_t size;
 			
 			for (size = 0; size < (size_t) node->value[i]; size++) {
-				pte_t *pte = page_mapping_find(as,
-				    ptr + P2SZ(size), false);
+				pte_t pte;
+				bool found = page_mapping_find(as,
+				    ptr + P2SZ(size), false, &pte);
 				
-				ASSERT(pte);
-				ASSERT(PTE_VALID(pte));
-				ASSERT(PTE_PRESENT(pte));
+				ASSERT(found);
+				ASSERT(PTE_VALID(&pte));
+				ASSERT(PTE_PRESENT(&pte));
 				
-				old_frame[frame_idx++] = PTE_GET_FRAME(pte);
+				old_frame[frame_idx++] = PTE_GET_FRAME(&pte);
 				
 				/* Remove old mapping */
 				page_mapping_remove(as, ptr + P2SZ(size));
@@ -1450,12 +1453,13 @@ int as_page_fault(uintptr_t address, pf_access_t access, istate_t *istate)
 	 * To avoid race condition between two page faults on the same address,
 	 * we need to make sure the mapping has not been already inserted.
 	 */
-	pte_t *pte;
-	if ((pte = page_mapping_find(AS, page, false))) {
-		if (PTE_PRESENT(pte)) {
-			if (((access == PF_ACCESS_READ) && PTE_READABLE(pte)) ||
-			    (access == PF_ACCESS_WRITE && PTE_WRITABLE(pte)) ||
-			    (access == PF_ACCESS_EXEC && PTE_EXECUTABLE(pte))) {
+	pte_t pte;
+	bool found = page_mapping_find(AS, page, false, &pte);
+	if (found) {
+		if (PTE_PRESENT(&pte)) {
+			if (((access == PF_ACCESS_READ) && PTE_READABLE(&pte)) ||
+			    (access == PF_ACCESS_WRITE && PTE_WRITABLE(&pte)) ||
+			    (access == PF_ACCESS_EXEC && PTE_EXECUTABLE(&pte))) {
 				page_table_unlock(AS, false);
 				mutex_unlock(&area->lock);
 				mutex_unlock(&AS->lock);

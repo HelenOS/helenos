@@ -210,19 +210,18 @@ void itlb_pte_copy(pte_t *t)
 void fast_instruction_access_mmu_miss(unsigned int tt, istate_t *istate)
 {
 	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
-	pte_t *t;
+	pte_t t;
 
-	t = page_mapping_find(AS, va, true);
-
-	if (t && PTE_EXECUTABLE(t)) {
+	bool found = page_mapping_find(AS, va, true, &t);
+	if (found && PTE_EXECUTABLE(&t)) {
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into ITLB.
 		 */
-		t->a = true;
-		itlb_pte_copy(t);
+		t.a = true;
+		itlb_pte_copy(&t);
 #ifdef CONFIG_TSB
-		itsb_pte_copy(t);
+		itsb_pte_copy(&t);
 #endif
 	} else {
 		/*
@@ -243,7 +242,7 @@ void fast_instruction_access_mmu_miss(unsigned int tt, istate_t *istate)
  */
 void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 {
-	pte_t *t;
+	pte_t t;
 	uintptr_t va = DMISS_ADDRESS(istate->tlb_tag_access);
 	uint16_t ctx = DMISS_CONTEXT(istate->tlb_tag_access);
 	as_t *as = AS;
@@ -260,16 +259,16 @@ void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 		}
 	}
 
-	t = page_mapping_find(as, va, true);
-	if (t) {
+	bool found = page_mapping_find(as, va, true, &t);
+	if (found) {
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into DTLB.
 		 */
-		t->a = true;
-		dtlb_pte_copy(t, true);
+		t.a = true;
+		dtlb_pte_copy(&t, true);
 #ifdef CONFIG_TSB
-		dtsb_pte_copy(t, true);
+		dtsb_pte_copy(&t, true);
 #endif
 	} else {
 		/*
@@ -287,7 +286,7 @@ void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
  */
 void fast_data_access_protection(unsigned int tt, istate_t *istate)
 {
-	pte_t *t;
+	pte_t t;
 	uintptr_t va = DMISS_ADDRESS(istate->tlb_tag_access);
 	uint16_t ctx = DMISS_CONTEXT(istate->tlb_tag_access);
 	as_t *as = AS;
@@ -295,19 +294,19 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 	if (ctx == ASID_KERNEL)
 		as = AS_KERNEL;
 
-	t = page_mapping_find(as, va, true);
-	if (t && PTE_WRITABLE(t)) {
+	bool found = page_mapping_find(as, va, true, &t);
+	if (found && PTE_WRITABLE(&t)) {
 		/*
 		 * The mapping was found in the software page hash table and is
 		 * writable. Demap the old mapping and insert an updated mapping
 		 * into DTLB.
 		 */
-		t->a = true;
-		t->d = true;
+		t.a = true;
+		t.d = true;
 		mmu_demap_page(va, ctx, MMU_FLAG_DTLB);
-		dtlb_pte_copy(t, false);
+		dtlb_pte_copy(&t, false);
 #ifdef CONFIG_TSB
-		dtsb_pte_copy(t, false);
+		dtsb_pte_copy(&t, false);
 #endif
 	} else {
 		/*

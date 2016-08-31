@@ -483,19 +483,19 @@ static bool is_kernel_fault(uintptr_t va)
 void alternate_instruction_tlb_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
-	pte_t *t;
+	pte_t t;
 	
 	va = istate->cr_ifa; /* faulting address */
 	
 	ASSERT(!is_kernel_fault(va));
 
-	t = page_mapping_find(AS, va, true);
-	if (t) {
+	bool found = page_mapping_find(AS, va, true, &t);
+	if (found) {
 		/*
 		 * The mapping was found in software page hash table.
 		 * Insert it into data translation cache.
 		 */
-		itc_pte_copy(t);
+		itc_pte_copy(&t);
 	} else {
 		/*
 		 * Forward the page fault to address space page fault handler.
@@ -599,13 +599,14 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 	}
 	
 	
-	pte_t *entry = page_mapping_find(as, va, true);
-	if (entry) {
+	pte_t t;
+	bool found = page_mapping_find(as, va, true, &t);
+	if (found) {
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into data translation cache.
 		 */
-		dtc_pte_copy(entry);
+		dtc_pte_copy(&t);
 	} else {
 		if (try_memmap_io_insertion(va, istate))
 			return;
@@ -640,7 +641,7 @@ void data_nested_tlb_fault(unsigned int n, istate_t *istate)
 void data_dirty_bit_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
-	pte_t *t;
+	pte_t t;
 	as_t *as = AS;
 	
 	va = istate->cr_ifa;  /* faulting address */
@@ -648,15 +649,18 @@ void data_dirty_bit_fault(unsigned int n, istate_t *istate)
 	if (is_kernel_fault(va))
 		as = AS_KERNEL;
 
-	t = page_mapping_find(as, va, true);
-	ASSERT((t) && (t->p));
-	if ((t) && (t->p) && (t->w)) {
+	bool found = page_mapping_find(as, va, true, &t);
+
+	ASSERT(found);
+	ASSERT(t.p);
+
+	if (found && t.p && t.w) {
 		/*
 		 * Update the Dirty bit in page tables and reinsert
 		 * the mapping into DTC.
 		 */
-		t->d = true;
-		dtc_pte_copy(t);
+		t.d = true;
+		dtc_pte_copy(&t);
 	} else {
 		as_page_fault(va, PF_ACCESS_WRITE, istate);
 	}
@@ -671,21 +675,24 @@ void data_dirty_bit_fault(unsigned int n, istate_t *istate)
 void instruction_access_bit_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
-	pte_t *t;
+	pte_t t;
 	
 	va = istate->cr_ifa;  /* faulting address */
 
 	ASSERT(!is_kernel_fault(va));
 	
-	t = page_mapping_find(AS, va, true);
-	ASSERT((t) && (t->p));
-	if ((t) && (t->p) && (t->x)) {
+	bool found = page_mapping_find(AS, va, true, &t);
+
+	ASSERT(found);
+	ASSERT(t.p);
+
+	if (found && t.p && t.x) {
 		/*
 		 * Update the Accessed bit in page tables and reinsert
 		 * the mapping into ITC.
 		 */
-		t->a = true;
-		itc_pte_copy(t);
+		t.a = true;
+		itc_pte_copy(&t);
 	} else {
 		as_page_fault(va, PF_ACCESS_EXEC, istate);
 	}
@@ -700,7 +707,7 @@ void instruction_access_bit_fault(unsigned int n, istate_t *istate)
 void data_access_bit_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
-	pte_t *t;
+	pte_t t;
 	as_t *as = AS;
 	
 	va = istate->cr_ifa;  /* faulting address */
@@ -708,15 +715,18 @@ void data_access_bit_fault(unsigned int n, istate_t *istate)
 	if (is_kernel_fault(va))
 		as = AS_KERNEL;
 
-	t = page_mapping_find(as, va, true);
-	ASSERT((t) && (t->p));
-	if ((t) && (t->p)) {
+	bool found = page_mapping_find(as, va, true, &t);
+
+	ASSERT(found);
+	ASSERT(t.p);
+
+	if (found && t.p) {
 		/*
 		 * Update the Accessed bit in page tables and reinsert
 		 * the mapping into DTC.
 		 */
-		t->a = true;
-		dtc_pte_copy(t);
+		t.a = true;
+		dtc_pte_copy(&t);
 	} else {
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate, "Page fault at %p.",
@@ -735,7 +745,7 @@ void data_access_bit_fault(unsigned int n, istate_t *istate)
 void data_access_rights_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
-	pte_t *t;
+	pte_t t;
 	
 	va = istate->cr_ifa;  /* faulting address */
 
@@ -744,9 +754,12 @@ void data_access_rights_fault(unsigned int n, istate_t *istate)
 	/*
 	 * Assume a write to a read-only page.
 	 */
-	t = page_mapping_find(AS, va, true);
-	ASSERT((t) && (t->p));
-	ASSERT(!t->w);
+	bool found = page_mapping_find(AS, va, true, &t);
+
+	ASSERT(found);
+	ASSERT(t.p);
+	ASSERT(!t.w);
+
 	as_page_fault(va, PF_ACCESS_WRITE, istate);
 }
 
@@ -759,24 +772,25 @@ void data_access_rights_fault(unsigned int n, istate_t *istate)
 void page_not_present(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
-	pte_t *t;
+	pte_t t;
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
 	ASSERT(!is_kernel_fault(va));
 
-	t = page_mapping_find(AS, va, true);
-	ASSERT(t);
+	bool found = page_mapping_find(AS, va, true, &t);
+
+	ASSERT(found);
 	
-	if (t->p) {
+	if (t.p) {
 		/*
 		 * If the Present bit is set in page hash table, just copy it
 		 * and update ITC/DTC.
 		 */
-		if (t->x)
-			itc_pte_copy(t);
+		if (t.x)
+			itc_pte_copy(&t);
 		else
-			dtc_pte_copy(t);
+			dtc_pte_copy(&t);
 	} else {
 		as_page_fault(va, PF_ACCESS_READ, istate);
 	}

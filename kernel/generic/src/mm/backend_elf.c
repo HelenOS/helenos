@@ -183,7 +183,8 @@ void elf_share(as_area_t *area)
 					continue;
 			
 			for (j = 0; j < count; j++) {
-				pte_t *pte;
+				pte_t pte;
+				bool found;
 			
 				/*
 				 * Skip read-only pages that are backed by the
@@ -195,16 +196,19 @@ void elf_share(as_area_t *area)
 						continue;
 				
 				page_table_lock(area->as, false);
-				pte = page_mapping_find(area->as,
-				    base + P2SZ(j), false);
-				ASSERT(pte && PTE_VALID(pte) &&
-				    PTE_PRESENT(pte));
+				found = page_mapping_find(area->as,
+				    base + P2SZ(j), false, &pte);
+
+				ASSERT(found);
+				ASSERT(PTE_VALID(&pte));
+				ASSERT(PTE_PRESENT(&pte));
+
 				btree_insert(&area->sh_info->pagemap,
 				    (base + P2SZ(j)) - area->base,
-				    (void *) PTE_GET_FRAME(pte), NULL);
+				    (void *) PTE_GET_FRAME(&pte), NULL);
 				page_table_unlock(area->as, false);
 
-				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
+				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
 				frame_reference_add(pfn);
 			}
 				
@@ -334,13 +338,16 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 			km_temporary_page_put(kpage);
 			dirty = true;
 		} else {
-			pte_t *pte = page_mapping_find(AS_KERNEL,
-			    base + i * FRAME_SIZE, true);
+			pte_t pte;
+			bool found;
 
-			ASSERT(pte);
-			ASSERT(PTE_PRESENT(pte));
+			found = page_mapping_find(AS_KERNEL,
+			    base + i * FRAME_SIZE, true, &pte);
 
-			frame = PTE_GET_FRAME(pte);
+			ASSERT(found);
+			ASSERT(PTE_PRESENT(&pte));
+
+			frame = PTE_GET_FRAME(&pte);
 		}	
 	} else if (upage >= start_anon) {
 		/*

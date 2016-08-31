@@ -58,7 +58,7 @@ static void remove_callback(link_t *);
 
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void ht_mapping_remove(as_t *, uintptr_t);
-static pte_t *ht_mapping_find(as_t *, uintptr_t, bool);
+static bool ht_mapping_find(as_t *, uintptr_t, bool, pte_t *);
 static void ht_mapping_make_global(uintptr_t, size_t);
 
 slab_cache_t *pte_cache = NULL;
@@ -247,14 +247,14 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 
 /** Find mapping for virtual page in page hash table.
  *
- * @param as     Address space to which page belongs.
- * @param page   Virtual page.
- * @param nolock True if the page tables need not be locked.
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param[out] pte Structure that will receive a copy of the found PTE.
  *
- * @return NULL if there is no such mapping; requested mapping otherwise.
- *
+ * @return True if the mapping was found, false otherwise.
  */
-pte_t *ht_mapping_find(as_t *as, uintptr_t page, bool nolock)
+bool ht_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 {
 	sysarg_t key[2] = {
 		(uintptr_t) as,
@@ -265,9 +265,9 @@ pte_t *ht_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	
 	link_t *cur = hash_table_find(&page_ht, key);
 	if (cur)
-		return hash_table_get_instance(cur, pte_t, link);
+		*pte = *hash_table_get_instance(cur, pte_t, link);
 	
-	return NULL;
+	return cur != NULL;
 }
 
 void ht_mapping_make_global(uintptr_t base, size_t size)
