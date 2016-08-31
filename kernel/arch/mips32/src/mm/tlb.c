@@ -110,6 +110,8 @@ void tlb_refill(istate_t *istate)
 		tlb_prepare_entry_lo(&lo, pte.g, pte.p, pte.d,
 		    pte.cacheable, pte.pfn);
 
+		page_mapping_update(AS, badvaddr, true, &pte);
+
 		/*
 		 * New entry is to be inserted into TLB
 		 */
@@ -176,6 +178,8 @@ void tlb_invalid(istate_t *istate)
 		tlb_prepare_entry_lo(&lo, pte.g, pte.p, pte.d,
 		    pte.cacheable, pte.pfn);
 
+		page_mapping_update(AS, badvaddr, true, &pte);
+
 		/*
 		 * The entry is to be updated in TLB.
 		 */
@@ -238,6 +242,8 @@ void tlb_modified(istate_t *istate)
 
 		tlb_prepare_entry_lo(&lo, pte.g, pte.p, pte.w,
 		    pte.cacheable, pte.pfn);
+
+		page_mapping_update(AS, badvaddr, true, &pte);
 
 		/*
 		 * The entry is to be updated in TLB.

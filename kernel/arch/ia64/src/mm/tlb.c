@@ -661,6 +661,7 @@ void data_dirty_bit_fault(unsigned int n, istate_t *istate)
 		 */
 		t.d = true;
 		dtc_pte_copy(&t);
+		page_mapping_update(as, va, true, &t);
 	} else {
 		as_page_fault(va, PF_ACCESS_WRITE, istate);
 	}
@@ -693,6 +694,7 @@ void instruction_access_bit_fault(unsigned int n, istate_t *istate)
 		 */
 		t.a = true;
 		itc_pte_copy(&t);
+		page_mapping_update(AS, va, true, &t);
 	} else {
 		as_page_fault(va, PF_ACCESS_EXEC, istate);
 	}
@@ -727,6 +729,7 @@ void data_access_bit_fault(unsigned int n, istate_t *istate)
 		 */
 		t.a = true;
 		dtc_pte_copy(&t);
+		page_mapping_update(as, va, true, &t);
 	} else {
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate, "Page fault at %p.",

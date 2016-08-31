@@ -155,6 +155,27 @@ NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
 	    ALIGN_DOWN(page, PAGE_SIZE), nolock, pte);
 }
 
+/** Update mapping for virtual page.
+ *
+ * Use only to update accessed and modified/dirty bits.
+ *
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param pte      New PTE.
+ */
+NO_TRACE void page_mapping_update(as_t *as, uintptr_t page, bool nolock,
+    pte_t *pte)
+{
+	ASSERT(nolock || page_table_locked(as));
+	
+	ASSERT(page_mapping_operations);
+	ASSERT(page_mapping_operations->mapping_find);
+	
+	page_mapping_operations->mapping_update(as,
+	    ALIGN_DOWN(page, PAGE_SIZE), nolock, pte);
+}
+
 /** Make the mapping shared by all page tables (not address spaces).
  * 
  * @param base Starting virtual address of the range that is made global.

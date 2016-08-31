@@ -223,6 +223,7 @@ void fast_instruction_access_mmu_miss(unsigned int tt, istate_t *istate)
 #ifdef CONFIG_TSB
 		itsb_pte_copy(&t);
 #endif
+		page_mapping_update(AS, va, true, &t);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
@@ -270,6 +271,7 @@ void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 #ifdef CONFIG_TSB
 		dtsb_pte_copy(&t, true);
 #endif
+		page_mapping_update(as, va, true, &t);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
@@ -308,6 +310,7 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 #ifdef CONFIG_TSB
 		dtsb_pte_copy(&t, false);
 #endif
+		page_mapping_update(as, va, true, &t);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
