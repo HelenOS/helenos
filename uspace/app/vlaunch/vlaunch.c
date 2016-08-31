@@ -126,30 +126,34 @@ int main(int argc, char *argv[])
 	    16, lbl_bg, lbl_text);
 	button_t *btn_vterm = create_button(NULL, "/app/vterm", "vterm",
 	    16, btn_bg, btn_fg, btn_text);
+	button_t *btn_vcalc = create_button(NULL, "/app/vcalc", "vcalc",
+	    16, btn_bg, btn_fg, btn_text);
 	button_t *btn_vdemo = create_button(NULL, "/app/vdemo", "vdemo",
 	    16, btn_bg, btn_fg, btn_text);
 	button_t *btn_vlaunch = create_button(NULL, "/app/vlaunch", "vlaunch",
 	    16, btn_bg, btn_fg, btn_text);
-	grid_t *grid = create_grid(window_root(main_window), NULL, 1, 5, grd_bg);
+	grid_t *grid = create_grid(window_root(main_window), NULL, 1, 6, grd_bg);
 	
 	if ((!logo_canvas) || (!lbl_caption) || (!btn_vterm) ||
-	    (!btn_vdemo) || (!btn_vlaunch) || (!grid)) {
+	    (!btn_vcalc) || (!btn_vdemo) || (!btn_vlaunch) || (!grid)) {
 		window_close(main_window);
 		printf("Cannot create widgets.\n");
 		return 1;
 	}
 	
 	sig_connect(&btn_vterm->clicked, &btn_vterm->widget, on_btn_click);
+	sig_connect(&btn_vcalc->clicked, &btn_vcalc->widget, on_btn_click);
 	sig_connect(&btn_vdemo->clicked, &btn_vdemo->widget, on_btn_click);
 	sig_connect(&btn_vlaunch->clicked, &btn_vlaunch->widget, on_btn_click);
 	
 	grid->add(grid, &logo_canvas->widget, 0, 0, 1, 1);
 	grid->add(grid, &lbl_caption->widget, 0, 1, 1, 1);
 	grid->add(grid, &btn_vterm->widget, 0, 2, 1, 1);
-	grid->add(grid, &btn_vdemo->widget, 0, 3, 1, 1);
-	grid->add(grid, &btn_vlaunch->widget, 0, 4, 1, 1);
+	grid->add(grid, &btn_vcalc->widget, 0, 3, 1, 1);
+	grid->add(grid, &btn_vdemo->widget, 0, 4, 1, 1);
+	grid->add(grid, &btn_vlaunch->widget, 0, 5, 1, 1);
 	
-	window_resize(main_window, 0, 0, 210, 130 + LOGO_HEIGHT,
+	window_resize(main_window, 0, 0, 210, 164 + LOGO_HEIGHT,
 	    WINDOW_PLACEMENT_RIGHT | WINDOW_PLACEMENT_TOP);
 	window_exec(main_window);
 	

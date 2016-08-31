@@ -83,6 +83,7 @@ DIRS = \
 	app/sysinst \
 	app/mkbd \
 	app/date \
+	app/vcalc \
 	app/vdemo \
 	app/viewer \
 	app/vlaunch \
