@@ -120,9 +120,11 @@ const char *usb_str_speed(usb_speed_t s)
 /** Check setup packet data for signs of toggle reset.
  *
  * @param[in] requst Setup requst data.
+ *
  * @retval -1 No endpoints need reset.
  * @retval 0 All endpoints need reset.
  * @retval >0 Specified endpoint needs reset.
+ *
  */
 int usb_request_needs_toggle_reset(
     const usb_device_request_setup_packet_t *request)

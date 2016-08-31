@@ -80,8 +80,7 @@ struct hcd {
 	void * driver_data;
 };
 
-void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
-    bw_count_func_t bw_count);
+extern void hcd_init(hcd_t *, usb_speed_t, size_t, bw_count_func_t);
 
 static inline void hcd_set_implementation(hcd_t *hcd, void *data,
     const hcd_ops_t *ops)
@@ -101,33 +100,32 @@ static inline void * hcd_get_driver_data(hcd_t *hcd)
 	return hcd->driver_data;
 }
 
-usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed);
+extern usb_address_t hcd_request_address(hcd_t *, usb_speed_t);
 
-int hcd_release_address(hcd_t *hcd, usb_address_t address);
+extern int hcd_release_address(hcd_t *, usb_address_t);
 
-int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed);
+extern int hcd_reserve_default_address(hcd_t *, usb_speed_t);
 
 static inline int hcd_release_default_address(hcd_t *hcd)
 {
 	return hcd_release_address(hcd, USB_ADDRESS_DEFAULT);
 }
 
-int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    usb_transfer_type_t type, size_t max_packet_size, unsigned packets,
-    size_t size, usb_address_t tt_address, unsigned tt_port);
+extern int hcd_add_ep(hcd_t *, usb_target_t, usb_direction_t,
+    usb_transfer_type_t, size_t, unsigned int, size_t, usb_address_t,
+    unsigned int);
 
-int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir);
+extern int hcd_remove_ep(hcd_t *, usb_target_t, usb_direction_t);
 
-int hcd_send_batch(hcd_t *hcd, usb_target_t target, usb_direction_t direction,
-    void *data, size_t size, uint64_t setup_data,
-    usbhc_iface_transfer_in_callback_t in,
-    usbhc_iface_transfer_out_callback_t out, void *arg, const char* name);
+extern int hcd_send_batch(hcd_t *, usb_target_t, usb_direction_t, void *,
+    size_t, uint64_t, usbhc_iface_transfer_in_callback_t,
+    usbhc_iface_transfer_out_callback_t, void *, const char *);
 
-ssize_t hcd_send_batch_sync(hcd_t *hcd, usb_target_t target,
-    usb_direction_t dir, void *data, size_t size, uint64_t setup_data,
-    const char* name);
+extern ssize_t hcd_send_batch_sync(hcd_t *, usb_target_t, usb_direction_t,
+    void *, size_t, uint64_t, const char *);
 
 #endif
+
 /**
  * @}
  */

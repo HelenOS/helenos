@@ -32,6 +32,7 @@
 /** @file
  * @brief Virtual USB hub operations.
  */
+
 #include <errno.h>
 #include <usb/classes/hub.h>
 #include <usbvirt/device.h>

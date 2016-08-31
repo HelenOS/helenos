@@ -26,6 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup libusbdev
  * @{
  */
@@ -54,35 +55,45 @@
 typedef struct usb_device {
 	/** Connection to device on USB bus */
 	usb_dev_session_t *bus_session;
+	
 	/** devman handle */
 	devman_handle_t handle;
+	
 	/** The default control pipe. */
 	usb_pipe_t ctrl_pipe;
-
+	
 	/** Other endpoint pipes.
+	 *
 	 * This is an array of other endpoint pipes in the same order as
 	 * in usb_driver_t.
 	 */
 	usb_endpoint_mapping_t *pipes;
+	
 	/** Number of other endpoint pipes. */
 	size_t pipes_count;
+	
 	/** Current interface.
+	 *
 	 * Usually, drivers operate on single interface only.
 	 * This item contains the value of the interface or -1 for any.
 	 */
 	int interface_no;
+	
 	/** Alternative interfaces. */
 	usb_alternate_interfaces_t alternate_interfaces;
+	
 	/** Some useful descriptors for USB device. */
 	usb_device_descriptors_t descriptors;
+	
 	/** Generic DDF device backing this one. DO NOT TOUCH! */
 	ddf_dev_t *ddf_dev;
+	
 	/** Custom driver data.
+	 *
 	 * Do not use the entry in generic device, that is already used
 	 * by the framework.
 	 */
 	void *driver_data;
-
 } usb_device_t;
 
 /** Count number of pipes the driver expects.
@@ -134,7 +145,7 @@ int usb_device_select_interface(usb_device_t *usb_dev,
 	if (rc != EOK) {
 		return rc;
 	}
-
+	
 	/* Change current alternative */
 	usb_dev->alternate_interfaces.current = alternate_setting;
 
@@ -278,11 +289,13 @@ rollback_unregister_endpoints:
 /** Destroy pipes previously created by usb_device_create_pipes.
  *
  * @param[in] usb_dev USB device.
+ *
  */
 void usb_device_destroy_pipes(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	assert(usb_dev->pipes || usb_dev->pipes_count == 0);
+	
 	/* Destroy the pipes. */
 	for (size_t i = 0; i < usb_dev->pipes_count; ++i) {
 		usb_log_debug2("Unregistering pipe %zu: %spresent.\n",
@@ -290,6 +303,7 @@ void usb_device_destroy_pipes(usb_device_t *usb_dev)
 		if (usb_dev->pipes[i].present)
 			usb_pipe_unregister(&usb_dev->pipes[i].pipe);
 	}
+	
 	free(usb_dev->pipes);
 	usb_dev->pipes = NULL;
 	usb_dev->pipes_count = 0;
@@ -447,9 +461,11 @@ static int usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
 {
 	assert(handle);
 	assert(iface_no);
+	
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)
 		return EPARTY;
+	
 	int ret = usb_get_my_device_handle(exch, handle);
 	if (ret == EOK) {
 		ret = usb_get_my_interface(exch, iface_no);
@@ -458,6 +474,7 @@ static int usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
 			ret = EOK;
 		}
 	}
+	
 	async_exchange_end(exch);
 	return ret;
 }

@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohci
  * @{
  */
 /** @file
  * @brief OHCI driver
  */
+
 #ifndef DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 #define DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
@@ -138,7 +140,9 @@ static inline size_t td_remain_size(td_t *instance)
 	/* Buffer end points to the last byte of transfer buffer, so add 1 */
 	return OHCI_MEM32_RD(instance->be) - OHCI_MEM32_RD(instance->cbp) + 1;
 }
+
 #endif
+
 /**
  * @}
  */

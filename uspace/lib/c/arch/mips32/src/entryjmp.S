@@ -50,4 +50,3 @@ FUNCTION_BEGIN(entry_point_jmp)
 	addiu $sp, -ABI_STACK_FRAME
 	addiu $sp, ABI_STACK_FRAME
 FUNCTION_END(entry_point_jmp)
-

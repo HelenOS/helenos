@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohci
  * @{
  */
 /** @file
  * @brief OHCI driver
  */
+
 #ifndef DRV_OHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
 #define DRV_OHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
 
@@ -67,7 +69,9 @@ typedef struct itd {
 #define ITD_OFFSET_CC_SHIFT (12)
 
 } __attribute__((packed)) itd_t;
+
 #endif
+
 /**
  * @}
  */

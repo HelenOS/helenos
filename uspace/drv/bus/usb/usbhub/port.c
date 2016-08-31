@@ -26,6 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhub
  * @{
  */
@@ -174,7 +175,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 			}
 		} else {
 			/* Handle the case we were in reset */
-			//usb_hub_port_reset_fail(port);
+			// FIXME: usb_hub_port_reset_fail(port);
 			/* If enabled change was reported leave the removal
 			 * to that handler, it shall ACK the change too. */
 			if (!(status & USB_HUB_PORT_C_STATUS_ENABLED)) {
@@ -185,7 +186,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 
 	/* Enable change, ports are automatically disabled on errors. */
 	if (status & USB_HUB_PORT_C_STATUS_ENABLED) {
-		//TODO: maybe HS reset failed?
+		// TODO: maybe HS reset failed?
 		usb_log_info("(%p-%u): Port disabled because of errors.\n", hub,
 		   port->port_number);
 		usb_hub_port_device_gone(port, hub);

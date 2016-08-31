@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
+
 #ifndef DRV_UHCI_HW_STRUCT_QH_H
 #define DRV_UHCI_HW_STRUCT_QH_H
 
@@ -102,7 +104,9 @@ static inline void qh_set_element_td(qh_t *instance, td_t *td)
 		instance->element = LINK_POINTER_TERM;
 	}
 }
+
 #endif
+
 /**
  * @}
  */

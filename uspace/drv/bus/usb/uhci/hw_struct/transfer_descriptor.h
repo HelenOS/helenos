@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
+
 #ifndef DRV_UHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 #define DRV_UHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
@@ -164,6 +166,7 @@ static inline void td_set_ioc(td_t *instance)
 }
 
 #endif
+
 /**
  * @}
  */

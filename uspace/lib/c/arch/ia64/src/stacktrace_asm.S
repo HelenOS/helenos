@@ -40,4 +40,3 @@ FUNCTION_BEGIN(stacktrace_pc_get)
 	br.ret.sptk.many b0
 FUNCTION_END(stacktrace_fp_get)
 FUNCTION_END(stacktrace_pc_get)
-

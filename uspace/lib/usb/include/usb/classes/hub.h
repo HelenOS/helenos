@@ -109,6 +109,7 @@ typedef struct {
 	 *  D15...D8: Reserved
 	 */
 	uint8_t characteristics;
+
 #define HUB_CHAR_POWER_PER_PORT_FLAG    (1 << 0)
 #define HUB_CHAR_NO_POWER_SWITCH_FLAG   (1 << 1)
 #define HUB_CHAR_COMPOUND_DEVICE        (1 << 2)
@@ -195,7 +196,7 @@ typedef enum {
  *	Maximum size of usb hub descriptor in bytes
  */
 /* 7 (basic size) + 2*32 (port bitmasks) */
-#define USB_HUB_MAX_DESCRIPTOR_SIZE (7 + 2 * 32)
+#define USB_HUB_MAX_DESCRIPTOR_SIZE  (7 + 2 * 32)
 
 #endif
 /**

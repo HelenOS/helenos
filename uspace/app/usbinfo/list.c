@@ -147,7 +147,7 @@ void list(void)
 		return;
 	}
 
-	for (unsigned i = 0; i < count; ++i) {
+	for (unsigned int i = 0; i < count; ++i) {
 		print_usb_bus(svcs[i]);
 	}
 

@@ -32,6 +32,7 @@
 /** @file
  * @brief UHCI host controller driver structure
  */
+
 #ifndef DRV_UHCI_HC_H
 #define DRV_UHCI_HC_H
 
@@ -122,14 +123,14 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interupts);
-void hc_fini(hc_t *instance);
+extern int hc_init(hc_t *, const hw_res_list_parsed_t *, bool);
+extern void hc_fini(hc_t *);
 
-int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
+extern int uhci_hc_gen_irq_code(irq_code_t *, const hw_res_list_parsed_t *);
 
-void uhci_hc_interrupt(hcd_t *hcd, uint32_t status);
-int uhci_hc_status(hcd_t *hcd, uint32_t *status);
-int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+extern void uhci_hc_interrupt(hcd_t *, uint32_t);
+extern int uhci_hc_status(hcd_t *, uint32_t *);
+extern int uhci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
 
 #endif
 

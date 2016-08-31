@@ -34,6 +34,7 @@
  * @file
  * SCSI functions for USB mass storage driver.
  */
+
 #include <bitops.h>
 #include <byteorder.h>
 #include <inttypes.h>

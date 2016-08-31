@@ -285,12 +285,11 @@ int usb_pipe_initialize_from_configuration(
     const uint8_t *config_descriptor, size_t config_descriptor_size,
     usb_dev_session_t *bus_session)
 {
-
-	if (config_descriptor == NULL) {
+	if (config_descriptor == NULL)
 		return EBADMEM;
-	}
-	if (config_descriptor_size
-	    < sizeof(usb_standard_configuration_descriptor_t)) {
+	
+	if (config_descriptor_size <
+	    sizeof(usb_standard_configuration_descriptor_t)) {
 		return ERANGE;
 	}
 

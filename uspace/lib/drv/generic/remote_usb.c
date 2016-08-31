@@ -90,9 +90,12 @@ int usb_get_my_interface(async_exch_t *exch, int *usb_iface)
 }
 
 /** Tell devman handle of the usb device function.
- * @param[in] exch IPC communication exchange
+ *
+ * @param[in]  exch   IPC communication exchange
  * @param[out] handle devman handle of the HC used by the target device.
+ *
  * @return Error code.
+ *
  */
 int usb_get_my_device_handle(async_exch_t *exch, devman_handle_t *handle)
 {
@@ -118,8 +121,11 @@ int usb_reserve_default_address(async_exch_t *exch, usb_speed_t speed)
 }
 
 /** Release default USB address.
+ *
  * @param[in] exch IPC communication exchange
+ *
  * @return Error code.
+ *
  */
 int usb_release_default_address(async_exch_t *exch)
 {
@@ -130,9 +136,12 @@ int usb_release_default_address(async_exch_t *exch)
 }
 
 /** Trigger USB device enumeration
- * @param[in] exch IPC communication exchange
+ *
+ * @param[in]  exch   IPC communication exchange
  * @param[out] handle Identifier of the newly added device (if successful)
+ *
  * @return Error code.
+ *
  */
 int usb_device_enumerate(async_exch_t *exch, unsigned port)
 {
@@ -144,9 +153,12 @@ int usb_device_enumerate(async_exch_t *exch, unsigned port)
 }
 
 /** Trigger USB device enumeration
- * @param[in] exch IPC communication exchange
+ *
+ * @param[in] exch   IPC communication exchange
  * @param[in] handle Identifier of the device
+ *
  * @return Error code.
+ *
  */
 int usb_device_remove(async_exch_t *exch, unsigned port)
 {

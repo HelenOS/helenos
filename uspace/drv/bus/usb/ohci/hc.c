@@ -176,7 +176,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 	if (ret != EOK) {
 		usb_log_error("Failed to create OHCI memory structures: %s.\n",
 		    str_error(ret));
-		//TODO: We should disable pio access here
+		// TODO: We should disable pio access here
 		return ret;
 	}
 
@@ -392,7 +392,7 @@ void hc_gain_control(hc_t *instance)
 		usb_log_debug("OHCI legacy register %p: %x.\n",
 		    ohci_emulation_reg, OHCI_RD(*ohci_emulation_reg));
 		/* Zero everything but A20State */
-		//TODO: should we ack interrupts before doing this?
+		// TODO: should we ack interrupts before doing this?
 		OHCI_CLR(*ohci_emulation_reg, ~0x100);
 		usb_log_debug(
 		    "OHCI legacy register (should be 0 or 0x100) %p: %x.\n",
@@ -402,7 +402,7 @@ void hc_gain_control(hc_t *instance)
 	/* Interrupt routing enabled => smm driver is active */
 	if (OHCI_RD(instance->registers->control) & C_IR) {
 		usb_log_debug("SMM driver: request ownership change.\n");
-		//TODO: should we ack interrupts before doing this?
+		// TODO: should we ack interrupts before doing this?
 		OHCI_SET(instance->registers->command_status, CS_OCR);
 		/* Hope that SMM actually knows its stuff or we can hang here */
 		while (OHCI_RD(instance->registers->control) & C_IR) {

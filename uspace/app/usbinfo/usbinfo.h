@@ -43,18 +43,18 @@
 
 typedef struct {
 	int opt;
-	void (*action)(usb_device_t *usb_dev);
+	void (*action)(usb_device_t *);
 	bool active;
 } usbinfo_action_t;
 
 
 #define NAME "usbinfo"
 
-void dump_buffer(const char *, size_t, const uint8_t *, size_t);
-const char *get_indent(size_t);
-void dump_match_ids(match_id_list_t *, const char *);
-void dump_usb_descriptor(uint8_t *, size_t);
-void dump_descriptor_tree(uint8_t *, size_t);
+extern void dump_buffer(const char *, size_t, const uint8_t *, size_t);
+extern const char *get_indent(size_t);
+extern void dump_match_ids(match_id_list_t *, const char *);
+extern void dump_usb_descriptor(uint8_t *, size_t);
+extern void dump_descriptor_tree(uint8_t *, size_t);
 
 static inline void internal_error(int err)
 {
@@ -62,19 +62,20 @@ static inline void internal_error(int err)
 }
 
 typedef void (*dump_descriptor_in_tree_t)(const uint8_t *, size_t, void *);
-void browse_descriptor_tree(uint8_t *, size_t, usb_dp_descriptor_nesting_t *,
-    dump_descriptor_in_tree_t, size_t, void *);
 
-void list(void);
+extern void browse_descriptor_tree(uint8_t *, size_t,
+    usb_dp_descriptor_nesting_t *, dump_descriptor_in_tree_t, size_t, void *);
 
-void dump_short_device_identification(usb_device_t *);
-void dump_device_match_ids(usb_device_t *);
-void dump_descriptor_tree_brief(usb_device_t *);
-void dump_descriptor_tree_full(usb_device_t *);
-void dump_strings(usb_device_t *);
-void dump_status(usb_device_t *);
-void dump_hidreport_raw(usb_device_t *);
-void dump_hidreport_usages(usb_device_t *);
+extern void list(void);
+
+extern void dump_short_device_identification(usb_device_t *);
+extern void dump_device_match_ids(usb_device_t *);
+extern void dump_descriptor_tree_brief(usb_device_t *);
+extern void dump_descriptor_tree_full(usb_device_t *);
+extern void dump_strings(usb_device_t *);
+extern void dump_status(usb_device_t *);
+extern void dump_hidreport_raw(usb_device_t *);
+extern void dump_hidreport_usages(usb_device_t *);
 
 #endif
 /**

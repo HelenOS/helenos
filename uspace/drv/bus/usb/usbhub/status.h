@@ -26,6 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhub
  * @{
  */
@@ -113,7 +114,8 @@ static inline usb_speed_t usb_port_speed(usb_port_status_t status)
 	return USB_SPEED_FULL;
 }
 
-#endif	/* HUB_STATUS_H */
+#endif
+
 /**
  * @}
  */

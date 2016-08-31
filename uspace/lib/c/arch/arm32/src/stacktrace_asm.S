@@ -43,4 +43,3 @@ FUNCTION_BEGIN(stacktrace_pc_get)
 	mov r0, lr
 	mov pc, lr
 FUNCTION_END(stacktrace_pc_get)
-

@@ -76,4 +76,3 @@ FUNCTION_BEGIN(sin_f64)
 	leave
 	retq
 FUNCTION_END(sin_f64)
-

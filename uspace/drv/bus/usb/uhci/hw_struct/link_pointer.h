@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
+
 #ifndef DRV_UHCI_HW_STRUCT_LINK_POINTER_H
 #define DRV_UHCI_HW_STRUCT_LINK_POINTER_H
 
@@ -57,6 +59,7 @@ typedef uint32_t link_pointer_t;
 	((link_pointer_t)LINK_POINTER_TERMINATE_FLAG)
 
 #endif
+
 /**
  * @}
  */

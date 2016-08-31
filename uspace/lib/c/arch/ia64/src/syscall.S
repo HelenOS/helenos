@@ -44,4 +44,3 @@ FUNCTION_BEGIN(__syscall)
 	mov ar.pfs = r14 ;;
 	br.ret.sptk.many b0
 FUNCTION_END(__syscall)
-

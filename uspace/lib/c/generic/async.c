@@ -990,6 +990,7 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
  *
  * @param callid Hash of the incoming call.
  * @param call   Data of the incoming call.
+ *
  */
 static void process_notification(ipc_callid_t callid, ipc_call_t *call)
 {
@@ -1315,9 +1316,9 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	if ((callid & IPC_CALLID_NOTIFICATION)) {
 		fibril_t *fibril = (fibril_t *) __tcb_get()->fibril_data;
 		unsigned oldsw = fibril->switches;
-
+		
 		process_notification(callid, call);
-
+		
 		if (oldsw != fibril->switches) {
 			/*
 			 * The notification handler did not execute atomically
@@ -1333,6 +1334,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 			futex_down(&async_futex);
 			fibril_switch(FIBRIL_FROM_DEAD);
 		}
+		
 		return;
 	}
 	

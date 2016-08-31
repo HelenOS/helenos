@@ -63,4 +63,3 @@ FUNCTION_BEGIN(cos_f64)
 	
 	ret
 FUNCTION_END(cos_f64)
-

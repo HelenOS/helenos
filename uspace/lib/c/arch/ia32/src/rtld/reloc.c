@@ -68,7 +68,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 	uint32_t *r_ptr;
 	uint32_t sym_size;
 	char *str_tab;
-
+	
 	elf_symbol_t *sym_def;
 	module_t *dest;
 
@@ -79,7 +79,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 	str_tab = m->dyn.str_tab;
 
 	DPRINTF("address: 0x%x, entries: %d\n", (uintptr_t)rt, rt_entries);
-
+	
 	for (i = 0; i < rt_entries; ++i) {
 //		DPRINTF("symbol %d: ", i);
 		r_offset = rt[i].r_offset;
@@ -170,7 +170,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 
 			memcpy(r_ptr, (const void *)sym_addr, sym_size);
 			break;
-
+			
 		case R_386_RELATIVE:
 			DPRINTF("fixup R_386_RELATIVE (b+a)\n");
 			*r_ptr += m->bias;

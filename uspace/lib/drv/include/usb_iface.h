@@ -43,24 +43,27 @@
 
 typedef async_sess_t usb_dev_session_t;
 
-usb_dev_session_t *usb_dev_connect(devman_handle_t);
-usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
-void usb_dev_disconnect(usb_dev_session_t *);
+extern usb_dev_session_t *usb_dev_connect(devman_handle_t);
+extern usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
+extern void usb_dev_disconnect(usb_dev_session_t *);
 
-int usb_get_my_interface(async_exch_t *, int *);
-int usb_get_my_device_handle(async_exch_t *, devman_handle_t *);
+extern int usb_get_my_interface(async_exch_t *, int *);
+extern int usb_get_my_device_handle(async_exch_t *, devman_handle_t *);
 
-int usb_reserve_default_address(async_exch_t *, usb_speed_t);
-int usb_release_default_address(async_exch_t *);
+extern int usb_reserve_default_address(async_exch_t *, usb_speed_t);
+extern int usb_release_default_address(async_exch_t *);
 
-int usb_device_enumerate(async_exch_t *, unsigned port);
-int usb_device_remove(async_exch_t *, unsigned port);
+extern int usb_device_enumerate(async_exch_t *, unsigned port);
+extern int usb_device_remove(async_exch_t *, unsigned port);
 
-int usb_register_endpoint(async_exch_t *, usb_endpoint_t, usb_transfer_type_t,
-    usb_direction_t, size_t, unsigned, unsigned);
-int usb_unregister_endpoint(async_exch_t *, usb_endpoint_t, usb_direction_t);
-int usb_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t, size_t *);
-int usb_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *, size_t);
+extern int usb_register_endpoint(async_exch_t *, usb_endpoint_t,
+    usb_transfer_type_t, usb_direction_t, size_t, unsigned, unsigned);
+extern int usb_unregister_endpoint(async_exch_t *, usb_endpoint_t,
+    usb_direction_t);
+extern int usb_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
+    size_t *);
+extern int usb_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
+    size_t);
 
 /** Callback for outgoing transfer. */
 typedef void (*usb_iface_transfer_out_callback_t)(int, void *);

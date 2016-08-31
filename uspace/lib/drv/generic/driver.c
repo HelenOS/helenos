@@ -125,14 +125,14 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, rc);
 		return;
 	}
-
+	
 	ddf_dev_t *dev = create_device();
 	if (!dev) {
 		free(dev_name);
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-
+	
 	/* Add one reference that will be dropped by driver_dev_remove() */
 	dev_add_ref(dev);
 	dev->handle = dev_handle;

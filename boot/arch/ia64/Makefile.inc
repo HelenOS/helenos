@@ -77,7 +77,6 @@ RD_DRVS_NON_ESSENTIAL += \
 	bus/usb/ehci\
 	bus/usb/ohci \
 	bus/usb/uhci \
-	bus/usb/uhcirh \
 	bus/usb/usbflbk \
 	bus/usb/usbhub \
 	bus/usb/usbhid \

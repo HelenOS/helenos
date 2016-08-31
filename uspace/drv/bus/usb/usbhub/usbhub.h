@@ -26,12 +26,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhub
  * @{
  */
 /** @file
  * @brief Hub driver.
  */
+
 #ifndef DRV_USBHUB_USBHUB_H
 #define DRV_USBHUB_USBHUB_H
 
@@ -81,14 +83,15 @@ struct usb_hub_dev {
 
 extern const usb_endpoint_description_t hub_status_change_endpoint_description;
 
-int usb_hub_device_add(usb_device_t *usb_dev);
-int usb_hub_device_remove(usb_device_t *usb_dev);
-int usb_hub_device_gone(usb_device_t *usb_dev);
+extern int usb_hub_device_add(usb_device_t *);
+extern int usb_hub_device_remove(usb_device_t *);
+extern int usb_hub_device_gone(usb_device_t *);
 
-bool hub_port_changes_callback(usb_device_t *dev,
-    uint8_t *change_bitmap, size_t change_bitmap_size, void *arg);
+extern bool hub_port_changes_callback(usb_device_t *, uint8_t *, size_t,
+    void *);
 
 #endif
+
 /**
  * @}
  */

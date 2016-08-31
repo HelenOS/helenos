@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
  * @brief UHCI driver USB tranfer helper functions
  */
+
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
 
@@ -118,6 +120,7 @@ static inline uhci_transfer_batch_t *uhci_transfer_batch_from_link(link_t *l)
 }
 
 #endif
+
 /**
  * @}
  */

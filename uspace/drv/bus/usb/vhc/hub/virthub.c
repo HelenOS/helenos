@@ -32,6 +32,7 @@
 /** @file
  * @brief
  */
+
 #include <usb/classes/classes.h>
 #include <usb/classes/hub.h>
 #include <usbvirt/device.h>

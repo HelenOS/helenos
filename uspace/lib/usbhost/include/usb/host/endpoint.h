@@ -87,34 +87,37 @@ typedef struct endpoint {
 	} hc_data;
 } endpoint_t;
 
-endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
-    usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
-    size_t max_packet_size, unsigned packets, size_t bw,
-    usb_address_t tt_address, unsigned tt_port);
-void endpoint_destroy(endpoint_t *instance);
+extern endpoint_t *endpoint_create(usb_address_t, usb_endpoint_t,
+    usb_direction_t, usb_transfer_type_t, usb_speed_t, size_t, unsigned int,
+    size_t, usb_address_t, unsigned int);
+extern void endpoint_destroy(endpoint_t *);
 
-void endpoint_add_ref(endpoint_t *instance);
-void endpoint_del_ref(endpoint_t *instance);
+extern void endpoint_add_ref(endpoint_t *);
+extern void endpoint_del_ref(endpoint_t *);
 
-void endpoint_set_hc_data(endpoint_t *instance,
-    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int));
-void endpoint_clear_hc_data(endpoint_t *instance);
+extern void endpoint_set_hc_data(endpoint_t *, void *, int (*)(void *),
+    void (*)(void *, int));
+extern void endpoint_clear_hc_data(endpoint_t *);
 
-void endpoint_use(endpoint_t *instance);
-void endpoint_release(endpoint_t *instance);
+extern void endpoint_use(endpoint_t *);
+extern void endpoint_release(endpoint_t *);
 
-int endpoint_toggle_get(endpoint_t *instance);
-void endpoint_toggle_set(endpoint_t *instance, int toggle);
+extern int endpoint_toggle_get(endpoint_t *);
+extern void endpoint_toggle_set(endpoint_t *, int);
 
 /** list_get_instance wrapper.
+ *
  * @param item Pointer to link member.
+ *
  * @return Pointer to endpoint_t structure.
+ *
  */
 static inline endpoint_t * endpoint_get_instance(link_t *item)
 {
 	return item ? list_get_instance(item, endpoint_t, link) : NULL;
 }
 #endif
+
 /**
  * @}
  */

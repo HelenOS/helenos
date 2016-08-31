@@ -43,4 +43,3 @@ FUNCTION_BEGIN(stacktrace_pc_get)
 	movq (%rsp), %rax
 	ret
 FUNCTION_END(stacktrace_pc_get)
-

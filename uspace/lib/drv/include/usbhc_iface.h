@@ -43,9 +43,9 @@
 #include <usb/usb.h>
 #include <stdbool.h>
 
-int usbhc_read(async_exch_t *, usb_address_t, usb_endpoint_t,
+extern int usbhc_read(async_exch_t *, usb_address_t, usb_endpoint_t,
     uint64_t, void *, size_t, size_t *);
-int usbhc_write(async_exch_t *, usb_address_t, usb_endpoint_t,
+extern int usbhc_write(async_exch_t *, usb_address_t, usb_endpoint_t,
     uint64_t, const void *, size_t);
 
 /** Callback for outgoing transfer. */

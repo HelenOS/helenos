@@ -55,15 +55,12 @@
  * @param private_data_dtor Function to properly destroy private_data.
  * @return Pointer to valid usb_transfer_batch_t structure, NULL on failure.
  */
-usb_transfer_batch_t * usb_transfer_batch_create(
-    endpoint_t *ep,
-    char *buffer,
+usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep, char *buffer,
     size_t buffer_size,
     uint64_t setup_buffer,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
-    void *arg
-    )
+    void *arg)
 {
 	if (func_in == NULL && func_out == NULL)
 		return NULL;

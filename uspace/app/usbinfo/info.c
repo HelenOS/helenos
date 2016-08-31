@@ -92,7 +92,7 @@ void dump_device_match_ids(usb_device_t *usb_dev)
 	match_id_list_t matches;
 	init_match_ids(&matches);
 	usb_device_create_match_ids_from_device_descriptor(
-		&usb_device_descriptors(usb_dev)->device, &matches);
+	    &usb_device_descriptors(usb_dev)->device, &matches);
 	printf("%sDevice match ids (0x%04x by 0x%04x, %s)\n", get_indent(0),
 	    usb_device_descriptors(usb_dev)->device.product_id,
 	    usb_device_descriptors(usb_dev)->device.vendor_id,
@@ -228,7 +228,7 @@ static void dump_descriptor_tree_callback(
 void dump_descriptor_tree_brief(usb_device_t *usb_dev)
 {
 	dump_descriptor_tree_callback(
-	    (const uint8_t *)&usb_device_descriptors(usb_dev)->device,
+	    (const uint8_t *) &usb_device_descriptors(usb_dev)->device,
 	    (size_t) -1, NULL);
 
 	usb_dp_walk_simple(
@@ -241,7 +241,7 @@ void dump_descriptor_tree_brief(usb_device_t *usb_dev)
 void dump_descriptor_tree_full(usb_device_t *usb_dev)
 {
 	dump_descriptor_tree_callback(
-	    (const uint8_t *)&usb_device_descriptors(usb_dev)->device,
+	    (const uint8_t *) &usb_device_descriptors(usb_dev)->device,
 	    (size_t) -1, usb_dev);
 
 	usb_dp_walk_simple(
@@ -295,7 +295,7 @@ void dump_strings(usb_device_t *usb_dev)
 	/* Find used indexes. Devices with more than 64 strings are very rare.*/
 	uint64_t str_mask = 0;
 	find_string_indexes_callback(
-	    (const uint8_t *)&usb_device_descriptors(usb_dev)->device, 0,
+	    (const uint8_t *) &usb_device_descriptors(usb_dev)->device, 0,
 	    &str_mask);
 
 	usb_dp_walk_simple(

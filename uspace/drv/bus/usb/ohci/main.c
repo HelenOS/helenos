@@ -26,6 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohci
  * @{
  */
@@ -127,6 +128,7 @@ int main(int argc, char *argv[])
 	log_init(NAME);
 	return ddf_driver_main(&ohci_driver);
 }
+
 /**
  * @}
  */

@@ -232,8 +232,8 @@ int vhc_transfer_queue_processor(void *arg)
 		fibril_mutex_lock(&dev->guard);
 		if (rc == EOK) {
 			if (is_set_address_transfer(transfer)) {
-				usb_device_request_setup_packet_t *setup
-				    = (void*)transfer->batch->setup_buffer;
+				usb_device_request_setup_packet_t *setup =
+				    (void*) transfer->batch->setup_buffer;
 				dev->address = setup->value;
 				usb_log_debug2("Address changed to %d\n",
 				    dev->address);

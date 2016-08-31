@@ -34,6 +34,7 @@
  * @file
  * Helper functions.
  */
+
 #include <errno.h>
 #include <str_error.h>
 #include <stdlib.h>
