@@ -31,7 +31,7 @@ BFD_ARCH = i386:x86-64
 BFD = binary
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
-CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
+CMN1 = -m64 -mcmodel=$(MEMORY_MODEL) -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 CLANG_CFLAGS += $(CMN1)

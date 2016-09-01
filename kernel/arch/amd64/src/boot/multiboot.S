@@ -429,12 +429,23 @@ start64:
 	/* Call amd64_pre_main(multiboot_eax, multiboot_ebx) */
 	movl multiboot_eax, %edi
 	movl multiboot_ebx, %esi
+	
+#ifdef MEMORY_MODEL_large
+	movabsq $amd64_pre_main, %rax
+	callq *%rax
+#else
 	callq amd64_pre_main
-
+#endif
+	
 	long_status $status_main
 	
 	/* Call main_bsp() */
-	callq main_bsp 
+#ifdef MEMORY_MODEL_large
+	movabsq $main_bsp, %rax
+	callq *%rax
+#else
+	callq main_bsp
+#endif
 	
 	/* Not reached */
 	cli
@@ -621,6 +632,7 @@ ptl_2_6g:
 ptl_2_7g:
 	ptl2gen 512 7
 
+#ifdef MEMORY_MODEL_kernel
 .align 4096
 ptl_1:
 	/* Identity mapping for [0; 8G) */
@@ -637,12 +649,34 @@ ptl_1:
 	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT)
 
-
 .align 4096
 SYMBOL(ptl_0)
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
 	.fill 510, 8, 0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
+#endif
+
+#ifdef MEMORY_MODEL_large
+.align 4096
+ptl_1:
+	/* Identity mapping for [0; 8G) */
+	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_2g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_3g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_4g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_5g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_6g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_7g + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 504, 8, 0
+
+.align 4096
+SYMBOL(ptl_0)
+	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 255, 8, 0
+	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 255, 8, 0
+#endif
 
 .section K_DATA_START, "aw", @progbits
 

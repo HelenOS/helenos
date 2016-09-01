@@ -252,10 +252,21 @@ start64:
 	/* Call amd64_pre_main(multiboot_eax, multiboot_ebx) */
 	movl multiboot_eax, %edi
 	movl multiboot_ebx, %esi
-	callq amd64_pre_main 
+	
+#ifdef MEMORY_MODEL_large
+	movabsq $amd64_pre_main, %rax
+	callq *%rax
+#else
+	callq amd64_pre_main
+#endif
 	
 	/* Call main_bsp() */
-	callq main_bsp 
+#ifdef MEMORY_MODEL_large
+	movabsq $main_bsp, %rax
+	callq *%rax
+#else
+	callq main_bsp
+#endif
 	
 	/* Not reached */
 	cli

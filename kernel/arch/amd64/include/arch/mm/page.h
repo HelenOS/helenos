@@ -41,6 +41,8 @@
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
 
+#ifdef MEMORY_MODEL_kernel
+
 #ifndef __ASM__
 
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffffffff80000000))
@@ -52,6 +54,24 @@
 #define PA2KA(x)  ((x) + 0xffffffff80000000)
 
 #endif /* __ASM__ */
+
+#endif /* MEMORY_MODEL_kernel */
+
+#ifdef MEMORY_MODEL_large
+
+#ifndef __ASM__
+
+#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
+#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
+
+#else /* __ASM__ */
+
+#define KA2PA(x)  ((x) - 0xffff800000000000)
+#define PA2KA(x)  ((x) + 0xffff800000000000)
+
+#endif /* __ASM__ */
+
+#endif /* MEMORY_MODEL_large */
 
 /* Number of entries in each level. */
 #define PTL0_ENTRIES_ARCH  512

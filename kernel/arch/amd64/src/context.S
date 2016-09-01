@@ -49,8 +49,13 @@ FUNCTION_BEGIN(context_save_arch)
 	movq %r13, CONTEXT_OFFSET_R13(%rdi)
 	movq %r14, CONTEXT_OFFSET_R14(%rdi)
 	movq %r15, CONTEXT_OFFSET_R15(%rdi)
-
+	
+#ifdef MEMORY_MODEL_large
+	movabsq $vreg_ptr, %rsi
+	movq (%rsi), %rsi
+#else
 	movq vreg_ptr, %rsi
+#endif
 	movq %fs:VREG_TP(%rsi), %rsi
 	movq %rsi, CONTEXT_OFFSET_TP(%rdi)
 	
@@ -78,8 +83,13 @@ FUNCTION_BEGIN(context_restore_arch)
 	movq CONTEXT_OFFSET_PC(%rdi), %rdx
 	movq %rdx, (%rsp)
 	
-	movq CONTEXT_OFFSET_TP(%rdi), %rcx 
+	movq CONTEXT_OFFSET_TP(%rdi), %rcx
+#ifdef MEMORY_MODEL_large
+	movabsq $vreg_ptr, %rsi
+	movq (%rsi), %rsi
+#else
 	movq vreg_ptr, %rsi
+#endif
 	movq %rcx, %fs:VREG_TP(%rsi)
 	
 	xorl %eax, %eax       # context_restore returns 0
