@@ -43,7 +43,7 @@
 
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
-	(*((uint32_t *) (pte)) != 0)
+	(((pte_t *) (pte))->l0.should_be_zero_0 != 0 || PTE_PRESENT_ARCH(pte))
 #define PTE_PRESENT_ARCH(pte) \
 	(((pte_t *) (pte))->l0.descriptor_type != 0)
 #define PTE_GET_FRAME_ARCH(pte) \

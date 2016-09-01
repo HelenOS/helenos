@@ -52,13 +52,15 @@
 
 static void pt_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void pt_mapping_remove(as_t *, uintptr_t);
-static pte_t *pt_mapping_find(as_t *, uintptr_t, bool);
+static bool pt_mapping_find(as_t *, uintptr_t, bool, pte_t *pte);
+static void pt_mapping_update(as_t *, uintptr_t, bool, pte_t *pte);
 static void pt_mapping_make_global(uintptr_t, size_t);
 
 page_mapping_operations_t pt_mapping_operations = {
 	.mapping_insert = pt_mapping_insert,
 	.mapping_remove = pt_mapping_remove,
 	.mapping_find = pt_mapping_find,
+	.mapping_update = pt_mapping_update,
 	.mapping_make_global = pt_mapping_make_global
 };
 
@@ -288,17 +290,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 #endif /* PTL1_ENTRIES != 0 */
 }
 
-/** Find mapping for virtual page in hierarchical page tables.
- *
- * @param as     Address space to which page belongs.
- * @param page   Virtual page.
- * @param nolock True if the page tables need not be locked.
- *
- * @return NULL if there is no such mapping; entry from PTL3 describing
- *         the mapping otherwise.
- *
- */
-pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
+static pte_t *pt_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 {
 	ASSERT(nolock || page_table_locked(as));
 
@@ -333,6 +325,45 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 	
 	return &ptl3[PTL3_INDEX(page)];
+}
+
+/** Find mapping for virtual page in hierarchical page tables.
+ *
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param[out] pte Structure that will receive a copy of the found PTE.
+ *
+ * @return True if the mapping was found, false otherwise.
+ */
+bool pt_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
+{
+	pte_t *t = pt_mapping_find_internal(as, page, nolock);
+	if (t)
+		*pte = *t;
+	return t != NULL;
+}
+
+/** Update mapping for virtual page in hierarchical page tables.
+ *
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param[in] pte  New PTE.
+ */
+void pt_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
+{
+	pte_t *t = pt_mapping_find_internal(as, page, nolock);
+	if (!t)
+		panic("Updating non-existent PTE");	
+
+	ASSERT(PTE_VALID(t) == PTE_VALID(pte));
+	ASSERT(PTE_PRESENT(t) == PTE_PRESENT(pte));
+	ASSERT(PTE_GET_FRAME(t) == PTE_GET_FRAME(pte));
+	ASSERT(PTE_WRITABLE(t) == PTE_WRITABLE(pte));
+	ASSERT(PTE_EXECUTABLE(t) == PTE_EXECUTABLE(pte));
+
+	*t = *pte;
 }
 
 /** Return the size of the region mapped by a single PTL0 entry.

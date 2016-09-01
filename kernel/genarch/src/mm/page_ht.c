@@ -58,7 +58,8 @@ static void remove_callback(link_t *);
 
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void ht_mapping_remove(as_t *, uintptr_t);
-static pte_t *ht_mapping_find(as_t *, uintptr_t, bool);
+static bool ht_mapping_find(as_t *, uintptr_t, bool, pte_t *);
+static void ht_mapping_update(as_t *, uintptr_t, bool, pte_t *);
 static void ht_mapping_make_global(uintptr_t, size_t);
 
 slab_cache_t *pte_cache = NULL;
@@ -69,7 +70,7 @@ slab_cache_t *pte_cache = NULL;
  * locks.
  *
  */
-mutex_t page_ht_lock;
+IRQ_SPINLOCK_STATIC_INITIALIZE(page_ht_lock);
 
 /** Page hash table.
  *
@@ -90,6 +91,7 @@ page_mapping_operations_t ht_mapping_operations = {
 	.mapping_insert = ht_mapping_insert,
 	.mapping_remove = ht_mapping_remove,
 	.mapping_find = ht_mapping_find,
+	.mapping_update = ht_mapping_update,
 	.mapping_make_global = ht_mapping_make_global
 };
 
@@ -190,6 +192,8 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	};
 
 	ASSERT(page_table_locked(as));
+
+	irq_spinlock_lock(&page_ht_lock, true);
 	
 	if (!hash_table_find(&page_ht, key)) {
 		pte_t *pte = slab_alloc(pte_cache, FRAME_LOWMEM | FRAME_ATOMIC);
@@ -216,6 +220,8 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		
 		hash_table_insert(&page_ht, key, &pte->link);
 	}
+
+	irq_spinlock_unlock(&page_ht_lock, true);
 }
 
 /** Remove mapping of page from page hash table.
@@ -237,24 +243,18 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 
 	ASSERT(page_table_locked(as));
 	
+	irq_spinlock_lock(&page_ht_lock, true);
+
 	/*
 	 * Note that removed PTE's will be freed
 	 * by remove_callback().
 	 */
 	hash_table_remove(&page_ht, key, 2);
+
+	irq_spinlock_unlock(&page_ht_lock, true);
 }
 
-
-/** Find mapping for virtual page in page hash table.
- *
- * @param as     Address space to which page belongs.
- * @param page   Virtual page.
- * @param nolock True if the page tables need not be locked.
- *
- * @return NULL if there is no such mapping; requested mapping otherwise.
- *
- */
-pte_t *ht_mapping_find(as_t *as, uintptr_t page, bool nolock)
+static pte_t *ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 {
 	sysarg_t key[2] = {
 		(uintptr_t) as,
@@ -262,12 +262,65 @@ pte_t *ht_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	};
 
 	ASSERT(nolock || page_table_locked(as));
-	
+
 	link_t *cur = hash_table_find(&page_ht, key);
 	if (cur)
 		return hash_table_get_instance(cur, pte_t, link);
 	
 	return NULL;
+}
+
+/** Find mapping for virtual page in page hash table.
+ *
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param[out] pte Structure that will receive a copy of the found PTE.
+ *
+ * @return True if the mapping was found, false otherwise.
+ */
+bool ht_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
+{
+	irq_spinlock_lock(&page_ht_lock, true);
+
+	pte_t *t = ht_mapping_find_internal(as, page, nolock);
+	if (t)
+		*pte = *t;
+
+	irq_spinlock_unlock(&page_ht_lock, true);
+	
+	return t != NULL;
+}
+
+/** Update mapping for virtual page in page hash table.
+ *
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param pte      New PTE.
+ */
+void ht_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
+{
+	irq_spinlock_lock(&page_ht_lock, true);
+
+	pte_t *t = ht_mapping_find_internal(as, page, nolock);
+	if (!t)
+		panic("Updating non-existent PTE");
+	
+	ASSERT(pte->as == t->as);
+	ASSERT(pte->page == t->page);
+	ASSERT(pte->frame == t->frame);
+	ASSERT(pte->g == t->g);
+	ASSERT(pte->x == t->x);
+	ASSERT(pte->w == t->w);
+	ASSERT(pte->k == t->k);
+	ASSERT(pte->c == t->c);
+	ASSERT(pte->p == t->p);
+
+	t->a = pte->a;
+	t->d = pte->d;
+
+	irq_spinlock_unlock(&page_ht_lock, true);
 }
 
 void ht_mapping_make_global(uintptr_t base, size_t size)

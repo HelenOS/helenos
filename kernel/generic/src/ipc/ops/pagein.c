@@ -46,13 +46,14 @@
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	if (!IPC_GET_RETVAL(answer->data)) {
-		pte_t *pte;
+		pte_t pte;
 		uintptr_t frame;
 
 		page_table_lock(AS, true);
-		pte = page_mapping_find(AS, IPC_GET_ARG1(answer->data), false);
-		if (pte) {
-			frame = PTE_GET_FRAME(pte);
+		bool found = page_mapping_find(AS, IPC_GET_ARG1(answer->data),
+		    false, &pte);
+		if (found) {
+			frame = PTE_GET_FRAME(&pte);
 			pfn_t pfn = ADDR2PFN(frame);
 			if (find_zone(pfn, 1, 0) != (size_t) -1) {
 				/*

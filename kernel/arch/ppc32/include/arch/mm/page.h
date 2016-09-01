@@ -139,7 +139,7 @@
 	set_pt_present((pte_t *) (ptl3), (size_t) (i))
 
 /* Macros for querying the last-level PTEs. */
-#define PTE_VALID_ARCH(pte)       (*((uint32_t *) (pte)) != 0)
+#define PTE_VALID_ARCH(pte)       ((pte)->valid != 0)
 #define PTE_PRESENT_ARCH(pte)     ((pte)->present != 0)
 #define PTE_GET_FRAME_ARCH(pte)   ((pte)->pfn << 12)
 #define PTE_WRITABLE_ARCH(pte)    1
