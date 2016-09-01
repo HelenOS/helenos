@@ -25,19 +25,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup libusb
  * @{
  */
+
 /** @file
  * Common USB types and functions.
  */
+
 #ifndef LIBUSB_DEV_H_
 #define LIBUSB_DEV_H_
 
 #include <devman.h>
 
-int usb_resolve_device_handle(const char *, devman_handle_t *);
+extern int usb_resolve_device_handle(const char *, devman_handle_t *);
+
 #endif
+
 /**
  * @}
  */

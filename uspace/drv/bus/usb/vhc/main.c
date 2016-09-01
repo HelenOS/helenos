@@ -43,7 +43,6 @@
 #include <usb/debug.h>
 #include "vhcd.h"
 
-
 static ddf_dev_ops_t vhc_ops = {
 	.close = on_client_close,
 	.default_handler = default_connection_handler

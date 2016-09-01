@@ -32,6 +32,7 @@
 /** @file
  * @brief USB hub as a virtual USB device.
  */
+
 #ifndef VHC_HUB_VIRTHUB_H_
 #define VHC_HUB_VIRTHUB_H_
 
@@ -85,6 +86,7 @@ bool virthub_is_device_enabled(usbvirt_device_t *, vhc_virtdev_t *);
 void virthub_get_status(usbvirt_device_t *, char *, size_t);
 
 #endif
+
 /**
  * @}
  */

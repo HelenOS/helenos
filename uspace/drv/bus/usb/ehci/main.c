@@ -26,12 +26,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbehci
  * @{
  */
 /** @file
  * Main routines of EHCI driver.
  */
+
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res.h>
@@ -69,7 +71,8 @@ static const ddf_hc_driver_t ehci_hc_driver = {
 };
 
 
-static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res,
+    bool irq)
 {
 	assert(hcd);
 	assert(hcd_get_driver_data(hcd) == NULL);
@@ -137,6 +140,7 @@ int main(int argc, char *argv[])
 	logctl_set_log_level(NAME, LVL_NOTE);
 	return ddf_driver_main(&ehci_driver);
 }
+
 /**
  * @}
  */

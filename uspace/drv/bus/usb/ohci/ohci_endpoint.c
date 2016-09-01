@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohci
  * @{
  */
@@ -116,6 +117,7 @@ void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 		free(instance);
 	}
 }
+
 /**
  * @}
  */

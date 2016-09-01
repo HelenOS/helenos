@@ -60,4 +60,3 @@ FUNCTION_BEGIN(trunc_f64)
 	leave
 	ret
 FUNCTION_END(trunc_f64)
-

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2012 Petr Koupy
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,23 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <abi/asmtool.h>
+USPACE_PREFIX = ../..
 
-/**
- * Immediate operand for break instruction.
- * Be carefull about the value as Ski simulator
- * is somewhat sensitive to its value.
- *
- * 0 will be confused with Ski breakpoint.
- * And higher values will be confused with SSC's.
- */
-#define SYSCALL_IMM	1
+LIBS = \
+	$(LIBGUI_PREFIX)/libgui.a \
+	$(LIBDRAW_PREFIX)/libdraw.a \
+	$(LIBSOFTREND_PREFIX)/libsoftrend.a \
+	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 
-FUNCTION_BEGIN(__syscall)
-	alloc r14 = ar.pfs, 7, 0, 0, 0 ;;
-	break SYSCALL_IMM
-	mov ar.pfs = r14 ;;
-	br.ret.sptk.many b0
-FUNCTION_END(__syscall)
+EXTRA_CFLAGS += \
+	-I$(LIBGUI_PREFIX) \
+	-I$(LIBDRAW_PREFIX) \
+	-I$(LIBSOFTREND_PREFIX)
+
+BINARY = vcalc
+MATH = y
+
+SOURCES = \
+	vcalc.c
+
+include $(USPACE_PREFIX)/Makefile.common

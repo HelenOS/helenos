@@ -62,7 +62,6 @@ FUNCTION_BEGIN(__syscall_slow)
 	ret
 FUNCTION_END(__syscall_slow)
 
-
 /** Syscall wrapper - SYSENTER version.
  *
  * This is an optimized version of syscall for four or less arguments.  Note

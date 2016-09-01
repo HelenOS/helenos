@@ -590,8 +590,8 @@ static int fetch_input(void *arg)
 	return 0;
 }
 
-window_t *window_open(const char *winreg, window_flags_t flags,
-    const char *caption)
+window_t *window_open(const char *winreg, const void *data,
+    window_flags_t flags, const char *caption)
 {
 	window_t *win = (window_t *) malloc(sizeof(window_t));
 	if (!win)
@@ -603,7 +603,7 @@ window_t *window_open(const char *winreg, window_flags_t flags,
 	prodcons_initialize(&win->events);
 	fibril_mutex_initialize(&win->guard);
 	
-	widget_init(&win->root, NULL);
+	widget_init(&win->root, NULL, data);
 	win->root.window = win;
 	win->root.destroy = root_destroy;
 	win->root.reconfigure = root_reconfigure;

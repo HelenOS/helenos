@@ -77,7 +77,7 @@ FUNCTION_BEGIN(context_restore_arch)
 	
 	movq CONTEXT_OFFSET_PC(%rdi), %rdx
 	movq %rdx, (%rsp)
-
+	
 	movq CONTEXT_OFFSET_TP(%rdi), %rcx 
 	movq vreg_ptr, %rsi
 	movq %rcx, %fs:VREG_TP(%rsi)

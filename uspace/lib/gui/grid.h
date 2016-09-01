@@ -55,8 +55,9 @@ typedef struct grid {
 	bool (*add)(struct grid *, widget_t *, size_t, size_t, size_t, size_t);
 } grid_t;
 
-extern bool init_grid(grid_t *, widget_t *, size_t, size_t, pixel_t);
-extern grid_t *create_grid(widget_t *, size_t, size_t, pixel_t);
+extern bool init_grid(grid_t *, widget_t *, const void *, size_t, size_t,
+    pixel_t);
+extern grid_t *create_grid(widget_t *, const void *, size_t, size_t, pixel_t);
 extern void deinit_grid(grid_t *);
 
 #endif

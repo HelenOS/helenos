@@ -52,10 +52,11 @@ typedef struct widget widget_t;
  */
 struct widget {
 	link_t link;
-	widget_t *parent; /**< Parent widget of this widget. NULL for root widget. */
-	list_t children; /**< Children widgets of this widget. */
-	window_t *window; /**< Window into which this widget belongs. */
-
+	widget_t *parent;  /**< Parent widget of this widget. NULL for root widget. */
+	list_t children;   /**< Children widgets of this widget. */
+	window_t *window;  /**< Window into which this widget belongs. */
+	const void *data;  /**< Custom client data. */
+	
 	sysarg_t hpos; /**< Horizontal position in window coordinates. */
 	sysarg_t vpos; /**< Vertical position in window coordinates. */
 	sysarg_t width;
@@ -127,11 +128,9 @@ struct widget {
  * should also provide constructor to allocate and init the widget in one step.
  */
 
-/** Link widget with parent and initialize default position and size. */
-extern void widget_init(widget_t *, widget_t *);
-/** Just convenience function to change position and size of the widget. */
+extern void widget_init(widget_t *, widget_t *, const void *);
 extern void widget_modify(widget_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
-/** Unlink widget from its parent. */
+extern const void *widget_get_data(widget_t *);
 extern void widget_deinit(widget_t *);
 
 #endif

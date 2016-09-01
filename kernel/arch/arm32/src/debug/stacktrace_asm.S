@@ -39,4 +39,3 @@ FUNCTION_BEGIN(program_counter_get)
 	mov r0, lr
 	mov pc, lr
 FUNCTION_END(program_counter_get)
-

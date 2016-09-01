@@ -49,21 +49,23 @@ static_assert(sizeof(usb_device_request_setup_packet_t) == 8);
  *
  * @see usb_pipe_control_write
  *
- * @param pipe Pipe used for the communication.
+ * @param pipe         Pipe used for the communication.
  * @param request_type Request type (standard/class/vendor).
- * @param recipient Request recipient (e.g. device or endpoint).
- * @param request Actual request (e.g. GET_DESCRIPTOR).
- * @param value Value of @c wValue field of setup packet
- *	(must be in USB endianness).
- * @param index Value of @c wIndex field of setup packet
- *	(must be in USB endianness).
- * @param data Data to be sent during DATA stage
- *	(expected to be in USB endianness).
- * @param data_size Size of the @p data buffer (in native endianness).
+ * @param recipient    Request recipient (e.g. device or endpoint).
+ * @param request      Actual request (e.g. GET_DESCRIPTOR).
+ * @param value        Value of @c wValue field of setup packet
+ *                     (must be in USB endianness).
+ * @param index        Value of @c wIndex field of setup packet
+ *                     (must be in USB endianness).
+ * @param data         Data to be sent during DATA stage
+ *                     (expected to be in USB endianness).
+ * @param data_size     Size of the @p data buffer (in native endianness).
+ *
  * @return Error code.
  * @retval EBADMEM @p pipe is NULL.
  * @retval EBADMEM @p data is NULL and @p data_size is not zero.
  * @retval ERANGE Data buffer too large.
+ *
  */
 int usb_control_request_set(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
@@ -99,29 +101,31 @@ int usb_control_request_set(usb_pipe_t *pipe,
 	    &setup_packet, sizeof(setup_packet), data, data_size);
 }
 
- /** Generic wrapper for GET requests using standard control request format.
-  *
-  * @see usb_pipe_control_read
-  *
-  * @param pipe Pipe used for the communication.
-  * @param request_type Request type (standard/class/vendor).
-  * @param recipient Request recipient (e.g. device or endpoint).
-  * @param request Actual request (e.g. GET_DESCRIPTOR).
-  * @param value Value of @c wValue field of setup packet
-  *	(must be in USB endianness).
-  * @param index Value of @c wIndex field of setup packet
-  *	(must be in USB endianness).
-  * @param data Buffer where to store data accepted during the DATA stage.
-  *	(they will come in USB endianness).
-  * @param data_size Size of the @p data buffer
-  *	(in native endianness).
-  * @param actual_data_size Actual size of transfered data
-  *	(in native endianness).
-  * @return Error code.
-  * @retval EBADMEM @p pipe is NULL.
-  * @retval EBADMEM @p data is NULL and @p data_size is not zero.
-  * @retval ERANGE Data buffer too large.
-  */
+/** Generic wrapper for GET requests using standard control request format.
+ *
+ * @see usb_pipe_control_read
+ *
+ * @param pipe             Pipe used for the communication.
+ * @param request_type     Request type (standard/class/vendor).
+ * @param recipient        Request recipient (e.g. device or endpoint).
+ * @param request          Actual request (e.g. GET_DESCRIPTOR).
+ * @param value            Value of @c wValue field of setup packet
+ *                         (must be in USB endianness).
+ * @param index            Value of @c wIndex field of setup packet
+ *                         (must be in USB endianness).
+ * @param data             Buffer where to store data accepted during
+ *                         the DATA stage (they will come in USB endianness).
+ * @param data_size        Size of the @p data buffer
+ *                         (in native endianness).
+ * @param actual_data_size Actual size of transfered data
+ *                         (in native endianness).
+ *
+ * @return Error code.
+ * @retval EBADMEM @p pipe is NULL.
+ * @retval EBADMEM @p data is NULL and @p data_size is not zero.
+ * @retval ERANGE Data buffer too large.
+ *
+ */
 int usb_control_request_get(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t request, uint16_t value, uint16_t index,
@@ -208,8 +212,7 @@ int usb_request_clear_feature(usb_pipe_t *pipe,
     uint16_t feature_selector, uint16_t index)
 {
 	if (request_type == USB_REQUEST_TYPE_STANDARD) {
-		if ((recipient == USB_REQUEST_RECIPIENT_DEVICE) && (index != 0))
-		{
+		if ((recipient == USB_REQUEST_RECIPIENT_DEVICE) && (index != 0)) {
 			return EINVAL;
 		}
 	}
@@ -233,8 +236,7 @@ int usb_request_set_feature(usb_pipe_t *pipe,
     uint16_t feature_selector, uint16_t index)
 {
 	if (request_type == USB_REQUEST_TYPE_STANDARD) {
-		if ((recipient == USB_REQUEST_RECIPIENT_DEVICE) && (index != 0))
-		{
+		if ((recipient == USB_REQUEST_RECIPIENT_DEVICE) && (index != 0)) {
 			return EINVAL;
 		}
 	}
@@ -270,7 +272,8 @@ int usb_request_get_descriptor(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	/* The wValue field specifies the descriptor type in the high byte
+	/*
+	 * The wValue field specifies the descriptor type in the high byte
 	 * and the descriptor index in the low byte. USB 1.1 spec p. 189
 	 */
 	const uint16_t wValue = descriptor_index | (descriptor_type << 8);

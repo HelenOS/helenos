@@ -26,6 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhub
  * @{
  */
@@ -55,6 +56,7 @@
 #include "status.h"
 
 #define HUB_FNC_NAME "hub"
+
 /** Hub status-change endpoint description.
  *
  * For more information see section 11.15.1 of USB 1.1 specification.
@@ -228,7 +230,6 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg)
 {
-//	usb_log_debug("hub_port_changes_callback\n");
 	usb_hub_dev_t *hub = arg;
 	assert(hub);
 
@@ -313,7 +314,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	usb_log_info("(%p): Hub port power switching enabled (%s).\n", hub_dev,
 	    hub_dev->per_port_power ? "per port" : "ganged");
 
-	for (unsigned port = 0; port < hub_dev->port_count; ++port) {
+	for (unsigned int port = 0; port < hub_dev->port_count; ++port) {
 		usb_log_debug("(%p): Powering port %u.", hub_dev, port);
 		const int ret = usb_hub_port_set_feature(
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);

@@ -44,7 +44,7 @@ typedef enum {
 	USB_DESCTYPE_STRING = 3,
 	USB_DESCTYPE_INTERFACE = 4,
 	USB_DESCTYPE_ENDPOINT = 5,
-	/* New in USB2.0 */
+	/* New in USB 2.0 */
 	USB_DESCTYPE_DEVICE_QUALIFIER = 6,
 	USB_DESCTYPE_OTHER_SPEED_CONFIGURATION = 7,
 	USB_DESCTYPE_INTERFACE_POWER = 8,
@@ -201,11 +201,13 @@ typedef struct {
 	 * Bits 11,12 specify addtional transfer opportunitities for
 	 * HS INT and ISO transfers. */
 	uint16_t max_packet_size;
+
 #define ED_MPS_PACKET_SIZE_MASK  0x3ff
 #define ED_MPS_PACKET_SIZE_GET(value) \
 	((value) & ED_MPS_PACKET_SIZE_MASK)
 #define ED_MPS_TRANS_OPPORTUNITIES_GET(value) \
 	((((value) >> 10) & 0x3) + 1)
+
 	/** Polling interval in milliseconds.
 	 * Ignored for bulk and control endpoints.
 	 * Isochronous endpoints must use value 1.

@@ -33,6 +33,7 @@
  * @file
  * Exploration of available interfaces in the USB device.
  */
+
 #include <errno.h>
 #include <str_error.h>
 #include <stdlib.h>

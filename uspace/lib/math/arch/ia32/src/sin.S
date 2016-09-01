@@ -63,4 +63,3 @@ FUNCTION_BEGIN(sin_f64)
 	
 	ret
 FUNCTION_END(sin_f64)
-

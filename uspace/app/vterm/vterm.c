@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	window_t *main_window = window_open(argv[1],
+	window_t *main_window = window_open(argv[1], NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "vterm");
 	if (!main_window) {
 		printf("%s: Cannot open main window.\n", NAME);
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 	
 	window_resize(main_window, 0, 0, 648, 508, WINDOW_PLACEMENT_ANY);
 	terminal_t *terminal_widget =
-	    create_terminal(window_root(main_window), 640, 480);
+	    create_terminal(window_root(main_window), NULL, 640, 480);
 	if (!terminal_widget) {
 		window_close(main_window);
 		printf("%s: Cannot create widgets.\n", NAME);

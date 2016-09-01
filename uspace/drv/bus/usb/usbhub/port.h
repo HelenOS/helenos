@@ -26,12 +26,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhub
  * @{
  */
 /** @file
  * Hub ports related functions.
  */
+
 #ifndef DRV_USBHUB_PORT_H
 #define DRV_USBHUB_PORT_H
 
@@ -44,7 +46,7 @@ typedef struct usb_hub_dev usb_hub_dev_t;
 /** Information about single port on a hub. */
 typedef struct {
 	/** Port number as reported in descriptors. */
-	unsigned port_number;
+	unsigned int port_number;
 	/** Device communication pipe. */
 	usb_pipe_t *control_pipe;
 	/** Mutex needed not only by CV for checking port reset. */
@@ -68,8 +70,8 @@ typedef struct {
  *
  * @param port Port to be initialized.
  */
-static inline void usb_hub_port_init(usb_hub_port_t *port, unsigned port_number,
-    usb_pipe_t *control_pipe)
+static inline void usb_hub_port_init(usb_hub_port_t *port,
+    unsigned int port_number, usb_pipe_t *control_pipe)
 {
 	assert(port);
 	port->port_number = port_number;
@@ -79,6 +81,7 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, unsigned port_number,
 	fibril_mutex_initialize(&port->mutex);
 	fibril_condvar_initialize(&port->reset_cv);
 }
+
 int usb_hub_port_fini(usb_hub_port_t *port, usb_hub_dev_t *hub);
 int usb_hub_port_clear_feature(
     usb_hub_port_t *port, usb_hub_class_feature_t feature);
@@ -88,6 +91,7 @@ void usb_hub_port_reset_fail(usb_hub_port_t *port);
 void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub);
 
 #endif
+
 /**
  * @}
  */

@@ -41,7 +41,6 @@
 #include <async.h>
 #include <errno.h>
 
-
 /** Maximum number of endpoints supported by virtual USB. */
 #define USBVIRT_ENDPOINT_MAX 16
 
@@ -239,23 +238,25 @@ struct usbvirt_device {
 	async_sess_t *vhc_sess;
 };
 
-
-int req_nop(usbvirt_device_t *device,
+extern int req_nop(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size);
 
-int usbvirt_device_plug(usbvirt_device_t *, const char *);
-void usbvirt_device_unplug(usbvirt_device_t *);
+extern int usbvirt_device_plug(usbvirt_device_t *, const char *);
+extern void usbvirt_device_unplug(usbvirt_device_t *);
 
-void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *,
-    uint8_t *, size_t *, const void *, size_t);
-
-int usbvirt_control_write(usbvirt_device_t *, const void *, size_t, void *, size_t);
-int usbvirt_control_read(usbvirt_device_t *, const void *, size_t, void *, size_t, size_t *);
-int usbvirt_data_out(usbvirt_device_t *, usb_transfer_type_t, usb_endpoint_t,
+extern void usbvirt_control_reply_helper(
+    const usb_device_request_setup_packet_t *, uint8_t *, size_t *,
     const void *, size_t);
-int usbvirt_data_in(usbvirt_device_t *, usb_transfer_type_t, usb_endpoint_t,
+
+extern int usbvirt_control_write(usbvirt_device_t *, const void *, size_t,
+    void *, size_t);
+extern int usbvirt_control_read(usbvirt_device_t *, const void *, size_t,
     void *, size_t, size_t *);
+extern int usbvirt_data_out(usbvirt_device_t *, usb_transfer_type_t,
+    usb_endpoint_t, const void *, size_t);
+extern int usbvirt_data_in(usbvirt_device_t *, usb_transfer_type_t,
+    usb_endpoint_t, void *, size_t, size_t *);
 
 #endif
 

@@ -35,10 +35,12 @@
 
 #include "widget.h"
 
-void widget_init(widget_t *widget, widget_t *parent)
+/** Link widget with parent and initialize default position and size. */
+void widget_init(widget_t *widget, widget_t *parent, const void *data)
 {
 	link_initialize(&widget->link);
 	list_initialize(&widget->children);
+	
 	if (parent) {
 		widget->parent = parent;
 		list_append(&widget->link, &parent->children);
@@ -47,12 +49,14 @@ void widget_init(widget_t *widget, widget_t *parent)
 		widget->parent = NULL;
 		widget->window = NULL;
 	}
-
+	
+	widget->data = data;
+	
 	widget->hpos = 0;
 	widget->vpos = 0;
 	widget->width = 0;
 	widget->height = 0;
-
+	
 	widget->width_min = 0;
 	widget->height_min = 0;
 	widget->width_ideal = 0;
@@ -61,6 +65,7 @@ void widget_init(widget_t *widget, widget_t *parent)
 	widget->height_max = SIZE_MAX;
 }
 
+/** Change position and size of the widget. */
 void widget_modify(widget_t *widget, sysarg_t hpos, sysarg_t vpos,
     sysarg_t width, sysarg_t height)
 {
@@ -70,11 +75,17 @@ void widget_modify(widget_t *widget, sysarg_t hpos, sysarg_t vpos,
 	widget->height = height;
 }
 
+/** Get custom client data */
+const void *widget_get_data(widget_t *widget)
+{
+	return widget->data;
+}
+
+/** Unlink widget from its parent. */
 void widget_deinit(widget_t *widget)
 {
-	if (widget->parent) {
+	if (widget->parent)
 		list_remove(&widget->link);
-	}
 }
 
 /** @}

@@ -123,14 +123,14 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 		free(info);
 		return (int) retval;
 	}
-
+	
 	size_t act_size = IPC_GET_ARG2(answer_cname);
 	assert(act_size <= DNSR_NAME_MAX_SIZE);
 	
 	cname_buf[act_size] = '\0';
-
+	
 	info->cname = str_dup(cname_buf);
-
+	
 	if (info->cname == NULL) {
 		free(info);
 		return ENOMEM;

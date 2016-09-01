@@ -310,7 +310,6 @@ ifeq ($(COMPILER),clang)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
-
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPEND)
 endif

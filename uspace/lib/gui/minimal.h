@@ -48,12 +48,12 @@ typedef struct minimal {
 	pixel_t pix_b;
 } minimal_t;
 
-extern bool init_minimal(minimal_t *, widget_t *, pixel_t, pixel_t);
-extern minimal_t *create_minimal(widget_t *, pixel_t, pixel_t);
+extern bool init_minimal(minimal_t *, widget_t *, const void *, pixel_t,
+    pixel_t);
+extern minimal_t *create_minimal(widget_t *, const void *, pixel_t, pixel_t);
 extern void deinit_minimal(minimal_t *);
 
 #endif
 
 /** @}
  */
-

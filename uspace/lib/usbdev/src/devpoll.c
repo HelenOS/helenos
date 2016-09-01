@@ -32,6 +32,7 @@
 /** @file
  * USB device driver framework - automatic interrupt polling.
  */
+
 #include <usb/dev/device.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/poll.h>
@@ -84,8 +85,8 @@ static int polling_fibril(void *arg)
 	usb_pipe_t *pipe = &data->polling_mapping->pipe;
 
 	if (params->debug > 0) {
-		const usb_endpoint_mapping_t *mapping
-		    = data->polling_mapping;
+		const usb_endpoint_mapping_t *mapping =
+		    data->polling_mapping;
 		usb_log_debug("Poll (%p): started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
 		    data, usb_device_get_name(data->dev),
@@ -153,9 +154,10 @@ static int polling_fibril(void *arg)
 		failed_attempts = 0;
 
 		/* Take a rest before next request. */
-		//TODO: This is broken, the time is in ms not us.
+		
+		// FIXME TODO: This is broken, the time is in ms not us.
 		// but first we need to fix drivers to actually stop using this,
-		// since polling dealy should be implemented in HC schedule
+		// since polling delay should be implemented in HC schedule
 		async_usleep(params->delay);
 	}
 
@@ -212,11 +214,11 @@ static int usb_device_auto_polling_internal(usb_device_t *dev,
 
 	if (request_size == 0)
 		return EINVAL;
-
+	
 	if (!epm || (epm->pipe.transfer_type != USB_TRANSFER_INTERRUPT) ||
 	    (epm->pipe.direction != USB_DIRECTION_IN))
 		return EINVAL;
-
+	
 
 	polling_data_t *polling_data = malloc(sizeof(polling_data_t));
 	if (polling_data == NULL) {

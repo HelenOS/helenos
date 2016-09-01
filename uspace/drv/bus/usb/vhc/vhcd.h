@@ -32,6 +32,7 @@
 /** @file
  * @brief Virtual USB host controller common definitions.
  */
+
 #ifndef VHCD_VHCD_H_
 #define VHCD_VHCD_H_
 
@@ -40,7 +41,6 @@
 #include <async.h>
 
 #include <usb/host/hcd.h>
-
 
 #define NAME "vhc"
 
@@ -66,7 +66,6 @@ typedef struct {
 	usb_transfer_batch_t *batch;
 } vhc_transfer_t;
 
-
 void on_client_close(ddf_fun_t *fun);
 void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
     ipc_call_t *icall);
@@ -81,6 +80,7 @@ int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 int vhc_transfer_queue_processor(void *arg);
 
 #endif
+
 /**
  * @}
  */

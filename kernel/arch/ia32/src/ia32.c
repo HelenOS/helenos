@@ -142,7 +142,6 @@ void ia32_post_mm_init(void)
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
-
 }
 
 void ia32_post_cpu_init(void)

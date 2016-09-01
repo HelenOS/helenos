@@ -89,4 +89,3 @@ FUNCTION_BEGIN(__aeabi_uldivmod)
 	pop {lr}
 	mov pc, lr
 FUNCTION_END(__aeabi_uldivmod)
-

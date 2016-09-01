@@ -78,7 +78,7 @@ typedef struct fibril {
 	
 	fibril_owner_info_t *waits_for;
 
-	unsigned switches;
+	unsigned int switches;
 } fibril_t;
 
 /** Fibril-local variable specifier */

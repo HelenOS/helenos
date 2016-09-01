@@ -25,14 +25,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohci
  * @{
  */
 /** @file
  * @brief OHCI host controller register structure
  */
+
 #ifndef DRV_OHCI_OHCI_REGS_H
 #define DRV_OHCI_OHCI_REGS_H
+
 #include <ddi.h>
 #include <sys/types.h>
 #include <byteorder.h>
@@ -245,7 +248,9 @@ do { \
 #define RHPS_PRSC_FLAG (1 << 20) /* port reset status change WC */
 #define RHPS_CHANGE_WC_MASK (0x1f0000)
 } ohci_regs_t;
+
 #endif
+
 /**
  * @}
  */

@@ -68,11 +68,11 @@ test_t tests[] = {
 	}
 };
 
-const char* tests_hints_enum(const char *input, const char **help,
+const char *tests_hints_enum(const char *input, const char **help,
     void **ctx)
 {
 	size_t len = str_length(input);
-	test_t **test = (test_t**)ctx;
+	test_t **test = (test_t **) ctx;
 	
 	if (*test == NULL)
 		*test = tests;

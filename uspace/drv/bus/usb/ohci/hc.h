@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohci
  * @{
  */
 /** @file
  * @brief OHCI host controller driver structure
  */
+
 #ifndef DRV_OHCI_HC_H
 #define DRV_OHCI_HC_H
 
@@ -77,18 +79,20 @@ typedef struct hc {
 	ohci_rh_t rh;
 } hc_t;
 
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts);
-void hc_fini(hc_t *instance);
+extern int hc_init(hc_t *, const hw_res_list_parsed_t *, bool);
+extern void hc_fini(hc_t *);
 
-void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep);
-void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep);
+extern void hc_enqueue_endpoint(hc_t *, const endpoint_t *);
+extern void hc_dequeue_endpoint(hc_t *, const endpoint_t *);
 
 int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
 
-void ohci_hc_interrupt(hcd_t *hcd, uint32_t status);
-int ohci_hc_status(hcd_t *hcd, uint32_t *status);
-int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+extern void ohci_hc_interrupt(hcd_t *, uint32_t);
+extern int ohci_hc_status(hcd_t *, uint32_t *);
+extern int ohci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
+
 #endif
+
 /**
  * @}
  */

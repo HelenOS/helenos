@@ -94,7 +94,8 @@ int vhc_virtdev_plug_local(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *ha
 	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, true, 0);
 }
 
-int vhc_virtdev_plug_hub(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *handle, usb_address_t address)
+int vhc_virtdev_plug_hub(vhc_data_t *vhc, usbvirt_device_t *dev,
+    uintptr_t *handle, usb_address_t address)
 {
 	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, false, address);
 }

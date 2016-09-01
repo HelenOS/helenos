@@ -74,9 +74,9 @@ jump_to_kernel:
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
-	movl $KA2PA(ctx), %eax		/* KA2PA((uintptr_t) &ctx) */
+	movl $KA2PA(ctx), %eax          /* KA2PA((uintptr_t) &ctx) */
 	movl CONTEXT_OFFSET_SP(%eax), %esp
-	leal KA2PA(0)(%esp), %esp	/* KA2PA(ctx.sp) */
+	leal KA2PA(0)(%esp), %esp       /* KA2PA(ctx.sp) */
 
 	/*
 	 * Map kernel and turn paging on.
@@ -84,7 +84,7 @@ jump_to_kernel:
 	 */
 	call map_kernel_pse
 	
-	addl $PA2KA(0), %esp		/* PA2KA(ctx.sp) */
+	addl $PA2KA(0), %esp            /* PA2KA(ctx.sp) */
 	
 	/* create the first stack frame */
 	pushl $0

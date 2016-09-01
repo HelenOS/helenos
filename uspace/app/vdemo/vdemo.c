@@ -84,8 +84,8 @@ static bool init_my_label(my_label_t *lbl, widget_t *parent,
 {
 	lbl->confirm = on_confirm;
 	lbl->cancel = on_cancel;
-	bool initialized = init_label(
-	    &lbl->label, parent, caption, points, background, foreground);
+	bool initialized = init_label(&lbl->label, parent, NULL, caption,
+	    points, background, foreground);
 	lbl->label.widget.destroy = my_label_destroy;
 	return initialized;
 }
@@ -109,7 +109,7 @@ static my_label_t *create_my_label(widget_t *parent,
 int main(int argc, char *argv[])
 {
 	if (argc >= 2) {
-		window_t *main_window = window_open(argv[1],
+		window_t *main_window = window_open(argv[1], NULL,
 		    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, "vdemo");
 		if (!main_window) {
 			printf("Cannot open main window.\n");
@@ -127,11 +127,12 @@ int main(int argc, char *argv[])
 
 		my_label_t *lbl_action = create_my_label(NULL, "Hello there!", 16,
 		    lbl_bg, lbl_text);
-		button_t *btn_confirm = create_button(NULL, "Confirm", 16, btn_bg,
-		    btn_fg, btn_text);
-		button_t *btn_cancel = create_button(NULL, "Cancel", 16, btn_bg,
-		    btn_fg, btn_text);
-		grid_t *grid = create_grid(window_root(main_window), 2, 2, grd_bg);
+		button_t *btn_confirm = create_button(NULL, NULL, "Confirm", 16,
+		    btn_bg, btn_fg, btn_text);
+		button_t *btn_cancel = create_button(NULL, NULL, "Cancel", 16,
+		    btn_bg, btn_fg, btn_text);
+		grid_t *grid = create_grid(window_root(main_window), NULL, 2, 2,
+		    grd_bg);
 		if (!lbl_action || !btn_confirm || !btn_cancel || !grid) {
 			window_close(main_window);
 			printf("Cannot create widgets.\n");

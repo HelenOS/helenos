@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2013 Jakub Jermar 
+# Copyright (c) 2013 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -179,13 +179,16 @@ def qemu_run(platform, machine, processor):
 		print(cmdline)
 		if not is_override('dryrun'):
 			subprocess.call(cmdline, shell = True)
-		
+
 def ski_run(platform, machine, processor):
 	run_in_console('ski -i contrib/conf/ski.conf', 'HelenOS/ia64 on ski')
 
 def msim_run(platform, machine, processor):
 	hdisk_mk()
 	run_in_console('msim -c contrib/conf/msim.conf', 'HelenOS/mips32 on msim')
+
+def spike_run(platform, machine, processor):
+	run_in_console('spike image.boot', 'HelenOS/risvc64 on Spike')
 
 def gem5_console_thread():
 	# Wait a little bit so that gem5 can create the port
@@ -252,6 +255,10 @@ emulators = {
 		'run' : qemu_run,
 		'image' : 'image.iso',
 		'audio' : False
+	},
+	'riscv64' : {
+		'run' : spike_run,
+		'image' : 'image.boot'
 	},
 	'sparc64' : {
 		'generic' : {

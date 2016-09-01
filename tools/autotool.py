@@ -288,6 +288,12 @@ def get_target(config):
 		clang_target = "ppc-unknown-none"
 		helenos_target = "ppc-helenos"
 	
+	if (config['PLATFORM'] == "riscv64"):
+		target = config['PLATFORM']
+		gnu_target = "riscv64-unknown-linux-gnu"
+		clang_target = "riscv-unknown-none"
+		helenos_target = "riscv64-helenos"
+	
 	if (config['PLATFORM'] == "sparc32"):
 		target = config['PLATFORM'];
 		gnu_target = "sparc-leon3-linux-gnu"

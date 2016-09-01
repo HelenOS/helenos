@@ -97,8 +97,8 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc = usb_read(exch,
-	    pipe->endpoint_no, setup_packet, buffer, buffer_size, &act_size);
+	const int rc = usb_read(exch, pipe->endpoint_no, setup_packet, buffer,
+	    buffer_size, &act_size);
 	async_exchange_end(exch);
 
 	if (rc == ESTALL) {

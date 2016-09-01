@@ -33,6 +33,7 @@
  * @file
  * USB mass storage bulk-only transport.
  */
+
 #include <stdbool.h>
 #include <errno.h>
 #include <str_error.h>

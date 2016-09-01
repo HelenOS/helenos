@@ -146,10 +146,11 @@ static void button_handle_position_event(widget_t *widget, pos_event_t event)
 	}
 }
 
-bool init_button(button_t *btn, widget_t *parent, const char *caption,
-    uint16_t points, pixel_t background, pixel_t foreground, pixel_t text)
+bool init_button(button_t *btn, widget_t *parent, const void *data,
+    const char *caption, uint16_t points, pixel_t background,
+    pixel_t foreground, pixel_t text)
 {
-	widget_init(&btn->widget, parent);
+	widget_init(&btn->widget, parent, data);
 	
 	btn->widget.destroy = button_destroy;
 	btn->widget.reconfigure = button_reconfigure;
@@ -190,14 +191,14 @@ bool init_button(button_t *btn, widget_t *parent, const char *caption,
 	return true;
 }
 
-button_t *create_button(widget_t *parent, const char *caption, uint16_t points,
-    pixel_t background, pixel_t foreground, pixel_t text)
+button_t *create_button(widget_t *parent, const void *data, const char *caption,
+    uint16_t points, pixel_t background, pixel_t foreground, pixel_t text)
 {
 	button_t *btn = (button_t *) malloc(sizeof(button_t));
 	if (!btn)
 		return NULL;
 	
-	if (init_button(btn, parent, caption, points, background, foreground,
+	if (init_button(btn, parent, data, caption, points, background, foreground,
 	    text))
 		return btn;
 	

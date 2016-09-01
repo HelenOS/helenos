@@ -82,7 +82,7 @@ extern unsigned long list_count(const list_t *);
 #define list_foreach_rev(list, member, itype, iterator) \
 	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
 		for (link_t *_link = (list).head.prev; \
-	            iterator = list_get_instance(_link, itype, member), \
+		    iterator = list_get_instance(_link, itype, member), \
 		    _link != &(list).head; _link = _link->prev)
 
 /** Unlike list_foreach(), allows removing items while traversing a list.

@@ -339,9 +339,10 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 /** Remove partition from our inventory leaving only the underlying liblabel
  * partition structure.
  *
- * @param part Partition
- * @param flag If set to @c vrf_force, force removal even if partition is in use
+ * @param part   Partition
+ * @param flag   If set to @c vrf_force, force removal even if partition is in use
  * @param rlpart Place to store pointer to liblabel partition
+ *
  */
 static int vbds_part_remove(vbds_part_t *part, vbds_rem_flag_t flag,
     label_part_t **rlpart)

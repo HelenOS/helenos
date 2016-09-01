@@ -139,10 +139,10 @@ static void label_handle_position_event(widget_t *widget, pos_event_t event)
 	/* no-op */
 }
 
-bool init_label(label_t *lbl, widget_t *parent, const char *caption,
-    uint16_t points, pixel_t background, pixel_t text)
+bool init_label(label_t *lbl, widget_t *parent, const void *data,
+    const char *caption, uint16_t points, pixel_t background, pixel_t text)
 {
-	widget_init(&lbl->widget, parent);
+	widget_init(&lbl->widget, parent, data);
 	
 	lbl->widget.destroy = label_destroy;
 	lbl->widget.reconfigure = label_reconfigure;
@@ -183,14 +183,14 @@ bool init_label(label_t *lbl, widget_t *parent, const char *caption,
 	return true;
 }
 
-label_t *create_label(widget_t *parent, const char *caption, uint16_t points,
-    pixel_t background, pixel_t text)
+label_t *create_label(widget_t *parent, const void *data, const char *caption,
+    uint16_t points, pixel_t background, pixel_t text)
 {
 	label_t *lbl = (label_t *) malloc(sizeof(label_t));
 	if (!lbl)
 		return NULL;
 	
-	if (init_label(lbl, parent, caption, points, background, text))
+	if (init_label(lbl, parent, data, caption, points, background, text))
 		return lbl;
 	
 	free(lbl);

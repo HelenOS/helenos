@@ -253,7 +253,7 @@ if (fun) { \
 		usb_log_error("Could not unbind function `%s', it " \
 		    "will not be destroyed.\n", ddf_fun_get_name(fun)); \
 	} \
-} else (void)0
+} else (void) 0
 
 /** Get highest index of a button mentioned in given report.
  *
@@ -324,7 +324,7 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 	usb_log_debug("Initializing HID/Mouse structure...\n");
 
 	if (hid_dev == NULL) {
-		usb_log_error("Failed to init keyboard structure: no structure"
+		usb_log_error("Failed to init mouse structure: no structure"
 		    " given.\n");
 		return EINVAL;
 	}

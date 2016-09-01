@@ -83,6 +83,7 @@ DIRS = \
 	app/sysinst \
 	app/mkbd \
 	app/date \
+	app/vcalc \
 	app/vdemo \
 	app/viewer \
 	app/vlaunch \
@@ -163,7 +164,6 @@ DIRS = \
 	drv/nic/rtl8169 \
 	drv/nic/ar9271 \
 	drv/platform/icp
-
 
 ## Platform-specific hardware support
 #

@@ -337,4 +337,3 @@ FUNCTION_BEGIN(context_restore)
 	mov r8 = r0			/* context_restore returns 0 */
 	br.ret.sptk.many b0
 FUNCTION_END(context_restore)
-
