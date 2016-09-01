@@ -1,0 +1,63 @@
+/*
+ * RISC-V 64 linker script
+ *
+ *  kernel text
+ *  kernel data
+ *
+ */
+
+OUTPUT_ARCH(riscv)
+ENTRY(kernel_image_start)
+
+#include <arch/boot/boot.h>
+#include <arch/mm/page.h>
+
+SECTIONS {
+	.unmapped BOOT_OFFSET: AT (0) {
+		unmapped_ktext_start = .;
+		*(K_TEXT_START);
+		unmapped_ktext_end = .;
+		
+		unmapped_kdata_start = .;
+		*(K_DATA_START);
+		*(K_INI_PTLS);
+		unmapped_kdata_end = .;
+	}
+	
+	.mapped (BOOT_OFFSET + SIZEOF(.unmapped)) : AT (SIZEOF(.unmapped)) {
+		ktext_start = .;
+		*(.text);
+		ktext_end = .;
+		
+		kdata_start = .;
+		*(.data);                       /* initialized data */
+		*(.rodata*);
+		hardcoded_load_address = .;
+		QUAD(PA2KA(BOOT_OFFSET));
+		hardcoded_ktext_size = .;
+		QUAD(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
+		hardcoded_kdata_size = .;
+		QUAD(kdata_end - kdata_start + (unmapped_kdata_end - unmapped_kdata_start));
+		hardcoded_unmapped_ktext_size = .;
+		QUAD(unmapped_ktext_end - unmapped_ktext_start);
+		hardcoded_unmapped_kdata_size = .;
+		QUAD(unmapped_kdata_end - unmapped_kdata_start);
+		*(.sdata);
+		*(.reginfo);
+		*(.sbss);
+		*(.scommon);
+		*(.bss);                        /* uninitialized static variables */
+		*(COMMON);                      /* global variables */
+		. = ALIGN(8);
+		symbol_table = .;
+		*(symtab.*);
+		kdata_end = .;
+	}
+	
+	/DISCARD/ : {
+		*(.mdebug*);
+		*(.pdr);
+		*(.comment);
+		*(.note);
+	}
+}
