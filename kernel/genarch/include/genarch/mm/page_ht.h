@@ -43,7 +43,6 @@
 #include <mm/as.h>
 #include <mm/page.h>
 #include <mm/slab.h>
-#include <synch/mutex.h>
 #include <adt/hash_table.h>
 
 #define PAGE_HT_KEYS  2
@@ -65,7 +64,6 @@ extern as_operations_t as_ht_operations;
 extern page_mapping_operations_t ht_mapping_operations;
 
 extern slab_cache_t *pte_cache;
-extern mutex_t page_ht_lock;
 extern hash_table_t page_ht;
 extern hash_table_operations_t ht_operations;
 

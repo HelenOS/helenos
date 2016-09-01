@@ -76,7 +76,6 @@ pte_t *ht_create(unsigned int flags)
 {
 	if (flags & FLAG_AS_KERNEL) {
 		hash_table_create(&page_ht, PAGE_HT_ENTRIES, 2, &ht_operations);
-		mutex_initialize(&page_ht_lock, MUTEX_PASSIVE);
 		pte_cache = slab_cache_create("pte_t", sizeof(pte_t), 0,
 		    NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 	}
@@ -98,7 +97,7 @@ void ht_destroy(pte_t *page_table)
 
 /** Lock page table.
  *
- * Lock address space and page hash table.
+ * Lock address space.
  * Interrupts must be disabled.
  *
  * @param as   Address space.
@@ -109,13 +108,11 @@ void ht_lock(as_t *as, bool lock)
 {
 	if (lock)
 		mutex_lock(&as->lock);
-	
-	mutex_lock(&page_ht_lock);
 }
 
 /** Unlock page table.
  *
- * Unlock address space and page hash table.
+ * Unlock address space.
  * Interrupts must be disabled.
  *
  * @param as     Address space.
@@ -124,8 +121,6 @@ void ht_lock(as_t *as, bool lock)
  */
 void ht_unlock(as_t *as, bool unlock)
 {
-	mutex_unlock(&page_ht_lock);
-	
 	if (unlock)
 		mutex_unlock(&as->lock);
 }
@@ -139,7 +134,7 @@ void ht_unlock(as_t *as, bool unlock)
  */
 bool ht_locked(as_t *as)
 {
-	return (mutex_locked(&page_ht_lock) && mutex_locked(&as->lock));
+	return mutex_locked(&as->lock);
 }
 
 /** @}

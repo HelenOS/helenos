@@ -70,7 +70,7 @@ slab_cache_t *pte_cache = NULL;
  * locks.
  *
  */
-mutex_t page_ht_lock;
+IRQ_SPINLOCK_STATIC_INITIALIZE(page_ht_lock);
 
 /** Page hash table.
  *
@@ -192,6 +192,8 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	};
 
 	ASSERT(page_table_locked(as));
+
+	irq_spinlock_lock(&page_ht_lock, true);
 	
 	if (!hash_table_find(&page_ht, key)) {
 		pte_t *pte = slab_alloc(pte_cache, FRAME_LOWMEM | FRAME_ATOMIC);
@@ -218,6 +220,8 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		
 		hash_table_insert(&page_ht, key, &pte->link);
 	}
+
+	irq_spinlock_unlock(&page_ht_lock, true);
 }
 
 /** Remove mapping of page from page hash table.
@@ -239,11 +243,15 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 
 	ASSERT(page_table_locked(as));
 	
+	irq_spinlock_lock(&page_ht_lock, true);
+
 	/*
 	 * Note that removed PTE's will be freed
 	 * by remove_callback().
 	 */
 	hash_table_remove(&page_ht, key, 2);
+
+	irq_spinlock_unlock(&page_ht_lock, true);
 }
 
 static pte_t *ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
@@ -254,7 +262,7 @@ static pte_t *ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 	};
 
 	ASSERT(nolock || page_table_locked(as));
-	
+
 	link_t *cur = hash_table_find(&page_ht, key);
 	if (cur)
 		return hash_table_get_instance(cur, pte_t, link);
@@ -273,9 +281,13 @@ static pte_t *ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
  */
 bool ht_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 {
+	irq_spinlock_lock(&page_ht_lock, true);
+
 	pte_t *t = ht_mapping_find_internal(as, page, nolock);
 	if (t)
 		*pte = *t;
+
+	irq_spinlock_unlock(&page_ht_lock, true);
 	
 	return t != NULL;
 }
@@ -289,6 +301,8 @@ bool ht_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
  */
 void ht_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 {
+	irq_spinlock_lock(&page_ht_lock, true);
+
 	pte_t *t = ht_mapping_find_internal(as, page, nolock);
 	if (!t)
 		panic("Updating non-existent PTE");
@@ -305,6 +319,8 @@ void ht_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 
 	t->a = pte->a;
 	t->d = pte->d;
+
+	irq_spinlock_unlock(&page_ht_lock, true);
 }
 
 void ht_mapping_make_global(uintptr_t base, size_t size)
