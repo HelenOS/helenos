@@ -37,11 +37,7 @@
 
 #include <sys/types.h>
 #include <abi/mm/as.h>
-#include <task.h>
 #include <libarch/config.h>
-
-#define AS_AREA_ANY    ((void *) -1)
-#define AS_MAP_FAILED  ((void *) -1)
 
 static inline size_t SIZE2PAGES(size_t size)
 {
@@ -56,7 +52,8 @@ static inline size_t PAGES2SIZE(size_t pages)
 	return (size_t) (pages << PAGE_WIDTH);
 }
 
-extern void *as_area_create(void *, size_t, unsigned int);
+extern void *as_area_create(void *, size_t, unsigned int,
+    as_area_pager_info_t *);
 extern int as_area_resize(void *, size_t, unsigned int);
 extern int as_area_change_flags(void *, unsigned int);
 extern int as_area_destroy(void *);

@@ -96,19 +96,21 @@ void tlb_refill(istate_t *istate)
 {
 	entry_lo_t lo;
 	uintptr_t badvaddr;
-	pte_t *pte;
+	pte_t pte;
 	
 	badvaddr = cp0_badvaddr_read();
 
-	pte = page_mapping_find(AS, badvaddr, true);
-	if (pte && pte->p) {
+	bool found = page_mapping_find(AS, badvaddr, true, &pte);
+	if (found && pte.p) {
 		/*
 		 * Record access to PTE.
 		 */
-		pte->a = 1;
+		pte.a = 1;
 
-		tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d,
-		    pte->cacheable, pte->pfn);
+		tlb_prepare_entry_lo(&lo, pte.g, pte.p, pte.d,
+		    pte.cacheable, pte.pfn);
+
+		page_mapping_update(AS, badvaddr, true, &pte);
 
 		/*
 		 * New entry is to be inserted into TLB
@@ -137,7 +139,7 @@ void tlb_invalid(istate_t *istate)
 	entry_lo_t lo;
 	tlb_index_t index;
 	uintptr_t badvaddr;
-	pte_t *pte;
+	pte_t pte;
 
 	/*
 	 * Locate the faulting entry in TLB.
@@ -161,8 +163,8 @@ void tlb_invalid(istate_t *istate)
 
 	badvaddr = cp0_badvaddr_read();
 
-	pte = page_mapping_find(AS, badvaddr, true);
-	if (pte && pte->p) {
+	bool found = page_mapping_find(AS, badvaddr, true, &pte);
+	if (found && pte.p) {
 		/*
 		 * Read the faulting TLB entry.
 		 */
@@ -171,10 +173,12 @@ void tlb_invalid(istate_t *istate)
 		/*
 		 * Record access to PTE.
 		 */
-		pte->a = 1;
+		pte.a = 1;
 
-		tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d,
-		    pte->cacheable, pte->pfn);
+		tlb_prepare_entry_lo(&lo, pte.g, pte.p, pte.d,
+		    pte.cacheable, pte.pfn);
+
+		page_mapping_update(AS, badvaddr, true, &pte);
 
 		/*
 		 * The entry is to be updated in TLB.
@@ -199,7 +203,7 @@ void tlb_modified(istate_t *istate)
 	entry_lo_t lo;
 	tlb_index_t index;
 	uintptr_t badvaddr;
-	pte_t *pte;
+	pte_t pte;
 
 	badvaddr = cp0_badvaddr_read();
 
@@ -223,8 +227,8 @@ void tlb_modified(istate_t *istate)
 		return;
 	}
 
-	pte = page_mapping_find(AS, badvaddr, true);
-	if (pte && pte->p && pte->w) {
+	bool found = page_mapping_find(AS, badvaddr, true, &pte);
+	if (found && pte.p && pte.w) {
 		/*
 		 * Read the faulting TLB entry.
 		 */
@@ -233,11 +237,13 @@ void tlb_modified(istate_t *istate)
 		/*
 		 * Record access and write to PTE.
 		 */
-		pte->a = 1;
-		pte->d = 1;
+		pte.a = 1;
+		pte.d = 1;
 
-		tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->w,
-		    pte->cacheable, pte->pfn);
+		tlb_prepare_entry_lo(&lo, pte.g, pte.p, pte.w,
+		    pte.cacheable, pte.pfn);
+
+		page_mapping_update(AS, badvaddr, true, &pte);
 
 		/*
 		 * The entry is to be updated in TLB.

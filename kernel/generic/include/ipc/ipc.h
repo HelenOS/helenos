@@ -146,6 +146,13 @@ typedef struct {
 	 */
 	struct task *sender;
 	
+	/*
+	 * Answerbox that will receive the answer.
+	 * This will most of the times be the sender's answerbox,
+	 * but we allow for useful exceptions.
+	 */
+	answerbox_t *callerbox;
+
 	/** Phone which was used to send the call. */
 	phone_t *caller_phone;
 	
@@ -171,6 +178,7 @@ extern void ipc_call_free(call_t *);
 extern void ipc_call_hold(call_t *);
 extern void ipc_call_release(call_t *);
 
+extern int ipc_call_sync(phone_t *, call_t *);
 extern int ipc_call(phone_t *, call_t *);
 extern call_t *ipc_wait_for_call(answerbox_t *, uint32_t, unsigned int);
 extern int ipc_forward(call_t *, phone_t *, answerbox_t *, unsigned int);

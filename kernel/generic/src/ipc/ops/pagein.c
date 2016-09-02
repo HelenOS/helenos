@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2016 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup genericipc
  * @{
  */
 /** @file
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
+#include <ipc/sysipc_ops.h>
+#include <ipc/ipc.h>
+#include <mm/as.h>
+#include <mm/page.h>
+#include <genarch/mm/page_pt.h>
+#include <genarch/mm/page_ht.h>
+#include <mm/frame.h>
+#include <proc/task.h>
+#include <abi/errno.h>
+#include <arch.h>
 
-#include "../internal/common.h"
-#include <posix/sys/mman.h>
-#include <posix/sys/types.h>
-#include <libc/as.h>
-#include <posix/unistd.h>
-
-void *posix_mmap(void *start, size_t length, int prot, int flags, int fd,
-    __POSIX_DEF__(off_t) offset)
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	if (!start)
-		start = AS_AREA_ANY;
+	if (!IPC_GET_RETVAL(answer->data)) {
+		pte_t pte;
+		uintptr_t frame;
+
+		page_table_lock(AS, true);
+		bool found = page_mapping_find(AS, IPC_GET_ARG1(answer->data),
+		    false, &pte);
+		if (found) {
+			frame = PTE_GET_FRAME(&pte);
+			pfn_t pfn = ADDR2PFN(frame);
+			if (find_zone(pfn, 1, 0) != (size_t) -1) {
+				/*
+				 * The frame is in physical memory managed by
+				 * the frame allocator.
+				 */
+				frame_reference_add(ADDR2PFN(frame));
+			}
+			IPC_SET_ARG1(answer->data, frame);
+		} else {
+			IPC_SET_RETVAL(answer->data, ENOENT);
+		}
+		page_table_unlock(AS, true);
+	}
 	
-//	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
-//		return MAP_FAILED;
-	
-	if (!(flags & MAP_ANONYMOUS))
-		return MAP_FAILED;
-	
-	return as_area_create(start, length, prot, AS_AREA_UNPAGED);
+	return EOK;
 }
 
-int posix_munmap(void *start, size_t length)
-{
-	return as_area_destroy(start);
-}
+sysipc_ops_t ipc_m_page_in_ops = {
+	.request_preprocess = null_request_preprocess,
+	.request_forget = null_request_forget,
+	.request_process = null_request_process,
+	.answer_cleanup = null_answer_cleanup,
+	.answer_preprocess = answer_preprocess,
+	.answer_process = null_answer_process,
+};
 
 /** @}
  */

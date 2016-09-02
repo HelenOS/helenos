@@ -48,23 +48,24 @@ static unsigned int seed = 42;
  * @param badvaddr Faulting virtual address.
  * @param access   Access mode that caused the fault.
  * @param istate   Pointer to interrupted state.
+ * @param[out] pte Structure that will receive a copy of the found PTE.
  *
- * @return PTE on success, NULL otherwise.
+ * @return True if the mapping was found, false otherwise.
  *
  */
-static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
-    istate_t *istate)
+static bool find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
+    istate_t *istate, pte_t *pte)
 {
 	/*
 	 * Check if the mapping exists in page tables.
 	 */
-	pte_t *pte = page_mapping_find(as, badvaddr, true);
-	if ((pte) && (pte->present)) {
+	bool found = page_mapping_find(as, badvaddr, true, pte);
+	if (found && pte->present) {
 		/*
 		 * Mapping found in page tables.
 		 * Immediately succeed.
 		 */
-		return pte;
+		return true;
 	}
 	/*
 	 * Mapping not found in page tables.
@@ -75,12 +76,15 @@ static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
 		 * The higher-level page fault handler succeeded,
 		 * The mapping ought to be in place.
 		 */
-		pte = page_mapping_find(as, badvaddr, true);
-		ASSERT((pte) && (pte->present));
-		return pte;
+		found = page_mapping_find(as, badvaddr, true, pte);
+
+		ASSERT(found);
+		ASSERT(pte->present);
+
+		return found;
 	}
 
-	return NULL;
+	return false;
 }
 
 static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
@@ -181,13 +185,14 @@ void pht_refill(unsigned int n, istate_t *istate)
 	else
 		badvaddr = istate->pc;
 	
-	pte_t *pte = find_mapping_and_check(AS, badvaddr,
-	    PF_ACCESS_READ /* FIXME */, istate);
+	pte_t pte;
+	bool found = find_mapping_and_check(AS, badvaddr,
+	    PF_ACCESS_READ /* FIXME */, istate, &pte);
 	
-	if (pte) {
+	if (found) {
 		/* Record access to PTE */
-		pte->accessed = 1;
-		pht_insert(badvaddr, pte);
+		pte.accessed = 1;
+		pht_insert(badvaddr, &pte);
 	}
 }
 

@@ -128,7 +128,7 @@
 
 /* Macros for querying the last level entries. */
 #define PTE_VALID_ARCH(p) \
-	(*((uint32_t *) (p)) != 0)
+	((p)->et != PTE_ET_INVALID)
 #define PTE_PRESENT_ARCH(p) \
 	((p)->et != 0)
 #define PTE_GET_FRAME_ARCH(p) \

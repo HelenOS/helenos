@@ -573,8 +573,9 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
  * @param backend      Address space area backend. NULL if no backend is used.
  * @param backend_data NULL or a pointer to custom backend data.
  * @param base         Starting virtual address of the area.
- *                     If set to -1, a suitable mappable area is found.
- * @param bound        Lowest address bound if base is set to -1.
+ *                     If set to AS_AREA_ANY, a suitable mappable area is
+ *                     found.
+ * @param bound        Lowest address bound if base is set to AS_AREA_ANY.
  *                     Otherwise ignored.
  *
  * @return Address space area on success or NULL on failure.
@@ -584,7 +585,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
     unsigned int attrs, mem_backend_t *backend,
     mem_backend_data_t *backend_data, uintptr_t *base, uintptr_t bound)
 {
-	if ((*base != (uintptr_t) -1) && !IS_ALIGNED(*base, PAGE_SIZE))
+	if ((*base != (uintptr_t) AS_AREA_ANY) && !IS_ALIGNED(*base, PAGE_SIZE))
 		return NULL;
 	
 	if (size == 0)
@@ -600,7 +601,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	
 	mutex_lock(&as->lock);
 	
-	if (*base == (uintptr_t) -1) {
+	if (*base == (uintptr_t) AS_AREA_ANY) {
 		*base = as_get_unmapped_area(as, bound, size, guarded);
 		if (*base == (uintptr_t) -1) {
 			mutex_unlock(&as->lock);
@@ -887,18 +888,19 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 				    area->pages - pages);
 		
 				for (; i < node_size; i++) {
-					pte_t *pte = page_mapping_find(as,
-					    ptr + P2SZ(i), false);
+					pte_t pte;
+					bool found = page_mapping_find(as,
+					    ptr + P2SZ(i), false, &pte);
 					
-					ASSERT(pte);
-					ASSERT(PTE_VALID(pte));
-					ASSERT(PTE_PRESENT(pte));
+					ASSERT(found);
+					ASSERT(PTE_VALID(&pte));
+					ASSERT(PTE_PRESENT(&pte));
 					
 					if ((area->backend) &&
 					    (area->backend->frame_free)) {
 						area->backend->frame_free(area,
 						    ptr + P2SZ(i),
-						    PTE_GET_FRAME(pte));
+						    PTE_GET_FRAME(&pte));
 					}
 					
 					page_mapping_remove(as, ptr + P2SZ(i));
@@ -1001,18 +1003,19 @@ int as_area_destroy(as_t *as, uintptr_t address)
 			size_t size;
 			
 			for (size = 0; size < (size_t) node->value[i]; size++) {
-				pte_t *pte = page_mapping_find(as,
-				     ptr + P2SZ(size), false);
+				pte_t pte;
+				bool found = page_mapping_find(as,
+				     ptr + P2SZ(size), false, &pte);
 				
-				ASSERT(pte);
-				ASSERT(PTE_VALID(pte));
-				ASSERT(PTE_PRESENT(pte));
+				ASSERT(found);
+				ASSERT(PTE_VALID(&pte));
+				ASSERT(PTE_PRESENT(&pte));
 				
 				if ((area->backend) &&
 				    (area->backend->frame_free)) {
 					area->backend->frame_free(area,
 					    ptr + P2SZ(size),
-					    PTE_GET_FRAME(pte));
+					    PTE_GET_FRAME(&pte));
 				}
 				
 				page_mapping_remove(as, ptr + P2SZ(size));
@@ -1313,14 +1316,15 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 			size_t size;
 			
 			for (size = 0; size < (size_t) node->value[i]; size++) {
-				pte_t *pte = page_mapping_find(as,
-				    ptr + P2SZ(size), false);
+				pte_t pte;
+				bool found = page_mapping_find(as,
+				    ptr + P2SZ(size), false, &pte);
 				
-				ASSERT(pte);
-				ASSERT(PTE_VALID(pte));
-				ASSERT(PTE_PRESENT(pte));
+				ASSERT(found);
+				ASSERT(PTE_VALID(&pte));
+				ASSERT(PTE_PRESENT(&pte));
 				
-				old_frame[frame_idx++] = PTE_GET_FRAME(pte);
+				old_frame[frame_idx++] = PTE_GET_FRAME(&pte);
 				
 				/* Remove old mapping */
 				page_mapping_remove(as, ptr + P2SZ(size));
@@ -1450,12 +1454,13 @@ int as_page_fault(uintptr_t address, pf_access_t access, istate_t *istate)
 	 * To avoid race condition between two page faults on the same address,
 	 * we need to make sure the mapping has not been already inserted.
 	 */
-	pte_t *pte;
-	if ((pte = page_mapping_find(AS, page, false))) {
-		if (PTE_PRESENT(pte)) {
-			if (((access == PF_ACCESS_READ) && PTE_READABLE(pte)) ||
-			    (access == PF_ACCESS_WRITE && PTE_WRITABLE(pte)) ||
-			    (access == PF_ACCESS_EXEC && PTE_EXECUTABLE(pte))) {
+	pte_t pte;
+	bool found = page_mapping_find(AS, page, false, &pte);
+	if (found) {
+		if (PTE_PRESENT(&pte)) {
+			if (((access == PF_ACCESS_READ) && PTE_READABLE(&pte)) ||
+			    (access == PF_ACCESS_WRITE && PTE_WRITABLE(&pte)) ||
+			    (access == PF_ACCESS_EXEC && PTE_EXECUTABLE(&pte))) {
 				page_table_unlock(AS, false);
 				mutex_unlock(&area->lock);
 				mutex_unlock(&AS->lock);
@@ -2181,13 +2186,25 @@ success:
  */
 
 sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
-    uintptr_t bound)
+    uintptr_t bound, as_area_pager_info_t *pager_info)
 {
 	uintptr_t virt = base;
+	mem_backend_t *backend;
+	mem_backend_data_t backend_data;
+
+	if (pager_info == AS_AREA_UNPAGED)
+		backend = &anon_backend;
+	else {
+		backend = &user_backend;
+		if (copy_from_uspace(&backend_data.pager_info, pager_info,
+			sizeof(as_area_pager_info_t)) != EOK) {
+			return (sysarg_t) AS_MAP_FAILED;
+		}
+	}
 	as_area_t *area = as_area_create(AS, flags, size,
-	    AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, bound);
+	    AS_AREA_ATTR_NONE, backend, &backend_data, &virt, bound);
 	if (area == NULL)
-		return (sysarg_t) -1;
+		return (sysarg_t) AS_MAP_FAILED;
 	
 	return (sysarg_t) virt;
 }

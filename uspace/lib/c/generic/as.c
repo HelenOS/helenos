@@ -44,20 +44,24 @@
 
 /** Create address space area.
  *
- * @param base  Starting virtual address of the area.
- *              If set to AS_AREA_ANY ((void *) -1),
- *              the kernel finds a mappable area.
- * @param size  Size of the area.
- * @param flags Flags describing type of the area.
+ * @param base       Starting virtual address of the area.
+ *                   If set to AS_AREA_ANY ((void *) -1), the kernel finds a
+ *                   mappable area.
+ * @param size       Size of the area.
+ * @param flags      Flags describing type of the area.
+ * @param pager_info Pager info structure or AS_AREA_UNPAGED (NULL) if the area
+ *                   is not paged (i.e. anonymous).
  *
  * @return Starting virtual address of the created area on success.
  * @return AS_MAP_FAILED ((void *) -1) otherwise.
  *
  */
-void *as_area_create(void *base, size_t size, unsigned int flags)
+void *as_area_create(void *base, size_t size, unsigned int flags,
+    as_area_pager_info_t *pager_info)
 {
-	return (void *) __SYSCALL4(SYS_AS_AREA_CREATE, (sysarg_t) base,
-	    (sysarg_t) size, (sysarg_t) flags, (sysarg_t) __entry);
+	return (void *) __SYSCALL5(SYS_AS_AREA_CREATE, (sysarg_t) base,
+	    (sysarg_t) size, (sysarg_t) flags, (sysarg_t) __entry,
+	    (sysarg_t) pager_info);
 }
 
 /** Resize address space area.

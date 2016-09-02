@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,81 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <as.h>
+#include <ns.h>
+#include <async.h>
+#include <errno.h>
+#include "../tester.h"
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
+#define TEST_FILE	"/tmp/testfile"
 
-#include "../internal/common.h"
-#include <posix/sys/mman.h>
-#include <posix/sys/types.h>
-#include <libc/as.h>
-#include <posix/unistd.h>
+const char text[] = "Hello world!";
 
-void *posix_mmap(void *start, size_t length, int prot, int flags, int fd,
-    __POSIX_DEF__(off_t) offset)
+int fd;
+
+static void *create_paged_area(size_t size)
 {
-	if (!start)
-		start = AS_AREA_ANY;
+	TPRINTF("Creating temporary file...\n");
+
+	fd = open(TEST_FILE, O_CREAT);
+	if (fd < 0)
+		return NULL;
+	(void) unlink(TEST_FILE);
+	if (write(fd, text, sizeof(text)) != sizeof(text)) {
+		close(fd);
+		return NULL;
+	}
+
+	async_sess_t *vfs_pager_sess;
+
+	TPRINTF("Connecting to VFS pager...\n");
+
+	vfs_pager_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_PAGER, 0);
+
+	if (!vfs_pager_sess) {
+		close(fd);
+		return NULL;
+	}
 	
-//	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
-//		return MAP_FAILED;
+	TPRINTF("Creating AS area...\n");
 	
-	if (!(flags & MAP_ANONYMOUS))
-		return MAP_FAILED;
+	void *result = async_as_area_create(AS_AREA_ANY, size,
+	    AS_AREA_READ | AS_AREA_CACHEABLE, vfs_pager_sess, fd, 0, 0);
+	if (result == AS_MAP_FAILED) {
+		close(fd);
+		return NULL;
+	}
 	
-	return as_area_create(start, length, prot, AS_AREA_UNPAGED);
+	return result;
 }
 
-int posix_munmap(void *start, size_t length)
+static void touch_area(void *area, size_t size)
 {
-	return as_area_destroy(start);
+	TPRINTF("Touching (faulting-in) AS area...\n");
+	
+	volatile char *ptr = (char *) area;
+	
+	char ch;
+	while ((ch = *ptr++))
+		putchar(ch);
 }
 
-/** @}
- */
+const char *test_pager1(void)
+{
+	size_t buffer_len = PAGE_SIZE;
+	void *buffer = create_paged_area(buffer_len);
+	if (!buffer)
+		return "Cannot allocate memory";
+	
+	touch_area(buffer, buffer_len);
+
+	as_area_destroy(buffer);	
+	close(fd);
+	
+	return NULL;
+}

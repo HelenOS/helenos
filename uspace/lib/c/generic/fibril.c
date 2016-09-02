@@ -278,9 +278,9 @@ fid_t fibril_create_generic(int (*func)(void *), void *arg, size_t stksz)
 	
 	size_t stack_size = (stksz == FIBRIL_DFLT_STK_SIZE) ?
 	    stack_size_get() : stksz;
-	fibril->stack = as_area_create((void *) -1, stack_size,
+	fibril->stack = as_area_create(AS_AREA_ANY, stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
-	    AS_AREA_LATE_RESERVE);
+	    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
 	if (fibril->stack == (void *) -1) {
 		fibril_teardown(fibril, false);
 		return 0;

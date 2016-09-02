@@ -63,8 +63,10 @@ surface_t *surface_create(surface_coord_t width, surface_coord_t height,
 
 	if (!pixbuf) {
 		if ((flags & SURFACE_FLAG_SHARED) == SURFACE_FLAG_SHARED) {
-			pixbuf = (pixel_t *) as_area_create(AS_AREA_ANY, pixbuf_size,
-			    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+			pixbuf = (pixel_t *) as_area_create(AS_AREA_ANY,
+			    pixbuf_size,
+			    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+			    AS_AREA_UNPAGED);
 			if (pixbuf == AS_MAP_FAILED) {
 				free(surface);
 				return NULL;

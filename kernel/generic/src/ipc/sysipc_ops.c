@@ -41,6 +41,7 @@ sysipc_ops_t ipc_m_connection_clone_ops;
 sysipc_ops_t ipc_m_clone_establish_ops;
 sysipc_ops_t ipc_m_connect_to_me_ops;
 sysipc_ops_t ipc_m_connect_me_to_ops;
+sysipc_ops_t ipc_m_page_in_ops;
 sysipc_ops_t ipc_m_share_out_ops;
 sysipc_ops_t ipc_m_share_in_ops;
 sysipc_ops_t ipc_m_data_write_ops;
@@ -53,6 +54,7 @@ static sysipc_ops_t *sysipc_ops[] = {
 	[IPC_M_CLONE_ESTABLISH] = &ipc_m_clone_establish_ops,
 	[IPC_M_CONNECT_TO_ME] = &ipc_m_connect_to_me_ops,
 	[IPC_M_CONNECT_ME_TO] = &ipc_m_connect_me_to_ops,
+	[IPC_M_PAGE_IN] = &ipc_m_page_in_ops,
 	[IPC_M_SHARE_OUT] = &ipc_m_share_out_ops,
 	[IPC_M_SHARE_IN] = &ipc_m_share_in_ops,
 	[IPC_M_DATA_WRITE] = &ipc_m_data_write_ops,

@@ -136,15 +136,15 @@ NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 
 /** Find mapping for virtual page.
  *
- * @param as     Address space to which page belongs.
- * @param page   Virtual page.
- * @param nolock True if the page tables need not be locked.
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param[out] pte Structure that will receive a copy of the found PTE.
  *
- * @return NULL if there is no such mapping; requested mapping
- *         otherwise.
- *
+ * @return True if the mapping was found, false otherwise.
  */
-NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
+NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
+    pte_t *pte)
 {
 	ASSERT(nolock || page_table_locked(as));
 	
@@ -152,7 +152,28 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	ASSERT(page_mapping_operations->mapping_find);
 	
 	return page_mapping_operations->mapping_find(as,
-	    ALIGN_DOWN(page, PAGE_SIZE), nolock);
+	    ALIGN_DOWN(page, PAGE_SIZE), nolock, pte);
+}
+
+/** Update mapping for virtual page.
+ *
+ * Use only to update accessed and modified/dirty bits.
+ *
+ * @param as       Address space to which page belongs.
+ * @param page     Virtual page.
+ * @param nolock   True if the page tables need not be locked.
+ * @param pte      New PTE.
+ */
+NO_TRACE void page_mapping_update(as_t *as, uintptr_t page, bool nolock,
+    pte_t *pte)
+{
+	ASSERT(nolock || page_table_locked(as));
+	
+	ASSERT(page_mapping_operations);
+	ASSERT(page_mapping_operations->mapping_find);
+	
+	page_mapping_operations->mapping_update(as,
+	    ALIGN_DOWN(page, PAGE_SIZE), nolock, pte);
 }
 
 /** Make the mapping shared by all page tables (not address spaces).
@@ -172,13 +193,14 @@ int page_find_mapping(uintptr_t virt, uintptr_t *phys)
 {
 	page_table_lock(AS, true);
 	
-	pte_t *pte = page_mapping_find(AS, virt, false);
-	if ((!PTE_VALID(pte)) || (!PTE_PRESENT(pte))) {
+	pte_t pte;
+	bool found = page_mapping_find(AS, virt, false, &pte);
+	if (!found || !PTE_VALID(&pte) || !PTE_PRESENT(&pte)) {
 		page_table_unlock(AS, true);
 		return ENOENT;
 	}
 	
-	*phys = PTE_GET_FRAME(pte) +
+	*phys = PTE_GET_FRAME(&pte) +
 	    (virt - ALIGN_DOWN(virt, PAGE_SIZE));
 	
 	page_table_unlock(AS, true);

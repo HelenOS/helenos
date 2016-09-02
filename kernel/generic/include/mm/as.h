@@ -168,6 +168,10 @@ struct mem_backend;
 
 /** Backend data stored in address space area. */
 typedef union mem_backend_data {
+	/* anon_backend members */
+	struct {
+	};
+
 	/** elf_backend members */
 	struct {
 		elf_header_t *elf;
@@ -180,6 +184,12 @@ typedef union mem_backend_data {
 		size_t frames;
 		bool anonymous;
 	};
+
+	/** user_backend members */
+	struct {
+		as_area_pager_info_t pager_info;
+	};
+
 } mem_backend_data_t;
 
 /** Address space area structure.
@@ -295,9 +305,11 @@ extern void as_deinstall_arch(as_t *);
 extern mem_backend_t anon_backend;
 extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
+extern mem_backend_t user_backend;
 
 /* Address space area related syscalls. */
-extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int, uintptr_t);
+extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int, uintptr_t,
+    as_area_pager_info_t *);
 extern sysarg_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
 extern sysarg_t sys_as_area_change_flags(uintptr_t, unsigned int);
 extern sysarg_t sys_as_area_destroy(uintptr_t);

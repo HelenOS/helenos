@@ -36,7 +36,10 @@
  */
 
 #include <vfs/vfs.h>
+#include <stdlib.h>
 #include <ipc/services.h>
+#include <abi/ipc/methods.h>
+#include <libarch/config.h>
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
@@ -49,6 +52,28 @@
 #include "vfs.h"
 
 #define NAME  "vfs"
+
+static void vfs_pager(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	async_answer_0(iid, EOK);
+
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case IPC_M_PAGE_IN:
+			vfs_page_in(callid, &call);
+			break;
+		default:
+			async_answer_0(callid, ENOTSUP);
+			break;
+		}
+	}
+}
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
@@ -149,6 +174,8 @@ static void notification_handler(ipc_callid_t callid, ipc_call_t *call, void *ar
 
 int main(int argc, char **argv)
 {
+	int rc;
+
 	printf("%s: HelenOS VFS server\n", NAME);
 	
 	/*
@@ -164,7 +191,7 @@ int main(int argc, char **argv)
 	 * Allocate and initialize the Path Lookup Buffer.
 	 */
 	plb = as_area_create(AS_AREA_ANY, PLB_SIZE,
-	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
 	if (plb == AS_MAP_FAILED) {
 		printf("%s: Cannot create address space area\n", NAME);
 		return ENOMEM;
@@ -177,6 +204,14 @@ int main(int argc, char **argv)
 	async_set_client_data_constructor(vfs_client_data_create);
 	async_set_client_data_destructor(vfs_client_data_destroy);
 
+	/*
+	 * Create a port for the pager.
+	 */
+	port_id_t port;
+	rc = async_create_port(INTERFACE_PAGER, vfs_pager, NULL, &port);
+	if (rc != EOK)
+		return rc;
+		
 	/*
 	 * Set a connection handling function/fibril.
 	 */
@@ -191,7 +226,7 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	int rc = service_register(SERVICE_VFS);
+	rc = service_register(SERVICE_VFS);
 	if (rc != EOK) {
 		printf("%s: Cannot register VFS service\n", NAME);
 		return rc;

@@ -37,6 +37,7 @@ SOURCES = \
 	vfs_file.c \
 	vfs_ops.c \
 	vfs_lookup.c \
-	vfs_register.c
+	vfs_register.c \
+	vfs_pager.c
 
 include $(USPACE_PREFIX)/Makefile.common

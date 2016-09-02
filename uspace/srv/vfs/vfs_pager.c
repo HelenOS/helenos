@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,79 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup fs
  * @{
  */
-/** @file
+
+/**
+ * @file vfs_pager.c
+ * @brief VFS pager operations.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
+#include "vfs.h"
+#include <async.h>
+#include <fibril_synch.h>
+#include <errno.h>
+#include <as.h>
 
-#include "../internal/common.h"
-#include <posix/sys/mman.h>
-#include <posix/sys/types.h>
-#include <libc/as.h>
-#include <posix/unistd.h>
-
-void *posix_mmap(void *start, size_t length, int prot, int flags, int fd,
-    __POSIX_DEF__(off_t) offset)
+void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 {
-	if (!start)
-		start = AS_AREA_ANY;
-	
-//	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
-//		return MAP_FAILED;
-	
-	if (!(flags & MAP_ANONYMOUS))
-		return MAP_FAILED;
-	
-	return as_area_create(start, length, prot, AS_AREA_UNPAGED);
+	aoff64_t offset = IPC_GET_ARG1(*request);
+	size_t page_size = IPC_GET_ARG2(*request);
+	int fd = IPC_GET_ARG3(*request);
+	void *page;
+	int rc;
+
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		async_answer_0(rid, ENOENT);
+		return;
+	}
+
+	page = as_area_create(AS_AREA_ANY, page_size,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+	    AS_AREA_UNPAGED);
+
+	if (page == AS_MAP_FAILED) {
+		vfs_file_put(file);
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	rdwr_io_chunk_t chunk = {
+		.buffer = page,
+		.size = page_size
+	};
+
+	fibril_mutex_lock(&file->lock);
+	file->pos = offset;
+	fibril_mutex_unlock(&file->lock);
+
+	size_t total = 0;
+	do {
+		rc = vfs_rdwr_internal(fd, true, &chunk);
+		if (rc != EOK)
+			break;
+		if (chunk.size == 0)
+			break;
+		total += chunk.size;
+		chunk.buffer += chunk.size;
+		chunk.size = page_size - total;
+	} while (total < page_size);
+
+	vfs_file_put(file);
+
+	async_answer_1(rid, rc, (sysarg_t) page);
+
+	/*
+	 * FIXME: 
+	 * This is just for now until we implement proper page cache
+	 * management.  Not keeping the pages around in a cache results in
+	 * inherently non-coherent private mappings.
+	 */
+	as_area_destroy(page);
 }
 
-int posix_munmap(void *start, size_t length)
-{
-	return as_area_destroy(start);
-}
-
-/** @}
+/**
+ * @}
  */

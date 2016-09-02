@@ -43,6 +43,11 @@
 #define AS_AREA_GUARD        0x10
 #define AS_AREA_LATE_RESERVE 0x20
 
+#define AS_AREA_ANY    ((void *) -1)
+#define AS_MAP_FAILED  ((void *) -1)
+
+#define AS_AREA_UNPAGED NULL 
+
 /** Address space area info exported to uspace. */
 typedef struct {
 	/** Starting address */
@@ -54,6 +59,13 @@ typedef struct {
 	/** Area flags */
 	unsigned int flags;
 } as_area_info_t;
+
+typedef struct {
+	int pager;
+	sysarg_t id1;
+	sysarg_t id2;
+	sysarg_t id3;
+} as_area_pager_info_t;
 
 #endif
 

@@ -31,6 +31,7 @@
 #include <malloc.h>
 #include <macros.h>
 #include <as.h>
+#include <task.h>
 #include <ipc/output.h>
 #include "port/ega.h"
 #include "port/kchar.h"
