@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include <as.h>
@@ -36,23 +37,44 @@
 #include <errno.h>
 #include "../tester.h"
 
+#define TEST_FILE	"/tmp/testfile"
+
+const char text[] = "Hello world!";
+
+int fd;
+
 static void *create_paged_area(size_t size)
 {
+	TPRINTF("Creating temporary file...\n");
+
+	fd = open(TEST_FILE, O_CREAT);
+	if (fd < 0)
+		return NULL;
+	(void) unlink(TEST_FILE);
+	if (write(fd, text, sizeof(text)) != sizeof(text)) {
+		close(fd);
+		return NULL;
+	}
+
 	async_sess_t *vfs_pager_sess;
 
 	TPRINTF("Connecting to VFS pager...\n");
 
 	vfs_pager_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_PAGER, 0);
 
-	if (!vfs_pager_sess)
+	if (!vfs_pager_sess) {
+		close(fd);
 		return NULL;
+	}
 	
 	TPRINTF("Creating AS area...\n");
 	
 	void *result = async_as_area_create(AS_AREA_ANY, size,
-	    AS_AREA_READ | AS_AREA_CACHEABLE, vfs_pager_sess, 0, 0, 0);
-	if (result == AS_MAP_FAILED)
+	    AS_AREA_READ | AS_AREA_CACHEABLE, vfs_pager_sess, fd, 0, 0);
+	if (result == AS_MAP_FAILED) {
+		close(fd);
 		return NULL;
+	}
 	
 	return result;
 }
@@ -72,11 +94,13 @@ const char *test_pager1(void)
 {
 	size_t buffer_len = PAGE_SIZE;
 	void *buffer = create_paged_area(buffer_len);
-	if (!buffer) {
+	if (!buffer)
 		return "Cannot allocate memory";
-	}
 	
 	touch_area(buffer, buffer_len);
+
+	as_area_destroy(buffer);	
+	close(fd);
 	
 	return NULL;
 }
