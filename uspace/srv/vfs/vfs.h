@@ -223,6 +223,8 @@ extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
 extern void vfs_get_mtab(ipc_callid_t, ipc_call_t *);
 extern void vfs_statfs(ipc_callid_t, ipc_call_t *);
 
+extern void vfs_page_in(ipc_callid_t, ipc_call_t *);
+
 typedef struct {
 	void *buffer;
 	size_t size;
