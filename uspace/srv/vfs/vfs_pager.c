@@ -37,11 +37,66 @@
 
 #include "vfs.h"
 #include <async.h>
+#include <fibril_synch.h>
 #include <errno.h>
+#include <as.h>
 
 void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 {
-	async_answer_0(rid, ENOTSUP);
+	aoff64_t offset = IPC_GET_ARG1(*request);
+	size_t page_size = IPC_GET_ARG2(*request);
+	int fd = IPC_GET_ARG3(*request);
+	void *page;
+	int rc;
+
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		async_answer_0(rid, ENOENT);
+		return;
+	}
+
+	page = as_area_create(AS_AREA_ANY, page_size,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+	    AS_AREA_UNPAGED);
+
+	if (page == AS_MAP_FAILED) {
+		vfs_file_put(file);
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	rdwr_io_chunk_t chunk = {
+		.buffer = page,
+		.size = page_size
+	};
+
+	fibril_mutex_lock(&file->lock);
+	file->pos = offset;
+	fibril_mutex_unlock(&file->lock);
+
+	size_t total = 0;
+	do {
+		rc = vfs_rdwr_internal(fd, true, &chunk);
+		if (rc != EOK)
+			break;
+		if (chunk.size == 0)
+			break;
+		total += chunk.size;
+		chunk.buffer += chunk.size;
+		chunk.size = page_size - total;
+	} while (total < page_size);
+
+	vfs_file_put(file);
+
+	async_answer_1(rid, rc, (sysarg_t) page);
+
+	/*
+	 * FIXME: 
+	 * This is just for now until we implement proper page cache
+	 * management.  Not keeping the pages around in a cache results in
+	 * inherently non-coherent private mappings.
+	 */
+	as_area_destroy(page);
 }
 
 /**
