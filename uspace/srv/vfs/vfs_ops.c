@@ -733,12 +733,15 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, ret);
 }
 
-typedef sysarg_t (* rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, ipc_call_t *,
+typedef int (* rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, ipc_call_t *,
     bool, void *);
 
-static sysarg_t rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file,
+static int rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file,
     ipc_call_t *answer, bool read, void *data)
 {
+	size_t *bytes = (size_t *) data;
+	int rc;
+
 	/*
 	 * Make a VFS_READ/VFS_WRITE request at the destination FS server
 	 * and forward the IPC_M_DATA_READ/IPC_M_DATA_WRITE request to the
@@ -748,18 +751,48 @@ static sysarg_t rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file,
 	 */
 
 	if (read) {
-		return async_data_read_forward_4_1(exch, VFS_OUT_READ,
+		rc = async_data_read_forward_4_1(exch, VFS_OUT_READ,
 		    file->node->service_id, file->node->index,
 		    LOWER32(file->pos), UPPER32(file->pos), answer);
 	} else {
-		return async_data_write_forward_4_1(exch, VFS_OUT_WRITE,
+		rc = async_data_write_forward_4_1(exch, VFS_OUT_WRITE,
 		    file->node->service_id, file->node->index,
 		    LOWER32(file->pos), UPPER32(file->pos), answer);
-	}	
+	}
+
+	*bytes = IPC_GET_ARG1(*answer);
+	return rc;
 }
+
+static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file,
+    ipc_call_t *answer, bool read, void *data)
+{
+	rdwr_io_chunk_t *chunk = (rdwr_io_chunk_t *) data;
+
+	if (exch == NULL)
+		return ENOENT;
 	
-static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read,
-    rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
+	aid_t msg = async_send_fast(exch, read ? VFS_OUT_READ : VFS_OUT_WRITE,
+	    file->node->service_id, file->node->index, LOWER32(file->pos),
+	    UPPER32(file->pos), answer);
+	if (msg == 0)
+		return EINVAL;
+
+	int retval = async_data_read_start(exch, chunk->buffer, chunk->size);
+	if (retval != EOK) {
+		async_forget(msg);
+		return retval;
+	}
+	
+	sysarg_t rc;
+	async_wait_for(msg, &rc);
+	
+	chunk->size = IPC_GET_ARG1(*answer); 
+
+	return (int) rc;
+}
+
+static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 {
 	/*
 	 * The following code strongly depends on the fact that the files data
@@ -771,14 +804,10 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read,
 	 * open files supports parallel access!
 	 */
 	
-	int fd = IPC_GET_ARG1(*request);
-	
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
-	if (!file) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
+	if (!file)
+		return ENOENT;
 	
 	/*
 	 * Lock the open file structure so that no other thread can manipulate
@@ -818,7 +847,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read,
 	 * Handle communication with the endpoint FS.
 	 */
 	ipc_call_t answer;
-	sysarg_t rc = ipc_cb(fs_exch, file, &answer, read, ipc_cb_data);
+	int rc = ipc_cb(fs_exch, file, &answer, read, ipc_cb_data);
 	
 	vfs_exchange_release(fs_exch);
 	
@@ -845,21 +874,30 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read,
 	fibril_mutex_unlock(&file->lock);
 	vfs_file_put(file);	
 
-	/*
-	 * FS server's reply is the final result of the whole operation we
-	 * return to the client.
-	 */
+	return rc;
+}
+	
+static void vfs_rdwr_client(ipc_callid_t rid, ipc_call_t *request, bool read)
+{
+	size_t bytes = 0;	
+	int rc = vfs_rdwr(IPC_GET_ARG1(*request), read, rdwr_ipc_client,
+	    &bytes);
 	async_answer_1(rid, rc, bytes);
+}
+
+int vfs_rdwr_internal(int fd, bool read, rdwr_io_chunk_t *chunk)
+{
+	return vfs_rdwr(fd, read, rdwr_ipc_internal, chunk);
 }
 
 void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 {
-	vfs_rdwr(rid, request, true, rdwr_ipc_client, NULL);
+	vfs_rdwr_client(rid, request, true);
 }
 
 void vfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
-	vfs_rdwr(rid, request, false, rdwr_ipc_client, NULL);
+	vfs_rdwr_client(rid, request, false);
 }
 
 void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
