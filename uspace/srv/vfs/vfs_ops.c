@@ -733,7 +733,33 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, ret);
 }
 
-static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
+typedef sysarg_t (* rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, ipc_call_t *,
+    bool, void *);
+
+static sysarg_t rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file,
+    ipc_call_t *answer, bool read, void *data)
+{
+	/*
+	 * Make a VFS_READ/VFS_WRITE request at the destination FS server
+	 * and forward the IPC_M_DATA_READ/IPC_M_DATA_WRITE request to the
+	 * destination FS server. The call will be routed as if sent by
+	 * ourselves. Note that call arguments are immutable in this case so we
+	 * don't have to bother.
+	 */
+
+	if (read) {
+		return async_data_read_forward_4_1(exch, VFS_OUT_READ,
+		    file->node->service_id, file->node->index,
+		    LOWER32(file->pos), UPPER32(file->pos), answer);
+	} else {
+		return async_data_write_forward_4_1(exch, VFS_OUT_WRITE,
+		    file->node->service_id, file->node->index,
+		    LOWER32(file->pos), UPPER32(file->pos), answer);
+	}	
+}
+	
+static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read,
+    rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 {
 	/*
 	 * The following code strongly depends on the fact that the files data
@@ -785,27 +811,14 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	
 	async_exch_t *fs_exch = vfs_exchange_grab(file->node->fs_handle);
 	
+	if (!read && file->append)
+		file->pos = file->node->size;
+	
 	/*
-	 * Make a VFS_READ/VFS_WRITE request at the destination FS server
-	 * and forward the IPC_M_DATA_READ/IPC_M_DATA_WRITE request to the
-	 * destination FS server. The call will be routed as if sent by
-	 * ourselves. Note that call arguments are immutable in this case so we
-	 * don't have to bother.
+	 * Handle communication with the endpoint FS.
 	 */
-	sysarg_t rc;
 	ipc_call_t answer;
-	if (read) {
-		rc = async_data_read_forward_4_1(fs_exch, VFS_OUT_READ,
-		    file->node->service_id, file->node->index,
-		    LOWER32(file->pos), UPPER32(file->pos), &answer);
-	} else {
-		if (file->append)
-			file->pos = file->node->size;
-		
-		rc = async_data_write_forward_4_1(fs_exch, VFS_OUT_WRITE,
-		    file->node->service_id, file->node->index,
-		    LOWER32(file->pos), UPPER32(file->pos), &answer);
-	}
+	sysarg_t rc = ipc_cb(fs_exch, file, &answer, read, ipc_cb_data);
 	
 	vfs_exchange_release(fs_exch);
 	
@@ -841,12 +854,12 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 
 void vfs_read(ipc_callid_t rid, ipc_call_t *request)
 {
-	vfs_rdwr(rid, request, true);
+	vfs_rdwr(rid, request, true, rdwr_ipc_client, NULL);
 }
 
 void vfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
-	vfs_rdwr(rid, request, false);
+	vfs_rdwr(rid, request, false, rdwr_ipc_client, NULL);
 }
 
 void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
