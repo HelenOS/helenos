@@ -187,7 +187,7 @@ typedef union mem_backend_data {
 
 	/** user_backend members */
 	struct {
-		int pager;	/**< Phone to the pager. */
+		as_area_pager_info_t pager_info;
 	};
 
 } mem_backend_data_t;
@@ -309,7 +309,7 @@ extern mem_backend_t user_backend;
 
 /* Address space area related syscalls. */
 extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int, uintptr_t,
-    int);
+    as_area_pager_info_t *);
 extern sysarg_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
 extern sysarg_t sys_as_area_change_flags(uintptr_t, unsigned int);
 extern sysarg_t sys_as_area_destroy(uintptr_t);

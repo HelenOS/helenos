@@ -38,6 +38,7 @@
 
 #include <mm/as.h>
 #include <mm/page.h>
+#include <abi/mm/as.h>
 #include <abi/ipc/methods.h>
 #include <ipc/sysipc.h>
 #include <synch/mutex.h>
@@ -131,18 +132,23 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
+	as_area_pager_info_t *pager_info = &area->backend_data.pager_info;
+
 	ipc_data_t data = {};
 	IPC_SET_IMETHOD(data, IPC_M_PAGE_IN);
 	IPC_SET_ARG1(data, upage - area->base);
 	IPC_SET_ARG2(data, PAGE_SIZE);
+	IPC_SET_ARG3(data, pager_info->id1);
+	IPC_SET_ARG4(data, pager_info->id2);
+	IPC_SET_ARG5(data, pager_info->id3);
 
-	int rc = ipc_req_internal(area->backend_data.pager, &data);
+	int rc = ipc_req_internal(pager_info->pager, &data);
 
 	if (rc != EOK) {
 		log(LF_USPACE, LVL_FATAL,
 		    "Page-in request for page %#" PRIxn
 		    " at pager %d failed with error %d.",
-		    upage, area->backend_data.pager, rc);
+		    upage, pager_info->pager, rc);
 		return AS_PF_FAULT;
 	}
 

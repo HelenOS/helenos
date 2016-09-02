@@ -50,7 +50,7 @@ static void *create_paged_area(size_t size)
 	TPRINTF("Creating AS area...\n");
 	
 	void *result = async_as_area_create(AS_AREA_ANY, size,
-	    AS_AREA_READ | AS_AREA_CACHEABLE, vfs_pager_sess);
+	    AS_AREA_READ | AS_AREA_CACHEABLE, vfs_pager_sess, 0, 0, 0);
 	if (result == AS_MAP_FAILED)
 		return NULL;
 	

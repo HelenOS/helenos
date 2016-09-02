@@ -52,7 +52,8 @@ static inline size_t PAGES2SIZE(size_t pages)
 	return (size_t) (pages << PAGE_WIDTH);
 }
 
-extern void *as_area_create(void *, size_t, unsigned int, int);
+extern void *as_area_create(void *, size_t, unsigned int,
+    as_area_pager_info_t *);
 extern int as_area_resize(void *, size_t, unsigned int);
 extern int as_area_change_flags(void *, unsigned int);
 extern int as_area_destroy(void *);

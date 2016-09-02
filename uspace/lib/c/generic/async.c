@@ -116,6 +116,7 @@
 #include <stdlib.h>
 #include <macros.h>
 #include <as.h>
+#include <abi/mm/as.h>
 #include "private/libc.h"
 
 /** Session data */
@@ -3382,9 +3383,15 @@ void async_remote_state_release_exchange(async_exch_t *exch)
 }
 
 void *async_as_area_create(void *base, size_t size, unsigned int flags,
-    async_sess_t *pager)
+    async_sess_t *pager, sysarg_t id1, sysarg_t id2, sysarg_t id3)
 {
-	return as_area_create(base, size, flags, pager->phone);
+	as_area_pager_info_t pager_info = {
+		.pager = pager->phone,
+		.id1 = id1,
+		.id2 = id2,
+		.id3 = id3
+	};
+	return as_area_create(base, size, flags, &pager_info);
 }
 
 /** @}

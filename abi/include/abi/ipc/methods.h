@@ -120,6 +120,9 @@ enum {
 	 *
 	 * - ARG1 - page-aligned offset from the beginning of the memory object
 	 * - ARG2 - page size
+	 * - ARG3 - user defined memory object ID
+	 * - ARG4 - user defined memory object ID
+	 * - ARG5 - user defined memory object ID
 	 *
 	 * on answer, the recipient must set:
 	 *
