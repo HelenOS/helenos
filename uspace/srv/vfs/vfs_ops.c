@@ -943,7 +943,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		file->pos += off;
-		newoff = (file->pos > OFF64_MAX) ?  OFF64_MAX : file->pos;
+		newoff = (file->pos > OFF64_MAX) ? OFF64_MAX : file->pos;
 		
 		fibril_mutex_unlock(&file->lock);
 		vfs_file_put(file);
