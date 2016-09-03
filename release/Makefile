@@ -44,7 +44,6 @@ PROFILES = \
 	mips32/malta-be \
 	mips32/msim \
 	ppc32 \
-	sparc32/leon3 \
 	sparc64/niagara \
 	sparc64/ultra
 

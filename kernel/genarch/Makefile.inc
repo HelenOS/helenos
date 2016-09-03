@@ -109,16 +109,6 @@ GENARCH_SOURCES += \
 	genarch/src/drivers/omap/uart.c
 endif
 
-ifeq ($(CONFIG_GRLIB_UART),y)
-GENARCH_SOURCES += \
-	genarch/src/drivers/grlib/uart.c
-endif
-
-ifeq ($(CONFIG_GRLIB_IRQMP),y)
-GENARCH_SOURCES += \
-	genarch/src/drivers/grlib/irqmp.c
-endif
-
 ifeq ($(CONFIG_AM335X_TIMERS),y)
 GENARCH_SOURCES += \
 	genarch/src/drivers/am335x/timer.c
