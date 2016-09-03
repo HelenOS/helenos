@@ -38,6 +38,7 @@
 
 #include <mm/as.h>
 #include <mm/page.h>
+#include <mm/frame.h>
 #include <abi/mm/as.h>
 #include <abi/ipc/methods.h>
 #include <ipc/sysipc.h>
@@ -49,8 +50,6 @@
 #include <log.h>
 
 static bool user_create(as_area_t *);
-static bool user_resize(as_area_t *, size_t);
-static void user_share(as_area_t *);
 static void user_destroy(as_area_t *);
 
 static bool user_is_resizable(as_area_t *);
@@ -61,8 +60,8 @@ static void user_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
 mem_backend_t user_backend = {
 	.create = user_create,
-	.resize = user_resize,
-	.share = user_share,
+	.resize = NULL,
+	.share = NULL,
 	.destroy = user_destroy,
 
 	.is_resizable = user_is_resizable,
@@ -80,23 +79,6 @@ bool user_create(as_area_t *area)
 	return true;
 }
 
-bool user_resize(as_area_t *area, size_t new_pages)
-{
-	return true;
-}
-
-/** Share the user-paged address space area.
- *
- * The address space and address space area must be already locked.
- *
- * @param area Address space area to be shared.
- */
-void user_share(as_area_t *area)
-{
-	ASSERT(mutex_locked(&area->as->lock));
-	ASSERT(mutex_locked(&area->lock));
-}
-
 void user_destroy(as_area_t *area)
 {
 	return;
@@ -104,12 +86,12 @@ void user_destroy(as_area_t *area)
 
 bool user_is_resizable(as_area_t *area)
 {
-	return true;
+	return false;
 }
 
 bool user_is_shareable(as_area_t *area)
 {
-	return true;
+	return false;
 }
 
 /** Service a page fault in the user-paged address space area.
@@ -181,6 +163,14 @@ void user_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
 	ASSERT(page_table_locked(area->as));
 	ASSERT(mutex_locked(&area->lock));
+
+	pfn_t pfn = ADDR2PFN(frame);
+	if (find_zone(pfn, 1, 0) != (size_t) -1) {
+		frame_free(frame, 1);
+	} else {
+		/* Nothing to do */
+	}
+		
 }
 
 /** @}
