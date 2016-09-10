@@ -58,6 +58,8 @@
 #include <arch/interrupt.h>
 #include <ipc/irq.h>
 
+static void ipc_forget_call(call_t *);
+
 /** Open channel that is assigned automatically to new tasks */
 answerbox_t *ipc_phone_0 = NULL;
 
@@ -208,11 +210,52 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 		slab_free(ipc_answerbox_slab, mybox);
 		return rc;
 	}
-	// TODO: forget the call if interrupted
-	(void) ipc_wait_for_call(mybox, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+
+	call_t *answer = ipc_wait_for_call(mybox, SYNCH_NO_TIMEOUT,
+	    SYNCH_FLAGS_INTERRUPTIBLE);
+	if (!answer) {
+
+		/*
+		 * The sleep was interrupted.
+		 *
+		 * There are two possibilities now:
+		 * 1) the call gets answered before we manage to forget it
+		 * 2) we manage to forget the call before it gets answered
+		 */
+
+		spinlock_lock(&request->forget_lock);
+		spinlock_lock(&TASK->active_calls_lock);
+
+		ASSERT(!request->forget);
+
+		bool answered = !request->active;
+		if (!answered) {
+			/*
+			 * The call is not yet answered and we won the race to
+			 * forget it.
+			 */
+			ipc_forget_call(request);	/* releases locks */
+			rc = EINTR;
+			
+		} else {
+			spinlock_unlock(&TASK->active_calls_lock);
+			spinlock_unlock(&request->forget_lock);
+		}
+
+		if (answered) {
+			/*
+			 * The other side won the race to answer the call.
+			 * It is safe to wait for the answer uninterruptibly
+			 * now.
+			 */
+			answer = ipc_wait_for_call(mybox, SYNCH_NO_TIMEOUT,
+			    SYNCH_FLAGS_NONE);
+		}
+	}
+	ASSERT(!answer || request == answer);
 	
 	slab_free(ipc_answerbox_slab, mybox);
-	return EOK;
+	return rc;
 }
 
 /** Answer a message which was not dispatched and is not listed in any queue.
@@ -620,6 +663,36 @@ restart_phones:
 		ipc_call_free(call);
 }
 
+static void ipc_forget_call(call_t *call)
+{
+	ASSERT(spinlock_locked(&TASK->active_calls_lock));
+	ASSERT(spinlock_locked(&call->forget_lock));
+
+	/*
+	 * Forget the call and donate it to the task which holds up the answer.
+	 */
+
+	call->forget = true;
+	call->sender = NULL;
+	list_remove(&call->ta_link);
+
+	/*
+	 * The call may be freed by _ipc_answer_free_call() before we are done
+	 * with it; to avoid working with a destroyed call_t structure, we
+	 * must hold a reference to it.
+	 */
+	ipc_call_hold(call);
+
+	spinlock_unlock(&call->forget_lock);
+	spinlock_unlock(&TASK->active_calls_lock);
+
+	atomic_dec(&call->caller_phone->active_calls);
+
+	SYSIPC_OP(request_forget, call);
+
+	ipc_call_release(call);
+}
+
 static void ipc_forget_all_active_calls(void)
 {
 	call_t *call;
@@ -648,29 +721,7 @@ restart:
 		goto restart;
 	}
 
-	/*
-	 * Forget the call and donate it to the task which holds up the answer.
-	 */
-
-	call->forget = true;
-	call->sender = NULL;
-	list_remove(&call->ta_link);
-
-	/*
-	 * The call may be freed by _ipc_answer_free_call() before we are done
-	 * with it; to avoid working with a destroyed call_t structure, we
-	 * must hold a reference to it.
-	 */
-	ipc_call_hold(call);
-
-	spinlock_unlock(&call->forget_lock);
-	spinlock_unlock(&TASK->active_calls_lock);
-
-	atomic_dec(&call->caller_phone->active_calls);
-
-	SYSIPC_OP(request_forget, call);
-
-	ipc_call_release(call);
+	ipc_forget_call(call);
 
 	goto restart;
 }

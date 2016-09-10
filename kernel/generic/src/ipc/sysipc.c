@@ -284,14 +284,36 @@ int ipc_req_internal(int phoneid, ipc_data_t *data)
 		udebug_stoppable_begin();
 #endif
 
-		rc = ipc_call_sync(phone, call); 
+		ipc_call_hold(call);
+		rc = ipc_call_sync(phone, call);
+		spinlock_lock(&call->forget_lock);
+		bool forgotten = call->forget;
+		spinlock_unlock(&call->forget_lock);
+		ipc_call_release(call);
 
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_end();
 #endif
 
-		if (rc != EOK)
-			return EINTR;
+		if (rc != EOK) {
+			if (!forgotten) {
+				/*
+				 * There was an error, but it did not result
+				 * in the call being forgotten. In fact, the
+				 * call was not even sent. We are still
+				 * its owners and are responsible for its
+				 * deallocation.
+				 */
+				ipc_call_free(call);
+			} else {
+				/*
+				 * The call was forgotten and it changed hands.
+				 * We are no longer expected to free it.
+				 */
+				ASSERT(rc == EINTR);
+			}
+			return rc;	
+		}
 
 		process_answer(call);
 	} else
