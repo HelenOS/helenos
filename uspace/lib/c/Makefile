@@ -140,6 +140,7 @@ GENERIC_SOURCES = \
 	generic/adt/checksum.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
+	generic/adt/odict.c \
 	generic/adt/prodcons.c \
 	generic/time.c \
 	generic/stdlib.c \
@@ -173,6 +174,7 @@ SOURCES = \
 
 TEST_SOURCES = \
 	test/main.c \
+	test/odict.c \
 	test/sprintf.c
 
 include $(USPACE_PREFIX)/Makefile.common

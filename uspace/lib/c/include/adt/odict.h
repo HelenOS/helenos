@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2016 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <pcut/pcut.h>
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
-PCUT_INIT
+#ifndef LIBC_ODICT_H_
+#define LIBC_ODICT_H_
 
-PCUT_IMPORT(odict);
-PCUT_IMPORT(sprintf);
+#include <stdbool.h>
+#include <stddef.h>
+#include <types/adt/odict.h>
 
-PCUT_MAIN()
+#define odict_get_instance(odlink, type, member) \
+	((type *)( (void *)(odlink) - ((void *) &((type *) NULL)->member)))
+
+extern void odict_initialize(odict_t *, odgetkey_t, odcmp_t);
+extern void odlink_initialize(odlink_t *);
+extern void odict_insert(odlink_t *, odict_t *, odlink_t *);
+extern void odict_remove(odlink_t *);
+extern void odict_key_update(odlink_t *, odict_t *);
+extern bool odlink_used(odlink_t *);
+extern bool odict_empty(odict_t *);
+extern unsigned long odict_count(odict_t *);
+extern odlink_t *odict_first(odict_t *);
+extern odlink_t *odict_last(odict_t *);
+extern odlink_t *odict_prev(odlink_t *, odict_t *);
+extern odlink_t *odict_next(odlink_t *, odict_t *);
+extern odlink_t *odict_find_eq(odict_t *, void *, odlink_t *);
+extern odlink_t *odict_find_eq_last(odict_t *, void *, odlink_t *);
+extern odlink_t *odict_find_geq(odict_t *, void *, odlink_t *);
+extern odlink_t *odict_find_gt(odict_t *, void *, odlink_t *);
+extern odlink_t *odict_find_leq(odict_t *, void *, odlink_t *);
+extern odlink_t *odict_find_lt(odict_t *, void *, odlink_t *);
+extern int odict_validate(odict_t *);
+
+#endif
+
+/** @}
+ */
