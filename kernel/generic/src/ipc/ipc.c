@@ -327,18 +327,23 @@ void ipc_answer(answerbox_t *box, call_t *call)
 	_ipc_answer_free_call(call, false);
 }
 
-static void _ipc_call_actions_internal(phone_t *phone, call_t *call)
+static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
+    bool preforget)
 {
 	task_t *caller = phone->caller;
 
-	atomic_inc(&phone->active_calls);
 	call->caller_phone = phone;
-	call->sender = caller;
 
-	call->active = true;
-	spinlock_lock(&caller->active_calls_lock);
-	list_append(&call->ta_link, &caller->active_calls);
-	spinlock_unlock(&caller->active_calls_lock);
+	if (preforget) {
+		call->forget = true;
+	} else {
+		atomic_inc(&phone->active_calls);
+		call->sender = caller;
+		call->active = true;
+		spinlock_lock(&caller->active_calls_lock);
+		list_append(&call->ta_link, &caller->active_calls);
+		spinlock_unlock(&caller->active_calls_lock);
+	}
 
 	call->data.phone = phone;
 	call->data.task_id = caller->taskid;
@@ -356,19 +361,21 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call)
  */
 void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
 {
-	_ipc_call_actions_internal(phone, call);
+	_ipc_call_actions_internal(phone, call, false);
 	IPC_SET_RETVAL(call->data, err);
 	_ipc_answer_free_call(call, false);
 }
 
 /** Unsafe unchecking version of ipc_call.
  *
- * @param phone Phone structure the call comes from.
- * @param box   Destination answerbox structure.
- * @param call  Call structure with request.
+ * @param phone     Phone structure the call comes from.
+ * @param box       Destination answerbox structure.
+ * @param call      Call structure with request.
+ * @param preforget If true, the call will be delivered already forgotten.
  *
  */
-static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
+static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call,
+    bool preforget)
 {
 	task_t *caller = phone->caller;
 
@@ -378,7 +385,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	irq_spinlock_unlock(&caller->lock, true);
 	
 	if (!(call->flags & IPC_CALL_FORWARDED))
-		_ipc_call_actions_internal(phone, call);
+		_ipc_call_actions_internal(phone, call, preforget);
 	
 	irq_spinlock_lock(&box->lock, true);
 	list_append(&call->ab_link, &box->calls);
@@ -412,7 +419,7 @@ int ipc_call(phone_t *phone, call_t *call)
 	}
 	
 	answerbox_t *box = phone->callee;
-	_ipc_call(phone, box, call);
+	_ipc_call(phone, box, call, false);
 	
 	mutex_unlock(&phone->lock);
 	return 0;
@@ -450,7 +457,7 @@ int ipc_phone_hangup(phone_t *phone)
 		IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
 		call->request_method = IPC_M_PHONE_HUNGUP;
 		call->flags |= IPC_CALL_DISCARD_ANSWER;
-		_ipc_call(phone, box, call);
+		_ipc_call(phone, box, call, false);
 	}
 	
 	phone->state = IPC_PHONE_HUNGUP;
@@ -610,8 +617,6 @@ void ipc_answerbox_slam_phones(answerbox_t *box, bool notify_box)
 	phone_t *phone;
 	DEADLOCK_PROBE_INIT(p_phonelck);
 	
-	call_t *call = notify_box ? ipc_call_alloc(0) : NULL;
-	
 	/* Disconnect all phones connected to our answerbox */
 restart_phones:
 	irq_spinlock_lock(&box->lock, true);
@@ -631,24 +636,24 @@ restart_phones:
 		phone->state = IPC_PHONE_SLAMMED;
 		
 		if (notify_box) {
+			task_hold(phone->caller);
 			mutex_unlock(&phone->lock);
 			irq_spinlock_unlock(&box->lock, true);
 
-			// FIXME: phone can become deallocated at any time now
-
 			/*
-			 * Send one message to the answerbox for each
-			 * phone. Used to make sure the kbox thread
-			 * wakes up after the last phone has been
-			 * disconnected.
+			 * Send one call to the answerbox for each phone.
+			 * Used to make sure the kbox thread wakes up after
+			 * the last phone has been disconnected. The call is
+			 * forgotten upon sending, so the "caller" may cease
+			 * to exist as soon as we release it.
 			 */
+			call_t *call = ipc_call_alloc(0);
 			IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
 			call->request_method = IPC_M_PHONE_HUNGUP;
 			call->flags |= IPC_CALL_DISCARD_ANSWER;
-			_ipc_call(phone, box, call);
-			
-			/* Allocate another call in advance */
-			call = ipc_call_alloc(0);
+			_ipc_call(phone, box, call, true);
+
+			task_release(phone->caller);
 			
 			/* Must start again */
 			goto restart_phones;
@@ -658,10 +663,6 @@ restart_phones:
 	}
 	
 	irq_spinlock_unlock(&box->lock, true);
-	
-	/* Free unused call */
-	if (call)
-		ipc_call_free(call);
 }
 
 static void ipc_forget_call(call_t *call)
