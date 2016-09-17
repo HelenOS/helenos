@@ -141,7 +141,8 @@ NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
  * @param nolock   True if the page tables need not be locked.
  * @param[out] pte Structure that will receive a copy of the found PTE.
  *
- * @return True if the mapping was found, false otherwise.
+ * @return True if a valid PTE is returned, false otherwise. Note that
+ *         the PTE is not guaranteed to be present.
  */
 NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
     pte_t *pte)

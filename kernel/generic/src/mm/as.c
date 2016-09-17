@@ -1456,16 +1456,14 @@ int as_page_fault(uintptr_t address, pf_access_t access, istate_t *istate)
 	 */
 	pte_t pte;
 	bool found = page_mapping_find(AS, page, false, &pte);
-	if (found) {
-		if (PTE_PRESENT(&pte)) {
-			if (((access == PF_ACCESS_READ) && PTE_READABLE(&pte)) ||
-			    (access == PF_ACCESS_WRITE && PTE_WRITABLE(&pte)) ||
-			    (access == PF_ACCESS_EXEC && PTE_EXECUTABLE(&pte))) {
-				page_table_unlock(AS, false);
-				mutex_unlock(&area->lock);
-				mutex_unlock(&AS->lock);
-				return AS_PF_OK;
-			}
+	if (found && PTE_PRESENT(&pte)) {
+		if (((access == PF_ACCESS_READ) && PTE_READABLE(&pte)) ||
+		    (access == PF_ACCESS_WRITE && PTE_WRITABLE(&pte)) ||
+		    (access == PF_ACCESS_EXEC && PTE_EXECUTABLE(&pte))) {
+			page_table_unlock(AS, false);
+			mutex_unlock(&area->lock);
+			mutex_unlock(&AS->lock);
+			return AS_PF_OK;
 		}
 	}
 	

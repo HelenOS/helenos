@@ -52,7 +52,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		page_table_lock(AS, true);
 		bool found = page_mapping_find(AS, IPC_GET_ARG1(answer->data),
 		    false, &pte);
-		if (found) {
+		if (found & PTE_PRESENT(&pte)) {
 			frame = PTE_GET_FRAME(&pte);
 			pfn_t pfn = ADDR2PFN(frame);
 			if (find_zone(pfn, 1, 0) != (size_t) -1) {

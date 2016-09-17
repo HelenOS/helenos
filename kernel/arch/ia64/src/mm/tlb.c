@@ -491,6 +491,8 @@ void alternate_instruction_tlb_fault(unsigned int n, istate_t *istate)
 
 	bool found = page_mapping_find(AS, va, true, &t);
 	if (found) {
+		ASSERT(t.p);
+
 		/*
 		 * The mapping was found in software page hash table.
 		 * Insert it into data translation cache.
@@ -602,6 +604,8 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 	pte_t t;
 	bool found = page_mapping_find(as, va, true, &t);
 	if (found) {
+		ASSERT(t.p);
+
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into data translation cache.

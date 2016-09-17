@@ -200,6 +200,8 @@ void fast_instruction_access_mmu_miss(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(AS, istate->tpc, true, &t);
 	if (found && PTE_EXECUTABLE(&t)) {
+		ASSERT(t.p);
+
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into ITLB.
@@ -255,6 +257,8 @@ void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(as, page_16k, true, &t);
 	if (found) {
+		ASSERT(t.p);
+
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into DTLB.
@@ -296,6 +300,8 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(as, page_16k, true, &t);
 	if (found && PTE_WRITABLE(&t)) {
+		ASSERT(t.p);
+
 		/*
 		 * The mapping was found in the software page hash table and is
 		 * writable. Demap the old mapping and insert an updated mapping
