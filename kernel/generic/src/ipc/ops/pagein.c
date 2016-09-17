@@ -45,7 +45,16 @@
 
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
+	/*
+	 * We only do the special handling below if the call was initiated by
+	 * the kernel. Otherwise a malicious task could use this mechanism to
+	 * hold memory frames forever.
+	 */
+	if (!answer->priv)
+		return EOK;
+
 	if (!IPC_GET_RETVAL(answer->data)) {
+
 		pte_t pte;
 		uintptr_t frame;
 

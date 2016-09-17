@@ -264,18 +264,20 @@ static int process_request(answerbox_t *box, call_t *call)
  *
  * @param phoneid     Phone handle for the call.
  * @param data[inout] Structure with request/reply data.
+ * @param priv        Value to be stored in call->priv.
  *
  * @return EOK on success.
  * @return ENOENT if there is no such phone handle.
  *
  */
-int ipc_req_internal(int phoneid, ipc_data_t *data)
+int ipc_req_internal(int phoneid, ipc_data_t *data, sysarg_t priv)
 {
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK)
 		return ENOENT;
 	
 	call_t *call = ipc_call_alloc(0);
+	call->priv = priv;
 	memcpy(call->data.args, data->args, sizeof(data->args));
 	
 	int rc = request_preprocess(call, phone);
