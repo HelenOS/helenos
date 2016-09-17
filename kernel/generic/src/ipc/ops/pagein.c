@@ -43,7 +43,7 @@
 #include <abi/errno.h>
 #include <arch.h>
 
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static int pagein_answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	/*
 	 * We only do the special handling below if the call was initiated by
@@ -86,7 +86,7 @@ sysipc_ops_t ipc_m_page_in_ops = {
 	.request_forget = null_request_forget,
 	.request_process = null_request_process,
 	.answer_cleanup = null_answer_cleanup,
-	.answer_preprocess = answer_preprocess,
+	.answer_preprocess = pagein_answer_preprocess,
 	.answer_process = null_answer_process,
 };
 
