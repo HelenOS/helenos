@@ -28,14 +28,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-VERSION=2.6.0
+VERSION=2.7.0
 BASENAME=qemu-${VERSION}
 BASENAME_MASTER=qemu-master
 TARBALL=${BASENAME}.tar.bz2
 SOURCEDIR=${BASENAME}
 URL=http://wiki.qemu-project.org/download/${TARBALL}
 REPO=git://git.qemu.org/qemu.git
-MD5="ca3f70b43f093e33e9e014f144067f13"
+MD5="08d4d06d1cb598efecd796137f4844ab"
 
 if [ "$1" == "--master" ]; then
 	git clone ${REPO} ${BASENAME_MASTER}
@@ -52,6 +52,7 @@ else
 	
 	tar xvfj ${TARBALL}
 	cd ${SOURCEDIR}
+	patch -p 1 <../integratorcm_init_memsz.patch
 fi
 
 ./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,ppc-softmmu,sparc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --audio-drv-list=pa
