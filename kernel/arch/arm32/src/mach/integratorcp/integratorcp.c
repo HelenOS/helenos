@@ -54,16 +54,14 @@
 #include <log.h>
 
 
-
-#define SDRAM_SIZE	(sdram[((*(uint32_t *)(ICP_CMCR+ICP_SDRAMCR_OFFSET) & ICP_SDRAM_MASK) >> 2)])
+#define SDRAM_SIZE \
+	sdram[(*(uint32_t *) (ICP_CMCR + ICP_SDRAMCR_OFFSET) & ICP_SDRAM_MASK) >> 2]
 
 static struct {
 	icp_hw_map_t hw_map;
 	irq_t timer_irq;
 	pl011_uart_t uart;
 } icp;
-
-
 
 struct arm_machine_ops icp_machine_ops = {
 	icp_init,
@@ -97,14 +95,14 @@ void icp_vga_init(void);
  */
 void icp_vga_init(void)
 {
-	*(uint32_t*)((char *)(icp.hw_map.cmcr)+0x14) = 0xA05F0000;
-	*(uint32_t*)((char *)(icp.hw_map.cmcr)+0x1C) = 0x12C11000;
-	*(uint32_t*)icp.hw_map.vga = 0x3F1F3F9C;
-	*(uint32_t*)((char *)(icp.hw_map.vga) + 0x4) = 0x080B61DF;
-	*(uint32_t*)((char *)(icp.hw_map.vga) + 0x8) = 0x067F3800;
-	*(uint32_t*)((char *)(icp.hw_map.vga) + 0x10) = ICP_FB;
-	*(uint32_t *)((char *)(icp.hw_map.vga) + 0x1C) = 0x182B;
-	*(uint32_t*)((char *)(icp.hw_map.cmcr)+0xC) = 0x33805000;
+	*(uint32_t *) ((char *)(icp.hw_map.cmcr) + 0x14) = 0xA05F0000;
+	*(uint32_t *) ((char *)(icp.hw_map.cmcr) + 0x1C) = 0x12C11000;
+	*(uint32_t *) icp.hw_map.vga = 0x3F1F3F9C;
+	*(uint32_t *) ((char *)(icp.hw_map.vga) + 0x4) = 0x080B61DF;
+	*(uint32_t *) ((char *)(icp.hw_map.vga) + 0x8) = 0x067F3800;
+	*(uint32_t *) ((char *)(icp.hw_map.vga) + 0x10) = ICP_FB;
+	*(uint32_t *) ((char *)(icp.hw_map.vga) + 0x1C) = 0x182B;
+	*(uint32_t *) ((char *)(icp.hw_map.cmcr) + 0xC) = 0x33805000;
 	
 }
 
@@ -113,7 +111,6 @@ static inline uint32_t icp_irqc_get_sources(void)
 {
 	return *((uint32_t *) icp.hw_map.irqc);
 }
-
 
 /** Masks interrupt.
  * 
@@ -172,16 +169,16 @@ void icp_init(void)
 static void icp_timer_start(uint32_t frequency)
 {
 	icp_irqc_mask(ICP_TIMER_IRQ);
-	*((uint32_t*) icp.hw_map.rtc1_load) = frequency;
-	*((uint32_t*) icp.hw_map.rtc1_bgload) = frequency;
-	*((uint32_t*) icp.hw_map.rtc1_ctl) = ICP_RTC_CTL_VALUE;
+	*((uint32_t *) icp.hw_map.rtc1_load) = frequency;
+	*((uint32_t *) icp.hw_map.rtc1_bgload) = frequency;
+	*((uint32_t *) icp.hw_map.rtc1_ctl) = ICP_RTC_CTL_VALUE;
 	icp_irqc_unmask(ICP_TIMER_IRQ);
 }
 
 static irq_ownership_t icp_timer_claim(irq_t *irq)
 {
 	if (icp.hw_map.rtc1_intrstat) {
-		*((uint32_t*) icp.hw_map.rtc1_intrclr) = 1;
+		*((uint32_t *) icp.hw_map.rtc1_intrclr) = 1;
 		return IRQ_ACCEPT;
 	} else
 		return IRQ_DECLINE;
@@ -217,7 +214,6 @@ static void icp_timer_irq_init(void)
 	irq_register(&icp.timer_irq);
 }
 
-
 /** Starts timer.
  *
  * Initiates regular timer interrupts after initializing
@@ -239,8 +235,8 @@ void icp_get_memory_extents(uintptr_t *start, size_t *size)
 	*start = 0;
 
 	if (hw_map_init_called) {
-		*size = (sdram[((*(uint32_t *)icp.hw_map.sdramcr &
-		    ICP_SDRAM_MASK) >> 2)]);
+		*size = sdram[(*(uint32_t *) icp.hw_map.sdramcr &
+		    ICP_SDRAM_MASK) >> 2];
 	} else {
 		*size = SDRAM_SIZE;
 	}
@@ -324,9 +320,9 @@ void icp_input_init(void)
 {
 
 	pl050_t *pl050 = malloc(sizeof(pl050_t), FRAME_ATOMIC);
-	pl050->status = (ioport8_t *)icp.hw_map.kbd_stat;
-	pl050->data = (ioport8_t *)icp.hw_map.kbd_data;
-	pl050->ctrl = (ioport8_t *)icp.hw_map.kbd_ctrl;
+	pl050->status = (ioport8_t *) icp.hw_map.kbd_stat;
+	pl050->data = (ioport8_t *) icp.hw_map.kbd_data;
+	pl050->ctrl = (ioport8_t *) icp.hw_map.kbd_ctrl;
 		
 	pl050_instance_t *pl050_instance = pl050_init(pl050, ICP_KBD_IRQ);
 	if (pl050_instance) {
@@ -346,8 +342,7 @@ void icp_input_init(void)
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, ICP_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
-	    ICP_KBD);
+	sysinfo_set_item_val("kbd.address.physical", NULL, ICP_KBD);
 
 #ifdef CONFIG_PL011_UART
         srln_instance_t *srln_instance = srln_init();
