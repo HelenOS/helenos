@@ -470,7 +470,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 					if (isec_ghost) {
 						/* FIXME: Ghost is currently drawn based on the bounding
 						 * rectangle of the window, which is sufficient as long
-						 * as the windows can be rotated only by 90 degrees. 
+						 * as the windows can be rotated only by 90 degrees.
 						 * For ghost to be compatible with arbitrary-angle
 						 * rotation, it should be drawn as four lines adjusted
 						 * by the transformation matrix. That would however
@@ -909,6 +909,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			window_t *win = window_create();
 			if (!win) {
 				async_answer_2(callid, ENOMEM, 0, 0);
+				fibril_mutex_unlock(&window_list_mtx);
 				return;
 			}
 			
@@ -927,6 +928,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			if (loc_service_register(name_in, &win->in_dsid) != EOK) {
 				window_destroy(win);
 				async_answer_2(callid, EINVAL, 0, 0);
+				fibril_mutex_unlock(&window_list_mtx);
 				return;
 			}
 
@@ -934,6 +936,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				loc_service_unregister(win->in_dsid);
 				window_destroy(win);
 				async_answer_2(callid, EINVAL, 0, 0);
+				fibril_mutex_unlock(&window_list_mtx);
 				return;
 			}
 
@@ -1052,7 +1055,7 @@ static void comp_mode_change(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall
 	}
 
 	/* Create surface with respect to the retrieved mode. */
-	surface_t *new_surface = surface_create(new_mode.screen_width, 
+	surface_t *new_surface = surface_create(new_mode.screen_width,
 	    new_mode.screen_height, NULL, SURFACE_FLAG_SHARED);
 	if (!new_surface) {
 		fibril_mutex_unlock(&viewport_list_mtx);

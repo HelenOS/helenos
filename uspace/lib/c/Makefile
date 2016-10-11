@@ -175,7 +175,8 @@ SOURCES = \
 TEST_SOURCES = \
 	test/main.c \
 	test/odict.c \
-	test/sprintf.c
+	test/sprintf.c \
+	test/str.c
 
 include $(USPACE_PREFIX)/Makefile.common
 

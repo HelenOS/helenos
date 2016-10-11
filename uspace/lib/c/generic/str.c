@@ -1156,7 +1156,7 @@ void str_ltrim(char *str, wchar_t ch)
 	if (pos > 0) {
 		memmove(str, &str[pos], str_sz - pos);
 		pos = str_sz - pos;
-		str[str_sz - pos] = '\0';
+		str[pos] = '\0';
 	}
 }
 
@@ -1249,7 +1249,7 @@ int stricmp(const char *a, const char *b)
 	return (tolower(a[c]) - tolower(b[c]));
 }
 
-/** Convert string to a number. 
+/** Convert string to a number.
  * Core of strtol and strtoul functions.
  *
  * @param nptr		Pointer to string.
@@ -1295,7 +1295,7 @@ _strtoul(const char *nptr, char **endptr, int base, char *sgn)
 				base = 16;
 				str += 2;
 			}
-		} 
+		}
 	}
 	
 	tmpptr = str;
@@ -1334,7 +1334,7 @@ _strtoul(const char *nptr, char **endptr, int base, char *sgn)
 	if (endptr)
 		*endptr = (char *) str;
 
-	if (nptr == str) { 
+	if (nptr == str) {
 		/*FIXME: errno = EINVAL*/
 		return 0;
 	}
@@ -1365,10 +1365,10 @@ long int strtol(const char *nptr, char **endptr, int base)
 	if (number > LONG_MAX) {
 		if ((sgn) && (number == (unsigned long) (LONG_MAX) + 1)) {
 			/* FIXME: set 0 to errno */
-			return number;		
+			return number;
 		}
 		/* FIXME: set ERANGE to errno */
-		return (sgn ? LONG_MIN : LONG_MAX);	
+		return (sgn ? LONG_MIN : LONG_MAX);
 	}
 	
 	return (sgn ? -number : number);
