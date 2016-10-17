@@ -56,12 +56,12 @@ ISL_MAIN=<<EOF
 isl_ctx_get_max_operations (isl_ctx_alloc ());
 EOF
 
-BINUTILS_VERSION="2.26"
+BINUTILS_VERSION="2.27"
 BINUTILS_RELEASE=""
 ## BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
-GCC_VERSION="6.1.0"
+GCC_VERSION="6.2.0"
 ## GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
-GDB_VERSION="7.11"
+GDB_VERSION="7.12"
 ## GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
@@ -347,9 +347,9 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "64146a0faa3b411ba774f47d41de239f"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "8fb6cb98b8459f5863328380fbf06bd1"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "f585059252836a981ea5db9a5f8ce97f"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "2869c9bf3e60ee97c74ac2a6bf4e9d68"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "9768625159663b300ae4de2f4745fcc4"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "4fa2eccb4f10442887793c04315c92a3"
 }
 
 set_target_from_platform() {
