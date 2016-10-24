@@ -93,7 +93,7 @@ check_dependency() {
 	echo "	return 0;" >> "${FNAME}.c"
 	echo "}" >> "${FNAME}.c"
 	
-	cc -c -o "${FNAME}.o" "${FNAME}.c" 2> "${FNAME}.log"
+	cc $CFLAGS -c -o "${FNAME}.o" "${FNAME}.c" 2> "${FNAME}.log"
 	RC="$?"
 	
 	if [ "$RC" -ne "0" ] ; then
