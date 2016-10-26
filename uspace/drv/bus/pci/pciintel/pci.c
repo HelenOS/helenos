@@ -62,8 +62,9 @@
 
 #define NAME "pciintel"
 
+#define CONF_ADDR_ENABLE	(1 << 31)
 #define CONF_ADDR(bus, dev, fn, reg) \
-	((1 << 31) | (bus << 16) | (dev << 11) | (fn << 8) | (reg & ~3))
+	((bus << 16) | (dev << 11) | (fn << 8) | (reg & ~3))
 
 /** Obtain PCI function soft-state from DDF function node */
 static pci_fun_t *pci_fun(ddf_fun_t *fnode)
@@ -231,14 +232,20 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 	
 	fibril_mutex_lock(&bus->conf_mutex);
 
-	pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
-
-	/*
-	 * Always read full 32-bits from the PCI conf_data_port register and
-	 * get the desired portion of it afterwards. Some architectures do not
-	 * support shorter PIO reads offset from this register.
- 	 */
-	val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
+	if (bus->conf_addr_reg) {
+		pio_write_32(bus->conf_addr_reg,
+		    host2uint32_t_le(CONF_ADDR_ENABLE | conf_addr));
+		/*
+		 * Always read full 32-bits from the PCI conf_data_port
+		 * register and get the desired portion of it afterwards. Some
+		 * architectures do not support shorter PIO reads offset from
+		 * this register.
+	 	 */
+		val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
+	} else {
+		val = uint32_t_le2host(pio_read_32(
+		    &bus->conf_space[conf_addr / sizeof(ioport32_t)]));
+	}
 
 	switch (len) {
 	case 1:
@@ -259,7 +266,7 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
 	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	pci_bus_t *bus = pci_bus_from_fun(fun);
-	uint32_t val = 0; // Prevent -Werror=maybe-uninitialized
+	uint32_t val;
 	
 	fibril_mutex_lock(&bus->conf_mutex);
 
@@ -274,8 +281,14 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
  		 * We have fewer than full 32-bits, so we need to read the
  		 * missing bits first.
  		 */
-		pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
-		val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
+		if (bus->conf_addr_reg) {
+			pio_write_32(bus->conf_addr_reg,
+			    host2uint32_t_le(CONF_ADDR_ENABLE | conf_addr));
+			val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
+		} else {
+			val = uint32_t_le2host(pio_read_32(
+			    &bus->conf_space[conf_addr / sizeof(ioport32_t)]));
+		}
 	}
 	
 	switch (len) {
@@ -292,8 +305,14 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 		break;
 	}
 
-	pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
-	pio_write_32(bus->conf_data_reg, host2uint32_t_le(val));
+	if (bus->conf_addr_reg) {
+		pio_write_32(bus->conf_addr_reg,
+		    host2uint32_t_le(CONF_ADDR_ENABLE | conf_addr));
+		pio_write_32(bus->conf_data_reg, host2uint32_t_le(val));
+	} else {
+		pio_write_32(&bus->conf_space[conf_addr / sizeof(ioport32_t)],
+		    host2uint32_t_le(val));
+	}
 	
 	fibril_mutex_unlock(&bus->conf_mutex);
 }
@@ -619,7 +638,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			
 			ddf_msg(LVL_DEBUG, "Adding new function %s.",
 			    ddf_fun_get_name(fun->fnode));
-			
+
 			pci_fun_create_match_ids(fun);
 			
 			if (ddf_fun_bind(fun->fnode) != EOK) {
@@ -687,29 +706,51 @@ static int pci_dev_add(ddf_dev_t *dnode)
 	got_res = true;
 	
 	
-	assert(hw_resources.count > 1);
-	assert(hw_resources.resources[0].type == IO_RANGE);
-	assert(hw_resources.resources[0].res.io_range.size >= 4);
+	assert(hw_resources.count >= 1);
+
+	if (hw_resources.count == 1) {
+		assert(hw_resources.resources[0].type == MEM_RANGE);
+
+		ddf_msg(LVL_DEBUG, "conf_addr_space = %" PRIx64 ".",
+		    hw_resources.resources[0].res.mem_range.address);
+
+		if (pio_enable_resource(&bus->pio_win,
+		    &hw_resources.resources[0],
+		    (void **) &bus->conf_space)) {
+			ddf_msg(LVL_ERROR,
+			    "Failed to map configuration space.");
+			rc = EADDRNOTAVAIL;
+			goto fail;
+		}
+		
+	} else {
+		assert(hw_resources.resources[0].type == IO_RANGE);
+		assert(hw_resources.resources[0].res.io_range.size >= 4);
 	
-	assert(hw_resources.resources[1].type == IO_RANGE);
-	assert(hw_resources.resources[1].res.io_range.size >= 4);
+		assert(hw_resources.resources[1].type == IO_RANGE);
+		assert(hw_resources.resources[1].res.io_range.size >= 4);
 	
-	ddf_msg(LVL_DEBUG, "conf_addr = %" PRIx64 ".",
-	    hw_resources.resources[0].res.io_range.address);
-	ddf_msg(LVL_DEBUG, "data_addr = %" PRIx64 ".",
-	    hw_resources.resources[1].res.io_range.address);
+		ddf_msg(LVL_DEBUG, "conf_addr = %" PRIx64 ".",
+		    hw_resources.resources[0].res.io_range.address);
+		ddf_msg(LVL_DEBUG, "data_addr = %" PRIx64 ".",
+		    hw_resources.resources[1].res.io_range.address);
 	
-	if (pio_enable_resource(&bus->pio_win, &hw_resources.resources[0],
-	    (void **) &bus->conf_addr_reg)) {
-		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
-		rc = EADDRNOTAVAIL;
-		goto fail;
-	}
-	if (pio_enable_resource(&bus->pio_win, &hw_resources.resources[1],
-	    (void **) &bus->conf_data_reg)) {
-		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
-		rc = EADDRNOTAVAIL;
-		goto fail;
+		if (pio_enable_resource(&bus->pio_win,
+		    &hw_resources.resources[0],
+		    (void **) &bus->conf_addr_reg)) {
+			ddf_msg(LVL_ERROR,
+			    "Failed to enable configuration ports.");
+			rc = EADDRNOTAVAIL;
+			goto fail;
+		}
+		if (pio_enable_resource(&bus->pio_win,
+		    &hw_resources.resources[1],
+		    (void **) &bus->conf_data_reg)) {
+			ddf_msg(LVL_ERROR,
+			    "Failed to enable configuration ports.");
+			rc = EADDRNOTAVAIL;
+			goto fail;
+		}
 	}
 	
 	/* Make the bus device more visible. It has no use yet. */
