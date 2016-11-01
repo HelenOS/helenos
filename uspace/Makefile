@@ -204,7 +204,9 @@ ifeq ($(UARCH),sparc64)
 ifeq ($(MACHINE),generic)
 	DIRS += \
 		drv/platform/sun4u \
-		drv/bus/pci/pciintel
+		drv/bus/pci/pciintel \
+		drv/bus/isa \
+		drv/char/ns8250
 endif
 endif
 
