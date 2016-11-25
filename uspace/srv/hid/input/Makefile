@@ -29,6 +29,8 @@
 
 USPACE_PREFIX = ../../..
 BINARY = input
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
 	layout/cz.c \
