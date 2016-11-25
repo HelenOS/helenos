@@ -93,7 +93,8 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
-			/* Noop */
+			inr = IPC_GET_ARG1(call);
+			base_virt[OBIO_IMR(inr & INO_MASK)] |= (1UL << 31);
 			async_answer_0(callid, EOK);
 			break;
 		case IRC_CLEAR_INTERRUPT:
@@ -115,14 +116,7 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
  */
 static bool obio_init(void)
 {
-	sysarg_t paddr;
-	
-	if (sysinfo_get_value("obio.base.physical", &paddr) != EOK) {
-		printf("%s: No OBIO registers found\n", NAME);
-		return false;
-	}
-	
-	base_phys = (uintptr_t) paddr;
+	base_phys = (uintptr_t) 0x1fe00000000ULL;
 	
 	int flags = AS_AREA_READ | AS_AREA_WRITE;
 	int retval = physmem_map(base_phys,
@@ -134,7 +128,7 @@ static bool obio_init(void)
 		return false;
 	}
 	
-	printf("%s: OBIO registers with base at %zu\n", NAME, base_phys);
+	printf("%s: OBIO registers with base at %lx\n", NAME, base_phys);
 	
 	async_set_fallback_port_handler(obio_connection, NULL);
 	service_register(SERVICE_IRC);
