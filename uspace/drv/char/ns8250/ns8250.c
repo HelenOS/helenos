@@ -770,7 +770,6 @@ static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
     ddf_dev_t *dev)
 {
 	ns8250_t *ns = dev_ns8250(dev);
-
 	uint8_t iir = pio_read_8(&ns->regs->iid);
 	if ((iir & NS8250_IID_CAUSE_MASK) == NS8250_IID_CAUSE_RXSTATUS) {
 		uint8_t lsr = pio_read_8(&ns->regs->lsr);
@@ -780,6 +779,7 @@ static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	ns8250_read_from_device(ns);
+	irc_disable_interrupt(ns->irq);
 }
 
 /** Register the interrupt handler for the device.
@@ -856,7 +856,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 		goto fail;
 	}
 	need_unreg_intr_handler = true;
-	
+
 	/* Enable interrupt. */
 	rc = ns8250_interrupt_enable(ns);
 	if (rc != EOK) {
