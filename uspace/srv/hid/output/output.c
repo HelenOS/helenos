@@ -37,6 +37,7 @@
 #include "port/kchar.h"
 #include "port/niagara.h"
 #include "port/ski.h"
+#include "port/chardev.h"
 #include "output.h"
 
 #define MAX_COLS  128
@@ -478,6 +479,7 @@ int main(int argc, char *argv[])
 	kchar_init();
 	niagara_init();
 	ski_init();
+	chardev_init();
 	
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
