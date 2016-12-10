@@ -400,47 +400,47 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		}
 		
 		switch (IPC_GET_IMETHOD(call)) {
-			case OUTPUT_YIELD:
-				srv_yield(callid, &call);
-				break;
-			case OUTPUT_CLAIM:
-				srv_claim(callid, &call);
-				break;
-			case OUTPUT_GET_DIMENSIONS:
-				srv_get_dimensions(callid, &call);
-				break;
-			case OUTPUT_GET_CAPS:
-				srv_get_caps(callid, &call);
-				break;
+		case OUTPUT_YIELD:
+			srv_yield(callid, &call);
+			break;
+		case OUTPUT_CLAIM:
+			srv_claim(callid, &call);
+			break;
+		case OUTPUT_GET_DIMENSIONS:
+			srv_get_dimensions(callid, &call);
+			break;
+		case OUTPUT_GET_CAPS:
+			srv_get_caps(callid, &call);
+			break;
+		
+		case OUTPUT_FRONTBUF_CREATE:
+			srv_frontbuf_create(callid, &call);
+			break;
+		case OUTPUT_FRONTBUF_DESTROY:
+			srv_frontbuf_destroy(callid, &call);
+			break;
 			
-			case OUTPUT_FRONTBUF_CREATE:
-				srv_frontbuf_create(callid, &call);
-				break;
-			case OUTPUT_FRONTBUF_DESTROY:
-				srv_frontbuf_destroy(callid, &call);
-				break;
+		case OUTPUT_CURSOR_UPDATE:
+			srv_cursor_update(callid, &call);
+			break;
+		case OUTPUT_SET_STYLE:
+			srv_set_style(callid, &call);
+			break;
+		case OUTPUT_SET_COLOR:
+			srv_set_color(callid, &call);
+			break;
+		case OUTPUT_SET_RGB_COLOR:
+			srv_set_rgb_color(callid, &call);
+			break;
+		case OUTPUT_UPDATE:
+			srv_update(callid, &call);
+			break;
+		case OUTPUT_DAMAGE:
+			srv_damage(callid, &call);
+			break;
 			
-			case OUTPUT_CURSOR_UPDATE:
-				srv_cursor_update(callid, &call);
-				break;
-			case OUTPUT_SET_STYLE:
-				srv_set_style(callid, &call);
-				break;
-			case OUTPUT_SET_COLOR:
-				srv_set_color(callid, &call);
-				break;
-			case OUTPUT_SET_RGB_COLOR:
-				srv_set_rgb_color(callid, &call);
-				break;
-			case OUTPUT_UPDATE:
-				srv_update(callid, &call);
-				break;
-			case OUTPUT_DAMAGE:
-				srv_damage(callid, &call);
-				break;
-			
-			default:
-				async_answer_0(callid, EINVAL);
+		default:
+			async_answer_0(callid, EINVAL);
 		}
 	}
 }
