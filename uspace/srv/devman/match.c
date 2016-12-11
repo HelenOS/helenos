@@ -41,6 +41,8 @@
 #include "devman.h"
 #include "match.h"
 
+#define COMMENT	'#'
+
 /** Compute compound score of driver and device.
  *
  * @param driver Match id of the driver.
@@ -144,6 +146,11 @@ bool parse_match_ids(char *buf, match_id_list_t *ids)
 		/* skip spaces */
 		if (!skip_spaces(&buf))
 			break;
+
+		if (*buf == COMMENT) {
+			skip_line(&buf);
+			continue;
+		}
 		
 		/* read score */
 		score = strtoul(buf, &buf, 10);

@@ -41,6 +41,7 @@ extern char *get_abs_path(const char *, const char *, const char *);
 extern char *get_path_elem_end(char *);
 
 extern bool skip_spaces(char **);
+extern void skip_line(char **);
 extern size_t get_nonspace_len(const char *);
 extern void replace_char(char *, char, char);
 

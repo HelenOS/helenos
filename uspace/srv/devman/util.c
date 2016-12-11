@@ -72,6 +72,12 @@ bool skip_spaces(char **buf)
 	return *buf != 0;
 }
 
+void skip_line(char **buf)
+{
+	while (**buf && **buf != '\n')
+		(*buf)++;
+}
+
 size_t get_nonspace_len(const char *str)
 {
 	size_t len = 0;
