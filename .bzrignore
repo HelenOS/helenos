@@ -6,6 +6,7 @@
 *.la
 *.so.*
 Makefile.depend
+Makefile.ag.depend
 Makefile.common
 Makefile.config
 cscope.out
@@ -79,6 +80,7 @@ uspace/app/tetris/tetris
 uspace/app/top/top
 uspace/app/trace/trace
 uspace/app/usbinfo/usbinfo
+uspace/app/vcalc/vcalc
 uspace/app/vdemo/vdemo
 uspace/app/vlaunch/images.c
 uspace/app/vlaunch/images.h
@@ -140,6 +142,7 @@ uspace/dist/app/tetris
 uspace/dist/app/top
 uspace/dist/app/trace
 uspace/dist/app/usbinfo
+uspace/dist/app/vcalc
 uspace/dist/app/vdemo
 uspace/dist/app/vlaunch
 uspace/dist/app/vterm
@@ -180,6 +183,7 @@ uspace/dist/drv/usbmast/
 uspace/dist/drv/usbmid/
 uspace/dist/drv/vhc/
 uspace/dist/drv/xtkbd/
+uspace/dist/drv/atkbd/
 uspace/dist/srv/apic
 uspace/dist/srv/cdfs
 uspace/dist/srv/clipboard
@@ -232,6 +236,7 @@ uspace/drv/char/i8042/i8042
 uspace/drv/char/ns8250/ns8250
 uspace/drv/char/ps2mouse/ps2mouse
 uspace/drv/char/xtkbd/xtkbd
+uspace/drv/char/atkbd/atkbd
 uspace/drv/fb/kfb/kfb
 uspace/drv/root/root/root
 uspace/drv/root/virt/virt
@@ -335,6 +340,7 @@ kernel/arch/amd64/include/arch/context_struct.h
 kernel/arch/amd64/include/arch/istate_struct.h
 kernel/arch/ia32/include/arch/context_struct.h
 kernel/arch/ia32/include/arch/istate_struct.h
+kernel/arch/ia32/include/arch/boot/memmap_struct.h
 kernel/arch/ppc32/include/arch/context_struct.h
 kernel/arch/ppc32/include/arch/fpu_context_struct.h
 kernel/arch/ppc32/include/arch/istate_struct.h
@@ -345,6 +351,8 @@ kernel/arch/mips32/include/arch/fpu_context_struct.h
 kernel/arch/mips32/include/arch/istate_struct.h
 kernel/arch/ia64/include/arch/context_struct.h
 kernel/arch/ia64/include/arch/istate_struct.h
+kernel/genarch/include/genarch/multiboot/multiboot_info_struct.h
+kernel/genarch/include/genarch/multiboot/multiboot_memmap_struct.h
 uspace/lib/c/arch/sparc64/include/libarch/fibril_context.h
 uspace/lib/c/arch/sparc64/include/libarch/istate_struct.h
 uspace/lib/c/arch/amd64/include/libarch/fibril_context.h
