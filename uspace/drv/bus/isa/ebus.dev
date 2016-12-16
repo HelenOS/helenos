@@ -1,0 +1,4 @@
+com1:
+	match 100 isa/ns8250
+	irq 2027
+	io_range 3f8 8

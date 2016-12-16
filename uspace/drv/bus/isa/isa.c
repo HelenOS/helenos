@@ -65,15 +65,20 @@
 #include <device/hw_res.h>
 #include <device/pio_window.h>
 
+#include <pci_dev_iface.h>
+
 #include "i8237.h"
 
 #define NAME "isa"
-#define CHILD_FUN_CONF_PATH "/drv/isa/isa.dev"
+#define ISA_CHILD_FUN_CONF_PATH "/drv/isa/isa.dev"
+#define EBUS_CHILD_FUN_CONF_PATH "/drv/isa/ebus.dev"
 
 #define ISA_MAX_HW_RES 5
 
 typedef struct {
 	fibril_mutex_t mutex;
+	uint16_t vendor_id;
+	uint16_t device_id;
 	ddf_dev_t *dev;
 	ddf_fun_t *fctl;
 	pio_window_t pio_win;
@@ -592,7 +597,18 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 
 static void isa_functions_add(isa_bus_t *isa)
 {
-	char *conf = fun_conf_read(CHILD_FUN_CONF_PATH);
+#define VENDOR_ID_SUN	0x108e
+#define DEVICE_ID_EBUS	0x1000
+	bool ebus = ((isa->vendor_id == VENDOR_ID_SUN) &&
+	    (isa->device_id == DEVICE_ID_EBUS));
+
+	const char *conf_path;
+	if (ebus)
+		conf_path = EBUS_CHILD_FUN_CONF_PATH; 
+	else
+		conf_path = ISA_CHILD_FUN_CONF_PATH;
+
+	char *conf = fun_conf_read(conf_path);
 	while (conf != NULL && *conf != '\0') {
 		conf = isa_fun_read_info(conf, isa);
 	}
@@ -622,6 +638,13 @@ static int isa_dev_add(ddf_dev_t *dev)
 		return ENOENT;
 	}
 
+	rc = pci_config_space_read_16(sess, PCI_VENDOR_ID, &isa->vendor_id);
+	if (rc != EOK)
+		return rc;
+	rc = pci_config_space_read_16(sess, PCI_DEVICE_ID, &isa->device_id);
+	if (rc != EOK)
+		return rc;
+	
 	rc = pio_window_get(sess, &isa->pio_win);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "isa_dev_add failed to get PIO window "
