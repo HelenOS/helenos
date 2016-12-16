@@ -111,12 +111,6 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 	pci->reg = (uint64_t *) km_map(paddr, reg[SABRE_INTERNAL_REG].size,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 
-	/*
-	 * Set sysinfo data needed by the uspace OBIO driver.
-	 */
-	sysinfo_set_item_val("obio.base.physical", NULL, paddr);
-	sysinfo_set_item_val("kbd.cir.obio", NULL, 1);
-
 	return pci;
 }
 
@@ -158,12 +152,6 @@ pci_t *pci_psycho_init(ofw_tree_node_t *node)
 	pci->op = &pci_psycho_ops;
 	pci->reg = (uint64_t *) km_map(paddr, reg[PSYCHO_INTERNAL_REG].size,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
-
-	/*
-	 * Set sysinfo data needed by the uspace OBIO driver.
-	 */
-	sysinfo_set_item_val("obio.base.physical", NULL, paddr);
-	sysinfo_set_item_val("kbd.cir.obio", NULL, 1);
 
 	return pci;
 }

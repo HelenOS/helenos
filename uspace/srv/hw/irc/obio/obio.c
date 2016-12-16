@@ -44,7 +44,6 @@
 #include <ipc/services.h>
 #include <ipc/irc.h>
 #include <ns.h>
-#include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
 #include <align.h>
@@ -111,8 +110,7 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 /** Initialize the OBIO driver.
  *
- * So far, the driver heavily depends on information provided by the kernel via
- * sysinfo. In the future, there should be a standalone OBIO driver.
+ * In the future, the OBIO driver should be integrated with the sun4u platform driver.
  */
 static bool obio_init(void)
 {
