@@ -77,8 +77,10 @@
 
 typedef struct {
 	fibril_mutex_t mutex;
-	uint16_t vendor_id;
-	uint16_t device_id;
+	uint16_t pci_vendor_id;
+	uint16_t pci_device_id;
+	uint8_t pci_class;
+	uint8_t pci_subclass;
 	ddf_dev_t *dev;
 	ddf_fun_t *fctl;
 	pio_window_t pio_win;
@@ -597,16 +599,21 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 
 static void isa_functions_add(isa_bus_t *isa)
 {
+#define BASE_CLASS_BRIDGE	0x06
+#define SUB_CLASS_BRIDGE_ISA	0x01
+	bool isa_bridge = ((isa->pci_class == BASE_CLASS_BRIDGE) &&
+	    (isa->pci_subclass == SUB_CLASS_BRIDGE_ISA));
+
 #define VENDOR_ID_SUN	0x108e
 #define DEVICE_ID_EBUS	0x1000
-	bool ebus = ((isa->vendor_id == VENDOR_ID_SUN) &&
-	    (isa->device_id == DEVICE_ID_EBUS));
+	bool ebus = ((isa->pci_vendor_id == VENDOR_ID_SUN) &&
+	    (isa->pci_device_id == DEVICE_ID_EBUS));
 
-	const char *conf_path;
-	if (ebus)
-		conf_path = EBUS_CHILD_FUN_CONF_PATH; 
-	else
+	const char *conf_path = NULL;
+	if (isa_bridge)
 		conf_path = ISA_CHILD_FUN_CONF_PATH;
+	else if (ebus)
+		conf_path = EBUS_CHILD_FUN_CONF_PATH;
 
 	char *conf = fun_conf_read(conf_path);
 	while (conf != NULL && *conf != '\0') {
@@ -638,10 +645,16 @@ static int isa_dev_add(ddf_dev_t *dev)
 		return ENOENT;
 	}
 
-	rc = pci_config_space_read_16(sess, PCI_VENDOR_ID, &isa->vendor_id);
+	rc = pci_config_space_read_16(sess, PCI_VENDOR_ID, &isa->pci_vendor_id);
 	if (rc != EOK)
 		return rc;
-	rc = pci_config_space_read_16(sess, PCI_DEVICE_ID, &isa->device_id);
+	rc = pci_config_space_read_16(sess, PCI_DEVICE_ID, &isa->pci_device_id);
+	if (rc != EOK)
+		return rc;
+	rc = pci_config_space_read_8(sess, PCI_BASE_CLASS, &isa->pci_class);
+	if (rc != EOK)
+		return rc;
+	rc = pci_config_space_read_8(sess, PCI_SUB_CLASS, &isa->pci_subclass);
 	if (rc != EOK)
 		return rc;
 	
