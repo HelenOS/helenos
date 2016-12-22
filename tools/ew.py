@@ -265,7 +265,8 @@ emulators = {
 			'us' : {
 				'run' : qemu_run,
 				'image' : 'image.iso',
-				'audio' : False
+				'audio' : False,
+				'console' : False,
 			},
 			'sun4v' : {
 				'run' : gem5_run,
