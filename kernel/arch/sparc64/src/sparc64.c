@@ -35,6 +35,7 @@
 #include <arch.h>
 #include <arch/arch.h>
 #include <mm/slab.h>
+#include <sysinfo/sysinfo.h>
 #include <config.h>
 #include <arch/proc/thread.h>
 #include <arch/trap/regwin.h>
@@ -88,6 +89,17 @@ void sparc64_pre_smp_init(void)
 void sparc64_post_smp_init(void)
 {
 	SPARC64_ARCH_OP(post_smp_init);
+
+	ofw_tree_node_t *options = ofw_tree_lookup("/options");
+	if (options) {
+		ofw_tree_property_t *prop;
+		
+		prop = ofw_tree_getprop(options, "boot-args");
+		if (prop && prop->value) {
+			sysinfo_set_item_data("boot_args", NULL, prop->value,
+			    prop->size);
+		}
+	}
 }
 
 /** @}
