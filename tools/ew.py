@@ -94,7 +94,7 @@ def platform_to_qemu_options(platform, machine):
 	elif platform == 'ppc32':
 		return 'system-ppc', '-m 256'
 	elif platform == 'sparc64':
-		return 'system-sparc64', ''
+		return 'system-sparc64', '--prom-env boot-args="console=devices/\\hw\\pci0\\00:03.0\\com1\\a"'
 
 def hdisk_mk():
 	if not os.path.exists('hdisk.img'):
