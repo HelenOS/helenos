@@ -156,6 +156,14 @@ int chardev_init(void)
 		}
 	}
 
+	if (!console) {
+		/*
+		 * The user specified some boot arguments, but the serial
+		 * console service was not among them.
+		 */
+		return EOK;
+	}
+
 	rc = loc_category_get_id("serial", &serial_cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed to get \"serial\" category ID.\n", NAME);
