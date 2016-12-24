@@ -94,6 +94,9 @@ static client_t *active_client = NULL;
 /** Kernel override */
 static bool active = true;
 
+/** Serial console specified by the user */
+static char *serial_console;
+
 /** List of keyboard devices */
 static list_t kbd_devs;
 
@@ -579,32 +582,41 @@ static int serial_consumer(void *arg)
  */
 static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 {
+	bool match = false;
+
 	serial_dev_t *sdev = serial_dev_new();
 	if (sdev == NULL)
 		return -1;
 	
 	sdev->kdev->svc_id = service_id;
-	sdev->kdev->port_ops = NULL;
-	sdev->kdev->ctl_ops = &stty_ctl;
 	
-	sdev->sess = loc_service_connect(service_id, INTERFACE_DDF,
-	    IPC_FLAG_BLOCKING);
-
 	int rc = loc_service_get_name(service_id, &sdev->kdev->svc_name);
-	if (rc != EOK) {
-		sdev->kdev->svc_name = NULL;
+	if (rc != EOK)
 		goto fail;
-	}
 
-	/* Initialize controller driver. */
-	if ((*sdev->kdev->ctl_ops->init)(sdev->kdev) != 0) {
-		goto fail;
-	}
-	
 	list_append(&sdev->link, &serial_devs);
 
-	fid_t fid = fibril_create(serial_consumer, sdev);
-	fibril_add_ready(fid);
+	/*
+	 * Is this the device the user wants to use as a serial console?
+	 */
+	match = (serial_console != NULL) &&
+	    !str_cmp(serial_console, sdev->kdev->svc_name);
+
+	if (match) {
+		sdev->kdev->ctl_ops = &stty_ctl;
+
+		/* Initialize controller driver. */
+		if ((*sdev->kdev->ctl_ops->init)(sdev->kdev) != 0) {
+			list_remove(&sdev->link);
+			goto fail;
+		}
+
+		sdev->sess = loc_service_connect(service_id, INTERFACE_DDF,
+		    IPC_FLAG_BLOCKING);
+
+		fid_t fid = fibril_create(serial_consumer, sdev);
+		fibril_add_ready(fid);
+	}
 	
 	*sdevp = sdev;
 	return EOK;
@@ -865,6 +877,8 @@ static void usage(char *name)
 
 int main(int argc, char **argv)
 {
+	int rc;
+
 	if (argc < 2) {
 		usage(argv[0]);
 		return 1;
@@ -887,6 +901,23 @@ int main(int argc, char **argv)
 			irc_sess = service_connect_blocking(SERVICE_IRC,
 			    INTERFACE_IRC, 0);
 	}
+
+	char *boot_args;
+	size_t size;
+
+	boot_args = sysinfo_get_data("boot_args", &size);
+	if (boot_args && size) {
+		char *args = boot_args;
+		char *arg;
+#define ARG_CONSOLE	"console="
+		while ((arg = str_tok(args, " ", &args)) != NULL) {
+			if (!str_lcmp(arg, ARG_CONSOLE,
+			    str_length(ARG_CONSOLE))) {
+				serial_console = arg + str_length(ARG_CONSOLE);
+				break;
+			}
+		}
+	}
 	
 	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();
@@ -899,7 +930,7 @@ int main(int argc, char **argv)
 	async_set_client_data_destructor(client_data_destroy);
 	async_set_fallback_port_handler(client_connection, NULL);
 	
-	int rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server\n", NAME);
 		return rc;
