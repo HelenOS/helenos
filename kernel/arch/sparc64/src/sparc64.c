@@ -73,6 +73,18 @@ void sparc64_post_mm_init(void)
 		/* Create slab cache for the userspace window buffers */
 		uwb_cache = slab_cache_create("uwb_cache", UWB_SIZE,
 		    UWB_ALIGNMENT, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
+
+		/* Copy boot arguments */
+		ofw_tree_node_t *options = ofw_tree_lookup("/options");
+		if (options) {
+			ofw_tree_property_t *prop;
+		
+			prop = ofw_tree_getprop(options, "boot-args");
+			if (prop && prop->value) {
+				str_ncpy(bargs, CONFIG_BOOT_ARGUMENTS_BUFLEN,
+				    prop->value, prop->size);
+			}
+		}
 	}
 }
 
@@ -89,17 +101,6 @@ void sparc64_pre_smp_init(void)
 void sparc64_post_smp_init(void)
 {
 	SPARC64_ARCH_OP(post_smp_init);
-
-	ofw_tree_node_t *options = ofw_tree_lookup("/options");
-	if (options) {
-		ofw_tree_property_t *prop;
-		
-		prop = ofw_tree_getprop(options, "boot-args");
-		if (prop && prop->value) {
-			sysinfo_set_item_data("boot_args", NULL, prop->value,
-			    prop->size);
-		}
-	}
 }
 
 /** @}
