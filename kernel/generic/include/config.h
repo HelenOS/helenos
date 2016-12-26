@@ -43,6 +43,8 @@
 
 #define STACK_SIZE_USER  (1 * 1024 * 1024)
 
+#define CONFIG_BOOT_ARGUMENTS_BUFLEN 256
+
 #define CONFIG_INIT_TASKS        32
 #define CONFIG_TASK_NAME_BUFLEN  32
 #define CONFIG_TASK_ARGUMENTS_BUFLEN 64
@@ -101,6 +103,7 @@ typedef struct {
 } config_t;
 
 extern config_t config;
+extern char bargs[];
 extern init_t init;
 extern ballocs_t ballocs;
 

@@ -116,6 +116,9 @@ config_t config = {
 	.physmem_end = 0
 };
 
+/** Boot arguments. */
+char bargs[CONFIG_BOOT_ARGUMENTS_BUFLEN] = {};
+
 /** Initial user-space tasks */
 init_t init = {
 	.cnt = 0
@@ -275,7 +278,9 @@ void main_bsp_separated_stack(void)
 	task_init();
 	thread_init();
 	futex_init();
-	
+
+	sysinfo_set_item_data("boot_args", NULL, bargs, str_size(bargs) + 1);
+
 	if (init.cnt > 0) {
 		size_t i;
 		for (i = 0; i < init.cnt; i++)
