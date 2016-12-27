@@ -64,6 +64,7 @@ GENERIC_SOURCES = \
 	generic/bd_srv.c \
 	generic/cap.c \
 	generic/clipboard.c \
+	generic/config.c \
 	generic/corecfg.c \
 	generic/devman.c \
 	generic/device/hw_res.c \

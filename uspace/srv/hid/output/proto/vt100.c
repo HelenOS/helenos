@@ -140,8 +140,7 @@ static void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
 vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
     vt100_putchar_t putchar_fn, vt100_control_puts_t control_puts_fn)
 {
-	vt100_state_t *state =
-	    malloc(sizeof(vt100_state_t));
+	vt100_state_t *state = malloc(sizeof(vt100_state_t));
 	if (state == NULL)
 		return NULL;
 	
@@ -163,7 +162,7 @@ vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
 	vt100_sgr(state, SGR_BGCOLOR + CI_WHITE);
 	state->control_puts("\033[2J");
 	state->control_puts("\033[?25l");
-	
+
 	return state;
 }
 

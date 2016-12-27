@@ -201,6 +201,13 @@ endif
 ifeq ($(UARCH),sparc64)
 	DIRS += \
 		srv/hw/irc/obio
+ifeq ($(MACHINE),generic)
+	DIRS += \
+		drv/platform/sun4u \
+		drv/bus/pci/pciintel \
+		drv/bus/isa \
+		drv/char/ns8250
+endif
 endif
 
 ifeq ($(UARCH),arm32)

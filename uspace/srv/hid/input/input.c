@@ -41,7 +41,7 @@
 #include <fibril_synch.h>
 #include <ipc/services.h>
 #include <ipc/input.h>
-#include <sysinfo.h>
+#include <config.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -53,16 +53,16 @@
 #include <io/keycode.h>
 #include <loc.h>
 #include <str_error.h>
+#include <char_dev_iface.h>
+#include <fibril.h>
 #include "layout.h"
 #include "kbd.h"
 #include "kbd_port.h"
 #include "kbd_ctl.h"
 #include "mouse.h"
 #include "mouse_proto.h"
+#include "serial.h"
 #include "input.h"
-
-bool irc_service = false;
-async_sess_t *irc_sess = NULL;
 
 #define NUM_LAYOUTS  4
 
@@ -91,11 +91,17 @@ static client_t *active_client = NULL;
 /** Kernel override */
 static bool active = true;
 
+/** Serial console specified by the user */
+static char *serial_console;
+
 /** List of keyboard devices */
 static list_t kbd_devs;
 
 /** List of mouse devices */
 static list_t mouse_devs;
+
+/** List of serial devices */
+static list_t serial_devs;
 
 static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
 
@@ -394,7 +400,7 @@ static mouse_dev_t *mouse_dev_new(void)
 {
 	mouse_dev_t *mdev = calloc(1, sizeof(mouse_dev_t));
 	if (mdev == NULL) {
-		printf("%s: Error allocating keyboard device. "
+		printf("%s: Error allocating mouse device. "
 		    "Out of memory.\n", NAME);
 		return NULL;
 	}
@@ -402,6 +408,26 @@ static mouse_dev_t *mouse_dev_new(void)
 	link_initialize(&mdev->link);
 	
 	return mdev;
+}
+
+static serial_dev_t *serial_dev_new(void)
+{
+	serial_dev_t *sdev = calloc(1, sizeof(serial_dev_t));
+	if (sdev == NULL) {
+		printf("%s: Error allocating serial device. "
+		    "Out of memory.\n", NAME);
+		return NULL;
+	}
+	
+	sdev->kdev = kbd_dev_new();
+	if (sdev->kdev == NULL) {
+		free(sdev);
+		return NULL;
+	}
+
+	link_initialize(&sdev->link);
+	
+	return sdev;
 }
 
 /** Add new legacy keyboard device. */
@@ -532,6 +558,75 @@ fail:
 	return -1;
 }
 
+static int serial_consumer(void *arg)
+{
+	serial_dev_t *sdev = (serial_dev_t *) arg;
+
+	while (true) {
+		uint8_t data;
+
+		char_dev_read(sdev->sess, &data, sizeof(data));
+		kbd_push_data(sdev->kdev, data);
+	}
+
+	return EOK;
+}
+
+/** Add new serial console device.
+ *
+ * @param service_id Service ID of the chardev device
+ *
+ */
+static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
+{
+	bool match = false;
+
+	serial_dev_t *sdev = serial_dev_new();
+	if (sdev == NULL)
+		return -1;
+	
+	sdev->kdev->svc_id = service_id;
+	
+	int rc = loc_service_get_name(service_id, &sdev->kdev->svc_name);
+	if (rc != EOK)
+		goto fail;
+
+	list_append(&sdev->link, &serial_devs);
+
+	/*
+	 * Is this the device the user wants to use as a serial console?
+	 */
+	match = (serial_console != NULL) &&
+	    !str_cmp(serial_console, sdev->kdev->svc_name);
+
+	if (match) {
+		sdev->kdev->ctl_ops = &stty_ctl;
+
+		/* Initialize controller driver. */
+		if ((*sdev->kdev->ctl_ops->init)(sdev->kdev) != 0) {
+			list_remove(&sdev->link);
+			goto fail;
+		}
+
+		sdev->sess = loc_service_connect(service_id, INTERFACE_DDF,
+		    IPC_FLAG_BLOCKING);
+
+		fid_t fid = fibril_create(serial_consumer, sdev);
+		fibril_add_ready(fid);
+	}
+	
+	*sdevp = sdev;
+	return EOK;
+	
+fail:
+	if (sdev->kdev->svc_name != NULL)
+		free(sdev->kdev->svc_name);
+	free(sdev->kdev);
+	free(sdev);
+	return -1;
+}
+
+
 /** Add legacy drivers/devices. */
 static void kbd_add_legacy_devs(void)
 {
@@ -553,9 +648,6 @@ static void kbd_add_legacy_devs(void)
 #endif
 #if defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
 	kbd_add_dev(&niagara_port, &stty_ctl);
-#endif
-#if defined(UARCH_sparc64) && defined(MACHINE_generic)
-	kbd_add_dev(&ns16550_port, &sun_ctl);
 #endif
 	/* Silence warning on abs32le about kbd_add_dev() being unused */
 	(void) kbd_add_dev;
@@ -677,22 +769,81 @@ static int dev_check_new_mousedevs(void)
 	return EOK;
 }
 
+static int dev_check_new_serialdevs(void)
+{
+	category_id_t serial_cat;
+	service_id_t *svcs;
+	size_t count, i;
+	bool already_known;
+	int rc;
+	
+	rc = loc_category_get_id("serial", &serial_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category 'serial'.\n", NAME);
+		return ENOENT;
+	}
+	
+	/*
+	 * Check for new serial devices
+	 */
+	rc = loc_category_get_svcs(serial_cat, &svcs, &count);
+	if (rc != EOK) {
+		printf("%s: Failed getting list of serial devices.\n",
+		    NAME);
+		return EIO;
+	}
+
+	for (i = 0; i < count; i++) {
+		already_known = false;
+		
+		/* Determine whether we already know this device. */
+		list_foreach(serial_devs, link, serial_dev_t, sdev) {
+			if (sdev->kdev->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+		
+		if (!already_known) {
+			serial_dev_t *sdev;
+			if (serial_add_srldev(svcs[i], &sdev) == EOK) {
+				printf("%s: Connected serial device '%s'\n",
+				    NAME, sdev->kdev->svc_name);
+			}
+		}
+	}
+	
+	free(svcs);
+	
+	/* XXX Handle device removal */
+	
+	return EOK;
+}
+
 static int dev_check_new(void)
 {
 	int rc;
 	
 	fibril_mutex_lock(&discovery_lock);
 	
-	rc = dev_check_new_kbdevs();
-	if (rc != EOK) {
-		fibril_mutex_unlock(&discovery_lock);
-		return rc;
-	}
+	if (!serial_console) {
+		rc = dev_check_new_kbdevs();
+		if (rc != EOK) {
+			fibril_mutex_unlock(&discovery_lock);
+			return rc;
+		}
 	
-	rc = dev_check_new_mousedevs();
-	if (rc != EOK) {
-		fibril_mutex_unlock(&discovery_lock);
-		return rc;
+		rc = dev_check_new_mousedevs();
+		if (rc != EOK) {
+			fibril_mutex_unlock(&discovery_lock);
+			return rc;
+		}
+	} else {
+		rc = dev_check_new_serialdevs();
+		if (rc != EOK) {
+			fibril_mutex_unlock(&discovery_lock);
+			return rc;
+		}
 	}
 	
 	fibril_mutex_unlock(&discovery_lock);
@@ -725,6 +876,8 @@ static void usage(char *name)
 
 int main(int argc, char **argv)
 {
+	int rc;
+
 	if (argc < 2) {
 		usage(argv[0]);
 		return 1;
@@ -732,20 +885,12 @@ int main(int argc, char **argv)
 	
 	printf("%s: HelenOS input service\n", NAME);
 	
-	sysarg_t obio;
-	
 	list_initialize(&clients);
 	list_initialize(&kbd_devs);
 	list_initialize(&mouse_devs);
+	list_initialize(&serial_devs);
 	
-	if ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio))
-		irc_service = true;
-	
-	if (irc_service) {
-		while (irc_sess == NULL)
-			irc_sess = service_connect_blocking(SERVICE_IRC,
-			    INTERFACE_IRC, 0);
-	}
+	serial_console = config_get_value("console");
 	
 	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();
@@ -758,7 +903,7 @@ int main(int argc, char **argv)
 	async_set_client_data_destructor(client_data_destroy);
 	async_set_fallback_port_handler(client_connection, NULL);
 	
-	int rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server\n", NAME);
 		return rc;

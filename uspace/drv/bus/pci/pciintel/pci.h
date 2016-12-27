@@ -46,6 +46,7 @@ typedef struct pciintel_bus {
 	ddf_dev_t *dnode;
 	ioport32_t *conf_addr_reg;
 	ioport32_t *conf_data_reg;
+	ioport32_t *conf_space;
 	pio_window_t pio_win;
 	fibril_mutex_t conf_mutex;
 } pci_bus_t;

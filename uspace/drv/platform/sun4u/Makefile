@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Lenka Trochtova
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,18 +27,11 @@
 #
 
 USPACE_PREFIX = ../../..
-BINARY = output
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = sun4u
 
 SOURCES = \
-	ctl/serial.c \
-	port/ega.c \
-	port/kchar.c \
-	port/niagara.c \
-	port/ski.c \
-	port/chardev.c \
-	proto/vt100.c \
-	output.c
+	sun4u.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -162,7 +162,7 @@ typedef struct ns8250 {
 	/** The irq assigned to this device. */
 	int irq;
 	/** The base i/o address of the devices registers. */
-	uint32_t io_addr;
+	uintptr_t io_addr;
 	/** The i/o port used to access the serial ports registers. */
 	ioport8_t *port;
 	/** The buffer for incoming data. */
@@ -329,9 +329,9 @@ static bool ns8250_pio_enable(ns8250_t *ns)
 	ddf_msg(LVL_DEBUG, "ns8250_pio_enable %s", ddf_dev_get_name(ns->dev));
 	
 	/* Gain control over port's registers. */
-	if (pio_enable((void *)(uintptr_t) ns->io_addr, REG_COUNT,
+	if (pio_enable((void *) ns->io_addr, REG_COUNT,
 	    (void **) &ns->port)) {
-		ddf_msg(LVL_ERROR, "Cannot map the port %#" PRIx32
+		ddf_msg(LVL_ERROR, "Cannot map the port %#" PRIxn
 		    " for device %s.", ns->io_addr, ddf_dev_get_name(ns->dev));
 		return false;
 	}
@@ -431,7 +431,7 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 			}
 			ioport = true;
 			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address = "
-			    "0x%x.", ddf_dev_get_name(ns->dev), ns->io_addr);
+			    "0x%#" PRIxn ".", ddf_dev_get_name(ns->dev), ns->io_addr);
     			break;
 			
 		default:
@@ -770,7 +770,6 @@ static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
     ddf_dev_t *dev)
 {
 	ns8250_t *ns = dev_ns8250(dev);
-
 	uint8_t iir = pio_read_8(&ns->regs->iid);
 	if ((iir & NS8250_IID_CAUSE_MASK) == NS8250_IID_CAUSE_RXSTATUS) {
 		uint8_t lsr = pio_read_8(&ns->regs->lsr);
@@ -780,6 +779,7 @@ static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	ns8250_read_from_device(ns);
+	irc_disable_interrupt(ns->irq);
 }
 
 /** Register the interrupt handler for the device.
@@ -856,7 +856,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 		goto fail;
 	}
 	need_unreg_intr_handler = true;
-	
+
 	/* Enable interrupt. */
 	rc = ns8250_interrupt_enable(ns);
 	if (rc != EOK) {

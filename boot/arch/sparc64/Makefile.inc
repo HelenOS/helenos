@@ -38,6 +38,15 @@ BITS = 64
 ENDIANESS = BE
 EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu -mcmodel=medlow
 
+RD_DRVS_ESSENTIAL += \
+	platform/sun4u \
+	bus/pci/pciintel \
+	bus/isa \
+	char/ns8250
+
+RD_DRV_CFG += \
+	bus/isa
+
 RD_SRVS_NON_ESSENTIAL +=
 
 RD_SRVS_ESSENTIAL += \

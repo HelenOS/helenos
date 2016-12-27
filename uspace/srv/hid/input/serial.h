@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup devman
+/** @addtogroup inputgen generic
+ * @brief Serial device handling.
+ * @ingroup input
  * @{
  */
+/** @file
+ */
 
-#ifndef DEVMAN_UTIL_H_
-#define DEVMAN_UTIL_H_
+#ifndef SERIAL_H_
+#define SERIAL_H_
 
-#include <ctype.h>
-#include <str.h>
-#include <malloc.h>
+#include <async.h>
+#include "kbd.h"
 
-extern char *get_abs_path(const char *, const char *, const char *);
-extern char *get_path_elem_end(char *);
-
-extern bool skip_spaces(char **);
-extern void skip_line(char **);
-extern size_t get_nonspace_len(const char *);
-extern void replace_char(char *, char, char);
+typedef struct serial_dev {
+	kbd_dev_t *kdev;
+	link_t link;
+	async_sess_t *sess;
+} serial_dev_t;
 
 #endif
 
-/** @}
+/**
+ * @}
  */

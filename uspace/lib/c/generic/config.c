@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2016 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup devman
- * @{
- */
-
-#ifndef DEVMAN_UTIL_H_
-#define DEVMAN_UTIL_H_
-
-#include <ctype.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <config.h>
+#include <sysinfo.h>
 #include <str.h>
-#include <malloc.h>
 
-extern char *get_abs_path(const char *, const char *, const char *);
-extern char *get_path_elem_end(char *);
+bool config_key_exists(const char *key)
+{
+	char *value;
+	bool exists;
 
-extern bool skip_spaces(char **);
-extern void skip_line(char **);
-extern size_t get_nonspace_len(const char *);
-extern void replace_char(char *, char, char);
+	value = config_get_value(key);
+	exists = (value != NULL);
+	free(value);
 
-#endif
+	return exists;
+}
+
+char *config_get_value(const char *key)
+{
+	char *value = NULL;
+	char *boot_args;
+	size_t size;
+
+	boot_args = sysinfo_get_data("boot_args", &size);
+	if (!boot_args || !size) {
+		/*
+		 * No boot arguments, no value.
+		 */
+		return NULL;
+	}
+
+	char *args = boot_args;
+	char *arg;
+	while ((arg = str_tok(args, " ", &args)) != NULL) {
+		arg = str_tok(arg, "=", &value);
+		if (arg && !str_lcmp(arg, key, str_length(key)))
+			break;
+		else
+			value = NULL;
+	}
+
+	if (value)
+		value = str_dup(value);
+
+	free(boot_args);
+
+	return value;
+}
 
 /** @}
  */

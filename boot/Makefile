@@ -112,7 +112,7 @@ endif
 	for file in $(RD_DRV_CFG) ; do \
 		file_dir="`dirname "$$file"`" ; \
 		file_name="`basename "$$file"`" ; \
-		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file_dir/$$file_name/$$file_name.dev" "$(DIST_PATH)/$(DRVS_PATH)/$$file_name/" ; \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file_dir/$$file_name/"*".dev" "$(DIST_PATH)/$(DRVS_PATH)/$$file_name/" ; \
 	done
 	for file in $(RD_DRVS_FW) ; do \
 		file_dir="`dirname "$$file"`" ; \

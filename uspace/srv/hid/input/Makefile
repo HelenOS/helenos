@@ -29,6 +29,8 @@
 
 USPACE_PREFIX = ../../..
 BINARY = input
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
 	layout/cz.c \
@@ -40,7 +42,6 @@ SOURCES = \
 	port/chardev.c \
 	port/msim.c \
 	port/niagara.c \
-	port/ns16550.c \
 	port/ski.c \
 	proto/adb.c \
 	proto/mousedev.c \

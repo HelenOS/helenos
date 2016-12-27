@@ -99,6 +99,27 @@ void multiboot_extract_argument(char *buf, size_t size, const char *cmd_line)
 	str_ncpy(buf, size, start, (size_t) (end - start));
 }
 
+static void multiboot_cmdline(char *cmdline)
+{
+	/*
+	 * GRUB passes the command line in an escaped form.
+	 */
+	for (size_t i = 0, j = 0;
+	    cmdline[i] && j < CONFIG_BOOT_ARGUMENTS_BUFLEN;
+	    i++, j++) {
+		if (cmdline[i] == '\\') {
+			switch (cmdline[i + 1]) {
+			case '\\':
+			case '\'':
+			case '\"':
+				i++;
+				break;
+			}
+		}
+		bargs[j] = cmdline[i];
+	} 
+}
+
 static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
 {
 	for (uint32_t i = 0; i < count; i++) {
@@ -152,7 +173,11 @@ void multiboot_info_parse(uint32_t signature, const multiboot_info_t *info)
 {
 	if (signature != MULTIBOOT_LOADER_MAGIC)
 		return;
-	
+
+	/* Copy command line. */
+	if ((info->flags & MULTIBOOT_INFO_FLAGS_CMDLINE) != 0)
+		multiboot_cmdline((char *) MULTIBOOT_PTR(info->cmd_line));
+
 	/* Copy modules information. */
 	if ((info->flags & MULTIBOOT_INFO_FLAGS_MODS) != 0)
 		multiboot_modules(info->mods_count,
