@@ -66,7 +66,7 @@ static void chardev_control_puts(const char *str)
 /*
  * This callback scans all the services in the 'serial' category, hoping to see
  * the single one the user wishes to use as a serial console. If it spots it, it
- * connects to it and registers it as an output device. Then it ublocks the
+ * connects to it and registers it as an output device. Then it unblocks the
  * fibril blocked in chardev_init().
  */
 static void check_for_dev(void)
