@@ -42,6 +42,7 @@
 #include <ipc/services.h>
 #include <ipc/input.h>
 #include <sysinfo.h>
+#include <config.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -902,22 +903,7 @@ int main(int argc, char **argv)
 			    INTERFACE_IRC, 0);
 	}
 
-	char *boot_args;
-	size_t size;
-
-	boot_args = sysinfo_get_data("boot_args", &size);
-	if (boot_args && size) {
-		char *args = boot_args;
-		char *arg;
-#define ARG_CONSOLE	"console="
-		while ((arg = str_tok(args, " ", &args)) != NULL) {
-			if (!str_lcmp(arg, ARG_CONSOLE,
-			    str_length(ARG_CONSOLE))) {
-				serial_console = arg + str_length(ARG_CONSOLE);
-				break;
-			}
-		}
-	}
+	serial_console = config_get_value("console");
 	
 	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();

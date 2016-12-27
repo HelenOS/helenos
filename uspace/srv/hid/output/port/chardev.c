@@ -38,7 +38,7 @@
 #include <loc.h>
 #include <errno.h>
 #include <str.h>
-#include <sysinfo.h>
+#include <config.h>
 #include "../ctl/serial.h"
 #include "../output.h"
 #include "chardev.h"
@@ -133,38 +133,15 @@ static void check_for_dev(void)
 
 int chardev_init(void)
 {
-	char *boot_args;
-	size_t size;
-	int rc;
-
-	boot_args = sysinfo_get_data("boot_args", &size);
-	if (!boot_args || !size) {
-		/*
-		 * Ok, there is nothing in the boot arguments. That means that
-		 * the user did not specify a serial console device.
-		 */
-		return EOK;
-	}
-
-	char *args = boot_args;
-	char *arg;
-#define ARG_CONSOLE	"console="
-	while ((arg = str_tok(args, " ", &args)) != NULL) {
-		if (!str_lcmp(arg, ARG_CONSOLE, str_length(ARG_CONSOLE))) {
-			console = arg + str_length(ARG_CONSOLE);
-			break;
-		}
-	}
-
+	console = config_get_value("console");
 	if (!console) {
 		/*
-		 * The user specified some boot arguments, but the serial
-		 * console service was not among them.
+		 * The system is not configured to use serial console.
 		 */
 		return EOK;
 	}
 
-	rc = loc_category_get_id("serial", &serial_cat_id, IPC_FLAG_BLOCKING);
+	int rc = loc_category_get_id("serial", &serial_cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed to get \"serial\" category ID.\n", NAME);
 		return rc;
