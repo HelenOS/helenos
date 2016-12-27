@@ -42,7 +42,6 @@ SOURCES = \
 	port/chardev.c \
 	port/msim.c \
 	port/niagara.c \
-	port/ns16550.c \
 	port/ski.c \
 	proto/adb.c \
 	proto/mousedev.c \
