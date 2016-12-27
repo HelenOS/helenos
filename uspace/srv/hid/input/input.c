@@ -826,22 +826,24 @@ static int dev_check_new(void)
 	
 	fibril_mutex_lock(&discovery_lock);
 	
-	rc = dev_check_new_kbdevs();
-	if (rc != EOK) {
-		fibril_mutex_unlock(&discovery_lock);
-		return rc;
-	}
+	if (!serial_console) {
+		rc = dev_check_new_kbdevs();
+		if (rc != EOK) {
+			fibril_mutex_unlock(&discovery_lock);
+			return rc;
+		}
 	
-	rc = dev_check_new_mousedevs();
-	if (rc != EOK) {
-		fibril_mutex_unlock(&discovery_lock);
-		return rc;
-	}
-
-	rc = dev_check_new_serialdevs();
-	if (rc != EOK) {
-		fibril_mutex_unlock(&discovery_lock);
-		return rc;
+		rc = dev_check_new_mousedevs();
+		if (rc != EOK) {
+			fibril_mutex_unlock(&discovery_lock);
+			return rc;
+		}
+	} else {
+		rc = dev_check_new_serialdevs();
+		if (rc != EOK) {
+			fibril_mutex_unlock(&discovery_lock);
+			return rc;
+		}
 	}
 	
 	fibril_mutex_unlock(&discovery_lock);

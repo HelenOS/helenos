@@ -48,6 +48,7 @@
 #include <str.h>
 #include <loc.h>
 #include <str_error.h>
+#include <config.h>
 #include "init.h"
 
 #define ROOT_DEVICE       "bd/initrd"
@@ -305,6 +306,8 @@ static bool mount_tmpfs(void)
 
 int main(int argc, char *argv[])
 {
+	int rc;
+
 	info_print();
 	
 	if (!mount_root(STRING(RDFMT))) {
@@ -355,11 +358,13 @@ int main(int argc, char *argv[])
 	srv_start("/srv/output", HID_OUTPUT);
 	srv_start("/srv/hound");
 	
-	int rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
-	if (rc == EOK) {
-		gui_start("/app/barber", HID_COMPOSITOR_SERVER);
-		gui_start("/app/vlaunch", HID_COMPOSITOR_SERVER);
-		gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
+	if (!config_key_exists("console")) {
+		rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
+		if (rc == EOK) {
+			gui_start("/app/barber", HID_COMPOSITOR_SERVER);
+			gui_start("/app/vlaunch", HID_COMPOSITOR_SERVER);
+			gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
+		}
 	}
 	
 	rc = console(HID_INPUT, HID_OUTPUT);

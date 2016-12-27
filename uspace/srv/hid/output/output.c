@@ -33,6 +33,7 @@
 #include <as.h>
 #include <task.h>
 #include <ipc/output.h>
+#include <config.h>
 #include "port/ega.h"
 #include "port/kchar.h"
 #include "port/niagara.h"
@@ -475,11 +476,14 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 	
-	ega_init();
-	kchar_init();
-	niagara_init();
-	ski_init();
-	chardev_init();
+	if (!config_key_exists("console")) {
+		ega_init();
+		kchar_init();
+		niagara_init();
+		ski_init();
+	} else {
+		chardev_init();
+	}
 	
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
