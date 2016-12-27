@@ -41,7 +41,6 @@
 #include <fibril_synch.h>
 #include <ipc/services.h>
 #include <ipc/input.h>
-#include <sysinfo.h>
 #include <config.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -64,9 +63,6 @@
 #include "mouse_proto.h"
 #include "serial.h"
 #include "input.h"
-
-bool irc_service = false;
-async_sess_t *irc_sess = NULL;
 
 #define NUM_LAYOUTS  4
 
@@ -887,22 +883,11 @@ int main(int argc, char **argv)
 	
 	printf("%s: HelenOS input service\n", NAME);
 	
-	sysarg_t obio;
-	
 	list_initialize(&clients);
 	list_initialize(&kbd_devs);
 	list_initialize(&mouse_devs);
 	list_initialize(&serial_devs);
 	
-	if ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio))
-		irc_service = true;
-	
-	if (irc_service) {
-		while (irc_sess == NULL)
-			irc_sess = service_connect_blocking(SERVICE_IRC,
-			    INTERFACE_IRC, 0);
-	}
-
 	serial_console = config_get_value("console");
 	
 	/* Add legacy keyboard devices. */
