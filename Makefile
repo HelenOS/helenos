@@ -29,6 +29,7 @@
 # Just for this Makefile. Sub-makes will run in parallel if requested.
 .NOTPARALLEL:
 
+CCHECK = tools/sycek/ccheck
 CSCOPE = cscope
 FORMAT = clang-format
 CHECK = tools/check.sh
@@ -73,6 +74,12 @@ cscope_parts:
 
 format:
 	find abi kernel boot uspace -type f -regex '^.*\.[ch]$$' | xargs $(FORMAT) -i -sort-includes -style=file
+
+ccheck: $(CCHECK)
+	tools/ccheck.sh
+
+$(CCHECK):
+	cd tools && ./build-ccheck.sh
 
 doxy:
 	$(MAKE) -r -C doxygen
