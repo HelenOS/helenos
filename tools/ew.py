@@ -79,7 +79,7 @@ def pc_options(guest_width):
 def malta_options():
 	return '-cpu 4Kc'
 
-def platform_to_qemu_options(platform, machine):
+def platform_to_qemu_options(platform, machine, processor):
 	if platform == 'amd64':
 		return 'system-x86_64', pc_options(64)
 	elif platform == 'arm32':
@@ -94,7 +94,26 @@ def platform_to_qemu_options(platform, machine):
 	elif platform == 'ppc32':
 		return 'system-ppc', '-m 256'
 	elif platform == 'sparc64':
-		return 'system-sparc64', '--prom-env boot-args="console=devices/\\hw\\pci0\\00:03.0\\com1\\a"'
+		if machine != 'generic':
+			raise Exception
+		if processor == 'us':
+			return 'system-sparc64', '-M sun4u --prom-env boot-args="console=devices/\\hw\\pci0\\00:03.0\\com1\\a"'
+		elif processor == 'sun4v':
+			default_path = '/usr/local/opensparc/image/'
+		try:
+			if os.path.exists(default_path):
+				opensparc_bins = default_path
+			elif os.path.exists(os.environ['OPENSPARC_BINARIES']):
+				opensparc_bins = os.environ['OPENSPARC_BINARIES']
+			else:
+				raise Exception
+		except:
+			print("Cannot find OpenSPARC binary images!")
+			print("Either set OPENSPARC_BINARIES environment variable accordingly or place the images in %s." % (default_path))
+			raise Exception
+
+		return 'system-sparc64', '-M niagara -m 256 -L %s' % (opensparc_bins)
+
 
 def hdisk_mk():
 	if not os.path.exists('hdisk.img'):
@@ -147,7 +166,7 @@ def qemu_audio_options():
 
 def qemu_run(platform, machine, processor):
 	cfg = cfg_get(platform, machine, processor)
-	suffix, options = platform_to_qemu_options(platform, machine)
+	suffix, options = platform_to_qemu_options(platform, machine, processor)
 	cmd = 'qemu-' + suffix
 
 	cmdline = cmd
@@ -167,6 +186,8 @@ def qemu_run(platform, machine, processor):
 		cmdline += ' -boot d -cdrom image.iso'
 	elif cfg['image'] == 'image.boot':
 		cmdline += ' -kernel image.boot'
+	else:
+		cmdline += ' ' + cfg['image']
 
 	if ('console' in cfg.keys()) and not cfg['console']:
 		cmdline += ' -nographic'
@@ -174,6 +195,8 @@ def qemu_run(platform, machine, processor):
 		title = 'HelenOS/' + platform
 		if machine != '':
 			title += ' on ' + machine
+		if 'expect' in cfg.keys():
+			cmdline = 'expect -c \'spawn %s; expect "%s" { send "%s" } timeout exp_continue; interact\'' % (cmdline, cfg['expect']['src'], cfg['expect']['dst'])
 		run_in_console(cmdline, title)
 	else:
 		print(cmdline)
@@ -189,30 +212,6 @@ def msim_run(platform, machine, processor):
 
 def spike_run(platform, machine, processor):
 	run_in_console('spike image.boot', 'HelenOS/risvc64 on Spike')
-
-def gem5_console_thread():
-	# Wait a little bit so that gem5 can create the port
-	time.sleep(1)
-	term = os.environ['M5_PATH'] + '/gem5/util/term/m5term'
-	port = 3457
-	run_in_console('expect -c \'spawn %s %d; expect "ok " { send "boot\n" } timeout exp_continue; interact\'' % (term, port), 'HelenOS/sun4v on gem5')
-
-def gem5_run(platform, machine, processor):
-	try:
-		gem5 = os.environ['M5_PATH'] + '/gem5/build/SPARC/gem5.fast'
-		if not os.path.exists(gem5):
-			raise Exception
-	except:
-		print("Did you forget to set M5_PATH?")
-		raise
-
-	thread.start_new_thread(gem5_console_thread, ())
-
-	cmdline = gem5 + ' ' + os.environ['M5_PATH'] + '/configs/example/fs.py --disk-image=' + os.path.abspath('image.iso')
-
-	print(cmdline)
-	if not is_override('dry_run'):
-		subprocess.call(cmdline, shell = True)
 
 emulators = {
 	'amd64' : {
@@ -269,7 +268,16 @@ emulators = {
 				'console' : False,
 			},
 			'sun4v' : {
-				'run' : gem5_run,
+				'run' : qemu_run,
+				'image' : '-drive if=pflash,readonly=on,file=image.iso',
+				'audio' : False,
+				'console' : False,
+				'net' : False,
+				'usb' : False,
+				'expect' : {
+					'src' : 'ok ',
+					'dst' : 'boot\n'
+				},
 			}
 		}
 	},
