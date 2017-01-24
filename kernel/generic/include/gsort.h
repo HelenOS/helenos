@@ -38,7 +38,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef int (* sort_cmp_t)(void *, void *, void *);
+typedef int (*sort_cmp_t)(void *, void *, void *);
 
 extern bool gsort(void *, size_t, size_t, sort_cmp_t, void *);
 

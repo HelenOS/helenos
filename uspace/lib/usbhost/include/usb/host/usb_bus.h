@@ -91,7 +91,7 @@ errno_t usb_bus_register_ep(usb_bus_t *instance, endpoint_t *ep, size_t data_siz
 
 errno_t usb_bus_unregister_ep(usb_bus_t *instance, endpoint_t *ep);
 
-endpoint_t * usb_bus_find_ep(usb_bus_t *instance,
+endpoint_t *usb_bus_find_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
 
 errno_t usb_bus_add_ep(usb_bus_t *instance,

@@ -63,7 +63,7 @@ typedef struct {
 	uint8_t reserved2[4];
 	/** Buffer Descriptor List Pointer - Lower */
 	uint32_t bdpl;
-	/** Buffer Descriptor List Pointer - Upper */ 
+	/** Buffer Descriptor List Pointer - Upper */
 	uint32_t bdpu;
 } hda_sdesc_regs_t;
 

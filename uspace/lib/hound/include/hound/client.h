@@ -46,9 +46,9 @@
 typedef struct hound_context hound_context_t;
 typedef struct hound_stream hound_stream_t;
 
-hound_context_t * hound_context_create_playback(const char *name,
+hound_context_t *hound_context_create_playback(const char *name,
     pcm_format_t format, size_t bsize);
-hound_context_t * hound_context_create_capture(const char *name,
+hound_context_t *hound_context_create_capture(const char *name,
     pcm_format_t format, size_t bsize);
 void hound_context_destroy(hound_context_t *hound);
 
@@ -60,8 +60,8 @@ errno_t hound_context_get_available_targets(hound_context_t *hound,
 errno_t hound_context_get_connected_targets(hound_context_t *hound,
     char ***names, size_t *count);
 
-errno_t hound_context_connect_target(hound_context_t *hound, const char* target);
-errno_t hound_context_disconnect_target(hound_context_t *hound, const char* target);
+errno_t hound_context_connect_target(hound_context_t *hound, const char *target);
+errno_t hound_context_disconnect_target(hound_context_t *hound, const char *target);
 
 hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
     pcm_format_t format, size_t bsize);

@@ -73,11 +73,18 @@ typedef struct {
 } isdv4_state_t;
 
 typedef enum {
-	UNKNOWN, PRESS, RELEASE, PROXIMITY_IN, PROXIMITY_OUT, MOVE
+	UNKNOWN,
+	PRESS,
+	RELEASE,
+	PROXIMITY_IN,
+	PROXIMITY_OUT,
+	MOVE
 } isdv4_event_type_t;
 
 typedef enum {
-	STYLUS_TIP, STYLUS_ERASER, TOUCH
+	STYLUS_TIP,
+	STYLUS_ERASER,
+	TOUCH
 } isdv4_source_type_t;
 
 struct isdv4_event {

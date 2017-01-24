@@ -34,9 +34,9 @@
 
 #include <io/charfield.h>
 
-typedef void (* vt100_putchar_t)(wchar_t ch);
-typedef void (* vt100_control_puts_t)(const char *str);
-typedef void (* vt100_flush_t)(void);
+typedef void (*vt100_putchar_t)(wchar_t ch);
+typedef void (*vt100_control_puts_t)(const char *str);
+typedef void (*vt100_flush_t)(void);
 
 typedef struct {
 	sysarg_t cols;

@@ -57,7 +57,7 @@
  * \return Other value inherited from function usb_pipe_start_session(),
  *         usb_pipe_end_session() or usb_request_get_descriptor().
  */
-errno_t usb_hid_process_report_descriptor(usb_device_t *dev, 
+errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
     usb_hid_report_t *report, uint8_t **report_desc, size_t *report_size);
 
 #endif /* LIBUSB_HIDREPORT_H_ */

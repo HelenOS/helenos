@@ -80,7 +80,7 @@ typedef struct {
 	 * @param[out] act_size Actual size of the report descriptor returned.
 	 * @return Error code.
 	 */
-	errno_t (*get_report_descriptor)(ddf_fun_t *fun, uint8_t *desc, 
+	errno_t (*get_report_descriptor)(ddf_fun_t *fun, uint8_t *desc,
 	    size_t size, size_t *act_size);
 } usbhid_iface_t;
 

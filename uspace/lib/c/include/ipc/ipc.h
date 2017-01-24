@@ -33,7 +33,7 @@
  */
 
 #if ((defined(LIBC_ASYNC_H_)) && (!defined(LIBC_ASYNC_C_)))
-	#error Do not intermix low-level IPC interface and async framework
+#error Do not intermix low-level IPC interface and async framework
 #endif
 
 #ifndef LIBC_IPC_H_

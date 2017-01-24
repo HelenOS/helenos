@@ -124,7 +124,7 @@ struct pcut_report_ops {
 	void (*test_start)(pcut_item_t *);
 	/** Test completed. */
 	void (*test_done)(pcut_item_t *, int, const char *, const char *,
-		const char *);
+	    const char *);
 };
 
 void pcut_report_register_handler(pcut_report_ops_t *ops);
@@ -134,10 +134,10 @@ void pcut_report_suite_start(pcut_item_t *suite);
 void pcut_report_suite_done(pcut_item_t *suite);
 void pcut_report_test_start(pcut_item_t *test);
 void pcut_report_test_done(pcut_item_t *test, int outcome,
-		const char *error_message, const char *teardown_error_message,
-		const char *extra_output);
+    const char *error_message, const char *teardown_error_message,
+    const char *extra_output);
 void pcut_report_test_done_unparsed(pcut_item_t *test, int outcome,
-		const char *unparsed_output, size_t unparsed_output_size);
+    const char *unparsed_output, size_t unparsed_output_size);
 void pcut_report_done(void);
 
 /* OS-dependent functions. */

@@ -119,7 +119,7 @@ typedef struct {
 	errno_t (*get_buffer)(ddf_fun_t *, void **, size_t *);
 	errno_t (*release_buffer)(ddf_fun_t *);
 	errno_t (*set_event_session)(ddf_fun_t *, async_sess_t *);
-	async_sess_t * (*get_event_session)(ddf_fun_t *);
+	async_sess_t *(*get_event_session)(ddf_fun_t *);
 	errno_t (*start_playback)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
 	errno_t (*stop_playback)(ddf_fun_t *, bool);

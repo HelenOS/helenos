@@ -82,7 +82,7 @@
 typedef struct {
 	/** Usage page of report item. Zero when usage page can be changed. */
 	uint32_t usage_page;
-	/** Usage of report item. Zero when usage can be changed. */	
+	/** Usage of report item. Zero when usage can be changed. */
 	uint32_t usage;
 
 	/** Attribute of Collection tag in report descriptor*/
@@ -118,23 +118,23 @@ usb_hid_report_path_t *usb_hid_report_path(void);
 void usb_hid_report_path_free(usb_hid_report_path_t *path);
 
 errno_t usb_hid_report_path_set_report_id(usb_hid_report_path_t *usage_path,
-		uint8_t report_id);
+    uint8_t report_id);
 
-errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
-		int32_t usage_page, int32_t usage);
+errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path,
+    int32_t usage_page, int32_t usage);
 
 void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path);
 
 void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path);
 
-void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path, 
-		int32_t tag, int32_t data);
+void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path,
+    int32_t tag, int32_t data);
 
 int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
-		usb_hid_report_path_t *path, int flags);
+    usb_hid_report_path_t *path, int flags);
 
 usb_hid_report_path_t *usb_hid_report_path_clone(
-		usb_hid_report_path_t *usage_path);
+    usb_hid_report_path_t *usage_path);
 
 void usb_hid_print_usage_path(usb_hid_report_path_t *path);
 

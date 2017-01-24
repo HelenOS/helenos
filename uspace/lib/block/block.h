@@ -84,7 +84,7 @@ typedef struct block {
 	int write_failures;
 	/** Link for placing the block into the free block list. */
 	link_t free_link;
-	/** Link for placing the block into the block hash table. */ 
+	/** Link for placing the block into the block hash table. */
 	ht_link_t hash_link;
 	/** Buffer with the block data. */
 	void *data;

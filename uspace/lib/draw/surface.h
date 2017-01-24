@@ -59,8 +59,8 @@ extern pixelmap_t *surface_pixmap_access(surface_t *);
 extern void surface_get_resolution(surface_t *, surface_coord_t *, surface_coord_t *);
 extern void surface_get_damaged_region(surface_t *, surface_coord_t *, surface_coord_t *,
     surface_coord_t *, surface_coord_t *);
-extern void surface_add_damaged_region(surface_t *, surface_coord_t , surface_coord_t ,
-    surface_coord_t , surface_coord_t );
+extern void surface_add_damaged_region(surface_t *, surface_coord_t, surface_coord_t,
+    surface_coord_t, surface_coord_t);
 extern void surface_reset_damaged_region(surface_t *);
 
 extern void surface_put_pixel(surface_t *, surface_coord_t, surface_coord_t, pixel_t);

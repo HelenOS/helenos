@@ -40,7 +40,7 @@
 #define LIBC_SYSCALL_H_
 
 #ifndef LIBARCH_SYSCALL_GENERIC
-	#error You cannot include this file directly
+#error You cannot include this file directly
 #endif
 
 #include <abi/syscall.h>

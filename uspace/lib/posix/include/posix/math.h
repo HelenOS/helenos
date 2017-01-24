@@ -42,7 +42,7 @@
 #define POSIX_MATH_H_
 
 #ifdef __GNUC__
-	#define HUGE_VAL (__builtin_huge_val())
+#define HUGE_VAL (__builtin_huge_val())
 #endif
 
 extern double ldexp(double, int);

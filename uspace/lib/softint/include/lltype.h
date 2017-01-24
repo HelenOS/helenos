@@ -42,11 +42,11 @@
 #define WHOLE_BIT_CNT  (sizeof(int64_t) * sizeof(char))
 
 #ifdef __BE__
-	#define LO 1
-	#define HI 0
+#define LO 1
+#define HI 0
 #else
-	#define LO 0
-	#define HI 1
+#define LO 0
+#define HI 1
 #endif
 
 union lltype {

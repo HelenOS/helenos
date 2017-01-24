@@ -107,7 +107,7 @@ enum {
 	 * on answer, the recipient must set:
 	 *
 	 * - ARG1 - source user page address
-	 */ 
+	 */
 	IPC_M_PAGE_IN,
 
 	/** Receive as_area over IPC.

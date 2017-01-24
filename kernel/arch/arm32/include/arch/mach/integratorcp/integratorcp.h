@@ -76,24 +76,24 @@
 #define ICP_SDRAMCR_OFFSET		0x20
 
 typedef struct {
-        uintptr_t uart;
-        uintptr_t kbd_ctrl;
-        uintptr_t kbd_stat;
-        uintptr_t kbd_data;
-        uintptr_t kbd_intstat;
-        uintptr_t rtc;
-        uintptr_t rtc1_load;
-        uintptr_t rtc1_read;
-        uintptr_t rtc1_ctl;
-        uintptr_t rtc1_intrclr;
-        uintptr_t rtc1_intrstat;
-        uintptr_t rtc1_bgload;
-        uintptr_t irqc;
-        uintptr_t irqc_mask;
-        uintptr_t irqc_unmask;
-        uintptr_t vga;
-        uintptr_t cmcr;
-        uintptr_t sdramcr;
+	uintptr_t uart;
+	uintptr_t kbd_ctrl;
+	uintptr_t kbd_stat;
+	uintptr_t kbd_data;
+	uintptr_t kbd_intstat;
+	uintptr_t rtc;
+	uintptr_t rtc1_load;
+	uintptr_t rtc1_read;
+	uintptr_t rtc1_ctl;
+	uintptr_t rtc1_intrclr;
+	uintptr_t rtc1_intrstat;
+	uintptr_t rtc1_bgload;
+	uintptr_t irqc;
+	uintptr_t irqc_mask;
+	uintptr_t irqc_unmask;
+	uintptr_t vga;
+	uintptr_t cmcr;
+	uintptr_t sdramcr;
 } icp_hw_map_t;
 
 

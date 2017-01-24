@@ -47,7 +47,7 @@
 #define __syscall5  __syscall_slow
 #define __syscall6  __syscall_slow
 
-extern sysarg_t (* __syscall_fast_func)(const sysarg_t, const sysarg_t,
+extern sysarg_t (*__syscall_fast_func)(const sysarg_t, const sysarg_t,
     const sysarg_t, const sysarg_t, const sysarg_t, const sysarg_t,
     const syscall_t);
 

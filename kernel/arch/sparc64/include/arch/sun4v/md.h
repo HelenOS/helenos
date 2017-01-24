@@ -53,9 +53,9 @@ bool md_next_child(md_child_iter_t *it);
 md_node_t md_get_child_node(md_child_iter_t it);
 const char *md_get_node_name(md_node_t node);
 bool md_get_integer_property(md_node_t node, const char *key,
-	uint64_t *result);
+    uint64_t *result);
 bool md_get_string_property(md_node_t node, const char *key,
-	const char **result);
+    const char **result);
 bool md_next_node(md_node_t *node, const char *name);
 void md_init(void);
 

@@ -28,7 +28,7 @@
 
 /** @addtogroup libc 
  * @{
- */ 
+ */
 
 /**
  * @file

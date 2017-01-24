@@ -43,7 +43,7 @@ typedef struct uspace_arg {
 	void *uspace_stack;
 	size_t uspace_stack_size;
 	
-	void (* uspace_thread_function)(void *);
+	void (*uspace_thread_function)(void *);
 	void *uspace_thread_arg;
 	
 	struct uspace_arg *uspace_uarg;

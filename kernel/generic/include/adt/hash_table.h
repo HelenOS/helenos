@@ -83,8 +83,8 @@ typedef struct {
 #define hash_table_get_inst(item, type, member) \
 	member_to_inst((item), type, member)
 
-extern bool hash_table_create(hash_table_t *, size_t, size_t, 
-	hash_table_ops_t *);
+extern bool hash_table_create(hash_table_t *, size_t, size_t,
+    hash_table_ops_t *);
 extern void hash_table_destroy(hash_table_t *);
 
 extern bool hash_table_empty(hash_table_t *);
@@ -97,8 +97,8 @@ extern ht_link_t *hash_table_find(const hash_table_t *, void *);
 extern ht_link_t *hash_table_find_next(const hash_table_t *, ht_link_t *);
 extern size_t hash_table_remove(hash_table_t *, void *);
 extern void hash_table_remove_item(hash_table_t *, ht_link_t *);
-extern void hash_table_apply(hash_table_t *, bool (*)(ht_link_t *, void *), 
-	void *);
+extern void hash_table_apply(hash_table_t *, bool (*)(ht_link_t *, void *),
+    void *);
 
 
 #endif

@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef FAT_FAT_DIRECTORY_H_
 #define FAT_FAT_DIRECTORY_H_

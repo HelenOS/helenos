@@ -46,9 +46,9 @@
  */
 
 #if defined (US)
-	#define DCACHE_SIZE  (16 * 1024)
+#define DCACHE_SIZE  (16 * 1024)
 #elif defined (US3)
-	#define DCACHE_SIZE  (64 * 1024)
+#define DCACHE_SIZE  (64 * 1024)
 #endif
 
 #define DCACHE_LINE_SIZE  32

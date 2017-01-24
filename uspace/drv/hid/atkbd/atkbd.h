@@ -48,7 +48,7 @@ typedef struct {
 	/** Device providing keyboard connection */
 	chardev_t *chardev;
 	/** Callback connection to client */
-	async_sess_t *client_sess; 
+	async_sess_t *client_sess;
 	/** Fibril retrieving and parsing data */
 	fid_t polling_fibril;
 } at_kbd_t;

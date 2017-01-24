@@ -53,14 +53,14 @@ typedef struct {
 	/**
 	 * Device driver shall allocate any necessary internal structures
 	 * specific for a claimed visualizer. */
-	errno_t (* claim)(struct visualizer *vs);
+	errno_t (*claim)(struct visualizer *vs);
 	
 	/**
 	 * Device driver shall deallocate any necessary internal structures
 	 * specific for a claimed visualizer. Driver shall also check whether
 	 * the mode is set and if so it shall change its internal state
 	 * accordingly (e.g. deallocate frame buffers). */
-	errno_t (* yield)(struct visualizer *vs);
+	errno_t (*yield)(struct visualizer *vs);
 	
 	/**
 	 * Device driver shall first try to claim all resources required for
@@ -71,7 +71,7 @@ typedef struct {
 	 * reason). If it is convenient for the device driver (e.g. for better
 	 * optimization), the pointer to the handle_damage operation can be
 	 * changed at this point. */
-	errno_t (* change_mode)(struct visualizer *vs, vslmode_t new_mode);
+	errno_t (*change_mode)(struct visualizer *vs, vslmode_t new_mode);
 	
 	/**
 	 * Device driver shall render the cells from damaged region into its
@@ -81,20 +81,20 @@ typedef struct {
 	 * the shared backbuffer (i.e. when reading from backbuffer, the offsets
 	 * shall be added to the coordinates and if necessary the result shall be
 	 * wrapped around the edge of the backbuffer). */
-	errno_t (* handle_damage)(struct visualizer *vs,
+	errno_t (*handle_damage)(struct visualizer *vs,
 	    sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height,
-		sysarg_t x_offset, sysarg_t y_offset);
+	    sysarg_t x_offset, sysarg_t y_offset);
 	
 	/**
 	 * Upper layers of the graphic stack might report inactivity. In such
 	 * case, device driver might enable power saving mode on the device
 	 * corresponding to the visualizer. */
-	errno_t (* suspend)(struct visualizer *vs);
+	errno_t (*suspend)(struct visualizer *vs);
 	
 	/**
 	 * When upper layers detect activity on suspended visualizer, device
 	 * driver shall disable power saving mode on the corresponding device. */
-	errno_t (* wakeup)(struct visualizer *vs);
+	errno_t (*wakeup)(struct visualizer *vs);
 } visualizer_ops_t;
 
 /**

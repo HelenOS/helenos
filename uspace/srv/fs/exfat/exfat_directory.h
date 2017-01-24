@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef EXFAT_EXFAT_DIRECTORY_H_
 #define EXFAT_EXFAT_DIRECTORY_H_
@@ -65,7 +65,7 @@ extern errno_t exfat_directory_seek(exfat_directory_t *, aoff64_t);
 extern errno_t exfat_directory_get(exfat_directory_t *, exfat_dentry_t **);
 extern errno_t exfat_directory_find(exfat_directory_t *, exfat_dentry_clsf_t,
     exfat_dentry_t **);
-extern errno_t exfat_directory_find_continue(exfat_directory_t *, 
+extern errno_t exfat_directory_find_continue(exfat_directory_t *,
     exfat_dentry_clsf_t, exfat_dentry_t **);
 
 extern errno_t exfat_directory_read_file(exfat_directory_t *, char *, size_t,

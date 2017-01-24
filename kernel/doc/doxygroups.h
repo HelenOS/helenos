@@ -116,7 +116,7 @@
 	 * @defgroup arm32mm arm32	
 	 * @ingroup mm
 	 * @endcond
-	 */	 
+	 */
 	
 	/**
 	 * @cond ia32
@@ -192,7 +192,7 @@
 	 * @defgroup arm32ddi arm32
 	 * @ingroup ddi
 	 * @endcond
-	 */	 
+	 */
 
  	/**
 	 * @cond ia32
@@ -256,7 +256,7 @@
 	 * @defgroup arm32debug arm32
 	 * @ingroup debug
 	 * @endcond
-	 */	 
+	 */
 
 	/**
 	 * @cond ia32
@@ -320,7 +320,7 @@
 	 * @defgroup arm32interrupt arm32
 	 * @ingroup interrupt
 	 * @endcond
-	 */	 
+	 */
 
 	/**
 	 * @cond ia32
@@ -388,7 +388,7 @@
 	 * @defgroup arm32 arm32
 	 * @ingroup others
 	 * @endcond
-	 */	 
+	 */
 
 	/**
 	 * @cond ia32

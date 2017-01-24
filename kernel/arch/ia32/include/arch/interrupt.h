@@ -84,9 +84,9 @@
 #define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
 #define VECTOR_SMP_CALL_IPI       (IVT_FREEBASE + 3)
 
-extern void (* disable_irqs_function)(uint16_t);
-extern void (* enable_irqs_function)(uint16_t);
-extern void (* eoi_function)(void);
+extern void (*disable_irqs_function)(uint16_t);
+extern void (*enable_irqs_function)(uint16_t);
+extern void (*eoi_function)(void);
 extern const char *irqs_info;
 
 extern void interrupt_init(void);

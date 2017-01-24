@@ -38,8 +38,8 @@
 #include <_bits/NULL.h>
 
 #ifndef __locale_t_defined
-	#define __locale_t_defined
-	typedef struct __posix_locale *locale_t;
+#define __locale_t_defined
+typedef struct __posix_locale *locale_t;
 #endif
 
 #undef LC_ALL
