@@ -59,9 +59,9 @@ EOF
 BINUTILS_VERSION="2.27"
 BINUTILS_RELEASE=""
 ## BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
-GCC_VERSION="6.2.0"
+GCC_VERSION="6.3.0"
 ## GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
-GDB_VERSION="7.12"
+GDB_VERSION="7.12.1"
 ## GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
@@ -348,8 +348,8 @@ prepare() {
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "2869c9bf3e60ee97c74ac2a6bf4e9d68"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "9768625159663b300ae4de2f4745fcc4"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "4fa2eccb4f10442887793c04315c92a3"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "677a7623c7ef6ab99881bc4e048debb6"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "06c8f40521ed65fe36ebc2be29b56942"
 }
 
 set_target_from_platform() {
