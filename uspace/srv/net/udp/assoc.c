@@ -410,7 +410,7 @@ static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *epp)
 
 	rc = amap_find_match(amap, epp, &arg);
 	if (rc != EOK) {
-		assert(rc == ENOMEM);
+		assert(rc == ENOENT);
 		fibril_mutex_unlock(&assoc_list_lock);
 		return NULL;
 	}
