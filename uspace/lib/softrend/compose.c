@@ -52,33 +52,23 @@ pixel_t compose_dst(pixel_t fg, pixel_t bg)
 
 pixel_t compose_over(pixel_t fg, pixel_t bg)
 {
-	double mul;
-	double mul_cmp;
+	uint16_t mf;
+	uint16_t mb;
 
-	double res_a;
-	double res_r;
-	double res_g;
-	double res_b;
+	uint8_t res_a;
+	uint8_t res_r;
+	uint8_t res_g;
+	uint8_t res_b;
 
-	if (ALPHA(bg) == 255) {
-		res_a = 1;
-		mul = ((double) ALPHA(fg)) / 255.0;
-		mul_cmp = 1 - mul;
-	} else {
-		double fg_a = ((double) ALPHA(fg)) / 255.0;
-		double bg_a = ((double) ALPHA(bg)) / 255.0;
+	res_a = (ALPHA(fg) * 255 + (255 - ALPHA(fg)) * ALPHA(bg)) / 255;
+	mf = ALPHA(fg);
+	mb = (255 * 255 - ALPHA(fg) * ALPHA(bg)) / 255;
 
-		res_a = 1 - (1 - fg_a) * (1 - bg_a);
-		mul = fg_a / res_a;
-		mul_cmp = 1 - mul;
-	}
+	res_r = (mf * RED(fg) + mb * RED(bg)) / 255;
+	res_g = (mf * GREEN(fg) + mb * GREEN(bg)) / 255;
+	res_b = (mf * BLUE(fg) + mb * BLUE(bg)) / 255;
 
-	res_r = mul * ((double) RED(fg)) + mul_cmp * ((double) RED(bg));
-	res_g = mul * ((double) GREEN(fg)) + mul_cmp * ((double) GREEN(bg));
-	res_b = mul * ((double) BLUE(fg)) + mul_cmp * ((double) BLUE(bg));
-
-	return PIXEL((unsigned) (res_a * 255),
-	    (unsigned) res_r, (unsigned) res_g, (unsigned) res_b);
+	return PIXEL(res_a, res_r, res_g, res_b);
 }
 
 pixel_t compose_in(pixel_t fg, pixel_t bg)
