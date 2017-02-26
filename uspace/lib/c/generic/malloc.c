@@ -927,26 +927,55 @@ void *realloc(const void *addr, const size_t size)
 		
 		ptr = ((void *) head) + sizeof(heap_block_head_t);
 	} else {
-		/*
-		 * Look at the next block. If it is free and the size is
-		 * sufficient then merge the two. Otherwise just allocate
-		 * a new block, copy the original data into it and
-		 * free the original block.
-		 */
 		heap_block_head_t *next_head =
 		    (heap_block_head_t *) (((void *) head) + head->size);
+		bool have_next = ((void *) next_head < area->end);
+
+		if (((void *) head) + real_size > area->end) {
+			/*
+			 * The current area is too small to hold the resized
+			 * block. Make sure there are no used blocks standing
+			 * in our way and try to grow the area using real_size
+			 * as a safe upper bound.
+			 */
+
+			bool have_next_next;
+
+			if (have_next) {
+				have_next_next = (((void *) next_head) +
+				    next_head->size < area->end);
+			}
+			if (!have_next || (next_head->free && !have_next_next)) {
+				/*
+				 * There is no next block in this area or
+				 * it is a free block and there is no used
+				 * block following it. There can't be any
+				 * free block following it either as
+				 * two free blocks would be merged.
+				 */
+				(void) area_grow(area, real_size);
+			}
+		}
 		
-		if (((void *) next_head < area->end) &&
-		    (head->size + next_head->size >= real_size) &&
-		    (next_head->free)) {
+		/*
+		 * Look at the next block. If it is free and the size is
+		 * sufficient then merge the two. Otherwise just allocate a new
+		 * block, copy the original data into it and free the original
+		 * block.
+		 */
+
+		if (have_next && (head->size + next_head->size >= real_size) &&
+		    next_head->free) {
 			block_check(next_head);
-			block_init(head, head->size + next_head->size, false, area);
+			block_init(head, head->size + next_head->size, false,
+			    area);
 			split_mark(head, real_size);
 			
 			ptr = ((void *) head) + sizeof(heap_block_head_t);
 			next_fit = NULL;
-		} else
+		} else {
 			reloc = true;
+		}
 	}
 	
 	heap_unlock();
