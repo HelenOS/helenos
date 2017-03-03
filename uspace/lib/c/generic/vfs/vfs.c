@@ -92,6 +92,38 @@ void vfs_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
+int _vfs_walk(int parent, const char *path, int flags)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(exch, VFS_IN_WALK, parent, flags, &answer);
+	sysarg_t rc = async_data_write_start(exch, path, str_size(path));
+	vfs_exchange_end(exch);
+		
+	sysarg_t rc_orig;
+	async_wait_for(req, &rc_orig);
+
+	if (rc_orig != EOK) {
+		return (int) rc_orig;
+	}
+		
+	if (rc != EOK) {
+		return (int) rc;
+	}
+	
+	return (int) IPC_GET_ARG1(answer);
+}
+
+int _vfs_open(int fildes, int mode)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	sysarg_t rc = async_req_2_0(exch, VFS_IN_OPEN2, fildes, mode);
+	vfs_exchange_end(exch);
+	
+	return (int) rc;
+}
+
 char *vfs_absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
@@ -228,22 +260,6 @@ int vfs_mount(const char *fs_name, const char *mp, const char *fqsn,
 			return (int) rc_orig;
 	}
 	
-	/* Ask VFS whether it likes fs_name. */
-	rc = async_req_0_0(exch, VFS_IN_PING);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(mpa);
-		async_wait_for(req, &rc_orig);
-		
-		if (null_id != -1)
-			loc_null_destroy(null_id);
-		
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
-	
 	vfs_exchange_end(exch);
 	free(mpa);
 	async_wait_for(req, &rc);
@@ -288,45 +304,17 @@ int vfs_unmount(const char *mp)
 	return (int) rc;
 }
 
-/** Open file (internal).
- *
- * @param abs Absolute path to file
- * @param abs_size Size of @a abs string
- * @param lflag L_xxx flags
- * @param oflag O_xxx flags
- * @param fd Place to store new file descriptor
- *
- * @return EOK on success, non-zero error code on error
- */
-static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag,
-    int *fd)
+static int walk_flags(int oflags)
 {
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	ipc_call_t answer;
-	aid_t req = async_send_3(exch, VFS_IN_OPEN, lflag, oflag, 0, &answer);
-	sysarg_t rc = async_data_write_start(exch, abs, abs_size);
-	
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-
-		sysarg_t rc_orig;
-		async_wait_for(req, &rc_orig);
-		
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+	int flags = 0;
+	if (oflags & O_CREAT) {
+		if (oflags & O_EXCL) {
+			flags |= WALK_MUST_CREATE;
+		} else {
+			flags |= WALK_MAY_CREATE;
+		}
 	}
-	
-	vfs_exchange_end(exch);
-	async_wait_for(req, &rc);
-	
-	if (rc != EOK)
-	    return (int) rc;
-	
-	*fd = (int) IPC_GET_ARG1(answer);
-	return EOK;
+	return flags;
 }
 
 /** Open file.
@@ -340,24 +328,46 @@ static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag,
  */
 int open(const char *path, int oflag, ...)
 {
+	// FIXME: Some applications call this incorrectly.
+	if ((oflag & (O_RDONLY|O_WRONLY|O_RDWR)) == 0) {
+		oflag |= O_RDWR;
+	}
+
+	assert((((oflag & O_RDONLY) != 0) + ((oflag & O_WRONLY) != 0) + ((oflag & O_RDWR) != 0)) == 1);
+	
 	size_t abs_size;
 	char *abs = vfs_absolutize(path, &abs_size);
-	int fd = -1;
-	
-	if (abs == NULL) {
-		errno = ENOMEM;
-		return -1;
+	if (!abs) {
+		return ENOMEM;
 	}
 	
-	int rc = open_internal(abs, abs_size, L_FILE, oflag, &fd);
-	free(abs);
-	
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
+	int ret = _vfs_walk(-1, abs, walk_flags(oflag) | WALK_REGULAR);
+	if (ret < 0) {
+		return ret;
 	}
 	
-	return fd;
+	int mode =
+		((oflag & O_RDWR) ? MODE_READ|MODE_WRITE : 0) |
+		((oflag & O_RDONLY) ? MODE_READ : 0) |
+		((oflag & O_WRONLY) ? MODE_WRITE : 0) |
+		((oflag & O_APPEND) ? MODE_APPEND : 0);
+	
+	int rc = _vfs_open(ret, mode); 
+	if (rc < 0) {
+		// _vfs_put(ret);
+		close(ret);
+		return rc;
+	}
+	
+	if (oflag & O_TRUNC) {
+		assert(oflag & O_WRONLY || oflag & O_RDWR);
+		assert(!(oflag & O_APPEND));
+		
+		// _vfs_resize
+		(void) ftruncate(ret, 0);
+	}
+
+	return ret;
 }
 
 /** Close file.
@@ -669,52 +679,20 @@ int fstat(int fildes, struct stat *stat)
  */
 int stat(const char *path, struct stat *stat)
 {
-	sysarg_t rc;
-	sysarg_t rc_orig;
-	aid_t req;
-	
 	size_t pa_size;
 	char *pa = vfs_absolutize(path, &pa_size);
-	if (pa == NULL) {
-		errno = ENOMEM;
-		return -1;
+	if (!pa) {
+		return ENOMEM;
 	}
 	
-	async_exch_t *exch = vfs_exchange_begin();
+	int fd = _vfs_walk(-1, pa, 0);
+	if (fd < 0) {
+		return fd;
+	}
 	
-	req = async_send_0(exch, VFS_IN_STAT, NULL);
-	rc = async_data_write_start(exch, pa, pa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-		async_wait_for(req, &rc_orig);
-		if (rc_orig != EOK)
-			rc = rc_orig;
-		if (rc != EOK) {
-			errno = rc;
-			return -1;
-		}
-	}
-	rc = async_data_read_start(exch, stat, sizeof(struct stat));
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-		async_wait_for(req, &rc_orig);
-		if (rc_orig != EOK)
-			rc = rc_orig;
-		if (rc != EOK) {
-			errno = rc;
-			return -1;
-		}
-	}
-	vfs_exchange_end(exch);
-	free(pa);
-	async_wait_for(req, &rc);
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
-	return 0;
+	int rc = fstat(fd, stat);
+	close(fd);
+	return rc;
 }
 
 /** Open directory.
@@ -726,9 +704,7 @@ int stat(const char *path, struct stat *stat)
 DIR *opendir(const char *dirname)
 {
 	DIR *dirp = malloc(sizeof(DIR));
-	int fd = -1;
-	
-	if (dirp == NULL) {
+	if (!dirp) {
 		errno = ENOMEM;
 		return NULL;
 	}
@@ -741,16 +717,24 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 	
-	int rc = open_internal(abs, abs_size, L_DIRECTORY, 0, &fd);
+	int ret = _vfs_walk(-1, abs, WALK_DIRECTORY);
 	free(abs);
 	
-	if (rc != EOK) {
+	if (ret < EOK) {
 		free(dirp);
+		errno = ret;
+		return NULL;
+	}
+	
+	int rc = _vfs_open(ret, MODE_READ);
+	if (rc < 0) {
+		free(dirp);
+		close(ret);
 		errno = rc;
 		return NULL;
 	}
 	
-	dirp->fd = fd;
+	dirp->fd = ret;
 	return dirp;
 }
 
@@ -808,85 +792,39 @@ int closedir(DIR *dirp)
  */
 int mkdir(const char *path, mode_t mode)
 {
-	sysarg_t rc;
-	aid_t req;
-	
 	size_t pa_size;
 	char *pa = vfs_absolutize(path, &pa_size);
-	if (pa == NULL) {
-		errno = ENOMEM;
-		return -1;
+	if (!pa) {
+		return ENOMEM;
 	}
 	
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	req = async_send_1(exch, VFS_IN_MKDIR, mode, NULL);
-	rc = async_data_write_start(exch, pa, pa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-		
-		sysarg_t rc_orig;
-		async_wait_for(req, &rc_orig);
-		
-		if (rc_orig != EOK)
-			rc = rc_orig;
-		
-		if (rc != EOK) {
-			errno = rc;
-			return -1;
-		}
-		
-		return 0;
+	int ret = _vfs_walk(-1, pa, WALK_MUST_CREATE | WALK_DIRECTORY);
+	if (ret < 0) {
+		return ret;
 	}
 	
-	vfs_exchange_end(exch);
-	free(pa);
-	async_wait_for(req, &rc);
-	
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
-	
-	return 0;
+	close(ret);
+	return EOK;
 }
 
-/** Unlink a file or directory.
- *
- * @param path Path to file or empty directory
- * @param lflag L_xxx flag (L_NONE, L_FILE or L_DIRECTORY)
- * @return EOK on success, non-zero error code on error
- */
-static int _unlink(const char *path, int lflag)
+static int _vfs_unlink2(int parent, const char *path, int expect, int wflag)
 {
 	sysarg_t rc;
 	aid_t req;
 	
-	size_t pa_size;
-	char *pa = vfs_absolutize(path, &pa_size);
-	if (pa == NULL)
-		return ENOMEM;
-	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_1(exch, VFS_IN_UNLINK, lflag, NULL);
-	rc = async_data_write_start(exch, pa, pa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-
-		sysarg_t rc_orig;
-		async_wait_for(req, &rc_orig);
-
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
+	req = async_send_3(exch, VFS_IN_UNLINK2, parent, expect, wflag, NULL);
+	rc = async_data_write_start(exch, path, str_size(path));
+	
 	vfs_exchange_end(exch);
-	free(pa);
-	async_wait_for(req, &rc);
+	
+	sysarg_t rc_orig;
+	async_wait_for(req, &rc_orig);
+	
+	if (rc_orig != EOK) {
+		return (int) rc_orig;
+	}
 	return rc;
 }
 
@@ -897,15 +835,13 @@ static int _unlink(const char *path, int lflag)
  */
 int unlink(const char *path)
 {
-	int rc;
-
-	rc = _unlink(path, L_NONE);
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
+	size_t pa_size;
+	char *pa = vfs_absolutize(path, &pa_size);
+	if (!pa) {
+		return ENOMEM;
 	}
-
-	return 0;
+	
+	return _vfs_unlink2(-1, pa, -1, 0);
 }
 
 /** Remove empty directory.
@@ -915,15 +851,13 @@ int unlink(const char *path)
  */
 int rmdir(const char *path)
 {
-	int rc;
-
-	rc = _unlink(path, L_DIRECTORY);
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
+	size_t pa_size;
+	char *pa = vfs_absolutize(path, &pa_size);
+	if (!pa) {
+		return ENOMEM;
 	}
-
-	return 0;
+	
+	return _vfs_unlink2(-1, pa, -1, WALK_DIRECTORY);
 }
 
 /** Rename directory entry.
@@ -956,7 +890,7 @@ int rename(const char *old, const char *new)
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_0(exch, VFS_IN_RENAME, NULL);
+	req = async_send_1(exch, VFS_IN_RENAME, -1, NULL);
 	rc = async_data_write_start(exch, olda, olda_size);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
@@ -1017,18 +951,13 @@ int chdir(const char *path)
 {
 	size_t abs_size;
 	char *abs = vfs_absolutize(path, &abs_size);
-	int fd = -1;
+	if (!abs)
+		return ENOMEM;
 	
-	if (abs == NULL) {
-		errno = ENOMEM;
-		return -1;
-	}
-	
-	int rc = open_internal(abs, abs_size, L_DIRECTORY, O_DESC, &fd);
-	
-	if (rc != EOK) {
+	int fd = _vfs_walk(-1, abs, WALK_DIRECTORY);
+	if (fd < 0) {
 		free(abs);
-		errno = rc;
+		errno = fd;
 		return -1;
 	}
 	

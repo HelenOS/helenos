@@ -103,8 +103,11 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_UNMOUNT:
 			vfs_unmount_srv(callid, &call);
 			break;
-		case VFS_IN_OPEN:
-			vfs_open(callid, &call);
+		case VFS_IN_WALK:
+			vfs_walk(callid, &call);
+			break;
+		case VFS_IN_OPEN2:
+			vfs_open2(callid, &call);
 			break;
 		case VFS_IN_CLOSE:
 			vfs_close(callid, &call);
@@ -124,14 +127,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_FSTAT:
 			vfs_fstat(callid, &call);
 			break;
-		case VFS_IN_STAT:
-			vfs_stat(callid, &call);
-			break;
-		case VFS_IN_MKDIR:
-			vfs_mkdir(callid, &call);
-			break;
-		case VFS_IN_UNLINK:
-			vfs_unlink(callid, &call);
+		case VFS_IN_UNLINK2:
+			vfs_unlink2(callid, &call);
 			break;
 		case VFS_IN_RENAME:
 			vfs_rename(callid, &call);

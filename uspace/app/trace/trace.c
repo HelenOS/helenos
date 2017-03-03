@@ -695,8 +695,6 @@ static void main_init(void)
 	proto_init();
 
 	p = proto_new("vfs");
-	o = oper_new("open", 2, arg_def, V_INT_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_OPEN, o);
 	o = oper_new("read", 1, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_IN_READ, o);
 	o = oper_new("write", 1, arg_def, V_ERRNO, 1, resp_def);
@@ -715,16 +713,16 @@ static void main_init(void)
 	proto_add_oper(p, VFS_IN_UNMOUNT, o);*/
 	o = oper_new("sync", 1, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_SYNC, o);
-	o = oper_new("mkdir", 1, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_MKDIR, o);
-	o = oper_new("unlink", 0, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_UNLINK, o);
 	o = oper_new("rename", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_RENAME, o);
-	o = oper_new("stat", 0, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_STAT, o);
 	o = oper_new("statfs", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_STATFS, o);
+	o = oper_new("walk", 2, arg_def, V_INT_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_WALK, o);
+	o = oper_new("open2", 2, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_OPEN2, o);
+	o = oper_new("unlink2", 3, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_UNLINK2, o);
 
 	proto_register(SERVICE_VFS, p);
 }

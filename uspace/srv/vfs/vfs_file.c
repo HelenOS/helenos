@@ -176,7 +176,9 @@ static int vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 		 * Lost the last reference to a file, need to close it in the
 		 * endpoint FS and drop our reference to the underlying VFS node.
 		 */
-		rc = vfs_file_close_remote(file);
+		if (file->open_read || file->open_write) {
+			rc = vfs_file_close_remote(file);
+		}
 		vfs_node_delref(file->node);
 		free(file);
 	}
@@ -392,8 +394,13 @@ void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 	 * Inherit attributes from the donor.
 	 */
 	acceptor_file->node = donor_file->node;
-	acceptor_file->append = donor_file->append;
+	acceptor_file->permissions = donor_file->permissions;
+	
+	// TODO: The file should not inherit its open status, but clients depend on this.
 	acceptor_file->pos = donor_file->pos;
+	acceptor_file->append = donor_file->append;
+	acceptor_file->open_read = donor_file->open_read;
+	acceptor_file->open_write = donor_file->open_write;
 
 out:
 	fibril_mutex_lock(&acceptor_data->lock);

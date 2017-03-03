@@ -62,8 +62,7 @@ typedef struct {
 } vfs_info_t;
 
 typedef enum {
-	VFS_IN_OPEN = IPC_FIRST_USER_METHOD,
-	VFS_IN_READ,
+	VFS_IN_READ = IPC_FIRST_USER_METHOD,
 	VFS_IN_WRITE,
 	VFS_IN_SEEK,
 	VFS_IN_TRUNCATE,
@@ -74,14 +73,15 @@ typedef enum {
 	VFS_IN_UNMOUNT,
 	VFS_IN_SYNC,
 	VFS_IN_REGISTER,
-	VFS_IN_MKDIR,
 	VFS_IN_UNLINK,
 	VFS_IN_RENAME,
-	VFS_IN_STAT,
 	VFS_IN_DUP,
 	VFS_IN_WAIT_HANDLE,
 	VFS_IN_MTAB_GET,
-	VFS_IN_STATFS
+	VFS_IN_STATFS,
+	VFS_IN_WALK,
+	VFS_IN_OPEN2,
+	VFS_IN_UNLINK2,
 } vfs_in_request_t;
 
 typedef enum {
@@ -90,13 +90,14 @@ typedef enum {
 	VFS_OUT_WRITE,
 	VFS_OUT_TRUNCATE,
 	VFS_OUT_CLOSE,
-	VFS_OUT_MOUNT,
 	VFS_OUT_MOUNTED,
-	VFS_OUT_UNMOUNT,
 	VFS_OUT_UNMOUNTED,
+	VFS_OUT_GET_SIZE,
+	VFS_OUT_IS_EMPTY,
 	VFS_OUT_SYNC,
 	VFS_OUT_STAT,
 	VFS_OUT_LOOKUP,
+	VFS_OUT_LINK,
 	VFS_OUT_DESTROY,
 	VFS_OUT_STATFS,
 	VFS_OUT_LAST
@@ -126,10 +127,10 @@ typedef enum {
 #define L_DIRECTORY		2
 
 /**
- * Lookup will succeed only if the object is a root directory. The flag is
- * mutually exclusive with L_FILE and L_MP.
+ * Lookup will not cross any mount points.
+ * If the lookup would have to cross a mount point, it returns EXDEV instead.
  */
-#define L_ROOT			4
+#define L_DISABLE_MOUNTS	4
 
 /**
  * Lookup will succeed only if the object is a mount point. The flag is mutually
@@ -150,11 +151,6 @@ typedef enum {
 #define L_CREATE		32
 
 /**
- * L_LINK is used for linking to an already existing nodes.
- */
-#define L_LINK			64
-
-/**
  * L_UNLINK is used to remove leaves from the file system namespace. This flag
  * cannot be passed directly by the client, but will be set by VFS during
  * VFS_UNLINK.
@@ -168,6 +164,32 @@ typedef enum {
  * client.
  */
 #define L_OPEN			256
+
+/*
+ * Walk flags.
+ */
+enum {
+	/**
+	 * WALK_PARTIAL requests that if the whole path cannot be traversed,
+	 * the walk() operation should return the last visited file, along
+	 * with an indication of how many directories have been traversed.
+	 */
+	//WALK_PARTIAL = (1 << 0),
+	
+	WALK_MAY_CREATE = (1 << 1),
+	WALK_MUST_CREATE = (1 << 2),
+	
+	WALK_REGULAR = (1 << 3),
+	WALK_DIRECTORY = (1 << 4),
+	
+	WALK_ALL_FLAGS = WALK_MAY_CREATE | WALK_MUST_CREATE | WALK_REGULAR | WALK_DIRECTORY,
+};
+
+enum {
+	MODE_READ = 1,
+	MODE_WRITE = 2,
+	MODE_APPEND = 4,
+};
 
 #endif
 
