@@ -70,9 +70,7 @@ void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 		.size = page_size
 	};
 
-	fibril_mutex_lock(&file->lock);
 	file->pos = offset;
-	fibril_mutex_unlock(&file->lock);
 
 	size_t total = 0;
 	do {

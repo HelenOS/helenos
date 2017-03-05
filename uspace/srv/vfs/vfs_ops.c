@@ -499,7 +499,8 @@ void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
 	
 	vfs_node_t *node = vfs_node_get(&lr);
 	
-	int fd = vfs_fd_alloc(false);
+	vfs_file_t *file;
+	int fd = vfs_fd_alloc(&file, false);
 	if (fd < 0) {
 		vfs_node_put(node);
 		if (parent) {
@@ -508,8 +509,6 @@ void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, fd);
 		return;
 	}
-	
-	vfs_file_t *file = vfs_file_get(fd);
 	assert(file != NULL);
 	
 	file->node = node;
@@ -597,7 +596,6 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	 * Lock the open file structure so that no other thread can manipulate
 	 * the same open file at a time.
 	 */
-	fibril_mutex_lock(&file->lock);
 	async_exch_t *fs_exch = vfs_exchange_grab(file->node->fs_handle);
 	
 	/* Make a VFS_OUT_SYMC request at the destination FS server. */
@@ -611,8 +609,6 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	/* Wait for reply from the FS server. */
 	sysarg_t rc;
 	async_wait_for(msg, &rc);
-	
-	fibril_mutex_unlock(&file->lock);
 	
 	vfs_file_put(file);
 	async_answer_0(rid, rc);
@@ -701,14 +697,8 @@ static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 	if (!file)
 		return ENOENT;
 	
-	/*
-	 * Lock the open file structure so that no other thread can manipulate
-	 * the same open file at a time.
-	 */
-	fibril_mutex_lock(&file->lock);
-	
 	if ((read && !file->open_read) || (!read && !file->open_write)) {
-		fibril_mutex_unlock(&file->lock);
+		vfs_file_put(file);
 		return EINVAL;
 	}
 	
@@ -769,7 +759,6 @@ static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 	/* Update the position pointer and unlock the open file. */
 	if (rc == EOK)
 		file->pos += bytes;
-	fibril_mutex_unlock(&file->lock);
 	vfs_file_put(file);	
 
 	return rc;
@@ -812,14 +801,11 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	fibril_mutex_lock(&file->lock);
-	
 	off64_t newoff;
 	switch (whence) {
 	case SEEK_SET:
 		if (off >= 0) {
 			file->pos = (aoff64_t) off;
-			fibril_mutex_unlock(&file->lock);
 			vfs_file_put(file);
 			async_answer_1(rid, EOK, off);
 			return;
@@ -827,14 +813,12 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		break;
 	case SEEK_CUR:
 		if ((off >= 0) && (file->pos + off < file->pos)) {
-			fibril_mutex_unlock(&file->lock);
 			vfs_file_put(file);
 			async_answer_0(rid, EOVERFLOW);
 			return;
 		}
 		
 		if ((off < 0) && (file->pos < (aoff64_t) -off)) {
-			fibril_mutex_unlock(&file->lock);
 			vfs_file_put(file);
 			async_answer_0(rid, EOVERFLOW);
 			return;
@@ -843,7 +827,6 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		file->pos += off;
 		newoff = (file->pos > OFF64_MAX) ? OFF64_MAX : file->pos;
 		
-		fibril_mutex_unlock(&file->lock);
 		vfs_file_put(file);
 		async_answer_2(rid, EOK, LOWER32(newoff),
 		    UPPER32(newoff));
@@ -854,7 +837,6 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		
 		if ((off >= 0) && (size + off < size)) {
 			fibril_rwlock_read_unlock(&file->node->contents_rwlock);
-			fibril_mutex_unlock(&file->lock);
 			vfs_file_put(file);
 			async_answer_0(rid, EOVERFLOW);
 			return;
@@ -862,7 +844,6 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		
 		if ((off < 0) && (size < (aoff64_t) -off)) {
 			fibril_rwlock_read_unlock(&file->node->contents_rwlock);
-			fibril_mutex_unlock(&file->lock);
 			vfs_file_put(file);
 			async_answer_0(rid, EOVERFLOW);
 			return;
@@ -872,13 +853,11 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		newoff = (file->pos > OFF64_MAX) ?  OFF64_MAX : file->pos;
 		
 		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
-		fibril_mutex_unlock(&file->lock);
 		vfs_file_put(file);
 		async_answer_2(rid, EOK, LOWER32(newoff), UPPER32(newoff));
 		return;
 	}
 	
-	fibril_mutex_unlock(&file->lock);
 	vfs_file_put(file);
 	async_answer_0(rid, EINVAL);
 }
@@ -907,7 +886,6 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOENT);
 		return;
 	}
-	fibril_mutex_lock(&file->lock);
 
 	fibril_rwlock_write_lock(&file->node->contents_rwlock);
 	rc = vfs_truncate_internal(file->node->fs_handle,
@@ -916,7 +894,6 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 		file->node->size = size;
 	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 
-	fibril_mutex_unlock(&file->lock);
 	vfs_file_put(file);
 	async_answer_0(rid, (sysarg_t)rc);
 }
@@ -931,6 +908,7 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOENT);
 		return;
 	}
+	assert(file->node);
 
 	ipc_callid_t callid;
 	if (!async_data_read_receive(&callid, NULL)) {
@@ -940,20 +918,19 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	fibril_mutex_lock(&file->lock);
-
 	async_exch_t *exch = vfs_exchange_grab(file->node->fs_handle);
+	assert(exch);
 	
 	aid_t msg;
 	msg = async_send_3(exch, VFS_OUT_STAT, file->node->service_id,
 	    file->node->index, true, NULL);
+	assert(msg);
 	async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 	
 	vfs_exchange_release(exch);
 	
 	async_wait_for(msg, &rc);
 	
-	fibril_mutex_unlock(&file->lock);
 	vfs_file_put(file);
 	async_answer_0(rid, rc);
 }
@@ -988,13 +965,13 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 	
 	int lflag = (wflag&WALK_DIRECTORY) ? L_DIRECTORY: 0;
 
-	if (parentfd >= 0) {
+	/* Files are retrieved in order of file descriptors, to prevent deadlock. */
+	if (parentfd >= 0 && parentfd < expectfd) {
 		parent = vfs_file_get(parentfd);
 		if (!parent) {
 			rc = ENOENT;
 			goto exit;
 		}
-		parent_node = parent->node;
 	}
 	
 	if (expectfd >= 0) {
@@ -1003,7 +980,21 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 			rc = ENOENT;
 			goto exit;
 		}
-		
+	}
+	
+	if (parentfd >= 0 && parentfd >= expectfd) {
+		parent = vfs_file_get(parentfd);
+		if (!parent) {
+			rc = ENOENT;
+			goto exit;
+		}
+	}
+	
+	if (parent) {
+		parent_node = parent->node;
+	}
+	
+	if (expectfd >= 0) {
 		vfs_lookup_res_t lr;
 		rc = vfs_lookup_internal(parent_node, path, lflag, &lr);
 		if (rc != EOK) {
@@ -1227,18 +1218,11 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	/*
-	 * Lock the open file structure so that no other thread can manipulate
-	 * the same open file at a time.
-	 */
-	fibril_mutex_lock(&oldfile->lock);
-	
 	/* Make sure newfd is closed. */
 	(void) vfs_fd_free(newfd);
 	
 	/* Assign the old file to newfd. */
 	int ret = vfs_fd_assign(oldfile, newfd);
-	fibril_mutex_unlock(&oldfile->lock);
 	vfs_file_put(oldfile);
 	
 	if (ret != EOK)

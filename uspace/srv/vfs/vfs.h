@@ -128,7 +128,7 @@ typedef struct _vfs_node {
  */
 typedef struct {
 	/** Serializes access to this open file. */
-	fibril_mutex_t lock;
+	fibril_mutex_t _lock;
 
 	vfs_node_t *node;
 	
@@ -201,7 +201,7 @@ extern int vfs_wait_handle_internal(void);
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);
 extern int vfs_fd_assign(vfs_file_t *, int);
-extern int vfs_fd_alloc(bool desc);
+extern int vfs_fd_alloc(vfs_file_t **file, bool desc);
 extern int vfs_fd_free(int);
 
 extern void vfs_node_addref(vfs_node_t *);

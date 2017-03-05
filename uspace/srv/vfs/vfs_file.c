@@ -186,7 +186,7 @@ static int vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 	return rc;
 }
 
-static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, bool desc)
+static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, bool desc)
 {
 	if (!vfs_files_init(vfs_data))
 		return ENOMEM;
@@ -206,9 +206,16 @@ static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, bool desc)
 				return ENOMEM;
 			}
 			
+			
 			memset(vfs_data->files[i], 0, sizeof(vfs_file_t));
-			fibril_mutex_initialize(&vfs_data->files[i]->lock);
+			
+			fibril_mutex_initialize(&vfs_data->files[i]->_lock);
+			fibril_mutex_lock(&vfs_data->files[i]->_lock);
 			vfs_file_addref(vfs_data, vfs_data->files[i]);
+			
+			*file = vfs_data->files[i];
+			vfs_file_addref(vfs_data, *file);
+			
 			fibril_mutex_unlock(&vfs_data->lock);
 			return (int) i;
 		}
@@ -232,15 +239,16 @@ static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, bool desc)
 
 /** Allocate a file descriptor.
  *
+ * @param file Is set to point to the newly created file structure. Must be put afterwards.
  * @param desc If true, look for an available file descriptor
  *             in a descending order.
  *
  * @return First available file descriptor or a negative error
  *         code.
  */
-int vfs_fd_alloc(bool desc)
+int vfs_fd_alloc(vfs_file_t **file, bool desc)
 {
-	return _vfs_fd_alloc(VFS_DATA, desc);
+	return _vfs_fd_alloc(VFS_DATA, file, desc);
 }
 
 static int _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
@@ -313,6 +321,7 @@ static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
 		if (file != NULL) {
 			vfs_file_addref(vfs_data, file);
 			fibril_mutex_unlock(&vfs_data->lock);
+			fibril_mutex_lock(&file->_lock);
 			return file;
 		}
 	}
@@ -334,6 +343,8 @@ vfs_file_t *vfs_file_get(int fd)
 
 static void _vfs_file_put(vfs_client_data_t *vfs_data, vfs_file_t *file)
 {
+	fibril_mutex_unlock(&file->_lock);
+	
 	fibril_mutex_lock(&vfs_data->lock);
 	vfs_file_delref(vfs_data, file);
 	fibril_mutex_unlock(&vfs_data->lock);
@@ -375,7 +386,7 @@ void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 	if (!donor_file)
 		goto out;
 
-	acceptor_fd = _vfs_fd_alloc(acceptor_data, false);
+	acceptor_fd = _vfs_fd_alloc(acceptor_data, &acceptor_file, false);
 	if (acceptor_fd < 0)
 		goto out;
 
@@ -387,7 +398,6 @@ void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 	vfs_node_addref(donor_file->node);
 	(void) vfs_open_node_remote(donor_file->node);
 
-	acceptor_file = _vfs_file_get(acceptor_data, acceptor_fd);
 	assert(acceptor_file);
 
 	/*
