@@ -223,8 +223,6 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 {
 	size_t count = IPC_GET_ARG1(*request);
 
-	async_exch_t *vfs_exch = vfs_exchange_begin();
-
 	for (filc = 0; filc < count; filc++) {
 		int fd = vfs_receive_handle();
 		if (fd < 0) {
@@ -232,8 +230,6 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 		}
 		assert(fd == (int) filc);
 	}
-
-	vfs_exchange_end(vfs_exch);
 
 	async_answer_0(rid, EOK);
 }
