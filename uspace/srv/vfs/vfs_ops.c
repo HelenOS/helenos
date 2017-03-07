@@ -1391,6 +1391,7 @@ void vfs_op_clone(ipc_callid_t rid, ipc_call_t *request)
 	
 	newfile->node = oldfile->node;
 	newfile->permissions = oldfile->permissions;
+	vfs_node_addref(newfile->node);
 
 	vfs_file_put(oldfile);
 	vfs_file_put(newfile);
