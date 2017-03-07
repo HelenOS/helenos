@@ -1014,7 +1014,8 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 			goto exit;
 		}
 		
-		if (__builtin_memcmp(&lr.triplet, expect->node, sizeof(vfs_triplet_t)) != 0) {
+		vfs_node_t *found_node = vfs_node_peek(&lr);		
+		if (expect->node != found_node) {
 			rc = ENOENT;
 			goto exit;
 		}
