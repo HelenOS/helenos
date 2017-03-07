@@ -359,7 +359,7 @@ void vfs_file_put(vfs_file_t *file)
 	_vfs_file_put(VFS_DATA, file);
 }
 
-void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
+void vfs_op_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 {
 	vfs_client_data_t *donor_data = NULL;
 	vfs_client_data_t *acceptor_data = NULL;
@@ -396,7 +396,6 @@ void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 	 * Add a new reference to the underlying VFS node.
 	 */
 	vfs_node_addref(donor_file->node);
-	(void) vfs_open_node_remote(donor_file->node);
 
 	assert(acceptor_file);
 
@@ -411,6 +410,10 @@ void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 	acceptor_file->append = donor_file->append;
 	acceptor_file->open_read = donor_file->open_read;
 	acceptor_file->open_write = donor_file->open_write;
+
+	if (acceptor_file->open_read || acceptor_file->open_write) {
+		(void) vfs_open_node_remote(acceptor_file->node);
+	}
 
 out:
 	fibril_mutex_lock(&acceptor_data->lock);

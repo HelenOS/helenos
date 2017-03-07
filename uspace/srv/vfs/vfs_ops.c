@@ -695,7 +695,7 @@ static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
-		return ENOENT;
+		return EBADF;
 	
 	if ((read && !file->open_read) || (!read && !file->open_write)) {
 		vfs_file_put(file);
@@ -705,23 +705,35 @@ static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 	vfs_info_t *fs_info = fs_handle_to_info(file->node->fs_handle);
 	assert(fs_info);
 	
+	bool rlock = read || ((fs_info->concurrent_read_write) && (fs_info->write_retains_size));
+	
 	/*
 	 * Lock the file's node so that no other client can read/write to it at
 	 * the same time unless the FS supports concurrent reads/writes and its
 	 * write implementation does not modify the file size.
 	 */
-	if ((read) ||
-	    ((fs_info->concurrent_read_write) && (fs_info->write_retains_size)))
+	if (rlock) {
 		fibril_rwlock_read_lock(&file->node->contents_rwlock);
-	else
+	} else {
 		fibril_rwlock_write_lock(&file->node->contents_rwlock);
+	}
 	
 	if (file->node->type == VFS_NODE_DIRECTORY) {
 		/*
 		 * Make sure that no one is modifying the namespace
 		 * while we are in readdir().
 		 */
-		assert(read);
+		
+		if (!read) {
+			if (rlock) {
+				fibril_rwlock_read_unlock(&file->node->contents_rwlock);
+			} else {
+				fibril_rwlock_write_unlock(&file->node->contents_rwlock);
+			}
+			vfs_file_put(file);
+			return EINVAL;
+		}
+		
 		fibril_rwlock_read_lock(&namespace_rwlock);
 	}
 	
@@ -745,20 +757,21 @@ static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 	}
 	
 	/* Unlock the VFS node. */
-	if ((read) ||
-	    ((fs_info->concurrent_read_write) && (fs_info->write_retains_size)))
+	if (rlock) {
 		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
-	else {
+	} else {
 		/* Update the cached version of node's size. */
-		if (rc == EOK)
+		if (rc == EOK) {
 			file->node->size = MERGE_LOUP32(IPC_GET_ARG2(answer),
 			    IPC_GET_ARG3(answer));
+		}
 		fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 	
 	/* Update the position pointer and unlock the open file. */
-	if (rc == EOK)
+	if (rc == EOK) {
 		file->pos += bytes;
+	}
 	vfs_file_put(file);	
 
 	return rc;
@@ -1351,6 +1364,37 @@ void vfs_statfs(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rv);
 
 	vfs_node_put(node);
+}
+
+void vfs_op_clone(ipc_callid_t rid, ipc_call_t *request)
+{
+	int oldfd = IPC_GET_ARG1(*request);
+	bool desc = IPC_GET_ARG2(*request);
+	
+	/* Lookup the file structure corresponding to fd. */
+	vfs_file_t *oldfile = vfs_file_get(oldfd);
+	if (!oldfile) {
+		async_answer_0(rid, EBADF);
+		return;
+	}
+	
+	vfs_file_t *newfile;
+	int newfd = vfs_fd_alloc(&newfile, desc);
+	if (newfd < 0) {
+		async_answer_0(rid, newfd);
+		vfs_file_put(oldfile);
+		return;
+	}
+	
+	assert(oldfile->node != NULL);
+	
+	newfile->node = oldfile->node;
+	newfile->permissions = oldfile->permissions;
+
+	vfs_file_put(oldfile);
+	vfs_file_put(newfile);
+	
+	async_answer_0(rid, newfd);
 }
 
 /**

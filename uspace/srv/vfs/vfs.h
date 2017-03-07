@@ -195,7 +195,7 @@ extern bool vfs_node_has_children(vfs_node_t *node);
 extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
-extern void vfs_pass_handle(task_id_t, task_id_t, int);
+extern void vfs_op_pass_handle(task_id_t, task_id_t, int);
 extern int vfs_wait_handle_internal(void);
 
 extern vfs_file_t *vfs_file_get(int);
@@ -236,6 +236,7 @@ extern int vfs_rdwr_internal(int, bool, rdwr_io_chunk_t *);
 extern void vfs_walk(ipc_callid_t, ipc_call_t *);
 extern void vfs_open2(ipc_callid_t, ipc_call_t *);
 extern void vfs_unlink2(ipc_callid_t, ipc_call_t *);
+extern void vfs_op_clone(ipc_callid_t, ipc_call_t *);
 
 #endif
 

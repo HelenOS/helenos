@@ -270,8 +270,7 @@ int loader_set_files(loader_t *ldr, int * const files[])
 	sysarg_t rc = EOK;
 	
 	for (i = 0; files[i]; i++) {
-		rc = async_state_change_start(exch, VFS_PASS_HANDLE, *files[i],
-		    0, vfs_exch); 
+		rc = vfs_pass_handle(vfs_exch, *files[i], exch);
 		if (rc != EOK)
 			break;
 	}

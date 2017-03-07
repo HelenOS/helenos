@@ -82,6 +82,7 @@ typedef enum {
 	VFS_IN_WALK,
 	VFS_IN_OPEN2,
 	VFS_IN_UNLINK2,
+	VFS_IN_CLONE,
 } vfs_in_request_t;
 
 typedef enum {

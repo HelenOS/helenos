@@ -418,20 +418,14 @@ static int _read_short(int fildes, void *buf, size_t nbyte, ssize_t *nread)
 	
 	req = async_send_1(exch, VFS_IN_READ, fildes, &answer);
 	rc = async_data_read_start(exch, (void *) buf, nbyte);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		
-		sysarg_t rc_orig;
-		async_wait_for(req, &rc_orig);
-		
-		if (rc_orig == EOK)
-			return rc;
-		else
-			return rc_orig;
-	}
-	
+
 	vfs_exchange_end(exch);
-	async_wait_for(req, &rc);
+	
+	if (rc == EOK) {
+		async_wait_for(req, &rc);
+	} else {
+		async_forget(req);
+	}
 	
 	if (rc != EOK)
 		return rc;
@@ -466,21 +460,15 @@ static int _write_short(int fildes, const void *buf, size_t nbyte,
 	
 	req = async_send_1(exch, VFS_IN_WRITE, fildes, &answer);
 	rc = async_data_write_start(exch, (void *) buf, nbyte);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		
-		sysarg_t rc_orig;
-		async_wait_for(req, &rc_orig);
-		
-		if (rc_orig == EOK)
-			return rc;
-		else
-			return rc_orig;
-	}
 	
 	vfs_exchange_end(exch);
-	async_wait_for(req, &rc);
 	
+	if (rc == EOK) {
+		async_wait_for(req, &rc);
+	} else {
+		async_forget(req);
+	}
+
 	if (rc != EOK)
 		return rc;
 	
@@ -1054,21 +1042,6 @@ int dup2(int oldfd, int newfd)
 	return 0;
 }
 
-int vfs_fd_wait(void)
-{
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	sysarg_t ret;
-	sysarg_t rc = async_req_0_1(exch, VFS_IN_WAIT_HANDLE, &ret);
-	
-	vfs_exchange_end(exch);
-	
-	if (rc == EOK)
-		return (int) ret;
-	
-	return (int) rc;
-}
-
 int vfs_get_mtab_list(list_t *mtab_list)
 {
 	sysarg_t rc;
@@ -1169,6 +1142,42 @@ exit:
 	}
 
 	return 0;
+}
+
+int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch)
+{
+	return async_state_change_start(exch, VFS_PASS_HANDLE, (sysarg_t)file, 0, vfs_exch);
+}
+
+int vfs_receive_handle()
+{
+	ipc_callid_t callid;
+	if (!async_state_change_receive(&callid, NULL, NULL, NULL)) {
+		async_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+
+	async_exch_t *vfs_exch = vfs_exchange_begin();
+
+	async_state_change_finalize(callid, vfs_exch);
+
+	sysarg_t ret;
+	sysarg_t rc = async_req_0_1(vfs_exch, VFS_IN_WAIT_HANDLE, &ret);
+
+	async_exchange_end(vfs_exch);
+
+	if (rc != EOK) {
+		return rc;
+	}
+	return ret;
+}
+
+int vfs_clone(int file, bool high_descriptor)
+{
+	async_exch_t *vfs_exch = vfs_exchange_begin();
+	int rc = async_req_2_0(vfs_exch, VFS_IN_CLONE, (sysarg_t) file, (sysarg_t) high_descriptor);
+	vfs_exchange_end(vfs_exch);
+	return rc;
 }
 
 /** @}
