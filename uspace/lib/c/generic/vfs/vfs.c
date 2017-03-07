@@ -115,6 +115,18 @@ int _vfs_walk(int parent, const char *path, int flags)
 	return (int) IPC_GET_ARG1(answer);
 }
 
+int vfs_lookup(const char *path)
+{
+	size_t size;
+	char *p = vfs_absolutize(path, &size);
+	if (!p) {
+		return ENOMEM;
+	}
+	int rc = _vfs_walk(-1, p, 0);
+	free(p);
+	return rc;
+}
+
 int _vfs_open(int fildes, int mode)
 {
 	async_exch_t *exch = vfs_exchange_begin();

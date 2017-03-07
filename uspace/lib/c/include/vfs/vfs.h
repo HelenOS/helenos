@@ -64,6 +64,7 @@ extern void vfs_exchange_end(async_exch_t *);
 
 extern int _vfs_walk(int parent, const char *path, int flags);
 extern int _vfs_open(int file, int mode);
+extern int vfs_lookup(const char *path);
 
 extern int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch);
 extern int vfs_receive_handle(void);
