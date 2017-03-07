@@ -43,17 +43,19 @@
  * the segments will be mapped directly from the file.
  */
 
+#include <errno.h>
 #include <stdio.h>
+#include <vfs/vfs.h>
 #include <sys/types.h>
 #include <align.h>
 #include <assert.h>
 #include <as.h>
 #include <elf/elf.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <smc.h>
 #include <loader/pcb.h>
 #include <entry_point.h>
+#include <str_error.h>
+#include <stdlib.h>
 
 #include <elf/elf_load.h>
 
@@ -81,7 +83,7 @@ static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
  * extracted from the binary is stored in a elf_info_t structure
  * pointed to by @a info.
  *
- * @param file_name Path to the ELF file.
+ * @param file      ELF file.
  * @param so_bias   Bias to use if the file is a shared object.
  * @param info      Pointer to a structure for storing information
  *                  extracted from the binary.
@@ -89,28 +91,31 @@ static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
  * @return EOK on success or negative error code.
  *
  */
-int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
-    elf_finfo_t *info)
+static int elf_load_file2(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info)
 {
 	elf_ld_t elf;
 
-	int fd;
-	int rc;
-
-	fd = open(file_name, O_RDONLY);
-	if (fd < 0) {
-		DPRINTF("failed opening file\n");
-		return -1;
+	int ofile = vfs_clone(file, true);
+	int rc = _vfs_open(ofile, MODE_READ);
+	if (rc != EOK) {
+		return rc;
 	}
 
-	elf.fd = fd;
+	elf.fd = ofile;
 	elf.info = info;
 	elf.flags = flags;
 
 	rc = elf_load_module(&elf, so_bias);
 
-	close(fd);
+	close(ofile);
+	return rc;
+}
 
+int elf_load_file(const char *path, size_t so_bias, eld_flags_t flags, elf_finfo_t *info)
+{
+	int file = vfs_lookup(path);
+	int rc = elf_load_file2(file, so_bias, flags, info);
+	close(file);
 	return rc;
 }
 
