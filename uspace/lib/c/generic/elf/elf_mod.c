@@ -389,30 +389,10 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		return EE_INVALID;
 	}
 
-/*	rc = read(fd, (void *)(entry->p_vaddr + bias), entry->p_filesz);
-	if (rc < 0) { printf("read error\n"); return EE_INVALID; }*/
-
-	/* Long reads are not possible yet. Load segment piecewise. */
-
-	unsigned left, now;
-	uint8_t *dp;
-
-	left = entry->p_filesz;
-	dp = seg_ptr;
-
-	while (left > 0) {
-		now = 16384;
-		if (now > left) now = left;
-
-		rc = read(elf->fd, dp, now);
-
-		if (rc != (ssize_t) now) { 
-			DPRINTF("Read error.\n");
-			return EE_INVALID;
-		}
-
-		left -= now;
-		dp += now;
+	rc = read(elf->fd, seg_ptr, entry->p_filesz);
+	if (rc < 0) {
+		DPRINTF("read error\n");
+		return EE_INVALID;
 	}
 
 	/*
