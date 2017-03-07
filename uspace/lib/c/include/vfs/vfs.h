@@ -62,15 +62,14 @@ extern int vfs_get_mtab_list(list_t *mtab_list);
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
 
-extern int _vfs_walk(int parent, const char *path, int flags);
-extern int _vfs_open(int file, int mode);
-extern int vfs_lookup(const char *path);
+extern int _vfs_walk(int, const char *, int);
+extern int _vfs_open(int, int);
+extern int vfs_lookup(const char *);
 
-extern int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch);
-extern int vfs_receive_handle(void);
+extern int vfs_pass_handle(async_exch_t *, int, async_exch_t *);
+extern int vfs_receive_handle(bool);
 
-extern int vfs_clone(int file, bool high_descriptor);
-
+extern int vfs_clone(int, bool);
 
 #endif
 

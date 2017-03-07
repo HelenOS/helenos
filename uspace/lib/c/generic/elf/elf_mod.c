@@ -91,7 +91,7 @@ static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
  * @return EOK on success or negative error code.
  *
  */
-static int elf_load_file2(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info)
+int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info)
 {
 	elf_ld_t elf;
 
@@ -111,10 +111,11 @@ static int elf_load_file2(int file, size_t so_bias, eld_flags_t flags, elf_finfo
 	return rc;
 }
 
-int elf_load_file(const char *path, size_t so_bias, eld_flags_t flags, elf_finfo_t *info)
+int elf_load_file_name(const char *path, size_t so_bias, eld_flags_t flags,
+    elf_finfo_t *info)
 {
 	int file = vfs_lookup(path);
-	int rc = elf_load_file2(file, so_bias, flags, info);
+	int rc = elf_load_file(file, so_bias, flags, info);
 	close(file);
 	return rc;
 }

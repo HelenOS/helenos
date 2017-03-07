@@ -106,29 +106,25 @@ int task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
     const char *const args[])
 {
 	/* Send default files */
-	int *files[4];
-	int fd_stdin;
-	int fd_stdout;
-	int fd_stderr;
 	
-	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK))
-		files[0] = &fd_stdin;
-	else
-		files[0] = NULL;
+	int fd_stdin = -1;
+	int fd_stdout = -1;
+	int fd_stderr = -1;
 	
-	if ((stdout != NULL) && (vfs_fhandle(stdout, &fd_stdout) == EOK))
-		files[1] = &fd_stdout;
-	else
-		files[1] = NULL;
+	if (stdin != NULL) {
+		(void) vfs_fhandle(stdin, &fd_stdin);
+	}
 	
-	if ((stderr != NULL) && (vfs_fhandle(stderr, &fd_stderr) == EOK))
-		files[2] = &fd_stderr;
-	else
-		files[2] = NULL;
+	if (stdout != NULL) {
+		(void) vfs_fhandle(stdout, &fd_stdout);
+	}
+
+	if (stderr != NULL) {
+		(void) vfs_fhandle(stderr, &fd_stderr);
+	}
 	
-	files[3] = NULL;
-	
-	return task_spawnvf(id, wait, path, args, files);
+	return task_spawnvf(id, wait, path, args, fd_stdin, fd_stdout,
+	    fd_stderr);
 }
 
 /** Create a new task by running an executable from the filesystem.
@@ -137,18 +133,19 @@ int task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
  * loader API. Arguments are passed as a null-terminated array of strings.
  * Files are passed as null-terminated array of pointers to fdi_node_t.
  *
- * @param id    If not NULL, the ID of the task is stored here on success.
- * @param wait  If not NULL, setup waiting for task's return value and store
- *              the information necessary for waiting here on success.
- * @param path  Pathname of the binary to execute.
- * @param argv  Command-line arguments.
- * @param files Standard files to use.
+ * @param id      If not NULL, the ID of the task is stored here on success.
+ * @param wait    If not NULL, setup waiting for task's return value and store
+ * @param path    Pathname of the binary to execute.
+ * @param argv    Command-line arguments.
+ * @param std_in  File to use as stdin.
+ * @param std_out File to use as stdout.
+ * @param std_err File to use as stderr.
  *
  * @return Zero on success or negative error code.
  *
  */
 int task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
-    const char *const args[], int *const files[])
+    const char *const args[], int fd_stdin, int fd_stdout, int fd_stderr)
 {
 	/* Connect to a program loader. */
 	loader_t *ldr = loader_connect();
@@ -168,8 +165,8 @@ int task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 	if (rc != EOK)
 		goto error;
 	
-	/* Send program pathname. */
-	rc = loader_set_pathname(ldr, path);
+	/* Send program binary. */
+	rc = loader_set_program_path(ldr, path);
 	if (rc != EOK)
 		goto error;
 	
@@ -179,9 +176,23 @@ int task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 		goto error;
 	
 	/* Send files */
-	rc = loader_set_files(ldr, files);
-	if (rc != EOK)
-		goto error;
+	if (fd_stdin >= 0) {
+		rc = loader_add_inbox(ldr, "stdin", fd_stdin);
+		if (rc != EOK)
+			goto error;
+	}
+	
+	if (fd_stdout >= 0) {
+		rc = loader_add_inbox(ldr, "stdout", fd_stdout);
+		if (rc != EOK)
+			goto error;
+	}
+	
+	if (fd_stderr >= 0) {
+		rc = loader_add_inbox(ldr, "stderr", fd_stderr);
+		if (rc != EOK)
+			goto error;
+	}		
 	
 	/* Load the program. */
 	rc = loader_load_program(ldr);

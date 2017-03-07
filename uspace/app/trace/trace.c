@@ -512,7 +512,7 @@ static loader_t *preload_task(const char *path, char **argv,
 		goto error;
 
 	/* Send program pathname */
-	rc = loader_set_pathname(ldr, path);
+	rc = loader_set_program_path(ldr, path);
 	if (rc != EOK)
 		goto error;
 
@@ -522,32 +522,28 @@ static loader_t *preload_task(const char *path, char **argv,
 		goto error;
 
 	/* Send default files */
-	int *files[4];
 	int fd_stdin;
 	int fd_stdout;
 	int fd_stderr;
 	
-	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK))
-		files[0] = &fd_stdin;
-	else
-		files[0] = NULL;
+	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK)) {
+		rc = loader_add_inbox(ldr, "stdin", fd_stdin);
+		if (rc != EOK)
+			goto error;
+	}
 	
-	if ((stdout != NULL) && (vfs_fhandle(stdout, &fd_stdout) == EOK))
-		files[1] = &fd_stdout;
-	else
-		files[1] = NULL;
+	if ((stdout != NULL) && (vfs_fhandle(stdout, &fd_stdout) == EOK)) {
+		rc = loader_add_inbox(ldr, "stdout", fd_stdout);
+		if (rc != EOK)
+			goto error;
+	}
 	
-	if ((stderr != NULL) && (vfs_fhandle(stderr, &fd_stderr) == EOK))
-		files[2] = &fd_stderr;
-	else
-		files[2] = NULL;
+	if ((stderr != NULL) && (vfs_fhandle(stderr, &fd_stderr) == EOK)) {
+		rc = loader_add_inbox(ldr, "stderr", fd_stderr);
+		if (rc != EOK)
+			goto error;
+	}
 	
-	files[3] = NULL;
-	
-	rc = loader_set_files(ldr, files);
-	if (rc != EOK)
-		goto error;
-
 	/* Load the program. */
 	rc = loader_load_program(ldr);
 	if (rc != EOK)

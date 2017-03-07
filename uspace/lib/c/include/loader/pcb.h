@@ -40,6 +40,11 @@
 
 typedef void (*entry_point_t)(void);
 
+struct pcb_inbox_entry {
+	char *name;
+	int file;
+};
+
 /** Program Control Block.
  *
  * Holds pointers to data passed from the program loader to the program
@@ -59,8 +64,9 @@ typedef struct {
 	/** Command-line arguments. */
 	char **argv;
 	
-	/** Number of preset files. */
-	unsigned int filc;
+	/** List of inbox files. */
+	struct pcb_inbox_entry *inbox;
+	int inbox_entries;
 	
 	/*
 	 * ELF-specific data.

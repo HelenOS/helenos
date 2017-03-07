@@ -150,6 +150,7 @@ GENERIC_SOURCES = \
 	generic/vfs/canonify.c \
 	generic/rcu.c \
 	generic/setjmp.c \
+	generic/vfs/inbox.c \
 	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \

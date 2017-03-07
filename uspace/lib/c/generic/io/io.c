@@ -44,6 +44,7 @@
 #include <io/kio.h>
 #include <vfs/vfs.h>
 #include <vfs/vfs_sess.h>
+#include <vfs/inbox.h>
 #include <ipc/loc.h>
 #include <adt/list.h>
 #include "../private/io.h"
@@ -100,24 +101,46 @@ FILE *stderr = NULL;
 
 static LIST_INITIALIZE(files);
 
-void __stdio_init(int filc)
+void __stdio_init(void)
 {
-	if (filc > 0) {
-		stdin = fdopen(0, "r");
+	/* The first three standard file descriptors are assigned for compatibility.
+	 * This will probably be removed later.
+	 */
+	 
+	int infd = inbox_get("stdin");
+	if (infd >= 0) {
+		int stdinfd = vfs_clone(infd, false);
+		assert(stdinfd == 0);
+		_vfs_open(stdinfd, MODE_READ);
+		stdin = fdopen(stdinfd, "r");
 	} else {
 		stdin = &stdin_null;
 		list_append(&stdin->link, &files);
 	}
 	
-	if (filc > 1) {
-		stdout = fdopen(1, "w");
+	int outfd = inbox_get("stdout");
+	if (outfd >= 0) {
+		int stdoutfd = vfs_clone(outfd, false);
+		assert(stdoutfd <= 1);
+		while (stdoutfd < 1) {
+			stdoutfd = vfs_clone(outfd, false);
+		}
+		_vfs_open(stdoutfd, MODE_APPEND);
+		stdout = fdopen(stdoutfd, "a");
 	} else {
 		stdout = &stdout_kio;
 		list_append(&stdout->link, &files);
 	}
 	
-	if (filc > 2) {
-		stderr = fdopen(2, "w");
+	int errfd = inbox_get("stderr");
+	if (errfd >= 0) {
+		int stderrfd = vfs_clone(errfd, false);
+		assert(stderrfd <= 2);
+		while (stderrfd < 2) {
+			stderrfd = vfs_clone(errfd, false);
+		}
+		_vfs_open(stderrfd, MODE_APPEND);
+		stderr = fdopen(stderrfd, "a");
 	} else {
 		stderr = &stderr_kio;
 		list_append(&stderr->link, &files);

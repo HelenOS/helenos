@@ -1247,7 +1247,8 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_wait_handle(ipc_callid_t rid, ipc_call_t *request)
 {
-	int fd = vfs_wait_handle_internal();
+	bool high_fd = IPC_GET_ARG1(*request);
+	int fd = vfs_wait_handle_internal(high_fd);
 	async_answer_1(rid, EOK, fd);
 }
 

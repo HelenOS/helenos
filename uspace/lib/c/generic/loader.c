@@ -146,43 +146,67 @@ int loader_set_cwd(loader_t *ldr)
 	return (int) rc;
 }
 
-/** Set pathname of the program to load.
- *
- * Sets the name of the program file to load. The name can be relative
- * to the current working directory (it will be absolutized before
- * sending to the loader).
+/** Set the program to load.
  *
  * @param ldr  Loader connection structure.
- * @param path Pathname of the program file.
+ * @param name Name to set for the spawned program.
+ * @param file Program file.
  *
  * @return Zero on success or negative error code.
  *
  */
-int loader_set_pathname(loader_t *ldr, const char *path)
+int loader_set_program(loader_t *ldr, const char *name, int file)
 {
-	size_t pa_len;
-	char *pa = vfs_absolutize(path, &pa_len);
-	if (!pa)
-		return ENOMEM;
-	
-	/* Send program pathname */
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
-	
+
 	ipc_call_t answer;
-	aid_t req = async_send_0(exch, LOADER_SET_PATHNAME, &answer);
-	sysarg_t rc = async_data_write_start(exch, (void *) pa, pa_len);
-	
+	aid_t req = async_send_0(exch, LOADER_SET_PROGRAM, &answer);
+
+	sysarg_t rc = async_data_write_start(exch, name, str_size(name) + 1);
+	if (rc == EOK) {
+		async_exch_t *vfs_exch = vfs_exchange_begin();
+		rc = vfs_pass_handle(vfs_exch, file, exch);
+		vfs_exchange_end(vfs_exch);
+	}
+
 	async_exchange_end(exch);
-	free(pa);
-	
+
 	if (rc != EOK) {
 		async_forget(req);
 		return (int) rc;
 	}
-	
+
 	async_wait_for(req, &rc);
 	return (int) rc;
 }
+
+/** Set the program to load by path.
+ *
+ * @param ldr  Loader connection structure.
+ * @param path Program path.
+ *
+ * @return Zero on success or negative error code.
+ *
+ */
+int loader_set_program_path(loader_t *ldr, const char *path)
+{
+	const char *name = str_rchr(path, '/');
+	if (name == NULL) {
+		name = path;
+	} else {
+		name++;
+	}
+	
+	int fd = vfs_lookup(path);
+	if (fd < 0) {
+		return fd;
+	}
+	
+	int rc = loader_set_program(ldr, name, fd);
+	close(fd);
+	return rc;
+}
+
 
 /** Set command-line arguments for the program.
  *
@@ -243,47 +267,36 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
 	return (int) rc;
 }
 
-/** Set preset files for the program.
+/** Add a file to the task's inbox.
  *
- * Sets the vector of preset files to be passed to the loaded
- * program. By convention, the first three files represent stdin,
- * stdout and stderr respectively.
- *
- * @param ldr   Loader connection structure.
- * @param files NULL-terminated array of pointers to files.
+ * @param ldr        Loader connection structure.
+ * @param name       Identification of the file.
+ * @param file       The file's descriptor.
  *
  * @return Zero on success or negative error code.
  *
  */
-int loader_set_files(loader_t *ldr, int * const files[])
+int loader_add_inbox(loader_t *ldr, const char *name, int file)
 {
-	/* Send serialized files to the loader */
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
 	async_exch_t *vfs_exch = vfs_exchange_begin();
 	
-	int i;
-	for (i = 0; files[i]; i++);
-
-	ipc_call_t answer;
-	aid_t req = async_send_1(exch, LOADER_SET_FILES, i, &answer);
-
-	sysarg_t rc = EOK;
+	aid_t req = async_send_0(exch, LOADER_ADD_INBOX, NULL);
 	
-	for (i = 0; files[i]; i++) {
-		rc = vfs_pass_handle(vfs_exch, *files[i], exch);
-		if (rc != EOK)
-			break;
+	sysarg_t rc = async_data_write_start(exch, name, str_size(name) + 1);
+	if (rc == EOK) {
+		rc = vfs_pass_handle(vfs_exch, file, exch);
 	}
 	
-	vfs_exchange_end(vfs_exch);
+	async_exchange_end(vfs_exch);
 	async_exchange_end(exch);
-
-	if (rc != EOK) {
+	
+	if (rc == EOK) {
+		async_wait_for(req, &rc);
+	} else {
 		async_forget(req);
-		return (int) rc;
 	}
 	
-	async_wait_for(req, &rc);
 	return (int) rc;
 }
 

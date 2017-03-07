@@ -1161,7 +1161,7 @@ int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch)
 	return async_state_change_start(exch, VFS_PASS_HANDLE, (sysarg_t)file, 0, vfs_exch);
 }
 
-int vfs_receive_handle()
+int vfs_receive_handle(bool high_descriptor)
 {
 	ipc_callid_t callid;
 	if (!async_state_change_receive(&callid, NULL, NULL, NULL)) {
@@ -1174,7 +1174,7 @@ int vfs_receive_handle()
 	async_state_change_finalize(callid, vfs_exch);
 
 	sysarg_t ret;
-	sysarg_t rc = async_req_0_1(vfs_exch, VFS_IN_WAIT_HANDLE, &ret);
+	sysarg_t rc = async_req_1_1(vfs_exch, VFS_IN_WAIT_HANDLE, high_descriptor, &ret);
 
 	async_exchange_end(vfs_exch);
 

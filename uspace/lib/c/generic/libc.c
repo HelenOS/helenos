@@ -106,11 +106,12 @@ void __main(void *pcb_ptr)
 	if (__pcb == NULL) {
 		argc = 0;
 		argv = NULL;
-		__stdio_init(0);
+		__stdio_init();
 	} else {
 		argc = __pcb->argc;
 		argv = __pcb->argv;
-		__stdio_init(__pcb->filc);
+		__inbox_init(__pcb->inbox, __pcb->inbox_entries);
+		__stdio_init();
 		(void) chdir(__pcb->cwd);
 	}
 	

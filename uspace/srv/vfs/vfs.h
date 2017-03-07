@@ -196,7 +196,7 @@ extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
 extern void vfs_op_pass_handle(task_id_t, task_id_t, int);
-extern int vfs_wait_handle_internal(void);
+extern int vfs_wait_handle_internal(bool);
 
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);

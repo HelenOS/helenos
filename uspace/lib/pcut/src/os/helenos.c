@@ -169,13 +169,6 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	char test_number_argument[MAX_TEST_NUMBER_WIDTH];
 	snprintf(test_number_argument, MAX_TEST_NUMBER_WIDTH, "-t%d", test->id);
 
-	int *files[4];
-	int fd_stdin = fileno(stdin);
-	files[0] = &fd_stdin;
-	files[1] = &tempfile;
-	files[2] = &tempfile;
-	files[3] = NULL;
-
 	const char *const arguments[3] = {
 		self_path,
 		test_number_argument,
@@ -185,7 +178,8 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	int status = TEST_OUTCOME_PASS;
 
 	task_wait_t test_task_wait;
-	int rc = task_spawnvf(&test_task_id, &test_task_wait, self_path, arguments, files);
+	int rc = task_spawnvf(&test_task_id, &test_task_wait, self_path, arguments,
+	    fileno(stdin), tempfile, tempfile);
 	if (rc != EOK) {
 		status = TEST_OUTCOME_ERROR;
 		goto leave_close_tempfile;
