@@ -295,7 +295,7 @@ void vfs_exchange_release(async_exch_t *exch)
  * @return File system handle or zero if file system not found.
  *
  */
-fs_handle_t fs_name_to_handle(unsigned int instance, char *name, bool lock)
+fs_handle_t fs_name_to_handle(unsigned int instance, const char *name, bool lock)
 {
 	int handle = 0;
 	
