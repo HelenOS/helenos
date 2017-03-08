@@ -67,10 +67,8 @@ static int vfs_truncate_internal(fs_handle_t, service_id_t, fs_index_t,
  */
 FIBRIL_RWLOCK_INITIALIZE(namespace_rwlock);
 
-vfs_node_t *root = NULL;
-
 static int vfs_connect_internal(service_id_t service_id, unsigned flags, unsigned instance,
-	char *options, char *fsname, vfs_node_t **root)
+    char *options, char *fsname, vfs_node_t **root)
 {
 	fs_handle_t fs_handle = 0;
 	
@@ -78,7 +76,7 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags, unsigne
 	while (1) {
 		fs_handle = fs_name_to_handle(instance, fsname, false);
 		
-		if (fs_handle != 0 || !(flags & IPC_FLAG_BLOCKING)) {
+		if (fs_handle != 0 || !(flags & VFS_MOUNT_BLOCKING)) {
 			break;
 		}
 		
@@ -122,141 +120,122 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags, unsigne
 	return EOK;
 }
 
-static int vfs_mount_internal(service_id_t service_id, unsigned flags, unsigned instance,
-	char *opts, char *fs_name, char *mp)
-{
-	/* Resolve the path to the mountpoint. */
-	
-	if (root == NULL) {
-		/* We still don't have the root file system mounted. */
-		if (str_cmp(mp, "/") != 0) {
-			/*
-			 * We can't resolve this without the root filesystem
-			 * being mounted first.
-			 */
-			return ENOENT;
-		}
-		
-		return vfs_connect_internal(service_id, flags, instance, opts, fs_name, &root);
-	}
-	
-	/* We already have the root FS. */
-	if (str_cmp(mp, "/") == 0) {
-		/* Trying to mount root FS over root FS */
-		return EBUSY;
-	}
-	
-	vfs_lookup_res_t mp_res;
-	int rc = vfs_lookup_internal(root, mp, L_DIRECTORY, &mp_res);
-	if (rc != EOK) {
-		/* The lookup failed. */
-		return rc;
-	}
-	
-	vfs_node_t *mp_node;
-	mp_node = vfs_node_get(&mp_res);
-	if (!mp_node) {
-		return ENOMEM;
-	}
-	
-	if (mp_node->mount != NULL) {
-		return EBUSY;
-	}
-	
-	if (mp_node->type != VFS_NODE_DIRECTORY) {
-		printf("%s node not a directory, type=%d\n", mp, mp_node->type);
-		return ENOTDIR;
-	}
-	
-	if (vfs_node_has_children(mp_node)) {
-		return ENOTEMPTY;
-	}
-	
-	vfs_node_t *mountee;
-	
-	rc = vfs_connect_internal(service_id, flags, instance, opts, fs_name, &mountee);
-	if (rc != EOK) {
-		vfs_node_put(mp_node);
-		return ENOMEM;
-	}
-	
-	mp_node->mount = mountee;
-	/* The two references to nodes are held by the mount so that they cannot be freed.
-	 * They are removed in detach_internal().
-	 */
-	return EOK;
-}
-
 void vfs_mount_srv(ipc_callid_t rid, ipc_call_t *request)
 {
+	int mpfd = IPC_GET_ARG1(*request);
+	
 	/*
 	 * We expect the library to do the device-name to device-handle
 	 * translation for us, thus the device handle will arrive as ARG1
 	 * in the request.
 	 */
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
+	service_id_t service_id = (service_id_t) IPC_GET_ARG2(*request);
 	
 	/*
 	 * Mount flags are passed as ARG2.
 	 */
-	unsigned int flags = (unsigned int) IPC_GET_ARG2(*request);
+	unsigned int flags = (unsigned int) IPC_GET_ARG3(*request);
 	
 	/*
 	 * Instance number is passed as ARG3.
 	 */
-	unsigned int instance = IPC_GET_ARG3(*request);
-
-	/* We want the client to send us the mount point. */
-	char *mp;
-	int rc = async_data_write_accept((void **) &mp, true, 0, MAX_PATH_LEN,
-	    0, NULL);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
+	unsigned int instance = IPC_GET_ARG4(*request);
 	
+	char *opts = NULL;
+	char *fs_name = NULL;
+	vfs_file_t *mp = NULL;
+	vfs_file_t *file = NULL;
+	int fd = -1;
+	mtab_ent_t *mtab_ent = NULL;
+
 	/* Now we expect to receive the mount options. */
-	char *opts;
-	rc = async_data_write_accept((void **) &opts, true, 0, MAX_MNTOPTS_LEN,
+	int rc = async_data_write_accept((void **) &opts, true, 0, MAX_MNTOPTS_LEN,
 	    0, NULL);
 	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		free(mp);
-		return;
+		async_data_write_void(rc);
+		goto out;
 	}
 	
 	/*
 	 * Now, we expect the client to send us data with the name of the file
 	 * system.
 	 */
-	char *fs_name;
 	rc = async_data_write_accept((void **) &fs_name, true, 0,
 	    FS_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		free(mp);
-		free(opts);
-		return;
+		goto out;
+	}
+	
+	if (!(flags & VFS_MOUNT_CONNECT_ONLY)) {
+		mp = vfs_file_get(mpfd);
+		if (mp == NULL) {
+			rc = EBADF;
+			goto out;
+		}
+		
+		if (mp->node->mount != NULL) {
+			rc = EBUSY;
+			goto out;
+		}
+		
+		if (mp->node->type != VFS_NODE_DIRECTORY) {
+			rc = ENOTDIR;
+			goto out;
+		}
+		
+		if (vfs_node_has_children(mp->node)) {
+			rc = ENOTEMPTY;
+			goto out;
+		}
+	}
+	
+	if (!(flags & VFS_MOUNT_NO_REF)) {
+		fd = vfs_fd_alloc(&file, false);
+		if (fd < 0) {
+			rc = fd;
+			goto out;
+		}
 	}
 	
 	/* Add the filesystem info to the list of mounted filesystems */
-	mtab_ent_t *mtab_ent = malloc(sizeof(mtab_ent_t));
+	mtab_ent = malloc(sizeof(mtab_ent_t));
 	if (!mtab_ent) {
-		async_answer_0(rid, ENOMEM);
-		free(mp);
-		free(fs_name);
-		free(opts);
-		return;
+		rc = ENOMEM;
+		goto out;
 	}
 	
-	/* Mount the filesystem. */
+	vfs_node_t *root = NULL;
+	
 	fibril_rwlock_write_lock(&namespace_rwlock);
-	rc = vfs_mount_internal(service_id, flags, instance, opts, fs_name, mp);
-	fibril_rwlock_write_unlock(&namespace_rwlock);
 
+	rc = vfs_connect_internal(service_id, flags, instance, opts, fs_name, &root);
+	if (rc == EOK && !(flags & VFS_MOUNT_CONNECT_ONLY)) {
+		vfs_node_addref(mp->node);
+		vfs_node_addref(root);
+		mp->node->mount = root;
+	}
+	
+	fibril_rwlock_write_unlock(&namespace_rwlock);
+	
+	if (rc != EOK) {
+		goto out;
+	}
+	
+	
+	if (flags & VFS_MOUNT_NO_REF) {
+		vfs_node_delref(root);
+	} else {
+		assert(file != NULL);
+		
+		file->node = root;
+		file->permissions = MODE_READ | MODE_WRITE | MODE_APPEND;
+		file->open_read = false;
+		file->open_write = false;
+	}
+	
 	/* Add the filesystem info to the list of mounted filesystems */
 	if (rc == EOK) {
-		str_cpy(mtab_ent->mp, MAX_PATH_LEN, mp);
+		str_cpy(mtab_ent->mp, MAX_PATH_LEN, "fixme");
 		str_cpy(mtab_ent->fs_name, FS_NAME_MAXLEN, fs_name);
 		str_cpy(mtab_ent->opts, MAX_MNTOPTS_LEN, opts);
 		mtab_ent->instance = instance;
@@ -268,136 +247,85 @@ void vfs_mount_srv(ipc_callid_t rid, ipc_call_t *request)
 		list_append(&mtab_ent->link, &mtab_list);
 		mtab_size++;
 		fibril_mutex_unlock(&mtab_list_lock);
-	}
+	}	
 	
-	async_answer_0(rid, rc);
+	rc = EOK;
 
-	free(mp);
-	free(fs_name);
-	free(opts);
+out:
+	async_answer_1(rid, rc, rc == EOK ? fd : 0);
+
+	if (opts) {
+		free(opts);
+	}
+	if (fs_name) {
+		free(fs_name);
+	}
+	if (mp) {
+		vfs_file_put(mp);
+	}
+	if (file) {
+		vfs_file_put(file);
+	}
+	if (rc != EOK && fd >= 0) {
+		vfs_fd_free(fd);
+	}
 }
 
 void vfs_unmount_srv(ipc_callid_t rid, ipc_call_t *request)
 {
-	/*
-	 * Receive the mount point path.
-	 */
-	char *mp;
-	int rc = async_data_write_accept((void **) &mp, true, 0, MAX_PATH_LEN,
-	    0, NULL);
-	if (rc != EOK)
-		async_answer_0(rid, rc);
+	int mpfd = IPC_GET_ARG1(*request);
 	
-	/*
-	 * Taking the namespace lock will do two things for us. First, it will
-	 * prevent races with other lookup operations. Second, it will stop new
-	 * references to already existing VFS nodes and creation of new VFS
-	 * nodes. This is because new references are added as a result of some
-	 * lookup operation or at least of some operation which is protected by
-	 * the namespace lock.
-	 */
-	fibril_rwlock_write_lock(&namespace_rwlock);
-		
-	if (str_cmp(mp, "/") == 0) {
-		free(mp);
-		
-		/*
-		 * Unmounting the root file system.
-		 *
-		 * In this case, there is no mount point node and we send
-		 * VFS_OUT_UNMOUNTED directly to the mounted file system.
-		 */
-		
-		if (!root) {
-			fibril_rwlock_write_unlock(&namespace_rwlock);
-			async_answer_0(rid, ENOENT);
-			return;
-		}
-		
-		/*
-		 * Count the total number of references for the mounted file system. We
-		 * are expecting at least one, which we got when the file system was mounted.
-		 * If we find more, it means that
-		 * the file system cannot be gracefully unmounted at the moment because
-		 * someone is working with it.
-		 */
-		if (vfs_nodes_refcount_sum_get(root->fs_handle, root->service_id) != 1) {
-			fibril_rwlock_write_unlock(&namespace_rwlock);
-			async_answer_0(rid, EBUSY);
-			return;
-		}
-		
-		async_exch_t *exch = vfs_exchange_grab(root->fs_handle);
-		rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED, root->service_id);
-		vfs_exchange_release(exch);
-		
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		if (rc == EOK) {
-			vfs_node_forget(root);
-			root = NULL;
-		}
-		async_answer_0(rid, rc);
+	vfs_file_t *mp = vfs_file_get(mpfd);
+	if (mp == NULL) {
+		async_answer_0(rid, EBADF);
 		return;
 	}
 	
-	/*
-	 * Lookup the mounted root and instantiate it.
-	 */
-	vfs_lookup_res_t mp_res;
-	rc = vfs_lookup_internal(root, mp, L_MP, &mp_res);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		free(mp);
-		async_answer_0(rid, rc);
-		return;
-	}
-	vfs_node_t *mp_node = vfs_node_get(&mp_res);
-	if (!mp_node) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		free(mp);
-		async_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	if (mp_node->mount == NULL) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		vfs_node_put(mp_node);
-		free(mp);
+	if (mp->node->mount == NULL) {
 		async_answer_0(rid, ENOENT);
+		vfs_file_put(mp);
 		return;
 	}
+	
+	fibril_rwlock_write_lock(&namespace_rwlock);
 	
 	/*
 	 * Count the total number of references for the mounted file system. We
-	 * are expecting at least one, which we got when the file system was mounted.
+	 * are expecting at least one, which is held by the mount point.
 	 * If we find more, it means that
 	 * the file system cannot be gracefully unmounted at the moment because
 	 * someone is working with it.
 	 */
-	if (vfs_nodes_refcount_sum_get(mp_node->mount->fs_handle, mp_node->mount->service_id) != 1) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		vfs_node_put(mp_node);
-		free(mp);
+	if (vfs_nodes_refcount_sum_get(mp->node->mount->fs_handle, mp->node->mount->service_id) != 1) {
 		async_answer_0(rid, EBUSY);
+		vfs_file_put(mp);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return;
 	}
 	
-	/* Unmount the filesystem. */
-	async_exch_t *exch = vfs_exchange_grab(mp_node->mount->fs_handle);
-	rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED, mp_node->mount->service_id);
+	async_exch_t *exch = vfs_exchange_grab(mp->node->mount->fs_handle);
+	int rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED, mp->node->mount->service_id);
 	vfs_exchange_release(exch);
 	
-	vfs_node_forget(mp_node->mount);
-	mp_node->mount = NULL;
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		vfs_file_put(mp);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
+		return;
+	}
 	
-	vfs_node_put(mp_node);
+	vfs_node_forget(mp->node->mount);
+	vfs_node_put(mp->node);
+	mp->node->mount = NULL;
+	
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	
 	fibril_mutex_lock(&mtab_list_lock);
 	int found = 0;
 
 	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
-		if (str_cmp(mtab_ent->mp, mp) == 0) {
+		// FIXME: mp name
+		if (str_cmp(mtab_ent->mp, "fixme") == 0) {
 			list_remove(&mtab_ent->link);
 			mtab_size--;
 			free(mtab_ent);
@@ -407,11 +335,9 @@ void vfs_unmount_srv(ipc_callid_t rid, ipc_call_t *request)
 	}
 	assert(found);
 	fibril_mutex_unlock(&mtab_list_lock);
-
-	free(mp);	
 	
+	vfs_file_put(mp);
 	async_answer_0(rid, EOK);
-	return;
 }
 
 static inline bool walk_flags_valid(int flags)
@@ -448,6 +374,9 @@ static inline int walk_lookup_flags(int flags)
 	if (flags&WALK_DIRECTORY) {
 		lflags |= L_DIRECTORY;
 	}
+	if (flags&WALK_MOUNT_POINT) {
+		lflags |= L_MP;
+	}
 	return lflags;
 }
 
@@ -469,23 +398,17 @@ void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
 	int rc = async_data_write_accept((void **)&path, true, 0, 0, 0, NULL);
 	
 	/* Lookup the file structure corresponding to the file descriptor. */
-	vfs_file_t *parent = NULL;
-	vfs_node_t *parent_node = root;
-	// TODO: Client-side root.
-	if (parentfd != -1) {
-		parent = vfs_file_get(parentfd);
-		if (!parent) {
-			free(path);
-			async_answer_0(rid, EBADF);
-			return;
-		}
-		parent_node = parent->node;
+	vfs_file_t *parent = vfs_file_get(parentfd);
+	if (!parent) {
+		free(path);
+		async_answer_0(rid, EBADF);
+		return;
 	}
 	
 	fibril_rwlock_read_lock(&namespace_rwlock);
 	
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(parent_node, path, walk_lookup_flags(flags), &lr);
+	rc = vfs_lookup_internal(parent->node, path, walk_lookup_flags(flags), &lr);
 	free(path);
 
 	if (rc != EOK) {
@@ -962,7 +885,6 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 	char *path;
 	vfs_file_t *parent = NULL;
 	vfs_file_t *expect = NULL;
-	vfs_node_t *parent_node = root;
 	
 	int parentfd = IPC_GET_ARG1(*request);
 	int expectfd = IPC_GET_ARG2(*request);
@@ -973,16 +895,20 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, rc);
 		return;
 	}
+	if (parentfd == expectfd) {
+		async_answer_0(rid, EINVAL);
+		return;
+	}
 	
 	fibril_rwlock_write_lock(&namespace_rwlock);
 	
 	int lflag = (wflag&WALK_DIRECTORY) ? L_DIRECTORY: 0;
 
 	/* Files are retrieved in order of file descriptors, to prevent deadlock. */
-	if (parentfd >= 0 && parentfd < expectfd) {
+	if (parentfd < expectfd) {
 		parent = vfs_file_get(parentfd);
 		if (!parent) {
-			rc = ENOENT;
+			rc = EBADF;
 			goto exit;
 		}
 	}
@@ -995,21 +921,19 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 		}
 	}
 	
-	if (parentfd >= 0 && parentfd >= expectfd) {
+	if (parentfd > expectfd) {
 		parent = vfs_file_get(parentfd);
 		if (!parent) {
-			rc = ENOENT;
+			rc = EBADF;
 			goto exit;
 		}
 	}
 	
-	if (parent) {
-		parent_node = parent->node;
-	}
+	assert(parent != NULL);
 	
 	if (expectfd >= 0) {
 		vfs_lookup_res_t lr;
-		rc = vfs_lookup_internal(parent_node, path, lflag, &lr);
+		rc = vfs_lookup_internal(parent->node, path, lflag, &lr);
 		if (rc != EOK) {
 			goto exit;
 		}
@@ -1025,7 +949,7 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(parent_node, path, lflag | L_UNLINK, &lr);
+	rc = vfs_lookup_internal(parent->node, path, lflag | L_UNLINK, &lr);
 	if (rc != EOK) {
 		goto exit;
 	}
@@ -1187,18 +1111,13 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	assert(newc[nlen] == '\0');
 	
 	/* Lookup the file structure corresponding to the file descriptor. */
-	vfs_node_t *base_node = root;
-	// TODO: Client-side root.
-	if (basefd != -1) {
-		base = vfs_file_get(basefd);
-		if (!base) {
-			rc = EBADF;
-			goto out;
-		}
-		base_node = base->node;
+	base = vfs_file_get(basefd);
+	if (!base) {
+		rc = EBADF;
+		goto out;
 	}
 	
-	rc = vfs_rename_internal(base_node, oldc, newc);
+	rc = vfs_rename_internal(base->node, oldc, newc);
 
 out:
 	async_answer_0(rid, rc);
@@ -1357,15 +1276,16 @@ void vfs_op_clone(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Lookup the file structure corresponding to fd. */
 	vfs_file_t *oldfile = vfs_file_get(oldfd);
-	if (!oldfile) {
+	if (oldfile == NULL) {
 		async_answer_0(rid, EBADF);
 		return;
 	}
 	
 	vfs_file_t *newfile;
 	int newfd = vfs_fd_alloc(&newfile, desc);
+	async_answer_0(rid, newfd);
+	
 	if (newfd < 0) {
-		async_answer_0(rid, newfd);
 		vfs_file_put(oldfile);
 		return;
 	}
@@ -1378,8 +1298,6 @@ void vfs_op_clone(ipc_callid_t rid, ipc_call_t *request)
 
 	vfs_file_put(oldfile);
 	vfs_file_put(newfile);
-	
-	async_answer_0(rid, newfd);
 }
 
 /**

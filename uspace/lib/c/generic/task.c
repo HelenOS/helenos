@@ -47,6 +47,7 @@
 #include <libc.h>
 #include "private/ns.h"
 #include <vfs/vfs.h>
+#include <unistd.h>
 
 task_id_t task_get_id(void)
 {
@@ -176,6 +177,14 @@ int task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 		goto error;
 	
 	/* Send files */
+	int root = vfs_root();
+	if (root >= 0) {
+		rc = loader_add_inbox(ldr, "root", root);
+		close(root);
+		if (rc != EOK)
+			goto error;
+	}
+	
 	if (fd_stdin >= 0) {
 		rc = loader_add_inbox(ldr, "stdin", fd_stdin);
 		if (rc != EOK)

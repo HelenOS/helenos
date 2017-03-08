@@ -64,6 +64,32 @@ static int cwd_fd = -1;
 static char *cwd_path = NULL;
 static size_t cwd_size = 0;
 
+static FIBRIL_MUTEX_INITIALIZE(root_mutex);
+static int root_fd = -1;
+
+int vfs_root(void)
+{
+	fibril_mutex_lock(&root_mutex);	
+	int r;
+	if (root_fd < 0) {
+		r = ENOENT;
+	} else {
+		r = vfs_clone(root_fd, true);
+	}
+	fibril_mutex_unlock(&root_mutex);
+	return r;
+}
+
+void vfs_root_set(int nroot)
+{
+	fibril_mutex_lock(&root_mutex);
+	if (root_fd >= 0) {
+		close(root_fd);
+	}
+	root_fd = vfs_clone(nroot, true);
+	fibril_mutex_unlock(&root_mutex);
+}
+
 /** Start an async exchange on the VFS session.
  *
  * @return New exchange.
@@ -115,14 +141,20 @@ int _vfs_walk(int parent, const char *path, int flags)
 	return (int) IPC_GET_ARG1(answer);
 }
 
-int vfs_lookup(const char *path)
+int vfs_lookup(const char *path, int flags)
 {
 	size_t size;
 	char *p = vfs_absolutize(path, &size);
 	if (!p) {
 		return ENOMEM;
 	}
-	int rc = _vfs_walk(-1, p, 0);
+	int root = vfs_root();
+	if (root == -1) {
+		free(p);
+		return ENOENT;
+	}
+	int rc = _vfs_walk(root, p, flags);
+	close(root);
 	free(p);
 	return rc;
 }
@@ -186,7 +218,51 @@ char *vfs_absolutize(const char *path, size_t *retlen)
 	return ncwd_path;
 }
 
-int vfs_mount(const char *fs_name, const char *mp, const char *fqsn,
+int vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *opts,
+unsigned int flags, unsigned int instance, int *mountedfd)
+{
+	sysarg_t rc, rc1;
+	
+	if (!mountedfd) {
+		flags |= VFS_MOUNT_NO_REF;
+	}
+	if (mp < 0) {
+		flags |= VFS_MOUNT_CONNECT_ONLY;
+	}
+	
+	ipc_call_t answer;
+	async_exch_t *exch = vfs_exchange_begin();
+	aid_t req = async_send_4(exch, VFS_IN_MOUNT, mp, serv, flags, instance, &answer);
+
+	rc1 = async_data_write_start(exch, (void *) opts, str_size(opts));
+	
+	if (rc1 == EOK) {
+		rc1 = async_data_write_start(exch, (void *) fs_name, str_size(fs_name));
+	}
+
+	vfs_exchange_end(exch);
+
+	async_wait_for(req, &rc);
+
+	if (mountedfd) {
+		*mountedfd = (int) IPC_GET_ARG1(answer);
+	}
+	
+	if (rc != EOK) {
+		return rc;
+	}
+	return rc1;
+}
+
+int vfs_unmount(int mp)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	int rc = async_req_1_0(exch, VFS_IN_UNMOUNT, mp);
+	vfs_exchange_end(exch);
+	return rc;
+}
+
+int mount(const char *fs_name, const char *mp, const char *fqsn,
     const char *opts, unsigned int flags, unsigned int instance)
 {
 	int null_id = -1;
@@ -202,6 +278,12 @@ int vfs_mount(const char *fs_name, const char *mp, const char *fqsn,
 		
 		snprintf(null, LOC_NAME_MAXLEN, "null/%d", null_id);
 		fqsn = null;
+	}
+	
+	if (flags & IPC_FLAG_BLOCKING) {
+		flags = VFS_MOUNT_BLOCKING;
+	} else {
+		flags = 0;
 	}
 	
 	service_id_t service_id;
@@ -222,59 +304,45 @@ int vfs_mount(const char *fs_name, const char *mp, const char *fqsn,
 		return ENOMEM;
 	}
 	
-	async_exch_t *exch = vfs_exchange_begin();
-
-	sysarg_t rc_orig;
-	aid_t req = async_send_3(exch, VFS_IN_MOUNT, service_id, flags,
-	    instance, NULL);
-	sysarg_t rc = async_data_write_start(exch, (void *) mpa, mpa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(mpa);
-		async_wait_for(req, &rc_orig);
+	fibril_mutex_lock(&root_mutex);
+	
+	int rc;
+	
+	if (str_cmp(mpa, "/") == 0) {
+		/* Mounting root. */
 		
-		if (null_id != -1)
-			loc_null_destroy(null_id);
+		if (root_fd >= 0) {
+			fibril_mutex_unlock(&root_mutex);
+			if (null_id != -1) {
+				loc_null_destroy(null_id);
+			}
+			return EBUSY;
+		}
 		
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+		int root;
+		rc = vfs_mount(-1, fs_name, service_id, opts, flags, instance, &root);
+		if (rc == EOK) {
+			root_fd = root;
+		}
+	} else {
+		if (root_fd < 0) {
+			fibril_mutex_unlock(&root_mutex);
+			if (null_id != -1) {
+				loc_null_destroy(null_id);
+			}
+			return EINVAL;
+		}
+		
+		int mpfd = _vfs_walk(root_fd, mpa, WALK_DIRECTORY);
+		if (mpfd >= 0) {
+			rc = vfs_mount(mpfd, fs_name, service_id, opts, flags, instance, NULL);
+			close(mpfd);
+		} else {
+			rc = mpfd;
+		}
 	}
 	
-	rc = async_data_write_start(exch, (void *) opts, str_size(opts));
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(mpa);
-		async_wait_for(req, &rc_orig);
-		
-		if (null_id != -1)
-			loc_null_destroy(null_id);
-		
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
-	
-	rc = async_data_write_start(exch, (void *) fs_name, str_size(fs_name));
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(mpa);
-		async_wait_for(req, &rc_orig);
-		
-		if (null_id != -1)
-			loc_null_destroy(null_id);
-		
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
-	
-	vfs_exchange_end(exch);
-	free(mpa);
-	async_wait_for(req, &rc);
+	fibril_mutex_unlock(&root_mutex);
 	
 	if ((rc != EOK) && (null_id != -1))
 		loc_null_destroy(null_id);
@@ -282,38 +350,16 @@ int vfs_mount(const char *fs_name, const char *mp, const char *fqsn,
 	return (int) rc;
 }
 
-int vfs_unmount(const char *mp)
+int unmount(const char *mpp)
 {
-	sysarg_t rc;
-	sysarg_t rc_orig;
-	aid_t req;
-	size_t mpa_size;
-	char *mpa;
-	
-	mpa = vfs_absolutize(mp, &mpa_size);
-	if (mpa == NULL)
-		return ENOMEM;
-	
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	req = async_send_0(exch, VFS_IN_UNMOUNT, NULL);
-	rc = async_data_write_start(exch, (void *) mpa, mpa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(mpa);
-		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+	int mp = vfs_lookup(mpp, WALK_MOUNT_POINT | WALK_DIRECTORY);
+	if (mp < 0) {
+		return mp;
 	}
 	
-
-	vfs_exchange_end(exch);
-	free(mpa);
-	async_wait_for(req, &rc);
-	
-	return (int) rc;
+	int rc = vfs_unmount(mp);
+	close(mp);
+	return rc;
 }
 
 static int walk_flags(int oflags)
@@ -347,13 +393,7 @@ int open(const char *path, int oflag, ...)
 
 	assert((((oflag & O_RDONLY) != 0) + ((oflag & O_WRONLY) != 0) + ((oflag & O_RDWR) != 0)) == 1);
 	
-	size_t abs_size;
-	char *abs = vfs_absolutize(path, &abs_size);
-	if (!abs) {
-		return ENOMEM;
-	}
-	
-	int ret = _vfs_walk(-1, abs, walk_flags(oflag) | WALK_REGULAR);
+	int ret = vfs_lookup(path, walk_flags(oflag) | WALK_REGULAR);
 	if (ret < 0) {
 		return ret;
 	}
@@ -679,13 +719,7 @@ int fstat(int fildes, struct stat *stat)
  */
 int stat(const char *path, struct stat *stat)
 {
-	size_t pa_size;
-	char *pa = vfs_absolutize(path, &pa_size);
-	if (!pa) {
-		return ENOMEM;
-	}
-	
-	int fd = _vfs_walk(-1, pa, 0);
+	int fd = vfs_lookup(path, 0);
 	if (fd < 0) {
 		return fd;
 	}
@@ -709,18 +743,8 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 	
-	size_t abs_size;
-	char *abs = vfs_absolutize(dirname, &abs_size);
-	if (abs == NULL) {
-		free(dirp);
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	int ret = _vfs_walk(-1, abs, WALK_DIRECTORY);
-	free(abs);
-	
-	if (ret < EOK) {
+	int ret = vfs_lookup(dirname, WALK_DIRECTORY);
+	if (ret < 0) {
 		free(dirp);
 		errno = ret;
 		return NULL;
@@ -792,13 +816,7 @@ int closedir(DIR *dirp)
  */
 int mkdir(const char *path, mode_t mode)
 {
-	size_t pa_size;
-	char *pa = vfs_absolutize(path, &pa_size);
-	if (!pa) {
-		return ENOMEM;
-	}
-	
-	int ret = _vfs_walk(-1, pa, WALK_MUST_CREATE | WALK_DIRECTORY);
+	int ret = vfs_lookup(path, WALK_MUST_CREATE | WALK_DIRECTORY);
 	if (ret < 0) {
 		return ret;
 	}
@@ -841,7 +859,17 @@ int unlink(const char *path)
 		return ENOMEM;
 	}
 	
-	return _vfs_unlink2(-1, pa, -1, 0);
+	int root = vfs_root();
+	if (root < 0) {
+		free(pa);
+		return ENOENT;
+	}
+	
+	int rc = _vfs_unlink2(root, pa, -1, 0);
+	
+	free(pa);
+	close(root);
+	return rc;
 }
 
 /** Remove empty directory.
@@ -857,7 +885,17 @@ int rmdir(const char *path)
 		return ENOMEM;
 	}
 	
-	return _vfs_unlink2(-1, pa, -1, WALK_DIRECTORY);
+	int root = vfs_root();
+	if (root < 0) {
+		free(pa);
+		return ENOENT;
+	}
+	
+	int rc = _vfs_unlink2(root, pa, -1, WALK_DIRECTORY);
+	
+	free(pa);
+	close(root);
+	return rc;
 }
 
 /** Rename directory entry.
@@ -889,13 +927,20 @@ int rename(const char *old, const char *new)
 	}
 	
 	async_exch_t *exch = vfs_exchange_begin();
+	int root = vfs_root();
+	if (root < 0) {
+		free(olda);
+		free(newa);
+		return ENOENT;
+	}
 	
-	req = async_send_1(exch, VFS_IN_RENAME, -1, NULL);
+	req = async_send_1(exch, VFS_IN_RENAME, root, NULL);
 	rc = async_data_write_start(exch, olda, olda_size);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
 		free(olda);
 		free(newa);
+		close(root);
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
@@ -910,6 +955,7 @@ int rename(const char *old, const char *new)
 		vfs_exchange_end(exch);
 		free(olda);
 		free(newa);
+		close(root);
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
@@ -922,6 +968,7 @@ int rename(const char *old, const char *new)
 	vfs_exchange_end(exch);
 	free(olda);
 	free(newa);
+	close(root);
 	async_wait_for(req, &rc);
 
 	if (rc != EOK) {
@@ -954,7 +1001,7 @@ int chdir(const char *path)
 	if (!abs)
 		return ENOMEM;
 	
-	int fd = _vfs_walk(-1, abs, WALK_DIRECTORY);
+	int fd = vfs_lookup(abs, WALK_DIRECTORY);
 	if (fd < 0) {
 		free(abs);
 		errno = fd;
@@ -963,11 +1010,13 @@ int chdir(const char *path)
 	
 	fibril_mutex_lock(&cwd_mutex);
 	
-	if (cwd_fd >= 0)
+	if (cwd_fd >= 0) {
 		close(cwd_fd);
+	}
 	
-	if (cwd_path)
+	if (cwd_path) {
 		free(cwd_path);
+	}
 	
 	cwd_fd = fd;
 	cwd_path = abs;
@@ -1123,21 +1172,11 @@ exit:
  */
 int statfs(const char *path, struct statfs *st)
 {
-	size_t pa_size;
-	char *pa = vfs_absolutize(path, &pa_size);
-	if (!pa) {
-		errno = ENOMEM;
-		return -1;
-	}
-	
-	int fd = _vfs_walk(-1, pa, 0);
+	int fd = vfs_lookup(path, 0);
 	if (fd < 0) {
-		free(pa);
 		errno = fd;
 		return -1;
 	}
-
-	free(pa);
 	
 	sysarg_t rc, ret;
 	aid_t req;

@@ -51,9 +51,9 @@ enum vfs_change_state_type {
 
 extern char *vfs_absolutize(const char *, size_t *);
 
-extern int vfs_mount(const char *, const char *, const char *, const char *,
+extern int mount(const char *, const char *, const char *, const char *,
     unsigned int, unsigned int);
-extern int vfs_unmount(const char *);
+extern int unmount(const char *);
 
 extern int vfs_fhandle(FILE *, int *);
 
@@ -64,12 +64,17 @@ extern void vfs_exchange_end(async_exch_t *);
 
 extern int _vfs_walk(int, const char *, int);
 extern int _vfs_open(int, int);
-extern int vfs_lookup(const char *);
+extern int vfs_lookup(const char *, int);
 
 extern int vfs_pass_handle(async_exch_t *, int, async_exch_t *);
 extern int vfs_receive_handle(bool);
 
 extern int vfs_clone(int, bool);
+extern int vfs_root(void);
+extern void vfs_root_set(int);
+
+int vfs_mount(int, const char *, service_id_t, const char *, unsigned, unsigned, int *);
+int vfs_unmount(int);
 
 #endif
 

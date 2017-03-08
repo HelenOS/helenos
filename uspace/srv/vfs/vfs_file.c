@@ -177,10 +177,13 @@ static int vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 		 * Lost the last reference to a file, need to close it in the
 		 * endpoint FS and drop our reference to the underlying VFS node.
 		 */
-		if (file->open_read || file->open_write) {
-			rc = vfs_file_close_remote(file);
-		}
-		vfs_node_delref(file->node);
+		
+		if (file->node != NULL) {
+			if (file->open_read || file->open_write) {
+				rc = vfs_file_close_remote(file);
+			}
+			vfs_node_delref(file->node);
+ 		}
 		free(file);
 	}
 
@@ -311,6 +314,15 @@ int vfs_fd_assign(vfs_file_t *file, int fd)
 	return EOK;
 }
 
+static void _vfs_file_put(vfs_client_data_t *vfs_data, vfs_file_t *file)
+{
+	fibril_mutex_unlock(&file->_lock);
+	
+	fibril_mutex_lock(&vfs_data->lock);
+	vfs_file_delref(vfs_data, file);
+	fibril_mutex_unlock(&vfs_data->lock);
+}
+
 static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
 {
 	if (!vfs_files_init(vfs_data))
@@ -322,7 +334,14 @@ static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
 		if (file != NULL) {
 			vfs_file_addref(vfs_data, file);
 			fibril_mutex_unlock(&vfs_data->lock);
+			
 			fibril_mutex_lock(&file->_lock);
+			if (file->node == NULL) {
+				_vfs_file_put(vfs_data, file);
+				return NULL;
+			}
+			assert(file != NULL);
+			assert(file->node != NULL);
 			return file;
 		}
 	}
@@ -340,15 +359,6 @@ static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
 vfs_file_t *vfs_file_get(int fd)
 {
 	return _vfs_file_get(VFS_DATA, fd);
-}
-
-static void _vfs_file_put(vfs_client_data_t *vfs_data, vfs_file_t *file)
-{
-	fibril_mutex_unlock(&file->_lock);
-	
-	fibril_mutex_lock(&vfs_data->lock);
-	vfs_file_delref(vfs_data, file);
-	fibril_mutex_unlock(&vfs_data->lock);
 }
 
 /** Stop using a file structure.

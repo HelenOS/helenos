@@ -114,7 +114,7 @@ int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info
 int elf_load_file_name(const char *path, size_t so_bias, eld_flags_t flags,
     elf_finfo_t *info)
 {
-	int file = vfs_lookup(path);
+	int file = vfs_lookup(path, 0);
 	int rc = elf_load_file(file, so_bias, flags, info);
 	close(file);
 	return rc;

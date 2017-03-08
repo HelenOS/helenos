@@ -150,7 +150,7 @@ int cmd_mount(char **argv)
 	if (argc == 5)
 		mopts = t_argv[4];
 
-	rc = vfs_mount(t_argv[1], t_argv[2], dev, mopts, 0, instance);
+	rc = mount(t_argv[1], t_argv[2], dev, mopts, 0, instance);
 	if (rc != EOK) {
 		printf("Unable to mount %s filesystem to %s on %s (rc=%s)\n",
 		    t_argv[1], t_argv[2], t_argv[3], str_error(rc));

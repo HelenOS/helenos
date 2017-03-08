@@ -329,7 +329,7 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_
 	
 	if (result != NULL) {
 		/* The found file may be a mount point. Try to cross it. */
-		if (!(lflag & L_MP)) {
+		if (!(lflag & (L_MP|L_DISABLE_MOUNTS))) {
 			base = vfs_node_peek(&res);
 			if (base != NULL && base->mount != NULL) {
 				while (base->mount != NULL) {

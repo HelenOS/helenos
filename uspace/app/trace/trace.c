@@ -511,7 +511,7 @@ static loader_t *preload_task(const char *path, char **argv,
 	if (rc != EOK)
 		goto error;
 
-	/* Send program pathname */
+	/* Send program. */
 	rc = loader_set_program_path(ldr, path);
 	if (rc != EOK)
 		goto error;
@@ -522,9 +522,18 @@ static loader_t *preload_task(const char *path, char **argv,
 		goto error;
 
 	/* Send default files */
+	int fd_root;
 	int fd_stdin;
 	int fd_stdout;
 	int fd_stderr;
+	
+	fd_root = vfs_root();
+	if (fd_root >= 0) {
+		rc = loader_add_inbox(ldr, "root", fd_root);
+		close(fd_root);
+		if (rc != EOK)
+			goto error;
+	}
 	
 	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK)) {
 		rc = loader_add_inbox(ldr, "stdin", fd_stdin);

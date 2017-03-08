@@ -197,7 +197,7 @@ int loader_set_program_path(loader_t *ldr, const char *path)
 		name++;
 	}
 	
-	int fd = vfs_lookup(path);
+	int fd = vfs_lookup(path, 0);
 	if (fd < 0) {
 		return fd;
 	}
