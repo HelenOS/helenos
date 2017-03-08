@@ -1316,40 +1316,22 @@ exit:
 
 void vfs_statfs(ipc_callid_t rid, ipc_call_t *request)
 {
-	char *path;
-	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
+	int fd = IPC_GET_ARG1(*request);
 	
 	ipc_callid_t callid;
 	if (!async_data_read_receive(&callid, NULL)) {
-		free(path);
 		async_answer_0(callid, EINVAL);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
 
-	vfs_lookup_res_t lr;
-	fibril_rwlock_read_lock(&namespace_rwlock);
-	rc = vfs_lookup_internal(root, path, L_NONE, &lr);
-	free(path);
-	if (rc != EOK) {
-		fibril_rwlock_read_unlock(&namespace_rwlock);
-		async_answer_0(callid, rc);
-		async_answer_0(rid, rc);
-		return;
-	}
-	vfs_node_t *node = vfs_node_get(&lr);
-	if (!node) {
-		fibril_rwlock_read_unlock(&namespace_rwlock);
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(rid, ENOMEM);
-		return;
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		async_answer_0(callid, EBADF);
+		async_answer_0(rid, EBADF);
 	}
 
-	fibril_rwlock_read_unlock(&namespace_rwlock);
+	vfs_node_t *node = file->node;
 
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
 	
@@ -1363,9 +1345,9 @@ void vfs_statfs(ipc_callid_t rid, ipc_call_t *request)
 	sysarg_t rv;
 	async_wait_for(msg, &rv);
 
-	async_answer_0(rid, rv);
+	vfs_file_put(file);
 
-	vfs_node_put(node);
+	async_answer_0(rid, rv);
 }
 
 void vfs_op_clone(ipc_callid_t rid, ipc_call_t *request)

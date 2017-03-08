@@ -1123,31 +1123,35 @@ exit:
  */
 int statfs(const char *path, struct statfs *st)
 {
-	sysarg_t rc, rc_orig;
-	aid_t req;
 	size_t pa_size;
-
 	char *pa = vfs_absolutize(path, &pa_size);
-	if (pa == NULL) {
+	if (!pa) {
 		errno = ENOMEM;
 		return -1;
 	}
+	
+	int fd = _vfs_walk(-1, pa, 0);
+	if (fd < 0) {
+		free(pa);
+		errno = fd;
+		return -1;
+	}
+
+	free(pa);
+	
+	sysarg_t rc, ret;
+	aid_t req;
 
 	async_exch_t *exch = vfs_exchange_begin();
 
-	req = async_send_0(exch, VFS_IN_STATFS, NULL);
-	rc = async_data_write_start(exch, pa, pa_size);
-	if (rc != EOK)
-		goto exit;
-
+	req = async_send_1(exch, VFS_IN_STATFS, fd, NULL);
 	rc = async_data_read_start(exch, (void *) st, sizeof(*st));
 
-exit:
 	vfs_exchange_end(exch);
-	free(pa);
-	async_wait_for(req, &rc_orig);
-	rc = (rc_orig != EOK ? rc_orig : rc);
+	async_wait_for(req, &ret);
+	close(fd);
 
+	rc = (ret != EOK ? ret : rc);
 	if (rc != EOK) {
 		errno = rc;
 		return -1;
