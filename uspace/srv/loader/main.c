@@ -260,6 +260,13 @@ static void ldr_add_inbox(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
+	/*
+	 * We need to set the root early for dynamically linked binaries so
+	 * that the loader can use it too.
+	 */
+	if (str_cmp(name, "root") == 0)
+		vfs_root_set(file);
+
 	inbox[inbox_entries].name = name;
 	inbox[inbox_entries].file = file;
 	inbox_entries++;
