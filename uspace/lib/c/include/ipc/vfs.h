@@ -156,7 +156,7 @@ typedef enum {
  * cannot be passed directly by the client, but will be set by VFS during
  * VFS_UNLINK.
  */
-#define L_UNLINK		128
+#define L_UNLINK		64
 
 /**
  * L_OPEN is used to indicate that the lookup operation is a part of VFS_IN_OPEN
@@ -164,25 +164,18 @@ typedef enum {
  * resources for the opened file. This flag cannot be passed directly by the
  * client.
  */
-#define L_OPEN			256
+#define L_OPEN			128
 
 /*
  * Walk flags.
  */
 enum {
-	/**
-	 * WALK_PARTIAL requests that if the whole path cannot be traversed,
-	 * the walk() operation should return the last visited file, along
-	 * with an indication of how many directories have been traversed.
-	 */
-	//WALK_PARTIAL = (1 << 0),
+	WALK_MAY_CREATE = (1 << 0),
+	WALK_MUST_CREATE = (1 << 1),
 	
-	WALK_MAY_CREATE = (1 << 1),
-	WALK_MUST_CREATE = (1 << 2),
-	
-	WALK_REGULAR = (1 << 3),
-	WALK_DIRECTORY = (1 << 4),
-	WALK_MOUNT_POINT = (1 << 5),
+	WALK_REGULAR = (1 << 2),
+	WALK_DIRECTORY = (1 << 3),
+	WALK_MOUNT_POINT = (1 << 4),
 	
 	WALK_ALL_FLAGS = WALK_MAY_CREATE | WALK_MUST_CREATE | WALK_REGULAR | WALK_DIRECTORY,
 };
