@@ -1010,17 +1010,17 @@ int vfs_op_wait_handle(bool high_fd)
 
 static inline bool walk_flags_valid(int flags)
 {
-	if ((flags&~WALK_ALL_FLAGS) != 0) {
+	if ((flags & ~WALK_ALL_FLAGS) != 0) {
 		return false;
 	}
-	if ((flags&WALK_MAY_CREATE) && (flags&WALK_MUST_CREATE)) {
+	if ((flags & WALK_MAY_CREATE) && (flags & WALK_MUST_CREATE)) {
 		return false;
 	}
-	if ((flags&WALK_REGULAR) && (flags&WALK_DIRECTORY)) {
+	if ((flags & WALK_REGULAR) && (flags & WALK_DIRECTORY)) {
 		return false;
 	}
-	if ((flags&WALK_MAY_CREATE) || (flags&WALK_MUST_CREATE)) {
-		if (!(flags&WALK_DIRECTORY) && !(flags&WALK_REGULAR)) {
+	if ((flags & WALK_MAY_CREATE) || (flags & WALK_MUST_CREATE)) {
+		if (!(flags & WALK_DIRECTORY) && !(flags & WALK_REGULAR)) {
 			return false;
 		}
 	}
@@ -1030,19 +1030,19 @@ static inline bool walk_flags_valid(int flags)
 static inline int walk_lookup_flags(int flags)
 {
 	int lflags = 0;
-	if (flags&WALK_MAY_CREATE || flags&WALK_MUST_CREATE) {
+	if ((flags & WALK_MAY_CREATE) || (flags & WALK_MUST_CREATE)) {
 		lflags |= L_CREATE;
 	}
-	if (flags&WALK_MUST_CREATE) {
+	if (flags & WALK_MUST_CREATE) {
 		lflags |= L_EXCLUSIVE;
 	}
-	if (flags&WALK_REGULAR) {
+	if (flags & WALK_REGULAR) {
 		lflags |= L_FILE;
 	}
-	if (flags&WALK_DIRECTORY) {
+	if (flags & WALK_DIRECTORY) {
 		lflags |= L_DIRECTORY;
 	}
-	if (flags&WALK_MOUNT_POINT) {
+	if (flags & WALK_MOUNT_POINT) {
 		lflags |= L_MP;
 	}
 	return lflags;
