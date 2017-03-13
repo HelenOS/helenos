@@ -51,11 +51,6 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <vfs/canonify.h>
-#include <vfs/vfs_mtab.h>
-
-FIBRIL_MUTEX_INITIALIZE(mtab_list_lock);
-LIST_INITIALIZE(mtab_list);
-static size_t mtab_size = 0;
 
 /* Forward declarations of static functions. */
 static int vfs_truncate_internal(fs_handle_t, service_id_t, fs_index_t,
@@ -242,7 +237,6 @@ int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 	vfs_file_t *mp = NULL;
 	vfs_file_t *file = NULL;
 	int fd = -1;
-	mtab_ent_t *mtab_ent = NULL;
 	
 	if (!(flags & VFS_MOUNT_CONNECT_ONLY)) {
 		mp = vfs_file_get(mpfd);
@@ -275,13 +269,6 @@ int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 		}
 	}
 	
-	/* Add the filesystem info to the list of mounted filesystems */
-	mtab_ent = malloc(sizeof(mtab_ent_t));
-	if (!mtab_ent) {
-		rc = ENOMEM;
-		goto out;
-	}
-	
 	vfs_node_t *root = NULL;
 	
 	fibril_rwlock_write_lock(&namespace_rwlock);
@@ -300,7 +287,6 @@ int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 		goto out;
 	}
 	
-	
 	if (flags & VFS_MOUNT_NO_REF) {
 		vfs_node_delref(root);
 	} else {
@@ -312,20 +298,6 @@ int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 		file->open_write = false;
 	}
 	
-	/* Add the filesystem info to the list of mounted filesystems */
-	str_cpy(mtab_ent->mp, MAX_PATH_LEN, "fixme");
-	str_cpy(mtab_ent->fs_name, FS_NAME_MAXLEN, fs_name);
-	str_cpy(mtab_ent->opts, MAX_MNTOPTS_LEN, opts);
-	mtab_ent->instance = instance;
-	mtab_ent->service_id = service_id;
-
-	link_initialize(&mtab_ent->link);
-
-	fibril_mutex_lock(&mtab_list_lock);
-	list_append(&mtab_ent->link, &mtab_list);
-	mtab_size++;
-	fibril_mutex_unlock(&mtab_list_lock);	
-
 out:
 	if (mp) {
 		vfs_file_put(mp);
@@ -339,68 +311,6 @@ out:
 	}
 	
 	*outfd = fd;
-	return rc;
-}
-
-int vfs_op_mtab_get(void)
-{
-	ipc_callid_t callid;
-	ipc_call_t data;
-	sysarg_t rc = EOK;
-	size_t len;
-
-	fibril_mutex_lock(&mtab_list_lock);
-
-	/* Send to the caller the number of mounted filesystems */
-	callid = async_get_call(&data);
-	if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
-		rc = ENOTSUP;
-		async_answer_0(callid, rc);
-		goto exit;
-	}
-	async_answer_1(callid, EOK, mtab_size);
-
-	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
-		rc = ENOTSUP;
-
-		if (!async_data_read_receive(&callid, &len)) {
-			async_answer_0(callid, rc);
-			goto exit;
-		}
-
-		(void) async_data_read_finalize(callid, mtab_ent->mp,
-		    str_size(mtab_ent->mp));
-
-		if (!async_data_read_receive(&callid, &len)) {
-			async_answer_0(callid, rc);
-			goto exit;
-		}
-
-		(void) async_data_read_finalize(callid, mtab_ent->opts,
-		    str_size(mtab_ent->opts));
-
-		if (!async_data_read_receive(&callid, &len)) {
-			async_answer_0(callid, rc);
-			goto exit;
-		}
-
-		(void) async_data_read_finalize(callid, mtab_ent->fs_name,
-		    str_size(mtab_ent->fs_name));
-
-		callid = async_get_call(&data);
-
-		if (IPC_GET_IMETHOD(data) != VFS_IN_PING) {
-			async_answer_0(callid, rc);
-			goto exit;
-		}
-
-		rc = EOK;
-		async_answer_2(callid, rc, mtab_ent->instance,
-		    mtab_ent->service_id);
-	}
-
-exit:
-	fibril_mutex_unlock(&mtab_list_lock);
 	return rc;
 }
 
@@ -982,22 +892,6 @@ int vfs_op_unmount(int mpfd)
 	mp->node->mount = NULL;
 	
 	fibril_rwlock_write_unlock(&namespace_rwlock);
-	
-	fibril_mutex_lock(&mtab_list_lock);
-	int found = 0;
-
-	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
-		// FIXME: mp name
-		if (str_cmp(mtab_ent->mp, "fixme") == 0) {
-			list_remove(&mtab_ent->link);
-			mtab_size--;
-			free(mtab_ent);
-			found = 1;
-			break;
-		}
-	}
-	assert(found);
-	fibril_mutex_unlock(&mtab_list_lock);
 	
 	vfs_file_put(mp);
 	return EOK;

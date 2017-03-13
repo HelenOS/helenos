@@ -41,13 +41,10 @@
 #include <adt/list.h>
 #include <stdio.h>
 #include <async.h>
-#include "vfs_mtab.h"
-
 
 enum vfs_change_state_type {
 	VFS_PASS_HANDLE
 };
-
 
 extern char *vfs_absolutize(const char *, size_t *);
 

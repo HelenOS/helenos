@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <str_error.h>
 #include <vfs/vfs.h>
+#include <vfs/vfs_mtab.h>
 #include <adt/list.h>
 #include <errno.h>
 #include <getopt.h>

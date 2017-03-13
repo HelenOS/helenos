@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <adt/list.h>
 #include <vfs/vfs.h>
+#include <vfs/vfs_mtab.h>
 
 #define NAME  "df"
 

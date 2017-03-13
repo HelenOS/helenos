@@ -109,12 +109,6 @@ static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 	free(fs_name);
 }
 
-static void vfs_in_mtab_get(ipc_callid_t rid, ipc_call_t *request)
-{
-	int rc = vfs_op_mtab_get();
-	async_answer_0(rid, rc);
-}
-
 static void vfs_in_open2(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
@@ -304,9 +298,6 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_IN_MOUNT:
 			vfs_in_mount(callid, &call);
-			break;
-		case VFS_IN_MTAB_GET:
-			vfs_in_mtab_get(callid, &call);
 			break;
 		case VFS_IN_OPEN2:
 			vfs_in_open2(callid, &call);
