@@ -82,8 +82,6 @@ static void print_mtab_list(void)
 		old_ent = mtab_ent;
 
 		printf("%s", mtab_ent->fs_name);
-		if (mtab_ent->instance)
-			printf("/%d", mtab_ent->instance);
 
 		printf(" %s", mtab_ent->mp);
 
@@ -94,9 +92,6 @@ static void print_mtab_list(void)
 		} else {
 			printf(" (%" PRIun ")", mtab_ent->service_id);
 		}
-
-		if (str_size(mtab_ent->opts) > 0)
-			printf(" (%s)", mtab_ent->opts);
 
 		putchar('\n');
 	}

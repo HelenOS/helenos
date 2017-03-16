@@ -34,6 +34,7 @@
 
 #include <vfs/canonify.h>
 #include <vfs/vfs.h>
+#include <vfs/vfs_mtab.h>
 #include <vfs/vfs_sess.h>
 #include <macros.h>
 #include <stdlib.h>
@@ -1103,11 +1104,82 @@ int dup2(int oldfd, int newfd)
 	return 0;
 }
 
+static void process_mp(const char *path, struct stat *stat, list_t *mtab_list)
+{
+	mtab_ent_t *ent;
+
+	ent = (mtab_ent_t *) malloc(sizeof(mtab_ent_t));
+	if (!ent)
+		return;
+
+	link_initialize(&ent->link);
+	str_cpy(ent->mp, sizeof(ent->mp), path);
+	str_cpy(ent->fs_name, sizeof(ent->fs_name), "fixme");
+	ent->service_id = stat->service_id;
+	
+	list_append(&ent->link, mtab_list);
+}
+
+static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
+    fs_handle_t fs_handle, service_id_t service_id)
+{
+	DIR *dir;
+	struct dirent *dirent;
+
+	dir = opendir(path);
+	if (!dir)
+		return -1;
+
+	while ((dirent = readdir(dir)) != NULL) {
+		char *child;
+		struct stat st;
+		int rc;
+
+		rc = asprintf(&child, "%s/%s", path, dirent->d_name);
+		if (rc < 0) {
+			closedir(dir);
+			errno = rc;
+			return -1;
+		}
+
+		rc = stat(child, &st);
+		if (rc != 0) {
+			free(child);
+			closedir(dir);
+			errno = rc;
+			return -1;
+		}
+
+		if (st.fs_handle != fs_handle || st.service_id != service_id) {
+			/*
+			 * We have discovered a mountpoint.
+			 */
+			process_mp(child, &st, mtab_list);
+		}
+
+		if (st.is_directory) {
+			(void) vfs_get_mtab_visit(child, mtab_list,
+			    st.fs_handle, st.service_id);
+		}
+
+		free(child);
+	}
+
+	closedir(dir);
+	return EOK;
+}
+
 int vfs_get_mtab_list(list_t *mtab_list)
 {
-	sysarg_t rc = ENOTSUP;
-	
-	return rc;
+	struct stat st;
+
+	int rc = stat("/", &st);
+	if (rc != 0)
+		return rc;
+
+	process_mp("/", &st, mtab_list);
+
+	return vfs_get_mtab_visit("", mtab_list, st.fs_handle, st.service_id);
 }
 
 /** Get filesystem statistics.
