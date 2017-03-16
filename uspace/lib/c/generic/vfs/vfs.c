@@ -1114,8 +1114,13 @@ static void process_mp(const char *path, struct stat *stat, list_t *mtab_list)
 
 	link_initialize(&ent->link);
 	str_cpy(ent->mp, sizeof(ent->mp), path);
-	str_cpy(ent->fs_name, sizeof(ent->fs_name), "fixme");
 	ent->service_id = stat->service_id;
+
+	struct statfs stfs;
+	if (statfs(path, &stfs) == EOK)
+		str_cpy(ent->fs_name, sizeof(ent->fs_name), stfs.fs_name);
+	else
+		str_cpy(ent->fs_name, sizeof(ent->fs_name), "?");
 	
 	list_append(&ent->link, mtab_list);
 }

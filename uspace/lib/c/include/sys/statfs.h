@@ -36,12 +36,13 @@
 #define LIBC_SYS_STATFS_H_
 
 #include <sys/types.h>
+#include <ipc/vfs.h>
 
 struct statfs { 
-	uint32_t    f_type;     /* type of file system  */
-	uint32_t    f_bsize;    /* fundamental file system block size */
-	uint64_t    f_blocks;   /* total data blocks in file system */
-	uint64_t    f_bfree;    /* free blocks in fs */
+	char fs_name[FS_NAME_MAXLEN + 1];
+	uint32_t f_bsize;    /* fundamental file system block size */
+	uint64_t f_blocks;   /* total data blocks in file system */
+	uint64_t f_bfree;    /* free blocks in fs */
 };
 
 extern int statfs(const char *, struct statfs *);

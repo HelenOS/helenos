@@ -42,10 +42,12 @@
 #include <assert.h>
 #include <dirent.h>
 #include <mem.h>
+#include <str.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <stdlib.h>
 #include <fibril_synch.h>
+#include <ipc/vfs.h>
 
 #define on_error(rc, action) \
 	do { \
@@ -71,6 +73,8 @@ static fs_reg_t reg;
 
 static vfs_out_ops_t *vfs_out_ops = NULL;
 static libfs_ops_t *libfs_ops = NULL;
+
+static char fs_name[FS_NAME_MAXLEN + 1];
 
 static void libfs_link(libfs_ops_t *, fs_handle_t, ipc_callid_t,
     ipc_call_t *);
@@ -393,6 +397,8 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	 */
 	vfs_out_ops = vops;
 	libfs_ops = lops;
+
+	str_cpy(fs_name, sizeof(fs_name), info->name);
 
 	/*
 	 * Ask VFS for callback connection.
@@ -815,6 +821,8 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 
 	struct statfs st;
 	memset(&st, 0, sizeof(struct statfs));
+
+	str_cpy(st.fs_name, sizeof(st.fs_name), fs_name);
 
 	if (ops->size_block != NULL) {
 		rc = ops->size_block(service_id, &st.f_bsize);
