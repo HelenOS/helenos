@@ -71,6 +71,7 @@ void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 	};
 
 	file->pos = offset;
+	vfs_file_put(file);
 
 	size_t total = 0;
 	do {
@@ -83,8 +84,6 @@ void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 		chunk.buffer += chunk.size;
 		chunk.size = page_size - total;
 	} while (total < page_size);
-
-	vfs_file_put(file);
 
 	async_answer_1(rid, rc, (sysarg_t) page);
 
