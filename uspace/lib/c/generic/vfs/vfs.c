@@ -150,7 +150,7 @@ int vfs_lookup(const char *path, int flags)
 		return ENOMEM;
 	}
 	int root = vfs_root();
-	if (root == -1) {
+	if (root < 0) {
 		free(p);
 		return ENOENT;
 	}
