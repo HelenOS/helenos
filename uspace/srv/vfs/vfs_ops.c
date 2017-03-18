@@ -551,6 +551,7 @@ int vfs_op_rename(int basefd, char *old, char *new)
 	
 	/* Do not allow one path to be a prefix of the other. */
 	if (old[shared] == 0 || new[shared] == 0) {
+		vfs_node_put(base);
 		return EINVAL;
 	}
 	assert(old[shared] == '/');
@@ -563,6 +564,7 @@ int vfs_op_rename(int basefd, char *old, char *new)
 		old[shared] = 0;
 		rc = vfs_lookup_internal(base, old, L_DIRECTORY, &base_lr);
 		if (rc != EOK) {
+			vfs_node_put(base);
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			return rc;
 		}
@@ -572,6 +574,14 @@ int vfs_op_rename(int basefd, char *old, char *new)
 		old[shared] = '/';
 		old += shared;
 		new += shared;
+	}
+
+	rc = vfs_lookup_internal(base, old, L_DISABLE_MOUNTS,
+	    &old_lr);
+	if (rc != EOK) {
+		vfs_node_put(base);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
+		return rc;
 	}
 		
 	rc = vfs_lookup_internal(base, new, L_UNLINK | L_DISABLE_MOUNTS,
@@ -583,10 +593,10 @@ int vfs_op_rename(int basefd, char *old, char *new)
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return rc;
 	}
-	
-	rc = vfs_lookup_internal(base, old, L_UNLINK | L_DISABLE_MOUNTS,
-	    &old_lr);
+
+	rc = vfs_link_internal(base, new, &old_lr.triplet);
 	if (rc != EOK) {
+		vfs_link_internal(base, old, &old_lr.triplet);
 		if (orig_unlinked) {
 			vfs_link_internal(base, new, &new_lr_orig.triplet);
 		}
@@ -594,10 +604,10 @@ int vfs_op_rename(int basefd, char *old, char *new)
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return rc;
 	}
-	
-	rc = vfs_link_internal(base, new, &old_lr.triplet);
+
+	rc = vfs_lookup_internal(base, old, L_UNLINK | L_DISABLE_MOUNTS,
+	    &old_lr);
 	if (rc != EOK) {
-		vfs_link_internal(base, old, &old_lr.triplet);
 		if (orig_unlinked) {
 			vfs_link_internal(base, new, &new_lr_orig.triplet);
 		}
