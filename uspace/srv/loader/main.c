@@ -238,6 +238,7 @@ static void ldr_add_inbox(ipc_callid_t rid, ipc_call_t *request)
 {
 	if (inbox_entries == INBOX_MAX_ENTRIES) {
 		async_answer_0(rid, ERANGE);
+		return;
 	}
 
 	ipc_callid_t writeid;
