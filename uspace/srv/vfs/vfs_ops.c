@@ -617,8 +617,12 @@ int vfs_op_rename(int basefd, char *old, char *new)
 	}
 	
 	/* If the node is not held by anyone, try to destroy it. */
-	if (orig_unlinked && vfs_node_peek(&new_lr_orig) == NULL) {
-		out_destroy(&new_lr_orig.triplet);
+	if (orig_unlinked) {
+		vfs_node_t *node = vfs_node_peek(&new_lr_orig);
+		if (!node)
+			out_destroy(&new_lr_orig.triplet);
+		else
+			vfs_node_put(node);
 	}
 	
 	vfs_node_put(base);
@@ -823,7 +827,8 @@ int vfs_op_unlink2(int parentfd, int expectfd, int wflag, char *path)
 			goto exit;
 		}
 		
-		vfs_node_t *found_node = vfs_node_peek(&lr);		
+		vfs_node_t *found_node = vfs_node_peek(&lr);
+		vfs_node_put(found_node);
 		if (expect->node != found_node) {
 			rc = ENOENT;
 			goto exit;
@@ -840,9 +845,11 @@ int vfs_op_unlink2(int parentfd, int expectfd, int wflag, char *path)
 	}
 
 	/* If the node is not held by anyone, try to destroy it. */
-	if (vfs_node_peek(&lr) == NULL) {
+	vfs_node_t *node = vfs_node_peek(&lr);
+	if (!node)
 		out_destroy(&lr.triplet);
-	}
+	else
+		vfs_node_put(node);
 
 exit:
 	if (path) {

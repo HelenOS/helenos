@@ -203,6 +203,7 @@ vfs_node_t *vfs_node_peek(vfs_lookup_res_t *result)
 	ht_link_t *tmp = hash_table_find(&nodes, &result->triplet);
 	if (tmp) {
 		node = hash_table_get_inst(tmp, vfs_node_t, nh_link);
+		_vfs_node_addref(node);
 	}
 	fibril_mutex_unlock(&nodes_mutex);
 

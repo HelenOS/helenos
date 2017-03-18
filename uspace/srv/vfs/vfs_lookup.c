@@ -313,10 +313,16 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_
 		
 		if (nlen > 0) {
 			base = vfs_node_peek(&res);
-			if (base == NULL || base->mount == NULL) {
+			if (!base) {
 				rc = ENOENT;
 				goto out;
 			}
+	       		if (!base->mount) {
+				vfs_node_put(base);
+				rc = ENOENT;
+				goto out;
+			}
+			vfs_node_put(base);
 			if (lflag & L_DISABLE_MOUNTS) {
 				rc = EXDEV;
 				goto out;
@@ -329,18 +335,24 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_
 	
 	if (result != NULL) {
 		/* The found file may be a mount point. Try to cross it. */
-		if (!(lflag & (L_MP|L_DISABLE_MOUNTS))) {
+		if (!(lflag & (L_MP | L_DISABLE_MOUNTS))) {
 			base = vfs_node_peek(&res);
-			if (base != NULL && base->mount != NULL) {
-				while (base->mount != NULL) {
-					base = base->mount;
+			if (base && base->mount) {
+				while (base->mount) {
+					vfs_node_addref(base->mount);
+					vfs_node_t *nbase = base->mount;
+					vfs_node_put(base);
+					base = nbase;
 				}
 				
-				result->triplet = *(vfs_triplet_t *)base;
+				result->triplet = *((vfs_triplet_t *) base);
 				result->type = base->type;
-				result->size = base->size;				
+				result->size = base->size;
+				vfs_node_put(base);
 				goto out;
 			}
+			if (base)
+				vfs_node_put(base);
 		}
 
 		memcpy(result, &res, sizeof(vfs_lookup_res_t));
