@@ -394,9 +394,10 @@ int open(const char *path, int oflag, ...)
 
 	assert((((oflag & O_RDONLY) != 0) + ((oflag & O_WRONLY) != 0) + ((oflag & O_RDWR) != 0)) == 1);
 	
-	int ret = vfs_lookup(path, walk_flags(oflag) | WALK_REGULAR);
-	if (ret < 0) {
-		return ret;
+	int fd = vfs_lookup(path, walk_flags(oflag) | WALK_REGULAR);
+	if (fd < 0) {
+		errno = fd;
+		return -1;
 	}
 	
 	int mode =
@@ -405,22 +406,21 @@ int open(const char *path, int oflag, ...)
 		((oflag & O_WRONLY) ? MODE_WRITE : 0) |
 		((oflag & O_APPEND) ? MODE_APPEND : 0);
 	
-	int rc = _vfs_open(ret, mode); 
+	int rc = _vfs_open(fd, mode); 
 	if (rc < 0) {
-		// _vfs_put(ret);
-		close(ret);
-		return rc;
+		close(fd);
+		errno = rc;
+		return -1;
 	}
 	
 	if (oflag & O_TRUNC) {
 		assert(oflag & O_WRONLY || oflag & O_RDWR);
 		assert(!(oflag & O_APPEND));
 		
-		// _vfs_resize
-		(void) ftruncate(ret, 0);
+		(void) ftruncate(fd, 0);
 	}
 
-	return ret;
+	return fd;
 }
 
 /** Close file.
@@ -722,11 +722,18 @@ int stat(const char *path, struct stat *stat)
 {
 	int fd = vfs_lookup(path, 0);
 	if (fd < 0) {
-		return fd;
+		errno = fd;
+		return -1;
 	}
 	
 	int rc = fstat(fd, stat);
-	close(fd);
+	if (rc != EOK) {
+		close(fd);
+		errno = rc;
+		rc = -1;
+	} else
+		rc = close(fd);
+
 	return rc;
 }
 
@@ -744,22 +751,22 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 	
-	int ret = vfs_lookup(dirname, WALK_DIRECTORY);
-	if (ret < 0) {
+	int fd = vfs_lookup(dirname, WALK_DIRECTORY);
+	if (fd < 0) {
 		free(dirp);
-		errno = ret;
+		errno = fd;
 		return NULL;
 	}
 	
-	int rc = _vfs_open(ret, MODE_READ);
+	int rc = _vfs_open(fd, MODE_READ);
 	if (rc < 0) {
 		free(dirp);
-		close(ret);
+		close(fd);
 		errno = rc;
 		return NULL;
 	}
 	
-	dirp->fd = ret;
+	dirp->fd = fd;
 	return dirp;
 }
 
@@ -817,13 +824,13 @@ int closedir(DIR *dirp)
  */
 int mkdir(const char *path, mode_t mode)
 {
-	int ret = vfs_lookup(path, WALK_MUST_CREATE | WALK_DIRECTORY);
-	if (ret < 0) {
-		return ret;
+	int fd = vfs_lookup(path, WALK_MUST_CREATE | WALK_DIRECTORY);
+	if (fd < 0) {
+		errno = fd;
+		return -1;
 	}
 	
-	close(ret);
-	return EOK;
+	return close(fd);
 }
 
 static int _vfs_unlink2(int parent, const char *path, int expect, int wflag)
@@ -857,17 +864,24 @@ int unlink(const char *path)
 	size_t pa_size;
 	char *pa = vfs_absolutize(path, &pa_size);
 	if (!pa) {
-		return ENOMEM;
+		errno = ENOMEM;
+		return -1;
 	}
 	
 	int root = vfs_root();
 	if (root < 0) {
 		free(pa);
-		return ENOENT;
+		errno = ENOENT;
+		return -1;
 	}
 	
 	int rc = _vfs_unlink2(root, pa, -1, 0);
 	
+	if (rc != EOK) {
+		errno = rc;
+		rc = -1;
+	}
+
 	free(pa);
 	close(root);
 	return rc;
@@ -883,16 +897,23 @@ int rmdir(const char *path)
 	size_t pa_size;
 	char *pa = vfs_absolutize(path, &pa_size);
 	if (!pa) {
-		return ENOMEM;
+		errno = ENOMEM;
+		return -1;
 	}
 	
 	int root = vfs_root();
 	if (root < 0) {
 		free(pa);
-		return ENOENT;
+		errno = ENOENT;
+		return -1;
 	}
 	
 	int rc = _vfs_unlink2(root, pa, -1, WALK_DIRECTORY);
+
+	if (rc != EOK) {
+		errno = rc;
+		rc = -1;
+	}
 	
 	free(pa);
 	close(root);
@@ -932,7 +953,8 @@ int rename(const char *old, const char *new)
 	if (root < 0) {
 		free(olda);
 		free(newa);
-		return ENOENT;
+		errno = ENOENT;
+		return -1;
 	}
 	
 	req = async_send_1(exch, VFS_IN_RENAME, root, NULL);
@@ -999,8 +1021,10 @@ int chdir(const char *path)
 {
 	size_t abs_size;
 	char *abs = vfs_absolutize(path, &abs_size);
-	if (!abs)
-		return ENOMEM;
+	if (!abs) {
+		errno = ENOMEM;
+		return -1;
+	}
 	
 	int fd = vfs_lookup(abs, WALK_DIRECTORY);
 	if (fd < 0) {
@@ -1133,7 +1157,7 @@ static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
 
 	dir = opendir(path);
 	if (!dir)
-		return -1;
+		return ENOENT;
 
 	while ((dirent = readdir(dir)) != NULL) {
 		char *child;
@@ -1143,16 +1167,14 @@ static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
 		rc = asprintf(&child, "%s/%s", path, dirent->d_name);
 		if (rc < 0) {
 			closedir(dir);
-			errno = rc;
-			return -1;
+			return rc;
 		}
 
 		rc = stat(child, &st);
 		if (rc != 0) {
 			free(child);
 			closedir(dir);
-			errno = rc;
-			return -1;
+			return rc;
 		}
 
 		if (st.fs_handle != fs_handle || st.service_id != service_id) {
