@@ -64,11 +64,6 @@
 		return; \
 	} while (0)
 
-#define DPRINTF(...)
-
-#define LOG_EXIT(rc) \
-	DPRINTF("Exiting %s() with rc = %d at line %d\n", __FUNC__, rc, __LINE__);
-
 static fs_reg_t reg;
 
 static vfs_out_ops_t *vfs_out_ops = NULL;
@@ -554,8 +549,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	
 	assert((int) index != -1);
 	
-	DPRINTF("Entered libfs_lookup()\n");
-	
 	// TODO: Validate flags.
 	
 	unsigned next = first;
@@ -572,7 +565,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	rc = ops->node_get(&cur, service_id, index);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
-		LOG_EXIT(rc);
 		goto out;
 	}
 	
@@ -590,7 +582,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 
 		if (!ops->is_directory(cur)) {
 			async_answer_0(rid, ENOTDIR);
-			LOG_EXIT(ENOTDIR);
 			goto out;
 		}
 		
@@ -600,7 +591,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		assert(rc != ERANGE);
 		if (rc != EOK) {
 			async_answer_0(rid, rc);
-			LOG_EXIT(rc);
 			goto out;
 		}
 		
@@ -615,7 +605,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		rc = ops->match(&tmp, cur, component);
 		if (rc != EOK) {
 			async_answer_0(rid, rc);
-			LOG_EXIT(rc);
 			goto out;
 		}
 		
@@ -624,7 +613,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			rc = ops->node_put(par);
 			if (rc != EOK) {
 				async_answer_0(rid, rc);
-				LOG_EXIT(rc); 
 				goto out;
 			}
 		}
@@ -645,13 +633,11 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	
 	if (cur && (lflag & L_FILE) && (ops->is_directory(cur))) {
 		async_answer_0(rid, EISDIR);
-		LOG_EXIT(EISDIR);
 		goto out;
 	}
 	
 	if (cur && (lflag & L_DIRECTORY) && (ops->is_file(cur))) {
 		async_answer_0(rid, ENOTDIR);
-		LOG_EXIT(ENOTDIR);
 		goto out;
 	}
 	
@@ -660,12 +646,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (lflag & L_UNLINK) {
 		if (!cur) {
 			async_answer_0(rid, ENOENT);
-			LOG_EXIT(ENOENT);
 			goto out;
 		}
 		if (!par) {
 			async_answer_0(rid, EINVAL);
-			LOG_EXIT(EINVAL);
 			goto out;
 		}
 		
@@ -680,10 +664,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			async_answer_5(rid, fs_handle, service_id,
 			    ops->index_get(cur), last, lsize,
 			    ops->is_directory(cur));
-			LOG_EXIT(EOK);
 		} else {
 			async_answer_0(rid, rc);
-			LOG_EXIT(rc);
 		}
 		goto out;
 	}
@@ -693,7 +675,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (lflag & L_CREATE) {
 		if (cur && (lflag & L_EXCLUSIVE)) {
 			async_answer_0(rid, EEXIST);
-			LOG_EXIT(EEXIST);
 			goto out;
 		}
 	
@@ -701,12 +682,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			rc = ops->create(&cur, service_id, lflag & (L_FILE|L_DIRECTORY));
 			if (rc != EOK) {
 				async_answer_0(rid, rc);
-				LOG_EXIT(rc);
 				goto out;
 			}
 			if (!cur) {
 				async_answer_0(rid, ENOSPC);
-				LOG_EXIT(ENOSPC);
 				goto out;
 			}
 			
@@ -715,7 +694,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				(void) ops->destroy(cur);
 				cur = NULL;
 				async_answer_0(rid, rc);
-				LOG_EXIT(rc);
 				goto out;
 			}
 		}
@@ -725,8 +703,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 out1:
 	if (!cur) {
 		async_answer_5(rid, fs_handle, service_id,
-			ops->index_get(par), last_next, -1, true);
-		LOG_EXIT(EOK);
+		    ops->index_get(par), last_next, -1, true);
 		goto out;
 	}
 	
@@ -734,7 +711,6 @@ out1:
 		rc = ops->node_open(cur);
 		if (rc != EOK) {
 			async_answer_0(rid, rc);
-			LOG_EXIT(rc);
 			goto out;
 		}
 	}
@@ -748,7 +724,6 @@ out1:
 	async_answer_5(rid, fs_handle, service_id, ops->index_get(cur), last,
 	    lsize, ops->is_directory(cur));
 	
-	LOG_EXIT(EOK);
 out:
 	if (par) {
 		(void) ops->node_put(par);
