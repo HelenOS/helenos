@@ -140,18 +140,6 @@ static void plb_clear_entry(plb_entry_t *entry, size_t first, size_t len)
 	fibril_mutex_unlock(&plb_mutex);
 }
 
-static char *_strrchr(char *path, int c)
-{
-	char *res = NULL;
-	while (*path != 0) {
-		if (*path == c) {
-			res = path;
-		}
-		path++;
-	}
-	return res;
-}
-
 int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 {
 	assert(base != NULL);
@@ -174,7 +162,7 @@ int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 	
 	vfs_triplet_t *triplet;
 	
-	char *slash = _strrchr(path, '/');
+	char *slash = str_rchr(path, L'/');
 	if (slash && slash != path) {
 		if (slash[1] == 0) {
 			rc = EINVAL;
