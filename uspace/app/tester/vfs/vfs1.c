@@ -75,7 +75,7 @@ const char *test_vfs1(void)
 	}
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	
-	int fd0 = open(TEST_FILE, O_CREAT);
+	int fd0 = open(TEST_FILE, O_RDWR | O_CREAT);
 	if (fd0 < 0)
 		return "open() failed";
 	TPRINTF("Created file %s (fd=%d)\n", TEST_FILE, fd0);

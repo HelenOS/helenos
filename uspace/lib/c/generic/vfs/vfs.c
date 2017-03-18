@@ -387,12 +387,13 @@ static int walk_flags(int oflags)
  */
 int open(const char *path, int oflag, ...)
 {
-	// FIXME: Some applications call this incorrectly.
-	if ((oflag & (O_RDONLY|O_WRONLY|O_RDWR)) == 0) {
-		oflag |= O_RDWR;
+	if (((oflag & (O_RDONLY | O_WRONLY | O_RDWR)) == 0) ||
+	    ((oflag & (O_RDONLY | O_WRONLY)) == (O_RDONLY | O_WRONLY)) ||
+	    ((oflag & (O_RDONLY | O_RDWR)) == (O_RDONLY | O_RDWR)) ||
+	    ((oflag & (O_WRONLY | O_RDWR)) == (O_WRONLY | O_RDWR))) {
+		errno = EINVAL;
+		return -1;
 	}
-
-	assert((((oflag & O_RDONLY) != 0) + ((oflag & O_WRONLY) != 0) + ((oflag & O_RDWR) != 0)) == 1);
 	
 	int fd = vfs_lookup(path, walk_flags(oflag) | WALK_REGULAR);
 	if (fd < 0) {

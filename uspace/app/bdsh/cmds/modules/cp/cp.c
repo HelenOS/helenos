@@ -385,7 +385,7 @@ static int64_t copy_file(const char *src, const char *dest,
 		return -1;
 	}
 
-	if (-1 == (fd2 = open(dest, O_CREAT))) {
+	if (-1 == (fd2 = open(dest, O_WRONLY | O_CREAT))) {
 		printf("Unable to open destination file %s\n", dest);
 		close(fd1);
 		return -1;

@@ -47,7 +47,7 @@ static void *create_paged_area(size_t size)
 {
 	TPRINTF("Creating temporary file...\n");
 
-	fd = open(TEST_FILE, O_CREAT);
+	fd = open(TEST_FILE, O_RDWR | O_CREAT);
 	if (fd < 0)
 		return NULL;
 	(void) unlink(TEST_FILE);
