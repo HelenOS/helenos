@@ -78,7 +78,8 @@ static void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t,
 static void libfs_stat(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 static void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,
     ipc_call_t *);
-static void libfs_statfs(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
+static void libfs_statfs(libfs_ops_t *, fs_handle_t, ipc_callid_t,
+    ipc_call_t *);
 
 static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 {
@@ -156,9 +157,10 @@ static void vfs_out_write(ipc_callid_t rid, ipc_call_t *req)
 
 	rc = vfs_out_ops->write(service_id, index, pos, &wbytes, &nsize);
 
-	if (rc == EOK)
-		async_answer_3(rid, EOK, wbytes, LOWER32(nsize), UPPER32(nsize));
-	else
+	if (rc == EOK) {
+		async_answer_3(rid, EOK, wbytes, LOWER32(nsize),
+		    UPPER32(nsize));
+	} else
 		async_answer_0(rid, rc);
 }
 
@@ -197,9 +199,8 @@ static void vfs_out_destroy(ipc_callid_t rid, ipc_call_t *req)
 	if (rc == EOK && node != NULL) {
 		bool destroy = (libfs_ops->lnkcnt_get(node) == 0);
 		libfs_ops->node_put(node);
-		if (destroy) {
+		if (destroy)
 			rc = vfs_out_ops->destroy(service_id, index);
-		}
 	}
 	async_answer_0(rid, rc);
 }
@@ -238,12 +239,10 @@ static void vfs_out_get_size(ipc_callid_t rid, ipc_call_t *req)
 
 	fs_node_t *node = NULL;
 	rc = libfs_ops->node_get(&node, service_id, index);
-	if (rc != EOK) {
+	if (rc != EOK)
 		async_answer_0(rid, rc);
-	}
-	if (node == NULL) {
+	if (node == NULL)
 		async_answer_0(rid, EINVAL);
-	}
 	
 	uint64_t size = libfs_ops->size_get(node);
 	libfs_ops->node_put(node);
@@ -259,20 +258,17 @@ static void vfs_out_is_empty(ipc_callid_t rid, ipc_call_t *req)
 
 	fs_node_t *node = NULL;
 	rc = libfs_ops->node_get(&node, service_id, index);
-	if (rc != EOK) {
+	if (rc != EOK)
 		async_answer_0(rid, rc);
-	}
-	if (node == NULL) {
+	if (node == NULL)
 		async_answer_0(rid, EINVAL);
-	}
 	
 	bool children = false;
 	rc = libfs_ops->has_children(&children, node);
 	libfs_ops->node_put(node);
 	
-	if (rc != EOK) {
+	if (rc != EOK)
 		async_answer_0(rid, rc);
-	}
 	async_answer_0(rid, children ? ENOTEMPTY : EOK);
 }
 
@@ -444,7 +440,8 @@ static char plb_get_char(unsigned pos)
 	return reg.plb_ro[pos % PLB_SIZE];
 }
 
-static int plb_get_component(char *dest, unsigned *sz, unsigned *ppos, unsigned last)
+static int plb_get_component(char *dest, unsigned *sz, unsigned *ppos,
+    unsigned last)
 {
 	unsigned pos = *ppos;
 	unsigned size = 0;
@@ -455,9 +452,8 @@ static int plb_get_component(char *dest, unsigned *sz, unsigned *ppos, unsigned 
 	}
 
 	char c = plb_get_char(pos); 
-	if (c == '/') {
+	if (c == '/')
 		pos++;
-	}
 	
 	for (int i = 0; i <= NAME_MAX; i++) {
 		c = plb_get_char(pos);
@@ -479,9 +475,8 @@ static int receive_fname(char *buffer)
 	size_t size;
 	ipc_callid_t wcall;
 	
-	if (!async_data_write_receive(&wcall, &size)) {
+	if (!async_data_write_receive(&wcall, &size))
 		return ENOENT;
-	}
 	if (size > NAME_MAX + 1) {
 		async_answer_0(wcall, ERANGE);
 		return ERANGE;
@@ -491,7 +486,8 @@ static int receive_fname(char *buffer)
 
 /** Link a file at a path.
  */
-void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc_call_t *req)
+void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
+    ipc_call_t *req)
 {
 	service_id_t parent_sid = IPC_GET_ARG1(*req);
 	fs_index_t parent_index = IPC_GET_ARG2(*req);
@@ -657,9 +653,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		if (rc == EOK) {
 			int64_t size = ops->size_get(cur);
 			int32_t lsize = LOWER32(size);
-			if (lsize != size) {
+			if (lsize != size)
 				lsize = -1;
-			}
 			
 			async_answer_5(rid, fs_handle, service_id,
 			    ops->index_get(cur), last, lsize,
@@ -679,7 +674,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		}
 	
 		if (!cur) {
-			rc = ops->create(&cur, service_id, lflag & (L_FILE|L_DIRECTORY));
+			rc = ops->create(&cur, service_id,
+			    lflag & (L_FILE | L_DIRECTORY));
 			if (rc != EOK) {
 				async_answer_0(rid, rc);
 				goto out;
@@ -702,8 +698,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/* Return. */
 out1:
 	if (!cur) {
-		async_answer_5(rid, fs_handle, service_id,
-		    ops->index_get(par), last_next, -1, true);
+		async_answer_5(rid, fs_handle, service_id, ops->index_get(par),
+		    last_next, -1, true);
 		goto out;
 	}
 	
@@ -717,25 +713,21 @@ out1:
 	
 	int64_t size = ops->size_get(cur);
 	int32_t lsize = LOWER32(size);
-	if (lsize != size) {
+	if (lsize != size)
 		lsize = -1;
-	}
 	
 	async_answer_5(rid, fs_handle, service_id, ops->index_get(cur), last,
 	    lsize, ops->is_directory(cur));
 	
 out:
-	if (par) {
+	if (par)
 		(void) ops->node_put(par);
-	}
 	
-	if (cur) {
+	if (cur)
 		(void) ops->node_put(cur);
-	}
 	
-	if (tmp) {
+	if (tmp)
 		(void) ops->node_put(tmp);
-	}
 }
 
 void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
@@ -856,7 +848,8 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	aoff64_t size = ops->size_get(fn);
 	async_answer_4(rid, rc, LOWER32(size), UPPER32(size),
 	    ops->lnkcnt_get(fn),
-	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
+	    (ops->is_file(fn) ? L_FILE : 0) |
+	    (ops->is_directory(fn) ? L_DIRECTORY : 0));
 	
 	(void) ops->node_put(fn);
 }

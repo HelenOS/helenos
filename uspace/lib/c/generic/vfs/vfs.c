@@ -72,11 +72,10 @@ int vfs_root(void)
 {
 	fibril_mutex_lock(&root_mutex);	
 	int r;
-	if (root_fd < 0) {
+	if (root_fd < 0)
 		r = ENOENT;
-	} else {
+	else
 		r = vfs_clone(root_fd, true);
-	}
 	fibril_mutex_unlock(&root_mutex);
 	return r;
 }
@@ -84,9 +83,8 @@ int vfs_root(void)
 void vfs_root_set(int nroot)
 {
 	fibril_mutex_lock(&root_mutex);
-	if (root_fd >= 0) {
+	if (root_fd >= 0)
 		close(root_fd);
-	}
 	root_fd = vfs_clone(nroot, true);
 	fibril_mutex_unlock(&root_mutex);
 }
@@ -100,9 +98,10 @@ async_exch_t *vfs_exchange_begin(void)
 {
 	fibril_mutex_lock(&vfs_mutex);
 	
-	while (vfs_sess == NULL)
+	while (vfs_sess == NULL) {
 		vfs_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_VFS,
 		    0);
+	}
 	
 	fibril_mutex_unlock(&vfs_mutex);
 	
@@ -131,13 +130,11 @@ int _vfs_walk(int parent, const char *path, int flags)
 	sysarg_t rc_orig;
 	async_wait_for(req, &rc_orig);
 
-	if (rc_orig != EOK) {
+	if (rc_orig != EOK)
 		return (int) rc_orig;
-	}
 		
-	if (rc != EOK) {
+	if (rc != EOK)
 		return (int) rc;
-	}
 	
 	return (int) IPC_GET_ARG1(answer);
 }
@@ -146,9 +143,8 @@ int vfs_lookup(const char *path, int flags)
 {
 	size_t size;
 	char *p = vfs_absolutize(path, &size);
-	if (!p) {
+	if (!p)
 		return ENOMEM;
-	}
 	int root = vfs_root();
 	if (root < 0) {
 		free(p);
@@ -220,38 +216,36 @@ char *vfs_absolutize(const char *path, size_t *retlen)
 }
 
 int vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *opts,
-unsigned int flags, unsigned int instance, int *mountedfd)
+    unsigned int flags, unsigned int instance, int *mountedfd)
 {
 	sysarg_t rc, rc1;
 	
-	if (!mountedfd) {
+	if (!mountedfd)
 		flags |= VFS_MOUNT_NO_REF;
-	}
-	if (mp < 0) {
+	if (mp < 0)
 		flags |= VFS_MOUNT_CONNECT_ONLY;
-	}
 	
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_begin();
-	aid_t req = async_send_4(exch, VFS_IN_MOUNT, mp, serv, flags, instance, &answer);
+	aid_t req = async_send_4(exch, VFS_IN_MOUNT, mp, serv, flags, instance,
+	    &answer);
 
 	rc1 = async_data_write_start(exch, (void *) opts, str_size(opts));
 	
 	if (rc1 == EOK) {
-		rc1 = async_data_write_start(exch, (void *) fs_name, str_size(fs_name));
+		rc1 = async_data_write_start(exch, (void *) fs_name,
+		    str_size(fs_name));
 	}
 
 	vfs_exchange_end(exch);
 
 	async_wait_for(req, &rc);
 
-	if (mountedfd) {
+	if (mountedfd)
 		*mountedfd = (int) IPC_GET_ARG1(answer);
-	}
 	
-	if (rc != EOK) {
+	if (rc != EOK)
 		return rc;
-	}
 	return rc1;
 }
 
@@ -270,8 +264,9 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 	char null[LOC_NAME_MAXLEN];
 	
 	if (str_cmp(fqsn, "") == 0) {
-		/* No device specified, create a fresh
-		   null/%d device instead */
+		/*
+		 * No device specified, create a fresh null/%d device instead.
+		*/
 		null_id = loc_null_create();
 		
 		if (null_id == -1)
@@ -281,11 +276,10 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 		fqsn = null;
 	}
 	
-	if (flags & IPC_FLAG_BLOCKING) {
+	if (flags & IPC_FLAG_BLOCKING)
 		flags = VFS_MOUNT_BLOCKING;
-	} else {
+	else
 		flags = 0;
-	}
 	
 	service_id_t service_id;
 	int res = loc_service_get_id(fqsn, &service_id, flags);
@@ -314,29 +308,28 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 		
 		if (root_fd >= 0) {
 			fibril_mutex_unlock(&root_mutex);
-			if (null_id != -1) {
+			if (null_id != -1)
 				loc_null_destroy(null_id);
-			}
 			return EBUSY;
 		}
 		
 		int root;
-		rc = vfs_mount(-1, fs_name, service_id, opts, flags, instance, &root);
-		if (rc == EOK) {
+		rc = vfs_mount(-1, fs_name, service_id, opts, flags, instance,
+		    &root);
+		if (rc == EOK)
 			root_fd = root;
-		}
 	} else {
 		if (root_fd < 0) {
 			fibril_mutex_unlock(&root_mutex);
-			if (null_id != -1) {
+			if (null_id != -1)
 				loc_null_destroy(null_id);
-			}
 			return EINVAL;
 		}
 		
 		int mpfd = _vfs_walk(root_fd, mpa, WALK_DIRECTORY);
 		if (mpfd >= 0) {
-			rc = vfs_mount(mpfd, fs_name, service_id, opts, flags, instance, NULL);
+			rc = vfs_mount(mpfd, fs_name, service_id, opts, flags,
+			    instance, NULL);
 			close(mpfd);
 		} else {
 			rc = mpfd;
@@ -354,9 +347,8 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 int unmount(const char *mpp)
 {
 	int mp = vfs_lookup(mpp, WALK_MOUNT_POINT | WALK_DIRECTORY);
-	if (mp < 0) {
+	if (mp < 0)
 		return mp;
-	}
 	
 	int rc = vfs_unmount(mp);
 	close(mp);
@@ -367,11 +359,10 @@ static int walk_flags(int oflags)
 {
 	int flags = 0;
 	if (oflags & O_CREAT) {
-		if (oflags & O_EXCL) {
+		if (oflags & O_EXCL)
 			flags |= WALK_MUST_CREATE;
-		} else {
+		else
 			flags |= WALK_MAY_CREATE;
-		}
 	}
 	return flags;
 }
@@ -402,10 +393,10 @@ int open(const char *path, int oflag, ...)
 	}
 	
 	int mode =
-		((oflag & O_RDWR) ? MODE_READ|MODE_WRITE : 0) |
-		((oflag & O_RDONLY) ? MODE_READ : 0) |
-		((oflag & O_WRONLY) ? MODE_WRITE : 0) |
-		((oflag & O_APPEND) ? MODE_APPEND : 0);
+	    ((oflag & O_RDWR) ? MODE_READ | MODE_WRITE : 0) |
+	    ((oflag & O_RDONLY) ? MODE_READ : 0) |
+	    ((oflag & O_WRONLY) ? MODE_WRITE : 0) |
+	    ((oflag & O_APPEND) ? MODE_APPEND : 0);
 	
 	int rc = _vfs_open(fd, mode); 
 	if (rc < 0) {
@@ -475,11 +466,10 @@ static int _read_short(int fildes, void *buf, size_t nbyte, ssize_t *nread)
 
 	vfs_exchange_end(exch);
 	
-	if (rc == EOK) {
+	if (rc == EOK)
 		async_wait_for(req, &rc);
-	} else {
+	else
 		async_forget(req);
-	}
 	
 	if (rc != EOK)
 		return rc;
@@ -517,11 +507,10 @@ static int _write_short(int fildes, const void *buf, size_t nbyte,
 	
 	vfs_exchange_end(exch);
 	
-	if (rc == EOK) {
+	if (rc == EOK)
 		async_wait_for(req, &rc);
-	} else {
+	else
 		async_forget(req);
-	}
 
 	if (rc != EOK)
 		return rc;
@@ -849,9 +838,8 @@ static int _vfs_unlink2(int parent, const char *path, int expect, int wflag)
 	sysarg_t rc_orig;
 	async_wait_for(req, &rc_orig);
 	
-	if (rc_orig != EOK) {
+	if (rc_orig != EOK)
 		return (int) rc_orig;
-	}
 	return rc;
 }
 
@@ -910,7 +898,6 @@ int rmdir(const char *path)
 	}
 	
 	int rc = _vfs_unlink2(root, pa, -1, WALK_DIRECTORY);
-
 	if (rc != EOK) {
 		errno = rc;
 		rc = -1;
@@ -1036,13 +1023,11 @@ int chdir(const char *path)
 	
 	fibril_mutex_lock(&cwd_mutex);
 	
-	if (cwd_fd >= 0) {
+	if (cwd_fd >= 0)
 		close(cwd_fd);
-	}
 	
-	if (cwd_path) {
+	if (cwd_path)
 		free(cwd_path);
-	}
 	
 	cwd_fd = fd;
 	cwd_path = abs;
@@ -1247,7 +1232,8 @@ int statfs(const char *path, struct statfs *st)
 
 int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch)
 {
-	return async_state_change_start(exch, VFS_PASS_HANDLE, (sysarg_t)file, 0, vfs_exch);
+	return async_state_change_start(exch, VFS_PASS_HANDLE, (sysarg_t) file,
+	    0, vfs_exch);
 }
 
 int vfs_receive_handle(bool high_descriptor)
@@ -1263,20 +1249,21 @@ int vfs_receive_handle(bool high_descriptor)
 	async_state_change_finalize(callid, vfs_exch);
 
 	sysarg_t ret;
-	sysarg_t rc = async_req_1_1(vfs_exch, VFS_IN_WAIT_HANDLE, high_descriptor, &ret);
+	sysarg_t rc = async_req_1_1(vfs_exch, VFS_IN_WAIT_HANDLE,
+	    high_descriptor, &ret);
 
 	async_exchange_end(vfs_exch);
 
-	if (rc != EOK) {
+	if (rc != EOK)
 		return rc;
-	}
 	return ret;
 }
 
 int vfs_clone(int file, bool high_descriptor)
 {
 	async_exch_t *vfs_exch = vfs_exchange_begin();
-	int rc = async_req_2_0(vfs_exch, VFS_IN_CLONE, (sysarg_t) file, (sysarg_t) high_descriptor);
+	int rc = async_req_2_0(vfs_exch, VFS_IN_CLONE, (sysarg_t) file,
+	    (sysarg_t) high_descriptor);
 	vfs_exchange_end(vfs_exch);
 	return rc;
 }

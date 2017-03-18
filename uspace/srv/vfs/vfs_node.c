@@ -112,7 +112,6 @@ void vfs_node_delref(vfs_node_t *node)
 	
 	node->refcnt--;
 	if (node->refcnt == 0) {
-		
 		/*
 		 * We are dropping the last reference to this node.
 		 * Remove it from the VFS node hash table.
@@ -126,12 +125,13 @@ void vfs_node_delref(vfs_node_t *node)
 	
 	if (free_node) {
 		/*
-		 * DESTROY will free up the file's resources if there are no more hard links.
+		 * VFS_OUT_DESTROY will free up the file's resources if there
+		 * are no more hard links.
 		 */
 		
 		async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-		async_msg_2(exch, VFS_OUT_DESTROY,
-			(sysarg_t) node->service_id, (sysarg_t)node->index);
+		async_msg_2(exch, VFS_OUT_DESTROY, (sysarg_t) node->service_id,
+		    (sysarg_t)node->index);
 		vfs_exchange_release(exch);
 
 		free(node);
@@ -299,9 +299,8 @@ static bool nodes_key_equal(void *key, const ht_link_t *item)
 {
 	vfs_triplet_t *tri = key;
 	vfs_node_t *node = hash_table_get_inst(item, vfs_node_t, nh_link);
-	return node->fs_handle == tri->fs_handle 
-		&& node->service_id == tri->service_id
-		&& node->index == tri->index;
+	return node->fs_handle == tri->fs_handle &&
+	    node->service_id == tri->service_id && node->index == tri->index;
 }
 
 static inline vfs_triplet_t node_triplet(vfs_node_t *node)
@@ -322,8 +321,8 @@ int64_t vfs_node_get_size(vfs_node_t *node)
 		sysarg_t sz2 = 0;
 		
 		async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-		(void) async_req_2_2(exch, VFS_OUT_GET_SIZE,
-			node->service_id, node->index, &sz1, &sz2);
+		(void) async_req_2_2(exch, VFS_OUT_GET_SIZE, node->service_id,
+		    node->index, &sz1, &sz2);
 		vfs_exchange_release(exch);
 		
 		node->size = MERGE_LOUP32(sz1, sz2);
@@ -334,7 +333,8 @@ int64_t vfs_node_get_size(vfs_node_t *node)
 bool vfs_node_has_children(vfs_node_t *node)
 {
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-	int rc = async_req_2_0(exch, VFS_OUT_IS_EMPTY, node->service_id, node->index);
+	int rc = async_req_2_0(exch, VFS_OUT_IS_EMPTY, node->service_id,
+	    node->index);
 	vfs_exchange_release(exch);
 	return rc == ENOTEMPTY;
 }

@@ -53,9 +53,6 @@
 #include <as.h>
 #include <libfs.h>
 
-#define min(a, b)		((a) < (b) ? (a) : (b))
-#define max(a, b)		((a) > (b) ? (a) : (b))
-
 /** All root nodes have index 0. */
 #define TMPFS_SOME_ROOT		0
 /** Global counter for assigning node indices. Shared by all instances. */

@@ -48,15 +48,12 @@
 #include <dirent.h>
 #include <assert.h>
 
-#define DPRINTF(...)
-
-#define min(a, b)  ((a) < (b) ? (a) : (b))
-
 FIBRIL_MUTEX_INITIALIZE(plb_mutex);
 LIST_INITIALIZE(plb_entries);	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
-static int plb_insert_entry(plb_entry_t *entry, char *path, size_t *start, size_t len)
+static int plb_insert_entry(plb_entry_t *entry, char *path, size_t *start,
+    size_t len)
 {
 	fibril_mutex_lock(&plb_mutex);
 
@@ -173,9 +170,8 @@ int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 		*slash = 0;
 		
 		rc = vfs_lookup_internal(base, path, L_DIRECTORY, &res);
-		if (rc != EOK) {
+		if (rc != EOK)
 			goto out;
-		}
 		triplet = &res.triplet;
 		
 		*slash = '/';
@@ -189,29 +185,29 @@ int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 		triplet = (vfs_triplet_t *) base;
 	}
 	
-	if (triplet->fs_handle != child->fs_handle || triplet->service_id != child->service_id) {
+	if (triplet->fs_handle != child->fs_handle ||
+	    triplet->service_id != child->service_id) {
 		rc = EXDEV;
 		goto out;
 	}
 	
 	async_exch_t *exch = vfs_exchange_grab(triplet->fs_handle);
-	aid_t req = async_send_3(exch, VFS_OUT_LINK, triplet->service_id, triplet->index, child->index, NULL);
+	aid_t req = async_send_3(exch, VFS_OUT_LINK, triplet->service_id,
+	    triplet->index, child->index, NULL);
 	
 	rc = async_data_write_start(exch, component, str_size(component) + 1);
 	sysarg_t orig_rc;
 	async_wait_for(req, &orig_rc);
 	vfs_exchange_release(exch);
-	if (orig_rc != EOK) {
+	if (orig_rc != EOK)
 		rc = orig_rc;
-	}
 	
 out:
-	DPRINTF("vfs_link_internal() with path '%s' returns %d\n", path, rc);
 	return rc;
 }
 
 static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
-	int lflag, vfs_lookup_res_t *result)
+    int lflag, vfs_lookup_res_t *result)
 {
 	assert(base);
 	assert(result);
@@ -219,14 +215,14 @@ static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 	sysarg_t rc;
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
-	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) *pfirst, (sysarg_t) *plen,
-	    (sysarg_t) base->service_id, (sysarg_t) base->index, (sysarg_t) lflag, &answer);
+	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) *pfirst,
+	    (sysarg_t) *plen, (sysarg_t) base->service_id,
+	    (sysarg_t) base->index, (sysarg_t) lflag, &answer);
 	async_wait_for(req, &rc);
 	vfs_exchange_release(exch);
 	
-	if ((int) rc < 0) {
+	if ((int) rc < 0)
 		return (int) rc;
-	}
 	
 	unsigned last = *pfirst + *plen;
 	*pfirst = IPC_GET_ARG3(answer);
@@ -236,7 +232,8 @@ static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 	result->triplet.service_id = (service_id_t) IPC_GET_ARG1(answer);
 	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
 	result->size = (int64_t)(int32_t) IPC_GET_ARG4(answer);
-	result->type = IPC_GET_ARG5(answer) ? VFS_NODE_DIRECTORY : VFS_NODE_FILE;
+	result->type = IPC_GET_ARG5(answer) ?
+	    VFS_NODE_DIRECTORY : VFS_NODE_FILE;
 	return EOK;
 }
 
@@ -252,7 +249,8 @@ static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
  * @return EOK on success or an error code from errno.h.
  *
  */
-int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_t *result)
+int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
+    vfs_lookup_res_t *result)
 {
 	assert(base != NULL);
 	assert(path != NULL);
@@ -261,7 +259,6 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_
 	int rc;
 	char *npath = canonify(path, &len);
 	if (!npath) {
-		DPRINTF("vfs_lookup_internal() can't canonify path: %s\n", path);
 		rc = EINVAL;
 		return rc;
 	}
@@ -273,10 +270,8 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_
 	
 	plb_entry_t entry;
 	rc = plb_insert_entry(&entry, path, &first, len);
-	if (rc != EOK) {
-		DPRINTF("vfs_lookup_internal() can't insert entry into PLB: %d\n", rc);
+	if (rc != EOK)
 		return rc;
-	}
 	
 	size_t next = first;
 	size_t nlen = len;
@@ -285,7 +280,7 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_
 	
 	/* Resolve path as long as there are mount points to cross. */
 	while (nlen > 0) {
-		while (base->mount != NULL) {
+		while (base->mount) {
 			if (lflag & L_DISABLE_MOUNTS) {
 				rc = EXDEV;
 				goto out;
@@ -294,10 +289,10 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_
 			base = base->mount;
 		}
 		
-		rc = out_lookup((vfs_triplet_t *) base, &next, &nlen, lflag, &res);
-		if (rc != EOK) {
+		rc = out_lookup((vfs_triplet_t *) base, &next, &nlen, lflag,
+		    &res);
+		if (rc != EOK)
 			goto out;
-		}
 		
 		if (nlen > 0) {
 			base = vfs_node_peek(&res);
@@ -348,7 +343,6 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_
 	
 out:
 	plb_clear_entry(&entry, first, len);
-	DPRINTF("vfs_lookup_internal() with path '%s' returns %d\n", path, rc);
 	return rc;
 }
 
