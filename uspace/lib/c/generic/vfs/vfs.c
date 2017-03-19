@@ -1156,6 +1156,16 @@ static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
 			return rc;
 		}
 
+		char *pa = vfs_absolutize(child, NULL);
+		if (!pa) {
+			free(child);
+			closedir(dir);
+			return ENOMEM;
+		}
+
+		free(child);
+		child = pa;
+
 		rc = stat(child, &st);
 		if (rc != 0) {
 			free(child);
@@ -1192,7 +1202,7 @@ int vfs_get_mtab_list(list_t *mtab_list)
 
 	process_mp("/", &st, mtab_list);
 
-	return vfs_get_mtab_visit("", mtab_list, st.fs_handle, st.service_id);
+	return vfs_get_mtab_visit("/", mtab_list, st.fs_handle, st.service_id);
 }
 
 /** Get filesystem statistics.
