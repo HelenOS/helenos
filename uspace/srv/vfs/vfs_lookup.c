@@ -338,7 +338,7 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 				vfs_node_put(base);
 		}
 
-		memcpy(result, &res, sizeof(vfs_lookup_res_t));
+		*result = res;
 	}
 	
 out:
