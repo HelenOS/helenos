@@ -136,34 +136,18 @@ int vfs_op_dup(int oldfd, int newfd)
 	return ret;
 }
 
-int vfs_op_fstat_forward(int fd)
+int vfs_op_fstat(int fd)
 {
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
 		return EBADF;
 
-	assert(file->node);
-	
-	ipc_callid_t callid;
-	if (!async_data_read_receive(&callid, NULL)) {
-		vfs_file_put(file);
-		async_answer_0(callid, EINVAL);
-		return EINVAL;
-	}
+	vfs_node_t *node = file->node;
 
-	async_exch_t *exch = vfs_exchange_grab(file->node->fs_handle);
-	assert(exch);
-	
-	aid_t msg;
-	msg = async_send_3(exch, VFS_OUT_STAT, file->node->service_id,
-	    file->node->index, true, NULL);
-	assert(msg);
-	async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-	
+	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
+	int rc = async_data_read_forward_fast(exch, VFS_OUT_STAT,
+	    node->service_id, node->index, true, 0, NULL);
 	vfs_exchange_release(exch);
-	
-	sysarg_t rc;
-	async_wait_for(msg, &rc);
 	
 	vfs_file_put(file);
 	return rc;

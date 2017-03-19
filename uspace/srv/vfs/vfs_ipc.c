@@ -60,7 +60,7 @@ static void vfs_in_dup(ipc_callid_t rid, ipc_call_t *request)
 static void vfs_in_fstat(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
-	int rc = vfs_op_fstat_forward(fd);
+	int rc = vfs_op_fstat(fd);
 	async_answer_0(rid, rc);
 }
 
