@@ -670,35 +670,19 @@ int vfs_op_seek(int fd, int64_t offset, int whence, int64_t *out_offset)
 
 int vfs_op_statfs(int fd)
 {
-	ipc_callid_t callid;
-	
-	if (!async_data_read_receive(&callid, NULL)) {
-		async_answer_0(callid, EINVAL);
-	       	return EINVAL;
-	}
-
 	vfs_file_t *file = vfs_file_get(fd);
-	if (!file) {
-		async_answer_0(callid, EBADF);
+	if (!file)
 		return EBADF;
-	}
 
 	vfs_node_t *node = file->node;
 
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-							        
-	aid_t msg;
-	msg = async_send_3(exch, VFS_OUT_STATFS, node->service_id,
-	node->index, false, NULL);
-	async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-
+	int rc = async_data_read_forward_fast(exch, VFS_OUT_STATFS,
+	    node->service_id, node->index, false, 0, NULL);
 	vfs_exchange_release(exch);
 
-	sysarg_t rv;
-	async_wait_for(msg, &rv);
-
 	vfs_file_put(file);
-	return rv;
+	return rc;
 }
 
 int vfs_op_sync(int fd)
