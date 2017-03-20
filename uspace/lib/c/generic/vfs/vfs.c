@@ -231,7 +231,6 @@ int vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *opts,
 	    &answer);
 
 	rc1 = async_data_write_start(exch, (void *) opts, str_size(opts));
-	
 	if (rc1 == EOK) {
 		rc1 = async_data_write_start(exch, (void *) fs_name,
 		    str_size(fs_name));
