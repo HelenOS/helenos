@@ -139,15 +139,13 @@ static void vfs_in_rename(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Retrieve the old path. */
 	rc = async_data_write_accept((void **) &old, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto out;
-	}
 	
 	/* Retrieve the new path. */
 	rc = async_data_write_accept((void **) &new, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto out;
-	}
 	
 	size_t olen;
 	size_t nlen;
@@ -167,12 +165,10 @@ static void vfs_in_rename(ipc_callid_t rid, ipc_call_t *request)
 out:
 	async_answer_0(rid, rc);
 
-	if (old) {
+	if (old)
 		free(old);
-	}
-	if (new) {
+	if (new)
 		free(new);
-	}
 }
 
 static void vfs_in_seek(ipc_callid_t rid, ipc_call_t *request)
@@ -217,9 +213,8 @@ static void vfs_in_unlink2(ipc_callid_t rid, ipc_call_t *request)
 	
 	char *path;
 	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
-	if (rc == EOK) {
+	if (rc == EOK)
 		rc = vfs_op_unlink2(parentfd, expectfd, wflag, path);
-	}
 	
 	async_answer_0(rid, rc);
 }
