@@ -185,11 +185,12 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags,
 		vfs_exchange_release(exch);
 		return rc;
 	}
+
 	async_wait_for(msg, &rc);
-	vfs_exchange_release(exch);
-	
-	if (rc != EOK)
+	if (rc != EOK) {
+		vfs_exchange_release(exch);
 		return rc;
+	}
 	
 	vfs_lookup_res_t res;
 	res.triplet.fs_handle = fs_handle;
@@ -201,8 +202,16 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags,
 	
 	/* Add reference to the mounted root. */
 	*root = vfs_node_get(&res); 
-	assert(*root);
+	if (!*root) {
+		aid_t msg = async_send_1(exch, VFS_OUT_UNMOUNTED,
+		    (sysarg_t) service_id, NULL);
+		async_forget(msg);
+		vfs_exchange_release(exch);
+		return ENOMEM;
+	}
 			
+	vfs_exchange_release(exch);
+
 	return EOK;
 }
 
@@ -540,6 +549,10 @@ int vfs_op_rename(int basefd, char *old, char *new)
 		
 		vfs_node_put(base);
 		base = vfs_node_get(&base_lr);
+		if (!base) {
+			fibril_rwlock_write_unlock(&namespace_rwlock);
+			return ENOMEM;
+		}
 		old[shared] = '/';
 		old += shared;
 		new += shared;
@@ -903,7 +916,6 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	vfs_lookup_res_t lr;
 	int rc = vfs_lookup_internal(parent->node, path,
 	    walk_lookup_flags(flags), &lr);
-
 	if (rc != EOK) {
 		fibril_rwlock_read_unlock(&namespace_rwlock);
 		vfs_file_put(parent);
@@ -911,6 +923,11 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	}
 	
 	vfs_node_t *node = vfs_node_get(&lr);
+	if (!node) {
+		fibril_rwlock_read_unlock(&namespace_rwlock);
+		vfs_file_put(parent);
+		return ENOMEM;
+	}
 	
 	vfs_file_t *file;
 	int fd = vfs_fd_alloc(&file, false);
