@@ -132,7 +132,7 @@ typedef enum {
 
 /**
  * Lookup will succeed only if the object is a mount point. The flag is mutually
- * exclusive with L_FILE and L_ROOT.
+ * exclusive with L_FILE.
  */
 #define L_MP			8
 
