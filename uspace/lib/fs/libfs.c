@@ -703,14 +703,6 @@ out1:
 		goto out;
 	}
 	
-	if (lflag & L_OPEN) {
-		rc = ops->node_open(cur);
-		if (rc != EOK) {
-			async_answer_0(rid, rc);
-			goto out;
-		}
-	}
-	
 	int64_t size = ops->size_get(cur);
 	int32_t lsize = LOWER32(size);
 	if (lsize != size)
