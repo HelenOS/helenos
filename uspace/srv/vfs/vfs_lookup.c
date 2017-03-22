@@ -237,37 +237,12 @@ static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 	return EOK;
 }
 
-/** Perform a path lookup.
- *
- * @param base    The file from which to perform the lookup.
- * @param path    Path to be resolved; it must be a NULL-terminated
- *                string.
- * @param lflag   Flags to be used during lookup.
- * @param result  Empty structure where the lookup result will be stored.
- *                Can be NULL.
- *
- * @return EOK on success or an error code from errno.h.
- *
- */
-int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
-    vfs_lookup_res_t *result)
+static int _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
+    vfs_lookup_res_t *result, size_t len)
 {
-	assert(base != NULL);
-	assert(path != NULL);
-	
-	size_t len;
-	int rc;
-	char *npath = canonify(path, &len);
-	if (!npath) {
-		rc = EINVAL;
-		return rc;
-	}
-	path = npath;
-	
-	assert(path[0] == '/');
-	
 	size_t first;
-	
+	int rc;
+
 	plb_entry_t entry;
 	rc = plb_insert_entry(&entry, path, &first, len);
 	if (rc != EOK)
@@ -343,6 +318,80 @@ int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 	
 out:
 	plb_clear_entry(&entry, first, len);
+	return rc;
+}
+
+/** Perform a path lookup.
+ *
+ * @param base    The file from which to perform the lookup.
+ * @param path    Path to be resolved; it must be a NULL-terminated
+ *                string.
+ * @param lflag   Flags to be used during lookup.
+ * @param result  Empty structure where the lookup result will be stored.
+ *                Can be NULL.
+ *
+ * @return EOK on success or an error code from errno.h.
+ *
+ */
+int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
+    vfs_lookup_res_t *result)
+{
+	assert(base != NULL);
+	assert(path != NULL);
+	
+	size_t len;
+	int rc;
+	char *npath = canonify(path, &len);
+	if (!npath) {
+		rc = EINVAL;
+		return rc;
+	}
+	path = npath;
+	
+	assert(path[0] == '/');
+
+
+	if (lflag & (L_CREATE | L_UNLINK)) {
+
+		/*
+		 * Creation and destruction of names must be done in two
+		 * separate steps: lookup of the parent node and the name
+		 * link/unlink operation itself.  Otherwise the parent
+		 * filesystem would not be able to tell when a mountpoint is
+		 * crossed. It would attempt to perform the link/unlink in
+		 * itself instead of letting the mounted filesystem do it,
+		 * resulting in wrong behavior. This is the wages of server-side
+		 * mountpoints.
+		 */
+
+		char *slash = str_rchr(path, L'/');
+		vfs_node_t *parent = base;
+		
+		if (slash != path) {
+			int tflag = lflag;
+			vfs_lookup_res_t tres;
+
+			tflag &= ~(L_CREATE | L_EXCLUSIVE | L_UNLINK | L_FILE);
+			tflag |= L_DIRECTORY;
+			rc = _vfs_lookup_internal(base, path, tflag, &tres,
+			    slash - path);
+			if (rc != EOK)
+				return rc;
+			parent = vfs_node_get(&tres);
+			if (!parent)
+				return ENOMEM;
+		} else
+			vfs_node_addref(parent);
+
+		rc = _vfs_lookup_internal(parent, slash, lflag, result,
+		    len - (slash - path));
+
+		vfs_node_put(parent);
+
+	} else {
+		rc = _vfs_lookup_internal(base, path, lflag, result, len);
+	}
+	
 	return rc;
 }
 
