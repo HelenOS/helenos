@@ -51,7 +51,8 @@ static void *create_paged_area(size_t size)
 	if (fd < 0)
 		return NULL;
 	(void) unlink(TEST_FILE);
-	if (write(fd, text, sizeof(text)) != sizeof(text)) {
+
+	if (write(fd, (aoff64_t []) {0}, text, sizeof(text)) != sizeof(text)) {
 		close(fd);
 		return NULL;
 	}

@@ -342,10 +342,10 @@ int vfs_op_open2(int fd, int flags)
 	return EOK;
 }
 
-typedef int (* rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, ipc_call_t *,
-    bool, void *);
+typedef int (* rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, aoff64_t,
+    ipc_call_t *, bool, void *);
 
-static int rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file,
+static int rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
     ipc_call_t *answer, bool read, void *data)
 {
 	size_t *bytes = (size_t *) data;
@@ -362,18 +362,18 @@ static int rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file,
 	if (read) {
 		rc = async_data_read_forward_4_1(exch, VFS_OUT_READ,
 		    file->node->service_id, file->node->index,
-		    LOWER32(file->pos), UPPER32(file->pos), answer);
+		    LOWER32(pos), UPPER32(pos), answer);
 	} else {
 		rc = async_data_write_forward_4_1(exch, VFS_OUT_WRITE,
 		    file->node->service_id, file->node->index,
-		    LOWER32(file->pos), UPPER32(file->pos), answer);
+		    LOWER32(pos), UPPER32(pos), answer);
 	}
 
 	*bytes = IPC_GET_ARG1(*answer);
 	return rc;
 }
 
-static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file,
+static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
     ipc_call_t *answer, bool read, void *data)
 {
 	rdwr_io_chunk_t *chunk = (rdwr_io_chunk_t *) data;
@@ -382,8 +382,8 @@ static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file,
 		return ENOENT;
 	
 	aid_t msg = async_send_fast(exch, read ? VFS_OUT_READ : VFS_OUT_WRITE,
-	    file->node->service_id, file->node->index, LOWER32(file->pos),
-	    UPPER32(file->pos), answer);
+	    file->node->service_id, file->node->index, LOWER32(pos),
+	    UPPER32(pos), answer);
 	if (msg == 0)
 		return EINVAL;
 
@@ -401,7 +401,8 @@ static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file,
 	return (int) rc;
 }
 
-static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
+static int vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
+    void *ipc_cb_data)
 {
 	/*
 	 * The following code strongly depends on the fact that the files data
@@ -462,18 +463,19 @@ static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 	
 	async_exch_t *fs_exch = vfs_exchange_grab(file->node->fs_handle);
 	
-	if (!read && file->append)
-		file->pos = file->node->size;
+	if (!read && file->append) {
+		if (file->node->size == -1)
+			file->node->size = vfs_node_get_size(file->node);
+		pos = file->node->size;
+	}
 	
 	/*
 	 * Handle communication with the endpoint FS.
 	 */
 	ipc_call_t answer;
-	int rc = ipc_cb(fs_exch, file, &answer, read, ipc_cb_data);
+	int rc = ipc_cb(fs_exch, file, pos, &answer, read, ipc_cb_data);
 	
 	vfs_exchange_release(fs_exch);
-	
-	size_t bytes = IPC_GET_ARG1(answer);
 	
 	if (file->node->type == VFS_NODE_DIRECTORY)
 		fibril_rwlock_read_unlock(&namespace_rwlock);
@@ -490,22 +492,19 @@ static int vfs_rdwr(int fd, bool read, rdwr_ipc_cb_t ipc_cb, void *ipc_cb_data)
 		fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 	
-	/* Update the position pointer and unlock the open file. */
-	if (rc == EOK)
-		file->pos += bytes;
 	vfs_file_put(file);	
 
 	return rc;
 }
 
-int vfs_rdwr_internal(int fd, bool read, rdwr_io_chunk_t *chunk)
+int vfs_rdwr_internal(int fd, aoff64_t pos, bool read, rdwr_io_chunk_t *chunk)
 {
-	return vfs_rdwr(fd, read, rdwr_ipc_internal, chunk);
+	return vfs_rdwr(fd, pos, read, rdwr_ipc_internal, chunk);
 }
 
-int vfs_op_read(int fd, size_t *out_bytes)
+int vfs_op_read(int fd, aoff64_t pos, size_t *out_bytes)
 {
-	return vfs_rdwr(fd, true, rdwr_ipc_client, out_bytes);
+	return vfs_rdwr(fd, pos, true, rdwr_ipc_client, out_bytes);
 }
 
 int vfs_op_rename(int basefd, char *old, char *new)
@@ -607,62 +606,6 @@ int vfs_op_rename(int basefd, char *old, char *new)
 	vfs_node_put(base);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	return EOK;
-}
-
-int vfs_op_seek(int fd, int64_t offset, int whence, int64_t *out_offset)
-{
-	vfs_file_t *file = vfs_file_get(fd);
-	if (!file)
-		return EBADF;
-	
-	switch (whence) {
-	case SEEK_SET:
-		if (offset < 0) {
-			vfs_file_put(file);
-			return EINVAL;
-		}
-		file->pos = offset;
-		*out_offset = offset;
-		vfs_file_put(file);
-		return EOK;
-	case SEEK_CUR:
-		if (offset > 0 && file->pos > (INT64_MAX - offset)) {
-			vfs_file_put(file);
-			return EOVERFLOW;
-		}
-		
-		if (offset < 0 && -file->pos > offset) {
-			vfs_file_put(file);
-			return EOVERFLOW;
-		}
-		
-		file->pos += offset;
-		*out_offset = file->pos;
-		vfs_file_put(file);
-		return EOK;
-	case SEEK_END:
-		fibril_rwlock_read_lock(&file->node->contents_rwlock);
-		int64_t size = vfs_node_get_size(file->node);
-		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
-		
-		if (offset > 0 && size > (INT64_MAX - offset)) {
-			vfs_file_put(file);
-			return EOVERFLOW;
-		}
-		
-		if (offset < 0 && -size > offset) {
-			vfs_file_put(file);
-			return EOVERFLOW;
-		}
-		
-		file->pos = size + offset;
-		*out_offset = file->pos;
-		vfs_file_put(file);
-		return EOK;
-	}
-	
-	vfs_file_put(file);
-	return EINVAL;
 }
 
 int vfs_op_statfs(int fd)
@@ -952,9 +895,9 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	return EOK;
 }
 
-int vfs_op_write(int fd, size_t *out_bytes)
+int vfs_op_write(int fd, aoff64_t pos, size_t *out_bytes)
 {
-	return vfs_rdwr(fd, false, rdwr_ipc_client, out_bytes);
+	return vfs_rdwr(fd, pos, false, rdwr_ipc_client, out_bytes);
 }
 
 /**

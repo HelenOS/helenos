@@ -78,6 +78,7 @@ static int cmp_files(const char *fn0, const char *fn1)
 	int fd[2] = {-1, -1};
 	char buffer[2][CMP_BUFLEN];
 	ssize_t offset[2];
+	aoff64_t pos[2] = {};
 
 	for (int i = 0; i < 2; i++) {
 		fd[i] = open(fn[i], O_RDONLY);
@@ -93,7 +94,8 @@ static int cmp_files(const char *fn0, const char *fn1)
 			offset[i] = 0;
 			ssize_t size;
 			do {
-				size = read(fd[i], buffer[i] + offset[i],
+				size = read(fd[i], &pos[i],
+				    buffer[i] + offset[i],
 				    CMP_BUFLEN - offset[i]);
 				if (size < 0) {
 					rc = errno;

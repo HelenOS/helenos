@@ -44,6 +44,7 @@
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <task.h>
+#include <vfs/vfs.h>
 #include "vfs.h"
 
 #define VFS_DATA	((vfs_client_data_t *) async_get_client_data())

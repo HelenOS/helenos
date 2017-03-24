@@ -213,7 +213,8 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	fibril_condvar_signal(&forced_termination_cv);
 	fibril_mutex_unlock(&forced_termination_mutex);
 
-	read(tempfile, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+	aoff64_t pos = 0;
+	read(tempfile, &pos, extra_output_buffer, OUTPUT_BUFFER_SIZE);
 
 leave_close_tempfile:
 	close(tempfile);

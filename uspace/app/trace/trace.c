@@ -700,12 +700,10 @@ static void main_init(void)
 	proto_init();
 
 	p = proto_new("vfs");
-	o = oper_new("read", 1, arg_def, V_ERRNO, 1, resp_def);
+	o = oper_new("read", 3, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_IN_READ, o);
-	o = oper_new("write", 1, arg_def, V_ERRNO, 1, resp_def);
+	o = oper_new("write", 3, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_IN_WRITE, o);
-	o = oper_new("seek", 3, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_SEEK, o);
 	o = oper_new("truncate", 5, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_TRUNCATE, o);
 	o = oper_new("fstat", 1, arg_def, V_ERRNO, 0, resp_def);

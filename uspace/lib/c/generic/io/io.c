@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <malloc.h>
+#include <sys/stat.h>
 #include <async.h>
 #include <io/kio.h>
 #include <vfs/vfs.h>
@@ -55,6 +56,7 @@ static void _fflushbuf(FILE *stream);
 
 static FILE stdin_null = {
 	.fd = -1,
+	.pos = 0, 
 	.error = true,
 	.eof = true,
 	.kio = false,
@@ -69,6 +71,7 @@ static FILE stdin_null = {
 
 static FILE stdout_kio = {
 	.fd = -1,
+	.pos = 0, 
 	.error = false,
 	.eof = false,
 	.kio = true,
@@ -83,6 +86,7 @@ static FILE stdout_kio = {
 
 static FILE stderr_kio = {
 	.fd = -1,
+	.pos = 0, 
 	.error = false,
 	.eof = false,
 	.kio = true,
@@ -287,6 +291,7 @@ FILE *fopen(const char *path, const char *mode)
 		return NULL;
 	}
 	
+	stream->pos = 0;
 	stream->error = false;
 	stream->eof = false;
 	stream->kio = false;
@@ -310,6 +315,7 @@ FILE *fdopen(int fd, const char *mode)
 	}
 	
 	stream->fd = fd;
+	stream->pos = 0;
 	stream->error = false;
 	stream->eof = false;
 	stream->kio = false;
@@ -395,29 +401,19 @@ FILE *freopen(const char *path, const char *mode, FILE *stream)
  */
 static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t left, done;
-
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	left = size * nmemb;
-	done = 0;
-	
-	while ((left > 0) && (!stream->error) && (!stream->eof)) {
-		ssize_t rd = read(stream->fd, buf + done, left);
-		
-		if (rd < 0) {
-			/* errno was set by read() */
-			stream->error = true;
-		} else if (rd == 0) {
-			stream->eof = true;
-		} else {
-			left -= rd;
-			done += rd;
-		}
+	ssize_t rd = read(stream->fd, &stream->pos, buf, size * nmemb);
+	if (rd < 0) {
+		/* errno was set by read() */
+		stream->error = true;
+		rd = 0;
+	} else if (rd == 0) {
+		stream->eof = true;
 	}
 	
-	return (done / size);
+	return (rd / size);
 }
 
 /** Write to a stream (unbuffered).
@@ -432,50 +428,32 @@ static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
  */
 static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t left;
-	size_t done;
-	int rc;
-
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	left = size * nmemb;
-	done = 0;
-
-	while ((left > 0) && (!stream->error)) {
-		ssize_t wr;
-		size_t uwr;
-		
-		if (stream->kio) {
-			uwr = 0;
-			rc = kio_write(buf + done, left, &uwr);
-			if (rc != EOK)
-				errno = rc;
-		} else {
-			wr = write(stream->fd, buf + done, left);
-			if (wr >= 0) {
-				uwr = (size_t)wr;
-				rc = EOK;
-			} else {
-				/* errno was set by write */
-				uwr = 0;
-				rc = errno;
-			}
-		}
-		
-		if (rc != EOK) {
-			/* errno was set above */
+	ssize_t wr;
+	if (stream->kio) {
+		size_t nwritten;
+		wr = kio_write(buf, size * nmemb, &nwritten);
+		if (wr != EOK) {
 			stream->error = true;
+			wr = 0;
 		} else {
-			left -= uwr;
-			done += uwr;
+			wr = nwritten;
+		}
+	} else {
+		wr = write(stream->fd, &stream->pos, buf, size * nmemb);
+		if (wr < 0) {
+			/* errno was set by write() */
+			stream->error = true;
+			wr = 0;
 		}
 	}
 
-	if (done > 0)
+	if (wr > 0)
 		stream->need_sync = true;
 	
-	return (done / size);
+	return (wr / size);
 }
 
 /** Read some data in stream buffer.
@@ -488,7 +466,7 @@ static void _ffillbuf(FILE *stream)
 
 	stream->buf_head = stream->buf_tail = stream->buf;
 
-	rc = read(stream->fd, stream->buf, stream->buf_size);
+	rc = read(stream->fd, &stream->pos, stream->buf, stream->buf_size);
 	if (rc < 0) {
 		/* errno was set by read() */
 		stream->error = true;
@@ -515,15 +493,8 @@ static void _fflushbuf(FILE *stream)
 	bytes_used = stream->buf_head - stream->buf_tail;
 
 	/* If buffer has prefetched read data, we need to seek back. */
-	if (bytes_used > 0 && stream->buf_state == _bs_read) {
-		off64_t rc;
-		rc = lseek(stream->fd, - (ssize_t) bytes_used, SEEK_CUR);
-		if (rc == (off64_t)-1) {
-			/* errno was set by lseek */
-			stream->error = 1;
-			return;
-		}
-	}
+	if (bytes_used > 0 && stream->buf_state == _bs_read)
+		stream->pos -= bytes_used;
 
 	/* If buffer has unwritten data, we need to write them out. */
 	if (bytes_used > 0 && stream->buf_state == _bs_write) {
@@ -795,23 +766,33 @@ int ungetc(int c, FILE *stream)
 
 int fseek(FILE *stream, off64_t offset, int whence)
 {
-	off64_t rc;
-
 	if (stream->error)
-		return EOF;
+		return -1;
 
 	_fflushbuf(stream);
 	if (stream->error) {
 		/* errno was set by _fflushbuf() */
-		return EOF;
+		return -1;
 	}
 
 	stream->ungetc_chars = 0;
 
-	rc = lseek(stream->fd, offset, whence);
-	if (rc == (off64_t) (-1)) {
-		/* errno has been set by lseek() */
-		return EOF;
+	struct stat st;
+	switch (whence) {
+	case SEEK_SET:
+		stream->pos = offset;
+		break;
+	case SEEK_CUR:
+		stream->pos += offset;
+		break;
+	case SEEK_END:
+		if (fstat(stream->fd, &st) != EOK) {
+			/* errno was set by fstat() */
+			stream->error = true;
+			return -1;	
+		}
+		stream->pos = st.size + offset;
+		break;
 	}
 
 	stream->eof = false;
@@ -820,8 +801,6 @@ int fseek(FILE *stream, off64_t offset, int whence)
 
 off64_t ftell(FILE *stream)
 {
-	off64_t pos;
-	
 	if (stream->error)
 		return EOF;
 	
@@ -831,13 +810,7 @@ off64_t ftell(FILE *stream)
 		return EOF;
 	}
 
-	pos = lseek(stream->fd, 0, SEEK_CUR);
-	if (pos == (off64_t) -1) {
-		/* errno was set by lseek */
-		return (off64_t) -1;
-	}
-	
-	return pos - stream->ungetc_chars;
+	return stream->pos - stream->ungetc_chars;
 }
 
 void rewind(FILE *stream)

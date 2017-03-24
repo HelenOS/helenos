@@ -69,6 +69,8 @@ static const char *read_root(void)
 
 const char *test_vfs1(void)
 {
+	aoff64_t pos = 0;
+
 	if (mkdir(TEST_DIRECTORY, 0) != 0) {
 		TPRINTF("rc=%d\n", errno);
 		return "mkdir() failed";
@@ -81,18 +83,16 @@ const char *test_vfs1(void)
 	TPRINTF("Created file %s (fd=%d)\n", TEST_FILE, fd0);
 	
 	size_t size = sizeof(text);
-	ssize_t cnt = write(fd0, text, size);
+	ssize_t cnt = write(fd0, &pos, text, size);
 	if (cnt < 0)
 		return "write() failed";
 	TPRINTF("Written %zd bytes\n", cnt);
-	
-	if (lseek(fd0, 0, SEEK_SET) != 0)
-		return "lseek() failed";
-	TPRINTF("Sought to position 0\n");
+
+	pos = 0;
 	
 	char buf[BUF_SIZE];
 	TPRINTF("read..\n");
-	while ((cnt = read(fd0, buf, BUF_SIZE))) {
+	while ((cnt = read(fd0, &pos, buf, BUF_SIZE))) {
 		TPRINTF("read returns %zd\n", cnt);
 		if (cnt < 0)
 			return "read() failed";

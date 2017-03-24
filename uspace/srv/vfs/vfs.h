@@ -141,9 +141,6 @@ typedef struct {
 
 	/** Append on write. */
 	bool append;
-
-	/** Current absolute position in the file. */
-	int64_t pos;
 } vfs_file_t;
 
 extern fibril_mutex_t nodes_mutex;
@@ -190,8 +187,6 @@ extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, service_id_t);
 extern int64_t vfs_node_get_size(vfs_node_t *node);
 extern bool vfs_node_has_children(vfs_node_t *node);
 
-#define MAX_OPEN_FILES	128
-
 extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
@@ -215,9 +210,8 @@ extern int vfs_op_fstat(int fd);
 extern int vfs_op_mount(int mpfd, unsigned servid, unsigned flags, unsigned instance, const char *opts, const char *fsname, int *outfd);
 extern int vfs_op_mtab_get(void);
 extern int vfs_op_open2(int fd, int flags);
-extern int vfs_op_read(int fd, size_t *out_bytes);
+extern int vfs_op_read(int fd, aoff64_t, size_t *out_bytes);
 extern int vfs_op_rename(int basefd, char *old, char *new);
-extern int vfs_op_seek(int fd, int64_t offset, int whence, int64_t *out_offset);
 extern int vfs_op_statfs(int fd);
 extern int vfs_op_sync(int fd);
 extern int vfs_op_truncate(int fd, int64_t size);
@@ -225,7 +219,7 @@ extern int vfs_op_unlink2(int parentfd, int expectfd, int wflag, char *path);
 extern int vfs_op_unmount(int mpfd);
 extern int vfs_op_wait_handle(bool high_fd);
 extern int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd);
-extern int vfs_op_write(int fd, size_t *out_bytes);
+extern int vfs_op_write(int fd, aoff64_t, size_t *out_bytes);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 
@@ -236,7 +230,7 @@ typedef struct {
 	size_t size;
 } rdwr_io_chunk_t;
 
-extern int vfs_rdwr_internal(int, bool, rdwr_io_chunk_t *);
+extern int vfs_rdwr_internal(int, aoff64_t, bool, rdwr_io_chunk_t *);
 
 extern void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 

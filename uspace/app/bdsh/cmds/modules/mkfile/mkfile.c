@@ -120,6 +120,7 @@ int cmd_mkfile(char **argv)
 	char *file_name;
 	void *buffer;
 	bool create_sparse = false;
+	aoff64_t pos = 0;
 
 	file_size = 0;
 
@@ -163,13 +164,9 @@ int cmd_mkfile(char **argv)
 
 	if (create_sparse && file_size > 0) {
 		const char byte = 0x00;
-
-		if ((rc2 = lseek(fd, file_size - 1, SEEK_SET)) < 0) {
-			close(fd);
-			goto error;
-		}
-
-		rc2 = write(fd, &byte, sizeof(char));
+		
+		pos = file_size - 1;
+		rc2 = write(fd, &pos, &byte, sizeof(char));
 		if (rc2 < 0) {
 			close(fd);
 			goto error;
@@ -186,7 +183,7 @@ int cmd_mkfile(char **argv)
 	total_written = 0;
 	while (total_written < file_size) {
 		to_write = min(file_size - total_written, BUFFER_SIZE);
-		rc = write(fd, buffer, to_write);
+		rc = write(fd, &pos, buffer, to_write);
 		if (rc <= 0) {
 			printf("%s: Error writing file (%d).\n", cmdname, errno);
 			close(fd);

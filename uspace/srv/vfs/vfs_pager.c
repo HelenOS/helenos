@@ -49,18 +49,11 @@ void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 	void *page;
 	int rc;
 
-	vfs_file_t *file = vfs_file_get(fd);
-	if (!file) {
-		async_answer_0(rid, ENOENT);
-		return;
-	}
-
 	page = as_area_create(AS_AREA_ANY, page_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
 	    AS_AREA_UNPAGED);
 
 	if (page == AS_MAP_FAILED) {
-		vfs_file_put(file);
 		async_answer_0(rid, ENOMEM);
 		return;
 	}
@@ -70,17 +63,16 @@ void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 		.size = page_size
 	};
 
-	file->pos = offset;
-	vfs_file_put(file);
-
 	size_t total = 0;
+	aoff64_t pos = offset;
 	do {
-		rc = vfs_rdwr_internal(fd, true, &chunk);
+		rc = vfs_rdwr_internal(fd, pos, true, &chunk);
 		if (rc != EOK)
 			break;
 		if (chunk.size == 0)
 			break;
 		total += chunk.size;
+		pos += chunk.size;
 		chunk.buffer += chunk.size;
 		chunk.size = page_size - total;
 	} while (total < page_size);

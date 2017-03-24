@@ -64,7 +64,6 @@ typedef struct {
 typedef enum {
 	VFS_IN_READ = IPC_FIRST_USER_METHOD,
 	VFS_IN_WRITE,
-	VFS_IN_SEEK,
 	VFS_IN_TRUNCATE,
 	VFS_IN_FSTAT,
 	VFS_IN_CLOSE,

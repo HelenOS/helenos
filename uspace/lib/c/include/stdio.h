@@ -54,18 +54,6 @@
 			(void) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) _buf, str_size(_buf)); \
 	}
 
-#ifndef SEEK_SET
-	#define SEEK_SET  0
-#endif
-
-#ifndef SEEK_CUR
-	#define SEEK_CUR  1
-#endif
-
-#ifndef SEEK_END
-	#define SEEK_END  2
-#endif
-
 enum _buffer_type {
 	/** No buffering */
 	_IONBF,

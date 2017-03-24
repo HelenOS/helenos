@@ -121,9 +121,11 @@ static void vfs_in_open2(ipc_callid_t rid, ipc_call_t *request)
 static void vfs_in_read(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
+	aoff64_t pos = MERGE_LOUP32(IPC_GET_ARG2(*request),
+	    IPC_GET_ARG3(*request));
 
 	size_t bytes = 0;
-	int rc = vfs_op_read(fd, &bytes);
+	int rc = vfs_op_read(fd, pos, &bytes);
 	async_answer_1(rid, rc, bytes);
 }
 
@@ -169,17 +171,6 @@ out:
 		free(old);
 	if (new)
 		free(new);
-}
-
-static void vfs_in_seek(ipc_callid_t rid, ipc_call_t *request)
-{
-	int fd = (int) IPC_GET_ARG1(*request);
-	int64_t off = (int64_t) MERGE_LOUP32(IPC_GET_ARG2(*request), IPC_GET_ARG3(*request));
-	int whence = (int) IPC_GET_ARG4(*request);
-
-	int64_t new_offset = 0;
-	int rc = vfs_op_seek(fd, off, whence, &new_offset);
-	async_answer_2(rid, rc, LOWER32(new_offset), UPPER32(new_offset));
 }
 
 static void vfs_in_statfs(ipc_callid_t rid, ipc_call_t *request)
@@ -255,9 +246,11 @@ static void vfs_in_walk(ipc_callid_t rid, ipc_call_t *request)
 static void vfs_in_write(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
+	aoff64_t pos = MERGE_LOUP32(IPC_GET_ARG2(*request),
+	    IPC_GET_ARG3(*request));
 
 	size_t bytes = 0;
-	int rc = vfs_op_write(fd, &bytes);
+	int rc = vfs_op_write(fd, pos, &bytes);
 	async_answer_1(rid, rc, bytes);
 }
 
@@ -306,9 +299,6 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_IN_RENAME:
 			vfs_in_rename(callid, &call);
-			break;
-		case VFS_IN_SEEK:
-			vfs_in_seek(callid, &call);
 			break;
 		case VFS_IN_STATFS:
 			vfs_in_statfs(callid, &call);

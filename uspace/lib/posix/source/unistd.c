@@ -46,6 +46,10 @@
 #include "libc/task.h"
 #include "libc/stats.h"
 #include "libc/malloc.h"
+#include "libc/vfs/vfs.h"
+#include "libc/sys/stat.h"
+
+aoff64_t posix_pos[MAX_OPEN_FILES];
 
 /* Array of environment variable strings (NAME=VALUE). */
 char **posix_environ = NULL;
@@ -174,6 +178,7 @@ posix_gid_t posix_getgid(void)
  */
 int posix_close(int fildes)
 {
+	posix_pos[fildes] = 0;
 	return negerrno(close, fildes);
 }
 
@@ -187,7 +192,7 @@ int posix_close(int fildes)
  */
 ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 {
-	return negerrno(read, fildes, buf, nbyte);
+	return negerrno(read, fildes, &posix_pos[fildes], buf, nbyte);
 }
 
 /**
@@ -200,7 +205,7 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
  */
 ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 {
-	return negerrno(write, fildes, buf, nbyte);
+	return negerrno(write, fildes, &posix_pos[fildes], buf, nbyte);
 }
 
 /**
@@ -214,7 +219,24 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
  */
 posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 {
-	return negerrno(lseek, fildes, offset, whence);
+	struct stat st;
+
+	switch (whence) {
+	case SEEK_SET:
+		posix_pos[fildes] = offset;
+		break;
+	case SEEK_CUR:
+		posix_pos[fildes] += offset;
+		break;
+	case SEEK_END:
+		if (fstat(fildes, &st) != EOK) {
+			errno = -errno;
+			return -1;
+		}
+		posix_pos[fildes] = st.size + offset;
+		break;
+	}
+	return posix_pos[fildes];
 }
 
 /**

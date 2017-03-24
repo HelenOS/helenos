@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <getopt.h>
 #include <str.h>
 #include <fcntl.h>
@@ -186,6 +187,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	int i;
 	size_t offset = 0, copied_bytes = 0;
 	off64_t file_size = 0, length = 0;
+	aoff64_t pos = 0;
 
 	bool reading_stdin = dash_represents_stdin && (str_cmp(fname, "-") == 0);
 	
@@ -204,12 +206,20 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	if (NULL == (buff = (char *) malloc(blen + 1))) {
 		close(fd);
 		printf("Unable to allocate enough memory to read %s\n",
-			fname);
+		    fname);
 		return 1;
 	}
 
 	if (tail != CAT_FULL_FILE) {
-		file_size = lseek(fd, 0, SEEK_END);
+		struct stat st;
+
+		if (fstat(fd, &st) != EOK) {
+			close(fd);
+			free(buff);
+			printf("Unable to fstat %d\n", fd);
+			return 1;
+		}
+		file_size = st.size;
 		if (head == CAT_FULL_FILE) {
 			head = file_size;
 			length = tail;
@@ -222,9 +232,9 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		}
 
 		if (tail_first) {
-			lseek(fd, (tail >= file_size) ? 0 : (file_size - tail), SEEK_SET);
+			pos = (tail >= file_size) ? 0 : (file_size - tail);
 		} else {
-			lseek(fd, ((head - tail) >= file_size) ? 0 : (head - tail), SEEK_SET);
+			pos = ((head - tail) >= file_size) ? 0 : (head - tail);
 		}
 	} else
 		length = head;
@@ -242,7 +252,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 			}
 		}
 		
-		bytes = read(fd, buff + copied_bytes, bytes_to_read);
+		bytes = read(fd, &pos, buff + copied_bytes, bytes_to_read);
 		copied_bytes = 0;
 
 		if (bytes > 0) {

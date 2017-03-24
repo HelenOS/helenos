@@ -42,6 +42,8 @@
 #include <stdio.h>
 #include <async.h>
 
+#define MAX_OPEN_FILES	128
+
 enum vfs_change_state_type {
 	VFS_PASS_HANDLE
 };

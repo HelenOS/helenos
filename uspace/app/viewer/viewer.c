@@ -125,8 +125,8 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 		close(fd);
 		return false;
 	}
-	
-	ssize_t rd = read(fd, tga, stat.size);
+
+	ssize_t rd = read(fd, (aoff64_t []) {0}, tga, stat.size);
 	if ((rd < 0) || (rd != (ssize_t) stat.size)) {
 		free(tga);
 		close(fd);

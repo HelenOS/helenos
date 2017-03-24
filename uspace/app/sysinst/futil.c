@@ -59,6 +59,7 @@ int futil_copy_file(const char *srcp, const char *destp)
 	int sf, df;
 	ssize_t nr, nw;
 	int rc;
+	aoff64_t posr = 0, posw = 0;
 
 	printf("Copy '%s' to '%s'.\n", srcp, destp);
 
@@ -71,13 +72,13 @@ int futil_copy_file(const char *srcp, const char *destp)
 		return EIO;
 
 	do {
-		nr = read(sf, buf, BUF_SIZE);
+		nr = read(sf, &posr, buf, BUF_SIZE);
 		if (nr == 0)
 			break;
 		if (nr < 0)
 			return EIO;
 
-		nw = write(df, buf, nr);
+		nw = write(df, &posw, buf, nr);
 		if (nw <= 0)
 			return EIO;
 	} while (true);
@@ -156,31 +157,33 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 {
 	int sf;
 	ssize_t nr;
-	off64_t off;
 	size_t fsize;
 	char *data;
+	struct stat st;
 
 	sf = open(srcp, O_RDONLY);
 	if (sf < 0)
 		return ENOENT;
 
-	off = lseek(sf, 0, SEEK_END);
-	if (off == (off64_t)-1)
+	if (fstat(sf, &st) != EOK) {
+		close(sf);
 		return EIO;
+	}	
 
-	fsize = (size_t)off;
-
-	off = lseek(sf, 0, SEEK_SET);
-	if (off == (off64_t)-1)
-		return EIO;
+	fsize = st.size;
 
 	data = calloc(fsize, 1);
-	if (data == NULL)
+	if (data == NULL) {
+		close(sf);
 		return ENOMEM;
+	}
 
-	nr = read(sf, data, fsize);
-	if (nr != (ssize_t)fsize)
+	nr = read(sf, (aoff64_t []) { 0 }, data, fsize);
+	if (nr != (ssize_t)fsize) {
+		close(sf);
+		free(data);
 		return EIO;
+	}
 
 	(void) close(sf);
 	*rdata = data;

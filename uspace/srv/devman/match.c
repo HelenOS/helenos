@@ -200,6 +200,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	bool opened = false;
 	int fd;
 	size_t len = 0;
+	struct stat st;
 	
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
@@ -209,8 +210,12 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	}
 	opened = true;
 	
-	len = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);
+	if (fstat(fd, &st) != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to fstat %d: %s.", fd,
+		    str_error(errno));
+		goto cleanup;
+	}
+	len = st.size;
 	if (len == 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Configuration file '%s' is empty.",
 		    conf_path);
@@ -224,7 +229,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	
-	ssize_t read_bytes = read(fd, buf, len);
+	ssize_t read_bytes = read(fd, (aoff64_t []) {0}, buf, len);
 	if (read_bytes <= 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%d).", conf_path,
 		    errno);

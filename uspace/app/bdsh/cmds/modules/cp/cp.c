@@ -376,6 +376,8 @@ static int64_t copy_file(const char *src, const char *dest,
 	off64_t total;
 	int64_t copied = 0;
 	char *buff = NULL;
+	aoff64_t posr = 0, posw = 0;
+	struct stat st;
 
 	if (vb)
 		printf("Copying %s to %s\n", src, dest);
@@ -391,12 +393,16 @@ static int64_t copy_file(const char *src, const char *dest,
 		return -1;
 	}
 
-	total = lseek(fd1, 0, SEEK_END);
+	if (fstat(fd1, &st) != EOK) {
+		printf("Unable to fstat %d\n", fd1);
+		close(fd1);
+		close(fd2);
+		return -1;	
+	}
 
+	total = st.size;
 	if (vb)
 		printf("%" PRIu64 " bytes to copy\n", total);
-
-	lseek(fd1, 0, SEEK_SET);
 
 	if (NULL == (buff = (char *) malloc(blen))) {
 		printf("Unable to allocate enough memory to read %s\n",
@@ -405,8 +411,8 @@ static int64_t copy_file(const char *src, const char *dest,
 		goto out;
 	}
 
-	while ((bytes = read(fd1, buff, blen)) > 0) {
-		if ((bytes = write(fd2, buff, bytes)) < 0)
+	while ((bytes = read(fd1, &posr, buff, blen)) > 0) {
+		if ((bytes = write(fd2, &posw, buff, bytes)) < 0)
 			break;
 		copied += bytes;
 	}

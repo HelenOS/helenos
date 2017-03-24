@@ -77,20 +77,11 @@ static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 	file_blob_t *blob = blob_as_file(base);
 	if (offset > blob->size)
 		return ELIMIT;
-	if (lseek(blob->fd, offset, SEEK_SET) < 0)
-		return errno == EINVAL ? EIO : errno;
 
-	ssize_t amount_read;
-	aoff64_t remaining_size = *size;
-	*size = 0;
-	do {
-		amount_read = read(blob->fd, buffer, remaining_size);
-		if (amount_read < 0)
-			return errno;
-		buffer += amount_read;
-		*size += amount_read;
-		remaining_size -= amount_read;
-	} while (remaining_size && amount_read);
+	ssize_t amount_read = read(blob->fd, &offset, buffer, *size);
+	if (amount_read < 0)
+		return errno;
+	*size += amount_read;
 	return EOK;
 }
 

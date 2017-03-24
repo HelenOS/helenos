@@ -134,9 +134,10 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 {
 	elf_header_t header_buf;
 	elf_header_t *header = &header_buf;
+	aoff64_t pos = 0;
 	int i, rc;
 
-	rc = read(elf->fd, header, sizeof(elf_header_t));
+	rc = read(elf->fd, &pos, header, sizeof(elf_header_t));
 	if (rc != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n"); 
 		return EE_INVALID;
@@ -194,11 +195,8 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	for (i = 0; i < header->e_phnum; i++) {
 		elf_segment_header_t segment_hdr;
 
-		/* Seek to start of segment header */
-		lseek(elf->fd, header->e_phoff
-		        + i * sizeof(elf_segment_header_t), SEEK_SET);
-
-		rc = read(elf->fd, &segment_hdr,
+		pos = header->e_phoff + i * sizeof(elf_segment_header_t);
+		rc = read(elf->fd, &pos, &segment_hdr,
 		    sizeof(elf_segment_header_t));
 		if (rc != sizeof(elf_segment_header_t)) {
 			DPRINTF("Read error.\n");
@@ -216,11 +214,8 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	for (i = 0; i < header->e_shnum; i++) {
 		elf_section_header_t section_hdr;
 
-		/* Seek to start of section header */
-		lseek(elf->fd, header->e_shoff
-		    + i * sizeof(elf_section_header_t), SEEK_SET);
-
-		rc = read(elf->fd, &section_hdr,
+		pos = header->e_shoff + i * sizeof(elf_section_header_t);
+		rc = read(elf->fd, &pos, &section_hdr,
 		    sizeof(elf_section_header_t));
 		if (rc != sizeof(elf_section_header_t)) {
 			DPRINTF("Read error.\n");
@@ -332,6 +327,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	void *seg_ptr;
 	uintptr_t seg_addr;
 	size_t mem_sz;
+	aoff64_t pos;
 	ssize_t rc;
 
 	bias = elf->bias;
@@ -389,13 +385,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	/*
 	 * Load segment data
 	 */
-	rc = lseek(elf->fd, entry->p_offset, SEEK_SET);
-	if (rc < 0) {
-		printf("seek error\n");
-		return EE_INVALID;
-	}
-
-	rc = read(elf->fd, seg_ptr, entry->p_filesz);
+	pos = entry->p_offset;
+	rc = read(elf->fd, &pos, seg_ptr, entry->p_filesz);
 	if (rc < 0) {
 		DPRINTF("read error\n");
 		return EE_INVALID;

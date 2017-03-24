@@ -253,6 +253,7 @@ static char *fun_conf_read(const char *conf_path)
 	int fd;
 	size_t len;
 	ssize_t r;
+	struct stat st;
 
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
@@ -262,8 +263,12 @@ static char *fun_conf_read(const char *conf_path)
 
 	opened = true;
 
-	len = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);
+	if (fstat(fd, &st) != EOK) {
+		ddf_msg(LVL_ERROR, "Unable to fstat %d", fd);
+		goto cleanup;
+	}
+
+	len = st.size;
 	if (len == 0) {
 		ddf_msg(LVL_ERROR, "Configuration file '%s' is empty.",
 		    conf_path);
@@ -276,7 +281,7 @@ static char *fun_conf_read(const char *conf_path)
 		goto cleanup;
 	}
 
-	r = read(fd, buf, len);
+	r = read(fd, (aoff64_t []) {0}, buf, len);
 	if (r < 0) {
 		ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
 		goto cleanup;

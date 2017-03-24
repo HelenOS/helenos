@@ -66,8 +66,7 @@
 #include "elf_core.h"
 
 static off64_t align_foff_up(off64_t, uintptr_t, size_t);
-static int align_pos(int, size_t);
-static int write_mem_area(int, as_area_info_t *, async_sess_t *);
+static int write_mem_area(int, aoff64_t *, as_area_info_t *, async_sess_t *);
 
 #define BUFFER_SIZE 0x1000
 static uint8_t buffer[BUFFER_SIZE];
@@ -96,6 +95,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	elf_prstatus_t pr_status;
 	elf_note_t note;
 	size_t word_size;
+	aoff64_t pos = 0;
 
 	int fd;
 	ssize_t rc;
@@ -206,7 +206,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		foff += ainfo[i].size;
 	}
 
-	rc = write(fd, &elf_hdr, sizeof(elf_hdr));
+	rc = write(fd, &pos, &elf_hdr, sizeof(elf_hdr));
 	if (rc != sizeof(elf_hdr)) {
 		printf("Failed writing ELF header.\n");
 		free(p_hdr);
@@ -214,7 +214,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	}
 
 	for (i = 0; i < n_ph; ++i) {
-		rc = write(fd, &p_hdr[i], sizeof(p_hdr[i]));
+		rc = write(fd, &pos, &p_hdr[i], sizeof(p_hdr[i]));
 		if (rc != sizeof(p_hdr[i])) {
 			printf("Failed writing program header.\n");
 			free(p_hdr);
@@ -222,11 +222,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		}
 	}
 
-	if (lseek(fd, p_hdr[0].p_offset, SEEK_SET) == (off64_t) -1) {
-		printf("Failed writing memory data.\n");
-		free(p_hdr);
-		return EIO;
-	}
+	pos = p_hdr[0].p_offset;
 
 	/*
 	 * Write note header
@@ -235,28 +231,23 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	note.descsz = sizeof(elf_prstatus_t);
 	note.type = NT_PRSTATUS;
 
-	rc = write(fd, &note, sizeof(elf_note_t));
+	rc = write(fd, &pos, &note, sizeof(elf_note_t));
 	if (rc != sizeof(elf_note_t)) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
 		return EIO;
 	}
 
-	rc = write(fd, "CORE", note.namesz);
+	rc = write(fd, &pos, "CORE", note.namesz);
 	if (rc != (ssize_t) note.namesz) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
 		return EIO;
 	}
 
-	rc = align_pos(fd, word_size);
-	if (rc != EOK) {
-		printf("Failed writing note header.\n");
-		free(p_hdr);
-		return EIO;
-	}
+	pos = ALIGN_UP(pos, word_size);
 
-	rc = write(fd, &pr_status, sizeof(elf_prstatus_t));
+	rc = write(fd, &pos, &pr_status, sizeof(elf_prstatus_t));
 	if (rc != sizeof(elf_prstatus_t)) {
 		printf("Failed writing register data.\n");
 		free(p_hdr);
@@ -264,12 +255,8 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	}
 
 	for (i = 1; i < n_ph; ++i) {
-		if (lseek(fd, p_hdr[i].p_offset, SEEK_SET) == (off64_t) -1) {
-			printf("Failed writing memory data.\n");
-			free(p_hdr);
-			return EIO;
-		}
-		if (write_mem_area(fd, &ainfo[i - 1], sess) != EOK) {
+		pos = p_hdr[i].p_offset;
+		if (write_mem_area(fd, &pos, &ainfo[i - 1], sess) != EOK) {
 			printf("Failed writing memory data.\n");
 			free(p_hdr);
 			return EIO;
@@ -296,13 +283,15 @@ static off64_t align_foff_up(off64_t foff, uintptr_t vaddr, size_t page_size)
 /** Write memory area from application to core file.
  *
  * @param fd   File to write to.
+ * @param pos  Pointer to the position to write to.
  * @param area Memory area info structure.
  * @param sess Debugging session.
  *
  * @return EOK on success, EIO on failure.
  *
  */
-static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
+static int write_mem_area(int fd, aoff64_t *pos, as_area_info_t *area,
+    async_sess_t *sess)
 {
 	size_t to_copy;
 	size_t total;
@@ -320,7 +309,7 @@ static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
 			return EIO;
 		}
 
-		rc = write(fd, buffer, to_copy);
+		rc = write(fd, pos, buffer, to_copy);
 		if (rc != (ssize_t) to_copy) {
 			printf("Failed writing memory contents.\n");
 			return EIO;
@@ -329,25 +318,6 @@ static int write_mem_area(int fd, as_area_info_t *area, async_sess_t *sess)
 		addr += to_copy;
 		total += to_copy;
 	}
-
-	return EOK;
-}
-
-static int align_pos(int fd, size_t align)
-{
-	off64_t cur_pos;
-	size_t rem, adv;
-
-	cur_pos = lseek(fd, 0, SEEK_CUR);
-	if (cur_pos < 0)
-		return -1;
-
-	rem = cur_pos % align;
-	adv = align - rem;
-
-	cur_pos = lseek(fd, adv, SEEK_CUR);
-	if (cur_pos < 0)
-		return -1;
 
 	return EOK;
 }

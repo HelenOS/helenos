@@ -443,13 +443,15 @@ int close(int fildes)
  * return success with zero bytes read.
  *
  * @param fildes File descriptor
+ * @param pos Position to read from
  * @param buf Buffer
  * @param nbyte Maximum number of bytes to read
  * @param nread Place to store actual number of bytes read (0 or more)
  *
  * @return EOK on success, non-zero error code on error.
  */
-static int _read_short(int fildes, void *buf, size_t nbyte, ssize_t *nread)
+static int _read_short(int fildes, aoff64_t pos, void *buf, size_t nbyte,
+    ssize_t *nread)
 {
 	sysarg_t rc;
 	ipc_call_t answer;
@@ -460,7 +462,8 @@ static int _read_short(int fildes, void *buf, size_t nbyte, ssize_t *nread)
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_1(exch, VFS_IN_READ, fildes, &answer);
+	req = async_send_3(exch, VFS_IN_READ, fildes, LOWER32(pos),
+	    UPPER32(pos), &answer);
 	rc = async_data_read_start(exch, (void *) buf, nbyte);
 
 	vfs_exchange_end(exch);
@@ -483,13 +486,14 @@ static int _read_short(int fildes, void *buf, size_t nbyte, ssize_t *nread)
  * may be lower, but greater than zero.
  *
  * @param fildes File descriptor
+ * @param pos Position to write to
  * @param buf Buffer
  * @param nbyte Maximum number of bytes to write
  * @param nread Place to store actual number of bytes written (0 or more)
  *
  * @return EOK on success, non-zero error code on error.
  */
-static int _write_short(int fildes, const void *buf, size_t nbyte,
+static int _write_short(int fildes, aoff64_t pos, const void *buf, size_t nbyte,
     ssize_t *nwritten)
 {
 	sysarg_t rc;
@@ -501,7 +505,8 @@ static int _write_short(int fildes, const void *buf, size_t nbyte,
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_1(exch, VFS_IN_WRITE, fildes, &answer);
+	req = async_send_3(exch, VFS_IN_WRITE, fildes, LOWER32(pos),
+	    UPPER32(pos), &answer);
 	rc = async_data_write_start(exch, (void *) buf, nbyte);
 	
 	vfs_exchange_end(exch);
@@ -524,13 +529,14 @@ static int _write_short(int fildes, const void *buf, size_t nbyte,
  * all the available bytes up to @a nbytes.
  *
  * @param fildes	File descriptor
+ * @param pos		Pointer to position to read from 
  * @param buf		Buffer, @a nbytes bytes long
  * @param nbytes	Number of bytes to read
  *
  * @return		On success, nonnegative number of bytes read.
  *			On failure, -1 and sets errno.
  */
-ssize_t read(int fildes, void *buf, size_t nbyte)
+ssize_t read(int fildes, aoff64_t *pos, void *buf, size_t nbyte)
 {
 	ssize_t cnt = 0;
 	size_t nread = 0;
@@ -540,7 +546,8 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	do {
 		bp += cnt;
 		nread += cnt;
-		rc = _read_short(fildes, bp, nbyte - nread, &cnt);
+		*pos += cnt;
+		rc = _read_short(fildes, *pos, bp, nbyte - nread, &cnt);
 	} while (rc == EOK && cnt > 0 && (nbyte - nread - cnt) > 0);
 	
 	if (rc != EOK) {
@@ -548,6 +555,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 		return -1;
 	}
 	
+	*pos += cnt;
 	return nread + cnt;
 }
 
@@ -556,13 +564,14 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
  * This function fails if it cannot write exactly @a len bytes to the file.
  *
  * @param fildes	File descriptor
+ * @param pos		Pointer to position to write to
  * @param buf		Data, @a nbytes bytes long
  * @param nbytes	Number of bytes to write
  *
  * @return		On success, nonnegative number of bytes written.
  *			On failure, -1 and sets errno.
  */
-ssize_t write(int fildes, const void *buf, size_t nbyte)
+ssize_t write(int fildes, aoff64_t *pos, const void *buf, size_t nbyte)
 {
 	ssize_t cnt = 0;
 	ssize_t nwritten = 0;
@@ -572,7 +581,8 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	do {
 		bp += cnt;
 		nwritten += cnt;
-		rc = _write_short(fildes, bp, nbyte - nwritten, &cnt);
+		*pos += cnt;
+		rc = _write_short(fildes, *pos, bp, nbyte - nwritten, &cnt);
 	} while (rc == EOK && ((ssize_t )nbyte - nwritten - cnt) > 0);
 
 	if (rc != EOK) {
@@ -580,6 +590,7 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 		return -1;
 	}
 
+	*pos += cnt;
 	return nbyte;
 }
 
@@ -600,35 +611,6 @@ int fsync(int fildes)
 	}
 	
 	return 0;
-}
-
-/** Seek to a position.
- *
- * @param fildes File descriptor
- * @param offset Offset
- * @param whence SEEK_SET, SEEK_CUR or SEEK_END
- *
- * @return On success the nonnegative offset from start of file. On error
- *         returns (off64_t)-1 and sets errno.
- */
-off64_t lseek(int fildes, off64_t offset, int whence)
-{
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	sysarg_t newoff_lo;
-	sysarg_t newoff_hi;
-	sysarg_t rc = async_req_4_2(exch, VFS_IN_SEEK, fildes,
-	    LOWER32(offset), UPPER32(offset), whence,
-	    &newoff_lo, &newoff_hi);
-	
-	vfs_exchange_end(exch);
-	
-	if (rc != EOK) {
-		errno = rc;
-		return (off64_t) -1;
-	}
-	
-	return (off64_t) MERGE_LOUP32(newoff_lo, newoff_hi);
 }
 
 /** Truncate file to a specified length.
@@ -756,6 +738,7 @@ DIR *opendir(const char *dirname)
 	}
 	
 	dirp->fd = fd;
+	dirp->pos = 0;
 	return dirp;
 }
 
@@ -770,13 +753,15 @@ struct dirent *readdir(DIR *dirp)
 	int rc;
 	ssize_t len;
 	
-	rc = _read_short(dirp->fd, &dirp->res.d_name[0], NAME_MAX + 1, &len);
+	rc = _read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
+	    NAME_MAX + 1, &len);
 	if (rc != EOK) {
 		errno = rc;
 		return NULL;
 	}
 	
-	(void) len;
+	dirp->pos += len;
+	
 	return &dirp->res;
 }
 
@@ -786,7 +771,7 @@ struct dirent *readdir(DIR *dirp)
  */
 void rewinddir(DIR *dirp)
 {
-	(void) lseek(dirp->fd, 0, SEEK_SET);
+	dirp->pos = 0;
 }
 
 /** Close directory.
