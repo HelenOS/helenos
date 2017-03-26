@@ -50,13 +50,6 @@ static void vfs_in_close(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_fstat(ipc_callid_t rid, ipc_call_t *request)
-{
-	int fd = IPC_GET_ARG1(*request);
-	int rc = vfs_op_fstat(fd);
-	async_answer_0(rid, rc);
-}
-
 static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	int mpfd = IPC_GET_ARG1(*request);
@@ -102,12 +95,12 @@ static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 	free(fs_name);
 }
 
-static void vfs_in_open2(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_open(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	int flags = IPC_GET_ARG2(*request);
 
-	int rc = vfs_op_open2(fd, flags);
+	int rc = vfs_op_open(fd, flags);
 	async_answer_0(rid, rc);
 }
 
@@ -166,6 +159,13 @@ out:
 		free(new);
 }
 
+static void vfs_in_stat(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	int rc = vfs_op_stat(fd);
+	async_answer_0(rid, rc);
+}
+
 static void vfs_in_statfs(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = (int) IPC_GET_ARG1(*request);
@@ -189,7 +189,7 @@ static void vfs_in_truncate(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_unlink2(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_unlink(ipc_callid_t rid, ipc_call_t *request)
 {
 	int parentfd = IPC_GET_ARG1(*request);
 	int expectfd = IPC_GET_ARG2(*request);
@@ -198,7 +198,7 @@ static void vfs_in_unlink2(ipc_callid_t rid, ipc_call_t *request)
 	char *path;
 	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
 	if (rc == EOK)
-		rc = vfs_op_unlink2(parentfd, expectfd, wflag, path);
+		rc = vfs_op_unlink(parentfd, expectfd, wflag, path);
 	
 	async_answer_0(rid, rc);
 }
@@ -271,14 +271,11 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_CLOSE:
 			vfs_in_close(callid, &call);
 			break;
-		case VFS_IN_FSTAT:
-			vfs_in_fstat(callid, &call);
-			break;
 		case VFS_IN_MOUNT:
 			vfs_in_mount(callid, &call);
 			break;
-		case VFS_IN_OPEN2:
-			vfs_in_open2(callid, &call);
+		case VFS_IN_OPEN:
+			vfs_in_open(callid, &call);
 			break;
 		case VFS_IN_READ:
 			vfs_in_read(callid, &call);
@@ -290,6 +287,9 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_RENAME:
 			vfs_in_rename(callid, &call);
 			break;
+		case VFS_IN_STAT:
+			vfs_in_stat(callid, &call);
+			break;
 		case VFS_IN_STATFS:
 			vfs_in_statfs(callid, &call);
 			break;
@@ -299,8 +299,8 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_TRUNCATE:
 			vfs_in_truncate(callid, &call);
 			break;
-		case VFS_IN_UNLINK2:
-			vfs_in_unlink2(callid, &call);
+		case VFS_IN_UNLINK:
+			vfs_in_unlink(callid, &call);
 			break;
 		case VFS_IN_UNMOUNT:
 			vfs_in_unmount(callid, &call);

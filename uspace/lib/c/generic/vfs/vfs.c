@@ -159,7 +159,7 @@ int vfs_lookup(const char *path, int flags)
 int _vfs_open(int fildes, int mode)
 {
 	async_exch_t *exch = vfs_exchange_begin();
-	sysarg_t rc = async_req_2_0(exch, VFS_IN_OPEN2, fildes, mode);
+	sysarg_t rc = async_req_2_0(exch, VFS_IN_OPEN, fildes, mode);
 	vfs_exchange_end(exch);
 	
 	return (int) rc;
@@ -653,7 +653,7 @@ int fstat(int fildes, struct stat *stat)
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_1(exch, VFS_IN_FSTAT, fildes, NULL);
+	req = async_send_1(exch, VFS_IN_STAT, fildes, NULL);
 	rc = async_data_read_start(exch, (void *) stat, sizeof(struct stat));
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
@@ -807,14 +807,14 @@ int mkdir(const char *path, mode_t mode)
 	return close(fd);
 }
 
-static int _vfs_unlink2(int parent, const char *path, int expect, int wflag)
+static int _vfs_unlink(int parent, const char *path, int expect, int wflag)
 {
 	sysarg_t rc;
 	aid_t req;
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_3(exch, VFS_IN_UNLINK2, parent, expect, wflag, NULL);
+	req = async_send_3(exch, VFS_IN_UNLINK, parent, expect, wflag, NULL);
 	rc = async_data_write_start(exch, path, str_size(path));
 	
 	vfs_exchange_end(exch);
@@ -848,7 +848,7 @@ int unlink(const char *path)
 		return -1;
 	}
 	
-	int rc = _vfs_unlink2(root, pa, -1, 0);
+	int rc = _vfs_unlink(root, pa, -1, 0);
 	
 	if (rc != EOK) {
 		errno = rc;
@@ -881,7 +881,7 @@ int rmdir(const char *path)
 		return -1;
 	}
 	
-	int rc = _vfs_unlink2(root, pa, -1, WALK_DIRECTORY);
+	int rc = _vfs_unlink(root, pa, -1, WALK_DIRECTORY);
 	if (rc != EOK) {
 		errno = rc;
 		rc = -1;

@@ -129,23 +129,6 @@ int vfs_op_close(int fd)
 	return vfs_fd_free(fd);
 }
 
-int vfs_op_fstat(int fd)
-{
-	vfs_file_t *file = vfs_file_get(fd);
-	if (!file)
-		return EBADF;
-
-	vfs_node_t *node = file->node;
-
-	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-	int rc = async_data_read_forward_fast(exch, VFS_OUT_STAT,
-	    node->service_id, node->index, true, 0, NULL);
-	vfs_exchange_release(exch);
-	
-	vfs_file_put(file);
-	return rc;
-}
-
 static int vfs_connect_internal(service_id_t service_id, unsigned flags,
     unsigned instance, const char *options, const char *fsname,
     vfs_node_t **root)
@@ -290,7 +273,7 @@ out:
 	return rc;
 }
 
-int vfs_op_open2(int fd, int flags)
+int vfs_op_open(int fd, int flags)
 {
 	if (flags == 0)
 		return EINVAL;
@@ -601,6 +584,23 @@ int vfs_op_rename(int basefd, char *old, char *new)
 	return EOK;
 }
 
+int vfs_op_stat(int fd)
+{
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file)
+		return EBADF;
+
+	vfs_node_t *node = file->node;
+
+	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
+	int rc = async_data_read_forward_fast(exch, VFS_OUT_STAT,
+	    node->service_id, node->index, true, 0, NULL);
+	vfs_exchange_release(exch);
+	
+	vfs_file_put(file);
+	return rc;
+}
+
 int vfs_op_statfs(int fd)
 {
 	vfs_file_t *file = vfs_file_get(fd);
@@ -671,7 +671,7 @@ int vfs_op_truncate(int fd, int64_t size)
 	return rc;
 }
 
-int vfs_op_unlink2(int parentfd, int expectfd, int wflag, char *path)
+int vfs_op_unlink(int parentfd, int expectfd, int wflag, char *path)
 {
 	int rc = EOK;
 	vfs_file_t *parent = NULL;

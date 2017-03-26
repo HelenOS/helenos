@@ -707,7 +707,7 @@ static void main_init(void)
 	o = oper_new("truncate", 5, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_TRUNCATE, o);
 	o = oper_new("fstat", 1, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_FSTAT, o);
+	proto_add_oper(p, VFS_IN_STAT, o);
 	o = oper_new("close", 1, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_CLOSE, o);
 	o = oper_new("mount", 2, arg_def, V_ERRNO, 0, resp_def);
@@ -722,10 +722,10 @@ static void main_init(void)
 	proto_add_oper(p, VFS_IN_STATFS, o);
 	o = oper_new("walk", 2, arg_def, V_INT_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_WALK, o);
-	o = oper_new("open2", 2, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_OPEN2, o);
-	o = oper_new("unlink2", 3, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_UNLINK2, o);
+	o = oper_new("open", 2, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_OPEN, o);
+	o = oper_new("unlink", 3, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_UNLINK, o);
 
 	proto_register(SERVICE_VFS, p);
 }
