@@ -751,7 +751,7 @@ DIR *opendir(const char *dirname)
 struct dirent *readdir(DIR *dirp)
 {
 	int rc;
-	ssize_t len;
+	ssize_t len = 0;
 	
 	rc = _read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
 	    NAME_MAX + 1, &len);
