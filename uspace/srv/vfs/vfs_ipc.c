@@ -36,9 +36,10 @@
 static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
 {
 	int oldfd = IPC_GET_ARG1(*request);
-	bool desc = IPC_GET_ARG2(*request);
+	int newfd = IPC_GET_ARG2(*request);
+	bool desc = IPC_GET_ARG3(*request);
 	
-	int ret = vfs_op_clone(oldfd, desc);
+	int ret = vfs_op_clone(oldfd, newfd, desc);
 	async_answer_0(rid, ret);
 }
 
@@ -47,14 +48,6 @@ static void vfs_in_close(ipc_callid_t rid, ipc_call_t *request)
 	int fd = IPC_GET_ARG1(*request);
 	int rc = vfs_op_close(fd);
 	async_answer_0(rid, rc);
-}
-
-static void vfs_in_dup(ipc_callid_t rid, ipc_call_t *request)
-{
-	int oldfd = IPC_GET_ARG1(*request);
-	int newfd = IPC_GET_ARG2(*request);
-	int rc = vfs_op_dup(oldfd, newfd);
-	async_answer_1(rid, rc, newfd);
 }
 
 static void vfs_in_fstat(ipc_callid_t rid, ipc_call_t *request)
@@ -277,9 +270,6 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_IN_CLOSE:
 			vfs_in_close(callid, &call);
-			break;
-		case VFS_IN_DUP:
-			vfs_in_dup(callid, &call);
 			break;
 		case VFS_IN_FSTAT:
 			vfs_in_fstat(callid, &call);

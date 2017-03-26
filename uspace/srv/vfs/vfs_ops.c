@@ -87,53 +87,46 @@ static void out_destroy(vfs_triplet_t *file)
 	vfs_exchange_release(exch);
 }
 
-int vfs_op_clone(int oldfd, bool desc)
+int vfs_op_clone(int oldfd, int newfd, bool desc)
 {
+	int rc;
+
+	/* If the file descriptors are the same, do nothing. */
+	if (oldfd == newfd)
+		return EOK;
+	
 	/* Lookup the file structure corresponding to fd. */
 	vfs_file_t *oldfile = vfs_file_get(oldfd);
 	if (oldfile == NULL)
 		return EBADF;
 
 	assert(oldfile->node != NULL);
+
+	if (newfd != -1) {
+		/* Make sure newfd is closed. */
+		(void) vfs_fd_free(newfd);
+		/* Assign the old file to newfd. */
+		rc = vfs_fd_assign(oldfile, newfd);
+	} else {
+		vfs_file_t *newfile;
+		int newfd = vfs_fd_alloc(&newfile, desc);
+		if (newfd >= 0) {
+			newfile->node = oldfile->node;
+			newfile->permissions = oldfile->permissions;
+			vfs_node_addref(newfile->node);
 	
-	vfs_file_t *newfile;
-	int newfd = vfs_fd_alloc(&newfile, desc);
-	if (newfd >= 0) {
-		newfile->node = oldfile->node;
-		newfile->permissions = oldfile->permissions;
-		vfs_node_addref(newfile->node);
-	
-		vfs_file_put(newfile);
+			vfs_file_put(newfile);
+		}
+		rc = newfd;
 	}
 	vfs_file_put(oldfile);
 	
-	return newfd;
+	return rc;
 }
 
 int vfs_op_close(int fd)
 {
 	return vfs_fd_free(fd);
-}
-
-int vfs_op_dup(int oldfd, int newfd)
-{
-	/* If the file descriptors are the same, do nothing. */
-	if (oldfd == newfd)
-		return EOK;
-	
-	/* Lookup the file structure corresponding to oldfd. */
-	vfs_file_t *oldfile = vfs_file_get(oldfd);
-	if (!oldfile)
-		return EBADF;
-	
-	/* Make sure newfd is closed. */
-	(void) vfs_fd_free(newfd);
-	
-	/* Assign the old file to newfd. */
-	int ret = vfs_fd_assign(oldfile, newfd);
-	vfs_file_put(oldfile);
-	
-	return ret;
 }
 
 int vfs_op_fstat(int fd)

@@ -75,7 +75,7 @@ int vfs_root(void)
 	if (root_fd < 0)
 		r = ENOENT;
 	else
-		r = vfs_clone(root_fd, true);
+		r = vfs_clone(root_fd, -1, true);
 	fibril_mutex_unlock(&root_mutex);
 	return r;
 }
@@ -85,7 +85,7 @@ void vfs_root_set(int nroot)
 	fibril_mutex_lock(&root_mutex);
 	if (root_fd >= 0)
 		close(root_fd);
-	root_fd = vfs_clone(nroot, true);
+	root_fd = vfs_clone(nroot, -1, true);
 	fibril_mutex_unlock(&root_mutex);
 }
 
@@ -1070,34 +1070,6 @@ async_sess_t *vfs_fd_session(int fildes, iface_t iface)
 	return loc_service_connect(stat.service, iface, 0);
 }
 
-/** Duplicate open file.
- *
- * Duplicate open file under a new file descriptor.
- *
- * @param oldfd Old file descriptor
- * @param newfd New file descriptor
- * @return 0 on success. On error -1 is returned and errno is set
- */
-int dup2(int oldfd, int newfd)
-{
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	sysarg_t ret;
-	sysarg_t rc = async_req_2_1(exch, VFS_IN_DUP, oldfd, newfd, &ret);
-	
-	vfs_exchange_end(exch);
-	
-	if (rc == EOK)
-		rc = ret;
-	
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
-	
-	return 0;
-}
-
 static void process_mp(const char *path, struct stat *stat, list_t *mtab_list)
 {
 	mtab_ent_t *ent;
@@ -1253,11 +1225,11 @@ int vfs_receive_handle(bool high_descriptor)
 	return ret;
 }
 
-int vfs_clone(int file, bool high_descriptor)
+int vfs_clone(int file_from, int file_to, bool high_descriptor)
 {
 	async_exch_t *vfs_exch = vfs_exchange_begin();
-	int rc = async_req_2_0(vfs_exch, VFS_IN_CLONE, (sysarg_t) file,
-	    (sysarg_t) high_descriptor);
+	int rc = async_req_3_0(vfs_exch, VFS_IN_CLONE, (sysarg_t) file_from,
+	    (sysarg_t) file_to, (sysarg_t) high_descriptor);
 	vfs_exchange_end(vfs_exch);
 	return rc;
 }

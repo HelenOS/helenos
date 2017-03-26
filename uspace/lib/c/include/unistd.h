@@ -57,8 +57,6 @@
 
 #define getpagesize()  (PAGE_SIZE)
 
-extern int dup2(int, int);
-
 extern ssize_t write(int, aoff64_t *, const void *, size_t);
 extern ssize_t read(int, aoff64_t *, void *, size_t);
 

@@ -95,7 +95,7 @@ int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info
 {
 	elf_ld_t elf;
 
-	int ofile = vfs_clone(file, true);
+	int ofile = vfs_clone(file, -1, true);
 	int rc = _vfs_open(ofile, MODE_READ);
 	if (rc != EOK) {
 		return rc;

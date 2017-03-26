@@ -305,7 +305,7 @@ int posix_dup(int fildes)
  */
 int posix_dup2(int fildes, int fildes2)
 {
-	return negerrno(dup2, fildes, fildes2);
+	return negerrno(vfs_clone, fildes, fildes2, false);
 }
 
 /**

@@ -43,6 +43,7 @@
 #include <task.h>
 #include <str_error.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 #define NAME  "redir"
 
@@ -64,7 +65,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 		return;
 	
 	if (oldfd != fd) {
-		if (dup2(oldfd, fd) != fd)
+		if (vfs_clone(oldfd, fd, false) != fd)
 			return;
 		
 		if (close(oldfd))

@@ -151,8 +151,8 @@ int bithenge_should_fail(void)
 		int null = open("/dev/null", O_WRONLY);
 		if (null == -1)
 			exit(127);
-		dup2(null, STDOUT_FILENO);
-		dup2(null, STDERR_FILENO);
+		vfs_clone(null, STDOUT_FILENO, false);
+		vfs_clone(null, STDERR_FILENO, false);
 		close(null);
 		return 1;
 	}

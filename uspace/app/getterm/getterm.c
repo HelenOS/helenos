@@ -42,6 +42,7 @@
 #include <str_error.h>
 #include <errno.h>
 #include <loc.h>
+#include <vfs/vfs.h>
 #include "version.h"
 #include "welcome.h"
 
@@ -70,7 +71,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags,
 		return;
 	
 	if (oldfd != fd) {
-		if (dup2(oldfd, fd) != fd)
+		if (vfs_clone(oldfd, fd, false) != fd)
 			return;
 		
 		if (close(oldfd))

@@ -113,7 +113,7 @@ void __stdio_init(void)
 	 
 	int infd = inbox_get("stdin");
 	if (infd >= 0) {
-		int stdinfd = vfs_clone(infd, false);
+		int stdinfd = vfs_clone(infd, -1, false);
 		assert(stdinfd == 0);
 		_vfs_open(stdinfd, MODE_READ);
 		stdin = fdopen(stdinfd, "r");
@@ -124,11 +124,10 @@ void __stdio_init(void)
 	
 	int outfd = inbox_get("stdout");
 	if (outfd >= 0) {
-		int stdoutfd = vfs_clone(outfd, false);
+		int stdoutfd = vfs_clone(outfd, -1, false);
 		assert(stdoutfd <= 1);
-		while (stdoutfd < 1) {
-			stdoutfd = vfs_clone(outfd, false);
-		}
+		while (stdoutfd < 1)
+			stdoutfd = vfs_clone(outfd, -1, false);
 		_vfs_open(stdoutfd, MODE_APPEND);
 		stdout = fdopen(stdoutfd, "a");
 	} else {
@@ -138,11 +137,10 @@ void __stdio_init(void)
 	
 	int errfd = inbox_get("stderr");
 	if (errfd >= 0) {
-		int stderrfd = vfs_clone(errfd, false);
+		int stderrfd = vfs_clone(errfd, -1, false);
 		assert(stderrfd <= 2);
-		while (stderrfd < 2) {
-			stderrfd = vfs_clone(errfd, false);
-		}
+		while (stderrfd < 2)
+			stderrfd = vfs_clone(errfd, -1, false);
 		_vfs_open(stderrfd, MODE_APPEND);
 		stderr = fdopen(stderrfd, "a");
 	} else {

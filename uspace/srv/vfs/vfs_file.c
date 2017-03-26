@@ -303,9 +303,13 @@ int vfs_fd_assign(vfs_file_t *file, int fd)
 		return ENOMEM;
 
 	fibril_mutex_lock(&VFS_DATA->lock);	
-	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || (FILES[fd] != NULL)) {
+	if ((fd < 0) || (fd >= MAX_OPEN_FILES)) {
 		fibril_mutex_unlock(&VFS_DATA->lock);
-		return EINVAL;
+		return EBADF;
+	}
+	if (FILES[fd] != NULL) {
+		fibril_mutex_unlock(&VFS_DATA->lock);
+		return EEXIST;
 	}
 	
 	FILES[fd] = file;
