@@ -48,7 +48,13 @@ typedef enum {
 	 * Returns: error code
 	 * Followed by: string with full log name.
 	 */
-	LOGGER_CONTROL_SET_LOG_LEVEL
+	LOGGER_CONTROL_SET_LOG_LEVEL,
+	/** Set VFS root.
+	 *
+	 * Returns: error code
+	 * Followed by: vfs_pass_handle() request.
+	 */ 
+	LOGGER_CONTROL_SET_ROOT
 } logger_control_request_t;
 
 typedef enum {

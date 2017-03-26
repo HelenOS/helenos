@@ -49,6 +49,7 @@
 #include <loc.h>
 #include <str_error.h>
 #include <config.h>
+#include <io/logctl.h>
 #include "init.h"
 
 #define ROOT_DEVICE       "bd/initrd"
@@ -128,6 +129,8 @@ static bool mount_root(const char *fstype)
 	
 	int rc = mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
 	    IPC_FLAG_BLOCKING, 0);
+	if (rc == EOK)
+		logctl_set_root();
 	return mount_report("Root filesystem", ROOT_MOUNT_POINT, fstype,
 	    ROOT_DEVICE, rc);
 }
