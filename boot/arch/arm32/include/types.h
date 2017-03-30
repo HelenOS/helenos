@@ -44,6 +44,8 @@ typedef uint32_t uintptr_t;
 
 typedef uint32_t pfn_t;
 
+typedef int32_t ptrdiff_t;
+
 typedef struct {
 	/** Address where the task was placed. */
 	void *addr;

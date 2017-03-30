@@ -37,6 +37,8 @@ typedef uint32_t uintptr_t;
 typedef uint32_t sysarg_t;
 typedef int32_t native_t;
 
+typedef int32_t ptrdiff_t;
+
 typedef struct {
 	void *addr;
 	size_t size;

@@ -52,5 +52,14 @@ const char *test_print2(void)
 	TPRINTF("Expected output: [0x11] [0x012] [0x013] [0x00014] [0x00015]\n");
 	TPRINTF("Real output:     [%#x] [%#5.3x] [%#-5.3x] [%#3.5x] [%#-3.5x]\n\n", 17, 18, 19, 20, 21);
 	
+	char ch[12];
+	ptrdiff_t d, neg_d;
+	
+	d = &ch[0] - &ch[12];
+	neg_d = (unsigned)(-d);
+	TPRINTF("Testing printf(\"%%td %%tu %%tx %%ti %%to\", d, neg_d, neg_d, d, neg_d):\n");
+	TPRINTF("Expected output: [-12] [12] [c] [-12] [14]\n");
+	TPRINTF("Real output:     [%td] [%tu] [%tx] [%ti] [%to]\n\n", d, neg_d, neg_d, d, neg_d);
+	
 	return NULL;
 }
