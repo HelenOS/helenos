@@ -705,7 +705,7 @@ static void main_init(void)
 	o = oper_new("write", 3, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_IN_WRITE, o);
 	o = oper_new("truncate", 5, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_TRUNCATE, o);
+	proto_add_oper(p, VFS_IN_RESIZE, o);
 	o = oper_new("fstat", 1, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_STAT, o);
 	o = oper_new("close", 1, arg_def, V_ERRNO, 0, resp_def);

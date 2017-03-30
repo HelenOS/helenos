@@ -584,6 +584,24 @@ int vfs_op_rename(int basefd, char *old, char *new)
 	return EOK;
 }
 
+int vfs_op_resize(int fd, int64_t size)
+{
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file)
+		return EBADF;
+
+	fibril_rwlock_write_lock(&file->node->contents_rwlock);
+	
+	int rc = vfs_truncate_internal(file->node->fs_handle,
+	    file->node->service_id, file->node->index, size);
+	if (rc == EOK)
+		file->node->size = size;
+	
+	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
+	vfs_file_put(file);
+	return rc;
+}
+
 int vfs_op_stat(int fd)
 {
 	vfs_file_t *file = vfs_file_get(fd);
@@ -651,24 +669,6 @@ static int vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service_id,
 	vfs_exchange_release(exch);
 	
 	return (int) rc;
-}
-
-int vfs_op_truncate(int fd, int64_t size)
-{
-	vfs_file_t *file = vfs_file_get(fd);
-	if (!file)
-		return EBADF;
-
-	fibril_rwlock_write_lock(&file->node->contents_rwlock);
-	
-	int rc = vfs_truncate_internal(file->node->fs_handle,
-	    file->node->service_id, file->node->index, size);
-	if (rc == EOK)
-		file->node->size = size;
-	
-	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
-	vfs_file_put(file);
-	return rc;
 }
 
 int vfs_op_unlink(int parentfd, int expectfd, char *path)

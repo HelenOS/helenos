@@ -407,7 +407,7 @@ int open(const char *path, int oflag, ...)
 		assert(oflag & O_WRONLY || oflag & O_RDWR);
 		assert(!(oflag & O_APPEND));
 		
-		(void) ftruncate(fd, 0);
+		(void) vfs_resize(fd, 0);
 	}
 
 	return fd;
@@ -619,23 +619,18 @@ int fsync(int fildes)
  * @param fildes File descriptor
  * @param length Length
  *
- * @return 0 on success, -1 on error and sets errno.
+ * @return 0 on success or a negative erroc code otherwise.
  */
-int ftruncate(int fildes, aoff64_t length)
+int vfs_resize(int file, aoff64_t length)
 {
 	sysarg_t rc;
 	
 	async_exch_t *exch = vfs_exchange_begin();
-	rc = async_req_3_0(exch, VFS_IN_TRUNCATE, fildes,
-	    LOWER32(length), UPPER32(length));
+	rc = async_req_3_0(exch, VFS_IN_RESIZE, file, LOWER32(length),
+	    UPPER32(length));
 	vfs_exchange_end(exch);
 	
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
-	
-	return 0;
+	return rc;
 }
 
 /** Get file status.

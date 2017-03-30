@@ -258,7 +258,10 @@ int posix_fsync(int fildes)
  */
 int posix_ftruncate(int fildes, posix_off_t length)
 {
-	return negerrno(ftruncate, fildes, (aoff64_t) length);
+	if (rcerrno(vfs_resize, fildes, (aoff64_t) length) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**

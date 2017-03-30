@@ -159,6 +159,14 @@ out:
 		free(new);
 }
 
+static void vfs_in_resize(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	int64_t size = MERGE_LOUP32(IPC_GET_ARG2(*request), IPC_GET_ARG3(*request));
+	int rc = vfs_op_resize(fd, size);
+	async_answer_0(rid, rc);
+}
+
 static void vfs_in_stat(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
@@ -178,14 +186,6 @@ static void vfs_in_sync(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	int rc = vfs_op_sync(fd);
-	async_answer_0(rid, rc);
-}
-
-static void vfs_in_truncate(ipc_callid_t rid, ipc_call_t *request)
-{
-	int fd = IPC_GET_ARG1(*request);
-	int64_t size = MERGE_LOUP32(IPC_GET_ARG2(*request), IPC_GET_ARG3(*request));
-	int rc = vfs_op_truncate(fd, size);
 	async_answer_0(rid, rc);
 }
 
@@ -286,6 +286,9 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_RENAME:
 			vfs_in_rename(callid, &call);
 			break;
+		case VFS_IN_RESIZE:
+			vfs_in_resize(callid, &call);
+			break;
 		case VFS_IN_STAT:
 			vfs_in_stat(callid, &call);
 			break;
@@ -294,9 +297,6 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_IN_SYNC:
 			vfs_in_sync(callid, &call);
-			break;
-		case VFS_IN_TRUNCATE:
-			vfs_in_truncate(callid, &call);
 			break;
 		case VFS_IN_UNLINK:
 			vfs_in_unlink(callid, &call);

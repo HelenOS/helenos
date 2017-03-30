@@ -89,6 +89,7 @@ extern int vfs_receive_handle(bool);
 extern int vfs_clone(int, int, bool);
 extern int vfs_root(void);
 extern void vfs_root_set(int);
+extern int vfs_resize(int, aoff64_t);
 extern int vfs_stat(int, struct stat *);
 extern int vfs_stat_path(const char *, struct stat *);
 extern int vfs_statfs(int, struct statfs *);
