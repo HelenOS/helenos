@@ -53,7 +53,7 @@
 #include <fcntl.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <irc.h>
 #include <ns.h>
 
@@ -263,8 +263,8 @@ static char *fun_conf_read(const char *conf_path)
 
 	opened = true;
 
-	if (fstat(fd, &st) != EOK) {
-		ddf_msg(LVL_ERROR, "Unable to fstat %d", fd);
+	if (vfs_stat(fd, &st) != EOK) {
+		ddf_msg(LVL_ERROR, "Unable to vfs_stat %d", fd);
 		goto cleanup;
 	}
 

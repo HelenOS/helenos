@@ -35,24 +35,8 @@
 #ifndef LIBC_SYS_STAT_H_
 #define LIBC_SYS_STAT_H_
 
-#include <sys/types.h>
-#include <stdbool.h>
 #include <ipc/vfs.h>
-#include <ipc/loc.h>
 
-struct stat {
-	fs_handle_t fs_handle;
-	service_id_t service_id;
-	fs_index_t index;
-	unsigned int lnkcnt;
-	bool is_file;
-	bool is_directory;
-	aoff64_t size;
-	service_id_t service;
-};
-
-extern int fstat(int, struct stat *);
-extern int stat(const char *, struct stat *);
 extern int mkdir(const char *, mode_t);
 
 #endif

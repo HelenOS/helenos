@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <getopt.h>
 #include <str.h>
 #include <fcntl.h>
@@ -213,10 +212,10 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	if (tail != CAT_FULL_FILE) {
 		struct stat st;
 
-		if (fstat(fd, &st) != EOK) {
+		if (vfs_stat(fd, &st) != EOK) {
 			close(fd);
 			free(buff);
-			printf("Unable to fstat %d\n", fd);
+			printf("Unable to vfs_stat %d\n", fd);
 			return 1;
 		}
 		file_size = st.size;

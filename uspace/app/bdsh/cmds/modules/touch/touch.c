@@ -39,8 +39,8 @@
 #include <sys/types.h>
 #include <str.h>
 #include <getopt.h>
-#include <sys/stat.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "errors.h"
@@ -122,8 +122,10 @@ int cmd_touch(char **argv)
 		}
 		
 		/* Check whether file exists if -c (--no-create) option is given */
-		if ((!no_create) || ((no_create) && (stat(buff, &file_stat) == 0)))
+		if ((!no_create) ||
+		    ((no_create) && (vfs_stat_path(buff, &file_stat) == EOK))) {
 			fd = open(buff, O_RDWR | O_CREAT);
+		}
 		
 		if (fd < 0) {
 			cli_error(CL_EFAIL, "Could not update or create `%s'", buff);

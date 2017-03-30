@@ -36,6 +36,7 @@
 #include <str.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <dirent.h>
 #include "config.h"
 #include "util.h"
@@ -82,9 +83,9 @@ static dentry_type_t get_type(const char *path)
 {
 	struct stat s;
 
-	int r = stat(path, &s);
+	int r = vfs_stat_path(path, &s);
 
-	if (r != 0)
+	if (r != EOK)
 		return TYPE_NONE;
 	else if (s.is_directory)
 		return TYPE_DIR;
@@ -340,8 +341,8 @@ static int64_t do_copy(const char *src, const char *dest,
 			merge_paths(dest_dent, PATH_MAX, dp->d_name);
 
 			/* Check if we are copying a directory into itself */
-			stat(src_dent, &src_s);
-			stat(dest_path, &dest_s);
+			vfs_stat_path(src_dent, &src_s);
+			vfs_stat_path(dest_path, &dest_s);
 
 			if (dest_s.index == src_s.index &&
 			    dest_s.fs_handle == src_s.fs_handle) {
@@ -393,7 +394,7 @@ static int64_t copy_file(const char *src, const char *dest,
 		return -1;
 	}
 
-	if (fstat(fd1, &st) != EOK) {
+	if (vfs_stat(fd1, &st) != EOK) {
 		printf("Unable to fstat %d\n", fd1);
 		close(fd1);
 		close(fd2);

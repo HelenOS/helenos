@@ -640,19 +640,19 @@ int ftruncate(int fildes, aoff64_t length)
 
 /** Get file status.
  *
- * @param fildes File descriptor
+ * @param file File descriptor
  * @param stat Place to store file information
  *
- * @return 0 on success, -1 on error and sets errno.
+ * @return EOK on success or a negative error code otherwise.
  */
-int fstat(int fildes, struct stat *stat)
+int vfs_stat(int file, struct stat *stat)
 {
 	sysarg_t rc;
 	aid_t req;
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_1(exch, VFS_IN_STAT, fildes, NULL);
+	req = async_send_1(exch, VFS_IN_STAT, file, NULL);
 	rc = async_data_read_start(exch, (void *) stat, sizeof(struct stat));
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
@@ -662,23 +662,14 @@ int fstat(int fildes, struct stat *stat)
 		
 		if (rc_orig != EOK)
 			rc = rc_orig;
-		if (rc != EOK) {
-			errno = rc;
-			return -1;
-		}
 		
-		return 0;
+		return rc;
 	}
 	
 	vfs_exchange_end(exch);
 	async_wait_for(req, &rc);
 	
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
-	
-	return 0;
+	return rc;
 }
 
 /** Get file status.
@@ -686,23 +677,17 @@ int fstat(int fildes, struct stat *stat)
  * @param path Path to file
  * @param stat Place to store file information
  *
- * @return 0 on success, -1 on error and sets errno.
+ * @return EOK on success or a negative error code otherwise.
  */
-int stat(const char *path, struct stat *stat)
+int vfs_stat_path(const char *path, struct stat *stat)
 {
-	int fd = vfs_lookup(path, 0);
-	if (fd < 0) {
-		errno = fd;
-		return -1;
-	}
+	int file = vfs_lookup(path, 0);
+	if (file < 0)
+		return file;
 	
-	int rc = fstat(fd, stat);
-	if (rc != EOK) {
-		close(fd);
-		errno = rc;
-		rc = -1;
-	} else
-		rc = close(fd);
+	int rc = vfs_stat(file, stat);
+
+	close(file);
 
 	return rc;
 }
@@ -1056,10 +1041,10 @@ char *getcwd(char *buf, size_t size)
  * @param iface Interface to connect to (XXX Should be automatic)
  * @return On success returns session pointer. On error returns @c NULL.
  */
-async_sess_t *vfs_fd_session(int fildes, iface_t iface)
+async_sess_t *vfs_fd_session(int file, iface_t iface)
 {
 	struct stat stat;
-	int rc = fstat(fildes, &stat);
+	int rc = vfs_stat(file, &stat);
 	if (rc != 0)
 		return NULL;
 	
@@ -1121,7 +1106,7 @@ static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
 		free(child);
 		child = pa;
 
-		rc = stat(child, &st);
+		rc = vfs_stat_path(child, &st);
 		if (rc != 0) {
 			free(child);
 			closedir(dir);
@@ -1151,7 +1136,7 @@ int vfs_get_mtab_list(list_t *mtab_list)
 {
 	struct stat st;
 
-	int rc = stat("/", &st);
+	int rc = vfs_stat_path("/", &st);
 	if (rc != 0)
 		return rc;
 
@@ -1164,7 +1149,7 @@ int vfs_get_mtab_list(list_t *mtab_list)
  *
  * @param file File located on the queried file system
  * @param st Buffer for storing information
- * @return 0 on success. On error -1 is returned and errno is set.
+ * @return EOK on success or a negative error code otherwise.
  */
 int vfs_statfs(int file, struct statfs *st)
 {

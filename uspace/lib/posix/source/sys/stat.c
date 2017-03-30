@@ -38,7 +38,7 @@
 
 #include "../internal/common.h"
 #include "posix/sys/stat.h"
-#include "libc/sys/stat.h"
+#include "libc/vfs/vfs.h"
 
 #include "posix/errno.h"
 #include "libc/mem.h"
@@ -79,9 +79,9 @@ static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 int posix_fstat(int fd, struct posix_stat *st)
 {
 	struct stat hst;
-	int rc = negerrno(fstat, fd, &hst);
+	int rc = rcerrno(vfs_stat, fd, &hst);
 	if (rc < 0)
-		return rc;
+		return -1;
 	stat_to_posix(st, &hst);
 	return 0;
 }
@@ -109,9 +109,9 @@ int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
 int posix_stat(const char *restrict path, struct posix_stat *restrict st)
 {
 	struct stat hst;
-	int rc = negerrno(stat, path, &hst);
+	int rc = rcerrno(vfs_stat_path, path, &hst);
 	if (rc < 0)
-		return rc;
+		return -1;
 	stat_to_posix(st, &hst);
 	return 0;
 }

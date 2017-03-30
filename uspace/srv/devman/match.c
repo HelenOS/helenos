@@ -36,7 +36,7 @@
 #include <str.h>
 #include <str_error.h>
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 
 #include "devman.h"
 #include "match.h"
@@ -210,7 +210,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	}
 	opened = true;
 	
-	if (fstat(fd, &st) != EOK) {
+	if (vfs_stat(fd, &st) != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to fstat %d: %s.", fd,
 		    str_error(errno));
 		goto cleanup;

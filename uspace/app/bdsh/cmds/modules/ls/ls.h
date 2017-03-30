@@ -1,6 +1,8 @@
 #ifndef LS_H
 #define LS_H
 
+#include <vfs/vfs.h>
+
 /* Various values that can be returned by ls_scope() */
 #define LS_BOGUS 0
 #define LS_FILE  1

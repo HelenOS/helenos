@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <sys/types.h>
 #include <dirent.h>
 
@@ -118,7 +119,7 @@ int futil_rcopy_contents(const char *srcdir, const char *destdir)
 		if (asprintf(&destp, "%s/%s", destdir, de->d_name) < 0)
 			return ENOMEM;
 
-		rc = stat(srcp, &s);
+		rc = vfs_stat_path(srcp, &s);
 		if (rc != EOK)
 			return EIO;
 
@@ -165,7 +166,7 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 	if (sf < 0)
 		return ENOENT;
 
-	if (fstat(sf, &st) != EOK) {
+	if (vfs_stat(sf, &st) != EOK) {
 		close(sf);
 		return EIO;
 	}	

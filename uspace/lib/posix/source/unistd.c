@@ -47,7 +47,6 @@
 #include "libc/stats.h"
 #include "libc/malloc.h"
 #include "libc/vfs/vfs.h"
-#include "libc/sys/stat.h"
 
 aoff64_t posix_pos[MAX_OPEN_FILES];
 
@@ -220,6 +219,7 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 {
 	struct stat st;
+	int rc;
 
 	switch (whence) {
 	case SEEK_SET:
@@ -229,10 +229,9 @@ posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 		posix_pos[fildes] += offset;
 		break;
 	case SEEK_END:
-		if (fstat(fildes, &st) != EOK) {
-			errno = -errno;
+		rc = rcerrno(vfs_stat, fildes, &st);
+		if (rc != EOK)
 			return -1;
-		}
 		posix_pos[fildes] = st.size + offset;
 		break;
 	}

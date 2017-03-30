@@ -40,7 +40,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include "common.h"
@@ -103,8 +103,8 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 	assert(out);
 
 	struct stat stat;
-	int rc = fstat(fd, &stat);
-	if (rc != 0) {
+	int rc = vfs_stat(fd, &stat);
+	if (rc != EOK) {
 		if (needs_close)
 			close(fd);
 		return rc;

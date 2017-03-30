@@ -40,7 +40,6 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <malloc.h>
-#include <sys/stat.h>
 #include <async.h>
 #include <io/kio.h>
 #include <vfs/vfs.h>
@@ -764,6 +763,8 @@ int ungetc(int c, FILE *stream)
 
 int fseek(FILE *stream, off64_t offset, int whence)
 {
+	int rc;
+
 	if (stream->error)
 		return -1;
 
@@ -784,8 +785,9 @@ int fseek(FILE *stream, off64_t offset, int whence)
 		stream->pos += offset;
 		break;
 	case SEEK_END:
-		if (fstat(stream->fd, &st) != EOK) {
-			/* errno was set by fstat() */
+		rc = vfs_stat(stream->fd, &st);
+		if (rc != EOK) {
+			errno = rc;
 			stream->error = true;
 			return -1;	
 		}

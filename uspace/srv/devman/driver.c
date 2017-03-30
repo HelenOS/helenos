@@ -33,8 +33,8 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <io/log.h>
+#include <vfs/vfs.h>
 #include <loc.h>
 #include <str_error.h>
 #include <stdio.h>
@@ -141,7 +141,7 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 	
 	/* Check whether the driver's binary exists. */
 	struct stat s;
-	if (stat(drv->binary_path, &s) != 0) {
+	if (vfs_stat_path(drv->binary_path, &s) != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Driver not found at path `%s'.",
 		    drv->binary_path);
 		goto cleanup;

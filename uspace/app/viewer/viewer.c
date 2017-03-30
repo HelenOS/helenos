@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <errno.h>
 #include <malloc.h>
 #include <stdbool.h>
@@ -114,8 +114,8 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 		return false;
 	
 	struct stat stat;
-	int rc = fstat(fd, &stat);
-	if (rc != 0) {
+	int rc = vfs_stat(fd, &stat);
+	if (rc != EOK) {
 		close(fd);
 		return false;
 	}

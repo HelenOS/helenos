@@ -32,7 +32,7 @@
 #include <errno.h>
 #include <macros.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 
 #include "cmds/cmds.h"
 #include "compl.h"
@@ -359,7 +359,7 @@ static int compl_get_next(void *state, char **compl)
 				char *ent_path;
 				asprintf(&ent_path, "%s/%s", *cs->path, dent->d_name);
 				struct stat ent_stat;
-				if (stat(ent_path, &ent_stat) != 0) {
+				if (vfs_stat_path(ent_path, &ent_stat) != EOK) {
 					/* Error */
 					free(ent_path);
 					continue;

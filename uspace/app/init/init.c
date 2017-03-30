@@ -41,7 +41,6 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <task.h>
 #include <malloc.h>
 #include <macros.h>
@@ -155,7 +154,7 @@ static bool mount_locfs(void)
 static int srv_startl(const char *path, ...)
 {
 	struct stat s;
-	if (stat(path, &s) != 0) {
+	if (vfs_stat_path(path, &s) != EOK) {
 		printf("%s: Unable to stat %s\n", NAME, path);
 		return ENOENT;
 	}
