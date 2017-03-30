@@ -48,6 +48,13 @@ enum vfs_change_state_type {
 	VFS_PASS_HANDLE
 };
 
+struct statfs { 
+	char fs_name[FS_NAME_MAXLEN + 1];
+	uint32_t f_bsize;    /* fundamental file system block size */
+	uint64_t f_blocks;   /* total data blocks in file system */
+	uint64_t f_bfree;    /* free blocks in fs */
+};
+
 extern char *vfs_absolutize(const char *, size_t *);
 
 extern int mount(const char *, const char *, const char *, const char *,
@@ -71,6 +78,8 @@ extern int vfs_receive_handle(bool);
 extern int vfs_clone(int, int, bool);
 extern int vfs_root(void);
 extern void vfs_root_set(int);
+extern int vfs_statfs(int, struct statfs *);
+extern int vfs_statfs_path(const char *, struct statfs *);
 
 int vfs_mount(int, const char *, service_id_t, const char *, unsigned, unsigned, int *);
 int vfs_unmount(int);

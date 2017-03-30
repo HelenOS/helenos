@@ -44,10 +44,10 @@
 #include <mem.h>
 #include <str.h>
 #include <sys/stat.h>
-#include <sys/statfs.h>
 #include <stdlib.h>
 #include <fibril_synch.h>
 #include <ipc/vfs.h>
+#include <vfs/vfs.h>
 
 #define on_error(rc, action) \
 	do { \

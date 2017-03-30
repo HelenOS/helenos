@@ -39,7 +39,6 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <getopt.h>
-#include <sys/statfs.h>
 #include <errno.h>
 #include <adt/list.h>
 #include <vfs/vfs.h>
@@ -123,7 +122,7 @@ int main(int argc, char *argv[])
 
 	print_header();
 	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
-		if (statfs(mtab_ent->mp, &st) == 0) {
+		if (vfs_statfs_path(mtab_ent->mp, &st) == 0) {
 			print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
 		} else {
 			fprintf(stderr, "Cannot get information for '%s' (%d).\n",

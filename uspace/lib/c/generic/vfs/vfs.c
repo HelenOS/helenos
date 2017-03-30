@@ -43,7 +43,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/statfs.h>
 #include <sys/types.h>
 #include <ipc/services.h>
 #include <ns.h>
@@ -1083,7 +1082,7 @@ static void process_mp(const char *path, struct stat *stat, list_t *mtab_list)
 	ent->service_id = stat->service_id;
 
 	struct statfs stfs;
-	if (statfs(path, &stfs) == EOK)
+	if (vfs_statfs_path(path, &stfs) == EOK)
 		str_cpy(ent->fs_name, sizeof(ent->fs_name), stfs.fs_name);
 	else
 		str_cpy(ent->fs_name, sizeof(ent->fs_name), "?");
@@ -1163,37 +1162,44 @@ int vfs_get_mtab_list(list_t *mtab_list)
 
 /** Get filesystem statistics.
  *
- * @param path Mount point path
+ * @param file File located on the queried file system
  * @param st Buffer for storing information
  * @return 0 on success. On error -1 is returned and errno is set.
  */
-int statfs(const char *path, struct statfs *st)
+int vfs_statfs(int file, struct statfs *st)
 {
-	int fd = vfs_lookup(path, 0);
-	if (fd < 0) {
-		errno = fd;
-		return -1;
-	}
-	
 	sysarg_t rc, ret;
 	aid_t req;
 
 	async_exch_t *exch = vfs_exchange_begin();
 
-	req = async_send_1(exch, VFS_IN_STATFS, fd, NULL);
+	req = async_send_1(exch, VFS_IN_STATFS, file, NULL);
 	rc = async_data_read_start(exch, (void *) st, sizeof(*st));
 
 	vfs_exchange_end(exch);
 	async_wait_for(req, &ret);
-	close(fd);
 
 	rc = (ret != EOK ? ret : rc);
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
 
-	return 0;
+	return rc;
+}
+/** Get filesystem statistics.
+ *
+ * @param path Mount point path
+ * @param st Buffer for storing information
+ * @return EOK on success or a negative error code otherwise.
+ */
+int vfs_statfs_path(const char *path, struct statfs *st)
+{
+	int file = vfs_lookup(path, 0);
+	if (file < 0)
+		return file;
+	
+	int rc = vfs_statfs(file, st);
+
+	close(file);
+
+	return rc; 
 }
 
 int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch)
