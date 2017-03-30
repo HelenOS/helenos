@@ -64,10 +64,8 @@ extern int ftruncate(int, aoff64_t);
 
 extern int close(int);
 extern int fsync(int);
-extern int unlink(const char *);
 
 extern char *getcwd(char *, size_t);
-extern int rmdir(const char *);
 extern int chdir(const char *);
 
 extern void exit(int) __attribute__((noreturn));

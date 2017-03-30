@@ -235,7 +235,7 @@ static int64_t do_copy(const char *src, const char *dest,
 			 * if interactive is set user input is required.
 			 */
 			if (force && !interactive) {
-				if (unlink(dest_path) != 0) {
+				if (vfs_unlink_path(dest_path) != EOK) {
 					printf("Unable to remove %s\n",
 					    dest_path);
 					goto exit;
@@ -246,7 +246,7 @@ static int64_t do_copy(const char *src, const char *dest,
 				    dest_path);
 				if (overwrite) {
 					printf("Overwriting file: %s\n", dest_path);
-					if (unlink(dest_path) != 0) {
+					if (vfs_unlink_path(dest_path) != EOK) {
 						printf("Unable to remove %s\n", dest_path);
 						goto exit;
 					}

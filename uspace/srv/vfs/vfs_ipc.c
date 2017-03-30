@@ -193,12 +193,11 @@ static void vfs_in_unlink(ipc_callid_t rid, ipc_call_t *request)
 {
 	int parentfd = IPC_GET_ARG1(*request);
 	int expectfd = IPC_GET_ARG2(*request);
-	int wflag = IPC_GET_ARG3(*request);
 	
 	char *path;
 	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
 	if (rc == EOK)
-		rc = vfs_op_unlink(parentfd, expectfd, wflag, path);
+		rc = vfs_op_unlink(parentfd, expectfd, path);
 	
 	async_answer_0(rid, rc);
 }

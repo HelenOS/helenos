@@ -27,7 +27,7 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
+#include <vfs/vfs.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <malloc.h>
@@ -50,7 +50,7 @@ static void *create_paged_area(size_t size)
 	fd = open(TEST_FILE, O_RDWR | O_CREAT);
 	if (fd < 0)
 		return NULL;
-	(void) unlink(TEST_FILE);
+	(void) vfs_unlink_path(TEST_FILE);
 
 	if (write(fd, (aoff64_t []) {0}, text, sizeof(text)) != sizeof(text)) {
 		close(fd);

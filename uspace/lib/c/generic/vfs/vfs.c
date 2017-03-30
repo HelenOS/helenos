@@ -791,15 +791,15 @@ int mkdir(const char *path, mode_t mode)
 	return close(fd);
 }
 
-static int _vfs_unlink(int parent, const char *path, int expect, int wflag)
+int vfs_unlink(int parent, const char *child, int expect)
 {
 	sysarg_t rc;
 	aid_t req;
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_3(exch, VFS_IN_UNLINK, parent, expect, wflag, NULL);
-	rc = async_data_write_start(exch, path, str_size(path));
+	req = async_send_2(exch, VFS_IN_UNLINK, parent, expect, NULL);
+	rc = async_data_write_start(exch, child, str_size(child));
 	
 	vfs_exchange_end(exch);
 	
@@ -814,65 +814,42 @@ static int _vfs_unlink(int parent, const char *path, int expect, int wflag)
 /** Unlink file or directory.
  *
  * @param path Path
- * @return EOk on success, error code on error
+ * @return EOk on success or a negative error code otherwise
  */
-int unlink(const char *path)
+int vfs_unlink_path(const char *path)
 {
 	size_t pa_size;
 	char *pa = vfs_absolutize(path, &pa_size);
-	if (!pa) {
-		errno = ENOMEM;
-		return -1;
-	}
-	
-	int root = vfs_root();
-	if (root < 0) {
+	if (!pa)
+		return ENOMEM;
+
+	int parent;
+	int expect = vfs_lookup(path, 0);
+	if (expect < 0) {
 		free(pa);
-		errno = ENOENT;
-		return -1;
-	}
-	
-	int rc = _vfs_unlink(root, pa, -1, 0);
-	
-	if (rc != EOK) {
-		errno = rc;
-		rc = -1;
+		return expect;
 	}
 
-	free(pa);
-	close(root);
-	return rc;
-}
+	char *slash = str_rchr(pa, L'/');
+	if (slash != pa) {
+		*slash = '\0';
+		parent = vfs_lookup(pa, 0);
+		*slash = '/';
+	} else {
+		parent = vfs_root();
+	}
 
-/** Remove empty directory.
- *
- * @param path Path
- * @return 0 on success. On error returns -1 and sets errno.
- */
-int rmdir(const char *path)
-{
-	size_t pa_size;
-	char *pa = vfs_absolutize(path, &pa_size);
-	if (!pa) {
-		errno = ENOMEM;
-		return -1;
-	}
-	
-	int root = vfs_root();
-	if (root < 0) {
+	if (parent < 0) {
 		free(pa);
-		errno = ENOENT;
-		return -1;
+		close(expect);
+		return parent;
 	}
-	
-	int rc = _vfs_unlink(root, pa, -1, WALK_DIRECTORY);
-	if (rc != EOK) {
-		errno = rc;
-		rc = -1;
-	}
+
+	int rc = vfs_unlink(parent, slash, expect);
 	
 	free(pa);
-	close(root);
+	close(parent);
+	close(expect);
 	return rc;
 }
 

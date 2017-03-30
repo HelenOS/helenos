@@ -42,6 +42,7 @@
 #include <task.h>
 #include <fcntl.h>
 #include <fibril_synch.h>
+#include <vfs/vfs.h>
 #include "../internal.h"
 
 
@@ -218,7 +219,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 leave_close_tempfile:
 	close(tempfile);
-	unlink(tempfile_name);
+	vfs_unlink_path(tempfile_name);
 
 	pcut_report_test_done_unparsed(test, status, extra_output_buffer, OUTPUT_BUFFER_SIZE);
 }

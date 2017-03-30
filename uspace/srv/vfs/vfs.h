@@ -214,7 +214,7 @@ extern int vfs_op_stat(int fd);
 extern int vfs_op_statfs(int fd);
 extern int vfs_op_sync(int fd);
 extern int vfs_op_truncate(int fd, int64_t size);
-extern int vfs_op_unlink(int parentfd, int expectfd, int wflag, char *path);
+extern int vfs_op_unlink(int parentfd, int expectfd, char *path);
 extern int vfs_op_unmount(int mpfd);
 extern int vfs_op_wait_handle(bool high_fd);
 extern int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd);

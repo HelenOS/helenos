@@ -93,6 +93,8 @@ extern int vfs_stat(int, struct stat *);
 extern int vfs_stat_path(const char *, struct stat *);
 extern int vfs_statfs(int, struct statfs *);
 extern int vfs_statfs_path(const char *, struct statfs *);
+extern int vfs_unlink(int, const char *, int);
+extern int vfs_unlink_path(const char *);
 
 int vfs_mount(int, const char *, service_id_t, const char *, unsigned, unsigned, int *);
 int vfs_unmount(int);

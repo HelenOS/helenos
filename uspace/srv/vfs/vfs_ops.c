@@ -671,7 +671,7 @@ int vfs_op_truncate(int fd, int64_t size)
 	return rc;
 }
 
-int vfs_op_unlink(int parentfd, int expectfd, int wflag, char *path)
+int vfs_op_unlink(int parentfd, int expectfd, char *path)
 {
 	int rc = EOK;
 	vfs_file_t *parent = NULL;
@@ -682,8 +682,6 @@ int vfs_op_unlink(int parentfd, int expectfd, int wflag, char *path)
 	
 	fibril_rwlock_write_lock(&namespace_rwlock);
 	
-	int lflag = (wflag & WALK_DIRECTORY) ? L_DIRECTORY: 0;
-
 	/* 
 	 * Files are retrieved in order of file descriptors, to prevent
 	 * deadlock.
@@ -716,7 +714,7 @@ int vfs_op_unlink(int parentfd, int expectfd, int wflag, char *path)
 	
 	if (expectfd >= 0) {
 		vfs_lookup_res_t lr;
-		rc = vfs_lookup_internal(parent->node, path, lflag, &lr);
+		rc = vfs_lookup_internal(parent->node, path, 0, &lr);
 		if (rc != EOK)
 			goto exit;
 		
@@ -732,7 +730,7 @@ int vfs_op_unlink(int parentfd, int expectfd, int wflag, char *path)
 	}
 	
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(parent->node, path, lflag | L_UNLINK, &lr);
+	rc = vfs_lookup_internal(parent->node, path, L_UNLINK, &lr);
 	if (rc != EOK)
 		goto exit;
 

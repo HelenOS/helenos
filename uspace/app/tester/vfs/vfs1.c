@@ -116,12 +116,12 @@ const char *test_vfs1(void)
 		return "rename() failed";
 	TPRINTF("Renamed %s to %s\n", TEST_FILE, TEST_FILE2);
 	
-	if (unlink(TEST_FILE2) != 0)
-		return "unlink() failed";
+	if (vfs_unlink_path(TEST_FILE2) != EOK)
+		return "vfs_unlink_path() failed";
 	TPRINTF("Unlinked %s\n", TEST_FILE2);
 	
-	if (rmdir(TEST_DIRECTORY) != 0)
-		return "rmdir() failed";
+	if (vfs_unlink_path(TEST_DIRECTORY) != EOK)
+		return "vfs_unlink_path() failed";
 	TPRINTF("Removed directory %s\n", TEST_DIRECTORY);
 	
 	rv = read_root();

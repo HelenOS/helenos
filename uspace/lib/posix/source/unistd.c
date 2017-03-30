@@ -269,7 +269,10 @@ int posix_ftruncate(int fildes, posix_off_t length)
  */
 int posix_rmdir(const char *path)
 {
-	return negerrno(rmdir, path);
+	if (rcerrno(vfs_unlink_path, path) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -280,7 +283,10 @@ int posix_rmdir(const char *path)
  */
 int posix_unlink(const char *path)
 {
-	return negerrno(unlink, path);
+	if (rcerrno(vfs_unlink_path, path) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**

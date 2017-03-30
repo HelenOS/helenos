@@ -575,7 +575,10 @@ int posix_putchar_unlocked(int c)
  */
 int posix_remove(const char *path)
 {
-	return negerrno(unlink, path);
+	if (rcerrno(vfs_unlink_path, path) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
