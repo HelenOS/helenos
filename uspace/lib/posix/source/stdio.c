@@ -575,7 +575,7 @@ int posix_putchar_unlocked(int c)
  */
 int posix_remove(const char *path)
 {
-	return negerrno(remove, path);
+	return negerrno(unlink, path);
 }
 
 /**

@@ -958,16 +958,6 @@ int rename(const char *old, const char *new)
 	return 0;
 }
 
-/** Remove directory entry.
- *
- * @param path Path
- * @return 0 on success. On error returns -1 and sets errno.
- */
-int remove(const char *path)
-{
-	return unlink(path);
-}
-
 /** Change working directory.
  *
  * @param path Path

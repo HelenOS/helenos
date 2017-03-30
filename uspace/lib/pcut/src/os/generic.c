@@ -136,7 +136,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	fread(extra_output_buffer, 1, OUTPUT_BUFFER_SIZE, tempfile);
 	fclose(tempfile);
-	remove(tempfile_name);
+	unlink(tempfile_name);
 
 	pcut_report_test_done_unparsed(test, rc, extra_output_buffer, OUTPUT_BUFFER_SIZE);
 }
