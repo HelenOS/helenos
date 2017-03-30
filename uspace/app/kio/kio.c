@@ -47,6 +47,7 @@
 #include <adt/list.h>
 #include <adt/prodcons.h>
 #include <tinput.h>
+#include <vfs/vfs.h>
 
 #define NAME       "kio"
 #define LOG_FNAME  "/log/kio"
@@ -127,7 +128,7 @@ static int consumer(void *data)
 				fputc(item->data[i], log);
 			
 			fflush(log);
-			fsync(fileno(log));
+			vfs_sync(fileno(log));
 		}
 		
 		free(item->data);

@@ -246,7 +246,10 @@ posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
  */
 int posix_fsync(int fildes)
 {
-	return negerrno(fsync, fildes);
+	if (rcerrno(vfs_sync, fildes) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**

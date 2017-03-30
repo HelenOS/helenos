@@ -835,13 +835,16 @@ int fflush(FILE *stream)
 	}
 	
 	if ((stream->fd >= 0) && (stream->need_sync)) {
+		int rc;
+
 		/**
 		 * Better than syncing always, but probably still not the
 		 * right thing to do.
 		 */
 		stream->need_sync = false;
-		if (fsync(stream->fd) != 0) {
-			/* errno was set by fsync() */
+		rc = vfs_sync(stream->fd);
+		if (rc != EOK) {
+			errno = rc;
 			return EOF;
 		}
 

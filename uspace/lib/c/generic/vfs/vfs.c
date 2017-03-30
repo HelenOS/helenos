@@ -596,20 +596,15 @@ ssize_t write(int fildes, aoff64_t *pos, const void *buf, size_t nbyte)
 /** Synchronize file.
  *
  * @param fildes File descriptor
- * @return 0 on success. On error returns -1 and sets errno.
+ * @return EOK on success or a negative error code otherwise.
  */
-int fsync(int fildes)
+int vfs_sync(int file)
 {
 	async_exch_t *exch = vfs_exchange_begin();
-	sysarg_t rc = async_req_1_0(exch, VFS_IN_SYNC, fildes);
+	sysarg_t rc = async_req_1_0(exch, VFS_IN_SYNC, file);
 	vfs_exchange_end(exch);
 	
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
-	
-	return 0;
+	return rc;
 }
 
 /** Truncate file to a specified length.
@@ -619,7 +614,7 @@ int fsync(int fildes)
  * @param fildes File descriptor
  * @param length Length
  *
- * @return 0 on success or a negative erroc code otherwise.
+ * @return EOK on success or a negative erroc code otherwise.
  */
 int vfs_resize(int file, aoff64_t length)
 {
