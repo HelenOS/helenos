@@ -43,7 +43,6 @@
 #include <dirent.h>
 #include <mem.h>
 #include <str.h>
-#include <sys/stat.h>
 #include <stdlib.h>
 #include <fibril_synch.h>
 #include <ipc/vfs.h>

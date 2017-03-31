@@ -132,7 +132,7 @@ extern int __POSIX_DEF__(lstat)(const char *restrict path, struct __POSIX_DEF__(
 extern int __POSIX_DEF__(stat)(const char *restrict path, struct __POSIX_DEF__(stat) *restrict st);
 extern int __POSIX_DEF__(chmod)(const char *path, mode_t mode);
 extern mode_t __POSIX_DEF__(umask)(mode_t mask);
-extern int mkdir(const char *, mode_t);
+extern int __POSIX_DEF__(mkdir)(const char *path, mode_t mode);
 
 
 #endif /* POSIX_SYS_STAT_H */

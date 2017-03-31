@@ -34,9 +34,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <str_error.h>
+#include <vfs/vfs.h>
 #include "tar.h"
 
 static size_t get_block_count(size_t bytes) {
@@ -102,11 +102,14 @@ static int handle_normal_file(const tar_header_t *header, FILE *tarfile)
 
 static int handle_directory(const tar_header_t *header, FILE *tarfile)
 {
-	if (mkdir(header->filename, 0755) != 0) {
-		if (errno != EEXIST) {
+	int rc;
+
+	rc = vfs_link_path(header->filename, KIND_DIRECTORY);
+	if (rc != EOK) {
+		if (rc != EEXIST) {
 			fprintf(stderr, "Failed to create directory %s: %s.\n",
-			    header->filename, str_error(errno));
-			return errno;
+			    header->filename, str_error(rc));
+			return rc;
 		}
 	}
 

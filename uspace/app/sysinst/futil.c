@@ -38,7 +38,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <vfs/vfs.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -129,7 +128,7 @@ int futil_rcopy_contents(const char *srcdir, const char *destdir)
 				return EIO;
 		} else if (s.is_directory) {
 			printf("Create directory '%s'\n", destp);
-			rc = mkdir(destp, 0);
+			rc = vfs_link_path(destp, KIND_DIRECTORY);
 			if (rc != EOK)
 				return EIO;
 			rc = futil_rcopy_contents(srcp, destp);

@@ -42,7 +42,6 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <task.h>
 #include <vfs/vfs.h>
 
@@ -174,7 +173,7 @@ static int sysinst_fs_mount(const char *dev)
 	if (texit != TASK_EXIT_NORMAL || trc != 0)
 		return EIO;
 
-	rc = mkdir(MOUNT_POINT, 0);
+	rc = vfs_link_path(MOUNT_POINT, KIND_DIRECTORY);
 	if (rc != EOK)
 		return rc;
 
@@ -213,7 +212,7 @@ static int sysinst_copy_boot_files(void)
 		return EIO;
 
 	printf("sysinst_copy_boot_files(): create CD mount point\n");
-	rc = mkdir(CD_MOUNT_POINT, 0);
+	rc = vfs_link_path(CD_MOUNT_POINT, KIND_DIRECTORY);
 	if (rc != EOK)
 		return rc;
 

@@ -48,6 +48,12 @@ enum vfs_change_state_type {
 	VFS_PASS_HANDLE
 };
 
+typedef enum {
+	KIND_FILE,
+	KIND_DIRECTORY,
+} vfs_file_kind_t;
+
+
 struct stat {
 	fs_handle_t fs_handle;
 	service_id_t service_id;
@@ -87,9 +93,11 @@ extern int vfs_pass_handle(async_exch_t *, int, async_exch_t *);
 extern int vfs_receive_handle(bool);
 
 extern int vfs_clone(int, int, bool);
+extern int vfs_link(int, const char *, vfs_file_kind_t);
+extern int vfs_link_path(const char *, vfs_file_kind_t);
+extern int vfs_resize(int, aoff64_t);
 extern int vfs_root(void);
 extern void vfs_root_set(int);
-extern int vfs_resize(int, aoff64_t);
 extern int vfs_stat(int, struct stat *);
 extern int vfs_stat_path(const char *, struct stat *);
 extern int vfs_statfs(int, struct statfs *);

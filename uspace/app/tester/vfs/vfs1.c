@@ -36,7 +36,6 @@
 #include <dirent.h>
 #include <loc.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include "../tester.h"
 
 #define TEST_DIRECTORY  "/tmp/testdir"
@@ -70,10 +69,12 @@ static const char *read_root(void)
 const char *test_vfs1(void)
 {
 	aoff64_t pos = 0;
+	int rc;
 
-	if (mkdir(TEST_DIRECTORY, 0) != 0) {
-		TPRINTF("rc=%d\n", errno);
-		return "mkdir() failed";
+	rc = vfs_link_path(TEST_DIRECTORY, KIND_DIRECTORY);
+	if (rc != EOK) {
+		TPRINTF("rc=%d\n", rc);
+		return "vfs_link_path() failed";
 	}
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	

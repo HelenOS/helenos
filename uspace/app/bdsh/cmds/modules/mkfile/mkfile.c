@@ -32,7 +32,6 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <macros.h>
 #include <getopt.h>
 #include <stdarg.h>

@@ -42,7 +42,6 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <ipc/services.h>
 #include <ns.h>
@@ -764,22 +763,53 @@ int closedir(DIR *dirp)
 	return rc;
 }
 
-/** Create directory.
+int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
+{
+	int flags = (kind == KIND_DIRECTORY) ? WALK_DIRECTORY : WALK_REGULAR;
+	int file = _vfs_walk(parent, child, WALK_MUST_CREATE | flags);
+
+	if (file < 0)
+		return file;
+
+	close(file);
+
+	return EOK;
+}
+
+/** Link a file or directory.
  *
  * @param path Path
- * @param mode File mode
- * @return 0 on success. On error returns -1 and sets errno.
+ * @param kind Kind of the file to be created.
+ * @return EOK on success or a negative error code otherwise
  */
-int mkdir(const char *path, mode_t mode)
+int vfs_link_path(const char *path, vfs_file_kind_t kind)
 {
-	int fd = vfs_lookup(path, WALK_MUST_CREATE | WALK_DIRECTORY);
-	if (fd < 0) {
-		errno = fd;
-		return -1;
+	size_t pa_size;
+	char *pa = vfs_absolutize(path, &pa_size);
+	if (!pa)
+		return ENOMEM;
+
+	int parent;
+	char *slash = str_rchr(pa, L'/');
+	if (slash != pa) {
+		*slash = '\0';
+		parent = vfs_lookup(pa, WALK_DIRECTORY);
+		*slash = '/';
+	} else {
+		parent = vfs_root();
 	}
-	
-	return close(fd);
-}
+
+	if (parent < 0) {
+		free(pa);
+		return parent;
+	}
+
+	int rc = vfs_link(parent, slash, kind);
+
+	free(pa);
+	close(parent);
+	return rc;
+}	
 
 int vfs_unlink(int parent, const char *child, int expect)
 {
@@ -801,10 +831,10 @@ int vfs_unlink(int parent, const char *child, int expect)
 	return rc;
 }
 
-/** Unlink file or directory.
+/** Unlink a file or directory.
  *
  * @param path Path
- * @return EOk on success or a negative error code otherwise
+ * @return EOK on success or a negative error code otherwise
  */
 int vfs_unlink_path(const char *path)
 {

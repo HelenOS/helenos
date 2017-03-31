@@ -52,7 +52,6 @@
 #include "libc/str.h"
 #include "libc/malloc.h"
 #include "libc/adt/list.h"
-#include "libc/sys/stat.h"
 
 /** Clears the stream's error and end-of-file indicators.
  *

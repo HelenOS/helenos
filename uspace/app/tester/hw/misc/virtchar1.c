@@ -44,7 +44,6 @@
 #include <str.h>
 #include <vfs/vfs.h>
 #include <vfs/vfs_sess.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include "../../tester.h"
 

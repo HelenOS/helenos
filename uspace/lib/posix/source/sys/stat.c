@@ -142,5 +142,21 @@ mode_t posix_umask(mode_t mask)
 	return 0;
 }
 
+/**
+ * Create a directory.
+ * 
+ * @param path Path to the new directory.
+ * @param mode Permission bits to be set.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_mkdir(const char *path, mode_t mode)
+{
+	int rc = rcerrno(vfs_link_path, path, KIND_DIRECTORY);
+	if (rc != EOK)
+		return -1;
+	else
+		return 0;
+}
+
 /** @}
  */

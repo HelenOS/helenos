@@ -35,7 +35,6 @@
 #include <getopt.h>
 #include <str.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <vfs/vfs.h>
 #include <dirent.h>
 #include "config.h"
@@ -295,7 +294,7 @@ static int64_t do_copy(const char *src, const char *dest,
 				 */
 				merge_paths(dest_path, PATH_MAX, src_dirname);
 
-				if (mkdir(dest_path, 0) != 0) {
+				if (vfs_link_path(dest_path, KIND_DIRECTORY) != EOK) {
 					printf("Unable to create "
 					    "dest directory %s\n", dest_path);
 					goto exit;
@@ -309,7 +308,7 @@ static int64_t do_copy(const char *src, const char *dest,
 			 *
 			 * e.g. cp -r /src /data/new_dir_src
 			 */
-			if (mkdir(dest_path, 0) != 0) {
+			if (vfs_link_path(dest_path, KIND_DIRECTORY) != EOK) {
 				printf("Unable to create "
 				    "dest directory %s\n", dest_path);
 				goto exit;
