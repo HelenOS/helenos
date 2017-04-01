@@ -74,10 +74,6 @@ struct statfs {
 
 extern char *vfs_absolutize(const char *, size_t *);
 
-extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int, unsigned int);
-extern int unmount(const char *);
-
 extern int vfs_fhandle(FILE *, int *);
 
 extern int vfs_get_mtab_list(list_t *mtab_list);
@@ -95,6 +91,10 @@ extern int vfs_receive_handle(bool);
 extern int vfs_clone(int, int, bool);
 extern int vfs_link(int, const char *, vfs_file_kind_t);
 extern int vfs_link_path(const char *, vfs_file_kind_t);
+extern int vfs_mount_path(const char *, const char *, const char *,
+    const char *, unsigned int, unsigned int);
+extern int vfs_mount(int, const char *, service_id_t, const char *, unsigned,
+    unsigned, int *);
 extern int vfs_resize(int, aoff64_t);
 extern int vfs_root(void);
 extern void vfs_root_set(int);
@@ -105,9 +105,9 @@ extern int vfs_statfs_path(const char *, struct statfs *);
 extern int vfs_sync(int);
 extern int vfs_unlink(int, const char *, int);
 extern int vfs_unlink_path(const char *);
+extern int vfs_unmount(int);
+extern int vfs_unmount_path(const char *);
 
-int vfs_mount(int, const char *, service_id_t, const char *, unsigned, unsigned, int *);
-int vfs_unmount(int);
 
 #endif
 

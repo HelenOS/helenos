@@ -178,7 +178,7 @@ static int sysinst_fs_mount(const char *dev)
 		return rc;
 
 	printf("sysinst_fs_mount(): mount filesystem\n");
-	rc = mount(FS_TYPE, MOUNT_POINT, dev, "", 0, 0);
+	rc = vfs_mount_path(MOUNT_POINT, FS_TYPE, dev, "", 0, 0);
 	if (rc != EOK)
 		return rc;
 
@@ -217,7 +217,7 @@ static int sysinst_copy_boot_files(void)
 		return rc;
 
 	printf("sysinst_copy_boot_files(): mount CD filesystem\n");
-	rc = mount(CD_FS_TYPE, CD_MOUNT_POINT, CD_DEV, "", 0, 0);
+	rc = vfs_mount_path(CD_MOUNT_POINT, CD_FS_TYPE, CD_DEV, "", 0, 0);
 	if (rc != EOK)
 		return rc;
 
@@ -227,7 +227,7 @@ static int sysinst_copy_boot_files(void)
 		return rc;
 
 	printf("sysinst_copy_boot_files(): unmount %s\n", MOUNT_POINT);
-	rc = unmount(MOUNT_POINT);
+	rc = vfs_unmount_path(MOUNT_POINT);
 	if (rc != EOK)
 		return rc;
 

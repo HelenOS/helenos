@@ -126,7 +126,7 @@ static bool mount_root(const char *fstype)
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
 	
-	int rc = mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
+	int rc = vfs_mount_path(ROOT_MOUNT_POINT, fstype, ROOT_DEVICE, opts,
 	    IPC_FLAG_BLOCKING, 0);
 	if (rc == EOK)
 		logctl_set_root();
@@ -145,7 +145,7 @@ static bool mount_root(const char *fstype)
  */
 static bool mount_locfs(void)
 {
-	int rc = mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
+	int rc = vfs_mount_path(LOCFS_MOUNT_POINT, LOCFS_FS_TYPE, "", "",
 	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
 	    LOCFS_FS_TYPE, NULL, rc);
@@ -301,7 +301,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 
 static bool mount_tmpfs(void)
 {
-	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0, 0);
+	int rc = vfs_mount_path(TMPFS_MOUNT_POINT, TMPFS_FS_TYPE, "", "", 0, 0);
 	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
 	    TMPFS_FS_TYPE, NULL, rc);
 }

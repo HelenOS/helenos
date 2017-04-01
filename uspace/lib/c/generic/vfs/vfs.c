@@ -254,7 +254,7 @@ int vfs_unmount(int mp)
 	return rc;
 }
 
-int mount(const char *fs_name, const char *mp, const char *fqsn,
+int vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
     const char *opts, unsigned int flags, unsigned int instance)
 {
 	int null_id = -1;
@@ -341,7 +341,7 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 	return (int) rc;
 }
 
-int unmount(const char *mpp)
+int vfs_unmount_path(const char *mpp)
 {
 	int mp = vfs_lookup(mpp, WALK_MOUNT_POINT | WALK_DIRECTORY);
 	if (mp < 0)

@@ -65,7 +65,7 @@ int cmd_unmount(char **argv)
 		return CMD_FAILURE;
 	}
 
-	rc = unmount(argv[1]);
+	rc = vfs_unmount_path(argv[1]);
 	if (rc != EOK) {
 		printf("Unable to unmount %s (rc=%d)\n", argv[1], rc);
 		return CMD_FAILURE;
