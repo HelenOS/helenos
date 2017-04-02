@@ -244,19 +244,19 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 			break;
 		
 		if (nr < 0) {
-			close(fd);
+			vfs_put(fd);
 			return EIO;
 		}
 		
 		rc = tcp_conn_send(conn, fbuf, nr);
 		if (rc != EOK) {
 			fprintf(stderr, "tcp_conn_send() failed\n");
-			close(fd);
+			vfs_put(fd);
 			return rc;
 		}
 	}
 	
-	close(fd);
+	vfs_put(fd);
 	
 	return EOK;
 }

@@ -107,7 +107,7 @@ const char *test_vfs1(void)
 		}
 	}
 	
-	close(fd0);
+	vfs_put(fd0);
 	
 	const char *rv = read_root();
 	if (rv != NULL)

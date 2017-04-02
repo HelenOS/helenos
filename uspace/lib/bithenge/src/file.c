@@ -87,7 +87,7 @@ static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 static void file_destroy(bithenge_blob_t *base)
 {
 	file_blob_t *blob = blob_as_file(base);
-	close(blob->fd);
+	vfs_put(blob->fd);
 	free(blob);
 }
 
@@ -105,7 +105,7 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 	int rc = vfs_stat(fd, &stat);
 	if (rc != EOK) {
 		if (needs_close)
-			close(fd);
+			vfs_put(fd);
 		return rc;
 	}
 
@@ -113,14 +113,14 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 	file_blob_t *blob = malloc(sizeof(*blob));
 	if (!blob) {
 		if (needs_close)
-			close(fd);
+			vfs_put(fd);
 		return ENOMEM;
 	}
 	rc = bithenge_init_random_access_blob(file_as_blob(blob), &file_ops);
 	if (rc != EOK) {
 		free(blob);
 		if (needs_close)
-			close(fd);
+			vfs_put(fd);
 		return rc;
 	}
 	blob->fd = fd;

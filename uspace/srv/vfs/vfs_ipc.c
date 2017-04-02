@@ -43,13 +43,6 @@ static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, ret);
 }
 
-static void vfs_in_close(ipc_callid_t rid, ipc_call_t *request)
-{
-	int fd = IPC_GET_ARG1(*request);
-	int rc = vfs_op_close(fd);
-	async_answer_0(rid, rc);
-}
-
 static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	int mpfd = IPC_GET_ARG1(*request);
@@ -101,6 +94,13 @@ static void vfs_in_open(ipc_callid_t rid, ipc_call_t *request)
 	int mode = IPC_GET_ARG2(*request);
 
 	int rc = vfs_op_open(fd, mode);
+	async_answer_0(rid, rc);
+}
+
+static void vfs_in_put(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	int rc = vfs_op_put(fd);
 	async_answer_0(rid, rc);
 }
 
@@ -267,14 +267,14 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_CLONE:
 			vfs_in_clone(callid, &call);
 			break;
-		case VFS_IN_CLOSE:
-			vfs_in_close(callid, &call);
-			break;
 		case VFS_IN_MOUNT:
 			vfs_in_mount(callid, &call);
 			break;
 		case VFS_IN_OPEN:
 			vfs_in_open(callid, &call);
+			break;
+		case VFS_IN_PUT:
+			vfs_in_put(callid, &call);
 			break;
 		case VFS_IN_READ:
 			vfs_in_read(callid, &call);

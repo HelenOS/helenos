@@ -60,7 +60,7 @@ static int try_access(const char *f)
 
 	fd = vfs_lookup_open(f, WALK_REGULAR, MODE_READ);
 	if (fd >= 0) {
-		close(fd);
+		vfs_put(fd);
 		return 0;
 	} else
 		return -1;

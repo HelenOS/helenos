@@ -115,24 +115,24 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 	struct stat stat;
 	int rc = vfs_stat(fd, &stat);
 	if (rc != EOK) {
-		close(fd);
+		vfs_put(fd);
 		return false;
 	}
 	
 	void *tga = malloc(stat.size);
 	if (tga == NULL) {
-		close(fd);
+		vfs_put(fd);
 		return false;
 	}
 
 	ssize_t rd = read(fd, (aoff64_t []) {0}, tga, stat.size);
 	if ((rd < 0) || (rd != (ssize_t) stat.size)) {
 		free(tga);
-		close(fd);
+		vfs_put(fd);
 		return false;
 	}
 	
-	close(fd);
+	vfs_put(fd);
 	
 	*p_local_surface = decode_tga(tga, stat.size, 0);
 	if (*p_local_surface == NULL) {

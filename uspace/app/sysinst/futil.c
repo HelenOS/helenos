@@ -82,9 +82,9 @@ int futil_copy_file(const char *srcp, const char *destp)
 			return EIO;
 	} while (true);
 
-	(void) close(sf);
+	(void) vfs_put(sf);
 
-	rc = close(df);
+	rc = vfs_put(df);
 	if (rc < 0)
 		return EIO;
 
@@ -165,7 +165,7 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 		return ENOENT;
 
 	if (vfs_stat(sf, &st) != EOK) {
-		close(sf);
+		vfs_put(sf);
 		return EIO;
 	}	
 
@@ -173,18 +173,18 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 
 	data = calloc(fsize, 1);
 	if (data == NULL) {
-		close(sf);
+		vfs_put(sf);
 		return ENOMEM;
 	}
 
 	nr = read(sf, (aoff64_t []) { 0 }, data, fsize);
 	if (nr != (ssize_t)fsize) {
-		close(sf);
+		vfs_put(sf);
 		free(data);
 		return EIO;
 	}
 
-	(void) close(sf);
+	(void) vfs_put(sf);
 	*rdata = data;
 	*rsize = fsize;
 

@@ -217,7 +217,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	read(tempfile, &pos, extra_output_buffer, OUTPUT_BUFFER_SIZE);
 
 leave_close_tempfile:
-	close(tempfile);
+	vfs_put(tempfile);
 	vfs_unlink_path(tempfile_name);
 
 	pcut_report_test_done_unparsed(test, status, extra_output_buffer, OUTPUT_BUFFER_SIZE);

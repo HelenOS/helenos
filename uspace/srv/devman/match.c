@@ -242,7 +242,7 @@ cleanup:
 	free(buf);
 	
 	if (opened)
-		close(fd);
+		vfs_put(fd);
 	
 	return suc;
 }

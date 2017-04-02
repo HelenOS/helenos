@@ -390,14 +390,14 @@ static int64_t copy_file(const char *src, const char *dest,
 	fd2 = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
 	if (fd2 < 0) {
 		printf("Unable to open destination file %s\n", dest);
-		close(fd1);
+		vfs_put(fd1);
 		return -1;
 	}
 
 	if (vfs_stat(fd1, &st) != EOK) {
 		printf("Unable to fstat %d\n", fd1);
-		close(fd1);
-		close(fd2);
+		vfs_put(fd1);
+		vfs_put(fd2);
 		return -1;	
 	}
 
@@ -424,8 +424,8 @@ static int64_t copy_file(const char *src, const char *dest,
 	}
 
 out:
-	close(fd1);
-	close(fd2);
+	vfs_put(fd1);
+	vfs_put(fd2);
 	if (buff)
 		free(buff);
 	return copied;

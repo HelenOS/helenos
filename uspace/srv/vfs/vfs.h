@@ -204,10 +204,10 @@ extern void vfs_node_delref(vfs_node_t *);
 extern int vfs_open_node_remote(vfs_node_t *);
 
 extern int vfs_op_clone(int oldfd, int newfd, bool desc);
-extern int vfs_op_close(int fd);
 extern int vfs_op_mount(int mpfd, unsigned servid, unsigned flags, unsigned instance, const char *opts, const char *fsname, int *outfd);
 extern int vfs_op_mtab_get(void);
 extern int vfs_op_open(int fd, int flags);
+extern int vfs_op_put(int fd);
 extern int vfs_op_read(int fd, aoff64_t, size_t *out_bytes);
 extern int vfs_op_rename(int basefd, char *old, char *new);
 extern int vfs_op_resize(int fd, int64_t size);

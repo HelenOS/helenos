@@ -167,7 +167,7 @@ int cmd_mkfile(char **argv)
 		pos = file_size - 1;
 		rc2 = write(fd, &pos, &byte, sizeof(char));
 		if (rc2 < 0) {
-			close(fd);
+			vfs_put(fd);
 			goto error;
 		}
 		return CMD_SUCCESS;
@@ -185,7 +185,7 @@ int cmd_mkfile(char **argv)
 		rc = write(fd, &pos, buffer, to_write);
 		if (rc <= 0) {
 			printf("%s: Error writing file (%d).\n", cmdname, errno);
-			close(fd);
+			vfs_put(fd);
 			free(buffer);
 			return CMD_FAILURE;
 		}
@@ -194,7 +194,7 @@ int cmd_mkfile(char **argv)
 
 	free(buffer);
 
-	if (close(fd) < 0)
+	if (vfs_put(fd) < 0)
 		goto error;
 
 	return CMD_SUCCESS;

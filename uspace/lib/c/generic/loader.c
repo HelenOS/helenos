@@ -203,7 +203,7 @@ int loader_set_program_path(loader_t *ldr, const char *path)
 	}
 	
 	int rc = loader_set_program(ldr, name, fd);
-	close(fd);
+	vfs_put(fd);
 	return rc;
 }
 

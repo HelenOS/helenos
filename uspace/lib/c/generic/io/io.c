@@ -304,7 +304,7 @@ FILE *fopen(const char *path, const char *fmode)
 	int rc = vfs_open(file, mode);
 	if (rc != EOK) {
 		errno = rc;
-		close(file);
+		vfs_put(file);
 		free(stream);
 		return NULL;
 	}
@@ -313,7 +313,7 @@ FILE *fopen(const char *path, const char *fmode)
 		rc = vfs_resize(file, 0);
 		if (rc != EOK) {
 			errno = rc;
-			close(file);
+			vfs_put(file);
 			free(stream);
 			return NULL;
 		}
@@ -369,7 +369,7 @@ static int _fclose_nofree(FILE *stream)
 		async_hangup(stream->sess);
 	
 	if (stream->fd >= 0)
-		rc = close(stream->fd);
+		rc = vfs_put(stream->fd);
 	
 	list_remove(&stream->link);
 	

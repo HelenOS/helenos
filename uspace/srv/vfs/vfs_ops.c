@@ -123,7 +123,7 @@ int vfs_op_clone(int oldfd, int newfd, bool desc)
 	return rc;
 }
 
-int vfs_op_close(int fd)
+int vfs_op_put(int fd)
 {
 	return vfs_fd_free(fd);
 }

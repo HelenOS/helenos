@@ -1,5 +1,6 @@
 
 #include <vfs/inbox.h>
+#include <vfs/vfs.h>
 
 #include <adt/list.h>
 #include <str.h>
@@ -125,7 +126,7 @@ void __inbox_init(struct pcb_inbox_entry *entries, int count) {
 	for (int i = 0; i < count; i++) {
 		int original = inbox_set(entries[i].name, entries[i].file);
 		if (original >= 0) {
-			close(original);
+			vfs_put(original);
 		}
 	}
 }

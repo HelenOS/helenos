@@ -164,7 +164,7 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 	}
 
 	free(shstrt);
-	close(fd);
+	vfs_put(fd);
 
 	if (stab->sym == NULL || stab->strtab == NULL) {
 		/* Tables not found. */

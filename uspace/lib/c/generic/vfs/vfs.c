@@ -81,7 +81,7 @@ void vfs_root_set(int nroot)
 {
 	fibril_mutex_lock(&root_mutex);
 	if (root_fd >= 0)
-		close(root_fd);
+		vfs_put(root_fd);
 	root_fd = vfs_clone(nroot, -1, true);
 	fibril_mutex_unlock(&root_mutex);
 }
@@ -148,7 +148,7 @@ int vfs_lookup(const char *path, int flags)
 		return ENOENT;
 	}
 	int rc = _vfs_walk(root, p, flags);
-	close(root);
+	vfs_put(root);
 	free(p);
 	return rc;
 }
@@ -170,7 +170,7 @@ int vfs_lookup_open(const char *path, int flags, int mode)
 
 	int rc = vfs_open(file, mode);
 	if (rc != EOK) {
-		close(file);
+		vfs_put(file);
 		return rc;
 	}
 	
@@ -341,7 +341,7 @@ int vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
 		if (mpfd >= 0) {
 			rc = vfs_mount(mpfd, fs_name, service_id, opts, flags,
 			    instance, NULL);
-			close(mpfd);
+			vfs_put(mpfd);
 		} else {
 			rc = mpfd;
 		}
@@ -362,21 +362,21 @@ int vfs_unmount_path(const char *mpp)
 		return mp;
 	
 	int rc = vfs_unmount(mp);
-	close(mp);
+	vfs_put(mp);
 	return rc;
 }
 
 /** Close file.
  *
  * @param fildes File descriptor
- * @return Zero on success. On error -1 is returned and errno is set.
+ * @return EOK on success or a negative error code otherwise.
  */
-int close(int fildes)
+int vfs_put(int fildes)
 {
 	sysarg_t rc;
 	
 	async_exch_t *exch = vfs_exchange_begin();
-	rc = async_req_1_0(exch, VFS_IN_CLOSE, fildes);
+	rc = async_req_1_0(exch, VFS_IN_PUT, fildes);
 	vfs_exchange_end(exch);
 	
 	if (rc != EOK) {
@@ -630,7 +630,7 @@ int vfs_stat_path(const char *path, struct stat *stat)
 	
 	int rc = vfs_stat(file, stat);
 
-	close(file);
+	vfs_put(file);
 
 	return rc;
 }
@@ -659,7 +659,7 @@ DIR *opendir(const char *dirname)
 	int rc = vfs_open(fd, MODE_READ);
 	if (rc < 0) {
 		free(dirp);
-		close(fd);
+		vfs_put(fd);
 		errno = rc;
 		return NULL;
 	}
@@ -710,7 +710,7 @@ int closedir(DIR *dirp)
 {
 	int rc;
 	
-	rc = close(dirp->fd);
+	rc = vfs_put(dirp->fd);
 	free(dirp);
 
 	/* On error errno was set by close() */
@@ -725,7 +725,7 @@ int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
 	if (file < 0)
 		return file;
 
-	close(file);
+	vfs_put(file);
 
 	return EOK;
 }
@@ -761,7 +761,7 @@ int vfs_link_path(const char *path, vfs_file_kind_t kind)
 	int rc = vfs_link(parent, slash, kind);
 
 	free(pa);
-	close(parent);
+	vfs_put(parent);
 	return rc;
 }	
 
@@ -815,15 +815,15 @@ int vfs_unlink_path(const char *path)
 
 	if (parent < 0) {
 		free(pa);
-		close(expect);
+		vfs_put(expect);
 		return parent;
 	}
 
 	int rc = vfs_unlink(parent, slash, expect);
 	
 	free(pa);
-	close(parent);
-	close(expect);
+	vfs_put(parent);
+	vfs_put(expect);
 	return rc;
 }
 
@@ -870,7 +870,7 @@ int rename(const char *old, const char *new)
 		vfs_exchange_end(exch);
 		free(olda);
 		free(newa);
-		close(root);
+		vfs_put(root);
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
@@ -885,7 +885,7 @@ int rename(const char *old, const char *new)
 		vfs_exchange_end(exch);
 		free(olda);
 		free(newa);
-		close(root);
+		vfs_put(root);
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
@@ -898,7 +898,7 @@ int rename(const char *old, const char *new)
 	vfs_exchange_end(exch);
 	free(olda);
 	free(newa);
-	close(root);
+	vfs_put(root);
 	async_wait_for(req, &rc);
 
 	if (rc != EOK) {
@@ -933,7 +933,7 @@ int chdir(const char *path)
 	fibril_mutex_lock(&cwd_mutex);
 	
 	if (cwd_fd >= 0)
-		close(cwd_fd);
+		vfs_put(cwd_fd);
 	
 	if (cwd_path)
 		free(cwd_path);
@@ -1123,7 +1123,7 @@ int vfs_statfs_path(const char *path, struct statfs *st)
 	
 	int rc = vfs_statfs(file, st);
 
-	close(file);
+	vfs_put(file);
 
 	return rc; 
 }

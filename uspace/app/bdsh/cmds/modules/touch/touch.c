@@ -132,7 +132,7 @@ int cmd_touch(char **argv)
 			ret++;
 			continue;
 		} else {
-			close(fd);
+			vfs_put(fd);
 			fd = -1;
 		}
 		

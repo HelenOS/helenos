@@ -68,7 +68,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, int mode,
 		if (vfs_clone(oldfd, fd, false) != fd)
 			return;
 		
-		if (close(oldfd))
+		if (vfs_put(oldfd))
 			return;
 	}
 	

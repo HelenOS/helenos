@@ -152,7 +152,7 @@ int bithenge_should_fail(void)
 			exit(127);
 		vfs_clone(null, STDOUT_FILENO, false);
 		vfs_clone(null, STDERR_FILENO, false);
-		close(null);
+		vfs_put(null);
 		return 1;
 	}
 

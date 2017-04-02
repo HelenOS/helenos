@@ -202,7 +202,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	}
 
 	if (NULL == (buff = (char *) malloc(blen + 1))) {
-		close(fd);
+		vfs_put(fd);
 		printf("Unable to allocate enough memory to read %s\n",
 		    fname);
 		return 1;
@@ -212,7 +212,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		struct stat st;
 
 		if (vfs_stat(fd, &st) != EOK) {
-			close(fd);
+			vfs_put(fd);
 			free(buff);
 			printf("Unable to vfs_stat %d\n", fd);
 			return 1;
@@ -286,7 +286,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 			fflush(stdout);
 	} while (bytes > 0 && !should_quit && (count < length || length == CAT_FULL_FILE));
 
-	close(fd);
+	vfs_put(fd);
 	if (bytes == -1) {
 		printf("Error reading %s\n", fname);
 		free(buff);

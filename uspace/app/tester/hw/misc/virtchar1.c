@@ -68,7 +68,7 @@ static const char *test_virtchar1_internal(const char *path)
 	TPRINTF(" Asking for session...\n");
 	async_sess_t *sess = vfs_fd_session(fd, INTERFACE_DDF);
 	if (!sess) {
-		close(fd);
+		vfs_put(fd);
 		TPRINTF("   ...error: %s\n", str_error(errno));
 		return "Failed to get session to device";
 	}
@@ -89,7 +89,7 @@ static const char *test_virtchar1_internal(const char *path)
 	/* Clean-up. */
 	TPRINTF(" Closing session and file descriptor\n");
 	async_hangup(sess);
-	close(fd);
+	vfs_put(fd);
 	
 	return NULL;
 }

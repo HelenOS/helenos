@@ -96,6 +96,7 @@ extern int vfs_mount_path(const char *, const char *, const char *,
 extern int vfs_mount(int, const char *, service_id_t, const char *, unsigned,
     unsigned, int *);
 extern int vfs_open(int, int);
+extern int vfs_put(int);
 extern int vfs_resize(int, aoff64_t);
 extern int vfs_root(void);
 extern void vfs_root_set(int);

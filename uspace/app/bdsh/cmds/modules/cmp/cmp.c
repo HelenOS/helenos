@@ -115,9 +115,9 @@ static int cmp_files(const char *fn0, const char *fn1)
 
 end:
 	if (fd[0] >= 0)
-		close(fd[0]);
+		vfs_put(fd[0]);
 	if (fd[1] >= 0)
-		close(fd[1]);
+		vfs_put(fd[1]);
 	return rc;
 }
 

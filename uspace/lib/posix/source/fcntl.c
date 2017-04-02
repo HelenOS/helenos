@@ -141,7 +141,7 @@ int posix_open(const char *pathname, int posix_flags, ...)
 
 	rc = rcerrno(vfs_open, file, mode);
 	if (rc != EOK) {
-		close (file);
+		vfs_put(file);
 		return -1;
 	}
 
@@ -149,7 +149,7 @@ int posix_open(const char *pathname, int posix_flags, ...)
 		if (posix_flags & (O_RDWR | O_WRONLY)) {
 			rc = rcerrno(vfs_resize, file, 0);
 			if (rc != EOK) {
-				close(file);
+				vfs_put(file);
 				return -1;
 			}
 		}

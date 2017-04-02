@@ -53,7 +53,7 @@ static void *create_paged_area(size_t size)
 	(void) vfs_unlink_path(TEST_FILE);
 
 	if (write(fd, (aoff64_t []) {0}, text, sizeof(text)) != sizeof(text)) {
-		close(fd);
+		vfs_put(fd);
 		return NULL;
 	}
 
@@ -64,7 +64,7 @@ static void *create_paged_area(size_t size)
 	vfs_pager_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_PAGER, 0);
 
 	if (!vfs_pager_sess) {
-		close(fd);
+		vfs_put(fd);
 		return NULL;
 	}
 	
@@ -73,7 +73,7 @@ static void *create_paged_area(size_t size)
 	void *result = async_as_area_create(AS_AREA_ANY, size,
 	    AS_AREA_READ | AS_AREA_CACHEABLE, vfs_pager_sess, fd, 0, 0);
 	if (result == AS_MAP_FAILED) {
-		close(fd);
+		vfs_put(fd);
 		return NULL;
 	}
 	
@@ -101,7 +101,7 @@ const char *test_pager1(void)
 	touch_area(buffer, buffer_len);
 
 	as_area_destroy(buffer);	
-	close(fd);
+	vfs_put(fd);
 	
 	return NULL;
 }

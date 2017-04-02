@@ -530,7 +530,7 @@ static loader_t *preload_task(const char *path, char **argv,
 	fd_root = vfs_root();
 	if (fd_root >= 0) {
 		rc = loader_add_inbox(ldr, "root", fd_root);
-		close(fd_root);
+		vfs_put(fd_root);
 		if (rc != EOK)
 			goto error;
 	}
@@ -704,27 +704,27 @@ static void main_init(void)
 	proto_add_oper(p, VFS_IN_READ, o);
 	o = oper_new("write", 3, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_IN_WRITE, o);
-	o = oper_new("truncate", 5, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_resize", 5, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_RESIZE, o);
-	o = oper_new("fstat", 1, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_stat", 1, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_STAT, o);
-	o = oper_new("close", 1, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_CLOSE, o);
-	o = oper_new("mount", 2, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_put", 1, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_PUT, o);
+	o = oper_new("vfs_mount", 2, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_MOUNT, o);
 /*	o = oper_new("unmount", 0, arg_def);
 	proto_add_oper(p, VFS_IN_UNMOUNT, o);*/
-	o = oper_new("sync", 1, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_sync", 1, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_SYNC, o);
 	o = oper_new("rename", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_RENAME, o);
-	o = oper_new("statfs", 0, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_statfs", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_STATFS, o);
-	o = oper_new("walk", 2, arg_def, V_INT_ERRNO, 0, resp_def);
+	o = oper_new("vfs_walk", 2, arg_def, V_INT_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_WALK, o);
-	o = oper_new("open", 2, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_open", 2, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_OPEN, o);
-	o = oper_new("unlink", 3, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_unlink", 3, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_UNLINK, o);
 
 	proto_register(SERVICE_VFS, p);

@@ -297,7 +297,7 @@ cleanup:
 	}
 
 	if (opened)
-		close(fd);
+		vfs_put(fd);
 
 	return buf;
 }

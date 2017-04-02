@@ -178,7 +178,11 @@ posix_gid_t posix_getgid(void)
 int posix_close(int fildes)
 {
 	posix_pos[fildes] = 0;
-	return negerrno(close, fildes);
+	int rc = rcerrno(vfs_put, fildes);
+	if (rc != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -337,7 +341,7 @@ int posix_access(const char *path, int amode)
 		int fd = posix_open(path, O_RDONLY);
 		if (fd < 0)
 			return -1;
-		close(fd);
+		posix_close(fd);
 		return 0;
 	} else {
 		/* Invalid amode argument. */

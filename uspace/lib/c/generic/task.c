@@ -180,7 +180,7 @@ int task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 	int root = vfs_root();
 	if (root >= 0) {
 		rc = loader_add_inbox(ldr, "root", root);
-		close(root);
+		vfs_put(root);
 		if (rc != EOK)
 			goto error;
 	}
