@@ -629,6 +629,37 @@ int vfs_stat_path(const char *path, struct stat *stat)
 	return rc;
 }
 
+static int get_parent_and_child(const char *path, char **child)
+{
+	size_t size;
+	char *apath = vfs_absolutize(path, &size);
+	if (!apath)
+		return ENOMEM;
+
+	char *slash = str_rchr(apath, L'/');
+	int parent;
+	if (slash == apath) {
+		parent = vfs_root();
+		*child = apath;
+	} else {
+		*slash = '\0';
+		parent = vfs_lookup(apath, WALK_DIRECTORY);
+		if (parent < 0) {
+			free(apath);
+			return parent;
+		}
+		*slash = '/';
+		*child = str_dup(slash);
+		free(apath);
+		if (!*child) {
+			vfs_put(parent);
+			return ENOMEM;
+		}
+	}
+
+	return parent;
+}
+
 int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
 {
 	int flags = (kind == KIND_DIRECTORY) ? WALK_DIRECTORY : WALK_REGULAR;
@@ -650,29 +681,14 @@ int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
  */
 int vfs_link_path(const char *path, vfs_file_kind_t kind)
 {
-	size_t pa_size;
-	char *pa = vfs_absolutize(path, &pa_size);
-	if (!pa)
-		return ENOMEM;
-
-	int parent;
-	char *slash = str_rchr(pa, L'/');
-	if (slash != pa) {
-		*slash = '\0';
-		parent = vfs_lookup(pa, WALK_DIRECTORY);
-		*slash = '/';
-	} else {
-		parent = vfs_root();
-	}
-
-	if (parent < 0) {
-		free(pa);
+	char *child;
+	int parent = get_parent_and_child(path, &child);
+	if (parent < 0)
 		return parent;
-	}
 
-	int rc = vfs_link(parent, slash, kind);
+	int rc = vfs_link(parent, child, kind);
 
-	free(pa);
+	free(child);
 	vfs_put(parent);
 	return rc;
 }	
@@ -704,36 +720,20 @@ int vfs_unlink(int parent, const char *child, int expect)
  */
 int vfs_unlink_path(const char *path)
 {
-	size_t pa_size;
-	char *pa = vfs_absolutize(path, &pa_size);
-	if (!pa)
-		return ENOMEM;
-
-	int parent;
 	int expect = vfs_lookup(path, 0);
-	if (expect < 0) {
-		free(pa);
+	if (expect < 0)
 		return expect;
-	}
 
-	char *slash = str_rchr(pa, L'/');
-	if (slash != pa) {
-		*slash = '\0';
-		parent = vfs_lookup(pa, 0);
-		*slash = '/';
-	} else {
-		parent = vfs_root();
-	}
-
+	char *child;
+	int parent = get_parent_and_child(path, &child);
 	if (parent < 0) {
-		free(pa);
 		vfs_put(expect);
 		return parent;
 	}
 
-	int rc = vfs_unlink(parent, slash, expect);
+	int rc = vfs_unlink(parent, child, expect);
 	
-	free(pa);
+	free(child);
 	vfs_put(parent);
 	vfs_put(expect);
 	return rc;
