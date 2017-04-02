@@ -115,7 +115,7 @@ void vfs_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-int _vfs_walk(int parent, const char *path, int flags)
+int vfs_walk(int parent, const char *path, int flags)
 {
 	async_exch_t *exch = vfs_exchange_begin();
 	
@@ -147,7 +147,7 @@ int vfs_lookup(const char *path, int flags)
 		free(p);
 		return ENOENT;
 	}
-	int rc = _vfs_walk(root, p, flags);
+	int rc = vfs_walk(root, p, flags);
 	vfs_put(root);
 	free(p);
 	return rc;
@@ -337,7 +337,7 @@ int vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
 			return EINVAL;
 		}
 		
-		int mpfd = _vfs_walk(root_fd, mpa, WALK_DIRECTORY);
+		int mpfd = vfs_walk(root_fd, mpa, WALK_DIRECTORY);
 		if (mpfd >= 0) {
 			rc = vfs_mount(mpfd, fs_name, service_id, opts, flags,
 			    instance, NULL);
@@ -720,7 +720,7 @@ int closedir(DIR *dirp)
 int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
 {
 	int flags = (kind == KIND_DIRECTORY) ? WALK_DIRECTORY : WALK_REGULAR;
-	int file = _vfs_walk(parent, child, WALK_MUST_CREATE | flags);
+	int file = vfs_walk(parent, child, WALK_MUST_CREATE | flags);
 
 	if (file < 0)
 		return file;

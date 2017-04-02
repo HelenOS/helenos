@@ -81,8 +81,6 @@ extern int vfs_get_mtab_list(list_t *mtab_list);
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
 
-extern int _vfs_walk(int, const char *, int);
-
 extern int vfs_pass_handle(async_exch_t *, int, async_exch_t *);
 extern int vfs_receive_handle(bool);
 
@@ -109,6 +107,7 @@ extern int vfs_unlink(int, const char *, int);
 extern int vfs_unlink_path(const char *);
 extern int vfs_unmount(int);
 extern int vfs_unmount_path(const char *);
+extern int vfs_walk(int, const char *, int);
 
 
 #endif
