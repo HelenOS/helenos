@@ -589,7 +589,11 @@ int posix_remove(const char *path)
  */
 int posix_rename(const char *old, const char *new)
 {
-	return negerrno(rename, old, new);
+	int rc = rcerrno(vfs_rename_path, old, new);
+	if (rc != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**

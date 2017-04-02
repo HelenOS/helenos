@@ -113,8 +113,8 @@ const char *test_vfs1(void)
 	if (rv != NULL)
 		return rv;
 	
-	if (rename(TEST_FILE, TEST_FILE2) != 0)
-		return "rename() failed";
+	if (vfs_rename_path(TEST_FILE, TEST_FILE2) != EOK)
+		return "vfs_rename_path() failed";
 	TPRINTF("Renamed %s to %s\n", TEST_FILE, TEST_FILE2);
 	
 	if (vfs_unlink_path(TEST_FILE2) != EOK)

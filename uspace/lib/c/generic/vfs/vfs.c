@@ -832,9 +832,9 @@ int vfs_unlink_path(const char *path)
  * @param old Old name
  * @param new New name
  *
- * @return 0 on success. On error returns -1 and sets errno.
+ * @return EOK on success or a negative error code otherwise.
  */
-int rename(const char *old, const char *new)
+int vfs_rename_path(const char *old, const char *new)
 {
 	sysarg_t rc;
 	sysarg_t rc_orig;
@@ -842,17 +842,14 @@ int rename(const char *old, const char *new)
 	
 	size_t olda_size;
 	char *olda = vfs_absolutize(old, &olda_size);
-	if (olda == NULL) {
-		errno = ENOMEM;
-		return -1;
-	}
+	if (olda == NULL)
+		return ENOMEM;
 
 	size_t newa_size;
 	char *newa = vfs_absolutize(new, &newa_size);
 	if (newa == NULL) {
 		free(olda);
-		errno = ENOMEM;
-		return -1;
+		return ENOMEM;
 	}
 	
 	async_exch_t *exch = vfs_exchange_begin();
@@ -860,8 +857,7 @@ int rename(const char *old, const char *new)
 	if (root < 0) {
 		free(olda);
 		free(newa);
-		errno = ENOENT;
-		return -1;
+		return ENOENT;
 	}
 	
 	req = async_send_1(exch, VFS_IN_RENAME, root, NULL);
@@ -874,11 +870,7 @@ int rename(const char *old, const char *new)
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
-		if (rc != EOK) {
-			errno = rc;
-			return -1;
-		}
-		return 0;
+		return rc;
 	}
 	rc = async_data_write_start(exch, newa, newa_size);
 	if (rc != EOK) {
@@ -889,11 +881,7 @@ int rename(const char *old, const char *new)
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
-		if (rc != EOK) {
-			errno = rc;
-			return -1;
-		}
-		return 0;
+		return rc;
 	}
 	vfs_exchange_end(exch);
 	free(olda);
@@ -901,12 +889,7 @@ int rename(const char *old, const char *new)
 	vfs_put(root);
 	async_wait_for(req, &rc);
 
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
-
-	return 0;
+	return rc;
 }
 
 /** Change working directory.
