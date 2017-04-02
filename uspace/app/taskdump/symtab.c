@@ -87,7 +87,7 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 		return ENOENT;
 	}
 
-	rc = read(fd, &pos, &elf_hdr, sizeof(elf_header_t));
+	rc = vfs_read(fd, &pos, &elf_hdr, sizeof(elf_header_t));
 	if (rc != sizeof(elf_header_t)) {
 		printf("failed reading elf header\n");
 		free(stab);
@@ -305,7 +305,7 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
 	int rc;
 	aoff64_t pos = elf_hdr->e_shoff + idx * sizeof(elf_section_header_t);
 
-	rc = read(fd, &pos, sec_hdr, sizeof(elf_section_header_t));
+	rc = vfs_read(fd, &pos, sec_hdr, sizeof(elf_section_header_t));
 	if (rc != sizeof(elf_section_header_t))
 		return EIO;
 
@@ -334,7 +334,7 @@ static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 		return ENOMEM;
 	}
 
-	rc = read(fd, &pos, *ptr, size);
+	rc = vfs_read(fd, &pos, *ptr, size);
 	if (rc != (ssize_t) size) {
 		printf("failed reading chunk\n");
 		free(*ptr);

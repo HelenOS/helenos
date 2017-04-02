@@ -394,7 +394,7 @@ int vfs_put(int fildes)
  * If there are no bytes available for reading, then the function will
  * return success with zero bytes read.
  *
- * @param fildes File descriptor
+ * @param file File descriptor
  * @param pos Position to read from
  * @param buf Buffer
  * @param nbyte Maximum number of bytes to read
@@ -402,7 +402,7 @@ int vfs_put(int fildes)
  *
  * @return EOK on success, non-zero error code on error.
  */
-static int _read_short(int fildes, aoff64_t pos, void *buf, size_t nbyte,
+int vfs_read_short(int file, aoff64_t pos, void *buf, size_t nbyte,
     ssize_t *nread)
 {
 	sysarg_t rc;
@@ -414,7 +414,7 @@ static int _read_short(int fildes, aoff64_t pos, void *buf, size_t nbyte,
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_3(exch, VFS_IN_READ, fildes, LOWER32(pos),
+	req = async_send_3(exch, VFS_IN_READ, file, LOWER32(pos),
 	    UPPER32(pos), &answer);
 	rc = async_data_read_start(exch, (void *) buf, nbyte);
 
@@ -437,7 +437,7 @@ static int _read_short(int fildes, aoff64_t pos, void *buf, size_t nbyte,
  * Write up to @a nbyte bytes from file. The actual number of bytes written
  * may be lower, but greater than zero.
  *
- * @param fildes File descriptor
+ * @param file File descriptor
  * @param pos Position to write to
  * @param buf Buffer
  * @param nbyte Maximum number of bytes to write
@@ -445,7 +445,7 @@ static int _read_short(int fildes, aoff64_t pos, void *buf, size_t nbyte,
  *
  * @return EOK on success, non-zero error code on error.
  */
-static int _write_short(int fildes, aoff64_t pos, const void *buf, size_t nbyte,
+int vfs_write_short(int file, aoff64_t pos, const void *buf, size_t nbyte,
     ssize_t *nwritten)
 {
 	sysarg_t rc;
@@ -457,7 +457,7 @@ static int _write_short(int fildes, aoff64_t pos, const void *buf, size_t nbyte,
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_3(exch, VFS_IN_WRITE, fildes, LOWER32(pos),
+	req = async_send_3(exch, VFS_IN_WRITE, file, LOWER32(pos),
 	    UPPER32(pos), &answer);
 	rc = async_data_write_start(exch, (void *) buf, nbyte);
 	
@@ -485,10 +485,10 @@ static int _write_short(int fildes, aoff64_t pos, const void *buf, size_t nbyte,
  * @param buf		Buffer, @a nbytes bytes long
  * @param nbytes	Number of bytes to read
  *
- * @return		On success, nonnegative number of bytes read.
- *			On failure, -1 and sets errno.
+ * @return		On success, non-negative number of bytes red.
+ *			On failure, a negative error code.
  */
-ssize_t read(int fildes, aoff64_t *pos, void *buf, size_t nbyte)
+ssize_t vfs_read(int file, aoff64_t *pos, void *buf, size_t nbyte)
 {
 	ssize_t cnt = 0;
 	size_t nread = 0;
@@ -499,13 +499,11 @@ ssize_t read(int fildes, aoff64_t *pos, void *buf, size_t nbyte)
 		bp += cnt;
 		nread += cnt;
 		*pos += cnt;
-		rc = _read_short(fildes, *pos, bp, nbyte - nread, &cnt);
+		rc = vfs_read_short(file, *pos, bp, nbyte - nread, &cnt);
 	} while (rc == EOK && cnt > 0 && (nbyte - nread - cnt) > 0);
 	
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
+	if (rc != EOK)
+		return rc;
 	
 	*pos += cnt;
 	return nread + cnt;
@@ -515,15 +513,15 @@ ssize_t read(int fildes, aoff64_t *pos, void *buf, size_t nbyte)
  *
  * This function fails if it cannot write exactly @a len bytes to the file.
  *
- * @param fildes	File descriptor
+ * @param file		File descriptor
  * @param pos		Pointer to position to write to
  * @param buf		Data, @a nbytes bytes long
  * @param nbytes	Number of bytes to write
  *
- * @return		On success, nonnegative number of bytes written.
- *			On failure, -1 and sets errno.
+ * @return		On success, non-negative number of bytes written.
+ *			On failure, a negative error code.
  */
-ssize_t write(int fildes, aoff64_t *pos, const void *buf, size_t nbyte)
+ssize_t vfs_write(int file, aoff64_t *pos, const void *buf, size_t nbyte)
 {
 	ssize_t cnt = 0;
 	ssize_t nwritten = 0;
@@ -534,13 +532,11 @@ ssize_t write(int fildes, aoff64_t *pos, const void *buf, size_t nbyte)
 		bp += cnt;
 		nwritten += cnt;
 		*pos += cnt;
-		rc = _write_short(fildes, *pos, bp, nbyte - nwritten, &cnt);
+		rc = vfs_write_short(file, *pos, bp, nbyte - nwritten, &cnt);
 	} while (rc == EOK && ((ssize_t )nbyte - nwritten - cnt) > 0);
 
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
+	if (rc != EOK)
+		return rc;
 
 	*pos += cnt;
 	return nbyte;
@@ -680,7 +676,7 @@ struct dirent *readdir(DIR *dirp)
 	int rc;
 	ssize_t len = 0;
 	
-	rc = _read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
+	rc = vfs_read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
 	    NAME_MAX + 1, &len);
 	if (rc != EOK) {
 		errno = rc;

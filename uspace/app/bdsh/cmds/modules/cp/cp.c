@@ -412,14 +412,14 @@ static int64_t copy_file(const char *src, const char *dest,
 		goto out;
 	}
 
-	while ((bytes = read(fd1, &posr, buff, blen)) > 0) {
-		if ((bytes = write(fd2, &posw, buff, bytes)) < 0)
+	while ((bytes = vfs_read(fd1, &posr, buff, blen)) > 0) {
+		if ((bytes = vfs_write(fd2, &posw, buff, bytes)) < 0)
 			break;
 		copied += bytes;
 	}
 
 	if (bytes < 0) {
-		printf("\nError copying %s, (%d)\n", src, errno);
+		printf("\nError copying %s, (%d)\n", src, bytes);
 		copied = bytes;
 	}
 

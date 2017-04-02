@@ -239,7 +239,7 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	
 	aoff64_t pos = 0;
 	while (true) {
-		ssize_t nr = read(fd, &pos, fbuf, BUFFER_SIZE);
+		ssize_t nr = vfs_read(fd, &pos, fbuf, BUFFER_SIZE);
 		if (nr == 0)
 			break;
 		

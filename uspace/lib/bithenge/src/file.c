@@ -77,7 +77,7 @@ static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 	if (offset > blob->size)
 		return ELIMIT;
 
-	ssize_t amount_read = read(blob->fd, &offset, buffer, *size);
+	ssize_t amount_read = vfs_read(blob->fd, &offset, buffer, *size);
 	if (amount_read < 0)
 		return errno;
 	*size += amount_read;

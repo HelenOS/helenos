@@ -280,7 +280,7 @@ static char *fun_conf_read(const char *conf_path)
 		goto cleanup;
 	}
 
-	r = read(fd, (aoff64_t []) {0}, buf, len);
+	r = vfs_read(fd, (aoff64_t []) {0}, buf, len);
 	if (r < 0) {
 		ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
 		goto cleanup;

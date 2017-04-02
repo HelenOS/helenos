@@ -343,9 +343,9 @@ int posix_dprintf(int fildes, const char *restrict format, ...)
 static int _dprintf_str_write(const char *str, size_t size, void *fd)
 {
 	const int fildes = *(int *) fd;
-	ssize_t wr = write(fildes, &posix_pos[fildes], str, size);
+	ssize_t wr = vfs_write(fildes, &posix_pos[fildes], str, size);
 	if (wr < 0)
-		return errno;
+		return wr;
 	return str_nlength(str, wr);
 }
 
@@ -371,7 +371,7 @@ static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
 		}
 		
 		const int fildes = *(int *) fd;
-		if (write(fildes, &posix_pos[fildes], buf, sz) != (ssize_t) sz)
+		if (vfs_write(fildes, &posix_pos[fildes], buf, sz) < 0)
 			break;
 		
 		chars++;

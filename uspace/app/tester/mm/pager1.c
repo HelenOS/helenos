@@ -52,7 +52,7 @@ static void *create_paged_area(size_t size)
 		return NULL;
 	(void) vfs_unlink_path(TEST_FILE);
 
-	if (write(fd, (aoff64_t []) {0}, text, sizeof(text)) != sizeof(text)) {
+	if (vfs_write(fd, (aoff64_t []) {0}, text, sizeof(text)) < 0) {
 		vfs_put(fd);
 		return NULL;
 	}

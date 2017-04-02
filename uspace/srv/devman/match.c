@@ -228,7 +228,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	
-	ssize_t read_bytes = read(fd, (aoff64_t []) {0}, buf, len);
+	ssize_t read_bytes = vfs_read(fd, (aoff64_t []) {0}, buf, len);
 	if (read_bytes <= 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%d).", conf_path,
 		    errno);

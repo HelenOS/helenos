@@ -165,7 +165,7 @@ int cmd_mkfile(char **argv)
 		const char byte = 0x00;
 		
 		pos = file_size - 1;
-		rc2 = write(fd, &pos, &byte, sizeof(char));
+		rc2 = vfs_write(fd, &pos, &byte, sizeof(char));
 		if (rc2 < 0) {
 			vfs_put(fd);
 			goto error;
@@ -182,7 +182,7 @@ int cmd_mkfile(char **argv)
 	total_written = 0;
 	while (total_written < file_size) {
 		to_write = min(file_size - total_written, BUFFER_SIZE);
-		rc = write(fd, &pos, buffer, to_write);
+		rc = vfs_write(fd, &pos, buffer, to_write);
 		if (rc <= 0) {
 			printf("%s: Error writing file (%d).\n", cmdname, errno);
 			vfs_put(fd);

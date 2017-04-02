@@ -250,7 +250,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 			}
 		}
 		
-		bytes = read(fd, &pos, buff + copied_bytes, bytes_to_read);
+		bytes = vfs_read(fd, &pos, buff + copied_bytes, bytes_to_read);
 		copied_bytes = 0;
 
 		if (bytes > 0) {

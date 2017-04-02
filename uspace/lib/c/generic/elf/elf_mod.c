@@ -137,7 +137,7 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	aoff64_t pos = 0;
 	int i, rc;
 
-	rc = read(elf->fd, &pos, header, sizeof(elf_header_t));
+	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t));
 	if (rc != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n"); 
 		return EE_INVALID;
@@ -196,7 +196,7 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 		elf_segment_header_t segment_hdr;
 
 		pos = header->e_phoff + i * sizeof(elf_segment_header_t);
-		rc = read(elf->fd, &pos, &segment_hdr,
+		rc = vfs_read(elf->fd, &pos, &segment_hdr,
 		    sizeof(elf_segment_header_t));
 		if (rc != sizeof(elf_segment_header_t)) {
 			DPRINTF("Read error.\n");
@@ -215,7 +215,7 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 		elf_section_header_t section_hdr;
 
 		pos = header->e_shoff + i * sizeof(elf_section_header_t);
-		rc = read(elf->fd, &pos, &section_hdr,
+		rc = vfs_read(elf->fd, &pos, &section_hdr,
 		    sizeof(elf_section_header_t));
 		if (rc != sizeof(elf_section_header_t)) {
 			DPRINTF("Read error.\n");
@@ -386,7 +386,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 * Load segment data
 	 */
 	pos = entry->p_offset;
-	rc = read(elf->fd, &pos, seg_ptr, entry->p_filesz);
+	rc = vfs_read(elf->fd, &pos, seg_ptr, entry->p_filesz);
 	if (rc < 0) {
 		DPRINTF("read error\n");
 		return EE_INVALID;

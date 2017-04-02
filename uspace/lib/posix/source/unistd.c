@@ -195,7 +195,10 @@ int posix_close(int fildes)
  */
 ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 {
-	return negerrno(read, fildes, &posix_pos[fildes], buf, nbyte);
+	ssize_t size = rcerrno(vfs_read, fildes, &posix_pos[fildes], buf, nbyte);
+	if (size < 0)
+		return -1;
+	return size;
 }
 
 /**
@@ -208,7 +211,10 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
  */
 ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 {
-	return negerrno(write, fildes, &posix_pos[fildes], buf, nbyte);
+	ssize_t size = rcerrno(vfs_write, fildes, &posix_pos[fildes], buf, nbyte);
+	if (size < 0)
+		return -1;
+	return size;
 }
 
 /**

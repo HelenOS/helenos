@@ -84,7 +84,7 @@ const char *test_vfs1(void)
 	TPRINTF("Created file %s (fd=%d)\n", TEST_FILE, fd0);
 	
 	size_t size = sizeof(text);
-	ssize_t cnt = write(fd0, &pos, text, size);
+	ssize_t cnt = vfs_write(fd0, &pos, text, size);
 	if (cnt < 0)
 		return "write() failed";
 	TPRINTF("Written %zd bytes\n", cnt);
@@ -93,7 +93,7 @@ const char *test_vfs1(void)
 	
 	char buf[BUF_SIZE];
 	TPRINTF("read..\n");
-	while ((cnt = read(fd0, &pos, buf, BUF_SIZE))) {
+	while ((cnt = vfs_read(fd0, &pos, buf, BUF_SIZE))) {
 		TPRINTF("read returns %zd\n", cnt);
 		if (cnt < 0)
 			return "read() failed";

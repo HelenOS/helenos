@@ -71,13 +71,13 @@ int futil_copy_file(const char *srcp, const char *destp)
 		return EIO;
 
 	do {
-		nr = read(sf, &posr, buf, BUF_SIZE);
+		nr = vfs_read(sf, &posr, buf, BUF_SIZE);
 		if (nr == 0)
 			break;
 		if (nr < 0)
 			return EIO;
 
-		nw = write(df, &posw, buf, nr);
+		nw = vfs_write(df, &posw, buf, nr);
 		if (nw <= 0)
 			return EIO;
 	} while (true);
@@ -177,7 +177,7 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 		return ENOMEM;
 	}
 
-	nr = read(sf, (aoff64_t []) { 0 }, data, fsize);
+	nr = vfs_read(sf, (aoff64_t []) { 0 }, data, fsize);
 	if (nr != (ssize_t)fsize) {
 		vfs_put(sf);
 		free(data);

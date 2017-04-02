@@ -93,11 +93,11 @@ static int cmp_files(const char *fn0, const char *fn1)
 			offset[i] = 0;
 			ssize_t size;
 			do {
-				size = read(fd[i], &pos[i],
+				size = vfs_read(fd[i], &pos[i],
 				    buffer[i] + offset[i],
 				    CMP_BUFLEN - offset[i]);
 				if (size < 0) {
-					rc = errno;
+					rc = size;
 					printf("Error reading from %s\n",
 					    fn[i]);
 					goto end;

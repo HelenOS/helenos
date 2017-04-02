@@ -433,9 +433,9 @@ static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	ssize_t rd = read(stream->fd, &stream->pos, buf, size * nmemb);
+	ssize_t rd = vfs_read(stream->fd, &stream->pos, buf, size * nmemb);
 	if (rd < 0) {
-		/* errno was set by read() */
+		errno = rd;
 		stream->error = true;
 		rd = 0;
 	} else if (rd == 0) {
@@ -471,9 +471,9 @@ static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 			wr = nwritten;
 		}
 	} else {
-		wr = write(stream->fd, &stream->pos, buf, size * nmemb);
+		wr = vfs_write(stream->fd, &stream->pos, buf, size * nmemb);
 		if (wr < 0) {
-			/* errno was set by write() */
+			errno = wr;
 			stream->error = true;
 			wr = 0;
 		}
@@ -495,9 +495,9 @@ static void _ffillbuf(FILE *stream)
 
 	stream->buf_head = stream->buf_tail = stream->buf;
 
-	rc = read(stream->fd, &stream->pos, stream->buf, stream->buf_size);
+	rc = vfs_read(stream->fd, &stream->pos, stream->buf, stream->buf_size);
 	if (rc < 0) {
-		/* errno was set by read() */
+		errno = rc;
 		stream->error = true;
 		return;
 	}

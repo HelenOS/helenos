@@ -206,7 +206,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		foff += ainfo[i].size;
 	}
 
-	rc = write(fd, &pos, &elf_hdr, sizeof(elf_hdr));
+	rc = vfs_write(fd, &pos, &elf_hdr, sizeof(elf_hdr));
 	if (rc != sizeof(elf_hdr)) {
 		printf("Failed writing ELF header.\n");
 		free(p_hdr);
@@ -214,7 +214,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	}
 
 	for (i = 0; i < n_ph; ++i) {
-		rc = write(fd, &pos, &p_hdr[i], sizeof(p_hdr[i]));
+		rc = vfs_write(fd, &pos, &p_hdr[i], sizeof(p_hdr[i]));
 		if (rc != sizeof(p_hdr[i])) {
 			printf("Failed writing program header.\n");
 			free(p_hdr);
@@ -231,14 +231,14 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	note.descsz = sizeof(elf_prstatus_t);
 	note.type = NT_PRSTATUS;
 
-	rc = write(fd, &pos, &note, sizeof(elf_note_t));
+	rc = vfs_write(fd, &pos, &note, sizeof(elf_note_t));
 	if (rc != sizeof(elf_note_t)) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
 		return EIO;
 	}
 
-	rc = write(fd, &pos, "CORE", note.namesz);
+	rc = vfs_write(fd, &pos, "CORE", note.namesz);
 	if (rc != (ssize_t) note.namesz) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
@@ -247,7 +247,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 
 	pos = ALIGN_UP(pos, word_size);
 
-	rc = write(fd, &pos, &pr_status, sizeof(elf_prstatus_t));
+	rc = vfs_write(fd, &pos, &pr_status, sizeof(elf_prstatus_t));
 	if (rc != sizeof(elf_prstatus_t)) {
 		printf("Failed writing register data.\n");
 		free(p_hdr);
@@ -309,7 +309,7 @@ static int write_mem_area(int fd, aoff64_t *pos, as_area_info_t *area,
 			return EIO;
 		}
 
-		rc = write(fd, pos, buffer, to_copy);
+		rc = vfs_write(fd, pos, buffer, to_copy);
 		if (rc != (ssize_t) to_copy) {
 			printf("Failed writing memory contents.\n");
 			return EIO;
