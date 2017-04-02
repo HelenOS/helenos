@@ -33,7 +33,7 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <vfs/vfs.h>
 #include <errno.h>
 #include <malloc.h>

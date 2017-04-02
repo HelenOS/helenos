@@ -48,6 +48,7 @@ extern long int random(void);
 extern void srandom(unsigned int seed);
 
 extern void abort(void) __attribute__((noreturn));
+extern void exit(int) __attribute__((noreturn));
 
 #endif
 
