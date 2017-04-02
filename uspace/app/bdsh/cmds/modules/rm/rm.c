@@ -29,7 +29,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <dirent.h>
 #include <getopt.h>
 #include <mem.h>
@@ -109,9 +108,9 @@ static unsigned int rm_start(rm_job_t *rm)
 		return 0;
 	memset(rm->cwd, 0, PATH_MAX);
 
-	chdir(".");
+	vfs_cwd_set(".");
 
-	if (NULL == (getcwd(rm->owd, PATH_MAX)))
+	if (EOK != vfs_cwd_get(rm->owd, PATH_MAX))
 		return 0;
 
 	return 1;

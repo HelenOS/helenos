@@ -57,9 +57,6 @@
 
 #define getpagesize()  (PAGE_SIZE)
 
-extern char *getcwd(char *, size_t);
-extern int chdir(const char *);
-
 extern void exit(int) __attribute__((noreturn));
 extern int usleep(useconds_t);
 extern unsigned int sleep(unsigned int);

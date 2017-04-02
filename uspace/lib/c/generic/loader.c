@@ -123,7 +123,7 @@ int loader_set_cwd(loader_t *ldr)
 	if (!cwd)
 		return ENOMEM;
 	
-	if (getcwd(cwd, MAX_PATH_LEN + 1) == NULL)
+	if (vfs_cwd_get(cwd, MAX_PATH_LEN + 1) != EOK)
 		str_cpy(cwd, MAX_PATH_LEN + 1, "/");
 	
 	size_t len = str_length(cwd);

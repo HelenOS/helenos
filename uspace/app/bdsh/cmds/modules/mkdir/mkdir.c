@@ -207,7 +207,7 @@ int cmd_mkdir(char **argv)
 	}
 
 	if (follow && (argv[optind] != NULL)) {
-		if (chdir(argv[optind]) != 0)
+		if (vfs_cwd_set(argv[optind]) != EOK)
 			printf("%s: Error switching to directory.", cmdname);
 	}
 

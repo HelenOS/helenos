@@ -807,22 +807,19 @@ int vfs_rename_path(const char *old, const char *new)
 /** Change working directory.
  *
  * @param path Path
- * @return 0 on success. On error returns -1 and sets errno.
+ * @return EOK on success or a negative error code otherwise.
  */
-int chdir(const char *path)
+int vfs_cwd_set(const char *path)
 {
 	size_t abs_size;
 	char *abs = vfs_absolutize(path, &abs_size);
-	if (!abs) {
-		errno = ENOMEM;
-		return -1;
-	}
+	if (!abs)
+		return ENOMEM;
 	
 	int fd = vfs_lookup(abs, WALK_DIRECTORY);
 	if (fd < 0) {
 		free(abs);
-		errno = fd;
-		return -1;
+		return fd;
 	}
 	
 	fibril_mutex_lock(&cwd_mutex);
@@ -838,34 +835,28 @@ int chdir(const char *path)
 	cwd_size = abs_size;
 	
 	fibril_mutex_unlock(&cwd_mutex);
-	return 0;
+	return EOK;
 }
 
 /** Get current working directory path.
  *
  * @param buf Buffer
  * @param size Size of @a buf
- * @return On success returns @a buf. On failure returns @c NULL and sets errno.
+ * @return EOK on success and a non-negative error code otherwise.
  */
-char *getcwd(char *buf, size_t size)
+int vfs_cwd_get(char *buf, size_t size)
 {
-	if (size == 0) {
-		errno = EINVAL;
-		return NULL;
-	}
-	
 	fibril_mutex_lock(&cwd_mutex);
 	
 	if ((cwd_size == 0) || (size < cwd_size + 1)) {
 		fibril_mutex_unlock(&cwd_mutex);
-		errno = ERANGE;
-		return NULL;
+		return ERANGE;
 	}
 	
 	str_cpy(buf, size, cwd_path);
 	fibril_mutex_unlock(&cwd_mutex);
 	
-	return buf;
+	return EOK;
 }
 
 /** Open session to service represented by a special file.

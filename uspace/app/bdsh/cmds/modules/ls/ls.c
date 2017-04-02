@@ -33,7 +33,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <dirent.h>
 #include <getopt.h>
 #include <sys/types.h>
@@ -386,7 +385,7 @@ int cmd_ls(char **argv)
 	memset(de.name, 0, PATH_MAX);
 
 	if (argc == 0) {
-		if (getcwd(de.name, PATH_MAX) == NULL) {
+		if (vfs_cwd_get(de.name, PATH_MAX) != EOK) {
 			cli_error(CL_EFAIL, "%s: Failed determining working "
 			    "directory", cmdname);
 			return CMD_FAILURE;

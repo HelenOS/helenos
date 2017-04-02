@@ -73,6 +73,8 @@ struct statfs {
 };
 
 extern char *vfs_absolutize(const char *, size_t *);
+extern int vfs_cwd_set(const char *path);
+extern int vfs_cwd_get(char *path, size_t);
 
 extern int vfs_fhandle(FILE *, int *);
 

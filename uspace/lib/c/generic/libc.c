@@ -115,7 +115,7 @@ void __main(void *pcb_ptr)
 		__inbox_init(__pcb->inbox, __pcb->inbox_entries);
 		__stdio_init();
 		vfs_root_set(inbox_get("root"));
-		(void) chdir(__pcb->cwd);
+		(void) vfs_cwd_set(__pcb->cwd);
 	}
 	
 	/*

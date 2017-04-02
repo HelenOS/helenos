@@ -107,14 +107,10 @@ int posix_isatty(int fd)
  */
 char *posix_getcwd(char *buf, size_t size)
 {
-	char *p = getcwd(buf, size);
-
-	if (p == NULL) {
-		errno = -errno;
+	int rc = rcerrno(vfs_cwd_get, buf, size);
+	if (rc != EOK) 
 		return NULL;
-	}
-
-	return p;
+	return buf;
 }
 
 /**
@@ -124,7 +120,10 @@ char *posix_getcwd(char *buf, size_t size)
  */
 int posix_chdir(const char *path)
 {
-	return negerrno(chdir, path);
+	int rc = rcerrno(vfs_cwd_set, path);
+	if (rc != EOK)
+		return -1;
+	return 0;
 }
 
 /**

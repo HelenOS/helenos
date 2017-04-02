@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mem.h>
+#include <vfs/vfs.h>
+#include <abi/errno.h>
 
 #include "config.h"
 #include "errors.h"
@@ -56,7 +58,7 @@ int cmd_pwd(char *argv[])
 
 	memset(buff, 0, PATH_MAX);
 
-	if (getcwd(buff, PATH_MAX) == NULL) {
+	if (vfs_cwd_get(buff, PATH_MAX) != EOK) {
 		cli_error(CL_EFAIL,
 			"Unable to determine the current working directory");
 		free(buff);
