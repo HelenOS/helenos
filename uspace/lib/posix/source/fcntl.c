@@ -99,20 +99,65 @@ int posix_fcntl(int fd, int cmd, ...)
  * Open, possibly create, a file.
  *
  * @param pathname Path to the file.
- * @param flags Access mode flags.
+ * @param posix_flags Access mode flags.
  */
-int posix_open(const char *pathname, int flags, ...)
+int posix_open(const char *pathname, int posix_flags, ...)
 {
-	mode_t mode = 0;
-	if ((flags & O_CREAT) > 0) {
+	int rc;
+	mode_t posix_mode = 0;
+	if (posix_flags & O_CREAT) {
 		va_list args;
-		va_start(args, flags);
-		mode = va_arg(args, mode_t);
+		va_start(args, posix_flags);
+		posix_mode = va_arg(args, mode_t);
 		va_end(args);
+		(void) posix_mode;
 	}
 
-	return negerrno(open, pathname, flags, mode);
+	if (((posix_flags & (O_RDONLY | O_WRONLY | O_RDWR)) == 0) ||
+	    ((posix_flags & (O_RDONLY | O_WRONLY)) == (O_RDONLY | O_WRONLY)) ||
+	    ((posix_flags & (O_RDONLY | O_RDWR)) == (O_RDONLY | O_RDWR)) ||
+	    ((posix_flags & (O_WRONLY | O_RDWR)) == (O_WRONLY | O_RDWR))) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	int flags = WALK_REGULAR;
+	if (posix_flags & O_CREAT) {
+		if (posix_flags & O_EXCL)
+			flags |= WALK_MUST_CREATE;
+		else
+			flags |= WALK_MAY_CREATE;
+	}
+
+	int mode =
+	    ((posix_flags & O_RDWR) ? MODE_READ | MODE_WRITE : 0) |
+	    ((posix_flags & O_RDONLY) ? MODE_READ : 0) |
+	    ((posix_flags & O_WRONLY) ? MODE_WRITE : 0) |
+	    ((posix_flags & O_APPEND) ? MODE_APPEND : 0);
+
+	int file = rcerrno(vfs_lookup, pathname, flags);
+	if (file < 0)
+		return -1;
+
+	rc = rcerrno(vfs_open, file, mode);
+	if (rc != EOK) {
+		close (file);
+		return -1;
+	}
+
+	if (posix_flags & O_TRUNC) {
+		if (posix_flags & (O_RDWR | O_WRONLY)) {
+			rc = rcerrno(vfs_resize, file, 0);
+			if (rc != EOK) {
+				close(file);
+				return -1;
+			}
+		}
+	}
+
+	return file;
 }
 
 /** @}
  */
+

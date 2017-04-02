@@ -37,7 +37,6 @@
 #include <adt/list.h>
 #include <elf/elf_load.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <loader/pcb.h>
 #include <stdio.h>
 #include <stdlib.h>

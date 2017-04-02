@@ -37,7 +37,6 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vfs/vfs.h>
@@ -145,7 +144,7 @@ int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 {
 	assert(filename);
 
-	int fd = open(filename, O_RDONLY);
+	int fd = vfs_lookup_open(filename, WALK_REGULAR, MODE_READ);
 	if (fd < 0)
 		return errno;
 

@@ -32,7 +32,6 @@
 
 #include <dirent.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <io/log.h>
 #include <vfs/vfs.h>
 #include <loc.h>

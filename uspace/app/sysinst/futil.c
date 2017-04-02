@@ -34,7 +34,6 @@
 
 #include <dirent.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,11 +62,11 @@ int futil_copy_file(const char *srcp, const char *destp)
 
 	printf("Copy '%s' to '%s'.\n", srcp, destp);
 
-	sf = open(srcp, O_RDONLY);
+	sf = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ);
 	if (sf < 0)
 		return EIO;
 
-	df = open(destp, O_CREAT | O_WRONLY, 0);
+	df = vfs_lookup_open(destp, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
 	if (df < 0)
 		return EIO;
 
@@ -161,7 +160,7 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 	char *data;
 	struct stat st;
 
-	sf = open(srcp, O_RDONLY);
+	sf = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ);
 	if (sf < 0)
 		return ENOENT;
 

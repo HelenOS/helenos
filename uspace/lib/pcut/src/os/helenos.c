@@ -40,7 +40,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <task.h>
-#include <fcntl.h>
 #include <fibril_synch.h>
 #include <vfs/vfs.h>
 #include "../internal.h"
@@ -161,7 +160,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
 	snprintf(tempfile_name, PCUT_TEMP_FILENAME_BUFFER_SIZE - 1, "pcut_%lld.tmp", (unsigned long long) task_get_id());
-	int tempfile = open(tempfile_name, O_CREAT | O_RDWR);
+	int tempfile = vfs_lookup_open(tempfile_name, WALK_REGULAR | WALK_MAY_CREATE, MODE_READ | MODE_WRITE);
 	if (tempfile < 0) {
 		pcut_report_test_done(test, TEST_OUTCOME_ERROR, "Failed to create temporary file.", NULL, NULL);
 		return;

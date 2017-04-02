@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <getopt.h>
 #include <sys/types.h>
 #include <vfs/vfs.h>

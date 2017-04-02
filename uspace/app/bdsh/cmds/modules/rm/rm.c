@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <dirent.h>
 #include <getopt.h>
 #include <mem.h>
@@ -150,7 +149,7 @@ static unsigned int rm_scope(const char *path)
 		return RM_DIR;
 	}
 
-	fd = open(path, O_RDONLY);
+	fd = vfs_lookup(path, WALK_REGULAR);
 	if (fd >= 0) {
 		close(fd);
 		return RM_FILE;

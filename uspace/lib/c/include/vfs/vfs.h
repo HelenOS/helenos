@@ -82,8 +82,6 @@ extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
 
 extern int _vfs_walk(int, const char *, int);
-extern int _vfs_open(int, int);
-extern int vfs_lookup(const char *, int);
 
 extern int vfs_pass_handle(async_exch_t *, int, async_exch_t *);
 extern int vfs_receive_handle(bool);
@@ -91,10 +89,13 @@ extern int vfs_receive_handle(bool);
 extern int vfs_clone(int, int, bool);
 extern int vfs_link(int, const char *, vfs_file_kind_t);
 extern int vfs_link_path(const char *, vfs_file_kind_t);
+extern int vfs_lookup(const char *, int);
+extern int vfs_lookup_open(const char *, int, int);
 extern int vfs_mount_path(const char *, const char *, const char *,
     const char *, unsigned int, unsigned int);
 extern int vfs_mount(int, const char *, service_id_t, const char *, unsigned,
     unsigned, int *);
+extern int vfs_open(int, int);
 extern int vfs_resize(int, aoff64_t);
 extern int vfs_root(void);
 extern void vfs_root_set(int);

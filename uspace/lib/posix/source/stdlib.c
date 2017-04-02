@@ -430,7 +430,7 @@ int posix_mkstemp(char *tmpl)
 			return -1;
 		}
 		
-		fd = open(tmpl, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+		fd = posix_open(tmpl, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 		
 		if (fd == -1) {
 			/* Restore template to it's original state. */

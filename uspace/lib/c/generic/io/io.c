@@ -34,7 +34,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <assert.h>
 #include <str.h>
 #include <errno.h>
@@ -114,7 +113,7 @@ void __stdio_init(void)
 	if (infd >= 0) {
 		int stdinfd = vfs_clone(infd, -1, false);
 		assert(stdinfd == 0);
-		_vfs_open(stdinfd, MODE_READ);
+		vfs_open(stdinfd, MODE_READ);
 		stdin = fdopen(stdinfd, "r");
 	} else {
 		stdin = &stdin_null;
@@ -127,7 +126,7 @@ void __stdio_init(void)
 		assert(stdoutfd <= 1);
 		while (stdoutfd < 1)
 			stdoutfd = vfs_clone(outfd, -1, false);
-		_vfs_open(stdoutfd, MODE_APPEND);
+		vfs_open(stdoutfd, MODE_APPEND);
 		stdout = fdopen(stdoutfd, "a");
 	} else {
 		stdout = &stdout_kio;
@@ -140,7 +139,7 @@ void __stdio_init(void)
 		assert(stderrfd <= 2);
 		while (stderrfd < 2)
 			stderrfd = vfs_clone(errfd, -1, false);
-		_vfs_open(stderrfd, MODE_APPEND);
+		vfs_open(stderrfd, MODE_APPEND);
 		stderr = fdopen(stderrfd, "a");
 	} else {
 		stderr = &stderr_kio;
@@ -156,10 +155,10 @@ void __stdio_done(void)
 	}
 }
 
-static bool parse_mode(const char *mode, int *flags)
+static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncate)
 {
 	/* Parse mode except first character. */
-	const char *mp = mode;
+	const char *mp = fmode;
 	if (*mp++ == 0) {
 		errno = EINVAL;
 		return false;
@@ -179,14 +178,20 @@ static bool parse_mode(const char *mode, int *flags)
 		errno = EINVAL;
 		return false;
 	}
+
+	*create = false;
+	*truncate = false;
 	
-	/* Parse first character of mode and determine flags for open(). */
-	switch (mode[0]) {
+	/* Parse first character of fmode and determine mode for vfs_open(). */
+	switch (fmode[0]) {
 	case 'r':
-		*flags = plus ? O_RDWR : O_RDONLY;
+		*mode = plus ? MODE_READ | MODE_WRITE : MODE_READ;
 		break;
 	case 'w':
-		*flags = (O_TRUNC | O_CREAT) | (plus ? O_RDWR : O_WRONLY);
+		*mode = plus ? MODE_READ | MODE_WRITE : MODE_WRITE;
+		*create = true;
+		if (!plus)
+			*truncate = true;
 		break;
 	case 'a':
 		/* TODO: a+ must read from beginning, append to the end. */
@@ -194,7 +199,9 @@ static bool parse_mode(const char *mode, int *flags)
 			errno = ENOTSUP;
 			return false;
 		}
-		*flags = (O_APPEND | O_CREAT) | (plus ? O_RDWR : O_WRONLY);
+
+		*mode = MODE_APPEND | (plus ? MODE_READ | MODE_WRITE : MODE_WRITE);
+		*create = true;
 		break;
 	default:
 		errno = EINVAL;
@@ -268,10 +275,13 @@ static int _fallocbuf(FILE *stream)
  * @param mode Mode string, (r|w|a)[b|t][+].
  *
  */
-FILE *fopen(const char *path, const char *mode)
+FILE *fopen(const char *path, const char *fmode)
 {
-	int flags;
-	if (!parse_mode(mode, &flags))
+	int mode;
+	bool create;
+	bool truncate;
+
+	if (!parse_mode(fmode, &mode, &create, &truncate))
 		return NULL;
 	
 	/* Open file. */
@@ -280,14 +290,36 @@ FILE *fopen(const char *path, const char *mode)
 		errno = ENOMEM;
 		return NULL;
 	}
-	
-	stream->fd = open(path, flags, 0666);
-	if (stream->fd < 0) {
-		/* errno was set by open() */
+
+	int flags = WALK_REGULAR;
+	if (create)
+		flags |= WALK_MAY_CREATE;
+	int file = vfs_lookup(path, flags);
+	if (file < 0) {
+		errno = file;
+		free(stream);
+		return NULL;
+	}
+
+	int rc = vfs_open(file, mode);
+	if (rc != EOK) {
+		errno = rc;
+		close(file);
 		free(stream);
 		return NULL;
 	}
 	
+	if (truncate) {
+		rc = vfs_resize(file, 0);
+		if (rc != EOK) {
+			errno = rc;
+			close(file);
+			free(stream);
+			return NULL;
+		}
+	}
+
+	stream->fd = file;
 	stream->pos = 0;
 	stream->error = false;
 	stream->eof = false;

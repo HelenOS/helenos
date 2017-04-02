@@ -40,7 +40,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <fcntl.h>
+#include <vfs/vfs.h>
 
 #include "include/symtab.h"
 
@@ -80,7 +80,7 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 	if (stab == NULL)
 		return ENOMEM;
 
-	fd = open(file_name, O_RDONLY);
+	fd = vfs_lookup_open(file_name, WALK_REGULAR, MODE_READ);
 	if (fd < 0) {
 		printf("failed opening file\n");
 		free(stab);

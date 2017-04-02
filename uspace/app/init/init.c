@@ -40,7 +40,6 @@
 #include <vfs/vfs.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <task.h>
 #include <malloc.h>
 #include <macros.h>

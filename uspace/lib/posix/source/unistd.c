@@ -334,11 +334,9 @@ int posix_access(const char *path, int amode)
 		 *
 		 * Check file existence by attempting to open it.
 		 */
-		int fd = negerrno(open, path, O_RDONLY);
-		if (fd < 0) {
-			/* errno was set by open() */
+		int fd = posix_open(path, O_RDONLY);
+		if (fd < 0)
 			return -1;
-		}
 		close(fd);
 		return 0;
 	} else {

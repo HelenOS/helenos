@@ -48,7 +48,6 @@
 #include <adt/list.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <fcntl.h>
 #include <assert.h>
 #include <vfs/canonify.h>
 
@@ -273,16 +272,16 @@ out:
 	return rc;
 }
 
-int vfs_op_open(int fd, int flags)
+int vfs_op_open(int fd, int mode)
 {
-	if (flags == 0)
+	if (mode == 0)
 		return EINVAL;
 
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
 		return EBADF;
 	
-	if ((flags & ~file->permissions) != 0) {
+	if ((mode & ~file->permissions) != 0) {
 		vfs_file_put(file);
 		return EPERM;
 	}
@@ -292,9 +291,9 @@ int vfs_op_open(int fd, int flags)
 		return EBUSY;
 	}
 	
-	file->open_read = (flags & MODE_READ) != 0;
-	file->open_write = (flags & (MODE_WRITE | MODE_APPEND)) != 0;
-	file->append = (flags & MODE_APPEND) != 0;
+	file->open_read = (mode & MODE_READ) != 0;
+	file->open_write = (mode & (MODE_WRITE | MODE_APPEND)) != 0;
+	file->append = (mode & MODE_APPEND) != 0;
 	
 	if (!file->open_read && !file->open_write) {
 		vfs_file_put(file);

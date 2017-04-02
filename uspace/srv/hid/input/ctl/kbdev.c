@@ -38,7 +38,6 @@
 #include <async.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <ipc/kbdev.h>

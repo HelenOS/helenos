@@ -54,13 +54,13 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <mem.h>
 #include <stdint.h>
 #include <as.h>
 #include <udebug.h>
 #include <macros.h>
 #include <libarch/istate.h>
+#include <vfs/vfs.h>
 
 #include "elf_core.h"
 
@@ -122,7 +122,8 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		return ENOMEM;
 	}
 
-	fd = open(file_name, O_CREAT | O_WRONLY, 0644);
+	fd = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_WRITE);
 	if (fd < 0) {
 		printf("Failed opening file.\n");
 		free(p_hdr);

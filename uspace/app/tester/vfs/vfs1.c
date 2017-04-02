@@ -32,7 +32,6 @@
 #include <str.h>
 #include <vfs/vfs.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <dirent.h>
 #include <loc.h>
 #include <sys/types.h>
@@ -78,9 +77,10 @@ const char *test_vfs1(void)
 	}
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	
-	int fd0 = open(TEST_FILE, O_RDWR | O_CREAT);
+	int fd0 = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_READ | MODE_WRITE);
 	if (fd0 < 0)
-		return "open() failed";
+		return "vfs_lookup_open() failed";
 	TPRINTF("Created file %s (fd=%d)\n", TEST_FILE, fd0);
 	
 	size_t size = sizeof(text);

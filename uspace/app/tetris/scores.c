@@ -64,7 +64,6 @@
 #include <io/keycode.h>
 #include <vfs/vfs.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <err.h>
 #include <time.h>
 #include "screen.h"

@@ -36,7 +36,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <str.h>
-#include <fcntl.h>
 #include <str_error.h>
 #include <errno.h>
 #include <vfs/vfs.h>
@@ -59,7 +58,7 @@ static int try_access(const char *f)
 {
 	int fd;
 
-	fd = open(f, O_RDONLY);
+	fd = vfs_lookup_open(f, WALK_REGULAR, MODE_READ);
 	if (fd >= 0) {
 		close(fd);
 		return 0;

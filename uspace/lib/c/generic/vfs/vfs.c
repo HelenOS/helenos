@@ -40,7 +40,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <ipc/services.h>
@@ -154,13 +153,28 @@ int vfs_lookup(const char *path, int flags)
 	return rc;
 }
 
-int _vfs_open(int fildes, int mode)
+int vfs_open(int file, int mode)
 {
 	async_exch_t *exch = vfs_exchange_begin();
-	sysarg_t rc = async_req_2_0(exch, VFS_IN_OPEN, fildes, mode);
+	int rc = async_req_2_0(exch, VFS_IN_OPEN, file, mode);
 	vfs_exchange_end(exch);
 	
-	return (int) rc;
+	return rc;
+}
+
+int vfs_lookup_open(const char *path, int flags, int mode)
+{
+	int file = vfs_lookup(path, flags);
+	if (file < 0)
+		return file;
+
+	int rc = vfs_open(file, mode);
+	if (rc != EOK) {
+		close(file);
+		return rc;
+	}
+	
+	return file;
 }
 
 char *vfs_absolutize(const char *path, size_t *retlen)
@@ -350,66 +364,6 @@ int vfs_unmount_path(const char *mpp)
 	int rc = vfs_unmount(mp);
 	close(mp);
 	return rc;
-}
-
-static int walk_flags(int oflags)
-{
-	int flags = 0;
-	if (oflags & O_CREAT) {
-		if (oflags & O_EXCL)
-			flags |= WALK_MUST_CREATE;
-		else
-			flags |= WALK_MAY_CREATE;
-	}
-	return flags;
-}
-
-/** Open file.
- *
- * @param path File path
- * @param oflag O_xxx flags
- * @param mode File mode (only with O_CREAT)
- *
- * @return Nonnegative file descriptor on success. On error -1 is returned
- *         and errno is set.
- */
-int open(const char *path, int oflag, ...)
-{
-	if (((oflag & (O_RDONLY | O_WRONLY | O_RDWR)) == 0) ||
-	    ((oflag & (O_RDONLY | O_WRONLY)) == (O_RDONLY | O_WRONLY)) ||
-	    ((oflag & (O_RDONLY | O_RDWR)) == (O_RDONLY | O_RDWR)) ||
-	    ((oflag & (O_WRONLY | O_RDWR)) == (O_WRONLY | O_RDWR))) {
-		errno = EINVAL;
-		return -1;
-	}
-	
-	int fd = vfs_lookup(path, walk_flags(oflag) | WALK_REGULAR);
-	if (fd < 0) {
-		errno = fd;
-		return -1;
-	}
-	
-	int mode =
-	    ((oflag & O_RDWR) ? MODE_READ | MODE_WRITE : 0) |
-	    ((oflag & O_RDONLY) ? MODE_READ : 0) |
-	    ((oflag & O_WRONLY) ? MODE_WRITE : 0) |
-	    ((oflag & O_APPEND) ? MODE_APPEND : 0);
-	
-	int rc = _vfs_open(fd, mode); 
-	if (rc < 0) {
-		close(fd);
-		errno = rc;
-		return -1;
-	}
-	
-	if (oflag & O_TRUNC) {
-		assert(oflag & O_WRONLY || oflag & O_RDWR);
-		assert(!(oflag & O_APPEND));
-		
-		(void) vfs_resize(fd, 0);
-	}
-
-	return fd;
 }
 
 /** Close file.
@@ -702,7 +656,7 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 	
-	int rc = _vfs_open(fd, MODE_READ);
+	int rc = vfs_open(fd, MODE_READ);
 	if (rc < 0) {
 		free(dirp);
 		close(fd);

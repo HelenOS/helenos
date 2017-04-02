@@ -39,8 +39,9 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <task.h>
+
+#include <vfs/vfs.h>
 
 #include <inet/addr.h>
 #include <inet/endpoint.h>
@@ -223,7 +224,7 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	if (rc < 0)
 		return ENOMEM;
 	
-	int fd = open(fname, O_RDONLY);
+	int fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
 	if (fd < 0) {
 		rc = send_response(conn, msg_not_found);
 		free(fname);

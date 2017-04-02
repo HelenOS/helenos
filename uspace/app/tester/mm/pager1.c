@@ -28,7 +28,6 @@
 
 #include <stdio.h>
 #include <vfs/vfs.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include <as.h>
@@ -47,7 +46,8 @@ static void *create_paged_area(size_t size)
 {
 	TPRINTF("Creating temporary file...\n");
 
-	fd = open(TEST_FILE, O_RDWR | O_CREAT);
+	fd = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_READ | MODE_WRITE);
 	if (fd < 0)
 		return NULL;
 	(void) vfs_unlink_path(TEST_FILE);

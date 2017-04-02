@@ -32,7 +32,6 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <str.h>
-#include <fcntl.h>
 #include <io/console.h>
 #include <io/color.h>
 #include <io/style.h>
@@ -195,7 +194,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		/* Allow storing the whole UTF-8 character. */
 		blen = STR_BOUNDS(1);
 	} else
-		fd = open(fname, O_RDONLY);
+		fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
 	
 	if (fd < 0) {
 		printf("Unable to open %s\n", fname);

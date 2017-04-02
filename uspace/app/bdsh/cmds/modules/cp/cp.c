@@ -34,7 +34,6 @@
 #include <io/keycode.h>
 #include <getopt.h>
 #include <str.h>
-#include <fcntl.h>
 #include <vfs/vfs.h>
 #include <dirent.h>
 #include "config.h"
@@ -382,12 +381,14 @@ static int64_t copy_file(const char *src, const char *dest,
 	if (vb)
 		printf("Copying %s to %s\n", src, dest);
 
-	if (-1 == (fd1 = open(src, O_RDONLY))) {
+	fd1 = vfs_lookup_open(src, WALK_REGULAR, MODE_READ);
+	if (fd1 < 0) {
 		printf("Unable to open source file %s\n", src);
 		return -1;
 	}
 
-	if (-1 == (fd2 = open(dest, O_WRONLY | O_CREAT))) {
+	fd2 = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
+	if (fd2 < 0) {
 		printf("Unable to open destination file %s\n", dest);
 		close(fd1);
 		return -1;

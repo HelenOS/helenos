@@ -40,8 +40,22 @@
 #endif
 
 #include "sys/types.h"
-#include "libc/fcntl.h"
 #include "errno.h"
+
+#undef O_CREAT
+#undef O_EXCL
+#undef O_TRUNC
+#undef O_APPEND
+#undef O_RDONLY
+#undef O_RDWR
+#undef O_WRONLY
+#define O_CREAT   1
+#define O_EXCL    2
+#define O_TRUNC   4
+#define O_APPEND  8
+#define O_RDONLY  16
+#define O_RDWR    32
+#define O_WRONLY  64
 
 /* Mask for file access modes. */
 #undef O_ACCMODE

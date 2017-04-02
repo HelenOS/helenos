@@ -98,9 +98,9 @@ static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 static void vfs_in_open(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
-	int flags = IPC_GET_ARG2(*request);
+	int mode = IPC_GET_ARG2(*request);
 
-	int rc = vfs_op_open(fd, flags);
+	int rc = vfs_op_open(fd, mode);
 	async_answer_0(rid, rc);
 }
 

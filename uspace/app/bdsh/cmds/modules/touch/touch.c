@@ -34,7 +34,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <dirent.h>
 #include <sys/types.h>
 #include <str.h>
@@ -124,7 +123,7 @@ int cmd_touch(char **argv)
 		/* Check whether file exists if -c (--no-create) option is given */
 		if ((!no_create) ||
 		    ((no_create) && (vfs_stat_path(buff, &file_stat) == EOK))) {
-			fd = open(buff, O_RDWR | O_CREAT);
+			fd = vfs_lookup(buff, WALK_REGULAR | WALK_MAY_CREATE);
 		}
 		
 		if (fd < 0) {

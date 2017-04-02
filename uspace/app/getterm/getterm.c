@@ -35,7 +35,6 @@
  */
 
 #include <sys/types.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <task.h>
@@ -58,15 +57,15 @@ static void usage(void)
 	printf(" --wait        Wait for the terminal to be ready\n");
 }
 
-static void reopen(FILE **stream, int fd, const char *path, int flags,
-    const char *mode)
+static void reopen(FILE **stream, int fd, const char *path, int mode,
+    const char *fmode)
 {
 	if (fclose(*stream))
 		return;
 	
 	*stream = NULL;
 	
-	int oldfd = open(path, flags);
+	int oldfd = vfs_lookup_open(path, WALK_REGULAR, mode);
 	if (oldfd < 0)
 		return;
 	
@@ -78,7 +77,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags,
 			return;
 	}
 	
-	*stream = fdopen(fd, mode);
+	*stream = fdopen(fd, fmode);
 }
 
 int main(int argc, char *argv[])
@@ -141,9 +140,9 @@ int main(int argc, char *argv[])
 	char term_node[LOC_NAME_MAXLEN];
 	snprintf(term_node, LOC_NAME_MAXLEN, "%s/%s", locfs, term);
 	
-	reopen(&stdin, 0, term_node, O_RDONLY, "r");
-	reopen(&stdout, 1, term_node, O_WRONLY, "w");
-	reopen(&stderr, 2, term_node, O_WRONLY, "w");
+	reopen(&stdin, 0, term_node, MODE_READ, "r");
+	reopen(&stdout, 1, term_node, MODE_WRITE, "w");
+	reopen(&stderr, 2, term_node, MODE_WRITE, "w");
 	
 	if (stdin == NULL)
 		return 4;

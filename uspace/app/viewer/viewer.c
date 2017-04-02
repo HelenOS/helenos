@@ -34,7 +34,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <vfs/vfs.h>
 #include <errno.h>
 #include <malloc.h>
@@ -109,7 +108,7 @@ static void on_keyboard_event(widget_t *widget, void *data)
 
 static bool img_load(const char *fname, surface_t **p_local_surface)
 {
-	int fd = open(fname, O_RDONLY);
+	int fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
 	if (fd < 0)
 		return false;
 	

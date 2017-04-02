@@ -30,13 +30,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #include <macros.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <str.h>
 #include <ctype.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "errors.h"
@@ -155,7 +155,7 @@ int cmd_mkfile(char **argv)
 
 	file_name = argv[optind];
 
-	fd = open(file_name, O_CREAT | O_EXCL | O_WRONLY, 0666);
+	fd = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MUST_CREATE, MODE_WRITE);
 	if (fd < 0) {
 		printf("%s: failed to create file %s.\n", cmdname, file_name);
 		return CMD_FAILURE;

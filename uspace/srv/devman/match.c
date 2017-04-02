@@ -31,7 +31,6 @@
  */
 
 #include <errno.h>
-#include <fcntl.h>
 #include <io/log.h>
 #include <str.h>
 #include <str_error.h>
@@ -202,7 +201,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	size_t len = 0;
 	struct stat st;
 	
-	fd = open(conf_path, O_RDONLY);
+	fd = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ);
 	if (fd < 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
 		    conf_path, str_error(errno));

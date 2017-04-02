@@ -50,7 +50,6 @@
 #include <macros.h>
 #include <malloc.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
 #include <vfs/vfs.h>
@@ -255,7 +254,7 @@ static char *fun_conf_read(const char *conf_path)
 	ssize_t r;
 	struct stat st;
 
-	fd = open(conf_path, O_RDONLY);
+	fd = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ);
 	if (fd < 0) {
 		ddf_msg(LVL_ERROR, "Unable to open %s", conf_path);
 		goto cleanup;

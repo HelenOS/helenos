@@ -36,7 +36,6 @@
 
 #include <sys/types.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <str.h>
 #include <stdio.h>
@@ -53,14 +52,15 @@ static void usage(void)
 	    NAME);
 }
 
-static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
+static void reopen(FILE **stream, int fd, const char *path, int flags, int mode,
+    const char *fmode)
 {
 	if (fclose(*stream))
 		return;
 	
 	*stream = NULL;
 	
-	int oldfd = open(path, flags);
+	int oldfd = vfs_lookup_open(path, WALK_REGULAR | flags, mode);
 	if (oldfd < 0)
 		return;
 	
@@ -72,7 +72,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 			return;
 	}
 	
-	*stream = fdopen(fd, mode);
+	*stream = fdopen(fd, fmode);
 }
 
 static task_id_t spawn(task_wait_t *wait, int argc, char *argv[])
@@ -121,21 +121,23 @@ int main(int argc, char *argv[])
 				usage();
 				return -2;
 			}
-			reopen(&stdin, 0, argv[i], O_RDONLY, "r");
+			reopen(&stdin, 0, argv[i], 0, MODE_READ, "r");
 		} else if (str_cmp(argv[i], "-o") == 0) {
 			i++;
 			if (i >= argc) {
 				usage();
 				return -3;
 			}
-			reopen(&stdout, 1, argv[i], O_WRONLY | O_CREAT, "w");
+			reopen(&stdout, 1, argv[i], WALK_MAY_CREATE, MODE_WRITE,
+			    "w");
 		} else if (str_cmp(argv[i], "-e") == 0) {
 			i++;
 			if (i >= argc) {
 				usage();
 				return -4;
 			}
-			reopen(&stderr, 2, argv[i], O_WRONLY | O_CREAT, "w");
+			reopen(&stderr, 2, argv[i], WALK_MAY_CREATE, MODE_WRITE,
+			    "w");
 		} else if (str_cmp(argv[i], "--") == 0) {
 			i++;
 			break;
