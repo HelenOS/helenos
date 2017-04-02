@@ -78,8 +78,6 @@ extern int vfs_cwd_get(char *path, size_t);
 
 extern int vfs_fhandle(FILE *, int *);
 
-extern int vfs_get_mtab_list(list_t *mtab_list);
-
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
 

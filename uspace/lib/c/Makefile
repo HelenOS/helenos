@@ -148,10 +148,11 @@ GENERIC_SOURCES = \
 	generic/stdlib.c \
 	generic/udebug.c \
 	generic/vfs/canonify.c \
+	generic/vfs/inbox.c \
+	generic/vfs/mtab.c \
 	generic/vfs/vfs.c \
 	generic/rcu.c \
 	generic/setjmp.c \
-	generic/vfs/inbox.c \
 	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
