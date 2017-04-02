@@ -38,9 +38,7 @@
 #include <vfs/vfs_sess.h>
 #include <macros.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <dirent.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <ipc/services.h>
 #include <ns.h>
@@ -628,88 +626,6 @@ int vfs_stat_path(const char *path, struct stat *stat)
 
 	vfs_put(file);
 
-	return rc;
-}
-
-/** Open directory.
- *
- * @param dirname Directory pathname
- *
- * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
- */
-DIR *opendir(const char *dirname)
-{
-	DIR *dirp = malloc(sizeof(DIR));
-	if (!dirp) {
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	int fd = vfs_lookup(dirname, WALK_DIRECTORY);
-	if (fd < 0) {
-		free(dirp);
-		errno = fd;
-		return NULL;
-	}
-	
-	int rc = vfs_open(fd, MODE_READ);
-	if (rc < 0) {
-		free(dirp);
-		vfs_put(fd);
-		errno = rc;
-		return NULL;
-	}
-	
-	dirp->fd = fd;
-	dirp->pos = 0;
-	return dirp;
-}
-
-/** Read directory entry.
- *
- * @param dirp Open directory
- * @return Non-NULL pointer to directory entry on success. On error returns
- *         @c NULL and sets errno.
- */
-struct dirent *readdir(DIR *dirp)
-{
-	int rc;
-	ssize_t len = 0;
-	
-	rc = vfs_read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
-	    NAME_MAX + 1, &len);
-	if (rc != EOK) {
-		errno = rc;
-		return NULL;
-	}
-	
-	dirp->pos += len;
-	
-	return &dirp->res;
-}
-
-/** Rewind directory position to the beginning.
- *
- * @param dirp Open directory
- */
-void rewinddir(DIR *dirp)
-{
-	dirp->pos = 0;
-}
-
-/** Close directory.
- *
- * @param dirp Open directory
- * @return 0 on success. On error returns -1 and sets errno.
- */
-int closedir(DIR *dirp)
-{
-	int rc;
-	
-	rc = vfs_put(dirp->fd);
-	free(dirp);
-
-	/* On error errno was set by close() */
 	return rc;
 }
 

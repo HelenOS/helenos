@@ -72,6 +72,7 @@ GENERIC_SOURCES = \
 	generic/device/pio_window.c \
 	generic/device/clock_dev.c \
 	generic/device/led_dev.c \
+	generic/dirent.c \
 	generic/dhcp.c \
 	generic/dnsr.c \
 	generic/dlfcn.c \
@@ -146,8 +147,8 @@ GENERIC_SOURCES = \
 	generic/time.c \
 	generic/stdlib.c \
 	generic/udebug.c \
-	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
+	generic/vfs/vfs.c \
 	generic/rcu.c \
 	generic/setjmp.c \
 	generic/vfs/inbox.c \
