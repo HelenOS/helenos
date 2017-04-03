@@ -610,6 +610,9 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					qualifier = PrintfQualifierInt;
 				else
 					qualifier = PrintfQualifierLongLong;
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				break;
 			case 'h':
 				/* Char or short */
 				qualifier = PrintfQualifierShort;
