@@ -358,9 +358,11 @@ async_sess_t *vfs_fd_session(int file, iface_t iface)
  * @param child         New name to be linked
  * @param kind          Kind of the object to be created: KIND_FILE or
  *                      KIND_DIRECTORY
+ * @param[out] linkedfd If not NULL, will receive a file handle to the linked
+ *                      child
  * @return              EOK on success or a negative error code
  */
-int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
+int vfs_link(int parent, const char *child, vfs_file_kind_t kind, int *linkedfd)
 {
 	int flags = (kind == KIND_DIRECTORY) ? WALK_DIRECTORY : WALK_REGULAR;
 	int file = vfs_walk(parent, child, WALK_MUST_CREATE | flags);
@@ -368,7 +370,10 @@ int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
 	if (file < 0)
 		return file;
 
-	vfs_put(file);
+	if (linkedfd)
+		*linkedfd = file;
+	else
+		vfs_put(file);
 
 	return EOK;
 }
@@ -383,16 +388,18 @@ int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
  * @param path          New path to be linked
  * @param kind          Kind of the object to be created: KIND_FILE or
  *                      KIND_DIRECTORY
+ * @param[out] linkedfd If not NULL, will receive a file handle to the linked
+ *                      child
  * @return              EOK on success or a negative error code
  */
-int vfs_link_path(const char *path, vfs_file_kind_t kind)
+int vfs_link_path(const char *path, vfs_file_kind_t kind, int *linkedfd)
 {
 	char *child;
 	int parent = get_parent_and_child(path, &child);
 	if (parent < 0)
 		return parent;
 
-	int rc = vfs_link(parent, child, kind);
+	int rc = vfs_link(parent, child, kind, linkedfd);
 
 	free(child);
 	vfs_put(parent);

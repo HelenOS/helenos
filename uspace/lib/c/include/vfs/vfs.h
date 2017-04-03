@@ -80,8 +80,8 @@ extern int vfs_cwd_get(char *path, size_t);
 extern int vfs_cwd_set(const char *path);
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
-extern int vfs_link(int, const char *, vfs_file_kind_t);
-extern int vfs_link_path(const char *, vfs_file_kind_t);
+extern int vfs_link(int, const char *, vfs_file_kind_t, int *);
+extern int vfs_link_path(const char *, vfs_file_kind_t, int *);
 extern int vfs_lookup(const char *, int);
 extern int vfs_lookup_open(const char *, int, int);
 extern int vfs_mount_path(const char *, const char *, const char *,

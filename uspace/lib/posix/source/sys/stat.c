@@ -151,7 +151,7 @@ mode_t posix_umask(mode_t mask)
  */
 int posix_mkdir(const char *path, mode_t mode)
 {
-	int rc = rcerrno(vfs_link_path, path, KIND_DIRECTORY);
+	int rc = rcerrno(vfs_link_path, path, KIND_DIRECTORY, NULL);
 	if (rc != EOK)
 		return -1;
 	else

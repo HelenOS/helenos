@@ -104,7 +104,7 @@ static int handle_directory(const tar_header_t *header, FILE *tarfile)
 {
 	int rc;
 
-	rc = vfs_link_path(header->filename, KIND_DIRECTORY);
+	rc = vfs_link_path(header->filename, KIND_DIRECTORY, NULL);
 	if (rc != EOK) {
 		if (rc != EEXIST) {
 			fprintf(stderr, "Failed to create directory %s: %s.\n",

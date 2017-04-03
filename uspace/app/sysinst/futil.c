@@ -127,7 +127,7 @@ int futil_rcopy_contents(const char *srcdir, const char *destdir)
 				return EIO;
 		} else if (s.is_directory) {
 			printf("Create directory '%s'\n", destp);
-			rc = vfs_link_path(destp, KIND_DIRECTORY);
+			rc = vfs_link_path(destp, KIND_DIRECTORY, NULL);
 			if (rc != EOK)
 				return EIO;
 			rc = futil_rcopy_contents(srcp, destp);

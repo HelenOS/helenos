@@ -70,7 +70,7 @@ const char *test_vfs1(void)
 	aoff64_t pos = 0;
 	int rc;
 
-	rc = vfs_link_path(TEST_DIRECTORY, KIND_DIRECTORY);
+	rc = vfs_link_path(TEST_DIRECTORY, KIND_DIRECTORY, NULL);
 	if (rc != EOK) {
 		TPRINTF("rc=%d\n", rc);
 		return "vfs_link_path() failed";

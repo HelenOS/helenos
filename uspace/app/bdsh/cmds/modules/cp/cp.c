@@ -293,7 +293,8 @@ static int64_t do_copy(const char *src, const char *dest,
 				 */
 				merge_paths(dest_path, PATH_MAX, src_dirname);
 
-				if (vfs_link_path(dest_path, KIND_DIRECTORY) != EOK) {
+				if (vfs_link_path(dest_path, KIND_DIRECTORY,
+				    NULL) != EOK) {
 					printf("Unable to create "
 					    "dest directory %s\n", dest_path);
 					goto exit;
@@ -307,7 +308,8 @@ static int64_t do_copy(const char *src, const char *dest,
 			 *
 			 * e.g. cp -r /src /data/new_dir_src
 			 */
-			if (vfs_link_path(dest_path, KIND_DIRECTORY) != EOK) {
+			if (vfs_link_path(dest_path, KIND_DIRECTORY,
+			    NULL) != EOK) {
 				printf("Unable to create "
 				    "dest directory %s\n", dest_path);
 				goto exit;

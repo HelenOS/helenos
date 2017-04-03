@@ -95,7 +95,7 @@ create_directory(const char *user_path, bool create_parents)
 	int ret = 0;
 
 	if (!create_parents) {
-		ret = vfs_link_path(path, KIND_DIRECTORY);
+		ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
 		if (ret != EOK) {
 			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
 			    cmdname, path, str_error(ret));
@@ -134,7 +134,7 @@ create_directory(const char *user_path, bool create_parents)
 			char slash_char = path[prev_off];
 			path[prev_off] = 0;
 
-			ret = vfs_link_path(path, KIND_DIRECTORY);
+			ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
 			if (ret != EOK && ret != EEXIST) {
 				cli_error(CL_EFAIL, "%s: could not create %s (%s)",
 				    cmdname, path, str_error(ret));
@@ -145,7 +145,7 @@ create_directory(const char *user_path, bool create_parents)
 			path[prev_off] = slash_char;
 		}
 		/* Create the final directory. */
-		ret = vfs_link_path(path, KIND_DIRECTORY);
+		ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
 		if (ret != EOK) {
 			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
 			    cmdname, path, str_error(ret));
