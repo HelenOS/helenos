@@ -50,6 +50,69 @@
 #include <ipc/vfs.h>
 #include <ipc/loc.h>
 
+/*
+ * This file contains the implementation of the native HelenOS file system API.
+ *
+ * The API supports client-side file system roots, client-side IO cursors and
+ * uses file handles as a primary means to refer to files. In order to call the
+ * API functions, one just includes vfs/vfs.h.
+ *
+ * The API functions come in two main flavors:
+ *
+ * - functions that operate on integer file handles, such as:
+ *   vfs_walk(), vfs_open(), vfs_read(), vfs_link(), ...
+ *  
+ * - functions that operate on paths, such as:
+ *   vfs_lookup(), vfs_link_path(), vfs_unlink_path(), vfs_rename_path(), ...
+ *
+ * There is usually a corresponding path function for each file handle function
+ * that exists mostly as a convenience wrapper, except for cases when only a
+ * path version exists due to file system consistency considerations (see
+ * vfs_rename_path()). Sometimes one of the versions does not make sense, in
+ * which case it is also omitted.
+ *
+ * Besides of that, the API provides some convenience wrappers for frequently
+ * performed pairs of operations, for example there is a combo API for
+ * vfs_lookup() and vfs_open(): vfs_lookup_open().
+ *
+ * Some of the functions here return a file handle that can be passed to other
+ * functions. Note that a file handle does not automatically represent a file
+ * from which one can read or to which one can write. In order to do so, the
+ * file handle must be opened first for reading/writing using vfs_open().
+ *
+ * All file handles, no matter whether opened or not, must be eventually
+ * returned to the system using vfs_put(). Non-returned file handles are in use
+ * and consume system resources.
+ *
+ * Functions that return int return a negative error code on error and do not
+ * set errno. Depending on function, success is signalled by returning either
+ * EOK or a non-negative file handle.
+ *
+ * An example life-cycle of a file handle is as follows:
+ *
+ * 	#include <vfs/vfs.h>
+ *
+ * 	int file = vfs_lookup("/foo/bar/foobar", WALK_REGULAR);
+ * 	if (file < 0)
+ * 		return file;
+ * 	int rc = vfs_open(file, MODE_READ);
+ * 	if (rc != EOK) {
+ * 		(void) vfs_put(file);
+ *		return rc;
+ * 	}
+ * 	aoff64_t pos = 42;
+ * 	char buf[512];
+ * 	ssize_t size = vfs_read(file, &pos, buf, sizeof(buf));
+ * 	if (size < 0) {
+ * 		vfs_put(file);
+ * 		return size;
+ * 	}
+ *
+ *	// buf is now filled with data from file
+ *
+ *	vfs_put(file);
+ */
+
 static FIBRIL_MUTEX_INITIALIZE(vfs_mutex);
 static async_sess_t *vfs_sess = NULL;
 
@@ -62,6 +125,10 @@ static size_t cwd_size = 0;
 static FIBRIL_MUTEX_INITIALIZE(root_mutex);
 static int root_fd = -1;
 
+/** Return a new file handle representing the local root
+ *
+ * @return      A clone of the local root file handle or a negative error code
+ */
 int vfs_root(void)
 {
 	fibril_mutex_lock(&root_mutex);	
@@ -74,6 +141,15 @@ int vfs_root(void)
 	return r;
 }
 
+/** Set a new local root
+ *
+ * Note that it is still possible to have file handles for other roots and pass
+ * them to the API functions. Functions like vfs_root() and vfs_lookup() will
+ * however consider the file set by this function to be the root.
+ *
+ * @param nroot The new local root file handle
+ */
+
 void vfs_root_set(int nroot)
 {
 	fibril_mutex_lock(&root_mutex);
@@ -83,10 +159,9 @@ void vfs_root_set(int nroot)
 	fibril_mutex_unlock(&root_mutex);
 }
 
-/** Start an async exchange on the VFS session.
+/** Start an async exchange on the VFS session
  *
- * @return New exchange.
- *
+ * @return      New exchange
  */
 async_exch_t *vfs_exchange_begin(void)
 {
@@ -102,16 +177,24 @@ async_exch_t *vfs_exchange_begin(void)
 	return async_exchange_begin(vfs_sess);
 }
 
-/** Finish an async exchange on the VFS session.
+/** Finish an async exchange on the VFS session
  *
- * @param exch Exchange to be finished.
- *
+ * @param exch  Exchange to be finished
  */
 void vfs_exchange_end(async_exch_t *exch)
 {
 	async_exchange_end(exch);
 }
 
+/** Walk a path starting in a parent node
+ *
+ * @param parent        File handle of the parent node where the walk starts
+ * @param path          Parent-relative path to be walked
+ * @param flags         Flags influencing the walk
+ *
+ * @retrun              File handle representing the result on success or
+ *                      a negative error code on error
+ */
 int vfs_walk(int parent, const char *path, int flags)
 {
 	async_exch_t *exch = vfs_exchange_begin();
@@ -133,6 +216,14 @@ int vfs_walk(int parent, const char *path, int flags)
 	return (int) IPC_GET_ARG1(answer);
 }
 
+/** Lookup a path relative to the local root
+ *
+ * @param path  Path to be looked up
+ * @param flags Walk flags
+ *
+ * @return      File handle representing the result on success or a negative
+ *              error code on error
+ */
 int vfs_lookup(const char *path, int flags)
 {
 	size_t size;
@@ -150,6 +241,13 @@ int vfs_lookup(const char *path, int flags)
 	return rc;
 }
 
+/** Open a file handle for I/O
+ *
+ * @param file  File handle to enable I/O on
+ * @param mode  Mode in which to open file in
+ *
+ * @return      EOK on success or a negative error code
+ */
 int vfs_open(int file, int mode)
 {
 	async_exch_t *exch = vfs_exchange_begin();
@@ -159,6 +257,16 @@ int vfs_open(int file, int mode)
 	return rc;
 }
 
+/** Lookup a path relative to the local root and open the result
+ *
+ * This function is a convenience combo for vfs_lookup() and vfs_open().
+ *
+ * @param path  Path to be looked up
+ * @param flags Walk flags
+ * @param mode  Mode in which to open file in
+ *
+ * @return      EOK on success or a negative error code
+ */
 int vfs_lookup_open(const char *path, int flags, int mode)
 {
 	int file = vfs_lookup(path, flags);
@@ -174,6 +282,17 @@ int vfs_lookup_open(const char *path, int flags, int mode)
 	return file;
 }
 
+/** Make a potentially relative path absolute
+ *
+ * This function coverts a current-working-directory-relative path into a
+ * well-formed, absolute path. The caller is responsible for deallocating the
+ * returned buffer.
+ *
+ * @param[in] path      Path to be absolutized
+ * @param[out] retlen   Length of the absolutized path
+ *
+ * @return              New buffer holding the absolutized path or NULL
+ */
 char *vfs_absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
@@ -224,6 +343,18 @@ char *vfs_absolutize(const char *path, size_t *retlen)
 	return ncwd_path;
 }
 
+/** Mount a file system
+ *
+ * @param[in] mp                File handle representing the mount-point
+ * @param[in] fs_name           File system name
+ * @param[in] serv              Service representing the mountee
+ * @param[in] opts              Mount options for the endpoint file system
+ * @param[in] flags             Mount flags
+ * @param[in] instance          Instance number of the file system server
+ * @param[out] mountedfd        File handle of the mounted root if not NULL
+ *
+ * @return                      EOK on success or a negative error code
+ */
 int vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *opts,
     unsigned int flags, unsigned int instance, int *mountedfd)
 {
@@ -257,6 +388,12 @@ int vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *opts,
 	return rc1;
 }
 
+/** Unmount a file system
+ *
+ * @param mp    File handle representing the mount-point
+ *
+ * @return      EOK on success or a negative error code
+ */
 int vfs_unmount(int mp)
 {
 	async_exch_t *exch = vfs_exchange_begin();
@@ -265,6 +402,17 @@ int vfs_unmount(int mp)
 	return rc;
 }
 
+/** Mount a file system
+ *
+ * @param[in] mp                Path representing the mount-point
+ * @param[in] fs_name           File system name
+ * @param[in] fqsn              Fully qualified service name of the mountee
+ * @param[in] opts              Mount options for the endpoint file system
+ * @param[in] flags             Mount flags
+ * @param[in] instance          Instance number of the file system server
+ *
+ * @return                      EOK on success or a negative error code
+ */
 int vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
     const char *opts, unsigned int flags, unsigned int instance)
 {
@@ -352,6 +500,12 @@ int vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
 	return (int) rc;
 }
 
+/** Unmount a file system
+ *
+ * @param mpp   Mount-point path
+ *
+ * @return      EOK on success or a negative error code
+ */
 int vfs_unmount_path(const char *mpp)
 {
 	int mp = vfs_lookup(mpp, WALK_MOUNT_POINT | WALK_DIRECTORY);
@@ -363,41 +517,35 @@ int vfs_unmount_path(const char *mpp)
 	return rc;
 }
 
-/** Close file.
+/** Stop working with a file handle
  *
- * @param fildes File descriptor
- * @return EOK on success or a negative error code otherwise.
+ * @param file  File handle to put
+ *
+ * @return      EOK on success or a negative error code
  */
-int vfs_put(int fildes)
+int vfs_put(int file)
 {
-	sysarg_t rc;
-	
 	async_exch_t *exch = vfs_exchange_begin();
-	rc = async_req_1_0(exch, VFS_IN_PUT, fildes);
+	int rc = async_req_1_0(exch, VFS_IN_PUT, file);
 	vfs_exchange_end(exch);
 	
-	if (rc != EOK) {
-		errno = rc;
-		return -1;
-	}
-	
-	return 0;
+	return rc;
 }
 
-/** Read bytes from file.
+/** Read bytes from a file
  *
  * Read up to @a nbyte bytes from file. The actual number of bytes read
  * may be lower, but greater than zero if there are any bytes available.
  * If there are no bytes available for reading, then the function will
  * return success with zero bytes read.
  *
- * @param file File descriptor
- * @param pos Position to read from
- * @param buf Buffer
- * @param nbyte Maximum number of bytes to read
- * @param nread Place to store actual number of bytes read (0 or more)
+ * @param file          File handle to read from
+ * @param[in] pos       Position to read from
+ * @param buf           Buffer to read from
+ * @param nbyte         Maximum number of bytes to read
+ * @param[out] nread	Actual number of bytes read (0 or more)
  *
- * @return EOK on success, non-zero error code on error.
+ * @return              EOK on success or a negative error code
  */
 int vfs_read_short(int file, aoff64_t pos, void *buf, size_t nbyte,
     ssize_t *nread)
@@ -429,18 +577,18 @@ int vfs_read_short(int file, aoff64_t pos, void *buf, size_t nbyte,
 	return EOK;
 }
 
-/** Write bytes to file.
+/** Write bytes to a file
  *
  * Write up to @a nbyte bytes from file. The actual number of bytes written
  * may be lower, but greater than zero.
  *
- * @param file File descriptor
- * @param pos Position to write to
- * @param buf Buffer
- * @param nbyte Maximum number of bytes to write
- * @param nread Place to store actual number of bytes written (0 or more)
+ * @param file          File handle to write to
+ * @param[in] pos       Position to write to
+ * @param buf           Buffer to write to
+ * @param nbyte         Maximum number of bytes to write
+ * @param[out] nread    Actual number of bytes written (0 or more)
  *
- * @return EOK on success, non-zero error code on error.
+ * @return              EOK on success or a negative error code
  */
 int vfs_write_short(int file, aoff64_t pos, const void *buf, size_t nbyte,
     ssize_t *nwritten)
@@ -472,18 +620,18 @@ int vfs_write_short(int file, aoff64_t pos, const void *buf, size_t nbyte,
 	return EOK;
 }
 
-/** Read data.
+/** Read data
  *
  * Read up to @a nbytes bytes from file if available. This function always reads
  * all the available bytes up to @a nbytes.
  *
- * @param fildes	File descriptor
- * @param pos		Pointer to position to read from 
+ * @param file          File handle to read from
+ * @param[inout] pos    Position to read from, updated by the actual bytes read
  * @param buf		Buffer, @a nbytes bytes long
  * @param nbytes	Number of bytes to read
  *
- * @return		On success, non-negative number of bytes red.
- *			On failure, a negative error code.
+ * @return              On success, non-negative number of bytes read
+ * @return              On failure, a negative error code
  */
 ssize_t vfs_read(int file, aoff64_t *pos, void *buf, size_t nbyte)
 {
@@ -506,17 +654,18 @@ ssize_t vfs_read(int file, aoff64_t *pos, void *buf, size_t nbyte)
 	return nread + cnt;
 }
 
-/** Write data.
+/** Write data
  *
  * This function fails if it cannot write exactly @a len bytes to the file.
  *
- * @param file		File descriptor
- * @param pos		Pointer to position to write to
- * @param buf		Data, @a nbytes bytes long
- * @param nbytes	Number of bytes to write
+ * @param file          File handle to write to
+ * @param[inout] pos    Position to write to, updated by the actual bytes
+ *                      written
+ * @param buf           Data, @a nbytes bytes long
+ * @param nbytes        Number of bytes to write
  *
- * @return		On success, non-negative number of bytes written.
- *			On failure, a negative error code.
+ * @return		On success, non-negative number of bytes written
+ * @return              On failure, a negative error code
  */
 ssize_t vfs_write(int file, aoff64_t *pos, const void *buf, size_t nbyte)
 {
@@ -539,47 +688,46 @@ ssize_t vfs_write(int file, aoff64_t *pos, const void *buf, size_t nbyte)
 	return nbyte;
 }
 
-/** Synchronize file.
+/** Synchronize file
  *
- * @param fildes File descriptor
- * @return EOK on success or a negative error code otherwise.
+ * @param file  File handle to synchronize
+ *
+ * @return      EOK on success or a negative error code
  */
 int vfs_sync(int file)
 {
 	async_exch_t *exch = vfs_exchange_begin();
-	sysarg_t rc = async_req_1_0(exch, VFS_IN_SYNC, file);
+	int rc = async_req_1_0(exch, VFS_IN_SYNC, file);
 	vfs_exchange_end(exch);
 	
 	return rc;
 }
 
-/** Truncate file to a specified length.
+/** Resize file to a specified length
  *
- * Truncate file so that its size is exactly @a length
+ * Resize file so that its size is exactly @a length.
  *
- * @param fildes File descriptor
- * @param length Length
+ * @param file          File handle to resize
+ * @param length        New length
  *
- * @return EOK on success or a negative erroc code otherwise.
+ * @return              EOK on success or a negative error code
  */
 int vfs_resize(int file, aoff64_t length)
 {
-	sysarg_t rc;
-	
 	async_exch_t *exch = vfs_exchange_begin();
-	rc = async_req_3_0(exch, VFS_IN_RESIZE, file, LOWER32(length),
+	int rc = async_req_3_0(exch, VFS_IN_RESIZE, file, LOWER32(length),
 	    UPPER32(length));
 	vfs_exchange_end(exch);
 	
 	return rc;
 }
 
-/** Get file status.
+/** Get file information
  *
- * @param file File descriptor
- * @param stat Place to store file information
+ * @param file          File handle to get information about
+ * @param[out] stat     Place to store file information
  *
- * @return EOK on success or a negative error code otherwise.
+ * @return              EOK on success or a negative error code
  */
 int vfs_stat(int file, struct stat *stat)
 {
@@ -608,12 +756,12 @@ int vfs_stat(int file, struct stat *stat)
 	return rc;
 }
 
-/** Get file status.
+/** Get file information 
  *
- * @param path Path to file
- * @param stat Place to store file information
+ * @param path          File path to get information about
+ * @param[out] stat     Place to store file information
  *
- * @return EOK on success or a negative error code otherwise.
+ * @return              EOK on success or a negative error code
  */
 int vfs_stat_path(const char *path, struct stat *stat)
 {
@@ -659,6 +807,19 @@ static int get_parent_and_child(const char *path, char **child)
 	return parent;
 }
 
+/** Link a file or directory
+ *
+ * Create a new name and an empty file or an empty directory in a parent
+ * directory. If child with the same name already exists, the function returns
+ * a failure, the existing file remains untouched and no file system object
+ * is created.
+ *
+ * @param parent        File handle of the parent directory node
+ * @param child         New name to be linked
+ * @param kind          Kind of the object to be created: KIND_FILE or
+ *                      KIND_DIRECTORY
+ * @return              EOK on success or a negative error code
+ */
 int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
 {
 	int flags = (kind == KIND_DIRECTORY) ? WALK_DIRECTORY : WALK_REGULAR;
@@ -672,11 +833,17 @@ int vfs_link(int parent, const char *child, vfs_file_kind_t kind)
 	return EOK;
 }
 
-/** Link a file or directory.
+/** Link a file or directory
  *
- * @param path Path
- * @param kind Kind of the file to be created.
- * @return EOK on success or a negative error code otherwise
+ * Create a new name and an empty file or an empty directory at given path.
+ * If a link with the same name already exists, the function returns
+ * a failure, the existing file remains untouched and no file system object
+ * is created.
+ *
+ * @param path          New path to be linked
+ * @param kind          Kind of the object to be created: KIND_FILE or
+ *                      KIND_DIRECTORY
+ * @return              EOK on success or a negative error code
  */
 int vfs_link_path(const char *path, vfs_file_kind_t kind)
 {
@@ -692,6 +859,19 @@ int vfs_link_path(const char *path, vfs_file_kind_t kind)
 	return rc;
 }	
 
+/** Unlink a file or directory
+ *
+ * Unlink a name from a parent directory. The caller can supply the file handle
+ * of the unlinked child in order to detect a possible race with vfs_link() and
+ * avoid unlinking a wrong file. If the last link for a file or directory is
+ * removed, the FS implementation will deallocate its resources.
+ *
+ * @param parent        File handle of the parent directory node
+ * @param child         Old name to be unlinked
+ * @param expect        File handle of the unlinked child
+ *
+ * @return              EOK on success or a negative error code
+ */
 int vfs_unlink(int parent, const char *child, int expect)
 {
 	sysarg_t rc;
@@ -712,10 +892,14 @@ int vfs_unlink(int parent, const char *child, int expect)
 	return rc;
 }
 
-/** Unlink a file or directory.
+/** Unlink a file or directory
  *
- * @param path Path
- * @return EOK on success or a negative error code otherwise
+ * Unlink a path. If the last link for a file or directory is removed, the FS
+ * implementation will deallocate its resources.
+ *
+ * @param path          Old path to be unlinked
+ *
+ * @return              EOK on success or a negative error code
  */
 int vfs_unlink_path(const char *path)
 {
@@ -738,12 +922,17 @@ int vfs_unlink_path(const char *path)
 	return rc;
 }
 
-/** Rename directory entry.
+/** Rename a file or directory
  *
- * @param old Old name
- * @param new New name
+ * There is no file-handle-based variant to disallow attempts to introduce loops
+ * and breakage in the directory tree when relinking eg. a node under its own
+ * descendant.  The path-based variant is not susceptible because the VFS can
+ * prevent this lexically by comparing the paths.
  *
- * @return EOK on success or a negative error code otherwise.
+ * @param old   Old path
+ * @param new   New path
+ *
+ * @return      EOK on success or a negative error code
  */
 int vfs_rename_path(const char *old, const char *new)
 {
@@ -803,10 +992,11 @@ int vfs_rename_path(const char *old, const char *new)
 	return rc;
 }
 
-/** Change working directory.
+/** Change working directory
  *
- * @param path Path
- * @return EOK on success or a negative error code otherwise.
+ * @param path  Path of the new working directory
+ *
+ * @return      EOK on success or a negative error code
  */
 int vfs_cwd_set(const char *path)
 {
@@ -837,11 +1027,12 @@ int vfs_cwd_set(const char *path)
 	return EOK;
 }
 
-/** Get current working directory path.
+/** Get current working directory path
  *
- * @param buf Buffer
- * @param size Size of @a buf
- * @return EOK on success and a non-negative error code otherwise.
+ * @param[out] buf      Buffer
+ * @param size          Size of @a buf
+ *
+ * @return              EOK on success or a non-negative error code
  */
 int vfs_cwd_get(char *buf, size_t size)
 {
@@ -858,14 +1049,16 @@ int vfs_cwd_get(char *buf, size_t size)
 	return EOK;
 }
 
-/** Open session to service represented by a special file.
+/** Open session to service represented by a special file
  *
- * Given that the file referred to by @a fildes represents a service,
+ * Given that the file referred to by @a file represents a service,
  * open a session to that service.
  *
- * @param fildes File descriptor
+ * @param file  File handle representing a service
  * @param iface Interface to connect to (XXX Should be automatic)
- * @return On success returns session pointer. On error returns @c NULL.
+ *
+ * @return      Session pointer on success.
+ * @return      @c NULL or error.
  */
 async_sess_t *vfs_fd_session(int file, iface_t iface)
 {
@@ -880,11 +1073,12 @@ async_sess_t *vfs_fd_session(int file, iface_t iface)
 	return loc_service_connect(stat.service, iface, 0);
 }
 
-/** Get filesystem statistics.
+/** Get filesystem statistics
  *
- * @param file File located on the queried file system
- * @param st Buffer for storing information
- * @return EOK on success or a negative error code otherwise.
+ * @param file          File located on the queried file system
+ * @param[out] st       Buffer for storing information
+ *
+ * @return              EOK on success or a negative error code
  */
 int vfs_statfs(int file, struct statfs *st)
 {
@@ -903,11 +1097,13 @@ int vfs_statfs(int file, struct statfs *st)
 
 	return rc;
 }
-/** Get filesystem statistics.
+
+/** Get filesystem statistics
  *
- * @param path Mount point path
- * @param st Buffer for storing information
- * @return EOK on success or a negative error code otherwise.
+ * @param file          Path pointing to the queried file system
+ * @param[out] st       Buffer for storing information
+ *
+ * @return              EOK on success or a negative error code
  */
 int vfs_statfs_path(const char *path, struct statfs *st)
 {
@@ -922,13 +1118,28 @@ int vfs_statfs_path(const char *path, struct statfs *st)
 	return rc; 
 }
 
+/** Pass a file handle to another VFS client
+ *
+ * @param vfs_exch      Donor's VFS exchange
+ * @param file          Donor's file handle to pass
+ * @param exch          Exchange to the acceptor
+ *
+ * @return              EOK on success or a negative error code
+ */
 int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch)
 {
 	return async_state_change_start(exch, VFS_PASS_HANDLE, (sysarg_t) file,
 	    0, vfs_exch);
 }
 
-int vfs_receive_handle(bool high_descriptor)
+/** Receive a file handle from another VFS client
+ *
+ * @param high   If true, the received file handle will be allocated from high
+ *               indices
+ *
+ * @return       EOK on success or a negative error code
+ */
+int vfs_receive_handle(bool high)
 {
 	ipc_callid_t callid;
 	if (!async_state_change_receive(&callid, NULL, NULL, NULL)) {
@@ -941,8 +1152,7 @@ int vfs_receive_handle(bool high_descriptor)
 	async_state_change_finalize(callid, vfs_exch);
 
 	sysarg_t ret;
-	sysarg_t rc = async_req_1_1(vfs_exch, VFS_IN_WAIT_HANDLE,
-	    high_descriptor, &ret);
+	sysarg_t rc = async_req_1_1(vfs_exch, VFS_IN_WAIT_HANDLE, high, &ret);
 
 	async_exchange_end(vfs_exch);
 
@@ -951,11 +1161,24 @@ int vfs_receive_handle(bool high_descriptor)
 	return ret;
 }
 
-int vfs_clone(int file_from, int file_to, bool high_descriptor)
+/** Clone a file handle
+ *
+ * The caller can choose whether to clone an existing file handle into another
+ * already existing file handle (in which case it is first closed) or to a new
+ * file handle allocated either from low or high indices.
+ *
+ * @param file_from     Source file handle
+ * @param file_to       Destination file handle or -1
+ * @param high          If file_to is -1, high controls whether the new file
+ *                      handle will be allocated from high indices
+ *
+ * @return              New file handle on success or a negative error code
+ */
+int vfs_clone(int file_from, int file_to, bool high)
 {
 	async_exch_t *vfs_exch = vfs_exchange_begin();
 	int rc = async_req_3_0(vfs_exch, VFS_IN_CLONE, (sysarg_t) file_from,
-	    (sysarg_t) file_to, (sysarg_t) high_descriptor);
+	    (sysarg_t) file_to, (sysarg_t) high);
 	vfs_exchange_end(vfs_exch);
 	return rc;
 }
