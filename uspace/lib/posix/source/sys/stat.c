@@ -48,8 +48,10 @@
  *
  * @param dest POSIX stat struct.
  * @param src HelenOS stat struct.
+ *
+ * @return 0 on success, -1 on error.
  */
-static void stat_to_posix(struct posix_stat *dest, struct stat *src)
+static int stat_to_posix(struct posix_stat *dest, struct stat *src)
 {
 	memset(dest, 0, sizeof(struct posix_stat));
 	
@@ -67,6 +69,13 @@ static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 	
 	dest->st_nlink = src->lnkcnt;
 	dest->st_size = src->size;
+
+	if (src->size > INT64_MAX) {
+		errno = ERANGE;
+		return -1;
+	}
+
+	return 0;
 }
 
 /**
@@ -82,8 +91,7 @@ int posix_fstat(int fd, struct posix_stat *st)
 	int rc = rcerrno(vfs_stat, fd, &hst);
 	if (rc < 0)
 		return -1;
-	stat_to_posix(st, &hst);
-	return 0;
+	return stat_to_posix(st, &hst);
 }
 
 /**
@@ -112,8 +120,7 @@ int posix_stat(const char *restrict path, struct posix_stat *restrict st)
 	int rc = rcerrno(vfs_stat_path, path, &hst);
 	if (rc < 0)
 		return -1;
-	stat_to_posix(st, &hst);
-	return 0;
+	return stat_to_posix(st, &hst);
 }
 
 /**

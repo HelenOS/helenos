@@ -244,6 +244,11 @@ posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 		posix_pos[fildes] = st.size + offset;
 		break;
 	}
+	if (posix_pos[fildes] > INT64_MAX) {
+		/* The native width is too large for the POSIX interface. */
+		errno = ERANGE;
+		return -1;
+	}
 	return posix_pos[fildes];
 }
 
