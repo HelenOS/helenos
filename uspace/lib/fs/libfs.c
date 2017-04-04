@@ -520,8 +520,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_index_t index = IPC_GET_ARG4(*req);
 	int lflag = IPC_GET_ARG5(*req);
 	
-	assert((int) index != -1);
-	
 	// TODO: Validate flags.
 	
 	unsigned next = first;
