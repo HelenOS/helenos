@@ -104,11 +104,11 @@ int posix_fcntl(int fd, int cmd, ...)
 int posix_open(const char *pathname, int posix_flags, ...)
 {
 	int rc;
-	mode_t posix_mode = 0;
+	posix_mode_t posix_mode = 0;
 	if (posix_flags & O_CREAT) {
 		va_list args;
 		va_start(args, posix_flags);
-		posix_mode = va_arg(args, mode_t);
+		posix_mode = va_arg(args, posix_mode_t);
 		va_end(args);
 		(void) posix_mode;
 	}

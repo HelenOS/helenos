@@ -52,6 +52,7 @@ typedef long __POSIX_DEF__(blksize_t);
 typedef long __POSIX_DEF__(blkcnt_t);
 typedef int64_t __POSIX_DEF__(pid_t);
 typedef sysarg_t __POSIX_DEF__(dev_t);
+typedef unsigned int __POSIX_DEF__(mode_t);
 
 /* PThread Types */
 typedef struct __POSIX_DEF__(thread_attr) __POSIX_DEF__(thread_attr_t);

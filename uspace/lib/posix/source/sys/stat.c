@@ -123,7 +123,7 @@ int posix_stat(const char *restrict path, struct posix_stat *restrict st)
  * @param mode Permission bits to be set.
  * @return Zero on success, -1 otherwise.
  */
-int posix_chmod(const char *path, mode_t mode)
+int posix_chmod(const char *path, posix_mode_t mode)
 {
 	/* HelenOS doesn't support permissions, return success. */
 	return 0;
@@ -136,7 +136,7 @@ int posix_chmod(const char *path, mode_t mode)
  *     functions. Non-permission bits are ignored.
  * @return Previous file mode creation mask.
  */
-mode_t posix_umask(mode_t mask)
+posix_mode_t posix_umask(posix_mode_t mask)
 {
 	/* HelenOS doesn't support permissions, return empty mask. */
 	return 0;
@@ -149,7 +149,7 @@ mode_t posix_umask(mode_t mask)
  * @param mode Permission bits to be set.
  * @return Zero on success, -1 otherwise.
  */
-int posix_mkdir(const char *path, mode_t mode)
+int posix_mkdir(const char *path, posix_mode_t mode)
 {
 	int rc = rcerrno(vfs_link_path, path, KIND_DIRECTORY, NULL);
 	if (rc != EOK)
