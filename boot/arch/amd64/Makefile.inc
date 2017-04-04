@@ -65,6 +65,9 @@ RD_APPS_ESSENTIAL += \
 	$(USPACE_PATH)/app/mixerctl/mixerctl \
 	$(USPACE_PATH)/app/wavplay/wavplay
 
+RD_DATA_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/wavplay/demo.wav
+
 BOOT_OUTPUT = $(ROOT_PATH)/image.iso
 PREBUILD = $(INITRD).img
 BUILD = Makefile.grub
