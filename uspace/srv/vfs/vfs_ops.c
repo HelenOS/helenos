@@ -438,11 +438,8 @@ static int vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
 	
 	async_exch_t *fs_exch = vfs_exchange_grab(file->node->fs_handle);
 	
-	if (!read && file->append) {
-		if (file->node->size == -1)
-			file->node->size = vfs_node_get_size(file->node);
+	if (!read && file->append)
 		pos = file->node->size;
-	}
 	
 	/*
 	 * Handle communication with the endpoint FS.

@@ -40,7 +40,7 @@
 #include <stdbool.h>
 
 #define FS_NAME_MAXLEN  20
-#define MAX_PATH_LEN    (64 * 1024)
+#define MAX_PATH_LEN    (32 * 1024)
 #define MAX_MNTOPTS_LEN 256
 #define PLB_SIZE        (2 * MAX_PATH_LEN)
 
@@ -83,7 +83,6 @@ typedef enum {
 typedef enum {
 	VFS_OUT_CLOSE = IPC_FIRST_USER_METHOD,
 	VFS_OUT_DESTROY,
-	VFS_OUT_GET_SIZE,
 	VFS_OUT_IS_EMPTY,
 	VFS_OUT_LINK,
 	VFS_OUT_LOOKUP,
