@@ -36,6 +36,7 @@ EXTRA_CFLAGS = \
 	-I$(LIBTRACKMOD_PREFIX) \
 	-I$(LIBHOUND_PREFIX)/include \
 	-I$(LIBPCM_PREFIX)/include
+
 BINARY = modplay
 
 SOURCES = \
