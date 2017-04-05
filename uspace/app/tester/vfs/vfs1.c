@@ -32,11 +32,9 @@
 #include <str.h>
 #include <vfs/vfs.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <dirent.h>
 #include <loc.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include "../tester.h"
 
 #define TEST_DIRECTORY  "/tmp/testdir"
@@ -69,30 +67,33 @@ static const char *read_root(void)
 
 const char *test_vfs1(void)
 {
-	if (mkdir(TEST_DIRECTORY, 0) != 0) {
-		TPRINTF("rc=%d\n", errno);
-		return "mkdir() failed";
+	aoff64_t pos = 0;
+	int rc;
+
+	rc = vfs_link_path(TEST_DIRECTORY, KIND_DIRECTORY, NULL);
+	if (rc != EOK) {
+		TPRINTF("rc=%d\n", rc);
+		return "vfs_link_path() failed";
 	}
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	
-	int fd0 = open(TEST_FILE, O_CREAT);
+	int fd0 = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_READ | MODE_WRITE);
 	if (fd0 < 0)
-		return "open() failed";
+		return "vfs_lookup_open() failed";
 	TPRINTF("Created file %s (fd=%d)\n", TEST_FILE, fd0);
 	
 	size_t size = sizeof(text);
-	ssize_t cnt = write(fd0, text, size);
+	ssize_t cnt = vfs_write(fd0, &pos, text, size);
 	if (cnt < 0)
 		return "write() failed";
 	TPRINTF("Written %zd bytes\n", cnt);
-	
-	if (lseek(fd0, 0, SEEK_SET) != 0)
-		return "lseek() failed";
-	TPRINTF("Sought to position 0\n");
+
+	pos = 0;
 	
 	char buf[BUF_SIZE];
 	TPRINTF("read..\n");
-	while ((cnt = read(fd0, buf, BUF_SIZE))) {
+	while ((cnt = vfs_read(fd0, &pos, buf, BUF_SIZE))) {
 		TPRINTF("read returns %zd\n", cnt);
 		if (cnt < 0)
 			return "read() failed";
@@ -106,22 +107,22 @@ const char *test_vfs1(void)
 		}
 	}
 	
-	close(fd0);
+	vfs_put(fd0);
 	
 	const char *rv = read_root();
 	if (rv != NULL)
 		return rv;
 	
-	if (rename(TEST_FILE, TEST_FILE2) != 0)
-		return "rename() failed";
+	if (vfs_rename_path(TEST_FILE, TEST_FILE2) != EOK)
+		return "vfs_rename_path() failed";
 	TPRINTF("Renamed %s to %s\n", TEST_FILE, TEST_FILE2);
 	
-	if (unlink(TEST_FILE2) != 0)
-		return "unlink() failed";
+	if (vfs_unlink_path(TEST_FILE2) != EOK)
+		return "vfs_unlink_path() failed";
 	TPRINTF("Unlinked %s\n", TEST_FILE2);
 	
-	if (rmdir(TEST_DIRECTORY) != 0)
-		return "rmdir() failed";
+	if (vfs_unlink_path(TEST_DIRECTORY) != EOK)
+		return "vfs_unlink_path() failed";
 	TPRINTF("Removed directory %s\n", TEST_DIRECTORY);
 	
 	rv = read_root();

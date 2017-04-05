@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2013 Jiri Zarevucky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libc 
  * @{
+ */ 
+
+/**
+ * @file
+ * @brief
  */
-/** @file
- */
 
-#ifndef LIBC_FCNTL_H_
-#define LIBC_FCNTL_H_
+#ifndef LIBC_VFS_INBOX_H_
+#define LIBC_VFS_INBOX_H_
 
-#define O_CREAT   1
-#define O_EXCL    2
-#define O_TRUNC   4
-#define O_APPEND  8
-#define O_RDONLY  16
-#define O_RDWR    32
-#define O_WRONLY  64
-#define O_DESC    128
+enum {
+	INBOX_MAX_ENTRIES = 256,
+};
 
-extern int open(const char *, int, ...);
+extern int inbox_set(const char *name, int file);
+extern int inbox_get(const char *name);
+
+extern int inbox_list(const char **names, int capacity);
 
 #endif
 
-/** @}
+/**
+ * @}
  */

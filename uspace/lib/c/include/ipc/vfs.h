@@ -40,7 +40,7 @@
 #include <stdbool.h>
 
 #define FS_NAME_MAXLEN  20
-#define MAX_PATH_LEN    (64 * 1024)
+#define MAX_PATH_LEN    (32 * 1024)
 #define MAX_MNTOPTS_LEN 256
 #define PLB_SIZE        (2 * MAX_PATH_LEN)
 
@@ -62,43 +62,39 @@ typedef struct {
 } vfs_info_t;
 
 typedef enum {
-	VFS_IN_OPEN = IPC_FIRST_USER_METHOD,
-	VFS_IN_READ,
-	VFS_IN_WRITE,
-	VFS_IN_SEEK,
-	VFS_IN_TRUNCATE,
-	VFS_IN_FSTAT,
-	VFS_IN_CLOSE,
-	VFS_IN_PING,
+	VFS_IN_CLONE = IPC_FIRST_USER_METHOD,
 	VFS_IN_MOUNT,
-	VFS_IN_UNMOUNT,
-	VFS_IN_SYNC,
+	VFS_IN_OPEN,
+	VFS_IN_PUT,
+	VFS_IN_READ,
 	VFS_IN_REGISTER,
-	VFS_IN_MKDIR,
-	VFS_IN_UNLINK,
 	VFS_IN_RENAME,
+	VFS_IN_RESIZE,
 	VFS_IN_STAT,
-	VFS_IN_DUP,
+	VFS_IN_STATFS,
+	VFS_IN_SYNC,
+	VFS_IN_UNLINK,
+	VFS_IN_UNMOUNT,
 	VFS_IN_WAIT_HANDLE,
-	VFS_IN_MTAB_GET,
-	VFS_IN_STATFS
+	VFS_IN_WALK,
+	VFS_IN_WRITE,
 } vfs_in_request_t;
 
 typedef enum {
-	VFS_OUT_OPEN_NODE = IPC_FIRST_USER_METHOD,
-	VFS_OUT_READ,
-	VFS_OUT_WRITE,
-	VFS_OUT_TRUNCATE,
-	VFS_OUT_CLOSE,
-	VFS_OUT_MOUNT,
-	VFS_OUT_MOUNTED,
-	VFS_OUT_UNMOUNT,
-	VFS_OUT_UNMOUNTED,
-	VFS_OUT_SYNC,
-	VFS_OUT_STAT,
-	VFS_OUT_LOOKUP,
+	VFS_OUT_CLOSE = IPC_FIRST_USER_METHOD,
 	VFS_OUT_DESTROY,
+	VFS_OUT_IS_EMPTY,
+	VFS_OUT_LINK,
+	VFS_OUT_LOOKUP,
+	VFS_OUT_MOUNTED,
+	VFS_OUT_OPEN_NODE,
+	VFS_OUT_READ,
+	VFS_OUT_STAT,
 	VFS_OUT_STATFS,
+	VFS_OUT_SYNC,
+	VFS_OUT_TRUNCATE,
+	VFS_OUT_UNMOUNTED,
+	VFS_OUT_WRITE,
 	VFS_OUT_LAST
 } vfs_out_request_t;
 
@@ -126,14 +122,14 @@ typedef enum {
 #define L_DIRECTORY		2
 
 /**
- * Lookup will succeed only if the object is a root directory. The flag is
- * mutually exclusive with L_FILE and L_MP.
+ * Lookup will not cross any mount points.
+ * If the lookup would have to cross a mount point, it returns EXDEV instead.
  */
-#define L_ROOT			4
+#define L_DISABLE_MOUNTS	4
 
 /**
  * Lookup will succeed only if the object is a mount point. The flag is mutually
- * exclusive with L_FILE and L_ROOT.
+ * exclusive with L_FILE.
  */
 #define L_MP			8
 
@@ -150,24 +146,38 @@ typedef enum {
 #define L_CREATE		32
 
 /**
- * L_LINK is used for linking to an already existing nodes.
- */
-#define L_LINK			64
-
-/**
  * L_UNLINK is used to remove leaves from the file system namespace. This flag
  * cannot be passed directly by the client, but will be set by VFS during
  * VFS_UNLINK.
  */
-#define L_UNLINK		128
+#define L_UNLINK		64
 
-/**
- * L_OPEN is used to indicate that the lookup operation is a part of VFS_IN_OPEN
- * call from the client. This means that the server might allocate some
- * resources for the opened file. This flag cannot be passed directly by the
- * client.
+/*
+ * Walk flags.
  */
-#define L_OPEN			256
+enum {
+	WALK_MAY_CREATE = (1 << 0),
+	WALK_MUST_CREATE = (1 << 1),
+	
+	WALK_REGULAR = (1 << 2),
+	WALK_DIRECTORY = (1 << 3),
+	WALK_MOUNT_POINT = (1 << 4),
+	
+	WALK_ALL_FLAGS = WALK_MAY_CREATE | WALK_MUST_CREATE | WALK_REGULAR |
+	    WALK_DIRECTORY | WALK_MOUNT_POINT,
+};
+
+enum {
+	VFS_MOUNT_BLOCKING = 1,
+	VFS_MOUNT_CONNECT_ONLY = 2,
+	VFS_MOUNT_NO_REF = 4,
+};
+
+enum {
+	MODE_READ = 1,
+	MODE_WRITE = 2,
+	MODE_APPEND = 4,
+};
 
 #endif
 

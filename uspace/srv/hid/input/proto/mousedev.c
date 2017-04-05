@@ -36,7 +36,6 @@
  */
 
 #include <stdio.h>
-#include <fcntl.h>
 #include <vfs/vfs_sess.h>
 #include <malloc.h>
 #include <async.h>

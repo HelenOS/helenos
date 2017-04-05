@@ -35,8 +35,12 @@
 #ifndef LIBC_PRIVATE_IO_H_
 #define LIBC_PRIVATE_IO_H_
 
-extern void __stdio_init(int);
+#include <loader/pcb.h>
+
+extern void __stdio_init(void);
 extern void __stdio_done(void);
+
+extern void __inbox_init(struct pcb_inbox_entry *entries, int count);
 
 #endif
 

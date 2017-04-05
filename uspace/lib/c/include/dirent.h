@@ -37,6 +37,8 @@
 
 #define NAME_MAX  256
 
+#include <sys/types.h>
+
 struct dirent {
 	char d_name[NAME_MAX + 1];
 };
@@ -44,6 +46,7 @@ struct dirent {
 typedef struct {
 	int fd;
 	struct dirent res;
+	aoff64_t pos;
 } DIR;
 
 extern DIR *opendir(const char *);

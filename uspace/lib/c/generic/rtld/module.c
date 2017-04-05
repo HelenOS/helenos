@@ -37,7 +37,6 @@
 #include <adt/list.h>
 #include <elf/elf_load.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <loader/pcb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -195,7 +194,7 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	DPRINTF("filename:'%s'\n", name_buf);
 	DPRINTF("load '%s' at 0x%x\n", name_buf, m->bias);
 
-	rc = elf_load_file(name_buf, m->bias, ELDF_RW, &info);
+	rc = elf_load_file_name(name_buf, m->bias, ELDF_RW, &info);
 	if (rc != EE_OK) {
 		printf("Failed to load '%s'\n", name_buf);
 		exit(1);

@@ -33,9 +33,8 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
+#include <stdlib.h>
+#include <vfs/vfs.h>
 #include <errno.h>
 #include <malloc.h>
 #include <stdbool.h>
@@ -109,31 +108,31 @@ static void on_keyboard_event(widget_t *widget, void *data)
 
 static bool img_load(const char *fname, surface_t **p_local_surface)
 {
-	int fd = open(fname, O_RDONLY);
+	int fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
 	if (fd < 0)
 		return false;
 	
 	struct stat stat;
-	int rc = fstat(fd, &stat);
-	if (rc != 0) {
-		close(fd);
+	int rc = vfs_stat(fd, &stat);
+	if (rc != EOK) {
+		vfs_put(fd);
 		return false;
 	}
 	
 	void *tga = malloc(stat.size);
 	if (tga == NULL) {
-		close(fd);
+		vfs_put(fd);
 		return false;
 	}
-	
-	ssize_t rd = read(fd, tga, stat.size);
+
+	ssize_t rd = vfs_read(fd, (aoff64_t []) {0}, tga, stat.size);
 	if ((rd < 0) || (rd != (ssize_t) stat.size)) {
 		free(tga);
-		close(fd);
+		vfs_put(fd);
 		return false;
 	}
 	
-	close(fd);
+	vfs_put(fd);
 	
 	*p_local_surface = decode_tga(tga, stat.size, 0);
 	if (*p_local_surface == NULL) {

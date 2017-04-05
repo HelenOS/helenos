@@ -42,11 +42,11 @@
 typedef struct mtab_ent {
 	link_t link;
 	char mp[MAX_PATH_LEN];
-	char opts[MAX_MNTOPTS_LEN];
 	char fs_name[FS_NAME_MAXLEN];
-	unsigned int instance;
 	service_id_t service_id;
 } mtab_ent_t;
+
+extern int vfs_get_mtab_list(list_t *);
 
 #endif
 

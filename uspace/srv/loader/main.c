@@ -47,7 +47,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #include <ipc/services.h>
 #include <ipc/loader.h>
@@ -61,11 +60,13 @@
 #include <elf/elf.h>
 #include <elf/elf_load.h>
 #include <vfs/vfs.h>
+#include <vfs/inbox.h>
 
 #define DPRINTF(...)
 
-/** Pathname of the file that will be loaded */
-static char *pathname = NULL;
+/** File that will be loaded */
+static char *progname = NULL;
+static int program_fd = -1;
 
 /** The Program control block */
 static pcb_t pcb;
@@ -80,8 +81,9 @@ static char **argv = NULL;
 /** Buffer holding all arguments */
 static char *arg_buf = NULL;
 
-/** Number of preset files */
-static unsigned int filc = 0;
+/** Inbox entries. */
+static struct pcb_inbox_entry inbox[INBOX_MAX_ENTRIES];
+static int inbox_entries = 0;
 
 static elf_info_t prog_info;
 
@@ -129,24 +131,36 @@ static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-/** Receive a call setting pathname of the program to execute.
+/** Receive a call setting the program to execute.
  *
  * @param rid
  * @param request
  */
-static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_set_program(ipc_callid_t rid, ipc_call_t *request)
 {
-	char *buf;
-	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
-	
-	if (rc == EOK) {
-		if (pathname != NULL)
-			free(pathname);
-		
-		pathname = buf;
+	ipc_callid_t writeid;
+	size_t namesize;
+	if (!async_data_write_receive(&writeid, &namesize)) {
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+
+	char* name = malloc(namesize);
+	int rc = async_data_write_finalize(writeid, name, namesize);
+	if (rc != EOK) {
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+
+	int file = vfs_receive_handle(true);
+	if (file < 0) {
+		async_answer_0(rid, EINVAL);
+		return;
 	}
 	
-	async_answer_0(rid, rc);
+	progname = name;
+	program_fd = file;
+	async_answer_0(rid, EOK);
 }
 
 /** Receive a call setting arguments of the program to execute.
@@ -214,32 +228,48 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-/** Receive a call setting preset files of the program to execute.
+/** Receive a call setting inbox files of the program to execute.
  *
  * @param rid
  * @param request
  */
-static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_add_inbox(ipc_callid_t rid, ipc_call_t *request)
 {
-	size_t count = IPC_GET_ARG1(*request);
-
-	async_exch_t *vfs_exch = vfs_exchange_begin();
-
-	for (filc = 0; filc < count; filc++) {
-		ipc_callid_t callid;
-		int fd;
-
-		if (!async_state_change_receive(&callid, NULL, NULL, NULL)) {
-			async_answer_0(callid, EINVAL);
-			break;
-		}
-		async_state_change_finalize(callid, vfs_exch);
-		fd = vfs_fd_wait();
-		assert(fd == (int) filc);
+	if (inbox_entries == INBOX_MAX_ENTRIES) {
+		async_answer_0(rid, ERANGE);
+		return;
 	}
 
-	vfs_exchange_end(vfs_exch);
+	ipc_callid_t writeid;
+	size_t namesize;
+	if (!async_data_write_receive(&writeid, &namesize)) {
+		async_answer_0(rid, EINVAL);
+		return;
+	}
 
+	char* name = malloc(namesize);
+	int rc = async_data_write_finalize(writeid, name, namesize);
+	if (rc != EOK) {
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+
+	int file = vfs_receive_handle(true);
+	if (file < 0) {
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * We need to set the root early for dynamically linked binaries so
+	 * that the loader can use it too.
+	 */
+	if (str_cmp(name, "root") == 0)
+		vfs_root_set(file);
+
+	inbox[inbox_entries].name = name;
+	inbox[inbox_entries].file = file;
+	inbox_entries++;
 	async_answer_0(rid, EOK);
 }
 
@@ -251,11 +281,9 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
  */
 static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 {
-	int rc;
-	
-	rc = elf_load(pathname, &prog_info);
+	int rc = elf_load(program_fd, &prog_info);
 	if (rc != EE_OK) {
-		DPRINTF("Failed to load executable '%s'.\n", pathname);
+		DPRINTF("Failed to load executable for '%s'.\n", progname);
 		async_answer_0(rid, EINVAL);
 		return 1;
 	}
@@ -267,7 +295,8 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	pcb.argc = argc;
 	pcb.argv = argv;
 	
-	pcb.filc = filc;
+	pcb.inbox = inbox;
+	pcb.inbox_entries = inbox_entries;
 	
 	async_answer_0(rid, rc);
 	return 0;
@@ -281,14 +310,10 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
 {
-	const char *cp;
-	
 	DPRINTF("Set task name\n");
 
 	/* Set the task name. */
-	cp = str_rchr(pathname, '/');
-	cp = (cp == NULL) ? pathname : (cp + 1);
-	task_set_name(cp);
+	task_set_name(progname);
 	
 	/* Run program */
 	DPRINTF("Reply OK\n");
@@ -335,14 +360,14 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case LOADER_SET_CWD:
 			ldr_set_cwd(callid, &call);
 			continue;
-		case LOADER_SET_PATHNAME:
-			ldr_set_pathname(callid, &call);
+		case LOADER_SET_PROGRAM:
+			ldr_set_program(callid, &call);
 			continue;
 		case LOADER_SET_ARGS:
 			ldr_set_args(callid, &call);
 			continue;
-		case LOADER_SET_FILES:
-			ldr_set_files(callid, &call);
+		case LOADER_ADD_INBOX:
+			ldr_add_inbox(callid, &call);
 			continue;
 		case LOADER_LOAD:
 			ldr_load(callid, &call);

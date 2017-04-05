@@ -43,17 +43,6 @@
 
 #define EOF  (-1)
 
-/** Default size for stream I/O buffers */
-#define BUFSIZ  4096
-
-#define DEBUG(fmt, ...) \
-	{ \
-		char _buf[256]; \
-		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
-		if (_n > 0) \
-			(void) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) _buf, str_size(_buf)); \
-	}
-
 #ifndef SEEK_SET
 	#define SEEK_SET  0
 #endif
@@ -65,6 +54,17 @@
 #ifndef SEEK_END
 	#define SEEK_END  2
 #endif
+
+/** Default size for stream I/O buffers */
+#define BUFSIZ  4096
+
+#define DEBUG(fmt, ...) \
+	{ \
+		char _buf[256]; \
+		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
+		if (_n > 0) \
+			(void) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) _buf, str_size(_buf)); \
+	}
 
 enum _buffer_type {
 	/** No buffering */
@@ -151,10 +151,6 @@ extern void clearerr(FILE *);
 
 extern void setvbuf(FILE *, void *, int, size_t);
 extern void setbuf(FILE *, void *);
-
-/* Misc file functions */
-extern int rename(const char *, const char *);
-extern int remove(const char *);
 
 #endif
 

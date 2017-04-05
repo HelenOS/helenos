@@ -30,6 +30,8 @@
 #include <str.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <vfs/vfs.h>
+#include <abi/errno.h>
 
 #include "config.h"
 #include "errors.h"
@@ -57,7 +59,7 @@ unsigned int cli_set_prompt(cliuser_t *usr)
 		cli_errno = CL_ENOMEM;
 		return 1;
 	}
-	if (!getcwd(usr->cwd, PATH_MAX)) 
+	if (vfs_cwd_get(usr->cwd, PATH_MAX) != EOK)
 		snprintf(usr->cwd, PATH_MAX, "(unknown)");
 
 	if (usr->prompt)

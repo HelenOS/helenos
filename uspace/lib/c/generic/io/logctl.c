@@ -38,6 +38,7 @@
 #include <sysinfo.h>
 #include <ns.h>
 #include <str.h>
+#include <vfs/vfs.h>
 
 /** IPC session with the logger service. */
 static async_sess_t *logger_session = NULL;
@@ -110,6 +111,32 @@ int logctl_set_log_level(const char *logname, log_level_t new_level)
 	aid_t reg_msg = async_send_1(exchange, LOGGER_CONTROL_SET_LOG_LEVEL,
 	    new_level, NULL);
 	rc = async_data_write_start(exchange, logname, str_size(logname));
+	sysarg_t reg_msg_rc;
+	async_wait_for(reg_msg, &reg_msg_rc);
+
+	async_exchange_end(exchange);
+
+	if (rc != EOK)
+		return rc;
+
+	return (int) reg_msg_rc;
+}
+
+/** Set logger's VFS root.
+ *
+ * @return Error code or EOK on success.
+ */
+int logctl_set_root(void)
+{
+	async_exch_t *exchange = NULL;
+	int rc = start_logger_exchange(&exchange);
+	if (rc != EOK)
+		return rc;
+
+	aid_t reg_msg = async_send_0(exchange, LOGGER_CONTROL_SET_ROOT, NULL);
+	async_exch_t *vfs_exch = vfs_exchange_begin();
+	rc = vfs_pass_handle(vfs_exch, vfs_root(), exchange);
+	vfs_exchange_end(vfs_exch);
 	sysarg_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 

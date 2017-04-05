@@ -34,11 +34,10 @@
 
 #include <dirent.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <sys/types.h>
 #include <dirent.h>
 
@@ -59,32 +58,33 @@ int futil_copy_file(const char *srcp, const char *destp)
 	int sf, df;
 	ssize_t nr, nw;
 	int rc;
+	aoff64_t posr = 0, posw = 0;
 
 	printf("Copy '%s' to '%s'.\n", srcp, destp);
 
-	sf = open(srcp, O_RDONLY);
+	sf = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ);
 	if (sf < 0)
 		return EIO;
 
-	df = open(destp, O_CREAT | O_WRONLY, 0);
+	df = vfs_lookup_open(destp, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
 	if (df < 0)
 		return EIO;
 
 	do {
-		nr = read(sf, buf, BUF_SIZE);
+		nr = vfs_read(sf, &posr, buf, BUF_SIZE);
 		if (nr == 0)
 			break;
 		if (nr < 0)
 			return EIO;
 
-		nw = write(df, buf, nr);
+		nw = vfs_write(df, &posw, buf, nr);
 		if (nw <= 0)
 			return EIO;
 	} while (true);
 
-	(void) close(sf);
+	(void) vfs_put(sf);
 
-	rc = close(df);
+	rc = vfs_put(df);
 	if (rc < 0)
 		return EIO;
 
@@ -117,7 +117,7 @@ int futil_rcopy_contents(const char *srcdir, const char *destdir)
 		if (asprintf(&destp, "%s/%s", destdir, de->d_name) < 0)
 			return ENOMEM;
 
-		rc = stat(srcp, &s);
+		rc = vfs_stat_path(srcp, &s);
 		if (rc != EOK)
 			return EIO;
 
@@ -127,7 +127,7 @@ int futil_rcopy_contents(const char *srcdir, const char *destdir)
 				return EIO;
 		} else if (s.is_directory) {
 			printf("Create directory '%s'\n", destp);
-			rc = mkdir(destp, 0);
+			rc = vfs_link_path(destp, KIND_DIRECTORY, NULL);
 			if (rc != EOK)
 				return EIO;
 			rc = futil_rcopy_contents(srcp, destp);
@@ -156,33 +156,35 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 {
 	int sf;
 	ssize_t nr;
-	off64_t off;
 	size_t fsize;
 	char *data;
+	struct stat st;
 
-	sf = open(srcp, O_RDONLY);
+	sf = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ);
 	if (sf < 0)
 		return ENOENT;
 
-	off = lseek(sf, 0, SEEK_END);
-	if (off == (off64_t)-1)
+	if (vfs_stat(sf, &st) != EOK) {
+		vfs_put(sf);
 		return EIO;
+	}	
 
-	fsize = (size_t)off;
-
-	off = lseek(sf, 0, SEEK_SET);
-	if (off == (off64_t)-1)
-		return EIO;
+	fsize = st.size;
 
 	data = calloc(fsize, 1);
-	if (data == NULL)
+	if (data == NULL) {
+		vfs_put(sf);
 		return ENOMEM;
+	}
 
-	nr = read(sf, data, fsize);
-	if (nr != (ssize_t)fsize)
+	nr = vfs_read(sf, (aoff64_t []) { 0 }, data, fsize);
+	if (nr != (ssize_t)fsize) {
+		vfs_put(sf);
+		free(data);
 		return EIO;
+	}
 
-	(void) close(sf);
+	(void) vfs_put(sf);
 	*rdata = data;
 	*rsize = fsize;
 

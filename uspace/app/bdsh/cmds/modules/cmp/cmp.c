@@ -27,7 +27,6 @@
  */
 
 #include <errno.h>
-#include <fcntl.h>
 #include <getopt.h>
 #include <mem.h>
 #include <stdio.h>
@@ -78,11 +77,12 @@ static int cmp_files(const char *fn0, const char *fn1)
 	int fd[2] = {-1, -1};
 	char buffer[2][CMP_BUFLEN];
 	ssize_t offset[2];
+	aoff64_t pos[2] = {};
 
 	for (int i = 0; i < 2; i++) {
-		fd[i] = open(fn[i], O_RDONLY);
+		fd[i] = vfs_lookup_open(fn[i], WALK_REGULAR, MODE_READ);
 		if (fd[i] < 0) {
-			rc = errno;
+			rc = fd[i];
 			printf("Unable to open %s\n", fn[i]);
 			goto end;
 		}
@@ -93,10 +93,11 @@ static int cmp_files(const char *fn0, const char *fn1)
 			offset[i] = 0;
 			ssize_t size;
 			do {
-				size = read(fd[i], buffer[i] + offset[i],
+				size = vfs_read(fd[i], &pos[i],
+				    buffer[i] + offset[i],
 				    CMP_BUFLEN - offset[i]);
 				if (size < 0) {
-					rc = errno;
+					rc = size;
 					printf("Error reading from %s\n",
 					    fn[i]);
 					goto end;
@@ -114,9 +115,9 @@ static int cmp_files(const char *fn0, const char *fn1)
 
 end:
 	if (fd[0] >= 0)
-		close(fd[0]);
+		vfs_put(fd[0]);
 	if (fd[1] >= 0)
-		close(fd[1]);
+		vfs_put(fd[1]);
 	return rc;
 }
 

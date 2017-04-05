@@ -31,12 +31,11 @@
  */
 
 #include <errno.h>
-#include <fcntl.h>
 #include <io/log.h>
 #include <str.h>
 #include <str_error.h>
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 
 #include "devman.h"
 #include "match.h"
@@ -200,8 +199,9 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	bool opened = false;
 	int fd;
 	size_t len = 0;
+	struct stat st;
 	
-	fd = open(conf_path, O_RDONLY);
+	fd = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ);
 	if (fd < 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
 		    conf_path, str_error(errno));
@@ -209,8 +209,12 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	}
 	opened = true;
 	
-	len = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);
+	if (vfs_stat(fd, &st) != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to fstat %d: %s.", fd,
+		    str_error(errno));
+		goto cleanup;
+	}
+	len = st.size;
 	if (len == 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Configuration file '%s' is empty.",
 		    conf_path);
@@ -224,7 +228,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	
-	ssize_t read_bytes = read(fd, buf, len);
+	ssize_t read_bytes = vfs_read(fd, (aoff64_t []) {0}, buf, len);
 	if (read_bytes <= 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%d).", conf_path,
 		    errno);
@@ -238,7 +242,7 @@ cleanup:
 	free(buf);
 	
 	if (opened)
-		close(fd);
+		vfs_put(fd);
 	
 	return suc;
 }

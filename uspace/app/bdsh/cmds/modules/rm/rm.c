@@ -29,12 +29,11 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <dirent.h>
 #include <getopt.h>
 #include <mem.h>
 #include <str.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "errors.h"
@@ -109,9 +108,9 @@ static unsigned int rm_start(rm_job_t *rm)
 		return 0;
 	memset(rm->cwd, 0, PATH_MAX);
 
-	chdir(".");
+	vfs_cwd_set(".");
 
-	if (NULL == (getcwd(rm->owd, PATH_MAX)))
+	if (EOK != vfs_cwd_get(rm->owd, PATH_MAX))
 		return 0;
 
 	return 1;
@@ -131,7 +130,7 @@ static void rm_end(rm_job_t *rm)
 
 static unsigned int rm_single(const char *path)
 {
-	if (unlink(path) != 0) {
+	if (vfs_unlink_path(path) != EOK) {
 		cli_error(CL_EFAIL, "rm: could not remove file %s", path);
 		return 1;
 	}
@@ -149,9 +148,9 @@ static unsigned int rm_scope(const char *path)
 		return RM_DIR;
 	}
 
-	fd = open(path, O_RDONLY);
+	fd = vfs_lookup(path, WALK_REGULAR);
 	if (fd >= 0) {
-		close(fd);
+		vfs_put(fd);
 		return RM_FILE;
 	}
 
@@ -200,17 +199,17 @@ static unsigned int rm_recursive(const char *path)
 	unsigned int ret = 0;
 
 	/* First see if it will just go away */
-	rc = rmdir(path);
-	if (rc == 0)
+	rc = vfs_unlink_path(path);
+	if (rc == EOK)
 		return 0;
 
 	/* Its not empty, recursively scan it */
 	ret = rm_recursive_not_empty_dirs(path);
 
 	/* Delete directory */
-	rc = rmdir(path);
-	if (rc == 0)
-		return errno;
+	rc = vfs_unlink_path(path);
+	if (rc == EOK)
+		return EOK;
 
 	cli_error(CL_ENOTSUP, "Can not remove %s", path);
 

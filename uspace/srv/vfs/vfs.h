@@ -93,14 +93,13 @@ typedef struct {
 	vfs_triplet_t triplet;
 	vfs_node_type_t type;
 	aoff64_t size;
-	unsigned int lnkcnt;
 } vfs_lookup_res_t;
 
 /**
  * Instances of this type represent an active, in-memory VFS node and any state
  * which may be associated with it.
  */
-typedef struct {
+typedef struct _vfs_node {
 	VFS_TRIPLET;		/**< Identity of the node. */
 
 	/**
@@ -109,9 +108,6 @@ typedef struct {
 	 */
 	unsigned refcnt;
 	
-	/** Number of names this node has in the file system namespace. */
-	unsigned lnkcnt;
-
 	ht_link_t nh_link;		/**< Node hash-table link. */
 
 	vfs_node_type_t type;	/**< Partial info about the node type. */
@@ -122,6 +118,8 @@ typedef struct {
 	 * Holding this rwlock prevents modifications of the node's contents.
 	 */
 	fibril_rwlock_t contents_rwlock;
+	
+	struct _vfs_node *mount;
 } vfs_node_t;
 
 /**
@@ -130,18 +128,19 @@ typedef struct {
  */
 typedef struct {
 	/** Serializes access to this open file. */
-	fibril_mutex_t lock;
+	fibril_mutex_t _lock;
 
 	vfs_node_t *node;
 	
 	/** Number of file handles referencing this file. */
 	unsigned refcnt;
 
+	int permissions;
+	bool open_read;
+	bool open_write;
+
 	/** Append on write. */
 	bool append;
-
-	/** Current absolute position in the file. */
-	aoff64_t pos;
 } vfs_file_t;
 
 extern fibril_mutex_t nodes_mutex;
@@ -172,56 +171,55 @@ extern fibril_rwlock_t namespace_rwlock;
 extern async_exch_t *vfs_exchange_grab(fs_handle_t);
 extern void vfs_exchange_release(async_exch_t *);
 
-extern fs_handle_t fs_name_to_handle(unsigned int instance, char *, bool);
+extern fs_handle_t fs_name_to_handle(unsigned int instance, const char *, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
-extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
-    vfs_pair_t *, ...);
+extern int vfs_lookup_internal(vfs_node_t *, char *, int, vfs_lookup_res_t *);
+extern int vfs_link_internal(vfs_node_t *, char *, vfs_triplet_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
+extern vfs_node_t *vfs_node_peek(vfs_lookup_res_t *result);
 extern void vfs_node_put(vfs_node_t *);
 extern void vfs_node_forget(vfs_node_t *);
 extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, service_id_t);
 
-
-#define MAX_OPEN_FILES	128
+extern bool vfs_node_has_children(vfs_node_t *node);
 
 extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
-extern void vfs_pass_handle(task_id_t, task_id_t, int);
-extern int vfs_wait_handle_internal(void);
+extern void vfs_op_pass_handle(task_id_t, task_id_t, int);
+extern int vfs_wait_handle_internal(bool);
 
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);
 extern int vfs_fd_assign(vfs_file_t *, int);
-extern int vfs_fd_alloc(bool desc);
+extern int vfs_fd_alloc(vfs_file_t **file, bool desc);
 extern int vfs_fd_free(int);
 
 extern void vfs_node_addref(vfs_node_t *);
 extern void vfs_node_delref(vfs_node_t *);
 extern int vfs_open_node_remote(vfs_node_t *);
 
+extern int vfs_op_clone(int oldfd, int newfd, bool desc);
+extern int vfs_op_mount(int mpfd, unsigned servid, unsigned flags, unsigned instance, const char *opts, const char *fsname, int *outfd);
+extern int vfs_op_mtab_get(void);
+extern int vfs_op_open(int fd, int flags);
+extern int vfs_op_put(int fd);
+extern int vfs_op_read(int fd, aoff64_t, size_t *out_bytes);
+extern int vfs_op_rename(int basefd, char *old, char *new);
+extern int vfs_op_resize(int fd, int64_t size);
+extern int vfs_op_stat(int fd);
+extern int vfs_op_statfs(int fd);
+extern int vfs_op_sync(int fd);
+extern int vfs_op_unlink(int parentfd, int expectfd, char *path);
+extern int vfs_op_unmount(int mpfd);
+extern int vfs_op_wait_handle(bool high_fd);
+extern int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd);
+extern int vfs_op_write(int fd, aoff64_t, size_t *out_bytes);
+
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
-extern void vfs_mount_srv(ipc_callid_t, ipc_call_t *);
-extern void vfs_unmount_srv(ipc_callid_t, ipc_call_t *);
-extern void vfs_open(ipc_callid_t, ipc_call_t *);
-extern void vfs_sync(ipc_callid_t, ipc_call_t *);
-extern void vfs_dup(ipc_callid_t, ipc_call_t *);
-extern void vfs_close(ipc_callid_t, ipc_call_t *);
-extern void vfs_read(ipc_callid_t, ipc_call_t *);
-extern void vfs_write(ipc_callid_t, ipc_call_t *);
-extern void vfs_seek(ipc_callid_t, ipc_call_t *);
-extern void vfs_truncate(ipc_callid_t, ipc_call_t *);
-extern void vfs_fstat(ipc_callid_t, ipc_call_t *);
-extern void vfs_stat(ipc_callid_t, ipc_call_t *);
-extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
-extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
-extern void vfs_rename(ipc_callid_t, ipc_call_t *);
-extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
-extern void vfs_get_mtab(ipc_callid_t, ipc_call_t *);
-extern void vfs_statfs(ipc_callid_t, ipc_call_t *);
 
 extern void vfs_page_in(ipc_callid_t, ipc_call_t *);
 
@@ -230,7 +228,9 @@ typedef struct {
 	size_t size;
 } rdwr_io_chunk_t;
 
-extern int vfs_rdwr_internal(int, bool, rdwr_io_chunk_t *);
+extern int vfs_rdwr_internal(int, aoff64_t, bool, rdwr_io_chunk_t *);
+
+extern void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
 #endif
 

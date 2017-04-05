@@ -43,17 +43,19 @@
  * the segments will be mapped directly from the file.
  */
 
+#include <errno.h>
 #include <stdio.h>
+#include <vfs/vfs.h>
 #include <sys/types.h>
 #include <align.h>
 #include <assert.h>
 #include <as.h>
 #include <elf/elf.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <smc.h>
 #include <loader/pcb.h>
 #include <entry_point.h>
+#include <str_error.h>
+#include <stdlib.h>
 
 #include <elf/elf_load.h>
 
@@ -81,7 +83,7 @@ static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
  * extracted from the binary is stored in a elf_info_t structure
  * pointed to by @a info.
  *
- * @param file_name Path to the ELF file.
+ * @param file      ELF file.
  * @param so_bias   Bias to use if the file is a shared object.
  * @param info      Pointer to a structure for storing information
  *                  extracted from the binary.
@@ -89,28 +91,32 @@ static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
  * @return EOK on success or negative error code.
  *
  */
-int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
-    elf_finfo_t *info)
+int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info)
 {
 	elf_ld_t elf;
 
-	int fd;
-	int rc;
-
-	fd = open(file_name, O_RDONLY);
-	if (fd < 0) {
-		DPRINTF("failed opening file\n");
-		return -1;
+	int ofile = vfs_clone(file, -1, true);
+	int rc = vfs_open(ofile, MODE_READ);
+	if (rc != EOK) {
+		return rc;
 	}
 
-	elf.fd = fd;
+	elf.fd = ofile;
 	elf.info = info;
 	elf.flags = flags;
 
 	rc = elf_load_module(&elf, so_bias);
 
-	close(fd);
+	vfs_put(ofile);
+	return rc;
+}
 
+int elf_load_file_name(const char *path, size_t so_bias, eld_flags_t flags,
+    elf_finfo_t *info)
+{
+	int file = vfs_lookup(path, 0);
+	int rc = elf_load_file(file, so_bias, flags, info);
+	vfs_put(file);
 	return rc;
 }
 
@@ -128,9 +134,10 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 {
 	elf_header_t header_buf;
 	elf_header_t *header = &header_buf;
+	aoff64_t pos = 0;
 	int i, rc;
 
-	rc = read(elf->fd, header, sizeof(elf_header_t));
+	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t));
 	if (rc != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n"); 
 		return EE_INVALID;
@@ -188,11 +195,8 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	for (i = 0; i < header->e_phnum; i++) {
 		elf_segment_header_t segment_hdr;
 
-		/* Seek to start of segment header */
-		lseek(elf->fd, header->e_phoff
-		        + i * sizeof(elf_segment_header_t), SEEK_SET);
-
-		rc = read(elf->fd, &segment_hdr,
+		pos = header->e_phoff + i * sizeof(elf_segment_header_t);
+		rc = vfs_read(elf->fd, &pos, &segment_hdr,
 		    sizeof(elf_segment_header_t));
 		if (rc != sizeof(elf_segment_header_t)) {
 			DPRINTF("Read error.\n");
@@ -210,11 +214,8 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	for (i = 0; i < header->e_shnum; i++) {
 		elf_section_header_t section_hdr;
 
-		/* Seek to start of section header */
-		lseek(elf->fd, header->e_shoff
-		    + i * sizeof(elf_section_header_t), SEEK_SET);
-
-		rc = read(elf->fd, &section_hdr,
+		pos = header->e_shoff + i * sizeof(elf_section_header_t);
+		rc = vfs_read(elf->fd, &pos, &section_hdr,
 		    sizeof(elf_section_header_t));
 		if (rc != sizeof(elf_section_header_t)) {
 			DPRINTF("Read error.\n");
@@ -326,6 +327,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	void *seg_ptr;
 	uintptr_t seg_addr;
 	size_t mem_sz;
+	aoff64_t pos;
 	ssize_t rc;
 
 	bias = elf->bias;
@@ -383,36 +385,11 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	/*
 	 * Load segment data
 	 */
-	rc = lseek(elf->fd, entry->p_offset, SEEK_SET);
+	pos = entry->p_offset;
+	rc = vfs_read(elf->fd, &pos, seg_ptr, entry->p_filesz);
 	if (rc < 0) {
-		printf("seek error\n");
+		DPRINTF("read error\n");
 		return EE_INVALID;
-	}
-
-/*	rc = read(fd, (void *)(entry->p_vaddr + bias), entry->p_filesz);
-	if (rc < 0) { printf("read error\n"); return EE_INVALID; }*/
-
-	/* Long reads are not possible yet. Load segment piecewise. */
-
-	unsigned left, now;
-	uint8_t *dp;
-
-	left = entry->p_filesz;
-	dp = seg_ptr;
-
-	while (left > 0) {
-		now = 16384;
-		if (now > left) now = left;
-
-		rc = read(elf->fd, dp, now);
-
-		if (rc != (ssize_t) now) { 
-			DPRINTF("Read error.\n");
-			return EE_INVALID;
-		}
-
-		left -= now;
-		dp += now;
 	}
 
 	/*

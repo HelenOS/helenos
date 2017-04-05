@@ -37,10 +37,9 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include "common.h"
@@ -77,27 +76,18 @@ static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 	file_blob_t *blob = blob_as_file(base);
 	if (offset > blob->size)
 		return ELIMIT;
-	if (lseek(blob->fd, offset, SEEK_SET) < 0)
-		return errno == EINVAL ? EIO : errno;
 
-	ssize_t amount_read;
-	aoff64_t remaining_size = *size;
-	*size = 0;
-	do {
-		amount_read = read(blob->fd, buffer, remaining_size);
-		if (amount_read < 0)
-			return errno;
-		buffer += amount_read;
-		*size += amount_read;
-		remaining_size -= amount_read;
-	} while (remaining_size && amount_read);
+	ssize_t amount_read = vfs_read(blob->fd, &offset, buffer, *size);
+	if (amount_read < 0)
+		return errno;
+	*size += amount_read;
 	return EOK;
 }
 
 static void file_destroy(bithenge_blob_t *base)
 {
 	file_blob_t *blob = blob_as_file(base);
-	close(blob->fd);
+	vfs_put(blob->fd);
 	free(blob);
 }
 
@@ -112,10 +102,10 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 	assert(out);
 
 	struct stat stat;
-	int rc = fstat(fd, &stat);
-	if (rc != 0) {
+	int rc = vfs_stat(fd, &stat);
+	if (rc != EOK) {
 		if (needs_close)
-			close(fd);
+			vfs_put(fd);
 		return rc;
 	}
 
@@ -123,14 +113,14 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 	file_blob_t *blob = malloc(sizeof(*blob));
 	if (!blob) {
 		if (needs_close)
-			close(fd);
+			vfs_put(fd);
 		return ENOMEM;
 	}
 	rc = bithenge_init_random_access_blob(file_as_blob(blob), &file_ops);
 	if (rc != EOK) {
 		free(blob);
 		if (needs_close)
-			close(fd);
+			vfs_put(fd);
 		return rc;
 	}
 	blob->fd = fd;
@@ -154,7 +144,7 @@ int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 {
 	assert(filename);
 
-	int fd = open(filename, O_RDONLY);
+	int fd = vfs_lookup_open(filename, WALK_REGULAR, MODE_READ);
 	if (fd < 0)
 		return errno;
 

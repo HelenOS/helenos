@@ -42,7 +42,6 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <task.h>
 #include <vfs/vfs.h>
 
@@ -174,12 +173,12 @@ static int sysinst_fs_mount(const char *dev)
 	if (texit != TASK_EXIT_NORMAL || trc != 0)
 		return EIO;
 
-	rc = mkdir(MOUNT_POINT, 0);
+	rc = vfs_link_path(MOUNT_POINT, KIND_DIRECTORY, NULL);
 	if (rc != EOK)
 		return rc;
 
 	printf("sysinst_fs_mount(): mount filesystem\n");
-	rc = vfs_mount(FS_TYPE, MOUNT_POINT, dev, "", 0, 0);
+	rc = vfs_mount_path(MOUNT_POINT, FS_TYPE, dev, "", 0, 0);
 	if (rc != EOK)
 		return rc;
 
@@ -213,12 +212,12 @@ static int sysinst_copy_boot_files(void)
 		return EIO;
 
 	printf("sysinst_copy_boot_files(): create CD mount point\n");
-	rc = mkdir(CD_MOUNT_POINT, 0);
+	rc = vfs_link_path(CD_MOUNT_POINT, KIND_DIRECTORY, NULL);
 	if (rc != EOK)
 		return rc;
 
 	printf("sysinst_copy_boot_files(): mount CD filesystem\n");
-	rc = vfs_mount(CD_FS_TYPE, CD_MOUNT_POINT, CD_DEV, "", 0, 0);
+	rc = vfs_mount_path(CD_MOUNT_POINT, CD_FS_TYPE, CD_DEV, "", 0, 0);
 	if (rc != EOK)
 		return rc;
 
@@ -228,7 +227,7 @@ static int sysinst_copy_boot_files(void)
 		return rc;
 
 	printf("sysinst_copy_boot_files(): unmount %s\n", MOUNT_POINT);
-	rc = vfs_unmount(MOUNT_POINT);
+	rc = vfs_unmount_path(MOUNT_POINT);
 	if (rc != EOK)
 		return rc;
 

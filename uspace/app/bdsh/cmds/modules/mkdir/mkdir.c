@@ -29,9 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <str.h>
@@ -97,9 +95,10 @@ create_directory(const char *user_path, bool create_parents)
 	int ret = 0;
 
 	if (!create_parents) {
-		if (mkdir(path, 0) != 0) {
+		ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
+		if (ret != EOK) {
 			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-			    cmdname, path, str_error(errno));
+			    cmdname, path, str_error(ret));
 			ret = 1;
 		}
 	} else {
@@ -135,9 +134,10 @@ create_directory(const char *user_path, bool create_parents)
 			char slash_char = path[prev_off];
 			path[prev_off] = 0;
 
-			if (mkdir(path, 0) != 0 && errno != EEXIST) {
+			ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
+			if (ret != EOK && ret != EEXIST) {
 				cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-				    cmdname, path, str_error(errno));
+				    cmdname, path, str_error(ret));
 				ret = 1;
 				goto leave;
 			}
@@ -145,9 +145,10 @@ create_directory(const char *user_path, bool create_parents)
 			path[prev_off] = slash_char;
 		}
 		/* Create the final directory. */
-		if (mkdir(path, 0) != 0) {
+		ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
+		if (ret != EOK) {
 			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-			    cmdname, path, str_error(errno));
+			    cmdname, path, str_error(ret));
 			ret = 1;
 		}
 	}
@@ -206,7 +207,7 @@ int cmd_mkdir(char **argv)
 	}
 
 	if (follow && (argv[optind] != NULL)) {
-		if (chdir(argv[optind]) != 0)
+		if (vfs_cwd_set(argv[optind]) != EOK)
 			printf("%s: Error switching to directory.", cmdname);
 	}
 

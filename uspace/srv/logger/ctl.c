@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <io/logctl.h>
 #include <ipc/logger.h>
+#include <vfs/vfs.h>
 #include "logger.h"
 
 static int handle_log_level_change(sysarg_t new_level)
@@ -83,6 +84,12 @@ void logger_connection_handler_control(ipc_callid_t callid)
 		case LOGGER_CONTROL_SET_LOG_LEVEL: {
 			int rc = handle_log_level_change(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
+			break;
+		}
+		case LOGGER_CONTROL_SET_ROOT: {
+			int fd = vfs_receive_handle(true);
+			vfs_root_set(fd);
+			async_answer_0(callid, fd >= 0 ? EOK : fd);
 			break;
 		}
 		default:

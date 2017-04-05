@@ -38,7 +38,7 @@
 
 #include "../internal/common.h"
 #include "posix/sys/stat.h"
-#include "libc/sys/stat.h"
+#include "libc/vfs/vfs.h"
 
 #include "posix/errno.h"
 #include "libc/mem.h"
@@ -48,8 +48,10 @@
  *
  * @param dest POSIX stat struct.
  * @param src HelenOS stat struct.
+ *
+ * @return 0 on success, -1 on error.
  */
-static void stat_to_posix(struct posix_stat *dest, struct stat *src)
+static int stat_to_posix(struct posix_stat *dest, struct stat *src)
 {
 	memset(dest, 0, sizeof(struct posix_stat));
 	
@@ -67,6 +69,13 @@ static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 	
 	dest->st_nlink = src->lnkcnt;
 	dest->st_size = src->size;
+
+	if (src->size > INT64_MAX) {
+		errno = ERANGE;
+		return -1;
+	}
+
+	return 0;
 }
 
 /**
@@ -79,11 +88,10 @@ static void stat_to_posix(struct posix_stat *dest, struct stat *src)
 int posix_fstat(int fd, struct posix_stat *st)
 {
 	struct stat hst;
-	int rc = negerrno(fstat, fd, &hst);
+	int rc = rcerrno(vfs_stat, fd, &hst);
 	if (rc < 0)
-		return rc;
-	stat_to_posix(st, &hst);
-	return 0;
+		return -1;
+	return stat_to_posix(st, &hst);
 }
 
 /**
@@ -109,11 +117,10 @@ int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
 int posix_stat(const char *restrict path, struct posix_stat *restrict st)
 {
 	struct stat hst;
-	int rc = negerrno(stat, path, &hst);
+	int rc = rcerrno(vfs_stat_path, path, &hst);
 	if (rc < 0)
-		return rc;
-	stat_to_posix(st, &hst);
-	return 0;
+		return -1;
+	return stat_to_posix(st, &hst);
 }
 
 /**
@@ -123,7 +130,7 @@ int posix_stat(const char *restrict path, struct posix_stat *restrict st)
  * @param mode Permission bits to be set.
  * @return Zero on success, -1 otherwise.
  */
-int posix_chmod(const char *path, mode_t mode)
+int posix_chmod(const char *path, posix_mode_t mode)
 {
 	/* HelenOS doesn't support permissions, return success. */
 	return 0;
@@ -136,10 +143,26 @@ int posix_chmod(const char *path, mode_t mode)
  *     functions. Non-permission bits are ignored.
  * @return Previous file mode creation mask.
  */
-mode_t posix_umask(mode_t mask)
+posix_mode_t posix_umask(posix_mode_t mask)
 {
 	/* HelenOS doesn't support permissions, return empty mask. */
 	return 0;
+}
+
+/**
+ * Create a directory.
+ * 
+ * @param path Path to the new directory.
+ * @param mode Permission bits to be set.
+ * @return Zero on success, -1 otherwise.
+ */
+int posix_mkdir(const char *path, posix_mode_t mode)
+{
+	int rc = rcerrno(vfs_link_path, path, KIND_DIRECTORY, NULL);
+	if (rc != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /** @}

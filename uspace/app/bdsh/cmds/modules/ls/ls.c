@@ -33,12 +33,10 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <getopt.h>
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <str.h>
 #include <sort.h>
 
@@ -184,10 +182,10 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		len = snprintf(buff, PATH_MAX - 1, "%s/%s", d, tosort[nbdirs].name);
 		buff[len] = '\0';
 
-		rc = stat(buff, &tosort[nbdirs++].s);
-		if (rc != 0) {
+		rc = vfs_stat_path(buff, &tosort[nbdirs++].s);
+		if (rc != EOK) {
 			printf("ls: skipping bogus node %s\n", buff);
-			printf("error=%d\n", errno);
+			printf("error=%d\n", rc);
 			goto out;
 		}
 	}
@@ -314,7 +312,7 @@ out:
 
 static unsigned int ls_scope(const char *path, struct dir_elem_t *de)
 {
-	if (stat(path, &de->s) != 0) {
+	if (vfs_stat_path(path, &de->s) != EOK) {
 		cli_error(CL_ENOENT, "%s", path);
 		return LS_BOGUS;
 	}
@@ -387,7 +385,7 @@ int cmd_ls(char **argv)
 	memset(de.name, 0, PATH_MAX);
 
 	if (argc == 0) {
-		if (getcwd(de.name, PATH_MAX) == NULL) {
+		if (vfs_cwd_get(de.name, PATH_MAX) != EOK) {
 			cli_error(CL_EFAIL, "%s: Failed determining working "
 			    "directory", cmdname);
 			return CMD_FAILURE;

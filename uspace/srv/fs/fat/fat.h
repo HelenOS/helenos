@@ -40,13 +40,12 @@
 #include <atomic.h>
 #include <sys/types.h>
 #include <stdbool.h>
+#include <macros.h>
 #include "../../vfs/vfs.h"
 
 #ifndef dprintf
 #define dprintf(...)	printf(__VA_ARGS__)
 #endif
-
-#define min(a, b)	((a) < (b) ? (a) : (b))
 
 /*
  * Convenience macros for accessing some frequently used boot sector members.

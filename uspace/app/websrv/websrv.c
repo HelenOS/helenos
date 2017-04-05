@@ -38,10 +38,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <task.h>
+
+#include <vfs/vfs.h>
 
 #include <inet/addr.h>
 #include <inet/endpoint.h>
@@ -224,7 +224,7 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	if (rc < 0)
 		return ENOMEM;
 	
-	int fd = open(fname, O_RDONLY);
+	int fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
 	if (fd < 0) {
 		rc = send_response(conn, msg_not_found);
 		free(fname);
@@ -237,25 +237,26 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	if (rc != EOK)
 		return rc;
 	
+	aoff64_t pos = 0;
 	while (true) {
-		ssize_t nr = read(fd, fbuf, BUFFER_SIZE);
+		ssize_t nr = vfs_read(fd, &pos, fbuf, BUFFER_SIZE);
 		if (nr == 0)
 			break;
 		
 		if (nr < 0) {
-			close(fd);
+			vfs_put(fd);
 			return EIO;
 		}
 		
 		rc = tcp_conn_send(conn, fbuf, nr);
 		if (rc != EOK) {
 			fprintf(stderr, "tcp_conn_send() failed\n");
-			close(fd);
+			vfs_put(fd);
 			return rc;
 		}
 	}
 	
-	close(fd);
+	vfs_put(fd);
 	
 	return EOK;
 }

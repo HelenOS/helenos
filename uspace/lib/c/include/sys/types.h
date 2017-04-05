@@ -37,8 +37,6 @@
 
 #include <libarch/types.h>
 
-typedef unsigned int mode_t;
-
 /** Relative offset */
 typedef int64_t off64_t;
 

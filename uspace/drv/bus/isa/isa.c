@@ -50,10 +50,9 @@
 #include <macros.h>
 #include <malloc.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <irc.h>
 #include <ns.h>
 
@@ -253,8 +252,9 @@ static char *fun_conf_read(const char *conf_path)
 	int fd;
 	size_t len;
 	ssize_t r;
+	struct stat st;
 
-	fd = open(conf_path, O_RDONLY);
+	fd = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ);
 	if (fd < 0) {
 		ddf_msg(LVL_ERROR, "Unable to open %s", conf_path);
 		goto cleanup;
@@ -262,8 +262,12 @@ static char *fun_conf_read(const char *conf_path)
 
 	opened = true;
 
-	len = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);
+	if (vfs_stat(fd, &st) != EOK) {
+		ddf_msg(LVL_ERROR, "Unable to vfs_stat %d", fd);
+		goto cleanup;
+	}
+
+	len = st.size;
 	if (len == 0) {
 		ddf_msg(LVL_ERROR, "Configuration file '%s' is empty.",
 		    conf_path);
@@ -276,7 +280,7 @@ static char *fun_conf_read(const char *conf_path)
 		goto cleanup;
 	}
 
-	r = read(fd, buf, len);
+	r = vfs_read(fd, (aoff64_t []) {0}, buf, len);
 	if (r < 0) {
 		ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
 		goto cleanup;
@@ -293,7 +297,7 @@ cleanup:
 	}
 
 	if (opened)
-		close(fd);
+		vfs_put(fd);
 
 	return buf;
 }

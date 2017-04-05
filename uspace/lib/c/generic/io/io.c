@@ -34,7 +34,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <assert.h>
 #include <str.h>
 #include <errno.h>
@@ -44,6 +43,7 @@
 #include <io/kio.h>
 #include <vfs/vfs.h>
 #include <vfs/vfs_sess.h>
+#include <vfs/inbox.h>
 #include <ipc/loc.h>
 #include <adt/list.h>
 #include "../private/io.h"
@@ -54,6 +54,7 @@ static void _fflushbuf(FILE *stream);
 
 static FILE stdin_null = {
 	.fd = -1,
+	.pos = 0, 
 	.error = true,
 	.eof = true,
 	.kio = false,
@@ -68,6 +69,7 @@ static FILE stdin_null = {
 
 static FILE stdout_kio = {
 	.fd = -1,
+	.pos = 0, 
 	.error = false,
 	.eof = false,
 	.kio = true,
@@ -82,6 +84,7 @@ static FILE stdout_kio = {
 
 static FILE stderr_kio = {
 	.fd = -1,
+	.pos = 0, 
 	.error = false,
 	.eof = false,
 	.kio = true,
@@ -100,24 +103,44 @@ FILE *stderr = NULL;
 
 static LIST_INITIALIZE(files);
 
-void __stdio_init(int filc)
+void __stdio_init(void)
 {
-	if (filc > 0) {
-		stdin = fdopen(0, "r");
+	/* The first three standard file descriptors are assigned for compatibility.
+	 * This will probably be removed later.
+	 */
+	 
+	int infd = inbox_get("stdin");
+	if (infd >= 0) {
+		int stdinfd = vfs_clone(infd, -1, false);
+		assert(stdinfd == 0);
+		vfs_open(stdinfd, MODE_READ);
+		stdin = fdopen(stdinfd, "r");
 	} else {
 		stdin = &stdin_null;
 		list_append(&stdin->link, &files);
 	}
 	
-	if (filc > 1) {
-		stdout = fdopen(1, "w");
+	int outfd = inbox_get("stdout");
+	if (outfd >= 0) {
+		int stdoutfd = vfs_clone(outfd, -1, false);
+		assert(stdoutfd <= 1);
+		while (stdoutfd < 1)
+			stdoutfd = vfs_clone(outfd, -1, false);
+		vfs_open(stdoutfd, MODE_APPEND);
+		stdout = fdopen(stdoutfd, "a");
 	} else {
 		stdout = &stdout_kio;
 		list_append(&stdout->link, &files);
 	}
 	
-	if (filc > 2) {
-		stderr = fdopen(2, "w");
+	int errfd = inbox_get("stderr");
+	if (errfd >= 0) {
+		int stderrfd = vfs_clone(errfd, -1, false);
+		assert(stderrfd <= 2);
+		while (stderrfd < 2)
+			stderrfd = vfs_clone(errfd, -1, false);
+		vfs_open(stderrfd, MODE_APPEND);
+		stderr = fdopen(stderrfd, "a");
 	} else {
 		stderr = &stderr_kio;
 		list_append(&stderr->link, &files);
@@ -132,10 +155,10 @@ void __stdio_done(void)
 	}
 }
 
-static bool parse_mode(const char *mode, int *flags)
+static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncate)
 {
 	/* Parse mode except first character. */
-	const char *mp = mode;
+	const char *mp = fmode;
 	if (*mp++ == 0) {
 		errno = EINVAL;
 		return false;
@@ -155,14 +178,20 @@ static bool parse_mode(const char *mode, int *flags)
 		errno = EINVAL;
 		return false;
 	}
+
+	*create = false;
+	*truncate = false;
 	
-	/* Parse first character of mode and determine flags for open(). */
-	switch (mode[0]) {
+	/* Parse first character of fmode and determine mode for vfs_open(). */
+	switch (fmode[0]) {
 	case 'r':
-		*flags = plus ? O_RDWR : O_RDONLY;
+		*mode = plus ? MODE_READ | MODE_WRITE : MODE_READ;
 		break;
 	case 'w':
-		*flags = (O_TRUNC | O_CREAT) | (plus ? O_RDWR : O_WRONLY);
+		*mode = plus ? MODE_READ | MODE_WRITE : MODE_WRITE;
+		*create = true;
+		if (!plus)
+			*truncate = true;
 		break;
 	case 'a':
 		/* TODO: a+ must read from beginning, append to the end. */
@@ -170,7 +199,9 @@ static bool parse_mode(const char *mode, int *flags)
 			errno = ENOTSUP;
 			return false;
 		}
-		*flags = (O_APPEND | O_CREAT) | (plus ? O_RDWR : O_WRONLY);
+
+		*mode = MODE_APPEND | (plus ? MODE_READ | MODE_WRITE : MODE_WRITE);
+		*create = true;
 		break;
 	default:
 		errno = EINVAL;
@@ -244,10 +275,13 @@ static int _fallocbuf(FILE *stream)
  * @param mode Mode string, (r|w|a)[b|t][+].
  *
  */
-FILE *fopen(const char *path, const char *mode)
+FILE *fopen(const char *path, const char *fmode)
 {
-	int flags;
-	if (!parse_mode(mode, &flags))
+	int mode;
+	bool create;
+	bool truncate;
+
+	if (!parse_mode(fmode, &mode, &create, &truncate))
 		return NULL;
 	
 	/* Open file. */
@@ -256,14 +290,37 @@ FILE *fopen(const char *path, const char *mode)
 		errno = ENOMEM;
 		return NULL;
 	}
-	
-	stream->fd = open(path, flags, 0666);
-	if (stream->fd < 0) {
-		/* errno was set by open() */
+
+	int flags = WALK_REGULAR;
+	if (create)
+		flags |= WALK_MAY_CREATE;
+	int file = vfs_lookup(path, flags);
+	if (file < 0) {
+		errno = file;
+		free(stream);
+		return NULL;
+	}
+
+	int rc = vfs_open(file, mode);
+	if (rc != EOK) {
+		errno = rc;
+		vfs_put(file);
 		free(stream);
 		return NULL;
 	}
 	
+	if (truncate) {
+		rc = vfs_resize(file, 0);
+		if (rc != EOK) {
+			errno = rc;
+			vfs_put(file);
+			free(stream);
+			return NULL;
+		}
+	}
+
+	stream->fd = file;
+	stream->pos = 0;
 	stream->error = false;
 	stream->eof = false;
 	stream->kio = false;
@@ -287,6 +344,7 @@ FILE *fdopen(int fd, const char *mode)
 	}
 	
 	stream->fd = fd;
+	stream->pos = 0;
 	stream->error = false;
 	stream->eof = false;
 	stream->kio = false;
@@ -311,7 +369,7 @@ static int _fclose_nofree(FILE *stream)
 		async_hangup(stream->sess);
 	
 	if (stream->fd >= 0)
-		rc = close(stream->fd);
+		rc = vfs_put(stream->fd);
 	
 	list_remove(&stream->link);
 	
@@ -372,29 +430,19 @@ FILE *freopen(const char *path, const char *mode, FILE *stream)
  */
 static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t left, done;
-
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	left = size * nmemb;
-	done = 0;
-	
-	while ((left > 0) && (!stream->error) && (!stream->eof)) {
-		ssize_t rd = read(stream->fd, buf + done, left);
-		
-		if (rd < 0) {
-			/* errno was set by read() */
-			stream->error = true;
-		} else if (rd == 0) {
-			stream->eof = true;
-		} else {
-			left -= rd;
-			done += rd;
-		}
+	ssize_t rd = vfs_read(stream->fd, &stream->pos, buf, size * nmemb);
+	if (rd < 0) {
+		errno = rd;
+		stream->error = true;
+		rd = 0;
+	} else if (rd == 0) {
+		stream->eof = true;
 	}
 	
-	return (done / size);
+	return (rd / size);
 }
 
 /** Write to a stream (unbuffered).
@@ -409,50 +457,32 @@ static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
  */
 static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t left;
-	size_t done;
-	int rc;
-
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	left = size * nmemb;
-	done = 0;
-
-	while ((left > 0) && (!stream->error)) {
-		ssize_t wr;
-		size_t uwr;
-		
-		if (stream->kio) {
-			uwr = 0;
-			rc = kio_write(buf + done, left, &uwr);
-			if (rc != EOK)
-				errno = rc;
-		} else {
-			wr = write(stream->fd, buf + done, left);
-			if (wr >= 0) {
-				uwr = (size_t)wr;
-				rc = EOK;
-			} else {
-				/* errno was set by write */
-				uwr = 0;
-				rc = errno;
-			}
-		}
-		
-		if (rc != EOK) {
-			/* errno was set above */
+	ssize_t wr;
+	if (stream->kio) {
+		size_t nwritten;
+		wr = kio_write(buf, size * nmemb, &nwritten);
+		if (wr != EOK) {
 			stream->error = true;
+			wr = 0;
 		} else {
-			left -= uwr;
-			done += uwr;
+			wr = nwritten;
+		}
+	} else {
+		wr = vfs_write(stream->fd, &stream->pos, buf, size * nmemb);
+		if (wr < 0) {
+			errno = wr;
+			stream->error = true;
+			wr = 0;
 		}
 	}
 
-	if (done > 0)
+	if (wr > 0)
 		stream->need_sync = true;
 	
-	return (done / size);
+	return (wr / size);
 }
 
 /** Read some data in stream buffer.
@@ -465,9 +495,9 @@ static void _ffillbuf(FILE *stream)
 
 	stream->buf_head = stream->buf_tail = stream->buf;
 
-	rc = read(stream->fd, stream->buf, stream->buf_size);
+	rc = vfs_read(stream->fd, &stream->pos, stream->buf, stream->buf_size);
 	if (rc < 0) {
-		/* errno was set by read() */
+		errno = rc;
 		stream->error = true;
 		return;
 	}
@@ -492,15 +522,8 @@ static void _fflushbuf(FILE *stream)
 	bytes_used = stream->buf_head - stream->buf_tail;
 
 	/* If buffer has prefetched read data, we need to seek back. */
-	if (bytes_used > 0 && stream->buf_state == _bs_read) {
-		off64_t rc;
-		rc = lseek(stream->fd, - (ssize_t) bytes_used, SEEK_CUR);
-		if (rc == (off64_t)-1) {
-			/* errno was set by lseek */
-			stream->error = 1;
-			return;
-		}
-	}
+	if (bytes_used > 0 && stream->buf_state == _bs_read)
+		stream->pos -= bytes_used;
 
 	/* If buffer has unwritten data, we need to write them out. */
 	if (bytes_used > 0 && stream->buf_state == _bs_write) {
@@ -772,23 +795,36 @@ int ungetc(int c, FILE *stream)
 
 int fseek(FILE *stream, off64_t offset, int whence)
 {
-	off64_t rc;
+	int rc;
 
 	if (stream->error)
-		return EOF;
+		return -1;
 
 	_fflushbuf(stream);
 	if (stream->error) {
 		/* errno was set by _fflushbuf() */
-		return EOF;
+		return -1;
 	}
 
 	stream->ungetc_chars = 0;
 
-	rc = lseek(stream->fd, offset, whence);
-	if (rc == (off64_t) (-1)) {
-		/* errno has been set by lseek() */
-		return EOF;
+	struct stat st;
+	switch (whence) {
+	case SEEK_SET:
+		stream->pos = offset;
+		break;
+	case SEEK_CUR:
+		stream->pos += offset;
+		break;
+	case SEEK_END:
+		rc = vfs_stat(stream->fd, &st);
+		if (rc != EOK) {
+			errno = rc;
+			stream->error = true;
+			return -1;	
+		}
+		stream->pos = st.size + offset;
+		break;
 	}
 
 	stream->eof = false;
@@ -797,8 +833,10 @@ int fseek(FILE *stream, off64_t offset, int whence)
 
 off64_t ftell(FILE *stream)
 {
-	off64_t pos;
-	
+	/* The native position is too large for the C99-ish interface. */
+	if (stream->pos - stream->ungetc_chars > INT64_MAX)
+		return EOF;
+
 	if (stream->error)
 		return EOF;
 	
@@ -808,13 +846,7 @@ off64_t ftell(FILE *stream)
 		return EOF;
 	}
 
-	pos = lseek(stream->fd, 0, SEEK_CUR);
-	if (pos == (off64_t) -1) {
-		/* errno was set by lseek */
-		return (off64_t) -1;
-	}
-	
-	return pos - stream->ungetc_chars;
+	return stream->pos - stream->ungetc_chars;
 }
 
 void rewind(FILE *stream)
@@ -839,13 +871,16 @@ int fflush(FILE *stream)
 	}
 	
 	if ((stream->fd >= 0) && (stream->need_sync)) {
+		int rc;
+
 		/**
 		 * Better than syncing always, but probably still not the
 		 * right thing to do.
 		 */
 		stream->need_sync = false;
-		if (fsync(stream->fd) != 0) {
-			/* errno was set by fsync() */
+		rc = vfs_sync(stream->fd);
+		if (rc != EOK) {
+			errno = rc;
 			return EOF;
 		}
 

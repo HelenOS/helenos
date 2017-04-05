@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Manuele Conti
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,21 +32,94 @@
 /** @file
  */
 
-#ifndef LIBC_SYS_STATFS_H_
-#define LIBC_SYS_STATFS_H_
-
+#include <vfs/vfs.h>
+#include <stdlib.h>
+#include <dirent.h>
 #include <sys/types.h>
+#include <errno.h>
+#include <assert.h>
 
-struct statfs { 
-	uint32_t    f_type;     /* type of file system  */
-	uint32_t    f_bsize;    /* fundamental file system block size */
-	uint64_t    f_blocks;   /* total data blocks in file system */
-	uint64_t    f_bfree;    /* free blocks in fs */
-};
+/** Open directory.
+ *
+ * @param dirname Directory pathname
+ *
+ * @return Non-NULL pointer on success. On error returns @c NULL and sets errno.
+ */
+DIR *opendir(const char *dirname)
+{
+	DIR *dirp = malloc(sizeof(DIR));
+	if (!dirp) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	int fd = vfs_lookup(dirname, WALK_DIRECTORY);
+	if (fd < 0) {
+		free(dirp);
+		errno = fd;
+		return NULL;
+	}
+	
+	int rc = vfs_open(fd, MODE_READ);
+	if (rc < 0) {
+		free(dirp);
+		vfs_put(fd);
+		errno = rc;
+		return NULL;
+	}
+	
+	dirp->fd = fd;
+	dirp->pos = 0;
+	return dirp;
+}
 
-extern int statfs(const char *, struct statfs *);
+/** Read directory entry.
+ *
+ * @param dirp Open directory
+ * @return Non-NULL pointer to directory entry on success. On error returns
+ *         @c NULL and sets errno.
+ */
+struct dirent *readdir(DIR *dirp)
+{
+	int rc;
+	ssize_t len = 0;
+	
+	rc = vfs_read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
+	    NAME_MAX + 1, &len);
+	if (rc != EOK) {
+		errno = rc;
+		return NULL;
+	}
+	
+	dirp->pos += len;
+	
+	return &dirp->res;
+}
 
-#endif
+/** Rewind directory position to the beginning.
+ *
+ * @param dirp Open directory
+ */
+void rewinddir(DIR *dirp)
+{
+	dirp->pos = 0;
+}
+
+/** Close directory.
+ *
+ * @param dirp Open directory
+ * @return 0 on success. On error returns -1 and sets errno.
+ */
+int closedir(DIR *dirp)
+{
+	int rc;
+	
+	rc = vfs_put(dirp->fd);
+	free(dirp);
+
+	/* On error errno was set by close() */
+	return rc;
+}
 
 /** @}
  */

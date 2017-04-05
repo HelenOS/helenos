@@ -52,7 +52,6 @@
 #include "libc/str.h"
 #include "libc/malloc.h"
 #include "libc/adt/list.h"
-#include "libc/sys/stat.h"
 
 /** Clears the stream's error and end-of-file indicators.
  *
@@ -343,9 +342,10 @@ int posix_dprintf(int fildes, const char *restrict format, ...)
  */
 static int _dprintf_str_write(const char *str, size_t size, void *fd)
 {
-	ssize_t wr = write(*(int *) fd, str, size);
+	const int fildes = *(int *) fd;
+	ssize_t wr = vfs_write(fildes, &posix_pos[fildes], str, size);
 	if (wr < 0)
-		return errno;
+		return wr;
 	return str_nlength(str, wr);
 }
 
@@ -370,9 +370,9 @@ static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
 			break;
 		}
 		
-		if (write(*(int *) fd, buf, sz) != (ssize_t) sz) {
+		const int fildes = *(int *) fd;
+		if (vfs_write(fildes, &posix_pos[fildes], buf, sz) < 0)
 			break;
-		}
 		
 		chars++;
 		offset += sizeof(wchar_t);
@@ -574,7 +574,10 @@ int posix_putchar_unlocked(int c)
  */
 int posix_remove(const char *path)
 {
-	return negerrno(remove, path);
+	if (rcerrno(vfs_unlink_path, path) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -586,7 +589,11 @@ int posix_remove(const char *path)
  */
 int posix_rename(const char *old, const char *new)
 {
-	return negerrno(rename, old, new);
+	int rc = rcerrno(vfs_rename_path, old, new);
+	if (rc != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**

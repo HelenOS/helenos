@@ -44,6 +44,7 @@
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <task.h>
+#include <vfs/vfs.h>
 #include "vfs.h"
 
 #define VFS_DATA	((vfs_client_data_t *) async_get_client_data())
@@ -58,7 +59,8 @@ typedef struct {
 
 typedef struct {
 	link_t link;
-	int handle;
+	vfs_node_t *node;
+	int permissions;
 } vfs_boxed_handle_t;
 
 static int _vfs_fd_free(vfs_client_data_t *, int);
@@ -176,15 +178,20 @@ static int vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 		 * Lost the last reference to a file, need to close it in the
 		 * endpoint FS and drop our reference to the underlying VFS node.
 		 */
-		rc = vfs_file_close_remote(file);
-		vfs_node_delref(file->node);
+		
+		if (file->node != NULL) {
+			if (file->open_read || file->open_write) {
+				rc = vfs_file_close_remote(file);
+			}
+			vfs_node_delref(file->node);
+ 		}
 		free(file);
 	}
 
 	return rc;
 }
 
-static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, bool desc)
+static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, bool desc)
 {
 	if (!vfs_files_init(vfs_data))
 		return ENOMEM;
@@ -204,9 +211,16 @@ static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, bool desc)
 				return ENOMEM;
 			}
 			
+			
 			memset(vfs_data->files[i], 0, sizeof(vfs_file_t));
-			fibril_mutex_initialize(&vfs_data->files[i]->lock);
+			
+			fibril_mutex_initialize(&vfs_data->files[i]->_lock);
+			fibril_mutex_lock(&vfs_data->files[i]->_lock);
 			vfs_file_addref(vfs_data, vfs_data->files[i]);
+			
+			*file = vfs_data->files[i];
+			vfs_file_addref(vfs_data, *file);
+			
 			fibril_mutex_unlock(&vfs_data->lock);
 			return (int) i;
 		}
@@ -230,15 +244,16 @@ static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, bool desc)
 
 /** Allocate a file descriptor.
  *
+ * @param file Is set to point to the newly created file structure. Must be put afterwards.
  * @param desc If true, look for an available file descriptor
  *             in a descending order.
  *
  * @return First available file descriptor or a negative error
  *         code.
  */
-int vfs_fd_alloc(bool desc)
+int vfs_fd_alloc(vfs_file_t **file, bool desc)
 {
-	return _vfs_fd_alloc(VFS_DATA, desc);
+	return _vfs_fd_alloc(VFS_DATA, file, desc);
 }
 
 static int _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
@@ -288,9 +303,13 @@ int vfs_fd_assign(vfs_file_t *file, int fd)
 		return ENOMEM;
 
 	fibril_mutex_lock(&VFS_DATA->lock);	
-	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || (FILES[fd] != NULL)) {
+	if ((fd < 0) || (fd >= MAX_OPEN_FILES)) {
 		fibril_mutex_unlock(&VFS_DATA->lock);
-		return EINVAL;
+		return EBADF;
+	}
+	if (FILES[fd] != NULL) {
+		fibril_mutex_unlock(&VFS_DATA->lock);
+		return EEXIST;
 	}
 	
 	FILES[fd] = file;
@@ -298,6 +317,15 @@ int vfs_fd_assign(vfs_file_t *file, int fd)
 	fibril_mutex_unlock(&VFS_DATA->lock);
 	
 	return EOK;
+}
+
+static void _vfs_file_put(vfs_client_data_t *vfs_data, vfs_file_t *file)
+{
+	fibril_mutex_unlock(&file->_lock);
+	
+	fibril_mutex_lock(&vfs_data->lock);
+	vfs_file_delref(vfs_data, file);
+	fibril_mutex_unlock(&vfs_data->lock);
 }
 
 static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
@@ -311,6 +339,14 @@ static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
 		if (file != NULL) {
 			vfs_file_addref(vfs_data, file);
 			fibril_mutex_unlock(&vfs_data->lock);
+			
+			fibril_mutex_lock(&file->_lock);
+			if (file->node == NULL) {
+				_vfs_file_put(vfs_data, file);
+				return NULL;
+			}
+			assert(file != NULL);
+			assert(file->node != NULL);
 			return file;
 		}
 	}
@@ -330,13 +366,6 @@ vfs_file_t *vfs_file_get(int fd)
 	return _vfs_file_get(VFS_DATA, fd);
 }
 
-static void _vfs_file_put(vfs_client_data_t *vfs_data, vfs_file_t *file)
-{
-	fibril_mutex_lock(&vfs_data->lock);
-	vfs_file_delref(vfs_data, file);
-	fibril_mutex_unlock(&vfs_data->lock);
-}
-
 /** Stop using a file structure.
  *
  * @param file		VFS file structure.
@@ -346,14 +375,12 @@ void vfs_file_put(vfs_file_t *file)
 	_vfs_file_put(VFS_DATA, file);
 }
 
-void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
+void vfs_op_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 {
 	vfs_client_data_t *donor_data = NULL;
 	vfs_client_data_t *acceptor_data = NULL;
 	vfs_file_t *donor_file = NULL;
-	vfs_file_t *acceptor_file = NULL;
 	vfs_boxed_handle_t *bh;
-	int acceptor_fd;
 
 	acceptor_data = async_get_client_data_by_id(acceptor_id);
 	if (!acceptor_data)
@@ -363,7 +390,7 @@ void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 	assert(bh);
 
 	link_initialize(&bh->link);
-	bh->handle = -1;
+	bh->node = NULL;
 
 	donor_data = async_get_client_data_by_id(donor_id);
 	if (!donor_data)
@@ -373,27 +400,12 @@ void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 	if (!donor_file)
 		goto out;
 
-	acceptor_fd = _vfs_fd_alloc(acceptor_data, false);
-	if (acceptor_fd < 0)
-		goto out;
-
-	bh->handle = acceptor_fd;
-
 	/*
 	 * Add a new reference to the underlying VFS node.
 	 */
 	vfs_node_addref(donor_file->node);
-	(void) vfs_open_node_remote(donor_file->node);
-
-	acceptor_file = _vfs_file_get(acceptor_data, acceptor_fd);
-	assert(acceptor_file);
-
-	/*
-	 * Inherit attributes from the donor.
-	 */
-	acceptor_file->node = donor_file->node;
-	acceptor_file->append = donor_file->append;
-	acceptor_file->pos = donor_file->pos;
+	bh->node = donor_file->node;
+	bh->permissions = donor_file->permissions;
 
 out:
 	fibril_mutex_lock(&acceptor_data->lock);
@@ -407,15 +419,11 @@ out:
 		async_put_client_data_by_id(acceptor_id);
 	if (donor_file)
 		_vfs_file_put(donor_data, donor_file);
-	if (acceptor_file)
-		_vfs_file_put(acceptor_data, acceptor_file);
-
 }
 
-int vfs_wait_handle_internal(void)
+int vfs_wait_handle_internal(bool high_fd)
 {
 	vfs_client_data_t *vfs_data = VFS_DATA;	
-	int fd;
 	
 	fibril_mutex_lock(&vfs_data->lock);
 	while (list_empty(&vfs_data->passed_handles))
@@ -425,9 +433,19 @@ int vfs_wait_handle_internal(void)
 	fibril_mutex_unlock(&vfs_data->lock);
 
 	vfs_boxed_handle_t *bh = list_get_instance(lnk, vfs_boxed_handle_t, link);
-	fd = bh->handle;
-	free(bh);
 
+	vfs_file_t *file;
+	int fd = _vfs_fd_alloc(vfs_data, &file, high_fd);
+	if (fd < 0) {
+		vfs_node_delref(bh->node);
+		free(bh);
+		return fd;
+	}
+	
+	file->node = bh->node;
+	file->permissions = bh->permissions;
+	vfs_file_put(file);
+	free(bh);
 	return fd;
 }
 

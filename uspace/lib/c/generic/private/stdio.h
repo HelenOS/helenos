@@ -48,6 +48,9 @@ struct _IO_FILE {
 	
 	/** Underlying file descriptor. */
 	int fd;
+
+	/** File position. */
+	aoff64_t pos;
 	
 	/** Error indicator. */
 	int error;

@@ -34,13 +34,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <dirent.h>
 #include <sys/types.h>
 #include <str.h>
 #include <getopt.h>
-#include <sys/stat.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "errors.h"
@@ -122,8 +121,10 @@ int cmd_touch(char **argv)
 		}
 		
 		/* Check whether file exists if -c (--no-create) option is given */
-		if ((!no_create) || ((no_create) && (stat(buff, &file_stat) == 0)))
-			fd = open(buff, O_RDWR | O_CREAT);
+		if ((!no_create) ||
+		    ((no_create) && (vfs_stat_path(buff, &file_stat) == EOK))) {
+			fd = vfs_lookup(buff, WALK_REGULAR | WALK_MAY_CREATE);
+		}
 		
 		if (fd < 0) {
 			cli_error(CL_EFAIL, "Could not update or create `%s'", buff);
@@ -131,7 +132,7 @@ int cmd_touch(char **argv)
 			ret++;
 			continue;
 		} else {
-			close(fd);
+			vfs_put(fd);
 			fd = -1;
 		}
 		

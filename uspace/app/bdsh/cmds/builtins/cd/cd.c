@@ -28,9 +28,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <str.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 #include "util.h"
 #include "errors.h"
@@ -50,14 +50,16 @@ static char previous_directory_tmp[PATH_MAX];
 static bool previous_directory_valid = true;
 static bool previous_directory_set = false;
 
-static int chdir_and_remember(const char *new_dir) {
+static int chdir_and_remember(const char *new_dir)
+{
 
-	char *ok = getcwd(previous_directory_tmp, PATH_MAX);
-	previous_directory_valid = ok != NULL;
+	int rc = vfs_cwd_get(previous_directory_tmp, PATH_MAX);
+	previous_directory_valid = (rc == EOK);
 	previous_directory_set = true;
 
-	if (chdir(new_dir) != 0)
-		return errno;
+	rc = vfs_cwd_set(new_dir);
+	if (rc != EOK)
+		return rc;
 
 	str_cpy(previous_directory, PATH_MAX, previous_directory_tmp);
 	return EOK;

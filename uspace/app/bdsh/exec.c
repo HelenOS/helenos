@@ -36,7 +36,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <str.h>
-#include <fcntl.h>
 #include <str_error.h>
 #include <errno.h>
 #include <vfs/vfs.h>
@@ -59,9 +58,9 @@ static int try_access(const char *f)
 {
 	int fd;
 
-	fd = open(f, O_RDONLY);
+	fd = vfs_lookup_open(f, WALK_REGULAR, MODE_READ);
 	if (fd >= 0) {
-		close(fd);
+		vfs_put(fd);
 		return 0;
 	} else
 		return -1;
@@ -100,8 +99,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	task_exit_t texit;
 	char *tmp;
 	int rc, retval, i;
-	int file_handles[3];
-	int *file_handles_p[4];
+	int file_handles[3] = { -1, -1, -1 };
 	FILE *files[3];
 
 	tmp = str_dup(find_command(cmd));
@@ -112,16 +110,11 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	files[2] = io->stderr;
 	
 	for (i = 0; i < 3 && files[i] != NULL; i++) {
-		if (vfs_fhandle(files[i], &file_handles[i]) == EOK) {
-			file_handles_p[i] = &file_handles[i];
-		}
-		else {
-			file_handles_p[i] = NULL;
-		}
+		vfs_fhandle(files[i], &file_handles[i]);
 	}
-	file_handles_p[i] = NULL;
 
-	rc = task_spawnvf(&tid, &twait, tmp, (const char **) argv, file_handles_p);
+	rc = task_spawnvf(&tid, &twait, tmp, (const char **) argv,
+	    file_handles[0], file_handles[1], file_handles[2]);
 	free(tmp);
 
 	if (rc != 0) {

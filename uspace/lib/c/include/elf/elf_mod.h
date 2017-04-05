@@ -107,7 +107,8 @@ typedef struct {
 } elf_ld_t;
 
 extern const char *elf_error(unsigned int);
-extern int elf_load_file(const char *, size_t, eld_flags_t, elf_finfo_t *);
+extern int elf_load_file(int, size_t, eld_flags_t, elf_finfo_t *);
+extern int elf_load_file_name(const char *, size_t, eld_flags_t, elf_finfo_t *);
 
 #endif
 

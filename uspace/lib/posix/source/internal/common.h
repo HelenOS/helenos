@@ -37,6 +37,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <vfs/vfs.h>
 
 #define not_implemented() do { \
 		static int __not_implemented_counter = 0; \
@@ -55,6 +57,16 @@
 	} \
 	rc; \
 })
+
+/* Convert error code to positive errno and -1 return value */
+#define rcerrno(func, ...) ({ \
+	int rc = func(__VA_ARGS__); \
+	if (rc < 0) \
+		errno = -rc; \
+	rc; \
+})
+
+extern aoff64_t posix_pos[MAX_OPEN_FILES];
 
 #endif /* LIBPOSIX_COMMON_H_ */
 

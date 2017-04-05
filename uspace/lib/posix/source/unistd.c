@@ -46,6 +46,9 @@
 #include "libc/task.h"
 #include "libc/stats.h"
 #include "libc/malloc.h"
+#include "libc/vfs/vfs.h"
+
+aoff64_t posix_pos[MAX_OPEN_FILES];
 
 /* Array of environment variable strings (NAME=VALUE). */
 char **posix_environ = NULL;
@@ -104,14 +107,10 @@ int posix_isatty(int fd)
  */
 char *posix_getcwd(char *buf, size_t size)
 {
-	char *p = getcwd(buf, size);
-
-	if (p == NULL) {
-		errno = -errno;
+	int rc = rcerrno(vfs_cwd_get, buf, size);
+	if (rc != EOK) 
 		return NULL;
-	}
-
-	return p;
+	return buf;
 }
 
 /**
@@ -121,7 +120,10 @@ char *posix_getcwd(char *buf, size_t size)
  */
 int posix_chdir(const char *path)
 {
-	return negerrno(chdir, path);
+	int rc = rcerrno(vfs_cwd_set, path);
+	if (rc != EOK)
+		return -1;
+	return 0;
 }
 
 /**
@@ -174,7 +176,12 @@ posix_gid_t posix_getgid(void)
  */
 int posix_close(int fildes)
 {
-	return negerrno(close, fildes);
+	posix_pos[fildes] = 0;
+	int rc = rcerrno(vfs_put, fildes);
+	if (rc != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -187,7 +194,10 @@ int posix_close(int fildes)
  */
 ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 {
-	return negerrno(read, fildes, buf, nbyte);
+	ssize_t size = rcerrno(vfs_read, fildes, &posix_pos[fildes], buf, nbyte);
+	if (size < 0)
+		return -1;
+	return size;
 }
 
 /**
@@ -200,7 +210,10 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
  */
 ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 {
-	return negerrno(write, fildes, buf, nbyte);
+	ssize_t size = rcerrno(vfs_write, fildes, &posix_pos[fildes], buf, nbyte);
+	if (size < 0)
+		return -1;
+	return size;
 }
 
 /**
@@ -214,7 +227,29 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
  */
 posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 {
-	return negerrno(lseek, fildes, offset, whence);
+	struct stat st;
+	int rc;
+
+	switch (whence) {
+	case SEEK_SET:
+		posix_pos[fildes] = offset;
+		break;
+	case SEEK_CUR:
+		posix_pos[fildes] += offset;
+		break;
+	case SEEK_END:
+		rc = rcerrno(vfs_stat, fildes, &st);
+		if (rc != EOK)
+			return -1;
+		posix_pos[fildes] = st.size + offset;
+		break;
+	}
+	if (posix_pos[fildes] > INT64_MAX) {
+		/* The native width is too large for the POSIX interface. */
+		errno = ERANGE;
+		return -1;
+	}
+	return posix_pos[fildes];
 }
 
 /**
@@ -225,7 +260,10 @@ posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
  */
 int posix_fsync(int fildes)
 {
-	return negerrno(fsync, fildes);
+	if (rcerrno(vfs_sync, fildes) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -237,7 +275,10 @@ int posix_fsync(int fildes)
  */
 int posix_ftruncate(int fildes, posix_off_t length)
 {
-	return negerrno(ftruncate, fildes, (aoff64_t) length);
+	if (rcerrno(vfs_resize, fildes, (aoff64_t) length) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -248,7 +289,10 @@ int posix_ftruncate(int fildes, posix_off_t length)
  */
 int posix_rmdir(const char *path)
 {
-	return negerrno(rmdir, path);
+	if (rcerrno(vfs_unlink_path, path) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -259,7 +303,10 @@ int posix_rmdir(const char *path)
  */
 int posix_unlink(const char *path)
 {
-	return negerrno(unlink, path);
+	if (rcerrno(vfs_unlink_path, path) != EOK)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -283,7 +330,7 @@ int posix_dup(int fildes)
  */
 int posix_dup2(int fildes, int fildes2)
 {
-	return negerrno(dup2, fildes, fildes2);
+	return negerrno(vfs_clone, fildes, fildes2, false);
 }
 
 /**
@@ -301,12 +348,10 @@ int posix_access(const char *path, int amode)
 		 *
 		 * Check file existence by attempting to open it.
 		 */
-		int fd = negerrno(open, path, O_RDONLY);
-		if (fd < 0) {
-			/* errno was set by open() */
+		int fd = posix_open(path, O_RDONLY);
+		if (fd < 0)
 			return -1;
-		}
-		close(fd);
+		posix_close(fd);
 		return 0;
 	} else {
 		/* Invalid amode argument. */

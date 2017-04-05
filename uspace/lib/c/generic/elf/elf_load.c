@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vfs/vfs.h>
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
@@ -49,18 +50,18 @@
 
 /** Load ELF program.
  *
- * @param file_name File name
+ * @param file File handle 
  * @param info Place to store ELF program information
  * @return EOK on success or non-zero error code
  */
-int elf_load(const char *file_name, elf_info_t *info)
+int elf_load(int file, elf_info_t *info)
 {
 #ifdef CONFIG_RTLD
 	rtld_t *env;
 #endif
 	int rc;
 
-	rc = elf_load_file(file_name, 0, 0, &info->finfo);
+	rc = elf_load_file(file, 0, 0, &info->finfo);
 	if (rc != EE_OK) {
 		DPRINTF("Failed to load executable '%s'.\n", file_name);
 		return rc;

@@ -114,7 +114,7 @@
 struct __POSIX_DEF__(stat) {
 	__POSIX_DEF__(dev_t)     st_dev;     /* ID of device containing file */
 	__POSIX_DEF__(ino_t)     st_ino;     /* inode number */
-	mode_t          st_mode;    /* protection */
+	__POSIX_DEF__(mode_t)    st_mode;    /* protection */
 	__POSIX_DEF__(nlink_t)   st_nlink;   /* number of hard links */
 	__POSIX_DEF__(uid_t)     st_uid;     /* user ID of owner */
 	__POSIX_DEF__(gid_t)     st_gid;     /* group ID of owner */
@@ -130,9 +130,9 @@ struct __POSIX_DEF__(stat) {
 extern int __POSIX_DEF__(fstat)(int fd, struct __POSIX_DEF__(stat) *st);
 extern int __POSIX_DEF__(lstat)(const char *restrict path, struct __POSIX_DEF__(stat) *restrict st);
 extern int __POSIX_DEF__(stat)(const char *restrict path, struct __POSIX_DEF__(stat) *restrict st);
-extern int __POSIX_DEF__(chmod)(const char *path, mode_t mode);
-extern mode_t __POSIX_DEF__(umask)(mode_t mask);
-extern int mkdir(const char *, mode_t);
+extern int __POSIX_DEF__(chmod)(const char *path, __POSIX_DEF__(mode_t) mode);
+extern __POSIX_DEF__(mode_t) __POSIX_DEF__(umask)(__POSIX_DEF__(mode_t) mask);
+extern int __POSIX_DEF__(mkdir)(const char *path, __POSIX_DEF__(mode_t) mode);
 
 
 #endif /* POSIX_SYS_STAT_H */

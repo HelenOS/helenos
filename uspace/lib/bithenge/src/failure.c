@@ -40,7 +40,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -151,9 +150,9 @@ int bithenge_should_fail(void)
 		int null = open("/dev/null", O_WRONLY);
 		if (null == -1)
 			exit(127);
-		dup2(null, STDOUT_FILENO);
-		dup2(null, STDERR_FILENO);
-		close(null);
+		vfs_clone(null, STDOUT_FILENO, false);
+		vfs_clone(null, STDERR_FILENO, false);
+		vfs_put(null);
 		return 1;
 	}
 

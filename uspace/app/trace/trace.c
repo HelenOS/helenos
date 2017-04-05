@@ -511,8 +511,8 @@ static loader_t *preload_task(const char *path, char **argv,
 	if (rc != EOK)
 		goto error;
 
-	/* Send program pathname */
-	rc = loader_set_pathname(ldr, path);
+	/* Send program. */
+	rc = loader_set_program_path(ldr, path);
 	if (rc != EOK)
 		goto error;
 
@@ -522,32 +522,37 @@ static loader_t *preload_task(const char *path, char **argv,
 		goto error;
 
 	/* Send default files */
-	int *files[4];
+	int fd_root;
 	int fd_stdin;
 	int fd_stdout;
 	int fd_stderr;
 	
-	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK))
-		files[0] = &fd_stdin;
-	else
-		files[0] = NULL;
+	fd_root = vfs_root();
+	if (fd_root >= 0) {
+		rc = loader_add_inbox(ldr, "root", fd_root);
+		vfs_put(fd_root);
+		if (rc != EOK)
+			goto error;
+	}
 	
-	if ((stdout != NULL) && (vfs_fhandle(stdout, &fd_stdout) == EOK))
-		files[1] = &fd_stdout;
-	else
-		files[1] = NULL;
+	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK)) {
+		rc = loader_add_inbox(ldr, "stdin", fd_stdin);
+		if (rc != EOK)
+			goto error;
+	}
 	
-	if ((stderr != NULL) && (vfs_fhandle(stderr, &fd_stderr) == EOK))
-		files[2] = &fd_stderr;
-	else
-		files[2] = NULL;
+	if ((stdout != NULL) && (vfs_fhandle(stdout, &fd_stdout) == EOK)) {
+		rc = loader_add_inbox(ldr, "stdout", fd_stdout);
+		if (rc != EOK)
+			goto error;
+	}
 	
-	files[3] = NULL;
+	if ((stderr != NULL) && (vfs_fhandle(stderr, &fd_stderr) == EOK)) {
+		rc = loader_add_inbox(ldr, "stderr", fd_stderr);
+		if (rc != EOK)
+			goto error;
+	}
 	
-	rc = loader_set_files(ldr, files);
-	if (rc != EOK)
-		goto error;
-
 	/* Load the program. */
 	rc = loader_load_program(ldr);
 	if (rc != EOK)
@@ -695,36 +700,32 @@ static void main_init(void)
 	proto_init();
 
 	p = proto_new("vfs");
-	o = oper_new("open", 2, arg_def, V_INT_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_OPEN, o);
-	o = oper_new("read", 1, arg_def, V_ERRNO, 1, resp_def);
+	o = oper_new("read", 3, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_IN_READ, o);
-	o = oper_new("write", 1, arg_def, V_ERRNO, 1, resp_def);
+	o = oper_new("write", 3, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_IN_WRITE, o);
-	o = oper_new("seek", 3, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_SEEK, o);
-	o = oper_new("truncate", 5, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_TRUNCATE, o);
-	o = oper_new("fstat", 1, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_FSTAT, o);
-	o = oper_new("close", 1, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_CLOSE, o);
-	o = oper_new("mount", 2, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_resize", 5, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_RESIZE, o);
+	o = oper_new("vfs_stat", 1, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_STAT, o);
+	o = oper_new("vfs_put", 1, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_PUT, o);
+	o = oper_new("vfs_mount", 2, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_MOUNT, o);
 /*	o = oper_new("unmount", 0, arg_def);
 	proto_add_oper(p, VFS_IN_UNMOUNT, o);*/
-	o = oper_new("sync", 1, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_sync", 1, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_SYNC, o);
-	o = oper_new("mkdir", 1, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_MKDIR, o);
-	o = oper_new("unlink", 0, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_UNLINK, o);
 	o = oper_new("rename", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_RENAME, o);
-	o = oper_new("stat", 0, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_STAT, o);
-	o = oper_new("statfs", 0, arg_def, V_ERRNO, 0, resp_def);
+	o = oper_new("vfs_statfs", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_STATFS, o);
+	o = oper_new("vfs_walk", 2, arg_def, V_INT_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_WALK, o);
+	o = oper_new("vfs_open", 2, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_OPEN, o);
+	o = oper_new("vfs_unlink", 3, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_UNLINK, o);
 
 	proto_register(SERVICE_VFS, p);
 }

@@ -30,14 +30,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <macros.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <str.h>
 #include <ctype.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "errors.h"
@@ -120,6 +119,7 @@ int cmd_mkfile(char **argv)
 	char *file_name;
 	void *buffer;
 	bool create_sparse = false;
+	aoff64_t pos = 0;
 
 	file_size = 0;
 
@@ -155,7 +155,7 @@ int cmd_mkfile(char **argv)
 
 	file_name = argv[optind];
 
-	fd = open(file_name, O_CREAT | O_EXCL | O_WRONLY, 0666);
+	fd = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MUST_CREATE, MODE_WRITE);
 	if (fd < 0) {
 		printf("%s: failed to create file %s.\n", cmdname, file_name);
 		return CMD_FAILURE;
@@ -163,15 +163,11 @@ int cmd_mkfile(char **argv)
 
 	if (create_sparse && file_size > 0) {
 		const char byte = 0x00;
-
-		if ((rc2 = lseek(fd, file_size - 1, SEEK_SET)) < 0) {
-			close(fd);
-			goto error;
-		}
-
-		rc2 = write(fd, &byte, sizeof(char));
+		
+		pos = file_size - 1;
+		rc2 = vfs_write(fd, &pos, &byte, sizeof(char));
 		if (rc2 < 0) {
-			close(fd);
+			vfs_put(fd);
 			goto error;
 		}
 		return CMD_SUCCESS;
@@ -186,10 +182,10 @@ int cmd_mkfile(char **argv)
 	total_written = 0;
 	while (total_written < file_size) {
 		to_write = min(file_size - total_written, BUFFER_SIZE);
-		rc = write(fd, buffer, to_write);
+		rc = vfs_write(fd, &pos, buffer, to_write);
 		if (rc <= 0) {
 			printf("%s: Error writing file (%d).\n", cmdname, errno);
-			close(fd);
+			vfs_put(fd);
 			free(buffer);
 			return CMD_FAILURE;
 		}
@@ -198,7 +194,7 @@ int cmd_mkfile(char **argv)
 
 	free(buffer);
 
-	if (close(fd) < 0)
+	if (vfs_put(fd) < 0)
 		goto error;
 
 	return CMD_SUCCESS;

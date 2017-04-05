@@ -47,6 +47,8 @@
 #include <fibril.h>
 #include <task.h>
 #include <loader/pcb.h>
+#include <vfs/vfs.h>
+#include <vfs/inbox.h>
 #include "private/libc.h"
 #include "private/async.h"
 #include "private/malloc.h"
@@ -106,12 +108,14 @@ void __main(void *pcb_ptr)
 	if (__pcb == NULL) {
 		argc = 0;
 		argv = NULL;
-		__stdio_init(0);
+		__stdio_init();
 	} else {
 		argc = __pcb->argc;
 		argv = __pcb->argv;
-		__stdio_init(__pcb->filc);
-		(void) chdir(__pcb->cwd);
+		__inbox_init(__pcb->inbox, __pcb->inbox_entries);
+		__stdio_init();
+		vfs_root_set(inbox_get("root"));
+		(void) vfs_cwd_set(__pcb->cwd);
 	}
 	
 	/*

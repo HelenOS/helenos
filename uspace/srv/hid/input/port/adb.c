@@ -37,7 +37,6 @@
 #include <ipc/adb.h>
 #include <async.h>
 #include <vfs/vfs.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <loc.h>
 #include "../input.h"

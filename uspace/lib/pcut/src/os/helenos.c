@@ -40,8 +40,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <task.h>
-#include <fcntl.h>
 #include <fibril_synch.h>
+#include <vfs/vfs.h>
 #include "../internal.h"
 
 
@@ -160,7 +160,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
 	snprintf(tempfile_name, PCUT_TEMP_FILENAME_BUFFER_SIZE - 1, "pcut_%lld.tmp", (unsigned long long) task_get_id());
-	int tempfile = open(tempfile_name, O_CREAT | O_RDWR);
+	int tempfile = vfs_lookup_open(tempfile_name, WALK_REGULAR | WALK_MAY_CREATE, MODE_READ | MODE_WRITE);
 	if (tempfile < 0) {
 		pcut_report_test_done(test, TEST_OUTCOME_ERROR, "Failed to create temporary file.", NULL, NULL);
 		return;
@@ -168,13 +168,6 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	char test_number_argument[MAX_TEST_NUMBER_WIDTH];
 	snprintf(test_number_argument, MAX_TEST_NUMBER_WIDTH, "-t%d", test->id);
-
-	int *files[4];
-	int fd_stdin = fileno(stdin);
-	files[0] = &fd_stdin;
-	files[1] = &tempfile;
-	files[2] = &tempfile;
-	files[3] = NULL;
 
 	const char *const arguments[3] = {
 		self_path,
@@ -185,7 +178,8 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	int status = TEST_OUTCOME_PASS;
 
 	task_wait_t test_task_wait;
-	int rc = task_spawnvf(&test_task_id, &test_task_wait, self_path, arguments, files);
+	int rc = task_spawnvf(&test_task_id, &test_task_wait, self_path, arguments,
+	    fileno(stdin), tempfile, tempfile);
 	if (rc != EOK) {
 		status = TEST_OUTCOME_ERROR;
 		goto leave_close_tempfile;
@@ -219,11 +213,12 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	fibril_condvar_signal(&forced_termination_cv);
 	fibril_mutex_unlock(&forced_termination_mutex);
 
-	read(tempfile, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+	aoff64_t pos = 0;
+	vfs_read(tempfile, &pos, extra_output_buffer, OUTPUT_BUFFER_SIZE);
 
 leave_close_tempfile:
-	close(tempfile);
-	unlink(tempfile_name);
+	vfs_put(tempfile);
+	vfs_unlink_path(tempfile_name);
 
 	pcut_report_test_done_unparsed(test, status, extra_output_buffer, OUTPUT_BUFFER_SIZE);
 }

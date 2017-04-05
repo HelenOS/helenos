@@ -47,8 +47,6 @@
 #include <macros.h>
 #include <malloc.h>
 #include <dirent.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <ddi.h>
 
 #include <ddf/driver.h>

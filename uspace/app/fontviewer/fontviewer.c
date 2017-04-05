@@ -33,9 +33,7 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <malloc.h>
 #include <stdbool.h>

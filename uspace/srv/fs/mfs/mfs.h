@@ -44,13 +44,12 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <macros.h>
 #include "../../vfs/vfs.h"
 
 #define NAME		"mfs"
 
 /* #define DEBUG_MODE */
-
-#define min(a, b)	((a) < (b) ? (a) : (b))
 
 #ifdef DEBUG_MODE
 #define mfsdebug(...)	printf(__VA_ARGS__)

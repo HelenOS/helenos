@@ -34,8 +34,7 @@
 #include <io/keycode.h>
 #include <getopt.h>
 #include <str.h>
-#include <fcntl.h>
-#include <sys/stat.h>
+#include <vfs/vfs.h>
 #include <dirent.h>
 #include "config.h"
 #include "util.h"
@@ -82,9 +81,9 @@ static dentry_type_t get_type(const char *path)
 {
 	struct stat s;
 
-	int r = stat(path, &s);
+	int r = vfs_stat_path(path, &s);
 
-	if (r != 0)
+	if (r != EOK)
 		return TYPE_NONE;
 	else if (s.is_directory)
 		return TYPE_DIR;
@@ -234,7 +233,7 @@ static int64_t do_copy(const char *src, const char *dest,
 			 * if interactive is set user input is required.
 			 */
 			if (force && !interactive) {
-				if (unlink(dest_path) != 0) {
+				if (vfs_unlink_path(dest_path) != EOK) {
 					printf("Unable to remove %s\n",
 					    dest_path);
 					goto exit;
@@ -245,7 +244,7 @@ static int64_t do_copy(const char *src, const char *dest,
 				    dest_path);
 				if (overwrite) {
 					printf("Overwriting file: %s\n", dest_path);
-					if (unlink(dest_path) != 0) {
+					if (vfs_unlink_path(dest_path) != EOK) {
 						printf("Unable to remove %s\n", dest_path);
 						goto exit;
 					}
@@ -294,7 +293,8 @@ static int64_t do_copy(const char *src, const char *dest,
 				 */
 				merge_paths(dest_path, PATH_MAX, src_dirname);
 
-				if (mkdir(dest_path, 0) != 0) {
+				if (vfs_link_path(dest_path, KIND_DIRECTORY,
+				    NULL) != EOK) {
 					printf("Unable to create "
 					    "dest directory %s\n", dest_path);
 					goto exit;
@@ -308,7 +308,8 @@ static int64_t do_copy(const char *src, const char *dest,
 			 *
 			 * e.g. cp -r /src /data/new_dir_src
 			 */
-			if (mkdir(dest_path, 0) != 0) {
+			if (vfs_link_path(dest_path, KIND_DIRECTORY,
+			    NULL) != EOK) {
 				printf("Unable to create "
 				    "dest directory %s\n", dest_path);
 				goto exit;
@@ -340,8 +341,8 @@ static int64_t do_copy(const char *src, const char *dest,
 			merge_paths(dest_dent, PATH_MAX, dp->d_name);
 
 			/* Check if we are copying a directory into itself */
-			stat(src_dent, &src_s);
-			stat(dest_path, &dest_s);
+			vfs_stat_path(src_dent, &src_s);
+			vfs_stat_path(dest_path, &dest_s);
 
 			if (dest_s.index == src_s.index &&
 			    dest_s.fs_handle == src_s.fs_handle) {
@@ -376,27 +377,35 @@ static int64_t copy_file(const char *src, const char *dest,
 	off64_t total;
 	int64_t copied = 0;
 	char *buff = NULL;
+	aoff64_t posr = 0, posw = 0;
+	struct stat st;
 
 	if (vb)
 		printf("Copying %s to %s\n", src, dest);
 
-	if (-1 == (fd1 = open(src, O_RDONLY))) {
+	fd1 = vfs_lookup_open(src, WALK_REGULAR, MODE_READ);
+	if (fd1 < 0) {
 		printf("Unable to open source file %s\n", src);
 		return -1;
 	}
 
-	if (-1 == (fd2 = open(dest, O_CREAT))) {
+	fd2 = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
+	if (fd2 < 0) {
 		printf("Unable to open destination file %s\n", dest);
-		close(fd1);
+		vfs_put(fd1);
 		return -1;
 	}
 
-	total = lseek(fd1, 0, SEEK_END);
+	if (vfs_stat(fd1, &st) != EOK) {
+		printf("Unable to fstat %d\n", fd1);
+		vfs_put(fd1);
+		vfs_put(fd2);
+		return -1;	
+	}
 
+	total = st.size;
 	if (vb)
 		printf("%" PRIu64 " bytes to copy\n", total);
-
-	lseek(fd1, 0, SEEK_SET);
 
 	if (NULL == (buff = (char *) malloc(blen))) {
 		printf("Unable to allocate enough memory to read %s\n",
@@ -405,20 +414,20 @@ static int64_t copy_file(const char *src, const char *dest,
 		goto out;
 	}
 
-	while ((bytes = read(fd1, buff, blen)) > 0) {
-		if ((bytes = write(fd2, buff, bytes)) < 0)
+	while ((bytes = vfs_read(fd1, &posr, buff, blen)) > 0) {
+		if ((bytes = vfs_write(fd2, &posw, buff, bytes)) < 0)
 			break;
 		copied += bytes;
 	}
 
 	if (bytes < 0) {
-		printf("\nError copying %s, (%d)\n", src, errno);
+		printf("\nError copying %s, (%d)\n", src, bytes);
 		copied = bytes;
 	}
 
 out:
-	close(fd1);
-	close(fd2);
+	vfs_put(fd1);
+	vfs_put(fd2);
 	if (buff)
 		free(buff);
 	return copied;

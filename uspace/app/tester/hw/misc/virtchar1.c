@@ -44,8 +44,6 @@
 #include <str.h>
 #include <vfs/vfs.h>
 #include <vfs/vfs_sess.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include "../../tester.h"
 
 #define DEVICE_PATH_NORMAL  "/loc/devices/\\virt\\null\\a"
@@ -55,7 +53,7 @@
 static const char *test_virtchar1_internal(const char *path)
 {
 	TPRINTF("Opening `%s'...\n", path);
-	int fd = open(path, O_RDONLY);
+	int fd = vfs_lookup(path, WALK_REGULAR);
 	if (fd < 0) {
 		TPRINTF("   ...error: %s\n", str_error(errno));
 		if (fd == ENOENT) {
@@ -70,7 +68,7 @@ static const char *test_virtchar1_internal(const char *path)
 	TPRINTF(" Asking for session...\n");
 	async_sess_t *sess = vfs_fd_session(fd, INTERFACE_DDF);
 	if (!sess) {
-		close(fd);
+		vfs_put(fd);
 		TPRINTF("   ...error: %s\n", str_error(errno));
 		return "Failed to get session to device";
 	}
@@ -91,7 +89,7 @@ static const char *test_virtchar1_internal(const char *path)
 	/* Clean-up. */
 	TPRINTF(" Closing session and file descriptor\n");
 	async_hangup(sess);
-	close(fd);
+	vfs_put(fd);
 	
 	return NULL;
 }

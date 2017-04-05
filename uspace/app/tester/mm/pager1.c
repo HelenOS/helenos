@@ -27,8 +27,7 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <vfs/vfs.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include <as.h>
@@ -47,12 +46,14 @@ static void *create_paged_area(size_t size)
 {
 	TPRINTF("Creating temporary file...\n");
 
-	fd = open(TEST_FILE, O_CREAT);
+	fd = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_READ | MODE_WRITE);
 	if (fd < 0)
 		return NULL;
-	(void) unlink(TEST_FILE);
-	if (write(fd, text, sizeof(text)) != sizeof(text)) {
-		close(fd);
+	(void) vfs_unlink_path(TEST_FILE);
+
+	if (vfs_write(fd, (aoff64_t []) {0}, text, sizeof(text)) < 0) {
+		vfs_put(fd);
 		return NULL;
 	}
 
@@ -63,7 +64,7 @@ static void *create_paged_area(size_t size)
 	vfs_pager_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_PAGER, 0);
 
 	if (!vfs_pager_sess) {
-		close(fd);
+		vfs_put(fd);
 		return NULL;
 	}
 	
@@ -72,7 +73,7 @@ static void *create_paged_area(size_t size)
 	void *result = async_as_area_create(AS_AREA_ANY, size,
 	    AS_AREA_READ | AS_AREA_CACHEABLE, vfs_pager_sess, fd, 0, 0);
 	if (result == AS_MAP_FAILED) {
-		close(fd);
+		vfs_put(fd);
 		return NULL;
 	}
 	
@@ -100,7 +101,7 @@ const char *test_pager1(void)
 	touch_area(buffer, buffer_len);
 
 	as_area_destroy(buffer);	
-	close(fd);
+	vfs_put(fd);
 	
 	return NULL;
 }

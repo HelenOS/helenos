@@ -40,8 +40,6 @@
 #include <vfs/vfs.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <task.h>
 #include <malloc.h>
 #include <macros.h>
@@ -49,6 +47,7 @@
 #include <loc.h>
 #include <str_error.h>
 #include <config.h>
+#include <io/logctl.h>
 #include "init.h"
 
 #define ROOT_DEVICE       "bd/initrd"
@@ -126,8 +125,10 @@ static bool mount_root(const char *fstype)
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
 	
-	int rc = vfs_mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
+	int rc = vfs_mount_path(ROOT_MOUNT_POINT, fstype, ROOT_DEVICE, opts,
 	    IPC_FLAG_BLOCKING, 0);
+	if (rc == EOK)
+		logctl_set_root();
 	return mount_report("Root filesystem", ROOT_MOUNT_POINT, fstype,
 	    ROOT_DEVICE, rc);
 }
@@ -143,7 +144,7 @@ static bool mount_root(const char *fstype)
  */
 static bool mount_locfs(void)
 {
-	int rc = vfs_mount(LOCFS_FS_TYPE, LOCFS_MOUNT_POINT, "", "",
+	int rc = vfs_mount_path(LOCFS_MOUNT_POINT, LOCFS_FS_TYPE, "", "",
 	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
 	    LOCFS_FS_TYPE, NULL, rc);
@@ -152,7 +153,7 @@ static bool mount_locfs(void)
 static int srv_startl(const char *path, ...)
 {
 	struct stat s;
-	if (stat(path, &s) != 0) {
+	if (vfs_stat_path(path, &s) != EOK) {
 		printf("%s: Unable to stat %s\n", NAME, path);
 		return ENOENT;
 	}
@@ -299,7 +300,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 
 static bool mount_tmpfs(void)
 {
-	int rc = vfs_mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0, 0);
+	int rc = vfs_mount_path(TMPFS_MOUNT_POINT, TMPFS_FS_TYPE, "", "", 0, 0);
 	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
 	    TMPFS_FS_TYPE, NULL, rc);
 }
