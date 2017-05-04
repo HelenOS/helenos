@@ -259,6 +259,7 @@ static int slip_recv_fibril(void *arg)
  				 * escaped character into the packet so we fall
  				 * through.
  				 */
+				/* Fallthrough */
  
 			default:
 				recv_final[sdu.size++] = ch;

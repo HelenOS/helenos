@@ -300,6 +300,7 @@ static void iplink_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case IPLINK_EV_CHANGE_ADDR:
 			iplink_ev_change_addr(iplink, callid, &call);
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 		}

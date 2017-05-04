@@ -406,6 +406,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 		}
 	}
 	/* Fall through, for per port power */
+	/* Fallthrough */
 	case USB_HUB_FEATURE_PORT_ENABLE:  /*1*/
 	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/

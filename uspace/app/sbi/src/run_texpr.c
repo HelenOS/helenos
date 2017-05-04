@@ -153,6 +153,7 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_deleg:
 		/* Fetch stored delegate type. */
 		deleg = symbol_to_deleg(sym);
@@ -361,6 +362,7 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_deleg:
 		/* Fetch stored delegate type. */
 		deleg = symbol_to_deleg(sym);

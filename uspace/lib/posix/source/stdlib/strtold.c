@@ -422,7 +422,7 @@ long double posix_strtold(const char *restrict nptr, char **restrict endptr)
 	switch (nptr[i]) {
 	case '-':
 		negative = true;
-		/* fallthrough */
+		/* Fallthrough */
 	case '+':
 		i++;
 	}

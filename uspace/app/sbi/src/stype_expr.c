@@ -307,6 +307,7 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_deleg:
 		deleg = symbol_to_deleg(sym);
 		assert(deleg != NULL);
@@ -1237,6 +1238,7 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_deleg:
 		cspan_print(access->member_name->cspan);
 		printf(" Error: Accessing object member which is a "
@@ -1808,12 +1810,23 @@ static void stype_box(stype_t *stype, stree_box_t *box, tdata_item_t **rtitem)
 
 	assert(ptitem->tic == tic_tprimitive);
 	switch (ptitem->u.tprimitive->tpc) {
-	case tpc_bool: csi_sym = bi->boxed_bool; break;
-	case tpc_char: csi_sym = bi->boxed_char; break;
-	case tpc_int: csi_sym = bi->boxed_int; break;
-	case tpc_nil: assert(b_false);
-	case tpc_string: csi_sym = bi->boxed_string; break;
-	case tpc_resource: assert(b_false);
+	case tpc_bool:
+		csi_sym = bi->boxed_bool;
+		break;
+	case tpc_char:
+		csi_sym = bi->boxed_char;
+		break;
+	case tpc_int:
+		csi_sym = bi->boxed_int;
+		break;
+	case tpc_nil:
+		assert(b_false);
+		/* Fallthrough */
+	case tpc_string:
+		csi_sym = bi->boxed_string;
+		break;
+	case tpc_resource:
+		assert(b_false);
 	}
 
 	btitem = tdata_item_new(tic_tobject);

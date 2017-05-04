@@ -141,7 +141,7 @@ static inline uintmax_t internal_strtol(
 		    ? 0
 		    :(((uintmax_t) -(min_value + 1)) + 1);
 		
-		/* fallthrough */
+		/* Fallthrough */
 	case '+':
 		i++;
 	}

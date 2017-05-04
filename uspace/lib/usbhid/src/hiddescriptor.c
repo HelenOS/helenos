@@ -753,6 +753,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data,
 	
 		case START_DELIMITER_SET:
 			report_item->in_delimiter = INSIDE_DELIMITER_SET;
+			/* Fallthrough */
 		case OUTSIDE_DELIMITER_SET:
 			extended_usage = ((report_item->usage_page) << 16);
 			extended_usage += usb_hid_report_tag_data_uint32(

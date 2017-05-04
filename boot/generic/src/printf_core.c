@@ -680,6 +680,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			case 'P':
 				/* Pointer */
 				flags |= __PRINTF_FLAG_BIGCHARS;
+				/* Fallthrough */
 			case 'p':
 				flags |= __PRINTF_FLAG_PREFIX;
 				flags |= __PRINTF_FLAG_ZEROPADDED;
@@ -695,10 +696,12 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			case 'd':
 			case 'i':
 				flags |= __PRINTF_FLAG_SIGNED;
+				/* Fallthrough */
 			case 'u':
 				break;
 			case 'X':
 				flags |= __PRINTF_FLAG_BIGCHARS;
+				/* Fallthrough */
 			case 'x':
 				base = 16;
 				break;

@@ -616,6 +616,7 @@ static void stype_class_impl_check(stype_t *stype, stree_csi_t *csi)
 			break;
 		case csi_struct:
 			assert(b_false);
+			/* Fallthrough */
 		case csi_interface:
 			/* Store to impl_if_ti for later use. */
 			list_append(&csi->impl_if_ti, pred_ti);
@@ -741,6 +742,7 @@ static void stype_class_impl_check_mbr(stype_t *stype, stree_csi_t *csi,
 		 * member types.
 		 */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_fun:
 		stype_class_impl_check_fun(stype, cmbr_sym, if_tvv, ifmbr_sym);
 		break;
@@ -750,6 +752,7 @@ static void stype_class_impl_check_mbr(stype_t *stype, stree_csi_t *csi,
 		 * member types.
 		 */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_prop:
 		stype_class_impl_check_prop(stype, cmbr_sym, if_tvv, ifmbr_sym);
 		break;
@@ -1344,11 +1347,13 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 	case tic_tebase:
 		/* Conversion destination should never be enum-base */
 		assert(b_false);
+		/* Fallthrough */
 	case tic_tenum:
 		expr = stype_convert_tenum(stype, expr, dest);
 		break;
 	case tic_tfun:
 		assert(b_false);
+		/* Fallthrough */
 	case tic_tvref:
 		expr = stype_convert_tvref(stype, expr, dest);
 		break;
@@ -1417,11 +1422,21 @@ static stree_expr_t *stype_convert_tprim_tobj(stype_t *stype,
 	bp_sym = NULL;
 
 	switch (src->u.tprimitive->tpc) {
-	case tpc_bool: bp_sym = bi->boxed_bool; break;
-	case tpc_char: bp_sym = bi->boxed_char; break;
-	case tpc_int: bp_sym = bi->boxed_int; break;
-	case tpc_nil: assert(b_false);
-	case tpc_string: bp_sym = bi->boxed_string; break;
+	case tpc_bool:
+		bp_sym = bi->boxed_bool;
+		break;
+	case tpc_char:
+		bp_sym = bi->boxed_char;
+		break;
+	case tpc_int:
+		bp_sym = bi->boxed_int;
+		break;
+	case tpc_nil:
+		assert(b_false);
+		/* Fallthrough */
+	case tpc_string:
+		bp_sym = bi->boxed_string;
+		break;
 	case tpc_resource:
 		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
@@ -1718,11 +1733,21 @@ stree_expr_t *stype_box_expr(stype_t *stype, stree_expr_t *expr)
 	bp_sym = NULL;
 
 	switch (src->u.tprimitive->tpc) {
-	case tpc_bool: bp_sym = bi->boxed_bool; break;
-	case tpc_char: bp_sym = bi->boxed_char; break;
-	case tpc_int: bp_sym = bi->boxed_int; break;
-	case tpc_nil: assert(b_false);
-	case tpc_string: bp_sym = bi->boxed_string; break;
+	case tpc_bool:
+		bp_sym = bi->boxed_bool;
+		break;
+	case tpc_char:
+		bp_sym = bi->boxed_char;
+		break;
+	case tpc_int:
+		bp_sym = bi->boxed_int;
+		break;
+	case tpc_nil:
+		assert(b_false);
+		/* Fallthrough */
+	case tpc_string:
+		bp_sym = bi->boxed_string;
+		break;
 	case tpc_resource:
 		cspan_print(expr->cspan);
 		printf(" Error: Cannot use ");
@@ -1821,6 +1846,7 @@ tdata_item_t *stype_tobject_find_pred(stype_t *stype, tdata_item_t *src,
 		break;
 	case csi_struct:
 		assert(b_false);
+		/* Fallthrough */
 	case csi_interface:
 		/*
 		 * Destination is an interface. Look at implemented

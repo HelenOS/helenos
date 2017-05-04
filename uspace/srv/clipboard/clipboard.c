@@ -124,6 +124,7 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		async_answer_0(rid, EOK);
+		break;
 	default:
 		/*
 		 * Sorry, we don't know how to get unknown or NONE

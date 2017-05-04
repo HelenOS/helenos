@@ -206,6 +206,7 @@ void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 	case bm_stat:
 		/* Break bailout was not caught. */
 		assert(b_false);
+		/* Fallthrough */
 	case bm_proc:
 		run->thread_ar->bo_mode = bm_none;
 		break;
@@ -1876,6 +1877,7 @@ void run_var_new(run_t *run, tdata_item_t *ti, rdata_var_t **rvar)
 		 * type of expressions referring to enum types.
 		 */
 		assert(b_false);
+		/* Fallthrough */
 	case tic_tenum:
 		run_var_new_enum(run, ti->u.tenum, rvar);
 		break;
@@ -1934,6 +1936,7 @@ static void run_var_new_tprimitive(run_t *run, tdata_primitive_t *tprimitive,
 		break;
 	case tpc_nil:
 		assert(b_false);
+		/* Fallthrough */
 	case tpc_string:
 		var = rdata_var_new(vc_string);
 		var->u.string_v = rdata_string_new();

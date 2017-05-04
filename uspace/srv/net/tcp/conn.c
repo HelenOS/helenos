@@ -1074,6 +1074,7 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 		case st_closed:
 			/* Connection not synchronized */
 			assert(false);
+			/* Fallthrough */
 		case st_syn_received:
 		case st_established:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN received -> Close-Wait",

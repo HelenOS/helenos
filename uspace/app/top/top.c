@@ -659,7 +659,7 @@ int main(int argc, char *argv[])
 					show_warning("Showing only hot exceptions");
 				break;
 			}
-			/* fallthrough */
+			/* Fallthrough */
 		default:
 			show_warning("Unknown command \"%c\", use \"h\" for help", c);
 			continue; /* don't redraw */

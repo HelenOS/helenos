@@ -215,6 +215,7 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *csi)
 				break;
 			case csi_struct:
 				assert(b_false); /* XXX */
+				/* Fallthrough */
 			case csi_interface:
 				cspan_print(csi->name->cspan);
 				printf(" Error: Interface predecessor must be "

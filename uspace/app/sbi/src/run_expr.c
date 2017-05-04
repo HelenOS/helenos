@@ -284,6 +284,7 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_enum:
 #ifdef DEBUG_RUN_TRACE
 		printf("Referencing enum.\n");
@@ -764,6 +765,7 @@ static void run_binop_bool(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	case bo_minus:
 	case bo_mult:
 		assert(b_false);
+		/* Fallthrough */
 
 	case bo_equal:
 		bool_v->value = (b1 == b2);
@@ -839,6 +841,7 @@ static void run_binop_char(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	case bo_minus:
 	case bo_mult:
 		assert(b_false);
+		/* Fallthrough */
 
 	case bo_equal:
 		bool_v->value = zf;
@@ -943,6 +946,7 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	case bo_minus:
 	case bo_mult:
 		assert(b_false);
+		/* Fallthrough */
 
 	case bo_equal:
 		bool_v->value = zf;
@@ -1228,6 +1232,7 @@ static void run_unop_bool(run_t *run, stree_unop_t *unop, rdata_value_t *val,
 	case uo_plus:
 	case uo_minus:
 		assert(b_false);
+		/* Fallthrough */
 
 	case uo_not:
 		bool_v->value = !val->var->u.bool_v->value;
@@ -1760,6 +1765,7 @@ static void run_access_object_static(run_t *run, stree_access_t *access,
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_deleg:
 		printf("Error: Accessing object member which is a delegate.\n");
 		exit(1);
@@ -1873,6 +1879,7 @@ static void run_access_object_nonstatic(run_t *run, stree_access_t *access,
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
 		assert(b_false);
+		/* Fallthrough */
 	case sc_deleg:
 		printf("Error: Accessing object member which is a delegate.\n");
 		exit(1);

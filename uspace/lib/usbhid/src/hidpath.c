@@ -258,6 +258,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		if(report_path->depth != path->depth){
 			return 1;
 		}
+		/* Fallthrough */
 
 	/* path is prefix of the report_path */
 	case USB_HID_PATH_COMPARE_BEGIN:

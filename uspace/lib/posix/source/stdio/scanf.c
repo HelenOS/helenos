@@ -465,12 +465,12 @@ static inline int is_seq_conv(int c, int *modifier)
 	switch (c) {
 	case 'S':
 		*modifier = LMOD_l;
-		/* fallthrough */
+		/* Fallthrough */
 	case 's':
 		return 1;
 	case 'C':
 		*modifier = LMOD_l;
-		/* fallthrough */
+		/* Fallthrough */
 	case 'c':
 		return 1;
 	case '[':

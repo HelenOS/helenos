@@ -281,6 +281,7 @@ static int hw_set_operating_mode(ar9271_t *ar9271,
 	case IEEE80211_OPMODE_MESH:
 	case IEEE80211_OPMODE_AP:
 		set_bit |= AR9271_OPMODE_STATION_AP_MASK;
+		/* Fallthrough */
 	case IEEE80211_OPMODE_STATION:
 		wmi_reg_clear_bit(ar9271->htc_device, AR9271_CONFIG,
 		    AR9271_CONFIG_ADHOC);
