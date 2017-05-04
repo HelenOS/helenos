@@ -225,5 +225,13 @@ unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b,
 	return divandmod64(a, b, c);
 }
 
+unsigned long long __udivmoddi4(unsigned long long a, unsigned long long b,
+    unsigned long long *c)
+{
+	return divandmod64(a, b, c);
+}
+
+
+
 /** @}
  */

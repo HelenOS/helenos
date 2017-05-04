@@ -52,7 +52,10 @@ extern int __divmodsi3(int, int, int *);
 extern unsigned int __udivmodsi3(unsigned int, unsigned int, unsigned int *);
 
 extern long long __divmoddi3(long long, long long, long long *);
+extern long long __divmoddi4(long long, long long, long long *);
 extern unsigned long long __udivmoddi3(unsigned long long, unsigned long long,
+    unsigned long long *);
+extern unsigned long long __udivmoddi4(unsigned long long, unsigned long long,
     unsigned long long *);
 
 #endif

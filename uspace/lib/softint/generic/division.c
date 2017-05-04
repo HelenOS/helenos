@@ -221,7 +221,27 @@ long long __divmoddi3(long long a, long long b, long long *c)
 	return -result;
 }
 
+long long __divmoddi4(long long a, long long b, long long *c)
+{
+	unsigned long long rem;
+	long long result = (int) divandmod64(ABSVAL(a), ABSVAL(b), &rem);
+	
+	if (SGN(a) == SGN(b)) {
+		*c = rem;
+		return result;
+	}
+	
+	*c = -rem;
+	return -result;
+}
+
 unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b,
+    unsigned long long *c)
+{
+	return divandmod64(a, b, c);
+}
+
+unsigned long long __udivmoddi4(unsigned long long a, unsigned long long b,
     unsigned long long *c)
 {
 	return divandmod64(a, b, c);
