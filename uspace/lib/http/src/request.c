@@ -142,8 +142,8 @@ int http_request_format(http_request_t *req, char **out_buf,
 
 int http_send_request(http_t *http, http_request_t *req)
 {
-	char *buf;
-	size_t buf_size;
+	char *buf = NULL;
+	size_t buf_size = 0;
 	
 	int rc = http_request_format(req, &buf, &buf_size);
 	if (rc != EOK)

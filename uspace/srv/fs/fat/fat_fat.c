@@ -747,7 +747,8 @@ int
 fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
 {
 	unsigned fatno;
-	fat_cluster_t nextc, clst_bad = FAT_CLST_BAD(bs);
+	fat_cluster_t nextc = 0;
+	fat_cluster_t clst_bad = FAT_CLST_BAD(bs);
 	int rc;
 
 	/* Mark all clusters in the chain as free in all copies of FAT. */

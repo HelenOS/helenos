@@ -417,7 +417,7 @@ static void tdata_item_subst_fun_sig(tdata_fun_sig_t *torig, tdata_tvv_t *tvv,
 	tdata_fun_sig_t *tnew;
 	list_node_t *arg_n;
 	tdata_item_t *arg_ti;
-	tdata_item_t *narg_ti;
+	tdata_item_t *narg_ti = NULL;
 
 	tnew = tdata_fun_sig_new();
 

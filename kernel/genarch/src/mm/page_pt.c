@@ -414,7 +414,7 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 	for (uintptr_t addr = ALIGN_DOWN(base, ptl0_step);
 	    addr - 1 < base + size - 1;
 	    addr += ptl0_step) {
-		if (GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr))) {
+		if (GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr)) != 0) {
 			ASSERT(overlaps(addr, ptl0_step,
 			    config.identity_base, config.identity_size));
 

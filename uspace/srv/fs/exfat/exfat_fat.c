@@ -192,7 +192,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 {
 	uint32_t clusters;
 	uint32_t max_clusters;
-	exfat_cluster_t c;
+	exfat_cluster_t c = EXFAT_CLST_FIRST;
 	int rc;
 
 	if (fcl < EXFAT_CLST_FIRST || fcl > DATA_CNT(bs) + 2)
