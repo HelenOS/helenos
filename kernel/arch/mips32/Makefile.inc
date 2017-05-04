@@ -80,14 +80,14 @@ ifeq ($(MACHINE),msim)
 endif
 
 ifeq ($(MACHINE),$(filter lmalta bmalta,$(MACHINE)))
-        ARCH_SOURCES += arch/$(KARCH)/src/mach/malta/malta.c
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/malta/malta.c
 endif
+
 ifeq ($(MACHINE),msim)
-        ARCH_SOURCES += arch/$(KARCH)/src/mach/msim/msim.c
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/msim/msim.c
 endif
 
 ARCH_AUTOGENS_AG = \
 	arch/$(KARCH)/include/arch/istate_struct.ag \
 	arch/$(KARCH)/include/arch/context_struct.ag \
 	arch/$(KARCH)/include/arch/fpu_context_struct.ag
-
