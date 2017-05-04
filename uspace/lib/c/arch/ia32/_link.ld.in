@@ -96,28 +96,18 @@ SECTIONS {
 #endif
 	
 	.tdata : {
-#ifndef DLEXE
 		_tdata_start = .;
-#endif
 		*(.tdata);
 		*(.gnu.linkonce.tb.*);
-#ifndef DLEXE
 		_tdata_end = .;
-#endif
 	} :data :tls
 	.tbss : {
-#ifndef DLEXE
 		_tbss_start = .;
-#endif
 		*(.tbss);
-#ifndef DLEXE
 		_tbss_end = .;
-#endif
 	} :data :tls
 	
-#ifndef DLEXE
 	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
-#endif
 	
 	.bss : {
 		*(.dynbss);
