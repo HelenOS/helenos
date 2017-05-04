@@ -1220,20 +1220,20 @@ static int print_double(double g, char spec, int precision, int width,
 	case 'f':
 		precision = (precision < 0) ? 6 : precision;
 		return print_double_fixed(g, precision, width, flags, ps);
-
+	
 	case 'E':
 		flags |= __PRINTF_FLAG_BIGCHARS;
 		/* Fallthrough */
 	case 'e':
 		precision = (precision < 0) ? 6 : precision;
 		return print_double_scientific(g, precision, width, flags, ps);
-
+	
 	case 'G':
 		flags |= __PRINTF_FLAG_BIGCHARS;
 		/* Fallthrough */
 	case 'g':
 		return print_double_generic(g, precision, width, flags, ps);
-
+	
 	default:
 		assert(false);
 		return -1;

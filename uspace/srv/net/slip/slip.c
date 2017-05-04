@@ -255,12 +255,12 @@ static int slip_recv_fibril(void *arg)
 				}
 
 				/*
- 				 * The RFC suggests to simply insert the wrongly
- 				 * escaped character into the packet so we fall
- 				 * through.
- 				 */
+				 * The RFC suggests to simply insert the wrongly
+				 * escaped character into the packet so we fall
+				 * through.
+				 */
 				/* Fallthrough */
- 
+
 			default:
 				recv_final[sdu.size++] = ch;
 				break;

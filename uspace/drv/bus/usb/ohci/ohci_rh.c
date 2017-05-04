@@ -392,21 +392,24 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	unsigned port;
 	TEST_SIZE_INIT(0, port, hub);
 	const unsigned feature = uint16_usb2host(setup_packet->value);
+	
 	switch (feature) {
 	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
-	{
-		const uint32_t rhda = OHCI_RD(hub->registers->rh_desc_a);
-		/* No power switching */
-		if (rhda & RHDA_NPS_FLAG)
-			return EOK;
-		/* Ganged power switching, one port powers all */
-		if (!(rhda & RHDA_PSM_FLAG)) {
-			OHCI_WR(hub->registers->rh_status,RHS_SET_GLOBAL_POWER);
-			return EOK;
+		{
+			const uint32_t rhda = OHCI_RD(hub->registers->rh_desc_a);
+			
+			/* No power switching */
+			if (rhda & RHDA_NPS_FLAG)
+				return EOK;
+			
+			/* Ganged power switching, one port powers all */
+			if (!(rhda & RHDA_PSM_FLAG)) {
+				OHCI_WR(hub->registers->rh_status,RHS_SET_GLOBAL_POWER);
+				return EOK;
+			}
 		}
-	}
-	/* Fall through, for per port power */
-	/* Fallthrough */
+		/* Fall through, for per port power */
+		/* Fallthrough */
 	case USB_HUB_FEATURE_PORT_ENABLE:  /*1*/
 	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/

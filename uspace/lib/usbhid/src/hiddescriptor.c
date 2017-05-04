@@ -736,138 +736,133 @@ int usb_hid_report_parse_global_tag(uint8_t tag, const uint8_t *data,
  * @param Current state table
  * @return Error code
  */
-int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, 
-	size_t item_size, usb_hid_report_item_t *report_item, 
-	usb_hid_report_path_t *usage_path)
+int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data,
+    size_t item_size, usb_hid_report_item_t *report_item,
+    usb_hid_report_path_t *usage_path)
 {
 	int32_t extended_usage;
 	
-	switch(tag) {
+	switch (tag) {
 	case USB_HID_REPORT_TAG_USAGE:
-		switch(report_item->in_delimiter) {
+		switch (report_item->in_delimiter) {
 		case INSIDE_DELIMITER_SET:
-			/* nothing to do
-			 * we catch only the first one
+			/*
+			 * Nothing to do.
+			 * We catch only the first one
 			 */
 			break;
-	
+			
 		case START_DELIMITER_SET:
 			report_item->in_delimiter = INSIDE_DELIMITER_SET;
 			/* Fallthrough */
 		case OUTSIDE_DELIMITER_SET:
 			extended_usage = ((report_item->usage_page) << 16);
-			extended_usage += usb_hid_report_tag_data_uint32(
-				data,item_size);
-
-			report_item->usages[report_item->usages_count] = 
-				extended_usage;
-
+			extended_usage +=
+			    usb_hid_report_tag_data_uint32(data, item_size);
+			
+			report_item->usages[report_item->usages_count] =
+			    extended_usage;
+			
 			report_item->usages_count++;
 			break;
 		}
 		break;
 		
-	case USB_HID_REPORT_TAG_USAGE_MINIMUM:			
+	case USB_HID_REPORT_TAG_USAGE_MINIMUM:
 		if (item_size == 3) {
-			// usage extended usages
-			report_item->extended_usage_page = 
+			/* Usage extended usages */
+			report_item->extended_usage_page =
 			    USB_HID_EXTENDED_USAGE_PAGE(
-			    usb_hid_report_tag_data_uint32(data,item_size));
-			   
-
-			report_item->usage_minimum = 
+			    usb_hid_report_tag_data_uint32(data, item_size));
+			
+			
+			report_item->usage_minimum =
 			    USB_HID_EXTENDED_USAGE(
-			    usb_hid_report_tag_data_uint32(data,item_size));
-		}
-		else {
-			report_item->usage_minimum = 
-			    usb_hid_report_tag_data_uint32(data,item_size);
+			    usb_hid_report_tag_data_uint32(data, item_size));
+		} else {
+			report_item->usage_minimum =
+			    usb_hid_report_tag_data_uint32(data, item_size);
 		}
 		break;
-	
+		
 	case USB_HID_REPORT_TAG_USAGE_MAXIMUM:
 		if (item_size == 3) {
-			if(report_item->extended_usage_page != 
-			    USB_HID_EXTENDED_USAGE_PAGE(	
-			    usb_hid_report_tag_data_uint32(data,item_size))) {
-				
+			if (report_item->extended_usage_page !=
+			    USB_HID_EXTENDED_USAGE_PAGE(
+			    usb_hid_report_tag_data_uint32(data, item_size))) {
 				return EINVAL;
 			}
-				
-			// usage extended usages
-			report_item->extended_usage_page = 
-				USB_HID_EXTENDED_USAGE_PAGE(
-				usb_hid_report_tag_data_uint32(data,item_size));
-
-			report_item->usage_maximum = 
-				USB_HID_EXTENDED_USAGE(
-				usb_hid_report_tag_data_uint32(data,item_size));
+			
+			/* Usage extended usages */
+			report_item->extended_usage_page =
+			    USB_HID_EXTENDED_USAGE_PAGE(
+			    usb_hid_report_tag_data_uint32(data,item_size));
+			
+			report_item->usage_maximum =
+			    USB_HID_EXTENDED_USAGE(
+			    usb_hid_report_tag_data_uint32(data,item_size));
+		} else {
+			report_item->usage_maximum =
+			    usb_hid_report_tag_data_uint32(data,item_size);
 		}
-		else {
-			report_item->usage_maximum = 
-				usb_hid_report_tag_data_uint32(data,item_size);
-		}
-
-		// vlozit zaznamy do pole usages
-		int32_t i;
-		for(i = report_item->usage_minimum; 
+		
+		/* Put the records into the usages array */
+		for (int32_t i = report_item->usage_minimum;
 		    i <= report_item->usage_maximum; i++) {
-
-			if(report_item->extended_usage_page) {
-			    report_item->usages[report_item->usages_count++] = 
-				(report_item->extended_usage_page << 16) + i;
-			}
-			else {			
-			    report_item->usages[report_item->usages_count++] = 
-				(report_item->usage_page << 16) + i;
+			
+			if (report_item->extended_usage_page) {
+				report_item->usages[report_item->usages_count++] =
+				    (report_item->extended_usage_page << 16) + i;
+			} else {
+				report_item->usages[report_item->usages_count++] =
+				    (report_item->usage_page << 16) + i;
 			}
 		}
 		report_item->extended_usage_page = 0;
-			
+		
 		break;
 		
 	case USB_HID_REPORT_TAG_DESIGNATOR_INDEX:
-		report_item->designator_index = 
-			usb_hid_report_tag_data_uint32(data,item_size);
+		report_item->designator_index =
+		    usb_hid_report_tag_data_uint32(data, item_size);
 		break;
 	
 	case USB_HID_REPORT_TAG_DESIGNATOR_MINIMUM:
-		report_item->designator_minimum = 
-			usb_hid_report_tag_data_uint32(data,item_size);
+		report_item->designator_minimum =
+		    usb_hid_report_tag_data_uint32(data, item_size);
 		break;
-
+	
 	case USB_HID_REPORT_TAG_DESIGNATOR_MAXIMUM:
-		report_item->designator_maximum = 
-			usb_hid_report_tag_data_uint32(data,item_size);
+		report_item->designator_maximum =
+		    usb_hid_report_tag_data_uint32(data, item_size);
 		break;
-
+	
 	case USB_HID_REPORT_TAG_STRING_INDEX:
-		report_item->string_index = 
-			usb_hid_report_tag_data_uint32(data,item_size);
+		report_item->string_index =
+		    usb_hid_report_tag_data_uint32(data, item_size);
 		break;
-
+	
 	case USB_HID_REPORT_TAG_STRING_MINIMUM:
-		report_item->string_minimum = 
-			usb_hid_report_tag_data_uint32(data,item_size);
+		report_item->string_minimum =
+		    usb_hid_report_tag_data_uint32(data, item_size);
 		break;
-
+	
 	case USB_HID_REPORT_TAG_STRING_MAXIMUM:
-		report_item->string_maximum = 
-			usb_hid_report_tag_data_uint32(data,item_size);
-		break;			
-
-	case USB_HID_REPORT_TAG_DELIMITER:
-		report_item->in_delimiter = 
-			usb_hid_report_tag_data_uint32(data,item_size);
+		report_item->string_maximum =
+		    usb_hid_report_tag_data_uint32(data, item_size);
 		break;
-
+	
+	case USB_HID_REPORT_TAG_DELIMITER:
+		report_item->in_delimiter =
+		    usb_hid_report_tag_data_uint32(data, item_size);
+		break;
+	
 	default:
 		return USB_HID_NO_ACTION;
 	}
-
+	
 	return EOK;
 }
-
 
 /**
  * Converts raw data to uint32 (thats the maximum length of short item data)
