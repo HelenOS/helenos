@@ -308,7 +308,8 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
  * @param request
  * @return 0 on success, !0 on error.
  */
-static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
+static __attribute__((noreturn)) void ldr_run(ipc_callid_t rid,
+    ipc_call_t *request)
 {
 	DPRINTF("Set task name\n");
 
