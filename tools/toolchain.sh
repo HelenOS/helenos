@@ -56,10 +56,10 @@ ISL_MAIN=<<EOF
 isl_ctx_get_max_operations (isl_ctx_alloc ());
 EOF
 
-BINUTILS_VERSION="2.27"
+BINUTILS_VERSION="2.28"
 BINUTILS_RELEASE=""
 ## BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
-GCC_VERSION="6.3.0"
+GCC_VERSION="7.1.0"
 ## GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
 GDB_VERSION="7.12.1"
 ## GDB_PATCHES="toolchain-gdb-7.6.1.patch"
@@ -151,14 +151,15 @@ show_usage() {
 	echo
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
-	echo " arm32      ARM"
+	echo " arm32      ARM 32b"
 	echo " ia32       IA-32 (x86, i386)"
 	echo " ia64       IA-64 (Itanium)"
 	echo " mips32     MIPS little-endian 32b"
 	echo " mips32eb   MIPS big-endian 32b"
 	echo " mips64     MIPS little-endian 64b"
-	echo " ppc32      32-bit PowerPC"
-	echo " ppc64      64-bit PowerPC"
+	echo " ppc32      PowerPC 32b"
+	echo " ppc64      PowerPC 64v"
+	echo " riscv64    RISC-V 64b"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
 	echo " parallel   same as 'all', but all in parallel"
@@ -347,8 +348,8 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "2869c9bf3e60ee97c74ac2a6bf4e9d68"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "677a7623c7ef6ab99881bc4e048debb6"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "9e8340c96626b469a603c15c9d843727"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "6bf56a2bca9dac9dbbf8e8d1036964a8"
 	download_fetch "${GDB_SOURCE}" "${GDB}" "06c8f40521ed65fe36ebc2be29b56942"
 }
 
@@ -389,6 +390,10 @@ set_target_from_platform() {
 		"ppc64")
 			LINUX_TARGET="ppc64-linux-gnu"
 			HELENOS_TARGET="ppc64-helenos"
+			;;
+		"riscv64")
+			LINUX_TARGET="riscv64-unknown-linux-gnu"
+			HELENOS_TARGET="riscv64-helenos"
 			;;
 		"sparc64")
 			LINUX_TARGET="sparc64-linux-gnu"
@@ -513,28 +518,31 @@ build_target() {
 	check_error $? "Error installing GCC."
 	
 	
-	echo ">>> Processing GDB (${PLATFORM})"
-	cd "${GDBDIR}"
-	check_error $? "Change directory failed."
-	
-	change_title "GDB: configure (${PLATFORM})"
-	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" ./configure \
-		"--target=${TARGET}" \
-		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
-		--enable-werror=no
-	check_error $? "Error configuring GDB."
-	
-	change_title "GDB: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
-	check_error $? "Error compiling GDB."
-	
-	change_title "GDB: make (${PLATFORM})"
-	if $REAL_INSTALL; then
-		PATH="${PATH}:${PREFIX}/bin" make install
-	else
-		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
+	# No GDB support for RISC-V so far
+	if [ "$PLATFORM" != "riscv64" ] ; then
+		echo ">>> Processing GDB (${PLATFORM})"
+		cd "${GDBDIR}"
+		check_error $? "Change directory failed."
+		
+		change_title "GDB: configure (${PLATFORM})"
+		PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" ./configure \
+			"--target=${TARGET}" \
+			"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
+			--enable-werror=no
+		check_error $? "Error configuring GDB."
+		
+		change_title "GDB: make (${PLATFORM})"
+		PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
+		check_error $? "Error compiling GDB."
+		
+		change_title "GDB: make (${PLATFORM})"
+		if $REAL_INSTALL ; then
+			PATH="${PATH}:${PREFIX}/bin" make install
+		else
+			PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
+		fi
+		check_error $? "Error installing GDB."
 	fi
-	check_error $? "Error installing GDB."
 	
 	
 	cd "${BASEDIR}"
@@ -568,7 +576,7 @@ if [ "$#" -lt "1" ]; then
 fi
 
 case "$1" in
-	amd64|arm32|ia32|ia64|mips32|mips32eb|mips64|ppc32|ppc64|sparc64)
+	amd64|arm32|ia32|ia64|mips32|mips32eb|mips64|ppc32|ppc64|riscv64|sparc64)
 		prepare
 		build_target "$1"
 		;;
@@ -583,6 +591,7 @@ case "$1" in
 		build_target "mips64"
 		build_target "ppc32"
 		build_target "ppc64"
+		build_target "riscv64"
 		build_target "sparc64"
 		;;
 	"parallel")
@@ -596,6 +605,7 @@ case "$1" in
 		build_target "mips64" &
 		build_target "ppc32" &
 		build_target "ppc64" &
+		build_target "riscv64" &
 		build_target "sparc64" &
 		wait
 		;;
@@ -617,7 +627,10 @@ case "$1" in
 		build_target "ppc32" &
 		wait
 		
+		build_target "riscv64" &
 		build_target "ppc64" &
+		wait
+		
 		build_target "sparc64" &
 		wait
 		;;
