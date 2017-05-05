@@ -72,6 +72,13 @@ struct statfs {
 	uint64_t f_bfree;    /* free blocks in fs */
 };
 
+/** List of file system types */
+typedef struct {
+	char **fstypes;
+	char *buf;
+	size_t size;
+} vfs_fstypes_t;
+
 extern int vfs_fhandle(FILE *, int *);
 
 extern char *vfs_absolutize(const char *, size_t *);
@@ -80,6 +87,8 @@ extern int vfs_cwd_get(char *path, size_t);
 extern int vfs_cwd_set(const char *path);
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
+extern int vfs_fstypes(vfs_fstypes_t *);
+extern void vfs_fstypes_free(vfs_fstypes_t *);
 extern int vfs_link(int, const char *, vfs_file_kind_t, int *);
 extern int vfs_link_path(const char *, vfs_file_kind_t, int *);
 extern int vfs_lookup(const char *, int);

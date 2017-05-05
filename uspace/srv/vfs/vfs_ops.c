@@ -146,7 +146,7 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags,
 	fibril_mutex_unlock(&fs_list_lock);
 
 	if (fs_handle == 0)
-		return ENOENT;
+		return ENOFS;
 	
 	/* Tell the mountee that it is being mounted. */
 	ipc_call_t answer;

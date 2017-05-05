@@ -347,6 +347,94 @@ async_sess_t *vfs_fd_session(int file, iface_t iface)
 	return loc_service_connect(stat.service, iface, 0);
 }
 
+/** Return a list of currently available file system types
+ *
+ * @param fstypes Points to structure where list of filesystem types is
+ *        stored. It is read as a null-terminated list of strings
+ *        fstypes->fstypes[0..]. To free the list use vfs_fstypes_free().
+ *
+ * @return                      EOK on success or a negative error code
+ */
+int vfs_fstypes(vfs_fstypes_t *fstypes)
+{
+	sysarg_t size;
+	char *buf;
+	char dummybuf[1];
+	size_t count, i;
+
+	async_exch_t *exch = vfs_exchange_begin();
+	int rc = async_req_0_1(exch, VFS_IN_FSTYPES, &size);
+
+	if (rc != EOK) {
+		vfs_exchange_end(exch);
+		return rc;
+	}
+
+	buf = malloc(size);
+	if (buf == NULL) {
+		buf = dummybuf;
+		size = 1;
+	}
+
+	rc = async_data_read_start(exch, buf, size);
+	vfs_exchange_end(exch);
+
+	if (buf == dummybuf)
+		return ENOMEM;
+
+	/*
+	 * Buffer should contain a number of null-terminated strings.
+	 * Count them so that we can allocate an index
+	 */
+	count = 0;
+	i = 0;
+	while (i < size) {
+		if (buf[i] == '\0')
+			++count;
+		++i;
+	}
+
+	if (count == 0) {
+		free(buf);
+		return EIO;
+	}
+
+	fstypes->fstypes = calloc(sizeof(char *), count + 1);
+	if (fstypes->fstypes == NULL) {
+		free(buf);
+		return ENOMEM;
+	}
+
+	/* Now fill the index */
+	if (buf[0] != '\0')
+		fstypes->fstypes[0] = &buf[0];
+	count = 0;
+	i = 0;
+	while (i < size) {
+		if (buf[i] == '\0')
+			fstypes->fstypes[++count] = &buf[i + 1];
+		++i;
+	}
+	fstypes->fstypes[count] = NULL;
+	fstypes->buf = buf;
+	fstypes->size = size;
+
+	return rc;
+}
+
+/** Free list of file system types.
+ *
+ * @param fstypes List of file system types
+ */
+void vfs_fstypes_free(vfs_fstypes_t *fstypes)
+{
+	free(fstypes->buf);
+	fstypes->buf = NULL;
+	free(fstypes->fstypes);
+	fstypes->fstypes = NULL;
+	fstypes->size = 0;
+}
+
 /** Link a file or directory
  *
  * Create a new name and an empty file or an empty directory in a parent

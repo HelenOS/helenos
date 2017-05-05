@@ -42,6 +42,7 @@
 #include <stdbool.h>
 #include <ipc/vfs.h>
 #include <task.h>
+#include <vfs/vfs.h>
 
 #ifndef dprintf
 	#define dprintf(...)
@@ -173,6 +174,7 @@ extern void vfs_exchange_release(async_exch_t *);
 
 extern fs_handle_t fs_name_to_handle(unsigned int instance, const char *, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
+extern int vfs_get_fstypes(vfs_fstypes_t *);
 
 extern int vfs_lookup_internal(vfs_node_t *, char *, int, vfs_lookup_res_t *);
 extern int vfs_link_internal(vfs_node_t *, char *, vfs_triplet_t *);

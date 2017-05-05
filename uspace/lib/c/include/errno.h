@@ -54,6 +54,7 @@ extern int *__errno(void) __attribute__((const));
 #define EIO           (-266)
 #define EMLINK        (-267)
 #define ENXIO         (-268)
+#define ENOFS         (-269)
 
 /** Bad checksum. */
 #define EBADCHECKSUM  (-300)

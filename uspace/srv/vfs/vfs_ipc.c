@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <vfs/vfs.h>
 #include "vfs.h"
 
 #include <errno.h>
@@ -41,6 +42,34 @@ static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
 	
 	int ret = vfs_op_clone(oldfd, newfd, desc);
 	async_answer_0(rid, ret);
+}
+
+static void vfs_in_fstypes(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_callid_t callid;
+	size_t len;
+	vfs_fstypes_t fstypes;
+	int rc;
+
+	rc = vfs_get_fstypes(&fstypes);
+	if (rc != EOK) {
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	/* Send size of the data */
+	async_answer_1(rid, EOK, fstypes.size);
+
+	/* Now we should get a read request */
+	if (!async_data_read_receive(&callid, &len))
+		goto out;
+
+	if (len > fstypes.size)
+		len = fstypes.size;
+	(void) async_data_read_finalize(callid, fstypes.buf, len);
+
+out:
+	vfs_fstypes_free(&fstypes);
 }
 
 static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -266,6 +295,9 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_IN_CLONE:
 			vfs_in_clone(callid, &call);
+			break;
+		case VFS_IN_FSTYPES:
+			vfs_in_fstypes(callid, &call);
 			break;
 		case VFS_IN_MOUNT:
 			vfs_in_mount(callid, &call);

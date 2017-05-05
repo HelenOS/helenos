@@ -49,6 +49,7 @@
 #include <as.h>
 #include <assert.h>
 #include <atomic.h>
+#include <vfs/vfs.h>
 #include "vfs.h"
 
 FIBRIL_CONDVAR_INITIALIZE(fs_list_cv);
@@ -337,6 +338,60 @@ vfs_info_t *fs_handle_to_info(fs_handle_t handle)
 	fibril_mutex_unlock(&fs_list_lock);
 	
 	return info;
+}
+
+/** Get list of file system types.
+ *
+ * @param fstypes Place to store list of file system types. Free using
+ *                vfs_fstypes_free().
+ *
+ * @return EOK on success or negative error code
+ */
+int vfs_get_fstypes(vfs_fstypes_t *fstypes)
+{
+	size_t size;
+	size_t count;
+	size_t l;
+
+	fibril_mutex_lock(&fs_list_lock);
+	
+	size = 0;
+	count = 0;
+	list_foreach(fs_list, fs_link, fs_info_t, fs) {
+		size += str_size(fs->vfs_info.name) + 1;
+		count++;
+	}
+	
+	if (size == 0)
+		size = 1;
+	
+	fstypes->buf = calloc(1, size);
+	if (fstypes->buf == NULL) {
+		fibril_mutex_unlock(&fs_list_lock);
+		return ENOMEM;
+	}
+	
+	fstypes->fstypes = calloc(sizeof(char *), count);
+	if (fstypes->fstypes == NULL) {
+		free(fstypes->buf);
+		fstypes->buf = NULL;
+		fibril_mutex_unlock(&fs_list_lock);
+		return ENOMEM;
+	}
+	
+	fstypes->size = size;
+	
+	size = 0; count = 0;
+	list_foreach(fs_list, fs_link, fs_info_t, fs) {
+		l = str_size(fs->vfs_info.name) + 1;
+		memcpy(fstypes->buf + size, fs->vfs_info.name, l);
+		fstypes->fstypes[count] = &fstypes->buf[size];
+		size += l;
+		count++;
+	}
+
+	fibril_mutex_unlock(&fs_list_lock);
+	return EOK;
 }
 
 /**

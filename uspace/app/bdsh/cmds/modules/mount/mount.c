@@ -48,6 +48,7 @@ static const char *cmdname = "mount";
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "instance", required_argument, 0, 'i' },
+	{ "types", no_argument, 0, 't' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -56,7 +57,12 @@ static struct option const long_options[] = {
 void help_cmd_mount(unsigned int level)
 {
 	static char helpfmt[] =
-	    "Usage:  %s <fstype> <mp> [dev] [<moptions>]\n";
+	    "Usage:  %s <fstype> <mp> [dev] [<moptions>]\n"
+	    "Options:\n"
+	    "  -h, --help       A short option summary\n"
+	    "  -i, --instance ## Mount a specific instance\n"
+	    "  -t, --types      List available file system types\n";
+
 	if (level == HELP_SHORT) {
 		printf("'%s' mounts a file system.\n", cmdname);
 	} else {
@@ -100,6 +106,25 @@ static void print_mtab_list(void)
 		free(old_ent);
 }
 
+static void print_fstypes(void)
+{
+	int rc;
+	vfs_fstypes_t fstypes;
+	char **p;
+
+	rc = vfs_fstypes(&fstypes);
+	if (rc != EOK) {
+		printf("Error getting list of available file system types.\n");
+		return;
+	}
+
+	printf("Available file system types:\n");
+	p = fstypes.fstypes;
+	while (*p != NULL)
+		printf("\t%s\n", *p++);
+	vfs_fstypes_free(&fstypes);
+}
+
 /* Main entry point for mount, accepts an array of arguments */
 int cmd_mount(char **argv)
 {
@@ -114,7 +139,7 @@ int cmd_mount(char **argv)
 	argc = cli_count_args(argv);
 
 	for (c = 0, optreset = 1, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "i:h", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "i:ht", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_mount(HELP_LONG);
@@ -123,6 +148,9 @@ int cmd_mount(char **argv)
 			instance = (unsigned int) strtol(optarg, NULL, 10);
 			instance_set = true;
 			break;
+		case 't':
+			print_fstypes();
+			return CMD_SUCCESS;
 		}
 	}
 
@@ -150,6 +178,8 @@ int cmd_mount(char **argv)
 	if (rc != EOK) {
 		printf("Unable to mount %s filesystem to %s on %s (rc=%s)\n",
 		    t_argv[2], t_argv[1], t_argv[3], str_error(rc));
+		if (rc == ENOFS)
+			print_fstypes();
 		return CMD_FAILURE;
 	}
 

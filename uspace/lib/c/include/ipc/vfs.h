@@ -63,6 +63,7 @@ typedef struct {
 
 typedef enum {
 	VFS_IN_CLONE = IPC_FIRST_USER_METHOD,
+	VFS_IN_FSTYPES,
 	VFS_IN_MOUNT,
 	VFS_IN_OPEN,
 	VFS_IN_PUT,
