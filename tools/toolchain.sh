@@ -162,6 +162,7 @@ show_usage() {
 	echo " riscv64    RISC-V 64b"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
+	echo " essential  build only targets currently needed for HelenOS development"
 	echo " parallel   same as 'all', but all in parallel"
 	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
@@ -593,6 +594,17 @@ case "$1" in
 		build_target "ppc32"
 		build_target "ppc64"
 		build_target "riscv64"
+		build_target "sparc64"
+		;;
+	"essential")
+		prepare
+		build_target "amd64"
+		build_target "arm32"
+		build_target "ia32"
+		build_target "ia64"
+		build_target "mips32"
+		build_target "mips32eb"
+		build_target "ppc32"
 		build_target "sparc64"
 		;;
 	"parallel")
