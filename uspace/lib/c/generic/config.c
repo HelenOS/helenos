@@ -62,7 +62,7 @@ char *config_get_value(const char *key)
 	char *arg;
 	while ((arg = str_tok(args, " ", &args)) != NULL) {
 		arg = str_tok(arg, "=", &value);
-		if (arg && !str_lcmp(arg, key, str_length(key)))
+		if (arg && !str_cmp(arg, key))
 			break;
 		else
 			value = NULL;
