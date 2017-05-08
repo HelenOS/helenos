@@ -1049,7 +1049,12 @@ static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
 	}
 }
 */
- 
+
+static int exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	return ENOTSUP;
+}
+
 static int
 exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size, unsigned *linkcnt)
@@ -1570,6 +1575,7 @@ static int exfat_destroy(service_id_t service_id, fs_index_t index)
 }
 
 vfs_out_ops_t exfat_ops = {
+	.fsprobe = exfat_fsprobe,
 	.mounted = exfat_mounted,
 	.unmounted = exfat_unmounted,
 	.read = exfat_read,

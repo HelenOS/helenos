@@ -189,6 +189,40 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags,
 	return EOK;
 }
 
+int vfs_op_fsprobe(const char *fs_name, service_id_t sid,
+    vfs_fs_probe_info_t *info)
+{
+	fs_handle_t fs_handle = 0;
+	sysarg_t rc;
+	int retval;
+	
+	fibril_mutex_lock(&fs_list_lock);
+	fs_handle = fs_name_to_handle(0, fs_name, false);
+	fibril_mutex_unlock(&fs_list_lock);
+	
+	if (fs_handle == 0)
+		return ENOFS;
+	
+	/* Send probe request to the file system server */
+	ipc_call_t answer;
+	async_exch_t *exch = vfs_exchange_grab(fs_handle);
+	aid_t msg = async_send_1(exch, VFS_OUT_FSPROBE, (sysarg_t) sid,
+	    &answer);
+	if (msg == 0)
+		return EINVAL;
+	
+	/* Read probe information */
+	retval = async_data_read_start(exch, info, sizeof(*info));
+	if (retval != EOK) {
+		async_forget(msg);
+		return retval;
+	}
+	
+	async_wait_for(msg, &rc);
+	vfs_exchange_release(exch);
+	return rc;
+}
+
 int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
     unsigned instance, const char *opts, const char *fs_name, int *outfd)
 {

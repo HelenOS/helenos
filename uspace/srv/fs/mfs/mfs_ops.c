@@ -139,30 +139,18 @@ mfs_global_init(void)
 	return EOK;
 }
 
-static int
-mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
-    aoff64_t *size, unsigned *linkcnt)
+/** Read the superblock.
+ */
+static int mfs_read_sb(service_id_t service_id, struct mfs_sb_info **rsbi)
 {
-	enum cache_mode cmode;
 	struct mfs_superblock *sb = NULL;
 	struct mfs3_superblock *sb3 = NULL;
-	struct mfs_sb_info *sbi = NULL;
-	struct mfs_instance *instance = NULL;
+	struct mfs_sb_info *sbi;
+	size_t bsize;
 	bool native, longnames;
 	mfs_version_t version;
 	uint16_t magic;
 	int rc;
-
-	/* Check for option enabling write through. */
-	if (str_cmp(opts, "wtcache") == 0)
-		cmode = CACHE_MODE_WT;
-	else
-		cmode = CACHE_MODE_WB;
-
-	/* initialize libblock */
-	rc = block_init(service_id, 4096);
-	if (rc != EOK)
-		return rc;
 
 	/* Allocate space for generic MFS superblock */
 	sbi = malloc(sizeof(*sbi));
@@ -171,16 +159,21 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		goto out_error;
 	}
 
-	/* Allocate space for filesystem instance */
-	instance = malloc(sizeof(*instance));
-	if (!instance) {
+	sb = malloc(MFS_SUPERBLOCK_SIZE);
+	if (!sb) {
 		rc = ENOMEM;
 		goto out_error;
 	}
 
-	sb = malloc(MFS_SUPERBLOCK_SIZE);
-	if (!sb) {
-		rc = ENOMEM;
+	rc = block_get_bsize(service_id, &bsize);
+	if (rc != EOK) {
+		rc = EIO;
+		goto out_error;
+	}
+
+	/* We don't support other block size than 512 */
+	if (bsize != 512) {
+		rc = ENOTSUP;
 		goto out_error;
 	}
 
@@ -268,6 +261,70 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		goto out_error;
 	}
 
+	mfsdebug("read superblock successful\n");
+
+	free(sb);
+	*rsbi = sbi;
+	return EOK;
+
+out_error:
+	if (sb)
+		free(sb);
+	if (sbi)
+		free(sbi);
+	return rc;
+}
+
+
+static int mfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	struct mfs_sb_info *sbi = NULL;
+	int rc;
+
+	/* Initialize libblock */
+	rc = block_init(service_id, 4096);
+	if (rc != EOK)
+		return rc;
+
+	/* Read the superblock */
+	rc = mfs_read_sb(service_id, &sbi);
+	block_fini(service_id);
+
+	return rc;
+}
+
+static int
+mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
+    aoff64_t *size, unsigned *linkcnt)
+{
+	enum cache_mode cmode;
+	struct mfs_sb_info *sbi = NULL;
+	struct mfs_instance *instance = NULL;
+	int rc;
+
+	/* Check for option enabling write through. */
+	if (str_cmp(opts, "wtcache") == 0)
+		cmode = CACHE_MODE_WT;
+	else
+		cmode = CACHE_MODE_WB;
+
+	/* Initialize libblock */
+	rc = block_init(service_id, 4096);
+	if (rc != EOK)
+		return rc;
+
+	/* Allocate space for filesystem instance */
+	instance = malloc(sizeof(*instance));
+	if (!instance) {
+		rc = ENOMEM;
+		goto out_error;
+	}
+
+	/* Read the superblock */
+	rc = mfs_read_sb(service_id, &sbi);
+	if (rc != EOK)
+		goto out_error;
+
 	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
 	if (rc != EOK) {
 		mfsdebug("block cache initialization failed\n");
@@ -297,14 +354,10 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	*size = mroot->ino_i->i_size;
 	*linkcnt = 1;
 
-	free(sb);
-
 	return mfs_node_put(fn);
 
 out_error:
 	block_fini(service_id);
-	if (sb)
-		free(sb);
 	if (sbi)
 		free(sbi);
 	if(instance)
@@ -1204,6 +1257,7 @@ mfs_free_block_count(service_id_t service_id, uint64_t *count)
 }
 
 vfs_out_ops_t mfs_ops = {
+	.fsprobe = mfs_fsprobe,
 	.mounted = mfs_mounted,
 	.unmounted = mfs_unmounted,
 	.read = mfs_read,

@@ -41,6 +41,7 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <str.h>
+#include <vfs/vfs.h>
 
 #include "empty.h"
 #include "mkfs.h"
@@ -131,6 +132,7 @@ static int vol_part_add_locked(service_id_t sid)
 {
 	vol_part_t *part;
 	bool empty;
+	vfs_fs_probe_info_t info;
 	int rc;
 
 	assert(fibril_mutex_is_locked(&vol_parts_lock));
@@ -153,15 +155,25 @@ static int vol_part_add_locked(service_id_t sid)
 		goto error;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Probe partition %s", part->svc_name);
-	rc = volsrv_part_is_empty(sid, &empty);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed determining if "
-		    "partition is empty.");
-		goto error;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
+	rc = vfs_fsprobe("mfs", sid, &info);
+	if (rc == EOK) {
+		part->pcnt = vpc_fs;
+		part->fstype = fs_minix;
+	} else {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Partition does not contain "
+		    "a recognized file system.");
+
+		rc = volsrv_part_is_empty(sid, &empty);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed determining if "
+			    "partition is empty.");
+			goto error;
+		}
+
+		part->pcnt = empty ? vpc_empty : vpc_unknown;
 	}
 
-	part->pcnt = empty ? vpc_empty : vpc_unknown;
 	list_append(&part->lparts, &vol_parts);
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Added partition %zu", part->svc_id);

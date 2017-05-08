@@ -44,6 +44,43 @@ static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, ret);
 }
 
+static void vfs_in_fsprobe(ipc_callid_t rid, ipc_call_t *request)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
+	char *fs_name = NULL;
+	ipc_callid_t callid;
+	vfs_fs_probe_info_t info;
+	size_t len;
+	int rc;
+	
+	/*
+	 * Now we expect the client to send us data with the name of the file 
+	 * system.
+	 */
+	rc = async_data_write_accept((void **) &fs_name, true, 0,
+	    FS_NAME_MAXLEN, 0, NULL);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	rc = vfs_op_fsprobe(fs_name, service_id, &info);
+	async_answer_0(rid, rc);
+	if (rc != EOK)
+		goto out;
+	
+	/* Now we should get a read request */
+	if (!async_data_read_receive(&callid, &len))
+		goto out;
+
+	if (len > sizeof(info))
+		len = sizeof(info);
+	(void) async_data_read_finalize(callid, &info, len);
+
+out:
+	free(fs_name);
+}
+
 static void vfs_in_fstypes(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
@@ -295,6 +332,9 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_IN_CLONE:
 			vfs_in_clone(callid, &call);
+			break;
+		case VFS_IN_FSPROBE:
+			vfs_in_fsprobe(callid, &call);
 			break;
 		case VFS_IN_FSTYPES:
 			vfs_in_fstypes(callid, &call);

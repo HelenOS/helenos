@@ -1020,6 +1020,11 @@ error:
 	return NULL;
 }
 
+static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	return ENOTSUP;
+}
+
 static int cdfs_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size, unsigned int *lnkcnt)
 {
@@ -1296,6 +1301,7 @@ static int cdfs_sync(service_id_t service_id, fs_index_t index)
 }
 
 vfs_out_ops_t cdfs_ops = {
+	.fsprobe = cdfs_fsprobe,
 	.mounted = cdfs_mounted,
 	.unmounted = cdfs_unmounted,
 	.read = cdfs_read,

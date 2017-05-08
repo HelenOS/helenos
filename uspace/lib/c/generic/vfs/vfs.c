@@ -347,6 +347,41 @@ async_sess_t *vfs_fd_session(int file, iface_t iface)
 	return loc_service_connect(stat.service, iface, 0);
 }
 
+/** Determine if a device contains the specified file system type. If so,
+ * return identification information.
+ *
+ * @param fs_name File system name
+ * @param serv    Service representing the mountee
+ * @param info    Place to store volume identification information
+ *
+ * @return                      EOK on success or a negative error code
+ */
+int vfs_fsprobe(const char *fs_name, service_id_t serv,
+    vfs_fs_probe_info_t *info)
+{
+	sysarg_t rc;
+	
+	ipc_call_t answer;
+	async_exch_t *exch = vfs_exchange_begin();
+	aid_t req = async_send_1(exch, VFS_IN_FSPROBE, serv, &answer);
+	
+	rc = async_data_write_start(exch, (void *) fs_name,
+	    str_size(fs_name));
+	
+	async_wait_for(req, &rc);
+	
+	if (rc != EOK) {
+		vfs_exchange_end(exch);
+		return rc;
+	}
+	
+	rc = async_data_read_start(exch, info, sizeof(*info));
+	vfs_exchange_end(exch);
+	
+	return rc;
+}
+
+
 /** Return a list of currently available file system types
  *
  * @param fstypes Points to structure where list of filesystem types is

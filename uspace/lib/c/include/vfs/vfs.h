@@ -87,6 +87,7 @@ extern int vfs_cwd_get(char *path, size_t);
 extern int vfs_cwd_set(const char *path);
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
+extern int vfs_fsprobe(const char *, service_id_t, vfs_fs_probe_info_t *);
 extern int vfs_fstypes(vfs_fstypes_t *);
 extern void vfs_fstypes_free(vfs_fstypes_t *);
 extern int vfs_link(int, const char *, vfs_file_kind_t, int *);

@@ -420,6 +420,11 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
  * Implementation of the VFS_OUT interface.
  */
 
+static int tmpfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	return ENOTSUP;
+}
+
 static int
 tmpfs_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
@@ -651,6 +656,7 @@ static int tmpfs_sync(service_id_t service_id, fs_index_t index)
 }
 
 vfs_out_ops_t tmpfs_ops = {
+	.fsprobe = tmpfs_fsprobe,
 	.mounted = tmpfs_mounted,
 	.unmounted = tmpfs_unmounted,
 	.read = tmpfs_read,

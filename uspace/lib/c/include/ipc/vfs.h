@@ -40,6 +40,8 @@
 #include <stdbool.h>
 
 #define FS_NAME_MAXLEN  20
+#define FS_LABEL_MAXLEN 256
+#define FS_VUID_MAXLEN 128
 #define MAX_PATH_LEN    (32 * 1024)
 #define MAX_MNTOPTS_LEN 256
 #define PLB_SIZE        (2 * MAX_PATH_LEN)
@@ -61,8 +63,15 @@ typedef struct {
 	bool write_retains_size;
 } vfs_info_t;
 
+/** Data returned by filesystem probe regarding a specific volume. */
+typedef struct {
+	char label[FS_LABEL_MAXLEN + 1];
+	char vuid[FS_VUID_MAXLEN + 1];
+} vfs_fs_probe_info_t;
+
 typedef enum {
 	VFS_IN_CLONE = IPC_FIRST_USER_METHOD,
+	VFS_IN_FSPROBE,
 	VFS_IN_FSTYPES,
 	VFS_IN_MOUNT,
 	VFS_IN_OPEN,
@@ -84,6 +93,7 @@ typedef enum {
 typedef enum {
 	VFS_OUT_CLOSE = IPC_FIRST_USER_METHOD,
 	VFS_OUT_DESTROY,
+	VFS_OUT_FSPROBE,
 	VFS_OUT_IS_EMPTY,
 	VFS_OUT_LINK,
 	VFS_OUT_LOOKUP,

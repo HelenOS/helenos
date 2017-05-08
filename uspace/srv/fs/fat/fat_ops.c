@@ -912,6 +912,11 @@ libfs_ops_t fat_libfs_ops = {
  * FAT VFS_OUT operations.
  */
 
+static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	return ENOTSUP;
+}
+
 static int
 fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size, unsigned *linkcnt)
@@ -1507,6 +1512,7 @@ static int fat_sync(service_id_t service_id, fs_index_t index)
 }
 
 vfs_out_ops_t fat_ops = {
+	.fsprobe = fat_fsprobe,
 	.mounted = fat_mounted,
 	.unmounted = fat_unmounted,
 	.read = fat_read,

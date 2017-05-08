@@ -915,6 +915,20 @@ libfs_ops_t ext4fs_libfs_ops = {
  * VFS operations.
  */
 
+/** Probe operation.
+ *
+ * Try to get information about specified filesystem from device.
+ *
+ * @param sevice_id Service ID
+ * @param info Place to store information
+ *
+ * @return Error code
+ */
+static int ext4fs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	return ENOTSUP;
+}
+
 /** Mount operation.
  *
  * Try to mount specified filesystem from device.
@@ -1519,6 +1533,7 @@ static int ext4fs_sync(service_id_t service_id, fs_index_t index)
  *
  */
 vfs_out_ops_t ext4fs_ops = {
+	.fsprobe = ext4fs_fsprobe,
 	.mounted = ext4fs_mounted,
 	.unmounted = ext4fs_unmounted,
 	.read = ext4fs_read,

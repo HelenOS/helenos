@@ -80,6 +80,33 @@ static void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,
 static void libfs_statfs(libfs_ops_t *, fs_handle_t, ipc_callid_t,
     ipc_call_t *);
 
+static void vfs_out_fsprobe(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	int rc;
+	vfs_fs_probe_info_t info;
+	
+	ipc_callid_t callid;
+	size_t size;
+	if ((!async_data_read_receive(&callid, &size)) ||
+	    (size != sizeof(info))) {
+		async_answer_0(callid, EIO);
+		async_answer_0(rid, EIO);
+		return;
+	}
+	
+	memset(&info, 0, sizeof(info));
+	rc = vfs_out_ops->fsprobe(service_id, &info);
+	if (rc != EOK) {
+		async_answer_0(callid, EIO);
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	async_data_read_finalize(callid, &info, sizeof(info));
+	async_answer_0(rid, EOK);
+}
+
 static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
@@ -271,6 +298,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			return;
 		
 		switch (IPC_GET_IMETHOD(call)) {
+		case VFS_OUT_FSPROBE:
+			vfs_out_fsprobe(callid, &call);
+			break;
 		case VFS_OUT_MOUNTED:
 			vfs_out_mounted(callid, &call);
 			break;

@@ -298,6 +298,11 @@ libfs_ops_t udf_libfs_ops = {
 	.free_block_count = udf_free_block_count
 };
 
+static int udf_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	return ENOTSUP;
+}
+
 static int udf_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size, unsigned *linkcnt)
 {
@@ -546,6 +551,7 @@ static int udf_destroy(service_id_t service_id, fs_index_t index)
 }
 
 vfs_out_ops_t udf_ops = {
+	.fsprobe = udf_fsprobe,
 	.mounted = udf_mounted,
 	.unmounted = udf_unmounted,
 	.read = udf_read,

@@ -454,6 +454,11 @@ bool locfs_init(void)
 	return true;
 }
 
+static int locfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	return ENOTSUP;
+}
+
 static int locfs_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
@@ -762,6 +767,7 @@ static int locfs_destroy(service_id_t service_id, fs_index_t index)
 }
 
 vfs_out_ops_t locfs_ops = {
+	.fsprobe = locfs_fsprobe,
 	.mounted = locfs_mounted,
 	.unmounted = locfs_unmounted,
 	.read = locfs_read,

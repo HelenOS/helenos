@@ -42,6 +42,7 @@
 #include <loc.h>
 
 typedef struct {
+	int (* fsprobe)(service_id_t, vfs_fs_probe_info_t *);
 	int (* mounted)(service_id_t, const char *, fs_index_t *, aoff64_t *,
 	    unsigned *);
 	int (* unmounted)(service_id_t);
