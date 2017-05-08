@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <dlfcn.h>
 
 #ifdef CONFIG_RTLD

@@ -41,7 +41,6 @@
 #include <malloc.h>
 #include <abi/mm/as.h>
 #include <as.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <libarch/barrier.h>
 #include <libarch/faddr.h>

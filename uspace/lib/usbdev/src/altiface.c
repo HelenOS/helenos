@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 /** Count number of alternate settings of a interface.
  *

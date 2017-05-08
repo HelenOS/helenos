@@ -35,7 +35,6 @@
  */
 
 #include <sys/types.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <task.h>
 #include <str_error.h>

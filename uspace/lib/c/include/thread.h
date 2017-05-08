@@ -38,12 +38,15 @@
 #include <libarch/thread.h>
 #include <sys/types.h>
 #include <abi/proc/thread.h>
+#include <time.h>
 
 extern int thread_create(void (*)(void *), void *, const char *, thread_id_t *);
 extern void thread_exit(int) __attribute__((noreturn));
 extern void thread_detach(thread_id_t);
 extern int thread_join(thread_id_t);
 extern thread_id_t thread_get_id(void);
+extern int thread_usleep(useconds_t);
+extern unsigned int thread_sleep(unsigned int);
 
 #endif
 

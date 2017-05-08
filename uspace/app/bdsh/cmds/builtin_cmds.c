@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <str.h>
 #include "errors.h"
 #include "cmds.h"

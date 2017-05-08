@@ -34,9 +34,9 @@
 
 #include <io/style.h>
 #include <malloc.h>
-#include <unistd.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <as.h>
 #include <io/chargrid.h>
 

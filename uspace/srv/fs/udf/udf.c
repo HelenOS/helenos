@@ -40,7 +40,6 @@
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
-#include <unistd.h>
 #include <task.h>
 #include <libfs.h>
 #include <str.h>

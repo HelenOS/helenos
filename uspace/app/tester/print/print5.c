@@ -39,7 +39,7 @@
 #define NVERIFY_PRINTF
 
 #include <stdio.h>
-#include <unistd.h>
+#include <stddef.h>
 #include "../tester.h"
 
 const char *test_print5(void)

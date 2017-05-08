@@ -31,7 +31,6 @@
 #include <mem.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <vfs/vfs.h>
 
 #include "cmds.h"

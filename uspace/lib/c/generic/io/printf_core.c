@@ -36,8 +36,8 @@
  * @brief Printing functions.
  */
 
-#include <unistd.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <io/printf_core.h>
 #include <ctype.h>
 #include <str.h>

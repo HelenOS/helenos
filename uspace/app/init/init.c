@@ -35,7 +35,6 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <stdarg.h>
 #include <vfs/vfs.h>
 #include <stdbool.h>

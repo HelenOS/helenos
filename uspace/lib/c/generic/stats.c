@@ -39,7 +39,6 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <malloc.h>
-#include <unistd.h>
 
 #define SYSINFO_STATS_MAX_PATH  64
 

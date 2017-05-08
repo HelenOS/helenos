@@ -35,6 +35,7 @@
 #include <ipc/irq.h>
 #include <libc.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <macros.h>
 
 static irq_cmd_t default_cmds[] = {

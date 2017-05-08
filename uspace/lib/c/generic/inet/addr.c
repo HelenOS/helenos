@@ -35,9 +35,9 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <unistd.h>
 #include <inet/addr.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <malloc.h>
 #include <bitops.h>
 

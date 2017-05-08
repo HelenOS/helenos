@@ -34,7 +34,6 @@
 /** @file
  */
 
-#include <unistd.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <errno.h>

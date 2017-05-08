@@ -33,7 +33,6 @@
  * @file
  */
 
-#include <unistd.h>
 #include <stdio.h>
 #include <macros.h>
 #include "getterm.h"

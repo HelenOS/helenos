@@ -36,7 +36,7 @@
 #define SYSCALLS_H_
 
 #include <stdbool.h>
-#include <unistd.h>
+#include <stddef.h>
 
 #include "trace.h"
 

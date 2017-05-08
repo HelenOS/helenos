@@ -35,11 +35,11 @@
  * 	Drepper U.: ELF Handling For Thread-Local Storage, 2005
  */
 
+#include <stddef.h>
 #include <align.h>
 #include <tls.h>
 #include <malloc.h>
 #include <str.h>
-#include <unistd.h>
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>

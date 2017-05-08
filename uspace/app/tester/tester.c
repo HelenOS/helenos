@@ -35,8 +35,8 @@
  * @file
  */
 
-#include <unistd.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <str.h>
 #include <io/log.h>
 #include "tester.h"

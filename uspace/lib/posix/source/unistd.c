@@ -48,6 +48,8 @@
 #include "libc/malloc.h"
 #include "libc/vfs/vfs.h"
 
+#include <libarch/config.h>
+
 aoff64_t posix_pos[MAX_OPEN_FILES];
 
 /* Array of environment variable strings (NAME=VALUE). */
@@ -133,7 +135,7 @@ int posix_chdir(const char *path)
  */
 int posix_getpagesize(void)
 {
-	return getpagesize();
+	return PAGE_SIZE;
 }
 
 /**
@@ -383,8 +385,8 @@ long posix_sysconf(int name)
 	long avphys_pages = 0;
 	stats_physmem_t *mem_stats = stats_get_physmem();
 	if (mem_stats) {
-		phys_pages = (long) (mem_stats->total / getpagesize());
-		avphys_pages = (long) (mem_stats->free / getpagesize());
+		phys_pages = (long) (mem_stats->total / posix_getpagesize());
+		avphys_pages = (long) (mem_stats->free / posix_getpagesize());
 		free(mem_stats);
 		mem_stats = 0;
 	}
@@ -395,7 +397,7 @@ long posix_sysconf(int name)
 	case _SC_AVPHYS_PAGES:
 		return avphys_pages;
 	case _SC_PAGESIZE:
-		return getpagesize();
+		return posix_getpagesize();
 	case _SC_CLK_TCK:
 		return clk_tck;
 	default:

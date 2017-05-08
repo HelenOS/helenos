@@ -50,7 +50,6 @@
 
 #include <adt/hash_table.h>
 #include <adt/list.h>
-#include <unistd.h>
 #include <malloc.h>
 #include <assert.h>
 #include <str.h>

@@ -28,8 +28,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <str.h>
-#include <unistd.h>
 #include "config.h"
 #include "scli.h"
 #include "input.h"

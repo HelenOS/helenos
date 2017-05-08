@@ -36,9 +36,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <errno.h>
 #include <str_error.h>
-#include <stdbool.h>
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>

@@ -38,7 +38,6 @@
 #include "internal/common.h"
 #include "posix/fcntl.h"
 
-#include "libc/unistd.h"
 #include "libc/vfs/vfs.h"
 #include "posix/errno.h"
 

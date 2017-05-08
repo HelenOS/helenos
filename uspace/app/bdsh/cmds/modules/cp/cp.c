@@ -29,7 +29,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <getopt.h>

@@ -33,10 +33,11 @@
 
 #include <assert.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <stddef.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
-#include <stdlib.h>
 #include <str.h>
 
 /* HelenOS Port : We're incorporating only the modern getopt_long with wrappers

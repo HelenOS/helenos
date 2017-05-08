@@ -27,8 +27,8 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <malloc.h>
 #include <as.h>
 #include <errno.h>

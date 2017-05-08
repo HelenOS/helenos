@@ -30,6 +30,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <libarch/config.h>
 #include "common.h"
 #include "../tester.h"
 

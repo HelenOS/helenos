@@ -33,7 +33,7 @@
 #include <atomic.h>
 #include <thread.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stddef.h>
 #include <inttypes.h>
 #include "../tester.h"
 
@@ -45,7 +45,7 @@ static void threadtest(void *data)
 	thread_detach(thread_get_id());
 	
 	while (atomic_get(&finish))
-		usleep(100000);
+		thread_usleep(100000);
 	
 	atomic_inc(&threads_finished);
 }
@@ -69,14 +69,14 @@ const char *test_thread1(void)
 	}
 	
 	TPRINTF("\nRunning threads for %u seconds...", DELAY);
-	sleep(DELAY);
+	thread_sleep(DELAY);
 	TPRINTF("\n");
 	
 	atomic_set(&finish, 0);
 	while (atomic_get(&threads_finished) < total) {
 		TPRINTF("Threads left: %" PRIua "\n",
 		    total - atomic_get(&threads_finished));
-		sleep(1);
+		thread_sleep(1);
 	}
 	
 	return NULL;

@@ -33,7 +33,6 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <assert.h>
 #include <str.h>
 #include <errno.h>

@@ -49,6 +49,8 @@
 /** @file
  */
 
+#include <stdint.h>
+
 /*
  * Definitions for Tetris.
  */

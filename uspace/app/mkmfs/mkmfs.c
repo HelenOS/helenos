@@ -39,7 +39,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <block.h>
-#include <unistd.h>
 #include <errno.h>
 #include <sys/typefmt.h>
 #include <inttypes.h>

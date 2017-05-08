@@ -33,10 +33,10 @@
 /** @file
  */
 
+#include <stddef.h>
 #include <libc.h>
 #include <str.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <errno.h>
 #include <abi/kio.h>
 #include <io/kio.h>

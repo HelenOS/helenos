@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <adt/list.h>
 #include <align.h>
+#include <thread.h>
 #include <byteorder.h>
 #include <irc.h>
 #include <as.h>
@@ -364,7 +365,7 @@ static void e1000_link_restart(e1000_t *e1000)
 	if (ctrl & CTRL_SLU) {
 		ctrl &= ~(CTRL_SLU);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
-		usleep(10);
+		thread_usleep(10);
 		fibril_mutex_lock(&e1000->ctrl_lock);
 		ctrl |= CTRL_SLU;
 	}
@@ -1716,7 +1717,7 @@ static int e1000_reset(nic_t *nic)
 	E1000_REG_WRITE(e1000, E1000_CTRL, CTRL_RST);
 	
 	/* Wait for the reset */
-	usleep(20);
+	thread_usleep(20);
 	
 	/* check if RST_BIT cleared */
 	if (E1000_REG_READ(e1000, E1000_CTRL) & (CTRL_RST))
@@ -1804,7 +1805,7 @@ static int e1000_on_down_unlocked(nic_t *nic)
 	 * Wait for the for the end of all data
 	 * transfers to descriptors.
 	 */
-	usleep(100);
+	thread_usleep(100);
 	
 	return EOK;
 }
@@ -2222,7 +2223,7 @@ static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
 	
 	uint32_t eerd = E1000_REG_READ(e1000, E1000_EERD);
 	while ((eerd & e1000->info.eerd_done) == 0) {
-		usleep(1);
+		thread_usleep(1);
 		eerd = E1000_REG_READ(e1000, E1000_EERD);
 	}
 	

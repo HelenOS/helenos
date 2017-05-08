@@ -31,7 +31,6 @@
  * Cryptographic functions library.
  */
 
-#include <unistd.h>
 #include <str.h>
 #include <macros.h>
 #include <errno.h>

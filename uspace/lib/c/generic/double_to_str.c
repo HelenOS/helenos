@@ -32,8 +32,9 @@
 #include <ieee_double.h>
 
 #include <stdint.h>
-#include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <assert.h>
 
 /*
  * Floating point numbers are converted from their binary representation

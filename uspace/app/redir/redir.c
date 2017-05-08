@@ -36,7 +36,6 @@
 
 #include <sys/types.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <str.h>
 #include <stdio.h>
 #include <task.h>

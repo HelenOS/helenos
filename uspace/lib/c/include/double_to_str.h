@@ -29,7 +29,7 @@
 #ifndef DOUBLE_TO_STR_H_
 #define DOUBLE_TO_STR_H_
 
-#include <unistd.h>
+#include <stddef.h>
 
 /** Maximum number of digits double_to_*_str conversion functions produce. 
  *

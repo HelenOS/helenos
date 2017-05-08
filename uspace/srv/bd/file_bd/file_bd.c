@@ -39,7 +39,6 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <async.h>
 #include <as.h>
 #include <bd_srv.h>

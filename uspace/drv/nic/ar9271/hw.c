@@ -34,7 +34,6 @@
 
 #include <macros.h>
 #include <usb/debug.h>
-#include <unistd.h>
 #include <errno.h>
 #include <nic.h>
 #include <ieee80211.h>

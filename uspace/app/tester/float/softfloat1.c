@@ -28,6 +28,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <mathtypes.h>
 #include <add.h>
 #include <sub.h>
@@ -35,7 +37,6 @@
 #include <div.h>
 #include <comparison.h>
 #include <conversion.h>
-#include <stdbool.h>
 #include "../tester.h"
 
 #define add_float  __addsf3

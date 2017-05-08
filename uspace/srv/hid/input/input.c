@@ -43,7 +43,6 @@
 #include <ipc/input.h>
 #include <config.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <ns.h>
 #include <async.h>

@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <vfs/vfs.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include "common.h"
 #include <bithenge/blob.h>
 #include <bithenge/file.h>

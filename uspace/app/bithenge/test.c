@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <sys/types.h>
 #include <bithenge/blob.h>
 #include <bithenge/source.h>

@@ -31,7 +31,7 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
+#include <stddef.h>
 
 #define BUF_SIZE  1024
 

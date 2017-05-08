@@ -35,7 +35,7 @@
 
 #include <errno.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stddef.h>
 #include <sysinfo.h>
 #include <malloc.h>
 #include <sys/types.h>

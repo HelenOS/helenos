@@ -31,12 +31,13 @@
 
 #include <bithenge/os.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <byteorder.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <macros.h>
 #include <mem.h>
-#include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
 

@@ -58,6 +58,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <ddi.h>
+#include <thread.h>
 #include "dp8390.h"
 
 /** Page size */
@@ -170,9 +171,9 @@ static void ne2k_init(ne2k_t *ne2k)
 	
 	/* Reset the ethernet card */
 	uint8_t val = pio_read_8(ne2k->port + NE2K_RESET);
-	usleep(2000);
+	thread_usleep(2000);
 	pio_write_8(ne2k->port + NE2K_RESET, val);
-	usleep(2000);
+	thread_usleep(2000);
 	
 	/* Reset the DP8390 */
 	pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);

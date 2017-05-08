@@ -36,6 +36,7 @@
  */
 
 #include <stdlib.h>
+#include <stddef.h>
 #include <vfs/canonify.h>
 
 /** Token types used for tokenization of path. */

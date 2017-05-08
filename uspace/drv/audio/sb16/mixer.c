@@ -31,7 +31,6 @@
 #include <errno.h>
 #include <libarch/ddi.h>
 #include <macros.h>
-#include <unistd.h>
 
 #include "ddf_log.h"
 #include "mixer.h"

@@ -35,7 +35,6 @@
 #include <libc.h>
 #include <str.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <errno.h>
 #include <abi/klog.h>
 #include <io/klog.h>

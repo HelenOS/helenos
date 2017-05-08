@@ -34,6 +34,7 @@
 
 #include <str.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <errno.h>
 #include <assert.h>
 

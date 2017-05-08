@@ -40,7 +40,6 @@
 #include <loc.h>
 #include <ipc/char.h>
 #include <async.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysinfo.h>

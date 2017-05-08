@@ -35,7 +35,6 @@
 #include <as.h>
 #include <libc.h>
 #include <errno.h>
-#include <unistd.h>
 #include <align.h>
 #include <sys/types.h>
 #include <bitops.h>

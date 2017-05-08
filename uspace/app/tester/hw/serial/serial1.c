@@ -38,8 +38,10 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <sys/types.h>
 #include <async.h>
+#include <thread.h>
 #include <ipc/services.h>
 #include <loc.h>
 #include <char_dev_iface.h>
@@ -145,7 +147,7 @@ const char *test_serial1(void)
 		TPRINTF("Read %zd bytes\n", read);
 		
 		if (read == 0)
-			usleep(DEFAULT_SLEEP);
+			thread_usleep(DEFAULT_SLEEP);
 		else {
 			buf[read] = 0;
 			

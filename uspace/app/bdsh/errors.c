@@ -27,10 +27,10 @@
  */
 
 #include <stdio.h>
-#include <str.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdarg.h>
+#include <stddef.h>
+#include <str.h>
 
 #include "config.h"
 #include "errors.h"

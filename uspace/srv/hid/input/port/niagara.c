@@ -134,7 +134,7 @@ static void niagara_thread_impl(void *arg)
 
 	while (1) {
 		niagara_key_pressed();
-		usleep(POLL_INTERVAL);
+		thread_usleep(POLL_INTERVAL);
 	}
 }
 /** @}

@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <malloc.h>
 #include <stdbool.h>
-#include <unistd.h>
+#include <stddef.h>
 
 /** Get sysinfo keys size
  *

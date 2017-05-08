@@ -34,7 +34,8 @@
 #ifndef RTL8139_GENERAL_H_
 #define RTL8139_GENERAL_H_
 
-#include <unistd.h>
+#include <stddef.h>
+#include <time.h>
 
 /** Number of microseconds in second */
 #define RTL8139_USEC_IN_SEC  1000000

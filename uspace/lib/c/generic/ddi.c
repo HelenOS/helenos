@@ -34,7 +34,6 @@
 
 #include <assert.h>
 #include <atomic.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>

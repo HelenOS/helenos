@@ -35,7 +35,6 @@
 #ifndef LIBC_STDLIB_H_
 #define LIBC_STDLIB_H_
 
-#include <unistd.h>
 #include <malloc.h>
 #include <stacktrace.h>
 

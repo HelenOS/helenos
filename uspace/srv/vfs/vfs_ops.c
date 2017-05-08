@@ -46,7 +46,6 @@
 #include <stdbool.h>
 #include <fibril_synch.h>
 #include <adt/list.h>
-#include <unistd.h>
 #include <ctype.h>
 #include <assert.h>
 #include <vfs/canonify.h>

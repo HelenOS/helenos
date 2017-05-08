@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <str.h>
 #include <vfs/vfs.h>
-#include <unistd.h>
 #include <dirent.h>
 #include <loc.h>
 #include <sys/types.h>

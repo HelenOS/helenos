@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <atomic.h>
 #include <thread.h>
 #include <inttypes.h>
@@ -87,7 +88,7 @@ const char *test_float1(void)
 	while (atomic_get(&threads_finished) < total) {
 		TPRINTF("Threads left: %" PRIua "\n",
 		    total - atomic_get(&threads_finished));
-		sleep(1);
+		thread_sleep(1);
 	}
 	
 	if (atomic_get(&threads_fault) == 0)

@@ -35,6 +35,8 @@
 #include <errno.h>
 #include <uuid.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <time.h>
 #include <str.h>
 
 /** Generate UUID.

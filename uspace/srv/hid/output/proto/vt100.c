@@ -33,7 +33,7 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stddef.h>
 #include <malloc.h>
 #include <io/color.h>
 #include "vt100.h"

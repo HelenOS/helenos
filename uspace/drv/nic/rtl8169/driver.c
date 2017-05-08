@@ -34,6 +34,7 @@
 #include <libarch/barrier.h>
 
 #include <as.h>
+#include <thread.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <io/log.h>
@@ -759,7 +760,7 @@ inline static void rtl8169_reset(rtl8169_t *rtl8169)
 	pio_write_8(rtl8169->regs + CR, CR_RST);
 	memory_barrier();
 	while (pio_read_8(rtl8169->regs + CR) & CR_RST) {
-		usleep(1);
+		thread_usleep(1);
 		read_barrier();
 	}
 }
@@ -1173,7 +1174,7 @@ static uint16_t rtl8169_mii_read(rtl8169_t *rtl8169, uint8_t addr)
 
 	do {
 		phyar = pio_read_32(rtl8169->regs + PHYAR);
-		usleep(20);
+		thread_usleep(20);
 	} while ((phyar & PHYAR_RW_WRITE) == 0);
 
 	return phyar & PHYAR_DATA_MASK;
@@ -1191,10 +1192,10 @@ static void rtl8169_mii_write(rtl8169_t *rtl8169, uint8_t addr, uint16_t value)
 
 	do {
 		phyar = pio_read_32(rtl8169->regs + PHYAR);
-		usleep(20);
+		thread_usleep(20);
 	} while ((phyar & PHYAR_RW_WRITE) != 0);
 
-	usleep(20);
+	thread_usleep(20);
 }
 
 /** Main function of RTL8169 driver

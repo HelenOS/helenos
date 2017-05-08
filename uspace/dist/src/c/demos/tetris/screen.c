@@ -57,7 +57,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
-#include <unistd.h>
 #include <vfs/vfs.h>
 #include <async.h>
 #include <stdbool.h>

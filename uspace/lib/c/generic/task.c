@@ -47,7 +47,6 @@
 #include <libc.h>
 #include "private/ns.h"
 #include <vfs/vfs.h>
-#include <unistd.h>
 
 task_id_t task_get_id(void)
 {

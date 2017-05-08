@@ -28,6 +28,7 @@
 
 #include <setjmp.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include "../tester.h"
 
 static jmp_buf jmp_env;

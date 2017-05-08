@@ -31,7 +31,6 @@
  */
 
 #include <assert.h>
-#include <unistd.h>
 #include <errno.h>
 #include <io/logctl.h>
 #include <ipc/logger.h>

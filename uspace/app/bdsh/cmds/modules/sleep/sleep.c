@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <thread.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -130,7 +130,7 @@ int cmd_sleep(char **argv)
 		return CMD_FAILURE;
 	}
 
-	(void) usleep(duration);
+	(void) thread_usleep(duration);
 
 	return CMD_SUCCESS;
 }

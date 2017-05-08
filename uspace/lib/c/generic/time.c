@@ -48,10 +48,10 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <assert.h>
-#include <unistd.h>
 #include <loc.h>
 #include <device/clock_dev.h>
 #include <malloc.h>
+#include <thread.h>
 
 #define ASCTIME_BUF_LEN  26
 
@@ -684,39 +684,9 @@ time_t time(time_t *tloc)
 	return tv.tv_sec;
 }
 
-/** Wait unconditionally for specified number of microseconds
- *
- */
-int usleep(useconds_t usec)
-{
-	(void) __SYSCALL1(SYS_THREAD_USLEEP, usec);
-	return 0;
-}
-
 void udelay(useconds_t time)
 {
 	(void) __SYSCALL1(SYS_THREAD_UDELAY, (sysarg_t) time);
-}
-
-
-/** Wait unconditionally for specified number of seconds
- *
- */
-unsigned int sleep(unsigned int sec)
-{
-	/*
-	 * Sleep in 1000 second steps to support
-	 * full argument range
-	 */
-	
-	while (sec > 0) {
-		unsigned int period = (sec > 1000) ? 1000 : sec;
-		
-		usleep(period * 1000000);
-		sec -= period;
-	}
-	
-	return 0;
 }
 
 /** Get time from broken-down time.

@@ -42,7 +42,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #define BITHENGE_FAILURE_DECLS_ONLY 1
 #include "failure.h"
 #include "common.h"

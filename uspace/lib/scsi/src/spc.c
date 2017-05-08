@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include "scsi/spc.h"
 
 /** String descriptions for SCSI peripheral device type.

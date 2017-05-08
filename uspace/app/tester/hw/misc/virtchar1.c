@@ -39,7 +39,6 @@
 #include <str_error.h>
 #include <sys/types.h>
 #include <async.h>
-#include <unistd.h>
 #include <char_dev_iface.h>
 #include <str.h>
 #include <vfs/vfs.h>

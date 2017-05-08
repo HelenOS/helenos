@@ -42,7 +42,6 @@
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
-#include <unistd.h>
 #include <task.h>
 #include <stdio.h>
 #include <libfs.h>

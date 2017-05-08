@@ -69,6 +69,7 @@
 #include <fibril_synch.h>
 #include <fibril.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <compiler/barrier.h>
 #include <libarch/barrier.h>
 #include <futex.h>
@@ -78,6 +79,7 @@
 #include <smp_memory_barrier.h>
 #include <assert.h>
 #include <time.h>
+#include <thread.h>
 
 
 /** RCU sleeps for RCU_SLEEP_MS before polling an active RCU reader again. */
@@ -427,7 +429,7 @@ static void sync_sleep(blocking_mode_t blocking_mode)
 	if (blocking_mode == BM_BLOCK_FIBRIL) {
 		async_usleep(RCU_SLEEP_MS * 1000);
 	} else {
-		usleep(RCU_SLEEP_MS * 1000);
+		thread_usleep(RCU_SLEEP_MS * 1000);
 	}
 		
 	futex_down(&rcu.sync_lock.futex);

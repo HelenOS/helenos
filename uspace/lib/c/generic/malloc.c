@@ -35,6 +35,7 @@
 
 #include <malloc.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <as.h>
 #include <align.h>
 #include <macros.h>

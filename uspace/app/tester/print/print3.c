@@ -27,7 +27,7 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
+#include <stddef.h>
 #include <macros.h>
 #include "../tester.h"
 

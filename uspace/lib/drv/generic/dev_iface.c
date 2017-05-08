@@ -36,6 +36,7 @@
  */
 
 #include <assert.h>
+#include <stddef.h>
 
 #include "dev_iface.h"
 #include "remote_hw_res.h"

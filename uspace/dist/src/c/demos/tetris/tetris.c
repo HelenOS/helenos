@@ -50,7 +50,7 @@
 /** @file
  */
 
-static const char copyright[] =
+static volatile const char copyright[] =
 	"@(#) Copyright (c) 1992, 1993\n"
 	"\tThe Regents of the University of California.  All rights reserved.\n";
 
@@ -60,8 +60,8 @@ static const char copyright[] =
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <str.h>
-#include <unistd.h>
 #include <getopt.h>
 #include "scores.h"
 #include "screen.h"

@@ -27,10 +27,10 @@
  */
 
 #include <sys/types.h>
+#include <stddef.h>
 #include <errno.h>
 #include <mem.h>
 #include <malloc.h>
-#include <unistd.h>
 #include <byteorder.h>
 #include "gzip.h"
 #include "inflate.h"

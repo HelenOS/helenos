@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <inet/hostname.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <str.h>
 
 /** Parse host name

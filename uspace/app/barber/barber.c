@@ -32,7 +32,6 @@
 /** @file
  */
 
-#include <unistd.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <stdio.h>

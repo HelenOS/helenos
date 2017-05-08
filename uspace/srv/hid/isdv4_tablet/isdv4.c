@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <mem.h>
+#include <thread.h>
 
 #include "isdv4.h"
 
@@ -376,7 +377,7 @@ int isdv4_init_tablet(isdv4_state_t *state)
 	if (!write_command(state->sess, CMD_STOP))
 		return EIO;
 
-	usleep(250000); /* 250 ms */
+	thread_usleep(250000); /* 250 ms */
 
 	// FIXME: Read all possible garbage before sending commands
 	if (!write_command(state->sess, CMD_QUERY_STYLUS))

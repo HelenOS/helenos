@@ -38,7 +38,6 @@
 #define LIBC_HASH_TABLE_H_
 
 #include <adt/list.h>
-#include <unistd.h>
 #include <stdbool.h>
 #include <macros.h>
 

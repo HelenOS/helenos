@@ -34,6 +34,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/classes/classes.h>

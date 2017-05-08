@@ -42,7 +42,6 @@
 #include <vfs/vfs.h>
 #include <ipc/mouseev.h>
 #include <async.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysinfo.h>

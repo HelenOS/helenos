@@ -36,7 +36,6 @@
  */
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <thread.h>
 #include <stdbool.h>
@@ -96,7 +95,7 @@ static void ski_thread_impl(void *arg)
 			kbd_push_data(kbd_dev, c);
 		}
 
-		usleep(POLL_INTERVAL);
+		thread_usleep(POLL_INTERVAL);
 	}
 }
 

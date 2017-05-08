@@ -38,7 +38,7 @@
 #define LIBC_IO_PIXELMAP_H_
 
 #include <sys/types.h>
-#include <unistd.h>
+#include <stddef.h>
 #include <io/pixel.h>
 
 /* Defines how a pixel outside of pixmap rectangle shall be treated */

@@ -195,5 +195,34 @@ thread_id_t thread_get_id(void)
 	return thread_id;
 }
 
+/** Wait unconditionally for specified number of microseconds
+ *
+ */
+int thread_usleep(useconds_t usec)
+{
+	(void) __SYSCALL1(SYS_THREAD_USLEEP, usec);
+	return 0;
+}
+
+/** Wait unconditionally for specified number of seconds
+ *
+ */
+unsigned int thread_sleep(unsigned int sec)
+{
+	/*
+	 * Sleep in 1000 second steps to support
+	 * full argument range
+	 */
+	
+	while (sec > 0) {
+		unsigned int period = (sec > 1000) ? 1000 : sec;
+		
+		thread_usleep(period * 1000000);
+		sec -= period;
+	}
+	
+	return 0;
+}
+
 /** @}
  */

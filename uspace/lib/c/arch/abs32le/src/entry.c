@@ -29,7 +29,6 @@
 /** @file
  */
 
-#include <unistd.h>
 #include <libarch/entry.h>
 #include "../../../generic/private/libc.h"
 

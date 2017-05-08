@@ -34,7 +34,6 @@
 #include "general.h"
 
 #include <mem.h>
-#include <unistd.h>
 #include <errno.h>
 #include <stdint.h>
 
