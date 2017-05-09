@@ -40,7 +40,6 @@
 extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t,
     enum cache_mode);
 extern int ext4_filesystem_fini(ext4_filesystem_t *);
-extern int ext4_filesystem_check_sanity(ext4_filesystem_t *);
 extern int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
 extern uint32_t ext4_filesystem_blockaddr2_index_in_group(ext4_superblock_t *,
     uint32_t);

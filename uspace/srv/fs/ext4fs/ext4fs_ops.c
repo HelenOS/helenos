@@ -973,15 +973,6 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 		return rc;
 	}
 	
-	/* Do some sanity checking */
-	rc = ext4_filesystem_check_sanity(fs);
-	if (rc != EOK) {
-		ext4_filesystem_fini(fs);
-		free(fs);
-		free(inst);
-		return rc;
-	}
-	
 	/* Check flags */
 	bool read_only;
 	rc = ext4_filesystem_check_features(fs, &read_only);

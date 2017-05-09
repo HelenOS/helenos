@@ -104,6 +104,10 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
 		rc = ENOTSUP;
 		goto err_2;
 	}
+	
+	rc = ext4_superblock_check_sanity(fs->superblock);
+	if (rc != EOK)
+		goto err_2;
 
 	/* Mark system as mounted */
 	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_ERROR_FS);
@@ -147,21 +151,6 @@ int ext4_filesystem_fini(ext4_filesystem_t *fs)
 	block_fini(fs->device);
 	
 	return rc;
-}
-
-/** Check sanity of the filesystem.
- *
- * Main is the check of the superblock structure.
- *
- * @param fs Filesystem to be checked
- *
- * @return Error code
- *
- */
-int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
-{
-	/* Check superblock */
-	return ext4_superblock_check_sanity(fs->superblock);
 }
 
 /** Check filesystem's features, if supported by this driver
