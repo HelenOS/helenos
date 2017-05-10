@@ -28,7 +28,11 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libext4
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBCRYPTO_PREFIX) -Iinclude
+EXTRA_CFLAGS = \
+    -I$(LIBBLOCK_PREFIX) \
+    -I$(LIBCRYPTO_PREFIX) \
+    -I$(LIBFS_PREFIX) \
+    -Iinclude
 
 SOURCES = \
 	src/balloc.c \
@@ -41,6 +45,7 @@ SOURCES = \
 	src/hash.c \
 	src/ialloc.c \
 	src/inode.c \
+	src/ops.c \
 	src/superblock.c
 
 include $(USPACE_PREFIX)/Makefile.common

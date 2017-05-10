@@ -27,12 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
+/** @addtogroup libext4
  * @{
  */
 /**
  * @file  ext4fs_ops.c
- * @brief VFS operations for ext4 filesystem.
+ * @brief Operations for ext4 filesystem.
  */
 
 #include <errno.h>
@@ -44,8 +44,8 @@
 #include <adt/hash_table.h>
 #include <adt/hash.h>
 #include <ipc/loc.h>
-#include "ext4fs.h"
-#include "../../vfs/vfs.h"
+#include "ext4/ops.h"
+//#include "../../vfs/vfs.h"
 
 #define EXT4FS_NODE(node) \
 	((node) ? (ext4fs_node_t *) (node)->data : NULL)

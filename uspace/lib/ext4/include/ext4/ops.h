@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
+/** @addtogroup libext4
  * @{
  */
 
-#ifndef EXT4FS_EXT4FS_H_
-#define EXT4FS_EXT4FS_H_
+#ifndef LIBEXT4_OPS_H_
+#define LIBEXT4_OPS_H_
 
 #include <libfs.h>
 

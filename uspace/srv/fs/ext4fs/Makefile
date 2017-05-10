@@ -27,14 +27,17 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a \
-    $(LIBEXT4_PREFIX)/libext4.a $(LIBCRYPTO_PREFIX)/libcrypto.a
+LIBS = \
+    $(LIBEXT4_PREFIX)/libext4.a \
+    $(LIBBLOCK_PREFIX)/libblock.a \
+    $(LIBFS_PREFIX)/libfs.a \
+    $(LIBCRYPTO_PREFIX)/libcrypto.a
+
 EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX) -I$(LIBEXT4_PREFIX)/include -I$(LIBCRYPTO_PREFIX)
 BINARY = ext4fs
 STATIC_NEEDED = y
 
 SOURCES = \
-	ext4fs.c \
-	ext4fs_ops.c
+	ext4fs.c
 
 include $(USPACE_PREFIX)/Makefile.common

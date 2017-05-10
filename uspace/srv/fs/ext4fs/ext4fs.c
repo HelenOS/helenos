@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <task.h>
 #include <ipc/services.h>
-#include "ext4fs.h"
+#include "ext4/ops.h"
 #include "../../vfs/vfs.h"
 
 #define NAME  "ext4fs"
