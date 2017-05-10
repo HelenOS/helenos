@@ -31,8 +31,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_DIRECTORY_H_
-#define LIBEXT4_LIBEXT4_DIRECTORY_H_
+#ifndef LIBEXT4_DIRECTORY_H_
+#define LIBEXT4_DIRECTORY_H_
 
 #include "ext4/types.h"
 

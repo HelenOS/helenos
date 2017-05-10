@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_EXTENT_H_
-#define LIBEXT4_LIBEXT4_EXTENT_H_
+#ifndef LIBEXT4_EXTENT_H_
+#define LIBEXT4_EXTENT_H_
 
 #include "ext4/types.h"
 

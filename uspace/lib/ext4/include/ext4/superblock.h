@@ -31,8 +31,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_SUPERBLOCK_H_
-#define LIBEXT4_LIBEXT4_SUPERBLOCK_H_
+#ifndef LIBEXT4_SUPERBLOCK_H_
+#define LIBEXT4_SUPERBLOCK_H_
 
 #include <block.h>
 #include <sys/types.h>

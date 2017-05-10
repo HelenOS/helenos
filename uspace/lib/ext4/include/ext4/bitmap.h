@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_BITMAP_H_
-#define LIBEXT4_LIBEXT4_BITMAP_H_
+#ifndef LIBEXT4_BITMAP_H_
+#define LIBEXT4_BITMAP_H_
 
 #include <sys/types.h>
 

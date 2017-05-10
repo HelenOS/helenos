@@ -31,8 +31,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_TYPES_H_
-#define LIBEXT4_LIBEXT4_TYPES_H_
+#ifndef LIBEXT4_TYPES_H_
+#define LIBEXT4_TYPES_H_
 
 #include <block.h>
 

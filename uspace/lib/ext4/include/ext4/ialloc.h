@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_IALLOC_H_
-#define LIBEXT4_LIBEXT4_IALLOC_H_
+#ifndef LIBEXT4_IALLOC_H_
+#define LIBEXT4_IALLOC_H_
 
 #include "ext4/types.h"
 

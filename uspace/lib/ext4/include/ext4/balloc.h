@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_BALLOC_H_
-#define LIBEXT4_LIBEXT4_BALLOC_H_
+#ifndef LIBEXT4_BALLOC_H_
+#define LIBEXT4_BALLOC_H_
 
 #include <sys/types.h>
 #include "types.h"

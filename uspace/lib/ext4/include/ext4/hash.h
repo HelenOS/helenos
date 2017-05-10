@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_HASH_H_
-#define LIBEXT4_LIBEXT4_HASH_H_
+#ifndef LIBEXT4_HASH_H_
+#define LIBEXT4_HASH_H_
 
 #include <sys/types.h>
 #include "ext4/types.h"

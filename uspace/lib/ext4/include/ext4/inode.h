@@ -31,8 +31,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_INODE_H_
-#define LIBEXT4_LIBEXT4_INODE_H_
+#ifndef LIBEXT4_INODE_H_
+#define LIBEXT4_INODE_H_
 
 #include <block.h>
 #include <sys/types.h>

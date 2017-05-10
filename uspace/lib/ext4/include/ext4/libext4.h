@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_H_
-#define LIBEXT4_LIBEXT4_H_
+#ifndef LIBEXT4_H_
+#define LIBEXT4_H_
 
 #include "ext4/balloc.h"
 #include "ext4/bitmap.h"

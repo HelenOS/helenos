@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_DIRECTORY_INDEX_H_
-#define LIBEXT4_LIBEXT4_DIRECTORY_INDEX_H_
+#ifndef LIBEXT4_DIRECTORY_INDEX_H_
+#define LIBEXT4_DIRECTORY_INDEX_H_
 
 #include "ext4/types.h"
 
