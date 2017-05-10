@@ -35,10 +35,11 @@
  * @brief Ext4 i-node structure operations.
  */
 
+#include <block.h>
 #include <byteorder.h>
 #include <errno.h>
-#include <block.h>
-#include "ext4/libext4.h"
+#include "ext4/inode.h"
+#include "ext4/superblock.h"
 
 /** Compute number of bits for block count.
  *

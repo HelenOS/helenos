@@ -37,11 +37,19 @@
 
 #include <byteorder.h>
 #include <errno.h>
-#include <malloc.h>
-#include <ipc/vfs.h>
+#include <mem.h>
 #include <align.h>
 #include <crypto.h>
-#include "ext4/libext4.h"
+#include <ipc/vfs.h>
+#include <stdlib.h>
+#include "ext4/balloc.h"
+#include "ext4/bitmap.h"
+#include "ext4/block_group.h"
+#include "ext4/extent.h"
+#include "ext4/filesystem.h"
+#include "ext4/ialloc.h"
+#include "ext4/inode.h"
+#include "ext4/superblock.h"
 
 /** Initialize filesystem and read all needed data.
  *

@@ -34,8 +34,8 @@
  * @brief Hashing algorithms for ext4 HTree.
  */
 
-#include "ext4/libext4.h"
 #include <errno.h>
+#include "ext4/hash.h"
 
 int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 {

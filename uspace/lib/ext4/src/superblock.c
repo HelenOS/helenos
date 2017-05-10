@@ -36,11 +36,12 @@
  * @brief Ext4 superblock operations.
  */
 
+#include <block.h>
 #include <byteorder.h>
 #include <errno.h>
-#include <block.h>
 #include <malloc.h>
-#include "ext4/libext4.h"
+#include <mem.h>
+#include "ext4/superblock.h"
 
 /** Get number of i-nodes in the whole filesystem.
  *

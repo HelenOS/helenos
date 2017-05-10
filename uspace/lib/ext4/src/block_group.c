@@ -36,7 +36,8 @@
  */
 
 #include <byteorder.h>
-#include "ext4/libext4.h"
+#include "ext4/block_group.h"
+#include "ext4/superblock.h"
 
 /** Get address of block with data block bitmap.
  *

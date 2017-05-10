@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <block.h>
 #include <sys/types.h>
-#include "ext4/libext4.h"
+#include "ext4/bitmap.h"
 
 /** Set bit in bitmap to 0 (free).
  *
