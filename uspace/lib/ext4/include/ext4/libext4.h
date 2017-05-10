@@ -30,13 +30,26 @@
  * @{
  */
 
-#ifndef LIBEXT4_LIBEXT4_IALLOC_H_
-#define LIBEXT4_LIBEXT4_IALLOC_H_
+#ifndef LIBEXT4_LIBEXT4_H_
+#define LIBEXT4_LIBEXT4_H_
 
-#include "libext4_types.h"
+#include "ext4/balloc.h"
+#include "ext4/bitmap.h"
+#include "ext4/block_group.h"
+#include "ext4/directory.h"
+#include "ext4/directory_index.h"
+#include "ext4/extent.h"
+#include "ext4/filesystem.h"
+#include "ext4/hash.h"
+#include "ext4/ialloc.h"
+#include "ext4/inode.h"
+#include "ext4/superblock.h"
+#include "ext4/types.h"
 
-extern int ext4_ialloc_free_inode(ext4_filesystem_t *, uint32_t, bool);
-extern int ext4_ialloc_alloc_inode(ext4_filesystem_t *, uint32_t *, bool);
+#include <stdio.h>
+#define EXT4FS_DBG(format, ...) \
+	printf("ext4fs: %s: " format "\n", \
+	    __FUNCTION__, ##__VA_ARGS__) \
 
 #endif
 

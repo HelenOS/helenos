@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <malloc.h>
 #include <sort.h>
-#include "libext4.h"
+#include "ext4/libext4.h"
 
 /** Type entry to pass to sorting algorithm.
  *

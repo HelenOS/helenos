@@ -36,7 +36,7 @@
 
 #include <errno.h>
 #include <time.h>
-#include "libext4.h"
+#include "ext4/libext4.h"
 
 
 /** Convert i-node number to relative index in block group.

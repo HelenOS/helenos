@@ -36,8 +36,8 @@
  */
 
 #include <errno.h>
+#include <ext4/libext4.h>
 #include <fibril_synch.h>
-#include <libext4.h>
 #include <libfs.h>
 #include <macros.h>
 #include <malloc.h>

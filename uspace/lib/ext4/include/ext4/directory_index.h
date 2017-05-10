@@ -33,7 +33,7 @@
 #ifndef LIBEXT4_LIBEXT4_DIRECTORY_INDEX_H_
 #define LIBEXT4_LIBEXT4_DIRECTORY_INDEX_H_
 
-#include "libext4_types.h"
+#include "ext4/types.h"
 
 extern uint8_t ext4_directory_dx_root_info_get_hash_version(
     ext4_directory_dx_root_info_t *);

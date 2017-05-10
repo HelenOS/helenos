@@ -34,7 +34,7 @@
 #ifndef LIBEXT4_LIBEXT4_DIRECTORY_H_
 #define LIBEXT4_LIBEXT4_DIRECTORY_H_
 
-#include "libext4_types.h"
+#include "ext4/types.h"
 
 extern uint32_t ext4_directory_entry_ll_get_inode(ext4_directory_entry_ll_t *);
 extern void ext4_directory_entry_ll_set_inode(ext4_directory_entry_ll_t *,

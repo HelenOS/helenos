@@ -34,7 +34,7 @@
 #define LIBEXT4_LIBEXT4_BALLOC_H_
 
 #include <sys/types.h>
-#include "libext4_types.h"
+#include "types.h"
 
 extern int ext4_balloc_free_block(ext4_inode_ref_t *, uint32_t);
 extern int ext4_balloc_free_blocks(ext4_inode_ref_t *, uint32_t, uint32_t);

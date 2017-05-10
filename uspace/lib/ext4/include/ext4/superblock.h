@@ -36,7 +36,7 @@
 
 #include <block.h>
 #include <sys/types.h>
-#include "libext4_types.h"
+#include "ext4/types.h"
 
 extern uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *);
 extern void ext4_superblock_set_inodes_count(ext4_superblock_t *, uint32_t);

@@ -41,7 +41,7 @@
 #include <ipc/vfs.h>
 #include <align.h>
 #include <crypto.h>
-#include "libext4.h"
+#include "ext4/libext4.h"
 
 /** Initialize filesystem and read all needed data.
  *

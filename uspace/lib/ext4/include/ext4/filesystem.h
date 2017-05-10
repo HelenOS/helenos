@@ -35,7 +35,7 @@
 #define LIBEXT4_LIBEXT4_FILESYSTEM_H_
 
 #include <block.h>
-#include "libext4_types.h"
+#include "ext4/types.h"
 
 extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t,
     enum cache_mode);

@@ -40,7 +40,7 @@
 #include <errno.h>
 #include <block.h>
 #include <malloc.h>
-#include "libext4.h"
+#include "ext4/libext4.h"
 
 /** Get number of i-nodes in the whole filesystem.
  *

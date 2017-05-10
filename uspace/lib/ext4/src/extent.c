@@ -37,7 +37,7 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <malloc.h>
-#include "libext4.h"
+#include "ext4/libext4.h"
 
 /** Get logical number of the block covered by extent.
  *

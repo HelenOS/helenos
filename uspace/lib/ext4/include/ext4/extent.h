@@ -33,7 +33,7 @@
 #ifndef LIBEXT4_LIBEXT4_EXTENT_H_
 #define LIBEXT4_LIBEXT4_EXTENT_H_
 
-#include "libext4_types.h"
+#include "ext4/types.h"
 
 extern uint32_t ext4_extent_get_first_block(ext4_extent_t *);
 extern void ext4_extent_set_first_block(ext4_extent_t *, uint32_t);

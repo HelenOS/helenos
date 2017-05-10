@@ -36,7 +36,7 @@
  */
 
 #include <byteorder.h>
-#include "libext4.h"
+#include "ext4/libext4.h"
 
 /** Get address of block with data block bitmap.
  *
