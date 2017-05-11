@@ -68,7 +68,7 @@ static int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
  * @return Error code
  *
  */
-int ext4_filesystem_init(ext4_filesystem_t *fs, ext4fs_instance_t *inst,
+int ext4_filesystem_init(ext4_filesystem_t *fs, ext4_instance_t *inst,
     service_id_t service_id, enum cache_mode cmode, aoff64_t *size)
 {
 	int rc;
@@ -134,7 +134,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, ext4fs_instance_t *inst,
 
 	/* Read root node */
 	fs_node_t *root_node;
-	rc = ext4fs_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
+	rc = ext4_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
 	if (rc != EOK)
 		goto err_2;
 
@@ -147,14 +147,14 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, ext4fs_instance_t *inst,
 	uint16_t mnt_count = ext4_superblock_get_mount_count(fs->superblock);
 	ext4_superblock_set_mount_count(fs->superblock, mnt_count + 1);
 
-	ext4fs_node_t *enode = EXT4FS_NODE(root_node);
+	ext4_node_t *enode = EXT4_NODE(root_node);
 	
 	*size = ext4_inode_get_size(fs->superblock, enode->inode_ref->inode);
 
-	ext4fs_node_put(root_node);
+	ext4_node_put(root_node);
 	return EOK;
 err_3:
-	ext4fs_node_put(root_node);
+	ext4_node_put(root_node);
 err_2:
 	block_cache_fini(fs->device);
 err_1:

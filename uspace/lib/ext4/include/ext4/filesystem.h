@@ -38,7 +38,7 @@
 #include "ext4/fstypes.h"
 #include "ext4/types.h"
 
-extern int ext4_filesystem_init(ext4_filesystem_t *, ext4fs_instance_t *,
+extern int ext4_filesystem_init(ext4_filesystem_t *, ext4_instance_t *,
     service_id_t, enum cache_mode, aoff64_t *);
 extern int ext4_filesystem_fini(ext4_filesystem_t *);
 extern uint32_t ext4_filesystem_blockaddr2_index_in_group(ext4_superblock_t *,

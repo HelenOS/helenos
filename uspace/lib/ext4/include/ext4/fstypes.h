@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
  *
@@ -30,26 +31,37 @@
  * @{
  */
 
-#ifndef LIBEXT4_H_
-#define LIBEXT4_H_
+#ifndef LIBEXT4_FSTYPES_H_
+#define LIBEXT4_FSTYPES_H_
 
-#include "ext4/balloc.h"
-#include "ext4/bitmap.h"
-#include "ext4/block_group.h"
-#include "ext4/directory.h"
-#include "ext4/directory_index.h"
-#include "ext4/extent.h"
-#include "ext4/filesystem.h"
-#include "ext4/hash.h"
-#include "ext4/ialloc.h"
-#include "ext4/inode.h"
-#include "ext4/superblock.h"
+#include <adt/list.h>
+#include <libfs.h>
+#include <loc.h>
 #include "ext4/types.h"
 
-#include <stdio.h>
-#define EXT4FS_DBG(format, ...) \
-	printf("ext4fs: %s: " format "\n", \
-	    __FUNCTION__, ##__VA_ARGS__) \
+/**
+ * Type for holding an instance of mounted partition.
+ */
+typedef struct ext4_instance {
+	link_t link;
+	service_id_t service_id;
+	ext4_filesystem_t *filesystem;
+	unsigned int open_nodes_count;
+} ext4_instance_t;
+
+/**
+ * Type for wrapping common fs_node and add some useful pointers.
+ */
+typedef struct ext4_node {
+	ext4_instance_t *instance;
+	ext4_inode_ref_t *inode_ref;
+	fs_node_t *fs_node;
+	ht_link_t link;
+	unsigned int references;
+} ext4_node_t;
+
+#define EXT4_NODE(node) \
+	((node) ? (ext4_node_t *) (node)->data : NULL)
 
 #endif
 
