@@ -39,6 +39,7 @@
 #include <malloc.h>
 #include <sys/types.h>
 #include <macros.h>
+#include <assert.h>
 
 #include "mem_access.h"
 
@@ -59,7 +60,7 @@ typedef struct hcca {
 	PADD32[30];
 } hcca_t;
 
-STATIC_ASSERT(sizeof(hcca_t) == 256);
+static_assert(sizeof(hcca_t) == 256);
 
 /** Allocate properly aligned structure.
  *
