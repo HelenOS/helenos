@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file  libext4_bitmap.c
+ * @file  bitmap.c
  * @brief Ext4 bitmap operations.
  */
 

@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file  libext4_extent.c
+ * @file  extent.c
  * @brief Ext4 extent structures operations.
  */
 

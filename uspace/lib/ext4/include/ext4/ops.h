@@ -34,12 +34,16 @@
 #define LIBEXT4_OPS_H_
 
 #include <libfs.h>
+#include "ext4/fstypes.h"
 
 extern vfs_out_ops_t ext4fs_ops;
 extern libfs_ops_t ext4fs_libfs_ops;
 
 extern int ext4fs_global_init(void);
 extern int ext4fs_global_fini(void);
+
+extern int ext4fs_node_get_core(fs_node_t **, ext4fs_instance_t *, fs_index_t);
+extern int ext4fs_node_put(fs_node_t *);
 
 
 #endif

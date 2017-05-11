@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file  ext4fs_ops.c
+ * @file  ops.c
  * @brief Operations for ext4 filesystem.
  */
 
@@ -45,31 +45,7 @@
 #include <adt/hash.h>
 #include <ipc/loc.h>
 #include "ext4/ops.h"
-//#include "../../vfs/vfs.h"
-
-#define EXT4FS_NODE(node) \
-	((node) ? (ext4fs_node_t *) (node)->data : NULL)
-
-/**
- * Type for holding an instance of mounted partition.
- */
-typedef struct ext4fs_instance {
-	link_t link;
-	service_id_t service_id;
-	ext4_filesystem_t *filesystem;
-	unsigned int open_nodes_count;
-} ext4fs_instance_t;
-
-/**
- * Type for wrapping common fs_node and add some useful pointers.
- */
-typedef struct ext4fs_node {
-	ext4fs_instance_t *instance;
-	ext4_inode_ref_t *inode_ref;
-	fs_node_t *fs_node;
-	ht_link_t link;
-	unsigned int references;
-} ext4fs_node_t;
+#include "ext4/fstypes.h"
 
 /* Forward declarations of auxiliary functions */
 
@@ -79,8 +55,6 @@ static int ext4fs_read_file(ipc_callid_t, aoff64_t, size_t, ext4fs_instance_t *,
     ext4_inode_ref_t *, size_t *);
 static bool ext4fs_is_dots(const uint8_t *, size_t);
 static int ext4fs_instance_get(service_id_t, ext4fs_instance_t **);
-static int ext4fs_node_get_core(fs_node_t **, ext4fs_instance_t *, fs_index_t);
-static int ext4fs_node_put_core(ext4fs_node_t *);
 
 /* Forward declarations of ext4 libfs operations. */
 
@@ -88,7 +62,7 @@ static int ext4fs_root_get(fs_node_t **, service_id_t);
 static int ext4fs_match(fs_node_t **, fs_node_t *, const char *);
 static int ext4fs_node_get(fs_node_t **, service_id_t, fs_index_t);
 static int ext4fs_node_open(fs_node_t *);
-static int ext4fs_node_put(fs_node_t *);
+       int ext4fs_node_put(fs_node_t *);
 static int ext4fs_create_node(fs_node_t **, service_id_t, int);
 static int ext4fs_destroy_node(fs_node_t *);
 static int ext4fs_link(fs_node_t *, fs_node_t *, const char *);
@@ -372,7 +346,7 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
  * @return Error code
  *
  */
-int ext4fs_node_put_core(ext4fs_node_t *enode)
+static int ext4fs_node_put_core(ext4fs_node_t *enode)
 {
 	hash_table_remove_item(&open_nodes, &enode->link);
 	assert(enode->instance->open_nodes_count > 0);
@@ -965,35 +939,16 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	else
 		cmode = CACHE_MODE_WB;
 	
-	/* Initialize the filesystem */
-	int rc = ext4_filesystem_init(fs, service_id, cmode);
-	if (rc != EOK) {
-		free(fs);
-		free(inst);
-		return rc;
-	}
-	
-	/* Check flags */
-	bool read_only;
-	rc = ext4_filesystem_check_features(fs, &read_only);
-	if (rc != EOK) {
-		ext4_filesystem_fini(fs);
-		free(fs);
-		free(inst);
-		return rc;
-	}
-	
 	/* Initialize instance */
 	link_initialize(&inst->link);
 	inst->service_id = service_id;
 	inst->filesystem = fs;
 	inst->open_nodes_count = 0;
 	
-	/* Read root node */
-	fs_node_t *root_node;
-	rc = ext4fs_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
+	/* Initialize the filesystem */
+	aoff64_t rnsize;
+	int rc = ext4_filesystem_init(fs, inst, service_id, cmode, &rnsize);
 	if (rc != EOK) {
-		ext4_filesystem_fini(fs);
 		free(fs);
 		free(inst);
 		return rc;
@@ -1004,13 +959,11 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	list_append(&inst->link, &instance_list);
 	fibril_mutex_unlock(&instance_list_mutex);
 	
-	ext4fs_node_t *enode = EXT4FS_NODE(root_node);
-	
 	*index = EXT4_INODE_ROOT_INDEX;
-	*size = ext4_inode_get_size(fs->superblock, enode->inode_ref->inode);
+	*size = rnsize;
 	*lnkcnt = 1;
 	
-	return ext4fs_node_put(root_node);
+	return EOK;
 }
 
 /** Unmount operation.

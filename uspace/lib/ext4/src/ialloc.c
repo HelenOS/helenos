@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file  libext4_ialloc.c
+ * @file  ialloc.c
  * @brief I-node (de)allocation operations.
  */
 

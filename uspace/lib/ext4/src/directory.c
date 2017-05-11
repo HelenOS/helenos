@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file  libext4_directory.c
+ * @file  directory.c
  * @brief Ext4 directory structure operations.
  */
 

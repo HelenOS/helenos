@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file  libext4_balloc.c
+ * @file  balloc.c
  * @brief Physical block allocator.
  */
 

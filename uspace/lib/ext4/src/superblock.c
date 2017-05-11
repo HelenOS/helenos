@@ -32,7 +32,7 @@
  */
 
 /**
- * @file  libext4_superblock.c
+ * @file  superblock.c
  * @brief Ext4 superblock operations.
  */
 

@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file  libext4_filesystem.c
+ * @file  filesystem.c
  * @brief More complex filesystem operations.
  */
 
@@ -41,6 +41,7 @@
 #include <align.h>
 #include <crypto.h>
 #include <ipc/vfs.h>
+#include <libfs.h>
 #include <stdlib.h>
 #include "ext4/balloc.h"
 #include "ext4/bitmap.h"
@@ -49,18 +50,26 @@
 #include "ext4/filesystem.h"
 #include "ext4/ialloc.h"
 #include "ext4/inode.h"
+#include "ext4/ops.h"
 #include "ext4/superblock.h"
+
+static int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
 
 /** Initialize filesystem and read all needed data.
  *
  * @param fs         Filesystem instance to be initialized
  * @param service_id Identifier if device with the filesystem
+ * @param cmode      Cache mode
+ * @param read_only  Place to store read only flag
+ * @param index      Output value - index of root node
+ * @param size       Output value - size of root node
+ * @param lnkcnt     Output value - link count of root node
  *
  * @return Error code
  *
  */
-int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
-    enum cache_mode cmode)
+int ext4_filesystem_init(ext4_filesystem_t *fs, ext4fs_instance_t *inst,
+    service_id_t service_id, enum cache_mode cmode, aoff64_t *size)
 {
 	int rc;
 	ext4_superblock_t *temp_superblock = NULL;
@@ -117,17 +126,35 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
 	if (rc != EOK)
 		goto err_2;
 
+	/* Check flags */
+	bool read_only;
+	rc = ext4_filesystem_check_features(fs, &read_only);
+	if (rc != EOK)
+		goto err_2;
+
+	/* Read root node */
+	fs_node_t *root_node;
+	rc = ext4fs_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
+	if (rc != EOK)
+		goto err_2;
+
 	/* Mark system as mounted */
 	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_ERROR_FS);
 	rc = ext4_superblock_write_direct(fs->device, fs->superblock);
 	if (rc != EOK)
-		goto err_2;
+		goto err_3;
 
 	uint16_t mnt_count = ext4_superblock_get_mount_count(fs->superblock);
 	ext4_superblock_set_mount_count(fs->superblock, mnt_count + 1);
 
-	return EOK;
+	ext4fs_node_t *enode = EXT4FS_NODE(root_node);
+	
+	*size = ext4_inode_get_size(fs->superblock, enode->inode_ref->inode);
 
+	ext4fs_node_put(root_node);
+	return EOK;
+err_3:
+	ext4fs_node_put(root_node);
 err_2:
 	block_cache_fini(fs->device);
 err_1:
@@ -168,12 +195,14 @@ int ext4_filesystem_fini(ext4_filesystem_t *fs)
  * during some write operations.
  *
  * @param fs        Filesystem to be checked
- * @param read_only Flag if filesystem should be mounted only for reading
+ * @param read_only Place to write flag saying whether filesystem
+ *                  should be mounted only for reading
  *
  * @return Error code
  *
  */
-int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *read_only)
+static int ext4_filesystem_check_features(ext4_filesystem_t *fs,
+    bool *read_only)
 {
 	/* Feature flags are present only in higher revisions */
 	if (ext4_superblock_get_rev_level(fs->superblock) == 0) {

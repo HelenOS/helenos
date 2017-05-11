@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file  libext4_hash.c
+ * @file  hash.c
  * @brief Hashing algorithms for ext4 HTree.
  */
 

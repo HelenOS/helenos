@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file  libext4_block_group.c
+ * @file  block_group.c
  * @brief Ext4 block group structure operations.
  */
 
