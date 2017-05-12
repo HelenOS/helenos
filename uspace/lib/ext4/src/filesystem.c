@@ -60,7 +60,7 @@ static int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
  * But do not mark mounted just yet.
  *
  * @param fs         Filesystem instance to be initialized
- * @param service_id Identifier if device with the filesystem
+ * @param service_id Block device to open
  * @param cmode      Cache mode
  *
  * @return Error code
@@ -154,6 +154,33 @@ static void ext4_filesystem_fini(ext4_filesystem_t *fs)
 	/* Finish work with block library */
 	block_cache_fini(fs->device);
 	block_fini(fs->device);
+}
+
+/** Probe filesystem.
+ *
+ * @param service_id Block device to probe
+ *
+ * @return EOK or negative error code.
+ *
+ */
+int ext4_filesystem_probe(service_id_t service_id)
+{
+	ext4_filesystem_t *fs = NULL;
+	int rc;
+
+	fs = calloc(1, sizeof(ext4_filesystem_t));
+	if (fs == NULL)
+		return ENOMEM;
+
+	/* Initialize the file system for opening */
+	rc = ext4_filesystem_init(fs, service_id, CACHE_MODE_WT);
+	if (rc != EOK) {
+		free(fs);
+		return rc;
+	}
+
+	ext4_filesystem_fini(fs);
+	return EOK;
 }
 
 /** Open filesystem and read all needed data.

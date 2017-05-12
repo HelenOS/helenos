@@ -118,6 +118,7 @@ int volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype)
 		cmd = "/app/mkmfs";
 		break;
 	case fs_ext4:
+	case fs_cdfs:
 		cmd = NULL;
 		break;
 	}

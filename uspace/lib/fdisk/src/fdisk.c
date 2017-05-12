@@ -823,6 +823,9 @@ int fdisk_fstype_format(vol_fstype_t fstype, char **rstr)
 	case fs_ext4:
 		sfstype = "Ext4";
 		break;
+	case fs_cdfs:
+		sfstype = "ISO 9660";
+		break;
 	}
 
 	s = str_dup(sfstype);
@@ -992,6 +995,8 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	case fs_ext4:
 		pcnt = lpc_ext4;
 		break;
+	case fs_cdfs:
+		return EINVAL; /* You cannot create an ISO partition */
 	}
 
 	if (pcnt < 0)

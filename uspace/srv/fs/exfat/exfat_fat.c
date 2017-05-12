@@ -539,7 +539,7 @@ exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
  * descriptor. This is used to rule out cases when a device obviously
  * does not contain a exfat file system.
  */
-int exfat_sanity_check(exfat_bs_t *bs, service_id_t service_id)
+int exfat_sanity_check(exfat_bs_t *bs)
 {
 	if (str_cmp((char const *)bs->oem_name, "EXFAT   "))
 		return ENOTSUP;

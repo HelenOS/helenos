@@ -908,7 +908,7 @@ libfs_ops_t ext4_libfs_ops = {
  */
 static int ext4_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
-	return ENOTSUP;
+	return ext4_filesystem_probe(service_id);
 }
 
 /** Mount operation.

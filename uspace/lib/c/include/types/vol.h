@@ -51,7 +51,8 @@ typedef enum {
 	fs_exfat,
 	fs_fat,
 	fs_minix,
-	fs_ext4
+	fs_ext4,
+	fs_cdfs
 } vol_fstype_t;
 
 #define VOL_FSTYPE_LIMIT (fs_ext4 + 1)

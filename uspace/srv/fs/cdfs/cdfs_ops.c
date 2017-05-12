@@ -905,12 +905,13 @@ static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
 	return ENOENT;
 }
 
-static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
-    cdfs_lba_t altroot)
+/** Read the volume descriptors. */
+static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
+    uint32_t *rlba, uint32_t *rsize, cdfs_enc_t *enc)
 {
 	/* First 16 blocks of isofs are empty */
 	block_t *block;
-	int rc = block_get(&block, fs->service_id, altroot + 16, BLOCK_FLAGS_NONE);
+	int rc = block_get(&block, sid, altroot + 16, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return false;
 	
@@ -955,32 +956,40 @@ static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
 	
 	// TODO: implement path table support
 	
-	cdfs_node_t *node = CDFS_NODE(rfn);
-	
 	/* Search for Joliet SVD */
 	
 	uint32_t jrlba;
 	uint32_t jrsize;
 	
-	rc = cdfs_find_joliet_svd(fs->service_id, altroot, &jrlba, &jrsize);
+	rc = cdfs_find_joliet_svd(sid, altroot, &jrlba, &jrsize);
 	if (rc == EOK) {
 		/* Found */
-		node->lba = jrlba;
-		node->size = jrsize;
-		fs->enc = enc_ucs2;
+		*rlba = jrlba;
+		*rsize = jrsize;
+		*enc = enc_ucs2;
 	} else {
-		node->lba = uint32_lb(vol_desc->data.prisec.root_dir.lba);
-		node->size = uint32_lb(vol_desc->data.prisec.root_dir.size);
-		fs->enc = enc_ascii;
-	}
-	
-	if (!cdfs_readdir(fs, rfn)) {
-		block_put(block);
-		return false;
+		*rlba = uint32_lb(vol_desc->data.prisec.root_dir.lba);
+		*rsize = uint32_lb(vol_desc->data.prisec.root_dir.size);
+		*enc = enc_ascii;
 	}
 	
 	block_put(block);
 	return true;
+}
+
+static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
+    cdfs_lba_t altroot)
+{
+	int rc;
+	
+	cdfs_node_t *node = CDFS_NODE(rfn);
+	
+	rc = iso_read_vol_desc(fs->service_id, altroot, &node->lba,
+	    &node->size, &fs->enc);
+	if (rc != EOK)
+		return false;
+	
+	return cdfs_readdir(fs, rfn);
 }
 
 /* Mount a session with session start offset
@@ -1022,7 +1031,51 @@ error:
 
 static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
-	return ENOTSUP;
+	/* Initialize the block layer */
+	int rc = block_init(service_id, BLOCK_SIZE);
+	if (rc != EOK)
+		return rc;
+	
+	cdfs_lba_t altroot = 0;
+	
+	/*
+	 * Read TOC multisession information and get the start address
+	 * of the first track in the last session
+	 */
+	scsi_toc_multisess_data_t toc;
+
+	rc = block_read_toc(service_id, 1, &toc, sizeof(toc));
+	if (rc == EOK && (uint16_t_be2host(toc.toc_len) == 10))
+		altroot = uint32_t_be2host(toc.ftrack_lsess.start_addr);
+	
+	/* Initialize the block cache */
+	rc = block_cache_init(service_id, BLOCK_SIZE, 0, CACHE_MODE_WT);
+	if (rc != EOK) {
+		block_fini(service_id);
+		return rc;
+	}
+	
+	/* Check if this device is not already mounted */
+	fs_node_t *rootfn;
+	rc = cdfs_root_get(&rootfn, service_id);
+	if ((rc == EOK) && (rootfn)) {
+		cdfs_node_put(rootfn);
+		block_cache_fini(service_id);
+		block_fini(service_id);
+		return EOK;
+	}
+	
+	/* Read volume descriptors */
+	uint32_t rlba;
+	uint32_t rsize;
+	cdfs_enc_t enc;
+	if (!iso_read_vol_desc(service_id, altroot, &rlba, &rsize, &enc)) {
+		block_cache_fini(service_id);
+		block_fini(service_id);
+		return EIO;
+	}
+	
+	return EOK;
 }
 
 static int cdfs_mounted(service_id_t service_id, const char *opts,

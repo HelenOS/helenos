@@ -1052,7 +1052,30 @@ static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
 
 static int exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
-	return ENOTSUP;
+	int rc;
+	exfat_bs_t *bs;
+
+	/* initialize libblock */
+	rc = block_init(service_id, BS_SIZE);
+	if (rc != EOK)
+		return rc;
+
+	/* prepare the boot block */
+	rc = block_bb_read(service_id, BS_BLOCK);
+	if (rc != EOK) {
+		block_fini(service_id);
+		return rc;
+	}
+
+	/* get the buffer with the boot sector */
+	bs = block_bb_get(service_id);
+
+	/* Do some simple sanity checks on the file system. */
+	rc = exfat_sanity_check(bs);
+
+	(void) block_cache_fini(service_id);
+	block_fini(service_id);
+	return rc;
 }
 
 static int
@@ -1085,17 +1108,17 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* get the buffer with the boot sector */
 	bs = block_bb_get(service_id);
 
-	/* Initialize the block cache */
-	rc = block_cache_init(service_id, BPS(bs), 0 /* XXX */, cmode);
+	/* Do some simple sanity checks on the file system. */
+	rc = exfat_sanity_check(bs);
 	if (rc != EOK) {
+		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		return rc;
 	}
 
-	/* Do some simple sanity checks on the file system. */
-	rc = exfat_sanity_check(bs, service_id);
+	/* Initialize the block cache */
+	rc = block_cache_init(service_id, BPS(bs), 0 /* XXX */, cmode);
 	if (rc != EOK) {
-		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		return rc;
 	}

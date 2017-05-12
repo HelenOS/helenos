@@ -914,7 +914,43 @@ libfs_ops_t fat_libfs_ops = {
 
 static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
-	return ENOTSUP;
+	fat_bs_t *bs;
+	int rc;
+
+	/* initialize libblock */
+	rc = block_init(service_id, BS_SIZE);
+	if (rc != EOK)
+		return rc;
+
+	/* prepare the boot block */
+	rc = block_bb_read(service_id, BS_BLOCK);
+	if (rc != EOK) {
+		block_fini(service_id);
+		return rc;
+	}
+
+	/* get the buffer with the boot sector */
+	bs = block_bb_get(service_id);
+
+	if (BPS(bs) != BS_SIZE) {
+		block_fini(service_id);
+		return ENOTSUP;
+	}
+
+	/* Initialize the block cache */
+	rc = block_cache_init(service_id, BPS(bs), 0 /* XXX */, CACHE_MODE_WB);
+	if (rc != EOK) {
+		block_fini(service_id);
+		return rc;
+	}
+
+	/* Do some simple sanity checks on the file system. */
+	rc = fat_sanity_check(bs, service_id);
+
+	(void) block_cache_fini(service_id);
+	block_fini(service_id);
+
+	return rc;
 }
 
 static int

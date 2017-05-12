@@ -38,6 +38,7 @@
 #include "ext4/fstypes.h"
 #include "ext4/types.h"
 
+extern int ext4_filesystem_probe(service_id_t);
 extern int ext4_filesystem_open(ext4_instance_t *, service_id_t,
     enum cache_mode, aoff64_t *, ext4_filesystem_t **);
 extern int ext4_filesystem_close(ext4_filesystem_t *);

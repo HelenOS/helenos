@@ -315,10 +315,14 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	/* Make sure tmpfs is running. */
+	/* Make sure file systems are running. */
 	if (str_cmp(STRING(RDFMT), "tmpfs") != 0)
 		srv_start("/srv/tmpfs");
-	
+	if (str_cmp(STRING(RDFMT), "exfat") != 0)
+		srv_start("/srv/exfat");
+	if (str_cmp(STRING(RDFMT), "fat") != 0)
+		srv_start("/srv/fat");
+	srv_start("/srv/cdfs");
 	srv_start("/srv/mfs");
 	
 	srv_start("/srv/klog");

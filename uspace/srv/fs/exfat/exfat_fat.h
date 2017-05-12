@@ -71,7 +71,7 @@ extern int exfat_get_cluster(struct exfat_bs *, service_id_t, exfat_cluster_t,
     exfat_cluster_t *);
 extern int exfat_set_cluster(struct exfat_bs *, service_id_t, exfat_cluster_t,
     exfat_cluster_t);
-extern int exfat_sanity_check(struct exfat_bs *, service_id_t);
+extern int exfat_sanity_check(struct exfat_bs *);
 
 extern int exfat_append_clusters(struct exfat_bs *, struct exfat_node *,
     exfat_cluster_t, exfat_cluster_t);
