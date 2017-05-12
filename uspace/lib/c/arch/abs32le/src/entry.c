@@ -31,6 +31,7 @@
 
 #include <libarch/entry.h>
 #include "../../../generic/private/libc.h"
+#include <stddef.h>
 
 void __entry(void)
 {

@@ -29,6 +29,7 @@
 /** @file
  */
 
+#include <stddef.h>
 #include "../../../generic/private/thread.h"
 
 void __thread_entry(void)
