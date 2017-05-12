@@ -55,21 +55,19 @@
 
 static int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
 
-/** Initialize filesystem and read all needed data.
+/** Initialize filesystem for opening.
+ *
+ * But do not mark mounted just yet.
  *
  * @param fs         Filesystem instance to be initialized
  * @param service_id Identifier if device with the filesystem
  * @param cmode      Cache mode
- * @param read_only  Place to store read only flag
- * @param index      Output value - index of root node
- * @param size       Output value - size of root node
- * @param lnkcnt     Output value - link count of root node
  *
  * @return Error code
  *
  */
-int ext4_filesystem_init(ext4_filesystem_t *fs, ext4_instance_t *inst,
-    service_id_t service_id, enum cache_mode cmode, aoff64_t *size)
+static int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
+    enum cache_mode cmode)
 {
 	int rc;
 	ext4_superblock_t *temp_superblock = NULL;
@@ -121,7 +119,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, ext4_instance_t *inst,
 		rc = ENOTSUP;
 		goto err_2;
 	}
-	
+
 	rc = ext4_superblock_check_sanity(fs->superblock);
 	if (rc != EOK)
 		goto err_2;
@@ -132,29 +130,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, ext4_instance_t *inst,
 	if (rc != EOK)
 		goto err_2;
 
-	/* Read root node */
-	fs_node_t *root_node;
-	rc = ext4_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
-	if (rc != EOK)
-		goto err_2;
-
-	/* Mark system as mounted */
-	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_ERROR_FS);
-	rc = ext4_superblock_write_direct(fs->device, fs->superblock);
-	if (rc != EOK)
-		goto err_3;
-
-	uint16_t mnt_count = ext4_superblock_get_mount_count(fs->superblock);
-	ext4_superblock_set_mount_count(fs->superblock, mnt_count + 1);
-
-	ext4_node_t *enode = EXT4_NODE(root_node);
-	
-	*size = ext4_inode_get_size(fs->superblock, enode->inode_ref->inode);
-
-	ext4_node_put(root_node);
 	return EOK;
-err_3:
-	ext4_node_put(root_node);
 err_2:
 	block_cache_fini(fs->device);
 err_1:
@@ -165,27 +141,103 @@ err:
 	return rc;
 }
 
-/** Destroy filesystem instance (used by unmount operation).
+/** Finalize filesystem.
  *
- * @param fs Filesystem to be destroyed
- *
- * @return Error code
+ * @param fs Filesystem to be finalized
  *
  */
-int ext4_filesystem_fini(ext4_filesystem_t *fs)
+static void ext4_filesystem_fini(ext4_filesystem_t *fs)
 {
-	/* Write the superblock to the device */
-	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_VALID_FS);
-	int rc = ext4_superblock_write_direct(fs->device, fs->superblock);
-	
 	/* Release memory space for superblock */
 	free(fs->superblock);
 
 	/* Finish work with block library */
 	block_cache_fini(fs->device);
 	block_fini(fs->device);
-	
+}
+
+/** Open filesystem and read all needed data.
+ *
+ * @param fs         Filesystem to be initialized
+ * @param inst       Instance
+ * @param service_id Identifier if device with the filesystem
+ * @param cmode      Cache mode
+ * @param size       Output value - size of root node
+ *
+ * @return Error code
+ *
+ */
+int ext4_filesystem_open(ext4_instance_t *inst, service_id_t service_id,
+    enum cache_mode cmode, aoff64_t *size, ext4_filesystem_t **rfs)
+{
+	ext4_filesystem_t *fs = NULL;
+	fs_node_t *root_node = NULL;
+	int rc;
+
+	fs = calloc(1, sizeof(ext4_filesystem_t));
+	if (fs == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	inst->filesystem = fs;
+
+	/* Initialize the file system for opening */
+	rc = ext4_filesystem_init(fs, service_id, cmode);
+	if (rc != EOK)
+		goto error;
+
+	/* Read root node */
+	rc = ext4_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
+	if (rc != EOK)
+		goto error;
+
+	/* Mark system as mounted */
+	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_ERROR_FS);
+	rc = ext4_superblock_write_direct(fs->device, fs->superblock);
+	if (rc != EOK)
+		goto error;
+
+	uint16_t mnt_count = ext4_superblock_get_mount_count(fs->superblock);
+	ext4_superblock_set_mount_count(fs->superblock, mnt_count + 1);
+
+	ext4_node_t *enode = EXT4_NODE(root_node);
+
+	*size = ext4_inode_get_size(fs->superblock, enode->inode_ref->inode);
+
+	ext4_node_put(root_node);
+	*rfs = fs;
+	return EOK;
+error:
+	if (root_node != NULL)
+		ext4_node_put(root_node);
+
+	if (fs != NULL) {
+		ext4_filesystem_fini(fs);
+		free(fs);
+	}
+
 	return rc;
+}
+
+/** Close filesystem.
+ *
+ * @param fs Filesystem to be destroyed
+ *
+ * @return EOK or negative error code. On error the state of the file
+ *         system is unchanged.
+ *
+ */
+int ext4_filesystem_close(ext4_filesystem_t *fs)
+{
+	/* Write the superblock to the device */
+	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_VALID_FS);
+	int rc = ext4_superblock_write_direct(fs->device, fs->superblock);
+	if (rc != EOK)
+		return rc;
+
+	ext4_filesystem_fini(fs);
+	return EOK;
 }
 
 /** Check filesystem's features, if supported by this driver

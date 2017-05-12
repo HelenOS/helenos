@@ -927,19 +927,13 @@ static int ext4_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 static int ext4_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
-	/* Allocate libext4 filesystem structure */
-	ext4_filesystem_t *fs = (ext4_filesystem_t *)
-	    malloc(sizeof(ext4_filesystem_t));
-	if (fs == NULL)
-		return ENOMEM;
+	ext4_filesystem_t *fs;
 	
 	/* Allocate instance structure */
 	ext4_instance_t *inst = (ext4_instance_t *)
 	    malloc(sizeof(ext4_instance_t));
-	if (inst == NULL) {
-		free(fs);
+	if (inst == NULL)
 		return ENOMEM;
-	}
 	
 	enum cache_mode cmode;
 	if (str_cmp(opts, "wtcache") == 0)
@@ -950,14 +944,12 @@ static int ext4_mounted(service_id_t service_id, const char *opts,
 	/* Initialize instance */
 	link_initialize(&inst->link);
 	inst->service_id = service_id;
-	inst->filesystem = fs;
 	inst->open_nodes_count = 0;
 	
 	/* Initialize the filesystem */
 	aoff64_t rnsize;
-	int rc = ext4_filesystem_init(fs, inst, service_id, cmode, &rnsize);
+	int rc = ext4_filesystem_open(inst, service_id, cmode, &rnsize, &fs);
 	if (rc != EOK) {
-		free(fs);
 		free(inst);
 		return rc;
 	}
@@ -1004,7 +996,15 @@ static int ext4_unmounted(service_id_t service_id)
 	
 	fibril_mutex_unlock(&open_nodes_lock);
 	
-	return ext4_filesystem_fini(inst->filesystem);
+	rc = ext4_filesystem_close(inst->filesystem);
+	if (rc != EOK) {
+		fibril_mutex_lock(&instance_list_mutex);
+		list_append(&inst->link, &instance_list);
+		fibril_mutex_unlock(&instance_list_mutex);
+	}
+
+	free(inst);
+	return EOK;
 }
 
 /** Read bytes from node.
