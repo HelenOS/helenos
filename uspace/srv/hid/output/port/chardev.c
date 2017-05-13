@@ -29,7 +29,8 @@
 /** @file
  */
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <char_dev_iface.h>
 #include <stdio.h>
 #include <stdlib.h>

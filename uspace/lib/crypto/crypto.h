@@ -29,7 +29,8 @@
 #ifndef LIBCRYPTO_H
 #define LIBCRYPTO_H
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define AES_CIPHER_LENGTH  16
 #define PBKDF2_KEY_LENGTH  32

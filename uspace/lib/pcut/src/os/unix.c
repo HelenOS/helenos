@@ -37,7 +37,7 @@
 #define _BSD_SOURCE
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <signal.h>
 #include <errno.h>
 #include <assert.h>

@@ -35,7 +35,8 @@
 #ifndef LIBC_GCDLCM_H_
 #define LIBC_GCDLCM_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define DECLARE_GCD(type, name) \
 	static inline type name(type a, type b) \

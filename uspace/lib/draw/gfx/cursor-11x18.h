@@ -36,7 +36,7 @@
 #ifndef CURSOR_11X18_H_
 #define CURSOR_11X18_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define CURSOR_WIDTH   11
 #define CURSOR_HEIGHT  18

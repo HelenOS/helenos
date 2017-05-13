@@ -29,7 +29,6 @@
 #ifndef OUTPUT_OUTPUT_H_
 #define OUTPUT_OUTPUT_H_
 
-#include <sys/types.h>
 #include <stdbool.h>
 #include <loc.h>
 #include <io/console.h>

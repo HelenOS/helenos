@@ -37,7 +37,7 @@
 #define DRV_OHCI_HW_STRUCT_HCCA_H
 
 #include <malloc.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <macros.h>
 #include <assert.h>
 

@@ -29,8 +29,9 @@
 #ifndef BIGINT_T_H_
 #define BIGINT_T_H_
 
-#include <sys/types.h>
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 typedef uint8_t bigint_word_t;
 typedef uint16_t bigint_dword_t;
@@ -46,7 +47,7 @@ typedef struct bigint {
 	size_t length;
 
 	/** Sign. */
-	bool_t negative;
+	bool negative;
 
 	/** Digits starting from the least significant. */
 	bigint_word_t *digit;

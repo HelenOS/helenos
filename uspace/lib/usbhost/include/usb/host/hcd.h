@@ -43,7 +43,8 @@
 
 #include <assert.h>
 #include <usbhc_iface.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 typedef struct hcd hcd_t;
 

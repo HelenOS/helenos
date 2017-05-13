@@ -63,7 +63,8 @@
  *
  */
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <mem.h>

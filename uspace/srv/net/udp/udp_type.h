@@ -40,7 +40,7 @@
 #include <fibril_synch.h>
 #include <inet/endpoint.h>
 #include <ipc/loc.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <inet/addr.h>
 
 #define UDP_FRAGMENT_SIZE 65535

@@ -36,7 +36,7 @@
 #define LIBC_INET_INETCFG_H_
 
 #include <inet/inet.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <types/inetcfg.h>
 
 extern int inetcfg_init(void);

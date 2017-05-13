@@ -37,7 +37,6 @@
 
 #include <adt/list.h>
 #include <elf/elf_mod.h>
-#include <sys/types.h>
 
 #include <rtld/dynamic.h>
 #include <tls.h>

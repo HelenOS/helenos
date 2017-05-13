@@ -36,7 +36,8 @@
 #define LIBC_UDEBUG_H_
 
 #include <abi/udebug.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <async.h>
 
 typedef sysarg_t thash_t;

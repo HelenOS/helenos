@@ -34,7 +34,8 @@
 #ifndef DRV_EHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 #define DRV_EHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "link_pointer.h"
 #include "mem_access.h"
 

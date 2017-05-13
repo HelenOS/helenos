@@ -38,7 +38,8 @@
 #define INET_PDU_H_
 
 #include <loc.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "inetsrv.h"
 #include "ndp.h"
 

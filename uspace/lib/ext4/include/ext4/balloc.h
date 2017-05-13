@@ -33,7 +33,7 @@
 #ifndef LIBEXT4_BALLOC_H_
 #define LIBEXT4_BALLOC_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include "types.h"
 
 extern int ext4_balloc_free_block(ext4_inode_ref_t *, uint32_t);

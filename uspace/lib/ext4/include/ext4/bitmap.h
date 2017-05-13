@@ -33,7 +33,7 @@
 #ifndef LIBEXT4_BITMAP_H_
 #define LIBEXT4_BITMAP_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 extern void ext4_bitmap_free_bit(uint8_t *, uint32_t);
 extern void ext4_bitmap_free_bits(uint8_t *, uint32_t, uint32_t);

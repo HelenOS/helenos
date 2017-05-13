@@ -37,7 +37,6 @@
 #ifndef INET_REASS_H_
 #define INET_REASS_H_
 
-#include <sys/types.h>
 #include "inetsrv.h"
 
 extern int inet_reass_queue_packet(inet_packet_t *);

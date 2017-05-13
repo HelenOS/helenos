@@ -55,7 +55,6 @@ static volatile const char copyright[] =
 	"\tThe Regents of the University of California.  All rights reserved.\n";
 
 #include <sys/time.h>
-#include <sys/types.h>
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>

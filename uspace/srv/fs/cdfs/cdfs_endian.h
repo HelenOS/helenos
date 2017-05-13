@@ -33,7 +33,7 @@
 #ifndef CDFS_CDFS_ENDIAN_H_
 #define CDFS_CDFS_ENDIAN_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #if !(defined(__BE__) ^ defined(__LE__))
 	#error The architecture must be either big-endian or little-endian.

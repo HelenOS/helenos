@@ -40,7 +40,8 @@
 #include <stdbool.h>
 #include <fibril.h>
 #include <fibril_synch.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <inet/addr.h>
 #include <inet/endpoint.h>
 

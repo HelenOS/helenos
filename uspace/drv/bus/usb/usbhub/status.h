@@ -35,7 +35,7 @@
 #define	HUB_STATUS_H
 
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <usb/dev/request.h>
 
 /**

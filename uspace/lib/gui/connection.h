@@ -36,7 +36,7 @@
 #ifndef GUI_CONNECTION_H_
 #define GUI_CONNECTION_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include "widget.h"
 
 typedef sysarg_t signal_t;

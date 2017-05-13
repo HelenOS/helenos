@@ -36,7 +36,6 @@
 #define LIBC_IO_WINDOW_H_
 
 #include <stdbool.h>
-#include <sys/types.h>
 #include <async.h>
 #include <loc.h>
 #include <io/kbd_event.h>

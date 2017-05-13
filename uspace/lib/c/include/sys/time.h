@@ -37,7 +37,8 @@
 #ifndef LIBC_SYS_TIME_H_
 #define LIBC_SYS_TIME_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define DST_NONE  0
 #define ASCTIME_BUF_LEN  26

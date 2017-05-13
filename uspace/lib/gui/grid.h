@@ -36,7 +36,7 @@
 #ifndef GUI_GRID_H_
 #define GUI_GRID_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include <io/pixel.h>
 #include "widget.h"
 

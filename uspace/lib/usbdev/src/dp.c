@@ -48,7 +48,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #define NESTING(parentname, childname) \
 	{ \

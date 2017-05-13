@@ -36,7 +36,6 @@
 #ifndef LIBC_PCB_H_
 #define LIBC_PCB_H_
 
-#include <sys/types.h>
 
 typedef void (*entry_point_t)(void);
 

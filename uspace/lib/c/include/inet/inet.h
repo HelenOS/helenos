@@ -37,7 +37,7 @@
 
 #include <inet/addr.h>
 #include <ipc/loc.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <types/inet.h>
 
 extern int inet_init(uint8_t, inet_ev_ops_t *);

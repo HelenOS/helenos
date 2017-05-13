@@ -42,7 +42,7 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <str.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <types/inetcfg.h>
 
 #include "addrobj.h"

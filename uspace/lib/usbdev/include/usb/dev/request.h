@@ -35,7 +35,8 @@
 #ifndef LIBUSBDEV_REQUEST_H_
 #define LIBUSBDEV_REQUEST_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <l18n/langs.h>
 #include <usb/usb.h>
 #include <usb/dev/pipes.h>

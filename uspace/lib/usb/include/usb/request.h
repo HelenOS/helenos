@@ -35,7 +35,7 @@
 #ifndef LIBUSB_REQUEST_H_
 #define LIBUSB_REQUEST_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /** Standard device request. */
 typedef enum {

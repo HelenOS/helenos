@@ -31,7 +31,7 @@
 /** @file
  */
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <errno.h>
 #include <sysinfo.h>
 #include <ddi.h>

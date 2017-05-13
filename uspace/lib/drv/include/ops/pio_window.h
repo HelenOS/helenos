@@ -36,7 +36,6 @@
 #define LIBDRV_OPS_PIO_WINDOW_H_
 
 #include <device/pio_window.h>
-#include <sys/types.h>
 #include "../ddf/driver.h"
 
 typedef struct {

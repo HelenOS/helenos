@@ -37,7 +37,8 @@
 #ifndef INET_ADDROBJ_H_
 #define INET_ADDROBJ_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "inetsrv.h"
 
 typedef enum {

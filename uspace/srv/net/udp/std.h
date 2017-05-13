@@ -37,7 +37,7 @@
 #ifndef STD_H
 #define STD_H
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define IP_PROTO_UDP  17
 

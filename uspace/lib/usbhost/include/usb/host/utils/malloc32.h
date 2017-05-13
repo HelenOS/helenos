@@ -39,7 +39,8 @@
 #include <ddi.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /* Generic TDs and EDs require 16byte alignment,
  * Isochronous TD require 32byte alignment,

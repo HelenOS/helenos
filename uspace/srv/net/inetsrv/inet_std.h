@@ -37,7 +37,7 @@
 #ifndef INET_STD_H_
 #define INET_STD_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define IP6_NEXT_FRAGMENT  44
 

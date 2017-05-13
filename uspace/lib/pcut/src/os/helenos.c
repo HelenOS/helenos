@@ -34,7 +34,6 @@
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
-#include <sys/types.h>
 #include <errno.h>
 #include <assert.h>
 #include <stdio.h>

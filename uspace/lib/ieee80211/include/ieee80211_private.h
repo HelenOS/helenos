@@ -42,7 +42,8 @@
 #include <fibril_synch.h>
 #include <byteorder.h>
 #include <ddf/driver.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <ieee80211/ieee80211.h>
 #include "ieee80211.h"
 

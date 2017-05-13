@@ -36,7 +36,7 @@
 #ifndef DRAW_CODEC_WEBP_H_
 #define DRAW_CODEC_WEBP_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include "../surface.h"
 
 extern surface_t *decode_webp(void *, size_t, surface_flags_t);

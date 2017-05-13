@@ -37,7 +37,7 @@
 #ifndef ETHIP_STD_H_
 #define ETHIP_STD_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <inet/addr.h>
 
 #define ETH_ADDR_SIZE       6

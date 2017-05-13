@@ -35,7 +35,7 @@
 #ifndef LIBC_MEM_H_
 #define LIBC_MEM_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include <cc.h>
 
 extern void *memset(void *, int, size_t)

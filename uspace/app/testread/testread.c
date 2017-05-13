@@ -48,10 +48,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <mem.h>
 #include <loc.h>
 #include <byteorder.h>
-#include <sys/types.h>
 #include <sys/typefmt.h>
 #include <inttypes.h>
 #include <errno.h>

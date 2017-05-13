@@ -34,7 +34,6 @@
 #define NS_CLONABLE_H__
 
 #include <ipc/common.h>
-#include <sys/types.h>
 #include <ipc/services.h>
 #include <abi/ipc/interfaces.h>
 #include <stdbool.h>

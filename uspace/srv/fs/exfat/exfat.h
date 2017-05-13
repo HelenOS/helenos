@@ -38,7 +38,7 @@
 #include <fibril_synch.h>
 #include <libfs.h>
 #include <atomic.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include "../../vfs/vfs.h"
 

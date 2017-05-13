@@ -37,7 +37,7 @@
 #ifndef STD_H
 #define STD_H
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <inet/addr.h>
 
 #define IP_PROTO_TCP  6

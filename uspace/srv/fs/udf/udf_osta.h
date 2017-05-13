@@ -39,7 +39,8 @@
 #ifndef UDF_OSTA_H_
 #define UDF_OSTA_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include "udf_types.h"
 

@@ -47,7 +47,7 @@
 #include <str.h>
 #include <stdio.h>
 #include <assert.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <adt/hash_table.h>
 #include <adt/hash.h>
 #include <as.h>

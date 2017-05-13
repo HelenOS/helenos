@@ -37,7 +37,8 @@
 #ifndef INET_SROUTE_H_
 #define INET_SROUTE_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "inetsrv.h"
 
 extern inet_sroute_t *inet_sroute_new(void);

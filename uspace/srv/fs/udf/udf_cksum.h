@@ -33,7 +33,8 @@
 #ifndef UDF_CKSUM_H_
 #define UDF_CKSUM_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #define UDF_TAG_SIZE  16

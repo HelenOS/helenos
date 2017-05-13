@@ -37,7 +37,8 @@
 #define LIBDRV_OPS_HW_RES_H_
 
 #include <device/hw_res.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "../ddf/driver.h"
 
 typedef struct {

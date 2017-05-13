@@ -34,7 +34,6 @@
  * @file
  */
 
-#include <sys/types.h>
 #include <errno.h>
 #include <io/chargrid.h>
 #include "../output.h"

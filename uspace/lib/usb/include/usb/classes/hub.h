@@ -35,7 +35,7 @@
 #ifndef LIBUSB_CLASS_HUB_H_
 #define LIBUSB_CLASS_HUB_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /** Hub class feature selector.
  * @warning The constants are not unique (feature selectors are used

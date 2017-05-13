@@ -34,7 +34,7 @@
 #include <io/log.h>
 #include <str.h>
 #include <str_error.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <vfs/vfs.h>
 
 #include "devman.h"

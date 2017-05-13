@@ -37,7 +37,7 @@
 #ifndef NCONFSRV_IPLINK_H_
 #define NCONFSRV_IPLINK_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include "nconfsrv.h"
 
 extern int ncs_link_discovery_start(void);

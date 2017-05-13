@@ -41,7 +41,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <str.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <as.h>
 #include <block.h>
 #include <byteorder.h>

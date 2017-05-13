@@ -35,7 +35,7 @@
 #ifndef VUK_ITEM_H_
 #define VUK_ITEM_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 typedef uint8_t report_descriptor_data_t[];
 

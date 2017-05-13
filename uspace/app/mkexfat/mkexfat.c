@@ -37,15 +37,15 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <block.h>
 #include <assert.h>
 #include <errno.h>
 #include <malloc.h>
 #include <byteorder.h>
 #include <align.h>
-#include <sys/types.h>
 #include <sys/typefmt.h>
-#include <stdbool.h>
 #include <str.h>
 #include <getopt.h>
 #include <macros.h>

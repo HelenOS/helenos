@@ -37,7 +37,6 @@
 #define GUI_MINIMAL_H_
 
 #include <stdbool.h>
-#include <sys/types.h>
 #include <io/pixel.h>
 
 #include "widget.h"

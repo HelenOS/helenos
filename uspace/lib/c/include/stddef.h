@@ -35,7 +35,7 @@
 #ifndef LIBC_STDDEF_H_
 #define LIBC_STDDEF_H_
 
-#include <sys/types.h>
+#include <libarch/stddef.h>
 
 #ifndef NULL
 	#define NULL  ((void *) 0)

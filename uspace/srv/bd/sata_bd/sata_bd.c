@@ -36,7 +36,7 @@
  *
  */
 
-#include <sys/types.h>
+#include <stddef.h>
 #include <bd_srv.h>
 #include <devman.h>
 #include <errno.h>

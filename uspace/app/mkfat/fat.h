@@ -33,7 +33,7 @@
 #ifndef FAT_FAT_H_
 #define FAT_FAT_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define BS_BLOCK		0
 #define BS_SIZE			512

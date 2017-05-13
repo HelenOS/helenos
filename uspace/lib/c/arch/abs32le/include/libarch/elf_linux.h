@@ -36,7 +36,6 @@
 #define LBIC_abs32le_ELF_LINUX_H_
 
 #include <libarch/istate.h>
-#include <sys/types.h>
 
 typedef struct {
 } elf_regs_t;

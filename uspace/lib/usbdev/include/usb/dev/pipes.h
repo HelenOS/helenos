@@ -39,7 +39,8 @@
 #include <usb_iface.h>
 
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
 /** Abstraction of a logical connection to USB device endpoint.

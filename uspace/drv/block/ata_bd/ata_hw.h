@@ -35,7 +35,7 @@
 #ifndef __ATA_HW_H__
 #define __ATA_HW_H__
 
-#include <sys/types.h>
+#include <stdint.h>
 
 enum {
 	CTL_READ_START  = 0,

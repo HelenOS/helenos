@@ -37,7 +37,7 @@
 #ifndef DRAW_CODEC_TGA_H_
 #define DRAW_CODEC_TGA_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include "../surface.h"
 
 extern surface_t *decode_tga(void *, size_t, surface_flags_t);

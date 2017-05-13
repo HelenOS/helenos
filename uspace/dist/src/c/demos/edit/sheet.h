@@ -37,7 +37,7 @@
 #define SHEET_H__
 
 #include <adt/list.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 /** Direction (in linear space) */

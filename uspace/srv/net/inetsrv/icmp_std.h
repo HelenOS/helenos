@@ -37,7 +37,7 @@
 #ifndef ICMP_STD_H_
 #define ICMP_STD_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define IP_PROTO_ICMP 1
 

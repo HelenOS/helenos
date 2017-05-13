@@ -40,7 +40,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <sys/wait.h>
 #define BITHENGE_FAILURE_DECLS_ONLY 1
 #include "failure.h"

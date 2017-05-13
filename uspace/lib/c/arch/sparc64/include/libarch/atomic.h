@@ -38,7 +38,7 @@
 #define LIBC_ARCH_ATOMIC_H_
 
 #include <atomicdflt.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 /** Atomic add operation.
  *

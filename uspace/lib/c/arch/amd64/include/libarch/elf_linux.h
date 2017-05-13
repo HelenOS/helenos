@@ -36,7 +36,7 @@
 #define LBIC_amd64_ELF_LINUX_H_
 
 #include <libarch/istate.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 /** Linux kernel struct pt_regs structure.
  *

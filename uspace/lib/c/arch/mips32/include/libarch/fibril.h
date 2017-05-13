@@ -36,7 +36,7 @@
 #ifndef LIBC_mips32_FIBRIL_H_
 #define LIBC_mips32_FIBRIL_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <libarch/fibril_context.h>
 #include <libarch/stack.h>
 #include <align.h>

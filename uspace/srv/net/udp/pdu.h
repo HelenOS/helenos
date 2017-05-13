@@ -36,7 +36,6 @@
 #define PDU_H
 
 #include <inet/endpoint.h>
-#include <sys/types.h>
 #include "std.h"
 #include "udp_type.h"
 

@@ -37,7 +37,8 @@
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <fibril_synch.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <loc.h>
 #include <stdbool.h>
 #include <ipc/vfs.h>

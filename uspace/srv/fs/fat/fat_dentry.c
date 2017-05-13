@@ -43,7 +43,7 @@
 #include <byteorder.h>
 #include <assert.h>
 #include <stddef.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 /** Compare path component with the name read from the dentry.
  *

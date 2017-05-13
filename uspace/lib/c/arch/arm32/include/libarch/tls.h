@@ -36,7 +36,7 @@
 #ifndef LIBC_arm32_TLS_H_
 #define LIBC_arm32_TLS_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define CONFIG_TLS_VARIANT_1
 

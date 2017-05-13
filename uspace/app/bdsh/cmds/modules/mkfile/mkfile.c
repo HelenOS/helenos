@@ -29,8 +29,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <dirent.h>
-#include <sys/types.h>
 #include <macros.h>
 #include <getopt.h>
 #include <stdarg.h>

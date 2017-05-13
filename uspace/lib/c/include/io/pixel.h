@@ -36,7 +36,7 @@
 #ifndef LIBC_IO_PIXEL_H_
 #define LIBC_IO_PIXEL_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define NARROW(channel, bits) \
 	((channel) >> (8 - (bits)))

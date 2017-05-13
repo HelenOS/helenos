@@ -46,7 +46,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <vfs/vfs.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <align.h>
 #include <assert.h>
 #include <as.h>

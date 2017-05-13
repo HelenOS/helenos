@@ -44,7 +44,8 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <task.h>
 #include "addrobj.h"
 #include "icmp.h"

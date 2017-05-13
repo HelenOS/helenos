@@ -37,7 +37,6 @@
 #ifndef DRAW_SURFACE_H_
 #define DRAW_SURFACE_H_
 
-#include <sys/types.h>
 #include <stdbool.h>
 #include <io/pixelmap.h>
 

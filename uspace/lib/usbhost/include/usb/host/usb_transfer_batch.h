@@ -41,7 +41,8 @@
 
 #include <assert.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <usbhc_iface.h>
 
 #define USB_SETUP_PACKET_SIZE 8

@@ -36,7 +36,7 @@
 #ifndef DRV_OHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
 #define DRV_OHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #include "completion_codes.h"
 

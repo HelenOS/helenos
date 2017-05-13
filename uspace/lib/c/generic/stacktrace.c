@@ -36,7 +36,7 @@
 #include <stacktrace.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <errno.h>
 
 static int stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data);

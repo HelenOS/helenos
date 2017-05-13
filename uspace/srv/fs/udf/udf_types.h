@@ -37,7 +37,7 @@
 #ifndef UDF_UDF_TYPES_H_
 #define UDF_UDF_TYPES_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <byteorder.h>
 

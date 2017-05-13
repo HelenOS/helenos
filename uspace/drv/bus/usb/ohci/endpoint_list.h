@@ -37,7 +37,7 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <usb/host/utils/malloc32.h>
 
 #include "ohci_endpoint.h"

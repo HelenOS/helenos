@@ -39,7 +39,7 @@
 #include <thread.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <abi/sysinfo.h>
 
 #define LOAD_UNIT  65536

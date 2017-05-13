@@ -33,7 +33,6 @@
  */
 
 #include <async.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <inet/addr.h>
@@ -41,11 +40,13 @@
 #include <inet/inetping.h>
 #include <io/console.h>
 #include <getopt.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <str.h>
 #include <str_error.h>
-#include <sys/types.h>
 
 #define NAME "ping"
 

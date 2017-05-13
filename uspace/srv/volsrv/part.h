@@ -38,7 +38,7 @@
 #define PART_H_
 
 #include <loc.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <types/vol.h>
 #include "types/part.h"
 

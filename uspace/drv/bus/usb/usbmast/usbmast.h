@@ -37,7 +37,8 @@
 #define USBMAST_H_
 
 #include <bd_srv.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <usb/usb.h>
 
 /** Mass storage device. */

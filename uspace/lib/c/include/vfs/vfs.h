@@ -35,7 +35,8 @@
 #ifndef LIBC_VFS_H_
 #define LIBC_VFS_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <ipc/vfs.h>
 #include <ipc/loc.h>
 #include <adt/list.h>

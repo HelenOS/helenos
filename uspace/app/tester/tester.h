@@ -35,7 +35,6 @@
 #ifndef TESTER_H_
 #define TESTER_H_
 
-#include <sys/types.h>
 #include <stdbool.h>
 #include <stacktrace.h>
 #include <stdio.h>

@@ -36,7 +36,7 @@
 #ifndef CONN_H
 #define CONN_H
 
-#include <sys/types.h>
+#include <stddef.h>
 
 extern int conn_open(const char *);
 extern int conn_send(void *, size_t);

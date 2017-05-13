@@ -36,7 +36,7 @@
 #define PDU_H
 
 #include <inet/endpoint.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include "std.h"
 #include "tcp_type.h"
 

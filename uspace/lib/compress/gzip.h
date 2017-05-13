@@ -29,7 +29,7 @@
 #ifndef LIBCOMPRESS_GZIP_H_
 #define LIBCOMPRESS_GZIP_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 
 extern int gzip_expand(void *, size_t, void **, size_t *);
 

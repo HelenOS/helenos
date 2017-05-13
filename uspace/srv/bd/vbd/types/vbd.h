@@ -43,7 +43,7 @@
 #include <label.h>
 #include <loc.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <types/label.h>
 
 typedef sysarg_t vbds_part_id_t;

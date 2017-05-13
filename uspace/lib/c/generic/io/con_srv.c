@@ -37,7 +37,7 @@
 #include <io/cons_event.h>
 #include <ipc/console.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 #include <io/con_srv.h>
 

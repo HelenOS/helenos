@@ -37,7 +37,7 @@
 
 #include <libarch/stack.h>
 #include <libarch/fibril_context.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <align.h>
 
 #define SP_DELTA  (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)

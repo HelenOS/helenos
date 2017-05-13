@@ -35,8 +35,9 @@
 #ifndef LIBC_sparc64_SYSCALL_H_
 #define LIBC_sparc64_SYSCALL_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <abi/syscall.h>
+#include <libarch/types.h>
 
 #define __syscall0	__syscall
 #define __syscall1	__syscall

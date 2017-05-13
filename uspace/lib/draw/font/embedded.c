@@ -34,7 +34,7 @@
  * @file
  */
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <malloc.h>
 #include <errno.h>
 

@@ -37,7 +37,8 @@
 #include <ipc/bd.h>
 #include <macros.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include <bd_srv.h>
 

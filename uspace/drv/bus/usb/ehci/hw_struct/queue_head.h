@@ -35,7 +35,7 @@
 #define DRV_EHCI_HW_STRUCT_QH_H
 
 #include <assert.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/utils/malloc32.h>
 

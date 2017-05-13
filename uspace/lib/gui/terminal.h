@@ -36,7 +36,7 @@
 #ifndef GUI_TERMINAL_H_
 #define GUI_TERMINAL_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include <fibril_synch.h>
 #include <font.h>
 #include <io/chargrid.h>

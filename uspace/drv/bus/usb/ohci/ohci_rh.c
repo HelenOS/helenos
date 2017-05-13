@@ -35,7 +35,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <mem.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include <usb/classes/hub.h>
 #include <usb/debug.h>

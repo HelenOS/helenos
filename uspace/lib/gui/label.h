@@ -36,7 +36,7 @@
 #ifndef GUI_LABEL_H_
 #define GUI_LABEL_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <io/pixel.h>
 
 #include <source.h>

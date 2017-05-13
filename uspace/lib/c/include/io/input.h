@@ -37,7 +37,6 @@
 
 #include <async.h>
 #include <io/kbd_event.h>
-#include <sys/types.h>
 
 struct input_ev_ops;
 

@@ -51,10 +51,10 @@
 #include <elf/elf_linux.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <mem.h>
 #include <stdint.h>
+#include <stddef.h>
+#include <errno.h>
+#include <mem.h>
 #include <as.h>
 #include <udebug.h>
 #include <macros.h>

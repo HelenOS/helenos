@@ -35,7 +35,7 @@
 #define LIBEXT4_SUPERBLOCK_H_
 
 #include <block.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include "ext4/types.h"
 
 extern uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *);

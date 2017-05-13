@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vfs/vfs.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include "common.h"
 #include <bithenge/blob.h>
 #include <bithenge/file.h>

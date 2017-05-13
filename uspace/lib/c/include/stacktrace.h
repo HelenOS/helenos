@@ -36,7 +36,7 @@
 #ifndef LIBC_STACKTRACE_H_
 #define LIBC_STACKTRACE_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 typedef struct {

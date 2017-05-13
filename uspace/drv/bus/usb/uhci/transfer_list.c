@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <libarch/barrier.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <usb/debug.h>
 #include <usb/host/usb_transfer_batch.h>
 #include <usb/host/utils/malloc32.h>

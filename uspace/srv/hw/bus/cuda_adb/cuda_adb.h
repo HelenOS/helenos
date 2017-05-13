@@ -36,7 +36,8 @@
 #ifndef CUDA_ADB_H_
 #define CUDA_ADB_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <async.h>
 #include <fibril_synch.h>
 

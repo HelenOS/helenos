@@ -37,7 +37,6 @@
 #ifndef LIBC_SERVICES_H_
 #define LIBC_SERVICES_H_
 
-#include <sys/types.h>
 #include <abi/fourcc.h>
 
 typedef enum {

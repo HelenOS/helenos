@@ -35,7 +35,7 @@
 #ifndef LIBC_SMC_H_
 #define LIBC_SMC_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 
 extern int smc_coherence(void *address, size_t size);
 

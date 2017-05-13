@@ -37,7 +37,7 @@
 #ifndef KBD_PORT_H_
 #define KBD_PORT_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 struct kbd_dev;
 

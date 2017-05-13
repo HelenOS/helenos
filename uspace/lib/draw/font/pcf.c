@@ -33,7 +33,8 @@
  * @file
  */
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <malloc.h>
 #include <errno.h>
 #include <byteorder.h>

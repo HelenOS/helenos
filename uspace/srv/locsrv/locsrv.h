@@ -38,7 +38,7 @@
 #include <ipc/loc.h>
 #include <async.h>
 #include <fibril_synch.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 /** Representation of server (supplier).
  *

@@ -35,7 +35,8 @@
 #ifndef SEGMENT_H
 #define SEGMENT_H
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "tcp_type.h"
 
 extern tcp_segment_t *tcp_segment_new(void);

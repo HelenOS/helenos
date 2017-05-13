@@ -37,7 +37,6 @@
 #ifndef KBD_LAYOUT_H_
 #define KBD_LAYOUT_H_
 
-#include <sys/types.h>
 #include <io/console.h>
 
 /** Layout instance state */

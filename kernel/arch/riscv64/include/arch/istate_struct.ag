@@ -36,7 +36,7 @@
                 },
                 {
                         negative-guard: KERNEL,
-                        include : <sys/types.h>
+                        include : <stdint.h>
                 }
         ],
 

@@ -35,7 +35,7 @@
 #ifndef LIBC_IO_KLOG_H_
 #define LIBC_IO_KLOG_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include <io/verify.h>
 #include <stdio.h>

@@ -39,7 +39,7 @@
 #include <async.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 typedef struct chardev_ops chardev_ops_t;
 

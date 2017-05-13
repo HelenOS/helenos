@@ -36,7 +36,7 @@
 #define UCALL_H
 
 #include <inet/endpoint.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include "tcp_type.h"
 
 /*

@@ -42,7 +42,8 @@
 #include <ipc/inet.h>
 #include <loc.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <types/inetping.h>
 #include "icmp.h"
 #include "icmpv6.h"

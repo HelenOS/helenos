@@ -40,7 +40,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <usb/host/usb_transfer_batch.h>
 
 #include "hw_struct/queue_head.h"

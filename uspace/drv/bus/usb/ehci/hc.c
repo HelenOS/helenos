@@ -39,8 +39,8 @@
 #include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <str_error.h>
-#include <sys/types.h>
 
 #include <usb/debug.h>
 #include <usb/usb.h>

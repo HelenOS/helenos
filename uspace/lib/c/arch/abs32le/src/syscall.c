@@ -29,7 +29,6 @@
 /** @file
  */
 
-#include <sys/types.h>
 #include <libarch/syscall.h>
 
 sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2,

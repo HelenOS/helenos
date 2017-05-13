@@ -36,7 +36,6 @@
 #define LIBC_INET_INETPING_H_
 
 #include <inet/inet.h>
-#include <sys/types.h>
 #include <types/inetping.h>
 
 typedef struct inetping_ev_ops {

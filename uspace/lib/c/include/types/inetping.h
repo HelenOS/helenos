@@ -38,7 +38,8 @@
 #define LIBC_TYPES_INETPING_H_
 
 #include <inet/addr.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 typedef struct {
 	inet_addr_t src;

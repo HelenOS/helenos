@@ -35,7 +35,7 @@
 #ifndef LIBLABEL_STD_GPT_H_
 #define LIBLABEL_STD_GPT_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 enum {
 	/** Block address of primary GPT header. */

@@ -39,7 +39,7 @@
 
 #include <inet/udp.h>
 #include <ipc/loc.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 struct dhcp_transport;
 typedef struct dhcp_transport dhcp_transport_t;

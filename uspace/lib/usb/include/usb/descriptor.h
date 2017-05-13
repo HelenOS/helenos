@@ -35,7 +35,7 @@
 #ifndef LIBUSB_DESCRIPTOR_H_
 #define LIBUSB_DESCRIPTOR_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /** Descriptor type. */
 typedef enum {

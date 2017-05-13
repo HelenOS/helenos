@@ -36,7 +36,7 @@
 #ifndef RTL8169_DEFS_H_
 #define RTL8169_DEFS_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <ddi.h>
 
 #define	PCI_VID_REALTEK		0x10ec

@@ -28,8 +28,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <dirent.h>
-#include <sys/types.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <str.h>

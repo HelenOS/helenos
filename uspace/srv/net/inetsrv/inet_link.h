@@ -37,7 +37,8 @@
 #ifndef INET_LINK_H_
 #define INET_LINK_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "inetsrv.h"
 
 extern int inet_link_open(service_id_t);

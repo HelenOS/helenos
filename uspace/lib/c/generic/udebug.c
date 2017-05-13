@@ -33,7 +33,8 @@
  */
 
 #include <udebug.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <abi/ipc/methods.h>
 #include <async.h>
 

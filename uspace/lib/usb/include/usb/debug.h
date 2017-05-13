@@ -35,7 +35,8 @@
 #ifndef LIBUSB_DEBUG_H_
 #define LIBUSB_DEBUG_H_
 #include <stdio.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <io/log.h>
 
 void usb_dump_standard_descriptor(FILE *, const char *, const char *,

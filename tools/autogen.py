@@ -97,6 +97,7 @@ def probe(struct):
 #define str(s) #s
 #define emit_constant(n, v) \
     asm volatile ("EMITTED_CONSTANT " str(n) \" = %%0\" :: \"i\" (v))
+#undef offsetof
 #define offsetof(t, m) ((size_t) &(((t *) 0)->m))
 
 %s

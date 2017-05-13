@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <ipc/iplink.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <inet/addr.h>
 #include <inet/iplink_srv.h>
 

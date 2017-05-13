@@ -35,7 +35,6 @@
 #ifndef LIBC_NS_H_
 #define LIBC_NS_H_
 
-#include <sys/types.h>
 #include <ipc/services.h>
 #include <task.h>
 #include <async.h>

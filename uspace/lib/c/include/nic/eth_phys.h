@@ -30,7 +30,7 @@
 #ifndef LIBC_NIC_ETH_PHYS_H_
 #define LIBC_NIC_ETH_PHYS_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /*****************************************************/
 /* Definitions of possible supported physical layers */

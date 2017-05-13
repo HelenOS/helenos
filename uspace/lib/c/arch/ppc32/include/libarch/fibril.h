@@ -35,7 +35,7 @@
 #ifndef LIBC_ppc32_FIBRIL_H_
 #define LIBC_ppc32_FIBRIL_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <libarch/fibril_context.h>
 
 #define SP_DELTA  16

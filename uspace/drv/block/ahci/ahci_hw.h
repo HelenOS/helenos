@@ -33,7 +33,7 @@
 #ifndef __AHCI_HW_H__
 #define __AHCI_HW_H__
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /*----------------------------------------------------------------------------*/
 /*-- AHCI standard constants -------------------------------------------------*/

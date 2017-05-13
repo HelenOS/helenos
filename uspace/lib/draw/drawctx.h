@@ -36,7 +36,6 @@
 #ifndef DRAW_DRAWCTX_H_
 #define DRAW_DRAWCTX_H_
 
-#include <sys/types.h>
 #include <stdbool.h>
 
 #include <compose.h>

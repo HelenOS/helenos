@@ -36,7 +36,7 @@
 #ifndef PL050_HW_H
 #define PL050_HW_H
 
-#include <sys/types.h>
+#include <stdint.h>
 
 typedef struct {
 	/** Control register */

@@ -37,7 +37,8 @@
 #define USB_USBMAST_SCSI_MS_H_
 
 #include <scsi/spc.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <usb/usb.h>
 #include <usb/dev/driver.h>
 

@@ -37,6 +37,7 @@
 #include <cap.h>
 #include <task.h>
 #include <libc.h>
+#include <libarch/types.h>
 
 /** Grant capabilities to a task.
  *

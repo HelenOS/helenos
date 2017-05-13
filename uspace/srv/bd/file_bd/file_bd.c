@@ -44,7 +44,8 @@
 #include <bd_srv.h>
 #include <fibril_synch.h>
 #include <loc.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <sys/typefmt.h>
 #include <errno.h>
 #include <stdbool.h>

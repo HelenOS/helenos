@@ -35,7 +35,6 @@
 #ifndef LIBC_STDARG_H_
 #define LIBC_STDARG_H_
 
-#include <sys/types.h>
 
 typedef __builtin_va_list va_list;
 

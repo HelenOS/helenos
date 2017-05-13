@@ -35,7 +35,7 @@
 
 #include <byteorder.h>
 #include <mem.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <usb/usb.h>
 #include "cmdw.h"
 

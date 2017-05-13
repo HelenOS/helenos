@@ -37,7 +37,7 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <str_error.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <async.h>
 #include <char_dev_iface.h>
 #include <str.h>

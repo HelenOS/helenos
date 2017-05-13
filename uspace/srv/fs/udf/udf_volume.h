@@ -33,7 +33,7 @@
 #ifndef UDF_UDF_VOLUME_H_
 #define UDF_UDF_VOLUME_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <ipc/loc.h>
 #include "udf_types.h"
 

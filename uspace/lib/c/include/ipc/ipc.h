@@ -39,7 +39,6 @@
 #ifndef LIBC_IPC_H_
 #define LIBC_IPC_H_
 
-#include <sys/types.h>
 #include <ipc/common.h>
 #include <abi/ipc/methods.h>
 #include <abi/synch.h>

@@ -29,11 +29,11 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <str.h>
 #include <vfs/vfs.h>
 #include <dirent.h>
 #include <loc.h>
-#include <sys/types.h>
 #include "../tester.h"
 
 #define TEST_DIRECTORY  "/tmp/testdir"

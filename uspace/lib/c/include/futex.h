@@ -36,7 +36,6 @@
 #define LIBC_FUTEX_H_
 
 #include <atomic.h>
-#include <sys/types.h>
 #include <libc.h>
 
 typedef struct futex {

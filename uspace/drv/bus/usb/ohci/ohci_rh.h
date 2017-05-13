@@ -35,7 +35,7 @@
 #define DRV_OHCI_OHCI_RH_H
 
 #include <assert.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #include <usb/usb.h>
 #include <usb/classes/hub.h>

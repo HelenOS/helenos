@@ -35,7 +35,8 @@
 #ifndef LIBUSBDEV_DP_H_
 #define LIBUSBDEV_DP_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /** USB descriptors nesting.
  * The nesting describes the logical tree USB descriptors form

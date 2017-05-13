@@ -36,7 +36,8 @@
 #include <libc.h>
 #include <errno.h>
 #include <align.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <bitops.h>
 #include <malloc.h>
 #include "private/libc.h"

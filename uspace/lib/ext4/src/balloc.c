@@ -35,7 +35,7 @@
  */
 
 #include <errno.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include "ext4/balloc.h"
 #include "ext4/bitmap.h"
 #include "ext4/block_group.h"

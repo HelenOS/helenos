@@ -36,7 +36,6 @@
 #ifndef GUI_COMMON_H_
 #define GUI_COMMON_H_
 
-#include <sys/types.h>
 #include <drawctx.h>
 
 extern void draw_icon_cross(surface_t *, sysarg_t, sysarg_t, pixel_t, pixel_t);

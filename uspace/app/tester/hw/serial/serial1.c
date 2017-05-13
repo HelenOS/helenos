@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <sys/types.h>
 #include <async.h>
 #include <thread.h>
 #include <ipc/services.h>

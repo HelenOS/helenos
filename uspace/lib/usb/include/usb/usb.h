@@ -35,7 +35,7 @@
 #define LIBUSB_USB_H_
 
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <byteorder.h>
 
 /** Convert 16bit value from native (host) endianness to USB endianness. */

@@ -37,16 +37,16 @@
 #include <fibrildump.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <udebug.h>
 #include <task.h>
 #include <as.h>
-#include <sys/types.h>
 #include <sys/typefmt.h>
 #include <libarch/istate.h>
 #include <macros.h>
 #include <assert.h>
-#include <stdbool.h>
 
 #include <symtab.h>
 #include <elf_core.h>

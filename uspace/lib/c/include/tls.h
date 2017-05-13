@@ -36,7 +36,8 @@
 #define LIBC_TLS_H_
 
 #include <libarch/tls.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /** DTV Generation number - equals vector length */
 #define DTV_GN(dtv) (((uintptr_t *)(dtv))[0])

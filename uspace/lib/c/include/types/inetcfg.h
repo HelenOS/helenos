@@ -36,7 +36,7 @@
 #define LIBC_TYPES_INETCFG_H_
 
 #include <inet/inet.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 /** Address object info */
 typedef struct {

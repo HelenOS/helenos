@@ -35,9 +35,9 @@
 #ifndef LIBC_TASK_H_
 #define LIBC_TASK_H_
 
-#include <sys/types.h>
-#include <abi/proc/task.h>
+#include <stdint.h>
 #include <stdarg.h>
+#include <abi/proc/task.h>
 #include <async.h>
 #include <types/task.h>
 

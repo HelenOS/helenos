@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <bithenge/blob.h>
 #include <bithenge/source.h>
 #include <bithenge/print.h>

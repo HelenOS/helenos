@@ -35,7 +35,7 @@
 #ifndef RTL8139_DEFS_H_
 #define RTL8139_DEFS_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <ddi.h>
 
 /** Size of RTL8139 registers address space */

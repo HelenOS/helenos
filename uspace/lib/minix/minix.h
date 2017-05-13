@@ -33,7 +33,7 @@
 #ifndef _MINIX_FS_H_
 #define _MINIX_FS_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define MFS_BLOCKSIZE		1024
 #define S_ISDIR(m)		(((m) & S_IFMT) == S_IFDIR)

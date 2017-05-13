@@ -36,7 +36,8 @@
  */
 
 #include <tls.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <align.h>
 
 #ifdef CONFIG_RTLD

@@ -33,7 +33,7 @@
 #ifndef __AHCI_SATA_H__
 #define __AHCI_SATA_H__
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /*----------------------------------------------------------------------------*/
 /*-- SATA Buffer Lengths -----------------------------------------------------*/

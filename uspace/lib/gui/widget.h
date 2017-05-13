@@ -36,7 +36,6 @@
 #ifndef GUI_WIDGET_H_
 #define GUI_WIDGET_H_
 
-#include <sys/types.h>
 #include <adt/list.h>
 #include <io/window.h>
 

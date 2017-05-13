@@ -37,7 +37,8 @@
 #define LIBC_STR_H_
 
 #include <mem.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #define U_SPECIAL  '?'

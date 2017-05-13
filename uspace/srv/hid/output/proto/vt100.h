@@ -32,7 +32,6 @@
 #ifndef OUTPUT_PROTO_VT100_H_
 #define OUTPUT_PROTO_VT100_H_
 
-#include <sys/types.h>
 #include <io/charfield.h>
 
 typedef void (* vt100_putchar_t)(wchar_t ch);

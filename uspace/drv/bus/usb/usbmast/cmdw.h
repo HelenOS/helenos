@@ -36,7 +36,7 @@
 #ifndef CMDW_H_
 #define CMDW_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <usb/usb.h>
 
 typedef struct {

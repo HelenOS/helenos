@@ -36,8 +36,8 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <str.h>
-#include <sys/types.h>
 #include <sys/typefmt.h>
 
 #define NAME "loc"

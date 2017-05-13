@@ -40,7 +40,7 @@
 
 #include <async.h>
 #include <nic/nic.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 extern int nic_ev_addr_changed(async_sess_t *, const nic_address_t *);
 extern int nic_ev_device_state(async_sess_t *, sysarg_t);

@@ -33,7 +33,7 @@
 /** @file
  */
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <libarch/stack.h>
 #include <errno.h>

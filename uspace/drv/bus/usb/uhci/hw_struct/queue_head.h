@@ -37,7 +37,7 @@
 #define DRV_UHCI_HW_STRUCT_QH_H
 
 #include <assert.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <usb/host/utils/malloc32.h>
 
 #include "link_pointer.h"

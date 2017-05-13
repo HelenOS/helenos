@@ -36,7 +36,6 @@
 #ifndef GUI_WINDOW_H_
 #define GUI_WINDOW_H_
 
-#include <sys/types.h>
 #include <async.h>
 #include <adt/prodcons.h>
 #include <fibril_synch.h>

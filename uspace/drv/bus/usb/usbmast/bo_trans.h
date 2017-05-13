@@ -37,7 +37,8 @@
 #define BO_TRANS_H_
 
 #include <scsi/spc.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>

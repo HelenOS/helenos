@@ -38,9 +38,10 @@
 #include <async.h>
 #include <bd_srv.h>
 #include <ddf/driver.h>
-#include <sys/types.h>
 #include <fibril_synch.h>
 #include <str.h>
+#include <stdint.h>
+#include <stddef.h>
 #include "ata_hw.h"
 
 #define NAME "ata_bd"

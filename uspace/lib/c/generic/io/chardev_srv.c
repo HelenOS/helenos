@@ -38,7 +38,7 @@
 #include <ipc/chardev.h>
 #include <macros.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 static chardev_srv_t *chardev_srv_create(chardev_srvs_t *);
 

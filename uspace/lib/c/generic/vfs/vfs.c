@@ -38,7 +38,8 @@
 #include <vfs/vfs_sess.h>
 #include <macros.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <ipc/services.h>
 #include <ns.h>
 #include <async.h>

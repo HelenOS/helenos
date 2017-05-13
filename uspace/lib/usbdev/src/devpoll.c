@@ -49,7 +49,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <str_error.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /** Maximum number of failed consecutive requests before announcing failure. */
 #define MAX_FAILED_ATTEMPTS 3

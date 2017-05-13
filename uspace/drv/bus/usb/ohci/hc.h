@@ -43,7 +43,7 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #include <usb/host/hcd.h>
 #include <usb/host/endpoint.h>

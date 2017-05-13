@@ -38,7 +38,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <ddi.h>
 #include <libarch/ddi.h>

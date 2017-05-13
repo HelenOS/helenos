@@ -39,7 +39,6 @@
 #define LIBC_RWLOCK_H_
 
 #include <atomic.h>
-#include <sys/types.h>
 #include <futex.h>
 
 typedef atomic_t rwlock_t;

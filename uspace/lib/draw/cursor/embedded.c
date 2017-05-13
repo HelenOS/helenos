@@ -34,7 +34,8 @@
  */
 
 #include <assert.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <malloc.h>
 
 #include "../gfx/cursor-11x18.h"

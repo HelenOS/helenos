@@ -33,7 +33,8 @@
 #ifndef UDF_FILE_H_
 #define UDF_FILE_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <ipc/loc.h>
 #include <block.h>
 #include "udf_types.h"

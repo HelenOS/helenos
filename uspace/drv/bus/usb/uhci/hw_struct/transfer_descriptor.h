@@ -39,7 +39,8 @@
 #include <assert.h>
 #include <usb/usb.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "link_pointer.h"
 

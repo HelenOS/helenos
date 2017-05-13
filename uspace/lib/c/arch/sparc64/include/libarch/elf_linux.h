@@ -36,7 +36,7 @@
 #define LBIC_sparc64_ELF_LINUX_H_
 
 #include <libarch/istate.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 typedef struct {
 	/* TODO */

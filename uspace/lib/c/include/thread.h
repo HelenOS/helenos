@@ -36,7 +36,7 @@
 #define LIBC_THREAD_H_
 
 #include <libarch/thread.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <abi/proc/thread.h>
 #include <time.h>
 

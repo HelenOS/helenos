@@ -33,8 +33,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <dirent.h>
-#include <sys/types.h>
 #include <str.h>
 #include <getopt.h>
 #include <errno.h>

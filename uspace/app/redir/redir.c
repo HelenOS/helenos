@@ -34,7 +34,6 @@
  * @file
  */
 
-#include <sys/types.h>
 #include <stdlib.h>
 #include <str.h>
 #include <stdio.h>

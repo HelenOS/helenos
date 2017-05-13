@@ -37,7 +37,7 @@
 #ifndef DRAW_FONT_BITMAP_BACKEND_H_
 #define DRAW_FONT_BITMAP_BACKEND_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #include "../font.h"
 #include "../surface.h"

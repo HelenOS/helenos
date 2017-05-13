@@ -38,7 +38,7 @@
 #define FUTIL_H
 
 #include <ipc/loc.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 extern int futil_copy_file(const char *, const char *);
 extern int futil_rcopy_contents(const char *, const char *);

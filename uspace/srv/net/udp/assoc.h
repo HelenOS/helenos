@@ -37,7 +37,6 @@
 
 #include <inet/endpoint.h>
 #include <ipc/loc.h>
-#include <sys/types.h>
 #include "udp_type.h"
 
 extern int udp_assocs_init(void);

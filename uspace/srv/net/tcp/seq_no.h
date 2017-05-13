@@ -35,7 +35,7 @@
 #ifndef SEQ_NO_H
 #define SEQ_NO_H
 
-#include <sys/types.h>
+#include <stdint.h>
 #include "tcp_type.h"
 
 extern bool seq_no_ack_acceptable(tcp_conn_t *, uint32_t);

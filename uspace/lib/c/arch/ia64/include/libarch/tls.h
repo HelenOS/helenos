@@ -37,7 +37,6 @@
 
 #define CONFIG_TLS_VARIANT_1
 
-#include <sys/types.h>
 
 /* This structure must be exactly 16 bytes long */
 typedef struct {

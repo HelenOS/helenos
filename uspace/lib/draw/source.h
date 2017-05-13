@@ -36,7 +36,6 @@
 #ifndef DRAW_SOURCE_H_
 #define DRAW_SOURCE_H_
 
-#include <sys/types.h>
 #include <stdbool.h>
 
 #include <transform.h>

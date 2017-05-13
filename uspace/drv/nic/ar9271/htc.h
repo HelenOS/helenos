@@ -39,7 +39,8 @@
 #include <ieee80211.h>
 #include <fibril_synch.h>
 #include <usb/dev/driver.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <nic.h>
 #include "ath.h"
 

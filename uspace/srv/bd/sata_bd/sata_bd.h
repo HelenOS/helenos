@@ -40,7 +40,8 @@
 #include <async.h>
 #include <bd_srv.h>
 #include <loc.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /** SATA Block Device. */
 typedef struct {

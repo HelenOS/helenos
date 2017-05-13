@@ -34,7 +34,7 @@
 #ifndef DRV_EHCI_HW_STRUCT_LINK_POINTER_H
 #define DRV_EHCI_HW_STRUCT_LINK_POINTER_H
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /** EHCI link pointer, used by many data structures */
 typedef volatile uint32_t link_pointer_t;

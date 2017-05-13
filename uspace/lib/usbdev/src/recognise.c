@@ -41,7 +41,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
-#include <sys/types.h>
 
 /** Get integer part from BCD coded number. */
 #define BCD_INT(a) (((unsigned int)(a)) / 256)

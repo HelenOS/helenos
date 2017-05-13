@@ -35,8 +35,6 @@
 #ifndef LIBC_ia32_RTLD_DYNAMIC_H_
 #define LIBC_ia32_RTLD_DYNAMIC_H_
 
-#include <sys/types.h>
-
 typedef struct {
 	/* Empty. */
 } dyn_info_arch_t;

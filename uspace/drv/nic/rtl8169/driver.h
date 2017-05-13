@@ -30,7 +30,7 @@
 #ifndef RTL8169_DRIVER_H_
 #define RTL8169_DRIVER_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "defs.h"
 

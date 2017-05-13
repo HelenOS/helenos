@@ -37,7 +37,7 @@
 #ifndef S3C24XX_TS_H_
 #define S3C24XX_TS_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <async.h>
 
 /** S3C24xx ADC and touch-screen I/O */

@@ -40,7 +40,8 @@
 #include <usb/dev/pipes.h>
 
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /** Parameters and callbacks for automated polling. */
 typedef struct {

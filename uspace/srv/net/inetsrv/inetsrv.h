@@ -42,7 +42,8 @@
 #include <inet/addr.h>
 #include <inet/iplink.h>
 #include <ipc/loc.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <types/inet.h>
 #include <async.h>
 

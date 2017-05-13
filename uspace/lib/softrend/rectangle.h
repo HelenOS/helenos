@@ -36,7 +36,6 @@
 #ifndef SOFTREND_RECTANGLE_H_
 #define SOFTREND_RECTANGLE_H_
 
-#include <sys/types.h>
 #include <stdbool.h>
 
 extern bool rectangle_intersect(

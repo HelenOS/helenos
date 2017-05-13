@@ -34,7 +34,7 @@
 #ifndef DRV_EHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
 #define DRV_EHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
 
-#include <sys/types.h>
+#include <stdint.h>
 #include "link_pointer.h"
 
 /** Isochronous transfer descriptor (HS only) */

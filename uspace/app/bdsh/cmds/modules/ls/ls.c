@@ -33,9 +33,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <dirent.h>
 #include <getopt.h>
-#include <sys/types.h>
 #include <vfs/vfs.h>
 #include <str.h>
 #include <sort.h>

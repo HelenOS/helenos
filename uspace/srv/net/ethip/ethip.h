@@ -42,7 +42,8 @@
 #include <inet/iplink_srv.h>
 #include <inet/addr.h>
 #include <loc.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 typedef struct {
 	link_t link;

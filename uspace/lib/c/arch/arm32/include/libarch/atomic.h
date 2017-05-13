@@ -41,7 +41,7 @@
 
 #include <atomicdflt.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 extern uintptr_t *ras_page;
 

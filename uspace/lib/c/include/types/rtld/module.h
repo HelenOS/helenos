@@ -36,7 +36,7 @@
 #define LIBC_TYPES_RTLD_MODULE_H_
 
 #include <adt/list.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 typedef enum {
 	/** Do not export symbols to global namespace */

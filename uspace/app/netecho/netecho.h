@@ -36,7 +36,7 @@
 #ifndef NETECHO_H
 #define NETECHO_H
 
-#include <sys/types.h>
+#include <stddef.h>
 
 extern void netecho_received(void *, size_t);
 

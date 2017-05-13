@@ -33,6 +33,7 @@
  */
 #ifndef DRV_EHCI_EHCI_REGS_H
 #define DRV_EHCI_EHCI_REGS_H
+
 #include <sys/types.h>
 #include <byteorder.h>
 #include <macros.h>

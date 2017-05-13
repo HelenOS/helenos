@@ -36,7 +36,7 @@
  */
 
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <thread.h>
 #include <stdbool.h>
 #include "../kbd_port.h"

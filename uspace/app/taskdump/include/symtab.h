@@ -36,7 +36,7 @@
 #define SYMTAB_H_
 
 #include <elf/elf.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 typedef struct {
 	/** Symbol section */

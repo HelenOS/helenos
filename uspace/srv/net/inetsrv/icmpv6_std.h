@@ -37,7 +37,7 @@
 #ifndef ICMPV6_STD_H_
 #define ICMPV6_STD_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define IP_PROTO_ICMPV6  58
 

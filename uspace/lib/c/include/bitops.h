@@ -35,7 +35,8 @@
 #ifndef LIBC_BITOPS_H_
 #define LIBC_BITOPS_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /** Mask with bit @a n set. */
 #define BIT_V(type, n) \

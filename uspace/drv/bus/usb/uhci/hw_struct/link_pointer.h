@@ -36,7 +36,7 @@
 #ifndef DRV_UHCI_HW_STRUCT_LINK_POINTER_H
 #define DRV_UHCI_HW_STRUCT_LINK_POINTER_H
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /** UHCI link pointer, used by many data structures */
 typedef uint32_t link_pointer_t;

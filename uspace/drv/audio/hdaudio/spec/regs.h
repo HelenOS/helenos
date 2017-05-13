@@ -35,7 +35,7 @@
 #ifndef SPEC_REGS_H
 #define SPEC_REGS_H
 
-#include <sys/types.h>
+#include <stdint.h>
 
 /** Stream Descriptor registers */
 typedef struct {

@@ -35,7 +35,7 @@
 #ifndef LIBC_MALLOC_H_
 #define LIBC_MALLOC_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 
 extern void *malloc(const size_t size)
     __attribute__((malloc));

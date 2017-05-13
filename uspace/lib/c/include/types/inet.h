@@ -37,7 +37,8 @@
 
 #include <inet/addr.h>
 #include <ipc/loc.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define INET_TTL_MAX 255
 

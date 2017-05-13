@@ -36,7 +36,7 @@
 #define LIBC_IPC_VFS_H_
 
 #include <ipc/common.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #define FS_NAME_MAXLEN  20

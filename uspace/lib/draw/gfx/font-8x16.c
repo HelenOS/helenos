@@ -33,7 +33,7 @@
 /** @file
  */
 
-#include <sys/types.h>
+#include <stdint.h>
 #include "font-8x16.h"
 
 /** Convert character to font glyph index

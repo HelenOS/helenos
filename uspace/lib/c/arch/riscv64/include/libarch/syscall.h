@@ -36,7 +36,6 @@
 #ifndef LIBC_riscv64_SYSCALL_H_
 #define LIBC_riscv64_SYSCALL_H_
 
-#include <sys/types.h>
 #include <abi/syscall.h>
 
 #define __syscall0  __syscall

@@ -33,7 +33,6 @@
 #ifndef LIBEXT4_HASH_H_
 #define LIBEXT4_HASH_H_
 
-#include <sys/types.h>
 #include "ext4/types.h"
 
 extern int ext4_hash_string(ext4_hash_info_t *, int, const char *);

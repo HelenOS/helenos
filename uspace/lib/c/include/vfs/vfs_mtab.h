@@ -35,7 +35,6 @@
 #ifndef LIBC_VFS_MTAB_H_
 #define LIBC_VFS_MTAB_H_
 
-#include <sys/types.h>
 #include <ipc/vfs.h>
 #include <adt/list.h>
 

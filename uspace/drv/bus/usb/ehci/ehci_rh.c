@@ -36,7 +36,8 @@
 #include <errno.h>
 #include <mem.h>
 #include <str_error.h>
-#include <sys/types.h>
+#include <stdint.h>
+#include <stddef.h>
 
 #include <usb/classes/hub.h>
 #include <usb/debug.h>

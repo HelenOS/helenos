@@ -29,7 +29,7 @@
 #ifndef LIBCOMPRESS_INFLATE_H_
 #define LIBCOMPRESS_INFLATE_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 
 extern int inflate(void *, size_t, void *, size_t);
 

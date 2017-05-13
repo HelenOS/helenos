@@ -37,7 +37,8 @@
 
 #include <adt/list.h>
 #include <elf/elf_mod.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include <types/rtld/module.h>
 

@@ -36,7 +36,6 @@
 #ifndef GRAPH_GRAPH_H_
 #define GRAPH_GRAPH_H_
 
-#include <sys/types.h>
 #include <stdbool.h>
 #include <loc.h>
 #include <async.h>

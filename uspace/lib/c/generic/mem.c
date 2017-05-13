@@ -35,7 +35,8 @@
 
 #include <mem.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /** Fill memory block with a constant value. */
 void *memset(void *dest, int b, size_t n)

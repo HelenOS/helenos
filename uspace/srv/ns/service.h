@@ -33,7 +33,6 @@
 #ifndef NS_SERVICE_H__
 #define NS_SERVICE_H__
 
-#include <sys/types.h>
 #include <ipc/common.h>
 #include <ipc/services.h>
 #include <abi/ipc/interfaces.h>

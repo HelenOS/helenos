@@ -38,7 +38,8 @@
 #define ELF_MOD_H_
 
 #include <elf/elf.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <loader/pcb.h>
 
 /**

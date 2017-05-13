@@ -38,8 +38,8 @@
 #include <nic_iface.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <str_error.h>
-#include <sys/types.h>
 
 #define NAME  "nic"
 

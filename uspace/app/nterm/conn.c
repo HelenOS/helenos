@@ -33,7 +33,6 @@
  */
 
 #include <byteorder.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <fibril.h>
 #include <inet/endpoint.h>
@@ -41,8 +40,9 @@
 #include <inet/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <str_error.h>
-#include <sys/types.h>
 
 #include "conn.h"
 #include "nterm.h"

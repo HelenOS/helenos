@@ -46,7 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
 #include <ipc/services.h>
 #include <ipc/loader.h>
 #include <ns.h>

@@ -37,7 +37,7 @@
 #ifndef MOUSE_PORT_H_
 #define MOUSE_PORT_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 struct mouse_dev;
 

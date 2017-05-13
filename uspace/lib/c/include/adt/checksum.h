@@ -35,7 +35,8 @@
 #ifndef LIBC_CHECKSUM_H_
 #define LIBC_CHECKSUM_H_
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 extern uint32_t compute_crc32(uint8_t *, size_t);
 extern uint32_t compute_crc32_seed(uint8_t *, size_t, uint32_t);

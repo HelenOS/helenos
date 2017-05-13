@@ -35,7 +35,7 @@
 #ifndef FONT_8X16_H_
 #define FONT_8X16_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #define FONT_GLYPHS     2899

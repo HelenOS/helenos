@@ -34,10 +34,11 @@
 #define __AHCI_H__
 
 #include <async.h>
-#include <sys/types.h>
 #include <devman.h>
 #include <ddf/interrupt.h>
 #include <stdio.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "ahci_hw.h"
 
 /** AHCI Device. */

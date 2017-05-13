@@ -29,7 +29,7 @@
 #ifndef RTL8139_DRIVER_H_
 #define RTL8139_DRIVER_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "defs.h"
 #include "general.h"

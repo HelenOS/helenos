@@ -36,7 +36,7 @@
 #ifndef NTERM_H
 #define NTERM_H
 
-#include <sys/types.h>
+#include <stddef.h>
 
 extern void nterm_received(void *, size_t);
 

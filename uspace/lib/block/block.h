@@ -38,7 +38,7 @@
 #ifndef LIBBLOCK_LIBBLOCK_H_
 #define LIBBLOCK_LIBBLOCK_H_
 
-#include <stdint.h>
+#include <sys/types.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <adt/hash_table.h>

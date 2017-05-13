@@ -37,7 +37,8 @@
  */
 
 #include <abi/fb/visuals.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <errno.h>
 
 #include <malloc.h>

@@ -37,7 +37,6 @@
 #define LIBC_IO_MODE_H_
 
 #include <abi/fb/visuals.h>
-#include <sys/types.h>
 #include <adt/list.h>
 #include <io/pixel.h>
 #include <io/charfield.h>

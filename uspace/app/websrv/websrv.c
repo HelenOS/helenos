@@ -33,11 +33,12 @@
  * @file Skeletal web server.
  */
 
-#include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <sys/types.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <task.h>
 

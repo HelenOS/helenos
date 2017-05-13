@@ -36,7 +36,6 @@
 #ifndef LIBC_IO_CHARFIELD_H_
 #define LIBC_IO_CHARFIELD_H_
 
-#include <sys/types.h>
 #include <stdbool.h>
 #include <io/color.h>
 #include <io/style.h>

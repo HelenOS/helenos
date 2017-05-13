@@ -35,7 +35,7 @@
 #ifndef LIBC_abs32le_FIBRIL_H_
 #define LIBC_abs32le_FIBRIL_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #define SP_DELTA  0
 

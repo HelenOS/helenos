@@ -35,7 +35,6 @@
 #ifndef LIBC_IO_VISUALIZER_H_
 #define LIBC_IO_VISUALIZER_H_
 
-#include <sys/types.h>
 #include <async.h>
 #include <io/mode.h>
 

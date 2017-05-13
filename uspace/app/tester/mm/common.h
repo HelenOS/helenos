@@ -35,7 +35,7 @@
 #ifndef MM_COMMON_H_
 #define MM_COMMON_H_
 
-#include <sys/types.h>
+#include <stddef.h>
 #include <stdbool.h>
 #include <adt/list.h>
 

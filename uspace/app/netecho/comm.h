@@ -36,7 +36,7 @@
 #ifndef COMM_H
 #define COMM_H
 
-#include <sys/types.h>
+#include <stddef.h>
 
 extern int comm_open_listen(const char *);
 extern int comm_open_talkto(const char *);

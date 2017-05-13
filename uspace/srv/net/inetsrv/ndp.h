@@ -37,7 +37,6 @@
 #ifndef NDP_H_
 #define NDP_H_
 
-#include <sys/types.h>
 #include <inet/addr.h>
 #include "inetsrv.h"
 #include "icmpv6_std.h"

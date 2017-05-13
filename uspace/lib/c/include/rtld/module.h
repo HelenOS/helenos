@@ -35,7 +35,6 @@
 #ifndef LIBC_RTLD_MODULE_H_
 #define LIBC_RTLD_MODULE_H_
 
-#include <sys/types.h>
 #include <rtld/dynamic.h>
 #include <adt/list.h>
 #include <types/rtld/module.h>

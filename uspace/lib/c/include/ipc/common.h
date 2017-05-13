@@ -35,7 +35,6 @@
 #ifndef LIBC_IPC_COMMON_H_
 #define LIBC_IPC_COMMON_H_
 
-#include <sys/types.h>
 #include <abi/ipc/ipc.h>
 #include <atomic.h>
 #include <abi/proc/task.h>

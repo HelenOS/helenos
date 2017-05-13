@@ -37,7 +37,7 @@
 #ifndef DRAW_FONT_H_
 #define DRAW_FONT_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #include "surface.h"
 #include "source.h"

@@ -34,7 +34,7 @@
  * @file
  */
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <task.h>
 #include <str_error.h>

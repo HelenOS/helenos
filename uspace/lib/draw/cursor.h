@@ -36,7 +36,7 @@
 #ifndef DRAW_CURSOR_H_
 #define DRAW_CURSOR_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 #include "surface.h"
 

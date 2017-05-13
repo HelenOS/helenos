@@ -45,7 +45,7 @@
 #include <io/style.h>
 #include <stdbool.h>
 #include <sys/time.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 typedef struct con_ops con_ops_t;
 
