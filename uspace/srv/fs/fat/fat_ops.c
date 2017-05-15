@@ -498,22 +498,17 @@ int fat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 			return rc;
 		/* populate the new cluster with unused dentries */
 		rc = fat_zero_cluster(bs, service_id, mcl);
-		if (rc != EOK) {
-			(void) fat_free_clusters(bs, service_id, mcl);
-			return rc;
-		}
+		if (rc != EOK)
+			goto error;
 	}
 
 	rc = fat_node_get_new(&nodep);
-	if (rc != EOK) {
-		(void) fat_free_clusters(bs, service_id, mcl);
-		return rc;
-	}
+	if (rc != EOK)
+		goto error;
 	rc = fat_idx_get_new(&idxp, service_id);
 	if (rc != EOK) {
-		(void) fat_free_clusters(bs, service_id, mcl);	
 		(void) fat_node_put(FS_NODE(nodep));
-		return rc;
+		goto error;
 	}
 	/* idxp->lock held */
 	if (flags & L_DIRECTORY) {
@@ -535,6 +530,11 @@ int fat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	fibril_mutex_unlock(&idxp->lock);
 	*rfn = FS_NODE(nodep);
 	return EOK;
+
+error:
+	if (flags & L_DIRECTORY)
+		(void) fat_free_clusters(bs, service_id, mcl);
+	return rc;		
 }
 
 int fat_destroy_node(fs_node_t *fn)
