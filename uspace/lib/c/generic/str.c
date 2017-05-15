@@ -1240,16 +1240,6 @@ bool wstr_remove(wchar_t *str, size_t pos)
 	return true;
 }
 
-int stricmp(const char *a, const char *b)
-{
-	int c = 0;
-	
-	while (a[c] && b[c] && (!(tolower(a[c]) - tolower(b[c]))))
-		c++;
-	
-	return (tolower(a[c]) - tolower(b[c]));
-}
-
 /** Convert string to a number.
  * Core of strtol and strtoul functions.
  *

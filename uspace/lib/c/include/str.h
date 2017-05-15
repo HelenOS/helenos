@@ -131,8 +131,6 @@ extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);
  * TODO: Get rid of this.
  */
 
-extern int stricmp(const char *, const char *);
-
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);
 

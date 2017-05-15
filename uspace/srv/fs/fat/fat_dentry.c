@@ -62,7 +62,7 @@ int fat_dentry_namecmp(char *name, const char *component)
 	int rc;
 	size_t size;
 
-	if (!(rc = stricmp(name, component)))
+	if (!(rc = str_casecmp(name, component)))
 		return rc;
 	if (!str_chr(name, '.')) {
 		/*
@@ -72,7 +72,7 @@ int fat_dentry_namecmp(char *name, const char *component)
 		size = str_size(name);
 		name[size] = '.';
 		name[size + 1] = '\0';
-		rc = stricmp(name, component);
+		rc = str_casecmp(name, component);
 	}
 	return rc;
 }

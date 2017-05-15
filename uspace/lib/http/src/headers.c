@@ -250,7 +250,7 @@ void http_header_normalize_value(char *value)
  */
 bool http_header_name_match(const char *name_a, const char *name_b)
 {
-	return stricmp(name_a, name_b) == 0;
+	return str_casecmp(name_a, name_b) == 0;
 }
 
 void http_headers_init(http_headers_t *headers) {

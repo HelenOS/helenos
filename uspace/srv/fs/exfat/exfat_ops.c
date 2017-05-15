@@ -526,7 +526,7 @@ int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 
 	while (exfat_directory_read_file(&di, name, EXFAT_FILENAME_LEN, &df,
 	    &ds) == EOK) {
-		if (stricmp(name, component) == 0) {
+		if (str_casecmp(name, component) == 0) {
 			/* hit */
 			exfat_node_t *nodep;
 			aoff64_t o = di.pos %

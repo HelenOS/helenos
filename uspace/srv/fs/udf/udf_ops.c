@@ -130,7 +130,7 @@ static int udf_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		    (char *) fid->implementation_use + FLE16(fid->lenght_iu),
 		    fid->lenght_file_id, &UDF_NODE(pfn)->instance->charset);
 		
-		if (stricmp(name, component) == 0) {
+		if (str_casecmp(name, component) == 0) {
 			int rc = udf_node_get(rfn, udf_service_get(pfn),
 			    udf_long_ad_to_pos(UDF_NODE(pfn)->instance, &long_ad));
 			
