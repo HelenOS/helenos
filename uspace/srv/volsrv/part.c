@@ -181,7 +181,8 @@ static int vol_part_add_locked(service_id_t sid)
 	}
 
 	if (fst->name != NULL) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Found %s", fst->name);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Found %s, label '%s'",
+		    fst->name, info.label);
 		part->pcnt = vpc_fs;
 		part->fstype = fst->fstype;
 	} else {

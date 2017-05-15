@@ -207,6 +207,7 @@ typedef struct {
 	link_t link;		  /**< Link to list of all instances */
 	service_id_t service_id;  /**< Service ID of block device */
 	cdfs_enc_t enc;		  /**< Filesystem string encoding */
+	char *vol_ident;	  /**< Volume identifier */
 } cdfs_t;
 
 typedef struct {
@@ -482,6 +483,7 @@ static char *cdfs_decode_str(void *data, size_t dsize, cdfs_enc_t enc)
  *
  * @param data	File name buffer
  * @param dsize	Fine name buffer size
+ * @param enc   Encoding
  * @param dtype	Directory entry type
  * @return	Decoded file name (allocated string)
  */
@@ -514,6 +516,31 @@ static char *cdfs_decode_name(void *data, size_t dsize, cdfs_enc_t enc,
 	}
 	
 	return name;
+}
+
+/** Decode volume identifier.
+ *
+ * @param data	Volume identifier buffer
+ * @param dsize	Volume identifier buffer size
+ * @param enc   Encoding
+ * @return	Decoded volume identifier (allocated string)
+ */
+static char *cdfs_decode_vol_ident(void *data, size_t dsize, cdfs_enc_t enc)
+{
+	char *ident;
+	size_t i;
+	
+	ident = cdfs_decode_str(data, dsize, enc);
+	if (ident == NULL)
+		return NULL;
+	
+	/* Trim trailing spaces */
+	i = str_size(ident);
+	while (i > 0 && ident[i - 1] == ' ')
+		--i;
+	ident[i] = '\0';
+	
+	return ident;
 }
 
 static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
@@ -840,10 +867,11 @@ static int cdfs_verify_joliet_esc_seq(uint8_t *seq)
  * @param altroot	First filesystem block
  * @param rlba		Place to store LBA of root dir
  * @param rsize		Place to store size of root dir
+ * @param vol_ident	Place to store pointer to volume identifier
  * @return 		EOK if found, ENOENT if not
  */
 static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
-    uint32_t *rlba, uint32_t *rsize)
+    uint32_t *rlba, uint32_t *rsize, char **vol_ident)
 {
 	cdfs_lba_t bi;
 
@@ -898,6 +926,10 @@ static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
 			continue;
 		*rlba = uint32_lb(vol_desc->data.prisec.root_dir.lba);
 		*rsize = uint32_lb(vol_desc->data.prisec.root_dir.size);
+
+		*vol_ident = cdfs_decode_vol_ident(vol_desc->data.prisec.ident,
+		    32, enc_ucs2);
+
 		block_put(block);
 		return EOK;
 	}
@@ -907,7 +939,7 @@ static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
 
 /** Read the volume descriptors. */
 static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
-    uint32_t *rlba, uint32_t *rsize, cdfs_enc_t *enc)
+    uint32_t *rlba, uint32_t *rsize, cdfs_enc_t *enc, char **vol_ident)
 {
 	/* First 16 blocks of isofs are empty */
 	block_t *block;
@@ -961,7 +993,7 @@ static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
 	uint32_t jrlba;
 	uint32_t jrsize;
 	
-	rc = cdfs_find_joliet_svd(sid, altroot, &jrlba, &jrsize);
+	rc = cdfs_find_joliet_svd(sid, altroot, &jrlba, &jrsize, vol_ident);
 	if (rc == EOK) {
 		/* Found */
 		*rlba = jrlba;
@@ -971,6 +1003,8 @@ static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
 		*rlba = uint32_lb(vol_desc->data.prisec.root_dir.lba);
 		*rsize = uint32_lb(vol_desc->data.prisec.root_dir.size);
 		*enc = enc_ascii;
+		*vol_ident = cdfs_decode_vol_ident(vol_desc->data.prisec.ident,
+		    32, enc_ascii);
 	}
 	
 	block_put(block);
@@ -985,7 +1019,7 @@ static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
 	cdfs_node_t *node = CDFS_NODE(rfn);
 	
 	rc = iso_read_vol_desc(fs->service_id, altroot, &node->lba,
-	    &node->size, &fs->enc);
+	    &node->size, &fs->enc, &fs->vol_ident);
 	if (rc != EOK)
 		return false;
 	
@@ -1031,6 +1065,8 @@ error:
 
 static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
+	char *vol_ident;
+
 	/* Initialize the block layer */
 	int rc = block_init(service_id, BLOCK_SIZE);
 	if (rc != EOK)
@@ -1069,11 +1105,15 @@ static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	uint32_t rlba;
 	uint32_t rsize;
 	cdfs_enc_t enc;
-	if (!iso_read_vol_desc(service_id, altroot, &rlba, &rsize, &enc)) {
+	if (!iso_read_vol_desc(service_id, altroot, &rlba, &rsize, &enc,
+	    &vol_ident)) {
 		block_cache_fini(service_id);
 		block_fini(service_id);
 		return EIO;
 	}
+	
+	str_cpy(info->label, FS_LABEL_MAXLEN + 1, vol_ident);
+	free(vol_ident);
 	
 	return EOK;
 }
@@ -1159,6 +1199,7 @@ static void cdfs_fs_destroy(cdfs_t *fs)
 	hash_table_apply(&nodes, rm_service_id_nodes, &fs->service_id);
 	block_cache_fini(fs->service_id);
 	block_fini(fs->service_id);
+	free(fs->vol_ident);
 	free(fs);
 }
 
