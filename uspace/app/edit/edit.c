@@ -37,7 +37,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdbool.h>
 #include <vfs/vfs.h>
 #include <io/console.h>
 #include <io/style.h>
@@ -46,7 +47,7 @@
 #include <align.h>
 #include <macros.h>
 #include <clipboard.h>
-#include <stdbool.h>
+#include <libarch/types.h>
 
 #include "sheet.h"
 #include "search.h"

@@ -34,8 +34,9 @@
  */
 #ifndef AMDM37x_USBHOST_CM_H
 #define AMDM37x_USBHOST_CM_H
+
 #include <macros.h>
-#include <sys/types.h>
+#include <ddi.h>
 
 /* AM/DM37x TRM p.447 */
 #define USBHOST_CM_BASE_ADDRESS  0x48005400

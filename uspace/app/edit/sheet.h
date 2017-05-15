@@ -37,8 +37,8 @@
 #define SHEET_H__
 
 #include <adt/list.h>
-#include <sys/types.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /** Direction (in linear space) */
 enum dir_spec {

@@ -40,7 +40,7 @@
 #include <usb/usb.h>
 
 #include <stdbool.h>
-#include <sys/types.h>
+#include <ddi.h>
 
 /** Endpoint number for status change pipe. */
 #define HUB_STATUS_CHANGE_PIPE   1

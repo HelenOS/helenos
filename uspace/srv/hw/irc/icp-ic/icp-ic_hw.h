@@ -36,7 +36,6 @@
 #define ICP_IC_HW_H
 
 #include <ddi.h>
-#include <sys/types.h>
 
 typedef struct {
 	ioport32_t irq_status;

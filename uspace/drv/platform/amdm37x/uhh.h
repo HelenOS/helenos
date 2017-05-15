@@ -34,8 +34,9 @@
  */
 #ifndef AMDM37x_UHH_H
 #define AMDM37x_UHH_H
+
 #include <macros.h>
-#include <sys/types.h>
+#include <ddi.h>
 
 #define AMDM37x_UHH_BASE_ADDRESS  0x48064000
 #define AMDM37x_UHH_SIZE  1024

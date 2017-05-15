@@ -29,7 +29,6 @@
 /** @file
  */
 
-#include <sys/types.h>
 #include <errno.h>
 #include <sysinfo.h>
 #include <align.h>

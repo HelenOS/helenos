@@ -33,8 +33,7 @@
 #ifndef LIBC_sparc64_DDI_H_
 #define LIBC_sparc64_DDI_H_
 
-#include <sys/types.h>
-#include <libarch/types.h>
+#include <ddi.h>
 
 static inline void memory_barrier(void)
 {

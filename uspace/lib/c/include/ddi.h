@@ -36,7 +36,8 @@
 #define LIBC_DDI_H_
 
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <sys/time.h>
 #include <abi/ddi/irq.h>
 #include <device/hw_res.h>
@@ -46,6 +47,10 @@
 
 #define DMAMEM_16MiB  ((uintptr_t) UINT64_C(0xffffffffff000000))
 #define DMAMEM_4GiB   ((uintptr_t) UINT64_C(0xffffffff00000000))
+
+typedef volatile uint8_t ioport8_t;
+typedef volatile uint16_t ioport16_t;
+typedef volatile uint32_t ioport32_t;
 
 extern int device_assign_devno(void);
 

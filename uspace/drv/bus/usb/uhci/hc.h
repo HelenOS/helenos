@@ -40,7 +40,7 @@
 #include <fibril.h>
 #include <macros.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <ddi.h>
 #include <usb/host/hcd.h>
 #include <usb/host/usb_transfer_batch.h>
 

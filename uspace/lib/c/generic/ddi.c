@@ -36,7 +36,6 @@
 #include <atomic.h>
 #include <stdio.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <abi/ddi/arg.h>
 #include <ddi.h>
 #include <libarch/ddi.h>

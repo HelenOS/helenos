@@ -33,8 +33,7 @@
 #ifndef LIBC_ia32_DDI_H_
 #define LIBC_ia32_DDI_H_
 
-#include <sys/types.h>
-#include <libarch/types.h>
+#include <ddi.h>
 
 #define IO_SPACE_BOUNDARY  ((void *) (64 * 1024))
 

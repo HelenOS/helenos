@@ -34,7 +34,8 @@
  */
 #ifndef AMDM37x_CLOCK_CONTROL_CM_H
 #define AMDM37x_CLOCK_CONTROL_CM_H
-#include <sys/types.h>
+
+#include <ddi.h>
 #include <macros.h>
 
 /* AM/DM37x TRM p.485 */

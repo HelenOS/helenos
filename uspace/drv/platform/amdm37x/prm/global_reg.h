@@ -34,7 +34,8 @@
  */
 #ifndef AMDM37X_PRM_GLOBAL_REG_H
 #define AMDM37X_PRM_GLOBAL_REG_H
-#include <sys/types.h>
+
+#include <ddi.h>
 #include <macros.h>
 
 /* AM/DM37x TRM p.536 and p.615 */

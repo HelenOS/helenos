@@ -39,6 +39,7 @@
 #include <graph.h>
 #include <abi/fb/visuals.h>
 #include <pixconv.h>
+#include <ddi.h>
 
 #include "amdm37x_dispc_regs.h"
 

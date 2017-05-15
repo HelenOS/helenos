@@ -40,7 +40,7 @@
 #define i8042_H_
 
 #include <io/chardev_srv.h>
-#include <sys/types.h>
+#include <ddi.h>
 #include <fibril_synch.h>
 #include <ddf/driver.h>
 #include "buffer.h"

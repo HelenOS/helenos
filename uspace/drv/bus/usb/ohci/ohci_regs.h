@@ -37,7 +37,6 @@
 #define DRV_OHCI_OHCI_REGS_H
 
 #include <ddi.h>
-#include <sys/types.h>
 #include <byteorder.h>
 
 #define OHCI_WR(reg, val) pio_write_32(&(reg), host2uint32_t_le(val))

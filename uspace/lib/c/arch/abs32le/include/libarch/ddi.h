@@ -32,8 +32,7 @@
 #ifndef LIBC_abs32le_DDI_H_
 #define LIBC_abs32le_DDI_H_
 
-#include <sys/types.h>
-#include <libarch/types.h>
+#include <ddi.h>
 
 static inline void arch_pio_write_8(ioport8_t *port, uint8_t v)
 {
