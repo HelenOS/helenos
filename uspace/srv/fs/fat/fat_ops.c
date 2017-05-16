@@ -836,9 +836,9 @@ bool fat_is_file(fs_node_t *fn)
 	return FAT_NODE(fn)->type == FAT_FILE;
 }
 
-service_id_t fat_service_get(fs_node_t *node)
+service_id_t fat_service_get(fs_node_t *fn)
 {
-	return 0;
+	return FAT_NODE(fn)->idx->service_id;
 }
 
 int fat_size_block(service_id_t service_id, uint32_t *size)
