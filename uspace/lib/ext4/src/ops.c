@@ -919,13 +919,12 @@ static int ext4_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
  * @param opts       Mount options
  * @param index      Output value - index of root node
  * @param size       Output value - size of root node
- * @param lnkcnt     Output value - link count of root node
  *
  * @return Error code
  *
  */
 static int ext4_mounted(service_id_t service_id, const char *opts,
-    fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
+    fs_index_t *index, aoff64_t *size)
 {
 	ext4_filesystem_t *fs;
 	
@@ -961,7 +960,6 @@ static int ext4_mounted(service_id_t service_id, const char *opts,
 	
 	*index = EXT4_INODE_ROOT_INDEX;
 	*size = rnsize;
-	*lnkcnt = 1;
 	
 	return EOK;
 }

@@ -1118,7 +1118,7 @@ static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 }
 
 static int cdfs_mounted(service_id_t service_id, const char *opts,
-    fs_index_t *index, aoff64_t *size, unsigned int *lnkcnt)
+    fs_index_t *index, aoff64_t *size)
 {
 	/* Initialize the block layer */
 	int rc = block_init(service_id, BLOCK_SIZE);
@@ -1175,7 +1175,6 @@ static int cdfs_mounted(service_id_t service_id, const char *opts,
 	cdfs_node_t *root = CDFS_NODE(rootfn);
 	*index = root->index;
 	*size = root->size;
-	*lnkcnt = root->lnkcnt;
 	
 	return EOK;
 }

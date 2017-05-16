@@ -955,7 +955,7 @@ static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 
 static int
 fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
-    aoff64_t *size, unsigned *linkcnt)
+    aoff64_t *size)
 {
 	enum cache_mode cmode = CACHE_MODE_WB;
 	fat_bs_t *bs;
@@ -1104,7 +1104,6 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	*index = ridxp->index;
 	*size = rootp->size;
-	*linkcnt = rootp->lnkcnt;
 
 	return EOK;
 }

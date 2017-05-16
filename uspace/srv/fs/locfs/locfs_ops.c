@@ -460,11 +460,10 @@ static int locfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 }
 
 static int locfs_mounted(service_id_t service_id, const char *opts,
-    fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
+    fs_index_t *index, aoff64_t *size)
 {
 	*index = 0;
 	*size = 0;
-	*lnkcnt = 0;
 	return EOK;
 }
 

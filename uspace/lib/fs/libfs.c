@@ -122,12 +122,10 @@ static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 
 	fs_index_t index;
 	aoff64_t size;
-	unsigned lnkcnt;
-	rc = vfs_out_ops->mounted(service_id, opts, &index, &size, &lnkcnt);
+	rc = vfs_out_ops->mounted(service_id, opts, &index, &size);
 
 	if (rc == EOK)
-		async_answer_4(rid, EOK, index, LOWER32(size), UPPER32(size),
-		    lnkcnt);
+		async_answer_3(rid, EOK, index, LOWER32(size), UPPER32(size));
 	else
 		async_answer_0(rid, rc);
 

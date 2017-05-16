@@ -304,7 +304,7 @@ static int udf_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 }
 
 static int udf_mounted(service_id_t service_id, const char *opts,
-    fs_index_t *index, aoff64_t *size, unsigned *linkcnt)
+    fs_index_t *index, aoff64_t *size)
 {
 	enum cache_mode cmode;
 	
@@ -410,7 +410,6 @@ static int udf_mounted(service_id_t service_id, const char *opts,
 	udf_node_t *node = UDF_NODE(rfn);
 	*index = instance->volumes[DEFAULT_VOL].root_dir;
 	*size = node->data_size;
-	*linkcnt = node->link_cnt;
 	
 	return EOK;
 }

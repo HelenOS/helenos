@@ -295,7 +295,7 @@ static int mfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 
 static int
 mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
-    aoff64_t *size, unsigned *linkcnt)
+    aoff64_t *size)
 {
 	enum cache_mode cmode;
 	struct mfs_sb_info *sbi = NULL;
@@ -352,7 +352,6 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	*index = mroot->ino_i->index;
 	*size = mroot->ino_i->i_size;
-	*linkcnt = 1;
 
 	return mfs_node_put(fn);
 

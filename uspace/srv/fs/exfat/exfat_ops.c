@@ -1080,7 +1080,7 @@ static int exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 
 static int
 exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
-    aoff64_t *size, unsigned *linkcnt)
+    aoff64_t *size)
 {
 	int rc;
 	exfat_node_t *rootp = NULL, *bitmapp = NULL, *uctablep = NULL;
@@ -1258,7 +1258,6 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	*index = rootp->idx->index;
 	*size = rootp->size;
-	*linkcnt = rootp->lnkcnt;
 	
 	return EOK;
 }
