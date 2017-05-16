@@ -1014,13 +1014,10 @@ static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
 static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
     cdfs_lba_t altroot)
 {
-	int rc;
-	
 	cdfs_node_t *node = CDFS_NODE(rfn);
 	
-	rc = iso_read_vol_desc(fs->service_id, altroot, &node->lba,
-	    &node->size, &fs->enc, &fs->vol_ident);
-	if (rc != EOK)
+	if (!iso_read_vol_desc(fs->service_id, altroot, &node->lba,
+	    &node->size, &fs->enc, &fs->vol_ident))
 		return false;
 	
 	return cdfs_readdir(fs, rfn);
@@ -1115,6 +1112,8 @@ static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	str_cpy(info->label, FS_LABEL_MAXLEN + 1, vol_ident);
 	free(vol_ident);
 	
+	block_cache_fini(service_id);
+	block_fini(service_id);
 	return EOK;
 }
 
