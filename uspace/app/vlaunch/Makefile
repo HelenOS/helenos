@@ -44,15 +44,15 @@ MATH = y
 
 SOURCES = \
 	vlaunch.c \
-	images.c
+	images.s
 
 IMAGES = \
 	gfx/helenos.tga
 
-PRE_DEPEND = images.c images.h
-EXTRA_CLEAN = images.c images.h
+PRE_DEPEND = images.s images.h
+EXTRA_CLEAN = images.s images.h
 
 include $(USPACE_PREFIX)/Makefile.common
 
-images.c images.h: $(IMAGES)
-	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES $^
+images.s images.h: $(IMAGES)
+	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES "$(AS_PROLOG)" $^

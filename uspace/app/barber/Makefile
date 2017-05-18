@@ -45,7 +45,7 @@ MATH = y
 
 SOURCES = \
 	barber.c \
-	images.c
+	images.s
 
 IMAGES = \
 	gfx/frame01.tga.gz \
@@ -79,10 +79,10 @@ IMAGES = \
 	gfx/frame29.tga.gz \
 	gfx/frame30.tga.gz
 
-PRE_DEPEND = images.c images.h
-EXTRA_CLEAN = images.c images.h
+PRE_DEPEND = images.s images.h
+EXTRA_CLEAN = images.s images.h
 
 include $(USPACE_PREFIX)/Makefile.common
 
-image%.c image%.h: $(IMAGES)
-	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES $(IMAGES)
+images.s images.h: $(IMAGES)
+	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES "$(AS_PROLOG)" $^
