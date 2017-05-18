@@ -155,7 +155,7 @@ ATSIGN ?= @
 ## Cross-platform assembly to start a symtab.data section
 #
 
-SYMTAB_SECTION = ".section symtab.data, \"a\", $(ATSIGN)progbits;"
+SYMTAB_SECTION = .section symtab.data, \"a\", $(ATSIGN)progbits;
 
 ## Compilation options
 #
@@ -446,10 +446,10 @@ ifeq ($(PRECHECK),y)
 endif
 
 $(REAL_MAP).o: $(REAL_MAP).bin
-	echo $(AS_PROLOG)$(SYMTAB_SECTION)" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@
 
 $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
-	echo $(AS_PROLOG)$(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o $(EMPTY_MAP)
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)" | $(AS) $(AFLAGS) -o $(EMPTY_MAP)
 ifeq ($(CONFIG_LTO),y)
 	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP_PREV) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
 else
@@ -461,7 +461,7 @@ endif
 	# Do it once again, this time to get correct even the symbols
 	# on architectures that have bss after symtab
 	
-	echo $(AS_PROLOG)$(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o $(SIZEOK_MAP)
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$@\"" | $(AS) $(AFLAGS) -o $(SIZEOK_MAP)
 ifeq ($(CONFIG_LTO),y)
 	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP_PREV) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
 else
