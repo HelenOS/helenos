@@ -82,7 +82,8 @@
 #define FAT_LFN_ATTR(d) ((d)->lfn.attr)
 #define FAT_LFN_CHKSUM(d) ((d)->lfn.check_sum)
 
-#define FAT_LFN_NAME_SIZE   260
+#define FAT_LFN_NAME_LEN    260                           /* characters */
+#define FAT_LFN_NAME_SIZE   STR_BOUNDS(FAT_LFN_NAME_LEN)  /* bytes */
 #define FAT_LFN_MAX_COUNT   20
 #define FAT_LFN_PART1_SIZE  5
 #define FAT_LFN_PART2_SIZE  6

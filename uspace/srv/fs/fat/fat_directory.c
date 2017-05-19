@@ -154,7 +154,7 @@ int fat_directory_get(fat_directory_t *di, fat_dentry_t **d)
 int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 {
 	fat_dentry_t *d = NULL;
-	uint16_t wname[FAT_LFN_NAME_SIZE];
+	uint16_t wname[FAT_LFN_NAME_LEN];
 	size_t lfn_offset, lfn_size;
 	bool long_entry = false;
 	int long_entry_count = 0;
@@ -292,10 +292,10 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 		/* We should create long entries to store name */
 		int long_entry_count;
 		uint8_t checksum;
-		uint16_t wname[FAT_LFN_NAME_SIZE];
+		uint16_t wname[FAT_LFN_NAME_LEN];
 		size_t lfn_size, lfn_offset;
 		
-		rc = str_to_utf16(wname, FAT_LFN_NAME_SIZE, name);
+		rc = str_to_utf16(wname, FAT_LFN_NAME_LEN, name);
 		if (rc != EOK)
 			return rc;
 		

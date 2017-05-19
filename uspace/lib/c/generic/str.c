@@ -950,18 +950,30 @@ int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 	return rc;
 }
 
-int str_to_utf16(uint16_t *dest, size_t size, const char *src)
+/** Convert string to UTF16 string.
+ *
+ * Convert string @a src to utf16 string. The output is written to the buffer
+ * specified by @a dest and @a dlen. @a dlen must be non-zero and the string
+ * written will always be well-formed. Surrogate pairs also supported.
+ *
+ * @param dest	Destination buffer.
+ * @param dlen	Number of utf16 characters that fit in the destination buffer.
+ * @param src	Source string.
+ *
+ * @return EOK, if success, negative otherwise.
+ */
+int str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
 {
 	int rc = EOK;
 	size_t offset = 0;
 	size_t idx = 0;
 	wchar_t c;
 
-	assert(size > 0);
+	assert(dlen > 0);
 	
 	while ((c = str_decode(src, &offset, STR_NO_LIMIT)) != 0) {
 		if (c > 0x10000) {
-			if (idx + 2 >= size - 1) {
+			if (idx + 2 >= dlen - 1) {
 				rc = EOVERFLOW;
 				break;
 			}
@@ -974,7 +986,7 @@ int str_to_utf16(uint16_t *dest, size_t size, const char *src)
 		}
 
 		idx++;
-		if (idx >= size - 1) {
+		if (idx >= dlen - 1) {
 			rc = EOVERFLOW;
 			break;
 		}
