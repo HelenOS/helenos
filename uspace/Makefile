@@ -279,21 +279,21 @@ CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .c
 all: $(BUILDS) $(BUILDS_TESTS)
 
 $(BUILDS_TESTS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
-	$(MAKE) -C $(basename $@) all-test PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)
 
 $(CLEANS):
-	-$(MAKE) -C $(basename $@) clean
+	-$(MAKE) -r -C $(basename $@) clean
 
 $(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
-	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBN_BUILD): $(LIBC_BUILD) $(LIBS_BUILD)
-	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBS_BUILD): $(LIBC_BUILD)
-	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBC_BUILD):
-	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)

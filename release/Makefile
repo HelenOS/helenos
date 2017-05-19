@@ -78,13 +78,13 @@ $(RELEASE_FILE): $(IMG_FILE)
 	cp $< $@
 
 $(IMG_FILE):
-	$(MAKE) -C $(EXPORT_DIR)
+	$(MAKE) -r -C $(EXPORT_DIR)
 
 release: src_rel
 	for profile in $(PROFILES); do \
-		$(MAKE) -C $(EXPORT_DIR) distclean ; \
-		$(MAKE) -C $(EXPORT_DIR) PROFILE=$$profile ; \
-		$(MAKE) PROFILE=$$profile releasefile ; \
+		$(MAKE) -r -C $(EXPORT_DIR) distclean ; \
+		$(MAKE) -r -C $(EXPORT_DIR) PROFILE=$$profile ; \
+		$(MAKE) -r PROFILE=$$profile releasefile ; \
 	done
 
 $(EXPORT_DIR) export:

@@ -48,12 +48,12 @@ CONFIG_HEADER = config.h
 
 all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
 	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
-	$(MAKE) -C kernel PRECHECK=$(PRECHECK)
-	$(MAKE) -C uspace PRECHECK=$(PRECHECK)
-	$(MAKE) -C boot PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
 
 precheck: clean
-	$(MAKE) all PRECHECK=y
+	$(MAKE) -r all PRECHECK=y
 
 cscope:
 	find abi kernel boot uspace -type f -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
@@ -96,10 +96,10 @@ random-config: $(CONFIG_RULES)
 # Release files
 
 releasefile: all
-	$(MAKE) -C release releasefile
+	$(MAKE) -r -C release releasefile
 
 release:
-	$(MAKE) -C release release
+	$(MAKE) -r -C release release
 
 # Cleaning
 
@@ -108,8 +108,8 @@ distclean: clean
 
 clean:
 	rm -fr $(SANDBOX)
-	$(MAKE) -C kernel clean
-	$(MAKE) -C uspace clean
-	$(MAKE) -C boot clean
+	$(MAKE) -r -C kernel clean
+	$(MAKE) -r -C uspace clean
+	$(MAKE) -r -C boot clean
 
 -include Makefile.local

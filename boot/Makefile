@@ -31,9 +31,9 @@
 include Makefile.common
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(PREBUILD)
-	$(MAKE) -f $(BUILD) PRECHECK=$(PRECHECK)
+	$(MAKE) -r -f $(BUILD) PRECHECK=$(PRECHECK)
 ifneq ($(POSTBUILD),)
-	$(MAKE) -f $(POSTBUILD) PRECHECK=$(PRECHECK)
+	$(MAKE) -r -f $(POSTBUILD) PRECHECK=$(PRECHECK)
 endif
 
 build_comps: $(COMPONENTS) $(LINK).in
@@ -127,9 +127,9 @@ endif
 	fi
 
 clean: clean_dist
-	$(MAKE) -f $(BUILD) clean PRECHECK=$(PRECHECK)
+	$(MAKE) -r -f $(BUILD) clean PRECHECK=$(PRECHECK)
 ifneq ($(POSTBUILD),)
-	$(MAKE) -f $(POSTBUILD) clean PRECHECK=$(PRECHECK)
+	$(MAKE) -r -f $(POSTBUILD) clean PRECHECK=$(PRECHECK)
 endif
 	rm -fr $(SANDBOX)
 	rm -f $(POST_OUTPUT) $(BOOT_OUTPUT) $(DEPEND) $(DEPEND_PREV) arch/*/include/common.h
