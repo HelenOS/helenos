@@ -933,7 +933,7 @@ def main():
 				{'type': 'long long int', 'tag': 'LLONG', 'strc': '"ll"', 'conc': '"LL"'},
 				{'type': 'long int', 'tag': 'LONG', 'strc': '"l"', 'conc': '"L"'},
 				{'type': 'int', 'tag': 'INT', 'strc': '""', 'conc': '""'},
-				{'type': 'short int', 'tag': 'SHORT', 'strc': '"h"', 'conc': '"@"'},
+				{'type': 'short int', 'tag': 'SHRT', 'strc': '"h"', 'conc': '"@"'},
 				{'type': 'char', 'tag': 'CHAR', 'strc': '"hh"', 'conc': '"@@"'}
 			],
 			[
@@ -945,7 +945,7 @@ def main():
 		
 		int128 = probe_int128(common)
 		
-		maps = detect_sizes(probe, [1, 2, 4, 8], ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG'], ['LONG_DOUBLE', 'DOUBLE', 'FLOAT'])
+		maps = detect_sizes(probe, [1, 2, 4, 8], ['CHAR', 'SHRT', 'INT', 'LONG', 'LLONG'], ['LONG_DOUBLE', 'DOUBLE', 'FLOAT'])
 		
 	finally:
 		sandbox_leave(owd)

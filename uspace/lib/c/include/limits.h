@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup libc
  * @{
  */
-/** @file Implementation-defined limit constants.
+/** @file
  */
 
-#ifndef POSIX_LIMITS_H_
-#define POSIX_LIMITS_H_
+#ifndef LIBC_LIMITS_H_
+#define LIBC_LIMITS_H_
 
-#include "posix/stdint.h"
-#include "libc/limits.h"
+/* XXX Make this more accurate */
+#include <stdint.h>
+#include <libarch/stdint.h>
 
-#undef PATH_MAX
-#define PATH_MAX 256
-
-/* it's probably a safe assumption */
-#undef CHAR_BIT
-#define CHAR_BIT 8
-
-#endif /* POSIX_LIMITS_H_ */
+#endif
 
 /** @}
  */
