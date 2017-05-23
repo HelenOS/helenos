@@ -145,6 +145,7 @@ GENERIC_SOURCES = \
 	generic/adt/odict.c \
 	generic/adt/prodcons.c \
 	generic/time.c \
+	generic/stdio.c \
 	generic/stdlib.c \
 	generic/udebug.c \
 	generic/vfs/canonify.c \
