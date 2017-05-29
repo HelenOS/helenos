@@ -139,9 +139,9 @@ extern int fclose(FILE *);
 extern size_t fread(void *, size_t, size_t, FILE *);
 extern size_t fwrite(const void *, size_t, size_t, FILE *);
 
-extern int fseek(FILE *, off64_t, int);
+extern int fseek(FILE *, long, int);
 extern void rewind(FILE *);
-extern off64_t ftell(FILE *);
+extern long ftell(FILE *);
 extern int feof(FILE *);
 extern int fileno(FILE *);
 
