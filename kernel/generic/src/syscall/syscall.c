@@ -122,82 +122,81 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 
 syshandler_t syscall_table[SYSCALL_END] = {
 	/* System management syscalls. */
-	(syshandler_t) sys_kio,
+	[SYS_KIO] = (syshandler_t) sys_kio,
 	
 	/* Thread and task related syscalls. */
-	(syshandler_t) sys_thread_create,
-	(syshandler_t) sys_thread_exit,
-	(syshandler_t) sys_thread_get_id,
-	(syshandler_t) sys_thread_usleep,
-	(syshandler_t) sys_thread_udelay,
+	[SYS_THREAD_CREATE] = (syshandler_t) sys_thread_create,
+	[SYS_THREAD_EXIT] = (syshandler_t) sys_thread_exit,
+	[SYS_THREAD_GET_ID] = (syshandler_t) sys_thread_get_id,
+	[SYS_THREAD_USLEEP] = (syshandler_t) sys_thread_usleep,
+	[SYS_THREAD_UDELAY] = (syshandler_t) sys_thread_udelay,
 	
-	(syshandler_t) sys_task_get_id,
-	(syshandler_t) sys_task_set_name,
-	(syshandler_t) sys_task_kill,
-	(syshandler_t) sys_task_exit,
-	(syshandler_t) sys_program_spawn_loader,
+	[SYS_TASK_GET_ID] = (syshandler_t) sys_task_get_id,
+	[SYS_TASK_SET_NAME] = (syshandler_t) sys_task_set_name,
+	[SYS_TASK_KILL] = (syshandler_t) sys_task_kill,
+	[SYS_TASK_EXIT] = (syshandler_t) sys_task_exit,
+	[SYS_PROGRAM_SPAWN_LOADER] = (syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */
-	(syshandler_t) sys_futex_sleep,
-	(syshandler_t) sys_futex_wakeup,
-	(syshandler_t) sys_smc_coherence,
-	(syshandler_t) sys_smp_memory_barrier,
-	
+	[SYS_FUTEX_SLEEP] = (syshandler_t) sys_futex_sleep,
+	[SYS_FUTEX_WAKEUP] = (syshandler_t) sys_futex_wakeup,
+	[SYS_SMC_COHERENCE] = (syshandler_t) sys_smc_coherence,
+	[SYS_SMP_MEMORY_BARRIER] = (syshandler_t) sys_smp_memory_barrier,
 	
 	/* Address space related syscalls. */
-	(syshandler_t) sys_as_area_create,
-	(syshandler_t) sys_as_area_resize,
-	(syshandler_t) sys_as_area_change_flags,
-	(syshandler_t) sys_as_area_destroy,
+	[SYS_AS_AREA_CREATE] = (syshandler_t) sys_as_area_create,
+	[SYS_AS_AREA_RESIZE] = (syshandler_t) sys_as_area_resize,
+	[SYS_AS_AREA_CHANGE_FLAGS] = (syshandler_t) sys_as_area_change_flags,
+	[SYS_AS_AREA_DESTROY] = (syshandler_t) sys_as_area_destroy,
 	
 	/* Page mapping related syscalls. */
-	(syshandler_t) sys_page_find_mapping,
+	[SYS_PAGE_FIND_MAPPING] = (syshandler_t) sys_page_find_mapping,
 	
 	/* IPC related syscalls. */
-	(syshandler_t) sys_ipc_call_async_fast,
-	(syshandler_t) sys_ipc_call_async_slow,
-	(syshandler_t) sys_ipc_answer_fast,
-	(syshandler_t) sys_ipc_answer_slow,
-	(syshandler_t) sys_ipc_forward_fast,
-	(syshandler_t) sys_ipc_forward_slow,
-	(syshandler_t) sys_ipc_wait_for_call,
-	(syshandler_t) sys_ipc_poke,
-	(syshandler_t) sys_ipc_hangup,
-	(syshandler_t) sys_ipc_connect_kbox,
+	[SYS_IPC_CALL_ASYNC_FAST] = (syshandler_t) sys_ipc_call_async_fast,
+	[SYS_IPC_CALL_ASYNC_SLOW] = (syshandler_t) sys_ipc_call_async_slow,
+	[SYS_IPC_ANSWER_FAST] = (syshandler_t) sys_ipc_answer_fast,
+	[SYS_IPC_ANSWER_SLOW] = (syshandler_t) sys_ipc_answer_slow,
+	[SYS_IPC_FORWARD_FAST] = (syshandler_t) sys_ipc_forward_fast,
+	[SYS_IPC_FORWARD_SLOW] = (syshandler_t) sys_ipc_forward_slow,
+	[SYS_IPC_WAIT] = (syshandler_t) sys_ipc_wait_for_call,
+	[SYS_IPC_POKE] = (syshandler_t) sys_ipc_poke,
+	[SYS_IPC_HANGUP] = (syshandler_t) sys_ipc_hangup,
+	[SYS_IPC_CONNECT_KBOX] = (syshandler_t) sys_ipc_connect_kbox,
 	
 	/* Event notification syscalls. */
-	(syshandler_t) sys_ipc_event_subscribe,
-	(syshandler_t) sys_ipc_event_unsubscribe,
-	(syshandler_t) sys_ipc_event_unmask,
+	[SYS_IPC_EVENT_SUBSCRIBE] = (syshandler_t) sys_ipc_event_subscribe,
+	[SYS_IPC_EVENT_UNSUBSCRIBE] = (syshandler_t) sys_ipc_event_unsubscribe,
+	[SYS_IPC_EVENT_UNMASK] = (syshandler_t) sys_ipc_event_unmask,
 	
 	/* Permission related syscalls. */
-	(syshandler_t) sys_perm_grant,
-	(syshandler_t) sys_perm_revoke,
+	[SYS_PERM_GRANT] = (syshandler_t) sys_perm_grant,
+	[SYS_PERM_REVOKE] = (syshandler_t) sys_perm_revoke,
 	
 	/* DDI related syscalls. */
-	(syshandler_t) sys_device_assign_devno,
-	(syshandler_t) sys_physmem_map,
-	(syshandler_t) sys_physmem_unmap,
-	(syshandler_t) sys_dmamem_map,
-	(syshandler_t) sys_dmamem_unmap,
-	(syshandler_t) sys_iospace_enable,
-	(syshandler_t) sys_iospace_disable,
+	[SYS_DEVICE_ASSIGN_DEVNO] = (syshandler_t) sys_device_assign_devno,
+	[SYS_PHYSMEM_MAP] = (syshandler_t) sys_physmem_map,
+	[SYS_PHYSMEM_UNMAP] = (syshandler_t) sys_physmem_unmap,
+	[SYS_DMAMEM_MAP] = (syshandler_t) sys_dmamem_map,
+	[SYS_DMAMEM_UNMAP] = (syshandler_t) sys_dmamem_unmap,
+	[SYS_IOSPACE_ENABLE] = (syshandler_t) sys_iospace_enable,
+	[SYS_IOSPACE_DISABLE] = (syshandler_t) sys_iospace_disable,
 	
-	(syshandler_t) sys_ipc_irq_subscribe,
-	(syshandler_t) sys_ipc_irq_unsubscribe,
+	[SYS_IPC_IRQ_SUBSCRIBE] = (syshandler_t) sys_ipc_irq_subscribe,
+	[SYS_IPC_IRQ_UNSUBSCRIBE] = (syshandler_t) sys_ipc_irq_unsubscribe,
 	
 	/* Sysinfo syscalls. */
-	(syshandler_t) sys_sysinfo_get_keys_size,
-	(syshandler_t) sys_sysinfo_get_keys,
-	(syshandler_t) sys_sysinfo_get_val_type,
-	(syshandler_t) sys_sysinfo_get_value,
-	(syshandler_t) sys_sysinfo_get_data_size,
-	(syshandler_t) sys_sysinfo_get_data,
+	[SYS_SYSINFO_GET_KEYS_SIZE] = (syshandler_t) sys_sysinfo_get_keys_size,
+	[SYS_SYSINFO_GET_KEYS] = (syshandler_t) sys_sysinfo_get_keys,
+	[SYS_SYSINFO_GET_VAL_TYPE] = (syshandler_t) sys_sysinfo_get_val_type,
+	[SYS_SYSINFO_GET_VALUE] = (syshandler_t) sys_sysinfo_get_value,
+	[SYS_SYSINFO_GET_DATA_SIZE] = (syshandler_t) sys_sysinfo_get_data_size,
+	[SYS_SYSINFO_GET_DATA] = (syshandler_t) sys_sysinfo_get_data,
 	
 	/* Kernel console syscalls. */
-	(syshandler_t) sys_debug_console,
+	[SYS_DEBUG_CONSOLE] = (syshandler_t) sys_debug_console,
 	
-	(syshandler_t) sys_klog,
+	[SYS_KLOG] = (syshandler_t) sys_klog,
 };
 
 /** @}
