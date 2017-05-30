@@ -62,7 +62,7 @@ int device_assign_devno(void)
 
 /** Map a piece of physical memory to task.
  *
- * Caller of this function must have the CAP_MEM_MANAGER capability.
+ * Caller of this function must have the PERM_MEM_MANAGER permission.
  *
  * @param phys  Physical address of the starting frame.
  * @param pages Number of pages to map.
@@ -73,7 +73,7 @@ int device_assign_devno(void)
  *              obey the desired value.
  *
  * @return EOK on success.
- * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ * @return EPERM if the caller lacks the PERM_MEM_MANAGER permission.
  * @return ENOMEM if there was some problem in creating
  *         the address space area.
  *
@@ -86,12 +86,12 @@ int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 
 /** Unmap a piece of physical memory to task.
  *
- * Caller of this function must have the CAP_MEM_MANAGER capability.
+ * Caller of this function must have the PERM_MEM_MANAGER permission.
  *
  * @param virt Virtual address from the phys-mapped region.
  *
  * @return EOK on success.
- * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ * @return EPERM if the caller lacks the PERM_MEM_MANAGER permission.
  *
  */
 int physmem_unmap(void *virt)
@@ -105,7 +105,7 @@ int physmem_unmap(void *virt)
  * to physical memory address is locked in order to
  * make it safe for DMA transferts.
  *
- * Caller of this function must have the CAP_MEM_MANAGER capability.
+ * Caller of this function must have the PERM_MEM_MANAGER permission.
  *
  * @param virt      Virtual address of the memory to be locked.
  * @param size      Number of bytes to lock.
@@ -114,7 +114,7 @@ int physmem_unmap(void *virt)
  * @param phys      Locked physical memory address.
  *
  * @return EOK on success.
- * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ * @return EPERM if the caller lacks the PERM_MEM_MANAGER permission.
  * @return ENOMEM if there was some problem in creating
  *         the address space area.
  *
@@ -129,7 +129,7 @@ int dmamem_map(void *virt, size_t size, unsigned int map_flags,
 
 /** Map a piece of physical memory suitable for DMA transfers.
  *
- * Caller of this function must have the CAP_MEM_MANAGER capability.
+ * Caller of this function must have the PERM_MEM_MANAGER permission.
  *
  * @param size       Number of bytes to map.
  * @param constraint Bit mask defining the contraint on the physical
@@ -142,7 +142,7 @@ int dmamem_map(void *virt, size_t size, unsigned int map_flags,
  *                   obey the desired value.
  *
  * @return EOK on success.
- * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ * @return EPERM if the caller lacks the PERM_MEM_MANAGER permission.
  * @return ENOMEM if there was some problem in creating
  *         the address space area.
  *
@@ -170,14 +170,14 @@ int dmamem_unmap_anonymous(void *virt)
 
 /** Enable I/O space range to task.
  *
- * Caller of this function must have the IO_MEM_MANAGER capability.
+ * Caller of this function must have the PERM_IO_MANAGER permission.
  *
  * @param id     Task ID.
  * @param ioaddr Starting address of the I/O range.
  * @param size   Size of the range.
  *
  * @return EOK on success
- * @return EPERM if the caller lacks the CAP_IO_MANAGER capability
+ * @return EPERM if the caller lacks the PERM_IO_MANAGER permission
  * @return ENOENT if there is no task with specified ID
  * @return ENOMEM if there was some problem in allocating memory.
  *
@@ -195,14 +195,14 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 
 /** Disable I/O space range to task.
  *
- * Caller of this function must have the IO_MEM_MANAGER capability.
+ * Caller of this function must have the PERM_IO_MANAGER permission.
  *
  * @param id     Task ID.
  * @param ioaddr Starting address of the I/O range.
  * @param size   Size of the range.
  *
  * @return EOK on success
- * @return EPERM if the caller lacks the CAP_IO_MANAGER capability
+ * @return EPERM if the caller lacks the PERM_IO_MANAGER permission
  * @return ENOENT if there is no task with specified ID
  *
  */
