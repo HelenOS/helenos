@@ -628,5 +628,41 @@ fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *timer)
 	return old_state;
 }
 
+/** Delay fibril execution for the specified number of microseconds
+ *
+ * @param usec Number of microseconds to sleep
+ */
+void fibril_usleep(useconds_t usec)
+{
+	fibril_condvar_t cv;
+	fibril_mutex_t lock;
+
+	fibril_condvar_initialize(&cv);
+	fibril_mutex_initialize(&lock);
+	fibril_mutex_lock(&lock);
+	fibril_condvar_wait_timeout(&cv, &lock, usec);
+	fibril_mutex_unlock(&lock);
+}
+
+/** Delay fibril execution for the specified number of seconds
+ *
+ * @param sec Number of seconds to sleep
+ */
+void fibril_sleep(unsigned int sec)
+{
+	/*
+	 * Sleep in 1000 second steps to support
+	 * full argument range
+	 */
+
+	while (sec > 0) {
+		unsigned int period = (sec > 1000) ? 1000 : sec;
+
+		fibril_usleep(period * 1000000);
+		sec -= period;
+	}
+}
+
+
 /** @}
  */
