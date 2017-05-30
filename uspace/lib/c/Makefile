@@ -62,7 +62,7 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
-	generic/cap.c \
+	generic/perm.c \
 	generic/clipboard.c \
 	generic/config.c \
 	generic/corecfg.c \

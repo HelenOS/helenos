@@ -47,7 +47,7 @@
 #include <synch/waitq.h>
 #include <arch/interrupt.h>
 #include <syscall/copy.h>
-#include <security/cap.h>
+#include <security/perm.h>
 #include <console/console.h>
 #include <print.h>
 #include <macros.h>
@@ -810,7 +810,7 @@ sysarg_t sys_ipc_poke(void)
 sysarg_t sys_ipc_irq_subscribe(inr_t inr, devno_t devno, sysarg_t imethod,
     irq_code_t *ucode)
 {
-	if (!(cap_get(TASK) & CAP_IRQ_REG))
+	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
 	
 	return ipc_irq_subscribe(&TASK->answerbox, inr, devno, imethod, ucode);
@@ -826,7 +826,7 @@ sysarg_t sys_ipc_irq_subscribe(inr_t inr, devno_t devno, sysarg_t imethod,
  */
 sysarg_t sys_ipc_irq_unsubscribe(inr_t inr, devno_t devno)
 {
-	if (!(cap_get(TASK) & CAP_IRQ_REG))
+	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
 	
 	ipc_irq_unsubscribe(&TASK->answerbox, inr, devno);

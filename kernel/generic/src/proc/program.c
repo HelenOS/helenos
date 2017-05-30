@@ -45,7 +45,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
-#include <security/cap.h>
+#include <security/perm.h>
 #include <lib/elf_load.h>
 #include <errno.h>
 #include <log.h>
@@ -243,8 +243,8 @@ sysarg_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 	if (rc != 0)
 		return rc;
 	
-	// FIXME: control the capabilities
-	cap_set(prg.task, cap_get(TASK));
+	// FIXME: control the permissions 
+	perm_set(prg.task, perm_get(TASK));
 	program_ready(&prg);
 	
 	return EOK;

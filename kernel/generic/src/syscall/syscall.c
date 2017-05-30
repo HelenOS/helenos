@@ -52,7 +52,7 @@
 #include <synch/smp_memory_barrier.h>
 #include <ddi/ddi.h>
 #include <ipc/event.h>
-#include <security/cap.h>
+#include <security/perm.h>
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
 #include <udebug/udebug.h>
@@ -170,9 +170,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_event_unsubscribe,
 	(syshandler_t) sys_ipc_event_unmask,
 	
-	/* Capabilities related syscalls. */
-	(syshandler_t) sys_cap_grant,
-	(syshandler_t) sys_cap_revoke,
+	/* Permission related syscalls. */
+	(syshandler_t) sys_perm_grant,
+	(syshandler_t) sys_perm_revoke,
 	
 	/* DDI related syscalls. */
 	(syshandler_t) sys_device_assign_devno,

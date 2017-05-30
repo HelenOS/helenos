@@ -41,7 +41,7 @@
 
 #include <ddi/ddi.h>
 #include <proc/task.h>
-#include <security/cap.h>
+#include <security/perm.h>
 #include <mm/frame.h>
 #include <mm/as.h>
 #include <mm/page.h>
@@ -95,7 +95,7 @@ void ddi_parea_register(parea_t *parea)
  * @param bound Lowest virtual address bound.
  *
  * @return EOK on success.
- * @return EPERM if the caller lacks capabilities to use this syscall.
+ * @return EPERM if the caller lacks permissions to use this syscall.
  * @return EBADMEM if phys is not page aligned.
  * @return ENOENT if there is no task matching the specified ID or
  *         the physical address space is not enabled for mapping.
@@ -115,7 +115,7 @@ NO_TRACE static int physmem_map(uintptr_t phys, size_t pages,
 	 * which are explicitly marked as such.
 	 */
 	bool priv =
-	    ((cap_get(TASK) & CAP_MEM_MANAGER) == CAP_MEM_MANAGER);
+	    ((perm_get(TASK) & PERM_MEM_MANAGER) == PERM_MEM_MANAGER);
 	
 	mem_backend_data_t backend_data;
 	backend_data.base = phys;
@@ -259,7 +259,7 @@ sysarg_t sys_physmem_unmap(uintptr_t virt)
  * @param ioaddr Starting I/O address.
  * @param size   Size of the enabled I/O space.
  *
- * @return 0 on success, EPERM if the caller lacks capabilities to use this
+ * @return 0 on success, EPERM if the caller lacks permissions to use this
  *           syscall, ENOENT if there is no task matching the specified ID.
  *
  */
@@ -268,8 +268,8 @@ NO_TRACE static int iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 	/*
 	 * Make sure the caller is authorised to make this syscall.
 	 */
-	cap_t caps = cap_get(TASK);
-	if (!(caps & CAP_IO_MANAGER))
+	perm_t perms = perm_get(TASK);
+	if (!(perms & PERM_IO_MANAGER))
 		return EPERM;
 	
 	irq_spinlock_lock(&tasks_lock, true);
@@ -300,7 +300,7 @@ NO_TRACE static int iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
  * @param ioaddr Starting I/O address.
  * @param size   Size of the enabled I/O space.
  *
- * @return 0 on success, EPERM if the caller lacks capabilities to use this
+ * @return 0 on success, EPERM if the caller lacks permissions to use this
  *           syscall, ENOENT if there is no task matching the specified ID.
  *
  */
@@ -309,8 +309,8 @@ NO_TRACE static int iospace_disable(task_id_t id, uintptr_t ioaddr, size_t size)
 	/*
 	 * Make sure the caller is authorised to make this syscall.
 	 */
-	cap_t caps = cap_get(TASK);
-	if (!(caps & CAP_IO_MANAGER))
+	perm_t perms = perm_get(TASK);
+	if (!(perms & PERM_IO_MANAGER))
 		return EPERM;
 	
 	irq_spinlock_lock(&tasks_lock, true);

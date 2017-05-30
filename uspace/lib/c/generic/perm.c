@@ -26,69 +26,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
-/** @file
+/**
+ * @file  perm.c
+ * @brief Functions to grant/revoke permissions to/from a task.
  */
 
-/**
- * @file
- * @brief Capabilities definitions.
+#include <perm.h>
+#include <task.h>
+#include <libc.h>
+#include <libarch/types.h>
+
+/** Grant permissions to a task.
  *
- * Capabilities represent virtual rights that entitle their
- * holder to perform certain security sensitive tasks.
+ * @param id    Destination task ID.
+ * @param perms Permissions to grant.
  *
- * Each task can have arbitrary combination of the capabilities
- * defined in this file. Therefore, they are required to be powers
- * of two.
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
  */
-
-#ifndef __CAP_H__
-#define __CAP_H__
-
-#include <typedefs.h>
-
-/**
- * CAP_CAP allows its holder to grant/revoke arbitrary
- * privilege to/from other tasks.
- */
-#define CAP_CAP  (1 << 0)
-
-/**
- * CAP_MEM_MANAGER allows its holder to map physical memory
- * to other tasks.
- */
-#define CAP_MEM_MANAGER  (1 << 1)
-
-/**
- * CAP_IO_MANAGER allows its holder to access I/O space
- * to other tasks.
- */
-#define CAP_IO_MANAGER  (1 << 2)
-
-/**
- * CAP_IRQ_REG entitles its holder to register IRQ handlers.
- */
-#define CAP_IRQ_REG  (1 << 3)
-
-typedef uint32_t cap_t;
-
+int perm_grant(task_id_t id, unsigned int perms)
+{
 #ifdef __32_BITS__
-
-extern sysarg_t sys_cap_grant(sysarg64_t *, cap_t);
-extern sysarg_t sys_cap_revoke(sysarg64_t *, cap_t);
-
-#endif  /* __32_BITS__ */
-
-#ifdef __64_BITS__
-
-extern sysarg_t sys_cap_grant(sysarg_t, cap_t);
-extern sysarg_t sys_cap_revoke(sysarg_t, cap_t);
-
-#endif  /* __64_BITS__ */
-
+	sysarg64_t arg = (sysarg64_t) id;
+	return __SYSCALL2(SYS_PERM_GRANT, (sysarg_t) &arg, (sysarg_t) perms);
 #endif
+	
+#ifdef __64_BITS__
+	return __SYSCALL2(SYS_PERM_GRANT, (sysarg_t) id, (sysarg_t) perms);
+#endif
+}
+
+/** Revoke permissions from a task.
+ *
+ * @param id    Destination task ID.
+ * @param perms Permissions to revoke.
+ *
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
+ */
+int perm_revoke(task_id_t id, unsigned int perms)
+{
+#ifdef __32_BITS__
+	sysarg64_t arg = (sysarg64_t) id;
+	return __SYSCALL2(SYS_PERM_REVOKE, (sysarg_t) &arg, (sysarg_t) perms);
+#endif
+	
+#ifdef __64_BITS__
+	return __SYSCALL2(SYS_PERM_REVOKE, (sysarg_t) id, (sysarg_t) perms);
+#endif
+}
 
 /** @}
  */

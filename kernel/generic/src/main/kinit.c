@@ -63,7 +63,7 @@
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>
-#include <security/cap.h>
+#include <security/perm.h>
 #include <lib/rd.h>
 #include <ipc/ipc.h>
 #include <debug.h>
@@ -258,10 +258,11 @@ void kinit(void *arg)
 		if (rc == 0) {
 			if (programs[i].task != NULL) {
 				/*
-				 * Set capabilities to init userspace tasks.
+				 * Set permissions to init userspace tasks.
 				 */
-				cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
-				    CAP_IO_MANAGER | CAP_IRQ_REG);
+				perm_set(programs[i].task,
+				    PERM_PERM | PERM_MEM_MANAGER |
+				    PERM_IO_MANAGER | PERM_IRQ_REG);
 				
 				if (!ipc_phone_0) {
 					ipc_phone_0 = &programs[i].task->answerbox;

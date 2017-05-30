@@ -29,55 +29,18 @@
 /** @addtogroup libc
  * @{
  */
-/**
- * @file  cap.c
- * @brief Functions to grant/revoke capabilities to/from a task.
+/** @file
  */
 
-#include <cap.h>
+#ifndef LIB_PERM_H_
+#define LIB_PERM_H_
+
 #include <task.h>
-#include <libc.h>
-#include <libarch/types.h>
 
-/** Grant capabilities to a task.
- *
- * @param id   Destination task ID.
- * @param caps Capabilities to grant.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
- *
- */
-int cap_grant(task_id_t id, unsigned int caps)
-{
-#ifdef __32_BITS__
-	sysarg64_t arg = (sysarg64_t) id;
-	return __SYSCALL2(SYS_CAP_GRANT, (sysarg_t) &arg, (sysarg_t) caps);
-#endif
-	
-#ifdef __64_BITS__
-	return __SYSCALL2(SYS_CAP_GRANT, (sysarg_t) id, (sysarg_t) caps);
-#endif
-}
+extern int perm_grant(task_id_t, unsigned int);
+extern int perm_revoke(task_id_t, unsigned int);
 
-/** Revoke capabilities from a task.
- *
- * @param id   Destination task ID.
- * @param caps Capabilities to revoke.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
- *
- */
-int cap_revoke(task_id_t id, unsigned int caps)
-{
-#ifdef __32_BITS__
-	sysarg64_t arg = (sysarg64_t) id;
-	return __SYSCALL2(SYS_CAP_REVOKE, (sysarg_t) &arg, (sysarg_t) caps);
 #endif
-	
-#ifdef __64_BITS__
-	return __SYSCALL2(SYS_CAP_REVOKE, (sysarg_t) id, (sysarg_t) caps);
-#endif
-}
 
 /** @}
  */

@@ -31,61 +31,61 @@
  */
 
 /**
- * @file cap.c
- * @brief Capabilities control.
+ * @file perm.c
+ * @brief Task permissions control.
  *
- * @see cap.h
+ * @see perm.h
  */
 
-#include <security/cap.h>
+#include <security/perm.h>
 #include <proc/task.h>
 #include <synch/spinlock.h>
 #include <syscall/copy.h>
 #include <arch.h>
 #include <errno.h>
 
-/** Set capabilities.
+/** Set permissions.
  *
- * @param task Task whose capabilities are to be changed.
- * @param caps New set of capabilities.
+ * @param task  Task whose permissions are to be changed.
+ * @param perms New set of permissions.
  *
  */
-void cap_set(task_t *task, cap_t caps)
+void perm_set(task_t *task, perm_t perms)
 {
 	irq_spinlock_lock(&task->lock, true);
-	task->capabilities = caps;
+	task->perms = perms;
 	irq_spinlock_unlock(&task->lock, true);
 }
 
-/** Get capabilities.
+/** Get permissions.
  *
- * @param task Task whose capabilities are to be returned.
+ * @param task Task whose permissions are to be returned.
  *
- * @return Task's capabilities.
+ * @return Task's permissions.
  *
  */
-cap_t cap_get(task_t *task)
+perm_t perm_get(task_t *task)
 {
 	irq_spinlock_lock(&task->lock, true);
-	cap_t caps = task->capabilities;
+	perm_t perms = task->perms;
 	irq_spinlock_unlock(&task->lock, true);
 	
-	return caps;
+	return perms;
 }
 
-/** Grant capabilities to a task.
+/** Grant permissions to a task.
  *
- * The calling task must have the CAP_CAP capability.
+ * The calling task must have the PERM_PERM permission.
  *
  * @param taskid Destination task ID.
- * @param caps   Capabilities to grant.
+ * @param perms   Permissions to grant.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-static sysarg_t cap_grant(task_id_t taskid, cap_t caps)
+static sysarg_t perm_grant(task_id_t taskid, perm_t perms)
 {
-	if (!(cap_get(TASK) & CAP_CAP))
+	if (!(perm_get(TASK) & PERM_PERM))
 		return (sysarg_t) EPERM;
 	
 	irq_spinlock_lock(&tasks_lock, true);
@@ -97,25 +97,25 @@ static sysarg_t cap_grant(task_id_t taskid, cap_t caps)
 	}
 	
 	irq_spinlock_lock(&task->lock, false);
-	task->capabilities |= caps;
+	task->perms |= perms;
 	irq_spinlock_unlock(&task->lock, false);
 	
 	irq_spinlock_unlock(&tasks_lock, true);
 	return 0;
 }
 
-/** Revoke capabilities from a task.
+/** Revoke permissions from a task.
  *
- * The calling task must have the CAP_CAP capability or the caller must
- * attempt to revoke capabilities from itself.
+ * The calling task must have the PERM_PERM permission or the caller must
+ * attempt to revoke permissions from itself.
  *
  * @param taskid Destination task ID.
- * @param caps   Capabilities to revoke.
+ * @param perms   Permissions to revoke.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-static sysarg_t cap_revoke(task_id_t taskid, cap_t caps)
+static sysarg_t perm_revoke(task_id_t taskid, perm_t perms)
 {
 	irq_spinlock_lock(&tasks_lock, true);
 	
@@ -126,19 +126,19 @@ static sysarg_t cap_revoke(task_id_t taskid, cap_t caps)
 	}
 	
 	/*
-	 * Revoking capabilities is different from granting them in that
-	 * a task can revoke capabilities from itself even if it
-	 * doesn't have CAP_CAP.
+	 * Revoking permissions is different from granting them in that
+	 * a task can revoke permissions from itself even if it
+	 * doesn't have PERM_PERM.
 	 */
 	irq_spinlock_unlock(&TASK->lock, false);
 	
-	if ((!(TASK->capabilities & CAP_CAP)) || (task != TASK)) {
+	if ((!(TASK->perms & PERM_PERM)) || (task != TASK)) {
 		irq_spinlock_unlock(&TASK->lock, false);
 		irq_spinlock_unlock(&tasks_lock, true);
 		return (sysarg_t) EPERM;
 	}
 	
-	task->capabilities &= ~caps;
+	task->perms &= ~perms;
 	irq_spinlock_unlock(&TASK->lock, false);
 	
 	irq_spinlock_unlock(&tasks_lock, true);
@@ -147,80 +147,80 @@ static sysarg_t cap_revoke(task_id_t taskid, cap_t caps)
 
 #ifdef __32_BITS__
 
-/** Grant capabilities to a task (32 bits)
+/** Grant permissions to a task (32 bits)
  *
- * The calling task must have the CAP_CAP capability.
+ * The calling task must have the PERM_PERM permission.
  *
  * @param uspace_taskid User-space pointer to destination task ID.
- * @param caps          Capabilities to grant.
+ * @param perms         Permissions to grant.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid, cap_t caps)
+sysarg_t sys_perm_grant(sysarg64_t *uspace_taskid, perm_t perms)
 {
 	sysarg64_t taskid;
 	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
 	if (rc != 0)
 		return (sysarg_t) rc;
 	
-	return cap_grant((task_id_t) taskid, caps);
+	return perm_grant((task_id_t) taskid, perms);
 }
 
-/** Revoke capabilities from a task (32 bits)
+/** Revoke permissions from a task (32 bits)
  *
- * The calling task must have the CAP_CAP capability or the caller must
- * attempt to revoke capabilities from itself.
+ * The calling task must have the PERM_PERM permission or the caller must
+ * attempt to revoke permissions from itself.
  *
  * @param uspace_taskid User-space pointer to destination task ID.
- * @param caps          Capabilities to revoke.
+ * @param perms         Perms to revoke.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid, cap_t caps)
+sysarg_t sys_perm_revoke(sysarg64_t *uspace_taskid, perm_t perms)
 {
 	sysarg64_t taskid;
 	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
 	if (rc != 0)
 		return (sysarg_t) rc;
 	
-	return cap_revoke((task_id_t) taskid, caps);
+	return perm_revoke((task_id_t) taskid, perms);
 }
 
 #endif  /* __32_BITS__ */
 
 #ifdef __64_BITS__
 
-/** Grant capabilities to a task (64 bits)
+/** Grant permissions to a task (64 bits)
  *
- * The calling task must have the CAP_CAP capability.
+ * The calling task must have the PERM_PERM permission.
  *
  * @param taskid Destination task ID.
- * @param caps   Capabilities to grant.
+ * @param perms  Permissions to grant.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_cap_grant(sysarg_t taskid, cap_t caps)
+sysarg_t sys_perm_grant(sysarg_t taskid, perm_t perms)
 {
-	return cap_grant((task_id_t) taskid, caps);
+	return perm_grant((task_id_t) taskid, perms);
 }
 
-/** Revoke capabilities from a task (64 bits)
+/** Revoke permissions from a task (64 bits)
  *
- * The calling task must have the CAP_CAP capability or the caller must
- * attempt to revoke capabilities from itself.
+ * The calling task must have the PERM_PERM permission or the caller must
+ * attempt to revoke permissions from itself.
  *
  * @param taskid Destination task ID.
- * @param caps   Capabilities to revoke.
+ * @param perms  Permissions to revoke.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_cap_revoke(sysarg_t taskid, cap_t caps)
+sysarg_t sys_perm_revoke(sysarg_t taskid, perm_t perms)
 {
-	return cap_revoke((task_id_t) taskid, caps);
+	return perm_revoke((task_id_t) taskid, perms);
 }
 
 #endif  /* __64_BITS__ */
