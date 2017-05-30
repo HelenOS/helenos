@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 
@@ -39,9 +39,9 @@
  *
  */
 
-#include <mm/slab.h>
-#include <memstr.h>
-#include <sort.h>
+#include <gsort.h>
+#include <mem.h>
+#include <malloc.h>
 
 /** Immediate buffer size.
  *
@@ -76,7 +76,7 @@ static void _gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
 	size_t i = 0;
 	
 	while (i < cnt) {
-		if ((i > 0) &&
+		if ((i != 0) &&
 		    (cmp(INDEX(data, i, elem_size),
 		    INDEX(data, i - 1, elem_size), arg) == -1)) {
 			memcpy(slot, INDEX(data, i, elem_size), elem_size);
@@ -89,61 +89,11 @@ static void _gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
 	}
 }
 
-/** Quicksort
- *
- * Apply generic quicksort algorithm on supplied data,
- * using pre-allocated buffers.
- *
- * @param data      Pointer to data to be sorted.
- * @param cnt       Number of elements to be sorted.
- * @param elem_size Size of one element.
- * @param cmp       Comparator function.
- * @param arg       3rd argument passed to cmp.
- * @param slot      Pointer to scratch memory buffer
- *                  elem_size bytes long.
- * @param pivot     Pointer to scratch memory buffer
- *                  elem_size bytes long.
- *
- */
-static void _qsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
-    void *arg, void *slot, void *pivot)
-{
-	if (cnt > 4) {
-		size_t i = 0;
-		size_t j = cnt - 1;
-		
-		memcpy(pivot, data, elem_size);
-		
-		while (true) {
-			while ((cmp(INDEX(data, i, elem_size), pivot, arg) < 0) && (i < cnt))
-				i++;
-			
-			while ((cmp(INDEX(data, j, elem_size), pivot, arg) >= 0) && (j > 0))
-				j--;
-			
-			if (i < j) {
-				memcpy(slot, INDEX(data, i, elem_size), elem_size);
-				memcpy(INDEX(data, i, elem_size), INDEX(data, j, elem_size),
-				    elem_size);
-				memcpy(INDEX(data, j, elem_size), slot, elem_size);
-			} else
-				break;
-		}
-		
-		_qsort(data, j + 1, elem_size, cmp, arg, slot, pivot);
-		_qsort(INDEX(data, j + 1, elem_size), cnt - j - 1, elem_size,
-		    cmp, arg, slot, pivot);
-	} else
-		_gsort(data, cnt, elem_size, cmp, arg, slot);
-}
-
 /** Gnome sort wrapper
  *
  * This is only a wrapper that takes care of memory
  * allocations for storing the slot element for generic
  * gnome sort algorithm.
- *
- * This function can sleep.
  *
  * @param data      Pointer to data to be sorted.
  * @param cnt       Number of elements to be sorted.
@@ -160,7 +110,7 @@ bool gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
 	void *slot;
 	
 	if (elem_size > IBUF_SIZE) {
-		slot = (void *) malloc(elem_size, 0);
+		slot = (void *) malloc(elem_size);
 		if (!slot)
 			return false;
 	} else
@@ -170,55 +120,6 @@ bool gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
 	
 	if (elem_size > IBUF_SIZE)
 		free(slot);
-	
-	return true;
-}
-
-/** Quicksort wrapper
- *
- * This is only a wrapper that takes care of memory
- * allocations for storing the pivot and temporary elements
- * for generic quicksort algorithm.
- *
- * This function can sleep.
- *
- * @param data      Pointer to data to be sorted.
- * @param cnt       Number of elements to be sorted.
- * @param elem_size Size of one element.
- * @param cmp       Comparator function.
- * @param arg       3rd argument passed to cmp.
- *
- * @return True if sorting succeeded.
- *
- */
-bool qsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
-{
-	uint8_t ibuf_slot[IBUF_SIZE];
-	uint8_t ibuf_pivot[IBUF_SIZE];
-	void *slot;
-	void *pivot;
-	
-	if (elem_size > IBUF_SIZE) {
-		slot = (void *) malloc(elem_size, 0);
-		if (!slot)
-			return false;
-		
-		pivot = (void *) malloc(elem_size, 0);
-		if (!pivot) {
-			free(slot);
-			return false;
-		}
-	} else {
-		slot = (void *) ibuf_slot;
-		pivot = (void *) ibuf_pivot;
-	}
-	
-	_qsort(data, cnt, elem_size, cmp, arg, slot, pivot);
-	
-	if (elem_size > IBUF_SIZE) {
-		free(pivot);
-		free(slot);
-	}
 	
 	return true;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,23 +32,15 @@
 /** @file
  */
 
-#ifndef LIBC_STDLIB_H_
-#define LIBC_STDLIB_H_
+#ifndef LIBC_QSORT_H_
+#define LIBC_QSORT_H_
 
-#include <malloc.h>
-#include <qsort.h>
-#include <stacktrace.h>
+#include <stddef.h>
 
-#define RAND_MAX  714025
-
-#define rand()       random()
-#define srand(seed)  srandom(seed)
-
-extern long int random(void);
-extern void srandom(unsigned int seed);
-
-extern void abort(void) __attribute__((noreturn));
-extern void exit(int) __attribute__((noreturn));
+extern void qsort(void *, size_t, size_t, int (*)(const void *,
+    const void *));
+extern void qsort_r(void *, size_t, size_t, int (*)(const void *,
+    const void *, void *), void *);
 
 #endif
 

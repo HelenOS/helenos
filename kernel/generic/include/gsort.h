@@ -26,22 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_SORT_H_
-#define LIBC_SORT_H_
+#ifndef KERN_GSORT_H_
+#define KERN_GSORT_H_
 
-#include <stddef.h>
-#include <stdbool.h>
+#include <typedefs.h>
 
 typedef int (* sort_cmp_t)(void *, void *, void *);
 
 extern bool gsort(void *, size_t, size_t, sort_cmp_t, void *);
-extern bool qsort(void *, size_t, size_t, sort_cmp_t, void *);
 
 #endif
 

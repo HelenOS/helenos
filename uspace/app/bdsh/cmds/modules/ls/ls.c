@@ -38,7 +38,6 @@
 #include <getopt.h>
 #include <vfs/vfs.h>
 #include <str.h>
-#include <sort.h>
 
 #include "ls.h"
 #include "errors.h"
@@ -61,7 +60,7 @@ static struct option const long_options[] = {
 /* Prototypes for the ls command, excluding entry points. */
 static unsigned int ls_start(ls_job_t *);
 static void ls_print(struct dir_elem_t *);
-static int ls_cmp(void *, void *, void *);
+static int ls_cmp(const void *, const void *);
 static signed int ls_scan_dir(const char *, DIR *, struct dir_elem_t **);
 static unsigned int ls_recursive(const char *, DIR *);
 static unsigned int ls_scope(const char *, struct dir_elem_t *);
@@ -103,14 +102,13 @@ static void ls_print(struct dir_elem_t *de)
  *
  * @param a		Pointer to the structure of the first element.
  * @param b		Pointer to the structure of the second element.
- * @param arg		Pointer for an other and optionnal argument.
  *
  * @return		-1 if a < b, 1 otherwise.
  */
-static int ls_cmp(void *a, void *b, void *arg)
+static int ls_cmp(const void *a, const void *b)
 {
-	struct dir_elem_t *da = a;
-	struct dir_elem_t *db = b;
+	struct dir_elem_t const *da = a;
+	struct dir_elem_t const *db = b;
 	
 	if ((da->s.is_directory && db->s.is_file) ||
 	    ((da->s.is_directory == db->s.is_directory) &&
@@ -190,12 +188,8 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		}
 	}
 	
-	if (ls.sort) {
-		if (!qsort(&tosort[0], nbdirs, sizeof(struct dir_elem_t),
-		    ls_cmp, NULL)) {
-			printf("Sorting error.\n");
-		}
-	}
+	if (ls.sort)
+		qsort(&tosort[0], nbdirs, sizeof(struct dir_elem_t), ls_cmp);
 	
 	for (i = 0; i < nbdirs; i++)
 		ls_print(&tosort[i]);

@@ -46,7 +46,7 @@
 #include "posix/sys/stat.h"
 #include "posix/unistd.h"
 
-#include "libc/sort.h"
+#include "libc/qsort.h"
 #include "libc/str.h"
 #include "libc/vfs/vfs.h"
 #include "libc/stats.h"
@@ -135,29 +135,6 @@ posix_lldiv_t posix_lldiv(long long numer, long long denom)
 }
 
 /**
- * Private helper function that serves as a compare function for qsort().
- *
- * @param elem1 First element to compare.
- * @param elem2 Second element to compare.
- * @param compare Comparison function without userdata parameter.
- * @return Relative ordering of the elements.
- */
-static int sort_compare_wrapper(void *elem1, void *elem2, void *userdata)
-{
-	int (*compare)(const void *, const void *) = userdata;
-	int ret = compare(elem1, elem2);
-	
-	/* Native qsort internals expect this. */
-	if (ret < 0) {
-		return -1;
-	} else if (ret > 0) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-/**
  * Array sorting utilizing the quicksort algorithm.
  *
  * @param array Array of elements to sort.
@@ -168,8 +145,7 @@ static int sort_compare_wrapper(void *elem1, void *elem2, void *userdata)
 void posix_qsort(void *array, size_t count, size_t size,
     int (*compare)(const void *, const void *))
 {
-	/* Implemented in libc with one extra argument. */
-	qsort(array, count, size, sort_compare_wrapper, compare);
+	qsort(array, count, size, compare);
 }
 
 /**

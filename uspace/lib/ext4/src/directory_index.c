@@ -37,7 +37,6 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <mem.h>
-#include <sort.h>
 #include <stdlib.h>
 #include <str.h>
 #include "ext4/directory.h"
@@ -667,16 +666,16 @@ cleanup:
  *
  * @param arg1  First entry
  * @param arg2  Second entry
- * @param dummy Unused parameter, can be NULL
  *
  * @return Classic compare result
  *         (0: equal, -1: arg1 < arg2, 1: arg1 > arg2)
  *
  */
-static int ext4_directory_dx_entry_comparator(void *arg1, void *arg2, void *dummy)
+static int ext4_directory_dx_entry_comparator(const void *arg1,
+    const void *arg2)
 {
-	ext4_dx_sort_entry_t *entry1 = arg1;
-	ext4_dx_sort_entry_t *entry2 = arg2;
+	ext4_dx_sort_entry_t const *entry1 = arg1;
+	ext4_dx_sort_entry_t const *entry2 = arg2;
 	
 	if (entry1->hash == entry2->hash)
 		return 0;
@@ -792,7 +791,7 @@ static int ext4_directory_dx_split_data(ext4_inode_ref_t *inode_ref,
 	
 	/* Sort all entries */
 	qsort(sort_array, idx, sizeof(ext4_dx_sort_entry_t),
-	    ext4_directory_dx_entry_comparator, NULL);
+	    ext4_directory_dx_entry_comparator);
 	
 	/* Allocate new block for store the second part of entries */
 	uint32_t new_fblock;

@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sort.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -582,7 +581,7 @@ static void tinput_history_seek(tinput_t *ti, int offs)
 }
 
 /** Compare two entries in array of completions. */
-static int compl_cmp(void *va, void *vb, void *arg)
+static int compl_cmp(const void *va, const void *vb)
 {
 	const char *a = *(const char **) va;
 	const char *b = *(const char **) vb;
@@ -740,7 +739,7 @@ static void tinput_text_complete(tinput_t *ti)
 		} else {
 			/* No common prefix. Sort and display all entries. */
 
-			qsort(compl, cnum, sizeof(char *), compl_cmp, NULL);
+			qsort(compl, cnum, sizeof(char *), compl_cmp);
 
 			tinput_jump_after(ti);
 			tinput_show_completions(ti, compl, cnum);
