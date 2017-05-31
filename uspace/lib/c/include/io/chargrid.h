@@ -36,8 +36,9 @@
 #ifndef LIBC_IO_CHARGRID_H_
 #define LIBC_IO_CHARGRID_H_
 
-#include <stddef.h>
 #include <io/charfield.h>
+#include <libarch/types.h>
+#include <stddef.h>
 
 typedef enum {
 	CHARGRID_FLAG_NONE = 0,

@@ -76,6 +76,9 @@ extern window_t *window_open(const char *, const void *, window_flags_t,
 extern void window_resize(window_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     window_placement_flags_t);
 
+/** Change window caption. */
+extern int window_set_caption(window_t *, const char *);
+
 /**
  * Post refresh event into event loop. Widget tree is traversed and all widgets
  * are asked to repaint themselves in top-bottom order. Should be called by

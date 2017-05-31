@@ -37,6 +37,8 @@
 #ifndef LIBC_IO_PIXELMAP_H_
 #define LIBC_IO_PIXELMAP_H_
 
+#include <libarch/types.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <io/pixel.h>
 

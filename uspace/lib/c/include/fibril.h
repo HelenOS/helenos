@@ -36,6 +36,7 @@
 #define LIBC_FIBRIL_H_
 
 #include <libarch/fibril.h>
+#include <libarch/types.h>
 #include <adt/list.h>
 #include <libarch/tls.h>
 

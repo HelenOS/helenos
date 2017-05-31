@@ -33,6 +33,7 @@
 #ifndef EXFAT_EXFAT_DENTRY_H_
 #define EXFAT_EXFAT_DENTRY_H_
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 

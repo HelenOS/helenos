@@ -37,6 +37,7 @@
 #define SOFTREND_RECTANGLE_H_
 
 #include <stdbool.h>
+#include <sys/types.h>
 
 extern bool rectangle_intersect(
     sysarg_t, sysarg_t, sysarg_t, sysarg_t,

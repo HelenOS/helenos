@@ -48,7 +48,6 @@
 #include "libc/malloc.h"
 #include "libc/task.h"
 #include "libc/stats.h"
-#include "libc/stdbool.h"
 #include "libc/stddef.h"
 #include "libc/sys/time.h"
 

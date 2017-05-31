@@ -37,7 +37,6 @@
 #define LIBHOUND_CLIENT_H_
 
 #include <async.h>
-#include <stdbool.h>
 #include <pcm/format.h>
 #include <hound/protocol.h>
 

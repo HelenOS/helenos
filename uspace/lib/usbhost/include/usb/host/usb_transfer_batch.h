@@ -40,7 +40,6 @@
 #include <usb/usb.h>
 
 #include <assert.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <usbhc_iface.h>

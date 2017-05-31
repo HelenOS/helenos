@@ -676,6 +676,27 @@ void window_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	}
 }
 
+int window_set_caption(window_t *win, const char *caption)
+{
+	char *cap;
+	
+	if (caption == NULL) {
+		win->caption = NULL;
+	} else {
+		cap = str_dup(caption);
+		if (cap == NULL)
+			return ENOMEM;
+		free(win->caption);
+		win->caption = cap;
+	}
+	
+	win->is_focused = false;
+	handle_refresh(win);
+	
+	return EOK;
+}
+
+
 void window_refresh(window_t *win)
 {
 	window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));

@@ -48,7 +48,6 @@
 
 #include "libc/stdio.h"
 #include "libc/io/printf_core.h"
-#include "libc/stdbool.h"
 #include "libc/str.h"
 #include "libc/malloc.h"
 #include "libc/adt/list.h"

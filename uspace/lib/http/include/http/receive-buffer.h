@@ -37,6 +37,7 @@
 #define HTTP_RECEIVE_BUFFER_H_
 
 #include <adt/list.h>
+#include <sys/types.h>
 
 /** Receive data.
  *

@@ -39,7 +39,7 @@
 	#error This file cannot be included directly, include atomic.h instead.
 #endif
 
-#include <stdint.h>
+#include <libarch/types.h>
 #include <stdbool.h>
 
 typedef struct atomic {

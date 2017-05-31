@@ -34,8 +34,6 @@
 #ifndef HUB_STATUS_H
 #define	HUB_STATUS_H
 
-#include <stdbool.h>
-#include <stdint.h>
 #include <usb/dev/request.h>
 
 /**

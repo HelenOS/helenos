@@ -35,6 +35,7 @@
 #ifndef LIBC_SYSINFO_H_
 #define LIBC_SYSINFO_H_
 
+#include <libarch/types.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <abi/sysinfo.h>
