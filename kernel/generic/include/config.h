@@ -51,6 +51,7 @@
 
 #ifndef __ASM__
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 typedef struct {

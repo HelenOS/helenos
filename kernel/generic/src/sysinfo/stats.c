@@ -44,6 +44,7 @@
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <interrupt.h>
+#include <stdbool.h>
 #include <str.h>
 #include <errno.h>
 #include <cpu.h>

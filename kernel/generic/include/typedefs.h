@@ -38,12 +38,8 @@
 #include <stdint.h>
 #include <arch/common.h>
 #include <arch/types.h>
-#include <abi/bool.h>
 
 #define NULL  ((void *) 0)
-
-#define false  0
-#define true   1
 
 typedef struct {
 	volatile atomic_count_t count;

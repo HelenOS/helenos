@@ -37,6 +37,7 @@
 #define KERN_SYSINFO_H_
 
 #include <typedefs.h>
+#include <stdbool.h>
 #include <str.h>
 #include <abi/sysinfo.h>
 

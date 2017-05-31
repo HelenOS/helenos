@@ -27,6 +27,7 @@
  */
 
 #include <test.h>
+#include <typedefs.h>
 
 const char *test_purge1(void)
 {

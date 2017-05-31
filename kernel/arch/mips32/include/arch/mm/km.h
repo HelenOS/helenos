@@ -35,6 +35,7 @@
 #ifndef KERN_mips32_KM_H_
 #define KERN_mips32_KM_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 #define KM_MIPS32_KSEG0_START	UINT32_C(0x80000000)

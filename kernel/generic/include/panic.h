@@ -35,6 +35,7 @@
 #ifndef KERN_PANIC_H_
 #define KERN_PANIC_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 #include <print.h>
 

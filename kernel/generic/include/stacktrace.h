@@ -35,6 +35,7 @@
 #ifndef KERN_STACKTRACE_H_
 #define KERN_STACKTRACE_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 /* Forward declaration. */

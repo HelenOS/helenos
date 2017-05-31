@@ -27,6 +27,7 @@
  */
 
 #include <test.h>
+#include <typedefs.h>
 
 const char *test_mips1(void)
 {

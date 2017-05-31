@@ -35,6 +35,7 @@
 #ifndef KERN_RESERVE_H_
 #define KERN_RESERVE_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 extern void reserve_init(void);

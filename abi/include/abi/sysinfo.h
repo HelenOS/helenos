@@ -36,6 +36,7 @@
 #ifndef ABI_SYSINFO_H_
 #define ABI_SYSINFO_H_
 
+#include <abi/bool.h>
 #include <abi/proc/task.h>
 #include <abi/proc/thread.h>
 

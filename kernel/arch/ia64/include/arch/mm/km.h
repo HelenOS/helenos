@@ -35,6 +35,7 @@
 #ifndef KERN_ia64_KM_H_
 #define KERN_ia64_KM_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 /*

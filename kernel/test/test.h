@@ -35,7 +35,7 @@
 #ifndef KERN_TEST_H_
 #define KERN_TEST_H_
 
-#include <typedefs.h>
+#include <stdbool.h>
 
 extern bool test_quiet;
 

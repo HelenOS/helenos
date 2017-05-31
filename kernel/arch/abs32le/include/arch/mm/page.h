@@ -36,6 +36,7 @@
 #define KERN_abs32le_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <stdbool.h>
 #include <trace.h>
 
 #define PAGE_WIDTH  FRAME_WIDTH
