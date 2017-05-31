@@ -57,6 +57,9 @@ extern int __POSIX_DEF__(getopt)(int, char * const [], const char *);
 /* Environment */
 extern char **__POSIX_DEF__(environ);
 
+/* Sleeping */
+extern unsigned int __POSIX_DEF__(sleep)(unsigned int);
+
 /* Login Information */
 extern char *__POSIX_DEF__(getlogin)(void);
 extern int __POSIX_DEF__(getlogin_r)(char *name, size_t namesize);

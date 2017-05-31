@@ -44,6 +44,7 @@
 #include "posix/fcntl.h"
 
 #include "libc/task.h"
+#include "libc/thread.h"
 #include "libc/stats.h"
 #include "libc/malloc.h"
 #include "libc/vfs/vfs.h"
@@ -55,6 +56,21 @@ aoff64_t posix_pos[MAX_OPEN_FILES];
 /* Array of environment variable strings (NAME=VALUE). */
 char **posix_environ = NULL;
 char *posix_optarg;
+
+/**
+ * Sleep for the specified number of seconds.
+ *
+ * Note that POSIX allows this call to be interrupted and then the return
+ * value represents remaining seconds for the sleep. HelenOS does not offer
+ * such functionality and thus always the whole sleep is taken.
+ *
+ * @param seconds Number of seconds to sleep.
+ * @return Always 0 on HelenOS.
+ */
+unsigned int posix_sleep(unsigned int seconds)
+{
+	return thread_sleep(seconds);
+}
 
 /**
  * Get current user name.
