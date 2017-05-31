@@ -35,6 +35,8 @@
 #ifndef KERN_mips32_TYPES_H_
 #define KERN_mips32_TYPES_H_
 
+#include <arch/common.h>
+
 typedef uint32_t size_t;
 typedef int32_t ssize_t;
 

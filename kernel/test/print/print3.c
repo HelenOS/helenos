@@ -26,8 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
 #include <macros.h>
+#include <print.h>
+#include <stddef.h>
 #include <test.h>
 
 #define BUFFER_SIZE  32

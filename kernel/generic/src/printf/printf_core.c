@@ -40,6 +40,7 @@
 #include <print.h>
 #include <stdarg.h>
 #include <macros.h>
+#include <stddef.h>
 #include <str.h>
 #include <arch.h>
 

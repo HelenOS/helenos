@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup test
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#include <test.h>
-#include <stddef.h>
-#include <str.h>
+#ifndef KERN_STDDEF_H_
+#define KERN_STDDEF_H_
 
-bool test_quiet;
+#include <arch/types.h>
 
-test_t tests[] = {
-#include <atomic/atomic1.def>
-#include <avltree/avltree1.def>
-#include <btree/btree1.def>
-#include <cht/cht1.def>
-#include <debug/mips1.def>
-#include <fault/fault1.def>
-#include <mm/falloc1.def>
-#include <mm/falloc2.def>
-#include <mm/mapping1.def>
-#include <mm/slab1.def>
-#include <mm/slab2.def>
-#include <synch/semaphore1.def>
-#include <synch/semaphore2.def>
-#include <synch/rcu1.def>
-#include <synch/workqueue2.def>
-#include <synch/workqueue3.def>
-#include <print/print1.def>
-#include <print/print2.def>
-#include <print/print3.def>
-#include <print/print4.def>
-#include <print/print5.def>
-#include <thread/thread1.def>
-#include <smpcall/smpcall1.def>
-	{
-		.name = NULL,
-		.desc = NULL,
-		.entry = NULL
-	}
-};
+typedef native_t ptrdiff_t;
 
-const char *tests_hints_enum(const char *input, const char **help,
-    void **ctx)
-{
-	size_t len = str_length(input);
-	test_t **test = (test_t **) ctx;
-	
-	if (*test == NULL)
-		*test = tests;
-	
-	for (; (*test)->name; (*test)++) {
-		const char *curname = (*test)->name;
-		
-		if (str_length(curname) < len)
-			continue;
-		
-		if (str_lcmp(input, curname, len) == 0) {
-			(*test)++;
-			if (help)
-				*help = (*test)->desc;
-			return (curname + str_lsize(curname, len));
-		}
-	}
-	
-	return NULL;
-}
+#ifndef NULL
+	#define NULL  ((void *) 0)
+#endif
+
+#define offsetof(type,member) ((size_t) &(((type *) 0)->member))
+
+#endif
 
 /** @}
  */

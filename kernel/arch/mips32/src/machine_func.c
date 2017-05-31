@@ -37,6 +37,7 @@
  *  in a unified way.
  */
 
+#include <stddef.h>
 #include <arch/machine_func.h>
 #if defined(MACHINE_msim)
 #include <arch/mach/msim/msim.h>

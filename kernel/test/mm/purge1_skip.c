@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stddef.h>
 #include <test.h>
-#include <typedefs.h>
 
 const char *test_purge1(void)
 {

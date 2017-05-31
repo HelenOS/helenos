@@ -39,8 +39,6 @@
 #include <arch/common.h>
 #include <arch/types.h>
 
-#define NULL  ((void *) 0)
-
 typedef struct {
 	volatile atomic_count_t count;
 } atomic_t;
@@ -55,8 +53,6 @@ typedef int32_t devno_t;
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
-
-typedef native_t ptrdiff_t;
 
 #ifdef __32_BITS__
 

@@ -27,6 +27,7 @@
  */
 
 #include <print.h>
+#include <stddef.h>
 #include <test.h>
 
 const char *test_print2(void)

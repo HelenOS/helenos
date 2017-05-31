@@ -36,6 +36,8 @@
 #ifndef KERN_arm32_TYPES_H_
 #define KERN_arm32_TYPES_H_
 
+#include <arch/common.h>
+
 #ifndef DOXYGEN
 	#define ATTRIBUTE_PACKED __attribute__((packed))
 #else
