@@ -40,7 +40,7 @@
 #include <arch.h>
 #include <config.h>
 #include <macros.h>
-#include <typedefs.h>
+#include <stdint.h>
 #include <synch/waitq.h>
 #include <log.h>
 #include <arch/cpu_node.h>

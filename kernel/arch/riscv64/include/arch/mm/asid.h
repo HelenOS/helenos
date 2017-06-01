@@ -35,7 +35,7 @@
 #ifndef KERN_riscv64_ASID_H_
 #define KERN_riscv64_ASID_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 #define ASID_MAX_ARCH  4096
 

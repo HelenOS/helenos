@@ -37,7 +37,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <typedefs.h>
+#include <stdint.h>
 #include <trace.h>
 
 /**

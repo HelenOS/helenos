@@ -40,8 +40,6 @@
 
 #define FRAME_LOWPRIO  0
 
-#include <typedefs.h>
-
 extern void frame_low_arch_init(void);
 extern void frame_high_arch_init(void);
 extern void physmem_print(void);

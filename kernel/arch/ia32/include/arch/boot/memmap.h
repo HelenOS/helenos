@@ -62,7 +62,7 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
+#include <stdint.h>
 
 extern e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
 extern uint8_t e820counter;

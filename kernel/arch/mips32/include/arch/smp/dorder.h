@@ -35,7 +35,7 @@
 #ifndef KERN_mips32_DORDER_H_
 #define KERN_mips32_DORDER_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 extern uint32_t dorder_cpuid(void);
 extern void dorder_ipi_ack(uint32_t);

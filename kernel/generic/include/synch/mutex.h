@@ -35,7 +35,8 @@
 #ifndef KERN_MUTEX_H_
 #define KERN_MUTEX_H_
 
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <synch/semaphore.h>
 #include <abi/synch.h>
 

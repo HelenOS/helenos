@@ -35,7 +35,6 @@
 #include <ddi/ddi.h>
 #include <arch/ddi/ddi.h>
 #include <proc/task.h>
-#include <typedefs.h>
 #include <adt/bitmap.h>
 #include <mm/slab.h>
 #include <arch/pm.h>
@@ -44,6 +43,7 @@
 #include <cpu.h>
 #include <arch.h>
 #include <align.h>
+#include <stdbool.h>
 
 /** Install I/O Permission bitmap.
  *

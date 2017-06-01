@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <typedefs.h>
+#include <stdint.h>
 #include <smp/ipi.h>
 #include <arch/smp/dorder.h>
 

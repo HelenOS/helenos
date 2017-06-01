@@ -36,6 +36,7 @@
 #define KERN_abs32le_ISTATE_H_
 
 #include <trace.h>
+#include <typedefs.h>
 
 #ifdef KERNEL
 

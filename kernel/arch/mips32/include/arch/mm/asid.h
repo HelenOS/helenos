@@ -35,7 +35,7 @@
 #ifndef KERN_mips32_ASID_H_
 #define KERN_mips32_ASID_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 #define ASID_MAX_ARCH  255    /* 2^8 - 1 */
 

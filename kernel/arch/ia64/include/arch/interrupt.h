@@ -36,8 +36,8 @@
 #define KERN_ia64_INTERRUPT_H_
 
 #ifndef __ASM__
-#include <typedefs.h>
 #include <arch/istate.h>
+#include <stdint.h>
 #endif
 
 #define EXC_ALT_ITLB_FAULT	0xc

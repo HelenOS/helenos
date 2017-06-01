@@ -35,8 +35,8 @@
 #ifndef KERN_BTREE_H_
 #define KERN_BTREE_H_
 
-#include <typedefs.h>
 #include <adt/list.h>
+#include <stddef.h>
 
 #define BTREE_M		5
 #define BTREE_MAX_KEYS	(BTREE_M - 1)
@@ -80,7 +80,7 @@ typedef struct btree_node {
 	 * leaf. */
 	link_t leaf_link;
 
-	/* Variables needed by btree_print(). */	
+	/* Variables needed by btree_print(). */
 	link_t bfs_link;
 	int depth;
 } btree_node_t;

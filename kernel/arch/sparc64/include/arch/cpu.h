@@ -53,7 +53,6 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
 #include <arch/register.h>
 #include <arch/regdef.h>
 #include <arch/asm.h>

@@ -35,8 +35,8 @@
 #ifndef KERN_mips32_CPU_H_
 #define KERN_mips32_CPU_H_
 
-#include <typedefs.h>
 #include <arch/asm.h>
+#include <stdint.h>
 
 typedef struct {
 	uint32_t imp_num;

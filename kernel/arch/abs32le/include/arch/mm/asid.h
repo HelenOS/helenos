@@ -33,7 +33,7 @@
 #ifndef KERN_abs32le_ASID_H_
 #define KERN_abs32le_ASID_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 typedef uint32_t asid_t;
 

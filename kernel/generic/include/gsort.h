@@ -36,7 +36,7 @@
 #define KERN_GSORT_H_
 
 #include <stdbool.h>
-#include <typedefs.h>
+#include <stddef.h>
 
 typedef int (* sort_cmp_t)(void *, void *, void *);
 

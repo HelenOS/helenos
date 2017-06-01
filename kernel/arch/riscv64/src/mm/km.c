@@ -31,6 +31,7 @@
  */
 
 #include <arch/mm/km.h>
+#include <stdbool.h>
 #include <typedefs.h>
 
 void km_identity_arch_init(void)

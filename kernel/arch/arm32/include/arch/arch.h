@@ -41,7 +41,7 @@
 
 #define BOOTINFO_TASK_NAME_BUFLEN 32
 
-#include <typedefs.h>
+#include <stddef.h>
 
 typedef struct {
 	void *addr;

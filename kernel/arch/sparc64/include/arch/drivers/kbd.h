@@ -35,7 +35,6 @@
 #ifndef KERN_sparc64_KBD_H_
 #define KERN_sparc64_KBD_H_
 
-#include <typedefs.h>
 #include <genarch/ofw/ofw_tree.h>
 
 extern void kbd_init(ofw_tree_node_t *node);

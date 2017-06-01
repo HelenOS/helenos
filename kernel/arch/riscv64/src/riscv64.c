@@ -33,7 +33,7 @@
  */
 
 #include <arch.h>
-#include <typedefs.h>
+#include <stddef.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 

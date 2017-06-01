@@ -35,7 +35,7 @@
 #include <ddi/ddi.h>
 #include <arch/ddi/ddi.h>
 #include <proc/task.h>
-#include <typedefs.h>
+#include <stddef.h>
 #include <adt/bitmap.h>
 #include <mm/slab.h>
 #include <arch/pm.h>

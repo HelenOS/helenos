@@ -35,7 +35,7 @@
 #ifndef KERN_RD_H_
 #define KERN_RD_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 
 extern void init_rd(void *, size_t);
 

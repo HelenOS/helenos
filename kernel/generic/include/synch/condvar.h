@@ -35,7 +35,7 @@
 #ifndef KERN_CONDVAR_H_
 #define KERN_CONDVAR_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 #include <synch/waitq.h>
 #include <synch/mutex.h>
 #include <synch/spinlock.h>

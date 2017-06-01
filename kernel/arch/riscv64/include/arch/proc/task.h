@@ -35,7 +35,7 @@
 #ifndef KERN_riscv64_TASK_H_
 #define KERN_riscv64_TASK_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 
 typedef struct {
 } task_arch_t;

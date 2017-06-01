@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_FPU_CONTEXT_H_
 #define KERN_sparc64_FPU_CONTEXT_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 #define FPU_CONTEXT_ALIGN	8
 

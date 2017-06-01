@@ -43,9 +43,9 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
 #include <config.h>
 #include <genarch/ofw/ofw_tree.h>
+#include <stddef.h>
 
 typedef struct {
 	void *addr;

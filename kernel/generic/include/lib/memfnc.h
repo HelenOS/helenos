@@ -35,7 +35,7 @@
 #ifndef KERN_LIB_MEMFNC_H_
 #define KERN_LIB_MEMFNC_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <cc.h>
 
 #ifdef CONFIG_LTO

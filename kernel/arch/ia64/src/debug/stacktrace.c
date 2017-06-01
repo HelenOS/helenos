@@ -33,6 +33,7 @@
  */
 
 #include <stacktrace.h>
+#include <stdbool.h>
 #include <syscall/copy.h>
 #include <typedefs.h>
 

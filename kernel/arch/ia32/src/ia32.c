@@ -36,7 +36,7 @@
 
 #include <arch.h>
 #include <arch/arch.h>
-#include <typedefs.h>
+#include <stdint.h>
 #include <errno.h>
 #include <mem.h>
 #include <interrupt.h>

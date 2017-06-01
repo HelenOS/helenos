@@ -35,9 +35,9 @@
 #ifndef KERN_TIMEOUT_H_
 #define KERN_TIMEOUT_H_
 
-#include <typedefs.h>
 #include <adt/list.h>
 #include <cpu.h>
+#include <stdint.h>
 
 typedef void (* timeout_handler_t)(void *arg);
 

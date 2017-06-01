@@ -211,7 +211,7 @@
 
 #include <mm/mm.h>
 #include <arch/interrupt.h>
-#include <typedefs.h>
+#include <stdint.h>
 
 /** Page Table Entry. */
 typedef struct {

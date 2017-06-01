@@ -35,7 +35,6 @@
 #include <arch/cpu.h>
 #include <cpu.h>
 #include <arch.h>
-#include <typedefs.h>
 #include <print.h>
 #include <fpu_context.h>
 
@@ -56,7 +55,7 @@ void cpu_identify(void)
 {
 }
 
-void cpu_print_report(cpu_t* cpu)
+void cpu_print_report(cpu_t *cpu)
 {
 }
 

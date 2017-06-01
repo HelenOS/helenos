@@ -33,7 +33,7 @@
  */
 
 #include <userspace.h>
-#include <typedefs.h>
+#include <stdbool.h>
 #include <arch.h>
 #include <abi/proc/uarg.h>
 #include <mm/as.h>

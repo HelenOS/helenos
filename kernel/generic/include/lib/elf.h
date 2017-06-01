@@ -35,7 +35,6 @@
 #ifndef KERN_ELF_H_
 #define KERN_ELF_H_
 
-#include <typedefs.h>
 #include <abi/elf.h>
 #include <arch/elf.h>
 

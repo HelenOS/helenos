@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_ARCH_H_
 #define KERN_ia32_ARCH_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 extern void ia32_pre_main(uint32_t, void *);
 

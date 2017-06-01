@@ -145,7 +145,7 @@
 
 #include <mm/mm.h>
 #include <arch/interrupt.h>
-#include <typedefs.h>
+#include <stddef.h>
 
 /* Page fault error codes. */
 

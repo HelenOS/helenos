@@ -37,7 +37,8 @@
 #define KERN_LIST_H_
 
 #include <debug.h>
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <trace.h>
 
 /** Doubly linked list link. */

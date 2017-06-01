@@ -33,7 +33,6 @@
  */
 
 #include <arch/console.h>
-#include <typedefs.h>
 
 #include <arch/drivers/scr.h>
 #include <arch/drivers/kbd.h>

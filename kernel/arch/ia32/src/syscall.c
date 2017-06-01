@@ -35,8 +35,8 @@
 #include <arch/syscall.h>
 #include <arch/cpu.h>
 #include <arch/asm.h>
-#include <typedefs.h>
 #include <arch/pm.h>
+#include <stdint.h>
 
 #ifndef PROCESSOR_i486
 

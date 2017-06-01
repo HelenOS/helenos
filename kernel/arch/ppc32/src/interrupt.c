@@ -36,7 +36,7 @@
 #include <interrupt.h>
 #include <arch/interrupt.h>
 #include <arch/istate.h>
-#include <typedefs.h>
+#include <stdint.h>
 #include <arch.h>
 #include <ipc/sysipc.h>
 #include <arch/drivers/pic.h>

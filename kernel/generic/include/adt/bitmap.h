@@ -35,7 +35,7 @@
 #ifndef KERN_BITMAP_H_
 #define KERN_BITMAP_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 
 #define BITMAP_ELEMENT   8
 #define BITMAP_REMAINER  7

@@ -43,7 +43,8 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <config.h>
 
 typedef struct {

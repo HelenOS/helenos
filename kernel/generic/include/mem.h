@@ -35,7 +35,8 @@
 #ifndef KERN_MEM_H_
 #define KERN_MEM_H_
 
-#include <typedefs.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <cc.h>
 
 #ifdef CONFIG_LTO

@@ -37,7 +37,7 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
+#include <stdint.h>
 
 typedef uint16_t asid_t;
 typedef uint32_t rid_t;

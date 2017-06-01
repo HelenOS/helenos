@@ -35,9 +35,9 @@
 #ifndef KERN_SCHEDULER_H_
 #define KERN_SCHEDULER_H_
 
+#include <stddef.h>
 #include <synch/spinlock.h>
 #include <time/clock.h>
-#include <typedefs.h>
 #include <atomic.h>
 #include <adt/list.h>
 
