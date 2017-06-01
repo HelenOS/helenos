@@ -42,7 +42,6 @@
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <typedefs.h>
-#include <memstr.h>
 #include <adt/hash_table.h>
 #include <synch/mutex.h>
 

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef KERN_MEMSTR_H_
-#define KERN_MEMSTR_H_
+#ifndef KERN_MEM_H_
+#define KERN_MEM_H_
 
 #include <typedefs.h>
 #include <cc.h>

@@ -40,7 +40,7 @@
  * this type can be.
  */
 
-#include <memstr.h>
+#include <mem.h>
 #include <typedefs.h>
 
 /** Fill block of memory.

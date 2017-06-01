@@ -48,7 +48,6 @@
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <debug.h>
-#include <memstr.h>
 #include <adt/hash_table.h>
 #include <align.h>
 

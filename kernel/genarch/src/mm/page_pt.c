@@ -45,7 +45,7 @@
 #include <arch/barrier.h>
 #include <typedefs.h>
 #include <arch/asm.h>
-#include <memstr.h>
+#include <mem.h>
 #include <align.h>
 #include <macros.h>
 #include <bitops.h>

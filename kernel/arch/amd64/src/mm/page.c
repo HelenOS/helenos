@@ -40,7 +40,6 @@
 #include <mm/as.h>
 #include <arch/asm.h>
 #include <config.h>
-#include <memstr.h>
 #include <interrupt.h>
 #include <print.h>
 #include <panic.h>

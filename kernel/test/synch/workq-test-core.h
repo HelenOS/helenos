@@ -31,7 +31,7 @@
 #include <atomic.h>
 #include <print.h>
 #include <proc/thread.h>
-#include <memstr.h>
+#include <mem.h>
 #include <synch/workqueue.h>
 
 

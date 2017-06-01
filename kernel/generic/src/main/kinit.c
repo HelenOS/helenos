@@ -59,7 +59,7 @@
 #include <mm/km.h>
 #include <print.h>
 #include <log.h>
-#include <memstr.h>
+#include <mem.h>
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>

@@ -35,7 +35,7 @@
 #include <print.h>
 #include <printf/printf_core.h>
 #include <str.h>
-#include <memstr.h>
+#include <mem.h>
 #include <errno.h>
 
 typedef struct {

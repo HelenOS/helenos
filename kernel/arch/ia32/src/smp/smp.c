@@ -52,7 +52,7 @@
 #include <mm/slab.h>
 #include <mm/as.h>
 #include <log.h>
-#include <memstr.h>
+#include <mem.h>
 #include <arch/drivers/i8259.h>
 #include <cpu.h>
 

@@ -239,7 +239,7 @@ GENERIC_SOURCES = \
 	generic/src/mm/backend_user.c \
 	generic/src/mm/slab.c \
 	generic/src/lib/func.c \
-	generic/src/lib/memstr.c \
+	generic/src/lib/mem.c \
 	generic/src/lib/memfnc.c \
 	generic/src/lib/gsort.c \
 	generic/src/lib/str.c \

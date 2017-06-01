@@ -32,7 +32,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <mm/frame.h>
-#include <memstr.h>
+#include <mem.h>
 #include <synch/condvar.h>
 #include <synch/mutex.h>
 

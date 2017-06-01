@@ -74,7 +74,7 @@
 #include <synch/spinlock.h>
 #include <console/console.h>
 #include <interrupt.h>
-#include <memstr.h>
+#include <mem.h>
 #include <arch.h>
 
 #define KEY_INR    0

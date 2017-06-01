@@ -47,7 +47,7 @@
 #include <ddi/irq.h>
 #include <proc/thread.h>
 #include <console/console.h>
-#include <memstr.h>
+#include <mem.h>
 
 char memcpy_from_uspace_failover_address;
 char memcpy_to_uspace_failover_address;

@@ -46,7 +46,6 @@
 #include <panic.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
-#include <memstr.h>
 #include <align.h>
 
 static void set_environment(void);

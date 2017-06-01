@@ -43,7 +43,6 @@
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <align.h>
-#include <memstr.h>
 #include <macros.h>
 #include <arch.h>
 

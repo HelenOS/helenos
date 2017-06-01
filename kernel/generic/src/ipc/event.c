@@ -40,7 +40,6 @@
 #include <synch/spinlock.h>
 #include <console/console.h>
 #include <proc/task.h>
-#include <memstr.h>
 #include <errno.h>
 #include <arch.h>
 

@@ -290,7 +290,6 @@
 #include <adt/cht.h>
 #include <adt/hash.h>
 #include <debug.h>
-#include <memstr.h>
 #include <mm/slab.h>
 #include <arch/barrier.h>
 #include <compiler/barrier.h>

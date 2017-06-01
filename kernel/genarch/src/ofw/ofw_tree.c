@@ -38,7 +38,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <mm/slab.h>
 #include <sysinfo/sysinfo.h>
-#include <memstr.h>
+#include <mem.h>
 #include <str.h>
 #include <panic.h>
 #include <print.h>

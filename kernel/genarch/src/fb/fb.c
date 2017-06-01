@@ -42,7 +42,7 @@
 #include <mm/slab.h>
 #include <align.h>
 #include <panic.h>
-#include <memstr.h>
+#include <mem.h>
 #include <config.h>
 #include <bitops.h>
 #include <print.h>

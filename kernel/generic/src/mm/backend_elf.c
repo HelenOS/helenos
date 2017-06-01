@@ -47,7 +47,7 @@
 #include <genarch/mm/page_pt.h>
 #include <genarch/mm/page_ht.h>
 #include <align.h>
-#include <memstr.h>
+#include <mem.h>
 #include <macros.h>
 #include <arch.h>
 #include <arch/barrier.h>

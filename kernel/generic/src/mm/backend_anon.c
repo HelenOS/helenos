@@ -50,7 +50,7 @@
 #include <errno.h>
 #include <typedefs.h>
 #include <align.h>
-#include <memstr.h>
+#include <mem.h>
 #include <arch.h>
 
 static bool anon_create(as_area_t *);

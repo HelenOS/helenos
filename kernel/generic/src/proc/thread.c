@@ -60,7 +60,7 @@
 #include <smp/ipi.h>
 #include <arch/faddr.h>
 #include <atomic.h>
-#include <memstr.h>
+#include <mem.h>
 #include <print.h>
 #include <mm/slab.h>
 #include <debug.h>

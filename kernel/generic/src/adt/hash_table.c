@@ -42,7 +42,7 @@
 #include <typedefs.h>
 #include <debug.h>
 #include <mm/slab.h>
-#include <memstr.h>
+#include <mem.h>
 
 /** Create chained hash table.
  *

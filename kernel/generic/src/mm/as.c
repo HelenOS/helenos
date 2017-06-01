@@ -68,7 +68,7 @@
 #include <panic.h>
 #include <debug.h>
 #include <print.h>
-#include <memstr.h>
+#include <mem.h>
 #include <macros.h>
 #include <bitops.h>
 #include <arch.h>

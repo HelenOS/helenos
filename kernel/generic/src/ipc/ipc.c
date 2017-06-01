@@ -50,7 +50,7 @@
 #include <mm/slab.h>
 #include <arch.h>
 #include <proc/task.h>
-#include <memstr.h>
+#include <mem.h>
 #include <debug.h>
 #include <print.h>
 #include <console/console.h>
