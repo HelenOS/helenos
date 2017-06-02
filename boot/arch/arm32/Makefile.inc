@@ -44,10 +44,10 @@ endif
 
 ifeq ($(MACHINE), raspberrypi)
 	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin	
+	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
 	LADDR = 0x00008000
 	SADDR = 0x00008000
-	POSTBUILD = Makefile.uboot	     
+	POSTBUILD = Makefile.uboot
 endif
 
 BFD_NAME = elf32-littlearm
