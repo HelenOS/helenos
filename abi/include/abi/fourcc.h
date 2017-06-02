@@ -35,14 +35,14 @@
 #ifndef ABI_FOURCC_H_
 #define ABI_FOURCC_H_
 
-#include "../../../common.h"
+#include <stdint.h>
 
 #define FOURCC(a, b, c, d) \
-	(((UINT32_T) (a)) | (((UINT32_T) (b)) << 8) | \
-	    (((UINT32_T) (c)) << 16) | (((UINT32_T) (d)) << 24))
+	(((uint32_t) (a)) | (((uint32_t) (b)) << 8) | \
+	    (((uint32_t) (c)) << 16) | (((uint32_t) (d)) << 24))
 
 #define CC_COMPACT(a) \
-	((UINT32_T) (a) & 0x7f)
+	((uint32_t) (a) & 0x7f)
 
 #define FOURCC_COMPACT(a, b, c, d) \
 	((CC_COMPACT(a) << 4) | (CC_COMPACT(b) << 11) | \

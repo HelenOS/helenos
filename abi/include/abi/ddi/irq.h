@@ -35,6 +35,8 @@
 #ifndef ABI_DDI_IRQ_H_
 #define ABI_DDI_IRQ_H_
 
+#include <stdint.h>
+
 typedef struct {
 	uintptr_t base;
 	size_t size;
