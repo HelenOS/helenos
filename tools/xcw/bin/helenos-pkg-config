@@ -46,6 +46,12 @@ libdraw_cflags="-I$SRC_ROOT/uspace/lib/draw"
 libdraw_libs="$SRC_ROOT/uspace/lib/draw/libdraw.a \
     $SRC_ROOT/uspace/lib/softrend/libsoftrend.a"
 
+libhound_cflags="-I$SRC_ROOT/uspace/lib/hound/include"
+libhound_libs="$SRC_ROOT/uspace/lib/hound/libhound.a"
+
+libpcm_cflags="-I$SRC_ROOT/uspace/lib/pcm/include"
+libpcm_libs="$SRC_ROOT/uspace/lib/pcm/libpcm.a"
+
 action=none
 pkg=
 
@@ -59,6 +65,8 @@ while [ ".$1" != . ] ; do
 	    (libgui) ;;
 	    (libdraw) ;;
 	    (libmath) ;;
+	    (libhound) ;;
+	    (libpcm) ;;
 	    (*) echo "Unknown package $1" >&2; exit 1;;
 	    esac
 
