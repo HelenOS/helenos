@@ -43,9 +43,13 @@ EXTRA_CFLAGS += \
 BINARY = barber
 MATH = y
 
+IMG = image
+IMGS = $(IMG)s
+
 SOURCES = \
 	barber.c \
-	images.s
+	$(IMGS).s \
+	$(IMGS)_desc.c
 
 IMAGES = \
 	gfx/frame01.tga.gz \
@@ -79,10 +83,19 @@ IMAGES = \
 	gfx/frame29.tga.gz \
 	gfx/frame30.tga.gz
 
-PRE_DEPEND = images.s images.h
-EXTRA_CLEAN = images.s images.h
+PRE_DEPEND = $(IMGS).s $(IMGS).h $(IMGS)_desc.c
+EXTRA_CLEAN = $(IMGS).s $(IMGS).h $(IMGS)_desc.c $(IMGS).zip
 
 include $(USPACE_PREFIX)/Makefile.common
 
-images.s images.h: $(IMAGES)
-	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES "$(AS_PROLOG)" $^
+$(IMGS).s: $(IMGS).zip
+	unzip -p $< $@ > $@
+
+$(IMGS).h: $(IMGS).zip
+	unzip -p $< $@ > $@
+
+$(IMGS)_desc.c: $(IMGS).zip
+	unzip -p $< $@ > $@
+
+$(IMGS).zip: $(IMAGES)
+	$(ROOT_PATH)/tools/mkarray.py $(IMGS) $(IMG) "$(AS_PROLOG)" $^
