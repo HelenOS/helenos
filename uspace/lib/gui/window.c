@@ -696,7 +696,6 @@ int window_set_caption(window_t *win, const char *caption)
 	return EOK;
 }
 
-
 void window_refresh(window_t *win)
 {
 	window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
