@@ -97,8 +97,10 @@
  *
  */
 
-#include <str.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <str.h>
 
 /** Check the condition if wchar_t is signed */
 #ifdef WCHAR_IS_UNSIGNED

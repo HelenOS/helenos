@@ -27,6 +27,7 @@
  */
 
 #include <arch/ski.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #define SKI_INIT_CONSOLE	20

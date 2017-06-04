@@ -43,6 +43,7 @@
 #include <version.h>
 #include <macros.h>
 #include <align.h>
+#include <stdbool.h>
 #include <str.h>
 #include <errno.h>
 #include <inflate.h>

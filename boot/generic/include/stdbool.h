@@ -29,14 +29,13 @@
 /** @file
  */
 
-#ifndef BOOT_STDDEF_H_
-#define BOOT_STDDEF_H_
+#ifndef BOOT_STDBOOL_H_
+#define BOOT_STDBOOL_H_
 
-#include <stdint.h>
-#include <arch/common.h>
-#include <arch/types.h>
+#define false  0
+#define true   1
 
-#define NULL  ((void *) 0)
+#define bool _Bool
 
 #endif
 

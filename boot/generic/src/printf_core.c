@@ -36,6 +36,8 @@
 #include <printf_core.h>
 #include <printf.h>
 #include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <macros.h>
 #include <str.h>
 
