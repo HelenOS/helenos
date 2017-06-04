@@ -28,9 +28,9 @@
 
 
 ifeq ($(CONFIG_FPU),y)
-FLOATS=hard
+	FLOATS=hard
 else
-FLOATS=soft
+	FLOATS=soft
 endif
 
 GCC_CFLAGS += -mcpu=powerpc -m$(FLOATS)-float -m32
