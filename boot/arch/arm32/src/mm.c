@@ -33,7 +33,7 @@
  * @brief Memory management used while booting the kernel.
  */
 
-#include <stddef.h>
+#include <stdint.h>
 #include <arch/asm.h>
 #include <arch/mm.h>
 #include <arch/cp15.h>

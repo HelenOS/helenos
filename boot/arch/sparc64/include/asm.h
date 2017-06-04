@@ -30,7 +30,7 @@
 #ifndef BOOT_sparc64_ASM_H_
 #define BOOT_sparc64_ASM_H_
 
-#include <stddef.h>
+#include <stdint.h>
 
 extern void jump_to_kernel(uintptr_t physmem_start, bootinfo_t *bootinfo,
     uint8_t subarch, void *entry) __attribute__((noreturn));

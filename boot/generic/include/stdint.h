@@ -32,6 +32,9 @@
 #ifndef BOOT_STDINT_H_
 #define BOOT_STDINT_H_
 
+#include <arch/common.h>
+#include <arch/types.h>
+
 #define INT8_MIN  INT8_C(0x80)
 #define INT8_MAX  INT8_C(0x7F)
 

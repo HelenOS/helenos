@@ -29,6 +29,8 @@
 #ifndef BOOT_ppc32_TYPES_H_
 #define BOOT_ppc32_TYPES_H_
 
+#include <arch/common.h>
+
 #define TASKMAP_MAX_RECORDS        32
 #define BOOTINFO_TASK_NAME_BUFLEN  32
 

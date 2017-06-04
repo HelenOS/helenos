@@ -27,6 +27,7 @@
  */
 
 #include <stddef.h>
+#include <stdint.h>
 #include <arch/arch.h>
 #include <putchar.h>
 #include <str.h>

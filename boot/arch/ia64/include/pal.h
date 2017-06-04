@@ -31,6 +31,7 @@
 
 #include <arch/types.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /*
  * Essential PAL procedures' IDs

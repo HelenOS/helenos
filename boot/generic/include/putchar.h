@@ -35,6 +35,8 @@
 #ifndef BOOT_PUTCHAR_H_
 #define BOOT_PUTCHAR_H_
 
+#include <stddef.h>
+
 extern void putchar(const wchar_t);
 
 #endif
