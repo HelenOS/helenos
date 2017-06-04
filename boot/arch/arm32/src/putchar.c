@@ -35,7 +35,7 @@
  * @brief bootloader output logic
  */
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <arch/main.h>
 #include <putchar.h>
 #include <str.h>

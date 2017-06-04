@@ -32,7 +32,7 @@
 #ifndef BOOT_PRINTF_CORE_H_
 #define BOOT_PRINTF_CORE_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <stdarg.h>
 
 /** Structure for specifying output methods for different printf clones. */

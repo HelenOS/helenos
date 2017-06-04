@@ -27,7 +27,7 @@
  */
 
 #include <balloc.h>
-#include <typedefs.h>
+#include <stddef.h>
 #include <align.h>
 
 static ballocs_t *ballocs;

@@ -27,7 +27,7 @@
  */
 
 #include <arch/ski.h>
-#include <typedefs.h>
+#include <stddef.h>
 
 #define SKI_INIT_CONSOLE	20
 #define	SKI_PUTCHAR		31

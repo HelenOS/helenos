@@ -27,7 +27,7 @@
  */
 
 #include <memstr.h>
-#include <typedefs.h>
+#include <stddef.h>
 
 /** Move memory block without overlapping.
  *

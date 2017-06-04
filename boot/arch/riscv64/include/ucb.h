@@ -35,7 +35,7 @@
  * primarily the Spike ISA Simulator.
  */
 
-#include <typedefs.h>
+#include <stddef.h>
 
 #define CSR_MTOHOST    0x780
 #define CSR_MFROMHOST  0x781

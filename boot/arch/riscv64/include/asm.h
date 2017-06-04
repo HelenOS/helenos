@@ -29,7 +29,7 @@
 #ifndef BOOT_riscv64_ASM_H_
 #define BOOT_riscv64_ASM_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 
 extern void jump_to_kernel(void *, uintptr_t)
     __attribute__((noreturn));

@@ -32,7 +32,7 @@
 #ifndef BOOT_STR_H_
 #define BOOT_STR_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 
 /**< Common Unicode characters */
 #define U_SPECIAL  '?'

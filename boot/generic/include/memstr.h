@@ -32,7 +32,7 @@
 #ifndef BOOT_MEMSTR_H_
 #define BOOT_MEMSTR_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 
 extern void *memcpy(void *, const void *, size_t)
     __attribute__((nonnull(1, 2)))

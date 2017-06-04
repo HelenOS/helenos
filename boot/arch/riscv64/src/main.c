@@ -30,7 +30,7 @@
 #include <arch/arch.h>
 #include <arch/asm.h>
 #include <version.h>
-#include <typedefs.h>
+#include <stddef.h>
 #include <printf.h>
 #include <macros.h>
 #include <errno.h>

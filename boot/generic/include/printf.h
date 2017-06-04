@@ -32,7 +32,7 @@
 #ifndef BOOT_PRINT_H_
 #define BOOT_PRINT_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include <printf_verify.h>
 

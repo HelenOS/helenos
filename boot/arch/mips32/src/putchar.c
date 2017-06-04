@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <arch/arch.h>
 #include <putchar.h>
 #include <str.h>

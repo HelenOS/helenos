@@ -35,7 +35,7 @@
 #include <arch/arch.h>
 #include <arch/ofw.h>
 #include <genarch/ofw.h>
-#include <typedefs.h>
+#include <stddef.h>
 #include <printf.h>
 #include <halt.h>
 #include <putchar.h>

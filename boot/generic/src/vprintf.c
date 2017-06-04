@@ -29,7 +29,7 @@
 /** @file
  */
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <printf.h>
 #include <printf_core.h>
 #include <putchar.h>

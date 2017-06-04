@@ -29,7 +29,7 @@
 #ifndef BOOT_BALLOC_H_
 #define BOOT_BALLOC_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 
 typedef struct {
 	uintptr_t base;

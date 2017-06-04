@@ -29,7 +29,7 @@
 #ifndef BOOT_ppc32_MAIN_H_
 #define BOOT_ppc32_MAIN_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <balloc.h>
 #include <genarch/ofw_tree.h>
 
