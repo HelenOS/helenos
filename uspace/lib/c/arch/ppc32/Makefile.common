@@ -26,7 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
 ifeq ($(CONFIG_FPU),y)
 	FLOATS=hard
 else
@@ -36,6 +35,7 @@ endif
 GCC_CFLAGS += -mcpu=powerpc -m$(FLOATS)-float -m32
 BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 AFLAGS += -a32
+LFLAGS += --gc-sections
 
 ENDIANESS = BE
 

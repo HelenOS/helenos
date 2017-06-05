@@ -27,12 +27,14 @@
 #
 
 ifeq ($(PROCESSOR),i486)
-	GCC_CFLAGS += -march=i486 -mno-tls-direct-seg-refs -fno-omit-frame-pointer
+	GCC_CFLAGS += -march=i486 
 else
-	GCC_CFLAGS += -march=pentium -mno-tls-direct-seg-refs -fno-omit-frame-pointer
+	GCC_CFLAGS += -march=pentium
 endif
 
+GCC_CFLAGS += -mno-tls-direct-seg-refs -fno-omit-frame-pointer
 CLANG_CFLAGS += -fno-omit-frame-pointer
+LFLAGS += --gc-sections
 
 ENDIANESS = LE
 

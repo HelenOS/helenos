@@ -234,10 +234,10 @@ clean:
 
 GCC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
-	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -ggdb -D__$(ENDIANESS)__
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -ffunction-sections \
+	-nostdlib -nostdinc -Wall -Wextra -Wno-clobbered -Wno-unused-parameter \
+	-Wmissing-prototypes -std=gnu99 -Werror-implicit-function-declaration \
+	-Wwrite-strings -pipe -ggdb -D__$(ENDIANESS)__
 
 ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \

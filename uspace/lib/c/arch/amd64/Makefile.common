@@ -28,6 +28,7 @@
 
 GCC_CFLAGS += -mno-tls-direct-seg-refs -fno-omit-frame-pointer
 CLANG_CFLAGS += -fno-omit-frame-pointer
+LFLAGS += --gc-sections
 
 ENDIANESS = LE
 
