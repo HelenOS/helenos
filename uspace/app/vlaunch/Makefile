@@ -68,4 +68,4 @@ $(IMGS)_desc.c: $(IMGS).zip
 	unzip -p $< $@ > $@
 
 $(IMGS).zip: $(IMAGES)
-	$(ROOT_PATH)/tools/mkarray.py $(IMGS) $(IMG) "$(AS_PROLOG)" $^
+	$(ROOT_PATH)/tools/mkarray.py $(IMGS) $(IMG) "$(AS_PROLOG)" .data $^
