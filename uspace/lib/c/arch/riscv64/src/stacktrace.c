@@ -54,12 +54,12 @@ void stacktrace_prepare(void)
 
 uintptr_t stacktrace_fp_get(void)
 {
-	return (uintptr_t) NULL;
+	return 0;
 }
 
 uintptr_t stacktrace_pc_get(void)
 {
-	return (uintptr_t) NULL;
+	return 0;
 }
 
 /** @}

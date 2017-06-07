@@ -38,7 +38,7 @@
 #include <str.h>
 #include <halt.h>
 #include <inflate.h>
-#include <arch/_components.h>
+#include "../../components.h"
 
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
 #define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
@@ -59,11 +59,11 @@ void bootstrap(void)
 	uintptr_t top = 0;
 	
 	for (size_t i = 0; i < COMPONENTS; i++) {
-		printf(" %p: %s image (%zu/%zu bytes)\n", components[i].start,
+		printf(" %p: %s image (%zu/%zu bytes)\n", components[i].addr,
 		    components[i].name, components[i].inflated,
 		    components[i].size);
 		
-		uintptr_t tail = (uintptr_t) components[i].start +
+		uintptr_t tail = (uintptr_t) components[i].addr +
 		    components[i].size;
 		if (tail > top)
 			top = tail;
@@ -111,7 +111,7 @@ void bootstrap(void)
 	for (size_t i = cnt; i > 0; i--) {
 		printf("%s ", components[i - 1].name);
 		
-		int err = inflate(components[i - 1].start, components[i - 1].size,
+		int err = inflate(components[i - 1].addr, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
 		
 		if (err != EOK) {

@@ -35,7 +35,8 @@
 #ifndef KERN_riscv64_KM_H_
 #define KERN_riscv64_KM_H_
 
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stddef.h>
 
 extern void km_identity_arch_init(void);
 extern void km_non_identity_arch_init(void);

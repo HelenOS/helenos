@@ -34,7 +34,7 @@
 
 void __entry(void)
 {
-	__main(NULL);
+	__main((void *) 0);
 }
 
 /** @}

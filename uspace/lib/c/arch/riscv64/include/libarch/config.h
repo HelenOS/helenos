@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Martin Decky
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup riscv64
+/** @addtogroup libcamd64
  * @{
  */
 /** @file
  */
 
-#include <abi/proc/uarg.h>
-#include <userspace.h>
+#ifndef LIBC_riscv64_CONFIG_H_
+#define LIBC_riscv64_CONFIG_H_
 
-void userspace(uspace_arg_t *kernel_uarg)
-{
-	// FIXME
-	while (true);
-}
+#define PAGE_WIDTH  12
+#define PAGE_SIZE   (1 << PAGE_WIDTH)
+
+#endif
 
 /** @}
  */
