@@ -56,7 +56,7 @@ ifeq ($(GRUB_ARCH),efi)
 	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS-CD" --efi-boot $(ELTORITO) -o $@ $(DISTROOT)/
 endif
 
-build_dist: clean
+build_dist: clean $(COMPONENTS)
 	mkdir -p $(BOOT)
 	cp -r -L $(GRUB) $(BOOT)/grub
 ifeq ($(GRUB_ARCH),efi)
@@ -94,3 +94,5 @@ endif
 
 clean:
 	rm -fr $(DISTROOT)
+
+include Makefile.initrd

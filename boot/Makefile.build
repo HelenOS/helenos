@@ -147,16 +147,7 @@ $(COMPS)_desc.c: $(COMPS).zip
 $(COMPS).zip: $(COMPONENTS)
 	$(MKARRAY) --deflate $(COMPS) $(COMP) "$(AS_PROLOG)" ".section .components, \"a\"" $^
 
-$(INITRD).img:
-ifeq ($(RDFMT),tmpfs)
-	$(MKTMPFS) $(DIST_PATH) $@
-endif
-ifeq ($(RDFMT),fat)
-	$(MKFAT) 1048576 $(DIST_PATH) $@
-endif
-ifeq ($(RDFMT),ext4fs)
-	$(MKEXT4) 1048576 $(DIST_PATH) $@
-endif
+include Makefile.initrd
 
 $(ARCH_INCLUDE): arch/$(KARCH)/include/
 	ln -sfn ../../$< $@
