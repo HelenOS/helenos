@@ -29,7 +29,6 @@
 #include <arch/main.h>
 #include <arch/arch.h>
 #include <arch/asm.h>
-#include <arch/_components.h>
 #include <genarch/ofw.h>
 #include <genarch/ofw_tree.h>
 #include <halt.h>
@@ -41,6 +40,7 @@
 #include <str.h>
 #include <errno.h>
 #include <inflate.h>
+#include "../../components.h"
 
 #define BALLOC_MAX_SIZE  131072
 
@@ -74,8 +74,8 @@ void bootstrap(void)
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
-		    ofw_translate(components[i].start), components[i].name,
+		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
+		    ofw_translate(components[i].addr), components[i].name,
 		    components[i].inflated, components[i].size);
 	
 	size_t dest[COMPONENTS];
@@ -138,7 +138,7 @@ void bootstrap(void)
 	for (i = cnt; i > 0; i--) {
 		printf("%s ", components[i - 1].name);
 		
-		int err = inflate(components[i - 1].start, components[i - 1].size,
+		int err = inflate(components[i - 1].addr, components[i - 1].size,
 		    inflate_base + dest[i - 1], components[i - 1].inflated);
 		
 		if (err != EOK) {

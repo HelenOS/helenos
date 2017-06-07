@@ -93,7 +93,6 @@ ifeq ($(COMPILER),clang)
 endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-COMPONENT_OBJECTS := $(addsuffix .co,$(basename $(MODULES)))
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BOOT_OUTPUT)
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
@@ -101,16 +100,18 @@ all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CON
 clean:
 	rm -f $(RAW) $(MAP) $(ARCH_INCLUDE) $(GENARCH_INCLUDE)
 
+ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPEND)
+endif
 
 $(BOOT_OUTPUT): $(RAW)
 	$(OBJCOPY) -O $(BFD_OUTPUT) $< $@
 
-$(RAW): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
-	$(LD) -n $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(COMPONENT_OBJECTS) $(OBJECTS)
+$(RAW): $(OBJECTS) $(LINK)
+	$(LD) -n $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(OBJECTS)
 
-$(LINK): $(LINK).comp $(DEPEND)
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).comp | grep -v "^\#" > $(LINK)
+$(LINK): $(DEPEND)
+	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
 
 %.o: %.S $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
@@ -124,9 +125,38 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
 
-$(DEPEND): $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH)
+%.o: %.s $(DEPEND)
+	$(AS) $(AFLAGS) -o $@ $<
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm
+endif
+
+$(DEPEND): $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH) $(PRE_DEPEND)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+
+$(COMPS).s: $(COMPS).zip
+	unzip -p $< $@ > $@
+
+$(COMPS).h: $(COMPS).zip
+	unzip -p $< $@ > $@
+
+$(COMPS)_desc.c: $(COMPS).zip
+	unzip -p $< $@ > $@
+
+$(COMPS).zip: $(COMPONENTS)
+	$(MKARRAY) --deflate $(COMPS) $(COMP) "$(AS_PROLOG)" ".section .components, \"a\"" $^
+
+$(INITRD).img:
+ifeq ($(RDFMT),tmpfs)
+	$(MKTMPFS) $(DIST_PATH) $@
+endif
+ifeq ($(RDFMT),fat)
+	$(MKFAT) 1048576 $(DIST_PATH) $@
+endif
+ifeq ($(RDFMT),ext4fs)
+	$(MKEXT4) 1048576 $(DIST_PATH) $@
+endif
 
 $(ARCH_INCLUDE): arch/$(KARCH)/include/
 	ln -sfn ../../$< $@

@@ -29,6 +29,7 @@
 BFD_ARCH = mips
 BITS = 32
 EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
+AS_PROLOG = .module softfloat;
 
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
@@ -73,7 +74,8 @@ SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
+	$(COMPS).s \
+	$(COMPS)_desc.c \
 	genarch/src/division.c \
 	genarch/src/multiplication.c \
 	generic/src/memstr.c \
@@ -83,3 +85,5 @@ SOURCES = \
 	generic/src/str.c \
 	generic/src/version.c \
 	generic/src/inflate.c
+
+PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c

@@ -36,7 +36,6 @@
 #include <arch/main.h>
 #include <arch/asm.h>
 #include <arch/mm.h>
-#include <arch/_components.h>
 #include <halt.h>
 #include <printf.h>
 #include <memstr.h>
@@ -48,6 +47,7 @@
 #include <errno.h>
 #include <inflate.h>
 #include <arch/cp15.h>
+#include "../../components.h"
 
 #define TOP2ADDR(top)  (((void *) PA2KA(BOOT_OFFSET)) + (top))
 
@@ -98,8 +98,8 @@ void bootstrap(void)
 	    (void *) PA2KA(BOOT_OFFSET), (void *) BOOT_OFFSET);
 	
 	for (size_t i = 0; i < COMPONENTS; i++) {
-		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
-		    components[i].start, components[i].name, components[i].inflated,
+		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].addr,
+		    components[i].addr, components[i].name, components[i].inflated,
 		    components[i].size);
 	}
 	
@@ -128,7 +128,7 @@ void bootstrap(void)
 	printf("\nInflating components ... ");
 	
 	for (size_t i = cnt; i > 0; i--) {
-		void *tail = components[i - 1].start + components[i - 1].size;
+		void *tail = components[i - 1].addr + components[i - 1].size;
 		if (tail >= dest[i - 1]) {
 			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
 			    components[i].name, tail, dest[i - 1]);
@@ -137,7 +137,7 @@ void bootstrap(void)
 		
 		printf("%s ", components[i - 1].name);
 		
-		int err = inflate(components[i - 1].start, components[i - 1].size,
+		int err = inflate(components[i - 1].addr, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
 		if (err != EOK) {
 			printf("\n%s: Inflating error %d\n", components[i - 1].name, err);

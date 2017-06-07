@@ -51,8 +51,7 @@ DIST_OVERLAY_PATH = $(USPACE_PATH)/overlay
 TOOLS_PATH = $(ROOT_PATH)/tools
 DRVS_PATH = drv
 
-SANDBOX = pack
-PACK = $(TOOLS_PATH)/pack.py
+MKARRAY = $(TOOLS_PATH)/mkarray.py
 MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
 MKEXT4 = $(TOOLS_PATH)/mkext4.py
@@ -250,8 +249,8 @@ COMPONENTS = \
 	$(INITRD).img
 
 LINK = arch/$(BARCH)/_link.ld
-COMPS_H = arch/$(BARCH)/include/_components.h
-COMPS_C = arch/$(BARCH)/src/_components.c
+COMP = component
+COMPS = $(COMP)s
 
 -include arch/$(BARCH)/Makefile.inc
 
@@ -275,5 +274,4 @@ BOOT_OUTPUT ?= $(ROOT_PATH)/image.boot
 RAW ?= image.raw
 JOB ?= image.job
 MAP ?= image.map
-PREBUILD ?= build_comps
 BUILD ?= Makefile.build

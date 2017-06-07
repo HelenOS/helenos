@@ -56,7 +56,8 @@ SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/ofw.c \
-	$(COMPS_C) \
+	$(COMPS).s \
+	$(COMPS)_desc.c \
 	genarch/src/ofw.c \
 	genarch/src/ofw_tree.c \
 	generic/src/balloc.c \
@@ -67,3 +68,5 @@ SOURCES = \
 	generic/src/str.c \
 	generic/src/version.c \
 	generic/src/inflate.c
+
+PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c

@@ -47,7 +47,8 @@ SOURCES = \
 	arch/$(BARCH)/src/pal.c \
 	arch/$(BARCH)/src/pal_asm.S \
 	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
+	$(COMPS).s \
+	$(COMPS)_desc.c \
 	genarch/src/efi.c \
 	genarch/src/division.c \
 	generic/src/balloc.c \
@@ -87,3 +88,4 @@ RD_DRVS_NON_ESSENTIAL += \
 RD_DRV_CFG += \
 	bus/isa
 
+PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c
