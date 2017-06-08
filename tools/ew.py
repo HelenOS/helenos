@@ -159,6 +159,11 @@ def qemu_usb_options():
 		return ''
 	return ' -usb'
 
+def qemu_xhci_options():
+	if is_override('noxhci'):
+		return ''
+	return ' -device nec-usb-xhci,id=xhci'
+
 def qemu_audio_options():
 	if is_override('nosnd'):
 		return ''
@@ -179,6 +184,8 @@ def qemu_run(platform, machine, processor):
 		cmdline += qemu_net_options()
 	if (not 'usb' in cfg.keys()) or cfg['usb']:
 		cmdline += qemu_usb_options()
+	if (not 'xhci' in cfg.keys()) or cfg['xhci']:
+		cmdline += qemu_xhci_options()
 	if (not 'audio' in cfg.keys()) or cfg['audio']:
 		cmdline += qemu_audio_options()
 	
@@ -285,7 +292,7 @@ emulators = {
 
 def usage():
 	print("%s - emulator wrapper for running HelenOS\n" % os.path.basename(sys.argv[0]))
-	print("%s [-d] [-h] [-net e1k|rtl8139|ne2k] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb]\n" %
+	print("%s [-d] [-h] [-net e1k|rtl8139|ne2k] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb] [-noxhci]\n" %
 	    os.path.basename(sys.argv[0]))
 	print("-d\tDry run: do not run the emulation, just print the command line.")
 	print("-h\tPrint the usage information and exit.")
@@ -294,6 +301,7 @@ def usage():
 	print("-nonet\tDisable networking support, if applicable.")
 	print("-nosnd\tDisable sound, if applicable.")
 	print("-nousb\tDisable USB support, if applicable.")
+	print("-noxhci\tDisable XHCI support, if applicable.")
 
 def fail(platform, machine):
 	print("Cannot start emulation for the chosen configuration. (%s/%s)" % (platform, machine))
@@ -335,6 +343,8 @@ def run():
 			overrides['nosnd'] = True
 		elif sys.argv[i] == '-nousb':
 			overrides['nousb'] = True
+		elif sys.argv[i] == '-noxhci':
+			overrides['noxhci'] = True
 		else:
 			usage()
 			exit()

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2017 Ondrej Hlavaty <aearsis@eideo.cz>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/audio/hound/hound \
-	$(USPACE_PATH)/srv/devman/devman \
-	$(USPACE_PATH)/srv/hw/irc/apic/apic \
-	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
+USPACE_PREFIX = ../../../..
 
+LIBS = \
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBDRV_PREFIX)/libdrv.a
 
-RD_DRVS_ESSENTIAL += \
-	platform/pc \
-	block/ata_bd \
-	bus/pci/pciintel \
-	bus/isa \
-	audio/sb16 \
-	char/i8042 \
-	char/ps2mouse \
-	char/xtkbd
+EXTRA_CFLAGS += \
+	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBDRV_PREFIX)/include
 
-RD_DRVS_NON_ESSENTIAL += \
-	audio/hdaudio \
-	char/ns8250 \
-	time/cmos-rtc \
-	bus/usb/ehci\
-	bus/usb/ohci \
-	bus/usb/uhci \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
-	bus/usb/usbmid \
-	bus/usb/vhc \
-	bus/usb/xhci
+BINARY = xhci
 
-RD_DRV_CFG += \
-	bus/isa
+SOURCES = \
+	main.c
 
-RD_APPS_ESSENTIAL += \
-	$(USPACE_PATH)/app/edit/edit \
-	$(USPACE_PATH)/app/mixerctl/mixerctl \
-	$(USPACE_PATH)/app/wavplay/wavplay
-
-RD_DATA_NON_ESSENTIAL += \
-	$(USPACE_PATH)/app/wavplay/demo.wav
-
-BOOT_OUTPUT = $(ROOT_PATH)/image.iso
-PREBUILD = $(INITRD).img
-BUILD = Makefile.grub
+include $(USPACE_PREFIX)/Makefile.common
