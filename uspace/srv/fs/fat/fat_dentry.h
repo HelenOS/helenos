@@ -36,7 +36,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <unaligned.h>
 
 #define IS_D_CHAR(ch) (isalnum(ch) || ch == '_')
 #define FAT_STOP_CHARS "*?/\\\n\t|'"
