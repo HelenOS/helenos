@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2017 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 /** @file
  */
 
-#ifndef LIBC_SYS_TYPES_H_
-#define LIBC_SYS_TYPES_H_
+#ifndef LIBC_FOURCC_H_
+#define LIBC_FOURCC_H_
 
-#include <libarch/types.h>
+#include <stdint.h>
 
 typedef uint32_t fourcc_t;
 
