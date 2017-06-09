@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2017 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,44 +32,26 @@
 /** @file
  */
 
-#ifndef LIBC_BD_SRV_H_
-#define LIBC_BD_SRV_H_
+#ifndef LIBC_OFFSET_H_
+#define LIBC_OFFSET_H_
 
-#include <adt/list.h>
-#include <async.h>
-#include <fibril_synch.h>
-#include <stdbool.h>
-#include <offset.h>
+#include <libarch/types.h>
+#include <stdint.h>
 
-typedef struct bd_ops bd_ops_t;
+/* off64_t */
+#define OFF64_MIN  INT64_MIN
+#define OFF64_MAX  INT64_MAX
 
-/** Service setup (per sevice) */
-typedef struct {
-	bd_ops_t *ops;
-	void *sarg;
-} bd_srvs_t;
+/* aoff64_t */
+#define AOFF64_MIN  UINT64_MIN
+#define AOFF64_MAX  UINT64_MAX
 
-/** Server structure (per client session) */
-typedef struct {
-	bd_srvs_t *srvs;
-	async_sess_t *client_sess;
-	void *carg;
-} bd_srv_t;
 
-struct bd_ops {
-	int (*open)(bd_srvs_t *, bd_srv_t *);
-	int (*close)(bd_srv_t *);
-	int (*read_blocks)(bd_srv_t *, aoff64_t, size_t, void *, size_t);
-	int (*read_toc)(bd_srv_t *, uint8_t, void *, size_t);
-	int (*sync_cache)(bd_srv_t *, aoff64_t, size_t);
-	int (*write_blocks)(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
-	int (*get_block_size)(bd_srv_t *, size_t *);
-	int (*get_num_blocks)(bd_srv_t *, aoff64_t *);
-};
+/** Relative offset */
+typedef int64_t off64_t;
 
-extern void bd_srvs_init(bd_srvs_t *);
-
-extern int bd_conn(ipc_callid_t, ipc_call_t *, bd_srvs_t *);
+/** Absolute offset */
+typedef uint64_t aoff64_t;
 
 #endif
 

@@ -61,14 +61,6 @@
 
 #include <libarch/stdint.h>
 
-/* off64_t */
-#define OFF64_MIN  INT64_MIN
-#define OFF64_MAX  INT64_MAX
-
-/* aoff64_t */
-#define AOFF64_MIN  UINT64_MIN
-#define AOFF64_MAX  UINT64_MAX
-
 #endif
 
 /** @}

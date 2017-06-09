@@ -42,6 +42,7 @@
 #include <adt/list.h>
 #include <stdio.h>
 #include <async.h>
+#include <offset.h>
 
 #define MAX_OPEN_FILES	128
 

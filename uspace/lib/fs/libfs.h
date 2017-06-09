@@ -37,7 +37,7 @@
 #define LIBFS_LIBFS_H_
 
 #include <ipc/vfs.h>
-#include <sys/types.h>
+#include <offset.h>
 #include <async.h>
 #include <loc.h>
 

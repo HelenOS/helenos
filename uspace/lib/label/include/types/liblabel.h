@@ -38,7 +38,7 @@
 
 #include <adt/list.h>
 #include <types/label.h>
-#include <sys/types.h>
+#include <offset.h>
 #include <vol.h>
 #include <uuid.h>
 

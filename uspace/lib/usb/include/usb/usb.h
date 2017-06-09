@@ -37,7 +37,7 @@
 #include <byteorder.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <sys/types.h>
+#include <libarch/types.h>
 
 /** Convert 16bit value from native (host) endianness to USB endianness. */
 #define uint16_host2usb(n) host2uint16_t_le((n))

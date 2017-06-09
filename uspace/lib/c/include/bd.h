@@ -36,7 +36,7 @@
 #define LIBC_BD_H_
 
 #include <async.h>
-#include <sys/types.h>
+#include <offset.h>
 
 typedef struct {
 	async_sess_t *sess;

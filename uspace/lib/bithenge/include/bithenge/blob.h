@@ -37,7 +37,7 @@
 #ifndef BITHENGE_BLOB_H_
 #define BITHENGE_BLOB_H_
 
-#include <sys/types.h>
+#include <offset.h>
 #include <errno.h>
 #include "tree.h"
 

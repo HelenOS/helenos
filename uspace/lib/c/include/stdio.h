@@ -35,7 +35,6 @@
 #ifndef LIBC_STDIO_H_
 #define LIBC_STDIO_H_
 
-#include <sys/types.h>
 #include <stdarg.h>
 #include <str.h>
 #include <io/verify.h>

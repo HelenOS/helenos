@@ -37,7 +37,7 @@
 #define SEARCH_H__
 
 #include <str.h>
-#include <sys/types.h>
+#include <offset.h>
 
 struct search;
 typedef struct search search_t;

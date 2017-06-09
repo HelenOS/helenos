@@ -40,6 +40,7 @@
 #include <byteorder.h>
 #include <stdio.h>
 #include <align.h>
+#include <offset.h>
 
 #include "pcf.h"
 #include "../drawctx.h"

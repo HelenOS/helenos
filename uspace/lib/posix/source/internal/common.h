@@ -37,7 +37,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <offset.h>
 #include <vfs/vfs.h>
 
 #define not_implemented() do { \

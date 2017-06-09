@@ -37,12 +37,6 @@
 
 #include <libarch/types.h>
 
-/** Relative offset */
-typedef int64_t off64_t;
-
-/** Absolute offset */
-typedef uint64_t aoff64_t;
-
 typedef uint32_t fourcc_t;
 
 typedef int16_t unaligned_int16_t __attribute__ ((aligned(1)));
