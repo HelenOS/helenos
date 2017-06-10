@@ -37,6 +37,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <inttypes.h>
 #include <fibril.h>
 #include <errno.h>
 #include <udebug.h>
@@ -48,7 +49,6 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <fibril_synch.h>
-#include <sys/typefmt.h>
 #include <vfs/vfs.h>
 
 #include <libc.h>

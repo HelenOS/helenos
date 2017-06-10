@@ -45,7 +45,7 @@
 #include <loc.h>
 #include <byteorder.h>
 #include <scsi/mmc.h>
-#include <sys/typefmt.h>
+#include <offset.h>
 #include <inttypes.h>
 #include <errno.h>
 

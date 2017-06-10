@@ -45,7 +45,6 @@
 #include <malloc.h>
 #include <byteorder.h>
 #include <align.h>
-#include <sys/typefmt.h>
 #include <str.h>
 #include <getopt.h>
 #include <macros.h>

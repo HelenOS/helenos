@@ -34,8 +34,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <adt/hash_table.h>
-#include <sys/typefmt.h>
 #include <abi/ipc/methods.h>
 #include <macros.h>
 #include "ipc_desc.h"

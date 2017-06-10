@@ -42,7 +42,6 @@
 #include <errno.h>
 #include <ipc/mouseev.h>
 #include <loc.h>
-#include <sys/typefmt.h>
 #include "../mouse.h"
 #include "../mouse_port.h"
 #include "../mouse_proto.h"

@@ -40,7 +40,6 @@
 #include <stdlib.h>
 #include <block.h>
 #include <errno.h>
-#include <sys/typefmt.h>
 #include <inttypes.h>
 #include <getopt.h>
 #include <mem.h>

@@ -35,7 +35,6 @@
 #ifndef LIBC_OFFSET_H_
 #define LIBC_OFFSET_H_
 
-#include <libarch/types.h>
 #include <stdint.h>
 
 /* off64_t */
@@ -46,6 +45,11 @@
 #define AOFF64_MIN  UINT64_MIN
 #define AOFF64_MAX  UINT64_MAX
 
+/* off64_t, aoff64_t */
+#define PRIdOFF64 PRId64
+#define PRIuOFF64 PRIu64
+#define PRIxOFF64 PRIx64
+#define PRIXOFF64 PRIX64
 
 /** Relative offset */
 typedef int64_t off64_t;

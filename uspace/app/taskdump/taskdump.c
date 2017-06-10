@@ -43,7 +43,6 @@
 #include <udebug.h>
 #include <task.h>
 #include <as.h>
-#include <sys/typefmt.h>
 #include <libarch/istate.h>
 #include <macros.h>
 #include <assert.h>

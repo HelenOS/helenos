@@ -38,7 +38,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str_error.h>
-#include <sys/typefmt.h>
 
 #define NAME "devctl"
 

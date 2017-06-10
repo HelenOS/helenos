@@ -37,7 +37,6 @@
 #include <stdio.h>
 #include <async.h>
 #include <ipc/services.h>
-#include <sys/typefmt.h>
 #include <task.h>
 #include <ipc/corecfg.h>
 #include <loc.h>

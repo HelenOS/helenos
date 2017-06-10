@@ -44,7 +44,6 @@
 #include <mem.h>
 #include <loc.h>
 #include <byteorder.h>
-#include <sys/typefmt.h>
 #include <inttypes.h>
 #include <errno.h>
 #include "fat.h"
