@@ -114,45 +114,6 @@
 	pio_clear_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, (hi), (lo), (value))), \
 		XHCI_PIO_CHANGE_UDELAY);
 
-/*
- * The register specifiers are to be used as the reg_spec argument.
- *
- * The values are field, bitsize, type, (type specific args)
- * When the type is RANGE: hi, lo
- */
-#define XHCI_CAP_LENGTH        caplength,  8, FIELD
-#define XHCI_CAP_VERSION      hciversion, 16, FIELD
-#define XHCI_CAP_MAX_SLOTS    hcsparams1, 32, RANGE,  7,  0
-#define XHCI_CAP_MAX_INTRS    hcsparams1, 32, RANGE, 18,  8
-#define XHCI_CAP_MAX_PORTS    hcsparams1, 32, RANGE, 31, 24
-#define XHCI_CAP_IST          hcsparams2, 32, RANGE,  3,  0
-#define XHCI_CAP_ERST_MAX     hcsparams2, 32, RANGE,  7,  4
-#define XHCI_CAP_SPR          hcsparams2, 32, RANGE, 26, 26
-#define XHCI_CAP_U1EL         hcsparams3, 32, RANGE,  7,  0
-#define XHCI_CAP_U2EL         hcsparams3, 32, RANGE, 31, 16
-#define XHCI_CAP_AC64         hccparams1, 32,  FLAG,  0
-#define XHCI_CAP_BNC          hccparams1, 32,  FLAG,  1
-#define XHCI_CAP_CSZ          hccparams1, 32,  FLAG,  2
-#define XHCI_CAP_PPC          hccparams1, 32,  FLAG,  3
-#define XHCI_CAP_PIND         hccparams1, 32,  FLAG,  4
-#define XHCI_CAP_C            hccparams1, 32,  FLAG,  5
-#define XHCI_CAP_LTC          hccparams1, 32,  FLAG,  6
-#define XHCI_CAP_NSS          hccparams1, 32,  FLAG,  7
-#define XHCI_CAP_PAE          hccparams1, 32,  FLAG,  8
-#define XHCI_CAP_SPC          hccparams1, 32,  FLAG,  9
-#define XHCI_CAP_SEC          hccparams1, 32,  FLAG, 10
-#define XHCI_CAP_CFC          hccparams1, 32,  FLAG, 11
-#define XHCI_CAP_MAX_PSA_SIZE hccparams1, 32,  FLAG, 12
-#define XHCI_CAP_XECP         hccparams1, 32,  FLAG, 13
-#define XHCI_CAP_DBOFF             dboff, 32, FIELD
-#define XHCI_CAP_RTSOFF           rtsoff, 32, FIELD
-#define XHCI_CAP_U3C          hccparams2, 32,  FLAG,  0
-#define XHCI_CAP_CMC          hccparams2, 32,  FLAG,  1
-#define XHCI_CAP_FSC          hccparams2, 32,  FLAG,  2
-#define XHCI_CAP_CTC          hccparams2, 32,  FLAG,  3
-#define XHCI_CAP_LEC          hccparams2, 32,  FLAG,  4
-#define XHCI_CAP_CIC          hccparams2, 32,  FLAG,  5
-
 /** HC capability registers: section 5.3 */
 typedef const struct xhci_cap_regs {
 
@@ -213,6 +174,44 @@ typedef const struct xhci_cap_regs {
 	// the rest to operational registers is reserved
 } xhci_cap_regs_t;
 
+/*
+ * The register specifiers are to be used as the reg_spec argument.
+ *
+ * The values are field, bitsize, type, (type specific args)
+ * When the type is RANGE: hi, lo
+ */
+#define XHCI_CAP_LENGTH        caplength,  8, FIELD
+#define XHCI_CAP_VERSION      hciversion, 16, FIELD
+#define XHCI_CAP_MAX_SLOTS    hcsparams1, 32, RANGE,  7,  0
+#define XHCI_CAP_MAX_INTRS    hcsparams1, 32, RANGE, 18,  8
+#define XHCI_CAP_MAX_PORTS    hcsparams1, 32, RANGE, 31, 24
+#define XHCI_CAP_IST          hcsparams2, 32, RANGE,  3,  0
+#define XHCI_CAP_ERST_MAX     hcsparams2, 32, RANGE,  7,  4
+#define XHCI_CAP_SPR          hcsparams2, 32, RANGE, 26, 26
+#define XHCI_CAP_U1EL         hcsparams3, 32, RANGE,  7,  0
+#define XHCI_CAP_U2EL         hcsparams3, 32, RANGE, 31, 16
+#define XHCI_CAP_AC64         hccparams1, 32,  FLAG,  0
+#define XHCI_CAP_BNC          hccparams1, 32,  FLAG,  1
+#define XHCI_CAP_CSZ          hccparams1, 32,  FLAG,  2
+#define XHCI_CAP_PPC          hccparams1, 32,  FLAG,  3
+#define XHCI_CAP_PIND         hccparams1, 32,  FLAG,  4
+#define XHCI_CAP_C            hccparams1, 32,  FLAG,  5
+#define XHCI_CAP_LTC          hccparams1, 32,  FLAG,  6
+#define XHCI_CAP_NSS          hccparams1, 32,  FLAG,  7
+#define XHCI_CAP_PAE          hccparams1, 32,  FLAG,  8
+#define XHCI_CAP_SPC          hccparams1, 32,  FLAG,  9
+#define XHCI_CAP_SEC          hccparams1, 32,  FLAG, 10
+#define XHCI_CAP_CFC          hccparams1, 32,  FLAG, 11
+#define XHCI_CAP_MAX_PSA_SIZE hccparams1, 32,  FLAG, 12
+#define XHCI_CAP_XECP         hccparams1, 32,  FLAG, 13
+#define XHCI_CAP_DBOFF             dboff, 32, FIELD
+#define XHCI_CAP_RTSOFF           rtsoff, 32, FIELD
+#define XHCI_CAP_U3C          hccparams2, 32,  FLAG,  0
+#define XHCI_CAP_CMC          hccparams2, 32,  FLAG,  1
+#define XHCI_CAP_FSC          hccparams2, 32,  FLAG,  2
+#define XHCI_CAP_CTC          hccparams2, 32,  FLAG,  3
+#define XHCI_CAP_LEC          hccparams2, 32,  FLAG,  4
+#define XHCI_CAP_CIC          hccparams2, 32,  FLAG,  5
 
 /**
  * XHCI Port Register Set: section 5.4, table 32
@@ -239,7 +238,7 @@ typedef struct xhci_port_regs {
 	 *     15:8  - U2 Timeout
 	 *        16 - Force Link PM Accept
 	 * USB2:
-	 *      0:2  - L1S
+	 *      2:0  - L1S
 	 *        3  - RWE
 	 *      7:4  - BESL
 	 *     15:8  - L1 Device Slot
@@ -265,14 +264,53 @@ typedef struct xhci_port_regs {
 	ioport32_t porthlpmc;
 } xhci_port_regs_t;
 
+#define XHCI_PORT_CCS           portsc, 32,  FLAG,  0
+#define XHCI_PORT_PED           portsc, 32,  FLAG,  1
+#define XHCI_PORT_OCA           portsc, 32,  FLAG,  3
+#define XHCI_PORT_PR            portsc, 32,  FLAG,  4
+#define XHCI_PORT_PLS           portsc, 32, RANGE,  8,  5
+#define XHCI_PORT_PP            portsc, 32,  FLAG,  9
+#define XHCI_PORT_PIC           portsc, 32, RANGE, 13, 10
+#define XHCI_PORT_LWS           portsc, 32,  FLAG, 16
+#define XHCI_PORT_CSC           portsc, 32,  FLAG, 17
+#define XHCI_PORT_PEC           portsc, 32,  FLAG, 18
+#define XHCI_PORT_WRC           portsc, 32,  FLAG, 19
+#define XHCI_PORT_OCC           portsc, 32,  FLAG, 20
+#define XHCI_PORT_PRC           portsc, 32,  FLAG, 21
+#define XHCI_PORT_PLC           portsc, 32,  FLAG, 22
+#define XHCI_PORT_CEC           portsc, 32,  FLAG, 23
+#define XHCI_PORT_CAS           portsc, 32,  FLAG, 24
+#define XHCI_PORT_WCE           portsc, 32,  FLAG, 25
+#define XHCI_PORT_WDE           portsc, 32,  FLAG, 26
+#define XHCI_PORT_WOE           portsc, 32,  FLAG, 27
+#define XHCI_PORT_DR            portsc, 32,  FLAG, 28
+#define XHCI_PORT_WPR           portsc, 32,  FLAG, 29
+
+#define XHCI_PORT_USB3_U1TO   portpmsc, 32, RANGE,  7,  0
+#define XHCI_PORT_USB3_U2TO   portpmsc, 32, RANGE, 15,  8
+#define XHCI_PORT_USB3_FLPMA  portpmsc, 32,  FLAG, 16
+#define XHCI_PORT_USB3_LEC      portli, 32, RANGE, 15,  0
+#define XHCI_PORT_USB3_RLC      portli, 32, RANGE, 19, 16
+#define XHCI_PORT_USB3_TLC      portli, 32, RANGE, 23, 20
+
+#define XHCI_PORT_USB2_L1S    portpmsc, 32, RANGE,  2,  0
+#define XHCI_PORT_USB2_RWE    portpmsc, 32,  FLAG,  3
+#define XHCI_PORT_USB2_BESL   portpmsc, 32, RANGE,  7,  4
+#define XHCI_PORT_USB2_L1DS   portpmsc, 32, RANGE, 15,  8
+#define XHCI_PORT_USB2_HLE    portpmsc, 32,  FLAG, 16
+#define XHCI_PORT_USB2_TM     portpmsc, 32, RANGE, 31, 28
+#define XHCI_PORT_USB2_HIRDM porthlmpc, 32, RANGE,  1,  0
+#define XHCI_PORT_USB2_L1TO  porthlmpc, 32, RANGE,  9,  2
+#define XHCI_PORT_USB2_BESLD porthlmpc, 32, RANGE, 13, 10
+
 /**
  * XHCI Operational Registers: section 5.4
  */
 typedef struct xhci_op_regs {
 
 	/*
-	 *           3    2     1   0
-	 *  3:0  - HSE INTE HCRST R/S
+	 *            3    2     1   0
+	 *  3:0  - HSEE INTE HCRST R/S
 	 *
 	 *           11  10   9   8      7
 	 * 11:7  - EU3S EWE CRS CSS LHCRST
@@ -285,7 +323,7 @@ typedef struct xhci_op_regs {
 	 *  4:0 - PCD EINT HSE _ HCH
 	 *
 	 *        12  11  10   9   8
-	 * 12:8 - CE CNR SRE RSS SSS
+	 * 12:8 - HCE CNR SRE RSS SSS
 	 */
 	ioport32_t usbsts;
 
@@ -328,6 +366,34 @@ typedef struct xhci_op_regs {
 	xhci_port_regs_t portrs[256];
 } xhci_op_regs_t;
 
+#define XHCI_OP_RS              usbcmd, 32,  FLAG,  0
+#define XHCI_OP_HCRST           usbcmd, 32,  FLAG,  1
+#define XHCI_OP_INTE            usbcmd, 32,  FLAG,  2
+#define XHCI_OP_HSEE            usbcmd, 32,  FLAG,  3
+#define XHCI_OP_LHCRST          usbcmd, 32,  FLAG,  7
+#define XHCI_OP_CSS             usbcmd, 32,  FLAG,  8
+#define XHCI_OP_CRS             usbcmd, 32,  FLAG,  9
+#define XHCI_OP_EWE             usbcmd, 32,  FLAG, 10
+#define XHCI_OP_EU3S            usbcmd, 32,  FLAG, 11
+#define XHCI_OP_CME             usbcmd, 32,  FLAG, 13
+#define XHCI_OP_HCH             usbsts, 32,  FLAG,  0
+#define XHCI_OP_HSE             usbsts, 32,  FLAG,  2
+#define XHCI_OP_EINT            usbsts, 32,  FLAG,  3
+#define XHCI_OP_PCD             usbsts, 32,  FLAG,  4
+#define XHCI_OP_SSS             usbsts, 32,  FLAG,  8
+#define XHCI_OP_RSS             usbsts, 32,  FLAG,  9
+#define XHCI_OP_SRE             usbsts, 32,  FLAG, 10
+#define XHCI_OP_CNR             usbsts, 32,  FLAG, 11
+#define XHCI_OP_HCE             usbsts, 32,  FLAG, 12
+#define XHCI_OP_PAGESIZE      pagesize, 32, FIELD
+#define XHCI_OP_NOTIFICATION    dnctrl, 32, RANGE, 15, 0
+#define XHCI_OP_RCS            crcr_lo, 32,  FLAG, 0
+#define XHCI_OP_CS             crcr_lo, 32,  FLAG, 1
+#define XHCI_OP_CA             crcr_lo, 32,  FLAG, 2
+#define XHCI_OP_CRR            crcr_lo, 32,  FLAG, 3
+#define XHCI_OP_CRCR_LO        crcr_lo, 32, RANGE, 31, 6
+#define XHCI_OP_CRCR_HI        crcr_lo, 32, FIELD
+
 /**
  * Interrupter Register Set: section 5.5.2
  */
@@ -360,6 +426,16 @@ typedef struct xhci_interrupter_regs {
 	ioport32_t erdp_hi;
 } xhci_interrupter_regs_t;
 
+#define XHCI_INTR_IP              iman, 32,  FLAG,  0
+#define XHCI_INTR_IE              iman, 32,  FLAG,  1
+#define XHCI_INTR_IMI             imod, 32, RANGE, 15, 0
+#define XHCI_INTR_IMC             imod, 32, RANGE, 31, 16
+#define XHCI_INTR_ERSTSZ        erstsz, 32, FIELD
+#define XHCI_INTR_ERSTBA_LO  erstba_lo, 32, FIELD
+#define XHCI_INTR_ERSTBA_HI  erstba_hi, 32, FIELD
+#define XHCI_INTR_ERDP_LO      erdp_lo, 32, FIELD
+#define XHCI_INTR_ERDP_HI      erdp_hi, 32, FIELD
+
 /**
  * XHCI Runtime registers: section 5.5
  */
@@ -370,6 +446,8 @@ typedef struct xhci_rt_regs {
 
 	xhci_interrupter_regs_t ir[1024];
 } xhci_rt_regs_t;
+
+#define XHCI_RT_MFINDEX        mfindex, 32, FIELD
 
 #endif
 /**
