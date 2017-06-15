@@ -44,41 +44,75 @@
  * The macros XHCI_REG_* might seem a bit magic. It is the most compact way to
  * provide flexible interface abstracting from the real storage of given
  * register, but to avoid having to specify several constants per register.
- *
- * The key thing here is the order of macro expansion, expanding one argument
- * as more arguments (comma delimited) for another macro.
  */
+
+#define XHCI_PIO_CHANGE_UDELAY 5
 
 #define host2xhci(size, val) host2uint##size##_t_le((val))
 #define xhci2host(size, val) uint##size##_t_le2host((val))
 
-#define XHCI_REG_RD_FIELD(ptr, size) \
-	xhci2host(size, pio_read_##size((ptr)))
+/*
+ * These four are the main macros to be used.
+ * Semantics is usual - READ reads value, WRITE changes value, SET sets
+ * selected bits, CLEAR clears selected bits to 0.
+ *
+ * The key thing here is the order of macro expansion, expanding the reg_spec
+ * argument as more arguments (comma delimited) for the inner macro.
+ */
+#define XHCI_REG_RD(reg_set, reg_spec)         XHCI_REG_RD_INNER(reg_set, reg_spec)
+#define XHCI_REG_WR(reg_set, reg_spec, value)  XHCI_REG_WR_INNER(reg_set, value, reg_spec)
+#define XHCI_REG_SET(reg_set, reg_spec, value) XHCI_REG_SET_INNER(reg_set, value, reg_spec)
+#define XHCI_REG_CLR(reg_set, reg_spec, value) XHCI_REG_CLR_INNER(reg_set, value, reg_spec)
 
-#define XHCI_REG_RD_RANGE(ptr, size, hi, lo) \
-	BIT_RANGE_EXTRACT(uint##size##_t, hi, lo, XHCI_REG_RD_FIELD((ptr), size))
-
-#define XHCI_REG_RD_FLAG(ptr, size, offset) \
-	XHCI_REG_RD_RANGE((ptr), size, offset, offset)
-
+/*
+ * These take a pointer to the field, and selects the type-specific macro.
+ */
 #define XHCI_REG_RD_INNER(reg_set, field, size, type, ...) \
 	XHCI_REG_RD_##type(&((reg_set)->field), size, ##__VA_ARGS__)
 
-#define XHCI_REG_RD(reg_set, reg_spec) XHCI_REG_RD_INNER(reg_set, reg_spec)
-
-#define XHCI_REG_SET_FIELD(ptr, value, size) \
-	pio_write_##size((ptr), host2xhci(size, value))
-
-#define XHCI_REG_SET_RANGE(ptr, value, size, hi, lo) \
-	pio_change_##size((ptr), host2xhci(size, (value) << (lo)), host2xhci(size, BIT_RANGE(uint##size##_t, hi, lo)), 5);
-
-#define XHCI_REG_SET_FLAG(ptr, value, size, offset) \
-	XHCI_REG_SET_RANGE(ptr, value, size, offset, offset)
+#define XHCI_REG_WR_INNER(reg_set, value, field, size, type, ...) \
+	XHCI_REG_WR_##type(&(reg_set)->field, value, size, ##__VA_ARGS__)
 
 #define XHCI_REG_SET_INNER(reg_set, value, field, size, type, ...) \
 	XHCI_REG_SET_##type(&(reg_set)->field, value, size, ##__VA_ARGS__)
 
-#define XHCI_REG_SET(reg_set, reg_spec) XHCI_REG_SET_INNER(reg_set, value, reg_spec)
+#define XHCI_REG_CLR_INNER(reg_set, value, field, size, type, ...) \
+	XHCI_REG_CLR_##type(&(reg_set)->field, value, size, ##__VA_ARGS__)
+
+/*
+ * Field handling is the easiest. Just do it with whole field.
+ */
+#define XHCI_REG_RD_FIELD(ptr, size)         xhci2host(size, pio_read_##size((ptr)))
+#define XHCI_REG_WR_FIELD(ptr, value, size)  pio_write_##size((ptr), host2xhci(size, value))
+#define XHCI_REG_SET_FIELD(ptr, value, size) pio_set_##size((ptr), host2xhci(size, value), XHCI_PIO_CHANGE_UDELAY);
+#define XHCI_REG_CLR_FIELD(ptr, value, size) pio_clear_##size((ptr), host2xhci(size, value), XHCI_PIO_CHANGE_UDELAY);
+
+/*
+ * Flags are just trivial case of ranges.
+ */
+#define XHCI_REG_RD_FLAG(ptr, size, offset)         XHCI_REG_RD_RANGE((ptr), size, (offset), (offset))
+#define XHCI_REG_WR_FLAG(ptr, value, size, offset)  XHCI_REG_WR_RANGE((ptr), (value), size, (offset), (offset))
+#define XHCI_REG_SET_FLAG(ptr, value, size, offset) XHCI_REG_SET_RANGE((ptr), (value), size, (offset), (offset))
+#define XHCI_REG_CLR_FLAG(ptr, value, size, offset) XHCI_REG_CLR_RANGE((ptr), (value), size, (offset), (offset))
+
+/*
+ * Ranges are the most difficult. We need to play around with bitmasks.
+ */
+#define XHCI_REG_RD_RANGE(ptr, size, hi, lo) \
+	BIT_RANGE_EXTRACT(uint##size##_t, (hi), (lo), XHCI_REG_RD_FIELD((ptr), size))
+
+#define XHCI_REG_WR_RANGE(ptr, value, size, hi, lo) \
+	pio_change_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, (hi), (lo), (value))), \
+		host2xhci(size, BIT_RANGE(uint##size##_t, (hi), (lo))), \
+		XHCI_PIO_CHANGE_UDELAY);
+
+#define XHCI_REG_SET_RANGE(ptr, value, size, hi, lo) \
+	pio_set_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, (hi), (lo), (value))), \
+		XHCI_PIO_CHANGE_UDELAY);
+
+#define XHCI_REG_CLR_RANGE(ptr, value, size, hi, lo) \
+	pio_clear_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, (hi), (lo), (value))), \
+		XHCI_PIO_CHANGE_UDELAY);
 
 /*
  * The register specifiers are to be used as the reg_spec argument.

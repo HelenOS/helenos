@@ -54,6 +54,10 @@
 #define BIT_RANGE_EXTRACT(type, hi, lo, value) \
     (((value) >> (lo)) & BIT_RRANGE(type, (hi) - (lo) + 1))
 
+/** Insert @a value between bits @a hi .. @a lo. */
+#define BIT_RANGE_INSERT(type, hi, lo, value) \
+    (((value) & BIT_RRANGE(type, (hi) - (lo) + 1)) << (lo))
+
 /** Return position of first non-zero bit from left (i.e. [log_2(arg)]).
  *
  * If number is zero, it returns 0

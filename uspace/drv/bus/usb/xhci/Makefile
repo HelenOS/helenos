@@ -46,4 +46,7 @@ SOURCES = \
 	trb_ring.c \
 	main.c
 
+TEST_SOURCES = \
+	test/reg-ops.c
+
 include $(USPACE_PREFIX)/Makefile.common
