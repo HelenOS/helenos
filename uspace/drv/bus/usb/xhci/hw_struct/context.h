@@ -66,7 +66,7 @@ typedef struct xhci_endpoint_ctx {
 #define XHCI_EP_DCS(ctx)                XHCI_DWORD_EXTRACT((ctx).data[2],  0,  0)
 #define XHCI_EP_TR_DPTR(ctx)            XHCI_DWORD_EXTRACT((ctx).data[2], 63,  4)
 
-} ep_ctx_t;
+} ep_ctx_t __attribute__((packed));
 
 /**
  * Slot context: section 6.2.2
@@ -92,7 +92,7 @@ typedef struct xhci_slot_ctx {
 #define XHCI_SLOT_DEVICE_ADDRESS(ctx)   XHCI_DWORD_EXTRACT((ctx).data[3],  7,  0)
 #define XHCI_SLOT_SLOT_STATE(ctx)       XHCI_DWORD_EXTRACT((ctx).data[3], 31, 27)
 
-} xhci_slot_ctx_t;
+} xhci_slot_ctx_t __attribute__((packed));
 
 /**
  * Device context: section 6.2.1
@@ -107,6 +107,6 @@ typedef struct xhci_device_ctx {
  */
 typedef struct xhci_stream_ctx {
 	uint64_t data [2];
-} xhci_stream_ctx_t;
+} xhci_stream_ctx_t __attribute__((packed));
 
 #endif

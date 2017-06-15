@@ -29,16 +29,20 @@
 USPACE_PREFIX = ../../../..
 
 LIBS = \
+	$(LIBUSBHOST_PREFIX)/libusbhost.a \
 	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBDRV_PREFIX)/libdrv.a
 
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBUSBHOST_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 
 BINARY = xhci
 
 SOURCES = \
+	hc.c \
+	debug.c \
 	trb_ring.c \
 	main.c
 

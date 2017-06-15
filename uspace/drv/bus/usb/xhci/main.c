@@ -38,9 +38,39 @@
 #include <io/log.h>
 #include <io/logctl.h>
 #include <usb/debug.h>
+#include <usb/host/ddf_helpers.h>
+
+#include "hc.h"
 
 #define NAME "xhci"
 
+static int xhci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static void xhci_driver_fini(hcd_t *);
+
+static const ddf_hc_driver_t xhci_ddf_hc_driver = {
+	.hc_speed = USB_SPEED_SUPER,
+	.irq_code_gen = xhci_hc_gen_irq_code,
+	.init = xhci_driver_init,
+	.fini = xhci_driver_fini,
+	.name = "XHCI-PCI",
+	.ops = {
+		.schedule       = xhci_hc_schedule,
+		.irq_hook       = xhci_hc_interrupt,
+		.status_hook    = xhci_hc_status,
+	}
+};
+
+static int xhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+{
+	usb_log_info("Initializing");
+	return ENOTSUP;
+}
+
+static void xhci_driver_fini(hcd_t *hcd)
+{
+	usb_log_info("Finishing");
+	assert(hcd);
+}
 
 /** Initializes a new ddf driver instance of XHCI hcd.
  *
@@ -49,8 +79,8 @@
  */
 static int xhci_dev_add(ddf_dev_t *device)
 {
-	usb_log_info("Requested to add device %s", ddf_dev_get_name(device));
-	return ENOTSUP;
+	usb_log_info("Adding device %s", ddf_dev_get_name(device));
+	return hcd_ddf_add_hc(device, &xhci_ddf_hc_driver);
 }
 
 
@@ -75,7 +105,7 @@ static const driver_t xhci_driver = {
 int main(int argc, char *argv[])
 {
 	log_init(NAME);
-	logctl_set_log_level(NAME, LVL_DEBUG);
+	logctl_set_log_level(NAME, LVL_DEBUG2);
 	return ddf_driver_main(&xhci_driver);
 }
 

@@ -84,6 +84,11 @@
 #define ntohs(n)  uint16_t_be2host((n))
 #define ntohl(n)  uint32_t_be2host((n))
 
+#define uint8_t_be2host(n)  (n)
+#define uint8_t_le2host(n)  (n)
+#define host2uint8_t_be(n)  (n)
+#define host2uint8_t_le(n)  (n)
+
 static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 {
 	return ((n & 0xff) << 56) |

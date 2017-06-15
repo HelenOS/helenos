@@ -41,11 +41,6 @@
 
 #include "format.h"
 
-#define uint8_t_le2host(x) (x)
-#define host2uint8_t_le(x) (x)
-#define uint8_t_be2host(x) (x)
-#define host2uint8_t_be(x) (x)
-
 #define int8_t_le2host(x) (x)
 #define host2int8_t_le(x) (x)
 

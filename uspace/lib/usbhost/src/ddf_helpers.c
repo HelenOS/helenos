@@ -853,6 +853,8 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	                         .bw_count = bandwidth_count_usb11 },
 	    [USB_SPEED_HIGH] = { .bw = BANDWIDTH_AVAILABLE_USB11,
 	                         .bw_count = bandwidth_count_usb11 },
+	    [USB_SPEED_SUPER] = { .bw = BANDWIDTH_AVAILABLE_USB11,
+	                         .bw_count = bandwidth_count_usb11 },
 	};
 
 	int ret = EOK;
