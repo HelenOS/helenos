@@ -43,6 +43,7 @@ static const char *str_speed[] = {
 	[USB_SPEED_LOW] = "low",
 	[USB_SPEED_FULL] = "full",
 	[USB_SPEED_HIGH] = "high",
+	[USB_SPEED_SUPER] = "super",
 };
 
 static const char *str_transfer_type[] = {

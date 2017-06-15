@@ -39,6 +39,7 @@ EXTRA_CFLAGS += \
 BINARY = xhci
 
 SOURCES = \
+	trb_ring.c \
 	main.c
 
 include $(USPACE_PREFIX)/Makefile.common
