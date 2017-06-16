@@ -37,20 +37,23 @@
 #include <usb/debug.h>
 
 #include "debug.h"
+#include "hc.h"
+
+#define PX "\t%-21s = "
 
 #define DUMP_REG_FIELD(ptr, title, size, ...) \
-	usb_log_debug2(title "%" PRIu##size, XHCI_REG_RD_FIELD(ptr, size, ##__VA_ARGS__))
+	usb_log_debug2(PX "%" PRIu##size, title, XHCI_REG_RD_FIELD(ptr, size, ##__VA_ARGS__))
 
 #define DUMP_REG_RANGE(ptr, title, size, ...) \
-	usb_log_debug2(title "%" PRIu##size, XHCI_REG_RD_RANGE(ptr, size, ##__VA_ARGS__))
+	usb_log_debug2(PX "%" PRIu##size, title, XHCI_REG_RD_RANGE(ptr, size, ##__VA_ARGS__))
 
 #define DUMP_REG_FLAG(ptr, title, size, ...) \
-	usb_log_debug2(title "%s", XHCI_REG_RD_FLAG(ptr, size, ##__VA_ARGS__) ? "true" : "false")
+	usb_log_debug2(PX "%s", title, XHCI_REG_RD_FLAG(ptr, size, ##__VA_ARGS__) ? "true" : "false")
 
 #define DUMP_REG_INNER(set, title, field, size, type, ...) \
 	DUMP_REG_##type(&(set)->field, title, size, ##__VA_ARGS__)
 
-#define DUMP_REG(set, c) DUMP_REG_INNER(set, "\t" #c ": ", c)
+#define DUMP_REG(set, c) DUMP_REG_INNER(set, #c, c)
 
 /**
  * Dumps all capability registers.
@@ -91,6 +94,71 @@ void xhci_dump_cap_regs(xhci_cap_regs_t *cap)
 	DUMP_REG(cap, XHCI_CAP_CIC);
 }
 
+void xhci_dump_port(xhci_port_regs_t *port)
+{
+	DUMP_REG(port, XHCI_PORT_CCS);
+	DUMP_REG(port, XHCI_PORT_PED);
+	DUMP_REG(port, XHCI_PORT_OCA);
+	DUMP_REG(port, XHCI_PORT_PR);
+	DUMP_REG(port, XHCI_PORT_PLS);
+	DUMP_REG(port, XHCI_PORT_PP);
+	DUMP_REG(port, XHCI_PORT_PIC);
+	DUMP_REG(port, XHCI_PORT_LWS);
+	DUMP_REG(port, XHCI_PORT_CSC);
+	DUMP_REG(port, XHCI_PORT_PEC);
+	DUMP_REG(port, XHCI_PORT_WRC);
+	DUMP_REG(port, XHCI_PORT_OCC);
+	DUMP_REG(port, XHCI_PORT_PRC);
+	DUMP_REG(port, XHCI_PORT_PLC);
+	DUMP_REG(port, XHCI_PORT_CEC);
+	DUMP_REG(port, XHCI_PORT_CAS);
+	DUMP_REG(port, XHCI_PORT_WCE);
+	DUMP_REG(port, XHCI_PORT_WDE);
+	DUMP_REG(port, XHCI_PORT_WOE);
+	DUMP_REG(port, XHCI_PORT_DR);
+	DUMP_REG(port, XHCI_PORT_WPR);
+}
+
+void xhci_dump_state(xhci_hc_t *hc)
+{
+	usb_log_debug2("Operational registers:");
+
+	DUMP_REG(hc->op_regs, XHCI_OP_RS);
+	DUMP_REG(hc->op_regs, XHCI_OP_RS);
+	DUMP_REG(hc->op_regs, XHCI_OP_HCRST);
+	DUMP_REG(hc->op_regs, XHCI_OP_INTE);
+	DUMP_REG(hc->op_regs, XHCI_OP_HSEE);
+	DUMP_REG(hc->op_regs, XHCI_OP_LHCRST);
+	DUMP_REG(hc->op_regs, XHCI_OP_CSS);
+	DUMP_REG(hc->op_regs, XHCI_OP_CRS);
+	DUMP_REG(hc->op_regs, XHCI_OP_EWE);
+	DUMP_REG(hc->op_regs, XHCI_OP_EU3S);
+	DUMP_REG(hc->op_regs, XHCI_OP_CME);
+	DUMP_REG(hc->op_regs, XHCI_OP_HCH);
+	DUMP_REG(hc->op_regs, XHCI_OP_HSE);
+	DUMP_REG(hc->op_regs, XHCI_OP_EINT);
+	DUMP_REG(hc->op_regs, XHCI_OP_PCD);
+	DUMP_REG(hc->op_regs, XHCI_OP_SSS);
+	DUMP_REG(hc->op_regs, XHCI_OP_RSS);
+	DUMP_REG(hc->op_regs, XHCI_OP_SRE);
+	DUMP_REG(hc->op_regs, XHCI_OP_CNR);
+	DUMP_REG(hc->op_regs, XHCI_OP_HCE);
+	DUMP_REG(hc->op_regs, XHCI_OP_PAGESIZE);
+	DUMP_REG(hc->op_regs, XHCI_OP_NOTIFICATION);
+	DUMP_REG(hc->op_regs, XHCI_OP_RCS);
+	DUMP_REG(hc->op_regs, XHCI_OP_CS);
+	DUMP_REG(hc->op_regs, XHCI_OP_CA);
+	DUMP_REG(hc->op_regs, XHCI_OP_CRR);
+	DUMP_REG(hc->op_regs, XHCI_OP_CRCR_LO);
+	DUMP_REG(hc->op_regs, XHCI_OP_CRCR_HI);
+
+	const size_t num_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
+	for (size_t i = 0; i < num_ports; i++) {
+		usb_log_debug2("Port %zu state:", i);
+
+		xhci_dump_port(&hc->op_regs->portrs[i]);
+	}
+}
 /**
  * @}
  */

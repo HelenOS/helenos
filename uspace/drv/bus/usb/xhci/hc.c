@@ -35,49 +35,71 @@
 
 #include <errno.h>
 #include <usb/debug.h>
+#include <usb/host/ddf_helpers.h>
 #include "debug.h"
 #include "hc.h"
 
-int xhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
-{
-	assert(code);
-	assert(hw_res);
+const ddf_hc_driver_t xhci_ddf_hc_driver = {
+	.hc_speed = USB_SPEED_SUPER,
+	.init = xhci_hc_init,
+	.fini = xhci_hc_fini,
+	.name = "XHCI-PCI",
+	.ops = {
+		.schedule       = xhci_hc_schedule,
+		.irq_hook       = xhci_hc_interrupt,
+		.status_hook    = xhci_hc_status,
+	}
+};
 
-	usb_log_debug("Gen IRQ code, got %zu IRQs, %zu DMA chs, %zu mem rngs, %zu IO rngs",
-	    hw_res->irqs.count,
-	    hw_res->dma_channels.count,
-	    hw_res->mem_ranges.count,
-	    hw_res->io_ranges.count);
-	
-	if (hw_res->irqs.count != 1
-		|| hw_res->dma_channels.count != 0
-		|| hw_res->mem_ranges.count != 1
-		|| hw_res->io_ranges.count != 0) {
-		usb_log_debug("Unexpected HW resources, bailing out.");
+int xhci_hc_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res, bool irq)
+{
+	int err;
+
+	assert(hcd);
+	assert(hcd_get_driver_data(hcd) == NULL);
+
+	if (hw_res->mem_ranges.count != 1) {
+		usb_log_debug("Unexpected MMIO area, bailing out.");
 		return EINVAL;
 	}
 
+	xhci_hc_t *hc = malloc(sizeof(xhci_hc_t));
+	if (!hc)
+		return ENOMEM;
+
 	addr_range_t mmio_range = hw_res->mem_ranges.ranges[0];
 
-	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
+	usb_log_debug("MMIO area at %p (size %zu), IRQ %d.\n",
 	    RNGABSPTR(mmio_range), RNGSZ(mmio_range), hw_res->irqs.irqs[0]);
 
-	xhci_cap_regs_t *cap_regs = NULL;
-	int ret = pio_enable_range(&mmio_range, (void **)&cap_regs);
-	if (ret != EOK)
-		return ret;
+	if ((err = pio_enable_range(&mmio_range, (void **)&hc->cap_regs)))
+		goto err_hc;
 
-	xhci_dump_cap_regs(cap_regs);
+	xhci_dump_cap_regs(hc->cap_regs);
 
-	/*
-	 * XHCI uses an Interrupter mechanism. Possibly, we want to set it up here.
-	 */
-	code->rangecount = 0;
-	code->ranges = NULL;
-	code->cmdcount = 0;
-	code->cmds = NULL;
+	uintptr_t base = (uintptr_t) hc->cap_regs;
+
+	hc->op_regs = (xhci_op_regs_t *) (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH));
+	hc->rt_regs = (xhci_rt_regs_t *) (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF));
+	hc->db_arry = (xhci_doorbell_t *) (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_DBOFF));
+
+	usb_log_debug("Initialized MMIO reg areas:");
+	usb_log_debug("\tCapability regs: %p", hc->cap_regs);
+	usb_log_debug("\tOperational regs: %p", hc->op_regs);
+	usb_log_debug("\tRuntime regs: %p", hc->rt_regs);
+	usb_log_debug("\tDoorbell array base: %p", hc->db_arry);
+
+	xhci_dump_state(hc);
+
+	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops);
+
+	// TODO: check if everything fits into the mmio_area
 
 	return EOK;
+
+err_hc:
+	free(hc);
+	return err;
 }
 
 int xhci_hc_status(hcd_t *hcd, uint32_t *status)
@@ -95,6 +117,16 @@ int xhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 void xhci_hc_interrupt(hcd_t *hcd, uint32_t status)
 {
 	usb_log_info("Interrupted!");
+}
+
+void xhci_hc_fini(hcd_t *hcd)
+{
+	assert(hcd);
+	usb_log_info("Finishing");
+
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	free(hc);
+	hcd_set_implementation(hcd, NULL, NULL);
 }
 
 

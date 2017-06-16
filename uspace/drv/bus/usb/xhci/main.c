@@ -44,34 +44,6 @@
 
 #define NAME "xhci"
 
-static int xhci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
-static void xhci_driver_fini(hcd_t *);
-
-static const ddf_hc_driver_t xhci_ddf_hc_driver = {
-	.hc_speed = USB_SPEED_SUPER,
-	.irq_code_gen = xhci_hc_gen_irq_code,
-	.init = xhci_driver_init,
-	.fini = xhci_driver_fini,
-	.name = "XHCI-PCI",
-	.ops = {
-		.schedule       = xhci_hc_schedule,
-		.irq_hook       = xhci_hc_interrupt,
-		.status_hook    = xhci_hc_status,
-	}
-};
-
-static int xhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
-{
-	usb_log_info("Initializing");
-	return ENOTSUP;
-}
-
-static void xhci_driver_fini(hcd_t *hcd)
-{
-	usb_log_info("Finishing");
-	assert(hcd);
-}
-
 /** Initializes a new ddf driver instance of XHCI hcd.
  *
  * @param[in] device DDF instance of the device to initialize.

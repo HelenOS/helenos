@@ -39,7 +39,11 @@
 
 #include "hw_struct/regs.h"
 
+typedef struct xhci_hc xhci_hc_t;
+
 void xhci_dump_cap_regs(xhci_cap_regs_t *);
+void xhci_dump_port(xhci_port_regs_t *);
+void xhci_dump_state(xhci_hc_t *);
 
 #endif
 /**

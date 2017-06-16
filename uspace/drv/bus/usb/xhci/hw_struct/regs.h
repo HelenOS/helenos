@@ -31,6 +31,8 @@
  */
 /** @file
  * Memory-mapped register structures of the xHC.
+ *
+ * The main pr
  */
 
 #ifndef XHCI_REGS_H
@@ -41,9 +43,6 @@
 #include "common.h"
 
 /*
- * The macros XHCI_REG_* might seem a bit magic. It is the most compact way to
- * provide flexible interface abstracting from the real storage of given
- * register, but to avoid having to specify several constants per register.
  */
 
 #define XHCI_PIO_CHANGE_UDELAY 5
@@ -133,9 +132,9 @@ typedef const struct xhci_cap_regs {
 	const ioport32_t hcsparams1;
 
 	/*
-	 *  0:3  - IST
+	 *  3:0  - IST
 	 *  7:4  - ERST Max
-	 * 21:25 - Max Scratchpad Bufs Hi
+	 * 24:21 - Max Scratchpad Bufs Hi
 	 *    26 - SPR
 	 * 31:27 - Max Scratchpad Bufs Lo
 	 */
@@ -187,7 +186,9 @@ typedef const struct xhci_cap_regs {
 #define XHCI_CAP_MAX_PORTS    hcsparams1, 32, RANGE, 31, 24
 #define XHCI_CAP_IST          hcsparams2, 32, RANGE,  3,  0
 #define XHCI_CAP_ERST_MAX     hcsparams2, 32, RANGE,  7,  4
-#define XHCI_CAP_SPR          hcsparams2, 32, RANGE, 26, 26
+#define XHCI_CAP_MAX_SPBUF_LO hcsparams2, 32, RANGE, 25,  4
+#define XHCI_CAP_SPR          hcsparams2, 32,  FLAG, 26
+#define XHCI_CAP_MAX_SPBUF_HI hcsparams2, 32, RANGE, 31, 27
 #define XHCI_CAP_U1EL         hcsparams3, 32, RANGE,  7,  0
 #define XHCI_CAP_U2EL         hcsparams3, 32, RANGE, 31, 16
 #define XHCI_CAP_AC64         hccparams1, 32,  FLAG,  0
@@ -202,8 +203,8 @@ typedef const struct xhci_cap_regs {
 #define XHCI_CAP_SPC          hccparams1, 32,  FLAG,  9
 #define XHCI_CAP_SEC          hccparams1, 32,  FLAG, 10
 #define XHCI_CAP_CFC          hccparams1, 32,  FLAG, 11
-#define XHCI_CAP_MAX_PSA_SIZE hccparams1, 32,  FLAG, 12
-#define XHCI_CAP_XECP         hccparams1, 32,  FLAG, 13
+#define XHCI_CAP_MAX_PSA_SIZE hccparams1, 32, RANGE, 15, 12
+#define XHCI_CAP_XECP         hccparams1, 32, RANGE, 31, 16
 #define XHCI_CAP_DBOFF             dboff, 32, FIELD
 #define XHCI_CAP_RTSOFF           rtsoff, 32, FIELD
 #define XHCI_CAP_U3C          hccparams2, 32,  FLAG,  0
@@ -448,6 +449,13 @@ typedef struct xhci_rt_regs {
 } xhci_rt_regs_t;
 
 #define XHCI_RT_MFINDEX        mfindex, 32, FIELD
+
+/**
+ * XHCI Doorbel Registers: section 5.6
+ *
+ * These registers are write-only, thus convenience macros are useless.
+ */
+typedef ioport32_t xhci_doorbell_t;
 
 #endif
 /**
