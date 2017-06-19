@@ -66,7 +66,7 @@
 #include <proc/thread.h>
 #include <arch/asm.h>
 #include <panic.h>
-#include <debug.h>
+#include <assert.h>
 #include <print.h>
 #include <mem.h>
 #include <macros.h>
@@ -188,8 +188,8 @@ void as_destroy(as_t *as)
 {
 	DEADLOCK_PROBE_INIT(p_asidlock);
 	
-	ASSERT(as != AS);
-	ASSERT(atomic_get(&as->refcount) == 0);
+	assert(as != AS);
+	assert(atomic_get(&as->refcount) == 0);
 	
 	/*
 	 * Since there is no reference to this address space, it is safe not to
@@ -235,7 +235,7 @@ retry:
 	 */
 	bool cond = true;
 	while (cond) {
-		ASSERT(!list_empty(&as->as_area_btree.leaf_list));
+		assert(!list_empty(&as->as_area_btree.leaf_list));
 		
 		btree_node_t *node =
 		    list_get_instance(list_first(&as->as_area_btree.leaf_list),
@@ -297,8 +297,8 @@ NO_TRACE void as_release(as_t *as)
 NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
     size_t count, bool guarded, as_area_t *avoid)
 {
-	ASSERT((addr % PAGE_SIZE) == 0);
-	ASSERT(mutex_locked(&as->lock));
+	assert((addr % PAGE_SIZE) == 0);
+	assert(mutex_locked(&as->lock));
 
 	/*
 	 * If the addition of the supposed area address and size overflows,
@@ -454,7 +454,7 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
     size_t size, bool guarded)
 {
-	ASSERT(mutex_locked(&as->lock));
+	assert(mutex_locked(&as->lock));
 	
 	if (size == 0)
 		return (uintptr_t) -1;
@@ -531,7 +531,7 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 	bool dealloc = false;
 	
 	mutex_lock(&sh_info->lock);
-	ASSERT(sh_info->refcount);
+	assert(sh_info->refcount);
 	
 	if (--sh_info->refcount == 0) {
 		dealloc = true;
@@ -695,7 +695,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
  */
 NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
-	ASSERT(mutex_locked(&as->lock));
+	assert(mutex_locked(&as->lock));
 	
 	btree_node_t *leaf;
 	as_area_t *area = (as_area_t *) btree_search(&as->as_area_btree, va,
@@ -826,7 +826,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 */
 		bool cond = true;
 		while (cond) {
-			ASSERT(!list_empty(&area->used_space.leaf_list));
+			assert(!list_empty(&area->used_space.leaf_list));
 			
 			btree_node_t *node =
 			    list_get_instance(list_last(&area->used_space.leaf_list),
@@ -892,9 +892,9 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 					bool found = page_mapping_find(as,
 					    ptr + P2SZ(i), false, &pte);
 					
-					ASSERT(found);
-					ASSERT(PTE_VALID(&pte));
-					ASSERT(PTE_PRESENT(&pte));
+					assert(found);
+					assert(PTE_VALID(&pte));
+					assert(PTE_PRESENT(&pte));
 					
 					if ((area->backend) &&
 					    (area->backend->frame_free)) {
@@ -1007,9 +1007,9 @@ int as_area_destroy(as_t *as, uintptr_t address)
 				bool found = page_mapping_find(as,
 				     ptr + P2SZ(size), false, &pte);
 				
-				ASSERT(found);
-				ASSERT(PTE_VALID(&pte));
-				ASSERT(PTE_PRESENT(&pte));
+				assert(found);
+				assert(PTE_VALID(&pte));
+				assert(PTE_PRESENT(&pte));
 				
 				if ((area->backend) &&
 				    (area->backend->frame_free)) {
@@ -1193,7 +1193,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
  */
 NO_TRACE bool as_area_check_access(as_area_t *area, pf_access_t access)
 {
-	ASSERT(mutex_locked(&area->lock));
+	assert(mutex_locked(&area->lock));
 	
 	int flagmap[] = {
 		[PF_ACCESS_READ] = AS_AREA_READ,
@@ -1320,9 +1320,9 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 				bool found = page_mapping_find(as,
 				    ptr + P2SZ(size), false, &pte);
 				
-				ASSERT(found);
-				ASSERT(PTE_VALID(&pte));
-				ASSERT(PTE_PRESENT(&pte));
+				assert(found);
+				assert(PTE_VALID(&pte));
+				assert(PTE_PRESENT(&pte));
 				
 				old_frame[frame_idx++] = PTE_GET_FRAME(&pte);
 				
@@ -1540,7 +1540,7 @@ retry:
 	 * First, take care of the old address space.
 	 */
 	if (old_as) {
-		ASSERT(old_as->cpu_refcount);
+		assert(old_as->cpu_refcount);
 		
 		if ((--old_as->cpu_refcount == 0) && (old_as != AS_KERNEL)) {
 			/*
@@ -1549,7 +1549,7 @@ retry:
 			 * list of inactive address spaces with assigned
 			 * ASID.
 			 */
-			ASSERT(old_as->asid != ASID_INVALID);
+			assert(old_as->asid != ASID_INVALID);
 			
 			list_append(&old_as->inactive_as_with_asid_link,
 			    &inactive_as_with_asid_list);
@@ -1596,7 +1596,7 @@ retry:
  */
 NO_TRACE unsigned int as_area_get_flags(as_area_t *area)
 {
-	ASSERT(mutex_locked(&area->lock));
+	assert(mutex_locked(&area->lock));
 	
 	return area_flags_to_page_flags(area->flags);
 }
@@ -1614,8 +1614,8 @@ NO_TRACE unsigned int as_area_get_flags(as_area_t *area)
  */
 NO_TRACE pte_t *page_table_create(unsigned int flags)
 {
-	ASSERT(as_operations);
-	ASSERT(as_operations->page_table_create);
+	assert(as_operations);
+	assert(as_operations->page_table_create);
 	
 	return as_operations->page_table_create(flags);
 }
@@ -1629,8 +1629,8 @@ NO_TRACE pte_t *page_table_create(unsigned int flags)
  */
 NO_TRACE void page_table_destroy(pte_t *page_table)
 {
-	ASSERT(as_operations);
-	ASSERT(as_operations->page_table_destroy);
+	assert(as_operations);
+	assert(as_operations->page_table_destroy);
 	
 	as_operations->page_table_destroy(page_table);
 }
@@ -1650,8 +1650,8 @@ NO_TRACE void page_table_destroy(pte_t *page_table)
  */
 NO_TRACE void page_table_lock(as_t *as, bool lock)
 {
-	ASSERT(as_operations);
-	ASSERT(as_operations->page_table_lock);
+	assert(as_operations);
+	assert(as_operations->page_table_lock);
 	
 	as_operations->page_table_lock(as, lock);
 }
@@ -1664,8 +1664,8 @@ NO_TRACE void page_table_lock(as_t *as, bool lock)
  */
 NO_TRACE void page_table_unlock(as_t *as, bool unlock)
 {
-	ASSERT(as_operations);
-	ASSERT(as_operations->page_table_unlock);
+	assert(as_operations);
+	assert(as_operations->page_table_unlock);
 	
 	as_operations->page_table_unlock(as, unlock);
 }
@@ -1679,8 +1679,8 @@ NO_TRACE void page_table_unlock(as_t *as, bool unlock)
  */
 NO_TRACE bool page_table_locked(as_t *as)
 {
-	ASSERT(as_operations);
-	ASSERT(as_operations->page_table_locked);
+	assert(as_operations);
+	assert(as_operations->page_table_locked);
 
 	return as_operations->page_table_locked(as);
 }
@@ -1723,9 +1723,9 @@ size_t as_area_get_size(uintptr_t base)
  */
 bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 {
-	ASSERT(mutex_locked(&area->lock));
-	ASSERT(IS_ALIGNED(page, PAGE_SIZE));
-	ASSERT(count);
+	assert(mutex_locked(&area->lock));
+	assert(IS_ALIGNED(page, PAGE_SIZE));
+	assert(count);
 	
 	btree_node_t *leaf = NULL;
 	size_t pages = (size_t) btree_search(&area->used_space, page, &leaf);
@@ -1736,7 +1736,7 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		return false;
 	}
 
-	ASSERT(leaf != NULL);
+	assert(leaf != NULL);
 	
 	if (!leaf->keys) {
 		btree_insert(&area->used_space, page, (void *) count, leaf);
@@ -2009,9 +2009,9 @@ success:
  */
 bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 {
-	ASSERT(mutex_locked(&area->lock));
-	ASSERT(IS_ALIGNED(page, PAGE_SIZE));
-	ASSERT(count);
+	assert(mutex_locked(&area->lock));
+	assert(IS_ALIGNED(page, PAGE_SIZE));
+	assert(count);
 	
 	btree_node_t *leaf;
 	size_t pages = (size_t) btree_search(&area->used_space, page, &leaf);
@@ -2256,7 +2256,7 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 		for (i = 0; i < node->keys; i++) {
 			as_area_t *area = node->value[i];
 			
-			ASSERT(area_idx < area_cnt);
+			assert(area_idx < area_cnt);
 			mutex_lock(&area->lock);
 			
 			info[area_idx].start_addr = area->base;

@@ -36,7 +36,7 @@
  * 		memory.
  */
 
-#include <debug.h>
+#include <assert.h>
 #include <typedefs.h>
 #include <mm/as.h>
 #include <mm/page.h>
@@ -94,8 +94,8 @@ bool phys_create(as_area_t *area)
  */
 void phys_share(as_area_t *area)
 {
-	ASSERT(mutex_locked(&area->as->lock));
-	ASSERT(mutex_locked(&area->lock));
+	assert(mutex_locked(&area->as->lock));
+	assert(mutex_locked(&area->lock));
 }
 
 
@@ -134,14 +134,14 @@ int phys_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 {
 	uintptr_t base = area->backend_data.base;
 
-	ASSERT(page_table_locked(AS));
-	ASSERT(mutex_locked(&area->lock));
-	ASSERT(IS_ALIGNED(upage, PAGE_SIZE));
+	assert(page_table_locked(AS));
+	assert(mutex_locked(&area->lock));
+	assert(IS_ALIGNED(upage, PAGE_SIZE));
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
-	ASSERT(upage - area->base < area->backend_data.frames * FRAME_SIZE);
+	assert(upage - area->base < area->backend_data.frames * FRAME_SIZE);
 	page_mapping_insert(AS, upage, base + (upage - area->base),
 	    as_area_get_flags(area));
 	

@@ -34,6 +34,7 @@
  * @brief NS 16550 serial controller driver.
  */
 
+#include <assert.h>
 #include <genarch/drivers/ns16550/ns16550.h>
 #include <ddi/irq.h>
 #include <arch/asm.h>
@@ -156,8 +157,8 @@ ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir,
 
 void ns16550_wire(ns16550_instance_t *instance, indev_t *input)
 {
-	ASSERT(instance);
-	ASSERT(input);
+	assert(instance);
+	assert(input);
 	
 	instance->input = input;
 	irq_register(&instance->irq);

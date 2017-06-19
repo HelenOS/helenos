@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <assert.h>
 #include <adt/list.h>
 #include <console/chardev.h>
 #include <synch/waitq.h>
@@ -65,7 +66,7 @@ void indev_initialize(const char *name, indev_t *indev,
  */
 void indev_push_character(indev_t *indev, wchar_t ch)
 {
-	ASSERT(indev);
+	assert(indev);
 	
 	irq_spinlock_lock(&indev->lock, true);
 	if (indev->counter == INDEV_BUFLEN - 1) {

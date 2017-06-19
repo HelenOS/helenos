@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <assert.h>
 #include <test.h>
 #include <arch.h>
 #include <atomic.h>
@@ -71,7 +72,7 @@ static int is_pow2(int num)
 static test_work_t * create_child(test_work_t *work)
 {
 	test_work_t *child = malloc(sizeof(test_work_t), 0);
-	ASSERT(child);
+	assert(child);
 	if (child) {
 		child->master = false;
 		child->wave = work->wave;

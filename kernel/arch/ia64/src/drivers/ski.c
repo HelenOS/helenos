@@ -33,6 +33,7 @@
  */
 
 #include <arch/drivers/ski.h>
+#include <assert.h>
 #include <console/console.h>
 #include <console/chardev.h>
 #include <sysinfo/sysinfo.h>
@@ -237,8 +238,8 @@ ski_instance_t *skiin_init(void)
 
 void skiin_wire(ski_instance_t *instance, indev_t *srlnin)
 {
-	ASSERT(instance);
-	ASSERT(srlnin);
+	assert(instance);
+	assert(srlnin);
 	
 	instance->srlnin = srlnin;
 	thread_ready(instance->thread);

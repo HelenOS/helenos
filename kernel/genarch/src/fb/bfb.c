@@ -34,6 +34,7 @@
  * @brief Boot framebuffer driver.
  */
 
+#include <debug.h>
 #include <typedefs.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/bfb.h>

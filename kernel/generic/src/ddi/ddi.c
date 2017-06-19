@@ -39,6 +39,7 @@
  * space to tasks.
  */
 
+#include <assert.h>
 #include <ddi/ddi.h>
 #include <proc/task.h>
 #include <security/perm.h>
@@ -105,7 +106,7 @@ void ddi_parea_register(parea_t *parea)
 NO_TRACE static int physmem_map(uintptr_t phys, size_t pages,
     unsigned int flags, uintptr_t *virt, uintptr_t bound)
 {
-	ASSERT(TASK);
+	assert(TASK);
 	
 	if ((phys % FRAME_SIZE) != 0)
 		return EBADMEM;
@@ -210,7 +211,7 @@ map:
 
 NO_TRACE static int physmem_unmap(uintptr_t virt)
 {
-	ASSERT(TASK);
+	assert(TASK);
 
 	return as_area_destroy(TASK->as, virt);
 }
@@ -367,7 +368,7 @@ sysarg_t sys_iospace_disable(ddi_ioarg_t *uspace_io_arg)
 NO_TRACE static int dmamem_map(uintptr_t virt, size_t size, unsigned int map_flags,
     unsigned int flags, uintptr_t *phys)
 {
-	ASSERT(TASK);
+	assert(TASK);
 	
 	// TODO: implement locking of non-anonymous mapping
 	return page_find_mapping(virt, phys);
@@ -377,7 +378,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
     unsigned int map_flags, unsigned int flags, uintptr_t *phys,
     uintptr_t *virt, uintptr_t bound)
 {
-	ASSERT(TASK);
+	assert(TASK);
 	
 	size_t frames = SIZE2FRAMES(size);
 	*phys = frame_alloc(frames, FRAME_ATOMIC, constraint);

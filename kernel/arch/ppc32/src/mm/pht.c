@@ -34,6 +34,7 @@
 
 #include <arch/mm/pht.h>
 #include <arch/mm/tlb.h>
+#include <assert.h>
 #include <interrupt.h>
 #include <mm/as.h>
 #include <mm/page.h>
@@ -78,8 +79,8 @@ static bool find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
 		 */
 		found = page_mapping_find(as, badvaddr, true, pte);
 
-		ASSERT(found);
-		ASSERT(pte->present);
+		assert(found);
+		assert(pte->present);
 
 		return found;
 	}

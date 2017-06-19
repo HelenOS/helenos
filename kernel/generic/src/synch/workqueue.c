@@ -36,6 +36,7 @@
  *        depending on the current load. Queued work functions may sleep..
  */
 
+#include <assert.h>
 #include <synch/workqueue.h>
 #include <synch/spinlock.h>
 #include <synch/condvar.h>
@@ -188,7 +189,7 @@ struct work_queue * workq_create(const char *name)
 	
 	if (workq) {
 		if (workq_init(workq, name)) {
-			ASSERT(!workq_corrupted(workq));
+			assert(!workq_corrupted(workq));
 			return workq;
 		}
 		
@@ -201,7 +202,7 @@ struct work_queue * workq_create(const char *name)
 /** Frees work queue resources and stops it if it had not been done so already.*/
 void workq_destroy(struct work_queue *workq)
 {
-	ASSERT(!workq_corrupted(workq));
+	assert(!workq_corrupted(workq));
 	
 	irq_spinlock_lock(&workq->lock, true);
 	bool stopped = workq->stopping;
@@ -213,7 +214,7 @@ void workq_destroy(struct work_queue *workq)
 	if (!stopped) {
 		workq_stop(workq);
 	} else {
-		ASSERT(0 == running_workers);
+		assert(0 == running_workers);
 	}
 	
 #ifdef CONFIG_DEBUG
@@ -263,7 +264,7 @@ int workq_init(struct work_queue *workq, const char *name)
 /** Add a new worker thread. Returns false if the thread could not be created. */
 static bool add_worker(struct work_queue *workq)
 {
-	ASSERT(!workq_corrupted(workq));
+	assert(!workq_corrupted(workq));
 
 	thread_t *thread = thread_create(worker_thread, workq, TASK, 
 		THREAD_FLAG_NONE, workq->name);
@@ -272,7 +273,7 @@ static bool add_worker(struct work_queue *workq)
 		irq_spinlock_lock(&workq->lock, true);
 		
 		/* cur_worker_cnt proactively increased in signal_worker_logic() .*/
-		ASSERT(0 < workq->cur_worker_cnt);
+		assert(0 < workq->cur_worker_cnt);
 		--workq->cur_worker_cnt;
 		
 		irq_spinlock_unlock(&workq->lock, true);
@@ -311,7 +312,7 @@ static bool add_worker(struct work_queue *workq)
 		success = false;
 		
 		/* cur_worker_cnt proactively increased in signal_worker() .*/
-		ASSERT(0 < workq->cur_worker_cnt);
+		assert(0 < workq->cur_worker_cnt);
 		--workq->cur_worker_cnt;
 	}
 	
@@ -333,7 +334,7 @@ static bool add_worker(struct work_queue *workq)
  */
 void workq_stop(struct work_queue *workq)
 {
-	ASSERT(!workq_corrupted(workq));
+	assert(!workq_corrupted(workq));
 	
 	interrupt_workers(workq);
 	wait_for_workers(workq);
@@ -345,7 +346,7 @@ static void interrupt_workers(struct work_queue *workq)
 	irq_spinlock_lock(&workq->lock, true);
 
 	/* workq_stop() may only be called once. */
-	ASSERT(!workq->stopping);
+	assert(!workq->stopping);
 	workq->stopping = true;
 	
 	/* Respect lock ordering - do not hold workq->lock during broadcast. */
@@ -357,7 +358,7 @@ static void interrupt_workers(struct work_queue *workq)
 /** Waits for all worker threads to exit. */
 static void wait_for_workers(struct work_queue *workq)
 {
-	ASSERT(!PREEMPTION_DISABLED);
+	assert(!PREEMPTION_DISABLED);
 	
 	irq_spinlock_lock(&workq->lock, true);
 	
@@ -374,7 +375,7 @@ static void wait_for_workers(struct work_queue *workq)
 		irq_spinlock_lock(&workq->lock, true);
 	}
 	
-	ASSERT(list_empty(&workq->workers));
+	assert(list_empty(&workq->workers));
 	
 	/* Wait for deferred add_worker_op(), signal_worker_op() to finish. */
 	while (0 < workq->cur_worker_cnt || 0 < workq->pending_op_cnt) {
@@ -472,7 +473,7 @@ int workq_enqueue(struct work_queue *workq, work_t *work_item, work_func_t func)
 static int _workq_enqueue(struct work_queue *workq, work_t *work_item, 
 	work_func_t func, bool can_block)
 {
-	ASSERT(!workq_corrupted(workq));
+	assert(!workq_corrupted(workq));
 	
 	bool success = true;
 	signal_op_t signal_op = NULL;
@@ -520,19 +521,19 @@ static void init_work_item(work_t *work_item, work_func_t func)
 /** Returns the number of workers running work func() that are not blocked. */
 static size_t active_workers_now(struct work_queue *workq)
 {
-	ASSERT(irq_spinlock_locked(&workq->lock));
+	assert(irq_spinlock_locked(&workq->lock));
 	
 	/* Workers blocked are sleeping in the work function (ie not idle). */
-	ASSERT(workq->blocked_worker_cnt <= workq->cur_worker_cnt);
+	assert(workq->blocked_worker_cnt <= workq->cur_worker_cnt);
 	/* Idle workers are waiting for more work to arrive in condvar_wait. */
-	ASSERT(workq->idle_worker_cnt <= workq->cur_worker_cnt);
+	assert(workq->idle_worker_cnt <= workq->cur_worker_cnt);
 	
 	/* Idle + blocked workers == sleeping worker threads. */
 	size_t sleeping_workers = workq->blocked_worker_cnt + workq->idle_worker_cnt;
 	
-	ASSERT(sleeping_workers	<= workq->cur_worker_cnt);
+	assert(sleeping_workers	<= workq->cur_worker_cnt);
 	/* Workers pending activation are idle workers not yet given a time slice. */
-	ASSERT(workq->activate_pending <= workq->idle_worker_cnt);
+	assert(workq->activate_pending <= workq->idle_worker_cnt);
 	
 	/* 
 	 * Workers actively running the work func() this very moment and 
@@ -549,7 +550,7 @@ static size_t active_workers_now(struct work_queue *workq)
  */
 static size_t active_workers(struct work_queue *workq)
 {
-	ASSERT(irq_spinlock_locked(&workq->lock));
+	assert(irq_spinlock_locked(&workq->lock));
 	
 	/* 
 	 * Workers actively running the work func() and are neither blocked nor 
@@ -572,12 +573,12 @@ static void add_worker_op(struct work_queue *workq)
 
 static void signal_worker_op(struct work_queue *workq)
 {
-	ASSERT(!workq_corrupted(workq));
+	assert(!workq_corrupted(workq));
 
 	condvar_signal(&workq->activate_worker);
 	
 	irq_spinlock_lock(&workq->lock, true);
-	ASSERT(0 < workq->pending_op_cnt);
+	assert(0 < workq->pending_op_cnt);
 	--workq->pending_op_cnt;
 	irq_spinlock_unlock(&workq->lock, true);
 }
@@ -592,8 +593,8 @@ static void signal_worker_op(struct work_queue *workq)
  */
 static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 {
-	ASSERT(!workq_corrupted(workq));
-	ASSERT(irq_spinlock_locked(&workq->lock));
+	assert(!workq_corrupted(workq));
+	assert(irq_spinlock_locked(&workq->lock));
 	
 	/* Only signal workers if really necessary. */
 	signal_op_t signal_op = NULL;
@@ -644,7 +645,7 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 			 * because all workers are blocked in their work functions.
 			 */
 			if (need_worker && !can_block && 0 == active) {
-				ASSERT(0 == workq->idle_worker_cnt);
+				assert(0 == workq->idle_worker_cnt);
 				
 				irq_spinlock_lock(&nonblock_adder.lock, true);
 
@@ -680,7 +681,7 @@ static void worker_thread(void *arg)
 		return;
 	}
 	
-	ASSERT(arg != NULL);
+	assert(arg != NULL);
 	
 	struct work_queue *workq = arg;
 	work_t *work_item;
@@ -696,14 +697,14 @@ static void worker_thread(void *arg)
 /** Waits and retrieves a work item. Returns false if the worker should exit. */
 static bool dequeue_work(struct work_queue *workq, work_t **pwork_item)
 {
-	ASSERT(!workq_corrupted(workq));
+	assert(!workq_corrupted(workq));
 	
 	irq_spinlock_lock(&workq->lock, true);
 	
 	/* Check if we should exit if load is low. */
 	if (!workq->stopping && worker_unnecessary(workq)) {
 		/* There are too many workers for this load. Exit. */
-		ASSERT(0 < workq->cur_worker_cnt);
+		assert(0 < workq->cur_worker_cnt);
 		--workq->cur_worker_cnt;
 		list_remove(&THREAD->workq_link);
 		irq_spinlock_unlock(&workq->lock, true);
@@ -728,7 +729,7 @@ static bool dequeue_work(struct work_queue *workq, work_t **pwork_item)
 		*pwork_item = list_get_instance(work_link, work_t, queue_link);
 		
 #ifdef CONFIG_DEBUG
-		ASSERT(!work_item_corrupted(*pwork_item));
+		assert(!work_item_corrupted(*pwork_item));
 		(*pwork_item)->cookie = 0;
 #endif
 		list_remove(work_link);
@@ -737,7 +738,7 @@ static bool dequeue_work(struct work_queue *workq, work_t **pwork_item)
 		stop = false;
 	} else {
 		/* Requested to stop and no more work queued. */
-		ASSERT(workq->stopping);
+		assert(workq->stopping);
 		--workq->cur_worker_cnt;
 		stop = true;
 	}
@@ -750,7 +751,7 @@ static bool dequeue_work(struct work_queue *workq, work_t **pwork_item)
 /** Returns true if for the given load there are too many workers. */
 static bool worker_unnecessary(struct work_queue *workq)
 {
-	ASSERT(irq_spinlock_locked(&workq->lock));
+	assert(irq_spinlock_locked(&workq->lock));
 	
 	/* No work is pending. We don't need too many idle threads. */
 	if (list_empty(&workq->queue)) {
@@ -774,13 +775,13 @@ static void cv_wait(struct work_queue *workq)
 	THREAD->workq_idling = true;
 	
 	/* Ignore lock ordering just here. */
-	ASSERT(irq_spinlock_locked(&workq->lock));
+	assert(irq_spinlock_locked(&workq->lock));
 	
 	_condvar_wait_timeout_irq_spinlock(&workq->activate_worker,
 		&workq->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
 
-	ASSERT(!workq_corrupted(workq));
-	ASSERT(irq_spinlock_locked(&workq->lock));
+	assert(!workq_corrupted(workq));
+	assert(irq_spinlock_locked(&workq->lock));
 	
 	THREAD->workq_idling = false;
 	--workq->idle_worker_cnt;
@@ -790,16 +791,16 @@ static void cv_wait(struct work_queue *workq)
 /** Invoked from thread_ready() right before the thread is woken up. */
 void workq_before_thread_is_ready(thread_t *thread)
 {
-	ASSERT(thread);
-	ASSERT(irq_spinlock_locked(&thread->lock));
+	assert(thread);
+	assert(irq_spinlock_locked(&thread->lock));
 
 	/* Worker's work func() is about to wake up from sleeping. */
 	if (thread->workq && thread->workq_blocked) {
 		/* Must be blocked in user work func() and not be waiting for work. */
-		ASSERT(!thread->workq_idling);
-		ASSERT(thread->state == Sleeping);
-		ASSERT(THREAD != thread);
-		ASSERT(!workq_corrupted(thread->workq));
+		assert(!thread->workq_idling);
+		assert(thread->state == Sleeping);
+		assert(THREAD != thread);
+		assert(!workq_corrupted(thread->workq));
 		
 		/* Protected by thread->lock */
 		thread->workq_blocked = false;
@@ -813,13 +814,13 @@ void workq_before_thread_is_ready(thread_t *thread)
 /** Invoked from scheduler() before switching away from a thread. */
 void workq_after_thread_ran(void)
 {
-	ASSERT(THREAD);
-	ASSERT(irq_spinlock_locked(&THREAD->lock));
+	assert(THREAD);
+	assert(irq_spinlock_locked(&THREAD->lock));
 
 	/* Worker's work func() is about to sleep/block. */
 	if (THREAD->workq && THREAD->state == Sleeping && !THREAD->workq_idling) {
-		ASSERT(!THREAD->workq_blocked);
-		ASSERT(!workq_corrupted(THREAD->workq));
+		assert(!THREAD->workq_blocked);
+		assert(!workq_corrupted(THREAD->workq));
 		
 		THREAD->workq_blocked = true;
 		
@@ -833,7 +834,7 @@ void workq_after_thread_ran(void)
 		irq_spinlock_unlock(&THREAD->workq->lock, false);
 		
 		if (op) {
-			ASSERT(add_worker_noblock_op == op || signal_worker_op == op);
+			assert(add_worker_noblock_op == op || signal_worker_op == op);
 			op(THREAD->workq);
 		}
 	}
@@ -902,7 +903,7 @@ static bool dequeue_add_req(nonblock_adder_t *info, struct work_queue **pworkq)
 		*pworkq = list_get_instance(list_first(&info->work_queues), 
 			struct work_queue, nb_link);
 
-		ASSERT(!workq_corrupted(*pworkq));
+		assert(!workq_corrupted(*pworkq));
 		
 		list_remove(&(*pworkq)->nb_link);
 	}

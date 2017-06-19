@@ -34,11 +34,11 @@
  */
 
 #include <arch/interrupt.h>
+#include <assert.h>
 #include <interrupt.h>
 #include <ddi/irq.h>
 #include <panic.h>
 #include <print.h>
-#include <debug.h>
 #include <console/console.h>
 #include <typedefs.h>
 #include <arch/asm.h>
@@ -122,7 +122,7 @@ static const char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 
 static const char *vector_to_string(unsigned int n)
 {
-	ASSERT(n <= VECTOR_MAX);
+	assert(n <= VECTOR_MAX);
 	
 	if (n >= VECTORS_16_BUNDLE_START)
 		return vector_names_16_bundle[n - VECTORS_16_BUNDLE_START];

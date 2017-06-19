@@ -37,6 +37,7 @@
 #include <arch/smp/mps.h>
 #include <arch/smp/ap.h>
 #include <arch/boot/boot.h>
+#include <assert.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <config.h>
@@ -44,7 +45,6 @@
 #include <arch/pm.h>
 #include <func.h>
 #include <panic.h>
-#include <debug.h>
 #include <arch/asm.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -82,8 +82,8 @@ void smp_init(void)
 
 static void cpu_arch_id_init(void)
 {
-	ASSERT(ops != NULL);
-	ASSERT(cpus != NULL);
+	assert(ops != NULL);
+	assert(cpus != NULL);
 	
 	for (unsigned int i = 0; i < config.cpu_count; ++i) {
 		cpus[i].arch.id = ops->cpu_apic_id(i);
@@ -101,7 +101,7 @@ void kmp(void *arg __attribute__((unused)))
 {
 	unsigned int i;
 	
-	ASSERT(ops != NULL);
+	assert(ops != NULL);
 
 	/*
 	 * SMP initialized, cpus array allocated. Assign each CPU its 
@@ -190,7 +190,7 @@ void kmp(void *arg __attribute__((unused)))
 
 int smp_irq_to_pin(unsigned int irq)
 {
-	ASSERT(ops != NULL);
+	assert(ops != NULL);
 	return ops->irq_to_pin(irq);
 }
 

@@ -41,6 +41,7 @@
  * and creation of userspace init tasks.
  */
 
+#include <assert.h>
 #include <main/kinit.h>
 #include <config.h>
 #include <arch.h>
@@ -66,7 +67,6 @@
 #include <security/perm.h>
 #include <lib/rd.h>
 #include <ipc/ipc.h>
-#include <debug.h>
 #include <str.h>
 #include <sysinfo/stats.h>
 #include <sysinfo/sysinfo.h>
@@ -239,7 +239,7 @@ void kinit(void *arg)
 		if (name[0] == 0)
 			name = "<unknown>";
 		
-		STATIC_ASSERT(TASK_NAME_BUFLEN >= INIT_PREFIX_LEN);
+		static_assert(TASK_NAME_BUFLEN >= INIT_PREFIX_LEN, "");
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
@@ -250,7 +250,7 @@ void kinit(void *arg)
 		uintptr_t page = km_map(init.tasks[i].paddr,
 		    init.tasks[i].size,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
-		ASSERT(page);
+		assert(page);
 		
 		int rc = program_create_from_image((void *) page, namebuf,
 		    &programs[i]);

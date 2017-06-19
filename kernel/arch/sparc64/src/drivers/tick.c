@@ -42,7 +42,7 @@
 #include <arch/boot/boot.h>
 #include <time/clock.h>
 #include <arch.h>
-#include <debug.h>
+#include <assert.h>
 
 /** Initialize tick and stick interrupt. */
 void tick_init(void)
@@ -92,12 +92,12 @@ void tick_interrupt(unsigned int n, istate_t *istate)
 	/*
 	 * Make sure we are servicing interrupt_level_14
 	 */
-	ASSERT(n == TT_INTERRUPT_LEVEL_14);
+	assert(n == TT_INTERRUPT_LEVEL_14);
 	
 	/*
 	 * Make sure we are servicing TICK_INT.
 	 */
-	ASSERT(softint.tick_int);
+	assert(softint.tick_int);
 
 	/*
 	 * Clear tick interrupt.

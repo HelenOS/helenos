@@ -37,6 +37,7 @@
  * Support for RAM disk images.
  */
 
+#include <assert.h>
 #include <log.h>
 #include <lib/rd.h>
 #include <mm/frame.h>
@@ -55,7 +56,7 @@ static parea_t rd_parea;
 void init_rd(void *data, size_t size)
 {
 	uintptr_t base = (uintptr_t) data;
-	ASSERT((base % FRAME_SIZE) == 0);
+	assert((base % FRAME_SIZE) == 0);
 	
 	rd_parea.pbase = base;
 	rd_parea.frames = SIZE2FRAMES(size);

@@ -36,9 +36,9 @@
 #include <arch/mm/as.h>
 #include <arch/mm/pagesize.h>
 #include <arch/mm/tlb.h>
+#include <assert.h>
 #include <genarch/mm/page_ht.h>
 #include <genarch/mm/asid_fifo.h>
-#include <debug.h>
 #include <config.h>
 #include <arch/sun4v/hypercall.h>
 
@@ -120,7 +120,7 @@ void as_install_arch(as_t *as)
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 	
-	ASSERT(as->arch.tsb_description.tsb_base);
+	assert(as->arch.tsb_description.tsb_base);
 	uintptr_t tsb = PA2KA(as->arch.tsb_description.tsb_base);
 	
 	if (!overlaps(tsb, TSB_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
@@ -159,7 +159,7 @@ void as_deinstall_arch(as_t *as)
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 	
-	ASSERT(as->arch.tsb_description.tsb_base);
+	assert(as->arch.tsb_description.tsb_base);
 	
 	uintptr_t tsb = PA2KA(as->arch.tsb_description.tsb_base);
 	

@@ -34,6 +34,7 @@
 
 #include <arch/exception.h>
 #include <arch/mach/beagleboardxm/beagleboardxm.h>
+#include <assert.h>
 #include <genarch/drivers/amdm37x/uart.h>
 #include <genarch/drivers/amdm37x/irc.h>
 #include <genarch/drivers/amdm37x/gpt.h>
@@ -101,7 +102,7 @@ static void bbxm_init(void)
 	beagleboard.irc_addr =
 	    (void *) km_map(AMDM37x_IRC_BASE_ADDRESS, AMDM37x_IRC_SIZE,
 	    PAGE_NOT_CACHEABLE);
-	ASSERT(beagleboard.irc_addr);
+	assert(beagleboard.irc_addr);
 	omap_irc_init(beagleboard.irc_addr);
 
 	/* Initialize timer. Use timer1, because it is in WKUP power domain

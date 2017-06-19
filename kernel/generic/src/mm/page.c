@@ -68,8 +68,8 @@
 #include <arch/barrier.h>
 #include <typedefs.h>
 #include <arch/asm.h>
-#include <debug.h>
 #include <arch.h>
+#include <assert.h>
 #include <syscall/copy.h>
 #include <errno.h>
 #include <align.h>
@@ -97,10 +97,10 @@ void page_init(void)
 NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
-	ASSERT(page_table_locked(as));
+	assert(page_table_locked(as));
 	
-	ASSERT(page_mapping_operations);
-	ASSERT(page_mapping_operations->mapping_insert);
+	assert(page_mapping_operations);
+	assert(page_mapping_operations->mapping_insert);
 
 	page_mapping_operations->mapping_insert(as, ALIGN_DOWN(page, PAGE_SIZE),
 	    ALIGN_DOWN(frame, FRAME_SIZE), flags);
@@ -121,10 +121,10 @@ NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  */
 NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 {
-	ASSERT(page_table_locked(as));
+	assert(page_table_locked(as));
 	
-	ASSERT(page_mapping_operations);
-	ASSERT(page_mapping_operations->mapping_remove);
+	assert(page_mapping_operations);
+	assert(page_mapping_operations->mapping_remove);
 	
 	page_mapping_operations->mapping_remove(as,
 	    ALIGN_DOWN(page, PAGE_SIZE));
@@ -146,10 +146,10 @@ NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
     pte_t *pte)
 {
-	ASSERT(nolock || page_table_locked(as));
+	assert(nolock || page_table_locked(as));
 	
-	ASSERT(page_mapping_operations);
-	ASSERT(page_mapping_operations->mapping_find);
+	assert(page_mapping_operations);
+	assert(page_mapping_operations->mapping_find);
 	
 	return page_mapping_operations->mapping_find(as,
 	    ALIGN_DOWN(page, PAGE_SIZE), nolock, pte);
@@ -167,10 +167,10 @@ NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
 NO_TRACE void page_mapping_update(as_t *as, uintptr_t page, bool nolock,
     pte_t *pte)
 {
-	ASSERT(nolock || page_table_locked(as));
+	assert(nolock || page_table_locked(as));
 	
-	ASSERT(page_mapping_operations);
-	ASSERT(page_mapping_operations->mapping_find);
+	assert(page_mapping_operations);
+	assert(page_mapping_operations->mapping_find);
 	
 	page_mapping_operations->mapping_update(as,
 	    ALIGN_DOWN(page, PAGE_SIZE), nolock, pte);
@@ -183,8 +183,8 @@ NO_TRACE void page_mapping_update(as_t *as, uintptr_t page, bool nolock,
  */
 void page_mapping_make_global(uintptr_t base, size_t size)
 {
-	ASSERT(page_mapping_operations);
-	ASSERT(page_mapping_operations->mapping_make_global);
+	assert(page_mapping_operations);
+	assert(page_mapping_operations->mapping_make_global);
 	
 	return page_mapping_operations->mapping_make_global(base, size);
 }

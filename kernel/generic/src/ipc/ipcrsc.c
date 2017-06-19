@@ -130,7 +130,7 @@
 #include <arch.h>
 #include <proc/task.h>
 #include <ipc/ipcrsc.h>
-#include <debug.h>
+#include <assert.h>
 #include <abi/errno.h>
 
 /** Find call_t * in call table according to callid.
@@ -219,7 +219,7 @@ int phone_alloc(task_t *task)
  */
 static void phone_deallocp(phone_t *phone)
 {
-	ASSERT(phone->state == IPC_PHONE_CONNECTING);
+	assert(phone->state == IPC_PHONE_CONNECTING);
 	
 	/* Atomic operation */
 	phone->state = IPC_PHONE_FREE;
@@ -252,7 +252,7 @@ bool phone_connect(int phoneid, answerbox_t *box)
 {
 	phone_t *phone = &TASK->phones[phoneid];
 	
-	ASSERT(phone->state == IPC_PHONE_CONNECTING);
+	assert(phone->state == IPC_PHONE_CONNECTING);
 	return ipc_phone_connect(phone, box);
 }
 

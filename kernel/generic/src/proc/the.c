@@ -42,7 +42,7 @@
  */
 
 #include <arch.h>
-#include <debug.h>
+#include <assert.h>
 
 /** Initialize THE structure
  *
@@ -59,7 +59,7 @@ void the_initialize(the_t *the)
 	the->task = NULL;
 	the->as = NULL;
 	the->magic = MAGIC;
-#ifdef RCU_PREEMPT_A	
+#ifdef RCU_PREEMPT_A
 	the->rcu_nesting = 0;
 #endif
 }
@@ -74,7 +74,7 @@ void the_initialize(the_t *the)
  */
 NO_TRACE void the_copy(the_t *src, the_t *dst)
 {
-	ASSERT(src->magic == MAGIC);
+	assert(src->magic == MAGIC);
 	*dst = *src;
 }
 

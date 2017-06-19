@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <assert.h>
 #include <test.h>
 #include <arch.h>
 #include <atomic.h>
@@ -80,7 +81,7 @@ static size_t get_thread_cnt(void)
 
 static void run_thread(size_t k, void (*func)(void*), void *arg)
 {
-	ASSERT(thread[k] == NULL);
+	assert(thread[k] == NULL);
 	
 	thread[k] = thread_create(func, arg, TASK, THREAD_FLAG_NONE, 
 		"test-rcu-thread");
@@ -129,7 +130,7 @@ static void join_all(void)
 
 static void run_one(void (*func)(void*), void *arg)
 {
-	ASSERT(one_idx < MAX_THREADS);
+	assert(one_idx < MAX_THREADS);
 	run_thread(one_idx, func, arg);
 	++one_idx;
 }
@@ -137,7 +138,7 @@ static void run_one(void (*func)(void*), void *arg)
 
 static void join_one(void)
 {
-	ASSERT(0 < one_idx && one_idx <= MAX_THREADS);
+	assert(0 < one_idx && one_idx <= MAX_THREADS);
 
 	--one_idx;
 	
@@ -167,7 +168,7 @@ static void nop_reader(void *arg)
 
 static void get_seq(size_t from, size_t to, size_t steps, size_t *seq)
 {
-	ASSERT(0 < steps && from <= to && 0 < to);
+	assert(0 < steps && from <= to && 0 < to);
 	size_t inc = (to - from) / (steps - 1);
 	
 	for (size_t i = 0; i < steps - 1; ++i) {
@@ -303,7 +304,7 @@ static int one_cb_is_done = 0;
 
 static void one_cb_done(rcu_item_t *item)
 {
-	ASSERT( ((item_w_cookie_t *)item)->cookie == magic_cookie);
+	assert( ((item_w_cookie_t *)item)->cookie == magic_cookie);
 	one_cb_is_done = 1;
 	TPRINTF("Callback()\n");
 	free(item);
@@ -559,7 +560,7 @@ static void preempted_unlocked(rcu_item_t *item)
 static void preempted_reader_prev(void *arg)
 {
 	preempt_t *p = (preempt_t*)arg;
-	ASSERT(!p->e.exited);
+	assert(!p->e.exited);
 
 	TPRINTF("reader_prev{ ");
 	
@@ -579,7 +580,7 @@ static void preempted_reader_prev(void *arg)
 static void preempted_reader_inside_cur(void *arg)
 {
 	preempt_t *p = (preempt_t*)arg;
-	ASSERT(!p->e.exited);
+	assert(!p->e.exited);
 	
 	TPRINTF("reader_inside_cur{ ");
 	/* 
@@ -604,7 +605,7 @@ static void preempted_reader_inside_cur(void *arg)
 static void preempted_reader_cur(void *arg)
 {
 	preempt_t *p = (preempt_t*)arg;
-	ASSERT(!p->e.exited);
+	assert(!p->e.exited);
 	
 	TPRINTF("reader_cur{ ");
 	rcu_read_lock();
@@ -626,7 +627,7 @@ static void preempted_reader_cur(void *arg)
 static void preempted_reader_next1(void *arg)
 {
 	preempt_t *p = (preempt_t*)arg;
-	ASSERT(!p->e.exited);
+	assert(!p->e.exited);
 	
 	TPRINTF("reader_next1{ ");
 	rcu_read_lock();
@@ -648,7 +649,7 @@ static void preempted_reader_next1(void *arg)
 static void preempted_reader_next2(void *arg)
 {
 	preempt_t *p = (preempt_t*)arg;
-	ASSERT(!p->e.exited);
+	assert(!p->e.exited);
 	
 	TPRINTF("reader_next2{ ");
 	rcu_read_lock();

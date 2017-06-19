@@ -47,7 +47,7 @@
 #include <arch/barrier.h>
 #include <synch/spinlock.h>
 #include <arch.h>
-#include <debug.h>
+#include <assert.h>
 #include <adt/hash_table.h>
 #include <align.h>
 
@@ -136,9 +136,9 @@ size_t hash(sysarg_t key[])
  */
 bool compare(sysarg_t key[], size_t keys, link_t *item)
 {
-	ASSERT(item);
-	ASSERT(keys > 0);
-	ASSERT(keys <= PAGE_HT_KEYS);
+	assert(item);
+	assert(keys > 0);
+	assert(keys <= PAGE_HT_KEYS);
 	
 	/*
 	 * Convert item to PTE.
@@ -160,7 +160,7 @@ bool compare(sysarg_t key[], size_t keys, link_t *item)
  */
 void remove_callback(link_t *item)
 {
-	ASSERT(item);
+	assert(item);
 	
 	/*
 	 * Convert item to PTE.
@@ -190,13 +190,13 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
-	ASSERT(page_table_locked(as));
+	assert(page_table_locked(as));
 
 	irq_spinlock_lock(&page_ht_lock, true);
 	
 	if (!hash_table_find(&page_ht, key)) {
 		pte_t *pte = slab_alloc(pte_cache, FRAME_LOWMEM | FRAME_ATOMIC);
-		ASSERT(pte != NULL);
+		assert(pte != NULL);
 		
 		pte->g = (flags & PAGE_GLOBAL) != 0;
 		pte->x = (flags & PAGE_EXEC) != 0;
@@ -240,7 +240,7 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
-	ASSERT(page_table_locked(as));
+	assert(page_table_locked(as));
 	
 	irq_spinlock_lock(&page_ht_lock, true);
 
@@ -260,7 +260,7 @@ static pte_t *ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
-	ASSERT(nolock || page_table_locked(as));
+	assert(nolock || page_table_locked(as));
 
 	link_t *cur = hash_table_find(&page_ht, key);
 	if (cur)
@@ -306,15 +306,15 @@ void ht_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 	if (!t)
 		panic("Updating non-existent PTE");
 	
-	ASSERT(pte->as == t->as);
-	ASSERT(pte->page == t->page);
-	ASSERT(pte->frame == t->frame);
-	ASSERT(pte->g == t->g);
-	ASSERT(pte->x == t->x);
-	ASSERT(pte->w == t->w);
-	ASSERT(pte->k == t->k);
-	ASSERT(pte->c == t->c);
-	ASSERT(pte->p == t->p);
+	assert(pte->as == t->as);
+	assert(pte->page == t->page);
+	assert(pte->frame == t->frame);
+	assert(pte->g == t->g);
+	assert(pte->x == t->x);
+	assert(pte->w == t->w);
+	assert(pte->k == t->k);
+	assert(pte->c == t->c);
+	assert(pte->p == t->p);
 
 	t->a = pte->a;
 	t->d = pte->d;

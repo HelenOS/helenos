@@ -37,8 +37,9 @@
  * Udebug is an interface that makes userspace debuggers possible.
  */
 
-#include <synch/waitq.h>
+#include <assert.h>
 #include <debug.h>
+#include <synch/waitq.h>
 #include <udebug/udebug.h>
 #include <errno.h>
 #include <print.h>
@@ -115,8 +116,8 @@ static void udebug_wait_for_go(waitq_t *wq)
  */
 void udebug_stoppable_begin(void)
 {
-	ASSERT(THREAD);
-	ASSERT(TASK);
+	assert(THREAD);
+	assert(TASK);
 	
 	mutex_lock(&TASK->udebug.lock);
 	
@@ -124,7 +125,7 @@ void udebug_stoppable_begin(void)
 	
 	/* Lock order OK, THREAD->udebug.lock is after TASK->udebug.lock */
 	mutex_lock(&THREAD->udebug.lock);
-	ASSERT(THREAD->udebug.stoppable == false);
+	assert(THREAD->udebug.stoppable == false);
 	THREAD->udebug.stoppable = true;
 	
 	if ((TASK->udebug.dt_state == UDEBUG_TS_BEGINNING) && (nsc == 0)) {
@@ -135,7 +136,7 @@ void udebug_stoppable_begin(void)
 		 */
 		
 		call_t *db_call = TASK->udebug.begin_call;
-		ASSERT(db_call);
+		assert(db_call);
 		
 		TASK->udebug.dt_state = UDEBUG_TS_ACTIVE;
 		TASK->udebug.begin_call = NULL;
@@ -157,7 +158,7 @@ void udebug_stoppable_begin(void)
 			/* Make sure nobody takes this call away from us */
 			call_t *go_call = THREAD->udebug.go_call;
 			THREAD->udebug.go_call = NULL;
-			ASSERT(go_call);
+			assert(go_call);
 			
 			IPC_SET_RETVAL(go_call->data, 0);
 			IPC_SET_ARG1(go_call->data, UDEBUG_EVENT_STOP);
@@ -194,7 +195,7 @@ restart:
 		/* Must try again - have to lose stoppability atomically. */
 	} else {
 		++TASK->udebug.not_stoppable_count;
-		ASSERT(THREAD->udebug.stoppable == true);
+		assert(THREAD->udebug.stoppable == true);
 		THREAD->udebug.stoppable = false;
 		
 		mutex_unlock(&THREAD->udebug.lock);
@@ -397,7 +398,7 @@ void udebug_thread_e_event(void)
  */
 int udebug_task_cleanup(struct task *task)
 {
-	ASSERT(mutex_locked(&task->udebug.lock));
+	assert(mutex_locked(&task->udebug.lock));
 
 	if ((task->udebug.dt_state != UDEBUG_TS_BEGINNING) &&
 	    (task->udebug.dt_state != UDEBUG_TS_ACTIVE)) {

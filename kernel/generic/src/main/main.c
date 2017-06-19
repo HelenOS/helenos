@@ -47,10 +47,11 @@
  */
 
 #include <arch/asm.h>
+#include <debug.h>
 #include <context.h>
 #include <print.h>
 #include <panic.h>
-#include <debug.h>
+#include <assert.h>
 #include <config.h>
 #include <time/clock.h>
 #include <time/timeout.h>
@@ -97,7 +98,7 @@
  * but this file is compiled on all architectures.
  */
 #define CHECK_INT_TYPE_(signness, size) \
-	STATIC_ASSERT_VERBOSE(sizeof(signness##size##_t) * 8 == size, \
+	static_assert(sizeof(signness##size##_t) * 8 == size, \
 	    #signness #size "_t does not have " #size " bits");
 
 #define CHECK_INT_TYPE(size) \

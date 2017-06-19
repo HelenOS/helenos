@@ -122,7 +122,8 @@
  *     http://www.rdrop.com/users/paulmck/RCU/urcu-supp-accepted.2011.08.30a.pdf
  * 
  */
- 
+
+#include <assert.h>
 #include <synch/rcu.h>
 #include <synch/condvar.h>
 #include <synch/semaphore.h>
@@ -403,7 +404,7 @@ void rcu_stop(void)
 {
 	/* Stop and wait for reclaimers. */
 	for (unsigned int cpu_id = 0; cpu_id < config.cpu_active; ++cpu_id) {
-		ASSERT(cpus[cpu_id].rcu.reclaimer_thr != NULL);
+		assert(cpus[cpu_id].rcu.reclaimer_thr != NULL);
 	
 		if (cpus[cpu_id].rcu.reclaimer_thr) {
 			thread_interrupt(cpus[cpu_id].rcu.reclaimer_thr);
@@ -486,7 +487,7 @@ bool rcu_read_locked(void)
  */
 static void read_unlock_impl(size_t *pnesting_cnt)
 {
-	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
+	assert(PREEMPTION_DISABLED || interrupts_disabled());
 	
 	if (0 == --(*pnesting_cnt)) {
 		_rcu_record_qs();
@@ -508,7 +509,7 @@ static void read_unlock_impl(size_t *pnesting_cnt)
 /** If necessary, signals the detector that we exited a reader section. */
 void _rcu_signal_read_unlock(void)
 {
-	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
+	assert(PREEMPTION_DISABLED || interrupts_disabled());
 	
 	/*
 	 * If an interrupt occurs here (even a NMI) it may beat us to
@@ -530,7 +531,7 @@ void _rcu_signal_read_unlock(void)
 	 * detector if so.
 	 */
 	if (THREAD && local_atomic_exchange(&THREAD->rcu.was_preempted, false)) {
-		ASSERT(link_used(&THREAD->rcu.preempt_link));
+		assert(link_used(&THREAD->rcu.preempt_link));
 
 		rm_preempted_reader();
 	}
@@ -562,7 +563,7 @@ void rcu_synchronize_expedite(void)
 void _rcu_synchronize(bool expedite)
 {
 	/* Calling from a reader section will deadlock. */
-	ASSERT(!rcu_read_locked());
+	assert(!rcu_read_locked());
 	
 	synch_item_t completion; 
 
@@ -575,7 +576,7 @@ void _rcu_synchronize(bool expedite)
 static void synch_complete(rcu_item_t *rcu_item)
 {
 	synch_item_t *completion = member_to_inst(rcu_item, synch_item_t, rcu_item);
-	ASSERT(completion);
+	assert(completion);
 	waitq_wakeup(&completion->wq, WAKEUP_FIRST);
 }
 
@@ -614,7 +615,7 @@ void rcu_barrier(void)
  */
 static void add_barrier_cb(void *arg)
 {
-	ASSERT(interrupts_disabled() || PREEMPTION_DISABLED);
+	assert(interrupts_disabled() || PREEMPTION_DISABLED);
 	atomic_inc(&rcu.barrier_wait_cnt);
 	rcu_call(&CPU->rcu.barrier_item, barrier_complete);
 }
@@ -656,7 +657,7 @@ void _rcu_call(bool expedite, rcu_item_t *rcu_item, rcu_func_t func)
 static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item, 
 	rcu_func_t func)
 {
-	ASSERT(rcu_item);
+	assert(rcu_item);
 	
 	rcu_item->func = func;
 	rcu_item->next = NULL;
@@ -688,20 +689,20 @@ static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
 
 static bool cur_cbs_empty(void)
 {
-	ASSERT(THREAD && THREAD->wired);
+	assert(THREAD && THREAD->wired);
 	return NULL == CPU->rcu.cur_cbs;
 }
 
 static bool next_cbs_empty(void)
 {
-	ASSERT(THREAD && THREAD->wired);
+	assert(THREAD && THREAD->wired);
 	return NULL == CPU->rcu.next_cbs;
 }
 
 /** Disable interrupts to get an up-to-date result. */
 static bool arriving_cbs_empty(void)
 {
-	ASSERT(THREAD && THREAD->wired);
+	assert(THREAD && THREAD->wired);
 	/* 
 	 * Accessing with interrupts enabled may at worst lead to 
 	 * a false negative if we race with a local interrupt handler.
@@ -718,14 +719,14 @@ static bool all_cbs_empty(void)
 /** Reclaimer thread dispatches locally queued callbacks once a GP ends. */
 static void reclaimer(void *arg)
 {
-	ASSERT(THREAD && THREAD->wired);
-	ASSERT(THREAD == CPU->rcu.reclaimer_thr);
+	assert(THREAD && THREAD->wired);
+	assert(THREAD == CPU->rcu.reclaimer_thr);
 
 	rcu_gp_t last_compl_gp = 0;
 	bool ok = true;
 	
 	while (ok && wait_for_pending_cbs()) {
-		ASSERT(CPU->rcu.reclaimer_thr == THREAD);
+		assert(CPU->rcu.reclaimer_thr == THREAD);
 		
 		exec_completed_cbs(last_compl_gp);
 
@@ -764,7 +765,7 @@ static void exec_completed_cbs(rcu_gp_t last_completed_gp)
 	
 	/* Both next_cbs and cur_cbs GP elapsed. */
 	if (CPU->rcu.next_cbs_gp <= last_completed_gp) {
-		ASSERT(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
+		assert(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
 		
 		size_t exec_cnt = CPU->rcu.cur_cbs_cnt + CPU->rcu.next_cbs_cnt;
 		
@@ -863,7 +864,7 @@ static bool advance_cbs(void)
 	 * to the head of arriving_cbs and we can safely reset it to NULL.
 	 */
 	if (CPU->rcu.next_cbs) {
-		ASSERT(CPU->rcu.parriving_cbs_tail != &CPU->rcu.arriving_cbs);
+		assert(CPU->rcu.parriving_cbs_tail != &CPU->rcu.arriving_cbs);
 		
 		CPU->rcu.arriving_cbs = NULL;
 		/* Reset arriving_cbs before updating the tail pointer. */
@@ -912,7 +913,7 @@ static bool advance_cbs(void)
 		CPU->rcu.next_cbs_gp = CPU->rcu.cur_cbs_gp;
 	}
 	
-	ASSERT(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
+	assert(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
 	
 	return expedite;	
 }
@@ -932,8 +933,8 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 {
 	spinlock_lock(&rcu.gp_lock);
 
-	ASSERT(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
-	ASSERT(CPU->rcu.cur_cbs_gp <= _rcu_cur_gp + 1);
+	assert(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
+	assert(CPU->rcu.cur_cbs_gp <= _rcu_cur_gp + 1);
 	
 	while (rcu.completed_gp < CPU->rcu.cur_cbs_gp) {
 		/* GP has not yet started - start a new one. */
@@ -1028,7 +1029,7 @@ static bool gp_sleep(bool *expedite)
 
 static void sample_local_cpu(void *arg)
 {
-	ASSERT(interrupts_disabled());
+	assert(interrupts_disabled());
 	cpu_mask_t *reader_cpus = (cpu_mask_t *)arg;
 	
 	bool locked = RCU_CNT_INC <= THE->rcu_nesting;
@@ -1053,7 +1054,7 @@ static void sample_local_cpu(void *arg)
 /** Called by the scheduler() when switching away from the current thread. */
 void rcu_after_thread_ran(void)
 {
-	ASSERT(interrupts_disabled());
+	assert(interrupts_disabled());
 
 	/* 
 	 * In order not to worry about NMI seeing rcu_nesting change work 
@@ -1115,7 +1116,7 @@ void rcu_after_thread_ran(void)
 /** Called by the scheduler() when switching to a newly scheduled thread. */
 void rcu_before_thread_runs(void)
 {
-	ASSERT(!rcu_read_locked());
+	assert(!rcu_read_locked());
 	
 	/* Load the thread's saved nesting count from before it was preempted. */
 	THE->rcu_nesting = THREAD->rcu.nesting_cnt;
@@ -1128,7 +1129,7 @@ void rcu_before_thread_runs(void)
  */
 void rcu_thread_exiting(void)
 {
-	ASSERT(THE->rcu_nesting == 0);
+	assert(THE->rcu_nesting == 0);
 	
 	/* 
 	 * The thread forgot to exit its reader critical section. 
@@ -1156,7 +1157,7 @@ bool rcu_read_locked(void)
 /** Invoked when a preempted reader finally exits its reader section. */
 void _rcu_preempted_unlock(void)
 {
-	ASSERT(0 == THE->rcu_nesting || RCU_WAS_PREEMPTED == THE->rcu_nesting);
+	assert(0 == THE->rcu_nesting || RCU_WAS_PREEMPTED == THE->rcu_nesting);
 	
 	size_t prev = local_atomic_exchange(&THE->rcu_nesting, 0);
 	if (prev == RCU_WAS_PREEMPTED) {
@@ -1219,8 +1220,8 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 		return true;
 	}
 	
-	ASSERT(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
-	ASSERT(_rcu_cur_gp <= CPU->rcu.cur_cbs_gp);
+	assert(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
+	assert(_rcu_cur_gp <= CPU->rcu.cur_cbs_gp);
 	
 	/* 
 	 * Notify the detector of how many GP ends we intend to wait for, so 
@@ -1261,7 +1262,7 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 /** Waits for an announcement of the end of the grace period wait_on_gp. */
 static bool cv_wait_for_gp(rcu_gp_t wait_on_gp)
 {
-	ASSERT(spinlock_locked(&rcu.gp_lock));
+	assert(spinlock_locked(&rcu.gp_lock));
 	
 	bool interrupted = false;
 	
@@ -1283,7 +1284,7 @@ static void req_detection(size_t req_cnt)
 		rcu.req_gp_end_cnt = req_cnt;
 
 		if (detector_idle) {
-			ASSERT(_rcu_cur_gp == rcu.completed_gp);
+			assert(_rcu_cur_gp == rcu.completed_gp);
 			condvar_signal(&rcu.req_gp_changed);
 		}
 	}
@@ -1322,7 +1323,7 @@ unlocked_out:
 /** Waits for a request from a reclaimer thread to detect a grace period. */
 static bool wait_for_detect_req(void)
 {
-	ASSERT(spinlock_locked(&rcu.gp_lock));
+	assert(spinlock_locked(&rcu.gp_lock));
 	
 	bool interrupted = false;
 	
@@ -1339,7 +1340,7 @@ static bool wait_for_detect_req(void)
 
 static void end_cur_gp(void)
 {
-	ASSERT(spinlock_locked(&rcu.gp_lock));
+	assert(spinlock_locked(&rcu.gp_lock));
 	
 	rcu.completed_gp = _rcu_cur_gp;
 	--rcu.req_gp_end_cnt;
@@ -1422,14 +1423,14 @@ static void interrupt_delaying_cpus(cpu_mask_t *cpu_mask)
  */
 static void sample_local_cpu(void *arg)
 {
-	ASSERT(interrupts_disabled());
-	ASSERT(!CPU->rcu.is_delaying_gp);
+	assert(interrupts_disabled());
+	assert(!CPU->rcu.is_delaying_gp);
 	
 	/* Cpu did not pass a quiescent state yet. */
 	if (CPU->rcu.last_seen_gp != _rcu_cur_gp) {
 		/* Interrupted a reader in a reader critical section. */
 		if (0 < CPU->rcu.nesting_cnt) {
-			ASSERT(!CPU->idle);
+			assert(!CPU->idle);
 			/* 
 			 * Note to notify the detector from rcu_read_unlock(). 
 			 * 
@@ -1491,7 +1492,7 @@ static bool wait_for_delaying_cpus(void)
 /** Called by the scheduler() when switching away from the current thread. */
 void rcu_after_thread_ran(void)
 {
-	ASSERT(interrupts_disabled());
+	assert(interrupts_disabled());
 
 	/* 
 	 * Prevent NMI handlers from interfering. The detector will be notified
@@ -1558,8 +1559,8 @@ void rcu_after_thread_ran(void)
 /** Called by the scheduler() when switching to a newly scheduled thread. */
 void rcu_before_thread_runs(void)
 {
-	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
-	ASSERT(0 == CPU->rcu.nesting_cnt);
+	assert(PREEMPTION_DISABLED || interrupts_disabled());
+	assert(0 == CPU->rcu.nesting_cnt);
 	
 	/* Load the thread's saved nesting count from before it was preempted. */
 	CPU->rcu.nesting_cnt = THREAD->rcu.nesting_cnt;
@@ -1589,9 +1590,9 @@ void rcu_before_thread_runs(void)
  */
 void rcu_thread_exiting(void)
 {
-	ASSERT(THREAD != NULL);
-	ASSERT(THREAD->state == Exiting);
-	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
+	assert(THREAD != NULL);
+	assert(THREAD->state == Exiting);
+	assert(PREEMPTION_DISABLED || interrupts_disabled());
 	
 	/* 
 	 * The thread forgot to exit its reader critical section. 
@@ -1614,7 +1615,7 @@ void rcu_thread_exiting(void)
 /** Announces the start of a new grace period for preexisting readers to ack. */
 static void start_new_gp(void)
 {
-	ASSERT(spinlock_locked(&rcu.gp_lock));
+	assert(spinlock_locked(&rcu.gp_lock));
 	
 	irq_spinlock_lock(&rcu.preempt_lock, true);
 	
@@ -1733,7 +1734,7 @@ static void sample_cpus(cpu_mask_t *reader_cpus, void *arg)
 
 static void upd_missed_gp_in_wait(rcu_gp_t completed_gp)
 {
-	ASSERT(CPU->rcu.cur_cbs_gp <= completed_gp);
+	assert(CPU->rcu.cur_cbs_gp <= completed_gp);
 	
 	size_t delta = (size_t)(completed_gp - CPU->rcu.cur_cbs_gp);
 	CPU->rcu.stat_missed_gp_in_wait += delta;
@@ -1763,7 +1764,7 @@ static void rm_preempted_reader(void)
 {
 	irq_spinlock_lock(&rcu.preempt_lock, true);
 	
-	ASSERT(link_used(&THREAD->rcu.preempt_link));
+	assert(link_used(&THREAD->rcu.preempt_link));
 
 	bool prev_empty = list_empty(&rcu.cur_preempted);
 	list_remove(&THREAD->rcu.preempt_link);

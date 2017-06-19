@@ -34,6 +34,7 @@
  * @brief EGA driver.
  */
 
+#include <debug.h>
 #include <genarch/drivers/ega/ega.h>
 #include <putchar.h>
 #include <mm/km.h>

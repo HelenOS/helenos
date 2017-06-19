@@ -36,6 +36,7 @@
  * @brief Kernel console special prompts.
  */
 
+#include <assert.h>
 #include <console/prompt.h>
 
 /** Display the <i>display all possibilities</i> prompt and wait for answer.
@@ -48,8 +49,8 @@
  */
 bool console_prompt_display_all_hints(indev_t *indev, size_t hints)
 {
-	ASSERT(indev);
-	ASSERT(hints > 0);
+	assert(indev);
+	assert(hints > 0);
 	
 	printf("Display all %zu possibilities? (y or n) ", hints);
 	
@@ -80,8 +81,8 @@ bool console_prompt_display_all_hints(indev_t *indev, size_t hints)
  */
 bool console_prompt_more_hints(indev_t *indev, size_t *display_hints)
 {
-	ASSERT(indev);
-	ASSERT(display_hints != NULL);
+	assert(indev);
+	assert(display_hints != NULL);
 	
 	printf("--More--");
 	while (true) {

@@ -34,6 +34,7 @@
  * @brief Serial line processing.
  */
 
+#include <assert.h>
 #include <genarch/srln/srln.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -147,8 +148,8 @@ srln_instance_t *srln_init(void)
 
 indev_t *srln_wire(srln_instance_t *instance, indev_t *sink)
 {
-	ASSERT(instance);
-	ASSERT(sink);
+	assert(instance);
+	assert(sink);
 	
 	instance->sink = sink;
 	thread_ready(instance->thread);

@@ -34,6 +34,7 @@
  * @brief Kernel event notifications.
  */
 
+#include <assert.h>
 #include <ipc/event.h>
 #include <mm/slab.h>
 #include <typedefs.h>
@@ -58,7 +59,7 @@ static void event_initialize(event_t *event)
 
 static event_t *evno2event(int evno, task_t *task)
 {
-	ASSERT(evno < EVENT_TASK_END);
+	assert(evno < EVENT_TASK_END);
 	
 	event_t *event;
 	
@@ -122,7 +123,7 @@ static void _event_set_unmask_callback(event_t *event, event_callback_t callback
  */
 void event_set_unmask_callback(event_type_t evno, event_callback_t callback)
 {
-	ASSERT(evno < EVENT_END);
+	assert(evno < EVENT_END);
 	
 	_event_set_unmask_callback(evno2event(evno, NULL), callback);
 }
@@ -130,8 +131,8 @@ void event_set_unmask_callback(event_type_t evno, event_callback_t callback)
 void event_task_set_unmask_callback(task_t *task, event_task_type_t evno,
     event_callback_t callback)
 {
-	ASSERT(evno >= (int) EVENT_END);
-	ASSERT(evno < EVENT_TASK_END);
+	assert(evno >= (int) EVENT_END);
+	assert(evno < EVENT_TASK_END);
 		
 	_event_set_unmask_callback(evno2event(evno, task), callback);
 }
@@ -207,7 +208,7 @@ static int event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2,
 int event_notify(event_type_t evno, bool mask, sysarg_t a1, sysarg_t a2,
     sysarg_t a3, sysarg_t a4, sysarg_t a5)
 {
-	ASSERT(evno < EVENT_END);
+	assert(evno < EVENT_END);
 	
 	return event_enqueue(evno2event(evno, NULL), mask, a1, a2, a3, a4, a5);
 }
@@ -235,8 +236,8 @@ int event_notify(event_type_t evno, bool mask, sysarg_t a1, sysarg_t a2,
 int event_task_notify(task_t *task, event_task_type_t evno, bool mask,
     sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5)
 {
-	ASSERT(evno >= (int) EVENT_END);
-	ASSERT(evno < EVENT_TASK_END);
+	assert(evno >= (int) EVENT_END);
+	assert(evno < EVENT_TASK_END);
 	
 	return event_enqueue(evno2event(evno, task), mask, a1, a2, a3, a4, a5);
 }

@@ -36,7 +36,7 @@
  */
 
 #include <lib/elf.h>
-#include <debug.h>
+#include <assert.h>
 #include <typedefs.h>
 #include <mm/as.h>
 #include <mm/frame.h>
@@ -141,8 +141,8 @@ void elf_share(as_area_t *area)
 	btree_node_t *leaf, *node;
 	uintptr_t start_anon = entry->p_vaddr + entry->p_filesz;
 
-	ASSERT(mutex_locked(&area->as->lock));
-	ASSERT(mutex_locked(&area->lock));
+	assert(mutex_locked(&area->as->lock));
+	assert(mutex_locked(&area->lock));
 
 	/*
 	 * Find the node in which to start linear search.
@@ -199,9 +199,9 @@ void elf_share(as_area_t *area)
 				found = page_mapping_find(area->as,
 				    base + P2SZ(j), false, &pte);
 
-				ASSERT(found);
-				ASSERT(PTE_VALID(&pte));
-				ASSERT(PTE_PRESENT(&pte));
+				assert(found);
+				assert(PTE_VALID(&pte));
+				assert(PTE_PRESENT(&pte));
 
 				btree_insert(&area->sh_info->pagemap,
 				    (base + P2SZ(j)) - area->base,
@@ -260,9 +260,9 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	size_t i;
 	bool dirty = false;
 
-	ASSERT(page_table_locked(AS));
-	ASSERT(mutex_locked(&area->lock));
-	ASSERT(IS_ALIGNED(upage, PAGE_SIZE));
+	assert(page_table_locked(AS));
+	assert(mutex_locked(&area->lock));
+	assert(IS_ALIGNED(upage, PAGE_SIZE));
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
@@ -344,8 +344,8 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 			found = page_mapping_find(AS_KERNEL,
 			    base + i * FRAME_SIZE, true, &pte);
 
-			ASSERT(found);
-			ASSERT(PTE_PRESENT(&pte));
+			assert(found);
+			assert(PTE_PRESENT(&pte));
 
 			frame = PTE_GET_FRAME(&pte);
 		}	
@@ -423,11 +423,11 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	elf_segment_header_t *entry = area->backend_data.segment;
 	uintptr_t start_anon;
 
-	ASSERT(page_table_locked(area->as));
-	ASSERT(mutex_locked(&area->lock));
+	assert(page_table_locked(area->as));
+	assert(mutex_locked(&area->lock));
 
-	ASSERT(page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE));
-	ASSERT(page < entry->p_vaddr + entry->p_memsz);
+	assert(page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE));
+	assert(page < entry->p_vaddr + entry->p_memsz);
 
 	start_anon = entry->p_vaddr + entry->p_filesz;
 

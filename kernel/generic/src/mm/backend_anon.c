@@ -36,6 +36,7 @@
  *
  */
 
+#include <assert.h>
 #include <mm/as.h>
 #include <mm/page.h>
 #include <mm/reserve.h>
@@ -112,9 +113,9 @@ bool anon_resize(as_area_t *area, size_t new_pages)
  */
 void anon_share(as_area_t *area)
 {
-	ASSERT(mutex_locked(&area->as->lock));
-	ASSERT(mutex_locked(&area->lock));
-	ASSERT(!(area->flags & AS_AREA_LATE_RESERVE));
+	assert(mutex_locked(&area->as->lock));
+	assert(mutex_locked(&area->lock));
+	assert(!(area->flags & AS_AREA_LATE_RESERVE));
 
 	/*
 	 * Copy used portions of the area to sh_info's page map.
@@ -137,9 +138,9 @@ void anon_share(as_area_t *area)
 				found = page_mapping_find(area->as,
 				    base + P2SZ(j), false, &pte);
 
-				ASSERT(found);
-				ASSERT(PTE_VALID(&pte));
-				ASSERT(PTE_PRESENT(&pte));
+				assert(found);
+				assert(PTE_VALID(&pte));
+				assert(PTE_PRESENT(&pte));
 
 				btree_insert(&area->sh_info->pagemap,
 				    (base + P2SZ(j)) - area->base,
@@ -189,9 +190,9 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	uintptr_t kpage;
 	uintptr_t frame;
 
-	ASSERT(page_table_locked(AS));
-	ASSERT(mutex_locked(&area->lock));
-	ASSERT(IS_ALIGNED(upage, PAGE_SIZE));
+	assert(page_table_locked(AS));
+	assert(mutex_locked(&area->lock));
+	assert(IS_ALIGNED(upage, PAGE_SIZE));
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
@@ -293,8 +294,8 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
  */
 void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
-	ASSERT(page_table_locked(area->as));
-	ASSERT(mutex_locked(&area->lock));
+	assert(page_table_locked(area->as));
+	assert(mutex_locked(&area->lock));
 
 	if (area->flags & AS_AREA_LATE_RESERVE) {
 		/*

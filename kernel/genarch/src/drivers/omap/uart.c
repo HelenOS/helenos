@@ -34,6 +34,7 @@
  * @brief Texas Instruments OMAP on-chip uart serial line driver.
  */
 
+#include <assert.h>
 #include <genarch/drivers/omap/uart.h>
 #include <ddi/device.h>
 #include <str.h>
@@ -85,10 +86,10 @@ static void omap_uart_handler(irq_t *irq)
 bool omap_uart_init(
     omap_uart_t *uart, inr_t interrupt, uintptr_t addr, size_t size)
 {
-	ASSERT(uart);
+	assert(uart);
 	uart->regs = (void *)km_map(addr, size, PAGE_NOT_CACHEABLE);
 
-	ASSERT(uart->regs);
+	assert(uart->regs);
 
 	/* Soft reset the port */
 	uart->regs->sysc = OMAP_UART_SYSC_SOFTRESET_FLAG;
@@ -170,7 +171,7 @@ bool omap_uart_init(
 
 void omap_uart_input_wire(omap_uart_t *uart, indev_t *indev)
 {
-	ASSERT(uart);
+	assert(uart);
 	/* Set indev */
 	uart->indev = indev;
 	/* Register interrupt. */

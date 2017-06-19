@@ -35,6 +35,7 @@
  * @brief Thread management functions.
  */
 
+#include <assert.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
@@ -63,7 +64,6 @@
 #include <mem.h>
 #include <print.h>
 #include <mm/slab.h>
-#include <debug.h>
 #include <main/uinit.h>
 #include <syscall/copy.h>
 #include <errno.h>
@@ -267,7 +267,7 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
 /** Invoked right before thread_ready() readies the thread. thread is locked. */
 static void before_thread_is_ready(thread_t *thread)
 {
-	ASSERT(irq_spinlock_locked(&thread->lock));
+	assert(irq_spinlock_locked(&thread->lock));
 	workq_before_thread_is_ready(thread);
 }
 
@@ -282,7 +282,7 @@ void thread_ready(thread_t *thread)
 {
 	irq_spinlock_lock(&thread->lock, true);
 	
-	ASSERT(thread->state != Ready);
+	assert(thread->state != Ready);
 
 	before_thread_is_ready(thread);
 	
@@ -292,14 +292,14 @@ void thread_ready(thread_t *thread)
 	cpu_t *cpu;
 	if (thread->wired || thread->nomigrate || thread->fpu_context_engaged) {
 		/* Cannot ready to another CPU */
-		ASSERT(thread->cpu != NULL);
+		assert(thread->cpu != NULL);
 		cpu = thread->cpu;
 	} else if (thread->stolen) {
 		/* Ready to the stealing CPU */
 		cpu = CPU;
 	} else if (thread->cpu) {
 		/* Prefer the CPU on which the thread ran last */
-		ASSERT(thread->cpu != NULL);
+		assert(thread->cpu != NULL);
 		cpu = thread->cpu;
 	} else {
 		cpu = CPU;
@@ -430,10 +430,10 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
  */
 void thread_destroy(thread_t *thread, bool irq_res)
 {
-	ASSERT(irq_spinlock_locked(&thread->lock));
-	ASSERT((thread->state == Exiting) || (thread->state == Lingering));
-	ASSERT(thread->task);
-	ASSERT(thread->cpu);
+	assert(irq_spinlock_locked(&thread->lock));
+	assert((thread->state == Exiting) || (thread->state == Lingering));
+	assert(thread->task);
+	assert(thread->cpu);
 	
 	irq_spinlock_lock(&thread->cpu->lock, false);
 	if (thread->cpu->fpu_owner == thread)
@@ -560,7 +560,7 @@ restart:
  */
 void thread_interrupt(thread_t *thread)
 {
-	ASSERT(thread != NULL);
+	assert(thread != NULL);
 	
 	irq_spinlock_lock(&thread->lock, true);
 	
@@ -581,7 +581,7 @@ void thread_interrupt(thread_t *thread)
  */
 bool thread_interrupted(thread_t *thread)
 {
-	ASSERT(thread != NULL);
+	assert(thread != NULL);
 	
 	bool interrupted;
 	
@@ -595,7 +595,7 @@ bool thread_interrupted(thread_t *thread)
 /** Prevent the current thread from being migrated to another processor. */
 void thread_migration_disable(void)
 {
-	ASSERT(THREAD);
+	assert(THREAD);
 	
 	THREAD->nomigrate++;
 }
@@ -603,8 +603,8 @@ void thread_migration_disable(void)
 /** Allow the current thread to be migrated to another processor. */
 void thread_migration_enable(void)
 {
-	ASSERT(THREAD);
-	ASSERT(THREAD->nomigrate > 0);
+	assert(THREAD);
+	assert(THREAD->nomigrate > 0);
 	
 	if (THREAD->nomigrate > 0)
 		THREAD->nomigrate--;
@@ -649,7 +649,7 @@ int thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 	 */
 	
 	irq_spinlock_lock(&thread->lock, true);
-	ASSERT(!thread->detached);
+	assert(!thread->detached);
 	irq_spinlock_unlock(&thread->lock, true);
 	
 	return waitq_sleep_timeout(&thread->join_wq, usec, flags);
@@ -670,7 +670,7 @@ void thread_detach(thread_t *thread)
 	 * pointer to it must be still valid.
 	 */
 	irq_spinlock_lock(&thread->lock, true);
-	ASSERT(!thread->detached);
+	assert(!thread->detached);
 	
 	if (thread->state == Lingering) {
 		/*
@@ -808,8 +808,8 @@ void thread_print_list(bool additional)
  */
 bool thread_exists(thread_t *thread)
 {
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&threads_lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&threads_lock));
 
 	avltree_node_t *node =
 	    avltree_search(&threads_tree, (avltree_key_t) ((uintptr_t) thread));
@@ -829,8 +829,8 @@ void thread_update_accounting(bool user)
 {
 	uint64_t time = get_cycle();
 
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&THREAD->lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&THREAD->lock));
 	
 	if (user)
 		THREAD->ucycles += time - THREAD->last_cycle;
@@ -866,8 +866,8 @@ static bool thread_search_walker(avltree_node_t *node, void *arg)
  */
 thread_t *thread_find_by_id(thread_id_t thread_id)
 {
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&threads_lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&threads_lock));
 	
 	thread_iterator_t iterator;
 	

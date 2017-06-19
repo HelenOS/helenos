@@ -38,7 +38,7 @@
 #include <panic.h>
 #include <arch/cp0.h>
 #include <arch.h>
-#include <debug.h>
+#include <assert.h>
 #include <proc/thread.h>
 #include <print.h>
 #include <interrupt.h>
@@ -119,7 +119,7 @@ static void unhandled_exception(unsigned int n, istate_t *istate)
 static void reserved_instr_exception(unsigned int n, istate_t *istate)
 {
 	if (*((uint32_t *) istate->epc) == 0x7c03e83b) {
-		ASSERT(THREAD);
+		assert(THREAD);
 		istate->epc += 4;
 		istate->v1 = istate->kt1;
 	} else

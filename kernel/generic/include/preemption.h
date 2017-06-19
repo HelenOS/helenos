@@ -36,8 +36,8 @@
 #define KERN_PREEMPTION_H_
 
 #include <arch.h>
+#include <assert.h>
 #include <compiler/barrier.h>
-#include <debug.h>
 
 #define PREEMPTION_INC         (1 << 0)
 #define PREEMPTION_DISABLED    (PREEMPTION_INC <= THE->preemption)
@@ -53,7 +53,7 @@
 /** Restores preemption but never reschedules. */
 #define preemption_enable() \
 	do { \
-		ASSERT(PREEMPTION_DISABLED); \
+		assert(PREEMPTION_DISABLED); \
 		compiler_barrier(); \
 		THE->preemption -= PREEMPTION_INC; \
 	} while (0)

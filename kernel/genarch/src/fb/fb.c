@@ -33,6 +33,8 @@
 /** @file
  */
 
+#include <assert.h>
+#include <debug.h>
 #include <genarch/fb/font-8x16.h>
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
@@ -510,10 +512,10 @@ static void fb_redraw(outdev_t *dev)
  */
 outdev_t *fb_init(fb_properties_t *props)
 {
-	ASSERT(props);
-	ASSERT(props->x > 0);
-	ASSERT(props->y > 0);
-	ASSERT(props->scan > 0);
+	assert(props);
+	assert(props->x > 0);
+	assert(props->y > 0);
+	assert(props->scan > 0);
 	
 	rgb_conv_t rgb_conv;
 	unsigned int pixelbytes;

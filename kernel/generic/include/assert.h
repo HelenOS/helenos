@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericddi
+/** @addtogroup genericdebug
  * @{
  */
-/**
- * @file
- * @brief Device numbers.
+/** @file
  */
 
-#include <assert.h>
-#include <typedefs.h>
-#include <ddi/device.h>
-#include <atomic.h>
-#include <debug.h>
+#ifndef KERN_ASSERT_H_
+#define KERN_ASSERT_H_
 
-static atomic_t last;
+#include <panic.h>
 
-/** Assign new device number.
+#ifdef CONFIG_DEBUG
+
+/** Debugging assert macro
  *
- * @return Unique device number.
+ * If CONFIG_DEBUG is set, the assert() macro
+ * evaluates expr and if it is false raises
+ * kernel panic.
+ *
+ * @param expr Expression which is expected to be true.
+ *
  */
-devno_t device_assign_devno(void)
-{
-	devno_t devno = (devno_t) atomic_postinc(&last);
-	assert(devno >= 0);
-	
-	return devno;
-}
+#define assert(expr) \
+	do { \
+		if (!(expr)) \
+			panic_assert("%s() at %s:%u:\n%s", \
+			    __func__, __FILE__, __LINE__, #expr); \
+	} while (0)
 
-sysarg_t sys_device_assign_devno(void)
-{
-	return (sysarg_t) device_assign_devno();
-}
+/** Debugging verbose assert macro
+ *
+ * If CONFIG_DEBUG is set, the assert_verbose() macro
+ * evaluates expr and if it is false raises
+ * kernel panic. The panic message contains also
+ * the supplied message.
+ *
+ * @param expr Expression which is expected to be true.
+ * @param msg  Additional message to show (string).
+ *
+ */
+#define assert_verbose(expr, msg) \
+	do { \
+		if (!(expr)) \
+			panic_assert("%s() at %s:%u:\n%s, %s", \
+			    __func__, __FILE__, __LINE__, #expr, msg); \
+	} while (0)
+
+/** Static assert macro
+ *
+ */
+#define static_assert \
+	_Static_assert
+
+#else /* CONFIG_DEBUG */
+
+#define assert(expr)
+#define assert_verbose(expr, msg)
+#define static_assert(expr, msg)
+
+#endif /* CONFIG_DEBUG */
+
+#endif
 
 /** @}
  */

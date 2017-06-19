@@ -35,9 +35,9 @@
  * @brief Mutexes.
  */
 
+#include <assert.h>
 #include <synch/mutex.h>
 #include <synch/semaphore.h>
-#include <debug.h>
 #include <arch.h>
 #include <stacktrace.h>
 #include <cpu.h>
@@ -87,9 +87,9 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 	if ((mtx->type == MUTEX_PASSIVE) && (THREAD)) {
 		rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
 	} else {
-		ASSERT((mtx->type == MUTEX_ACTIVE) || (!THREAD));
-		ASSERT(usec == SYNCH_NO_TIMEOUT);
-		ASSERT(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
+		assert((mtx->type == MUTEX_ACTIVE) || (!THREAD));
+		assert(usec == SYNCH_NO_TIMEOUT);
+		assert(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
 		
 		unsigned int cnt = 0;
 		bool deadlock_reported = false;

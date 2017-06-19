@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <assert.h>
 #include <test.h>
 #include <print.h>
-#include <debug.h>
 #include <adt/cht.h>
 #include <synch/rcu.h>
 
@@ -44,7 +44,7 @@ typedef struct val {
 static size_t val_hash(const cht_link_t *item)
 {
 	val_t *v = member_to_inst(item, val_t, link);
-	ASSERT(v->hash == (v->unique_id % 10));
+	assert(v->hash == (v->unique_id % 10));
 	return v->hash;
 }
 
@@ -69,7 +69,7 @@ static bool val_key_equal(void *key, const cht_link_t *item2)
 static void val_rm_callback(cht_link_t *item)
 {
 	val_t *v = member_to_inst(item, val_t, link);
-	ASSERT(!v->deleted);
+	assert(!v->deleted);
 	v->deleted = true;
 	free(v);
 }
@@ -363,7 +363,7 @@ out_of_mem:
 static void op_stresser(void *arg)
 {
 	stress_work_t *work = (stress_work_t *)arg;
-	ASSERT(0 == *work->stop);
+	assert(0 == *work->stop);
 	
 	size_t loops = 0;
 	size_t seed = work->id;
@@ -527,7 +527,7 @@ static bool do_stress(void)
 		else 
 			thr[i] = thread_create(resize_stresser, &pwork[i], TASK, 0, "cht-resize");
 		
-		ASSERT(thr[i]);
+		assert(thr[i]);
 		thread_wire(thr[i], &cpus[i % config.cpu_active]);
 		thread_ready(thr[i]);
 	}

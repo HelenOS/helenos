@@ -37,6 +37,7 @@
  * First the answerbox, then the phone.
  */
 
+#include <assert.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/waitq.h>
@@ -51,7 +52,6 @@
 #include <arch.h>
 #include <proc/task.h>
 #include <mem.h>
-#include <debug.h>
 #include <print.h>
 #include <console/console.h>
 #include <proc/thread.h>
@@ -226,7 +226,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 		spinlock_lock(&request->forget_lock);
 		spinlock_lock(&TASK->active_calls_lock);
 
-		ASSERT(!request->forget);
+		assert(!request->forget);
 
 		bool answered = !request->active;
 		if (!answered) {
@@ -252,7 +252,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 			    SYNCH_FLAGS_NONE);
 		}
 	}
-	ASSERT(!answer || request == answer);
+	assert(!answer || request == answer);
 	
 	slab_free(ipc_answerbox_slab, mybox);
 	return rc;
@@ -630,7 +630,7 @@ restart_phones:
 		}
 		
 		/* Disconnect phone */
-		ASSERT(phone->state == IPC_PHONE_CONNECTED);
+		assert(phone->state == IPC_PHONE_CONNECTED);
 		
 		list_remove(&phone->link);
 		phone->state = IPC_PHONE_SLAMMED;
@@ -667,8 +667,8 @@ restart_phones:
 
 static void ipc_forget_call(call_t *call)
 {
-	ASSERT(spinlock_locked(&TASK->active_calls_lock));
-	ASSERT(spinlock_locked(&call->forget_lock));
+	assert(spinlock_locked(&TASK->active_calls_lock));
+	assert(spinlock_locked(&call->forget_lock));
 
 	/*
 	 * Forget the call and donate it to the task which holds up the answer.
@@ -788,7 +788,7 @@ restart:
 		
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
 	    SYNCH_FLAGS_NONE);
-	ASSERT(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
+	assert(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
 
 	SYSIPC_OP(answer_process, call);
 

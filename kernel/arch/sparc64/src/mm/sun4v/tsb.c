@@ -38,10 +38,10 @@
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
 #include <arch/barrier.h>
+#include <assert.h>
 #include <mm/as.h>
 #include <typedefs.h>
 #include <macros.h>
-#include <debug.h>
 
 /** Invalidate portion of TSB.
  *
@@ -59,7 +59,7 @@ void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 	size_t i0, i;
 	size_t cnt;
 	
-	ASSERT(as->arch.tsb_description.tsb_base);
+	assert(as->arch.tsb_description.tsb_base);
 	
 	i0 = (page >> MMU_PAGE_WIDTH) & TSB_ENTRY_MASK;
 

@@ -35,6 +35,7 @@
 
 #include <arch/exception.h>
 #include <arch/mach/raspberrypi/raspberrypi.h>
+#include <assert.h>
 #include <genarch/drivers/pl011/pl011.h>
 #include <genarch/drivers/bcm2835/irc.h>
 #include <genarch/drivers/bcm2835/timer.h>
@@ -102,7 +103,7 @@ static void raspberrypi_init(void)
 	/* Initialize interrupt controller */
 	raspi.irc = (void *) km_map(BCM2835_IRC_ADDR, sizeof(bcm2835_irc_t),
 				    PAGE_NOT_CACHEABLE);
-	ASSERT(raspi.irc);
+	assert(raspi.irc);
 	bcm2835_irc_init(raspi.irc);
 
 	/* Initialize system timer */

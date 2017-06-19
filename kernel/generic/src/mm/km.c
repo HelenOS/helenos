@@ -37,13 +37,13 @@
 
 #include <mm/km.h>
 #include <arch/mm/km.h>
+#include <assert.h>
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/asid.h>
 #include <config.h>
 #include <typedefs.h>
 #include <lib/ra.h>
-#include <debug.h>
 #include <arch.h>
 #include <align.h>
 #include <macros.h>
@@ -94,7 +94,7 @@ void km_identity_init(void)
 void km_non_identity_init(void)
 {
 	km_ni_arena = ra_arena_create();
-	ASSERT(km_ni_arena != NULL);
+	assert(km_ni_arena != NULL);
 	km_non_identity_arch_init();
 	config.non_identity_configured = true;
 }
@@ -111,7 +111,7 @@ void km_non_identity_span_add(uintptr_t base, size_t size)
 	page_mapping_make_global(base, size);
 
 	span_added = ra_span_add(km_ni_arena, base, size);
-	ASSERT(span_added);
+	assert(span_added);
 }
 
 uintptr_t km_page_alloc(size_t size, size_t align)
@@ -131,8 +131,8 @@ km_map_aligned(uintptr_t paddr, size_t size, unsigned int flags)
 	size_t align;
 	uintptr_t offs;
 
-	ASSERT(ALIGN_DOWN(paddr, FRAME_SIZE) == paddr);
-	ASSERT(ALIGN_UP(size, FRAME_SIZE) == size);
+	assert(ALIGN_DOWN(paddr, FRAME_SIZE) == paddr);
+	assert(ALIGN_UP(size, FRAME_SIZE) == size);
 
 	/* Enforce natural or at least PAGE_SIZE alignment. */
 	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
@@ -153,8 +153,8 @@ static void km_unmap_aligned(uintptr_t vaddr, size_t size)
 	uintptr_t offs;
 	ipl_t ipl;
 
-	ASSERT(ALIGN_DOWN(vaddr, PAGE_SIZE) == vaddr);
-	ASSERT(ALIGN_UP(size, PAGE_SIZE) == size);
+	assert(ALIGN_DOWN(vaddr, PAGE_SIZE) == vaddr);
+	assert(ALIGN_UP(size, PAGE_SIZE) == size);
 
 	page_table_lock(AS_KERNEL, true);
 
@@ -239,9 +239,9 @@ static void km_unmap_deferred(uintptr_t page)
  */
 uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 {
-	ASSERT(THREAD);
-	ASSERT(framep);
-	ASSERT(!(flags & ~(FRAME_NO_RESERVE | FRAME_ATOMIC)));
+	assert(THREAD);
+	assert(framep);
+	assert(!(flags & ~(FRAME_NO_RESERVE | FRAME_ATOMIC)));
 	
 	/*
 	 * Allocate a frame, preferably from high memory.
@@ -280,7 +280,7 @@ lowmem:
  */
 void km_temporary_page_put(uintptr_t page)
 {
-	ASSERT(THREAD);
+	assert(THREAD);
 
 	if (km_is_non_identity(page))
 		km_unmap_deferred(page);

@@ -35,6 +35,7 @@
  * @brief Virtual Address Translation for hierarchical 4-level page tables.
  */
 
+#include <assert.h>
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -80,7 +81,7 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 {
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 
-	ASSERT(page_table_locked(as));
+	assert(page_table_locked(as));
 	
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
 		pte_t *newpt = (pte_t *)
@@ -158,7 +159,7 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  */
 void pt_mapping_remove(as_t *as, uintptr_t page)
 {
-	ASSERT(page_table_locked(as));
+	assert(page_table_locked(as));
 
 	/*
 	 * First, remove the mapping, if it exists.
@@ -292,7 +293,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 
 static pte_t *pt_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 {
-	ASSERT(nolock || page_table_locked(as));
+	assert(nolock || page_table_locked(as));
 
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
@@ -357,11 +358,11 @@ void pt_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 	if (!t)
 		panic("Updating non-existent PTE");	
 
-	ASSERT(PTE_VALID(t) == PTE_VALID(pte));
-	ASSERT(PTE_PRESENT(t) == PTE_PRESENT(pte));
-	ASSERT(PTE_GET_FRAME(t) == PTE_GET_FRAME(pte));
-	ASSERT(PTE_WRITABLE(t) == PTE_WRITABLE(pte));
-	ASSERT(PTE_EXECUTABLE(t) == PTE_EXECUTABLE(pte));
+	assert(PTE_VALID(t) == PTE_VALID(pte));
+	assert(PTE_PRESENT(t) == PTE_PRESENT(pte));
+	assert(PTE_GET_FRAME(t) == PTE_GET_FRAME(pte));
+	assert(PTE_WRITABLE(t) == PTE_WRITABLE(pte));
+	assert(PTE_EXECUTABLE(t) == PTE_EXECUTABLE(pte));
 
 	*t = *pte;
 }
@@ -397,7 +398,7 @@ static uintptr_t ptl0_step_get(void)
  */
 void pt_mapping_make_global(uintptr_t base, size_t size)
 {
-	ASSERT(size > 0);
+	assert(size > 0);
 	
 	uintptr_t ptl0 = PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
 	uintptr_t ptl0_step = ptl0_step_get();
@@ -415,7 +416,7 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 	    addr - 1 < base + size - 1;
 	    addr += ptl0_step) {
 		if (GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr)) != 0) {
-			ASSERT(overlaps(addr, ptl0_step,
+			assert(overlaps(addr, ptl0_step,
 			    config.identity_base, config.identity_size));
 
 			/*

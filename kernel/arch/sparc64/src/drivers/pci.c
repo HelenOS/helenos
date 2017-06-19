@@ -41,7 +41,7 @@
 #include <mm/km.h>
 #include <mm/slab.h>
 #include <typedefs.h>
-#include <debug.h>
+#include <assert.h>
 #include <log.h>
 #include <str.h>
 #include <arch/asm.h>
@@ -174,7 +174,7 @@ pci_t *pci_init(ofw_tree_node_t *node)
 	/*
 	 * First, verify this is a PCI node.
 	 */
-	ASSERT(str_cmp(ofw_tree_node_name(node), "pci") == 0);
+	assert(str_cmp(ofw_tree_node_name(node), "pci") == 0);
 
 	/*
 	 * Determine PCI controller model.
@@ -209,7 +209,7 @@ pci_t *pci_init(ofw_tree_node_t *node)
 
 void pci_enable_interrupt(pci_t *pci, int inr)
 {
-	ASSERT(pci->op && pci->op->enable_interrupt);
+	assert(pci->op && pci->op->enable_interrupt);
 	pci->op->enable_interrupt(pci, inr);
 }
 
@@ -217,7 +217,7 @@ void pci_clear_interrupt(void *pcip, int inr)
 {
 	pci_t *pci = (pci_t *)pcip;
 
-	ASSERT(pci->op && pci->op->clear_interrupt);
+	assert(pci->op && pci->op->clear_interrupt);
 	pci->op->clear_interrupt(pci, inr);
 }
 

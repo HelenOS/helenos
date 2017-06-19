@@ -40,6 +40,7 @@
  * from other subsystems.
  */
 
+#include <assert.h>
 #include <console/cmd.h>
 #include <console/console.h>
 #include <console/kconsole.h>
@@ -53,7 +54,6 @@
 #include <func.h>
 #include <str.h>
 #include <macros.h>
-#include <debug.h>
 #include <cpu.h>
 #include <mm/tlb.h>
 #include <mm/km.h>
@@ -916,7 +916,7 @@ int cmd_reboot(cmd_arg_t *argv)
  */
 int cmd_uptime(cmd_arg_t *argv)
 {
-	ASSERT(uptime);
+	assert(uptime);
 	
 	/* This doesn't have to be very accurate */
 	sysarg_t sec = uptime->seconds1;

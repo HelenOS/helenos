@@ -108,7 +108,7 @@
 #include <arch.h>
 #include <errno.h>
 #include <align.h>
-#include <debug.h>
+#include <assert.h>
 #include <macros.h>
 #include <mm/slab.h>
 
@@ -566,8 +566,8 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
 void str_cpy(char *dest, size_t size, const char *src)
 {
 	/* There must be space for a null terminator in the buffer. */
-	ASSERT(size > 0);
-	ASSERT(src != NULL);
+	assert(size > 0);
+	assert(src != NULL);
 	
 	size_t src_off = 0;
 	size_t dest_off = 0;
@@ -600,7 +600,7 @@ void str_cpy(char *dest, size_t size, const char *src)
 void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
 	/* There must be space for a null terminator in the buffer. */
-	ASSERT(size > 0);
+	assert(size > 0);
 	
 	size_t src_off = 0;
 	size_t dest_off = 0;
@@ -634,7 +634,7 @@ char *str_dup(const char *src)
 {
 	size_t size = str_size(src) + 1;
 	char *dest = malloc(size, 0);
-	ASSERT(dest);
+	assert(dest);
 	
 	str_cpy(dest, size, src);
 	return dest;
@@ -667,7 +667,7 @@ char *str_ndup(const char *src, size_t n)
 		size = n;
 	
 	char *dest = malloc(size + 1, 0);
-	ASSERT(dest);
+	assert(dest);
 	
 	str_ncpy(dest, size + 1, src, size);
 	return dest;
@@ -690,7 +690,7 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	size_t dest_off;
 
 	/* There must be space for a null terminator in the buffer. */
-	ASSERT(size > 0);
+	assert(size > 0);
 
 	src_idx = 0;
 	dest_off = 0;
@@ -796,9 +796,9 @@ bool wstr_remove(wchar_t *str, size_t pos)
 static int str_uint(const char *nptr, char **endptr, unsigned int base,
     bool *neg, uint64_t *result)
 {
-	ASSERT(endptr != NULL);
-	ASSERT(neg != NULL);
-	ASSERT(result != NULL);
+	assert(endptr != NULL);
+	assert(neg != NULL);
+	assert(result != NULL);
 	
 	*neg = false;
 	const char *str = nptr;
@@ -917,7 +917,7 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
 int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
-	ASSERT(result != NULL);
+	assert(result != NULL);
 	
 	bool neg;
 	char *lendptr;

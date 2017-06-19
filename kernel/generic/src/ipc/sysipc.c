@@ -33,6 +33,7 @@
  */
 
 #include <arch.h>
+#include <assert.h>
 #include <errno.h>
 #include <mem.h>
 #include <ipc/ipc.h>
@@ -173,7 +174,7 @@ int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		SYSIPC_OP(answer_cleanup, answer, olddata);
 		return rc;
 	} else {
-		ASSERT(answer->active);
+		assert(answer->active);
 
 		/*
 		 * Mark the call as inactive to prevent _ipc_answer_free_call()
@@ -312,7 +313,7 @@ int ipc_req_internal(int phoneid, ipc_data_t *data, sysarg_t priv)
 				 * The call was forgotten and it changed hands.
 				 * We are no longer expected to free it.
 				 */
-				ASSERT(rc == EINTR);
+				assert(rc == EINTR);
 			}
 			return rc;	
 		}

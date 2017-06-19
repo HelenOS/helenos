@@ -37,6 +37,7 @@
  *
  */
 
+#include <assert.h>
 #include <genarch/drivers/i8042/i8042.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <arch/asm.h>
@@ -123,8 +124,8 @@ i8042_instance_t *i8042_init(i8042_t *dev, inr_t inr)
 
 void i8042_wire(i8042_instance_t *instance, indev_t *kbrdin)
 {
-	ASSERT(instance);
-	ASSERT(kbrdin);
+	assert(instance);
+	assert(kbrdin);
 	
 	i8042_clear_buffer(instance->i8042);
 	

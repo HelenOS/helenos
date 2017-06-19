@@ -33,6 +33,7 @@
  * @brief Texas Instruments AM335x timer driver.
  */
 
+#include <assert.h>
 #include <genarch/drivers/am335x/timer.h>
 #include <mm/km.h>
 #include <errno.h>
@@ -89,8 +90,8 @@ am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
 	uintptr_t base_addr;
 	size_t size;
 
-	ASSERT(id < TIMERS_MAX);
-	ASSERT(timer != NULL);
+	assert(id < TIMERS_MAX);
+	assert(timer != NULL);
 
 	if (id == DMTIMER1_1MS)
 		return ENOTSUP; /* Not supported yet */
@@ -99,7 +100,7 @@ am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
 	size = regs_map[id].size;
 
 	timer->regs = (void *) km_map(base_addr, size, PAGE_NOT_CACHEABLE);
-	ASSERT(timer->regs != NULL);
+	assert(timer->regs != NULL);
 
 	timer->id = id;
 

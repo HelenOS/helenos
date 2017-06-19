@@ -100,6 +100,7 @@
  *
  */
 
+#include <assert.h>
 #include <synch/spinlock.h>
 #include <mm/slab.h>
 #include <adt/list.h>
@@ -110,7 +111,6 @@
 #include <print.h>
 #include <arch.h>
 #include <panic.h>
-#include <debug.h>
 #include <bitops.h>
 #include <macros.h>
 #include <cpu.h>
@@ -259,7 +259,7 @@ NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	if (!slab)
 		slab = obj2slab(obj);
 	
-	ASSERT(slab->cache == cache);
+	assert(slab->cache == cache);
 	
 	size_t freed = 0;
 	
@@ -267,7 +267,7 @@ NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		freed = cache->destructor(obj);
 	
 	irq_spinlock_lock(&cache->slablock, true);
-	ASSERT(slab->available < cache->objects);
+	assert(slab->available < cache->objects);
 	
 	*((size_t *) obj) = slab->nextavail;
 	slab->nextavail = (obj - slab->start) / cache->size;
@@ -416,7 +416,7 @@ NO_TRACE static slab_magazine_t *get_full_current_mag(slab_cache_t *cache)
 	slab_magazine_t *cmag = cache->mag_cache[CPU->id].current;
 	slab_magazine_t *lastmag = cache->mag_cache[CPU->id].last;
 	
-	ASSERT(irq_spinlock_locked(&cache->mag_cache[CPU->id].lock));
+	assert(irq_spinlock_locked(&cache->mag_cache[CPU->id].lock));
 	
 	if (cmag) { /* First try local CPU magazines */
 		if (cmag->busy)
@@ -483,7 +483,7 @@ NO_TRACE static slab_magazine_t *make_empty_current_mag(slab_cache_t *cache)
 	slab_magazine_t *cmag = cache->mag_cache[CPU->id].current;
 	slab_magazine_t *lastmag = cache->mag_cache[CPU->id].last;
 	
-	ASSERT(irq_spinlock_locked(&cache->mag_cache[CPU->id].lock));
+	assert(irq_spinlock_locked(&cache->mag_cache[CPU->id].lock));
 	
 	if (cmag) {
 		if (cmag->busy < cmag->size)
@@ -585,7 +585,7 @@ NO_TRACE static size_t badness(slab_cache_t *cache)
  */
 NO_TRACE static bool make_magcache(slab_cache_t *cache)
 {
-	ASSERT(_slab_initialized >= 2);
+	assert(_slab_initialized >= 2);
 	
 	cache->mag_cache = malloc(sizeof(slab_mag_cache_t) * config.cpu_count,
 	    FRAME_ATOMIC);
@@ -609,7 +609,7 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
     size_t size, size_t align, int (*constructor)(void *obj,
     unsigned int kmflag), size_t (*destructor)(void *obj), unsigned int flags)
 {
-	ASSERT(size > 0);
+	assert(size > 0);
 	
 	memsetb(cache, sizeof(*cache), 0);
 	cache->name = name;
@@ -947,8 +947,8 @@ void slab_enable_cpucache(void)
 
 void *malloc(size_t size, unsigned int flags)
 {
-	ASSERT(_slab_initialized);
-	ASSERT(size <= (1 << SLAB_MAX_MALLOC_W));
+	assert(_slab_initialized);
+	assert(size <= (1 << SLAB_MAX_MALLOC_W));
 	
 	if (size < (1 << SLAB_MIN_MALLOC_W))
 		size = (1 << SLAB_MIN_MALLOC_W);
@@ -960,8 +960,8 @@ void *malloc(size_t size, unsigned int flags)
 
 void *realloc(void *ptr, size_t size, unsigned int flags)
 {
-	ASSERT(_slab_initialized);
-	ASSERT(size <= (1 << SLAB_MAX_MALLOC_W));
+	assert(_slab_initialized);
+	assert(size <= (1 << SLAB_MAX_MALLOC_W));
 	
 	void *new_ptr;
 	

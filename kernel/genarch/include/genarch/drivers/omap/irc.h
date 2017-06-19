@@ -38,6 +38,7 @@
 #ifndef KERN_OMAP_IRQC_H_
 #define KERN_OMAP_IRQC_H_
 
+#include <assert.h>
 #include <typedefs.h>
 
 #define OMAP_IRC_IRQ_GROUPS_PAD (4 - OMAP_IRC_IRQ_GROUPS_COUNT)
@@ -229,7 +230,7 @@ static inline void omap_irc_fiq_ack(omap_irc_regs_t *regs)
  */
 static inline void omap_irc_enable(omap_irc_regs_t *regs, unsigned inum)
 {
-	ASSERT(inum < OMAP_IRC_IRQ_COUNT);
+	assert(inum < OMAP_IRC_IRQ_COUNT);
 	const unsigned set = inum / 32;
 	const unsigned pos = inum % 32;
 	regs->interrupts[set].mir_clear = (1 << pos);
@@ -242,7 +243,7 @@ static inline void omap_irc_enable(omap_irc_regs_t *regs, unsigned inum)
  */
 static inline void omap_irc_disable(omap_irc_regs_t *regs, unsigned inum)
 {
-	ASSERT(inum < OMAP_IRC_IRQ_COUNT);
+	assert(inum < OMAP_IRC_IRQ_COUNT);
 	const unsigned set = inum / 32;
 	const unsigned pos = inum % 32;
 	regs->interrupts[set].mir_set = (1 << pos);

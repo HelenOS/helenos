@@ -35,6 +35,7 @@
 
 #ifndef KERN_BCM2835_TIMER_H_
 
+#include <assert.h>
 #include <typedefs.h>
 #include <mm/km.h>
 
@@ -65,7 +66,7 @@ typedef struct {
 
 static inline void bcm2835_timer_start(bcm2835_timer_t* timer)
 {
-	ASSERT(timer);
+	assert(timer);
 	/* Clear pending interrupt on channel 1 */
 	timer->cs |= BCM2835_TIMER_CS_M1;
 	/* Initialize compare value for match channel 1 */
@@ -74,7 +75,7 @@ static inline void bcm2835_timer_start(bcm2835_timer_t* timer)
 
 static inline void bcm2835_timer_irq_ack(bcm2835_timer_t* timer)
 {
-	ASSERT(timer);
+	assert(timer);
 	/* Clear pending interrupt on channel 1 */
 	timer->cs |= BCM2835_TIMER_CS_M1;
 	/* Reprogram compare value for match channel 1 */

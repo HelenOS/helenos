@@ -38,6 +38,7 @@
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <arch/bios/bios.h>
+#include <debug.h>
 #include <mm/page.h>
 #include <mm/km.h>
 #include <log.h>

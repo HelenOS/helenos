@@ -36,10 +36,10 @@
 
 #include <config.h>
 #include <log.h>
-#include <debug.h>
 #include <arch/smp/mps.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/smp.h>
+#include <assert.h>
 #include <func.h>
 #include <typedefs.h>
 #include <cpu.h>
@@ -73,14 +73,14 @@ static size_t l_intr_entry_cnt = 0;
 
 static uint8_t mps_cpu_apic_id(size_t i)
 {
-	ASSERT(i < processor_entry_cnt);
+	assert(i < processor_entry_cnt);
 	
 	return processor_entries[i].l_apic_id;
 }
 
 static bool mps_cpu_enabled(size_t i)
 {
-	ASSERT(i < processor_entry_cnt);
+	assert(i < processor_entry_cnt);
 	
 	/*
 	 * FIXME: The current local APIC driver limits usable
@@ -95,7 +95,7 @@ static bool mps_cpu_enabled(size_t i)
 
 static bool mps_cpu_bootstrap(size_t i)
 {
-	ASSERT(i < processor_entry_cnt);
+	assert(i < processor_entry_cnt);
 	
 	return (bool) ((processor_entries[i].cpu_flags & 0x02) == 0x02);
 }

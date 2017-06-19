@@ -60,6 +60,7 @@
  * into its futex kernel object. 
  */
 
+#include <assert.h>
 #include <synch/futex.h>
 #include <synch/mutex.h>
 #include <synch/spinlock.h>
@@ -240,16 +241,16 @@ static void futex_initialize(futex_t *futex, uintptr_t paddr)
 /** Increments the counter of tasks referencing the futex. */
 static void futex_add_ref(futex_t *futex)
 {
-	ASSERT(spinlock_locked(&futex_ht_lock));
-	ASSERT(0 < futex->refcount);
+	assert(spinlock_locked(&futex_ht_lock));
+	assert(0 < futex->refcount);
 	++futex->refcount;
 }
 
 /** Decrements the counter of tasks referencing the futex. May free the futex.*/
 static void futex_release_ref(futex_t *futex)
 {
-	ASSERT(spinlock_locked(&futex_ht_lock));
-	ASSERT(0 < futex->refcount);
+	assert(spinlock_locked(&futex_ht_lock));
+	assert(0 < futex->refcount);
 	
 	--futex->refcount;
 	
@@ -458,7 +459,7 @@ bool futex_ht_compare(sysarg_t *key, size_t keys, link_t *item)
 {
 	futex_t *futex;
 
-	ASSERT(keys == 1);
+	assert(keys == 1);
 
 	futex = hash_table_get_instance(item, futex_t, ht_link);
 	return *key == futex->paddr;

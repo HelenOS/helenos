@@ -33,6 +33,7 @@
 /** @file
  */
 
+#include <assert.h>
 #include <console/console.h>
 #include <console/chardev.h>
 #include <sysinfo/sysinfo.h>
@@ -188,7 +189,7 @@ void kio_init(void)
 {
 	void *faddr = (void *) KA2PA(kio);
 	
-	ASSERT((uintptr_t) faddr % FRAME_SIZE == 0);
+	assert((uintptr_t) faddr % FRAME_SIZE == 0);
 	
 	kio_parea.pbase = (uintptr_t) faddr;
 	kio_parea.frames = SIZE2FRAMES(sizeof(kio));

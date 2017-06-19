@@ -43,7 +43,7 @@
 #include <synch/mutex.h>
 #include <print.h>
 #include <log.h>
-#include <debug.h>
+#include <assert.h>
 #include <align.h>
 #include <interrupt.h>
 #include <symtab.h>
@@ -159,7 +159,7 @@ void tlb_invalid(istate_t *istate)
 	}
 #endif
 
-	ASSERT(!index.p);
+	assert(!index.p);
 
 	badvaddr = cp0_badvaddr_read();
 
@@ -322,7 +322,7 @@ void tlb_invalidate_all(void)
 	entry_hi_t hi_save;
 	int i;
 
-	ASSERT(interrupts_disabled());
+	assert(interrupts_disabled());
 
 	hi_save.value = cp0_entry_hi_read();
 
@@ -355,8 +355,8 @@ void tlb_invalidate_asid(asid_t asid)
 	entry_hi_t hi, hi_save;
 	int i;
 
-	ASSERT(interrupts_disabled());
-	ASSERT(asid != ASID_INVALID);
+	assert(interrupts_disabled());
+	assert(asid != ASID_INVALID);
 
 	hi_save.value = cp0_entry_hi_read();
 	
@@ -397,7 +397,7 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	entry_hi_t hi, hi_save;
 	tlb_index_t index;
 
-	ASSERT(interrupts_disabled());
+	assert(interrupts_disabled());
 	
 	if (asid == ASID_INVALID)
 		return;

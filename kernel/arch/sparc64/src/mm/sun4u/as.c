@@ -34,10 +34,10 @@
 
 #include <arch/mm/as.h>
 #include <arch/mm/tlb.h>
+#include <assert.h>
+#include <config.h>
 #include <genarch/mm/page_ht.h>
 #include <genarch/mm/asid_fifo.h>
-#include <debug.h>
-#include <config.h>
 
 #ifdef CONFIG_TSB
 
@@ -129,8 +129,8 @@ void as_install_arch(as_t *as)
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 	
-	ASSERT(as->arch.itsb);
-	ASSERT(as->arch.dtsb);
+	assert(as->arch.itsb);
+	assert(as->arch.dtsb);
 	
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 	
@@ -201,8 +201,8 @@ void as_deinstall_arch(as_t *as)
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 	
-	ASSERT(as->arch.itsb);
-	ASSERT(as->arch.dtsb);
+	assert(as->arch.itsb);
+	assert(as->arch.dtsb);
 	
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
 	

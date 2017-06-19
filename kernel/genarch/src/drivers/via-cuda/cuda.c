@@ -33,6 +33,7 @@
 /** @file
  */
 
+#include <assert.h>
 #include <genarch/drivers/via-cuda/cuda.h>
 #include <console/chardev.h>
 #include <ddi/irq.h>
@@ -122,8 +123,8 @@ void cuda_wire(cuda_instance_t *instance, indev_t *kbrdin)
 {
 	cuda_t *dev = instance->cuda;
 
-	ASSERT(instance);
-	ASSERT(kbrdin);
+	assert(instance);
+	assert(kbrdin);
 
 	instance->kbrdin = kbrdin;
 	irq_register(&instance->irq);
@@ -340,7 +341,7 @@ static void cuda_send_start(cuda_instance_t *instance)
 {
 	cuda_t *dev = instance->cuda;
 
-	ASSERT(instance->xstate == cx_listen);
+	assert(instance->xstate == cx_listen);
 
 	if (instance->snd_bytes == 0)
 		return;

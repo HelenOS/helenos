@@ -36,7 +36,7 @@
 #ifndef KERN_LIST_H_
 #define KERN_LIST_H_
 
-#include <debug.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <trace.h>
@@ -119,7 +119,7 @@ extern unsigned long list_count(const list_t *);
 
 	
 #define assert_link_not_used(link) \
-	ASSERT(!link_used(link))
+	assert(!link_used(link))
 
 /** Initialize doubly-linked circular list link
  *
@@ -389,7 +389,7 @@ static inline bool link_used(link_t *link)
 	if (link->prev == NULL && link->next == NULL)
 		return false;
 
-	ASSERT(link->prev != NULL && link->next != NULL);
+	assert(link->prev != NULL && link->next != NULL);
 	return true;
 }
 

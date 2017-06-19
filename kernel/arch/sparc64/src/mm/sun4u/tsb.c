@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -36,10 +36,10 @@
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
 #include <arch/barrier.h>
+#include <assert.h>
 #include <mm/as.h>
 #include <typedefs.h>
 #include <macros.h>
-#include <debug.h>
 
 /** Invalidate portion of TSB.
  *
@@ -57,8 +57,8 @@ void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 	size_t i;
 	size_t cnt;
 	
-	ASSERT(as->arch.itsb);
-	ASSERT(as->arch.dtsb);
+	assert(as->arch.itsb);
+	assert(as->arch.dtsb);
 	
 	i0 = (page >> MMU_PAGE_WIDTH) & ITSB_ENTRY_MASK;
 
@@ -84,7 +84,7 @@ void itsb_pte_copy(pte_t *t, size_t index)
 	tsb_entry_t *tte;
 	size_t entry;
 
-	ASSERT(index <= 1);
+	assert(index <= 1);
 	
 	as = t->as;
 	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & ITSB_ENTRY_MASK;
@@ -129,7 +129,7 @@ void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 	tsb_entry_t *tte;
 	size_t entry;
 	
-	ASSERT(index <= 1);
+	assert(index <= 1);
 
 	as = t->as;
 	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & DTSB_ENTRY_MASK;

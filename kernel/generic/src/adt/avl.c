@@ -50,7 +50,7 @@
  */
 
 #include <adt/avl.h>
-#include <debug.h>
+#include <assert.h>
 
 #define LEFT 	0
 #define RIGHT	1
@@ -164,8 +164,8 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
 	avltree_node_t **dpc;
 	avltree_key_t key;
 
-	ASSERT(t);
-	ASSERT(newnode);
+	assert(t);
+	assert(newnode);
 
 	/*
 	 * Creating absolute key.
@@ -258,7 +258,7 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
 			/*
 			 * LR rotation.
 			 */
-			ASSERT(par->balance == 1);
+			assert(par->balance == 1);
 			
 			REBALANCE_INSERT_LR();
 		}
@@ -273,7 +273,7 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
 			/*
 			 * RL rotation.
 			 */
-			ASSERT(par->balance == -1);
+			assert(par->balance == -1);
 		
 			REBALANCE_INSERT_RL();
 		}
@@ -321,7 +321,7 @@ repair(avltree_t *t, avltree_node_t *u, avltree_node_t *v, avltree_node_t *w,
 			if (dir)
 				*dir = LEFT;
 		} else {
-			ASSERT(u->par->rgt == v);
+			assert(u->par->rgt == v);
 			if (!ro)
 				u->par->rgt = w;
 			if (dir)
@@ -372,8 +372,8 @@ void avltree_delete(avltree_t *t, avltree_node_t *node)
 	avltree_node_t *gpa;
 	int dir;
 
-	ASSERT(t);
-	ASSERT(node);
+	assert(t);
+	assert(node);
 	
 	if (node->lft == NULL) {
 		if (node->rgt) {

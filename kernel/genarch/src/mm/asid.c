@@ -56,6 +56,7 @@
  * spaces do not compile with this file.
  */
 
+#include <assert.h>
 #include <mm/asid.h>
 #include <mm/as.h>
 #include <mm/tlb.h>
@@ -63,7 +64,6 @@
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <adt/list.h>
-#include <debug.h>
 
 static size_t asids_allocated = 0;
 
@@ -77,8 +77,8 @@ asid_t asid_get(void)
 	link_t *tmp;
 	as_t *as;
 
-	ASSERT(interrupts_disabled());
-	ASSERT(spinlock_locked(&asidlock));
+	assert(interrupts_disabled());
+	assert(spinlock_locked(&asidlock));
 
 	/*
 	 * Check if there is an unallocated ASID.
@@ -97,7 +97,7 @@ asid_t asid_get(void)
 		 * inactive address space.
 		 */
 		tmp = list_first(&inactive_as_with_asid_list);
-		ASSERT(tmp != NULL);
+		assert(tmp != NULL);
 		list_remove(tmp);
 		
 		as = list_get_instance(tmp, as_t, inactive_as_with_asid_link);
@@ -107,7 +107,7 @@ asid_t asid_get(void)
 		 * Note that the stolen ASID is not active.
 		 */
 		asid = as->asid;
-		ASSERT(asid != ASID_INVALID);
+		assert(asid != ASID_INVALID);
 
 		/*
 		 * Notify the address space from wich the ASID

@@ -37,9 +37,9 @@
 
 #include <stdbool.h>
 #include <arch/barrier.h>
+#include <assert.h>
 #include <preemption.h>
 #include <atomic.h>
-#include <debug.h>
 #include <arch/asm.h>
 
 #ifdef CONFIG_SMP
@@ -79,7 +79,7 @@ typedef struct spinlock {
 	}
 
 #define ASSERT_SPINLOCK(expr, lock) \
-	ASSERT_VERBOSE(expr, (lock)->name)
+	assert_verbose(expr, (lock)->name)
 
 #define spinlock_lock(lock)    spinlock_lock_debug((lock))
 #define spinlock_unlock(lock)  spinlock_unlock_debug((lock))
@@ -97,7 +97,7 @@ typedef struct spinlock {
 	}
 
 #define ASSERT_SPINLOCK(expr, lock) \
-	ASSERT(expr)
+	assert(expr)
 
 #define spinlock_lock(lock)    atomic_lock_arch(&(lock)->val)
 #define spinlock_unlock(lock)  spinlock_unlock_nondebug((lock))
@@ -174,7 +174,7 @@ typedef struct spinlock spinlock_t;
 #define SPINLOCK_INITIALIZE_NAME(name, desc_name)
 #define SPINLOCK_STATIC_INITIALIZE_NAME(name, desc_name)
 
-#define ASSERT_SPINLOCK(expr, lock)  ASSERT(expr)
+#define ASSERT_SPINLOCK(expr, lock)  assert(expr)
 
 #define spinlock_initialize(lock, name)
 

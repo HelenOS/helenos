@@ -71,6 +71,7 @@
  */
 
 #include <arch.h>
+#include <assert.h>
 #include <mm/slab.h>
 #include <mm/page.h>
 #include <mm/km.h>
@@ -398,7 +399,7 @@ int ipc_irq_unsubscribe(answerbox_t *box, inr_t inr, devno_t devno)
 	/* irq is locked */
 	irq_spinlock_lock(&box->irq_lock, false);
 	
-	ASSERT(irq->notif_cfg.answerbox == box);
+	assert(irq->notif_cfg.answerbox == box);
 	
 	/* Remove the IRQ from the answerbox's list. */
 	list_remove(&irq->notif_cfg.link);
@@ -462,7 +463,7 @@ loop:
 		key[0] = irq->inr;
 		key[1] = irq->devno;
 		
-		ASSERT(irq->notif_cfg.answerbox == box);
+		assert(irq->notif_cfg.answerbox == box);
 		
 		/* Unlist from the answerbox. */
 		list_remove(&irq->notif_cfg.link);
@@ -606,10 +607,10 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
  */
 void ipc_irq_top_half_handler(irq_t *irq)
 {
-	ASSERT(irq);
+	assert(irq);
 	
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&irq->lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&irq->lock));
 	
 	if (irq->notif_cfg.answerbox) {
 		call_t *call = ipc_call_alloc(FRAME_ATOMIC);

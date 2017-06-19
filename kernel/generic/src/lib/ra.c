@@ -42,11 +42,11 @@
  *
  */
 
+#include <assert.h>
 #include <lib/ra.h>
 #include <typedefs.h>
 #include <mm/slab.h>
 #include <bitops.h>
-#include <debug.h>
 #include <panic.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
@@ -240,7 +240,7 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 		seg = list_get_instance(list_first(&span->free[order]),
 		    ra_segment_t, fu_link);
 
-		ASSERT(seg->flags & RA_SEGMENT_FREE);
+		assert(seg->flags & RA_SEGMENT_FREE);
 
 		/*
 		 * See if we need to allocate new segments for the chopped-off
@@ -258,7 +258,7 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 		}
 		newbase = ALIGN_UP(seg->base, align);
 		if (newbase + size != seg->base + ra_segment_size_get(seg)) {
-			ASSERT(newbase + (size - 1) < seg->base +
+			assert(newbase + (size - 1) < seg->base +
 			    (ra_segment_size_get(seg) - 1));
 			succ = ra_segment_create(newbase + size);
 			if (!succ) {
@@ -330,9 +330,9 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 	 */
 	hash_table_remove(&span->used, &key, 1);
 
-	ASSERT(!(seg->flags & RA_SEGMENT_FREE));
-	ASSERT(seg->base == base);
-	ASSERT(ra_segment_size_get(seg) == size);
+	assert(!(seg->flags & RA_SEGMENT_FREE));
+	assert(seg->base == base);
+	assert(ra_segment_size_get(seg) == size);
 
 	/*
 	 * Check whether the segment can be coalesced with its left neighbor.
@@ -341,7 +341,7 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 		pred = hash_table_get_instance(seg->segment_link.prev,
 		    ra_segment_t, segment_link);
 
-		ASSERT(pred->base < seg->base);
+		assert(pred->base < seg->base);
 
 		if (pred->flags & RA_SEGMENT_FREE) {
 			/*
@@ -362,7 +362,7 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 	 */
 	succ = hash_table_get_instance(seg->segment_link.next, ra_segment_t,
 	    segment_link);
-	ASSERT(succ->base > seg->base);
+	assert(succ->base > seg->base);
 	if (succ->flags & RA_SEGMENT_FREE) {
 		/*
 		 * The segment can be coalesced with its successor.
@@ -385,9 +385,9 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 {
 	uintptr_t base = 0;
 
-	ASSERT(size >= 1);
-	ASSERT(alignment >= 1);
-	ASSERT(ispwr2(alignment));
+	assert(size >= 1);
+	assert(alignment >= 1);
+	assert(ispwr2(alignment));
 
 	irq_spinlock_lock(&arena->lock, true);
 	list_foreach(arena->spans, span_link, ra_span_t, span) {

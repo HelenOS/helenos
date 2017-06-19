@@ -39,8 +39,8 @@
  *
  */
 
+#include <assert.h>
 #include <interrupt.h>
-#include <debug.h>
 #include <console/kconsole.h>
 #include <console/console.h>
 #include <console/cmd.h>
@@ -75,7 +75,7 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
     iroutine_t handler)
 {
 #if (IVT_ITEMS > 0)
-	ASSERT(n < IVT_ITEMS);
+	assert(n < IVT_ITEMS);
 #endif
 	
 	irq_spinlock_lock(&exctbl_lock, true);
@@ -101,7 +101,7 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
 NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 {
 #if (IVT_ITEMS > 0)
-	ASSERT(n < IVT_ITEMS);
+	assert(n < IVT_ITEMS);
 #endif
 	
 	/* Account user cycles */

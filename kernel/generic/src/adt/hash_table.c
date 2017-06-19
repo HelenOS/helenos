@@ -39,8 +39,8 @@
 
 #include <adt/hash_table.h>
 #include <adt/list.h>
+#include <assert.h>
 #include <typedefs.h>
-#include <debug.h>
 #include <mm/slab.h>
 #include <mem.h>
 
@@ -55,11 +55,11 @@ void hash_table_create(hash_table_t *h, size_t m, size_t max_keys, hash_table_op
 {
 	size_t i;
 
-	ASSERT(h);
-	ASSERT(op);
-	ASSERT(op->hash);
-	ASSERT(op->compare);
-	ASSERT(max_keys > 0);
+	assert(h);
+	assert(op);
+	assert(op->hash);
+	assert(op->compare);
+	assert(max_keys > 0);
 	
 	h->entry = (list_t *) malloc(m * sizeof(list_t), 0);
 	if (!h->entry)
@@ -85,14 +85,14 @@ void hash_table_insert(hash_table_t *h, sysarg_t key[], link_t *item)
 {
 	size_t chain;
 	
-	ASSERT(item);
-	ASSERT(h);
-	ASSERT(h->op);
-	ASSERT(h->op->hash);
-	ASSERT(h->op->compare);
+	assert(item);
+	assert(h);
+	assert(h->op);
+	assert(h->op->hash);
+	assert(h->op->compare);
 	
 	chain = h->op->hash(key);
-	ASSERT(chain < h->entries);
+	assert(chain < h->entries);
 	
 	list_append(item, &h->entry[chain]);
 }
@@ -108,13 +108,13 @@ link_t *hash_table_find(hash_table_t *h, sysarg_t key[])
 {
 	size_t chain;
 	
-	ASSERT(h);
-	ASSERT(h->op);
-	ASSERT(h->op->hash);
-	ASSERT(h->op->compare);
+	assert(h);
+	assert(h->op);
+	assert(h->op->hash);
+	assert(h->op->compare);
 	
 	chain = h->op->hash(key);
-	ASSERT(chain < h->entries);
+	assert(chain < h->entries);
 	
 	link_t *cur = list_first(&h->entry[chain]);
 	while (cur != NULL) {
@@ -142,11 +142,11 @@ void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys)
 {
 	size_t chain;
 	
-	ASSERT(h);
-	ASSERT(h->op);
-	ASSERT(h->op->hash);
-	ASSERT(h->op->compare);
-	ASSERT(keys <= h->max_keys);
+	assert(h);
+	assert(h->op);
+	assert(h->op->hash);
+	assert(h->op->compare);
+	assert(keys <= h->max_keys);
 	
 	
 	if (keys == h->max_keys) {

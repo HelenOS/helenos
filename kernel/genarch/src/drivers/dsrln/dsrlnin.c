@@ -34,6 +34,7 @@
  * @brief Dummy serial line input.
  */
 
+#include <assert.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <console/chardev.h>
 #include <mm/slab.h>
@@ -74,8 +75,8 @@ dsrlnin_instance_t *dsrlnin_init(dsrlnin_t *dev, inr_t inr)
 
 void dsrlnin_wire(dsrlnin_instance_t *instance, indev_t *srlnin)
 {
-	ASSERT(instance);
-	ASSERT(srlnin);
+	assert(instance);
+	assert(srlnin);
 	
 	instance->srlnin = srlnin;
 	irq_register(&instance->irq);

@@ -38,6 +38,7 @@
  * performs load-balancing of per-CPU run queues.
  */
 
+#include <assert.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>
@@ -63,7 +64,6 @@
 #include <cpu.h>
 #include <print.h>
 #include <log.h>
-#include <debug.h>
 #include <stacktrace.h>
 
 static void scheduler_separated_stack(void);
@@ -199,7 +199,7 @@ void scheduler_init(void)
  */
 static thread_t *find_best_thread(void)
 {
-	ASSERT(CPU != NULL);
+	assert(CPU != NULL);
 	
 loop:
 	
@@ -224,7 +224,7 @@ loop:
 		goto loop;
 	}
 
-	ASSERT(!CPU->idle);
+	assert(!CPU->idle);
 	
 	unsigned int i;
 	for (i = 0; i < RQ_COUNT; i++) {
@@ -321,7 +321,7 @@ void scheduler(void)
 {
 	volatile ipl_t ipl;
 	
-	ASSERT(CPU != NULL);
+	assert(CPU != NULL);
 	
 	ipl = interrupts_disable();
 	
@@ -402,9 +402,9 @@ void scheduler_separated_stack(void)
 	task_t *old_task = TASK;
 	as_t *old_as = AS;
 	
-	ASSERT((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
-	ASSERT(CPU != NULL);
-	ASSERT(interrupts_disabled());
+	assert((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
+	assert(CPU != NULL);
+	assert(interrupts_disabled());
 	
 	/*
 	 * Hold the current task and the address space to prevent their

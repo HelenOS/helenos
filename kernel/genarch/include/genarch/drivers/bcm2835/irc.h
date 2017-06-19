@@ -37,6 +37,7 @@
 #ifndef KERN_BCM2835_IRQC_H_
 #define KERN_BCM2835_IRQC_H_
 
+#include <assert.h>
 #include <typedefs.h>
 
 #define BANK_GPU0	0
@@ -157,13 +158,13 @@ static inline unsigned bcm2835_irc_inum_get(bcm2835_irc_t *regs)
 
 static inline void bcm2835_irc_enable(bcm2835_irc_t *regs, unsigned inum)
 {
-	ASSERT(inum < BCM2835_IRQ_COUNT);
+	assert(inum < BCM2835_IRQ_COUNT);
 	regs->irq_enable[IRQ_TO_BANK(inum)] |= (1 << IRQ_TO_NUM(inum));
 }
 
 static inline void bcm2835_irc_disable(bcm2835_irc_t *regs, unsigned inum)
 {
-	ASSERT(inum < BCM2835_IRQ_COUNT);
+	assert(inum < BCM2835_IRQ_COUNT);
 	regs->irq_disable[IRQ_TO_BANK(inum)] |= (1 << IRQ_TO_NUM(inum));
 }
 

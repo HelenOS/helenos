@@ -34,6 +34,7 @@
  * @brief ARM PrimeCell PL011 UART driver.
  */
 
+#include <assert.h>
 #include <genarch/drivers/pl011/pl011.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -97,10 +98,10 @@ static void pl011_uart_irq_handler(irq_t *irq)
 
 bool pl011_uart_init(pl011_uart_t *uart, inr_t interrupt, uintptr_t addr)
 {
-	ASSERT(uart);
+	assert(uart);
 	uart->regs = (void*)km_map(addr, sizeof(pl011_uart_regs_t),
 				   PAGE_NOT_CACHEABLE);
-	ASSERT(uart->regs);
+	assert(uart->regs);
 
 	/* Disable UART */
 	uart->regs->control &= ~ PL011_UART_CONTROL_UARTEN_FLAG;
@@ -136,8 +137,8 @@ bool pl011_uart_init(pl011_uart_t *uart, inr_t interrupt, uintptr_t addr)
 
 void pl011_uart_input_wire(pl011_uart_t *uart, indev_t *indev)
 {
-	ASSERT(uart);
-	ASSERT(indev);
+	assert(uart);
+	assert(indev);
 
 	uart->indev = indev;
 	irq_register(&uart->irq);

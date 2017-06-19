@@ -35,6 +35,7 @@
  * @brief Task management.
  */
 
+#include <assert.h>
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <mm/as.h>
@@ -418,8 +419,8 @@ sysarg_t sys_task_kill(task_id_t *uspace_taskid)
  */
 task_t *task_find_by_id(task_id_t id)
 {
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&tasks_lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&tasks_lock));
 
 	avltree_node_t *node =
 	    avltree_search(&tasks_tree, (avltree_key_t) id);
@@ -442,8 +443,8 @@ task_t *task_find_by_id(task_id_t id)
  */
 void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 {
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&task->lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&task->lock));
 
 	/* Accumulated values of task */
 	uint64_t uret = task->ucycles;

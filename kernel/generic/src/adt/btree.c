@@ -48,8 +48,8 @@
 
 #include <adt/btree.h>
 #include <adt/list.h>
+#include <assert.h>
 #include <mm/slab.h>
-#include <debug.h>
 #include <panic.h>
 #include <print.h>
 #include <trace.h>
@@ -499,8 +499,8 @@ NO_TRACE static btree_node_t *node_split(btree_node_t *node, btree_key_t key,
 	size_t i;
 	size_t j;
 	
-	ASSERT(median);
-	ASSERT(node->keys == BTREE_MAX_KEYS);
+	assert(median);
+	assert(node->keys == BTREE_MAX_KEYS);
 	
 	/*
 	 * Use the extra space to store the extra node.
@@ -624,7 +624,7 @@ void btree_insert(btree_t *t, btree_key_t key, void *value,
 {
 	btree_node_t *lnode;
 	
-	ASSERT(value);
+	assert(value);
 	
 	lnode = leaf_node;
 	if (!lnode) {
@@ -724,7 +724,7 @@ NO_TRACE static btree_node_t *node_combine(btree_node_t *node)
 	btree_node_t *rnode;
 	size_t i;
 	
-	ASSERT(!ROOT_NODE(node));
+	assert(!ROOT_NODE(node));
 	
 	idx = find_key_by_subtree(node->parent, node, false);
 	if (idx == node->parent->keys) {
@@ -836,7 +836,7 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 			list_remove(&rnode->leaf_link);
 		
 		idx = find_key_by_subtree(parent, rnode, true);
-		ASSERT((int) idx != -1);
+		assert((int) idx != -1);
 		slab_free(btree_node_slab, rnode);
 		_btree_remove(t, parent->key[idx], parent);
 	}
@@ -950,7 +950,7 @@ descend:
  */
 btree_node_t *btree_leaf_node_left_neighbour(btree_t *t, btree_node_t *node)
 {
-	ASSERT(LEAF_NODE(node));
+	assert(LEAF_NODE(node));
 	
 	if (node->leaf_link.prev != &t->leaf_list.head)
 		return list_get_instance(node->leaf_link.prev, btree_node_t, leaf_link);
@@ -969,7 +969,7 @@ btree_node_t *btree_leaf_node_left_neighbour(btree_t *t, btree_node_t *node)
  */
 btree_node_t *btree_leaf_node_right_neighbour(btree_t *t, btree_node_t *node)
 {
-	ASSERT(LEAF_NODE(node));
+	assert(LEAF_NODE(node));
 	
 	if (node->leaf_link.next != &t->leaf_list.head)
 		return list_get_instance(node->leaf_link.next, btree_node_t, leaf_link);
@@ -1001,11 +1001,11 @@ void btree_print(btree_t *t)
 		btree_node_t *node;
 		
 		hlp = list_first(&list);
-		ASSERT(hlp != NULL);
+		assert(hlp != NULL);
 		node = list_get_instance(hlp, btree_node_t, bfs_link);
 		list_remove(hlp);
 		
-		ASSERT(node);
+		assert(node);
 		
 		if (node->depth != depth) {
 			printf("\n");
@@ -1031,7 +1031,7 @@ void btree_print(btree_t *t)
 	
 	printf("Printing list of leaves:\n");
 	list_foreach(t->leaf_list, leaf_link, btree_node_t, node) {
-		ASSERT(node);
+		assert(node);
 		
 		printf("(");
 		

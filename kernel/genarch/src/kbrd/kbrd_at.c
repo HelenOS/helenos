@@ -34,6 +34,7 @@
  * @brief PC/AT Keyboard processing.
  */
 
+#include <assert.h>
 #include <genarch/kbrd/kbrd.h>
 #include <genarch/kbrd/scanc.h>
 
@@ -191,8 +192,8 @@ kbrd_instance_t *kbrd_init(void)
 
 indev_t *kbrd_wire(kbrd_instance_t *instance, indev_t *sink)
 {
-	ASSERT(instance);
-	ASSERT(sink);
+	assert(instance);
+	assert(sink);
 	
 	instance->sink = sink;
 	thread_ready(instance->thread);

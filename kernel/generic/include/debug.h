@@ -35,66 +35,10 @@
 #ifndef KERN_DEBUG_H_
 #define KERN_DEBUG_H_
 
-#include <panic.h>
 #include <log.h>
 #include <symtab_lookup.h>
 
 #define CALLER  ((uintptr_t) __builtin_return_address(0))
-
-#ifdef CONFIG_DEBUG
-
-/** Debugging ASSERT macro
- *
- * If CONFIG_DEBUG is set, the ASSERT() macro
- * evaluates expr and if it is false raises
- * kernel panic.
- *
- * @param expr Expression which is expected to be true.
- *
- */
-#define ASSERT(expr) \
-	do { \
-		if (!(expr)) \
-			panic_assert("%s() at %s:%u:\n%s", \
-			    __func__, __FILE__, __LINE__, #expr); \
-	} while (0)
-
-/** Debugging verbose ASSERT macro
- *
- * If CONFIG_DEBUG is set, the ASSERT() macro
- * evaluates expr and if it is false raises
- * kernel panic. The panic message contains also
- * the supplied message.
- *
- * @param expr Expression which is expected to be true.
- * @param msg  Additional message to show (string).
- *
- */
-#define ASSERT_VERBOSE(expr, msg) \
-	do { \
-		if (!(expr)) \
-			panic_assert("%s() at %s:%u:\n%s, %s", \
-			    __func__, __FILE__, __LINE__, #expr, msg); \
-	} while (0)
-
-/** Static assert macro
- *
- */
-#define STATIC_ASSERT(expr) \
-	_Static_assert(expr, "")
-
-#define STATIC_ASSERT_VERBOSE(expr, msg) \
-	_Static_assert(expr, msg)
-
-
-#else /* CONFIG_DEBUG */
-
-#define ASSERT(expr)
-#define ASSERT_VERBOSE(expr, msg)
-#define STATIC_ASSERT(expr)
-#define STATIC_ASSERT_VERBOSE(expr, msg)
-
-#endif /* CONFIG_DEBUG */
 
 #ifdef CONFIG_LOG
 

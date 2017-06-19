@@ -33,6 +33,7 @@
 /** @file
  */
 
+#include <assert.h>
 #include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
 #include <print.h>
@@ -124,7 +125,7 @@ void sysinfo_init(void)
 NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
     sysinfo_item_t *subtree, sysinfo_return_t **ret, bool dry_run)
 {
-	ASSERT(subtree != NULL);
+	assert(subtree != NULL);
 	
 	sysinfo_item_t *cur = subtree;
 	
@@ -190,7 +191,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
 NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
     sysinfo_item_t **psubtree)
 {
-	ASSERT(psubtree != NULL);
+	assert(psubtree != NULL);
 	
 	if (*psubtree == NULL) {
 		/* No parent */
@@ -203,11 +204,11 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 		
 		*psubtree =
 		    (sysinfo_item_t *) slab_alloc(sysinfo_item_slab, 0);
-		ASSERT(*psubtree);
+		assert(*psubtree);
 		
 		/* Fill in item name up to the delimiter */
 		(*psubtree)->name = str_ndup(name, i);
-		ASSERT((*psubtree)->name);
+		assert((*psubtree)->name);
 		
 		/* Create subtree items */
 		if (name[i] == '.') {
@@ -267,13 +268,13 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 			
 			sysinfo_item_t *item =
 			    (sysinfo_item_t *) slab_alloc(sysinfo_item_slab, 0);
-			ASSERT(item);
+			assert(item);
 			
 			cur->next = item;
 			
 			/* Fill in item name up to the delimiter */
 			item->name = str_ndup(name, i);
-			ASSERT(item->name);
+			assert(item->name);
 			
 			/* Create subtree items */
 			if (name[i] == '.') {
@@ -290,7 +291,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 	}
 	
 	/* Unreachable */
-	ASSERT(false);
+	assert(false);
 	return NULL;
 }
 
@@ -648,7 +649,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 		return ret;
 	
 	char *path = (char *) malloc(size + 1, 0);
-	ASSERT(path);
+	assert(path);
 	
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
 	    (path[size] == 0)) {
@@ -759,7 +760,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
 		return ret;
 	
 	char *path = (char *) malloc(size + 1, 0);
-	ASSERT(path);
+	assert(path);
 	
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
 	    (path[size] == 0)) {

@@ -38,6 +38,7 @@
  * between kernel and userspace.
  */
 
+#include <assert.h>
 #include <syscall/copy.h>
 #include <proc/thread.h>
 #include <mm/as.h>
@@ -62,8 +63,8 @@ int copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 	ipl_t ipl;
 	int rc;
 	
-	ASSERT(THREAD);
-	ASSERT(!THREAD->in_copy_from_uspace);
+	assert(THREAD);
+	assert(!THREAD->in_copy_from_uspace);
 	
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_src, size,
@@ -113,8 +114,8 @@ int copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	ipl_t ipl;
 	int rc;
 	
-	ASSERT(THREAD);
-	ASSERT(!THREAD->in_copy_to_uspace);
+	assert(THREAD);
+	assert(!THREAD->in_copy_to_uspace);
 	
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_dst, size,
