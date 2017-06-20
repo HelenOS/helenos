@@ -39,6 +39,7 @@
 #include <adt/list.h>
 #include <types/label.h>
 #include <offset.h>
+#include <stddef.h>
 #include <vol.h>
 #include <uuid.h>
 
@@ -47,11 +48,13 @@ typedef struct label_info label_info_t;
 typedef struct label_part label_part_t;
 typedef struct label_part_info label_part_info_t;
 typedef struct label_part_spec label_part_spec_t;
+typedef struct label_bd label_bd_t;
+typedef struct label_bd_ops label_bd_ops_t;
 
 /** Ops for individual label type */
 typedef struct {
-	int (*open)(service_id_t, label_t **);
-	int (*create)(service_id_t, label_t **);
+	int (*open)(label_bd_t *, label_t **);
+	int (*create)(label_bd_t *, label_t **);
 	void (*close)(label_t *);
 	int (*destroy)(label_t *);
 	int (*get_info)(label_t *, label_info_t *);
@@ -137,14 +140,34 @@ typedef struct {
 typedef struct {
 } label_mbr_t;
 
+/** Block device operations */
+struct label_bd_ops {
+	/** Get block size */
+	int (*get_bsize)(void *, size_t *);
+	/** Get number of blocks */
+	int (*get_nblocks)(void *, aoff64_t *);
+	/** Read blocks */
+	int (*read)(void *, aoff64_t, size_t, void *);
+	/** Write blocks */
+	int (*write)(void *, aoff64_t, size_t, const void *);
+};
+
+/** Block device */
+struct label_bd {
+	/** Ops structure */
+	label_bd_ops_t *ops;
+	/** Argument */
+	void *arg;
+};
+
 /** Label instance */
 struct label {
 	/** Label type ops */
 	label_ops_t *ops;
 	/** Label type */
 	label_type_t ltype;
-	/** Block device service ID */
-	service_id_t svc_id;
+	/** Block device */
+	label_bd_t bd;
 	/** Partitions */
 	list_t parts; /* of label_part_t */
 	/** Primary partitions */

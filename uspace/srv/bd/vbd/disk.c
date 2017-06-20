@@ -74,6 +74,12 @@ static int vbds_part_indices_update(vbds_disk_t *);
 
 static vbd_part_id_t vbds_part_id = 1;
 
+static int vbds_label_get_bsize(void *, size_t *);
+static int vbds_label_get_nblocks(void *, aoff64_t *);
+static int vbds_label_read(void *, aoff64_t, size_t, void *);
+static int vbds_label_write(void *, aoff64_t, size_t, const void *);
+
+/** Block device operations provided by VBD */
 static bd_ops_t vbds_bd_ops = {
 	.open = vbds_bd_open,
 	.close = vbds_bd_close,
@@ -82,6 +88,14 @@ static bd_ops_t vbds_bd_ops = {
 	.write_blocks = vbds_bd_write_blocks,
 	.get_block_size = vbds_bd_get_block_size,
 	.get_num_blocks = vbds_bd_get_num_blocks
+};
+
+/** Provide disk access to liblabel */
+static label_bd_ops_t vbds_label_bd_ops = {
+	.get_bsize = vbds_label_get_bsize,
+	.get_nblocks = vbds_label_get_nblocks,
+	.read = vbds_label_read,
+	.write = vbds_label_write
 };
 
 static vbds_part_t *bd_srv_part(bd_srv_t *bd)
@@ -449,6 +463,7 @@ int vbds_disk_discovery_start(void)
 int vbds_disk_add(service_id_t sid)
 {
 	label_t *label = NULL;
+	label_bd_t lbd;
 	vbds_disk_t *disk = NULL;
 	bool block_inited = false;
 	size_t block_size;
@@ -465,6 +480,9 @@ int vbds_disk_add(service_id_t sid)
 	disk = calloc(1, sizeof(vbds_disk_t));
 	if (disk == NULL)
 		return ENOMEM;
+
+	/* Must be set before calling label_open */
+	disk->svc_id = sid;
 
 	rc = loc_service_get_name(sid, &disk->svc_name);
 	if (rc != EOK) {
@@ -500,7 +518,10 @@ int vbds_disk_add(service_id_t sid)
 
 	block_inited = true;
 
-	rc = label_open(sid, &label);
+	lbd.ops = &vbds_label_bd_ops;
+	lbd.arg = (void *) disk;
+
+	rc = label_open(&lbd, &label);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to open label in disk %s.",
 		    disk->svc_name);
@@ -508,7 +529,6 @@ int vbds_disk_add(service_id_t sid)
 		goto error;
 	}
 
-	disk->svc_id = sid;
 	disk->label = label;
 	disk->block_size = block_size;
 	disk->nblocks = nblocks;
@@ -647,6 +667,7 @@ int vbds_get_parts(service_id_t sid, service_id_t *id_buf, size_t buf_size,
 int vbds_label_create(service_id_t sid, label_type_t ltype)
 {
 	label_t *label;
+	label_bd_t lbd;
 	label_info_t linfo;
 	vbds_disk_t *disk;
 	int rc, rc2;
@@ -682,7 +703,10 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu) - label_create", sid);
 
-	rc = label_create(sid, ltype, &label);
+	lbd.ops = &vbds_label_bd_ops;
+	lbd.arg = (void *) disk;
+
+	rc = label_create(&lbd, ltype, &label);
 	if (rc != EOK)
 		goto error;
 
@@ -694,7 +718,10 @@ int vbds_label_create(service_id_t sid, label_type_t ltype)
 error:
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu) - failure", sid);
 	if (disk->label == NULL) {
-		rc2 = label_open(sid, &label);
+		lbd.ops = &vbds_label_bd_ops;
+		lbd.arg = (void *) disk;
+
+		rc2 = label_open(&lbd, &label);
 		if (rc2 != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to open label in disk %s.",
 			    disk->svc_name);
@@ -712,6 +739,7 @@ int vbds_label_delete(service_id_t sid)
 {
 	vbds_disk_t *disk;
 	label_t *label;
+	label_bd_t lbd;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_delete(%zu)", sid);
@@ -734,7 +762,10 @@ int vbds_label_delete(service_id_t sid)
 
 	disk->label = NULL;
 
-	rc = label_open(disk->svc_id, &label);
+	lbd.ops = &vbds_label_bd_ops;
+	lbd.arg = (void *) disk;
+
+	rc = label_open(&lbd, &label);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to open label in disk %s.",
 		    disk->svc_name);
@@ -1176,6 +1207,34 @@ static int vbds_part_indices_update(vbds_disk_t *disk)
 	fibril_mutex_unlock(&vbds_parts_lock);
 
 	return EOK;
+}
+
+/** Get block size wrapper for liblabel */
+static int vbds_label_get_bsize(void *arg, size_t *bsize)
+{
+	vbds_disk_t *disk = (vbds_disk_t *)arg;
+	return block_get_bsize(disk->svc_id, bsize);
+}
+
+/** Get number of blocks wrapper for liblabel */
+static int vbds_label_get_nblocks(void *arg, aoff64_t *nblocks)
+{
+	vbds_disk_t *disk = (vbds_disk_t *)arg;
+	return block_get_nblocks(disk->svc_id, nblocks);
+}
+
+/** Read blocks wrapper for liblabel */
+static int vbds_label_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
+{
+	vbds_disk_t *disk = (vbds_disk_t *)arg;
+	return block_read_direct(disk->svc_id, ba, cnt, buf);
+}
+
+/** Write blocks wrapper for liblabel */
+static int vbds_label_write(void *arg, aoff64_t ba, size_t cnt, const void *data)
+{
+	vbds_disk_t *disk = (vbds_disk_t *)arg;
+	return block_write_direct(disk->svc_id, ba, cnt, data);
 }
 
 /** @}

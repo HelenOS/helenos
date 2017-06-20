@@ -36,12 +36,11 @@
 #ifndef LIBLABEL_LABEL_H_
 #define LIBLABEL_LABEL_H_
 
-#include <loc.h>
 #include <types/label.h>
 #include <types/liblabel.h>
 
-extern int label_open(service_id_t, label_t **);
-extern int label_create(service_id_t, label_type_t, label_t **);
+extern int label_open(label_bd_t *, label_t **);
+extern int label_create(label_bd_t *, label_type_t, label_t **);
 extern void label_close(label_t *);
 extern int label_destroy(label_t *);
 extern int label_get_info(label_t *, label_info_t *);

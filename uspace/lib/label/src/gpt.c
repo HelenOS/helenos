@@ -34,7 +34,6 @@
  */
 
 #include <adt/checksum.h>
-#include <block.h>
 #include <byteorder.h>
 #include <errno.h>
 #include <mem.h>
@@ -46,8 +45,8 @@
 #include "std/gpt.h"
 #include "gpt.h"
 
-static int gpt_open(service_id_t, label_t **);
-static int gpt_create(service_id_t, label_t **);
+static int gpt_open(label_bd_t *, label_t **);
+static int gpt_create(label_bd_t *, label_t **);
 static void gpt_close(label_t *);
 static int gpt_destroy(label_t *);
 static int gpt_get_info(label_t *, label_info_t *);
@@ -70,8 +69,8 @@ static int gpt_update_pt_crc(label_t *, uint32_t);
 static void gpt_hdr_compute_crc(gpt_header_t *, size_t);
 static int gpt_hdr_get_crc(gpt_header_t *, size_t, uint32_t *);
 
-static int gpt_pmbr_create(service_id_t, size_t, uint64_t);
-static int gpt_pmbr_destroy(service_id_t, size_t);
+static int gpt_pmbr_create(label_bd_t *, size_t, uint64_t);
+static int gpt_pmbr_destroy(label_bd_t *, size_t);
 
 const uint8_t efi_signature[8] = {
 	/* "EFI PART" in ASCII */
@@ -92,7 +91,7 @@ label_ops_t gpt_label_ops = {
 	.suggest_ptype = gpt_suggest_ptype
 };
 
-static int gpt_open(service_id_t sid, label_t **rlabel)
+static int gpt_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	gpt_header_t *gpt_hdr[2];
@@ -117,7 +116,7 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 	etable[0] = NULL;
 	etable[1] = NULL;
 
-	rc = block_get_bsize(sid, &bsize);
+	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -140,7 +139,7 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
-	rc = block_read_direct(sid, gpt_hdr_ba, 1, gpt_hdr[0]);
+	rc = bd->ops->read(bd->arg, gpt_hdr_ba, 1, gpt_hdr[0]);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -148,7 +147,7 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 
 	h1ba = uint64_t_le2host(gpt_hdr[0]->alternate_lba);
 
-	rc = block_read_direct(sid, h1ba, 1, gpt_hdr[1]);
+	rc = bd->ops->read(bd->arg, h1ba, 1, gpt_hdr[1]);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -276,7 +275,7 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 			goto error;
 		}
 
-		rc = block_read_direct(sid, ptba[j], pt_blocks / 2, etable[j]);
+		rc = bd->ops->read(bd->arg, ptba[j], pt_blocks / 2, etable[j]);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -307,7 +306,7 @@ static int gpt_open(service_id_t sid, label_t **rlabel)
 
 	label->ops = &gpt_label_ops;
 	label->ltype = lt_gpt;
-	label->svc_id = sid;
+	label->bd = *bd;
 	label->ablock0 = ba_min;
 	label->anblocks = ba_max - ba_min + 1;
 	label->pri_entries = num_entries;
@@ -333,7 +332,7 @@ error:
 	return rc;
 }
 
-static int gpt_create(service_id_t sid, label_t **rlabel)
+static int gpt_create(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	gpt_header_t *gpt_hdr = NULL;
@@ -352,7 +351,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 	int i, j;
 	int rc;
 
-	rc = block_get_bsize(sid, &bsize);
+	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -363,7 +362,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
-	rc = block_get_nblocks(sid, &nblocks);
+	rc = bd->ops->get_nblocks(bd->arg, &nblocks);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -379,7 +378,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
-	rc = gpt_pmbr_create(sid, bsize, nblocks);
+	rc = gpt_pmbr_create(bd, bsize, nblocks);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -404,7 +403,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 			goto error;
 		}
 
-		rc = block_write_direct(sid, ptba[i], pt_blocks, etable);
+		rc = bd->ops->write(bd->arg, ptba[i], pt_blocks, etable);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -439,7 +438,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 
 		gpt_hdr_compute_crc(gpt_hdr, sizeof(gpt_header_t));
 
-		rc = block_write_direct(sid, hdr_ba[i], 1, gpt_hdr);
+		rc = bd->ops->write(bd->arg, hdr_ba[i], 1, gpt_hdr);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -459,7 +458,7 @@ static int gpt_create(service_id_t sid, label_t **rlabel)
 
 	label->ops = &gpt_label_ops;
 	label->ltype = lt_gpt;
-	label->svc_id = sid;
+	label->bd = *bd;
 	label->ablock0 = ba_min;
 	label->anblocks = ba_max - ba_min + 1;
 	label->pri_entries = num_entries;
@@ -519,7 +518,7 @@ static int gpt_destroy(label_t *label)
 			goto error;
 		}
 
-		rc = block_write_direct(label->svc_id, label->lt.gpt.hdr_ba[i],
+		rc = label->bd.ops->write(label->bd.arg, label->lt.gpt.hdr_ba[i],
 		    1, gpt_hdr);
 		if (rc != EOK) {
 			rc = EIO;
@@ -536,7 +535,7 @@ static int gpt_destroy(label_t *label)
 			goto error;
 		}
 
-		rc = block_write_direct(label->svc_id,
+		rc = label->bd.ops->write(label->bd.arg,
 		    label->lt.gpt.ptable_ba[i], label->lt.gpt.pt_blocks,
 		    etable);
 		if (rc != EOK) {
@@ -548,7 +547,7 @@ static int gpt_destroy(label_t *label)
 		etable = 0;
 	}
 
-	rc = gpt_pmbr_destroy(label->svc_id, label->block_size);
+	rc = gpt_pmbr_destroy(&label->bd, label->block_size);
 	if (rc != EOK)
 		goto error;
 
@@ -870,7 +869,7 @@ static int gpt_pte_update(label_t *label, gpt_entry_t *pte, int index)
 		ba = label->lt.gpt.ptable_ba[i];
 		nblocks = label->lt.gpt.pt_blocks;
 
-		rc = block_read_direct(label->svc_id, ba, nblocks, buf);
+		rc = label->bd.ops->read(label->bd.arg, ba, nblocks, buf);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -887,7 +886,7 @@ static int gpt_pte_update(label_t *label, gpt_entry_t *pte, int index)
 		e = (gpt_entry_t *)(&buf[pos]);
 		*e = *pte;
 
-		rc = block_write_direct(label->svc_id, ba, nblocks, buf);
+		rc = label->bd.ops->write(label->bd.arg, ba, nblocks, buf);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -922,7 +921,7 @@ static int gpt_update_pt_crc(label_t *label, uint32_t crc)
 	}
 
 	for (i = 0; i < 2; i++) {
-		rc = block_read_direct(label->svc_id,
+		rc = label->bd.ops->read(label->bd.arg,
 		    label->lt.gpt.hdr_ba[i], 1, gpt_hdr);
 		if (rc != EOK) {
 			rc = EIO;
@@ -932,16 +931,16 @@ static int gpt_update_pt_crc(label_t *label, uint32_t crc)
 		gpt_hdr->pe_array_crc32 = host2uint32_t_le(crc);
 		gpt_hdr_compute_crc(gpt_hdr, label->lt.gpt.hdr_size);
 
-		rc = block_write_direct(label->svc_id,
+		rc = label->bd.ops->write(label->bd.arg,
 		    label->lt.gpt.hdr_ba[i], 1, gpt_hdr);
 		if (rc != EOK) {
 			rc = EIO;
 			goto exit;
 		}
 	}
-	
+
 	rc = EOK;
-	
+
 exit:
 	free(gpt_hdr);
 	return rc;
@@ -973,7 +972,7 @@ static int gpt_hdr_get_crc(gpt_header_t *hdr, size_t hdr_size, uint32_t *crc)
 }
 
 /** Create GPT Protective MBR */
-static int gpt_pmbr_create(service_id_t sid, size_t bsize, uint64_t nblocks)
+static int gpt_pmbr_create(label_bd_t *bd, size_t bsize, uint64_t nblocks)
 {
 	mbr_br_block_t *pmbr = NULL;
 	uint64_t pmbr_nb;
@@ -997,7 +996,7 @@ static int gpt_pmbr_create(service_id_t sid, size_t bsize, uint64_t nblocks)
 
 	pmbr->signature = host2uint16_t_le(mbr_br_signature);
 
-	rc = block_write_direct(sid, mbr_ba, 1, pmbr);
+	rc = bd->ops->write(bd->arg, mbr_ba, 1, pmbr);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -1011,7 +1010,7 @@ error:
 }
 
 /** Destroy GPT Protective MBR */
-static int gpt_pmbr_destroy(service_id_t sid, size_t bsize)
+static int gpt_pmbr_destroy(label_bd_t *bd, size_t bsize)
 {
 	mbr_br_block_t *pmbr = NULL;
 	int rc;
@@ -1022,7 +1021,7 @@ static int gpt_pmbr_destroy(service_id_t sid, size_t bsize)
 		goto error;
 	}
 
-	rc = block_write_direct(sid, mbr_ba, 1, pmbr);
+	rc = bd->ops->write(bd->arg, mbr_ba, 1, pmbr);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;

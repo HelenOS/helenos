@@ -50,14 +50,14 @@ static label_ops_t *probe_list[] = {
 	NULL
 };
 
-int label_open(service_id_t sid, label_t **rlabel)
+int label_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_ops_t **ops;
 	int rc;
 
 	ops = &probe_list[0];
 	while (ops[0] != NULL) {
-		rc = ops[0]->open(sid, rlabel);
+		rc = ops[0]->open(bd, rlabel);
 		if (rc == EOK)
 			return EOK;
 		++ops;
@@ -66,7 +66,7 @@ int label_open(service_id_t sid, label_t **rlabel)
 	return ENOTSUP;
 }
 
-int label_create(service_id_t sid, label_type_t ltype, label_t **rlabel)
+int label_create(label_bd_t *bd, label_type_t ltype, label_t **rlabel)
 {
 	label_ops_t *ops = NULL;
 
@@ -84,7 +84,7 @@ int label_create(service_id_t sid, label_type_t ltype, label_t **rlabel)
 	if (ops == NULL)
 		return ENOTSUP;
 
-	return ops->create(sid, rlabel);
+	return ops->create(bd, rlabel);
 }
 
 void label_close(label_t *label)

@@ -33,7 +33,6 @@
  * @file Master Boot Record label
  */
 
-#include <block.h>
 #include <byteorder.h>
 #include <errno.h>
 #include <mem.h>
@@ -42,9 +41,9 @@
 #include "std/mbr.h"
 #include "mbr.h"
 
-static int mbr_open(service_id_t, label_t **);
+static int mbr_open(label_bd_t *, label_t **);
 static int mbr_open_ext(label_t *);
-static int mbr_create(service_id_t, label_t **);
+static int mbr_create(label_bd_t *, label_t **);
 static void mbr_close(label_t *);
 static int mbr_destroy(label_t *);
 static int mbr_get_info(label_t *, label_info_t *);
@@ -85,7 +84,7 @@ label_ops_t mbr_label_ops = {
 	.suggest_ptype = mbr_suggest_ptype
 };
 
-static int mbr_open(service_id_t sid, label_t **rlabel)
+static int mbr_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	mbr_br_block_t *mbr = NULL;
@@ -96,13 +95,13 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 	uint32_t entry;
 	int rc;
 
-	rc = block_get_bsize(sid, &bsize);
+	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	rc = block_get_nblocks(sid, &nblocks);
+	rc = bd->ops->get_nblocks(bd->arg, &nblocks);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -124,7 +123,7 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 		goto error;
 	}
 
-	rc = block_read_direct(sid, mbr_ba, 1, mbr);
+	rc = bd->ops->read(bd->arg, mbr_ba, 1, mbr);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -159,7 +158,7 @@ static int mbr_open(service_id_t sid, label_t **rlabel)
 
 	label->ops = &mbr_label_ops;
 	label->ltype = lt_mbr;
-	label->svc_id = sid;
+	label->bd = *bd;
 	label->block_size = bsize;
 	label->ablock0 = mbr_ablock0;
 	label->anblocks = nblocks - mbr_ablock0;
@@ -218,7 +217,7 @@ static int mbr_open_ext(label_t *label)
 
 	while (true) {
 		/* Read EBR */
-		rc = block_read_direct(label->svc_id, ebr_b0, 1, ebr);
+		rc = label->bd.ops->read(label->bd.arg, ebr_b0, 1, ebr);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -279,7 +278,7 @@ error:
 	return rc;
 }
 
-static int mbr_create(service_id_t sid, label_t **rlabel)
+static int mbr_create(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	mbr_br_block_t *mbr = NULL;
@@ -288,13 +287,13 @@ static int mbr_create(service_id_t sid, label_t **rlabel)
 	int i;
 	int rc;
 
-	rc = block_get_bsize(sid, &bsize);
+	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	rc = block_get_nblocks(sid, &nblocks);
+	rc = bd->ops->get_nblocks(bd->arg, &nblocks);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -320,7 +319,7 @@ static int mbr_create(service_id_t sid, label_t **rlabel)
 		mbr_unused_pte(&mbr->pte[i]);
 	mbr->signature = host2uint16_t_le(mbr_br_signature);
 
-	rc = block_write_direct(sid, mbr_ba, 1, mbr);
+	rc = bd->ops->write(bd->arg, mbr_ba, 1, mbr);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -332,7 +331,7 @@ static int mbr_create(service_id_t sid, label_t **rlabel)
 	label->ops = &mbr_label_ops;
 	label->ltype = lt_mbr;
 	label->block_size = bsize;
-	label->svc_id = sid;
+	label->bd = *bd;
 	label->ablock0 = mbr_ablock0;
 	label->anblocks = nblocks - mbr_ablock0;
 	label->pri_entries = mbr_nprimary;
@@ -386,7 +385,7 @@ static int mbr_destroy(label_t *label)
 		goto error;
 	}
 
-	rc = block_write_direct(label->svc_id, mbr_ba, 1, mbr);
+	rc = label->bd.ops->write(label->bd.arg, mbr_ba, 1, mbr);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -997,7 +996,7 @@ static int mbr_pte_update(label_t *label, mbr_pte_t *pte, int index)
 	if (br == NULL)
 		return ENOMEM;
 
-	rc = block_read_direct(label->svc_id, mbr_ba, 1, br);
+	rc = label->bd.ops->read(label->bd.arg, mbr_ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -1005,7 +1004,7 @@ static int mbr_pte_update(label_t *label, mbr_pte_t *pte, int index)
 
 	br->pte[index] = *pte;
 
-	rc = block_write_direct(label->svc_id, mbr_ba, 1, br);
+	rc = label->bd.ops->write(label->bd.arg, mbr_ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -1065,7 +1064,7 @@ static int mbr_ebr_create(label_t *label, label_part_t *part)
 
 	br->signature = host2uint16_t_le(mbr_br_signature);
 
-	rc = block_write_direct(label->svc_id, ba, 1, br);
+	rc = label->bd.ops->write(label->bd.arg, ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -1090,7 +1089,7 @@ static int mbr_ebr_delete(label_t *label, label_part_t *part)
 
 	ba = part->block0 - part->hdr_blocks;
 
-	rc = block_write_direct(label->svc_id, ba, 1, br);
+	rc = label->bd.ops->write(label->bd.arg, ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -1117,7 +1116,7 @@ static int mbr_ebr_update_next(label_t *label, label_part_t *part)
 	if (br == NULL)
 		return ENOMEM;
 
-	rc = block_read_direct(label->svc_id, ba, 1, br);
+	rc = label->bd.ops->read(label->bd.arg, ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -1132,7 +1131,7 @@ static int mbr_ebr_update_next(label_t *label, label_part_t *part)
 
 	mbr_log_part_to_ptes(part, NULL, &br->pte[mbr_ebr_pte_next]);
 
-	rc = block_write_direct(label->svc_id, ba, 1, br);
+	rc = label->bd.ops->write(label->bd.arg, ba, 1, br);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
