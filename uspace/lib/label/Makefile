@@ -37,4 +37,8 @@ SOURCES = \
 	src/gpt.c \
 	src/label.c
 
+TEST_SOURCES = \
+	test/main.c \
+	test/label.c
+
 include $(USPACE_PREFIX)/Makefile.common
