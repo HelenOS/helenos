@@ -35,22 +35,26 @@
 
 #include <usb/host/ddf_helpers.h>
 #include "hw_struct/regs.h"
+#include "hw_struct/context.h"
+#include "trb_ring.h"
 
 typedef struct xhci_hc {
 	xhci_cap_regs_t *cap_regs;
 	xhci_op_regs_t *op_regs;
 	xhci_rt_regs_t *rt_regs;
 	xhci_doorbell_t *db_arry;
+
+	xhci_trb_ring_t command_ring;
+	xhci_event_ring_t event_ring;
+
+	xhci_device_ctx_t *dcbaa;
+
+	unsigned max_slots;
+	bool ac64;
+
 } xhci_hc_t;
 
 extern const ddf_hc_driver_t xhci_ddf_hc_driver;
-
-int xhci_hc_init(hcd_t *, const hw_res_list_parsed_t *, bool irq);
-int xhci_hc_gen_irq_code(irq_code_t *, const hw_res_list_parsed_t *);
-int xhci_hc_status(hcd_t *, uint32_t *);
-int xhci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
-void xhci_hc_interrupt(hcd_t *, uint32_t);
-void xhci_hc_fini(hcd_t *);
 
 
 /**

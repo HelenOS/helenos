@@ -83,6 +83,8 @@ enum xhci_trb_type {
 	XHCI_TRB_TYPE_HOST_CONTROLLER_EVENT,
 	XHCI_TRB_TYPE_DEVICE_NOTIFICATION_EVENT,
 	XHCI_TRB_TYPE_MFINDEX_WRAP_EVENT,
+
+	XHCI_TRB_TYPE_MAX
 };
 
 /**
@@ -92,9 +94,10 @@ typedef struct xhci_trb {
 	xhci_qword_t parameter;
 	xhci_dword_t status;
 	xhci_dword_t control;
-} xhci_trb_t;
+} __attribute__((packed)) xhci_trb_t;
 
 #define TRB_TYPE(trb)           XHCI_DWORD_EXTRACT((trb).control, 15, 10)
+#define TRB_CYCLE(trb)          XHCI_DWORD_EXTRACT((trb).control, 0, 0)
 #define TRB_LINK_TC(trb)        XHCI_DWORD_EXTRACT((trb).control, 1, 1)
 
 /**
@@ -113,7 +116,7 @@ static inline bool xhci_trb_is_chained(xhci_trb_t *trb) {
 
 static inline void xhci_trb_set_cycle(xhci_trb_t *trb, bool cycle)
 {
-	xhci_dword_set_bits(&trb->control, cycle, 1, 1);
+	xhci_dword_set_bits(&trb->control, cycle, 0, 0);
 }
 
 static inline void xhci_trb_link_fill(xhci_trb_t *trb, uintptr_t next_phys)
@@ -136,13 +139,19 @@ static inline void xhci_trb_copy(xhci_trb_t *dst, xhci_trb_t *src)
     dst->control = src->control;
 }
 
-
 /**
  * Event Ring Segment Table: section 6.5
  */
 typedef struct xhci_erst_entry {
-	xhci_qword_t rs_base_ptr;       // sans bits 0-6
-	xhci_dword_t size;              // only low 16 bits, the rest is reserved
+	xhci_qword_t rs_base_ptr;       /* 64B aligned */
+	xhci_dword_t size;              /* only low 16 bits, the rest is RsvdZ */
+	xhci_dword_t _reserved;
 } xhci_erst_entry_t;
+
+static inline void xhci_fill_erst_entry(xhci_erst_entry_t *entry, uintptr_t phys, int segments)
+{
+	xhci_qword_set(&entry->rs_base_ptr, phys);
+	xhci_dword_set_bits(&entry->size, segments, 16, 0);
+}
 
 #endif

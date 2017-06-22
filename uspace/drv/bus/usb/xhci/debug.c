@@ -36,6 +36,7 @@
 #include <inttypes.h>
 #include <usb/debug.h>
 
+#include "hw_struct/trb.h"
 #include "debug.h"
 #include "hc.h"
 
@@ -65,8 +66,11 @@ void xhci_dump_cap_regs(xhci_cap_regs_t *cap)
 	DUMP_REG(cap, XHCI_CAP_LENGTH);
 	DUMP_REG(cap, XHCI_CAP_VERSION);
 	DUMP_REG(cap, XHCI_CAP_MAX_SLOTS);
+	DUMP_REG(cap, XHCI_CAP_MAX_INTRS);
+	DUMP_REG(cap, XHCI_CAP_MAX_PORTS);
 	DUMP_REG(cap, XHCI_CAP_IST);
 	DUMP_REG(cap, XHCI_CAP_ERST_MAX);
+	usb_log_debug2(PX "%u", "Max Scratchpad bufs", xhci_get_max_spbuf(cap));
 	DUMP_REG(cap, XHCI_CAP_SPR);
 	DUMP_REG(cap, XHCI_CAP_U1EL);
 	DUMP_REG(cap, XHCI_CAP_U2EL);
@@ -124,7 +128,6 @@ void xhci_dump_state(xhci_hc_t *hc)
 	usb_log_debug2("Operational registers:");
 
 	DUMP_REG(hc->op_regs, XHCI_OP_RS);
-	DUMP_REG(hc->op_regs, XHCI_OP_RS);
 	DUMP_REG(hc->op_regs, XHCI_OP_HCRST);
 	DUMP_REG(hc->op_regs, XHCI_OP_INTE);
 	DUMP_REG(hc->op_regs, XHCI_OP_HSEE);
@@ -151,7 +154,24 @@ void xhci_dump_state(xhci_hc_t *hc)
 	DUMP_REG(hc->op_regs, XHCI_OP_CRR);
 	DUMP_REG(hc->op_regs, XHCI_OP_CRCR_LO);
 	DUMP_REG(hc->op_regs, XHCI_OP_CRCR_HI);
+	DUMP_REG(hc->op_regs, XHCI_OP_DCBAAP_LO);
+	DUMP_REG(hc->op_regs, XHCI_OP_DCBAAP_HI);
+	DUMP_REG(hc->rt_regs, XHCI_RT_MFINDEX);
 
+	usb_log_debug2("Interrupter 0 state:");
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IP);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IE);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IMI);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IMC);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERSTSZ);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERSTBA_LO);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERSTBA_HI);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERDP_LO);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERDP_HI);
+}
+
+void xhci_dump_ports(xhci_hc_t *hc)
+{
 	const size_t num_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
 	for (size_t i = 0; i < num_ports; i++) {
 		usb_log_debug2("Port %zu state:", i);
@@ -159,6 +179,61 @@ void xhci_dump_state(xhci_hc_t *hc)
 		xhci_dump_port(&hc->op_regs->portrs[i]);
 	}
 }
+
+static const char *trb_types [] = {
+	[0] = "<empty>",
+#define TRB(t) [XHCI_TRB_TYPE_##t] = #t
+	TRB(NORMAL),
+	TRB(SETUP_STAGE),
+	TRB(DATA_STAGE),
+	TRB(STATUS_STAGE),
+	TRB(ISOCH),
+	TRB(LINK),
+	TRB(EVENT_DATA),
+	TRB(NO_OP),
+	TRB(ENABLE_SLOT_CMD),
+	TRB(DISABLE_SLOT_CMD),
+	TRB(ADDRESS_DEVICE_CMD),
+	TRB(CONFIGURE_ENDPOINT_CMD),
+	TRB(EVALUATE_CONTEXT_CMD),
+	TRB(RESET_ENDPOINT_CMD),
+	TRB(STOP_ENDPOINT_CMD),
+	TRB(SET_TR_DEQUEUE_POINTER_CMD),
+	TRB(RESET_DEVICE_CMD),
+	TRB(FORCE_EVENT_CMD),
+	TRB(NEGOTIATE_BANDWIDTH_CMD),
+	TRB(SET_LATENCY_TOLERANCE_VALUE_CMD),
+	TRB(GET_PORT_BANDWIDTH_CMD),
+	TRB(FORCE_HEADER_CMD),
+	TRB(NO_OP_CMD),
+	TRB(TRANSFER_EVENT),
+	TRB(COMMAND_COMPLETION_EVENT),
+	TRB(PORT_STATUS_CHANGE_EVENT),
+	TRB(BANDWIDTH_REQUEST_EVENT),
+	TRB(DOORBELL_EVENT),
+	TRB(HOST_CONTROLLER_EVENT),
+	TRB(DEVICE_NOTIFICATION_EVENT),
+	TRB(MFINDEX_WRAP_EVENT),
+#undef TRB
+	[XHCI_TRB_TYPE_MAX] = NULL,
+};
+
+const char *xhci_trb_str_type(unsigned type)
+{
+	static char type_buf [20];
+
+	if (type < XHCI_TRB_TYPE_MAX && trb_types[type] != NULL)
+		return trb_types[type];
+
+	snprintf(type_buf, sizeof(type_buf), "<unknown (%u)>", type);
+	return type_buf;
+}
+
+void xhci_dump_trb(xhci_trb_t *trb)
+{
+	usb_log_debug2("TRB(%p): type %s, cycle %u", trb, xhci_trb_str_type(TRB_TYPE(*trb)), TRB_CYCLE(*trb));
+}
+
 /**
  * @}
  */

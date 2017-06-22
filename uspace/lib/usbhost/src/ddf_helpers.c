@@ -780,7 +780,7 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 	/* Enable interrupts */
 	ret = hcd_ddf_enable_interrupts(device);
 	if (ret != EOK) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
+		usb_log_error("Failed to enable interrupts: %s.\n",
 		    str_error(ret));
 		unregister_interrupt_handler(device, irq);
 		return ret;

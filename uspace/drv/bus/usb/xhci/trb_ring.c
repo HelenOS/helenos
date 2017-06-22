@@ -31,6 +31,9 @@
 #include <ddi.h>
 #include <as.h>
 #include <align.h>
+#include <usb/debug.h>
+#include <usb/host/utils/malloc32.h>
+#include "hw_struct/trb.h"
 #include "trb_ring.h"
 
 #define SEGMENT_HEADER_SIZE (sizeof(link_t) + sizeof(uintptr_t))
@@ -41,7 +44,7 @@
 #define SEGMENT_TRB_COUNT ((PAGE_SIZE - SEGMENT_HEADER_SIZE) / sizeof(xhci_trb_t))
 
 struct trb_segment {
-	xhci_trb_t trb_storage [SEGMENT_TRB_COUNT] __attribute__((packed));
+	xhci_trb_t trb_storage [SEGMENT_TRB_COUNT];
 
 	link_t segments_link;
 	uintptr_t phys;
@@ -58,6 +61,12 @@ static inline xhci_trb_t *segment_end(trb_segment_t *segment)
 	return segment_begin(segment) + SEGMENT_TRB_COUNT;
 }
 
+/**
+ * Allocate and initialize new segment.
+ *
+ * TODO: When the HC supports 64-bit addressing, there's no need to restrict
+ * to DMAMEM_4GiB.
+ */
 static int trb_segment_allocate(trb_segment_t **segment)
 {
 	uintptr_t phys;
@@ -71,21 +80,29 @@ static int trb_segment_allocate(trb_segment_t **segment)
 	if (err == EOK) {
 		memset(*segment, 0, PAGE_SIZE);
 		(*segment)->phys = phys;
+
+		usb_log_debug2("Allocated new ring segment.");
 	}
 
 	return err;
 }
 
-int trb_ring_init(xhci_trb_ring_t *ring)
+/**
+ * Initializes the ring with one segment.
+ * Event when it fails, the structure needs to be finalized.
+ */
+int xhci_trb_ring_init(xhci_trb_ring_t *ring, xhci_hc_t *hc)
 {
 	struct trb_segment *segment;
 	int err;
 
+	list_initialize(&ring->segments);
+
 	if ((err = trb_segment_allocate(&segment)) != EOK)
 		return err;
 
-	list_initialize(&ring->segments);
 	list_append(&segment->segments_link, &ring->segments);
+	ring->segment_count = 1;
 
 	xhci_trb_t *last = segment_end(segment) - 1;
 	xhci_trb_link_fill(last, segment->phys);
@@ -96,11 +113,15 @@ int trb_ring_init(xhci_trb_ring_t *ring)
 	ring->dequeue = segment->phys;
 	ring->pcs = 1;
 
+	usb_log_debug("Initialized new TRB ring.");
+
 	return EOK;
 }
 
-int trb_ring_fini(xhci_trb_ring_t *ring)
+int xhci_trb_ring_fini(xhci_trb_ring_t *ring)
 {
+	list_foreach(ring->segments, segments_link, trb_segment_t, segment)
+		dmamem_unmap_anonymous(segment);
 	return EOK;
 }
 
@@ -122,13 +143,27 @@ static void trb_ring_resolve_link(xhci_trb_ring_t *ring)
 	ring->enqueue_trb = segment_begin(ring->enqueue_segment);
 }
 
-static uintptr_t xhci_trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
+static uintptr_t trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
 {
 	uintptr_t trb_id = ring->enqueue_trb - segment_begin(ring->enqueue_segment);
 	return ring->enqueue_segment->phys + trb_id * sizeof(xhci_trb_t);
 }
 
-int trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td)
+/**
+ * Enqueue a TD composed of TRBs.
+ *
+ * This will copy all TRBs chained together into the ring. The cycle flag in
+ * TRBs may be changed.
+ *
+ * The chained TRBs must be contiguous in memory, and must not contain Link TRBs.
+ *
+ * We cannot avoid the copying, because the TRB in ring should be updated atomically.
+ *
+ * @param td the first TRB of TD
+ * @return EOK on success,
+ *         EAGAIN when the ring is too full to fit all TRBs (temporary)
+ */
+int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td)
 {
 	xhci_trb_t * const saved_enqueue_trb = ring->enqueue_trb;
 	trb_segment_t * const saved_enqueue_segment = ring->enqueue_segment;
@@ -144,7 +179,7 @@ int trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td)
 		if (TRB_TYPE(*ring->enqueue_trb) == XHCI_TRB_TYPE_LINK)
 			trb_ring_resolve_link(ring);
 
-		if (xhci_trb_ring_enqueue_phys(ring) == ring->dequeue)
+		if (trb_ring_enqueue_phys(ring) == ring->dequeue)
 			goto err_again;
 	} while (xhci_trb_is_chained(trb++));
 
@@ -159,14 +194,17 @@ int trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td)
 		xhci_trb_set_cycle(trb, ring->pcs);
 		xhci_trb_copy(ring->enqueue_trb, trb);
 
+		usb_log_debug2("TRB ring(%p): Enqueued TRB %p", ring, trb);
 		ring->enqueue_trb++;
 
 		if (TRB_TYPE(*ring->enqueue_trb) == XHCI_TRB_TYPE_LINK) {
 			// XXX: Check, whether the order here is correct (ambiguous instructions in 4.11.5.1)
 			xhci_trb_set_cycle(ring->enqueue_trb, ring->pcs);
 
-			if (TRB_LINK_TC(*ring->enqueue_trb))
+			if (TRB_LINK_TC(*ring->enqueue_trb)) {
 				ring->pcs = !ring->pcs;
+				usb_log_debug2("TRB ring(%p): PCS toggled", ring);
+			}
 
 			trb_ring_resolve_link(ring);
 		}
@@ -178,4 +216,96 @@ err_again:
 	ring->enqueue_segment = saved_enqueue_segment;
 	ring->enqueue_trb = saved_enqueue_trb;
 	return EAGAIN;
+}
+
+/**
+ * Initializes an event ring.
+ * Even when it fails, the structure needs to be finalized.
+ */
+int xhci_event_ring_init(xhci_event_ring_t *ring, xhci_hc_t *hc)
+{
+	struct trb_segment *segment;
+	int err;
+
+	list_initialize(&ring->segments);
+
+	if ((err = trb_segment_allocate(&segment)) != EOK)
+		return err;
+
+	list_append(&segment->segments_link, &ring->segments);
+	ring->segment_count = 1;
+
+	ring->dequeue_segment = segment;
+	ring->dequeue_trb = segment_begin(segment);
+	ring->dequeue_ptr = segment->phys;
+
+	ring->erst = malloc32(PAGE_SIZE);
+	if (ring->erst == NULL)
+		return ENOMEM;
+
+	xhci_fill_erst_entry(&ring->erst[0], segment->phys, SEGMENT_TRB_COUNT);
+
+	ring->ccs = 1;
+
+	usb_log_debug("Initialized event ring.");
+
+	return EOK;
+}
+
+int xhci_event_ring_fini(xhci_event_ring_t *ring)
+{
+	list_foreach(ring->segments, segments_link, trb_segment_t, segment)
+		dmamem_unmap_anonymous(segment);
+
+	if (ring->erst)
+		free32(ring->erst);
+
+	return EOK;
+}
+
+static uintptr_t event_ring_dequeue_phys(xhci_event_ring_t *ring)
+{
+	uintptr_t trb_id = ring->dequeue_trb - segment_begin(ring->dequeue_segment);
+	return ring->dequeue_segment->phys + trb_id * sizeof(xhci_trb_t);
+}
+
+/**
+ * Fill the event with next valid event from the ring.
+ *
+ * @param event pointer to event to be overwritten
+ * @return EOK on success,
+ *         ENOENT when the ring is empty
+ */
+int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
+{
+	/**
+	 * The ERDP reported to the HC is a half-phase off the one we need to
+	 * maintain. Therefore, we keep it extra.
+	 */
+	ring->dequeue_ptr = event_ring_dequeue_phys(ring);
+
+	if (TRB_CYCLE(*ring->dequeue_trb) != ring->ccs)
+		return ENOENT; /* The ring is empty. */
+
+	memcpy(event, ring->dequeue_trb, sizeof(xhci_trb_t));
+
+	ring->dequeue_trb++;
+	const unsigned index = ring->dequeue_trb - segment_begin(ring->dequeue_segment);
+
+	/* Wrapping around segment boundary */
+	if (index >= SEGMENT_TRB_COUNT) {
+		link_t *next_segment = list_next(&ring->dequeue_segment->segments_link, &ring->segments);
+
+		/* Wrapping around table boundary */
+		if (!next_segment) {
+			next_segment = list_first(&ring->segments);
+			ring->ccs = !ring->ccs;
+		}
+
+		ring->dequeue_segment = list_get_instance(next_segment, trb_segment_t, segments_link);
+		ring->dequeue_trb = segment_begin(ring->dequeue_segment);
+	}
+	
+
+	return EOK;
 }

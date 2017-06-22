@@ -42,13 +42,7 @@
 #include <ddi.h>
 #include "common.h"
 
-/*
- */
-
 #define XHCI_PIO_CHANGE_UDELAY 5
-
-#define host2xhci(size, val) host2uint##size##_t_le((val))
-#define xhci2host(size, val) uint##size##_t_le2host((val))
 
 /*
  * These four are the main macros to be used.
@@ -62,6 +56,8 @@
 #define XHCI_REG_WR(reg_set, reg_spec, value)  XHCI_REG_WR_INNER(reg_set, value, reg_spec)
 #define XHCI_REG_SET(reg_set, reg_spec, value) XHCI_REG_SET_INNER(reg_set, value, reg_spec)
 #define XHCI_REG_CLR(reg_set, reg_spec, value) XHCI_REG_CLR_INNER(reg_set, value, reg_spec)
+#define XHCI_REG_MASK(reg_spec)                XHCI_REG_MASK_INNER(reg_spec)
+#define XHCI_REG_SHIFT(reg_spec)               XHCI_REG_SHIFT_INNER(reg_spec)
 
 /*
  * These take a pointer to the field, and selects the type-specific macro.
@@ -78,6 +74,12 @@
 #define XHCI_REG_CLR_INNER(reg_set, value, field, size, type, ...) \
 	XHCI_REG_CLR_##type(&(reg_set)->field, value, size, ##__VA_ARGS__)
 
+#define XHCI_REG_MASK_INNER(field, size, type, ...) \
+	XHCI_REG_MASK_##type(size, ##__VA_ARGS__)
+
+#define XHCI_REG_SHIFT_INNER(field, size, type, ...) \
+	XHCI_REG_SHIFT_##type(size, ##__VA_ARGS__)
+
 /*
  * Field handling is the easiest. Just do it with whole field.
  */
@@ -85,6 +87,8 @@
 #define XHCI_REG_WR_FIELD(ptr, value, size)  pio_write_##size((ptr), host2xhci(size, value))
 #define XHCI_REG_SET_FIELD(ptr, value, size) pio_set_##size((ptr), host2xhci(size, value), XHCI_PIO_CHANGE_UDELAY);
 #define XHCI_REG_CLR_FIELD(ptr, value, size) pio_clear_##size((ptr), host2xhci(size, value), XHCI_PIO_CHANGE_UDELAY);
+#define XHCI_REG_MASK_FIELD(size)            (~((uint##size##_t) 0))
+#define XHCI_REG_SHIFT_FIELD(size)           (0)
 
 /*
  * Flags are just trivial case of ranges.
@@ -93,6 +97,8 @@
 #define XHCI_REG_WR_FLAG(ptr, value, size, offset)  XHCI_REG_WR_RANGE((ptr), (value), size, (offset), (offset))
 #define XHCI_REG_SET_FLAG(ptr, value, size, offset) XHCI_REG_SET_RANGE((ptr), (value), size, (offset), (offset))
 #define XHCI_REG_CLR_FLAG(ptr, value, size, offset) XHCI_REG_CLR_RANGE((ptr), (value), size, (offset), (offset))
+#define XHCI_REG_MASK_FLAG(size, offset)            BIT_V(uint##size##_t, offset)
+#define XHCI_REG_SHIFT_FLAG(size, offset)           (offset)
 
 /*
  * Ranges are the most difficult. We need to play around with bitmasks.
@@ -112,6 +118,9 @@
 #define XHCI_REG_CLR_RANGE(ptr, value, size, hi, lo) \
 	pio_clear_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, (hi), (lo), (value))), \
 		XHCI_PIO_CHANGE_UDELAY);
+
+#define XHCI_REG_MASK_RANGE(size, hi, lo)  BIT_RANGE(uint##size##_t, hi, lo)
+#define XHCI_REG_SHIFT_RANGE(size, hi, lo) (lo)
 
 /** HC capability registers: section 5.3 */
 typedef const struct xhci_cap_regs {
@@ -213,6 +222,11 @@ typedef const struct xhci_cap_regs {
 #define XHCI_CAP_CTC          hccparams2, 32,  FLAG,  3
 #define XHCI_CAP_LEC          hccparams2, 32,  FLAG,  4
 #define XHCI_CAP_CIC          hccparams2, 32,  FLAG,  5
+
+static inline unsigned xhci_get_max_spbuf(xhci_cap_regs_t *cap_regs) {
+	return XHCI_REG_RD(cap_regs, XHCI_CAP_MAX_SPBUF_HI) << 5
+		| XHCI_REG_RD(cap_regs, XHCI_CAP_MAX_SPBUF_LO);
+}
 
 /**
  * XHCI Port Register Set: section 5.4, table 32
@@ -394,6 +408,17 @@ typedef struct xhci_op_regs {
 #define XHCI_OP_CRR            crcr_lo, 32,  FLAG, 3
 #define XHCI_OP_CRCR_LO        crcr_lo, 32, RANGE, 31, 6
 #define XHCI_OP_CRCR_HI        crcr_lo, 32, FIELD
+#define XHCI_OP_DCBAAP_LO    dcbaap_lo, 32, FIELD
+#define XHCI_OP_DCBAAP_HI    dcbaap_lo, 32, FIELD
+#define XHCI_OP_MAX_SLOTS_EN    config, 32, RANGE, 7, 0
+#define XHCI_OP_U3E             config, 32,  FLAG, 8
+#define XHCI_OP_CIE             config, 32,  FLAG, 9
+
+/* Aggregating field to read & write whole status at once */
+#define XHCI_OP_STATUS          usbsts, 32, RANGE, 12, 0
+
+/* RW1C fields in usbsts */
+#define XHCI_STATUS_ACK_MASK     0x41C
 
 /**
  * Interrupter Register Set: section 5.5.2
@@ -443,17 +468,17 @@ typedef struct xhci_interrupter_regs {
 typedef struct xhci_rt_regs {
 	ioport32_t mfindex;
 
-	PADD32 [5];
+	PADD32 [7];
 
-	xhci_interrupter_regs_t ir[1024];
+	xhci_interrupter_regs_t ir [];
 } xhci_rt_regs_t;
 
 #define XHCI_RT_MFINDEX        mfindex, 32, FIELD
 
 /**
- * XHCI Doorbel Registers: section 5.6
+ * XHCI Doorbell Registers: section 5.6
  *
- * These registers are write-only, thus convenience macros are useless.
+ * These registers are to be written as a whole field.
  */
 typedef ioport32_t xhci_doorbell_t;
 

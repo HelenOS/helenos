@@ -44,15 +44,18 @@
 
 #include <adt/list.h>
 #include <libarch/config.h>
-#include "hw_struct/trb.h"
 
 typedef struct trb_segment trb_segment_t;
+typedef struct xhci_hc xhci_hc_t;
+typedef struct xhci_trb xhci_trb_t;
+typedef struct xhci_erst_entry xhci_erst_entry_t;
 
 /**
  * A TRB ring of which the software is a producer - command / transfer.
  */
 typedef struct xhci_trb_ring {
 	list_t segments;                /* List of assigned segments */
+	int segment_count;              /* Number of segments assigned */
 
 	/*
 	 * As the link TRBs connect physical addresses, we need to keep track of
@@ -66,34 +69,43 @@ typedef struct xhci_trb_ring {
 	bool pcs;                       /* Producer Cycle State: section 4.9.2 */
 } xhci_trb_ring_t;
 
-/**
- * Initializes the ring.
- * Allocates one page as the first segment.
- */
-int trb_ring_init(xhci_trb_ring_t *ring);
-int trb_ring_fini(xhci_trb_ring_t *ring);
+int xhci_trb_ring_init(xhci_trb_ring_t *, xhci_hc_t *);
+int xhci_trb_ring_fini(xhci_trb_ring_t *);
+int xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *);
 
 /**
- * Enqueue a TD composed of TRBs.
- *
- * This will copy all TRBs chained together into the ring. The cycle flag in
- * TRBs may be changed.
- *
- * The chained TRBs must be contiguous in memory, and must not contain Link TRBs.
- *
- * We cannot avoid the copying, because the TRB in ring should be updated atomically.
- *
- * @param td the first TRB of TD
- * @return EOK on success,
- *         EAGAIN when the ring is too full to fit all TRBs (temporary)
+ * Get the initial value to fill into CRCR.
  */
-int trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td);
+static inline uintptr_t xhci_trb_ring_get_dequeue_ptr(xhci_trb_ring_t *ring)
+{
+	return ring->dequeue;
+}
 
 /**
  * When an event is received by the upper layer, it needs to update the dequeue
  * pointer inside the ring. Otherwise, the ring will soon show up as full.
  */
-void trb_ring_update_dequeue(xhci_trb_ring_t *ring, uintptr_t dequeue);
+void xhci_trb_ring_update_dequeue(xhci_trb_ring_t *, uintptr_t);
+uintptr_t xhci_trb_ring_get_dequeue_ptr(xhci_trb_ring_t *);
 
+/**
+ * A TRB ring of which the software is a consumer (event rings).
+ */
+typedef struct xhci_event_ring {
+	list_t segments;                /* List of assigned segments */
+	int segment_count;              /* Number of segments assigned */
+
+	trb_segment_t *dequeue_segment; /* Current segment of the dequeue ptr */
+	xhci_trb_t *dequeue_trb;        /* Next TRB to be processed */
+	uintptr_t dequeue_ptr;          /* Physical address of the ERDP to be reported to the HC */
+
+	xhci_erst_entry_t *erst;        /* ERST given to the HC */
+
+	bool ccs;                       /* Consumer Cycle State: section 4.9.2 */
+} xhci_event_ring_t;
+
+int xhci_event_ring_init(xhci_event_ring_t *, xhci_hc_t *);
+int xhci_event_ring_fini(xhci_event_ring_t *);
+int xhci_event_ring_dequeue(xhci_event_ring_t *, xhci_trb_t *);
 
 #endif

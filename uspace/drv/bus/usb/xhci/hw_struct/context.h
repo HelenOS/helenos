@@ -42,7 +42,7 @@
 #define XHCI_CONTEXT_H
 
 #include <stdint.h>
-#include <common.h>
+#include "common.h"
 
 /**
  * Endpoint context: section 6.2.3
@@ -66,7 +66,7 @@ typedef struct xhci_endpoint_ctx {
 #define XHCI_EP_DCS(ctx)                XHCI_DWORD_EXTRACT((ctx).data[2],  0,  0)
 #define XHCI_EP_TR_DPTR(ctx)            XHCI_DWORD_EXTRACT((ctx).data[2], 63,  4)
 
-} ep_ctx_t __attribute__((packed));
+} __attribute__((packed)) xhci_ep_ctx_t;
 
 /**
  * Slot context: section 6.2.2
@@ -92,7 +92,7 @@ typedef struct xhci_slot_ctx {
 #define XHCI_SLOT_DEVICE_ADDRESS(ctx)   XHCI_DWORD_EXTRACT((ctx).data[3],  7,  0)
 #define XHCI_SLOT_SLOT_STATE(ctx)       XHCI_DWORD_EXTRACT((ctx).data[3], 31, 27)
 
-} xhci_slot_ctx_t __attribute__((packed));
+} __attribute__((packed)) xhci_slot_ctx_t;
 
 /**
  * Device context: section 6.2.1
@@ -100,13 +100,13 @@ typedef struct xhci_slot_ctx {
 typedef struct xhci_device_ctx {
 	xhci_slot_ctx_t slot_ctx;
 	xhci_ep_ctx_t endpoint_ctx [31];
-} xhci_device_ctx_t;
+} __attribute__((packed)) xhci_device_ctx_t;
 
 /**
  * Stream context: section 6.2.4 {
  */
 typedef struct xhci_stream_ctx {
 	uint64_t data [2];
-} xhci_stream_ctx_t __attribute__((packed));
+} __attribute__((packed)) xhci_stream_ctx_t;
 
 #endif

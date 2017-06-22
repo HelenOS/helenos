@@ -17,7 +17,6 @@
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
@@ -37,13 +36,18 @@
 #ifndef XHCI_DEBUG_H
 #define XHCI_DEBUG_H
 
-#include "hw_struct/regs.h"
+struct xhci_hc;
+struct xhci_cap_regs;
+struct xhci_port_regs;
+struct xhci_trb;
 
-typedef struct xhci_hc xhci_hc_t;
+void xhci_dump_cap_regs(const struct xhci_cap_regs *);
+void xhci_dump_port(struct xhci_port_regs *);
+void xhci_dump_state(struct xhci_hc *);
+void xhci_dump_ports(struct xhci_hc *);
 
-void xhci_dump_cap_regs(xhci_cap_regs_t *);
-void xhci_dump_port(xhci_port_regs_t *);
-void xhci_dump_state(xhci_hc_t *);
+const char *xhci_trb_str_type(unsigned);
+void xhci_dump_trb(struct xhci_trb *trb);
 
 #endif
 /**
