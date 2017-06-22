@@ -38,7 +38,9 @@
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
 
-extern int disable_legacy(ddf_dev_t *);
+#include "hc.h"
+
+extern int disable_legacy(hc_t *, ddf_dev_t *);
 
 #endif
 /**

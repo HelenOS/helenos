@@ -752,16 +752,18 @@ static inline void irq_code_clean(irq_code_t *code)
 int hcd_ddf_setup_interrupts(ddf_dev_t *device,
     const hw_res_list_parsed_t *hw_res,
     interrupt_handler_t handler,
-    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *hw_res))
+    irq_code_gen_t gen_irq_code)
 {
-
 	assert(device);
+
+	hcd_t *hcd = dev_to_hcd(device);
+
 	if (!handler || !gen_irq_code)
 		return ENOTSUP;
 
 	irq_code_t irq_code = {0};
 
-	const int irq = gen_irq_code(&irq_code, hw_res);
+	const int irq = gen_irq_code(&irq_code, hcd, hw_res);
 	if (irq < 0) {
 		usb_log_error("Failed to generate IRQ code: %s.\n",
 		    str_error(irq));
@@ -877,34 +879,41 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	ret = hcd_ddf_setup_hc(device, speed, bw[speed].bw, bw[speed].bw_count);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup generic HCD.\n");
-		hw_res_list_parsed_clean(&hw_res);
-		return ret;
+		goto err_hw_res;
 	}
 
+	hcd_t *hcd = dev_to_hcd(device);
+
+	if (driver->init)
+		ret = driver->init(hcd, &hw_res);
+	if (ret != EOK) {
+		usb_log_error("Failed to init HCD.\n");
+		goto err_hcd;
+	}
+
+	/* Setup interrupts  */
 	interrupt_handler_t *irq_handler =
 	    driver->irq_handler ? driver->irq_handler : ddf_hcd_gen_irq_handler;
-	const int irq = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler,
-	    driver->irq_code_gen);
+	const int irq = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler, driver->irq_code_gen);
 	if (!(irq < 0)) {
 		usb_log_debug("Hw interrupts enabled.\n");
 	}
 
+	/* Claim the device from BIOS */
 	if (driver->claim)
-		ret = driver->claim(device);
+		ret = driver->claim(hcd, device);
 	if (ret != EOK) {
-		usb_log_error("Failed to claim `%s' for driver `%s'",
-		    ddf_dev_get_name(device), driver->name);
-		return ret;
+		usb_log_error("Failed to claim `%s' for driver `%s': %s",
+		    ddf_dev_get_name(device), driver->name, str_error(ret));
+		goto err_irq;
 	}
 
-
-	/* Init hw driver */
-	hcd_t *hcd = dev_to_hcd(device);
-	ret = driver->init(hcd, &hw_res, !(irq < 0));
-	hw_res_list_parsed_clean(&hw_res);
+	/* Start hw driver */
+	if (driver->start)
+		ret = driver->start(hcd, !(irq < 0));
 	if (ret != EOK) {
-		usb_log_error("Failed to init HCD: %s.\n", str_error(ret));
-		goto irq_unregister;
+		usb_log_error("Failed to start HCD: %s.\n", str_error(ret));
+		goto err_irq;
 	}
 
 	/* Need working irq replacement to setup root hub */
@@ -913,7 +922,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 		if (hcd->polling_fibril == 0) {
 			usb_log_error("Failed to create polling fibril\n");
 			ret = ENOMEM;
-			goto irq_unregister;
+			goto err_started;
 		}
 		fibril_add_ready(hcd->polling_fibril);
 		usb_log_warning("Failed to enable interrupts: %s."
@@ -928,17 +937,28 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	if (ret != EOK) {
 		usb_log_error("Failed to setup HC root hub: %s.\n",
 		    str_error(ret));
-		driver->fini(dev_to_hcd(device));
-irq_unregister:
-		/* Unregistering non-existent should be ok */
-		unregister_interrupt_handler(device, irq);
-		hcd_ddf_clean_hc(device);
-		return ret;
+		goto err_polling;
 	}
 
 	usb_log_info("Controlling new `%s' device `%s'.\n",
 	    driver->name, ddf_dev_get_name(device));
 	return EOK;
+	
+err_polling:
+	// TODO: Stop the polling fibril (refactor the interrupt_polling func)
+	//
+err_started:
+	if (driver->stop)
+		driver->stop(hcd);
+err_irq:
+	unregister_interrupt_handler(device, irq);
+	if (driver->fini)
+		driver->fini(hcd);
+err_hcd:
+	hcd_ddf_clean_hc(device);
+err_hw_res:
+	hw_res_list_parsed_clean(&hw_res);
+	return ret;
 }
 /**
  * @}

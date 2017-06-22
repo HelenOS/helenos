@@ -88,7 +88,6 @@ static const irq_cmd_t ehci_irq_commands[] = {
 	}
 };
 
-static void hc_start(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 
 /** Generate IRQ code.
@@ -97,10 +96,12 @@ static int hc_init_memory(hc_t *instance);
  *
  * @return Error code.
  */
-int ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
+int ehci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
 	assert(hw_res);
+
+	hc_t *instance = hcd_get_driver_data(hcd);
 
 	if (hw_res->irqs.count != 1 || hw_res->mem_ranges.count != 1)
 		return EINVAL;
@@ -127,19 +128,9 @@ int ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 	code->ranges[0].base = RNGABS(regs);
 
 	memcpy(code->cmds, ehci_irq_commands, sizeof(ehci_irq_commands));
-	ehci_caps_regs_t *caps = NULL;
 
-	int ret = pio_enable_range(&regs, (void**)&caps);
-	if (ret != EOK) {
-		free(code->ranges);
-		free(code->cmds);
-		return ret;
-	}
-
-	ehci_regs_t *registers =
-	    (ehci_regs_t *)(RNGABSPTR(regs) + EHCI_RD8(caps->caplength));
-	code->cmds[0].addr = (void *) &registers->usbsts;
-	code->cmds[3].addr = (void *) &registers->usbsts;
+	code->cmds[0].addr = (void *) &instance->registers->usbsts;
+	code->cmds[3].addr = (void *) &instance->registers->usbsts;
 	EHCI_WR(code->cmds[1].value, EHCI_USED_INTERRUPTS);
 
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
@@ -155,7 +146,7 @@ int ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
 {
 	assert(instance);
 	assert(hw_res);
@@ -171,6 +162,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 		    "registers: %s.\n", instance, str_error(ret));
 		return ret;
 	}
+
 	usb_log_info("HC(%p): Device registers at %"PRIx64" (%zuB) accessible.",
 	    instance, hw_res->mem_ranges.ranges[0].address.absolute,
 	    hw_res->mem_ranges.ranges[0].size);
@@ -194,8 +186,6 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 	usb_log_info("HC(%p): Initializing RH(%p).", instance, &instance->rh);
 	ehci_rh_init(
 	    &instance->rh, instance->caps, instance->registers, "ehci rh");
-	usb_log_debug("HC(%p): Starting HW.", instance);
-	hc_start(instance);
 
 	return EOK;
 }
@@ -367,9 +357,11 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
  *
  * @param[in] instance EHCI hc driver structure.
  */
-void hc_start(hc_t *instance)
+int hc_start(hc_t *instance, bool interrupts)
 {
 	assert(instance);
+	usb_log_debug("HC(%p): Starting HW.", instance);
+
 	/* Turn off the HC if it's running, Reseting a running device is
 	 * undefined */
 	if (!(EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG)) {
@@ -434,6 +426,8 @@ void hc_start(hc_t *instance)
 	/* Clear and Enable interrupts */
 	EHCI_WR(instance->registers->usbsts, EHCI_RD(instance->registers->usbsts));
 	EHCI_WR(instance->registers->usbintr, EHCI_USED_INTERRUPTS);
+
+	return EOK;
 }
 
 /** Initialize memory structures used by the EHCI hcd.

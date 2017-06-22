@@ -51,16 +51,19 @@
 
 #define NAME "ehci"
 
-static int ehci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static int ehci_driver_init(hcd_t *, const hw_res_list_parsed_t *);
+static int ehci_driver_claim(hcd_t *, ddf_dev_t *);
+static int ehci_driver_start(hcd_t *, bool);
 static void ehci_driver_fini(hcd_t *);
 
 static const ddf_hc_driver_t ehci_hc_driver = {
-	.claim = disable_legacy,
 	.hc_speed = USB_SPEED_HIGH,
-	.irq_code_gen = ehci_hc_gen_irq_code,
-	.init = ehci_driver_init,
-	.fini = ehci_driver_fini,
 	.name = "EHCI-PCI",
+	.init = ehci_driver_init,
+	.irq_code_gen = ehci_hc_gen_irq_code,
+	.claim = ehci_driver_claim,
+	.start = ehci_driver_start,
+	.fini = ehci_driver_fini,
 	.ops = {
 		.schedule       = ehci_hc_schedule,
 		.ep_add_hook    = ehci_endpoint_init,
@@ -71,8 +74,7 @@ static const ddf_hc_driver_t ehci_hc_driver = {
 };
 
 
-static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res,
-    bool irq)
+static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 {
 	assert(hcd);
 	assert(hcd_get_driver_data(hcd) == NULL);
@@ -81,13 +83,28 @@ static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res,
 	if (!instance)
 		return ENOMEM;
 
-	const int ret = hc_init(instance, res, irq);
+	const int ret = hc_init(instance, res);
 	if (ret == EOK) {
 		hcd_set_implementation(hcd, instance, &ehci_hc_driver.ops);
 	} else {
 		free(instance);
 	}
 	return ret;
+}
+
+static int ehci_driver_claim(hcd_t *hcd, ddf_dev_t *dev)
+{
+	hc_t *instance = hcd_get_driver_data(hcd);
+	assert(instance);
+
+	return disable_legacy(instance, dev);
+}
+
+static int ehci_driver_start(hcd_t *hcd, bool irq) {
+	hc_t *instance = hcd_get_driver_data(hcd);
+	assert(instance);
+
+	return hc_start(instance, irq);
 }
 
 static void ehci_driver_fini(hcd_t *hcd)

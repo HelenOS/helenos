@@ -44,6 +44,110 @@
 
 #define NAME "xhci"
 
+static int hc_driver_init(hcd_t *, const hw_res_list_parsed_t *);
+static int hcd_irq_code_gen(irq_code_t *, hcd_t *, const hw_res_list_parsed_t *);
+static int hcd_claim(hcd_t *, ddf_dev_t *);
+static int hcd_start(hcd_t *, bool);
+static int hcd_status(hcd_t *, uint32_t *);
+static void hcd_interrupt(hcd_t *, uint32_t);
+static int hcd_schedule(hcd_t *, usb_transfer_batch_t *);
+static void hc_driver_fini(hcd_t *);
+
+static const ddf_hc_driver_t xhci_ddf_hc_driver = {
+	.hc_speed = USB_SPEED_SUPER,
+	.name = "XHCI-PCI",
+	.init = hc_driver_init,
+	.irq_code_gen = hcd_irq_code_gen,
+	.claim = hcd_claim,
+	.start = hcd_start,
+	.fini = hc_driver_fini,
+	.ops = {
+		.schedule       = hcd_schedule,
+		.irq_hook       = hcd_interrupt,
+		.status_hook    = hcd_status,
+	}
+};
+
+static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
+{
+	int err;
+
+	xhci_hc_t *hc = malloc(sizeof(xhci_hc_t));
+	if (!hc)
+		return ENOMEM;
+
+	if ((err = hc_init_mmio(hc, hw_res)))
+		goto err;
+
+	if ((err = hc_init_memory(hc)))
+		goto err;
+
+	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops);
+
+	return EOK;
+err:
+	free(hc);
+	return err;
+}
+
+static int hcd_irq_code_gen(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	return hc_irq_code_gen(code, hc, hw_res);
+}
+
+static int hcd_claim(hcd_t *hcd, ddf_dev_t *dev)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	return hc_claim(hc, dev);
+}
+
+static int hcd_start(hcd_t *hcd, bool irq)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	return hc_start(hc, irq);
+}
+
+static int hcd_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	return hc_schedule(hc, batch);
+}
+
+static int hcd_status(hcd_t *hcd, uint32_t *status)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+	assert(status);
+
+	return hc_status(hc, status);
+}
+
+static void hcd_interrupt(hcd_t *hcd, uint32_t status)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	hc_interrupt(hc, status);
+}
+
+static void hc_driver_fini(hcd_t *hcd)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	hc_fini(hc);
+	free(hc);
+}
+
 /** Initializes a new ddf driver instance of XHCI hcd.
  *
  * @param[in] device DDF instance of the device to initialize.

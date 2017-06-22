@@ -44,20 +44,33 @@
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
 
-typedef int (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *, bool);
-typedef void (*driver_fini_t)(hcd_t *);
-typedef int (*claim_t)(ddf_dev_t *);
-typedef int (*irq_code_gen_t)(irq_code_t *, const hw_res_list_parsed_t *);
+typedef int (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *);
+typedef int (*irq_code_gen_t)(irq_code_t *, hcd_t *, const hw_res_list_parsed_t *);
+typedef int (*claim_t)(hcd_t *, ddf_dev_t *);
+typedef int (*driver_start_t)(hcd_t *, bool irq);
 
+typedef void (*driver_stop_t)(hcd_t *);
+typedef void (*driver_fini_t)(hcd_t *);
+
+/**
+ * All callbacks are optional.
+ */
 typedef struct {
 	hcd_ops_t ops;
-	claim_t claim;
 	usb_speed_t hc_speed;
-	driver_init_t init;
-	driver_fini_t fini;
-	interrupt_handler_t *irq_handler;
-	irq_code_gen_t irq_code_gen;
 	const char *name;
+
+	interrupt_handler_t *irq_handler;  /**< Handler of IRQ. Do have generic implementation. */
+
+	/* Initialization sequence: */
+	driver_init_t init;                /**< Initialize internal structures, memory */
+	claim_t claim;                     /**< Claim device from BIOS */
+	irq_code_gen_t irq_code_gen;       /**< Generate IRQ handling code */
+	driver_start_t start;              /**< Start the HC */
+
+	/* Destruction sequence: */
+	driver_stop_t stop;                /**< Stop the HC (counterpart of start) */
+	driver_fini_t fini;                /**< Destroy internal structures (counterpart of init) */
 } ddf_hc_driver_t;
 
 int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver);
@@ -74,7 +87,7 @@ int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res);
 int hcd_ddf_setup_interrupts(ddf_dev_t *device,
     const hw_res_list_parsed_t *hw_res,
     interrupt_handler_t handler,
-    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *));
+    irq_code_gen_t gen_irq_code);
 void ddf_hcd_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev);
 
 #endif

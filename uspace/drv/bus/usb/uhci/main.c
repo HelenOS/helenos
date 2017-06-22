@@ -49,15 +49,17 @@
 
 #define NAME "uhci"
 
-static int uhci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static int uhci_driver_init(hcd_t *, const hw_res_list_parsed_t *);
+static int uhci_driver_start(hcd_t *, bool);
 static void uhci_driver_fini(hcd_t *);
-static int disable_legacy(ddf_dev_t *);
+static int disable_legacy(hcd_t *, ddf_dev_t *);
 
 static const ddf_hc_driver_t uhci_hc_driver = {
         .claim = disable_legacy,
         .hc_speed = USB_SPEED_FULL,
         .irq_code_gen = uhci_hc_gen_irq_code,
         .init = uhci_driver_init,
+        .start = uhci_driver_start,
         .fini = uhci_driver_fini,
         .name = "UHCI",
 	.ops = {
@@ -67,7 +69,7 @@ static const ddf_hc_driver_t uhci_hc_driver = {
 	},
 };
 
-static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 {
 	assert(hcd);
 	assert(hcd_get_driver_data(hcd) == NULL);
@@ -76,13 +78,23 @@ static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	if (!instance)
 		return ENOMEM;
 
-	const int ret = hc_init(instance, res, irq);
+	const int ret = hc_init(instance, res);
 	if (ret == EOK) {
 		hcd_set_implementation(hcd, instance, &uhci_hc_driver.ops);
 	} else {
 		free(instance);
 	}
 	return ret;
+}
+
+static int uhci_driver_start(hcd_t *hcd, bool interrupts)
+{
+	assert(hcd);
+	hc_t *hc = hcd_get_driver_data(hcd);
+
+	hc->hw_interrupts = interrupts;
+	hc_start(hc);
+	return EOK;
 }
 
 static void uhci_driver_fini(hcd_t *hcd)
@@ -101,7 +113,7 @@ static void uhci_driver_fini(hcd_t *hcd)
  * @param[in] device Device asking to disable interrupts
  * @return Error code.
  */
-static int disable_legacy(ddf_dev_t *device)
+static int disable_legacy(hcd_t *hcd, ddf_dev_t *device)
 {
 	assert(device);
 

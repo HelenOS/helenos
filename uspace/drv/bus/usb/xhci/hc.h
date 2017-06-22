@@ -33,7 +33,7 @@
  * @brief The host controller data bookkeeping.
  */
 
-#include <usb/host/ddf_helpers.h>
+#include <usb/host/usb_transfer_batch.h>
 #include "hw_struct/regs.h"
 #include "hw_struct/context.h"
 #include "trb_ring.h"
@@ -43,6 +43,8 @@ typedef struct xhci_hc {
 	xhci_op_regs_t *op_regs;
 	xhci_rt_regs_t *rt_regs;
 	xhci_doorbell_t *db_arry;
+
+	addr_range_t mmio_range;
 
 	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
@@ -54,8 +56,15 @@ typedef struct xhci_hc {
 
 } xhci_hc_t;
 
-extern const ddf_hc_driver_t xhci_ddf_hc_driver;
-
+int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);
+int hc_init_memory(xhci_hc_t *);
+int hc_claim(xhci_hc_t *, ddf_dev_t *);
+int hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *);
+int hc_start(xhci_hc_t *, bool);
+int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch);
+int hc_status(xhci_hc_t *, uint32_t *);
+void hc_interrupt(xhci_hc_t *, uint32_t);
+void hc_fini(xhci_hc_t *);
 
 /**
  * @}

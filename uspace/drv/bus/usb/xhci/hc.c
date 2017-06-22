@@ -36,7 +36,6 @@
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
-#include <usb/host/ddf_helpers.h>
 #include <usb/host/utils/malloc32.h>
 #include "debug.h"
 #include "hc.h"
@@ -69,32 +68,89 @@ static const irq_cmd_t irq_commands[] = {
 	}
 };
 
+int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
+{
+	int err;
+
+	if (hw_res->mem_ranges.count != 1) {
+		usb_log_error("Unexpected MMIO area, bailing out.");
+		return EINVAL;
+	}
+
+	hc->mmio_range = hw_res->mem_ranges.ranges[0];
+
+	usb_log_debug("MMIO area at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(hc->mmio_range), RNGSZ(hc->mmio_range), hw_res->irqs.irqs[0]);
+
+	if (RNGSZ(hc->mmio_range) < sizeof(xhci_cap_regs_t))
+		return EOVERFLOW;
+
+	void *base;
+	if ((err = pio_enable_range(&hc->mmio_range, &base)))
+		return err;
+
+	hc->cap_regs = (xhci_cap_regs_t *)  base;
+	hc->op_regs  = (xhci_op_regs_t *)  (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH));
+	hc->rt_regs  = (xhci_rt_regs_t *)  (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF));
+	hc->db_arry  = (xhci_doorbell_t *) (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_DBOFF));
+
+	usb_log_debug2("Initialized MMIO reg areas:");
+	usb_log_debug2("\tCapability regs: %p", hc->cap_regs);
+	usb_log_debug2("\tOperational regs: %p", hc->op_regs);
+	usb_log_debug2("\tRuntime regs: %p", hc->rt_regs);
+	usb_log_debug2("\tDoorbell array base: %p", hc->db_arry);
+
+	xhci_dump_cap_regs(hc->cap_regs);
+
+	hc->ac64 = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_AC64);
+	hc->max_slots = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_SLOTS);
+
+	return EOK;
+}
+
+int hc_init_memory(xhci_hc_t *hc)
+{
+	int err;
+
+	hc->dcbaa = malloc32((1 + hc->max_slots) * sizeof(xhci_device_ctx_t));
+	if (!hc->dcbaa)
+		return ENOMEM;
+
+	if ((err = xhci_trb_ring_init(&hc->command_ring, hc)))
+		goto err_dcbaa;
+
+	if ((err = xhci_event_ring_init(&hc->event_ring, hc)))
+		goto err_cmd_ring;
+
+	// TODO: Allocate scratchpad buffers
+
+	return EOK;
+
+	xhci_event_ring_fini(&hc->event_ring);
+err_cmd_ring:
+	xhci_trb_ring_fini(&hc->command_ring);
+err_dcbaa:
+	free32(hc->dcbaa);
+	return err;
+}
+
+
 /**
  * Generates code to accept interrupts. The xHCI is designed primarily for
  * MSI/MSI-X, but we use PCI Interrupt Pin. In this mode, all the Interrupters
  * (except 0) are disabled.
  */
-static int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
+int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 {
-	int err;
-
 	assert(code);
 	assert(hw_res);
 
-	if (hw_res->irqs.count != 1 || hw_res->mem_ranges.count != 1) {
+	if (hw_res->irqs.count != 1) {
 		usb_log_info("Unexpected HW resources to enable interrupts.");
 		return EINVAL;
 	}
 
 	addr_range_t mmio_range = hw_res->mem_ranges.ranges[0];
-
-	if (RNGSZ(mmio_range) < sizeof(xhci_cap_regs_t))
-		return EOVERFLOW;
-
-
-	xhci_cap_regs_t *cap_regs = NULL;
-	if ((err = pio_enable_range(&mmio_range, (void **)&cap_regs)))
-		return EIO;
 
 	code->ranges = malloc(sizeof(irq_pio_range_t));
 	if (code->ranges == NULL)
@@ -115,7 +171,7 @@ static int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 	code->cmdcount = ARRAY_SIZE(irq_commands);
 	memcpy(code->cmds, irq_commands, sizeof(irq_commands));
 
-	void *intr0_iman = RNGABSPTR(mmio_range) + XHCI_REG_RD(cap_regs, XHCI_CAP_RTSOFF) + offsetof(xhci_rt_regs_t, ir[0]);
+	void *intr0_iman = RNGABSPTR(mmio_range) + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF) + offsetof(xhci_rt_regs_t, ir[0]);
 	code->cmds[0].addr = intr0_iman;
 	code->cmds[3].addr = intr0_iman;
 	code->cmds[1].value = host2xhci(32, 1);
@@ -123,9 +179,9 @@ static int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 	return hw_res->irqs.irqs[0];
 }
 
-static int hc_claim(ddf_dev_t *dev)
+int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 {
-	// TODO: implement handoff: section 4.22.1
+	// TODO: impl
 	return EOK;
 }
 
@@ -151,7 +207,7 @@ static int hc_reset(xhci_hc_t *hc)
 /**
  * Initialize the HC: section 4.2
  */
-static int hc_start(xhci_hc_t *hc, bool irq)
+int hc_start(xhci_hc_t *hc, bool irq)
 {
 	int err;
 
@@ -190,94 +246,11 @@ static int hc_start(xhci_hc_t *hc, bool irq)
 	return EOK;
 }
 
-static int hc_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res, bool irq)
+int hc_status(xhci_hc_t *hc, uint32_t *status)
 {
-	int err;
+	*status = XHCI_REG_RD(hc->op_regs, XHCI_OP_STATUS);
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_STATUS, *status & XHCI_STATUS_ACK_MASK);
 
-	assert(hcd);
-	assert(hw_res);
-	assert(hcd_get_driver_data(hcd) == NULL);
-
-	/* Initialize the MMIO ranges */
-	if (hw_res->mem_ranges.count != 1) {
-		usb_log_error("Unexpected MMIO area, bailing out.");
-		return EINVAL;
-	}
-
-	addr_range_t mmio_range = hw_res->mem_ranges.ranges[0];
-
-	usb_log_debug("MMIO area at %p (size %zu), IRQ %d.\n",
-	    RNGABSPTR(mmio_range), RNGSZ(mmio_range), hw_res->irqs.irqs[0]);
-
-	if (RNGSZ(mmio_range) < sizeof(xhci_cap_regs_t))
-		return EOVERFLOW;
-
-	void *base;
-	if ((err = pio_enable_range(&mmio_range, &base)))
-		return err;
-
-	xhci_hc_t *hc = malloc(sizeof(xhci_hc_t));
-	if (!hc)
-		return ENOMEM;
-
-	hc->cap_regs = (xhci_cap_regs_t *)  base;
-	hc->op_regs  = (xhci_op_regs_t *)  (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH));
-	hc->rt_regs  = (xhci_rt_regs_t *)  (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF));
-	hc->db_arry  = (xhci_doorbell_t *) (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_DBOFF));
-
-	usb_log_debug2("Initialized MMIO reg areas:");
-	usb_log_debug2("\tCapability regs: %p", hc->cap_regs);
-	usb_log_debug2("\tOperational regs: %p", hc->op_regs);
-	usb_log_debug2("\tRuntime regs: %p", hc->rt_regs);
-	usb_log_debug2("\tDoorbell array base: %p", hc->db_arry);
-
-	xhci_dump_cap_regs(hc->cap_regs);
-
-	hc->ac64 = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_AC64);
-	hc->max_slots = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_SLOTS);
-
-	hc->dcbaa = malloc32((1 + hc->max_slots) * sizeof(xhci_device_ctx_t));
-	if (!hc->dcbaa)
-		goto err_hc;
-
-	if ((err = xhci_trb_ring_init(&hc->command_ring, hc)))
-		goto err_dcbaa;
-
-	if ((err = xhci_event_ring_init(&hc->event_ring, hc)))
-		goto err_cmd_ring;
-
-	// TODO: Allocate scratchpad buffers
-
-	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops);
-
-	if ((err = hc_start(hc, irq)))
-		goto err_event_ring;
-
-	return EOK;
-
-err_event_ring:
-	xhci_event_ring_fini(&hc->event_ring);
-err_cmd_ring:
-	xhci_trb_ring_fini(&hc->command_ring);
-err_dcbaa:
-	free32(hc->dcbaa);
-err_hc:
-	free(hc);
-	hcd_set_implementation(hcd, NULL, NULL);
-	return err;
-}
-
-static int hc_status(hcd_t *hcd, uint32_t *status)
-{
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-	assert(status);
-
-	*status = 0;
-	if (hc->op_regs) {
-		*status = XHCI_REG_RD(hc->op_regs, XHCI_OP_STATUS);
-		XHCI_REG_WR(hc->op_regs, XHCI_OP_STATUS, *status & XHCI_STATUS_ACK_MASK);
-	}
 	usb_log_debug2("HC(%p): Read status: %x", hc, *status);
 	return EOK;
 }
@@ -304,11 +277,8 @@ static int send_no_op_command(xhci_hc_t *hc)
 	return EOK;
 }
 
-static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
 	xhci_dump_state(hc);
 	send_no_op_command(hc);
 	async_usleep(1000);
@@ -345,11 +315,8 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erstptr));
 }
 
-static void hc_interrupt(hcd_t *hcd, uint32_t status)
+void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
 	if (status & XHCI_REG_MASK(XHCI_OP_HSE)) {
 		usb_log_error("Host controller error occured. Bad things gonna happen...");
 	}
@@ -374,33 +341,12 @@ static void hc_interrupt(hcd_t *hcd, uint32_t status)
 	}
 }
 
-static void hc_fini(hcd_t *hcd)
+void hc_fini(xhci_hc_t *hc)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	usb_log_info("Finishing");
-
 	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
-
-	free(hc);
-	hcd_set_implementation(hcd, NULL, NULL);
+	usb_log_info("HC(%p): Finalized.", hc);
 }
-
-const ddf_hc_driver_t xhci_ddf_hc_driver = {
-	.hc_speed = USB_SPEED_SUPER,
-	.irq_code_gen = hc_gen_irq_code,
-	.claim = hc_claim,
-	.init = hc_init,
-	.fini = hc_fini,
-	.name = "XHCI-PCI",
-	.ops = {
-		.schedule       = hc_schedule,
-		.irq_hook       = hc_interrupt,
-		.status_hook    = hc_status,
-	}
-};
 
 
 

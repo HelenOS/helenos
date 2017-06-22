@@ -88,8 +88,6 @@ static const irq_cmd_t ohci_irq_commands[] = {
 	}
 };
 
-static void hc_gain_control(hc_t *instance);
-static void hc_start(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 
@@ -102,7 +100,7 @@ static int hc_init_memory(hc_t *instance);
  *
  * @return Error code.
  */
-int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
+int ohci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
 	assert(hw_res);
@@ -150,7 +148,7 @@ int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
 {
 	assert(instance);
 	assert(hw_res);
@@ -171,7 +169,6 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 
 	list_initialize(&instance->pending_batches);
 	fibril_mutex_initialize(&instance->guard);
-	instance->hw_interrupts = interrupts;
 
 	ret = hc_init_memory(instance);
 	if (ret != EOK) {
@@ -180,11 +177,6 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 		// TODO: We should disable pio access here
 		return ret;
 	}
-
-	hc_gain_control(instance);
-
-	ohci_rh_init(&instance->rh, instance->registers, "ohci rh");
-	hc_start(instance);
 
 	return EOK;
 }
@@ -442,6 +434,8 @@ void hc_gain_control(hc_t *instance)
  */
 void hc_start(hc_t *instance)
 {
+	ohci_rh_init(&instance->rh, instance->registers, "ohci rh");
+
 	/* OHCI guide page 42 */
 	assert(instance);
 	usb_log_debug2("Started hc initialization routine.\n");

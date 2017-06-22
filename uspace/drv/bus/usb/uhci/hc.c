@@ -105,7 +105,7 @@ static int hc_debug_checker(void *arg);
  *
  * @return Error code.
  */
-int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
+int uhci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
 	assert(hw_res);
@@ -213,7 +213,7 @@ void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
 {
 	assert(instance);
 	assert(hw_res);
@@ -221,7 +221,6 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 	    hw_res->io_ranges.ranges[0].size < sizeof(uhci_regs_t))
 	    return EINVAL;
 
-	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
@@ -245,12 +244,15 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 		return ret;
 	}
 
+	return EOK;
+}
+
+void hc_start(hc_t *instance)
+{
 	hc_init_hw(instance);
 	(void)hc_debug_checker;
 
 	uhci_rh_init(&instance->rh, instance->registers->ports, "uhci");
-
-	return EOK;
 }
 
 /** Safely dispose host controller internal structures

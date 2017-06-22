@@ -46,13 +46,17 @@
 #include "hc.h"
 
 #define NAME "ohci"
-static int ohci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static int ohci_driver_init(hcd_t *, const hw_res_list_parsed_t *);
+static int ohci_driver_start(hcd_t *, bool);
+static int ohci_driver_claim(hcd_t *, ddf_dev_t *);
 static void ohci_driver_fini(hcd_t *);
 
 static const ddf_hc_driver_t ohci_hc_driver = {
         .hc_speed = USB_SPEED_FULL,
         .irq_code_gen = ohci_hc_gen_irq_code,
         .init = ohci_driver_init,
+        .claim = ohci_driver_claim,
+        .start = ohci_driver_start,
         .fini = ohci_driver_fini,
         .name = "OHCI",
 	.ops = {
@@ -65,7 +69,7 @@ static const ddf_hc_driver_t ohci_hc_driver = {
 };
 
 
-static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 {
 	assert(hcd);
 	assert(hcd_get_driver_data(hcd) == NULL);
@@ -74,13 +78,33 @@ static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	if (!instance)
 		return ENOMEM;
 
-	const int ret = hc_init(instance, res, irq);
+	const int ret = hc_init(instance, res);
 	if (ret == EOK) {
 		hcd_set_implementation(hcd, instance, &ohci_hc_driver.ops);
 	} else {
 		free(instance);
 	}
 	return ret;
+}
+
+static int ohci_driver_claim(hcd_t *hcd, ddf_dev_t *dev)
+{
+	hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	hc_gain_control(hc);
+
+	return EOK;
+}
+
+static int ohci_driver_start(hcd_t *hcd, bool interrupts)
+{
+	hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	hc->hw_interrupts = interrupts;
+	hc_start(hc);
+	return EOK;
 }
 
 static void ohci_driver_fini(hcd_t *hcd)

@@ -171,7 +171,7 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	return ret;
 }
 
-int disable_legacy(ddf_dev_t *device)
+int disable_legacy(hc_t *hc, ddf_dev_t *device)
 {
 	assert(device);
 
@@ -182,36 +182,8 @@ int disable_legacy(ddf_dev_t *device)
 
 	usb_log_debug("Disabling EHCI legacy support.\n");
 
-	hw_res_list_parsed_t res;
-	hw_res_list_parsed_init(&res);
-	int ret = hw_res_get_list_parsed(parent_sess, &res, 0);
-	if (ret != EOK) {
-		usb_log_error("Failed to get resource list: %s\n",
-		    str_error(ret));
-		goto clean;
-	}
 
-	if (res.mem_ranges.count < 1) {
-		usb_log_error("Incorrect mem range count: %zu",
-		    res.mem_ranges.count);
-		ret = EINVAL;
-		goto clean;
-	}
-
-	/* Map EHCI registers */
-	void *regs = NULL;
-	ret = pio_enable_range(&res.mem_ranges.ranges[0], &regs);
-	if (ret != EOK) {
-		usb_log_error("Failed to map registers %p: %s.\n",
-		    RNGABSPTR(res.mem_ranges.ranges[0]), str_error(ret));
-		goto clean;
-	}
-
-	usb_log_debug("Registers mapped at: %p.\n", regs);
-
-	ehci_caps_regs_t *ehci_caps = regs;
-
-	const uint32_t hcc_params = EHCI_RD(ehci_caps->hccparams);
+	const uint32_t hcc_params = EHCI_RD(hc->caps->hccparams);
 	usb_log_debug2("Value of hcc params register: %x.\n", hcc_params);
 
 	/* Read value of EHCI Extended Capabilities Pointer
@@ -220,15 +192,13 @@ int disable_legacy(ddf_dev_t *device)
 	    (hcc_params >> EHCI_CAPS_HCC_EECP_SHIFT) & EHCI_CAPS_HCC_EECP_MASK;
 	usb_log_debug2("Value of EECP: %x.\n", eecp);
 
-	ret = disable_extended_caps(parent_sess, eecp);
+	int ret = disable_extended_caps(parent_sess, eecp);
 	if (ret != EOK) {
 		usb_log_error("Failed to disable extended capabilities: %s.\n",
 		    str_error(ret));
 		    goto clean;
 	}
 clean:
-	//TODO unmap registers
-	hw_res_list_parsed_clean(&res);
 	async_hangup(parent_sess);
 	return ret;
 }
