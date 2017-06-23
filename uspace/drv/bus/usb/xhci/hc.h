@@ -38,22 +38,35 @@
 #include "hw_struct/context.h"
 #include "trb_ring.h"
 
+/**
+ * xHCI lets the controller define speeds of ports it controls.
+ */
+typedef struct xhci_port_speed {
+	uint64_t rx_bps, tx_bps;
+} xhci_port_speed_t;
+
 typedef struct xhci_hc {
+	/* MMIO range */
+	addr_range_t mmio_range;
+	void *base;
+
+	/* Mapped register sets */
 	xhci_cap_regs_t *cap_regs;
 	xhci_op_regs_t *op_regs;
 	xhci_rt_regs_t *rt_regs;
 	xhci_doorbell_t *db_arry;
+	xhci_extcap_t *xecp;		/**< First extended capability */
+	xhci_legsup_t *legsup;		/**< Legacy support capability */
 
-	addr_range_t mmio_range;
-
+	/* Structures in allocated memory */
 	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
-
 	xhci_device_ctx_t *dcbaa;
 
+	/* Cached capabilities */
+	xhci_port_speed_t speeds [16];
 	unsigned max_slots;
 	bool ac64;
-
 } xhci_hc_t;
 
 int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);

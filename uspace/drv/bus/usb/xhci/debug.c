@@ -34,6 +34,7 @@
  */
 
 #include <inttypes.h>
+#include <byteorder.h>
 #include <usb/debug.h>
 
 #include "hw_struct/trb.h"
@@ -59,7 +60,7 @@
 /**
  * Dumps all capability registers.
  */
-void xhci_dump_cap_regs(xhci_cap_regs_t *cap)
+void xhci_dump_cap_regs(const xhci_cap_regs_t *cap)
 {
 	usb_log_debug2("Capabilities:");
 
@@ -98,7 +99,7 @@ void xhci_dump_cap_regs(xhci_cap_regs_t *cap)
 	DUMP_REG(cap, XHCI_CAP_CIC);
 }
 
-void xhci_dump_port(xhci_port_regs_t *port)
+void xhci_dump_port(const xhci_port_regs_t *port)
 {
 	DUMP_REG(port, XHCI_PORT_CCS);
 	DUMP_REG(port, XHCI_PORT_PED);
@@ -123,7 +124,7 @@ void xhci_dump_port(xhci_port_regs_t *port)
 	DUMP_REG(port, XHCI_PORT_WPR);
 }
 
-void xhci_dump_state(xhci_hc_t *hc)
+void xhci_dump_state(const xhci_hc_t *hc)
 {
 	usb_log_debug2("Operational registers:");
 
@@ -170,7 +171,7 @@ void xhci_dump_state(xhci_hc_t *hc)
 	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERDP_HI);
 }
 
-void xhci_dump_ports(xhci_hc_t *hc)
+void xhci_dump_ports(const xhci_hc_t *hc)
 {
 	const size_t num_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
 	for (size_t i = 0; i < num_ports; i++) {
@@ -229,9 +230,73 @@ const char *xhci_trb_str_type(unsigned type)
 	return type_buf;
 }
 
-void xhci_dump_trb(xhci_trb_t *trb)
+void xhci_dump_trb(const xhci_trb_t *trb)
 {
 	usb_log_debug2("TRB(%p): type %s, cycle %u", trb, xhci_trb_str_type(TRB_TYPE(*trb)), TRB_CYCLE(*trb));
+}
+
+static const char *ec_ids [] = {
+	[0] = "<empty>",
+#define EC(t) [XHCI_EC_##t] = #t
+	EC(USB_LEGACY),
+	EC(SUPPORTED_PROTOCOL),
+	EC(EXTENDED_POWER_MANAGEMENT),
+	EC(IOV),
+	EC(MSI),
+	EC(LOCALMEM),
+	EC(DEBUG),
+	EC(MSIX),
+#undef EC
+	[XHCI_EC_MAX] = NULL
+};
+
+const char *xhci_ec_str_id(unsigned id)
+{
+	static char buf [20];
+
+	if (id < XHCI_EC_MAX && ec_ids[id] != NULL)
+		return ec_ids[id];
+
+	snprintf(buf, sizeof(buf), "<unknown (%u)>", id);
+	return buf;
+}
+
+static void xhci_dump_psi(const xhci_psi_t *psi)
+{
+	static const char speed_exp [] = " KMG";
+	static const char *psi_types [] = { "", " rsvd", " RX", " TX" };
+	
+	usb_log_debug("Speed %u%s: %5u %cb/s, %s",
+	    XHCI_REG_RD(psi, XHCI_PSI_PSIV),
+	    psi_types[XHCI_REG_RD(psi, XHCI_PSI_PLT)],
+	    XHCI_REG_RD(psi, XHCI_PSI_PSIM),
+	    speed_exp[XHCI_REG_RD(psi, XHCI_PSI_PSIE)],
+	    XHCI_REG_RD(psi, XHCI_PSI_PFD) ? "full-duplex" : "");
+}
+
+void xhci_dump_extcap(const xhci_extcap_t *ec)
+{
+	xhci_sp_name_t name;
+	unsigned ports_from, ports_to;
+
+	unsigned id = XHCI_REG_RD(ec, XHCI_EC_CAP_ID);
+	usb_log_debug("Extended capability %s", xhci_ec_str_id(id));
+
+	switch (id) {
+		case XHCI_EC_SUPPORTED_PROTOCOL:
+			name.packed = host2uint32_t_le(XHCI_REG_RD(ec, XHCI_EC_SP_NAME));
+			ports_from = XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF);
+			ports_to = ports_from + XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF) - 1;
+			usb_log_debug("\tProtocol %4s%u.%u, ports %u-%u", name.str,
+			    XHCI_REG_RD(ec, XHCI_EC_SP_MAJOR),
+			    XHCI_REG_RD(ec, XHCI_EC_SP_MINOR),
+			    ports_from, ports_to);
+
+			unsigned psic = XHCI_REG_RD(ec, XHCI_EC_SP_PSIC);
+			for (unsigned i = 0; i < psic; i++)
+				xhci_dump_psi(xhci_extcap_psi(ec, i));
+			break;
+	}
 }
 
 /**

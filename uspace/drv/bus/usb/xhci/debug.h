@@ -36,18 +36,26 @@
 #ifndef XHCI_DEBUG_H
 #define XHCI_DEBUG_H
 
+/**
+ * As the debug header is likely to be included in every file, avoid including
+ * all headers of xhci to support "include what you use".
+ */
 struct xhci_hc;
 struct xhci_cap_regs;
 struct xhci_port_regs;
 struct xhci_trb;
+struct xhci_extcap;
 
 void xhci_dump_cap_regs(const struct xhci_cap_regs *);
-void xhci_dump_port(struct xhci_port_regs *);
-void xhci_dump_state(struct xhci_hc *);
-void xhci_dump_ports(struct xhci_hc *);
+void xhci_dump_port(const struct xhci_port_regs *);
+void xhci_dump_state(const struct xhci_hc *);
+void xhci_dump_ports(const struct xhci_hc *);
 
 const char *xhci_trb_str_type(unsigned);
-void xhci_dump_trb(struct xhci_trb *trb);
+void xhci_dump_trb(const struct xhci_trb *trb);
+
+const char *xhci_ec_str_id(unsigned);
+void xhci_dump_extcap(const struct xhci_extcap *);
 
 #endif
 /**

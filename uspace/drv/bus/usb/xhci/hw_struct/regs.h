@@ -482,6 +482,99 @@ typedef struct xhci_rt_regs {
  */
 typedef ioport32_t xhci_doorbell_t;
 
+enum xhci_plt {
+	XHCI_PSI_PLT_SYMM,
+	XHCI_PSI_PLT_RSVD,
+	XHCI_PSI_PLT_RX,
+	XHCI_PSI_PLT_TX
+};
+
+/**
+ * Protocol speed ID: section 7.2.1
+ */
+typedef struct xhci_psi {
+        xhci_dword_t psi;
+} xhci_psi_t;
+
+#define XHCI_PSI_PSIV    psi, 32, RANGE,  3,  0
+#define XHCI_PSI_PSIE    psi, 32, RANGE,  5,  4
+#define XHCI_PSI_PLT     psi, 32, RANGE,  7,  6
+#define XHCI_PSI_PFD     psi, 32,  FLAG,  8
+#define XHCI_PSI_PSIM    psi, 32, RANGE, 31, 16
+
+enum xhci_extcap_type {
+	XHCI_EC_RESERVED = 0,
+	XHCI_EC_USB_LEGACY,
+	XHCI_EC_SUPPORTED_PROTOCOL,
+	XHCI_EC_EXTENDED_POWER_MANAGEMENT,
+	XHCI_EC_IOV,
+	XHCI_EC_MSI,
+	XHCI_EC_LOCALMEM,
+	XHCI_EC_DEBUG = 10,
+	XHCI_EC_MSIX = 17,
+	XHCI_EC_MAX = 255
+};
+
+/**
+ * xHCI Extended Capability: section 7
+ */
+typedef struct xhci_extcap {
+	xhci_dword_t header;
+	xhci_dword_t cap_specific[];
+} xhci_extcap_t;
+
+#define XHCI_EC_CAP_ID                           header, 32, RANGE,  7,  0
+#define XHCI_EC_SIZE                             header, 32, RANGE, 15,  8
+
+/* Supported protocol */
+#define XHCI_EC_SP_MINOR                         header, 32, RANGE, 23, 16
+#define XHCI_EC_SP_MAJOR                         header, 32, RANGE, 31, 24
+#define XHCI_EC_SP_NAME                 cap_specific[0], 32, FIELD
+#define XHCI_EC_SP_CP_OFF               cap_specific[1], 32, RANGE,  7,  0
+#define XHCI_EC_SP_CP_COUNT             cap_specific[1], 32, RANGE, 15,  8
+#define XHCI_EC_SP_PSIC                 cap_specific[1], 32, RANGE, 31, 28
+#define XHCI_EC_SP_SLOT_TYPE            cap_specific[2], 32, RANGE,  4,  0
+
+typedef union {
+	char str [4];
+	uint32_t packed;
+} xhci_sp_name_t;
+
+static inline xhci_extcap_t *xhci_extcap_next(const xhci_extcap_t *cur)
+{
+	unsigned dword_offset = XHCI_REG_RD(cur, XHCI_EC_SIZE);
+	if (!dword_offset)
+		return NULL;
+	return (xhci_extcap_t *) (((xhci_dword_t *) cur) + dword_offset);
+}
+
+static inline xhci_psi_t *xhci_extcap_psi(const xhci_extcap_t *ec, unsigned psid)
+{
+	assert(XHCI_REG_RD(ec, XHCI_EC_CAP_ID) == XHCI_EC_SUPPORTED_PROTOCOL);
+	assert(XHCI_REG_RD(ec, XHCI_EC_SP_PSIC) > psid);
+
+	unsigned dword_offset = 4 + psid;
+	return (xhci_psi_t *) (((xhci_dword_t *) ec) + dword_offset);
+}
+
+/**
+ * USB Legacy Support: section 7.1
+ *
+ * Legacy support have an exception from dword-access, because it needs to be
+ * byte-accessed.
+ */
+typedef struct xhci_extcap_legsup {
+	ioport8_t cap_id;
+	ioport8_t size;			/**< Next Capability Pointer */
+	ioport8_t sem_bios;
+	ioport8_t sem_os;
+
+	xhci_dword_t usblegctlsts;	/**< USB Legacy Support Control/Status - RW for BIOS, RO for OS */
+} xhci_legsup_t;
+
+#define XHCI_LEGSUP_SEM_BIOS	sem_bios, 8, FLAG, 0
+#define XHCI_LEGSUP_SEM_OS	sem_os, 8, FLAG, 0
+
 #endif
 /**
  * @}

@@ -68,6 +68,79 @@ static const irq_cmd_t irq_commands[] = {
 	}
 };
 
+/**
+ * Default USB Speed ID mapping: Table 157
+ */
+#define PSI_TO_BPS(psie, psim) (((uint64_t) psim) << (10 * psie))
+#define PORT_SPEED(psie, psim) { \
+	.rx_bps = PSI_TO_BPS(psie, psim), \
+	.tx_bps = PSI_TO_BPS(psie, psim) \
+}
+static const xhci_port_speed_t ps_default_full  = PORT_SPEED(2, 12);
+static const xhci_port_speed_t ps_default_low   = PORT_SPEED(1, 1500);
+static const xhci_port_speed_t ps_default_high  = PORT_SPEED(2, 480);
+static const xhci_port_speed_t ps_default_super = PORT_SPEED(3, 5);
+
+/**
+ * Walk the list of extended capabilities.
+ */
+static int hc_parse_ec(xhci_hc_t *hc)
+{
+	unsigned psic, major;
+
+	for (xhci_extcap_t *ec = hc->xecp; ec; ec = xhci_extcap_next(ec)) {
+		xhci_dump_extcap(ec);
+		switch (XHCI_REG_RD(ec, XHCI_EC_CAP_ID)) {
+		case XHCI_EC_USB_LEGACY:
+			assert(hc->legsup == NULL);
+			hc->legsup = (xhci_legsup_t *) ec;
+			break;
+		case XHCI_EC_SUPPORTED_PROTOCOL:
+			psic = XHCI_REG_RD(ec, XHCI_EC_SP_PSIC);
+			major = XHCI_REG_RD(ec, XHCI_EC_SP_MAJOR);
+
+			// "Implied" speed
+			if (psic == 0) {
+				/*
+				 * According to section 7.2.2.1.2, only USB 2.0
+				 * and USB 3.0 can have psic == 0. So we
+				 * blindly assume the name == "USB " and minor
+				 * == 0.
+				 */
+				if (major == 2) {
+					hc->speeds[1] = ps_default_full;
+					hc->speeds[2] = ps_default_low;
+					hc->speeds[3] = ps_default_high;
+				} else if (major == 3) {
+					hc->speeds[4] = ps_default_super;
+				} else {
+					return EINVAL;
+				}
+
+				usb_log_debug2("Implied speed of USB %u set up.", major);
+			} else {
+				for (unsigned i = 0; i < psic; i++) {
+					xhci_psi_t *psi = xhci_extcap_psi(ec, i);
+					unsigned sim = XHCI_REG_RD(psi, XHCI_PSI_PSIM);
+					unsigned psiv = XHCI_REG_RD(psi, XHCI_PSI_PSIV);
+					unsigned psie = XHCI_REG_RD(psi, XHCI_PSI_PSIE);
+					unsigned psim = XHCI_REG_RD(psi, XHCI_PSI_PSIM);
+
+					uint64_t bps = PSI_TO_BPS(psie, psim);
+
+					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_RX)
+						hc->speeds[psiv].rx_bps = bps;
+					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_TX) {
+						hc->speeds[psiv].tx_bps = bps;
+						usb_log_debug2("Speed %u set up for bps %" PRIu64 " / %" PRIu64 ".", psiv, hc->speeds[psiv].rx_bps, hc->speeds[psiv].tx_bps);
+					}
+				}
+			}
+		}
+	}
+	return EOK;
+}
+
 int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 {
 	int err;
@@ -89,10 +162,15 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 	if ((err = pio_enable_range(&hc->mmio_range, &base)))
 		return err;
 
+	hc->base = base;
 	hc->cap_regs = (xhci_cap_regs_t *)  base;
 	hc->op_regs  = (xhci_op_regs_t *)  (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH));
 	hc->rt_regs  = (xhci_rt_regs_t *)  (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF));
 	hc->db_arry  = (xhci_doorbell_t *) (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_DBOFF));
+
+	uintptr_t xec_offset = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_XECP) * sizeof(xhci_dword_t);
+	if (xec_offset > 0)
+		hc->xecp = (xhci_extcap_t *) (base + xec_offset);
 
 	usb_log_debug2("Initialized MMIO reg areas:");
 	usb_log_debug2("\tCapability regs: %p", hc->cap_regs);
@@ -104,6 +182,11 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 
 	hc->ac64 = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_AC64);
 	hc->max_slots = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_SLOTS);
+
+	if ((err = hc_parse_ec(hc))) {
+		pio_disable(hc->base, RNGSZ(hc->mmio_range));
+		return err;
+	}
 
 	return EOK;
 }
@@ -150,8 +233,6 @@ int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t 
 		return EINVAL;
 	}
 
-	addr_range_t mmio_range = hw_res->mem_ranges.ranges[0];
-
 	code->ranges = malloc(sizeof(irq_pio_range_t));
 	if (code->ranges == NULL)
 		return ENOMEM;
@@ -164,14 +245,14 @@ int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t 
 
 	code->rangecount = 1;
 	code->ranges[0] = (irq_pio_range_t) {
-	    .base = RNGABS(mmio_range),
-	    .size = RNGSZ(mmio_range),
+	    .base = RNGABS(hc->mmio_range),
+	    .size = RNGSZ(hc->mmio_range),
 	};
 
 	code->cmdcount = ARRAY_SIZE(irq_commands);
 	memcpy(code->cmds, irq_commands, sizeof(irq_commands));
 
-	void *intr0_iman = RNGABSPTR(mmio_range) + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF) + offsetof(xhci_rt_regs_t, ir[0]);
+	void *intr0_iman = RNGABSPTR(hc->mmio_range) + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF) + offsetof(xhci_rt_regs_t, ir[0]);
 	code->cmds[0].addr = intr0_iman;
 	code->cmds[3].addr = intr0_iman;
 	code->cmds[1].value = host2xhci(32, 1);
@@ -181,8 +262,15 @@ int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t 
 
 int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 {
-	// TODO: impl
-	return EOK;
+	/* No legacy support capability, the controller is solely for us */
+	if (!hc->legsup)
+		return EOK;
+
+	/*
+	 * TODO: Implement handoff from BIOS, section 4.22.1
+	 * QEMU does not support this, so we have to test on real HW.
+	 */
+	return ENOTSUP;
 }
 
 static int hc_reset(xhci_hc_t *hc)
@@ -345,6 +433,7 @@ void hc_fini(xhci_hc_t *hc)
 {
 	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
+	pio_disable(hc->base, RNGSZ(hc->mmio_range));
 	usb_log_info("HC(%p): Finalized.", hc);
 }
 

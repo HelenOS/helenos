@@ -79,7 +79,7 @@ typedef enum {
 	USB_SPEED_FULL,
 	/** USB 2.0 high speed (480Mbits/s). */
 	USB_SPEED_HIGH,
-	/** USB 3.0 super speed (480Mbits/s). */
+	/** USB 3.0 super speed (5Gbits/s). */
 	USB_SPEED_SUPER,
 	/** Psuedo-speed serving as a boundary. */
 	USB_SPEED_MAX
