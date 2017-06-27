@@ -38,6 +38,7 @@
 #include <mem.h>
 #include <stdlib.h>
 
+#include "std/fat.h"
 #include "std/mbr.h"
 #include "mbr.h"
 
@@ -88,6 +89,7 @@ static int mbr_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	mbr_br_block_t *mbr = NULL;
+	fat_bs_t *bs;
 	mbr_pte_t *eptr;
 	uint16_t sgn;
 	size_t bsize;
@@ -123,6 +125,8 @@ static int mbr_open(label_bd_t *bd, label_t **rlabel)
 		goto error;
 	}
 
+	bs = (fat_bs_t *)mbr;
+
 	rc = bd->ops->read(bd->arg, mbr_ba, 1, mbr);
 	if (rc != EOK) {
 		rc = EIO;
@@ -144,6 +148,14 @@ static int mbr_open(label_bd_t *bd, label_t **rlabel)
 		goto error;
 	}
 
+	/*
+	 * We can't really tell whether this is an MBR. Make sure
+	 * this is not actually the BR of a FAT file system
+	 */
+	if (bs->type[0] == 'F' && bs->type[1] == 'A' && bs->type[2] == 'T') {
+		rc = EIO;
+		goto error;
+	}
 
 	label->ext_part = NULL;
 	for (entry = 0; entry < mbr_nprimary; entry++) {
