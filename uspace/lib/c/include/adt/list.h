@@ -53,7 +53,7 @@ typedef struct list {
 } list_t;
 
 extern bool list_member(const link_t *, const list_t *);
-extern void list_concat(list_t *, list_t *);
+extern void list_splice(list_t *, link_t *);
 extern unsigned long list_count(const list_t *);
 
 /** Declare and initialize statically allocated list.
@@ -350,6 +350,21 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 	headless_list_split_or_concat(part1, part2);
 }
 
+/** Concatenate two lists
+ *
+ * Concatenate lists @a list1 and @a list2, producing a single
+ * list @a list1 containing items from both (in @a list1, @a list2
+ * order) and empty list @a list2.
+ *
+ * @param list1		First list and concatenated output
+ * @param list2 	Second list and empty output.
+ *
+ */
+NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
+{
+	list_splice(list2, list1->head.prev);
+}
+
 /** Get n-th item in a list.
  *
  * @param list Pointer to link_t structure representing the list.
@@ -397,7 +412,6 @@ static inline bool link_used(link_t *link)
 	assert(link->prev != NULL && link->next != NULL);
 	return true;
 }
-
 
 #endif
 
