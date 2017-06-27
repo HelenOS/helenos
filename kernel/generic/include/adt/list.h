@@ -52,11 +52,9 @@ typedef struct list {
 	link_t head;  /**< List head. Does not have any data. */
 } list_t;
 
-
 extern bool list_member(const link_t *, const list_t *);
 extern void list_splice(list_t *, link_t *);
 extern unsigned long list_count(const list_t *);
-
 
 /** Declare and initialize statically allocated list.
  *
@@ -64,7 +62,25 @@ extern unsigned long list_count(const list_t *);
  *
  */
 #define LIST_INITIALIZE(name) \
-	list_t name = { \
+	list_t name = LIST_INITIALIZER(name)
+
+/** Initializer for statically allocated list.
+ * 
+ * @code
+ * struct named_list {
+ *     const char *name;
+ *     list_t list;
+ * } var = { 
+ *     .name = "default name", 
+ *     .list = LIST_INITIALIZER(name_list.list) 
+ * };
+ * @endcode
+ *
+ * @param name Name of the new statically allocated list.
+ *
+ */
+#define LIST_INITIALIZER(name) \
+	{ \
 		.head = { \
 			.prev = &(name).head, \
 			.next = &(name).head \
@@ -87,7 +103,7 @@ extern unsigned long list_count(const list_t *);
 		    _link != &(list).head; _link = _link->prev)
 
 /** Unlike list_foreach(), allows removing items while traversing a list.
- * 
+ *
  * @code
  * list_t mylist;
  * typedef struct item {
@@ -117,9 +133,14 @@ extern unsigned long list_count(const list_t *);
 	    iterator != &(list).head; \
 	    iterator = next_iter, next_iter = iterator->next)
 
-	
 #define assert_link_not_used(link) \
 	assert(!link_used(link))
+
+/** Returns true if the link is definitely part of a list. False if not sure. */
+static inline bool link_in_use(const link_t *link)
+{
+	return link->prev != NULL && link->next != NULL;
+}
 
 /** Initialize doubly-linked circular list link
  *
@@ -246,9 +267,9 @@ static inline link_t *list_first(const list_t *list)
  * @return NULL if the list is empty.
  *
  */
-static inline link_t *list_last(list_t *list)
+static inline link_t *list_last(const list_t *list)
 {
-	return ((list->head.prev == &list->head) ? NULL : list->head.prev);
+	return (list->head.prev == &list->head) ? NULL : list->head.prev;
 }
 
 /** Get next item in list.
@@ -258,7 +279,7 @@ static inline link_t *list_last(list_t *list)
  *
  * @return Next item or NULL if @a link is the last item.
  */
-static inline link_t *list_next(link_t *link, const list_t *list)
+static inline link_t *list_next(const link_t *link, const list_t *list)
 {
 	return (link->next == &list->head) ? NULL : link->next;
 }
@@ -270,7 +291,7 @@ static inline link_t *list_next(link_t *link, const list_t *list)
  *
  * @return Previous item or NULL if @a link is the first item.
  */
-static inline link_t *list_prev(link_t *link, const list_t *list)
+static inline link_t *list_prev(const link_t *link, const list_t *list)
 {
 	return (link->prev == &list->head) ? NULL : link->prev;
 }
@@ -353,12 +374,11 @@ NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
  * @return NULL if no n-th item found.
  *
  */
-static inline link_t *list_nth(list_t *list, unsigned long n)
+static inline link_t *list_nth(const list_t *list, unsigned long n)
 {
 	unsigned long cnt = 0;
-	link_t *link;
 	
-	link = list_first(list);
+	link_t *link = list_first(list);
 	while (link != NULL) {
 		if (cnt == n)
 			return link;
