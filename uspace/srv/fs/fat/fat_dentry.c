@@ -179,6 +179,35 @@ void fat_dentry_name_set(fat_dentry_t *d, const char *name)
 		d->lcase &= ~FAT_LCASE_LOWER_EXT;
 }
 
+void fat_dentry_vollabel_get(const fat_dentry_t *d, char *buf)
+{
+	unsigned int i;
+	
+	for (i = 0; i < FAT_NAME_LEN; i++) {
+		if (d->name[i] == FAT_PAD)
+			break;
+		
+		if (d->name[i] == FAT_DENTRY_E5_ESC)
+			*buf++ = 0xe5;
+		else
+			*buf++ = d->name[i];
+	}
+	
+	for (i = 0; i < FAT_EXT_LEN; i++) {
+		if (d->ext[i] == FAT_PAD) {
+			*buf = '\0';
+			return;
+		}
+		
+		if (d->ext[i] == FAT_DENTRY_E5_ESC)
+			*buf++ = 0xe5;
+		else
+			*buf++ = d->ext[i];
+	}
+	
+	*buf = '\0';
+}
+
 fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *d)
 {
 	if (d->attr == FAT_ATTR_LFN) {
@@ -190,7 +219,7 @@ fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *d)
 	}
 	if (d->attr & FAT_ATTR_VOLLABEL) {
 		/* volume label entry */
-		return FAT_DENTRY_SKIP;
+		return FAT_DENTRY_VOLLABEL;
 	}
 	if (d->name[0] == FAT_DENTRY_ERASED) {
 		/* not-currently-used entry */

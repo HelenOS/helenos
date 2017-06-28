@@ -784,6 +784,7 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 			switch (fat_classify_dentry(d)) {
 			case FAT_DENTRY_SKIP:
 			case FAT_DENTRY_FREE:
+			case FAT_DENTRY_VOLLABEL:
 				continue;
 			case FAT_DENTRY_LAST:
 				rc = block_put(b);
@@ -908,11 +909,8 @@ libfs_ops_t fat_libfs_ops = {
 	.free_block_count = fat_free_block_count
 };
 
-/*
- * FAT VFS_OUT operations.
- */
-
-static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+static int fat_fs_open(service_id_t service_id, enum cache_mode cmode,
+    fs_node_t **rrfn, fat_idx_t **rridxp)
 {
 	fat_bs_t *bs;
 	int rc;
@@ -938,73 +936,8 @@ static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	}
 
 	/* Initialize the block cache */
-	rc = block_cache_init(service_id, BPS(bs), 0 /* XXX */, CACHE_MODE_WB);
-	if (rc != EOK) {
-		block_fini(service_id);
-		return rc;
-	}
-
-	/* Do some simple sanity checks on the file system. */
-	rc = fat_sanity_check(bs, service_id);
-
-	(void) block_cache_fini(service_id);
-	block_fini(service_id);
-
-	return rc;
-}
-
-static int
-fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
-    aoff64_t *size)
-{
-	enum cache_mode cmode = CACHE_MODE_WB;
-	fat_bs_t *bs;
-	fat_instance_t *instance;
-	int rc;
-
-	instance = malloc(sizeof(fat_instance_t));
-	if (!instance)
-		return ENOMEM;
-	instance->lfn_enabled = true;
-
-	/* Parse mount options. */
-	char *mntopts = (char *) opts;
-	char *opt;
-	while ((opt = str_tok(mntopts, " ,", &mntopts)) != NULL) {
-		if (str_cmp(opt, "wtcache") == 0)
-			cmode = CACHE_MODE_WT;
-		else if (str_cmp(opt, "nolfn") == 0)
-			instance->lfn_enabled = false;
-	}
-
-	/* initialize libblock */
-	rc = block_init(service_id, BS_SIZE);
-	if (rc != EOK) {
-		free(instance);
-		return rc;
-	}
-
-	/* prepare the boot block */
-	rc = block_bb_read(service_id, BS_BLOCK);
-	if (rc != EOK) {
-		free(instance);
-		block_fini(service_id);
-		return rc;
-	}
-
-	/* get the buffer with the boot sector */
-	bs = block_bb_get(service_id);
-	
-	if (BPS(bs) != BS_SIZE) {
-		free(instance);
-		block_fini(service_id);
-		return ENOTSUP;
-	}
-
-	/* Initialize the block cache */
 	rc = block_cache_init(service_id, BPS(bs), 0 /* XXX */, cmode);
 	if (rc != EOK) {
-		free(instance);
 		block_fini(service_id);
 		return rc;
 	}
@@ -1012,7 +945,6 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, service_id);
 	if (rc != EOK) {
-		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		return rc;
@@ -1020,7 +952,6 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	rc = fat_idx_init_by_service_id(service_id);
 	if (rc != EOK) {
-		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		return rc;
@@ -1029,7 +960,6 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	/* Initialize the root node. */
 	fs_node_t *rfn = (fs_node_t *)malloc(sizeof(fs_node_t));
 	if (!rfn) {
-		free(instance);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		fat_idx_fini_by_service_id(service_id);
@@ -1039,7 +969,6 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	fs_node_initialize(rfn);
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
-		free(instance);
 		free(rfn);
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
@@ -1050,7 +979,6 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	fat_idx_t *ridxp = fat_idx_get_by_pos(service_id, FAT_CLST_ROOTPAR, 0);
 	if (!ridxp) {
-		free(instance);
 		free(rfn);
 		free(rootp);
 		(void) block_cache_fini(service_id);
@@ -1071,7 +999,6 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		rc = fat_clusters_get(&clusters, bs, service_id, rootp->firstc);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&ridxp->lock);
-			free(instance);
 			free(rfn);
 			free(rootp);
 			(void) block_cache_fini(service_id);
@@ -1083,18 +1010,6 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	} else
 		rootp->size = RDE(bs) * sizeof(fat_dentry_t);
 
-	rc = fs_instance_create(service_id, instance);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&ridxp->lock);
-		free(instance);
-		free(rfn);
-		free(rootp);
-		(void) block_cache_fini(service_id);
-		block_fini(service_id);
-		fat_idx_fini_by_service_id(service_id);
-		return rc;
-	}
-
 	rootp->idx = ridxp;
 	ridxp->nodep = rootp;
 	rootp->bp = rfn;
@@ -1102,8 +1017,112 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	fibril_mutex_unlock(&ridxp->lock);
 
+	*rrfn = rfn;
+	*rridxp = ridxp;
+
+	return EOK;
+}
+
+static void fat_fs_close(service_id_t service_id, fs_node_t *rfn)
+{
+	free(rfn->data);
+	free(rfn);
+	(void) block_cache_fini(service_id);
+	block_fini(service_id);
+	fat_idx_fini_by_service_id(service_id);
+}
+
+/*
+ * FAT VFS_OUT operations.
+ */
+
+static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	fat_bs_t *bs;
+	fat_idx_t *ridxp;
+	fs_node_t *rfn;
+	fat_node_t *nodep;
+	fat_directory_t di;
+	char label[FAT_VOLLABEL_LEN + 1];
+	int i;
+	int rc;
+
+	rc = fat_fs_open(service_id, CACHE_MODE_WT, &rfn, &ridxp);
+	if (rc != EOK)
+		return rc;
+
+	nodep = FAT_NODE(rfn);
+
+	rc = fat_directory_open(nodep, &di);
+	if (rc != EOK)
+		return rc;
+
+	rc = fat_directory_vollabel_get(&di, label);
+	if (rc != EOK) {
+		/* No label in root directory. Read label from the BS */
+		bs = block_bb_get(service_id);
+		i = FAT_VOLLABEL_LEN;
+		while (i > 0 && bs->label[i - 1] == FAT_PAD)
+			--i;
+
+		/* XXX Deal with non-ASCII characters */
+		memcpy(label, bs->label, i);
+		label[i] = '\0';
+	}
+
+	str_cpy(info->label, FS_LABEL_MAXLEN + 1, label);
+
+	fat_directory_close(&di);
+	fat_fs_close(service_id, rfn);
+
+	return EOK;
+}
+
+static int
+fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
+    aoff64_t *size)
+{
+	enum cache_mode cmode = CACHE_MODE_WB;
+	fat_instance_t *instance;
+	fat_idx_t *ridxp;
+	fs_node_t *rfn;
+	int rc;
+
+	instance = malloc(sizeof(fat_instance_t));
+	if (!instance)
+		return ENOMEM;
+	instance->lfn_enabled = true;
+
+	/* Parse mount options. */
+	char *mntopts = (char *) opts;
+	char *opt;
+	while ((opt = str_tok(mntopts, " ,", &mntopts)) != NULL) {
+		if (str_cmp(opt, "wtcache") == 0)
+			cmode = CACHE_MODE_WT;
+		else if (str_cmp(opt, "nolfn") == 0)
+			instance->lfn_enabled = false;
+	}
+
+	rc = fat_fs_open(service_id, cmode, &rfn, &ridxp);
+	if (rc != EOK) {
+		free(instance);
+		return rc;
+	}
+
+	fibril_mutex_lock(&ridxp->lock);
+
+	rc = fs_instance_create(service_id, instance);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&ridxp->lock);
+		fat_fs_close(service_id, rfn);
+		free(instance);
+		return rc;
+	}
+
+	fibril_mutex_unlock(&ridxp->lock);
+
 	*index = ridxp->index;
-	*size = rootp->size;
+	*size = FAT_NODE(rfn)->size;
 
 	return EOK;
 }
@@ -1173,7 +1192,6 @@ static int fat_unmounted(service_id_t service_id)
 	 * Put the root node and force it to the FAT free node list.
 	 */
 	(void) fat_node_put(fn);
-	(void) fat_node_put(fn);
 
 	/*
 	 * Perform cleanup of the node structures, index structures and
@@ -1181,9 +1199,7 @@ static int fat_unmounted(service_id_t service_id)
 	 * stop using libblock for this instance.
 	 */
 	(void) fat_node_fini_by_service_id(service_id);
-	fat_idx_fini_by_service_id(service_id);
-	(void) block_cache_fini(service_id);
-	block_fini(service_id);
+	fat_fs_close(service_id, fn);
 
 	void *data;
 	if (fs_instance_get(service_id, &data) == EOK) {

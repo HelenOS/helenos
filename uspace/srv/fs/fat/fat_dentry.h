@@ -44,6 +44,7 @@
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
+#define FAT_VOLLABEL_LEN	11
 
 #define FAT_NAME_DOT		".       "
 #define FAT_NAME_DOT_DOT	"..      "
@@ -97,7 +98,8 @@ typedef enum {
 	FAT_DENTRY_LAST,
 	FAT_DENTRY_FREE,
 	FAT_DENTRY_VALID,
-	FAT_DENTRY_LFN
+	FAT_DENTRY_LFN,
+	FAT_DENTRY_VOLLABEL
 } fat_dentry_clsf_t;
 
 typedef union {
@@ -137,6 +139,7 @@ typedef union {
 extern int fat_dentry_namecmp(char *, const char *);
 extern void fat_dentry_name_get(const fat_dentry_t *, char *);
 extern void fat_dentry_name_set(fat_dentry_t *, const char *);
+extern void fat_dentry_vollabel_get(const fat_dentry_t *, char *);
 extern fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *);
 extern uint8_t fat_dentry_chksum(uint8_t *);
 
