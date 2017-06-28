@@ -33,9 +33,8 @@
  * @file
  * @brief IRQ dispatcher.
  *
- * This file provides means of connecting IRQs with particular
- * devices and logic for dispatching interrupts to IRQ handlers
- * defined by those devices.
+ * This file provides means of connecting IRQs with particular devices and logic
+ * for dispatching interrupts to IRQ handlers defined by those devices.
  *
  * This code is designed to support:
  * - multiple devices sharing single IRQ
@@ -45,26 +44,23 @@
  *
  * Note about architectures.
  *
- * Some architectures has the term IRQ well defined. Examples
- * of such architectures include amd64, ia32 and mips32. Some
- * other architectures, such as sparc64, don't use the term
- * at all. In those cases, we boldly step forward and define what
- * an IRQ is.
+ * Some architectures have the term IRQ well defined. Examples of such
+ * architectures include amd64, ia32 and mips32. Some other architectures, such
+ * as sparc64, don't use the term at all. In those cases, we boldly step forward
+ * and define what an IRQ is.
  *
- * The implementation is generic enough and still allows the
- * architectures to use the hardware layout effectively.
- * For instance, on amd64 and ia32, where there is only 16
- * IRQs, the irq_hash_table can be optimized to a one-dimensional
- * array. Next, when it is known that the IRQ numbers (aka INR's)
- * are unique, the claim functions can always return IRQ_ACCEPT.
+ * The implementation is generic enough and still allows the architectures to
+ * use the hardware layout effectively.  For instance, on amd64 and ia32, where
+ * there is only 16 IRQs, the irq_hash_table can be optimized to a
+ * one-dimensional array. Next, when it is known that the IRQ numbers (aka
+ * INR's) are unique, the claim functions can always return IRQ_ACCEPT.
  *
  *
  * Note about the irq_hash_table.
  *
- * The hash table is configured to use two keys: inr and devno.
- * However, the hash index is computed only from inr. Moreover,
- * if devno is -1, the match is based on the return value of
- * the claim() function instead of on devno.
+ * The hash table is configured to use two keys: inr and devno.  However, the
+ * hash index is computed only from inr. Moreover, if devno is -1, the match is
+ * based on the return value of the claim() function instead of on devno.
  */
 
 #include <ddi/irq.h>
@@ -101,9 +97,8 @@ IRQ_SPINLOCK_INITIALIZE(irq_uspace_hash_table_lock);
 hash_table_t irq_uspace_hash_table;
 
 /**
- * Hash table operations for cases when we know that
- * there will be collisions between different keys.
- *
+ * Hash table operations for cases when we know that there will be collisions
+ * between different keys.
  */
 static size_t irq_ht_hash(sysarg_t *key);
 static bool irq_ht_compare(sysarg_t *key, size_t keys, link_t *item);
@@ -116,11 +111,9 @@ static hash_table_operations_t irq_ht_ops = {
 };
 
 /**
- * Hash table operations for cases when we know that
- * there will be no collisions between different keys.
- * However, there might be still collisions among
+ * Hash table operations for cases when we know that there will be no collisions
+ * between different keys.  However, there might be still collisions among
  * elements with single key (sharing of one IRQ).
- *
  */
 static size_t irq_lin_hash(sysarg_t *key);
 static bool irq_lin_compare(sysarg_t *key, size_t keys, link_t *item);
@@ -150,10 +143,10 @@ void irq_init(size_t inrs, size_t chains)
 	last_inr = inrs - 1;
 
 	/*
-	 * Be smart about the choice of the hash table operations.
-	 * In cases in which inrs equals the requested number of
-	 * chains (i.e. where there is no collision between
-	 * different keys), we can use optimized set of operations.
+	 * Be smart about the choice of the hash table operations.  In cases in
+	 * which inrs equals the requested number of chains (i.e. where there is
+	 * no collision between different keys), we can use optimized set of
+	 * operations.
 	 */
 	if (inrs == chains) {
 		hash_table_create(&irq_uspace_hash_table, chains, 2,
@@ -187,13 +180,10 @@ void irq_initialize(irq_t *irq)
 
 /** Register IRQ for device.
  *
- * The irq structure must be filled with information
- * about the interrupt source and with the claim()
- * function pointer and handler() function pointer.
+ * The irq structure must be filled with information about the interrupt source
+ * and with the claim() function pointer and handler() function pointer.
  *
  * @param irq IRQ structure belonging to a device.
- *
- * @return True on success, false on failure.
  *
  */
 void irq_register(irq_t *irq)
@@ -258,29 +248,25 @@ static irq_t *irq_dispatch_and_lock_kernel(inr_t inr)
 
 /** Dispatch the IRQ.
  *
- * We assume this function is only called from interrupt
- * context (i.e. that interrupts are disabled prior to
- * this call).
+ * We assume this function is only called from interrupt context (i.e. that
+ * interrupts are disabled prior to this call).
  *
- * This function attempts to lookup a fitting IRQ
- * structure. In case of success, return with interrupts
- * disabled and holding the respective structure.
+ * This function attempts to lookup a fitting IRQ structure. In case of success,
+ * return with interrupts disabled and holding the respective structure.
  *
  * @param inr Interrupt number (aka inr or irq).
  *
- * @return IRQ structure of the respective device or NULL.
+ * @return IRQ structure of the respective device
+ * @return NULL if no IRQ structure found
  *
  */
 irq_t *irq_dispatch_and_lock(inr_t inr)
 {
 	/*
-	 * If the kernel console override is on,
-	 * then try first the kernel handlers
-	 * and eventually fall back to uspace
-	 * handlers.
+	 * If the kernel console override is on, then try first the kernel
+	 * handlers and eventually fall back to uspace handlers.
 	 *
-	 * In the usual case the uspace handlers
-	 * have precedence.
+	 * In the usual case the uspace handlers have precedence.
 	 */
 	
 	if (console_override) {
@@ -300,10 +286,8 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
 
 /** Compute hash index for the key.
  *
- * This function computes hash index into
- * the IRQ hash table for which there
- * can be collisions between different
- * INRs.
+ * This function computes hash index into the IRQ hash table for which there can
+ * be collisions between different INRs.
  *
  * The devno is not used to compute the hash.
  *
@@ -320,23 +304,21 @@ size_t irq_ht_hash(sysarg_t key[])
 
 /** Compare hash table element with a key.
  *
- * There are two things to note about this function.
- * First, it is used for the more complex architecture setup
- * in which there are way too many interrupt numbers (i.e. inr's)
- * to arrange the hash table so that collisions occur only
- * among same inrs of different devnos. So the explicit check
- * for inr match must be done.
- * Second, if devno is -1, the second key (i.e. devno) is not
- * used for the match and the result of the claim() function
- * is used instead.
+ * There are two things to note about this function.  First, it is used for the
+ * more complex architecture setup in which there are way too many interrupt
+ * numbers (i.e. inr's) to arrange the hash table so that collisions occur only
+ * among same inrs of different devnos. So the explicit check for inr match must
+ * be done.  Second, if devno is -1, the second key (i.e. devno) is not used for
+ * the match and the result of the claim() function is used instead.
  *
  * This function assumes interrupts are already disabled.
  *
  * @param key  Keys (i.e. inr and devno).
- * @param keys This is 2.
+ * @param keys This is 2. 
  * @param item The item to compare the key with.
  *
- * @return True on match or false otherwise.
+ * @return true on match
+ * @return false on no match
  *
  */
 bool irq_ht_compare(sysarg_t key[], size_t keys, link_t *item)
@@ -377,10 +359,8 @@ void irq_ht_remove(link_t *lnk)
 
 /** Compute hash index for the key.
  *
- * This function computes hash index into
- * the IRQ hash table for which there
- * are no collisions between different
- * INRs.
+ * This function computes hash index into the IRQ hash table for which there are
+ * no collisions between different INRs.
  *
  * @param key The first of the keys is inr and the second is devno or -1.
  *
@@ -395,23 +375,21 @@ size_t irq_lin_hash(sysarg_t key[])
 
 /** Compare hash table element with a key.
  *
- * There are two things to note about this function.
- * First, it is used for the less complex architecture setup
- * in which there are not too many interrupt numbers (i.e. inr's)
- * to arrange the hash table so that collisions occur only
- * among same inrs of different devnos. So the explicit check
- * for inr match is not done.
- * Second, if devno is -1, the second key (i.e. devno) is not
- * used for the match and the result of the claim() function
- * is used instead.
+ * There are two things to note about this function.  First, it is used for the
+ * less complex architecture setup in which there are not too many interrupt
+ * numbers (i.e. inr's) to arrange the hash table so that collisions occur only
+ * among same inrs of different devnos. So the explicit check for inr match is
+ * not done.  Second, if devno is -1, the second key (i.e. devno) is not used
+ * for the match and the result of the claim() function is used instead.
  *
  * This function assumes interrupts are already disabled.
  *
  * @param key  Keys (i.e. inr and devno).
- * @param keys This is 2.
+ * @param keys This is 2. 
  * @param item The item to compare the key with.
  *
- * @return True on match or false otherwise.
+ * @return true on match
+ * @return false on no match
  *
  */
 bool irq_lin_compare(sysarg_t key[], size_t keys, link_t *item)
