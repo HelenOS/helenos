@@ -499,7 +499,10 @@ static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 		bs->id = host2uint32_t_be(0x12345678);
 
 		(void) fat_label_encode(&bs->label, bs_label);
-		memcpy(bs->type, "FAT   ", 8);
+		if (cfg->fat_type == FAT12)
+			memcpy(bs->type, "FAT12   ", 8);
+		else
+			memcpy(bs->type, "FAT16   ", 8);
 	}
 }
 
