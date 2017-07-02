@@ -34,6 +34,7 @@
 #ifndef FAT_FAT_DENTRY_H_
 #define FAT_FAT_DENTRY_H_
 
+#include <ctype.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>

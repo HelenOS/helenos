@@ -1038,13 +1038,11 @@ static void fat_fs_close(service_id_t service_id, fs_node_t *rfn)
 
 static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
-	fat_bs_t *bs;
 	fat_idx_t *ridxp;
 	fs_node_t *rfn;
 	fat_node_t *nodep;
 	fat_directory_t di;
 	char label[FAT_VOLLABEL_LEN + 1];
-	int i;
 	int rc;
 
 	rc = fat_fs_open(service_id, CACHE_MODE_WT, &rfn, &ridxp);
@@ -1059,15 +1057,10 @@ static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 
 	rc = fat_directory_vollabel_get(&di, label);
 	if (rc != EOK) {
-		/* No label in root directory. Read label from the BS */
-		bs = block_bb_get(service_id);
-		i = FAT_VOLLABEL_LEN;
-		while (i > 0 && bs->label[i - 1] == FAT_PAD)
-			--i;
+		if (rc != ENOENT)
+			return rc;
 
-		/* XXX Deal with non-ASCII characters */
-		memcpy(label, bs->label, i);
-		label[i] = '\0';
+		label[0] = '\0';
 	}
 
 	str_cpy(info->label, FS_LABEL_MAXLEN + 1, label);
