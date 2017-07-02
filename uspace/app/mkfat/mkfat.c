@@ -212,13 +212,15 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	printf(NAME ": Creating FAT%d filesystem on device %s.\n", cfg.fat_type, dev_path);
+	printf(NAME ": Creating FAT filesystem on device %s.\n", dev_path);
 
 	rc = fat_params_compute(&cfg);
 	if (rc != EOK) {
 		printf(NAME ": Invalid file-system parameters.\n");
 		return 2;
 	}
+
+	printf(NAME ": Filesystem type FAT%d.\n", cfg.fat_type);
 
 	rc = fat_blocks_write(&cfg, service_id);
 	if (rc != EOK) {
@@ -273,32 +275,37 @@ static int fat_label_encode(void *dest, const char *src)
 static int fat_params_compute(struct fat_cfg *cfg)
 {
 	uint32_t fat_bytes;
+	uint32_t non_data_sectors_lb_16;
 	uint32_t non_data_sectors_lb;
+	uint32_t rd_sectors;
+	uint32_t tot_clust_16;
 
 	/*
 	 * Make a conservative guess on the FAT size needed for the file
 	 * system. The optimum could be potentially smaller since we
 	 * do not subtract size of the FAT itself when computing the
-	 * size of the data region.
+	 * size of the data region. Also the root dir area might not
+	 * need FAT entries if we decide to make a FAT32.
 	 */
 
 	cfg->reserved_sectors = 1 + cfg->addt_res_sectors;
-	if (cfg->fat_type != FAT32) {
-		cfg->rootdir_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
-			cfg->sector_size);
-	} else
-		cfg->rootdir_sectors = cfg->sectors_per_cluster;
-	non_data_sectors_lb = cfg->reserved_sectors + cfg->rootdir_sectors;
 
-	cfg->total_clusters = div_round_up(cfg->total_sectors - non_data_sectors_lb,
+	/* Only correct for FAT12/16 (FAT32 has root dir stored in clusters */
+	rd_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
+		cfg->sector_size);
+	non_data_sectors_lb_16 = cfg->reserved_sectors + rd_sectors;
+
+	/* Only correct for FAT12/16 */
+	tot_clust_16 = div_round_up(cfg->total_sectors - non_data_sectors_lb_16,
 	    cfg->sectors_per_cluster);
 
-	if (cfg->total_clusters <= FAT12_CLST_MAX) {
+	/* Now detect FAT type */
+	if (tot_clust_16 <= FAT12_CLST_MAX) {
 		if (cfg->fat_type == FATAUTO)
 			cfg->fat_type = FAT12;
 		else if (cfg->fat_type != FAT12)
 			return EINVAL;
-	} else if (cfg->total_clusters <= FAT16_CLST_MAX) {
+	} else if (tot_clust_16 <= FAT16_CLST_MAX) {
 		if (cfg->fat_type == FATAUTO)
 			cfg->fat_type = FAT16;
 		else if (cfg->fat_type != FAT16)
@@ -309,6 +316,22 @@ static int fat_params_compute(struct fat_cfg *cfg)
 		else if (cfg->fat_type != FAT32)
 			return EINVAL;
 	}
+
+	/* Actual root directory size, non-data sectors */
+	if (cfg->fat_type != FAT32) {
+		cfg->rootdir_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
+			cfg->sector_size);
+		non_data_sectors_lb = cfg->reserved_sectors + cfg->rootdir_sectors;
+
+	} else {
+		/* We create a single-cluster root dir */
+		cfg->rootdir_sectors = cfg->sectors_per_cluster;
+		non_data_sectors_lb = cfg->reserved_sectors;
+	}
+
+	/* Actual total number of clusters */
+	cfg->total_clusters = div_round_up(cfg->total_sectors - non_data_sectors_lb,
+	    cfg->sectors_per_cluster);
 
 	fat_bytes = div_round_up((cfg->total_clusters + 2) *
 	    FAT_CLUSTER_DOUBLE_SIZE(cfg->fat_type), 2);
