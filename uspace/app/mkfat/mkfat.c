@@ -115,53 +115,61 @@ int main(int argc, char **argv)
 	}
 
 	--argc; ++argv;
-	if (str_cmp(*argv, "--size") == 0) {
-		--argc; ++argv;
-		if (*argv == NULL) {
-			printf(NAME ": Error, argument missing.\n");
-			syntax_print();
-			return 1;
+
+	while (*argv[0] == '-') {
+		if (str_cmp(*argv, "--size") == 0) {
+			--argc; ++argv;
+			if (*argv == NULL) {
+				printf(NAME ": Error, argument missing.\n");
+				syntax_print();
+				return 1;
+			}
+
+			cfg.total_sectors = strtol(*argv, &endptr, 10);
+			if (*endptr != '\0') {
+				printf(NAME ": Error, invalid argument.\n");
+				syntax_print();
+				return 1;
+			}
+
+			--argc; ++argv;
 		}
 
-		cfg.total_sectors = strtol(*argv, &endptr, 10);
-		if (*endptr != '\0') {
-			printf(NAME ": Error, invalid argument.\n");
-			syntax_print();
-			return 1;
+		if (str_cmp(*argv, "--type") == 0) {
+			--argc; ++argv;
+			if (*argv == NULL) {
+				printf(NAME ": Error, argument missing.\n");
+				syntax_print();
+				return 1;
+			}
+
+			cfg.fat_type = strtol(*argv, &endptr, 10);
+			if (*endptr != '\0') {
+				printf(NAME ": Error, invalid argument.\n");
+				syntax_print();
+				return 1;
+			}
+
+			--argc; ++argv;
 		}
 
-		--argc; ++argv;
-	}
+		if (str_cmp(*argv, "--label") == 0) {
+			--argc; ++argv;
+			if (*argv == NULL) {
+				printf(NAME ": Error, argument missing.\n");
+				syntax_print();
+				return 1;
+			}
 
-	if (str_cmp(*argv, "--type") == 0) {
-		--argc; ++argv;
-		if (*argv == NULL) {
-			printf(NAME ": Error, argument missing.\n");
-			syntax_print();
-			return 1;
+			cfg.label = *argv;
+
+			--argc; ++argv;
 		}
 
-		cfg.fat_type = strtol(*argv, &endptr, 10);
-		if (*endptr != '\0') {
-			printf(NAME ": Error, invalid argument.\n");
-			syntax_print();
-			return 1;
+		if (str_cmp(*argv, "-") == 0) {
+			--argc; ++argv;
+			break;
 		}
-
-		--argc; ++argv;
-	}
-
-	if (str_cmp(*argv, "--label") == 0) {
-		--argc; ++argv;
-		if (*argv == NULL) {
-			printf(NAME ": Error, argument missing.\n");
-			syntax_print();
-			return 1;
-		}
-
-		cfg.label = *argv;
-
-		--argc; ++argv;
 	}
 
 	if (argc != 1) {
@@ -236,8 +244,11 @@ int main(int argc, char **argv)
 
 static void syntax_print(void)
 {
-	printf("syntax: mkfat [--size <sectors>] [--type 12|16|32] "
-	    "[--label <label>] <device_name>\n");
+	printf("syntax: mkfat [<options>...] <device_name>\n");
+	printf("options:\n"
+	    "\t--size <sectors> Filesystem size, overrides device size\n"
+	    "\t--type 12|16|32  FAT type (auto-detected by default)\n"
+	    "\t--label <label>  Volume label\n");
 }
 
 static int fat_label_encode(void *dest, const char *src)
