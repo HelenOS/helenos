@@ -186,6 +186,8 @@ typedef struct fdisk_part {
 	aoff64_t nblocks;
 	/** Service ID */
 	service_id_t svc_id;
+	/** Volume label */
+	char *label;
 } fdisk_part_t;
 
 /** Specification of new partition */
@@ -208,6 +210,8 @@ typedef struct {
 	vol_part_cnt_t pcnt;
 	/** File system type */
 	vol_fstype_t fstype;
+	/** Volume label */
+	char *label;
 } fdisk_part_info_t;
 
 /** Free range iterator */

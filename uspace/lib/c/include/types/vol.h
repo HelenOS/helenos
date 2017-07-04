@@ -36,6 +36,7 @@
 #define LIBC_TYPES_VOL_H_
 
 #include <async.h>
+#include <ipc/vol.h>
 
 typedef enum {
 	/** Partition is empty */
@@ -70,6 +71,8 @@ typedef struct {
 	vol_part_cnt_t pcnt;
 	/** Filesystem type */
 	vol_fstype_t fstype;
+	/** Volume label */
+	char label[VOL_LABEL_MAXLEN + 1];
 } vol_part_info_t;
 
 #endif

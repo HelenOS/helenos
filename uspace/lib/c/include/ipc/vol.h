@@ -35,6 +35,8 @@
 
 #include <ipc/common.h>
 
+#define VOL_LABEL_MAXLEN 63
+
 typedef enum {
 	VOL_GET_PARTS = IPC_FIRST_USER_METHOD,
 	VOL_PART_ADD,

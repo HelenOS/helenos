@@ -676,6 +676,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	char *sfstype = NULL;
 	char *svcname = NULL;
 	char *spkind;
+	const char *label;
 	int rc;
 	int npart;
 	void *sel;
@@ -716,7 +717,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 
 	fdisk_dev_get_flags(dev, &dflags);
 
-	printf("Device: %s, %s\n", sdcap, svcname);
+	printf("Device: %s (%s)\n", svcname, sdcap);
 	free(sdcap);
 	sdcap = NULL;
 
@@ -768,10 +769,15 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		if (linfo.ltype == lt_none)
-			printf("Entire disk: %s", scap);
+		if (str_size(pinfo.label) > 0)
+			label = pinfo.label;
 		else
-			printf("Partition %d: %s", npart, scap);
+			label = "(No label)";
+
+		if (linfo.ltype == lt_none)
+			printf("Entire disk: %s %s", label, scap);
+		else
+			printf("Partition %d: %s %s", npart, label, scap);
 
 		if ((linfo.flags & lf_ext_supp) != 0) {
 			rc = fdisk_pkind_format(pinfo.pkind, &spkind);

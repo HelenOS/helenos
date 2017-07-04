@@ -185,6 +185,9 @@ static int vol_part_add_locked(service_id_t sid)
 		    fst->name, info.label);
 		part->pcnt = vpc_fs;
 		part->fstype = fst->fstype;
+		part->label = str_dup(info.label);
+		if (part->label == NULL)
+			goto error;
 	} else {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Partition does not contain "
 		    "a recognized file system.");
@@ -197,6 +200,9 @@ static int vol_part_add_locked(service_id_t sid)
 		}
 
 		part->pcnt = empty ? vpc_empty : vpc_unknown;
+		part->label = str_dup("");
+		if (part->label == NULL)
+			goto error;
 	}
 
 	list_append(&part->lparts, &vol_parts);
@@ -326,6 +332,7 @@ int vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
 {
 	pinfo->pcnt = part->pcnt;
 	pinfo->fstype = part->fstype;
+	str_cpy(pinfo->label, sizeof(pinfo->label), part->label);
 	return EOK;
 }
 

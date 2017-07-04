@@ -268,6 +268,7 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 
 		part->pcnt = vpinfo.pcnt;
 		part->fstype = vpinfo.fstype;
+		part->label = str_dup(vpinfo.label);
 	}
 
 	part->dev = dev;
@@ -300,6 +301,8 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 		*rpart = part;
 	return EOK;
 error:
+	if (part != NULL)
+		free(part->label);
 	free(part);
 	return rc;
 }
@@ -314,6 +317,8 @@ static void fdisk_part_remove(fdisk_part_t *part)
 		list_remove(&part->lpri_idx);
 	if (link_used(&part->llog_ba))
 		list_remove(&part->llog_ba);
+
+	free(part->label);
 	free(part);
 }
 
@@ -666,6 +671,7 @@ int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 	info->pcnt = part->pcnt;
 	info->fstype = part->fstype;
 	info->pkind = part->pkind;
+	info->label = part->label;
 	return EOK;
 }
 
