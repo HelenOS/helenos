@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
 	
 	srv_start("/srv/klog");
 	srv_start("/srv/locfs");
-//	srv_start("/srv/taskmon");
+	srv_start("/srv/taskmon");
 	
 	if (!mount_locfs()) {
 		printf("%s: Exiting\n", NAME);
