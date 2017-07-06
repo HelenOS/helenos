@@ -143,7 +143,7 @@ typedef const struct xhci_cap_regs {
 	/*
 	 *  3:0  - IST
 	 *  7:4  - ERST Max
-	 * 24:21 - Max Scratchpad Bufs Hi
+	 * 25:21 - Max Scratchpad Bufs Hi
 	 *    26 - SPR
 	 * 31:27 - Max Scratchpad Bufs Lo
 	 */
