@@ -44,6 +44,7 @@ SOURCES = \
 	hc.c \
 	debug.c \
 	trb_ring.c \
+	scratchpad.c \
 	main.c
 
 TEST_SOURCES = \

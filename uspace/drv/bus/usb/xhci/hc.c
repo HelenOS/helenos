@@ -40,6 +40,7 @@
 #include "debug.h"
 #include "hc.h"
 #include "hw_struct/trb.h"
+#include "scratchpad.h"
 
 static const irq_cmd_t irq_commands[] = {
 	{
@@ -205,10 +206,12 @@ int hc_init_memory(xhci_hc_t *hc)
 	if ((err = xhci_event_ring_init(&hc->event_ring, hc)))
 		goto err_cmd_ring;
 
-	// TODO: Allocate scratchpad buffers
+	if ((err = xhci_scratchpad_alloc(hc)))
+		goto err_scratchpad;
 
 	return EOK;
 
+err_scratchpad:
 	xhci_event_ring_fini(&hc->event_ring);
 err_cmd_ring:
 	xhci_trb_ring_fini(&hc->command_ring);
@@ -433,6 +436,7 @@ void hc_fini(xhci_hc_t *hc)
 {
 	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
+	xhci_scratchpad_free(hc);
 	pio_disable(hc->base, RNGSZ(hc->mmio_range));
 	usb_log_info("HC(%p): Finalized.", hc);
 }
