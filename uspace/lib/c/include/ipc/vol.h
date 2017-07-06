@@ -42,7 +42,8 @@ typedef enum {
 	VOL_PART_ADD,
 	VOL_PART_INFO,
 	VOL_PART_EMPTY,
-	VOL_PART_MKFS
+	VOL_PART_LSUPP,
+	VOL_PART_MKFS,
 } vol_request_t;
 
 #endif

@@ -41,6 +41,8 @@
 #include <stdlib.h>
 #include <fdisk.h>
 
+#define NO_LABEL_CAPTION "(No name)"
+
 static bool quit = false;
 static fdisk_t *fdisk;
 
@@ -444,11 +446,13 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	fdisk_part_spec_t pspec;
 	fdisk_cap_t cap;
 	fdisk_cap_t mcap;
+	vol_label_supp_t vlsupp;
 	vol_fstype_t fstype = 0;
 	tinput_t *tinput = NULL;
 	fdisk_spc_t spc;
 	char *scap;
 	char *smcap = NULL;
+	char *label = NULL;
 
 	if (pkind == lpk_logical)
 		spc = spc_log;
@@ -501,10 +505,33 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 			goto error;
 	}
 
+	fdisk_get_vollabel_support(dev, fstype, &vlsupp);
+	if (vlsupp.supported) {
+		tinput = tinput_new();
+		if (tinput == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		rc = tinput_set_prompt(tinput, "?> ");
+		if (rc != EOK)
+			goto error;
+
+		/* Ask for volume label */
+		printf("Enter volume label for new partition.\n");
+		rc = tinput_read_i(tinput, "No name", &label);
+		if (rc != EOK)
+			goto error;
+
+	    	tinput_destroy(tinput);
+		tinput = NULL;
+	}
+
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = cap;
 	pspec.pkind = pkind;
 	pspec.fstype = fstype;
+	pspec.label = label;
 
 	rc = fdisk_part_create(dev, &pspec, NULL);
 	if (rc != EOK) {
@@ -512,9 +539,11 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		goto error;
 	}
 
+	free(label);
 	return EOK;
 error:
 	free(smcap);
+	free(label);
 	if (tinput != NULL)
 		tinput_destroy(tinput);
 	return rc;
@@ -529,6 +558,7 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 	char *spkind = NULL;
 	char *sfstype = NULL;
 	char *sdesc = NULL;
+	const char *label;
 	bool confirm;
 	void *sel;
 	int rc;
@@ -576,7 +606,13 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 				goto error;
 			}
 
-			rc = asprintf(&sdesc, "%s, %s, %s", scap, spkind, sfstype);
+			if (str_size(pinfo.label) > 0)
+				label = pinfo.label;
+			else
+				label = "(No name)";
+
+			rc = asprintf(&sdesc, "%s %s, %s, %s", label,
+			    scap, spkind, sfstype);
 			if (rc < 0) {
 				rc = ENOMEM;
 				goto error;
@@ -772,7 +808,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		if (str_size(pinfo.label) > 0)
 			label = pinfo.label;
 		else
-			label = "(No label)";
+			label = "(No name)";
 
 		if (linfo.ltype == lt_none)
 			printf("Entire disk: %s %s", label, scap);

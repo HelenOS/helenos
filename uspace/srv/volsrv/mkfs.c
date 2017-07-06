@@ -39,6 +39,7 @@
 #include <loc.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <str.h>
 #include <str_error.h>
 #include <task.h>
 #include <types/vol.h>
@@ -100,7 +101,7 @@ static int cmd_runl(const char *path, ...)
 }
 
 
-int volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype)
+int volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype, const char *label)
 {
 	const char *cmd;
 	char *svc_name;
@@ -130,9 +131,29 @@ int volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype)
 	if (rc != EOK)
 		return rc;
 
-	rc = cmd_runl(cmd, cmd, svc_name, NULL);
+	if (str_size(label) > 0)
+		rc = cmd_runl(cmd, cmd, "--label", label, svc_name, NULL);
+	else
+		rc = cmd_runl(cmd, cmd, svc_name, NULL);
+
 	free(svc_name);
 	return rc;
+}
+
+void volsrv_part_get_lsupp(vol_fstype_t fstype, vol_label_supp_t *vlsupp)
+{
+	vlsupp->supported = false;
+
+	switch (fstype) {
+	case fs_fat:
+		vlsupp->supported = true;
+		break;
+	case fs_exfat:
+	case fs_minix:
+	case fs_ext4:
+	case fs_cdfs:
+		break;
+	}
 }
 
 /** @}

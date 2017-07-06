@@ -47,7 +47,8 @@ extern int vol_get_parts(vol_t *, service_id_t **, size_t *);
 extern int vol_part_add(vol_t *, service_id_t);
 extern int vol_part_info(vol_t *, service_id_t, vol_part_info_t *);
 extern int vol_part_empty(vol_t *, service_id_t);
-extern int vol_part_mkfs(vol_t *, service_id_t, vol_fstype_t);
+extern int vol_part_get_lsupp(vol_t *, vol_fstype_t, vol_label_supp_t *);
+extern int vol_part_mkfs(vol_t *, service_id_t, vol_fstype_t, const char *);
 
 #endif
 

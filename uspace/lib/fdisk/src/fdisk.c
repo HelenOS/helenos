@@ -730,41 +730,70 @@ int fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
 int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     fdisk_part_t **rpart)
 {
-	fdisk_part_t *part;
+	fdisk_part_t *part = NULL;
 	vbd_part_spec_t vpspec;
-	vbd_part_id_t partid;
+	vbd_part_id_t partid = 0;
+	vol_part_info_t vpinfo;
+	char *label;
 	int rc;
 
+	label = str_dup(pspec->label);
+	if (label == NULL)
+		return ENOMEM;
+
 	rc = fdisk_part_spec_prepare(dev, pspec, &vpspec);
-	if (rc != EOK)
-		return EIO;
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
 
 	rc = vbd_part_create(dev->fdisk->vbd, dev->sid, &vpspec, &partid);
-	if (rc != EOK)
-		return EIO;
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
 
 	rc = fdisk_part_add(dev, partid, &part);
 	if (rc != EOK) {
-		/* Try rolling back */
-		(void) vbd_part_delete(dev->fdisk->vbd, partid);
-		return EIO;
+		rc = EIO;
+		goto error;
 	}
 
 	if (part->svc_id != 0) {
-		rc = vol_part_mkfs(dev->fdisk->vol, part->svc_id, pspec->fstype);
+		rc = vol_part_mkfs(dev->fdisk->vol, part->svc_id, pspec->fstype,
+		    pspec->label);
 		if (rc != EOK && rc != ENOTSUP) {
-			fdisk_part_remove(part);
-			(void) vbd_part_delete(dev->fdisk->vbd, partid);
-			return EIO;
+			rc = EIO;
+			goto error;
 		}
 
-		part->pcnt = vpc_fs;
-		part->fstype = pspec->fstype;
+		/* Get the real label value */
+		rc = vol_part_info(dev->fdisk->vol, part->svc_id, &vpinfo);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+
+		part->pcnt = vpinfo.pcnt;
+		part->fstype = vpinfo.fstype;
+		part->label = str_dup(vpinfo.label);
+
+		if (part->label == NULL) {
+			rc = EIO;
+			goto error;
+		}
 	}
 
 	if (rpart != NULL)
 		*rpart = part;
 	return EOK;
+error:
+	/* Try rolling back */
+	if (part != NULL)
+		fdisk_part_remove(part);
+	if (partid != 0)
+		(void) vbd_part_delete(dev->fdisk->vbd, partid);
+	return rc;
 }
 
 int fdisk_part_destroy(fdisk_part_t *part)
@@ -1191,6 +1220,13 @@ static bool fdisk_free_range_get(fdisk_free_range_t *fr,
 	*nb = b1 - fr->b0;
 
 	return true;
+}
+
+/** Get volume label support. */
+int fdisk_get_vollabel_support(fdisk_dev_t *dev, vol_fstype_t fstype,
+    vol_label_supp_t *vlsupp)
+{
+	return vol_part_get_lsupp(dev->fdisk->vol, fstype, vlsupp);
 }
 
 /** @}

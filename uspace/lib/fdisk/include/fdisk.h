@@ -38,6 +38,7 @@
 
 #include <loc.h>
 #include <types/fdisk.h>
+#include <types/vol.h>
 
 extern int fdisk_create(fdisk_t **);
 extern void fdisk_destroy(fdisk_t *);
@@ -79,6 +80,9 @@ extern int fdisk_cap_to_blocks(fdisk_cap_t *, fdisk_cvsel_t, size_t, uint64_t *)
 extern int fdisk_ltype_format(label_type_t, char **);
 extern int fdisk_fstype_format(vol_fstype_t, char **);
 extern int fdisk_pkind_format(label_pkind_t, char **);
+
+extern int fdisk_get_vollabel_support(fdisk_dev_t *, vol_fstype_t,
+    vol_label_supp_t *);
 
 #endif
 
