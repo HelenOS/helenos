@@ -195,7 +195,7 @@ int hc_init_memory(xhci_hc_t *hc)
 {
 	int err;
 
-	hc->dcbaa = malloc32((1 + hc->max_slots) * sizeof(xhci_device_ctx_t));
+	hc->dcbaa = malloc32((1 + hc->max_slots) * sizeof(xhci_device_ctx_t*));
 	if (!hc->dcbaa)
 		return ENOMEM;
 
