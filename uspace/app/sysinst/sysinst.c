@@ -170,8 +170,9 @@ static int sysinst_fs_mount(const char *dev)
 		return rc;
 
 	printf("sysinst_fs_mount(): verify filesystem server result\n");
-	if (texit != TASK_EXIT_NORMAL || trc != 0)
-		return EIO;
+	if (texit != TASK_EXIT_NORMAL || trc != 0) {
+		printf("sysinst_fs_mount(): not successful, but could be already loaded.\n");
+	}
 
 	rc = vfs_link_path(MOUNT_POINT, KIND_DIRECTORY, NULL);
 	if (rc != EOK)
@@ -208,8 +209,9 @@ static int sysinst_copy_boot_files(void)
 		return rc;
 
 	printf("sysinst_copy_boot_files(): verify filesystem server result\n");
-	if (texit != TASK_EXIT_NORMAL || trc != 0)
-		return EIO;
+	if (texit != TASK_EXIT_NORMAL || trc != 0) {
+		printf("sysinst_fs_mount(): not successful, but could be already loaded.\n");
+	}
 
 	printf("sysinst_copy_boot_files(): create CD mount point\n");
 	rc = vfs_link_path(CD_MOUNT_POINT, KIND_DIRECTORY, NULL);

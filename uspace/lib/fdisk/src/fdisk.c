@@ -734,12 +734,10 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	vbd_part_spec_t vpspec;
 	vbd_part_id_t partid = 0;
 	vol_part_info_t vpinfo;
-	char *label;
+	const char *label;
 	int rc;
 
-	label = str_dup(pspec->label);
-	if (label == NULL)
-		return ENOMEM;
+	label = pspec->label != NULL ? pspec->label : "";
 
 	rc = fdisk_part_spec_prepare(dev, pspec, &vpspec);
 	if (rc != EOK) {
@@ -761,7 +759,7 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 
 	if (part->svc_id != 0) {
 		rc = vol_part_mkfs(dev->fdisk->vol, part->svc_id, pspec->fstype,
-		    pspec->label);
+		    label);
 		if (rc != EOK && rc != ENOTSUP) {
 			rc = EIO;
 			goto error;
