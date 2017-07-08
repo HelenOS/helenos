@@ -134,6 +134,7 @@ static void gp_fault(unsigned int n, istate_t *istate)
 			io_perm_bitmap_install();
 			return;
 		}
+		as_print(TASK->as);
 		fault_if_from_uspace(istate, "General protection fault.");
 	}
 	panic_badtrap(istate, n, "General protection fault.");

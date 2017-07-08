@@ -51,6 +51,8 @@
 #include <str.h>
 #include <byteorder.h>
 #include <macros.h>
+#include <unaligned.h>
+
 #include "cdfs.h"
 #include "cdfs_endian.h"
 
@@ -457,7 +459,8 @@ static char *cdfs_decode_str(void *data, size_t dsize, cdfs_enc_t enc)
 		
 		size_t i;
 		for (i = 0; i < dsize / sizeof(uint16_t); i++) {
-			buf[i] = uint16_t_be2host(((uint16_t *)data)[i]);
+			buf[i] = uint16_t_be2host(
+			    ((unaligned_uint16_t *)data)[i]);
 		}
 		
 		size_t dstr_size = dsize / sizeof(uint16_t) * 4 + 1;
