@@ -41,6 +41,7 @@
 #include "hc.h"
 #include "hw_struct/trb.h"
 #include "scratchpad.h"
+#include "commands.h"
 
 static const irq_cmd_t irq_commands[] = {
 	{
@@ -346,32 +347,10 @@ int hc_status(xhci_hc_t *hc, uint32_t *status)
 	return EOK;
 }
 
-static int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
-{
-	uint32_t v = host2xhci(32, target & BIT_RRANGE(uint32_t, 7));
-	pio_write_32(&hc->db_arry[doorbell], v);
-	return EOK;
-}
-
-static int send_no_op_command(xhci_hc_t *hc)
-{
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
-
-	trb.control = host2xhci(32, XHCI_TRB_TYPE_NO_OP_CMD << 10);
-
-	xhci_trb_ring_enqueue(&hc->command_ring, &trb);
-	ring_doorbell(hc, 0, 0);
-
-	xhci_dump_trb(&trb);
-	usb_log_debug2("HC(%p): Sent TRB", hc);
-	return EOK;
-}
-
 int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
 	xhci_dump_state(hc);
-	send_no_op_command(hc);
+	xhci_send_no_op_command(hc);
 	async_usleep(1000);
 	xhci_dump_state(hc);
 
