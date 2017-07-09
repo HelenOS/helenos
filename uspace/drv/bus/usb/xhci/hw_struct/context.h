@@ -109,4 +109,27 @@ typedef struct xhci_stream_ctx {
 	uint64_t data [2];
 } __attribute__((packed)) xhci_stream_ctx_t;
 
+/**
+ * Input control context: section 6.2.5.1
+ * TODO: According to section 6.2.5.1 figure 78,
+ *       the context size register value in
+ *       hccparams1 dictates whether input
+ *       control context shall have 32 or 64 bytes.
+ *       How to do this?
+ * TODO: Add register macros for XHCI_REG_RD/WR for
+ *       this data structure.
+ */
+typedef struct xhci_input_ctrl_ctx {
+	uint64_t data [8];
+} __attribute__((packed)) xhci_input_ctrl_ctx_t;
+
+/**
+ * Input context: section 6.2.5
+ */
+typedef struct xhci_input_ctx {
+	xhci_input_ctrl_ctx_t ctr_ctx;
+	xhci_slot_ctx_t slot_ctx;
+	xhci_ep_ctx_t endpoint_ctx [31];
+} __attribute__((packed)) xhci_input_ctx_t;
+
 #endif
