@@ -33,6 +33,9 @@
  * @brief The host controller data bookkeeping.
  */
 
+#ifndef XHCI_HC_H
+#define XHCI_HC_H
+
 #include <usb/host/usb_transfer_batch.h>
 #include "hw_struct/regs.h"
 #include "hw_struct/context.h"
@@ -78,6 +81,8 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch);
 int hc_status(xhci_hc_t *, uint32_t *);
 void hc_interrupt(xhci_hc_t *, uint32_t);
 void hc_fini(xhci_hc_t *);
+
+#endif
 
 /**
  * @}
