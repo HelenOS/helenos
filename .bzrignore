@@ -232,6 +232,8 @@ uspace/drv/bus/usb/usbhub/usbhub
 uspace/drv/bus/usb/usbmast/usbmast
 uspace/drv/bus/usb/usbmid/usbmid
 uspace/drv/bus/usb/vhc/vhc
+uspace/drv/bus/usb/xhci/xhci
+uspace/drv/bus/usb/xhci/test-xhci
 uspace/drv/char/i8042/i8042
 uspace/drv/char/ns8250/ns8250
 uspace/drv/char/ps2mouse/ps2mouse
