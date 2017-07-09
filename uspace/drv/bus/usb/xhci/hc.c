@@ -207,11 +207,11 @@ int hc_init_memory(xhci_hc_t *hc)
 		goto err_cmd_ring;
 
 	if ((err = xhci_scratchpad_alloc(hc)))
-		goto err_scratchpad;
+		goto err_event_ring;
 
 	return EOK;
 
-err_scratchpad:
+err_event_ring:
 	xhci_event_ring_fini(&hc->event_ring);
 err_cmd_ring:
 	xhci_trb_ring_fini(&hc->command_ring);
@@ -436,10 +436,8 @@ static void hc_dcbaa_fini(xhci_hc_t *hc)
 {
 	xhci_scratchpad_free(hc);
 
-	/**
-	 * Idx 0 already deallocated by xhci_scratchpad_free.
-	 */
-	for (int i = 1; i < hc->max_slots + 1; ++i) {
+	/* Idx 0 already deallocated by xhci_scratchpad_free. */
+	for (unsigned i = 1; i < hc->max_slots + 1; ++i) {
 		if (hc->dcbaa[i] != NULL) {
 			free32(hc->dcbaa[i]);
 			hc->dcbaa[i] = NULL;
