@@ -400,7 +400,7 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 			usb_log_warning("Error while accessing event ring: %s", str_error(err));
 	}
 
-	/* Update the ERDP to make room inthe ring */
+	/* Update the ERDP to make room in the ring */
 	uint64_t erstptr = addr_to_phys(hc->event_ring.erst);
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erstptr));
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erstptr));
@@ -432,11 +432,28 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 	}
 }
 
+static void hc_dcbaa_fini(xhci_hc_t *hc)
+{
+	xhci_scratchpad_free(hc);
+
+	/**
+	 * Idx 0 already deallocated by xhci_scratchpad_free.
+	 */
+	for (int i = 1; i < hc->max_slots + 1; ++i) {
+		if (hc->dcbaa[i] != NULL) {
+			free32(hc->dcbaa[i]);
+			hc->dcbaa[i] = NULL;
+		}
+	}
+
+	free32(hc->dcbaa);
+}
+
 void hc_fini(xhci_hc_t *hc)
 {
 	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
-	xhci_scratchpad_free(hc);
+	hc_dcbaa_fini(hc);
 	pio_disable(hc->base, RNGSZ(hc->mmio_range));
 	usb_log_info("HC(%p): Finalized.", hc);
 }
