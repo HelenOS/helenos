@@ -259,6 +259,34 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
 	return EOK;
 }
 
+int exfat_directory_read_vollabel(exfat_directory_t *di, char *label,
+    size_t size)
+{
+	uint16_t wlabel[EXFAT_VOLLABEL_LEN + 1];
+	exfat_dentry_t *d = NULL;
+	int rc;
+	aoff64_t start_pos = 0;
+
+	start_pos = di->pos;
+
+	rc = exfat_directory_seek(di, 0);
+	if (rc != EOK)
+		return rc;
+
+	rc = exfat_directory_find(di, EXFAT_DENTRY_VOLLABEL, &d);
+	if (rc != EOK)
+		return rc;
+
+	exfat_dentry_get_vollabel(&d->vollabel, EXFAT_VOLLABEL_LEN, wlabel);
+
+	rc = utf16_to_str(label, size, wlabel);
+	if (rc != EOK)
+		return rc;
+
+	exfat_directory_seek(di, start_pos);
+	return EOK;
+}
+
 static uint16_t exfat_directory_set_checksum(const uint8_t *bytes, size_t count)
 {
 	uint16_t checksum = 0;

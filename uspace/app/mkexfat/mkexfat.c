@@ -100,8 +100,8 @@ typedef struct exfat_cfg {
 	size_t   bitmap_size;
 	size_t   sector_size;
 	size_t   cluster_size;
+	const char *label;
 } exfat_cfg_t;
-
 
 static unsigned log2(unsigned n);
 
@@ -125,13 +125,15 @@ static struct option const long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"cluster-size", required_argument, 0, 'c'},
 	{"fs-size", required_argument, 0, 's'},
+	{"label", required_argument, 0, 'L' },
 };
 
 static void usage(void)
 {
 	printf("Usage: mkexfat [options] <device>\n"
 	    "-c, --cluster-size ## Specify the cluster size (Kb)\n"
-	    "-s, --fs-size ##      Specify the filesystem size (sectors)\n");
+	    "-s, --fs-size ##      Specify the filesystem size (sectors)\n"
+	    "    --label ##        Volume label\n");
 }
 
 /** Initialize the exFAT params structure.
@@ -596,6 +598,7 @@ root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
 {
 	exfat_dentry_t *d;
 	aoff64_t rootdir_sec;
+	uint16_t wlabel[EXFAT_VOLLABEL_LEN + 1];
 	int rc;
 	uint8_t *data;
 	unsigned long i;
@@ -607,11 +610,24 @@ root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
 	d = (exfat_dentry_t *) data;
 
 	/* Initialize the volume label dentry */
-	d->type = EXFAT_TYPE_VOLLABEL;
-	str_to_utf16(d->vollabel.label, 8, "HELENOS ");
-	d->vollabel.size = 8;
 
-	d++;
+	if (cfg->label != NULL) {
+		memset(wlabel, 0, (EXFAT_VOLLABEL_LEN + 1) * sizeof(uint16_t));
+		rc = str_to_utf16(wlabel, EXFAT_VOLLABEL_LEN + 1, cfg->label);
+		if (rc != EOK) {
+			rc = EINVAL;
+			goto exit;
+		}
+
+		d->type = EXFAT_TYPE_VOLLABEL;
+		memcpy(d->vollabel.label, wlabel, EXFAT_VOLLABEL_LEN * 2);
+		d->vollabel.size = utf16_wsize(wlabel);
+		assert(d->vollabel.size <= EXFAT_VOLLABEL_LEN);
+
+		d++;
+	} else {
+		d->type = EXFAT_TYPE_VOLLABEL & ~EXFAT_TYPE_USED;
+	}
 
 	/* Initialize the allocation bitmap dentry */
 	d->type = EXFAT_TYPE_BITMAP;
@@ -750,9 +766,10 @@ int main (int argc, char **argv)
 	}
 
 	cfg.cluster_size = 0;
+	cfg.label = NULL;
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "hs:c:",
+		c = getopt_long(argc, argv, "hs:c:L:",
 		    long_options, &opt_ind);
 		switch (c) {
 		case 'h':
@@ -779,6 +796,9 @@ int main (int argc, char **argv)
 				    " must be a power of two.\n");
 				return 1;
 			}
+			break;
+		case 'L':
+			cfg.label = optarg;
 			break;
 		}
 	}

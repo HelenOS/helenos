@@ -39,6 +39,7 @@
 
 #define EXFAT_FILENAME_LEN	255
 #define EXFAT_NAME_PART_LEN	15
+#define EXFAT_VOLLABEL_LEN	11
 
 #define EXFAT_TYPE_UNUSED	0x00
 #define EXFAT_TYPE_USED		0x80
@@ -155,10 +156,14 @@ extern uint16_t exfat_name_hash(const uint16_t *, const uint16_t *, size_t);
 
 extern void exfat_dentry_get_name(const exfat_name_dentry_t *, size_t,
     uint16_t *, size_t *);
-
+extern void exfat_dentry_get_vollabel(const exfat_vollabel_dentry_t *, size_t,
+    uint16_t *);
 
 extern bool exfat_valid_char(wchar_t);
 extern bool exfat_valid_name(const char *);
+
+extern size_t exfat_utf16_length(const uint16_t *);
+
 
 #endif
 

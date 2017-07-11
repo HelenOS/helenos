@@ -89,13 +89,24 @@ uint16_t exfat_name_hash(const uint16_t *name, const uint16_t *uctable, size_t c
 
 void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, uint16_t *dst, size_t *offset)
 {
-	size_t i = 0; 
+	size_t i = 0;
 	while (i < EXFAT_NAME_PART_LEN && *offset < size) {
 		dst[*offset] = uint16_t_le2host(name->name[i]);
 		i++;
 		(*offset)++;
 	}
 	dst[*offset] = '\0';
+}
+
+void exfat_dentry_get_vollabel(const exfat_vollabel_dentry_t *vollabel,
+    size_t size, uint16_t *dst)
+{
+	size_t i = 0;
+	while (i < EXFAT_VOLLABEL_LEN && i < vollabel->size && i < size) {
+		dst[i] = uint16_t_le2host(vollabel->label[i]);
+		i++;
+	}
+	dst[i] = '\0';
 }
 
 bool exfat_valid_char(wchar_t ch)

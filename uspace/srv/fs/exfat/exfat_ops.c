@@ -1012,86 +1012,12 @@ libfs_ops_t exfat_libfs_ops = {
 	.free_block_count = exfat_free_block_count
 };
 
-
-/*
- * VFS_OUT operations.
- */
-
-/* Print debug info */
-/*
-static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
-{
-	printf("exFAT file system mounted\n");
-	printf("Version: %d.%d\n", bs->version.major, bs->version.minor);
-	printf("Volume serial: %d\n", uint32_t_le2host(bs->volume_serial));
-	printf("Volume first sector: %lld\n", VOL_FS(bs));
-	printf("Volume sectors: %lld\n", VOL_CNT(bs));
-	printf("FAT first sector: %d\n", FAT_FS(bs));
-	printf("FAT sectors: %d\n", FAT_CNT(bs));
-	printf("Data first sector: %d\n", DATA_FS(bs));
-	printf("Data sectors: %d\n", DATA_CNT(bs));
-	printf("Root dir first cluster: %d\n", ROOT_FC(bs));
-	printf("Bytes per sector: %d\n", BPS(bs));
-	printf("Sectors per cluster: %d\n", SPC(bs));
-	printf("KBytes per cluster: %d\n", SPC(bs)*BPS(bs)/1024);
-
-	int i, rc;
-	exfat_cluster_t clst;
-	for (i=0; i<=7; i++) {
-		rc = exfat_get_cluster(bs, service_id, i, &clst);
-		if (rc != EOK)
-			return;
-		printf("Clst %d: %x", i, clst);
-		if (i>=2)
-			printf(", Bitmap: %d\n", bitmap_is_free(bs, service_id, i)!=EOK);
-		else
-			printf("\n");
-	}
-}
-*/
-
-static int exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
-{
-	int rc;
-	exfat_bs_t *bs;
-
-	/* initialize libblock */
-	rc = block_init(service_id, BS_SIZE);
-	if (rc != EOK)
-		return rc;
-
-	/* prepare the boot block */
-	rc = block_bb_read(service_id, BS_BLOCK);
-	if (rc != EOK) {
-		block_fini(service_id);
-		return rc;
-	}
-
-	/* get the buffer with the boot sector */
-	bs = block_bb_get(service_id);
-
-	/* Do some simple sanity checks on the file system. */
-	rc = exfat_sanity_check(bs);
-
-	(void) block_cache_fini(service_id);
-	block_fini(service_id);
-	return rc;
-}
-
-static int
-exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
-    aoff64_t *size)
+static int exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
+    fs_node_t **rrfn, exfat_idx_t **rridxp, vfs_fs_probe_info_t *info)
 {
 	int rc;
 	exfat_node_t *rootp = NULL, *bitmapp = NULL, *uctablep = NULL;
-	enum cache_mode cmode;
 	exfat_bs_t *bs;
-
-	/* Check for option enabling write through. */
-	if (str_cmp(opts, "wtcache") == 0)
-		cmode = CACHE_MODE_WT;
-	else
-		cmode = CACHE_MODE_WB;
 
 	/* initialize libblock */
 	rc = block_init(service_id, BS_SIZE);
@@ -1243,6 +1169,21 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	uctablep->lnkcnt = 0;
 	uctablep->size = uint64_t_le2host(de->uctable.size);
 
+	if (info != NULL) {
+		/* Read volume label. */
+		rc = exfat_directory_read_vollabel(&di, info->label,
+		    FS_LABEL_MAXLEN + 1);
+		if (rc != EOK) {
+			free(rootp);
+			free(bitmapp);
+			free(uctablep);
+			(void) block_cache_fini(service_id);
+			block_fini(service_id);
+			exfat_idx_fini_by_service_id(service_id);
+    		    return ENOTSUP;
+		}
+	}
+
 	rc = exfat_directory_close(&di);
 	if (rc != EOK) {
 		free(rootp);
@@ -1256,37 +1197,23 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 
 	/* exfat_fsinfo(bs, service_id); */
 
-	*index = rootp->idx->index;
-	*size = rootp->size;
-	
+	*rrfn = FS_NODE(rootp);
+	*rridxp = rootp->idx;
+
+	if (info != NULL) {
+//		str_cpy(info->label, FS_LABEL_MAXLEN + 1, label);
+	}
+
 	return EOK;
 }
 
-static int exfat_unmounted(service_id_t service_id)
+static void exfat_fs_close(service_id_t service_id, fs_node_t *rfn)
 {
-	fs_node_t *fn;
-	exfat_node_t *nodep;
-	int rc;
-
-	rc = exfat_root_get(&fn, service_id);
-	if (rc != EOK)
-		return rc;
-	nodep = EXFAT_NODE(fn);
-
-	/*
-	 * We expect exactly two references on the root node. One for the
-	 * fat_root_get() above and one created in fat_mounted().
-	 */
-	if (nodep->refcnt != 2) {
-		(void) exfat_node_put(fn);
-		return EBUSY;
-	}
-
 	/*
 	 * Put the root node and force it to the FAT free node list.
 	 */
-	(void) exfat_node_put(fn);
-	(void) exfat_node_put(fn);
+	(void) exfat_node_put(rfn);
+	(void) exfat_node_put(rfn);
 
 	/*
 	 * Perform cleanup of the node structures, index structures and
@@ -1297,7 +1224,95 @@ static int exfat_unmounted(service_id_t service_id)
 	exfat_idx_fini_by_service_id(service_id);
 	(void) block_cache_fini(service_id);
 	block_fini(service_id);
+}
 
+
+/*
+ * VFS_OUT operations.
+ */
+
+/* Print debug info */
+/*
+static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
+{
+	printf("exFAT file system mounted\n");
+	printf("Version: %d.%d\n", bs->version.major, bs->version.minor);
+	printf("Volume serial: %d\n", uint32_t_le2host(bs->volume_serial));
+	printf("Volume first sector: %lld\n", VOL_FS(bs));
+	printf("Volume sectors: %lld\n", VOL_CNT(bs));
+	printf("FAT first sector: %d\n", FAT_FS(bs));
+	printf("FAT sectors: %d\n", FAT_CNT(bs));
+	printf("Data first sector: %d\n", DATA_FS(bs));
+	printf("Data sectors: %d\n", DATA_CNT(bs));
+	printf("Root dir first cluster: %d\n", ROOT_FC(bs));
+	printf("Bytes per sector: %d\n", BPS(bs));
+	printf("Sectors per cluster: %d\n", SPC(bs));
+	printf("KBytes per cluster: %d\n", SPC(bs)*BPS(bs)/1024);
+
+	int i, rc;
+	exfat_cluster_t clst;
+	for (i=0; i<=7; i++) {
+		rc = exfat_get_cluster(bs, service_id, i, &clst);
+		if (rc != EOK)
+			return;
+		printf("Clst %d: %x", i, clst);
+		if (i>=2)
+			printf(", Bitmap: %d\n", bitmap_is_free(bs, service_id, i)!=EOK);
+		else
+			printf("\n");
+	}
+}
+*/
+
+static int exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+{
+	int rc;
+	exfat_idx_t *ridxp;
+	fs_node_t *rfn;
+
+	rc = exfat_fs_open(service_id, CACHE_MODE_WT, &rfn, &ridxp, info);
+	if (rc != EOK)
+		return rc;
+
+	exfat_fs_close(service_id, rfn);
+	return EOK;
+}
+
+static int
+exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
+    aoff64_t *size)
+{
+	int rc;
+	enum cache_mode cmode;
+	exfat_idx_t *ridxp;
+	fs_node_t *rfn;
+
+	/* Check for option enabling write through. */
+	if (str_cmp(opts, "wtcache") == 0)
+		cmode = CACHE_MODE_WT;
+	else
+		cmode = CACHE_MODE_WB;
+
+	rc = exfat_fs_open(service_id, cmode, &rfn, &ridxp, NULL);
+	if (rc != EOK)
+		return rc;
+
+	*index = ridxp->index;
+	*size = EXFAT_NODE(rfn)->size;
+
+	return EOK;
+}
+
+static int exfat_unmounted(service_id_t service_id)
+{
+	fs_node_t *rfn;
+	int rc;
+
+	rc = exfat_root_get(&rfn, service_id);
+	if (rc != EOK)
+		return rc;
+
+	exfat_fs_close(service_id, rfn);
 	return EOK;
 }
 
@@ -1362,7 +1377,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			async_answer_0(callid, ENOTSUP);
 			return ENOTSUP;
 		}
-			
+
 		aoff64_t spos = pos;
 		char name[EXFAT_FILENAME_LEN + 1];
 		exfat_file_dentry_t df;

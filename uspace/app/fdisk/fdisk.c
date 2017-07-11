@@ -519,7 +519,7 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 
 		/* Ask for volume label */
 		printf("Enter volume label for new partition.\n");
-		rc = tinput_read_i(tinput, "No name", &label);
+		rc = tinput_read_i(tinput, "New volume", &label);
 		if (rc != EOK)
 			goto error;
 
