@@ -426,16 +426,6 @@ bool fat_valid_short_name(const char *name)
 	return true;
 }
 
-size_t utf16_length(const uint16_t *wstr)
-{
-	size_t len = 0;
-	
-	while (*wstr++ != 0)
-		len++;
-	
-	return len;
-}
-
 /**
  * @}
  */ 

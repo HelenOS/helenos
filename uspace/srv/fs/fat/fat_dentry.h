@@ -151,7 +151,6 @@ extern size_t fat_lfn_set_entry(const uint16_t *, size_t *, size_t,
     fat_dentry_t *);
 
 extern void str_to_ascii(char *, const char *, size_t, uint8_t);
-extern size_t utf16_length(const uint16_t *);
 
 extern bool fat_valid_name(const char *);
 extern bool fat_valid_short_name(const char *);

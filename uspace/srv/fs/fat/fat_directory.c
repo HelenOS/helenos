@@ -300,7 +300,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 		if (rc != EOK)
 			return rc;
 		
-		lfn_size = utf16_length(wname);
+		lfn_size = utf16_wsize(wname);
 		long_entry_count = lfn_size / FAT_LFN_ENTRY_SIZE;
 		if (lfn_size % FAT_LFN_ENTRY_SIZE)
 			long_entry_count++;
