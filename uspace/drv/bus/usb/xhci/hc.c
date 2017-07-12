@@ -357,6 +357,18 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	return EOK;
 }
 
+static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
+{
+	switch(TRB_TYPE(*trb)) {
+		case XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT:
+			xhci_handle_command_completion(hc, trb);
+			break;
+		default:
+			usb_log_debug2("Event type handling not implemented.");
+			break;
+	}
+}
+
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci_interrupter_regs_t *intr)
 {
 	int err;
@@ -368,6 +380,8 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 		case EOK:
 			usb_log_debug2("Dequeued from event ring.");
 			xhci_dump_trb(&trb);
+
+			hc_handle_event(hc, &trb);
 			break;
 
 		case ENOENT:
