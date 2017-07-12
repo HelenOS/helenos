@@ -58,6 +58,7 @@ typedef ioport32_t xhci_dword_t __attribute__((aligned(4)));
 typedef volatile uint64_t xhci_qword_t __attribute__((aligned(8)));
 
 #define XHCI_DWORD_EXTRACT(field, hi, lo) (BIT_RANGE_EXTRACT(uint32_t, hi, lo, xhci2host(32, field)))
+#define XHCI_QWORD_EXTRACT(field, hi, lo) (BIT_RANGE_EXTRACT(uint64_t, hi, lo, xhci2host(64, field)))
 
 /**
  * Common base for setters on xhci_dword_t storage.
