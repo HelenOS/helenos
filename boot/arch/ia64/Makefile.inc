@@ -88,4 +88,4 @@ RD_DRVS_NON_ESSENTIAL += \
 RD_DRV_CFG += \
 	bus/isa
 
-PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c
+PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE)

@@ -71,4 +71,4 @@ SOURCES = \
 	generic/src/version.c \
 	generic/src/inflate.c
 
-PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c
+PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE)

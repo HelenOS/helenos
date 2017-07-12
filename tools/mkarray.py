@@ -76,6 +76,8 @@ def main():
 	
 	src_cnt = 0
 	
+	archive = zipfile.ZipFile("%s.zip" % dest, "w", zipfile.ZIP_STORED)
+	
 	for src in sys.argv[5:]:
 		basename = os.path.basename(src)
 		plainname = os.path.splitext(basename)[0]
@@ -91,6 +93,10 @@ def main():
 		
 		if compress:
 			src_data = deflate(src_data)
+			src_fname = os.path.basename("%s.deflate" % src)
+			archive.writestr(src_fname, src_data)
+		else:
+			src_fname = src
 		
 		if sys.version_info < (3,):
 			src_data = bytearray(src_data)
@@ -104,14 +110,20 @@ def main():
 		data_ctx.append(".balign 8")
 		data_ctx.append(".size %s, %u" % (symbol, length_out))
 		data_ctx.append("%s:" % symbol)
-		data_ctx.append("\t.byte 0x" + ', 0x'.join(chunks(binascii.b2a_hex(src_data), 2)) + "\n")
+		data_ctx.append("\t.incbin \"%s\"\n" % src_fname)
 		
 		desc_field = []
 		desc_field.append("\t{")
 		desc_field.append("\t\t.name = \"%s\"," % plainname)
 		desc_field.append("\t\t.addr = (void *) %s," % symbol)
 		desc_field.append("\t\t.size = %u," % length_out)
-		desc_field.append("\t\t.inflated = %u" % length)
+		desc_field.append("\t\t.inflated = %u," % length)
+		
+		if compress:
+			desc_field.append("\t\t.compressed = true")
+		else:
+			desc_field.append("\t\t.compressed = false")
+		
 		desc_field.append("\t}")
 		
 		desc_ctx.append("\n".join(desc_field))
@@ -119,8 +131,6 @@ def main():
 		size_ctx.append("size_t %s_size = %u;" % (symbol, length_out))
 		
 		src_cnt += 1
-	
-	archive = zipfile.ZipFile("%s.zip" % dest, "w", zipfile.ZIP_STORED)
 	
 	data = ''
 	data += '/***************************************\n'
@@ -130,13 +140,15 @@ def main():
 	data += "#ifndef %sS_H_\n" % label.upper()
 	data += "#define %sS_H_\n\n" % label.upper()
 	data += "#include <stddef.h>\n"
-	data += "#include <stdint.h>\n\n"
+	data += "#include <stdint.h>\n"
+	data += "#include <stdbool.h>\n\n"
 	data += "#define %sS  %u\n\n" % (label.upper(), src_cnt)
 	data += "typedef struct {\n"
 	data += "\tconst char *name;\n"
 	data += "\tvoid *addr;\n"
 	data += "\tsize_t size;\n"
 	data += "\tsize_t inflated;\n"
+	data += "\tbool compressed;\n"
 	data += "} %s_t;\n\n" % label
 	data += "extern %s_t %ss[];\n\n" % (label, label)
 	data += "\n".join(header_ctx)

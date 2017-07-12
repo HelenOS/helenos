@@ -144,6 +144,9 @@ $(COMPS).h: $(COMPS).zip
 $(COMPS)_desc.c: $(COMPS).zip
 	unzip -p $< $@ > $@
 
+$(COMPONENTS_DEFLATE): $(COMPS).zip
+	unzip -p $< $@ > $@
+
 $(COMPS).zip: $(COMPONENTS)
 	$(MKARRAY) --deflate $(COMPS) $(COMP) "$(AS_PROLOG)" ".section .components, \"a\"" $^
 
