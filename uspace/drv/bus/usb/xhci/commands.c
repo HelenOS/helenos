@@ -42,10 +42,22 @@
 #include "hc.h"
 #include "hw_struct/trb.h"
 
-static int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
+static inline int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 {
 	uint32_t v = host2xhci(32, target & BIT_RRANGE(uint32_t, 7));
 	pio_write_32(&hc->db_arry[doorbell], v);
+	return EOK;
+}
+
+static inline int enqueue_trb(xhci_hc_t *hc, xhci_trb_t *trb,
+			      unsigned doorbell, unsigned target)
+{
+	xhci_trb_ring_enqueue(&hc->command_ring, trb);
+	ring_doorbell(hc, doorbell, target);
+
+	xhci_dump_trb(trb);
+	usb_log_debug2("HC(%p): Sent TRB", hc);
+
 	return EOK;
 }
 
@@ -56,12 +68,7 @@ int xhci_send_no_op_command(xhci_hc_t *hc)
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_NO_OP_CMD << 10);
 
-	xhci_trb_ring_enqueue(&hc->command_ring, &trb);
-	ring_doorbell(hc, 0, 0);
-
-	xhci_dump_trb(&trb);
-	usb_log_debug2("HC(%p): Sent TRB", hc);
-	return EOK;
+	return enqueue_trb(hc, &trb, 0, 0);
 }
 
 int xhci_send_enable_slot_command(xhci_hc_t *hc)
@@ -71,15 +78,11 @@ int xhci_send_enable_slot_command(xhci_hc_t *hc)
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_ENABLE_SLOT_CMD << 10);
 	trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
+	trb.control |= host2xhci(32, hc->command_ring.pcs);
 
 	// TODO: Setup input control context.
 
-	xhci_trb_ring_enqueue(&hc->command_ring, &trb);
-	ring_doorbell(hc, 0, 0);
-
-	xhci_dump_trb(&trb);
-	usb_log_debug2("HC(%p): Sent TRB", hc);
-	return EOK;
+	return enqueue_trb(hc, &trb, 0, 0);
 }
 
 
