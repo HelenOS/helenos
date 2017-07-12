@@ -85,6 +85,15 @@ int xhci_send_enable_slot_command(xhci_hc_t *hc)
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
+int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
+{
+	usb_log_debug2("HC(%p) Command completed.", hc);
+	xhci_dump_trb(trb);
+
+	// TODO: Extract command trb pointer, switch by its type and handle it.
+
+	return EOK;
+}
 
 
 /**
