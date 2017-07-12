@@ -39,6 +39,7 @@
 #include <usb/host/usb_transfer_batch.h>
 #include "hw_struct/regs.h"
 #include "hw_struct/context.h"
+#include "scratchpad.h"
 #include "trb_ring.h"
 
 /**
@@ -65,6 +66,7 @@ typedef struct xhci_hc {
 	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
 	xhci_device_ctx_t **dcbaa;
+	xhci_scratchpad_t *scratchpad;
 
 	/* Cached capabilities */
 	xhci_port_speed_t speeds [16];

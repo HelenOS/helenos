@@ -40,7 +40,6 @@
 #include "debug.h"
 #include "hc.h"
 #include "hw_struct/trb.h"
-#include "scratchpad.h"
 #include "commands.h"
 
 static const irq_cmd_t irq_commands[] = {

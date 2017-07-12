@@ -40,8 +40,15 @@
 #ifndef XHCI_SCRATCHPAD_H
 #define XHCI_SCRATCHPAD_H
 
+typedef struct xhci_hc xhci_hc_t;
+
 typedef struct xhci_scratchpad {
-	uint64_t sp_ptr;
+	/* Pointers to scratchpad buffers used by the xHC. */
+	uint64_t phys_ptr;
+	/* Pointers to scratchpad buffers used for deallocation. */
+	uint64_t virt_ptr;
+	/* Pointers to the scratchpad array used for deallocation. */
+	uint64_t phys_bck;
 } xhci_scratchpad_t;
 
 int xhci_scratchpad_alloc(xhci_hc_t *);

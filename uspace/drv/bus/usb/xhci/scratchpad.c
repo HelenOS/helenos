@@ -53,30 +53,46 @@ static inline unsigned xhci_scratchpad_count(xhci_hc_t *hc)
 int xhci_scratchpad_alloc(xhci_hc_t *hc)
 {
 	unsigned num_bufs, allocated;
-	xhci_scratchpad_t *buf_array;
+	xhci_scratchpad_t *bufs;
 
 	num_bufs = xhci_scratchpad_count(hc);
 
 	if (!num_bufs)
 		return EOK;
 
-	buf_array = malloc32(num_bufs * sizeof(xhci_scratchpad_t));
-	if (!buf_array)
+	bufs = malloc32(sizeof(xhci_scratchpad_t));
+	if (!bufs)
 		return ENOMEM;
 
-	hc->dcbaa[0] = (xhci_device_ctx_t *) buf_array;
-
 	allocated = 0;
-	for (unsigned i = 0; i < num_bufs; ++i) {
-		buf_array[i].sp_ptr = (uint64_t) malloc32(PAGE_SIZE);
 
-		if (buf_array[i].sp_ptr)
+	uint64_t *phys_array = malloc32(num_bufs * sizeof(uint64_t));
+	if(phys_array == NULL)
+		goto err_phys_array;
+
+	uint64_t *virt_array = malloc32(num_bufs * sizeof(uint64_t));
+	if(virt_array == NULL)
+		goto err_virt_array;
+
+	for (unsigned i = 0; i < num_bufs; ++i) {
+		void *buf = malloc32(PAGE_SIZE);
+		phys_array[i] = host2xhci(64, (uint64_t) addr_to_phys(buf));
+		virt_array[i] = (uint64_t) buf;
+
+		if (buf != NULL)
 			++allocated;
 		else
 			goto err_page_alloc;
 
-		memset((void *) buf_array[i].sp_ptr, 0, PAGE_SIZE);
+		memset(buf, 0, PAGE_SIZE);
 	}
+
+	bufs->phys_ptr = host2xhci(64, (uint64_t) addr_to_phys(phys_array));
+	bufs->virt_ptr = (uint64_t) virt_array;
+	bufs->phys_bck = (uint64_t) phys_array;
+
+	hc->dcbaa[0] = (xhci_device_ctx_t *) bufs->phys_ptr;
+	hc->scratchpad = bufs;
 
 	usb_log_debug2("Allocated %d scratchpad buffers.", num_bufs);
 
@@ -84,7 +100,14 @@ int xhci_scratchpad_alloc(xhci_hc_t *hc)
 
 err_page_alloc:
 	for (unsigned i = 0; i < allocated; ++i)
-		free32((void *) buf_array[i].sp_ptr);
+		free32((void *) virt_array[i]);
+	free32(virt_array);
+
+err_virt_array:
+	free32(phys_array);
+
+err_phys_array:
+	free32(bufs);
 
 	return ENOMEM;
 }
@@ -92,17 +115,20 @@ err_page_alloc:
 void xhci_scratchpad_free(xhci_hc_t *hc)
 {
 	unsigned num_bufs;
-	xhci_scratchpad_t *buf_array;
-
+	xhci_scratchpad_t *scratchpad;
+	uint64_t *virt_array;
+	
 	num_bufs = xhci_scratchpad_count(hc);
 	if(!num_bufs)
 		return;
 
-	buf_array = (xhci_scratchpad_t *) hc->dcbaa[0];
+	scratchpad =  hc->scratchpad;
+	virt_array = (uint64_t *) scratchpad->virt_ptr;
 
 	for (unsigned i = 0; i < num_bufs; ++i)
-		free32((void *) buf_array[i].sp_ptr);
-	free32(buf_array);
+		free32((void *) virt_array[i]);
+	free32((void *) scratchpad->virt_ptr);
+	free32((void *) scratchpad->phys_bck);
 
 	hc->dcbaa[0] = NULL;
 	return;
