@@ -90,7 +90,16 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	usb_log_debug2("HC(%p) Command completed.", hc);
 	xhci_dump_trb(trb);
 
-	// TODO: Extract command trb pointer, switch by its type and handle it.
+	int code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
+	if (code != XHCI_TRBC_SUCCESS)
+		return EINVAL; // TODO: Find a better error code/handler.
+
+	xhci_trb_t *command = (xhci_trb_t *) XHCI_QWORD_EXTRACT(trb->parameter, 63, 4);
+	switch(TRB_TYPE(*command)) {
+		default:
+			// TODO:
+			break;
+	}
 
 	return EOK;
 }
