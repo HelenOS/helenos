@@ -141,6 +141,28 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *hc, uint32_t slot_id,
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
+int xhci_send_evaluate_context_command(xhci_hc_t *hc, uint32_t slot_id,
+				       xhci_input_ctx_t *ictx)
+{
+	/**
+	 * Note: All Drop Context flags of the input context shall be 0,
+	 *       all Add Context flags shall be initialize to indicate IDs
+	 *       of the contexts affected by the command.
+	 *       Refer to sections 6.2.2.3 and 6.3.3.3 for further info.
+	 */
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(trb));
+
+	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
+	trb.parameter = host2xhci(32, phys_addr & 0xFFFFFFFFFFFFFFF0);
+
+	trb.control = host2xhci(32, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD << 10);
+	trb.control |= host2xhci(32, hc->command_ring.pcs);
+	trb.control |= host2xhci(32, slot_id << 24);
+
+	return enqueue_trb(hc, &trb, 0, 0);
+}
+
 static int report_error(int code)
 {
 	// TODO: Order these by their value.
@@ -207,6 +229,8 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	case XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD:
 		return EOK;
 	case XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD:
+		return EOK;
+	case XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD:
 		return EOK;
 	default:
 		usb_log_debug2("Unsupported command trb.");
