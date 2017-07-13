@@ -62,6 +62,57 @@ static inline int enqueue_trb(xhci_hc_t *hc, xhci_trb_t *trb,
 	return EOK;
 }
 
+static const char *trb_codes [] = {
+#define TRBC(t) [XHCI_TRBC_##t] = #t
+	TRBC(INVALID),
+	TRBC(SUCCESS),
+	TRBC(DATA_BUFFER_ERROR),
+	TRBC(BABBLE_DETECTED_ERROR),
+	TRBC(USB_TRANSACTION_ERROR),
+	TRBC(TRB_ERROR),
+	TRBC(STALL_ERROR),
+	TRBC(RESOURCE_ERROR),
+	TRBC(BANDWIDTH_ERROR),
+	TRBC(NO_SLOTS_ERROR),
+	TRBC(INVALID_STREAM_ERROR),
+	TRBC(SLOT_NOT_ENABLED_ERROR),
+	TRBC(EP_NOT_ENABLED_ERROR),
+	TRBC(SHORT_PACKET),
+	TRBC(RING_UNDERRUN),
+	TRBC(RING_OVERRUN),
+	TRBC(VF_EVENT_RING_FULL),
+	TRBC(PARAMETER_ERROR),
+	TRBC(BANDWIDTH_OVERRUN_ERROR),
+	TRBC(CONTEXT_STATE_ERROR),
+	TRBC(NO_PING_RESPONSE_ERROR),
+	TRBC(EVENT_RING_FULL_ERROR),
+	TRBC(INCOMPATIBLE_DEVICE_ERROR),
+	TRBC(MISSED_SERVICE_ERROR),
+	TRBC(COMMAND_RING_STOPPED),
+	TRBC(COMMAND_ABORTED),
+	TRBC(STOPPED),
+	TRBC(STOPPED_LENGTH_INVALID),
+	TRBC(STOPPED_SHORT_PACKET),
+	TRBC(MAX_EXIT_LATENCY_TOO_LARGE_ERROR),
+	[30] = "<reserved>",
+	TRBC(ISOCH_BUFFER_OVERRUN),
+	TRBC(EVENT_LOST_ERROR),
+	TRBC(UNDEFINED_ERROR),
+	TRBC(INVALID_STREAM_ID_ERROR),
+	TRBC(SECONDARY_BANDWIDTH_ERROR),
+	TRBC(SPLIT_TRANSACTION_ERROR),
+	[XHCI_TRBC_MAX] = NULL
+#undef TRBC
+};
+
+static void report_error(int code)
+{
+	if (code < XHCI_TRBC_MAX && trb_codes[code] != NULL)
+		usb_log_error("Command resulted in error: %s.", trb_codes[code]);
+	else
+		usb_log_error("Command resulted in reserved or vendor specific error.");
+}
+
 int xhci_send_no_op_command(xhci_hc_t *hc)
 {
 	xhci_trb_t trb;
@@ -163,41 +214,6 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, uint32_t slot_id,
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-static int report_error(int code)
-{
-	// TODO: Order these by their value.
-	switch (code) {
-	case XHCI_TRBC_NO_SLOTS_ERROR:
-		usb_log_error("Device slot not available.");
-		break;
-	case XHCI_TRBC_SLOT_NOT_ENABLE_ERROR:
-		usb_log_error("Slot ID is not enabled.");
-		break;
-	case XHCI_TRBC_CONTEXT_STATE_ERROR:
-		usb_log_error("Slot is not in enabled or default state.");
-		break;
-	case XHCI_TRBC_TRANSACTION_ERROR:
-		usb_log_error("Request to the USB device failed.");
-		break;
-	case XHCI_TRBC_BANDWIDTH_ERROR:
-		usb_log_error("Bandwidth required is not available.");
-		break;
-	case XHCI_TRBC_SECONDARY_BANDWIDTH_ERROR:
-		usb_log_error("Bandwidth error encountered in secondary domain.");
-		break;
-	case XHCI_TRBC_RESOURCE_ERROR:
-		usb_log_error("Resource required is not available.");
-		break;
-	case XHCI_TRBC_PARAMETER_ERROR:
-		usb_log_error("Parameter given is invalid.");
-		break;
-	default:
-		usb_log_error("Unknown error code.");
-		break;
-	}
-	return ENAK;
-}
-
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	usb_log_debug("HC(%p) Command completed.", hc);
@@ -210,10 +226,11 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
 	command = (xhci_trb_t *) XHCI_QWORD_EXTRACT(trb->parameter, 63, 4);
 	slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
+	(void) slot_id;
 
 	if (TRB_TYPE(*command) != XHCI_TRB_TYPE_NO_OP_CMD) {
 		if (code != XHCI_TRBC_SUCCESS) {
-			usb_log_debug2("Command resulted in failure.");
+			report_error(code);
 			xhci_dump_trb(command);
 		}
 	}
