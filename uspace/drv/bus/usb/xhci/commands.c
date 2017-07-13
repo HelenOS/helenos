@@ -125,6 +125,57 @@ int xhci_send_address_device_command(xhci_hc_t *hc, uint32_t slot_id,
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
+int xhci_send_configure_endpoint_command(xhci_hc_t *hc, uint32_t slot_id,
+					 xhci_input_ctx_t *ictx)
+{
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(trb));
+
+	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
+	trb.parameter = host2xhci(32, phys_addr & 0xFFFFFFFFFFFFFFF0);
+
+	trb.control = host2xhci(32, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD << 10);
+	trb.control |= host2xhci(32, hc->command_ring.pcs);
+	trb.control |= host2xhci(32, slot_id << 24);
+
+	return enqueue_trb(hc, &trb, 0, 0);
+}
+
+static int report_error(int code)
+{
+	// TODO: Order these by their value.
+	switch (code) {
+	case XHCI_TRBC_NO_SLOTS_ERROR:
+		usb_log_error("Device slot not available.");
+		break;
+	case XHCI_TRBC_SLOT_NOT_ENABLE_ERROR:
+		usb_log_error("Slot ID is not enabled.");
+		break;
+	case XHCI_TRBC_CONTEXT_STATE_ERROR:
+		usb_log_error("Slot is not in enabled or default state.");
+		break;
+	case XHCI_TRBC_TRANSACTION_ERROR:
+		usb_log_error("Request to the USB device failed.");
+		break;
+	case XHCI_TRBC_BANDWIDTH_ERROR:
+		usb_log_error("Bandwidth required is not available.");
+		break;
+	case XHCI_TRBC_SECONDARY_BANDWIDTH_ERROR:
+		usb_log_error("Bandwidth error encountered in secondary domain.");
+		break;
+	case XHCI_TRBC_RESOURCE_ERROR:
+		usb_log_error("Resource required is not available.");
+		break;
+	case XHCI_TRBC_PARAMETER_ERROR:
+		usb_log_error("Parameter given is invalid.");
+		break;
+	default:
+		usb_log_error("Unknown error code.");
+		break;
+	}
+	return ENAK;
+}
+
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	usb_log_debug("HC(%p) Command completed.", hc);
@@ -137,37 +188,31 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
 	command = (xhci_trb_t *) XHCI_QWORD_EXTRACT(trb->parameter, 63, 4);
 	slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
-	(void) slot_id;
+
+	if (TRB_TYPE(*command) != XHCI_TRB_TYPE_NO_OP_CMD) {
+		if (code != XHCI_TRBC_SUCCESS) {
+			usb_log_debug2("Command resulted in failure.");
+			xhci_dump_trb(command);
+		}
+	}
 
 	switch (TRB_TYPE(*command)) {
 	case XHCI_TRB_TYPE_NO_OP_CMD:
-		assert(code == XHCI_TRBC_TRB_ERROR);
-		break;
+		assert(code = XHCI_TRBC_TRB_ERROR);
+		return EOK;
 	case XHCI_TRB_TYPE_ENABLE_SLOT_CMD:
-		// TODO: Call a device addition callback once it's implemented.
-		break;
+		return EOK;
 	case XHCI_TRB_TYPE_DISABLE_SLOT_CMD:
-		if (code == XHCI_TRBC_SLOT_NOT_ENABLED_ERROR)
-			usb_log_debug2("Slot ID to be disabled was not enabled.");
-		// TODO: Call a device removal callback that will deallocate associated
-		//       data structures once it's implemented.
-		break;
+		return EOK;
 	case XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD:
-		if (code == XHCI_TRBC_SLOT_NOT_ENABLED_ERROR)
-			usb_log_debug2("Slot to be addressed was not enabled.");
-		else if (code == XHCI_TRBC_CONTEXT_STATE_ERROR)
-			usb_log_debug2("Slot to be addressed is not in enabled or default state.");
-		else if (code == XHCI_TRBC_USB_TRANSACTION_ERROR)
-			usb_log_debug2("SET_ADDRESS request to the USB device failed.");
-		// TODO: Call set address callback when it's implemented.
-		break;
+		return EOK;
+	case XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD:
+		return EOK;
 	default:
 		usb_log_debug2("Unsupported command trb.");
 		xhci_dump_trb(command);
-		break;
+		return ENAK;
 	}
-
-	return EOK;
 }
 
 
