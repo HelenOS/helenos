@@ -214,6 +214,39 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, uint32_t slot_id,
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
+int xhci_send_reset_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t ep_id, uint8_t tcs)
+{
+	/**
+	 * Note: TCS can have values 0 or 1. If it is set to 0, see sectuon 4.5.8 for
+	 *       information about this flag.
+	 */
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(trb));
+
+	trb.control = host2xhci(32, XHCI_TRB_TYPE_RESET_ENDPOINT_CMD << 10);
+	trb.control |= host2xhci(32, hc->command_ring.pcs);
+	trb.control |= host2xhci(32, (tcs & 0x1) << 9);
+	trb.control |= host2xhci(32, (ep_id & 0x5) << 16);
+	trb.control |= host2xhci(32, slot_id << 24);
+
+	return enqueue_trb(hc, &trb, 0, 0);
+}
+
+int xhci_send_stop_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t ep_id, uint8_t susp)
+{
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(trb));
+
+	trb.control = host2xhci(32, XHCI_TRB_TYPE_STOP_ENDPOINT_CMD << 10);
+	trb.control |= host2xhci(32, hc->command_ring.pcs);
+	trb.control |= host2xhci(32, (ep_id & 0x5) << 16);
+	trb.control |= host2xhci(32, (susp & 0x1) << 23);
+	trb.control |= host2xhci(32, slot_id << 24);
+
+	return enqueue_trb(hc, &trb, 0, 0);
+
+}
+
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	usb_log_debug("HC(%p) Command completed.", hc);
@@ -248,6 +281,13 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	case XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD:
 		return EOK;
 	case XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD:
+		return EOK;
+	case XHCI_TRB_TYPE_RESET_ENDPOINT_CMD:
+		return EOK;
+	case XHCI_TRB_TYPE_STOP_ENDPOINT_CMD:
+		// Note: If the endpoint was in the middle of a transfer, then the xHC
+		//       will add a Transfer TRB before the Event TRB, research that and
+		//       handle it appropriately!
 		return EOK;
 	default:
 		usb_log_debug2("Unsupported command trb.");

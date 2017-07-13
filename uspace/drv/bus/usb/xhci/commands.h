@@ -46,6 +46,8 @@ int xhci_send_disable_slot_command(xhci_hc_t *, uint32_t);
 int xhci_send_address_device_command(xhci_hc_t *, uint32_t, xhci_input_ctx_t *);
 int xhci_send_configure_endpoint_command(xhci_hc_t *, uint32_t, xhci_input_ctx_t *);
 int xhci_send_evaluate_context_command(xhci_hc_t *, uint32_t, xhci_input_ctx_t *);
+int xhci_send_reset_endpoint_command(xhci_hc_t *, uint32_t, uint32_t, uint8_t);
+int xhci_send_stop_endpoint_command(xhci_hc_t *, uint32_t, uint32_t, uint8_t);
 
 int xhci_handle_command_completion(xhci_hc_t *, xhci_trb_t *);
 
