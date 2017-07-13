@@ -359,7 +359,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 
 static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
-	switch(TRB_TYPE(*trb)) {
+	switch (TRB_TYPE(*trb)) {
 		case XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT:
 			xhci_handle_command_completion(hc, trb);
 			break;

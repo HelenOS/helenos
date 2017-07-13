@@ -80,34 +80,51 @@ int xhci_send_enable_slot_command(xhci_hc_t *hc)
 	trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
 
-	// TODO: Setup input control context.
+	return enqueue_trb(hc, &trb, 0, 0);
+}
+
+int xhci_send_disable_slot_command(xhci_hc_t *hc, uint32_t slot_id)
+{
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(trb));
+
+	trb.control = host2xhci(32, XHCI_TRB_TYPE_DISABLE_SLOT_CMD << 10);
+	trb.control |= host2xhci(32, hc->command_ring.pcs);
+	trb.control |= host2xhci(32, slot_id << 24);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
-	usb_log_debug2("HC(%p) Command completed.", hc);
+	usb_log_debug("HC(%p) Command completed.", hc);
 	xhci_dump_trb(trb);
 
-	int code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
+	int code;
+	uint32_t slot_id;
+	xhci_trb_t *command;
 
-	xhci_trb_t *command = (xhci_trb_t *) XHCI_QWORD_EXTRACT(trb->parameter, 63, 4);
+	code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
+	command = (xhci_trb_t *) XHCI_QWORD_EXTRACT(trb->parameter, 63, 4);
+	slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
+	(void) slot_id;
 
-	switch(TRB_TYPE(*command)) {
+	switch (TRB_TYPE(*command)) {
 	case XHCI_TRB_TYPE_NO_OP_CMD:
 		assert(code == XHCI_TRBC_TRB_ERROR);
 		break;
 	case XHCI_TRB_TYPE_ENABLE_SLOT_CMD:
-	{
-		uint32_t slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
-		(void) slot_id;
 		// TODO: Call a device addition callback once it's implemented.
-		//       Also check for a suitable type of the slot id.
 		break;
-	}
+	case XHCI_TRB_TYPE_DISABLE_SLOT_CMD:
+		if (code == XHCI_TRBC_SLOT_NOT_ENABLED_ERROR)
+			usb_log_debug2("Slot ID to be disabled was not enabled.");
+		// TODO: Call a device removal callback that will deallocate associated
+		//       data structures once it's implemented.
+		break;
 	default:
-		usb_log_warning("HC(%p) Command of an unsupported type has been completed.", hc);
+		usb_log_debug2("Unsupported command trb.");
+		xhci_dump_trb(command);
 		break;
 	}
 
