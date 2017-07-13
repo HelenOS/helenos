@@ -40,6 +40,7 @@
 #include "commands.h"
 #include "debug.h"
 #include "hc.h"
+#include "hw_struct/context.h"
 #include "hw_struct/trb.h"
 
 static inline int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
@@ -95,6 +96,35 @@ int xhci_send_disable_slot_command(xhci_hc_t *hc, uint32_t slot_id)
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
+int xhci_send_address_device_command(xhci_hc_t *hc, uint32_t slot_id,
+				     xhci_input_ctx_t *ictx)
+{
+	/**
+	 * TODO: Requirements for this command:
+	 *           dcbaa[slot_id] is properly sized and initialized
+	 *           ictx has valids slot context and endpoint 0, all
+	 *           other should be ignored at this point (see section 4.6.5).
+	 */
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(trb));
+
+	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
+	trb.parameter = host2xhci(32, phys_addr & 0xFFFFFFFFFFFFFFF0);
+
+	/**
+	 * Note: According to section 6.4.3.4, we can set the 9th bit
+	 *       of the control field of the trb (BSR) to 1 and then the xHC
+	 *       will not issue the SET_ADDRESS request to the USB device.
+	 *       This can be used to provide compatibility with legacy USB devices
+	 *       that require their device descriptor to be read before such request.
+	 */
+	trb.control = host2xhci(32, XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD << 10);
+	trb.control |= host2xhci(32, hc->command_ring.pcs);
+	trb.control |= host2xhci(32, slot_id << 24);
+
+	return enqueue_trb(hc, &trb, 0, 0);
+}
+
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	usb_log_debug("HC(%p) Command completed.", hc);
@@ -121,6 +151,15 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 			usb_log_debug2("Slot ID to be disabled was not enabled.");
 		// TODO: Call a device removal callback that will deallocate associated
 		//       data structures once it's implemented.
+		break;
+	case XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD:
+		if (code == XHCI_TRBC_SLOT_NOT_ENABLED_ERROR)
+			usb_log_debug2("Slot to be addressed was not enabled.");
+		else if (code == XHCI_TRBC_CONTEXT_STATE_ERROR)
+			usb_log_debug2("Slot to be addressed is not in enabled or default state.");
+		else if (code == XHCI_TRBC_USB_TRANSACTION_ERROR)
+			usb_log_debug2("SET_ADDRESS request to the USB device failed.");
+		// TODO: Call set address callback when it's implemented.
 		break;
 	default:
 		usb_log_debug2("Unsupported command trb.");

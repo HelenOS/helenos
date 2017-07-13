@@ -38,10 +38,12 @@
 
 typedef struct xhci_hc xhci_hc_t;
 typedef struct xhci_trb xhci_trb_t;
+typedef struct xhci_input_ctx xhci_input_ctx_t;
 
 int xhci_send_no_op_command(xhci_hc_t *);
 int xhci_send_enable_slot_command(xhci_hc_t *);
 int xhci_send_disable_slot_command(xhci_hc_t *, uint32_t);
+int xhci_send_address_device_command(xhci_hc_t *, uint32_t, xhci_input_ctx_t *);
 
 int xhci_handle_command_completion(xhci_hc_t *, xhci_trb_t *);
 
