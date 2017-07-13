@@ -184,6 +184,7 @@ uspace/dist/drv/usbmid/
 uspace/dist/drv/vhc/
 uspace/dist/drv/xtkbd/
 uspace/dist/drv/atkbd/
+uspace/dist/drv/xhci/
 uspace/dist/srv/apic
 uspace/dist/srv/cdfs
 uspace/dist/srv/clipboard
