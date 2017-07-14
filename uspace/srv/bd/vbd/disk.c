@@ -38,6 +38,8 @@
 #include <block.h>
 #include <errno.h>
 #include <io/log.h>
+#include <label/empty.h>
+#include <label/label.h>
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -841,6 +843,12 @@ int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
 	rc = label_part_create(disk->label, &lpspec, &lpart);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating partition.");
+		goto error;
+	}
+
+	rc = label_part_empty(lpart);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error emptying partition.");
 		goto error;
 	}
 

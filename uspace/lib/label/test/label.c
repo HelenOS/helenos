@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <label.h>
+#include <label/label.h>
 #include <mem.h>
 #include <pcut/pcut.h>
 #include <stddef.h>

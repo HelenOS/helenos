@@ -37,232 +37,93 @@
 #include <block.h>
 #include <errno.h>
 #include <io/log.h>
+#include <label/empty.h>
 #include <loc.h>
 #include <stdlib.h>
 
 #include "empty.h"
 
-/*
- * The partition will be considered empty if at least a minimum number of
- * bytes *and* blocks (whichever is larger) at the beginning and end of
- * the partition is zero.
- */
-enum {
-	min_empty_bytes = 16384,
-	/*
-	 * First block in ISO 9660 that cannot be empty is the first
-	 * volume descriptor at LBA 16
-	 */
-	min_empty_blocks = 17
+static int empty_get_bsize(void *, size_t *);
+static int empty_get_nblocks(void *, aoff64_t *);
+static int empty_read(void *, aoff64_t, size_t, void *);
+static int empty_write(void *, aoff64_t, size_t, const void *);
+
+/** Provide disk access to liblabel */
+static label_bd_ops_t empty_bd_ops = {
+	.get_bsize = empty_get_bsize,
+	.get_nblocks = empty_get_nblocks,
+	.read = empty_read,
+	.write = empty_write
 };
-
-static bool mem_is_zero(void *buf, size_t size)
-{
-	uint8_t *bp;
-	size_t i;
-
-	bp = (uint8_t *)buf;
-	for (i = 0; i < size; i++) {
-		if (bp[i] != 0)
-			return false;
-	}
-
-	return true;
-}
-
-/** Calculate number of blocks to check.
- *
- * Will store to @a *ncb the number of blocks that should be checked
- * at the beginning and end of device each.
- *
- * @param nblocks Total number of blocks on block device
- * @param block_size Block size
- * @param ncb Place to store number of blocks to check.
- */
-static void calc_num_check_blocks(aoff64_t nblocks, size_t block_size,
-    aoff64_t *ncb)
-{
-	aoff64_t n;
-
-	/* Check first 16 kiB / 16 blocks, whichever is more */
-	n = (min_empty_bytes + block_size - 1) / block_size;
-	if (n < min_empty_blocks)
-		n = min_empty_blocks;
-	/*
-	 * Limit to half of the device so we do not process the same blocks
-	 * twice
-	 */
-	if (n > (nblocks + 1) / 2)
-		n = (nblocks + 1) / 2;
-
-	*ncb = n;
-}
 
 int volsrv_part_is_empty(service_id_t sid, bool *rempty)
 {
 	int rc;
-	bool block_inited = false;
-	void *buf = NULL;
-	aoff64_t nblocks;
-	aoff64_t n;
-	aoff64_t i;
-	size_t block_size;
-	bool empty;
+	label_bd_t lbd;
 
 	rc = block_init(sid, 2048);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error opening "
 		    "block device service %zu", sid);
-		rc = EIO;
-		goto error;
+		return EIO;
 	}
 
-	block_inited = true;
+	lbd.ops = &empty_bd_ops;
+	lbd.arg = (void *)&sid;
 
-	rc = block_get_bsize(sid, &block_size);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting "
-		    "block size.");
-		rc = EIO;
-		goto error;
-	}
+	rc = label_bd_is_empty(&lbd, rempty);
 
-	rc = block_get_nblocks(sid, &nblocks);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting "
-		    "number of blocks.");
-		rc = EIO;
-		goto error;
-	}
-
-	calc_num_check_blocks(nblocks, block_size, &n);
-
-	buf = calloc(block_size, 1);
-	if (buf == NULL) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error allocating buffer.");
-		rc = ENOMEM;
-		goto error;
-	}
-
-	empty = true;
-
-	for (i = 0; i < n; i++) {
-		rc = block_read_direct(sid, i, 1, buf);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Error "
-			    "reading blocks.");
-			rc = EIO;
-			goto error;
-		}
-
-		if (!mem_is_zero(buf, block_size)) {
-			empty = false;
-			goto done;
-		}
-	}
-
-	for (i = 0; i < n; i++) {
-		rc = block_read_direct(sid, nblocks - n + i, 1, buf);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Error "
-			    "reading blocks.");
-			rc = EIO;
-			goto error;
-		}
-
-		if (!mem_is_zero(buf, block_size)) {
-			empty = false;
-			goto done;
-		}
-	}
-
-done:
 	block_fini(sid);
-	free(buf);
-	*rempty = empty;
-	return EOK;
-error:
-	if (block_inited)
-		block_fini(sid);
-	if (buf != NULL)
-		free(buf);
 	return rc;
 }
 
 int volsrv_part_empty(service_id_t sid)
 {
 	int rc;
-	bool block_inited = false;
-	void *buf = NULL;
-	aoff64_t nblocks;
-	aoff64_t n;
-	aoff64_t i;
-	size_t block_size;
+	label_bd_t lbd;
 
 	rc = block_init(sid, 2048);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error opening "
 		    "block device service %zu", sid);
-		rc = EIO;
-		goto error;
+		return EIO;
 	}
 
-	block_inited = true;
+	lbd.ops = &empty_bd_ops;
+	lbd.arg = (void *)&sid;
 
-	rc = block_get_bsize(sid, &block_size);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting "
-		    "block size.");
-		rc = EIO;
-		goto error;
-	}
-
-	rc = block_get_nblocks(sid, &nblocks);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting "
-		    "number of blocks.");
-		rc = EIO;
-		goto error;
-	}
-
-	calc_num_check_blocks(nblocks, block_size, &n);
-
-	buf = calloc(block_size, 1);
-	if (buf == NULL) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error allocating buffer.");
-		rc = ENOMEM;
-		goto error;
-	}
-
-	for (i = 0; i < n; i++) {
-		rc = block_write_direct(sid, i, 1, buf);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Error "
-			    "reading blocks.");
-			rc = EIO;
-			goto error;
-		}
-	}
-
-	for (i = 0; i < n; i++) {
-		rc = block_write_direct(sid, nblocks - n + i, 1, buf);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Error "
-			    "reading blocks.");
-			rc = EIO;
-			goto error;
-		}
-	}
+	rc = label_bd_empty(&lbd);
 
 	block_fini(sid);
-	free(buf);
-	return EOK;
-error:
-	if (block_inited)
-		block_fini(sid);
-	if (buf != NULL)
-		free(buf);
 	return rc;
+}
+
+/** Get block size wrapper for liblabel */
+static int empty_get_bsize(void *arg, size_t *bsize)
+{
+	service_id_t svc_id = *(service_id_t *)arg;
+	return block_get_bsize(svc_id, bsize);
+}
+
+/** Get number of blocks wrapper for liblabel */
+static int empty_get_nblocks(void *arg, aoff64_t *nblocks)
+{
+	service_id_t svc_id = *(service_id_t *)arg;
+	return block_get_nblocks(svc_id, nblocks);
+}
+
+/** Read blocks wrapper for liblabel */
+static int empty_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
+{
+	service_id_t svc_id = *(service_id_t *)arg;
+	return block_read_direct(svc_id, ba, cnt, buf);
+}
+
+/** Write blocks wrapper for liblabel */
+static int empty_write(void *arg, aoff64_t ba, size_t cnt, const void *data)
+{
+	service_id_t svc_id = *(service_id_t *)arg;
+	return block_write_direct(svc_id, ba, cnt, data);
 }
 
 /** @}

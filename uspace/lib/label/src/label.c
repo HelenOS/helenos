@@ -35,7 +35,7 @@
 
 #include <adt/list.h>
 #include <errno.h>
-#include <label.h>
+#include <label/label.h>
 #include <mem.h>
 #include <stdlib.h>
 

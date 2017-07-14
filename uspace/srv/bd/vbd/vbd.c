@@ -38,6 +38,7 @@
 #include <io/log.h>
 #include <ipc/services.h>
 #include <ipc/vbd.h>
+#include <label/label.h>
 #include <loc.h>
 #include <macros.h>
 #include <stdio.h>
