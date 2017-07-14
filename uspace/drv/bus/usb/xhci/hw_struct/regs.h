@@ -285,7 +285,8 @@ typedef struct xhci_port_regs {
 #define XHCI_PORT_PR            portsc, 32,  FLAG,  4
 #define XHCI_PORT_PLS           portsc, 32, RANGE,  8,  5
 #define XHCI_PORT_PP            portsc, 32,  FLAG,  9
-#define XHCI_PORT_PIC           portsc, 32, RANGE, 13, 10
+#define XHCI_PORT_PS            portsc, 32, RANGE, 13, 10
+#define XHCI_PORT_PIC           portsc, 32, RANGE, 15, 14
 #define XHCI_PORT_LWS           portsc, 32,  FLAG, 16
 #define XHCI_PORT_CSC           portsc, 32,  FLAG, 17
 #define XHCI_PORT_PEC           portsc, 32,  FLAG, 18

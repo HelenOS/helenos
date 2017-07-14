@@ -39,6 +39,7 @@
 #include <usb/host/utils/malloc32.h>
 #include "debug.h"
 #include "hc.h"
+#include "rh.h"
 #include "hw_struct/trb.h"
 #include "commands.h"
 
@@ -359,9 +360,13 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 
 static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
+	usb_log_debug2("TRB event encountered.");
 	switch (TRB_TYPE(*trb)) {
 		case XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT:
 			xhci_handle_command_completion(hc, trb);
+			break;
+		case XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT:
+			xhci_handle_port_status_change_event(hc, trb);
 			break;
 		default:
 			usb_log_debug2("Event type handling not implemented.");
