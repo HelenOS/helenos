@@ -41,3 +41,7 @@ int xhci_get_hub_port(xhci_trb_t *);
 int xhci_reset_hub_port(xhci_hc_t *, uint8_t);
 
 #endif
+
+/**
+ * @}
+ */

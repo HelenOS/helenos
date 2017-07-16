@@ -46,7 +46,7 @@ SOURCES = \
 	trb_ring.c \
 	scratchpad.c \
 	commands.c \
-    rh.c \
+	rh.c \
 	main.c
 
 TEST_SOURCES = \
