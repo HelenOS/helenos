@@ -48,6 +48,13 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *, uint32_t, xhci_input_ctx_t
 int xhci_send_evaluate_context_command(xhci_hc_t *, uint32_t, xhci_input_ctx_t *);
 int xhci_send_reset_endpoint_command(xhci_hc_t *, uint32_t, uint32_t, uint8_t);
 int xhci_send_stop_endpoint_command(xhci_hc_t *, uint32_t, uint32_t, uint8_t);
+// TODO: Set dequeue ptr (section 4.6.10).
+int xhci_send_reset_device_command(xhci_hc_t *, uint32_t);
+// TODO: Force event (optional normative, for VMM, section 4.6.12).
+// TODO: Negotiate bandwidth (optional normative, section 4.6.13).
+// TODO: Set latency tolerance value (optional normative, section 4.6.14).
+// TODO: Get port bandwidth (mandatory, but needs root hub implementation, section 4.6.15).
+// TODO: Force header (mandatory, but needs root hub implementation, section 4.6.16).
 
 int xhci_handle_command_completion(xhci_hc_t *, xhci_trb_t *);
 

@@ -45,6 +45,7 @@
 
 static inline int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 {
+	assert(hc);
 	uint32_t v = host2xhci(32, target & BIT_RRANGE(uint32_t, 7));
 	pio_write_32(&hc->db_arry[doorbell], v);
 	return EOK;
@@ -53,6 +54,9 @@ static inline int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned targe
 static inline int enqueue_trb(xhci_hc_t *hc, xhci_trb_t *trb,
 			      unsigned doorbell, unsigned target)
 {
+	assert(hc);
+	assert(trb);
+
 	xhci_trb_ring_enqueue(&hc->command_ring, trb);
 	ring_doorbell(hc, doorbell, target);
 
@@ -115,6 +119,8 @@ static void report_error(int code)
 
 int xhci_send_no_op_command(xhci_hc_t *hc)
 {
+	assert(hc);
+
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
@@ -125,6 +131,8 @@ int xhci_send_no_op_command(xhci_hc_t *hc)
 
 int xhci_send_enable_slot_command(xhci_hc_t *hc)
 {
+	assert(hc);
+
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
@@ -137,6 +145,8 @@ int xhci_send_enable_slot_command(xhci_hc_t *hc)
 
 int xhci_send_disable_slot_command(xhci_hc_t *hc, uint32_t slot_id)
 {
+	assert(hc);
+
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
@@ -150,6 +160,9 @@ int xhci_send_disable_slot_command(xhci_hc_t *hc, uint32_t slot_id)
 int xhci_send_address_device_command(xhci_hc_t *hc, uint32_t slot_id,
 				     xhci_input_ctx_t *ictx)
 {
+	assert(hc);
+	assert(ictx);
+
 	/**
 	 * TODO: Requirements for this command:
 	 *           dcbaa[slot_id] is properly sized and initialized
@@ -160,7 +173,7 @@ int xhci_send_address_device_command(xhci_hc_t *hc, uint32_t slot_id,
 	memset(&trb, 0, sizeof(trb));
 
 	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
-	trb.parameter = host2xhci(32, phys_addr & 0xFFFFFFFFFFFFFFF0);
+	trb.parameter = host2xhci(32, phys_addr & (~0xF));
 
 	/**
 	 * Note: According to section 6.4.3.4, we can set the 9th bit
@@ -179,11 +192,14 @@ int xhci_send_address_device_command(xhci_hc_t *hc, uint32_t slot_id,
 int xhci_send_configure_endpoint_command(xhci_hc_t *hc, uint32_t slot_id,
 					 xhci_input_ctx_t *ictx)
 {
+	assert(hc);
+	assert(ictx);
+
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
 	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
-	trb.parameter = host2xhci(32, phys_addr & 0xFFFFFFFFFFFFFFF0);
+	trb.parameter = host2xhci(32, phys_addr & (~0xF));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD << 10);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
@@ -195,6 +211,9 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *hc, uint32_t slot_id,
 int xhci_send_evaluate_context_command(xhci_hc_t *hc, uint32_t slot_id,
 				       xhci_input_ctx_t *ictx)
 {
+	assert(hc);
+	assert(ictx);
+
 	/**
 	 * Note: All Drop Context flags of the input context shall be 0,
 	 *       all Add Context flags shall be initialize to indicate IDs
@@ -205,7 +224,7 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, uint32_t slot_id,
 	memset(&trb, 0, sizeof(trb));
 
 	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
-	trb.parameter = host2xhci(32, phys_addr & 0xFFFFFFFFFFFFFFF0);
+	trb.parameter = host2xhci(32, phys_addr & (~0xF));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD << 10);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
@@ -216,6 +235,8 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, uint32_t slot_id,
 
 int xhci_send_reset_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t ep_id, uint8_t tcs)
 {
+	assert(hc);
+
 	/**
 	 * Note: TCS can have values 0 or 1. If it is set to 0, see sectuon 4.5.8 for
 	 *       information about this flag.
@@ -234,6 +255,8 @@ int xhci_send_reset_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t e
 
 int xhci_send_stop_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t ep_id, uint8_t susp)
 {
+	assert(hc);
+
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
@@ -244,11 +267,27 @@ int xhci_send_stop_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t ep
 	trb.control |= host2xhci(32, slot_id << 24);
 
 	return enqueue_trb(hc, &trb, 0, 0);
+}
 
+int xhci_send_reset_device_command(xhci_hc_t *hc, uint32_t slot_id)
+{
+	assert(hc);
+
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(trb));
+
+	trb.control = host2xhci(32, XHCI_TRB_TYPE_RESET_DEVICE_CMD << 10);
+	trb.control |= host2xhci(32, hc->command_ring.pcs);
+	trb.control |= host2xhci(32, slot_id << 24);
+
+	return enqueue_trb(hc, &trb, 0, 0);
 }
 
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
+	assert(hc);
+	assert(trb);
+
 	usb_log_debug("HC(%p) Command completed.", hc);
 	xhci_dump_trb(trb);
 
@@ -288,6 +327,8 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		// Note: If the endpoint was in the middle of a transfer, then the xHC
 		//       will add a Transfer TRB before the Event TRB, research that and
 		//       handle it appropriately!
+		return EOK;
+	case XHCI_TRB_TYPE_RESET_DEVICE_CMD:
 		return EOK;
 	default:
 		usb_log_debug2("Unsupported command trb.");
