@@ -1052,13 +1052,17 @@ static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	nodep = FAT_NODE(rfn);
 
 	rc = fat_directory_open(nodep, &di);
-	if (rc != EOK)
+	if (rc != EOK) {
+		fat_fs_close(service_id, rfn);
 		return rc;
+	}
 
 	rc = fat_directory_vollabel_get(&di, label);
 	if (rc != EOK) {
-		if (rc != ENOENT)
+		if (rc != ENOENT) {
+			fat_fs_close(service_id, rfn);
 			return rc;
+		}
 
 		label[0] = '\0';
 	}

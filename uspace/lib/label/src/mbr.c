@@ -150,9 +150,18 @@ static int mbr_open(label_bd_t *bd, label_t **rlabel)
 
 	/*
 	 * We can't really tell whether this is an MBR. Make sure
-	 * this is not actually the BR of a FAT file system
+	 * this is not actually the BR of a 12/16-bit FAT file system
 	 */
 	if (bs->type[0] == 'F' && bs->type[1] == 'A' && bs->type[2] == 'T') {
+		rc = EIO;
+		goto error;
+	}
+
+	/*
+	 * Or a 32-bit FAT file system
+	 */
+	if (bs->fat32.type[0] == 'F' && bs->fat32.type[1] == 'A' &&
+	    bs->fat32.type[2] == 'T') {
 		rc = EIO;
 		goto error;
 	}
