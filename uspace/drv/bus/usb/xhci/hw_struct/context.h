@@ -107,20 +107,29 @@ typedef struct xhci_device_ctx {
  */
 typedef struct xhci_stream_ctx {
 	uint64_t data [2];
+#define XHCI_STREAM_DCS(ctx)       XHCI_QWORD_EXTRACT((ctx).data[0],  0, 0)
+#define XHCI_STREAM_SCT(ctx)       XHCI_QWORD_EXTRACT((ctx).data[0],  3, 1)
+#define XHCI_STREAM_DEQ_PTR(ctx)   XHCI_QWORD_EXTRACT((ctx).data[0], 63, 4)
+#define XHCI_STREAM_EDTLA(ctx)     XHCI_QWORD_EXTRACT((ctx).data[1], 24, 0)
 } __attribute__((packed)) xhci_stream_ctx_t;
 
 /**
  * Input control context: section 6.2.5.1
- * TODO: According to section 6.2.5.1 figure 78,
- *       the context size register value in
- *       hccparams1 dictates whether input
- *       control context shall have 32 or 64 bytes.
- *       How to do this?
- * TODO: Add register macros for XHCI_REG_RD/WR for
- *       this data structure.
+ * Note: According to section 6.2.5.1 figure 78,
+ *       the context size register value in hccparams1
+ *       dictates whether input control context shall have
+ *       32 or 64 bytes, but in any case only dwords 0, 1 and 7
+ *       are used, the rest are reserved.
  */
 typedef struct xhci_input_ctrl_ctx {
-	uint64_t data [8];
+	uint32_t data [16];
+#define XHCI_INPUT_CTRL_CTX_DROP(ctx, idx) \
+	(assert((idx) > 1 && (idx) < 32), XHCI_DWORD_EXTRACT((ctx).data[0], (idx), (idx)))
+#define XHCI_INPUT_CTRL_CTX_ADD(ctx, idx) \
+	(assert((idx) >= 0 && (idx) < 32), XHCI_DWORD_EXTRACT((ctx).data[1], (idx), (idx)))
+#define XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7],  7,  0)
+#define XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7], 15,  8)
+#define XHCI_INPUT_CTRL_CTX_ALTER_SETTING(ctx)  XHCI_DWORD_EXTRACT((ctx).data[7], 23, 16)
 } __attribute__((packed)) xhci_input_ctrl_ctx_t;
 
 /**
