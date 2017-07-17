@@ -410,7 +410,7 @@ typedef struct xhci_op_regs {
 #define XHCI_OP_CRCR_LO        crcr_lo, 32, RANGE, 31, 6
 #define XHCI_OP_CRCR_HI        crcr_lo, 32, FIELD
 #define XHCI_OP_DCBAAP_LO    dcbaap_lo, 32, FIELD
-#define XHCI_OP_DCBAAP_HI    dcbaap_lo, 32, FIELD
+#define XHCI_OP_DCBAAP_HI    dcbaap_hi, 32, FIELD
 #define XHCI_OP_MAX_SLOTS_EN    config, 32, RANGE, 7, 0
 #define XHCI_OP_U3E             config, 32,  FLAG, 8
 #define XHCI_OP_CIE             config, 32,  FLAG, 9
