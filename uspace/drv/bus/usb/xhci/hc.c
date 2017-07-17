@@ -309,7 +309,7 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_CNR))
 		async_usleep(1000);
 
-	uint64_t dcbaaptr = addr_to_phys(hc->event_ring.erst);
+	uint64_t dcbaaptr = addr_to_phys(hc->dcbaa);
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_LO, LOWER32(dcbaaptr));
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_HI, UPPER32(dcbaaptr));
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, 0);
