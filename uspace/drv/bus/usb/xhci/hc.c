@@ -362,15 +362,15 @@ static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	usb_log_debug2("TRB event encountered.");
 	switch (TRB_TYPE(*trb)) {
-		case XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT:
-			xhci_handle_command_completion(hc, trb);
-			break;
-		case XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT:
-			xhci_handle_port_status_change_event(hc, trb);
-			break;
-		default:
-			usb_log_debug2("Event type handling not implemented.");
-			break;
+	case XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT:
+		xhci_handle_command_completion(hc, trb);
+		break;
+	case XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT:
+		xhci_handle_port_status_change_event(hc, trb);
+		break;
+	default:
+		usb_log_debug2("Event type handling not implemented.");
+		break;
 	}
 }
 
@@ -382,19 +382,17 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	err = xhci_event_ring_dequeue(event_ring, &trb);;
 
 	switch (err) {
-		case EOK:
-			usb_log_debug2("Dequeued from event ring.");
-			xhci_dump_trb(&trb);
+	case EOK:
+		usb_log_debug2("Dequeued from event ring.");
+		xhci_dump_trb(&trb);
 
-			hc_handle_event(hc, &trb);
-			break;
-
-		case ENOENT:
-			usb_log_debug2("Event ring finished.");
-			break;
-
-		default:
-			usb_log_warning("Error while accessing event ring: %s", str_error(err));
+		hc_handle_event(hc, &trb);
+		break;
+	case ENOENT:
+		usb_log_debug2("Event ring finished.");
+		break;
+	default:
+		usb_log_warning("Error while accessing event ring: %s", str_error(err));
 	}
 
 	/* Update the ERDP to make room in the ring */
