@@ -319,10 +319,11 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, UPPER32(crptr));
 
 	uint64_t erstptr = addr_to_phys(hc->event_ring.erst);
+	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTSZ, hc->event_ring.segment_count);
-	XHCI_REG_WR(intr0, XHCI_INTR_ERDP_LO, LOWER32(erstptr));
-	XHCI_REG_WR(intr0, XHCI_INTR_ERDP_HI, UPPER32(erstptr));
+	XHCI_REG_WR(intr0, XHCI_INTR_ERDP_LO, LOWER32(erdp));
+	XHCI_REG_WR(intr0, XHCI_INTR_ERDP_HI, UPPER32(erdp));
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_LO, LOWER32(erstptr));
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_HI, UPPER32(erstptr));
 
@@ -396,9 +397,9 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	}
 
 	/* Update the ERDP to make room in the ring */
-	uint64_t erstptr = addr_to_phys(hc->event_ring.erst);
-	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erstptr));
-	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erstptr));
+	uint64_t erdp = hc->event_ring.dequeue_ptr;
+	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
+	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
 }
 
 void hc_interrupt(xhci_hc_t *hc, uint32_t status)
