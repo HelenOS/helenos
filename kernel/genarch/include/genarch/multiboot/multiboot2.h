@@ -51,6 +51,7 @@
 #define MULTIBOOT2_TAG_FRAMEBUFFER    5
 #define MULTIBOOT2_TAG_MODULE_ALIGN   6
 
+#define MULTIBOOT2_TAG_CMDLINE 1
 #define MULTIBOOT2_TAG_MODULE  3
 #define MULTIBOOT2_TAG_MEMMAP  6
 #define MULTIBOOT2_TAG_FBINFO  8
@@ -72,6 +73,11 @@ typedef struct {
 	uint32_t size;
 	uint32_t reserved;
 } __attribute__((packed)) multiboot2_info_t;
+
+/** Multiboot2 cmdline structure */
+typedef struct {
+	char string[0];
+} __attribute__((packed)) multiboot2_cmdline_t;
 
 /** Multiboot2 modules structure */
 typedef struct {
@@ -137,6 +143,7 @@ typedef struct {
 	uint32_t type;
 	uint32_t size;
 	union {
+		multiboot2_cmdline_t cmdline;
 		multiboot2_module_t module;
 		multiboot2_memmap_t memmap;
 		multiboot2_fbinfo_t fbinfo;

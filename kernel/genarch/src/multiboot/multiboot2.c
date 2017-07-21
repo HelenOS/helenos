@@ -41,6 +41,27 @@
 
 #define MULTIBOOT2_TAG_ALIGN  8
 
+static void multiboot2_cmdline(const multiboot2_cmdline_t *module)
+{
+	/*
+	 * GRUB passes the command line in an escaped form.
+	 */
+	for (size_t i = 0, j = 0;
+	    module->string[i] && j < CONFIG_BOOT_ARGUMENTS_BUFLEN;
+	    i++, j++) {
+		if (module->string[i] == '\\') {
+			switch (module->string[i + 1]) {
+			case '\\':
+			case '\'':
+			case '\"':
+				i++;
+				break;
+			}
+		}
+		bargs[j] = module->string[i];
+	} 
+}
+
 static void multiboot2_module(const multiboot2_module_t *module)
 {
 	if (init.cnt < CONFIG_INIT_TASKS) {
@@ -116,6 +137,9 @@ void multiboot2_info_parse(uint32_t signature, const multiboot2_info_t *info)
 	
 	while (tag->type != MULTIBOOT2_TAG_TERMINATOR) {
 		switch (tag->type) {
+		case MULTIBOOT2_TAG_CMDLINE:
+			multiboot2_cmdline(&tag->cmdline);
+			break;
 		case MULTIBOOT2_TAG_MODULE:
 			multiboot2_module(&tag->module);
 			break;
