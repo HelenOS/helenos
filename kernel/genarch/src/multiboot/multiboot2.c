@@ -43,23 +43,7 @@
 
 static void multiboot2_cmdline(const multiboot2_cmdline_t *module)
 {
-	/*
-	 * GRUB passes the command line in an escaped form.
-	 */
-	for (size_t i = 0, j = 0;
-	    module->string[i] && j < CONFIG_BOOT_ARGUMENTS_BUFLEN;
-	    i++, j++) {
-		if (module->string[i] == '\\') {
-			switch (module->string[i + 1]) {
-			case '\\':
-			case '\'':
-			case '\"':
-				i++;
-				break;
-			}
-		}
-		bargs[j] = module->string[i];
-	} 
+	multiboot_cmdline(module->string);
 }
 
 static void multiboot2_module(const multiboot2_module_t *module)

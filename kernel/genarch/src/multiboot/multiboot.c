@@ -100,27 +100,6 @@ void multiboot_extract_argument(char *buf, size_t size, const char *cmd_line)
 	str_ncpy(buf, size, start, (size_t) (end - start));
 }
 
-static void multiboot_cmdline(char *cmdline)
-{
-	/*
-	 * GRUB passes the command line in an escaped form.
-	 */
-	for (size_t i = 0, j = 0;
-	    cmdline[i] && j < CONFIG_BOOT_ARGUMENTS_BUFLEN;
-	    i++, j++) {
-		if (cmdline[i] == '\\') {
-			switch (cmdline[i + 1]) {
-			case '\\':
-			case '\'':
-			case '\"':
-				i++;
-				break;
-			}
-		}
-		bargs[j] = cmdline[i];
-	} 
-}
-
 static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
 {
 	for (uint32_t i = 0; i < count; i++) {
