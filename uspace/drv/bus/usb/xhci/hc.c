@@ -210,6 +210,9 @@ int hc_init_memory(xhci_hc_t *hc)
 	if ((err = xhci_scratchpad_alloc(hc)))
 		goto err_event_ring;
 
+	if ((err = xhci_init_commands(hc)))
+		goto err_event_ring;
+
 	return EOK;
 
 err_event_ring:
@@ -351,7 +354,7 @@ int hc_status(xhci_hc_t *hc, uint32_t *status)
 int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
 	xhci_dump_state(hc);
-	xhci_send_no_op_command(hc);
+	xhci_send_no_op_command(hc, NULL);
 	async_usleep(1000);
 	xhci_dump_state(hc);
 
@@ -404,6 +407,15 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 
 void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 {
+	/**
+	 * TODO: This is a temporary workaround, when an event interrupt
+	 *       happens, status has the value of 3, which is equal to
+	 *       XHCI_REG_SHIFT(XHCI_OP_EINT), intstead to the correct
+	 *       XHCI_REG_MASK(XHCI_OP_EINT), which has the value of 8 (1 << 3).
+	 *       This is how e.g. FreeBSD does it.
+	 */
+	status = hc->op_regs->usbsts;
+
 	if (status & XHCI_REG_MASK(XHCI_OP_HSE)) {
 		usb_log_error("Host controller error occured. Bad things gonna happen...");
 	}
@@ -413,9 +425,20 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 
 		xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
 
-		if (XHCI_REG_RD(intr0, XHCI_INTR_IP)) {
-			XHCI_REG_SET(intr0, XHCI_INTR_IP, 1);
+		/**
+		 * EINT has to be cleared before IP, but we also need to
+		 * handle the event before clearing EINT.
+		 */
+		uint32_t ip = XHCI_REG_RD(intr0, XHCI_INTR_IP);
+
+		if (ip | 1) { // TODO: IP is being cleared right after it is set by the xHC.
 			hc_run_event_ring(hc, &hc->event_ring, intr0);
+		}
+
+		XHCI_REG_SET(hc->op_regs, XHCI_OP_EINT, 1);
+
+		if (ip) {
+			XHCI_REG_SET(intr0, XHCI_INTR_IP, 1);
 		}
 	}
 
