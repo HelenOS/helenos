@@ -242,6 +242,7 @@ int xhci_event_ring_init(xhci_event_ring_t *ring, xhci_hc_t *hc)
 	ring->erst = malloc32(PAGE_SIZE);
 	if (ring->erst == NULL)
 		return ENOMEM;
+	memset(ring->erst, 0, PAGE_SIZE);
 
 	xhci_fill_erst_entry(&ring->erst[0], segment->phys, SEGMENT_TRB_COUNT);
 
