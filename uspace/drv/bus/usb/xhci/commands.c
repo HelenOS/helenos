@@ -43,6 +43,67 @@
 #include "hw_struct/context.h"
 #include "hw_struct/trb.h"
 
+int xhci_init_commands(xhci_hc_t *hc)
+{
+	assert(hc);
+
+	list_initialize(&hc->commands);
+	return EOK;
+}
+
+int xhci_wait_for_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t timeout)
+{
+	uint32_t time = 0;
+	while (!cmd->completed) {
+		async_usleep(1000);
+		time += 1000;
+
+		if (time > timeout)
+			return ETIMEOUT;
+	}
+
+	return EOK;
+}
+
+xhci_cmd_t *xhci_alloc_command(void)
+{
+	xhci_cmd_t *cmd = malloc32(sizeof(xhci_cmd_t));
+	memset(cmd, 0, sizeof(xhci_cmd_t));
+
+	link_initialize(&cmd->link);
+
+	/**
+	 * Internal functions will set this to false, other are implicit
+	 * owners unless they overwrite this field.
+	 * TODO: Is this wise?
+	 */
+	cmd->has_owner = true;
+
+	return cmd;
+}
+
+void xhci_free_command(xhci_cmd_t *cmd)
+{
+	// TODO: If we decide to copy trb, free it here.
+	if (cmd->ictx)
+		free32(cmd->ictx);
+
+	free32(cmd);
+}
+
+static inline xhci_cmd_t *get_next_command(xhci_hc_t *hc)
+{
+	link_t *cmd_link = list_first(&hc->commands);
+
+	if (cmd_link != NULL) {
+		list_remove(cmd_link);
+		
+		return list_get_instance(cmd_link, xhci_cmd_t, link);
+	}
+
+	return NULL;
+}
+
 static inline int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 {
 	assert(hc);
@@ -64,6 +125,22 @@ static inline int enqueue_trb(xhci_hc_t *hc, xhci_trb_t *trb,
 	usb_log_debug2("HC(%p): Sent TRB", hc);
 
 	return EOK;
+}
+
+static inline xhci_cmd_t *add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+{ 
+	if (cmd == NULL) {
+		cmd = xhci_alloc_command();
+		if (cmd == NULL)
+			return cmd;
+
+		cmd->has_owner = false;
+	}
+
+	list_append(&cmd->link, &hc->commands);
+	cmd->trb = hc->command_ring.enqueue_trb;
+
+	return cmd;
 }
 
 static const char *trb_codes [] = {
@@ -117,7 +194,7 @@ static void report_error(int code)
 		usb_log_error("Command resulted in reserved or vendor specific error.");
 }
 
-int xhci_send_no_op_command(xhci_hc_t *hc)
+int xhci_send_no_op_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 
@@ -126,10 +203,12 @@ int xhci_send_no_op_command(xhci_hc_t *hc)
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_NO_OP_CMD << 10);
 
+	cmd = add_cmd(hc, cmd);
+
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-int xhci_send_enable_slot_command(xhci_hc_t *hc)
+int xhci_send_enable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 
@@ -140,28 +219,33 @@ int xhci_send_enable_slot_command(xhci_hc_t *hc)
 	trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
 
+	cmd = add_cmd(hc, cmd);
+
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-int xhci_send_disable_slot_command(xhci_hc_t *hc, uint32_t slot_id)
+int xhci_send_disable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
+	assert(cmd);
 
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_DISABLE_SLOT_CMD << 10);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
-	trb.control |= host2xhci(32, slot_id << 24);
+	trb.control |= host2xhci(32, cmd->slot_id << 24);
+
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-int xhci_send_address_device_command(xhci_hc_t *hc, uint32_t slot_id,
-				     xhci_input_ctx_t *ictx)
+int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
-	assert(ictx);
+	assert(cmd);
+	assert(cmd->ictx);
 
 	/**
 	 * TODO: Requirements for this command:
@@ -172,7 +256,7 @@ int xhci_send_address_device_command(xhci_hc_t *hc, uint32_t slot_id,
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
+	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
 	trb.parameter = host2xhci(32, phys_addr & (~0xF));
 
 	/**
@@ -184,35 +268,39 @@ int xhci_send_address_device_command(xhci_hc_t *hc, uint32_t slot_id,
 	 */
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD << 10);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
-	trb.control |= host2xhci(32, slot_id << 24);
+	trb.control |= host2xhci(32, cmd->slot_id << 24);
+
+	cmd = add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-int xhci_send_configure_endpoint_command(xhci_hc_t *hc, uint32_t slot_id,
-					 xhci_input_ctx_t *ictx)
+int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
-	assert(ictx);
+	assert(cmd);
+	assert(cmd->ictx);
 
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
+	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
 	trb.parameter = host2xhci(32, phys_addr & (~0xF));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD << 10);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
-	trb.control |= host2xhci(32, slot_id << 24);
+	trb.control |= host2xhci(32, cmd->slot_id << 24);
+
+	cmd = add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-int xhci_send_evaluate_context_command(xhci_hc_t *hc, uint32_t slot_id,
-				       xhci_input_ctx_t *ictx)
+int xhci_send_evaluate_context_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
-	assert(ictx);
+	assert(cmd);
+	assert(cmd->ictx);
 
 	/**
 	 * Note: All Drop Context flags of the input context shall be 0,
@@ -223,19 +311,22 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, uint32_t slot_id,
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
+	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
 	trb.parameter = host2xhci(32, phys_addr & (~0xF));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD << 10);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
-	trb.control |= host2xhci(32, slot_id << 24);
+	trb.control |= host2xhci(32, cmd->slot_id << 24);
+
+	cmd = add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-int xhci_send_reset_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t ep_id, uint8_t tcs)
+int xhci_send_reset_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep_id, uint8_t tcs)
 {
 	assert(hc);
+	assert(cmd);
 
 	/**
 	 * Note: TCS can have values 0 or 1. If it is set to 0, see sectuon 4.5.8 for
@@ -248,14 +339,15 @@ int xhci_send_reset_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t e
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, (tcs & 0x1) << 9);
 	trb.control |= host2xhci(32, (ep_id & 0x5) << 16);
-	trb.control |= host2xhci(32, slot_id << 24);
+	trb.control |= host2xhci(32, cmd->slot_id << 24);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-int xhci_send_stop_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t ep_id, uint8_t susp)
+int xhci_send_stop_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep_id, uint8_t susp)
 {
 	assert(hc);
+	assert(cmd);
 
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
@@ -264,77 +356,104 @@ int xhci_send_stop_endpoint_command(xhci_hc_t *hc, uint32_t slot_id, uint32_t ep
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, (ep_id & 0x5) << 16);
 	trb.control |= host2xhci(32, (susp & 0x1) << 23);
-	trb.control |= host2xhci(32, slot_id << 24);
+	trb.control |= host2xhci(32, cmd->slot_id << 24);
+
+	cmd = add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
-int xhci_send_reset_device_command(xhci_hc_t *hc, uint32_t slot_id)
+int xhci_send_reset_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
+	assert(cmd);
 
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(trb));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_RESET_DEVICE_CMD << 10);
 	trb.control |= host2xhci(32, hc->command_ring.pcs);
-	trb.control |= host2xhci(32, slot_id << 24);
+	trb.control |= host2xhci(32, cmd->slot_id << 24);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
+	// TODO: Update dequeue ptrs.
+	// TODO: Possibly clone command trb, as it may get overwritten before
+	//       it is processed (if somebody polls the command completion).
 	assert(hc);
 	assert(trb);
 
 	usb_log_debug("HC(%p) Command completed.", hc);
-	xhci_dump_trb(trb);
 
 	int code;
 	uint32_t slot_id;
-	xhci_trb_t *command;
+	xhci_cmd_t *command;
+	xhci_trb_t *command_trb;
 
 	code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
-	command = (xhci_trb_t *) XHCI_QWORD_EXTRACT(trb->parameter, 63, 4);
 	slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
 	(void) slot_id;
 
-	if (TRB_TYPE(*command) != XHCI_TRB_TYPE_NO_OP_CMD) {
+	command = get_next_command(hc);
+	assert(command);
+
+	command_trb = command->trb;
+
+	code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
+	command->status = code;
+
+	slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
+	command->slot_id = slot_id;
+
+	usb_log_debug2("Completed command trb:");
+	xhci_dump_trb(command_trb);
+	if (TRB_TYPE(*command_trb) != XHCI_TRB_TYPE_NO_OP_CMD) {
 		if (code != XHCI_TRBC_SUCCESS) {
 			report_error(code);
-			xhci_dump_trb(command);
+			xhci_dump_trb(command_trb);
 		}
 	}
 
-	switch (TRB_TYPE(*command)) {
+	switch (TRB_TYPE(*command_trb)) {
 	case XHCI_TRB_TYPE_NO_OP_CMD:
 		assert(code = XHCI_TRBC_TRB_ERROR);
-		return EOK;
+		break;
 	case XHCI_TRB_TYPE_ENABLE_SLOT_CMD:
-		return EOK;
+		break;
 	case XHCI_TRB_TYPE_DISABLE_SLOT_CMD:
-		return EOK;
+		break;
 	case XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD:
-		return EOK;
+		break;
 	case XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD:
-		return EOK;
+		break;
 	case XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD:
-		return EOK;
+		break;
 	case XHCI_TRB_TYPE_RESET_ENDPOINT_CMD:
-		return EOK;
+		break;
 	case XHCI_TRB_TYPE_STOP_ENDPOINT_CMD:
 		// Note: If the endpoint was in the middle of a transfer, then the xHC
 		//       will add a Transfer TRB before the Event TRB, research that and
 		//       handle it appropriately!
-		return EOK;
+		break;
 	case XHCI_TRB_TYPE_RESET_DEVICE_CMD:
-		return EOK;
+		break;
 	default:
 		usb_log_debug2("Unsupported command trb.");
-		xhci_dump_trb(command);
+		xhci_dump_trb(command_trb);
+
+		command->completed = true;
 		return ENAK;
 	}
+
+	command->completed = true;
+
+	if (!command->has_owner)
+		xhci_free_command(command);
+
+	return EOK;
 }
 
 

@@ -72,6 +72,9 @@ typedef struct xhci_hc {
 	xhci_port_speed_t speeds [16];
 	unsigned max_slots;
 	bool ac64;
+
+	/* Command list */
+	list_t commands;
 } xhci_hc_t;
 
 int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);
