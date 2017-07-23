@@ -407,8 +407,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
 	command->slot_id = slot_id;
 
-	usb_log_debug2("Completed command trb:");
-	xhci_dump_trb(command_trb);
+	usb_log_debug2("Completed command trb: %s", xhci_trb_str_type(TRB_TYPE(*command_trb)));
 	if (TRB_TYPE(*command_trb) != XHCI_TRB_TYPE_NO_OP_CMD) {
 		if (code != XHCI_TRBC_SUCCESS) {
 			report_error(code);
@@ -440,8 +439,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	case XHCI_TRB_TYPE_RESET_DEVICE_CMD:
 		break;
 	default:
-		usb_log_debug2("Unsupported command trb.");
-		xhci_dump_trb(command_trb);
+		usb_log_debug2("Unsupported command trb: %s", xhci_trb_str_type(TRB_TYPE(*command_trb)));
 
 		command->completed = true;
 		return ENAK;
@@ -450,8 +448,10 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	command->completed = true;
 
 	if (!command->has_owner) {
+		usb_log_debug2("Command has no owner, deallocating.");
 		xhci_free_command(command);
 	} else {
+		usb_log_debug2("Command has owner, don't forget to deallocate!");
 		/* Copy the trb for later use so that we can free space on the cmd ring. */
 		command->trb = malloc32(sizeof(xhci_trb_t));
 		xhci_trb_copy(command->trb, command_trb);

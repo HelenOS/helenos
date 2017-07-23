@@ -356,12 +356,9 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	// TODO: This function currently contains cmd ring testing
 	//       stuff, remove it.
 	xhci_cmd_t *cmd = xhci_alloc_command();
-	xhci_dump_state(hc);
 	xhci_send_no_op_command(hc, cmd);
 	xhci_wait_for_command(cmd, 1000000);
 	xhci_free_command(cmd);
-
-	xhci_dump_state(hc);
 
 	for (int i = 0; i < 10; ++i) {
 		xhci_cmd_t *cmd2 = xhci_alloc_command();
@@ -371,8 +368,6 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 		xhci_free_command(cmd2);
 	}
 
-
-	xhci_dump_trb(hc->event_ring.dequeue_trb);
 	return EOK;
 }
 
@@ -401,8 +396,8 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 
 	while (err != ENOENT) {
 		if (err == EOK) {
-			usb_log_debug2("Dequeued from event ring.");
-			xhci_dump_trb(&trb);
+			usb_log_debug2("Dequeued trb from event ring: %s",
+					xhci_trb_str_type(TRB_TYPE(trb)));
 
 			hc_handle_event(hc, &trb);
 		} else {
