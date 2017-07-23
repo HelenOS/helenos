@@ -353,12 +353,24 @@ int hc_status(xhci_hc_t *hc, uint32_t *status)
 
 int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
+	// TODO: This function currently contains cmd ring testing
+	//       stuff, remove it.
+	xhci_cmd_t *cmd = xhci_alloc_command();
 	xhci_dump_state(hc);
-	xhci_send_no_op_command(hc, NULL);
-	async_usleep(1000);
+	xhci_send_no_op_command(hc, cmd);
+	xhci_wait_for_command(cmd, 1000000);
+	xhci_free_command(cmd);
+
 	xhci_dump_state(hc);
-	async_usleep(10000);
-	xhci_send_no_op_command(hc, NULL);
+
+	for (int i = 0; i < 10; ++i) {
+		xhci_cmd_t *cmd2 = xhci_alloc_command();
+		xhci_send_enable_slot_command(hc, cmd2);
+		xhci_wait_for_command(cmd2, 1000000);
+		usb_log_error("Enabled slot ID: %u.", cmd2->slot_id);
+		xhci_free_command(cmd2);
+	}
+
 
 	xhci_dump_trb(hc->event_ring.dequeue_trb);
 	return EOK;
@@ -385,23 +397,22 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	int err;
 	xhci_trb_t trb;
 
-	// TODO: Apparently we are supposed to process events until ering is empty
-	//       and then update the erdp?
 	err = xhci_event_ring_dequeue(event_ring, &trb);;
 
-	switch (err) {
-	case EOK:
-		usb_log_debug2("Dequeued from event ring.");
-		xhci_dump_trb(&trb);
+	while (err != ENOENT) {
+		if (err == EOK) {
+			usb_log_debug2("Dequeued from event ring.");
+			xhci_dump_trb(&trb);
 
-		hc_handle_event(hc, &trb);
-		break;
-	case ENOENT:
-		usb_log_debug2("Event ring finished.");
-		break;
-	default:
-		usb_log_warning("Error while accessing event ring: %s", str_error(err));
+			hc_handle_event(hc, &trb);
+		} else {
+			usb_log_warning("Error while accessing event ring: %s", str_error(err));
+			break;
+		}
+
+		err = xhci_event_ring_dequeue(event_ring, &trb);;
 	}
+	usb_log_debug2("Event ring processing finished.");
 
 	/* Update the ERDP to make room in the ring */
 	hc->event_ring.dequeue_ptr = host2xhci(64, addr_to_phys(hc->event_ring.dequeue_trb));
