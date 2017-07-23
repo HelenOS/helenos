@@ -56,7 +56,7 @@ typedef struct xhci_command {
 } xhci_cmd_t;
 
 int xhci_init_commands(xhci_hc_t *);
-int xhci_wait_for_command(xhci_hc_t *, xhci_cmd_t *, uint32_t);
+int xhci_wait_for_command(xhci_cmd_t *, uint32_t);
 xhci_cmd_t *xhci_alloc_command(void);
 void xhci_free_command(xhci_cmd_t *);
 

@@ -51,7 +51,7 @@ int xhci_init_commands(xhci_hc_t *hc)
 	return EOK;
 }
 
-int xhci_wait_for_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t timeout)
+int xhci_wait_for_command(xhci_cmd_t *cmd, uint32_t timeout)
 {
 	uint32_t time = 0;
 	while (!cmd->completed) {
@@ -84,9 +84,10 @@ xhci_cmd_t *xhci_alloc_command(void)
 
 void xhci_free_command(xhci_cmd_t *cmd)
 {
-	// TODO: If we decide to copy trb, free it here.
 	if (cmd->ictx)
 		free32(cmd->ictx);
+	if (cmd->trb)
+		free32(cmd->trb);
 
 	free32(cmd);
 }
@@ -381,8 +382,6 @@ int xhci_send_reset_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	// TODO: Update dequeue ptrs.
-	// TODO: Possibly clone command trb, as it may get overwritten before
-	//       it is processed (if somebody polls the command completion).
 	assert(hc);
 	assert(trb);
 
@@ -392,10 +391,6 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	uint32_t slot_id;
 	xhci_cmd_t *command;
 	xhci_trb_t *command_trb;
-
-	code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
-	slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
-	(void) slot_id;
 
 	command = get_next_command(hc);
 	assert(command);
@@ -450,8 +445,13 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 
 	command->completed = true;
 
-	if (!command->has_owner)
+	if (!command->has_owner) {
 		xhci_free_command(command);
+	} else {
+		/* Copy the trb for later use so that we can free space on the cmd ring. */
+		command->trb = malloc32(sizeof(xhci_trb_t));
+		xhci_trb_copy(command->trb, command_trb);
+	}
 
 	return EOK;
 }
