@@ -357,6 +357,8 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	xhci_send_no_op_command(hc, NULL);
 	async_usleep(1000);
 	xhci_dump_state(hc);
+	async_usleep(10000);
+	xhci_send_no_op_command(hc, NULL);
 
 	xhci_dump_trb(hc->event_ring.dequeue_trb);
 	return EOK;
@@ -383,6 +385,8 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	int err;
 	xhci_trb_t trb;
 
+	// TODO: Apparently we are supposed to process events until ering is empty
+	//       and then update the erdp?
 	err = xhci_event_ring_dequeue(event_ring, &trb);;
 
 	switch (err) {
@@ -400,9 +404,11 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	}
 
 	/* Update the ERDP to make room in the ring */
+	hc->event_ring.dequeue_ptr = host2xhci(64, addr_to_phys(hc->event_ring.dequeue_trb));
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
+	XHCI_REG_SET(intr, XHCI_INTR_ERDP_EHB, 1);
 }
 
 void hc_interrupt(xhci_hc_t *hc, uint32_t status)

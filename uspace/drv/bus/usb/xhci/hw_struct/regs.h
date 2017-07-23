@@ -460,6 +460,9 @@ typedef struct xhci_interrupter_regs {
 #define XHCI_INTR_ERSTSZ        erstsz, 32, FIELD
 #define XHCI_INTR_ERSTBA_LO  erstba_lo, 32, FIELD
 #define XHCI_INTR_ERSTBA_HI  erstba_hi, 32, FIELD
+#define XHCI_INTR_ERDP_ESI     erdp_lo, 32, RANGE,  2, 0
+#define XHCI_INTR_ERDP_EHB     erdp_lo, 32,  FLAG,  3
+// TODO: ERDP_LO is supposed to be RANGE 31, 4 (section 5.5.2.3.3).
 #define XHCI_INTR_ERDP_LO      erdp_lo, 32, FIELD
 #define XHCI_INTR_ERDP_HI      erdp_hi, 32, FIELD
 
