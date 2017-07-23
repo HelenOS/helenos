@@ -488,6 +488,7 @@ void hc_fini(xhci_hc_t *hc)
 	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
 	hc_dcbaa_fini(hc);
+	xhci_fini_commands(hc);
 	pio_disable(hc->base, RNGSZ(hc->mmio_range));
 	usb_log_info("HC(%p): Finalized.", hc);
 }

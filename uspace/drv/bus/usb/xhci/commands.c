@@ -51,6 +51,18 @@ int xhci_init_commands(xhci_hc_t *hc)
 	return EOK;
 }
 
+void xhci_fini_commands(xhci_hc_t *hc)
+{
+	// Note: Untested.
+	assert(hc);
+
+	// We assume that the hc is dying/stopping, so we ignore
+	// the ownership of the commands.
+	list_foreach(hc->commands, link, xhci_cmd_t, cmd) {
+		xhci_free_command(cmd);
+	}
+}
+
 int xhci_wait_for_command(xhci_cmd_t *cmd, uint32_t timeout)
 {
 	uint32_t time = 0;
