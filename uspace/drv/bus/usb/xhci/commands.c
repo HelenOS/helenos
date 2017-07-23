@@ -230,7 +230,6 @@ int xhci_send_enable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_ENABLE_SLOT_CMD << 10);
 	trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
-	trb.control |= host2xhci(32, hc->command_ring.pcs);
 
 	cmd = add_cmd(hc, cmd);
 
@@ -246,7 +245,6 @@ int xhci_send_disable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	memset(&trb, 0, sizeof(trb));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_DISABLE_SLOT_CMD << 10);
-	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, cmd->slot_id << 24);
 
 	add_cmd(hc, cmd);
@@ -280,7 +278,6 @@ int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 *       that require their device descriptor to be read before such request.
 	 */
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD << 10);
-	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, cmd->slot_id << 24);
 
 	cmd = add_cmd(hc, cmd);
@@ -301,7 +298,6 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	trb.parameter = host2xhci(32, phys_addr & (~0xF));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD << 10);
-	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, cmd->slot_id << 24);
 
 	cmd = add_cmd(hc, cmd);
@@ -328,7 +324,6 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	trb.parameter = host2xhci(32, phys_addr & (~0xF));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD << 10);
-	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, cmd->slot_id << 24);
 
 	cmd = add_cmd(hc, cmd);
@@ -349,7 +344,6 @@ int xhci_send_reset_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep
 	memset(&trb, 0, sizeof(trb));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_RESET_ENDPOINT_CMD << 10);
-	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, (tcs & 0x1) << 9);
 	trb.control |= host2xhci(32, (ep_id & 0x5) << 16);
 	trb.control |= host2xhci(32, cmd->slot_id << 24);
@@ -366,7 +360,6 @@ int xhci_send_stop_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep_
 	memset(&trb, 0, sizeof(trb));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_STOP_ENDPOINT_CMD << 10);
-	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, (ep_id & 0x5) << 16);
 	trb.control |= host2xhci(32, (susp & 0x1) << 23);
 	trb.control |= host2xhci(32, cmd->slot_id << 24);
@@ -385,7 +378,6 @@ int xhci_send_reset_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	memset(&trb, 0, sizeof(trb));
 
 	trb.control = host2xhci(32, XHCI_TRB_TYPE_RESET_DEVICE_CMD << 10);
-	trb.control |= host2xhci(32, hc->command_ring.pcs);
 	trb.control |= host2xhci(32, cmd->slot_id << 24);
 
 	return enqueue_trb(hc, &trb, 0, 0);
