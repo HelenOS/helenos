@@ -156,6 +156,36 @@ static inline xhci_cmd_t *add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return cmd;
 }
 
+void xhci_stop_command_ring(xhci_hc_t *hc)
+{
+	assert(hc);
+
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_CS, 1);
+
+	/**
+	 * Note: There is a bug in qemu that checks CS only when CRCR_HI
+	 *       is written, this (and the read/write in abort) ensures
+	 *       the command rings stops.
+	 */
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, XHCI_REG_RD(hc->op_regs, XHCI_OP_CRCR_HI));
+}
+
+void xhci_abort_command_ring(xhci_hc_t *hc)
+{
+	assert(hc);
+
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_CA, 1);
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, XHCI_REG_RD(hc->op_regs, XHCI_OP_CRCR_HI));
+}
+
+void xhci_start_command_ring(xhci_hc_t *hc)
+{
+	assert(hc);
+
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRR, 1);
+	ring_doorbell(hc, 0, 0);
+}
+
 static const char *trb_codes [] = {
 #define TRBC(t) [XHCI_TRBC_##t] = #t
 	TRBC(INVALID),
@@ -388,6 +418,8 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	// TODO: Update dequeue ptrs.
 	assert(hc);
 	assert(trb);
+
+	// TODO: STOP & ABORT may not have command structs in the list!
 
 	usb_log_debug("HC(%p) Command completed.", hc);
 

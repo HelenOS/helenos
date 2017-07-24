@@ -61,6 +61,10 @@ int xhci_wait_for_command(xhci_cmd_t *, uint32_t);
 xhci_cmd_t *xhci_alloc_command(void);
 void xhci_free_command(xhci_cmd_t *);
 
+void xhci_stop_command_ring(xhci_hc_t *);
+void xhci_abort_command_ring(xhci_hc_t *);
+void xhci_start_command_ring(xhci_hc_t *);
+
 int xhci_send_no_op_command(xhci_hc_t *, xhci_cmd_t *);
 int xhci_send_enable_slot_command(xhci_hc_t *, xhci_cmd_t *);
 int xhci_send_disable_slot_command(xhci_hc_t *, xhci_cmd_t *);
