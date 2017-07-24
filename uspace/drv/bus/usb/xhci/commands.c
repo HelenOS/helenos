@@ -449,6 +449,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 
 	if (!command->has_owner) {
 		usb_log_debug2("Command has no owner, deallocating.");
+		command->trb = NULL; // It was statically allocated.
 		xhci_free_command(command);
 	} else {
 		usb_log_debug2("Command has owner, don't forget to deallocate!");
