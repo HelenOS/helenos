@@ -93,7 +93,7 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 int xhci_get_hub_port(xhci_trb_t *trb)
 {
 	assert(trb);
-	uint8_t port_id = XHCI_QWORD_EXTRACT(trb->parameter, 63, 56);
+	uint8_t port_id = XHCI_QWORD_EXTRACT(trb->parameter, 31, 24);
 
 	return port_id;   
 }
