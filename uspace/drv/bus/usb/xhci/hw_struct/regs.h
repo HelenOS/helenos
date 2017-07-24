@@ -374,7 +374,9 @@ typedef struct xhci_op_regs {
 	 */
 	ioport32_t config;
 
-	PADD32[36 * 4 + 1];
+	/* Offset of portrs from op_regs addr is 0x400. */
+	PADD32[240];
+	PADD8[4];
 
 	/*
 	 * Individual ports register sets
