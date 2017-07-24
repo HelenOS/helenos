@@ -104,9 +104,18 @@ void xhci_free_command(xhci_cmd_t *cmd)
 	free32(cmd);
 }
 
-static inline xhci_cmd_t *get_next_command(xhci_hc_t *hc)
+static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
 {
 	link_t *cmd_link = list_first(&hc->commands);
+
+	while (cmd_link != NULL) {
+		xhci_cmd_t *cmd = list_get_instance(cmd_link, xhci_cmd_t, link);
+
+		if (addr_to_phys(cmd->trb) == phys)
+			break;
+
+		cmd_link = list_next(cmd_link, &hc->commands);
+	}
 
 	if (cmd_link != NULL) {
 		list_remove(cmd_link);
@@ -419,21 +428,29 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	assert(hc);
 	assert(trb);
 
-	// TODO: STOP & ABORT may not have command structs in the list!
-
 	usb_log_debug("HC(%p) Command completed.", hc);
 
 	int code;
 	uint32_t slot_id;
+	uint64_t phys;
 	xhci_cmd_t *command;
 	xhci_trb_t *command_trb;
 
-	command = get_next_command(hc);
-	assert(command);
+	code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
+	phys = XHCI_QWORD_EXTRACT(trb->parameter, 63, 4) << 4;
+	command = get_command(hc, phys);
+	if (command == NULL) {
+		// TODO: STOP & ABORT may not have command structs in the list!
+		usb_log_error("No command struct for this completion event");
+
+		if (code != XHCI_TRBC_SUCCESS)
+			report_error(code);
+
+		return EOK;
+	}
 
 	command_trb = command->trb;
 
-	code = XHCI_DWORD_EXTRACT(trb->status, 31, 24);
 	command->status = code;
 
 	slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
