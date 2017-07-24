@@ -64,7 +64,7 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	uint8_t port_id = xhci_get_hub_port(trb);
 	usb_log_debug("Port status change event detected for port %u.", port_id);
-	xhci_port_regs_t* regs = &hc->op_regs->portrs[port_id];
+	xhci_port_regs_t* regs = &hc->op_regs->portrs[port_id - 1];
 
 	// Port reset change
 	if (XHCI_REG_RD(regs, XHCI_PORT_PRC)) {
