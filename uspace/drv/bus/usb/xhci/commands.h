@@ -73,7 +73,7 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *, xhci_cmd_t *);
 int xhci_send_evaluate_context_command(xhci_hc_t *, xhci_cmd_t *);
 int xhci_send_reset_endpoint_command(xhci_hc_t *, xhci_cmd_t *, uint32_t, uint8_t);
 int xhci_send_stop_endpoint_command(xhci_hc_t *, xhci_cmd_t *, uint32_t, uint8_t);
-// TODO: Set dequeue ptr (section 4.6.10).
+int xhci_send_set_dequeue_ptr_command(xhci_hc_t *, xhci_cmd_t *, uintptr_t, uint16_t, uint32_t);
 int xhci_send_reset_device_command(xhci_hc_t *, xhci_cmd_t *);
 // TODO: Force event (optional normative, for VMM, section 4.6.12).
 // TODO: Negotiate bandwidth (optional normative, section 4.6.13).

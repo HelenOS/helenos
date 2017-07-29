@@ -46,9 +46,14 @@
 #define TRB_SET_TCS(trb, tcs)   (trb).control |= host2xhci(32, ((tcs &0x1) << 9))
 #define TRB_SET_TYPE(trb, type) (trb).control |= host2xhci(32, (type) << 10)
 #define TRB_SET_EP(trb, ep)     (trb).control |= host2xhci(32, ((ep) & 0x5) << 16)
+#define TRB_SET_STREAM(trb, st) (trb).control |= host2xhci(32, ((st) & 0xFFFF) << 16)
 #define TRB_SET_SUSP(trb, susp) (trb).control |= host2xhci(32, ((susp) & 0x1) << 23)
 #define TRB_SET_SLOT(trb, slot) (trb).control |= host2xhci(32, (slot) << 24)
 
+/**
+ * TODO: Not sure about SCT and DCS (see section 6.4.3.9).
+ */
+#define TRB_SET_DEQUEUE_PTR(trb, dptr) (trb).parameter |= host2xhci(64, (dptr))
 #define TRB_SET_ICTX(trb, phys) (trb).parameter |= host2xhci(32, phys_addr & (~0xF))
 
 #define TRB_GET_CODE(trb) XHCI_DWORD_EXTRACT((trb).status, 31, 24)
@@ -414,6 +419,31 @@ int xhci_send_stop_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep_
 	TRB_SET_EP(trb, ep_id);
 	TRB_SET_SUSP(trb, susp);
 	TRB_SET_SLOT(trb, cmd->slot_id);
+
+	cmd = add_cmd(hc, cmd);
+
+	return enqueue_trb(hc, &trb, 0, 0);
+}
+
+int xhci_send_set_dequeue_ptr_command(xhci_hc_t *hc, xhci_cmd_t *cmd,
+				      uintptr_t dequeue_ptr, uint16_t stream_id,
+				      uint32_t ep_id)
+{
+	assert(hc);
+	assert(cmd);
+
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(trb));
+
+	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_SET_TR_DEQUEUE_POINTER_CMD);
+	TRB_SET_EP(trb, ep_id);
+	TRB_SET_STREAM(trb, stream_id);
+	TRB_SET_SLOT(trb, cmd->slot_id);
+	TRB_SET_DEQUEUE_PTR(trb, dequeue_ptr);
+
+	/**
+	 * TODO: Set DCS (see section 4.6.10).
+	 */
 
 	cmd = add_cmd(hc, cmd);
 
