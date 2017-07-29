@@ -131,7 +131,7 @@ static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
 
 	if (cmd_link != NULL) {
 		list_remove(cmd_link);
-		
+
 		return list_get_instance(cmd_link, xhci_cmd_t, link);
 	}
 
@@ -162,7 +162,7 @@ static inline int enqueue_trb(xhci_hc_t *hc, xhci_trb_t *trb,
 }
 
 static inline xhci_cmd_t *add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
-{ 
+{
 	if (cmd == NULL) {
 		cmd = xhci_alloc_command();
 		if (cmd == NULL)
@@ -474,7 +474,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 
 	switch (TRB_TYPE(*command_trb)) {
 	case XHCI_TRB_TYPE_NO_OP_CMD:
-		assert(code = XHCI_TRBC_TRB_ERROR);
+		assert(code == XHCI_TRBC_TRB_ERROR);
 		break;
 	case XHCI_TRB_TYPE_ENABLE_SLOT_CMD:
 		break;
