@@ -166,12 +166,12 @@ static inline int enqueue_trb(xhci_hc_t *hc, xhci_trb_t *trb,
 	return EOK;
 }
 
-static inline xhci_cmd_t *add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static inline int add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	if (cmd == NULL) {
 		cmd = xhci_alloc_command();
 		if (cmd == NULL)
-			return cmd;
+			return ENOMEM;
 
 		cmd->has_owner = false;
 	}
@@ -179,7 +179,7 @@ static inline xhci_cmd_t *add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	list_append(&cmd->link, &hc->commands);
 	cmd->trb = hc->command_ring.enqueue_trb;
 
-	return cmd;
+	return EOK;
 }
 
 void xhci_stop_command_ring(xhci_hc_t *hc)
@@ -272,7 +272,7 @@ int xhci_send_no_op_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_NO_OP_CMD);
 
-	cmd = add_cmd(hc, cmd);
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
@@ -287,7 +287,7 @@ int xhci_send_enable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_ENABLE_SLOT_CMD);
 	trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
 
-	cmd = add_cmd(hc, cmd);
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
@@ -336,7 +336,7 @@ int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD);
 	TRB_SET_SLOT(trb, cmd->slot_id);
 
-	cmd = add_cmd(hc, cmd);
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
@@ -356,7 +356,7 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD);
 	TRB_SET_SLOT(trb, cmd->slot_id);
 
-	cmd = add_cmd(hc, cmd);
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
@@ -382,7 +382,7 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD);
 	TRB_SET_SLOT(trb, cmd->slot_id);
 
-	cmd = add_cmd(hc, cmd);
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
@@ -404,6 +404,8 @@ int xhci_send_reset_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep
 	TRB_SET_EP(trb, ep_id);
 	TRB_SET_SLOT(trb, cmd->slot_id);
 
+	add_cmd(hc, cmd);
+
 	return enqueue_trb(hc, &trb, 0, 0);
 }
 
@@ -420,7 +422,7 @@ int xhci_send_stop_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep_
 	TRB_SET_SUSP(trb, susp);
 	TRB_SET_SLOT(trb, cmd->slot_id);
 
-	cmd = add_cmd(hc, cmd);
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
@@ -445,7 +447,7 @@ int xhci_send_set_dequeue_ptr_command(xhci_hc_t *hc, xhci_cmd_t *cmd,
 	 * TODO: Set DCS (see section 4.6.10).
 	 */
 
-	cmd = add_cmd(hc, cmd);
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }
@@ -460,6 +462,8 @@ int xhci_send_reset_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_RESET_DEVICE_CMD);
 	TRB_SET_SLOT(trb, cmd->slot_id);
+
+	add_cmd(hc, cmd);
 
 	return enqueue_trb(hc, &trb, 0, 0);
 }

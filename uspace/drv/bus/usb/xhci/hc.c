@@ -330,8 +330,6 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_LO, LOWER32(erstptr));
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_HI, UPPER32(erstptr));
 
-	// TODO: Setup scratchpad buffers
-
 	if (irq) {
 		XHCI_REG_SET(intr0, XHCI_INTR_IE, 1);
 		XHCI_REG_SET(hc->op_regs, XHCI_OP_INTE, 1);
