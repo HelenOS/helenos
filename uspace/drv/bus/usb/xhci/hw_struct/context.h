@@ -124,9 +124,15 @@ typedef struct xhci_stream_ctx {
 typedef struct xhci_input_ctrl_ctx {
 	uint32_t data [16];
 #define XHCI_INPUT_CTRL_CTX_DROP(ctx, idx) \
-	(assert((idx) > 1 && (idx) < 32), XHCI_DWORD_EXTRACT((ctx).data[0], (idx), (idx)))
+	XHCI_DWORD_EXTRACT((ctx).data[0], (idx), (idx))
+
+#define XHCI_INPUT_CTRL_CTX_DROP_SET(ctx, idx) (ctx).data[0] |= (1 << (idx))
+
 #define XHCI_INPUT_CTRL_CTX_ADD(ctx, idx) \
-	(assert((idx) >= 0 && (idx) < 32), XHCI_DWORD_EXTRACT((ctx).data[1], (idx), (idx)))
+	XHCI_DWORD_EXTRACT((ctx).data[1], (idx), (idx))
+
+#define XHCI_INPUT_CTRL_CTX_ADD_SET(ctx, idx) (ctx).data[1] |= (1 << (idx))
+    
 #define XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7],  7,  0)
 #define XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7], 15,  8)
 #define XHCI_INPUT_CTRL_CTX_ALTER_SETTING(ctx)  XHCI_DWORD_EXTRACT((ctx).data[7], 23, 16)
@@ -136,7 +142,7 @@ typedef struct xhci_input_ctrl_ctx {
  * Input context: section 6.2.5
  */
 typedef struct xhci_input_ctx {
-	xhci_input_ctrl_ctx_t ctr_ctx;
+	xhci_input_ctrl_ctx_t ctrl_ctx;
 	xhci_slot_ctx_t slot_ctx;
 	xhci_ep_ctx_t endpoint_ctx [31];
 } __attribute__((packed)) xhci_input_ctx_t;
