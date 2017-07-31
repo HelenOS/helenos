@@ -91,7 +91,7 @@ int xhci_scratchpad_alloc(xhci_hc_t *hc)
 	bufs->virt_ptr = (uint64_t) virt_array;
 	bufs->phys_bck = (uint64_t) phys_array;
 
-	hc->dcbaa[0] = (xhci_device_ctx_t *) bufs->phys_ptr;
+	hc->dcbaa[0] = bufs->phys_ptr;
 	hc->scratchpad = bufs;
 
 	usb_log_debug2("Allocated %d scratchpad buffers.", num_bufs);
@@ -130,7 +130,8 @@ void xhci_scratchpad_free(xhci_hc_t *hc)
 	free32((void *) scratchpad->virt_ptr);
 	free32((void *) scratchpad->phys_bck);
 
-	hc->dcbaa[0] = NULL;
+	hc->dcbaa[0] = 0;
+	hc->dcbaa_virt[0] = NULL;
 	return;
 }
 

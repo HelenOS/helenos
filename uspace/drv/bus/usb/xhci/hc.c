@@ -197,12 +197,18 @@ int hc_init_memory(xhci_hc_t *hc)
 {
 	int err;
 
-	hc->dcbaa = malloc32((1 + hc->max_slots) * sizeof(xhci_device_ctx_t*));
+	hc->dcbaa = malloc32((1 + hc->max_slots) * sizeof(uint64_t));
 	if (!hc->dcbaa)
 		return ENOMEM;
 
-	if ((err = xhci_trb_ring_init(&hc->command_ring, hc)))
+	hc->dcbaa_virt = malloc32((1 + hc->max_slots) * sizeof(xhci_device_ctx_t*));
+	if (!hc->dcbaa_virt) {
+		err = ENOMEM;
 		goto err_dcbaa;
+	}
+
+	if ((err = xhci_trb_ring_init(&hc->command_ring, hc)))
+		goto err_dcbaa_virt;
 
 	if ((err = xhci_event_ring_init(&hc->event_ring, hc)))
 		goto err_cmd_ring;
@@ -219,6 +225,8 @@ err_event_ring:
 	xhci_event_ring_fini(&hc->event_ring);
 err_cmd_ring:
 	xhci_trb_ring_fini(&hc->command_ring);
+err_dcbaa_virt:
+	free32(hc->dcbaa_virt);
 err_dcbaa:
 	free32(hc->dcbaa);
 	return err;
@@ -467,13 +475,14 @@ static void hc_dcbaa_fini(xhci_hc_t *hc)
 
 	/* Idx 0 already deallocated by xhci_scratchpad_free. */
 	for (unsigned i = 1; i < hc->max_slots + 1; ++i) {
-		if (hc->dcbaa[i] != NULL) {
-			free32(hc->dcbaa[i]);
-			hc->dcbaa[i] = NULL;
+		if (hc->dcbaa_virt[i] != NULL) {
+			free32(hc->dcbaa_virt[i]);
+			hc->dcbaa_virt[i] = NULL;
 		}
 	}
 
 	free32(hc->dcbaa);
+	free32(hc->dcbaa_virt);
 }
 
 void hc_fini(xhci_hc_t *hc)

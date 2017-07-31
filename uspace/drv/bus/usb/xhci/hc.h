@@ -65,7 +65,8 @@ typedef struct xhci_hc {
 	/* Structures in allocated memory */
 	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
-	xhci_device_ctx_t **dcbaa;
+	uint64_t *dcbaa;
+	xhci_device_ctx_t **dcbaa_virt;
 	xhci_scratchpad_t *scratchpad;
 
 	/* Cached capabilities */
