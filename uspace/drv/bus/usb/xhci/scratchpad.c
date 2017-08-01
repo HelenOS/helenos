@@ -67,11 +67,11 @@ int xhci_scratchpad_alloc(xhci_hc_t *hc)
 	allocated = 0;
 
 	uint64_t *phys_array = malloc32(num_bufs * sizeof(uint64_t));
-	if(phys_array == NULL)
+	if (phys_array == NULL)
 		goto err_phys_array;
 
 	uint64_t *virt_array = malloc32(num_bufs * sizeof(uint64_t));
-	if(virt_array == NULL)
+	if (virt_array == NULL)
 		goto err_virt_array;
 
 	for (unsigned i = 0; i < num_bufs; ++i) {
@@ -117,9 +117,9 @@ void xhci_scratchpad_free(xhci_hc_t *hc)
 	unsigned num_bufs;
 	xhci_scratchpad_t *scratchpad;
 	uint64_t *virt_array;
-	
+
 	num_bufs = xhci_scratchpad_count(hc);
-	if(!num_bufs)
+	if (!num_bufs)
 		return;
 
 	scratchpad =  hc->scratchpad;
