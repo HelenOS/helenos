@@ -74,15 +74,37 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
 
-	// TODO: Initialize ictx->slot_ctx according to section 4.3.3
-	//       point 3. This requires setters for XHCI_SLOT_* and figuring
-	//       out how are we supposed to find the root string field, which
-	//       can be found in usb3 spec section 8.9.
+   	/* Initialize slot_ctx according to section 4.3.3 point 3. */
+	/* Attaching to root hub port, root string equals to 0. */
+	// TODO: shouldn't these macros consider endianity?
+	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
+	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
 
-	// TODO: Allocated and initialize transfer ring for default
-	//       control endpoint.
-	
-	// TODO: Initialize input default control endpoint 0 context.
+	// TODO: where do we save this? the ring should be associated with device structure somewhere
+	xhci_trb_ring_t* ep_ring = malloc32(sizeof(xhci_trb_ring_t));
+	if (!ep_ring) {
+		err = ENOMEM;
+		goto err_ring;    
+	}
+	err = xhci_trb_ring_init(ep_ring, hc);
+	if (err) {
+		xhci_trb_ring_fini(ep_ring);
+		goto err_ring;
+	}
+
+	xhci_port_regs_t* regs = &hc->op_regs->portrs[port - 1];
+	uint8_t port_speed_id = XHCI_REG_RD(regs, XHCI_PORT_PS);
+
+	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], 4);
+	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0], 
+	    hc->speeds[port_speed_id].tx_bps);
+	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
+	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
+	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
+	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
+	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
+	XHCI_EP_MULT_SET(ictx->endpoint_ctx[0], 0);
+	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
 	
 	// TODO: What's the alignment?
 	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
@@ -105,12 +127,13 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 
 err_ctx:
 	if (ictx) {
-		// To avoid double free.
+		/* Avoid double free. */
 		if (cmd && cmd->ictx && cmd->ictx == ictx)
 			cmd->ictx = NULL;
-
-		free32(ictx);
 	}
+err_ring:
+	if (ep_ring) 
+		free32(ep_ring);
 err_command:
 	if (cmd)
 		xhci_free_command(cmd);
@@ -120,14 +143,15 @@ err_command:
 static int handle_connected_device(xhci_hc_t* hc, xhci_port_regs_t* regs, uint8_t port_id)
 {
 	uint8_t link_state = XHCI_REG_RD(regs, XHCI_PORT_PLS);
+	// FIXME: do we have a better way to detect if this is usb2 or usb3 device?
 	if (link_state == 0) {
-		// USB3 is automatically advance to enabled   
+		/* USB3 is automatically advanced to enabled. */
 		uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
 		usb_log_debug2("Detected new device on port %u, port speed id %u.", port_id, port_speed);
 
 		alloc_dev(hc, port_id);
 	} else if (link_state == 5) {
-		// USB 3 failed to enable
+		/* USB 3 failed to enable. */
 		usb_log_debug("USB 3 port couldn't be enabled.");
 	} else if (link_state == 7) {
 		usb_log_debug("USB 2 device attached, issuing reset.");
@@ -143,24 +167,24 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	usb_log_debug("Port status change event detected for port %u.", port_id);
 	xhci_port_regs_t* regs = &hc->op_regs->portrs[port_id - 1];
 
-	// Port reset change
+	/* Port reset change */
 	if (XHCI_REG_RD(regs, XHCI_PORT_PRC)) {
-		// Clear the flag
+		/* Clear the flag. */
 		XHCI_REG_WR(regs, XHCI_PORT_PRC, 1);
 
 		uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
 		usb_log_debug2("Detected port reset on port %u, port speed id %u.", port_id, port_speed);
-		// TODO: Assign device slot (specification 4.3.2) 
+		alloc_dev(hc, port_id);
 	}
 
-	// Connection status change
+	/* Connection status change */
 	if (XHCI_REG_RD(regs, XHCI_PORT_CSC)) {
 		XHCI_REG_WR(regs, XHCI_PORT_CSC, 1);
 
 		if (XHCI_REG_RD(regs, XHCI_PORT_CCS) == 1) {
 			handle_connected_device(hc, regs, port_id);
 		} else {
-			// Device disconnected
+			// TODO: Device disconnected
 		}
 	}
 

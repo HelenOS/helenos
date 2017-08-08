@@ -51,6 +51,33 @@ typedef struct xhci_endpoint_ctx {
 	xhci_dword_t data[5];
 	xhci_dword_t reserved[3];
 
+#define XHCI_EP_TYPE_ISOCH_OUT		1
+#define XHCI_EP_TYPE_BULK_OUT		2
+#define XHCI_EP_TYPE_INTERRUPT_OUT	3
+#define XHCI_EP_TYPE_CONTROL		4
+#define XHCI_EP_TYPE_ISOCH_IN		5
+#define XHCI_EP_TYPE_BULK_IN		6
+#define XHCI_EP_TYPE_INTERRUPT_IN	7
+
+#define XHCI_EP_TYPE_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[1], val, 5, 3)
+#define XHCI_EP_MAX_PACKET_SIZE_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[1], val, 31, 16)
+#define XHCI_EP_MAX_BURST_SIZE_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[1], val, 15, 8)
+#define XHCI_EP_TR_DPTR_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[2], (val >> 4), 63, 4)
+#define XHCI_EP_DCS_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[2], val, 0, 0)
+#define XHCI_EP_INTERVAL_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[0], val, 23, 16)
+#define XHCI_EP_MAX_P_STREAMS_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[0], val, 14, 10)
+#define XHCI_EP_MULT_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[0], val, 9, 8)
+#define XHCI_EP_ERROR_COUNT_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[1], val, 2, 1)
+
 #define XHCI_EP_STATE(ctx)              XHCI_DWORD_EXTRACT((ctx).data[0],  2,  0)
 #define XHCI_EP_MULT(ctx)               XHCI_DWORD_EXTRACT((ctx).data[0],  9,  8)
 #define XHCI_EP_MAX_P_STREAMS(ctx)      XHCI_DWORD_EXTRACT((ctx).data[0], 14, 10)
@@ -74,6 +101,11 @@ typedef struct xhci_endpoint_ctx {
 typedef struct xhci_slot_ctx {
 	xhci_dword_t data [4];
 	xhci_dword_t reserved [4];
+
+#define XHCI_SLOT_ROOT_HUB_PORT_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[1], val, 23, 16)
+#define XHCI_SLOT_CTX_ENTRIES_SET(ctx, val) \
+    xhci_dword_set_bits(&(ctx).data[0], val, 31, 27)
 
 #define XHCI_SLOT_ROUTE_STRING(ctx)     XHCI_DWORD_EXTRACT((ctx).data[0], 19,  0)
 #define XHCI_SLOT_SPEED(ctx)            XHCI_DWORD_EXTRACT((ctx).data[0], 23, 20)
