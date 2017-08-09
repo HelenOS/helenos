@@ -76,7 +76,6 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 
    	/* Initialize slot_ctx according to section 4.3.3 point 3. */
 	/* Attaching to root hub port, root string equals to 0. */
-	// TODO: shouldn't these macros consider endianity?
 	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
 
@@ -121,6 +120,9 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	xhci_send_address_device_command(hc, cmd);
 	if ((err = xhci_wait_for_command(cmd, 100000)) != EOK)
 		goto err_dctx;
+
+	xhci_free_command(cmd);
+	ictx = NULL;
 
 	return EOK;
 
