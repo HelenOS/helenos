@@ -366,14 +366,6 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	xhci_wait_for_command(cmd, 1000000);
 	xhci_free_command(cmd);
 
-	for (int i = 0; i < 10; ++i) {
-		xhci_cmd_t *cmd2 = xhci_alloc_command();
-		xhci_send_enable_slot_command(hc, cmd2);
-		xhci_wait_for_command(cmd2, 1000000);
-		usb_log_error("Enabled slot ID: %u.", cmd2->slot_id);
-		xhci_free_command(cmd2);
-	}
-
 	return EOK;
 }
 

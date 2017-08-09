@@ -81,22 +81,21 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
 
 	// TODO: where do we save this? the ring should be associated with device structure somewhere
-	xhci_trb_ring_t* ep_ring = malloc32(sizeof(xhci_trb_ring_t));
+	xhci_trb_ring_t *ep_ring = malloc32(sizeof(xhci_trb_ring_t));
 	if (!ep_ring) {
 		err = ENOMEM;
-		goto err_ring;    
-	}
-	err = xhci_trb_ring_init(ep_ring, hc);
-	if (err) {
-		xhci_trb_ring_fini(ep_ring);
-		goto err_ring;
+		goto err_ictx;
 	}
 
-	xhci_port_regs_t* regs = &hc->op_regs->portrs[port - 1];
+	err = xhci_trb_ring_init(ep_ring, hc);
+	if (err)
+		goto err_ring;
+
+	xhci_port_regs_t *regs = &hc->op_regs->portrs[port - 1];
 	uint8_t port_speed_id = XHCI_REG_RD(regs, XHCI_PORT_PS);
 
 	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], 4);
-	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0], 
+	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
 	    hc->speeds[port_speed_id].tx_bps);
 	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
 	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
@@ -105,35 +104,44 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
 	XHCI_EP_MULT_SET(ictx->endpoint_ctx[0], 0);
 	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
-	
+
 	// TODO: What's the alignment?
 	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
 	if (!dctx) {
 		err = ENOMEM;
-		goto err_ctx;
+		goto err_ring;
 	}
 	memset(dctx, 0, sizeof(xhci_device_ctx_t));
-	
+
 	hc->dcbaa[slot_id] = addr_to_phys(dctx);
 	hc->dcbaa_virt[slot_id] = dctx;
-	
+
 	cmd = xhci_alloc_command();
 	cmd->ictx = ictx;
 	xhci_send_address_device_command(hc, cmd);
 	if ((err = xhci_wait_for_command(cmd, 100000)) != EOK)
-		goto err_ctx;
+		goto err_dctx;
 
 	return EOK;
 
-err_ctx:
+err_dctx:
+	if (dctx) {
+		free32(dctx);
+		hc->dcbaa[slot_id] = 0;
+		hc->dcbaa_virt[slot_id] = NULL;
+	}
+err_ring:
+	if (ep_ring) {
+		xhci_trb_ring_fini(ep_ring);
+		free32(ep_ring);
+	}
+err_ictx:
 	if (ictx) {
 		/* Avoid double free. */
 		if (cmd && cmd->ictx && cmd->ictx == ictx)
 			cmd->ictx = NULL;
+		free32(ictx);
 	}
-err_ring:
-	if (ep_ring) 
-		free32(ep_ring);
 err_command:
 	if (cmd)
 		xhci_free_command(cmd);
