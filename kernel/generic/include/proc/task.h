@@ -36,6 +36,7 @@
 #define KERN_TASK_H_
 
 #include <cpu.h>
+#include <kobject/kobject.h>
 #include <ipc/ipc.h>
 #include <ipc/event.h>
 #include <ipc/kbox.h>
@@ -94,6 +95,9 @@ typedef struct task {
 	
 	/** Task permissions. */
 	perm_t perms;
+
+	/** Sending communication endpoints */
+	kobject_t kobject[MAX_KERNEL_OBJECTS];
 	
 	/* IPC stuff */
 
