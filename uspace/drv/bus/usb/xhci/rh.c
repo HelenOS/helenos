@@ -212,8 +212,8 @@ int xhci_get_hub_port(xhci_trb_t *trb)
 int xhci_reset_hub_port(xhci_hc_t* hc, uint8_t port)
 {
 	usb_log_debug2("Resetting port %u.", port);
-	xhci_port_regs_t regs = hc->op_regs->portrs[port];
-	XHCI_REG_WR(&regs, XHCI_PORT_PR, 1);
+	xhci_port_regs_t *regs = &hc->op_regs->portrs[port-1];
+	XHCI_REG_WR(regs, XHCI_PORT_PR, 1);
 
 	return EOK;
 }
