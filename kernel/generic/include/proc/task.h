@@ -96,7 +96,7 @@ typedef struct task {
 	/** Task permissions. */
 	perm_t perms;
 
-	/** Sending communication endpoints */
+	/** Kernel objects */
 	kobject_t kobject[MAX_KERNEL_OBJECTS];
 	
 	/* IPC stuff */

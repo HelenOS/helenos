@@ -32,33 +32,46 @@
 /** @file
  */
 
-#ifndef KERN_KOBJECT_H_
-#define KERN_KOBJECT_H_
+#include <kobject/kobject.h>
+#include <proc/task.h>
+#include <synch/spinlock.h>
 
-#include <typedefs.h>
+kobject_t *kobject_get_local(int cap, kobject_type_t type)
+{
+	if ((cap < 0) || (cap >= MAX_KERNEL_OBJECTS))
+		return NULL;
+	if (TASK->kobject[cap].type != type)
+		return NULL;
+	return &TASK->kobject[cap];
+}
 
-#define MAX_KERNEL_OBJECTS  64
+int kobject_alloc(task_t *task)
+{
+	int cap;
 
-#define KOBJECT_INVALID_CAP -1
+	irq_spinlock_lock(&task->lock, true);
+	for (cap = 0; cap < MAX_KERNEL_OBJECTS; cap++) {
+		if (task->kobject[cap].type == KOBJECT_TYPE_INVALID) {
+			task->kobject[cap].type = KOBJECT_TYPE_ALLOCATED;
+			irq_spinlock_unlock(&task->lock, true);
+			return cap;
+		}
+	}
+	irq_spinlock_unlock(&task->lock, true);
 
-typedef enum {
-	KOBJECT_TYPE_INVALID,
-	KOBJECT_TYPE_ALLOCATED
-} kobject_type_t;
+	return KOBJECT_INVALID_CAP;
+}
 
-typedef struct {
-	kobject_type_t type;
-	union {
-	};
-} kobject_t;
+void kobject_free(task_t *task, int cap)
+{
+	assert(cap >= 0);
+	assert(cap < MAX_KERNEL_OBJECTS);
+	assert(task->kobject[cap].type != KOBJECT_TYPE_INVALID);
 
-extern kobject_t *kobject_get_local(int, kobject_type_t);
-
-struct task;
-extern int kobject_alloc(struct task *);
-extern void kobject_free(struct task *, int);
-
-#endif
+	irq_spinlock_lock(&task->lock, true);
+	task->kobject[cap].type = KOBJECT_TYPE_INVALID;
+	irq_spinlock_unlock(&task->lock, true);
+}
 
 /** @}
  */
