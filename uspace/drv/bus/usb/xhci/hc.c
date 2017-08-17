@@ -359,14 +359,33 @@ int hc_status(xhci_hc_t *hc, uint32_t *status)
 
 int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
-	// TODO: This function currently contains cmd ring testing
-	//       stuff, remove it.
-	xhci_cmd_t *cmd = xhci_alloc_command();
-	xhci_send_no_op_command(hc, cmd);
-	xhci_wait_for_command(cmd, 1000000);
-	xhci_free_command(cmd);
+	assert(batch);
 
-	return EOK;
+	usb_log_debug2("EP(%d:%d) started %s transfer of size %lu.",
+		batch->ep->address, batch->ep->endpoint,
+		usb_str_transfer_type(batch->ep->transfer_type),
+		batch->buffer_size);
+
+	switch (batch->ep->transfer_type) {
+	case USB_TRANSFER_CONTROL:
+		/* TODO: Send setup stage TRB. */
+		/* TODO: Optionally, send data stage TRB followed by zero or
+			 more normal TRB's. */
+		/* TODO: Send status stage TRB. */
+		/* TODO: Ring the appropriate doorbell. */
+		break;
+	case USB_TRANSFER_ISOCHRONOUS:
+		/* TODO: Implement me. */
+		break;
+	case USB_TRANSFER_BULK:
+		/* TODO: Implement me. */
+		break;
+	case USB_TRANSFER_INTERRUPT:
+		/* TODO: Implement me. */
+		break;
+	}
+
+	return ENAK;
 }
 
 static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
@@ -455,7 +474,7 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 	if (status & XHCI_REG_MASK(XHCI_OP_PCD)) {
 		usb_log_error("Port change detected. Not implemented yet!");
 	}
-	
+
 	if (status & XHCI_REG_MASK(XHCI_OP_SRE)) {
 		usb_log_error("Save/Restore error occured. WTF, S/R mechanism not implemented!");
 	}
