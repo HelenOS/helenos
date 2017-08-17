@@ -32,7 +32,7 @@
 /** @file
  * @brief The roothub structures abstraction.
  */
- 
+
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
@@ -97,7 +97,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
 	    hc->speeds[port_speed_id].tx_bps);
 	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
-	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
+	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], addr_to_phys(ep_ring->dequeue));
 	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
 	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
 	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
@@ -123,6 +123,8 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 
 	xhci_free_command(cmd);
 	ictx = NULL;
+
+        // TODO: Issue configure endpoint commands (sec 4.3.5).
 
 	return EOK;
 
@@ -206,7 +208,7 @@ int xhci_get_hub_port(xhci_trb_t *trb)
 	assert(trb);
 	uint8_t port_id = XHCI_QWORD_EXTRACT(trb->parameter, 31, 24);
 
-	return port_id;   
+	return port_id;
 }
 
 int xhci_reset_hub_port(xhci_hc_t* hc, uint8_t port)
