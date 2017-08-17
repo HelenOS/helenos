@@ -41,6 +41,7 @@
 #include <usb/host/ddf_helpers.h>
 
 #include "hc.h"
+#include "endpoint.h"
 
 #define NAME "xhci"
 
@@ -64,6 +65,8 @@ static const ddf_hc_driver_t xhci_ddf_hc_driver = {
 	.ops = {
 		.schedule       = hcd_schedule,
 		.irq_hook       = hcd_interrupt,
+                .ep_add_hook    = endpoint_init,
+                .ep_remove_hook = endpoint_fini,
 		.status_hook    = hcd_status,
 	}
 };

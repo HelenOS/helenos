@@ -42,6 +42,7 @@ BINARY = xhci
 
 SOURCES = \
 	hc.c \
+	endpoint.c \
 	debug.c \
 	trb_ring.c \
 	scratchpad.c \
