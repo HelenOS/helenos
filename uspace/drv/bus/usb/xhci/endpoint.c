@@ -67,6 +67,12 @@ void endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 		free(xhci_ep);
 	}
 
+	fibril_mutex_lock(&ep->guard);
+	ep->hc_data.data = NULL;
+	ep->hc_data.toggle_get = NULL;
+	ep->hc_data.toggle_set = NULL;
+	fibril_mutex_unlock(&ep->guard);
+
 	usb_log_debug("Endpoint %d:%d destroyed.", ep->address, ep->endpoint);
 }
 
