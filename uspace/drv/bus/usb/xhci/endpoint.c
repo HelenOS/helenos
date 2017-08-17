@@ -39,15 +39,35 @@
 
 int endpoint_init(hcd_t *hcd, endpoint_t *ep)
 {
-	// TODO: Implement me!
-	usb_log_debug("Endpoint initialized.");
-	return ENAK;
+	assert(ep);
+	xhci_endpoint_t *xhci_ep = malloc(sizeof(xhci_endpoint_t));
+	if (xhci_ep == NULL)
+		return ENOMEM;
+
+	/* FIXME: Set xhci_ep->slot_id */
+
+	fibril_mutex_lock(&ep->guard);
+	ep->hc_data.data = xhci_ep;
+	/* FIXME: The two handlers below should be implemented. */
+	ep->hc_data.toggle_get = NULL;
+	ep->hc_data.toggle_set = NULL;
+	fibril_mutex_unlock(&ep->guard);
+
+	usb_log_debug("Endpoint %d:%d initialized.", ep->address, ep->endpoint);
+	return EOK;
 }
 
 void endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 {
-	// TODO: Implement me!
-	usb_log_debug("Endpoint destroyed.");
+	assert(hcd);
+	assert(ep);
+	xhci_endpoint_t *xhci_ep = endpoint_get(ep);
+	/* FIXME: Tear down TR's? */
+	if (xhci_ep) {
+		free(xhci_ep);
+	}
+
+	usb_log_debug("Endpoint %d:%d destroyed.", ep->address, ep->endpoint);
 }
 
 /**
