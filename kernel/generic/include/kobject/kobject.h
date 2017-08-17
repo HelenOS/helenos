@@ -36,6 +36,7 @@
 #define KERN_KOBJECT_H_
 
 #include <typedefs.h>
+#include <ipc/ipc.h>
 
 #define MAX_KERNEL_OBJECTS  64
 
@@ -43,18 +44,24 @@
 
 typedef enum {
 	KOBJECT_TYPE_INVALID,
-	KOBJECT_TYPE_ALLOCATED
+	KOBJECT_TYPE_ALLOCATED,
+	KOBJECT_TYPE_PHONE
 } kobject_type_t;
 
-typedef struct {
+typedef struct kobject {
 	kobject_type_t type;
+	bool (* can_reclaim)(struct kobject *);
+
 	union {
+		phone_t phone;
 	};
 } kobject_t;
 
-extern kobject_t *kobject_get_local(int, kobject_type_t);
-
 struct task;
+
+extern void kobject_init(kobject_t *);
+extern kobject_t *kobject_get(struct task *, int, kobject_type_t);
+extern kobject_t *kobject_get_current(int, kobject_type_t);
 extern int kobject_alloc(struct task *);
 extern void kobject_free(struct task *, int);
 

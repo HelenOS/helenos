@@ -104,9 +104,6 @@ typedef struct task {
 	/** Receiving communication endpoint */
 	answerbox_t answerbox;
 
-	/** Sending communication endpoints */
-	phone_t phones[IPC_MAX_PHONES];
-
 	/** Spinlock protecting the active_calls list. */
 	SPINLOCK_DECLARE(active_calls_lock);
 

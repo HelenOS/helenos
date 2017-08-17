@@ -42,10 +42,10 @@
 
 static int request_preprocess(call_t *call, phone_t *phone)
 {
-	phone_t *sender_phone;
 	task_t *other_task_s;
 
-	if (phone_get(IPC_GET_ARG5(call->data), &sender_phone) != EOK)
+	phone_t *sender_phone = phone_get_current(IPC_GET_ARG5(call->data));
+	if (!sender_phone)
 		return ENOENT;
 
 	mutex_lock(&sender_phone->lock);
@@ -74,9 +74,8 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		task_t *other_task_s;
 		task_t *other_task_r;
 
-		rc = phone_get(IPC_GET_ARG1(answer->data),
-		    &recipient_phone);
-		if (rc != EOK) {
+		recipient_phone = phone_get_current(IPC_GET_ARG1(answer->data));
+		if (!recipient_phone) {
 			IPC_SET_RETVAL(answer->data, ENOENT);
 			return ENOENT;
 		}

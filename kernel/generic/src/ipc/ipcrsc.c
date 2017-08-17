@@ -161,68 +161,58 @@ call_t *get_call(sysarg_t callid)
 	return result;
 }
 
-/** Get phone from the current task by ID.
+/** Get phone from the current task by capability.
  *
- * @param phoneid Phone ID.
- * @param phone   Place to store pointer to phone.
+ * @param cap    Phone capability.
+ * @param phone  Place to store pointer to phone.
  *
- * @return EOK on success, EINVAL if ID is invalid.
+ * @return  Address of the phone kernel object.
+ * @return  NULL if the capability is invalid.
  *
  */
-int phone_get(sysarg_t phoneid, phone_t **phone)
+phone_t *phone_get(task_t *task, int cap)
 {
-	if (phoneid >= IPC_MAX_PHONES)
-		return EINVAL;
+	kobject_t *kobj = kobject_get(task, cap, KOBJECT_TYPE_PHONE);
+	if (!kobj)
+		return NULL;
 	
-	*phone = &TASK->phones[phoneid];
-	return EOK;
+	return &kobj->phone;
 }
 
-/** Allocate new phone slot in the specified task.
+phone_t *phone_get_current(int cap)
+{
+	return phone_get(TASK, cap);
+}
+
+static bool phone_can_reclaim(kobject_t *kobj)
+{
+	assert(kobj->type == KOBJECT_TYPE_PHONE);
+
+	return (kobj->phone.state == IPC_PHONE_HUNGUP) &&
+	    (atomic_get(&kobj->phone.active_calls) == 0);
+}
+
+/** Allocate new phone in the specified task.
  *
- * @param task Task for which to allocate a new phone.
+ * @param task  Task for which to allocate a new phone.
  *
- * @return New phone handle or -1 if the phone handle limit is
- *         exceeded.
- *
+ * @return  New phone capability.
+ * @return  KOBJECT_INVALID_CAP if a new capability cannot be allocated.
  */
 int phone_alloc(task_t *task)
 {
-	irq_spinlock_lock(&task->lock, true);
-	
-	size_t i;
-	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		phone_t *phone = &task->phones[i];
-
-		if ((phone->state == IPC_PHONE_HUNGUP) &&
-		    (atomic_get(&phone->active_calls) == 0))
-			phone->state = IPC_PHONE_FREE;
-		
-		if (phone->state == IPC_PHONE_FREE) {
-			phone->state = IPC_PHONE_CONNECTING;
-			break;
-		}
+	int cap = kobject_alloc(task);
+	if (cap != KOBJECT_INVALID_CAP) {
+		irq_spinlock_lock(&task->lock, true);
+		kobject_t *kobj = &task->kobject[cap];
+		ipc_phone_init(&kobj->phone, task);
+		kobj->type = KOBJECT_TYPE_PHONE;
+		kobj->can_reclaim = phone_can_reclaim;
+		kobj->phone.state = IPC_PHONE_CONNECTING;
+		irq_spinlock_unlock(&task->lock, true);
 	}
 	
-	irq_spinlock_unlock(&task->lock, true);
-	
-	if (i == IPC_MAX_PHONES)
-		return -1;
-	
-	return i;
-}
-
-/** Mark a phone structure free.
- *
- * @param phone Phone structure to be marked free.
- *
- */
-static void phone_deallocp(phone_t *phone)
-{
-	assert(phone->state == IPC_PHONE_CONNECTING);
-	
-	/* Atomic operation */
-	phone->state = IPC_PHONE_FREE;
+	return cap;
 }
 
 /** Free slot from a disconnected phone.
@@ -232,27 +222,34 @@ static void phone_deallocp(phone_t *phone)
  * @param phoneid Phone handle of the phone to be freed.
  *
  */
-void phone_dealloc(int phoneid)
+void phone_dealloc(int cap)
 {
-	phone_deallocp(&TASK->phones[phoneid]);
+	phone_t *phone = phone_get_current(cap);
+	
+	assert(phone);
+	assert(phone->state == IPC_PHONE_CONNECTING);
+
+	kobject_free(TASK, cap);
 }
 
 /** Connect phone to a given answerbox.
  *
- * @param phoneid Phone handle to be connected.
- * @param box     Answerbox to which to connect the phone handle.
- * @return        True if the phone was connected, false otherwise.
+ * @param cap  Phone capability to be connected.
+ * @param box  Answerbox to which to connect the phone capability.
+ * @return     True if the phone was connected, false otherwise.
  *
- * The procedure _enforces_ that the user first marks the phone
- * busy (e.g. via phone_alloc) and then connects the phone, otherwise
- * race condition may appear.
+ * The procedure _enforces_ that the user first marks the phone busy (e.g. via
+ * phone_alloc) and then connects the phone, otherwise race condition may
+ * appear.
  *
  */
-bool phone_connect(int phoneid, answerbox_t *box)
+bool phone_connect(int cap, answerbox_t *box)
 {
-	phone_t *phone = &TASK->phones[phoneid];
+	phone_t *phone = phone_get_current(cap);
 	
+	assert(phone);
 	assert(phone->state == IPC_PHONE_CONNECTING);
+	
 	return ipc_phone_connect(phone, box);
 }
 

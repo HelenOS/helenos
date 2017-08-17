@@ -60,19 +60,18 @@ static void phones_unlock(phone_t *p1, phone_t *p2)
 
 static int request_preprocess(call_t *call, phone_t *phone)
 {
-	phone_t *cloned_phone;
-
-	if (phone_get(IPC_GET_ARG1(call->data), &cloned_phone) != EOK)
+	phone_t *cloned_phone = phone_get_current(IPC_GET_ARG1(call->data));
+	if (!cloned_phone)
 		return ENOENT;
-		
+	
 	phones_lock(cloned_phone, phone);
-		
+	
 	if ((cloned_phone->state != IPC_PHONE_CONNECTED) ||
 	    phone->state != IPC_PHONE_CONNECTED) {
 		phones_unlock(cloned_phone, phone);
 		return EINVAL;
 	}
-		
+	
 	/*
 	 * We can be pretty sure now that both tasks exist and we are
 	 * connected to them. As we continue to hold the phone locks,
@@ -80,26 +79,26 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	 * potential cleanup.
 	 *
 	 */
-	int newphid = phone_alloc(phone->callee->task);
-	if (newphid < 0) {
+	int cap = phone_alloc(phone->callee->task);
+	if (cap < 0) {
 		phones_unlock(cloned_phone, phone);
 		return ELIMIT;
 	}
-		
-	(void) ipc_phone_connect(&phone->callee->task->phones[newphid],
+	
+	(void) ipc_phone_connect(phone_get(phone->callee->task, cap),
 	    cloned_phone->callee);
 	phones_unlock(cloned_phone, phone);
-		
+	
 	/* Set the new phone for the callee. */
-	IPC_SET_ARG1(call->data, newphid);
+	IPC_SET_ARG1(call->data, cap);
 
 	return EOK;
 }
 
 static int answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
-	int phoneid = (int) IPC_GET_ARG1(*olddata);
-	phone_t *phone = &TASK->phones[phoneid];
+	int cap = (int) IPC_GET_ARG1(*olddata);
+	phone_t *phone = phone_get_current(cap);
 
 	/*
 	 * In this case, the connection was established at the request

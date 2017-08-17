@@ -41,36 +41,36 @@
 
 static int request_process(call_t *call, answerbox_t *box)
 {
-	int phoneid = phone_alloc(TASK);
+	int cap = phone_alloc(TASK);
 
-	IPC_SET_ARG5(call->data, phoneid);
+	IPC_SET_ARG5(call->data, cap);
 	
 	return EOK;
 }
 
 static int answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
-	int phoneid = (int) IPC_GET_ARG5(*olddata);
+	int cap = (int) IPC_GET_ARG5(*olddata);
 
-	if (phoneid >= 0)
-		phone_dealloc(phoneid);
+	if (cap >= 0)
+		phone_dealloc(cap);
 
 	return EOK;
 }
 
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	int phoneid = (int) IPC_GET_ARG5(*olddata);
+	int cap = (int) IPC_GET_ARG5(*olddata);
 
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/* The connection was not accepted */
 		answer_cleanup(answer, olddata);
-	} else if (phoneid >= 0) {
+	} else if (cap >= 0) {
 		/* The connection was accepted */
-		if (phone_connect(phoneid, &answer->sender->answerbox)) {
+		if (phone_connect(cap, &answer->sender->answerbox)) {
 			/* Set 'phone hash' as arg5 of response */
 			IPC_SET_ARG5(answer->data,
-			    (sysarg_t) &TASK->phones[phoneid]);
+			    (sysarg_t) phone_get_current(cap));
 		} else {
 			/* The answerbox is shutting down. */
 			IPC_SET_RETVAL(answer->data, ENOENT);

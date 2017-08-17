@@ -36,13 +36,24 @@
 #include <proc/task.h>
 #include <synch/spinlock.h>
 
-kobject_t *kobject_get_local(int cap, kobject_type_t type)
+void kobject_init(kobject_t *kobj)
+{
+	kobj->type = KOBJECT_TYPE_INVALID;
+	kobj->can_reclaim = NULL;
+}
+
+kobject_t *kobject_get(task_t *task, int cap, kobject_type_t type)
 {
 	if ((cap < 0) || (cap >= MAX_KERNEL_OBJECTS))
 		return NULL;
-	if (TASK->kobject[cap].type != type)
+	if (task->kobject[cap].type != type)
 		return NULL;
-	return &TASK->kobject[cap];
+	return &task->kobject[cap];
+}
+
+kobject_t *kobject_get_current(int cap, kobject_type_t type)
+{
+	return kobject_get(TASK, cap, type);
 }
 
 int kobject_alloc(task_t *task)
@@ -51,8 +62,13 @@ int kobject_alloc(task_t *task)
 
 	irq_spinlock_lock(&task->lock, true);
 	for (cap = 0; cap < MAX_KERNEL_OBJECTS; cap++) {
-		if (task->kobject[cap].type == KOBJECT_TYPE_INVALID) {
-			task->kobject[cap].type = KOBJECT_TYPE_ALLOCATED;
+		kobject_t *kobj = &task->kobject[cap];
+		if (kobj->type > KOBJECT_TYPE_ALLOCATED) {
+			if (kobj->can_reclaim && kobj->can_reclaim(kobj))
+				kobject_init(kobj);
+		}
+		if (kobj->type == KOBJECT_TYPE_INVALID) {
+			kobj->type = KOBJECT_TYPE_ALLOCATED;
 			irq_spinlock_unlock(&task->lock, true);
 			return cap;
 		}
@@ -69,7 +85,7 @@ void kobject_free(task_t *task, int cap)
 	assert(task->kobject[cap].type != KOBJECT_TYPE_INVALID);
 
 	irq_spinlock_lock(&task->lock, true);
-	task->kobject[cap].type = KOBJECT_TYPE_INVALID;
+	kobject_init(&task->kobject[cap]);
 	irq_spinlock_unlock(&task->lock, true);
 }
 

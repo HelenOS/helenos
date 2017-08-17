@@ -263,18 +263,18 @@ static int process_request(answerbox_t *box, call_t *call)
 
 /** Make a call over IPC and wait for reply.
  *
- * @param phoneid     Phone handle for the call.
- * @param data[inout] Structure with request/reply data.
- * @param priv        Value to be stored in call->priv.
+ * @param phone_cap    Phone capability for the call.
+ * @param data[inout]  Structure with request/reply data.
+ * @param priv         Value to be stored in call->priv.
  *
  * @return EOK on success.
  * @return ENOENT if there is no such phone handle.
  *
  */
-int ipc_req_internal(int phoneid, ipc_data_t *data, sysarg_t priv)
+int ipc_req_internal(int phone_cap, ipc_data_t *data, sysarg_t priv)
 {
-	phone_t *phone;
-	if (phone_get(phoneid, &phone) != EOK)
+	phone_t *phone = phone_get_current(phone_cap);
+	if (!phone)
 		return ENOENT;
 	
 	call_t *call = ipc_call_alloc(0);
@@ -349,12 +349,12 @@ static int check_call_limit(phone_t *phone)
  * This function can only handle four arguments of payload, but is faster than
  * the generic function sys_ipc_call_async_slow().
  *
- * @param phoneid Phone handle for the call.
- * @param imethod Interface and method of the call.
- * @param arg1    Service-defined payload argument.
- * @param arg2    Service-defined payload argument.
- * @param arg3    Service-defined payload argument.
- * @param arg4    Service-defined payload argument.
+ * @param phone_cap  Phone capability for the call.
+ * @param imethod    Interface and method of the call.
+ * @param arg1       Service-defined payload argument.
+ * @param arg2       Service-defined payload argument.
+ * @param arg3       Service-defined payload argument.
+ * @param arg4       Service-defined payload argument.
  *
  * @return Call hash on success.
  * @return IPC_CALLRET_FATAL in case of a fatal error.
@@ -362,11 +362,11 @@ static int check_call_limit(phone_t *phone)
  *         asynchronous requests; answers should be handled first.
  *
  */
-sysarg_t sys_ipc_call_async_fast(sysarg_t phoneid, sysarg_t imethod,
+sysarg_t sys_ipc_call_async_fast(sysarg_t phone_cap, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
-	phone_t *phone;
-	if (phone_get(phoneid, &phone) != EOK)
+	phone_t *phone = phone_get_current(phone_cap);
+	if (!phone)
 		return IPC_CALLRET_FATAL;
 	
 	if (check_call_limit(phone))
@@ -397,16 +397,16 @@ sysarg_t sys_ipc_call_async_fast(sysarg_t phoneid, sysarg_t imethod,
 
 /** Make an asynchronous IPC call allowing to transmit the entire payload.
  *
- * @param phoneid Phone handle for the call.
- * @param data    Userspace address of call data with the request.
+ * @param phone_cap  Phone capability for the call.
+ * @param data       Userspace address of call data with the request.
  *
  * @return See sys_ipc_call_async_fast().
  *
  */
-sysarg_t sys_ipc_call_async_slow(sysarg_t phoneid, ipc_data_t *data)
+sysarg_t sys_ipc_call_async_slow(sysarg_t phone_cap, ipc_data_t *data)
 {
-	phone_t *phone;
-	if (phone_get(phoneid, &phone) != EOK)
+	phone_t *phone = phone_get_current(phone_cap);
+	if (!phone)
 		return IPC_CALLRET_FATAL;
 
 	if (check_call_limit(phone))
@@ -434,25 +434,25 @@ sysarg_t sys_ipc_call_async_slow(sysarg_t phoneid, ipc_data_t *data)
  *
  * Common code for both the fast and the slow version.
  *
- * @param callid  Hash of the call to forward.
- * @param phoneid Phone handle to use for forwarding.
- * @param imethod New interface and method to use for the forwarded call.
- * @param arg1    New value of the first argument for the forwarded call.
- * @param arg2    New value of the second argument for the forwarded call.
- * @param arg3    New value of the third argument for the forwarded call.
- * @param arg4    New value of the fourth argument for the forwarded call.
- * @param arg5    New value of the fifth argument for the forwarded call.
- * @param mode    Flags that specify mode of the forward operation.
- * @param slow    If true, arg3, arg4 and arg5 are considered. Otherwise
- *                the function considers only the fast version arguments:
- *                i.e. arg1 and arg2.
+ * @param callid     Hash of the call to forward.
+ * @param phone_cap  Phone capability to use for forwarding.
+ * @param imethod    New interface and method to use for the forwarded call.
+ * @param arg1       New value of the first argument for the forwarded call.
+ * @param arg2       New value of the second argument for the forwarded call.
+ * @param arg3       New value of the third argument for the forwarded call.
+ * @param arg4       New value of the fourth argument for the forwarded call.
+ * @param arg5       New value of the fifth argument for the forwarded call.
+ * @param mode       Flags that specify mode of the forward operation.
+ * @param slow       If true, arg3, arg4 and arg5 are considered. Otherwise
+ *                   the function considers only the fast version arguments:
+ *                   i.e. arg1 and arg2.
  *
  * @return 0 on succes, otherwise an error code.
  *
  * Warning: Make sure that ARG5 is not rewritten for certain system IPC
  *
  */
-static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
+static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phone_cap,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode, bool slow)
 {
@@ -467,9 +467,9 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 	
 	bool after_forward = false;
 	int rc;
-	phone_t *phone;
-	
-	if (phone_get(phoneid, &phone) != EOK) {
+
+	phone_t *phone = phone_get_current(phone_cap);
+	if (!phone) {
 		rc = ENOENT;
 		goto error;
 	}
@@ -684,16 +684,15 @@ sysarg_t sys_ipc_answer_slow(sysarg_t callid, ipc_data_t *data)
 
 /** Hang up a phone.
  *
- * @param Phone handle of the phone to be hung up.
+ * @param phone_cap  Phone capability of the phone to be hung up.
  *
  * @return 0 on success or an error code.
  *
  */
-sysarg_t sys_ipc_hangup(sysarg_t phoneid)
+sysarg_t sys_ipc_hangup(sysarg_t phone_cap)
 {
-	phone_t *phone;
-	
-	if (phone_get(phoneid, &phone) != EOK)
+	phone_t *phone = phone_get_current(phone_cap);
+	if (!phone)
 		return ENOENT;
 	
 	if (ipc_phone_hangup(phone))

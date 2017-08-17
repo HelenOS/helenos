@@ -41,15 +41,15 @@
 
 static int request_preprocess(call_t *call, phone_t *phone)
 {
-	int newphid = phone_alloc(TASK);
+	int cap = phone_alloc(TASK);
 
-	/* Remember the phoneid or the error. */
-	call->priv = newphid;
-	if (newphid < 0)
+	/* Remember the phone capability or the error. */
+	call->priv = cap;
+	if (cap < 0)
 		return ELIMIT;
 		
 	/* Set arg5 for server */
-	IPC_SET_ARG5(call->data, (sysarg_t) &TASK->phones[newphid]);
+	IPC_SET_ARG5(call->data, (sysarg_t) phone_get_current(cap));
 
 	return EOK;
 }
@@ -73,18 +73,18 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 static int answer_process(call_t *answer)
 {
-	int newphid = (int) answer->priv;
+	int cap = (int) answer->priv;
 
 	if (IPC_GET_RETVAL(answer->data)) {
-		if (newphid >= 0) {
+		if (cap >= 0) {
 			/*
 			 * The phone was indeed allocated and now needs
 			 * to be deallocated.
 			 */
-			phone_dealloc(newphid);
+			phone_dealloc(cap);
 		}
 	} else {
-		IPC_SET_ARG5(answer->data, newphid);
+		IPC_SET_ARG5(answer->data, cap);
 	}
 	
 	return EOK;

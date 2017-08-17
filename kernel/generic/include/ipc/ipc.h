@@ -42,8 +42,6 @@
 #include <abi/proc/task.h>
 #include <typedefs.h>
 
-#define IPC_MAX_PHONES  64
-
 struct answerbox;
 struct task;
 

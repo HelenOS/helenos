@@ -42,6 +42,7 @@
 #include <synch/mutex.h>
 #include <synch/waitq.h>
 #include <ipc/ipc.h>
+#include <ipc/ipcrsc.h>
 #include <abi/ipc/methods.h>
 #include <ipc/kbox.h>
 #include <ipc/event.h>
@@ -739,10 +740,12 @@ restart:
 	 * Go through all phones, until they are all free.
 	 * Locking is needed as there may be connection handshakes in progress.
 	 */
-	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		phone_t *phone = &TASK->phones[i];
+	for (i = 0; i < MAX_KERNEL_OBJECTS; i++) {
+		phone_t *phone = phone_get_current(i);
+		if (!phone)
+			continue;
 
-		mutex_lock(&phone->lock);	
+		mutex_lock(&phone->lock);
 		if ((phone->state == IPC_PHONE_HUNGUP) &&
 		    (atomic_get(&phone->active_calls) == 0)) {
 			phone->state = IPC_PHONE_FREE;
@@ -783,7 +786,7 @@ restart:
 	}
 		
 	/* Got into cleanup */
-	if (i == IPC_MAX_PHONES)
+	if (i == MAX_KERNEL_OBJECTS)
 		return;
 		
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
@@ -815,8 +818,12 @@ void ipc_cleanup(void)
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	for (size_t i = 0; i < IPC_MAX_PHONES; i++)
-		ipc_phone_hangup(&TASK->phones[i]);
+	for (int i = 0; i < MAX_KERNEL_OBJECTS; i++) {
+		phone_t *phone = phone_get_current(i);
+		if (!phone)
+			continue;
+		ipc_phone_hangup(phone);
+	}
 	
 	/* Unsubscribe from any event notifications. */
 	event_cleanup_answerbox(&TASK->answerbox);
@@ -902,35 +909,37 @@ void ipc_print_task(task_id_t taskid)
 	/* Hand-over-hand locking */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	
-	printf("[phone id] [calls] [state\n");
+	printf("[phone cap] [calls] [state\n");
 	
 	size_t i;
-	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		if (SYNCH_FAILED(mutex_trylock(&task->phones[i].lock))) {
+	for (i = 0; i < MAX_KERNEL_OBJECTS; i++) {
+		phone_t *phone = phone_get(task, i);
+		if (!phone)
+			continue;
+
+		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
 			printf("%-10zu (mutex busy)\n", i);
 			continue;
 		}
 		
-		if (task->phones[i].state != IPC_PHONE_FREE) {
-			printf("%-10zu %7" PRIun " ", i,
-			    atomic_get(&task->phones[i].active_calls));
+		if (phone->state != IPC_PHONE_FREE) {
+			printf("%-11zu %7" PRIun " ", i,
+			    atomic_get(&phone->active_calls));
 			
-			switch (task->phones[i].state) {
+			switch (phone->state) {
 			case IPC_PHONE_CONNECTING:
 				printf("connecting");
 				break;
 			case IPC_PHONE_CONNECTED:
 				printf("connected to %" PRIu64 " (%s)",
-				    task->phones[i].callee->task->taskid,
-				    task->phones[i].callee->task->name);
+				    phone->callee->task->taskid,
+				    phone->callee->task->name);
 				break;
 			case IPC_PHONE_SLAMMED:
-				printf("slammed by %p",
-				    task->phones[i].callee);
+				printf("slammed by %p", phone->callee);
 				break;
 			case IPC_PHONE_HUNGUP:
-				printf("hung up by %p",
-				    task->phones[i].callee);
+				printf("hung up by %p", phone->callee);
 				break;
 			default:
 				break;
@@ -939,7 +948,7 @@ void ipc_print_task(task_id_t taskid)
 			printf("\n");
 		}
 		
-		mutex_unlock(&task->phones[i].lock);
+		mutex_unlock(&phone->lock);
 	}
 	
 	irq_spinlock_lock(&task->answerbox.lock, false);

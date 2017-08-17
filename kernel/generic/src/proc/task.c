@@ -165,13 +165,13 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
 	
 	list_initialize(&task->threads);
+
+	int cap;
+	for (cap = 0; cap < MAX_KERNEL_OBJECTS; cap++)
+		kobject_init(&task->kobject[cap]);
 	
 	ipc_answerbox_init(&task->answerbox, task);
 	
-	size_t i;
-	for (i = 0; i < IPC_MAX_PHONES; i++)
-		ipc_phone_init(&task->phones[i], task);
-
 	spinlock_initialize(&task->active_calls_lock, "active_calls_lock");
 	list_initialize(&task->active_calls);
 		
@@ -227,8 +227,11 @@ task_t *task_create(as_t *as, const char *name)
 #endif
 	
 	if ((ipc_phone_0) &&
-	    (container_check(ipc_phone_0->task->container, task->container)))
-		(void) ipc_phone_connect(&task->phones[0], ipc_phone_0);
+	    (container_check(ipc_phone_0->task->container, task->container))) {
+		int cap = phone_alloc(task);
+		assert(cap == 0);
+		(void) ipc_phone_connect(phone_get(task, 0), ipc_phone_0);
+	}
 	
 	futex_task_init(task);
 	
@@ -610,10 +613,11 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #endif
 	
 	if (*additional) {
-		size_t i;
-		for (i = 0; i < IPC_MAX_PHONES; i++) {
-			if (task->phones[i].callee)
-				printf(" %zu:%p", i, task->phones[i].callee);
+		int i;
+		for (i = 0; i < MAX_KERNEL_OBJECTS; i++) {
+			phone_t *phone = phone_get(task, i);
+			if (phone && phone->callee)
+				printf(" %d:%p", i, phone->callee);
 		}
 		printf("\n");
 	}
