@@ -53,7 +53,7 @@ void endpoint_fini(hcd_t *hcd, endpoint_t *ep);
 static inline xhci_endpoint_t * endpoint_get(const endpoint_t *ep)
 {
   assert(ep);
-	return ep->hc_data.data;
+  return ep->hc_data.data;
 }
 
 #endif
