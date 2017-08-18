@@ -97,8 +97,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
 	    hc->speeds[port_speed_id].tx_bps);
 	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
-	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0],
-		addr_to_phys((void *)ep_ring->dequeue));
+	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
 	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
 	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
 	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
