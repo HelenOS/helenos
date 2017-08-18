@@ -83,6 +83,7 @@
 #include <console/console.h>
 #include <print.h>
 #include <macros.h>
+#include <kobject/kobject.h>
 
 static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
 {
@@ -297,7 +298,8 @@ error:
  *                notification.
  * @param ucode   Uspace pointer to top-half pseudocode.
  *
- * @return EOK on success or a negative error code.
+ * @return  IRQ capability.
+ * @return  Negative error code.
  *
  */
 int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
@@ -320,10 +322,16 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
 		code = NULL;
 	
 	/*
-	 * Allocate and populate the IRQ structure.
+	 * Allocate and populate the IRQ kernel object.
 	 */
-	irq_t *irq = malloc(sizeof(irq_t), 0);
-	
+	int cap = kobject_alloc(TASK);
+	if (cap < 0)
+		return cap;
+	kobject_t *kobj = kobject_get_current(cap, KOBJECT_TYPE_ALLOCATED);
+	assert(kobj);
+	kobj->type = KOBJECT_TYPE_IRQ;
+
+	irq_t *irq = &kobj->irq;
 	irq_initialize(irq);
 	irq->devno = devno;
 	irq->inr = inr;
@@ -350,7 +358,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
 		code_free(code);
 		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 		
-		free(irq);
+		kobject_free(TASK, cap);
 		return EEXIST;
 	}
 	
@@ -365,38 +373,26 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 	
-	return EOK;
+	return cap;
 }
 
 /** Unsubscribe task from IRQ notification.
  *
- * @param box   Answerbox associated with the notification.
- * @param inr   IRQ number.
- * @param devno Device number.
+ * @param box      Answerbox associated with the notification.
+ * @param irq_cap  IRQ capability.
  *
  * @return EOK on success or a negative error code.
  *
  */
-int ipc_irq_unsubscribe(answerbox_t *box, inr_t inr, devno_t devno)
+int ipc_irq_unsubscribe(answerbox_t *box, int irq_cap)
 {
-	sysarg_t key[] = {
-		(sysarg_t) inr,
-		(sysarg_t) devno
-	};
-	
-	if ((inr < 0) || (inr > last_inr))
-		return ELIMIT;
-	
-	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-	link_t *lnk = hash_table_find(&irq_uspace_hash_table, key);
-	if (!lnk) {
-		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
+	kobject_t *kobj = kobject_get_current(irq_cap, KOBJECT_TYPE_IRQ);
+	if (!kobj)
 		return ENOENT;
-	}
-	
-	irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
-	
-	/* irq is locked */
+	irq_t *irq = &kobj->irq;
+
+	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
+	irq_spinlock_lock(&irq->lock, false);
 	irq_spinlock_lock(&box->irq_lock, false);
 	
 	assert(irq->notif_cfg.answerbox == box);
@@ -404,35 +400,26 @@ int ipc_irq_unsubscribe(answerbox_t *box, inr_t inr, devno_t devno)
 	/* Remove the IRQ from the answerbox's list. */
 	list_remove(&irq->notif_cfg.link);
 	
-	/*
-	 * We need to drop the IRQ lock now because hash_table_remove() will try
-	 * to reacquire it. That basically violates the natural locking order,
-	 * but a deadlock in hash_table_remove() is prevented by the fact that
-	 * we already held the IRQ lock and didn't drop the hash table lock in
-	 * the meantime.
-	 */
-	irq_spinlock_unlock(&irq->lock, false);
-	
 	/* Remove the IRQ from the uspace IRQ hash table. */
-	hash_table_remove(&irq_uspace_hash_table, key, 2);
+	hash_table_remove_item(&irq_uspace_hash_table, &irq->link);
 	
 	irq_spinlock_unlock(&box->irq_lock, false);
+	/* irq->lock unlocked by the hash table remove_callback */
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 	
 	/* Free up the pseudo code and associated structures. */
 	code_free(irq->notif_cfg.code);
 	
-	/* Free up the IRQ structure. */
-	free(irq);
+	/* Free up the IRQ kernel object. */
+	kobject_free(TASK, irq_cap);
 	
 	return EOK;
 }
 
 /** Disconnect all IRQ notifications from an answerbox.
  *
- * This function is effective because the answerbox contains
- * list of all irq_t structures that are subscribed to
- * send notifications to it.
+ * This function is effective because the answerbox contains list of all irq_t
+ * structures that are subscribed to send notifications to it.
  *
  * @param box Answerbox for which we want to carry out the cleanup.
  *
@@ -459,26 +446,13 @@ loop:
 			goto loop;
 		}
 		
-		sysarg_t key[2];
-		key[0] = irq->inr;
-		key[1] = irq->devno;
-		
 		assert(irq->notif_cfg.answerbox == box);
 		
 		/* Unlist from the answerbox. */
 		list_remove(&irq->notif_cfg.link);
 		
-		/*
-		 * We need to drop the IRQ lock now because hash_table_remove()
-		 * will try to reacquire it. That basically violates the natural
-		 * locking order, but a deadlock in hash_table_remove() is
-		 * prevented by the fact that we already held the IRQ lock and
-		 * didn't drop the hash table lock in the meantime.
-		 */
-		irq_spinlock_unlock(&irq->lock, false);
-		
 		/* Remove from the hash table. */
-		hash_table_remove(&irq_uspace_hash_table, key, 2);
+		hash_table_remove_item(&irq_uspace_hash_table, &irq->link);
 		
 		/*
 		 * Release both locks so that we can free the pseudo code.
@@ -487,7 +461,9 @@ loop:
 		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 		
 		code_free(irq->notif_cfg.code);
-		free(irq);
+		
+		// XXX: what to do about the irq capability? The task is in
+		// clean-up anyway.
 		
 		/* Reacquire both locks before taking another round. */
 		irq_spinlock_lock(&irq_uspace_hash_table_lock, true);

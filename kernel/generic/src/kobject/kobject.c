@@ -35,8 +35,9 @@
 #include <kobject/kobject.h>
 #include <proc/task.h>
 #include <synch/spinlock.h>
+#include <abi/errno.h>
 
-void kobject_init(kobject_t *kobj)
+void kobject_initialize(kobject_t *kobj)
 {
 	kobj->type = KOBJECT_TYPE_INVALID;
 	kobj->can_reclaim = NULL;
@@ -65,7 +66,7 @@ int kobject_alloc(task_t *task)
 		kobject_t *kobj = &task->kobject[cap];
 		if (kobj->type > KOBJECT_TYPE_ALLOCATED) {
 			if (kobj->can_reclaim && kobj->can_reclaim(kobj))
-				kobject_init(kobj);
+				kobject_initialize(kobj);
 		}
 		if (kobj->type == KOBJECT_TYPE_INVALID) {
 			kobj->type = KOBJECT_TYPE_ALLOCATED;
@@ -75,7 +76,7 @@ int kobject_alloc(task_t *task)
 	}
 	irq_spinlock_unlock(&task->lock, true);
 
-	return KOBJECT_INVALID_CAP;
+	return ELIMIT;
 }
 
 void kobject_free(task_t *task, int cap)
@@ -85,7 +86,7 @@ void kobject_free(task_t *task, int cap)
 	assert(task->kobject[cap].type != KOBJECT_TYPE_INVALID);
 
 	irq_spinlock_lock(&task->lock, true);
-	kobject_init(&task->kobject[cap]);
+	kobject_initialize(&task->kobject[cap]);
 	irq_spinlock_unlock(&task->lock, true);
 }
 

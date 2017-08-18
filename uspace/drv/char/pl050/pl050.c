@@ -211,9 +211,10 @@ static int pl050_init(pl050_t *pl050)
 
 	pl050->regs = regs;
 
-	rc = register_interrupt_handler(pl050->dev, res.irqs.irqs[0],
-	    pl050_interrupt, &pl050_irq_code);
-	if (rc != EOK) {
+	const int irq_cap = register_interrupt_handler(pl050->dev,
+	    res.irqs.irqs[0], pl050_interrupt, &pl050_irq_code);
+	if (irq_cap < 0) {
+		rc = irq_cap;
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
 		    rc);
 		goto error;

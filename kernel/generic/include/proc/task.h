@@ -36,7 +36,6 @@
 #define KERN_TASK_H_
 
 #include <cpu.h>
-#include <kobject/kobject.h>
 #include <ipc/ipc.h>
 #include <ipc/event.h>
 #include <ipc/kbox.h>
@@ -65,6 +64,7 @@
 
 
 struct thread;
+struct kobject;
 
 /** Task structure. */
 typedef struct task {
@@ -97,7 +97,7 @@ typedef struct task {
 	perm_t perms;
 
 	/** Kernel objects */
-	kobject_t kobject[MAX_KERNEL_OBJECTS];
+	struct kobject *kobject;
 	
 	/* IPC stuff */
 

@@ -37,15 +37,15 @@
 
 #include <typedefs.h>
 #include <ipc/ipc.h>
+#include <ddi/irq.h>
 
 #define MAX_KERNEL_OBJECTS  64
-
-#define KOBJECT_INVALID_CAP -1
 
 typedef enum {
 	KOBJECT_TYPE_INVALID,
 	KOBJECT_TYPE_ALLOCATED,
-	KOBJECT_TYPE_PHONE
+	KOBJECT_TYPE_PHONE,
+	KOBJECT_TYPE_IRQ
 } kobject_type_t;
 
 typedef struct kobject {
@@ -54,12 +54,13 @@ typedef struct kobject {
 
 	union {
 		phone_t phone;
+		irq_t irq;
 	};
 } kobject_t;
 
 struct task;
 
-extern void kobject_init(kobject_t *);
+extern void kobject_initialize(kobject_t *);
 extern kobject_t *kobject_get(struct task *, int, kobject_type_t);
 extern kobject_t *kobject_get_current(int, kobject_type_t);
 extern int kobject_alloc(struct task *);

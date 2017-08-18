@@ -49,6 +49,7 @@
 #include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>
+#include <kobject/kobject.h>
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
 #include <ipc/event.h>
@@ -165,10 +166,8 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
 	
 	list_initialize(&task->threads);
-
-	int cap;
-	for (cap = 0; cap < MAX_KERNEL_OBJECTS; cap++)
-		kobject_init(&task->kobject[cap]);
+	
+	task->kobject = malloc(sizeof(kobject_t) * MAX_KERNEL_OBJECTS, 0);
 	
 	ipc_answerbox_init(&task->answerbox, task);
 	
@@ -205,6 +204,10 @@ task_t *task_create(as_t *as, const char *name)
 	task->perms = 0;
 	task->ucycles = 0;
 	task->kcycles = 0;
+
+	int cap;
+	for (cap = 0; cap < MAX_KERNEL_OBJECTS; cap++)
+		kobject_initialize(&task->kobject[cap]);
 
 	task->ipc_info.call_sent = 0;
 	task->ipc_info.call_received = 0;
@@ -281,6 +284,8 @@ void task_destroy(task_t *task)
 	 */
 	as_release(task->as);
 	
+	free(task->kobject);
+
 	slab_free(task_slab, task);
 }
 

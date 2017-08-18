@@ -132,6 +132,7 @@
 #include <ipc/ipcrsc.h>
 #include <assert.h>
 #include <abi/errno.h>
+#include <kobject/kobject.h>
 
 /** Find call_t * in call table according to callid.
  *
@@ -197,12 +198,12 @@ static bool phone_can_reclaim(kobject_t *kobj)
  * @param task  Task for which to allocate a new phone.
  *
  * @return  New phone capability.
- * @return  KOBJECT_INVALID_CAP if a new capability cannot be allocated.
+ * @return  Negative error code if a new capability cannot be allocated.
  */
 int phone_alloc(task_t *task)
 {
 	int cap = kobject_alloc(task);
-	if (cap != KOBJECT_INVALID_CAP) {
+	if (cap >= 0) {
 		irq_spinlock_lock(&task->lock, true);
 		kobject_t *kobj = &task->kobject[cap];
 		ipc_phone_init(&kobj->phone, task);

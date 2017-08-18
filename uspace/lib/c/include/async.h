@@ -167,7 +167,7 @@ extern int async_create_callback_port(async_exch_t *, iface_t, sysarg_t,
 
 extern int async_irq_subscribe(int, int, async_notification_handler_t, void *,
     const irq_code_t *);
-extern int async_irq_unsubscribe(int, int);
+extern int async_irq_unsubscribe(int);
 
 extern int async_event_subscribe(event_type_t, async_notification_handler_t,
     void *);

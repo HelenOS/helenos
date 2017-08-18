@@ -1026,7 +1026,8 @@ static void process_notification(ipc_callid_t callid, ipc_call_t *call)
  * @param data    Notification handler client data.
  * @param ucode   Top-half pseudocode handler.
  *
- * @return Zero on success or a negative error code.
+ * @return IRQ capability on success.
+ * @return Negative error code.
  *
  */
 int async_irq_subscribe(int inr, int devno,
@@ -1055,18 +1056,17 @@ int async_irq_subscribe(int inr, int devno,
 
 /** Unsubscribe from IRQ notification.
  *
- * @param inr     IRQ number.
- * @param devno   Device number of the device generating inr.
+ * @param cap     IRQ capability. 
  *
  * @return Zero on success or a negative error code.
  *
  */
-int async_irq_unsubscribe(int inr, int devno)
+int async_irq_unsubscribe(int cap)
 {
 	// TODO: Remove entry from hash table
 	//       to avoid memory leak
 	
-	return ipc_irq_unsubscribe(inr, devno);
+	return ipc_irq_unsubscribe(cap);
 }
 
 /** Subscribe to event notifications.

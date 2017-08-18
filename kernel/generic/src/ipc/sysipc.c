@@ -804,7 +804,9 @@ sysarg_t sys_ipc_poke(void)
  * @param imethod Interface and method to be associated with the notification.
  * @param ucode   Uspace pointer to the top-half pseudocode.
  *
- * @return EPERM or a return code returned by ipc_irq_subscribe().
+ * @return IRQ kernel object capability
+ * @return EPERM
+ * @return Error code returned by ipc_irq_subscribe().
  *
  */
 sysarg_t sys_ipc_irq_subscribe(inr_t inr, devno_t devno, sysarg_t imethod,
@@ -824,12 +826,12 @@ sysarg_t sys_ipc_irq_subscribe(inr_t inr, devno_t devno, sysarg_t imethod,
  * @return Zero on success or EPERM on error.
  *
  */
-sysarg_t sys_ipc_irq_unsubscribe(inr_t inr, devno_t devno)
+sysarg_t sys_ipc_irq_unsubscribe(sysarg_t cap)
 {
 	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
 	
-	ipc_irq_unsubscribe(&TASK->answerbox, inr, devno);
+	ipc_irq_unsubscribe(&TASK->answerbox, cap);
 	
 	return 0;
 }

@@ -58,6 +58,7 @@
 #include <proc/thread.h>
 #include <arch/interrupt.h>
 #include <ipc/irq.h>
+#include <kobject/kobject.h>
 
 static void ipc_forget_call(call_t *);
 
