@@ -114,7 +114,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	memset(dctx, 0, sizeof(xhci_device_ctx_t));
 
 	hc->dcbaa[slot_id] = addr_to_phys(dctx);
-	hc->dcbaa_virt[slot_id] = dctx;
+	hc->dcbaa_virt[slot_id]->dev_ctx = dctx;
 
 	cmd = xhci_alloc_command();
 	cmd->ictx = ictx;

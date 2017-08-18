@@ -42,6 +42,11 @@
 #include "scratchpad.h"
 #include "trb_ring.h"
 
+typedef struct xhci_virt_device_ctx {
+    xhci_device_ctx_t *dev_ctx;
+    xhci_trb_ring_t *trs[XHCI_EP_COUNT];
+} xhci_virt_device_ctx_t;
+
 /**
  * xHCI lets the controller define speeds of ports it controls.
  */
@@ -66,7 +71,7 @@ typedef struct xhci_hc {
 	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
 	uint64_t *dcbaa;
-	xhci_device_ctx_t **dcbaa_virt;
+	xhci_virt_device_ctx_t **dcbaa_virt;
 	xhci_scratchpad_t *scratchpad;
 
 	/* Cached capabilities */

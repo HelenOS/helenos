@@ -482,11 +482,23 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 
 static void hc_dcbaa_fini(xhci_hc_t *hc)
 {
+	xhci_trb_ring_t* trb_ring;
 	xhci_scratchpad_free(hc);
 
 	/* Idx 0 already deallocated by xhci_scratchpad_free. */
 	for (unsigned i = 1; i < hc->max_slots + 1; ++i) {
-		if (hc->dcbaa_virt[i] != NULL) {
+		if (hc->dcbaa_virt[i]) {
+			if (hc->dcbaa_virt[i]->dev_ctx)
+				free32(hc->dcbaa_virt[i]->dev_ctx);
+
+			for (unsigned i = 0; i < XHCI_EP_COUNT; ++i) {
+				trb_ring = hc->dcbaa_virt[i]->trs[i];
+				if (trb_ring) {
+					xhci_trb_ring_fini(trb_ring);
+					free32(trb_ring);
+				}
+			}
+
 			free32(hc->dcbaa_virt[i]);
 			hc->dcbaa_virt[i] = NULL;
 		}

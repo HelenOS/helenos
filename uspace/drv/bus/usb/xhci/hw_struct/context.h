@@ -51,6 +51,8 @@ typedef struct xhci_endpoint_ctx {
 	xhci_dword_t data[5];
 	xhci_dword_t reserved[3];
 
+#define XHCI_EP_COUNT 31
+
 #define XHCI_EP_TYPE_ISOCH_OUT		1
 #define XHCI_EP_TYPE_BULK_OUT		2
 #define XHCI_EP_TYPE_INTERRUPT_OUT	3
@@ -131,7 +133,7 @@ typedef struct xhci_slot_ctx {
  */
 typedef struct xhci_device_ctx {
 	xhci_slot_ctx_t slot_ctx;
-	xhci_ep_ctx_t endpoint_ctx [31];
+	xhci_ep_ctx_t endpoint_ctx[XHCI_EP_COUNT];
 } __attribute__((packed)) xhci_device_ctx_t;
 
 /**
@@ -164,7 +166,7 @@ typedef struct xhci_input_ctrl_ctx {
 	XHCI_DWORD_EXTRACT((ctx).data[1], (idx), (idx))
 
 #define XHCI_INPUT_CTRL_CTX_ADD_SET(ctx, idx) (ctx).data[1] |= (1 << (idx))
-    
+
 #define XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7],  7,  0)
 #define XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7], 15,  8)
 #define XHCI_INPUT_CTRL_CTX_ALTER_SETTING(ctx)  XHCI_DWORD_EXTRACT((ctx).data[7], 23, 16)
@@ -176,7 +178,7 @@ typedef struct xhci_input_ctrl_ctx {
 typedef struct xhci_input_ctx {
 	xhci_input_ctrl_ctx_t ctrl_ctx;
 	xhci_slot_ctx_t slot_ctx;
-	xhci_ep_ctx_t endpoint_ctx [31];
+	xhci_ep_ctx_t endpoint_ctx[XHCI_EP_COUNT];
 } __attribute__((packed)) xhci_input_ctx_t;
 
 #endif
