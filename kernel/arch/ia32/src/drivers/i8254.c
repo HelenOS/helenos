@@ -50,7 +50,6 @@
 #include <arch/cpuid.h>
 #include <arch.h>
 #include <ddi/irq.h>
-#include <ddi/device.h>
 
 #define CLK_PORT1  ((ioport8_t *) 0x40U)
 #define CLK_PORT4  ((ioport8_t *) 0x43U)
@@ -85,7 +84,6 @@ void i8254_init(void)
 {
 	irq_initialize(&i8254_irq);
 	i8254_irq.preack = true;
-	i8254_irq.devno = device_assign_devno();
 	i8254_irq.inr = IRQ_CLK;
 	i8254_irq.claim = i8254_claim;
 	i8254_irq.handler = i8254_irq_handler;

@@ -37,7 +37,6 @@
 #include <arch/regutils.h>
 #include <arch/machine_func.h>
 #include <ddi/irq.h>
-#include <ddi/device.h>
 #include <interrupt.h>
 
 /** Disable interrupts.

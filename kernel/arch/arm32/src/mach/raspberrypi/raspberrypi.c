@@ -49,7 +49,6 @@
 #include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
-#include <ddi/device.h>
 
 #define RPI_DEFAULT_MEMORY_START	0
 #define RPI_DEFAULT_MEMORY_SIZE		0x08000000
@@ -117,7 +116,6 @@ static void raspberrypi_timer_irq_start(void)
 	/* Initialize timer IRQ */
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
-	timer_irq.devno = device_assign_devno();
 	timer_irq.inr = BCM2835_TIMER1_IRQ;
 	timer_irq.claim = raspberrypi_timer_irq_claim;
 	timer_irq.handler = raspberrypi_timer_irq_handler;

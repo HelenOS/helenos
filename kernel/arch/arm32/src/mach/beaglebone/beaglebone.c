@@ -45,7 +45,6 @@
 #include <genarch/srln/srln.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
-#include <ddi/device.h>
 #include <mm/km.h>
 
 #define BBONE_MEMORY_START       0x80000000      /* physical */
@@ -128,7 +127,6 @@ static void bbone_timer_irq_start(void)
 	/* Initialize the IRQ */
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
-	timer_irq.devno = device_assign_devno();
 	timer_irq.inr = AM335x_DMTIMER2_IRQ;
 	timer_irq.claim = bbone_timer_irq_claim;
 	timer_irq.handler = bbone_timer_irq_handler;

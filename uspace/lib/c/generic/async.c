@@ -1021,7 +1021,6 @@ static void process_notification(ipc_callid_t callid, ipc_call_t *call)
 /** Subscribe to IRQ notification.
  *
  * @param inr     IRQ number.
- * @param devno   Device number of the device generating inr.
  * @param handler Notification handler.
  * @param data    Notification handler client data.
  * @param ucode   Top-half pseudocode handler.
@@ -1030,8 +1029,8 @@ static void process_notification(ipc_callid_t callid, ipc_call_t *call)
  * @return Negative error code.
  *
  */
-int async_irq_subscribe(int inr, int devno,
-    async_notification_handler_t handler, void *data, const irq_code_t *ucode)
+int async_irq_subscribe(int inr, async_notification_handler_t handler,
+    void *data, const irq_code_t *ucode)
 {
 	notification_t *notification =
 	    (notification_t *) malloc(sizeof(notification_t));
@@ -1051,7 +1050,7 @@ int async_irq_subscribe(int inr, int devno,
 	
 	futex_up(&async_futex);
 	
-	return ipc_irq_subscribe(inr, devno, imethod, ucode);
+	return ipc_irq_subscribe(inr, imethod, ucode);
 }
 
 /** Unsubscribe from IRQ notification.

@@ -800,7 +800,6 @@ sysarg_t sys_ipc_poke(void)
 /** Connect an IRQ handler to a task.
  *
  * @param inr     IRQ number.
- * @param devno   Device number.
  * @param imethod Interface and method to be associated with the notification.
  * @param ucode   Uspace pointer to the top-half pseudocode.
  *
@@ -809,13 +808,12 @@ sysarg_t sys_ipc_poke(void)
  * @return Error code returned by ipc_irq_subscribe().
  *
  */
-sysarg_t sys_ipc_irq_subscribe(inr_t inr, devno_t devno, sysarg_t imethod,
-    irq_code_t *ucode)
+sysarg_t sys_ipc_irq_subscribe(inr_t inr, sysarg_t imethod, irq_code_t *ucode)
 {
 	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
 	
-	return ipc_irq_subscribe(&TASK->answerbox, inr, devno, imethod, ucode);
+	return ipc_irq_subscribe(&TASK->answerbox, inr, imethod, ucode);
 }
 
 /** Disconnect an IRQ handler from a task.

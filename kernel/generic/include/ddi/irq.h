@@ -44,6 +44,16 @@
 #include <ipc/ipc.h>
 
 typedef enum {
+	IRQ_HT_KEY_INR,
+	IRQ_HT_KEY_MODE
+} irq_ht_key_t;
+
+typedef enum {
+	IRQ_HT_MODE_CLAIM,
+	IRQ_HT_MODE_NO_CLAIM
+} irq_ht_mode_t;
+
+typedef enum {
 	IRQ_DECLINE,  /**< Decline to service. */
 	IRQ_ACCEPT    /**< Accept to service. */
 } irq_ownership_t;
@@ -90,8 +100,7 @@ typedef struct {
 /** Structure representing one device IRQ.
  *
  * If one device has multiple interrupts, there will be multiple irq_t
- * instantions with the same devno.
- *
+ * instantions.
  */
 typedef struct irq {
 	/** Hash table link. */
@@ -111,9 +120,6 @@ typedef struct irq {
 	 *  be eventually generated.
 	 */
 	bool preack;
-	
-	/** Unique device number. -1 if not yet assigned. */
-	devno_t devno;
 	
 	/** Actual IRQ number. -1 if not yet assigned. */
 	inr_t inr;

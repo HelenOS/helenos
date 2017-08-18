@@ -38,7 +38,6 @@
 #include <genarch/drivers/pl011/pl011.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <ddi/device.h>
 #include <arch/asm.h>
 #include <mm/slab.h>
 #include <mm/page.h>
@@ -126,7 +125,6 @@ bool pl011_uart_init(pl011_uart_t *uart, inr_t interrupt, uintptr_t addr)
 
 	/* Initialize IRQ */
 	irq_initialize(&uart->irq);
-	uart->irq.devno = device_assign_devno();
 	uart->irq.inr = interrupt;
 	uart->irq.claim = pl011_uart_claim;
 	uart->irq.handler = pl011_uart_irq_handler;

@@ -50,16 +50,6 @@
 #include "private/libc.h"
 
 
-/** Return unique device number.
- *
- * @return New unique device number.
- *
- */
-int device_assign_devno(void)
-{
-	return __SYSCALL0(SYS_DEVICE_ASSIGN_DEVNO);
-}
-
 /** Map a piece of physical memory to task.
  *
  * Caller of this function must have the PERM_MEM_MANAGER permission.

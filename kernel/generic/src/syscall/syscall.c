@@ -44,7 +44,6 @@
 #include <print.h>
 #include <arch.h>
 #include <debug.h>
-#include <ddi/device.h>
 #include <interrupt.h>
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
@@ -174,7 +173,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_PERM_REVOKE] = (syshandler_t) sys_perm_revoke,
 	
 	/* DDI related syscalls. */
-	[SYS_DEVICE_ASSIGN_DEVNO] = (syshandler_t) sys_device_assign_devno,
 	[SYS_PHYSMEM_MAP] = (syshandler_t) sys_physmem_map,
 	[SYS_PHYSMEM_UNMAP] = (syshandler_t) sys_physmem_unmap,
 	[SYS_DMAMEM_MAP] = (syshandler_t) sys_dmamem_map,

@@ -58,9 +58,10 @@
  *
  * Note about the irq_hash_table.
  *
- * The hash table is configured to use two keys: inr and devno.  However, the
- * hash index is computed only from inr. Moreover, if devno is -1, the match is
- * based on the return value of the claim() function instead of on devno.
+ * The hash table is configured to use two keys: inr and mode.  However, the
+ * hash index is computed only from inr. Moreover, if mode is IRQ_HT_MODE_CLAIM,
+ * the match is based also on the return value of the claim(). Otherwise the
+ * the keys do not match.
  */
 
 #include <ddi/irq.h>
@@ -72,9 +73,6 @@
 #include <interrupt.h>
 #include <mem.h>
 #include <arch.h>
-
-#define KEY_INR    0
-#define KEY_DEVNO  1
 
 /** Spinlock protecting the kernel IRQ hash table.
  *
@@ -173,7 +171,6 @@ void irq_initialize(irq_t *irq)
 	irq_spinlock_initialize(&irq->lock, "irq.lock");
 	link_initialize(&irq->notif_cfg.link);
 	irq->inr = -1;
-	irq->devno = -1;
 	
 	irq_initialize_arch(irq);
 }
@@ -189,8 +186,8 @@ void irq_initialize(irq_t *irq)
 void irq_register(irq_t *irq)
 {
 	sysarg_t key[] = {
-		(sysarg_t) irq->inr,
-		(sysarg_t) irq->devno
+		[IRQ_HT_KEY_INR] = (sysarg_t) irq->inr,
+		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_NO_CLAIM 
 	};
 	
 	irq_spinlock_lock(&irq_kernel_hash_table_lock, true);
@@ -207,8 +204,8 @@ static irq_t *irq_dispatch_and_lock_uspace(inr_t inr)
 {
 	link_t *lnk;
 	sysarg_t key[] = {
-		(sysarg_t) inr,
-		(sysarg_t) -1    /* Search will use claim() instead of devno */
+		[IRQ_HT_KEY_INR] = (sysarg_t) inr,
+		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_CLAIM
 	};
 	
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, false);
@@ -230,8 +227,8 @@ static irq_t *irq_dispatch_and_lock_kernel(inr_t inr)
 {
 	link_t *lnk;
 	sysarg_t key[] = {
-		(sysarg_t) inr,
-		(sysarg_t) -1    /* Search will use claim() instead of devno */
+		[IRQ_HT_KEY_INR] = (sysarg_t) inr,
+		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_CLAIM
 	};
 	
 	irq_spinlock_lock(&irq_kernel_hash_table_lock, false);
@@ -289,16 +286,16 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
  * This function computes hash index into the IRQ hash table for which there can
  * be collisions between different INRs.
  *
- * The devno is not used to compute the hash.
+ * The mode is not used to compute the hash.
  *
- * @param key The first of the keys is inr and the second is devno or -1.
+ * @param key The first of the keys is inr and the second is mode.
  *
  * @return Index into the hash table.
  *
  */
 size_t irq_ht_hash(sysarg_t key[])
 {
-	inr_t inr = (inr_t) key[KEY_INR];
+	inr_t inr = (inr_t) key[IRQ_HT_KEY_INR];
 	return inr % buckets;
 }
 
@@ -307,13 +304,13 @@ size_t irq_ht_hash(sysarg_t key[])
  * There are two things to note about this function.  First, it is used for the
  * more complex architecture setup in which there are way too many interrupt
  * numbers (i.e. inr's) to arrange the hash table so that collisions occur only
- * among same inrs of different devnos. So the explicit check for inr match must
- * be done.  Second, if devno is -1, the second key (i.e. devno) is not used for
- * the match and the result of the claim() function is used instead.
+ * among same inrs of different devices. So the explicit check for inr match
+ * must be done.  Second, if mode is IRQ_HT_MODE_CLAIM, the result of the
+ * claim() function is used for the match. Otherwise the key does not match.
  *
  * This function assumes interrupts are already disabled.
  *
- * @param key  Keys (i.e. inr and devno).
+ * @param key  Keys (i.e. inr and mode).
  * @param keys This is 2. 
  * @param item The item to compare the key with.
  *
@@ -324,19 +321,18 @@ size_t irq_ht_hash(sysarg_t key[])
 bool irq_ht_compare(sysarg_t key[], size_t keys, link_t *item)
 {
 	irq_t *irq = hash_table_get_instance(item, irq_t, link);
-	inr_t inr = (inr_t) key[KEY_INR];
-	devno_t devno = (devno_t) key[KEY_DEVNO];
+	inr_t inr = (inr_t) key[IRQ_HT_KEY_INR];
+	irq_ht_mode_t mode = (irq_ht_mode_t) key[IRQ_HT_KEY_MODE];
 	
 	bool rv;
 	
 	irq_spinlock_lock(&irq->lock, false);
-	if (devno == -1) {
+	if (mode == IRQ_HT_MODE_CLAIM) {
 		/* Invoked by irq_dispatch_and_lock(). */
-		rv = ((irq->inr == inr) &&
-		    (irq->claim(irq) == IRQ_ACCEPT));
+		rv = ((irq->inr == inr) && (irq->claim(irq) == IRQ_ACCEPT));
 	} else {
 		/* Invoked by irq_find_and_lock(). */
-		rv = ((irq->inr == inr) && (irq->devno == devno));
+		rv = false;
 	}
 	
 	/* unlock only on non-match */
@@ -362,14 +358,14 @@ void irq_ht_remove(link_t *lnk)
  * This function computes hash index into the IRQ hash table for which there are
  * no collisions between different INRs.
  *
- * @param key The first of the keys is inr and the second is devno or -1.
+ * @param key The first of the keys is inr and the second is mode.
  *
  * @return Index into the hash table.
  *
  */
 size_t irq_lin_hash(sysarg_t key[])
 {
-	inr_t inr = (inr_t) key[KEY_INR];
+	inr_t inr = (inr_t) key[IRQ_HT_KEY_INR];
 	return inr;
 }
 
@@ -384,7 +380,7 @@ size_t irq_lin_hash(sysarg_t key[])
  *
  * This function assumes interrupts are already disabled.
  *
- * @param key  Keys (i.e. inr and devno).
+ * @param key  Keys (i.e. inr and mode).
  * @param keys This is 2. 
  * @param item The item to compare the key with.
  *
@@ -395,16 +391,16 @@ size_t irq_lin_hash(sysarg_t key[])
 bool irq_lin_compare(sysarg_t key[], size_t keys, link_t *item)
 {
 	irq_t *irq = list_get_instance(item, irq_t, link);
-	devno_t devno = (devno_t) key[KEY_DEVNO];
+	irq_ht_mode_t mode = (irq_ht_mode_t) key[IRQ_HT_KEY_MODE];
 	bool rv;
 	
 	irq_spinlock_lock(&irq->lock, false);
-	if (devno == -1) {
+	if (mode == IRQ_HT_MODE_CLAIM) {
 		/* Invoked by irq_dispatch_and_lock() */
 		rv = (irq->claim(irq) == IRQ_ACCEPT);
 	} else {
 		/* Invoked by irq_find_and_lock() */
-		rv = (irq->devno == devno);
+		rv = false;
 	}
 	
 	/* unlock only on non-match */

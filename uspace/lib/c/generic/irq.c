@@ -54,7 +54,6 @@ static const irq_code_t default_ucode = {
 /** Subscribe to IRQ notification.
  *
  * @param inr    IRQ number.
- * @param devno  Device number of the device generating inr.
  * @param method Use this method for notifying me.
  * @param ucode  Top-half pseudocode handler.
  *
@@ -62,14 +61,12 @@ static const irq_code_t default_ucode = {
  * @return Error code returned by the kernel.
  *
  */
-int ipc_irq_subscribe(int inr, int devno, sysarg_t method,
-    const irq_code_t *ucode)
+int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode)
 {
 	if (ucode == NULL)
 		ucode = &default_ucode;
 	
-	return __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, devno, method,
-	    (sysarg_t) ucode);
+	return __SYSCALL3(SYS_IPC_IRQ_SUBSCRIBE, inr, method, (sysarg_t) ucode);
 }
 
 /** Unsubscribe from IRQ notification.

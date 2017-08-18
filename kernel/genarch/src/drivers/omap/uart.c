@@ -36,7 +36,6 @@
 
 #include <assert.h>
 #include <genarch/drivers/omap/uart.h>
-#include <ddi/device.h>
 #include <str.h>
 #include <mm/km.h>
 
@@ -160,7 +159,6 @@ bool omap_uart_init(
 
 	/* Initialize IRQ */
 	irq_initialize(&uart->irq);
-	uart->irq.devno = device_assign_devno();
 	uart->irq.inr = interrupt;
 	uart->irq.claim = omap_uart_claim;
 	uart->irq.handler = omap_uart_handler;

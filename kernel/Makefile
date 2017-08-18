@@ -208,7 +208,6 @@ GENERIC_SOURCES = \
 	generic/src/cpu/cpu_mask.c \
 	generic/src/ddi/ddi.c \
 	generic/src/ddi/irq.c \
-	generic/src/ddi/device.c \
 	generic/src/debug/symtab.c \
 	generic/src/debug/stacktrace.c \
 	generic/src/debug/panic.c \

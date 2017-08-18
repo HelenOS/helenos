@@ -45,8 +45,8 @@
 int register_interrupt_handler(ddf_dev_t *dev, int irq,
     interrupt_handler_t *handler, const irq_code_t *irq_code)
 {
-	return async_irq_subscribe(irq, dev->handle,
-	    (async_notification_handler_t) handler, dev, irq_code);
+	return async_irq_subscribe(irq, (async_notification_handler_t) handler,
+	    dev, irq_code);
 }
 
 int unregister_interrupt_handler(ddf_dev_t *dev, int cap)

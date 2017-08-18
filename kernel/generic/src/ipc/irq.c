@@ -293,7 +293,6 @@ error:
  *
  * @param box     Receiving answerbox.
  * @param inr     IRQ number.
- * @param devno   Device number.
  * @param imethod Interface and method to be associated with the
  *                notification.
  * @param ucode   Uspace pointer to top-half pseudocode.
@@ -302,12 +301,12 @@ error:
  * @return  Negative error code.
  *
  */
-int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
-    sysarg_t imethod, irq_code_t *ucode)
+int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
+    irq_code_t *ucode)
 {
 	sysarg_t key[] = {
-		(sysarg_t) inr,
-		(sysarg_t) devno
+		[IRQ_HT_KEY_INR] = (sysarg_t) inr,
+		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_NO_CLAIM
 	};
 	
 	if ((inr < 0) || (inr > last_inr))
@@ -333,7 +332,6 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
 
 	irq_t *irq = &kobj->irq;
 	irq_initialize(irq);
-	irq->devno = devno;
 	irq->inr = inr;
 	irq->claim = ipc_irq_top_half_claim;
 	irq->handler = ipc_irq_top_half_handler;
@@ -348,21 +346,6 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
 	 * answerbox's list.
 	 */
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-	
-	link_t *hlp = hash_table_find(&irq_uspace_hash_table, key);
-	if (hlp) {
-		irq_t *hirq = hash_table_get_instance(hlp, irq_t, link);
-		
-		/* hirq is locked */
-		irq_spinlock_unlock(&hirq->lock, false);
-		code_free(code);
-		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-		
-		kobject_free(TASK, cap);
-		return EEXIST;
-	}
-	
-	/* Locking is not really necessary, but paranoid */
 	irq_spinlock_lock(&irq->lock, false);
 	irq_spinlock_lock(&box->irq_lock, false);
 	

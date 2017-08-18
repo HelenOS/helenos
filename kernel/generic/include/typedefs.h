@@ -48,7 +48,6 @@ typedef void (* function)(void);
 typedef uint32_t container_id_t;
 
 typedef int32_t inr_t;
-typedef int32_t devno_t;
 
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;

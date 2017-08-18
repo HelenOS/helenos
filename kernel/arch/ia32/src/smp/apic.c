@@ -46,7 +46,6 @@
 #include <arch/asm.h>
 #include <arch.h>
 #include <ddi/irq.h>
-#include <ddi/device.h>
 
 #ifdef CONFIG_SMP
 
@@ -189,7 +188,6 @@ void apic_init(void)
 	
 	irq_initialize(&l_apic_timer_irq);
 	l_apic_timer_irq.preack = true;
-	l_apic_timer_irq.devno = device_assign_devno();
 	l_apic_timer_irq.inr = IRQ_CLK;
 	l_apic_timer_irq.claim = l_apic_timer_claim;
 	l_apic_timer_irq.handler = l_apic_timer_irq_handler;

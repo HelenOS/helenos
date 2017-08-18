@@ -47,7 +47,6 @@
 #include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
-#include <ddi/device.h>
 #include <log.h>
 
 #define GTA02_MEMORY_START	0x30000000	/* physical */
@@ -240,7 +239,6 @@ const char *gta02_get_platform_name(void)
 static void gta02_timer_irq_init(void)
 {
 	irq_initialize(&gta02_timer_irq);
-	gta02_timer_irq.devno = device_assign_devno();
 	gta02_timer_irq.inr = GTA02_TIMER_IRQ;
 	gta02_timer_irq.claim = gta02_timer_irq_claim;
 	gta02_timer_irq.handler = gta02_timer_irq_handler;
