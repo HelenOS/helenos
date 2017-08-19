@@ -227,7 +227,7 @@ static size_t thr_destructor(void *obj)
 		slab_free(fpu_context_slab, thread->saved_fpu_context);
 #endif
 	
-	return 1;  /* One page freed */
+	return STACK_FRAMES;  /* number of frames freed */
 }
 
 /** Initialize threads
