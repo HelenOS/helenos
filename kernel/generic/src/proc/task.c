@@ -83,6 +83,7 @@ static slab_cache_t *task_slab;
 /* Forward declarations. */
 static void task_kill_internal(task_t *);
 static int tsk_constructor(void *, unsigned int);
+static size_t tsk_destructor(void *obj);
 
 /** Initialize kernel tasks support.
  *
@@ -92,7 +93,7 @@ void task_init(void)
 	TASK = NULL;
 	avltree_create(&tasks_tree);
 	task_slab = slab_cache_create("task_t", sizeof(task_t), 0,
-	    tsk_constructor, NULL, 0);
+	    tsk_constructor, tsk_destructor, 0);
 }
 
 /** Task finish walker.
@@ -166,7 +167,7 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
 	
 	list_initialize(&task->threads);
-	
+
 	task->kobject = malloc(sizeof(kobject_t) * MAX_KERNEL_OBJECTS, 0);
 	
 	ipc_answerbox_init(&task->answerbox, task);
@@ -181,6 +182,14 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	mutex_initialize(&task->kb.cleanup_lock, MUTEX_PASSIVE);
 #endif
 	
+	return 0;
+}
+
+size_t tsk_destructor(void *obj)
+{
+	task_t *task = (task_t *) obj;
+	
+	free(task->kobject);
 	return 0;
 }
 
@@ -284,8 +293,6 @@ void task_destroy(task_t *task)
 	 */
 	as_release(task->as);
 	
-	free(task->kobject);
-
 	slab_free(task_slab, task);
 }
 
