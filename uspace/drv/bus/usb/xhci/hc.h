@@ -72,7 +72,7 @@ typedef struct xhci_hc {
 	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
 	uint64_t *dcbaa;
-	xhci_virt_device_ctx_t **dcbaa_virt;
+	xhci_virt_device_ctx_t *dcbaa_virt;
 	xhci_scratchpad_t *scratchpad;
 
 	/* Root hub emulation */

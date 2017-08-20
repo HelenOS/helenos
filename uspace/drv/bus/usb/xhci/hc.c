@@ -201,7 +201,7 @@ int hc_init_memory(xhci_hc_t *hc)
 	if (!hc->dcbaa)
 		return ENOMEM;
 
-	hc->dcbaa_virt = malloc32((1 + hc->max_slots) * sizeof(xhci_device_ctx_t*));
+	hc->dcbaa_virt = malloc32((1 + hc->max_slots) * sizeof(xhci_virt_device_ctx_t));
 	if (!hc->dcbaa_virt) {
 		err = ENOMEM;
 		goto err_dcbaa;
@@ -506,20 +506,18 @@ static void hc_dcbaa_fini(xhci_hc_t *hc)
 
 	/* Idx 0 already deallocated by xhci_scratchpad_free. */
 	for (unsigned i = 1; i < hc->max_slots + 1; ++i) {
-		if (hc->dcbaa_virt[i]) {
-			if (hc->dcbaa_virt[i]->dev_ctx)
-				free32(hc->dcbaa_virt[i]->dev_ctx);
+		if (hc->dcbaa_virt[i].dev_ctx) {
+			free32(hc->dcbaa_virt[i].dev_ctx);
+			hc->dcbaa_virt[i].dev_ctx = NULL;
+		}
 
-			for (unsigned i = 0; i < XHCI_EP_COUNT; ++i) {
-				trb_ring = hc->dcbaa_virt[i]->trs[i];
-				if (trb_ring) {
-					xhci_trb_ring_fini(trb_ring);
-					free32(trb_ring);
-				}
+		for (unsigned i = 0; i < XHCI_EP_COUNT; ++i) {
+			trb_ring = hc->dcbaa_virt[i].trs[i];
+			if (trb_ring) {
+				hc->dcbaa_virt[i].trs[i] = NULL;
+				xhci_trb_ring_fini(trb_ring);
+				free32(trb_ring);
 			}
-
-			free32(hc->dcbaa_virt[i]);
-			hc->dcbaa_virt[i] = NULL;
 		}
 	}
 

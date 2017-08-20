@@ -125,7 +125,9 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	memset(dctx, 0, sizeof(xhci_device_ctx_t));
 
 	hc->dcbaa[slot_id] = addr_to_phys(dctx);
-	hc->dcbaa_virt[slot_id]->dev_ctx = dctx;
+
+	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
+	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
 
 	cmd = xhci_alloc_command();
 	cmd->ictx = ictx;
@@ -144,7 +146,7 @@ err_dctx:
 	if (dctx) {
 		free32(dctx);
 		hc->dcbaa[slot_id] = 0;
-		hc->dcbaa_virt[slot_id] = NULL;
+		memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
 	}
 err_ring:
 	if (ep_ring) {
