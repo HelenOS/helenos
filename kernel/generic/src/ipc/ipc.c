@@ -58,7 +58,7 @@
 #include <proc/thread.h>
 #include <arch/interrupt.h>
 #include <ipc/irq.h>
-#include <kobject/kobject.h>
+#include <cap/cap.h>
 
 static void ipc_forget_call(call_t *);
 
@@ -742,8 +742,8 @@ restart:
 	 * Locking is needed as there may be connection handshakes in progress.
 	 */
 	all_clean = true;
-	for_each_kobject_current(kobj, KOBJECT_TYPE_PHONE) {
-		phone_t *phone = &kobj->phone;
+	for_each_cap_current(cap, CAP_TYPE_PHONE) {
+		phone_t *phone = &cap->phone;
 
 		mutex_lock(&phone->lock);
 		if ((phone->state == IPC_PHONE_HUNGUP) &&
@@ -819,8 +819,8 @@ void ipc_cleanup(void)
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	for_each_kobject_current(kobj, KOBJECT_TYPE_PHONE) {
-		phone_t *phone = &kobj->phone;
+	for_each_cap_current(cap, CAP_TYPE_PHONE) {
+		phone_t *phone = &cap->phone;
 		ipc_phone_hangup(phone);
 	}
 	
@@ -910,17 +910,17 @@ void ipc_print_task(task_id_t taskid)
 	
 	printf("[phone cap] [calls] [state\n");
 	
-	for_each_kobject(task, kobj, KOBJECT_TYPE_PHONE) {
-		phone_t *phone = &kobj->phone;
-		int cap = kobject_to_cap(task, kobj);
-
+	for_each_cap(task, cap, CAP_TYPE_PHONE) {
+		phone_t *phone = &cap->phone;
+		int cap_handle = cap_get_handle(task, cap);
+	
 		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
-			printf("%-11d (mutex busy)\n", cap);
+			printf("%-11d (mutex busy)\n", cap_handle);
 			continue;
 		}
 		
 		if (phone->state != IPC_PHONE_FREE) {
-			printf("%-11d %7" PRIun " ", cap,
+			printf("%-11d %7" PRIun " ", cap_handle,
 			    atomic_get(&phone->active_calls));
 			
 			switch (phone->state) {

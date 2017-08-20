@@ -284,7 +284,7 @@ GENERIC_SOURCES = \
 	generic/src/ipc/ipcrsc.c \
 	generic/src/ipc/irq.c \
 	generic/src/ipc/event.c \
-	generic/src/kobject/kobject.c \
+	generic/src/cap/cap.c \
 	generic/src/security/perm.c \
 	generic/src/sysinfo/sysinfo.c \
 	generic/src/sysinfo/stats.c

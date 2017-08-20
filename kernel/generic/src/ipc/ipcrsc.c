@@ -132,7 +132,7 @@
 #include <ipc/ipcrsc.h>
 #include <assert.h>
 #include <abi/errno.h>
-#include <kobject/kobject.h>
+#include <cap/cap.h>
 
 /** Find call_t * in call table according to callid.
  *
@@ -162,91 +162,91 @@ call_t *get_call(sysarg_t callid)
 	return result;
 }
 
-/** Get phone from the current task by capability.
+/** Get phone from the current task by capability handle.
  *
- * @param cap    Phone capability.
- * @param phone  Place to store pointer to phone.
+ * @param handle  Phone capability handle.
+ * @param phone   Place to store pointer to phone.
  *
  * @return  Address of the phone kernel object.
  * @return  NULL if the capability is invalid.
  *
  */
-phone_t *phone_get(task_t *task, int cap)
+phone_t *phone_get(task_t *task, int handle)
 {
-	kobject_t *kobj = kobject_get(task, cap, KOBJECT_TYPE_PHONE);
-	if (!kobj)
+	cap_t *cap = cap_get(task, handle, CAP_TYPE_PHONE);
+	if (!cap)
 		return NULL;
 	
-	return &kobj->phone;
+	return &cap->phone;
 }
 
-phone_t *phone_get_current(int cap)
+phone_t *phone_get_current(int handle)
 {
-	return phone_get(TASK, cap);
+	return phone_get(TASK, handle);
 }
 
-static bool phone_can_reclaim(kobject_t *kobj)
+static bool phone_can_reclaim(cap_t *cap)
 {
-	assert(kobj->type == KOBJECT_TYPE_PHONE);
+	assert(cap->type == CAP_TYPE_PHONE);
 
-	return (kobj->phone.state == IPC_PHONE_HUNGUP) &&
-	    (atomic_get(&kobj->phone.active_calls) == 0);
+	return (cap->phone.state == IPC_PHONE_HUNGUP) &&
+	    (atomic_get(&cap->phone.active_calls) == 0);
 }
 
 /** Allocate new phone in the specified task.
  *
  * @param task  Task for which to allocate a new phone.
  *
- * @return  New phone capability.
+ * @return  New phone capability handle.
  * @return  Negative error code if a new capability cannot be allocated.
  */
 int phone_alloc(task_t *task)
 {
-	int cap = kobject_alloc(task);
-	if (cap >= 0) {
+	int handle = cap_alloc(task);
+	if (handle >= 0) {
 		irq_spinlock_lock(&task->lock, true);
-		kobject_t *kobj = &task->kobject[cap];
-		ipc_phone_init(&kobj->phone, task);
-		kobj->type = KOBJECT_TYPE_PHONE;
-		kobj->can_reclaim = phone_can_reclaim;
-		kobj->phone.state = IPC_PHONE_CONNECTING;
+		cap_t *cap = &task->caps[handle];
+		ipc_phone_init(&cap->phone, task);
+		cap->type = CAP_TYPE_PHONE;
+		cap->can_reclaim = phone_can_reclaim;
+		cap->phone.state = IPC_PHONE_CONNECTING;
 		irq_spinlock_unlock(&task->lock, true);
 	}
 	
-	return cap;
+	return handle;
 }
 
 /** Free slot from a disconnected phone.
  *
  * All already sent messages will be correctly processed.
  *
- * @param phoneid Phone handle of the phone to be freed.
+ * @param handle Phone capability handle of the phone to be freed.
  *
  */
-void phone_dealloc(int cap)
+void phone_dealloc(int handle)
 {
-	phone_t *phone = phone_get_current(cap);
+	phone_t *phone = phone_get_current(handle);
 	
 	assert(phone);
 	assert(phone->state == IPC_PHONE_CONNECTING);
 
-	kobject_free(TASK, cap);
+	cap_free(TASK, handle);
 }
 
 /** Connect phone to a given answerbox.
  *
- * @param cap  Phone capability to be connected.
- * @param box  Answerbox to which to connect the phone capability.
- * @return     True if the phone was connected, false otherwise.
+ * @param handle  Capability handle of the phone to be connected.
+ * @param box     Answerbox to which to connect the phone.
+ * @return        True if the phone was connected, false otherwise.
  *
  * The procedure _enforces_ that the user first marks the phone busy (e.g. via
  * phone_alloc) and then connects the phone, otherwise race condition may
  * appear.
  *
  */
-bool phone_connect(int cap, answerbox_t *box)
+bool phone_connect(int handle, answerbox_t *box)
 {
-	phone_t *phone = phone_get_current(cap);
+	phone_t *phone = phone_get_current(handle);
 	
 	assert(phone);
 	assert(phone->state == IPC_PHONE_CONNECTING);

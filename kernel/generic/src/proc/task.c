@@ -49,7 +49,7 @@
 #include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>
-#include <kobject/kobject.h>
+#include <cap/cap.h>
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
 #include <ipc/event.h>
@@ -168,7 +168,7 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	
 	list_initialize(&task->threads);
 	
-	kobject_task_alloc(task);
+	caps_task_alloc(task);
 	
 	ipc_answerbox_init(&task->answerbox, task);
 	
@@ -189,7 +189,7 @@ size_t tsk_destructor(void *obj)
 {
 	task_t *task = (task_t *) obj;
 	
-	kobject_task_free(task);
+	caps_task_free(task);
 	return 0;
 }
 
@@ -214,7 +214,7 @@ task_t *task_create(as_t *as, const char *name)
 	task->ucycles = 0;
 	task->kcycles = 0;
 
-	kobject_task_init(task);
+	caps_task_init(task);
 
 	task->ipc_info.call_sent = 0;
 	task->ipc_info.call_received = 0;
@@ -623,10 +623,10 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #endif
 	
 	if (*additional) {
-		for_each_kobject(task, ko, KOBJECT_TYPE_PHONE) {
-			phone_t *phone = &ko->phone;
+		for_each_cap(task, cap, CAP_TYPE_PHONE) {
+			phone_t *phone = &cap->phone;
 			if (phone->callee)
-				printf(" %d:%p", kobject_to_cap(task, ko),
+				printf(" %d:%p", cap_get_handle(task, cap),
 				    phone->callee);
 		}
 		printf("\n");

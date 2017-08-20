@@ -64,7 +64,7 @@
 
 
 struct thread;
-struct kobject;
+struct cap;
 
 /** Task structure. */
 typedef struct task {
@@ -96,8 +96,8 @@ typedef struct task {
 	/** Task permissions. */
 	perm_t perms;
 
-	/** Kernel objects */
-	struct kobject *kobject;
+	/** Capabilities */
+	struct cap *caps;
 	
 	/* IPC stuff */
 

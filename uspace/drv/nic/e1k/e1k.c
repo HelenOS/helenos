@@ -1252,7 +1252,7 @@ static void e1000_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
  *
  * @param nic Driver data
  *
- * @return IRQ capability if the handler was registered
+ * @return IRQ capability handle if the handler was registered
  * @return Negative error code otherwise
  *
  */

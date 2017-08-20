@@ -159,7 +159,7 @@ typedef struct ns8250 {
 	unsigned client_connections;
 	/** The irq assigned to this device. */
 	int irq;
-	/** IRQ capability */
+	/** IRQ capability handle */
 	int irq_cap;
 	/** The base i/o address of the devices registers. */
 	uintptr_t io_addr;

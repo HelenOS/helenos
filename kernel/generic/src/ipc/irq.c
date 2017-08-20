@@ -83,7 +83,7 @@
 #include <console/console.h>
 #include <print.h>
 #include <macros.h>
-#include <kobject/kobject.h>
+#include <cap/cap.h>
 
 static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
 {
@@ -297,7 +297,7 @@ error:
  *                notification.
  * @param ucode   Uspace pointer to top-half pseudocode.
  *
- * @return  IRQ capability.
+ * @return  IRQ capability handle.
  * @return  Negative error code.
  *
  */
@@ -323,14 +323,14 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	/*
 	 * Allocate and populate the IRQ kernel object.
 	 */
-	int cap = kobject_alloc(TASK);
-	if (cap < 0)
-		return cap;
-	kobject_t *kobj = kobject_get_current(cap, KOBJECT_TYPE_ALLOCATED);
-	assert(kobj);
-	kobj->type = KOBJECT_TYPE_IRQ;
+	int handle = cap_alloc(TASK);
+	if (handle < 0)
+		return handle;
+	cap_t *cap = cap_get_current(handle, CAP_TYPE_ALLOCATED);
+	assert(cap);
+	cap->type = CAP_TYPE_IRQ;
 
-	irq_t *irq = &kobj->irq;
+	irq_t *irq = &cap->irq;
 	irq_initialize(irq);
 	irq->inr = inr;
 	irq->claim = ipc_irq_top_half_claim;
@@ -356,23 +356,23 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 	
-	return cap;
+	return handle;
 }
 
 /** Unsubscribe task from IRQ notification.
  *
- * @param box      Answerbox associated with the notification.
- * @param irq_cap  IRQ capability.
+ * @param box     Answerbox associated with the notification.
+ * @param handle  IRQ capability handle.
  *
  * @return EOK on success or a negative error code.
  *
  */
-int ipc_irq_unsubscribe(answerbox_t *box, int irq_cap)
+int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 {
-	kobject_t *kobj = kobject_get_current(irq_cap, KOBJECT_TYPE_IRQ);
-	if (!kobj)
+	cap_t *cap = cap_get_current(handle, CAP_TYPE_IRQ);
+	if (!cap)
 		return ENOENT;
-	irq_t *irq = &kobj->irq;
+	irq_t *irq = &cap->irq;
 
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
@@ -393,8 +393,8 @@ int ipc_irq_unsubscribe(answerbox_t *box, int irq_cap)
 	/* Free up the pseudo code and associated structures. */
 	code_free(irq->notif_cfg.code);
 	
-	/* Free up the IRQ kernel object. */
-	kobject_free(TASK, irq_cap);
+	/* Free up the IRQ capability and the underlying kernel object. */
+	cap_free(TASK, handle);
 	
 	return EOK;
 }

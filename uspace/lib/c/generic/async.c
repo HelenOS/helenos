@@ -1025,7 +1025,7 @@ static void process_notification(ipc_callid_t callid, ipc_call_t *call)
  * @param data    Notification handler client data.
  * @param ucode   Top-half pseudocode handler.
  *
- * @return IRQ capability on success.
+ * @return IRQ capability handle on success.
  * @return Negative error code.
  *
  */
@@ -1055,7 +1055,7 @@ int async_irq_subscribe(int inr, async_notification_handler_t handler,
 
 /** Unsubscribe from IRQ notification.
  *
- * @param cap     IRQ capability. 
+ * @param cap     IRQ capability handle. 
  *
  * @return Zero on success or a negative error code.
  *

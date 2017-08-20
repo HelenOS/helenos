@@ -57,7 +57,7 @@ static const irq_code_t default_ucode = {
  * @param method Use this method for notifying me.
  * @param ucode  Top-half pseudocode handler.
  *
- * @return IRQ capability returned by the kernel.
+ * @return IRQ capability handle returned by the kernel.
  * @return Error code returned by the kernel.
  *
  */
@@ -71,7 +71,7 @@ int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode)
 
 /** Unsubscribe from IRQ notification.
  *
- * @param cap   IRQ capability.
+ * @param cap   IRQ capability handle.
  *
  * @return Value returned by the kernel.
  *

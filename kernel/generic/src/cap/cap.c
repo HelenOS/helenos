@@ -32,63 +32,63 @@
 /** @file
  */
 
-#include <kobject/kobject.h>
+#include <cap/cap.h>
 #include <proc/task.h>
 #include <synch/spinlock.h>
 #include <abi/errno.h>
 #include <mm/slab.h>
 
-void kobject_initialize(kobject_t *kobj)
+void cap_initialize(cap_t *cap)
 {
-	kobj->type = KOBJECT_TYPE_INVALID;
-	kobj->can_reclaim = NULL;
+	cap->type = CAP_TYPE_INVALID;
+	cap->can_reclaim = NULL;
 }
 
-void kobject_task_alloc(task_t *task)
+void caps_task_alloc(task_t *task)
 {
-	task->kobject = malloc(sizeof(kobject_t) * MAX_KERNEL_OBJECTS, 0);
+	task->caps = malloc(sizeof(cap_t) * MAX_CAPS, 0);
 }
 
-void kobject_task_init(task_t *task)
+void caps_task_init(task_t *task)
 {
-	for (int cap = 0; cap < MAX_KERNEL_OBJECTS; cap++)
-		kobject_initialize(&task->kobject[cap]);
+	for (int i = 0; i < MAX_CAPS; i++)
+		cap_initialize(&task->caps[i]);
 }
 
-void kobject_task_free(task_t *task)
+void caps_task_free(task_t *task)
 {
-	free(task->kobject);
+	free(task->caps);
 }
 
-kobject_t *kobject_get(task_t *task, int cap, kobject_type_t type)
+cap_t *cap_get(task_t *task, int handle, cap_type_t type)
 {
-	if ((cap < 0) || (cap >= MAX_KERNEL_OBJECTS))
+	if ((handle < 0) || (handle >= MAX_CAPS))
 		return NULL;
-	if (task->kobject[cap].type != type)
+	if (task->caps[handle].type != type)
 		return NULL;
-	return &task->kobject[cap];
+	return &task->caps[handle];
 }
 
-kobject_t *kobject_get_current(int cap, kobject_type_t type)
+cap_t *cap_get_current(int handle, cap_type_t type)
 {
-	return kobject_get(TASK, cap, type);
+	return cap_get(TASK, handle, type);
 }
 
-int kobject_alloc(task_t *task)
+int cap_alloc(task_t *task)
 {
-	int cap;
+	int handle;
 
 	irq_spinlock_lock(&task->lock, true);
-	for (cap = 0; cap < MAX_KERNEL_OBJECTS; cap++) {
-		kobject_t *kobj = &task->kobject[cap];
-		if (kobj->type > KOBJECT_TYPE_ALLOCATED) {
-			if (kobj->can_reclaim && kobj->can_reclaim(kobj))
-				kobject_initialize(kobj);
+	for (handle = 0; handle < MAX_CAPS; handle++) {
+		cap_t *cap = &task->caps[handle];
+		if (cap->type > CAP_TYPE_ALLOCATED) {
+			if (cap->can_reclaim && cap->can_reclaim(cap))
+				cap_initialize(cap);
 		}
-		if (kobj->type == KOBJECT_TYPE_INVALID) {
-			kobj->type = KOBJECT_TYPE_ALLOCATED;
+		if (cap->type == CAP_TYPE_INVALID) {
+			cap->type = CAP_TYPE_ALLOCATED;
 			irq_spinlock_unlock(&task->lock, true);
-			return cap;
+			return handle;
 		}
 	}
 	irq_spinlock_unlock(&task->lock, true);
@@ -96,20 +96,20 @@ int kobject_alloc(task_t *task)
 	return ELIMIT;
 }
 
-void kobject_free(task_t *task, int cap)
+void cap_free(task_t *task, int handle)
 {
-	assert(cap >= 0);
-	assert(cap < MAX_KERNEL_OBJECTS);
-	assert(task->kobject[cap].type != KOBJECT_TYPE_INVALID);
+	assert(handle >= 0);
+	assert(handle < MAX_CAPS);
+	assert(task->caps[handle].type != CAP_TYPE_INVALID);
 
 	irq_spinlock_lock(&task->lock, true);
-	kobject_initialize(&task->kobject[cap]);
+	cap_initialize(&task->caps[handle]);
 	irq_spinlock_unlock(&task->lock, true);
 }
 
-int kobject_to_cap(task_t *task, kobject_t *kobj)
+int cap_get_handle(task_t *task, cap_t *cap)
 {
-	return kobj - task->kobject;
+	return cap - task->caps;
 }
 
 /** @}

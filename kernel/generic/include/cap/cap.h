@@ -32,53 +32,54 @@
 /** @file
  */
 
-#ifndef KERN_KOBJECT_H_
-#define KERN_KOBJECT_H_
+#ifndef KERN_CAP_H_
+#define KERN_CAP_H_
 
 #include <typedefs.h>
 #include <ipc/ipc.h>
 #include <ddi/irq.h>
 
-#define MAX_KERNEL_OBJECTS  64
+#define MAX_CAPS  64
 
-#define for_each_kobject(task, ko, type) \
-	for (int i = 0, l = 1; i < MAX_KERNEL_OBJECTS && l; i++) \
-		for (kobject_t *(ko) = kobject_get((task), i, (type)); \
-		    (ko) && !(l = 0); (ko) = NULL, l = 1)
+#define for_each_cap(task, cap, type) \
+	for (int i = 0, l = 1; i < MAX_CAPS && l; i++) \
+		for (cap_t *(cap) = cap_get((task), i, (type)); \
+		    (cap) && !(l = 0); (cap) = NULL, l = 1)
 
-#define for_each_kobject_current(ko, type) \
-	for_each_kobject(TASK, (ko), (type))
+#define for_each_cap_current(cap, type) \
+	for_each_cap(TASK, (cap), (type))
 
 typedef enum {
-	KOBJECT_TYPE_INVALID,
-	KOBJECT_TYPE_ALLOCATED,
-	KOBJECT_TYPE_PHONE,
-	KOBJECT_TYPE_IRQ
-} kobject_type_t;
+	CAP_TYPE_INVALID,
+	CAP_TYPE_ALLOCATED,
+	CAP_TYPE_PHONE,
+	CAP_TYPE_IRQ
+} cap_type_t;
 
-typedef struct kobject {
-	kobject_type_t type;
-	bool (* can_reclaim)(struct kobject *);
+typedef struct cap {
+	cap_type_t type;
+	bool (* can_reclaim)(struct cap *);
 
+	/* The underlying kernel object. */
 	union {
 		phone_t phone;
 		irq_t irq;
 	};
-} kobject_t;
+} cap_t;
 
 struct task;
 
-void kobject_task_alloc(struct task *);
-void kobject_task_free(struct task *);
-void kobject_task_init(struct task *);
+void caps_task_alloc(struct task *);
+void caps_task_free(struct task *);
+void caps_task_init(struct task *);
 
-extern void kobject_initialize(kobject_t *);
-extern kobject_t *kobject_get(struct task *, int, kobject_type_t);
-extern kobject_t *kobject_get_current(int, kobject_type_t);
-extern int kobject_alloc(struct task *);
-extern void kobject_free(struct task *, int);
+extern void cap_initialize(cap_t *);
+extern cap_t *cap_get(struct task *, int, cap_type_t);
+extern cap_t *cap_get_current(int, cap_type_t);
+extern int cap_alloc(struct task *);
+extern void cap_free(struct task *, int);
 
-extern int kobject_to_cap(struct task *, kobject_t *);
+extern int cap_get_handle(struct task *, cap_t *);
 
 #endif
 

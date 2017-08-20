@@ -880,7 +880,7 @@ static void rtl8139_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
  *
  *  @param nic_data  The driver data
  *
- *  @return IRQ capability if the handler was registered.
+ *  @return IRQ capability handle if the handler was registered.
  *  @return Negative error code otherwise.
  */
 inline static int rtl8139_register_int_handler(nic_t *nic_data)

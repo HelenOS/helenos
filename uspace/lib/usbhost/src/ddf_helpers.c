@@ -747,7 +747,7 @@ static inline void irq_code_clean(irq_code_t *code)
  * @paran[in] handler Interrupt handler
  * @param[in] gen_irq_code IRQ code generator.
  *
- * @return IRQ kernel object capability on success.
+ * @return IRQ capability handle on success.
  * @return Negative error code.
  */
 int hcd_ddf_setup_interrupts(ddf_dev_t *device,
