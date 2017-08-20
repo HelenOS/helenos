@@ -217,15 +217,17 @@ int hc_init_memory(xhci_hc_t *hc)
 		goto err_event_ring;
 
 	if ((err = xhci_init_commands(hc)))
-		goto err_event_ring;
+		goto err_scratch;
 
 	if ((err = xhci_rh_init(&hc->rh)))
-		goto err_rh;
+		goto err_cmd;
 
 	return EOK;
 
-err_rh:
+err_cmd:
 	xhci_fini_commands(hc);
+err_scratch:
+	xhci_scratchpad_free(hc);
 err_event_ring:
 	xhci_event_ring_fini(&hc->event_ring);
 err_cmd_ring:
