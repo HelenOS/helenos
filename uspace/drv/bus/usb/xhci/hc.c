@@ -225,7 +225,7 @@ int hc_init_memory(xhci_hc_t *hc)
 	return EOK;
 
 err_rh:
-	xhci_rh_fini(&hc->rh);
+	xhci_fini_commands(hc);
 err_event_ring:
 	xhci_event_ring_fini(&hc->event_ring);
 err_cmd_ring:
