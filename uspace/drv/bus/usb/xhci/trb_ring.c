@@ -120,6 +120,9 @@ int xhci_trb_ring_init(xhci_trb_ring_t *ring, xhci_hc_t *hc)
 
 int xhci_trb_ring_fini(xhci_trb_ring_t *ring)
 {
+	if (!ring)
+		return EOK;
+
 	list_foreach(ring->segments, segments_link, trb_segment_t, segment)
 		dmamem_unmap_anonymous(segment);
 	return EOK;

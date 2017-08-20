@@ -401,7 +401,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	return EOK;
 }
 
-static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
+static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_regs_t *intr)
 {
 	usb_log_debug2("TRB event encountered.");
 	switch (TRB_TYPE(*trb)) {
@@ -409,6 +409,16 @@ static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
 		xhci_handle_command_completion(hc, trb);
 		break;
 	case XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT:
+		/**
+		 * TODO: This is a very crude hotfix, I'm not sure if
+		 *       we can do this one level above in the event handling
+		 *       loop (incase the xHC adds more events while we process events).
+		 */
+		hc->event_ring.dequeue_ptr = host2xhci(64, addr_to_phys(hc->event_ring.dequeue_trb));
+		uint64_t erdp = hc->event_ring.dequeue_ptr;
+		XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
+		XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
+		XHCI_REG_SET(intr, XHCI_INTR_ERDP_EHB, 1);
 		xhci_handle_port_status_change_event(hc, trb);
 		break;
 	default:
@@ -429,7 +439,7 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 			usb_log_debug2("Dequeued trb from event ring: %s",
 					xhci_trb_str_type(TRB_TYPE(trb)));
 
-			hc_handle_event(hc, &trb);
+			hc_handle_event(hc, &trb, intr);
 		} else {
 			usb_log_warning("Error while accessing event ring: %s", str_error(err));
 			break;
