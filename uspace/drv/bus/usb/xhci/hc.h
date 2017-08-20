@@ -41,6 +41,7 @@
 #include "hw_struct/context.h"
 #include "scratchpad.h"
 #include "trb_ring.h"
+#include "rh.h"
 
 typedef struct xhci_virt_device_ctx {
     xhci_device_ctx_t *dev_ctx;
@@ -73,6 +74,9 @@ typedef struct xhci_hc {
 	uint64_t *dcbaa;
 	xhci_virt_device_ctx_t **dcbaa_virt;
 	xhci_scratchpad_t *scratchpad;
+
+  /* Root hub emulation */
+	xhci_rh_t rh;
 
 	/* Cached capabilities */
 	xhci_port_speed_t speeds [16];

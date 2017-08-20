@@ -54,6 +54,7 @@ int endpoint_init(hcd_t *hcd, endpoint_t *ep)
 	fibril_mutex_unlock(&ep->guard);
 
 	usb_log_debug("Endpoint %d:%d initialized.", ep->address, ep->endpoint);
+
 	return EOK;
 }
 

@@ -43,6 +43,12 @@
 #include "hw_struct/trb.h"
 #include "rh.h"
 
+int xhci_rh_init(xhci_rh_t *rh)
+{
+	/* TODO: Implement me! */
+	return EOK;
+}
+
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
 //       sure about the other structs.
 static int alloc_dev(xhci_hc_t *hc, uint8_t port)
@@ -217,6 +223,18 @@ int xhci_reset_hub_port(xhci_hc_t* hc, uint8_t port)
 	xhci_port_regs_t *regs = &hc->op_regs->portrs[port-1];
 	XHCI_REG_WR(regs, XHCI_PORT_PR, 1);
 
+	return EOK;
+}
+
+int xhci_rh_schedule(xhci_rh_t *rh, usb_transfer_batch_t *batch)
+{
+	/* TODO: Implement me! */
+	return EOK;
+}
+
+int xhci_rh_fini(xhci_rh_t *rh)
+{
+	/* TODO: Implement me! */
 	return EOK;
 }
 

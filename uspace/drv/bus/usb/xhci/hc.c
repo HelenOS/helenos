@@ -219,8 +219,13 @@ int hc_init_memory(xhci_hc_t *hc)
 	if ((err = xhci_init_commands(hc)))
 		goto err_event_ring;
 
+	if ((err = xhci_rh_init(&hc->rh)))
+		goto err_rh;
+
 	return EOK;
 
+err_rh:
+	xhci_rh_fini(&hc->rh);
 err_event_ring:
 	xhci_event_ring_fini(&hc->event_ring);
 err_cmd_ring:
@@ -361,6 +366,13 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
 	assert(batch);
 
+	/* Check for root hub communication */
+	/* FIXME: Zero is a very crude workaround. Detect RH better. */
+	if (batch->ep->address == 0) {
+		usb_log_debug("XHCI root hub request.\n");
+		return xhci_rh_schedule(&hc->rh, batch);
+	}
+
 	usb_log_debug2("EP(%d:%d) started %s transfer of size %lu.",
 		batch->ep->address, batch->ep->endpoint,
 		usb_str_transfer_type(batch->ep->transfer_type),
@@ -385,7 +397,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 		break;
 	}
 
-	return ENAK;
+	return EOK;
 }
 
 static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
@@ -514,6 +526,7 @@ void hc_fini(xhci_hc_t *hc)
 	xhci_event_ring_fini(&hc->event_ring);
 	hc_dcbaa_fini(hc);
 	xhci_fini_commands(hc);
+	xhci_rh_fini(&hc->rh);
 	pio_disable(hc->base, RNGSZ(hc->mmio_range));
 	usb_log_info("HC(%p): Finalized.", hc);
 }

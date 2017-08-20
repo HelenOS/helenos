@@ -36,9 +36,21 @@
 #ifndef XHCI_RH_H
 #define XHCI_RH_H
 
+#include <usb/host/usb_transfer_batch.h>
+#include <usbvirt/virthub_base.h>
+
+/* XHCI root hub instance */
+typedef struct {
+	/** Virtual hub instance */
+	virthub_base_t base;
+} xhci_rh_t;
+
+int xhci_rh_init(xhci_rh_t *);
+int xhci_rh_fini(xhci_rh_t *);
 int xhci_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
 int xhci_get_hub_port(xhci_trb_t *);
 int xhci_reset_hub_port(xhci_hc_t *, uint8_t);
+int xhci_rh_schedule(xhci_rh_t *, usb_transfer_batch_t *);
 
 #endif
 
