@@ -75,7 +75,7 @@ typedef struct xhci_hc {
 	xhci_virt_device_ctx_t **dcbaa_virt;
 	xhci_scratchpad_t *scratchpad;
 
-  /* Root hub emulation */
+	/* Root hub emulation */
 	xhci_rh_t rh;
 
 	/* Cached capabilities */

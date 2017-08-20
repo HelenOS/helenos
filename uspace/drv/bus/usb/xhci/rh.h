@@ -39,10 +39,21 @@
 #include <usb/host/usb_transfer_batch.h>
 #include <usbvirt/virthub_base.h>
 
+enum {
+	XHCI_MAX_PORTS = 255,
+};
+
 /* XHCI root hub instance */
 typedef struct {
 	/** Virtual hub instance */
 	virthub_base_t base;
+	/** USB hub descriptor describing the XHCI root hub */
+	struct {
+		usb_hub_descriptor_header_t header;
+		uint8_t rempow[STATUS_BYTES(XHCI_MAX_PORTS) * 2];
+	} __attribute__((packed)) hub_descriptor;
+	/** Interrupt transfer waiting for an actual interrupt to occur */
+	usb_transfer_batch_t *unfinished_interrupt_transfer;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *);
@@ -51,6 +62,7 @@ int xhci_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
 int xhci_get_hub_port(xhci_trb_t *);
 int xhci_reset_hub_port(xhci_hc_t *, uint8_t);
 int xhci_rh_schedule(xhci_rh_t *, usb_transfer_batch_t *);
+int xhci_rh_interrupt(xhci_rh_t *);
 
 #endif
 

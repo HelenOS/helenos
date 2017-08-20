@@ -43,10 +43,16 @@
 #include "hw_struct/trb.h"
 #include "rh.h"
 
+enum {
+	HUB_STATUS_CHANGE_PIPE = 1,
+};
+
+static usbvirt_device_ops_t ops;
+
 int xhci_rh_init(xhci_rh_t *rh)
 {
-	/* TODO: Implement me! */
-	return EOK;
+	return virthub_base_init(&rh->base, "xhci rh", &ops, rh, NULL,
+	    &rh->hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
 }
 
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
@@ -228,15 +234,225 @@ int xhci_reset_hub_port(xhci_hc_t* hc, uint8_t port)
 
 int xhci_rh_schedule(xhci_rh_t *rh, usb_transfer_batch_t *batch)
 {
+	assert(rh);
+	assert(batch);
+	const usb_target_t target = {{
+		.address = batch->ep->address,
+		.endpoint = batch->ep->endpoint,
+	}};
+	batch->error = virthub_base_request(&rh->base, target,
+	    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
+	    batch->buffer, batch->buffer_size, &batch->transfered_size);
+	if (batch->error == ENAK) {
+		/* This is safe because only status change interrupt transfers
+		 * return NAK. The assertion holds true because the batch
+		 * existence prevents communication with that ep */
+		assert(rh->unfinished_interrupt_transfer == NULL);
+		rh->unfinished_interrupt_transfer = batch;
+	} else {
+		usb_transfer_batch_finish(batch, NULL);
+		usb_transfer_batch_destroy(batch);
+	}
+	return EOK;
+}
+
+int xhci_rh_interrupt(xhci_rh_t *rh)
+{
+	usb_log_debug2("Called xhci_rh_interrupt().");
+
+	/* TODO: atomic swap needed */
+	usb_transfer_batch_t *batch = rh->unfinished_interrupt_transfer;
+	rh->unfinished_interrupt_transfer = NULL;
+	if (batch) {
+		const usb_target_t target = {{
+			.address = batch->ep->address,
+			.endpoint = batch->ep->endpoint,
+		}};
+		batch->error = virthub_base_request(&rh->base, target,
+		    usb_transfer_batch_direction(batch),
+		    (void*)batch->setup_buffer,
+		    batch->buffer, batch->buffer_size, &batch->transfered_size);
+		usb_transfer_batch_finish(batch, NULL);
+		usb_transfer_batch_destroy(batch);
+	}
+	return EOK;
+}
+
+/** Hub status request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ */
+static int req_get_status(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
 	/* TODO: Implement me! */
+	usb_log_debug2("Called req_get_status().");
+	return EOK;
+}
+
+/** Hub set feature request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ */
+static int req_clear_hub_feature(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
+	/* TODO: Implement me! */
+	usb_log_debug2("Called req_clear_hub_feature().");
+	return EOK;
+}
+
+/** Port status request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ */
+static int req_get_port_status(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
+	/* TODO: Implement me! */
+	usb_log_debug2("Called req_get_port_status().");
+	return EOK;
+}
+
+/** Port clear feature request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ */
+static int req_clear_port_feature(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
+	/* TODO: Implement me! */
+	usb_log_debug2("Called req_clear_port_feature().");
+	return EOK;
+}
+
+/** Port set feature request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ */
+static int req_set_port_feature(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
+	/* TODO: Implement me! */
+	usb_log_debug2("Called req_set_port_feature().");
+	return EOK;
+}
+
+/** Status change handler.
+ * @param device Virtual hub device
+ * @param endpoint Endpoint number
+ * @param tr_type Transfer type
+ * @param buffer Response destination
+ * @param buffer_size Bytes available in buffer
+ * @param actual_size Size us the used part of the dest buffer.
+ *
+ * Produces status mask. Bit 0 indicates hub status change the other bits
+ * represent port status change. Endian does not matter as UHCI root hubs
+ * only need 1 byte.
+ */
+static int req_status_change_handler(usbvirt_device_t *device,
+    usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
+    void *buffer, size_t buffer_size, size_t *actual_size)
+{
+	/* TODO: Implement me! */
+	usb_log_debug2("Called req_status_change_handler().");
 	return EOK;
 }
 
 int xhci_rh_fini(xhci_rh_t *rh)
 {
 	/* TODO: Implement me! */
+	usb_log_debug2("Called xhci_rh_fini().");
 	return EOK;
 }
+
+/** XHCI root hub request handlers */
+static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
+	{
+		STD_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		.name = "GetDescriptor",
+		.callback = virthub_base_get_hub_descriptor,
+	},
+	{
+		CLASS_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		.name = "GetDescriptor",
+		.callback = virthub_base_get_hub_descriptor,
+	},
+	{
+		CLASS_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_GET_DESCRIPTOR),
+		.name = "GetHubDescriptor",
+		.callback = virthub_base_get_hub_descriptor,
+	},
+	{
+		CLASS_REQ_IN(USB_REQUEST_RECIPIENT_OTHER, USB_HUB_REQUEST_GET_STATUS),
+		.name = "GetPortStatus",
+		.callback = req_get_port_status,
+	},
+	{
+		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_CLEAR_FEATURE),
+		.name = "ClearHubFeature",
+		.callback = req_clear_hub_feature,
+	},
+	{
+		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_OTHER, USB_HUB_REQUEST_CLEAR_FEATURE),
+		.name = "ClearPortFeature",
+		.callback = req_clear_port_feature,
+	},
+	{
+		CLASS_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_GET_STATUS),
+		.name = "GetHubStatus",
+		.callback = req_get_status,
+	},
+	{
+		CLASS_REQ_IN(USB_REQUEST_RECIPIENT_OTHER, USB_HUB_REQUEST_GET_STATUS),
+		.name = "GetPortStatus",
+		.callback = req_get_port_status,
+	},
+	{
+		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_SET_FEATURE),
+		.name = "SetHubFeature",
+		.callback = req_nop,
+	},
+	{
+		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_OTHER, USB_HUB_REQUEST_SET_FEATURE),
+		.name = "SetPortFeature",
+		.callback = req_set_port_feature,
+	},
+	{
+		.callback = NULL
+	}
+};
+
+/** Virtual XHCI root hub ops */
+static usbvirt_device_ops_t ops = {
+        .control = control_transfer_handlers,
+        .data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
+};
 
 
 /**
