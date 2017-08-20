@@ -64,6 +64,19 @@ int xhci_reset_hub_port(xhci_hc_t *, uint8_t);
 int xhci_rh_schedule(xhci_rh_t *, usb_transfer_batch_t *);
 int xhci_rh_interrupt(xhci_rh_t *);
 
+/** Get XHCI rh address.
+ *
+ * @param rh XHCI rh instance.
+ * @return USB address assigned to the hub.
+ * Wrapper for virtual hub address
+ */
+static inline usb_address_t xhci_rh_get_address(xhci_rh_t *rh)
+{
+	assert(rh);
+	/* FIXME: The line end below causes infinite loop. */
+	return 0; // virthub_base_get_address(&rh->base);
+}
+
 #endif
 
 /**

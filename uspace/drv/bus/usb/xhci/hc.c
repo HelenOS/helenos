@@ -368,7 +368,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 
 	/* Check for root hub communication */
 	/* FIXME: Zero is a very crude workaround. Detect RH better. */
-	if (batch->ep->address == 0) {
+	if (batch->ep->address == xhci_rh_get_address(&hc->rh)) {
 		usb_log_debug("XHCI root hub request.\n");
 		return xhci_rh_schedule(&hc->rh, batch);
 	}
