@@ -58,6 +58,8 @@ typedef enum {
 
 typedef struct cap {
 	cap_type_t type;
+	int handle;
+
 	bool (* can_reclaim)(struct cap *);
 
 	/* The underlying kernel object. */
@@ -73,13 +75,11 @@ void caps_task_alloc(struct task *);
 void caps_task_free(struct task *);
 void caps_task_init(struct task *);
 
-extern void cap_initialize(cap_t *);
+extern void cap_initialize(cap_t *, int);
 extern cap_t *cap_get(struct task *, int, cap_type_t);
 extern cap_t *cap_get_current(int, cap_type_t);
 extern int cap_alloc(struct task *);
 extern void cap_free(struct task *, int);
-
-extern int cap_get_handle(struct task *, cap_t *);
 
 #endif
 

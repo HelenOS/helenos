@@ -626,8 +626,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 		for_each_cap(task, cap, CAP_TYPE_PHONE) {
 			phone_t *phone = &cap->phone;
 			if (phone->callee)
-				printf(" %d:%p", cap_get_handle(task, cap),
-				    phone->callee);
+				printf(" %d:%p", cap->handle, phone->callee);
 		}
 		printf("\n");
 	}

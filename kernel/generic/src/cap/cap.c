@@ -38,9 +38,10 @@
 #include <abi/errno.h>
 #include <mm/slab.h>
 
-void cap_initialize(cap_t *cap)
+void cap_initialize(cap_t *cap, int handle)
 {
 	cap->type = CAP_TYPE_INVALID;
+	cap->handle = handle;
 	cap->can_reclaim = NULL;
 }
 
@@ -52,7 +53,7 @@ void caps_task_alloc(task_t *task)
 void caps_task_init(task_t *task)
 {
 	for (int i = 0; i < MAX_CAPS; i++)
-		cap_initialize(&task->caps[i]);
+		cap_initialize(&task->caps[i], i);
 }
 
 void caps_task_free(task_t *task)
@@ -83,7 +84,7 @@ int cap_alloc(task_t *task)
 		cap_t *cap = &task->caps[handle];
 		if (cap->type > CAP_TYPE_ALLOCATED) {
 			if (cap->can_reclaim && cap->can_reclaim(cap))
-				cap_initialize(cap);
+				cap_initialize(cap, handle);
 		}
 		if (cap->type == CAP_TYPE_INVALID) {
 			cap->type = CAP_TYPE_ALLOCATED;
@@ -103,13 +104,8 @@ void cap_free(task_t *task, int handle)
 	assert(task->caps[handle].type != CAP_TYPE_INVALID);
 
 	irq_spinlock_lock(&task->lock, true);
-	cap_initialize(&task->caps[handle]);
+	cap_initialize(&task->caps[handle], handle);
 	irq_spinlock_unlock(&task->lock, true);
-}
-
-int cap_get_handle(task_t *task, cap_t *cap)
-{
-	return cap - task->caps;
 }
 
 /** @}

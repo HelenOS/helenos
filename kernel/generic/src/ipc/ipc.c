@@ -912,15 +912,14 @@ void ipc_print_task(task_id_t taskid)
 	
 	for_each_cap(task, cap, CAP_TYPE_PHONE) {
 		phone_t *phone = &cap->phone;
-		int cap_handle = cap_get_handle(task, cap);
 	
 		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
-			printf("%-11d (mutex busy)\n", cap_handle);
+			printf("%-11d (mutex busy)\n", cap->handle);
 			continue;
 		}
 		
 		if (phone->state != IPC_PHONE_FREE) {
-			printf("%-11d %7" PRIun " ", cap_handle,
+			printf("%-11d %7" PRIun " ", cap->handle,
 			    atomic_get(&phone->active_calls));
 			
 			switch (phone->state) {
