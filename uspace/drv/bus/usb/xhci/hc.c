@@ -459,7 +459,7 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 	status = hc->op_regs->usbsts;
 
 	/* TODO: Figure out how root hub interrupts work. */
-	if (status | XHCI_REG_MASK(XHCI_OP_PCD)) {
+	if (status & XHCI_REG_MASK(XHCI_OP_PCD)) {
 		usb_log_debug2("Root hub interrupt.");
 		xhci_rh_interrupt(&hc->rh);
 	}
