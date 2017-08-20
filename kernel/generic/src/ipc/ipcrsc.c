@@ -205,7 +205,7 @@ int phone_alloc(task_t *task)
 	int handle = cap_alloc(task);
 	if (handle >= 0) {
 		irq_spinlock_lock(&task->lock, true);
-		cap_t *cap = &task->caps[handle];
+		cap_t *cap = cap_get(task, handle, CAP_TYPE_ALLOCATED);
 		ipc_phone_init(&cap->phone, task);
 		cap->type = CAP_TYPE_PHONE;
 		cap->can_reclaim = phone_can_reclaim;
