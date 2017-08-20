@@ -107,6 +107,7 @@ xhci_cmd_t *xhci_alloc_command(void)
 	 * TODO: Is this wise?
 	 */
 	cmd->has_owner = true;
+	cmd->owns_trb = false;
 
 	return cmd;
 }
@@ -117,7 +118,7 @@ void xhci_free_command(xhci_cmd_t *cmd)
 
 	if (cmd->ictx)
 		free32(cmd->ictx);
-	if (cmd->trb)
+	if (cmd->owns_trb && cmd->trb)
 		free32(cmd->trb);
 
 	free32(cmd);
@@ -549,6 +550,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		/* Copy the trb for later use so that we can free space on the cmd ring. */
 		command->trb = malloc32(sizeof(xhci_trb_t));
 		xhci_trb_copy(command->trb, command_trb);
+		command->owns_trb = true;
 	}
 
 	return EOK;

@@ -53,6 +53,7 @@ typedef struct xhci_command {
 
 	bool completed;
 	bool has_owner;
+	bool owns_trb;
 } xhci_cmd_t;
 
 int xhci_init_commands(xhci_hc_t *);
