@@ -167,8 +167,8 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
 	
 	list_initialize(&task->threads);
-
-	task->kobject = malloc(sizeof(kobject_t) * MAX_KERNEL_OBJECTS, 0);
+	
+	kobject_task_alloc(task);
 	
 	ipc_answerbox_init(&task->answerbox, task);
 	
@@ -189,7 +189,7 @@ size_t tsk_destructor(void *obj)
 {
 	task_t *task = (task_t *) obj;
 	
-	free(task->kobject);
+	kobject_task_free(task);
 	return 0;
 }
 
@@ -214,9 +214,7 @@ task_t *task_create(as_t *as, const char *name)
 	task->ucycles = 0;
 	task->kcycles = 0;
 
-	int cap;
-	for (cap = 0; cap < MAX_KERNEL_OBJECTS; cap++)
-		kobject_initialize(&task->kobject[cap]);
+	kobject_task_init(task);
 
 	task->ipc_info.call_sent = 0;
 	task->ipc_info.call_received = 0;
@@ -625,11 +623,11 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #endif
 	
 	if (*additional) {
-		int i;
-		for (i = 0; i < MAX_KERNEL_OBJECTS; i++) {
-			phone_t *phone = phone_get(task, i);
-			if (phone && phone->callee)
-				printf(" %d:%p", i, phone->callee);
+		for_each_kobject(task, ko, KOBJECT_TYPE_PHONE) {
+			phone_t *phone = &ko->phone;
+			if (phone->callee)
+				printf(" %d:%p", kobject_to_cap(task, ko),
+				    phone->callee);
 		}
 		printf("\n");
 	}

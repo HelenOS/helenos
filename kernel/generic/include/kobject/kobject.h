@@ -41,6 +41,14 @@
 
 #define MAX_KERNEL_OBJECTS  64
 
+#define for_each_kobject(task, ko, type) \
+	for (int i = 0, l = 1; i < MAX_KERNEL_OBJECTS && l; i++) \
+		for (kobject_t *(ko) = kobject_get((task), i, (type)); \
+		    (ko) && !(l = 0); (ko) = NULL, l = 1)
+
+#define for_each_kobject_current(ko, type) \
+	for_each_kobject(TASK, (ko), (type))
+
 typedef enum {
 	KOBJECT_TYPE_INVALID,
 	KOBJECT_TYPE_ALLOCATED,
@@ -60,11 +68,17 @@ typedef struct kobject {
 
 struct task;
 
+void kobject_task_alloc(struct task *);
+void kobject_task_free(struct task *);
+void kobject_task_init(struct task *);
+
 extern void kobject_initialize(kobject_t *);
 extern kobject_t *kobject_get(struct task *, int, kobject_type_t);
 extern kobject_t *kobject_get_current(int, kobject_type_t);
 extern int kobject_alloc(struct task *);
 extern void kobject_free(struct task *, int);
+
+extern int kobject_to_cap(struct task *, kobject_t *);
 
 #endif
 

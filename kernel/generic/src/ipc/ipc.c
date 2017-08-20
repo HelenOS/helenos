@@ -734,17 +734,16 @@ restart:
 static void ipc_wait_for_all_answered_calls(void)
 {
 	call_t *call;
-	size_t i;
+	bool all_clean;
 
 restart:
 	/*
 	 * Go through all phones, until they are all free.
 	 * Locking is needed as there may be connection handshakes in progress.
 	 */
-	for (i = 0; i < MAX_KERNEL_OBJECTS; i++) {
-		phone_t *phone = phone_get_current(i);
-		if (!phone)
-			continue;
+	all_clean = true;
+	for_each_kobject_current(kobj, KOBJECT_TYPE_PHONE) {
+		phone_t *phone = &kobj->phone;
 
 		mutex_lock(&phone->lock);
 		if ((phone->state == IPC_PHONE_HUNGUP) &&
@@ -780,6 +779,7 @@ restart:
 		 */
 		if (phone->state != IPC_PHONE_FREE) {
 			mutex_unlock(&phone->lock);
+			all_clean = false;
 			break;
 		}
 
@@ -787,7 +787,7 @@ restart:
 	}
 		
 	/* Got into cleanup */
-	if (i == MAX_KERNEL_OBJECTS)
+	if (all_clean)
 		return;
 		
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
@@ -819,10 +819,8 @@ void ipc_cleanup(void)
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	for (int i = 0; i < MAX_KERNEL_OBJECTS; i++) {
-		phone_t *phone = phone_get_current(i);
-		if (!phone)
-			continue;
+	for_each_kobject_current(kobj, KOBJECT_TYPE_PHONE) {
+		phone_t *phone = &kobj->phone;
 		ipc_phone_hangup(phone);
 	}
 	
@@ -912,19 +910,17 @@ void ipc_print_task(task_id_t taskid)
 	
 	printf("[phone cap] [calls] [state\n");
 	
-	size_t i;
-	for (i = 0; i < MAX_KERNEL_OBJECTS; i++) {
-		phone_t *phone = phone_get(task, i);
-		if (!phone)
-			continue;
+	for_each_kobject(task, kobj, KOBJECT_TYPE_PHONE) {
+		phone_t *phone = &kobj->phone;
+		int cap = kobject_to_cap(task, kobj);
 
 		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
-			printf("%-10zu (mutex busy)\n", i);
+			printf("%-11d (mutex busy)\n", cap);
 			continue;
 		}
 		
 		if (phone->state != IPC_PHONE_FREE) {
-			printf("%-11zu %7" PRIun " ", i,
+			printf("%-11d %7" PRIun " ", cap,
 			    atomic_get(&phone->active_calls));
 			
 			switch (phone->state) {

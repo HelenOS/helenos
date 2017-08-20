@@ -36,11 +36,28 @@
 #include <proc/task.h>
 #include <synch/spinlock.h>
 #include <abi/errno.h>
+#include <mm/slab.h>
 
 void kobject_initialize(kobject_t *kobj)
 {
 	kobj->type = KOBJECT_TYPE_INVALID;
 	kobj->can_reclaim = NULL;
+}
+
+void kobject_task_alloc(task_t *task)
+{
+	task->kobject = malloc(sizeof(kobject_t) * MAX_KERNEL_OBJECTS, 0);
+}
+
+void kobject_task_init(task_t *task)
+{
+	for (int cap = 0; cap < MAX_KERNEL_OBJECTS; cap++)
+		kobject_initialize(&task->kobject[cap]);
+}
+
+void kobject_task_free(task_t *task)
+{
+	free(task->kobject);
 }
 
 kobject_t *kobject_get(task_t *task, int cap, kobject_type_t type)
@@ -88,6 +105,11 @@ void kobject_free(task_t *task, int cap)
 	irq_spinlock_lock(&task->lock, true);
 	kobject_initialize(&task->kobject[cap]);
 	irq_spinlock_unlock(&task->lock, true);
+}
+
+int kobject_to_cap(task_t *task, kobject_t *kobj)
+{
+	return kobj - task->kobject;
 }
 
 /** @}
