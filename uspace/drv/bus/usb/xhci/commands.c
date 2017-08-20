@@ -169,20 +169,12 @@ static inline int enqueue_trb(xhci_hc_t *hc, xhci_trb_t *trb,
 	return EOK;
 }
 
-static inline int add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static inline void add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
-	if (cmd == NULL) {
-		cmd = xhci_alloc_command();
-		if (cmd == NULL)
-			return ENOMEM;
-
-		cmd->has_owner = false;
-	}
+	assert(cmd);
 
 	list_append(&cmd->link, &hc->commands);
 	cmd->trb = hc->command_ring.enqueue_trb;
-
-	return EOK;
 }
 
 void xhci_stop_command_ring(xhci_hc_t *hc)

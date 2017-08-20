@@ -309,7 +309,6 @@ int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
 		ring->dequeue_segment = list_get_instance(next_segment, trb_segment_t, segments_link);
 		ring->dequeue_trb = segment_begin(ring->dequeue_segment);
 	}
-	
 
 	return EOK;
 }
