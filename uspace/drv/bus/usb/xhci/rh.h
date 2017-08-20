@@ -73,8 +73,7 @@ int xhci_rh_interrupt(xhci_rh_t *);
 static inline usb_address_t xhci_rh_get_address(xhci_rh_t *rh)
 {
 	assert(rh);
-	/* FIXME: The line end below causes infinite loop. */
-	return 0; // virthub_base_get_address(&rh->base);
+	return virthub_base_get_address(&rh->base);
 }
 
 #endif

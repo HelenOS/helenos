@@ -381,7 +381,7 @@ static int req_status_change_handler(usbvirt_device_t *device,
 {
 	/* TODO: Implement me! */
 	usb_log_debug2("Called req_status_change_handler().");
-	return EOK;
+	return ENAK;
 }
 
 int xhci_rh_fini(xhci_rh_t *rh)
