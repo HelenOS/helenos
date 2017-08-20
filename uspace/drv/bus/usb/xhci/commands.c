@@ -113,6 +113,8 @@ xhci_cmd_t *xhci_alloc_command(void)
 
 void xhci_free_command(xhci_cmd_t *cmd)
 {
+	list_remove(&cmd->link);
+
 	if (cmd->ictx)
 		free32(cmd->ictx);
 	if (cmd->trb)
