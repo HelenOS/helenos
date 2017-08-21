@@ -30,12 +30,17 @@ BFD_NAME = elf64-littleriscv
 BFD_ARCH = riscv
 BFD = binary
 
+GCC_CFLAGS += -mcmodel=medany
+
 BITS = 64
 ENDIANESS = LE
 
 ARCH_SOURCES = \
+	arch/$(KARCH)/src/boot/boot.S \
 	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/drivers/ucb.c \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/proc/task.c \
 	arch/$(KARCH)/src/proc/thread.c \
