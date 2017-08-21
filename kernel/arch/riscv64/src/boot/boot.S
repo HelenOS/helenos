@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Martin Decky
+ * Copyright (c) 2017 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,69 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup riscv64
- * @{
- */
-/** @file
- */
+#include <abi/asmtool.h>
+#include <arch/boot/boot.h>
 
-#ifndef KERN_riscv64_BOOT_H_
-#define KERN_riscv64_BOOT_H_
+.section K_TEXT_START, "ax"
 
-#define BOOT_OFFSET  0x48000000
+SYMBOL(kernel_image_start)
+	/* Setup temporary stack */
+	la sp, temp_stack
+	
+	/* Create the first stack frame */
+	addi sp, sp, -16
+	
+	/* Call riscv64_pre_main() */
+	jal riscv64_pre_main
+	
+	/* Call main_bsp() */
+	jal main_bsp
+	
+	/* Not reached */
+	/* FIXME: Disable interrupts */
+	hlt0:
+		wfi
+		j hlt0
 
-#define TASKMAP_MAX_RECORDS        32
-#define MEMMAP_MAX_RECORDS         32
-#define BOOTINFO_TASK_NAME_BUFLEN  32
+.data
 
-/* Temporary stack size for boot process */
-#define TEMP_STACK_SIZE  0x1000
-
-#ifndef __ASM__
-
-#include <stddef.h>
-#include <stdint.h>
-#include <config.h>
-
-typedef struct {
-	volatile uint64_t *tohost;
-	volatile uint64_t *fromhost;
-} ucbinfo_t;
-
-typedef struct {
-	void *start;
-	size_t size;
-} memzone_t;
-
-typedef struct {
-	uint64_t total;
-	size_t cnt;
-	memzone_t zones[MEMMAP_MAX_RECORDS];
-} memmap_t;
-
-typedef struct {
-	void *addr;
-	size_t size;
-	char name[BOOTINFO_TASK_NAME_BUFLEN];
-} utask_t;
-
-typedef struct {
-	size_t cnt;
-	utask_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
-
-typedef struct {
-	ucbinfo_t ucbinfo;
-	uintptr_t physmem_start;
-	uintptr_t htif_frame;
-	uintptr_t pt_frame;
-	memmap_t memmap;
-	taskmap_t taskmap;
-} bootinfo_t;
-
-#endif
-
-#endif
-
-/** @}
- */
+.align 16
+.space TEMP_STACK_SIZE
+temp_stack:
