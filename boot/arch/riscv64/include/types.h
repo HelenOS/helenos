@@ -41,6 +41,11 @@ typedef uint64_t uintptr_t;
 typedef int64_t ptrdiff_t;
 
 typedef struct {
+	volatile uint64_t *tohost;
+	volatile uint64_t *fromhost;
+} ucbinfo_t;
+
+typedef struct {
 	void *start;
 	size_t size;
 } memzone_t;
@@ -66,6 +71,10 @@ typedef struct {
 } taskmap_t;
 
 typedef struct {
+	ucbinfo_t ucbinfo;
+	uintptr_t physmem_start;
+	uintptr_t htif_frame;
+	uintptr_t pt_frame;
 	memmap_t memmap;
 	taskmap_t taskmap;
 } bootinfo_t;

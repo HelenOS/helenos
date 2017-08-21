@@ -29,6 +29,8 @@
 #include <arch/main.h>
 #include <arch/arch.h>
 #include <arch/asm.h>
+#include <arch/ucb.h>
+#include <arch/mm.h>
 #include <version.h>
 #include <stddef.h>
 #include <printf.h>
@@ -40,23 +42,32 @@
 #include <inflate.h>
 #include "../../components.h"
 
-#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
-#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
-
 static bootinfo_t bootinfo;
 
 void bootstrap(void)
 {
 	version_print();
 	
-	// FIXME TODO: read from device tree
-	bootinfo.memmap.total = 1024 * 1024 * 1024;
-	bootinfo.memmap.cnt = 0;
+	bootinfo.htif_frame = ((uintptr_t) &htif_page) >> PAGE_WIDTH;
+	bootinfo.pt_frame = ((uintptr_t) &pt_page) >> PAGE_WIDTH;
 	
-	printf("\nMemory statistics (total %lu MB)\n\n", bootinfo.memmap.total >> 20);
+	bootinfo.ucbinfo.tohost =
+	    (volatile uint64_t *) PA2KA((uintptr_t) &tohost);
+	bootinfo.ucbinfo.fromhost =
+	    (volatile uint64_t *) PA2KA((uintptr_t) &fromhost);
+	
+	// FIXME TODO: read from device tree
+	bootinfo.physmem_start = PHYSMEM_START;
+	bootinfo.memmap.total = PHYSMEM_SIZE;
+	bootinfo.memmap.cnt = 1;
+	bootinfo.memmap.zones[0].start = (void *) PHYSMEM_START;
+	bootinfo.memmap.zones[0].size = PHYSMEM_SIZE;
+	
+	printf("\nMemory statistics (total %lu MB, starting at %p)\n\n",
+	    bootinfo.memmap.total >> 20, (void *) bootinfo.physmem_start);
 	printf(" %p: boot info structure\n", &bootinfo);
 	
-	uintptr_t top = 0;
+	uintptr_t top = BOOT_OFFSET;
 	
 	for (size_t i = 0; i < COMPONENTS; i++) {
 		printf(" %p: %s image (%zu/%zu bytes)\n", components[i].addr,
@@ -65,11 +76,13 @@ void bootstrap(void)
 		
 		uintptr_t tail = (uintptr_t) components[i].addr +
 		    components[i].size;
-		if (tail > top)
-			top = tail;
+		if (tail > top) {
+			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
+			    components[i].name, (void *) tail, (void *) top);
+			halt();
+		}
 	}
 	
-	top = ALIGN_UP(top, PAGE_SIZE);
 	printf(" %p: inflate area\n", (void *) top);
 	
 	void *kernel_entry = NULL;
@@ -91,7 +104,7 @@ void bootstrap(void)
 			
 			bootinfo.taskmap.cnt++;
 		} else
-			kernel_entry = (void *) top;
+			kernel_entry = (void *) PA2KA(top);
 		
 		dest[i] = (void *) top;
 		top += components[i].inflated;
@@ -100,7 +113,7 @@ void bootstrap(void)
 	
 	printf(" %p: kernel entry point\n", kernel_entry);
 	
-	if (top >= bootinfo.memmap.total) {
+	if (top >= bootinfo.physmem_start + bootinfo.memmap.total) {
 		printf("Not enough physical memory available.\n");
 		printf("The boot image is too large. Halting.\n");
 		halt();
@@ -124,5 +137,5 @@ void bootstrap(void)
 	printf(".\n");
 	
 	printf("Booting the kernel...\n");
-	jump_to_kernel(kernel_entry, PA2KA(&bootinfo));
+	jump_to_kernel(PA2KA(&bootinfo));
 }

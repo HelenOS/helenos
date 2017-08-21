@@ -33,6 +33,7 @@ BFD = binary
 
 BITS = 64
 ENDIANESS = LE
+EXTRA_CFLAGS = -mcmodel=medany
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

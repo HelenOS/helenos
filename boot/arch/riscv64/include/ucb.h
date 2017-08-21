@@ -37,8 +37,8 @@
 
 #include <stddef.h>
 
-#define CSR_MTOHOST    0x780
-#define CSR_MFROMHOST  0x781
+extern volatile uint64_t tohost;
+extern volatile uint64_t fromhost;
 
 #define HTIF_DEVICE_CONSOLE  1
 
