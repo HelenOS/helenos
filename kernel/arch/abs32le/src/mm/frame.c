@@ -48,7 +48,6 @@ void physmem_print(void)
 {
 }
 
-
 void frame_low_arch_init(void)
 {
 }

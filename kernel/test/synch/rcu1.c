@@ -434,7 +434,7 @@ static void seq_func(void *arg)
 			}
 		}
 		
-	} 
+	}
 }
 
 static bool do_seq_check(void)
