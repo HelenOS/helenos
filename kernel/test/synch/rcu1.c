@@ -388,6 +388,11 @@ static void seq_cb(rcu_item_t *rcu_item)
 
 static void seq_func(void *arg)
 {
+	/*
+	 * Temporarily workaround GCC 7.1.0 internal
+	 * compiler error when compiling for riscv64.
+	 */
+#ifndef KARCH_riscv64
 	seq_work_t *work = (seq_work_t*)arg;
 	
 	/* Alternate between reader and updater roles. */
@@ -435,6 +440,9 @@ static void seq_func(void *arg)
 		}
 		
 	}
+#else
+	(void) seq_cb;
+#endif
 }
 
 static bool do_seq_check(void)
