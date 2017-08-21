@@ -34,8 +34,10 @@
 
 #include <arch.h>
 #include <stddef.h>
+#include <arch/arch.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
+#include <arch/drivers/ucb.h>
 
 #include <func.h>
 #include <config.h>
