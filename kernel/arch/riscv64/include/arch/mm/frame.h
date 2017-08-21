@@ -42,6 +42,13 @@
 
 #ifndef __ASM__
 
+#include <arch/boot/boot.h>
+
+extern uintptr_t physmem_start;
+extern uintptr_t htif_frame;
+extern uintptr_t pt_frame;
+extern memmap_t memmap;
+
 extern void frame_low_arch_init(void);
 extern void frame_high_arch_init(void);
 extern void physmem_print(void);

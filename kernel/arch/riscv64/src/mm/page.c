@@ -47,14 +47,53 @@
 #include <print.h>
 #include <interrupt.h>
 
+#define SATP_PFN_MASK  UINT64_C(0x00000fffffffffff)
+
+#define SATP_MODE_MASK  UINT64_C(0xf000000000000000)
+#define SATP_MODE_BARE  UINT64_C(0x0000000000000000)
+#define SATP_MODE_SV39  UINT64_C(0x8000000000000000)
+#define SATP_MODE_SV48  UINT64_C(0x9000000000000000)
+
 void page_arch_init(void)
 {
-	if (config.cpu_active == 1)
+	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
+		
+		page_table_lock(AS_KERNEL, true);
+		
+		/*
+		 * PA2KA(identity) mapping for all low-memory frames.
+		 */
+		for (uintptr_t cur = 0;
+		    cur < min(config.identity_size, config.physmem_end);
+		    cur += FRAME_SIZE)
+			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur,
+			    PAGE_GLOBAL | PAGE_CACHEABLE | PAGE_EXEC | PAGE_WRITE | PAGE_READ);
+		
+		page_table_unlock(AS_KERNEL, true);
+		
+		// FIXME: register page fault extension handler
+		
+		write_satp((uintptr_t) AS_KERNEL->genarch.page_table);
+		
+		/* The boot page table is no longer needed. */
+		// FIXME: frame_mark_available(pt_frame, 1);
+	}
 }
 
 void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
+}
+
+void write_satp(uintptr_t ptl0)
+{
+	uint64_t satp = ((ptl0 >> FRAME_WIDTH) & SATP_PFN_MASK) |
+	    SATP_MODE_SV48;
+	
+	asm volatile (
+		"csrw sptbr, %[satp]\n"
+		:: [satp] "r" (satp)
+	);
 }
 
 /** @}

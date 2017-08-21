@@ -41,6 +41,9 @@
 
 typedef uint32_t asid_t;
 
+#define asid_get()  (ASID_START + 1)
+#define asid_put(asid)
+
 #endif
 
 /** @}

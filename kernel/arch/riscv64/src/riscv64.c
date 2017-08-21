@@ -48,14 +48,53 @@
 #include <proc/thread.h>
 #include <console/console.h>
 #include <mem.h>
+#include <str.h>
 
 char memcpy_from_uspace_failover_address;
 char memcpy_to_uspace_failover_address;
 
+static void riscv64_post_mm_init(void);
+
 arch_ops_t riscv64_ops = {
+	.post_mm_init = riscv64_post_mm_init
 };
 
 arch_ops_t *arch_ops = &riscv64_ops;
+
+void riscv64_pre_main(bootinfo_t *bootinfo)
+{
+	physmem_start = bootinfo->physmem_start;
+	htif_frame = bootinfo->htif_frame;
+	pt_frame = bootinfo->pt_frame;
+	
+	htif_init(bootinfo->ucbinfo.tohost, bootinfo->ucbinfo.fromhost);
+	
+	/* Copy tasks map. */
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS,
+	    CONFIG_INIT_TASKS);
+	
+	for (size_t i = 0; i < init.cnt; i++) {
+		init.tasks[i].paddr = KA2PA(bootinfo->taskmap.tasks[i].addr);
+		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
+		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
+		    bootinfo->taskmap.tasks[i].name);
+	}
+	
+	/* Copy physical memory map. */
+	memmap.total = bootinfo->memmap.total;
+	memmap.cnt = min(bootinfo->memmap.cnt, MEMMAP_MAX_RECORDS);
+	for (size_t i = 0; i < memmap.cnt; i++) {
+		memmap.zones[i].start = bootinfo->memmap.zones[i].start;
+		memmap.zones[i].size = bootinfo->memmap.zones[i].size;
+	}
+}
+
+void riscv64_post_mm_init(void)
+{
+	outdev_t *htifout = htifout_init();
+	if (htifout)
+		stdout_wire(htifout);
+}
 
 void calibrate_delay_loop(void)
 {
@@ -89,16 +128,6 @@ void istate_decode(istate_t *istate)
 	(void) istate;
 }
 
-int context_save_arch(context_t *ctx)
-{
-	return 1;
-}
-
-void context_restore_arch(context_t *ctx)
-{
-	while (true);
-}
-
 void fpu_init(void)
 {
 }
@@ -119,10 +148,6 @@ int memcpy_from_uspace(void *dst, const void *uspace_src, size_t size)
 int memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
 {
 	return EOK;
-}
-
-void early_putchar(wchar_t ch)
-{
 }
 
 /** @}

@@ -39,5 +39,16 @@ void as_arch_init(void)
 	as_operations = &as_pt_operations;
 }
 
+/** Install address space.
+ *
+ * Install ASID.
+ *
+ * @param as Address space structure.
+ */
+void as_install_arch(as_t *as)
+{
+	// FIXME
+}
+
 /** @}
  */

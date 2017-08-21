@@ -37,6 +37,8 @@
 
 #include <arch/boot/boot.h>
 
+extern void riscv64_pre_main(bootinfo_t *);
+
 #endif
 
 /** @}
