@@ -39,8 +39,6 @@
 
 #define SP_DELTA  16
 
-// FIXME
-
 #define context_set(context, pc, stack, size) \
 	context_set_generic(context, pc, stack, size)
 

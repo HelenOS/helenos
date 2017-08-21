@@ -37,8 +37,8 @@
 
         members : [
                 #
-                # There is a room for optimization (we can store just those
-                # registers that must be preserved during ABI function call).
+                # Only save registers that must be preserved across function
+                # calls.
                 #
 
                 {
@@ -51,128 +51,59 @@
                 },
 
                 {
-                        name : zero,
+                        name : gp,
                         type : uint64_t
                 },
                 {
-                        name : ra,
-                        type : uint64_t
-                },
-
-                {
-                        name : x3,
+                        name : tp,
                         type : uint64_t
                 },
                 {
-                        name : x4,
+                        name : s0,
                         type : uint64_t
                 },
                 {
-                        name : x5,
+                        name : s1,
                         type : uint64_t
                 },
                 {
-                        name : x6,
+                        name : s2,
                         type : uint64_t
                 },
                 {
-                        name : x7,
+                        name : s3,
                         type : uint64_t
                 },
                 {
-                        name : x8,
+                        name : s4,
                         type : uint64_t
                 },
                 {
-                        name : x9,
+                        name : s5,
                         type : uint64_t
                 },
                 {
-                        name : x10,
+                        name : s6,
                         type : uint64_t
                 },
                 {
-                        name : x11,
+                        name : s7,
                         type : uint64_t
                 },
                 {
-                        name : x12,
+                        name : s8,
                         type : uint64_t
                 },
                 {
-                        name : x13,
+                        name : s9,
                         type : uint64_t
                 },
                 {
-                        name : x14,
+                        name : s10,
                         type : uint64_t
                 },
                 {
-                        name : x15,
-                        type : uint64_t
-                },
-                {
-                        name : x16,
-                        type : uint64_t
-                },
-                {
-                        name : x17,
-                        type : uint64_t
-                },
-                {
-                        name : x18,
-                        type : uint64_t
-                },
-                {
-                        name : x19,
-                        type : uint64_t
-                },
-                {
-                        name : x20,
-                        type : uint64_t
-                },
-                {
-                        name : x21,
-                        type : uint64_t
-                },
-                {
-                        name : x22,
-                        type : uint64_t
-                },
-                {
-                        name : x23,
-                        type : uint64_t
-                },
-                {
-                        name : x24,
-                        type : uint64_t
-                },
-                {
-                        name : x25,
-                        type : uint64_t
-                },
-                {
-                        name : x26,
-                        type : uint64_t
-                },
-                {
-                        name : x27,
-                        type : uint64_t
-                },
-                {
-                        name : x28,
-                        type : uint64_t
-                },
-                {
-                        name : x29,
-                        type : uint64_t
-                },
-                {
-                        name : x30,
-                        type : uint64_t
-                },
-                {
-                        name : x31,
+                        name : s11,
                         type : uint64_t
                 },
 
