@@ -189,7 +189,6 @@ static void clear_items(hash_table_t *h)
 /** Insert item into a hash table.
  *
  * @param h    Hash table.
- * @param key  Array of all keys necessary to compute hash index.
  * @param item Item to be inserted into the hash table.
  */
 void hash_table_insert(hash_table_t *h, ht_link_t *item)
@@ -209,7 +208,6 @@ void hash_table_insert(hash_table_t *h, ht_link_t *item)
 /** Insert item into a hash table if not already present.
  *
  * @param h    Hash table.
- * @param key  Array of all keys necessary to compute hash index.
  * @param item Item to be inserted into the hash table.
  * 
  * @return False if such an item had already been inserted. 
