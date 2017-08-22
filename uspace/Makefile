@@ -47,6 +47,7 @@ DIRS = \
 	app/fdisk \
 	app/fontviewer \
 	app/getterm \
+	app/gunzip \
 	app/init \
 	app/inet \
 	app/kill \
