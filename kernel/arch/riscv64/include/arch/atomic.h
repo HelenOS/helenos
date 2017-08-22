@@ -39,36 +39,72 @@
 
 NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
-	// FIXME
+	asm volatile (
+		"amoadd.d zero, %[inc], %[addr]\n"
+		: [addr] "+A" (val->count)
+		: [inc] "r" (1)
+	);
 }
 
 NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
-	// FIXME
+	asm volatile (
+		"amoadd.d zero, %[inc], %[addr]\n"
+		: [addr] "+A" (val->count)
+		: [inc] "r" (-1)
+	);
 }
 
 NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
-	atomic_inc(val);
-	return val->count - 1;
+	atomic_count_t orig;
+	
+	asm volatile (
+		"amoadd.d %[orig], %[inc], %[addr]\n"
+		: [orig] "=r" (orig), [addr] "+A" (val->count)
+		: [inc] "r" (1)
+	);
+	
+	return orig;
 }
 
 NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
-	atomic_dec(val);
-	return val->count + 1;
+	atomic_count_t orig;
+	
+	asm volatile (
+		"amoadd.d %[orig], %[inc], %[addr]\n"
+		: [orig] "=r" (orig), [addr] "+A" (val->count)
+		: [inc] "r" (-1)
+	);
+	
+	return orig;
 }
 
 NO_TRACE static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
-	atomic_inc(val);
-	return val->count;
+	atomic_count_t orig;
+	
+	asm volatile (
+		"amoadd.d %[orig], %[inc], %[addr]\n"
+		: [orig] "=r" (orig), [addr] "+A" (val->count)
+		: [inc] "r" (1)
+	);
+	
+	return orig - 1;
 }
 
 NO_TRACE static inline atomic_count_t atomic_predec(atomic_t *val)
 {
-	atomic_dec(val);
-	return val->count;
+	atomic_count_t orig;
+	
+	asm volatile (
+		"amoadd.d %[orig], %[inc], %[addr]\n"
+		: [orig] "=r" (orig), [addr] "+A" (val->count)
+		: [inc] "r" (-1)
+	);
+	
+	return orig + 1;
 }
 
 #endif
