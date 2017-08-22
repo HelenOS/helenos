@@ -35,6 +35,7 @@
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <arch/mm/frame.h>
+#include <arch/cpu.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
@@ -46,13 +47,6 @@
 #include <debug.h>
 #include <print.h>
 #include <interrupt.h>
-
-#define SATP_PFN_MASK  UINT64_C(0x00000fffffffffff)
-
-#define SATP_MODE_MASK  UINT64_C(0xf000000000000000)
-#define SATP_MODE_BARE  UINT64_C(0x0000000000000000)
-#define SATP_MODE_SV39  UINT64_C(0x8000000000000000)
-#define SATP_MODE_SV48  UINT64_C(0x9000000000000000)
 
 void page_arch_init(void)
 {

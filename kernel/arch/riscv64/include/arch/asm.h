@@ -35,12 +35,11 @@
 #ifndef KERN_riscv64_ASM_H_
 #define KERN_riscv64_ASM_H_
 
+#include <arch/cpu.h>
 #include <typedefs.h>
 #include <config.h>
 #include <arch/mm/asid.h>
 #include <trace.h>
-
-#define SSTATUS_SIE_MASK  0x00000002
 
 NO_TRACE static inline ipl_t interrupts_enable(void)
 {

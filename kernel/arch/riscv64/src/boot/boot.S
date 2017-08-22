@@ -28,6 +28,7 @@
 
 #include <abi/asmtool.h>
 #include <arch/boot/boot.h>
+#include <arch/cpu.h>
 
 .section K_TEXT_START, "ax"
 
@@ -45,7 +46,7 @@ SYMBOL(kernel_image_start)
 	jal main_bsp
 	
 	/* Not reached */
-	/* FIXME: Disable interrupts */
+	csrci sstatus, SSTATUS_SIE_MASK
 	hlt0:
 		wfi
 		j hlt0
