@@ -755,7 +755,7 @@ restart:
 			goto restart;
 		}
 		
-		STRUCT_TO_USPACE(&calldata->args, &call->data.args);
+		STRUCT_TO_USPACE(calldata, &call->data);
 		ipc_call_free(call);
 		
 		return ((sysarg_t) call) | IPC_CALLID_ANSWERED;
