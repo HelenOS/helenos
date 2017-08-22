@@ -30,6 +30,10 @@
 #include <arch/arch.h>
 #include <arch/mm.h>
 
+#define MCOUNTEREN_CY_MASK  0x00000001
+#define MCOUNTEREN_TM_MASK  0x00000002
+#define MCOUNTEREN_IR_MASK  0x00000004
+
 #define MSTATUS_MPP_MASK        0x00001800
 #define MSTATUS_MPP_USER        0x00000000
 #define MSTATUS_MPP_SUPERVISOR  0x00000800
@@ -90,6 +94,9 @@ SYMBOL(start)
 .text
 
 FUNCTION_BEGIN(jump_to_kernel)
+	/* Enable performance counters access in supervisor mode */
+	csrsi mcounteren, MCOUNTEREN_CY_MASK | MCOUNTEREN_TM_MASK | MCOUNTEREN_IR_MASK
+	
 	/* Setup SV48 paging for supervisor mode */
 	la t0, ptl_0
 	srli t0, t0, 12
@@ -107,7 +114,6 @@ FUNCTION_BEGIN(jump_to_kernel)
 	
 	li t1, ~MSTATUS_MPP_MASK
 	and t0, t0, t1
-	
 	
 	/*
 	 * TODO: Enable running with Supervisor User Mode
