@@ -105,6 +105,7 @@
 #include <futex.h>
 #include <fibril.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <adt/list.h>
 #include <assert.h>
 #include <errno.h>
@@ -586,30 +587,49 @@ static hash_table_ops_t client_hash_table_ops = {
 	.remove_callback = NULL
 };
 
-/** Compute hash into the connection hash table based on the source phone hash.
+typedef struct {
+	task_id_t task_id;
+	sysarg_t phone_hash;
+} conn_key_t;
+
+/** Compute hash into the connection hash table
  *
- * @param key Pointer to source phone hash.
+ * The hash is based on the source task ID and the source phone hash. The task
+ * ID is included in the hash because a phone hash alone might not be unique
+ * while we still track connections for killed tasks due to kernel's recycling
+ * of phone structures.
+ *
+ * @param key Pointer to the connection key structure.
  *
  * @return Index into the connection hash table.
  *
  */
 static size_t conn_key_hash(void *key)
 {
-	sysarg_t in_phone_hash = *(sysarg_t *) key;
-	return in_phone_hash;
+	conn_key_t *ck = (conn_key_t *) key;
+
+	size_t hash = 0;
+	hash = hash_combine(hash, LOWER32(ck->task_id));
+	hash = hash_combine(hash, UPPER32(ck->task_id));
+	hash = hash_combine(hash, ck->phone_hash);
+	return hash;
 }
 
 static size_t conn_hash(const ht_link_t *item)
 {
 	connection_t *conn = hash_table_get_inst(item, connection_t, link);
-	return conn_key_hash(&conn->in_phone_hash);
+	return conn_key_hash(&(conn_key_t){
+		.task_id = conn->in_task_id,
+		.phone_hash = conn->in_phone_hash
+	});
 }
 
 static bool conn_key_equal(void *key, const ht_link_t *item)
 {
-	sysarg_t in_phone_hash = *(sysarg_t *) key;
+	conn_key_t *ck = (conn_key_t *) key;
 	connection_t *conn = hash_table_get_inst(item, connection_t, link);
-	return (in_phone_hash == conn->in_phone_hash);
+	return ((ck->task_id == conn->in_task_id) &&
+	    (ck->phone_hash == conn->in_phone_hash));
 }
 
 /** Operations for the connection hash table. */
@@ -715,7 +735,10 @@ static int connection_fibril(void *arg)
 	 * Remove myself from the connection hash table.
 	 */
 	futex_down(&async_futex);
-	hash_table_remove(&conn_hash_table, &fibril_connection->in_phone_hash);
+	hash_table_remove(&conn_hash_table, &(conn_key_t){
+		.task_id = fibril_connection->in_task_id,
+		.phone_hash = fibril_connection->in_phone_hash
+	});
 	futex_up(&async_futex);
 	
 	/*
@@ -950,7 +973,10 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 	
 	futex_down(&async_futex);
 	
-	ht_link_t *link = hash_table_find(&conn_hash_table, &call->in_phone_hash);
+	ht_link_t *link = hash_table_find(&conn_hash_table, &(conn_key_t){
+		.task_id = call->in_task_id,
+		.phone_hash = call->in_phone_hash
+	});
 	if (!link) {
 		futex_up(&async_futex);
 		return false;
