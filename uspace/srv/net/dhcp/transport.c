@@ -152,6 +152,12 @@ int dhcp_transport_init(dhcp_transport_t *dt, service_id_t link_id,
 		goto error;
 	}
 
+	rc = udp_assoc_set_nolocal(assoc);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
 	dt->udp = udp;
 	dt->assoc = assoc;
 	dt->recv_cb = recv_cb;

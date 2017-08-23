@@ -269,6 +269,30 @@ static int udp_assoc_destroy_impl(udp_client_t *client, sysarg_t assoc_id)
 	return EOK;
 }
 
+/** Set association sending messages with no local address.
+ *
+ * Handle client request to set nolocal flag (with parameters unmarshalled).
+ *
+ * @param client   UDP client
+ * @param assoc_id Association ID
+ * @return EOK on success, ENOENT if no such association is found
+ */
+static int udp_assoc_set_nolocal_impl(udp_client_t *client, sysarg_t assoc_id)
+{
+	udp_cassoc_t *cassoc;
+	int rc;
+
+	rc = udp_cassoc_get(client, assoc_id, &cassoc);
+	if (rc != EOK) {
+		assert(rc == ENOENT);
+		return ENOENT;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Setting nolocal to true");
+	cassoc->assoc->nolocal = true;
+	return EOK;
+}
+
 /** Send message via association.
  *
  * Handle client request to send message (with parameters unmarshalled).
@@ -390,6 +414,27 @@ static void udp_assoc_destroy_srv(udp_client_t *client, ipc_callid_t iid,
 
 	assoc_id = IPC_GET_ARG1(*icall);
 	rc = udp_assoc_destroy_impl(client, assoc_id);
+	async_answer_0(iid, rc);
+}
+
+/** Set association with no local address.
+ *
+ * Handle client request to set no local address flag.
+ *
+ * @param client   UDP client
+ * @param iid      Async request ID
+ * @param icall    Async request data
+ */
+static void udp_assoc_set_nolocal_srv(udp_client_t *client, ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	sysarg_t assoc_id;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_set_nolocal_srv()");
+
+	assoc_id = IPC_GET_ARG1(*icall);
+	rc = udp_assoc_set_nolocal_impl(client, assoc_id);
 	async_answer_0(iid, rc);
 }
 
@@ -660,6 +705,9 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case UDP_ASSOC_DESTROY:
 			udp_assoc_destroy_srv(&client, callid, &call);
+			break;
+		case UDP_ASSOC_SET_NOLOCAL:
+			udp_assoc_set_nolocal_srv(&client, callid, &call);
 			break;
 		case UDP_ASSOC_SEND_MSG:
 			udp_assoc_send_msg_srv(&client, callid, &call);

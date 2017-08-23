@@ -94,6 +94,7 @@ extern int udp_create(udp_t **);
 extern void udp_destroy(udp_t *);
 extern int udp_assoc_create(udp_t *, inet_ep2_t *, udp_cb_t *, void *,
     udp_assoc_t **);
+extern int udp_assoc_set_nolocal(udp_assoc_t *);
 extern void udp_assoc_destroy(udp_assoc_t *);
 extern int udp_assoc_send_msg(udp_assoc_t *, inet_ep_t *, void *, size_t);
 extern void *udp_assoc_userptr(udp_assoc_t *);

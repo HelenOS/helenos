@@ -40,6 +40,7 @@
 #include <fibril_synch.h>
 #include <inet/endpoint.h>
 #include <ipc/loc.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <inet/addr.h>
 
@@ -118,6 +119,8 @@ typedef struct {
 	list_t rcv_queue;
 	/** Receive queue CV. Broadcast when new datagram is inserted */
 	fibril_condvar_t rcv_queue_cv;
+	/** Allow sending messages with no local address */
+	bool nolocal;
 
 	udp_assoc_cb_t *cb;
 	void *cb_arg;
