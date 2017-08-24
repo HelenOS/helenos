@@ -110,7 +110,7 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t v
 		return rc;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_iplink_recv: link_id=%zu", packet.link_id);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_recv: link_id=%zu", packet.link_id);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet()");
 	rc = inet_recv_packet(&packet);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet -> %d", rc);

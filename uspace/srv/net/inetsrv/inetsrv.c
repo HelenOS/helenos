@@ -449,7 +449,7 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 
 	ipc_call_t answer;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_ev_recv: iplink=%zu",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_ev_recv: iplink=%zu",
 	    dgram->iplink);
 
 	aid_t req = async_send_2(exch, INET_EV_RECV, dgram->tos,
