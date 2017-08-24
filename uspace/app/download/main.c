@@ -56,8 +56,8 @@
 
 static void syntax_print(void)
 {
-	fprintf(stderr, "Usage: download <url>\n");
-	fprintf(stderr, "  This will write the data to stdout, so you may want\n");
+	fprintf(stderr, "Usage: download [-o <outfile>] <url>\n");
+	fprintf(stderr, "  Without -o, data will be written to stdout, so you may want\n");
 	fprintf(stderr, "  to redirect the output, e.g.\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "    download http://helenos.org/ | to helenos.html\n\n");
@@ -65,40 +65,79 @@ static void syntax_print(void)
 
 int main(int argc, char *argv[])
 {
-	if (argc != 2) {
+	int i;
+	char *ofname = NULL;
+	FILE *ofile = NULL;
+	size_t buf_size = 4096;
+	void *buf = NULL;
+	uri_t *uri = NULL;
+	int rc;
+
+	if (argc < 2) {
 		syntax_print();
-		return 2;
+		rc = EINVAL;
+		goto error;
 	}
 	
-	uri_t *uri = uri_parse(argv[1]);
+	i = 1;
+	
+	if (str_cmp(argv[i], "-o") == 0) {
+		++i;
+		if (argc < i + 1) {
+			syntax_print();
+			rc = EINVAL;
+			goto error;
+		}
+		
+		ofname = argv[i++];
+		ofile = fopen(ofname, "wb");
+		if (ofile == NULL) {
+			fprintf(stderr, "Error creating '%s'.\n", ofname);
+			rc = EINVAL;
+			goto error;
+		}
+	}
+	
+	if (argc != i + 1) {
+		syntax_print();
+		rc = EINVAL;
+		goto error;
+	}
+	
+	uri = uri_parse(argv[i]);
 	if (uri == NULL) {
 		fprintf(stderr, "Failed parsing URI\n");
-		return 2;
+		rc = EINVAL;
+		goto error;
 	}
 	
 	if (!uri_validate(uri)) {
 		fprintf(stderr, "The URI is invalid\n");
-		return 2;
+		rc = EINVAL;
+		goto error;
 	}
 	
 	/* TODO uri_normalize(uri) */
 	
 	if (str_cmp(uri->scheme, "http") != 0) {
 		fprintf(stderr, "Only http scheme is supported at the moment\n");
-		return 2;
+		rc = EINVAL;
+		goto error;
 	}
 	
 	if (uri->host == NULL) {
 		fprintf(stderr, "host not set\n");
-		return 2;
+		rc = EINVAL;
+		goto error;
 	}
 	
 	uint16_t port = 80;
 	if (uri->port != NULL) {
-		int rc = str_uint16_t(uri->port, NULL, 10, true, &port);
+		rc = str_uint16_t(uri->port, NULL, 10, true, &port);
 		if (rc != EOK) {
 			fprintf(stderr, "Invalid port number: %s\n", uri->port);
-			return 2;
+			rc = EINVAL;
+			goto error;
 		}
 	}
 	
@@ -110,16 +149,15 @@ int main(int argc, char *argv[])
 		server_path = str_dup(path);
 		if (server_path == NULL) {
 			fprintf(stderr, "Failed allocating path\n");
-			uri_destroy(uri);
-			return 3;
+			rc = ENOMEM;
+			goto error;
 		}
-	}
-	else {
-		int rc = asprintf(&server_path, "%s?%s", path, uri->query);
+	} else {
+		rc = asprintf(&server_path, "%s?%s", path, uri->query);
 		if (rc < 0) {
 			fprintf(stderr, "Failed allocating path\n");
-			uri_destroy(uri);
-			return 3;
+			rc = ENOMEM;
+			goto error;
 		}
 	}
 	
@@ -127,43 +165,41 @@ int main(int argc, char *argv[])
 	free(server_path);
 	if (req == NULL) {
 		fprintf(stderr, "Failed creating request\n");
-		uri_destroy(uri);
-		return 3;
+		rc = ENOMEM;
+		goto error;
 	}
 	
-	int rc = http_headers_append(&req->headers, "Host", uri->host);
+	rc = http_headers_append(&req->headers, "Host", uri->host);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed setting Host header: %s\n", str_error(rc));
-		uri_destroy(uri);
-		return rc;
+		goto error;
 	}
 	
 	rc = http_headers_append(&req->headers, "User-Agent", USER_AGENT);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed creating User-Agent header: %s\n", str_error(rc));
-		uri_destroy(uri);
-		return rc;
+		goto error;
 	}
 	
 	http_t *http = http_create(uri->host, port);
 	if (http == NULL) {
-		uri_destroy(uri);
 		fprintf(stderr, "Failed creating HTTP object\n");
-		return 3;
+		rc = ENOMEM;
+		goto error;
 	}
 	
 	rc = http_connect(http);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed connecting: %s\n", str_error(rc));
-		uri_destroy(uri);
-		return rc;
+		rc = EIO;
+		goto error;
 	}
 	
 	rc = http_send_request(http, req);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed sending request: %s\n", str_error(rc));
-		uri_destroy(uri);
-		return rc;
+		rc = EIO;
+		goto error;
 	}
 	
 	http_response_t *response = NULL;
@@ -171,26 +207,24 @@ int main(int argc, char *argv[])
 	    100);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed receiving response: %s\n", str_error(rc));
-		uri_destroy(uri);
-		return rc;
+		rc = EIO;
+		goto error;
 	}
 	
 	if (response->status != 200) {
 		fprintf(stderr, "Server returned status %d %s\n", response->status,
 		    response->message);
-	}
-	else {
-		size_t buf_size = 4096;
-		void *buf = malloc(buf_size);
+	} else {
+		buf = malloc(buf_size);
 		if (buf == NULL) {
 			fprintf(stderr, "Failed allocating buffer\n)");
-			uri_destroy(uri);
-			return ENOMEM;
+			rc = ENOMEM;
+			goto error;
 		}
 		
 		int body_size;
 		while ((body_size = recv_buffer(&http->recv_buffer, buf, buf_size)) > 0) {
-			fwrite(buf, 1, body_size, stdout);
+			fwrite(buf, 1, body_size, ofile != NULL ? ofile : stdout);
 		}
 		
 		if (body_size != 0) {
@@ -198,8 +232,21 @@ int main(int argc, char *argv[])
 		}
 	}
 	
+	free(buf);
 	uri_destroy(uri);
+	if (fclose(ofile) != 0) {
+		printf("Error writing '%s'.\n", ofname);
+		return EIO;
+	}
+
 	return EOK;
+error:
+	free(buf);
+	if (uri != NULL)
+		uri_destroy(uri);
+	if (ofile != NULL)
+		fclose(ofile);
+	return rc;
 }
 
 /** @}

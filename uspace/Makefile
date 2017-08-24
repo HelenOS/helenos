@@ -80,6 +80,7 @@ DIRS = \
 	app/vuhid \
 	app/nic \
 	app/ping \
+	app/pkg \
 	app/sysinfo \
 	app/sysinst \
 	app/mkbd \
