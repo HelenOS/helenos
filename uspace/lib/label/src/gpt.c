@@ -98,6 +98,7 @@ static int gpt_open(label_bd_t *bd, label_t **rlabel)
 	gpt_entry_t *eptr;
 	uint8_t *etable[2];
 	size_t bsize;
+	aoff64_t nblocks;
 	uint32_t num_entries;
 	uint32_t esize;
 	uint32_t pt_blocks;
@@ -117,6 +118,12 @@ static int gpt_open(label_bd_t *bd, label_t **rlabel)
 	etable[1] = NULL;
 
 	rc = bd->ops->get_bsize(bd->arg, &bsize);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = bd->ops->get_nblocks(bd->arg, &nblocks);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -146,6 +153,11 @@ static int gpt_open(label_bd_t *bd, label_t **rlabel)
 	}
 
 	h1ba = uint64_t_le2host(gpt_hdr[0]->alternate_lba);
+
+	if (h1ba >= nblocks) {
+		rc = EINVAL;
+		goto error;
+	}
 
 	rc = bd->ops->read(bd->arg, h1ba, 1, gpt_hdr[1]);
 	if (rc != EOK) {
