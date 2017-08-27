@@ -47,6 +47,7 @@ uspace/app/edit/edit
 uspace/app/fdisk/fdisk
 uspace/app/fontviewer/fontviewer
 uspace/app/getterm/getterm
+uspace/app/gunzip/gunzip
 uspace/app/inet/inet
 uspace/app/init/init
 uspace/app/kill/kill
@@ -69,6 +70,7 @@ uspace/app/netecho/netecho
 uspace/app/nterm/nterm
 uspace/app/ping/ping
 uspace/app/ping6/ping6
+uspace/app/pkg/pkg
 uspace/app/rcubench/rcubench
 uspace/app/rcutest/rcutest
 uspace/app/redir/redir
@@ -117,6 +119,7 @@ uspace/dist/app/edit
 uspace/dist/app/fdisk
 uspace/dist/app/fontviewer
 uspace/dist/app/getterm
+uspace/dist/app/gunzip
 uspace/dist/app/inet
 uspace/dist/app/kill
 uspace/dist/app/killall
@@ -138,6 +141,7 @@ uspace/dist/app/netecho
 uspace/dist/app/nterm
 uspace/dist/app/ping
 uspace/dist/app/ping6
+uspace/dist/app/pkg
 uspace/dist/app/rcubench
 uspace/dist/app/rcutest
 uspace/dist/app/redir
@@ -314,6 +318,7 @@ uspace/srv/net/inetsrv/inetsrv
 uspace/srv/net/loopip/loopip
 uspace/srv/net/slip/slip
 uspace/srv/net/tcp/tcp
+uspace/srv/net/tcp/test-tcp
 uspace/srv/net/udp/udp
 uspace/srv/ns/ns
 uspace/srv/taskmon/taskmon
