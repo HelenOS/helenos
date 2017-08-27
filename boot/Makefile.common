@@ -236,7 +236,8 @@ RD_TESTS = \
 	$(USPACE_PATH)/lib/label/test-liblabel \
 	$(USPACE_PATH)/lib/posix/test-libposix \
 	$(USPACE_PATH)/lib/uri/test-liburi \
-	$(USPACE_PATH)/app/bdsh/test-bdsh
+	$(USPACE_PATH)/app/bdsh/test-bdsh \
+	$(USPACE_PATH)/srv/net/tcp/test-tcp
 
 RD_DATA_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/demo.txt

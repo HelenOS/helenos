@@ -50,4 +50,11 @@ SOURCES = \
 	tqueue.c \
 	ucall.c
 
+TEST_SOURCES = \
+	pdu.c \
+	segment.c \
+	seq_no.c \
+	test/main.c \
+	test/pdu.c
+
 include $(USPACE_PREFIX)/Makefile.common

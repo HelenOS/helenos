@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svobda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tcp
- * @{
- */
-/** @file Segment processing
- */
+#include <pcut/pcut.h>
 
-#ifndef SEGMENT_H
-#define SEGMENT_H
+PCUT_INIT
 
-#include <stddef.h>
-#include <stdint.h>
-#include "tcp_type.h"
+PCUT_IMPORT(pdu);
 
-extern void tcp_segment_delete(tcp_segment_t *);
-extern tcp_segment_t *tcp_segment_dup(tcp_segment_t *);
-extern tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t);
-extern tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *);
-extern tcp_segment_t *tcp_segment_make_data(tcp_control_t, void *, size_t);
-extern void tcp_segment_trim(tcp_segment_t *, uint32_t, uint32_t);
-extern void tcp_segment_text_copy(tcp_segment_t *, void *, size_t);
-extern size_t tcp_segment_text_size(tcp_segment_t *);
-extern void tcp_segment_dump(tcp_segment_t *);
-
-
-
-#endif
-
-/** @}
- */
+PCUT_MAIN()

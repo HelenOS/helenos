@@ -42,7 +42,7 @@
 #include "tcp_type.h"
 
 /** Alocate new segment structure. */
-tcp_segment_t *tcp_segment_new(void)
+static tcp_segment_t *tcp_segment_new(void)
 {
 	return calloc(1, sizeof(tcp_segment_t));
 }
