@@ -211,9 +211,10 @@ endif
 # PCUT-based unit tests
 ifneq ($(TEST_SOURCES),)
 	TEST_OUTPUT = $(TEST_BINARY)
+	TEST_DISASM = $(TEST_BINARY).disasm
 	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__
 	TEST_OUTPUT_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
-	EXTRA_CLEAN += $(TEST_OUTPUT) $(TEST_OUTPUT).map
+	EXTRA_CLEAN += $(TEST_OUTPUT) $(TEST_OUTPUT).map $(TEST_DISASM)
 ifneq ($(LIBRARY),)
 	TEST_OUTPUT_LIBS += $(OUTPUT)
 endif
@@ -225,7 +226,7 @@ endif
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
-all-test: $(TEST_OUTPUT)
+all-test: $(TEST_OUTPUT) $(TEST_DISASM)
 
 clean:
 	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
@@ -319,7 +320,7 @@ LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 TEST_OBJECTS := $(addsuffix .test.o,$(basename $(TEST_SOURCES)))
 
 ifneq ($(BINARY),)
-%.disasm: $(BINARY)
+$(BINARY).disasm: $(BINARY)
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
 else
@@ -334,7 +335,7 @@ endif
 endif
 
 ifneq ($(SLIBRARY),)
-%.disasm: $(LOUTPUT)
+$(LOUTPUT).disasm: $(LOUTPUT)
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
 else
@@ -366,6 +367,12 @@ $(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
 	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(TEST_OUTPUT).map -o $@ $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS) $(LIBS) $(BASE_LIBS)
 ifeq ($(CONFIG_STRIP_BINARIES),y)
 	$(STRIP) $(TEST_OUTPUT)
+endif
+$(TEST_BINARY).disasm: $(TEST_BINARY)
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	$(OBJDUMP) -d -S $< > $@
+else
+	$(OBJDUMP) -d $< > $@
 endif
 endif
 
