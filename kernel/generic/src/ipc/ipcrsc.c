@@ -38,7 +38,7 @@
  * straight and clean clean-up procedure upon task termination.
  *
  * The pattern of usage of the resources is:
- * - allocate empty phone slot, connect | deallocate slot
+ * - allocate empty phone capability slot, connect | deallocate slot
  * - disconnect connected phone (some messages might be on the fly)
  * - find phone in slot and send a message using phone
  * - answer message to phone
@@ -52,7 +52,7 @@
  * - To connect an allocated phone it need not be locked (assigning pointer is
  *   atomic on all platforms)
  *
- * - To find an empty phone slot, the TASK must be locked
+ * - To find an empty phone capability slot, the TASK must be locked
  * - To answer a message, the answerbox must be locked
  * - The locking of phone and answerbox is done at the ipc_ level.
  *   It is perfectly correct to pass unconnected phone to these functions and
@@ -76,32 +76,33 @@
  * the phonecall is accepted, otherwise it is refused.
  *
  * *** Connect_to_me ***
- * The caller sends IPC_M_CONNECT_TO_ME. 
+ * The caller sends IPC_M_CONNECT_TO_ME.
  * The server receives an automatically opened phoneid. If it accepts
- * (RETVAL=0), it can use the phoneid immediately. 
- * Possible race condition can arise, when the client receives messages from new
- * connection before getting response for connect_to_me message. Userspace
- * should implement handshake protocol that would control it.
+ * (RETVAL=0), it can use the phoneid immediately.  Possible race condition can
+ * arise, when the client receives messages from new connection before getting
+ * response for connect_to_me message. Userspace should implement handshake
+ * protocol that would control it.
  *
  * Phone hangup
  *
  * *** The caller hangs up (sys_ipc_hangup) ***
  * - The phone is disconnected (no more messages can be sent over this phone),
  *   all in-progress messages are correctly handled. The answerbox receives
- *   IPC_M_PHONE_HUNGUP call from the phone that hung up. When all async
- *   calls are answered, the phone is deallocated.
+ *   IPC_M_PHONE_HUNGUP call from the phone that hung up. When all async calls
+ *   are answered, the phone is deallocated.
  *
  * *** The answerbox hangs up (ipc_answer(EHANGUP))
- * - The phone is disconnected. EHANGUP response code is sent
- *   to the calling task. All new calls through this phone
- *   get a EHUNGUP error code, the task is expected to
- *   send an sys_ipc_hangup after cleaning up its internal structures.
+ * - The phone is disconnected. EHANGUP response code is sent to the calling
+ *   task. All new calls through this phone get a EHUNGUP error code, the task
+ *   is expected to send an sys_ipc_hangup after cleaning up its internal
+ *   structures.
+ *
  *
  * Call forwarding
  *
- * The call can be forwarded, so that the answer to call is passed directly
- * to the original sender. However, this poses special problems regarding 
- * routing of hangup messages.
+ * The call can be forwarded, so that the answer to call is passed directly to
+ * the original sender. However, this poses special problems regarding routing
+ * of hangup messages.
  *
  * sys_ipc_hangup -> IPC_M_PHONE_HUNGUP
  * - this message CANNOT be forwarded
@@ -138,11 +139,10 @@
  *
  * @todo Some speedup (hash table?)
  *
- * @param callid Userspace hash of the call. Currently it is the call
- *               structure kernel address.
+ * @param callid Userspace hash of the call. Currently it is the call structure
+ *               kernel address.
  *
- * @return NULL on not found, otherwise pointer to the call
- *         structure.
+ * @return NULL on not found, otherwise pointer to the call structure.
  *
  */
 call_t *get_call(sysarg_t callid)
