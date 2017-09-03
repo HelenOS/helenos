@@ -36,9 +36,10 @@
  * @brief IRQ notification framework.
  *
  * This framework allows applications to subscribe to receive a notification
- * when interrupt is detected. The application may provide a simple 'top-half'
- * handler as part of its registration, which can perform simple operations
- * (read/write port/memory, add information to notification IPC message).
+ * when an interrupt is detected. The application may provide a simple
+ * 'top-half' handler as part of its registration, which can perform simple
+ * operations (read/write port/memory, add information to notification IPC
+ * message).
  *
  * The structure of a notification message is as follows:
  * - IMETHOD: interface and method as set by the SYS_IPC_IRQ_SUBSCRIBE syscall
@@ -49,25 +50,6 @@
  * - ARG5: payload modified by a 'top-half' handler (scratch[5])
  * - in_phone_hash: interrupt counter (may be needed to assure correct order
  *                  in multithreaded drivers)
- *
- * Note on synchronization for ipc_irq_subscribe(), ipc_irq_unsubscribe(),
- * ipc_irq_cleanup() and IRQ handlers:
- *
- *   By always taking all of the uspace IRQ hash table lock, IRQ structure lock
- *   and answerbox lock, we can rule out race conditions between the
- *   registration functions and also the cleanup function. Thus the observer can
- *   either see the IRQ structure present in both the hash table and the
- *   answerbox list or absent in both. Views in which the IRQ structure would be
- *   linked in the hash table but not in the answerbox list, or vice versa, are
- *   not possible.
- *
- *   By always taking the hash table lock and the IRQ structure lock, we can
- *   rule out a scenario in which we would free up an IRQ structure, which is
- *   still referenced by, for example, an IRQ handler. The locking scheme forces
- *   us to lock the IRQ structure only after any progressing IRQs on that
- *   structure are finished. Because we hold the hash table lock, we prevent new
- *   IRQs from taking new references to the IRQ structure.
- *
  */
 
 #include <arch.h>
@@ -118,7 +100,7 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 		}
 	}
 	
-	/* Rewrite the pseudocode addresses from physical to kernel virtual. */
+	/* Rewrite the IRQ code addresses from physical to kernel virtual. */
 	for (size_t i = 0; i < cmdcount; i++) {
 		uintptr_t addr;
 		size_t size;
@@ -176,10 +158,9 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 	return EOK;
 }
 
-/** Statically check the top-half pseudocode
+/** Statically check the top-half IRQ code
  *
- * Check the top-half pseudocode for invalid or unsafe
- * constructs.
+ * Check the top-half IRQ code for invalid or unsafe constructs.
  *
  */
 static int code_check(irq_cmd_t *cmds, size_t cmdcount)
@@ -216,9 +197,9 @@ static int code_check(irq_cmd_t *cmds, size_t cmdcount)
 	return EOK;
 }
 
-/** Free the top-half pseudocode.
+/** Free the top-half IRQ code.
  *
- * @param code Pointer to the top-half pseudocode.
+ * @param code Pointer to the top-half IRQ code.
  *
  */
 static void code_free(irq_code_t *code)
@@ -231,11 +212,11 @@ static void code_free(irq_code_t *code)
 	}
 }
 
-/** Copy the top-half pseudocode from userspace into the kernel.
+/** Copy the top-half IRQ code from userspace into the kernel.
  *
- * @param ucode Userspace address of the top-half pseudocode.
+ * @param ucode Userspace address of the top-half IRQ code.
  *
- * @return Kernel address of the copied pseudocode.
+ * @return Kernel address of the copied IRQ code.
  *
  */
 static irq_code_t *code_from_uspace(irq_code_t *ucode)
@@ -293,9 +274,8 @@ error:
  *
  * @param box     Receiving answerbox.
  * @param inr     IRQ number.
- * @param imethod Interface and method to be associated with the
- *                notification.
- * @param ucode   Uspace pointer to top-half pseudocode.
+ * @param imethod Interface and method to be associated with the notification.
+ * @param ucode   Uspace pointer to top-half IRQ code.
  *
  * @return  IRQ capability handle.
  * @return  Negative error code.
@@ -341,8 +321,10 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq->notif_cfg.counter = 0;
 	
 	/*
-	 * Enlist the IRQ structure in the uspace IRQ hash table and the
-	 * answerbox's list and make the IRQ capability valid.
+	 * Insert the IRQ structure into the uspace IRQ hash table and retype
+	 * the capability. By retyping the capability inside the critical
+	 * section, we make sure another thread cannot attempt to unregister the
+	 * IRQ before it is inserted into the hash table.
 	 */
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
@@ -372,6 +354,7 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 		irq_spinlock_unlock(&TASK->lock, true);
 		return ENOENT;
 	}
+	/* Make sure only one thread can win the race to unsubscribe. */
 	cap->type = CAP_TYPE_ALLOCATED;
 	irq_spinlock_unlock(&TASK->lock, true);
 	
@@ -388,7 +371,7 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 	/* irq->lock unlocked by the hash table remove_callback */
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 	
-	/* Free up the pseudo code and associated structures. */
+	/* Free up the IRQ code and associated structures. */
 	code_free(irq->notif_cfg.code);
 	
 	/* Free up the IRQ capability and the underlying kernel object. */
@@ -414,12 +397,12 @@ static void send_call(irq_t *irq, call_t *call)
 	waitq_wakeup(&irq->notif_cfg.answerbox->wq, WAKEUP_FIRST);
 }
 
-/** Apply the top-half pseudo code to find out whether to accept the IRQ or not.
+/** Apply the top-half IRQ code to find out whether to accept the IRQ or not.
  *
  * @param irq IRQ structure.
  *
- * @return IRQ_ACCEPT if the interrupt is accepted by the
- *         pseudocode, IRQ_DECLINE otherwise.
+ * @return IRQ_ACCEPT if the interrupt is accepted by the IRQ code.
+ * @return IRQ_DECLINE if the interrupt is not accepted byt the IRQ code.
  *
  */
 irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
