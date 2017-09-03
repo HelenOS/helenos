@@ -241,6 +241,53 @@ PCUT_TEST(syn_acked)
 	tcp_conn_delete(conn);
 }
 
+/** Test seq_no_segment_ready() */
+PCUT_TEST(segment_ready)
+{
+	tcp_conn_t *conn;
+	inet_ep2_t epp;
+	tcp_segment_t *seg;
+	uint8_t *data;
+	size_t dsize;
+
+	inet_ep2_init(&epp);
+	conn = tcp_conn_new(&epp);
+	PCUT_ASSERT_NOT_NULL(conn);
+
+	dsize = 15;
+	data = calloc(dsize, 1);
+	PCUT_ASSERT_NOT_NULL(data);
+
+	seg = tcp_segment_make_data(0, data, dsize);
+	PCUT_ASSERT_NOT_NULL(seg);
+
+	/* Segment must be acceptable. Ready iff intersects RCV.NXT */
+
+	conn->rcv_nxt = 30;
+	conn->rcv_wnd = 20;
+
+	PCUT_ASSERT_INT_EQUALS(dsize, seg->len);
+
+	seg->seq = 16;
+	PCUT_ASSERT_TRUE(seq_no_segment_ready(conn, seg));
+
+	seg->seq = 17;
+	PCUT_ASSERT_TRUE(seq_no_segment_ready(conn, seg));
+
+	seg->seq = 29;
+	PCUT_ASSERT_TRUE(seq_no_segment_ready(conn, seg));
+
+	seg->seq = 30;
+	PCUT_ASSERT_TRUE(seq_no_segment_ready(conn, seg));
+
+	seg->seq = 31;
+	PCUT_ASSERT_FALSE(seq_no_segment_ready(conn, seg));
+
+	tcp_segment_delete(seg);
+	tcp_conn_delete(conn);
+	free(data);
+}
+
 /** Test seq_no_segment_acceptable() */
 PCUT_TEST(segment_acceptable)
 {
