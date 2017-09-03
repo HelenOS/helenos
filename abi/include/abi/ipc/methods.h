@@ -58,28 +58,6 @@ enum {
 	 */
 	IPC_M_PHONE_HUNGUP = 0,
 
-	/** Clone connection.
-	 *
-	 * The calling task clones one of its phones for the callee.
-	 *
-	 * - ARG1 - The caller sets ARG1 to the phone of the cloned connection.
-	 *        - The callee gets the new phone from ARG1.
-	 *
-	 * - on answer, the callee acknowledges the new connection by sending EOK back
-	 *   or the kernel closes it
-	 */
-	IPC_M_CONNECTION_CLONE,
-
-	/** Protocol for establishing a cloned connection.
-	 *
-	 * Through this call, the recipient learns about the new cloned connection.
-	 *
-	 * - ARG5 - the kernel sets ARG5 to contain the hash of the used phone
-	 * - on answer, the callee acknowledges the new connection by sending EOK back
-	 *   or the kernel closes it
-	 */
-	IPC_M_CLONE_ESTABLISH,
-
 	/** Protocol for initializing callback connections.
 	 *
 	 * Calling process asks the callee to create a callback connection,

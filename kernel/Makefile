@@ -270,10 +270,8 @@ GENERIC_SOURCES = \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
 	generic/src/ipc/sysipc_ops.c \
-	generic/src/ipc/ops/clnestab.c \
 	generic/src/ipc/ops/conctmeto.c \
 	generic/src/ipc/ops/concttome.c \
-	generic/src/ipc/ops/connclone.c \
 	generic/src/ipc/ops/dataread.c \
 	generic/src/ipc/ops/datawrite.c \
 	generic/src/ipc/ops/debug.c \

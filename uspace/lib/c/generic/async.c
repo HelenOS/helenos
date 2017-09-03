@@ -1359,16 +1359,6 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
-	/* Cloned connection */
-	if (IPC_GET_IMETHOD(*call) == IPC_M_CLONE_ESTABLISH) {
-		// TODO: Currently ignores ports altogether
-		
-		/* Open new connection with fibril, etc. */
-		async_new_connection(call->in_task_id, IPC_GET_ARG5(*call),
-		    callid, call, fallback_port_handler, fallback_port_data);
-		return;
-	}
-	
 	/* Try to route the call through the connection hash table */
 	if (route_call(callid, call))
 		return;
@@ -2083,78 +2073,6 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 		return (int) rc;
 	
 	return EOK;
-}
-
-/** Wrapper for making IPC_M_CLONE_ESTABLISH calls using the async framework.
- *
- * Ask for a cloned connection to some service.
- *
- * @param mgmt Exchange management style.
- * @param exch Exchange for sending the message.
- *
- * @return New session on success or NULL on error.
- *
- */
-async_sess_t *async_clone_establish(exch_mgmt_t mgmt, async_exch_t *exch)
-{
-	if (exch == NULL) {
-		errno = ENOENT;
-		return NULL;
-	}
-	
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
-	if (sess == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	ipc_call_t result;
-	
-	amsg_t *msg = amsg_create();
-	if (!msg) {
-		free(sess);
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	msg->dataptr = &result;
-	msg->wdata.active = true;
-	
-	ipc_call_async_0(exch->phone, IPC_M_CLONE_ESTABLISH, msg,
-	    reply_received);
-	
-	sysarg_t rc;
-	async_wait_for((aid_t) msg, &rc);
-	
-	if (rc != EOK) {
-		errno = rc;
-		free(sess);
-		return NULL;
-	}
-	
-	int phone = (int) IPC_GET_ARG5(result);
-	
-	if (phone < 0) {
-		errno = phone;
-		free(sess);
-		return NULL;
-	}
-	
-	sess->iface = 0;
-	sess->mgmt = mgmt;
-	sess->phone = phone;
-	sess->arg1 = 0;
-	sess->arg2 = 0;
-	sess->arg3 = 0;
-	
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-	
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
-	
-	return sess;
 }
 
 static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
@@ -3123,66 +3041,6 @@ int async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	async_wait_for(msg, &rc);
 	
 	return (int) rc;
-}
-
-/** Wrapper for sending an exchange over different exchange for cloning
- *
- * @param exch       Exchange to be used for sending.
- * @param clone_exch Exchange to be cloned.
- *
- */
-int async_exchange_clone(async_exch_t *exch, async_exch_t *clone_exch)
-{
-	return async_req_1_0(exch, IPC_M_CONNECTION_CLONE, clone_exch->phone);
-}
-
-/** Wrapper for receiving the IPC_M_CONNECTION_CLONE calls.
- *
- * If the current call is IPC_M_CONNECTION_CLONE then a new
- * async session is created for the accepted phone.
- *
- * @param mgmt Exchange management style.
- *
- * @return New async session or NULL on failure.
- *
- */
-async_sess_t *async_clone_receive(exch_mgmt_t mgmt)
-{
-	/* Accept the phone */
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-	int phone = (int) IPC_GET_ARG1(call);
-	
-	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECTION_CLONE) ||
-	    (phone < 0)) {
-		async_answer_0(callid, EINVAL);
-		return NULL;
-	}
-	
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
-	if (sess == NULL) {
-		async_answer_0(callid, ENOMEM);
-		return NULL;
-	}
-	
-	sess->iface = 0;
-	sess->mgmt = mgmt;
-	sess->phone = phone;
-	sess->arg1 = 0;
-	sess->arg2 = 0;
-	sess->arg3 = 0;
-	
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-	
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
-	
-	/* Acknowledge the cloned phone */
-	async_answer_0(callid, EOK);
-	
-	return sess;
 }
 
 /** Wrapper for receiving the IPC_M_CONNECT_TO_ME calls.

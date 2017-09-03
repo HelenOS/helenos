@@ -84,8 +84,6 @@ static inline bool method_is_system(sysarg_t imethod)
 static inline bool method_is_forwardable(sysarg_t imethod)
 {
 	switch (imethod) {
-	case IPC_M_CONNECTION_CLONE:
-	case IPC_M_CLONE_ESTABLISH:
 	case IPC_M_PHONE_HUNGUP:
 		/* This message is meant only for the original recipient. */
 		return false;
@@ -134,8 +132,6 @@ static inline bool method_is_immutable(sysarg_t imethod)
 static inline bool answer_need_old(call_t *call)
 {
 	switch (IPC_GET_IMETHOD(call->data)) {
-	case IPC_M_CONNECTION_CLONE:
-	case IPC_M_CLONE_ESTABLISH:
 	case IPC_M_CONNECT_TO_ME:
 	case IPC_M_CONNECT_ME_TO:
 	case IPC_M_PAGE_IN:
