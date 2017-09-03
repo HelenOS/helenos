@@ -328,8 +328,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 		return handle;
 	cap_t *cap = cap_get_current(handle, CAP_TYPE_ALLOCATED);
 	assert(cap);
-	cap->type = CAP_TYPE_IRQ;
-
+	
 	irq_t *irq = &cap->irq;
 	irq_initialize(irq);
 	irq->inr = inr;
@@ -343,12 +342,13 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	
 	/*
 	 * Enlist the IRQ structure in the uspace IRQ hash table and the
-	 * answerbox's list.
+	 * answerbox's list and make the IRQ capability valid.
 	 */
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
 	irq_spinlock_lock(&box->irq_lock, false);
 	
+	cap->type = CAP_TYPE_IRQ;
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
 	list_append(&irq->notif_cfg.link, &box->irq_list);
 	
@@ -369,11 +369,17 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
  */
 int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 {
+	irq_spinlock_lock(&TASK->lock, true);
 	cap_t *cap = cap_get_current(handle, CAP_TYPE_IRQ);
-	if (!cap)
+	if (!cap) {
+		irq_spinlock_unlock(&TASK->lock, true);
 		return ENOENT;
+	}
+	cap->type = CAP_TYPE_ALLOCATED;
+	irq_spinlock_unlock(&TASK->lock, true);
+	
 	irq_t *irq = &cap->irq;
-
+	
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
 	irq_spinlock_lock(&box->irq_lock, false);
@@ -397,64 +403,6 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 	cap_free(TASK, handle);
 	
 	return EOK;
-}
-
-/** Disconnect all IRQ notifications from an answerbox.
- *
- * This function is effective because the answerbox contains list of all irq_t
- * structures that are subscribed to send notifications to it.
- *
- * @param box Answerbox for which we want to carry out the cleanup.
- *
- */
-void ipc_irq_cleanup(answerbox_t *box)
-{
-loop:
-	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-	irq_spinlock_lock(&box->irq_lock, false);
-	
-	while (!list_empty(&box->irq_list)) {
-		DEADLOCK_PROBE_INIT(p_irqlock);
-		
-		irq_t *irq = list_get_instance(list_first(&box->irq_list), irq_t,
-		    notif_cfg.link);
-		
-		if (!irq_spinlock_trylock(&irq->lock)) {
-			/*
-			 * Avoid deadlock by trying again.
-			 */
-			irq_spinlock_unlock(&box->irq_lock, false);
-			irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-			DEADLOCK_PROBE(p_irqlock, DEADLOCK_THRESHOLD);
-			goto loop;
-		}
-		
-		assert(irq->notif_cfg.answerbox == box);
-		
-		/* Unlist from the answerbox. */
-		list_remove(&irq->notif_cfg.link);
-		
-		/* Remove from the hash table. */
-		hash_table_remove_item(&irq_uspace_hash_table, &irq->link);
-		
-		/*
-		 * Release both locks so that we can free the IRQ code.
-		 */
-		irq_spinlock_unlock(&box->irq_lock, false);
-		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-		
-		code_free(irq->notif_cfg.code);
-		
-		// XXX: what to do about the irq capability? The task is in
-		// clean-up anyway.
-		
-		/* Reacquire both locks before taking another round. */
-		irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-		irq_spinlock_lock(&box->irq_lock, false);
-	}
-	
-	irq_spinlock_unlock(&box->irq_lock, false);
-	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 }
 
 /** Add a call to the proper answerbox queue.

@@ -827,8 +827,10 @@ void ipc_cleanup(void)
 	/* Unsubscribe from any event notifications. */
 	event_cleanup_answerbox(&TASK->answerbox);
 	
-	/* Disconnect all connected irqs */
-	ipc_irq_cleanup(&TASK->answerbox);
+	/* Disconnect all connected IRQs */
+	for_each_cap_current(cap, CAP_TYPE_IRQ) {
+		ipc_irq_unsubscribe(&TASK->answerbox, cap->handle);
+	}
 	
 	/* Disconnect all phones connected to our regular answerbox */
 	ipc_answerbox_slam_phones(&TASK->answerbox, false);

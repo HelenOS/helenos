@@ -52,7 +52,6 @@ extern void ipc_irq_top_half_handler(irq_t *);
 
 extern int ipc_irq_subscribe(answerbox_t *, inr_t, sysarg_t, irq_code_t *);
 extern int ipc_irq_unsubscribe(answerbox_t *, int);
-extern void ipc_irq_cleanup(answerbox_t *);
 
 /*
  * User friendly wrappers for ipc_irq_send_msg(). They are in the form
