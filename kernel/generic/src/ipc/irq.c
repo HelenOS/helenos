@@ -438,7 +438,7 @@ loop:
 		hash_table_remove_item(&irq_uspace_hash_table, &irq->link);
 		
 		/*
-		 * Release both locks so that we can free the pseudo code.
+		 * Release both locks so that we can free the IRQ code.
 		 */
 		irq_spinlock_unlock(&box->irq_lock, false);
 		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);

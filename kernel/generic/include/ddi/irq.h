@@ -85,7 +85,7 @@ typedef struct {
 	sysarg_t imethod;
 	/** Arguments that will be sent if the IRQ is claimed. */
 	uint32_t scratch[IPC_CALL_LEN];
-	/** Top-half pseudocode. */
+	/** Top-half IRQ code. */
 	irq_code_t *code;
 	/** Counter. */
 	size_t counter;
