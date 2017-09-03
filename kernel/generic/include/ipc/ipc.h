@@ -91,8 +91,6 @@ typedef struct answerbox {
 	
 	/** Notifications from IRQ handlers. */
 	list_t irq_notifs;
-	/** IRQs with notifications to this answerbox. */
-	list_t irq_list;
 } answerbox_t;
 
 typedef struct {

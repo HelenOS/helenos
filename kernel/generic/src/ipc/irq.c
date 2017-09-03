@@ -346,13 +346,10 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	 */
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
-	irq_spinlock_lock(&box->irq_lock, false);
 	
 	cap->type = CAP_TYPE_IRQ;
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
-	list_append(&irq->notif_cfg.link, &box->irq_list);
 	
-	irq_spinlock_unlock(&box->irq_lock, false);
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 	
@@ -382,17 +379,12 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 	
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
-	irq_spinlock_lock(&box->irq_lock, false);
 	
 	assert(irq->notif_cfg.answerbox == box);
-	
-	/* Remove the IRQ from the answerbox's list. */
-	list_remove(&irq->notif_cfg.link);
 	
 	/* Remove the IRQ from the uspace IRQ hash table. */
 	hash_table_remove_item(&irq_uspace_hash_table, &irq->link);
 	
-	irq_spinlock_unlock(&box->irq_lock, false);
 	/* irq->lock unlocked by the hash table remove_callback */
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 	

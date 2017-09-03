@@ -109,7 +109,6 @@ void irq_initialize(irq_t *irq)
 	memsetb(irq, sizeof(irq_t), 0);
 	link_initialize(&irq->link);
 	irq_spinlock_initialize(&irq->lock, "irq.lock");
-	link_initialize(&irq->notif_cfg.link);
 	irq->inr = -1;
 	
 	irq_initialize_arch(irq);

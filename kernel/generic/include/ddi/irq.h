@@ -89,12 +89,6 @@ typedef struct {
 	irq_code_t *code;
 	/** Counter. */
 	size_t counter;
-	
-	/**
-	 * Link between IRQs that are notifying the same answerbox. The list is
-	 * protected by the answerbox irq_lock.
-	 */
-	link_t link;
 } ipc_notif_cfg_t;
 
 /** Structure representing one device IRQ.
