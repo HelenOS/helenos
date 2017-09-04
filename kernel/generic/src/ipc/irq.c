@@ -307,7 +307,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	if (handle < 0)
 		return handle;
 	
-	irq_t *irq = (irq_t *) malloc(sizeof(irq_t), FRAME_ATOMIC);
+	irq_t *irq = (irq_t *) slab_alloc(irq_slab, FRAME_ATOMIC);
 	if (!irq) {
 		cap_free(TASK, handle);
 		return ENOMEM;
@@ -383,7 +383,7 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 	code_free(irq->notif_cfg.code);
 	
 	/* Free up the IRQ capability and the underlying kernel object. */
-	free(cap->kobject);
+	slab_free(irq_slab, cap->kobject);
 	cap_free(TASK, handle);
 	
 	return EOK;

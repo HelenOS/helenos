@@ -48,6 +48,8 @@
 #include <mem.h>
 #include <arch.h>
 
+slab_cache_t *irq_slab = NULL;
+
 /** Spinlock protecting the kernel IRQ hash table
  *
  * This lock must be taken only when interrupts are disabled.
@@ -94,6 +96,10 @@ void irq_init(size_t inrs, size_t chains)
 {
 	buckets = chains;
 	last_inr = inrs - 1;
+
+	irq_slab = slab_cache_create("irq_t", sizeof(irq_t), 0, NULL, NULL,
+	    FRAME_ATOMIC);
+	assert(irq_slab);
 
 	hash_table_create(&irq_uspace_hash_table, chains, 2, &irq_ht_ops);
 	hash_table_create(&irq_kernel_hash_table, chains, 2, &irq_ht_ops);

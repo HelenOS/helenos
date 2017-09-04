@@ -42,6 +42,7 @@
 #include <synch/spinlock.h>
 #include <proc/task.h>
 #include <ipc/ipc.h>
+#include <mm/slab.h>
 
 typedef enum {
 	IRQ_HT_KEY_INR,
@@ -137,6 +138,8 @@ typedef struct irq {
 
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
 extern hash_table_t irq_uspace_hash_table;
+
+extern slab_cache_t *irq_slab;
 
 extern inr_t last_inr;
 
