@@ -207,7 +207,7 @@ int phone_alloc(task_t *task)
 {
 	int handle = cap_alloc(task);
 	if (handle >= 0) {
-		phone_t *phone = malloc(sizeof(phone_t), FRAME_ATOMIC);
+		phone_t *phone = slab_alloc(phone_slab, FRAME_ATOMIC);
 		if (!phone) {
 			cap_free(TASK, handle);
 			return ENOMEM;
@@ -247,7 +247,7 @@ void phone_dealloc(int handle)
 	assert(phone);
 	assert(phone->state == IPC_PHONE_CONNECTING);
 	
-	free(phone);
+	slab_free(phone_slab, phone);
 	cap_free(TASK, handle);
 }
 

@@ -65,8 +65,10 @@ static void ipc_forget_call(call_t *);
 /** Open channel that is assigned automatically to new tasks */
 answerbox_t *ipc_phone_0 = NULL;
 
-static slab_cache_t *ipc_call_slab;
-static slab_cache_t *ipc_answerbox_slab;
+static slab_cache_t *call_slab;
+static slab_cache_t *answerbox_slab;
+
+slab_cache_t *phone_slab = NULL; 
 
 /** Initialize a call structure.
  *
@@ -94,7 +96,7 @@ void ipc_call_release(call_t *call)
 	if (atomic_predec(&call->refcnt) == 0) {
 		if (call->buffer)
 			free(call->buffer);
-		slab_free(ipc_call_slab, call);
+		slab_free(call_slab, call);
 	}
 }
 
@@ -111,7 +113,7 @@ void ipc_call_release(call_t *call)
  */
 call_t *ipc_call_alloc(unsigned int flags)
 {
-	call_t *call = slab_alloc(ipc_call_slab, flags);
+	call_t *call = slab_alloc(call_slab, flags);
 	if (call) {
 		_ipc_call_init(call);
 		ipc_call_hold(call);
@@ -200,7 +202,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
  */
 int ipc_call_sync(phone_t *phone, call_t *request)
 {
-	answerbox_t *mybox = slab_alloc(ipc_answerbox_slab, 0);
+	answerbox_t *mybox = slab_alloc(answerbox_slab, 0);
 	ipc_answerbox_init(mybox, TASK);
 	
 	/* We will receive data in a special box. */
@@ -208,7 +210,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 	
 	int rc = ipc_call(phone, request);
 	if (rc != EOK) {
-		slab_free(ipc_answerbox_slab, mybox);
+		slab_free(answerbox_slab, mybox);
 		return rc;
 	}
 
@@ -255,7 +257,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 	}
 	assert(!answer || request == answer);
 	
-	slab_free(ipc_answerbox_slab, mybox);
+	slab_free(answerbox_slab, mybox);
 	return rc;
 }
 
@@ -853,10 +855,12 @@ void ipc_cleanup(void)
  */
 void ipc_init(void)
 {
-	ipc_call_slab = slab_cache_create("call_t", sizeof(call_t), 0, NULL,
+	call_slab = slab_cache_create("call_t", sizeof(call_t), 0, NULL,
 	    NULL, 0);
-	ipc_answerbox_slab = slab_cache_create("answerbox_t",
-	    sizeof(answerbox_t), 0, NULL, NULL, 0);
+	phone_slab = slab_cache_create("phone_t", sizeof(phone_t), 0, NULL,
+	    NULL, 0);
+	answerbox_slab = slab_cache_create("answerbox_t", sizeof(answerbox_t),
+	    0, NULL, NULL, 0);
 }
 
 

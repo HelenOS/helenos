@@ -41,6 +41,7 @@
 #include <abi/ipc/ipc.h>
 #include <abi/proc/task.h>
 #include <typedefs.h>
+#include <mm/slab.h>
 
 struct answerbox;
 struct task;
@@ -164,6 +165,8 @@ typedef struct {
 	/** Buffer for IPC_M_DATA_WRITE and IPC_M_DATA_READ. */
 	uint8_t *buffer;
 } call_t;
+
+extern slab_cache_t *phone_slab;
 
 extern answerbox_t *ipc_phone_0;
 
