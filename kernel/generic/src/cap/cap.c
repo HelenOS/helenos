@@ -101,7 +101,7 @@ void cap_free(task_t *task, int handle)
 {
 	assert(handle >= 0);
 	assert(handle < MAX_CAPS);
-	assert(task->caps[handle].type != CAP_TYPE_INVALID);
+	assert(task->caps[handle].type == CAP_TYPE_ALLOCATED);
 
 	irq_spinlock_lock(&task->lock, true);
 	cap_initialize(&task->caps[handle], handle);

@@ -306,10 +306,16 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	int handle = cap_alloc(TASK);
 	if (handle < 0)
 		return handle;
+	
+	irq_t *irq = (irq_t *) malloc(sizeof(irq_t), FRAME_ATOMIC);
+	if (!irq) {
+		cap_free(TASK, handle);
+		return ENOMEM;
+	}
+	
 	cap_t *cap = cap_get_current(handle, CAP_TYPE_ALLOCATED);
 	assert(cap);
 	
-	irq_t *irq = &cap->irq;
 	irq_initialize(irq);
 	irq->inr = inr;
 	irq->claim = ipc_irq_top_half_claim;
@@ -319,6 +325,8 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq->notif_cfg.imethod = imethod;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
+	
+	cap->kobject = (void *) irq;
 	
 	/*
 	 * Insert the IRQ structure into the uspace IRQ hash table and retype
@@ -358,7 +366,7 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 	cap->type = CAP_TYPE_ALLOCATED;
 	irq_spinlock_unlock(&TASK->lock, true);
 	
-	irq_t *irq = &cap->irq;
+	irq_t *irq = (irq_t *) cap->kobject;
 	
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
@@ -375,6 +383,7 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 	code_free(irq->notif_cfg.code);
 	
 	/* Free up the IRQ capability and the underlying kernel object. */
+	free(cap->kobject);
 	cap_free(TASK, handle);
 	
 	return EOK;

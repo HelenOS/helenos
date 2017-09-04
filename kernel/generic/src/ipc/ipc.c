@@ -742,7 +742,7 @@ restart:
 	 */
 	all_clean = true;
 	for_each_cap_current(cap, CAP_TYPE_PHONE) {
-		phone_t *phone = &cap->phone;
+		phone_t *phone = (phone_t *) cap->kobject;
 
 		mutex_lock(&phone->lock);
 		if ((phone->state == IPC_PHONE_HUNGUP) &&
@@ -819,7 +819,7 @@ void ipc_cleanup(void)
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for_each_cap_current(cap, CAP_TYPE_PHONE) {
-		phone_t *phone = &cap->phone;
+		phone_t *phone = (phone_t *) cap->kobject;
 		ipc_phone_hangup(phone);
 	}
 	
@@ -912,7 +912,7 @@ void ipc_print_task(task_id_t taskid)
 	printf("[phone cap] [calls] [state\n");
 	
 	for_each_cap(task, cap, CAP_TYPE_PHONE) {
-		phone_t *phone = &cap->phone;
+		phone_t *phone = (phone_t *) cap->kobject;
 	
 		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
 			printf("%-11d (mutex busy)\n", cap->handle);

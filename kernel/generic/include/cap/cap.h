@@ -37,7 +37,6 @@
 
 #include <typedefs.h>
 #include <ipc/ipc.h>
-#include <ddi/irq.h>
 
 #define MAX_CAPS  64
 
@@ -63,10 +62,7 @@ typedef struct cap {
 	bool (* can_reclaim)(struct cap *);
 
 	/* The underlying kernel object. */
-	union {
-		phone_t phone;
-		irq_t irq;
-	};
+	void *kobject;
 } cap_t;
 
 struct task;

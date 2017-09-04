@@ -134,6 +134,7 @@
 #include <assert.h>
 #include <abi/errno.h>
 #include <cap/cap.h>
+#include <mm/slab.h>
 
 /** Find call_t * in call table according to callid.
  *
@@ -177,7 +178,7 @@ phone_t *phone_get(task_t *task, int handle)
 	if (!cap)
 		return NULL;
 	
-	return &cap->phone;
+	return (phone_t *) cap->kobject;
 }
 
 phone_t *phone_get_current(int handle)
@@ -189,8 +190,10 @@ static bool phone_can_reclaim(cap_t *cap)
 {
 	assert(cap->type == CAP_TYPE_PHONE);
 
-	return (cap->phone.state == IPC_PHONE_HUNGUP) &&
-	    (atomic_get(&cap->phone.active_calls) == 0);
+	phone_t *phone = (phone_t *) cap->kobject;
+
+	return (phone->state == IPC_PHONE_HUNGUP) &&
+	    (atomic_get(&phone->active_calls) == 0);
 }
 
 /** Allocate new phone in the specified task.
@@ -204,12 +207,20 @@ int phone_alloc(task_t *task)
 {
 	int handle = cap_alloc(task);
 	if (handle >= 0) {
+		phone_t *phone = malloc(sizeof(phone_t), FRAME_ATOMIC);
+		if (!phone) {
+			cap_free(TASK, handle);
+			return ENOMEM;
+		}
+		
+		ipc_phone_init(phone, task);
+		phone->state = IPC_PHONE_CONNECTING;
+		
 		irq_spinlock_lock(&task->lock, true);
 		cap_t *cap = cap_get(task, handle, CAP_TYPE_ALLOCATED);
-		ipc_phone_init(&cap->phone, task);
 		cap->type = CAP_TYPE_PHONE;
+		cap->kobject = (void *) phone;
 		cap->can_reclaim = phone_can_reclaim;
-		cap->phone.state = IPC_PHONE_CONNECTING;
 		irq_spinlock_unlock(&task->lock, true);
 	}
 	
@@ -225,11 +236,18 @@ int phone_alloc(task_t *task)
  */
 void phone_dealloc(int handle)
 {
-	phone_t *phone = phone_get_current(handle);
+	irq_spinlock_lock(&TASK->lock, true);
+	cap_t *cap = cap_get_current(handle, CAP_TYPE_PHONE);
+	assert(cap);
+	cap->type = CAP_TYPE_ALLOCATED;
+	irq_spinlock_unlock(&TASK->lock, true);
+	
+	phone_t *phone = (phone_t *) cap->kobject;
 	
 	assert(phone);
 	assert(phone->state == IPC_PHONE_CONNECTING);
-
+	
+	free(phone);
 	cap_free(TASK, handle);
 }
 
