@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
 	size_t buf_size = 4096;
 	void *buf = NULL;
 	uri_t *uri = NULL;
+	http_t *http = NULL;
 	int rc;
 
 	if (argc < 2) {
@@ -181,7 +182,7 @@ int main(int argc, char *argv[])
 		goto error;
 	}
 	
-	http_t *http = http_create(uri->host, port);
+	http = http_create(uri->host, port);
 	if (http == NULL) {
 		fprintf(stderr, "Failed creating HTTP object\n");
 		rc = ENOMEM;
@@ -233,6 +234,7 @@ int main(int argc, char *argv[])
 	}
 	
 	free(buf);
+	http_destroy(http);
 	uri_destroy(uri);
 	if (fclose(ofile) != 0) {
 		printf("Error writing '%s'.\n", ofname);
@@ -242,6 +244,8 @@ int main(int argc, char *argv[])
 	return EOK;
 error:
 	free(buf);
+	if (http != NULL)
+		http_destroy(http);
 	if (uri != NULL)
 		uri_destroy(uri);
 	if (ofile != NULL)

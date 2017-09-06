@@ -120,12 +120,16 @@ int http_close(http_t *http)
 		return EINVAL;
 	
 	tcp_conn_destroy(http->conn);
+	http->conn = NULL;
 	tcp_destroy(http->tcp);
+	http->tcp = NULL;
+	
 	return EOK;
 }
 
 void http_destroy(http_t *http)
 {
+	(void) http_close(http);
 	recv_buffer_fini(&http->recv_buffer);
 	free(http);
 }
