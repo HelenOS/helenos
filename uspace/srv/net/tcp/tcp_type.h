@@ -279,6 +279,12 @@ typedef struct {
 	tcp_segment_t *seg;
 } tcp_rqueue_entry_t;
 
+/** Receive queue callbacks */
+typedef struct {
+	/** Segment received */
+	void (*seg_received)(inet_ep2_t *, tcp_segment_t *);
+} tcp_rqueue_cb_t;
+
 /** NCSim queue entry */
 typedef struct {
 	link_t link;

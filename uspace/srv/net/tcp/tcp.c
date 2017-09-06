@@ -46,8 +46,13 @@
 #include "rqueue.h"
 #include "service.h"
 #include "test.h"
+#include "ucall.h"
 
 #define NAME       "tcp"
+
+static tcp_rqueue_cb_t tcp_rqueue_cb = {
+	.seg_received = tcp_as_segment_arrived
+};
 
 static int tcp_init(void)
 {
@@ -62,7 +67,7 @@ static int tcp_init(void)
 		return ENOMEM;
 	}
 
-	tcp_rqueue_init();
+	tcp_rqueue_init(&tcp_rqueue_cb);
 	tcp_rqueue_fibril_start();
 
 	tcp_ncsim_init();

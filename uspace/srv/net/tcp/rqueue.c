@@ -37,8 +37,10 @@
 #include <adt/prodcons.h>
 #include <errno.h>
 #include <io/log.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include "conn.h"
 #include "pdu.h"
 #include "rqueue.h"
@@ -55,11 +57,33 @@
 #define BOUNCE_TRANSCODE
 
 static prodcons_t rqueue;
+static bool fibril_active;
+static fibril_mutex_t lock;
+static fibril_condvar_t cv;
+static tcp_rqueue_cb_t *rqueue_cb;
 
 /** Initialize segment receive queue. */
-void tcp_rqueue_init(void)
+void tcp_rqueue_init(tcp_rqueue_cb_t *rcb)
 {
 	prodcons_initialize(&rqueue);
+	fibril_mutex_initialize(&lock);
+	fibril_condvar_initialize(&cv);
+	fibril_active = false;
+	rqueue_cb = rcb;
+}
+
+/** Finalize segment receive queue. */
+void tcp_rqueue_fini(void)
+{
+	inet_ep2_t epp;
+
+	inet_ep2_init(&epp);
+	tcp_rqueue_insert_seg(&epp, NULL);
+
+	fibril_mutex_lock(&lock);
+	while (fibril_active)
+		fibril_condvar_wait(&cv, &lock);
+	fibril_mutex_unlock(&lock);
 }
 
 /** Bounce segment directy into receive queue without constructing the PDU.
@@ -111,9 +135,11 @@ void tcp_rqueue_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 void tcp_rqueue_insert_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_rqueue_entry_t *rqe;
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_insert_seg()");
 
-	tcp_segment_dump(seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_rqueue_insert_seg()");
+
+	if (seg != NULL)
+		tcp_segment_dump(seg);
 
 	rqe = calloc(1, sizeof(tcp_rqueue_entry_t));
 	if (rqe == NULL) {
@@ -139,11 +165,23 @@ static int tcp_rqueue_fibril(void *arg)
 		link = prodcons_consume(&rqueue);
 		rqe = list_get_instance(link, tcp_rqueue_entry_t, link);
 
-		tcp_as_segment_arrived(&rqe->epp, rqe->seg);
+		if (rqe->seg == NULL) {
+			free(rqe);
+			break;
+		}
+
+		rqueue_cb->seg_received(&rqe->epp, rqe->seg);
 		free(rqe);
 	}
 
-	/* Not reached */
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_rqueue_fibril() exiting");
+
+	/* Finished */
+	fibril_mutex_lock(&lock);
+	fibril_active = false;
+	fibril_mutex_unlock(&lock);
+	fibril_condvar_broadcast(&cv);
+
 	return 0;
 }
 
@@ -161,6 +199,7 @@ void tcp_rqueue_fibril_start(void)
 	}
 
 	fibril_add_ready(fid);
+	fibril_active = true;
 }
 
 /**

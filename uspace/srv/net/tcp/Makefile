@@ -59,6 +59,7 @@ TEST_SOURCES = \
 	test/iqueue.c \
 	test/main.c \
 	test/pdu.c \
+	test/rqueue.c \
 	test/segment.c \
 	test/seq_no.c
 

@@ -58,6 +58,7 @@ PCUT_INIT
 
 PCUT_IMPORT(iqueue);
 PCUT_IMPORT(pdu);
+PCUT_IMPORT(rqueue);
 PCUT_IMPORT(segment);
 PCUT_IMPORT(seq_no);
 
