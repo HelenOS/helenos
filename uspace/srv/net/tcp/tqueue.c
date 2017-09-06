@@ -42,14 +42,15 @@
 #include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
+
 #include "conn.h"
+#include "inet.h"
 #include "ncsim.h"
 #include "pdu.h"
 #include "rqueue.h"
 #include "segment.h"
 #include "seq_no.h"
 #include "tqueue.h"
-#include "tcp.h"
 #include "tcp_type.h"
 
 #define RETRANSMIT_TIMEOUT	(2*1000*1000)

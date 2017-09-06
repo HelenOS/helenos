@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,15 +29,15 @@
 /** @addtogroup tcp
  * @{
  */
-/** @file TCP (Transmission Control Protocol) network module
+/** @file TCP inet interfacing
  */
 
-#ifndef TCP_H
-#define TCP_H
+#ifndef TCP_INET_H
+#define TCP_INET_H
 
-#include <async.h>
 #include "tcp_type.h"
 
+extern int tcp_inet_init(void);
 extern void tcp_transmit_pdu(tcp_pdu_t *);
 
 #endif

@@ -38,6 +38,7 @@ BINARY = tcp
 
 SOURCES_COMMON = \
 	conn.c \
+	inet.c \
 	iqueue.c \
 	ncsim.c \
 	pdu.c \
