@@ -179,6 +179,7 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 TEST_SOURCES = \
+	test/fibril/timer.c \
 	test/main.c \
 	test/odict.c \
 	test/qsort.c \
