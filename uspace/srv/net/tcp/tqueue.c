@@ -46,7 +46,6 @@
 #include "conn.h"
 #include "inet.h"
 #include "ncsim.h"
-#include "pdu.h"
 #include "rqueue.h"
 #include "segment.h"
 #include "seq_no.h"
@@ -55,14 +54,20 @@
 
 #define RETRANSMIT_TIMEOUT	(2*1000*1000)
 
-static void retransmit_timeout_func(void *arg);
-static void tcp_tqueue_timer_set(tcp_conn_t *conn);
-static void tcp_tqueue_timer_clear(tcp_conn_t *conn);
+static void retransmit_timeout_func(void *);
+static void tcp_tqueue_timer_set(tcp_conn_t *);
+static void tcp_tqueue_timer_clear(tcp_conn_t *);
+static void tcp_tqueue_seg(tcp_conn_t *, tcp_segment_t *);
+static void tcp_conn_transmit_segment(tcp_conn_t *, tcp_segment_t *);
+static void tcp_prepare_transmit_segment(tcp_conn_t *, tcp_segment_t *);
+static void tcp_tqueue_send_immed(tcp_conn_t *, tcp_segment_t *);
 
-int tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn)
+int tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn,
+    tcp_tqueue_cb_t *cb)
 {
 	tqueue->conn = conn;
 	tqueue->timer = fibril_timer_create(&conn->lock);
+	tqueue->cb = cb;
 	if (tqueue->timer == NULL)
 		return ENOMEM;
 
@@ -78,9 +83,21 @@ void tcp_tqueue_clear(tcp_tqueue_t *tqueue)
 
 void tcp_tqueue_fini(tcp_tqueue_t *tqueue)
 {
+	link_t *link;
+	tcp_tqueue_entry_t *tqe;
+
 	if (tqueue->timer != NULL) {
 		fibril_timer_destroy(tqueue->timer);
 		tqueue->timer = NULL;
+	}
+
+	while (!list_empty(&tqueue->list)) {
+		link = list_first(&tqueue->list);
+		tqe = list_get_instance(link, tcp_tqueue_entry_t, link);
+		list_remove(link);
+
+		tcp_segment_delete(tqe->seg);
+		free(tqe);
 	}
 }
 
@@ -95,7 +112,7 @@ void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
 	tcp_segment_delete(seg);
 }
 
-void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
+static void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	tcp_segment_t *rt_seg;
 	tcp_tqueue_entry_t *tqe;
@@ -135,7 +152,7 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_prepare_transmit_segment(conn, seg);
 }
 
-void tcp_prepare_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
+static void tcp_prepare_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	/*
 	 * Always send ACK once we have received SYN, except for RST segments.
@@ -267,7 +284,7 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 	tcp_tqueue_new_data(conn);
 }
 
-void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
+static void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_transmit_segment(%p, %p)",
 	    conn->name, conn, seg);
@@ -279,35 +296,21 @@ void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 	else
 		seg->ack = 0;
 
-	tcp_transmit_segment(&conn->ident, seg);
+	tcp_tqueue_send_immed(conn, seg);
 }
 
-void tcp_transmit_segment(inet_ep2_t *epp, tcp_segment_t *seg)
+void tcp_tqueue_send_immed(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
-	    "tcp_transmit_segment(l:(%u),f:(%u), %p)",
-	    epp->local.port, epp->remote.port, seg);
+	    "tcp_tqueue_send_immed(l:(%u),f:(%u), %p)",
+	    conn->ident.local.port, conn->ident.remote.port, seg);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
 	    seg->seq, seg->wnd);
 
 	tcp_segment_dump(seg);
-/*
-	tcp_pdu_prepare(conn, seg, &data, &len);
-	tcp_pdu_transmit(data, len);
-*/
-//	tcp_rqueue_bounce_seg(sp, seg);
-//	tcp_ncsim_bounce_seg(sp, seg);
 
-	tcp_pdu_t *pdu;
-
-	if (tcp_pdu_encode(epp, seg, &pdu) != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
-		return;
-	}
-
-	tcp_transmit_pdu(pdu);
-	tcp_pdu_delete(pdu);
+	conn->retransmit.cb->transmit_seg(&conn->ident, seg);
 }
 
 static void retransmit_timeout_func(void *arg)

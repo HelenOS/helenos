@@ -125,15 +125,6 @@ typedef struct {
 	list_t list;
 } tcp_iqueue_t;
 
-/** Retransmission queue */
-typedef struct {
-	struct tcp_conn *conn;
-	list_t list;
-
-	/** Retransmission timer */
-	fibril_timer_t *timer;
-} tcp_tqueue_t;
-
 /** Active or passive connection */
 typedef enum {
 	ap_active,
@@ -155,6 +146,85 @@ typedef struct {
 	void (*cstate_change)(tcp_conn_t *, void *, tcp_cstate_t);
 	void (*recv_data)(tcp_conn_t *, void *);
 } tcp_cb_t;
+
+/** Data returned by Status user call */
+typedef struct {
+	/** Connection state */
+	tcp_cstate_t cstate;
+} tcp_conn_status_t;
+
+typedef struct {
+	/** SYN, FIN */
+	tcp_control_t ctrl;
+
+	/** Segment sequence number */
+	uint32_t seq;
+	/** Segment acknowledgement number */
+	uint32_t ack;
+	/** Segment length in sequence space */
+	uint32_t len;
+	/** Segment window */
+	uint32_t wnd;
+	/** Segment urgent pointer */
+	uint32_t up;
+
+	/** Segment data, may be moved when trimming segment */
+	void *data;
+	/** Segment data, original pointer used to free data */
+	void *dfptr;
+} tcp_segment_t;
+
+/** Receive queue entry */
+typedef struct {
+	link_t link;
+	inet_ep2_t epp;
+	tcp_segment_t *seg;
+} tcp_rqueue_entry_t;
+
+/** Receive queue callbacks */
+typedef struct {
+	/** Segment received */
+	void (*seg_received)(inet_ep2_t *, tcp_segment_t *);
+} tcp_rqueue_cb_t;
+
+/** NCSim queue entry */
+typedef struct {
+	link_t link;
+	suseconds_t delay;
+	inet_ep2_t epp;
+	tcp_segment_t *seg;
+} tcp_squeue_entry_t;
+
+/** Incoming queue entry */
+typedef struct {
+	link_t link;
+	tcp_segment_t *seg;
+} tcp_iqueue_entry_t;
+
+/** Retransmission queue entry */
+typedef struct {
+	link_t link;
+	tcp_conn_t *conn;
+	tcp_segment_t *seg;
+} tcp_tqueue_entry_t;
+
+/** Retransmission queue callbacks */
+typedef struct {
+	/** Segment received */
+	void (*transmit_seg)(inet_ep2_t *, tcp_segment_t *);
+} tcp_tqueue_cb_t;
+
+/** Retransmission queue */
+typedef struct {
+	struct tcp_conn *conn;
+	list_t list;
+
+	/** Retransmission timer */
+	fibril_timer_t *timer;
+
+	/** Callbacks */
+	tcp_tqueue_cb_t *cb;
+} tcp_tqueue_t;
 
 /** Connection */
 struct tcp_conn {
@@ -244,67 +314,6 @@ struct tcp_conn {
 	/** Initial receive sequence number */
 	uint32_t irs;
 };
-
-/** Data returned by Status user call */
-typedef struct {
-	/** Connection state */
-	tcp_cstate_t cstate;
-} tcp_conn_status_t;
-
-typedef struct {
-	/** SYN, FIN */
-	tcp_control_t ctrl;
-
-	/** Segment sequence number */
-	uint32_t seq;
-	/** Segment acknowledgement number */
-	uint32_t ack;
-	/** Segment length in sequence space */
-	uint32_t len;
-	/** Segment window */
-	uint32_t wnd;
-	/** Segment urgent pointer */
-	uint32_t up;
-
-	/** Segment data, may be moved when trimming segment */
-	void *data;
-	/** Segment data, original pointer used to free data */
-	void *dfptr;
-} tcp_segment_t;
-
-/** Receive queue entry */
-typedef struct {
-	link_t link;
-	inet_ep2_t epp;
-	tcp_segment_t *seg;
-} tcp_rqueue_entry_t;
-
-/** Receive queue callbacks */
-typedef struct {
-	/** Segment received */
-	void (*seg_received)(inet_ep2_t *, tcp_segment_t *);
-} tcp_rqueue_cb_t;
-
-/** NCSim queue entry */
-typedef struct {
-	link_t link;
-	suseconds_t delay;
-	inet_ep2_t epp;
-	tcp_segment_t *seg;
-} tcp_squeue_entry_t;
-
-/** Incoming queue entry */
-typedef struct {
-	link_t link;
-	tcp_segment_t *seg;
-} tcp_iqueue_entry_t;
-
-/** Retransmission queue entry */
-typedef struct {
-	link_t link;
-	tcp_conn_t *conn;
-	tcp_segment_t *seg;
-} tcp_tqueue_entry_t;
 
 /** Continuation of processing.
  *

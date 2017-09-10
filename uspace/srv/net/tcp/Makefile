@@ -61,6 +61,7 @@ TEST_SOURCES = \
 	test/pdu.c \
 	test/rqueue.c \
 	test/segment.c \
-	test/seq_no.c
+	test/seq_no.c \
+	test/tqueue.c
 
 include $(USPACE_PREFIX)/Makefile.common

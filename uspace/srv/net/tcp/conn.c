@@ -43,7 +43,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "conn.h"
+#include "inet.h"
 #include "iqueue.h"
+#include "pdu.h"
 #include "segment.h"
 #include "seq_no.h"
 #include "tcp_type.h"
@@ -61,9 +63,14 @@ static LIST_INITIALIZE(conn_list);
 static FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
 static amap_t *amap;
 
-static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
-static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
-static void tcp_conn_tw_timer_clear(tcp_conn_t *conn);
+static void tcp_conn_seg_process(tcp_conn_t *, tcp_segment_t *);
+static void tcp_conn_tw_timer_set(tcp_conn_t *);
+static void tcp_conn_tw_timer_clear(tcp_conn_t *);
+static void tcp_transmit_segment(inet_ep2_t *, tcp_segment_t *);
+
+static tcp_tqueue_cb_t tcp_conn_tqueue_cb = {
+	.transmit_seg = tcp_transmit_segment
+};
 
 /** Initialize connections. */
 int tcp_conns_init(void)
@@ -129,8 +136,10 @@ tcp_conn_t *tcp_conn_new(inet_ep2_t *epp)
 	tcp_iqueue_init(&conn->incoming, conn);
 
 	/* Initialize retransmission queue */
-	if (tcp_tqueue_init(&conn->retransmit, conn) != EOK)
+	if (tcp_tqueue_init(&conn->retransmit, conn, &tcp_conn_tqueue_cb)
+	    != EOK) {
 		goto error;
+	}
 
 	tqueue_inited = true;
 
@@ -294,6 +303,9 @@ int tcp_conn_add(tcp_conn_t *conn)
  */
 void tcp_conn_remove(tcp_conn_t *conn)
 {
+	if (!link_used(&conn->link))
+		return;
+
 	fibril_mutex_lock(&conn_list_lock);
 	amap_remove(amap, &conn->ident);
 	list_remove(&conn->link);
@@ -1343,6 +1355,31 @@ void tcp_unexpected_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 
 	if ((seg->ctrl & CTL_RST) == 0)
 		tcp_reply_rst(epp, seg);
+}
+
+static void tcp_transmit_segment(inet_ep2_t *epp, tcp_segment_t *seg)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	    "tcp_transmit_segment(l:(%u),f:(%u), %p)",
+	    epp->local.port, epp->remote.port, seg);
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
+	    seg->seq, seg->wnd);
+
+	tcp_segment_dump(seg);
+
+//	tcp_rqueue_bounce_seg(sp, seg);
+//	tcp_ncsim_bounce_seg(sp, seg);
+
+	tcp_pdu_t *pdu;
+
+	if (tcp_pdu_encode(epp, seg, &pdu) != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
+		return;
+	}
+
+	tcp_transmit_pdu(pdu);
+	tcp_pdu_delete(pdu);
 }
 
 /** Compute flipped endpoint pair for response.
