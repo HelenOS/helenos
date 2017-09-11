@@ -55,7 +55,7 @@ PCUT_TEST(empty_queue)
 
 	tcp_iqueue_init(&iqueue, conn);
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(ENOENT, rc);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
 	tcp_conn_delete(conn);
 }
@@ -88,17 +88,17 @@ PCUT_TEST(one_segment)
 
 	tcp_iqueue_init(&iqueue, conn);
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(ENOENT, rc);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
 	seg->seq = 10;
 	tcp_iqueue_insert_seg(&iqueue, seg);
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	seg->seq = 15;
 	tcp_iqueue_insert_seg(&iqueue, seg);
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(ENOENT, rc);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 	tcp_iqueue_remove_seg(&iqueue, seg);
 
 	tcp_segment_delete(seg);
@@ -136,7 +136,7 @@ PCUT_TEST(two_segments)
 
 	tcp_iqueue_init(&iqueue, conn);
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(ENOENT, rc);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
 	/* Test reception in ascending order */
 	seg1->seq = 5;
@@ -145,11 +145,11 @@ PCUT_TEST(two_segments)
 	tcp_iqueue_insert_seg(&iqueue, seg2);
 
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_TRUE(rseg == seg1);
 
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_TRUE(rseg == seg2);
 
 	/* Test reception in descending order */
@@ -159,15 +159,15 @@ PCUT_TEST(two_segments)
 	tcp_iqueue_insert_seg(&iqueue, seg2);
 
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
-	PCUT_ASSERT_TRUE(rseg == seg2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(seg2, rseg);
 
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
-	PCUT_ASSERT_TRUE(rseg == seg1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(seg1, rseg);
 
 	rc = tcp_iqueue_get_ready_seg(&iqueue, &rseg);
-	PCUT_ASSERT_INT_EQUALS(ENOENT, rc);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
 	tcp_segment_delete(seg1);
 	tcp_segment_delete(seg2);

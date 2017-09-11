@@ -96,6 +96,10 @@ int amap_create(amap_t **rmap)
 void amap_destroy(amap_t *map)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_destroy()");
+
+	assert(list_empty(&map->repla));
+	assert(list_empty(&map->laddr));
+	assert(list_empty(&map->llink));
 	free(map);
 }
 

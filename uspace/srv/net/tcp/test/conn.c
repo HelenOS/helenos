@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jiri Svobda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,78 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <mem.h>
+#include <errno.h>
+#include <inet/endpoint.h>
+#include <io/log.h>
 #include <pcut/pcut.h>
 
-#include "main.h"
-#include "../segment.h"
-#include "../tcp_type.h"
-
-/** Verify that two segments have the same content */
-void test_seg_same(tcp_segment_t *a, tcp_segment_t *b)
-{
-	PCUT_ASSERT_INT_EQUALS(a->ctrl, b->ctrl);
-	PCUT_ASSERT_INT_EQUALS(a->seq, b->seq);
-	PCUT_ASSERT_INT_EQUALS(a->ack, b->ack);
-	PCUT_ASSERT_INT_EQUALS(a->len, b->len);
-	PCUT_ASSERT_INT_EQUALS(a->wnd, b->wnd);
-	PCUT_ASSERT_INT_EQUALS(a->up, b->up);
-	PCUT_ASSERT_INT_EQUALS(tcp_segment_text_size(a),
-	    tcp_segment_text_size(b));
-	if (tcp_segment_text_size(a) != 0)
-		PCUT_ASSERT_NOT_NULL(a->data);
-	if (tcp_segment_text_size(b) != 0)
-		PCUT_ASSERT_NOT_NULL(b->data);
-	if (tcp_segment_text_size(a) != 0) {
-		PCUT_ASSERT_INT_EQUALS(0, memcmp(a->data, b->data,
-		    tcp_segment_text_size(a)));
-	}
-}
+#include "../conn.h"
 
 PCUT_INIT
 
-PCUT_IMPORT(conn);
-PCUT_IMPORT(iqueue);
-PCUT_IMPORT(pdu);
-PCUT_IMPORT(rqueue);
-PCUT_IMPORT(segment);
-PCUT_IMPORT(seq_no);
-PCUT_IMPORT(tqueue);
+PCUT_TEST_SUITE(conn);
 
-PCUT_MAIN()
+PCUT_TEST_BEFORE
+{
+	int rc;
+
+	/* We will be calling functions that perform logging */
+	rc = log_init("test-tcp");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = tcp_conns_init();
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+PCUT_TEST_AFTER
+{
+	tcp_conns_fini();
+}
+
+/** Test creating and deleting connection */
+PCUT_TEST(new_delete)
+{
+	tcp_conn_t *conn;
+	inet_ep2_t epp;
+
+	inet_ep2_init(&epp);
+	conn = tcp_conn_new(&epp);
+	PCUT_ASSERT_NOT_NULL(conn);
+
+	tcp_conn_lock(conn);
+	tcp_conn_reset(conn);
+	tcp_conn_unlock(conn);
+	tcp_conn_delete(conn);
+}
+
+/** Test adding, finding and removing a connection */
+PCUT_TEST(add_find_remove)
+{
+	tcp_conn_t *conn, *cfound;
+	inet_ep2_t epp;
+	int rc;
+
+	inet_ep2_init(&epp);
+
+	conn = tcp_conn_new(&epp);
+	PCUT_ASSERT_NOT_NULL(conn);
+
+	rc = tcp_conn_add(conn);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Find the connection */
+	cfound = tcp_conn_find_ref(&conn->ident);
+	PCUT_ASSERT_EQUALS(conn, cfound);
+	tcp_conn_delref(cfound);
+
+	/* We should have been assigned a port address, should not match */
+	cfound = tcp_conn_find_ref(&epp);
+	PCUT_ASSERT_EQUALS(NULL, cfound);
+
+	tcp_conn_lock(conn);
+	tcp_conn_reset(conn);
+	tcp_conn_unlock(conn);
+	tcp_conn_delete(conn);
+}
+
+PCUT_EXPORT(conn);

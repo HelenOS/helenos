@@ -61,9 +61,9 @@ PCUT_TEST(encdec_syn)
 	seg->up = 17;
 
 	rc = tcp_pdu_encode(&epp, seg, &pdu);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	rc = tcp_pdu_decode(pdu, &depp, &dseg);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	test_seg_same(seg, dseg);
 	tcp_segment_delete(seg);
@@ -99,9 +99,9 @@ PCUT_TEST(encdec_data)
 	seg->up = 17;
 
 	rc = tcp_pdu_encode(&epp, seg, &pdu);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	rc = tcp_pdu_decode(pdu, &depp, &dseg);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	test_seg_same(seg, dseg);
 	tcp_segment_delete(seg);

@@ -56,8 +56,17 @@ PCUT_TEST_BEFORE
 
 	/* We will be calling functions that perform logging */
 	rc = log_init("test-tcp");
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = tcp_conns_init();
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
+
+PCUT_TEST_AFTER
+{
+	tcp_conns_fini();
+}
+
 
 /** Test  */
 PCUT_TEST(init_fini)
@@ -74,6 +83,9 @@ PCUT_TEST(init_fini)
 	conn->retransmit.cb = &tqueue_test_cb;
 	seg_cnt = 0;
 
+	tcp_conn_lock(conn);
+	tcp_conn_reset(conn);
+	tcp_conn_unlock(conn);
 	tcp_conn_delete(conn);
 	PCUT_ASSERT_EQUALS(0, seg_cnt);
 }

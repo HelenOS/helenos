@@ -238,6 +238,8 @@ struct tcp_conn {
 
 	/** Connection identification (local and remote endpoint) */
 	inet_ep2_t ident;
+	/** Connection is in association map */
+	bool mapped;
 
 	/** Active or passive connection */
 	acpass_t ap;
@@ -368,7 +370,7 @@ typedef struct tcp_clst {
 
 /** TCP client */
 typedef struct tcp_client {
-	/** Client callbac session */
+	/** Client callback session */
 	async_sess_t *sess;
 	/** Client's connections */
 	list_t cconn; /* of tcp_cconn_t */

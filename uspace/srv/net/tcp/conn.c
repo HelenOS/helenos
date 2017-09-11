@@ -58,10 +58,13 @@
 #define MAX_SEGMENT_LIFETIME	(15*1000*1000) //(2*60*1000*1000)
 #define TIME_WAIT_TIMEOUT	(2*MAX_SEGMENT_LIFETIME)
 
+/** List of all allocated connections */
 static LIST_INITIALIZE(conn_list);
 /** Taken after tcp_conn_t lock */
 static FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
+/** Connection association map */
 static amap_t *amap;
+static FIBRIL_MUTEX_INITIALIZE(amap_lock);
 
 static void tcp_conn_seg_process(tcp_conn_t *, tcp_segment_t *);
 static void tcp_conn_tw_timer_set(tcp_conn_t *);
@@ -84,6 +87,15 @@ int tcp_conns_init(void)
 	}
 
 	return EOK;
+}
+
+/** Finalize connections. */
+void tcp_conns_fini(void)
+{
+	amap_destroy(amap);
+	amap = NULL;
+
+	assert(list_empty(&conn_list));
 }
 
 /** Create new connection structure.
@@ -156,6 +168,10 @@ tcp_conn_t *tcp_conn_new(inet_ep2_t *epp)
 	if (epp != NULL)
 		conn->ident = *epp;
 
+	fibril_mutex_lock(&conn_list_lock);
+	list_append(&conn->link, &conn_list);
+	fibril_mutex_unlock(&conn_list_lock);
+
 	return conn;
 
 error:
@@ -190,6 +206,10 @@ static void tcp_conn_free(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_free(%p)", conn->name, conn);
 	tcp_tqueue_fini(&conn->retransmit);
+
+	fibril_mutex_lock(&conn_list_lock);
+	list_remove(&conn->link);
+	fibril_mutex_unlock(&conn_list_lock);
 
 	if (conn->rcv_buf != NULL)
 		free(conn->rcv_buf);
@@ -262,6 +282,7 @@ void tcp_conn_delete(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_delete(%p)", conn->name, conn);
 
+	assert(conn->mapped == false);
 	assert(conn->deleted == false);
 	conn->deleted = true;
 	conn->cb = NULL;
@@ -279,20 +300,20 @@ int tcp_conn_add(tcp_conn_t *conn)
 	int rc;
 
 	tcp_conn_addref(conn);
-	fibril_mutex_lock(&conn_list_lock);
+	fibril_mutex_lock(&amap_lock);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_add: conn=%p", conn);
 
 	rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
 	if (rc != EOK) {
 		tcp_conn_delref(conn);
-		fibril_mutex_unlock(&conn_list_lock);
+		fibril_mutex_unlock(&amap_lock);
 		return rc;
 	}
 
 	conn->ident = aepp;
-	list_append(&conn->link, &conn_list);
-	fibril_mutex_unlock(&conn_list_lock);
+	conn->mapped = true;
+	fibril_mutex_unlock(&amap_lock);
 
 	return EOK;
 }
@@ -303,13 +324,13 @@ int tcp_conn_add(tcp_conn_t *conn)
  */
 void tcp_conn_remove(tcp_conn_t *conn)
 {
-	if (!link_used(&conn->link))
+	if (!conn->mapped)
 		return;
 
-	fibril_mutex_lock(&conn_list_lock);
+	fibril_mutex_lock(&amap_lock);
 	amap_remove(amap, &conn->ident);
-	list_remove(&conn->link);
-	fibril_mutex_unlock(&conn_list_lock);
+	conn->mapped = false;
+	fibril_mutex_unlock(&amap_lock);
 	tcp_conn_delref(conn);
 }
 
@@ -399,19 +420,19 @@ tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", epp);
 
-	fibril_mutex_lock(&conn_list_lock);
+	fibril_mutex_lock(&amap_lock);
 
 	rc = amap_find_match(amap, epp, &arg);
 	if (rc != EOK) {
 		assert(rc == ENOENT);
-		fibril_mutex_unlock(&conn_list_lock);
+		fibril_mutex_unlock(&amap_lock);
 		return NULL;
 	}
 
 	conn = (tcp_conn_t *)arg;
 	tcp_conn_addref(conn);
 
-	fibril_mutex_unlock(&conn_list_lock);
+	fibril_mutex_unlock(&amap_lock);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref: got conn=%p",
 	    conn);
 	return conn;
@@ -423,6 +444,8 @@ tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
  */
 void tcp_conn_reset(tcp_conn_t *conn)
 {
+	assert(fibril_mutex_is_locked(&conn->lock));
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
 	conn->reset = true;
 	tcp_conn_state_set(conn, st_closed);
@@ -1222,7 +1245,7 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
 		oldepp = conn->ident;
 
 		/* Need to remove and re-insert connection with new identity */
-		fibril_mutex_lock(&conn_list_lock);
+		fibril_mutex_lock(&amap_lock);
 
 		if (inet_addr_is_any(&conn->ident.remote.addr))
 			conn->ident.remote.addr = epp->remote.addr;
@@ -1238,13 +1261,13 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
 			assert(rc != EEXIST);
 			assert(rc == ENOMEM);
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
-			fibril_mutex_unlock(&conn_list_lock);
+			fibril_mutex_unlock(&amap_lock);
 			tcp_conn_unlock(conn);
 			return;
 		}
 
 		amap_remove(amap, &oldepp);
-		fibril_mutex_unlock(&conn_list_lock);
+		fibril_mutex_unlock(&amap_lock);
 
 		conn->name = (char *) "a";
 	}

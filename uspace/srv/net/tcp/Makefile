@@ -56,6 +56,7 @@ SOURCES = \
 
 TEST_SOURCES = \
 	$(SOURCES_COMMON) \
+	test/conn.c \
 	test/iqueue.c \
 	test/main.c \
 	test/pdu.c \
