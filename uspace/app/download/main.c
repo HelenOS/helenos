@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 	free(buf);
 	http_destroy(http);
 	uri_destroy(uri);
-	if (fclose(ofile) != 0) {
+	if (ofile != NULL && fclose(ofile) != 0) {
 		printf("Error writing '%s'.\n", ofname);
 		return EIO;
 	}
