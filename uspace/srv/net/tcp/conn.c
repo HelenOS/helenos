@@ -205,6 +205,8 @@ error:
 static void tcp_conn_free(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_free(%p)", conn->name, conn);
+
+	assert(conn->mapped == false);
 	tcp_tqueue_fini(&conn->retransmit);
 
 	fibril_mutex_lock(&conn_list_lock);
@@ -282,7 +284,6 @@ void tcp_conn_delete(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_delete(%p)", conn->name, conn);
 
-	assert(conn->mapped == false);
 	assert(conn->deleted == false);
 	conn->deleted = true;
 	conn->cb = NULL;
