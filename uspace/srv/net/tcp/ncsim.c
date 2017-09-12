@@ -72,10 +72,12 @@ void tcp_ncsim_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_squeue_entry_t *sqe;
 	tcp_squeue_entry_t *old_qe;
+	inet_ep2_t rident;
 	link_t *link;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_bounce_seg()");
-	tcp_rqueue_bounce_seg(epp, seg);
+	tcp_ep2_flipped(epp, &rident);
+	tcp_rqueue_insert_seg(&rident, seg);
 	return;
 
 	if (0 /*random() % 4 == 3*/) {
@@ -124,6 +126,7 @@ static int tcp_ncsim_fibril(void *arg)
 {
 	link_t *link;
 	tcp_squeue_entry_t *sqe;
+	inet_ep2_t rident;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_fibril()");
@@ -147,7 +150,8 @@ static int tcp_ncsim_fibril(void *arg)
 		fibril_mutex_unlock(&sim_queue_lock);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "NCSim - End Sleep");
-		tcp_rqueue_bounce_seg(&sqe->epp, sqe->seg);
+		tcp_ep2_flipped(&sqe->epp, &rident);
+		tcp_rqueue_insert_seg(&rident, sqe->seg);
 		free(sqe);
 	}
 

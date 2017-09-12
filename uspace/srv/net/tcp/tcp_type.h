@@ -378,6 +378,16 @@ typedef struct tcp_client {
 	list_t clst;
 } tcp_client_t;
 
+/** Internal loopback type */
+typedef enum {
+	/** No loopback */
+	tcp_lb_none,
+	/** Segment loopback */
+	tcp_lb_segment,
+	/** PDU loopback */
+	tcp_lb_pdu
+} tcp_lb_t;
+
 #endif
 
 /** @}

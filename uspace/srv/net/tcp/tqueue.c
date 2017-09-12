@@ -105,6 +105,8 @@ void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
 {
 	tcp_segment_t *seg;
 
+	assert(fibril_mutex_is_locked(&conn->lock));
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_tqueue_ctrl_seg(%p, %u)", conn, ctrl);
 
 	seg = tcp_segment_make_ctrl(ctrl);
@@ -116,6 +118,8 @@ static void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	tcp_segment_t *rt_seg;
 	tcp_tqueue_entry_t *tqe;
+
+	assert(fibril_mutex_is_locked(&conn->lock));
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_tqueue_seg(%p, %p)", conn->name, conn,
 	    seg);
@@ -365,6 +369,8 @@ static void retransmit_timeout_func(void *arg)
 /** Set or re-set retransmission timer */
 static void tcp_tqueue_timer_set(tcp_conn_t *conn)
 {
+	assert(fibril_mutex_is_locked(&conn->lock));
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "### %s: tcp_tqueue_timer_set() begin", conn->name);
 
 	/* Clear first to make sure we update refcnt correctly */
@@ -380,6 +386,8 @@ static void tcp_tqueue_timer_set(tcp_conn_t *conn)
 /** Clear retransmission timer */
 static void tcp_tqueue_timer_clear(tcp_conn_t *conn)
 {
+	assert(fibril_mutex_is_locked(&conn->lock));
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "### %s: tcp_tqueue_timer_clear() begin", conn->name);
 
 	if (fibril_timer_clear_locked(conn->retransmit.timer) == fts_active)

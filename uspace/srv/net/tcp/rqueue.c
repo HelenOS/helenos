@@ -42,19 +42,10 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 #include "conn.h"
-#include "pdu.h"
 #include "rqueue.h"
 #include "segment.h"
 #include "tcp_type.h"
 #include "ucall.h"
-
-/** Transcode bounced segments.
- *
- * If defined, segments bounced via the internal debugging loopback will
- * be encoded to a PDU and the decoded. Otherwise they will be bounced back
- * directly without passing the encoder-decoder.
- */
-#define BOUNCE_TRANSCODE
 
 static prodcons_t rqueue;
 static bool fibril_active;
@@ -86,51 +77,10 @@ void tcp_rqueue_fini(void)
 	fibril_mutex_unlock(&lock);
 }
 
-/** Bounce segment directy into receive queue without constructing the PDU.
- *
- * This is for testing purposes only.
- *
- * @param sp	Endpoint pair, oriented for transmission
- * @param seg	Segment
- */
-void tcp_rqueue_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
-{
-	inet_ep2_t rident;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_bounce_seg()");
-
-#ifdef BOUNCE_TRANSCODE
-	tcp_pdu_t *pdu;
-	tcp_segment_t *dseg;
-
-	if (tcp_pdu_encode(epp, seg, &pdu) != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
-		return;
-	}
-
-	if (tcp_pdu_decode(pdu, &rident, &dseg) != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
-		return;
-	}
-
-	tcp_pdu_delete(pdu);
-
-	/** Insert decoded segment into rqueue */
-	tcp_rqueue_insert_seg(&rident, dseg);
-	tcp_segment_delete(seg);
-#else
-	/* Reverse the identification */
-	tcp_ep2_flipped(epp, &rident);
-
-	/* Insert segment back into rqueue */
-	tcp_rqueue_insert_seg(&rident, seg);
-#endif
-}
-
 /** Insert segment into receive queue.
  *
  * @param epp	Endpoint pair, oriented for reception
- * @param seg	Segment
+ * @param seg	Segment (ownership transferred to rqueue)
  */
 void tcp_rqueue_insert_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 {

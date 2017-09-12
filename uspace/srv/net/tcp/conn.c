@@ -46,6 +46,7 @@
 #include "inet.h"
 #include "iqueue.h"
 #include "pdu.h"
+#include "rqueue.h"
 #include "segment.h"
 #include "seq_no.h"
 #include "tcp_type.h"
@@ -64,12 +65,18 @@ static LIST_INITIALIZE(conn_list);
 static FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
 /** Connection association map */
 static amap_t *amap;
+/** Taken after tcp_conn_t lock */
 static FIBRIL_MUTEX_INITIALIZE(amap_lock);
+
+/** Internal loopback configuration */
+tcp_lb_t tcp_conn_lb = tcp_lb_none;
 
 static void tcp_conn_seg_process(tcp_conn_t *, tcp_segment_t *);
 static void tcp_conn_tw_timer_set(tcp_conn_t *);
 static void tcp_conn_tw_timer_clear(tcp_conn_t *);
 static void tcp_transmit_segment(inet_ep2_t *, tcp_segment_t *);
+static void tcp_conn_trim_seg_to_wnd(tcp_conn_t *, tcp_segment_t *);
+static void tcp_reply_rst(inet_ep2_t *, tcp_segment_t *);
 
 static tcp_tqueue_cb_t tcp_conn_tqueue_cb = {
 	.transmit_seg = tcp_transmit_segment
@@ -323,7 +330,7 @@ int tcp_conn_add(tcp_conn_t *conn)
  *
  * Remove connection from the connection map.
  */
-void tcp_conn_remove(tcp_conn_t *conn)
+static void tcp_conn_remove(tcp_conn_t *conn)
 {
 	if (!conn->mapped)
 		return;
@@ -368,6 +375,8 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
  */
 void tcp_conn_sync(tcp_conn_t *conn)
 {
+	assert(fibril_mutex_is_locked(&conn->lock));
+
 	/* XXX select ISS */
 	conn->iss = 1;
 	conn->snd_nxt = conn->iss;
@@ -1357,7 +1366,7 @@ void tcp_conn_tw_timer_clear(tcp_conn_t *conn)
  * @param conn		Connection
  * @param seg		Segment
  */
-void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
+static void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	uint32_t left, right;
 
@@ -1381,8 +1390,17 @@ void tcp_unexpected_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 		tcp_reply_rst(epp, seg);
 }
 
+/** Transmit segment over network.
+ *
+ * @param epp Endpoint pair with source and destination information
+ * @param seg Segment (ownership retained by caller)
+ */
 static void tcp_transmit_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 {
+	tcp_pdu_t *pdu;
+	tcp_segment_t *dseg;
+	inet_ep2_t rident;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "tcp_transmit_segment(l:(%u),f:(%u), %p)",
 	    epp->local.port, epp->remote.port, seg);
@@ -1392,13 +1410,36 @@ static void tcp_transmit_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 
 	tcp_segment_dump(seg);
 
-//	tcp_rqueue_bounce_seg(sp, seg);
-//	tcp_ncsim_bounce_seg(sp, seg);
+	if (tcp_conn_lb == tcp_lb_segment) {
+		/* Loop back segment */
+//		tcp_ncsim_bounce_seg(sp, seg);
 
-	tcp_pdu_t *pdu;
+		/* Reverse the identification */
+		tcp_ep2_flipped(epp, &rident);
+
+		/* Insert segment back into rqueue */
+		dseg = tcp_segment_dup(seg);
+		tcp_rqueue_insert_seg(&rident, dseg);
+		return;
+	}
 
 	if (tcp_pdu_encode(epp, seg, &pdu) != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
+		return;
+	}
+
+	if (tcp_conn_lb == tcp_lb_pdu) {
+		/* Loop back PDU */
+		if (tcp_pdu_decode(pdu, &rident, &dseg) != EOK) {
+			log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
+			tcp_pdu_delete(pdu);
+			return;
+		}
+
+		tcp_pdu_delete(pdu);
+
+		/* Insert decoded segment into rqueue */
+		tcp_rqueue_insert_seg(&rident, dseg);
 		return;
 	}
 
@@ -1424,7 +1465,7 @@ void tcp_ep2_flipped(inet_ep2_t *epp, inet_ep2_t *fepp)
  * @param epp		Endpoint pair which received the segment
  * @param seg		Incoming segment
  */
-void tcp_reply_rst(inet_ep2_t *epp, tcp_segment_t *seg)
+static void tcp_reply_rst(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_segment_t *rseg;
 
