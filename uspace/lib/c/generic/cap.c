@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libfdisk
+/** @addtogroup libc
  * @{
  */
 /**
- * @file Disk management library.
+ * @file Storage capacity specification.
  */
 
+#include <cap.h>
 #include <errno.h>
-#include <fdisk.h>
 #include <imath.h>
 #include <stdio.h>
 #include <str.h>
@@ -59,8 +59,7 @@ static const char *cu_str[] = {
 	[cu_ybyte] = "YB"
 };
 
-void fdisk_cap_from_blocks(uint64_t nblocks, size_t block_size,
-    fdisk_cap_t *cap)
+void cap_from_blocks(uint64_t nblocks, size_t block_size, cap_spec_t *cap)
 {
 	uint64_t tsize;
 
@@ -77,12 +76,12 @@ void fdisk_cap_from_blocks(uint64_t nblocks, size_t block_size,
  * up to an integer number of blocks.
  *
  * A capacity value entails precision, i.e. it corresponds to a range
- * of values. @a cvsel selects the value to return. @c fcv_nom gives
- * the nominal (middle) value, @c fcv_min gives the minimum value
- * and @c fcv_max gives the maximum value.
+ * of values. @a cvsel selects the value to return. @c cv_nom gives
+ * the nominal (middle) value, @c cv_min gives the minimum value
+ * and @c cv_max gives the maximum value.
  */
-int fdisk_cap_to_blocks(fdisk_cap_t *cap, fdisk_cvsel_t cvsel,
-    size_t block_size, uint64_t *rblocks)
+int cap_spec_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
+    uint64_t *rblocks)
 {
 	int exp;
 	uint64_t bytes;
@@ -107,13 +106,13 @@ int fdisk_cap_to_blocks(fdisk_cap_t *cap, fdisk_cvsel_t cvsel,
 
 		adj = 0;
 		switch (cvsel) {
-		case fcv_nom:
+		case cv_nom:
 			adj = 0;
 			break;
-		case fcv_min:
+		case cv_min:
 			adj = -(f / 2);
 			break;
-		case fcv_max:
+		case cv_max:
 			adj = f / 2 - 1;
 			break;
 		}
@@ -138,7 +137,7 @@ int fdisk_cap_to_blocks(fdisk_cap_t *cap, fdisk_cvsel_t cvsel,
  * Change unit and round the number so that we have at most three integer
  * digits and at most two fractional digits, e.g abc.xy <unit>.
  */
-void fdisk_cap_simplify(fdisk_cap_t *cap)
+void cap_simplify(cap_spec_t *cap)
 {
 	uint64_t div;
 	uint64_t maxv;
@@ -175,7 +174,7 @@ void fdisk_cap_simplify(fdisk_cap_t *cap)
 	}
 }
 
-int fdisk_cap_format(fdisk_cap_t *cap, char **rstr)
+int cap_format(cap_spec_t *cap, char **rstr)
 {
 	int rc;
 	const char *sunit;
@@ -208,7 +207,7 @@ int fdisk_cap_format(fdisk_cap_t *cap, char **rstr)
 	return EOK;
 }
 
-static int fdisk_digit_val(char c, int *val)
+static int cap_digit_val(char c, int *val)
 {
 	switch (c) {
 	case '0': *val = 0; break;
@@ -228,7 +227,7 @@ static int fdisk_digit_val(char c, int *val)
 	return EOK;
 }
 
-int fdisk_cap_parse(const char *str, fdisk_cap_t *cap)
+int cap_parse(const char *str, cap_spec_t *cap)
 {
 	const char *eptr;
 	const char *p;
@@ -240,7 +239,7 @@ int fdisk_cap_parse(const char *str, fdisk_cap_t *cap)
 	m = 0;
 
 	eptr = str;
-	while (fdisk_digit_val(*eptr, &d) == EOK) {
+	while (cap_digit_val(*eptr, &d) == EOK) {
 		m = m * 10 + d;
 		++eptr;
 	}
@@ -248,7 +247,7 @@ int fdisk_cap_parse(const char *str, fdisk_cap_t *cap)
 	if (*eptr == '.') {
 		++eptr;
 		dp = 0;
-		while (fdisk_digit_val(*eptr, &d) == EOK) {
+		while (cap_digit_val(*eptr, &d) == EOK) {
 			m = m * 10 + d;
 			++dp;
 			++eptr;

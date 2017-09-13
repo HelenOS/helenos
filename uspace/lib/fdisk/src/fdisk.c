@@ -34,6 +34,7 @@
  */
 
 #include <adt/list.h>
+#include <cap.h>
 #include <errno.h>
 #include <fdisk.h>
 #include <loc.h>
@@ -217,7 +218,7 @@ int fdisk_dev_info_get_svcname(fdisk_dev_info_t *info, char **rname)
 	return EOK;
 }
 
-int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
+int fdisk_dev_info_capacity(fdisk_dev_info_t *info, cap_spec_t *cap)
 {
 	vbd_disk_info_t vinfo;
 	int rc;
@@ -226,7 +227,7 @@ int fdisk_dev_info_capacity(fdisk_dev_info_t *info, fdisk_cap_t *cap)
 	if (rc != EOK)
 		return EIO;
 
-	fdisk_cap_from_blocks(vinfo.nblocks, vinfo.block_size, cap);
+	cap_from_blocks(vinfo.nblocks, vinfo.block_size, cap);
 	return EOK;
 }
 
@@ -293,7 +294,7 @@ static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	if (part->pkind == lpk_extended)
 		dev->ext_part = part;
 
-	fdisk_cap_from_blocks(part->nblocks, dev->dinfo.block_size,
+	cap_from_blocks(part->nblocks, dev->dinfo.block_size,
 	    &part->capacity);
 	part->part_id = partid;
 
@@ -534,9 +535,9 @@ int fdisk_dev_get_svcname(fdisk_dev_t *dev, char **rname)
 	return EOK;
 }
 
-int fdisk_dev_capacity(fdisk_dev_t *dev, fdisk_cap_t *cap)
+int fdisk_dev_capacity(fdisk_dev_t *dev, cap_spec_t *cap)
 {
-	fdisk_cap_from_blocks(dev->dinfo.nblocks, dev->dinfo.block_size, cap);
+	cap_from_blocks(dev->dinfo.nblocks, dev->dinfo.block_size, cap);
 	return EOK;
 }
 
@@ -676,7 +677,7 @@ int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 }
 
 /** Get size of largest free block. */
-int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, fdisk_cap_t *cap)
+int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, cap_spec_t *cap)
 {
 	int rc;
 	uint64_t b0;
@@ -695,13 +696,13 @@ int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, fdisk_cap_t *cap
 		nb -= hdrb;
 	}
 
-	fdisk_cap_from_blocks(nb, dev->dinfo.block_size, cap);
+	cap_from_blocks(nb, dev->dinfo.block_size, cap);
 	return EOK;
 }
 
 /** Get total free space capacity. */
 int fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
-    fdisk_cap_t *cap)
+    cap_spec_t *cap)
 {
 	fdisk_free_range_t fr;
 	uint64_t hdrb;
@@ -723,7 +724,7 @@ int fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
 		}
 	} while (fdisk_free_range_next(&fr));
 
-	fdisk_cap_from_blocks(totb, dev->dinfo.block_size, cap);
+	cap_from_blocks(totb, dev->dinfo.block_size, cap);
 	return EOK;
 }
 
@@ -994,17 +995,17 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	int index;
 	int rc;
 
-	rc = fdisk_cap_to_blocks(&pspec->capacity, fcv_nom, dev->dinfo.block_size,
+	rc = cap_spec_to_blocks(&pspec->capacity, cv_nom, dev->dinfo.block_size,
 	    &nom_blocks);
 	if (rc != EOK)
 		return rc;
 
-	rc = fdisk_cap_to_blocks(&pspec->capacity, fcv_min, dev->dinfo.block_size,
+	rc = cap_spec_to_blocks(&pspec->capacity, cv_min, dev->dinfo.block_size,
 	    &min_blocks);
 	if (rc != EOK)
 		return rc;
 
-	rc = fdisk_cap_to_blocks(&pspec->capacity, fcv_max, dev->dinfo.block_size,
+	rc = cap_spec_to_blocks(&pspec->capacity, cv_max, dev->dinfo.block_size,
 	    &max_blocks);
 	if (rc != EOK)
 		return rc;

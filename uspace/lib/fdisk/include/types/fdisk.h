@@ -37,34 +37,12 @@
 #define LIBFDISK_TYPES_H_
 
 #include <adt/list.h>
+#include <cap.h>
 #include <loc.h>
 #include <stdint.h>
 #include <types/label.h>
 #include <types/vol.h>
 #include <vbd.h>
-
-/** Capacity unit */
-typedef enum {
-	cu_byte = 0,
-	cu_kbyte,
-	cu_mbyte,
-	cu_gbyte,
-	cu_tbyte,
-	cu_pbyte,
-	cu_ebyte,
-	cu_zbyte,
-	cu_ybyte
-} fdisk_cunit_t;
-
-/** Which of values within the precision of the capacity */
-typedef enum {
-	/** The nominal (middling) value */
-	fcv_nom,
-	/** The minimum value */
-	fcv_min,
-	/** The maximum value */
-	fcv_max
-} fdisk_cvsel_t;
 
 typedef enum {
 	/** Primary partition space */
@@ -84,27 +62,6 @@ typedef enum {
 } fdisk_dev_flags_t;
 
 #define CU_LIMIT (cu_ybyte + 1)
-
-/** Partition capacity.
- *
- * Partition capacity represents both value and precision.
- * It is a decimal floating point value combined with a decimal
- * capacity unit. There is an integer mantisa @c m which in combination
- * with the number of decimal positions @c dp gives a decimal floating-point
- * number. E.g. for m = 1025 and dp = 2 the number is 10.25. If the unit
- * cunit = cu_kbyte, the capacity is 10.25 kByte, i.e. 10 250 bytes.
- *
- * Note that 1.000 kByte is equivalent to 1000 Byte, but 1 kByte is less
- * precise.
- */
-typedef struct {
-	/** Mantisa */
-	uint64_t m;
-	/** Decimal positions */
-	unsigned dp;
-	/** Capacity unit */
-	fdisk_cunit_t cunit;
-} fdisk_cap_t;
 
 /** List of devices available for managing by fdisk */
 typedef struct {
@@ -168,7 +125,7 @@ typedef struct fdisk_part {
 	/** Link to fdisk_dev_t.log_ba */
 	link_t llog_ba;
 	/** Capacity */
-	fdisk_cap_t capacity;
+	cap_spec_t capacity;
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** Partition contents */
@@ -192,7 +149,7 @@ typedef struct fdisk_part {
 /** Specification of new partition */
 typedef struct {
 	/** Desired capacity */
-	fdisk_cap_t capacity;
+	cap_spec_t capacity;
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** File system type */
@@ -204,7 +161,7 @@ typedef struct {
 /** Partition info */
 typedef struct {
 	/** Capacity */
-	fdisk_cap_t capacity;
+	cap_spec_t capacity;
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** Partition contents */

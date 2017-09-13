@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <cap.h>
 #include <errno.h>
 #include <nchoice.h>
 #include <stdbool.h>
@@ -150,7 +151,7 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 	fdisk_dev_info_t *info;
 	nchoice_t *choice = NULL;
 	char *svcname = NULL;
-	fdisk_cap_t cap;
+	cap_spec_t cap;
 	fdisk_dev_info_t *sdev;
 	char *scap = NULL;
 	char *dtext = NULL;
@@ -199,9 +200,9 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 			continue;
 		}
 
-		fdisk_cap_simplify(&cap);
+		cap_simplify(&cap);
 
-		rc = fdisk_cap_format(&cap, &scap);
+		rc = cap_format(&cap, &scap);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -444,8 +445,8 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 {
 	int rc;
 	fdisk_part_spec_t pspec;
-	fdisk_cap_t cap;
-	fdisk_cap_t mcap;
+	cap_spec_t cap;
+	cap_spec_t mcap;
 	vol_label_supp_t vlsupp;
 	vol_fstype_t fstype = 0;
 	tinput_t *tinput = NULL;
@@ -465,9 +466,9 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		goto error;
 	}
 
-	fdisk_cap_simplify(&mcap);
+	cap_simplify(&mcap);
 
-	rc = fdisk_cap_format(&mcap, &smcap);
+	rc = cap_format(&mcap, &smcap);
 	if (rc != EOK) {
 		rc = ENOMEM;
 		goto error;
@@ -489,7 +490,7 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		if (rc != EOK)
 			goto error;
 
-		rc = fdisk_cap_parse(scap, &cap);
+		rc = cap_parse(scap, &cap);
 		if (rc == EOK)
 			break;
 	}
@@ -585,9 +586,9 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&pinfo.capacity);
+		cap_simplify(&pinfo.capacity);
 
-		rc = fdisk_cap_format(&pinfo.capacity, &scap);
+		rc = cap_format(&pinfo.capacity, &scap);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
@@ -702,8 +703,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	fdisk_label_info_t linfo;
 	fdisk_part_t *part;
 	fdisk_part_info_t pinfo;
-	fdisk_cap_t cap;
-	fdisk_cap_t mcap;
+	cap_spec_t cap;
+	cap_spec_t mcap;
 	fdisk_dev_flags_t dflags;
 	char *sltype = NULL;
 	char *sdcap = NULL;
@@ -737,9 +738,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		goto error;
 	}
 
-	fdisk_cap_simplify(&cap);
+	cap_simplify(&cap);
 
-	rc = fdisk_cap_format(&cap, &sdcap);
+	rc = cap_format(&cap, &sdcap);
 	if (rc != EOK) {
 		printf("Out of memory.\n");
 		goto error;
@@ -791,9 +792,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&pinfo.capacity);
+		cap_simplify(&pinfo.capacity);
 
-		rc = fdisk_cap_format(&pinfo.capacity, &scap);
+		rc = cap_format(&pinfo.capacity, &scap);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
@@ -848,9 +849,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&mcap);
+		cap_simplify(&mcap);
 
-		rc = fdisk_cap_format(&mcap, &smcap);
+		rc = cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
@@ -870,9 +871,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&mcap);
+		cap_simplify(&mcap);
 
-		rc = fdisk_cap_format(&mcap, &smcap);
+		rc = cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
@@ -895,9 +896,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&mcap);
+		cap_simplify(&mcap);
 
-		rc = fdisk_cap_format(&mcap, &smcap);
+		rc = cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
@@ -913,9 +914,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&mcap);
+		cap_simplify(&mcap);
 
-		rc = fdisk_cap_format(&mcap, &smcap);
+		rc = cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;

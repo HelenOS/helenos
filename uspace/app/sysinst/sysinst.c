@@ -37,6 +37,7 @@
 
 #include <block.h>
 #include <byteorder.h>
+#include <cap.h>
 #include <errno.h>
 #include <fdisk.h>
 #include <loc.h>
@@ -88,7 +89,7 @@ static int sysinst_label_dev(const char *dev, char **pdev)
 	fdisk_dev_t *fdev;
 	fdisk_part_t *part;
 	fdisk_part_spec_t pspec;
-	fdisk_cap_t cap;
+	cap_spec_t cap;
 	service_id_t sid;
 	int rc;
 
