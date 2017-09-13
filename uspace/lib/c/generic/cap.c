@@ -80,7 +80,7 @@ void cap_from_blocks(uint64_t nblocks, size_t block_size, cap_spec_t *cap)
  * the nominal (middle) value, @c cv_min gives the minimum value
  * and @c cv_max gives the maximum value.
  */
-int cap_spec_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
+int cap_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
     uint64_t *rblocks)
 {
 	int exp;

@@ -93,7 +93,7 @@ extern int cap_format(cap_spec_t *, char **);
 extern int cap_parse(const char *, cap_spec_t *);
 extern void cap_simplify(cap_spec_t *);
 extern void cap_from_blocks(uint64_t, size_t, cap_spec_t *);
-extern int cap_spec_to_blocks(cap_spec_t *, cap_vsel_t, size_t, uint64_t *);
+extern int cap_to_blocks(cap_spec_t *, cap_vsel_t, size_t, uint64_t *);
 
 #endif
 

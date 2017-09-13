@@ -995,17 +995,17 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	int index;
 	int rc;
 
-	rc = cap_spec_to_blocks(&pspec->capacity, cv_nom, dev->dinfo.block_size,
+	rc = cap_to_blocks(&pspec->capacity, cv_nom, dev->dinfo.block_size,
 	    &nom_blocks);
 	if (rc != EOK)
 		return rc;
 
-	rc = cap_spec_to_blocks(&pspec->capacity, cv_min, dev->dinfo.block_size,
+	rc = cap_to_blocks(&pspec->capacity, cv_min, dev->dinfo.block_size,
 	    &min_blocks);
 	if (rc != EOK)
 		return rc;
 
-	rc = cap_spec_to_blocks(&pspec->capacity, cv_max, dev->dinfo.block_size,
+	rc = cap_to_blocks(&pspec->capacity, cv_max, dev->dinfo.block_size,
 	    &max_blocks);
 	if (rc != EOK)
 		return rc;
