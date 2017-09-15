@@ -179,7 +179,6 @@ int portrng_find_port(portrng_t *pr, uint16_t pnum, void **rarg)
  * @param pr   Port range
  * @param pnum Port number
  */
-#include <stdio.h>
 void portrng_free_port(portrng_t *pr, uint16_t pnum)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port(%u)", pnum);
@@ -213,4 +212,3 @@ bool portrng_empty(portrng_t *pr)
 /**
  * @}
  */
-
