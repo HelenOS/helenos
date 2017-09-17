@@ -63,5 +63,6 @@ PCUT_IMPORT(rqueue);
 PCUT_IMPORT(segment);
 PCUT_IMPORT(seq_no);
 PCUT_IMPORT(tqueue);
+PCUT_IMPORT(ucall);
 
 PCUT_MAIN()

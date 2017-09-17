@@ -56,6 +56,9 @@ PCUT_TEST_BEFORE
 
 	tcp_rqueue_init(&test_rqueue_cb);
 	tcp_rqueue_fibril_start();
+
+	/* Enable internal loopback */
+	tcp_conn_lb = tcp_lb_segment;
 }
 
 PCUT_TEST_AFTER
@@ -117,8 +120,6 @@ PCUT_TEST(connect_rst)
 	inet_ep2_t epp;
 	int rc;
 
-	tcp_conn_lb = tcp_lb_segment;
-
 	inet_ep2_init(&epp);
 	inet_addr(&epp.local.addr, 127, 0, 0, 1);
 	inet_addr(&epp.remote.addr, 127, 0, 0, 1);
@@ -143,6 +144,104 @@ PCUT_TEST(connect_rst)
 
 	tcp_conn_unlock(conn);
 	tcp_conn_delete(conn);
+}
+
+/** Test establishing a connection */
+PCUT_TEST(conn_establish)
+{
+	tcp_conn_t *cconn, *sconn;
+	inet_ep2_t cepp, sepp;
+	int rc;
+
+	/* Client EPP */
+	inet_ep2_init(&cepp);
+	inet_addr(&cepp.local.addr, 127, 0, 0, 1);
+	inet_addr(&cepp.remote.addr, 127, 0, 0, 1);
+	cepp.remote.port = inet_port_user_lo;
+
+	/* Server EPP */
+	inet_ep2_init(&sepp);
+	inet_addr(&sepp.local.addr, 127, 0, 0, 1);
+	sepp.local.port = inet_port_user_lo;
+
+	/* Client side of the connection */
+	cconn = tcp_conn_new(&cepp);
+	PCUT_ASSERT_NOT_NULL(cconn);
+
+	rc = tcp_conn_add(cconn);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(st_listen, cconn->cstate);
+	PCUT_ASSERT_FALSE(tcp_conn_got_syn(cconn));
+
+	/* Server side of the connection */
+	sconn = tcp_conn_new(&sepp);
+	PCUT_ASSERT_NOT_NULL(sconn);
+
+	rc = tcp_conn_add(sconn);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(st_listen, sconn->cstate);
+	PCUT_ASSERT_FALSE(tcp_conn_got_syn(sconn));
+
+	/* Start establishing the connection */
+
+	tcp_conn_lock(cconn);
+	tcp_conn_sync(cconn);
+	PCUT_ASSERT_INT_EQUALS(st_syn_sent, cconn->cstate);
+	PCUT_ASSERT_FALSE(tcp_conn_got_syn(cconn));
+
+	/* Wait for client-side state to transition */
+	while (cconn->cstate == st_syn_sent)
+                fibril_condvar_wait(&cconn->cstate_cv, &cconn->lock);
+
+	PCUT_ASSERT_INT_EQUALS(st_established, cconn->cstate);
+	PCUT_ASSERT_TRUE(tcp_conn_got_syn(cconn));
+	tcp_conn_unlock(cconn);
+
+	/* Wait for server-side state to transition */
+	tcp_conn_lock(sconn);
+	while (sconn->cstate == st_listen || sconn->cstate == st_syn_received)
+                fibril_condvar_wait(&sconn->cstate_cv, &sconn->lock);
+
+	PCUT_ASSERT_INT_EQUALS(st_established, sconn->cstate);
+	PCUT_ASSERT_TRUE(tcp_conn_got_syn(sconn));
+
+	/* Verify counters */
+	PCUT_ASSERT_EQUALS(cconn->iss + 1, cconn->snd_nxt);
+	PCUT_ASSERT_EQUALS(cconn->iss + 1, cconn->snd_una);
+	PCUT_ASSERT_EQUALS(sconn->iss + 1, sconn->snd_nxt);
+	PCUT_ASSERT_EQUALS(sconn->iss + 1, sconn->snd_una);
+
+	tcp_conn_unlock(sconn);
+
+	tcp_conn_lock(cconn);
+	tcp_conn_reset(cconn);
+	tcp_conn_unlock(cconn);
+	tcp_conn_delete(cconn);
+
+	tcp_conn_lock(sconn);
+	tcp_conn_reset(sconn);
+	tcp_conn_unlock(sconn);
+	tcp_conn_delete(sconn);
+}
+
+PCUT_TEST(ep2_flipped)
+{
+	inet_ep2_t a, fa;
+
+	inet_addr(&a.local.addr, 1, 2, 3, 4);
+	a.local.port = 1234;
+	inet_addr(&a.remote.addr, 5, 6, 7, 8);
+	a.remote.port = 5678;
+
+	tcp_ep2_flipped(&a, &fa);
+
+	PCUT_ASSERT_INT_EQUALS(a.local.port, fa.remote.port);
+	PCUT_ASSERT_INT_EQUALS(a.remote.port, fa.local.port);
+
+	PCUT_ASSERT_TRUE(inet_addr_compare(&a.local.addr, &fa.remote.addr));
+	PCUT_ASSERT_TRUE(inet_addr_compare(&a.remote.addr, &fa.local.addr));
 }
 
 PCUT_EXPORT(conn);

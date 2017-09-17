@@ -99,10 +99,10 @@ int tcp_conns_init(void)
 /** Finalize connections. */
 void tcp_conns_fini(void)
 {
+	assert(list_empty(&conn_list));
+
 	amap_destroy(amap);
 	amap = NULL;
-
-	assert(list_empty(&conn_list));
 }
 
 /** Create new connection structure.
@@ -457,6 +457,10 @@ void tcp_conn_reset(tcp_conn_t *conn)
 	assert(fibril_mutex_is_locked(&conn->lock));
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
+
+	if (conn->cstate == st_closed)
+		return;
+
 	conn->reset = true;
 	tcp_conn_state_set(conn, st_closed);
 
@@ -909,7 +913,12 @@ static cproc_t tcp_conn_seg_proc_ack_cls(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
 		return cp_done;
 
-	/* TODO */
+	if (conn->fin_is_acked) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN acked -> Time-Wait",
+		    conn->name);
+		tcp_conn_state_set(conn, st_time_wait);
+	}
+
 	return cp_continue;
 }
 
@@ -1106,11 +1115,11 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (tcp_segment_text_size(seg) == 0 && (seg->ctrl & CTL_FIN) != 0) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - FIN found in segment.");
 
-		/* Send ACK */
-		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
-
 		conn->rcv_nxt++;
 		conn->rcv_wnd--;
+
+		/* Send ACK */
+		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 
 		/* Change connection state */
 		switch (conn->cstate) {

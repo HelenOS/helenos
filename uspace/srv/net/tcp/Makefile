@@ -63,6 +63,7 @@ TEST_SOURCES = \
 	test/rqueue.c \
 	test/segment.c \
 	test/seq_no.c \
-	test/tqueue.c
+	test/tqueue.c \
+	test/ucall.c
 
 include $(USPACE_PREFIX)/Makefile.common
