@@ -280,7 +280,7 @@ tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 void tcp_uc_abort(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_abort()");
-\
+
 	tcp_conn_lock(conn);
 	tcp_conn_reset(conn);
 	tcp_conn_unlock(conn);
