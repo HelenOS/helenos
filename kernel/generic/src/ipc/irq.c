@@ -313,9 +313,6 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 		return ENOMEM;
 	}
 	
-	cap_t *cap = cap_get_current(handle, CAP_TYPE_ALLOCATED);
-	assert(cap);
-	
 	irq_initialize(irq);
 	irq->inr = inr;
 	irq->claim = ipc_irq_top_half_claim;
@@ -326,22 +323,18 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
 	
-	cap->kobject = (void *) irq;
-	
 	/*
-	 * Insert the IRQ structure into the uspace IRQ hash table and retype
-	 * the capability. By retyping the capability inside the critical
-	 * section, we make sure another thread cannot attempt to unregister the
-	 * IRQ before it is inserted into the hash table.
+	 * Insert the IRQ structure into the uspace IRQ hash table.
 	 */
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
 	
-	cap->type = CAP_TYPE_IRQ;
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
 	
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
+
+	cap_publish(TASK, handle, CAP_TYPE_IRQ, irq);
 	
 	return handle;
 }
@@ -356,15 +349,9 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
  */
 int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 {
-	irq_spinlock_lock(&TASK->lock, true);
-	cap_t *cap = cap_get_current(handle, CAP_TYPE_IRQ);
-	if (!cap) {
-		irq_spinlock_unlock(&TASK->lock, true);
+	cap_t *cap = cap_unpublish(TASK, handle, CAP_TYPE_IRQ);
+	if (!cap)
 		return ENOENT;
-	}
-	/* Make sure only one thread can win the race to unsubscribe. */
-	cap->type = CAP_TYPE_ALLOCATED;
-	irq_spinlock_unlock(&TASK->lock, true);
 	
 	irq_t *irq = (irq_t *) cap->kobject;
 	

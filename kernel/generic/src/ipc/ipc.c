@@ -709,7 +709,7 @@ restart:
 		 * We are done, there are no more active calls.
 		 * Nota bene: there may still be answers waiting for pick up.
 		 */
-		spinlock_unlock(&TASK->active_calls_lock);	
+		spinlock_unlock(&TASK->active_calls_lock);
 		return;	
 	}
 	
@@ -722,7 +722,7 @@ restart:
 		 *  _ipc_answer_free_call() win the race to dequeue the first
 		 * call on the list.
 		 */
-		spinlock_unlock(&TASK->active_calls_lock);	
+		spinlock_unlock(&TASK->active_calls_lock);
 		goto restart;
 	}
 
@@ -731,66 +731,72 @@ restart:
 	goto restart;
 }
 
+static bool phone_cap_wait_cb(cap_t *cap, void *arg)
+{
+	phone_t *phone = (phone_t *) cap->kobject;
+	bool *restart = (bool *) arg;
+
+	mutex_lock(&phone->lock);
+	if ((phone->state == IPC_PHONE_HUNGUP) &&
+	    (atomic_get(&phone->active_calls) == 0)) {
+		phone->state = IPC_PHONE_FREE;
+		phone->callee = NULL;
+	}
+
+	/*
+	 * We might have had some IPC_PHONE_CONNECTING phones at the beginning
+	 * of ipc_cleanup(). Depending on whether these were forgotten or
+	 * answered, they will eventually enter the IPC_PHONE_FREE or
+	 * IPC_PHONE_CONNECTED states, respectively.  In the latter case, the
+	 * other side may slam the open phones at any time, in which case we
+	 * will get an IPC_PHONE_SLAMMED phone.
+	 */
+	if ((phone->state == IPC_PHONE_CONNECTED) ||
+	    (phone->state == IPC_PHONE_SLAMMED)) {
+		mutex_unlock(&phone->lock);
+		ipc_phone_hangup(phone);
+		/*
+		 * Now there may be one extra active call, which needs to be
+		 * forgotten.
+		 */
+		ipc_forget_all_active_calls();
+		*restart = true;
+		return false;
+	}
+
+	/*
+	 * If the hangup succeeded, it has sent a HANGUP message, the IPC is now
+	 * in HUNGUP state, we wait for the reply to come
+	 */
+	if (phone->state != IPC_PHONE_FREE) {
+		mutex_unlock(&phone->lock);
+		return false;
+	}
+
+	mutex_unlock(&phone->lock);
+	return true;
+}
+
 /** Wait for all answers to asynchronous calls to arrive. */
 static void ipc_wait_for_all_answered_calls(void)
 {
 	call_t *call;
-	bool all_clean;
+	bool restart;
 
 restart:
 	/*
 	 * Go through all phones, until they are all free.
 	 * Locking is needed as there may be connection handshakes in progress.
 	 */
-	all_clean = true;
-	for_each_cap_current(cap, CAP_TYPE_PHONE) {
-		phone_t *phone = (phone_t *) cap->kobject;
-
-		mutex_lock(&phone->lock);
-		if ((phone->state == IPC_PHONE_HUNGUP) &&
-		    (atomic_get(&phone->active_calls) == 0)) {
-			phone->state = IPC_PHONE_FREE;
-			phone->callee = NULL;
-		}
-
-		/*
-		 * We might have had some IPC_PHONE_CONNECTING phones at the
-		 * beginning of ipc_cleanup(). Depending on whether these were
-		 * forgotten or answered, they will eventually enter the
-		 * IPC_PHONE_FREE or IPC_PHONE_CONNECTED states, respectively.
-		 * In the latter case, the other side may slam the open phones
-		 * at any time, in which case we will get an IPC_PHONE_SLAMMED
-		 * phone.
-		 */
-		if ((phone->state == IPC_PHONE_CONNECTED) ||
-		    (phone->state == IPC_PHONE_SLAMMED)) {
-			mutex_unlock(&phone->lock);
-			ipc_phone_hangup(phone);
-			/*
-			 * Now there may be one extra active call, which needs
-			 * to be forgotten.
-			 */
-			ipc_forget_all_active_calls();
-			goto restart;
-		}
-
-		/*
-		 * If the hangup succeeded, it has sent a HANGUP message, the
-		 * IPC is now in HUNGUP state, we wait for the reply to come
-		 */
-		if (phone->state != IPC_PHONE_FREE) {
-			mutex_unlock(&phone->lock);
-			all_clean = false;
-			break;
-		}
-
-		mutex_unlock(&phone->lock);
-	}
-		
-	/* Got into cleanup */
-	if (all_clean)
+	restart = false;
+	if (caps_apply_to_all(TASK, CAP_TYPE_PHONE, phone_cap_wait_cb,
+	    &restart)) {
+		/* Got into cleanup */
 		return;
-		
+	}
+	if (restart)
+		goto restart;
+	
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
 	    SYNCH_FLAGS_NONE);
 	assert(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
@@ -799,6 +805,19 @@ restart:
 
 	ipc_call_free(call);
 	goto restart;
+}
+
+static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
+{
+	phone_t *phone = (phone_t *) cap->kobject;
+	ipc_phone_hangup(phone);
+	return true;
+}
+
+static bool irq_cap_cleanup_cb(cap_t *cap, void *arg)
+{
+	ipc_irq_unsubscribe(&TASK->answerbox, cap->handle);
+	return true;
 }
 
 /** Clean up all IPC communication of the current task.
@@ -820,18 +839,13 @@ void ipc_cleanup(void)
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	for_each_cap_current(cap, CAP_TYPE_PHONE) {
-		phone_t *phone = (phone_t *) cap->kobject;
-		ipc_phone_hangup(phone);
-	}
+	caps_apply_to_all(TASK, CAP_TYPE_PHONE, phone_cap_cleanup_cb, NULL);
 	
 	/* Unsubscribe from any event notifications. */
 	event_cleanup_answerbox(&TASK->answerbox);
 	
 	/* Disconnect all connected IRQs */
-	for_each_cap_current(cap, CAP_TYPE_IRQ) {
-		ipc_irq_unsubscribe(&TASK->answerbox, cap->handle);
-	}
+	caps_apply_to_all(TASK, CAP_TYPE_IRQ, irq_cap_cleanup_cb, NULL);
 	
 	/* Disconnect all phones connected to our regular answerbox */
 	ipc_answerbox_slam_phones(&TASK->answerbox, false);
@@ -895,6 +909,41 @@ static void ipc_print_call_list(list_t *list)
 	}
 }
 
+static bool print_task_phone_cb(cap_t *cap, void *arg)
+{
+	phone_t *phone = (phone_t *) cap->kobject;
+
+	mutex_lock(&phone->lock);
+	if (phone->state != IPC_PHONE_FREE) {
+		printf("%-11d %7" PRIun " ", cap->handle,
+		    atomic_get(&phone->active_calls));
+		
+		switch (phone->state) {
+		case IPC_PHONE_CONNECTING:
+			printf("connecting");
+			break;
+		case IPC_PHONE_CONNECTED:
+			printf("connected to %" PRIu64 " (%s)",
+			    phone->callee->task->taskid,
+			    phone->callee->task->name);
+			break;
+		case IPC_PHONE_SLAMMED:
+			printf("slammed by %p", phone->callee);
+			break;
+		case IPC_PHONE_HUNGUP:
+			printf("hung up by %p", phone->callee);
+			break;
+		default:
+			break;
+		}
+		
+		printf("\n");
+	}
+	mutex_unlock(&phone->lock);
+
+	return true;
+}
+
 /** List answerbox contents.
  *
  * @param taskid Task ID.
@@ -904,54 +953,18 @@ void ipc_print_task(task_id_t taskid)
 {
 	irq_spinlock_lock(&tasks_lock, true);
 	task_t *task = task_find_by_id(taskid);
-	
 	if (!task) {
 		irq_spinlock_unlock(&tasks_lock, true);
 		return;
 	}
-	
-	/* Hand-over-hand locking */
-	irq_spinlock_exchange(&tasks_lock, &task->lock);
+	task_hold(task);
+	irq_spinlock_unlock(&tasks_lock, true);
 	
 	printf("[phone cap] [calls] [state\n");
 	
-	for_each_cap(task, cap, CAP_TYPE_PHONE) {
-		phone_t *phone = (phone_t *) cap->kobject;
+	caps_apply_to_all(task, CAP_TYPE_PHONE, print_task_phone_cb, NULL);
 	
-		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
-			printf("%-11d (mutex busy)\n", cap->handle);
-			continue;
-		}
-		
-		if (phone->state != IPC_PHONE_FREE) {
-			printf("%-11d %7" PRIun " ", cap->handle,
-			    atomic_get(&phone->active_calls));
-			
-			switch (phone->state) {
-			case IPC_PHONE_CONNECTING:
-				printf("connecting");
-				break;
-			case IPC_PHONE_CONNECTED:
-				printf("connected to %" PRIu64 " (%s)",
-				    phone->callee->task->taskid,
-				    phone->callee->task->name);
-				break;
-			case IPC_PHONE_SLAMMED:
-				printf("slammed by %p", phone->callee);
-				break;
-			case IPC_PHONE_HUNGUP:
-				printf("hung up by %p", phone->callee);
-				break;
-			default:
-				break;
-			}
-			
-			printf("\n");
-		}
-		
-		mutex_unlock(&phone->lock);
-	}
-	
+	irq_spinlock_lock(&task->lock, true);
 	irq_spinlock_lock(&task->answerbox.lock, false);
 	
 #ifdef __32_BITS__
@@ -973,6 +986,8 @@ void ipc_print_task(task_id_t taskid)
 	
 	irq_spinlock_unlock(&task->answerbox.lock, false);
 	irq_spinlock_unlock(&task->lock, true);
+
+	task_release(task);
 }
 
 /** @}

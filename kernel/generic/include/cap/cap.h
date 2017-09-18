@@ -37,22 +37,17 @@
 
 #include <typedefs.h>
 #include <ipc/ipc.h>
+#include <adt/list.h>
+#include <synch/mutex.h>
 
 #define MAX_CAPS  64
-
-#define for_each_cap(task, cap, type) \
-	for (int i = 0, l = 1; i < MAX_CAPS && l; i++) \
-		for (cap_t *(cap) = cap_get((task), i, (type)); \
-		    (cap) && !(l = 0); (cap) = NULL, l = 1)
-
-#define for_each_cap_current(cap, type) \
-	for_each_cap(TASK, (cap), (type))
 
 typedef enum {
 	CAP_TYPE_INVALID,
 	CAP_TYPE_ALLOCATED,
 	CAP_TYPE_PHONE,
-	CAP_TYPE_IRQ
+	CAP_TYPE_IRQ,
+	CAP_TYPE_MAX
 } cap_type_t;
 
 typedef struct cap {
@@ -61,20 +56,36 @@ typedef struct cap {
 
 	bool (* can_reclaim)(struct cap *);
 
+	/* Link to the task's capabilities of the same type. */
+	link_t link;
+
 	/* The underlying kernel object. */
 	void *kobject;
 } cap_t;
 
+typedef struct cap_info {
+	mutex_t lock;
+
+	list_t type_list[CAP_TYPE_MAX];
+
+	cap_t *caps;
+} cap_info_t;
+
 struct task;
 
-void caps_task_alloc(struct task *);
-void caps_task_free(struct task *);
-void caps_task_init(struct task *);
+extern void caps_task_alloc(struct task *);
+extern void caps_task_free(struct task *);
+extern void caps_task_init(struct task *);
+extern bool caps_apply_to_all(struct task *, cap_type_t,
+    bool (*)(cap_t *, void *), void *);
+extern void caps_lock(struct task *);
+extern void caps_unlock(struct task *);
 
 extern void cap_initialize(cap_t *, int);
 extern cap_t *cap_get(struct task *, int, cap_type_t);
-extern cap_t *cap_get_current(int, cap_type_t);
 extern int cap_alloc(struct task *);
+extern void cap_publish(struct task *, int, cap_type_t, void *);
+extern cap_t *cap_unpublish(struct task *, int, cap_type_t);
 extern void cap_free(struct task *, int);
 
 #endif

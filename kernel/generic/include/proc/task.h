@@ -59,6 +59,7 @@
 #include <mm/as.h>
 #include <abi/sysinfo.h>
 #include <arch.h>
+#include <cap/cap.h>
 
 #define TASK                 THE->task
 
@@ -97,7 +98,7 @@ typedef struct task {
 	perm_t perms;
 
 	/** Capabilities */
-	struct cap *caps;
+	cap_info_t *cap_info;
 	
 	/* IPC stuff */
 

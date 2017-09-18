@@ -174,11 +174,16 @@ call_t *get_call(sysarg_t callid)
  */
 phone_t *phone_get(task_t *task, int handle)
 {
+	phone_t *phone;
+
+	caps_lock(task);
 	cap_t *cap = cap_get(task, handle, CAP_TYPE_PHONE);
+	phone = (phone_t *) cap->kobject;
+	caps_unlock(task);
 	if (!cap)
 		return NULL;
 	
-	return (phone_t *) cap->kobject;
+	return phone;
 }
 
 phone_t *phone_get_current(int handle)
@@ -216,12 +221,13 @@ int phone_alloc(task_t *task)
 		ipc_phone_init(phone, task);
 		phone->state = IPC_PHONE_CONNECTING;
 		
-		irq_spinlock_lock(&task->lock, true);
+		// FIXME: phase this out eventually
+		mutex_lock(&task->cap_info->lock);
 		cap_t *cap = cap_get(task, handle, CAP_TYPE_ALLOCATED);
-		cap->type = CAP_TYPE_PHONE;
-		cap->kobject = (void *) phone;
 		cap->can_reclaim = phone_can_reclaim;
-		irq_spinlock_unlock(&task->lock, true);
+		mutex_unlock(&task->cap_info->lock);
+
+		cap_publish(task, handle, CAP_TYPE_PHONE, phone);
 	}
 	
 	return handle;
@@ -236,11 +242,8 @@ int phone_alloc(task_t *task)
  */
 void phone_dealloc(int handle)
 {
-	irq_spinlock_lock(&TASK->lock, true);
-	cap_t *cap = cap_get_current(handle, CAP_TYPE_PHONE);
+	cap_t *cap = cap_unpublish(TASK, handle, CAP_TYPE_PHONE);
 	assert(cap);
-	cap->type = CAP_TYPE_ALLOCATED;
-	irq_spinlock_unlock(&TASK->lock, true);
 	
 	phone_t *phone = (phone_t *) cap->kobject;
 	

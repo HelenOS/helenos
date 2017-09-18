@@ -615,21 +615,12 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #ifdef __64_BITS__
 	if (*additional)
 		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c "
-		    "%9" PRIua, task->taskid, ucycles, usuffix, kcycles,
+		    "%9" PRIua "\n", task->taskid, ucycles, usuffix, kcycles,
 		    ksuffix, atomic_get(&task->refcount));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %18p %18p\n",
 		    task->taskid, task->name, task->container, task, task->as);
 #endif
-	
-	if (*additional) {
-		for_each_cap(task, cap, CAP_TYPE_PHONE) {
-			phone_t *phone = (phone_t *) cap->kobject;
-			if (phone->callee)
-				printf(" %d:%p", cap->handle, phone->callee);
-		}
-		printf("\n");
-	}
 	
 	irq_spinlock_unlock(&task->lock, false);
 	return true;
