@@ -70,7 +70,7 @@ void caps_task_free(task_t *task)
 	free(task->cap_info);
 }
 
-bool caps_apply_to_all(task_t *task, cap_type_t type,
+bool caps_apply_to_type(task_t *task, cap_type_t type,
     bool (*cb)(cap_t *, void *), void *arg)
 {
 	bool done = true;

@@ -789,7 +789,7 @@ restart:
 	 * Locking is needed as there may be connection handshakes in progress.
 	 */
 	restart = false;
-	if (caps_apply_to_all(TASK, CAP_TYPE_PHONE, phone_cap_wait_cb,
+	if (caps_apply_to_type(TASK, CAP_TYPE_PHONE, phone_cap_wait_cb,
 	    &restart)) {
 		/* Got into cleanup */
 		return;
@@ -839,13 +839,13 @@ void ipc_cleanup(void)
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	caps_apply_to_all(TASK, CAP_TYPE_PHONE, phone_cap_cleanup_cb, NULL);
+	caps_apply_to_type(TASK, CAP_TYPE_PHONE, phone_cap_cleanup_cb, NULL);
 	
 	/* Unsubscribe from any event notifications. */
 	event_cleanup_answerbox(&TASK->answerbox);
 	
 	/* Disconnect all connected IRQs */
-	caps_apply_to_all(TASK, CAP_TYPE_IRQ, irq_cap_cleanup_cb, NULL);
+	caps_apply_to_type(TASK, CAP_TYPE_IRQ, irq_cap_cleanup_cb, NULL);
 	
 	/* Disconnect all phones connected to our regular answerbox */
 	ipc_answerbox_slam_phones(&TASK->answerbox, false);
@@ -962,7 +962,7 @@ void ipc_print_task(task_id_t taskid)
 	
 	printf("[phone cap] [calls] [state\n");
 	
-	caps_apply_to_all(task, CAP_TYPE_PHONE, print_task_phone_cb, NULL);
+	caps_apply_to_type(task, CAP_TYPE_PHONE, print_task_phone_cb, NULL);
 	
 	irq_spinlock_lock(&task->lock, true);
 	irq_spinlock_lock(&task->answerbox.lock, false);

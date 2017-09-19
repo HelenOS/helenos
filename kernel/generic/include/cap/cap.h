@@ -76,7 +76,7 @@ struct task;
 extern void caps_task_alloc(struct task *);
 extern void caps_task_free(struct task *);
 extern void caps_task_init(struct task *);
-extern bool caps_apply_to_all(struct task *, cap_type_t,
+extern bool caps_apply_to_type(struct task *, cap_type_t,
     bool (*)(cap_t *, void *), void *);
 extern void caps_lock(struct task *);
 extern void caps_unlock(struct task *);
