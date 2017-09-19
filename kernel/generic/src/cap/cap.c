@@ -116,8 +116,10 @@ int cap_alloc(task_t *task)
 	for (handle = 0; handle < MAX_CAPS; handle++) {
 		cap_t *cap = &task->cap_info->caps[handle];
 		if (cap->type > CAP_TYPE_ALLOCATED) {
-			if (cap->can_reclaim && cap->can_reclaim(cap))
+			if (cap->can_reclaim && cap->can_reclaim(cap)) {
+				list_remove(&cap->link);
 				cap_initialize(cap, handle);
+			}
 		}
 		if (cap->type == CAP_TYPE_INVALID) {
 			cap->type = CAP_TYPE_ALLOCATED;
