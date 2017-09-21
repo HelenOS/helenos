@@ -133,7 +133,12 @@ DIRS = \
 	srv/hid/input \
 	srv/hid/output \
 	srv/hid/remcons \
+	srv/hw/bus/cuda_adb \
 	srv/hw/char/s3c24xx_uart \
+	srv/hw/irc/apic \
+	srv/hw/irc/i8259 \
+	srv/hw/irc/icp-ic \
+	srv/hw/irc/obio \
 	srv/hid/rfb \
 	drv/audio/hdaudio \
 	drv/audio/sb16 \
@@ -142,15 +147,8 @@ DIRS = \
 	drv/block/ahci \
 	drv/block/ata_bd \
 	drv/block/ddisk \
-	drv/char/i8042 \
-	drv/char/pl050 \
-	drv/char/ps2mouse \
-	drv/char/atkbd \
-	drv/char/xtkbd \
-	drv/test/test1 \
-	drv/test/test2 \
-	drv/test/test3 \
-	drv/fb/kfb \
+	drv/bus/isa \
+	drv/bus/pci/pciintel \
 	drv/bus/usb/ehci \
 	drv/bus/usb/ohci \
 	drv/bus/usb/uhci \
@@ -160,63 +158,34 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
+	drv/char/i8042 \
+	drv/char/ns8250 \
+	drv/char/pl050 \
+	drv/char/ps2mouse \
+	drv/char/atkbd \
+	drv/char/xtkbd \
+	drv/test/test1 \
+	drv/test/test2 \
+	drv/test/test3 \
+	drv/fb/amdm37x_dispc \
+	drv/fb/kfb \
 	drv/nic/ne2k \
 	drv/nic/e1k \
 	drv/nic/rtl8139 \
 	drv/nic/rtl8169 \
 	drv/nic/ar9271 \
-	drv/platform/icp
+	drv/platform/amdm37x \
+	drv/platform/icp \
+	drv/platform/mac \
+	drv/platform/malta \
+	drv/platform/msim \
+	drv/platform/pc \
+	drv/time/cmos-rtc
 
-## Platform-specific hardware support
-#
-
-ifeq ($(UARCH), $(filter $(UARCH),amd64 ia32 ia64))
-	DIRS += \
-		drv/platform/pc \
-		drv/bus/pci/pciintel \
-		drv/bus/isa \
-		drv/char/ns8250 \
-		drv/time/cmos-rtc \
-		srv/hw/irc/apic \
-		srv/hw/irc/i8259
-endif
-
-ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
-ifeq ($(MACHINE),msim)
-	DIRS += \
-		drv/platform/msim
-else
-	DIRS += \
-		drv/platform/malta \
-		drv/bus/pci/pciintel \
-		drv/bus/isa
-endif
-endif
-
-ifeq ($(UARCH),ppc32)
-	DIRS += \
-		drv/platform/mac \
-		drv/bus/pci/pciintel \
-		srv/hw/bus/cuda_adb
-endif
-
+## sun4u driver won't compile on 32-bit targets
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/irc/obio
-ifeq ($(MACHINE),generic)
-	DIRS += \
-		drv/platform/sun4u \
-		drv/bus/pci/pciintel \
-		drv/bus/isa \
-		drv/char/ns8250
-endif
-endif
-
-ifeq ($(UARCH),arm32)
-	DIRS += \
-		drv/platform/amdm37x \
-		drv/fb/amdm37x_dispc \
-		srv/hw/irc/icp-ic
+		drv/platform/sun4u
 endif
 
 ## Dynamic linking tests

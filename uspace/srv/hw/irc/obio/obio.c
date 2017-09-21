@@ -47,6 +47,7 @@
 #include <as.h>
 #include <ddi.h>
 #include <align.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <async.h>
@@ -126,7 +127,7 @@ static bool obio_init(void)
 		return false;
 	}
 	
-	printf("%s: OBIO registers with base at %lx\n", NAME, base_phys);
+	printf("%s: OBIO registers with base at 0x%" PRIun "\n", NAME, base_phys);
 	
 	async_set_fallback_port_handler(obio_connection, NULL);
 	service_register(SERVICE_IRC);

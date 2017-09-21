@@ -64,7 +64,7 @@ static int icpic_enable_irq(sysarg_t irq)
 	if (irq > icpic_max_irq)
 		return EINVAL;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Enable IRQ %d", irq);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Enable IRQ %zu", irq);
 
 	pio_write_32(&icpic_regs->irq_enableset, BIT_V(uint32_t, irq));
 	return EOK;

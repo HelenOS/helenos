@@ -465,7 +465,7 @@ static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll)
 	reg_no = data[0] & 0x03;
 
 	if (size != 3) {
-		printf("unrecognized packet, size=%d\n", size);
+		printf("unrecognized packet, size=%zu\n", size);
 		for (i = 0; i < size; ++i) {
 			printf(" 0x%02x", data[i]);
 		}
@@ -474,7 +474,7 @@ static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll)
 	}
 
 	if (reg_no != 0) {
-		printf("unrecognized packet, size=%d\n", size);
+		printf("unrecognized packet, size=%zu\n", size);
 		for (i = 0; i < size; ++i) {
 			printf(" 0x%02x", data[i]);
 		}
