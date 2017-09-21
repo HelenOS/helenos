@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
+#include <io/table.h>
 #include <pcut/pcut.h>
 
 PCUT_INIT
 
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(str);
-PCUT_IMPORT(table);
+PCUT_TEST_SUITE(table);
 
-PCUT_MAIN()
+PCUT_TEST(smoke) {
+	table_t *table;
+	int rc;
+
+	rc = table_create(&table);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	table_header_row(table);
+	rc = table_printf(table, "A\t" "B\t" "C\t" "D\n");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	rc = table_printf(table, "1\t" "2\t" "3\t" "4\n");
+	rc = table_printf(table, "i\t" "ii\t" "iii\t" "iv\n");
+	table_destroy(table);
+}
+
+PCUT_EXPORT(table);

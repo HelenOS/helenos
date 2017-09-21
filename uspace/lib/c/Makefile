@@ -125,6 +125,7 @@ GENERIC_SOURCES = \
 	generic/io/printf_core.c \
 	generic/io/con_srv.c \
 	generic/io/console.c \
+	generic/io/table.c \
 	generic/io/visualizer.c \
 	generic/io/window.c \
 	generic/iplink.c \
@@ -182,6 +183,7 @@ SOURCES = \
 TEST_SOURCES = \
 	test/fibril/timer.c \
 	test/main.c \
+	test/io/table.c \
 	test/odict.c \
 	test/qsort.c \
 	test/sprintf.c \

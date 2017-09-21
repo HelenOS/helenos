@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <inet/addr.h>
 #include <inet/inetcfg.h>
+#include <io/table.h>
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,11 +48,11 @@
 
 static void print_syntax(void)
 {
-	printf("syntax:\n");
-	printf("\t" NAME " create <addr>/<width> <link-name> <addr-name>\n");
-	printf("\t" NAME " delete <link-name> <addr-name>\n");
-	printf("\t" NAME " add-sr <dest-addr>/<width> <router-addr> <route-name>\n");
-	printf("\t" NAME " del-sr <route-name>\n");
+	printf("Syntax:\n");
+	printf("  %s create <addr>/<width> <link-name> <addr-name>\n", NAME);
+	printf("  %s delete <link-name> <addr-name>\n", NAME);
+	printf("  %s add-sr <dest-addr>/<width> <router-addr> <route-name>\n", NAME);
+	printf("  %s del-sr <route-name>\n", NAME);
 }
 
 static int addr_create_static(int argc, char *argv[])
@@ -241,11 +242,15 @@ static int addr_list(void)
 	sysarg_t *addr_list;
 	inet_addr_info_t ainfo;
 	inet_link_info_t linfo;
+	table_t *table = NULL;
 
 	size_t count;
 	size_t i;
 	int rc;
-	char *astr;
+	char *astr = NULL;
+
+	ainfo.name = NULL;
+	linfo.name = NULL;
 
 	rc = inetcfg_get_addr_list(&addr_list, &count);
 	if (rc != EOK) {
@@ -253,12 +258,19 @@ static int addr_list(void)
 		return rc;
 	}
 
-	printf("Configured addresses:\n");
-	if (count > 0)
-		printf("    [Addr/Width] [Link-Name] [Addr-Name] [Def-MTU]\n");
-	ainfo.name = NULL;
-	linfo.name = NULL;
-	astr = NULL;
+	rc = table_create(&table);
+	if (rc != EOK) {
+		printf("Memory allocation failed.\n");
+		goto out;
+	}
+
+	table_set_margin_left(table, 4);
+
+	printf("Configured addresses:\n\n");
+
+	table_header_row(table);
+	table_printf(table, "Addr/Width\t" "Link-Name\t" "Addr-Name\t"
+	    "Def-MTU\n");
 
 	for (i = 0; i < count; i++) {
 		rc = inetcfg_addr_get(addr_list[i], &ainfo);
@@ -284,8 +296,8 @@ static int addr_list(void)
 			goto out;
 		}
 
-		printf("    %s %s %s %zu\n", astr, linfo.name,
-		    ainfo.name, linfo.def_mtu);
+		table_printf(table, "%s\t" "%s\t" "%s\t" "%zu\n", astr,
+		    linfo.name, ainfo.name, linfo.def_mtu);
 
 		free(ainfo.name);
 		free(linfo.name);
@@ -296,9 +308,19 @@ static int addr_list(void)
 		astr = NULL;
 	}
 
-	if (count == 0)
-		printf("    None\n");
+	if (count == 0) {
+		printf("None\n");
+	} else {
+		rc = table_print_out(table, stdout);
+		if (rc != EOK) {
+			printf("Error printing table.\n");
+			goto out;
+		}
+	}
+
+	rc = EOK;
 out:
+	table_destroy(table);
 	if (ainfo.name != NULL)
 		free(ainfo.name);
 	if (linfo.name != NULL)
@@ -308,13 +330,14 @@ out:
 
 	free(addr_list);
 
-	return EOK;
+	return rc;
 }
 
 static int link_list(void)
 {
-	sysarg_t *link_list;
+	sysarg_t *link_list = NULL;
 	inet_link_info_t linfo;
+	table_t *table = NULL;
 
 	size_t count;
 	size_t i;
@@ -326,9 +349,17 @@ static int link_list(void)
 		return rc;
 	}
 
-	printf("IP links:\n");
-	if (count > 0)
-		printf("    [Link-layer Address] [Link-Name] [Def-MTU]\n");
+	rc = table_create(&table);
+	if (rc != EOK) {
+		printf("Memory allocation failed.\n");
+		goto out;
+	}
+
+	table_set_margin_left(table, 4);
+
+	printf("IP links:\n\n");
+	table_header_row(table);
+	table_printf(table, "Link-layer Address\t" "Link-Name\t" "Def-MTU\n");
 
 	for (i = 0; i < count; i++) {
 		rc = inetcfg_link_get(link_list[i], &linfo);
@@ -338,7 +369,8 @@ static int link_list(void)
 			continue;
 		}
 
-		printf("    %02x:%02x:%02x:%02x:%02x:%02x %s %zu\n",
+		table_printf(table, "%02x:%02x:%02x:%02x:%02x:%02x\t"
+		    "%s\t" "%zu\n",
 		    linfo.mac_addr[0], linfo.mac_addr[1],
 		    linfo.mac_addr[2], linfo.mac_addr[3],
 		    linfo.mac_addr[4], linfo.mac_addr[5],
@@ -349,24 +381,37 @@ static int link_list(void)
 		linfo.name = NULL;
 	}
 
-	if (count == 0)
-		printf("    None\n");
+	if (count == 0) {
+		printf("None\n");
+	} else {
+		rc = table_print_out(table, stdout);
+		if (rc != EOK) {
+			printf("Error printing table.\n");
+			goto out;
+		}
+	}
 
+	rc = EOK;
+out:
+	table_destroy(table);
 	free(link_list);
 
-	return EOK;
+	return rc;
 }
 
 static int sroute_list(void)
 {
-	sysarg_t *sroute_list;
+	sysarg_t *sroute_list = NULL;
 	inet_sroute_info_t srinfo;
+	table_t *table = NULL;
 
 	size_t count;
 	size_t i;
 	int rc;
-	char *dest_str;
-	char *router_str;
+	char *dest_str = NULL;
+	char *router_str = NULL;
+
+	srinfo.name = NULL;
 
 	rc = inetcfg_get_sroute_list(&sroute_list, &count);
 	if (rc != EOK) {
@@ -374,13 +419,17 @@ static int sroute_list(void)
 		return rc;
 	}
 
-	printf("Static routes:\n");
-	if (count > 0)
-		printf("    [Dest/Width] [Router-Addr] [Route-Name]\n");
+	rc = table_create(&table);
+	if (rc != EOK) {
+		printf("Memory allocation failed.\n");
+		goto out;
+	}
 
-	srinfo.name = NULL;
-	dest_str = NULL;
-	router_str = NULL;
+	table_set_margin_left(table, 4);
+
+	printf("Static routes:\n\n");
+	table_header_row(table);
+	table_printf(table, "Dest/Width\t" "Router-Addr\t" "Route-Name\n");
 
 	for (i = 0; i < count; i++) {
 		rc = inetcfg_sroute_get(sroute_list[i], &srinfo);
@@ -405,7 +454,8 @@ static int sroute_list(void)
 			goto out;
 		}
 
-		printf("    %s %s %s\n", dest_str, router_str, srinfo.name);
+		table_printf(table, "%s\t" "%s\t" "%s\n", dest_str, router_str,
+		    srinfo.name);
 
 		free(srinfo.name);
 		free(dest_str);
@@ -416,9 +466,19 @@ static int sroute_list(void)
 		dest_str = NULL;
 	}
 
-	if (count == 0)
-		printf("    None\n");
+	if (count == 0) {
+		printf("None\n");
+	} else {
+		rc = table_print_out(table, stdout);
+		if (rc != EOK) {
+			printf("Error printing table.\n");
+			goto out;
+		}
+	}
+
+	rc = EOK;
 out:
+	table_destroy(table);
 	if (srinfo.name != NULL)
 		free(srinfo.name);
 	if (dest_str != NULL)
@@ -428,7 +488,7 @@ out:
 
 	free(sroute_list);
 
-	return EOK;
+	return rc;
 }
 
 int main(int argc, char *argv[])
