@@ -34,6 +34,7 @@
 
 #include <devman.h>
 #include <errno.h>
+#include <io/table.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -204,11 +205,21 @@ static int drv_list(void)
 	size_t ndrvs;
 	size_t ndevs;
 	size_t i;
+	table_t *table = NULL;
 	int rc;
 
 	rc = devman_get_drivers(&drvs, &ndrvs);
 	if (rc != EOK)
 		return rc;
+
+	rc = table_create(&table);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		goto out;
+	}
+
+	table_header_row(table);
+	table_printf(table, "Driver\t" "Devs\t" "State\n");
 
 	for (i = 0; i < ndrvs; i++) {
 		devs = NULL;
@@ -225,13 +236,19 @@ static int drv_list(void)
 
 		sstate = drv_state_str(state);
 
-		printf("%-11s %3zu %s\n", sstate, ndevs, drv_name);
+		table_printf(table, "%s\t" "%zu\t" "%s\n", drv_name, ndevs, sstate);
 skip:
 		free(devs);
 	}
-	free(drvs);
 
-	return EOK;
+	rc = table_print_out(table, stdout);
+	if (rc != EOK)
+		printf("Error printing driver table.\n");
+out:
+	free(drvs);
+	table_destroy(table);
+
+	return rc;
 }
 
 static int drv_show(char *drvname)
