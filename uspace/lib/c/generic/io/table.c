@@ -164,7 +164,8 @@ static int table_write_next_row(table_t *table)
 		return rc;
 	}
 
-	return table_write_next_cell(table);
+	table->wcell = NULL;
+	return EOK;
 }
 
 /** Get first table row.
@@ -393,8 +394,12 @@ int table_print_out(table_t *table, FILE *f)
 	firstr = true;
 	while (row != NULL) {
 		cell = table_row_cell_first(row);
+		if (cell == NULL)
+			break;
+
 		column = table_column_first(table);
 		firstc = true;
+
 		while (cell != NULL && cell->text != NULL) {
 			spacing = firstc ? table->metrics.margin_left : 1;
 			for (i = 0; i < spacing; i++) {
@@ -493,6 +498,14 @@ int table_printf(table_t *table, const char *fmt, ...)
 		ep = sp + 1;
 		while (*ep != '\0' && *ep != '\t' && *ep != '\n')
 			++ep;
+
+		if (table->wcell == NULL) {
+			rc = table_write_next_cell(table);
+			if (rc != EOK) {
+				assert(rc == ENOMEM);
+				goto out;
+			}
+		}
 
 		rc = table_cell_extend(table->wcell, sp, ep - sp);
 		if (rc != EOK) {

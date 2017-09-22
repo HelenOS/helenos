@@ -318,6 +318,8 @@ static int addr_list(void)
 		}
 	}
 
+	printf("\n");
+
 	rc = EOK;
 out:
 	table_destroy(table);
@@ -390,6 +392,8 @@ static int link_list(void)
 			goto out;
 		}
 	}
+
+	printf("\n");
 
 	rc = EOK;
 out:
@@ -475,6 +479,8 @@ static int sroute_list(void)
 			goto out;
 		}
 	}
+
+	printf("\n");
 
 	rc = EOK;
 out:
