@@ -48,11 +48,15 @@
 
 static void print_syntax(void)
 {
+	printf("%s: Internet configuration utility.\n", NAME);
 	printf("Syntax:\n");
-	printf("  %s create <addr>/<width> <link-name> <addr-name>\n", NAME);
-	printf("  %s delete <link-name> <addr-name>\n", NAME);
-	printf("  %s add-sr <dest-addr>/<width> <router-addr> <route-name>\n", NAME);
-	printf("  %s del-sr <route-name>\n", NAME);
+	printf("  %s list-addr\n", NAME);
+	printf("  %s create-addr <addr>/<width> <link-name> <addr-name>\n", NAME);
+	printf("  %s delete-addr <link-name> <addr-name>\n", NAME);
+	printf("  %s list-sr\n", NAME);
+	printf("  %s create-sr <dest-addr>/<width> <router-addr> <route-name>\n", NAME);
+	printf("  %s delete-sr <route-name>\n", NAME);
+	printf("  %s list-link\n", NAME);
 }
 
 static int addr_create_static(int argc, char *argv[])
@@ -264,10 +268,6 @@ static int addr_list(void)
 		goto out;
 	}
 
-	table_set_margin_left(table, 4);
-
-	printf("Configured addresses:\n\n");
-
 	table_header_row(table);
 	table_printf(table, "Addr/Width\t" "Link-Name\t" "Addr-Name\t"
 	    "Def-MTU\n");
@@ -308,17 +308,13 @@ static int addr_list(void)
 		astr = NULL;
 	}
 
-	if (count == 0) {
-		printf("None\n");
-	} else {
+	if (count != 0) {
 		rc = table_print_out(table, stdout);
 		if (rc != EOK) {
 			printf("Error printing table.\n");
 			goto out;
 		}
 	}
-
-	printf("\n");
 
 	rc = EOK;
 out:
@@ -357,9 +353,6 @@ static int link_list(void)
 		goto out;
 	}
 
-	table_set_margin_left(table, 4);
-
-	printf("IP links:\n\n");
 	table_header_row(table);
 	table_printf(table, "Link-layer Address\t" "Link-Name\t" "Def-MTU\n");
 
@@ -383,17 +376,13 @@ static int link_list(void)
 		linfo.name = NULL;
 	}
 
-	if (count == 0) {
-		printf("None\n");
-	} else {
+	if (count != 0) {
 		rc = table_print_out(table, stdout);
 		if (rc != EOK) {
 			printf("Error printing table.\n");
 			goto out;
 		}
 	}
-
-	printf("\n");
 
 	rc = EOK;
 out:
@@ -429,9 +418,6 @@ static int sroute_list(void)
 		goto out;
 	}
 
-	table_set_margin_left(table, 4);
-
-	printf("Static routes:\n\n");
 	table_header_row(table);
 	table_printf(table, "Dest/Width\t" "Router-Addr\t" "Route-Name\n");
 
@@ -470,17 +456,13 @@ static int sroute_list(void)
 		dest_str = NULL;
 	}
 
-	if (count == 0) {
-		printf("None\n");
-	} else {
+	if (count != 0) {
 		rc = table_print_out(table, stdout);
 		if (rc != EOK) {
 			printf("Error printing table.\n");
 			goto out;
 		}
 	}
-
-	printf("\n");
 
 	rc = EOK;
 out:
@@ -508,33 +490,37 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (argc < 2) {
-		rc = addr_list();
-		if (rc != EOK)
-			return 1;
-		rc = sroute_list();
-		if (rc != EOK)
-			return 1;
-		rc = link_list();
-		if (rc != EOK)
-			return 1;
+	if (argc < 2 || str_cmp(argv[1], "-h") == 0) {
+		print_syntax();
 		return 0;
 	}
 
-	if (str_cmp(argv[1], "create") == 0) {
+	if (str_cmp(argv[1], "list-addr") == 0) {
+		rc = addr_list();
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "create-addr") == 0) {
 		rc = addr_create_static(argc - 2, argv + 2);
 		if (rc != EOK)
 			return 1;
-	} else if (str_cmp(argv[1], "delete") == 0) {
+	} else if (str_cmp(argv[1], "delete-addr") == 0) {
 		rc = addr_delete(argc - 2, argv + 2);
 		if (rc != EOK)
 			return 1;
-	} else if (str_cmp(argv[1], "add-sr") == 0) {
+	} else if (str_cmp(argv[1], "list-sr") == 0) {
+		rc = sroute_list();
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "create-sr") == 0) {
 		rc = sroute_create(argc - 2, argv + 2);
 		if (rc != EOK)
 			return 1;
-	} else if (str_cmp(argv[1], "del-sr") == 0) {
+	} else if (str_cmp(argv[1], "delete-sr") == 0) {
 		rc = sroute_delete(argc - 2, argv + 2);
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "list-link") == 0) {
+		rc = link_list();
 		if (rc != EOK)
 			return 1;
 	} else {
