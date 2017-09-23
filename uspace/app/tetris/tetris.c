@@ -55,7 +55,6 @@ static volatile const char copyright[] =
 	"\tThe Regents of the University of California.  All rights reserved.\n";
 
 #include <sys/time.h>
-#include <err.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -288,8 +287,10 @@ int main(int argc, char *argv[])
 	
 	for (i = 0; i <= 5; i++) {
 		for (j = i + 1; j <= 5; j++) {
-			if (keys[i] == keys[j])
-				errx(1, "%s", "duplicate command keys specified.");
+			if (keys[i] == keys[j]) {
+				fprintf(stderr, "duplicate command keys specified.");
+				abort();
+			}
 		}
 		
 		if (keys[i] == ' ')

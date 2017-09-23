@@ -53,7 +53,6 @@
  * Tetris screen control.
  */
 
-#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -197,7 +196,8 @@ void stop(const char *why)
 	if (isset)
 		scr_end();
 	
-	errx(1, "aborting: %s", why);
+	fprintf(stderr, "aborting: %s", why);
+	abort();
 }
 
 /*
