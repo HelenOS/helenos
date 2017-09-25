@@ -47,9 +47,9 @@ typedef enum {
 	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
-	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
 } service_t;
 
+#define SERVICE_NAME_CLIPBOARD "clipboard"
 #define SERVICE_NAME_CORECFG  "corecfg"
 #define SERVICE_NAME_DHCP     "net/dhcp"
 #define SERVICE_NAME_DNSR     "net/dnsr"

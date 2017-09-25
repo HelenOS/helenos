@@ -37,15 +37,15 @@
  *
  */
 
-#include <clipboard.h>
-#include <ns.h>
-#include <ipc/services.h>
-#include <ipc/clipboard.h>
-#include <fibril_synch.h>
 #include <async.h>
-#include <str.h>
+#include <clipboard.h>
 #include <errno.h>
+#include <fibril_synch.h>
+#include <ipc/clipboard.h>
+#include <ipc/services.h>
+#include <loc.h>
 #include <malloc.h>
+#include <str.h>
 
 static FIBRIL_MUTEX_INITIALIZE(clip_mutex);
 static async_sess_t *clip_sess = NULL;
@@ -57,11 +57,20 @@ static async_sess_t *clip_sess = NULL;
  */
 static async_exch_t *clip_exchange_begin(void)
 {
+	service_id_t sid;
+	int rc;
+	
 	fibril_mutex_lock(&clip_mutex);
 	
-	while (clip_sess == NULL)
-		clip_sess = service_connect_blocking(SERVICE_CLIPBOARD,
-		    INTERFACE_CLIPBOARD, 0);
+	while (clip_sess == NULL) {
+		rc = loc_service_get_id(SERVICE_NAME_CLIPBOARD, &sid,
+		    IPC_FLAG_BLOCKING);
+		if (rc != EOK)
+			continue;
+		
+		clip_sess = loc_service_connect(sid, INTERFACE_CLIPBOARD,
+		    IPC_FLAG_BLOCKING);
+	}
 	
 	fibril_mutex_unlock(&clip_mutex);
 	

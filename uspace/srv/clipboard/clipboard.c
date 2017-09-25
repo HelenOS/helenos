@@ -26,15 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdbool.h>
 #include <async.h>
-#include <ns.h>
+#include <errno.h>
+#include <fibril_synch.h>
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
+#include <loc.h>
 #include <malloc.h>
-#include <fibril_synch.h>
-#include <errno.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <task.h>
 
 #define NAME  "clipboard"
 
@@ -42,6 +43,7 @@ static char *clip_data = NULL;
 static size_t clip_size = 0;
 static clipboard_tag_t clip_tag = CLIPBOARD_TAG_NONE;
 static FIBRIL_MUTEX_INITIALIZE(clip_mtx);
+static service_id_t svc_id;
 
 static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -178,12 +180,22 @@ static void clip_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 int main(int argc, char *argv[])
 {
-	printf("%s: HelenOS clipboard service\n", NAME);
+	int rc;
 	
+	printf("%s: HelenOS clipboard service\n", NAME);
 	async_set_fallback_port_handler(clip_connection, NULL);
-	int rc = service_register(SERVICE_CLIPBOARD);
-	if (rc != EOK)
+	
+	rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Failed registering server. (%d)\n", NAME, rc);
 		return rc;
+	}
+	
+	rc = loc_service_register(SERVICE_NAME_CLIPBOARD, &svc_id);
+	if (rc != EOK) {
+		printf("%s: Failed registering service. (%d)\n", NAME, rc);
+		return rc;
+	}
 	
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
