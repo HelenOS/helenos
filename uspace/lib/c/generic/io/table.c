@@ -495,7 +495,7 @@ int table_printf(table_t *table, const char *fmt, ...)
 
 	sp = str;
 	while (*sp != '\0' && table->error == EOK) {
-		ep = sp + 1;
+		ep = sp;
 		while (*ep != '\0' && *ep != '\t' && *ep != '\n')
 			++ep;
 
