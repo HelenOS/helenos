@@ -31,8 +31,8 @@
  * @{
  */
 
-#include <ipc/ipc.h>
 #include <adt/hash_table.h>
+#include <async.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
@@ -181,12 +181,9 @@ loop:
 		if (!ht->finished)
 			continue;
 		
-		if (!(pr->callid & IPC_CALLID_NOTIFICATION)) {
-			texit = ht->have_rval ? TASK_EXIT_NORMAL :
-			    TASK_EXIT_UNEXPECTED;
-			ipc_answer_2(pr->callid, EOK, texit,
-			    ht->retval);
-		}
+		texit = ht->have_rval ? TASK_EXIT_NORMAL :
+		    TASK_EXIT_UNEXPECTED;
+		async_answer_2(pr->callid, EOK, texit, ht->retval);
 		
 		list_remove(&pr->link);
 		free(pr);
@@ -202,14 +199,14 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 	
 	if (ht == NULL) {
 		/* No such task exists. */
-		ipc_answer_0(callid, ENOENT);
+		async_answer_0(callid, ENOENT);
 		return;
 	}
 	
 	if (ht->finished) {
 		task_exit_t texit = ht->have_rval ? TASK_EXIT_NORMAL :
 		    TASK_EXIT_UNEXPECTED;
-		ipc_answer_2(callid, EOK, texit, ht->retval);
+		async_answer_2(callid, EOK, texit, ht->retval);
 		return;
 	}
 	
@@ -217,8 +214,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 	pending_wait_t *pr =
 	    (pending_wait_t *) malloc(sizeof(pending_wait_t));
 	if (!pr) {
-		if (!(callid & IPC_CALLID_NOTIFICATION))
-			ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		return;
 	}
 	
@@ -281,10 +277,7 @@ static int get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
 
 int ns_task_retval(ipc_call_t *call)
 {
-	task_id_t id;
-	int rc = get_id_by_phone(call->in_phone_hash, &id);
-	if (rc != EOK)
-		return rc;
+	task_id_t id = call->in_task_id;
 	
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?

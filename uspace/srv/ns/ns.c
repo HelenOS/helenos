@@ -35,7 +35,8 @@
  * @brief Naming service for HelenOS IPC.
  */
 
-#include <ipc/ipc.h>
+#include <abi/ipc/methods.h>
+#include <async.h>
 #include <ipc/ns.h>
 #include <ipc/services.h>
 #include <abi/ipc/interfaces.h>
@@ -46,6 +47,84 @@
 #include "service.h"
 #include "clonable.h"
 #include "task.h"
+
+static void ns_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	ipc_call_t call;
+	ipc_callid_t callid;
+	iface_t iface;
+	service_t service;
+
+	iface = IPC_GET_ARG1(*icall);
+	service = IPC_GET_ARG2(*icall);
+	if (service != 0) {
+		/*
+		 * Client requests to be connected to a service.
+		 */
+		if (service_clonable(service)) {
+			connect_to_clonable(service, iface, icall, iid);
+		} else {
+			connect_to_service(service, iface, icall, iid);
+		}
+		return;
+	}
+	
+	async_answer_0(iid, EOK);
+
+	while (true) {
+		process_pending_conn();
+		
+		callid = async_get_call(&call);
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
+		task_id_t id;
+		sysarg_t retval;
+		
+		service_t service;
+		sysarg_t phone;
+		
+		switch (IPC_GET_IMETHOD(call)) {
+		case NS_REGISTER:
+			service = IPC_GET_ARG1(call);
+			phone = IPC_GET_ARG5(call);
+			
+			/*
+			 * Server requests service registration.
+			 */
+			if (service_clonable(service)) {
+				register_clonable(service, phone, &call, callid);
+				continue;
+			} else {
+				retval = register_service(service, phone, &call);
+			}
+			
+			break;
+		case NS_PING:
+			retval = EOK;
+			break;
+		case NS_TASK_WAIT:
+			id = (task_id_t)
+			    MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			wait_for_task(id, &call, callid);
+			continue;
+		case NS_ID_INTRO:
+			retval = ns_task_id_intro(&call);
+			break;
+		case NS_RETVAL:
+			retval = ns_task_retval(&call);
+			break;
+		default:
+			printf("ns: method not supported\n");
+			retval = ENOTSUP;
+			break;
+		}
+		
+		async_answer_0(callid, retval);
+	}
+
+	(void) ns_task_disconnect(&call);
+}
 
 int main(int argc, char **argv)
 {
@@ -63,76 +142,10 @@ int main(int argc, char **argv)
 	if (rc != EOK)
 		return rc;
 	
-	printf("%s: Accepting connections\n", NAME);
+	async_set_fallback_port_handler(ns_connection, NULL);
 	
-	while (true) {
-		process_pending_conn();
-		
-		ipc_call_t call;
-		ipc_callid_t callid = ipc_wait_for_call(&call);
-		
-		task_id_t id;
-		sysarg_t retval;
-		
-		iface_t iface;
-		service_t service;
-		sysarg_t phone;
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			retval = ns_task_disconnect(&call);
-			break;
-		case IPC_M_CONNECT_TO_ME:
-			service = IPC_GET_ARG2(call);
-			phone = IPC_GET_ARG5(call);
-			
-			/*
-			 * Server requests service registration.
-			 */
-			if (service_clonable(service)) {
-				register_clonable(service, phone, &call, callid);
-				continue;
-			} else
-				retval = register_service(service, phone, &call);
-			
-			break;
-		case IPC_M_CONNECT_ME_TO:
-			iface = IPC_GET_ARG1(call);
-			service = IPC_GET_ARG2(call);
-			
-			/*
-			 * Client requests to be connected to a service.
-			 */
-			if (service_clonable(service)) {
-				connect_to_clonable(service, iface, &call, callid);
-				continue;
-			} else {
-				connect_to_service(service, iface, &call, callid);
-				continue;
-			}
-			break;
-		case NS_PING:
-			retval = EOK;
-			break;
-		case NS_TASK_WAIT:
-			id = (task_id_t)
-			    MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			wait_for_task(id, &call, callid);
-			continue;
-		case NS_ID_INTRO:
-			retval = ns_task_id_intro(&call);
-			break;
-		case NS_RETVAL:
-			retval = ns_task_retval(&call);
-			break;
-		default:
-			retval = ENOENT;
-			break;
-		}
-		
-		if (!(callid & IPC_CALLID_NOTIFICATION))
-			ipc_answer_0(callid, retval);
-	}
+	printf("%s: Accepting connections\n", NAME);
+	async_manager();
 	
 	/* Not reached */
 	return 0;
