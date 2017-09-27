@@ -43,33 +43,6 @@
 #include "hw_struct/trb.h"
 #include "commands.h"
 
-static const irq_cmd_t irq_commands[] = {
-	{
-		.cmd = CMD_PIO_READ_32,
-		.dstarg = 1,
-		.addr = NULL
-	},
-	{
-		.cmd = CMD_AND,
-		.srcarg = 1,
-		.dstarg = 2,
-		.value = 0
-	},
-	{
-		.cmd = CMD_PREDICATE,
-		.srcarg = 2,
-		.value = 2
-	},
-	{
-		.cmd = CMD_PIO_WRITE_A_32,
-		.srcarg = 1,
-		.addr = NULL
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-
 /**
  * Default USB Speed ID mapping: Table 157
  */
@@ -239,6 +212,63 @@ err_dcbaa:
 	return err;
 }
 
+/*
+ * Pseudocode:
+ *	ip = read(intr[0].iman)
+ *	if (ip) {
+ *		status = read(usbsts)
+ *		assert status
+ *		assert ip
+ *		accept (passing status)
+ *	}
+ *	decline
+ */
+static const irq_cmd_t irq_commands[] = {
+	{
+		.cmd = CMD_PIO_READ_32,
+		.dstarg = 3,
+		.addr = NULL	/* intr[0].iman */
+	},
+	{
+		.cmd = CMD_AND,
+		.srcarg = 3,
+		.dstarg = 4,
+		.value = 0	/* host2xhci(32, 1) */
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.srcarg = 4,
+		.value = 5
+	},
+	{
+		.cmd = CMD_PIO_READ_32,
+		.dstarg = 1,
+		.addr = NULL	/* usbsts */
+	},
+	{
+		.cmd = CMD_AND,
+		.srcarg = 1,
+		.dstarg = 2,
+		.value = 0	/* host2xhci(32, XHCI_STATUS_ACK_MASK) */
+	},
+	{
+		.cmd = CMD_PIO_WRITE_A_32,
+		.srcarg = 2,
+		.addr = NULL	/* usbsts */
+	},
+	{
+		.cmd = CMD_PIO_WRITE_A_32,
+		.srcarg = 4,
+		.addr = NULL	/* intr[0].iman */
+	},
+	{
+		.cmd = CMD_ACCEPT
+	},
+	{
+		.cmd = CMD_DECLINE
+	}
+};
+
 
 /**
  * Generates code to accept interrupts. The xHCI is designed primarily for
@@ -275,9 +305,13 @@ int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t 
 	memcpy(code->cmds, irq_commands, sizeof(irq_commands));
 
 	void *intr0_iman = RNGABSPTR(hc->mmio_range) + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF) + offsetof(xhci_rt_regs_t, ir[0]);
+	void *usbsts = RNGABSPTR(hc->mmio_range) + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH) + offsetof(xhci_op_regs_t, usbsts);
 	code->cmds[0].addr = intr0_iman;
-	code->cmds[3].addr = intr0_iman;
 	code->cmds[1].value = host2xhci(32, 1);
+	code->cmds[3].addr = usbsts;
+	code->cmds[4].value = host2xhci(32, XHCI_STATUS_ACK_MASK);
+	code->cmds[5].addr = usbsts;
+	code->cmds[6].addr = intr0_iman;
 
 	return hw_res->irqs.irqs[0];
 }
@@ -355,12 +389,23 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	return EOK;
 }
 
+/**
+ * Used only when polling. Shall supplement the irq_commands.
+ */
 int hc_status(xhci_hc_t *hc, uint32_t *status)
 {
-	*status = XHCI_REG_RD(hc->op_regs, XHCI_OP_STATUS);
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_STATUS, *status & XHCI_STATUS_ACK_MASK);
+	int ip = XHCI_REG_RD(hc->rt_regs->ir, XHCI_INTR_IP);
+	if (ip) {
+		*status = XHCI_REG_RD(hc->op_regs, XHCI_OP_STATUS);
+		XHCI_REG_WR(hc->op_regs, XHCI_OP_STATUS, *status & XHCI_STATUS_ACK_MASK);
+		XHCI_REG_WR(hc->rt_regs->ir, XHCI_INTR_IP, 1);
 
-	usb_log_debug2("HC(%p): Read status: %x", hc, *status);
+		/* interrupt handler expects status from irq_commands, which is
+		 * in xhci order. */
+		*status = host2xhci(32, *status);
+	}
+
+	usb_log_debug2("HC(%p): Polled status: %x", hc, *status);
 	return EOK;
 }
 
@@ -459,53 +504,34 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 
 void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 {
-	/**
-	 * TODO: This is a temporary workaround, when an event interrupt
-	 *       happens, status has the value of 3, which is equal to
-	 *       XHCI_REG_SHIFT(XHCI_OP_EINT), intstead to the correct
-	 *       XHCI_REG_MASK(XHCI_OP_EINT), which has the value of 8 (1 << 3).
-	 *       This is how e.g. FreeBSD does it.
-	 */
-	status = hc->op_regs->usbsts;
+	status = xhci2host(32, status);
 
 	/* TODO: Figure out how root hub interrupts work. */
 	if (status & XHCI_REG_MASK(XHCI_OP_PCD)) {
 		usb_log_debug2("Root hub interrupt.");
 		xhci_rh_interrupt(&hc->rh);
+
+		status &= ~XHCI_REG_MASK(XHCI_OP_PCD);
 	}
 
 	if (status & XHCI_REG_MASK(XHCI_OP_HSE)) {
 		usb_log_error("Host controller error occured. Bad things gonna happen...");
+		status &= ~XHCI_REG_MASK(XHCI_OP_HSE);
 	}
 
 	if (status & XHCI_REG_MASK(XHCI_OP_EINT)) {
 		usb_log_debug2("Event interrupt.");
-
-		xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
-
-		/**
-		 * EINT has to be cleared before IP, but we also need to
-		 * handle the event before clearing EINT.
-		 */
-		uint32_t ip = XHCI_REG_RD(intr0, XHCI_INTR_IP);
-
-		if (ip | 1) { // TODO: IP is being cleared right after it is set by the xHC.
-			hc_run_event_ring(hc, &hc->event_ring, intr0);
-		}
-
-		XHCI_REG_SET(hc->op_regs, XHCI_OP_EINT, 1);
-
-		if (ip) {
-			XHCI_REG_SET(intr0, XHCI_INTR_IP, 1);
-		}
-	}
-
-	if (status & XHCI_REG_MASK(XHCI_OP_PCD)) {
-		usb_log_error("Port change detected. Not implemented yet!");
+		hc_run_event_ring(hc, &hc->event_ring, &hc->rt_regs->ir[0]);
+		status &= ~XHCI_REG_MASK(XHCI_OP_EINT);
 	}
 
 	if (status & XHCI_REG_MASK(XHCI_OP_SRE)) {
 		usb_log_error("Save/Restore error occured. WTF, S/R mechanism not implemented!");
+		status &= ~XHCI_REG_MASK(XHCI_OP_SRE);
+	}
+
+	if (status) {
+		usb_log_error("Non-zero status after interrupt handling (%08x) - missing something?", status);
 	}
 }
 
