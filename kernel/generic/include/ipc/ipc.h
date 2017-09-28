@@ -42,6 +42,7 @@
 #include <abi/proc/task.h>
 #include <typedefs.h>
 #include <mm/slab.h>
+#include <cap/cap.h>
 
 struct answerbox;
 struct task;
@@ -60,13 +61,14 @@ typedef enum {
 } ipc_phone_state_t;
 
 /** Structure identifying phone (in TASK structure) */
-typedef struct {
+typedef struct phone {
 	mutex_t lock;
 	link_t link;
 	struct task *caller;
 	struct answerbox *callee;
 	ipc_phone_state_t state;
 	atomic_t active_calls;
+	kobject_t *kobject;
 } phone_t;
 
 typedef struct answerbox {

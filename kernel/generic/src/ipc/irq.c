@@ -270,6 +270,19 @@ error:
 	return NULL;
 }
 
+static void irq_destroy(void *arg)
+{
+	irq_t *irq = (irq_t *) arg;
+
+	/* Free up the IRQ code and associated structures. */
+	code_free(irq->notif_cfg.code);
+	slab_free(irq_slab, irq);
+}
+
+static kobject_ops_t irq_kobject_ops = {
+	.destroy = irq_destroy
+};
+
 /** Subscribe an answerbox as a receiving end for IRQ notifications.
  *
  * @param box     Receiving answerbox.
@@ -303,13 +316,20 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	/*
 	 * Allocate and populate the IRQ kernel object.
 	 */
-	int handle = cap_alloc(TASK);
+	cap_handle_t handle = cap_alloc(TASK);
 	if (handle < 0)
 		return handle;
 	
 	irq_t *irq = (irq_t *) slab_alloc(irq_slab, FRAME_ATOMIC);
 	if (!irq) {
 		cap_free(TASK, handle);
+		return ENOMEM;
+	}
+
+	kobject_t *kobject = malloc(sizeof(kobject_t), FRAME_ATOMIC);
+	if (!kobject) {
+		cap_free(TASK, handle);
+		slab_free(irq_slab, irq);
 		return ENOMEM;
 	}
 	
@@ -329,12 +349,14 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
 	
+	irq->notif_cfg.hashed_in = true;
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
 	
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 
-	cap_publish(TASK, handle, CAP_TYPE_IRQ, irq);
+	kobject_initialize(kobject, KOBJECT_TYPE_IRQ, irq, &irq_kobject_ops);
+	cap_publish(TASK, handle, kobject);
 	
 	return handle;
 }
@@ -349,28 +371,26 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
  */
 int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 {
-	cap_t *cap = cap_unpublish(TASK, handle, CAP_TYPE_IRQ);
-	if (!cap)
+	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_IRQ);
+	if (!kobj)
 		return ENOENT;
 	
-	irq_t *irq = (irq_t *) cap->kobject;
-	
+	assert(kobj->irq->notif_cfg.answerbox == box);
+
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-	irq_spinlock_lock(&irq->lock, false);
+	irq_spinlock_lock(&kobj->irq->lock, false);
 	
-	assert(irq->notif_cfg.answerbox == box);
-	
-	/* Remove the IRQ from the uspace IRQ hash table. */
-	hash_table_remove_item(&irq_uspace_hash_table, &irq->link);
-	
-	/* irq->lock unlocked by the hash table remove_callback */
+	if (kobj->irq->notif_cfg.hashed_in) {
+		/* Remove the IRQ from the uspace IRQ hash table. */
+		hash_table_remove_item(&irq_uspace_hash_table,
+		    &kobj->irq->link);
+		kobj->irq->notif_cfg.hashed_in = false;
+	}
+
+	/* kobj->irq->lock unlocked by the hash table remove_callback */
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-	
-	/* Free up the IRQ code and associated structures. */
-	code_free(irq->notif_cfg.code);
-	
-	/* Free up the IRQ capability and the underlying kernel object. */
-	slab_free(irq_slab, cap->kobject);
+
+	kobject_put(kobj);
 	cap_free(TASK, handle);
 	
 	return EOK;

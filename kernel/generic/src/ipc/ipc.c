@@ -153,9 +153,11 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
 
 /** Connect a phone to an answerbox.
  *
- * @param phone Initialized phone structure.
- * @param box   Initialized answerbox structure.
- * @return      True if the phone was connected, false otherwise.
+ * This function must be passed a reference to phone->kobject.
+ *
+ * @param phone  Initialized phone structure.
+ * @param box    Initialized answerbox structure.
+ * @return       True if the phone was connected, false otherwise.
  */
 bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
@@ -168,11 +170,17 @@ bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	if (active) {
 		phone->state = IPC_PHONE_CONNECTED;
 		phone->callee = box;
+		/* Pass phone->kobject reference to box->connected_phones */
 		list_append(&phone->link, &box->connected_phones);
 	}
 
 	irq_spinlock_unlock(&box->lock, true);
 	mutex_unlock(&phone->lock);
+
+	if (!active) {
+		/* We still have phone->kobject's reference; drop it */
+		kobject_put(phone->kobject);
+	}
 
 	return active;
 }
@@ -190,6 +198,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
 	atomic_set(&phone->active_calls, 0);
+	phone->kobject = NULL;
 }
 
 /** Helper function to facilitate synchronous calls.
@@ -455,6 +464,9 @@ int ipc_phone_hangup(phone_t *phone)
 		irq_spinlock_lock(&box->lock, true);
 		list_remove(&phone->link);
 		irq_spinlock_unlock(&box->lock, true);
+
+		/* Drop the answerbox reference */
+		kobject_put(phone->kobject);
 		
 		call_t *call = ipc_call_alloc(0);
 		IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
@@ -657,12 +669,15 @@ restart_phones:
 			_ipc_call(phone, box, call, true);
 
 			task_release(phone->caller);
+
+			kobject_put(phone->kobject);
 			
 			/* Must start again */
 			goto restart_phones;
 		}
 		
 		mutex_unlock(&phone->lock);
+		kobject_put(phone->kobject);
 	}
 	
 	irq_spinlock_unlock(&box->lock, true);
@@ -733,7 +748,7 @@ restart:
 
 static bool phone_cap_wait_cb(cap_t *cap, void *arg)
 {
-	phone_t *phone = (phone_t *) cap->kobject;
+	phone_t *phone = cap->kobject->phone;
 	bool *restart = (bool *) arg;
 
 	mutex_lock(&phone->lock);
@@ -789,8 +804,8 @@ restart:
 	 * Locking is needed as there may be connection handshakes in progress.
 	 */
 	restart = false;
-	if (caps_apply_to_type(TASK, CAP_TYPE_PHONE, phone_cap_wait_cb,
-	    &restart)) {
+	if (caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_PHONE,
+	    phone_cap_wait_cb, &restart)) {
 		/* Got into cleanup */
 		return;
 	}
@@ -809,8 +824,7 @@ restart:
 
 static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
 {
-	phone_t *phone = (phone_t *) cap->kobject;
-	ipc_phone_hangup(phone);
+	ipc_phone_hangup(cap->kobject->phone);
 	return true;
 }
 
@@ -839,13 +853,15 @@ void ipc_cleanup(void)
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	caps_apply_to_type(TASK, CAP_TYPE_PHONE, phone_cap_cleanup_cb, NULL);
+	caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_PHONE,
+	    phone_cap_cleanup_cb, NULL);
 	
 	/* Unsubscribe from any event notifications. */
 	event_cleanup_answerbox(&TASK->answerbox);
 	
 	/* Disconnect all connected IRQs */
-	caps_apply_to_type(TASK, CAP_TYPE_IRQ, irq_cap_cleanup_cb, NULL);
+	caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_IRQ, irq_cap_cleanup_cb,
+	    NULL);
 	
 	/* Disconnect all phones connected to our regular answerbox */
 	ipc_answerbox_slam_phones(&TASK->answerbox, false);
@@ -911,7 +927,7 @@ static void ipc_print_call_list(list_t *list)
 
 static bool print_task_phone_cb(cap_t *cap, void *arg)
 {
-	phone_t *phone = (phone_t *) cap->kobject;
+	phone_t *phone = cap->kobject->phone;
 
 	mutex_lock(&phone->lock);
 	if (phone->state != IPC_PHONE_FREE) {
@@ -962,7 +978,8 @@ void ipc_print_task(task_id_t taskid)
 	
 	printf("[phone cap] [calls] [state\n");
 	
-	caps_apply_to_type(task, CAP_TYPE_PHONE, print_task_phone_cb, NULL);
+	caps_apply_to_kobject_type(task, KOBJECT_TYPE_PHONE,
+	    print_task_phone_cb, NULL);
 	
 	irq_spinlock_lock(&task->lock, true);
 	irq_spinlock_lock(&task->answerbox.lock, false);

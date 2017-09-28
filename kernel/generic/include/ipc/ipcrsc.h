@@ -37,13 +37,12 @@
 
 #include <proc/task.h>
 #include <ipc/ipc.h>
+#include <cap/cap.h>
 
 extern call_t *get_call(sysarg_t);
-extern phone_t *phone_get_current(int);
-extern phone_t *phone_get(task_t *, int);
-extern int phone_alloc(task_t *);
-extern bool phone_connect(int, answerbox_t *);
-extern void phone_dealloc(int);
+extern cap_handle_t phone_alloc(task_t *);
+extern bool phone_connect(cap_handle_t, answerbox_t *);
+extern void phone_dealloc(cap_handle_t);
 
 #endif
 

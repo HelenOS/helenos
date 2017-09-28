@@ -259,7 +259,7 @@ static int process_request(answerbox_t *box, call_t *call)
 
 /** Make a call over IPC and wait for reply.
  *
- * @param phone_cap    Phone capability for the call.
+ * @param handle       Phone capability handle for the call.
  * @param data[inout]  Structure with request/reply data.
  * @param priv         Value to be stored in call->priv.
  *
@@ -267,24 +267,24 @@ static int process_request(answerbox_t *box, call_t *call)
  * @return ENOENT if there is no such phone handle.
  *
  */
-int ipc_req_internal(int phone_cap, ipc_data_t *data, sysarg_t priv)
+int ipc_req_internal(cap_handle_t handle, ipc_data_t *data, sysarg_t priv)
 {
-	phone_t *phone = phone_get_current(phone_cap);
-	if (!phone)
+	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
+	if (!kobj->phone)
 		return ENOENT;
 	
 	call_t *call = ipc_call_alloc(0);
 	call->priv = priv;
 	memcpy(call->data.args, data->args, sizeof(data->args));
 	
-	int rc = request_preprocess(call, phone);
+	int rc = request_preprocess(call, kobj->phone);
 	if (!rc) {
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_begin();
 #endif
 
 		ipc_call_hold(call);
-		rc = ipc_call_sync(phone, call);
+		rc = ipc_call_sync(kobj->phone, call);
 		spinlock_lock(&call->forget_lock);
 		bool forgotten = call->forget;
 		spinlock_unlock(&call->forget_lock);
@@ -311,7 +311,8 @@ int ipc_req_internal(int phone_cap, ipc_data_t *data, sysarg_t priv)
 				 */
 				assert(rc == EINTR);
 			}
-			return rc;	
+			kobject_put(kobj);
+			return rc;
 		}
 
 		process_answer(call);
@@ -320,6 +321,7 @@ int ipc_req_internal(int phone_cap, ipc_data_t *data, sysarg_t priv)
 	
 	memcpy(data->args, call->data.args, sizeof(data->args));
 	ipc_call_free(call);
+	kobject_put(kobj);
 	
 	return EOK;
 }
@@ -345,12 +347,12 @@ static int check_call_limit(phone_t *phone)
  * This function can only handle four arguments of payload, but is faster than
  * the generic function sys_ipc_call_async_slow().
  *
- * @param phone_cap  Phone capability for the call.
- * @param imethod    Interface and method of the call.
- * @param arg1       Service-defined payload argument.
- * @param arg2       Service-defined payload argument.
- * @param arg3       Service-defined payload argument.
- * @param arg4       Service-defined payload argument.
+ * @param handle   Phone capability handle for the call.
+ * @param imethod  Interface and method of the call.
+ * @param arg1     Service-defined payload argument.
+ * @param arg2     Service-defined payload argument.
+ * @param arg3     Service-defined payload argument.
+ * @param arg4     Service-defined payload argument.
  *
  * @return Call hash on success.
  * @return IPC_CALLRET_FATAL in case of a fatal error.
@@ -358,15 +360,17 @@ static int check_call_limit(phone_t *phone)
  *         asynchronous requests; answers should be handled first.
  *
  */
-sysarg_t sys_ipc_call_async_fast(sysarg_t phone_cap, sysarg_t imethod,
+sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
-	phone_t *phone = phone_get_current(phone_cap);
-	if (!phone)
+	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
+	if (!kobj)
 		return IPC_CALLRET_FATAL;
 	
-	if (check_call_limit(phone))
+	if (check_call_limit(kobj->phone)) {
+		kobject_put(kobj);
 		return IPC_CALLRET_TEMPORARY;
+	}
 	
 	call_t *call = ipc_call_alloc(0);
 	IPC_SET_IMETHOD(call->data, imethod);
@@ -381,48 +385,53 @@ sysarg_t sys_ipc_call_async_fast(sysarg_t phone_cap, sysarg_t imethod,
 	 */
 	IPC_SET_ARG5(call->data, 0);
 	
-	int res = request_preprocess(call, phone);
+	int res = request_preprocess(call, kobj->phone);
 	
 	if (!res)
-		ipc_call(phone, call);
+		ipc_call(kobj->phone, call);
 	else
-		ipc_backsend_err(phone, call, res);
+		ipc_backsend_err(kobj->phone, call, res);
 	
+	kobject_put(kobj);
 	return (sysarg_t) call;
 }
 
 /** Make an asynchronous IPC call allowing to transmit the entire payload.
  *
- * @param phone_cap  Phone capability for the call.
- * @param data       Userspace address of call data with the request.
+ * @param handle  Phone capability for the call.
+ * @param data    Userspace address of call data with the request.
  *
  * @return See sys_ipc_call_async_fast().
  *
  */
-sysarg_t sys_ipc_call_async_slow(sysarg_t phone_cap, ipc_data_t *data)
+sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data)
 {
-	phone_t *phone = phone_get_current(phone_cap);
-	if (!phone)
+	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
+	if (!kobj)
 		return IPC_CALLRET_FATAL;
 
-	if (check_call_limit(phone))
+	if (check_call_limit(kobj->phone)) {
+		kobject_put(kobj);
 		return IPC_CALLRET_TEMPORARY;
+	}
 
 	call_t *call = ipc_call_alloc(0);
 	int rc = copy_from_uspace(&call->data.args, &data->args,
 	    sizeof(call->data.args));
 	if (rc != 0) {
 		ipc_call_free(call);
+		kobject_put(kobj);
 		return (sysarg_t) rc;
 	}
 	
-	int res = request_preprocess(call, phone);
+	int res = request_preprocess(call, kobj->phone);
 	
 	if (!res)
-		ipc_call(phone, call);
+		ipc_call(kobj->phone, call);
 	else
-		ipc_backsend_err(phone, call, res);
+		ipc_backsend_err(kobj->phone, call, res);
 	
+	kobject_put(kobj);
 	return (sysarg_t) call;
 }
 
@@ -430,25 +439,25 @@ sysarg_t sys_ipc_call_async_slow(sysarg_t phone_cap, ipc_data_t *data)
  *
  * Common code for both the fast and the slow version.
  *
- * @param callid     Hash of the call to forward.
- * @param phone_cap  Phone capability to use for forwarding.
- * @param imethod    New interface and method to use for the forwarded call.
- * @param arg1       New value of the first argument for the forwarded call.
- * @param arg2       New value of the second argument for the forwarded call.
- * @param arg3       New value of the third argument for the forwarded call.
- * @param arg4       New value of the fourth argument for the forwarded call.
- * @param arg5       New value of the fifth argument for the forwarded call.
- * @param mode       Flags that specify mode of the forward operation.
- * @param slow       If true, arg3, arg4 and arg5 are considered. Otherwise
- *                   the function considers only the fast version arguments:
- *                   i.e. arg1 and arg2.
+ * @param callid   Hash of the call to forward.
+ * @param handle   Phone capability to use for forwarding.
+ * @param imethod  New interface and method to use for the forwarded call.
+ * @param arg1     New value of the first argument for the forwarded call.
+ * @param arg2     New value of the second argument for the forwarded call.
+ * @param arg3     New value of the third argument for the forwarded call.
+ * @param arg4     New value of the fourth argument for the forwarded call.
+ * @param arg5     New value of the fifth argument for the forwarded call.
+ * @param mode     Flags that specify mode of the forward operation.
+ * @param slow     If true, arg3, arg4 and arg5 are considered. Otherwise
+ *                 the function considers only the fast version arguments:
+ *                 i.e. arg1 and arg2.
  *
  * @return 0 on succes, otherwise an error code.
  *
  * Warning: Make sure that ARG5 is not rewritten for certain system IPC
  *
  */
-static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phone_cap,
+static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t handle,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode, bool slow)
 {
@@ -464,8 +473,8 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phone_cap,
 	bool after_forward = false;
 	int rc;
 
-	phone_t *phone = phone_get_current(phone_cap);
-	if (!phone) {
+	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
+	if (!kobj) {
 		rc = ENOENT;
 		goto error;
 	}
@@ -511,12 +520,13 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phone_cap,
 		}
 	}
 	
-	rc = ipc_forward(call, phone, &TASK->answerbox, mode);
+	rc = ipc_forward(call, kobj->phone, &TASK->answerbox, mode);
 	if (rc != EOK) {
 		after_forward = true;
 		goto error;
 	}
 
+	kobject_put(kobj);
 	return EOK;
 
 error:
@@ -527,6 +537,8 @@ error:
 	else
 		ipc_answer(&TASK->answerbox, call);
 
+	if (kobj)
+		kobject_put(kobj);
 	return rc;
 }
 
@@ -539,20 +551,20 @@ error:
  * Also note there is a set of immutable methods, for which the new method and
  * arguments are not set and these values are ignored.
  *
- * @param callid  Hash of the call to forward.
- * @param phoneid Phone handle to use for forwarding.
- * @param imethod New interface and method to use for the forwarded call.
- * @param arg1    New value of the first argument for the forwarded call.
- * @param arg2    New value of the second argument for the forwarded call.
- * @param mode    Flags that specify mode of the forward operation.
+ * @param callid   Hash of the call to forward.
+ * @param handle   Phone handle to use for forwarding.
+ * @param imethod  New interface and method to use for the forwarded call.
+ * @param arg1     New value of the first argument for the forwarded call.
+ * @param arg2     New value of the second argument for the forwarded call.
+ * @param mode     Flags that specify mode of the forward operation.
  *
  * @return 0 on succes, otherwise an error code.
  *
  */
-sysarg_t sys_ipc_forward_fast(sysarg_t callid, sysarg_t phoneid,
+sysarg_t sys_ipc_forward_fast(sysarg_t callid, sysarg_t handle,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
 {
-	return sys_ipc_forward_common(callid, phoneid, imethod, arg1, arg2, 0, 0,
+	return sys_ipc_forward_common(callid, handle, imethod, arg1, arg2, 0, 0,
 	    0, mode, false); 
 }
 
@@ -566,14 +578,14 @@ sysarg_t sys_ipc_forward_fast(sysarg_t callid, sysarg_t phoneid,
  * and arg5, respectively, to ARG3, ARG4 and ARG5, respectively.
  *
  * @param callid  Hash of the call to forward.
- * @param phoneid Phone handle to use for forwarding.
+ * @param handle  Phone handle to use for forwarding.
  * @param data    Userspace address of the new IPC data.
  * @param mode    Flags that specify mode of the forward operation.
  *
  * @return 0 on succes, otherwise an error code.
  *
  */
-sysarg_t sys_ipc_forward_slow(sysarg_t callid, sysarg_t phoneid,
+sysarg_t sys_ipc_forward_slow(sysarg_t callid, sysarg_t handle,
     ipc_data_t *data, unsigned int mode)
 {
 	ipc_data_t newdata;
@@ -582,7 +594,7 @@ sysarg_t sys_ipc_forward_slow(sysarg_t callid, sysarg_t phoneid,
 	if (rc != 0)
 		return (sysarg_t) rc;
 	
-	return sys_ipc_forward_common(callid, phoneid,
+	return sys_ipc_forward_common(callid, handle,
 	    IPC_GET_IMETHOD(newdata), IPC_GET_ARG1(newdata),
 	    IPC_GET_ARG2(newdata), IPC_GET_ARG3(newdata),
 	    IPC_GET_ARG4(newdata), IPC_GET_ARG5(newdata), mode, true); 
@@ -680,20 +692,23 @@ sysarg_t sys_ipc_answer_slow(sysarg_t callid, ipc_data_t *data)
 
 /** Hang up a phone.
  *
- * @param phone_cap  Phone capability of the phone to be hung up.
+ * @param handle  Phone capability handle of the phone to be hung up.
  *
  * @return 0 on success or an error code.
  *
  */
-sysarg_t sys_ipc_hangup(sysarg_t phone_cap)
+sysarg_t sys_ipc_hangup(sysarg_t handle)
 {
-	phone_t *phone = phone_get_current(phone_cap);
-	if (!phone)
+	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
+	if (!kobj)
 		return ENOENT;
 	
-	if (ipc_phone_hangup(phone))
+	if (ipc_phone_hangup(kobj->phone)) {
+		kobject_put(kobj);
 		return -1;
+	}
 	
+	kobject_put(kobj);
 	return 0;
 }
 

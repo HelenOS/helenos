@@ -39,11 +39,12 @@
 #include <mm/slab.h>
 #include <adt/list.h>
 
-void cap_initialize(cap_t *cap, int handle)
+static kobject_t *cap_unpublish_locked(task_t *, cap_handle_t, kobject_type_t);
+
+void cap_initialize(cap_t *cap, cap_handle_t handle)
 {
-	cap->type = CAP_TYPE_INVALID;
+	cap->state = CAP_STATE_FREE;
 	cap->handle = handle;
-	cap->can_reclaim = NULL;
 	link_initialize(&cap->link);
 }
 
@@ -57,11 +58,11 @@ void caps_task_init(task_t *task)
 {
 	mutex_initialize(&task->cap_info->lock, MUTEX_PASSIVE);
 
-	for (int i = 0; i < CAP_TYPE_MAX; i++)
-		list_initialize(&task->cap_info->type_list[i]);
+	for (kobject_type_t t = 0; t < KOBJECT_TYPE_MAX; t++)
+		list_initialize(&task->cap_info->type_list[t]);
 
-	for (int i = 0; i < MAX_CAPS; i++)
-		cap_initialize(&task->cap_info->caps[i], i);
+	for (cap_handle_t h = 0; h < MAX_CAPS; h++)
+		cap_initialize(&task->cap_info->caps[h], h);
 }
 
 void caps_task_free(task_t *task)
@@ -70,7 +71,7 @@ void caps_task_free(task_t *task)
 	free(task->cap_info);
 }
 
-bool caps_apply_to_type(task_t *task, cap_type_t type,
+bool caps_apply_to_kobject_type(task_t *task, kobject_type_t type,
     bool (*cb)(cap_t *, void *), void *arg)
 {
 	bool done = true;
@@ -87,42 +88,33 @@ bool caps_apply_to_type(task_t *task, cap_type_t type,
 	return done;
 }
 
-void caps_lock(task_t *task)
-{
-	mutex_lock(&task->cap_info->lock);
-}
-
-void caps_unlock(task_t *task)
-{
-	mutex_unlock(&task->cap_info->lock);
-}
-
-cap_t *cap_get(task_t *task, int handle, cap_type_t type)
+static cap_t *cap_get(task_t *task, cap_handle_t handle, cap_state_t state)
 {
 	assert(mutex_locked(&task->cap_info->lock));
 
 	if ((handle < 0) || (handle >= MAX_CAPS))
 		return NULL;
-	if (task->cap_info->caps[handle].type != type)
+	if (task->cap_info->caps[handle].state != state)
 		return NULL;
 	return &task->cap_info->caps[handle];
 }
 
-int cap_alloc(task_t *task)
+cap_handle_t cap_alloc(task_t *task)
 {
-	int handle;
-
 	mutex_lock(&task->cap_info->lock);
-	for (handle = 0; handle < MAX_CAPS; handle++) {
+	for (cap_handle_t handle = 0; handle < MAX_CAPS; handle++) {
 		cap_t *cap = &task->cap_info->caps[handle];
-		if (cap->type > CAP_TYPE_ALLOCATED) {
-			if (cap->can_reclaim && cap->can_reclaim(cap)) {
-				list_remove(&cap->link);
-				cap_initialize(cap, handle);
-			}
+		/* See if the capability should be garbage-collected */
+		if (cap->state == CAP_STATE_PUBLISHED &&
+		    cap->kobject->ops->reclaim &&
+		    cap->kobject->ops->reclaim(cap->kobject)) {
+			kobject_t *kobj = cap_unpublish_locked(task, handle,
+			    cap->kobject->type);
+			kobject_put(kobj);
+			cap_initialize(&task->cap_info->caps[handle], handle);
 		}
-		if (cap->type == CAP_TYPE_INVALID) {
-			cap->type = CAP_TYPE_ALLOCATED;
+		if (cap->state == CAP_STATE_FREE) {
+			cap->state = CAP_STATE_ALLOCATED;
 			mutex_unlock(&task->cap_info->lock);
 			return handle;
 		}
@@ -132,41 +124,91 @@ int cap_alloc(task_t *task)
 	return ELIMIT;
 }
 
-void cap_publish(task_t *task, int handle, cap_type_t type, void *kobject)
+void
+cap_publish(task_t *task, cap_handle_t handle, kobject_t *kobj)
 {
 	mutex_lock(&task->cap_info->lock);
-	cap_t *cap = cap_get(task, handle, CAP_TYPE_ALLOCATED);
+	cap_t *cap = cap_get(task, handle, CAP_STATE_ALLOCATED);
 	assert(cap);
-	cap->type = type;
-	cap->kobject = kobject;
-	list_append(&cap->link, &task->cap_info->type_list[type]);
+	cap->state = CAP_STATE_PUBLISHED;
+	/* Hand over kobj's reference to cap */
+	cap->kobject = kobj;
+	list_append(&cap->link, &task->cap_info->type_list[kobj->type]);
 	mutex_unlock(&task->cap_info->lock);
 }
 
-cap_t *cap_unpublish(task_t *task, int handle, cap_type_t type)
+static kobject_t *
+cap_unpublish_locked(task_t *task, cap_handle_t handle, kobject_type_t type)
 {
-	cap_t *cap;
+	kobject_t *kobj = NULL;
+
+	cap_t *cap = cap_get(task, handle, CAP_STATE_PUBLISHED);
+	if (cap) {
+		if (cap->kobject->type == type) {
+			/* Hand over cap's reference to kobj */
+			kobj = cap->kobject;
+			cap->kobject = NULL;
+			list_remove(&cap->link);
+			cap->state = CAP_STATE_ALLOCATED;
+		}
+	}
+
+	return kobj;
+}
+kobject_t *cap_unpublish(task_t *task, cap_handle_t handle, kobject_type_t type)
+{
 
 	mutex_lock(&task->cap_info->lock);
-	cap = cap_get(task, handle, type);
-	if (cap) {
-		list_remove(&cap->link);
-		cap->type = CAP_TYPE_ALLOCATED;
-	}
+	kobject_t *kobj = cap_unpublish_locked(task, handle, type);
 	mutex_unlock(&task->cap_info->lock);
 
-	return cap;
+	return kobj;
 }
 
-void cap_free(task_t *task, int handle)
+void cap_free(task_t *task, cap_handle_t handle)
 {
 	assert(handle >= 0);
 	assert(handle < MAX_CAPS);
-	assert(task->cap_info->caps[handle].type == CAP_TYPE_ALLOCATED);
+	assert(task->cap_info->caps[handle].state == CAP_STATE_ALLOCATED);
 
 	mutex_lock(&task->cap_info->lock);
 	cap_initialize(&task->cap_info->caps[handle], handle);
 	mutex_unlock(&task->cap_info->lock);
+}
+
+void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw,
+    kobject_ops_t *ops)
+{
+	atomic_set(&kobj->refcnt, 1);
+	kobj->type = type;
+	kobj->raw = raw;
+	kobj->ops = ops;
+}
+
+kobject_t *
+kobject_get(struct task *task, cap_handle_t handle, kobject_type_t type)
+{
+	kobject_t *kobj = NULL;
+
+	mutex_lock(&task->cap_info->lock);
+	cap_t *cap = cap_get(task, handle, CAP_STATE_PUBLISHED);
+	if (cap) {
+		if (cap->kobject->type == type) {
+			kobj = cap->kobject;
+			atomic_inc(&kobj->refcnt);
+		}
+	}
+	mutex_unlock(&task->cap_info->lock);
+
+	return kobj;
+}
+
+void kobject_put(kobject_t *kobj)
+{
+	if (atomic_postdec(&kobj->refcnt) == 1) {
+		kobj->ops->destroy(kobj->raw);
+		free(kobj);
+	}
 }
 
 /** @}

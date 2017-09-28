@@ -238,9 +238,10 @@ task_t *task_create(as_t *as, const char *name)
 	
 	if ((ipc_phone_0) &&
 	    (container_check(ipc_phone_0->task->container, task->container))) {
-		int cap = phone_alloc(task);
-		assert(cap == 0);
-		(void) ipc_phone_connect(phone_get(task, 0), ipc_phone_0);
+		cap_handle_t phone_handle = phone_alloc(task);
+		kobject_t *phone_obj = kobject_get(task, phone_handle,
+		    KOBJECT_TYPE_PHONE);
+		(void) ipc_phone_connect(phone_obj->phone, ipc_phone_0);
 	}
 	
 	futex_task_init(task);

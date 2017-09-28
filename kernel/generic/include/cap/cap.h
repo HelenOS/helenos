@@ -36,57 +36,85 @@
 #define KERN_CAP_H_
 
 #include <typedefs.h>
-#include <ipc/ipc.h>
 #include <adt/list.h>
 #include <synch/mutex.h>
+#include <atomic.h>
 
 #define MAX_CAPS  64
 
+typedef int cap_handle_t;
+
 typedef enum {
-	CAP_TYPE_INVALID,
-	CAP_TYPE_ALLOCATED,
-	CAP_TYPE_PHONE,
-	CAP_TYPE_IRQ,
-	CAP_TYPE_MAX
-} cap_type_t;
+	CAP_STATE_FREE,
+	CAP_STATE_ALLOCATED,
+	CAP_STATE_PUBLISHED
+} cap_state_t;
+
+typedef enum {
+	KOBJECT_TYPE_PHONE,
+	KOBJECT_TYPE_IRQ,
+	KOBJECT_TYPE_MAX
+} kobject_type_t;
+
+struct task;
+struct phone;
+struct irq;
+
+struct kobject;
+typedef struct kobject_ops {
+	bool (*reclaim)(struct kobject *);
+	void (*destroy)(void *);
+} kobject_ops_t;
+
+typedef struct kobject {
+	kobject_type_t type;
+	atomic_t refcnt;
+
+	kobject_ops_t *ops;
+
+	union {
+		void *raw;
+		struct phone *phone;
+		struct irq *irq;
+	};
+} kobject_t;
 
 typedef struct cap {
-	cap_type_t type;
-	int handle;
+	cap_state_t state;
 
-	bool (* can_reclaim)(struct cap *);
+	cap_handle_t handle;
 
-	/* Link to the task's capabilities of the same type. */
+	/* Link to the task's capabilities of the same kobject type. */
 	link_t link;
 
 	/* The underlying kernel object. */
-	void *kobject;
+	kobject_t *kobject;
 } cap_t;
 
 typedef struct cap_info {
 	mutex_t lock;
 
-	list_t type_list[CAP_TYPE_MAX];
+	list_t type_list[KOBJECT_TYPE_MAX];
 
 	cap_t *caps;
 } cap_info_t;
 
-struct task;
-
 extern void caps_task_alloc(struct task *);
 extern void caps_task_free(struct task *);
 extern void caps_task_init(struct task *);
-extern bool caps_apply_to_type(struct task *, cap_type_t,
+extern bool caps_apply_to_kobject_type(struct task *, kobject_type_t,
     bool (*)(cap_t *, void *), void *);
-extern void caps_lock(struct task *);
-extern void caps_unlock(struct task *);
 
-extern void cap_initialize(cap_t *, int);
-extern cap_t *cap_get(struct task *, int, cap_type_t);
-extern int cap_alloc(struct task *);
-extern void cap_publish(struct task *, int, cap_type_t, void *);
-extern cap_t *cap_unpublish(struct task *, int, cap_type_t);
-extern void cap_free(struct task *, int);
+extern void cap_initialize(cap_t *, cap_handle_t);
+extern cap_handle_t cap_alloc(struct task *);
+extern void cap_publish(struct task *, cap_handle_t, kobject_t *);
+extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
+extern void cap_free(struct task *, cap_handle_t);
+
+extern void kobject_initialize(kobject_t *, kobject_type_t, void *,
+    kobject_ops_t *);
+extern kobject_t *kobject_get(struct task *, cap_handle_t, kobject_type_t);
+extern void kobject_put(kobject_t *);
 
 #endif
 

@@ -80,6 +80,8 @@ typedef void (* cir_t)(void *, inr_t);
 typedef struct {
 	/** When false, notifications are not sent. */
 	bool notify;
+	/** True if the structure is in irq_uspace_hash_table_table */
+	bool hashed_in;
 	/** Answerbox for notifications. */
 	answerbox_t *answerbox;
 	/** Interface and method to be used for the notification. */
