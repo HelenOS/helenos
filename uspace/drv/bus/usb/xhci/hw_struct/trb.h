@@ -139,6 +139,11 @@ static inline void xhci_trb_copy(xhci_trb_t *dst, xhci_trb_t *src)
     dst->control = src->control;
 }
 
+static inline void xhci_trb_clean(xhci_trb_t *trb)
+{
+	memset(trb, 0, sizeof(*trb));
+}
+
 /**
  * Event Ring Segment Table: section 6.5
  */

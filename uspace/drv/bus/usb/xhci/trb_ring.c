@@ -163,13 +163,16 @@ static uintptr_t trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
  * We cannot avoid the copying, because the TRB in ring should be updated atomically.
  *
  * @param td the first TRB of TD
+ * @param phys returns address of the first TRB enqueued
  * @return EOK on success,
  *         EAGAIN when the ring is too full to fit all TRBs (temporary)
  */
-int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td)
+int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys)
 {
 	xhci_trb_t * const saved_enqueue_trb = ring->enqueue_trb;
 	trb_segment_t * const saved_enqueue_segment = ring->enqueue_segment;
+	if (phys)
+		*phys = NULL;
 
 	/*
 	 * First, dry run and advance the enqueue pointer to see if the ring would
@@ -188,6 +191,8 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td)
 
 	ring->enqueue_segment = saved_enqueue_segment;
 	ring->enqueue_trb = saved_enqueue_trb;
+	if (phys)
+		*phys = trb_ring_enqueue_phys(ring);
 
 	/*
 	 * Now, copy the TRBs without further checking.

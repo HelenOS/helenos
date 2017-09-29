@@ -54,7 +54,7 @@
  * TODO: Not sure about SCT and DCS (see section 6.4.3.9).
  */
 #define TRB_SET_DEQUEUE_PTR(trb, dptr) (trb).parameter |= host2xhci(64, (dptr))
-#define TRB_SET_ICTX(trb, phys) (trb).parameter |= host2xhci(32, phys_addr & (~0xF))
+#define TRB_SET_ICTX(trb, phys) (trb).parameter |= host2xhci(64, phys_addr & (~0xF))
 
 #define TRB_GET_CODE(trb) XHCI_DWORD_EXTRACT((trb).status, 31, 24)
 #define TRB_GET_SLOT(trb) XHCI_DWORD_EXTRACT((trb).control, 31, 24)
@@ -107,7 +107,6 @@ xhci_cmd_t *xhci_alloc_command(void)
 	 * TODO: Is this wise?
 	 */
 	cmd->has_owner = true;
-	cmd->owns_trb = false;
 
 	return cmd;
 }
@@ -118,8 +117,6 @@ void xhci_free_command(xhci_cmd_t *cmd)
 
 	if (cmd->ictx)
 		free32(cmd->ictx);
-	if (cmd->owns_trb && cmd->trb)
-		free32(cmd->trb);
 
 	free32(cmd);
 }
@@ -128,10 +125,13 @@ static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
 {
 	link_t *cmd_link = list_first(&hc->commands);
 
+
+	usb_log_debug2("Searching TRB %lu...", phys);
+
 	while (cmd_link != NULL) {
 		xhci_cmd_t *cmd = list_get_instance(cmd_link, xhci_cmd_t, link);
 
-		if (addr_to_phys(cmd->trb) == phys)
+		if (cmd->trb_phys == phys)
 			break;
 
 		cmd_link = list_next(cmd_link, &hc->commands);
@@ -154,27 +154,20 @@ static inline int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned targe
 	return EOK;
 }
 
-static inline int enqueue_trb(xhci_hc_t *hc, xhci_trb_t *trb,
-			      unsigned doorbell, unsigned target)
+static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd, unsigned doorbell, unsigned target)
 {
 	assert(hc);
-	assert(trb);
-
-	xhci_trb_ring_enqueue(&hc->command_ring, trb);
-	ring_doorbell(hc, doorbell, target);
-
-	xhci_dump_trb(trb);
-	usb_log_debug2("HC(%p): Sent TRB", hc);
-
-	return EOK;
-}
-
-static inline void add_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
-{
 	assert(cmd);
 
 	list_append(&cmd->link, &hc->commands);
-	cmd->trb = hc->command_ring.enqueue_trb;
+
+	xhci_trb_ring_enqueue(&hc->command_ring, &cmd->trb, &cmd->trb_phys);
+	ring_doorbell(hc, doorbell, target);
+
+	usb_log_debug2("HC(%p): Sent command:", hc);
+	xhci_dump_trb(&cmd->trb);
+
+	return EOK;
 }
 
 void xhci_stop_command_ring(xhci_hc_t *hc)
@@ -262,29 +255,23 @@ int xhci_send_no_op_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_NO_OP_CMD);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_NO_OP_CMD);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_enable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_ENABLE_SLOT_CMD);
-	trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_ENABLE_SLOT_CMD);
+	cmd->trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_disable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -292,15 +279,12 @@ int xhci_send_disable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	assert(hc);
 	assert(cmd);
 
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_DISABLE_SLOT_CMD);
-	TRB_SET_SLOT(trb, cmd->slot_id);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_DISABLE_SLOT_CMD);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -315,11 +299,10 @@ int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 *           ictx has valids slot context and endpoint 0, all
 	 *           other should be ignored at this point (see section 4.6.5).
 	 */
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
 	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
-	TRB_SET_ICTX(trb, phys_addr);
+	TRB_SET_ICTX(cmd->trb, phys_addr);
 
 	/**
 	 * Note: According to section 6.4.3.4, we can set the 9th bit
@@ -328,12 +311,10 @@ int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 *       This can be used to provide compatibility with legacy USB devices
 	 *       that require their device descriptor to be read before such request.
 	 */
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD);
-	TRB_SET_SLOT(trb, cmd->slot_id);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -342,18 +323,15 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	assert(cmd);
 	assert(cmd->ictx);
 
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
 	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
-	TRB_SET_ICTX(trb, phys_addr);
+	TRB_SET_ICTX(cmd->trb, phys_addr);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD);
-	TRB_SET_SLOT(trb, cmd->slot_id);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_evaluate_context_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -368,18 +346,15 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 *       of the contexts affected by the command.
 	 *       Refer to sections 6.2.2.3 and 6.3.3.3 for further info.
 	 */
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
 	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
-	TRB_SET_ICTX(trb, phys_addr);
+	TRB_SET_ICTX(cmd->trb, phys_addr);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD);
-	TRB_SET_SLOT(trb, cmd->slot_id);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_reset_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep_id, uint8_t tcs)
@@ -391,17 +366,14 @@ int xhci_send_reset_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep
 	 * Note: TCS can have values 0 or 1. If it is set to 0, see sectuon 4.5.8 for
 	 *       information about this flag.
 	 */
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_RESET_ENDPOINT_CMD);
-	TRB_SET_TCS(trb, tcs);
-	TRB_SET_EP(trb, ep_id);
-	TRB_SET_SLOT(trb, cmd->slot_id);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_RESET_ENDPOINT_CMD);
+	TRB_SET_TCS(cmd->trb, tcs);
+	TRB_SET_EP(cmd->trb, ep_id);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_stop_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep_id, uint8_t susp)
@@ -409,17 +381,14 @@ int xhci_send_stop_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, uint32_t ep_
 	assert(hc);
 	assert(cmd);
 
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_STOP_ENDPOINT_CMD);
-	TRB_SET_EP(trb, ep_id);
-	TRB_SET_SUSP(trb, susp);
-	TRB_SET_SLOT(trb, cmd->slot_id);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_STOP_ENDPOINT_CMD);
+	TRB_SET_EP(cmd->trb, ep_id);
+	TRB_SET_SUSP(cmd->trb, susp);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_set_dequeue_ptr_command(xhci_hc_t *hc, xhci_cmd_t *cmd,
@@ -429,22 +398,19 @@ int xhci_send_set_dequeue_ptr_command(xhci_hc_t *hc, xhci_cmd_t *cmd,
 	assert(hc);
 	assert(cmd);
 
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_SET_TR_DEQUEUE_POINTER_CMD);
-	TRB_SET_EP(trb, ep_id);
-	TRB_SET_STREAM(trb, stream_id);
-	TRB_SET_SLOT(trb, cmd->slot_id);
-	TRB_SET_DEQUEUE_PTR(trb, dequeue_ptr);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_SET_TR_DEQUEUE_POINTER_CMD);
+	TRB_SET_EP(cmd->trb, ep_id);
+	TRB_SET_STREAM(cmd->trb, stream_id);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
+	TRB_SET_DEQUEUE_PTR(cmd->trb, dequeue_ptr);
 
 	/**
 	 * TODO: Set DCS (see section 4.6.10).
 	 */
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_send_reset_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -452,15 +418,12 @@ int xhci_send_reset_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	assert(hc);
 	assert(cmd);
 
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(trb));
+	xhci_trb_clean(&cmd->trb);
 
-	TRB_SET_TYPE(trb, XHCI_TRB_TYPE_RESET_DEVICE_CMD);
-	TRB_SET_SLOT(trb, cmd->slot_id);
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_RESET_DEVICE_CMD);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
 
-	add_cmd(hc, cmd);
-
-	return enqueue_trb(hc, &trb, 0, 0);
+	return enqueue_command(hc, cmd, 0, 0);
 }
 
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
@@ -474,7 +437,6 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	int code;
 	uint64_t phys;
 	xhci_cmd_t *command;
-	xhci_trb_t *command_trb;
 
 	code = TRB_GET_CODE(*trb);
 	phys = TRB_GET_PHYS(*trb);;
@@ -489,19 +451,18 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		return EOK;
 	}
 
-	command_trb = command->trb;
 	command->status = code;
 	command->slot_id = TRB_GET_SLOT(*trb);
 
-	usb_log_debug2("Completed command trb: %s", xhci_trb_str_type(TRB_TYPE(*command_trb)));
-	if (TRB_TYPE(*command_trb) != XHCI_TRB_TYPE_NO_OP_CMD) {
+	usb_log_debug2("Completed command trb: %s", xhci_trb_str_type(TRB_TYPE(command->trb)));
+	if (TRB_TYPE(command->trb) != XHCI_TRB_TYPE_NO_OP_CMD) {
 		if (code != XHCI_TRBC_SUCCESS) {
 			report_error(code);
-			xhci_dump_trb(command_trb);
+			xhci_dump_trb(&command->trb);
 		}
 	}
 
-	switch (TRB_TYPE(*command_trb)) {
+	switch (TRB_TYPE(command->trb)) {
 	case XHCI_TRB_TYPE_NO_OP_CMD:
 		assert(code == XHCI_TRBC_TRB_ERROR);
 		break;
@@ -525,7 +486,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	case XHCI_TRB_TYPE_RESET_DEVICE_CMD:
 		break;
 	default:
-		usb_log_debug2("Unsupported command trb: %s", xhci_trb_str_type(TRB_TYPE(*command_trb)));
+		usb_log_debug2("Unsupported command trb: %s", xhci_trb_str_type(TRB_TYPE(command->trb)));
 
 		command->completed = true;
 		return ENAK;
@@ -535,14 +496,9 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 
 	if (!command->has_owner) {
 		usb_log_debug2("Command has no owner, deallocating.");
-		command->trb = NULL; // It was statically allocated.
 		xhci_free_command(command);
 	} else {
 		usb_log_debug2("Command has owner, don't forget to deallocate!");
-		/* Copy the trb for later use so that we can free space on the cmd ring. */
-		command->trb = malloc32(sizeof(xhci_trb_t));
-		xhci_trb_copy(command->trb, command_trb);
-		command->owns_trb = true;
 	}
 
 	return EOK;

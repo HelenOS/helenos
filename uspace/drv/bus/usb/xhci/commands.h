@@ -38,15 +38,16 @@
 
 #include <adt/list.h>
 #include <stdbool.h>
+#include "hw_struct/trb.h"
 
 typedef struct xhci_hc xhci_hc_t;
-typedef struct xhci_trb xhci_trb_t;
 typedef struct xhci_input_ctx xhci_input_ctx_t;
 
 typedef struct xhci_command {
 	link_t link;
 
-	xhci_trb_t *trb;
+	xhci_trb_t trb;
+	uintptr_t trb_phys;
 	xhci_input_ctx_t *ictx;
 	uint32_t slot_id;
 	uint32_t status;
