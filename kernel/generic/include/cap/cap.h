@@ -66,6 +66,9 @@ typedef struct kobject_ops {
 	void (*destroy)(void *);
 } kobject_ops_t;
 
+/*
+ * Everything in kobject_t except for the atomic reference count is imutable.
+ */
 typedef struct kobject {
 	kobject_type_t type;
 	atomic_t refcnt;
@@ -79,6 +82,9 @@ typedef struct kobject {
 	};
 } kobject_t;
 
+/*
+ * A cap_t may only be accessed under the protection of the cap_info_t lock.
+ */
 typedef struct cap {
 	cap_state_t state;
 
@@ -114,6 +120,7 @@ extern void cap_free(struct task *, cap_handle_t);
 extern void kobject_initialize(kobject_t *, kobject_type_t, void *,
     kobject_ops_t *);
 extern kobject_t *kobject_get(struct task *, cap_handle_t, kobject_type_t);
+extern void kobject_add_ref(kobject_t *);
 extern void kobject_put(kobject_t *);
 
 #endif
