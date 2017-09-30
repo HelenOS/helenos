@@ -172,7 +172,7 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 	xhci_trb_t * const saved_enqueue_trb = ring->enqueue_trb;
 	trb_segment_t * const saved_enqueue_segment = ring->enqueue_segment;
 	if (phys)
-		*phys = NULL;
+		*phys = (uintptr_t)NULL;
 
 	/*
 	 * First, dry run and advance the enqueue pointer to see if the ring would
