@@ -195,14 +195,6 @@ bool ra_span_add(ra_arena_t *arena, uintptr_t base, size_t size)
 {
 	ra_span_t *span;
 
-	/*
-	 * At the moment, we can only create resources that don't include 0.
-	 * If 0 needs to be considered as a valid resource, we would need to
-	 * slightly change the API of the resource allocator.
-	 */
-	if (base == 0)
-		return false;
-
 	span = ra_span_create(base, size);
 	if (!span)
 		return false;
@@ -214,7 +206,8 @@ bool ra_span_add(ra_arena_t *arena, uintptr_t base, size_t size)
 	return true;
 }
 
-static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
+static bool
+ra_span_alloc(ra_span_t *span, size_t size, size_t align, uintptr_t *base)
 {
 	/*
 	 * We need to add the maximum of align - 1 to be able to compensate for
@@ -300,10 +293,11 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 		sysarg_t key = seg->base;
 		hash_table_insert(&span->used, &key, &seg->fu_link);
 
-		return newbase;
+		*base = newbase;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 static void ra_span_free(ra_span_t *span, size_t base, size_t size)
@@ -381,9 +375,10 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 }
 
 /** Allocate resources from arena. */
-uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
+bool
+ra_alloc(ra_arena_t *arena, size_t size, size_t alignment, uintptr_t *base)
 {
-	uintptr_t base = 0;
+	bool success = false;
 
 	assert(size >= 1);
 	assert(alignment >= 1);
@@ -391,13 +386,13 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 
 	irq_spinlock_lock(&arena->lock, true);
 	list_foreach(arena->spans, span_link, ra_span_t, span) {
-		base = ra_span_alloc(span, size, alignment);
-		if (base)
+		success = ra_span_alloc(span, size, alignment, base);
+		if (success)
 			break;
 	}
 	irq_spinlock_unlock(&arena->lock, true);
 
-	return base;
+	return success;
 }
 
 /* Return resources to arena. */

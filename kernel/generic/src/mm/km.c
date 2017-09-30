@@ -116,7 +116,11 @@ void km_non_identity_span_add(uintptr_t base, size_t size)
 
 uintptr_t km_page_alloc(size_t size, size_t align)
 {
-	return ra_alloc(km_ni_arena, size, align);
+	uintptr_t base;
+	if (ra_alloc(km_ni_arena, size, align, &base))
+		return base;
+	else
+		return (uintptr_t) NULL;
 }
 
 void km_page_free(uintptr_t page, size_t size)
