@@ -322,10 +322,22 @@ int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 	if (!hc->legsup)
 		return EOK;
 
-	/*
-	 * TODO: Implement handoff from BIOS, section 4.22.1
-	 * QEMU does not support this, so we have to test on real HW.
-	 */
+	/* Section 4.22.1 */
+	/* TODO: Test this with USB3-aware BIOS */
+	usb_log_debug2("LEGSUP: bios: %x, os: %x", hc->legsup->sem_bios, hc->legsup->sem_os);
+	XHCI_REG_WR(hc->legsup, XHCI_LEGSUP_SEM_OS, 1);
+	for (int i = 0; i<1001; i++) {
+		usb_log_debug2("LEGSUP: elapsed: %i ms, bios: %x, os: %x", i,
+			XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS),
+			XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS));
+		if (XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS) == 0) {
+			assert(XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS) == 1);
+			return EOK;
+		}
+		async_usleep(1000);
+	}
+	usb_log_error("BIOS did not release XHCI legacy hold!\n");
+
 	return ENOTSUP;
 }
 
