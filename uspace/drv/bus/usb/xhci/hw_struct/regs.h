@@ -580,6 +580,9 @@ typedef struct xhci_extcap_legsup {
 #define XHCI_LEGSUP_SEM_BIOS	sem_bios, 8, FLAG, 0
 #define XHCI_LEGSUP_SEM_OS	sem_os, 8, FLAG, 0
 
+#define XHCI_LEGSUP_POLLING_DELAY_1MS	1000
+#define XHCI_LEGSUP_BIOS_TIMEOUT_US	1000000 /* 4.22.1 BIOS may take up to 1 second to release the device */
+
 #endif
 /**
  * @}
