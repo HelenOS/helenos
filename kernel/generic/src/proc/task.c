@@ -49,6 +49,7 @@
 #include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>
+#include <cap/cap.h>
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
 #include <ipc/event.h>
@@ -82,6 +83,7 @@ static slab_cache_t *task_slab;
 /* Forward declarations. */
 static void task_kill_internal(task_t *);
 static int tsk_constructor(void *, unsigned int);
+static size_t tsk_destructor(void *obj);
 
 /** Initialize kernel tasks support.
  *
@@ -91,7 +93,7 @@ void task_init(void)
 	TASK = NULL;
 	avltree_create(&tasks_tree);
 	task_slab = slab_cache_create("task_t", sizeof(task_t), 0,
-	    tsk_constructor, NULL, 0);
+	    tsk_constructor, tsk_destructor, 0);
 }
 
 /** Task finish walker.
@@ -166,12 +168,10 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	
 	list_initialize(&task->threads);
 	
+	caps_task_alloc(task);
+	
 	ipc_answerbox_init(&task->answerbox, task);
 	
-	size_t i;
-	for (i = 0; i < IPC_MAX_PHONES; i++)
-		ipc_phone_init(&task->phones[i], task);
-
 	spinlock_initialize(&task->active_calls_lock, "active_calls_lock");
 	list_initialize(&task->active_calls);
 		
@@ -182,6 +182,14 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	mutex_initialize(&task->kb.cleanup_lock, MUTEX_PASSIVE);
 #endif
 	
+	return 0;
+}
+
+size_t tsk_destructor(void *obj)
+{
+	task_t *task = (task_t *) obj;
+	
+	caps_task_free(task);
 	return 0;
 }
 
@@ -206,6 +214,8 @@ task_t *task_create(as_t *as, const char *name)
 	task->ucycles = 0;
 	task->kcycles = 0;
 
+	caps_task_init(task);
+
 	task->ipc_info.call_sent = 0;
 	task->ipc_info.call_received = 0;
 	task->ipc_info.answer_sent = 0;
@@ -227,8 +237,12 @@ task_t *task_create(as_t *as, const char *name)
 #endif
 	
 	if ((ipc_phone_0) &&
-	    (container_check(ipc_phone_0->task->container, task->container)))
-		(void) ipc_phone_connect(&task->phones[0], ipc_phone_0);
+	    (container_check(ipc_phone_0->task->container, task->container))) {
+		cap_handle_t phone_handle = phone_alloc(task);
+		kobject_t *phone_obj = kobject_get(task, phone_handle,
+		    KOBJECT_TYPE_PHONE);
+		(void) ipc_phone_connect(phone_obj->phone, ipc_phone_0);
+	}
 	
 	futex_task_init(task);
 	
@@ -602,21 +616,12 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #ifdef __64_BITS__
 	if (*additional)
 		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c "
-		    "%9" PRIua, task->taskid, ucycles, usuffix, kcycles,
+		    "%9" PRIua "\n", task->taskid, ucycles, usuffix, kcycles,
 		    ksuffix, atomic_get(&task->refcount));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %18p %18p\n",
 		    task->taskid, task->name, task->container, task, task->as);
 #endif
-	
-	if (*additional) {
-		size_t i;
-		for (i = 0; i < IPC_MAX_PHONES; i++) {
-			if (task->phones[i].callee)
-				printf(" %zu:%p", i, task->phones[i].callee);
-		}
-		printf("\n");
-	}
 	
 	irq_spinlock_unlock(&task->lock, false);
 	return true;

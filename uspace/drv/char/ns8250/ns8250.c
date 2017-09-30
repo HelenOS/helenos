@@ -159,6 +159,8 @@ typedef struct ns8250 {
 	unsigned client_connections;
 	/** The irq assigned to this device. */
 	int irq;
+	/** IRQ capability handle */
+	int irq_cap;
 	/** The base i/o address of the devices registers. */
 	uintptr_t io_addr;
 	/** The i/o port used to access the serial ports registers. */
@@ -796,7 +798,7 @@ static inline int ns8250_register_interrupt_handler(ns8250_t *ns)
  */
 static inline int ns8250_unregister_interrupt_handler(ns8250_t *ns)
 {
-	return unregister_interrupt_handler(ns->dev, ns->irq);
+	return unregister_interrupt_handler(ns->dev, ns->irq_cap);
 }
 
 /** The dev_add callback method of the serial port driver.
@@ -848,7 +850,8 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	ns8250_initialize_port(ns);
 	
 	/* Register interrupt handler. */
-	if (ns8250_register_interrupt_handler(ns) != EOK) {
+	ns->irq_cap = ns8250_register_interrupt_handler(ns);
+	if (ns->irq_cap < 0) {
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
 		rc = EADDRNOTAVAIL;
 		goto fail;

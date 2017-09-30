@@ -165,9 +165,9 @@ extern void async_set_fallback_port_handler(async_port_handler_t, void *);
 extern int async_create_callback_port(async_exch_t *, iface_t, sysarg_t,
     sysarg_t, async_port_handler_t, void *, port_id_t *);
 
-extern int async_irq_subscribe(int, int, async_notification_handler_t, void *,
+extern int async_irq_subscribe(int, async_notification_handler_t, void *,
     const irq_code_t *);
-extern int async_irq_unsubscribe(int, int);
+extern int async_irq_unsubscribe(int);
 
 extern int async_event_subscribe(event_type_t, async_notification_handler_t,
     void *);
@@ -342,7 +342,6 @@ extern sysarg_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *, sysarg_t *);
 
-extern async_sess_t *async_clone_establish(exch_mgmt_t, async_exch_t *);
 extern async_sess_t *async_connect_me_to(exch_mgmt_t, async_exch_t *, sysarg_t,
     sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_me_to_iface(async_exch_t *, iface_t,
@@ -471,8 +470,6 @@ extern void async_data_write_void(sysarg_t);
 extern int async_data_write_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
-extern int async_exchange_clone(async_exch_t *, async_exch_t *);
-extern async_sess_t *async_clone_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive_start(exch_mgmt_t, ipc_call_t *);
 

@@ -39,7 +39,6 @@
 #include <console/chardev.h>
 #include <mm/slab.h>
 #include <arch/asm.h>
-#include <ddi/device.h>
 
 static irq_ownership_t dsrlnin_claim(irq_t *irq)
 {
@@ -63,7 +62,6 @@ dsrlnin_instance_t *dsrlnin_init(dsrlnin_t *dev, inr_t inr)
 		instance->srlnin = NULL;
 		
 		irq_initialize(&instance->irq);
-		instance->irq.devno = device_assign_devno();
 		instance->irq.inr = inr;
 		instance->irq.claim = dsrlnin_claim;
 		instance->irq.handler = dsrlnin_irq_handler;

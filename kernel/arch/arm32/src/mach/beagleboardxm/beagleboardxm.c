@@ -43,7 +43,6 @@
 #include <interrupt.h>
 #include <mm/km.h>
 #include <ddi/ddi.h>
-#include <ddi/device.h>
 
 static void bbxm_init(void);
 static void bbxm_timer_irq_start(void);
@@ -116,7 +115,6 @@ static void bbxm_timer_irq_start(void)
 	/* Initialize timer IRQ */
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
-	timer_irq.devno = device_assign_devno();
 	timer_irq.inr = AMDM37x_GPT1_IRQ;
 	timer_irq.claim = bb_timer_irq_claim;
 	timer_irq.handler = bb_timer_irq_handler;

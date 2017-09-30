@@ -39,7 +39,6 @@
 #include <ddi/irq.h>
 #include <arch/asm.h>
 #include <mm/slab.h>
-#include <ddi/device.h>
 #include <synch/spinlock.h>
 #include <mem.h>
 
@@ -105,7 +104,6 @@ cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 		pio_write_8(&dev->ier, IER_CLR | ALL_INT);
 
 		irq_initialize(&instance->irq);
-		instance->irq.devno = device_assign_devno();
 		instance->irq.inr = inr;
 		instance->irq.claim = cuda_claim;
 		instance->irq.handler = cuda_irq_handler;

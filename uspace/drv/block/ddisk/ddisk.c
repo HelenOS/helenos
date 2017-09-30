@@ -111,6 +111,8 @@ typedef struct {
 	ddisk_res_t ddisk_res;
 	ddisk_regs_t *ddisk_regs;
 
+	int irq_cap;
+
 	bd_srvs_t bds;
 } ddisk_t;
 
@@ -446,6 +448,8 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	ddisk->bds.ops = &ddisk_bd_ops;
 	ddisk->bds.sarg = ddisk;
 
+	ddisk->irq_cap = -1;
+
 	/*
 	 * Enable access to ddisk's PIO registers.
 	 */
@@ -498,9 +502,10 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	ddisk_irq_pio_ranges[0].base = res.base;
 	ddisk_irq_commands[0].addr = (void *) &res_phys->status;
 	ddisk_irq_commands[3].addr = (void *) &res_phys->command;
-	rc = register_interrupt_handler(dev, ddisk->ddisk_res.irq,
+	ddisk->irq_cap = register_interrupt_handler(dev, ddisk->ddisk_res.irq,
 	    ddisk_irq_handler, &ddisk_irq_code);
-	if (rc != EOK) {
+	if (ddisk->irq_cap < 0) {
+		rc = ddisk->irq_cap;
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
 		goto error;
 	}
@@ -540,7 +545,7 @@ static int ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
 		return rc;
 	}
 
-	unregister_interrupt_handler(ddisk->dev, ddisk->ddisk_res.irq);
+	unregister_interrupt_handler(ddisk->dev, ddisk->irq_cap);
 	
 	rc = pio_disable(ddisk->ddisk_regs, sizeof(ddisk_regs_t));
 	if (rc != EOK) {

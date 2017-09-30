@@ -93,6 +93,7 @@ static int sb_add_device(ddf_dev_t *device)
 	const size_t irq_cmd_count = sb16_irq_code_size();
 	irq_cmd_t irq_cmds[irq_cmd_count];
 	irq_pio_range_t irq_ranges[1];
+	int irq_cap;
 
 	sb16_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_t));
 	int rc = soft_state ? EOK : ENOMEM;
@@ -122,8 +123,10 @@ static int sb_add_device(ddf_dev_t *device)
 		.ranges = irq_ranges
 	};
 
-	rc = register_interrupt_handler(device, irq, irq_handler, &irq_code);
-	if (rc != EOK) {
+	irq_cap = register_interrupt_handler(device, irq, irq_handler,
+	    &irq_code);
+	if (irq_cap < 0) {
+		rc = irq_cap;
 		ddf_log_error("Failed to register irq handler: %s.",
 		    str_error(rc));
 		goto error;
@@ -167,7 +170,7 @@ static int sb_add_device(ddf_dev_t *device)
 	return EOK;
 error:
 	if (handler_regd)
-		unregister_interrupt_handler(device, irq);
+		unregister_interrupt_handler(device, irq_cap);
 	return rc;
 }
 

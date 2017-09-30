@@ -1184,14 +1184,14 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	ct.rangecount = sizeof(ahci_ranges) / sizeof(irq_pio_range_t);
 	ct.ranges = ahci_ranges;
 	
-	int rc = register_interrupt_handler(dev, hw_res_parsed.irqs.irqs[0],
-	    ahci_interrupt, &ct);
-	if (rc != EOK) {
+	int irq_cap = register_interrupt_handler(dev,
+	    hw_res_parsed.irqs.irqs[0], ahci_interrupt, &ct);
+	if (irq_cap < 0) {
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler.");
 		goto error_register_interrupt_handler;
 	}
 	
-	rc = irc_enable_interrupt(hw_res_parsed.irqs.irqs[0]);
+	int rc = irc_enable_interrupt(hw_res_parsed.irqs.irqs[0]);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed enable interupt.");
 		goto error_enable_interrupt;
@@ -1201,7 +1201,7 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	return ahci;
 	
 error_enable_interrupt:
-	unregister_interrupt_handler(dev, hw_res_parsed.irqs.irqs[0]);
+	unregister_interrupt_handler(dev, irq_cap);
 	
 error_register_interrupt_handler:
 	// FIXME: unmap physical memory

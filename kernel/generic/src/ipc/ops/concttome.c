@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
- * Copyright (c) 2012 Jakub Jermar 
+ * Copyright (c) 2012 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,36 +41,39 @@
 
 static int request_process(call_t *call, answerbox_t *box)
 {
-	int phoneid = phone_alloc(TASK);
+	cap_handle_t phone_handle = phone_alloc(TASK);
 
-	IPC_SET_ARG5(call->data, phoneid);
+	IPC_SET_ARG5(call->data, phone_handle);
 	
 	return EOK;
 }
 
 static int answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
-	int phoneid = (int) IPC_GET_ARG5(*olddata);
+	cap_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
 
-	if (phoneid >= 0)
-		phone_dealloc(phoneid);
+	if (phone_handle >= 0)
+		phone_dealloc(phone_handle);
 
 	return EOK;
 }
 
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	int phoneid = (int) IPC_GET_ARG5(*olddata);
+	cap_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
 
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/* The connection was not accepted */
 		answer_cleanup(answer, olddata);
-	} else if (phoneid >= 0) {
+	} else if (phone_handle >= 0) {
 		/* The connection was accepted */
-		if (phone_connect(phoneid, &answer->sender->answerbox)) {
-			/* Set 'phone hash' as arg5 of response */
+		if (phone_connect(phone_handle, &answer->sender->answerbox)) {
+			/* Set 'phone hash' as ARG5 of response */
+			kobject_t *phone_obj = kobject_get(TASK, phone_handle,
+			    KOBJECT_TYPE_PHONE);
 			IPC_SET_ARG5(answer->data,
-			    (sysarg_t) &TASK->phones[phoneid]);
+			    (sysarg_t) phone_obj->phone);
+			kobject_put(phone_obj);
 		} else {
 			/* The answerbox is shutting down. */
 			IPC_SET_RETVAL(answer->data, ENOENT);

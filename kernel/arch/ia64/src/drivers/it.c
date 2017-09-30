@@ -41,7 +41,6 @@
 #include <arch/barrier.h>
 #include <time/clock.h>
 #include <ddi/irq.h>
-#include <ddi/device.h>
 #include <arch.h>
 
 #define IT_SERVICE_CLOCKS  64
@@ -65,7 +64,6 @@ void it_init(void)
 	if (config.cpu_active == 1) {
 		irq_initialize(&it_irq);
 		it_irq.inr = INTERRUPT_TIMER;
-		it_irq.devno = device_assign_devno();
 		it_irq.claim = it_claim;
 		it_irq.handler = it_interrupt;
 		irq_register(&it_irq);

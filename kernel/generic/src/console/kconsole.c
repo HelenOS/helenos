@@ -54,7 +54,6 @@
 #include <func.h>
 #include <str.h>
 #include <sysinfo/sysinfo.h>
-#include <ddi/device.h>
 #include <symtab.h>
 #include <errno.h>
 #include <putchar.h>

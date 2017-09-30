@@ -208,7 +208,6 @@ GENERIC_SOURCES = \
 	generic/src/cpu/cpu_mask.c \
 	generic/src/ddi/ddi.c \
 	generic/src/ddi/irq.c \
-	generic/src/ddi/device.c \
 	generic/src/debug/symtab.c \
 	generic/src/debug/stacktrace.c \
 	generic/src/debug/panic.c \
@@ -271,10 +270,8 @@ GENERIC_SOURCES = \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
 	generic/src/ipc/sysipc_ops.c \
-	generic/src/ipc/ops/clnestab.c \
 	generic/src/ipc/ops/conctmeto.c \
 	generic/src/ipc/ops/concttome.c \
-	generic/src/ipc/ops/connclone.c \
 	generic/src/ipc/ops/dataread.c \
 	generic/src/ipc/ops/datawrite.c \
 	generic/src/ipc/ops/debug.c \
@@ -285,6 +282,7 @@ GENERIC_SOURCES = \
 	generic/src/ipc/ipcrsc.c \
 	generic/src/ipc/irq.c \
 	generic/src/ipc/event.c \
+	generic/src/cap/cap.c \
 	generic/src/security/perm.c \
 	generic/src/sysinfo/sysinfo.c \
 	generic/src/sysinfo/stats.c

@@ -59,11 +59,13 @@
 #include <mm/as.h>
 #include <abi/sysinfo.h>
 #include <arch.h>
+#include <cap/cap.h>
 
 #define TASK                 THE->task
 
 
 struct thread;
+struct cap;
 
 /** Task structure. */
 typedef struct task {
@@ -94,14 +96,14 @@ typedef struct task {
 	
 	/** Task permissions. */
 	perm_t perms;
+
+	/** Capabilities */
+	cap_info_t *cap_info;
 	
 	/* IPC stuff */
 
 	/** Receiving communication endpoint */
 	answerbox_t answerbox;
-
-	/** Sending communication endpoints */
-	phone_t phones[IPC_MAX_PHONES];
 
 	/** Spinlock protecting the active_calls list. */
 	SPINLOCK_DECLARE(active_calls_lock);

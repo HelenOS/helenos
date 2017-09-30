@@ -81,6 +81,7 @@ extern void hash_table_create(hash_table_t *h, size_t m, size_t max_keys,
 extern void hash_table_insert(hash_table_t *h, sysarg_t key[], link_t *item);
 extern link_t *hash_table_find(hash_table_t *h, sysarg_t key[]);
 extern void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys);
+extern void hash_table_remove_item(hash_table_t *h, link_t *item);
 
 #endif
 

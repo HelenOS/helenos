@@ -36,9 +36,10 @@
  * @brief IRQ notification framework.
  *
  * This framework allows applications to subscribe to receive a notification
- * when interrupt is detected. The application may provide a simple 'top-half'
- * handler as part of its registration, which can perform simple operations
- * (read/write port/memory, add information to notification IPC message).
+ * when an interrupt is detected. The application may provide a simple
+ * 'top-half' handler as part of its registration, which can perform simple
+ * operations (read/write port/memory, add information to notification IPC
+ * message).
  *
  * The structure of a notification message is as follows:
  * - IMETHOD: interface and method as set by the SYS_IPC_IRQ_SUBSCRIBE syscall
@@ -49,25 +50,6 @@
  * - ARG5: payload modified by a 'top-half' handler (scratch[5])
  * - in_phone_hash: interrupt counter (may be needed to assure correct order
  *                  in multithreaded drivers)
- *
- * Note on synchronization for ipc_irq_subscribe(), ipc_irq_unsubscribe(),
- * ipc_irq_cleanup() and IRQ handlers:
- *
- *   By always taking all of the uspace IRQ hash table lock, IRQ structure lock
- *   and answerbox lock, we can rule out race conditions between the
- *   registration functions and also the cleanup function. Thus the observer can
- *   either see the IRQ structure present in both the hash table and the
- *   answerbox list or absent in both. Views in which the IRQ structure would be
- *   linked in the hash table but not in the answerbox list, or vice versa, are
- *   not possible.
- *
- *   By always taking the hash table lock and the IRQ structure lock, we can
- *   rule out a scenario in which we would free up an IRQ structure, which is
- *   still referenced by, for example, an IRQ handler. The locking scheme forces
- *   us to lock the IRQ structure only after any progressing IRQs on that
- *   structure are finished. Because we hold the hash table lock, we prevent new
- *   IRQs from taking new references to the IRQ structure.
- *
  */
 
 #include <arch.h>
@@ -83,6 +65,7 @@
 #include <console/console.h>
 #include <print.h>
 #include <macros.h>
+#include <cap/cap.h>
 
 static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
 {
@@ -117,7 +100,7 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 		}
 	}
 	
-	/* Rewrite the pseudocode addresses from physical to kernel virtual. */
+	/* Rewrite the IRQ code addresses from physical to kernel virtual. */
 	for (size_t i = 0; i < cmdcount; i++) {
 		uintptr_t addr;
 		size_t size;
@@ -175,10 +158,9 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 	return EOK;
 }
 
-/** Statically check the top-half pseudocode
+/** Statically check the top-half IRQ code
  *
- * Check the top-half pseudocode for invalid or unsafe
- * constructs.
+ * Check the top-half IRQ code for invalid or unsafe constructs.
  *
  */
 static int code_check(irq_cmd_t *cmds, size_t cmdcount)
@@ -215,9 +197,9 @@ static int code_check(irq_cmd_t *cmds, size_t cmdcount)
 	return EOK;
 }
 
-/** Free the top-half pseudocode.
+/** Free the top-half IRQ code.
  *
- * @param code Pointer to the top-half pseudocode.
+ * @param code Pointer to the top-half IRQ code.
  *
  */
 static void code_free(irq_code_t *code)
@@ -230,11 +212,11 @@ static void code_free(irq_code_t *code)
 	}
 }
 
-/** Copy the top-half pseudocode from userspace into the kernel.
+/** Copy the top-half IRQ code from userspace into the kernel.
  *
- * @param ucode Userspace address of the top-half pseudocode.
+ * @param ucode Userspace address of the top-half IRQ code.
  *
- * @return Kernel address of the copied pseudocode.
+ * @return Kernel address of the copied IRQ code.
  *
  */
 static irq_code_t *code_from_uspace(irq_code_t *ucode)
@@ -288,24 +270,36 @@ error:
 	return NULL;
 }
 
+static void irq_destroy(void *arg)
+{
+	irq_t *irq = (irq_t *) arg;
+
+	/* Free up the IRQ code and associated structures. */
+	code_free(irq->notif_cfg.code);
+	slab_free(irq_slab, irq);
+}
+
+static kobject_ops_t irq_kobject_ops = {
+	.destroy = irq_destroy
+};
+
 /** Subscribe an answerbox as a receiving end for IRQ notifications.
  *
  * @param box     Receiving answerbox.
  * @param inr     IRQ number.
- * @param devno   Device number.
- * @param imethod Interface and method to be associated with the
- *                notification.
- * @param ucode   Uspace pointer to top-half pseudocode.
+ * @param imethod Interface and method to be associated with the notification.
+ * @param ucode   Uspace pointer to top-half IRQ code.
  *
- * @return EOK on success or a negative error code.
+ * @return  IRQ capability handle.
+ * @return  Negative error code.
  *
  */
-int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
-    sysarg_t imethod, irq_code_t *ucode)
+int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
+    irq_code_t *ucode)
 {
 	sysarg_t key[] = {
-		(sysarg_t) inr,
-		(sysarg_t) devno
+		[IRQ_HT_KEY_INR] = (sysarg_t) inr,
+		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_NO_CLAIM
 	};
 	
 	if ((inr < 0) || (inr > last_inr))
@@ -320,12 +314,26 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
 		code = NULL;
 	
 	/*
-	 * Allocate and populate the IRQ structure.
+	 * Allocate and populate the IRQ kernel object.
 	 */
-	irq_t *irq = malloc(sizeof(irq_t), 0);
+	cap_handle_t handle = cap_alloc(TASK);
+	if (handle < 0)
+		return handle;
+	
+	irq_t *irq = (irq_t *) slab_alloc(irq_slab, FRAME_ATOMIC);
+	if (!irq) {
+		cap_free(TASK, handle);
+		return ENOMEM;
+	}
+
+	kobject_t *kobject = malloc(sizeof(kobject_t), FRAME_ATOMIC);
+	if (!kobject) {
+		cap_free(TASK, handle);
+		slab_free(irq_slab, irq);
+		return ENOMEM;
+	}
 	
 	irq_initialize(irq);
-	irq->devno = devno;
 	irq->inr = inr;
 	irq->claim = ipc_irq_top_half_claim;
 	irq->handler = ipc_irq_top_half_handler;
@@ -336,166 +344,56 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, devno_t devno,
 	irq->notif_cfg.counter = 0;
 	
 	/*
-	 * Enlist the IRQ structure in the uspace IRQ hash table and the
-	 * answerbox's list.
+	 * Insert the IRQ structure into the uspace IRQ hash table.
 	 */
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-	
-	link_t *hlp = hash_table_find(&irq_uspace_hash_table, key);
-	if (hlp) {
-		irq_t *hirq = hash_table_get_instance(hlp, irq_t, link);
-		
-		/* hirq is locked */
-		irq_spinlock_unlock(&hirq->lock, false);
-		code_free(code);
-		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-		
-		free(irq);
-		return EEXIST;
-	}
-	
-	/* Locking is not really necessary, but paranoid */
 	irq_spinlock_lock(&irq->lock, false);
-	irq_spinlock_lock(&box->irq_lock, false);
 	
+	irq->notif_cfg.hashed_in = true;
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
-	list_append(&irq->notif_cfg.link, &box->irq_list);
 	
-	irq_spinlock_unlock(&box->irq_lock, false);
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
+
+	kobject_initialize(kobject, KOBJECT_TYPE_IRQ, irq, &irq_kobject_ops);
+	cap_publish(TASK, handle, kobject);
 	
-	return EOK;
+	return handle;
 }
 
 /** Unsubscribe task from IRQ notification.
  *
- * @param box   Answerbox associated with the notification.
- * @param inr   IRQ number.
- * @param devno Device number.
+ * @param box     Answerbox associated with the notification.
+ * @param handle  IRQ capability handle.
  *
  * @return EOK on success or a negative error code.
  *
  */
-int ipc_irq_unsubscribe(answerbox_t *box, inr_t inr, devno_t devno)
+int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 {
-	sysarg_t key[] = {
-		(sysarg_t) inr,
-		(sysarg_t) devno
-	};
-	
-	if ((inr < 0) || (inr > last_inr))
-		return ELIMIT;
-	
-	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-	link_t *lnk = hash_table_find(&irq_uspace_hash_table, key);
-	if (!lnk) {
-		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
+	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_IRQ);
+	if (!kobj)
 		return ENOENT;
+	
+	assert(kobj->irq->notif_cfg.answerbox == box);
+
+	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
+	irq_spinlock_lock(&kobj->irq->lock, false);
+	
+	if (kobj->irq->notif_cfg.hashed_in) {
+		/* Remove the IRQ from the uspace IRQ hash table. */
+		hash_table_remove_item(&irq_uspace_hash_table,
+		    &kobj->irq->link);
+		kobj->irq->notif_cfg.hashed_in = false;
 	}
-	
-	irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
-	
-	/* irq is locked */
-	irq_spinlock_lock(&box->irq_lock, false);
-	
-	assert(irq->notif_cfg.answerbox == box);
-	
-	/* Remove the IRQ from the answerbox's list. */
-	list_remove(&irq->notif_cfg.link);
-	
-	/*
-	 * We need to drop the IRQ lock now because hash_table_remove() will try
-	 * to reacquire it. That basically violates the natural locking order,
-	 * but a deadlock in hash_table_remove() is prevented by the fact that
-	 * we already held the IRQ lock and didn't drop the hash table lock in
-	 * the meantime.
-	 */
-	irq_spinlock_unlock(&irq->lock, false);
-	
-	/* Remove the IRQ from the uspace IRQ hash table. */
-	hash_table_remove(&irq_uspace_hash_table, key, 2);
-	
-	irq_spinlock_unlock(&box->irq_lock, false);
+
+	/* kobj->irq->lock unlocked by the hash table remove_callback */
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-	
-	/* Free up the pseudo code and associated structures. */
-	code_free(irq->notif_cfg.code);
-	
-	/* Free up the IRQ structure. */
-	free(irq);
+
+	kobject_put(kobj);
+	cap_free(TASK, handle);
 	
 	return EOK;
-}
-
-/** Disconnect all IRQ notifications from an answerbox.
- *
- * This function is effective because the answerbox contains
- * list of all irq_t structures that are subscribed to
- * send notifications to it.
- *
- * @param box Answerbox for which we want to carry out the cleanup.
- *
- */
-void ipc_irq_cleanup(answerbox_t *box)
-{
-loop:
-	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-	irq_spinlock_lock(&box->irq_lock, false);
-	
-	while (!list_empty(&box->irq_list)) {
-		DEADLOCK_PROBE_INIT(p_irqlock);
-		
-		irq_t *irq = list_get_instance(list_first(&box->irq_list), irq_t,
-		    notif_cfg.link);
-		
-		if (!irq_spinlock_trylock(&irq->lock)) {
-			/*
-			 * Avoid deadlock by trying again.
-			 */
-			irq_spinlock_unlock(&box->irq_lock, false);
-			irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-			DEADLOCK_PROBE(p_irqlock, DEADLOCK_THRESHOLD);
-			goto loop;
-		}
-		
-		sysarg_t key[2];
-		key[0] = irq->inr;
-		key[1] = irq->devno;
-		
-		assert(irq->notif_cfg.answerbox == box);
-		
-		/* Unlist from the answerbox. */
-		list_remove(&irq->notif_cfg.link);
-		
-		/*
-		 * We need to drop the IRQ lock now because hash_table_remove()
-		 * will try to reacquire it. That basically violates the natural
-		 * locking order, but a deadlock in hash_table_remove() is
-		 * prevented by the fact that we already held the IRQ lock and
-		 * didn't drop the hash table lock in the meantime.
-		 */
-		irq_spinlock_unlock(&irq->lock, false);
-		
-		/* Remove from the hash table. */
-		hash_table_remove(&irq_uspace_hash_table, key, 2);
-		
-		/*
-		 * Release both locks so that we can free the pseudo code.
-		 */
-		irq_spinlock_unlock(&box->irq_lock, false);
-		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-		
-		code_free(irq->notif_cfg.code);
-		free(irq);
-		
-		/* Reacquire both locks before taking another round. */
-		irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-		irq_spinlock_lock(&box->irq_lock, false);
-	}
-	
-	irq_spinlock_unlock(&box->irq_lock, false);
-	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 }
 
 /** Add a call to the proper answerbox queue.
@@ -515,12 +413,12 @@ static void send_call(irq_t *irq, call_t *call)
 	waitq_wakeup(&irq->notif_cfg.answerbox->wq, WAKEUP_FIRST);
 }
 
-/** Apply the top-half pseudo code to find out whether to accept the IRQ or not.
+/** Apply the top-half IRQ code to find out whether to accept the IRQ or not.
  *
  * @param irq IRQ structure.
  *
- * @return IRQ_ACCEPT if the interrupt is accepted by the
- *         pseudocode, IRQ_DECLINE otherwise.
+ * @return IRQ_ACCEPT if the interrupt is accepted by the IRQ code.
+ * @return IRQ_DECLINE if the interrupt is not accepted byt the IRQ code.
  *
  */
 irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)

@@ -41,8 +41,8 @@
 #include <abi/ipc/ipc.h>
 #include <abi/proc/task.h>
 #include <typedefs.h>
-
-#define IPC_MAX_PHONES  64
+#include <mm/slab.h>
+#include <cap/cap.h>
 
 struct answerbox;
 struct task;
@@ -61,13 +61,14 @@ typedef enum {
 } ipc_phone_state_t;
 
 /** Structure identifying phone (in TASK structure) */
-typedef struct {
+typedef struct phone {
 	mutex_t lock;
 	link_t link;
 	struct task *caller;
 	struct answerbox *callee;
 	ipc_phone_state_t state;
 	atomic_t active_calls;
+	kobject_t *kobject;
 } phone_t;
 
 typedef struct answerbox {
@@ -93,8 +94,6 @@ typedef struct answerbox {
 	
 	/** Notifications from IRQ handlers. */
 	list_t irq_notifs;
-	/** IRQs with notifications to this answerbox. */
-	list_t irq_list;
 } answerbox_t;
 
 typedef struct {
@@ -168,6 +167,8 @@ typedef struct {
 	/** Buffer for IPC_M_DATA_WRITE and IPC_M_DATA_READ. */
 	uint8_t *buffer;
 } call_t;
+
+extern slab_cache_t *phone_slab;
 
 extern answerbox_t *ipc_phone_0;
 

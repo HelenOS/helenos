@@ -38,8 +38,8 @@
 #include <libarch/types.h>
 #include <abi/ddi/irq.h>
 
-extern int ipc_irq_subscribe(int, int, sysarg_t, const irq_code_t *);
-extern int ipc_irq_unsubscribe(int, int);
+extern int ipc_irq_subscribe(int, sysarg_t, const irq_code_t *);
+extern int ipc_irq_unsubscribe(int);
 
 #endif
 

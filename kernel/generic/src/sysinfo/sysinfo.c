@@ -699,6 +699,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 		subtree = *root;
 	
 	sysinfo_return_t ret;
+	ret.tag = SYSINFO_VAL_UNDEFINED;
 	
 	if (subtree != NULL) {
 		/*
@@ -729,9 +730,6 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 			ret.data.data = (void *) names;
 			ret.data.size = size;
 		}
-	} else {
-		/* No item in the fixed sysinfo tree */
-		ret.tag = SYSINFO_VAL_UNDEFINED;
 	}
 	
 	return ret;

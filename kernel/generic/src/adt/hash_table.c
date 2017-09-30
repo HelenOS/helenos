@@ -189,5 +189,20 @@ void hash_table_remove(hash_table_t *h, sysarg_t key[], size_t keys)
 	}
 }
 
+/** Remove an existing item from hash table.
+ *
+ * @param h     Hash table.
+ * @param item  Item to remove from the hash table.
+ */
+void hash_table_remove_item(hash_table_t *h, link_t *item)
+{
+	assert(h);
+	assert(h->op);
+	
+	list_remove(item);
+	if (h->op->remove_callback)
+		h->op->remove_callback(item);
+}
+
 /** @}
  */

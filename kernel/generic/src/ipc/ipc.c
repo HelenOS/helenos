@@ -42,6 +42,7 @@
 #include <synch/mutex.h>
 #include <synch/waitq.h>
 #include <ipc/ipc.h>
+#include <ipc/ipcrsc.h>
 #include <abi/ipc/methods.h>
 #include <ipc/kbox.h>
 #include <ipc/event.h>
@@ -57,14 +58,17 @@
 #include <proc/thread.h>
 #include <arch/interrupt.h>
 #include <ipc/irq.h>
+#include <cap/cap.h>
 
 static void ipc_forget_call(call_t *);
 
 /** Open channel that is assigned automatically to new tasks */
 answerbox_t *ipc_phone_0 = NULL;
 
-static slab_cache_t *ipc_call_slab;
-static slab_cache_t *ipc_answerbox_slab;
+static slab_cache_t *call_slab;
+static slab_cache_t *answerbox_slab;
+
+slab_cache_t *phone_slab = NULL; 
 
 /** Initialize a call structure.
  *
@@ -92,7 +96,7 @@ void ipc_call_release(call_t *call)
 	if (atomic_predec(&call->refcnt) == 0) {
 		if (call->buffer)
 			free(call->buffer);
-		slab_free(ipc_call_slab, call);
+		slab_free(call_slab, call);
 	}
 }
 
@@ -109,7 +113,7 @@ void ipc_call_release(call_t *call)
  */
 call_t *ipc_call_alloc(unsigned int flags)
 {
-	call_t *call = slab_alloc(ipc_call_slab, flags);
+	call_t *call = slab_alloc(call_slab, flags);
 	if (call) {
 		_ipc_call_init(call);
 		ipc_call_hold(call);
@@ -144,15 +148,16 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
 	list_initialize(&box->dispatched_calls);
 	list_initialize(&box->answers);
 	list_initialize(&box->irq_notifs);
-	list_initialize(&box->irq_list);
 	box->task = task;
 }
 
 /** Connect a phone to an answerbox.
  *
- * @param phone Initialized phone structure.
- * @param box   Initialized answerbox structure.
- * @return      True if the phone was connected, false otherwise.
+ * This function must be passed a reference to phone->kobject.
+ *
+ * @param phone  Initialized phone structure.
+ * @param box    Initialized answerbox structure.
+ * @return       True if the phone was connected, false otherwise.
  */
 bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
@@ -165,11 +170,17 @@ bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	if (active) {
 		phone->state = IPC_PHONE_CONNECTED;
 		phone->callee = box;
+		/* Pass phone->kobject reference to box->connected_phones */
 		list_append(&phone->link, &box->connected_phones);
 	}
 
 	irq_spinlock_unlock(&box->lock, true);
 	mutex_unlock(&phone->lock);
+
+	if (!active) {
+		/* We still have phone->kobject's reference; drop it */
+		kobject_put(phone->kobject);
+	}
 
 	return active;
 }
@@ -187,6 +198,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
 	atomic_set(&phone->active_calls, 0);
+	phone->kobject = NULL;
 }
 
 /** Helper function to facilitate synchronous calls.
@@ -199,7 +211,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
  */
 int ipc_call_sync(phone_t *phone, call_t *request)
 {
-	answerbox_t *mybox = slab_alloc(ipc_answerbox_slab, 0);
+	answerbox_t *mybox = slab_alloc(answerbox_slab, 0);
 	ipc_answerbox_init(mybox, TASK);
 	
 	/* We will receive data in a special box. */
@@ -207,7 +219,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 	
 	int rc = ipc_call(phone, request);
 	if (rc != EOK) {
-		slab_free(ipc_answerbox_slab, mybox);
+		slab_free(answerbox_slab, mybox);
 		return rc;
 	}
 
@@ -254,7 +266,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 	}
 	assert(!answer || request == answer);
 	
-	slab_free(ipc_answerbox_slab, mybox);
+	slab_free(answerbox_slab, mybox);
 	return rc;
 }
 
@@ -452,6 +464,9 @@ int ipc_phone_hangup(phone_t *phone)
 		irq_spinlock_lock(&box->lock, true);
 		list_remove(&phone->link);
 		irq_spinlock_unlock(&box->lock, true);
+
+		/* Drop the answerbox reference */
+		kobject_put(phone->kobject);
 		
 		call_t *call = ipc_call_alloc(0);
 		IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
@@ -654,12 +669,15 @@ restart_phones:
 			_ipc_call(phone, box, call, true);
 
 			task_release(phone->caller);
+
+			kobject_put(phone->kobject);
 			
 			/* Must start again */
 			goto restart_phones;
 		}
 		
 		mutex_unlock(&phone->lock);
+		kobject_put(phone->kobject);
 	}
 	
 	irq_spinlock_unlock(&box->lock, true);
@@ -706,7 +724,7 @@ restart:
 		 * We are done, there are no more active calls.
 		 * Nota bene: there may still be answers waiting for pick up.
 		 */
-		spinlock_unlock(&TASK->active_calls_lock);	
+		spinlock_unlock(&TASK->active_calls_lock);
 		return;	
 	}
 	
@@ -719,7 +737,7 @@ restart:
 		 *  _ipc_answer_free_call() win the race to dequeue the first
 		 * call on the list.
 		 */
-		spinlock_unlock(&TASK->active_calls_lock);	
+		spinlock_unlock(&TASK->active_calls_lock);
 		goto restart;
 	}
 
@@ -728,64 +746,72 @@ restart:
 	goto restart;
 }
 
+static bool phone_cap_wait_cb(cap_t *cap, void *arg)
+{
+	phone_t *phone = cap->kobject->phone;
+	bool *restart = (bool *) arg;
+
+	mutex_lock(&phone->lock);
+	if ((phone->state == IPC_PHONE_HUNGUP) &&
+	    (atomic_get(&phone->active_calls) == 0)) {
+		phone->state = IPC_PHONE_FREE;
+		phone->callee = NULL;
+	}
+
+	/*
+	 * We might have had some IPC_PHONE_CONNECTING phones at the beginning
+	 * of ipc_cleanup(). Depending on whether these were forgotten or
+	 * answered, they will eventually enter the IPC_PHONE_FREE or
+	 * IPC_PHONE_CONNECTED states, respectively.  In the latter case, the
+	 * other side may slam the open phones at any time, in which case we
+	 * will get an IPC_PHONE_SLAMMED phone.
+	 */
+	if ((phone->state == IPC_PHONE_CONNECTED) ||
+	    (phone->state == IPC_PHONE_SLAMMED)) {
+		mutex_unlock(&phone->lock);
+		ipc_phone_hangup(phone);
+		/*
+		 * Now there may be one extra active call, which needs to be
+		 * forgotten.
+		 */
+		ipc_forget_all_active_calls();
+		*restart = true;
+		return false;
+	}
+
+	/*
+	 * If the hangup succeeded, it has sent a HANGUP message, the IPC is now
+	 * in HUNGUP state, we wait for the reply to come
+	 */
+	if (phone->state != IPC_PHONE_FREE) {
+		mutex_unlock(&phone->lock);
+		return false;
+	}
+
+	mutex_unlock(&phone->lock);
+	return true;
+}
+
 /** Wait for all answers to asynchronous calls to arrive. */
 static void ipc_wait_for_all_answered_calls(void)
 {
 	call_t *call;
-	size_t i;
+	bool restart;
 
 restart:
 	/*
 	 * Go through all phones, until they are all free.
 	 * Locking is needed as there may be connection handshakes in progress.
 	 */
-	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		phone_t *phone = &TASK->phones[i];
-
-		mutex_lock(&phone->lock);	
-		if ((phone->state == IPC_PHONE_HUNGUP) &&
-		    (atomic_get(&phone->active_calls) == 0)) {
-			phone->state = IPC_PHONE_FREE;
-			phone->callee = NULL;
-		}
-
-		/*
-		 * We might have had some IPC_PHONE_CONNECTING phones at the
-		 * beginning of ipc_cleanup(). Depending on whether these were
-		 * forgotten or answered, they will eventually enter the
-		 * IPC_PHONE_FREE or IPC_PHONE_CONNECTED states, respectively.
-		 * In the latter case, the other side may slam the open phones
-		 * at any time, in which case we will get an IPC_PHONE_SLAMMED
-		 * phone.
-		 */
-		if ((phone->state == IPC_PHONE_CONNECTED) ||
-		    (phone->state == IPC_PHONE_SLAMMED)) {
-			mutex_unlock(&phone->lock);
-			ipc_phone_hangup(phone);
-			/*
-			 * Now there may be one extra active call, which needs
-			 * to be forgotten.
-			 */
-			ipc_forget_all_active_calls();
-			goto restart;
-		}
-
-		/*
-		 * If the hangup succeeded, it has sent a HANGUP message, the
-		 * IPC is now in HUNGUP state, we wait for the reply to come
-		 */
-		if (phone->state != IPC_PHONE_FREE) {
-			mutex_unlock(&phone->lock);
-			break;
-		}
-
-		mutex_unlock(&phone->lock);
-	}
-		
-	/* Got into cleanup */
-	if (i == IPC_MAX_PHONES)
+	restart = false;
+	if (caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_PHONE,
+	    phone_cap_wait_cb, &restart)) {
+		/* Got into cleanup */
 		return;
-		
+	}
+	if (restart)
+		goto restart;
+	
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
 	    SYNCH_FLAGS_NONE);
 	assert(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
@@ -794,6 +820,18 @@ restart:
 
 	ipc_call_free(call);
 	goto restart;
+}
+
+static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
+{
+	ipc_phone_hangup(cap->kobject->phone);
+	return true;
+}
+
+static bool irq_cap_cleanup_cb(cap_t *cap, void *arg)
+{
+	ipc_irq_unsubscribe(&TASK->answerbox, cap->handle);
+	return true;
 }
 
 /** Clean up all IPC communication of the current task.
@@ -815,14 +853,15 @@ void ipc_cleanup(void)
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	for (size_t i = 0; i < IPC_MAX_PHONES; i++)
-		ipc_phone_hangup(&TASK->phones[i]);
+	caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_PHONE,
+	    phone_cap_cleanup_cb, NULL);
 	
 	/* Unsubscribe from any event notifications. */
 	event_cleanup_answerbox(&TASK->answerbox);
 	
-	/* Disconnect all connected irqs */
-	ipc_irq_cleanup(&TASK->answerbox);
+	/* Disconnect all connected IRQs */
+	caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_IRQ, irq_cap_cleanup_cb,
+	    NULL);
 	
 	/* Disconnect all phones connected to our regular answerbox */
 	ipc_answerbox_slam_phones(&TASK->answerbox, false);
@@ -846,10 +885,12 @@ void ipc_cleanup(void)
  */
 void ipc_init(void)
 {
-	ipc_call_slab = slab_cache_create("call_t", sizeof(call_t), 0, NULL,
+	call_slab = slab_cache_create("call_t", sizeof(call_t), 0, NULL,
 	    NULL, 0);
-	ipc_answerbox_slab = slab_cache_create("answerbox_t",
-	    sizeof(answerbox_t), 0, NULL, NULL, 0);
+	phone_slab = slab_cache_create("phone_t", sizeof(phone_t), 0, NULL,
+	    NULL, 0);
+	answerbox_slab = slab_cache_create("answerbox_t", sizeof(answerbox_t),
+	    0, NULL, NULL, 0);
 }
 
 
@@ -884,6 +925,41 @@ static void ipc_print_call_list(list_t *list)
 	}
 }
 
+static bool print_task_phone_cb(cap_t *cap, void *arg)
+{
+	phone_t *phone = cap->kobject->phone;
+
+	mutex_lock(&phone->lock);
+	if (phone->state != IPC_PHONE_FREE) {
+		printf("%-11d %7" PRIun " ", cap->handle,
+		    atomic_get(&phone->active_calls));
+		
+		switch (phone->state) {
+		case IPC_PHONE_CONNECTING:
+			printf("connecting");
+			break;
+		case IPC_PHONE_CONNECTED:
+			printf("connected to %" PRIu64 " (%s)",
+			    phone->callee->task->taskid,
+			    phone->callee->task->name);
+			break;
+		case IPC_PHONE_SLAMMED:
+			printf("slammed by %p", phone->callee);
+			break;
+		case IPC_PHONE_HUNGUP:
+			printf("hung up by %p", phone->callee);
+			break;
+		default:
+			break;
+		}
+		
+		printf("\n");
+	}
+	mutex_unlock(&phone->lock);
+
+	return true;
+}
+
 /** List answerbox contents.
  *
  * @param taskid Task ID.
@@ -893,55 +969,19 @@ void ipc_print_task(task_id_t taskid)
 {
 	irq_spinlock_lock(&tasks_lock, true);
 	task_t *task = task_find_by_id(taskid);
-	
 	if (!task) {
 		irq_spinlock_unlock(&tasks_lock, true);
 		return;
 	}
+	task_hold(task);
+	irq_spinlock_unlock(&tasks_lock, true);
 	
-	/* Hand-over-hand locking */
-	irq_spinlock_exchange(&tasks_lock, &task->lock);
+	printf("[phone cap] [calls] [state\n");
 	
-	printf("[phone id] [calls] [state\n");
+	caps_apply_to_kobject_type(task, KOBJECT_TYPE_PHONE,
+	    print_task_phone_cb, NULL);
 	
-	size_t i;
-	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		if (SYNCH_FAILED(mutex_trylock(&task->phones[i].lock))) {
-			printf("%-10zu (mutex busy)\n", i);
-			continue;
-		}
-		
-		if (task->phones[i].state != IPC_PHONE_FREE) {
-			printf("%-10zu %7" PRIun " ", i,
-			    atomic_get(&task->phones[i].active_calls));
-			
-			switch (task->phones[i].state) {
-			case IPC_PHONE_CONNECTING:
-				printf("connecting");
-				break;
-			case IPC_PHONE_CONNECTED:
-				printf("connected to %" PRIu64 " (%s)",
-				    task->phones[i].callee->task->taskid,
-				    task->phones[i].callee->task->name);
-				break;
-			case IPC_PHONE_SLAMMED:
-				printf("slammed by %p",
-				    task->phones[i].callee);
-				break;
-			case IPC_PHONE_HUNGUP:
-				printf("hung up by %p",
-				    task->phones[i].callee);
-				break;
-			default:
-				break;
-			}
-			
-			printf("\n");
-		}
-		
-		mutex_unlock(&task->phones[i].lock);
-	}
-	
+	irq_spinlock_lock(&task->lock, true);
 	irq_spinlock_lock(&task->answerbox.lock, false);
 	
 #ifdef __32_BITS__
@@ -963,6 +1003,8 @@ void ipc_print_task(task_id_t taskid)
 	
 	irq_spinlock_unlock(&task->answerbox.lock, false);
 	irq_spinlock_unlock(&task->lock, true);
+
+	task_release(task);
 }
 
 /** @}

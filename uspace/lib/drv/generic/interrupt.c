@@ -43,15 +43,15 @@
 #include "private/driver.h"
 
 int register_interrupt_handler(ddf_dev_t *dev, int irq,
-    interrupt_handler_t *handler, const irq_code_t *pseudocode)
+    interrupt_handler_t *handler, const irq_code_t *irq_code)
 {
-	return async_irq_subscribe(irq, dev->handle,
-	    (async_notification_handler_t) handler, dev, pseudocode);
+	return async_irq_subscribe(irq, (async_notification_handler_t) handler,
+	    dev, irq_code);
 }
 
-int unregister_interrupt_handler(ddf_dev_t *dev, int irq)
+int unregister_interrupt_handler(ddf_dev_t *dev, int cap)
 {
-	return async_irq_unsubscribe(irq, dev->handle);
+	return async_irq_unsubscribe(cap);
 }
 
 /**

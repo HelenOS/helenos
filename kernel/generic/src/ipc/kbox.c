@@ -205,7 +205,7 @@ static void kbox_thread_proc(void *arg)
  * a kbox thread has been created. This must be taken into account in the
  * cleanup code.
  *
- * @return Phone id on success, or negative error code.
+ * @return Phone capability handle on success, or negative error code.
  *
  */
 int ipc_connect_kbox(task_id_t taskid)
@@ -235,18 +235,21 @@ int ipc_connect_kbox(task_id_t taskid)
 		return EINVAL;
 	}
 	
-	int newphid = phone_alloc(TASK);
-	if (newphid < 0) {
+	cap_handle_t phone_handle = phone_alloc(TASK);
+	if (phone_handle < 0) {
 		mutex_unlock(&task->kb.cleanup_lock);
-		return ELIMIT;
+		return phone_handle;
 	}
 	
+	kobject_t *phone_obj = kobject_get(TASK, phone_handle,
+	    KOBJECT_TYPE_PHONE);
 	/* Connect the newly allocated phone to the kbox */
-	(void) ipc_phone_connect(&TASK->phones[newphid], &task->kb.box);
+	/* Hand over phone_obj's reference to ipc_phone_connect() */
+	(void) ipc_phone_connect(phone_obj->phone, &task->kb.box);
 	
 	if (task->kb.thread != NULL) {
 		mutex_unlock(&task->kb.cleanup_lock);
-		return newphid;
+		return phone_handle;
 	}
 	
 	/* Create a kbox thread */
@@ -262,7 +265,7 @@ int ipc_connect_kbox(task_id_t taskid)
 	
 	mutex_unlock(&task->kb.cleanup_lock);
 	
-	return newphid;
+	return phone_handle;
 }
 
 /** @}

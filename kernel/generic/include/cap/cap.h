@@ -1,0 +1,129 @@
+/*
+ * Copyright (c) 2017 Jakub Jermar
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup generic
+ * @{
+ */
+/** @file
+ */
+
+#ifndef KERN_CAP_H_
+#define KERN_CAP_H_
+
+#include <typedefs.h>
+#include <adt/list.h>
+#include <synch/mutex.h>
+#include <atomic.h>
+
+#define MAX_CAPS  64
+
+typedef int cap_handle_t;
+
+typedef enum {
+	CAP_STATE_FREE,
+	CAP_STATE_ALLOCATED,
+	CAP_STATE_PUBLISHED
+} cap_state_t;
+
+typedef enum {
+	KOBJECT_TYPE_PHONE,
+	KOBJECT_TYPE_IRQ,
+	KOBJECT_TYPE_MAX
+} kobject_type_t;
+
+struct task;
+struct phone;
+struct irq;
+
+struct kobject;
+typedef struct kobject_ops {
+	bool (*reclaim)(struct kobject *);
+	void (*destroy)(void *);
+} kobject_ops_t;
+
+/*
+ * Everything in kobject_t except for the atomic reference count is imutable.
+ */
+typedef struct kobject {
+	kobject_type_t type;
+	atomic_t refcnt;
+
+	kobject_ops_t *ops;
+
+	union {
+		void *raw;
+		struct phone *phone;
+		struct irq *irq;
+	};
+} kobject_t;
+
+/*
+ * A cap_t may only be accessed under the protection of the cap_info_t lock.
+ */
+typedef struct cap {
+	cap_state_t state;
+
+	cap_handle_t handle;
+
+	/* Link to the task's capabilities of the same kobject type. */
+	link_t link;
+
+	/* The underlying kernel object. */
+	kobject_t *kobject;
+} cap_t;
+
+typedef struct cap_info {
+	mutex_t lock;
+
+	list_t type_list[KOBJECT_TYPE_MAX];
+
+	cap_t *caps;
+} cap_info_t;
+
+extern void caps_task_alloc(struct task *);
+extern void caps_task_free(struct task *);
+extern void caps_task_init(struct task *);
+extern bool caps_apply_to_kobject_type(struct task *, kobject_type_t,
+    bool (*)(cap_t *, void *), void *);
+
+extern void cap_initialize(cap_t *, cap_handle_t);
+extern cap_handle_t cap_alloc(struct task *);
+extern void cap_publish(struct task *, cap_handle_t, kobject_t *);
+extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
+extern void cap_free(struct task *, cap_handle_t);
+
+extern void kobject_initialize(kobject_t *, kobject_type_t, void *,
+    kobject_ops_t *);
+extern kobject_t *kobject_get(struct task *, cap_handle_t, kobject_type_t);
+extern void kobject_add_ref(kobject_t *);
+extern void kobject_put(kobject_t *);
+
+#endif
+
+/** @}
+ */

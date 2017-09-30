@@ -55,8 +55,8 @@ extern sysarg_t sys_ipc_forward_slow(sysarg_t, sysarg_t, ipc_data_t *,
     unsigned int);
 extern sysarg_t sys_ipc_hangup(sysarg_t);
 
-extern sysarg_t sys_ipc_irq_subscribe(inr_t, devno_t, sysarg_t, irq_code_t *);
-extern sysarg_t sys_ipc_irq_unsubscribe(inr_t, devno_t);
+extern sysarg_t sys_ipc_irq_subscribe(inr_t, sysarg_t, irq_code_t *);
+extern sysarg_t sys_ipc_irq_unsubscribe(sysarg_t);
 
 #ifdef __32_BITS__
 
