@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <stdbool.h>
+#include <fibril_synch.h>
 #include "hw_struct/trb.h"
 
 typedef struct xhci_hc xhci_hc_t;
@@ -55,12 +56,17 @@ typedef struct xhci_command {
 	bool completed;
 	bool has_owner;
 	bool owns_trb;
+
+	/* Will be unlocked after command completes */
+	fibril_mutex_t completed_mtx;
+	fibril_condvar_t completed_cv;
 } xhci_cmd_t;
 
 int xhci_init_commands(xhci_hc_t *);
 void xhci_fini_commands(xhci_hc_t *);
 int xhci_wait_for_command(xhci_cmd_t *, uint32_t);
 xhci_cmd_t *xhci_alloc_command(void);
+void xhci_cmd_init(xhci_cmd_t *);
 void xhci_free_command(xhci_cmd_t *);
 
 void xhci_stop_command_ring(xhci_hc_t *);

@@ -80,26 +80,39 @@ void xhci_fini_commands(xhci_hc_t *hc)
 	}
 }
 
-int xhci_wait_for_command(xhci_cmd_t *cmd, uint32_t timeout)
+int xhci_wait_for_command(xhci_cmd_t *cmd, suseconds_t timeout)
 {
-	uint32_t time = 0;
+	int rv = EOK;
+
+	fibril_mutex_lock(&cmd->completed_mtx);
 	while (!cmd->completed) {
-		async_usleep(1000);
-		time += 1000;
+		usb_log_debug2("Waiting for event completion: going to sleep.");
+		rv = fibril_condvar_wait_timeout(&cmd->completed_cv, &cmd->completed_mtx, timeout);
 
-		if (time > timeout)
-			return ETIMEOUT;
+		usb_log_debug2("Waiting for event completion: woken: %s", str_error(rv));
+		if (rv == ETIMEOUT)
+			break;
 	}
+	fibril_mutex_lock(&cmd->completed_mtx);
 
-	return EOK;
+	return rv;
 }
 
 xhci_cmd_t *xhci_alloc_command(void)
 {
 	xhci_cmd_t *cmd = malloc32(sizeof(xhci_cmd_t));
-	memset(cmd, 0, sizeof(xhci_cmd_t));
+	xhci_cmd_init(cmd);
+	return cmd;
+}
+
+void xhci_cmd_init(xhci_cmd_t *cmd)
+{
+	memset(cmd, 0, sizeof(*cmd));
 
 	link_initialize(&cmd->link);
+
+	fibril_mutex_initialize(&cmd->completed_mtx);
+	fibril_condvar_initialize(&cmd->completed_cv);
 
 	/**
 	 * Internal functions will set this to false, other are implicit
@@ -107,8 +120,6 @@ xhci_cmd_t *xhci_alloc_command(void)
 	 * TODO: Is this wise?
 	 */
 	cmd->has_owner = true;
-
-	return cmd;
 }
 
 void xhci_free_command(xhci_cmd_t *cmd)
@@ -492,7 +503,11 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		return ENAK;
 	}
 
+	fibril_mutex_lock(&command->completed_mtx);
 	command->completed = true;
+	fibril_condvar_broadcast(&command->completed_cv);
+	fibril_mutex_unlock(&command->completed_mtx);
+
 
 	if (!command->has_owner) {
 		usb_log_debug2("Command has no owner, deallocating.");
