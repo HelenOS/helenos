@@ -716,10 +716,8 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 		} else {
 			/* Allocate buffer for subkeys */
 			char *names = (char *) malloc(size, FRAME_ATOMIC);
-			if (names == NULL) {
-				ret.tag = SYSINFO_VAL_UNDEFINED;
+			if (names == NULL)
 				return ret;
-			}
 			
 			size_t pos = 0;
 			for (sysinfo_item_t *cur = subtree; cur; cur = cur->next) {
