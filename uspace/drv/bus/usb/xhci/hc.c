@@ -82,12 +82,21 @@ static int hc_parse_ec(xhci_hc_t *hc)
 				 * blindly assume the name == "USB " and minor
 				 * == 0.
 				 */
+
+	 			unsigned ports_from = XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF);
+	 			unsigned ports_to = ports_from
+					+ XHCI_REG_RD(ec, XHCI_EC_SP_CP_COUNT) - 1;
+
 				if (major == 2) {
 					hc->speeds[1] = ps_default_full;
 					hc->speeds[2] = ps_default_low;
 					hc->speeds[3] = ps_default_high;
+					hc->rh.usb2_port_start = ports_from;
+					hc->rh.usb2_port_end = ports_to;
 				} else if (major == 3) {
 					hc->speeds[4] = ps_default_super;
+					hc->rh.usb3_port_start = ports_from;
+					hc->rh.usb3_port_end = ports_to;
 				} else {
 					return EINVAL;
 				}

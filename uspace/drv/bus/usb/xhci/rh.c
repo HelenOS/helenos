@@ -39,6 +39,7 @@
 #include <usb/host/utils/malloc32.h>
 #include "debug.h"
 #include "commands.h"
+#include "endpoint.h"
 #include "hc.h"
 #include "hw_struct/trb.h"
 #include "rh.h"
@@ -57,7 +58,7 @@ int xhci_rh_init(xhci_rh_t *rh)
 
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
 //       sure about the other structs.
-static int alloc_dev(xhci_hc_t *hc, uint8_t port)
+static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 {
 	int err;
 
@@ -66,8 +67,10 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 		return ENOMEM;
 
 	xhci_send_enable_slot_command(hc, cmd);
-	if ((err = xhci_wait_for_command(cmd, 100000)) != EOK)
+	if ((err = xhci_wait_for_command(cmd, 100000)) != EOK) {
+		usb_log_error("Failed to enable a slot for the device.");
 		goto err_command;
+	}
 
 	uint32_t slot_id = cmd->slot_id;
 	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
@@ -90,8 +93,8 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	/* Attaching to root hub port, root string equals to 0. */
 	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
+	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
 
-	// TODO: where do we save this? the ring should be associated with device structure somewhere
 	xhci_trb_ring_t *ep_ring = malloc32(sizeof(xhci_trb_ring_t));
 	if (!ep_ring) {
 		err = ENOMEM;
@@ -102,13 +105,13 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	if (err)
 		goto err_ring;
 
-	xhci_port_regs_t *regs = &hc->op_regs->portrs[port - 1];
-	uint8_t port_speed_id = XHCI_REG_RD(regs, XHCI_PORT_PS);
-
-	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], 4);
+	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], EP_TYPE_CONTROL);
+	// TODO: must be changed with a command after USB descriptor is read
+	// See 4.6.5 in XHCI specification, first note
 	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
-	    hc->speeds[port_speed_id].tx_bps);
+	    xhci_is_usb3_port(&hc->rh, port) ? 512 : 8);
 	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
+	/* FIXME physical pointer? */
 	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
 	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
 	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
@@ -138,7 +141,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port)
 	xhci_free_command(cmd);
 	ictx = NULL;
 
-        // TODO: Issue configure endpoint commands (sec 4.3.5).
+ 	// TODO: Issue configure endpoint commands (sec 4.3.5).
 
 	return EOK;
 
@@ -170,18 +173,30 @@ static int handle_connected_device(xhci_hc_t* hc, xhci_port_regs_t* regs, uint8_
 {
 	uint8_t link_state = XHCI_REG_RD(regs, XHCI_PORT_PLS);
 	// FIXME: do we have a better way to detect if this is usb2 or usb3 device?
-	if (link_state == 0) {
-		/* USB3 is automatically advanced to enabled. */
-		uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
-		usb_log_debug2("Detected new device on port %u, port speed id %u.", port_id, port_speed);
+	if (xhci_is_usb3_port(&hc->rh, port_id)) {
+		if(link_state == 0) {
+			/* USB3 is automatically advanced to enabled. */
+			uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
+			usb_log_debug("Detected new device on port %u, port speed id %u.", port_id, port_speed);
 
-		alloc_dev(hc, port_id);
-	} else if (link_state == 5) {
-		/* USB 3 failed to enable. */
-		usb_log_debug("USB 3 port couldn't be enabled.");
-	} else if (link_state == 7) {
+			alloc_dev(hc, port_id, 0);
+		}
+		else if (link_state == 5) {
+			/* USB 3 failed to enable. */
+			usb_log_error("USB 3 port couldn't be enabled.");
+		}
+		else {
+			usb_log_error("USB 3 port is in invalid state %u.", link_state);
+		}
+	}
+	else {
 		usb_log_debug("USB 2 device attached, issuing reset.");
 		xhci_reset_hub_port(hc, port_id);
+		/*
+			FIXME: we need to wait for the event triggered by the reset
+			and then alloc_dev()... can't it be done directly instead of
+			going around?
+		*/
 	}
 
 	return EOK;
@@ -200,7 +215,8 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 
 		uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
 		usb_log_debug2("Detected port reset on port %u, port speed id %u.", port_id, port_speed);
-		alloc_dev(hc, port_id);
+		/** FIXME: only if that port is not yet initialized */
+		alloc_dev(hc, port_id, 0);
 	}
 
 	/* Connection status change */

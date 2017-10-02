@@ -54,6 +54,11 @@ typedef struct {
 	} __attribute__((packed)) hub_descriptor;
 	/** Interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t *unfinished_interrupt_transfer;
+
+	uint8_t usb2_port_start;
+	uint8_t usb2_port_end;
+	uint8_t usb3_port_start;
+	uint8_t usb3_port_end;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *);
@@ -74,6 +79,10 @@ static inline usb_address_t xhci_rh_get_address(xhci_rh_t *rh)
 {
 	assert(rh);
 	return virthub_base_get_address(&rh->base);
+}
+
+static inline bool xhci_is_usb3_port(xhci_rh_t* rh, uint8_t port) {
+	return port >= rh->usb3_port_start && port <= rh->usb3_port_end;
 }
 
 #endif

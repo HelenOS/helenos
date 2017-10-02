@@ -42,6 +42,17 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 
+enum {
+	EP_TYPE_INVALID = 0,
+	EP_TYPE_ISOCH_OUT = 1,
+	EP_TYPE_BULK_OUT = 2,
+	EP_TYPE_INTERRUPT_OUT = 3,
+	EP_TYPE_CONTROL = 4,
+	EP_TYPE_ISOCH_IN = 5,
+	EP_TYPE_BULK_IN = 6,
+	EP_TYPE_INTERRUPT_IN = 7
+};
+
 /** Connector structure linking endpoint context to the endpoint. */
 typedef struct xhci_endpoint {
   uint32_t slot_id;

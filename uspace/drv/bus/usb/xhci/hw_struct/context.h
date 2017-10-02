@@ -108,6 +108,8 @@ typedef struct xhci_slot_ctx {
     xhci_dword_set_bits(&(ctx).data[1], val, 23, 16)
 #define XHCI_SLOT_CTX_ENTRIES_SET(ctx, val) \
     xhci_dword_set_bits(&(ctx).data[0], val, 31, 27)
+#define XHCI_SLOT_ROUTE_STRING_SET(ctx, val) \
+	xhci_dword_set_bits(&(ctx).data[0], (val & 0xFFFFF), 19, 0)
 
 #define XHCI_SLOT_ROUTE_STRING(ctx)     XHCI_DWORD_EXTRACT((ctx).data[0], 19,  0)
 #define XHCI_SLOT_SPEED(ctx)            XHCI_DWORD_EXTRACT((ctx).data[0], 23, 20)
