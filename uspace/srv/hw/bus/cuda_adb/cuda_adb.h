@@ -40,6 +40,7 @@
 #include <fibril_synch.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "cuda_hw.h"
 
 enum {
 	CUDA_RCV_BUF_SIZE = 5
@@ -59,7 +60,7 @@ typedef struct {
 } adb_dev_t;
 
 typedef struct {
-	struct cuda *cuda;
+	struct cuda *regs;
 	uintptr_t cuda_physical;
 
 	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
@@ -68,6 +69,8 @@ typedef struct {
 	size_t snd_bytes;
 	enum cuda_xfer_state xstate;
 	fibril_mutex_t dev_lock;
+
+	adb_dev_t adb_dev[ADB_MAX_ADDR];
 } cuda_instance_t;
 
 #endif

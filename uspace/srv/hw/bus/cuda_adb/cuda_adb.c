@@ -53,21 +53,21 @@
 
 #define NAME  "cuda_adb"
 
-static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-static int cuda_init(void);
-static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg);
+static void cuda_connection(ipc_callid_t, ipc_call_t *, void *);
+static int cuda_init(cuda_instance_t *);
+static void cuda_irq_handler(ipc_callid_t, ipc_call_t *, void *);
 
-static void cuda_irq_listen(void);
-static void cuda_irq_receive(void);
-static void cuda_irq_rcv_end(void *buf, size_t *len);
-static void cuda_irq_send_start(void);
-static void cuda_irq_send(void);
+static void cuda_irq_listen(cuda_instance_t *);
+static void cuda_irq_receive(cuda_instance_t *);
+static void cuda_irq_rcv_end(cuda_instance_t *, void *, size_t *);
+static void cuda_irq_send_start(cuda_instance_t *);
+static void cuda_irq_send(cuda_instance_t *);
 
-static void cuda_packet_handle(uint8_t *buf, size_t len);
-static void cuda_send_start(void);
-static void cuda_autopoll_set(bool enable);
+static void cuda_packet_handle(cuda_instance_t *, uint8_t *, size_t);
+static void cuda_send_start(cuda_instance_t *);
+static void cuda_autopoll_set(cuda_instance_t *, bool);
 
-static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll);
+static void adb_packet_handle(cuda_instance_t *, uint8_t *, size_t, bool);
 
 static irq_pio_range_t cuda_ranges[] = {
 	{
@@ -106,27 +106,21 @@ static irq_code_t cuda_irq_code = {
 	cuda_cmds
 };
 
-static cuda_instance_t cinst;
-
-static cuda_instance_t *instance = &cinst;
-static cuda_t *dev;
-
-static adb_dev_t adb_dev[ADB_MAX_ADDR];
-
 int main(int argc, char *argv[])
 {
 	service_id_t service_id;
+	cuda_instance_t cinst;
 	int rc;
 	int i;
 
 	printf(NAME ": VIA-CUDA Apple Desktop Bus driver\n");
 	
 	for (i = 0; i < ADB_MAX_ADDR; ++i) {
-		adb_dev[i].client_sess = NULL;
-		adb_dev[i].service_id = 0;
+		cinst.adb_dev[i].client_sess = NULL;
+		cinst.adb_dev[i].service_id = 0;
 	}
 
-	async_set_fallback_port_handler(cuda_connection, NULL);
+	async_set_fallback_port_handler(cuda_connection, &cinst);
 	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register server.\n");
@@ -139,8 +133,8 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	adb_dev[2].service_id = service_id;
-	adb_dev[8].service_id = service_id;
+	cinst.adb_dev[2].service_id = service_id;
+	cinst.adb_dev[8].service_id = service_id;
 
 	rc = loc_service_register("adb/mouse", &service_id);
 	if (rc != EOK) {
@@ -148,9 +142,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	adb_dev[9].service_id = service_id;
+	cinst.adb_dev[9].service_id = service_id;
 
-	if (cuda_init() < 0) {
+	if (cuda_init(&cinst) < 0) {
 		printf("cuda_init() failed\n");
 		return 1;
 	}
@@ -168,6 +162,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_call_t call;
 	sysarg_t method;
 	service_id_t dsid;
+	cuda_instance_t *cuda = (cuda_instance_t *) arg;
 	int dev_addr, i;
 
 	/* Get the device handle. */
@@ -176,7 +171,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Determine which disk device is the client connecting to. */
 	dev_addr = -1;
 	for (i = 0; i < ADB_MAX_ADDR; i++) {
-		if (adb_dev[i].service_id == dsid)
+		if (cuda->adb_dev[i].service_id == dsid)
 			dev_addr = i;
 	}
 
@@ -201,16 +196,16 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_sess_t *sess =
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
-			if (adb_dev[dev_addr].client_sess == NULL) {
-				adb_dev[dev_addr].client_sess = sess;
+			if (cuda->adb_dev[dev_addr].client_sess == NULL) {
+				cuda->adb_dev[dev_addr].client_sess = sess;
 				
 				/*
 				 * A hack so that we send the data to the session
 				 * regardless of which address the device is on.
 				 */
 				for (i = 0; i < ADB_MAX_ADDR; ++i) {
-					if (adb_dev[i].service_id == dsid)
-						adb_dev[i].client_sess = sess;
+					if (cuda->adb_dev[i].service_id == dsid)
+						cuda->adb_dev[i].client_sess = sess;
 				}
 				
 				async_answer_0(callid, EOK);
@@ -221,38 +216,35 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-
-static int cuda_init(void)
+static int cuda_init(cuda_instance_t *cuda)
 {
-	if (sysinfo_get_value("cuda.address.physical", &(instance->cuda_physical)) != EOK)
+	if (sysinfo_get_value("cuda.address.physical", &(cuda->cuda_physical)) != EOK)
 		return -1;
 	
 	void *vaddr;
-	if (pio_enable((void *) instance->cuda_physical, sizeof(cuda_t), &vaddr) != 0)
+	if (pio_enable((void *) cuda->cuda_physical, sizeof(cuda_t), &vaddr) != 0)
 		return -1;
 	
-	dev = vaddr;
+	cuda->regs = vaddr;
+	cuda->xstate = cx_listen;
+	cuda->bidx = 0;
+	cuda->snd_bytes = 0;
 
-	instance->cuda = dev;
-	instance->xstate = cx_listen;
-	instance->bidx = 0;
-	instance->snd_bytes = 0;
-
-	fibril_mutex_initialize(&instance->dev_lock);
+	fibril_mutex_initialize(&cuda->dev_lock);
 
 	/* Disable all interrupts from CUDA. */
-	pio_write_8(&dev->ier, IER_CLR | ALL_INT);
+	pio_write_8(&cuda->regs->ier, IER_CLR | ALL_INT);
 
-	cuda_irq_code.ranges[0].base = (uintptr_t) instance->cuda_physical;
-	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_physical)->ifr;
-	async_irq_subscribe(10, cuda_irq_handler, NULL, &cuda_irq_code);
+	cuda_irq_code.ranges[0].base = (uintptr_t) cuda->cuda_physical;
+	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) cuda->cuda_physical)->ifr;
+	async_irq_subscribe(10, cuda_irq_handler, cuda, &cuda_irq_code);
 
 	/* Enable SR interrupt. */
-	pio_write_8(&dev->ier, TIP | TREQ);
-	pio_write_8(&dev->ier, IER_SET | SR_INT);
+	pio_write_8(&cuda->regs->ier, TIP | TREQ);
+	pio_write_8(&cuda->regs->ier, IER_SET | SR_INT);
 
 	/* Enable ADB autopolling. */
-	cuda_autopoll_set(true);
+	cuda_autopoll_set(cuda, true);
 
 	return 0;
 }
@@ -260,77 +252,82 @@ static int cuda_init(void)
 static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
 {
 	uint8_t rbuf[CUDA_RCV_BUF_SIZE];
+	cuda_instance_t *cuda = (cuda_instance_t *)arg;
 	size_t len;
 	bool handle;
 
 	handle = false;
 	len = 0;
 
-	fibril_mutex_lock(&instance->dev_lock);
+	fibril_mutex_lock(&cuda->dev_lock);
 
-	switch (instance->xstate) {
+	switch (cuda->xstate) {
 	case cx_listen:
-		cuda_irq_listen();
+		cuda_irq_listen(cuda);
 		break;
 	case cx_receive:
-		cuda_irq_receive();
+		cuda_irq_receive(cuda);
 		break;
 	case cx_rcv_end:
-		cuda_irq_rcv_end(rbuf, &len);
+		cuda_irq_rcv_end(cuda, rbuf, &len);
 		handle = true;
 		break;
 	case cx_send_start:
-		cuda_irq_send_start();
+		cuda_irq_send_start(cuda);
 		break;
 	case cx_send:
-		cuda_irq_send();
+		cuda_irq_send(cuda);
 		break;
 	}
 	
 	/* Lower IFR.SR_INT so that CUDA can generate next int by raising it. */
-	pio_write_8(&instance->cuda->ifr, SR_INT);
+	pio_write_8(&cuda->regs->ifr, SR_INT);
 
-	fibril_mutex_unlock(&instance->dev_lock);
+	fibril_mutex_unlock(&cuda->dev_lock);
 
 	/* Handle an incoming packet. */
 	if (handle)
-		cuda_packet_handle(rbuf, len);
+		cuda_packet_handle(cuda, rbuf, len);
 }
 
 /** Interrupt in listen state.
  *
  * Start packet reception.
+ *
+ * @param cuda CUDA instance
  */
-static void cuda_irq_listen(void)
+static void cuda_irq_listen(cuda_instance_t *cuda)
 {
-	uint8_t b = pio_read_8(&dev->b);
+	uint8_t b = pio_read_8(&cuda->regs->b);
 	
 	if ((b & TREQ) != 0) {
 		printf("cuda_irq_listen: no TREQ?!\n");
 		return;
 	}
 	
-	pio_write_8(&dev->b, b & ~TIP);
-	instance->xstate = cx_receive;
+	pio_write_8(&cuda->regs->b, b & ~TIP);
+	cuda->xstate = cx_receive;
 }
 
 /** Interrupt in receive state.
  *
  * Receive next byte of packet.
+ *
+ * @param cuda CUDA instance
  */
-static void cuda_irq_receive(void)
+static void cuda_irq_receive(cuda_instance_t *cuda)
 {
-	uint8_t data = pio_read_8(&dev->sr);
-	if (instance->bidx < CUDA_RCV_BUF_SIZE)
-		instance->rcv_buf[instance->bidx++] = data;
+	uint8_t data = pio_read_8(&cuda->regs->sr);
+	if (cuda->bidx < CUDA_RCV_BUF_SIZE)
+		cuda->rcv_buf[cuda->bidx++] = data;
 	
-	uint8_t b = pio_read_8(&dev->b);
+	uint8_t b = pio_read_8(&cuda->regs->b);
 	
 	if ((b & TREQ) == 0) {
-		pio_write_8(&dev->b, b ^ TACK);
+		pio_write_8(&cuda->regs->b, b ^ TACK);
 	} else {
-		pio_write_8(&dev->b, b | TACK | TIP);
-		instance->xstate = cx_rcv_end;
+		pio_write_8(&cuda->regs->b, b | TACK | TIP);
+		cuda->xstate = cx_rcv_end;
 	}
 }
 
@@ -338,86 +335,98 @@ static void cuda_irq_receive(void)
  *
  * Terminate packet reception. Either go back to listen state or start
  * receiving another packet if CUDA has one for us.
+ *
+ * @param cuda CUDA instance
+ * @param buf Buffer for storing received packet
+ * @param len Place to store length of received packet
  */
-static void cuda_irq_rcv_end(void *buf, size_t *len)
+static void cuda_irq_rcv_end(cuda_instance_t *cuda, void *buf, size_t *len)
 {
-	uint8_t b = pio_read_8(&dev->b);
+	uint8_t b = pio_read_8(&cuda->regs->b);
 	
 	if ((b & TREQ) == 0) {
-		instance->xstate = cx_receive;
-		pio_write_8(&dev->b, b & ~TIP);
+		cuda->xstate = cx_receive;
+		pio_write_8(&cuda->regs->b, b & ~TIP);
 	} else {
-		instance->xstate = cx_listen;
-		cuda_send_start();
+		cuda->xstate = cx_listen;
+		cuda_send_start(cuda);
 	}
 	
-	memcpy(buf, instance->rcv_buf, instance->bidx);
-	*len = instance->bidx;
-	instance->bidx = 0;
+	memcpy(buf, cuda->rcv_buf, cuda->bidx);
+	*len = cuda->bidx;
+	cuda->bidx = 0;
 }
 
 /** Interrupt in send_start state.
  *
  * Process result of sending first byte (and send second on success).
+ *
+ * @param cuda CUDA instance
  */
-static void cuda_irq_send_start(void)
+static void cuda_irq_send_start(cuda_instance_t *cuda)
 {
 	uint8_t b;
 
-	b = pio_read_8(&dev->b);
+	b = pio_read_8(&cuda->regs->b);
 
 	if ((b & TREQ) == 0) {
 		/* Collision */
-		pio_write_8(&dev->acr, pio_read_8(&dev->acr) & ~SR_OUT);
-		pio_read_8(&dev->sr);
-		pio_write_8(&dev->b, pio_read_8(&dev->b) | TIP | TACK);
-		instance->xstate = cx_listen;
+		pio_write_8(&cuda->regs->acr, pio_read_8(&cuda->regs->acr) &
+		    ~SR_OUT);
+		pio_read_8(&cuda->regs->sr);
+		pio_write_8(&cuda->regs->b, pio_read_8(&cuda->regs->b) |
+		    TIP | TACK);
+		cuda->xstate = cx_listen;
 		return;
 	}
 
-	pio_write_8(&dev->sr, instance->snd_buf[1]);
-	pio_write_8(&dev->b, pio_read_8(&dev->b) ^ TACK);
-	instance->bidx = 2;
+	pio_write_8(&cuda->regs->sr, cuda->snd_buf[1]);
+	pio_write_8(&cuda->regs->b, pio_read_8(&cuda->regs->b) ^ TACK);
+	cuda->bidx = 2;
 
-	instance->xstate = cx_send;
+	cuda->xstate = cx_send;
 }
 
 /** Interrupt in send state.
  *
  * Send next byte or terminate transmission.
+ *
+ * @param cuda CUDA instance
  */
-static void cuda_irq_send(void)
+static void cuda_irq_send(cuda_instance_t *cuda)
 {
-	if (instance->bidx < instance->snd_bytes) {
+	if (cuda->bidx < cuda->snd_bytes) {
 		/* Send next byte. */
-		pio_write_8(&dev->sr, instance->snd_buf[instance->bidx++]);
-		pio_write_8(&dev->b, pio_read_8(&dev->b) ^ TACK);
+		pio_write_8(&cuda->regs->sr,
+		    cuda->snd_buf[cuda->bidx++]);
+		pio_write_8(&cuda->regs->b, pio_read_8(&cuda->regs->b) ^ TACK);
 		return;
 	}
 
 	/* End transfer. */
-	instance->snd_bytes = 0;
-	instance->bidx = 0;
+	cuda->snd_bytes = 0;
+	cuda->bidx = 0;
 
-	pio_write_8(&dev->acr, pio_read_8(&dev->acr) & ~SR_OUT);
-	pio_read_8(&dev->sr);
-	pio_write_8(&dev->b, pio_read_8(&dev->b) | TACK | TIP);
+	pio_write_8(&cuda->regs->acr, pio_read_8(&cuda->regs->acr) & ~SR_OUT);
+	pio_read_8(&cuda->regs->sr);
+	pio_write_8(&cuda->regs->b, pio_read_8(&cuda->regs->b) | TACK | TIP);
 
-	instance->xstate = cx_listen;
+	cuda->xstate = cx_listen;
 	/* TODO: Match reply with request. */
 }
 
-static void cuda_packet_handle(uint8_t *data, size_t len)
+static void cuda_packet_handle(cuda_instance_t *cuda, uint8_t *data, size_t len)
 {
 	if (data[0] != PT_ADB)
 		return;
 	if (len < 2)
 		return;
 
-	adb_packet_handle(data + 2, len - 2, (data[1] & 0x40) != 0);
+	adb_packet_handle(cuda, data + 2, len - 2, (data[1] & 0x40) != 0);
 }
 
-static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll)
+static void adb_packet_handle(cuda_instance_t *cuda, uint8_t *data,
+    size_t size, bool autopoll)
 {
 	uint8_t dev_addr;
 	uint8_t reg_no;
@@ -447,44 +456,42 @@ static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll)
 
 	reg_val = ((uint16_t) data[1] << 8) | (uint16_t) data[2];
 
-	if (adb_dev[dev_addr].client_sess == NULL)
+	if (cuda->adb_dev[dev_addr].client_sess == NULL)
 		return;
 
 	async_exch_t *exch =
-	    async_exchange_begin(adb_dev[dev_addr].client_sess);
+	    async_exchange_begin(cuda->adb_dev[dev_addr].client_sess);
 	async_msg_1(exch, ADB_REG_NOTIF, reg_val);
 	async_exchange_end(exch);
 }
 
-static void cuda_autopoll_set(bool enable)
+static void cuda_autopoll_set(cuda_instance_t *cuda, bool enable)
 {
-	instance->snd_buf[0] = PT_CUDA;
-	instance->snd_buf[1] = CPT_AUTOPOLL;
-	instance->snd_buf[2] = enable ? 0x01 : 0x00;
-	instance->snd_bytes = 3;
-	instance->bidx = 0;
+	cuda->snd_buf[0] = PT_CUDA;
+	cuda->snd_buf[1] = CPT_AUTOPOLL;
+	cuda->snd_buf[2] = enable ? 0x01 : 0x00;
+	cuda->snd_bytes = 3;
+	cuda->bidx = 0;
 
-	cuda_send_start();
+	cuda_send_start(cuda);
 }
 
-static void cuda_send_start(void)
+static void cuda_send_start(cuda_instance_t *cuda)
 {
-	cuda_t *dev = instance->cuda;
+	assert(cuda->xstate == cx_listen);
 
-	assert(instance->xstate == cx_listen);
-
-	if (instance->snd_bytes == 0)
+	if (cuda->snd_bytes == 0)
 		return;
 
 	/* Check for incoming data. */
-	if ((pio_read_8(&dev->b) & TREQ) == 0)
+	if ((pio_read_8(&cuda->regs->b) & TREQ) == 0)
 		return;
 
-	pio_write_8(&dev->acr, pio_read_8(&dev->acr) | SR_OUT);
-	pio_write_8(&dev->sr, instance->snd_buf[0]);
-	pio_write_8(&dev->b, pio_read_8(&dev->b) & ~TIP);
+	pio_write_8(&cuda->regs->acr, pio_read_8(&cuda->regs->acr) | SR_OUT);
+	pio_write_8(&cuda->regs->sr, cuda->snd_buf[0]);
+	pio_write_8(&cuda->regs->b, pio_read_8(&cuda->regs->b) & ~TIP);
 
-	instance->xstate = cx_send_start;
+	cuda->xstate = cx_send_start;
 }
 
 /** @}
