@@ -38,7 +38,7 @@
 
 #include <async.h>
 #include <fibril_synch.h>
-#include <stddef.h>
+#include <loc.h>
 #include <stdint.h>
 #include "cuda_hw.h"
 
@@ -60,7 +60,7 @@ typedef struct {
 } adb_dev_t;
 
 typedef struct {
-	struct cuda *regs;
+	struct cuda_regs *regs;
 	uintptr_t cuda_physical;
 
 	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
@@ -71,7 +71,7 @@ typedef struct {
 	fibril_mutex_t dev_lock;
 
 	adb_dev_t adb_dev[ADB_MAX_ADDR];
-} cuda_instance_t;
+} cuda_t;
 
 #endif
 
