@@ -49,25 +49,25 @@ typedef struct xhci_command {
 
 	xhci_trb_t trb;
 	uintptr_t trb_phys;
-	xhci_input_ctx_t *ictx;
+
 	uint32_t slot_id;
 	uint32_t status;
 
 	bool completed;
-	bool has_owner;
-	bool owns_trb;
 
-	/* Will be unlocked after command completes */
+	/* Will broadcast after command completes. */
 	fibril_mutex_t completed_mtx;
 	fibril_condvar_t completed_cv;
 } xhci_cmd_t;
 
 int xhci_init_commands(xhci_hc_t *);
 void xhci_fini_commands(xhci_hc_t *);
-int xhci_wait_for_command(xhci_cmd_t *, uint32_t);
-xhci_cmd_t *xhci_alloc_command(void);
+
+xhci_cmd_t *xhci_cmd_alloc(void);
 void xhci_cmd_init(xhci_cmd_t *);
-void xhci_free_command(xhci_cmd_t *);
+int xhci_cmd_wait(xhci_cmd_t *, suseconds_t);
+void xhci_cmd_fini(xhci_cmd_t *);
+void xhci_cmd_free(xhci_cmd_t *);
 
 void xhci_stop_command_ring(xhci_hc_t *);
 void xhci_abort_command_ring(xhci_hc_t *);
@@ -76,9 +76,9 @@ void xhci_start_command_ring(xhci_hc_t *);
 int xhci_send_no_op_command(xhci_hc_t *, xhci_cmd_t *);
 int xhci_send_enable_slot_command(xhci_hc_t *, xhci_cmd_t *);
 int xhci_send_disable_slot_command(xhci_hc_t *, xhci_cmd_t *);
-int xhci_send_address_device_command(xhci_hc_t *, xhci_cmd_t *);
-int xhci_send_configure_endpoint_command(xhci_hc_t *, xhci_cmd_t *);
-int xhci_send_evaluate_context_command(xhci_hc_t *, xhci_cmd_t *);
+int xhci_send_address_device_command(xhci_hc_t *, xhci_cmd_t *, xhci_input_ctx_t *);
+int xhci_send_configure_endpoint_command(xhci_hc_t *, xhci_cmd_t *, xhci_input_ctx_t *);
+int xhci_send_evaluate_context_command(xhci_hc_t *, xhci_cmd_t *, xhci_input_ctx_t *);
 int xhci_send_reset_endpoint_command(xhci_hc_t *, xhci_cmd_t *, uint32_t, uint8_t);
 int xhci_send_stop_endpoint_command(xhci_hc_t *, xhci_cmd_t *, uint32_t, uint8_t);
 int xhci_send_set_dequeue_ptr_command(xhci_hc_t *, xhci_cmd_t *, uintptr_t, uint16_t, uint32_t);

@@ -72,15 +72,9 @@ void xhci_fini_commands(xhci_hc_t *hc)
 {
 	// Note: Untested.
 	assert(hc);
-
-	// We assume that the hc is dying/stopping, so we ignore
-	// the ownership of the commands.
-	list_foreach(hc->commands, link, xhci_cmd_t, cmd) {
-		xhci_free_command(cmd);
-	}
 }
 
-int xhci_wait_for_command(xhci_cmd_t *cmd, suseconds_t timeout)
+int xhci_cmd_wait(xhci_cmd_t *cmd, suseconds_t timeout)
 {
 	int rv = EOK;
 
@@ -98,10 +92,12 @@ int xhci_wait_for_command(xhci_cmd_t *cmd, suseconds_t timeout)
 	return rv;
 }
 
-xhci_cmd_t *xhci_alloc_command(void)
+xhci_cmd_t *xhci_cmd_alloc(void)
 {
 	xhci_cmd_t *cmd = malloc32(sizeof(xhci_cmd_t));
 	xhci_cmd_init(cmd);
+
+	usb_log_debug2("Allocating cmd on the heap. Don't forget to deallocate it!");
 	return cmd;
 }
 
@@ -113,22 +109,16 @@ void xhci_cmd_init(xhci_cmd_t *cmd)
 
 	fibril_mutex_initialize(&cmd->completed_mtx);
 	fibril_condvar_initialize(&cmd->completed_cv);
-
-	/**
-	 * Internal functions will set this to false, other are implicit
-	 * owners unless they overwrite this field.
-	 * TODO: Is this wise?
-	 */
-	cmd->has_owner = true;
 }
 
-void xhci_free_command(xhci_cmd_t *cmd)
+void xhci_cmd_fini(xhci_cmd_t *cmd)
 {
 	list_remove(&cmd->link);
+}
 
-	if (cmd->ictx)
-		free32(cmd->ictx);
-
+void xhci_cmd_free(xhci_cmd_t *cmd)
+{
+	xhci_cmd_fini(cmd);
 	free32(cmd);
 }
 
@@ -298,11 +288,11 @@ int xhci_send_disable_slot_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd, 0, 0);
 }
 
-int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
+int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd, xhci_input_ctx_t *ictx)
 {
 	assert(hc);
 	assert(cmd);
-	assert(cmd->ictx);
+	assert(ictx);
 
 	/**
 	 * TODO: Requirements for this command:
@@ -310,9 +300,10 @@ int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 *           ictx has valids slot context and endpoint 0, all
 	 *           other should be ignored at this point (see section 4.6.5).
 	 */
+
 	xhci_trb_clean(&cmd->trb);
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
+	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
 	TRB_SET_ICTX(cmd->trb, phys_addr);
 
 	/**
@@ -328,15 +319,15 @@ int xhci_send_address_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd, 0, 0);
 }
 
-int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
+int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, xhci_input_ctx_t *ictx)
 {
 	assert(hc);
 	assert(cmd);
-	assert(cmd->ictx);
+	assert(ictx);
 
 	xhci_trb_clean(&cmd->trb);
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
+	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
 	TRB_SET_ICTX(cmd->trb, phys_addr);
 
 	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD);
@@ -345,11 +336,11 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd, 0, 0);
 }
 
-int xhci_send_evaluate_context_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
+int xhci_send_evaluate_context_command(xhci_hc_t *hc, xhci_cmd_t *cmd, xhci_input_ctx_t *ictx)
 {
 	assert(hc);
 	assert(cmd);
-	assert(cmd->ictx);
+	assert(ictx);
 
 	/**
 	 * Note: All Drop Context flags of the input context shall be 0,
@@ -359,7 +350,7 @@ int xhci_send_evaluate_context_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 */
 	xhci_trb_clean(&cmd->trb);
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->ictx);
+	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
 	TRB_SET_ICTX(cmd->trb, phys_addr);
 
 	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD);
@@ -454,7 +445,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	command = get_command(hc, phys);
 	if (command == NULL) {
 		// TODO: STOP & ABORT may not have command structs in the list!
-		usb_log_error("No command struct for this completion event");
+		usb_log_debug("No command struct for this completion event found.");
 
 		if (code != XHCI_TRBC_SUCCESS)
 			report_error(code);
@@ -507,14 +498,6 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	command->completed = true;
 	fibril_condvar_broadcast(&command->completed_cv);
 	fibril_mutex_unlock(&command->completed_mtx);
-
-
-	if (!command->has_owner) {
-		usb_log_debug2("Command has no owner, deallocating.");
-		xhci_free_command(command);
-	} else {
-		usb_log_debug2("Command has owner, don't forget to deallocate!");
-	}
 
 	return EOK;
 }

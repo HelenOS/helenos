@@ -62,26 +62,21 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 {
 	int err;
 
-	xhci_cmd_t *cmd = xhci_alloc_command();
-	if (!cmd)
-		return ENOMEM;
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
 
-	xhci_send_enable_slot_command(hc, cmd);
-	if ((err = xhci_wait_for_command(cmd, 100000)) != EOK) {
-		usb_log_error("Failed to enable a slot for the device.");
-		goto err_command;
-	}
+	xhci_send_enable_slot_command(hc, &cmd);
+	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
+		return err;
 
-	uint32_t slot_id = cmd->slot_id;
+	uint32_t slot_id = cmd.slot_id;
+
 	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
-
-	xhci_free_command(cmd);
-	cmd = NULL;
+	xhci_cmd_fini(&cmd);
 
 	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
 	if (!ictx) {
-		err = ENOMEM;
-		goto err_command;
+		return ENOMEM;
 	}
 
 	memset(ictx, 0, sizeof(xhci_input_ctx_t));
@@ -89,7 +84,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
 
-   	/* Initialize slot_ctx according to section 4.3.3 point 3. */
+	/* Initialize slot_ctx according to section 4.3.3 point 3. */
 	/* Attaching to root hub port, root string equals to 0. */
 	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
@@ -132,14 +127,12 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
 	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
 
-	cmd = xhci_alloc_command();
-	cmd->ictx = ictx;
-	xhci_send_address_device_command(hc, cmd);
-	if ((err = xhci_wait_for_command(cmd, 100000)) != EOK)
+	xhci_cmd_init(&cmd);
+	xhci_send_address_device_command(hc, &cmd, ictx);
+	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
 		goto err_dctx;
 
-	xhci_free_command(cmd);
-	ictx = NULL;
+	xhci_cmd_fini(&cmd);
 
  	// TODO: Issue configure endpoint commands (sec 4.3.5).
 
@@ -157,15 +150,7 @@ err_ring:
 		free32(ep_ring);
 	}
 err_ictx:
-	if (ictx) {
-		/* Avoid double free. */
-		if (cmd && cmd->ictx && cmd->ictx == ictx)
-			cmd->ictx = NULL;
-		free32(ictx);
-	}
-err_command:
-	if (cmd)
-		xhci_free_command(cmd);
+	free32(ictx);
 	return err;
 }
 
