@@ -49,6 +49,7 @@
 #include <ipc/adb.h>
 #include <assert.h>
 #include "cuda_adb.h"
+#include "cuda_hw.h"
 
 #define NAME  "cuda_adb"
 
@@ -67,43 +68,6 @@ static void cuda_send_start(void);
 static void cuda_autopoll_set(bool enable);
 
 static void adb_packet_handle(uint8_t *data, size_t size, bool autopoll);
-
-
-/** B register fields */
-enum {
-	TREQ	= 0x08,
-	TACK	= 0x10,
-	TIP	= 0x20
-};
-
-/** IER register fields */
-enum {
-	IER_CLR	= 0x00,
-	IER_SET	= 0x80,
-
-	SR_INT	= 0x04,
-	ALL_INT	= 0x7f
-};
-
-/** ACR register fields */
-enum {
-	SR_OUT	= 0x10
-};
-
-/** Packet types */
-enum {
-	PT_ADB	= 0x00,
-	PT_CUDA	= 0x01
-};
-
-/** CUDA packet types */
-enum {
-	CPT_AUTOPOLL	= 0x01
-};
-
-enum {
-	ADB_MAX_ADDR	= 16
-};
 
 static irq_pio_range_t cuda_ranges[] = {
 	{
@@ -171,7 +135,7 @@ int main(int argc, char *argv[])
 
 	rc = loc_service_register("adb/kbd", &service_id);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register service %s.\n", "adb/kdb");
+		printf(NAME ": Unable to register service %s.\n", "adb/kbd");
 		return rc;
 	}
 
@@ -180,7 +144,7 @@ int main(int argc, char *argv[])
 
 	rc = loc_service_register("adb/mouse", &service_id);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register servise %s.\n", "adb/mouse");
+		printf(NAME ": Unable to register service %s.\n", "adb/mouse");
 		return rc;
 	}
 
