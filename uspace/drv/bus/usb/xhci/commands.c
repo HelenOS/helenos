@@ -87,7 +87,7 @@ int xhci_cmd_wait(xhci_cmd_t *cmd, suseconds_t timeout)
 		if (rv == ETIMEOUT)
 			break;
 	}
-	fibril_mutex_lock(&cmd->completed_mtx);
+	fibril_mutex_unlock(&cmd->completed_mtx);
 
 	return rv;
 }
