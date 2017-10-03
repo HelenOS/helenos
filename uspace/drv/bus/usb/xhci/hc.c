@@ -496,31 +496,64 @@ static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_reg
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci_interrupter_regs_t *intr)
 {
 	int err;
-	xhci_trb_t trb;
+	size_t last_idx = 0;
+	size_t size = 16; // TODO: Define a macro, possibly do size += initial_size instead of *= 2.
+	xhci_trb_t *trbs = malloc32(sizeof(xhci_trb_t) * size);
 
-	err = xhci_event_ring_dequeue(event_ring, &trb);;
+	err = xhci_event_ring_dequeue(event_ring, trbs + last_idx);
 
 	while (err != ENOENT) {
 		if (err == EOK) {
 			usb_log_debug2("Dequeued trb from event ring: %s",
-					xhci_trb_str_type(TRB_TYPE(trb)));
-
-			hc_handle_event(hc, &trb, intr);
+					xhci_trb_str_type(TRB_TYPE(trbs[last_idx])));
 		} else {
+			--last_idx; /* If there are valid trbs they should still get handled. */
 			usb_log_warning("Error while accessing event ring: %s", str_error(err));
 			break;
 		}
 
-		err = xhci_event_ring_dequeue(event_ring, &trb);;
-	}
-	usb_log_debug2("Event ring processing finished.");
+		++last_idx;
+		err = xhci_event_ring_dequeue(event_ring, trbs + last_idx);
 
-	/* Update the ERDP to make room in the ring */
+		/* Expand the array if needed. */
+		if (last_idx >= size) {
+			xhci_trb_t *trbs_old = trbs;
+			size_t size_old = size;
+
+			size *= 2;
+			trbs = malloc32(sizeof(xhci_trb_t) * size);
+
+			for (size_t i = 0; i < size_old; ++i)
+				xhci_trb_copy(trbs + i, trbs_old + i);
+			free32(trbs_old);
+		}
+	}
+
+	/* Update the ERDP to make room in the ring. */
 	hc->event_ring.dequeue_ptr = host2xhci(64, addr_to_phys(hc->event_ring.dequeue_trb));
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
 	XHCI_REG_SET(intr, XHCI_INTR_ERDP_EHB, 1);
+
+	/**
+	 * After changing the way this function works, second port status change
+	 * would not raise an interrupt because of IE being set to 0. This is
+	 * a temporary hotfix that fixes this issue.
+	 * TODO: Research & properly fix this.
+	 */
+	XHCI_REG_SET(intr, XHCI_INTR_IE, 1);
+
+	/* Handle all of the collected events if possible. */
+	if (last_idx > 0) {
+		for (size_t i = 0; i < last_idx; ++i)
+			hc_handle_event(hc, trbs + i, intr);
+		usb_log_debug2("Event ring processing finished.");
+	} else {
+		usb_log_warning("No events to be handled!");
+	}
+
+	free32(trbs);
 }
 
 void hc_interrupt(xhci_hc_t *hc, uint32_t status)
