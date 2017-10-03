@@ -47,6 +47,8 @@ enum {
 typedef struct {
 	/** Virtual hub instance */
 	virthub_base_t base;
+	/** XHCI operational registers */
+	xhci_op_regs_t *op_regs;
 	/** USB hub descriptor describing the XHCI root hub */
 	struct {
 		usb_hub_descriptor_header_t header;
@@ -61,7 +63,7 @@ typedef struct {
 	uint8_t usb3_port_end;
 } xhci_rh_t;
 
-int xhci_rh_init(xhci_rh_t *);
+int xhci_rh_init(xhci_rh_t *, xhci_op_regs_t *);
 int xhci_rh_fini(xhci_rh_t *);
 int xhci_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
 int xhci_get_hub_port(xhci_trb_t *);

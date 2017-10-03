@@ -201,7 +201,7 @@ int hc_init_memory(xhci_hc_t *hc)
 	if ((err = xhci_init_commands(hc)))
 		goto err_scratch;
 
-	if ((err = xhci_rh_init(&hc->rh)))
+	if ((err = xhci_rh_init(&hc->rh, hc->op_regs)))
 		goto err_cmd;
 
 	return EOK;

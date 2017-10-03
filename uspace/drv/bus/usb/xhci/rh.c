@@ -50,8 +50,11 @@ enum {
 
 static usbvirt_device_ops_t ops;
 
-int xhci_rh_init(xhci_rh_t *rh)
+int xhci_rh_init(xhci_rh_t *rh, xhci_op_regs_t *op_regs)
 {
+	assert(rh);
+	rh->op_regs = op_regs;
+
 	usb_hub_descriptor_header_t *header = &rh->hub_descriptor.header;
 	header->length = sizeof(usb_hub_descriptor_header_t);
 	header->descriptor_type = USB_DESCTYPE_HUB;
@@ -315,6 +318,9 @@ static int req_clear_hub_feature(usbvirt_device_t *device,
 	return EOK;
 }
 
+#define XHCI_TO_USB(usb_feat, reg_set, ...) \
+	(((XHCI_REG_RD(reg_set, ##__VA_ARGS__)) ? 1 : 0) << (usb_feat))
+
 /** Port status request handler.
  * @param device Virtual hub device
  * @param setup_packet USB setup stage data.
@@ -327,8 +333,34 @@ static int req_get_port_status(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
-	/* TODO: Implement me! */
-	usb_log_debug2("Called req_get_port_status().");
+	xhci_rh_t *hub = virthub_get_data(device);
+	assert(hub);
+
+	const uint16_t ports = 255; /* FIXME: Fetch this from somewhere. */
+	if (!setup_packet->index || setup_packet->index > ports) {
+		return ESTALL;
+	}
+
+	/* The index is 1-based. */
+	xhci_port_regs_t* regs = &hub->op_regs->portrs[setup_packet->index - 1];
+
+	const uint32_t status = uint32_host2usb(
+	    XHCI_TO_USB(USB_HUB_FEATURE_C_PORT_CONNECTION, regs, XHCI_PORT_CSC) |
+	    XHCI_TO_USB(USB_HUB_FEATURE_C_PORT_ENABLE, regs, XHCI_PORT_PEC) |
+	    XHCI_TO_USB(USB_HUB_FEATURE_C_PORT_OVER_CURRENT, regs, XHCI_PORT_OCC) |
+	    XHCI_TO_USB(USB_HUB_FEATURE_C_PORT_RESET, regs, XHCI_PORT_PRC) |
+	    XHCI_TO_USB(USB_HUB_FEATURE_PORT_CONNECTION, regs, XHCI_PORT_CCS) |
+	    XHCI_TO_USB(USB_HUB_FEATURE_PORT_ENABLE, regs, XHCI_PORT_PED) |
+	    XHCI_TO_USB(USB_HUB_FEATURE_PORT_OVER_CURRENT, regs, XHCI_PORT_OCA) |
+	    XHCI_TO_USB(USB_HUB_FEATURE_PORT_RESET, regs, XHCI_PORT_PR) |
+	    XHCI_TO_USB(USB_HUB_FEATURE_PORT_POWER, regs, XHCI_PORT_PP)
+	);
+
+	usb_log_debug2("RH: GetPortStatus(%hu) = %u.", setup_packet->index,
+		uint32_usb2host(status));
+
+	memcpy(data, &status, sizeof(status));
+	*act_size = sizeof(status);
 	return EOK;
 }
 
@@ -373,12 +405,26 @@ static int req_set_port_feature(usbvirt_device_t *device,
  * @param buffer Response destination
  * @param buffer_size Bytes available in buffer
  * @param actual_size Size us the used part of the dest buffer.
+ *
+ * Produces status mask. Bit 0 indicates hub status change the other bits
+ * represent port status change.
  */
 static int req_status_change_handler(usbvirt_device_t *device,
     usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
     void *buffer, size_t buffer_size, size_t *actual_size)
 {
 	usb_log_debug2("Called req_status_change_handler().");
+	xhci_rh_t *hub = virthub_get_data(device);
+	assert(hub);
+
+	if (buffer_size < 16)
+		return ESTALL;
+
+	/* TODO: Set this based on the received event TRBs. */
+	memset(buffer, 0, 16);
+	*actual_size = 16;
+
+	/* TODO: Set to EOK if something happened. */
 	return ENAK;
 }
 
