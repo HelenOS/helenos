@@ -52,8 +52,17 @@ static usbvirt_device_ops_t ops;
 
 int xhci_rh_init(xhci_rh_t *rh)
 {
+	usb_hub_descriptor_header_t *header = &rh->hub_descriptor.header;
+	header->length = sizeof(usb_hub_descriptor_header_t);
+	header->descriptor_type = USB_DESCTYPE_HUB;
+	header->port_count = XHCI_MAX_PORTS;
+	header->characteristics =
+		    HUB_CHAR_NO_POWER_SWITCH_FLAG | HUB_CHAR_NO_OC_FLAG;
+	header->power_good_time = 50; // TODO: This needs to be fine-tuned.
+	header->max_current = 0;
+
 	return virthub_base_init(&rh->base, "xhci rh", &ops, rh, NULL,
-	    &rh->hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
+	    header, HUB_STATUS_CHANGE_PIPE);
 }
 
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
