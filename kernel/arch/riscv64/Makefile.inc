@@ -30,7 +30,7 @@ BFD_NAME = elf64-littleriscv
 BFD_ARCH = riscv
 BFD = binary
 
-GCC_CFLAGS += -mcmodel=medany
+COMMON_CFLAGS += -mcmodel=medany
 
 BITS = 64
 ENDIANESS = LE

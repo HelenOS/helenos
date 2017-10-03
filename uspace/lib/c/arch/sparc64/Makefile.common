@@ -27,12 +27,12 @@
 #
 
 ifeq ($(PROCESSOR),sun4v)
-GCC_CFLAGS += -mcpu=niagara -mno-vis
+COMMON_CFLAGS += -mcpu=niagara -mno-vis
 else
-GCC_CFLAGS += -mcpu=ultrasparc
+COMMON_CFLAGS += -mcpu=ultrasparc
 endif
 
-GCC_CFLAGS += -m64 -mcmodel=medlow
+COMMON_CFLAGS += -m64 -mcmodel=medlow
 
 LFLAGS += -no-check-sections --gc-sections
 

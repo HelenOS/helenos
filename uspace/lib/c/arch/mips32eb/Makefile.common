@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS += -msoft-float -mabi=32
+COMMON_CFLAGS += -msoft-float -mabi=32
 BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 AS_PROLOG = .module softfloat;.abicalls;
 LFLAGS += --gc-sections
@@ -37,6 +37,6 @@ BFD_ARCH = mips
 BFD_NAME = elf32-tradbigmips
 
 ifeq ($(MACHINE),bmalta)
-	GCC_CFLAGS += -march=4kc
+	COMMON_CFLAGS += -march=4kc
 endif
 

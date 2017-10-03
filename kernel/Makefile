@@ -83,47 +83,46 @@ INCLUDES_FLAGS = $(addprefix -I,$(INCLUDES))
 
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
-GCC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-std=gnu99 -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe
+COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-fexec-charset=UTF-8 -finput-charset=UTF-8
 
-ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
+GCC_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
+	-Wmissing-prototypes -Werror-implicit-function-declaration \
+	-Wwrite-strings -pipe
+
+ICC_CFLAGS = -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
 
-# clang does not support following options but I am not sure whether
-# something won't break because of that:
-# -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
-CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-std=gnu99 -Wall -Werror -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Wwrite-strings \
-	-integrated-as -pipe -target $(CLANG_TARGET)
+CLANG_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
+	-Wmissing-prototypes -Werror-implicit-function-declaration \
+	-Wwrite-strings -pipe -fno-stack-protector -fno-PIC
 
 ifeq ($(CONFIG_DEBUG),y)
-	GCC_CFLAGS += -Werror
-	ICC_CFLAGS += -Werror
+	COMMON_CFLAGS += -Werror
 endif
 
 ifeq ($(CONFIG_LTO),y)
-	GCC_CFLAGS += -flto
+	COMMON_CFLAGS += -flto
 endif
 
 ifeq ($(CONFIG_LINE_DEBUG),y)
-	GCC_CFLAGS += -g
-	ICC_CFLAGS += -g
-	CLANG_CFLAGS += -g
+	COMMON_CFLAGS += -g
 endif
 
 #
 # Mind the mutual ordering with the inclusion of the arch Makefile.inc.
 # AFLAGS and LFLAGS must be initialized before the inclusion.
 #
-AFLAGS = --fatal-warnings
+AFLAGS =
 LFLAGS = -n -T $(LINK) -M --fatal-warnings
+
+# FIXME: This condition is a workaround for issues #693 and #694.
+ifneq ($(KARCH),sparc64)
+ifneq ($(KARCH),mips32)
+	AFLAGS += --fatal-warnings
+endif
+endif
 
 #
 # Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.
@@ -155,33 +154,33 @@ SYMTAB_SECTION = .section symtab.data, \"a\", $(ATSIGN)progbits;
 #
 
 ifeq ($(COMPILER),gcc_native)
-	CFLAGS = $(GCC_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 	INSTRUMENTATION = -finstrument-functions
 endif
 
 ifeq ($(COMPILER),gcc_cross)
-	CFLAGS = $(GCC_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 	INSTRUMENTATION = -finstrument-functions
 endif
 
 ifeq ($(COMPILER),gcc_helenos)
-	CFLAGS = $(GCC_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 	INSTRUMENTATION = -finstrument-functions
 endif
 
 ifeq ($(COMPILER),icc)
-	CFLAGS = $(ICC_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(ICC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 	INSTRUMENTATION =
 endif
 
 ifeq ($(COMPILER),clang)
-	CFLAGS = $(CLANG_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-	INSTRUMENTATION =
+	INSTRUMENTATION = -finstrument-functions
 endif
 
 
@@ -383,7 +382,12 @@ ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG))
 AUTOGENS_H := $(ARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_H)
 AUTOGENS_AG := $(ARCH_AUTOGENS_AG) $(GENARCH_AUTOGENS_AG)
 
-LFLAGS_LTO := $(addprefix -Xlinker ,$(LFLAGS))
+AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
+LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
+
+ifeq ($(COMPILER),clang)
+	AS_CFLAGS += -mllvm -asm-macro-max-nesting-depth=1000
+endif
 
 ifeq ($(CONFIG_SYMTAB),y)
 	SYMTAB_OBJECTS := generic/src/debug/real_map.o
@@ -403,7 +407,7 @@ endif
 
 $(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
 ifeq ($(CONFIG_LTO),y)
-	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
+	$(CC) $(DEFS) $(CFLAGS) $(LD_CFLAGS) -Xlinker -Map -Xlinker $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 else
 	$(LD) $(LFLAGS) -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 endif
@@ -416,17 +420,17 @@ $(LINK): $(LINK).in $(DEPEND)
 
 %.h: %.ag
 	$(AUTOGEN) probe $< >$<.probe.c
-	$(CC) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
+	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
 	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
 %.o: %.S $(DEPEND)
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c -o $@ $<
+	$(CC) $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
 ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(GCC_CFLAGS) -D__ASM__
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
 endif
 
 %.o: %.s $(DEPEND)
-	$(AS) $(AFLAGS) -o $@ $<
+	$(CC) $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
 endif
@@ -438,12 +442,12 @@ ifeq ($(PRECHECK),y)
 endif
 
 $(REAL_MAP).o: $(REAL_MAP).bin
-	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$<\"" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $@ -
 
 $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
-	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)" | $(AS) $(AFLAGS) -o $(EMPTY_MAP)
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $(EMPTY_MAP) -
 ifeq ($(CONFIG_LTO),y)
-	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP_PREV) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
+	$(CC) $(DEFS) $(CFLAGS) $(LD_CFLAGS) -Xlinker -Map -Xlinker $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
 else
 	$(LD) $(LFLAGS) -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
 endif
@@ -453,9 +457,9 @@ endif
 	# Do it once again, this time to get correct even the symbols
 	# on architectures that have bss after symtab
 	
-	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$@\"" | $(AS) $(AFLAGS) -o $(SIZEOK_MAP)
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$@\"" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $(SIZEOK_MAP) -
 ifeq ($(CONFIG_LTO),y)
-	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP_PREV) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
+	$(CC) $(DEFS) $(CFLAGS) $(LD_CFLAGS) -Xlinker -Map -Xlinker $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
 else
 	$(LD) $(LFLAGS) -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
 endif

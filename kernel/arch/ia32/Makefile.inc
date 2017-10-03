@@ -33,42 +33,36 @@ BFD = binary
 BITS = 32
 ENDIANESS = LE
 
-CMN1 = -m32 -fno-omit-frame-pointer
-GCC_CFLAGS += $(CMN1)
-ICC_CFLAGS += $(CMN1)
-CLANG_CFLAGS += $(CMN1)
+COMMON_CFLAGS += -m32 -fno-omit-frame-pointer
 
 ## Accepted CPUs
 #
 
 ifeq ($(PROCESSOR),i486)
-	CMN2 = -march=i486
+	COMMON_CFLAGS += -march=i486
 endif
 
 ifeq ($(PROCESSOR),athlon_xp)
-	CMN2 = -march=athlon-xp
+	COMMON_CFLAGS += -march=athlon-xp
 endif
 
 ifeq ($(PROCESSOR),athlon_mp)
-	CMN2 = -march=athlon-mp
+	COMMON_CFLAGS += -march=athlon-mp
 endif
 
 ifeq ($(PROCESSOR),pentium3)
-	CMN2 = -march=pentium3
+	COMMON_CFLAGS += -march=pentium3
 endif
 
 ifeq ($(PROCESSOR),pentium4)
-	CMN2 = -march=pentium4
+	COMMON_CFLAGS += -march=pentium4
 endif
 
 ifeq ($(PROCESSOR),core)
-	CMN2 = -march=prescott
+	COMMON_CFLAGS += -march=prescott
 endif
 
 FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
-GCC_CFLAGS += $(CMN2)
-ICC_CFLAGS += $(CMN2)
-CLANG_CFLAGS += $(CMN2)
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \

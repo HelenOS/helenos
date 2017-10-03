@@ -35,60 +35,59 @@ OPTIMIZATION = 3
 
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
+AFLAGS =
 LFLAGS = --fatal-warnings
 
-GCC_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+# FIXME: This condition is a workaround for issue #693.
+ifneq ($(BARCH),mips32)
+	AFLAGS += --fatal-warnings
+endif
+
+COMMON_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-fexec-charset=UTF-8 -finput-charset=UTF-8
+
+GCC_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe
 
-ICC_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -wd170
+ICC_CFLAGS = -Wall -Wmissing-prototypes -Werror-implicit-function-declaration -wd170
 
-CLANG_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+CLANG_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe
+	-pipe  -fno-stack-protector -fno-PIC
 
 ifeq ($(CONFIG_DEBUG),y)
-	GCC_CFLAGS += -Werror
-	ICC_CFLAGS += -Werror
+	COMMON_CFLAGS += -Werror
 endif
 
 ifeq ($(CONFIG_LINE_DEBUG),y)
-	GCC_CFLAGS += -g
-	ICC_CFLAGS += -g
-	CLANG_CFLAGS += -g
+	COMMON_CFLAGS += -g
 endif
 
 ifeq ($(COMPILER),gcc_native)
-	CFLAGS = $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_cross)
-	CFLAGS = $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_helenos)
-	CFLAGS = $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 
 ifeq ($(COMPILER),icc)
-	CFLAGS = $(ICC_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(ICC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),clang)
-	CFLAGS = $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
+	CFLAGS = $(COMMON_CFLAGS) $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
@@ -104,6 +103,8 @@ ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPEND)
 endif
 
+AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
+
 $(BOOT_OUTPUT): $(RAW)
 	$(OBJCOPY) -O $(BFD_OUTPUT) $< $@
 
@@ -111,10 +112,10 @@ $(RAW): $(OBJECTS) $(LINK)
 	$(LD) -n $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(OBJECTS)
 
 $(LINK): $(DEPEND)
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
+	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
 
 %.o: %.S $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
 endif
@@ -126,7 +127,7 @@ ifeq ($(PRECHECK),y)
 endif
 
 %.o: %.s $(DEPEND)
-	$(AS) $(AFLAGS) -o $@ $<
+	$(CC) $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm
 endif
