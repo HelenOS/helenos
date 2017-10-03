@@ -207,7 +207,6 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 		xhci_trb_copy(ring->enqueue_trb, trb);
 
 		usb_log_debug2("TRB ring(%p): Enqueued TRB %p", ring, trb);
-		usb_log_error("RING->PCS: %u", ring->pcs);
 		ring->enqueue_trb++;
 
 		if (TRB_TYPE(*ring->enqueue_trb) == XHCI_TRB_TYPE_LINK) {
@@ -263,6 +262,8 @@ int xhci_event_ring_init(xhci_event_ring_t *ring, xhci_hc_t *hc)
 
 	ring->ccs = 1;
 
+	fibril_mutex_initialize(&ring->guard);
+
 	usb_log_debug("Initialized event ring.");
 
 	return EOK;
@@ -294,14 +295,18 @@ static uintptr_t event_ring_dequeue_phys(xhci_event_ring_t *ring)
  */
 int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
 {
+	fibril_mutex_lock(&ring->guard);
+
 	/**
 	 * The ERDP reported to the HC is a half-phase off the one we need to
 	 * maintain. Therefore, we keep it extra.
 	 */
 	ring->dequeue_ptr = event_ring_dequeue_phys(ring);
 
-	if (TRB_CYCLE(*ring->dequeue_trb) != ring->ccs)
+	if (TRB_CYCLE(*ring->dequeue_trb) != ring->ccs) {
+		fibril_mutex_unlock(&ring->guard);
 		return ENOENT; /* The ring is empty. */
+	}
 
 	memcpy(event, ring->dequeue_trb, sizeof(xhci_trb_t));
 
@@ -322,5 +327,6 @@ int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
 		ring->dequeue_trb = segment_begin(ring->dequeue_segment);
 	}
 
+	fibril_mutex_unlock(&ring->guard);
 	return EOK;
 }

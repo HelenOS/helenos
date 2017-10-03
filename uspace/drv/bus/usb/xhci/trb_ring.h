@@ -105,6 +105,8 @@ typedef struct xhci_event_ring {
 	xhci_erst_entry_t *erst;        /* ERST given to the HC */
 
 	bool ccs;                       /* Consumer Cycle State: section 4.9.2 */
+
+	fibril_mutex_t guard;
 } xhci_event_ring_t;
 
 int xhci_event_ring_init(xhci_event_ring_t *, xhci_hc_t *);
