@@ -128,6 +128,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
 
 	xhci_cmd_init(&cmd);
+	cmd.slot_id = slot_id;
 	xhci_send_address_device_command(hc, &cmd, ictx);
 	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
 		goto err_dctx;

@@ -158,7 +158,7 @@ typedef struct xhci_stream_ctx {
  *       are used, the rest are reserved.
  */
 typedef struct xhci_input_ctrl_ctx {
-	uint32_t data [16];
+	uint32_t data [8];
 #define XHCI_INPUT_CTRL_CTX_DROP(ctx, idx) \
 	XHCI_DWORD_EXTRACT((ctx).data[0], (idx), (idx))
 
