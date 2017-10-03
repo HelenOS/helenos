@@ -83,8 +83,8 @@ static int hc_parse_ec(xhci_hc_t *hc)
 				 * == 0.
 				 */
 
-	 			unsigned ports_from = XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF);
-	 			unsigned ports_to = ports_from
+				unsigned ports_from = XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF);
+				unsigned ports_to = ports_from
 					+ XHCI_REG_RD(ec, XHCI_EC_SP_CP_COUNT) - 1;
 
 				if (major == 2) {
@@ -467,69 +467,56 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	return EOK;
 }
 
-static void hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_regs_t *intr)
+typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
+
+static event_handler event_handlers [] = {
+	[XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT] = &xhci_handle_command_completion,
+	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &xhci_handle_port_status_change_event,
+};
+
+static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_regs_t *intr)
 {
-	usb_log_debug2("TRB event encountered.");
-	switch (TRB_TYPE(*trb)) {
-	case XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT:
-		xhci_handle_command_completion(hc, trb);
-		break;
-	case XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT:
-		/**
-		 * TODO: This is a very crude hotfix, I'm not sure if
-		 *       we can do this one level above in the event handling
-		 *       loop (incase the xHC adds more events while we process events).
-		 */
-		hc->event_ring.dequeue_ptr = host2xhci(64, addr_to_phys(hc->event_ring.dequeue_trb));
-		uint64_t erdp = hc->event_ring.dequeue_ptr;
-		XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
-		XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
-		XHCI_REG_SET(intr, XHCI_INTR_ERDP_EHB, 1);
-		xhci_handle_port_status_change_event(hc, trb);
-		break;
-	default:
-		usb_log_debug2("Event type handling not implemented.");
-		break;
-	}
+	unsigned type = TRB_TYPE(*trb);
+	if (type >= ARRAY_SIZE(event_handlers) || !event_handlers[type])
+		return ENOTSUP;
+
+	return event_handlers[type](hc, trb);
 }
 
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci_interrupter_regs_t *intr)
 {
 	int err;
-	size_t last_idx = 0;
-	size_t size = 16; // TODO: Define a macro, possibly do size += initial_size instead of *= 2.
-	xhci_trb_t *trbs = malloc32(sizeof(xhci_trb_t) * size);
+	ssize_t size = 16;
+	xhci_trb_t *queue = malloc(sizeof(xhci_trb_t) * size);
+	if (!queue) {
+		usb_log_error("Not enough memory to run the event ring.");
+		return;
+	}
 
-	err = xhci_event_ring_dequeue(event_ring, trbs + last_idx);
+	xhci_trb_t *head = queue;
 
-	while (err != ENOENT) {
-		if (err == EOK) {
-			usb_log_debug2("Dequeued trb from event ring: %s",
-					xhci_trb_str_type(TRB_TYPE(trbs[last_idx])));
-		} else {
-			--last_idx; /* If there are valid trbs they should still get handled. */
+	while ((err = xhci_event_ring_dequeue(event_ring, head)) != ENOENT) {
+		if (err != EOK) {
 			usb_log_warning("Error while accessing event ring: %s", str_error(err));
 			break;
 		}
 
-		++last_idx;
-		err = xhci_event_ring_dequeue(event_ring, trbs + last_idx);
+		usb_log_debug2("Dequeued trb from event ring: %s", xhci_trb_str_type(TRB_TYPE(*head)));
+		head++;
 
 		/* Expand the array if needed. */
-		if (last_idx >= size) {
-			xhci_trb_t *trbs_old = trbs;
-			size_t size_old = size;
-
+		if (head - queue >= size) {
 			size *= 2;
-			trbs = malloc32(sizeof(xhci_trb_t) * size);
+			xhci_trb_t *new_queue = realloc(queue, size);
+			if (new_queue == NULL)
+				break; /* Will process only those TRBs we have memory for. */
 
-			for (size_t i = 0; i < size_old; ++i)
-				xhci_trb_copy(trbs + i, trbs_old + i);
-			free32(trbs_old);
+			head = new_queue + (head - queue);
 		}
 	}
 
 	/* Update the ERDP to make room in the ring. */
+	usb_log_debug2("Copying from ring finished, updating ERDP.");
 	hc->event_ring.dequeue_ptr = host2xhci(64, addr_to_phys(hc->event_ring.dequeue_trb));
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
@@ -537,15 +524,17 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	XHCI_REG_SET(intr, XHCI_INTR_ERDP_EHB, 1);
 
 	/* Handle all of the collected events if possible. */
-	if (last_idx > 0) {
-		for (size_t i = 0; i < last_idx; ++i)
-			hc_handle_event(hc, trbs + i, intr);
-		usb_log_debug2("Event ring processing finished.");
-	} else {
+	if (head == queue)
 		usb_log_warning("No events to be handled!");
+
+	for (xhci_trb_t *tail = queue; tail != head; tail++) {
+		if ((err = hc_handle_event(hc, tail, intr)) != EOK) {
+			usb_log_error("Failed to handle event: %s", str_error(err));
+		}
 	}
 
-	free32(trbs);
+	free(queue);
+	usb_log_debug2("Event ring run finished.");
 }
 
 void hc_interrupt(xhci_hc_t *hc, uint32_t status)
@@ -566,7 +555,7 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 	}
 
 	if (status & XHCI_REG_MASK(XHCI_OP_EINT)) {
-		usb_log_debug2("Event interrupt.");
+		usb_log_debug2("Event interrupt, running the event ring.");
 		hc_run_event_ring(hc, &hc->event_ring, &hc->rt_regs->ir[0]);
 		status &= ~XHCI_REG_MASK(XHCI_OP_EINT);
 	}

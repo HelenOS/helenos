@@ -126,9 +126,6 @@ static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
 {
 	link_t *cmd_link = list_first(&hc->commands);
 
-
-	usb_log_debug2("Searching TRB %lu...", phys);
-
 	while (cmd_link != NULL) {
 		xhci_cmd_t *cmd = list_get_instance(cmd_link, xhci_cmd_t, link);
 

@@ -134,7 +134,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 
 	xhci_cmd_fini(&cmd);
 
- 	// TODO: Issue configure endpoint commands (sec 4.3.5).
+	// TODO: Issue configure endpoint commands (sec 4.3.5).
 
 	return EOK;
 
@@ -164,14 +164,16 @@ static int handle_connected_device(xhci_hc_t* hc, xhci_port_regs_t* regs, uint8_
 			uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
 			usb_log_debug("Detected new device on port %u, port speed id %u.", port_id, port_speed);
 
-			alloc_dev(hc, port_id, 0);
+			return alloc_dev(hc, port_id, 0);
 		}
 		else if (link_state == 5) {
 			/* USB 3 failed to enable. */
 			usb_log_error("USB 3 port couldn't be enabled.");
+			return EAGAIN;
 		}
 		else {
 			usb_log_error("USB 3 port is in invalid state %u.", link_state);
+			return EINVAL;
 		}
 	}
 	else {
@@ -182,13 +184,14 @@ static int handle_connected_device(xhci_hc_t* hc, xhci_port_regs_t* regs, uint8_
 			and then alloc_dev()... can't it be done directly instead of
 			going around?
 		*/
+		return EOK;
 	}
-
-	return EOK;
 }
 
 int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
+	int err;
+
 	uint8_t port_id = xhci_get_hub_port(trb);
 	usb_log_debug("Port status change event detected for port %u.", port_id);
 	xhci_port_regs_t* regs = &hc->op_regs->portrs[port_id - 1];
@@ -201,7 +204,8 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 		uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
 		usb_log_debug2("Detected port reset on port %u, port speed id %u.", port_id, port_speed);
 		/** FIXME: only if that port is not yet initialized */
-		alloc_dev(hc, port_id, 0);
+		if ((err = alloc_dev(hc, port_id, 0)) != EOK)
+			return err;
 	}
 
 	/* Connection status change */
@@ -209,9 +213,11 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 		XHCI_REG_WR(regs, XHCI_PORT_CSC, 1);
 
 		if (XHCI_REG_RD(regs, XHCI_PORT_CCS) == 1) {
-			handle_connected_device(hc, regs, port_id);
+			if ((err = handle_connected_device(hc, regs, port_id)) != EOK)
+				return err;
 		} else {
 			// TODO: Device disconnected
+			return ENOTSUP;
 		}
 	}
 
