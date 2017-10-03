@@ -58,7 +58,7 @@ int xhci_rh_init(xhci_rh_t *rh)
 	header->port_count = XHCI_MAX_PORTS;
 	header->characteristics =
 		    HUB_CHAR_NO_POWER_SWITCH_FLAG | HUB_CHAR_NO_OC_FLAG;
-	header->power_good_time = 50; // TODO: This needs to be fine-tuned.
+	header->power_good_time = 10; /* XHCI section 5.4.9 says 20ms max */
 	header->max_current = 0;
 
 	return virthub_base_init(&rh->base, "xhci-rh", &ops, rh, NULL,
