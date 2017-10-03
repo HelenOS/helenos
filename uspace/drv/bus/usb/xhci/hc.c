@@ -267,7 +267,7 @@ static const irq_cmd_t irq_commands[] = {
 	},
 	{
 		.cmd = CMD_PIO_WRITE_A_32,
-		.srcarg = 4,
+		.srcarg = 3,
 		.addr = NULL	/* intr[0].iman */
 	},
 	{
@@ -535,14 +535,6 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
 	XHCI_REG_SET(intr, XHCI_INTR_ERDP_EHB, 1);
-
-	/**
-	 * After changing the way this function works, second port status change
-	 * would not raise an interrupt because of IE being set to 0. This is
-	 * a temporary hotfix that fixes this issue.
-	 * TODO: Research & properly fix this.
-	 */
-	XHCI_REG_SET(intr, XHCI_INTR_IE, 1);
 
 	/* Handle all of the collected events if possible. */
 	if (last_idx > 0) {
