@@ -55,7 +55,8 @@ int xhci_rh_init(xhci_rh_t *rh)
 	usb_hub_descriptor_header_t *header = &rh->hub_descriptor.header;
 	header->length = sizeof(usb_hub_descriptor_header_t);
 	header->descriptor_type = USB_DESCTYPE_HUB;
-	header->port_count = XHCI_MAX_PORTS;
+	/* FIXME: Use hcs_params1 and cap to 0x7F */
+	header->port_count = 0x7F;
 	header->characteristics =
 		    HUB_CHAR_NO_POWER_SWITCH_FLAG | HUB_CHAR_NO_OC_FLAG;
 	header->power_good_time = 10; /* XHCI section 5.4.9 says 20ms max */
