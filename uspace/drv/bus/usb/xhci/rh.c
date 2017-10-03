@@ -61,7 +61,7 @@ int xhci_rh_init(xhci_rh_t *rh)
 	header->power_good_time = 50; // TODO: This needs to be fine-tuned.
 	header->max_current = 0;
 
-	return virthub_base_init(&rh->base, "xhci rh", &ops, rh, NULL,
+	return virthub_base_init(&rh->base, "xhci-rh", &ops, rh, NULL,
 	    header, HUB_STATUS_CHANGE_PIPE);
 }
 
@@ -297,23 +297,6 @@ int xhci_rh_interrupt(xhci_rh_t *rh)
 	return EOK;
 }
 
-/** Hub status request handler.
- * @param device Virtual hub device
- * @param setup_packet USB setup stage data.
- * @param[out] data destination data buffer, size must be at least
- *             setup_packet->length bytes
- * @param[out] act_size Sized of the valid response part of the buffer.
- * @return Error code.
- */
-static int req_get_status(usbvirt_device_t *device,
-    const usb_device_request_setup_packet_t *setup_packet,
-    uint8_t *data, size_t *act_size)
-{
-	/* TODO: Implement me! */
-	usb_log_debug2("Called req_get_status().");
-	return EOK;
-}
-
 /** Hub set feature request handler.
  * @param device Virtual hub device
  * @param setup_packet USB setup stage data.
@@ -389,16 +372,11 @@ static int req_set_port_feature(usbvirt_device_t *device,
  * @param buffer Response destination
  * @param buffer_size Bytes available in buffer
  * @param actual_size Size us the used part of the dest buffer.
- *
- * Produces status mask. Bit 0 indicates hub status change the other bits
- * represent port status change. Endian does not matter as UHCI root hubs
- * only need 1 byte.
  */
 static int req_status_change_handler(usbvirt_device_t *device,
     usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
     void *buffer, size_t buffer_size, size_t *actual_size)
 {
-	/* TODO: Implement me! */
 	usb_log_debug2("Called req_status_change_handler().");
 	return ENAK;
 }
@@ -445,7 +423,9 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	{
 		CLASS_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_GET_STATUS),
 		.name = "GetHubStatus",
-		.callback = req_get_status,
+		/* XHCI root hub has no power source,
+		 * over-current is reported by port */
+		.callback = virthub_base_get_null_status,
 	},
 	{
 		CLASS_REQ_IN(USB_REQUEST_RECIPIENT_OTHER, USB_HUB_REQUEST_GET_STATUS),
