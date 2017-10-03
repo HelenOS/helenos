@@ -202,12 +202,6 @@ else
 	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
 endif
 
-ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
-	OPTIMIZATION = s
-else
-	OPTIMIZATION = 3
-endif
-
 # PCUT-based unit tests
 ifneq ($(TEST_SOURCES),)
 	TEST_OUTPUT = $(TEST_BINARY)

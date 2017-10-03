@@ -81,12 +81,6 @@ clean: autogen_clean
 INCLUDES = generic/include genarch/include arch/$(KARCH)/include ../abi/include
 INCLUDES_FLAGS = $(addprefix -I,$(INCLUDES))
 
-ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
-	OPTIMIZATION = s
-else
-	OPTIMIZATION = 3
-endif
-
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 GCC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
