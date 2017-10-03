@@ -37,6 +37,10 @@ ifneq ($(POSTBUILD),)
 endif
 
 build_dist: clean_dist
+	mkdir -p "$(DIST_PATH)/srv/"
+	mkdir -p "$(DIST_PATH)/lib/"
+	mkdir -p "$(DIST_PATH)/app/"
+	mkdir -p "$(DIST_PATH)/test/"
 	for file in $(RD_SRVS) ; do \
 		cp "$$file" "$(DIST_PATH)/srv/" ; \
 	done
@@ -44,7 +48,7 @@ build_dist: clean_dist
 		cp "$$file" "$(DIST_PATH)/lib/" ; \
 	done
 ifeq ($(CONFIG_DEVEL_FILES), y)
-	mkdir "$(DIST_PATH)/inc/c/"
+	mkdir -p "$(DIST_PATH)/inc/c/"
 	cp -r -L "$(USPACE_PATH)/lib/c/include/." "$(DIST_PATH)/inc/c/"
 	cp -r -L "$(ROOT_PATH)/abi/include/." "$(DIST_PATH)/inc/c/"
 	cp -r -L "$(USPACE_PATH)/lib/c/arch/$(UARCH)/include/." "$(DIST_PATH)/inc/c/"
