@@ -113,6 +113,8 @@ int xhci_trb_ring_init(xhci_trb_ring_t *ring, xhci_hc_t *hc)
 	ring->dequeue = segment->phys;
 	ring->pcs = 1;
 
+	fibril_mutex_initialize(&ring->guard);
+
 	usb_log_debug("Initialized new TRB ring.");
 
 	return EOK;
@@ -169,6 +171,8 @@ static uintptr_t trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
  */
 int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys)
 {
+	fibril_mutex_lock(&ring->guard);
+
 	xhci_trb_t * const saved_enqueue_trb = ring->enqueue_trb;
 	trb_segment_t * const saved_enqueue_segment = ring->enqueue_segment;
 	if (phys)
@@ -203,6 +207,7 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 		xhci_trb_copy(ring->enqueue_trb, trb);
 
 		usb_log_debug2("TRB ring(%p): Enqueued TRB %p", ring, trb);
+		usb_log_error("RING->PCS: %u", ring->pcs);
 		ring->enqueue_trb++;
 
 		if (TRB_TYPE(*ring->enqueue_trb) == XHCI_TRB_TYPE_LINK) {
@@ -218,11 +223,13 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 		}
 	} while (xhci_trb_is_chained(trb++));
 
+	fibril_mutex_unlock(&ring->guard);
 	return EOK;
 
 err_again:
 	ring->enqueue_segment = saved_enqueue_segment;
 	ring->enqueue_trb = saved_enqueue_trb;
+	fibril_mutex_unlock(&ring->guard);
 	return EAGAIN;
 }
 

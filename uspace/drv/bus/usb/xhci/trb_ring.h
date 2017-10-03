@@ -43,6 +43,7 @@
 #define XHCI_TRB_RING_H
 
 #include <adt/list.h>
+#include <fibril_synch.h>
 #include <libarch/config.h>
 
 typedef struct trb_segment trb_segment_t;
@@ -67,6 +68,8 @@ typedef struct xhci_trb_ring {
 
 	uintptr_t dequeue;              /* Last reported position of the dequeue pointer */
 	bool pcs;                       /* Producer Cycle State: section 4.9.2 */
+
+	fibril_mutex_t guard;
 } xhci_trb_ring_t;
 
 int xhci_trb_ring_init(xhci_trb_ring_t *, xhci_hc_t *);
