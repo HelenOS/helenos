@@ -282,6 +282,8 @@ check_dirs() {
 	BASE="$2"
 	ORIGINAL="`pwd`"
 	
+	mkdir -p "${OUTSIDE}"
+	
 	cd "${OUTSIDE}"
 	check_error $? "Unable to change directory to ${OUTSIDE}."
 	ABS_OUTSIDE="`pwd`"
@@ -442,10 +444,8 @@ build_target() {
 	source_check "${BASEDIR}/${GDB}"
 	
 	echo ">>> Removing previous content"
-	$REAL_INSTALL && cleanup_dir "${PREFIX}"
 	cleanup_dir "${WORKDIR}"
 	
-	$REAL_INSTALL && create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
 	
 	check_dirs "${PREFIX}" "${WORKDIR}"
@@ -477,7 +477,7 @@ build_target() {
 	CFLAGS=-Wno-error ./configure \
 		"--target=${TARGET}" \
 		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
-		--disable-nls --disable-werror
+		--disable-nls --disable-werror --enable-gold
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
@@ -485,11 +485,7 @@ build_target() {
 	check_error $? "Error compiling binutils."
 	
 	change_title "binutils: install (${PLATFORM})"
-	if $REAL_INSTALL ; then
-		make install
-	else
-		make install "DESTDIR=${INSTALL_DIR}"
-	fi
+	make install "DESTDIR=${INSTALL_DIR}"
 	check_error $? "Error installing binutils."
 	
 	
@@ -512,11 +508,7 @@ build_target() {
 	check_error $? "Error compiling GCC."
 	
 	change_title "GCC: install (${PLATFORM})"
-	if $REAL_INSTALL ; then
-		PATH="${PATH}:${PREFIX}/bin" make install-gcc
-	else
-		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gcc "DESTDIR=${INSTALL_DIR}"
-	fi
+	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gcc "DESTDIR=${INSTALL_DIR}"
 	check_error $? "Error installing GCC."
 	
 	
@@ -530,7 +522,7 @@ build_target() {
 		PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" ./configure \
 			"--target=${TARGET}" \
 			"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
-			--enable-werror=no
+			--enable-werror=no --without-guile
 		check_error $? "Error configuring GDB."
 		
 		change_title "GDB: make (${PLATFORM})"
@@ -538,14 +530,23 @@ build_target() {
 		check_error $? "Error compiling GDB."
 		
 		change_title "GDB: make (${PLATFORM})"
-		if $REAL_INSTALL ; then
-			PATH="${PATH}:${PREFIX}/bin" make install
-		else
-			PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
-		fi
+		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
 		check_error $? "Error installing GDB."
 	fi
 	
+	# Symlink clang and lld to the install path.
+	CLANG=`which clang 2> /dev/null || echo "/usr/bin/clang"`
+	LLD=`which ld.lld 2> /dev/null || echo "/usr/bin/ld.lld"`
+	
+	ln -s $CLANG "${INSTALL_DIR}/${PREFIX}/bin/${TARGET}-clang"
+	ln -s $LLD "${INSTALL_DIR}/${PREFIX}/bin/${TARGET}-ld.lld"
+	
+	if $REAL_INSTALL ; then
+		echo ">>> Moving to the destination directory."
+		cleanup_dir "${PREFIX}"
+		echo mv "${INSTALL_DIR}/${PREFIX}" "${PREFIX}"
+		mv "${INSTALL_DIR}/${PREFIX}" "${PREFIX}"
+	fi
 	
 	cd "${BASEDIR}"
 	check_error $? "Change directory failed."
