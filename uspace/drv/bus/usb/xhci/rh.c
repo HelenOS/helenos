@@ -236,6 +236,18 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 		}
 	}
 
+	// Interrupt on the virtual hub status change pipe.
+	usb_target_t target = {
+		.address = virthub_base_get_address(&hc->rh.base),
+		.endpoint = HUB_STATUS_CHANGE_PIPE
+	};
+	usb_direction_t dir = USB_DIRECTION_IN;
+ 	usb_device_request_setup_packet_t setup;
+	uint64_t buffer[10];
+	size_t real_size = 0;
+	err = virthub_base_request(&hc->rh.base, target, dir, &setup, &buffer,
+		sizeof(buffer), &real_size);
+
 	return EOK;
 }
 
