@@ -116,6 +116,7 @@ typedef enum {
 	DIR_FLAG_DIRECTORY = 2
 } cdfs_dir_flag_t;
 
+/** Directory record */
 typedef struct {
 	uint8_t length;
 	uint8_t ea_length;
@@ -132,6 +133,24 @@ typedef struct {
 	uint8_t name_length;
 	uint8_t name[];
 } __attribute__((packed)) cdfs_dir_t;
+
+/** Directory record for the root directory */
+typedef struct {
+	uint8_t length;
+	uint8_t ea_length;
+	
+	uint32_t_lb lba;
+	uint32_t_lb size;
+	
+	cdfs_timestamp_t timestamp;
+	uint8_t flags;
+	uint8_t unit_size;
+	uint8_t gap_size;
+	uint16_t_lb sequence_nr;
+	
+	uint8_t name_length;
+	uint8_t name[1];
+} __attribute__((packed)) cdfs_root_dir_t;
 
 typedef struct {
 	uint8_t flags; /* reserved in primary */
@@ -154,7 +173,24 @@ typedef struct {
 	uint32_t path_table_msb;
 	uint32_t opt_path_table_msb;
 	
-	cdfs_dir_t root_dir;
+	cdfs_root_dir_t root_dir;
+	uint8_t pad0;
+	
+	uint8_t set_ident[128];
+	uint8_t publisher_ident[128];
+	uint8_t preparer_ident[128];
+	uint8_t app_ident[128];
+	
+	uint8_t copyright_file_ident[37];
+	uint8_t abstract_file_ident[37];
+	uint8_t biblio_file_ident[37];
+	
+	cdfs_datetime_t creation;
+	cdfs_datetime_t modification;
+	cdfs_datetime_t expiration;
+	cdfs_datetime_t effective;
+	
+	uint8_t fs_version;
 } __attribute__((packed)) cdfs_vol_desc_prisec_t;
 
 typedef struct {
