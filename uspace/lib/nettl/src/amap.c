@@ -58,10 +58,20 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+/** Convert association map flags to port range flags.
+ *
+ * @param flags Association map flags
+ * @return Port range flags
+ */
 static portrng_flags_t aflags_to_pflags(amap_flags_t flags)
 {
-	// FIXME: either use a single type, or provide a proper conversion
-	return (portrng_flags_t) flags;
+	portrng_flags_t pflags;
+
+	pflags = 0;
+	if ((flags & af_allow_system) != 0)
+		pflags |= pf_allow_system;
+
+	return pflags;
 }
 
 /** Create association map.
