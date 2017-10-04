@@ -442,6 +442,7 @@ int main(int argc, char *argv[])
 
 void usage(void)
 {
+	fprintf(stderr, "%s", copyright);
 	fprintf(stderr, "usage: tetris [-ps] [-k keys]\n");
 	exit(1);
 }
