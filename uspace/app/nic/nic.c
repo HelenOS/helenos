@@ -119,6 +119,7 @@ static int nic_get_info(service_id_t svc_id, char *svc_name,
 	sess = loc_service_connect(svc_id, INTERFACE_DDF, 0);
 	if (sess == NULL) {
 		printf("Error connecting to service.\n");
+		rc = EIO;
 		goto error;
 	}
 	
@@ -208,7 +209,7 @@ static const char *nic_unicast_mode_str(nic_unicast_mode_t mode)
 	}
 }
 
-static const char *nic_multicast_mode_str(nic_unicast_mode_t mode)
+static const char *nic_multicast_mode_str(nic_multicast_mode_t mode)
 {
 	switch (mode) {
 	case NIC_MULTICAST_UNKNOWN: return "unknown";
@@ -219,7 +220,7 @@ static const char *nic_multicast_mode_str(nic_unicast_mode_t mode)
 	}
 }
 
-static const char *nic_broadcast_mode_str(nic_unicast_mode_t mode)
+static const char *nic_broadcast_mode_str(nic_broadcast_mode_t mode)
 {
 	switch (mode) {
 	case NIC_BROADCAST_UNKNOWN: return "unknown";

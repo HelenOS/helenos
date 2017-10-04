@@ -594,6 +594,9 @@ int exfat_node_open(fs_node_t *fn)
 
 int exfat_node_put(fs_node_t *fn)
 {
+	if (fn == NULL)
+		return EOK;
+
 	exfat_node_t *nodep = EXFAT_NODE(fn);
 	bool destroy = false;
 
@@ -931,7 +934,7 @@ int exfat_total_block_count(service_id_t service_id, uint64_t *count)
 
 int exfat_free_block_count(service_id_t service_id, uint64_t *count)
 {
-	fs_node_t *node;
+	fs_node_t *node = NULL;
 	exfat_node_t *bmap_node;
 	exfat_bs_t *bs;
 	uint64_t free_block_count = 0;
@@ -944,7 +947,6 @@ int exfat_free_block_count(service_id_t service_id, uint64_t *count)
 		goto exit;
 
 	bs = block_bb_get(service_id);
-	node = NULL;
 	rc = exfat_bitmap_get(&node, service_id);
 	if (rc != EOK)
 		goto exit;

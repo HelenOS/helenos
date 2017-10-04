@@ -33,7 +33,7 @@
  */
 
 #ifndef LIBC_amd64_ELF_LINUX_H_
-#define LBIC_amd64_ELF_LINUX_H_
+#define LIBC_amd64_ELF_LINUX_H_
 
 #include <libarch/istate.h>
 #include <stdint.h>
