@@ -2885,7 +2885,7 @@ void run_new_csi_inst(run_t *run, stree_csi_t *csi, statns_t sn,
 
 				/* Is it static/nonstatic? */
 				var_sn = stree_symbol_has_attr(
-				    var_to_symbol(var), sac_static);
+				    var_to_symbol(var), sac_static) ? sn_static : sn_nonstatic;
 				if (var_sn == sn) {
 					/* Compute field type. XXX Memoize. */
 					run_texpr(run->program, csi, var->type,

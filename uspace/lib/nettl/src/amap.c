@@ -58,6 +58,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+static portrng_flags_t aflags_to_pflags(amap_flags_t flags)
+{
+	// FIXME: either use a single type, or provide a proper conversion
+	return (portrng_flags_t) flags;
+}
+
 /** Create association map.
  *
  * @param rmap Place to store pointer to new association map
@@ -377,7 +383,7 @@ static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
 
 	mepp = *epp;
 
-	rc = portrng_alloc(repla->portrng, epp->local.port, arg, flags,
+	rc = portrng_alloc(repla->portrng, epp->local.port, arg, aflags_to_pflags(flags),
 	    &mepp.local.port);
 	if (rc != EOK) {
 		return rc;
@@ -421,7 +427,7 @@ static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
 
 	mepp = *epp;
 
-	rc = portrng_alloc(laddr->portrng, epp->local.port, arg, flags,
+	rc = portrng_alloc(laddr->portrng, epp->local.port, arg, aflags_to_pflags(flags),
 	    &mepp.local.port);
 	if (rc != EOK) {
 		return rc;
@@ -465,7 +471,7 @@ static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
 
 	mepp = *epp;
 
-	rc = portrng_alloc(llink->portrng, epp->local.port, arg, flags,
+	rc = portrng_alloc(llink->portrng, epp->local.port, arg, aflags_to_pflags(flags),
 	    &mepp.local.port);
 	if (rc != EOK) {
 		return rc;
@@ -497,7 +503,7 @@ static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_unspec()");
 	mepp = *epp;
 
-	rc = portrng_alloc(map->unspec, epp->local.port, arg, flags,
+	rc = portrng_alloc(map->unspec, epp->local.port, arg, aflags_to_pflags(flags),
 	    &mepp.local.port);
 	if (rc != EOK) {
 		return rc;

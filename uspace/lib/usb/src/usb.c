@@ -72,7 +72,7 @@ static const char *str_direction[] = {
  */
 const char *usb_str_transfer_type(usb_transfer_type_t t)
 {
-	if (t >= ARRAY_SIZE(str_transfer_type)) {
+	if ((size_t)t >= ARRAY_SIZE(str_transfer_type)) {
 		return "invalid";
 	}
 	return str_transfer_type[t];
@@ -85,7 +85,7 @@ const char *usb_str_transfer_type(usb_transfer_type_t t)
  */
 const char *usb_str_transfer_type_short(usb_transfer_type_t t)
 {
-	if (t >= ARRAY_SIZE(str_transfer_type_short)) {
+	if ((size_t)t >= ARRAY_SIZE(str_transfer_type_short)) {
 		return "invl";
 	}
 	return str_transfer_type_short[t];

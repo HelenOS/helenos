@@ -366,7 +366,7 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
 	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
 		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
-		    "C_SUSPEND, C_OC or C_RESET on port %"PRIu16".\n", port);
+		    "C_SUSPEND, C_OC or C_RESET on port %u.\n", port);
 		/* Bit offsets correspond to the feature number */
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    1 << feature);
@@ -415,7 +415,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
 		usb_log_debug2("Setting port POWER, ENABLE, SUSPEND or RESET "
-		    "on port %"PRIu16".\n", port);
+		    "on port %u.\n", port);
 		/* Bit offsets correspond to the feature number */
 		OHCI_WR(hub->registers->rh_port_status[port], 1 << feature);
 		return EOK;

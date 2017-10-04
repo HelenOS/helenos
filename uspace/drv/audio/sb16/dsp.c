@@ -74,7 +74,7 @@ static inline const char * dsp_state_to_str(dsp_state_t state)
 		[DSP_READY] = "READY",
 		[DSP_NO_BUFFER] = "NO BUFFER",
 	};
-	if (state < ARRAY_SIZE(state_names))
+	if ((size_t)state < ARRAY_SIZE(state_names))
 		return state_names[state];
 	return "UNKNOWN";
 }
@@ -143,9 +143,11 @@ static inline void dsp_start_current_active(sb_dsp_t *dsp, uint8_t command)
 static inline void dsp_set_sampling_rate(sb_dsp_t *dsp, unsigned rate)
 {
 	dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
-	dsp_write(dsp, rate >> 8);
-	dsp_write(dsp, rate & 0xff);
-	ddf_log_verbose("Sampling rate: %hhx:%hhx.", rate >> 8, rate & 0xff);
+	uint8_t rate_lo = rate & 0xff;
+	uint8_t rate_hi = rate >> 8;
+	dsp_write(dsp, rate_hi);
+	dsp_write(dsp, rate_lo);
+	ddf_log_verbose("Sampling rate: %hhx:%hhx.", rate_hi, rate_lo);
 }
 
 static inline void dsp_report_event(sb_dsp_t *dsp, pcm_event_t event)
@@ -201,11 +203,6 @@ static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
 	}
 	
 	return ret;
-}
-
-static inline size_t sample_count(pcm_sample_format_t format, size_t byte_count)
-{
-	return byte_count / pcm_sample_format_size(format);
 }
 
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,

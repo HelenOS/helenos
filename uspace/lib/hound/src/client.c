@@ -47,7 +47,7 @@
 #include "client.h"
 
 /** Stream structure */
-typedef struct hound_stream {
+struct hound_stream {
 	/** link in context's list */
 	link_t link;
 	/** audio data format fo the stream */
@@ -58,7 +58,7 @@ typedef struct hound_stream {
 	hound_context_t *context;
 	/** Stream flags */
 	int flags;
-} hound_stream_t;
+};
 
 /**
  * Linked list isntacen helper function.
@@ -71,7 +71,7 @@ static inline hound_stream_t * hound_stream_from_link(link_t *l)
 }
 
 /** Hound client context structure */
-typedef struct hound_context {
+struct hound_context {
 	/** Audio session */
 	hound_sess_t *session;
 	/** context name, reported to the daemon */
@@ -88,7 +88,7 @@ typedef struct hound_context {
 	} main;
 	/** Assigned context id */
 	hound_context_id_t id;
-} hound_context_t;
+};
 
 /**
  * Alloc and initialize context structure.

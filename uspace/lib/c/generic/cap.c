@@ -184,8 +184,7 @@ int cap_format(cap_spec_t *cap, char **rstr)
 
 	sunit = NULL;
 
-	if (cap->cunit < 0 || cap->cunit >= CU_LIMIT)
-		assert(false);
+	assert(cap->cunit < CU_LIMIT);
 
 	rc = ipow10_u64(cap->dp, &div);
 	if (rc != EOK)

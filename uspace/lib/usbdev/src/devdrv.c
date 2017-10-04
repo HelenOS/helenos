@@ -52,7 +52,7 @@
 #include <ddf/driver.h>
 
 /** USB device structure. */
-typedef struct usb_device {
+struct usb_device {
 	/** Connection to device on USB bus */
 	usb_dev_session_t *bus_session;
 	
@@ -94,7 +94,7 @@ typedef struct usb_device {
 	 * by the framework.
 	 */
 	void *driver_data;
-} usb_device_t;
+};
 
 /** Count number of pipes the driver expects.
  *
