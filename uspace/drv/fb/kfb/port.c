@@ -84,62 +84,6 @@ static kfb_t kfb;
 
 static vslmode_list_element_t pixel_mode;
 
-static pixel_t color_table[16] = {
-	[COLOR_BLACK]       = 0x000000,
-	[COLOR_BLUE]        = 0x0000f0,
-	[COLOR_GREEN]       = 0x00f000,
-	[COLOR_CYAN]        = 0x00f0f0,
-	[COLOR_RED]         = 0xf00000,
-	[COLOR_MAGENTA]     = 0xf000f0,
-	[COLOR_YELLOW]      = 0xf0f000,
-	[COLOR_WHITE]       = 0xf0f0f0,
-
-	[COLOR_BLACK + 8]   = 0x000000,
-	[COLOR_BLUE + 8]    = 0x0000ff,
-	[COLOR_GREEN + 8]   = 0x00ff00,
-	[COLOR_CYAN + 8]    = 0x00ffff,
-	[COLOR_RED + 8]     = 0xff0000,
-	[COLOR_MAGENTA + 8] = 0xff00ff,
-	[COLOR_YELLOW + 8]  = 0xffff00,
-	[COLOR_WHITE + 8]   = 0xffffff,
-};
-
-static inline void attrs_rgb(char_attrs_t attrs, pixel_t *bgcolor, pixel_t *fgcolor)
-{
-	switch (attrs.type) {
-	case CHAR_ATTR_STYLE:
-		switch (attrs.val.style) {
-		case STYLE_NORMAL:
-			*bgcolor = color_table[COLOR_WHITE];
-			*fgcolor = color_table[COLOR_BLACK];
-			break;
-		case STYLE_EMPHASIS:
-			*bgcolor = color_table[COLOR_WHITE];
-			*fgcolor = color_table[COLOR_RED];
-			break;
-		case STYLE_INVERTED:
-			*bgcolor = color_table[COLOR_BLACK];
-			*fgcolor = color_table[COLOR_WHITE];
-			break;
-		case STYLE_SELECTED:
-			*bgcolor = color_table[COLOR_RED];
-			*fgcolor = color_table[COLOR_WHITE];
-			break;
-		}
-		break;
-	case CHAR_ATTR_INDEX:
-		*bgcolor = color_table[(attrs.val.index.bgcolor & 7) |
-		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
-		*fgcolor = color_table[(attrs.val.index.fgcolor & 7) |
-		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
-		break;
-	case CHAR_ATTR_RGB:
-		*bgcolor = attrs.val.rgb.bgcolor;
-		*fgcolor = attrs.val.rgb.fgcolor;
-		break;
-	}
-}
-
 static int kfb_claim(visualizer_t *vs)
 {
 	return EOK;
