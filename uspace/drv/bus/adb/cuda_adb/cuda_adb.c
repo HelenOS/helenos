@@ -36,24 +36,26 @@
  * we just assume a keyboard at address 2 or 8 and a mouse at address 9.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include <assert.h>
+#include <ddf/driver.h>
+#include <ddf/log.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
-#include <loc.h>
-#include <sysinfo.h>
 #include <errno.h>
 #include <ipc/adb.h>
-#include <assert.h>
+#include <libarch/ddi.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <sysinfo.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cuda_adb.h"
 #include "cuda_hw.h"
 
 #define NAME  "cuda_adb"
 
-static void cuda_connection(ipc_callid_t, ipc_call_t *, void *);
+static void cuda_dev_connection(ipc_callid_t, ipc_call_t *, void *);
 static int cuda_init(cuda_t *);
 static void cuda_irq_handler(ipc_callid_t, ipc_call_t *, void *);
 
@@ -106,79 +108,93 @@ static irq_code_t cuda_irq_code = {
 	cuda_cmds
 };
 
-int main(int argc, char *argv[])
+static int cuda_dev_create(cuda_t *cuda, const char *name, adb_dev_t **rdev)
 {
-	service_id_t service_id;
-	cuda_t cinst;
+	adb_dev_t *dev = NULL;
+	ddf_fun_t *fun;
 	int rc;
-	int i;
 
-	printf(NAME ": VIA-CUDA Apple Desktop Bus driver\n");
-
-	for (i = 0; i < ADB_MAX_ADDR; ++i) {
-		cinst.adb_dev[i].client_sess = NULL;
-		cinst.adb_dev[i].service_id = 0;
+	fun = ddf_fun_create(cuda->dev, fun_exposed, name);
+	if (fun == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating function '%s'.", name);
+		rc = ENOMEM;
+		goto error;
 	}
 
-	async_set_fallback_port_handler(cuda_connection, &cinst);
-	rc = loc_server_register(NAME);
-	if (rc < 0) {
-		printf(NAME ": Unable to register server.\n");
-		return rc;
+	dev = ddf_fun_data_alloc(fun, sizeof(adb_dev_t));
+	if (dev == NULL) {
+		ddf_msg(LVL_ERROR, "Failed allocating memory for '%s'.", name);
+		rc = ENOMEM;
+		goto error;
 	}
 
-	rc = loc_service_register("adb/kbd", &service_id);
+	dev->fun = fun;
+	list_append(&dev->lcuda, &cuda->devs);
+
+	ddf_fun_set_conn_handler(fun, cuda_dev_connection);
+
+	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register service %s.\n", "adb/kbd");
-		return rc;
+		ddf_msg(LVL_ERROR, "Failed binding function '%s'.", name);
+		goto error;
 	}
 
-	cinst.adb_dev[2].service_id = service_id;
-	cinst.adb_dev[8].service_id = service_id;
-
-	rc = loc_service_register("adb/mouse", &service_id);
-	if (rc != EOK) {
-		printf(NAME ": Unable to register service %s.\n", "adb/mouse");
-		return rc;
-	}
-
-	cinst.adb_dev[9].service_id = service_id;
-
-	if (cuda_init(&cinst) != EOK) {
-		printf("cuda_init() failed\n");
-		return 1;
-	}
-
-	task_retval(0);
-	async_manager();
-
-	return 0;
+	*rdev = dev;
+	return EOK;
+error:
+	if (fun != NULL)
+		ddf_fun_destroy(fun);
+	return rc;
 }
 
-/** Character device connection handler */
-static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+int cuda_add(cuda_t *cuda)
 {
+	adb_dev_t *kbd = NULL;
+	adb_dev_t *mouse = NULL;
+	int rc;
+
+	rc = cuda_dev_create(cuda, "kbd", &kbd);
+	if (rc != EOK)
+		goto error;
+
+	rc = cuda_dev_create(cuda, "mouse", &mouse);
+	if (rc != EOK)
+		goto error;
+
+	cuda->addr_dev[2] = kbd;
+	cuda->addr_dev[8] = kbd;
+
+	cuda->addr_dev[9] = mouse;
+
+
+	rc = cuda_init(cuda);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed initializing CUDA hardware.");
+		return rc;
+	}
+
+	return EOK;
+error:
+	return rc;
+}
+
+int cuda_remove(cuda_t *cuda)
+{
+	return ENOTSUP;
+}
+
+int cuda_gone(cuda_t *cuda)
+{
+	return ENOTSUP;
+}
+
+/** Device connection handler */
+static void cuda_dev_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	adb_dev_t *dev = (adb_dev_t *) ddf_fun_data_get((ddf_fun_t *) arg);
 	ipc_callid_t callid;
 	ipc_call_t call;
 	sysarg_t method;
-	service_id_t dsid;
-	cuda_t *cuda = (cuda_t *) arg;
-	int dev_addr, i;
-
-	/* Get the device handle. */
-	dsid = IPC_GET_ARG2(*icall);
-
-	/* Determine which disk device is the client connecting to. */
-	dev_addr = -1;
-	for (i = 0; i < ADB_MAX_ADDR; i++) {
-		if (cuda->adb_dev[i].service_id == dsid)
-			dev_addr = i;
-	}
-
-	if (dev_addr < 0) {
-		async_answer_0(iid, EINVAL);
-		return;
-	}
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	async_answer_0(iid, EOK);
@@ -196,23 +212,11 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_sess_t *sess =
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
-			if (cuda->adb_dev[dev_addr].client_sess == NULL) {
-				cuda->adb_dev[dev_addr].client_sess = sess;
-
-				/*
-				 * A hack so that we send the data to the session
-				 * regardless of which address the device is on.
-				 */
-				for (i = 0; i < ADB_MAX_ADDR; ++i) {
-					if (cuda->adb_dev[i].service_id == dsid)
-						cuda->adb_dev[i].client_sess = sess;
-				}
-
-				async_answer_0(callid, EOK);
-			} else
-				async_answer_0(callid, ELIMIT);
-		} else
+			dev->client_sess = sess;
+			async_answer_0(callid, EOK);
+		} else {
 			async_answer_0(callid, EINVAL);
+		}
 	}
 }
 
@@ -306,7 +310,7 @@ static void cuda_irq_listen(cuda_t *cuda)
 	uint8_t b = pio_read_8(&cuda->regs->b);
 
 	if ((b & TREQ) != 0) {
-		printf("cuda_irq_listen: no TREQ?!\n");
+		ddf_msg(LVL_WARN, "cuda_irq_listen: no TREQ?!");
 		return;
 	}
 
@@ -436,36 +440,37 @@ static void adb_packet_handle(cuda_t *cuda, uint8_t *data, size_t size,
 	uint8_t dev_addr;
 	uint8_t reg_no;
 	uint16_t reg_val;
+	adb_dev_t *dev;
 	unsigned i;
 
 	dev_addr = data[0] >> 4;
 	reg_no = data[0] & 0x03;
 
 	if (size != 3) {
-		printf("unrecognized packet, size=%zu\n", size);
+		ddf_msg(LVL_WARN, "Unrecognized packet, size=%zu", size);
 		for (i = 0; i < size; ++i) {
-			printf(" 0x%02x", data[i]);
+			ddf_msg(LVL_WARN, "  0x%02x", data[i]);
 		}
-		putchar('\n');
 		return;
 	}
 
 	if (reg_no != 0) {
-		printf("unrecognized packet, size=%zu\n", size);
+		ddf_msg(LVL_WARN, "Unrecognized packet, size=%zu", size);
 		for (i = 0; i < size; ++i) {
-			printf(" 0x%02x", data[i]);
+			ddf_msg(LVL_WARN, "  0x%02x", data[i]);
 		}
-		putchar('\n');
 		return;
 	}
 
 	reg_val = ((uint16_t) data[1] << 8) | (uint16_t) data[2];
 
-	if (cuda->adb_dev[dev_addr].client_sess == NULL)
+	ddf_msg(LVL_DEBUG, "Received ADB packet for device address %d",
+	    dev_addr);
+	dev = cuda->addr_dev[dev_addr];
+	if (dev == NULL)
 		return;
 
-	async_exch_t *exch =
-	    async_exchange_begin(cuda->adb_dev[dev_addr].client_sess);
+	async_exch_t *exch = async_exchange_begin(dev->client_sess);
 	async_msg_1(exch, ADB_REG_NOTIF, reg_val);
 	async_exchange_end(exch);
 }

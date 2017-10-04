@@ -74,12 +74,12 @@ static void mouse_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 static int adb_port_init(mouse_dev_t *mdev)
 {
-	const char *dev = "adb/mouse";
+	const char *dev = "devices/\\hw\\adb\\mouse";
 	
 	mouse_dev = mdev;
 	
 	service_id_t service_id;
-	int rc = loc_service_get_id(dev, &service_id, 0);
+	int rc = loc_service_get_id(dev, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return rc;
 	

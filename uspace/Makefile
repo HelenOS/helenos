@@ -133,7 +133,6 @@ DIRS = \
 	srv/hid/input \
 	srv/hid/output \
 	srv/hid/remcons \
-	srv/hw/bus/cuda_adb \
 	srv/hw/char/s3c24xx_uart \
 	srv/hw/irc/apic \
 	srv/hw/irc/i8259 \
@@ -147,6 +146,7 @@ DIRS = \
 	drv/block/ahci \
 	drv/block/ata_bd \
 	drv/block/ddisk \
+	drv/bus/adb/cuda_adb \
 	drv/bus/isa \
 	drv/bus/pci/pciintel \
 	drv/bus/usb/ehci \

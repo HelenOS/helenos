@@ -43,6 +43,7 @@ RD_SRVS_ESSENTIAL += \
 
 RD_DRVS_ESSENTIAL += \
 	platform/mac \
+	bus/adb/cuda_adb \
 	bus/pci/pciintel \
 	bus/usb/ohci \
 	bus/usb/usbflbk \

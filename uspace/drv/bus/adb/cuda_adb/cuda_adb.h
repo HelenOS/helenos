@@ -36,7 +36,9 @@
 #ifndef CUDA_ADB_H_
 #define CUDA_ADB_H_
 
+#include <adt/list.h>
 #include <async.h>
+#include <ddf/driver.h>
 #include <fibril_synch.h>
 #include <loc.h>
 #include <stdint.h>
@@ -54,14 +56,19 @@ enum cuda_xfer_state {
 	cx_send
 };
 
+/** ADB bus device */
 typedef struct {
-	service_id_t service_id;
+	ddf_fun_t *fun;
 	async_sess_t *client_sess;
+	link_t lcuda;
+	struct cuda *cuda;
 } adb_dev_t;
 
-typedef struct {
+/** CUDA ADB bus */
+typedef struct cude {
 	struct cuda_regs *regs;
 	uintptr_t cuda_physical;
+	ddf_dev_t *dev;
 
 	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
 	uint8_t snd_buf[CUDA_RCV_BUF_SIZE];
@@ -70,8 +77,13 @@ typedef struct {
 	enum cuda_xfer_state xstate;
 	fibril_mutex_t dev_lock;
 
-	adb_dev_t adb_dev[ADB_MAX_ADDR];
+	list_t devs;
+	adb_dev_t *addr_dev[ADB_MAX_ADDR];
 } cuda_t;
+
+extern int cuda_add(cuda_t *);
+extern int cuda_remove(cuda_t *);
+extern int cuda_gone(cuda_t *);
 
 #endif
 

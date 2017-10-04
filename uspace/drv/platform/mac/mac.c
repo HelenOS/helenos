@@ -40,12 +40,32 @@
 #include <errno.h>
 #include <ops/hw_res.h>
 #include <stdio.h>
+#include <sysinfo.h>
 
 #define NAME  "mac"
 
 typedef struct {
 	hw_resource_list_t hw_resources;
 } mac_fun_t;
+
+static hw_resource_t adb_regs[] = {
+	{
+		.type = IO_RANGE,
+		.res.io_range = {
+			.address = 0,
+			.size = 0x2000,
+			.relative = false,
+			.endianness = BIG_ENDIAN
+		}
+	},
+};
+
+static mac_fun_t adb_data = {
+	.hw_resources = {
+		1,
+		adb_regs
+	}
+};
 
 static hw_resource_t pci_conf_regs[] = {
 	{
@@ -87,6 +107,7 @@ static bool mac_add_fun(ddf_dev_t *dev, const char *name,
     const char *str_match_id, mac_fun_t *fun_proto)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
+	printf("mac: Adding new function '%s'.\n", name);
 	
 	ddf_fun_t *fnode = NULL;
 	int rc;
@@ -113,6 +134,7 @@ static bool mac_add_fun(ddf_dev_t *dev, const char *name,
 		goto failure;
 	}
 	
+	printf("mac: Added new function '%s' (str=%s).\n", name, str_match_id);
 	return true;
 	
 failure:
@@ -134,15 +156,28 @@ failure:
  */
 static int mac_dev_add(ddf_dev_t *dev)
 {
+	int rc;
+	uintptr_t cuda_physical;
 #if 0
 	/* Register functions */
-	if (!mac_add_fun(dev, "pci0", "intel_pci", &pci_data))
-		ddf_msg(LVL_ERROR, "Failed to add functions for Mac platform.");
+	if (!mac_add_fun(dev, "pci0", "intel_pci", &pci_data)) {
+		ddf_msg(LVL_ERROR, "Failed to add PCI function for Mac platform.");
+		return EIO;
+	}
 #else
 	(void)pci_data;
-	(void)mac_add_fun;
 #endif
-	
+	rc = sysinfo_get_value("cuda.address.physical", &cuda_physical);
+	if (rc != EOK)
+		return EIO;
+
+	adb_regs[0].res.io_range.address = cuda_physical;
+
+	if (!mac_add_fun(dev, "adb", "cuda_adb", &adb_data)) {
+		ddf_msg(LVL_ERROR, "Failed to add ADB function for Mac platform.");
+		return EIO;
+	}
+
 	return EOK;
 }
 
