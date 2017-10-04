@@ -155,23 +155,6 @@ typedef struct {
 	uint32_t opt_path_table_msb;
 	
 	cdfs_dir_t root_dir;
-	uint8_t pad0;
-	
-	uint8_t set_ident[128];
-	uint8_t publisher_ident[128];
-	uint8_t preparer_ident[128];
-	uint8_t app_ident[128];
-	
-	uint8_t copyright_file_ident[37];
-	uint8_t abstract_file_ident[37];
-	uint8_t biblio_file_ident[37];
-	
-	cdfs_datetime_t creation;
-	cdfs_datetime_t modification;
-	cdfs_datetime_t expiration;
-	cdfs_datetime_t effective;
-	
-	uint8_t fs_version;
 } __attribute__((packed)) cdfs_vol_desc_prisec_t;
 
 typedef struct {
