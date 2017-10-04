@@ -364,15 +364,18 @@ static void e1000_link_restart(e1000_t *e1000)
 	
 	if (ctrl & CTRL_SLU) {
 		ctrl &= ~(CTRL_SLU);
+		E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
+		
 		thread_usleep(10);
+		
 		fibril_mutex_lock(&e1000->ctrl_lock);
+		ctrl = E1000_REG_READ(e1000, E1000_CTRL);
 		ctrl |= CTRL_SLU;
+		E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
 	}
 	
 	fibril_mutex_unlock(&e1000->ctrl_lock);
-	
-	e1000_link_restart(e1000);
 }
 
 /** Set operation mode of the device
