@@ -1014,8 +1014,6 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	min_blocks = fdisk_ba_align_up(dev, min_blocks);
 	max_blocks = fdisk_ba_align_up(dev, max_blocks);
 
-	pcnt = -1;
-
 	switch (pspec->fstype) {
 	case fs_exfat:
 		pcnt = lpc_exfat;
@@ -1031,10 +1029,9 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 		break;
 	case fs_cdfs:
 		return EINVAL; /* You cannot create an ISO partition */
-	}
-
-	if (pcnt < 0)
+	default:
 		return EINVAL;
+	}
 
 	if (pspec->pkind == lpk_logical) {
 		hdrb = max(1, dev->align);
