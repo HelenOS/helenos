@@ -247,7 +247,10 @@ ICC_CFLAGS = -Wall -Wextra -Wno-clobbered -Wno-unused-parameter \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
 	-Wwrite-strings -pipe
 
-CLANG_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+# -Wno-missing-prototypes is there because it warns about main().
+# This should be fixed elsewhere.
+CLANG_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-typedef-redefinition \
+	-Wno-missing-prototypes -Wno-unused-command-line-argument \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -fno-stack-protector -fno-PIC
 

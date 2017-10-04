@@ -95,6 +95,7 @@ ICC_CFLAGS = -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
 
 CLANG_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
+	-Wno-missing-field-initializers -Wno-unused-command-line-argument \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
 	-Wwrite-strings -pipe -fno-stack-protector -fno-PIC
 
