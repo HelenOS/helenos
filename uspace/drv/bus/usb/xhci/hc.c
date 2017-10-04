@@ -47,21 +47,27 @@
  * Default USB Speed ID mapping: Table 157
  */
 #define PSI_TO_BPS(psie, psim) (((uint64_t) psim) << (10 * psie))
-#define PORT_SPEED(psie, psim) { \
+#define PORT_SPEED(mjr, psie, psim) { \
+	.name = "USB ", \
+	.major = mjr, \
+	.minor = 0, \
 	.rx_bps = PSI_TO_BPS(psie, psim), \
 	.tx_bps = PSI_TO_BPS(psie, psim) \
 }
-static const xhci_port_speed_t ps_default_full  = PORT_SPEED(2, 12);
-static const xhci_port_speed_t ps_default_low   = PORT_SPEED(1, 1500);
-static const xhci_port_speed_t ps_default_high  = PORT_SPEED(2, 480);
-static const xhci_port_speed_t ps_default_super = PORT_SPEED(3, 5);
+static const xhci_port_speed_t ps_default_full  = PORT_SPEED(2, 2, 12);
+static const xhci_port_speed_t ps_default_low   = PORT_SPEED(2, 1, 1500);
+static const xhci_port_speed_t ps_default_high  = PORT_SPEED(2, 2, 480);
+static const xhci_port_speed_t ps_default_super = PORT_SPEED(3, 3, 5);
 
 /**
  * Walk the list of extended capabilities.
  */
 static int hc_parse_ec(xhci_hc_t *hc)
 {
-	unsigned psic, major;
+	unsigned psic, major, minor;
+	xhci_sp_name_t name;
+
+	xhci_port_speed_t *speeds = hc->rh.speeds;
 
 	for (xhci_extcap_t *ec = hc->xecp; ec; ec = xhci_extcap_next(ec)) {
 		xhci_dump_extcap(ec);
@@ -73,35 +79,34 @@ static int hc_parse_ec(xhci_hc_t *hc)
 		case XHCI_EC_SUPPORTED_PROTOCOL:
 			psic = XHCI_REG_RD(ec, XHCI_EC_SP_PSIC);
 			major = XHCI_REG_RD(ec, XHCI_EC_SP_MAJOR);
+			minor = XHCI_REG_RD(ec, XHCI_EC_SP_MINOR);
+			name.packed = host2uint32_t_le(XHCI_REG_RD(ec, XHCI_EC_SP_NAME));
+
+			if (name.packed != xhci_name_usb.packed) {
+				/**
+				 * The detection of such protocol would work,
+				 * but the rest of the implementation is made
+				 * for the USB protocol only.
+				 */
+				usb_log_error("Unknown protocol %.4s.", name.str);
+				return ENOTSUP;
+			}
 
 			// "Implied" speed
 			if (psic == 0) {
-				/*
-				 * According to section 7.2.2.1.2, only USB 2.0
-				 * and USB 3.0 can have psic == 0. So we
-				 * blindly assume the name == "USB " and minor
-				 * == 0.
-				 */
-
-				unsigned ports_from = XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF);
-				unsigned ports_to = ports_from
-					+ XHCI_REG_RD(ec, XHCI_EC_SP_CP_COUNT) - 1;
+				assert(minor == 0);
 
 				if (major == 2) {
-					hc->speeds[1] = ps_default_full;
-					hc->speeds[2] = ps_default_low;
-					hc->speeds[3] = ps_default_high;
-					hc->rh.usb2_port_start = ports_from;
-					hc->rh.usb2_port_end = ports_to;
+					speeds[1] = ps_default_full;
+					speeds[2] = ps_default_low;
+					speeds[3] = ps_default_high;
 				} else if (major == 3) {
-					hc->speeds[4] = ps_default_super;
-					hc->rh.usb3_port_start = ports_from;
-					hc->rh.usb3_port_end = ports_to;
+					speeds[4] = ps_default_super;
 				} else {
 					return EINVAL;
 				}
 
-				usb_log_debug2("Implied speed of USB %u set up.", major);
+				usb_log_debug2("Implied speed of USB %u.0 set up.", major);
 			} else {
 				for (unsigned i = 0; i < psic; i++) {
 					xhci_psi_t *psi = xhci_extcap_psi(ec, i);
@@ -110,13 +115,17 @@ static int hc_parse_ec(xhci_hc_t *hc)
 					unsigned psie = XHCI_REG_RD(psi, XHCI_PSI_PSIE);
 					unsigned psim = XHCI_REG_RD(psi, XHCI_PSI_PSIM);
 
+					speeds[psiv].major = major;
+					speeds[psiv].minor = minor;
+					str_ncpy(speeds[psiv].name, 4, name.str, 4);
+
 					uint64_t bps = PSI_TO_BPS(psie, psim);
 
 					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_RX)
-						hc->speeds[psiv].rx_bps = bps;
+						speeds[psiv].rx_bps = bps;
 					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_TX) {
-						hc->speeds[psiv].tx_bps = bps;
-						usb_log_debug2("Speed %u set up for bps %" PRIu64 " / %" PRIu64 ".", psiv, hc->speeds[psiv].rx_bps, hc->speeds[psiv].tx_bps);
+						speeds[psiv].tx_bps = bps;
+						usb_log_debug2("Speed %u set up for bps %" PRIu64 " / %" PRIu64 ".", psiv, speeds[psiv].rx_bps, speeds[psiv].tx_bps);
 					}
 				}
 			}
@@ -201,7 +210,7 @@ int hc_init_memory(xhci_hc_t *hc)
 	if ((err = xhci_init_commands(hc)))
 		goto err_scratch;
 
-	if ((err = xhci_rh_init(&hc->rh, hc->op_regs)))
+	if ((err = xhci_rh_init(&hc->rh, hc)))
 		goto err_cmd;
 
 	return EOK;

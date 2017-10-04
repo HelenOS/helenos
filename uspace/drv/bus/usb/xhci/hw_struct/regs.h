@@ -240,7 +240,7 @@ typedef struct xhci_port_regs {
 	 * 13:10 - Port Speed
 	 * 15:14 - PIC
 	 *          27  26  25  24  23  22  21  20  19  18  17  16
-     * 27:16 - WOE WDE WCE CAS CEC PLC PRC OCC WRC PEC CSC LWS
+	 * 27:16 - WOE WDE WCE CAS CEC PLC PRC OCC WRC PEC CSC LWS
 	 *    30 - DR
 	 *    31 - WPR
 	 */
@@ -544,6 +544,10 @@ typedef union {
 	char str [4];
 	uint32_t packed;
 } xhci_sp_name_t;
+
+static const xhci_sp_name_t xhci_name_usb = {
+    .str = "USB "
+};
 
 static inline xhci_extcap_t *xhci_extcap_next(const xhci_extcap_t *cur)
 {

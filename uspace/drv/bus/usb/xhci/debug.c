@@ -287,7 +287,7 @@ void xhci_dump_extcap(const xhci_extcap_t *ec)
 			name.packed = host2uint32_t_le(XHCI_REG_RD(ec, XHCI_EC_SP_NAME));
 			ports_from = XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF);
 			ports_to = ports_from + XHCI_REG_RD(ec, XHCI_EC_SP_CP_COUNT) - 1;
-			usb_log_debug("\tProtocol %4s%u.%u, ports %u-%u", name.str,
+			usb_log_debug("\tProtocol %.4s%u.%u, ports %u-%u", name.str,
 			    XHCI_REG_RD(ec, XHCI_EC_SP_MAJOR),
 			    XHCI_REG_RD(ec, XHCI_EC_SP_MINOR),
 			    ports_from, ports_to);

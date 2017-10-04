@@ -50,10 +50,12 @@ enum {
 
 static usbvirt_device_ops_t ops;
 
-int xhci_rh_init(xhci_rh_t *rh, xhci_op_regs_t *op_regs)
+int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 {
 	assert(rh);
-	rh->op_regs = op_regs;
+	assert(hc);
+
+	rh->hc = hc;
 
 	usb_hub_descriptor_header_t *header = &rh->hub_descriptor.header;
 	header->length = sizeof(usb_hub_descriptor_header_t);
@@ -171,13 +173,13 @@ err_ictx:
 static int handle_connected_device(xhci_hc_t* hc, xhci_port_regs_t* regs, uint8_t port_id)
 {
 	uint8_t link_state = XHCI_REG_RD(regs, XHCI_PORT_PLS);
-	// FIXME: do we have a better way to detect if this is usb2 or usb3 device?
-	if (xhci_is_usb3_port(&hc->rh, port_id)) {
+	const xhci_port_speed_t *speed = xhci_get_port_speed(&hc->rh, port_id);
+
+	usb_log_info("Detected new %.4s%u.%u device on port %u.", speed->name, speed->major, speed->minor, port_id);
+
+	if (speed->major == 3) {
 		if(link_state == 0) {
 			/* USB3 is automatically advanced to enabled. */
-			uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
-			usb_log_debug("Detected new device on port %u, port speed id %u.", port_id, port_speed);
-
 			return alloc_dev(hc, port_id, 0);
 		}
 		else if (link_state == 5) {
@@ -236,6 +238,14 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	}
 
 	return EOK;
+}
+
+const xhci_port_speed_t *xhci_get_port_speed(xhci_rh_t *rh, uint8_t port)
+{
+	xhci_port_regs_t *port_regs = &rh->hc->op_regs->portrs[port - 1];
+
+	unsigned psiv = XHCI_REG_RD(port_regs, XHCI_PORT_PS);
+	return &rh->speeds[psiv];
 }
 
 int xhci_get_hub_port(xhci_trb_t *trb)
@@ -342,7 +352,7 @@ static int req_get_port_status(usbvirt_device_t *device,
 	}
 
 	/* The index is 1-based. */
-	xhci_port_regs_t* regs = &hub->op_regs->portrs[setup_packet->index - 1];
+	xhci_port_regs_t* regs = &hub->hc->op_regs->portrs[setup_packet->index - 1];
 
 	const uint32_t status = uint32_host2usb(
 	    XHCI_TO_USB(USB_HUB_FEATURE_C_PORT_CONNECTION, regs, XHCI_PORT_CSC) |

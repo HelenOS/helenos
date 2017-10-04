@@ -48,13 +48,6 @@ typedef struct xhci_virt_device_ctx {
     xhci_trb_ring_t *trs[XHCI_EP_COUNT];
 } xhci_virt_device_ctx_t;
 
-/**
- * xHCI lets the controller define speeds of ports it controls.
- */
-typedef struct xhci_port_speed {
-	uint64_t rx_bps, tx_bps;
-} xhci_port_speed_t;
-
 typedef struct xhci_hc {
 	/* MMIO range */
 	addr_range_t mmio_range;
@@ -79,7 +72,6 @@ typedef struct xhci_hc {
 	xhci_rh_t rh;
 
 	/* Cached capabilities */
-	xhci_port_speed_t speeds [16];
 	unsigned max_slots;
 	bool ac64;
 
