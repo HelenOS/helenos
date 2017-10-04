@@ -60,14 +60,13 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 	usb_hub_descriptor_header_t *header = &rh->hub_descriptor.header;
 	header->length = sizeof(usb_hub_descriptor_header_t);
 	header->descriptor_type = USB_DESCTYPE_HUB;
-	/* FIXME: Use hcs_params1 and cap to 0x7F */
-	header->port_count = 0x7F;
+	header->port_count = XHCI_MAX_PORTS;
 	header->characteristics =
 		    HUB_CHAR_NO_POWER_SWITCH_FLAG | HUB_CHAR_NO_OC_FLAG;
 	header->power_good_time = 10; /* XHCI section 5.4.9 says 20ms max */
 	header->max_current = 0;
 
-	return virthub_base_init(&rh->base, "xhci-rh", &ops, rh, NULL,
+	return virthub_base_init(&rh->base, "xhci", &ops, rh, NULL,
 	    header, HUB_STATUS_CHANGE_PIPE);
 }
 
@@ -346,8 +345,7 @@ static int req_get_port_status(usbvirt_device_t *device,
 	xhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
 
-	const uint16_t ports = 255; /* FIXME: Fetch this from somewhere. */
-	if (!setup_packet->index || setup_packet->index > ports) {
+	if (!setup_packet->index || setup_packet->index > XHCI_MAX_PORTS) {
 		return ESTALL;
 	}
 
@@ -430,11 +428,8 @@ static int req_status_change_handler(usbvirt_device_t *device,
 	if (buffer_size < 16)
 		return ESTALL;
 
-	/* TODO: Set this based on the received event TRBs. */
 	memset(buffer, 0, 16);
 	*actual_size = 16;
-
-	/* TODO: Set to EOK if something happened. */
 	return ENAK;
 }
 
