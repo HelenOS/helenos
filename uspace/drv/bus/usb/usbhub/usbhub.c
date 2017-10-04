@@ -235,7 +235,6 @@ bool hub_port_changes_callback(usb_device_t *dev,
 
 	/* It is an error condition if we didn't receive enough data */
 	if (change_bitmap_size == 0) {
-		usb_log_warning("(%p) USB hub stopped polling", hub);
 		return false;
 	}
 
@@ -253,7 +252,6 @@ bool hub_port_changes_callback(usb_device_t *dev,
 			usb_hub_port_process_interrupt(&hub->ports[port], hub);
 		}
 	}
-	usb_log_warning("(%p) USB hub continued polling", hub);
 	return true;
 }
 
