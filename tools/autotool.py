@@ -53,6 +53,7 @@ PROBE_INT128_OUTPUT = 'probe_int128.s'
 PACKAGE_BINUTILS = "usually part of binutils"
 PACKAGE_GCC = "preferably version 4.7.0 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
+PACKAGE_CLANG = "reasonably recent version of clang needs to be installed"
 
 COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
 COMPILER_WARNING = "The compilation of HelenOS might fail."
@@ -906,11 +907,9 @@ def main():
 			path = "%s/%s/bin" % (cross_prefix, target)
 			prefix = "%s-" % gnu_target
 			
-			check_clang(path, prefix, common, "")
-			check_gcc(path, prefix, common, PACKAGE_GCC)
-			check_binutils(path, prefix, common, PACKAGE_BINUTILS)
+			check_binutils(path, prefix, common, PACKAGE_CROSS)
+			check_clang(path, prefix, common, PACKAGE_CLANG)
 			
-			check_common(common, "GCC")
 			check_common(common, "CLANG")
 			common['CC'] = " ".join([common['CLANG']] + cc_args)
 			common['CC_AUTOGEN'] = common['CC'] + " -no-integrated-as"
