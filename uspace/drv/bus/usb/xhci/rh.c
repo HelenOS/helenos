@@ -50,17 +50,28 @@ enum {
 
 static usbvirt_device_ops_t ops;
 
+/* This mask only lists registers, which imply port change. */
+static const uint32_t port_change_mask =
+	XHCI_REG_MASK(XHCI_PORT_CSC) |
+	XHCI_REG_MASK(XHCI_PORT_PEC) |
+	XHCI_REG_MASK(XHCI_PORT_WRC) |
+	XHCI_REG_MASK(XHCI_PORT_OCC) |
+	XHCI_REG_MASK(XHCI_PORT_PRC) |
+	XHCI_REG_MASK(XHCI_PORT_PLC) |
+	XHCI_REG_MASK(XHCI_PORT_CEC);
+
 int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 {
 	assert(rh);
 	assert(hc);
 
 	rh->hc = hc;
+	rh->max_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
 
 	usb_hub_descriptor_header_t *header = &rh->hub_descriptor.header;
 	header->length = sizeof(usb_hub_descriptor_header_t);
 	header->descriptor_type = USB_DESCTYPE_HUB;
-	header->port_count = XHCI_MAX_PORTS;
+	header->port_count = rh->max_ports;
 	header->characteristics =
 		    HUB_CHAR_NO_POWER_SWITCH_FLAG | HUB_CHAR_NO_OC_FLAG;
 	header->power_good_time = 10; /* XHCI section 5.4.9 says 20ms max */
@@ -72,137 +83,137 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
 //       sure about the other structs.
-static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
-{
-	int err;
+// static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
+// {
+// 	int err;
+//
+// 	xhci_cmd_t cmd;
+// 	xhci_cmd_init(&cmd);
+//
+// 	xhci_send_enable_slot_command(hc, &cmd);
+// 	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
+// 		return err;
+//
+// 	uint32_t slot_id = cmd.slot_id;
+//
+// 	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
+// 	xhci_cmd_fini(&cmd);
+//
+// 	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
+// 	if (!ictx) {
+// 		return ENOMEM;
+// 	}
+//
+// 	memset(ictx, 0, sizeof(xhci_input_ctx_t));
+//
+// 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
+// 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
+//
+// 	/* Initialize slot_ctx according to section 4.3.3 point 3. */
+// 	/* Attaching to root hub port, root string equals to 0. */
+// 	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
+// 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
+// 	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
+//
+// 	xhci_trb_ring_t *ep_ring = malloc32(sizeof(xhci_trb_ring_t));
+// 	if (!ep_ring) {
+// 		err = ENOMEM;
+// 		goto err_ictx;
+// 	}
+//
+// 	err = xhci_trb_ring_init(ep_ring, hc);
+// 	if (err)
+// 		goto err_ring;
+//
+// 	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], EP_TYPE_CONTROL);
+// 	// TODO: must be changed with a command after USB descriptor is read
+// 	// See 4.6.5 in XHCI specification, first note
+// 	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
+// 	    xhci_is_usb3_port(&hc->rh, port) ? 512 : 8);
+// 	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
+// 	/* FIXME physical pointer? */
+// 	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
+// 	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
+// 	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
+// 	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
+// 	XHCI_EP_MULT_SET(ictx->endpoint_ctx[0], 0);
+// 	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
+//
+// 	// TODO: What's the alignment?
+// 	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
+// 	if (!dctx) {
+// 		err = ENOMEM;
+// 		goto err_ring;
+// 	}
+// 	memset(dctx, 0, sizeof(xhci_device_ctx_t));
+//
+// 	hc->dcbaa[slot_id] = addr_to_phys(dctx);
+//
+// 	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
+// 	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
+//	hc->dcbaa_virt[slot_id].trs[0] = ep_ring;
+//
+// 	xhci_cmd_init(&cmd);
+// 	cmd.slot_id = slot_id;
+// 	xhci_send_address_device_command(hc, &cmd, ictx);
+// 	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
+// 		goto err_dctx;
+//
+// 	xhci_cmd_fini(&cmd);
+//
+// 	// TODO: Issue configure endpoint commands (sec 4.3.5).
+//
+// 	return EOK;
+//
+// err_dctx:
+// 	if (dctx) {
+// 		free32(dctx);
+// 		hc->dcbaa[slot_id] = 0;
+// 		memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
+// 	}
+// err_ring:
+// 	if (ep_ring) {
+// 		xhci_trb_ring_fini(ep_ring);
+// 		free32(ep_ring);
+// 	}
+// err_ictx:
+// 	free32(ictx);
+// 	return err;
+// }
 
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	xhci_send_enable_slot_command(hc, &cmd);
-	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
-		return err;
-
-	uint32_t slot_id = cmd.slot_id;
-
-	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
-	xhci_cmd_fini(&cmd);
-
-	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
-	if (!ictx) {
-		return ENOMEM;
-	}
-
-	memset(ictx, 0, sizeof(xhci_input_ctx_t));
-
-	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
-	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
-
-	/* Initialize slot_ctx according to section 4.3.3 point 3. */
-	/* Attaching to root hub port, root string equals to 0. */
-	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
-	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
-	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
-
-	xhci_trb_ring_t *ep_ring = malloc32(sizeof(xhci_trb_ring_t));
-	if (!ep_ring) {
-		err = ENOMEM;
-		goto err_ictx;
-	}
-
-	err = xhci_trb_ring_init(ep_ring, hc);
-	if (err)
-		goto err_ring;
-
-	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], EP_TYPE_CONTROL);
-	// TODO: must be changed with a command after USB descriptor is read
-	// See 4.6.5 in XHCI specification, first note
-	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
-	    xhci_is_usb3_port(&hc->rh, port) ? 512 : 8);
-	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
-	/* FIXME physical pointer? */
-	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
-	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
-	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
-	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
-	XHCI_EP_MULT_SET(ictx->endpoint_ctx[0], 0);
-	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
-
-	// TODO: What's the alignment?
-	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
-	if (!dctx) {
-		err = ENOMEM;
-		goto err_ring;
-	}
-	memset(dctx, 0, sizeof(xhci_device_ctx_t));
-
-	hc->dcbaa[slot_id] = addr_to_phys(dctx);
-
-	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
-	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
-	hc->dcbaa_virt[slot_id].trs[0] = ep_ring;
-
-	xhci_cmd_init(&cmd);
-	cmd.slot_id = slot_id;
-	xhci_send_address_device_command(hc, &cmd, ictx);
-	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
-		goto err_dctx;
-
-	xhci_cmd_fini(&cmd);
-
-	// TODO: Issue configure endpoint commands (sec 4.3.5).
-
-	return EOK;
-
-err_dctx:
-	if (dctx) {
-		free32(dctx);
-		hc->dcbaa[slot_id] = 0;
-		memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
-	}
-err_ring:
-	if (ep_ring) {
-		xhci_trb_ring_fini(ep_ring);
-		free32(ep_ring);
-	}
-err_ictx:
-	free32(ictx);
-	return err;
-}
-
-static int handle_connected_device(xhci_hc_t* hc, xhci_port_regs_t* regs, uint8_t port_id)
-{
-	uint8_t link_state = XHCI_REG_RD(regs, XHCI_PORT_PLS);
-	const xhci_port_speed_t *speed = xhci_get_port_speed(&hc->rh, port_id);
-
-	usb_log_info("Detected new %.4s%u.%u device on port %u.", speed->name, speed->major, speed->minor, port_id);
-
-	if (speed->major == 3) {
-		if(link_state == 0) {
-			/* USB3 is automatically advanced to enabled. */
-			return alloc_dev(hc, port_id, 0);
-		}
-		else if (link_state == 5) {
-			/* USB 3 failed to enable. */
-			usb_log_error("USB 3 port couldn't be enabled.");
-			return EAGAIN;
-		}
-		else {
-			usb_log_error("USB 3 port is in invalid state %u.", link_state);
-			return EINVAL;
-		}
-	}
-	else {
-		usb_log_debug("USB 2 device attached, issuing reset.");
-		xhci_reset_hub_port(hc, port_id);
-		/*
-			FIXME: we need to wait for the event triggered by the reset
-			and then alloc_dev()... can't it be done directly instead of
-			going around?
-		*/
-		return EOK;
-	}
-}
+// static int handle_connected_device(xhci_hc_t* hc, xhci_port_regs_t* regs, uint8_t port_id)
+// {
+// 	uint8_t link_state = XHCI_REG_RD(regs, XHCI_PORT_PLS);
+// 	const xhci_port_speed_t *speed = xhci_get_port_speed(&hc->rh, port_id);
+//
+// 	usb_log_info("Detected new %.4s%u.%u device on port %u.", speed->name, speed->major, speed->minor, port_id);
+//
+// 	if (speed->major == 3) {
+// 		if(link_state == 0) {
+// 			/* USB3 is automatically advanced to enabled. */
+// 			return alloc_dev(hc, port_id, 0);
+// 		}
+// 		else if (link_state == 5) {
+// 			/* USB 3 failed to enable. */
+// 			usb_log_error("USB 3 port couldn't be enabled.");
+// 			return EAGAIN;
+// 		}
+// 		else {
+// 			usb_log_error("USB 3 port is in invalid state %u.", link_state);
+// 			return EINVAL;
+// 		}
+// 	}
+// 	else {
+// 		usb_log_debug("USB 2 device attached, issuing reset.");
+// 		xhci_reset_hub_port(hc, port_id);
+// 		/*
+// 			FIXME: we need to wait for the event triggered by the reset
+// 			and then alloc_dev()... can't it be done directly instead of
+// 			going around?
+// 		*/
+// 		return EOK;
+// 	}
+// }
 
 int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
@@ -210,45 +221,9 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 
 	uint8_t port_id = xhci_get_hub_port(trb);
 	usb_log_debug("Port status change event detected for port %u.", port_id);
-	xhci_port_regs_t* regs = &hc->op_regs->portrs[port_id - 1];
-
-	/* Port reset change */
-	if (XHCI_REG_RD(regs, XHCI_PORT_PRC)) {
-		/* Clear the flag. */
-		XHCI_REG_WR(regs, XHCI_PORT_PRC, 1);
-
-		uint8_t port_speed = XHCI_REG_RD(regs, XHCI_PORT_PS);
-		usb_log_debug2("Detected port reset on port %u, port speed id %u.", port_id, port_speed);
-		/** FIXME: only if that port is not yet initialized */
-		if ((err = alloc_dev(hc, port_id, 0)) != EOK)
-			return err;
-	}
-
-	/* Connection status change */
-	if (XHCI_REG_RD(regs, XHCI_PORT_CSC)) {
-		XHCI_REG_WR(regs, XHCI_PORT_CSC, 1);
-
-		if (XHCI_REG_RD(regs, XHCI_PORT_CCS) == 1) {
-			if ((err = handle_connected_device(hc, regs, port_id)) != EOK)
-				return err;
-		} else {
-			// TODO: Device disconnected
-			return ENOTSUP;
-		}
-	}
 
 	// Interrupt on the virtual hub status change pipe.
-	usb_target_t target = {
-		.address = virthub_base_get_address(&hc->rh.base),
-		.endpoint = HUB_STATUS_CHANGE_PIPE
-	};
-	usb_direction_t dir = USB_DIRECTION_IN;
- 	usb_device_request_setup_packet_t setup;
-	uint64_t buffer[2];
-	size_t real_size = 0;
-	err = virthub_base_request(&hc->rh.base, target, dir, &setup, &buffer,
-		sizeof(buffer), &real_size);
-
+	err = xhci_rh_interrupt(&hc->rh);
 	if (err != EOK) {
 		usb_log_warning("Invoking interrupt on virtual hub failed: %s",
 		    str_error(err));
@@ -363,7 +338,7 @@ static int req_get_port_status(usbvirt_device_t *device,
 	xhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
 
-	if (!setup_packet->index || setup_packet->index > XHCI_MAX_PORTS) {
+	if (!setup_packet->index || setup_packet->index > hub->max_ports) {
 		return ESTALL;
 	}
 
@@ -387,6 +362,7 @@ static int req_get_port_status(usbvirt_device_t *device,
 
 	memcpy(data, &status, sizeof(status));
 	*act_size = sizeof(status);
+
 	return EOK;
 }
 
@@ -402,8 +378,34 @@ static int req_clear_port_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
-	/* TODO: Implement me! */
-	usb_log_debug2("Called req_clear_port_feature().");
+	xhci_rh_t *hub = virthub_get_data(device);
+	assert(hub);
+
+	if (!setup_packet->index || setup_packet->index > hub->max_ports) {
+		return ESTALL;
+	}
+
+	/* The index is 1-based. */
+	xhci_port_regs_t* regs = &hub->hc->op_regs->portrs[setup_packet->index - 1];
+
+#define USB_MAP_XHCI(a, b) [USB_HUB_FEATURE_##a] = XHCI_REG_MASK(XHCI_PORT_##b)
+
+	const usb_hub_class_feature_t feature = uint16_usb2host(setup_packet->value);
+	static const ioport32_t masks[] = {
+		USB_MAP_XHCI(C_PORT_CONNECTION, CSC),
+		USB_MAP_XHCI(C_PORT_ENABLE, PEC),
+		USB_MAP_XHCI(C_PORT_OVER_CURRENT, OCC),
+		USB_MAP_XHCI(C_PORT_RESET, PRC)
+	};
+
+#undef USB_MAP_XHCI
+
+	usb_log_debug2("RH: ClearPortFeature(%hu) = %d.", setup_packet->index,
+		feature);
+
+	/* Clear the register by writing 1. */
+	XHCI_REG_WR_FIELD(&regs->portsc, masks[feature], 32);
+
 	return EOK;
 }
 
@@ -443,12 +445,25 @@ static int req_status_change_handler(usbvirt_device_t *device,
 	xhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
 
-	if (buffer_size < 16)
+	uint8_t status[STATUS_BYTES(hub->max_ports)];
+	memset(status, 0, sizeof(status));
+
+	if (buffer_size < sizeof(status))
 		return ESTALL;
 
-	memset(buffer, 0, 16);
-	*actual_size = 16;
-	return ENAK;
+	bool change = false;
+	for (size_t i = 1; i <= hub->max_ports; ++i) {
+		xhci_port_regs_t *regs = &hub->hc->op_regs->portrs[i - 1];
+
+		if (XHCI_REG_RD_FIELD(&regs->portsc, 32) & port_change_mask) {
+			status[i / 8] |= (1 << (i % 8));
+			change = true;
+		}
+	}
+
+	memcpy(buffer, &status, sizeof(status));
+	*actual_size = sizeof(status);
+	return change ? EOK : ENAK;
 }
 
 int xhci_rh_fini(xhci_rh_t *rh)

@@ -71,8 +71,12 @@ typedef struct {
 		usb_hub_descriptor_header_t header;
 		uint8_t rempow[STATUS_BYTES(XHCI_MAX_PORTS) * 2];
 	} __attribute__((packed)) hub_descriptor;
+
 	/** Interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t *unfinished_interrupt_transfer;
+
+  /* Number of hub ports. */
+	uint8_t max_ports;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);

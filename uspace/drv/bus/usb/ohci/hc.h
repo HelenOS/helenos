@@ -58,11 +58,13 @@
 typedef struct hc {
 	/** Memory mapped I/O registers area */
 	ohci_regs_t *registers;
+	
 	/** Host controller communication area structure */
 	hcca_t *hcca;
 
 	/** Transfer schedules */
 	endpoint_list_t lists[4];
+
 	/** List of active transfers */
 	list_t pending_batches;
 
