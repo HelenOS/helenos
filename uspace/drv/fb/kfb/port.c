@@ -65,6 +65,7 @@
 #define FB_POS(x, y)  ((y) * kfb.scanline + (x) * kfb.pixel_bytes)
 
 typedef struct {
+	sysarg_t paddr;
 	sysarg_t width;
 	sysarg_t height;
 	size_t offset;
@@ -86,7 +87,9 @@ static vslmode_list_element_t pixel_mode;
 
 static int kfb_claim(visualizer_t *vs)
 {
-	return EOK;
+	return physmem_map(kfb.paddr + kfb.offset,
+	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
 }
 
 static int kfb_yield(visualizer_t *vs)
@@ -95,7 +98,7 @@ static int kfb_yield(visualizer_t *vs)
 		vs->ops.handle_damage = NULL;
 	}
 
-	return EOK;
+	return physmem_unmap(kfb.addr);
 }
 
 static int kfb_handle_damage_pixels(visualizer_t *vs,
@@ -209,6 +212,7 @@ int port_init(ddf_dev_t *dev)
 	
 	kfb.width = width;
 	kfb.height = height;
+	kfb.paddr = paddr;
 	kfb.offset = offset;
 	kfb.scanline = scanline;
 	kfb.visual = visual;
@@ -286,12 +290,6 @@ int port_init(ddf_dev_t *dev)
 	
 	kfb.size = scanline * height;
 	kfb.addr = AS_AREA_ANY;
-	
-	rc = physmem_map(paddr + offset,
-	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
-	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
-	if (rc != EOK)
-		return rc;
 	
 	ddf_fun_t *fun_vs = ddf_fun_create(dev, fun_exposed, "vsl0");
 	if (fun_vs == NULL) {
