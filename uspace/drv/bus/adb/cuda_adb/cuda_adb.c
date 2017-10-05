@@ -147,11 +147,13 @@ error:
 	return rc;
 }
 
-int cuda_add(cuda_t *cuda)
+int cuda_add(cuda_t *cuda, cuda_res_t *res)
 {
 	adb_dev_t *kbd = NULL;
 	adb_dev_t *mouse = NULL;
 	int rc;
+
+	cuda->phys_base = res->base;
 
 	rc = cuda_dev_create(cuda, "kbd", &kbd);
 	if (rc != EOK)
@@ -165,7 +167,6 @@ int cuda_add(cuda_t *cuda)
 	cuda->addr_dev[8] = kbd;
 
 	cuda->addr_dev[9] = mouse;
-
 
 	rc = cuda_init(cuda);
 	if (rc != EOK) {
@@ -224,11 +225,8 @@ static int cuda_init(cuda_t *cuda)
 {
 	int rc;
 
-	if (sysinfo_get_value("cuda.address.physical", &(cuda->cuda_physical)) != EOK)
-		return EIO;
-
 	void *vaddr;
-	rc = pio_enable((void *) cuda->cuda_physical, sizeof(cuda_regs_t),
+	rc = pio_enable((void *) cuda->phys_base, sizeof(cuda_regs_t),
 	    &vaddr);
 	if (rc != EOK)
 		return rc;
@@ -243,9 +241,9 @@ static int cuda_init(cuda_t *cuda)
 	/* Disable all interrupts from CUDA. */
 	pio_write_8(&cuda->regs->ier, IER_CLR | ALL_INT);
 
-	cuda_irq_code.ranges[0].base = (uintptr_t) cuda->cuda_physical;
+	cuda_irq_code.ranges[0].base = (uintptr_t) cuda->phys_base;
 	cuda_irq_code.cmds[0].addr = (void *) &((cuda_regs_t *)
-	    cuda->cuda_physical)->ifr;
+	    cuda->phys_base)->ifr;
 	async_irq_subscribe(10, cuda_irq_handler, cuda, &cuda_irq_code);
 
 	/* Enable SR interrupt. */

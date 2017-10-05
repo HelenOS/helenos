@@ -56,6 +56,11 @@ enum cuda_xfer_state {
 	cx_send
 };
 
+typedef struct {
+	uintptr_t base;
+	int irq;
+} cuda_res_t;
+
 /** ADB bus device */
 typedef struct {
 	ddf_fun_t *fun;
@@ -67,7 +72,7 @@ typedef struct {
 /** CUDA ADB bus */
 typedef struct cude {
 	struct cuda_regs *regs;
-	uintptr_t cuda_physical;
+	uintptr_t phys_base;
 	ddf_dev_t *dev;
 
 	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
@@ -81,7 +86,7 @@ typedef struct cude {
 	adb_dev_t *addr_dev[ADB_MAX_ADDR];
 } cuda_t;
 
-extern int cuda_add(cuda_t *);
+extern int cuda_add(cuda_t *, cuda_res_t *);
 extern int cuda_remove(cuda_t *);
 extern int cuda_gone(cuda_t *);
 

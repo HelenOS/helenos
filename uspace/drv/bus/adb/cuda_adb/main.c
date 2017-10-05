@@ -34,6 +34,7 @@
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <device/hw_res_parsed.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -60,11 +61,47 @@ static driver_t cuda_adb_driver = {
 	.driver_ops = &driver_ops
 };
 
+static int cuda_get_res(ddf_dev_t *dev, cuda_res_t *res)
+{
+	async_sess_t *parent_sess;
+	hw_res_list_parsed_t hw_res;
+	int rc;
+
+	parent_sess = ddf_dev_parent_sess_create(dev);
+	if (parent_sess == NULL)
+		return ENOMEM;
+
+	hw_res_list_parsed_init(&hw_res);
+	rc = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
+	if (rc != EOK)
+		return rc;
+
+	if (hw_res.io_ranges.count != 1) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	res->base = RNGABS(hw_res.io_ranges.ranges[0]);
+
+	if (hw_res.irqs.count != 1) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	res->irq = hw_res.irqs.irqs[0];
+
+	return EOK;
+error:
+	hw_res_list_parsed_clean(&hw_res);
+	return rc;
+}
+
 static int cuda_dev_add(ddf_dev_t *dev)
 {
 	cuda_t *cuda;
+	cuda_res_t cuda_res;
+	int rc;
 
-	printf("cuda_dev_add\n");
         ddf_msg(LVL_DEBUG, "cuda_dev_add(%p)", dev);
 	cuda = ddf_dev_data_alloc(dev, sizeof(cuda_t));
 	if (cuda == NULL) {
@@ -74,10 +111,14 @@ static int cuda_dev_add(ddf_dev_t *dev)
 
 	cuda->dev = dev;
 	list_initialize(&cuda->devs);
-	printf("call cuda_add\n");
-        int rc = cuda_add(cuda);
-        printf("cuda_add->%d\n", rc);
-        return rc;
+
+	rc = cuda_get_res(dev, &cuda_res);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed getting hardware resource list.\n");
+		return EIO;
+	}
+
+	return cuda_add(cuda, &cuda_res);
 }
 
 static int cuda_dev_remove(ddf_dev_t *dev)
