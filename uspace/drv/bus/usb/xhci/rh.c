@@ -140,6 +140,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 
 	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
 	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
+	hc->dcbaa_virt[slot_id].trs[0] = ep_ring;
 
 	xhci_cmd_init(&cmd);
 	cmd.slot_id = slot_id;
