@@ -192,7 +192,7 @@ int hc_init_memory(xhci_hc_t *hc)
 	if (!hc->dcbaa)
 		return ENOMEM;
 
-	hc->dcbaa_virt = malloc32((1 + hc->max_slots) * sizeof(xhci_virt_device_ctx_t));
+	hc->dcbaa_virt = malloc((1 + hc->max_slots) * sizeof(xhci_virt_device_ctx_t));
 	if (!hc->dcbaa_virt) {
 		err = ENOMEM;
 		goto err_dcbaa;

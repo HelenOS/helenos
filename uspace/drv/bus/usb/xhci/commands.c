@@ -94,7 +94,7 @@ int xhci_cmd_wait(xhci_cmd_t *cmd, suseconds_t timeout)
 
 xhci_cmd_t *xhci_cmd_alloc(void)
 {
-	xhci_cmd_t *cmd = malloc32(sizeof(xhci_cmd_t));
+	xhci_cmd_t *cmd = malloc(sizeof(xhci_cmd_t));
 	xhci_cmd_init(cmd);
 
 	usb_log_debug2("Allocating cmd on the heap. Don't forget to deallocate it!");
@@ -119,7 +119,7 @@ void xhci_cmd_fini(xhci_cmd_t *cmd)
 void xhci_cmd_free(xhci_cmd_t *cmd)
 {
 	xhci_cmd_fini(cmd);
-	free32(cmd);
+	free(cmd);
 }
 
 static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)

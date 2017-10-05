@@ -102,7 +102,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 // 	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
 // 	xhci_cmd_fini(&cmd);
 //
-// 	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
+// 	xhci_input_ctx_t *ictx = malloc(sizeof(xhci_input_ctx_t));
 // 	if (!ictx) {
 // 		return ENOMEM;
 // 	}
@@ -118,7 +118,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 // 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
 // 	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
 //
-// 	xhci_trb_ring_t *ep_ring = malloc32(sizeof(xhci_trb_ring_t));
+// 	xhci_trb_ring_t *ep_ring = malloc(sizeof(xhci_trb_ring_t));
 // 	if (!ep_ring) {
 // 		err = ENOMEM;
 // 		goto err_ictx;
@@ -143,7 +143,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 // 	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
 //
 // 	// TODO: What's the alignment?
-// 	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
+// 	xhci_device_ctx_t *dctx = malloc(sizeof(xhci_device_ctx_t));
 // 	if (!dctx) {
 // 		err = ENOMEM;
 // 		goto err_ring;
@@ -170,17 +170,17 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 //
 // err_dctx:
 // 	if (dctx) {
-// 		free32(dctx);
+// 		free(dctx);
 // 		hc->dcbaa[slot_id] = 0;
 // 		memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
 // 	}
 // err_ring:
 // 	if (ep_ring) {
 // 		xhci_trb_ring_fini(ep_ring);
-// 		free32(ep_ring);
+// 		free(ep_ring);
 // 	}
 // err_ictx:
-// 	free32(ictx);
+// 	free(ictx);
 // 	return err;
 // }
 
