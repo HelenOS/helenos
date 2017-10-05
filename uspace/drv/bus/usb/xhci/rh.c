@@ -243,10 +243,15 @@ int xhci_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	};
 	usb_direction_t dir = USB_DIRECTION_IN;
  	usb_device_request_setup_packet_t setup;
-	uint64_t buffer[10];
+	uint64_t buffer[2];
 	size_t real_size = 0;
 	err = virthub_base_request(&hc->rh.base, target, dir, &setup, &buffer,
 		sizeof(buffer), &real_size);
+
+	if (err != EOK) {
+		usb_log_warning("Invoking interrupt on virtual hub failed: %s",
+		    str_error(err));
+	}
 
 	return EOK;
 }
