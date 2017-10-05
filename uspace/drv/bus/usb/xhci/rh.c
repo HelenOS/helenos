@@ -44,6 +44,9 @@
 #include "hw_struct/trb.h"
 #include "rh.h"
 
+#define USB_MAP_VALUE(a, b) [USB_HUB_FEATURE_##a] = b
+#define USB_MAP_XHCI(a, b) USB_MAP_VALUE(a, XHCI_REG_MASK(XHCI_PORT_##b))
+
 enum {
 	HUB_STATUS_CHANGE_PIPE = 1,
 };
@@ -388,23 +391,37 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	/* The index is 1-based. */
 	xhci_port_regs_t* regs = &hub->hc->op_regs->portrs[setup_packet->index - 1];
 
-#define USB_MAP_XHCI(a, b) [USB_HUB_FEATURE_##a] = XHCI_REG_MASK(XHCI_PORT_##b)
-
 	const usb_hub_class_feature_t feature = uint16_usb2host(setup_packet->value);
 	static const ioport32_t masks[] = {
 		USB_MAP_XHCI(C_PORT_CONNECTION, CSC),
 		USB_MAP_XHCI(C_PORT_ENABLE, PEC),
 		USB_MAP_XHCI(C_PORT_OVER_CURRENT, OCC),
-		USB_MAP_XHCI(C_PORT_RESET, PRC)
+		USB_MAP_XHCI(C_PORT_RESET, PRC),
+		USB_MAP_XHCI(PORT_ENABLE, PED),
+		USB_MAP_XHCI(PORT_RESET, PR),
+		USB_MAP_XHCI(PORT_POWER, PP)
 	};
 
-#undef USB_MAP_XHCI
+	static const bool is_change[] = {
+		USB_MAP_VALUE(C_PORT_CONNECTION, true),
+		USB_MAP_VALUE(C_PORT_ENABLE, true),
+		USB_MAP_VALUE(C_PORT_OVER_CURRENT, true),
+		USB_MAP_VALUE(C_PORT_RESET, true),
+		USB_MAP_VALUE(PORT_ENABLE, false),
+		USB_MAP_VALUE(PORT_RESET, false),
+		USB_MAP_VALUE(PORT_POWER, false)
+	};
 
 	usb_log_debug2("RH: ClearPortFeature(%hu) = %d.", setup_packet->index,
 		feature);
 
-	/* Clear the register by writing 1. */
-	XHCI_REG_WR_FIELD(&regs->portsc, masks[feature], 32);
+	if (is_change[feature]) {
+		/* Clear the register by writing 1. */
+		XHCI_REG_SET_FIELD(&regs->portsc, masks[feature], 32);
+	} else {
+		/* Clear the register by writing 0. */
+		XHCI_REG_CLR_FIELD(&regs->portsc, masks[feature], 32);
+	}
 
 	return EOK;
 }
@@ -421,8 +438,29 @@ static int req_set_port_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
-	/* TODO: Implement me! */
-	usb_log_debug2("Called req_set_port_feature().");
+	xhci_rh_t *hub = virthub_get_data(device);
+	assert(hub);
+
+	if (!setup_packet->index || setup_packet->index > hub->max_ports) {
+		return ESTALL;
+	}
+
+	/* The index is 1-based. */
+	xhci_port_regs_t* regs = &hub->hc->op_regs->portrs[setup_packet->index - 1];
+
+	const usb_hub_class_feature_t feature = uint16_usb2host(setup_packet->value);
+	static const ioport32_t masks[] = {
+		USB_MAP_XHCI(PORT_ENABLE, PED),
+		USB_MAP_XHCI(PORT_RESET, PR),
+		USB_MAP_XHCI(PORT_POWER, PP)
+	};
+
+	usb_log_debug2("RH: SetPortFeature(%hu) = %d.", setup_packet->index,
+		feature);
+
+	/* Set the feature in the PIO register. */
+	XHCI_REG_SET_FIELD(&regs->portsc, masks[feature], 32);
+
 	return EOK;
 }
 
