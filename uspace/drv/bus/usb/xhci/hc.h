@@ -77,6 +77,7 @@ typedef struct xhci_hc {
 
 	/* Command list */
 	list_t commands;
+	list_t transfers;
 } xhci_hc_t;
 
 int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);

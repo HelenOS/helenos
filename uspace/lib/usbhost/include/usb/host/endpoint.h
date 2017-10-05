@@ -44,7 +44,7 @@
 /** Host controller side endpoint structure. */
 typedef struct endpoint {
 	/** Reference count. */
-	atomic_t refcnt;	
+	atomic_t refcnt;
 	/** Part of linked list. */
 	link_t link;
 	/** USB address. */
@@ -84,6 +84,8 @@ typedef struct endpoint {
 		int (*toggle_get)(void *);
 		/** Callback to set the value of toggle bit. */
 		void (*toggle_set)(void *, int);
+		/** Device slot id. */
+		uint8_t slot_id;
 	} hc_data;
 } endpoint_t;
 

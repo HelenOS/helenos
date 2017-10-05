@@ -43,6 +43,7 @@
 #include "hc.h"
 #include "hw_struct/trb.h"
 #include "rh.h"
+#include "transfers.h"
 
 #define USB_MAP_VALUE(a, b) [USB_HUB_FEATURE_##a] = b
 #define USB_MAP_XHCI(a, b) USB_MAP_VALUE(a, XHCI_REG_MASK(XHCI_PORT_##b))

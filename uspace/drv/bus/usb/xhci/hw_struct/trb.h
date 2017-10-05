@@ -100,6 +100,9 @@ typedef struct xhci_trb {
 #define TRB_CYCLE(trb)          XHCI_DWORD_EXTRACT((trb).control, 0, 0)
 #define TRB_LINK_TC(trb)        XHCI_DWORD_EXTRACT((trb).control, 1, 1)
 
+#define TRB_TRANSFER_LENGTH(trb)	XHCI_DWORD_EXTRACT((trb).status, 23, 0)
+#define TRB_COMPLETION_CODE(trb)	XHCI_DWORD_EXTRACT((trb).status, 31, 24)
+
 #define TRB_CTRL_SET_SETUP_WLENGTH(trb, val) \
 	xhci_qword_set_bits(&(trb).parameter, val, 63, 48)
 #define TRB_CTRL_SET_SETUP_WINDEX(trb, val) \

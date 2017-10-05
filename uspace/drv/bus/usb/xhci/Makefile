@@ -50,6 +50,7 @@ SOURCES = \
 	trb_ring.c \
 	scratchpad.c \
 	commands.c \
+	transfers.c \
 	rh.c \
 	main.c
 

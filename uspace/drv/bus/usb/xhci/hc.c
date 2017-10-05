@@ -42,6 +42,8 @@
 #include "rh.h"
 #include "hw_struct/trb.h"
 #include "commands.h"
+#include "transfers.h"
+#include "trb_ring.h"
 
 /**
  * Default USB Speed ID mapping: Table 157
@@ -456,11 +458,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 
 	switch (batch->ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
-		/* TODO: Send setup stage TRB. */
-		/* TODO: Optionally, send data stage TRB followed by zero or
-			 more normal TRB's. */
-		/* TODO: Send status stage TRB. */
-		/* TODO: Ring the appropriate doorbell. */
+		xhci_schedule_control_transfer(hc, batch);
 		break;
 	case USB_TRANSFER_ISOCHRONOUS:
 		/* TODO: Implement me. */
@@ -481,6 +479,7 @@ typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
 static event_handler event_handlers [] = {
 	[XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT] = &xhci_handle_command_completion,
 	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &xhci_handle_port_status_change_event,
+	[XHCI_TRB_TYPE_TRANSFER_EVENT] = &xhci_handle_transfer_event,
 };
 
 static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_regs_t *intr)
