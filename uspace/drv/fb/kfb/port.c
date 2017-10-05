@@ -94,11 +94,18 @@ static int kfb_claim(visualizer_t *vs)
 
 static int kfb_yield(visualizer_t *vs)
 {
+	int rc;
+
 	if (vs->mode_set) {
 		vs->ops.handle_damage = NULL;
 	}
 
-	return physmem_unmap(kfb.addr);
+	rc = physmem_unmap(kfb.addr);
+	if (rc != EOK)
+		return rc;
+
+	kfb.addr = NULL;
+	return EOK;
 }
 
 static int kfb_handle_damage_pixels(visualizer_t *vs,
@@ -157,9 +164,16 @@ static visualizer_ops_t kfb_ops = {
 static void graph_vsl_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	visualizer_t *vsl;
+	int rc;
 
 	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
 	graph_visualizer_connection(vsl, iid, icall, NULL);
+
+	if (kfb.addr != NULL) {
+		rc = physmem_unmap(kfb.addr);
+		if (rc == EOK)
+			kfb.addr = NULL;
+	}
 }
 
 int port_init(ddf_dev_t *dev)
