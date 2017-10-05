@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,13 +40,47 @@
 #include <ddf/log.h>
 #include <errno.h>
 #include <ops/hw_res.h>
+#include <ops/pio_window.h>
 #include <stdio.h>
+#include <sysinfo.h>
 
 #define NAME  "mac"
 
 typedef struct {
 	hw_resource_list_t hw_resources;
+	pio_window_t pio_window;
 } mac_fun_t;
+
+static hw_resource_t adb_res[] = {
+	{
+		.type = IO_RANGE,
+		.res.io_range = {
+			.address = 0,
+			.size = 0x2000,
+			.relative = true,
+			.endianness = BIG_ENDIAN
+		}
+	},
+	{
+		.type = INTERRUPT,
+		.res.interrupt = {
+			.irq = 0 /* patched at run time */
+		}
+	},
+};
+
+static mac_fun_t adb_data = {
+	.hw_resources = {
+		sizeof(adb_res) / sizeof(adb_res[0]),
+		adb_res
+	},
+	.pio_window = {
+		.io = {
+			.base = 0, /* patched at run time */
+			.size = 0x2000
+		}
+	}
+};
 
 static hw_resource_t pci_conf_regs[] = {
 	{
@@ -78,15 +113,22 @@ static mac_fun_t pci_data = {
 static ddf_dev_ops_t mac_fun_ops;
 
 /** Obtain function soft-state from DDF function node */
-static mac_fun_t *mac_fun(ddf_fun_t *fnode)
+static mac_fun_t *mac_fun(ddf_fun_t *ddf_fun)
 {
-	return ddf_fun_data_get(fnode);
+	return ddf_fun_data_get(ddf_fun);
+}
+
+static pio_window_t *mac_get_pio_window(ddf_fun_t *ddf_fun)
+{
+	mac_fun_t *fun = mac_fun(ddf_fun);
+	return &fun->pio_window;
 }
 
 static bool mac_add_fun(ddf_dev_t *dev, const char *name,
     const char *str_match_id, mac_fun_t *fun_proto)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
+	printf("mac: Adding new function '%s'.\n", name);
 	
 	ddf_fun_t *fnode = NULL;
 	int rc;
@@ -113,6 +155,7 @@ static bool mac_add_fun(ddf_dev_t *dev, const char *name,
 		goto failure;
 	}
 	
+	printf("mac: Added new function '%s' (str=%s).\n", name, str_match_id);
 	return true;
 	
 failure:
@@ -134,15 +177,33 @@ failure:
  */
 static int mac_dev_add(ddf_dev_t *dev)
 {
+	int rc;
+	uintptr_t cuda_physical;
+	sysarg_t cuda_inr;
 #if 0
 	/* Register functions */
-	if (!mac_add_fun(dev, "pci0", "intel_pci", &pci_data))
-		ddf_msg(LVL_ERROR, "Failed to add functions for Mac platform.");
+	if (!mac_add_fun(dev, "pci0", "intel_pci", &pci_data)) {
+		ddf_msg(LVL_ERROR, "Failed to add PCI function for Mac platform.");
+		return EIO;
+	}
 #else
 	(void)pci_data;
-	(void)mac_add_fun;
 #endif
-	
+	rc = sysinfo_get_value("cuda.address.physical", &cuda_physical);
+	if (rc != EOK)
+		return EIO;
+	rc = sysinfo_get_value("cuda.inr", &cuda_inr);
+	if (rc != EOK)
+		return EIO;
+
+	adb_data.pio_window.io.base = cuda_physical;
+	adb_res[1].res.interrupt.irq = cuda_inr;
+
+	if (!mac_add_fun(dev, "adb", "cuda_adb", &adb_data)) {
+		ddf_msg(LVL_ERROR, "Failed to add ADB function for Mac platform.");
+		return EIO;
+	}
+
 	return EOK;
 }
 
@@ -172,6 +233,10 @@ static bool mac_enable_interrupt(ddf_fun_t *fun)
 	return false;
 }
 
+static pio_window_ops_t fun_pio_window_ops = {
+        .get_pio_window = &mac_get_pio_window
+};
+
 static hw_res_ops_t fun_hw_res_ops = {
    	.get_resource_list = &mac_get_resources,
 	.enable_interrupt = &mac_enable_interrupt
@@ -182,6 +247,7 @@ int main(int argc, char *argv[])
 	printf("%s: HelenOS Mac platform driver\n", NAME);
 	ddf_log_init(NAME);
 	mac_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
+	mac_fun_ops.interfaces[PIO_WINDOW_DEV_IFACE] = &fun_pio_window_ops;
 	return ddf_driver_main(&mac_driver);
 }
 

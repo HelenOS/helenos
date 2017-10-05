@@ -27,9 +27,12 @@
 #
 
 USPACE_PREFIX = ../../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = cuda_adb
 
 SOURCES = \
-	cuda_adb.c
+	cuda_adb.c \
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

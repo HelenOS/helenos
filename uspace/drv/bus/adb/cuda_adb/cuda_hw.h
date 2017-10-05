@@ -38,7 +38,7 @@
 
 #include <stdint.h>
 
-typedef struct cuda {
+typedef struct cuda_regs {
 	uint8_t b;
 	uint8_t pad0[0x1ff];
 
@@ -86,7 +86,7 @@ typedef struct cuda {
 
 	uint8_t anh;
 	uint8_t pad15[0x1ff];
-} cuda_t;
+} cuda_regs_t;
 
 /** B register fields */
 enum {
