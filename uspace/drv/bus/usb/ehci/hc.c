@@ -129,8 +129,10 @@ int ehci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_
 
 	memcpy(code->cmds, ehci_irq_commands, sizeof(ehci_irq_commands));
 
-	code->cmds[0].addr = (void *) &instance->registers->usbsts;
-	code->cmds[3].addr = (void *) &instance->registers->usbsts;
+	ehci_regs_t *registers =
+		(ehci_regs_t *)(RNGABSPTR(regs) + EHCI_RD8(instance->caps->caplength));
+	code->cmds[0].addr = (void *) &registers->usbsts;
+	code->cmds[3].addr = (void *) &registers->usbsts;
 	EHCI_WR(code->cmds[1].value, EHCI_USED_INTERRUPTS);
 
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
