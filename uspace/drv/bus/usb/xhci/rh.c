@@ -479,7 +479,6 @@ static int req_status_change_handler(usbvirt_device_t *device,
     usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
     void *buffer, size_t buffer_size, size_t *actual_size)
 {
-	usb_log_debug2("Called req_status_change_handler().");
 	xhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
 
@@ -499,6 +498,7 @@ static int req_status_change_handler(usbvirt_device_t *device,
 		}
 	}
 
+	usb_log_debug2("RH: Status change %s", (change ? "occurred" : "did not occur"));
 	memcpy(buffer, &status, sizeof(status));
 	*actual_size = sizeof(status);
 	return change ? EOK : ENAK;
