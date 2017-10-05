@@ -48,7 +48,9 @@
  * Endpoint context: section 6.2.3
  */
 typedef struct xhci_endpoint_ctx {
-	xhci_dword_t data[5];
+	xhci_dword_t data[2];
+	xhci_qword_t data2;
+	xhci_dword_t data3;
 	xhci_dword_t reserved[3];
 
 #define XHCI_EP_COUNT 31
@@ -68,9 +70,9 @@ typedef struct xhci_endpoint_ctx {
 #define XHCI_EP_MAX_BURST_SIZE_SET(ctx, val) \
     xhci_dword_set_bits(&(ctx).data[1], val, 15, 8)
 #define XHCI_EP_TR_DPTR_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[2], (val >> 4), 63, 4)
+    xhci_qword_set_bits(&(ctx).data2, (val >> 4), 63, 4)
 #define XHCI_EP_DCS_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[2], val, 0, 0)
+    xhci_qword_set_bits(&(ctx).data2, val, 0, 0)
 #define XHCI_EP_INTERVAL_SET(ctx, val) \
     xhci_dword_set_bits(&(ctx).data[0], val, 23, 16)
 #define XHCI_EP_MAX_P_STREAMS_SET(ctx, val) \
@@ -92,8 +94,8 @@ typedef struct xhci_endpoint_ctx {
 #define XHCI_EP_MAX_BURST_SIZE(ctx)     XHCI_DWORD_EXTRACT((ctx).data[1], 15,  8)
 #define XHCI_EP_MAX_PACKET_SIZE(ctx)    XHCI_DWORD_EXTRACT((ctx).data[1], 31, 16)
 
-#define XHCI_EP_DCS(ctx)                XHCI_DWORD_EXTRACT((ctx).data[2],  0,  0)
-#define XHCI_EP_TR_DPTR(ctx)            XHCI_DWORD_EXTRACT((ctx).data[2], 63,  4)
+#define XHCI_EP_DCS(ctx)                XHCI_QWORD_EXTRACT((ctx).data2,  0,  0)
+#define XHCI_EP_TR_DPTR(ctx)            XHCI_QWORD_EXTRACT((ctx).data2, 63,  4)
 
 } __attribute__((packed)) xhci_ep_ctx_t;
 

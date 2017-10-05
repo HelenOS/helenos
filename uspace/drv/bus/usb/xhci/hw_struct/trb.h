@@ -100,6 +100,42 @@ typedef struct xhci_trb {
 #define TRB_CYCLE(trb)          XHCI_DWORD_EXTRACT((trb).control, 0, 0)
 #define TRB_LINK_TC(trb)        XHCI_DWORD_EXTRACT((trb).control, 1, 1)
 
+#define TRB_CTRL_SET_SETUP_WLENGTH(trb, val) \
+	xhci_qword_set_bits(&(trb).parameter, val, 63, 48)
+#define TRB_CTRL_SET_SETUP_WINDEX(trb, val) \
+	xhci_qword_set_bits(&(trb).parameter, val, 47, 32)
+#define TRB_CTRL_SET_SETUP_WVALUE(trb, val) \
+	xhci_qword_set_bits(&(trb).parameter, val, 31, 16)
+#define TRB_CTRL_SET_SETUP_BREQ(trb, val) \
+	xhci_qword_set_bits(&(trb).parameter, val, 15, 8)
+#define TRB_CTRL_SET_SETUP_BMREQTYPE(trb, val) \
+	xhci_qword_set_bits(&(trb).parameter, val, 7, 0)
+
+#define TRB_CTRL_SET_TD_SIZE(trb, val) \
+	xhci_dword_set_bits(&(trb).status, val, 21, 17)
+#define TRB_CTRL_SET_XFER_LEN(trb, val) \
+	xhci_dword_set_bits(&(trb).status, val, 16, 0)
+
+#define TRB_CTRL_SET_ENT(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 1, 1)
+#define TRB_CTRL_SET_ISP(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 2, 2)
+#define TRB_CTRL_SET_NS(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 3, 3)
+#define TRB_CTRL_SET_CHAIN(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 4, 4)
+#define TRB_CTRL_SET_IOC(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 5, 5)
+#define TRB_CTRL_SET_IDT(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 6, 6)
+
+#define TRB_CTRL_SET_TRB_TYPE(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 15, 10)
+#define TRB_CTRL_SET_DIR(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 16, 16)
+#define TRB_CTRL_SET_TRT(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 17, 16)
+
 /**
  * The Chain bit is valid only in specific TRB types.
  */
