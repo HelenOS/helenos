@@ -247,7 +247,9 @@ int hcd_send_batch(
 }
 
 typedef struct {
-	volatile unsigned done;
+	fibril_mutex_t done_mtx;
+	fibril_condvar_t done_cv;
+	unsigned done;
 	int ret;
 	size_t size;
 } sync_data_t;
@@ -257,8 +259,11 @@ static void transfer_in_cb(int ret, size_t size, void* data)
 	sync_data_t *d = data;
 	assert(d);
 	d->ret = ret;
-	d->done = 1;
 	d->size = size;
+	fibril_mutex_lock(&d->done_mtx);
+	d->done = 1;
+	fibril_condvar_broadcast(&d->done_cv);
+	fibril_mutex_unlock(&d->done_mtx);
 }
 
 static void transfer_out_cb(int ret, void* data)
@@ -266,7 +271,10 @@ static void transfer_out_cb(int ret, void* data)
 	sync_data_t *d = data;
 	assert(data);
 	d->ret = ret;
+	fibril_mutex_lock(&d->done_mtx);
 	d->done = 1;
+	fibril_condvar_broadcast(&d->done_cv);
+	fibril_mutex_unlock(&d->done_mtx);
 }
 
 /** this is really ugly version of sync usb communication */
@@ -276,6 +284,8 @@ ssize_t hcd_send_batch_sync(
 {
 	assert(hcd);
 	sync_data_t sd = { .done = 0, .ret = EBUSY, .size = size };
+	fibril_mutex_initialize(&sd.done_mtx);
+	fibril_condvar_initialize(&sd.done_cv);
 
 	const int ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
 	    dir == USB_DIRECTION_IN ? transfer_in_cb : NULL,
@@ -283,9 +293,10 @@ ssize_t hcd_send_batch_sync(
 	if (ret != EOK)
 		return ret;
 
-	while (!sd.done) {
-		async_usleep(1000);
-	}
+	fibril_mutex_lock(&sd.done_mtx);
+	while (!sd.done)
+		fibril_condvar_wait(&sd.done_cv, &sd.done_mtx);
+	fibril_mutex_unlock(&sd.done_mtx);
 
 	if (sd.ret == EOK)
 		return sd.size;
