@@ -36,7 +36,6 @@
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
-#include <devman.h>
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -179,9 +178,8 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 {
 	assert(device);
 
-	async_sess_t *parent_sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
 		return ENOMEM;
 
 	hw_res_list_parsed_t hw_res;
@@ -246,9 +244,8 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 
 int sb_enable_interrupts(ddf_dev_t *device)
 {
-	async_sess_t *parent_sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
 		return ENOMEM;
 
 	bool enabled = hw_res_enable_interrupt(parent_sess);

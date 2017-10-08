@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <assert.h>
-#include <devman.h>
+#include <ddf/driver.h>
 #include <ddi.h>
 #include <usb/debug.h>
 #include <device/hw_res_parsed.h>
@@ -175,9 +175,8 @@ int disable_legacy(ddf_dev_t *device)
 {
 	assert(device);
 
-	async_sess_t *parent_sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
 		return ENOMEM;
 
 	usb_log_debug("Disabling EHCI legacy support.\n");

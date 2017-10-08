@@ -134,7 +134,7 @@ leave:
  * /virtual/test1/clone
  * /virtual/test1/clone/child
  *
- * and devman shall not deadlock.
+ * and the DDF shall not deadlock.
  *
  *
  * @param dev New device.

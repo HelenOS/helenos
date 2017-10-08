@@ -90,7 +90,7 @@ static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 		return ret;
 	}
 
-	/* Report to devman */
+	/* Bind function */
 	ret = ddf_fun_bind(fun);
 	if (ret != EOK) {
 		ddf_log_error("Failed to bind function: %s\n", str_error(ret));

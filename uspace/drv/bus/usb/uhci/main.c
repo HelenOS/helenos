@@ -35,7 +35,6 @@
 
 #include <assert.h>
 #include <ddf/driver.h>
-#include <devman.h>
 #include <errno.h>
 #include <io/log.h>
 #include <io/logctl.h>
@@ -105,9 +104,8 @@ static int disable_legacy(ddf_dev_t *device)
 {
 	assert(device);
 
-	async_sess_t *parent_sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
 		return ENOMEM;
 
 	/* See UHCI design guide page 45 for these values.

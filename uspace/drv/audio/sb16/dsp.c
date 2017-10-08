@@ -34,8 +34,8 @@
 
 #include <as.h>
 #include <stdbool.h>
+#include <ddf/driver.h>
 #include <ddi.h>
-#include <devman.h>
 #include <device/hw_res.h>
 #include <libarch/ddi.h>
 #include <libarch/barrier.h>
@@ -160,8 +160,7 @@ static inline void dsp_report_event(sb_dsp_t *dsp, pcm_event_t event)
 
 static inline int setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
-	async_sess_t *sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(dsp->sb_dev), IPC_FLAG_BLOCKING);
+	async_sess_t *sess = ddf_dev_parent_sess_get(dsp->sb_dev);
 
 	const int ret = hw_res_dma_channel_setup(sess,
 	    dsp->dma16_channel, pa, size,
@@ -303,8 +302,7 @@ int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 		return ENOENT;
 
 	assert(dsp->buffer.data);
-	async_sess_t *sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(dsp->sb_dev), IPC_FLAG_BLOCKING);
+	async_sess_t *sess = ddf_dev_parent_sess_get(dsp->sb_dev);
 
 	// TODO: Assumes DMA 16
 	const int remain = hw_res_dma_channel_remain(sess, dsp->dma16_channel);

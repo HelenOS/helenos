@@ -59,7 +59,7 @@ static const char *test_virtchar1_internal(const char *path)
 			TPRINTF("   (error was ENOENT: " \
 			    "have you compiled test drivers?)\n");
 		}
-		return "Failed opening devman driver device for reading";
+		return "Failed opening NULL device for reading";
 	}
 	
 	TPRINTF("   ...file handle %d\n", fd);

@@ -37,7 +37,6 @@
 #ifndef DRV_USBHUB_USBHUB_H
 #define DRV_USBHUB_USBHUB_H
 
-#include <ipc/devman.h>
 #include <ddf/driver.h>
 
 #include <usb/classes/hub.h>
@@ -71,7 +70,7 @@ struct usb_hub_dev {
 	fibril_mutex_t pending_ops_mutex;
 	/** Condition variable for pending_ops_count. */
 	fibril_condvar_t pending_ops_cv;
-	/** Pointer to devman usbhub function. */
+	/** Pointer to usbhub function. */
 	ddf_fun_t *hub_fun;
 	/** Status indicator */
 	bool running;
