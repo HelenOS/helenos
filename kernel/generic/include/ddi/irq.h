@@ -101,7 +101,7 @@ typedef struct {
  */
 typedef struct irq {
 	/** Hash table link. */
-	link_t link;
+	ht_link_t link;
 	
 	/** Lock protecting everything in this structure
 	 *  except the link member. When both the IRQ

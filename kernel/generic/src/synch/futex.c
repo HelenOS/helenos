@@ -73,14 +73,13 @@
 #include <genarch/mm/page_pt.h>
 #include <genarch/mm/page_ht.h>
 #include <adt/cht.h>
+#include <adt/hash.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <arch.h>
 #include <align.h>
 #include <panic.h>
 #include <errno.h>
-
-#define FUTEX_HT_SIZE	1024	/* keep it a power of 2 */
 
 /** Task specific pointer to a global kernel futex object. */
 typedef struct futex_ptr {
@@ -107,9 +106,10 @@ static futex_t *find_cached_futex(uintptr_t uaddr);
 static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr);
 static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *phys_addr);
 
-static size_t futex_ht_hash(sysarg_t *key);
-static bool futex_ht_compare(sysarg_t *key, size_t keys, link_t *item);
-static void futex_ht_remove_callback(link_t *item);
+static size_t futex_ht_hash(const ht_link_t *item);
+static size_t futex_ht_key_hash(void *key);
+static bool futex_ht_key_equal(void *key, const ht_link_t *item);
+static void futex_ht_remove_callback(ht_link_t *item);
 
 static size_t task_fut_ht_hash(const cht_link_t *link);
 static size_t task_fut_ht_key_hash(void *key);
@@ -130,9 +130,10 @@ SPINLOCK_STATIC_INITIALIZE_NAME(futex_ht_lock, "futex-ht-lock");
 static hash_table_t futex_ht;
 
 /** Global kernel futex hash table operations. */
-static hash_table_operations_t futex_ht_ops = {
+static hash_table_ops_t futex_ht_ops = {
 	.hash = futex_ht_hash,
-	.compare = futex_ht_compare,
+	.key_hash = futex_ht_key_hash,
+	.key_equal = futex_ht_key_equal,
 	.remove_callback = futex_ht_remove_callback
 };
 
@@ -148,7 +149,7 @@ static cht_ops_t task_futex_ht_ops = {
 /** Initialize futex subsystem. */
 void futex_init(void)
 {
-	hash_table_create(&futex_ht, FUTEX_HT_SIZE, 1, &futex_ht_ops);
+	hash_table_create(&futex_ht, 0, 0, &futex_ht_ops);
 }
 
 /** Initializes the futex structures for the new task. */
@@ -233,7 +234,6 @@ void futex_task_cleanup(void)
 static void futex_initialize(futex_t *futex, uintptr_t paddr)
 {
 	waitq_initialize(&futex->wq);
-	link_initialize(&futex->ht_link);
 	futex->paddr = paddr;
 	futex->refcount = 1;
 }
@@ -255,7 +255,7 @@ static void futex_release_ref(futex_t *futex)
 	--futex->refcount;
 	
 	if (0 == futex->refcount) {
-		hash_table_remove(&futex_ht, &futex->paddr, 1);
+		hash_table_remove(&futex_ht, &futex->paddr);
 	}
 }
 
@@ -346,7 +346,7 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 	 */
 	spinlock_lock(&futex_ht_lock);
 	
-	link_t *fut_link = hash_table_find(&futex_ht, &phys_addr);
+	ht_link_t *fut_link = hash_table_find(&futex_ht, &phys_addr);
 	
 	if (fut_link) {
 		free(futex);
@@ -354,7 +354,7 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 		futex_add_ref(futex);
 	} else {
 		futex_initialize(futex, phys_addr);
-		hash_table_insert(&futex_ht, &phys_addr, &futex->ht_link);
+		hash_table_insert(&futex_ht, &futex->ht_link);
 	}
 	
 	spinlock_unlock(&futex_ht_lock);
@@ -436,44 +436,37 @@ sysarg_t sys_futex_wakeup(uintptr_t uaddr)
 }
 
 
-/** Compute hash index into futex hash table.
- *
- * @param key		Address where the key (i.e. physical address of futex
- *			counter) is stored.
- *
- * @return		Index into futex hash table.
- */
-size_t futex_ht_hash(sysarg_t *key)
+/** Return the hash of the key stored in the item */
+size_t futex_ht_hash(const ht_link_t *item)
 {
-	return (*key & (FUTEX_HT_SIZE - 1));
+	futex_t *futex = hash_table_get_inst(item, futex_t, ht_link);
+	return hash_mix(futex->paddr);
 }
 
-/** Compare futex hash table item with a key.
- *
- * @param key		Address where the key (i.e. physical address of futex
- *			counter) is stored.
- *
- * @return		True if the item matches the key. False otherwise.
- */
-bool futex_ht_compare(sysarg_t *key, size_t keys, link_t *item)
+/** Return the hash of the key */
+size_t futex_ht_key_hash(void *key)
 {
-	futex_t *futex;
+	uintptr_t *paddr = (uintptr_t *) key;
+	return hash_mix(*paddr);
+}
 
-	assert(keys == 1);
-
-	futex = hash_table_get_instance(item, futex_t, ht_link);
-	return *key == futex->paddr;
+/** Return true if the key is equal to the item's lookup key. */
+bool futex_ht_key_equal(void *key, const ht_link_t *item)
+{
+	uintptr_t *paddr = (uintptr_t *) key;
+	futex_t *futex = hash_table_get_inst(item, futex_t, ht_link);
+	return *paddr == futex->paddr;
 }
 
 /** Callback for removal items from futex hash table.
  *
  * @param item		Item removed from the hash table.
  */
-void futex_ht_remove_callback(link_t *item)
+void futex_ht_remove_callback(ht_link_t *item)
 {
 	futex_t *futex;
 
-	futex = hash_table_get_instance(item, futex_t, ht_link);
+	futex = hash_table_get_inst(item, futex_t, ht_link);
 	free(futex);
 }
 

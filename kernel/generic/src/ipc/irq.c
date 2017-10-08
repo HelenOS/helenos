@@ -297,11 +297,6 @@ static kobject_ops_t irq_kobject_ops = {
 int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
     irq_code_t *ucode)
 {
-	sysarg_t key[] = {
-		[IRQ_HT_KEY_INR] = (sysarg_t) inr,
-		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_NO_CLAIM
-	};
-	
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;
 	
@@ -350,7 +345,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq_spinlock_lock(&irq->lock, false);
 	
 	irq->notif_cfg.hashed_in = true;
-	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
+	hash_table_insert(&irq_uspace_hash_table, &irq->link);
 	
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
@@ -387,7 +382,7 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 		kobj->irq->notif_cfg.hashed_in = false;
 	}
 
-	/* kobj->irq->lock unlocked by the hash table remove_callback */
+	irq_spinlock_unlock(&kobj->irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 
 	kobject_put(kobj);

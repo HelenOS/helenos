@@ -39,6 +39,7 @@
  */
 
 #include <ddi/irq.h>
+#include <adt/hash.h>
 #include <adt/hash_table.h>
 #include <mm/slab.h>
 #include <typedefs.h>
@@ -70,18 +71,17 @@ IRQ_SPINLOCK_INITIALIZE(irq_uspace_hash_table_lock);
 /** The uspace IRQ hash table */
 hash_table_t irq_uspace_hash_table;
 
-static size_t irq_ht_hash(sysarg_t *key);
-static bool irq_ht_compare(sysarg_t *key, size_t keys, link_t *item);
-static void irq_ht_remove(link_t *item);
+static size_t irq_ht_hash(const ht_link_t *);
+static size_t irq_ht_key_hash(void *);
+static bool irq_ht_equal(const ht_link_t *, const ht_link_t *);
+static bool irq_ht_key_equal(void *, const ht_link_t *);
 
-static hash_table_operations_t irq_ht_ops = {
+static hash_table_ops_t irq_ht_ops = {
 	.hash = irq_ht_hash,
-	.compare = irq_ht_compare,
-	.remove_callback = irq_ht_remove,
+	.key_hash = irq_ht_key_hash,
+	.equal = irq_ht_equal,
+	.key_equal = irq_ht_key_equal
 };
-
-/** Number of buckets in either of the hash tables */
-static size_t buckets;
 
 /** Last valid INR */
 inr_t last_inr = 0;
@@ -94,15 +94,14 @@ inr_t last_inr = 0;
  */
 void irq_init(size_t inrs, size_t chains)
 {
-	buckets = chains;
 	last_inr = inrs - 1;
 
 	irq_slab = slab_cache_create("irq_t", sizeof(irq_t), 0, NULL, NULL,
 	    FRAME_ATOMIC);
 	assert(irq_slab);
 
-	hash_table_create(&irq_uspace_hash_table, chains, 2, &irq_ht_ops);
-	hash_table_create(&irq_kernel_hash_table, chains, 2, &irq_ht_ops);
+	hash_table_create(&irq_uspace_hash_table, chains, 0, &irq_ht_ops);
+	hash_table_create(&irq_kernel_hash_table, chains, 0, &irq_ht_ops);
 }
 
 /** Initialize one IRQ structure
@@ -113,7 +112,6 @@ void irq_init(size_t inrs, size_t chains)
 void irq_initialize(irq_t *irq)
 {
 	memsetb(irq, sizeof(irq_t), 0);
-	link_initialize(&irq->link);
 	irq_spinlock_initialize(&irq->lock, "irq.lock");
 	irq->inr = -1;
 	
@@ -130,56 +128,30 @@ void irq_initialize(irq_t *irq)
  */
 void irq_register(irq_t *irq)
 {
-	sysarg_t key[] = {
-		[IRQ_HT_KEY_INR] = (sysarg_t) irq->inr,
-		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_NO_CLAIM 
-	};
-	
 	irq_spinlock_lock(&irq_kernel_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
-	hash_table_insert(&irq_kernel_hash_table, key, &irq->link);
+	hash_table_insert(&irq_kernel_hash_table, &irq->link);
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_kernel_hash_table_lock, true);
 }
 
-/** Search and lock the uspace IRQ hash table */
-static irq_t *irq_dispatch_and_lock_uspace(inr_t inr)
+/** Search and lock an IRQ hash table */
+static irq_t *
+irq_dispatch_and_lock_table(hash_table_t *h, irq_spinlock_t *l, inr_t inr)
 {
-	link_t *lnk;
-	sysarg_t key[] = {
-		[IRQ_HT_KEY_INR] = (sysarg_t) inr,
-		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_CLAIM
-	};
-	
-	irq_spinlock_lock(&irq_uspace_hash_table_lock, false);
-	lnk = hash_table_find(&irq_uspace_hash_table, key);
-	if (lnk) {
-		irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
-		irq_spinlock_unlock(&irq_uspace_hash_table_lock, false);
-		return irq;
+	irq_spinlock_lock(l, false);
+	for (ht_link_t *lnk = hash_table_find(h, &inr); lnk;
+	    lnk = hash_table_find_next(h, lnk)) {
+		irq_t *irq = hash_table_get_inst(lnk, irq_t, link);
+		irq_spinlock_lock(&irq->lock, false);
+		if (irq->claim(irq) == IRQ_ACCEPT) {
+			/* leave irq locked */
+			irq_spinlock_unlock(l, false);
+			return irq;
+		}
+		irq_spinlock_unlock(&irq->lock, false);
 	}
-	irq_spinlock_unlock(&irq_uspace_hash_table_lock, false);
-	
-	return NULL;
-}
-
-/** Search and lock the kernel IRQ hash table */
-static irq_t *irq_dispatch_and_lock_kernel(inr_t inr)
-{
-	link_t *lnk;
-	sysarg_t key[] = {
-		[IRQ_HT_KEY_INR] = (sysarg_t) inr,
-		[IRQ_HT_KEY_MODE] = (sysarg_t) IRQ_HT_MODE_CLAIM
-	};
-	
-	irq_spinlock_lock(&irq_kernel_hash_table_lock, false);
-	lnk = hash_table_find(&irq_kernel_hash_table, key);
-	if (lnk) {
-		irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
-		irq_spinlock_unlock(&irq_kernel_hash_table_lock, false);
-		return irq;
-	}
-	irq_spinlock_unlock(&irq_kernel_hash_table_lock, false);
+	irq_spinlock_unlock(l, false);
 	
 	return NULL;
 }
@@ -208,82 +180,52 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
 	 */
 	
 	if (console_override) {
-		irq_t *irq = irq_dispatch_and_lock_kernel(inr);
+		irq_t *irq = irq_dispatch_and_lock_table(&irq_kernel_hash_table,
+		    &irq_kernel_hash_table_lock, inr);
 		if (irq)
 			return irq;
 		
-		return irq_dispatch_and_lock_uspace(inr);
+		return irq_dispatch_and_lock_table(&irq_uspace_hash_table,
+		    &irq_uspace_hash_table_lock, inr);
 	}
 	
-	irq_t *irq = irq_dispatch_and_lock_uspace(inr);
+	irq_t *irq = irq_dispatch_and_lock_table(&irq_uspace_hash_table,
+	    &irq_uspace_hash_table_lock, inr);
 	if (irq)
 		return irq;
 	
-	return irq_dispatch_and_lock_kernel(inr);
+	return irq_dispatch_and_lock_table(&irq_kernel_hash_table,
+	    &irq_kernel_hash_table_lock, inr);
 }
 
-/** Compute hash index for the key
- *
- * @param key  The first of the keys is inr and the second is mode. Only inr is
- *             used to compute the hash.
- *
- * @return Index into the hash table.
- *
- */
-size_t irq_ht_hash(sysarg_t key[])
+/** Return the hash of the key stored in the item. */
+size_t irq_ht_hash(const ht_link_t *item)
 {
-	inr_t inr = (inr_t) key[IRQ_HT_KEY_INR];
-	return inr % buckets;
+	irq_t *irq = hash_table_get_inst(item, irq_t, link);
+	return hash_mix(irq->inr);
 }
 
-/** Compare hash table element with a key
- *
- * If mode is IRQ_HT_MODE_CLAIM, the result of the claim() function is used for
- * the match. Otherwise the key does not match.
- *
- * This function assumes interrupts are already disabled.
- *
- * @param key   Keys (i.e. inr and mode).
- * @param keys  This is 2. 
- * @param item  The item to compare the key with.
- *
- * @return True on match
- * @return False on no match
- *
- */
-bool irq_ht_compare(sysarg_t key[], size_t keys, link_t *item)
+/** Return the hash of the key. */
+size_t irq_ht_key_hash(void *key)
 {
-	irq_t *irq = hash_table_get_instance(item, irq_t, link);
-	inr_t inr = (inr_t) key[IRQ_HT_KEY_INR];
-	irq_ht_mode_t mode = (irq_ht_mode_t) key[IRQ_HT_KEY_MODE];
-	
-	bool rv;
-	
-	irq_spinlock_lock(&irq->lock, false);
-	if (mode == IRQ_HT_MODE_CLAIM) {
-		/* Invoked by irq_dispatch_and_lock(). */
-		rv = ((irq->inr == inr) && (irq->claim(irq) == IRQ_ACCEPT));
-	} else {
-		/* Invoked by irq_find_and_lock(). */
-		rv = false;
-	}
-	
-	/* unlock only on non-match */
-	if (!rv)
-		irq_spinlock_unlock(&irq->lock, false);
-	
-	return rv;
+	inr_t *inr = (inr_t *) key;
+	return hash_mix(*inr);
 }
 
-/** Unlock IRQ structure after hash_table_remove()
- *
- * @param lnk  Link in the removed and locked IRQ structure.
- */
-void irq_ht_remove(link_t *lnk)
+/** Return true if the items have the same lookup key. */
+bool irq_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
 {
-	irq_t *irq __attribute__((unused))
-	    = hash_table_get_instance(lnk, irq_t, link);
-	irq_spinlock_unlock(&irq->lock, false);
+	irq_t *irq1 = hash_table_get_inst(item1, irq_t, link);
+	irq_t *irq2 = hash_table_get_inst(item2, irq_t, link);
+	return irq1->inr == irq2->inr;
+}
+
+/** Return true if the key is equal to the item's lookup key. */
+bool irq_ht_key_equal(void *key, const ht_link_t *item)
+{
+	inr_t *inr = (inr_t *) key;
+	irq_t *irq = hash_table_get_inst(item, irq_t, link);
+	return irq->inr == *inr;
 }
 
 /** @}

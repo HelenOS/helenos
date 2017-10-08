@@ -45,12 +45,8 @@
 #include <mm/slab.h>
 #include <adt/hash_table.h>
 
-#define PAGE_HT_KEYS  2
 #define KEY_AS        0
 #define KEY_PAGE      1
-
-#define PAGE_HT_ENTRIES_BITS  13
-#define PAGE_HT_ENTRIES       (1 << PAGE_HT_ENTRIES_BITS)
 
 /* Macros for querying page hash table PTEs. */
 #define PTE_VALID(pte)       ((void *) (pte) != NULL)
@@ -65,7 +61,7 @@ extern page_mapping_operations_t ht_mapping_operations;
 
 extern slab_cache_t *pte_cache;
 extern hash_table_t page_ht;
-extern hash_table_operations_t ht_operations;
+extern hash_table_ops_t ht_ops;
 
 #endif
 

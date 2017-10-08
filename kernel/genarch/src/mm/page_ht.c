@@ -48,12 +48,14 @@
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <assert.h>
+#include <adt/hash.h>
 #include <adt/hash_table.h>
 #include <align.h>
 
-static size_t hash(sysarg_t[]);
-static bool compare(sysarg_t[], size_t, link_t *);
-static void remove_callback(link_t *);
+static size_t ht_hash(const ht_link_t *);
+static size_t ht_key_hash(void *);
+static bool ht_key_equal(void *, const ht_link_t *);
+static void ht_remove_callback(ht_link_t *);
 
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void ht_mapping_remove(as_t *, uintptr_t);
@@ -79,10 +81,11 @@ IRQ_SPINLOCK_STATIC_INITIALIZE(page_ht_lock);
 hash_table_t page_ht;
 
 /** Hash table operations for page hash table. */
-hash_table_operations_t ht_operations = {
-	.hash = hash,
-	.compare = compare,
-	.remove_callback = remove_callback
+hash_table_ops_t ht_ops = {
+	.hash = ht_hash,
+	.key_hash = ht_key_hash,
+	.key_equal = ht_key_equal,
+	.remove_callback = ht_remove_callback
 };
 
 /** Page mapping operations for page hash table architectures. */
@@ -94,63 +97,33 @@ page_mapping_operations_t ht_mapping_operations = {
 	.mapping_make_global = ht_mapping_make_global
 };
 
-/** Compute page hash table index.
- *
- * @param key Array of two keys (i.e. page and address space).
- *
- * @return Index into page hash table.
- *
- */
-size_t hash(sysarg_t key[])
+/** Return the hash of the key stored in the item */
+size_t ht_hash(const ht_link_t *item)
 {
-	as_t *as = (as_t *) key[KEY_AS];
-	uintptr_t page = (uintptr_t) key[KEY_PAGE];
-	
-	/*
-	 * Virtual page addresses have roughly the same probability
-	 * of occurring. Least significant bits of VPN compose the
-	 * hash index.
-	 *
-	 */
-	size_t index = ((page >> PAGE_WIDTH) & (PAGE_HT_ENTRIES - 1));
-	
-	/*
-	 * Address space structures are likely to be allocated from
-	 * similar addresses. Least significant bits compose the
-	 * hash index.
-	 *
-	 */
-	index |= ((sysarg_t) as) & (PAGE_HT_ENTRIES - 1);
-	
-	return index;
+	pte_t *pte = hash_table_get_inst(item, pte_t, link);
+	size_t hash = 0;
+	hash = hash_combine(hash, (uintptr_t) pte->as);
+	hash = hash_combine(hash, pte->page >> PAGE_WIDTH);
+	return hash;
 }
 
-/** Compare page hash table item with page and/or address space.
- *
- * @param key  Array of one or two keys (i.e. page and/or address space).
- * @param keys Number of keys passed.
- * @param item Item to compare the keys with.
- *
- * @return true on match, false otherwise.
- *
- */
-bool compare(sysarg_t key[], size_t keys, link_t *item)
+/** Return the hash of the key. */
+size_t ht_key_hash(void *arg)
 {
-	assert(item);
-	assert(keys > 0);
-	assert(keys <= PAGE_HT_KEYS);
-	
-	/*
-	 * Convert item to PTE.
-	 *
-	 */
-	pte_t *pte = hash_table_get_instance(item, pte_t, link);
-	
-	if (keys == PAGE_HT_KEYS)
-		return (key[KEY_AS] == (uintptr_t) pte->as) &&
-		    (key[KEY_PAGE] == pte->page);
-	
-	return (key[KEY_AS] == (uintptr_t) pte->as);
+	uintptr_t *key = (uintptr_t *) arg;
+	size_t hash = 0;
+	hash = hash_combine(hash, key[KEY_AS]);
+	hash = hash_combine(hash, key[KEY_PAGE] >> PAGE_WIDTH);
+	return hash;
+}
+
+/** Return true if the key is equal to the item's lookup key. */
+bool ht_key_equal(void *arg, const ht_link_t *item)
+{
+	uintptr_t *key = (uintptr_t *) arg;
+	pte_t *pte = hash_table_get_inst(item, pte_t, link);
+	return (key[KEY_AS] == (uintptr_t) pte->as) &&
+	    (key[KEY_PAGE] == pte->page);
 }
 
 /** Callback on page hash table item removal.
@@ -158,16 +131,11 @@ bool compare(sysarg_t key[], size_t keys, link_t *item)
  * @param item Page hash table item being removed.
  *
  */
-void remove_callback(link_t *item)
+void ht_remove_callback(ht_link_t *item)
 {
 	assert(item);
 	
-	/*
-	 * Convert item to PTE.
-	 *
-	 */
-	pte_t *pte = hash_table_get_instance(item, pte_t, link);
-	
+	pte_t *pte = hash_table_get_inst(item, pte_t, link);
 	slab_free(pte_cache, pte);
 }
 
@@ -185,9 +153,9 @@ void remove_callback(link_t *item)
 void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
-	sysarg_t key[2] = {
-		(uintptr_t) as,
-		page = ALIGN_DOWN(page, PAGE_SIZE)
+	uintptr_t key[2] = {
+		[KEY_AS] = (uintptr_t) as,
+		[KEY_PAGE] = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
 	assert(page_table_locked(as));
@@ -217,7 +185,7 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		 */
 		write_barrier();
 		
-		hash_table_insert(&page_ht, key, &pte->link);
+		hash_table_insert(&page_ht, &pte->link);
 	}
 
 	irq_spinlock_unlock(&page_ht_lock, true);
@@ -235,9 +203,9 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  */
 void ht_mapping_remove(as_t *as, uintptr_t page)
 {
-	sysarg_t key[2] = {
-		(uintptr_t) as,
-		page = ALIGN_DOWN(page, PAGE_SIZE)
+	uintptr_t key[2] = {
+		[KEY_AS] = (uintptr_t) as,
+		[KEY_PAGE] = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
 	assert(page_table_locked(as));
@@ -248,23 +216,24 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 	 * Note that removed PTE's will be freed
 	 * by remove_callback().
 	 */
-	hash_table_remove(&page_ht, key, 2);
+	hash_table_remove(&page_ht, key);
 
 	irq_spinlock_unlock(&page_ht_lock, true);
 }
 
-static pte_t *ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
+static pte_t *
+ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 {
-	sysarg_t key[2] = {
-		(uintptr_t) as,
-		page = ALIGN_DOWN(page, PAGE_SIZE)
+	uintptr_t key[2] = {
+		[KEY_AS] = (uintptr_t) as,
+		[KEY_PAGE] = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
 	assert(nolock || page_table_locked(as));
 
-	link_t *cur = hash_table_find(&page_ht, key);
+	ht_link_t *cur = hash_table_find(&page_ht, key);
 	if (cur)
-		return hash_table_get_instance(cur, pte_t, link);
+		return hash_table_get_inst(cur, pte_t, link);
 	
 	return NULL;
 }

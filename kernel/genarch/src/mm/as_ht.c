@@ -74,7 +74,7 @@ as_operations_t as_ht_operations = {
 pte_t *ht_create(unsigned int flags)
 {
 	if (flags & FLAG_AS_KERNEL) {
-		hash_table_create(&page_ht, PAGE_HT_ENTRIES, 2, &ht_operations);
+		hash_table_create(&page_ht, 0, 0, &ht_ops);
 		pte_cache = slab_cache_create("pte_t", sizeof(pte_t), 0,
 		    NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 	}
