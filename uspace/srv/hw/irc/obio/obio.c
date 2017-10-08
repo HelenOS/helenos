@@ -97,6 +97,10 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			base_virt[OBIO_IMR(inr & INO_MASK)] |= (1UL << 31);
 			async_answer_0(callid, EOK);
 			break;
+		case IRC_DISABLE_INTERRUPT:
+			/* XXX TODO */
+			async_answer_0(callid, EOK);
+			break;
 		case IRC_CLEAR_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
 			base_virt[OBIO_CIR(inr & INO_MASK)] = 0;

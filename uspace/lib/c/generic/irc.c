@@ -60,6 +60,8 @@ static int irc_init(void)
 
 /** Enable interrupt.
  *
+ * Allow interrupt delivery.
+ *
  * @param irq	IRQ number
  */
 int irc_enable_interrupt(int irq)
@@ -79,12 +81,37 @@ int irc_enable_interrupt(int irq)
 	return rc;
 }
 
-
 /** Disable interrupt.
+ *
+ * Disallow interrupt delivery.
  *
  * @param irq	IRQ number
  */
 int irc_disable_interrupt(int irq)
+{
+	int rc;
+
+	if (irc_sess == NULL) {
+		rc = irc_init();
+		if (rc != EOK)
+			return rc;
+	}
+
+	async_exch_t *exch = async_exchange_begin(irc_sess);
+	rc = async_req_1_0(exch, IRC_DISABLE_INTERRUPT, irq);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+/** Clear interrupt.
+ *
+ * Clear/acknowledge interrupt in interrupt controller so that
+ * another interrupt can be delivered.
+ *
+ * @param irq	IRQ number
+ */
+int irc_clear_interrupt(int irq)
 {
 	int rc;
 

@@ -779,7 +779,7 @@ static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	ns8250_read_from_device(ns);
-	irc_disable_interrupt(ns->irq);
+	irc_clear_interrupt(ns->irq);
 }
 
 /** Register the interrupt handler for the device.

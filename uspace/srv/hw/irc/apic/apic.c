@@ -184,6 +184,10 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case IRC_ENABLE_INTERRUPT:
 			async_answer_0(callid, apic_enable_irq(IPC_GET_ARG1(call)));
 			break;
+		case IRC_DISABLE_INTERRUPT:
+			/* XXX TODO */
+			async_answer_0(callid, EOK);
+			break;
 		case IRC_CLEAR_INTERRUPT:
 			/* Noop */
 			async_answer_0(callid, EOK);

@@ -100,6 +100,10 @@ static void icpic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_0(callid,
 			    icpic_enable_irq(IPC_GET_ARG1(call)));
 			break;
+		case IRC_DISABLE_INTERRUPT:
+			/* XXX TODO */
+			async_answer_0(callid, EOK);
+			break;
 		case IRC_CLEAR_INTERRUPT:
 			/* Noop */
 			async_answer_0(callid, EOK);
