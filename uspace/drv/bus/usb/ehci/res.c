@@ -228,7 +228,6 @@ int disable_legacy(ddf_dev_t *device)
 clean:
 	//TODO unmap registers
 	hw_res_list_parsed_clean(&res);
-	async_hangup(parent_sess);
 	return ret;
 }
 

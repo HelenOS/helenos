@@ -185,7 +185,6 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 	hw_res_list_parsed_t hw_res;
 	hw_res_list_parsed_init(&hw_res);
 	const int ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
-	async_hangup(parent_sess);
 	if (ret != EOK) {
 		return ret;
 	}
@@ -249,7 +248,6 @@ int sb_enable_interrupts(ddf_dev_t *device)
 		return ENOMEM;
 
 	bool enabled = hw_res_enable_interrupt(parent_sess);
-	async_hangup(parent_sess);
 
 	return enabled ? EOK : EIO;
 }

@@ -110,10 +110,7 @@ static int disable_legacy(ddf_dev_t *device)
 
 	/* See UHCI design guide page 45 for these values.
 	 * Write all WC bits in USB legacy register */
-	const int rc = pci_config_space_write_16(parent_sess, 0xc0, 0xaf00);
-
-	async_hangup(parent_sess);
-	return rc;
+	return pci_config_space_write_16(parent_sess, 0xc0, 0xaf00);
 }
 
 /** Initialize a new ddf driver instance for uhci hc and hub.

@@ -162,12 +162,9 @@ static inline int setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
 	async_sess_t *sess = ddf_dev_parent_sess_get(dsp->sb_dev);
 
-	const int ret = hw_res_dma_channel_setup(sess,
+	return hw_res_dma_channel_setup(sess,
 	    dsp->dma16_channel, pa, size,
 	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_ON_DEMAND);
-
-	async_hangup(sess);
-	return ret;
 }
 
 static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
@@ -306,7 +303,6 @@ int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 
 	// TODO: Assumes DMA 16
 	const int remain = hw_res_dma_channel_remain(sess, dsp->dma16_channel);
-	async_hangup(sess);
 	if (remain >= 0) {
 		*pos = dsp->buffer.size - remain;
 		return EOK;
