@@ -212,8 +212,8 @@ rtc_dev_initialize(rtc_t *rtc)
 
 	/* Connect to the parent's driver */
 
-	parent_sess = ddf_dev_parent_sess_create(rtc->dev);
-	if (!parent_sess) {
+	parent_sess = ddf_dev_parent_sess_get(rtc->dev);
+	if (parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed to connect to parent driver\
 		    of device %s.", ddf_dev_get_name(rtc->dev));
 		rc = ENOENT;

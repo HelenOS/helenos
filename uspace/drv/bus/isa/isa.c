@@ -642,7 +642,7 @@ static int isa_dev_add(ddf_dev_t *dev)
 	isa->dev = dev;
 	list_initialize(&isa->functions);
 
-	sess = ddf_dev_parent_sess_create(dev);
+	sess = ddf_dev_parent_sess_get(dev);
 	if (sess == NULL) {
 		ddf_msg(LVL_ERROR, "isa_dev_add failed to connect to the "
 		    "parent driver.");

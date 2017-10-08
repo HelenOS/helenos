@@ -598,31 +598,18 @@ const char *ddf_dev_get_name(ddf_dev_t *dev)
 	return dev->name;
 }
 
-/** Create session with the parent function.
- *
- * The session will be automatically closed when @a dev is destroyed.
- *
- * @param dev Device
- *
- * @return New session or NULL if session could not be created
- *
- */
-async_sess_t *ddf_dev_parent_sess_create(ddf_dev_t *dev)
-{
-	assert(dev->parent_sess == NULL);
-	dev->parent_sess = devman_parent_device_connect(dev->handle,
-	    IPC_FLAG_BLOCKING);
-
-	return dev->parent_sess;
-}
-
 /** Return existing session with the parent function.
  *
  * @param dev	Device
- * @return	Existing session or NULL if there is no session
+ * @return	Session with parent function or NULL upon failure
  */
 async_sess_t *ddf_dev_parent_sess_get(ddf_dev_t *dev)
 {
+	if (dev->parent_sess == NULL) {
+		dev->parent_sess = devman_parent_device_connect(dev->handle,
+		    IPC_FLAG_BLOCKING);
+	}
+
 	return dev->parent_sess;
 }
 

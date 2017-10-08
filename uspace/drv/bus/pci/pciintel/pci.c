@@ -682,7 +682,7 @@ static int pci_dev_add(ddf_dev_t *dnode)
 
 	bus->dnode = dnode;
 	
-	sess = ddf_dev_parent_sess_create(dnode);
+	sess = ddf_dev_parent_sess_get(dnode);
 	if (sess == NULL) {
 		ddf_msg(LVL_ERROR, "pci_dev_add failed to connect to the "
 		    "parent driver.");
