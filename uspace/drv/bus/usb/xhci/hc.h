@@ -89,6 +89,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch);
 int hc_status(xhci_hc_t *, uint32_t *);
 void hc_interrupt(xhci_hc_t *, uint32_t);
 void hc_fini(xhci_hc_t *);
+int hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
 
 #endif
 

@@ -456,6 +456,11 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 		usb_str_transfer_type(batch->ep->transfer_type),
 		batch->buffer_size);
 
+	if (!batch->ep->address) {
+		usb_log_error("Attempted to schedule transfer to address 0.");
+		return EINVAL;
+	}
+
 	switch (batch->ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
 		xhci_schedule_control_transfer(hc, batch);
@@ -615,7 +620,13 @@ void hc_fini(xhci_hc_t *hc)
 	usb_log_info("HC(%p): Finalized.", hc);
 }
 
-
+int hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
+{
+	assert(hc);
+	uint32_t v = host2xhci(32, target & BIT_RRANGE(uint32_t, 7));
+	pio_write_32(&hc->db_arry[doorbell], v);
+	return EOK;
+}
 
 /**
  * @}

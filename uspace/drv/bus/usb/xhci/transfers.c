@@ -40,14 +40,6 @@
 #include "transfers.h"
 #include "trb_ring.h"
 
-static inline int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
-{
-	assert(hc);
-	uint32_t v = host2xhci(32, target & BIT_RRANGE(uint32_t, 7));
-	pio_write_32(&hc->db_arry[doorbell], v);
-	return EOK;
-}
-
 static inline uint8_t get_transfer_type(xhci_trb_t* trb, uint8_t bmRequestType, uint16_t wLength)
 {
 	/* See Table 7 of xHCI specification */
@@ -142,10 +134,12 @@ void xhci_transfer_fini(xhci_transfer_t* transfer) {
 int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 {
 	if (!batch->setup_size) {
+		usb_log_error("Missing setup packet for the control transfer.");
 		return EINVAL;
 	}
 	if (batch->ep->endpoint != 0 || batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
 		/* This method only works for control transfers. */
+		usb_log_error("Attempted to schedule control transfer to non 0 endpoint.");
 		return EINVAL;
 	}
 
@@ -222,7 +216,7 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	list_append(&transfer->link, &hc->transfers);
 
  	/* For control transfers, the target is always 1. */
- 	ring_doorbell(hc, slot_id, 1);
+ 	hc_ring_doorbell(hc, slot_id, 1);
 	return EOK;
 }
 

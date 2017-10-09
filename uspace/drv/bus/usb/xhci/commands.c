@@ -144,14 +144,6 @@ static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
 	return NULL;
 }
 
-static inline int ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
-{
-	assert(hc);
-	uint32_t v = host2xhci(32, target & BIT_RRANGE(uint32_t, 7));
-	pio_write_32(&hc->db_arry[doorbell], v);
-	return EOK;
-}
-
 static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd, unsigned doorbell, unsigned target)
 {
 	assert(hc);
@@ -160,7 +152,7 @@ static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd, unsigned doorb
 	list_append(&cmd->link, &hc->commands);
 
 	xhci_trb_ring_enqueue(&hc->command_ring, &cmd->trb, &cmd->trb_phys);
-	ring_doorbell(hc, doorbell, target);
+	hc_ring_doorbell(hc, doorbell, target);
 
 	usb_log_debug2("HC(%p): Sent command:", hc);
 	xhci_dump_trb(&cmd->trb);
@@ -195,7 +187,7 @@ void xhci_start_command_ring(xhci_hc_t *hc)
 	assert(hc);
 
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRR, 1);
-	ring_doorbell(hc, 0, 0);
+	hc_ring_doorbell(hc, 0, 0);
 }
 
 static const char *trb_codes [] = {
