@@ -394,14 +394,14 @@ static int create_match_ids(match_id_list_t *l,
 {
 	assert(l);
 	assert(d);
-	
+
 	if (d->vendor_id != 0) {
 		/* First, with release number. */
 		ADD_MATCHID_OR_RETURN(l, 100,
 		    "usb&vendor=%#04x&product=%#04x&release=%x.%x",
 		    d->vendor_id, d->product_id, (d->device_version >> 8),
 		    (d->device_version & 0xff));
-	
+
 		/* Next, without release number. */
 		ADD_MATCHID_OR_RETURN(l, 90, "usb&vendor=%#04x&product=%#04x",
 		    d->vendor_id, d->product_id);
@@ -943,7 +943,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	usb_log_info("Controlling new `%s' device `%s'.\n",
 	    driver->name, ddf_dev_get_name(device));
 	return EOK;
-	
+
 err_polling:
 	// TODO: Stop the polling fibril (refactor the interrupt_polling func)
 	//

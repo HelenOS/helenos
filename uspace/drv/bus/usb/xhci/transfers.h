@@ -36,24 +36,6 @@
 #include "hc.h"
 #include "trb_ring.h"
 
-/*
-
-typedef struct xhci_command {
-	link_t link;
-
-	xhci_trb_t trb;
-	uintptr_t trb_phys;
-
-	uint32_t slot_id;
-	uint32_t status;
-
-	bool completed;
-
-	fibril_mutex_t completed_mtx;
-	fibril_condvar_t completed_cv;
-} xhci_cmd_t;
-*/
-
 typedef struct {
 	link_t link;
 
@@ -68,4 +50,5 @@ void xhci_fini_transfers(xhci_hc_t*);
 xhci_transfer_t* xhci_transfer_alloc(usb_transfer_batch_t*);
 void xhci_transfer_fini(xhci_transfer_t*);
 int xhci_schedule_control_transfer(xhci_hc_t*, usb_transfer_batch_t*);
+int xhci_schedule_bulk_transfer(xhci_hc_t*, usb_transfer_batch_t*);
 int xhci_handle_transfer_event(xhci_hc_t*, xhci_trb_t*);

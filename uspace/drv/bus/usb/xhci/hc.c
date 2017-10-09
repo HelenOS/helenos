@@ -463,14 +463,12 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 
 	switch (batch->ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
-		xhci_schedule_control_transfer(hc, batch);
-		break;
+		return xhci_schedule_control_transfer(hc, batch);
 	case USB_TRANSFER_ISOCHRONOUS:
 		/* TODO: Implement me. */
 		break;
 	case USB_TRANSFER_BULK:
-		/* TODO: Implement me. */
-		break;
+		return xhci_schedule_bulk_transfer(hc, batch);
 	case USB_TRANSFER_INTERRUPT:
 		/* TODO: Implement me. */
 		break;

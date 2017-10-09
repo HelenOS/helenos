@@ -220,6 +220,38 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	return EOK;
 }
 
+int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
+	if (batch->setup_size) {
+		usb_log_warning("Setup packet present for a bulk transfer.");
+	}
+
+	uint8_t slot_id = batch->ep->hc_data.slot_id;
+	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->endpoint];
+
+	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
+
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(xhci_trb_t));
+	trb.parameter = (uintptr_t) addr_to_phys(batch->buffer);
+
+	// data size (sent for OUT, or buffer size)
+ 	TRB_CTRL_SET_XFER_LEN(trb, batch->buffer_size);
+ 	// FIXME: TD size 4.11.2.4
+ 	TRB_CTRL_SET_TD_SIZE(trb, 1);
+
+	// we want an interrupt after this td is done
+	TRB_CTRL_SET_IOC(trb, 1);
+
+	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
+
+ 	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+	list_append(&transfer->link, &hc->transfers);
+
+ 	/* For control transfers, the target is always 1. */
+ 	hc_ring_doorbell(hc, slot_id, 1);
+	return EOK;
+}
+
 int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 {
 	uintptr_t addr = trb->parameter;
