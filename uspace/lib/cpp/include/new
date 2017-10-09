@@ -26,18 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_CSTDLIB
-#define LIBCPP_CSTDLIB
+#ifndef LIBCPP_NEW
+#define LIBCPP_NEW
 
-#include "internal/common.hpp"
+#include <exception>
 
 namespace std
 {
 
-extern "C" {
-#include <stdlib.h>
-}
+class bad_alloc: public std::exception
+{
+	public:
+		bad_alloc() = default;
+		bad_alloc(const bad_alloc&);
+		bad_alloc& operator=(const bad_alloc&) = default;
+		virtual const char *what() const override;
+		virtual ~bad_alloc() = default;
+};
+
+using new_handler = void (*)();
+
+struct nothrow_t {};
+extern const nothrow_t nothrow;
 
 }
+
+void *operator new(std::size_t);
+
+void operator delete(void *);
 
 #endif

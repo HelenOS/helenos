@@ -29,6 +29,8 @@
 #ifndef LIBCPP_CSTRING
 #define LIBCPP_CSTRING
 
+#include "internal/common.hpp"
+
 namespace std
 {
 

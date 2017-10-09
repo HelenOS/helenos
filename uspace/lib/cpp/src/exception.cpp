@@ -25,19 +25,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef LIBCPP_CSTDLIB
-#define LIBCPP_CSTDLIB
-
-#include "internal/common.hpp"
+#include <exception>
 
 namespace std
 {
-
-extern "C" {
-#include <stdlib.h>
+    const char *exception::what() const
+    {
+        return "std::exception";
+    }
 }
-
-}
-
-#endif

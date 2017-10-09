@@ -29,6 +29,8 @@
 #ifndef LIBCPP_CSTDDEF
 #define LIBCPP_CSTDDEF
 
+#include "internal/common.hpp"
+
 namespace std
 {
 

@@ -25,19 +25,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef LIBCPP_CSTDLIB
-#define LIBCPP_CSTDLIB
-
-#include "internal/common.hpp"
+#include <cstdlib>
+#include <new>
 
 namespace std
 {
+    const char *bad_alloc::what() const
+    {
+        return "std::bad_alloc";
+    }
 
-extern "C" {
-#include <stdlib.h>
+    const nothrow_t nothrow{};
 }
 
+void *operator new(std::size_t size)
+{
+    // TODO: Implement usage of std::new_handler.
+    if (size == 0)
+        size = 1;
+
+    void *ptr = std::malloc(size);
+    // TODO: For this we need stack unwinding support.
+    /* if (!ptr) */
+    /*     throw std::bad_alloc{}; */
+
+    return ptr;
 }
 
-#endif
+void operator delete(void *ptr)
+{
+    if (ptr)
+        std::free(ptr);
+}

@@ -37,8 +37,8 @@ LSONAME = libcpp.so.0
 
 -include $(CONFIG_MAKEFILE)
 
-#SOURCES = \
-
-#TEST_SOURCES = \
+SOURCES = \
+	src/exception.cpp \
+	src/new.cpp
 
 include $(USPACE_PREFIX)/Makefile.common

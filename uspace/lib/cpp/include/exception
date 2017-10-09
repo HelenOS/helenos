@@ -26,17 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_CSTDLIB
-#define LIBCPP_CSTDLIB
-
-#include "internal/common.hpp"
+#ifndef LIBCPP_EXCEPTION
+#define LIBCPP_EXCEPTION
 
 namespace std
 {
 
-extern "C" {
-#include <stdlib.h>
-}
+class exception
+{
+	public:
+		exception() = default;
+		exception(const exception&) = default;
+		exception& operator=(const exception&) noexcept;
+		virtual const char *what() const;
+		virtual ~exception() = default;
+};
 
 }
 

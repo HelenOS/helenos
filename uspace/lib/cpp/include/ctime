@@ -29,7 +29,7 @@
 #ifndef LIBCPP_CTIME
 #define LIBCPP_CTIME
 
-#define restrict __restrict__
+#include "internal/common.hpp"
 
 namespace std
 {
