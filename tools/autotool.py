@@ -233,7 +233,7 @@ def get_target(config):
 	
 	if (config['PLATFORM'] == "amd64"):
 		platform = config['PLATFORM']
-		gnu_target = "amd64-linux-gnu"
+		gnu_target = "amd64-unknown-elf"
 		helenos_target = "amd64-helenos"
 	
 	if (config['PLATFORM'] == "arm32"):

@@ -358,7 +358,7 @@ prepare() {
 set_target_from_platform() {
 	case "$1" in
 		"amd64")
-			LINUX_TARGET="amd64-linux-gnu"
+			LINUX_TARGET="amd64-unknown-elf"
 			HELENOS_TARGET="amd64-helenos"
 			;;
 		"arm32")
