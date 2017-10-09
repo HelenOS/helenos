@@ -37,10 +37,11 @@
 
 #include <typedefs.h>
 #include <adt/list.h>
+#include <adt/hash.h>
+#include <adt/hash_table.h>
+#include <lib/ra.h>
 #include <synch/mutex.h>
 #include <atomic.h>
-
-#define MAX_CAPS  64
 
 typedef int cap_handle_t;
 
@@ -88,10 +89,13 @@ typedef struct kobject {
 typedef struct cap {
 	cap_state_t state;
 
+	struct task *task;
 	cap_handle_t handle;
 
 	/* Link to the task's capabilities of the same kobject type. */
-	link_t link;
+	link_t type_link;
+
+	ht_link_t caps_link;
 
 	/* The underlying kernel object. */
 	kobject_t *kobject;
@@ -102,7 +106,8 @@ typedef struct cap_info {
 
 	list_t type_list[KOBJECT_TYPE_MAX];
 
-	cap_t *caps;
+	hash_table_t caps;
+	ra_arena_t *handles;
 } cap_info_t;
 
 extern void caps_task_alloc(struct task *);
@@ -111,7 +116,6 @@ extern void caps_task_init(struct task *);
 extern bool caps_apply_to_kobject_type(struct task *, kobject_type_t,
     bool (*)(cap_t *, void *), void *);
 
-extern void cap_initialize(cap_t *, cap_handle_t);
 extern cap_handle_t cap_alloc(struct task *);
 extern void cap_publish(struct task *, cap_handle_t, kobject_t *);
 extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);

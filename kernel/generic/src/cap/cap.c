@@ -78,19 +78,36 @@
 #include <mm/slab.h>
 #include <adt/list.h>
 
+#include <stdint.h>
+
+#define MAX_CAPS	INT_MAX
+
 static kobject_t *cap_unpublish_locked(task_t *, cap_handle_t, kobject_type_t);
 
-/** Initialize capability and associate it with its handle
- *
- * @param cap     Address of the capability.
- * @param handle  Capability handle.
- */
-void cap_initialize(cap_t *cap, cap_handle_t handle)
+static size_t caps_hash(const ht_link_t *item)
 {
-	cap->state = CAP_STATE_FREE;
-	cap->handle = handle;
-	link_initialize(&cap->link);
+	cap_t *cap = hash_table_get_inst(item, cap_t, caps_link);
+	return hash_mix(cap->handle);
 }
+
+static size_t caps_key_hash(void *key)
+{
+	cap_handle_t *handle = (cap_handle_t *) key;
+	return hash_mix(*handle);
+}
+
+static bool caps_key_equal(void *key, const ht_link_t *item)
+{
+	cap_handle_t *handle = (cap_handle_t *) key;
+	cap_t *cap = hash_table_get_inst(item, cap_t, caps_link);
+	return *handle == cap->handle;
+}
+
+static hash_table_ops_t caps_ops = {
+	.hash = caps_hash,
+	.key_hash = caps_key_hash,
+	.key_equal = caps_key_equal
+};
 
 /** Allocate the capability info structure
  *
@@ -99,7 +116,15 @@ void cap_initialize(cap_t *cap, cap_handle_t handle)
 void caps_task_alloc(task_t *task)
 {
 	task->cap_info = (cap_info_t *) malloc(sizeof(cap_info_t), 0);
-	task->cap_info->caps = malloc(sizeof(cap_t) * MAX_CAPS, 0);
+	task->cap_info->handles = ra_arena_create();
+	// FIXME: allow caps_task_alloc() to fail 
+	assert(task->cap_info->handles);
+	bool success = ra_span_add(task->cap_info->handles, 0, MAX_CAPS);
+	// FIXME: allow caps_task_alloc() to fail 
+	assert(success);
+	success = hash_table_create(&task->cap_info->caps, 0, 0, &caps_ops);
+	// FIXME: allow caps_task_alloc() to fail 
+	assert(success);
 }
 
 /** Initialize the capability info structure
@@ -112,9 +137,6 @@ void caps_task_init(task_t *task)
 
 	for (kobject_type_t t = 0; t < KOBJECT_TYPE_MAX; t++)
 		list_initialize(&task->cap_info->type_list[t]);
-
-	for (cap_handle_t h = 0; h < MAX_CAPS; h++)
-		cap_initialize(&task->cap_info->caps[h], h);
 }
 
 /** Deallocate the capability info structure
@@ -123,7 +145,8 @@ void caps_task_init(task_t *task)
  */
 void caps_task_free(task_t *task)
 {
-	free(task->cap_info->caps);
+	hash_table_destroy(&task->cap_info->caps);
+	ra_arena_destroy(task->cap_info->handles);
 	free(task->cap_info);
 }
 
@@ -145,7 +168,7 @@ bool caps_apply_to_kobject_type(task_t *task, kobject_type_t type,
 
 	mutex_lock(&task->cap_info->lock);
 	list_foreach_safe(task->cap_info->type_list[type], cur, next) {
-		cap_t *cap = list_get_instance(cur, cap_t, link);
+		cap_t *cap = list_get_instance(cur, cap_t, type_link);
 		done = cb(cap, arg);
 		if (!done)
 			break;
@@ -153,6 +176,20 @@ bool caps_apply_to_kobject_type(task_t *task, kobject_type_t type,
 	mutex_unlock(&task->cap_info->lock);
 
 	return done;
+}
+
+/** Initialize capability and associate it with its handle
+ *
+ * @param cap     Address of the capability.
+ * @param task    Backling to the owning task.
+ * @param handle  Capability handle.
+ */
+static void cap_initialize(cap_t *cap, task_t *task, cap_handle_t handle)
+{
+	cap->state = CAP_STATE_FREE;
+	cap->task = task;
+	cap->handle = handle;
+	link_initialize(&cap->type_link);
 }
 
 /** Get capability using capability handle
@@ -170,9 +207,31 @@ static cap_t *cap_get(task_t *task, cap_handle_t handle, cap_state_t state)
 
 	if ((handle < 0) || (handle >= MAX_CAPS))
 		return NULL;
-	if (task->cap_info->caps[handle].state != state)
+	ht_link_t *link = hash_table_find(&task->cap_info->caps, &handle);
+	if (!link)
 		return NULL;
-	return &task->cap_info->caps[handle];
+	cap_t *cap = hash_table_get_inst(link, cap_t, caps_link);
+	if (cap->state != state)
+		return NULL;
+	return cap;
+}
+
+static bool cap_reclaimer(ht_link_t *link, void *arg)
+{
+	cap_t **result = (cap_t **) arg;
+	cap_t *cap = hash_table_get_inst(link, cap_t, caps_link);
+
+	if (cap->state == CAP_STATE_PUBLISHED && cap->kobject->ops->reclaim &&
+	    cap->kobject->ops->reclaim(cap->kobject)) {
+		kobject_t *kobj = cap_unpublish_locked(cap->task, cap->handle,
+		    cap->kobject->type);
+		kobject_put(kobj);
+		cap_initialize(cap, cap->task, cap->handle);
+		*result = cap;
+		return false;
+	}
+
+	return true;
 }
 
 /** Allocate new capability
@@ -184,27 +243,41 @@ static cap_t *cap_get(task_t *task, cap_handle_t handle, cap_state_t state)
  */
 cap_handle_t cap_alloc(task_t *task)
 {
+	cap_t *cap = NULL;
+	cap_handle_t handle;
+
+	/*
+	 * First of all, see if we can reclaim a capability. Note that this
+	 * feature is only temporary and capability reclamaition will eventually
+	 * be phased out.
+	 */
 	mutex_lock(&task->cap_info->lock);
-	for (cap_handle_t handle = 0; handle < MAX_CAPS; handle++) {
-		cap_t *cap = &task->cap_info->caps[handle];
-		/* See if the capability should be garbage-collected */
-		if (cap->state == CAP_STATE_PUBLISHED &&
-		    cap->kobject->ops->reclaim &&
-		    cap->kobject->ops->reclaim(cap->kobject)) {
-			kobject_t *kobj = cap_unpublish_locked(task, handle,
-			    cap->kobject->type);
-			kobject_put(kobj);
-			cap_initialize(&task->cap_info->caps[handle], handle);
-		}
-		if (cap->state == CAP_STATE_FREE) {
-			cap->state = CAP_STATE_ALLOCATED;
+	hash_table_apply(&task->cap_info->caps, cap_reclaimer, &cap);
+
+	/*
+	 * If we don't have a capability by now, try to allocate a new one.
+	 */
+	if (!cap) {
+		cap = malloc(sizeof(cap_t), 0);
+		if (!cap) {
 			mutex_unlock(&task->cap_info->lock);
-			return handle;
+			return ENOMEM;
 		}
+		uintptr_t hbase;
+		if (!ra_alloc(task->cap_info->handles, 1, 1, &hbase)) {
+			free(cap);
+			mutex_unlock(&task->cap_info->lock);
+			return ENOMEM;
+		}
+		cap_initialize(cap, task, (cap_handle_t) hbase);
+		hash_table_insert(&task->cap_info->caps, &cap->caps_link);
 	}
+
+	cap->state = CAP_STATE_ALLOCATED;
+	handle = cap->handle;
 	mutex_unlock(&task->cap_info->lock);
 
-	return ELIMIT;
+	return handle;
 }
 
 /** Publish allocated capability
@@ -226,7 +299,7 @@ cap_publish(task_t *task, cap_handle_t handle, kobject_t *kobj)
 	cap->state = CAP_STATE_PUBLISHED;
 	/* Hand over kobj's reference to cap */
 	cap->kobject = kobj;
-	list_append(&cap->link, &task->cap_info->type_list[kobj->type]);
+	list_append(&cap->type_link, &task->cap_info->type_list[kobj->type]);
 	mutex_unlock(&task->cap_info->lock);
 }
 
@@ -241,7 +314,7 @@ cap_unpublish_locked(task_t *task, cap_handle_t handle, kobject_type_t type)
 			/* Hand over cap's reference to kobj */
 			kobj = cap->kobject;
 			cap->kobject = NULL;
-			list_remove(&cap->link);
+			list_remove(&cap->type_link);
 			cap->state = CAP_STATE_ALLOCATED;
 		}
 	}
@@ -280,10 +353,15 @@ void cap_free(task_t *task, cap_handle_t handle)
 {
 	assert(handle >= 0);
 	assert(handle < MAX_CAPS);
-	assert(task->cap_info->caps[handle].state == CAP_STATE_ALLOCATED);
 
 	mutex_lock(&task->cap_info->lock);
-	cap_initialize(&task->cap_info->caps[handle], handle);
+	cap_t *cap = cap_get(task, handle, CAP_STATE_ALLOCATED);
+
+	assert(cap);
+
+	hash_table_remove_item(&task->cap_info->caps, &cap->caps_link);
+	ra_free(task->cap_info->handles, handle, 1);
+	free(cap);
 	mutex_unlock(&task->cap_info->lock);
 }
 
