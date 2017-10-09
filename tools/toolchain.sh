@@ -72,7 +72,6 @@ GDB="gdb-${GDB_VERSION}.tar.gz"
 
 REAL_INSTALL=true
 USE_HELENOS_TARGET=false
-INSTALL_DIR="${BASEDIR}/PKG"
 
 #
 # Check if the library described in the argument
@@ -419,7 +418,8 @@ build_target() {
 		TARGET="$LINUX_TARGET"
 	fi
 	
-	WORKDIR="${BASEDIR}/${PLATFORM}"
+	WORKDIR="${BASEDIR}/${TARGET}"
+	INSTALL_DIR="${WORKDIR}/PKG"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
 	OBJDIR="${WORKDIR}/gcc-obj"
@@ -428,15 +428,8 @@ build_target() {
 	if [ -z "${CROSS_PREFIX}" ] ; then
 		CROSS_PREFIX="/usr/local/cross"
 	fi
-	if [ -z "${CROSS_HELENOS_PREFIX}" ] ; then
-		CROSS_HELENOS_PREFIX="/usr/local/cross-helenos"
-	fi
 	
-	if $USE_HELENOS_TARGET ; then
-		PREFIX="${CROSS_HELENOS_PREFIX}/${PLATFORM}"
-	else
-		PREFIX="${CROSS_PREFIX}/${PLATFORM}"
-	fi
+	PREFIX="${CROSS_PREFIX}/${TARGET}"
 	
 	echo ">>> Downloading tarballs"
 	source_check "${BASEDIR}/${BINUTILS}"
