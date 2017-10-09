@@ -74,7 +74,7 @@ static size_t used_key_hash(void *key)
 /** Return true if the key is equal to the item's lookup key */
 static bool used_key_equal(void *key, const ht_link_t *item)
 {
-	uintptr_t *base = (sysarg_t *) key;
+	uintptr_t *base = (uintptr_t *) key;
 	ra_segment_t *seg = hash_table_get_inst(item, ra_segment_t, uh_link);
 	return seg->base == *base;
 }
@@ -183,6 +183,22 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 	return span;
 }
 
+static void ra_span_destroy(ra_span_t *span)
+{
+	hash_table_destroy(&span->used);
+
+	list_foreach_safe(span->segments, cur, next) {
+		ra_segment_t *seg = list_get_instance(cur, ra_segment_t,
+		    segment_link);
+		list_remove(&seg->segment_link);
+		if (seg->flags & RA_SEGMENT_FREE)
+			list_remove(&seg->fl_link);
+		ra_segment_destroy(seg);
+	}
+
+	free(span);
+}
+
 /** Create an empty arena. */
 ra_arena_t *ra_arena_create(void)
 {
@@ -196,6 +212,21 @@ ra_arena_t *ra_arena_create(void)
 	list_initialize(&arena->spans);
 
 	return arena;
+}
+
+void ra_arena_destroy(ra_arena_t *arena)
+{
+	/*
+	 * No locking necessary as this is the cleanup and all users should have
+	 * stopped using the arena already.
+	 */
+	list_foreach_safe(arena->spans, cur, next) {
+		ra_span_t *span = list_get_instance(cur, ra_span_t, span_link);
+		list_remove(&span->span_link);
+		ra_span_destroy(span);
+	}
+
+	free(arena);
 }
 
 /** Add a span to arena. */
