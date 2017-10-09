@@ -219,6 +219,7 @@ BASE_LIBS = \
 	lib/untar
 
 LIBS = \
+	lib/cpp \
 	lib/fs \
 	lib/block \
 	lib/crypto \

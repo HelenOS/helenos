@@ -102,6 +102,10 @@ LIBC_INCLUDES_FLAGS = \
 	-I$(LIBC_PREFIX)/include \
 	-I$(LIBC_PREFIX)/arch/$(UARCH)/include \
 	-I$(ROOT_PATH)/abi/include
+
+LIBCPP_PREFIX = $(LIB_PREFIX)/cpp
+LIBCPP_INCLUDES_FLAGS = -I$(LIBCPP_PREFIX)/include
+
 LIBSOFTFLOAT_PREFIX = $(LIB_PREFIX)/softfloat
 LIBSOFTINT_PREFIX = $(LIB_PREFIX)/softint
 
@@ -231,6 +235,14 @@ HELENOS_CFLAGS = \
 # CFLAGS variable is traditionally used for overridable flags.
 CFLAGS = $(COMMON_CPPFLAGS) $(COMMON_CFLAGS) $(HELENOS_CFLAGS) $(DEFAULT_CFLAGS)
 
+# Flags for the compilation of C++ code.
+CPPFLAGS = $(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -ffunction-sections \
+	-nostdlib -nostdinc -Wall -Wextra -Wno-clobbered -Wno-unused-parameter \
+	-std=c++11 -Werror-implicit-function-declaration \
+	-Wwrite-strings -pipe -ggdb -D__$(ENDIANESS)__
+
 ## Setup platform configuration
 #
 
@@ -341,6 +353,9 @@ endif
 
 %.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
+
+%.o: %.cpp | depend
+	$(CPP) $(CPPFLAGS) $(EXTRA_CPPFLAGS) -c $< -o $@
 
 %.test.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
