@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_CSTDIO
-#define LIBCPP_CSTDIO
+#ifndef LIBCPP_CTIME
+#define LIBCPP_CTIME
 
-#define _Bool bool
+#define restrict __restrict__
 
 namespace std
 {
 
 extern "C" {
-#include <stdio.h>
+#include <time.h>
 }
 
 }

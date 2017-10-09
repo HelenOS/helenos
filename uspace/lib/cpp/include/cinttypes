@@ -26,16 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_CSTDIO
-#define LIBCPP_CSTDIO
-
-#define _Bool bool
+#ifndef LIBCPP_CINTTYPES
+#define LIBCPP_CINTTYPES
 
 namespace std
 {
 
 extern "C" {
-#include <stdio.h>
+#include <inttypes.h>
 }
 
 }

@@ -26,16 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_CSTDIO
-#define LIBCPP_CSTDIO
-
-#define _Bool bool
+#ifndef LIBCPP_CSETJMP
+#define LIBCPP_CSETJMP
 
 namespace std
 {
 
 extern "C" {
-#include <stdio.h>
+#include <setjmp.h>
 }
 
 }
