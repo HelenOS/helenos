@@ -892,14 +892,6 @@ def main():
 			common['CC'] = common['GCC']
 			common['CC_AUTOGEN'] = common['CC']
 		
-		if (config['COMPILER'] == "icc"):
-			check_app([common['CC'], "-V"], "Intel C++ Compiler", "support is experimental")
-			check_gcc(None, "", common, PACKAGE_GCC)
-			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
-			
-			common['CC'] = "icc"
-			common['CC_AUTOGEN'] = common['CC']
-		
 		if (config['COMPILER'] == "clang"):
 			check_binutils(path, prefix, common, PACKAGE_CROSS)
 			check_clang(path, prefix, common, PACKAGE_CLANG)

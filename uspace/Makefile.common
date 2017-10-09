@@ -243,10 +243,6 @@ GCC_CFLAGS = -ffunction-sections -Wall -Wextra -Wno-clobbered \
 	-Werror-implicit-function-declaration \
 	-Wwrite-strings -pipe
 
-ICC_CFLAGS = -Wall -Wextra -Wno-clobbered -Wno-unused-parameter \
-	-Wmissing-prototypes -Werror-implicit-function-declaration \
-	-Wwrite-strings -pipe
-
 # -Wno-missing-prototypes is there because it warns about main().
 # This should be fixed elsewhere.
 CLANG_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-typedef-redefinition \
@@ -260,7 +256,6 @@ endif
 
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	GCC_CFLAGS += -ggdb
-	ICC_CFLAGS += -g
 	CLANG_CFLAGS += -g
 endif
 
@@ -292,11 +287,6 @@ endif
 
 ifeq ($(COMPILER),gcc_native)
 	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),icc)
-	CFLAGS += $(COMMON_CFLAGS) $(ICC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 

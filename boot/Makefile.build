@@ -51,8 +51,6 @@ GCC_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe
 
-ICC_CFLAGS = -Wall -Wmissing-prototypes -Werror-implicit-function-declaration -wd170
-
 CLANG_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe  -fno-stack-protector -fno-PIC
@@ -77,12 +75,6 @@ endif
 
 ifeq ($(COMPILER),gcc_helenos)
 	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS) $(EXTRA_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-
-ifeq ($(COMPILER),icc)
-	CFLAGS = $(COMMON_CFLAGS) $(ICC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
