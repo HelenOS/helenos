@@ -45,16 +45,6 @@
 #include <mm/slab.h>
 
 typedef enum {
-	IRQ_HT_KEY_INR,
-	IRQ_HT_KEY_MODE
-} irq_ht_key_t;
-
-typedef enum {
-	IRQ_HT_MODE_CLAIM,
-	IRQ_HT_MODE_NO_CLAIM
-} irq_ht_mode_t;
-
-typedef enum {
 	IRQ_DECLINE,  /**< Decline to service. */
 	IRQ_ACCEPT    /**< Accept to service. */
 } irq_ownership_t;
