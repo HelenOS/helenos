@@ -35,6 +35,7 @@
  */
 
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <rtld/elf_dyn.h>
 #include <rtld/dynamic.h>
@@ -104,15 +105,15 @@ void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 	/* This will be useful for parsing dependencies later */
 	info->dynamic = dyn_ptr;
 
-	DPRINTF("str_tab=0x%x, soname_idx=0x%x, soname=0x%x\n",
+	DPRINTF("str_tab=0x%" PRIxPTR ", soname_idx=0x%x, soname=0x%" PRIxPTR "\n",
 		(uintptr_t)info->soname, soname_idx, (uintptr_t)info->soname);
 	DPRINTF("soname='%s'\n", info->soname);
 	DPRINTF("rpath='%s'\n", info->rpath);
-	DPRINTF("hash=0x%x\n", (uintptr_t)info->hash);
-	DPRINTF("dt_rela=0x%x\n", (uintptr_t)info->rela);
-	DPRINTF("dt_rela_sz=0x%x\n", (uintptr_t)info->rela_sz);
-	DPRINTF("dt_rel=0x%x\n", (uintptr_t)info->rel);
-	DPRINTF("dt_rel_sz=0x%x\n", (uintptr_t)info->rel_sz);
+	DPRINTF("hash=0x%" PRIxPTR "\n", (uintptr_t)info->hash);
+	DPRINTF("dt_rela=0x%" PRIxPTR "\n", (uintptr_t)info->rela);
+	DPRINTF("dt_rela_sz=0x%" PRIxPTR "\n", (uintptr_t)info->rela_sz);
+	DPRINTF("dt_rel=0x%" PRIxPTR "\n", (uintptr_t)info->rel);
+	DPRINTF("dt_rel_sz=0x%" PRIxPTR "\n", (uintptr_t)info->rel_sz);
 
 	/*
 	 * Now that we have a pointer to the string table,

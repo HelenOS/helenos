@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include <libarch/rtld/elf_dyn.h>
 #include <rtld/symbol.h>
@@ -78,7 +79,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 	rt_entries = rt_size / sizeof(elf_rel_t);
 	str_tab = m->dyn.str_tab;
 
-	DPRINTF("address: 0x%x, entries: %d\n", (uintptr_t)rt, rt_entries);
+	DPRINTF("address: 0x%" PRIxPTR ", entries: %zd\n", (uintptr_t)rt, rt_entries);
 	
 	for (i = 0; i < rt_entries; ++i) {
 //		DPRINTF("symbol %d: ", i);
