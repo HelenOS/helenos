@@ -129,7 +129,7 @@ static hw_resource_list_t *sun4u_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool sun4u_enable_interrupt(ddf_fun_t *fun)
+static int sun4u_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	/* TODO */
 	

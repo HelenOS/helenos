@@ -149,7 +149,7 @@ static const amdm37x_fun_t amdm37x_funcs[] = {
 
 
 static hw_resource_list_t *amdm37x_get_resources(ddf_fun_t *fnode);
-static bool amdm37x_enable_interrupt(ddf_fun_t *fun);
+static int amdm37x_enable_interrupt(ddf_fun_t *fun, int);
 
 static hw_res_ops_t fun_hw_res_ops = {
 	.get_resource_list = &amdm37x_get_resources,
@@ -264,7 +264,7 @@ static hw_resource_list_t * amdm37x_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool amdm37x_enable_interrupt(ddf_fun_t *fun)
+static int amdm37x_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	//TODO: Implement
 	return false;

@@ -691,20 +691,19 @@ void hcd_ddf_clean_hc(ddf_dev_t *device)
 }
 
 //TODO: Cache parent session in HCD
-/** Call the parent driver with a request to enable interrupts
+/** Call the parent driver with a request to enable interrupt
  *
  * @param[in] device Device asking for interrupts
+ * @param[in] inum Interrupt number
  * @return Error code.
  */
-int hcd_ddf_enable_interrupts(ddf_dev_t *device)
+int hcd_ddf_enable_interrupt(ddf_dev_t *device, int inum)
 {
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
 	if (parent_sess == NULL)
 		return EIO;
 
-	const bool enabled = hw_res_enable_interrupt(parent_sess);
-
-	return enabled ? EOK : EIO;
+	return hw_res_enable_interrupt(parent_sess, inum);
 }
 
 //TODO: Cache parent session in HCD
@@ -775,7 +774,7 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 	}
 
 	/* Enable interrupts */
-	int ret = hcd_ddf_enable_interrupts(device);
+	int ret = hcd_ddf_enable_interrupt(device, irq);
 	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.\n",
 		    str_error(ret));

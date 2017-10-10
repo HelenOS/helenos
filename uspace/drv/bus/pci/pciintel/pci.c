@@ -98,25 +98,26 @@ static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
+static int pciintel_enable_interrupt(ddf_fun_t *fnode, int irq)
 {
-	/* This is an old ugly way */
-	assert(fnode);
 	pci_fun_t *dev_data = pci_fun(fnode);
 	
-	size_t i = 0;
+	size_t i;
 	hw_resource_list_t *res = &dev_data->hw_resources;
-	for (; i < res->count; i++) {
+	bool found = false;
+	
+	found = false;
+	for (i = 0; i < res->count; i++) {
 		if (res->resources[i].type == INTERRUPT) {
-			int rc = irc_enable_interrupt(
-			    res->resources[i].res.interrupt.irq);
-			
-			if (rc != EOK)
-				return false;
+			found = true;
+			break;
 		}
 	}
 	
-	return true;
+	if (!found)
+		return EINVAL;
+	
+	return irc_enable_interrupt(irq);
 }
 
 static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)

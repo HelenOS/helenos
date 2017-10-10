@@ -74,15 +74,15 @@ int hw_res_get_resource_list(async_sess_t *sess,
 	return EOK;
 }
 
-bool hw_res_enable_interrupt(async_sess_t *sess)
+int hw_res_enable_interrupt(async_sess_t *sess, int irq)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
-	    HW_RES_ENABLE_INTERRUPT);
+	int rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    HW_RES_ENABLE_INTERRUPT, irq);
 	async_exchange_end(exch);
 	
-	return (rc == EOK);
+	return rc;
 }
 
 /** Setup DMA channel to specified place and mode.

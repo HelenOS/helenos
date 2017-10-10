@@ -69,7 +69,7 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device);
 
 hcd_t *dev_to_hcd(ddf_dev_t *dev);
 
-int hcd_ddf_enable_interrupts(ddf_dev_t *device);
+int hcd_ddf_enable_interrupt(ddf_dev_t *device, int);
 int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res);
 int hcd_ddf_setup_interrupts(ddf_dev_t *device,
     const hw_res_list_parsed_t *hw_res,

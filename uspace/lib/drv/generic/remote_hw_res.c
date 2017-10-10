@@ -66,12 +66,14 @@ static void remote_hw_res_enable_interrupt(ddf_fun_t *fun, void *ops,
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
 	
-	if (hw_res_ops->enable_interrupt == NULL)
+	if (hw_res_ops->enable_interrupt == NULL) {
 		async_answer_0(callid, ENOTSUP);
-	else if (hw_res_ops->enable_interrupt(fun))
-		async_answer_0(callid, EOK);
-	else
-		async_answer_0(callid, EREFUSED);
+		return;
+	}
+	
+	const int irq = DEV_IPC_GET_ARG1(*call);
+	const int ret = hw_res_ops->enable_interrupt(fun, irq);
+	async_answer_0(callid, ret);
 }
 
 static void remote_hw_res_get_resource_list(ddf_fun_t *fun, void *ops,

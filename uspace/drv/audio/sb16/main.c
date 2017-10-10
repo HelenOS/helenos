@@ -49,7 +49,7 @@
 static int sb_add_device(ddf_dev_t *device);
 static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
     addr_range_t **pp_mpu_regs, int *irq, int *dma8, int *dma16);
-static int sb_enable_interrupts(ddf_dev_t *device);
+static int sb_enable_interrupt(ddf_dev_t *device, int irq);
 
 static driver_ops_t sb_driver_ops = {
 	.dev_add = sb_add_device,
@@ -133,7 +133,7 @@ static int sb_add_device(ddf_dev_t *device)
 
 	handler_regd = true;
 
-	rc = sb_enable_interrupts(device);
+	rc = sb_enable_interrupt(device, irq);
 	if (rc != EOK) {
 		ddf_log_error("Failed to enable interrupts: %s.",
 		    str_error(rc));
@@ -241,15 +241,13 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 	return EOK;
 }
 
-int sb_enable_interrupts(ddf_dev_t *device)
+static int sb_enable_interrupt(ddf_dev_t *device, int irq)
 {
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
 	if (parent_sess == NULL)
 		return ENOMEM;
 
-	bool enabled = hw_res_enable_interrupt(parent_sess);
-
-	return enabled ? EOK : EIO;
+	return hw_res_enable_interrupt(parent_sess, irq);
 }
 
 /**

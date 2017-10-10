@@ -114,26 +114,26 @@ static hw_resource_list_t *isa_fun_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool isa_fun_enable_interrupt(ddf_fun_t *fnode)
+static int isa_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
 {
-	/* This is an old ugly way, copied from pci driver */
-	assert(fnode);
 	isa_fun_t *fun = isa_fun(fnode);
-	assert(fun);
-
 	const hw_resource_list_t *res = &fun->hw_resources;
-	assert(res);
-	for (size_t i = 0; i < res->count; ++i) {
-		if (res->resources[i].type == INTERRUPT) {
-			int rc = irc_enable_interrupt(
-			    res->resources[i].res.interrupt.irq);
+	bool found;
 
-			if (rc != EOK)
-				return false;
+	/* Check that specified irq really belongs to the function */
+	found = false;
+	for (size_t i = 0; i < res->count; ++i) {
+		if (res->resources[i].type == INTERRUPT &&
+		    res->resources[i].res.interrupt.irq == irq) {
+			found = true;
+			break;
 		}
 	}
 
-	return true;
+	if (!found)
+		return EINVAL;
+
+	return irc_enable_interrupt(irq);
 }
 
 static int isa_fun_setup_dma(ddf_fun_t *fnode,

@@ -142,7 +142,7 @@ static hw_resource_list_t *malta_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool malta_enable_interrupt(ddf_fun_t *fun)
+static int malta_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	/* TODO */
 	

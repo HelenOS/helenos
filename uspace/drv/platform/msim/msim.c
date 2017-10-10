@@ -120,7 +120,7 @@ static hw_resource_list_t *msim_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool msim_enable_interrupt(ddf_fun_t *fun)
+static int msim_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	/* Nothing to do. */
 

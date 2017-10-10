@@ -290,9 +290,17 @@ int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(ddf_dev);
 	assert(parent_sess != NULL);
 	
-	const bool enabled = hw_res_enable_interrupt(parent_sess);
-	if (!enabled) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to enable interrupts: %s.",
+	rc = hw_res_enable_interrupt(parent_sess, irq_kbd);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to enable keyboard interrupt: %s.",
+		    ddf_dev_get_name(ddf_dev));
+		rc = EIO;
+		goto error;
+	}
+
+	rc = hw_res_enable_interrupt(parent_sess, irq_mouse);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to enable mouse interrupt: %s.",
 		    ddf_dev_get_name(ddf_dev));
 		rc = EIO;
 		goto error;
