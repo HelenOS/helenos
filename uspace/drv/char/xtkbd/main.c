@@ -33,7 +33,7 @@
  * @brief XT keyboard driver
  */
 
-#include <libarch/inttypes.h>
+#include <inttypes.h>
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
 #include <errno.h>

@@ -34,7 +34,7 @@
  * @brief i8042 driver DDF bits.
  */
 
-#include <libarch/inttypes.h>
+#include <inttypes.h>
 #include <libarch/config.h>
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
