@@ -113,18 +113,26 @@ static hash_table_ops_t caps_ops = {
  *
  * @param task  Task for which to allocate the info structure.
  */
-void caps_task_alloc(task_t *task)
+int caps_task_alloc(task_t *task)
 {
-	task->cap_info = (cap_info_t *) malloc(sizeof(cap_info_t), 0);
+	task->cap_info = (cap_info_t *) malloc(sizeof(cap_info_t),
+	    FRAME_ATOMIC);
+	if (!task->cap_info)
+		return ENOMEM;
 	task->cap_info->handles = ra_arena_create();
-	// FIXME: allow caps_task_alloc() to fail 
-	assert(task->cap_info->handles);
-	bool success = ra_span_add(task->cap_info->handles, 0, MAX_CAPS);
-	// FIXME: allow caps_task_alloc() to fail 
-	assert(success);
-	success = hash_table_create(&task->cap_info->caps, 0, 0, &caps_ops);
-	// FIXME: allow caps_task_alloc() to fail 
-	assert(success);
+	if (!task->cap_info->handles)
+		goto error_handles;
+	if (!ra_span_add(task->cap_info->handles, 0, MAX_CAPS))
+		goto error_span;
+	if (!hash_table_create(&task->cap_info->caps, 0, 0, &caps_ops))
+		goto error_span;
+	return EOK;
+
+error_span:
+	ra_arena_destroy(task->cap_info->handles);
+error_handles:
+	free(task->cap_info);
+	return ENOMEM;
 }
 
 /** Initialize the capability info structure

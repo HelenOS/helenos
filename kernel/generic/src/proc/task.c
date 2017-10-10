@@ -160,6 +160,10 @@ void task_done(void)
 int tsk_constructor(void *obj, unsigned int kmflags)
 {
 	task_t *task = (task_t *) obj;
+
+	int rc = caps_task_alloc(task);
+	if (rc != EOK)
+		return rc;
 	
 	atomic_set(&task->refcount, 0);
 	atomic_set(&task->lifecount, 0);
@@ -167,8 +171,6 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
 	
 	list_initialize(&task->threads);
-	
-	caps_task_alloc(task);
 	
 	ipc_answerbox_init(&task->answerbox, task);
 	
