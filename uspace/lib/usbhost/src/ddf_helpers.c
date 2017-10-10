@@ -45,7 +45,6 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
-#include <devman.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <macros.h>
@@ -691,7 +690,7 @@ void hcd_ddf_clean_hc(ddf_dev_t *device)
 		ddf_fun_destroy(hc->ctl_fun);
 }
 
-//TODO: Move this to generic ddf?
+//TODO: Cache parent session in HCD
 /** Call the parent driver with a request to enable interrupts
  *
  * @param[in] device Device asking for interrupts
@@ -699,28 +698,24 @@ void hcd_ddf_clean_hc(ddf_dev_t *device)
  */
 int hcd_ddf_enable_interrupts(ddf_dev_t *device)
 {
-	assert(device);
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(ddf_dev_get_handle(device),
-	    IPC_FLAG_BLOCKING);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
+		return EIO;
+
 	const bool enabled = hw_res_enable_interrupt(parent_sess);
-	async_hangup(parent_sess);
 
 	return enabled ? EOK : EIO;
 }
 
-//TODO: Move this to generic ddf?
+//TODO: Cache parent session in HCD
 int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
 {
-	assert(device);
-	assert(hw_res);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
+		return EIO;
 
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(ddf_dev_get_handle(device),
-	    IPC_FLAG_BLOCKING);
 	hw_res_list_parsed_init(hw_res);
 	const int ret = hw_res_get_list_parsed(parent_sess, hw_res, 0);
-	async_hangup(parent_sess);
 	if (ret != EOK)
 		hw_res_list_parsed_clean(hw_res);
 	return ret;
