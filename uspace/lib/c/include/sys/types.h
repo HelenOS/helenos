@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jakub Jermar
+ * Copyright (c) 2017 Jiri Zarevucky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,12 +32,10 @@
 /** @file
  */
 
-#ifndef LIBC_STACK_H_
-#define LIBC_STACK_H_
+#ifndef LIBC_SYS_TYPES_H_
+#define LIBC_SYS_TYPES_H_
 
-#include <sys/types.h>
-
-extern size_t stack_size_get(void);
+#include <libarch/types.h>
 
 #endif
 

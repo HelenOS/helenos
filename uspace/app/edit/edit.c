@@ -47,7 +47,7 @@
 #include <align.h>
 #include <macros.h>
 #include <clipboard.h>
-#include <libarch/types.h>
+#include <sys/types.h>
 
 #include "sheet.h"
 #include "search.h"

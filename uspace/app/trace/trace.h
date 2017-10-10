@@ -35,7 +35,7 @@
 #ifndef TRACE_H_
 #define TRACE_H_
 
-#include <libarch/types.h>
+#include <sys/types.h>
 
 /**
  * Classes of events that can be displayed. Can be or-ed together.

@@ -36,7 +36,7 @@
 #define LIBC_ELF_H_
 
 #include <stdint.h>
-#include <libarch/types.h>
+#include <sys/types.h>
 #include <abi/elf.h>
 #include <libarch/elf.h>
 

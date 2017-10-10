@@ -37,7 +37,7 @@
 #define LIBC_IO_CHARGRID_H_
 
 #include <io/charfield.h>
-#include <libarch/types.h>
+#include <sys/types.h>
 #include <stddef.h>
 
 typedef enum {

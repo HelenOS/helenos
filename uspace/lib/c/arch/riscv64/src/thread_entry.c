@@ -29,7 +29,7 @@
 /** @file
  */
 
-#include <libarch/types.h>
+#include <sys/types.h>
 #include "../../../generic/private/thread.h"
 
 void __thread_entry(void)

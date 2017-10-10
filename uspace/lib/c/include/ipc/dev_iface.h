@@ -30,7 +30,7 @@
 #define LIBC_IPC_DEV_IFACE_H_
 
 #include <malloc.h>
-#include <libarch/types.h>
+#include <sys/types.h>
 
 typedef enum {
 	HW_RES_DEV_IFACE = 0,

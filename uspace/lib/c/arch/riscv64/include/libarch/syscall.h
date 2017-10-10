@@ -38,7 +38,7 @@
 
 #include <stdint.h>
 #include <abi/syscall.h>
-#include <libarch/types.h>
+#include <sys/types.h>
 
 #define __syscall0  __syscall
 #define __syscall1  __syscall

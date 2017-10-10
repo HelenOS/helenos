@@ -35,7 +35,7 @@
 #ifndef LIBC_abs32le_FADDR_H_
 #define LIBC_abs32le_FADDR_H_
 
-#include <libarch/types.h>
+#include <sys/types.h>
 
 #define FADDR(fptr)  ((uintptr_t) (fptr))
 
