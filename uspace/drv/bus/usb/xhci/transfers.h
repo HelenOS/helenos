@@ -44,20 +44,8 @@ typedef struct {
 
 	usb_transfer_batch_t* batch;
 
-	size_t completed_size;       /* Number of successfully transferred bytes. */
-	size_t scheduled_size;       /* Number of bytes scheduled for transfer. */
-	list_t active_blocks;        /* List of data blocks transferred right now. */
+	void* hc_buffer;                    /* Virtual address of the buffer start. */
 } xhci_transfer_t;
-
-typedef struct {
-	link_t link;
-
-	uintptr_t buffer;            /* Physical address of the buffer start. */
-	size_t total_size;           /* Total size available in the block. */
-	size_t filled_size;          /* Size of the data in the block. */
-
-	xhci_transfer_t* transfer;   /* Current transfer or NULL. */
-} xhci_transfer_block_t;
 
 int xhci_init_transfers(xhci_hc_t*);
 void xhci_fini_transfers(xhci_hc_t*);
@@ -66,9 +54,3 @@ void xhci_transfer_fini(xhci_transfer_t*);
 int xhci_schedule_control_transfer(xhci_hc_t*, usb_transfer_batch_t*);
 int xhci_schedule_bulk_transfer(xhci_hc_t*, usb_transfer_batch_t*);
 int xhci_handle_transfer_event(xhci_hc_t*, xhci_trb_t*);
-
-xhci_transfer_block_t* xhci_transfer_block_alloc(size_t);
-void xhci_transfer_block_fini(xhci_transfer_block_t*);
-int xhci_dequeue_transfer_block(xhci_hc_t*, size_t, xhci_transfer_block_t**);
-int xhci_free_transfer_block(xhci_hc_t*, xhci_transfer_block_t*);
-int xhci_schedule_transfer_block(xhci_hc_t*, xhci_transfer_block_t*);

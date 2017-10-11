@@ -122,11 +122,14 @@ xhci_transfer_t* xhci_transfer_alloc(usb_transfer_batch_t* batch) {
 	memset(transfer, 0, sizeof(xhci_transfer_t));
 	transfer->batch = batch;
 	link_initialize(&transfer->link);
+	transfer->hc_buffer = malloc32(batch->buffer_size);
+
 	return transfer;
 }
 
 void xhci_transfer_fini(xhci_transfer_t* transfer) {
 	if (transfer) {
+		free32(transfer->hc_buffer);
 		free(transfer);
 	}
 }
@@ -151,6 +154,7 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 	/* For the TRB formats, see xHCI specification 6.4.1.2 */
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
+	memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
 
 	xhci_trb_t trb_setup;
 	memset(&trb_setup, 0, sizeof(xhci_trb_t));
@@ -176,7 +180,7 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	memset(&trb_data, 0, sizeof(xhci_trb_t));
 
 	if (setup->length > 0) {
-		trb_data.parameter = (uintptr_t) addr_to_phys(batch->buffer);
+		trb_data.parameter = addr_to_phys(transfer->hc_buffer);
 
 		// data size (sent for OUT, or buffer size)
 		TRB_CTRL_SET_XFER_LEN(trb_data, batch->buffer_size);
@@ -229,10 +233,11 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
 	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->endpoint];
 
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
+	memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
 
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(xhci_trb_t));
-	trb.parameter = (uintptr_t) addr_to_phys(batch->buffer);
+	trb.parameter = addr_to_phys(transfer->hc_buffer);
 
 	// data size (sent for OUT, or buffer size)
 	TRB_CTRL_SET_XFER_LEN(trb, batch->buffer_size);
@@ -289,69 +294,5 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	}
 
 	xhci_transfer_fini(transfer);
-	return EOK;
-}
-
-xhci_transfer_block_t* xhci_transfer_block_alloc(size_t buffer_size)
-{
-	assert(buffer_size);
-
-	xhci_transfer_block_t *block = malloc(sizeof(xhci_transfer_block_t));
-	block->buffer = (uintptr_t) malloc32(buffer_size);
-	block->total_size = buffer_size;
-	block->filled_size = 0;
-
-	return block;
-}
-
-void xhci_transfer_block_fini(xhci_transfer_block_t* block)
-{
-	assert(block);
-
-	free32((void*) block->buffer);
-	free(block);
-}
-
-int xhci_dequeue_transfer_block(xhci_hc_t* hc, size_t size, xhci_transfer_block_t** block)
-{
-	// TODO: obtain block from some global structure at HC
-
-	*block = xhci_transfer_block_alloc(size);
-	return EOK;
-}
-
-int xhci_free_transfer_block(xhci_hc_t* hc, xhci_transfer_block_t* block)
-{
-	assert(block);
-
-	// TODO: check if the block is not used?
-	// TODO: recycle block in some global structure at HC
-	xhci_transfer_block_fini(block);
-
-	return EOK;
-}
-
-int xhci_schedule_transfer_block(xhci_hc_t* hc, xhci_transfer_block_t* block)
-{
-	usb_transfer_batch_t* batch = block->transfer->batch;
-	uint8_t slot_id = batch->ep->hc_data.slot_id;
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->endpoint];
-
-	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(xhci_trb_t));
-	trb.parameter = block->buffer;
-
-	TRB_CTRL_SET_XFER_LEN(trb, block->filled_size);
-	// FIXME: TD size 4.11.2.4
-	TRB_CTRL_SET_TD_SIZE(trb, 1);
-
-	// we want an interrupt after this td is done
-	TRB_CTRL_SET_IOC(trb, 1);
-	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
-	xhci_trb_ring_enqueue(ring, &trb, &block->transfer->interrupt_trb_phys);
-
-	// FIXME: Check return from xhci_trb_ring_enqueue.
-
-	hc_ring_doorbell(hc, slot_id, 1);
 	return EOK;
 }
