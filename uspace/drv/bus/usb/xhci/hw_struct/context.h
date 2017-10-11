@@ -64,23 +64,23 @@ typedef struct xhci_endpoint_ctx {
 #define XHCI_EP_TYPE_INTERRUPT_IN	7
 
 #define XHCI_EP_TYPE_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[1], val, 5, 3)
+	xhci_dword_set_bits(&(ctx).data[1], val, 5, 3)
 #define XHCI_EP_MAX_PACKET_SIZE_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[1], val, 31, 16)
+	xhci_dword_set_bits(&(ctx).data[1], val, 31, 16)
 #define XHCI_EP_MAX_BURST_SIZE_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[1], val, 15, 8)
+	xhci_dword_set_bits(&(ctx).data[1], val, 15, 8)
 #define XHCI_EP_TR_DPTR_SET(ctx, val) \
-    xhci_qword_set_bits(&(ctx).data2, (val >> 4), 63, 4)
+	xhci_qword_set_bits(&(ctx).data2, (val >> 4), 63, 4)
 #define XHCI_EP_DCS_SET(ctx, val) \
-    xhci_qword_set_bits(&(ctx).data2, val, 0, 0)
+	xhci_qword_set_bits(&(ctx).data2, val, 0, 0)
 #define XHCI_EP_INTERVAL_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[0], val, 23, 16)
+	xhci_dword_set_bits(&(ctx).data[0], val, 23, 16)
 #define XHCI_EP_MAX_P_STREAMS_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[0], val, 14, 10)
+	xhci_dword_set_bits(&(ctx).data[0], val, 14, 10)
 #define XHCI_EP_MULT_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[0], val, 9, 8)
+	xhci_dword_set_bits(&(ctx).data[0], val, 9, 8)
 #define XHCI_EP_ERROR_COUNT_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[1], val, 2, 1)
+	xhci_dword_set_bits(&(ctx).data[1], val, 2, 1)
 
 #define XHCI_EP_STATE(ctx)              XHCI_DWORD_EXTRACT((ctx).data[0],  2,  0)
 #define XHCI_EP_MULT(ctx)               XHCI_DWORD_EXTRACT((ctx).data[0],  9,  8)
@@ -107,9 +107,9 @@ typedef struct xhci_slot_ctx {
 	xhci_dword_t reserved [4];
 
 #define XHCI_SLOT_ROOT_HUB_PORT_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[1], val, 23, 16)
+	xhci_dword_set_bits(&(ctx).data[1], val, 23, 16)
 #define XHCI_SLOT_CTX_ENTRIES_SET(ctx, val) \
-    xhci_dword_set_bits(&(ctx).data[0], val, 31, 27)
+	xhci_dword_set_bits(&(ctx).data[0], val, 31, 27)
 #define XHCI_SLOT_ROUTE_STRING_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], (val & 0xFFFFF), 19, 0)
 

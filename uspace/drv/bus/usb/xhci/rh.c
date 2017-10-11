@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Michal Staruch
+n * Copyright (c) 2017 Michal Staruch
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -316,8 +316,8 @@ int xhci_rh_interrupt(xhci_rh_t *rh)
  * @return Error code.
  */
 static int req_clear_hub_feature(usbvirt_device_t *device,
-    const usb_device_request_setup_packet_t *setup_packet,
-    uint8_t *data, size_t *act_size)
+	const usb_device_request_setup_packet_t *setup_packet,
+	uint8_t *data, size_t *act_size)
 {
 	/* TODO: Implement me! */
 	usb_log_debug2("Called req_clear_hub_feature().");
@@ -336,8 +336,8 @@ static int req_clear_hub_feature(usbvirt_device_t *device,
  * @return Error code.
  */
 static int req_get_port_status(usbvirt_device_t *device,
-    const usb_device_request_setup_packet_t *setup_packet,
-    uint8_t *data, size_t *act_size)
+	const usb_device_request_setup_packet_t *setup_packet,
+	uint8_t *data, size_t *act_size)
 {
 	xhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
@@ -379,8 +379,8 @@ static int req_get_port_status(usbvirt_device_t *device,
  * @return Error code.
  */
 static int req_clear_port_feature(usbvirt_device_t *device,
-    const usb_device_request_setup_packet_t *setup_packet,
-    uint8_t *data, size_t *act_size)
+	const usb_device_request_setup_packet_t *setup_packet,
+	uint8_t *data, size_t *act_size)
 {
 	xhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
@@ -436,8 +436,8 @@ static int req_clear_port_feature(usbvirt_device_t *device,
  * @return Error code.
  */
 static int req_set_port_feature(usbvirt_device_t *device,
-    const usb_device_request_setup_packet_t *setup_packet,
-    uint8_t *data, size_t *act_size)
+	const usb_device_request_setup_packet_t *setup_packet,
+	uint8_t *data, size_t *act_size)
 {
 	xhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
@@ -477,8 +477,8 @@ static int req_set_port_feature(usbvirt_device_t *device,
  * represent port status change.
  */
 static int req_status_change_handler(usbvirt_device_t *device,
-    usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
-    void *buffer, size_t buffer_size, size_t *actual_size)
+	usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
+	void *buffer, size_t buffer_size, size_t *actual_size)
 {
 	xhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
@@ -573,8 +573,8 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 
 /** Virtual XHCI root hub ops */
 static usbvirt_device_ops_t ops = {
-        .control = control_transfer_handlers,
-        .data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
+	.control = control_transfer_handlers,
+	.data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
 };
 
 

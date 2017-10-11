@@ -75,7 +75,7 @@ typedef struct {
 	/** Interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t *unfinished_interrupt_transfer;
 
-  /* Number of hub ports. */
+	/* Number of hub ports. */
 	uint8_t max_ports;
 } xhci_rh_t;
 

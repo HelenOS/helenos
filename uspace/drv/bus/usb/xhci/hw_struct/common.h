@@ -82,9 +82,9 @@ static inline void xhci_qword_set(xhci_qword_t *storage, uint64_t value)
 
 static inline void xhci_qword_set_bits(xhci_qword_t *storage, uint64_t value, unsigned hi, unsigned lo)
 {
-   const uint64_t mask = host2xhci(64, BIT_RANGE(uint64_t, hi, lo));
-   const uint64_t set = host2xhci(64, value << lo);
-   *storage = (*storage & ~mask) | set;
+	const uint64_t mask = host2xhci(64, BIT_RANGE(uint64_t, hi, lo));
+	const uint64_t set = host2xhci(64, value << lo);
+	*storage = (*storage & ~mask) | set;
 }
 
 #endif

@@ -149,74 +149,74 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	usb_device_request_setup_packet_t* setup =
 		(usb_device_request_setup_packet_t*) batch->setup_buffer;
 
- 	/* For the TRB formats, see xHCI specification 6.4.1.2 */
+	/* For the TRB formats, see xHCI specification 6.4.1.2 */
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
 
- 	xhci_trb_t trb_setup;
- 	memset(&trb_setup, 0, sizeof(xhci_trb_t));
+	xhci_trb_t trb_setup;
+	memset(&trb_setup, 0, sizeof(xhci_trb_t));
 
- 	TRB_CTRL_SET_SETUP_WVALUE(trb_setup, setup->value);
- 	TRB_CTRL_SET_SETUP_WLENGTH(trb_setup, setup->length);
- 	TRB_CTRL_SET_SETUP_WINDEX(trb_setup, setup->index);
- 	TRB_CTRL_SET_SETUP_BREQ(trb_setup, setup->request);
- 	TRB_CTRL_SET_SETUP_BMREQTYPE(trb_setup, setup->request_type);
+	TRB_CTRL_SET_SETUP_WVALUE(trb_setup, setup->value);
+	TRB_CTRL_SET_SETUP_WLENGTH(trb_setup, setup->length);
+	TRB_CTRL_SET_SETUP_WINDEX(trb_setup, setup->index);
+	TRB_CTRL_SET_SETUP_BREQ(trb_setup, setup->request);
+	TRB_CTRL_SET_SETUP_BMREQTYPE(trb_setup, setup->request_type);
 
- 	/* Size of the setup packet is always 8 */
- 	TRB_CTRL_SET_XFER_LEN(trb_setup, 8);
- 	// if we want an interrupt after this td is done, use
- 	// TRB_CTRL_SET_IOC(trb_setup, 1);
+	/* Size of the setup packet is always 8 */
+	TRB_CTRL_SET_XFER_LEN(trb_setup, 8);
+	// if we want an interrupt after this td is done, use
+	// TRB_CTRL_SET_IOC(trb_setup, 1);
 
- 	/* Immediate data */
- 	TRB_CTRL_SET_IDT(trb_setup, 1);
- 	TRB_CTRL_SET_TRB_TYPE(trb_setup, XHCI_TRB_TYPE_SETUP_STAGE);
- 	TRB_CTRL_SET_TRT(trb_setup, get_transfer_type(&trb_setup, setup->request_type, setup->length));
+	/* Immediate data */
+	TRB_CTRL_SET_IDT(trb_setup, 1);
+	TRB_CTRL_SET_TRB_TYPE(trb_setup, XHCI_TRB_TYPE_SETUP_STAGE);
+	TRB_CTRL_SET_TRT(trb_setup, get_transfer_type(&trb_setup, setup->request_type, setup->length));
 
- 	/* Data stage */
+	/* Data stage */
 	xhci_trb_t trb_data;
 	memset(&trb_data, 0, sizeof(xhci_trb_t));
 
- 	if (setup->length > 0) {
- 		trb_data.parameter = (uintptr_t) addr_to_phys(batch->buffer);
+	if (setup->length > 0) {
+		trb_data.parameter = (uintptr_t) addr_to_phys(batch->buffer);
 
- 		// data size (sent for OUT, or buffer size)
- 		TRB_CTRL_SET_XFER_LEN(trb_data, batch->buffer_size);
- 		// FIXME: TD size 4.11.2.4
- 		TRB_CTRL_SET_TD_SIZE(trb_data, 1);
+		// data size (sent for OUT, or buffer size)
+		TRB_CTRL_SET_XFER_LEN(trb_data, batch->buffer_size);
+		// FIXME: TD size 4.11.2.4
+		TRB_CTRL_SET_TD_SIZE(trb_data, 1);
 
- 		// if we want an interrupt after this td is done, use
- 		// TRB_CTRL_SET_IOC(trb_data, 1);
+		// if we want an interrupt after this td is done, use
+		// TRB_CTRL_SET_IOC(trb_data, 1);
 
- 		// Some more fields here, no idea what they mean
- 		TRB_CTRL_SET_TRB_TYPE(trb_data, XHCI_TRB_TYPE_DATA_STAGE);
+		// Some more fields here, no idea what they mean
+		TRB_CTRL_SET_TRB_TYPE(trb_data, XHCI_TRB_TYPE_DATA_STAGE);
 
 		transfer->direction = get_data_direction(&trb_setup, setup->request_type, setup->length);
- 		TRB_CTRL_SET_DIR(trb_data, transfer->direction);
- 	}
+		TRB_CTRL_SET_DIR(trb_data, transfer->direction);
+	}
 
- 	/* Status stage */
- 	xhci_trb_t trb_status;
- 	memset(&trb_status, 0, sizeof(xhci_trb_t));
+	/* Status stage */
+	xhci_trb_t trb_status;
+	memset(&trb_status, 0, sizeof(xhci_trb_t));
 
- 	// FIXME: Evaluate next TRB? 4.12.3
- 	// TRB_CTRL_SET_ENT(trb_status, 1);
+	// FIXME: Evaluate next TRB? 4.12.3
+	// TRB_CTRL_SET_ENT(trb_status, 1);
 
- 	// if we want an interrupt after this td is done, use
- 	TRB_CTRL_SET_IOC(trb_status, 1);
+	// if we want an interrupt after this td is done, use
+	TRB_CTRL_SET_IOC(trb_status, 1);
 
- 	TRB_CTRL_SET_TRB_TYPE(trb_status, XHCI_TRB_TYPE_STATUS_STAGE);
- 	TRB_CTRL_SET_DIR(trb_status, get_status_direction(&trb_setup, setup->request_type, setup->length));
+	TRB_CTRL_SET_TRB_TYPE(trb_status, XHCI_TRB_TYPE_STATUS_STAGE);
+	TRB_CTRL_SET_DIR(trb_status, get_status_direction(&trb_setup, setup->request_type, setup->length));
 
 	uintptr_t dummy = 0;
- 	xhci_trb_ring_enqueue(ring, &trb_setup, &dummy);
+	xhci_trb_ring_enqueue(ring, &trb_setup, &dummy);
 	if (setup->length > 0) {
 		xhci_trb_ring_enqueue(ring, &trb_data, &dummy);
 	}
- 	xhci_trb_ring_enqueue(ring, &trb_status, &transfer->interrupt_trb_phys);
+	xhci_trb_ring_enqueue(ring, &trb_status, &transfer->interrupt_trb_phys);
 
 	list_append(&transfer->link, &hc->transfers);
 
- 	/* For control transfers, the target is always 1. */
- 	hc_ring_doorbell(hc, slot_id, 1);
+	/* For control transfers, the target is always 1. */
+	hc_ring_doorbell(hc, slot_id, 1);
 	return EOK;
 }
 
@@ -235,20 +235,20 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
 	trb.parameter = (uintptr_t) addr_to_phys(batch->buffer);
 
 	// data size (sent for OUT, or buffer size)
- 	TRB_CTRL_SET_XFER_LEN(trb, batch->buffer_size);
- 	// FIXME: TD size 4.11.2.4
- 	TRB_CTRL_SET_TD_SIZE(trb, 1);
+	TRB_CTRL_SET_XFER_LEN(trb, batch->buffer_size);
+	// FIXME: TD size 4.11.2.4
+	TRB_CTRL_SET_TD_SIZE(trb, 1);
 
 	// we want an interrupt after this td is done
 	TRB_CTRL_SET_IOC(trb, 1);
 
 	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
 
- 	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 	list_append(&transfer->link, &hc->transfers);
 
- 	/* For control transfers, the target is always 1. */
- 	hc_ring_doorbell(hc, slot_id, 1);
+	/* For control transfers, the target is always 1. */
+	hc_ring_doorbell(hc, slot_id, 1);
 	return EOK;
 }
 

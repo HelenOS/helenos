@@ -55,7 +55,7 @@ enum {
 
 /** Connector structure linking endpoint context to the endpoint. */
 typedef struct xhci_endpoint {
-  uint32_t slot_id;
+	uint32_t slot_id;
 } xhci_endpoint_t;
 
 int endpoint_init(hcd_t *hcd, endpoint_t *ep);
@@ -63,8 +63,8 @@ void endpoint_fini(hcd_t *hcd, endpoint_t *ep);
 
 static inline xhci_endpoint_t * endpoint_get(const endpoint_t *ep)
 {
-  assert(ep);
-  return ep->hc_data.data;
+	assert(ep);
+	return ep->hc_data.data;
 }
 
 #endif

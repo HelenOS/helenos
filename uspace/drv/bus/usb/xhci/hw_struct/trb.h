@@ -169,13 +169,13 @@ static inline void xhci_trb_link_fill(xhci_trb_t *trb, uintptr_t next_phys)
 
 static inline void xhci_trb_copy(xhci_trb_t *dst, xhci_trb_t *src)
 {
-    /*
-     * As we do not know, whether our architecture is capable of copying 16
-     * bytes atomically, let's copy the fields one by one.
-     */
-    dst->parameter = src->parameter;
-    dst->status = src->status;
-    dst->control = src->control;
+	/*
+	 * As we do not know, whether our architecture is capable of copying 16
+	 * bytes atomically, let's copy the fields one by one.
+	 */
+	dst->parameter = src->parameter;
+	dst->status = src->status;
+	dst->control = src->control;
 }
 
 static inline void xhci_trb_clean(xhci_trb_t *trb)

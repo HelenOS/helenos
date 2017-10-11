@@ -44,8 +44,8 @@
 #include "rh.h"
 
 typedef struct xhci_virt_device_ctx {
-    xhci_device_ctx_t *dev_ctx;
-    xhci_trb_ring_t *trs[XHCI_EP_COUNT];
+	xhci_device_ctx_t *dev_ctx;
+	xhci_trb_ring_t *trs[XHCI_EP_COUNT];
 } xhci_virt_device_ctx_t;
 
 typedef struct xhci_hc {

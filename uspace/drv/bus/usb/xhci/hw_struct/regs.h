@@ -498,7 +498,7 @@ enum xhci_plt {
  * Protocol speed ID: section 7.2.1
  */
 typedef struct xhci_psi {
-        xhci_dword_t psi;
+	xhci_dword_t psi;
 } xhci_psi_t;
 
 #define XHCI_PSI_PSIV    psi, 32, RANGE,  3,  0
@@ -546,7 +546,7 @@ typedef union {
 } xhci_sp_name_t;
 
 static const xhci_sp_name_t xhci_name_usb = {
-    .str = "USB "
+	.str = "USB "
 };
 
 static inline xhci_extcap_t *xhci_extcap_next(const xhci_extcap_t *cur)
