@@ -37,10 +37,14 @@ ifneq ($(POSTBUILD),)
 endif
 
 build_dist: clean_dist
-	mkdir -p "$(DIST_PATH)/srv/"
-	mkdir -p "$(DIST_PATH)/lib/"
 	mkdir -p "$(DIST_PATH)/app/"
+	mkdir -p "$(DIST_PATH)/cfg/net/"
+	mkdir -p "$(DIST_PATH)/lib/"
+	mkdir -p "$(DIST_PATH)/loc/"
+	mkdir -p "$(DIST_PATH)/log/"
+	mkdir -p "$(DIST_PATH)/srv/"
 	mkdir -p "$(DIST_PATH)/test/"
+	mkdir -p "$(DIST_PATH)/tmp/"
 	for file in $(RD_SRVS) ; do \
 		cp "$$file" "$(DIST_PATH)/srv/" ; \
 	done
