@@ -26,31 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <cstdlib>
+#include <internal/abi.hpp>
 
-namespace std
+namespace __cxxabiv1
 {
 
-class type_info
-{
-	public:
-        virtual ~type_info();
+    /**
+     * No need for a body, this function is called when a virtual
+     * call of a pure virtual function cannot be made.
+     */
+    extern "C" void __cxa_pure_call()
+    { /* DUMMY BODY */ }
 
-        bool operator==(const type_info&) const noexcept;
-        bool operator!=(const type_info&) const noexcept;
+    __fundamental_type_info::~__fundamental_type_info()
+    { /* DUMMY BODY */ }
 
-        bool before(const type_info&) const noexcept;
+    __array_type_info::~__array_type_info()
+    { /* DUMMY BODY */ }
 
-        size_t hash_code() const noexcept;
+    __function_type_info::~__function_type_info()
+    { /* DUMMY BODY */ }
 
-        const char* name() const noexcept;
+    __enum_type_info::~__enum_type_info()
+    { /* DUMMY BODY */ }
 
-        type_info(const type_info&) = delete;
-        type_info& operator=(const type_info&) = delete;
+    __class_type_info::~__class_type_info()
+    { /* DUMMY BODY */ }
 
-    private:
-        const char* __name;
-};
+    __si_class_type_info::~__si_class_type_info()
+    { /* DUMMY BODY */ }
 
-    // TODO: class bad_cast, bad_typeid
+    __vmi_class_type_info::~__vmi_class_type_info()
+    { /* DUMMY BODY */ }
+
+    __pbase_type_info::~__pbase_type_info()
+    { /* DUMMY BODY */ }
+
+    __pointer_type_info::~__pointer_type_info()
+    { /* DUMMY BODY */ }
+
+    __pointer_to_member_type_info::~__pointer_to_member_type_info()
+    { /* DUMMY BODY */ }
 }

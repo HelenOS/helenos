@@ -40,6 +40,7 @@ LSONAME = libcpp.so.0
 SOURCES = \
 	src/exception.cpp \
 	src/new.cpp \
-	src/typeinfo.cpp
+	src/typeinfo.cpp \
+	src/internal/runtime.cpp
 
 include $(USPACE_PREFIX)/Makefile.common
