@@ -223,6 +223,34 @@ typedef struct {
 	uint8_t poll_interval;
 } __attribute__ ((packed)) usb_standard_endpoint_descriptor_t;
 
+/** Superspeed USB endpoint companion descriptor.
+ * See USB 3 specification, section 9.6.7.
+ */
+typedef struct {
+	/** Size of this descriptor in bytes */
+	uint8_t length;
+	/** Descriptor type (USB_DESCTYPE_SSPEED_EP_COMPANION). */
+	uint8_t descriptor_type;
+	/** The maximum number of packets the endpoint can send
+	 * or receive as part of a burst. Valid values are from 0 to 15.
+	 * The endpoint can only burst max_burst + 1 packets at a time.
+	 */
+	uint8_t max_burst;
+	/** Valid only for bulk and isochronous endpoints.
+	 * For bulk endpoints, this field contains the amount of streams
+	 * supported by the endpoint.
+	 * For isochronous endpoints, this field contains either maximum
+	 * number of packets supported within a service interval, or
+	 * whether an isochronous endpoint companion descriptor follows.
+	 */
+	uint8_t attributes;
+	/** The total number of bytes this endpoint will transfer
+	 * every service interval (SI).
+	 * This field is only valid for periodic endpoints.
+	 */
+	uint16_t bytes_per_interval;
+} __attribute__ ((packed)) usb_superspeed_endpoint_companion_descriptor_t;
+
 /** Part of standard USB HID descriptor specifying one class descriptor.
  *
  * (See HID Specification, p.22)
