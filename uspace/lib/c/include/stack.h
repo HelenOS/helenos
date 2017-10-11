@@ -35,7 +35,7 @@
 #ifndef LIBC_STACK_H_
 #define LIBC_STACK_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 
 extern size_t stack_size_get(void);
 

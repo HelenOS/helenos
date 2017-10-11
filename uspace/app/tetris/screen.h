@@ -54,7 +54,7 @@
  */
 #define putpad(s)  tputs(s, 1, put)
 
-#include <sys/types.h>
+#include <types/common.h>
 #include <io/console.h>
 #include <async.h>
 #include <stdbool.h>

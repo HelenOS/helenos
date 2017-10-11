@@ -32,7 +32,7 @@
 #ifndef LIBC_IO_CHARDEV_H_
 #define LIBC_IO_CHARDEV_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 #include <async.h>
 
 ssize_t chardev_read(async_exch_t *, void *, size_t);

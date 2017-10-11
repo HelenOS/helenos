@@ -35,7 +35,7 @@
 #include <stddef.h>
 #include <malloc.h>
 #include <io/color.h>
-#include <sys/types.h>
+#include <types/common.h>
 #include "vt100.h"
 
 #define MAX_CONTROL  20

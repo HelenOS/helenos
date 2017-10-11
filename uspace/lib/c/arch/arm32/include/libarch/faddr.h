@@ -36,7 +36,7 @@
 #ifndef LIBC_arm32_FADDR_H_
 #define LIBC_arm32_FADDR_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 
 /** Calculate absolute address of function referenced by fptr pointer.
  *

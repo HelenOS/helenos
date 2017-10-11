@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_SYS_TYPES_H_
-#define LIBC_SYS_TYPES_H_
+#ifndef LIBC_TYPES_COMMON_H_
+#define LIBC_TYPES_COMMON_H_
 
 #include <libarch/types.h>
 

@@ -36,7 +36,7 @@
 #ifndef LIBC_arm32_FIBRIL_H_
 #define LIBC_arm32_FIBRIL_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 #include <align.h>
 #include <thread.h>
 #include <libarch/fibril_context.h>

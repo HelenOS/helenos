@@ -36,7 +36,7 @@
 #define LIBC_IPC_EVENT_H_
 
 #include <abi/ipc/event.h>
-#include <sys/types.h>
+#include <types/common.h>
 
 extern int ipc_event_subscribe(event_type_t, sysarg_t);
 extern int ipc_event_task_subscribe(event_task_type_t, sysarg_t);

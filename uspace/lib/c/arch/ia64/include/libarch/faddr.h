@@ -35,7 +35,7 @@
 #ifndef LIBC_ia64_FADDR_H_
 #define LIBC_ia64_FADDR_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 
 /**
  *

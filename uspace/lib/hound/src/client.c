@@ -40,7 +40,7 @@
 #include <str.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/types.h>
+#include <types/common.h>
 #include <task.h>
 
 #include "protocol.h"

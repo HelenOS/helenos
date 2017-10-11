@@ -37,7 +37,7 @@
 #include <perm.h>
 #include <task.h>
 #include <libc.h>
-#include <sys/types.h>
+#include <types/common.h>
 
 /** Grant permissions to a task.
  *

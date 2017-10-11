@@ -35,7 +35,7 @@
 #ifndef LIBC_amd64_FADDR_H_
 #define LIBC_amd64_FADDR_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 
 #define FADDR(fptr)		((uintptr_t) (fptr))
 

@@ -35,7 +35,7 @@
 #ifndef LIBC_INET_DHCP_H_
 #define LIBC_INET_DHCP_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 
 extern int dhcp_init(void);
 extern int dhcp_link_add(sysarg_t);

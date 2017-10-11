@@ -35,7 +35,7 @@
 #ifndef LIBC_AS_H_
 #define LIBC_AS_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <abi/mm/as.h>

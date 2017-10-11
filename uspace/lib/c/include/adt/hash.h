@@ -35,7 +35,7 @@
 #define KERN_HASH_H_
 
 #include <stdint.h>
-#include <sys/types.h>
+#include <types/common.h>
 
 /** Produces a uniform hash affecting all output bits from the skewed input. */
 static inline uint32_t hash_mix32(uint32_t hash)

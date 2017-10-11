@@ -36,7 +36,7 @@
 #ifndef LIBC_IO_POS_EVENT_H_
 #define LIBC_IO_POS_EVENT_H_
 
-#include <sys/types.h>
+#include <types/common.h>
 
 typedef enum {
 	POS_UPDATE,
