@@ -291,3 +291,67 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	xhci_transfer_fini(transfer);
 	return EOK;
 }
+
+xhci_transfer_block_t* xhci_transfer_block_alloc(size_t buffer_size)
+{
+	assert(buffer_size);
+
+	xhci_transfer_block_t *block = malloc(sizeof(xhci_transfer_block_t));
+	block->buffer = (uintptr_t) malloc32(buffer_size);
+	block->total_size = buffer_size;
+	block->filled_size = 0;
+
+	return block;
+}
+
+void xhci_transfer_block_fini(xhci_transfer_block_t* block)
+{
+	assert(block);
+
+	free32((void*) block->buffer);
+	free(block);
+}
+
+int xhci_dequeue_transfer_block(xhci_hc_t* hc, size_t size, xhci_transfer_block_t** block)
+{
+	// TODO: obtain block from some global structure at HC
+
+	*block = xhci_transfer_block_alloc(size);
+	return EOK;
+}
+
+int xhci_free_transfer_block(xhci_hc_t* hc, xhci_transfer_block_t* block)
+{
+	assert(block);
+
+	// TODO: check if the block is not used?
+	// TODO: recycle block in some global structure at HC
+	xhci_transfer_block_fini(block);
+
+	return EOK;
+}
+
+int xhci_schedule_transfer_block(xhci_hc_t* hc, xhci_transfer_block_t* block)
+{
+	usb_transfer_batch_t* batch = block->transfer->batch;
+	uint8_t slot_id = batch->ep->hc_data.slot_id;
+	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->endpoint];
+
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(xhci_trb_t));
+	trb.parameter = block->buffer;
+
+	TRB_CTRL_SET_XFER_LEN(trb, block->filled_size);
+	// FIXME: TD size 4.11.2.4
+	TRB_CTRL_SET_TD_SIZE(trb, 1);
+
+	// we want an interrupt after this td is done
+	TRB_CTRL_SET_IOC(trb, 1);
+	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
+	xhci_trb_ring_enqueue(ring, &trb, &block->transfer->interrupt_trb_phys);
+
+	// FIXME: Check return from xhci_trb_ring_enqueue.
+
+	hc_ring_doorbell(hc, slot_id, 1);
+	return EOK;
+}
