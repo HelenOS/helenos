@@ -468,13 +468,8 @@ static void vs_set_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
 
 static void vs_update_damaged_region(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
 {
-#ifdef __32_BITS__
 	sysarg_t x_offset = (IPC_GET_ARG5(*icall) >> 16);
 	sysarg_t y_offset = (IPC_GET_ARG5(*icall) & 0x0000ffff);
-#else
-	sysarg_t x_offset = (IPC_GET_ARG5(*icall) >> 32);
-	sysarg_t y_offset = (IPC_GET_ARG5(*icall) & 0xffffffff);
-#endif
 	
 	int rc = vs->ops.handle_damage(vs,
 	    IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall),
