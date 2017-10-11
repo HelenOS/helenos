@@ -26,6 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cstdint>
+
 namespace __cxxabiv1
 {
     /**
@@ -58,6 +60,15 @@ namespace __cxxabiv1
 
     /* Opaque structure. */
     struct _Unwind_Context;
+
+    using _Unwind_Action = int;
+    namespace
+    {
+        const _Unwind_Action _UA_SEARCH_PHASE  = 1;
+        const _Unwind_Action _UA_CLEANUP_PHASE = 2;
+        const _Unwind_Action _UA_HANDLER_FRAME = 4;
+        const _Unwind_Action _UA_FORCE_HANDLER = 8;
+    }
 
     /**
      * TODO: Explain parameter semantics.
