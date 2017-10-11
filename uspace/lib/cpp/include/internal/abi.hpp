@@ -143,6 +143,8 @@ namespace __cxxabiv1
             const __class_type_info* __context;
     };
 
+    extern "C" void* __dynamic_cast(const void*, const __class_type_info*,
+                                    const __class_type_info*, std::ptrdiff_t);
 }
 
 namespace abi = __cxxabiv1;

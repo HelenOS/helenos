@@ -67,4 +67,11 @@ namespace __cxxabiv1
 
     __pointer_to_member_type_info::~__pointer_to_member_type_info()
     { /* DUMMY BODY */ }
+
+    extern "C" void* __dynamic_cast(const void* sub, const __class_type_info* src,
+                                    const __class_type_info* dst, std::ptrdiff_t offset)
+    {
+        // TODO: implement
+        return nullptr;
+    }
 }
