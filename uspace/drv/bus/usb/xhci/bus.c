@@ -74,24 +74,83 @@ static void destroy_endpoint(endpoint_t *ep)
 	free(xhci_ep);
 }
 
-/** TODO: Implement missing ops. */
+static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
+{
+	// TODO: Implement me!
+	return ENOTSUP;
+}
+
+static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
+{
+	// TODO: Implement me!
+	return ENOTSUP;
+}
+
+static endpoint_t* find_endpoint(bus_t *bus_base, usb_target_t target, usb_direction_t direction)
+{
+	// TODO: Implement me!
+	return NULL;
+}
+
+static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
+{
+	// TODO: Implement me!
+	return ENOTSUP;
+}
+
+static int get_speed(bus_t *bus_base, usb_address_t address, usb_speed_t *speed)
+{
+	// TODO: Implement me!
+	return ENOTSUP;
+}
+
+static int release_address(bus_t *bus_base, usb_address_t address)
+{
+	// TODO: Implement me!
+	return ENOTSUP;
+}
+
+static int reset_toggle(bus_t *bus_base, usb_target_t target, bool all)
+{
+	// TODO: Implement me!
+	return ENOTSUP;
+}
+
+static size_t count_bw(endpoint_t *ep, size_t size)
+{
+	// TODO: Implement me!
+	return 0;
+}
+
+/* Endpoint ops, optional (have generic fallback) */
+static int endpoint_get_toggle(endpoint_t *ep)
+{
+	// TODO: Implement me!
+	return ENOTSUP;
+}
+
+static void endpoint_set_toggle(endpoint_t *ep, unsigned toggle)
+{
+	// TODO: Implement me!
+}
+
 static const bus_ops_t xhci_bus_ops = {
 	.create_endpoint = create_endpoint,
 	.destroy_endpoint = destroy_endpoint,
 
-	.register_endpoint = NULL,
-	.release_endpoint = NULL,
-	.find_endpoint = NULL,
+	.register_endpoint = register_endpoint,
+	.release_endpoint = release_endpoint,
+	.find_endpoint = find_endpoint,
 
-	.request_address = NULL,
-	.get_speed = NULL,
-	.release_address = NULL,
-	.reset_toggle = NULL,
+	.request_address = request_address,
+	.get_speed = get_speed,
+	.release_address = release_address,
+	.reset_toggle = reset_toggle,
 
-	.count_bw = NULL,
+	.count_bw = count_bw,
 
-	.endpoint_get_toggle = NULL,
-	.endpoint_set_toggle = NULL,
+	.endpoint_get_toggle = endpoint_get_toggle,
+	.endpoint_set_toggle = endpoint_set_toggle,
 };
 
 int xhci_bus_init(xhci_bus_t *bus, hcd_t *hcd)
