@@ -44,6 +44,7 @@
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usb/host/ddf_helpers.h>
+#include <usb/host/bandwidth.h>
 
 #include "hc.h"
 
@@ -56,7 +57,6 @@ static int disable_legacy(hcd_t *, ddf_dev_t *);
 
 static const ddf_hc_driver_t uhci_hc_driver = {
         .claim = disable_legacy,
-        .hc_speed = USB_SPEED_FULL,
         .irq_code_gen = uhci_hc_gen_irq_code,
         .init = uhci_driver_init,
         .start = uhci_driver_start,
@@ -71,6 +71,8 @@ static const ddf_hc_driver_t uhci_hc_driver = {
 
 static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 {
+	int err;
+
 	assert(hcd);
 	assert(hcd_get_driver_data(hcd) == NULL);
 
@@ -78,13 +80,19 @@ static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 	if (!instance)
 		return ENOMEM;
 
-	const int ret = hc_init(instance, res);
-	if (ret == EOK) {
-		hcd_set_implementation(hcd, instance, &uhci_hc_driver.ops);
-	} else {
-		free(instance);
-	}
-	return ret;
+	if ((err = hc_init(instance, res)) != EOK)
+		goto err;
+
+	if ((err = usb2_bus_init(&instance->bus, hcd, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11)))
+		goto err;
+
+	hcd_set_implementation(hcd, instance, &uhci_hc_driver.ops, &instance->bus.base);
+
+	return EOK;
+
+err:
+	free(instance);
+	return err;
 }
 
 static int uhci_driver_start(hcd_t *hcd, bool interrupts)
@@ -104,7 +112,7 @@ static void uhci_driver_fini(hcd_t *hcd)
 	if (hc)
 		hc_fini(hc);
 
-	hcd_set_implementation(hcd, NULL, NULL);
+	hcd_set_implementation(hcd, NULL, NULL, NULL);
 	free(hc);
 }
 

@@ -42,6 +42,7 @@
 #include <stdbool.h>
 #include <ddi.h>
 #include <usb/host/hcd.h>
+#include <usb/host/usb2_bus.h>
 #include <usb/host/usb_transfer_batch.h>
 
 #include "uhci_rh.h"
@@ -99,6 +100,7 @@ typedef struct uhci_regs {
 /** Main UHCI driver structure */
 typedef struct hc {
 	uhci_rh_t rh;
+	usb2_bus_t bus;
 	/** Addresses of I/O registers */
 	uhci_regs_t *registers;
 

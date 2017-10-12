@@ -441,7 +441,7 @@ int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	assert(instance);
 	assert(batch);
 
-	if (batch->ep->address == uhci_rh_get_address(&instance->rh))
+	if (batch->ep->target.address == uhci_rh_get_address(&instance->rh))
 		return uhci_rh_schedule(&instance->rh, batch);
 
 	uhci_transfer_batch_t *uhci_batch = uhci_transfer_batch_get(batch);

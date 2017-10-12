@@ -48,9 +48,11 @@
 //TODO: Implement
 #define BANDWIDTH_AVAILABLE_USB20  1
 
-extern size_t bandwidth_count_usb11(usb_speed_t, usb_transfer_type_t, size_t, size_t);
+typedef struct endpoint endpoint_t;
 
-extern size_t bandwidth_count_usb20(usb_speed_t, usb_transfer_type_t, size_t, size_t);
+extern size_t bandwidth_count_usb11(endpoint_t *, size_t);
+
+extern size_t bandwidth_count_usb20(endpoint_t *, size_t);
 
 #endif
 /**

@@ -49,7 +49,7 @@ typedef size_t (*count_bw_func_t)(endpoint_t *, size_t);
 
 /** Endpoint management structure */
 typedef struct usb2_bus {
-	bus_t bus;			/**< Inheritance - keep this first */
+	bus_t base;			/**< Inheritance - keep this first */
 
 	/* Device bookkeeping */
 	struct {

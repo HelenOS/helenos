@@ -102,10 +102,7 @@ int uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 	assert(instance);
 	assert(batch);
 
-	const usb_target_t target = {{
-		.address = batch->ep->address,
-		.endpoint = batch->ep->endpoint
-	}};
+	const usb_target_t target = batch->ep->target;
 	do {
 		batch->error = virthub_base_request(&instance->base, target,
 		    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,

@@ -290,10 +290,10 @@ int usb2_bus_init(usb2_bus_t *bus, hcd_t *hcd, size_t available_bandwidth, count
 {
 	assert(bus);
 
-	bus_init(&bus->bus, hcd);
+	bus_init(&bus->base, hcd);
 
-	bus->bus.ops = usb2_bus_ops;
-	bus->bus.ops.count_bw = count_bw;
+	bus->base.ops = usb2_bus_ops;
+	bus->base.ops.count_bw = count_bw;
 
 	bus->free_bw = available_bandwidth;
 	bus->last_address = 0;

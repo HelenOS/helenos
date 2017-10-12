@@ -227,9 +227,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir)
 	const bool low_speed =
 	    uhci_batch->usb_batch->ep->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->usb_batch->ep->max_packet_size;
-	const usb_target_t target = {{
-	    uhci_batch->usb_batch->ep->address,
-	    uhci_batch->usb_batch->ep->endpoint }};
+	const usb_target_t target = uhci_batch->usb_batch->ep->target;
 
 	int toggle = endpoint_toggle_get(uhci_batch->usb_batch->ep);
 	assert(toggle == 0 || toggle == 1);
@@ -292,9 +290,7 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir
 	const bool low_speed =
 	    uhci_batch->usb_batch->ep->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->usb_batch->ep->max_packet_size;
-	const usb_target_t target = {{
-	    uhci_batch->usb_batch->ep->address,
-	    uhci_batch->usb_batch->ep->endpoint }};
+	const usb_target_t target = uhci_batch->usb_batch->ep->target;
 
 	/* setup stage */
 	td_init(

@@ -34,6 +34,7 @@
  */
 
 #include <usb/host/bandwidth.h>
+#include <usb/host/endpoint.h>
 
 #include <assert.h>
 #include <stdlib.h>
@@ -45,21 +46,26 @@
  * @param size Number of byte to transfer.
  * @param max_packet_size Maximum bytes in one packet.
  */
-size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
-    size_t size, size_t max_packet_size)
+size_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
 {
+	assert(ep);
+
+	const usb_transfer_type_t type = ep->transfer_type;
+
 	/* We care about bandwidth only for interrupt and isochronous. */
 	if ((type != USB_TRANSFER_INTERRUPT)
 	    && (type != USB_TRANSFER_ISOCHRONOUS)) {
 		return 0;
 	}
 
+	const size_t max_packet_size = ep->max_packet_size;
+
 	const unsigned packet_count =
 	    (size + max_packet_size - 1) / max_packet_size;
 	/* TODO: It may be that ISO and INT transfers use only one packet per
 	 * transaction, but I did not find text in USB spec to confirm this */
 	/* NOTE: All data packets will be considered to be max_packet_size */
-	switch (speed)
+	switch (ep->speed)
 	{
 	case USB_SPEED_LOW:
 		assert(type == USB_TRANSFER_INTERRUPT);
@@ -93,9 +99,12 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
  * @param size Number of byte to transfer.
  * @param max_packet_size Maximum bytes in one packet.
  */
-size_t bandwidth_count_usb20(usb_speed_t speed, usb_transfer_type_t type,
-    size_t size, size_t max_packet_size)
+size_t bandwidth_count_usb20(endpoint_t *ep, size_t size)
 {
+	assert(ep);
+
+	const usb_transfer_type_t type = ep->transfer_type;
+
 	/* We care about bandwidth only for interrupt and isochronous. */
 	if ((type != USB_TRANSFER_INTERRUPT)
 	    && (type != USB_TRANSFER_ISOCHRONOUS)) {

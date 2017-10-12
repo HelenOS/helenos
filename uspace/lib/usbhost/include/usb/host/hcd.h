@@ -57,10 +57,6 @@ typedef int (*status_hook_t)(hcd_t *, uint32_t *);
 typedef struct {
 	/** Transfer scheduling, implement in device driver. */
 	schedule_hook_t schedule;
-	/** Hook called upon registering new endpoint. */
-	ep_add_hook_t ep_add_hook;
-	/** Hook called upon removing of an endpoint. */
-	ep_remove_hook_t ep_remove_hook;
 	/** Hook to be called on device interrupt, passes ARG1 */
 	interrupt_hook_t irq_hook;
 	/** Periodic polling hook */
