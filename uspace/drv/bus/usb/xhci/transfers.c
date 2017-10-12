@@ -257,7 +257,7 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
 	list_append(&transfer->link, &hc->transfers);
 
 	// TODO: target = endpoint | stream_id << 16
-	hc_ring_doorbell(hc, slot_id, xhci_ep->base->target->endpoint);
+	hc_ring_doorbell(hc, slot_id, xhci_ep->base.target.endpoint);
 	return EOK;
 }
 
