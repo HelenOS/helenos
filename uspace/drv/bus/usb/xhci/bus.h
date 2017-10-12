@@ -37,6 +37,7 @@
 #ifndef XHCI_BUS_H
 #define XHCI_BUS_H
 
+#include <adt/hash_table.h>
 #include <usb/usb.h>
 #include <usb/host/bus.h>
 
@@ -49,9 +50,12 @@ typedef struct xhci_bus {
 	 * larger address space, thus simple array of lists for all available
 	 * addresses can be just too big.
 	 */
+
+ 	hash_table_t endpoints;
 } xhci_bus_t;
 
-int xhci_bus_init(xhci_bus_t *, hcd_t *hcd);
+int xhci_bus_init(xhci_bus_t *, hcd_t *);
+void xhci_bus_fini(xhci_bus_t *);
 
 #endif
 /**

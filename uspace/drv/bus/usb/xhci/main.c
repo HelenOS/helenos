@@ -149,6 +149,10 @@ static void hc_driver_fini(hcd_t *hcd)
 	assert(hc);
 
 	hc_fini(hc);
+
+	// FIXME: Probably move init/fini of XHCI bus into HC.
+	xhci_bus_fini(&hc->bus);
+
 	free(hc);
 }
 

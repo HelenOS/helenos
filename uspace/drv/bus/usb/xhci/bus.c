@@ -32,6 +32,8 @@
  * HC Endpoint management.
  */
 
+#include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <usb/host/endpoint.h>
 #include <usb/debug.h>
 
@@ -42,6 +44,14 @@
 
 #include "bus.h"
 #include "endpoint.h"
+
+/** Element of the hash table. */
+typedef struct {
+	ht_link_t link;
+
+	/** Endpoint */
+	endpoint_t *endpoint;
+} hashed_endpoint_t;
 
 /** Ops receive generic bus_t pointer. */
 static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
@@ -74,22 +84,59 @@ static void destroy_endpoint(endpoint_t *ep)
 	free(xhci_ep);
 }
 
+static int endpoint_find_by_target(xhci_bus_t *bus, usb_target_t target, hashed_endpoint_t **ep)
+{
+	ht_link_t *link = hash_table_find(&bus->endpoints, &target.packed);
+	if (link == NULL)
+		return ENOENT;
+
+	*ep = hash_table_get_inst(link, hashed_endpoint_t, link);
+	return EOK;
+}
+
 static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
 {
-	// TODO: Implement me!
-	return ENOTSUP;
+	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	assert(bus);
+
+	hashed_endpoint_t *hashed_ep =
+	    (hashed_endpoint_t *) malloc(sizeof(hashed_endpoint_t));
+	if (!hashed_ep)
+		return ENOMEM;
+
+	hashed_ep->endpoint = ep;
+	hash_table_insert(&bus->endpoints, &hashed_ep->link);
+
+	return EOK;
 }
 
 static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
 {
-	// TODO: Implement me!
-	return ENOTSUP;
+	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	assert(bus);
+
+	hashed_endpoint_t *hashed_ep;
+	int res = endpoint_find_by_target(bus, ep->target, &hashed_ep);
+	if (res != EOK)
+		return res;
+
+	hash_table_remove(&bus->endpoints, &ep->target.packed);
+	free(hashed_ep);
+
+	return EOK;
 }
 
 static endpoint_t* find_endpoint(bus_t *bus_base, usb_target_t target, usb_direction_t direction)
 {
-	// TODO: Implement me!
-	return NULL;
+	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	assert(bus);
+
+	hashed_endpoint_t *hashed_ep;
+	int res = endpoint_find_by_target(bus, target, &hashed_ep);
+	if (res != EOK)
+		return NULL;
+
+	return hashed_ep->endpoint;
 }
 
 static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
@@ -153,14 +200,50 @@ static const bus_ops_t xhci_bus_ops = {
 	.endpoint_set_toggle = endpoint_set_toggle,
 };
 
+static size_t endpoint_ht_hash(const ht_link_t *item)
+{
+	hashed_endpoint_t *ep = hash_table_get_inst(item, hashed_endpoint_t, link);
+	return (size_t) ep->endpoint->target.packed;
+}
+
+static size_t endpoint_ht_key_hash(void *key)
+{
+	return (size_t) hash_mix32(*(uint32_t *)key);
+}
+
+static bool endpoint_ht_key_equal(void *key, const ht_link_t *item)
+{
+	hashed_endpoint_t *ep = hash_table_get_inst(item, hashed_endpoint_t, link);
+	return ep->endpoint->target.packed == *(uint32_t *) key;
+}
+
+/** Operations for the endpoint hash table. */
+static hash_table_ops_t endpoint_ht_ops = {
+	.hash = endpoint_ht_hash,
+	.key_hash = endpoint_ht_key_hash,
+	.key_equal = endpoint_ht_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL
+};
+
 int xhci_bus_init(xhci_bus_t *bus, hcd_t *hcd)
 {
 	assert(bus);
 
 	bus_init(&bus->base, hcd);
 
+	if (!hash_table_create(&bus->endpoints, 0, 0, &endpoint_ht_ops)) {
+		// FIXME: Dealloc base!
+		return ENOMEM;
+	}
+
 	bus->base.ops = xhci_bus_ops;
 	return EOK;
+}
+
+void xhci_bus_fini(xhci_bus_t *bus)
+{
+	hash_table_destroy(&bus->endpoints);
 }
 /**
  * @}
