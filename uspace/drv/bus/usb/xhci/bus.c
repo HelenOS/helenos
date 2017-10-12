@@ -50,7 +50,7 @@ typedef struct {
 	ht_link_t link;
 
 	/** Endpoint */
-	endpoint_t *endpoint;
+	xhci_endpoint_t *endpoint;
 } hashed_endpoint_t;
 
 /** Ops receive generic bus_t pointer. */
@@ -104,7 +104,7 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
 	if (!hashed_ep)
 		return ENOMEM;
 
-	hashed_ep->endpoint = ep;
+	hashed_ep->endpoint = (xhci_endpoint_t *) ep;
 	hash_table_insert(&bus->endpoints, &hashed_ep->link);
 
 	return EOK;
@@ -136,7 +136,7 @@ static endpoint_t* find_endpoint(bus_t *bus_base, usb_target_t target, usb_direc
 	if (res != EOK)
 		return NULL;
 
-	return hashed_ep->endpoint;
+	return (endpoint_t *) hashed_ep->endpoint;
 }
 
 static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
@@ -203,7 +203,7 @@ static const bus_ops_t xhci_bus_ops = {
 static size_t endpoint_ht_hash(const ht_link_t *item)
 {
 	hashed_endpoint_t *ep = hash_table_get_inst(item, hashed_endpoint_t, link);
-	return (size_t) ep->endpoint->target.packed;
+	return (size_t) hash_mix32(ep->endpoint->base.target.packed);
 }
 
 static size_t endpoint_ht_key_hash(void *key)
@@ -214,7 +214,7 @@ static size_t endpoint_ht_key_hash(void *key)
 static bool endpoint_ht_key_equal(void *key, const ht_link_t *item)
 {
 	hashed_endpoint_t *ep = hash_table_get_inst(item, hashed_endpoint_t, link);
-	return ep->endpoint->target.packed == *(uint32_t *) key;
+	return ep->endpoint->base.target.packed == *(uint32_t *) key;
 }
 
 /** Operations for the endpoint hash table. */
