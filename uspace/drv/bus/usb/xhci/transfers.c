@@ -256,8 +256,8 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
 	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 	list_append(&transfer->link, &hc->transfers);
 
-	/* For control transfers, the target is always 1. */
-	hc_ring_doorbell(hc, slot_id, 1);
+	// TODO: target = endpoint | stream_id << 16
+	hc_ring_doorbell(hc, slot_id, xhci_ep->base->target->endpoint);
 	return EOK;
 }
 
