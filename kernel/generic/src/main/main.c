@@ -91,6 +91,7 @@
 #include <sysinfo/sysinfo.h>
 #include <sysinfo/stats.h>
 #include <lib/ra.h>
+#include <cap/cap.h>
 
 /* Ensure [u]int*_t types are of correct size.
  *
@@ -276,6 +277,7 @@ void main_bsp_separated_stack(void)
 	clock_counter_init();
 	timeout_init();
 	scheduler_init();
+	caps_init();
 	task_init();
 	thread_init();
 	futex_init();

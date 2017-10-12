@@ -82,6 +82,8 @@
 
 #define MAX_CAPS	INT_MAX
 
+static slab_cache_t *cap_slab;
+
 static kobject_t *cap_unpublish_locked(task_t *, cap_handle_t, kobject_type_t);
 
 static size_t caps_hash(const ht_link_t *item)
@@ -108,6 +110,12 @@ static hash_table_ops_t caps_ops = {
 	.key_hash = caps_key_hash,
 	.key_equal = caps_key_equal
 };
+
+void caps_init(void)
+{
+	cap_slab = slab_cache_create("cap_t", sizeof(cap_t), 0, NULL,
+	    NULL, 0);
+}
 
 /** Allocate the capability info structure
  *
@@ -266,14 +274,14 @@ cap_handle_t cap_alloc(task_t *task)
 	 * If we don't have a capability by now, try to allocate a new one.
 	 */
 	if (!cap) {
-		cap = malloc(sizeof(cap_t), 0);
+		cap = slab_alloc(cap_slab, FRAME_ATOMIC);
 		if (!cap) {
 			mutex_unlock(&task->cap_info->lock);
 			return ENOMEM;
 		}
 		uintptr_t hbase;
 		if (!ra_alloc(task->cap_info->handles, 1, 1, &hbase)) {
-			free(cap);
+			slab_free(cap_slab, cap);
 			mutex_unlock(&task->cap_info->lock);
 			return ENOMEM;
 		}
@@ -369,7 +377,7 @@ void cap_free(task_t *task, cap_handle_t handle)
 
 	hash_table_remove_item(&task->cap_info->caps, &cap->caps_link);
 	ra_free(task->cap_info->handles, handle, 1);
-	free(cap);
+	slab_free(cap_slab, cap);
 	mutex_unlock(&task->cap_info->lock);
 }
 
