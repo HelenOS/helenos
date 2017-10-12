@@ -104,7 +104,7 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
 	if (!hashed_ep)
 		return ENOMEM;
 
-	hashed_ep->endpoint = (xhci_endpoint_t *) ep;
+	hashed_ep->endpoint = xhci_endpoint_get(ep);
 	hash_table_insert(&bus->endpoints, &hashed_ep->link);
 
 	return EOK;
@@ -136,7 +136,7 @@ static endpoint_t* find_endpoint(bus_t *bus_base, usb_target_t target, usb_direc
 	if (res != EOK)
 		return NULL;
 
-	return (endpoint_t *) hashed_ep->endpoint;
+	return &hashed_ep->endpoint->base;
 }
 
 static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
