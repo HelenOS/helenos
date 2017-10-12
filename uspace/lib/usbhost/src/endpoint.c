@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Ondrej Hlavaty <aearsis@eideo.cz>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,159 +35,108 @@
  */
 
 #include <usb/host/endpoint.h>
+#include <usb/host/bus.h>
 
 #include <assert.h>
-#include <stdlib.h>
 #include <atomic.h>
+#include <mem.h>
+#include <stdlib.h>
 
-/** Allocate ad initialize endpoint_t structure.
- * @param address USB address.
- * @param endpoint USB endpoint number.
- * @param direction Communication direction.
- * @param type USB transfer type.
- * @param speed Communication speed.
- * @param max_packet_size Maximum size of data packets.
- * @param bw Required bandwidth.
- * @return Pointer to initialized endpoint_t structure, NULL on failure.
+/** Initialize provided endpoint structure.
  */
-endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
-    usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
-    size_t max_packet_size, unsigned packets, size_t bw,
-    usb_address_t tt_address, unsigned tt_p)
+void endpoint_init(endpoint_t *ep, bus_t *bus)
 {
-	endpoint_t *instance = malloc(sizeof(endpoint_t));
-	if (instance) {
-		atomic_set(&instance->refcnt, 0);
-		instance->address = address;
-		instance->endpoint = endpoint;
-		instance->direction = direction;
-		instance->transfer_type = type;
-		instance->speed = speed;
-		instance->max_packet_size = max_packet_size;
-		instance->packets = packets;
-		instance->bandwidth = bw;
-		instance->toggle = 0;
-		instance->active = false;
-		instance->tt.address = tt_address;
-		instance->tt.port = tt_p;
-		instance->hc_data.data = NULL;
-		instance->hc_data.toggle_get = NULL;
-		instance->hc_data.toggle_set = NULL;
-		link_initialize(&instance->link);
-		fibril_mutex_initialize(&instance->guard);
-		fibril_condvar_initialize(&instance->avail);
+	memset(ep, 0, sizeof(endpoint_t));
+
+	ep->bus = bus;
+	atomic_set(&ep->refcnt, 0);
+	link_initialize(&ep->link);
+	fibril_mutex_initialize(&ep->guard);
+	fibril_condvar_initialize(&ep->avail);
+}
+
+void endpoint_add_ref(endpoint_t *ep)
+{
+	atomic_inc(&ep->refcnt);
+}
+
+void endpoint_del_ref(endpoint_t *ep)
+{
+	if (atomic_predec(&ep->refcnt) == 0) {
+		if (ep->bus->ops.destroy_endpoint) {
+			ep->bus->ops.destroy_endpoint(ep);
+		}
+		else {
+			assert(!ep->active);
+
+			/* Assume mostly the eps will be allocated by malloc. */
+			free(ep);
+		}
 	}
-	return instance;
-}
-
-/** Properly dispose of endpoint_t structure.
- * @param instance endpoint_t structure.
- */
-void endpoint_destroy(endpoint_t *instance)
-{
-	assert(instance);
-	assert(!instance->active);
-	assert(instance->hc_data.data == NULL);
-	free(instance);
-}
-
-void endpoint_add_ref(endpoint_t *instance)
-{
-	atomic_inc(&instance->refcnt);
-}
-
-void endpoint_del_ref(endpoint_t *instance)
-{
-	if (atomic_predec(&instance->refcnt) == 0)
-		endpoint_destroy(instance);
-}
-
-/** Set device specific data and hooks.
- * @param instance endpoint_t structure.
- * @param data device specific data.
- * @param toggle_get Hook to call when retrieving value of toggle bit.
- * @param toggle_set Hook to call when setting the value of toggle bit.
- */
-void endpoint_set_hc_data(endpoint_t *instance,
-    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int))
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	instance->hc_data.data = data;
-	instance->hc_data.toggle_get = toggle_get;
-	instance->hc_data.toggle_set = toggle_set;
-	fibril_mutex_unlock(&instance->guard);
-}
-
-/** Clear device specific data and hooks.
- * @param instance endpoint_t structure.
- * @note This function does not free memory pointed to by data pointer.
- */
-void endpoint_clear_hc_data(endpoint_t *instance)
-{
-	assert(instance);
-	endpoint_set_hc_data(instance, NULL, NULL, NULL);
 }
 
 /** Mark the endpoint as active and block access for further fibrils.
- * @param instance endpoint_t structure.
+ * @param ep endpoint_t structure.
  */
-void endpoint_use(endpoint_t *instance)
+void endpoint_use(endpoint_t *ep)
 {
-	assert(instance);
+	assert(ep);
 	/* Add reference for active endpoint. */
-	endpoint_add_ref(instance);
-	fibril_mutex_lock(&instance->guard);
-	while (instance->active)
-		fibril_condvar_wait(&instance->avail, &instance->guard);
-	instance->active = true;
-	fibril_mutex_unlock(&instance->guard);
+	endpoint_add_ref(ep);
+	fibril_mutex_lock(&ep->guard);
+	while (ep->active)
+		fibril_condvar_wait(&ep->avail, &ep->guard);
+	ep->active = true;
+	fibril_mutex_unlock(&ep->guard);
 }
 
 /** Mark the endpoint as inactive and allow access for further fibrils.
- * @param instance endpoint_t structure.
+ * @param ep endpoint_t structure.
  */
-void endpoint_release(endpoint_t *instance)
+void endpoint_release(endpoint_t *ep)
 {
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	instance->active = false;
-	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_signal(&instance->avail);
+	assert(ep);
+	fibril_mutex_lock(&ep->guard);
+	ep->active = false;
+	fibril_mutex_unlock(&ep->guard);
+	fibril_condvar_signal(&ep->avail);
 	/* Drop reference for active endpoint. */
-	endpoint_del_ref(instance);
+	endpoint_del_ref(ep);
 }
 
-/** Get the value of toggle bit.
- * @param instance endpoint_t structure.
- * @note Will use provided hook.
+/** Get the value of toggle bit. Either uses the toggle_get op, or just returns
+ * the value of the toggle.
+ * @param ep endpoint_t structure.
  */
-int endpoint_toggle_get(endpoint_t *instance)
+int endpoint_toggle_get(endpoint_t *ep)
 {
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	if (instance->hc_data.toggle_get)
-		instance->toggle =
-		    instance->hc_data.toggle_get(instance->hc_data.data);
-	const int ret = instance->toggle;
-	fibril_mutex_unlock(&instance->guard);
+	assert(ep);
+	fibril_mutex_lock(&ep->guard);
+	const int ret = ep->bus->ops.endpoint_get_toggle
+	    ? ep->bus->ops.endpoint_get_toggle(ep)
+	    : ep->toggle;
+	fibril_mutex_unlock(&ep->guard);
 	return ret;
 }
 
-/** Set the value of toggle bit.
- * @param instance endpoint_t structure.
- * @note Will use provided hook.
+/** Set the value of toggle bit. Either uses the toggle_set op, or just sets
+ * the toggle inside.
+ * @param ep endpoint_t structure.
  */
-void endpoint_toggle_set(endpoint_t *instance, int toggle)
+void endpoint_toggle_set(endpoint_t *ep, unsigned toggle)
 {
-	assert(instance);
+	assert(ep);
 	assert(toggle == 0 || toggle == 1);
-	fibril_mutex_lock(&instance->guard);
-	instance->toggle = toggle;
-	if (instance->hc_data.toggle_set)
-		instance->hc_data.toggle_set(instance->hc_data.data, toggle);
-	fibril_mutex_unlock(&instance->guard);
+	fibril_mutex_lock(&ep->guard);
+	if (ep->bus->ops.endpoint_set_toggle) {
+		ep->bus->ops.endpoint_set_toggle(ep, toggle);
+	}
+	else {
+		ep->toggle = toggle;
+	}
+	fibril_mutex_unlock(&ep->guard);
 }
+
 
 /**
  * @}

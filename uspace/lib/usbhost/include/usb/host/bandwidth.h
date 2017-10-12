@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Petr Manek
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,55 +25,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbxhci
+/**  @addtogroup libusbhost
  * @{
  */
 /** @file
- * @brief The host controller endpoint management.
+ *
+ * Bandwidth calculation functions. Shared among uhci, ohci and ehci drivers.
  */
 
-#ifndef XHCI_ENDPOINT_H
-#define XHCI_ENDPOINT_H
+#ifndef LIBUSBHOST_HOST_BANDWIDTH_H
+#define LIBUSBHOST_HOST_BANDWIDTH_H
 
-#include <assert.h>
+#include <usb/usb.h>
 
-#include <usb/debug.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/hcd.h>
+#include <stddef.h>
 
-typedef struct xhci_endpoint xhci_endpoint_t;
-typedef struct xhci_bus xhci_bus_t;
+/** Bytes per second in FULL SPEED */
+#define BANDWIDTH_TOTAL_USB11 (12000000 / 8)
+/** 90% of total bandwidth is available for periodic transfers */
+#define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
 
-enum {
-	EP_TYPE_INVALID = 0,
-	EP_TYPE_ISOCH_OUT = 1,
-	EP_TYPE_BULK_OUT = 2,
-	EP_TYPE_INTERRUPT_OUT = 3,
-	EP_TYPE_CONTROL = 4,
-	EP_TYPE_ISOCH_IN = 5,
-	EP_TYPE_BULK_IN = 6,
-	EP_TYPE_INTERRUPT_IN = 7
-};
+//TODO: Implement
+#define BANDWIDTH_AVAILABLE_USB20  1
 
-/** Connector structure linking endpoint context to the endpoint. */
-typedef struct xhci_endpoint {
-	endpoint_t base;	/**< Inheritance. Keep this first. */
+extern size_t bandwidth_count_usb11(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 
-	uint32_t slot_id;
-} xhci_endpoint_t;
-
-int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
-void xhci_endpoint_fini(xhci_endpoint_t *);
-
-static inline xhci_endpoint_t * xhci_endpoint_get(endpoint_t *ep)
-{
-	assert(ep);
-	return (xhci_endpoint_t *) ep;
-}
+extern size_t bandwidth_count_usb20(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 
 #endif
-
 /**
  * @}
  */

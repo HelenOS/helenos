@@ -43,11 +43,13 @@
 
 #include "hcd.h"
 
-/** Calls ep_add_hook upon endpoint registration.
+
+/*[>* Calls ep_add_hook upon endpoint registration.
  * @param ep Endpoint to be registered.
  * @param arg hcd_t in disguise.
  * @return Error code.
- */
+ * OH TODO: remove
+ <]
 static int register_helper(endpoint_t *ep, void *arg)
 {
 	hcd_t *hcd = arg;
@@ -58,10 +60,11 @@ static int register_helper(endpoint_t *ep, void *arg)
 	return EOK;
 }
 
-/** Calls ep_remove_hook upon endpoint removal.
+[>* Calls ep_remove_hook upon endpoint removal.
  * @param ep Endpoint to be unregistered.
  * @param arg hcd_t in disguise.
- */
+ * OH TODO: remove
+ <]
 static void unregister_helper(endpoint_t *ep, void *arg)
 {
 	hcd_t *hcd = arg;
@@ -71,18 +74,19 @@ static void unregister_helper(endpoint_t *ep, void *arg)
 		hcd->ops.ep_remove_hook(hcd, ep);
 }
 
-/** Calls ep_remove_hook upon endpoint removal. Prints warning.
+[>* Calls ep_remove_hook upon endpoint removal. Prints warning.
  *  * @param ep Endpoint to be unregistered.
  *   * @param arg hcd_t in disguise.
- *    */
+ * OH TODO: remove
+ *    <]
 static void unregister_helper_warn(endpoint_t *ep, void *arg)
 {
         assert(ep);
         usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
-            ep->address, ep->endpoint, usb_str_direction(ep->direction));
+            ep->target.address, ep->target.endpoint, usb_str_direction(ep->direction));
 	unregister_helper(ep, arg);
 }
-
+*/
 
 /** Initialize hcd_t structure.
  * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
@@ -92,21 +96,17 @@ static void unregister_helper_warn(endpoint_t *ep, void *arg)
  * @param bandwidth Available bandwidth, passed to endpoint manager.
  * @param bw_count Bandwidth compute function, passed to endpoint manager.
  */
-void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
-    bw_count_func_t bw_count)
-{
+void hcd_init(hcd_t *hcd) {
 	assert(hcd);
-	usb_bus_init(&hcd->bus, bandwidth, bw_count, max_speed);
 
-	hcd_set_implementation(hcd, NULL, NULL);
+	hcd_set_implementation(hcd, NULL, NULL, NULL);
 }
 
 usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 {
 	assert(hcd);
 	usb_address_t address = 0;
-	const int ret = usb_bus_request_address(
-	    &hcd->bus, &address, false, speed);
+	const int ret = bus_request_address(hcd->bus, &address, false, speed);
 	if (ret != EOK)
 		return ret;
 	return address;
@@ -115,15 +115,15 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 int hcd_release_address(hcd_t *hcd, usb_address_t address)
 {
 	assert(hcd);
-	return usb_bus_remove_address(&hcd->bus, address,
-	    unregister_helper_warn, hcd);
+	return bus_release_address(hcd->bus, address);
+	// OH TODO removed helper
 }
 
 int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
 {
 	assert(hcd);
 	usb_address_t address = 0;
-	return usb_bus_request_address(&hcd->bus, &address, true, speed);
+	return bus_request_address(hcd->bus, &address, true, speed);
 }
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
@@ -131,16 +131,38 @@ int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
     size_t size, usb_address_t tt_address, unsigned tt_port)
 {
 	assert(hcd);
-	return usb_bus_add_ep(&hcd->bus, target.address,
-	    target.endpoint, dir, type, max_packet_size, packets, size,
-	    register_helper, hcd, tt_address, tt_port);
+
+	/* Temporary reference */
+	endpoint_t *ep = bus_create_endpoint(hcd->bus);
+	if (!ep)
+		return ENOMEM;
+
+	ep->target = target;
+	ep->direction = dir;
+	ep->transfer_type = type;
+	ep->max_packet_size = max_packet_size;
+	ep->packets = packets;
+
+	ep->tt.address = tt_address;
+	ep->tt.port = tt_port;
+
+	const int err = bus_register_endpoint(hcd->bus, ep);
+
+	/* drop Temporary reference */
+	endpoint_del_ref(ep);
+
+	return err;
 }
 
 int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir)
 {
 	assert(hcd);
-	return usb_bus_remove_ep(&hcd->bus, target.address,
-	    target.endpoint, dir, unregister_helper, hcd);
+	endpoint_t *ep = bus_find_endpoint(hcd->bus, target, dir);
+	if (!ep)
+		return ENOENT;
+
+	return bus_release_endpoint(hcd->bus, ep);
+	// OH TODO removed helper
 }
 
 
@@ -158,7 +180,7 @@ static void toggle_reset_callback(int retval, void *arg)
 	if (retval == EOK) {
 		usb_log_debug2("Reseting toggle on %d:%d.\n",
 		    toggle->target.address, toggle->target.endpoint);
-		usb_bus_reset_toggle(&toggle->hcd->bus,
+		bus_reset_toggle(toggle->hcd->bus,
 		    toggle->target, toggle->target.endpoint == 0);
 	}
 
@@ -184,8 +206,7 @@ int hcd_send_batch(
 {
 	assert(hcd);
 
-	endpoint_t *ep = usb_bus_find_ep(&hcd->bus,
-	    target.address, target.endpoint, direction);
+	endpoint_t *ep = bus_find_endpoint(hcd->bus, target, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
 		    target.address, target.endpoint, name);
@@ -195,13 +216,12 @@ int hcd_send_batch(
 	usb_log_debug2("%s %d:%d %zu(%zu).\n",
 	    name, target.address, target.endpoint, size, ep->max_packet_size);
 
-	const size_t bw = bandwidth_count_usb11(
-	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
+	const size_t bw = bus_count_bw(ep, size);
 	/* Check if we have enough bandwidth reserved */
 	if (ep->bandwidth < bw) {
 		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
 		    "but only %zu is reserved.\n",
-		    ep->address, ep->endpoint, name, bw, ep->bandwidth);
+		    ep->target.address, ep->target.endpoint, name, bw, ep->bandwidth);
 		return ENOSPC;
 	}
 	if (!hcd->ops.schedule) {

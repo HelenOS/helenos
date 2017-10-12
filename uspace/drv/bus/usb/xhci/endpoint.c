@@ -33,48 +33,39 @@
  * @brief The host controller endpoint management.
  */
 
+#include <usb/host/endpoint.h>
+
 #include <errno.h>
 
+#include "bus.h"
 #include "endpoint.h"
 
-int endpoint_init(hcd_t *hcd, endpoint_t *ep)
+int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, xhci_bus_t *xhci_bus)
 {
-	assert(ep);
-	xhci_endpoint_t *xhci_ep = malloc(sizeof(xhci_endpoint_t));
-	if (xhci_ep == NULL)
-		return ENOMEM;
+	assert(xhci_ep);
+	assert(xhci_bus);
+
+	bus_t *bus = &xhci_bus->base;
+	endpoint_t *ep = &xhci_ep->base;
+
+	endpoint_init(ep, bus);
 
 	/* FIXME: Set xhci_ep->slot_id */
 
-	fibril_mutex_lock(&ep->guard);
-	ep->hc_data.data = xhci_ep;
-	/* FIXME: The two handlers below should be implemented. */
-	ep->hc_data.toggle_get = NULL;
-	ep->hc_data.toggle_set = NULL;
-	fibril_mutex_unlock(&ep->guard);
-
-	usb_log_debug("Endpoint %d:%d initialized.", ep->address, ep->endpoint);
+	usb_log_debug("XHCI Endpoint %d:%d initialized.", ep->target.address, ep->target.endpoint);
 
 	return EOK;
 }
 
-void endpoint_fini(hcd_t *hcd, endpoint_t *ep)
+void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 {
-	assert(hcd);
-	assert(ep);
-	xhci_endpoint_t *xhci_ep = endpoint_get(ep);
+	assert(xhci_ep);
+
 	/* FIXME: Tear down TR's? */
-	if (xhci_ep) {
-		free(xhci_ep);
-	}
 
-	fibril_mutex_lock(&ep->guard);
-	ep->hc_data.data = NULL;
-	ep->hc_data.toggle_get = NULL;
-	ep->hc_data.toggle_set = NULL;
-	fibril_mutex_unlock(&ep->guard);
+	endpoint_t *ep = &xhci_ep->base;
 
-	usb_log_debug("Endpoint %d:%d destroyed.", ep->address, ep->endpoint);
+	usb_log_debug("XHCI Endpoint %d:%d destroyed.", ep->target.address, ep->target.endpoint);
 }
 
 /**

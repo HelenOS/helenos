@@ -111,6 +111,7 @@ static inline usb_speed_t usb_port_speed(usb_port_status_t status)
 		return USB_SPEED_LOW;
 	if ((status & USB_HUB_PORT_STATUS_HIGH_SPEED) != 0)
 		return USB_SPEED_HIGH;
+	/* TODO: add super speed */
 	return USB_SPEED_FULL;
 }
 

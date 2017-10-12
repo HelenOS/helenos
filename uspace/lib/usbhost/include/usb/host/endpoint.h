@@ -31,6 +31,10 @@
  */
 /** @file
  *
+ * Endpoint structure is tightly coupled to the bus. The bus controls the
+ * life-cycle of endpoint. In order to keep endpoints lightweight, operations
+ * on endpoints are part of the bus structure.
+ *
  */
 #ifndef LIBUSBHOST_HOST_ENDPOINT_H
 #define LIBUSBHOST_HOST_ENDPOINT_H
@@ -41,16 +45,18 @@
 #include <usb/usb.h>
 #include <atomic.h>
 
+typedef struct bus bus_t;
+
 /** Host controller side endpoint structure. */
 typedef struct endpoint {
+	/** Managing bus */
+	bus_t *bus;
 	/** Reference count. */
 	atomic_t refcnt;
 	/** Part of linked list. */
 	link_t link;
 	/** USB address. */
-	usb_address_t address;
-	/** USB endpoint number. */
-	usb_endpoint_t endpoint;
+	usb_target_t target;
 	/** Communication direction. */
 	usb_direction_t direction;
 	/** USB transfer type. */
@@ -61,12 +67,12 @@ typedef struct endpoint {
 	size_t max_packet_size;
 	/** Additional opportunities per uframe */
 	unsigned packets;
-	/** Necessary bandwidth. */
+	/** Reserved bandwidth. */
 	size_t bandwidth;
 	/** Value of the toggle bit. */
 	unsigned toggle:1;
 	/** True if there is a batch using this scheduled for this endpoint. */
-	volatile bool active;
+	bool active;
 	/** Protects resources and active status changes. */
 	fibril_mutex_t guard;
 	/** Signals change of active status. */
@@ -76,36 +82,20 @@ typedef struct endpoint {
 		usb_address_t address;
 		unsigned port;
 	} tt;
-	/** Optional device specific data. */
-	struct {
-		/** Device specific data. */
-		void *data;
-		/** Callback to get the value of toggle bit. */
-		int (*toggle_get)(void *);
-		/** Callback to set the value of toggle bit. */
-		void (*toggle_set)(void *, int);
-		/** Device slot id. */
-		uint8_t slot_id;
-	} hc_data;
+
+	/* This structure is meant to be extended by overriding. */
 } endpoint_t;
 
-extern endpoint_t *endpoint_create(usb_address_t, usb_endpoint_t,
-    usb_direction_t, usb_transfer_type_t, usb_speed_t, size_t, unsigned int,
-    size_t, usb_address_t, unsigned int);
-extern void endpoint_destroy(endpoint_t *);
+extern void endpoint_init(endpoint_t *, bus_t *);
 
 extern void endpoint_add_ref(endpoint_t *);
 extern void endpoint_del_ref(endpoint_t *);
-
-extern void endpoint_set_hc_data(endpoint_t *, void *, int (*)(void *),
-    void (*)(void *, int));
-extern void endpoint_clear_hc_data(endpoint_t *);
 
 extern void endpoint_use(endpoint_t *);
 extern void endpoint_release(endpoint_t *);
 
 extern int endpoint_toggle_get(endpoint_t *);
-extern void endpoint_toggle_set(endpoint_t *, int);
+extern void endpoint_toggle_set(endpoint_t *, unsigned);
 
 /** list_get_instance wrapper.
  *

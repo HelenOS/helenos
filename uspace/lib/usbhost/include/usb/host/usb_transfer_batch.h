@@ -89,7 +89,7 @@ typedef struct usb_transfer_batch {
  * @param batch USB transfer batch to be dumped.
  */
 #define USB_TRANSFER_BATCH_ARGS(batch) \
-	(batch).ep->address, (batch).ep->endpoint, \
+	(batch).ep->target.address, (batch).ep->target.endpoint, \
 	usb_str_speed((batch).ep->speed), \
 	usb_str_transfer_type_short((batch).ep->transfer_type), \
 	usb_str_direction((batch).ep->direction), \

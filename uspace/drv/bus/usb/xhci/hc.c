@@ -446,17 +446,17 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	assert(batch);
 
 	/* Check for root hub communication */
-	if (batch->ep->address == xhci_rh_get_address(&hc->rh)) {
+	if (batch->ep->target.address == xhci_rh_get_address(&hc->rh)) {
 		usb_log_debug("XHCI root hub request.\n");
 		return xhci_rh_schedule(&hc->rh, batch);
 	}
 
 	usb_log_debug2("EP(%d:%d) started %s transfer of size %lu.",
-		batch->ep->address, batch->ep->endpoint,
+		batch->ep->target.address, batch->ep->target.endpoint,
 		usb_str_transfer_type(batch->ep->transfer_type),
 		batch->buffer_size);
 
-	if (!batch->ep->address) {
+	if (!batch->ep->target.address) {
 		usb_log_error("Attempted to schedule transfer to address 0.");
 		return EINVAL;
 	}

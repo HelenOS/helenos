@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2017 Petr Manek
+ * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Ondrej Hlavaty <aearsis@eideo.cz>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,55 +26,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbxhci
+/** @addtogroup libusbhost
  * @{
  */
 /** @file
- * @brief The host controller endpoint management.
+ *
+ * Bus implementation common for OHCI, UHCI and EHCI.
  */
+#ifndef LIBUSBHOST_HOST_USB2_BUS_H
+#define LIBUSBHOST_HOST_USB2_BUS_H
 
-#ifndef XHCI_ENDPOINT_H
-#define XHCI_ENDPOINT_H
+#include <usb/usb.h>
+#include <usb/host/bus.h>
 
-#include <assert.h>
+#include <adt/list.h>
+#include <stdbool.h>
 
-#include <usb/debug.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/hcd.h>
+typedef struct usb2_bus usb2_bus_t;
+typedef struct endpoint endpoint_t;
 
-typedef struct xhci_endpoint xhci_endpoint_t;
-typedef struct xhci_bus xhci_bus_t;
+typedef size_t (*count_bw_func_t)(endpoint_t *, size_t);
 
-enum {
-	EP_TYPE_INVALID = 0,
-	EP_TYPE_ISOCH_OUT = 1,
-	EP_TYPE_BULK_OUT = 2,
-	EP_TYPE_INTERRUPT_OUT = 3,
-	EP_TYPE_CONTROL = 4,
-	EP_TYPE_ISOCH_IN = 5,
-	EP_TYPE_BULK_IN = 6,
-	EP_TYPE_INTERRUPT_IN = 7
-};
+/** Endpoint management structure */
+typedef struct usb2_bus {
+	bus_t bus;			/**< Inheritance - keep this first */
 
-/** Connector structure linking endpoint context to the endpoint. */
-typedef struct xhci_endpoint {
-	endpoint_t base;	/**< Inheritance. Keep this first. */
+	/* Device bookkeeping */
+	struct {
+		usb_speed_t speed;      /**< Device speed */
+		bool occupied;          /**< The address is in use. */
+		list_t endpoint_list;   /**< Store endpoint_t instances */
+	} devices[USB_ADDRESS_COUNT];
 
-	uint32_t slot_id;
-} xhci_endpoint_t;
+	/** Size of the bandwidth pool */
+	size_t free_bw;
+	/** The last reserved address */
+	usb_address_t last_address;
+} usb2_bus_t;
 
-int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
-void xhci_endpoint_fini(xhci_endpoint_t *);
-
-static inline xhci_endpoint_t * xhci_endpoint_get(endpoint_t *ep)
-{
-	assert(ep);
-	return (xhci_endpoint_t *) ep;
-}
+extern int usb2_bus_init(usb2_bus_t *, hcd_t *, size_t, count_bw_func_t);
 
 #endif
-
 /**
  * @}
  */

@@ -35,6 +35,7 @@
 
 #include <usb/host/utils/malloc32.h>
 #include <usb/debug.h>
+#include "endpoint.h"
 #include "hc.h"
 #include "hw_struct/trb.h"
 #include "transfers.h"
@@ -140,13 +141,15 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 		usb_log_error("Missing setup packet for the control transfer.");
 		return EINVAL;
 	}
-	if (batch->ep->endpoint != 0 || batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
+	if (batch->ep->target.endpoint != 0 || batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
 		/* This method only works for control transfers. */
 		usb_log_error("Attempted to schedule control transfer to non 0 endpoint.");
 		return EINVAL;
 	}
 
-	uint8_t slot_id = batch->ep->hc_data.slot_id;
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
+
+	uint8_t slot_id = xhci_ep->slot_id;
 	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[0];
 
 	usb_device_request_setup_packet_t* setup =
@@ -229,8 +232,9 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
 		usb_log_warning("Setup packet present for a bulk transfer.");
 	}
 
-	uint8_t slot_id = batch->ep->hc_data.slot_id;
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->endpoint];
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
+	uint8_t slot_id = xhci_ep->slot_id;
+	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
 
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
 	memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);

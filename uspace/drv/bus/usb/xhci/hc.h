@@ -42,6 +42,7 @@
 #include "scratchpad.h"
 #include "trb_ring.h"
 #include "rh.h"
+#include "bus.h"
 
 typedef struct xhci_virt_device_ctx {
 	xhci_device_ctx_t *dev_ctx;
@@ -70,6 +71,9 @@ typedef struct xhci_hc {
 
 	/* Root hub emulation */
 	xhci_rh_t rh;
+
+	/* Bus bookkeeping */
+	xhci_bus_t bus;
 
 	/* Cached capabilities */
 	unsigned max_slots;

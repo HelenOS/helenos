@@ -65,8 +65,6 @@ static const ddf_hc_driver_t xhci_ddf_hc_driver = {
 	.ops = {
 		.schedule       = hcd_schedule,
 		.irq_hook       = hcd_interrupt,
-		.ep_add_hook    = endpoint_init,
-		.ep_remove_hook = endpoint_fini,
 		.status_hook    = hcd_status,
 	}
 };
@@ -82,10 +80,13 @@ static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 	if ((err = hc_init_mmio(hc, hw_res)))
 		goto err;
 
+	if ((err = xhci_bus_init(&hc->bus, hcd)))
+		goto err;
+
 	if ((err = hc_init_memory(hc)))
 		goto err;
 
-	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops);
+	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops, &hc->bus.base);
 
 	return EOK;
 err:

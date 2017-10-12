@@ -265,10 +265,7 @@ int xhci_rh_schedule(xhci_rh_t *rh, usb_transfer_batch_t *batch)
 {
 	assert(rh);
 	assert(batch);
-	const usb_target_t target = {{
-		.address = batch->ep->address,
-		.endpoint = batch->ep->endpoint,
-	}};
+	const usb_target_t target = batch->ep->target;
 	batch->error = virthub_base_request(&rh->base, target,
 	    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
 	    batch->buffer, batch->buffer_size, &batch->transfered_size);
@@ -293,10 +290,7 @@ int xhci_rh_interrupt(xhci_rh_t *rh)
 	usb_transfer_batch_t *batch = rh->unfinished_interrupt_transfer;
 	rh->unfinished_interrupt_transfer = NULL;
 	if (batch) {
-		const usb_target_t target = {{
-			.address = batch->ep->address,
-			.endpoint = batch->ep->endpoint,
-		}};
+		const usb_target_t target = batch->ep->target;
 		batch->error = virthub_base_request(&rh->base, target,
 		    usb_transfer_batch_direction(batch),
 		    (void*)batch->setup_buffer,

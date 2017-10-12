@@ -37,7 +37,7 @@
 #define LIBUSBHOST_HOST_HCD_H
 
 #include <usb/host/endpoint.h>
-#include <usb/host/usb_bus.h>
+#include <usb/host/bus.h>
 #include <usb/host/usb_transfer_batch.h>
 #include <usb/usb.h>
 
@@ -70,26 +70,28 @@ typedef struct {
 /** Generic host controller driver structure. */
 struct hcd {
 	/** Endpoint manager. */
-	usb_bus_t bus;
+	bus_t *bus;
 
 	/** Interrupt replacement fibril */
 	fid_t polling_fibril;
 
 	/** Driver implementation */
 	hcd_ops_t ops;
+
 	/** Device specific driver data. */
 	void * driver_data;
 };
 
-extern void hcd_init(hcd_t *, usb_speed_t, size_t, bw_count_func_t);
+extern void hcd_init(hcd_t *);
 
 static inline void hcd_set_implementation(hcd_t *hcd, void *data,
-    const hcd_ops_t *ops)
+    const hcd_ops_t *ops, bus_t *bus)
 {
 	assert(hcd);
 	if (ops) {
 		hcd->driver_data = data;
 		hcd->ops = *ops;
+		hcd->bus = bus;
 	} else {
 		memset(&hcd->ops, 0, sizeof(hcd->ops));
 	}

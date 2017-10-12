@@ -44,15 +44,16 @@ EXTRA_CFLAGS += \
 BINARY = xhci
 
 SOURCES = \
-	hc.c \
-	endpoint.c \
-	debug.c \
-	trb_ring.c \
-	scratchpad.c \
+	bus.c \
 	commands.c \
-	transfers.c \
+	debug.c \
+	endpoint.c \
+	hc.c \
+	main.c \
 	rh.c \
-	main.c
+	scratchpad.c \
+	transfers.c \
+	trb_ring.c
 
 TEST_SOURCES = \
 	test/reg-ops.c

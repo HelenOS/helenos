@@ -468,7 +468,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	usb_speed_t speed = USB_SPEED_MAX;
 
 	/* This checks whether the default address is reserved and gets speed */
-	int ret = usb_bus_get_speed(&hcd->bus, USB_ADDRESS_DEFAULT, &speed);
+	int ret = bus_get_speed(hcd->bus, USB_ADDRESS_DEFAULT, &speed);
 	if (ret != EOK) {
 		usb_log_error("Failed to verify speed: %s.", str_error(ret));
 		return ret;
@@ -622,7 +622,7 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
 	hcd_t *hcd = dev_to_hcd(device);
 	assert(hcd);
 
-	hcd_reserve_default_address(hcd, hcd->bus.max_speed);
+	hcd_reserve_default_address(hcd, USB_SPEED_MAX);
 	const int ret = hcd_ddf_new_device(device, NULL, 0);
 	hcd_release_default_address(hcd);
 	return ret;
@@ -638,8 +638,7 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
  * @return Error code.
  * This function does all the ddf work for hc driver.
  */
-int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
-    size_t bw, bw_count_func_t bw_count)
+int hcd_ddf_setup_hc(ddf_dev_t *device)
 {
 	assert(device);
 
@@ -649,7 +648,7 @@ int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
 		return ENOMEM;
 	}
 	instance->root_hub = NULL;
-	hcd_init(&instance->hcd, max_speed, bw, bw_count);
+	hcd_init(&instance->hcd);
 
 	int ret = ENOMEM;
 	instance->ctl_fun = ddf_fun_create(device, fun_exposed, "ctl");
@@ -850,22 +849,8 @@ static int interrupt_polling(void *arg)
 int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 {
 	assert(driver);
-	static const struct { size_t bw; bw_count_func_t bw_count; }bw[] = {
-	    [USB_SPEED_FULL] = { .bw = BANDWIDTH_AVAILABLE_USB11,
-	                         .bw_count = bandwidth_count_usb11 },
-	    [USB_SPEED_HIGH] = { .bw = BANDWIDTH_AVAILABLE_USB11,
-	                         .bw_count = bandwidth_count_usb11 },
-	    [USB_SPEED_SUPER] = { .bw = BANDWIDTH_AVAILABLE_USB11,
-	                         .bw_count = bandwidth_count_usb11 },
-	};
 
 	int ret = EOK;
-	const usb_speed_t speed = driver->hc_speed;
-	if (speed >= ARRAY_SIZE(bw) || bw[speed].bw == 0) {
-		usb_log_error("Driver `%s' reported unsupported speed: %s",
-		    driver->name, usb_str_speed(speed));
-		return ENOTSUP;
-	}
 
 	hw_res_list_parsed_t hw_res;
 	ret = hcd_ddf_get_registers(device, &hw_res);
@@ -876,7 +861,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 		return ret;
 	}
 
-	ret = hcd_ddf_setup_hc(device, speed, bw[speed].bw, bw[speed].bw_count);
+	ret = hcd_ddf_setup_hc(device);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup generic HCD.\n");
 		goto err_hw_res;
