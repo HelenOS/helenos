@@ -55,6 +55,7 @@ new_handler get_new_handler() noexcept;
 }
 
 void* operator new(std::size_t);
+void* operator new(std::size_t, void*);
 void* operator new(std::size_t, const std::nothrow_t&) noexcept;
 void* operator new[](std::size_t);
 void* operator new[](std::size_t, const std::nothrow_t&) noexcept;

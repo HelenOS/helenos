@@ -75,6 +75,11 @@ void* operator new(std::size_t size)
     return ptr;
 }
 
+void* operator new(std::size_t ignored, void* ptr)
+{ // Placement new.
+    return ptr;
+}
+
 void* operator new(std::size_t size, const std::nothrow_t& nt) noexcept
 {
     void* ptr{nullptr};
