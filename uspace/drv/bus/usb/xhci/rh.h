@@ -37,14 +37,9 @@
 #define XHCI_RH_H
 
 #include <usb/host/usb_transfer_batch.h>
-#include <usbvirt/virthub_base.h>
 #include "hw_struct/regs.h"
 
 typedef struct xhci_hc xhci_hc_t;
-
-enum {
-	XHCI_MAX_PORTS = 255,
-};
 
 /**
  * xHCI lets the controller define speeds of ports it controls.
@@ -57,20 +52,11 @@ typedef struct xhci_port_speed {
 
 /* XHCI root hub instance */
 typedef struct {
-	/** Virtual hub instance */
-	virthub_base_t base;
-
 	/** Host controller */
 	xhci_hc_t *hc;
 
 	/** Port speeds reported from HC */
 	xhci_port_speed_t speeds [16];
-
-	/** USB hub descriptor describing the XHCI root hub */
-	struct {
-		usb_hub_descriptor_header_t header;
-		uint8_t rempow[STATUS_BYTES(XHCI_MAX_PORTS) * 2];
-	} __attribute__((packed)) hub_descriptor;
 
 	/** Interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t *unfinished_interrupt_transfer;
@@ -81,29 +67,12 @@ typedef struct {
 
 int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
 int xhci_rh_fini(xhci_rh_t *);
-const xhci_port_speed_t *xhci_get_port_speed(xhci_rh_t *, uint8_t);
-int xhci_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
-int xhci_get_hub_port(xhci_trb_t *);
-int xhci_reset_hub_port(xhci_hc_t *, uint8_t);
-int xhci_rh_schedule(xhci_rh_t *, usb_transfer_batch_t *);
-int xhci_rh_interrupt(xhci_rh_t *);
+const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *, uint8_t);
+int xhci_rh_reset_port(xhci_rh_t *, uint8_t);
 
-/** Get XHCI rh address.
- *
- * @param rh XHCI rh instance.
- * @return USB address assigned to the hub.
- * Wrapper for virtual hub address
- */
-static inline usb_address_t xhci_rh_get_address(xhci_rh_t *rh)
-{
-	assert(rh);
-	return virthub_base_get_address(&rh->base);
-}
+int xhci_rh_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
+void xhci_rh_handle_port_change(xhci_rh_t *);
 
-static inline bool xhci_is_usb3_port(xhci_rh_t* rh, uint8_t port)
-{
-	return xhci_get_port_speed(rh, port)->major == 3;
-}
 #endif
 
 /**

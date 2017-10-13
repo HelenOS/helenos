@@ -35,6 +35,7 @@
 
 #include <usb/host/utils/malloc32.h>
 #include <usb/debug.h>
+#include <usb/request.h>
 #include "endpoint.h"
 #include "hc.h"
 #include "hw_struct/trb.h"

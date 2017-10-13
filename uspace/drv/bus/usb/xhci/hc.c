@@ -424,6 +424,11 @@ int hc_start(xhci_hc_t *hc, bool irq)
 
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_RS, 1);
 
+	/* The reset changed status of all ports, and SW originated reason does
+	 * not cause an interrupt.
+	 */
+	xhci_rh_handle_port_change(&hc->rh);
+
 	return EOK;
 }
 
@@ -450,12 +455,6 @@ int hc_status(xhci_hc_t *hc, uint32_t *status)
 int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
 	assert(batch);
-
-	/* Check for root hub communication */
-	if (batch->ep->target.address == xhci_rh_get_address(&hc->rh)) {
-		usb_log_debug("XHCI root hub request.\n");
-		return xhci_rh_schedule(&hc->rh, batch);
-	}
 
 	usb_log_debug2("EP(%d:%d) started %s transfer of size %lu.",
 		batch->ep->target.address, batch->ep->target.endpoint,
@@ -487,7 +486,7 @@ typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
 
 static event_handler event_handlers [] = {
 	[XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT] = &xhci_handle_command_completion,
-	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &xhci_handle_port_status_change_event,
+	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &xhci_rh_handle_port_status_change_event,
 	[XHCI_TRB_TYPE_TRANSFER_EVENT] = &xhci_handle_transfer_event,
 };
 
@@ -558,11 +557,9 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 {
 	status = xhci2host(32, status);
 
-	/* TODO: Figure out how root hub interrupts work. */
 	if (status & XHCI_REG_MASK(XHCI_OP_PCD)) {
 		usb_log_debug2("Root hub interrupt.");
-		xhci_rh_interrupt(&hc->rh);
-
+		xhci_rh_handle_port_change(&hc->rh);
 		status &= ~XHCI_REG_MASK(XHCI_OP_PCD);
 	}
 
