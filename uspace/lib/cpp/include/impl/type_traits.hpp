@@ -199,7 +199,7 @@ namespace std
     struct is_lvalue_reference: false_type
     { /* DUMMY BODY */ };
 
-    template<>
+    template<class T>
     struct is_lvalue_reference<T&>: true_type
     { /* DUMMY BODY */ };
 
@@ -207,7 +207,7 @@ namespace std
     struct is_rvalue_reference: false_type
     { /* DUMMY BODY*/ };
 
-    template<>
+    template<class T>
     struct is_rvalue_reference<T&&>: true_type
     { /* DUMMY BODY*/ };
 
@@ -261,7 +261,7 @@ namespace std
     // Note: That hexadot covers variadic functions like printf.
     template<class Ret, class... Args>
     struct is_function<Ret(Args......)>: true_type
-    { /* DUMMY BODY */ }
+    { /* DUMMY BODY */ };
 
     template<class Ret, class... Args>
     struct is_function<Ret(Args...) const>: true_type
@@ -478,7 +478,8 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_member_pointer: __is_member_pointer<remove_cv_t<T>>;
+    struct is_member_pointer: __is_member_pointer<remove_cv_t<T>>
+    { /* DUMMY BODY */ };
 
     /**
      * 20.10.4.3, type properties:
