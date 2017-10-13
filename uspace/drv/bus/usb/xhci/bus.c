@@ -109,7 +109,7 @@ static int xhci_endpoint_find_by_target(xhci_bus_t *bus, usb_target_t target, xh
 	return EOK;
 }
 
-static int hashed_device_create(xhci_bus_t *bus, hashed_device_t **hashed_dev)
+static int hashed_device_create(xhci_bus_t *bus, hashed_device_t **hashed_dev, usb_address_t address)
 {
 	int res;
 	xhci_device_t *dev = (xhci_device_t *) malloc(sizeof(xhci_device_t));
@@ -118,12 +118,10 @@ static int hashed_device_create(xhci_bus_t *bus, hashed_device_t **hashed_dev)
 		goto err_xhci_dev_alloc;
 	}
 
-	res = xhci_device_init(dev, bus);
+	res = xhci_device_init(dev, bus, address);
 	if (res != EOK) {
 		goto err_xhci_dev_init;
 	}
-
-	// TODO: Set device data.
 
 	hashed_device_t *ret_dev = (hashed_device_t *) malloc(sizeof(hashed_device_t));
 	if (!ret_dev) {
@@ -165,7 +163,7 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
 		return res;
 
 	if (res == ENOENT) {
-		res = hashed_device_create(bus, &hashed_dev);
+		res = hashed_device_create(bus, &hashed_dev, ep->target.address);
 
 		if (res != EOK)
 			return res;

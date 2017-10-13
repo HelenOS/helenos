@@ -51,7 +51,7 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, xhci_bus_t *xhci_bus)
 	endpoint_init(ep, bus);
 	xhci_ep->device = NULL;
 
-	usb_log_debug("XHCI Endpoint %d:%d initialized.", ep->target.address, ep->target.endpoint);
+	usb_log_debug("Endpoint %d:%d initialized.", ep->target.address, ep->target.endpoint);
 
 	return EOK;
 }
@@ -64,19 +64,24 @@ void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 
 	endpoint_t *ep = &xhci_ep->base;
 
-	usb_log_debug("XHCI Endpoint %d:%d destroyed.", ep->target.address, ep->target.endpoint);
+	usb_log_debug("Endpoint %d:%d destroyed.", ep->target.address, ep->target.endpoint);
 }
 
-int xhci_device_init(xhci_device_t *dev, xhci_bus_t *bus)
+int xhci_device_init(xhci_device_t *dev, xhci_bus_t *bus, usb_address_t address)
 {
 	memset(&dev->endpoints, 0, sizeof(dev->endpoints));
 	dev->active_endpoint_count = 0;
+	dev->address = address;
+	dev->slot_id = 0;
+
+	usb_log_debug("Device %d initialized.", dev->address);
 	return EOK;
 }
 
 void xhci_device_fini(xhci_device_t *dev)
 {
 	// TODO: Check that all endpoints are dead.
+	usb_log_debug("Device %d destroyed.", dev->address);
 }
 
 int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)

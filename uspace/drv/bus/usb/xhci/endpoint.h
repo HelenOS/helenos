@@ -78,7 +78,7 @@ typedef struct xhci_device {
 int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
 
-int xhci_device_init(xhci_device_t *, xhci_bus_t *);
+int xhci_device_init(xhci_device_t *, xhci_bus_t *, usb_address_t);
 void xhci_device_fini(xhci_device_t *);
 
 int xhci_device_add_endpoint(xhci_device_t *, xhci_endpoint_t *);
