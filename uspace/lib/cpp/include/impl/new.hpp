@@ -59,8 +59,10 @@ void* operator new(std::size_t, const std::nothrow_t&) noexcept;
 void* operator new[](std::size_t);
 void* operator new[](std::size_t, const std::nothrow_t&) noexcept;
 
-void operator delete(void* );
-void operator delete[](void* );
+void operator delete(void*) noexcept;
+void operator delete(void*, std::size_t) noexcept;
+void operator delete[](void*) noexcept;
+void operator delete[](void*, std::size_t) noexcept;
 
 #endif
 

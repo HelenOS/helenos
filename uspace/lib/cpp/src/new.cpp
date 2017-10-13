@@ -99,13 +99,23 @@ void* operator new[](std::size_t size, const std::nothrow_t& nt) noexcept
     return ::operator new(size, nt);
 }
 
-void operator delete(void* ptr)
+void operator delete(void* ptr) noexcept
 {
     if (ptr)
         std::free(ptr);
 }
 
-void operator delete[](void* ptr)
+void operator delete(void* ptr, std::size_t ignored) noexcept
+{
+    ::operator delete(ptr);
+}
+
+void operator delete[](void* ptr) noexcept
+{
+    ::operator delete(ptr);
+}
+
+void operator delete[](void* ptr, std::size_t ignored) noexcept
 {
     ::operator delete(ptr);
 }
