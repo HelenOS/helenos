@@ -61,39 +61,6 @@ namespace std
     }
 
     /**
-     * 20.2.2, swap:
-     */
-
-    template<class T>
-    void swap(T& x, T& y)
-        noexcept(is_nothrow_move_constructible<T>::value &&
-                 is_nothrow_move_assignable<T>::value)
-    {
-        T tmp{std::move(x)};
-        x = std::move(y);
-        y = std::move(tmp);
-    }
-
-    template<class T, size_t N>
-    void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(*a, *b)))
-    {
-        // TODO: Use swap_ranges(a, a + N, b); when implemented.
-    }
-
-    /**
-     * 20.2.3, exchange:
-     */
-
-    template<class T, class U = T>
-    T exchange(T& obj, U&& new_val)
-    {
-        T old_val = std::move(obj);
-        obj = std::forward<U>(new_val);
-
-        return old_val;
-    }
-
-    /**
      * 20.2.4, forward/move helpers:
      */
 
@@ -115,6 +82,39 @@ namespace std
     inline constexpr remove_reference_t<T>&& move(T&& t) noexcept
     {
         return static_cast<remove_reference_t<T>&&>(t);
+    }
+
+    /**
+     * 20.2.2, swap:
+     */
+
+    template<class T>
+    void swap(T& x, T& y)
+        noexcept(is_nothrow_move_constructible<T>::value &&
+                 is_nothrow_move_assignable<T>::value)
+    {
+        T tmp{move(x)};
+        x = move(y);
+        y = move(tmp);
+    }
+
+    template<class T, size_t N>
+    void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(*a, *b)))
+    {
+        // TODO: Use swap_ranges(a, a + N, b); when implemented.
+    }
+
+    /**
+     * 20.2.3, exchange:
+     */
+
+    template<class T, class U = T>
+    T exchange(T& obj, U&& new_val)
+    {
+        T old_val = move(obj);
+        obj = forward<U>(new_val);
+
+        return old_val;
     }
 
     /**
