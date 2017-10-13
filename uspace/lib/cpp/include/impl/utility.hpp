@@ -36,6 +36,7 @@ namespace std
     /**
      * 20.2.1, operators:
      */
+
     template<typename T>
     bool operator!=(const T& lhs, const T& rhs)
     {
@@ -129,7 +130,6 @@ namespace std
     /**
      * 20.3, pairs:
      */
-
 
     struct piecewise_construct_t
     {
