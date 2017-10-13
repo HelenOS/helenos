@@ -196,28 +196,256 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_lvalue_reference;
+    struct is_lvalue_reference: false_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct is_lvalue_reference<T&>: true_type
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_rvalue_reference;
+    struct is_rvalue_reference: false_type
+    { /* DUMMY BODY*/ };
 
-    template<class T>
-    struct is_member_object_pointer;
+    template<>
+    struct is_rvalue_reference<T&&>: true_type
+    { /* DUMMY BODY*/ };
 
-    template<class T>
+    template<class>
+    struct is_member_pointer;
+
+    template<class>
     struct is_member_function_pointer;
 
     template<class T>
-    struct is_enum;
+    struct is_member_object_pointer
+        : integral_constant<bool, is_member_pointer<T>::value &&
+                            !is_member_function_pointer<T>::value>
+    { /* DUMMY BODY */ };
 
-    template<class T>
-    struct is_union;
-
-    template<class T>
-    struct is_class;
-
-    template<class T>
+    template<class>
     struct is_function;
+
+    template<class T>
+    struct __is_member_function_pointer: false_type
+    { /* DUMMY BODY */ };
+
+    template<class T, class U>
+    struct __is_member_function_pointer<T U::*>: is_function<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_member_function_pointer: __is_member_function_pointer<remove_cv_t<T>>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_enum; // TODO: No idea how to implement.
+
+    template<class T>
+    struct is_union; // TODO: No idea how to implement.
+
+    template<class T>
+    struct is_class; // TODO: No idea how to implement.
+
+    /**
+     * Note: is_function taken from possile implementation on cppreference.com
+     */
+    template<class>
+    struct is_function: false_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...)>: true_type
+    { /* DUMMY BODY */ };
+
+    // Note: That hexadot covers variadic functions like printf.
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......)>: true_type
+    { /* DUMMY BODY */ }
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) volatile>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const volatile>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) volatile>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const volatile>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) &>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const &>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) volatile &>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const volatile &>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) &>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const &>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) volatile &>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const volatile &>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) &&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const &&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) volatile &&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const volatile &&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) &&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const &&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) volatile &&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const volatile &&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) volatile noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const volatile noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) volatile noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const volatile noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) & noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const & noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) volatile & noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const volatile & noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) & noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const & noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) volatile & noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const volatile & noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) && noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const && noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) volatile && noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args...) const volatile && noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) && noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const && noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) volatile && noexcept>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Ret, class... Args>
+    struct is_function<Ret(Args......) const volatile && noexcept>: true_type
+    { /* DUMMY BODY */ };
 
     /**
      * 20.10.4.2, composite type categories:
@@ -242,7 +470,15 @@ namespace std
     struct is_compound;
 
     template<class T>
-    struct is_member_pointer;
+    struct __is_member_pointer: false_type
+    { /* DUMMY BODY */ };
+
+    template<class T, class U>
+    struct __is_member_pointer<T U::*>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_member_pointer: __is_member_pointer<remove_cv_t<T>>;
 
     /**
      * 20.10.4.3, type properties:
