@@ -147,8 +147,12 @@ static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, us
 
 static int get_speed(bus_t *bus_base, usb_address_t address, usb_speed_t *speed)
 {
-	// TODO: Implement me!
-	return ENOTSUP;
+	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	assert(bus);
+
+	// TODO: Use `xhci_get_port_speed` once we find the port corresponding to `address`.
+	*speed = USB_SPEED_SUPER;
+	return EOK;
 }
 
 static int release_address(bus_t *bus_base, usb_address_t address)
