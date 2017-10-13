@@ -240,7 +240,7 @@ CPPFLAGS = $(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -ffunction-sections \
 	-nostdlib -nostdinc -Wall -Wextra -Wno-clobbered -Wno-unused-parameter \
-	-std=c++11 -Werror-implicit-function-declaration \
+	-std=c++17 -Werror-implicit-function-declaration \
 	-Wwrite-strings -pipe -ggdb -D__$(ENDIANESS)__
 
 ## Setup platform configuration
