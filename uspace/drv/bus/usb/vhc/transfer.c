@@ -30,13 +30,14 @@
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usbvirt/device.h>
+#include <usb/host/bandwidth.h>
 #include <usbvirt/ipc.h>
 #include "vhcd.h"
 #include "hub/virthub.h"
 
 static bool is_set_address_transfer(vhc_transfer_t *transfer)
 {
-	if (transfer->batch->ep->endpoint != 0) {
+	if (transfer->batch->ep->target.endpoint != 0) {
 		return false;
 	}
 	if (transfer->batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
@@ -79,13 +80,13 @@ static int process_transfer_local(usb_transfer_batch_t *batch,
 	} else {
 		if (dir == USB_DIRECTION_IN) {
 			rc = usbvirt_data_in(dev, batch->ep->transfer_type,
-			    batch->ep->endpoint,
+			    batch->ep->target.endpoint,
 			    batch->buffer, batch->buffer_size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
 			rc = usbvirt_data_out(dev, batch->ep->transfer_type,
-			    batch->ep->endpoint,
+			    batch->ep->target.endpoint,
 			    batch->buffer, batch->buffer_size);
 		}
 	}
@@ -114,13 +115,13 @@ static int process_transfer_remote(usb_transfer_batch_t *batch,
 		}
 	} else {
 		if (dir == USB_DIRECTION_IN) {
-			rc = usbvirt_ipc_send_data_in(sess, batch->ep->endpoint,
+			rc = usbvirt_ipc_send_data_in(sess, batch->ep->target.endpoint,
 			    batch->ep->transfer_type,
 			    batch->buffer, batch->buffer_size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
-			rc = usbvirt_ipc_send_data_out(sess, batch->ep->endpoint,
+			rc = usbvirt_ipc_send_data_out(sess, batch->ep->target.endpoint,
 			    batch->ep->transfer_type,
 			    batch->buffer, batch->buffer_size);
 		}
@@ -158,6 +159,7 @@ int vhc_init(vhc_data_t *instance)
 	assert(instance);
 	list_initialize(&instance->devices);
 	fibril_mutex_initialize(&instance->guard);
+	usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	instance->magic = 0xDEADBEEF;
 	return virthub_init(&instance->hub, "root hub");
 }
@@ -181,7 +183,7 @@ int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 	list_foreach(vhc->devices, link, vhc_virtdev_t, dev) {
 		fibril_mutex_lock(&dev->guard);
-		if (dev->address == transfer->batch->ep->address) {
+		if (dev->address == transfer->batch->ep->target.address) {
 			if (!targets) {
 				list_append(&transfer->link, &dev->transfer_queue);
 			}

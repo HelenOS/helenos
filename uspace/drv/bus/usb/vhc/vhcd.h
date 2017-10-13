@@ -41,6 +41,7 @@
 #include <async.h>
 
 #include <usb/host/hcd.h>
+#include <usb/host/usb2_bus.h>
 
 #define NAME "vhc"
 
@@ -59,6 +60,7 @@ typedef struct {
 	list_t devices;
 	fibril_mutex_t guard;
 	usbvirt_device_t hub;
+	usb2_bus_t bus;
 } vhc_data_t;
 
 typedef struct {

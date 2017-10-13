@@ -88,8 +88,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	vhc_data_t *data = ddf_fun_data_get(ctl_fun);
 
 	/* Initialize generic structures */
-	ret = hcd_ddf_setup_hc(dev, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
+	ret = hcd_ddf_setup_hc(dev);
 	if (ret != EOK) {
 		usb_log_error("Failed to init HCD structures: %s.\n",
 		   str_error(ret));
@@ -97,7 +96,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 		return ret;
 	}
 
-	hcd_set_implementation(dev_to_hcd(dev), data, &vhc_hc_ops);
+	hcd_set_implementation(dev_to_hcd(dev), data, &vhc_hc_ops, &data->bus.base);
 
 	/* Add virtual hub device */
 	ret = vhc_virtdev_plug_hub(data, &data->hub, NULL, 0);
