@@ -146,6 +146,8 @@ int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
 	ep->tt.address = tt_address;
 	ep->tt.port = tt_port;
 
+	ep->bandwidth = bus_count_bw(ep, size);
+
 	const int err = bus_register_endpoint(hcd->bus, ep);
 
 	/* drop Temporary reference */

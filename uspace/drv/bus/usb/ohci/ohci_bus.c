@@ -94,7 +94,7 @@ static endpoint_t *ohci_endpoint_create(bus_t *bus)
 	}
 
 	link_initialize(&ohci_ep->link);
-	return EOK;
+	return &ohci_ep->base;
 }
 
 /** Disposes hcd endpoint structure
@@ -159,6 +159,8 @@ int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
 
 	ops->register_endpoint = ohci_register_ep;
 	ops->release_endpoint = ohci_release_ep;
+
+	bus->hc = hc;
 
 	return EOK;
 }
