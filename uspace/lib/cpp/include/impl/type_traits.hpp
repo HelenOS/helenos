@@ -30,6 +30,7 @@
 #define LIBCPP_TYPE_TRAITS
 
 #include <cstdlib>
+#include <cstddef>
 
 namespace std
 {
@@ -54,7 +55,7 @@ namespace std
         {
             return value;
         }
-    }
+    };
 
     using true_type = integral_constant<bool, true>;
     using false_type = integral_constant<bool, false>;
@@ -69,26 +70,130 @@ namespace std
     template<class T>
     using remove_cv_t = typename remove_cv<T>::type;
 
-    template<class T>
-    struct is_void: aux::is_void<remove_cv_t<T>>;
+    template<class>
+    struct __is_void: false_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_void<void>: true_type
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_null_pointer: aux::is_null_pointer<remove_cv_t<T>>;
-
-    template<class T>
-    struct is_integral: aux::is_integral<remove_cv_t<T>>;
-
-    template<class T>
-    struct is_floating_point: aux::is_floating_point<remove_cv_t<T>>;
+    struct is_void: __is_void<remove_cv_t<T>>
+    { /* DUMMY BODY */ };
 
     template<class>
-    struct is_array: false_type;
+    struct __is_null_pointer: false_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_null_pointer<nullptr_t>: true_type
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_array<T[]>: true_type;
+    struct is_null_pointer: __is_null_pointer<remove_cv_t<T>>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_pointer: aux::is_pointer<remove_cv_t<T>>;
+    struct __is_integral: false_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<bool>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<char>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<signed char>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<unsigned char>: true_type
+    { /* DUMMY BODY */ };
+
+    /* TODO: Problem - wchar_t is typedef'd to int here.
+    template<>
+    struct __is_integral<wchar_t>;
+    */
+
+    template<>
+    struct __is_integral<long>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<unsigned long>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<int>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<unsigned int>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<short>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<unsigned short>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<long long>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_integral<unsigned long long>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_integral: __is_integral<remove_cv_t<T>>
+    { /* DUMMY BODY */ };
+
+    template<class>
+    struct __is_floating_point: false_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_floating_point<float>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_floating_point<double>: true_type
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct __is_floating_point<long double>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_floating_point: __is_floating_point<remove_cv_t<T>>
+    { /* DUMMY BODY */ };
+
+    template<class>
+    struct is_array: false_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_array<T[]>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class>
+    struct __is_pointer: false_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct __is_pointer<T*>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_pointer: __is_pointer<remove_cv_t<T>>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_lvalue_reference;
@@ -275,10 +380,12 @@ namespace std
      */
 
     template<class T, class U>
-    struct is_same: false_type;
+    struct is_same: false_type
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_same<T, T>: true_type;
+    struct is_same<T, T>: true_type
+    { /* DUMMY BODY */ };
 
     template<class Base, class Derived>
     struct is_base_of;
