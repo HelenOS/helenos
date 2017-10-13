@@ -44,7 +44,6 @@
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usb/host/ddf_helpers.h>
-#include <usb/host/bandwidth.h>
 
 #include "hc.h"
 
@@ -81,9 +80,6 @@ static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 		return ENOMEM;
 
 	if ((err = hc_init(instance, res)) != EOK)
-		goto err;
-
-	if ((err = usb2_bus_init(&instance->bus, hcd, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11)))
 		goto err;
 
 	hcd_set_implementation(hcd, instance, &uhci_hc_driver.ops, &instance->bus.base);

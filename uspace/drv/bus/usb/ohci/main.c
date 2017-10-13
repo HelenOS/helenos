@@ -44,6 +44,7 @@
 #include <usb/host/ddf_helpers.h>
 
 #include "hc.h"
+#include "ohci_bus.h"
 
 #define NAME "ohci"
 static int ohci_driver_init(hcd_t *, const hw_res_list_parsed_t *);
@@ -52,7 +53,6 @@ static int ohci_driver_claim(hcd_t *, ddf_dev_t *);
 static void ohci_driver_fini(hcd_t *);
 
 static const ddf_hc_driver_t ohci_hc_driver = {
-        .hc_speed = USB_SPEED_FULL,
         .irq_code_gen = ohci_hc_gen_irq_code,
         .init = ohci_driver_init,
         .claim = ohci_driver_claim,
@@ -61,8 +61,6 @@ static const ddf_hc_driver_t ohci_hc_driver = {
         .name = "OHCI",
 	.ops = {
                 .schedule       = ohci_hc_schedule,
-                .ep_add_hook    = ohci_endpoint_init,
-                .ep_remove_hook = ohci_endpoint_fini,
                 .irq_hook       = ohci_hc_interrupt,
                 .status_hook    = ohci_hc_status,
 	},
@@ -71,6 +69,8 @@ static const ddf_hc_driver_t ohci_hc_driver = {
 
 static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 {
+	int err;
+
 	assert(hcd);
 	assert(hcd_get_driver_data(hcd) == NULL);
 
@@ -78,13 +78,19 @@ static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 	if (!instance)
 		return ENOMEM;
 
-	const int ret = hc_init(instance, res);
-	if (ret == EOK) {
-		hcd_set_implementation(hcd, instance, &ohci_hc_driver.ops);
-	} else {
-		free(instance);
-	}
-	return ret;
+	if ((err = hc_init(instance, res)) != EOK)
+		goto err;
+
+	if ((err = ohci_bus_init(&instance->bus, instance)))
+		goto err;
+
+	hcd_set_implementation(hcd, instance, &ohci_hc_driver.ops, &instance->bus.base.base);
+
+	return EOK;
+
+err:
+	free(instance);
+	return err;
 }
 
 static int ohci_driver_claim(hcd_t *hcd, ddf_dev_t *dev)
@@ -114,7 +120,7 @@ static void ohci_driver_fini(hcd_t *hcd)
 	if (hc)
 		hc_fini(hc);
 
-	hcd_set_implementation(hcd, NULL, NULL);
+	hcd_set_implementation(hcd, NULL, NULL, NULL);
 	free(hc);
 }
 

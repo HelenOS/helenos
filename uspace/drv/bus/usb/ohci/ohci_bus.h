@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Ondrej Hlavaty <aearsis@eideo.cz>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,19 +32,20 @@
 /** @file
  * @brief OHCI driver
  */
-#ifndef DRV_OHCI_HCD_ENDPOINT_H
-#define DRV_OHCI_HCD_ENDPOINT_H
+#ifndef DRV_OHCI_HCD_BUS_H
+#define DRV_OHCI_HCD_BUS_H
 
 #include <assert.h>
 #include <adt/list.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/hcd.h>
+#include <usb/host/usb2_bus.h>
 
 #include "hw_struct/endpoint_descriptor.h"
 #include "hw_struct/transfer_descriptor.h"
 
 /** Connector structure linking ED to to prepared TD. */
 typedef struct ohci_endpoint {
+	endpoint_t base;
+
 	/** OHCI endpoint descriptor */
 	ed_t *ed;
 	/** Currently enqueued transfer descriptor */
@@ -52,8 +54,17 @@ typedef struct ohci_endpoint {
 	link_t link;
 } ohci_endpoint_t;
 
-int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
-void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep);
+typedef struct hc hc_t;
+
+typedef struct {
+	usb2_bus_t base;
+	hc_t *hc;
+
+	/* Stored original ops from base, they are called in our handlers */
+	bus_ops_t parent_ops;
+} ohci_bus_t;
+
+int ohci_bus_init(ohci_bus_t *, hc_t *);
 
 /** Get and convert assigned ohci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.
@@ -62,7 +73,7 @@ void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep);
 static inline ohci_endpoint_t * ohci_endpoint_get(const endpoint_t *ep)
 {
 	assert(ep);
-	return ep->hc_data.data;
+	return (ohci_endpoint_t *) ep;
 }
 
 #endif

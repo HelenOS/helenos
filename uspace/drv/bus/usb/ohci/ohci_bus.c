@@ -36,8 +36,9 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <usb/host/utils/malloc32.h>
+#include <usb/host/bandwidth.h>
 
-#include "ohci_endpoint.h"
+#include "ohci_bus.h"
 #include "hc.h"
 
 /** Callback to set toggle on ED.
@@ -45,11 +46,12 @@
  * @param[in] hcd_ep hcd endpoint structure
  * @param[in] toggle new value of toggle bit
  */
-static void ohci_ep_toggle_set(void *ohci_ep, int toggle)
+static void ohci_ep_toggle_set(endpoint_t *ep, bool toggle)
 {
-	ohci_endpoint_t *instance = ohci_ep;
+	ohci_endpoint_t *instance = ohci_endpoint_get(ep);
 	assert(instance);
 	assert(instance->ed);
+	ep->toggle = toggle;
 	ed_toggle_set(instance->ed, toggle);
 }
 
@@ -58,44 +60,38 @@ static void ohci_ep_toggle_set(void *ohci_ep, int toggle)
  * @param[in] hcd_ep hcd endpoint structure
  * @return Current value of toggle bit.
  */
-static int ohci_ep_toggle_get(void *ohci_ep)
+static bool ohci_ep_toggle_get(endpoint_t *ep)
 {
-	ohci_endpoint_t *instance = ohci_ep;
+	ohci_endpoint_t *instance = ohci_endpoint_get(ep);
 	assert(instance);
 	assert(instance->ed);
 	return ed_toggle_get(instance->ed);
 }
 
 /** Creates new hcd endpoint representation.
- *
- * @param[in] ep USBD endpoint structure
- * @return Error code.
  */
-int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
+static endpoint_t *ohci_endpoint_create(bus_t *bus)
 {
-	assert(ep);
+	assert(bus);
+
 	ohci_endpoint_t *ohci_ep = malloc(sizeof(ohci_endpoint_t));
 	if (ohci_ep == NULL)
-		return ENOMEM;
+		return NULL;
 
 	ohci_ep->ed = malloc32(sizeof(ed_t));
 	if (ohci_ep->ed == NULL) {
 		free(ohci_ep);
-		return ENOMEM;
+		return NULL;
 	}
 
 	ohci_ep->td = malloc32(sizeof(td_t));
 	if (ohci_ep->td == NULL) {
 		free32(ohci_ep->ed);
 		free(ohci_ep);
-		return ENOMEM;
+		return NULL;
 	}
 
 	link_initialize(&ohci_ep->link);
-	ed_init(ohci_ep->ed, ep, ohci_ep->td);
-	endpoint_set_hc_data(
-	    ep, ohci_ep, ohci_ep_toggle_get, ohci_ep_toggle_set);
-	hc_enqueue_endpoint(hcd_get_driver_data(hcd), ep);
 	return EOK;
 }
 
@@ -104,18 +100,65 @@ int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
  * @param[in] hcd driver using this instance.
  * @param[in] ep endpoint structure.
  */
-void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
+static void ohci_endpoint_destroy(endpoint_t *ep)
 {
-	assert(hcd);
 	assert(ep);
 	ohci_endpoint_t *instance = ohci_endpoint_get(ep);
-	hc_dequeue_endpoint(hcd_get_driver_data(hcd), ep);
-	endpoint_clear_hc_data(ep);
-	if (instance) {
-		free32(instance->ed);
-		free32(instance->td);
-		free(instance);
-	}
+
+	free32(instance->ed);
+	free32(instance->td);
+	free(instance);
+}
+
+
+static int ohci_register_ep(bus_t *bus_base, endpoint_t *ep)
+{
+	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
+	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+
+	const int err = bus->parent_ops.register_endpoint(bus_base, ep);
+	if (err)
+		return err;
+
+	ed_init(ohci_ep->ed, ep, ohci_ep->td);
+	hc_enqueue_endpoint(bus->hc, ep);
+
+	return EOK;
+}
+
+static int ohci_release_ep(bus_t *bus_base, endpoint_t *ep)
+{
+	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
+	assert(bus);
+	assert(ep);
+
+	const int err = bus->parent_ops.release_endpoint(bus_base, ep);
+	if (err)
+		return err;
+
+	hc_dequeue_endpoint(bus->hc, ep);
+	return EOK;
+
+}
+
+int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
+{
+	assert(hc);
+	assert(bus);
+
+	usb2_bus_init(&bus->base, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
+
+	bus_ops_t *ops = &bus->base.base.ops;
+	bus->parent_ops = *ops;
+	ops->create_endpoint = ohci_endpoint_create;
+	ops->destroy_endpoint = ohci_endpoint_destroy;
+	ops->endpoint_set_toggle = ohci_ep_toggle_set;
+	ops->endpoint_get_toggle = ohci_ep_toggle_get;
+
+	ops->register_endpoint = ohci_register_ep;
+	ops->release_endpoint = ohci_release_ep;
+
+	return EOK;
 }
 
 /**

@@ -46,7 +46,7 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 
-#include "ohci_endpoint.h"
+#include "ohci_bus.h"
 #include "ohci_batch.h"
 
 #include "hc.h"
@@ -286,7 +286,7 @@ int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	assert(instance);
 
 	/* Check for root hub communication */
-	if (batch->ep->address == ohci_rh_get_address(&instance->rh)) {
+	if (batch->ep->target.address == ohci_rh_get_address(&instance->rh)) {
 		usb_log_debug("OHCI root hub request.\n");
 		return ohci_rh_schedule(&instance->rh, batch);
 	}

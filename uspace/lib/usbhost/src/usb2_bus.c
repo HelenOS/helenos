@@ -40,6 +40,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <macros.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 /** Ops receive generic bus_t pointer. */
@@ -107,6 +108,16 @@ static endpoint_t *usb2_bus_find_ep(bus_t *bus_base, usb_target_t target, usb_di
 			return ep;
 	}
 	return NULL;
+}
+
+static endpoint_t *usb2_bus_create_ep(bus_t *bus)
+{
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	if (!ep)
+		return NULL;
+
+	endpoint_init(ep, bus);
+	return ep;
 }
 
 /** Register an endpoint to the bus. Reserves bandwidth.
@@ -270,6 +281,7 @@ static int usb2_bus_get_speed(bus_t *bus_base, usb_address_t address, usb_speed_
 }
 
 static const bus_ops_t usb2_bus_ops = {
+	.create_endpoint = usb2_bus_create_ep,
 	.find_endpoint = usb2_bus_find_ep,
 	.release_endpoint = usb2_bus_release_ep,
 	.register_endpoint = usb2_bus_register_ep,
@@ -286,11 +298,11 @@ static const bus_ops_t usb2_bus_ops = {
  * @param bw_count function to use to calculate endpoint bw requirements.
  * @return Error code.
  */
-int usb2_bus_init(usb2_bus_t *bus, hcd_t *hcd, size_t available_bandwidth, count_bw_func_t count_bw)
+int usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth, count_bw_func_t count_bw)
 {
 	assert(bus);
 
-	bus_init(&bus->base, hcd);
+	bus_init(&bus->base);
 
 	bus->base.ops = usb2_bus_ops;
 	bus->base.ops.count_bw = count_bw;

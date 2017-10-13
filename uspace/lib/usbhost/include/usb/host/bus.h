@@ -67,14 +67,12 @@ typedef struct {
 
 	/* Endpoint ops, optional (have generic fallback) */
 	void (*destroy_endpoint)(endpoint_t *);
-	int (*endpoint_get_toggle)(endpoint_t *);
-	void (*endpoint_set_toggle)(endpoint_t *, unsigned);
+	bool (*endpoint_get_toggle)(endpoint_t *);
+	void (*endpoint_set_toggle)(endpoint_t *, bool);
 } bus_ops_t;
 
 /** Endpoint management structure */
 typedef struct bus {
-	hcd_t *hcd;
-
 	/* Synchronization of ops */
 	fibril_mutex_t guard;
 
@@ -84,7 +82,7 @@ typedef struct bus {
 	/* This structure is meant to be extended by overriding. */
 } bus_t;
 
-void bus_init(bus_t *, hcd_t *hcd);
+void bus_init(bus_t *);
 
 endpoint_t *bus_create_endpoint(bus_t *);
 int bus_register_endpoint(bus_t *, endpoint_t *);

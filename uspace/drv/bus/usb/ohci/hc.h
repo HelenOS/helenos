@@ -51,6 +51,7 @@
 
 #include "ohci_regs.h"
 #include "ohci_rh.h"
+#include "ohci_bus.h"
 #include "endpoint_list.h"
 #include "hw_struct/hcca.h"
 
@@ -79,6 +80,9 @@ typedef struct hc {
 
 	/** USB hub emulation structure */
 	ohci_rh_t rh;
+
+	/** USB bookkeeping */
+	ohci_bus_t bus;
 } hc_t;
 
 extern int hc_init(hc_t *, const hw_res_list_parsed_t *);

@@ -49,6 +49,7 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 #include <usb/host/utils/malloc32.h>
+#include <usb/host/bandwidth.h>
 
 #include "uhci_batch.h"
 #include "hc.h"
@@ -319,7 +320,11 @@ void hc_init_hw(const hc_t *instance)
  */
 int hc_init_mem_structures(hc_t *instance)
 {
+	int err;
 	assert(instance);
+
+	if ((err = usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11)))
+		return err;
 
 	/* Init USB frame list page */
 	instance->frame_list = get_page();

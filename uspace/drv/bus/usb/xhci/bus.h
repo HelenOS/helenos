@@ -51,10 +51,10 @@ typedef struct xhci_bus {
 	 * addresses can be just too big.
 	 */
 
- 	hash_table_t endpoints;
+	hash_table_t endpoints;
 } xhci_bus_t;
 
-int xhci_bus_init(xhci_bus_t *, hcd_t *);
+int xhci_bus_init(xhci_bus_t *);
 void xhci_bus_fini(xhci_bus_t *);
 
 #endif

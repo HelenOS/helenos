@@ -170,13 +170,13 @@ static size_t count_bw(endpoint_t *ep, size_t size)
 }
 
 /* Endpoint ops, optional (have generic fallback) */
-static int endpoint_get_toggle(endpoint_t *ep)
+static bool endpoint_get_toggle(endpoint_t *ep)
 {
 	// TODO: Implement me!
 	return ENOTSUP;
 }
 
-static void endpoint_set_toggle(endpoint_t *ep, unsigned toggle)
+static void endpoint_set_toggle(endpoint_t *ep, bool toggle)
 {
 	// TODO: Implement me!
 }
@@ -226,11 +226,11 @@ static hash_table_ops_t endpoint_ht_ops = {
 	.remove_callback = NULL
 };
 
-int xhci_bus_init(xhci_bus_t *bus, hcd_t *hcd)
+int xhci_bus_init(xhci_bus_t *bus)
 {
 	assert(bus);
 
-	bus_init(&bus->base, hcd);
+	bus_init(&bus->base);
 
 	if (!hash_table_create(&bus->endpoints, 0, 0, &endpoint_ht_ops)) {
 		// FIXME: Dealloc base!

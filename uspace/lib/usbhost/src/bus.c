@@ -42,11 +42,10 @@
 /**
  * Initializes the bus structure.
  */
-void bus_init(bus_t *bus, hcd_t *hcd)
+void bus_init(bus_t *bus)
 {
 	memset(bus, 0, sizeof(bus_t));
 
-	bus->hcd = hcd;
 	fibril_mutex_initialize(&bus->guard);
 }
 

@@ -215,8 +215,14 @@ int hc_init_memory(xhci_hc_t *hc)
 	if ((err = xhci_rh_init(&hc->rh, hc)))
 		goto err_cmd;
 
+	if ((err = xhci_bus_init(&hc->bus)))
+		goto err_rh;
+
+
 	return EOK;
 
+err_rh:
+	xhci_rh_fini(&hc->rh);
 err_cmd:
 	xhci_fini_commands(hc);
 err_scratch:
@@ -609,6 +615,7 @@ static void hc_dcbaa_fini(xhci_hc_t *hc)
 
 void hc_fini(xhci_hc_t *hc)
 {
+	xhci_bus_fini(&hc->bus);
 	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
 	hc_dcbaa_fini(hc);

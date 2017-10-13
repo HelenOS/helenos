@@ -80,9 +80,6 @@ static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 	if ((err = hc_init_mmio(hc, hw_res)))
 		goto err;
 
-	if ((err = xhci_bus_init(&hc->bus, hcd)))
-		goto err;
-
 	if ((err = hc_init_memory(hc)))
 		goto err;
 
@@ -149,9 +146,6 @@ static void hc_driver_fini(hcd_t *hcd)
 	assert(hc);
 
 	hc_fini(hc);
-
-	// FIXME: Probably move init/fini of XHCI bus into HC.
-	xhci_bus_fini(&hc->bus);
 
 	free(hc);
 }

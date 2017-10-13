@@ -64,7 +64,7 @@ typedef struct usb2_bus {
 	usb_address_t last_address;
 } usb2_bus_t;
 
-extern int usb2_bus_init(usb2_bus_t *, hcd_t *, size_t, count_bw_func_t);
+extern int usb2_bus_init(usb2_bus_t *, size_t, count_bw_func_t);
 
 #endif
 /**
