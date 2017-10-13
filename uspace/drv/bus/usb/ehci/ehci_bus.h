@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Ondrej Hlavaty <aearsis@eideo.cz>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,27 +32,38 @@
 /** @file
  * @brief EHCI driver
  */
-#ifndef DRV_EHCI_HCD_ENDPOINT_H
-#define DRV_EHCI_HCD_ENDPOINT_H
+#ifndef DRV_EHCI_HCD_BUS_H
+#define DRV_EHCI_HCD_BUS_H
 
 #include <assert.h>
 #include <adt/list.h>
+#include <usb/host/usb2_bus.h>
 #include <usb/host/endpoint.h>
-#include <usb/host/hcd.h>
 
 #include "hw_struct/queue_head.h"
-#include "hw_struct/transfer_descriptor.h"
 
 /** Connector structure linking ED to to prepared TD. */
 typedef struct ehci_endpoint {
+	/* Inheritance */
+	endpoint_t base;
+
 	/** EHCI endpoint descriptor */
 	qh_t *qh;
 	/** Linked list used by driver software */
 	link_t link;
 } ehci_endpoint_t;
 
-int ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
-void ehci_endpoint_fini(hcd_t *hcd, endpoint_t *ep);
+typedef struct hc hc_t;
+
+typedef struct {
+	usb2_bus_t base;
+	hc_t *hc;
+
+	/* Stored original ops from base, they are called in our handlers */
+	bus_ops_t parent_ops;
+} ehci_bus_t;
+
+int ehci_bus_init(ehci_bus_t *, hc_t *);
 
 /** Get and convert assigned ehci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.
@@ -60,7 +72,7 @@ void ehci_endpoint_fini(hcd_t *hcd, endpoint_t *ep);
 static inline ehci_endpoint_t * ehci_endpoint_get(const endpoint_t *ep)
 {
 	assert(ep);
-	return ep->hc_data.data;
+	return (ehci_endpoint_t *) ep;
 }
 
 static inline ehci_endpoint_t * ehci_endpoint_list_instance(link_t *l)
@@ -72,4 +84,3 @@ static inline ehci_endpoint_t * ehci_endpoint_list_instance(link_t *l)
 /**
  * @}
  */
-

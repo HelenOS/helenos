@@ -64,8 +64,8 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	}
 	assert(ep->speed < ARRAY_SIZE(speed));
 	EHCI_MEM32_WR(instance->ep_char,
-	    QH_EP_CHAR_ADDR_SET(ep->address) |
-	    QH_EP_CHAR_EP_SET(ep->endpoint) |
+	    QH_EP_CHAR_ADDR_SET(ep->target.address) |
+	    QH_EP_CHAR_EP_SET(ep->target.endpoint) |
 	    speed[ep->speed] |
 	    QH_EP_CHAR_MAX_LENGTH_SET(ep->max_packet_size)
 	);

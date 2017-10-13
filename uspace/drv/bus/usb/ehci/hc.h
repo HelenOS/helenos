@@ -79,6 +79,9 @@ typedef struct hc {
 
 	/** USB hub emulation structure */
 	ehci_rh_t rh;
+
+	/** USB bookkeeping */
+	ehci_bus_t bus;
 } hc_t;
 
 int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res);

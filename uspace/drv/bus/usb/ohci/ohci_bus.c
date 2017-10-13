@@ -78,6 +78,8 @@ static endpoint_t *ohci_endpoint_create(bus_t *bus)
 	if (ohci_ep == NULL)
 		return NULL;
 
+	endpoint_init(&ohci_ep->base, bus);
+
 	ohci_ep->ed = malloc32(sizeof(ed_t));
 	if (ohci_ep->ed == NULL) {
 		free(ohci_ep);

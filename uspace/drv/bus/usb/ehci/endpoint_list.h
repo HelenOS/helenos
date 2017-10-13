@@ -39,7 +39,7 @@
 #include <fibril_synch.h>
 #include <usb/host/utils/malloc32.h>
 
-#include "ehci_endpoint.h"
+#include "ehci_bus.h"
 #include "hw_struct/queue_head.h"
 
 /** Structure maintains both EHCI queue and software list of active endpoints.*/

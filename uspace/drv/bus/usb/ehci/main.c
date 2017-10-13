@@ -47,7 +47,6 @@
 
 #include "res.h"
 #include "hc.h"
-#include "ehci_endpoint.h"
 
 #define NAME "ehci"
 
@@ -66,8 +65,6 @@ static const ddf_hc_driver_t ehci_hc_driver = {
 	.fini = ehci_driver_fini,
 	.ops = {
 		.schedule       = ehci_hc_schedule,
-		.ep_add_hook    = ehci_endpoint_init,
-		.ep_remove_hook = ehci_endpoint_fini,
 		.irq_hook       = ehci_hc_interrupt,
 		.status_hook    = ehci_hc_status,
 	}
@@ -85,7 +82,7 @@ static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
 
 	const int ret = hc_init(instance, res);
 	if (ret == EOK) {
-		hcd_set_implementation(hcd, instance, &ehci_hc_driver.ops);
+		hcd_set_implementation(hcd, instance, &ehci_hc_driver.ops, &instance->bus.base.base);
 	} else {
 		free(instance);
 	}
@@ -115,7 +112,7 @@ static void ehci_driver_fini(hcd_t *hcd)
 		hc_fini(hc);
 
 	free(hc);
-	hcd_set_implementation(hcd, NULL, NULL);
+	hcd_set_implementation(hcd, NULL, NULL, NULL);
 }
 
 /** Initializes a new ddf driver instance of EHCI hcd.

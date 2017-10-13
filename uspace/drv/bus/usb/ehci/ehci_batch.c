@@ -44,7 +44,7 @@
 #include <usb/host/utils/malloc32.h>
 
 #include "ehci_batch.h"
-#include "ehci_endpoint.h"
+#include "ehci_bus.h"
 
 /* The buffer pointer list in the qTD is long enough to support a maximum
  * transfer size of 20K bytes. This case occurs when all five buffer pointers
