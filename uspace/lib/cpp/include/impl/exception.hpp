@@ -26,4 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <impl/type_traits.hpp>
+#ifndef LIBCPP_EXCEPTION
+#define LIBCPP_EXCEPTION
+
+namespace std
+{
+
+class exception
+{
+	public:
+		exception() = default;
+		exception(const exception&) = default;
+		exception& operator=(const exception&) noexcept;
+		virtual const char* what() const;
+		virtual ~exception() = default;
+};
+
+}
+
+#endif
+
