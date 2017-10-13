@@ -49,9 +49,9 @@
 typedef struct {
 	ht_link_t link;
 
-	/** Endpoint */
-	xhci_endpoint_t *endpoint;
-} hashed_endpoint_t;
+	/** Device */
+	xhci_device_t *device;
+} hashed_device_t;
 
 /** Ops receive generic bus_t pointer. */
 static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
@@ -84,13 +84,73 @@ static void destroy_endpoint(endpoint_t *ep)
 	free(xhci_ep);
 }
 
-static int endpoint_find_by_target(xhci_bus_t *bus, usb_target_t target, hashed_endpoint_t **ep)
+static int hashed_device_find_by_address(xhci_bus_t *bus, usb_address_t address, hashed_device_t **dev)
 {
-	ht_link_t *link = hash_table_find(&bus->endpoints, &target.packed);
+	ht_link_t *link = hash_table_find(&bus->devices, &address);
 	if (link == NULL)
 		return ENOENT;
 
-	*ep = hash_table_get_inst(link, hashed_endpoint_t, link);
+	*dev = hash_table_get_inst(link, hashed_device_t, link);
+	return EOK;
+}
+
+static int xhci_endpoint_find_by_target(xhci_bus_t *bus, usb_target_t target, xhci_endpoint_t **ep)
+{
+	hashed_device_t *dev;
+	int res = hashed_device_find_by_address(bus, target.address, &dev);
+	if (res != EOK)
+		return res;
+
+	xhci_endpoint_t *ret_ep = xhci_device_get_endpoint(dev->device, target.endpoint);
+	if (!ret_ep)
+		return ENOENT;
+
+	*ep = ret_ep;
+	return EOK;
+}
+
+static int hashed_device_create(xhci_bus_t *bus, hashed_device_t **hashed_dev)
+{
+	int res;
+	xhci_device_t *dev = (xhci_device_t *) malloc(sizeof(xhci_device_t));
+	if (!dev) {
+		res = ENOMEM;
+		goto err_xhci_dev_alloc;
+	}
+
+	res = xhci_device_init(dev, bus);
+	if (res != EOK) {
+		goto err_xhci_dev_init;
+	}
+
+	// TODO: Set device data.
+
+	hashed_device_t *ret_dev = (hashed_device_t *) malloc(sizeof(hashed_device_t));
+	if (!ret_dev) {
+		res = ENOMEM;
+		goto err_hashed_dev_alloc;
+	}
+
+	ret_dev->device = dev;
+
+	hash_table_insert(&bus->devices, &ret_dev->link);
+	*hashed_dev = ret_dev;
+	return EOK;
+
+err_hashed_dev_alloc:
+err_xhci_dev_init:
+	free(dev);
+err_xhci_dev_alloc:
+	return res;
+}
+
+static int hashed_device_remove(xhci_bus_t *bus, hashed_device_t *hashed_dev)
+{
+	hash_table_remove(&bus->devices, &hashed_dev->device->address);
+	xhci_device_fini(hashed_dev->device);
+	free(hashed_dev->device);
+	free(hashed_dev);
+
 	return EOK;
 }
 
@@ -99,15 +159,19 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
-	hashed_endpoint_t *hashed_ep =
-	    (hashed_endpoint_t *) malloc(sizeof(hashed_endpoint_t));
-	if (!hashed_ep)
-		return ENOMEM;
+	hashed_device_t *hashed_dev;
+	int res = hashed_device_find_by_address(bus, ep->target.address, &hashed_dev);
+	if (res != EOK && res != ENOENT)
+		return res;
 
-	hashed_ep->endpoint = xhci_endpoint_get(ep);
-	hash_table_insert(&bus->endpoints, &hashed_ep->link);
+	if (res == ENOENT) {
+		res = hashed_device_create(bus, &hashed_dev);
 
-	return EOK;
+		if (res != EOK)
+			return res;
+	}
+
+	return xhci_device_add_endpoint(hashed_dev->device, xhci_endpoint_get(ep));
 }
 
 static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
@@ -115,13 +179,19 @@ static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
-	hashed_endpoint_t *hashed_ep;
-	int res = endpoint_find_by_target(bus, ep->target, &hashed_ep);
+	hashed_device_t *hashed_dev;
+	int res = hashed_device_find_by_address(bus, ep->target.address, &hashed_dev);
 	if (res != EOK)
 		return res;
 
-	hash_table_remove(&bus->endpoints, &ep->target.packed);
-	free(hashed_ep);
+	xhci_device_remove_endpoint(hashed_dev->device, xhci_endpoint_get(ep));
+
+	if (hashed_dev->device->active_endpoint_count == 0) {
+		res = hashed_device_remove(bus, hashed_dev);
+
+		if (res != EOK)
+			return res;
+	}
 
 	return EOK;
 }
@@ -131,12 +201,12 @@ static endpoint_t* find_endpoint(bus_t *bus_base, usb_target_t target, usb_direc
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
-	hashed_endpoint_t *hashed_ep;
-	int res = endpoint_find_by_target(bus, target, &hashed_ep);
+	xhci_endpoint_t *ep;
+	int res = xhci_endpoint_find_by_target(bus, target, &ep);
 	if (res != EOK)
 		return NULL;
 
-	return &hashed_ep->endpoint->base;
+	return &ep->base;
 }
 
 static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
@@ -204,28 +274,28 @@ static const bus_ops_t xhci_bus_ops = {
 	.endpoint_set_toggle = endpoint_set_toggle,
 };
 
-static size_t endpoint_ht_hash(const ht_link_t *item)
+static size_t device_ht_hash(const ht_link_t *item)
 {
-	hashed_endpoint_t *ep = hash_table_get_inst(item, hashed_endpoint_t, link);
-	return (size_t) hash_mix32(ep->endpoint->base.target.packed);
+	hashed_device_t *dev = hash_table_get_inst(item, hashed_device_t, link);
+	return (size_t) hash_mix(dev->device->address);
 }
 
-static size_t endpoint_ht_key_hash(void *key)
+static size_t device_ht_key_hash(void *key)
 {
-	return (size_t) hash_mix32(*(uint32_t *)key);
+	return (size_t) hash_mix(*(usb_address_t *)key);
 }
 
-static bool endpoint_ht_key_equal(void *key, const ht_link_t *item)
+static bool device_ht_key_equal(void *key, const ht_link_t *item)
 {
-	hashed_endpoint_t *ep = hash_table_get_inst(item, hashed_endpoint_t, link);
-	return ep->endpoint->base.target.packed == *(uint32_t *) key;
+	hashed_device_t *dev = hash_table_get_inst(item, hashed_device_t, link);
+	return dev->device->address == *(usb_address_t *) key;
 }
 
-/** Operations for the endpoint hash table. */
-static hash_table_ops_t endpoint_ht_ops = {
-	.hash = endpoint_ht_hash,
-	.key_hash = endpoint_ht_key_hash,
-	.key_equal = endpoint_ht_key_equal,
+/** Operations for the device hash table. */
+static hash_table_ops_t device_ht_ops = {
+	.hash = device_ht_hash,
+	.key_hash = device_ht_key_hash,
+	.key_equal = device_ht_key_equal,
 	.equal = NULL,
 	.remove_callback = NULL
 };
@@ -236,7 +306,7 @@ int xhci_bus_init(xhci_bus_t *bus)
 
 	bus_init(&bus->base);
 
-	if (!hash_table_create(&bus->endpoints, 0, 0, &endpoint_ht_ops)) {
+	if (!hash_table_create(&bus->devices, 0, 0, &device_ht_ops)) {
 		// FIXME: Dealloc base!
 		return ENOMEM;
 	}
@@ -247,7 +317,9 @@ int xhci_bus_init(xhci_bus_t *bus)
 
 void xhci_bus_fini(xhci_bus_t *bus)
 {
-	hash_table_destroy(&bus->endpoints);
+	// FIXME: Make sure no devices are in the hash table.
+
+	hash_table_destroy(&bus->devices);
 }
 /**
  * @}

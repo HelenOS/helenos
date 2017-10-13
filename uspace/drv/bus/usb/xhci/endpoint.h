@@ -42,8 +42,11 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 
+typedef struct xhci_device xhci_device_t;
 typedef struct xhci_endpoint xhci_endpoint_t;
 typedef struct xhci_bus xhci_bus_t;
+
+#define XHCI_DEVICE_MAX_ENDPOINTS 32
 
 enum {
 	EP_TYPE_INVALID = 0,
@@ -60,11 +63,27 @@ enum {
 typedef struct xhci_endpoint {
 	endpoint_t base;	/**< Inheritance. Keep this first. */
 
-	uint32_t slot_id;
+	xhci_device_t *device;
 } xhci_endpoint_t;
+
+typedef struct xhci_device {
+	usb_address_t address;
+
+	uint32_t slot_id;
+
+	xhci_endpoint_t *endpoints[XHCI_DEVICE_MAX_ENDPOINTS];
+	uint8_t active_endpoint_count;
+} xhci_device_t;
 
 int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
+
+int xhci_device_init(xhci_device_t *, xhci_bus_t *);
+void xhci_device_fini(xhci_device_t *);
+
+int xhci_device_add_endpoint(xhci_device_t *, xhci_endpoint_t *);
+int xhci_device_remove_endpoint(xhci_device_t *, xhci_endpoint_t *);
+xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *, usb_endpoint_t);
 
 static inline xhci_endpoint_t * xhci_endpoint_get(endpoint_t *ep)
 {

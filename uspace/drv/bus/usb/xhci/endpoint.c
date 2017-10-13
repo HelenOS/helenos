@@ -49,8 +49,7 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, xhci_bus_t *xhci_bus)
 	endpoint_t *ep = &xhci_ep->base;
 
 	endpoint_init(ep, bus);
-
-	/* FIXME: Set xhci_ep->slot_id */
+	xhci_ep->device = NULL;
 
 	usb_log_debug("XHCI Endpoint %d:%d initialized.", ep->target.address, ep->target.endpoint);
 
@@ -66,6 +65,47 @@ void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 	endpoint_t *ep = &xhci_ep->base;
 
 	usb_log_debug("XHCI Endpoint %d:%d destroyed.", ep->target.address, ep->target.endpoint);
+}
+
+int xhci_device_init(xhci_device_t *dev, xhci_bus_t *bus)
+{
+	memset(&dev->endpoints, 0, sizeof(dev->endpoints));
+	dev->active_endpoint_count = 0;
+	return EOK;
+}
+
+void xhci_device_fini(xhci_device_t *dev)
+{
+	// TODO: Check that all endpoints are dead.
+}
+
+int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
+{
+	assert(dev->address == ep->base.target.address);
+	assert(!dev->endpoints[ep->base.target.endpoint]);
+	assert(!ep->device);
+
+	ep->device = dev;
+	dev->endpoints[ep->base.target.endpoint] = ep;
+	++dev->active_endpoint_count;
+	return EOK;
+}
+
+int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
+{
+	assert(dev->address == ep->base.target.address);
+	assert(dev->endpoints[ep->base.target.endpoint]);
+	assert(dev == ep->device);
+
+	ep->device = NULL;
+	dev->endpoints[ep->base.target.endpoint] = NULL;
+	--dev->active_endpoint_count;
+	return EOK;
+}
+
+xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *dev, usb_endpoint_t ep)
+{
+	return dev->endpoints[ep];
 }
 
 /**

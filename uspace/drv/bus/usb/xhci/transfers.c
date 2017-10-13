@@ -149,7 +149,7 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
 
-	uint8_t slot_id = xhci_ep->slot_id;
+	uint8_t slot_id = xhci_ep->device->slot_id;
 	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[0];
 
 	usb_device_request_setup_packet_t* setup =
@@ -233,7 +233,7 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
 	}
 
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
-	uint8_t slot_id = xhci_ep->slot_id;
+	uint8_t slot_id = xhci_ep->device->slot_id;
 	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
 
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
