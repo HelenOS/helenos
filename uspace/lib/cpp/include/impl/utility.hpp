@@ -29,6 +29,8 @@
 #ifndef LIBCPP_UTILITY
 #define LIBCPP_UTILITY
 
+#include <type_traits>
+
 namespace std
 {
     /**
@@ -80,7 +82,7 @@ namespace std
     }
 
     template<class T>
-    inline constexpr remove_reference_t<T>&& move(T&&) noexcept
+    inline constexpr remove_reference_t<T>&& move(T&& t) noexcept
     {
         return static_cast<remove_reference_t<T>&&>(t);
     }
