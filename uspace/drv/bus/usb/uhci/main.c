@@ -59,6 +59,7 @@ static const ddf_hc_driver_t uhci_hc_driver = {
         .irq_code_gen = uhci_hc_gen_irq_code,
         .init = uhci_driver_init,
         .start = uhci_driver_start,
+	.setup_root_hub = hcd_setup_virtual_root_hub,
         .fini = uhci_driver_fini,
         .name = "UHCI",
 	.ops = {

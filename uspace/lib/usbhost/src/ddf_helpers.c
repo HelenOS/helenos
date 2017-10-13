@@ -616,7 +616,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
  * @param[in] device Host controller ddf device
  * @return Error code
  */
-int hcd_ddf_setup_root_hub(ddf_dev_t *device)
+int hcd_setup_virtual_root_hub(ddf_dev_t *device)
 {
 	assert(device);
 	hcd_t *hcd = dev_to_hcd(device);
@@ -918,7 +918,8 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	 * Creating root hub registers a new USB device so HC
 	 * needs to be ready at this time.
 	 */
-	ret = hcd_ddf_setup_root_hub(device);
+	if (driver->setup_root_hub)
+		ret = driver->setup_root_hub(device);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup HC root hub: %s.\n",
 		    str_error(ret));

@@ -62,6 +62,7 @@ static const ddf_hc_driver_t ehci_hc_driver = {
 	.irq_code_gen = ehci_hc_gen_irq_code,
 	.claim = ehci_driver_claim,
 	.start = ehci_driver_start,
+	.setup_root_hub = hcd_setup_virtual_root_hub,
 	.fini = ehci_driver_fini,
 	.ops = {
 		.schedule       = ehci_hc_schedule,

@@ -57,6 +57,7 @@ static const ddf_hc_driver_t ohci_hc_driver = {
         .init = ohci_driver_init,
         .claim = ohci_driver_claim,
         .start = ohci_driver_start,
+	.setup_root_hub = hcd_setup_virtual_root_hub,
         .fini = ohci_driver_fini,
         .name = "OHCI",
 	.ops = {

@@ -48,6 +48,7 @@ typedef int (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *);
 typedef int (*irq_code_gen_t)(irq_code_t *, hcd_t *, const hw_res_list_parsed_t *);
 typedef int (*claim_t)(hcd_t *, ddf_dev_t *);
 typedef int (*driver_start_t)(hcd_t *, bool irq);
+typedef int (*setup_root_hub_t)(ddf_dev_t *);
 
 typedef void (*driver_stop_t)(hcd_t *);
 typedef void (*driver_fini_t)(hcd_t *);
@@ -67,6 +68,7 @@ typedef struct {
 	claim_t claim;                     /**< Claim device from BIOS */
 	irq_code_gen_t irq_code_gen;       /**< Generate IRQ handling code */
 	driver_start_t start;              /**< Start the HC */
+	setup_root_hub_t setup_root_hub;   /**< Setup the root hub */
 
 	/* Destruction sequence: */
 	driver_stop_t stop;                /**< Stop the HC (counterpart of start) */
@@ -77,7 +79,8 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver);
 
 int hcd_ddf_setup_hc(ddf_dev_t *device);
 void hcd_ddf_clean_hc(ddf_dev_t *device);
-int hcd_ddf_setup_root_hub(ddf_dev_t *device);
+
+int hcd_setup_virtual_root_hub(ddf_dev_t *);
 
 hcd_t *dev_to_hcd(ddf_dev_t *dev);
 

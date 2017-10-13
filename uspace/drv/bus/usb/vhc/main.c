@@ -110,7 +110,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	 * Creating root hub registers a new USB device so HC
 	 * needs to be ready at this time.
 	 */
-	ret = hcd_ddf_setup_root_hub(dev);
+	ret = hcd_setup_virtual_root_hub(dev);
 	if (ret != EOK) {
 		usb_log_error("Failed to init VHC root hub: %s\n",
 			str_error(ret));
