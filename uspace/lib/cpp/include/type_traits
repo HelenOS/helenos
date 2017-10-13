@@ -60,23 +60,30 @@ namespace std
      * 20.10.4.1, primary type categories:
      */
 
+    // TODO: forward using, can I even do this?
     template<class T>
-    struct is_void;
+    using remove_cv_t = typename remove_cv<T>::type;
 
     template<class T>
-    struct is_null_pointer;
+    struct is_void: aux::is_void<remove_cv_t<T>>;
 
     template<class T>
-    struct is_integral;
+    struct is_null_pointer: aux::is_null_pointer<remove_cv_t<T>>;
 
     template<class T>
-    struct is_floating_point;
+    struct is_integral: aux::is_integral<remove_cv_t<T>>;
 
     template<class T>
-    struct is_array;
+    struct is_floating_point: aux::is_floating_point<remove_cv_t<T>>;
+
+    template<class>
+    struct is_array: false_type;
 
     template<class T>
-    struct is_pointer;
+    struct is_array<T[]>: true_type;
+
+    template<class T>
+    struct is_pointer: aux::is_pointer<remove_cv_t<T>>;
 
     template<class T>
     struct is_lvalue_reference;
