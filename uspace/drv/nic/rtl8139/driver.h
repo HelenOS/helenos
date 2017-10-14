@@ -86,6 +86,10 @@ typedef struct rtl8139_pm {
 
 /** RTL8139 device data */
 typedef struct rtl8139_data {
+	/** DDF device */
+	ddf_dev_t *dev;
+	/** Parent session */
+	async_sess_t *parent_sess;
 	/** I/O address of the device */
 	void *io_addr;
 	/** Mapped I/O port */

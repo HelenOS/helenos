@@ -35,10 +35,10 @@
 #include <as.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res.h>
 #include <io/log.h>
 #include <nic.h>
 #include <pci_dev_iface.h>
-#include <irc.h>
 #include <stdio.h>
 #include <str.h>
 
@@ -919,7 +919,7 @@ static int rtl8139_on_activated(nic_t *nic_data)
 	rtl8139->int_mask = RTL_DEFAULT_INTERRUPTS;
 	rtl8139_hw_int_set(rtl8139);
 
-	int rc = irc_enable_interrupt(rtl8139->irq);
+	int rc = hw_res_enable_interrupt(rtl8139->parent_sess, rtl8139->irq);
 	if (rc != EOK) {
 		rtl8139_on_stopped(nic_data);
 		return rc;
@@ -975,13 +975,13 @@ static rtl8139_t *rtl8139_create_dev_data(ddf_dev_t *dev)
 	if (!nic_data)
 		return NULL;
 
-	rtl8139_t *rtl8139 = malloc(sizeof(rtl8139_t));
+	rtl8139_t *rtl8139 = calloc(1, sizeof(rtl8139_t));
 	if (!rtl8139) {
 		nic_unbind_and_destroy(dev);
 		return NULL;
 	}
 
-	memset(rtl8139, 0, sizeof(rtl8139_t));
+	rtl8139->dev = dev;
 
 	rtl8139->nic_data = nic_data;
 	nic_set_specific(nic_data, rtl8139);
@@ -1165,6 +1165,11 @@ static int rtl8139_device_initialize(ddf_dev_t *dev)
 	}
 
 	ddf_msg(LVL_DEBUG, "rtl8139: dev_data created");
+	rtl8139->parent_sess = ddf_dev_parent_sess_get(dev);
+	if (rtl8139->parent_sess == NULL) {
+		ddf_msg(LVL_ERROR, "Error connecting parent device.");
+		return EIO;
+	}
 
 	/* Obtain and fill hardware resources info and connect to parent */
 	ret = rtl8139_get_resource_info(dev);
@@ -1257,7 +1262,6 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
 
-	assert(dev);
 	ddf_msg(LVL_NOTE, "RTL8139_dev_add %s (handle = %zu)",
 	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
 

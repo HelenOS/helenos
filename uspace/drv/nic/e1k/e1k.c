@@ -39,11 +39,11 @@
 #include <align.h>
 #include <thread.h>
 #include <byteorder.h>
-#include <irc.h>
 #include <as.h>
 #include <ddi.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res.h>
 #include <device/hw_res_parsed.h>
 #include <pci_dev_iface.h>
 #include <nic.h>
@@ -115,6 +115,10 @@
 
 /** E1000 device data */
 typedef struct {
+	/** DDF device */
+	ddf_dev_t *dev;
+	/** Parent session */
+	async_sess_t *parent_sess;
 	/** Device configuration */
 	e1000_info_t info;
 	
@@ -1756,7 +1760,7 @@ static int e1000_on_activating(nic_t *nic)
 	
 	e1000_enable_interrupts(e1000);
 	
-	int rc = irc_enable_interrupt(e1000->irq);
+	int rc = hw_res_enable_interrupt(e1000->parent_sess, e1000->irq);
 	if (rc != EOK) {
 		e1000_disable_interrupts(e1000);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
@@ -1801,7 +1805,7 @@ static int e1000_on_down_unlocked(nic_t *nic)
 	e1000_disable_tx(e1000);
 	e1000_disable_rx(e1000);
 	
-	irc_disable_interrupt(e1000->irq);
+	hw_res_disable_interrupt(e1000->parent_sess, e1000->irq);
 	e1000_disable_interrupts(e1000);
 	
 	/*
@@ -1883,6 +1887,7 @@ static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
 	}
 	
 	memset(e1000, 0, sizeof(e1000_t));
+	e1000->dev = dev;
 	
 	nic_set_specific(nic, e1000);
 	nic_set_send_frame_handler(nic, e1000_send_frame);
@@ -1997,6 +2002,12 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	if (e1000 == NULL) {
 		ddf_msg(LVL_ERROR, "Unable to allocate device softstate");
 		return ENOMEM;
+	}
+	
+	e1000->parent_sess = ddf_dev_parent_sess_get(dev);
+	if (e1000->parent_sess == NULL) {
+		ddf_msg(LVL_ERROR, "Failed connecting parent device.");
+		return EIO;
 	}
 	
 	/* Obtain and fill hardware resources info */
@@ -2118,7 +2129,6 @@ static int e1000_pio_enable(ddf_dev_t *dev)
 int e1000_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
-	assert(dev);
 	
 	/* Initialize device structure for E1000 */
 	int rc = e1000_device_initialize(dev);

@@ -51,6 +51,8 @@
 typedef enum {
 	HW_RES_GET_RESOURCE_LIST = 0,
 	HW_RES_ENABLE_INTERRUPT,
+	HW_RES_DISABLE_INTERRUPT,
+	HW_RES_CLEAR_INTERRUPT,
 	HW_RES_DMA_CHANNEL_SETUP,
 	HW_RES_DMA_CHANNEL_REMAIN,
 } hw_res_method_t;
@@ -115,6 +117,8 @@ static inline void hw_res_clean_resource_list(hw_resource_list_t *hw_res)
 
 extern int hw_res_get_resource_list(async_sess_t *, hw_resource_list_t *);
 extern int hw_res_enable_interrupt(async_sess_t *, int);
+extern int hw_res_disable_interrupt(async_sess_t *, int);
+extern int hw_res_clear_interrupt(async_sess_t *, int);
 
 extern int hw_res_dma_channel_setup(async_sess_t *, unsigned int, uint32_t,
     uint32_t, uint8_t);

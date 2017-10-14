@@ -85,6 +85,28 @@ int hw_res_enable_interrupt(async_sess_t *sess, int irq)
 	return rc;
 }
 
+int hw_res_disable_interrupt(async_sess_t *sess, int irq)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	int rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    HW_RES_DISABLE_INTERRUPT, irq);
+	async_exchange_end(exch);
+	
+	return rc;
+}
+
+int hw_res_clear_interrupt(async_sess_t *sess, int irq)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	
+	int rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    HW_RES_CLEAR_INTERRUPT, irq);
+	async_exchange_end(exch);
+	
+	return rc;
+}
+
 /** Setup DMA channel to specified place and mode.
  *
  * @param channel DMA channel.

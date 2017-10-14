@@ -114,26 +114,49 @@ static hw_resource_list_t *isa_fun_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static int isa_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
+static bool isa_fun_owns_interrupt(isa_fun_t *fun, int irq)
 {
-	isa_fun_t *fun = isa_fun(fnode);
 	const hw_resource_list_t *res = &fun->hw_resources;
-	bool found;
 
 	/* Check that specified irq really belongs to the function */
-	found = false;
 	for (size_t i = 0; i < res->count; ++i) {
 		if (res->resources[i].type == INTERRUPT &&
 		    res->resources[i].res.interrupt.irq == irq) {
-			found = true;
-			break;
+			return true;
 		}
 	}
 
-	if (!found)
+	return false;
+}
+
+static int isa_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
+{
+	isa_fun_t *fun = isa_fun(fnode);
+
+	if (!isa_fun_owns_interrupt(fun, irq))
 		return EINVAL;
 
 	return irc_enable_interrupt(irq);
+}
+
+static int isa_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
+{
+	isa_fun_t *fun = isa_fun(fnode);
+
+	if (!isa_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_disable_interrupt(irq);
+}
+
+static int isa_fun_clear_interrupt(ddf_fun_t *fnode, int irq)
+{
+	isa_fun_t *fun = isa_fun(fnode);
+
+	if (!isa_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_clear_interrupt(irq);
 }
 
 static int isa_fun_setup_dma(ddf_fun_t *fnode,
@@ -184,6 +207,8 @@ static int isa_fun_remain_dma(ddf_fun_t *fnode,
 static hw_res_ops_t isa_fun_hw_res_ops = {
 	.get_resource_list = isa_fun_get_resources,
 	.enable_interrupt = isa_fun_enable_interrupt,
+	.disable_interrupt = isa_fun_disable_interrupt,
+	.clear_interrupt = isa_fun_clear_interrupt,
 	.dma_channel_setup = isa_fun_setup_dma,
 	.dma_channel_remain = isa_fun_remain_dma,
 };

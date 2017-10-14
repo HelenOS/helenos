@@ -30,18 +30,18 @@
 #include <errno.h>
 #include <align.h>
 #include <byteorder.h>
-#include <irc.h>
 #include <libarch/barrier.h>
 
 #include <as.h>
 #include <thread.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
 #include <io/log.h>
 #include <nic.h>
 #include <pci_dev_iface.h>
 
-#include <ipc/irc.h>
 #include <sysinfo.h>
 #include <ipc/ns.h>
 
@@ -395,14 +395,19 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
+	rtl8169->dev = dev;
+	rtl8169->parent_sess = ddf_dev_parent_sess_get(dev);
+	if (rtl8169->parent_sess == NULL)
+		return EIO;
+
 	/* Get PCI VID & PID */
-	rc = pci_config_space_read_16(ddf_dev_parent_sess_get(dev),
-	    PCI_VENDOR_ID, &rtl8169->pci_vid);
+	rc = pci_config_space_read_16(rtl8169->parent_sess, PCI_VENDOR_ID,
+	    &rtl8169->pci_vid);
 	if (rc != EOK)
 		return rc;
 
-	rc = pci_config_space_read_16(ddf_dev_parent_sess_get(dev),
-	    PCI_DEVICE_ID, &rtl8169->pci_pid);
+	rc = pci_config_space_read_16(rtl8169->parent_sess, PCI_DEVICE_ID,
+	    &rtl8169->pci_pid);
 	if (rc != EOK)
 		return rc;
 
@@ -744,7 +749,8 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	pio_write_16(rtl8169->regs + RMS, BUFFER_SIZE);
 
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
-	irc_enable_interrupt(rtl8169->irq);
+	/* XXX Check return value */
+	hw_res_enable_interrupt(rtl8169->parent_sess, rtl8169->irq);
 
 	return EOK;
 }

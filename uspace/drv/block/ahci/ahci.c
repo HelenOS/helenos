@@ -35,9 +35,9 @@
 #include <stdio.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
+#include <device/hw_res.h>
 #include <device/hw_res_parsed.h>
 #include <pci_dev_iface.h>
-#include <irc.h>
 #include <ahci_iface.h>
 #include "ahci.h"
 #include "ahci_hw.h"
@@ -1191,7 +1191,8 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 		goto error_register_interrupt_handler;
 	}
 	
-	int rc = irc_enable_interrupt(hw_res_parsed.irqs.irqs[0]);
+	int rc = hw_res_enable_interrupt(ahci->parent_sess,
+	    hw_res_parsed.irqs.irqs[0]);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed enable interupt.");
 		goto error_enable_interrupt;

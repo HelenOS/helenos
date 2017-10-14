@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
+#include <irc.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -141,10 +142,29 @@ static hw_resource_list_t *icp_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static int icp_enable_interrupt(ddf_fun_t *fun, int irq)
+static bool icp_fun_owns_interrupt(icp_fun_t *fun, int irq)
 {
-	/* TODO */
+	const hw_resource_list_t *res = &fun->hw_resources;
+
+	/* Check that specified irq really belongs to the function */
+	for (size_t i = 0; i < res->count; ++i) {
+		if (res->resources[i].type == INTERRUPT &&
+		    res->resources[i].res.interrupt.irq == irq) {
+			return true;
+		}
+	}
+
 	return false;
+}
+
+static int icp_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
+{
+	icp_fun_t *fun = icp_fun(fnode);
+
+	if (!icp_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_enable_interrupt(irq);
 }
 
 static pio_window_t *icp_get_pio_window(ddf_fun_t *fnode)
@@ -154,7 +174,7 @@ static pio_window_t *icp_get_pio_window(ddf_fun_t *fnode)
 
 static hw_res_ops_t icp_hw_res_ops = {
 	.get_resource_list = &icp_get_resources,
-	.enable_interrupt = &icp_enable_interrupt,
+	.enable_interrupt = &icp_fun_enable_interrupt,
 };
 
 static pio_window_ops_t icp_pio_window_ops = {

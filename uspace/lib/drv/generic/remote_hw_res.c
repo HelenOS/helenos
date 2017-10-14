@@ -44,6 +44,10 @@ static void remote_hw_res_get_resource_list(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 static void remote_hw_res_enable_interrupt(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
+static void remote_hw_res_disable_interrupt(ddf_fun_t *, void *, ipc_callid_t,
+    ipc_call_t *);
+static void remote_hw_res_clear_interrupt(ddf_fun_t *, void *, ipc_callid_t,
+    ipc_call_t *);
 static void remote_hw_res_dma_channel_setup(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 static void remote_hw_res_dma_channel_remain(ddf_fun_t *, void *, ipc_callid_t,
@@ -52,6 +56,8 @@ static void remote_hw_res_dma_channel_remain(ddf_fun_t *, void *, ipc_callid_t,
 static const remote_iface_func_ptr_t remote_hw_res_iface_ops [] = {
 	[HW_RES_GET_RESOURCE_LIST] = &remote_hw_res_get_resource_list,
 	[HW_RES_ENABLE_INTERRUPT] = &remote_hw_res_enable_interrupt,
+	[HW_RES_DISABLE_INTERRUPT] = &remote_hw_res_disable_interrupt,
+	[HW_RES_CLEAR_INTERRUPT] = &remote_hw_res_clear_interrupt,
 	[HW_RES_DMA_CHANNEL_SETUP] = &remote_hw_res_dma_channel_setup,
 	[HW_RES_DMA_CHANNEL_REMAIN] = &remote_hw_res_dma_channel_remain,
 };
@@ -67,6 +73,36 @@ static void remote_hw_res_enable_interrupt(ddf_fun_t *fun, void *ops,
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
 	
 	if (hw_res_ops->enable_interrupt == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+	
+	const int irq = DEV_IPC_GET_ARG1(*call);
+	const int ret = hw_res_ops->enable_interrupt(fun, irq);
+	async_answer_0(callid, ret);
+}
+
+static void remote_hw_res_disable_interrupt(ddf_fun_t *fun, void *ops,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
+	
+	if (hw_res_ops->disable_interrupt == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+	
+	const int irq = DEV_IPC_GET_ARG1(*call);
+	const int ret = hw_res_ops->disable_interrupt(fun, irq);
+	async_answer_0(callid, ret);
+}
+
+static void remote_hw_res_clear_interrupt(ddf_fun_t *fun, void *ops,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
+	
+	if (hw_res_ops->clear_interrupt == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}

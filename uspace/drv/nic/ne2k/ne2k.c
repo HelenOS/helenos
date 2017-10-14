@@ -39,7 +39,7 @@
 
 #include <stdio.h>
 #include <errno.h>
-#include <irc.h>
+#include <device/hw_res.h>
 #include <stdlib.h>
 #include <str_error.h>
 #include <async.h>
@@ -255,7 +255,7 @@ static int ne2k_on_activating(nic_t *nic_data)
 		if (rc != EOK)
 			return rc;
 
-		rc = irc_enable_interrupt(ne2k->irq);
+		rc = hw_res_enable_interrupt(ne2k->parent_sess, ne2k->irq);
 		if (rc != EOK) {
 			ne2k_down(ne2k);
 			return rc;
@@ -268,7 +268,7 @@ static int ne2k_on_stopping(nic_t *nic_data)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
-	(void) irc_disable_interrupt(ne2k->irq);
+	(void) hw_res_disable_interrupt(ne2k->parent_sess, ne2k->irq);
 	ne2k->receive_configuration = RCR_AB | RCR_AM;
 	ne2k_down(ne2k);
 	return EOK;
@@ -380,6 +380,13 @@ static int ne2k_dev_add(ddf_dev_t *dev)
 		nic_set_specific(nic_data, ne2k);
 	} else {
 		nic_unbind_and_destroy(dev);
+		return ENOMEM;
+	}
+	
+	ne2k->dev = dev;
+	ne2k->parent_sess = ddf_dev_parent_sess_get(dev);
+	if (ne2k->parent_sess == NULL) {
+		ne2k_dev_cleanup(dev);
 		return ENOMEM;
 	}
 	

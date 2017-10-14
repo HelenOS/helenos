@@ -37,9 +37,9 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
+#include <device/hw_res.h>
 #include <device/hw_res_parsed.h>
 #include <io/chardev_srv.h>
-#include <irc.h>
 
 #include "pl050_hw.h"
 
@@ -220,7 +220,7 @@ static int pl050_init(pl050_t *pl050)
 		goto error;
 	}
 
-	rc = irc_enable_interrupt(res.irqs.irqs[0]);
+	rc = hw_res_enable_interrupt(pl050->parent_sess, res.irqs.irqs[0]);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed enabling interrupt. (%d)", rc);
 		goto error;
