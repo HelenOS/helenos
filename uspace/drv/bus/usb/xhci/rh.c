@@ -68,103 +68,105 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
 //       sure about the other structs.
-// static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
-// {
-// 	int err;
-//
-// 	xhci_cmd_t cmd;
-// 	xhci_cmd_init(&cmd);
-//
-// 	xhci_send_enable_slot_command(hc, &cmd);
-// 	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
-// 		return err;
-//
-// 	uint32_t slot_id = cmd.slot_id;
-//
-// 	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
-// 	xhci_cmd_fini(&cmd);
-//
-// 	xhci_input_ctx_t *ictx = malloc(sizeof(xhci_input_ctx_t));
-// 	if (!ictx) {
-// 		return ENOMEM;
-// 	}
-//
-// 	memset(ictx, 0, sizeof(xhci_input_ctx_t));
-//
-// 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
-// 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
-//
-// 	/* Initialize slot_ctx according to section 4.3.3 point 3. */
-// 	/* Attaching to root hub port, root string equals to 0. */
-// 	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
-// 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
-// 	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
-//
-// 	xhci_trb_ring_t *ep_ring = malloc(sizeof(xhci_trb_ring_t));
-// 	if (!ep_ring) {
-// 		err = ENOMEM;
-// 		goto err_ictx;
-// 	}
-//
-// 	err = xhci_trb_ring_init(ep_ring, hc);
-// 	if (err)
-// 		goto err_ring;
-//
-// 	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], EP_TYPE_CONTROL);
-// 	// TODO: must be changed with a command after USB descriptor is read
-// 	// See 4.6.5 in XHCI specification, first note
-// 	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
-// 	    xhci_is_usb3_port(&hc->rh, port) ? 512 : 8);
-// 	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
-// 	/* FIXME physical pointer? */
-// 	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
-// 	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
-// 	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
-// 	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
-// 	XHCI_EP_MULT_SET(ictx->endpoint_ctx[0], 0);
-// 	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
-//
-// 	// TODO: What's the alignment?
-// 	xhci_device_ctx_t *dctx = malloc(sizeof(xhci_device_ctx_t));
-// 	if (!dctx) {
-// 		err = ENOMEM;
-// 		goto err_ring;
-// 	}
-// 	memset(dctx, 0, sizeof(xhci_device_ctx_t));
-//
-// 	hc->dcbaa[slot_id] = addr_to_phys(dctx);
-//
-// 	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
-// 	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
-//	hc->dcbaa_virt[slot_id].trs[0] = ep_ring;
-//
-// 	xhci_cmd_init(&cmd);
-// 	cmd.slot_id = slot_id;
-// 	xhci_send_address_device_command(hc, &cmd, ictx);
-// 	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
-// 		goto err_dctx;
-//
-// 	xhci_cmd_fini(&cmd);
-//
-// 	// TODO: Issue configure endpoint commands (sec 4.3.5).
-//
-// 	return EOK;
-//
-// err_dctx:
-// 	if (dctx) {
-// 		free(dctx);
-// 		hc->dcbaa[slot_id] = 0;
-// 		memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
-// 	}
-// err_ring:
-// 	if (ep_ring) {
-// 		xhci_trb_ring_fini(ep_ring);
-// 		free(ep_ring);
-// 	}
-// err_ictx:
-// 	free(ictx);
-// 	return err;
-// }
+static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
+{
+	int err;
+
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(&hc->rh, port);
+
+	xhci_send_enable_slot_command(hc, &cmd);
+	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
+		return err;
+
+	uint32_t slot_id = cmd.slot_id;
+
+	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
+	xhci_cmd_fini(&cmd);
+
+	xhci_input_ctx_t *ictx = malloc(sizeof(xhci_input_ctx_t));
+	if (!ictx) {
+		return ENOMEM;
+	}
+
+	memset(ictx, 0, sizeof(xhci_input_ctx_t));
+
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
+
+	/* Initialize slot_ctx according to section 4.3.3 point 3. */
+	/* Attaching to root hub port, root string equals to 0. */
+	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
+	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
+	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
+
+	xhci_trb_ring_t *ep_ring = malloc(sizeof(xhci_trb_ring_t));
+	if (!ep_ring) {
+		err = ENOMEM;
+		goto err_ictx;
+	}
+
+	err = xhci_trb_ring_init(ep_ring, hc);
+	if (err)
+		goto err_ring;
+
+	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], EP_TYPE_CONTROL);
+	// TODO: must be changed with a command after USB descriptor is read
+	// See 4.6.5 in XHCI specification, first note
+	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
+	    speed->major == 3 ? 512 : 8);
+	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
+	/* FIXME physical pointer? */
+	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
+	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
+	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
+	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
+	XHCI_EP_MULT_SET(ictx->endpoint_ctx[0], 0);
+	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
+
+	// TODO: What's the alignment?
+	xhci_device_ctx_t *dctx = malloc(sizeof(xhci_device_ctx_t));
+	if (!dctx) {
+		err = ENOMEM;
+		goto err_ring;
+	}
+	memset(dctx, 0, sizeof(xhci_device_ctx_t));
+
+	hc->dcbaa[slot_id] = addr_to_phys(dctx);
+
+	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
+	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
+	hc->dcbaa_virt[slot_id].trs[0] = ep_ring;
+
+	xhci_cmd_init(&cmd);
+	cmd.slot_id = slot_id;
+	xhci_send_address_device_command(hc, &cmd, ictx);
+	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
+		goto err_dctx;
+
+	xhci_cmd_fini(&cmd);
+
+	// TODO: Issue configure endpoint commands (sec 4.3.5).
+
+	return EOK;
+
+err_dctx:
+	if (dctx) {
+		free(dctx);
+		hc->dcbaa[slot_id] = 0;
+		memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
+	}
+err_ring:
+	if (ep_ring) {
+		xhci_trb_ring_fini(ep_ring);
+		free(ep_ring);
+	}
+err_ictx:
+	free(ictx);
+	return err;
+}
 
 static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 {
@@ -178,8 +180,7 @@ static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 	if (speed->major == 3) {
 		if (link_state == 0) {
 			/* USB3 is automatically advanced to enabled. */
-			// return alloc_dev(hc, port_id, 0);
-			return ENOTSUP;
+			return alloc_dev(rh->hc, port_id, 0);
 		}
 		else if (link_state == 5) {
 			/* USB 3 failed to enable. */
@@ -257,6 +258,14 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 		if (events & XHCI_REG_MASK(XHCI_PORT_PRC)) {
 			usb_log_info("Port reset on port %u completed.", i);
 			events &= ~XHCI_REG_MASK(XHCI_PORT_PRC);
+
+			const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, i);
+			if (speed->major != 3) {
+				/* FIXME: We probably don't want to do this
+				 * every time USB2 port is reset. This is a
+				 * temporary workaround. */
+				alloc_dev(rh->hc, i, 0);
+			}
 		}
 
 		if (events & XHCI_REG_MASK(XHCI_PORT_PLC)) {
@@ -273,7 +282,7 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 			usb_log_warning("Port change (0x%08x) ignored on port %u.", events, i);
 		}
 	}
-	
+
 	/**
 	 * Theory:
 	 *
