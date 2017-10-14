@@ -167,6 +167,26 @@ static int icp_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_enable_interrupt(irq);
 }
 
+static int icp_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
+{
+	icp_fun_t *fun = icp_fun(fnode);
+
+	if (!icp_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_disable_interrupt(irq);
+}
+
+static int icp_fun_clear_interrupt(ddf_fun_t *fnode, int irq)
+{
+	icp_fun_t *fun = icp_fun(fnode);
+
+	if (!icp_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_clear_interrupt(irq);
+}
+
 static pio_window_t *icp_get_pio_window(ddf_fun_t *fnode)
 {
 	return &icp_pio_window;
@@ -175,6 +195,8 @@ static pio_window_t *icp_get_pio_window(ddf_fun_t *fnode)
 static hw_res_ops_t icp_hw_res_ops = {
 	.get_resource_list = &icp_get_resources,
 	.enable_interrupt = &icp_fun_enable_interrupt,
+	.disable_interrupt = &icp_fun_disable_interrupt,
+	.clear_interrupt = &icp_fun_clear_interrupt
 };
 
 static pio_window_ops_t icp_pio_window_ops = {
