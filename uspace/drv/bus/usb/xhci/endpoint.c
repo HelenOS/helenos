@@ -38,6 +38,7 @@
 #include <errno.h>
 
 #include "bus.h"
+#include "commands.h"
 #include "endpoint.h"
 
 int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, xhci_bus_t *xhci_bus)
@@ -111,6 +112,43 @@ int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *dev, usb_endpoint_t ep)
 {
 	return dev->endpoints[ep];
+}
+
+int xhci_device_configure(xhci_device_t *dev, xhci_hc_t *hc)
+{
+	int err;
+
+	// Prepare input context.
+	xhci_input_ctx_t *ictx = malloc(sizeof(xhci_input_ctx_t));
+	if (!ictx) {
+		return ENOMEM;
+	}
+
+	memset(ictx, 0, sizeof(xhci_input_ctx_t));
+
+	// Quoting sec. 4.6.6: A1, D0, D1 are down, A0 is up.
+	XHCI_INPUT_CTRL_CTX_ADD_CLEAR(ictx->ctrl_ctx, 1);
+	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 0);
+	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
+
+	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
+
+	// Issue configure endpoint command (sec 4.3.5).
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	cmd.slot_id = dev->slot_id;
+	xhci_send_configure_endpoint_command(hc, &cmd, ictx);
+	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
+		goto err_cmd;
+
+	xhci_cmd_fini(&cmd);
+	return EOK;
+
+err_cmd:
+	free(ictx);
+	return err;
 }
 
 /**

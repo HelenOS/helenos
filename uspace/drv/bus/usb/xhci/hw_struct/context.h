@@ -165,11 +165,13 @@ typedef struct xhci_input_ctrl_ctx {
 	XHCI_DWORD_EXTRACT((ctx).data[0], (idx), (idx))
 
 #define XHCI_INPUT_CTRL_CTX_DROP_SET(ctx, idx) (ctx).data[0] |= (1 << (idx))
+#define XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ctx, idx) (ctx).data[0] &= ~(1 << (idx))
 
 #define XHCI_INPUT_CTRL_CTX_ADD(ctx, idx) \
 	XHCI_DWORD_EXTRACT((ctx).data[1], (idx), (idx))
 
 #define XHCI_INPUT_CTRL_CTX_ADD_SET(ctx, idx) (ctx).data[1] |= (1 << (idx))
+#define XHCI_INPUT_CTRL_CTX_ADD_CLEAR(ctx, idx) (ctx).data[1] &= ~(1 << (idx))
 
 #define XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7],  7,  0)
 #define XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7], 15,  8)

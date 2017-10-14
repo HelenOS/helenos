@@ -102,6 +102,26 @@ static inline uint8_t get_status_direction(xhci_trb_t* trb, uint8_t bmRequestTyp
 	}
 }
 
+static inline bool configure_endpoint_needed(usb_device_request_setup_packet_t *setup)
+{
+	usb_request_type_t request_type = SETUP_REQUEST_TYPE_GET_TYPE(setup->request_type);
+
+	if (request_type == USB_REQUEST_TYPE_STANDARD) {
+		usb_stddevreq_t request = setup->request;
+
+		switch (request) {
+		case USB_DEVREQ_SET_CONFIGURATION:
+		case USB_DEVREQ_SET_INTERFACE:
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
+	return false;
+}
+
 int xhci_init_transfers(xhci_hc_t *hc)
 {
 	assert(hc);
@@ -224,7 +244,16 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	list_append(&transfer->link, &hc->transfers);
 
 	/* For control transfers, the target is always 1. */
+	// FIXME: ignoring return code
 	hc_ring_doorbell(hc, slot_id, 1);
+
+	// Issue a Configure Endpoint command, if needed.
+	if (configure_endpoint_needed(setup)) {
+		// TODO: figure out the best time to issue this command
+		// FIXME: ignoring return code
+		xhci_device_configure(xhci_ep->device, hc);
+	}
+
 	return EOK;
 }
 

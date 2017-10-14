@@ -148,7 +148,12 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 
 	xhci_cmd_fini(&cmd);
 
-	// TODO: Issue configure endpoint commands (sec 4.3.5).
+	usb_address_t address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
+	usb_log_debug2("Obtained USB address: %d.\n", address);
+
+	// TODO: Ask libusbhost to create a control endpoint for EP0.
+
+	// TODO: Save all data structures in the corresponding xhci_device_t.
 
 	return EOK;
 

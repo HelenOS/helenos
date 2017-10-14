@@ -42,6 +42,8 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 
+#include "hc.h"
+
 typedef struct xhci_device xhci_device_t;
 typedef struct xhci_endpoint xhci_endpoint_t;
 typedef struct xhci_bus xhci_bus_t;
@@ -84,6 +86,7 @@ void xhci_device_fini(xhci_device_t *);
 int xhci_device_add_endpoint(xhci_device_t *, xhci_endpoint_t *);
 int xhci_device_remove_endpoint(xhci_device_t *, xhci_endpoint_t *);
 xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *, usb_endpoint_t);
+int xhci_device_configure(xhci_device_t *, xhci_hc_t *);
 
 static inline xhci_endpoint_t * xhci_endpoint_get(endpoint_t *ep)
 {
