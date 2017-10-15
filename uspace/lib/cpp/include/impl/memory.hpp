@@ -292,7 +292,7 @@ namespace std
                 return &x;
             }
 
-            const_pointer_address address(const_reference x) const noexcept
+            const_pointer address(const_reference x) const noexcept
             { // TODO: see std::addressof
                 return &x;
             }
@@ -393,11 +393,9 @@ namespace std
     {
         for (; first != last; ++first)
             ::new (static_cast<void*>(&*first)) typename iterator_traits<ForwardIterator>::value_type(x);
-
-        return result;
     }
 
-    template<class ForwardIterator, class Size>
+    template<class ForwardIterator, class Size, class T>
     ForwardIterator unitialized_fill_n(
         ForwardIterator first, Size n, const T& x
     )
@@ -405,7 +403,7 @@ namespace std
         for (; n > 0; ++first, --n)
             ::new (static_cast<void*>(&*first)) typename iterator_traits<ForwardIterator>::value_type(x);
 
-        return result;
+        return first;
     }
 }
 
