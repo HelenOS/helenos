@@ -120,7 +120,17 @@ namespace std
             return elems[idx];
         }
 
-        // TODO: ref/cref at (with bounds checking), needs exceptions
+        reference at(size_type idx)
+        {
+            // TODO: Bounds checking.
+            return elems[idx];
+        }
+
+        constexpr const_reference at(size_type idx) const
+        {
+            // TODO: Bounds checking.
+            return elems[idx];
+        }
 
         reference front()
         {
