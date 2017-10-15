@@ -41,9 +41,8 @@
  * be found at the same addresses.
  */
 
-#include <ipc/services.h>
 #include <ipc/irc.h>
-#include <ns.h>
+#include <loc.h>
 #include <as.h>
 #include <ddi.h>
 #include <align.h>
@@ -54,11 +53,10 @@
 #include <align.h>
 #include <async.h>
 #include <stdio.h>
-#include <ipc/loc.h>
 
 #define NAME "obio"
 
-#define OBIO_SIZE	0x1898	
+#define OBIO_SIZE	0x1898
 
 #define OBIO_IMR_BASE	0x200
 #define OBIO_IMR(ino)	(OBIO_IMR_BASE + ((ino) & INO_MASK))
@@ -119,6 +117,10 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
  */
 static bool obio_init(void)
 {
+	category_id_t irc_cat;
+	service_id_t svc_id;
+	int rc;
+	
 	base_phys = (uintptr_t) 0x1fe00000000ULL;
 	
 	int flags = AS_AREA_READ | AS_AREA_WRITE;
@@ -134,7 +136,32 @@ static bool obio_init(void)
 	printf("%s: OBIO registers with base at 0x%" PRIun "\n", NAME, base_phys);
 	
 	async_set_fallback_port_handler(obio_connection, NULL);
-	service_register(SERVICE_IRC);
+	
+	rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Failed registering server. (%d)\n", NAME, rc);
+		return false;
+	}
+	
+	rc = loc_service_register("irc/" NAME, &svc_id);
+	if (rc != EOK) {
+		printf("%s: Failed registering service. (%d)\n", NAME, rc);
+		return false;
+	}
+	
+	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category 'iplink' (%d).\n", NAME,
+		    rc);
+		return false;
+	}
+	
+	rc = loc_service_add_to_cat(svc_id, irc_cat);
+	if (rc != EOK) {
+		printf("%s: Failed adding service to category (%d).\n", NAME,
+		    rc);
+		return false;
+	}
 	
 	return true;
 }

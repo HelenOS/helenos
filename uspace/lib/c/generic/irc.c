@@ -34,10 +34,12 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
 #include <irc.h>
-#include <ns.h>
+#include <loc.h>
+#include <stdlib.h>
 #include <sysinfo.h>
 
 static async_sess_t *irc_sess;
@@ -48,9 +50,33 @@ static async_sess_t *irc_sess;
  */
 static int irc_init(void)
 {
-	assert(irc_sess == NULL);
+	category_id_t irc_cat;
+	service_id_t *svcs;
+	size_t count;
+	int rc;
 
-	irc_sess = service_connect_blocking(SERVICE_IRC, INTERFACE_IRC, 0);
+	assert(irc_sess == NULL);
+	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK)
+		return EIO;
+
+	while (true) {
+		rc = loc_category_get_svcs(irc_cat, &svcs, &count);
+		if (rc != EOK)
+			return EIO;
+
+		if (count > 0)
+			break;
+
+		free(svcs);
+
+		// XXX This is just a temporary hack
+		fibril_usleep(500 * 1000);
+	}
+
+	irc_sess = loc_service_connect(svcs[0], INTERFACE_IRC,
+	    IPC_FLAG_BLOCKING);
+	free(svcs);
 
 	if (irc_sess == NULL)
 		return EIO;

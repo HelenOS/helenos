@@ -40,9 +40,8 @@
 #include <ddi.h>
 #include <errno.h>
 #include <io/log.h>
-#include <ipc/services.h>
 #include <ipc/irc.h>
-#include <ns.h>
+#include <loc.h>
 #include <sysinfo.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -120,6 +119,8 @@ static int icpic_init(void)
 	char *platform = NULL;
 	char *pstr = NULL;
 	size_t platform_size;
+	category_id_t irc_cat;
+	service_id_t svc_id;
 	void *regs;
 	int rc;
 
@@ -154,7 +155,32 @@ static int icpic_init(void)
 	icpic_regs = (icpic_regs_t *)regs;
 
 	async_set_fallback_port_handler(icpic_connection, NULL);
-	service_register(SERVICE_IRC);
+
+	rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Failed registering server. (%d)\n", NAME, rc);
+		return rc;
+	}
+
+	rc = loc_service_register("irc/" NAME, &svc_id);
+	if (rc != EOK) {
+		printf("%s: Failed registering service. (%d)\n", NAME, rc);
+		return rc;
+	}
+
+	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category 'iplink' (%d).\n", NAME,
+		    rc);
+		goto error;
+	}
+
+	rc = loc_service_add_to_cat(svc_id, irc_cat);
+	if (rc != EOK) {
+		printf("%s: Failed adding service to category (%d).\n", NAME,
+		    rc);
+		goto error;
+	}
 
 	free(platform);
 	free(pstr);

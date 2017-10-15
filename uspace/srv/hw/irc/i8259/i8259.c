@@ -35,9 +35,8 @@
  * @brief i8259 driver.
  */
 
-#include <ipc/services.h>
 #include <ipc/irc.h>
-#include <ns.h>
+#include <loc.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
@@ -46,7 +45,6 @@
 #include <errno.h>
 #include <async.h>
 #include <stdio.h>
-#include <ipc/loc.h>
 
 #define NAME  "i8259"
 
@@ -140,6 +138,9 @@ static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 static bool i8259_init(void)
 {
 	sysarg_t i8259;
+	category_id_t irc_cat;
+	service_id_t svc_id;
+	int rc;
 	
 	if ((sysinfo_get_value("i8259", &i8259) != EOK) || (!i8259)) {
 		printf("%s: No i8259 found\n", NAME);
@@ -155,7 +156,32 @@ static bool i8259_init(void)
 	}
 	
 	async_set_fallback_port_handler(i8259_connection, NULL);
-	service_register(SERVICE_IRC);
+
+	rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Failed registering server. (%d)\n", NAME, rc);
+		return false;
+	}
+
+	rc = loc_service_register("irc/" NAME, &svc_id);
+	if (rc != EOK) {
+		printf("%s: Failed registering service. (%d)\n", NAME, rc);
+		return false;
+	}
+
+	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed resolving category 'iplink' (%d).\n", NAME,
+		    rc);
+		return false;
+	}
+
+	rc = loc_service_add_to_cat(svc_id, irc_cat);
+	if (rc != EOK) {
+		printf("%s: Failed adding service to category (%d).\n", NAME,
+		    rc);
+		return false;
+	}
 	
 	return true;
 }
