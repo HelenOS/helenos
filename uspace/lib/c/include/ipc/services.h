@@ -46,7 +46,6 @@ typedef enum {
 	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
 	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 } service_t;
 
 #define SERVICE_NAME_CLIPBOARD "clipboard"
