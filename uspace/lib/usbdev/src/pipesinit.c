@@ -287,7 +287,7 @@ int usb_pipe_initialize_from_configuration(
 {
 	if (config_descriptor == NULL)
 		return EBADMEM;
-	
+
 	if (config_descriptor_size <
 	    sizeof(usb_standard_configuration_descriptor_t)) {
 		return ERANGE;
@@ -342,9 +342,9 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 	assert(pipe);
 	static_assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
 
-	if ((pipe->direction != USB_DIRECTION_BOTH) ||
-	    (pipe->transfer_type != USB_TRANSFER_CONTROL) ||
-	    (pipe->endpoint_no != 0)) {
+	if ((pipe->desc.direction != USB_DIRECTION_BOTH) ||
+	    (pipe->desc.transfer_type != USB_TRANSFER_CONTROL) ||
+	    (pipe->desc.endpoint_no != 0)) {
 		return EINVAL;
 	}
 
@@ -368,7 +368,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 		return rc;
 	}
 
-	pipe->max_packet_size
+	pipe->desc.max_packet_size
 	    = dev_descr_start[DEV_DESCR_MAX_PACKET_SIZE_OFFSET];
 
 	return EOK;

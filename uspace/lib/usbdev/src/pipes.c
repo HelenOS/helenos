@@ -50,7 +50,7 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
 {
 	assert(pipe != NULL);
 
-	if (!pipe->auto_reset_halt || (pipe->endpoint_no != 0)) {
+	if (!pipe->auto_reset_halt || (pipe->desc.endpoint_no != 0)) {
 		return;
 	}
 
@@ -87,8 +87,8 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if ((pipe->direction != USB_DIRECTION_BOTH)
-	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
+	if ((pipe->desc.direction != USB_DIRECTION_BOTH)
+	    || (pipe->desc.transfer_type != USB_TRANSFER_CONTROL)) {
 		return EBADF;
 	}
 
@@ -97,7 +97,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc = usb_read(exch, pipe->endpoint_no, setup_packet, buffer,
+	const int rc = usb_read(exch, pipe->desc.endpoint_no, setup_packet, buffer,
 	    buffer_size, &act_size);
 	async_exchange_end(exch);
 
@@ -141,8 +141,8 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if ((pipe->direction != USB_DIRECTION_BOTH)
-	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
+	if ((pipe->desc.direction != USB_DIRECTION_BOTH)
+	    || (pipe->desc.transfer_type != USB_TRANSFER_CONTROL)) {
 		return EBADF;
 	}
 
@@ -151,7 +151,7 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	const int rc = usb_write(exch,
-	    pipe->endpoint_no, setup_packet, buffer, buffer_size);
+	    pipe->desc.endpoint_no, setup_packet, buffer, buffer_size);
 	async_exchange_end(exch);
 
 	if (rc == ESTALL) {
@@ -182,23 +182,23 @@ int usb_pipe_read(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (pipe->direction != USB_DIRECTION_IN) {
+	if (pipe->desc.direction != USB_DIRECTION_IN) {
 		return EBADF;
 	}
 
-	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
+	if (pipe->desc.transfer_type == USB_TRANSFER_CONTROL) {
 		return EBADF;
 	}
 
 	/* Isochronous transfer are not supported (yet) */
-	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK)
+	if (pipe->desc.transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->desc.transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
 	const int rc =
-	    usb_read(exch, pipe->endpoint_no, 0, buffer, size, &act_size);
+	    usb_read(exch, pipe->desc.endpoint_no, 0, buffer, size, &act_size);
 	async_exchange_end(exch);
 
 	if (rc == EOK && size_transfered != NULL) {
@@ -223,21 +223,21 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 		return EINVAL;
 	}
 
-	if (pipe->direction != USB_DIRECTION_OUT) {
+	if (pipe->desc.direction != USB_DIRECTION_OUT) {
 		return EBADF;
 	}
 
-	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
+	if (pipe->desc.transfer_type == USB_TRANSFER_CONTROL) {
 		return EBADF;
 	}
 
 	/* Isochronous transfer are not supported (yet) */
-	if (pipe->transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->transfer_type != USB_TRANSFER_BULK)
+	if (pipe->desc.transfer_type != USB_TRANSFER_INTERRUPT &&
+	    pipe->desc.transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	const int rc = usb_write(exch, pipe->endpoint_no, 0, buffer, size);
+	const int rc = usb_write(exch, pipe->desc.endpoint_no, 0, buffer, size);
 	async_exchange_end(exch);
 	return rc;
 }
@@ -257,11 +257,11 @@ int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
 {
 	assert(pipe);
 
-	pipe->endpoint_no = endpoint_no;
-	pipe->transfer_type = transfer_type;
-	pipe->packets = packets;
-	pipe->max_packet_size = max_packet_size;
-	pipe->direction = direction;
+	pipe->desc.endpoint_no = endpoint_no;
+	pipe->desc.transfer_type = transfer_type;
+	pipe->desc.packets = packets;
+	pipe->desc.max_packet_size = max_packet_size;
+	pipe->desc.direction = direction;
 	pipe->auto_reset_halt = false;
 	pipe->bus_session = bus_session;
 
@@ -296,12 +296,14 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 {
 	assert(pipe);
 	assert(pipe->bus_session);
+
+	pipe->desc.usb2.polling_interval = interval;
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	if (!exch)
 		return ENOMEM;
-	const int ret = usb_register_endpoint(exch, pipe->endpoint_no,
-	    pipe->transfer_type, pipe->direction, pipe->max_packet_size,
-	    pipe->packets, interval);
+
+	const int ret = usb_register_endpoint(exch, &pipe->desc);
+
 	async_exchange_end(exch);
 	return ret;
 }
@@ -318,8 +320,9 @@ int usb_pipe_unregister(usb_pipe_t *pipe)
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	if (!exch)
 		return ENOMEM;
-	const int ret = usb_unregister_endpoint(exch, pipe->endpoint_no,
-	    pipe->direction);
+
+	const int ret = usb_unregister_endpoint(exch, &pipe->desc);
+
 	async_exchange_end(exch);
 	return ret;
 }

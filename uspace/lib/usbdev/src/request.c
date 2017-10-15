@@ -843,7 +843,7 @@ int usb_pipe_clear_halt(usb_pipe_t *ctrl_pipe, usb_pipe_t *target_pipe)
 		return EINVAL;
 	}
 	return usb_request_clear_endpoint_halt(ctrl_pipe,
-	    target_pipe->endpoint_no);
+	    target_pipe->desc.endpoint_no);
 }
 
 /** Get endpoint status.
@@ -857,7 +857,7 @@ int usb_request_get_endpoint_status(usb_pipe_t *ctrl_pipe, usb_pipe_t *pipe,
     uint16_t *status)
 {
 	uint16_t status_tmp;
-	uint16_t pipe_index = (uint16_t) pipe->endpoint_no;
+	uint16_t pipe_index = (uint16_t) pipe->desc.endpoint_no;
 	int rc = usb_request_get_status(ctrl_pipe,
 	    USB_REQUEST_RECIPIENT_ENDPOINT, uint16_host2usb(pipe_index),
 	    &status_tmp);

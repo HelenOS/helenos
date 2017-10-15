@@ -162,7 +162,7 @@ static inline bool usb_endpoint_is_valid(usb_endpoint_t ep)
 }
 
 
-/** USB complete address type. 
+/** USB complete address type.
  * Pair address + endpoint is identification of transaction recipient.
  */
 typedef union {
@@ -172,6 +172,30 @@ typedef union {
 	} __attribute__((packed));
 	uint32_t packed;
 } usb_target_t;
+
+/** Description of usb endpoint.
+ */
+typedef struct {
+	/** Endpoint number. */
+	usb_endpoint_t endpoint_no;
+
+	/** Endpoint transfer type. */
+	usb_transfer_type_t transfer_type;
+
+	/** Endpoint direction. */
+	usb_direction_t direction;
+
+	/** Maximum packet size for the endpoint. */
+	size_t max_packet_size;
+
+	/** Number of packets per frame/uframe.
+	 * Only valid for HS INT and ISO transfers. All others should set to 1*/
+	unsigned packets;
+
+	struct {
+		unsigned polling_interval;
+	} usb2;
+} usb_endpoint_desc_t;
 
 /** Check USB target for allowed values (address and endpoint).
  *

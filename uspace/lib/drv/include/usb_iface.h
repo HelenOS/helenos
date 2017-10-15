@@ -56,10 +56,8 @@ extern int usb_release_default_address(async_exch_t *);
 extern int usb_device_enumerate(async_exch_t *, unsigned port);
 extern int usb_device_remove(async_exch_t *, unsigned port);
 
-extern int usb_register_endpoint(async_exch_t *, usb_endpoint_t,
-    usb_transfer_type_t, usb_direction_t, size_t, unsigned, unsigned);
-extern int usb_unregister_endpoint(async_exch_t *, usb_endpoint_t,
-    usb_direction_t);
+extern int usb_register_endpoint(async_exch_t *, usb_endpoint_desc_t *);
+extern int usb_unregister_endpoint(async_exch_t *, usb_endpoint_desc_t *);
 extern int usb_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
     size_t *);
 extern int usb_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
@@ -82,10 +80,8 @@ typedef struct {
 	int (*device_enumerate)(ddf_fun_t *, unsigned);
 	int (*device_remove)(ddf_fun_t *, unsigned);
 
-	int (*register_endpoint)(ddf_fun_t *, usb_endpoint_t,
-	    usb_transfer_type_t, usb_direction_t, size_t, unsigned, unsigned);
-	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_t,
-	    usb_direction_t);
+	int (*register_endpoint)(ddf_fun_t *, usb_endpoint_desc_t *);
+	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_desc_t *);
 
 	int (*read)(ddf_fun_t *, usb_endpoint_t, uint64_t, uint8_t *, size_t,
 	    usb_iface_transfer_in_callback_t, void *);

@@ -49,27 +49,12 @@
  * (i.e. the wire to send data over).
  */
 typedef struct {
-	/** Endpoint number. */
-	usb_endpoint_t endpoint_no;
-
-	/** Endpoint transfer type. */
-	usb_transfer_type_t transfer_type;
-
-	/** Endpoint direction. */
-	usb_direction_t direction;
-
-	/** Maximum packet size for the endpoint. */
-	size_t max_packet_size;
-
-	/** Number of packets per frame/uframe.
-	 * Only valid for HS INT and ISO transfers. All others should set to 1*/
-	unsigned packets;
-
+	/** Endpoint description */
+	usb_endpoint_desc_t desc;
 	/** Whether to automatically reset halt on the endpoint.
 	 * Valid only for control endpoint zero.
 	 */
 	bool auto_reset_halt;
-
 	/** The connection used for sending the data. */
 	usb_dev_session_t *bus_session;
 } usb_pipe_t;

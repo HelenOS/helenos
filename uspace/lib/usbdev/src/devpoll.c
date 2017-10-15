@@ -95,7 +95,7 @@ static int polling_fibril(void *arg)
 		    usb_str_class(mapping->interface->interface_class),
 		    (int) mapping->interface->interface_subclass,
 		    (int) mapping->interface->interface_protocol,
-		    data->request_size, pipe->max_packet_size);
+		    data->request_size, pipe->desc.max_packet_size);
 	}
 
 	size_t failed_attempts = 0;
@@ -127,7 +127,7 @@ static int polling_fibril(void *arg)
 			 */
 			usb_request_clear_endpoint_halt(
 			    usb_device_get_default_pipe(data->dev),
-			    pipe->endpoint_no);
+			    pipe->desc.endpoint_no);
 		}
 
 		if (rc != EOK) {
@@ -155,7 +155,7 @@ static int polling_fibril(void *arg)
 		failed_attempts = 0;
 
 		/* Take a rest before next request. */
-		
+
 		// FIXME TODO: This is broken, the time is in ms not us.
 		// but first we need to fix drivers to actually stop using this,
 		// since polling delay should be implemented in HC schedule
@@ -215,11 +215,11 @@ static int usb_device_auto_polling_internal(usb_device_t *dev,
 
 	if (request_size == 0)
 		return EINVAL;
-	
-	if (!epm || (epm->pipe.transfer_type != USB_TRANSFER_INTERRUPT) ||
-	    (epm->pipe.direction != USB_DIRECTION_IN))
+
+	if (!epm || (epm->pipe.desc.transfer_type != USB_TRANSFER_INTERRUPT) ||
+	    (epm->pipe.desc.direction != USB_DIRECTION_IN))
 		return EINVAL;
-	
+
 
 	polling_data_t *polling_data = malloc(sizeof(polling_data_t));
 	if (polling_data == NULL) {
