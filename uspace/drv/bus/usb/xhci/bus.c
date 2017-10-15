@@ -78,7 +78,7 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	}
 
 	/* Assign an address to the device */
-	if ((err = xhci_rh_address_device(&hc->rh, dev))) {
+	if ((err = xhci_rh_address_device(&hc->rh, dev, bus))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
 		return err;
 	}

@@ -144,14 +144,18 @@ xhci_transfer_t* xhci_transfer_alloc(usb_transfer_batch_t* batch) {
 	memset(transfer, 0, sizeof(xhci_transfer_t));
 	transfer->batch = batch;
 	link_initialize(&transfer->link);
-	transfer->hc_buffer = malloc32(batch->buffer_size);
+	transfer->hc_buffer = batch->buffer_size > 0 ? malloc32(batch->buffer_size) : NULL;
 
 	return transfer;
 }
 
 void xhci_transfer_fini(xhci_transfer_t* transfer) {
 	if (transfer) {
-		free32(transfer->hc_buffer);
+		if (transfer->batch->buffer_size > 0)
+			free32(transfer->hc_buffer);
+
+		usb_transfer_batch_destroy(transfer->batch);
+
 		free(transfer);
 	}
 }
@@ -178,7 +182,11 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 	/* For the TRB formats, see xHCI specification 6.4.1.2 */
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
-	memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
+
+	if (!transfer->direction) {
+		// Sending stuff from host to device, we need to copy the actual data.
+		memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
+	}
 
 	xhci_trb_t trb_setup;
 	memset(&trb_setup, 0, sizeof(xhci_trb_t));
@@ -317,6 +325,8 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	batch->error = (TRB_COMPLETION_CODE(*trb) == XHCI_TRBC_SUCCESS) ? EOK : ENAK;
 	batch->transfered_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
 	if (transfer->direction) {
+		memcpy(batch->buffer, transfer->hc_buffer, batch->buffer_size);
+
 		/* Device-to-host, IN */
 		if (batch->callback_in)
 			batch->callback_in(batch->error, batch->transfered_size, batch->arg);

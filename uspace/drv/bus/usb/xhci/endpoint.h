@@ -65,15 +65,24 @@ enum {
 typedef struct xhci_endpoint {
 	endpoint_t base;	/**< Inheritance. Keep this first. */
 
+	/** Parent device. */
 	xhci_device_t *device;
 } xhci_endpoint_t;
 
 typedef struct xhci_device {
+	/** Unique USB address assigned to the device. */
 	usb_address_t address;
 
+	/** Slot ID assigned to the device by xHC. */
 	uint32_t slot_id;
 
+	/** Associated device in libusbhost. */
+	device_t *device;
+
+	/** All endpoints of the device. Inactive ones are NULL */
 	xhci_endpoint_t *endpoints[XHCI_DEVICE_MAX_ENDPOINTS];
+
+	/** Number of non-NULL endpoints. Reference count of sorts. */
 	uint8_t active_endpoint_count;
 } xhci_device_t;
 

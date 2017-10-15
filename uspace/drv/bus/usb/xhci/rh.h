@@ -53,6 +53,7 @@ typedef struct xhci_port_speed {
 } xhci_port_speed_t;
 
 typedef struct hcd_roothub hcd_roothub_t;
+typedef struct xhci_bus xhci_bus_t;
 
 /* XHCI root hub instance */
 typedef struct {
@@ -83,7 +84,7 @@ int xhci_rh_reset_port(xhci_rh_t *, uint8_t);
 int xhci_rh_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
 void xhci_rh_handle_port_change(xhci_rh_t *);
 
-int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev);
+int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus);
 
 #endif
 

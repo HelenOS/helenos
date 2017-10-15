@@ -35,10 +35,12 @@
 
 #include <errno.h>
 #include <str_error.h>
+#include <usb/request.h>
 #include <usb/debug.h>
 #include <usb/host/utils/malloc32.h>
 #include <usb/host/bus.h>
 #include <usb/host/ddf_helpers.h>
+#include <usb/host/hcd.h>
 
 #include "debug.h"
 #include "commands.h"
@@ -73,7 +75,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 //       sure about the other structs.
 // TODO: This currently assumes the device is attached to rh directly.
 //       Also, we should consider moving a lot of functionailty to xhci bus
-int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev)
+int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 {
 	int err;
 	xhci_hc_t *hc = rh->hc;
@@ -159,12 +161,31 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev)
 	dev->address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.\n", dev->address);
 
-	// TODO: Ask libusbhost to create a control endpoint for EP0.
+	// Ask libusbhost to create a control endpoint for EP0.
+	bus_t *bus_base = &bus->base;
+	usb_target_t ep0_target = { .address = dev->address, .endpoint = 0 };
+	usb_direction_t ep0_direction = USB_DIRECTION_BOTH;
 
-	// TODO: Save all data structures in the corresponding xhci_device_t.
+	// TODO: Should this call be unified with other calls to `bus_add_ep()`?
+	err = bus_add_ep(bus_base, dev, ep0_target.endpoint, ep0_direction,
+	    USB_TRANSFER_CONTROL, CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1);
+
+	if (err != EOK)
+		goto err_add_ep;
+
+	// Save all data structures in the corresponding xhci_device_t.
+	endpoint_t *ep0_base = bus_find_endpoint(bus_base, ep0_target, ep0_direction);
+	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
+	xhci_device_t *xhci_dev = ep0->device;
+
+	xhci_dev->device = dev;
+	xhci_dev->slot_id = slot_id;
+
+	// TODO: Save anything else?
 
 	return EOK;
 
+err_add_ep:
 err_dctx:
 	if (dctx) {
 		free(dctx);

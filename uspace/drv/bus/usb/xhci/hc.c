@@ -212,8 +212,11 @@ int hc_init_memory(xhci_hc_t *hc)
 	if ((err = xhci_init_commands(hc)))
 		goto err_scratch;
 
-	if ((err = xhci_rh_init(&hc->rh, hc)))
+	if ((err = xhci_init_transfers(hc)))
 		goto err_cmd;
+
+	if ((err = xhci_rh_init(&hc->rh, hc)))
+		goto err_transfers;
 
 	if ((err = xhci_bus_init(&hc->bus)))
 		goto err_rh;
@@ -223,6 +226,8 @@ int hc_init_memory(xhci_hc_t *hc)
 
 err_rh:
 	xhci_rh_fini(&hc->rh);
+err_transfers:
+	xhci_fini_transfers(hc);
 err_cmd:
 	xhci_fini_commands(hc);
 err_scratch:
@@ -471,12 +476,14 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 		return xhci_schedule_control_transfer(hc, batch);
 	case USB_TRANSFER_ISOCHRONOUS:
 		/* TODO: Implement me. */
-		break;
+		usb_log_error("Isochronous transfers are not yet implemented!");
+		return ENOTSUP;
 	case USB_TRANSFER_BULK:
 		return xhci_schedule_bulk_transfer(hc, batch);
 	case USB_TRANSFER_INTERRUPT:
 		/* TODO: Implement me. */
-		break;
+		usb_log_error("Interrupt transfers are not yet implemented!");
+		return ENOTSUP;
 	}
 
 	return EOK;
@@ -616,6 +623,7 @@ void hc_fini(xhci_hc_t *hc)
 	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
 	hc_dcbaa_fini(hc);
+	xhci_fini_transfers(hc);
 	xhci_fini_commands(hc);
 	xhci_rh_fini(&hc->rh);
 	pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
