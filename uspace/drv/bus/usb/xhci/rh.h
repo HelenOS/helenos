@@ -50,6 +50,8 @@ typedef struct xhci_port_speed {
 	uint64_t rx_bps, tx_bps;
 } xhci_port_speed_t;
 
+typedef struct hcd_roothub hcd_roothub_t;
+
 /* XHCI root hub instance */
 typedef struct {
 	/** Host controller */
@@ -63,6 +65,9 @@ typedef struct {
 
 	/* Number of hub ports. */
 	uint8_t max_ports;
+
+	/* We need this to create child devices */
+	hcd_roothub_t *hcd_rh;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
@@ -72,6 +77,8 @@ int xhci_rh_reset_port(xhci_rh_t *, uint8_t);
 
 int xhci_rh_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
 void xhci_rh_handle_port_change(xhci_rh_t *);
+
+int xhci_rh_address_device(xhci_rh_t *, usb_speed_t, usb_tt_address_t, usb_address_t *);
 
 #endif
 

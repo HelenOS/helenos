@@ -49,10 +49,9 @@
 typedef struct hcd hcd_t;
 
 typedef int (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
-typedef int (*ep_add_hook_t)(hcd_t *, endpoint_t *);
-typedef void (*ep_remove_hook_t)(hcd_t *, endpoint_t *);
 typedef void (*interrupt_hook_t)(hcd_t *, uint32_t);
 typedef int (*status_hook_t)(hcd_t *, uint32_t *);
+typedef int (*address_device_hook_t)(hcd_t *, usb_speed_t, usb_tt_address_t, usb_address_t *);
 
 typedef struct {
 	/** Transfer scheduling, implement in device driver. */
@@ -61,6 +60,8 @@ typedef struct {
 	interrupt_hook_t irq_hook;
 	/** Periodic polling hook */
 	status_hook_t status_hook;
+	/** Hook to setup device address */
+	address_device_hook_t address_device;
 } hcd_ops_t;
 
 /** Generic host controller driver structure. */
@@ -111,8 +112,7 @@ static inline int hcd_release_default_address(hcd_t *hcd)
 }
 
 extern int hcd_add_ep(hcd_t *, usb_target_t, usb_direction_t,
-    usb_transfer_type_t, size_t, unsigned int, size_t, usb_address_t,
-    unsigned int);
+    usb_transfer_type_t, size_t, unsigned int, size_t, usb_tt_address_t);
 
 extern int hcd_remove_ep(hcd_t *, usb_target_t, usb_direction_t);
 

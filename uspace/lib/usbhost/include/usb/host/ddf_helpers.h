@@ -48,7 +48,7 @@ typedef int (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *);
 typedef int (*irq_code_gen_t)(irq_code_t *, hcd_t *, const hw_res_list_parsed_t *);
 typedef int (*claim_t)(hcd_t *, ddf_dev_t *);
 typedef int (*driver_start_t)(hcd_t *, bool irq);
-typedef int (*setup_root_hub_t)(ddf_dev_t *);
+typedef int (*setup_root_hub_t)(hcd_t *, ddf_dev_t *);
 
 typedef void (*driver_stop_t)(hcd_t *);
 typedef void (*driver_fini_t)(hcd_t *);
@@ -80,7 +80,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver);
 int hcd_ddf_setup_hc(ddf_dev_t *device);
 void hcd_ddf_clean_hc(ddf_dev_t *device);
 
-int hcd_setup_virtual_root_hub(ddf_dev_t *);
+int hcd_setup_virtual_root_hub(hcd_t *, ddf_dev_t *);
 
 hcd_t *dev_to_hcd(ddf_dev_t *dev);
 
@@ -91,6 +91,17 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
     interrupt_handler_t handler,
     irq_code_gen_t gen_irq_code);
 void ddf_hcd_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev);
+
+/* For xHCI, we need to drive the roothub without roothub having assigned an
+ * address. Thus we cannot create function for it, and we have to carry the
+ * usb_dev_t somewhere.
+ *
+ * This is sort of hacky, but at least does not expose the internals of ddf_helpers.
+ */
+typedef struct hcd_roothub hcd_roothub_t;
+
+hcd_roothub_t *hcd_roothub_create(hcd_t *, ddf_dev_t *, usb_speed_t);
+int hcd_roothub_new_device(hcd_roothub_t *, unsigned port);
 
 #endif
 

@@ -128,7 +128,7 @@ int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
     usb_transfer_type_t type, size_t max_packet_size, unsigned packets,
-    size_t size, usb_address_t tt_address, unsigned tt_port)
+    size_t size, usb_tt_address_t tt)
 {
 	assert(hcd);
 
@@ -142,9 +142,7 @@ int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
 	ep->transfer_type = type;
 	ep->max_packet_size = max_packet_size;
 	ep->packets = packets;
-
-	ep->tt.address = tt_address;
-	ep->tt.port = tt_port;
+	ep->tt = tt;
 
 	ep->bandwidth = bus_count_bw(ep, size);
 

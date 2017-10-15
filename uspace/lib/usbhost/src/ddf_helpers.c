@@ -62,17 +62,17 @@ typedef struct usb_dev {
 	link_t link;
 	list_t devices;
 	fibril_mutex_t guard;
-	ddf_fun_t *fun;
 	usb_address_t address;
 	usb_speed_t speed;
-	usb_address_t tt_address;
-	unsigned port;
+	usb_tt_address_t tt;
+
+	/* This must be set iff the usb_dev is managed by ddf_fun. */
+	ddf_fun_t *fun;
 } usb_dev_t;
 
 typedef struct hc_dev {
 	ddf_fun_t *ctl_fun;
 	hcd_t hcd;
-	usb_dev_t *root_hub;
 } hc_dev_t;
 
 static hc_dev_t *dev_to_hc_dev(ddf_dev_t *dev)
@@ -91,7 +91,7 @@ hcd_t *dev_to_hcd(ddf_dev_t *dev)
 }
 
 
-static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
+static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, usb_dev_t *hub_dev, unsigned port);
 static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
 
 
@@ -126,7 +126,7 @@ static int register_endpoint(
 	    usb_str_direction(direction), max_packet_size, interval);
 
 	return hcd_add_ep(hcd, target, direction, transfer_type,
-	    max_packet_size, packets, size, dev->tt_address, dev->port);
+	    max_packet_size, packets, size, dev->tt);
 }
 
 /** Unregister endpoint interface function.
@@ -179,13 +179,16 @@ static int release_default_address(ddf_fun_t *fun)
 static int device_enumerate(ddf_fun_t *fun, unsigned port)
 {
 	assert(fun);
-	ddf_dev_t *ddf_dev = ddf_fun_get_dev(fun);
-	usb_dev_t *dev = ddf_fun_data_get(fun);
-	assert(ddf_dev);
-	assert(dev);
+	ddf_dev_t *hc = ddf_fun_get_dev(fun);
+	assert(hc);
+	hcd_t *hcd = dev_to_hcd(hc);
+	assert(hcd);
+	usb_dev_t *hub = ddf_fun_data_get(fun);
+	assert(hub);
+
 	usb_log_debug("Hub %d reported a new USB device on port: %u\n",
-	    dev->address, port);
-	return hcd_ddf_new_device(ddf_dev, dev, port);
+	    hub->address, port);
+	return hcd_ddf_new_device(hcd, hc, hub, port);
 }
 
 static int device_remove(ddf_fun_t *fun, unsigned port)
@@ -291,84 +294,6 @@ static ddf_dev_ops_t usb_ops = {
 
 /* DDF HELPERS */
 
-#define GET_DEVICE_DESC(size) \
-{ \
-	.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST \
-	    | (USB_REQUEST_TYPE_STANDARD << 5) \
-	    | USB_REQUEST_RECIPIENT_DEVICE, \
-	.request = USB_DEVREQ_GET_DESCRIPTOR, \
-	.value = uint16_host2usb(USB_DESCTYPE_DEVICE << 8), \
-	.index = uint16_host2usb(0), \
-	.length = uint16_host2usb(size), \
-};
-
-#define SET_ADDRESS(address) \
-{ \
-	.request_type = SETUP_REQUEST_TYPE_HOST_TO_DEVICE \
-	    | (USB_REQUEST_TYPE_STANDARD << 5) \
-	    | USB_REQUEST_RECIPIENT_DEVICE, \
-	.request = USB_DEVREQ_SET_ADDRESS, \
-	.value = uint16_host2usb(address), \
-	.index = uint16_host2usb(0), \
-	.length = uint16_host2usb(0), \
-};
-
-static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
-    unsigned port, usb_address_t address, usb_speed_t speed, const char *name,
-    const match_id_list_t *mids)
-{
-	assert(parent);
-
-	char default_name[10] = { 0 }; /* usbxyz-ss */
-	if (!name) {
-		snprintf(default_name, sizeof(default_name) - 1,
-		    "usb%u-%cs", address, usb_str_speed(speed)[0]);
-		name = default_name;
-	}
-
-	ddf_fun_t *fun = ddf_fun_create(parent, fun_inner, name);
-	if (!fun)
-		return ENOMEM;
-	usb_dev_t *info = ddf_fun_data_alloc(fun, sizeof(usb_dev_t));
-	if (!info) {
-		ddf_fun_destroy(fun);
-		return ENOMEM;
-	}
-	info->address = address;
-	info->speed = speed;
-	info->fun = fun;
-	info->port = port;
-	info->tt_address = hub_dev ? hub_dev->tt_address : -1;
-	link_initialize(&info->link);
-	list_initialize(&info->devices);
-	fibril_mutex_initialize(&info->guard);
-
-	if (hub_dev && hub_dev->speed == USB_SPEED_HIGH && usb_speed_is_11(speed))
-		info->tt_address = hub_dev->address;
-
-	ddf_fun_set_ops(fun, &usb_ops);
-	list_foreach(mids->ids, link, const match_id_t, mid) {
-		ddf_fun_add_match_id(fun, mid->id, mid->score);
-	}
-
-	int ret = ddf_fun_bind(fun);
-	if (ret != EOK) {
-		ddf_fun_destroy(fun);
-		return ret;
-	}
-
-	if (hub_dev) {
-		fibril_mutex_lock(&hub_dev->guard);
-		list_append(&info->link, &hub_dev->devices);
-		fibril_mutex_unlock(&hub_dev->guard);
-	} else {
-		hc_dev_t *hc_dev = dev_to_hc_dev(parent);
-		assert(hc_dev->root_hub == NULL);
-		hc_dev->root_hub = info;
-	}
-	return EOK;
-}
-
 #define ADD_MATCHID_OR_RETURN(list, sc, str, ...) \
 do { \
 	match_id_t *mid = malloc(sizeof(match_id_t)); \
@@ -415,7 +340,6 @@ static int create_match_ids(match_id_list_t *l,
 	ADD_MATCHID_OR_RETURN(l, 10, "usb&fallback");
 
 	return EOK;
-
 }
 
 static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
@@ -434,13 +358,14 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 	usb_dev_t *victim = NULL;
 
 	list_foreach(hub->devices, link, usb_dev_t, it) {
-		if (it->port == port) {
+		if (it->tt.port == port) {
 			victim = it;
 			break;
 		}
 	}
 	if (victim) {
-		assert(victim->port == port);
+		assert(victim->fun);
+		assert(victim->tt.port == port);
 		list_remove(&victim->link);
 		fibril_mutex_unlock(&hub->guard);
 		const int ret = ddf_fun_unbind(victim->fun);
@@ -458,56 +383,56 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 	return ENOENT;
 }
 
-static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
+#define GET_DEVICE_DESC(size) \
+{ \
+	.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST \
+	    | (USB_REQUEST_TYPE_STANDARD << 5) \
+	    | USB_REQUEST_RECIPIENT_DEVICE, \
+	.request = USB_DEVREQ_GET_DESCRIPTOR, \
+	.value = uint16_host2usb(USB_DESCTYPE_DEVICE << 8), \
+	.index = uint16_host2usb(0), \
+	.length = uint16_host2usb(size), \
+};
+
+#define SET_ADDRESS(address) \
+{ \
+	.request_type = SETUP_REQUEST_TYPE_HOST_TO_DEVICE \
+	    | (USB_REQUEST_TYPE_STANDARD << 5) \
+	    | USB_REQUEST_RECIPIENT_DEVICE, \
+	.request = USB_DEVREQ_SET_ADDRESS, \
+	.value = uint16_host2usb(address), \
+	.index = uint16_host2usb(0), \
+	.length = uint16_host2usb(0), \
+};
+
+static int hcd_usb2_address_device(hcd_t *hcd, usb_speed_t speed,
+    usb_tt_address_t tt, usb_address_t *out_address)
 {
-	assert(device);
-
-	hcd_t *hcd = dev_to_hcd(device);
-	assert(hcd);
-
-	usb_speed_t speed = USB_SPEED_MAX;
-
-	/* This checks whether the default address is reserved and gets speed */
-	int ret = bus_get_speed(hcd->bus, USB_ADDRESS_DEFAULT, &speed);
-	if (ret != EOK) {
-		usb_log_error("Failed to verify speed: %s.", str_error(ret));
-		return ret;
-	}
-
-	usb_log_debug("Found new %s speed USB device.", usb_str_speed(speed));
+	int err;
 
 	static const usb_target_t default_target = {{
 		.address = USB_ADDRESS_DEFAULT,
 		.endpoint = 0,
 	}};
 
+	/** Reserve address early, we want pretty log messages */
 	const usb_address_t address = hcd_request_address(hcd, speed);
 	if (address < 0) {
 		usb_log_error("Failed to reserve new address: %s.",
 		    str_error(address));
 		return address;
 	}
-
-	usb_log_debug("Reserved new address: %d\n", address);
-
-	const usb_target_t target = {{
-		.address = address,
-		.endpoint = 0,
-	}};
-
-	const usb_address_t tt_address = hub ? hub->tt_address : -1;
+	usb_log_debug("Device(%d): Reserved new address.", address);
 
 	/* Add default pipe on default address */
-	usb_log_debug("Device(%d): Adding default target(0:0)\n", address);
-	ret = hcd_add_ep(hcd,
+	usb_log_debug("Device(%d): Adding default target (0:0)", address);
+	err = hcd_add_ep(hcd,
 	    default_target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1,
-	    tt_address, port);
-	if (ret != EOK) {
+	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1, tt);
+	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to add default target: %s.",
-		    address, str_error(ret));
-		hcd_release_address(hcd, address);
-		return ret;
+		    address, str_error(err));
+		goto err_address;
 	}
 
 	/* Get max packet size for default pipe */
@@ -515,7 +440,6 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	const usb_device_request_setup_packet_t get_device_desc_8 =
 	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
 
-	// TODO CALLBACKS
 	usb_log_debug("Device(%d): Requesting first 8B of device descriptor.",
 	    address);
 	ssize_t got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_IN,
@@ -523,92 +447,226 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	    "read first 8 bytes of dev descriptor");
 
 	if (got != CTRL_PIPE_MIN_PACKET_SIZE) {
-		ret = got < 0 ? got : EOVERFLOW;
+		err = got < 0 ? got : EOVERFLOW;
 		usb_log_error("Device(%d): Failed to get 8B of dev descr: %s.",
-		    address, str_error(ret));
-		hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
-		hcd_release_address(hcd, address);
-		return ret;
-	}
-
-	/* Register EP on the new address */
-	usb_log_debug("Device(%d): Registering control EP.", address);
-	ret = hcd_add_ep(hcd, target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
-	    ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
-	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
-	    tt_address, port);
-	if (ret != EOK) {
-		usb_log_error("Device(%d): Failed to register EP0: %s",
-		    address, str_error(ret));
-		hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
-		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
-		hcd_release_address(hcd, address);
-		return ret;
+		    address, str_error(err));
+		goto err_default_target;
 	}
 
 	/* Set new address */
-	const usb_device_request_setup_packet_t set_address =
-	    SET_ADDRESS(target.address);
+	const usb_device_request_setup_packet_t set_address = SET_ADDRESS(address);
 
 	usb_log_debug("Device(%d): Setting USB address.", address);
-	got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
+	err = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
 	    NULL, 0, *(uint64_t *)&set_address, "set address");
-
-	usb_log_debug("Device(%d): Removing default (0:0) EP.", address);
-	hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
-
-	if (got != 0) {
+	if (err != 0) {
 		usb_log_error("Device(%d): Failed to set new address: %s.",
 		    address, str_error(got));
-		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
-		hcd_release_address(hcd, address);
-		return got;
+		goto err_default_target;
 	}
+
+	*out_address = address;
+
+	usb_target_t control_ep = {
+		.address = address,
+		.endpoint = 0
+	};
+
+	/* Register EP on the new address */
+	usb_log_debug("Device(%d): Registering control EP.", address);
+	err = hcd_add_ep(hcd, control_ep, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
+	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
+	    ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
+	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)), tt);
+	if (err != EOK) {
+		usb_log_error("Device(%d): Failed to register EP0: %s",
+		    address, str_error(err));
+		goto err_default_target;
+	}
+
+	hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
+	return EOK;
+
+
+err_default_target:
+	hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
+err_address:
+	hcd_release_address(hcd, address);
+	return err;
+}
+
+static int usb_dev_init(usb_dev_t *usb_dev, usb_speed_t speed)
+{
+	memset(usb_dev, 0, sizeof(*usb_dev));
+
+	link_initialize(&usb_dev->link);
+	list_initialize(&usb_dev->devices);
+	fibril_mutex_initialize(&usb_dev->guard);
+
+	usb_dev->speed = speed;
+
+	return EOK;
+}
+
+static usb_dev_t *usb_dev_create(ddf_dev_t *hc, usb_speed_t speed)
+{
+	/* Create DDF function for the new device */
+	ddf_fun_t *fun = ddf_fun_create(hc, fun_inner, NULL);
+	if (!fun)
+		return NULL;
+
+	ddf_fun_set_ops(fun, &usb_ops);
+
+	/* Create USB device node for the new device */
+	usb_dev_t *usb_dev = ddf_fun_data_alloc(fun, sizeof(usb_dev_t));
+	if (!usb_dev) {
+		ddf_fun_destroy(fun);
+		return NULL;
+	}
+
+	usb_dev_init(usb_dev, speed);
+	usb_dev->fun = fun;
+	return usb_dev;
+}
+
+static void usb_dev_destroy(usb_dev_t *dev)
+{
+	assert(dev);
+	assert(dev->fun);
+	ddf_fun_destroy(dev->fun);
+}
+
+static int usb_dev_set_default_name(usb_dev_t *usb_dev)
+{
+	assert(usb_dev);
+
+	char buf[10] = { 0 }; /* usbxyz-ss */
+	snprintf(buf, sizeof(buf) - 1, "usb%u-%cs",
+	    usb_dev->address, usb_str_speed(usb_dev->speed)[0]);
+
+	return ddf_fun_set_name(usb_dev->fun, buf);
+}
+
+static int usb_dev_explore(hcd_t *hcd, usb_dev_t *usb_dev)
+{
+	int err;
+	match_id_list_t mids;
+	usb_standard_device_descriptor_t desc = { 0 };
+
+	init_match_ids(&mids);
+
+	usb_target_t control_ep = {
+		.address = usb_dev->address,
+		.endpoint = 0
+	};
 
 	/* Get std device descriptor */
 	const usb_device_request_setup_packet_t get_device_desc =
 	    GET_DEVICE_DESC(sizeof(desc));
 
 	usb_log_debug("Device(%d): Requesting full device descriptor.",
-	    address);
-	got = hcd_send_batch_sync(hcd, target, USB_DIRECTION_IN,
+	    usb_dev->address);
+	ssize_t got = hcd_send_batch_sync(hcd, control_ep, USB_DIRECTION_IN,
 	    &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
 	    "read device descriptor");
-	if (ret != EOK) {
+	if (got < 0) {
+		err = got < 0 ? got : EOVERFLOW;
 		usb_log_error("Device(%d): Failed to set get dev descriptor: %s",
-		    address, str_error(ret));
-		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
-		hcd_release_address(hcd, target.address);
-		return ret;
+		    usb_dev->address, str_error(err));
+		goto out;
 	}
 
 	/* Create match ids from the device descriptor */
-	match_id_list_t mids;
-	init_match_ids(&mids);
-
-	usb_log_debug("Device(%d): Creating match IDs.", address);
-	ret = create_match_ids(&mids, &desc);
-	if (ret != EOK) {
-		usb_log_error("Device(%d): Failed to create match ids: %s",
-		    address, str_error(ret));
-		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
-		hcd_release_address(hcd, target.address);
-		return ret;
+	usb_log_debug("Device(%d): Creating match IDs.", usb_dev->address);
+	if ((err = create_match_ids(&mids, &desc))) {
+		usb_log_error("Device(%d): Failed to create match ids: %s", usb_dev->address, str_error(err));
+		goto out;
 	}
 
-	/* Register device */
-	usb_log_debug("Device(%d): Registering DDF device.", address);
-	ret = hcd_ddf_add_device(device, hub, port, address, speed, NULL, &mids);
+	list_foreach(mids.ids, link, const match_id_t, mid) {
+		ddf_fun_add_match_id(usb_dev->fun, mid->id, mid->score);
+	}
+
+out:
 	clean_match_ids(&mids);
-	if (ret != EOK) {
-		usb_log_error("Device(%d): Failed to register: %s.",
-		    address, str_error(ret));
-		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
-		hcd_release_address(hcd, target.address);
+	return err;
+}
+
+static int hcd_address_device(hcd_t *hcd, usb_dev_t *usb_dev)
+{
+	if (hcd->ops.address_device)
+		return hcd->ops.address_device(hcd, usb_dev->speed, usb_dev->tt, &usb_dev->address);
+	else
+		return hcd_usb2_address_device(hcd, usb_dev->speed, usb_dev->tt, &usb_dev->address);
+}
+
+static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, usb_dev_t *hub_dev, unsigned port)
+{
+	int err;
+	assert(hcd);
+	assert(hub_dev);
+	assert(hc);
+
+	usb_speed_t speed = USB_SPEED_MAX;
+	/* The speed of the new device was reported by the hub when reserving
+	 * default address.
+	 */
+	if ((err = bus_get_speed(hcd->bus, USB_ADDRESS_DEFAULT, &speed))) {
+		usb_log_error("Failed to verify speed: %s.", str_error(err));
+		return err;
+	}
+	usb_log_debug("Found new %s speed USB device.", usb_str_speed(speed));
+
+	usb_dev_t *usb_dev = usb_dev_create(hc, speed);
+	if (!usb_dev) {
+		usb_log_error("Failed to create USB device function.");
+		return err;
 	}
 
-	return ret;
+	/* For devices under HS hub */
+	/* TODO: How about SS hubs? */
+	if (hub_dev->speed == USB_SPEED_HIGH && usb_speed_is_11(speed)) {
+		usb_dev->tt.address = hub_dev->address;
+	}
+	else {
+		/* Inherit hub's TT */
+		usb_dev->tt.address = hub_dev->tt.address;
+	}
+	usb_dev->tt.port = port;
+
+	/* Assign an address to the device */
+	if ((err = hcd_address_device(hcd, usb_dev))) {
+		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
+		goto err_usb_dev;
+	}
+
+	/* Read the device descriptor, derive the match ids */
+	if ((err = usb_dev_explore(hcd, usb_dev))) {
+		usb_log_error("Device(%d): Failed to explore device: %s", usb_dev->address, str_error(err));
+		goto err_usb_dev;
+	}
+
+	/* If the driver didn't name the device when addressing/exploring,
+	 * do it insome generic way.
+	 */
+	if (!ddf_fun_get_name(usb_dev->fun)) {
+		usb_dev_set_default_name(usb_dev);
+	}
+
+	if ((err = ddf_fun_bind(usb_dev->fun))) {
+		usb_log_error("Device(%d): Failed to register: %s.", usb_dev->address, str_error(err));
+		goto err_usb_dev;
+	}
+
+	fibril_mutex_lock(&hub_dev->guard);
+	list_append(&usb_dev->link, &hub_dev->devices);
+	fibril_mutex_unlock(&hub_dev->guard);
+
+	return EOK;
+
+err_usb_dev:
+	usb_dev_destroy(usb_dev);
+	return err;
 }
 
 /** Announce root hub to the DDF
@@ -616,16 +674,54 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
  * @param[in] device Host controller ddf device
  * @return Error code
  */
-int hcd_setup_virtual_root_hub(ddf_dev_t *device)
+int hcd_setup_virtual_root_hub(hcd_t *hcd, ddf_dev_t *hc)
 {
-	assert(device);
-	hcd_t *hcd = dev_to_hcd(device);
+	int err;
+
+	assert(hc);
 	assert(hcd);
 
-	hcd_reserve_default_address(hcd, USB_SPEED_MAX);
-	const int ret = hcd_ddf_new_device(device, NULL, 0);
+	if ((err = hcd_reserve_default_address(hcd, USB_SPEED_MAX))) {
+		usb_log_error("Failed to reserve default address for roothub setup: %s", str_error(err));
+		return err;
+	}
+
+	usb_dev_t *usb_dev = usb_dev_create(hc, USB_SPEED_MAX);
+	if (!usb_dev) {
+		usb_log_error("Failed to create function for the root hub.");
+		goto err_default_address;
+	}
+
+	usb_dev->tt.address = -1;
+	usb_dev->tt.port = 0;
+
+	/* Assign an address to the device */
+	if ((err = hcd_address_device(hcd, usb_dev))) {
+		usb_log_error("Failed to setup roothub address: %s", str_error(err));
+		goto err_usb_dev;
+	}
+
+	/* Read the device descriptor, derive the match ids */
+	if ((err = usb_dev_explore(hcd, usb_dev))) {
+		usb_log_error("Failed to explore roothub: %s", str_error(err));
+		goto err_usb_dev;
+	}
+
+	ddf_fun_set_name(usb_dev->fun, "roothub");
+
+	if ((err = ddf_fun_bind(usb_dev->fun))) {
+		usb_log_error("Failed to register roothub: %s.", str_error(err));
+		goto err_usb_dev;
+	}
+
 	hcd_release_default_address(hcd);
-	return ret;
+	return EOK;
+
+err_usb_dev:
+	usb_dev_destroy(usb_dev);
+err_default_address:
+	hcd_release_default_address(hcd);
+	return err;
 }
 
 /** Initialize hc structures.
@@ -647,7 +743,6 @@ int hcd_ddf_setup_hc(ddf_dev_t *device)
 		usb_log_error("Failed to allocate HCD ddf structure.\n");
 		return ENOMEM;
 	}
-	instance->root_hub = NULL;
 	hcd_init(&instance->hcd);
 
 	int ret = ENOMEM;
@@ -919,7 +1014,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	 * needs to be ready at this time.
 	 */
 	if (driver->setup_root_hub)
-		ret = driver->setup_root_hub(device);
+		ret = driver->setup_root_hub(hcd, device);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup HC root hub: %s.\n",
 		    str_error(ret));
@@ -945,6 +1040,28 @@ err_hcd:
 err_hw_res:
 	hw_res_list_parsed_clean(&hw_res);
 	return ret;
+}
+
+struct hcd_roothub {
+	hcd_t *hcd;
+	ddf_dev_t *hc_dev;
+	usb_dev_t rh_usb;
+};
+
+hcd_roothub_t *hcd_roothub_create(hcd_t *hcd, ddf_dev_t *dev, usb_speed_t speed)
+{
+	hcd_roothub_t *rh = malloc(sizeof(*rh));
+
+	rh->hcd = hcd;
+	rh->hc_dev = dev;
+	usb_dev_init(&rh->rh_usb, speed);
+
+	rh->rh_usb.tt.address = -1;
+	return rh;
+}
+
+int hcd_roothub_new_device(hcd_roothub_t *rh, unsigned port) {
+	return hcd_ddf_new_device(rh->hcd, rh->hc_dev, &rh->rh_usb, port);
 }
 /**
  * @}

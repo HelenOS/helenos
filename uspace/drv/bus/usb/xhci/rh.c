@@ -37,6 +37,8 @@
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usb/host/utils/malloc32.h>
+#include <usb/host/ddf_helpers.h>
+
 #include "debug.h"
 #include "commands.h"
 #include "endpoint.h"
@@ -68,14 +70,22 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
 //       sure about the other structs.
-static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
+// TODO: This currently assumes the device is attached to rh directly.
+//       Also, we should consider moving a lot of functionailty to xhci bus
+int xhci_rh_address_device(xhci_rh_t *rh, usb_speed_t unused_speed, usb_tt_address_t tt, usb_address_t *address)
 {
 	int err;
+	xhci_hc_t *hc = rh->hc;
 
 	xhci_cmd_t cmd;
 	xhci_cmd_init(&cmd);
 
-	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(&hc->rh, port);
+	uint8_t port = tt.port;
+
+	/* XXX Certainly not generic solution. */
+	uint32_t route_str = 0;
+
+	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, port);
 
 	xhci_send_enable_slot_command(hc, &cmd);
 	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
@@ -126,8 +136,7 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 	XHCI_EP_MULT_SET(ictx->endpoint_ctx[0], 0);
 	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
 
-	// TODO: What's the alignment?
-	xhci_device_ctx_t *dctx = malloc(sizeof(xhci_device_ctx_t));
+	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
 	if (!dctx) {
 		err = ENOMEM;
 		goto err_ring;
@@ -148,8 +157,8 @@ static int alloc_dev(xhci_hc_t *hc, uint8_t port, uint32_t route_str)
 
 	xhci_cmd_fini(&cmd);
 
-	usb_address_t address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
-	usb_log_debug2("Obtained USB address: %d.\n", address);
+	*address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
+	usb_log_debug2("Obtained USB address: %d.\n", *address);
 
 	// TODO: Ask libusbhost to create a control endpoint for EP0.
 
@@ -173,6 +182,16 @@ err_ictx:
 	return err;
 }
 
+static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
+{
+	/** This should ideally use the libusbhost in a clean and elegant way,
+	 * to create child function. The refactoring of libusbhost is not over
+	 * yet, so for now it is still quirky.
+	 */
+
+	return hcd_roothub_new_device(rh->hcd_rh, port_id);
+}
+
 static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 {
 	xhci_port_regs_t *regs = &rh->hc->op_regs->portrs[port_id - 1];
@@ -185,7 +204,7 @@ static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 	if (speed->major == 3) {
 		if (link_state == 0) {
 			/* USB3 is automatically advanced to enabled. */
-			return alloc_dev(rh->hc, port_id, 0);
+			return rh_setup_device(rh, port_id);
 		}
 		else if (link_state == 5) {
 			/* USB 3 failed to enable. */
@@ -269,7 +288,7 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 				/* FIXME: We probably don't want to do this
 				 * every time USB2 port is reset. This is a
 				 * temporary workaround. */
-				alloc_dev(rh->hc, i, 0);
+				rh_setup_device(rh, i);
 			}
 		}
 

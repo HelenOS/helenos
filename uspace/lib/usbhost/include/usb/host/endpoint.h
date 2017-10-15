@@ -78,10 +78,7 @@ typedef struct endpoint {
 	/** Signals change of active status. */
 	fibril_condvar_t avail;
 	/** High speed TT data */
-	struct {
-		usb_address_t address;
-		unsigned port;
-	} tt;
+	usb_tt_address_t tt;
 
 	/* This structure is meant to be extended by overriding. */
 } endpoint_t;

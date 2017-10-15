@@ -113,6 +113,11 @@ typedef enum {
  */
 typedef int16_t usb_address_t;
 
+typedef struct {
+	usb_address_t address;
+	unsigned port;
+} usb_tt_address_t;
+
 /** Default USB address. */
 #define USB_ADDRESS_DEFAULT 0
 
