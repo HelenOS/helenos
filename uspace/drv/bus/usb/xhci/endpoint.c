@@ -33,6 +33,7 @@
  * @brief The host controller endpoint management.
  */
 
+#include <usb/host/utils/malloc32.h>
 #include <usb/host/endpoint.h>
 #include <usb/descriptor.h>
 
@@ -83,8 +84,8 @@ static inline uint8_t xhci_endpoint_ctx_offset(xhci_endpoint_t *ep)
 {
 	/* 0 is slot ctx, 1 is EP0, then it's EP1 out, in, EP2 out, in, etc. */
 
-	uint8_t off = 2 + 2 * (ep->base.target.endpoint - 1);
-	if (ep->base.direction == USB_DIRECTION_IN)
+	uint8_t off = 2 * (ep->base.target.endpoint);
+	if (ep->base.direction == USB_DIRECTION_IN || ep->base.target.endpoint == 0)
 		++off;
 
 	return off;
@@ -196,7 +197,7 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 		memset(&ss_desc, 0, sizeof(ss_desc));
 
 		// Prepare input context.
-		ictx = malloc(sizeof(xhci_input_ctx_t));
+		ictx = malloc32(sizeof(xhci_input_ctx_t));
 		if (!ictx) {
 			return ENOMEM;
 		}
@@ -225,19 +226,19 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 
 		switch (ep->base.transfer_type) {
 		case USB_TRANSFER_CONTROL:
-			setup_control_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset], ep_ring);
+			setup_control_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset - 1], ep_ring);
 			break;
 
 		case USB_TRANSFER_BULK:
-			setup_bulk_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset], ep_ring, &ss_desc);
+			setup_bulk_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset - 1], ep_ring, &ss_desc);
 			break;
 
 		case USB_TRANSFER_ISOCHRONOUS:
-			setup_isoch_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset], ep_ring, &ss_desc);
+			setup_isoch_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset - 1], ep_ring, &ss_desc);
 			break;
 
 		case USB_TRANSFER_INTERRUPT:
-			setup_interrupt_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset], ep_ring, &ss_desc);
+			setup_interrupt_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset - 1], ep_ring, &ss_desc);
 			break;
 
 		}

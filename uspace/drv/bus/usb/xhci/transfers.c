@@ -305,10 +305,6 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 int xhci_schedule_interrupt_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 {
-	/* FIXME: Removing the next 2 rows causes QEMU to crash lol */
-	usb_log_warning("Interrupt transfers not yet implemented!");
-	return ENOTSUP;
-
 	if (batch->setup_size) {
 		usb_log_warning("Setup packet present for a interrupt transfer.");
 	}
