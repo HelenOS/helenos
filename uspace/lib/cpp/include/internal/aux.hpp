@@ -26,37 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_TYPE_INFO
-#define LIBCPP_TYPE_INFO
-
-#include <cstdlib>
+#ifndef LIBCPP_AUX
+#define LIBCPP_AUX
 
 namespace std
 {
 
-class type_info
+namespace aux
 {
-    public:
-        virtual ~type_info();
+    /**
+     * Two very handy templates, this allows us
+     * to easily follow the T::type and T::value
+     * convention by simply inheriting from specific
+     * instantiations of these templates.
+     * Examples:
+     *  1) We need a struct with int typedef'd to type:
+     *
+     *      stuct has_type_int: aux::type<int> {};
+     *      typename has_type_int::type x = 1; // x is of type int
+     *
+     *  2) We need a struct with static size_t member called value:
+     *
+     *      struct has_value_size_t: aux::value<size_t, 1u> {};
+     *      std::printf("%u\n", has_value_size_t::value); // prints "1\n"
+     */
 
-        bool operator==(const type_info&) const noexcept;
-        bool operator!=(const type_info&) const noexcept;
+    template<class T>
+    struct type_is
+    {
+        using type = T;
+    };
 
-        bool before(const type_info&) const noexcept;
+    template<class T, T v>
+    struct value_is
+    {
+        static constexpr T value = v;
+    };
+}
 
-        size_t hash_code() const noexcept;
-
-        const char* name() const noexcept;
-
-        type_info(const type_info&) = delete;
-        type_info& operator=(const type_info&) = delete;
-
-    private:
-        const char* __name;
-};
-
-    // TODO: class bad_cast, bad_typeid
 }
 
 #endif
-

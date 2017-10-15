@@ -31,6 +31,7 @@
 
 #include <cstdlib>
 #include <cstddef>
+#include <internal/aux.hpp>
 
 namespace std
 {
@@ -606,8 +607,17 @@ namespace std
     template<class T>
     struct alignment_of;
 
+    template<class>
+    struct rank : aux::value_is<size_t, 0u>
+    { /* DUMMY BODY */ };
+
+    template<class T, size_t N>
+    struct rank<T[N]>: aux::value_is<size_t, 1u + rank<T>::value>
+    { /* DUMMY BODY */ };
+
     template<class T>
-    struct rank;
+    struct rank<T[]>: aux::value_is<size_t, 1u + rank<T>::value>
+    { /* DUMMY BODY */ };
 
     template<class T, unsigned I = 0>
     struct extent;
@@ -635,7 +645,12 @@ namespace std
      */
 
     template<class T>
-    struct remove_const;
+    struct remove_const: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_const<T const>: aux::type_is<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct remove_volatile;
@@ -796,7 +811,7 @@ namespace std
     template<class T>
     using result_of_t = typename result_of<T>::type;
 
-    template<class T>
+    template<class...>
     using void_t = void;
 }
 
