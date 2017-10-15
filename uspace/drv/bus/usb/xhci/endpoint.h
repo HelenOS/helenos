@@ -48,8 +48,6 @@ typedef struct xhci_device xhci_device_t;
 typedef struct xhci_endpoint xhci_endpoint_t;
 typedef struct xhci_bus xhci_bus_t;
 
-#define XHCI_DEVICE_MAX_ENDPOINTS 32
-
 enum {
 	EP_TYPE_INVALID = 0,
 	EP_TYPE_ISOCH_OUT = 1,
@@ -80,10 +78,16 @@ typedef struct xhci_device {
 	device_t *device;
 
 	/** All endpoints of the device. Inactive ones are NULL */
-	xhci_endpoint_t *endpoints[XHCI_DEVICE_MAX_ENDPOINTS];
+	xhci_endpoint_t *endpoints[XHCI_EP_COUNT];
 
 	/** Number of non-NULL endpoints. Reference count of sorts. */
 	uint8_t active_endpoint_count;
+
+	/** Need HC to schedule commands from bus callbacks. TODO: Move this elsewhere. */
+	xhci_hc_t *hc;
+
+	/** Flag indicating whether the device is USB3 (it's USB2 otherwise). */
+	bool usb3;
 } xhci_device_t;
 
 int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);

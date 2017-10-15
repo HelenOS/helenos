@@ -265,7 +265,8 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	return EOK;
 }
 
-int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
+int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
+{
 	if (batch->setup_size) {
 		usb_log_warning("Setup packet present for a bulk transfer.");
 	}
@@ -275,7 +276,10 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
 	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
 
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
-	memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
+	if (!transfer->direction) {
+		// Sending stuff from host to device, we need to copy the actual data.
+		memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
+	}
 
 	xhci_trb_t trb;
 	memset(&trb, 0, sizeof(xhci_trb_t));
@@ -297,6 +301,49 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch) {
 	// TODO: target = endpoint | stream_id << 16
 	hc_ring_doorbell(hc, slot_id, xhci_ep->base.target.endpoint);
 	return EOK;
+}
+
+int xhci_schedule_interrupt_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
+{
+	/* FIXME: Removing the next 2 rows causes QEMU to crash lol */
+	usb_log_warning("Interrupt transfers not yet implemented!");
+	return ENOTSUP;
+
+	if (batch->setup_size) {
+		usb_log_warning("Setup packet present for a interrupt transfer.");
+	}
+
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
+	uint8_t slot_id = xhci_ep->device->slot_id;
+	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
+
+	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
+	if (!transfer->direction) {
+		// Sending stuff from host to device, we need to copy the actual data.
+		memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
+	}
+
+	xhci_trb_t trb;
+	memset(&trb, 0, sizeof(xhci_trb_t));
+	trb.parameter = addr_to_phys(transfer->hc_buffer);
+
+	// data size (sent for OUT, or buffer size)
+	TRB_CTRL_SET_XFER_LEN(trb, batch->buffer_size);
+	// FIXME: TD size 4.11.2.4
+	TRB_CTRL_SET_TD_SIZE(trb, 1);
+
+	// we want an interrupt after this td is done
+	TRB_CTRL_SET_IOC(trb, 1);
+
+	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
+
+	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+	list_append(&transfer->link, &hc->transfers);
+
+	const uint8_t target = 2 * batch->ep->target.endpoint
+		+ (batch->ep->direction == USB_DIRECTION_IN ? 1 : 0);
+	usb_log_debug("Ringing doorbell for slot_id = %d, target = %d", slot_id, target);
+	return hc_ring_doorbell(hc, slot_id, target);
 }
 
 int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)

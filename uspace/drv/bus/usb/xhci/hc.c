@@ -200,10 +200,10 @@ int hc_init_memory(xhci_hc_t *hc)
 		goto err_dcbaa;
 	}
 
-	if ((err = xhci_trb_ring_init(&hc->command_ring, hc)))
+	if ((err = xhci_trb_ring_init(&hc->command_ring)))
 		goto err_dcbaa_virt;
 
-	if ((err = xhci_event_ring_init(&hc->event_ring, hc)))
+	if ((err = xhci_event_ring_init(&hc->event_ring)))
 		goto err_cmd_ring;
 
 	if ((err = xhci_scratchpad_alloc(hc)))
@@ -461,7 +461,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
 	assert(batch);
 
-	usb_log_debug2("EP(%d:%d) started %s transfer of size %lu.",
+	usb_log_debug2("Endpoint(%d:%d) started %s transfer of size %lu.",
 		batch->ep->target.address, batch->ep->target.endpoint,
 		usb_str_transfer_type(batch->ep->transfer_type),
 		batch->buffer_size);
@@ -481,9 +481,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	case USB_TRANSFER_BULK:
 		return xhci_schedule_bulk_transfer(hc, batch);
 	case USB_TRANSFER_INTERRUPT:
-		/* TODO: Implement me. */
-		usb_log_error("Interrupt transfers are not yet implemented!");
-		return ENOTSUP;
+		return xhci_schedule_interrupt_transfer(hc, batch);
 	}
 
 	return EOK;

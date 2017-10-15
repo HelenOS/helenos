@@ -119,7 +119,7 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 		goto err_ictx;
 	}
 
-	err = xhci_trb_ring_init(ep_ring, hc);
+	err = xhci_trb_ring_init(ep_ring);
 	if (err)
 		goto err_ring;
 
@@ -180,6 +180,8 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 
 	xhci_dev->device = dev;
 	xhci_dev->slot_id = slot_id;
+	xhci_dev->usb3 = speed->major == 3;
+	xhci_dev->hc = hc;
 
 	// TODO: Save anything else?
 

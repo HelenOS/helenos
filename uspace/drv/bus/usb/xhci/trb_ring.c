@@ -91,7 +91,7 @@ static int trb_segment_allocate(trb_segment_t **segment)
  * Initializes the ring with one segment.
  * Event when it fails, the structure needs to be finalized.
  */
-int xhci_trb_ring_init(xhci_trb_ring_t *ring, xhci_hc_t *hc)
+int xhci_trb_ring_init(xhci_trb_ring_t *ring)
 {
 	struct trb_segment *segment;
 	int err;
@@ -236,7 +236,7 @@ err_again:
  * Initializes an event ring.
  * Even when it fails, the structure needs to be finalized.
  */
-int xhci_event_ring_init(xhci_event_ring_t *ring, xhci_hc_t *hc)
+int xhci_event_ring_init(xhci_event_ring_t *ring)
 {
 	struct trb_segment *segment;
 	int err;

@@ -72,7 +72,7 @@ typedef struct xhci_trb_ring {
 	fibril_mutex_t guard;
 } xhci_trb_ring_t;
 
-int xhci_trb_ring_init(xhci_trb_ring_t *, xhci_hc_t *);
+int xhci_trb_ring_init(xhci_trb_ring_t *);
 int xhci_trb_ring_fini(xhci_trb_ring_t *);
 int xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *, uintptr_t *);
 
@@ -109,7 +109,7 @@ typedef struct xhci_event_ring {
 	fibril_mutex_t guard;
 } xhci_event_ring_t;
 
-int xhci_event_ring_init(xhci_event_ring_t *, xhci_hc_t *);
+int xhci_event_ring_init(xhci_event_ring_t *);
 int xhci_event_ring_fini(xhci_event_ring_t *);
 int xhci_event_ring_dequeue(xhci_event_ring_t *, xhci_trb_t *);
 

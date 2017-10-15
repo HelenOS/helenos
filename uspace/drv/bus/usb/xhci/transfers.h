@@ -53,4 +53,5 @@ xhci_transfer_t* xhci_transfer_alloc(usb_transfer_batch_t*);
 void xhci_transfer_fini(xhci_transfer_t*);
 int xhci_schedule_control_transfer(xhci_hc_t*, usb_transfer_batch_t*);
 int xhci_schedule_bulk_transfer(xhci_hc_t*, usb_transfer_batch_t*);
+int xhci_schedule_interrupt_transfer(xhci_hc_t*, usb_transfer_batch_t*);
 int xhci_handle_transfer_event(xhci_hc_t*, xhci_trb_t*);
