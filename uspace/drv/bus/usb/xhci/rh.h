@@ -37,9 +37,11 @@
 #define XHCI_RH_H
 
 #include <usb/host/usb_transfer_batch.h>
+#include <usb/host/bus.h>
 #include "hw_struct/regs.h"
 
 typedef struct xhci_hc xhci_hc_t;
+typedef struct ddf_dev ddf_dev_t;
 
 /**
  * xHCI lets the controller define speeds of ports it controls.
@@ -57,6 +59,12 @@ typedef struct {
 	/** Host controller */
 	xhci_hc_t *hc;
 
+	/* Root for the device tree */
+	device_t device;
+
+	/* We need this to attach children to */
+	ddf_dev_t *hc_device;
+
 	/** Port speeds reported from HC */
 	xhci_port_speed_t speeds [16];
 
@@ -65,9 +73,6 @@ typedef struct {
 
 	/* Number of hub ports. */
 	uint8_t max_ports;
-
-	/* We need this to create child devices */
-	hcd_roothub_t *hcd_rh;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
@@ -78,7 +83,7 @@ int xhci_rh_reset_port(xhci_rh_t *, uint8_t);
 int xhci_rh_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
 void xhci_rh_handle_port_change(xhci_rh_t *);
 
-int xhci_rh_address_device(xhci_rh_t *, usb_speed_t, usb_tt_address_t, usb_address_t *);
+int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev);
 
 #endif
 

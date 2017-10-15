@@ -58,7 +58,6 @@ typedef void (*driver_fini_t)(hcd_t *);
  */
 typedef struct {
 	hcd_ops_t ops;
-	usb_speed_t hc_speed;
 	const char *name;
 
 	interrupt_handler_t *irq_handler;  /**< Handler of IRQ. Do have generic implementation. */
@@ -82,6 +81,10 @@ void hcd_ddf_clean_hc(ddf_dev_t *device);
 
 int hcd_setup_virtual_root_hub(hcd_t *, ddf_dev_t *);
 
+device_t *hcd_ddf_device_create(ddf_dev_t *, size_t);
+void hcd_ddf_device_destroy(device_t *);
+int hcd_ddf_device_explore(hcd_t *, device_t *);
+
 hcd_t *dev_to_hcd(ddf_dev_t *dev);
 
 int hcd_ddf_enable_interrupts(ddf_dev_t *device);
@@ -91,17 +94,6 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
     interrupt_handler_t handler,
     irq_code_gen_t gen_irq_code);
 void ddf_hcd_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev);
-
-/* For xHCI, we need to drive the roothub without roothub having assigned an
- * address. Thus we cannot create function for it, and we have to carry the
- * usb_dev_t somewhere.
- *
- * This is sort of hacky, but at least does not expose the internals of ddf_helpers.
- */
-typedef struct hcd_roothub hcd_roothub_t;
-
-hcd_roothub_t *hcd_roothub_create(hcd_t *, ddf_dev_t *, usb_speed_t);
-int hcd_roothub_new_device(hcd_roothub_t *, unsigned port);
 
 #endif
 

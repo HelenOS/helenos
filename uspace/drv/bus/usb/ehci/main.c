@@ -56,7 +56,6 @@ static int ehci_driver_start(hcd_t *, bool);
 static void ehci_driver_fini(hcd_t *);
 
 static const ddf_hc_driver_t ehci_hc_driver = {
-	.hc_speed = USB_SPEED_HIGH,
 	.name = "EHCI-PCI",
 	.init = ehci_driver_init,
 	.irq_code_gen = ehci_hc_gen_irq_code,

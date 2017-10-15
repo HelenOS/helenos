@@ -35,18 +35,118 @@
 
 #include <usb/host/bus.h>
 #include <usb/host/endpoint.h>
+#include <ddf/driver.h>
 
 #include <mem.h>
 #include <errno.h>
+#include <stdio.h>
 
 /**
  * Initializes the bus structure.
  */
-void bus_init(bus_t *bus)
+void bus_init(bus_t *bus, size_t device_size)
 {
+	assert(bus);
+	assert(device_size >= sizeof(device_t));
 	memset(bus, 0, sizeof(bus_t));
 
 	fibril_mutex_initialize(&bus->guard);
+	bus->device_size = device_size;
+}
+
+int device_init(device_t *dev)
+{
+	memset(dev, 0, sizeof(*dev));
+
+	link_initialize(&dev->link);
+	list_initialize(&dev->devices);
+	fibril_mutex_initialize(&dev->guard);
+
+	return EOK;
+}
+
+int bus_add_ep(bus_t *bus, device_t *device, usb_endpoint_t endpoint,
+    usb_direction_t dir, usb_transfer_type_t type, size_t max_packet_size,
+    unsigned packets, size_t size)
+{
+	assert(bus);
+	assert(device);
+
+	/* Temporary reference */
+	endpoint_t *ep = bus_create_endpoint(bus);
+	if (!ep)
+		return ENOMEM;
+
+	ep->target = (usb_target_t) {
+		.address = device->address,
+		.endpoint = endpoint,
+	};
+
+	ep->device = device;
+	ep->direction = dir;
+	ep->transfer_type = type;
+	ep->max_packet_size = max_packet_size;
+	ep->packets = packets;
+
+	ep->bandwidth = bus_count_bw(ep, size);
+
+	const int err = bus_register_endpoint(bus, ep);
+
+	/* drop Temporary reference */
+	endpoint_del_ref(ep);
+
+	return err;
+}
+
+int bus_remove_ep(bus_t *bus, usb_target_t target, usb_direction_t dir)
+{
+	assert(bus);
+	endpoint_t *ep = bus_find_endpoint(bus, target, dir);
+	if (!ep)
+		return ENOENT;
+
+	return bus_release_endpoint(bus, ep);
+}
+
+int device_set_default_name(device_t *dev)
+{
+	assert(dev);
+	assert(dev->fun);
+
+	char buf[10] = { 0 }; /* usbxyz-ss */
+	snprintf(buf, sizeof(buf) - 1, "usb%u-%cs",
+	    dev->address, usb_str_speed(dev->speed)[0]);
+
+	return ddf_fun_set_name(dev->fun, buf);
+}
+
+int bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+{
+	assert(bus);
+	assert(hcd);
+	assert(dev);
+
+	if (!bus->ops.enumerate_device)
+		return ENOTSUP;
+
+	fibril_mutex_lock(&bus->guard);
+	const int r = bus->ops.enumerate_device(bus, hcd, dev);
+	fibril_mutex_unlock(&bus->guard);
+	return r;
+}
+
+int bus_remove_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+{
+	assert(bus);
+	assert(dev);
+
+	if (!bus->ops.remove_device)
+		return ENOTSUP;
+
+	fibril_mutex_lock(&bus->guard);
+	const int r = bus->ops.remove_device(bus, hcd, dev);
+	fibril_mutex_unlock(&bus->guard);
+	return r;
 }
 
 endpoint_t *bus_create_endpoint(bus_t *bus)
@@ -136,20 +236,6 @@ int bus_release_address(bus_t *bus, usb_address_t address)
 
 	fibril_mutex_lock(&bus->guard);
 	const int r = bus->ops.release_address(bus, address);
-	fibril_mutex_unlock(&bus->guard);
-	return r;
-}
-
-int bus_get_speed(bus_t *bus, usb_address_t address, usb_speed_t *speed)
-{
-	assert(bus);
-	assert(speed);
-
-	if (!bus->ops.get_speed)
-		return ENOTSUP;
-
-	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.get_speed(bus, address, speed);
 	fibril_mutex_unlock(&bus->guard);
 	return r;
 }

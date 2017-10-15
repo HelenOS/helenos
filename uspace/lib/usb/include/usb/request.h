@@ -111,6 +111,30 @@ int assert[(sizeof(usb_device_request_setup_packet_t) == 8) ? 1: -1];
 int usb_request_needs_toggle_reset(
     const usb_device_request_setup_packet_t *request);
 
+#define GET_DEVICE_DESC(size) \
+{ \
+	.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST \
+	    | (USB_REQUEST_TYPE_STANDARD << 5) \
+	    | USB_REQUEST_RECIPIENT_DEVICE, \
+	.request = USB_DEVREQ_GET_DESCRIPTOR, \
+	.value = uint16_host2usb(USB_DESCTYPE_DEVICE << 8), \
+	.index = uint16_host2usb(0), \
+	.length = uint16_host2usb(size), \
+};
+
+#define SET_ADDRESS(address) \
+{ \
+	.request_type = SETUP_REQUEST_TYPE_HOST_TO_DEVICE \
+	    | (USB_REQUEST_TYPE_STANDARD << 5) \
+	    | USB_REQUEST_RECIPIENT_DEVICE, \
+	.request = USB_DEVREQ_SET_ADDRESS, \
+	.value = uint16_host2usb(address), \
+	.index = uint16_host2usb(0), \
+	.length = uint16_host2usb(0), \
+};
+
+#define CTRL_PIPE_MIN_PACKET_SIZE 8
+
 #endif
 /**
  * @}

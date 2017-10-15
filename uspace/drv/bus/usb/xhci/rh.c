@@ -37,6 +37,7 @@
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usb/host/utils/malloc32.h>
+#include <usb/host/bus.h>
 #include <usb/host/ddf_helpers.h>
 
 #include "debug.h"
@@ -72,7 +73,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 //       sure about the other structs.
 // TODO: This currently assumes the device is attached to rh directly.
 //       Also, we should consider moving a lot of functionailty to xhci bus
-int xhci_rh_address_device(xhci_rh_t *rh, usb_speed_t unused_speed, usb_tt_address_t tt, usb_address_t *address)
+int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev)
 {
 	int err;
 	xhci_hc_t *hc = rh->hc;
@@ -80,12 +81,10 @@ int xhci_rh_address_device(xhci_rh_t *rh, usb_speed_t unused_speed, usb_tt_addre
 	xhci_cmd_t cmd;
 	xhci_cmd_init(&cmd);
 
-	uint8_t port = tt.port;
-
 	/* XXX Certainly not generic solution. */
 	uint32_t route_str = 0;
 
-	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, port);
+	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, dev->port);
 
 	xhci_send_enable_slot_command(hc, &cmd);
 	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
@@ -108,7 +107,7 @@ int xhci_rh_address_device(xhci_rh_t *rh, usb_speed_t unused_speed, usb_tt_addre
 
 	/* Initialize slot_ctx according to section 4.3.3 point 3. */
 	/* Attaching to root hub port, root string equals to 0. */
-	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
+	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, dev->port);
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
 	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
 
@@ -157,8 +156,8 @@ int xhci_rh_address_device(xhci_rh_t *rh, usb_speed_t unused_speed, usb_tt_addre
 
 	xhci_cmd_fini(&cmd);
 
-	*address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
-	usb_log_debug2("Obtained USB address: %d.\n", *address);
+	dev->address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
+	usb_log_debug2("Obtained USB address: %d.\n", dev->address);
 
 	// TODO: Ask libusbhost to create a control endpoint for EP0.
 
@@ -182,14 +181,47 @@ err_ictx:
 	return err;
 }
 
+/** Create a device node for device directly connected to RH.
+ */
 static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 {
-	/** This should ideally use the libusbhost in a clean and elegant way,
-	 * to create child function. The refactoring of libusbhost is not over
-	 * yet, so for now it is still quirky.
-	 */
+	int err;
+	assert(rh);
 
-	return hcd_roothub_new_device(rh->hcd_rh, port_id);
+	xhci_bus_t *bus = &rh->hc->bus;
+
+	device_t *dev = hcd_ddf_device_create(rh->hc_device, bus->base.device_size);
+	if (!dev) {
+		usb_log_error("Failed to create USB device function.");
+		return ENOMEM;
+	}
+
+	dev->hub = &rh->device;
+	dev->port = port_id;
+
+	if ((err = xhci_bus_enumerate_device(bus, rh->hc, dev))) {
+		usb_log_error("Failed to enumerate USB device: %s", str_error(err));
+		return err;
+	}
+
+	if (!ddf_fun_get_name(dev->fun)) {
+		device_set_default_name(dev);
+	}
+
+	if ((err = ddf_fun_bind(dev->fun))) {
+		usb_log_error("Device(%d): Failed to register: %s.", dev->address, str_error(err));
+		goto err_usb_dev;
+	}
+
+	fibril_mutex_lock(&rh->device.guard);
+	list_append(&dev->link, &rh->device.devices);
+	fibril_mutex_unlock(&rh->device.guard);
+
+	return EOK;
+
+err_usb_dev:
+	hcd_ddf_device_destroy(dev);
+	return err;
 }
 
 static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)

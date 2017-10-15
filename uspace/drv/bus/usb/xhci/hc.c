@@ -157,7 +157,7 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 	if ((err = pio_enable_range(&hc->mmio_range, &base)))
 		return err;
 
-	hc->base = base;
+	hc->reg_base = base;
 	hc->cap_regs = (xhci_cap_regs_t *)  base;
 	hc->op_regs  = (xhci_op_regs_t *)  (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH));
 	hc->rt_regs  = (xhci_rt_regs_t *)  (base + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF));
@@ -179,7 +179,7 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 	hc->max_slots = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_SLOTS);
 
 	if ((err = hc_parse_ec(hc))) {
-		pio_disable(hc->base, RNGSZ(hc->mmio_range));
+		pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
 		return err;
 	}
 
@@ -618,7 +618,7 @@ void hc_fini(xhci_hc_t *hc)
 	hc_dcbaa_fini(hc);
 	xhci_fini_commands(hc);
 	xhci_rh_fini(&hc->rh);
-	pio_disable(hc->base, RNGSZ(hc->mmio_range));
+	pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
 	usb_log_info("HC(%p): Finalized.", hc);
 }
 

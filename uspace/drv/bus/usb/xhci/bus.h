@@ -41,6 +41,8 @@
 #include <usb/usb.h>
 #include <usb/host/bus.h>
 
+typedef struct xhci_hc xhci_hc_t;
+
 /** Endpoint management structure */
 typedef struct xhci_bus {
 	bus_t base;		/**< Inheritance. Keep this first. */
@@ -56,6 +58,8 @@ typedef struct xhci_bus {
 
 int xhci_bus_init(xhci_bus_t *);
 void xhci_bus_fini(xhci_bus_t *);
+
+int xhci_bus_enumerate_device(xhci_bus_t *, xhci_hc_t *, device_t *);
 
 #endif
 /**

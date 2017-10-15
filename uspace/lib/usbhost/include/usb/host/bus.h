@@ -44,21 +44,48 @@
 
 #include <usb/usb.h>
 
+#include <assert.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
 
 typedef struct hcd hcd_t;
 typedef struct endpoint endpoint_t;
 typedef struct bus bus_t;
+typedef struct ddf_fun ddf_fun_t;
+
+typedef struct device {
+	/* Device tree keeping */
+	link_t link;
+	list_t devices;
+	fibril_mutex_t guard;
+
+	/* Associated DDF function, if any */
+	ddf_fun_t *fun;
+
+	/* Invalid for the roothub device */
+	unsigned port;
+	struct device *hub;
+
+	/* Transaction translator */
+	usb_tt_address_t tt;
+
+	/* The following are not set by the library */
+	usb_speed_t speed;
+	usb_address_t address;
+
+	/* This structure is meant to be extended by overriding. */
+} device_t;
 
 typedef struct {
+	int (*enumerate_device)(bus_t *, hcd_t *, device_t *);
+	int (*remove_device)(bus_t *, hcd_t *, device_t *);
+
 	endpoint_t *(*create_endpoint)(bus_t *);
 	int (*register_endpoint)(bus_t *, endpoint_t *);
 	int (*release_endpoint)(bus_t *, endpoint_t *);
 	endpoint_t *(*find_endpoint)(bus_t *, usb_target_t, usb_direction_t);
 
 	int (*request_address)(bus_t *, usb_address_t*, bool, usb_speed_t);
-	int (*get_speed)(bus_t *, usb_address_t, usb_speed_t *);
 	int (*release_address)(bus_t *, usb_address_t);
 
 	int (*reset_toggle)(bus_t *, usb_target_t, bool);
@@ -76,13 +103,26 @@ typedef struct bus {
 	/* Synchronization of ops */
 	fibril_mutex_t guard;
 
+	size_t device_size;
+
 	/* Do not call directly, ops are synchronized. */
 	bus_ops_t ops;
 
 	/* This structure is meant to be extended by overriding. */
 } bus_t;
 
-void bus_init(bus_t *);
+void bus_init(bus_t *, size_t);
+int device_init(device_t *);
+
+extern int bus_add_ep(bus_t *bus, device_t *device, usb_endpoint_t endpoint,
+    usb_direction_t dir, usb_transfer_type_t type, size_t max_packet_size,
+    unsigned packets, size_t size);
+extern int bus_remove_ep(bus_t *bus, usb_target_t target, usb_direction_t dir);
+
+int device_set_default_name(device_t *);
+
+int bus_enumerate_device(bus_t *, hcd_t *, device_t *);
+int bus_remove_device(bus_t *, hcd_t *, device_t *);
 
 endpoint_t *bus_create_endpoint(bus_t *);
 int bus_register_endpoint(bus_t *, endpoint_t *);
@@ -92,8 +132,19 @@ endpoint_t *bus_find_endpoint(bus_t *, usb_target_t, usb_direction_t);
 size_t bus_count_bw(endpoint_t *, size_t);
 
 int bus_request_address(bus_t *, usb_address_t *, bool, usb_speed_t);
-int bus_get_speed(bus_t *, usb_address_t, usb_speed_t *);
 int bus_release_address(bus_t *, usb_address_t);
+
+static inline int bus_reserve_default_address(bus_t *bus, usb_speed_t speed) {
+	usb_address_t addr = USB_ADDRESS_DEFAULT;
+
+	const int r = bus_request_address(bus, &addr, true, speed);
+	assert(addr == USB_ADDRESS_DEFAULT);
+	return r;
+}
+
+static inline int bus_release_default_address(bus_t *bus) {
+	return bus_release_address(bus, USB_ADDRESS_DEFAULT);
+}
 
 int bus_reset_toggle(bus_t *, usb_target_t, bool);
 

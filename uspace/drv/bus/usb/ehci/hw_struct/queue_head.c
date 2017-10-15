@@ -36,6 +36,7 @@
 #include <usb/usb.h>
 #include <mem.h>
 #include <macros.h>
+#include <usb/host/bus.h>
 
 #include "mem_access.h"
 #include "queue_head.h"
@@ -80,8 +81,8 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 		    QH_EP_CAP_MULTI_SET(ep->packets);
 	if (ep->speed != USB_SPEED_HIGH) {
 		ep_cap |=
-		    QH_EP_CAP_TT_PORT_SET(ep->tt.port) |
-		    QH_EP_CAP_TT_ADDR_SET(ep->tt.address);
+		    QH_EP_CAP_TT_PORT_SET(ep->device->tt.port) |
+		    QH_EP_CAP_TT_ADDR_SET(ep->device->tt.address);
 	}
 	if (ep->transfer_type == USB_TRANSFER_INTERRUPT) {
 		ep_cap |= QH_EP_CAP_S_MASK_SET(3);

@@ -54,11 +54,9 @@ static int hcd_setup_root_hub(hcd_t *, ddf_dev_t *);
 static int hcd_status(hcd_t *, uint32_t *);
 static void hcd_interrupt(hcd_t *, uint32_t);
 static int hcd_schedule(hcd_t *, usb_transfer_batch_t *);
-static int hcd_address_device(hcd_t *, usb_speed_t, usb_tt_address_t, usb_address_t *);
 static void hc_driver_fini(hcd_t *);
 
 static const ddf_hc_driver_t xhci_ddf_hc_driver = {
-	.hc_speed = USB_SPEED_SUPER,
 	.name = "XHCI-PCI",
 	.init = hc_driver_init,
 	.irq_code_gen = hcd_irq_code_gen,
@@ -70,7 +68,6 @@ static const ddf_hc_driver_t xhci_ddf_hc_driver = {
 		.schedule       = hcd_schedule,
 		.irq_hook       = hcd_interrupt,
 		.status_hook    = hcd_status,
-		.address_device = hcd_address_device,
 	}
 };
 
@@ -89,6 +86,7 @@ static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 		goto err;
 
 	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops, &hc->bus.base);
+	hc->hcd = hcd;
 
 	return EOK;
 err:
@@ -125,8 +123,8 @@ static int hcd_setup_root_hub(hcd_t *hcd, ddf_dev_t *dev)
 	xhci_hc_t *hc = hcd_get_driver_data(hcd);
 	assert(hc);
 
-	hc->rh.hcd_rh = hcd_roothub_create(hcd, dev, USB_SPEED_SUPER);
-	return hc->rh.hcd_rh ? EOK : ENOMEM;
+	hc->rh.hc_device = dev;
+	return device_init(&hc->rh.device);
 }
 
 static int hcd_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
@@ -152,14 +150,6 @@ static void hcd_interrupt(hcd_t *hcd, uint32_t status)
 	assert(hc);
 
 	hc_interrupt(hc, status);
-}
-
-static int hcd_address_device(hcd_t *hcd, usb_speed_t speed, usb_tt_address_t tt, usb_address_t *address)
-{
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	return xhci_rh_address_device(&hc->rh, speed, tt, address);
 }
 
 static void hc_driver_fini(hcd_t *hcd)

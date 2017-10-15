@@ -34,11 +34,14 @@
 
 #include <adt/hash_table.h>
 #include <adt/hash.h>
+#include <usb/host/ddf_helpers.h>
 #include <usb/host/endpoint.h>
+#include <usb/host/hcd.h>
 #include <usb/debug.h>
 
 #include <assert.h>
 #include <errno.h>
+#include <str_error.h>
 #include <macros.h>
 #include <stdbool.h>
 
@@ -52,6 +55,58 @@ typedef struct {
 	/** Device */
 	xhci_device_t *device;
 } hashed_device_t;
+
+/** TODO: Still some copy-pasta left...
+ */
+int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
+{
+	int err;
+
+	/* TODO: get speed from the default address reservation */
+	dev->speed = USB_SPEED_FULL;
+
+	/* Manage TT */
+	if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
+		/* For LS devices under HS hub */
+		/* TODO: How about SS hubs? */
+		dev->tt.address = dev->hub->address;
+		dev->tt.port = dev->port;
+	}
+	else {
+		/* Inherit hub's TT */
+		dev->tt = dev->hub->tt;
+	}
+
+	/* Assign an address to the device */
+	if ((err = xhci_rh_address_device(&hc->rh, dev))) {
+		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
+		return err;
+	}
+
+	/* Read the device descriptor, derive the match ids */
+	if ((err = hcd_ddf_device_explore(hc->hcd, dev))) {
+		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
+		bus_release_address(&bus->base, dev->address);
+		return err;
+	}
+
+	return EOK;
+}
+
+static int enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	return xhci_bus_enumerate_device((xhci_bus_t *) bus, hc, dev);
+}
+
+static int remove_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+{
+	// TODO: Implement me!
+
+	return ENOTSUP;
+}
 
 /** Ops receive generic bus_t pointer. */
 static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
@@ -213,16 +268,6 @@ static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, us
 	return ENOTSUP;
 }
 
-static int get_speed(bus_t *bus_base, usb_address_t address, usb_speed_t *speed)
-{
-	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
-	assert(bus);
-
-	// TODO: Use `xhci_get_port_speed` once we find the port corresponding to `address`.
-	*speed = USB_SPEED_SUPER;
-	return EOK;
-}
-
 static int release_address(bus_t *bus_base, usb_address_t address)
 {
 	// TODO: Implement me!
@@ -254,6 +299,9 @@ static void endpoint_set_toggle(endpoint_t *ep, bool toggle)
 }
 
 static const bus_ops_t xhci_bus_ops = {
+	.enumerate_device = enumerate_device,
+	.remove_device = remove_device,
+
 	.create_endpoint = create_endpoint,
 	.destroy_endpoint = destroy_endpoint,
 
@@ -262,7 +310,6 @@ static const bus_ops_t xhci_bus_ops = {
 	.find_endpoint = find_endpoint,
 
 	.request_address = request_address,
-	.get_speed = get_speed,
 	.release_address = release_address,
 	.reset_toggle = reset_toggle,
 
@@ -302,7 +349,7 @@ int xhci_bus_init(xhci_bus_t *bus)
 {
 	assert(bus);
 
-	bus_init(&bus->base);
+	bus_init(&bus->base, sizeof(device_t));
 
 	if (!hash_table_create(&bus->devices, 0, 0, &device_ht_ops)) {
 		// FIXME: Dealloc base!
@@ -319,6 +366,7 @@ void xhci_bus_fini(xhci_bus_t *bus)
 
 	hash_table_destroy(&bus->devices);
 }
+
 /**
  * @}
  */

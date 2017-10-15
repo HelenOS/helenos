@@ -102,15 +102,6 @@ static inline void * hcd_get_driver_data(hcd_t *hcd)
 
 extern usb_address_t hcd_request_address(hcd_t *, usb_speed_t);
 
-extern int hcd_release_address(hcd_t *, usb_address_t);
-
-extern int hcd_reserve_default_address(hcd_t *, usb_speed_t);
-
-static inline int hcd_release_default_address(hcd_t *hcd)
-{
-	return hcd_release_address(hcd, USB_ADDRESS_DEFAULT);
-}
-
 extern int hcd_add_ep(hcd_t *, usb_target_t, usb_direction_t,
     usb_transfer_type_t, size_t, unsigned int, size_t, usb_tt_address_t);
 

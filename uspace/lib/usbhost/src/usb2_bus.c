@@ -35,11 +35,16 @@
 
 #include <usb/host/usb2_bus.h>
 #include <usb/host/endpoint.h>
+#include <usb/host/ddf_helpers.h>
 #include <usb/debug.h>
+#include <usb/request.h>
+#include <usb/descriptor.h>
+#include <usb/usb.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <macros.h>
+#include <str_error.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -60,6 +65,154 @@ static list_t * get_list(usb2_bus_t *bus, usb_address_t addr)
 	assert(bus);
 	assert(addr >= 0);
 	return &bus->devices[addr % ARRAY_SIZE(bus->devices)].endpoint_list;
+}
+
+/** Get speed assigned to USB address.
+ *
+ * @param[in] bus Device manager structure to use.
+ * @param[in] address Address the caller wants to find.
+ * @param[out] speed Assigned speed.
+ * @return Error code.
+ */
+static int usb2_bus_get_speed(bus_t *bus_base, usb_address_t address, usb_speed_t *speed)
+{
+	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
+
+	if (!usb_address_is_valid(address)) {
+		return EINVAL;
+	}
+
+	const int ret = bus->devices[address].occupied ? EOK : ENOENT;
+	if (speed && bus->devices[address].occupied) {
+		*speed = bus->devices[address].speed;
+	}
+
+	return ret;
+}
+
+static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+{
+	int err;
+
+	static const usb_target_t default_target = {{
+		.address = USB_ADDRESS_DEFAULT,
+		.endpoint = 0,
+	}};
+
+	/** Reserve address early, we want pretty log messages */
+	const usb_address_t address = bus_reserve_default_address(bus, dev->speed);
+	if (address < 0) {
+		usb_log_error("Failed to reserve new address: %s.",
+		    str_error(address));
+		return address;
+	}
+	usb_log_debug("Device(%d): Reserved new address.", address);
+
+	/* Add default pipe on default address */
+	usb_log_debug("Device(%d): Adding default target (0:0)", address);
+	err = bus_add_ep(bus, dev, 0, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
+	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1);
+	if (err != EOK) {
+		usb_log_error("Device(%d): Failed to add default target: %s.",
+		    address, str_error(err));
+		goto err_address;
+	}
+
+	/* Get max packet size for default pipe */
+	usb_standard_device_descriptor_t desc = { 0 };
+	const usb_device_request_setup_packet_t get_device_desc_8 =
+	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
+
+	usb_log_debug("Device(%d): Requesting first 8B of device descriptor.",
+	    address);
+	ssize_t got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_IN,
+	    &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
+	    "read first 8 bytes of dev descriptor");
+
+	if (got != CTRL_PIPE_MIN_PACKET_SIZE) {
+		err = got < 0 ? got : EOVERFLOW;
+		usb_log_error("Device(%d): Failed to get 8B of dev descr: %s.",
+		    address, str_error(err));
+		goto err_default_target;
+	}
+
+	/* Set new address */
+	const usb_device_request_setup_packet_t set_address = SET_ADDRESS(address);
+
+	usb_log_debug("Device(%d): Setting USB address.", address);
+	err = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
+	    NULL, 0, *(uint64_t *)&set_address, "set address");
+	if (err != 0) {
+		usb_log_error("Device(%d): Failed to set new address: %s.",
+		    address, str_error(got));
+		goto err_default_target;
+	}
+
+	dev->address = address;
+
+	/* Register EP on the new address */
+	usb_log_debug("Device(%d): Registering control EP.", address);
+	err = bus_add_ep(bus, dev, 0, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
+	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
+	    ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
+	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)));
+	if (err != EOK) {
+		usb_log_error("Device(%d): Failed to register EP0: %s",
+		    address, str_error(err));
+		goto err_default_target;
+	}
+
+	bus_remove_ep(bus, default_target, USB_DIRECTION_BOTH);
+	return EOK;
+
+err_default_target:
+	bus_remove_ep(bus, default_target, USB_DIRECTION_BOTH);
+err_address:
+	bus_release_address(bus, address);
+	return err;
+}
+
+/** Enumerate a new USB device
+ */
+static int usb2_bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+{
+	int err;
+
+	/* The speed of the new device was reported by the hub when reserving
+	 * default address.
+	 */
+	if ((err = usb2_bus_get_speed(bus, USB_ADDRESS_DEFAULT, &dev->speed))) {
+		usb_log_error("Failed to verify speed: %s.", str_error(err));
+		return err;
+	}
+	usb_log_debug("Found new %s speed USB device.", usb_str_speed(dev->speed));
+
+	/* Manage TT */
+	if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
+		/* For LS devices under HS hub */
+		/* TODO: How about SS hubs? */
+		dev->tt.address = dev->hub->address;
+		dev->tt.port = dev->port;
+	}
+	else {
+		/* Inherit hub's TT */
+		dev->tt = dev->hub->tt;
+	}
+
+	/* Assign an address to the device */
+	if ((err = usb2_bus_address_device(bus, hcd, dev))) {
+		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
+		return err;
+	}
+
+	/* Read the device descriptor, derive the match ids */
+	if ((err = hcd_ddf_device_explore(hcd, dev))) {
+		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
+		bus_release_address(bus, dev->address);
+		return err;
+	}
+
+	return EOK;
 }
 
 /** Get a free USB address
@@ -189,8 +342,6 @@ static int usb2_bus_reset_toggle(bus_t *bus_base, usb_target_t target, bool all)
  * @param address USB address.
  * @param endpoint USB endpoint number.
  * @param direction Communication direction.
- * @param callback Function to call after unregister, before destruction.
- * @arg Argument to pass to the callback function.
  * @return Error code.
  */
 static int usb2_bus_release_address(bus_t *bus_base, usb_address_t address)
@@ -209,6 +360,9 @@ static int usb2_bus_release_address(bus_t *bus_base, usb_address_t address)
 		link = list_next(link, list);
 		assert(ep->target.address == address);
 		list_remove(&ep->link);
+
+		usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
+		    ep->target.address, ep->target.endpoint, usb_str_direction(ep->direction));
 
 		/* Drop bus reference */
 		endpoint_del_ref(ep);
@@ -257,30 +411,8 @@ static int usb2_bus_request_address(bus_t *bus_base, usb_address_t *addr, bool s
 	return EOK;
 }
 
-/** Get speed assigned to USB address.
- *
- * @param[in] bus Device manager structure to use.
- * @param[in] address Address the caller wants to find.
- * @param[out] speed Assigned speed.
- * @return Error code.
- */
-static int usb2_bus_get_speed(bus_t *bus_base, usb_address_t address, usb_speed_t *speed)
-{
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
-
-	if (!usb_address_is_valid(address)) {
-		return EINVAL;
-	}
-
-	const int ret = bus->devices[address].occupied ? EOK : ENOENT;
-	if (speed && bus->devices[address].occupied) {
-		*speed = bus->devices[address].speed;
-	}
-
-	return ret;
-}
-
 static const bus_ops_t usb2_bus_ops = {
+	.enumerate_device = usb2_bus_enumerate_device,
 	.create_endpoint = usb2_bus_create_ep,
 	.find_endpoint = usb2_bus_find_ep,
 	.release_endpoint = usb2_bus_release_ep,
@@ -288,7 +420,6 @@ static const bus_ops_t usb2_bus_ops = {
 	.request_address = usb2_bus_request_address,
 	.release_address = usb2_bus_release_address,
 	.reset_toggle = usb2_bus_reset_toggle,
-	.get_speed = usb2_bus_get_speed,
 };
 
 /** Initialize to default state.
@@ -302,7 +433,7 @@ int usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth, count_bw_func_t c
 {
 	assert(bus);
 
-	bus_init(&bus->base);
+	bus_init(&bus->base, sizeof(device_t));
 
 	bus->base.ops = usb2_bus_ops;
 	bus->base.ops.count_bw = count_bw;

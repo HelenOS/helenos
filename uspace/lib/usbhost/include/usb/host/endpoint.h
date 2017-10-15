@@ -46,6 +46,7 @@
 #include <atomic.h>
 
 typedef struct bus bus_t;
+typedef struct device device_t;
 
 /** Host controller side endpoint structure. */
 typedef struct endpoint {
@@ -55,6 +56,8 @@ typedef struct endpoint {
 	atomic_t refcnt;
 	/** Part of linked list. */
 	link_t link;
+	/** USB device */
+	device_t *device;
 	/** USB address. */
 	usb_target_t target;
 	/** Communication direction. */
@@ -77,8 +80,6 @@ typedef struct endpoint {
 	fibril_mutex_t guard;
 	/** Signals change of active status. */
 	fibril_condvar_t avail;
-	/** High speed TT data */
-	usb_tt_address_t tt;
 
 	/* This structure is meant to be extended by overriding. */
 } endpoint_t;

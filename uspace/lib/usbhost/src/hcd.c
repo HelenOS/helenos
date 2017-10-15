@@ -44,50 +44,6 @@
 #include "hcd.h"
 
 
-/*[>* Calls ep_add_hook upon endpoint registration.
- * @param ep Endpoint to be registered.
- * @param arg hcd_t in disguise.
- * @return Error code.
- * OH TODO: remove
- <]
-static int register_helper(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ops.ep_add_hook)
-		return hcd->ops.ep_add_hook(hcd, ep);
-	return EOK;
-}
-
-[>* Calls ep_remove_hook upon endpoint removal.
- * @param ep Endpoint to be unregistered.
- * @param arg hcd_t in disguise.
- * OH TODO: remove
- <]
-static void unregister_helper(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ops.ep_remove_hook)
-		hcd->ops.ep_remove_hook(hcd, ep);
-}
-
-[>* Calls ep_remove_hook upon endpoint removal. Prints warning.
- *  * @param ep Endpoint to be unregistered.
- *   * @param arg hcd_t in disguise.
- * OH TODO: remove
- *    <]
-static void unregister_helper_warn(endpoint_t *ep, void *arg)
-{
-        assert(ep);
-        usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
-            ep->target.address, ep->target.endpoint, usb_str_direction(ep->direction));
-	unregister_helper(ep, arg);
-}
-*/
-
 /** Initialize hcd_t structure.
  * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
  *
@@ -111,60 +67,6 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 		return ret;
 	return address;
 }
-
-int hcd_release_address(hcd_t *hcd, usb_address_t address)
-{
-	assert(hcd);
-	return bus_release_address(hcd->bus, address);
-	// OH TODO removed helper
-}
-
-int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
-{
-	assert(hcd);
-	usb_address_t address = 0;
-	return bus_request_address(hcd->bus, &address, true, speed);
-}
-
-int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    usb_transfer_type_t type, size_t max_packet_size, unsigned packets,
-    size_t size, usb_tt_address_t tt)
-{
-	assert(hcd);
-
-	/* Temporary reference */
-	endpoint_t *ep = bus_create_endpoint(hcd->bus);
-	if (!ep)
-		return ENOMEM;
-
-	ep->target = target;
-	ep->direction = dir;
-	ep->transfer_type = type;
-	ep->max_packet_size = max_packet_size;
-	ep->packets = packets;
-	ep->tt = tt;
-
-	ep->bandwidth = bus_count_bw(ep, size);
-
-	const int err = bus_register_endpoint(hcd->bus, ep);
-
-	/* drop Temporary reference */
-	endpoint_del_ref(ep);
-
-	return err;
-}
-
-int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir)
-{
-	assert(hcd);
-	endpoint_t *ep = bus_find_endpoint(hcd->bus, target, dir);
-	if (!ep)
-		return ENOENT;
-
-	return bus_release_endpoint(hcd->bus, ep);
-	// OH TODO removed helper
-}
-
 
 typedef struct {
 	void *original_data;

@@ -52,9 +52,9 @@ typedef struct xhci_virt_device_ctx {
 typedef struct xhci_hc {
 	/* MMIO range */
 	addr_range_t mmio_range;
-	void *base;
 
 	/* Mapped register sets */
+	void *reg_base;
 	xhci_cap_regs_t *cap_regs;
 	xhci_op_regs_t *op_regs;
 	xhci_rt_regs_t *rt_regs;
@@ -82,6 +82,9 @@ typedef struct xhci_hc {
 	/* Command list */
 	list_t commands;
 	list_t transfers;
+
+	/* TODO: Hack. Figure out a better way. */
+	hcd_t *hcd;
 } xhci_hc_t;
 
 int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);
