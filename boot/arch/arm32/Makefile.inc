@@ -75,9 +75,8 @@ ifeq ($(MACHINE), integratorcp)
 		char/pl050 \
 		char/atkbd \
 		char/ps2mouse \
+		intctl/icp-ic \
 		platform/icp
-	RD_SRVS_ESSENTIAL += \
-		$(USPACE_PATH)/srv/hw/irc/icp-ic/icp-ic
 endif
 
 RD_DRVS_ESSENTIAL += \

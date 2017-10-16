@@ -53,7 +53,8 @@ enum {
 	icp_kbd_base = 0x18000000,
 	icp_kbd_irq = 3,
 	icp_mouse_base = 0x19000000,
-	icp_mouse_irq = 4
+	icp_mouse_irq = 4,
+	icp_ic_base = 0x14000000
 };
 
 typedef struct icp_fun {
@@ -107,6 +108,18 @@ static hw_resource_t icp_mouse_res[] = {
 	}
 };
 
+static hw_resource_t icp_ic_res[] = {
+	{
+		.type = MEM_RANGE,
+		.res.mem_range = {
+			.address = icp_ic_base,
+			.size = 40,
+			.relative = false,
+			.endianness = LITTLE_ENDIAN
+		}
+	}
+};
+
 static pio_window_t icp_pio_window = {
 	.mem = {
 		.base = 0,
@@ -125,6 +138,13 @@ static icp_fun_t icp_mouse_fun_proto = {
 	.hw_resources = {
 		sizeof(icp_mouse_res) / sizeof(icp_mouse_res[0]),
 		icp_mouse_res
+	},
+};
+
+static icp_fun_t icp_ic_fun_proto = {
+	.hw_resources = {
+		sizeof(icp_ic_res) / sizeof(icp_ic_res[0]),
+		icp_ic_res
 	},
 };
 
@@ -263,6 +283,11 @@ static int icp_add_functions(ddf_dev_t *dev)
 		return rc;
 
 	rc = icp_add_fun(dev, "mouse", "arm/pl050", &icp_mouse_fun_proto);
+	if (rc != EOK)
+		return rc;
+
+	rc = icp_add_fun(dev, "intctl", "integratorcp/intctl",
+	    &icp_ic_fun_proto);
 	if (rc != EOK)
 		return rc;
 

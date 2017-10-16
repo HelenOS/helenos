@@ -32,44 +32,37 @@
 
 /**
  * @file icp-ic.c
- * @brief IntegratorCP interrupt controller driver.
+ * @brief IntegratorCP interrupt controller driver
  */
 
 #include <async.h>
 #include <bitops.h>
 #include <ddi.h>
+#include <ddf/log.h>
 #include <errno.h>
-#include <io/log.h>
 #include <ipc/irc.h>
 #include <loc.h>
-#include <sysinfo.h>
-#include <stdio.h>
 #include <stdint.h>
-#include <str.h>
 
+#include "icp-ic.h"
 #include "icp-ic_hw.h"
 
-#define NAME  "icp-ic"
-
 enum {
-	icp_pic_base = 0x14000000,
 	icpic_max_irq = 32
 };
 
-static icpic_regs_t *icpic_regs;
-
-static int icpic_enable_irq(sysarg_t irq)
+static int icpic_enable_irq(icpic_t *icpic, sysarg_t irq)
 {
 	if (irq > icpic_max_irq)
 		return EINVAL;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Enable IRQ %zu", irq);
+	ddf_msg(LVL_NOTE, "Enable IRQ %zu", irq);
 
-	pio_write_32(&icpic_regs->irq_enableset, BIT_V(uint32_t, irq));
+	pio_write_32(&icpic->regs->irq_enableset, BIT_V(uint32_t, irq));
 	return EOK;
 }
 
-/** Handle one connection to i8259.
+/** Client connection handler.
  *
  * @param iid   Hash of the request that opened the connection.
  * @param icall Call data of the request that opened the connection.
@@ -79,11 +72,14 @@ static void icpic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
+	icpic_t *icpic;
 
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
 	async_answer_0(iid, EOK);
+
+	icpic = (icpic_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (true) {
 		callid = async_get_call(&call);
@@ -97,7 +93,7 @@ static void icpic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
 			async_answer_0(callid,
-			    icpic_enable_irq(IPC_GET_ARG1(call)));
+			    icpic_enable_irq(icpic, IPC_GET_ARG1(call)));
 			break;
 		case IRC_DISABLE_INTERRUPT:
 			/* XXX TODO */
@@ -114,104 +110,57 @@ static void icpic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static int icpic_init(void)
+/** Add icp-ic device. */
+int icpic_add(icpic_t *icpic, icpic_res_t *res)
 {
-	char *platform = NULL;
-	char *pstr = NULL;
-	size_t platform_size;
-	category_id_t irc_cat;
-	service_id_t svc_id;
+	ddf_fun_t *fun_a = NULL;
 	void *regs;
 	int rc;
 
-	platform = sysinfo_get_data("platform", &platform_size);
-	if (platform == NULL) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting platform type.");
-		rc = ENOENT;
+	rc = pio_enable((void *)res->base, sizeof(icpic_regs_t), &regs);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error enabling PIO");
 		goto error;
 	}
 
-	pstr = str_ndup(platform, platform_size);
-	if (pstr == NULL) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
+	icpic->regs = (icpic_regs_t *)regs;
+
+	fun_a = ddf_fun_create(icpic->dev, fun_exposed, "a");
+	if (fun_a == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	if (str_cmp(pstr, "integratorcp") != 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Platform '%s' is not 'integratorcp'.",
+	ddf_fun_set_conn_handler(fun_a, icpic_connection);
 
-		    pstr);
-		rc = ENOENT;
+	rc = ddf_fun_bind(fun_a);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
 		goto error;
 	}
 
-	rc = pio_enable((void *)icp_pic_base, sizeof(icpic_regs_t), &regs);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error enabling PIO");
+	rc = ddf_fun_add_to_category(fun_a, "irc");
+	if (rc != EOK)
 		goto error;
-	}
 
-	icpic_regs = (icpic_regs_t *)regs;
-
-	async_set_fallback_port_handler(icpic_connection, NULL);
-
-	rc = loc_server_register(NAME);
-	if (rc != EOK) {
-		printf("%s: Failed registering server. (%d)\n", NAME, rc);
-		return rc;
-	}
-
-	rc = loc_service_register("irc/" NAME, &svc_id);
-	if (rc != EOK) {
-		printf("%s: Failed registering service. (%d)\n", NAME, rc);
-		return rc;
-	}
-
-	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Failed resolving category 'iplink' (%d).\n", NAME,
-		    rc);
-		goto error;
-	}
-
-	rc = loc_service_add_to_cat(svc_id, irc_cat);
-	if (rc != EOK) {
-		printf("%s: Failed adding service to category (%d).\n", NAME,
-		    rc);
-		goto error;
-	}
-
-	free(platform);
-	free(pstr);
 	return EOK;
 error:
-	free(platform);
-	free(pstr);
+	if (fun_a != NULL)
+		ddf_fun_destroy(fun_a);
 	return rc;
 }
 
-int main(int argc, char **argv)
+/** Remove icp-ic device */
+int icpic_remove(icpic_t *icpic)
 {
-	int rc;
+	return ENOTSUP;
+}
 
-	printf("%s: HelenOS IntegratorCP interrupt controller driver\n", NAME);
-
-	rc = log_init(NAME);
-	if (rc != EOK) {
-		printf(NAME ": Error connecting logging service.");
-		return 1;
-	}
-
-	if (icpic_init() != EOK)
-		return -1;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: Accepting connections\n", NAME);
-	task_retval(0);
-	async_manager();
-
-	/* Not reached */
-	return 0;
+/** icp-ic device gone */
+int icpic_gone(icpic_t *icpic)
+{
+	return ENOTSUP;
 }
 
 /**

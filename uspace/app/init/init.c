@@ -339,7 +339,6 @@ int main(int argc, char *argv[])
 	srv_start("/srv/devman");
 	srv_start("/srv/apic");
 	srv_start("/srv/i8259");
-	srv_start("/srv/icp-ic");
 	srv_start("/srv/obio");
 	srv_start("/srv/s3c24xx_uart");
 	srv_start("/srv/s3c24xx_ts");
