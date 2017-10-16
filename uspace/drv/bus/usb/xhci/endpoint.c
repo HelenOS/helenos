@@ -80,7 +80,7 @@ void xhci_device_fini(xhci_device_t *dev)
 	assert(dev);
 }
 
-static inline uint8_t xhci_endpoint_ctx_offset(xhci_endpoint_t *ep)
+uint8_t xhci_endpoint_ctx_offset(xhci_endpoint_t *ep)
 {
 	/* 0 is slot ctx, 1 is EP0, then it's EP1 out, in, EP2 out, in, etc. */
 

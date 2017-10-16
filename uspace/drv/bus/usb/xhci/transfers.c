@@ -166,16 +166,16 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 		usb_log_error("Missing setup packet for the control transfer.");
 		return EINVAL;
 	}
-	if (batch->ep->target.endpoint != 0 || batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
+	if (batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
 		/* This method only works for control transfers. */
-		usb_log_error("Attempted to schedule control transfer to non 0 endpoint.");
+		usb_log_error("Attempted to schedule a control transfer to non control endpoint.");
 		return EINVAL;
 	}
 
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
 
 	uint8_t slot_id = xhci_ep->device->slot_id;
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[0];
+	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
 
 	usb_device_request_setup_packet_t* setup =
 		(usb_device_request_setup_packet_t*) batch->setup_buffer;
@@ -253,7 +253,8 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 	/* For control transfers, the target is always 1. */
 	// FIXME: ignoring return code
-	hc_ring_doorbell(hc, slot_id, 1);
+	const uint8_t target = xhci_endpoint_ctx_offset(xhci_ep);
+	hc_ring_doorbell(hc, slot_id, target);
 
 	// Issue a Configure Endpoint command, if needed.
 	if (configure_endpoint_needed(setup)) {
@@ -299,7 +300,8 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	list_append(&transfer->link, &hc->transfers);
 
 	// TODO: target = endpoint | stream_id << 16
-	hc_ring_doorbell(hc, slot_id, xhci_ep->base.target.endpoint);
+	const uint8_t target = xhci_endpoint_ctx_offset(xhci_ep);
+	hc_ring_doorbell(hc, slot_id, target);
 	return EOK;
 }
 
@@ -336,8 +338,7 @@ int xhci_schedule_interrupt_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 	list_append(&transfer->link, &hc->transfers);
 
-	const uint8_t target = 2 * batch->ep->target.endpoint
-		+ (batch->ep->direction == USB_DIRECTION_IN ? 1 : 0);
+	const uint8_t target = xhci_endpoint_ctx_offset(xhci_ep);
 	usb_log_debug("Ringing doorbell for slot_id = %d, target = %d", slot_id, target);
 	return hc_ring_doorbell(hc, slot_id, target);
 }
