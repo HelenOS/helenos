@@ -462,15 +462,10 @@ static void remote_usb_register_endpoint(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	void *buffer = malloc(sizeof(usb_endpoint_desc_t));
-	if (!buffer) {
-		async_answer_0(callid, ENOMEM);
-		return;
-	}
-
+	void *buffer = NULL;
 	size_t size = 0;
 	int rc = async_data_write_accept(&buffer, false,
-		1, sizeof(usb_endpoint_desc_t), 0, &size);
+		sizeof(usb_endpoint_desc_t), sizeof(usb_endpoint_desc_t), 0, &size);
 
 	if (rc != EOK) {
 		free(buffer);
@@ -499,15 +494,10 @@ static void remote_usb_unregister_endpoint(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	void *buffer = malloc(sizeof(usb_endpoint_desc_t));
-	if (!buffer) {
-		async_answer_0(callid, ENOMEM);
-		return;
-	}
-
+	void *buffer = NULL;
 	size_t size = 0;
 	int rc = async_data_write_accept(&buffer, false,
-		1, sizeof(usb_endpoint_desc_t), 0, &size);
+		sizeof(usb_endpoint_desc_t), sizeof(usb_endpoint_desc_t), 0, &size);
 
 	if (rc != EOK) {
 		free(buffer);
