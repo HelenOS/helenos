@@ -32,7 +32,7 @@
  */
 
 #include <genarch/multiplication.h>
-#include <typedefs.h>
+#include <stdint.h>
 
 /** Set 1 to return INT64_MAX or INT64_MIN on overflow */
 #ifndef SOFTINT_CHECK_OF

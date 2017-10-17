@@ -33,6 +33,10 @@
 #ifndef LIBC_ia64_INTTYPES_H_
 #define LIBC_ia64_INTTYPES_H_
 
+#define PRIdPTR  PRId64  /**< Format for intptr_t. */
+#define PRIuPTR  PRIu64  /**< Format for uintptr_t. */
+#define PRIxPTR  PRIx64  /**< Format for hexadecimal uintptr_t. */
+
 #define PRIdn  PRId64  /**< Format for native_t. */
 #define PRIun  PRIu64  /**< Format for sysarg_t. */
 #define PRIxn  PRIx64  /**< Format for hexadecimal sysarg_t. */

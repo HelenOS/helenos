@@ -50,8 +50,9 @@
 #include <mem.h>
 #include <malloc.h>
 #include <stdio.h>
-#include <sys/typefmt.h>
 #include <stacktrace.h>
+#include <offset.h>
+#include <inttypes.h>
 #include "block.h"
 
 #define MAX_WRITE_RETRIES 10

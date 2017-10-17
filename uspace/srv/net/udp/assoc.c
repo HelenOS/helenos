@@ -39,6 +39,7 @@
 #include <stdbool.h>
 #include <fibril_synch.h>
 #include <inet/endpoint.h>
+#include <inet/inet.h>
 #include <io/log.h>
 #include <nettl/amap.h>
 #include <stdlib.h>
@@ -260,9 +261,22 @@ int udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 	    (epp.remote.port == inet_port_any))
 		return EINVAL;
 
+	/* This association has no local address set. Need to determine one. */
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - check no local addr");
+	if (inet_addr_is_any(&epp.local.addr) && !assoc->nolocal) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Determine local address.");
+		rc = inet_get_srcaddr(&epp.remote.addr, 0, &epp.local.addr);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Cannot determine "
+			    "local address.");
+			return EINVAL;
+		}
+	}
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - check version");
 
-	if (epp.remote.addr.version != epp.local.addr.version)
+	if (!inet_addr_is_any(&epp.local.addr) &&
+	    epp.remote.addr.version != epp.local.addr.version)
 		return EINVAL;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - encode pdu");

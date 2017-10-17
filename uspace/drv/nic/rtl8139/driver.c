@@ -35,10 +35,10 @@
 #include <as.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res.h>
 #include <io/log.h>
 #include <nic.h>
 #include <pci_dev_iface.h>
-#include <irc.h>
 #include <stdio.h>
 #include <str.h>
 
@@ -124,19 +124,11 @@ inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
 		(((value) >> reg_part##_SHIFT) & reg_part##_MASK)
 
 
-/** Disable interrupts on controller
+/** Set interrupts on controller
  *
  *  @param rtl8139  The card private structure
  */
-inline static void rtl8139_hw_int_disable(rtl8139_t *rtl8139)
-{
-	pio_write_16(rtl8139->io_port + IMR, 0x0);
-}
-/** Enable interrupts on controller
- *
- *  @param rtl8139  The card private structure
- */
-inline static void rtl8139_hw_int_enable(rtl8139_t *rtl8139)
+inline static void rtl8139_hw_int_set(rtl8139_t *rtl8139)
 {
 	pio_write_16(rtl8139->io_port + IMR, rtl8139->int_mask);
 }
@@ -273,20 +265,6 @@ inline static void rtl8139_hw_reg_add_8(rtl8139_t * rtl8139, size_t reg_offset,
 	pio_write_8(rtl8139->io_port + reg_offset, value);
 }
 
-/**  Provide OR in the 32bit register (set selected bits to 1)
- *
- *   @param rtl8139     The rtl8139 structure
- *   @param reg_offset  Register offset in the device IO space
- *   @param bits_add    The value to or
- */
-inline static void rtl8139_hw_reg_add_32(rtl8139_t * rtl8139, size_t reg_offset,
-    uint32_t bits_add)
-{
-	uint32_t value = pio_read_32(rtl8139->io_port + reg_offset);
-	value |= bits_add;
-	pio_write_32(rtl8139->io_port + reg_offset, value);
-}
-
 /**  Unset selected bits in 8bit register
  *
  *   @param rtl8139     The rtl8139 structure
@@ -300,21 +278,6 @@ inline static void rtl8139_hw_reg_rem_8(rtl8139_t * rtl8139, size_t reg_offset,
 	value &= ~bits_add;
 	pio_write_8(rtl8139->io_port + reg_offset, value);
 }
-
-/**  Unset selected bits in 32bit register
- *
- *   @param rtl8139     The rtl8139 structure
- *   @param reg_offset  Register offset in the device IO space
- *   @param bits_add    The mask of bits to remove
- */
-inline static void rtl8139_hw_reg_rem_32(rtl8139_t * rtl8139, size_t reg_offset,
-    uint32_t bits_add)
-{
-	uint32_t value = pio_read_32(rtl8139->io_port + reg_offset);
-	value &= ~bits_add;
-	pio_write_32(rtl8139->io_port + reg_offset, value);
-}
-
 
 static int rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *);
 static int rtl8139_get_device_info(ddf_fun_t *fun, nic_device_info_t *info);
@@ -870,7 +833,7 @@ static void rtl8139_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
 	rtl8139_interrupt_impl(nic_data, isr);
 
 	/* Turn the interrupts on again */
-	rtl8139_hw_int_enable(rtl8139);
+	rtl8139_hw_int_set(rtl8139);
 };
 
 /** Register interrupt handler for the card in the system
@@ -880,7 +843,8 @@ static void rtl8139_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
  *
  *  @param nic_data  The driver data
  *
- *  @return EOK if the handler was registered, negative error code otherwise
+ *  @return IRQ capability handle if the handler was registered.
+ *  @return Negative error code otherwise.
  */
 inline static int rtl8139_register_int_handler(nic_t *nic_data)
 {
@@ -893,12 +857,12 @@ inline static int rtl8139_register_int_handler(nic_t *nic_data)
 	rtl8139_irq_code.cmds[0].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[2].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[3].addr = rtl8139->io_addr + IMR;
-	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
+	int cap = register_interrupt_handler(nic_get_ddf_dev(nic_data),
 	    rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code);
 
 	RTL8139_IRQ_STRUCT_UNLOCK();
 
-	return rc;
+	return cap;
 }
 
 /** Start the controller
@@ -953,9 +917,9 @@ static int rtl8139_on_activated(nic_t *nic_data)
 	rtl8139_unlock_all(rtl8139);
 
 	rtl8139->int_mask = RTL_DEFAULT_INTERRUPTS;
-	rtl8139_hw_int_enable(rtl8139);
+	rtl8139_hw_int_set(rtl8139);
 
-	int rc = irc_enable_interrupt(rtl8139->irq);
+	int rc = hw_res_enable_interrupt(rtl8139->parent_sess, rtl8139->irq);
 	if (rc != EOK) {
 		rtl8139_on_stopped(nic_data);
 		return rc;
@@ -1011,13 +975,13 @@ static rtl8139_t *rtl8139_create_dev_data(ddf_dev_t *dev)
 	if (!nic_data)
 		return NULL;
 
-	rtl8139_t *rtl8139 = malloc(sizeof(rtl8139_t));
+	rtl8139_t *rtl8139 = calloc(1, sizeof(rtl8139_t));
 	if (!rtl8139) {
 		nic_unbind_and_destroy(dev);
 		return NULL;
 	}
 
-	memset(rtl8139, 0, sizeof(rtl8139_t));
+	rtl8139->dev = dev;
 
 	rtl8139->nic_data = nic_data;
 	nic_set_specific(nic_data, rtl8139);
@@ -1201,6 +1165,11 @@ static int rtl8139_device_initialize(ddf_dev_t *dev)
 	}
 
 	ddf_msg(LVL_DEBUG, "rtl8139: dev_data created");
+	rtl8139->parent_sess = ddf_dev_parent_sess_get(dev);
+	if (rtl8139->parent_sess == NULL) {
+		ddf_msg(LVL_ERROR, "Error connecting parent device.");
+		return EIO;
+	}
 
 	/* Obtain and fill hardware resources info and connect to parent */
 	ret = rtl8139_get_resource_info(dev);
@@ -1293,7 +1262,6 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
 
-	assert(dev);
 	ddf_msg(LVL_NOTE, "RTL8139_dev_add %s (handle = %zu)",
 	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
 
@@ -1320,9 +1288,11 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	rtl8139_data_init(rtl8139);
 
 	/* Register interrupt handler */
-	rc = rtl8139_register_int_handler(nic_data);
-	if (rc != EOK)
+	int irq_cap = rtl8139_register_int_handler(nic_data);
+	if (irq_cap < 0) {
+		rc = irq_cap;
 		goto err_pio;
+	}
 
 	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
 	if (fun == NULL) {
@@ -1354,7 +1324,7 @@ err_fun_bind:
 err_fun_create:
 	ddf_fun_destroy(fun);
 err_srv:
-	unregister_interrupt_handler(dev, rtl8139->irq);
+	unregister_interrupt_handler(dev, irq_cap);
 err_pio:
 	// rtl8139_pio_disable(dev);
 	/* TODO: find out if the pio_disable is needed */
@@ -2116,7 +2086,7 @@ static int rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
 
 		/* Disable timer interrupts while working with timer-related data */
 		rtl8139->int_mask = 0;
-		rtl8139_hw_int_enable(rtl8139);
+		rtl8139_hw_int_set(rtl8139);
 
 		rtl8139->poll_timer = new_timer;
 		rtl8139->int_mask = INT_TIME_OUT;
@@ -2139,7 +2109,7 @@ static int rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
 		break;
 	}
 
-	rtl8139_hw_int_enable(rtl8139);
+	rtl8139_hw_int_set(rtl8139);
 
 	fibril_mutex_unlock(&rtl8139->rx_lock);
 

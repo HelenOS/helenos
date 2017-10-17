@@ -36,8 +36,10 @@
 #ifndef ABI_SYSINFO_H_
 #define ABI_SYSINFO_H_
 
+#include <abi/bool.h>
 #include <abi/proc/task.h>
 #include <abi/proc/thread.h>
+#include <stdint.h>
 
 /** Number of load components */
 #define LOAD_STEPS  3

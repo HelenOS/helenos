@@ -54,6 +54,7 @@ EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY)
 
 SOURCES = \
 	source/ctype.c \
+	source/dlfcn.c \
 	source/errno.c \
 	source/fcntl.c \
 	source/fnmatch.c \
@@ -101,7 +102,7 @@ $(REDEFS_HIDE_LIBC): $(COLLISIONS_LIST)
 $(REDEFS_SHOW_LIBPOSIX): $(COLLISIONS_LIST)
 	sed 's/.*/posix_& &/' <$(COLLISIONS_LIST) >$@
 
-$(COLLISIONS_LIST):
+$(COLLISIONS_LIST): include/posix/*.h include/posix/*/*.h
 	find ./include/posix -name '*.h' -exec \
 		sed -n -e '/^#/d' -e 's/__POSIX_DEF__/\n&/gp' {} \; | \
 		sed -n -e 's/__POSIX_DEF__(\([^)]*\)).*/\1/p' | \

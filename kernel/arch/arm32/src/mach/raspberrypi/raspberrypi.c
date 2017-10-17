@@ -35,6 +35,7 @@
 
 #include <arch/exception.h>
 #include <arch/mach/raspberrypi/raspberrypi.h>
+#include <assert.h>
 #include <genarch/drivers/pl011/pl011.h>
 #include <genarch/drivers/bcm2835/irc.h>
 #include <genarch/drivers/bcm2835/timer.h>
@@ -48,7 +49,6 @@
 #include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
-#include <ddi/device.h>
 
 #define RPI_DEFAULT_MEMORY_START	0
 #define RPI_DEFAULT_MEMORY_SIZE		0x08000000
@@ -102,7 +102,7 @@ static void raspberrypi_init(void)
 	/* Initialize interrupt controller */
 	raspi.irc = (void *) km_map(BCM2835_IRC_ADDR, sizeof(bcm2835_irc_t),
 				    PAGE_NOT_CACHEABLE);
-	ASSERT(raspi.irc);
+	assert(raspi.irc);
 	bcm2835_irc_init(raspi.irc);
 
 	/* Initialize system timer */
@@ -116,7 +116,6 @@ static void raspberrypi_timer_irq_start(void)
 	/* Initialize timer IRQ */
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
-	timer_irq.devno = device_assign_devno();
 	timer_irq.inr = BCM2835_TIMER1_IRQ;
 	timer_irq.claim = raspberrypi_timer_irq_claim;
 	timer_irq.handler = raspberrypi_timer_irq_handler;

@@ -33,7 +33,7 @@
  */
 
 #ifndef LIBC_ppc32_ELF_LINUX_H_
-#define LBIC_ppc32_ELF_LINUX_H_
+#define LIBC_ppc32_ELF_LINUX_H_
 
 #include <libarch/istate.h>
 #include <stdint.h>

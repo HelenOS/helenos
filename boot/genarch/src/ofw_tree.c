@@ -29,7 +29,7 @@
 #include <genarch/ofw_tree.h>
 #include <genarch/ofw.h>
 #include <arch/ofw.h>
-#include <typedefs.h>
+#include <stddef.h>
 #include <str.h>
 #include <balloc.h>
 #include <memstr.h>

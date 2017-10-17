@@ -29,6 +29,7 @@
 #ifndef BOOT_ia64_SKI_H_
 #define BOOT_ia64_SKI_H_
 
+#include <stddef.h>
 #include <str.h>
 
 extern void ski_putchar(const wchar_t);

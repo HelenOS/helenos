@@ -35,9 +35,10 @@
  * @brief bootloader output logic
  */
 
-#include <typedefs.h>
 #include <arch/main.h>
 #include <putchar.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <str.h>
 
 #ifdef MACHINE_beaglebone

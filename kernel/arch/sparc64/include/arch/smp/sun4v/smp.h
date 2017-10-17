@@ -37,8 +37,8 @@
 #ifndef KERN_sparc64_sun4v_SMP_H_
 #define KERN_sparc64_sun4v_SMP_H_
 
-#include <typedefs.h>
 #include <arch/sun4v/cpu.h>
+#include <stdint.h>
 
 extern bool calculate_optimal_nrdy(exec_unit_t *);
 

@@ -37,12 +37,12 @@
  *
  */
 
+#include <assert.h>
 #include <genarch/drivers/i8042/i8042.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <arch/asm.h>
 #include <console/chardev.h>
 #include <mm/slab.h>
-#include <ddi/device.h>
 #include <time/delay.h>
 
 #define i8042_SET_COMMAND  0x60
@@ -111,7 +111,6 @@ i8042_instance_t *i8042_init(i8042_t *dev, inr_t inr)
 		instance->kbrdin = NULL;
 		
 		irq_initialize(&instance->irq);
-		instance->irq.devno = device_assign_devno();
 		instance->irq.inr = inr;
 		instance->irq.claim = i8042_claim;
 		instance->irq.handler = i8042_irq_handler;
@@ -123,8 +122,8 @@ i8042_instance_t *i8042_init(i8042_t *dev, inr_t inr)
 
 void i8042_wire(i8042_instance_t *instance, indev_t *kbrdin)
 {
-	ASSERT(instance);
-	ASSERT(kbrdin);
+	assert(instance);
+	assert(kbrdin);
 	
 	i8042_clear_buffer(instance->i8042);
 	

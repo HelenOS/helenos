@@ -271,7 +271,6 @@ PCUT_TEST(prseq_ins_extract)
 		PCUT_ASSERT_ERRNO_VAL(EOK, odict_validate(&odict));
 
 		v = seq_next(v);
-		++i;
 	}
 }
 

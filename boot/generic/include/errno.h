@@ -30,7 +30,7 @@
  */
 
 #ifndef BOOT_ERRNO_H_
-#define BOTT_ERRNO_H_
+#define BOOT_ERRNO_H_
 
 #define EOK        0    /* No error. */
 #define ENOENT     -1   /* No such entry. */

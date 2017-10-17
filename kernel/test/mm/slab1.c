@@ -31,7 +31,7 @@
 #include <print.h>
 #include <proc/thread.h>
 #include <arch.h>
-#include <memstr.h>
+#include <mem.h>
 
 #define VAL_COUNT  1024
 

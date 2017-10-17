@@ -32,11 +32,8 @@
 /** @file
  */
 
-#include <userspace.h>
-#include <typedefs.h>
-#include <arch.h>
 #include <abi/proc/uarg.h>
-#include <mm/as.h>
+#include <userspace.h>
 
 void userspace(uspace_arg_t *kernel_uarg)
 {

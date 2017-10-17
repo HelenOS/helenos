@@ -33,6 +33,7 @@
 #include <arch/mm/km.h>
 #include <mm/km.h>
 #include <config.h>
+#include <stdbool.h>
 #include <typedefs.h>
 #include <macros.h>
 

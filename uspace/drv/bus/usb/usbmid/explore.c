@@ -131,7 +131,7 @@ static int create_interfaces(const uint8_t *config_descriptor,
  * started.
  *
  * @param dev Device to be explored.
- * @return Whether to accept this device from devman.
+ * @return Whether to accept this device.
  */
 int usbmid_explore_device(usb_device_t *dev)
 {

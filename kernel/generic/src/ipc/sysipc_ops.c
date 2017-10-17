@@ -37,8 +37,6 @@
 #include <abi/errno.h>
 
 /* Forward declarations. */
-sysipc_ops_t ipc_m_connection_clone_ops;
-sysipc_ops_t ipc_m_clone_establish_ops;
 sysipc_ops_t ipc_m_connect_to_me_ops;
 sysipc_ops_t ipc_m_connect_me_to_ops;
 sysipc_ops_t ipc_m_page_in_ops;
@@ -50,8 +48,6 @@ sysipc_ops_t ipc_m_state_change_authorize_ops;
 sysipc_ops_t ipc_m_debug_ops;
 
 static sysipc_ops_t *sysipc_ops[] = {
-	[IPC_M_CONNECTION_CLONE] = &ipc_m_connection_clone_ops,
-	[IPC_M_CLONE_ESTABLISH] = &ipc_m_clone_establish_ops,
 	[IPC_M_CONNECT_TO_ME] = &ipc_m_connect_to_me_ops,
 	[IPC_M_CONNECT_ME_TO] = &ipc_m_connect_me_to_ops,
 	[IPC_M_PAGE_IN] = &ipc_m_page_in_ops,

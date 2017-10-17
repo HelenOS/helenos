@@ -35,10 +35,10 @@
 #ifndef KERN_ia64_CPU_H_
 #define KERN_ia64_CPU_H_
 
-#include <typedefs.h>
 #include <arch/register.h>
 #include <arch/asm.h>
 #include <arch/bootinfo.h>
+#include <stdint.h>
 #include <trace.h>
 
 #define FAMILY_ITANIUM   0x7

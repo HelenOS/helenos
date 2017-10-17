@@ -50,6 +50,7 @@
 
 #ifndef __ASM__
 
+#include <stdbool.h>
 #include <typedefs.h>
 #include <arch/mm/tte.h>
 #include <arch/mm/mmu.h>

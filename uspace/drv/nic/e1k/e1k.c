@@ -39,11 +39,11 @@
 #include <align.h>
 #include <thread.h>
 #include <byteorder.h>
-#include <irc.h>
 #include <as.h>
 #include <ddi.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res.h>
 #include <device/hw_res_parsed.h>
 #include <pci_dev_iface.h>
 #include <nic.h>
@@ -115,6 +115,10 @@
 
 /** E1000 device data */
 typedef struct {
+	/** DDF device */
+	ddf_dev_t *dev;
+	/** Parent session */
+	async_sess_t *parent_sess;
 	/** Device configuration */
 	e1000_info_t info;
 	
@@ -364,15 +368,18 @@ static void e1000_link_restart(e1000_t *e1000)
 	
 	if (ctrl & CTRL_SLU) {
 		ctrl &= ~(CTRL_SLU);
+		E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
+		
 		thread_usleep(10);
+		
 		fibril_mutex_lock(&e1000->ctrl_lock);
+		ctrl = E1000_REG_READ(e1000, E1000_CTRL);
 		ctrl |= CTRL_SLU;
+		E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
 	}
 	
 	fibril_mutex_unlock(&e1000->ctrl_lock);
-	
-	e1000_link_restart(e1000);
 }
 
 /** Set operation mode of the device
@@ -1252,7 +1259,7 @@ static void e1000_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
  *
  * @param nic Driver data
  *
- * @return EOK if the handler was registered
+ * @return IRQ capability handle if the handler was registered
  * @return Negative error code otherwise
  *
  */
@@ -1267,11 +1274,11 @@ inline static int e1000_register_int_handler(nic_t *nic)
 	e1000_irq_code.cmds[0].addr = e1000->reg_base_phys + E1000_ICR;
 	e1000_irq_code.cmds[2].addr = e1000->reg_base_phys + E1000_IMC;
 	
-	int rc = register_interrupt_handler(nic_get_ddf_dev(nic),
-	    e1000->irq, e1000_interrupt_handler, &e1000_irq_code);
+	int cap = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
+	    e1000_interrupt_handler, &e1000_irq_code);
 	
 	fibril_mutex_unlock(&irq_reg_mutex);
-	return rc;
+	return cap;
 }
 
 /** Force receiving all frames in the receive buffer
@@ -1753,7 +1760,7 @@ static int e1000_on_activating(nic_t *nic)
 	
 	e1000_enable_interrupts(e1000);
 	
-	int rc = irc_enable_interrupt(e1000->irq);
+	int rc = hw_res_enable_interrupt(e1000->parent_sess, e1000->irq);
 	if (rc != EOK) {
 		e1000_disable_interrupts(e1000);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
@@ -1798,7 +1805,7 @@ static int e1000_on_down_unlocked(nic_t *nic)
 	e1000_disable_tx(e1000);
 	e1000_disable_rx(e1000);
 	
-	irc_disable_interrupt(e1000->irq);
+	hw_res_disable_interrupt(e1000->parent_sess, e1000->irq);
 	e1000_disable_interrupts(e1000);
 	
 	/*
@@ -1880,6 +1887,7 @@ static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
 	}
 	
 	memset(e1000, 0, sizeof(e1000_t));
+	e1000->dev = dev;
 	
 	nic_set_specific(nic, e1000);
 	nic_set_send_frame_handler(nic, e1000_send_frame);
@@ -1994,6 +2002,12 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	if (e1000 == NULL) {
 		ddf_msg(LVL_ERROR, "Unable to allocate device softstate");
 		return ENOMEM;
+	}
+	
+	e1000->parent_sess = ddf_dev_parent_sess_get(dev);
+	if (e1000->parent_sess == NULL) {
+		ddf_msg(LVL_ERROR, "Failed connecting parent device.");
+		return EIO;
 	}
 	
 	/* Obtain and fill hardware resources info */
@@ -2115,7 +2129,6 @@ static int e1000_pio_enable(ddf_dev_t *dev)
 int e1000_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
-	assert(dev);
 	
 	/* Initialize device structure for E1000 */
 	int rc = e1000_device_initialize(dev);
@@ -2151,9 +2164,11 @@ int e1000_dev_add(ddf_dev_t *dev)
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &e1000_dev_ops);
 	
-	rc = e1000_register_int_handler(nic);
-	if (rc != EOK)
+	int irq_cap = e1000_register_int_handler(nic);
+	if (irq_cap < 0) {
+		rc = irq_cap;
 		goto err_fun_create;
+	}
 	
 	rc = e1000_initialize_rx_structure(nic);
 	if (rc != EOK)
@@ -2188,7 +2203,7 @@ err_fun_bind:
 err_rx_structure:
 	e1000_uninitialize_rx_structure(nic);
 err_irq:
-	unregister_interrupt_handler(dev, DRIVER_DATA_DEV(dev)->irq);
+	unregister_interrupt_handler(dev, irq_cap);
 err_fun_create:
 	ddf_fun_destroy(fun);
 	nic_set_ddf_fun(nic, NULL);

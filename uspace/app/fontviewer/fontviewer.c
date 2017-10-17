@@ -77,7 +77,7 @@ static void on_keyboard_event(widget_t *widget, void *data)
 			if (event->key == KC_UP)
 				points += increment;
 		
-			if ((event->key == KC_DOWN)) {
+			if (event->key == KC_DOWN) {
 				if (points <= increment) {
 					points = 1;
 				}

@@ -64,7 +64,8 @@
  *
  */
 
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <errno.h>
 #include <memstr.h>
 #include <inflate.h>

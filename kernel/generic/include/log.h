@@ -35,8 +35,8 @@
 #ifndef KERN_LOG_H_
 #define KERN_LOG_H_
 
-#include <typedefs.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <printf/verify.h>
 #include <abi/log.h>
 #include <abi/klog.h>

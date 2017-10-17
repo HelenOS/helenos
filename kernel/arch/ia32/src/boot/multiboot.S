@@ -164,7 +164,6 @@ SYMBOL(multiboot_image_start)
  *
  */
 FUNCTION_BEGIN(map_kernel_pse)
-map_kernel_pse:
 	/* Paging features */
 	movl %cr4, %ecx
 	orl $CR4_PSE, %ecx	/* PSE on */

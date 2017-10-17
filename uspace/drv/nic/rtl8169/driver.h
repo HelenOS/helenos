@@ -48,6 +48,10 @@
 
 /** RTL8139 device data */
 typedef struct rtl8169_data {
+	/** DDF device */
+	ddf_dev_t *dev;
+	/** Parent session */
+	async_sess_t *parent_sess;
 	/** I/O address of the device */
 	void *regs_phys;
 	/** Mapped I/O port */

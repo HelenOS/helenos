@@ -29,7 +29,6 @@
 #include <test.h>
 #include <arch.h>
 #include <print.h>
-#include <memstr.h>
 #include <synch/workqueue.h>
 
 

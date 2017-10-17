@@ -33,6 +33,7 @@
  */
 
 #include <test.h>
+#include <stddef.h>
 #include <str.h>
 
 bool test_quiet;

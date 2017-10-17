@@ -35,6 +35,7 @@
 
 #include <arch/exception.h>
 #include <arch/mach/beaglebone/beaglebone.h>
+#include <assert.h>
 #include <genarch/drivers/am335x/irc.h>
 #include <genarch/drivers/am335x/uart.h>
 #include <genarch/drivers/am335x/timer.h>
@@ -44,7 +45,6 @@
 #include <genarch/srln/srln.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
-#include <ddi/device.h>
 #include <mm/km.h>
 
 #define BBONE_MEMORY_START       0x80000000      /* physical */
@@ -97,10 +97,10 @@ static void bbone_init(void)
 	bbone.ctrl_module = (void *) km_map(AM335x_CTRL_MODULE_BASE_ADDRESS,
 	    AM335x_CTRL_MODULE_SIZE, PAGE_NOT_CACHEABLE);
 
-	ASSERT(bbone.irc_addr != NULL);
-	ASSERT(bbone.cm_per_addr != NULL);
-	ASSERT(bbone.cm_dpll_addr != NULL);
-	ASSERT(bbone.ctrl_module != NULL);
+	assert(bbone.irc_addr != NULL);
+	assert(bbone.cm_per_addr != NULL);
+	assert(bbone.cm_dpll_addr != NULL);
+	assert(bbone.ctrl_module != NULL);
 
 	/* Initialize the interrupt controller */
 	omap_irc_init(bbone.irc_addr);
@@ -127,7 +127,6 @@ static void bbone_timer_irq_start(void)
 	/* Initialize the IRQ */
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
-	timer_irq.devno = device_assign_devno();
 	timer_irq.inr = AM335x_DMTIMER2_IRQ;
 	timer_irq.claim = bbone_timer_irq_claim;
 	timer_irq.handler = bbone_timer_irq_handler;

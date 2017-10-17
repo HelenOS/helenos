@@ -33,8 +33,9 @@
  */
 
 #include <stacktrace.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <syscall/copy.h>
-#include <typedefs.h>
 #include <proc/thread.h>
 
 #include <arch.h>

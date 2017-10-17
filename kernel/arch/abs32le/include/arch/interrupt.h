@@ -35,7 +35,6 @@
 #ifndef KERN_abs32le_INTERRUPT_H_
 #define KERN_abs32le_INTERRUPT_H_
 
-#include <typedefs.h>
 #include <arch/istate.h>
 
 #define IVT_ITEMS  0

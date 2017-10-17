@@ -33,15 +33,14 @@
  * @file Dummy label (for disks that have no recognized label)
  */
 
-#include <block.h>
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
 
 #include "dummy.h"
 
-static int dummy_open(service_id_t, label_t **);
-static int dummy_create(service_id_t, label_t **);
+static int dummy_open(label_bd_t *, label_t **);
+static int dummy_create(label_bd_t *, label_t **);
 static void dummy_close(label_t *);
 static int dummy_destroy(label_t *);
 static int dummy_get_info(label_t *, label_info_t *);
@@ -66,7 +65,7 @@ label_ops_t dummy_label_ops = {
 	.suggest_ptype = dummy_suggest_ptype
 };
 
-static int dummy_open(service_id_t sid, label_t **rlabel)
+static int dummy_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	label_part_t *part = NULL;
@@ -75,13 +74,13 @@ static int dummy_open(service_id_t sid, label_t **rlabel)
 	uint64_t ba_min, ba_max;
 	int rc;
 
-	rc = block_get_bsize(sid, &bsize);
+	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	rc = block_get_nblocks(sid, &nblocks);
+	rc = bd->ops->get_nblocks(bd->arg, &nblocks);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
@@ -100,7 +99,7 @@ static int dummy_open(service_id_t sid, label_t **rlabel)
 
 	label->ops = &dummy_label_ops;
 	label->ltype = lt_none;
-	label->svc_id = sid;
+	label->bd = *bd;
 	label->ablock0 = ba_min;
 	label->anblocks = ba_max - ba_min + 1;
 	label->pri_entries = 0;
@@ -128,7 +127,7 @@ error:
 	return rc;
 }
 
-static int dummy_create(service_id_t sid, label_t **rlabel)
+static int dummy_create(label_bd_t *bd, label_t **rlabel)
 {
 	return ENOTSUP;
 }

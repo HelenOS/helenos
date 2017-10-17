@@ -33,14 +33,14 @@
 /** @file
  */
 
+#include <assert.h>
 #include <genarch/drivers/via-cuda/cuda.h>
 #include <console/chardev.h>
 #include <ddi/irq.h>
 #include <arch/asm.h>
 #include <mm/slab.h>
-#include <ddi/device.h>
 #include <synch/spinlock.h>
-#include <memstr.h>
+#include <mem.h>
 
 static irq_ownership_t cuda_claim(irq_t *irq);
 static void cuda_irq_handler(irq_t *irq);
@@ -104,7 +104,6 @@ cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 		pio_write_8(&dev->ier, IER_CLR | ALL_INT);
 
 		irq_initialize(&instance->irq);
-		instance->irq.devno = device_assign_devno();
 		instance->irq.inr = inr;
 		instance->irq.claim = cuda_claim;
 		instance->irq.handler = cuda_irq_handler;
@@ -122,8 +121,8 @@ void cuda_wire(cuda_instance_t *instance, indev_t *kbrdin)
 {
 	cuda_t *dev = instance->cuda;
 
-	ASSERT(instance);
-	ASSERT(kbrdin);
+	assert(instance);
+	assert(kbrdin);
 
 	instance->kbrdin = kbrdin;
 	irq_register(&instance->irq);
@@ -340,7 +339,7 @@ static void cuda_send_start(cuda_instance_t *instance)
 {
 	cuda_t *dev = instance->cuda;
 
-	ASSERT(instance->xstate == cx_listen);
+	assert(instance->xstate == cx_listen);
 
 	if (instance->snd_bytes == 0)
 		return;

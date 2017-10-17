@@ -996,6 +996,26 @@ int str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
 	return rc;
 }
 
+/** Get size of UTF-16 string.
+ *
+ * Get the number of words which are used by the UTF-16 string @a ustr
+ * (excluding the NULL-terminator).
+ *
+ * @param ustr UTF-16 string to consider.
+ *
+ * @return Number of words used by the UTF-16 string
+ *
+ */
+size_t utf16_wsize(const uint16_t *ustr)
+{
+	size_t wsize = 0;
+
+	while (*ustr++ != 0)
+		wsize++;
+
+	return wsize;
+}
+
 
 /** Convert wide string to new string.
  *

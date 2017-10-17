@@ -89,6 +89,7 @@ static int dns_name_query(const char *name, dns_qtype_t qtype,
 	
 	list_append(&question->msg, &msg->question);
 	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_name_query: send DNS request");
 	dns_message_t *amsg;
 	int rc = dns_request(msg, &amsg);
 	if (rc != EOK) {

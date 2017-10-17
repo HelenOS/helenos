@@ -35,6 +35,8 @@
 #ifndef KERN_riscv64_TYPES_H_
 #define KERN_riscv64_TYPES_H_
 
+#include <arch/common.h>
+
 typedef uint64_t size_t;
 typedef int64_t ssize_t;
 
@@ -49,9 +51,6 @@ typedef uint64_t atomic_count_t;
 
 typedef struct {
 } fncptr_t;
-
-#define INTN_C(c)   INT64_C(c)
-#define UINTN_C(c)  UINT64_C(c)
 
 #define PRIdn  PRId64  /**< Format for native_t. */
 #define PRIun  PRIu64  /**< Format for sysarg_t. */

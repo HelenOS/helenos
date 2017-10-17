@@ -266,7 +266,7 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 
 	amdm37x_dispc_t *dispc = vis->dev_ctx;
 	const visual_t visual = mode.cell_visual.pixel_visual;
-	assert(visual < sizeof(pixel2visual_table) / sizeof(pixel2visual_table[0]));
+	assert((size_t)visual < sizeof(pixel2visual_table) / sizeof(pixel2visual_table[0]));
 	const unsigned bpp = pixel2visual_table[visual].bpp;
 	pixel2visual_t p2v = pixel2visual_table[visual].func;
 	const unsigned x = mode.screen_width;

@@ -41,7 +41,7 @@
 #include <thread.h>
 #include <sys/time.h>
 #include <errno.h>
-#include <sort.h>
+#include <gsort.h>
 #include "screen.h"
 #include "top.h"
 

@@ -39,7 +39,6 @@
 #include <usb/descriptor.h>
 #include <usb/dev/device.h>
 #include <usb/dev/dp.h>
-#include <ipc/devman.h>
 
 typedef struct {
 	int opt;

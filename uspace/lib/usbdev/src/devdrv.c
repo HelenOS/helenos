@@ -52,7 +52,7 @@
 #include <ddf/driver.h>
 
 /** USB device structure. */
-typedef struct usb_device {
+struct usb_device {
 	/** Connection to device on USB bus */
 	usb_dev_session_t *bus_session;
 
@@ -94,7 +94,7 @@ typedef struct usb_device {
 	 * by the framework.
 	 */
 	void *driver_data;
-} usb_device_t;
+};
 
 /** Count number of pipes the driver expects.
  *
@@ -488,12 +488,10 @@ int usb_device_create_ddf(ddf_dev_t *ddf_dev,
 	devman_handle_t h = 0;
 	int iface_no = -1;
 
-	async_sess_t *sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(ddf_dev), IPC_FLAG_BLOCKING);
+	async_sess_t *sess = ddf_dev_parent_sess_get(ddf_dev);
 	if (sess == NULL)
 		return ENOMEM;
 	const int ret = usb_device_get_info(sess, &h, &iface_no);
-	async_hangup(sess);
 	if (ret != EOK)
 		return ret;
 

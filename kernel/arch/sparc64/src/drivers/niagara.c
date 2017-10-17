@@ -38,7 +38,6 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <ddi/ddi.h>
-#include <ddi/device.h>
 #include <arch/asm.h>
 #include <arch.h>
 #include <mm/slab.h>

@@ -69,7 +69,7 @@ void sparc64_post_mm_init(void)
 	SPARC64_ARCH_OP(post_mm_init);
 
 	if (config.cpu_active == 1) {
-		STATIC_ASSERT(UWB_SIZE <= UWB_ALIGNMENT);
+		static_assert(UWB_SIZE <= UWB_ALIGNMENT, "");
 		/* Create slab cache for the userspace window buffers */
 		uwb_cache = slab_cache_create("uwb_cache", UWB_SIZE,
 		    UWB_ALIGNMENT, NULL, NULL, SLAB_CACHE_MAGDEFERRED);

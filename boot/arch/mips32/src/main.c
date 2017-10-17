@@ -29,7 +29,6 @@
 #include <arch/main.h>
 #include <arch/arch.h>
 #include <arch/asm.h>
-#include <arch/_components.h>
 #include <halt.h>
 #include <printf.h>
 #include <memstr.h>
@@ -39,6 +38,7 @@
 #include <str.h>
 #include <errno.h>
 #include <inflate.h>
+#include "../../components.h"
 
 #define TOP2ADDR(top)  (((void *) PA2KA(BOOT_OFFSET)) + (top))
 
@@ -63,10 +63,10 @@ void bootstrap(void)
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
-		    (uintptr_t) components[i].start >= PA2KSEG(0) ?
-		    (void *) KSEG2PA(components[i].start) :
-		    (void *) KA2PA(components[i].start),
+		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
+		    (uintptr_t) components[i].addr >= PA2KSEG(0) ?
+		    (void *) KSEG2PA(components[i].addr) :
+		    (void *) KA2PA(components[i].addr),
 		    components[i].name, components[i].inflated,
 		    components[i].size);
 	
@@ -106,7 +106,7 @@ void bootstrap(void)
 		
 		printf("%s ", components[i - 1].name);
 		
-		int err = inflate(components[i - 1].start, components[i - 1].size,
+		int err = inflate(components[i - 1].addr, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
 		
 		if (err != EOK) {

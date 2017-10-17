@@ -95,10 +95,9 @@ char *alias_for_module(const char *command)
 	if (NULL == command)
 		return (char *)NULL;
 
-	for(i=0; mod_aliases[i] != NULL; i++) {
+	for(i=0; mod_aliases[i] != NULL; i+=2) {
 		if (!str_cmp(mod_aliases[i], command))
-			return (char *)mod_aliases[++i];
-		i++;
+			return (char *)mod_aliases[i+1];
 	}
 
 	return (char *)NULL;

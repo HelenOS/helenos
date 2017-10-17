@@ -182,6 +182,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 
 	void *req_data;
 	size_t req_size;
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_request: Encode dns message");
 	int rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)
 		goto error;
@@ -193,10 +194,13 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	size_t ntry = 0;
 
 	while (ntry < REQ_RETRY_MAX) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_request: Send DNS message");
 		rc = udp_assoc_send_msg(transport_assoc, &ep, req_data,
 		    req_size);
-		if (rc != EOK)
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error %d sending message", rc);
 			goto error;
+		}
 
 		treq = treq_create(req);
 		if (treq == NULL) {

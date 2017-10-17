@@ -35,6 +35,8 @@
 #ifndef ABI_PROC_UARG_H_
 #define ABI_PROC_UARG_H_
 
+#include <stddef.h>
+
 /** Structure passed to uinit kernel thread as argument. */
 typedef struct uspace_arg {
 	void *uspace_entry;

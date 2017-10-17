@@ -51,22 +51,6 @@
 #include "udf_osta.h"
 #include "udf_cksum.h"
 
-/** Calculate length of UTF-16 string
- *
- * FIXME: This is wrong! UTF-16 is not a fixed-width encoding,
- *        it is a variable-width encoding (mind the surrogate
- *        pairs).
- *
- */
-static size_t utf16_length(uint16_t *string) {
-	size_t len = 0;
-	
-	while (*string++ != 0)
-		len++;
-	
-	return len;
-}
-
 /** Illegal UNIX characters are NULL and slash.
  *
  */
@@ -295,7 +279,7 @@ void udf_to_unix_name(char *result, size_t result_len, char *id, size_t len,
 		
 		ucode_chars =
 		    udf_uncompress_unicode(len, (uint8_t *) id, raw_name, MAX_BUF);
-		ucode_chars = min(ucode_chars, utf16_length(raw_name));
+		ucode_chars = min(ucode_chars, utf16_wsize(raw_name));
 		nice_uchars =
 		    udf_translate_name(unix_name, raw_name, ucode_chars);
 		

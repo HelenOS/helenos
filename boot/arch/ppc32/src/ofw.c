@@ -27,7 +27,7 @@
  */
 
 #include <genarch/ofw.h>
-#include <typedefs.h>
+#include <stddef.h>
 #include <putchar.h>
 #include <str.h>
 

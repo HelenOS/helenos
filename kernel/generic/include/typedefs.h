@@ -38,12 +38,6 @@
 #include <stdint.h>
 #include <arch/common.h>
 #include <arch/types.h>
-#include <abi/bool.h>
-
-#define NULL  ((void *) 0)
-
-#define false  0
-#define true   1
 
 typedef struct {
 	volatile atomic_count_t count;
@@ -54,13 +48,10 @@ typedef void (* function)(void);
 typedef uint32_t container_id_t;
 
 typedef int32_t inr_t;
-typedef int32_t devno_t;
 
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
-
-typedef native_t ptrdiff_t;
 
 #ifdef __32_BITS__
 

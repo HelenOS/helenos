@@ -51,6 +51,8 @@ typedef struct {
 	vol_part_cnt_t pcnt;
 	/** Filesystem type */
 	vol_fstype_t fstype;
+	/** Volume label */
+	char *label;
 } vol_part_t;
 
 #endif

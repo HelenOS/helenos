@@ -35,8 +35,8 @@
 #ifndef KERN_amd64_TASK_H_
 #define KERN_amd64_TASK_H_
 
-#include <typedefs.h>
 #include <adt/bitmap.h>
+#include <stddef.h>
 
 typedef struct {
 	/** I/O Permission bitmap Generation counter. */

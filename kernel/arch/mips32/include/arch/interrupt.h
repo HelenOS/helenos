@@ -35,7 +35,6 @@
 #ifndef KERN_mips32_INTERRUPT_H_
 #define KERN_mips32_INTERRUPT_H_
 
-#include <typedefs.h>
 #include <arch/exception.h>
 
 #define IVT_ITEMS  32

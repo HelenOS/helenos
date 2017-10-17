@@ -37,7 +37,7 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <io/verify.h>
-#include <libarch/types.h>
+#include <types/common.h>
 
 #include <abi/log.h>
 

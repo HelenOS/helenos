@@ -36,14 +36,13 @@
  * @brief Kernel ELF loader.
  */
 
+#include <assert.h>
 #include <lib/elf.h>
-#include <debug.h>
 #include <typedefs.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <align.h>
-#include <memstr.h>
 #include <macros.h>
 #include <arch.h>
 
@@ -138,7 +137,7 @@ unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
  */
 const char *elf_error(unsigned int rc)
 {
-	ASSERT(rc < sizeof(error_codes) / sizeof(char *));
+	assert(rc < sizeof(error_codes) / sizeof(char *));
 	
 	return error_codes[rc];
 }

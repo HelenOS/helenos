@@ -35,6 +35,7 @@
 #ifndef KERN_RCU_H_
 #define KERN_RCU_H_
 
+#include <assert.h>
 #include <synch/rcu_types.h>
 #include <compiler/barrier.h>
 
@@ -161,7 +162,7 @@ extern void _rcu_signal_read_unlock(void);
 /** Unconditionally records a quiescent state for the local cpu. */
 static inline void _rcu_record_qs(void)
 {
-	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
+	assert(PREEMPTION_DISABLED || interrupts_disabled());
 	
 	/* 
 	 * A new GP was started since the last time we passed a QS. 
@@ -206,7 +207,7 @@ static inline void _rcu_record_qs(void)
  */
 static inline void rcu_read_lock(void)
 {
-	ASSERT(CPU);
+	assert(CPU);
 	preemption_disable();
 
 	/* Record a QS if not in a reader critical section. */
@@ -221,7 +222,7 @@ static inline void rcu_read_lock(void)
 /** Delimits the end of an RCU reader critical section. */
 static inline void rcu_read_unlock(void)
 {
-	ASSERT(CPU);
+	assert(CPU);
 	preemption_disable();
 	
 	if (0 == --CPU->rcu.nesting_cnt) {

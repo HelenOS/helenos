@@ -704,6 +704,9 @@ static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
 		case TCP_EAGAIN:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl() - EAGAIN");
 			return EAGAIN;
+		case TCP_ECLOSING:
+			*nrecv = 0;
+			return EOK;
 		default:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl() - trc=%d", rc);
 			return EIO;

@@ -33,9 +33,9 @@
  */
 
 #include <arch/interrupt.h>
+#include <assert.h>
 #include <print.h>
 #include <log.h>
-#include <debug.h>
 #include <panic.h>
 #include <arch/drivers/i8259.h>
 #include <func.h>
@@ -174,12 +174,12 @@ static void arch_smp_call_ipi_recv(unsigned int n, istate_t *istate)
  */
 static void irq_interrupt(unsigned int n, istate_t *istate)
 {
-	ASSERT(n >= IVT_IRQBASE);
+	assert(n >= IVT_IRQBASE);
 	
 	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
-	ASSERT(inum < IRQ_COUNT);
-	ASSERT((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
+	assert(inum < IRQ_COUNT);
+	assert((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
 	
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {

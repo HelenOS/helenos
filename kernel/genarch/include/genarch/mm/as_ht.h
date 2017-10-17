@@ -36,7 +36,7 @@
 #define KERN_AS_HT_H_
 
 #include <mm/mm.h>
-#include <adt/list.h>
+#include <adt/hash_table.h>
 #include <typedefs.h>
 
 typedef struct {
@@ -45,7 +45,7 @@ typedef struct {
 struct as;
 
 typedef struct pte {
-	link_t link;		/**< Page hash table link. */
+	ht_link_t link;		/**< Page hash table link. */
 	struct as *as;		/**< Address space. */
 	uintptr_t page;		/**< Virtual memory page. */
 	uintptr_t frame;	/**< Physical memory frame. */

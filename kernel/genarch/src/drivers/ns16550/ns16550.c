@@ -34,12 +34,12 @@
  * @brief NS 16550 serial controller driver.
  */
 
+#include <assert.h>
 #include <genarch/drivers/ns16550/ns16550.h>
 #include <ddi/irq.h>
 #include <arch/asm.h>
 #include <console/chardev.h>
 #include <mm/slab.h>
-#include <ddi/device.h>
 #include <str.h>
 
 #define LSR_DATA_READY  0x01
@@ -136,7 +136,6 @@ ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir,
 		}
 		
 		irq_initialize(&instance->irq);
-		instance->irq.devno = device_assign_devno();
 		instance->irq.inr = inr;
 		instance->irq.claim = ns16550_claim;
 		instance->irq.handler = ns16550_irq_handler;
@@ -156,8 +155,8 @@ ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir,
 
 void ns16550_wire(ns16550_instance_t *instance, indev_t *input)
 {
-	ASSERT(instance);
-	ASSERT(input);
+	assert(instance);
+	assert(input);
 	
 	instance->input = input;
 	irq_register(&instance->irq);

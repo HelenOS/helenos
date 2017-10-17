@@ -34,7 +34,6 @@
 #define __AHCI_H__
 
 #include <async.h>
-#include <devman.h>
 #include <ddf/interrupt.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -90,9 +89,6 @@ typedef struct {
 	
 	/** Event interrupt state. */
 	ahci_port_is_t event_pxis;
-	
-	/** Block device service id. */
-	service_id_t service_id;
 	
 	/** Number of device data blocks. */
 	uint64_t blocks;

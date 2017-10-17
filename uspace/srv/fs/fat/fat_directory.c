@@ -222,9 +222,10 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 				
 			*de = d;
 			return EOK;
-		default:
 		case FAT_DENTRY_SKIP:
 		case FAT_DENTRY_FREE:
+		case FAT_DENTRY_VOLLABEL:
+		default:
 			long_entry_count = 0;
 			long_entry = false;
 			break;
@@ -251,7 +252,7 @@ int fat_directory_erase(fat_directory_t *di)
 	
 	while (!flag && fat_directory_prev(di) == EOK) {
 		if (fat_directory_get(di, &d) == EOK &&
-		    fat_classify_dentry(d) == FAT_DENTRY_LFN &&			
+		    fat_classify_dentry(d) == FAT_DENTRY_LFN &&	
 		    checksum == FAT_LFN_CHKSUM(d)) {
 			if (FAT_IS_LFN(d))
 				flag = true;
@@ -299,7 +300,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 		if (rc != EOK)
 			return rc;
 		
-		lfn_size = utf16_length(wname);
+		lfn_size = utf16_wsize(wname);
 		long_entry_count = lfn_size / FAT_LFN_ENTRY_SIZE;
 		if (lfn_size % FAT_LFN_ENTRY_SIZE)
 			long_entry_count++;
@@ -472,6 +473,7 @@ int fat_directory_lookup_free(fat_directory_t *di, size_t count)
 			case FAT_DENTRY_VALID:
 			case FAT_DENTRY_LFN:
 			case FAT_DENTRY_SKIP:
+			case FAT_DENTRY_VOLLABEL:
 			default:
 				found = 0;
 				break;
@@ -522,12 +524,41 @@ bool fat_directory_is_sfn_exist(fat_directory_t *di, fat_dentry_t *de)
 		default:
 		case FAT_DENTRY_LFN:
 		case FAT_DENTRY_SKIP:
+		case FAT_DENTRY_VOLLABEL:
 		case FAT_DENTRY_FREE:
 			break;
 		}
-	} while (fat_directory_next(di) == EOK);	
+	} while (fat_directory_next(di) == EOK);
 
 	return false;
+}
+
+/** Find volume label entry in a directory.
+ *
+ * @return EOK on success, ENOENT if not found, EIO on I/O error
+ */
+int fat_directory_vollabel_get(fat_directory_t *di, char *label)
+{
+	fat_dentry_t *d;
+	int rc;
+
+	fat_directory_seek(di, 0);
+	do {
+		rc = fat_directory_get(di, &d);
+		if (rc != EOK)
+			return EIO;
+
+		switch (fat_classify_dentry(d)) {
+		case FAT_DENTRY_VOLLABEL:
+			fat_dentry_vollabel_get(d, label);
+			return EOK;
+		default:
+			break;
+		}
+	} while (fat_directory_next(di) == EOK);
+
+	/* Not found */
+	return ENOENT;
 }
 
 /**

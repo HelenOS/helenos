@@ -39,16 +39,14 @@
 
 #include <func.h>
 #include <config.h>
+#include <console/console.h>
 #include <errno.h>
 #include <context.h>
 #include <fpu_context.h>
 #include <interrupt.h>
-#include <syscall/copy.h>
 #include <ddi/irq.h>
-#include <proc/thread.h>
+#include <syscall/copy.h>
 #include <syscall/syscall.h>
-#include <console/console.h>
-#include <memstr.h>
 
 static void abs32le_post_mm_init(void);
 

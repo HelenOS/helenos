@@ -42,25 +42,28 @@
 
 static int request_preprocess(call_t *call, phone_t *phone)
 {
-	phone_t *sender_phone;
 	task_t *other_task_s;
 
-	if (phone_get(IPC_GET_ARG5(call->data), &sender_phone) != EOK)
+	kobject_t *sender_obj = kobject_get(TASK, IPC_GET_ARG5(call->data),
+	    KOBJECT_TYPE_PHONE);
+	if (!sender_obj)
 		return ENOENT;
 
-	mutex_lock(&sender_phone->lock);
-	if (sender_phone->state != IPC_PHONE_CONNECTED) {
-		mutex_unlock(&sender_phone->lock);
+	mutex_lock(&sender_obj->phone->lock);
+	if (sender_obj->phone->state != IPC_PHONE_CONNECTED) {
+		mutex_unlock(&sender_obj->phone->lock);
+		kobject_put(sender_obj);
 		return EINVAL;
 	}
 
-	other_task_s = sender_phone->callee->task;
+	other_task_s = sender_obj->phone->callee->task;
 
-	mutex_unlock(&sender_phone->lock);
+	mutex_unlock(&sender_obj->phone->lock);
 
 	/* Remember the third party task hash. */
 	IPC_SET_ARG5(call->data, (sysarg_t) other_task_s);
 
+	kobject_put(sender_obj);
 	return EOK;
 }
 
@@ -70,25 +73,25 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 	if (!IPC_GET_RETVAL(answer->data)) {
 		/* The recipient authorized the change of state. */
-		phone_t *recipient_phone;
 		task_t *other_task_s;
 		task_t *other_task_r;
 
-		rc = phone_get(IPC_GET_ARG1(answer->data),
-		    &recipient_phone);
-		if (rc != EOK) {
+		kobject_t *recipient_obj = kobject_get(TASK,
+		    IPC_GET_ARG1(answer->data), KOBJECT_TYPE_PHONE);
+		if (!recipient_obj) {
 			IPC_SET_RETVAL(answer->data, ENOENT);
 			return ENOENT;
 		}
 
-		mutex_lock(&recipient_phone->lock);
-		if (recipient_phone->state != IPC_PHONE_CONNECTED) {
-			mutex_unlock(&recipient_phone->lock);
+		mutex_lock(&recipient_obj->phone->lock);
+		if (recipient_obj->phone->state != IPC_PHONE_CONNECTED) {
+			mutex_unlock(&recipient_obj->phone->lock);
 			IPC_SET_RETVAL(answer->data, EINVAL);
+			kobject_put(recipient_obj);
 			return EINVAL;
 		}
 
-		other_task_r = recipient_phone->callee->task;
+		other_task_r = recipient_obj->phone->callee->task;
 		other_task_s = (task_t *) IPC_GET_ARG5(*olddata);
 
 		/*
@@ -109,7 +112,8 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			IPC_SET_RETVAL(answer->data, rc);
 		}
 
-		mutex_unlock(&recipient_phone->lock);
+		mutex_unlock(&recipient_obj->phone->lock);
+		kobject_put(recipient_obj);
 	}
 
 	return rc;

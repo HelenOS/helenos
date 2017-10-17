@@ -42,7 +42,7 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
+#include <stdint.h>
 #include <trace.h>
 
 NO_TRACE static inline uint32_t physmem_top(void)

@@ -36,18 +36,34 @@ EXTRA_CFLAGS += \
 
 BINARY = tcp
 
-SOURCES = \
+SOURCES_COMMON = \
 	conn.c \
+	inet.c \
 	iqueue.c \
 	ncsim.c \
 	pdu.c \
 	rqueue.c \
 	segment.c \
-	service.c \
 	seq_no.c \
-	tcp.c \
 	test.c \
 	tqueue.c \
 	ucall.c
+
+SOURCES = \
+	$(SOURCES_COMMON) \
+	service.c \
+	tcp.c
+
+TEST_SOURCES = \
+	$(SOURCES_COMMON) \
+	test/conn.c \
+	test/iqueue.c \
+	test/main.c \
+	test/pdu.c \
+	test/rqueue.c \
+	test/segment.c \
+	test/seq_no.c \
+	test/tqueue.c \
+	test/ucall.c
 
 include $(USPACE_PREFIX)/Makefile.common

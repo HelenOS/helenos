@@ -34,7 +34,6 @@
 
 #include <arch/debugger.h>
 #include <arch/barrier.h>
-#include <memstr.h>
 #include <console/kconsole.h>
 #include <console/cmd.h>
 #include <print.h>

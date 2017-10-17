@@ -43,7 +43,7 @@
 #include <loc.h>
 #include <macros.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <offset.h>
 
 static void bd_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 

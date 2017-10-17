@@ -36,6 +36,7 @@
 #ifndef KERN_AMDM37x_GPT_H_
 #define KERN_AMDM37x_GPT_H_
 
+#include <assert.h>
 #include <typedefs.h>
 #include <mm/km.h>
 #include <time/clock.h>
@@ -210,7 +211,7 @@ static inline void amdm37x_gpt_timer_ticks_init(
 	*clksel &= ~1;
 	km_unmap((uintptr_t)clksel, 4);
 
-	ASSERT(timer);
+	assert(timer);
 	/* Map control register */
 	timer->regs = (void*) km_map(ioregs, iosize, PAGE_NOT_CACHEABLE);
 
@@ -246,8 +247,8 @@ static inline void amdm37x_gpt_timer_ticks_init(
 
 static inline void amdm37x_gpt_timer_ticks_start(amdm37x_gpt_t* timer)
 {
-	ASSERT(timer);
-	ASSERT(timer->regs);
+	assert(timer);
+	assert(timer->regs);
 	/* Enable overflow interrupt */
 	timer->regs->tier |= AMDM37x_GPT_TIER_OVF_IRQ_FLAG;
 	/* Start timer */
@@ -256,8 +257,8 @@ static inline void amdm37x_gpt_timer_ticks_start(amdm37x_gpt_t* timer)
 
 static inline bool amdm37x_gpt_irq_ack(amdm37x_gpt_t* timer)
 {
-	ASSERT(timer);
-	ASSERT(timer->regs);
+	assert(timer);
+	assert(timer->regs);
 	/* Clear all pending interrupts */
 	const uint32_t tisr = timer->regs->tisr;
 	timer->regs->tisr = tisr;

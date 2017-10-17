@@ -38,7 +38,7 @@
 #include <stdint.h>
 #include <align.h>
 #include <libarch/stack.h>
-#include <libarch/types.h>
+#include <types/common.h>
 #include <libarch/fibril_context.h>
 
 /*

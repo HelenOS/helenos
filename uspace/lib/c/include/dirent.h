@@ -37,7 +37,7 @@
 
 #define NAME_MAX  256
 
-#include <sys/types.h>
+#include <offset.h>
 
 struct dirent {
 	char d_name[NAME_MAX + 1];

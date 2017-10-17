@@ -51,6 +51,8 @@
 #include <str.h>
 #include <byteorder.h>
 #include <macros.h>
+#include <unaligned.h>
+
 #include "cdfs.h"
 #include "cdfs_endian.h"
 
@@ -114,6 +116,7 @@ typedef enum {
 	DIR_FLAG_DIRECTORY = 2
 } cdfs_dir_flag_t;
 
+/** Directory record */
 typedef struct {
 	uint8_t length;
 	uint8_t ea_length;
@@ -130,6 +133,24 @@ typedef struct {
 	uint8_t name_length;
 	uint8_t name[];
 } __attribute__((packed)) cdfs_dir_t;
+
+/** Directory record for the root directory */
+typedef struct {
+	uint8_t length;
+	uint8_t ea_length;
+	
+	uint32_t_lb lba;
+	uint32_t_lb size;
+	
+	cdfs_timestamp_t timestamp;
+	uint8_t flags;
+	uint8_t unit_size;
+	uint8_t gap_size;
+	uint16_t_lb sequence_nr;
+	
+	uint8_t name_length;
+	uint8_t name[1];
+} __attribute__((packed)) cdfs_root_dir_t;
 
 typedef struct {
 	uint8_t flags; /* reserved in primary */
@@ -152,7 +173,7 @@ typedef struct {
 	uint32_t path_table_msb;
 	uint32_t opt_path_table_msb;
 	
-	cdfs_dir_t root_dir;
+	cdfs_root_dir_t root_dir;
 	uint8_t pad0;
 	
 	uint8_t set_ident[128];
@@ -457,7 +478,8 @@ static char *cdfs_decode_str(void *data, size_t dsize, cdfs_enc_t enc)
 		
 		size_t i;
 		for (i = 0; i < dsize / sizeof(uint16_t); i++) {
-			buf[i] = uint16_t_be2host(((uint16_t *)data)[i]);
+			buf[i] = uint16_t_be2host(
+			    ((unaligned_uint16_t *)data)[i]);
 		}
 		
 		size_t dstr_size = dsize / sizeof(uint16_t) * 4 + 1;

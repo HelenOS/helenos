@@ -45,7 +45,7 @@
 #include <synch/mutex.h>
 #include <typedefs.h>
 #include <align.h>
-#include <debug.h>
+#include <assert.h>
 #include <errno.h>
 #include <log.h>
 
@@ -107,9 +107,9 @@ bool user_is_shareable(as_area_t *area)
  */
 int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 {
-	ASSERT(page_table_locked(AS));
-	ASSERT(mutex_locked(&area->lock));
-	ASSERT(IS_ALIGNED(upage, PAGE_SIZE));
+	assert(page_table_locked(AS));
+	assert(mutex_locked(&area->lock));
+	assert(IS_ALIGNED(upage, PAGE_SIZE));
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
@@ -161,8 +161,8 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
  */
 void user_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
-	ASSERT(page_table_locked(area->as));
-	ASSERT(mutex_locked(&area->lock));
+	assert(page_table_locked(area->as));
+	assert(mutex_locked(&area->lock));
 
 	pfn_t pfn = ADDR2PFN(frame);
 	if (find_zone(pfn, 1, 0) != (size_t) -1) {

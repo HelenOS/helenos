@@ -31,10 +31,7 @@ BFD_ARCH = i386:x86-64
 BFD = binary
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
-CMN1 = -m64 -mcmodel=$(MEMORY_MODEL) -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
-GCC_CFLAGS += $(CMN1)
-ICC_CFLAGS += $(CMN1)
-CLANG_CFLAGS += $(CMN1)
+COMMON_CFLAGS += -m64 -mcmodel=$(MEMORY_MODEL) -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 
 BITS = 64
 ENDIANESS = LE
@@ -43,9 +40,7 @@ ENDIANESS = LE
 #
 
 ifeq ($(PROCESSOR),opteron)
-	CMN2 := -march=opteron
-	GCC_CFLAGS += $(CMN2)
-	ICC_CFLAGS += $(CMN2)
+	COMMON_CFLAGS += -march=opteron
 endif
 
 ARCH_SOURCES = \

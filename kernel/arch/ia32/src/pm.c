@@ -43,7 +43,7 @@
 #include <mm/km.h>
 #include <mm/frame.h>
 #include <mm/slab.h>
-#include <memstr.h>
+#include <mem.h>
 #include <arch/boot/boot.h>
 #include <interrupt.h>
 #include <arch/cpu.h>

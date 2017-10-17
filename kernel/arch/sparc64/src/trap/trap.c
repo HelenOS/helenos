@@ -34,16 +34,6 @@
  */
 
 #include <arch/trap/trap.h>
-#include <arch/trap/trap_table.h>
-#include <arch/trap/regwin.h>
-#include <arch/trap/exception.h>
-#include <arch/trap/interrupt.h>
-#include <arch/trap/mmu.h>
-#include <arch/asm.h>
-#include <memstr.h>
-#include <debug.h>
-#include <typedefs.h>
-#include <arch/drivers/tick.h>
 
 /** Initialize trap table. */
 void trap_init(void)

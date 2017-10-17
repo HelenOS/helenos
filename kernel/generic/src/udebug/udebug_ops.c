@@ -50,7 +50,7 @@
 #include <ipc/ipc.h>
 #include <udebug/udebug.h>
 #include <udebug/udebug_ops.h>
-#include <memstr.h>
+#include <mem.h>
 
 /** Prepare a thread for a debugging operation.
  *

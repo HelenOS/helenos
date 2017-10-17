@@ -37,6 +37,7 @@
 #include <arch/smp/ap.h>
 #include <arch/smp/mps.h>
 #include <arch/boot/boot.h>
+#include <assert.h>
 #include <mm/page.h>
 #include <time/delay.h>
 #include <interrupt.h>
@@ -45,7 +46,6 @@
 #include <arch/asm.h>
 #include <arch.h>
 #include <ddi/irq.h>
-#include <ddi/device.h>
 
 #ifdef CONFIG_SMP
 
@@ -188,7 +188,6 @@ void apic_init(void)
 	
 	irq_initialize(&l_apic_timer_irq);
 	l_apic_timer_irq.preack = true;
-	l_apic_timer_irq.devno = device_assign_devno();
 	l_apic_timer_irq.inr = IRQ_CLK;
 	l_apic_timer_irq.claim = l_apic_timer_claim;
 	l_apic_timer_irq.handler = l_apic_timer_irq_handler;
@@ -491,7 +490,7 @@ void l_apic_init(void)
 	l_apic[ICRT] = t1 - t2;
 	
 	/* Program Logical Destination Register. */
-	ASSERT(CPU->id < 8);
+	assert(CPU->id < 8);
 	ldr_t ldr;
 	
 	ldr.value = l_apic[LDR];

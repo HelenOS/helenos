@@ -42,6 +42,7 @@
 #include <arch/mm/tte.h>
 #include <arch/mm/tlb.h>
 #include <arch/interrupt.h>
+#include <assert.h>
 #include <interrupt.h>
 #include <arch.h>
 #include <print.h>
@@ -214,7 +215,7 @@ void fast_instruction_access_mmu_miss(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(AS, va, true, &t);
 	if (found && PTE_EXECUTABLE(&t)) {
-		ASSERT(t.p);
+		assert(t.p);
 
 		/*
 		 * The mapping was found in the software page hash table.
@@ -264,7 +265,7 @@ void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(as, va, true, &t);
 	if (found) {
-		ASSERT(t.p);
+		assert(t.p);
 
 		/*
 		 * The mapping was found in the software page hash table.
@@ -302,7 +303,7 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(as, va, true, &t);
 	if (found && PTE_WRITABLE(&t)) {
-		ASSERT(t.p);
+		assert(t.p);
 
 		/*
 		 * The mapping was found in the software page hash table and is
@@ -344,7 +345,7 @@ void describe_dmmu_fault(void)
 	uint64_t myid;
 	__hypercall_fast_ret1(0, 0, 0, 0, 0, CPU_MYID, &myid);
 
-	ASSERT(mmu_fsas[myid].dft < 16);
+	assert(mmu_fsas[myid].dft < 16);
 
 	printf("condition which caused the fault: %s\n",
 		fault_types[mmu_fsas[myid].dft]);

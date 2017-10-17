@@ -40,7 +40,6 @@
 #include <arch/smp/dorder.h>
 #include <time/clock.h>
 #include <ipc/sysipc.h>
-#include <ddi/device.h>
 
 #define IRQ_COUNT   8
 #define TIMER_IRQ   7
@@ -174,7 +173,6 @@ void interrupt_init(void)
 	irq_init(IRQ_COUNT, IRQ_COUNT);
 	
 	irq_initialize(&timer_irq);
-	timer_irq.devno = device_assign_devno();
 	timer_irq.inr = TIMER_IRQ;
 	timer_irq.claim = timer_claim;
 	timer_irq.handler = timer_irq_handler;
@@ -185,7 +183,6 @@ void interrupt_init(void)
 	
 #ifdef MACHINE_msim
 	irq_initialize(&dorder_irq);
-	dorder_irq.devno = device_assign_devno();
 	dorder_irq.inr = DORDER_IRQ;
 	dorder_irq.claim = dorder_claim;
 	dorder_irq.handler = dorder_irq_handler;

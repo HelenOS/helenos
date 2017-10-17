@@ -35,6 +35,7 @@
 #ifndef KERN_amd64_KM_H_
 #define KERN_amd64_KM_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 #ifdef MEMORY_MODEL_kernel

@@ -35,7 +35,9 @@
 #ifndef KERN_AVLTREE_H_
 #define KERN_AVLTREE_H_
 
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <trace.h>
 
 /**

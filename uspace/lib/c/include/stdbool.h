@@ -35,7 +35,6 @@
 #ifndef LIBC_BOOL_H_
 #define LIBC_BOOL_H_
 
-#include <libarch/types.h>
 #include <abi/bool.h>
 
 #define false  0

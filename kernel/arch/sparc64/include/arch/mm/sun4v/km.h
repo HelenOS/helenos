@@ -35,6 +35,7 @@
 #ifndef KERN_sparc64_sun4v_KM_H_
 #define KERN_sparc64_sun4v_KM_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 /*

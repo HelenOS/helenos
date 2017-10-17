@@ -36,7 +36,7 @@
 #define KERN_sparc64_sun4v_REGISTER_H_
 
 #include <arch/regdef.h>
-#include <typedefs.h>
+#include <stdint.h>
 
 /** Processor State Register. */
 union pstate_reg {

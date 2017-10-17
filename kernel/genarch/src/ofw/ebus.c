@@ -35,12 +35,12 @@
  *
  */
 
+#include <assert.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <genarch/ofw/ebus.h>
 #include <genarch/ofw/pci.h>
 #include <str.h>
 #include <panic.h>
-#include <debug.h>
 #include <macros.h>
 
 /** Apply EBUS ranges to EBUS register. */
@@ -93,7 +93,7 @@ ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg,
 	ofw_ebus_intr_map_t *intr_map = prop->value;
 	size_t count = prop->size / sizeof(ofw_ebus_intr_map_t);
 	
-	ASSERT(count);
+	assert(count);
 	
 	prop = ofw_tree_getprop(node, "interrupt-map-mask");
 	if (!prop || !prop->value)
@@ -101,7 +101,7 @@ ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg,
 	
 	ofw_ebus_intr_mask_t *intr_mask = prop->value;
 	
-	ASSERT(prop->size == sizeof(ofw_ebus_intr_mask_t));
+	assert(prop->size == sizeof(ofw_ebus_intr_mask_t));
 	
 	uint32_t space = reg->space & intr_mask->space_mask;
 	uint32_t addr = reg->addr & intr_mask->addr_mask;

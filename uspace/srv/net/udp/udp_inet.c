@@ -34,13 +34,9 @@
  * @file
  */
 
-#include <bitops.h>
-#include <byteorder.h>
 #include <errno.h>
 #include <inet/inet.h>
 #include <io/log.h>
-#include <stdio.h>
-#include <task.h>
 
 #include "assoc.h"
 #include "pdu.h"

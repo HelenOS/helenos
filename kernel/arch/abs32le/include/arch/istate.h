@@ -39,9 +39,12 @@
 
 #ifdef KERNEL
 
+#include <typedefs.h>
 #include <verify.h>
 
 #else /* KERNEL */
+
+#include <stdint.h>
 
 #define REQUIRES_EXTENT_MUTABLE(arg)
 #define WRITES(arg)

@@ -27,14 +27,19 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBBLOCK_PREFIX)
+EXTRA_CFLAGS = -Iinclude
 
 LIBRARY = liblabel
 
 SOURCES = \
 	src/dummy.c \
+	src/empty.c \
 	src/mbr.c \
 	src/gpt.c \
 	src/label.c
+
+TEST_SOURCES = \
+	test/main.c \
+	test/label.c
 
 include $(USPACE_PREFIX)/Makefile.common

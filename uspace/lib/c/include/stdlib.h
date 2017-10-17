@@ -36,6 +36,7 @@
 #define LIBC_STDLIB_H_
 
 #include <malloc.h>
+#include <qsort.h>
 #include <stacktrace.h>
 
 #define RAND_MAX  714025

@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_sun4v_MD_H_
 #define KERN_sparc64_sun4v_MD_H_
 
-#include <typedefs.h>
+#include <stdbool.h>
 
 /**
  * Data type used to iterate through MD nodes. Internally represented as

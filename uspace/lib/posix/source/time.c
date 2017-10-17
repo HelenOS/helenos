@@ -44,12 +44,11 @@
 #include "posix/signal.h"
 #include "posix/assert.h"
 
+#include "libc/fibril_synch.h"
 #include "libc/malloc.h"
 #include "libc/task.h"
 #include "libc/stats.h"
-#include "libc/stdbool.h"
 #include "libc/stddef.h"
-#include "libc/thread.h"
 #include "libc/sys/time.h"
 
 // TODO: test everything in this file
@@ -314,10 +313,10 @@ int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
 		case CLOCK_REALTIME:
 			// TODO: interruptible sleep
 			if (rqtp->tv_sec != 0) {
-				thread_sleep(rqtp->tv_sec);
+				fibril_sleep(rqtp->tv_sec);
 			}
 			if (rqtp->tv_nsec != 0) {
-				thread_usleep(rqtp->tv_nsec / 1000);
+				fibril_usleep(rqtp->tv_nsec / 1000);
 			}
 			return 0;
 		default:

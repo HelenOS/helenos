@@ -43,8 +43,6 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
-
 #define BOOT_PAGE_TABLE_SIZE     0x4000
 
 #ifdef MACHINE_gta02

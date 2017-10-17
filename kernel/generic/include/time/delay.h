@@ -35,7 +35,7 @@
 #ifndef KERN_DELAY_H_
 #define KERN_DELAY_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 extern void delay(uint32_t microseconds);
 

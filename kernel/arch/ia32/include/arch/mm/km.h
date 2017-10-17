@@ -35,6 +35,7 @@
 #ifndef KERN_ia32_KM_H_
 #define KERN_ia32_KM_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 #define KM_IA32_IDENTITY_START		UINT32_C(0x80000000)

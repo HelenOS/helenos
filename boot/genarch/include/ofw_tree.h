@@ -29,7 +29,7 @@
 #ifndef BOOT_OFW_TREE_H_
 #define BOOT_OFW_TREE_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <genarch/ofw.h>
 
 /** Memory representation of OpenFirmware device tree node property. */

@@ -40,6 +40,7 @@
 #include <arch/mm/page.h>
 #include <arch/mm/mmu.h>
 #include <arch/interrupt.h>
+#include <assert.h>
 #include <interrupt.h>
 #include <arch.h>
 #include <print.h>
@@ -200,7 +201,7 @@ void fast_instruction_access_mmu_miss(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(AS, istate->tpc, true, &t);
 	if (found && PTE_EXECUTABLE(&t)) {
-		ASSERT(t.p);
+		assert(t.p);
 
 		/*
 		 * The mapping was found in the software page hash table.
@@ -257,7 +258,7 @@ void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(as, page_16k, true, &t);
 	if (found) {
-		ASSERT(t.p);
+		assert(t.p);
 
 		/*
 		 * The mapping was found in the software page hash table.
@@ -300,7 +301,7 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 
 	bool found = page_mapping_find(as, page_16k, true, &t);
 	if (found && PTE_WRITABLE(&t)) {
-		ASSERT(t.p);
+		assert(t.p);
 
 		/*
 		 * The mapping was found in the software page hash table and is

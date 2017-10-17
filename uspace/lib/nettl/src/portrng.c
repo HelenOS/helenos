@@ -181,17 +181,21 @@ int portrng_find_port(portrng_t *pr, uint16_t pnum, void **rarg)
  */
 void portrng_free_port(portrng_t *pr, uint16_t pnum)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port(%u)", pnum);
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port() - begin");
 	list_foreach(pr->used, lprng, portrng_port_t, port) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port - check port %u", port->pn);
 		if (port->pn == pnum) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port - OK");
 			list_remove(&port->lprng);
 			free(port);
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port() - end");
 			return;
 		}
 	}
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port - FAIL");
 	assert(false);
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "portrng_free_port() - end");
 }
 
 /** Determine if port range is empty.
@@ -208,4 +212,3 @@ bool portrng_empty(portrng_t *pr)
 /**
  * @}
  */
-

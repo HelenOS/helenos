@@ -35,7 +35,9 @@
 #ifndef KERN_STR_H_
 #define KERN_STR_H_
 
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /**< Common Unicode characters */
 #define U_SPECIAL      '?'

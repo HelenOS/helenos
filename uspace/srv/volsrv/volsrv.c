@@ -45,6 +45,7 @@
 #include <task.h>
 #include <types/vol.h>
 
+#include "mkfs.h"
 #include "part.h"
 
 #define NAME  "volsrv"
@@ -131,7 +132,6 @@ static void vol_part_add_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-
 static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
@@ -203,31 +203,80 @@ static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
+static void vol_part_get_lsupp_srv(ipc_callid_t iid, ipc_call_t *icall)
+{
+	vol_fstype_t fstype;
+	vol_label_supp_t vlsupp;
+	int rc;
+
+	fstype = IPC_GET_ARG1(*icall);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_get_lsupp_srv(%u)",
+	    fstype);
+
+	volsrv_part_get_lsupp(fstype, &vlsupp);
+
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(vol_label_supp_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	rc = async_data_read_finalize(callid, &vlsupp,
+	    min(size, sizeof(vlsupp)));
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	async_answer_0(iid, EOK);
+}
+
+
 static void vol_part_mkfs_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
 	vol_fstype_t fstype;
+	char *label;
 	int rc;
 
 	sid = IPC_GET_ARG1(*icall);
 	fstype = IPC_GET_ARG2(*icall);
 
-	rc = vol_part_find_by_id(sid, &part);
-	if (rc != EOK) {
-		async_answer_0(iid, ENOENT);
-		return;
-	}
-
-	rc = vol_part_mkfs_part(part, fstype);
+	rc = async_data_write_accept((void **)&label, true, 0, VOL_LABEL_MAXLEN,
+	    0, NULL);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
 	}
 
-	part->pcnt = vpc_fs;
-	part->fstype = fstype;
+	printf("vol_part_mkfs_srv: label=%p\n", label);
+	if (label!=NULL) printf("vol_part_mkfs_srv: label='%s'\n", label);
 
+	rc = vol_part_find_by_id(sid, &part);
+	if (rc != EOK) {
+		free(label);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	rc = vol_part_mkfs_part(part, fstype, label);
+	if (rc != EOK) {
+		free(label);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	free(label);
 	async_answer_0(iid, EOK);
 }
 
@@ -261,6 +310,9 @@ static void vol_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VOL_PART_EMPTY:
 			vol_part_empty_srv(callid, &call);
+			break;
+		case VOL_PART_LSUPP:
+			vol_part_get_lsupp_srv(callid, &call);
 			break;
 		case VOL_PART_MKFS:
 			vol_part_mkfs_srv(callid, &call);

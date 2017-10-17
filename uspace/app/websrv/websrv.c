@@ -74,14 +74,16 @@ static tcp_cb_t conn_cb = {
 
 static uint16_t port = DEFAULT_PORT;
 
-static char rbuf[BUFFER_SIZE];
-static size_t rbuf_out;
-static size_t rbuf_in;
+typedef struct {
+	tcp_conn_t *conn;
 
-static char lbuf[BUFFER_SIZE + 1];
-static size_t lbuf_used;
+	char rbuf[BUFFER_SIZE];
+	size_t rbuf_out;
+	size_t rbuf_in;
 
-static char fbuf[BUFFER_SIZE];
+	char lbuf[BUFFER_SIZE + 1];
+	size_t lbuf_used;
+} recv_t;
 
 static bool verbose = false;
 
@@ -130,38 +132,61 @@ static const char *msg_not_implemented =
     "</body>\r\n"
     "</html>\r\n";
 
+
+static int recv_create(tcp_conn_t *conn, recv_t **rrecv)
+{
+	recv_t *recv;
+	
+	recv = calloc(1, sizeof(recv_t));
+	if (recv == NULL)
+		return ENOMEM;
+	
+	recv->conn = conn;
+	recv->rbuf_out = 0;
+	recv->rbuf_in = 0;
+	recv->lbuf_used = 0;
+	
+	*rrecv = recv;
+	return EOK;
+}
+
+static void recv_destroy(recv_t *recv)
+{
+	free(recv);
+}
+
 /** Receive one character (with buffering) */
-static int recv_char(tcp_conn_t *conn, char *c)
+static int recv_char(recv_t *recv, char *c)
 {
 	size_t nrecv;
 	int rc;
 	
-	if (rbuf_out == rbuf_in) {
-		rbuf_out = 0;
-		rbuf_in = 0;
+	if (recv->rbuf_out == recv->rbuf_in) {
+		recv->rbuf_out = 0;
+		recv->rbuf_in = 0;
 		
-		rc = tcp_conn_recv_wait(conn, rbuf, BUFFER_SIZE, &nrecv);
+		rc = tcp_conn_recv_wait(recv->conn, recv->rbuf, BUFFER_SIZE, &nrecv);
 		if (rc != EOK) {
 			fprintf(stderr, "tcp_conn_recv() failed (%d)\n", rc);
 			return rc;
 		}
 		
-		rbuf_in = nrecv;
+		recv->rbuf_in = nrecv;
 	}
 	
-	*c = rbuf[rbuf_out++];
+	*c = recv->rbuf[recv->rbuf_out++];
 	return EOK;
 }
 
 /** Receive one line with length limit */
-static int recv_line(tcp_conn_t *conn)
+static int recv_line(recv_t *recv, char **rbuf)
 {
-	char *bp = lbuf;
+	char *bp = recv->lbuf;
 	char c = '\0';
 	
-	while (bp < lbuf + BUFFER_SIZE) {
+	while (bp < recv->lbuf + BUFFER_SIZE) {
 		char prev = c;
-		int rc = recv_char(conn, &c);
+		int rc = recv_char(recv, &c);
 		
 		if (rc != EOK)
 			return rc;
@@ -171,12 +196,13 @@ static int recv_line(tcp_conn_t *conn)
 			break;
 	}
 	
-	lbuf_used = bp - lbuf;
+	recv->lbuf_used = bp - recv->lbuf;
 	*bp = '\0';
 	
-	if (bp == lbuf + BUFFER_SIZE)
+	if (bp == recv->lbuf + BUFFER_SIZE)
 		return ELIMIT;
 	
+	*rbuf = recv->lbuf;
 	return EOK;
 }
 
@@ -217,26 +243,38 @@ static int send_response(tcp_conn_t *conn, const char *msg)
 
 static int uri_get(const char *uri, tcp_conn_t *conn)
 {
+	char *fbuf = NULL;
+	char *fname = NULL;
+	int rc;
+	int fd = -1;
+	
+	fbuf = calloc(BUFFER_SIZE, 1);
+	if (fbuf == NULL) {
+		rc = ENOMEM;
+		goto out;
+	}
+	
 	if (str_cmp(uri, "/") == 0)
 		uri = "/index.html";
 	
-	char *fname;
-	int rc = asprintf(&fname, "%s%s", WEB_ROOT, uri);
-	if (rc < 0)
-		return ENOMEM;
+	rc = asprintf(&fname, "%s%s", WEB_ROOT, uri);
+	if (rc < 0) {
+		rc = ENOMEM;
+		goto out;
+	}
 	
-	int fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
+	fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
 	if (fd < 0) {
 		rc = send_response(conn, msg_not_found);
-		free(fname);
-		return rc;
+		goto out;
 	}
 	
 	free(fname);
+	fname = NULL;
 	
 	rc = send_response(conn, msg_ok);
 	if (rc != EOK)
-		return rc;
+		goto out;
 	
 	aoff64_t pos = 0;
 	while (true) {
@@ -245,43 +283,48 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 			break;
 		
 		if (nr < 0) {
-			vfs_put(fd);
-			return EIO;
+			rc = EIO;
+			goto out;
 		}
 		
 		rc = tcp_conn_send(conn, fbuf, nr);
 		if (rc != EOK) {
 			fprintf(stderr, "tcp_conn_send() failed\n");
-			vfs_put(fd);
-			return rc;
+			goto out;
 		}
 	}
 	
-	vfs_put(fd);
-	
-	return EOK;
+	rc = EOK;
+out:
+	if (fd >= 0)
+		vfs_put(fd);
+	free(fname);
+	free(fbuf);
+	return rc;
 }
 
-static int req_process(tcp_conn_t *conn)
+static int req_process(tcp_conn_t *conn, recv_t *recv)
 {
-	int rc = recv_line(conn);
+	char *reqline = NULL;
+
+	int rc = recv_line(recv, &reqline);
 	if (rc != EOK) {
 		fprintf(stderr, "recv_line() failed\n");
 		return rc;
 	}
 	
 	if (verbose)
-		fprintf(stderr, "Request: %s", lbuf);
+		fprintf(stderr, "Request: %s", reqline);
 	
-	if (str_lcmp(lbuf, "GET ", 4) != 0) {
+	if (str_lcmp(reqline, "GET ", 4) != 0) {
 		rc = send_response(conn, msg_not_implemented);
 		return rc;
 	}
 	
-	char *uri = lbuf + 4;
+	char *uri = reqline + 4;
 	char *end_uri = str_chr(uri, ' ');
 	if (end_uri == NULL) {
-		end_uri = lbuf + lbuf_used - 2;
+		end_uri = reqline + str_size(reqline) - 2;
 		assert(*end_uri == '\r');
 	}
 	
@@ -299,7 +342,7 @@ static int req_process(tcp_conn_t *conn)
 
 static void usage(void)
 {
-	printf("Skeletal server\n"
+	printf("Simple web server\n"
 	    "\n"
 	    "Usage: " NAME " [options]\n"
 	    "\n"
@@ -362,25 +405,38 @@ static int parse_option(int argc, char *argv[], int *index)
 static void websrv_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 {
 	int rc;
+	recv_t *recv = NULL;
 	
 	if (verbose)
 		fprintf(stderr, "New connection, waiting for request\n");
 	
-	rbuf_out = 0;
-	rbuf_in = 0;
+	rc = recv_create(conn, &recv);
+	if (rc != EOK) {
+		fprintf(stderr, "Out of memory.\n");
+		goto error;
+	}
 	
-	rc = req_process(conn);
+	rc = req_process(conn, recv);
 	if (rc != EOK) {
 		fprintf(stderr, "Error processing request (%s)\n",
 		    str_error(rc));
-		return;
+		goto error;
 	}
-
+	
 	rc = tcp_conn_send_fin(conn);
 	if (rc != EOK) {
 		fprintf(stderr, "Error sending FIN.\n");
-		return;
+		goto error;
 	}
+
+	recv_destroy(recv);
+	return;
+error:
+	rc = tcp_conn_reset(conn);
+	if (rc != EOK)
+		fprintf(stderr, "Error resetting connection.\n");
+	
+	recv_destroy(recv);
 }
 
 int main(int argc, char *argv[])

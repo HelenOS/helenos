@@ -47,6 +47,7 @@
 #include <arch/interrupt.h>
 #include <arch/pal/pal.h>
 #include <arch/asm.h>
+#include <assert.h>
 #include <panic.h>
 #include <print.h>
 #include <arch.h>
@@ -448,7 +449,7 @@ void itc_pte_copy(pte_t *t)
 	entry.word[0] = 0;
 	entry.word[1] = 0;
 	
-	ASSERT(t->x);
+	assert(t->x);
 	
 	entry.p = t->p;
 	entry.ma = t->c ? MA_WRITEBACK : MA_UNCACHEABLE;
@@ -487,11 +488,11 @@ void alternate_instruction_tlb_fault(unsigned int n, istate_t *istate)
 	
 	va = istate->cr_ifa; /* faulting address */
 	
-	ASSERT(!is_kernel_fault(va));
+	assert(!is_kernel_fault(va));
 
 	bool found = page_mapping_find(AS, va, true, &t);
 	if (found) {
-		ASSERT(t.p);
+		assert(t.p);
 
 		/*
 		 * The mapping was found in software page hash table.
@@ -604,7 +605,7 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 	pte_t t;
 	bool found = page_mapping_find(as, va, true, &t);
 	if (found) {
-		ASSERT(t.p);
+		assert(t.p);
 
 		/*
 		 * The mapping was found in the software page hash table.
@@ -633,7 +634,7 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
  */
 void data_nested_tlb_fault(unsigned int n, istate_t *istate)
 {
-	ASSERT(false);
+	assert(false);
 }
 
 /** Data Dirty bit fault handler.
@@ -655,8 +656,8 @@ void data_dirty_bit_fault(unsigned int n, istate_t *istate)
 
 	bool found = page_mapping_find(as, va, true, &t);
 
-	ASSERT(found);
-	ASSERT(t.p);
+	assert(found);
+	assert(t.p);
 
 	if (found && t.p && t.w) {
 		/*
@@ -684,12 +685,12 @@ void instruction_access_bit_fault(unsigned int n, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 
-	ASSERT(!is_kernel_fault(va));
+	assert(!is_kernel_fault(va));
 	
 	bool found = page_mapping_find(AS, va, true, &t);
 
-	ASSERT(found);
-	ASSERT(t.p);
+	assert(found);
+	assert(t.p);
 
 	if (found && t.p && t.x) {
 		/*
@@ -723,8 +724,8 @@ void data_access_bit_fault(unsigned int n, istate_t *istate)
 
 	bool found = page_mapping_find(as, va, true, &t);
 
-	ASSERT(found);
-	ASSERT(t.p);
+	assert(found);
+	assert(t.p);
 
 	if (found && t.p) {
 		/*
@@ -756,16 +757,16 @@ void data_access_rights_fault(unsigned int n, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 
-	ASSERT(!is_kernel_fault(va));
+	assert(!is_kernel_fault(va));
 	
 	/*
 	 * Assume a write to a read-only page.
 	 */
 	bool found = page_mapping_find(AS, va, true, &t);
 
-	ASSERT(found);
-	ASSERT(t.p);
-	ASSERT(!t.w);
+	assert(found);
+	assert(t.p);
+	assert(!t.w);
 
 	as_page_fault(va, PF_ACCESS_WRITE, istate);
 }
@@ -783,11 +784,11 @@ void page_not_present(unsigned int n, istate_t *istate)
 	
 	va = istate->cr_ifa;  /* faulting address */
 	
-	ASSERT(!is_kernel_fault(va));
+	assert(!is_kernel_fault(va));
 
 	bool found = page_mapping_find(AS, va, true, &t);
 
-	ASSERT(found);
+	assert(found);
 	
 	if (t.p) {
 		/*

@@ -37,6 +37,7 @@
 
 #include <typedefs.h>
 #include <synch/waitq.h>
+#include <adt/hash_table.h>
 
 /** Kernel-side futex structure. */
 typedef struct {
@@ -45,7 +46,7 @@ typedef struct {
 	/** Wait queue for threads waiting for futex availability. */
 	waitq_t wq;
 	/** Futex hash table link. */
-	link_t ht_link;
+	ht_link_t ht_link;
 	/** Number of tasks that reference this futex. */
 	size_t refcount;
 } futex_t;

@@ -34,7 +34,7 @@ ifeq ($(COMPILER),gcc_cross)
 	endif
 	
 	ifeq ($(CROSS_TARGET),mips32)
-		GCC_CFLAGS += -mno-abicalls
+		COMMON_CFLAGS += -mno-abicalls
 	endif
 endif
 

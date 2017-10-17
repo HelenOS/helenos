@@ -34,12 +34,15 @@
  * @file
  */
 
+#include <cap.h>
 #include <errno.h>
 #include <nchoice.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fdisk.h>
+
+#define NO_LABEL_CAPTION "(No name)"
 
 static bool quit = false;
 static fdisk_t *fdisk;
@@ -148,7 +151,7 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 	fdisk_dev_info_t *info;
 	nchoice_t *choice = NULL;
 	char *svcname = NULL;
-	fdisk_cap_t cap;
+	cap_spec_t cap;
 	fdisk_dev_info_t *sdev;
 	char *scap = NULL;
 	char *dtext = NULL;
@@ -197,9 +200,9 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 			continue;
 		}
 
-		fdisk_cap_simplify(&cap);
+		cap_simplify(&cap);
 
-		rc = fdisk_cap_format(&cap, &scap);
+		rc = cap_format(&cap, &scap);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -442,13 +445,15 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 {
 	int rc;
 	fdisk_part_spec_t pspec;
-	fdisk_cap_t cap;
-	fdisk_cap_t mcap;
+	cap_spec_t cap;
+	cap_spec_t mcap;
+	vol_label_supp_t vlsupp;
 	vol_fstype_t fstype = 0;
 	tinput_t *tinput = NULL;
 	fdisk_spc_t spc;
 	char *scap;
 	char *smcap = NULL;
+	char *label = NULL;
 
 	if (pkind == lpk_logical)
 		spc = spc_log;
@@ -461,9 +466,9 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		goto error;
 	}
 
-	fdisk_cap_simplify(&mcap);
+	cap_simplify(&mcap);
 
-	rc = fdisk_cap_format(&mcap, &smcap);
+	rc = cap_format(&mcap, &smcap);
 	if (rc != EOK) {
 		rc = ENOMEM;
 		goto error;
@@ -485,7 +490,7 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		if (rc != EOK)
 			goto error;
 
-		rc = fdisk_cap_parse(scap, &cap);
+		rc = cap_parse(scap, &cap);
 		if (rc == EOK)
 			break;
 	}
@@ -501,10 +506,33 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 			goto error;
 	}
 
+	fdisk_get_vollabel_support(dev, fstype, &vlsupp);
+	if (vlsupp.supported) {
+		tinput = tinput_new();
+		if (tinput == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		rc = tinput_set_prompt(tinput, "?> ");
+		if (rc != EOK)
+			goto error;
+
+		/* Ask for volume label */
+		printf("Enter volume label for new partition.\n");
+		rc = tinput_read_i(tinput, "New volume", &label);
+		if (rc != EOK)
+			goto error;
+
+	    	tinput_destroy(tinput);
+		tinput = NULL;
+	}
+
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = cap;
 	pspec.pkind = pkind;
 	pspec.fstype = fstype;
+	pspec.label = label;
 
 	rc = fdisk_part_create(dev, &pspec, NULL);
 	if (rc != EOK) {
@@ -512,9 +540,11 @@ static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		goto error;
 	}
 
+	free(label);
 	return EOK;
 error:
 	free(smcap);
+	free(label);
 	if (tinput != NULL)
 		tinput_destroy(tinput);
 	return rc;
@@ -529,6 +559,7 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 	char *spkind = NULL;
 	char *sfstype = NULL;
 	char *sdesc = NULL;
+	const char *label;
 	bool confirm;
 	void *sel;
 	int rc;
@@ -555,9 +586,9 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&pinfo.capacity);
+		cap_simplify(&pinfo.capacity);
 
-		rc = fdisk_cap_format(&pinfo.capacity, &scap);
+		rc = cap_format(&pinfo.capacity, &scap);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
@@ -576,7 +607,13 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 				goto error;
 			}
 
-			rc = asprintf(&sdesc, "%s, %s, %s", scap, spkind, sfstype);
+			if (str_size(pinfo.label) > 0)
+				label = pinfo.label;
+			else
+				label = "(No name)";
+
+			rc = asprintf(&sdesc, "%s %s, %s, %s", label,
+			    scap, spkind, sfstype);
 			if (rc < 0) {
 				rc = ENOMEM;
 				goto error;
@@ -666,8 +703,8 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	fdisk_label_info_t linfo;
 	fdisk_part_t *part;
 	fdisk_part_info_t pinfo;
-	fdisk_cap_t cap;
-	fdisk_cap_t mcap;
+	cap_spec_t cap;
+	cap_spec_t mcap;
 	fdisk_dev_flags_t dflags;
 	char *sltype = NULL;
 	char *sdcap = NULL;
@@ -676,6 +713,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	char *sfstype = NULL;
 	char *svcname = NULL;
 	char *spkind;
+	const char *label;
 	int rc;
 	int npart;
 	void *sel;
@@ -700,9 +738,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 		goto error;
 	}
 
-	fdisk_cap_simplify(&cap);
+	cap_simplify(&cap);
 
-	rc = fdisk_cap_format(&cap, &sdcap);
+	rc = cap_format(&cap, &sdcap);
 	if (rc != EOK) {
 		printf("Out of memory.\n");
 		goto error;
@@ -716,7 +754,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 
 	fdisk_dev_get_flags(dev, &dflags);
 
-	printf("Device: %s, %s\n", sdcap, svcname);
+	printf("Device: %s (%s)\n", svcname, sdcap);
 	free(sdcap);
 	sdcap = NULL;
 
@@ -754,9 +792,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&pinfo.capacity);
+		cap_simplify(&pinfo.capacity);
 
-		rc = fdisk_cap_format(&pinfo.capacity, &scap);
+		rc = cap_format(&pinfo.capacity, &scap);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
@@ -768,10 +806,15 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		if (linfo.ltype == lt_none)
-			printf("Entire disk: %s", scap);
+		if (str_size(pinfo.label) > 0)
+			label = pinfo.label;
 		else
-			printf("Partition %d: %s", npart, scap);
+			label = "(No name)";
+
+		if (linfo.ltype == lt_none)
+			printf("Entire disk: %s %s", label, scap);
+		else
+			printf("Partition %d: %s %s", npart, label, scap);
 
 		if ((linfo.flags & lf_ext_supp) != 0) {
 			rc = fdisk_pkind_format(pinfo.pkind, &spkind);
@@ -806,9 +849,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&mcap);
+		cap_simplify(&mcap);
 
-		rc = fdisk_cap_format(&mcap, &smcap);
+		rc = cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
@@ -828,9 +871,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&mcap);
+		cap_simplify(&mcap);
 
-		rc = fdisk_cap_format(&mcap, &smcap);
+		rc = cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
@@ -853,9 +896,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&mcap);
+		cap_simplify(&mcap);
 
-		rc = fdisk_cap_format(&mcap, &smcap);
+		rc = cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
@@ -871,9 +914,9 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		fdisk_cap_simplify(&mcap);
+		cap_simplify(&mcap);
 
-		rc = fdisk_cap_format(&mcap, &smcap);
+		rc = cap_format(&mcap, &smcap);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;

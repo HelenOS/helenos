@@ -39,9 +39,9 @@
 #include <arch/barrier.h>
 #include <arch/asm.h>  /* interrupt_disable */
 #include <arch.h>
+#include <assert.h>
 #include <config.h>
 #include <preemption.h>
-#include <debug.h>
 #include <cpu.h>
 
 static void call_start(smp_call_t *call_info, smp_call_func_t func, void *arg);
@@ -52,8 +52,8 @@ static void call_wait(smp_call_t *call_info);
 /** Init smp_call() on the local cpu. */
 void smp_call_init(void)
 {
-	ASSERT(CPU);
-	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
+	assert(CPU);
+	assert(PREEMPTION_DISABLED || interrupts_disabled());
 	
 	spinlock_initialize(&CPU->smp_calls_lock, "cpu[].smp_calls_lock");
 	list_initialize(&CPU->smp_pending_calls);
@@ -130,8 +130,8 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 	 * the IPIs cannot be delivered and both cpus will forever busy wait 
 	 * for an acknowledgment of the IPI from the other cpu.
 	 */
-	ASSERT(!interrupts_disabled());
-	ASSERT(call_info != NULL);
+	assert(!interrupts_disabled());
+	assert(call_info != NULL);
 	
 	/* Discard invalid calls. */
 	if (config.cpu_count <= cpu_id || !cpus[cpu_id].active) {
@@ -206,8 +206,8 @@ void smp_call_wait(smp_call_t *call_info)
  */
 void smp_call_ipi_recv(void)
 {
-	ASSERT(interrupts_disabled());
-	ASSERT(CPU);
+	assert(interrupts_disabled());
+	assert(CPU);
 	
 	list_t calls_list;
 	list_initialize(&calls_list);

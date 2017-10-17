@@ -42,8 +42,6 @@
 #ifndef BOOT_arm32__MM_H
 #define BOOT_arm32__MM_H
 
-#include <typedefs.h>
-
 /** Describe "section" page table entry (one-level paging with 1 MB sized pages). */
 #define PTE_DESCRIPTOR_SECTION  0x02
 /** Shift of memory address in section descriptor */

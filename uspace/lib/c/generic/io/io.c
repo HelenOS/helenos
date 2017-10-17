@@ -792,7 +792,7 @@ int ungetc(int c, FILE *stream)
 	return (uint8_t)c;
 }
 
-int fseek(FILE *stream, off64_t offset, int whence)
+int fseek(FILE *stream, long offset, int whence)
 {
 	int rc;
 
@@ -830,10 +830,10 @@ int fseek(FILE *stream, off64_t offset, int whence)
 	return 0;
 }
 
-off64_t ftell(FILE *stream)
+long ftell(FILE *stream)
 {
 	/* The native position is too large for the C99-ish interface. */
-	if (stream->pos - stream->ungetc_chars > INT64_MAX)
+	if (stream->pos - stream->ungetc_chars > LONG_MAX)
 		return EOF;
 
 	if (stream->error)

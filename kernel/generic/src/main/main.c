@@ -47,10 +47,11 @@
  */
 
 #include <arch/asm.h>
+#include <debug.h>
 #include <context.h>
 #include <print.h>
 #include <panic.h>
-#include <debug.h>
+#include <assert.h>
 #include <config.h>
 #include <time/clock.h>
 #include <time/timeout.h>
@@ -90,6 +91,7 @@
 #include <sysinfo/sysinfo.h>
 #include <sysinfo/stats.h>
 #include <lib/ra.h>
+#include <cap/cap.h>
 
 /* Ensure [u]int*_t types are of correct size.
  *
@@ -97,7 +99,7 @@
  * but this file is compiled on all architectures.
  */
 #define CHECK_INT_TYPE_(signness, size) \
-	STATIC_ASSERT_VERBOSE(sizeof(signness##size##_t) * 8 == size, \
+	static_assert(sizeof(signness##size##_t) * 8 == size, \
 	    #signness #size "_t does not have " #size " bits");
 
 #define CHECK_INT_TYPE(size) \
@@ -275,6 +277,7 @@ void main_bsp_separated_stack(void)
 	clock_counter_init();
 	timeout_init();
 	scheduler_init();
+	caps_init();
 	task_init();
 	thread_init();
 	futex_init();

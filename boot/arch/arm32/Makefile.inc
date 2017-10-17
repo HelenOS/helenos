@@ -44,10 +44,10 @@ endif
 
 ifeq ($(MACHINE), raspberrypi)
 	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin	
+	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
 	LADDR = 0x00008000
 	SADDR = 0x00008000
-	POSTBUILD = Makefile.uboot	     
+	POSTBUILD = Makefile.uboot
 endif
 
 BFD_NAME = elf32-littlearm
@@ -75,9 +75,8 @@ ifeq ($(MACHINE), integratorcp)
 		char/pl050 \
 		char/atkbd \
 		char/ps2mouse \
+		intctl/icp-ic \
 		platform/icp
-	RD_SRVS_ESSENTIAL += \
-		$(USPACE_PATH)/srv/hw/irc/icp-ic/icp-ic
 endif
 
 RD_DRVS_ESSENTIAL += \
@@ -95,7 +94,8 @@ SOURCES = \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/mm.c \
 	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
+	$(COMPS).s \
+	$(COMPS)_desc.c \
 	genarch/src/division.c \
 	generic/src/memstr.c \
 	generic/src/printf_core.c \
@@ -104,3 +104,5 @@ SOURCES = \
 	generic/src/str.c \
 	generic/src/version.c \
 	generic/src/inflate.c
+
+PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE)

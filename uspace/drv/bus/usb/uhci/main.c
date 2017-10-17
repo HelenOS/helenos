@@ -35,7 +35,6 @@
 
 #include <assert.h>
 #include <ddf/driver.h>
-#include <devman.h>
 #include <errno.h>
 #include <io/log.h>
 #include <io/logctl.h>
@@ -122,17 +121,13 @@ static int disable_legacy(hcd_t *hcd, ddf_dev_t *device)
 {
 	assert(device);
 
-	async_sess_t *parent_sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
 		return ENOMEM;
 
 	/* See UHCI design guide page 45 for these values.
 	 * Write all WC bits in USB legacy register */
-	const int rc = pci_config_space_write_16(parent_sess, 0xc0, 0xaf00);
-
-	async_hangup(parent_sess);
-	return rc;
+	return pci_config_space_write_16(parent_sess, 0xc0, 0xaf00);
 }
 
 /** Initialize a new ddf driver instance for uhci hc and hub.

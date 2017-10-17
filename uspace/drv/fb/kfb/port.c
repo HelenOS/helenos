@@ -65,6 +65,7 @@
 #define FB_POS(x, y)  ((y) * kfb.scanline + (x) * kfb.pixel_bytes)
 
 typedef struct {
+	sysarg_t paddr;
 	sysarg_t width;
 	sysarg_t height;
 	size_t offset;
@@ -84,73 +85,26 @@ static kfb_t kfb;
 
 static vslmode_list_element_t pixel_mode;
 
-static pixel_t color_table[16] = {
-	[COLOR_BLACK]       = 0x000000,
-	[COLOR_BLUE]        = 0x0000f0,
-	[COLOR_GREEN]       = 0x00f000,
-	[COLOR_CYAN]        = 0x00f0f0,
-	[COLOR_RED]         = 0xf00000,
-	[COLOR_MAGENTA]     = 0xf000f0,
-	[COLOR_YELLOW]      = 0xf0f000,
-	[COLOR_WHITE]       = 0xf0f0f0,
-
-	[COLOR_BLACK + 8]   = 0x000000,
-	[COLOR_BLUE + 8]    = 0x0000ff,
-	[COLOR_GREEN + 8]   = 0x00ff00,
-	[COLOR_CYAN + 8]    = 0x00ffff,
-	[COLOR_RED + 8]     = 0xff0000,
-	[COLOR_MAGENTA + 8] = 0xff00ff,
-	[COLOR_YELLOW + 8]  = 0xffff00,
-	[COLOR_WHITE + 8]   = 0xffffff,
-};
-
-static inline void attrs_rgb(char_attrs_t attrs, pixel_t *bgcolor, pixel_t *fgcolor)
-{
-	switch (attrs.type) {
-	case CHAR_ATTR_STYLE:
-		switch (attrs.val.style) {
-		case STYLE_NORMAL:
-			*bgcolor = color_table[COLOR_WHITE];
-			*fgcolor = color_table[COLOR_BLACK];
-			break;
-		case STYLE_EMPHASIS:
-			*bgcolor = color_table[COLOR_WHITE];
-			*fgcolor = color_table[COLOR_RED];
-			break;
-		case STYLE_INVERTED:
-			*bgcolor = color_table[COLOR_BLACK];
-			*fgcolor = color_table[COLOR_WHITE];
-			break;
-		case STYLE_SELECTED:
-			*bgcolor = color_table[COLOR_RED];
-			*fgcolor = color_table[COLOR_WHITE];
-			break;
-		}
-		break;
-	case CHAR_ATTR_INDEX:
-		*bgcolor = color_table[(attrs.val.index.bgcolor & 7) |
-		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
-		*fgcolor = color_table[(attrs.val.index.fgcolor & 7) |
-		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
-		break;
-	case CHAR_ATTR_RGB:
-		*bgcolor = attrs.val.rgb.bgcolor;
-		*fgcolor = attrs.val.rgb.fgcolor;
-		break;
-	}
-}
-
 static int kfb_claim(visualizer_t *vs)
 {
-	return EOK;
+	return physmem_map(kfb.paddr + kfb.offset,
+	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
 }
 
 static int kfb_yield(visualizer_t *vs)
 {
+	int rc;
+
 	if (vs->mode_set) {
 		vs->ops.handle_damage = NULL;
 	}
 
+	rc = physmem_unmap(kfb.addr);
+	if (rc != EOK)
+		return rc;
+
+	kfb.addr = NULL;
 	return EOK;
 }
 
@@ -210,9 +164,16 @@ static visualizer_ops_t kfb_ops = {
 static void graph_vsl_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	visualizer_t *vsl;
+	int rc;
 
 	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
 	graph_visualizer_connection(vsl, iid, icall, NULL);
+
+	if (kfb.addr != NULL) {
+		rc = physmem_unmap(kfb.addr);
+		if (rc == EOK)
+			kfb.addr = NULL;
+	}
 }
 
 int port_init(ddf_dev_t *dev)
@@ -265,6 +226,7 @@ int port_init(ddf_dev_t *dev)
 	
 	kfb.width = width;
 	kfb.height = height;
+	kfb.paddr = paddr;
 	kfb.offset = offset;
 	kfb.scanline = scanline;
 	kfb.visual = visual;
@@ -342,12 +304,6 @@ int port_init(ddf_dev_t *dev)
 	
 	kfb.size = scanline * height;
 	kfb.addr = AS_AREA_ANY;
-	
-	rc = physmem_map(paddr + offset,
-	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
-	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
-	if (rc != EOK)
-		return rc;
 	
 	ddf_fun_t *fun_vs = ddf_fun_create(dev, fun_exposed, "vsl0");
 	if (fun_vs == NULL) {

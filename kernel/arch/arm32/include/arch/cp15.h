@@ -36,11 +36,7 @@
 #ifndef KERN_arm32_CP15_H_
 #define KERN_arm32_CP15_H_
 
-#if defined(KERNEL) || defined(BOOT)
-#include <typedefs.h>
-#else
 #include <stdint.h>
-#endif
 
 /** See ARM Architecture reference manual ch. B3.17.1 page B3-1456
  * for the list */

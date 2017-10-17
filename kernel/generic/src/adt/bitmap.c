@@ -39,10 +39,10 @@
  */
 
 #include <adt/bitmap.h>
-#include <typedefs.h>
 #include <align.h>
-#include <debug.h>
+#include <assert.h>
 #include <macros.h>
+#include <typedefs.h>
 
 #define ALL_ONES    0xff
 #define ALL_ZEROES  0x00
@@ -111,7 +111,7 @@ void bitmap_initialize(bitmap_t *bitmap, size_t elements, void *data)
  */
 void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
 {
-	ASSERT(start + count <= bitmap->elements);
+	assert(start + count <= bitmap->elements);
 	
 	if (count == 0)
 		return;
@@ -165,7 +165,7 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
  */
 void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
 {
-	ASSERT(start + count <= bitmap->elements);
+	assert(start + count <= bitmap->elements);
 	
 	if (count == 0)
 		return;
@@ -221,8 +221,8 @@ void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
  */
 void bitmap_copy(bitmap_t *dst, bitmap_t *src, size_t count)
 {
-	ASSERT(count <= dst->elements);
-	ASSERT(count <= src->elements);
+	assert(count <= dst->elements);
+	assert(count <= src->elements);
 	
 	size_t i;
 	

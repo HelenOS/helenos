@@ -42,6 +42,7 @@
 #include <mm/tlb.h>
 #include <mm/asid.h>
 #include <arch/mm/tlb.h>
+#include <assert.h>
 #include <smp/ipi.h>
 #include <synch/spinlock.h>
 #include <atomic.h>
@@ -49,7 +50,6 @@
 #include <config.h>
 #include <arch.h>
 #include <panic.h>
-#include <debug.h>
 #include <cpu.h>
 
 void tlb_init(void)
@@ -151,14 +151,14 @@ void tlb_shootdown_ipi_send(void)
  */
 void tlb_shootdown_ipi_recv(void)
 {
-	ASSERT(CPU);
+	assert(CPU);
 	
 	CPU->tlb_active = false;
 	irq_spinlock_lock(&tlblock, false);
 	irq_spinlock_unlock(&tlblock, false);
 	
 	irq_spinlock_lock(&CPU->lock, false);
-	ASSERT(CPU->tlb_messages_count <= TLB_MESSAGE_QUEUE_LEN);
+	assert(CPU->tlb_messages_count <= TLB_MESSAGE_QUEUE_LEN);
 	
 	size_t i;
 	for (i = 0; i < CPU->tlb_messages_count; i++) {
@@ -175,7 +175,7 @@ void tlb_shootdown_ipi_recv(void)
 			tlb_invalidate_asid(asid);
 			break;
 		case TLB_INVL_PAGES:
-			ASSERT(count);
+			assert(count);
 			tlb_invalidate_pages(asid, page, count);
 			break;
 		default:

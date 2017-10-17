@@ -70,7 +70,15 @@ typedef struct {
  */
 typedef struct {
 	link_t segment_link;	/**< Span's segment list link. */
-	link_t fu_link;		/**< Span's free list or used hash link. */
+
+	/*
+	 * A segment cannot be both on the free list and in the used hash.
+	 * Their respective links can therefore occupy the same space.
+	 */
+	union {
+		link_t fl_link;		/**< Span's free list link. */
+		ht_link_t uh_link;	/**< Span's used hash link. */
+	};
 
 	uintptr_t base;		/**< Segment base. */
 	uint8_t flags;		/**< Segment flags. */
@@ -78,8 +86,9 @@ typedef struct {
 
 extern void ra_init(void);
 extern ra_arena_t *ra_arena_create(void);
+extern void ra_arena_destroy(ra_arena_t *);
 extern bool ra_span_add(ra_arena_t *, uintptr_t, size_t);
-extern uintptr_t ra_alloc(ra_arena_t *, size_t, size_t);
+extern bool ra_alloc(ra_arena_t *, size_t, size_t, uintptr_t *);
 extern void ra_free(ra_arena_t *, uintptr_t, size_t);
 
 #endif

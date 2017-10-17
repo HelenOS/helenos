@@ -35,6 +35,7 @@
 #ifndef KERN_abs32le_KM_H_
 #define KERN_abs32le_KM_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 extern void km_identity_arch_init(void);

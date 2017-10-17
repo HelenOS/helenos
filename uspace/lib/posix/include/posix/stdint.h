@@ -101,8 +101,6 @@
 #define UINTMAX_MIN UINT64_MIN
 #define UINTMAX_MAX UINT64_MAX
 
-#include "libc/sys/types.h"
-
 /*
  * Fast* and least* integer types.
  *

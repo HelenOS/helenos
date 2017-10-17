@@ -35,6 +35,8 @@
 #ifndef KERN_ia64_TYPES_H_
 #define KERN_ia64_TYPES_H_
 
+#include <arch/common.h>
+
 typedef uint64_t size_t;
 typedef int64_t ssize_t;
 
@@ -51,9 +53,6 @@ typedef struct {
 	sysarg_t fnc;
 	sysarg_t gp;
 } __attribute__((may_alias)) fncptr_t;
-
-#define INTN_C(c)   INT64_C(c)
-#define UINTN_C(c)  UINT64_C(c)
 
 #define PRIdn  PRId64  /**< Format for native_t. */
 #define PRIun  PRIu64  /**< Format for sysarg_t. */

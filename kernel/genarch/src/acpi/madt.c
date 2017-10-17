@@ -34,18 +34,17 @@
  * @brief Multiple APIC Description Table (MADT) parsing.
  */
 
+#include <assert.h>
 #include <typedefs.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/smp.h>
 #include <panic.h>
-#include <debug.h>
 #include <config.h>
 #include <log.h>
 #include <mm/slab.h>
-#include <memstr.h>
-#include <sort.h>
+#include <gsort.h>
 
 struct acpi_madt *acpi_madt = NULL;
 
@@ -82,7 +81,7 @@ const char *entry[] = {
 
 static uint8_t madt_cpu_apic_id(size_t i)
 {
-	ASSERT(i < madt_l_apic_entry_cnt);
+	assert(i < madt_l_apic_entry_cnt);
 	
 	return ((struct madt_l_apic *)
 	    madt_entries_index[madt_l_apic_entry_index + i])->apic_id;
@@ -90,7 +89,7 @@ static uint8_t madt_cpu_apic_id(size_t i)
 
 static bool madt_cpu_enabled(size_t i)
 {
-	ASSERT(i < madt_l_apic_entry_cnt);
+	assert(i < madt_l_apic_entry_cnt);
 	
 	/*
 	 * FIXME: The current local APIC driver limits usable
@@ -106,7 +105,7 @@ static bool madt_cpu_enabled(size_t i)
 
 static bool madt_cpu_bootstrap(size_t i)
 {
-	ASSERT(i < madt_l_apic_entry_cnt);
+	assert(i < madt_l_apic_entry_cnt);
 	
 	return ((struct madt_l_apic *)
 	    madt_entries_index[madt_l_apic_entry_index + i])->apic_id ==
@@ -176,7 +175,7 @@ static void madt_io_apic_entry(struct madt_io_apic *ioa, size_t i)
 static void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override,
     size_t i)
 {
-	ASSERT(override->source < sizeof(isa_irq_map) / sizeof(int));
+	assert(override->source < sizeof(isa_irq_map) / sizeof(int));
 	
 	isa_irq_map[override->source] = override->global_int;
 }

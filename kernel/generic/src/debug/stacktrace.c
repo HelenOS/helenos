@@ -33,8 +33,8 @@
  */
 
 #include <stacktrace.h>
+#include <stdbool.h>
 #include <interrupt.h>
-#include <typedefs.h>
 #include <symtab.h>
 #include <print.h>
 

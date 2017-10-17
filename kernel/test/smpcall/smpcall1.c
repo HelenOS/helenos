@@ -29,6 +29,7 @@
 #include <print.h>
 #include <debug.h>
 
+#include <assert.h>
 #include <test.h>
 #include <smp/smp_call.h>
 #include <cpu.h>
@@ -49,7 +50,7 @@
 
 static void inc(void *p)
 {
-	ASSERT(interrupts_disabled());
+	assert(interrupts_disabled());
 
 	size_t *pcall_cnt = (size_t*)p;
 	/* 

@@ -35,6 +35,8 @@
 #ifndef KERN_abs32le_TYPES_H_
 #define KERN_abs32le_TYPES_H_
 
+#include <arch/common.h>
+
 #define ATOMIC_COUNT_MIN  UINT32_MIN
 #define ATOMIC_COUNT_MAX  UINT32_MAX
 
@@ -52,9 +54,6 @@ typedef uint32_t atomic_count_t;
 
 typedef struct {
 } fncptr_t;
-
-#define INTN_C(c)   INT32_C(c)
-#define UINTN_C(c)  UINT32_C(c)
 
 #define PRIdn  PRId32  /**< Format for native_t. */
 #define PRIun  PRIu32  /**< Format for sysarg_t. */

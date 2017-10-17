@@ -37,6 +37,7 @@
 
 #include <arch/exception.h>
 #include <typedefs.h>
+#include <stdbool.h>
 
 #define BKPOINTS_MAX 10
 

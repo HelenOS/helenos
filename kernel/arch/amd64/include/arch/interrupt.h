@@ -35,9 +35,9 @@
 #ifndef KERN_amd64_INTERRUPT_H_
 #define KERN_amd64_INTERRUPT_H_
 
-#include <typedefs.h>
 #include <arch/istate.h>
 #include <arch/pm.h>
+#include <stdint.h>
 
 #define IVT_ITEMS  IDT_ITEMS
 #define IVT_FIRST  0

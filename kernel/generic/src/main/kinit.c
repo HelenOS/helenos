@@ -41,6 +41,7 @@
  * and creation of userspace init tasks.
  */
 
+#include <assert.h>
 #include <main/kinit.h>
 #include <config.h>
 #include <arch.h>
@@ -59,14 +60,13 @@
 #include <mm/km.h>
 #include <print.h>
 #include <log.h>
-#include <memstr.h>
+#include <mem.h>
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>
-#include <security/cap.h>
+#include <security/perm.h>
 #include <lib/rd.h>
 #include <ipc/ipc.h>
-#include <debug.h>
 #include <str.h>
 #include <sysinfo/stats.h>
 #include <sysinfo/sysinfo.h>
@@ -239,7 +239,7 @@ void kinit(void *arg)
 		if (name[0] == 0)
 			name = "<unknown>";
 		
-		STATIC_ASSERT(TASK_NAME_BUFLEN >= INIT_PREFIX_LEN);
+		static_assert(TASK_NAME_BUFLEN >= INIT_PREFIX_LEN, "");
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
@@ -250,7 +250,7 @@ void kinit(void *arg)
 		uintptr_t page = km_map(init.tasks[i].paddr,
 		    init.tasks[i].size,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
-		ASSERT(page);
+		assert(page);
 		
 		int rc = program_create_from_image((void *) page, namebuf,
 		    &programs[i]);
@@ -258,10 +258,11 @@ void kinit(void *arg)
 		if (rc == 0) {
 			if (programs[i].task != NULL) {
 				/*
-				 * Set capabilities to init userspace tasks.
+				 * Set permissions to init userspace tasks.
 				 */
-				cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
-				    CAP_IO_MANAGER | CAP_IRQ_REG);
+				perm_set(programs[i].task,
+				    PERM_PERM | PERM_MEM_MANAGER |
+				    PERM_IO_MANAGER | PERM_IRQ_REG);
 				
 				if (!ipc_phone_0) {
 					ipc_phone_0 = &programs[i].task->answerbox;

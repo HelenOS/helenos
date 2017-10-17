@@ -98,25 +98,49 @@ static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
+static int pciintel_fun_owns_interrupt(pci_fun_t *fun, int irq)
 {
-	/* This is an old ugly way */
-	assert(fnode);
-	pci_fun_t *dev_data = pci_fun(fnode);
+	size_t i;
+	hw_resource_list_t *res = &fun->hw_resources;
 	
-	size_t i = 0;
-	hw_resource_list_t *res = &dev_data->hw_resources;
-	for (; i < res->count; i++) {
-		if (res->resources[i].type == INTERRUPT) {
-			int rc = irc_enable_interrupt(
-			    res->resources[i].res.interrupt.irq);
-			
-			if (rc != EOK)
-				return false;
+	for (i = 0; i < res->count; i++) {
+		if (res->resources[i].type == INTERRUPT &&
+		    res->resources[i].res.interrupt.irq == irq) {
+			return true;
 		}
 	}
 	
-	return true;
+	return false;
+}
+
+static int pciintel_enable_interrupt(ddf_fun_t *fnode, int irq)
+{
+	pci_fun_t *fun = pci_fun(fnode);
+	
+	if (!pciintel_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_enable_interrupt(irq);
+}
+
+static int pciintel_disable_interrupt(ddf_fun_t *fnode, int irq)
+{
+	pci_fun_t *fun = pci_fun(fnode);
+	
+	if (!pciintel_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_disable_interrupt(irq);
+}
+
+static int pciintel_clear_interrupt(ddf_fun_t *fnode, int irq)
+{
+	pci_fun_t *fun = pci_fun(fnode);
+	
+	if (!pciintel_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_clear_interrupt(irq);
 }
 
 static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)
@@ -186,6 +210,8 @@ static int config_space_read_8(
 static hw_res_ops_t pciintel_hw_res_ops = {
 	.get_resource_list = &pciintel_get_resources,
 	.enable_interrupt = &pciintel_enable_interrupt,
+	.disable_interrupt = &pciintel_disable_interrupt,
+	.clear_interrupt = &pciintel_clear_interrupt,
 };
 
 static pio_window_ops_t pciintel_pio_window_ops = {
@@ -682,7 +708,7 @@ static int pci_dev_add(ddf_dev_t *dnode)
 
 	bus->dnode = dnode;
 	
-	sess = ddf_dev_parent_sess_create(dnode);
+	sess = ddf_dev_parent_sess_get(dnode);
 	if (sess == NULL) {
 		ddf_msg(LVL_ERROR, "pci_dev_add failed to connect to the "
 		    "parent driver.");

@@ -34,6 +34,7 @@
  */
 
 #include <arch/mm/page.h>
+#include <assert.h>
 #include <genarch/mm/page_ht.h>
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
@@ -46,7 +47,6 @@
 #include <panic.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
-#include <memstr.h>
 #include <align.h>
 
 static void set_environment(void);
@@ -166,7 +166,7 @@ bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 	rid_t rid;
 	bool match;
 
-	ASSERT(v);
+	assert(v);
 
 	vrn = page >> VRN_SHIFT;
 	rid = ASID2RID(asid, vrn);
@@ -213,7 +213,7 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	rid_t rid;
 	uint64_t tag;
 
-	ASSERT(v);
+	assert(v);
 
 	vrn = page >> VRN_SHIFT;
 	rid = ASID2RID(asid, vrn);

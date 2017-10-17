@@ -365,7 +365,7 @@ int at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 	assert(dev);
 	
 	kbd->client_sess = NULL;
-	kbd->parent_sess = ddf_dev_parent_sess_create(dev);
+	kbd->parent_sess = ddf_dev_parent_sess_get(dev);
 	
 	if (!kbd->parent_sess) {
 		ddf_msg(LVL_ERROR, "Failed creating parent session.");

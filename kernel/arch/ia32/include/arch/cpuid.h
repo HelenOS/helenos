@@ -42,8 +42,8 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
 #include <arch/cpu.h>
+#include <stdint.h>
 
 typedef struct {
 	uint32_t cpuid_eax;

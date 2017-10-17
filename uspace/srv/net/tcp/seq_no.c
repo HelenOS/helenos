@@ -133,29 +133,56 @@ bool seq_no_segment_ready(tcp_conn_t *conn, tcp_segment_t *seg)
 	return seq_no_le_lt(seg->seq, conn->rcv_nxt, seg->seq + seg->len + 1);
 }
 
-/** Determine whether segment is fully acked */
+/** Determine whether segment is fully acked.
+ *
+ * @param conn Connection
+ * @param seg  Segment
+ * @param ack  Last received ACK (i.e. SND.UNA)
+ *
+ * @return @c true if segment is fully acked, @c false otherwise
+ */
 bool seq_no_segment_acked(tcp_conn_t *conn, tcp_segment_t *seg, uint32_t ack)
 {
 	assert(seg->len > 0);
 	return seq_no_lt_le(seg->seq, seg->seq + seg->len, ack);
 }
 
-/** Determine whether initial SYN is acked */
+/** Determine whether initial SYN is acked.
+ *
+ * @param conn Connection
+ * @return @c true if initial SYN is acked, @c false otherwise
+ */
 bool seq_no_syn_acked(tcp_conn_t *conn)
 {
 	return seq_no_lt_le(conn->iss, conn->snd_una, conn->snd_nxt);
 }
 
-/** Determine whether segment overlaps the receive window */
+/** Determine whether segment overlaps the receive window.
+ *
+ * @param conn Connection
+ * @param seg  Segment
+ * @return @c true if segment overlaps the receive window, @c false otherwise
+ */
 bool seq_no_segment_acceptable(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	bool b_in, e_in;
+	bool wb_in, we_in;
 
+	/* Beginning of segment is inside window */
 	b_in = seq_no_le_lt(conn->rcv_nxt, seg->seq, conn->rcv_nxt
 	    + conn->rcv_wnd);
 
+	/* End of segment is inside window */
 	e_in = seq_no_le_lt(conn->rcv_nxt, seg->seq + seg->len - 1,
 	    conn->rcv_nxt + conn->rcv_wnd);
+
+	/* Beginning of window is inside segment */
+	wb_in = seq_no_le_lt(seg->seq, conn->rcv_nxt,
+	    seg->seq + seg->len);
+
+	/* End of window is inside segment */
+	we_in = seq_no_le_lt(seg->seq, conn->rcv_nxt + conn->rcv_wnd - 1,
+	    seg->seq + seg->len);
 
 	if (seg->len == 0 && conn->rcv_wnd == 0) {
 		return seg->seq == conn->rcv_nxt;
@@ -164,11 +191,15 @@ bool seq_no_segment_acceptable(tcp_conn_t *conn, tcp_segment_t *seg)
 	} else if (seg->len > 0 && conn->rcv_wnd == 0) {
 		return false;
 	} else {
-		return b_in || e_in;
+		return b_in || e_in || wb_in || we_in;
 	}
 }
 
-/** Determine size that control bits occupy in sequence space. */
+/** Determine size that control bits occupy in sequence space.
+ *
+ * @param ctrl Control bits combination
+ * @return Number of sequence space units occupied
+ */
 uint32_t seq_no_control_len(tcp_control_t ctrl)
 {
 	uint32_t len = 0;
@@ -182,7 +213,13 @@ uint32_t seq_no_control_len(tcp_control_t ctrl)
 	return len;
 }
 
-/** Calculate the amount of trim needed to fit segment in receive window. */
+/** Calculate the amount of trim needed to fit segment in receive window.
+ *
+ * @param conn  Connection
+ * @param seg   Segment
+ * @param left  Place to store number of units to trim at the beginning
+ * @param right Place to store number of units to trim at the end
+ */
 void seq_no_seg_trim_calc(tcp_conn_t *conn, tcp_segment_t *seg,
     uint32_t *left, uint32_t *right)
 {

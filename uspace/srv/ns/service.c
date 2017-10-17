@@ -30,9 +30,9 @@
  * @{
  */
 
-#include <ipc/ipc.h>
 #include <adt/hash_table.h>
 #include <assert.h>
+#include <async.h>
 #include <errno.h>
 #include <stdio.h>
 #include <malloc.h>
@@ -46,11 +46,8 @@ typedef struct {
 	/** Service ID */
 	service_t service;
 	
-	/** Phone registered with the interface */
-	sysarg_t phone;
-	
-	/** Incoming phone hash */
-	sysarg_t in_phone_hash;
+	/** Session to the service */
+	async_sess_t *sess;
 } hashed_service_t;
 
 static size_t service_key_hash(void *key)
@@ -120,8 +117,10 @@ loop:
 			continue;
 		
 		hashed_service_t *hashed_service = hash_table_get_inst(link, hashed_service_t, link);
-		(void) ipc_forward_fast(pending->callid, hashed_service->phone,
-		    pending->iface, pending->arg3, 0, IPC_FF_NONE);
+		async_exch_t *exch = async_exchange_begin(hashed_service->sess);
+		async_forward_fast(pending->callid, exch, pending->iface,
+		    pending->arg3, 0, IPC_FF_NONE);
+		async_exchange_end(exch);
 		
 		list_remove(&pending->link);
 		free(pending);
@@ -150,11 +149,11 @@ int register_service(service_t service, sysarg_t phone, ipc_call_t *call)
 		return ENOMEM;
 	
 	hashed_service->service = service;
-	hashed_service->phone = phone;
-	hashed_service->in_phone_hash = call->in_phone_hash;
+	hashed_service->sess = async_callback_receive(EXCHANGE_SERIALIZE);
+	if (hashed_service->sess == NULL)
+		return EIO;
 	
 	hash_table_insert(&service_hash_table, &hashed_service->link);
-	
 	return EOK;
 }
 
@@ -201,13 +200,13 @@ void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
 	}
 	
 	hashed_service_t *hashed_service = hash_table_get_inst(link, hashed_service_t, link);
-	(void) ipc_forward_fast(callid, hashed_service->phone, iface, arg3,
-	    0, IPC_FF_NONE);
+	async_exch_t *exch = async_exchange_begin(hashed_service->sess);
+	async_forward_fast(callid, exch, iface, arg3, 0, IPC_FF_NONE);
+	async_exchange_end(exch);
 	return;
 	
 out:
-	if (!(callid & IPC_CALLID_NOTIFICATION))
-		ipc_answer_0(callid, retval);
+	async_answer_0(callid, retval);
 }
 
 /**

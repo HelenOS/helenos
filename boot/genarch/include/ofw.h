@@ -29,7 +29,7 @@
 #ifndef BOOT_OFW_H_
 #define BOOT_OFW_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <stdarg.h>
 
 #define MEMMAP_MAX_RECORDS  32

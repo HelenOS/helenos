@@ -37,6 +37,7 @@
 
 extern int irc_enable_interrupt(int);
 extern int irc_disable_interrupt(int);
+extern int irc_clear_interrupt(int);
 
 #endif
 

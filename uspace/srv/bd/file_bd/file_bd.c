@@ -46,7 +46,6 @@
 #include <loc.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/typefmt.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <task.h>

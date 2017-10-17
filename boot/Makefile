@@ -26,31 +26,25 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.PHONY: all build_dist build_comps clean_dist clean
+.PHONY: all build_dist clean_dist clean
 
 include Makefile.common
 
-all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(PREBUILD)
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(PREBUILD) build_dist
 	$(MAKE) -r -f $(BUILD) PRECHECK=$(PRECHECK)
 ifneq ($(POSTBUILD),)
 	$(MAKE) -r -f $(POSTBUILD) PRECHECK=$(PRECHECK)
 endif
 
-build_comps: $(COMPONENTS) $(LINK).in
-	$(PACK) $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) arch/$(KARCH) $(COMPONENTS)
-
-$(INITRD).img: build_dist
-ifeq ($(RDFMT),tmpfs)
-	$(MKTMPFS) $(DIST_PATH) $@
-endif
-ifeq ($(RDFMT),fat)
-	$(MKFAT) 1048576 $(DIST_PATH) $@
-endif
-ifeq ($(RDFMT),ext4fs)
-	$(MKEXT4) 1048576 $(DIST_PATH) $@
-endif
-
 build_dist: clean_dist
+	mkdir -p "$(DIST_PATH)/app/"
+	mkdir -p "$(DIST_PATH)/cfg/net/"
+	mkdir -p "$(DIST_PATH)/lib/"
+	mkdir -p "$(DIST_PATH)/loc/"
+	mkdir -p "$(DIST_PATH)/log/"
+	mkdir -p "$(DIST_PATH)/srv/"
+	mkdir -p "$(DIST_PATH)/test/"
+	mkdir -p "$(DIST_PATH)/tmp/"
 	for file in $(RD_SRVS) ; do \
 		cp "$$file" "$(DIST_PATH)/srv/" ; \
 	done
@@ -58,7 +52,7 @@ build_dist: clean_dist
 		cp "$$file" "$(DIST_PATH)/lib/" ; \
 	done
 ifeq ($(CONFIG_DEVEL_FILES), y)
-	mkdir "$(DIST_PATH)/inc/c/"
+	mkdir -p "$(DIST_PATH)/inc/c/"
 	cp -r -L "$(USPACE_PATH)/lib/c/include/." "$(DIST_PATH)/inc/c/"
 	cp -r -L "$(ROOT_PATH)/abi/include/." "$(DIST_PATH)/inc/c/"
 	cp -r -L "$(USPACE_PATH)/lib/c/arch/$(UARCH)/include/." "$(DIST_PATH)/inc/c/"
@@ -131,12 +125,11 @@ clean: clean_dist
 ifneq ($(POSTBUILD),)
 	$(MAKE) -r -f $(POSTBUILD) clean PRECHECK=$(PRECHECK)
 endif
-	rm -fr $(SANDBOX)
 	rm -f $(POST_OUTPUT) $(BOOT_OUTPUT) $(DEPEND) $(DEPEND_PREV) arch/*/include/common.h
 	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
 
 clean_dist:
-	rm -f $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
+	rm -f $(INITRD).img $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE) $(COMPS).o $(COMPS)_desc.o $(COMPS).zip $(LINK)
 	find $(USPACE_PATH)/dist -mindepth 1 -maxdepth 1 -type f -exec rm \{\} \;
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*

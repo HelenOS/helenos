@@ -34,8 +34,8 @@
 
 #include <as.h>
 #include <stdbool.h>
+#include <ddf/driver.h>
 #include <ddi.h>
-#include <devman.h>
 #include <device/hw_res.h>
 #include <libarch/ddi.h>
 #include <libarch/barrier.h>
@@ -74,7 +74,7 @@ static inline const char * dsp_state_to_str(dsp_state_t state)
 		[DSP_READY] = "READY",
 		[DSP_NO_BUFFER] = "NO BUFFER",
 	};
-	if (state < ARRAY_SIZE(state_names))
+	if ((size_t)state < ARRAY_SIZE(state_names))
 		return state_names[state];
 	return "UNKNOWN";
 }
@@ -143,9 +143,11 @@ static inline void dsp_start_current_active(sb_dsp_t *dsp, uint8_t command)
 static inline void dsp_set_sampling_rate(sb_dsp_t *dsp, unsigned rate)
 {
 	dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
-	dsp_write(dsp, rate >> 8);
-	dsp_write(dsp, rate & 0xff);
-	ddf_log_verbose("Sampling rate: %hhx:%hhx.", rate >> 8, rate & 0xff);
+	uint8_t rate_lo = rate & 0xff;
+	uint8_t rate_hi = rate >> 8;
+	dsp_write(dsp, rate_hi);
+	dsp_write(dsp, rate_lo);
+	ddf_log_verbose("Sampling rate: %hhx:%hhx.", rate_hi, rate_lo);
 }
 
 static inline void dsp_report_event(sb_dsp_t *dsp, pcm_event_t event)
@@ -158,15 +160,11 @@ static inline void dsp_report_event(sb_dsp_t *dsp, pcm_event_t event)
 
 static inline int setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
-	async_sess_t *sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(dsp->sb_dev), IPC_FLAG_BLOCKING);
+	async_sess_t *sess = ddf_dev_parent_sess_get(dsp->sb_dev);
 
-	const int ret = hw_res_dma_channel_setup(sess,
+	return hw_res_dma_channel_setup(sess,
 	    dsp->dma16_channel, pa, size,
 	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_ON_DEMAND);
-
-	async_hangup(sess);
-	return ret;
 }
 
 static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
@@ -201,11 +199,6 @@ static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
 	}
 	
 	return ret;
-}
-
-static inline size_t sample_count(pcm_sample_format_t format, size_t byte_count)
-{
-	return byte_count / pcm_sample_format_size(format);
 }
 
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
@@ -306,12 +299,10 @@ int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 		return ENOENT;
 
 	assert(dsp->buffer.data);
-	async_sess_t *sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(dsp->sb_dev), IPC_FLAG_BLOCKING);
+	async_sess_t *sess = ddf_dev_parent_sess_get(dsp->sb_dev);
 
 	// TODO: Assumes DMA 16
 	const int remain = hw_res_dma_channel_remain(sess, dsp->dma16_channel);
-	async_hangup(sess);
 	if (remain >= 0) {
 		*pos = dsp->buffer.size - remain;
 		return EOK;

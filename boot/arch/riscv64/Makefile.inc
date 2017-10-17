@@ -33,13 +33,15 @@ BFD = binary
 
 BITS = 64
 ENDIANESS = LE
+EXTRA_CFLAGS = -mcmodel=medany
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/ucb.c \
 	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
+	$(COMPS).s \
+	$(COMPS)_desc.c \
 	generic/src/memstr.c \
 	generic/src/printf_core.c \
 	generic/src/vprintf.c \
@@ -47,3 +49,5 @@ SOURCES = \
 	generic/src/str.c \
 	generic/src/version.c \
 	generic/src/inflate.c
+
+PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE)

@@ -35,9 +35,9 @@
 #ifndef KERN_sparc64_THREAD_H_
 #define KERN_sparc64_THREAD_H_
 
-#include <typedefs.h>
 #include <arch/arch.h>
 #include <mm/slab.h>
+#include <stdint.h>
 
 extern slab_cache_t *uwb_cache;
 

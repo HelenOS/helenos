@@ -36,8 +36,8 @@
 #ifndef KERN_arm32_CPU_H_
 #define KERN_arm32_CPU_H_
 
-#include <typedefs.h>
 #include <arch/asm.h>
+#include <stdint.h>
 
 enum {
 	ARM_MAX_CACHE_LEVELS = 7,

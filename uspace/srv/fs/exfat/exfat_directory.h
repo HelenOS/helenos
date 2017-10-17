@@ -70,10 +70,12 @@ extern int exfat_directory_find_continue(exfat_directory_t *,
 
 extern int exfat_directory_read_file(exfat_directory_t *, char *, size_t,
     exfat_file_dentry_t *, exfat_stream_dentry_t *);
+extern int exfat_directory_read_vollabel(exfat_directory_t *, char *, size_t);
 extern int exfat_directory_sync_file(exfat_directory_t *, exfat_file_dentry_t *,
     exfat_stream_dentry_t *);
 extern int exfat_directory_write_file(exfat_directory_t *, const char *);
 extern int exfat_directory_erase_file(exfat_directory_t *, aoff64_t);
+
 
 extern int exfat_directory_expand(exfat_directory_t *);
 extern int exfat_directory_lookup_free(exfat_directory_t *, size_t);

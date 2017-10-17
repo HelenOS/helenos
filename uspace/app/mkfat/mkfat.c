@@ -37,6 +37,7 @@
  * Currently we can create 12/16/32-bit FAT.
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -44,12 +45,14 @@
 #include <mem.h>
 #include <loc.h>
 #include <byteorder.h>
-#include <sys/typefmt.h>
 #include <inttypes.h>
 #include <errno.h>
 #include "fat.h"
+#include "fat_dentry.h"
 
 #define NAME	"mkfat"
+
+#define LABEL_NONAME "NO NAME"
 
 /** Divide and round up. */
 #define div_round_up(a, b) (((a) + (b) - 1) / (b))
@@ -77,6 +80,7 @@ typedef struct fat_cfg {
 	uint32_t fat_sectors;
 	uint32_t total_clusters;
 	uint8_t fat_count;
+	const char *label;
 } fat_cfg_t;
 
 static void syntax_print(void);
@@ -102,6 +106,7 @@ int main(int argc, char **argv)
 	cfg.addt_res_sectors = 0;
 	cfg.root_ent_max = 128;
 	cfg.fat_type = FATAUTO;
+	cfg.label = NULL;
 
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
@@ -110,40 +115,61 @@ int main(int argc, char **argv)
 	}
 
 	--argc; ++argv;
-	if (str_cmp(*argv, "--size") == 0) {
-		--argc; ++argv;
-		if (*argv == NULL) {
-			printf(NAME ": Error, argument missing.\n");
-			syntax_print();
-			return 1;
+
+	while (*argv[0] == '-') {
+		if (str_cmp(*argv, "--size") == 0) {
+			--argc; ++argv;
+			if (*argv == NULL) {
+				printf(NAME ": Error, argument missing.\n");
+				syntax_print();
+				return 1;
+			}
+
+			cfg.total_sectors = strtol(*argv, &endptr, 10);
+			if (*endptr != '\0') {
+				printf(NAME ": Error, invalid argument.\n");
+				syntax_print();
+				return 1;
+			}
+
+			--argc; ++argv;
 		}
 
-		cfg.total_sectors = strtol(*argv, &endptr, 10);
-		if (*endptr != '\0') {
-			printf(NAME ": Error, invalid argument.\n");
-			syntax_print();
-			return 1;
+		if (str_cmp(*argv, "--type") == 0) {
+			--argc; ++argv;
+			if (*argv == NULL) {
+				printf(NAME ": Error, argument missing.\n");
+				syntax_print();
+				return 1;
+			}
+
+			cfg.fat_type = strtol(*argv, &endptr, 10);
+			if (*endptr != '\0') {
+				printf(NAME ": Error, invalid argument.\n");
+				syntax_print();
+				return 1;
+			}
+
+			--argc; ++argv;
 		}
 
-		--argc; ++argv;
-	}
+		if (str_cmp(*argv, "--label") == 0) {
+			--argc; ++argv;
+			if (*argv == NULL) {
+				printf(NAME ": Error, argument missing.\n");
+				syntax_print();
+				return 1;
+			}
 
-	if (str_cmp(*argv, "--type") == 0) {
-		--argc; ++argv;
-		if (*argv == NULL) {
-			printf(NAME ": Error, argument missing.\n");
-			syntax_print();
-			return 1;
+			cfg.label = *argv;
+
+			--argc; ++argv;
 		}
 
-		cfg.fat_type = strtol(*argv, &endptr, 10);
-		if (*endptr != '\0') {
-			printf(NAME ": Error, invalid argument.\n");
-			syntax_print();
-			return 1;
+		if (str_cmp(*argv, "-") == 0) {
+			--argc; ++argv;
+			break;
 		}
-
-		--argc; ++argv;
 	}
 
 	if (argc != 1) {
@@ -194,13 +220,15 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	printf(NAME ": Creating FAT%d filesystem on device %s.\n", cfg.fat_type, dev_path);
+	printf(NAME ": Creating FAT filesystem on device %s.\n", dev_path);
 
 	rc = fat_params_compute(&cfg);
 	if (rc != EOK) {
 		printf(NAME ": Invalid file-system parameters.\n");
 		return 2;
 	}
+
+	printf(NAME ": Filesystem type FAT%d.\n", cfg.fat_type);
 
 	rc = fat_blocks_write(&cfg, service_id);
 	if (rc != EOK) {
@@ -216,7 +244,38 @@ int main(int argc, char **argv)
 
 static void syntax_print(void)
 {
-	printf("syntax: mkfat [--size <sectors>] [--type 12|16|32] <device_name>\n");
+	printf("syntax: mkfat [<options>...] <device_name>\n");
+	printf("options:\n"
+	    "\t--size <sectors> Filesystem size, overrides device size\n"
+	    "\t--type 12|16|32  FAT type (auto-detected by default)\n"
+	    "\t--label <label>  Volume label\n");
+}
+
+static int fat_label_encode(void *dest, const char *src)
+{
+	int i;
+	const char *sp;
+	uint8_t *dp;
+
+	i = 0;
+	sp = src;
+	dp = (uint8_t *)dest;
+
+	while (*sp != '\0' && i < FAT_VOLLABEL_LEN) {
+		if (!ascii_check(*sp))
+			return EINVAL;
+		if (dp != NULL)
+			dp[i] = toupper(*sp);
+		++i; ++sp;
+	}
+
+	while (i < FAT_VOLLABEL_LEN) {
+		if (dp != NULL)
+			dp[i] = FAT_PAD;
+		++i;
+	}
+
+	return EOK;
 }
 
 /** Derive sizes of different filesystem structures.
@@ -227,32 +286,37 @@ static void syntax_print(void)
 static int fat_params_compute(struct fat_cfg *cfg)
 {
 	uint32_t fat_bytes;
+	uint32_t non_data_sectors_lb_16;
 	uint32_t non_data_sectors_lb;
+	uint32_t rd_sectors;
+	uint32_t tot_clust_16;
 
 	/*
 	 * Make a conservative guess on the FAT size needed for the file
 	 * system. The optimum could be potentially smaller since we
 	 * do not subtract size of the FAT itself when computing the
-	 * size of the data region.
+	 * size of the data region. Also the root dir area might not
+	 * need FAT entries if we decide to make a FAT32.
 	 */
 
 	cfg->reserved_sectors = 1 + cfg->addt_res_sectors;
-	if (cfg->fat_type != FAT32) {
-		cfg->rootdir_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
-			cfg->sector_size);
-	} else
-		cfg->rootdir_sectors = 0;
-	non_data_sectors_lb = cfg->reserved_sectors + cfg->rootdir_sectors;
 
-	cfg->total_clusters = div_round_up(cfg->total_sectors - non_data_sectors_lb,
+	/* Only correct for FAT12/16 (FAT32 has root dir stored in clusters */
+	rd_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
+		cfg->sector_size);
+	non_data_sectors_lb_16 = cfg->reserved_sectors + rd_sectors;
+
+	/* Only correct for FAT12/16 */
+	tot_clust_16 = div_round_up(cfg->total_sectors - non_data_sectors_lb_16,
 	    cfg->sectors_per_cluster);
 
-	if (cfg->total_clusters <= FAT12_CLST_MAX) {
+	/* Now detect FAT type */
+	if (tot_clust_16 <= FAT12_CLST_MAX) {
 		if (cfg->fat_type == FATAUTO)
 			cfg->fat_type = FAT12;
 		else if (cfg->fat_type != FAT12)
 			return EINVAL;
-	} else if (cfg->total_clusters <= FAT16_CLST_MAX) {
+	} else if (tot_clust_16 <= FAT16_CLST_MAX) {
 		if (cfg->fat_type == FATAUTO)
 			cfg->fat_type = FAT16;
 		else if (cfg->fat_type != FAT16)
@@ -264,9 +328,28 @@ static int fat_params_compute(struct fat_cfg *cfg)
 			return EINVAL;
 	}
 
+	/* Actual root directory size, non-data sectors */
+	if (cfg->fat_type != FAT32) {
+		cfg->rootdir_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
+			cfg->sector_size);
+		non_data_sectors_lb = cfg->reserved_sectors + cfg->rootdir_sectors;
+
+	} else {
+		/* We create a single-cluster root dir */
+		cfg->rootdir_sectors = cfg->sectors_per_cluster;
+		non_data_sectors_lb = cfg->reserved_sectors;
+	}
+
+	/* Actual total number of clusters */
+	cfg->total_clusters = div_round_up(cfg->total_sectors - non_data_sectors_lb,
+	    cfg->sectors_per_cluster);
+
 	fat_bytes = div_round_up((cfg->total_clusters + 2) *
 	    FAT_CLUSTER_DOUBLE_SIZE(cfg->fat_type), 2);
 	cfg->fat_sectors = div_round_up(fat_bytes, cfg->sector_size);
+
+	if (cfg->label != NULL && fat_label_encode(NULL, cfg->label) != EOK)
+		return EINVAL;
 
 	return EOK;
 }
@@ -280,6 +363,7 @@ static int fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id)
 	uint32_t j;
 	int rc;
 	struct fat_bs bs;
+	fat_dentry_t *de;
 
 	fat_bootsec_create(cfg, &bs);
 
@@ -339,23 +423,26 @@ static int fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id)
 	/* Root directory */
 	printf("Writing root directory.\n");
 	memset(buffer, 0, cfg->sector_size);
-	if (cfg->fat_type != FAT32) {
-		size_t idx;
-		for (idx = 0; idx < cfg->rootdir_sectors; ++idx) {
-			rc = block_write_direct(service_id, addr, 1, buffer);
-			if (rc != EOK)
-				return EIO;
+	de = (fat_dentry_t *)buffer;
+	size_t idx;
+	for (idx = 0; idx < cfg->rootdir_sectors; ++idx) {
 
-			++addr;
+		if (idx == 0 && cfg->label != NULL) {
+			/* Set up volume label entry */
+			(void) fat_label_encode(&de->name, cfg->label);
+			de->attr = FAT_ATTR_VOLLABEL;
+			de->mtime = 0x1234;
+			de->mdate = 0x1234;
+		} else if (idx == 1) {
+			/* Clear volume label entry */
+			memset(buffer, 0, cfg->sector_size);
 		}
-	} else {
-		for (i = 0; i < cfg->sectors_per_cluster; i++) {
-			rc = block_write_direct(service_id, addr, 1, buffer);
-			if (rc != EOK)
-				return EIO;
 
-			++addr;
-		}	
+		rc = block_write_direct(service_id, addr, 1, buffer);
+		if (rc != EOK)
+			return EIO;
+
+		++addr;
 	}
 
 	free(buffer);
@@ -366,6 +453,16 @@ static int fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id)
 /** Construct boot sector with the given parameters. */
 static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 {
+	const char *bs_label;
+
+	/*
+	 * The boot sector must always contain a valid label. If there
+	 * is no label, there should be 'NO NAME'
+	 */
+	if (cfg->label != NULL)
+		bs_label = cfg->label;
+	else
+		bs_label = LABEL_NONAME;
 	memset(bs, 0, sizeof(*bs));
 
 	bs->ji[0] = 0xEB;
@@ -404,7 +501,7 @@ static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 		bs->fat32.id = host2uint32_t_be(0x12345678);
 		bs->fat32.root_cluster = 2;
 
-		memcpy(bs->fat32.label, "HELENOS_NEW", 11);
+		(void) fat_label_encode(&bs->fat32.label, bs_label);
 		memcpy(bs->fat32.type, "FAT32   ", 8);
 	} else {
 		bs->sec_per_fat = host2uint16_t_le(cfg->fat_sectors);
@@ -412,8 +509,11 @@ static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 		bs->ebs = 0x29;
 		bs->id = host2uint32_t_be(0x12345678);
 
-		memcpy(bs->label, "HELENOS_NEW", 11);
-		memcpy(bs->type, "FAT   ", 8);
+		(void) fat_label_encode(&bs->label, bs_label);
+		if (cfg->fat_type == FAT12)
+			memcpy(bs->type, "FAT12   ", 8);
+		else
+			memcpy(bs->type, "FAT16   ", 8);
 	}
 }
 

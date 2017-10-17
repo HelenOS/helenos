@@ -37,7 +37,8 @@
  * This module handles udebug IPC messages and calls the appropriate
  * functions from the udebug_ops module which implement them.
  */
- 
+
+#include <assert.h>
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <mm/as.h>
@@ -354,7 +355,7 @@ static void udebug_receive_regs_read(call_t *call)
 		return;
 	}
 
-	ASSERT(buffer != NULL);
+	assert(buffer != NULL);
 
 	/*
 	 * Make use of call->buffer to transfer data to caller's userspace
@@ -400,7 +401,7 @@ static void udebug_receive_mem_read(call_t *call)
 		return;
 	}
 
-	ASSERT(buffer != NULL);
+	assert(buffer != NULL);
 
 	IPC_SET_RETVAL(call->data, 0);
 	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that

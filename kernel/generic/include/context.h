@@ -35,7 +35,6 @@
 #ifndef KERN_CONTEXT_H_
 #define KERN_CONTEXT_H_
 
-#include <typedefs.h>
 #include <trace.h>
 #include <arch/context.h>
 

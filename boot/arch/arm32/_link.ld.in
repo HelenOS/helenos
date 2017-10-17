@@ -22,7 +22,7 @@ SECTIONS {
 		*(.scommon);
 		*(.bss);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
-[[COMPONENTS]]
+		*(.components);
 	}
 	bdata_end = .;
 

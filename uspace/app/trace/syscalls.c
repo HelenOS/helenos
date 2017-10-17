@@ -67,8 +67,8 @@ const sc_desc_t syscall_desc[] = {
     [SYS_IPC_EVENT_UNSUBSCRIBE] = { "ipc_event_unsubscribe",	1,	V_ERRNO },
     [SYS_IPC_EVENT_UNMASK] = { "ipc_event_unmask",	1,	V_ERRNO },
 
-    [SYS_CAP_GRANT] = { "cap_grant",			2,	V_ERRNO },
-    [SYS_CAP_REVOKE] = { "cap_revoke",			2,	V_ERRNO },
+    [SYS_PERM_GRANT] = { "perm_grant",			2,	V_ERRNO },
+    [SYS_PERM_REVOKE] = { "perm_revoke",		2,	V_ERRNO },
     [SYS_PHYSMEM_MAP] = { "physmem_map",		4,	V_ERRNO },
     [SYS_IOSPACE_ENABLE] = { "iospace_enable",		1,	V_ERRNO },
 

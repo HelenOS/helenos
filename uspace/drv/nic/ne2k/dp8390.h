@@ -49,6 +49,8 @@
 #ifndef __NET_NETIF_DP8390_H__
 #define __NET_NETIF_DP8390_H__
 
+#include <async.h>
+#include <ddf/driver.h>
 #include <fibril_synch.h>
 #include <nic.h>
 #include <ddf/interrupt.h>
@@ -222,6 +224,10 @@
 #define RSR_DFR  0x80  /**< In later manuals: Deferring */
 
 typedef struct {
+	/** DDF device */
+	ddf_dev_t *dev;
+	/** Parent session */
+	async_sess_t *parent_sess;
 	/* Device configuration */
 	void *base_port; /**< Port assigned from ISA configuration **/
 	void *port;

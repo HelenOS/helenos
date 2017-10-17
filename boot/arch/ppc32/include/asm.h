@@ -29,7 +29,7 @@
 #ifndef BOOT_ppc32_ASM_H_
 #define BOOT_ppc32_ASM_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 #include <arch/main.h>
 
 extern void jump_to_kernel(void *, void *, size_t, void *)

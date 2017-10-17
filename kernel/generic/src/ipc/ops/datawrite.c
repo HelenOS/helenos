@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <assert.h>
 #include <ipc/sysipc_ops.h>
 #include <ipc/ipc.h>
 #include <mm/slab.h>
@@ -69,7 +70,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	ASSERT(answer->buffer);
+	assert(answer->buffer);
 
 	if (!IPC_GET_RETVAL(answer->data)) {
 		/* The recipient agreed to receive data. */

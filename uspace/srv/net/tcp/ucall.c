@@ -107,6 +107,7 @@ tcp_error_t tcp_uc_open(inet_ep2_t *epp, acpass_t acpass,
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open: Connection was reset.");
 		assert(nconn->cstate == st_closed);
 		tcp_conn_unlock(nconn);
+		tcp_conn_delete(nconn);
 		return TCP_ERESET;
 	}
 
@@ -279,6 +280,10 @@ tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 void tcp_uc_abort(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_abort()");
+
+	tcp_conn_lock(conn);
+	tcp_conn_reset(conn);
+	tcp_conn_unlock(conn);
 }
 
 /** STATUS user call */

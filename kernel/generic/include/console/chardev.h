@@ -36,7 +36,8 @@
 #define KERN_CHARDEV_H_
 
 #include <adt/list.h>
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 

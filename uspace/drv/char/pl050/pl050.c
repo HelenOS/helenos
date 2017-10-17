@@ -37,9 +37,9 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
+#include <device/hw_res.h>
 #include <device/hw_res_parsed.h>
 #include <io/chardev_srv.h>
-#include <irc.h>
 
 #include "pl050_hw.h"
 
@@ -166,7 +166,7 @@ static int pl050_init(pl050_t *pl050)
 	fibril_condvar_initialize(&pl050->buf_cv);
 	pl050->buf_rp = pl050->buf_wp = 0;
 
-	pl050->parent_sess = ddf_dev_parent_sess_create(pl050->dev);
+	pl050->parent_sess = ddf_dev_parent_sess_get(pl050->dev);
 	if (pl050->parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed connecitng parent driver.");
 		rc = ENOMEM;
@@ -211,15 +211,16 @@ static int pl050_init(pl050_t *pl050)
 
 	pl050->regs = regs;
 
-	rc = register_interrupt_handler(pl050->dev, res.irqs.irqs[0],
-	    pl050_interrupt, &pl050_irq_code);
-	if (rc != EOK) {
+	const int irq_cap = register_interrupt_handler(pl050->dev,
+	    res.irqs.irqs[0], pl050_interrupt, &pl050_irq_code);
+	if (irq_cap < 0) {
+		rc = irq_cap;
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
 		    rc);
 		goto error;
 	}
 
-	rc = irc_enable_interrupt(res.irqs.irqs[0]);
+	rc = hw_res_enable_interrupt(pl050->parent_sess, res.irqs.irqs[0]);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed enabling interrupt. (%d)", rc);
 		goto error;

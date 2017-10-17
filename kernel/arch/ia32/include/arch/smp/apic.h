@@ -40,8 +40,8 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
 #include <cpu.h>
+#include <stdint.h>
 
 #define FIXED  (0 << 0)
 #define LOPRI  (1 << 0)

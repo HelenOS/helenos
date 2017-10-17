@@ -30,7 +30,7 @@
 #include <arch/ofw.h>
 #include <genarch/ofw.h>
 #include <printf.h>
-#include <typedefs.h>
+#include <stddef.h>
 #include <str.h>
 #include <align.h>
 #include <halt.h>

@@ -32,7 +32,7 @@
 /** @file
 */
 
-#include <memstr.h>
+#include <mem.h>
 #include <arch/mm/vhpt.h>
 #include <mm/frame.h>
 #include <print.h>

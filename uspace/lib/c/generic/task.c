@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <ns.h>
 #include <malloc.h>
 #include <libc.h>
 #include "private/ns.h"
@@ -323,7 +324,11 @@ int task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...)
  */
 int task_setup_wait(task_id_t id, task_wait_t *wait)
 {
-	async_exch_t *exch = async_exchange_begin(session_ns);
+	async_sess_t *sess_ns = ns_session_get();
+	if (sess_ns == NULL)
+		return EIO;
+
+	async_exch_t *exch = async_exchange_begin(sess_ns);
 	wait->aid = async_send_2(exch, NS_TASK_WAIT, LOWER32(id), UPPER32(id),
 	    &wait->result);
 	async_exchange_end(exch);
@@ -400,7 +405,11 @@ int task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)
 
 int task_retval(int val)
 {
-	async_exch_t *exch = async_exchange_begin(session_ns);
+	async_sess_t *sess_ns = ns_session_get();
+	if (sess_ns == NULL)
+		return EIO;
+
+	async_exch_t *exch = async_exchange_begin(sess_ns);
 	int rc = (int) async_req_1_0(exch, NS_RETVAL, val);
 	async_exchange_end(exch);
 	

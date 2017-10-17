@@ -35,6 +35,7 @@
  * @brief Task management.
  */
 
+#include <assert.h>
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <mm/as.h>
@@ -48,6 +49,7 @@
 #include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>
+#include <cap/cap.h>
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
 #include <ipc/event.h>
@@ -55,7 +57,6 @@
 #include <errno.h>
 #include <func.h>
 #include <str.h>
-#include <memstr.h>
 #include <syscall/copy.h>
 #include <macros.h>
 
@@ -82,6 +83,7 @@ static slab_cache_t *task_slab;
 /* Forward declarations. */
 static void task_kill_internal(task_t *);
 static int tsk_constructor(void *, unsigned int);
+static size_t tsk_destructor(void *obj);
 
 /** Initialize kernel tasks support.
  *
@@ -91,7 +93,7 @@ void task_init(void)
 	TASK = NULL;
 	avltree_create(&tasks_tree);
 	task_slab = slab_cache_create("task_t", sizeof(task_t), 0,
-	    tsk_constructor, NULL, 0);
+	    tsk_constructor, tsk_destructor, 0);
 }
 
 /** Task finish walker.
@@ -158,6 +160,10 @@ void task_done(void)
 int tsk_constructor(void *obj, unsigned int kmflags)
 {
 	task_t *task = (task_t *) obj;
+
+	int rc = caps_task_alloc(task);
+	if (rc != EOK)
+		return rc;
 	
 	atomic_set(&task->refcount, 0);
 	atomic_set(&task->lifecount, 0);
@@ -168,10 +174,6 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	
 	ipc_answerbox_init(&task->answerbox, task);
 	
-	size_t i;
-	for (i = 0; i < IPC_MAX_PHONES; i++)
-		ipc_phone_init(&task->phones[i], task);
-
 	spinlock_initialize(&task->active_calls_lock, "active_calls_lock");
 	list_initialize(&task->active_calls);
 		
@@ -182,6 +184,14 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	mutex_initialize(&task->kb.cleanup_lock, MUTEX_PASSIVE);
 #endif
 	
+	return 0;
+}
+
+size_t tsk_destructor(void *obj)
+{
+	task_t *task = (task_t *) obj;
+	
+	caps_task_free(task);
 	return 0;
 }
 
@@ -202,9 +212,11 @@ task_t *task_create(as_t *as, const char *name)
 	str_cpy(task->name, TASK_NAME_BUFLEN, name);
 	
 	task->container = CONTAINER;
-	task->capabilities = 0;
+	task->perms = 0;
 	task->ucycles = 0;
 	task->kcycles = 0;
+
+	caps_task_init(task);
 
 	task->ipc_info.call_sent = 0;
 	task->ipc_info.call_received = 0;
@@ -227,8 +239,12 @@ task_t *task_create(as_t *as, const char *name)
 #endif
 	
 	if ((ipc_phone_0) &&
-	    (container_check(ipc_phone_0->task->container, task->container)))
-		(void) ipc_phone_connect(&task->phones[0], ipc_phone_0);
+	    (container_check(ipc_phone_0->task->container, task->container))) {
+		cap_handle_t phone_handle = phone_alloc(task);
+		kobject_t *phone_obj = kobject_get(task, phone_handle,
+		    KOBJECT_TYPE_PHONE);
+		(void) ipc_phone_connect(phone_obj->phone, ipc_phone_0);
+	}
 	
 	futex_task_init(task);
 	
@@ -419,8 +435,8 @@ sysarg_t sys_task_kill(task_id_t *uspace_taskid)
  */
 task_t *task_find_by_id(task_id_t id)
 {
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&tasks_lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&tasks_lock));
 
 	avltree_node_t *node =
 	    avltree_search(&tasks_tree, (avltree_key_t) id);
@@ -443,8 +459,8 @@ task_t *task_find_by_id(task_id_t id)
  */
 void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 {
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&task->lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&task->lock));
 
 	/* Accumulated values of task */
 	uint64_t uret = task->ucycles;
@@ -602,21 +618,12 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #ifdef __64_BITS__
 	if (*additional)
 		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c "
-		    "%9" PRIua, task->taskid, ucycles, usuffix, kcycles,
+		    "%9" PRIua "\n", task->taskid, ucycles, usuffix, kcycles,
 		    ksuffix, atomic_get(&task->refcount));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %18p %18p\n",
 		    task->taskid, task->name, task->container, task, task->as);
 #endif
-	
-	if (*additional) {
-		size_t i;
-		for (i = 0; i < IPC_MAX_PHONES; i++) {
-			if (task->phones[i].callee)
-				printf(" %zu:%p", i, task->phones[i].callee);
-		}
-		printf("\n");
-	}
 	
 	irq_spinlock_unlock(&task->lock, false);
 	return true;

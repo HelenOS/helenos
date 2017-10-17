@@ -46,7 +46,7 @@
 #include <mm/reserve.h>
 #include <mm/as.h>
 #include <panic.h>
-#include <debug.h>
+#include <assert.h>
 #include <adt/list.h>
 #include <synch/mutex.h>
 #include <synch/condvar.h>
@@ -348,7 +348,7 @@ NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
 /** Return frame from zone. */
 NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t index)
 {
-	ASSERT(index < zone->count);
+	assert(index < zone->count);
 	
 	return &zone->frames[index];
 }
@@ -369,21 +369,21 @@ NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t index)
 NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
     pfn_t constraint)
 {
-	ASSERT(zone->flags & ZONE_AVAILABLE);
+	assert(zone->flags & ZONE_AVAILABLE);
 	
 	/* Allocate frames from zone */
 	size_t index = (size_t) -1;
 	int avail = bitmap_allocate_range(&zone->bitmap, count, zone->base,
 	    FRAME_LOWPRIO, constraint, &index);
 	
-	ASSERT(avail);
-	ASSERT(index != (size_t) -1);
+	assert(avail);
+	assert(index != (size_t) -1);
 	
 	/* Update frame reference count */
 	for (size_t i = 0; i < count; i++) {
 		frame_t *frame = zone_get_frame(zone, index + i);
 		
-		ASSERT(frame->refcount == 0);
+		assert(frame->refcount == 0);
 		frame->refcount = 1;
 	}
 	
@@ -406,11 +406,11 @@ NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
  */
 NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 {
-	ASSERT(zone->flags & ZONE_AVAILABLE);
+	assert(zone->flags & ZONE_AVAILABLE);
 	
 	frame_t *frame = zone_get_frame(zone, index);
 	
-	ASSERT(frame->refcount > 0);
+	assert(frame->refcount > 0);
 	
 	if (!--frame->refcount) {
 		bitmap_set(&zone->bitmap, index, 0);
@@ -428,7 +428,7 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 /** Mark frame in zone unavailable to allocation. */
 NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
 {
-	ASSERT(zone->flags & ZONE_AVAILABLE);
+	assert(zone->flags & ZONE_AVAILABLE);
 	
 	frame_t *frame = zone_get_frame(zone, index);
 	if (frame->refcount > 0)
@@ -455,11 +455,11 @@ NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
 NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
     void *confdata)
 {
-	ASSERT(zones.info[z1].flags & ZONE_AVAILABLE);
-	ASSERT(zones.info[z2].flags & ZONE_AVAILABLE);
-	ASSERT(zones.info[z1].flags == zones.info[z2].flags);
-	ASSERT(zones.info[z1].base < zones.info[z2].base);
-	ASSERT(!overlaps(zones.info[z1].base, zones.info[z1].count,
+	assert(zones.info[z1].flags & ZONE_AVAILABLE);
+	assert(zones.info[z2].flags & ZONE_AVAILABLE);
+	assert(zones.info[z1].flags == zones.info[z2].flags);
+	assert(zones.info[z1].base < zones.info[z2].base);
+	assert(!overlaps(zones.info[z1].base, zones.info[z1].count,
 	    zones.info[z2].base, zones.info[z2].count));
 	
 	/* Difference between zone bases */
@@ -508,7 +508,7 @@ NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
  */
 NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 {
-	ASSERT(zones.info[znum].flags & ZONE_AVAILABLE);
+	assert(zones.info[znum].flags & ZONE_AVAILABLE);
 	
 	size_t cframes = SIZE2FRAMES(zone_conf_size(count));
 	
@@ -703,7 +703,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 		 * nobody tries to do that. If some platform requires, remove
 		 * the assert
 		 */
-		ASSERT(confframe != ADDR2PFN((uintptr_t ) NULL));
+		assert(confframe != ADDR2PFN((uintptr_t ) NULL));
 		
 		/* Update the known end of physical memory. */
 		config.physmem_end = max(config.physmem_end, PFN2ADDR(start + count));
@@ -791,7 +791,7 @@ void frame_set_parent(pfn_t pfn, void *data, size_t hint)
 	
 	size_t znum = find_zone(pfn, 1, hint);
 	
-	ASSERT(znum != (size_t) -1);
+	assert(znum != (size_t) -1);
 	
 	zone_get_frame(&zones.info[znum],
 	    pfn - zones.info[znum].base)->parent = data;
@@ -805,7 +805,7 @@ void *frame_get_parent(pfn_t pfn, size_t hint)
 	
 	size_t znum = find_zone(pfn, 1, hint);
 	
-	ASSERT(znum != (size_t) -1);
+	assert(znum != (size_t) -1);
 	
 	void *res = zone_get_frame(&zones.info[znum],
 	    pfn - zones.info[znum].base)->parent;
@@ -829,7 +829,7 @@ void *frame_get_parent(pfn_t pfn, size_t hint)
 uintptr_t frame_alloc_generic(size_t count, frame_flags_t flags,
     uintptr_t constraint, size_t *pzone)
 {
-	ASSERT(count > 0);
+	assert(count > 0);
 	
 	size_t hint = pzone ? (*pzone) : 0;
 	pfn_t frame_constraint = ADDR2PFN(constraint);
@@ -969,7 +969,7 @@ void frame_free_generic(uintptr_t start, size_t count, frame_flags_t flags)
 		pfn_t pfn = ADDR2PFN(start) + i;
 		size_t znum = find_zone(pfn, 1, 0);
 		
-		ASSERT(znum != (size_t) -1);
+		assert(znum != (size_t) -1);
 		
 		freed += zone_frame_free(&zones.info[znum],
 		    pfn - zones.info[znum].base);
@@ -1029,7 +1029,7 @@ NO_TRACE void frame_reference_add(pfn_t pfn)
 	 */
 	size_t znum = find_zone(pfn, 1, 0);
 	
-	ASSERT(znum != (size_t) -1);
+	assert(znum != (size_t) -1);
 	
 	zones.info[znum].frames[pfn - zones.info[znum].base].refcount++;
 	
@@ -1152,10 +1152,10 @@ uint64_t zones_total_size(void)
 void zones_stats(uint64_t *total, uint64_t *unavail, uint64_t *busy,
     uint64_t *free)
 {
-	ASSERT(total != NULL);
-	ASSERT(unavail != NULL);
-	ASSERT(busy != NULL);
-	ASSERT(free != NULL);
+	assert(total != NULL);
+	assert(unavail != NULL);
+	assert(busy != NULL);
+	assert(free != NULL);
 	
 	irq_spinlock_lock(&zones.lock, true);
 	

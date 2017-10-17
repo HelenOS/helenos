@@ -43,7 +43,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "conn.h"
+#include "inet.h"
 #include "iqueue.h"
+#include "pdu.h"
+#include "rqueue.h"
 #include "segment.h"
 #include "seq_no.h"
 #include "tcp_type.h"
@@ -56,14 +59,28 @@
 #define MAX_SEGMENT_LIFETIME	(15*1000*1000) //(2*60*1000*1000)
 #define TIME_WAIT_TIMEOUT	(2*MAX_SEGMENT_LIFETIME)
 
+/** List of all allocated connections */
 static LIST_INITIALIZE(conn_list);
 /** Taken after tcp_conn_t lock */
 static FIBRIL_MUTEX_INITIALIZE(conn_list_lock);
+/** Connection association map */
 static amap_t *amap;
+/** Taken after tcp_conn_t lock */
+static FIBRIL_MUTEX_INITIALIZE(amap_lock);
 
-static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg);
-static void tcp_conn_tw_timer_set(tcp_conn_t *conn);
-static void tcp_conn_tw_timer_clear(tcp_conn_t *conn);
+/** Internal loopback configuration */
+tcp_lb_t tcp_conn_lb = tcp_lb_none;
+
+static void tcp_conn_seg_process(tcp_conn_t *, tcp_segment_t *);
+static void tcp_conn_tw_timer_set(tcp_conn_t *);
+static void tcp_conn_tw_timer_clear(tcp_conn_t *);
+static void tcp_transmit_segment(inet_ep2_t *, tcp_segment_t *);
+static void tcp_conn_trim_seg_to_wnd(tcp_conn_t *, tcp_segment_t *);
+static void tcp_reply_rst(inet_ep2_t *, tcp_segment_t *);
+
+static tcp_tqueue_cb_t tcp_conn_tqueue_cb = {
+	.transmit_seg = tcp_transmit_segment
+};
 
 /** Initialize connections. */
 int tcp_conns_init(void)
@@ -77,6 +94,15 @@ int tcp_conns_init(void)
 	}
 
 	return EOK;
+}
+
+/** Finalize connections. */
+void tcp_conns_fini(void)
+{
+	assert(list_empty(&conn_list));
+
+	amap_destroy(amap);
+	amap = NULL;
 }
 
 /** Create new connection structure.
@@ -129,8 +155,10 @@ tcp_conn_t *tcp_conn_new(inet_ep2_t *epp)
 	tcp_iqueue_init(&conn->incoming, conn);
 
 	/* Initialize retransmission queue */
-	if (tcp_tqueue_init(&conn->retransmit, conn) != EOK)
+	if (tcp_tqueue_init(&conn->retransmit, conn, &tcp_conn_tqueue_cb)
+	    != EOK) {
 		goto error;
+	}
 
 	tqueue_inited = true;
 
@@ -146,6 +174,10 @@ tcp_conn_t *tcp_conn_new(inet_ep2_t *epp)
 	conn->fin_is_acked = false;
 	if (epp != NULL)
 		conn->ident = *epp;
+
+	fibril_mutex_lock(&conn_list_lock);
+	list_append(&conn->link, &conn_list);
+	fibril_mutex_unlock(&conn_list_lock);
 
 	return conn;
 
@@ -180,7 +212,13 @@ error:
 static void tcp_conn_free(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_free(%p)", conn->name, conn);
+
+	assert(conn->mapped == false);
 	tcp_tqueue_fini(&conn->retransmit);
+
+	fibril_mutex_lock(&conn_list_lock);
+	list_remove(&conn->link);
+	fibril_mutex_unlock(&conn_list_lock);
 
 	if (conn->rcv_buf != NULL)
 		free(conn->rcv_buf);
@@ -270,20 +308,20 @@ int tcp_conn_add(tcp_conn_t *conn)
 	int rc;
 
 	tcp_conn_addref(conn);
-	fibril_mutex_lock(&conn_list_lock);
+	fibril_mutex_lock(&amap_lock);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_add: conn=%p", conn);
 
 	rc = amap_insert(amap, &conn->ident, conn, af_allow_system, &aepp);
 	if (rc != EOK) {
 		tcp_conn_delref(conn);
-		fibril_mutex_unlock(&conn_list_lock);
+		fibril_mutex_unlock(&amap_lock);
 		return rc;
 	}
 
 	conn->ident = aepp;
-	list_append(&conn->link, &conn_list);
-	fibril_mutex_unlock(&conn_list_lock);
+	conn->mapped = true;
+	fibril_mutex_unlock(&amap_lock);
 
 	return EOK;
 }
@@ -292,12 +330,15 @@ int tcp_conn_add(tcp_conn_t *conn)
  *
  * Remove connection from the connection map.
  */
-void tcp_conn_remove(tcp_conn_t *conn)
+static void tcp_conn_remove(tcp_conn_t *conn)
 {
-	fibril_mutex_lock(&conn_list_lock);
+	if (!conn->mapped)
+		return;
+
+	fibril_mutex_lock(&amap_lock);
 	amap_remove(amap, &conn->ident);
-	list_remove(&conn->link);
-	fibril_mutex_unlock(&conn_list_lock);
+	conn->mapped = false;
+	fibril_mutex_unlock(&amap_lock);
 	tcp_conn_delref(conn);
 }
 
@@ -334,6 +375,8 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
  */
 void tcp_conn_sync(tcp_conn_t *conn)
 {
+	assert(fibril_mutex_is_locked(&conn->lock));
+
 	/* XXX select ISS */
 	conn->iss = 1;
 	conn->snd_nxt = conn->iss;
@@ -387,19 +430,19 @@ tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", epp);
 
-	fibril_mutex_lock(&conn_list_lock);
+	fibril_mutex_lock(&amap_lock);
 
 	rc = amap_find_match(amap, epp, &arg);
 	if (rc != EOK) {
 		assert(rc == ENOENT);
-		fibril_mutex_unlock(&conn_list_lock);
+		fibril_mutex_unlock(&amap_lock);
 		return NULL;
 	}
 
 	conn = (tcp_conn_t *)arg;
 	tcp_conn_addref(conn);
 
-	fibril_mutex_unlock(&conn_list_lock);
+	fibril_mutex_unlock(&amap_lock);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref: got conn=%p",
 	    conn);
 	return conn;
@@ -411,7 +454,13 @@ tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
  */
 void tcp_conn_reset(tcp_conn_t *conn)
 {
+	assert(fibril_mutex_is_locked(&conn->lock));
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
+
+	if (conn->cstate == st_closed)
+		return;
+
 	conn->reset = true;
 	tcp_conn_state_set(conn, st_closed);
 
@@ -864,7 +913,12 @@ static cproc_t tcp_conn_seg_proc_ack_cls(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (tcp_conn_seg_proc_ack_est(conn, seg) == cp_done)
 		return cp_done;
 
-	/* TODO */
+	if (conn->fin_is_acked) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN acked -> Time-Wait",
+		    conn->name);
+		tcp_conn_state_set(conn, st_time_wait);
+	}
+
 	return cp_continue;
 }
 
@@ -1061,11 +1115,11 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (tcp_segment_text_size(seg) == 0 && (seg->ctrl & CTL_FIN) != 0) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - FIN found in segment.");
 
-		/* Send ACK */
-		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
-
 		conn->rcv_nxt++;
 		conn->rcv_wnd--;
+
+		/* Send ACK */
+		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 
 		/* Change connection state */
 		switch (conn->cstate) {
@@ -1210,7 +1264,7 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
 		oldepp = conn->ident;
 
 		/* Need to remove and re-insert connection with new identity */
-		fibril_mutex_lock(&conn_list_lock);
+		fibril_mutex_lock(&amap_lock);
 
 		if (inet_addr_is_any(&conn->ident.remote.addr))
 			conn->ident.remote.addr = epp->remote.addr;
@@ -1226,13 +1280,13 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
 			assert(rc != EEXIST);
 			assert(rc == ENOMEM);
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
-			fibril_mutex_unlock(&conn_list_lock);
+			fibril_mutex_unlock(&amap_lock);
 			tcp_conn_unlock(conn);
 			return;
 		}
 
 		amap_remove(amap, &oldepp);
-		fibril_mutex_unlock(&conn_list_lock);
+		fibril_mutex_unlock(&amap_lock);
 
 		conn->name = (char *) "a";
 	}
@@ -1321,7 +1375,7 @@ void tcp_conn_tw_timer_clear(tcp_conn_t *conn)
  * @param conn		Connection
  * @param seg		Segment
  */
-void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
+static void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	uint32_t left, right;
 
@@ -1345,6 +1399,63 @@ void tcp_unexpected_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 		tcp_reply_rst(epp, seg);
 }
 
+/** Transmit segment over network.
+ *
+ * @param epp Endpoint pair with source and destination information
+ * @param seg Segment (ownership retained by caller)
+ */
+static void tcp_transmit_segment(inet_ep2_t *epp, tcp_segment_t *seg)
+{
+	tcp_pdu_t *pdu;
+	tcp_segment_t *dseg;
+	inet_ep2_t rident;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	    "tcp_transmit_segment(l:(%u),f:(%u), %p)",
+	    epp->local.port, epp->remote.port, seg);
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
+	    seg->seq, seg->wnd);
+
+	tcp_segment_dump(seg);
+
+	if (tcp_conn_lb == tcp_lb_segment) {
+		/* Loop back segment */
+//		tcp_ncsim_bounce_seg(sp, seg);
+
+		/* Reverse the identification */
+		tcp_ep2_flipped(epp, &rident);
+
+		/* Insert segment back into rqueue */
+		dseg = tcp_segment_dup(seg);
+		tcp_rqueue_insert_seg(&rident, dseg);
+		return;
+	}
+
+	if (tcp_pdu_encode(epp, seg, &pdu) != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
+		return;
+	}
+
+	if (tcp_conn_lb == tcp_lb_pdu) {
+		/* Loop back PDU */
+		if (tcp_pdu_decode(pdu, &rident, &dseg) != EOK) {
+			log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
+			tcp_pdu_delete(pdu);
+			return;
+		}
+
+		tcp_pdu_delete(pdu);
+
+		/* Insert decoded segment into rqueue */
+		tcp_rqueue_insert_seg(&rident, dseg);
+		return;
+	}
+
+	tcp_transmit_pdu(pdu);
+	tcp_pdu_delete(pdu);
+}
+
 /** Compute flipped endpoint pair for response.
  *
  * Flipped endpoint pair has local and remote endpoints exchanged.
@@ -1363,7 +1474,7 @@ void tcp_ep2_flipped(inet_ep2_t *epp, inet_ep2_t *fepp)
  * @param epp		Endpoint pair which received the segment
  * @param seg		Incoming segment
  */
-void tcp_reply_rst(inet_ep2_t *epp, tcp_segment_t *seg)
+static void tcp_reply_rst(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_segment_t *rseg;
 

@@ -142,12 +142,69 @@ static void vol_part_delete(vol_part_t *part)
 	free(part);
 }
 
-static int vol_part_add_locked(service_id_t sid)
+static int vol_part_probe(vol_part_t *part)
 {
-	vol_part_t *part;
 	bool empty;
 	vfs_fs_probe_info_t info;
 	struct fsname_type *fst;
+	char *label;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
+
+	assert(fibril_mutex_is_locked(&vol_parts_lock));
+
+	fst = &fstab[0];
+	while (fst->name != NULL) {
+		rc = vfs_fsprobe(fst->name, part->svc_id, &info);
+		if (rc == EOK)
+			break;
+		++fst;
+	}
+
+	if (fst->name != NULL) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Found %s, label '%s'",
+		    fst->name, info.label);
+		label = str_dup(info.label);
+		if (label == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		part->pcnt = vpc_fs;
+		part->fstype = fst->fstype;
+		part->label = label;
+	} else {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Partition does not contain "
+		    "a recognized file system.");
+
+		rc = volsrv_part_is_empty(part->svc_id, &empty);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed determining if "
+			    "partition is empty.");
+			rc = EIO;
+			goto error;
+		}
+
+		label = str_dup("");
+		if (label == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		part->pcnt = empty ? vpc_empty : vpc_unknown;
+		part->label = label;
+	}
+
+	return EOK;
+
+error:
+	return rc;
+}
+
+static int vol_part_add_locked(service_id_t sid)
+{
+	vol_part_t *part;
 	int rc;
 
 	assert(fibril_mutex_is_locked(&vol_parts_lock));
@@ -170,34 +227,9 @@ static int vol_part_add_locked(service_id_t sid)
 		goto error;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
-
-	fst = &fstab[0];
-	while (fst->name != NULL) {
-		rc = vfs_fsprobe(fst->name, sid, &info);
-		if (rc == EOK)
-			break;
-		++fst;
-	}
-
-	if (fst->name != NULL) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Found %s, label '%s'",
-		    fst->name, info.label);
-		part->pcnt = vpc_fs;
-		part->fstype = fst->fstype;
-	} else {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Partition does not contain "
-		    "a recognized file system.");
-
-		rc = volsrv_part_is_empty(sid, &empty);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed determining if "
-			    "partition is empty.");
-			goto error;
-		}
-
-		part->pcnt = empty ? vpc_empty : vpc_unknown;
-	}
+	rc = vol_part_probe(part);
+	if (rc != EOK)
+		goto error;
 
 	list_append(&part->lparts, &vol_parts);
 
@@ -304,21 +336,35 @@ int vol_part_empty_part(vol_part_t *part)
 	return EOK;
 }
 
-int vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype)
+int vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
+    const char *label)
 {
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part()");
 
-	rc = volsrv_part_mkfs(part->svc_id, fstype);
+	fibril_mutex_lock(&vol_parts_lock);
+
+	rc = volsrv_part_mkfs(part->svc_id, fstype, label);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part() - failed %d",
 		    rc);
+		fibril_mutex_unlock(&vol_parts_lock);
 		return rc;
 	}
 
-	part->pcnt = vpc_fs;
-	part->fstype = fstype;
+	/*
+	 * Re-probe the partition to update information. This is needed since
+	 * the FS can make conversions of the volume label (e.g. make it
+	 * uppercase).
+	 */
+	rc = vol_part_probe(part);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&vol_parts_lock);
+		return rc;
+	}
+
+	fibril_mutex_unlock(&vol_parts_lock);
 	return EOK;
 }
 
@@ -326,6 +372,7 @@ int vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
 {
 	pinfo->pcnt = part->pcnt;
 	pinfo->fstype = part->fstype;
+	str_cpy(pinfo->label, sizeof(pinfo->label), part->label);
 	return EOK;
 }
 

@@ -36,7 +36,8 @@
 #ifndef KERN_arm32_FPU_CONTEXT_H_
 #define KERN_arm32_FPU_CONTEXT_H_
 
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #define FPU_CONTEXT_ALIGN    8
 

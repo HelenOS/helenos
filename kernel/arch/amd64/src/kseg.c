@@ -33,7 +33,6 @@
  */
 
 #include <arch/kseg.h>
-#include <typedefs.h>
 #include <arch/asm.h>
 #include <panic.h>
 #include <arch/kseg_struct.h>

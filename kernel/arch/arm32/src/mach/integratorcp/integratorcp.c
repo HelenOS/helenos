@@ -42,7 +42,6 @@
 #include <genarch/srln/srln.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
-#include <ddi/device.h>
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/km.h>
@@ -206,7 +205,6 @@ static void icp_timer_irq_handler(irq_t *irq)
 static void icp_timer_irq_init(void)
 {
 	irq_initialize(&icp.timer_irq);
-	icp.timer_irq.devno = device_assign_devno();
 	icp.timer_irq.inr = ICP_TIMER_IRQ;
 	icp.timer_irq.claim = icp_timer_claim;
 	icp.timer_irq.handler = icp_timer_irq_handler;

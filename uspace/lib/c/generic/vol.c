@@ -38,6 +38,7 @@
 #include <ipc/vol.h>
 #include <loc.h>
 #include <stdlib.h>
+#include <str.h>
 #include <vol.h>
 
 /** Create Volume service session.
@@ -250,15 +251,50 @@ int vol_part_empty(vol_t *vol, service_id_t sid)
 	return EOK;
 }
 
-/** Create file system. */
-int vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype)
+/** Get volume label support. */
+int vol_part_get_lsupp(vol_t *vol, vol_fstype_t fstype,
+    vol_label_supp_t *vlsupp)
 {
 	async_exch_t *exch;
-	int retval;
+	sysarg_t retval;
+	ipc_call_t answer;
 
 	exch = async_exchange_begin(vol->sess);
-	retval = async_req_2_0(exch, VOL_PART_MKFS, sid, fstype);
+	aid_t req = async_send_1(exch, VOL_PART_LSUPP, fstype, &answer);
+	int rc = async_data_read_start(exch, vlsupp, sizeof(vol_label_supp_t));
 	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		return EIO;
+	}
+
+	async_wait_for(req, &retval);
+	if (retval != EOK)
+		return EIO;
+
+	return EOK;
+}
+
+/** Create file system. */
+int vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
+    const char *label)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	sysarg_t retval;
+
+	exch = async_exchange_begin(vol->sess);
+	aid_t req = async_send_2(exch, VOL_PART_MKFS, sid, fstype, &answer);
+	retval = async_data_write_start(exch, label, str_size(label));
+	async_exchange_end(exch);
+
+	if (retval != EOK) {
+		async_forget(req);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
 
 	if (retval != EOK)
 		return retval;

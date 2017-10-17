@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_INET_INETCFG_H_
-#define LIBC_INET_INETCFG_H_
+#ifndef LIBC_CORECFG_H_
+#define LIBC_CORECFG_H_
 
 #include <stdbool.h>
 

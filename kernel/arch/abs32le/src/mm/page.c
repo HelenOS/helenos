@@ -38,14 +38,12 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
-#include <typedefs.h>
 #include <align.h>
 #include <config.h>
 #include <func.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <debug.h>
-#include <memstr.h>
 #include <print.h>
 #include <interrupt.h>
 

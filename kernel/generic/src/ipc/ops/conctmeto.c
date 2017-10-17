@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
- * Copyright (c) 2012 Jakub Jermar 
+ * Copyright (c) 2012 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,50 +41,63 @@
 
 static int request_preprocess(call_t *call, phone_t *phone)
 {
-	int newphid = phone_alloc(TASK);
+	cap_handle_t phone_handle = phone_alloc(TASK);
 
-	/* Remember the phoneid or the error. */
-	call->priv = newphid;
-	if (newphid < 0)
-		return ELIMIT;
-		
+	/* Remember the phone capability or the error. */
+	call->priv = phone_handle;
+	if (phone_handle < 0)
+		return phone_handle;
+
 	/* Set arg5 for server */
-	IPC_SET_ARG5(call->data, (sysarg_t) &TASK->phones[newphid]);
+	kobject_t *phone_obj = kobject_get(TASK, phone_handle,
+	    KOBJECT_TYPE_PHONE);
+	/* Hand over phone_obj's reference to ARG5 */
+	IPC_SET_ARG5(call->data, (sysarg_t) phone_obj->phone);
 
 	return EOK;
 }
 
 static int request_forget(call_t *call)
 {
-	phone_dealloc(call->priv);
+	cap_handle_t phone_handle = (cap_handle_t) call->priv;
+	phone_dealloc(phone_handle);
+	/* Hand over reference from ARG5 to phone->kobject */
+	phone_t *phone = (phone_t *) IPC_GET_ARG5(call->data);
+	/* Drop phone_obj's reference */
+	kobject_put(phone->kobject);
 	return EOK;
 }
 
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
+	/* Hand over reference from ARG5 to phone */
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
 
 	/* If the user accepted call, connect */
-	if (IPC_GET_RETVAL(answer->data) == EOK)
+	if (IPC_GET_RETVAL(answer->data) == EOK) {
+		/* Hand over reference from phone to the answerbox */
 		(void) ipc_phone_connect(phone, &TASK->answerbox);
+	} else {
+		kobject_put(phone->kobject);
+	}
 
 	return EOK;
 }
 
 static int answer_process(call_t *answer)
 {
-	int newphid = (int) answer->priv;
+	cap_handle_t phone_handle = (cap_handle_t) answer->priv;
 
 	if (IPC_GET_RETVAL(answer->data)) {
-		if (newphid >= 0) {
+		if (phone_handle >= 0) {
 			/*
 			 * The phone was indeed allocated and now needs
 			 * to be deallocated.
 			 */
-			phone_dealloc(newphid);
+			phone_dealloc(phone_handle);
 		}
 	} else {
-		IPC_SET_ARG5(answer->data, newphid);
+		IPC_SET_ARG5(answer->data, phone_handle);
 	}
 	
 	return EOK;

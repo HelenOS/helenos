@@ -61,9 +61,9 @@ static int adb_port_init(kbd_dev_t *kdev)
 {
 	kbd_dev = kdev;
 	
-	const char *dev = "adb/kbd";
+	const char *dev = "devices/\\hw\\adb\\kbd";
 	service_id_t service_id;
-	int rc = loc_service_get_id(dev, &service_id, 0);
+	int rc = loc_service_get_id(dev, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return rc;
 	

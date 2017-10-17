@@ -33,8 +33,8 @@
  */
 
 #include <stacktrace.h>
+#include <stdbool.h>
 #include <syscall/copy.h>
-#include <typedefs.h>
 
 bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {

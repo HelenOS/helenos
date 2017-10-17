@@ -35,7 +35,7 @@
 #ifndef KERN_amd64_THREAD_H_
 #define KERN_amd64_THREAD_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 typedef struct {
 	uint64_t kstack_rsp;

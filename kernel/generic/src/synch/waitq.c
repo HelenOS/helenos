@@ -43,6 +43,7 @@
  *
  */
 
+#include <assert.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 #include <proc/thread.h>
@@ -202,7 +203,7 @@ void waitq_unsleep(waitq_t *wq)
 		
 		irq_spinlock_lock(&thread->lock, false);
 		
-		ASSERT(thread->sleep_interruptible);
+		assert(thread->sleep_interruptible);
 		
 		if ((thread->timeout_pending) &&
 		    (timeout_unregister(&thread->sleep_timeout)))
@@ -263,7 +264,7 @@ void waitq_unsleep(waitq_t *wq)
  */
 int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags)
 {
-	ASSERT((!PREEMPTION_DISABLED) || (PARAM_NON_BLOCKING(flags, usec)));
+	assert((!PREEMPTION_DISABLED) || (PARAM_NON_BLOCKING(flags, usec)));
 	
 	ipl_t ipl = waitq_sleep_prepare(wq);
 	int rc = waitq_sleep_timeout_unsafe(wq, usec, flags);
@@ -495,7 +496,7 @@ void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
  */
 static void waitq_complete_wakeup(waitq_t *wq)
 {
-	ASSERT(interrupts_disabled());
+	assert(interrupts_disabled());
 	
 	irq_spinlock_lock(&wq->lock, false);
 	irq_spinlock_unlock(&wq->lock, false);
@@ -519,8 +520,8 @@ void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 {
 	size_t count = 0;
 
-	ASSERT(interrupts_disabled());
-	ASSERT(irq_spinlock_locked(&wq->lock));
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&wq->lock));
 	
 loop:
 	if (list_empty(&wq->sleepers)) {

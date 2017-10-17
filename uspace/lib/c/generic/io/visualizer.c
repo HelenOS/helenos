@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <as.h>
 #include <ipc/graph.h>
@@ -174,11 +175,10 @@ int visualizer_update_damaged_region(async_sess_t *sess,
     sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height,
 	sysarg_t x_offset, sysarg_t y_offset)
 {
-#ifdef __32_BITS__
+	assert(x_offset <= UINT16_MAX);
+	assert(y_offset <= UINT16_MAX);
+
 	sysarg_t offsets = ((x_offset << 16) | (y_offset & 0x0000ffff));
-#else
-	sysarg_t offsets = ((x_offset << 32) | (y_offset & 0xffffffff));
-#endif
 
 	async_exch_t *exch = async_exchange_begin(sess);
 	int ret = async_req_5_0(exch, VISUALIZER_UPDATE_DAMAGED_REGION,

@@ -29,11 +29,12 @@
 /** @file
  */
 
+#include <types/common.h>
 #include "../../../generic/private/thread.h"
 
 void __thread_entry(void)
 {
-	__thread_main(NULL);
+	__thread_main((void *) 0);
 }
 
 /** @}

@@ -38,6 +38,7 @@
  *
  */
 
+#include <assert.h>
 #include <console/kconsole.h>
 #include <console/console.h>
 #include <console/chardev.h>
@@ -53,7 +54,6 @@
 #include <func.h>
 #include <str.h>
 #include <sysinfo/sysinfo.h>
-#include <ddi/device.h>
 #include <symtab.h>
 #include <errno.h>
 #include <putchar.h>
@@ -632,8 +632,8 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
     size_t *start, size_t *end)
 {
-	ASSERT(start != NULL);
-	ASSERT(end != NULL);
+	assert(start != NULL);
+	assert(end != NULL);
 	
 	bool found_start = false;
 	size_t offset = *start;

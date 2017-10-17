@@ -1358,6 +1358,9 @@ static bool loc_init(void)
 	cat = category_new("ieee80211");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("irc");
+	categ_dir_add_cat(&cdir, cat);
+
 	cat = category_new("visualizer");
 	categ_dir_add_cat(&cdir, cat);
 

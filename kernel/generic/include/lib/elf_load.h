@@ -36,7 +36,6 @@
 #define KERN_ELF_LOAD_H_
 
 #include <arch/elf.h>
-#include <typedefs.h>
 
 /**
  * ELF error return codes

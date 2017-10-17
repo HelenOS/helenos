@@ -113,7 +113,7 @@ static void bi_task_exec(run_t *run)
 		cmd[idx] = arg->u.string_v->value;
 	}
 
-	cmd[dim] = '\0';
+	cmd[dim] = NULL;
 
 	if (os_exec((char * const *)cmd) != EOK) {
 		printf("Error: Exec failed.\n");

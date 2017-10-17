@@ -35,6 +35,7 @@
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
 #include <arch/mm/page.h>
+#include <assert.h>
 #include <genarch/mm/as_ht.h>
 #include <genarch/mm/page_ht.h>
 #include <genarch/mm/asid_fifo.h>
@@ -57,7 +58,7 @@ void as_install_arch(as_t *as)
 	region_register_t rr;
 	int i;
 	
-	ASSERT(as->asid != ASID_INVALID);
+	assert(as->asid != ASID_INVALID);
 	
 	/*
 	 * Load respective ASID (7 consecutive RIDs) to

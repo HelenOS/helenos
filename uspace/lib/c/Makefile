@@ -62,6 +62,7 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
+	generic/perm.c \
 	generic/cap.c \
 	generic/clipboard.c \
 	generic/config.c \
@@ -80,6 +81,7 @@ GENERIC_SOURCES = \
 	generic/elf/elf_mod.c \
 	generic/event.c \
 	generic/errno.c \
+	generic/gsort.c \
 	generic/loc.c \
 	generic/mem.c \
 	generic/str.c \
@@ -123,6 +125,7 @@ GENERIC_SOURCES = \
 	generic/io/printf_core.c \
 	generic/io/con_srv.c \
 	generic/io/console.c \
+	generic/io/table.c \
 	generic/io/visualizer.c \
 	generic/io/window.c \
 	generic/iplink.c \
@@ -157,10 +160,10 @@ GENERIC_SOURCES = \
 	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
-	generic/sort.c \
 	generic/stats.c \
 	generic/assert.c \
 	generic/pio_trace.c \
+	generic/qsort.c \
 	generic/uuid.c \
 	generic/vbd.c \
 	generic/vol.c
@@ -178,8 +181,11 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 TEST_SOURCES = \
+	test/fibril/timer.c \
 	test/main.c \
+	test/io/table.c \
 	test/odict.c \
+	test/qsort.c \
 	test/sprintf.c \
 	test/str.c
 
@@ -187,7 +193,7 @@ include $(USPACE_PREFIX)/Makefile.common
 
 %.h: %.ag
 	$(AUTOGEN) probe $< >$<.probe.c
-	$(CC) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
+	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
 	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in

@@ -34,7 +34,7 @@
  * @brief i8042 driver DDF bits.
  */
 
-#include <libarch/inttypes.h>
+#include <inttypes.h>
 #include <libarch/config.h>
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
@@ -59,7 +59,7 @@ static int get_my_registers(ddf_dev_t *dev, addr_range_t *p_io_reg,
 {
 	assert(dev);
 	
-	async_sess_t *parent_sess = ddf_dev_parent_sess_create(dev);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
 		return ENOMEM;
 	

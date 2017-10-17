@@ -39,7 +39,7 @@
 #include <interrupt.h>
 #include <macros.h>
 #include <str.h>
-#include <memstr.h>
+#include <mem.h>
 #include <userspace.h>
 #include <syscall/syscall.h>
 #include <sysinfo/sysinfo.h>

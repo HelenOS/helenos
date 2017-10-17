@@ -15,9 +15,9 @@ SECTIONS {
 		*(.got .got.*);
 		*(.bss);                /* uninitialized static variables */
 		*(COMMON);
-[[COMPONENTS]]
+		*(.components);
 	}
-
+	
 	/DISCARD/ : {
 		*(.*);
 	}

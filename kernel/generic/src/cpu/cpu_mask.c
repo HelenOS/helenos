@@ -34,6 +34,7 @@
  * @file
  * @brief CPU mask manipulation functions.
  */
+#include <assert.h>
 #include <cpu/cpu_mask.h>
 #include <cpu.h>
 #include <config.h>
@@ -51,8 +52,8 @@ size_t cpu_mask_size(void)
 /** Add first cpu_cnt cpus to the mask, ie sets the first cpu_cnt bits. */
 static void cpu_mask_count(cpu_mask_t *cpus, size_t cpu_cnt)
 {
-	ASSERT(NULL != cpus);
-	ASSERT(cpu_cnt <= config.cpu_count);
+	assert(NULL != cpus);
+	assert(cpu_cnt <= config.cpu_count);
 	
 	for (size_t active_word = 0; 
 		(active_word + 1) * word_bit_cnt <= cpu_cnt;
@@ -86,7 +87,7 @@ void cpu_mask_all(cpu_mask_t *cpus)
 /** Resets/removes all bits. */
 void cpu_mask_none(cpu_mask_t *cpus)
 {
-	ASSERT(cpus);
+	assert(cpus);
 	
 	size_t word_cnt = cpu_mask_size() / word_size;
 		

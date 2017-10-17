@@ -36,7 +36,7 @@
 #define KERN_sparc64_REGISTER_H_
 
 #include <arch/regdef.h>
-#include <typedefs.h>
+#include <stdint.h>
 
 /** Version Register. */
 union ver_reg {

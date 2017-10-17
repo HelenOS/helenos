@@ -35,7 +35,14 @@
 #ifndef KERN_riscv64_KM_H_
 #define KERN_riscv64_KM_H_
 
-#include <typedefs.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+#define KM_RISCV64_IDENTITY_START      UINT64_C(0xffff800000000000)
+#define KM_RISCV64_IDENTITY_SIZE       UINT64_C(0x0000400000000000)
+
+#define KM_RISCV64_NON_IDENTITY_START  UINT64_C(0xffffc00000000000)
+#define KM_RISCV64_NON_IDENTITY_SIZE   UINT64_C(0x0000400000000000)
 
 extern void km_identity_arch_init(void);
 extern void km_non_identity_arch_init(void);

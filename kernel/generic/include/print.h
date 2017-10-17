@@ -35,8 +35,8 @@
 #ifndef KERN_PRINT_H_
 #define KERN_PRINT_H_
 
-#include <typedefs.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <printf/verify.h>
 
 #define EOF  (-1)

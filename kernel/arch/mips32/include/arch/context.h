@@ -38,7 +38,6 @@
 #include <align.h>
 #include <arch/stack.h>
 #include <arch/context_struct.h>
-#include <typedefs.h>
 
 /*
  * Put one item onto the stack to support get_stack_base() and align it up.

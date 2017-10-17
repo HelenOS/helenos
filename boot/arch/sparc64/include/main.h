@@ -29,7 +29,7 @@
 #ifndef BOOT_sparc64_MAIN_H_
 #define BOOT_sparc64_MAIN_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 #include <balloc.h>
 #include <genarch/ofw_tree.h>
 

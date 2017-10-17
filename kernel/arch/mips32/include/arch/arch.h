@@ -35,7 +35,8 @@
 #ifndef KERN_mips32_ARCH_H_
 #define KERN_mips32_ARCH_H_
 
-#include <typedefs.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define TASKMAP_MAX_RECORDS        32
 #define CPUMAP_MAX_RECORDS         32

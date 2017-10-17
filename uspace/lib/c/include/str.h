@@ -98,6 +98,7 @@ extern void str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
 extern wchar_t *str_to_awstr(const char *src);
 extern int utf16_to_str(char *dest, size_t size, const uint16_t *src);
 extern int str_to_utf16(uint16_t *dest, size_t dlen, const char *src);
+extern size_t utf16_wsize(const uint16_t *ustr);
 
 extern char *str_chr(const char *str, wchar_t ch);
 extern char *str_rchr(const char *str, wchar_t ch);

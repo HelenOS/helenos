@@ -35,7 +35,7 @@
 #ifndef LIBC_sparc64_FADDR_H_
 #define LIBC_sparc64_FADDR_H_
 
-#include <libarch/types.h>
+#include <types/common.h>
 
 #define FADDR(fptr)		((uintptr_t) (fptr))
 

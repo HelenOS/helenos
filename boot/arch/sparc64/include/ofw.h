@@ -29,7 +29,7 @@
 #ifndef BOOT_sparc64_OFW_H_
 #define BOOT_sparc64_OFW_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 #define OFW_ADDRESS_CELLS  2
 #define OFW_SIZE_CELLS     2

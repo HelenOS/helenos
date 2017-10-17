@@ -29,7 +29,7 @@
 #ifndef BOOT_INFLATE_H_
 #define BOOT_INFLATE_H_
 
-#include <typedefs.h>
+#include <stddef.h>
 
 extern int inflate(void *, size_t, void *, size_t);
 

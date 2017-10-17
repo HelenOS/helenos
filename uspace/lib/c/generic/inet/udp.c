@@ -226,6 +226,22 @@ void udp_assoc_destroy(udp_assoc_t *assoc)
 	(void) rc;
 }
 
+/** Set UDP association sending messages with no local address
+ *
+ * @param assoc Association
+ * @param flags Flags
+ */
+int udp_assoc_set_nolocal(udp_assoc_t *assoc)
+{
+	async_exch_t *exch;
+
+	exch = async_exchange_begin(assoc->udp->sess);
+	sysarg_t rc = async_req_1_0(exch, UDP_ASSOC_SET_NOLOCAL, assoc->id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
 /** Send message via UDP association.
  *
  * @param assoc Association

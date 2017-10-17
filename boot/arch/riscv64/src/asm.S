@@ -28,6 +28,25 @@
 
 #include <abi/asmtool.h>
 #include <arch/arch.h>
+#include <arch/mm.h>
+
+#define MCOUNTEREN_CY_MASK  0x00000001
+#define MCOUNTEREN_TM_MASK  0x00000002
+#define MCOUNTEREN_IR_MASK  0x00000004
+
+#define MSTATUS_MPP_MASK        0x00001800
+#define MSTATUS_MPP_USER        0x00000000
+#define MSTATUS_MPP_SUPERVISOR  0x00000800
+#define MSTATUS_MPP_MACHINE     0x00001800
+
+#define MSTATUS_SUM_MASK        0x00040000
+
+#define SATP_PFN_MASK  0x00000fffffffffff
+
+#define SATP_MODE_MASK  0xf000000000000000
+#define SATP_MODE_BARE  0x0000000000000000
+#define SATP_MODE_SV39  0x8000000000000000
+#define SATP_MODE_SV48  0x9000000000000000
 
 .section BOOTSTRAP
 
@@ -75,7 +94,40 @@ SYMBOL(start)
 .text
 
 FUNCTION_BEGIN(jump_to_kernel)
-	j halt
+	/* Enable performance counters access in supervisor mode */
+	csrsi mcounteren, MCOUNTEREN_CY_MASK | MCOUNTEREN_TM_MASK | MCOUNTEREN_IR_MASK
+	
+	/* Setup SV48 paging for supervisor mode */
+	la t0, ptl_0
+	srli t0, t0, 12
+	
+	li t1, SATP_PFN_MASK
+	and t0, t0, t1
+	
+	li t1, SATP_MODE_SV48
+	or t0, t0, t1
+	
+	csrw sptbr, t0
+	
+	/* Jump to supervisor mode */
+	csrr t0, mstatus
+	
+	li t1, ~MSTATUS_MPP_MASK
+	and t0, t0, t1
+	
+	/*
+	 * TODO: Enable running with Supervisor User Mode
+	 * access disabled.
+	 */
+	li t1, MSTATUS_MPP_SUPERVISOR | MSTATUS_SUM_MASK
+	or t0, t0, t1
+	
+	csrw mstatus, t0
+	
+	li ra, PA2KA(BOOT_OFFSET)
+	csrw mepc, ra
+	
+	mret
 FUNCTION_END(jump_to_kernel)
 
 FUNCTION_BEGIN(halt)
@@ -87,3 +139,12 @@ FUNCTION_END(halt)
 .align PAGE_WIDTH
 SYMBOL(boot_stack)
 	.space BOOT_STACK_SIZE
+
+.section .pt, "aw", @progbits
+
+.align PAGE_WIDTH
+SYMBOL(ptl_0)
+	.fill 256, 8, 0
+	/* Identity mapping for [0; 512G) */
+	.quad 0 + (PTL_DIRTY | PTL_ACCESSED | PTL_EXECUTABLE | PTL_WRITABLE | PTL_READABLE | PTL_VALID)
+	.fill 255, 8, 0

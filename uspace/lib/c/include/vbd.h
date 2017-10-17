@@ -38,7 +38,7 @@
 #include <async.h>
 #include <loc.h>
 #include <types/label.h>
-#include <sys/types.h>
+#include <offset.h>
 
 /** VBD service */
 typedef struct vbd {

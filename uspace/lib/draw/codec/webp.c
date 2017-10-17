@@ -38,7 +38,7 @@
 #include <align.h>
 #include <stdbool.h>
 #include <pixconv.h>
-#include <sys/types.h>
+#include <fourcc.h>
 #include <stdint.h>
 #include <abi/fourcc.h>
 #include "webp.h"

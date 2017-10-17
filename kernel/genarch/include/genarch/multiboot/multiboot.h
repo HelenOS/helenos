@@ -70,6 +70,8 @@ typedef struct {
 	uint32_t reserved;
 } __attribute__((packed)) multiboot_module_t;
 
+extern void multiboot_cmdline(const char *);
+
 extern void multiboot_extract_command(char *, size_t, const char *);
 extern void multiboot_extract_argument(char *, size_t, const char *);
 extern void multiboot_info_parse(uint32_t, const multiboot_info_t *);

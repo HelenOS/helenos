@@ -35,6 +35,7 @@
 #ifndef KERN_BFB_H_
 #define KERN_BFB_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
 
 extern uintptr_t bfb_addr;

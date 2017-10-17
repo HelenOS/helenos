@@ -34,6 +34,7 @@
 
 #include <arch/exception.h>
 #include <arch/mach/beagleboardxm/beagleboardxm.h>
+#include <assert.h>
 #include <genarch/drivers/amdm37x/uart.h>
 #include <genarch/drivers/amdm37x/irc.h>
 #include <genarch/drivers/amdm37x/gpt.h>
@@ -42,7 +43,6 @@
 #include <interrupt.h>
 #include <mm/km.h>
 #include <ddi/ddi.h>
-#include <ddi/device.h>
 
 static void bbxm_init(void);
 static void bbxm_timer_irq_start(void);
@@ -101,7 +101,7 @@ static void bbxm_init(void)
 	beagleboard.irc_addr =
 	    (void *) km_map(AMDM37x_IRC_BASE_ADDRESS, AMDM37x_IRC_SIZE,
 	    PAGE_NOT_CACHEABLE);
-	ASSERT(beagleboard.irc_addr);
+	assert(beagleboard.irc_addr);
 	omap_irc_init(beagleboard.irc_addr);
 
 	/* Initialize timer. Use timer1, because it is in WKUP power domain
@@ -115,7 +115,6 @@ static void bbxm_timer_irq_start(void)
 	/* Initialize timer IRQ */
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
-	timer_irq.devno = device_assign_devno();
 	timer_irq.inr = AMDM37x_GPT1_IRQ;
 	timer_irq.claim = bb_timer_irq_claim;
 	timer_irq.handler = bb_timer_irq_handler;

@@ -159,8 +159,15 @@ LIBURI_PREFIX = $(LIB_PREFIX)/uri
 
 LIBNETTL_PREFIX = $(LIB_PREFIX)/nettl
 
-AFLAGS = --fatal-warnings
+AFLAGS =
 LFLAGS = --fatal-warnings
+
+# FIXME: This condition is a workaround for issues #692 and #693.
+ifneq ($(KARCH),ia64)
+ifneq ($(KARCH),mips32)
+	AFLAGS += --fatal-warnings
+endif
+endif
 
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
@@ -202,18 +209,13 @@ else
 	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
 endif
 
-ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
-	OPTIMIZATION = s
-else
-	OPTIMIZATION = 3
-endif
-
 # PCUT-based unit tests
 ifneq ($(TEST_SOURCES),)
 	TEST_OUTPUT = $(TEST_BINARY)
+	TEST_DISASM = $(TEST_BINARY).disasm
 	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__
 	TEST_OUTPUT_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
-	EXTRA_CLEAN += $(TEST_OUTPUT) $(TEST_OUTPUT).map
+	EXTRA_CLEAN += $(TEST_OUTPUT) $(TEST_OUTPUT).map $(TEST_DISASM)
 ifneq ($(LIBRARY),)
 	TEST_OUTPUT_LIBS += $(OUTPUT)
 endif
@@ -225,53 +227,41 @@ endif
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
-all-test: $(TEST_OUTPUT)
+all-test: $(TEST_OUTPUT) $(TEST_DISASM)
 
 clean:
 	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
 	find . -name '*.o' -follow -exec rm \{\} \;
 	find . -name '*.lo' -follow -exec rm \{\} \;
 
-GCC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
+COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc -fexec-charset=UTF-8 \
+	-finput-charset=UTF-8 -D__$(ENDIANESS)__
+
+GCC_CFLAGS = -ffunction-sections -Wall -Wextra -Wno-clobbered \
+	-Wno-unused-parameter -Wmissing-prototypes -std=gnu99 \
+	-Werror-implicit-function-declaration \
+	-Wwrite-strings -pipe
+
+# -Wno-missing-prototypes is there because it warns about main().
+# This should be fixed elsewhere.
+CLANG_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-typedef-redefinition \
+	-Wno-missing-prototypes -Wno-unused-command-line-argument \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -ggdb -D__$(ENDIANESS)__
-
-ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -g -D__$(ENDIANESS)__
-
-# clang does not support following options but I am not sure whether
-# something won't break because of that:
-# -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
-CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
-	-integrated-as -pipe -g -target $(CLANG_TARGET) -D__$(ENDIANESS)__
-
-LIB_CFLAGS = $(CFLAGS) -fPIC
-LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
+	-pipe -fno-stack-protector -fno-PIC
 
 ifeq ($(CONFIG_DEBUG),y)
-	GCC_CFLAGS += -Werror
-	ICC_CFLAGS += -Werror
+	COMMON_CFLAGS += -Werror
 endif
 
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	GCC_CFLAGS += -ggdb
-	ICC_CFLAGS += -g
 	CLANG_CFLAGS += -g
 endif
 
 # Prepare for POSIX before including platform specific stuff
 ifeq ($(POSIX_COMPAT),y)
-	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix -I$(LIBPOSIX_PREFIX)/include/
+	CFLAGS += -I$(LIBPOSIX_PREFIX)/include/posix -I$(LIBPOSIX_PREFIX)/include/
 	BASE_LIBS = $(LIBPOSIX_PREFIX)/libposixaslibc.a $(LIBPOSIX_PREFIX)/libc4posix.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 endif
 
@@ -286,40 +276,41 @@ endif
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
 ifeq ($(COMPILER),gcc_cross)
-	CFLAGS += $(GCC_CFLAGS)
+	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_helenos)
-	CFLAGS += $(GCC_CFLAGS)
+	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_native)
-	CFLAGS += $(GCC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),icc)
-	CFLAGS += $(ICC_CFLAGS)
+	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),clang)
-	CFLAGS += $(CLANG_CFLAGS)
+	CFLAGS += $(COMMON_CFLAGS) $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
+
+LIB_CFLAGS = $(CFLAGS) -fPIC
+LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPEND)
 endif
+
+AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
+LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 TEST_OBJECTS := $(addsuffix .test.o,$(basename $(TEST_SOURCES)))
 
 ifneq ($(BINARY),)
-%.disasm: $(BINARY)
+$(BINARY).disasm: $(BINARY)
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
 else
@@ -334,7 +325,7 @@ endif
 endif
 
 ifneq ($(SLIBRARY),)
-%.disasm: $(LOUTPUT)
+$(LOUTPUT).disasm: $(LOUTPUT)
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
 else
@@ -367,16 +358,22 @@ $(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
 ifeq ($(CONFIG_STRIP_BINARIES),y)
 	$(STRIP) $(TEST_OUTPUT)
 endif
+$(TEST_BINARY).disasm: $(TEST_BINARY)
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	$(OBJDUMP) -d -S $< > $@
+else
+	$(OBJDUMP) -d $< > $@
+endif
 endif
 
 %.o: %.S $(DEPEND)
-	$(GCC) $(DEFS) $(GCC_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__ -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
 endif
 
 %.o: %.s $(DEPEND)
-	$(AS) $(AFLAGS) -o $@ $<
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm
 endif
@@ -394,13 +391,13 @@ ifeq ($(PRECHECK),y)
 endif
 
 %.lo: %.S $(DEPEND)
-	$(CC) $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__ -c $< -o $@
+	$(CC) $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
 endif
 
 %.lo: %.s $(DEPEND)
-	$(AS) $(AFLAGS) -o $@ $<
+	$(CC) $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm
 endif

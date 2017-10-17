@@ -34,6 +34,7 @@
 
 #include <smp/ipi.h>
 #include <arch/smp/sun4u/ipi.h>
+#include <assert.h>
 #include <cpu.h>
 #include <arch.h>
 #include <arch/cpu.h>
@@ -102,7 +103,7 @@ static void cross_call(int mid, void (* func)(void))
 	if (status & INTR_DISPATCH_STATUS_BUSY)
 		panic("Interrupt Dispatch Status busy bit set\n");
 	
-	ASSERT(!(pstate_read() & PSTATE_IE_BIT));
+	assert(!(pstate_read() & PSTATE_IE_BIT));
 	
 	do {
 		set_intr_w_data(func);
@@ -184,7 +185,7 @@ void ipi_broadcast_arch(int ipi)
  */
 void ipi_unicast_arch(unsigned int cpu_id, int ipi)
 {
-	ASSERT(&cpus[cpu_id] != CPU);
+	assert(&cpus[cpu_id] != CPU);
 	
 	if (ipi == IPI_SMP_CALL) {
 		cross_call(cpus[cpu_id].arch.mid, smp_call_ipi_recv);

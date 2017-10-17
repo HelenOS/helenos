@@ -39,7 +39,7 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
+#include <stdint.h>
 
 extern uint32_t *vreg_ptr;
 

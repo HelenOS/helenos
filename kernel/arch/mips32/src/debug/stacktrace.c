@@ -61,6 +61,7 @@
  */
 
 #include <stacktrace.h>
+#include <stddef.h>
 #include <syscall/copy.h>
 #include <typedefs.h>
 #include <arch/debugger.h>

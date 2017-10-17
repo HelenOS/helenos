@@ -53,11 +53,11 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
 #include <arch/register.h>
 #include <arch/regdef.h>
 #include <arch/asm.h>
 #include <arch/arch.h>
+#include <stdint.h>
 #include <trace.h>
 
 typedef struct {

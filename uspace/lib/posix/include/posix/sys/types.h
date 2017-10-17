@@ -40,8 +40,9 @@
 #define __POSIX_DEF__(x) x
 #endif
 
-#include "libc/sys/types.h"
+#include "libc/offset.h"
 #include "libc/sys/time.h"
+#include "libc/types/common.h"
 
 typedef unsigned int __POSIX_DEF__(ino_t);
 typedef unsigned int __POSIX_DEF__(nlink_t);

@@ -37,83 +37,59 @@
 #include <adt/prodcons.h>
 #include <errno.h>
 #include <io/log.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include "conn.h"
-#include "pdu.h"
 #include "rqueue.h"
 #include "segment.h"
 #include "tcp_type.h"
 #include "ucall.h"
 
-/** Transcode bounced segments.
- *
- * If defined, segments bounced via the internal debugging loopback will
- * be encoded to a PDU and the decoded. Otherwise they will be bounced back
- * directly without passing the encoder-decoder.
- */
-#define BOUNCE_TRANSCODE
-
 static prodcons_t rqueue;
+static bool fibril_active;
+static fibril_mutex_t lock;
+static fibril_condvar_t cv;
+static tcp_rqueue_cb_t *rqueue_cb;
 
 /** Initialize segment receive queue. */
-void tcp_rqueue_init(void)
+void tcp_rqueue_init(tcp_rqueue_cb_t *rcb)
 {
 	prodcons_initialize(&rqueue);
+	fibril_mutex_initialize(&lock);
+	fibril_condvar_initialize(&cv);
+	fibril_active = false;
+	rqueue_cb = rcb;
 }
 
-/** Bounce segment directy into receive queue without constructing the PDU.
- *
- * This is for testing purposes only.
- *
- * @param sp	Endpoint pair, oriented for transmission
- * @param seg	Segment
- */
-void tcp_rqueue_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
+/** Finalize segment receive queue. */
+void tcp_rqueue_fini(void)
 {
-	inet_ep2_t rident;
+	inet_ep2_t epp;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_bounce_seg()");
+	inet_ep2_init(&epp);
+	tcp_rqueue_insert_seg(&epp, NULL);
 
-#ifdef BOUNCE_TRANSCODE
-	tcp_pdu_t *pdu;
-	tcp_segment_t *dseg;
-
-	if (tcp_pdu_encode(epp, seg, &pdu) != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
-		return;
-	}
-
-	if (tcp_pdu_decode(pdu, &rident, &dseg) != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
-		return;
-	}
-
-	tcp_pdu_delete(pdu);
-
-	/** Insert decoded segment into rqueue */
-	tcp_rqueue_insert_seg(&rident, dseg);
-	tcp_segment_delete(seg);
-#else
-	/* Reverse the identification */
-	tcp_ep2_flipped(epp, &rident);
-
-	/* Insert segment back into rqueue */
-	tcp_rqueue_insert_seg(&rident, seg);
-#endif
+	fibril_mutex_lock(&lock);
+	while (fibril_active)
+		fibril_condvar_wait(&cv, &lock);
+	fibril_mutex_unlock(&lock);
 }
 
 /** Insert segment into receive queue.
  *
  * @param epp	Endpoint pair, oriented for reception
- * @param seg	Segment
+ * @param seg	Segment (ownership transferred to rqueue)
  */
 void tcp_rqueue_insert_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 {
 	tcp_rqueue_entry_t *rqe;
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_insert_seg()");
 
-	tcp_segment_dump(seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_rqueue_insert_seg()");
+
+	if (seg != NULL)
+		tcp_segment_dump(seg);
 
 	rqe = calloc(1, sizeof(tcp_rqueue_entry_t));
 	if (rqe == NULL) {
@@ -139,11 +115,23 @@ static int tcp_rqueue_fibril(void *arg)
 		link = prodcons_consume(&rqueue);
 		rqe = list_get_instance(link, tcp_rqueue_entry_t, link);
 
-		tcp_as_segment_arrived(&rqe->epp, rqe->seg);
+		if (rqe->seg == NULL) {
+			free(rqe);
+			break;
+		}
+
+		rqueue_cb->seg_received(&rqe->epp, rqe->seg);
 		free(rqe);
 	}
 
-	/* Not reached */
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_rqueue_fibril() exiting");
+
+	/* Finished */
+	fibril_mutex_lock(&lock);
+	fibril_active = false;
+	fibril_mutex_unlock(&lock);
+	fibril_condvar_broadcast(&cv);
+
 	return 0;
 }
 
@@ -161,6 +149,7 @@ void tcp_rqueue_fibril_start(void)
 	}
 
 	fibril_add_ready(fid);
+	fibril_active = true;
 }
 
 /**

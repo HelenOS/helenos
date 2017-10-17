@@ -54,7 +54,6 @@
 #include <ddf/log.h>
 #include <ops/char_dev.h>
 
-#include <irc.h>
 #include <device/hw_res.h>
 #include <ipc/serial_ctl.h>
 
@@ -153,12 +152,16 @@ typedef struct ns8250 {
 	ddf_dev_t *dev;
 	/** DDF function node */
 	ddf_fun_t *fun;
+	/** Parent session */
+	async_sess_t *parent_sess;
 	/** I/O registers **/
 	ns8250_regs_t *regs;
 	/** Are there any clients connected to the device? */
 	unsigned client_connections;
 	/** The irq assigned to this device. */
 	int irq;
+	/** IRQ capability handle */
+	int irq_cap;
 	/** The base i/o address of the devices registers. */
 	uintptr_t io_addr;
 	/** The i/o port used to access the serial ports registers. */
@@ -379,7 +382,6 @@ static bool ns8250_dev_probe(ns8250_t *ns)
  */
 static int ns8250_dev_initialize(ns8250_t *ns)
 {
-	async_sess_t *parent_sess;
 	int ret = EOK;
 	
 	ddf_msg(LVL_DEBUG, "ns8250_dev_initialize %s", ddf_dev_get_name(ns->dev));
@@ -387,17 +389,8 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 	hw_resource_list_t hw_resources;
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
 	
-	/* Connect to the parent's driver. */
-	parent_sess = ddf_dev_parent_sess_create(ns->dev);
-	if (parent_sess == NULL) {
-		ddf_msg(LVL_ERROR, "Failed to connect to parent driver of "
-		    "device %s.", ddf_dev_get_name(ns->dev));
-		ret = ENOENT;
-		goto failed;
-	}
-	
 	/* Get hw resources. */
-	ret = hw_res_get_resource_list(parent_sess, &hw_resources);
+	ret = hw_res_get_resource_list(ns->parent_sess, &hw_resources);
 	if (ret != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to get HW resources for device "
 		    "%s.", ddf_dev_get_name(ns->dev));
@@ -484,7 +477,7 @@ static inline void ns8250_port_interrupts_disable(ns8250_regs_t *regs)
 static int ns8250_interrupt_enable(ns8250_t *ns)
 {
 	/* Enable interrupt using IRC service. */
-	int rc = irc_enable_interrupt(ns->irq);
+	int rc = hw_res_enable_interrupt(ns->parent_sess, ns->irq);
 	if (rc != EOK)
 		return EIO;
 	
@@ -777,7 +770,7 @@ static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	ns8250_read_from_device(ns);
-	irc_disable_interrupt(ns->irq);
+	hw_res_clear_interrupt(ns->parent_sess, ns->irq);
 }
 
 /** Register the interrupt handler for the device.
@@ -796,7 +789,7 @@ static inline int ns8250_register_interrupt_handler(ns8250_t *ns)
  */
 static inline int ns8250_unregister_interrupt_handler(ns8250_t *ns)
 {
-	return unregister_interrupt_handler(ns->dev, ns->irq);
+	return unregister_interrupt_handler(ns->dev, ns->irq_cap);
 }
 
 /** The dev_add callback method of the serial port driver.
@@ -827,6 +820,14 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	fibril_condvar_initialize(&ns->input_buffer_available);
 	ns->dev = dev;
 	
+	ns->parent_sess = ddf_dev_parent_sess_get(ns->dev);
+	if (ns->parent_sess == NULL) {
+		ddf_msg(LVL_ERROR, "Failed to connect to parent driver of "
+		    "device %s.", ddf_dev_get_name(ns->dev));
+		rc = EIO;
+		goto fail;
+	}
+	
 	rc = ns8250_dev_initialize(ns);
 	if (rc != EOK)
 		goto fail;
@@ -848,7 +849,8 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	ns8250_initialize_port(ns);
 	
 	/* Register interrupt handler. */
-	if (ns8250_register_interrupt_handler(ns) != EOK) {
+	ns->irq_cap = ns8250_register_interrupt_handler(ns);
+	if (ns->irq_cap < 0) {
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
 		rc = EADDRNOTAVAIL;
 		goto fail;

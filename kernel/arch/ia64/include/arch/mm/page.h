@@ -38,6 +38,10 @@
 
 #include <arch/mm/frame.h>
 
+#ifndef __ASM__
+#include <assert.h>
+#endif
+
 #define PAGE_SIZE   FRAME_SIZE
 #define PAGE_WIDTH  FRAME_WIDTH
 
@@ -231,7 +235,7 @@ NO_TRACE static inline uint64_t rr_read(size_t i)
 {
 	uint64_t ret;
 	
-	ASSERT(i < REGION_REGISTERS);
+	assert(i < REGION_REGISTERS);
 	
 	asm volatile (
 		"mov %[ret] = rr[%[index]]\n"
@@ -249,7 +253,7 @@ NO_TRACE static inline uint64_t rr_read(size_t i)
  */
 NO_TRACE static inline void rr_write(size_t i, uint64_t v)
 {
-	ASSERT(i < REGION_REGISTERS);
+	assert(i < REGION_REGISTERS);
 	
 	asm volatile (
 		"mov rr[%[index]] = %[value]\n"

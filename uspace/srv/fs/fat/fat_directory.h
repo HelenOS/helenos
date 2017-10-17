@@ -71,6 +71,7 @@ extern int fat_directory_write_dentry(fat_directory_t *, fat_dentry_t *);
 extern int fat_directory_create_sfn(fat_directory_t *, fat_dentry_t *,
     const char *);
 extern int fat_directory_expand(fat_directory_t *);
+extern int fat_directory_vollabel_get(fat_directory_t *, char *);
 
 #endif
 

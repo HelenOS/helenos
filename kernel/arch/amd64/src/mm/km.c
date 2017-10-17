@@ -33,8 +33,8 @@
 #include <arch/mm/km.h>
 #include <mm/km.h>
 #include <config.h>
-#include <typedefs.h>
 #include <macros.h>
+#include <stdbool.h>
 
 void km_identity_arch_init(void)
 {

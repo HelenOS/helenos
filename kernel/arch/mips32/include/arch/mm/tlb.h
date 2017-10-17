@@ -35,10 +35,11 @@
 #ifndef KERN_mips32_TLB_H_
 #define KERN_mips32_TLB_H_
 
-#include <typedefs.h>
 #include <arch/mm/asid.h>
 #include <arch/exception.h>
+#include <stdbool.h>
 #include <trace.h>
+#include <typedefs.h>
 
 #if defined(PROCESSOR_R4000)
 #define TLB_ENTRY_COUNT  48

@@ -36,7 +36,6 @@
 #ifndef KERN_sparc64_INTERRUPT_H_
 #define KERN_sparc64_INTERRUPT_H_
 
-#include <typedefs.h>
 #include <arch/istate.h>
 
 #define IVT_ITEMS  512

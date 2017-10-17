@@ -40,7 +40,7 @@
 #include <adt/list.h>
 #include <atomic.h>
 #include <bd_srv.h>
-#include <label.h>
+#include <label/label.h>
 #include <loc.h>
 #include <stdbool.h>
 #include <stddef.h>

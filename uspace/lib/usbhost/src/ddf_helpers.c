@@ -46,7 +46,6 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
-#include <devman.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <macros.h>
@@ -606,36 +605,31 @@ void hcd_ddf_clean_hc(ddf_dev_t *device)
 		ddf_fun_destroy(hc->ctl_fun);
 }
 
-//TODO: Move this to generic ddf?
-/** Call the parent driver with a request to enable interrupts
+//TODO: Cache parent session in HCD
+/** Call the parent driver with a request to enable interrupt
  *
  * @param[in] device Device asking for interrupts
+ * @param[in] inum Interrupt number
  * @return Error code.
  */
-int hcd_ddf_enable_interrupts(ddf_dev_t *device)
+int hcd_ddf_enable_interrupt(ddf_dev_t *device, int inum)
 {
-	assert(device);
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(ddf_dev_get_handle(device),
-	    IPC_FLAG_BLOCKING);
-	const bool enabled = hw_res_enable_interrupt(parent_sess);
-	async_hangup(parent_sess);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
+		return EIO;
 
-	return enabled ? EOK : EIO;
+	return hw_res_enable_interrupt(parent_sess, inum);
 }
 
-//TODO: Move this to generic ddf?
+//TODO: Cache parent session in HCD
 int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
 {
-	assert(device);
-	assert(hw_res);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
+		return EIO;
 
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(ddf_dev_get_handle(device),
-	    IPC_FLAG_BLOCKING);
 	hw_res_list_parsed_init(hw_res);
 	const int ret = hw_res_get_list_parsed(parent_sess, hw_res, 0);
-	async_hangup(parent_sess);
 	if (ret != EOK)
 		hw_res_list_parsed_clean(hw_res);
 	return ret;
@@ -662,7 +656,8 @@ static inline void irq_code_clean(irq_code_t *code)
  * @paran[in] handler Interrupt handler
  * @param[in] gen_irq_code IRQ code generator.
  *
- * @return EOK on success or negative error code
+ * @return IRQ capability handle on success.
+ * @return Negative error code.
  */
 int hcd_ddf_setup_interrupts(ddf_dev_t *device,
     const hw_res_list_parsed_t *hw_res,
@@ -686,24 +681,24 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 	}
 
 	/* Register handler to avoid interrupt lockup */
-	int ret = register_interrupt_handler(device, irq, handler, &irq_code);
+	const int irq_cap = register_interrupt_handler(device, irq, handler,
+	    &irq_code);
 	irq_code_clean(&irq_code);
-	if (ret != EOK) {
+	if (irq_cap < 0) {
 		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(ret));
-		return ret;
+		    str_error(irq_cap));
+		return irq_cap;
 	}
 
 	/* Enable interrupts */
-	ret = hcd_ddf_enable_interrupts(device);
+	int ret = hcd_ddf_enable_interrupt(device, irq);
 	if (ret != EOK) {
 		usb_log_error("Failed to enable interrupts: %s.\n",
 		    str_error(ret));
-		unregister_interrupt_handler(device, irq);
+		unregister_interrupt_handler(device, irq_cap);
 		return ret;
 	}
-	assert(irq > 0);
-	return irq;
+	return irq_cap;
 }
 
 /** IRQ handling callback, forward status from call to diver structure.
@@ -795,8 +790,10 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	/* Setup interrupts  */
 	interrupt_handler_t *irq_handler =
 	    driver->irq_handler ? driver->irq_handler : ddf_hcd_gen_irq_handler;
-	const int irq = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler, driver->irq_code_gen);
-	if (!(irq < 0)) {
+	const int irq_cap = hcd_ddf_setup_interrupts(device, &hw_res,
+	    irq_handler, driver->irq_code_gen);
+	bool irqs_enabled = !(irq_cap < 0);
+	if (irqs_enabled) {
 		usb_log_debug("Hw interrupts enabled.\n");
 	}
 
@@ -811,14 +808,14 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 
 	/* Start hw driver */
 	if (driver->start)
-		ret = driver->start(hcd, !(irq < 0));
+		ret = driver->start(hcd, irqs_enabled);
 	if (ret != EOK) {
 		usb_log_error("Failed to start HCD: %s.\n", str_error(ret));
 		goto err_irq;
 	}
 
 	/* Need working irq replacement to setup root hub */
-	if ((irq < 0) && hcd->ops.status_hook) {
+	if (!irqs_enabled && hcd->ops.status_hook) {
 		hcd->polling_fibril = fibril_create(interrupt_polling, hcd);
 		if (hcd->polling_fibril == 0) {
 			usb_log_error("Failed to create polling fibril\n");
@@ -827,7 +824,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 		}
 		fibril_add_ready(hcd->polling_fibril);
 		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling.\n", str_error(irq));
+		    " Falling back to polling.\n", str_error(irq_cap));
 	}
 
 	/*
@@ -853,7 +850,7 @@ err_started:
 	if (driver->stop)
 		driver->stop(hcd);
 err_irq:
-	unregister_interrupt_handler(device, irq);
+	unregister_interrupt_handler(device, irq_cap);
 	if (driver->fini)
 		driver->fini(hcd);
 err_hcd:

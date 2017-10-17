@@ -35,13 +35,13 @@
  * @brief Memory reservations.
  */
 
+#include <assert.h>
 #include <mm/reserve.h>
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <synch/spinlock.h>
 #include <typedefs.h>
 #include <arch/types.h>
-#include <debug.h>
 
 static bool reserve_initialized = false;
 
@@ -71,7 +71,7 @@ bool reserve_try_alloc(size_t size)
 {
 	bool reserved = false;
 
-	ASSERT(reserve_initialized);
+	assert(reserve_initialized);
 
 	irq_spinlock_lock(&reserve_lock, true);
 	if (reserve >= 0 && (size_t) reserve >= size) {

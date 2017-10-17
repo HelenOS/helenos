@@ -32,7 +32,6 @@
 #include <arch/types.h>
 #include <arch/arch.h>
 #include <arch/asm.h>
-#include <arch/_components.h>
 #include <genarch/efi.h>
 #include <arch/sal.h>
 #include <arch/pal.h>
@@ -45,6 +44,7 @@
 #include <str.h>
 #include <errno.h>
 #include <inflate.h>
+#include "../../components.h"
 
 #define DEFAULT_MEMORY_BASE		0x4000000ULL
 #define DEFAULT_MEMORY_SIZE		(256 * 1024 * 1024)
@@ -77,7 +77,7 @@ static void read_efi_memmap(void)
 		memmap[items].base = DEFAULT_LEGACY_IO_BASE;
 		memmap[items].size = DEFAULT_LEGACY_IO_SIZE;
 		memmap[items].type = MEMMAP_IO_PORTS;
-		items++;		 
+		items++;
 	} else {
 		char *cur, *mm_base = (char *) bootpar->efi_memmap;
 		size_t mm_size = bootpar->efi_memmap_sz;
@@ -158,8 +158,8 @@ void bootstrap(void)
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
-		    components[i].start, components[i].name,
+		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
+		    components[i].addr, components[i].name,
 		    components[i].inflated, components[i].size);
 	
 	void *dest[COMPONENTS];
@@ -201,7 +201,7 @@ void bootstrap(void)
 		 * Copy the component to a location which is guaranteed not to
 		 * overlap with the destination for inflate().
 		 */
-		memmove((void *) top, components[i - 1].start, components[i - 1].size);
+		memmove((void *) top, components[i - 1].addr, components[i - 1].size);
 		
 		int err = inflate((void *) top, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);

@@ -34,8 +34,8 @@
 
 #include <ddi/ddi.h>
 #include <arch/ddi/ddi.h>
+#include <assert.h>
 #include <proc/task.h>
-#include <typedefs.h>
 #include <adt/bitmap.h>
 #include <mm/slab.h>
 #include <arch/pm.h>
@@ -44,6 +44,7 @@
 #include <cpu.h>
 #include <arch.h>
 #include <align.h>
+#include <stdbool.h>
 
 /** Install I/O Permission bitmap.
  *
@@ -62,7 +63,7 @@ void io_perm_bitmap_install(void)
 	size_t elements = TASK->arch.iomap.elements;
 	
 	if (elements > 0) {
-		ASSERT(TASK->arch.iomap.bits);
+		assert(TASK->arch.iomap.bits);
 		
 		bitmap_t iomap;
 		bitmap_initialize(&iomap, TSS_IOMAP_SIZE * 8,

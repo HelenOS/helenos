@@ -370,7 +370,7 @@ int dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
 	}
 	
 	/* 16 bit transfers are a bit special */
-	ddf_msg(LVL_DEBUG, "Unspoiled address %#" PRIx32 " (size %" PRIu16 ")",
+	ddf_msg(LVL_DEBUG, "Unspoiled address %#" PRIx32 " (size %" PRIu32 ")",
 	    pa, size);
 	if (is_dma16(channel)) {
 		/* Size must be aligned to 16 bits */
@@ -387,7 +387,7 @@ int dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
 	const dma_channel_t dma_channel = controller_8237.channels[channel];
 	
 	ddf_msg(LVL_DEBUG, "Setting channel %u to address %#" PRIx32 " "
-	    "(size %" PRIu16 "), mode %hhx.", channel, pa, size, mode);
+	    "(size %" PRIu32 "), mode %hhx.", channel, pa, size, mode);
 	
 	/* Mask DMA request */
 	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel) |

@@ -53,6 +53,7 @@ multiboot2_header_start:
 		.word MULTIBOOT2_TAG_INFO_REQ
 		.word MULTIBOOT2_FLAGS_REQUIRED
 		.long tag_info_req_end - tag_info_req_start
+		.long MULTIBOOT2_TAG_CMDLINE
 		.long MULTIBOOT2_TAG_MODULE
 		.long MULTIBOOT2_TAG_MEMMAP
 #ifdef CONFIG_FB

@@ -44,7 +44,6 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <vfs/vfs_sess.h>
-#include <sys/typefmt.h>
 #include "../gsp.h"
 #include "../input.h"
 #include "../kbd.h"

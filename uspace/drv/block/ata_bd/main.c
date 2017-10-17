@@ -67,7 +67,7 @@ static int ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
 	hw_res_list_parsed_t hw_res;
 	int rc;
 
-	parent_sess = ddf_dev_parent_sess_create(dev);
+	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
 		return ENOMEM;
 

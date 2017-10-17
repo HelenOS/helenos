@@ -76,7 +76,7 @@ static int dns_dstr_ext(char **dstr, const char *suff)
 	if (nstr == NULL)
 		return ENOMEM;
 
-	str_cpy((*dstr) + s1, nsize - s1, suff);
+	str_cpy(nstr + s1, nsize - s1, suff);
 
 	*dstr = nstr;
 	return EOK;
@@ -194,14 +194,6 @@ int dns_name_decode(dns_pdu_t *pdu, size_t boff, char **rname,
 		if (lsize == 0)
 			break;
 
-		if (!first) {
-			rc = dns_dstr_ext(&name, ".");
-			if (rc != EOK) {
-				rc = ENOMEM;
-				goto error;
-			}
-		}
-
 		if ((lsize & 0xc0) == 0xc0) {
 			/* Pointer */
 			if (bsize < 1) {
@@ -232,7 +224,8 @@ int dns_name_decode(dns_pdu_t *pdu, size_t boff, char **rname,
 			 * This is where encoded name ends in terms where
 			 * the message continues
 			 */
-			*eoff = eptr;
+			if (*eoff == 0)
+				*eoff = eptr;
 
 			bp = pdu->data + ptr;
 			bsize = eptr - ptr;
@@ -242,6 +235,14 @@ int dns_name_decode(dns_pdu_t *pdu, size_t boff, char **rname,
 		if (lsize > bsize) {
 			rc = EINVAL;
 			goto error;
+		}
+
+		if (!first) {
+			rc = dns_dstr_ext(&name, ".");
+			if (rc != EOK) {
+				rc = ENOMEM;
+				goto error;
+			}
 		}
 
 		for (i = 0; i < lsize; i++) {
@@ -412,7 +413,7 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 
 	rc = dns_name_decode(pdu, boff, &rr->name, &name_eoff);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error decoding name");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_rr_decode: error decoding name");
 		free(rr);
 		return ENOMEM;
 	}
@@ -420,6 +421,7 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 	if (name_eoff + 2 * sizeof(uint16_t) > pdu->size) {
 		free(rr->name);
 		free(rr);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_rr_decode: error name_off");
 		return EINVAL;
 	}
 
@@ -429,6 +431,7 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 	if (bsz < 3 * sizeof(uint16_t) + sizeof(uint32_t)) {
 		free(rr->name);
 		free(rr);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_rr_decode: error bsz");
 		return EINVAL;
 	}
 
@@ -444,6 +447,9 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 	bp += sizeof(uint32_t);
 	bsz -= sizeof(uint32_t);
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "dns_rr_decode: rtype=0x%x, rclass=0x%x, ttl=0x%x",
+	    rr->rtype, rr->rclass, rr->ttl );
+
 	rdlength = dns_uint16_t_decode(bp, bsz);
 	bp += sizeof(uint16_t);
 	bsz -= sizeof(uint16_t);
@@ -451,14 +457,17 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 	if (rdlength > bsz) {
 		free(rr->name);
 		free(rr);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_rr_decode: Error rdlength %zu > bsz %zu", rdlength, bsz);
 		return EINVAL;
 	}
 
 	rr->rdata_size = rdlength;
-	rr->rdata = calloc(1, sizeof(rdlength));
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "dns_rr_decode: rdlength=%zu", rdlength);
+	rr->rdata = calloc(1, rdlength);
 	if (rr->rdata == NULL) {
 		free(rr->name);
 		free(rr);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_rr_decode: Error memory");
 		return ENOMEM;
 	}
 
@@ -469,6 +478,7 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 
 	*eoff = bp - pdu->data;
 	*retrr = rr;
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "dns_rr_decode: done");
 	return EOK;
 }
 
@@ -585,7 +595,7 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 
 	memcpy(msg->pdu.data, data, size);
 	msg->pdu.size = size;
-	log_msg(LOG_DEFAULT, LVL_NOTE, "dns_message_decode: pdu->data = %p, "
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "dns_message_decode: pdu->data = %p, "
 	    "pdu->size=%zu", msg->pdu.data, msg->pdu.size);
 
 	hdr = data;
@@ -604,6 +614,8 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	doff = sizeof(dns_header_t);
 
 	qd_count = uint16_t_be2host(hdr->qd_count);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "qd_count=%zu", qd_count);
+
 
 	for (i = 0; i < qd_count; i++) {
 		rc = dns_question_decode(&msg->pdu, doff, &question, &field_eoff);
@@ -617,6 +629,7 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	}
 
 	an_count = uint16_t_be2host(hdr->an_count);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "an_count=%zu", an_count);
 
 	for (i = 0; i < an_count; i++) {
 		rc = dns_rr_decode(&msg->pdu, doff, &rr, &field_eoff);

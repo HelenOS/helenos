@@ -40,7 +40,6 @@
 #include <arch/asm.h>
 #include <console/chardev.h>
 #include <mm/slab.h>
-#include <ddi/device.h>
 
 #define PL050_KEY_RELEASE 0xF0
 #define PL050_ESC_KEY	0xE0
@@ -86,7 +85,6 @@ pl050_instance_t *pl050_init(pl050_t *dev, inr_t inr)
 		instance->kbrdin = NULL;
 
 		irq_initialize(&instance->irq);
-		instance->irq.devno = device_assign_devno();
 		instance->irq.inr = inr;
 		instance->irq.claim = pl050_claim;
 		instance->irq.handler = pl050_irq_handler;

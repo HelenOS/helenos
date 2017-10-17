@@ -598,31 +598,18 @@ const char *ddf_dev_get_name(ddf_dev_t *dev)
 	return dev->name;
 }
 
-/** Create session with the parent function.
- *
- * The session will be automatically closed when @a dev is destroyed.
- *
- * @param dev Device
- *
- * @return New session or NULL if session could not be created
- *
- */
-async_sess_t *ddf_dev_parent_sess_create(ddf_dev_t *dev)
-{
-	assert(dev->parent_sess == NULL);
-	dev->parent_sess = devman_parent_device_connect(dev->handle,
-	    IPC_FLAG_BLOCKING);
-
-	return dev->parent_sess;
-}
-
 /** Return existing session with the parent function.
  *
  * @param dev	Device
- * @return	Existing session or NULL if there is no session
+ * @return	Session with parent function or NULL upon failure
  */
 async_sess_t *ddf_dev_parent_sess_get(ddf_dev_t *dev)
 {
+	if (dev->parent_sess == NULL) {
+		dev->parent_sess = devman_parent_device_connect(dev->handle,
+		    IPC_FLAG_BLOCKING);
+	}
+
 	return dev->parent_sess;
 }
 
@@ -942,13 +929,17 @@ int ddf_driver_main(const driver_t *drv)
 	port_id_t port;
 	int rc = async_create_port(INTERFACE_DDF_DRIVER, driver_connection_driver,
 	    NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("Error: Failed to create driver port.\n");
 		return rc;
+	}
 	
 	rc = async_create_port(INTERFACE_DDF_DEVMAN, driver_connection_devman,
 	    NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("Error: Failed to create devman port.\n");
 		return rc;
+	}
 	
 	async_set_fallback_port_handler(driver_connection_client, NULL);
 	
@@ -963,8 +954,10 @@ int ddf_driver_main(const driver_t *drv)
 	
 	/* Return success from the task since server has started. */
 	rc = task_retval(0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("Error: Failed returning task value.\n");
 		return rc;
+	}
 	
 	async_manager();
 	

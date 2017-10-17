@@ -42,6 +42,7 @@
 #include <synch/spinlock.h>
 #include <proc/task.h>
 #include <ipc/ipc.h>
+#include <mm/slab.h>
 
 typedef enum {
 	IRQ_DECLINE,  /**< Decline to service. */
@@ -69,33 +70,28 @@ typedef void (* cir_t)(void *, inr_t);
 typedef struct {
 	/** When false, notifications are not sent. */
 	bool notify;
+	/** True if the structure is in irq_uspace_hash_table_table */
+	bool hashed_in;
 	/** Answerbox for notifications. */
 	answerbox_t *answerbox;
 	/** Interface and method to be used for the notification. */
 	sysarg_t imethod;
 	/** Arguments that will be sent if the IRQ is claimed. */
 	uint32_t scratch[IPC_CALL_LEN];
-	/** Top-half pseudocode. */
+	/** Top-half IRQ code. */
 	irq_code_t *code;
 	/** Counter. */
 	size_t counter;
-	
-	/**
-	 * Link between IRQs that are notifying the same answerbox. The list is
-	 * protected by the answerbox irq_lock.
-	 */
-	link_t link;
 } ipc_notif_cfg_t;
 
 /** Structure representing one device IRQ.
  *
  * If one device has multiple interrupts, there will be multiple irq_t
- * instantions with the same devno.
- *
+ * instantions.
  */
 typedef struct irq {
 	/** Hash table link. */
-	link_t link;
+	ht_link_t link;
 	
 	/** Lock protecting everything in this structure
 	 *  except the link member. When both the IRQ
@@ -111,9 +107,6 @@ typedef struct irq {
 	 *  be eventually generated.
 	 */
 	bool preack;
-	
-	/** Unique device number. -1 if not yet assigned. */
-	devno_t devno;
 	
 	/** Actual IRQ number. -1 if not yet assigned. */
 	inr_t inr;
@@ -137,6 +130,8 @@ typedef struct irq {
 
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
 extern hash_table_t irq_uspace_hash_table;
+
+extern slab_cache_t *irq_slab;
 
 extern inr_t last_inr;
 

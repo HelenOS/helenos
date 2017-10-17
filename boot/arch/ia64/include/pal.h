@@ -30,7 +30,8 @@
 #define BOOT_ia64_PAL_H_
 
 #include <arch/types.h>
-#include <typedefs.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /*
  * Essential PAL procedures' IDs

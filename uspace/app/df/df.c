@@ -27,13 +27,15 @@
  */
 
 /** @addtogroup df
- * @brief Df utility.
+ * @brief Print amounts of free and used disk space.
  * @{
  */
 /**
  * @file
  */
 
+#include <cap.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -45,46 +47,35 @@
 
 #define NAME  "df"
 
-#define HEADER_TABLE 	"Filesystem     %4u-blocks           Used      Available Used%% Mounted on"
-#define HEADER_TABLE_HR "Filesystem           Size           Used      Available Used%% Mounted on"
+#define HEADER_TABLE     "Filesystem           Size           Used      Available Used%% Mounted on"
+#define HEADER_TABLE_BLK "Filesystem  Blk. Size     Total        Used   Available Used%% Mounted on"
 
 #define PERCENTAGE(x, tot) (tot ? (100ULL * (x) / (tot)) : 0)
-#define FSBK_TO_BK(x, fsbk, bk) \
-	(((fsbk) != 0 && (fsbk) < (bk)) ? \
-		(unsigned long long) ((x) / ((bk) / (fsbk))) : \
-		(unsigned long long) ((x) * ((fsbk) / (bk))))
 
-static unsigned int unit_size;
-static unsigned int human_readable;
+static bool display_blocks;
 
-static void size_to_human_readable(char *buf, uint64_t bytes);
+static int size_to_human_readable(uint64_t, size_t, char **);
 static void print_header(void);
-static void print_statfs(struct statfs *, char *, char *);
+static int print_statfs(struct statfs *, char *, char *);
 static void print_usage(void);
 
 int main(int argc, char *argv[])
 {
 	int optres, errflg = 0;
 	struct statfs st;
+	int rc;
 
-	unit_size = 512;
-	human_readable = 0;
+	display_blocks = false;
 
-	/******************************************/
-	/*   Parse command line options...        */
-	/******************************************/
-	while ((optres = getopt(argc, argv, ":uhb:")) != -1) {
+	/* Parse command-line options */
+	while ((optres = getopt(argc, argv, ":ubh")) != -1) {
 		switch(optres) {
-		case 'u':
+		case 'h':
 			print_usage();
 			return 0;
 
-		case 'h':
-			human_readable = 1;
-			break;
-
 		case 'b':
-			str_uint32_t(optarg, NULL, 0, 0, &unit_size);
+			display_blocks = true;
 			break;
  
 		case ':':
@@ -122,7 +113,9 @@ int main(int argc, char *argv[])
 	print_header();
 	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
 		if (vfs_statfs_path(mtab_ent->mp, &st) == 0) {
-			print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
+			rc = print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
+			if (rc != EOK)
+				return 1;
 		} else {
 			fprintf(stderr, "Cannot get information for '%s' (%d).\n",
 			    mtab_ent->mp, errno);
@@ -133,50 +126,55 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-static void size_to_human_readable(char *buf, uint64_t bytes)
+static int size_to_human_readable(uint64_t nblocks, size_t block_size, char **rptr)
 {
-	const char *units = "BkMGTPEZY";
-	int i = 0;
+	cap_spec_t cap;
 
-	while (bytes >= 1024) {
-		bytes /= 1024;
-		i++;
-	}
-
-	snprintf(buf, 6, "%4llu%c", (unsigned long long) bytes, units[i]);
+	cap_from_blocks(nblocks, block_size, &cap);
+	cap_simplify(&cap);
+	return cap_format(&cap, rptr);
 }
 
 static void print_header(void)
 {
-	if (human_readable)
-		printf(HEADER_TABLE_HR);
+	if (!display_blocks)
+		printf(HEADER_TABLE);
 	else
-		printf(HEADER_TABLE, unit_size);
+		printf(HEADER_TABLE_BLK);
 
 	putchar('\n');
 }
 
-static void print_statfs(struct statfs *st, char *name, char *mountpoint)
+static int print_statfs(struct statfs *st, char *name, char *mountpoint)
 {
 	uint64_t const used_blocks = st->f_blocks - st->f_bfree;
 	unsigned const perc_used = PERCENTAGE(used_blocks, st->f_blocks);
+	char *str;
+	int rc;
 
 	printf("%10s", name);
 
-	if (human_readable) {
-		char tmp[1024];
-
+	if (!display_blocks) {
 		/* Print size */
-		size_to_human_readable(tmp, st->f_blocks *  st->f_bsize);
-		printf(" %14s", tmp);
+		rc = size_to_human_readable(st->f_blocks, st->f_bsize, &str);
+		if (rc != EOK)
+			goto error;
+		printf(" %14s", str);
+		free(str);
 
 		/* Number of used blocks */
-		size_to_human_readable(tmp, used_blocks  *  st->f_bsize);
-		printf(" %14s", tmp);
+		rc = size_to_human_readable(used_blocks, st->f_bsize, &str);
+		if (rc != EOK)
+			goto error;
+		printf(" %14s", str);
+		free(str);
 
 		/* Number of available blocks */
-		size_to_human_readable(tmp, st->f_bfree *  st->f_bsize);
-		printf(" %14s", tmp);
+		rc = size_to_human_readable(st->f_bfree, st->f_bsize, &str);
+		if (rc != EOK)
+			goto error;
+		printf(" %14s", str);
+		free(str);
 
 		/* Percentage of used blocks */
 		printf(" %4u%%", perc_used);
@@ -184,24 +182,24 @@ static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 		/* Mount point */
 		printf(" %s\n", mountpoint);
 	} else {
-		/* Blocks / Used blocks / Available blocks / Used% / Mounted on */
-		printf(" %15llu %14llu %14llu %4u%% %s\n", 
-		    FSBK_TO_BK(st->f_blocks, st->f_bsize, unit_size),
-		    FSBK_TO_BK(used_blocks, st->f_bsize, unit_size),
-		    FSBK_TO_BK(st->f_bfree, st->f_bsize, unit_size),
-		    perc_used,
-		    mountpoint);
+		/* Block size / Blocks / Used blocks / Available blocks / Used% / Mounted on */
+		printf(" %10" PRIu32 " %9" PRIu64 " %11" PRIu64 " %11" PRIu64 " %4u%% %s\n", 
+		    st->f_bsize, st->f_blocks, used_blocks, st->f_bfree,
+		    perc_used, mountpoint);
 	}
 
+	return EOK;
+error:
+	printf("\nError: Out of memory.\n");
+	return ENOMEM;
 }
 
 static void print_usage(void)
 {
-	printf("syntax: %s [-u] [-h] [-b <size>] \n", NAME);
-	printf("  u : Show usage.\n");
-	printf("  h : \"Human-readable\" output.\n");
-	printf("  b : Scale block sizes by selected size.\n");
-	printf("\n");
+	printf("Syntax: %s [<options>] \n", NAME);
+	printf("Options:\n");
+	printf("  -h Print help\n");
+	printf("  -b Print exact block sizes and numbers\n");
 }
 
 /** @}

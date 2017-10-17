@@ -30,18 +30,18 @@
 #include <errno.h>
 #include <align.h>
 #include <byteorder.h>
-#include <irc.h>
 #include <libarch/barrier.h>
 
 #include <as.h>
 #include <thread.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
 #include <io/log.h>
 #include <nic.h>
 #include <pci_dev_iface.h>
 
-#include <ipc/irc.h>
 #include <sysinfo.h>
 #include <ipc/ns.h>
 
@@ -370,10 +370,10 @@ inline static int rtl8169_register_int_handler(nic_t *nic_data)
 	rtl8169_irq_code.cmds[0].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[2].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[3].addr = rtl8169->regs + IMR;
-	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
+	int irq_cap = register_interrupt_handler(nic_get_ddf_dev(nic_data),
 	    rtl8169->irq, rtl8169_irq_handler, &rtl8169_irq_code);
 
-	return rc;
+	return irq_cap;
 }
 
 static int rtl8169_dev_add(ddf_dev_t *dev)
@@ -395,14 +395,19 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
+	rtl8169->dev = dev;
+	rtl8169->parent_sess = ddf_dev_parent_sess_get(dev);
+	if (rtl8169->parent_sess == NULL)
+		return EIO;
+
 	/* Get PCI VID & PID */
-	rc = pci_config_space_read_16(ddf_dev_parent_sess_get(dev),
-	    PCI_VENDOR_ID, &rtl8169->pci_vid);
+	rc = pci_config_space_read_16(rtl8169->parent_sess, PCI_VENDOR_ID,
+	    &rtl8169->pci_vid);
 	if (rc != EOK)
 		return rc;
 
-	rc = pci_config_space_read_16(ddf_dev_parent_sess_get(dev),
-	    PCI_DEVICE_ID, &rtl8169->pci_pid);
+	rc = pci_config_space_read_16(rtl8169->parent_sess, PCI_DEVICE_ID,
+	    &rtl8169->pci_pid);
 	if (rc != EOK)
 		return rc;
 
@@ -425,11 +430,11 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_pio;
 
-	rc = rtl8169_register_int_handler(nic_data);
-	if (rc != EOK) {
+	int irq_cap = rtl8169_register_int_handler(nic_data);
+	if (irq_cap < 0) {
+		rc = irq_cap;
 		ddf_msg(LVL_ERROR, "Failed to register IRQ handler (%d)", rc);
 		goto err_irq;
-
 	}
 
 	ddf_msg(LVL_DEBUG, "Interrupt handler installed");
@@ -468,8 +473,8 @@ err_fun_create:
 	ddf_fun_destroy(fun);
 err_srv:
 	/* XXX Disconnect from services */
+	unregister_interrupt_handler(dev, irq_cap);
 err_irq:
-	//unregister_interrupt_handler(dev, rtl8169->irq);
 err_pio:
 err_destroy:
 	rtl8169_dev_cleanup(dev);
@@ -744,7 +749,8 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	pio_write_16(rtl8169->regs + RMS, BUFFER_SIZE);
 
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
-	irc_enable_interrupt(rtl8169->irq);
+	/* XXX Check return value */
+	hw_res_enable_interrupt(rtl8169->parent_sess, rtl8169->irq);
 
 	return EOK;
 }

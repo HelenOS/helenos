@@ -58,6 +58,22 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+/** Convert association map flags to port range flags.
+ *
+ * @param flags Association map flags
+ * @return Port range flags
+ */
+static portrng_flags_t aflags_to_pflags(amap_flags_t flags)
+{
+	portrng_flags_t pflags;
+
+	pflags = 0;
+	if ((flags & af_allow_system) != 0)
+		pflags |= pf_allow_system;
+
+	return pflags;
+}
+
 /** Create association map.
  *
  * @param rmap Place to store pointer to new association map
@@ -96,6 +112,10 @@ int amap_create(amap_t **rmap)
 void amap_destroy(amap_t *map)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_destroy()");
+
+	assert(list_empty(&map->repla));
+	assert(list_empty(&map->laddr));
+	assert(list_empty(&map->llink));
 	free(map);
 }
 
@@ -373,7 +393,7 @@ static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
 
 	mepp = *epp;
 
-	rc = portrng_alloc(repla->portrng, epp->local.port, arg, flags,
+	rc = portrng_alloc(repla->portrng, epp->local.port, arg, aflags_to_pflags(flags),
 	    &mepp.local.port);
 	if (rc != EOK) {
 		return rc;
@@ -417,7 +437,7 @@ static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
 
 	mepp = *epp;
 
-	rc = portrng_alloc(laddr->portrng, epp->local.port, arg, flags,
+	rc = portrng_alloc(laddr->portrng, epp->local.port, arg, aflags_to_pflags(flags),
 	    &mepp.local.port);
 	if (rc != EOK) {
 		return rc;
@@ -461,7 +481,7 @@ static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
 
 	mepp = *epp;
 
-	rc = portrng_alloc(llink->portrng, epp->local.port, arg, flags,
+	rc = portrng_alloc(llink->portrng, epp->local.port, arg, aflags_to_pflags(flags),
 	    &mepp.local.port);
 	if (rc != EOK) {
 		return rc;
@@ -493,7 +513,7 @@ static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_unspec()");
 	mepp = *epp;
 
-	rc = portrng_alloc(map->unspec, epp->local.port, arg, flags,
+	rc = portrng_alloc(map->unspec, epp->local.port, arg, aflags_to_pflags(flags),
 	    &mepp.local.port);
 	if (rc != EOK) {
 		return rc;

@@ -29,9 +29,7 @@
 BFD_NAME = elf64-little
 BFD_ARCH = ia64-elf64
 
-CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
-GCC_CFLAGS += $(CMN1)
-ICC_CFLAGS += $(CMN1)
+COMMON_CFLAGS += -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 
 AFLAGS += -mconstant-gp
 LFLAGS += -EL

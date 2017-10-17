@@ -123,6 +123,8 @@ typedef enum {
 	lpc_minix
 } label_pcnt_t;
 
+#define LPC_LIMIT (lpc_minix + 1)
+
 #endif
 
 /** @}

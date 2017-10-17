@@ -33,7 +33,7 @@
  */
 
 #ifndef LIBC_abs32le_ELF_LINUX_H_
-#define LBIC_abs32le_ELF_LINUX_H_
+#define LIBC_abs32le_ELF_LINUX_H_
 
 #include <libarch/istate.h>
 

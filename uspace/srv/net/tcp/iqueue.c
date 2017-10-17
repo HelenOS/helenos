@@ -83,14 +83,48 @@ void tcp_iqueue_insert_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
 		qe = list_get_instance(link,
 		    tcp_iqueue_entry_t, link);
 
-		if (seq_no_seg_cmp(iqueue->conn, iqe->seg, qe->seg) >= 0)
+		if (seq_no_seg_cmp(iqueue->conn, iqe->seg, qe->seg) < 0)
 			break;
+
+		link = list_next(link, &iqueue->list);
 	}
 
 	if (link != NULL)
 		list_insert_before(&iqe->link, &qe->link);
 	else
 		list_append(&iqe->link, &iqueue->list);
+}
+
+/** Remove segment from incoming queue.
+ *
+ * @param iqueue	Incoming queue
+ * @param seg		Segment
+ */
+void tcp_iqueue_remove_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
+{
+	tcp_iqueue_entry_t *qe;
+	link_t *link;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_iqueue_remove_seg()");
+
+	link = list_first(&iqueue->list);
+	while (link != NULL) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_iqueue_remove_seg() - next");
+		qe = list_get_instance(link,
+		    tcp_iqueue_entry_t, link);
+
+		if (qe->seg == seg) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_iqueue_remove_seg() - found, DONE");
+			list_remove(&qe->link);
+			free(qe);
+			return;
+		}
+
+		link = list_next(link, &iqueue->list);
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_iqueue_remove_seg() - not found");
+	assert(false);
 }
 
 /** Get next ready segment from incoming queue.

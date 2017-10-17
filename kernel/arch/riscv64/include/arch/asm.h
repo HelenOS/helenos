@@ -35,6 +35,7 @@
 #ifndef KERN_riscv64_ASM_H_
 #define KERN_riscv64_ASM_H_
 
+#include <arch/cpu.h>
 #include <typedefs.h>
 #include <config.h>
 #include <arch/mm/asid.h>
@@ -42,37 +43,64 @@
 
 NO_TRACE static inline ipl_t interrupts_enable(void)
 {
-	// FIXME
-	return 0;
+	ipl_t ipl;
+	
+	asm volatile (
+		"csrrsi %[ipl], sstatus, " STRING(SSTATUS_SIE_MASK) "\n"
+		: [ipl] "=r" (ipl)
+	);
+	
+	return ipl;
 }
 
 NO_TRACE static inline ipl_t interrupts_disable(void)
 {
-	// FIXME
-	return 0;
+	ipl_t ipl;
+	
+	asm volatile (
+		"csrrci %[ipl], sstatus, " STRING(SSTATUS_SIE_MASK) "\n"
+		: [ipl] "=r" (ipl)
+	);
+	
+	return ipl;
 }
 
 NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 {
-	// FIXME
+	if ((ipl & SSTATUS_SIE_MASK) == SSTATUS_SIE_MASK)
+		interrupts_enable();
+	else
+		interrupts_disable();
 }
 
 NO_TRACE static inline ipl_t interrupts_read(void)
 {
-	// FIXME
-	return 0;
+	ipl_t ipl;
+	
+	asm volatile (
+		"csrr %[ipl], sstatus\n"
+		: [ipl] "=r" (ipl)
+	);
+	
+	return ipl;
 }
 
 NO_TRACE static inline bool interrupts_disabled(void)
 {
-	// FIXME
-	return 0;
+	return ((interrupts_read() & SSTATUS_SIE_MASK) == 0);
 }
 
 NO_TRACE static inline uintptr_t get_stack_base(void)
 {
-	// FIXME
-	return 0;
+	uintptr_t base;
+	
+	asm volatile (
+		"and %[base], sp, %[mask]\n"
+		: [base] "=r" (base)
+		: [mask] "r" (~(STACK_SIZE - 1))
+	);
+	
+	return base;
 }
 
 NO_TRACE static inline void cpu_sleep(void)

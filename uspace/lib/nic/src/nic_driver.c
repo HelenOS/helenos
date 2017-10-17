@@ -248,9 +248,9 @@ int nic_get_resources(nic_t *nic_data, hw_res_list_parsed_t *resources)
 	async_sess_t *parent_sess;
 	
 	/* Connect to the parent's driver. */
-	parent_sess = ddf_dev_parent_sess_create(dev);
+	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
-		return EPARTY;
+		return EIO;
 	
 	return hw_res_get_list_parsed(parent_sess, resources, 0);
 }

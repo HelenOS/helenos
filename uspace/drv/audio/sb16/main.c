@@ -36,7 +36,6 @@
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
-#include <devman.h>
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -50,7 +49,7 @@
 static int sb_add_device(ddf_dev_t *device);
 static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
     addr_range_t **pp_mpu_regs, int *irq, int *dma8, int *dma16);
-static int sb_enable_interrupts(ddf_dev_t *device);
+static int sb_enable_interrupt(ddf_dev_t *device, int irq);
 
 static driver_ops_t sb_driver_ops = {
 	.dev_add = sb_add_device,
@@ -93,6 +92,7 @@ static int sb_add_device(ddf_dev_t *device)
 	const size_t irq_cmd_count = sb16_irq_code_size();
 	irq_cmd_t irq_cmds[irq_cmd_count];
 	irq_pio_range_t irq_ranges[1];
+	int irq_cap;
 
 	sb16_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_t));
 	int rc = soft_state ? EOK : ENOMEM;
@@ -122,8 +122,10 @@ static int sb_add_device(ddf_dev_t *device)
 		.ranges = irq_ranges
 	};
 
-	rc = register_interrupt_handler(device, irq, irq_handler, &irq_code);
-	if (rc != EOK) {
+	irq_cap = register_interrupt_handler(device, irq, irq_handler,
+	    &irq_code);
+	if (irq_cap < 0) {
+		rc = irq_cap;
 		ddf_log_error("Failed to register irq handler: %s.",
 		    str_error(rc));
 		goto error;
@@ -131,7 +133,7 @@ static int sb_add_device(ddf_dev_t *device)
 
 	handler_regd = true;
 
-	rc = sb_enable_interrupts(device);
+	rc = sb_enable_interrupt(device, irq);
 	if (rc != EOK) {
 		ddf_log_error("Failed to enable interrupts: %s.",
 		    str_error(rc));
@@ -167,7 +169,7 @@ static int sb_add_device(ddf_dev_t *device)
 	return EOK;
 error:
 	if (handler_regd)
-		unregister_interrupt_handler(device, irq);
+		unregister_interrupt_handler(device, irq_cap);
 	return rc;
 }
 
@@ -176,15 +178,13 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 {
 	assert(device);
 
-	async_sess_t *parent_sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
 		return ENOMEM;
 
 	hw_res_list_parsed_t hw_res;
 	hw_res_list_parsed_init(&hw_res);
 	const int ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
-	async_hangup(parent_sess);
 	if (ret != EOK) {
 		return ret;
 	}
@@ -241,17 +241,13 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 	return EOK;
 }
 
-int sb_enable_interrupts(ddf_dev_t *device)
+static int sb_enable_interrupt(ddf_dev_t *device, int irq)
 {
-	async_sess_t *parent_sess = devman_parent_device_connect(
-	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	if (parent_sess == NULL)
 		return ENOMEM;
 
-	bool enabled = hw_res_enable_interrupt(parent_sess);
-	async_hangup(parent_sess);
-
-	return enabled ? EOK : EIO;
+	return hw_res_enable_interrupt(parent_sess, irq);
 }
 
 /**

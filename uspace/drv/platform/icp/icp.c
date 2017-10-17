@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
+#include <irc.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -52,7 +53,8 @@ enum {
 	icp_kbd_base = 0x18000000,
 	icp_kbd_irq = 3,
 	icp_mouse_base = 0x19000000,
-	icp_mouse_irq = 4
+	icp_mouse_irq = 4,
+	icp_ic_base = 0x14000000
 };
 
 typedef struct icp_fun {
@@ -106,6 +108,18 @@ static hw_resource_t icp_mouse_res[] = {
 	}
 };
 
+static hw_resource_t icp_ic_res[] = {
+	{
+		.type = MEM_RANGE,
+		.res.mem_range = {
+			.address = icp_ic_base,
+			.size = 40,
+			.relative = false,
+			.endianness = LITTLE_ENDIAN
+		}
+	}
+};
+
 static pio_window_t icp_pio_window = {
 	.mem = {
 		.base = 0,
@@ -127,6 +141,13 @@ static icp_fun_t icp_mouse_fun_proto = {
 	},
 };
 
+static icp_fun_t icp_ic_fun_proto = {
+	.hw_resources = {
+		sizeof(icp_ic_res) / sizeof(icp_ic_res[0]),
+		icp_ic_res
+	},
+};
+
 /** Obtain function soft-state from DDF function node */
 static icp_fun_t *icp_fun(ddf_fun_t *fnode)
 {
@@ -141,10 +162,49 @@ static hw_resource_list_t *icp_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool icp_enable_interrupt(ddf_fun_t *fun)
+static bool icp_fun_owns_interrupt(icp_fun_t *fun, int irq)
 {
-	/* TODO */
+	const hw_resource_list_t *res = &fun->hw_resources;
+
+	/* Check that specified irq really belongs to the function */
+	for (size_t i = 0; i < res->count; ++i) {
+		if (res->resources[i].type == INTERRUPT &&
+		    res->resources[i].res.interrupt.irq == irq) {
+			return true;
+		}
+	}
+
 	return false;
+}
+
+static int icp_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
+{
+	icp_fun_t *fun = icp_fun(fnode);
+
+	if (!icp_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_enable_interrupt(irq);
+}
+
+static int icp_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
+{
+	icp_fun_t *fun = icp_fun(fnode);
+
+	if (!icp_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_disable_interrupt(irq);
+}
+
+static int icp_fun_clear_interrupt(ddf_fun_t *fnode, int irq)
+{
+	icp_fun_t *fun = icp_fun(fnode);
+
+	if (!icp_fun_owns_interrupt(fun, irq))
+		return EINVAL;
+
+	return irc_clear_interrupt(irq);
 }
 
 static pio_window_t *icp_get_pio_window(ddf_fun_t *fnode)
@@ -154,7 +214,9 @@ static pio_window_t *icp_get_pio_window(ddf_fun_t *fnode)
 
 static hw_res_ops_t icp_hw_res_ops = {
 	.get_resource_list = &icp_get_resources,
-	.enable_interrupt = &icp_enable_interrupt,
+	.enable_interrupt = &icp_fun_enable_interrupt,
+	.disable_interrupt = &icp_fun_disable_interrupt,
+	.clear_interrupt = &icp_fun_clear_interrupt
 };
 
 static pio_window_ops_t icp_pio_window_ops = {
@@ -221,6 +283,11 @@ static int icp_add_functions(ddf_dev_t *dev)
 		return rc;
 
 	rc = icp_add_fun(dev, "mouse", "arm/pl050", &icp_mouse_fun_proto);
+	if (rc != EOK)
+		return rc;
+
+	rc = icp_add_fun(dev, "intctl", "integratorcp/intctl",
+	    &icp_ic_fun_proto);
 	if (rc != EOK)
 		return rc;
 

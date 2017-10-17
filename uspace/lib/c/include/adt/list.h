@@ -39,6 +39,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <trace.h>
 
 /** Doubly linked list link. */
 typedef struct link {
@@ -50,6 +51,10 @@ typedef struct link {
 typedef struct list {
 	link_t head;  /**< List head. Does not have any data. */
 } list_t;
+
+extern bool list_member(const link_t *, const list_t *);
+extern void list_splice(list_t *, link_t *);
+extern unsigned long list_count(const list_t *);
 
 /** Declare and initialize statically allocated list.
  *
@@ -87,15 +92,15 @@ typedef struct list {
 
 #define list_foreach(list, member, itype, iterator) \
 	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
-	    for (link_t *_link = (list).head.next; \
-	    iterator = list_get_instance(_link, itype, member), \
-	    _link != &(list).head; _link = _link->next)
+		for (link_t *_link = (list).head.next; \
+		    iterator = list_get_instance(_link, itype, member), \
+		    _link != &(list).head; _link = _link->next)
 
 #define list_foreach_rev(list, member, itype, iterator) \
 	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
-	    for (link_t *_link = (list).head.prev; \
-	    iterator = list_get_instance(_link, itype, member), \
-	    _link != &(list).head; _link = _link->prev)
+		for (link_t *_link = (list).head.prev; \
+		    iterator = list_get_instance(_link, itype, member), \
+		    _link != &(list).head; _link = _link->prev)
 
 /** Unlike list_foreach(), allows removing items while traversing a list.
  *
@@ -124,9 +129,9 @@ typedef struct list {
  */
 #define list_foreach_safe(list, iterator, next_iter) \
 	for (link_t *iterator = (list).head.next, \
-		*next_iter = iterator->next; \
-		iterator != &(list).head; \
-		iterator = next_iter, next_iter = iterator->next)
+	    *next_iter = iterator->next; \
+	    iterator != &(list).head; \
+	    iterator = next_iter, next_iter = iterator->next)
 
 #define assert_link_not_used(link) \
 	assert(!link_used(link))
@@ -144,7 +149,7 @@ static inline bool link_in_use(const link_t *link)
  * @param link Pointer to link_t structure to be initialized.
  *
  */
-static inline void link_initialize(link_t *link)
+NO_TRACE static inline void link_initialize(link_t *link)
 {
 	link->prev = NULL;
 	link->next = NULL;
@@ -157,7 +162,7 @@ static inline void link_initialize(link_t *link)
  * @param list Pointer to list_t structure.
  *
  */
-static inline void list_initialize(list_t *list)
+NO_TRACE static inline void list_initialize(list_t *list)
 {
 	list->head.prev = &list->head;
 	list->head.next = &list->head;
@@ -193,7 +198,7 @@ static inline void list_insert_after(link_t *lnew, link_t *lold)
  * @param list Pointer to list_t structure.
  *
  */
-static inline void list_prepend(link_t *link, list_t *list)
+NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
 {
 	list_insert_after(link, &list->head);
 }
@@ -206,7 +211,7 @@ static inline void list_prepend(link_t *link, list_t *list)
  * @param list Pointer to list_t structure.
  *
  */
-static inline void list_append(link_t *link, list_t *list)
+NO_TRACE static inline void list_append(link_t *link, list_t *list)
 {
 	list_insert_before(link, &list->head);
 }
@@ -219,7 +224,7 @@ static inline void list_append(link_t *link, list_t *list)
  *             it is contained in.
  *
  */
-static inline void list_remove(link_t *link)
+NO_TRACE static inline void list_remove(link_t *link)
 {
 	if ((link->prev != NULL) && (link->next != NULL)) {
 		link->next->prev = link->prev;
@@ -236,7 +241,7 @@ static inline void list_remove(link_t *link)
  * @param list Pointer to lins_t structure.
  *
  */
-static inline bool list_empty(const list_t *list)
+NO_TRACE static inline bool list_empty(const list_t *list)
 {
 	return (list->head.next == &list->head);
 }
@@ -273,7 +278,6 @@ static inline link_t *list_last(const list_t *list)
  * @param list List containing @a link
  *
  * @return Next item or NULL if @a link is the last item.
- *
  */
 static inline link_t *list_next(const link_t *link, const list_t *list)
 {
@@ -286,7 +290,6 @@ static inline link_t *list_next(const link_t *link, const list_t *list)
  * @param list List containing @a link
  *
  * @return Previous item or NULL if @a link is the first item.
- *
  */
 static inline link_t *list_prev(const link_t *link, const list_t *list)
 {
@@ -306,7 +309,7 @@ static inline link_t *list_prev(const link_t *link, const list_t *list)
  *              (half of the headless) list.
  *
  */
-static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
+NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
 	part1->prev->next = part2;
 	part2->prev->next = part1;
@@ -327,7 +330,7 @@ static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
  *              the second half of the headless list.
  *
  */
-static inline void headless_list_split(link_t *part1, link_t *part2)
+NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }
@@ -342,9 +345,24 @@ static inline void headless_list_split(link_t *part1, link_t *part2)
  *              the second headless list.
  *
  */
-static inline void headless_list_concat(link_t *part1, link_t *part2)
+NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
+}
+
+/** Concatenate two lists
+ *
+ * Concatenate lists @a list1 and @a list2, producing a single
+ * list @a list1 containing items from both (in @a list1, @a list2
+ * order) and empty list @a list2.
+ *
+ * @param list1		First list and concatenated output
+ * @param list2 	Second list and empty output.
+ *
+ */
+NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
+{
+	list_splice(list2, list1->head.prev);
 }
 
 /** Get n-th item in a list.
@@ -394,10 +412,6 @@ static inline bool link_used(link_t *link)
 	assert(link->prev != NULL && link->next != NULL);
 	return true;
 }
-
-extern bool list_member(const link_t *, const list_t *);
-extern void list_concat(list_t *, list_t *);
-extern unsigned long list_count(const list_t *);
 
 #endif
 

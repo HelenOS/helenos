@@ -68,10 +68,10 @@ bool list_member(const link_t *link, const list_t *list)
 }
 
 /** Moves items of one list into another after the specified item.
- * 
- * Inserts all items of @a list after item at @a pos in another list. 
- * Both lists may be empty. 
- * 
+ *
+ * Inserts all items of @a list after item at @a pos in another list.
+ * Both lists may be empty.
+ *
  * @param list Source list to move after pos. Empty afterwards.
  * @param pos Source items will be placed after this item.
  */

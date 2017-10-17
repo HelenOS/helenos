@@ -42,13 +42,14 @@
  *
  */
 
+#include <assert.h>
 #include <lib/ra.h>
 #include <typedefs.h>
 #include <mm/slab.h>
 #include <bitops.h>
-#include <debug.h>
 #include <panic.h>
 #include <adt/list.h>
+#include <adt/hash.h>
 #include <adt/hash_table.h>
 #include <align.h>
 #include <macros.h>
@@ -56,25 +57,32 @@
 
 static slab_cache_t *ra_segment_cache;
 
-#define USED_BUCKETS	1024
-
-static size_t used_hash(sysarg_t *key)
+/** Return the hash of the key stored in the item */
+static size_t used_hash(const ht_link_t *item)
 {
-	return ((*key >> 2) & (USED_BUCKETS - 1));
+	ra_segment_t *seg = hash_table_get_inst(item, ra_segment_t, uh_link);
+	return hash_mix(seg->base);
 }
 
-static bool used_compare(sysarg_t *key, size_t keys, link_t *item)
+/** Return the hash of the key */
+static size_t used_key_hash(void *key)
 {
-	ra_segment_t *seg;
-
-	seg = hash_table_get_instance(item, ra_segment_t, fu_link);
-	return seg->base == *key;
+	uintptr_t *base = (uintptr_t *) key;
+	return hash_mix(*base);
 }
 
-static hash_table_operations_t used_ops = {
+/** Return true if the key is equal to the item's lookup key */
+static bool used_key_equal(void *key, const ht_link_t *item)
+{
+	uintptr_t *base = (uintptr_t *) key;
+	ra_segment_t *seg = hash_table_get_inst(item, ra_segment_t, uh_link);
+	return seg->base == *base;
+}
+
+static hash_table_ops_t used_ops = {
 	.hash = used_hash,
-	.compare = used_compare,
-	.remove_callback = NULL,
+	.key_hash = used_key_hash,
+	.key_equal = used_key_equal
 };
 
 /** Calculate the segment size. */
@@ -96,7 +104,7 @@ static ra_segment_t *ra_segment_create(uintptr_t base)
 		return NULL;
 
 	link_initialize(&seg->segment_link);
-	link_initialize(&seg->fu_link);
+	link_initialize(&seg->fl_link);
 
 	seg->base = base;
 	seg->flags = 0;
@@ -159,7 +167,7 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 	link_initialize(&span->span_link);
 	list_initialize(&span->segments);
 
-	hash_table_create(&span->used, USED_BUCKETS, 1, &used_ops);
+	hash_table_create(&span->used, 0, 0, &used_ops);
 
 	for (i = 0; i <= span->max_order; i++)
 		list_initialize(&span->free[i]);
@@ -170,9 +178,25 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 	list_append(&lastseg->segment_link, &span->segments);
 
 	/* Insert the first segment into the respective free list. */
-	list_append(&seg->fu_link, &span->free[span->max_order]);
+	list_append(&seg->fl_link, &span->free[span->max_order]);
 
 	return span;
+}
+
+static void ra_span_destroy(ra_span_t *span)
+{
+	hash_table_destroy(&span->used);
+
+	list_foreach_safe(span->segments, cur, next) {
+		ra_segment_t *seg = list_get_instance(cur, ra_segment_t,
+		    segment_link);
+		list_remove(&seg->segment_link);
+		if (seg->flags & RA_SEGMENT_FREE)
+			list_remove(&seg->fl_link);
+		ra_segment_destroy(seg);
+	}
+
+	free(span);
 }
 
 /** Create an empty arena. */
@@ -190,18 +214,25 @@ ra_arena_t *ra_arena_create(void)
 	return arena;
 }
 
+void ra_arena_destroy(ra_arena_t *arena)
+{
+	/*
+	 * No locking necessary as this is the cleanup and all users should have
+	 * stopped using the arena already.
+	 */
+	list_foreach_safe(arena->spans, cur, next) {
+		ra_span_t *span = list_get_instance(cur, ra_span_t, span_link);
+		list_remove(&span->span_link);
+		ra_span_destroy(span);
+	}
+
+	free(arena);
+}
+
 /** Add a span to arena. */
 bool ra_span_add(ra_arena_t *arena, uintptr_t base, size_t size)
 {
 	ra_span_t *span;
-
-	/*
-	 * At the moment, we can only create resources that don't include 0.
-	 * If 0 needs to be considered as a valid resource, we would need to
-	 * slightly change the API of the resource allocator.
-	 */
-	if (base == 0)
-		return false;
 
 	span = ra_span_create(base, size);
 	if (!span)
@@ -214,7 +245,8 @@ bool ra_span_add(ra_arena_t *arena, uintptr_t base, size_t size)
 	return true;
 }
 
-static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
+static bool
+ra_span_alloc(ra_span_t *span, size_t size, size_t align, uintptr_t *base)
 {
 	/*
 	 * We need to add the maximum of align - 1 to be able to compensate for
@@ -238,9 +270,9 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 
 		/* Take the first segment from the free list. */
 		seg = list_get_instance(list_first(&span->free[order]),
-		    ra_segment_t, fu_link);
+		    ra_segment_t, fl_link);
 
-		ASSERT(seg->flags & RA_SEGMENT_FREE);
+		assert(seg->flags & RA_SEGMENT_FREE);
 
 		/*
 		 * See if we need to allocate new segments for the chopped-off
@@ -258,7 +290,7 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 		}
 		newbase = ALIGN_UP(seg->base, align);
 		if (newbase + size != seg->base + ra_segment_size_get(seg)) {
-			ASSERT(newbase + (size - 1) < seg->base +
+			assert(newbase + (size - 1) < seg->base +
 			    (ra_segment_size_get(seg) - 1));
 			succ = ra_segment_create(newbase + size);
 			if (!succ) {
@@ -280,7 +312,7 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 			list_insert_before(&pred->segment_link,
 			    &seg->segment_link);
 			pred_order = fnzb(ra_segment_size_get(pred));
-			list_append(&pred->fu_link, &span->free[pred_order]);
+			list_append(&pred->fl_link, &span->free[pred_order]);
 		}
 		if (succ) {
 			size_t succ_order;
@@ -288,28 +320,28 @@ static uintptr_t ra_span_alloc(ra_span_t *span, size_t size, size_t align)
 			list_insert_after(&succ->segment_link,
 			    &seg->segment_link);
 			succ_order = fnzb(ra_segment_size_get(succ));
-			list_append(&succ->fu_link, &span->free[succ_order]);
+			list_append(&succ->fl_link, &span->free[succ_order]);
 		}
 
 		/* Now remove the found segment from the free list. */
-		list_remove(&seg->fu_link);
+		list_remove(&seg->fl_link);
 		seg->base = newbase;
 		seg->flags &= ~RA_SEGMENT_FREE;
 
 		/* Hash-in the segment into the used hash. */
-		sysarg_t key = seg->base;
-		hash_table_insert(&span->used, &key, &seg->fu_link);
+		hash_table_insert(&span->used, &seg->uh_link);
 
-		return newbase;
+		*base = newbase;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 {
 	sysarg_t key = base;
-	link_t *link;
+	ht_link_t *link;
 	ra_segment_t *seg;
 	ra_segment_t *pred;
 	ra_segment_t *succ;
@@ -323,25 +355,25 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 		panic("Freeing segment which is not known to be used (base=%"
 		    PRIxn ", size=%" PRIdn ").", base, size);
 	}
-	seg = hash_table_get_instance(link, ra_segment_t, fu_link);
+	seg = hash_table_get_inst(link, ra_segment_t, uh_link);
 
 	/*
 	 * Hash out the segment.
 	 */
-	hash_table_remove(&span->used, &key, 1);
+	hash_table_remove_item(&span->used, link);
 
-	ASSERT(!(seg->flags & RA_SEGMENT_FREE));
-	ASSERT(seg->base == base);
-	ASSERT(ra_segment_size_get(seg) == size);
+	assert(!(seg->flags & RA_SEGMENT_FREE));
+	assert(seg->base == base);
+	assert(ra_segment_size_get(seg) == size);
 
 	/*
 	 * Check whether the segment can be coalesced with its left neighbor.
 	 */
 	if (list_first(&span->segments) != &seg->segment_link) {
-		pred = hash_table_get_instance(seg->segment_link.prev,
+		pred = hash_table_get_inst(seg->segment_link.prev,
 		    ra_segment_t, segment_link);
 
-		ASSERT(pred->base < seg->base);
+		assert(pred->base < seg->base);
 
 		if (pred->flags & RA_SEGMENT_FREE) {
 			/*
@@ -350,7 +382,7 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 			 * lists, rebase the segment and throw the predecessor
 			 * away.
 			 */
-			list_remove(&pred->fu_link);
+			list_remove(&pred->fl_link);
 			list_remove(&pred->segment_link);
 			seg->base = pred->base;
 			ra_segment_destroy(pred);
@@ -360,16 +392,16 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 	/*
 	 * Check whether the segment can be coalesced with its right neighbor.
 	 */
-	succ = hash_table_get_instance(seg->segment_link.next, ra_segment_t,
+	succ = hash_table_get_inst(seg->segment_link.next, ra_segment_t,
 	    segment_link);
-	ASSERT(succ->base > seg->base);
+	assert(succ->base > seg->base);
 	if (succ->flags & RA_SEGMENT_FREE) {
 		/*
 		 * The segment can be coalesced with its successor.
 		 * Remove the successor from the free and segment lists
 		 * and throw it away.
 		 */
-		list_remove(&succ->fu_link);
+		list_remove(&succ->fl_link);
 		list_remove(&succ->segment_link);
 		ra_segment_destroy(succ);
 	}
@@ -377,27 +409,28 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 	/* Put the segment on the appropriate free list. */
 	seg->flags |= RA_SEGMENT_FREE;
 	order = fnzb(ra_segment_size_get(seg));
-	list_append(&seg->fu_link, &span->free[order]);
+	list_append(&seg->fl_link, &span->free[order]);
 }
 
 /** Allocate resources from arena. */
-uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
+bool
+ra_alloc(ra_arena_t *arena, size_t size, size_t alignment, uintptr_t *base)
 {
-	uintptr_t base = 0;
+	bool success = false;
 
-	ASSERT(size >= 1);
-	ASSERT(alignment >= 1);
-	ASSERT(ispwr2(alignment));
+	assert(size >= 1);
+	assert(alignment >= 1);
+	assert(ispwr2(alignment));
 
 	irq_spinlock_lock(&arena->lock, true);
 	list_foreach(arena->spans, span_link, ra_span_t, span) {
-		base = ra_span_alloc(span, size, alignment);
-		if (base)
+		success = ra_span_alloc(span, size, alignment, base);
+		if (success)
 			break;
 	}
 	irq_spinlock_unlock(&arena->lock, true);
 
-	return base;
+	return success;
 }
 
 /* Return resources to arena. */

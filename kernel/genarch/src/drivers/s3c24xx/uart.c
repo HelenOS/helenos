@@ -37,10 +37,10 @@
  * This UART is present on the Samsung S3C24xx CPU (on the gta02 platform).
  */
 
+#include <assert.h>
 #include <genarch/drivers/s3c24xx/uart.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <ddi/device.h>
 #include <arch/asm.h>
 #include <mm/slab.h>
 #include <mm/page.h>
@@ -121,7 +121,6 @@ outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)
 
 	/* Initialize IRQ structure. */
 	irq_initialize(&uart->irq);
-	uart->irq.devno = device_assign_devno();
 	uart->irq.inr = inr;
 	uart->irq.claim = s3c24xx_uart_claim;
 	uart->irq.handler = s3c24xx_uart_irq_handler;
@@ -160,8 +159,8 @@ outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)
 
 void s3c24xx_uart_input_wire(s3c24xx_uart_t *uart, indev_t *indev)
 {
-	ASSERT(uart);
-	ASSERT(indev);
+	assert(uart);
+	assert(indev);
 
 	uart->indev = indev;
 	irq_register(&uart->irq);

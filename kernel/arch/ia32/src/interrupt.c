@@ -33,6 +33,7 @@
  */
 
 #include <arch/interrupt.h>
+#include <assert.h>
 #include <syscall/syscall.h>
 #include <print.h>
 #include <debug.h>
@@ -83,7 +84,7 @@ void istate_decode(istate_t *istate)
 	    istate->eax, istate->ebx, istate->ecx, istate->edx);
 	
 	printf("esi=%0#10" PRIx32 "\tedi=%0#10" PRIx32 "\t"
-	    "ebp=%0#10" PRIx32 "\tesp=%0#10" PRIx32 "\n",
+	    "ebp=%0#10" PRIx32 "\tesp=%0#10" PRIxn "\n",
 	    istate->esi, istate->edi, istate->ebp,
 	    istate_from_uspace(istate) ? istate->esp :
 	    (uintptr_t) &istate->esp);
@@ -182,12 +183,12 @@ static void arch_smp_call_ipi_recv(unsigned int n, istate_t *istate)
 /** Handler of IRQ exceptions */
 static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused)))
 {
-	ASSERT(n >= IVT_IRQBASE);
+	assert(n >= IVT_IRQBASE);
 	
 	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
-	ASSERT(inum < IRQ_COUNT);
-	ASSERT((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
+	assert(inum < IRQ_COUNT);
+	assert((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
 	
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {

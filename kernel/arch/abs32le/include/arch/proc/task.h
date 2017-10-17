@@ -35,7 +35,6 @@
 #ifndef KERN_abs32le_TASK_H_
 #define KERN_abs32le_TASK_H_
 
-#include <typedefs.h>
 #include <adt/bitmap.h>
 
 /*

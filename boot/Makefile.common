@@ -51,8 +51,7 @@ DIST_OVERLAY_PATH = $(USPACE_PATH)/overlay
 TOOLS_PATH = $(ROOT_PATH)/tools
 DRVS_PATH = drv
 
-SANDBOX = pack
-PACK = $(TOOLS_PATH)/pack.py
+MKARRAY = $(TOOLS_PATH)/mkarray.py
 MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
 MKEXT4 = $(TOOLS_PATH)/mkext4.py
@@ -182,6 +181,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/download/download \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/fdisk/fdisk \
+	$(USPACE_PATH)/app/gunzip/gunzip \
 	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
@@ -207,6 +207,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/netecho/netecho \
 	$(USPACE_PATH)/app/nterm/nterm \
 	$(USPACE_PATH)/app/ping/ping \
+	$(USPACE_PATH)/app/pkg/pkg \
 	$(USPACE_PATH)/app/stats/stats \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
 	$(USPACE_PATH)/app/sysinst/sysinst \
@@ -232,10 +233,12 @@ endif
 
 RD_TESTS = \
 	$(USPACE_PATH)/lib/c/test-libc \
+	$(USPACE_PATH)/lib/label/test-liblabel \
 	$(USPACE_PATH)/lib/posix/test-libposix \
 	$(USPACE_PATH)/lib/uri/test-liburi \
 	$(USPACE_PATH)/drv/bus/usb/xhci/test-xhci \
-	$(USPACE_PATH)/app/bdsh/test-bdsh
+	$(USPACE_PATH)/app/bdsh/test-bdsh \
+	$(USPACE_PATH)/srv/net/tcp/test-tcp
 
 RD_DATA_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/demo.txt
@@ -250,24 +253,26 @@ COMPONENTS = \
 	$(INIT_TASKS) \
 	$(INITRD).img
 
+COMPONENTS_DEFLATE := $(addsuffix .deflate,$(notdir $(COMPONENTS)))
+
 LINK = arch/$(BARCH)/_link.ld
-COMPS_H = arch/$(BARCH)/include/_components.h
-COMPS_C = arch/$(BARCH)/src/_components.c
+COMP = component
+COMPS = $(COMP)s
 
 -include arch/$(BARCH)/Makefile.inc
 
 ifeq ($(CONFIG_BAREBONE),y)
-RD_SRVS = $(RD_SRVS_ESSENTIAL)
-RD_APPS = $(RD_APPS_ESSENTIAL)
-RD_DRVS = $(RD_DRVS_ESSENTIAL)
-RD_DRVS_FW = $(RD_DRVS_FW_ESSENTIAL)
-RD_DATA = $(RD_DATA_ESSENTIAL)
+	RD_SRVS = $(RD_SRVS_ESSENTIAL)
+	RD_APPS = $(RD_APPS_ESSENTIAL)
+	RD_DRVS = $(RD_DRVS_ESSENTIAL)
+	RD_DRVS_FW = $(RD_DRVS_FW_ESSENTIAL)
+	RD_DATA = $(RD_DATA_ESSENTIAL)
 else
-RD_SRVS = $(RD_SRVS_ESSENTIAL) $(RD_SRVS_NON_ESSENTIAL)
-RD_APPS = $(RD_APPS_ESSENTIAL) $(RD_APPS_NON_ESSENTIAL)
-RD_DRVS = $(RD_DRVS_ESSENTIAL) $(RD_DRVS_NON_ESSENTIAL)
-RD_DRVS_FW = $(RD_DRVS_FW_ESSENTIAL) $(RD_DRVS_FW_NON_ESSENTIAL)
-RD_DATA = $(RD_DATA_ESSENTIAL) $(RD_DATA_NON_ESSENTIAL)
+	RD_SRVS = $(RD_SRVS_ESSENTIAL) $(RD_SRVS_NON_ESSENTIAL)
+	RD_APPS = $(RD_APPS_ESSENTIAL) $(RD_APPS_NON_ESSENTIAL)
+	RD_DRVS = $(RD_DRVS_ESSENTIAL) $(RD_DRVS_NON_ESSENTIAL)
+	RD_DRVS_FW = $(RD_DRVS_FW_ESSENTIAL) $(RD_DRVS_FW_NON_ESSENTIAL)
+	RD_DATA = $(RD_DATA_ESSENTIAL) $(RD_DATA_NON_ESSENTIAL)
 endif
 
 MODULES := $(notdir $(COMPONENTS))
@@ -276,5 +281,4 @@ BOOT_OUTPUT ?= $(ROOT_PATH)/image.boot
 RAW ?= image.raw
 JOB ?= image.job
 MAP ?= image.map
-PREBUILD ?= build_comps
 BUILD ?= Makefile.build

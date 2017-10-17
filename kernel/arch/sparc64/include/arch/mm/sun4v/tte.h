@@ -49,7 +49,7 @@
 
 #ifndef __ASM__
 
-#include <typedefs.h>
+#include <stdint.h>
 
 /** Translation Table Entry - Data. */
 union tte_data {

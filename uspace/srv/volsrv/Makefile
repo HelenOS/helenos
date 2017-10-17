@@ -28,8 +28,13 @@
 
 USPACE_PREFIX = ../..
 
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a
-EXTRA_CFLAGS = -I $(LIBBLOCK_PREFIX)
+LIBS = \
+	$(LIBLABEL_PREFIX)/liblabel.a \
+	$(LIBBLOCK_PREFIX)/libblock.a
+
+EXTRA_CFLAGS = \
+	-I$(LIBLABEL_PREFIX)/include \
+	-I$(LIBBLOCK_PREFIX)
 
 BINARY = volsrv
 

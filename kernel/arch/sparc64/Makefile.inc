@@ -30,7 +30,7 @@ BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
 BFD = binary
 
-GCC_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow -mno-fpu
+COMMON_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow -mno-fpu
 
 LFLAGS += -no-check-sections
 

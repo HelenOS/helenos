@@ -50,7 +50,7 @@
 
 #define NAME  "barber"
 
-#define FRAMES  30
+#define FRAMES  IMAGES
 
 #define MIN_FPS  1
 #define MAX_FPS  25
@@ -98,40 +98,10 @@ static void frame_timer_callback(void *);
 
 static bool decode_frames(void)
 {
-	frames[0] = decode_tga_gz((void *) frame01_tga_gz, frame01_tga_gz_size, 0);
-	frames[1] = decode_tga_gz((void *) frame02_tga_gz, frame02_tga_gz_size, 0);
-	frames[2] = decode_tga_gz((void *) frame03_tga_gz, frame03_tga_gz_size, 0);
-	frames[3] = decode_tga_gz((void *) frame04_tga_gz, frame04_tga_gz_size, 0);
-	frames[4] = decode_tga_gz((void *) frame05_tga_gz, frame05_tga_gz_size, 0);
-	frames[5] = decode_tga_gz((void *) frame06_tga_gz, frame06_tga_gz_size, 0);
-	frames[6] = decode_tga_gz((void *) frame07_tga_gz, frame07_tga_gz_size, 0);
-	frames[7] = decode_tga_gz((void *) frame08_tga_gz, frame08_tga_gz_size, 0);
-	frames[8] = decode_tga_gz((void *) frame09_tga_gz, frame09_tga_gz_size, 0);
-	frames[9] = decode_tga_gz((void *) frame10_tga_gz, frame10_tga_gz_size, 0);
-	frames[10] = decode_tga_gz((void *) frame11_tga_gz, frame11_tga_gz_size, 0);
-	frames[11] = decode_tga_gz((void *) frame12_tga_gz, frame12_tga_gz_size, 0);
-	frames[12] = decode_tga_gz((void *) frame13_tga_gz, frame13_tga_gz_size, 0);
-	frames[13] = decode_tga_gz((void *) frame14_tga_gz, frame14_tga_gz_size, 0);
-	frames[14] = decode_tga_gz((void *) frame15_tga_gz, frame15_tga_gz_size, 0);
-	frames[15] = decode_tga_gz((void *) frame16_tga_gz, frame16_tga_gz_size, 0);
-	frames[16] = decode_tga_gz((void *) frame17_tga_gz, frame17_tga_gz_size, 0);
-	frames[17] = decode_tga_gz((void *) frame18_tga_gz, frame18_tga_gz_size, 0);
-	frames[18] = decode_tga_gz((void *) frame19_tga_gz, frame19_tga_gz_size, 0);
-	frames[19] = decode_tga_gz((void *) frame20_tga_gz, frame20_tga_gz_size, 0);
-	frames[20] = decode_tga_gz((void *) frame21_tga_gz, frame21_tga_gz_size, 0);
-	frames[21] = decode_tga_gz((void *) frame22_tga_gz, frame22_tga_gz_size, 0);
-	frames[22] = decode_tga_gz((void *) frame23_tga_gz, frame23_tga_gz_size, 0);
-	frames[23] = decode_tga_gz((void *) frame24_tga_gz, frame24_tga_gz_size, 0);
-	frames[24] = decode_tga_gz((void *) frame25_tga_gz, frame25_tga_gz_size, 0);
-	frames[25] = decode_tga_gz((void *) frame26_tga_gz, frame26_tga_gz_size, 0);
-	frames[26] = decode_tga_gz((void *) frame27_tga_gz, frame27_tga_gz_size, 0);
-	frames[27] = decode_tga_gz((void *) frame28_tga_gz, frame28_tga_gz_size, 0);
-	frames[28] = decode_tga_gz((void *) frame29_tga_gz, frame29_tga_gz_size, 0);
-	frames[29] = decode_tga_gz((void *) frame30_tga_gz, frame30_tga_gz_size, 0);
-	
-	for (unsigned int frame = 0; frame < FRAMES; frame++) {
-		if (frames[frame] == NULL) {
-			printf("Unable to decode frame %u.\n", frame);
+	for (unsigned int i = 0; i < FRAMES; i++) {
+		frames[i] = decode_tga_gz(images[i].addr, images[i].size, 0);
+		if (frames[i] == NULL) {
+			printf("Unable to decode frame %u.\n", i);
 			return false;
 		}
 	}

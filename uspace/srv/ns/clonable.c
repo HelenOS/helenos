@@ -30,7 +30,7 @@
  * @{
  */
 
-#include <ipc/ipc.h>
+#include <async.h>
 #include <ipc/services.h>
 #include <adt/list.h>
 #include <stdbool.h>
@@ -80,7 +80,7 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
 	if (req_link == NULL) {
 		/* There was no pending connection request. */
 		printf("%s: Unexpected clonable server.\n", NAME);
-		ipc_answer_0(callid, EBUSY);
+		async_answer_0(callid, EBUSY);
 		return;
 	}
 	
@@ -90,13 +90,19 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
 	/* Currently we can only handle a single type of clonable service. */
 	assert(csr->service == SERVICE_LOADER);
 	
-	ipc_answer_0(callid, EOK);
+	async_answer_0(callid, EOK);
 	
-	ipc_forward_fast(csr->callid, phone, csr->iface, csr->arg3, 0,
+	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
+	if (sess == NULL)
+		async_answer_0(callid, EIO);
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	async_forward_fast(csr->callid, exch, csr->iface, csr->arg3, 0,
 	    IPC_FF_NONE);
+	async_exchange_end(exch);
 	
 	free(csr);
-	ipc_hangup(phone);
+	async_hangup(sess);
 }
 
 /** Connect client to clonable service.
@@ -116,7 +122,7 @@ void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
 	
 	cs_req_t *csr = malloc(sizeof(cs_req_t));
 	if (csr == NULL) {
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		return;
 	}
 	
@@ -125,7 +131,7 @@ void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
 	
 	if (rc < 0) {
 		free(csr);
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		return;
 	}
 	

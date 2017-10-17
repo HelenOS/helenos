@@ -35,8 +35,8 @@
 #include <assert.h>
 #include <bitops.h>
 #include <ddi.h>
+#include <device/hw_res.h>
 #include <device/hw_res_parsed.h>
-#include <irc.h>
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
@@ -174,7 +174,7 @@ static int hda_dev_add(ddf_dev_t *dev)
 	fibril_mutex_initialize(&hda->lock);
 
 	ddf_msg(LVL_NOTE, "create parent sess");
-	hda->parent_sess = ddf_dev_parent_sess_create(dev);
+	hda->parent_sess = ddf_dev_parent_sess_get(dev);
 	if (hda->parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed connecting parent driver.\n");
 		rc = ENOMEM;
@@ -256,15 +256,16 @@ static int hda_dev_add(ddf_dev_t *dev)
 
 	ddf_msg(LVL_NOTE, "range0.base=%zu", hdaudio_irq_pio_ranges[0].base);
 
-	rc = irc_enable_interrupt(res.irqs.irqs[0]);
+	rc = hw_res_enable_interrupt(hda->parent_sess, res.irqs.irqs[0]);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed enabling interrupt. (%d)", rc);
 		goto error;
 	}
 
-	rc = register_interrupt_handler(dev, res.irqs.irqs[0],
+	int irq_cap = register_interrupt_handler(dev, res.irqs.irqs[0],
 	    hdaudio_interrupt, &irq_code);
-	if (rc != EOK) {
+	if (irq_cap < 0) {
+		rc = irq_cap;
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
 		    rc);
 		goto error;

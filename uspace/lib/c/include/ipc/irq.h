@@ -35,11 +35,11 @@
 #ifndef LIBC_IPC_IRQ_H_
 #define LIBC_IPC_IRQ_H_
 
-#include <libarch/types.h>
+#include <types/common.h>
 #include <abi/ddi/irq.h>
 
-extern int ipc_irq_subscribe(int, int, sysarg_t, const irq_code_t *);
-extern int ipc_irq_unsubscribe(int, int);
+extern int ipc_irq_subscribe(int, sysarg_t, const irq_code_t *);
+extern int ipc_irq_unsubscribe(int);
 
 #endif
 

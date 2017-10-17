@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_ASID_H_
 #define KERN_sparc64_ASID_H_
 
-#include <typedefs.h>
+#include <stdint.h>
 
 /*
  * On SPARC, Context means the same thing as ASID trough out the kernel.
