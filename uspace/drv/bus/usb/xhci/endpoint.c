@@ -80,15 +80,20 @@ void xhci_device_fini(xhci_device_t *dev)
 	assert(dev);
 }
 
-uint8_t xhci_endpoint_ctx_offset(xhci_endpoint_t *ep)
+/** Return an index to the endpoint array. The indices are assigned as follows:
+ * 0	EP0 BOTH
+ * 1	EP1 OUT
+ * 2	EP1 IN
+ *
+ * For control endpoints >0, the IN endpoint index is used.
+ * 
+ * The index returned must be usually offset by a number of contexts preceding
+ * the endpoint contexts themselves.
+ */
+uint8_t xhci_endpoint_index(xhci_endpoint_t *ep)
 {
-	/* 0 is slot ctx, 1 is EP0, then it's EP1 out, in, EP2 out, in, etc. */
-
-	uint8_t off = 2 * (ep->base.target.endpoint);
-	if (ep->base.direction == USB_DIRECTION_IN || ep->base.target.endpoint == 0)
-		++off;
-
-	return off;
+	return  (2 * ep->base.target.endpoint)
+	    - (ep->base.direction == USB_DIRECTION_OUT);
 }
 
 static int xhci_endpoint_type(xhci_endpoint_t *ep)
@@ -210,8 +215,8 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 		XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
 		XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
 
-		const uint8_t ep_offset = xhci_endpoint_ctx_offset(ep);
-		XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_offset);
+		const uint8_t ep_idx = xhci_endpoint_index(ep);
+		XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
 
 		ep_ring = malloc(sizeof(xhci_trb_ring_t));
 		if (!ep_ring) {
@@ -226,19 +231,19 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 
 		switch (ep->base.transfer_type) {
 		case USB_TRANSFER_CONTROL:
-			setup_control_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset - 1], ep_ring);
+			setup_control_ep_ctx(ep, &ictx->endpoint_ctx[ep_idx], ep_ring);
 			break;
 
 		case USB_TRANSFER_BULK:
-			setup_bulk_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset - 1], ep_ring, &ss_desc);
+			setup_bulk_ep_ctx(ep, &ictx->endpoint_ctx[ep_idx], ep_ring, &ss_desc);
 			break;
 
 		case USB_TRANSFER_ISOCHRONOUS:
-			setup_isoch_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset - 1], ep_ring, &ss_desc);
+			setup_isoch_ep_ctx(ep, &ictx->endpoint_ctx[ep_idx], ep_ring, &ss_desc);
 			break;
 
 		case USB_TRANSFER_INTERRUPT:
-			setup_interrupt_ep_ctx(ep, &ictx->endpoint_ctx[ep_offset - 1], ep_ring, &ss_desc);
+			setup_interrupt_ep_ctx(ep, &ictx->endpoint_ctx[ep_idx], ep_ring, &ss_desc);
 			break;
 
 		}

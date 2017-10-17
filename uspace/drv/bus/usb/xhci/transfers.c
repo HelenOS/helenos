@@ -42,84 +42,55 @@
 #include "transfers.h"
 #include "trb_ring.h"
 
-static inline uint8_t get_transfer_type(xhci_trb_t* trb, uint8_t bmRequestType, uint16_t wLength)
+typedef enum {
+    STAGE_OUT,
+    STAGE_IN,
+} stage_dir_flag_t;
+
+#define REQUEST_TYPE_DTD (0x80)
+#define REQUEST_TYPE_IS_DEVICE_TO_HOST(rq) ((rq) & REQUEST_TYPE_DTD)
+
+
+/** Get direction flag of data stage.
+ *  See Table 7 of xHCI specification.
+ */
+static inline stage_dir_flag_t get_status_direction_flag(xhci_trb_t* trb,
+	uint8_t bmRequestType, uint16_t wLength)
 {
 	/* See Table 7 of xHCI specification */
-	if (bmRequestType & 0x80) {
-		/* Device-to-host transfer */
-		if (wLength) {
-			/* IN data stage */
-			return 3;
-		}
-		else {
-			/* No data stage */
-			return 0;
-		}
-	}
-	else {
-		/* Host-to-device transfer */
-		if (wLength) {
-			/* OUT data stage */
-			return 2;
-		}
-		else {
-			/* No data stage */
-			return 0;
-		}
-	}
+	return REQUEST_TYPE_IS_DEVICE_TO_HOST(bmRequestType) && (wLength > 0)
+		? STAGE_OUT
+		: STAGE_IN;
 }
 
-static inline uint8_t get_data_direction(xhci_trb_t* trb, uint8_t bmRequestType, uint16_t wLength)
-{
-	/* See Table 7 of xHCI specification */
-	if (bmRequestType & 0x80) {
-		/* Device-to-host transfer */
-		return 1;
-	}
-	else {
-		/* Host-to-device transfer */
-		return 0;
-	}
-}
+typedef enum {
+    DATA_STAGE_NO = 0,
+    DATA_STAGE_OUT = 2,
+    DATA_STAGE_IN = 3,
+} data_stage_type_t;
 
-static inline uint8_t get_status_direction(xhci_trb_t* trb, uint8_t bmRequestType, uint16_t wLength)
+/** Get transfer type flag.
+ *  See Table 8 of xHCI specification.
+ */
+static inline data_stage_type_t get_transfer_type(xhci_trb_t* trb, uint8_t
+	bmRequestType, uint16_t wLength)
 {
+	if (wLength == 0)
+		return DATA_STAGE_NO;
+
 	/* See Table 7 of xHCI specification */
-	if (bmRequestType & 0x80) {
-		/* Device-to-host transfer */
-		if (wLength) {
-			/* Out direction */
-			return 0;
-		}
-		else {
-			/* In direction */
-			return 1;
-		}
-	}
-	else {
-		/* Host-to-device transfer, always IN direction */
-		return 1;
-	}
+	return REQUEST_TYPE_IS_DEVICE_TO_HOST(bmRequestType)
+		? DATA_STAGE_IN
+		: DATA_STAGE_NO;
 }
 
 static inline bool configure_endpoint_needed(usb_device_request_setup_packet_t *setup)
 {
 	usb_request_type_t request_type = SETUP_REQUEST_TYPE_GET_TYPE(setup->request_type);
 
-	if (request_type == USB_REQUEST_TYPE_STANDARD) {
-		usb_stddevreq_t request = setup->request;
-
-		switch (request) {
-		case USB_DEVREQ_SET_CONFIGURATION:
-		case USB_DEVREQ_SET_INTERFACE:
-			return true;
-
-		default:
-			return false;
-		}
-	}
-
-	return false;
+	return request_type == USB_REQUEST_TYPE_STANDARD &&
+		(setup->request == USB_DEVREQ_SET_CONFIGURATION
+		|| setup->request == USB_DEVREQ_SET_INTERFACE);
 }
 
 int xhci_init_transfers(xhci_hc_t *hc)
@@ -189,7 +160,7 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	}
 
 	xhci_trb_t trb_setup;
-	memset(&trb_setup, 0, sizeof(xhci_trb_t));
+	xhci_trb_clean(&trb_setup);
 
 	TRB_CTRL_SET_SETUP_WVALUE(trb_setup, setup->value);
 	TRB_CTRL_SET_SETUP_WLENGTH(trb_setup, setup->length);
@@ -209,7 +180,7 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 	/* Data stage */
 	xhci_trb_t trb_data;
-	memset(&trb_data, 0, sizeof(xhci_trb_t));
+	xhci_trb_clean(&trb_data);
 
 	if (setup->length > 0) {
 		trb_data.parameter = addr_to_phys(transfer->hc_buffer);
@@ -225,13 +196,14 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 		// Some more fields here, no idea what they mean
 		TRB_CTRL_SET_TRB_TYPE(trb_data, XHCI_TRB_TYPE_DATA_STAGE);
 
-		transfer->direction = get_data_direction(&trb_setup, setup->request_type, setup->length);
+		transfer->direction = REQUEST_TYPE_IS_DEVICE_TO_HOST(setup->request_type) 
+					? STAGE_IN : STAGE_OUT;
 		TRB_CTRL_SET_DIR(trb_data, transfer->direction);
 	}
 
 	/* Status stage */
 	xhci_trb_t trb_status;
-	memset(&trb_status, 0, sizeof(xhci_trb_t));
+	xhci_trb_clean(&trb_status);
 
 	// FIXME: Evaluate next TRB? 4.12.3
 	// TRB_CTRL_SET_ENT(trb_status, 1);
@@ -240,7 +212,7 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	TRB_CTRL_SET_IOC(trb_status, 1);
 
 	TRB_CTRL_SET_TRB_TYPE(trb_status, XHCI_TRB_TYPE_STATUS_STAGE);
-	TRB_CTRL_SET_DIR(trb_status, get_status_direction(&trb_setup, setup->request_type, setup->length));
+	TRB_CTRL_SET_DIR(trb_status, get_status_direction_flag(&trb_setup, setup->request_type, setup->length));
 
 	uintptr_t dummy = 0;
 	xhci_trb_ring_enqueue(ring, &trb_setup, &dummy);
@@ -251,11 +223,6 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 	list_append(&transfer->link, &hc->transfers);
 
-	/* For control transfers, the target is always 1. */
-	// FIXME: ignoring return code
-	const uint8_t target = xhci_endpoint_ctx_offset(xhci_ep);
-	hc_ring_doorbell(hc, slot_id, target);
-
 	// Issue a Configure Endpoint command, if needed.
 	if (configure_endpoint_needed(setup)) {
 		// TODO: figure out the best time to issue this command
@@ -263,7 +230,8 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 		xhci_device_configure(xhci_ep->device, hc);
 	}
 
-	return EOK;
+	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbels start at 1 */
+	return hc_ring_doorbell(hc, slot_id, target);
 }
 
 int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
@@ -283,7 +251,7 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	}
 
 	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(xhci_trb_t));
+	xhci_trb_clean(&trb);
 	trb.parameter = addr_to_phys(transfer->hc_buffer);
 
 	// data size (sent for OUT, or buffer size)
@@ -300,9 +268,8 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	list_append(&transfer->link, &hc->transfers);
 
 	// TODO: target = endpoint | stream_id << 16
-	const uint8_t target = xhci_endpoint_ctx_offset(xhci_ep);
-	hc_ring_doorbell(hc, slot_id, target);
-	return EOK;
+	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
+	return hc_ring_doorbell(hc, slot_id, target);
 }
 
 int xhci_schedule_interrupt_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
@@ -322,7 +289,7 @@ int xhci_schedule_interrupt_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	}
 
 	xhci_trb_t trb;
-	memset(&trb, 0, sizeof(xhci_trb_t));
+	xhci_trb_clean(&trb);
 	trb.parameter = addr_to_phys(transfer->hc_buffer);
 
 	// data size (sent for OUT, or buffer size)
@@ -338,8 +305,7 @@ int xhci_schedule_interrupt_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 	list_append(&transfer->link, &hc->transfers);
 
-	const uint8_t target = xhci_endpoint_ctx_offset(xhci_ep);
-	usb_log_debug("Ringing doorbell for slot_id = %d, target = %d", slot_id, target);
+	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 	return hc_ring_doorbell(hc, slot_id, target);
 }
 
@@ -366,21 +332,9 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	list_remove(transfer_link);
 	usb_transfer_batch_t *batch = transfer->batch;
 
-	batch->error = (TRB_COMPLETION_CODE(*trb) == XHCI_TRBC_SUCCESS) ? EOK : ENAK;
-	batch->transfered_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
-	if (transfer->direction) {
-		memcpy(batch->buffer, transfer->hc_buffer, batch->buffer_size);
-
-		/* Device-to-host, IN */
-		if (batch->callback_in)
-			batch->callback_in(batch->error, batch->transfered_size, batch->arg);
-	}
-	else {
-		/* Host-to-device, OUT */
-		if (batch->callback_out)
-			batch->callback_out(batch->error, batch->arg);
-	}
-
+	const int err = (TRB_COMPLETION_CODE(*trb) == XHCI_TRBC_SUCCESS) ? EOK : ENAK;
+	const size_t size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
+	usb_transfer_batch_finish_error(batch, transfer->hc_buffer, size, err);
 	xhci_transfer_fini(transfer);
 	return EOK;
 }
