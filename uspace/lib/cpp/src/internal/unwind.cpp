@@ -27,6 +27,7 @@
  */
 
 #include <cstdint>
+#include <cstdlib>
 
 namespace __cxxabiv1
 {
@@ -81,6 +82,7 @@ namespace __cxxabiv1
     _Unwind_Reason_Code _Unwind_ForcedUnwind(_Unwind_Exception*, _Unwind_Stop_Fn, void*)
     {
         // TODO: implement
+        return _URC_NO_REASON;
     }
 
     void _Unwind_Resume(_Unwind_Exception*)
@@ -96,6 +98,7 @@ namespace __cxxabiv1
     std::uint64_t _Unwind_GetGR(_Unwind_Context*, int)
     {
         // TODO: implement
+        return 0;
     }
 
     void _Unwind_SetGR(_Unwind_Context*, int, std::uint64_t)
@@ -106,6 +109,7 @@ namespace __cxxabiv1
     std::uint64_t _Unwind_GetIP(_Unwind_Context*)
     {
         // TODO: implement
+        return 0;
     }
 
     void _Unwind_SetIP(_Unwind_Context*, std::uint64_t)
@@ -116,11 +120,13 @@ namespace __cxxabiv1
     std::uint64_t _Unwind_GetLanguageSpecificData(_Unwind_Context*)
     {
         // TODO: implement
+        return 0;
     }
 
     std::uint64_t _Unwind_GetRegionStart(_Unwind_Context*)
     {
         // TODO: implement
+        return 0;
     }
 
     /**
@@ -134,5 +140,82 @@ namespace __cxxabiv1
     /**
      * Stack unwinding functionality - Level 2.
      */
-    // TODO:
+    struct __cxa_exception
+    {
+        std::type_info* exceptionType;
+        void (*exceptionDestructor)(void*);
+        // TODO: Add handler types to <exception>.
+        /* std::unexpected_handler unexpectedHandler; */
+        void (*unexpectedHandler)();
+        /* std::terminate_handler terminateHandler; */
+        void (*terminateHandler)();
+        __cxa_exception* nextException;
+
+        int handlerCount;
+        int handlerSwitchValue;
+        const char* actionRecord;
+        const char* languageSpecificData;
+        void* catchTemp;
+        void* adjujstedPtr;
+
+        _Unwind_Exception unwindHeader;
+    };
+
+    struct __cxa_eh_globals
+    {
+        __cxa_exception* caughtExceptions;
+        unsigned int uncaughtExceptions;
+    };
+
+    extern "C" __cxa_eh_globals* __cxa_get_globals();
+
+    extern "C" __cxa_eh_globals* __cxa_get_globals_fast();
+
+    extern "C" void* __cxa_allocate_exception(std::size_t thrown_size)
+    {
+        // TODO: implement
+        return nullptr;
+    }
+
+    extern "C" void __cxa_free_exception(void* thrown_exception)
+    {
+        // TODO: implement
+    }
+
+    extern "C" void __cxa_throw(void* thrown_exception, std::type_info* tinfo, void (*dest)(void*))
+    {
+        // TODO: implement
+    }
+
+    extern "C" void* __cxa_get_exception_ptr(void*  exception_object)
+    {
+        // TODO: implement
+        return nullptr;
+    }
+
+    extern "C" void* __cxa_begin_catch(void* exception_object)
+    {
+        // TODO: implement
+        return nullptr;
+    }
+
+    extern "C" void __cxa_end_catch()
+    {
+        // TODO: implement
+    }
+
+    extern "C" void __cxa_rethrow()
+    {
+        // TODO: implement
+    }
+
+    extern "C" void __cxa_bad_cast()
+    {
+        // TODO: implement
+    }
+
+    extern "C" void __cxa_bad_typeid()
+    {
+        // TODO: implement
+    }
 }
