@@ -278,16 +278,16 @@ static int icp_add_functions(ddf_dev_t *dev)
 {
 	int rc;
 
+	rc = icp_add_fun(dev, "intctl", "integratorcp/intctl",
+	    &icp_ic_fun_proto);
+	if (rc != EOK)
+		return rc;
+
 	rc = icp_add_fun(dev, "kbd", "arm/pl050", &icp_kbd_fun_proto);
 	if (rc != EOK)
 		return rc;
 
 	rc = icp_add_fun(dev, "mouse", "arm/pl050", &icp_mouse_fun_proto);
-	if (rc != EOK)
-		return rc;
-
-	rc = icp_add_fun(dev, "intctl", "integratorcp/intctl",
-	    &icp_ic_fun_proto);
 	if (rc != EOK)
 		return rc;
 

@@ -39,6 +39,7 @@
 #include <loc.h>
 #include <sysinfo.h>
 #include <as.h>
+#include <ddf/log.h>
 #include <ddi.h>
 #include <align.h>
 #include <stdbool.h>
@@ -46,16 +47,12 @@
 #include <async.h>
 #include <stdio.h>
 
+#include "i8259.h"
+
 #define NAME  "i8259"
 
-#define IO_RANGE0_START  ((ioport8_t *) 0x0020U)
 #define IO_RANGE0_SIZE   2
-
-#define IO_RANGE1_START  ((ioport8_t *) 0x00a0U)
 #define IO_RANGE1_SIZE   2
-
-static ioport8_t *io_range0;
-static ioport8_t *io_range1;
 
 #define PIC_PIC0PORT1  0
 #define PIC_PIC0PORT2  1
@@ -65,7 +62,7 @@ static ioport8_t *io_range1;
 
 #define PIC_MAX_IRQ  15
 
-static int pic_enable_irq(sysarg_t irq)
+static int pic_enable_irq(i8259_t *i8259, sysarg_t irq)
 {
 	if (irq > PIC_MAX_IRQ)
 		return ENOENT;
@@ -74,14 +71,14 @@ static int pic_enable_irq(sysarg_t irq)
 	uint8_t val;
 	
 	if (irqmask & 0xff) {
-		val = pio_read_8(io_range0 + PIC_PIC0PORT2);
-		pio_write_8(io_range0 + PIC_PIC0PORT2,
+		val = pio_read_8(i8259->regs0 + PIC_PIC0PORT2);
+		pio_write_8(i8259->regs0 + PIC_PIC0PORT2,
 		    (uint8_t) (val & (~(irqmask & 0xff))));
 	}
 	
 	if (irqmask >> 8) {
-		val = pio_read_8(io_range1 + PIC_PIC1PORT2);
-		pio_write_8(io_range1 + PIC_PIC1PORT2,
+		val = pio_read_8(i8259->regs1 + PIC_PIC1PORT2);
+		pio_write_8(i8259->regs1 + PIC_PIC1PORT2,
 		    (uint8_t) (val & (~(irqmask >> 8))));
 	}
 	
@@ -98,11 +95,14 @@ static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
+	i8259_t *i8259 = NULL /* XXX */;
 	
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
 	async_answer_0(iid, EOK);
+	
+	i8259 = (i8259_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 	
 	while (true) {
 		callid = async_get_call(&call);
@@ -115,7 +115,8 @@ static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
-			async_answer_0(callid, pic_enable_irq(IPC_GET_ARG1(call)));
+			async_answer_0(callid, pic_enable_irq(i8259,
+			    IPC_GET_ARG1(call)));
 			break;
 		case IRC_DISABLE_INTERRUPT:
 			/* XXX TODO */
@@ -132,73 +133,67 @@ static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-/** Initialize the i8259 driver.
- *
- */
-static bool i8259_init(void)
+/** Add i8259 device. */
+int i8259_add(i8259_t *i8259, i8259_res_t *res)
 {
-	sysarg_t i8259;
-	category_id_t irc_cat;
-	service_id_t svc_id;
+	sysarg_t have_i8259;
+	ioport8_t *regs0;
+	ioport8_t *regs1;
+	ddf_fun_t *fun_a = NULL;
 	int rc;
 	
-	if ((sysinfo_get_value("i8259", &i8259) != EOK) || (!i8259)) {
+	if ((sysinfo_get_value("i8259", &have_i8259) != EOK) || (!have_i8259)) {
 		printf("%s: No i8259 found\n", NAME);
-		return false;
+		return ENOTSUP;
 	}
 	
-	if ((pio_enable((void *) IO_RANGE0_START, IO_RANGE0_SIZE,
-	    (void **) &io_range0) != EOK) ||
-	    (pio_enable((void *) IO_RANGE1_START, IO_RANGE1_SIZE,
-	    (void **) &io_range1) != EOK)) {
+	if ((pio_enable((void *) res->base0, IO_RANGE0_SIZE,
+	    (void **) &regs0) != EOK) ||
+	    (pio_enable((void *) res->base1, IO_RANGE1_SIZE,
+	    (void **) &regs1) != EOK)) {
 		printf("%s: i8259 not accessible\n", NAME);
-		return false;
+		return EIO;
 	}
 	
-	async_set_fallback_port_handler(i8259_connection, NULL);
-
-	rc = loc_server_register(NAME);
-	if (rc != EOK) {
-		printf("%s: Failed registering server. (%d)\n", NAME, rc);
-		return false;
-	}
-
-	rc = loc_service_register("irc/" NAME, &svc_id);
-	if (rc != EOK) {
-		printf("%s: Failed registering service. (%d)\n", NAME, rc);
-		return false;
-	}
-
-	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Failed resolving category 'iplink' (%d).\n", NAME,
-		    rc);
-		return false;
-	}
-
-	rc = loc_service_add_to_cat(svc_id, irc_cat);
-	if (rc != EOK) {
-		printf("%s: Failed adding service to category (%d).\n", NAME,
-		    rc);
-		return false;
+	i8259->regs0 = regs0;
+	i8259->regs1 = regs1;
+	
+	fun_a = ddf_fun_create(i8259->dev, fun_exposed, "a");
+	if (fun_a == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
+		rc = ENOMEM;
+		goto error;
 	}
 	
-	return true;
+	ddf_fun_set_conn_handler(fun_a, i8259_connection);
+	
+	rc = ddf_fun_bind(fun_a);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		goto error;
+	}
+	
+	rc = ddf_fun_add_to_category(fun_a, "irc");
+	if (rc != EOK)
+		goto error;
+	
+	return EOK;
+error:
+	if (fun_a != NULL)
+		ddf_fun_destroy(fun_a);
+	return rc;
 }
 
-int main(int argc, char **argv)
+/** Remove i8259 device */
+int i8259_remove(i8259_t *i8259)
 {
-	printf("%s: HelenOS i8259 driver\n", NAME);
-	
-	if (!i8259_init())
-		return -1;
-	
-	printf("%s: Accepting connections\n", NAME);
-	task_retval(0);
-	async_manager();
-	
-	/* Never reached */
-	return 0;
+	return ENOTSUP;
+}
+
+/** i8259 device gone */
+int i8259_gone(i8259_t *i8259)
+{
+	return ENOTSUP;
 }
 
 /**

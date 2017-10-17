@@ -195,6 +195,7 @@ uspace/dist/demo.txt
 uspace/dist/demo.wav
 uspace/dist/demo.xm
 uspace/dist/drv/ahci/
+uspace/dist/drv/apic/
 uspace/dist/drv/ar9271/
 uspace/dist/drv/ata_bd/
 uspace/dist/drv/atkbd/
@@ -203,6 +204,7 @@ uspace/dist/drv/e1k/
 uspace/dist/drv/ehci/
 uspace/dist/drv/hdaudio/
 uspace/dist/drv/i8042/
+uspace/dist/drv/i8259/
 uspace/dist/drv/icp/
 uspace/dist/drv/icp-ic/
 uspace/dist/drv/isa/
@@ -234,7 +236,6 @@ uspace/dist/drv/xtkbd/
 uspace/dist/inc/_link.ld
 uspace/dist/inc/c/
 uspace/dist/logo.tga
-uspace/dist/srv/apic
 uspace/dist/srv/cdfs
 uspace/dist/srv/clipboard
 uspace/dist/srv/compositor
@@ -248,7 +249,6 @@ uspace/dist/srv/ext4fs
 uspace/dist/srv/fat
 uspace/dist/srv/file_bd
 uspace/dist/srv/hound
-uspace/dist/srv/i8259
 uspace/dist/srv/inetsrv
 uspace/dist/srv/input
 uspace/dist/srv/isdv4_tablet
@@ -295,6 +295,8 @@ uspace/drv/char/ps2mouse/ps2mouse
 uspace/drv/char/xtkbd/xtkbd
 uspace/drv/fb/amdm37x_dispc/amdm37x_dispc
 uspace/drv/fb/kfb/kfb
+uspace/drv/intctl/apic/apic
+uspace/drv/intctl/i8259/i8259
 uspace/drv/intctl/icp-ic/icp-ic
 uspace/drv/nic/ar9271/ar9271
 uspace/drv/nic/e1k/e1k
@@ -381,8 +383,6 @@ uspace/srv/hid/rfb/rfb
 uspace/srv/hid/s3c24xx_ts/s3c24xx_ts
 uspace/srv/hw/bus/cuda_adb/cuda_adb
 uspace/srv/hw/char/s3c24xx_uart/s3c24ser
-uspace/srv/hw/irc/apic/apic
-uspace/srv/hw/irc/i8259/i8259
 uspace/srv/hw/irc/obio/obio
 uspace/srv/klog/klog
 uspace/srv/loader/loader

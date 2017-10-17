@@ -41,7 +41,6 @@
 #include <ddf/log.h>
 #include <errno.h>
 #include <ipc/irc.h>
-#include <loc.h>
 #include <stdint.h>
 
 #include "icp-ic.h"

@@ -452,6 +452,29 @@ static void isa_fun_add_io_range(isa_fun_t *fun, size_t addr, size_t len)
 	}
 }
 
+static void isa_fun_add_mem_range(isa_fun_t *fun, uintptr_t addr, size_t len)
+{
+	size_t count = fun->hw_resources.count;
+	hw_resource_t *resources = fun->hw_resources.resources;
+
+	isa_bus_t *isa = isa_bus(ddf_fun_get_dev(fun->fnode));
+
+	if (count < ISA_MAX_HW_RES) {
+		resources[count].type = MEM_RANGE;
+		resources[count].res.mem_range.address = addr;
+		resources[count].res.mem_range.address += isa->pio_win.mem.base;
+		resources[count].res.mem_range.size = len;
+		resources[count].res.mem_range.relative = true;
+		resources[count].res.mem_range.endianness = LITTLE_ENDIAN;
+
+		fun->hw_resources.count++;
+
+		ddf_msg(LVL_NOTE, "Added mem range (addr=0x%zx, size=0x%x) to "
+		    "function %s", (uintptr_t) addr, (unsigned int) len,
+		    ddf_fun_get_name(fun->fnode));
+	}
+}
+
 static void fun_parse_irq(isa_fun_t *fun, const char *val)
 {
 	int irq = 0;
@@ -493,6 +516,27 @@ static void fun_parse_io_range(isa_fun_t *fun, const char *val)
 		return;
 
 	isa_fun_add_io_range(fun, addr, len);
+}
+
+static void fun_parse_mem_range(isa_fun_t *fun, const char *val)
+{
+	uintptr_t addr;
+	size_t len;
+	char *end = NULL;
+
+	val = skip_spaces(val);
+	addr = strtoul(val, &end, 0x10);
+
+	if (val == end)
+		return;
+
+	val = skip_spaces(end);
+	len = strtol(val, &end, 0x10);
+
+	if (val == end)
+		return;
+
+	isa_fun_add_mem_range(fun, addr, len);
 }
 
 static void get_match_id(char **id, const char *val)
@@ -563,6 +607,7 @@ static void fun_prop_parse(isa_fun_t *fun, const char *line)
 	line = skip_spaces(line);
 
 	if (!prop_parse(fun, line, "io_range", &fun_parse_io_range) &&
+	    !prop_parse(fun, line, "mem_range", &fun_parse_mem_range) &&
 	    !prop_parse(fun, line, "irq", &fun_parse_irq) &&
 	    !prop_parse(fun, line, "dma", &fun_parse_dma) &&
 	    !prop_parse(fun, line, "match", &fun_parse_match_id)) {
