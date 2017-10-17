@@ -46,7 +46,9 @@ namespace std
             using const_iterator  = const T*;
             using iterator        = const_iterator;
 
-            constexpr initializer_list() noexcept;
+            constexpr initializer_list() noexcept
+                : begin_{nullptr}, size_{0}
+            { /* DUMMY BODY */ }
 
             constexpr size_type size() const noexcept
             {
