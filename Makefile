@@ -30,6 +30,7 @@
 .NOTPARALLEL:
 
 CSCOPE = cscope
+FORMAT = clang-format
 CHECK = tools/check.sh
 CONFIG = tools/config.py
 AUTOTOOL = tools/autotool.py
@@ -63,6 +64,9 @@ cscope_parts:
 	find kernel -type f -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE)_kernel.out
 	find boot -type f -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE)_boot.out
 	find uspace -type f -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE)_uspace.out
+
+format:
+	find abi kernel boot uspace -type f -regex '^.*\.[ch]$$' | xargs $(FORMAT) -i -sort-includes -style=file
 
 # Pre-integration build check
 check: $(CHECK)
