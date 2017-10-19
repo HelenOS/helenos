@@ -41,6 +41,10 @@
 #include <fibril_synch.h>
 #include "hw_struct/trb.h"
 
+/* Useful timeouts for `xhci_cmd_wait()` */
+#define XHCI_DEFAULT_TIMEOUT 		 1000000
+#define XHCI_BLOCK_INDEFINITELY 	     0
+
 typedef struct xhci_hc xhci_hc_t;
 typedef struct xhci_input_ctx xhci_input_ctx_t;
 typedef struct xhci_port_bandwidth_ctx xhci_port_bandwidth_ctx_t;
@@ -66,7 +70,7 @@ void xhci_fini_commands(xhci_hc_t *);
 
 xhci_cmd_t *xhci_cmd_alloc(void);
 void xhci_cmd_init(xhci_cmd_t *);
-int xhci_cmd_wait(xhci_cmd_t *);
+int xhci_cmd_wait(xhci_cmd_t *, suseconds_t);
 void xhci_cmd_fini(xhci_cmd_t *);
 void xhci_cmd_free(xhci_cmd_t *);
 

@@ -86,7 +86,7 @@ void xhci_device_fini(xhci_device_t *dev)
  * 2	EP1 IN
  *
  * For control endpoints >0, the IN endpoint index is used.
- * 
+ *
  * The index returned must be usually offset by a number of contexts preceding
  * the endpoint contexts themselves.
  */
@@ -256,7 +256,7 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 
 		cmd.slot_id = dev->slot_id;
 		xhci_send_configure_endpoint_command(dev->hc, &cmd, ictx);
-		if ((err = xhci_cmd_wait(&cmd)) != EOK)
+		if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
 			goto err_cmd;
 
 		xhci_cmd_fini(&cmd);
@@ -323,7 +323,7 @@ int xhci_device_configure(xhci_device_t *dev, xhci_hc_t *hc)
 
 	cmd.slot_id = dev->slot_id;
 	xhci_send_configure_endpoint_command(hc, &cmd, ictx);
-	if ((err = xhci_cmd_wait(&cmd)) != EOK)
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
 		goto err_cmd;
 
 	xhci_cmd_fini(&cmd);

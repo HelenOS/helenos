@@ -90,7 +90,7 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, dev->port);
 
 	xhci_send_enable_slot_command(hc, &cmd);
-	if ((err = xhci_cmd_wait(&cmd)) != EOK)
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
 		return err;
 
 	uint32_t slot_id = cmd.slot_id;
@@ -154,7 +154,7 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 	xhci_cmd_init(&cmd);
 	cmd.slot_id = slot_id;
 	xhci_send_address_device_command(hc, &cmd, ictx);
-	if ((err = xhci_cmd_wait(&cmd)) != EOK)
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
 		goto err_dctx;
 
 	xhci_cmd_fini(&cmd);
@@ -399,7 +399,7 @@ static inline int get_hub_available_bandwidth(xhci_device_t* dev, uint8_t speed,
 
 	xhci_get_port_bandwidth_command(dev->hc, &cmd, ctx, speed);
 
-	int err = xhci_cmd_wait(&cmd);
+	int err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT);
 	if(err != EOK) {
 		free(ctx);
 		ctx = NULL;

@@ -75,9 +75,8 @@ void xhci_fini_commands(xhci_hc_t *hc)
 	assert(hc);
 }
 
-int xhci_cmd_wait(xhci_cmd_t *cmd)
+int xhci_cmd_wait(xhci_cmd_t *cmd, suseconds_t timeout)
 {
-	const suseconds_t timeout = 1000000;
 	int rv = EOK;
 
 	fibril_mutex_lock(&cmd->completed_mtx);
