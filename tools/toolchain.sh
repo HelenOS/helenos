@@ -28,9 +28,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-export CC=/usr/local/bin/gcc-6
-export CXX=/usr/local/bin/g++-6
-
 GMP_MAIN=<<EOF
 #define GCC_GMP_VERSION_NUM(a, b, c) \
 	(((a) << 16L) | ((b) << 8) | (c))
@@ -347,7 +344,7 @@ patch_sources() {
 prepare() {
 	show_dependencies
 	check_dependecies
-#	show_countdown 10
+	show_countdown 10
 	
 	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
