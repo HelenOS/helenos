@@ -50,7 +50,6 @@ static int hc_driver_init(hcd_t *, const hw_res_list_parsed_t *, ddf_dev_t *);
 static int hcd_irq_code_gen(irq_code_t *, hcd_t *, const hw_res_list_parsed_t *);
 static int hcd_claim(hcd_t *, ddf_dev_t *);
 static int hcd_start(hcd_t *, bool);
-static int hcd_setup_root_hub(hcd_t *, ddf_dev_t *);
 static int hcd_status(hcd_t *, uint32_t *);
 static void hcd_interrupt(hcd_t *, uint32_t);
 static int hcd_schedule(hcd_t *, usb_transfer_batch_t *);
@@ -62,7 +61,7 @@ static const ddf_hc_driver_t xhci_ddf_hc_driver = {
 	.irq_code_gen = hcd_irq_code_gen,
 	.claim = hcd_claim,
 	.start = hcd_start,
-	.setup_root_hub = hcd_setup_root_hub,
+	.setup_root_hub = NULL,
 	.fini = hc_driver_fini,
 	.ops = {
 		.schedule       = hcd_schedule,
@@ -116,14 +115,6 @@ static int hcd_start(hcd_t *hcd, bool irq)
 	assert(hc);
 
 	return hc_start(hc, irq);
-}
-
-static int hcd_setup_root_hub(hcd_t *hcd, ddf_dev_t *dev)
-{
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	return EOK;
 }
 
 static int hcd_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
