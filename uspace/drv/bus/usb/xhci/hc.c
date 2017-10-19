@@ -186,7 +186,7 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 	return EOK;
 }
 
-int hc_init_memory(xhci_hc_t *hc)
+int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 {
 	int err;
 
@@ -215,7 +215,7 @@ int hc_init_memory(xhci_hc_t *hc)
 	if ((err = xhci_init_transfers(hc)))
 		goto err_cmd;
 
-	if ((err = xhci_rh_init(&hc->rh, hc)))
+	if ((err = xhci_rh_init(&hc->rh, hc, device)))
 		goto err_transfers;
 
 	if ((err = xhci_bus_init(&hc->bus)))

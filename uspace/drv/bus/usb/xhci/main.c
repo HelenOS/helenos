@@ -46,7 +46,7 @@
 
 #define NAME "xhci"
 
-static int hc_driver_init(hcd_t *, const hw_res_list_parsed_t *);
+static int hc_driver_init(hcd_t *, const hw_res_list_parsed_t *, ddf_dev_t *);
 static int hcd_irq_code_gen(irq_code_t *, hcd_t *, const hw_res_list_parsed_t *);
 static int hcd_claim(hcd_t *, ddf_dev_t *);
 static int hcd_start(hcd_t *, bool);
@@ -71,7 +71,7 @@ static const ddf_hc_driver_t xhci_ddf_hc_driver = {
 	}
 };
 
-static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
+static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res, ddf_dev_t *device)
 {
 	int err;
 
@@ -82,7 +82,7 @@ static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 	if ((err = hc_init_mmio(hc, hw_res)))
 		goto err;
 
-	if ((err = hc_init_memory(hc)))
+	if ((err = hc_init_memory(hc, device)))
 		goto err;
 
 	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops, &hc->bus.base);
@@ -123,8 +123,7 @@ static int hcd_setup_root_hub(hcd_t *hcd, ddf_dev_t *dev)
 	xhci_hc_t *hc = hcd_get_driver_data(hcd);
 	assert(hc);
 
-	hc->rh.hc_device = dev;
-	return device_init(&hc->rh.device);
+	return EOK;
 }
 
 static int hcd_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)

@@ -60,15 +60,16 @@ static const uint32_t port_change_mask =
 	XHCI_REG_MASK(XHCI_PORT_PLC) |
 	XHCI_REG_MASK(XHCI_PORT_CEC);
 
-int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
+int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 {
 	assert(rh);
 	assert(hc);
 
 	rh->hc = hc;
 	rh->max_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
+	hc->rh.hc_device = device;
 
-	return EOK;
+	return device_init(&hc->rh.device);
 }
 
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
@@ -210,6 +211,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 {
 	int err;
 	assert(rh);
+	assert(rh->hc_device);
 
 	xhci_bus_t *bus = &rh->hc->bus;
 

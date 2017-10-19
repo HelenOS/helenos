@@ -76,7 +76,7 @@ typedef struct {
 	uint8_t max_ports;
 } xhci_rh_t;
 
-int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
+int xhci_rh_init(xhci_rh_t *, xhci_hc_t *, ddf_dev_t *);
 int xhci_rh_fini(xhci_rh_t *);
 const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *, uint8_t);
 int xhci_rh_reset_port(xhci_rh_t *, uint8_t);

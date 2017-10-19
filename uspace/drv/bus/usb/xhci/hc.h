@@ -88,7 +88,7 @@ typedef struct xhci_hc {
 } xhci_hc_t;
 
 int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);
-int hc_init_memory(xhci_hc_t *);
+int hc_init_memory(xhci_hc_t *, ddf_dev_t *);
 int hc_claim(xhci_hc_t *, ddf_dev_t *);
 int hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *);
 int hc_start(xhci_hc_t *, bool);

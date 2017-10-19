@@ -44,7 +44,7 @@
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
 
-typedef int (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *);
+typedef int (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *, ddf_dev_t *);
 typedef int (*irq_code_gen_t)(irq_code_t *, hcd_t *, const hw_res_list_parsed_t *);
 typedef int (*claim_t)(hcd_t *, ddf_dev_t *);
 typedef int (*driver_start_t)(hcd_t *, bool irq);

@@ -48,7 +48,7 @@
 
 #define NAME "uhci"
 
-static int uhci_driver_init(hcd_t *, const hw_res_list_parsed_t *);
+static int uhci_driver_init(hcd_t *, const hw_res_list_parsed_t *, ddf_dev_t *);
 static int uhci_driver_start(hcd_t *, bool);
 static void uhci_driver_fini(hcd_t *);
 static int disable_legacy(hcd_t *, ddf_dev_t *);
@@ -68,7 +68,7 @@ static const ddf_hc_driver_t uhci_hc_driver = {
 	},
 };
 
-static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res)
+static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, ddf_dev_t *device)
 {
 	int err;
 

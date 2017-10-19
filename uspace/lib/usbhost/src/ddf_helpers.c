@@ -781,7 +781,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	hcd_t *hcd = dev_to_hcd(device);
 
 	if (driver->init)
-		ret = driver->init(hcd, &hw_res);
+		ret = driver->init(hcd, &hw_res, device);
 	if (ret != EOK) {
 		usb_log_error("Failed to init HCD.\n");
 		goto err_hcd;
