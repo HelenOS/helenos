@@ -66,7 +66,7 @@ void xhci_fini_commands(xhci_hc_t *);
 
 xhci_cmd_t *xhci_cmd_alloc(void);
 void xhci_cmd_init(xhci_cmd_t *);
-int xhci_cmd_wait(xhci_cmd_t *, suseconds_t);
+int xhci_cmd_wait(xhci_cmd_t *);
 void xhci_cmd_fini(xhci_cmd_t *);
 void xhci_cmd_free(xhci_cmd_t *);
 

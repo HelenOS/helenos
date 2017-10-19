@@ -256,7 +256,7 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 
 		cmd.slot_id = dev->slot_id;
 		xhci_send_configure_endpoint_command(dev->hc, &cmd, ictx);
-		if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
+		if ((err = xhci_cmd_wait(&cmd)) != EOK)
 			goto err_cmd;
 
 		xhci_cmd_fini(&cmd);
@@ -323,7 +323,7 @@ int xhci_device_configure(xhci_device_t *dev, xhci_hc_t *hc)
 
 	cmd.slot_id = dev->slot_id;
 	xhci_send_configure_endpoint_command(hc, &cmd, ictx);
-	if ((err = xhci_cmd_wait(&cmd, 100000)) != EOK)
+	if ((err = xhci_cmd_wait(&cmd)) != EOK)
 		goto err_cmd;
 
 	xhci_cmd_fini(&cmd);

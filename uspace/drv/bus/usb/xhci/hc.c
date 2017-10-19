@@ -633,7 +633,7 @@ int hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 	assert(hc);
 	uint32_t v = host2xhci(32, target & BIT_RRANGE(uint32_t, 7));
 	pio_write_32(&hc->db_arry[doorbell], v);
-	usb_log_debug("Ringing doorbell %d, target = %d", doorbell, target);
+	usb_log_debug2("Ringing doorbell %d (target: %d)", doorbell, target);
 	return EOK;
 }
 
