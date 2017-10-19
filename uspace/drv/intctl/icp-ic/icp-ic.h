@@ -33,7 +33,7 @@
  */
 
 #ifndef ICP_IC_H_
-#define ICP_IC_H
+#define ICP_IC_H_
 
 #include <ddf/driver.h>
 #include <loc.h>

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ICP_IC_H_
-#define ICP_IC_H
+#ifndef I8259_H_
+#define I8259_H_
 
 #include <ddf/driver.h>
 #include <ddi.h>
