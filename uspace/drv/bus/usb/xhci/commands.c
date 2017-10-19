@@ -49,6 +49,7 @@
 #define TRB_SET_STREAM(trb, st) (trb).control |= host2xhci(32, ((st) & 0xFFFF) << 16)
 #define TRB_SET_SUSP(trb, susp) (trb).control |= host2xhci(32, ((susp) & 0x1) << 23)
 #define TRB_SET_SLOT(trb, slot) (trb).control |= host2xhci(32, (slot) << 24)
+#define TRB_SET_DEV_SPEED(trb, speed)	(trb).control |= host2xhci(32, (speed & 0xF) << 16)
 
 /**
  * TODO: Not sure about SCT and DCS (see section 6.4.3.9).
@@ -413,6 +414,24 @@ int xhci_send_reset_device_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_RESET_DEVICE_CMD);
 	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
+
+	return enqueue_command(hc, cmd, 0, 0);
+}
+
+int xhci_get_port_bandwidth_command(xhci_hc_t *hc, xhci_cmd_t *cmd,
+	xhci_port_bandwidth_ctx_t *ctx, uint8_t device_speed)
+{
+	assert(hc);
+	assert(cmd);
+
+	xhci_trb_clean(&cmd->trb);
+
+	uint64_t phys_addr = (uint64_t) addr_to_phys(ctx);
+	TRB_SET_ICTX(cmd->trb, phys_addr);
+
+	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_GET_PORT_BANDWIDTH_CMD);
+	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
+	TRB_SET_DEV_SPEED(cmd->trb, device_speed);
 
 	return enqueue_command(hc, cmd, 0, 0);
 }

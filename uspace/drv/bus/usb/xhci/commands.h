@@ -43,6 +43,7 @@
 
 typedef struct xhci_hc xhci_hc_t;
 typedef struct xhci_input_ctx xhci_input_ctx_t;
+typedef struct xhci_port_bandwidth_ctx xhci_port_bandwidth_ctx_t;
 
 typedef struct xhci_command {
 	link_t link;
@@ -86,6 +87,7 @@ int xhci_send_reset_device_command(xhci_hc_t *, xhci_cmd_t *);
 // TODO: Force event (optional normative, for VMM, section 4.6.12).
 // TODO: Negotiate bandwidth (optional normative, section 4.6.13).
 // TODO: Set latency tolerance value (optional normative, section 4.6.14).
+int xhci_get_port_bandwidth_command(xhci_hc_t *, xhci_cmd_t *, xhci_port_bandwidth_ctx_t *, uint8_t);
 // TODO: Get port bandwidth (mandatory, but needs root hub implementation, section 4.6.15).
 // TODO: Force header (mandatory, but needs root hub implementation, section 4.6.16).
 

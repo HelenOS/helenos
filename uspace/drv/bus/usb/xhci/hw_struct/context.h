@@ -191,4 +191,13 @@ typedef struct xhci_input_ctx {
 	xhci_ep_ctx_t endpoint_ctx[XHCI_EP_COUNT];
 } __attribute__((packed)) xhci_input_ctx_t;
 
+/**
+ * Port bandwidth context: section 6.2.6
+ * The number of ports depends on the amount of ports available to the hub.
+ */
+typedef struct xhci_port_bandwidth_ctx {
+	uint8_t reserved;
+	uint8_t ports [];
+} __attribute__((packed)) xhci_port_bandwidth_ctx_t;
+
 #endif

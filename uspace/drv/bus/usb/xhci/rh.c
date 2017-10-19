@@ -381,6 +381,31 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 	 */
 }
 
+static inline int get_hub_available_bandwidth(xhci_device_t* dev, uint8_t speed, xhci_port_bandwidth_ctx_t *ctx) {
+	// TODO: find a correct place for this function + API
+	// We need speed, because a root hub device has both USB 2 and USB 3 speeds
+	// and the command can query only one of them
+	// ctx is an out parameter as of now
+	assert(dev);
+
+	ctx = malloc(sizeof(xhci_port_bandwidth_ctx_t));
+	if(!ctx)
+		return ENOMEM;
+
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	xhci_get_port_bandwidth_command(dev->hc, &cmd, ctx, speed);
+
+	int err = xhci_cmd_wait(&cmd, 100000);
+	if(err != EOK) {
+		free(ctx);
+		ctx = NULL;
+	}
+
+	return EOK;
+}
+
 const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *rh, uint8_t port)
 {
 	xhci_port_regs_t *port_regs = &rh->hc->op_regs->portrs[port - 1];
