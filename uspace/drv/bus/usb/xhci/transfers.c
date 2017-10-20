@@ -143,11 +143,6 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 		return EINVAL;
 	}
 
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
-
-	uint8_t slot_id = xhci_ep->device->slot_id;
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
-
 	usb_device_request_setup_packet_t* setup =
 		(usb_device_request_setup_packet_t*) batch->setup_buffer;
 
@@ -196,7 +191,7 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 		// Some more fields here, no idea what they mean
 		TRB_CTRL_SET_TRB_TYPE(trb_data, XHCI_TRB_TYPE_DATA_STAGE);
 
-		transfer->direction = REQUEST_TYPE_IS_DEVICE_TO_HOST(setup->request_type) 
+		transfer->direction = REQUEST_TYPE_IS_DEVICE_TO_HOST(setup->request_type)
 					? STAGE_IN : STAGE_OUT;
 		TRB_CTRL_SET_DIR(trb_data, transfer->direction);
 	}
@@ -213,6 +208,10 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 	TRB_CTRL_SET_TRB_TYPE(trb_status, XHCI_TRB_TYPE_STATUS_STAGE);
 	TRB_CTRL_SET_DIR(trb_status, get_status_direction_flag(&trb_setup, setup->request_type, setup->length));
+
+        xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
+        uint8_t slot_id = xhci_ep->device->slot_id;
+        xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
 
 	uintptr_t dummy = 0;
 	xhci_trb_ring_enqueue(ring, &trb_setup, &dummy);
@@ -237,12 +236,13 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 {
 	if (batch->setup_size) {
-		usb_log_warning("Setup packet present for a bulk transfer.");
+		usb_log_warning("Setup packet present for a bulk transfer. Ignored.");
 	}
-
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
-	uint8_t slot_id = xhci_ep->device->slot_id;
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
+	if (batch->ep->transfer_type != USB_TRANSFER_BULK) {
+		/* This method only works for bulk transfers. */
+		usb_log_error("Attempted to schedule a bulk transfer to non bulk endpoint.");
+		return EINVAL;
+	}
 
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
 	if (!transfer->direction) {
@@ -263,6 +263,10 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 	TRB_CTRL_SET_IOC(trb, 1);
 
 	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
+
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
+	uint8_t slot_id = xhci_ep->device->slot_id;
+	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
 
 	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 	list_append(&transfer->link, &hc->transfers);
@@ -275,12 +279,13 @@ int xhci_schedule_bulk_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 int xhci_schedule_interrupt_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 {
 	if (batch->setup_size) {
-		usb_log_warning("Setup packet present for a interrupt transfer.");
+		usb_log_warning("Setup packet present for a interrupt transfer. Ignored.");
 	}
-
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
-	uint8_t slot_id = xhci_ep->device->slot_id;
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
+	if (batch->ep->transfer_type != USB_TRANSFER_INTERRUPT) {
+		/* This method only works for interrupt transfers. */
+		usb_log_error("Attempted to schedule a interrupt transfer to non interrupt endpoint.");
+		return EINVAL;
+	}
 
 	xhci_transfer_t *transfer = xhci_transfer_alloc(batch);
 	if (!transfer->direction) {
@@ -302,11 +307,31 @@ int xhci_schedule_interrupt_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 
 	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
 
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
+	uint8_t slot_id = xhci_ep->device->slot_id;
+	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
+
 	xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 	list_append(&transfer->link, &hc->transfers);
 
 	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 	return hc_ring_doorbell(hc, slot_id, target);
+}
+
+int xhci_schedule_isochronous_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
+{
+	if (batch->setup_size) {
+		usb_log_warning("Setup packet present for a isochronous transfer. Ignored.");
+	}
+	if (batch->ep->transfer_type != USB_TRANSFER_ISOCHRONOUS) {
+		/* This method only works for isochronous transfers. */
+		usb_log_error("Attempted to schedule a isochronous transfer to non isochronous endpoint.");
+		return EINVAL;
+	}
+
+        /* TODO: Implement me. */
+        usb_log_error("Isochronous transfers are not yet implemented!");
+        return ENOTSUP;
 }
 
 int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)

@@ -475,9 +475,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	case USB_TRANSFER_CONTROL:
 		return xhci_schedule_control_transfer(hc, batch);
 	case USB_TRANSFER_ISOCHRONOUS:
-		/* TODO: Implement me. */
-		usb_log_error("Isochronous transfers are not yet implemented!");
-		return ENOTSUP;
+		return xhci_schedule_isochronous_transfer(hc, batch);
 	case USB_TRANSFER_BULK:
 		return xhci_schedule_bulk_transfer(hc, batch);
 	case USB_TRANSFER_INTERRUPT:
