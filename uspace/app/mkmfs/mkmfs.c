@@ -659,7 +659,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	for (i = 0; i < ibmap_nblocks; ++i) {
 		if ((rc = write_block(start_block + i,
 		    1, (ibmap_buf8 + i * sb->block_size))) != EOK)
-			return rc;
+			goto exit;
 	}
 
 	start_block = 2 + ibmap_nblocks;
@@ -667,7 +667,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	for (i = 0; i < zbmap_nblocks; ++i) {
 		if ((rc = write_block(start_block + i,
 		    1, (zbmap_buf8 + i * sb->block_size))) != EOK)
-			return rc;
+			goto exit;
 	}
 
 exit:
