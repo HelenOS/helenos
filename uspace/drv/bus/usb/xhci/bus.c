@@ -270,18 +270,6 @@ static endpoint_t* find_endpoint(bus_t *bus_base, usb_target_t target, usb_direc
 	return &ep->base;
 }
 
-static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
-{
-	// TODO: Implement me!
-	return ENOTSUP;
-}
-
-static int release_address(bus_t *bus_base, usb_address_t address)
-{
-	// TODO: Implement me!
-	return ENOTSUP;
-}
-
 static int reset_toggle(bus_t *bus_base, usb_target_t target, bool all)
 {
 	// TODO: Implement me!
@@ -317,8 +305,8 @@ static const bus_ops_t xhci_bus_ops = {
 	.release_endpoint = release_endpoint,
 	.find_endpoint = find_endpoint,
 
-	.request_address = request_address,
-	.release_address = release_address,
+	.request_address = NULL,
+	.release_address = NULL,
 	.reset_toggle = reset_toggle,
 
 	.count_bw = count_bw,
