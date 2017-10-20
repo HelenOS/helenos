@@ -67,6 +67,9 @@ FIBRIL_MUTEX_INITIALIZE(devices_mutex);
 LIST_INITIALIZE(functions);
 FIBRIL_MUTEX_INITIALIZE(functions_mutex);
 
+FIBRIL_RWLOCK_INITIALIZE(stopping_lock);
+static bool stopping = false;
+
 static ddf_dev_t *create_device(void);
 static void delete_device(ddf_dev_t *);
 static void dev_add_ref(ddf_dev_t *);
@@ -126,8 +129,17 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
+	fibril_rwlock_read_lock(&stopping_lock);
+
+	if (stopping) {
+		fibril_rwlock_read_unlock(&stopping_lock);
+		async_answer_0(iid, EIO);
+		return;
+	}
+	
 	ddf_dev_t *dev = create_device();
 	if (!dev) {
+		fibril_rwlock_read_unlock(&stopping_lock);
 		free(dev_name);
 		async_answer_0(iid, ENOMEM);
 		return;
@@ -147,6 +159,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	int res = driver->driver_ops->dev_add(dev);
 	
 	if (res != EOK) {
+		fibril_rwlock_read_unlock(&stopping_lock);
 		dev_del_ref(dev);
 		async_answer_0(iid, res);
 		return;
@@ -155,6 +168,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_lock(&devices_mutex);
 	list_append(&dev->link, &devices);
 	fibril_mutex_unlock(&devices_mutex);
+	fibril_rwlock_read_unlock(&stopping_lock);
 	
 	async_answer_0(iid, res);
 }
@@ -283,6 +297,35 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, (sysarg_t) rc);
 }
 
+static void driver_stop(ipc_callid_t iid, ipc_call_t *icall)
+{
+	/* Prevent new devices from being added */
+	fibril_rwlock_write_lock(&stopping_lock);
+	stopping = true;
+
+	/* Check if there are any devices */
+	fibril_mutex_lock(&devices_mutex);
+	if (list_first(&devices) != NULL) {
+		/* Devices exist, roll back */
+		fibril_mutex_unlock(&devices_mutex);
+		stopping = false;
+		fibril_rwlock_write_unlock(&stopping_lock);
+		async_answer_0(iid, EBUSY);
+		return;
+	}
+
+	fibril_rwlock_write_unlock(&stopping_lock);
+
+	/* There should be no functions at this point */
+	fibril_mutex_lock(&functions_mutex);
+	assert(list_first(&functions) == NULL);
+	fibril_mutex_unlock(&functions_mutex);
+
+	/* Reply with success and terminate */
+	async_answer_0(iid, EOK);
+	exit(0);
+}
+
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
@@ -311,6 +354,9 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall,
 			break;
 		case DRIVER_FUN_OFFLINE:
 			driver_fun_offline(callid, &call);
+			break;
+		case DRIVER_STOP:
+			driver_stop(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);

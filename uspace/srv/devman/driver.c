@@ -299,6 +299,32 @@ bool start_driver(driver_t *drv)
 	return true;
 }
 
+/** Stop a driver
+ *
+ * @param drv		The driver's structure.
+ * @return		True if the driver's task is successfully spawned, false
+ *			otherwise.
+ */
+int stop_driver(driver_t *drv)
+{
+	async_exch_t *exch;
+	sysarg_t retval;
+	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "stop_driver(drv=\"%s\")", drv->name);
+
+	exch = async_exchange_begin(drv->sess);
+	retval = async_req_0_0(exch, DRIVER_STOP);
+	loc_exchange_end(exch);
+	
+	if (retval != EOK)
+		return retval;
+	
+	drv->state = DRIVER_NOT_STARTED;
+	async_hangup(drv->sess);
+	drv->sess = NULL;
+	return EOK;
+}
+
 /** Find device driver by handle.
  *
  * @param drv_list	The list of device drivers

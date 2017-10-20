@@ -718,5 +718,17 @@ int devman_driver_load(devman_handle_t drvh)
 	return rc;
 }
 
+int devman_driver_unload(devman_handle_t drvh)
+{
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	int rc = async_req_1_0(exch, DEVMAN_DRIVER_UNLOAD, drvh);
+	
+	devman_exchange_end(exch);
+	return rc;
+}
+
 /** @}
  */

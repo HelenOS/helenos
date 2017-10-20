@@ -336,6 +336,26 @@ static int drv_load(const char *drvname)
 	return EOK;
 }
 
+static int drv_unload(const char *drvname)
+{
+	int rc;
+	devman_handle_t drvh;
+
+	rc = devman_driver_get_handle(drvname, &drvh);
+	if (rc != EOK) {
+		printf("Failed resolving driver '%s' (%d).\n", drvname, rc);
+		return rc;
+	}
+
+	rc = devman_driver_unload(drvh);
+	if (rc != EOK) {
+		printf("Failed unloading driver '%s' (%d).\n", drvname, rc);
+		return rc;
+	}
+
+	return EOK;
+}
+
 static void print_syntax(void)
 {
 	printf("syntax:\n");
@@ -345,6 +365,7 @@ static void print_syntax(void)
 	printf("\tdevctl list-drv\n");
 	printf("\tdevctl show-drv <driver-name>\n");
 	printf("\tdevctl load-drv <driver-name>\n");
+	printf("\tdevctl unload-drv <driver-name>\n");
 }
 
 int main(int argc, char *argv[])
@@ -409,6 +430,16 @@ int main(int argc, char *argv[])
 		}
 
 		rc = drv_load(argv[2]);
+		if (rc != EOK)
+			return 2;
+	} else if (str_cmp(argv[1], "unload-drv") == 0) {
+		if (argc < 3) {
+			printf(NAME ": Argument missing.\n");
+			print_syntax();
+			return 1;
+		}
+
+		rc = drv_unload(argv[2]);
 		if (rc != EOK)
 			return 2;
 	} else {

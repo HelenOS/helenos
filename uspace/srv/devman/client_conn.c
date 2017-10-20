@@ -725,6 +725,25 @@ static void devman_driver_load(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
+/** Unload a driver by user request. */
+static void devman_driver_unload(ipc_callid_t iid, ipc_call_t *icall)
+{
+	driver_t *drv;
+	int rc;
+	
+	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
+	if (drv == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	fibril_mutex_lock(&drv->driver_mutex);
+	rc = stop_driver(drv);
+	fibril_mutex_unlock(&drv->driver_mutex);
+
+	async_answer_0(iid, rc);
+}
+
 /** Function for handling connections from a client to the device manager. */
 void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
@@ -792,6 +811,9 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case DEVMAN_DRIVER_LOAD:
 			devman_driver_load(callid, &call);
+			break;
+		case DEVMAN_DRIVER_UNLOAD:
+			devman_driver_unload(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);
