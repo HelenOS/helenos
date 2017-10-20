@@ -32,29 +32,28 @@
 /** @file
  */
 
-#ifndef ICP_IC_H_
-#define ICP_IC_H_
+#ifndef I8259_H_
+#define I8259_H_
 
 #include <ddf/driver.h>
-#include <loc.h>
+#include <ddi.h>
 #include <stdint.h>
 
-#include "icp-ic_hw.h"
-
 typedef struct {
-	uintptr_t base;
-} icpic_res_t;
+	uintptr_t base0;
+	uintptr_t base1;
+} i8259_res_t;
 
 /** IntegratorCP Interrupt Controller */
 typedef struct {
-	icpic_regs_t *regs;
-	uintptr_t phys_base;
+	ioport8_t *regs0;
+	ioport8_t *regs1;
 	ddf_dev_t *dev;
-} icpic_t;
+} i8259_t;
 
-extern int icpic_add(icpic_t *, icpic_res_t *);
-extern int icpic_remove(icpic_t *);
-extern int icpic_gone(icpic_t *);
+extern int i8259_add(i8259_t *, i8259_res_t *);
+extern int i8259_remove(i8259_t *);
+extern int i8259_gone(i8259_t *);
 
 #endif
 

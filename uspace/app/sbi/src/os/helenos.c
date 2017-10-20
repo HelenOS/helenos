@@ -154,7 +154,7 @@ int os_str_get_char(const char *str, int index, int *out_char)
 {
 	size_t offset;
 	int i;
-	wchar_t c;
+	wchar_t c = 0;
 
 	if (index < 0)
 		return EINVAL;

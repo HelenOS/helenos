@@ -2503,8 +2503,10 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	node = list_first(args);
 	elem_index = 0;
 
+	assert(node != NULL);
+
 	i = 0;
-	while (node != NULL) {
+	do {
 		if (i >= 1) {
 			printf("Error: Too many indices string.\n");
 			exit(1);
@@ -2526,7 +2528,7 @@ static void run_index_string(run_t *run, stree_index_t *index,
 
 		node = list_next(args, node);
 		i += 1;
-	}
+	} while (node != NULL);
 
 	if (i < 1) {
 		printf("Error: Too few indices for string.\n");

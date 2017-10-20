@@ -347,7 +347,7 @@ static int init_inode_table(const struct mfs_sb_info *sb)
 {
 	unsigned int i;
 	uint8_t *itable_buf;
-	int rc;
+	int rc = EOK;
 
 	long itable_off = sb->zbmap_blocks + sb->ibmap_blocks + 2;
 	unsigned long itable_size = sb->itable_size;
@@ -632,7 +632,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	const unsigned int ibmap_nblocks = sb->ibmap_blocks;
 	const unsigned int zbmap_nblocks = sb->zbmap_blocks;
 	unsigned int i;
-	int rc;
+	int rc = EOK;
 
 	ibmap_buf = malloc(ibmap_nblocks * sb->block_size);
 	zbmap_buf = malloc(zbmap_nblocks * sb->block_size);
@@ -659,7 +659,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	for (i = 0; i < ibmap_nblocks; ++i) {
 		if ((rc = write_block(start_block + i,
 		    1, (ibmap_buf8 + i * sb->block_size))) != EOK)
-			return rc;
+			goto exit;
 	}
 
 	start_block = 2 + ibmap_nblocks;
@@ -667,7 +667,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	for (i = 0; i < zbmap_nblocks; ++i) {
 		if ((rc = write_block(start_block + i,
 		    1, (zbmap_buf8 + i * sb->block_size))) != EOK)
-			return rc;
+			goto exit;
 	}
 
 exit:

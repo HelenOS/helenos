@@ -288,7 +288,7 @@ static int trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 	size_t samples;
 	size_t instr_size;
 	size_t smp_size;
-	size_t smp_hdr_size;
+	size_t smp_hdr_size = 0;  /* GCC false alarm on uninitialized */
 	ssize_t nread;
 	uint8_t ltype;
 	trackmod_sample_t *sample;

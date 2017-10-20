@@ -39,11 +39,15 @@
 #include <loc.h>
 #include <sysinfo.h>
 #include <as.h>
+#include <ddf/driver.h>
+#include <ddf/log.h>
 #include <ddi.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <async.h>
 #include <stdio.h>
+
+#include "apic.h"
 
 #define NAME  "apic"
 
@@ -88,43 +92,41 @@ typedef struct io_redirection_reg {
 	};
 } __attribute__ ((packed)) io_redirection_reg_t;
 
-// FIXME: get the address from the kernel
-#define IO_APIC_BASE	0xfec00000UL
 #define IO_APIC_SIZE	20
-
-ioport32_t *io_apic = NULL;
 
 /** Read from IO APIC register.
  *
+ * @param apic APIC
  * @param address IO APIC register address.
  *
  * @return Content of the addressed IO APIC register.
  *
  */
-static uint32_t io_apic_read(uint8_t address)
+static uint32_t io_apic_read(apic_t *apic, uint8_t address)
 {
 	io_regsel_t regsel;
 
-	regsel.value = io_apic[IOREGSEL];
+	regsel.value = pio_read_32(&apic->regs[IOREGSEL]);
 	regsel.reg_addr = address;
-	io_apic[IOREGSEL] = regsel.value;
-	return io_apic[IOWIN];
+	pio_write_32(&apic->regs[IOREGSEL], regsel.value);
+	return pio_read_32(&apic->regs[IOWIN]);
 }
 
 /** Write to IO APIC register.
  *
+ * @param apic    APIC
  * @param address IO APIC register address.
  * @param val     Content to be written to the addressed IO APIC register.
  *
  */
-static void io_apic_write(uint8_t address, uint32_t val)
+static void io_apic_write(apic_t *apic, uint8_t address, uint32_t val)
 {
 	io_regsel_t regsel;
 
-	regsel.value = io_apic[IOREGSEL];
+	regsel.value = pio_read_32(&apic->regs[IOREGSEL]);
 	regsel.reg_addr = address;
-	io_apic[IOREGSEL] = regsel.value;
-	io_apic[IOWIN] = val;
+	pio_write_32(&apic->regs[IOREGSEL], regsel.value);
+	pio_write_32(&apic->regs[IOWIN], val);
 }
 
 static int irq_to_pin(int irq)
@@ -136,7 +138,7 @@ static int irq_to_pin(int irq)
 	return irq;
 }
 
-static int apic_enable_irq(sysarg_t irq)
+static int apic_enable_irq(apic_t *apic, sysarg_t irq)
 {
 	io_redirection_reg_t reg;
 
@@ -147,9 +149,9 @@ static int apic_enable_irq(sysarg_t irq)
  	if (pin == -1)
 		return ENOENT;
 
-	reg.lo = io_apic_read((uint8_t) (IOREDTBL + pin * 2));
+	reg.lo = io_apic_read(apic, (uint8_t) (IOREDTBL + pin * 2));
 	reg.masked = false;
-	io_apic_write((uint8_t) (IOREDTBL + pin * 2), reg.lo);
+	io_apic_write(apic, (uint8_t) (IOREDTBL + pin * 2), reg.lo);
 
 	return EOK;
 }
@@ -164,11 +166,14 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
+	apic_t *apic;
 	
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
 	async_answer_0(iid, EOK);
+	
+	apic = (apic_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 	
 	while (true) {
 		callid = async_get_call(&call);
@@ -181,7 +186,8 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
-			async_answer_0(callid, apic_enable_irq(IPC_GET_ARG1(call)));
+			async_answer_0(callid, apic_enable_irq(apic,
+			    IPC_GET_ARG1(call)));
 			break;
 		case IRC_DISABLE_INTERRUPT:
 			/* XXX TODO */
@@ -198,71 +204,63 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-/** Initialize the APIC driver.
- *
- */
-static bool apic_init(void)
+/** Add APIC device. */
+int apic_add(apic_t *apic, apic_res_t *res)
 {
-	sysarg_t apic;
-	category_id_t irc_cat;
-	service_id_t svc_id;
+	sysarg_t have_apic;
+	ddf_fun_t *fun_a = NULL;
+	void *regs;
+	int rc;
 	
-	if ((sysinfo_get_value("apic", &apic) != EOK) || (!apic)) {
+	if ((sysinfo_get_value("apic", &have_apic) != EOK) || (!have_apic)) {
 		printf("%s: No APIC found\n", NAME);
-		return false;
+		return ENOTSUP;
 	}
-
-	int rc = pio_enable((void *) IO_APIC_BASE, IO_APIC_SIZE,
-		(void **) &io_apic);
+	
+	rc = pio_enable((void *) res->base, IO_APIC_SIZE, &regs);
 	if (rc != EOK) {
 		printf("%s: Failed to enable PIO for APIC: %d\n", NAME, rc);
-		return false;	
+		return EIO;
 	}
-	
-	async_set_fallback_port_handler(apic_connection, NULL);
-	
-	rc = loc_server_register(NAME);
+
+	apic->regs = (ioport32_t *)regs;
+
+	fun_a = ddf_fun_create(apic->dev, fun_exposed, "a");
+	if (fun_a == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	ddf_fun_set_conn_handler(fun_a, apic_connection);
+
+	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		printf("%s: Failed registering server. (%d)\n", NAME, rc);
-		return false;
+		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		goto error;
 	}
-	
-	rc = loc_service_register("irc/" NAME, &svc_id);
-	if (rc != EOK) {
-		printf("%s: Failed registering service. (%d)\n", NAME, rc);
-		return false;
-	}
-	
-	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Failed resolving category 'iplink' (%d).\n", NAME,
-		    rc);
-		return false;
-	}
-	
-	rc = loc_service_add_to_cat(svc_id, irc_cat);
-	if (rc != EOK) {
-		printf("%s: Failed adding service to category (%d).\n", NAME,
-		    rc);
-		return false;
-	}
-	
-	return true;
+
+	rc = ddf_fun_add_to_category(fun_a, "irc");
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	if (fun_a != NULL)
+		ddf_fun_destroy(fun_a);
+	return rc;
 }
 
-int main(int argc, char **argv)
+/** Remove APIC device */
+int apic_remove(apic_t *apic)
 {
-	printf("%s: HelenOS APIC driver\n", NAME);
-	
-	if (!apic_init())
-		return -1;
-	
-	printf("%s: Accepting connections\n", NAME);
-	task_retval(0);
-	async_manager();
-	
-	/* Never reached */
-	return 0;
+	return ENOTSUP;
+}
+
+/** APIC device gone */
+int apic_gone(apic_t *apic)
+{
+	return ENOTSUP;
 }
 
 /**

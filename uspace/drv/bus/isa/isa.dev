@@ -1,3 +1,11 @@
+i8259:
+	match 100 isa/i8259
+	mem_range 0x20 2
+	mem_range 0xa0 2
+
+apic:
+	match 100 isa/apic
+	mem_range 0xfec00000 0x14
 com1:
 	match 100 isa/ns8250
 	irq 4

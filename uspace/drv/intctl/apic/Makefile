@@ -26,10 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
+USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = apic
 
 SOURCES = \
-	apic.c
+	apic.c \
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common
