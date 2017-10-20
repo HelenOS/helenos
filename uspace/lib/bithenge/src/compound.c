@@ -80,7 +80,7 @@ static int compose_apply(bithenge_transform_t *base, bithenge_scope_t *scope,
 	}
 
 	*out = in;
-	return rc;
+	return EOK;
 }
 
 static int compose_prefix_length(bithenge_transform_t *base,

@@ -374,7 +374,7 @@ static void ext4_extent_binsearch(ext4_extent_header_t *header,
 int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock,
     uint32_t *fblock)
 {
-	int rc;
+	int rc = EOK;
 	/* Compute bound defined by i-node size */
 	uint64_t inode_size =
 	    ext4_inode_get_size(inode_ref->fs->superblock, inode_ref->inode);
