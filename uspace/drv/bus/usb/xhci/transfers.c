@@ -154,79 +154,75 @@ int xhci_schedule_control_transfer(xhci_hc_t* hc, usb_transfer_batch_t* batch)
 		memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
 	}
 
-	xhci_trb_t trb_setup;
-	xhci_trb_clean(&trb_setup);
+        xhci_trb_t trbs[3];
+        int trbs_used = 0;
 
-	TRB_CTRL_SET_SETUP_WVALUE(trb_setup, setup->value);
-	TRB_CTRL_SET_SETUP_WLENGTH(trb_setup, setup->length);
-	TRB_CTRL_SET_SETUP_WINDEX(trb_setup, setup->index);
-	TRB_CTRL_SET_SETUP_BREQ(trb_setup, setup->request);
-	TRB_CTRL_SET_SETUP_BMREQTYPE(trb_setup, setup->request_type);
+	xhci_trb_t *trb_setup = trbs + trbs_used++;
+	xhci_trb_clean(trb_setup);
+
+	TRB_CTRL_SET_SETUP_WVALUE(*trb_setup, setup->value);
+	TRB_CTRL_SET_SETUP_WLENGTH(*trb_setup, setup->length);
+	TRB_CTRL_SET_SETUP_WINDEX(*trb_setup, setup->index);
+	TRB_CTRL_SET_SETUP_BREQ(*trb_setup, setup->request);
+	TRB_CTRL_SET_SETUP_BMREQTYPE(*trb_setup, setup->request_type);
 
 	/* Size of the setup packet is always 8 */
-	TRB_CTRL_SET_XFER_LEN(trb_setup, 8);
-	// if we want an interrupt after this td is done, use
-	// TRB_CTRL_SET_IOC(trb_setup, 1);
+	TRB_CTRL_SET_XFER_LEN(*trb_setup, 8);
 
 	/* Immediate data */
-	TRB_CTRL_SET_IDT(trb_setup, 1);
-	TRB_CTRL_SET_TRB_TYPE(trb_setup, XHCI_TRB_TYPE_SETUP_STAGE);
-	TRB_CTRL_SET_TRT(trb_setup, get_transfer_type(&trb_setup, setup->request_type, setup->length));
+	TRB_CTRL_SET_IDT(*trb_setup, 1);
+	TRB_CTRL_SET_TRB_TYPE(*trb_setup, XHCI_TRB_TYPE_SETUP_STAGE);
+	TRB_CTRL_SET_TRT(*trb_setup, get_transfer_type(trb_setup, setup->request_type, setup->length));
 
 	/* Data stage */
-	xhci_trb_t trb_data;
-	xhci_trb_clean(&trb_data);
-
+	xhci_trb_t *trb_data = NULL;
 	if (setup->length > 0) {
-		trb_data.parameter = addr_to_phys(transfer->hc_buffer);
+                trb_data = trbs + trbs_used++;
+                xhci_trb_clean(trb_data);
+
+		trb_data->parameter = addr_to_phys(transfer->hc_buffer);
 
 		// data size (sent for OUT, or buffer size)
-		TRB_CTRL_SET_XFER_LEN(trb_data, batch->buffer_size);
+		TRB_CTRL_SET_XFER_LEN(*trb_data, batch->buffer_size);
 		// FIXME: TD size 4.11.2.4
-		TRB_CTRL_SET_TD_SIZE(trb_data, 1);
-
-		// if we want an interrupt after this td is done, use
-		// TRB_CTRL_SET_IOC(trb_data, 1);
+		TRB_CTRL_SET_TD_SIZE(*trb_data, 1);
 
 		// Some more fields here, no idea what they mean
-		TRB_CTRL_SET_TRB_TYPE(trb_data, XHCI_TRB_TYPE_DATA_STAGE);
+		TRB_CTRL_SET_TRB_TYPE(*trb_data, XHCI_TRB_TYPE_DATA_STAGE);
 
 		transfer->direction = REQUEST_TYPE_IS_DEVICE_TO_HOST(setup->request_type)
 					? STAGE_IN : STAGE_OUT;
-		TRB_CTRL_SET_DIR(trb_data, transfer->direction);
+		TRB_CTRL_SET_DIR(*trb_data, transfer->direction);
 	}
 
 	/* Status stage */
-	xhci_trb_t trb_status;
-	xhci_trb_clean(&trb_status);
+	xhci_trb_t *trb_status = trbs + trbs_used++;
+	xhci_trb_clean(trb_status);
 
 	// FIXME: Evaluate next TRB? 4.12.3
-	// TRB_CTRL_SET_ENT(trb_status, 1);
+	// TRB_CTRL_SET_ENT(*trb_status, 1);
 
-	// if we want an interrupt after this td is done, use
-	TRB_CTRL_SET_IOC(trb_status, 1);
-
-	TRB_CTRL_SET_TRB_TYPE(trb_status, XHCI_TRB_TYPE_STATUS_STAGE);
-	TRB_CTRL_SET_DIR(trb_status, get_status_direction_flag(&trb_setup, setup->request_type, setup->length));
+	TRB_CTRL_SET_IOC(*trb_status, 1);
+	TRB_CTRL_SET_TRB_TYPE(*trb_status, XHCI_TRB_TYPE_STATUS_STAGE);
+	TRB_CTRL_SET_DIR(*trb_status, get_status_direction_flag(trb_setup, setup->request_type, setup->length));
 
         xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
         uint8_t slot_id = xhci_ep->device->slot_id;
         xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[batch->ep->target.endpoint];
 
-	uintptr_t dummy = 0;
-	xhci_trb_ring_enqueue(ring, &trb_setup, &dummy);
-	if (setup->length > 0) {
-		xhci_trb_ring_enqueue(ring, &trb_data, &dummy);
-	}
-	xhci_trb_ring_enqueue(ring, &trb_status, &transfer->interrupt_trb_phys);
+        int err = xhci_trb_ring_enqueue_multiple(ring, trbs, trbs_used, &transfer->interrupt_trb_phys);
+        if (err != EOK)
+                return err;
 
 	list_append(&transfer->link, &hc->transfers);
 
 	// Issue a Configure Endpoint command, if needed.
 	if (configure_endpoint_needed(setup)) {
 		// TODO: figure out the best time to issue this command
-		// FIXME: ignoring return code
-		xhci_device_configure(xhci_ep->device, hc);
+                // FIXME: on fail, we need to "cancel" in-flight TRBs and remove transfer from the list
+		err = xhci_device_configure(xhci_ep->device, hc);
+                if (err != EOK)
+                        return err;
 	}
 
 	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbels start at 1 */

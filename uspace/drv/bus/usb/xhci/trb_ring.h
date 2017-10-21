@@ -75,6 +75,7 @@ typedef struct xhci_trb_ring {
 int xhci_trb_ring_init(xhci_trb_ring_t *);
 int xhci_trb_ring_fini(xhci_trb_ring_t *);
 int xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *, uintptr_t *);
+int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *, xhci_trb_t *, size_t, uintptr_t *);
 
 /**
  * Get the initial value to fill into CRCR.

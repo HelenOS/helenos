@@ -115,7 +115,7 @@ int xhci_trb_ring_init(xhci_trb_ring_t *ring)
 
 	fibril_mutex_initialize(&ring->guard);
 
-	usb_log_debug("Initialized new TRB ring.");
+	usb_log_debug2("Initialized new TRB ring.");
 
 	return EOK;
 }
@@ -155,22 +155,25 @@ static uintptr_t trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
 }
 
 /**
- * Enqueue a TD composed of TRBs.
+ * Enqueue TDs composed of TRBs.
  *
- * This will copy all TRBs chained together into the ring. The cycle flag in
- * TRBs may be changed.
+ * This will copy specified number of TRBs chained together into the ring. The
+ * cycle flag in TRBs may be changed.
  *
- * The chained TRBs must be contiguous in memory, and must not contain Link TRBs.
+ * The copied TRBs must be contiguous in memory, and must not contain Link TRBs.
  *
  * We cannot avoid the copying, because the TRB in ring should be updated atomically.
  *
- * @param td the first TRB of TD
- * @param phys returns address of the first TRB enqueued
+ * @param first_trb the first TRB
+ * @param trbs number of TRBS to enqueue
+ * @param phys returns address of the last TRB enqueued
  * @return EOK on success,
  *         EAGAIN when the ring is too full to fit all TRBs (temporary)
  */
-int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys)
+int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
+	size_t trbs, uintptr_t *phys)
 {
+	assert(trbs > 0);
 	fibril_mutex_lock(&ring->guard);
 
 	xhci_trb_t * const saved_enqueue_trb = ring->enqueue_trb;
@@ -182,8 +185,8 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 	 * First, dry run and advance the enqueue pointer to see if the ring would
 	 * be full anytime during the transaction.
 	 */
-	xhci_trb_t *trb = td;
-	do {
+	xhci_trb_t *trb = first_trb;
+	for (size_t i = 0; i < trbs; ++i, ++trb) {
 		ring->enqueue_trb++;
 
 		if (TRB_TYPE(*ring->enqueue_trb) == XHCI_TRB_TYPE_LINK)
@@ -191,18 +194,19 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 
 		if (trb_ring_enqueue_phys(ring) == ring->dequeue)
 			goto err_again;
-	} while (xhci_trb_is_chained(trb++));
+	}
 
 	ring->enqueue_segment = saved_enqueue_segment;
 	ring->enqueue_trb = saved_enqueue_trb;
-	if (phys)
-		*phys = trb_ring_enqueue_phys(ring);
 
 	/*
 	 * Now, copy the TRBs without further checking.
 	 */
-	trb = td;
-	do {
+	trb = first_trb;
+	for (size_t i = 0; i < trbs; ++i, ++trb) {
+		if (phys && i == trbs - 1)
+			*phys = trb_ring_enqueue_phys(ring);
+
 		xhci_trb_set_cycle(trb, ring->pcs);
 		xhci_trb_copy(ring->enqueue_trb, trb);
 
@@ -220,7 +224,7 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 
 			trb_ring_resolve_link(ring);
 		}
-	} while (xhci_trb_is_chained(trb++));
+	}
 
 	fibril_mutex_unlock(&ring->guard);
 	return EOK;
@@ -230,6 +234,14 @@ err_again:
 	ring->enqueue_trb = saved_enqueue_trb;
 	fibril_mutex_unlock(&ring->guard);
 	return EAGAIN;
+}
+
+/**
+ * Enqueue TD composed of a single TRB. See: `xhci_trb_ring_enqueue_multiple`
+ */
+int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys)
+{
+	return xhci_trb_ring_enqueue_multiple(ring, td, 1, phys);
 }
 
 /**

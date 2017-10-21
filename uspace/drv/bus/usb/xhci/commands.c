@@ -442,7 +442,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	assert(hc);
 	assert(trb);
 
-	usb_log_debug("HC(%p) Command completed.", hc);
+	usb_log_debug2("HC(%p) Command completed.", hc);
 
 	int code;
 	uint64_t phys;
@@ -453,7 +453,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	command = get_command(hc, phys);
 	if (command == NULL) {
 		// TODO: STOP & ABORT may not have command structs in the list!
-		usb_log_debug("No command struct for this completion event found.");
+		usb_log_warning("No command struct for this completion event found.");
 
 		if (code != XHCI_TRBC_SUCCESS)
 			report_error(code);

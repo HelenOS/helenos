@@ -186,7 +186,7 @@ static int hashed_device_create(xhci_bus_t *bus, hashed_device_t **hashed_dev, u
 
 	ret_dev->device = dev;
 
-	usb_log_debug("Device(%d) registered to XHCI bus.", dev->address);
+	usb_log_info("Device(%d) registered to XHCI bus.", dev->address);
 
 	hash_table_insert(&bus->devices, &ret_dev->link);
 	*hashed_dev = ret_dev;
@@ -201,7 +201,7 @@ err_xhci_dev_alloc:
 
 static int hashed_device_remove(xhci_bus_t *bus, hashed_device_t *hashed_dev)
 {
-	usb_log_debug("Device(%d) released from XHCI bus.", hashed_dev->device->address);
+	usb_log_info("Device(%d) released from XHCI bus.", hashed_dev->device->address);
 
 	hash_table_remove(&bus->devices, &hashed_dev->device->address);
 	xhci_device_fini(hashed_dev->device);
@@ -228,7 +228,7 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
 			return res;
 	}
 
-	usb_log_debug("Endpoint(%d:%d) registered to XHCI bus.", ep->target.address, ep->target.endpoint);
+	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->target.address, ep->target.endpoint);
 
 	return xhci_device_add_endpoint(hashed_dev->device, xhci_endpoint_get(ep));
 }
@@ -238,7 +238,7 @@ static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
-	usb_log_debug("Endpoint(%d:%d) released from XHCI bus.", ep->target.address, ep->target.endpoint);
+	usb_log_info("Endpoint(%d:%d) released from XHCI bus.", ep->target.address, ep->target.endpoint);
 
 	hashed_device_t *hashed_dev;
 	int res = hashed_device_find_by_address(bus, ep->target.address, &hashed_dev);
