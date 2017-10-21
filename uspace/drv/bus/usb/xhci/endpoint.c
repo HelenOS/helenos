@@ -136,7 +136,6 @@ static void setup_control_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx,
 static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx,
 	xhci_trb_ring_t *ring, usb_superspeed_endpoint_companion_descriptor_t *ss_desc)
 {
-
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, ep->base.max_packet_size);
 	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->device->usb3 ? ss_desc->max_burst : 0);
@@ -152,7 +151,6 @@ static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx,
 		// TODO: set LSA
 	} else {
 		XHCI_EP_MAX_P_STREAMS_SET(*ctx, 0);
-		/* FIXME physical pointer? */
 		XHCI_EP_TR_DPTR_SET(*ctx, ring->dequeue);
 		XHCI_EP_DCS_SET(*ctx, 1);
 	}
@@ -167,7 +165,6 @@ static void setup_isoch_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx,
 	// FIXME: get Mult field from SS companion descriptor somehow
 	XHCI_EP_MULT_SET(*ctx, 0);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 0);
-	/* FIXME physical pointer? */
 	XHCI_EP_TR_DPTR_SET(*ctx, ring->dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
 	// TODO: max ESIT payload
@@ -181,7 +178,6 @@ static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx,
 	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ss_desc->max_burst);
 	XHCI_EP_MULT_SET(*ctx, 0);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
-	/* FIXME physical pointer? */
 	XHCI_EP_TR_DPTR_SET(*ctx, ring->dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
 	// TODO: max ESIT payload

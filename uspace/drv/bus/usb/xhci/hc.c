@@ -635,6 +635,47 @@ int hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 	return EOK;
 }
 
+int hc_enable_slot(xhci_hc_t *hc, uint32_t *slot_id)
+{
+	assert(hc);
+
+	int err;
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	if ((err = xhci_send_enable_slot_command(hc, &cmd)) != EOK)
+		return err;
+
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
+		return err;
+
+	if (slot_id)
+		*slot_id = cmd.slot_id;
+
+	xhci_cmd_fini(&cmd);
+	return EOK;
+}
+
+int hc_address_device(xhci_hc_t *hc, uint32_t slot_id, xhci_input_ctx_t *ictx)
+{
+	assert(hc);
+	
+	int err;
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	cmd.slot_id = slot_id;
+
+	if ((err = xhci_send_address_device_command(hc, &cmd, ictx)) != EOK)
+		return err;
+
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
+		return err;
+
+	xhci_cmd_fini(&cmd);
+	return EOK;
+}
+
 /**
  * @}
  */

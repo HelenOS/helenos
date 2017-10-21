@@ -93,18 +93,9 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	return EOK;
 }
 
-static int enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
-{
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	return xhci_bus_enumerate_device((xhci_bus_t *) bus, hc, dev);
-}
-
-static int remove_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 {
 	// TODO: Implement me!
-
 	return ENOTSUP;
 }
 
@@ -113,6 +104,28 @@ static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
 {
 	assert(bus_base);
 	return (xhci_bus_t *) bus_base;
+}
+
+static int enumerate_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	assert(bus);
+
+	return xhci_bus_enumerate_device(bus, hc, dev);
+}
+
+static int remove_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
+{
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	assert(bus);
+
+	return xhci_bus_remove_device(bus, hc, dev);
 }
 
 static endpoint_t *create_endpoint(bus_t *base)
@@ -245,7 +258,9 @@ static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
 	if (res != EOK)
 		return res;
 
-	xhci_device_remove_endpoint(hashed_dev->device, xhci_endpoint_get(ep));
+	res = xhci_device_remove_endpoint(hashed_dev->device, xhci_endpoint_get(ep));
+	if (res != EOK)
+		return res;
 
 	if (hashed_dev->device->active_endpoint_count == 0) {
 		res = hashed_device_remove(bus, hashed_dev);

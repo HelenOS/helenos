@@ -72,37 +72,45 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 	return device_init(&hc->rh.device);
 }
 
+static void setup_control_ep0_ctx(xhci_ep_ctx_t *ctx, xhci_trb_ring_t *ring,
+		const xhci_port_speed_t *speed)
+{
+	XHCI_EP_TYPE_SET(*ctx, EP_TYPE_CONTROL);
+	// TODO: must be changed with a command after USB descriptor is read
+	// See 4.6.5 in XHCI specification, first note
+	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, speed->major == 3 ? 512 : 8);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, 0);
+	XHCI_EP_TR_DPTR_SET(*ctx, ring->dequeue);
+	XHCI_EP_DCS_SET(*ctx, 1);
+	XHCI_EP_INTERVAL_SET(*ctx, 0);
+	XHCI_EP_MAX_P_STREAMS_SET(*ctx, 0);
+	XHCI_EP_MULT_SET(*ctx, 0);
+	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
+}
+
 // TODO: Check device deallocation, we free device_ctx in hc.c, not
 //       sure about the other structs.
 // TODO: This currently assumes the device is attached to rh directly.
 //       Also, we should consider moving a lot of functionailty to xhci bus
 int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 {
+	/* FIXME: Certainly not generic solution. */
+	const uint32_t route_str = 0;
+
 	int err;
 	xhci_hc_t *hc = rh->hc;
-
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	/* XXX Certainly not generic solution. */
-	uint32_t route_str = 0;
-
 	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, dev->port);
 
-	xhci_send_enable_slot_command(hc, &cmd);
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
+	/* Enable new slot */
+	uint32_t slot_id;
+	if ((err = hc_enable_slot(hc, &slot_id)) != EOK)
 		return err;
-
-	uint32_t slot_id = cmd.slot_id;
-
 	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
-	xhci_cmd_fini(&cmd);
 
+	/* Setup input context */
 	xhci_input_ctx_t *ictx = malloc(sizeof(xhci_input_ctx_t));
-	if (!ictx) {
+	if (!ictx)
 		return ENOMEM;
-	}
-
 	memset(ictx, 0, sizeof(xhci_input_ctx_t));
 
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
@@ -123,42 +131,24 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 	err = xhci_trb_ring_init(ep_ring);
 	if (err)
 		goto err_ring;
+	setup_control_ep0_ctx(&ictx->endpoint_ctx[0], ep_ring, speed);
 
-	XHCI_EP_TYPE_SET(ictx->endpoint_ctx[0], EP_TYPE_CONTROL);
-	// TODO: must be changed with a command after USB descriptor is read
-	// See 4.6.5 in XHCI specification, first note
-	XHCI_EP_MAX_PACKET_SIZE_SET(ictx->endpoint_ctx[0],
-	    speed->major == 3 ? 512 : 8);
-	XHCI_EP_MAX_BURST_SIZE_SET(ictx->endpoint_ctx[0], 0);
-	/* FIXME physical pointer? */
-	XHCI_EP_TR_DPTR_SET(ictx->endpoint_ctx[0], ep_ring->dequeue);
-	XHCI_EP_DCS_SET(ictx->endpoint_ctx[0], 1);
-	XHCI_EP_INTERVAL_SET(ictx->endpoint_ctx[0], 0);
-	XHCI_EP_MAX_P_STREAMS_SET(ictx->endpoint_ctx[0], 0);
-	XHCI_EP_MULT_SET(ictx->endpoint_ctx[0], 0);
-	XHCI_EP_ERROR_COUNT_SET(ictx->endpoint_ctx[0], 3);
-
+	/* Setup and register device context */
 	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
 	if (!dctx) {
 		err = ENOMEM;
 		goto err_ring;
 	}
 	memset(dctx, 0, sizeof(xhci_device_ctx_t));
-
 	hc->dcbaa[slot_id] = addr_to_phys(dctx);
 
 	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
 	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
 	hc->dcbaa_virt[slot_id].trs[0] = ep_ring;
 
-	xhci_cmd_init(&cmd);
-	cmd.slot_id = slot_id;
-	xhci_send_address_device_command(hc, &cmd, ictx);
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
+	/* Address device */
+	if ((err = hc_address_device(hc, slot_id, ictx)) != EOK)
 		goto err_dctx;
-
-	xhci_cmd_fini(&cmd);
-
 	dev->address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.\n", dev->address);
 
