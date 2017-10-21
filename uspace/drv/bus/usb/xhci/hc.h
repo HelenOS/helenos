@@ -36,6 +36,7 @@
 #ifndef XHCI_HC_H
 #define XHCI_HC_H
 
+#include <fibril_synch.h>
 #include <usb/host/usb_transfer_batch.h>
 #include "hw_struct/regs.h"
 #include "hw_struct/context.h"
@@ -81,6 +82,8 @@ typedef struct xhci_hc {
 
 	/* Command list */
 	list_t commands;
+	fibril_mutex_t commands_mtx;
+
 	list_t transfers;
 
 	/* TODO: Hack. Figure out a better way. */

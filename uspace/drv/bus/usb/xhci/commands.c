@@ -66,6 +66,9 @@ int xhci_init_commands(xhci_hc_t *hc)
 	assert(hc);
 
 	list_initialize(&hc->commands);
+
+	fibril_mutex_initialize(&hc->commands_mtx);
+
 	return EOK;
 }
 
@@ -125,6 +128,8 @@ void xhci_cmd_free(xhci_cmd_t *cmd)
 
 static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
 {
+	fibril_mutex_lock(&hc->commands_mtx);
+
 	link_t *cmd_link = list_first(&hc->commands);
 
 	while (cmd_link != NULL) {
@@ -138,10 +143,12 @@ static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
 
 	if (cmd_link != NULL) {
 		list_remove(cmd_link);
+		fibril_mutex_unlock(&hc->commands_mtx);
 
 		return list_get_instance(cmd_link, xhci_cmd_t, link);
 	}
 
+	fibril_mutex_unlock(&hc->commands_mtx);
 	return NULL;
 }
 
@@ -150,7 +157,9 @@ static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd, unsigned doorb
 	assert(hc);
 	assert(cmd);
 
+	fibril_mutex_lock(&hc->commands_mtx);
 	list_append(&cmd->link, &hc->commands);
+	fibril_mutex_unlock(&hc->commands_mtx);
 
 	xhci_trb_ring_enqueue(&hc->command_ring, &cmd->trb, &cmd->trb_phys);
 	hc_ring_doorbell(hc, doorbell, target);
