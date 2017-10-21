@@ -472,7 +472,8 @@ build_target() {
 	CFLAGS=-Wno-error ./configure \
 		"--target=${TARGET}" \
 		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
-		--disable-nls --disable-werror --enable-gold
+		--disable-nls --disable-werror --enable-gold \
+		--enable-deterministic-archives
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
