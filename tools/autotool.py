@@ -41,7 +41,7 @@ import subprocess
 SANDBOX = 'autotool'
 CONFIG = 'Makefile.config'
 MAKEFILE = 'Makefile.common'
-HEADER = 'common.h'
+HEADER = 'common.h.new'
 GUARD = 'AUTOTOOL_COMMON_H_'
 
 PROBE_SOURCE = 'probe.c'
