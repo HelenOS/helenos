@@ -45,13 +45,19 @@ COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
 
-.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release
+.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace
 
-all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
-	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
-	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
-	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
+all: kernel uspace
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
+
+common: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
+	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
+
+kernel: common
+	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
+
+uspace: common
+	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
 
 precheck: clean
 	$(MAKE) -r all PRECHECK=y
