@@ -67,7 +67,10 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 
 	rh->hc = hc;
 	rh->max_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
+	rh->devices = (xhci_device_t **) malloc(rh->max_ports * sizeof(xhci_device_t *));
 	hc->rh.hc_device = device;
+
+	memset(rh->devices, 0, rh->max_ports * sizeof(xhci_device_t *));
 
 	return device_init(&hc->rh.device);
 }
@@ -174,7 +177,10 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 	xhci_dev->usb3 = speed->major == 3;
 	xhci_dev->hc = hc;
 
-	// TODO: Save anything else?
+	if (!rh->devices[dev->port - 1]) {
+		/* Only save the device if it's the first one connected to this port. */
+		rh->devices[dev->port - 1] = xhci_dev;
+	}
 
 	return EOK;
 
@@ -279,7 +285,15 @@ static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
  */
 static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 {
-	// TODO: Find XHCI device by the port.
+	/* Find XHCI device by the port. */
+	xhci_device_t *dev = rh->devices[port_id - 1];
+	if (!dev) {
+		/* Must be extraneous call */
+		return EOK;
+	}
+
+	usb_log_info("Device at port %u has been disconnected.", port_id);
+
 	// TODO: Destroy DDF function using _gone.
 	// TODO: Remove device endpoints on the bus.
 	// TODO: Free device context.
@@ -436,6 +450,9 @@ int xhci_rh_fini(xhci_rh_t *rh)
 {
 	/* TODO: Implement me! */
 	usb_log_debug2("Called xhci_rh_fini().");
+
+	free(rh->devices);
+
 	return EOK;
 }
 

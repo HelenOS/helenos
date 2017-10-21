@@ -54,6 +54,7 @@ typedef struct xhci_port_speed {
 
 typedef struct hcd_roothub hcd_roothub_t;
 typedef struct xhci_bus xhci_bus_t;
+typedef struct xhci_device xhci_device_t;
 
 /* XHCI root hub instance */
 typedef struct {
@@ -74,6 +75,9 @@ typedef struct {
 
 	/* Number of hub ports. */
 	uint8_t max_ports;
+
+	/* Device pointers connected to RH ports or NULL. (size is `max_ports`) */
+	xhci_device_t **devices;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *, xhci_hc_t *, ddf_dev_t *);
