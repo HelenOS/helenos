@@ -63,15 +63,18 @@ GCC_VERSION="7.1.0"
 ## GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
 GDB_VERSION="7.12.1"
 ## GDB_PATCHES="toolchain-gdb-7.6.1.patch"
+ISL_VERSION="0.18"
 
 BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.gz"
+ISL="isl-${ISL_VERSION}.tar.bz2"
 
 REAL_INSTALL=true
 USE_HELENOS_TARGET=false
+BUILD_ISL=false
 
 #
 # Check if the library described in the argument
@@ -96,15 +99,21 @@ check_dependency() {
 	RC="$?"
 	
 	if [ "$RC" -ne "0" ] ; then
-		echo " ${DEPENDENCY} not found, too old or compiler error."
-		echo " Please recheck manually the source file \"${FNAME}.c\"."
-		echo " The compilation of the toolchain is probably going to fail,"
-		echo " you have been warned."
-		echo
-		echo " ===== Compiler output ====="
-		cat "${FNAME}.log"
-		echo " ==========================="
-		echo
+		if [ "${DEPENDENCY}" == "isl" ]; then
+			BUILD_ISL=true
+			
+			echo " isl not found. Will be downloaded and built with GCC."
+		else
+			echo " ${DEPENDENCY} not found, too old or compiler error."
+			echo " Please recheck manually the source file \"${FNAME}.c\"."
+			echo " The compilation of the toolchain is probably going to fail,"
+			echo " you have been warned."
+			echo
+			echo " ===== Compiler output ====="
+			cat "${FNAME}.log"
+			echo " ==========================="
+			echo
+		fi
 	else
 		echo " ${DEPENDENCY} found"
 		rm -f "${FNAME}.log" "${FNAME}.o" "${FNAME}.c"
@@ -351,10 +360,15 @@ prepare() {
 	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
+	ISL_SOURCE="http://isl.gforge.inria.fr/"
 	
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "9e8340c96626b469a603c15c9d843727"
 	download_fetch "${GCC_SOURCE}" "${GCC}" "6bf56a2bca9dac9dbbf8e8d1036964a8"
 	download_fetch "${GDB_SOURCE}" "${GDB}" "06c8f40521ed65fe36ebc2be29b56942"
+	
+	if $BUILD_ISL ; then
+		download_fetch "${ISL_SOURCE}" "${ISL}" "11436d6b205e516635b666090b94ab32"
+	fi
 }
 
 set_target_from_platform() {
@@ -424,6 +438,7 @@ build_target() {
 	INSTALL_DIR="${WORKDIR}/PKG"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
+	ISLDIR="${WORKDIR}/isl-${ISL_VERSION}"
 	OBJDIR="${WORKDIR}/gcc-obj"
 	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
 	
@@ -437,6 +452,9 @@ build_target() {
 	source_check "${BASEDIR}/${BINUTILS}"
 	source_check "${BASEDIR}/${GCC}"
 	source_check "${BASEDIR}/${GDB}"
+	if $BUILD_ISL ; then
+		source_check "${BASEDIR}/${ISL}"
+	fi
 	
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
@@ -452,6 +470,10 @@ build_target() {
 	unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
 	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
+	if $BUILD_ISL ; then
+		unpack_tarball "${BASEDIR}/${ISL}" "isl"
+		mv "${ISLDIR}" "${GCCDIR}"/isl
+	fi
 	
 	echo ">>> Applying patches"
 	for p in $BINUTILS_PATCHES ; do
