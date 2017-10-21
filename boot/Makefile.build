@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.PHONY: all clean
+.PHONY: all clean depend
 
 include Makefile.common
 
@@ -63,37 +63,21 @@ ifeq ($(CONFIG_LINE_DEBUG),y)
 	COMMON_CFLAGS += -g
 endif
 
-ifeq ($(COMPILER),gcc_native)
-	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS) $(EXTRA_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),gcc_cross)
-	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS) $(EXTRA_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),gcc_helenos)
-	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS) $(EXTRA_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
 ifeq ($(COMPILER),clang)
 	CFLAGS = $(COMMON_CFLAGS) $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+else
+	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS) $(EXTRA_CFLAGS)
 endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+DEPENDS := $(addsuffix .d,$(basename $(SOURCES)))
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BOOT_OUTPUT)
-	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 clean:
 	rm -f $(RAW) $(MAP) $(ARCH_INCLUDE) $(GENARCH_INCLUDE)
 
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEPEND)
-endif
+-include $(DEPENDS)
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 
@@ -103,30 +87,28 @@ $(BOOT_OUTPUT): $(RAW)
 $(RAW): $(OBJECTS) $(LINK)
 	$(LD) -n $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(OBJECTS)
 
-$(LINK): $(DEPEND)
+$(LINK): | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
 
-%.o: %.S $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
+%.o: %.S | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
 endif
 
-%.o: %.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+%.o: %.c | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
 
-%.o: %.s $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
+%.o: %.s | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm
 endif
 
-$(DEPEND): $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH) $(PRE_DEPEND)
-	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
-	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+depend: $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH) $(PRE_DEPEND)
 
 $(COMPS).s: $(COMPS).zip
 	unzip -p $< $@ > $@

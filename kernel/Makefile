@@ -48,8 +48,6 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 #
 
 AGDEPEND = Makefile.ag.depend
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
 RAW = kernel.raw
 BIN = kernel.bin
 MAP = kernel.map
@@ -66,14 +64,14 @@ LINK = arch/$(KARCH)/_link.ld
 EMPTY_MAP = generic/src/debug/empty_map.o
 SIZEOK_MAP = generic/src/debug/sizeok_map.o
 
-.PHONY: all clean autogen_clean
+.PHONY: all clean autogen_clean depend
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BIN) $(DISASM)
-	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 clean: autogen_clean
-	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* arch/*/_link.ld arch/*/include/arch/common.h
+	rm -f $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* arch/*/_link.ld arch/*/include/arch/common.h
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm '{}' \;
+	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.d' -follow -exec rm '{}' \;
 
 ## Common compiler flags
 #
@@ -128,7 +126,6 @@ endif
 #
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
--include $(DEPEND)
 -include $(AGDEPEND)
 
 ## The at-sign
@@ -151,30 +148,13 @@ SYMTAB_SECTION = .section symtab.data, \"a\", $(ATSIGN)progbits;
 ## Compilation options
 #
 
-ifeq ($(COMPILER),gcc_native)
-	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-	INSTRUMENTATION = -finstrument-functions
-endif
-
-ifeq ($(COMPILER),gcc_cross)
-	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-	INSTRUMENTATION = -finstrument-functions
-endif
-
-ifeq ($(COMPILER),gcc_helenos)
-	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-	INSTRUMENTATION = -finstrument-functions
-endif
-
 ifeq ($(COMPILER),clang)
 	CFLAGS = $(COMMON_CFLAGS) $(CLANG_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-	INSTRUMENTATION = -finstrument-functions
+else
+	CFLAGS = $(COMMON_CFLAGS) $(GCC_CFLAGS)
 endif
 
+INSTRUMENTATION = -finstrument-functions
 
 ## Generic kernel sources
 #
@@ -363,6 +343,10 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
+GENERIC_DEPENDS := $(addsuffix .d,$(basename $(GENERIC_SOURCES)))
+ARCH_DEPENDS := $(addsuffix .d,$(basename $(ARCH_SOURCES)))
+GENARCH_DEPENDS := $(addsuffix .d,$(basename $(GENARCH_SOURCES)))
+
 GENARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(GENARCH_AUTOGENS_AG)))
 GENARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(GENARCH_AUTOGENS_AG)))
 GENARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(GENARCH_AUTOGENS_AG)))
@@ -376,6 +360,10 @@ AUTOGENS_AG := $(ARCH_AUTOGENS_AG) $(GENARCH_AUTOGENS_AG)
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
+
+-include $(GENERIC_DEPENDS)
+-include $(ARCH_DEPENDS)
+-include $(GENARCH_DEPENDS)
 
 ifeq ($(COMPILER),clang)
 	AS_CFLAGS += -mllvm -asm-macro-max-nesting-depth=1000
@@ -407,7 +395,7 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 	$(STRIP) $(RAW)
 endif
 
-$(LINK): $(LINK).in $(DEPEND)
+$(LINK): $(LINK).in | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
 %.h: %.ag
@@ -415,20 +403,20 @@ $(LINK): $(LINK).in $(DEPEND)
 	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
 	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
-%.o: %.S $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
+%.o: %.S | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
 endif
 
-%.o: %.s $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
+%.o: %.s | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
 endif
 
-%.o: %.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION)) -c -o $@ $<
+%.o: %.c | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION)) -c -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
 endif
@@ -469,9 +457,7 @@ $(AGDEPEND): $(AUTOGENS_AG)
 		done \
 	done
 
-$(DEPEND): $(COMMON_HEADER_ARCH) $(AUTOGENS_H)
-	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
-	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+depend: $(COMMON_HEADER_ARCH) $(AUTOGENS_H)
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 	ln -sfn ../../../../$< $@

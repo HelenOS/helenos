@@ -849,7 +849,6 @@ def main():
 		check_app(["find", "--version"], "Find utility", "usually part of findutils")
 		check_app(["diff", "--version"], "Diff utility", "usually part of diffutils")
 		check_app(["make", "--version"], "Make utility", "preferably GNU Make")
-		check_app(["makedepend", "-f", "-"], "Makedepend utility", "usually part of imake or xutils")
 		check_app(["unzip"], "unzip utility", "usually part of zip/unzip utilities")
 		
 		platform, cc_args, target = get_target(config)

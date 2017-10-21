@@ -4,10 +4,10 @@
 *.map
 *.prev
 *.so.*
+*.d
 Makefile.ag.depend
 Makefile.common
 Makefile.config
-Makefile.depend
 autotool/
 boot/distroot/
 boot/initrd.img

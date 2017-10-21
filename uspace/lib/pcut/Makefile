@@ -24,7 +24,7 @@ SELF_TESTS = \
 	$(PCUT_TEST_PREFIX)timeout$(PCUT_TEST_SUFFIX) \
 	$(PCUT_TEST_PREFIX)xmlreport$(PCUT_TEST_SUFFIX) 
 
-EXTRA_CLEAN = $(SELF_TESTS)
+EXTRA_CLEAN = $(SELF_TESTS) tests/*.d
 
 include helenos.mak
 
