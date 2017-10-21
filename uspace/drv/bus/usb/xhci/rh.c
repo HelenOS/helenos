@@ -275,6 +275,20 @@ static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 	}
 }
 
+/** Deal with a detached device.
+ */
+static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
+{
+	// TODO: Find XHCI device by the port.
+	// TODO: Destroy DDF function using _gone.
+	// TODO: Remove device endpoints on the bus.
+	// TODO: Free device context.
+	// TODO: Free TRB rings.
+	// TODO: Figure out what was forgotten and free that as well.
+
+	return EOK;
+}
+
 /** Handle an incoming Port Change Detected Event.
  */
 int xhci_rh_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
@@ -307,8 +321,11 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 			events &= ~XHCI_REG_MASK(XHCI_PORT_CSC);
 
 			bool connected = XHCI_REG_RD(regs, XHCI_PORT_CCS);
-			if (connected)
+			if (connected) {
 				handle_connected_device(rh, i);
+			} else {
+				handle_disconnected_device(rh, i);
+			}
 		}
 
 		if (events & XHCI_REG_MASK(XHCI_PORT_PEC)) {
