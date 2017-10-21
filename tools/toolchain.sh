@@ -236,8 +236,10 @@ download_fetch() {
 	
 	if [ ! -f "${FILE}" ] ; then
 		change_title "Downloading ${FILE}"
-		wget -c "${SOURCE}${FILE}"
+		wget -c "${SOURCE}${FILE}" -O "${FILE}".part
 		check_error $? "Error downloading ${FILE}."
+		
+		mv "${FILE}".part "${FILE}"
 	fi
 	
 	check_md5 "${FILE}" "${CHECKSUM}"
