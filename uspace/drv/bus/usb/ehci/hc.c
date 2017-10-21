@@ -295,9 +295,12 @@ int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 		    instance, batch, &instance->rh);
 		return ehci_rh_schedule(&instance->rh, batch);
 	}
+
 	ehci_transfer_batch_t *ehci_batch = ehci_transfer_batch_get(batch);
-	if (!ehci_batch)
-		return ENOMEM;
+
+	const int err = ehci_transfer_batch_prepare(ehci_batch);
+	if (err)
+		return err;
 
 	fibril_mutex_lock(&instance->guard);
 	usb_log_debug2("HC(%p): Appending BATCH(%p)", instance, batch);
@@ -342,9 +345,9 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 			ehci_transfer_batch_t *batch =
 			    ehci_transfer_batch_from_link(current);
 
-			if (ehci_transfer_batch_is_complete(batch)) {
+			if (ehci_transfer_batch_check_completed(batch)) {
 				list_remove(current);
-				ehci_transfer_batch_finish_dispose(batch);
+				usb_transfer_batch_finish(&batch->base);
 			}
 		}
 		fibril_mutex_unlock(&instance->guard);

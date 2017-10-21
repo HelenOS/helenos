@@ -43,11 +43,11 @@ static bool is_set_address_transfer(vhc_transfer_t *transfer)
 	if (transfer->batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
 		return false;
 	}
-	if (usb_transfer_batch_direction(transfer->batch) != USB_DIRECTION_OUT) {
+	if (transfer->batch->dir != USB_DIRECTION_OUT) {
 		return false;
 	}
-	const usb_device_request_setup_packet_t *setup =
-	    (void*)transfer->batch->setup_buffer;
+	const usb_device_request_setup_packet_t *setup
+		= &transfer->batch->setup.packet;
 	if (setup->request_type != 0) {
 		return false;
 	}
@@ -62,19 +62,19 @@ static int process_transfer_local(usb_transfer_batch_t *batch,
     usbvirt_device_t *dev, size_t *actual_data_size)
 {
 	int rc;
-	
-	const usb_direction_t dir = usb_transfer_batch_direction(batch);
+
+	const usb_direction_t dir = batch->dir;
 
 	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
 		if (dir == USB_DIRECTION_IN) {
 			rc = usbvirt_control_read(dev,
-			    batch->setup_buffer, batch->setup_size,
+			    batch->setup.buffer, USB_SETUP_PACKET_SIZE,
 			    batch->buffer, batch->buffer_size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
 			rc = usbvirt_control_write(dev,
-			    batch->setup_buffer, batch->setup_size,
+			    batch->setup.buffer, USB_SETUP_PACKET_SIZE,
 			    batch->buffer, batch->buffer_size);
 		}
 	} else {
@@ -99,18 +99,18 @@ static int process_transfer_remote(usb_transfer_batch_t *batch,
 {
 	int rc;
 
-	const usb_direction_t dir = usb_transfer_batch_direction(batch);
+	const usb_direction_t dir = batch->dir;
 
 	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
 		if (dir == USB_DIRECTION_IN) {
 			rc = usbvirt_ipc_send_control_read(sess,
-			    batch->setup_buffer, batch->setup_size,
+			    batch->setup.buffer, USB_SETUP_PACKET_SIZE,
 			    batch->buffer, batch->buffer_size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
 			rc = usbvirt_ipc_send_control_write(sess,
-			    batch->setup_buffer, batch->setup_size,
+			    batch->setup.buffer, USB_SETUP_PACKET_SIZE,
 			    batch->buffer, batch->buffer_size);
 		}
 	} else {
@@ -148,9 +148,9 @@ static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
 	assert(outcome != ENAK);
 	assert(transfer);
 	assert(transfer->batch);
-	usb_transfer_batch_finish_error(transfer->batch, NULL,
-	    data_transfer_size, outcome);
-	usb_transfer_batch_destroy(transfer->batch);
+	transfer->batch->error = outcome;
+	transfer->batch->transfered_size = data_transfer_size;
+	usb_transfer_batch_finish(transfer->batch);
 	free(transfer);
 }
 
@@ -235,7 +235,7 @@ int vhc_transfer_queue_processor(void *arg)
 		if (rc == EOK) {
 			if (is_set_address_transfer(transfer)) {
 				usb_device_request_setup_packet_t *setup =
-				    (void*) transfer->batch->setup_buffer;
+				    (void*) transfer->batch->setup.buffer;
 				dev->address = setup->value;
 				usb_log_debug2("Address changed to %d\n",
 				    dev->address);

@@ -68,30 +68,8 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 	return address;
 }
 
-typedef struct {
-	void *original_data;
-	usbhc_iface_transfer_out_callback_t original_callback;
-	usb_target_t target;
-	hcd_t *hcd;
-} toggle_t;
-
-static void toggle_reset_callback(int retval, void *arg)
-{
-	assert(arg);
-	toggle_t *toggle = arg;
-	if (retval == EOK) {
-		usb_log_debug2("Reseting toggle on %d:%d.\n",
-		    toggle->target.address, toggle->target.endpoint);
-		bus_reset_toggle(toggle->hcd->bus,
-		    toggle->target, toggle->target.endpoint == 0);
-	}
-
-	toggle->original_callback(retval, toggle->original_data);
-}
-
 /** Prepare generic usb_transfer_batch and schedule it.
  * @param hcd Host controller driver.
- * @param fun DDF fun
  * @param target address and endpoint number.
  * @param setup_data Data to use in setup stage (Control communication type)
  * @param in Callback for device to host communication.
@@ -100,11 +78,10 @@ static void toggle_reset_callback(int retval, void *arg)
  * @param name Communication identifier (for nicer output).
  * @return Error code.
  */
-int hcd_send_batch(
-    hcd_t *hcd, usb_target_t target, usb_direction_t direction,
-    void *data, size_t size, uint64_t setup_data,
-    usbhc_iface_transfer_in_callback_t in,
-    usbhc_iface_transfer_out_callback_t out, void *arg, const char* name)
+int hcd_send_batch(hcd_t *hcd, usb_target_t target, usb_direction_t direction,
+	void *data, size_t size, uint64_t setup_data,
+	usbhc_iface_transfer_in_callback_t in, usbhc_iface_transfer_out_callback_t out,
+	void *arg, const char *name)
 {
 	assert(hcd);
 
@@ -131,32 +108,23 @@ int hcd_send_batch(
 		return ENOTSUP;
 	}
 
-	/* Check for commands that reset toggle bit */
-	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
-		const int reset_toggle = usb_request_needs_toggle_reset(
-		    (usb_device_request_setup_packet_t *) &setup_data);
-		if (reset_toggle >= 0) {
-			assert(out);
-			toggle_t *toggle = malloc(sizeof(toggle_t));
-			if (!toggle)
-				return ENOMEM;
-			toggle->target.address = target.address;
-			toggle->target.endpoint = reset_toggle;
-			toggle->original_callback = out;
-			toggle->original_data = arg;
-			toggle->hcd = hcd;
-
-			arg = toggle;
-			out = toggle_reset_callback;
-		}
-	}
-
-	usb_transfer_batch_t *batch = usb_transfer_batch_create(
-	    ep, data, size, setup_data, in, out, arg);
+	usb_transfer_batch_t *batch = usb_transfer_batch_create(ep);
 	if (!batch) {
 		usb_log_error("Failed to create transfer batch.\n");
 		return ENOMEM;
 	}
+
+	batch->buffer = data;
+	batch->buffer_size = size;
+	batch->setup.packed = setup_data;
+	batch->dir = direction;
+
+	/* Check for commands that reset toggle bit */
+	if (ep->transfer_type == USB_TRANSFER_CONTROL)
+		batch->toggle_reset_mode
+			= usb_request_get_toggle_reset_mode(&batch->setup.packet);
+
+	usb_transfer_batch_set_old_handlers(batch, in, out, arg);
 
 	const int ret = hcd->ops.schedule(hcd, batch);
 	if (ret != EOK)

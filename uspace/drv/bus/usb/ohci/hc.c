@@ -294,6 +294,10 @@ int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	if (!ohci_batch)
 		return ENOMEM;
 
+	const int err = ohci_transfer_batch_prepare(ohci_batch);
+	if (err)
+		return err;
+
 	fibril_mutex_lock(&instance->guard);
 	list_append(&ohci_batch->link, &instance->pending_batches);
 	ohci_transfer_batch_commit(ohci_batch);
@@ -345,9 +349,9 @@ void ohci_hc_interrupt(hcd_t *hcd, uint32_t status)
 			ohci_transfer_batch_t *batch =
 			    ohci_transfer_batch_from_link(current);
 
-			if (ohci_transfer_batch_is_complete(batch)) {
+			if (ohci_transfer_batch_check_completed(batch)) {
 				list_remove(current);
-				ohci_transfer_batch_finish_dispose(batch);
+				usb_transfer_batch_finish(&batch->base);
 			}
 
 			current = next;

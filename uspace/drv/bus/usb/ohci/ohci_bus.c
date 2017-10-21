@@ -39,6 +39,7 @@
 #include <usb/host/bandwidth.h>
 
 #include "ohci_bus.h"
+#include "ohci_batch.h"
 #include "hc.h"
 
 /** Callback to set toggle on ED.
@@ -140,7 +141,17 @@ static int ohci_release_ep(bus_t *bus_base, endpoint_t *ep)
 
 	hc_dequeue_endpoint(bus->hc, ep);
 	return EOK;
+}
 
+static usb_transfer_batch_t *ohci_bus_create_batch(bus_t *bus, endpoint_t *ep)
+{
+	ohci_transfer_batch_t *batch = ohci_transfer_batch_create(ep);
+	return &batch->base;
+}
+
+static void ohci_bus_destroy_batch(usb_transfer_batch_t *batch)
+{
+	ohci_transfer_batch_destroy(ohci_transfer_batch_get(batch));
 }
 
 int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
@@ -159,6 +170,9 @@ int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
 
 	ops->register_endpoint = ohci_register_ep;
 	ops->release_endpoint = ohci_release_ep;
+
+	ops->create_batch = ohci_bus_create_batch;
+	ops->destroy_batch = ohci_bus_destroy_batch;
 
 	bus->hc = hc;
 

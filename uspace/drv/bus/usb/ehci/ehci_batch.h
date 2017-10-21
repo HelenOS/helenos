@@ -44,6 +44,7 @@
 
 /** EHCI specific data required for USB transfer */
 typedef struct ehci_transfer_batch {
+	usb_transfer_batch_t base;
 	/** Link */
 	link_t link;
 	/** Endpoint descriptor of the target endpoint. */
@@ -58,16 +59,25 @@ typedef struct ehci_transfer_batch {
 	usb_transfer_batch_t *usb_batch;
 } ehci_transfer_batch_t;
 
-ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *batch);
-bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *batch);
+ehci_transfer_batch_t * ehci_transfer_batch_create(endpoint_t *ep);
+int ehci_transfer_batch_prepare(ehci_transfer_batch_t *batch);
 void ehci_transfer_batch_commit(const ehci_transfer_batch_t *batch);
-void ehci_transfer_batch_finish_dispose(ehci_transfer_batch_t *batch);
+bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *batch);
+void ehci_transfer_batch_destroy(ehci_transfer_batch_t *batch);
 
 static inline ehci_transfer_batch_t *ehci_transfer_batch_from_link(link_t *l)
 {
 	assert(l);
 	return list_get_instance(l, ehci_transfer_batch_t, link);
 }
+
+static inline ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
+{
+	assert(usb_batch);
+
+	return (ehci_transfer_batch_t *) usb_batch;
+}
+
 #endif
 /**
  * @}

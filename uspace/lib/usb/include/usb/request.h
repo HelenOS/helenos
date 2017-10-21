@@ -108,7 +108,14 @@ typedef struct {
 
 int assert[(sizeof(usb_device_request_setup_packet_t) == 8) ? 1: -1];
 
-int usb_request_needs_toggle_reset(
+/** How much toggles needs to be reset */
+typedef enum {
+	RESET_NONE,
+	RESET_EP,
+	RESET_ALL
+} toggle_reset_mode_t;
+
+toggle_reset_mode_t usb_request_get_toggle_reset_mode(
     const usb_device_request_setup_packet_t *request);
 
 #define GET_DEVICE_DESC(size) \

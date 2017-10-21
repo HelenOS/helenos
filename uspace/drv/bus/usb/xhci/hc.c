@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
+#include <usb/host/endpoint.h>
 #include <usb/host/utils/malloc32.h>
 #include "debug.h"
 #include "hc.h"
@@ -471,18 +472,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 		return EINVAL;
 	}
 
-	switch (batch->ep->transfer_type) {
-	case USB_TRANSFER_CONTROL:
-		return xhci_schedule_control_transfer(hc, batch);
-	case USB_TRANSFER_ISOCHRONOUS:
-		return xhci_schedule_isochronous_transfer(hc, batch);
-	case USB_TRANSFER_BULK:
-		return xhci_schedule_bulk_transfer(hc, batch);
-	case USB_TRANSFER_INTERRUPT:
-		return xhci_schedule_interrupt_transfer(hc, batch);
-	}
-
-	return EOK;
+	return xhci_transfer_schedule(hc, batch);
 }
 
 typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);

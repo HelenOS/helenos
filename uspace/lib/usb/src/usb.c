@@ -127,7 +127,7 @@ const char *usb_str_speed(usb_speed_t s)
  * @retval >0 Specified endpoint needs reset.
  *
  */
-int usb_request_needs_toggle_reset(
+toggle_reset_mode_t usb_request_get_toggle_reset_mode(
     const usb_device_request_setup_packet_t *request)
 {
 	assert(request);
@@ -138,7 +138,7 @@ int usb_request_needs_toggle_reset(
 		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
 		if ((request->request_type == 0x2) &&
 		    (request->value == USB_FEATURE_ENDPOINT_HALT))
-			return uint16_usb2host(request->index);
+			return RESET_EP;
 		break;
 	case USB_DEVREQ_SET_CONFIGURATION:
 	case USB_DEVREQ_SET_INTERFACE:
@@ -148,12 +148,13 @@ int usb_request_needs_toggle_reset(
 		 * unless you're changing configuration or alternative
 		 * interface of an already setup device. */
 		if (!(request->request_type & SETUP_REQUEST_TYPE_DEVICE_TO_HOST))
-			return 0;
+			return RESET_ALL;
 		break;
 	default:
 		break;
 	}
-	return -1;
+
+	return RESET_NONE;
 }
 
 /**

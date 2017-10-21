@@ -40,6 +40,7 @@
 #include <usb/debug.h>
 
 #include "ehci_bus.h"
+#include "ehci_batch.h"
 #include "hc.h"
 
 /** Callback to set toggle on ED.
@@ -139,7 +140,17 @@ static int ehci_release_ep(bus_t *bus_base, endpoint_t *ep)
 
 	hc_dequeue_endpoint(bus->hc, ep);
 	return EOK;
+}
 
+static usb_transfer_batch_t *ehci_bus_create_batch(bus_t *bus, endpoint_t *ep)
+{
+	ehci_transfer_batch_t *batch = ehci_transfer_batch_create(ep);
+	return &batch->base;
+}
+
+static void ehci_bus_destroy_batch(usb_transfer_batch_t *batch)
+{
+	ehci_transfer_batch_destroy(ehci_transfer_batch_get(batch));
 }
 
 int ehci_bus_init(ehci_bus_t *bus, hc_t *hc)
@@ -159,6 +170,9 @@ int ehci_bus_init(ehci_bus_t *bus, hc_t *hc)
 
 	ops->register_endpoint = ehci_register_ep;
 	ops->release_endpoint = ehci_release_ep;
+
+	ops->create_batch = ehci_bus_create_batch;
+	ops->destroy_batch = ehci_bus_destroy_batch;
 
 	bus->hc = hc;
 

@@ -32,7 +32,7 @@
  * Virtual base for usb bus implementations.
  *
  * The purpose of this structure is to keep information about connected devices
- * and enpoints, manage available bandwidth and the toggle bit flipping.
+ * and endpoints, manage available bandwidth and the toggle bit flipping.
  *
  * The generic implementation is provided for USB 1 and 2 in usb2_bus.c. Some
  * details in [OUE]HCI are solved through overriding some functions. XHCI does
@@ -52,6 +52,7 @@ typedef struct hcd hcd_t;
 typedef struct endpoint endpoint_t;
 typedef struct bus bus_t;
 typedef struct ddf_fun ddf_fun_t;
+typedef struct usb_transfer_batch usb_transfer_batch_t;
 
 typedef struct device {
 	/* Device tree keeping */
@@ -84,6 +85,9 @@ typedef struct {
 	int (*register_endpoint)(bus_t *, endpoint_t *);
 	int (*release_endpoint)(bus_t *, endpoint_t *);
 	endpoint_t *(*find_endpoint)(bus_t *, usb_target_t, usb_direction_t);
+	void (*destroy_endpoint)(endpoint_t *);			/**< Optional */
+	bool (*endpoint_get_toggle)(endpoint_t *);		/**< Optional */
+	void (*endpoint_set_toggle)(endpoint_t *, bool);	/**< Optional */
 
 	int (*request_address)(bus_t *, usb_address_t*, bool, usb_speed_t);
 	int (*release_address)(bus_t *, usb_address_t);
@@ -92,10 +96,8 @@ typedef struct {
 
 	size_t (*count_bw) (endpoint_t *, size_t);
 
-	/* Endpoint ops, optional (have generic fallback) */
-	void (*destroy_endpoint)(endpoint_t *);
-	bool (*endpoint_get_toggle)(endpoint_t *);
-	void (*endpoint_set_toggle)(endpoint_t *, bool);
+	usb_transfer_batch_t *(*create_batch)(bus_t *, endpoint_t *); /**< Optional */
+	void (*destroy_batch)(usb_transfer_batch_t *);	/**< Optional */
 } bus_ops_t;
 
 /** Endpoint management structure */
@@ -133,6 +135,7 @@ size_t bus_count_bw(endpoint_t *, size_t);
 
 int bus_request_address(bus_t *, usb_address_t *, bool, usb_speed_t);
 int bus_release_address(bus_t *, usb_address_t);
+
 
 static inline int bus_reserve_default_address(bus_t *bus, usb_speed_t speed) {
 	usb_address_t addr = USB_ADDRESS_DEFAULT;

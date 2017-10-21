@@ -33,29 +33,41 @@
  * @brief The host controller transfer ring management
  */
 
+#ifndef XHCI_TRANSFERS_H
+#define XHCI_TRANSFERS_H
+
+#include <usb/host/usb_transfer_batch.h>
+
 #include "hc.h"
 #include "trb_ring.h"
 
 typedef struct {
+	usb_transfer_batch_t batch;
 	link_t link;
 
-	uintptr_t interrupt_trb_phys;
 	uint8_t direction;
 
-	usb_transfer_batch_t* batch;
-
 	void* hc_buffer;                    /* Virtual address of the buffer start. */
+	uintptr_t hc_buffer_phys;
+
+	uintptr_t interrupt_trb_phys;
 } xhci_transfer_t;
 
 int xhci_init_transfers(xhci_hc_t*);
 void xhci_fini_transfers(xhci_hc_t*);
 
-xhci_transfer_t* xhci_transfer_alloc(usb_transfer_batch_t*);
-void xhci_transfer_fini(xhci_transfer_t*);
-
+xhci_transfer_t* xhci_transfer_create(endpoint_t *);
+int xhci_transfer_schedule(xhci_hc_t*, usb_transfer_batch_t *);
 int xhci_handle_transfer_event(xhci_hc_t*, xhci_trb_t*);
+void xhci_transfer_destroy(xhci_transfer_t*);
 
-int xhci_schedule_control_transfer(xhci_hc_t*, usb_transfer_batch_t*);
-int xhci_schedule_bulk_transfer(xhci_hc_t*, usb_transfer_batch_t*);
-int xhci_schedule_interrupt_transfer(xhci_hc_t*, usb_transfer_batch_t*);
-int xhci_schedule_isochronous_transfer(xhci_hc_t* , usb_transfer_batch_t* );
+static inline xhci_transfer_t *xhci_transfer_from_batch(usb_transfer_batch_t *batch)
+{
+	assert(batch);
+	return (xhci_transfer_t *) batch;
+}
+
+/**
+ * @}
+ */
+#endif

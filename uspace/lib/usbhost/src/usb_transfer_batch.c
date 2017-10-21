@@ -33,105 +33,137 @@
  */
 
 #include <usb/host/usb_transfer_batch.h>
+#include <usb/host/endpoint.h>
+#include <usb/host/bus.h>
 #include <usb/debug.h>
 
 #include <assert.h>
 #include <errno.h>
-#include <macros.h>
-#include <mem.h>
-#include <stdlib.h>
-#include <usbhc_iface.h>
 
-/** Allocate and initialize usb_transfer_batch structure.
- * @param ep endpoint used by the transfer batch.
- * @param buffer data to send/recieve.
- * @param buffer_size Size of data buffer.
- * @param setup_buffer Data to send in SETUP stage of control transfer.
- * @param func_in callback on IN transfer completion.
- * @param func_out callback on OUT transfer completion.
- * @param fun DDF function (passed to callback function).
- * @param arg Argument to pass to the callback function.
- * @param private_data driver specific per batch data.
- * @param private_data_dtor Function to properly destroy private_data.
- * @return Pointer to valid usb_transfer_batch_t structure, NULL on failure.
+
+/** Create a batch on given endpoint.
  */
-usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep, char *buffer,
-    size_t buffer_size,
-    uint64_t setup_buffer,
-    usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out,
-    void *arg)
+usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
 {
-	if (func_in == NULL && func_out == NULL)
-		return NULL;
-	if (func_in != NULL && func_out != NULL)
-		return NULL;
+	assert(ep);
+	assert(ep->bus);
 
-	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
-	if (instance) {
-		instance->ep = ep;
-		instance->callback_in = func_in;
-		instance->callback_out = func_out;
-		instance->arg = arg;
-		instance->buffer = buffer;
-		instance->buffer_size = buffer_size;
-		instance->setup_size = 0;
-		instance->transfered_size = 0;
-		instance->error = EOK;
-		if (ep && ep->transfer_type == USB_TRANSFER_CONTROL) {
-			memcpy(instance->setup_buffer, &setup_buffer,
-			    USB_SETUP_PACKET_SIZE);
-			instance->setup_size = USB_SETUP_PACKET_SIZE;
-		}
-		if (instance->ep)
-			endpoint_use(instance->ep);
-	}
-	return instance;
+	usb_transfer_batch_t *batch;
+	if (ep->bus->ops.create_batch)
+		batch = ep->bus->ops.create_batch(ep->bus, ep);
+	else
+		batch = malloc(sizeof(usb_transfer_batch_t));
+
+	return batch;
 }
 
-/** Correctly dispose all used data structures.
- *
- * @param[in] instance Batch structure to use.
+/** Initialize given batch structure.
  */
-void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance)
+void usb_transfer_batch_init(usb_transfer_batch_t *batch, endpoint_t *ep)
 {
-	if (!instance)
-		return;
-	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",
-	    instance, USB_TRANSFER_BATCH_ARGS(*instance));
-	if (instance->ep) {
-		endpoint_release(instance->ep);
-	}
-	free(instance);
+	memset(batch, 0, sizeof(*batch));
+
+	batch->ep = ep;
+
+	endpoint_use(ep);
 }
 
-/** Prepare data and call the right callback.
+/** Call the handler of the batch.
  *
- * @param[in] instance Batch structure to use.
- * @param[in] data Data to copy to the output buffer.
- * @param[in] size Size of @p data.
- * @param[in] error Error value to use.
+ * @param[in] batch Batch structure to use.
  */
-void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
-    const void *data, size_t size, int error)
+static int batch_complete(usb_transfer_batch_t *batch)
 {
-	assert(instance);
-	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " finishing.\n",
-	    instance, USB_TRANSFER_BATCH_ARGS(*instance));
+	assert(batch);
 
-	/* NOTE: Only one of these pointers should be set. */
-        if (instance->callback_out) {
-		instance->callback_out(error, instance->arg);
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed.\n",
+	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
+
+	if (batch->error == EOK && batch->toggle_reset_mode != RESET_NONE) {
+		usb_log_debug2("Reseting %s due to transaction of %d:%d.\n",
+		    batch->toggle_reset_mode == RESET_ALL ? "all EPs toggle" : "EP toggle",
+		    batch->ep->target.address, batch->ep->target.endpoint);
+		bus_reset_toggle(batch->ep->bus,
+		    batch->ep->target, batch->toggle_reset_mode == RESET_ALL);
 	}
 
-        if (instance->callback_in) {
-		/* We care about the data and there are some to copy */
-		const size_t safe_size = min(size, instance->buffer_size);
-		if (data) {
-	                memcpy(instance->buffer, data, safe_size);
-		}
-		instance->callback_in(error, safe_size, instance->arg);
-	}
+	return batch->on_complete
+		? batch->on_complete(batch)
+		: EOK;
+}
+
+/** Destroy the batch.
+ *
+ * @param[in] batch Batch structure to use.
+ */
+void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
+{
+	assert(batch);
+	assert(batch->ep);
+	assert(batch->ep->bus);
+
+	usb_log_debug2("batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",
+	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
+
+	bus_t *bus = batch->ep->bus;
+	if (bus->ops.destroy_batch)
+		bus->ops.destroy_batch(batch);
+	else
+		free(batch);
+
+	endpoint_release(batch->ep);
+}
+
+/** Finish a transfer batch: call handler, destroy batch, release endpoint.
+ *
+ * Call only after the batch have been scheduled && completed!
+ *
+ * @param[in] batch Batch structure to use.
+ */
+void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
+{
+	if (!batch_complete(batch))
+		usb_log_warning("failed to complete batch %p!", batch);
+
+	usb_transfer_batch_destroy(batch);
+}
+
+
+struct old_handler_wrapper_data {
+	usbhc_iface_transfer_in_callback_t in_callback;
+	usbhc_iface_transfer_out_callback_t out_callback;
+	void *arg;
+};
+
+static int old_handler_wrapper(usb_transfer_batch_t *batch)
+{
+	struct old_handler_wrapper_data *data = batch->on_complete_data;
+
+	assert(data);
+
+	if (data->out_callback)
+		data->out_callback(batch->error, data->arg);
+
+	if (data->in_callback)
+		data->in_callback(batch->error, batch->transfered_size, data->arg);
+
+	free(data);
+	return EOK;
+}
+
+void usb_transfer_batch_set_old_handlers(usb_transfer_batch_t *batch,
+	usbhc_iface_transfer_in_callback_t in_callback,
+	usbhc_iface_transfer_out_callback_t out_callback,
+	void *arg)
+{
+	struct old_handler_wrapper_data *data = malloc(sizeof(*data));
+
+	data->in_callback = in_callback;
+	data->out_callback = out_callback;
+	data->arg = arg;
+
+	batch->on_complete = old_handler_wrapper;
+	batch->on_complete_data = data;
 }
 /**
  * @}

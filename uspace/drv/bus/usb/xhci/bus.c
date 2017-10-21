@@ -47,6 +47,7 @@
 
 #include "bus.h"
 #include "endpoint.h"
+#include "transfers.h"
 
 /** Element of the hash table. */
 typedef struct {
@@ -309,6 +310,17 @@ static void endpoint_set_toggle(endpoint_t *ep, bool toggle)
 	// TODO: Implement me!
 }
 
+static usb_transfer_batch_t *create_batch(bus_t *bus, endpoint_t *ep)
+{
+	xhci_transfer_t *transfer = xhci_transfer_create(ep);
+	return &transfer->batch;
+}
+
+static void destroy_batch(usb_transfer_batch_t *batch)
+{
+	xhci_transfer_destroy(xhci_transfer_from_batch(batch));
+}
+
 static const bus_ops_t xhci_bus_ops = {
 	.enumerate_device = enumerate_device,
 	.remove_device = remove_device,
@@ -328,6 +340,9 @@ static const bus_ops_t xhci_bus_ops = {
 
 	.endpoint_get_toggle = endpoint_get_toggle,
 	.endpoint_set_toggle = endpoint_set_toggle,
+
+	.create_batch = create_batch,
+	.destroy_batch = destroy_batch,
 };
 
 static size_t device_ht_hash(const ht_link_t *item)

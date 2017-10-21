@@ -179,7 +179,7 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 	assert(batch);
 	const usb_target_t target = batch->ep->target;
 	batch->error = virthub_base_request(&instance->base, target,
-	    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
+	    batch->dir, &batch->setup.packet,
 	    batch->buffer, batch->buffer_size, &batch->transfered_size);
 	if (batch->error == ENAK) {
 		/* This is safe because only status change interrupt transfers
@@ -188,8 +188,7 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 		assert(instance->unfinished_interrupt_transfer == NULL);
 		instance->unfinished_interrupt_transfer = batch;
 	} else {
-		usb_transfer_batch_finish(batch, NULL);
-		usb_transfer_batch_destroy(batch);
+		usb_transfer_batch_finish(batch);
 	}
 	return EOK;
 }
@@ -209,11 +208,9 @@ int ohci_rh_interrupt(ohci_rh_t *instance)
 	if (batch) {
 		const usb_target_t target = batch->ep->target;
 		batch->error = virthub_base_request(&instance->base, target,
-		    usb_transfer_batch_direction(batch),
-		    (void*)batch->setup_buffer,
+		    batch->dir, &batch->setup.packet,
 		    batch->buffer, batch->buffer_size, &batch->transfered_size);
-		usb_transfer_batch_finish(batch, NULL);
-		usb_transfer_batch_destroy(batch);
+		usb_transfer_batch_finish(batch);
 	}
 	return EOK;
 }

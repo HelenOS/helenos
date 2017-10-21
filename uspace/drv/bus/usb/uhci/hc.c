@@ -176,7 +176,7 @@ void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
 			list_remove(current);
 			uhci_transfer_batch_t *batch =
 			    uhci_transfer_batch_from_link(current);
-			uhci_transfer_batch_finish_dispose(batch);
+			usb_transfer_batch_finish(&batch->base);
 		}
 	}
 	/* Resume interrupts are not supported */
@@ -308,6 +308,17 @@ void hc_init_hw(const hc_t *instance)
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
 }
 
+static usb_transfer_batch_t *create_transfer_batch(bus_t *bus, endpoint_t *ep)
+{
+	uhci_transfer_batch_t *batch = uhci_transfer_batch_create(ep);
+	return &batch->base;
+}
+
+static void destroy_transfer_batch(usb_transfer_batch_t *batch)
+{
+	uhci_transfer_batch_destroy(uhci_transfer_batch_get(batch));
+}
+
 /** Initialize UHCI hc memory structures.
  *
  * @param[in] instance UHCI structure to use.
@@ -325,6 +336,9 @@ int hc_init_mem_structures(hc_t *instance)
 
 	if ((err = usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11)))
 		return err;
+
+	instance->bus.base.ops.create_batch = create_transfer_batch;
+	instance->bus.base.ops.destroy_batch = destroy_transfer_batch;
 
 	/* Init USB frame list page */
 	instance->frame_list = get_page();
@@ -449,11 +463,15 @@ int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	if (batch->ep->target.address == uhci_rh_get_address(&instance->rh))
 		return uhci_rh_schedule(&instance->rh, batch);
 
-	uhci_transfer_batch_t *uhci_batch = uhci_transfer_batch_get(batch);
+	uhci_transfer_batch_t *uhci_batch = (uhci_transfer_batch_t *) batch;
 	if (!uhci_batch) {
 		usb_log_error("Failed to create UHCI transfer structures.\n");
 		return ENOMEM;
 	}
+
+	const int err = uhci_transfer_batch_prepare(uhci_batch);
+	if (err)
+		return err;
 
 	transfer_list_t *list =
 	    instance->transfers[batch->ep->speed][batch->ep->transfer_type];

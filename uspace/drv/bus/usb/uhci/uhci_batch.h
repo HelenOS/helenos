@@ -42,12 +42,15 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <usb/host/usb_transfer_batch.h>
+#include <usb/host/endpoint.h>
 
 #include "hw_struct/queue_head.h"
 #include "hw_struct/transfer_descriptor.h"
 
 /** UHCI specific data required for USB transfer */
 typedef struct uhci_transfer_batch {
+	usb_transfer_batch_t base;
+
 	/** Queue head
 	 * This QH is used to maintain UHCI schedule structure and the element
 	 * pointer points to the first TD of this batch.
@@ -65,9 +68,10 @@ typedef struct uhci_transfer_batch {
 	link_t link;
 } uhci_transfer_batch_t;
 
-uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *batch);
-void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch);
-bool uhci_transfer_batch_is_complete(const uhci_transfer_batch_t *uhci_batch);
+uhci_transfer_batch_t * uhci_transfer_batch_create(endpoint_t *ep);
+int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch);
+bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch);
+void uhci_transfer_batch_destroy(uhci_transfer_batch_t *uhci_batch);
 
 /** Get offset to setup buffer accessible to the HC hw.
  * @param uhci_batch UHCI batch structure.
@@ -92,7 +96,7 @@ static inline void * uhci_transfer_batch_data_buffer(
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
 	return uhci_transfer_batch_setup_buffer(uhci_batch) +
-	    uhci_batch->usb_batch->setup_size;
+	    (uhci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL ? USB_SETUP_PACKET_SIZE : 0);
 }
 
 /** Aborts the batch.
@@ -106,7 +110,7 @@ static inline void uhci_transfer_batch_abort(uhci_transfer_batch_t *uhci_batch)
 	assert(uhci_batch->usb_batch);
 	uhci_batch->usb_batch->error = EINTR;
 	uhci_batch->usb_batch->transfered_size = 0;
-	uhci_transfer_batch_finish_dispose(uhci_batch);
+	usb_transfer_batch_finish(&uhci_batch->base);
 }
 
 /** Linked list conversion wrapper.
@@ -117,6 +121,12 @@ static inline uhci_transfer_batch_t *uhci_transfer_batch_from_link(link_t *l)
 {
 	assert(l);
 	return list_get_instance(l, uhci_transfer_batch_t, link);
+}
+
+static inline uhci_transfer_batch_t *uhci_transfer_batch_get(usb_transfer_batch_t *b)
+{
+	assert(b);
+	return (uhci_transfer_batch_t *) b;
 }
 
 #endif

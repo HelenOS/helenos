@@ -166,7 +166,7 @@ void transfer_list_remove_finished(transfer_list_t *instance, list_t *done)
 		uhci_transfer_batch_t *batch =
 		    uhci_transfer_batch_from_link(current);
 
-		if (uhci_transfer_batch_is_complete(batch)) {
+		if (uhci_transfer_batch_check_completed(batch)) {
 			/* Save for processing */
 			transfer_list_remove_batch(instance, batch);
 			list_append(current, done);

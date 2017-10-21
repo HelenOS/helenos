@@ -47,6 +47,7 @@
 
 typedef struct bus bus_t;
 typedef struct device device_t;
+typedef struct usb_transfer_batch usb_transfer_batch_t;
 
 /** Host controller side endpoint structure. */
 typedef struct endpoint {

@@ -38,6 +38,7 @@
 #include <usb/descriptor.h>
 #include <usb/classes/hub.h>
 #include <usb/request.h>
+#include <usb/host/endpoint.h>
 #include <usb/usb.h>
 
 #include "uhci_rh.h"
@@ -105,15 +106,14 @@ int uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 	const usb_target_t target = batch->ep->target;
 	do {
 		batch->error = virthub_base_request(&instance->base, target,
-		    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
+		    batch->dir, (void*) batch->setup.buffer,
 		    batch->buffer, batch->buffer_size, &batch->transfered_size);
 		if (batch->error == ENAK)
 			async_usleep(instance->base.endpoint_descriptor.poll_interval * 1000);
 		//TODO This is flimsy, but we can't exit early because
 		//ENAK is technically an error condition
 	} while (batch->error == ENAK);
-	usb_transfer_batch_finish(batch, NULL);
-	usb_transfer_batch_destroy(batch);
+	usb_transfer_batch_finish(batch);
 	return EOK;
 }
 
