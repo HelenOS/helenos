@@ -105,7 +105,7 @@ int bus_remove_ep(bus_t *bus, usb_target_t target, usb_direction_t dir)
 	if (!ep)
 		return ENOENT;
 
-	return bus_release_endpoint(bus, ep);
+	return bus_unregister_endpoint(bus, ep);
 }
 
 int device_set_default_name(device_t *dev)
@@ -179,13 +179,13 @@ int bus_register_endpoint(bus_t *bus, endpoint_t *ep)
 	return r;
 }
 
-int bus_release_endpoint(bus_t *bus, endpoint_t *ep)
+int bus_unregister_endpoint(bus_t *bus, endpoint_t *ep)
 {
 	assert(bus);
 	assert(ep);
 
 	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.release_endpoint(bus, ep);
+	const int r = bus->ops.unregister_endpoint(bus, ep);
 	fibril_mutex_unlock(&bus->guard);
 
 	if (r)

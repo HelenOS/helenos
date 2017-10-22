@@ -117,13 +117,13 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 {
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
-	/* Release remaining endpoints. */
+	/* Unregister remaining endpoints. */
 	for (size_t i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
 		if (!xhci_dev->endpoints[i])
 			continue;
 
 		// FIXME: ignoring return code
-		bus_release_endpoint(&bus->base, &xhci_dev->endpoints[i]->base);
+		bus_unregister_endpoint(&bus->base, &xhci_dev->endpoints[i]->base);
 	}
 
 	hashed_device_t *hashed_dev;
@@ -256,12 +256,12 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
 	return xhci_device_add_endpoint(xhci_dev, xhci_ep);
 }
 
-static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
+static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep)
 {
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
-	usb_log_info("Endpoint(%d:%d) released from XHCI bus.", ep->target.address, ep->target.endpoint);
+	usb_log_info("Endpoint(%d:%d) unregistered from XHCI bus.", ep->target.address, ep->target.endpoint);
 
 	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
@@ -328,7 +328,7 @@ static const bus_ops_t xhci_bus_ops = {
 	.destroy_endpoint = destroy_endpoint,
 
 	.register_endpoint = register_endpoint,
-	.release_endpoint = release_endpoint,
+	.unregister_endpoint = unregister_endpoint,
 	.find_endpoint = find_endpoint,
 
 	.request_address = NULL,

@@ -83,7 +83,7 @@ typedef struct {
 
 	endpoint_t *(*create_endpoint)(bus_t *);
 	int (*register_endpoint)(bus_t *, endpoint_t *);
-	int (*release_endpoint)(bus_t *, endpoint_t *);
+	int (*unregister_endpoint)(bus_t *, endpoint_t *);
 	endpoint_t *(*find_endpoint)(bus_t *, usb_target_t, usb_direction_t);
 	void (*destroy_endpoint)(endpoint_t *);			/**< Optional */
 	bool (*endpoint_get_toggle)(endpoint_t *);		/**< Optional */
@@ -128,7 +128,7 @@ int bus_remove_device(bus_t *, hcd_t *, device_t *);
 
 endpoint_t *bus_create_endpoint(bus_t *);
 int bus_register_endpoint(bus_t *, endpoint_t *);
-int bus_release_endpoint(bus_t *, endpoint_t *);
+int bus_unregister_endpoint(bus_t *, endpoint_t *);
 endpoint_t *bus_find_endpoint(bus_t *, usb_target_t, usb_direction_t);
 
 size_t bus_count_bw(endpoint_t *, size_t);

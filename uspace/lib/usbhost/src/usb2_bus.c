@@ -308,7 +308,7 @@ static int usb2_bus_register_ep(bus_t *bus_base, endpoint_t *ep)
 
 /** Release bandwidth reserved by the given endpoint.
  */
-static int usb2_bus_release_ep(bus_t *bus_base, endpoint_t *ep)
+static int usb2_bus_unregister_ep(bus_t *bus_base, endpoint_t *ep)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 	assert(ep);
@@ -415,7 +415,7 @@ static const bus_ops_t usb2_bus_ops = {
 	.enumerate_device = usb2_bus_enumerate_device,
 	.create_endpoint = usb2_bus_create_ep,
 	.find_endpoint = usb2_bus_find_ep,
-	.release_endpoint = usb2_bus_release_ep,
+	.unregister_endpoint = usb2_bus_unregister_ep,
 	.register_endpoint = usb2_bus_register_ep,
 	.request_address = usb2_bus_request_address,
 	.release_address = usb2_bus_release_address,

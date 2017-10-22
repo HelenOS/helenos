@@ -129,13 +129,13 @@ static int ohci_register_ep(bus_t *bus_base, endpoint_t *ep)
 	return EOK;
 }
 
-static int ohci_release_ep(bus_t *bus_base, endpoint_t *ep)
+static int ohci_unregister_ep(bus_t *bus_base, endpoint_t *ep)
 {
 	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
 	assert(bus);
 	assert(ep);
 
-	const int err = bus->parent_ops.release_endpoint(bus_base, ep);
+	const int err = bus->parent_ops.unregister_endpoint(bus_base, ep);
 	if (err)
 		return err;
 
@@ -169,7 +169,7 @@ int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
 	ops->endpoint_get_toggle = ohci_ep_toggle_get;
 
 	ops->register_endpoint = ohci_register_ep;
-	ops->release_endpoint = ohci_release_ep;
+	ops->unregister_endpoint = ohci_unregister_ep;
 
 	ops->create_batch = ohci_bus_create_batch;
 	ops->destroy_batch = ohci_bus_destroy_batch;
