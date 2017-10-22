@@ -93,13 +93,13 @@ typedef struct xhci_device {
 
 	/** Flag indicating whether the device is USB3 (it's USB2 otherwise). */
 	bool usb3;
+
+	/** True if the device can add new endpoints and schedule transfers. */
+	volatile bool online;
 } xhci_device_t;
 
 int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
-
-int xhci_device_init(xhci_device_t *, xhci_bus_t *, usb_address_t);
-void xhci_device_fini(xhci_device_t *);
 
 uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
 uint8_t xhci_endpoint_index(xhci_endpoint_t *);

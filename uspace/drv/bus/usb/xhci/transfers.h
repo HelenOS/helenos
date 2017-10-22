@@ -54,9 +54,10 @@ typedef struct {
 } xhci_transfer_t;
 
 xhci_transfer_t* xhci_transfer_create(endpoint_t *);
-int xhci_transfer_schedule(xhci_hc_t*, usb_transfer_batch_t *);
-int xhci_handle_transfer_event(xhci_hc_t*, xhci_trb_t*);
-void xhci_transfer_destroy(xhci_transfer_t*);
+int xhci_transfer_schedule(xhci_hc_t *, usb_transfer_batch_t *);
+int xhci_transfer_abort(xhci_transfer_t *);
+int xhci_handle_transfer_event(xhci_hc_t *, xhci_trb_t *);
+void xhci_transfer_destroy(xhci_transfer_t *);
 
 static inline xhci_transfer_t *xhci_transfer_from_batch(usb_transfer_batch_t *batch)
 {

@@ -117,7 +117,14 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 {
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
-	// TODO: Release remaining EPs
+	/* Release remaining endpoints. */
+	for (size_t i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
+		if (!xhci_dev->endpoints[i])
+			continue;
+
+		// FIXME: ignoring return code
+		bus_release_endpoint(&bus->base, &xhci_dev->endpoints[i]->base);
+	}
 
 	hashed_device_t *hashed_dev;
 	int res = hashed_device_find_by_address(bus, dev->address, &hashed_dev);
@@ -269,7 +276,7 @@ static endpoint_t* find_endpoint(bus_t *bus_base, usb_target_t target, usb_direc
 {
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
-	
+
 	xhci_endpoint_t *ep;
 	int res = xhci_endpoint_find_by_target(bus, target, &ep);
 	if (res != EOK)

@@ -181,6 +181,11 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	assert(dev);
 	assert(ep);
 
+	/* Offline devices don't create new endpoints other than EP0. */
+	if (!dev->online) {
+		return EAGAIN;
+	}
+
 	int err = ENOMEM;
 	const usb_endpoint_t ep_num = ep->base.target.endpoint;
 

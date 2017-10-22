@@ -247,6 +247,15 @@ static int schedule_isochronous(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	return ENOTSUP;
 }
 
+int xhci_transfer_abort(xhci_transfer_t *transfer)
+{
+	usb_transfer_batch_t *batch = &transfer->batch;
+	batch->error = EAGAIN;
+	batch->transfered_size = 0;
+	usb_transfer_batch_finish(batch);
+	return EOK;
+}
+
 int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 {
 	uintptr_t addr = trb->parameter;
@@ -303,6 +312,13 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
 	assert(xhci_ep);
 
+	xhci_device_t *xhci_dev = xhci_ep_to_dev(xhci_ep);
+
+	/* Offline devices don't schedule transfers other than on EP0. */
+	if (!xhci_dev->online && xhci_ep->base.target.endpoint) {
+		return EAGAIN;
+	}
+
 	const usb_transfer_type_t type = batch->ep->transfer_type;
 	assert(type >= 0 && type < ARRAY_SIZE(transfer_handlers));
 	assert(transfer_handlers[type]);
@@ -320,7 +336,7 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	if (err)
 		return err;
 
-	const uint8_t slot_id = xhci_ep_to_dev(xhci_ep)->slot_id;
+	const uint8_t slot_id = xhci_dev->slot_id;
 	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 	return hc_ring_doorbell(hc, slot_id, target);
 }

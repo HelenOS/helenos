@@ -67,10 +67,8 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 
 	rh->hc = hc;
 	rh->max_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
-	rh->devices = (xhci_device_t **) malloc(rh->max_ports * sizeof(xhci_device_t *));
+	rh->devices = (xhci_device_t **) calloc(rh->max_ports, sizeof(xhci_device_t *));
 	hc->rh.hc_device = device;
-
-	memset(rh->devices, 0, rh->max_ports * sizeof(xhci_device_t *));
 
 	return device_init(&hc->rh.device);
 }
@@ -147,6 +145,11 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 		goto err_dctx;
 	dev->address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.\n", dev->address);
+
+	/* From now on, the device is officially online, yay! */
+	fibril_mutex_lock(&dev->guard);
+	xhci_dev->online = true;
+	fibril_mutex_unlock(&dev->guard);
 
 	// XXX: Going around bus, duplicating code
 	ep0_base->device = dev;
@@ -263,17 +266,63 @@ static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
  */
 static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 {
+	assert(rh);
+	int err;
+
 	/* Find XHCI device by the port. */
 	xhci_device_t *dev = rh->devices[port_id - 1];
 	if (!dev) {
-		/* Must be extraneous call */
+		/* Must be extraneous call. */
 		return EOK;
 	}
 
-	usb_log_info("Device at port %u has been disconnected.", port_id);
+	usb_log_info("Device '%s' at port %u has been disconnected.", ddf_fun_get_name(dev->base.fun), port_id);
 
-	// TODO: Destroy DDF function using _gone.
-	// TODO: Remove device endpoints on the bus.
+	/* Block creation of new endpoints and transfers. */
+	fibril_mutex_lock(&dev->base.guard);
+	dev->online = false;
+	fibril_mutex_unlock(&dev->base.guard);
+
+	fibril_mutex_lock(&rh->device.guard);
+	list_remove(&dev->base.link);
+	fibril_mutex_unlock(&rh->device.guard);
+
+	rh->devices[port_id - 1] = NULL;
+	usb_log_debug2("Aborting all active transfers to '%s'.", ddf_fun_get_name(dev->base.fun));
+
+	/* Abort running transfers. */
+	for (size_t i = 0; i < ARRAY_SIZE(dev->endpoints); ++i) {
+		xhci_endpoint_t *ep = dev->endpoints[i];
+		if (!ep || !ep->base.active)
+			continue;
+
+		if ((err = xhci_transfer_abort(&ep->active_transfer))) {
+			usb_log_warning("Failed to abort active %s transfer to "
+			    " endpoint %d of detached device '%s': %s",
+			    usb_str_transfer_type(ep->base.transfer_type),
+			    ep->base.target.endpoint, ddf_fun_get_name(dev->base.fun),
+			    str_error(err));
+		}
+	}
+
+	/* Make DDF (and all drivers) forget about the device. */
+	if ((err = ddf_fun_unbind(dev->base.fun))) {
+		usb_log_warning("Failed to unbind DDF function of detached device '%s': %s",
+		    ddf_fun_get_name(dev->base.fun), str_error(err));
+	}
+
+	/* FIXME:
+	 * A deadlock happens on the previous line. For some reason, the HID driver
+	 * does not fully release its DDF function (tracked it down to release_endpoint
+ 	 * in usb_remote.c so far).
+	 *
+	 * For that reason as well, the following 3 lines are untested.
+	 */
+
+	xhci_bus_remove_device(&rh->hc->bus, rh->hc, &dev->base);
+	hc_disable_slot(rh->hc, dev->slot_id);
+	hcd_ddf_device_destroy(&dev->base);
+
 	// TODO: Free device context.
 	// TODO: Free TRB rings.
 	// TODO: Figure out what was forgotten and free that as well.
