@@ -690,7 +690,16 @@ namespace std
      */
 
     template<class T>
-    struct remove_reference;
+    struct remove_reference: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_reference<T&>: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_reference<T&&>: aux::type_is<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct add_lvalue_reference;
