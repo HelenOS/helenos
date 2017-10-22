@@ -64,13 +64,23 @@ enum {
 typedef struct xhci_endpoint {
 	endpoint_t base;	/**< Inheritance. Keep this first. */
 
-	/** Main TRB ring */
+	/** Main TRB ring (or NULL if endpoint uses streams) */
 	xhci_trb_ring_t ring;
 
 	/** There shall be only one transfer active on an endpoint. The
 	 * synchronization is performed using the active flag in base
 	 * endpoint_t */
 	xhci_transfer_t active_transfer;
+
+	/** Primary stream context array (or NULL if endpoint doesn't use streams) */
+	xhci_stream_ctx_t *primary_stream_ctx_array;
+
+	/** Maximum number of streams, also a valid range of PSCA above */
+	uint16_t max_streams;
+
+	/* FIXME: Figure out type for these two fields. */
+	uint8_t max_burst;
+	uint8_t mult;
 } xhci_endpoint_t;
 
 typedef struct xhci_device {
@@ -100,6 +110,8 @@ typedef struct xhci_device {
 
 int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
+int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *);
+int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
 
 uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
 uint8_t xhci_endpoint_index(xhci_endpoint_t *);

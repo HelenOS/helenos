@@ -128,6 +128,15 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 	if (!ep0_base)
 		goto err_ictx;
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
+
+	/* Control endpoints don't use streams. */
+	/* FIXME: Sync this with xhci_device_add_endpoint. */
+	ep0->max_streams = 0;
+	ep0->max_burst = 0;
+	ep0->mult = 0;
+	if ((err = xhci_endpoint_alloc_transfer_ds(ep0)))
+		goto err_ictx;
+
 	setup_control_ep0_ctx(&ictx->endpoint_ctx[0], &ep0->ring, speed);
 
 	/* Setup and register device context */
