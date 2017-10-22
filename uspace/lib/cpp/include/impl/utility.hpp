@@ -91,8 +91,8 @@ namespace std
 
     template<class T>
     void swap(T& x, T& y)
-        noexcept(is_nothrow_move_constructible<T>::value &&
-                 is_nothrow_move_assignable<T>::value)
+        /* noexcept(is_nothrow_move_constructible<T>::value && */
+        /*          is_nothrow_move_assignable<T>::value) */
     {
         T tmp{move(x)};
         x = move(y);
