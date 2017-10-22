@@ -182,7 +182,7 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	assert(ep);
 
 	int err = ENOMEM;
-	usb_endpoint_t ep_num = ep->base.target.endpoint;
+	const usb_endpoint_t ep_num = ep->base.target.endpoint;
 
 	assert(&dev->base == ep->base.device);
 	assert(dev->base.address == ep->base.target.address);
@@ -202,6 +202,7 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 
 	// Prepare input context.
 	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
+	const unsigned ep_idx = xhci_endpoint_index(ep);
 	if (!ictx)
 		goto err;
 
@@ -212,8 +213,6 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 0);
 	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
-
-	unsigned ep_idx = xhci_endpoint_index(ep);
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
 
 	xhci_trb_ring_t *ep_ring = &ep->ring;
