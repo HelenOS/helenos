@@ -154,6 +154,12 @@ static uintptr_t trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
 	return ring->enqueue_segment->phys + trb_id * sizeof(xhci_trb_t);
 }
 
+static bool trb_generates_interrupt(xhci_trb_t *trb)
+{
+	return TRB_TYPE(*trb) >= XHCI_TRB_TYPE_ENABLE_SLOT_CMD
+		|| TRB_IOC(*trb);
+}
+
 /**
  * Enqueue TDs composed of TRBs.
  *
@@ -187,6 +193,12 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	 */
 	xhci_trb_t *trb = first_trb;
 	for (size_t i = 0; i < trbs; ++i, ++trb) {
+		if (trb_generates_interrupt(trb)) {
+			if (*phys)
+				return ENOTSUP;
+			*phys = trb_ring_enqueue_phys(ring);
+		}
+
 		ring->enqueue_trb++;
 
 		if (TRB_TYPE(*ring->enqueue_trb) == XHCI_TRB_TYPE_LINK)
@@ -204,9 +216,6 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	 */
 	trb = first_trb;
 	for (size_t i = 0; i < trbs; ++i, ++trb) {
-		if (phys && i == trbs - 1)
-			*phys = trb_ring_enqueue_phys(ring);
-
 		xhci_trb_set_cycle(trb, ring->pcs);
 		xhci_trb_copy(ring->enqueue_trb, trb);
 

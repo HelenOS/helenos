@@ -40,6 +40,7 @@
 #include <async.h>
 #include <errno.h>
 #include <usb_iface.h>
+#include <str_error.h>
 
 #include "hcd.h"
 
@@ -127,8 +128,10 @@ int hcd_send_batch(hcd_t *hcd, usb_target_t target, usb_direction_t direction,
 	usb_transfer_batch_set_old_handlers(batch, in, out, arg);
 
 	const int ret = hcd->ops.schedule(hcd, batch);
-	if (ret != EOK)
+	if (ret != EOK) {
+		usb_log_warning("Batch %p failed to schedule: %s", batch, str_error(ret));
 		usb_transfer_batch_destroy(batch);
+	}
 
 	/* Drop our own reference to ep. */
 	endpoint_del_ref(ep);

@@ -52,9 +52,8 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, xhci_bus_t *xhci_bus)
 	endpoint_t *ep = &xhci_ep->base;
 
 	endpoint_init(ep, bus);
-	xhci_ep->device = NULL;
 
-	return EOK;
+	return xhci_trb_ring_init(&xhci_ep->ring);
 }
 
 void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
@@ -62,22 +61,16 @@ void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 	assert(xhci_ep);
 
 	/* FIXME: Tear down TR's? */
+	xhci_trb_ring_fini(&xhci_ep->ring);
 }
 
-int xhci_device_init(xhci_device_t *dev, xhci_bus_t *bus, usb_address_t address)
+/** See section 4.5.1 of the xHCI spec.
+ */
+uint8_t xhci_endpoint_dci(xhci_endpoint_t *ep)
 {
-	memset(&dev->endpoints, 0, sizeof(dev->endpoints));
-	dev->active_endpoint_count = 0;
-	dev->address = address;
-	dev->slot_id = 0;
-
-	return EOK;
-}
-
-void xhci_device_fini(xhci_device_t *dev)
-{
-	// TODO: Check that all endpoints are dead.
-	assert(dev);
+	return (2 * ep->base.target.endpoint) +
+		(ep->base.transfer_type == USB_TRANSFER_CONTROL
+		 || ep->base.direction == USB_DIRECTION_IN);
 }
 
 /** Return an index to the endpoint array. The indices are assigned as follows:
@@ -92,8 +85,7 @@ void xhci_device_fini(xhci_device_t *dev)
  */
 uint8_t xhci_endpoint_index(xhci_endpoint_t *ep)
 {
-	return  (2 * ep->base.target.endpoint)
-	    - (ep->base.direction == USB_DIRECTION_OUT);
+	return xhci_endpoint_dci(ep) - 1;
 }
 
 static int xhci_endpoint_type(xhci_endpoint_t *ep)
@@ -138,7 +130,8 @@ static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx,
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, ep->base.max_packet_size);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->device->usb3 ? ss_desc->max_burst : 0);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx,
+	    xhci_device_get(ep->base.device)->usb3 ? ss_desc->max_burst : 0);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 
 	// FIXME: Get maxStreams and other things from ss_desc
@@ -185,104 +178,96 @@ static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx,
 
 int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 {
-	assert(dev->address == ep->base.target.address);
-	assert(!dev->endpoints[ep->base.target.endpoint]);
-	assert(!ep->device);
+	assert(dev);
+	assert(ep);
 
-	int err;
-	xhci_input_ctx_t *ictx = NULL;
-	xhci_trb_ring_t *ep_ring = NULL;
-	if (ep->base.target.endpoint > 0) {
-		// FIXME: Retrieve this from somewhere, if applicable.
-		usb_superspeed_endpoint_companion_descriptor_t ss_desc;
-		memset(&ss_desc, 0, sizeof(ss_desc));
+	int err = ENOMEM;
+	usb_endpoint_t ep_num = ep->base.target.endpoint;
 
-		// Prepare input context.
-		ictx = malloc32(sizeof(xhci_input_ctx_t));
-		if (!ictx) {
-			return ENOMEM;
-		}
+	assert(&dev->base == ep->base.device);
+	assert(dev->base.address == ep->base.target.address);
+	assert(!dev->endpoints[ep_num]);
 
-		memset(ictx, 0, sizeof(xhci_input_ctx_t));
+	dev->endpoints[ep_num] = ep;
+	++dev->active_endpoint_count;
 
-		// Quoting sec. 4.6.6: A1, D0, D1 are down, A0 is up.
-		XHCI_INPUT_CTRL_CTX_ADD_CLEAR(ictx->ctrl_ctx, 1);
-		XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 0);
-		XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
-		XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
+	if (ep_num == 0)
+		/* EP 0 is initialized while setting up the device,
+		 * so we must not issue the command now. */
+		return EOK;
 
-		const uint8_t ep_idx = xhci_endpoint_index(ep);
-		XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
+	// FIXME: Retrieve this from somewhere, if applicable.
+	usb_superspeed_endpoint_companion_descriptor_t ss_desc;
+	memset(&ss_desc, 0, sizeof(ss_desc));
 
-		ep_ring = malloc(sizeof(xhci_trb_ring_t));
-		if (!ep_ring) {
-			err = ENOMEM;
-			goto err_ictx;
-		}
+	// Prepare input context.
+	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
+	if (!ictx)
+		goto err;
 
-		// FIXME: This ring need not be allocated all the time.
-		err = xhci_trb_ring_init(ep_ring);
-		if (err)
-			goto err_ring;
+	memset(ictx, 0, sizeof(xhci_input_ctx_t));
 
-		switch (ep->base.transfer_type) {
-		case USB_TRANSFER_CONTROL:
-			setup_control_ep_ctx(ep, &ictx->endpoint_ctx[ep_idx], ep_ring);
-			break;
+	// Quoting sec. 4.6.6: A1, D0, D1 are down, A0 is up.
+	XHCI_INPUT_CTRL_CTX_ADD_CLEAR(ictx->ctrl_ctx, 1);
+	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 0);
+	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
 
-		case USB_TRANSFER_BULK:
-			setup_bulk_ep_ctx(ep, &ictx->endpoint_ctx[ep_idx], ep_ring, &ss_desc);
-			break;
+	unsigned ep_idx = xhci_endpoint_index(ep);
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
 
-		case USB_TRANSFER_ISOCHRONOUS:
-			setup_isoch_ep_ctx(ep, &ictx->endpoint_ctx[ep_idx], ep_ring, &ss_desc);
-			break;
+	xhci_trb_ring_t *ep_ring = &ep->ring;
+	xhci_ep_ctx_t *ep_ctx = &ictx->endpoint_ctx[ep_idx];
 
-		case USB_TRANSFER_INTERRUPT:
-			setup_interrupt_ep_ctx(ep, &ictx->endpoint_ctx[ep_idx], ep_ring, &ss_desc);
-			break;
+	// TODO: Convert to table
+	switch (ep->base.transfer_type) {
+	case USB_TRANSFER_CONTROL:
+		setup_control_ep_ctx(ep, ep_ctx, ep_ring);
+		break;
 
-		}
+	case USB_TRANSFER_BULK:
+		setup_bulk_ep_ctx(ep, ep_ctx, ep_ring, &ss_desc);
+		break;
 
-		dev->hc->dcbaa_virt[dev->slot_id].trs[ep->base.target.endpoint] = ep_ring;
+	case USB_TRANSFER_ISOCHRONOUS:
+		setup_isoch_ep_ctx(ep, ep_ctx, ep_ring, &ss_desc);
+		break;
 
-		// Issue configure endpoint command (sec 4.3.5).
-		xhci_cmd_t cmd;
-		xhci_cmd_init(&cmd);
-
-		cmd.slot_id = dev->slot_id;
-		xhci_send_configure_endpoint_command(dev->hc, &cmd, ictx);
-		if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
-			goto err_cmd;
-
-		xhci_cmd_fini(&cmd);
+	case USB_TRANSFER_INTERRUPT:
+		setup_interrupt_ep_ctx(ep, ep_ctx, ep_ring, &ss_desc);
+		break;
 	}
 
-	ep->device = dev;
-	dev->endpoints[ep->base.target.endpoint] = ep;
-	++dev->active_endpoint_count;
+	// Issue configure endpoint command (sec 4.3.5).
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	cmd.slot_id = dev->slot_id;
+	xhci_send_configure_endpoint_command(dev->hc, &cmd, ictx);
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
+		goto err_ictx;
+
+	xhci_cmd_fini(&cmd);
+
+	free32(ictx);
 	return EOK;
 
-err_cmd:
-err_ring:
-	if (ep_ring) {
-		xhci_trb_ring_fini(ep_ring);
-		free(ep_ring);
-	}
 err_ictx:
-	free(ictx);
+	free32(ictx);
+err:
+	dev->endpoints[ep_idx] = NULL;
+	dev->active_endpoint_count--;
 	return err;
 }
 
 int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 {
-	assert(dev->address == ep->base.target.address);
+	assert(&dev->base == ep->base.device);
+	assert(dev->base.address == ep->base.target.address);
 	assert(dev->endpoints[ep->base.target.endpoint]);
-	assert(dev == ep->device);
 
 	// TODO: Issue configure endpoint command to drop this endpoint.
 
-	ep->device = NULL;
 	dev->endpoints[ep->base.target.endpoint] = NULL;
 	--dev->active_endpoint_count;
 	return EOK;

@@ -91,27 +91,28 @@ static void setup_control_ep0_ctx(xhci_ep_ctx_t *ctx, xhci_trb_ring_t *ring,
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 }
 
-// TODO: Check device deallocation, we free device_ctx in hc.c, not
-//       sure about the other structs.
 // TODO: This currently assumes the device is attached to rh directly.
 //       Also, we should consider moving a lot of functionailty to xhci bus
 int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 {
+	int err;
+	xhci_device_t *xhci_dev = xhci_device_get(dev);
+
 	/* FIXME: Certainly not generic solution. */
 	const uint32_t route_str = 0;
 
-	int err;
-	xhci_hc_t *hc = rh->hc;
+	xhci_dev->hc = rh->hc;
+
 	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, dev->port);
+	xhci_dev->usb3 = speed->major == 3;
 
 	/* Enable new slot */
-	uint32_t slot_id;
-	if ((err = hc_enable_slot(hc, &slot_id)) != EOK)
+	if ((err = hc_enable_slot(rh->hc, &xhci_dev->slot_id)) != EOK)
 		return err;
-	usb_log_debug2("Obtained slot ID: %u.\n", slot_id);
+	usb_log_debug2("Obtained slot ID: %u.\n", xhci_dev->slot_id);
 
 	/* Setup input context */
-	xhci_input_ctx_t *ictx = malloc(sizeof(xhci_input_ctx_t));
+	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
 	if (!ictx)
 		return ENOMEM;
 	memset(ictx, 0, sizeof(xhci_input_ctx_t));
@@ -125,79 +126,56 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
 	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
 
-	xhci_trb_ring_t *ep_ring = malloc(sizeof(xhci_trb_ring_t));
-	if (!ep_ring) {
-		err = ENOMEM;
+	endpoint_t *ep0_base = bus_create_endpoint(&rh->hc->bus.base);
+	if (!ep0_base)
 		goto err_ictx;
-	}
-
-	err = xhci_trb_ring_init(ep_ring);
-	if (err)
-		goto err_ring;
-	setup_control_ep0_ctx(&ictx->endpoint_ctx[0], ep_ring, speed);
+	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
+	setup_control_ep0_ctx(&ictx->endpoint_ctx[0], &ep0->ring, speed);
 
 	/* Setup and register device context */
 	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
 	if (!dctx) {
 		err = ENOMEM;
-		goto err_ring;
+		goto err_ep;
 	}
+	xhci_dev->dev_ctx = dctx;
+	rh->hc->dcbaa[xhci_dev->slot_id] = addr_to_phys(dctx);
 	memset(dctx, 0, sizeof(xhci_device_ctx_t));
-	hc->dcbaa[slot_id] = addr_to_phys(dctx);
-
-	memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
-	hc->dcbaa_virt[slot_id].dev_ctx = dctx;
-	hc->dcbaa_virt[slot_id].trs[0] = ep_ring;
 
 	/* Address device */
-	if ((err = hc_address_device(hc, slot_id, ictx)) != EOK)
+	if ((err = hc_address_device(rh->hc, xhci_dev->slot_id, ictx)) != EOK)
 		goto err_dctx;
 	dev->address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.\n", dev->address);
 
-	// Ask libusbhost to create a control endpoint for EP0.
-	bus_t *bus_base = &bus->base;
-	usb_target_t ep0_target = { .address = dev->address, .endpoint = 0 };
-	usb_direction_t ep0_direction = USB_DIRECTION_BOTH;
+	// XXX: Going around bus, duplicating code
+	ep0_base->device = dev;
+	ep0_base->target.address = dev->address;
+	ep0_base->target.endpoint = 0;
+	ep0_base->direction = USB_DIRECTION_BOTH;
+	ep0_base->transfer_type = USB_TRANSFER_CONTROL;
+	ep0_base->max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE;
+	ep0_base->packets = 1;
+	ep0_base->bandwidth = CTRL_PIPE_MIN_PACKET_SIZE;
 
-	// TODO: Should this call be unified with other calls to `bus_add_ep()`?
-	err = bus_add_ep(bus_base, dev, ep0_target.endpoint, ep0_direction,
-	    USB_TRANSFER_CONTROL, CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1);
-
-	if (err != EOK)
-		goto err_add_ep;
-
-	// Save all data structures in the corresponding xhci_device_t.
-	endpoint_t *ep0_base = bus_find_endpoint(bus_base, ep0_target, ep0_direction);
-	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
-	xhci_device_t *xhci_dev = ep0->device;
-
-	xhci_dev->device = dev;
-	xhci_dev->slot_id = slot_id;
-	xhci_dev->usb3 = speed->major == 3;
-	xhci_dev->hc = hc;
+	bus_register_endpoint(&rh->hc->bus.base, ep0_base);
 
 	if (!rh->devices[dev->port - 1]) {
 		/* Only save the device if it's the first one connected to this port. */
 		rh->devices[dev->port - 1] = xhci_dev;
 	}
 
+	free32(ictx);
 	return EOK;
 
-err_add_ep:
 err_dctx:
-	if (dctx) {
-		free(dctx);
-		hc->dcbaa[slot_id] = 0;
-		memset(&hc->dcbaa_virt[slot_id], 0, sizeof(xhci_virt_device_ctx_t));
-	}
-err_ring:
-	if (ep_ring) {
-		xhci_trb_ring_fini(ep_ring);
-		free(ep_ring);
-	}
+	free32(dctx);
+	rh->hc->dcbaa[xhci_dev->slot_id] = 0;
+err_ep:
+	xhci_endpoint_fini(ep0);
+	free(ep0);
 err_ictx:
-	free(ictx);
+	free32(ictx);
 	return err;
 }
 

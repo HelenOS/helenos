@@ -53,9 +53,6 @@ typedef struct {
 	uintptr_t interrupt_trb_phys;
 } xhci_transfer_t;
 
-int xhci_init_transfers(xhci_hc_t*);
-void xhci_fini_transfers(xhci_hc_t*);
-
 xhci_transfer_t* xhci_transfer_create(endpoint_t *);
 int xhci_transfer_schedule(xhci_hc_t*, usb_transfer_batch_t *);
 int xhci_handle_transfer_event(xhci_hc_t*, xhci_trb_t*);

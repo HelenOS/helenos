@@ -42,21 +42,19 @@
 #include <usb/host/bus.h>
 
 typedef struct xhci_hc xhci_hc_t;
+typedef struct xhci_device xhci_device_t;
 
 /** Endpoint management structure */
 typedef struct xhci_bus {
 	bus_t base;		/**< Inheritance. Keep this first. */
 
-	/** TODO: some mechanism to keep endpoints alive :)
-	 * We may inspire in the usb2_bus, but keep in mind xHCI have much
-	 * larger address space, thus simple array of lists for all available
-	 * addresses can be just too big.
-	 */
+	xhci_device_t **devices_by_slot;	/**< Devices by Slot ID */
 
-	hash_table_t devices;
+	/** TODO: Do we really need this? */
+	hash_table_t devices;		/**< Devices by address */
 } xhci_bus_t;
 
-int xhci_bus_init(xhci_bus_t *);
+int xhci_bus_init(xhci_bus_t *, xhci_hc_t *);
 void xhci_bus_fini(xhci_bus_t *);
 
 int xhci_bus_enumerate_device(xhci_bus_t *, xhci_hc_t *, device_t *);

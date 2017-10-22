@@ -131,7 +131,6 @@ void xhci_scratchpad_free(xhci_hc_t *hc)
 	free32((void *) scratchpad->phys_bck);
 
 	hc->dcbaa[0] = 0;
-	memset(&hc->dcbaa_virt[0], 0, sizeof(xhci_virt_device_ctx_t));
 
 	return;
 }

@@ -45,11 +45,6 @@
 #include "rh.h"
 #include "bus.h"
 
-typedef struct xhci_virt_device_ctx {
-	xhci_device_ctx_t *dev_ctx;
-	xhci_trb_ring_t *trs[XHCI_EP_COUNT];
-} xhci_virt_device_ctx_t;
-
 typedef struct xhci_hc {
 	/* MMIO range */
 	addr_range_t mmio_range;
@@ -67,7 +62,6 @@ typedef struct xhci_hc {
 	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
 	uint64_t *dcbaa;
-	xhci_virt_device_ctx_t *dcbaa_virt;
 	xhci_scratchpad_t *scratchpad;
 
 	/* Root hub emulation */
@@ -83,8 +77,6 @@ typedef struct xhci_hc {
 	/* Command list */
 	list_t commands;
 	fibril_mutex_t commands_mtx;
-
-	list_t transfers;
 
 	/* TODO: Hack. Figure out a better way. */
 	hcd_t *hcd;

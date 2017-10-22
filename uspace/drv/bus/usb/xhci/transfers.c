@@ -93,28 +93,24 @@ static inline bool configure_endpoint_needed(usb_device_request_setup_packet_t *
 		|| setup->request == USB_DEVREQ_SET_INTERFACE);
 }
 
-int xhci_init_transfers(xhci_hc_t *hc)
+/**
+ * There can currently be only one active transfer, because
+ * usb_transfer_batch_init locks the endpoint by endpoint_use.
+ * Therefore, we store the only active transfer per endpoint there.
+ */
+xhci_transfer_t* xhci_transfer_create(endpoint_t* ep)
 {
-	assert(hc);
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
+	xhci_transfer_t *transfer = &xhci_ep->active_transfer;
 
-	list_initialize(&hc->transfers);
-	return EOK;
-}
-
-void xhci_fini_transfers(xhci_hc_t *hc)
-{
-	// Note: Untested.
-	assert(hc);
-}
-
-xhci_transfer_t* xhci_transfer_create(endpoint_t* ep) {
-	xhci_transfer_t* transfer = calloc(1, sizeof(xhci_transfer_t));
-	if (!transfer)
-		return NULL;
+	/* Do not access the transfer yet, it may be still in use. */
 
 	usb_transfer_batch_init(&transfer->batch, ep);
+	assert(ep->active);
 
-	link_initialize(&transfer->link);
+	/* Clean just our data. */
+	memset(((void *) transfer) + sizeof(usb_transfer_batch_t), 0,
+	    sizeof(xhci_transfer_t) - sizeof(usb_transfer_batch_t));
 
 	return transfer;
 }
@@ -125,18 +121,11 @@ void xhci_transfer_destroy(xhci_transfer_t* transfer)
 
 	if (transfer->hc_buffer)
 		free32(transfer->hc_buffer);
-
-	free(transfer);
 }
 
 static xhci_trb_ring_t *get_ring(xhci_hc_t *hc, xhci_transfer_t *transfer)
 {
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(transfer->batch.ep);
-	uint8_t slot_id = xhci_ep->device->slot_id;
-
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[transfer->batch.ep->target.endpoint];
-	assert(ring);
-	return ring;
+	return &xhci_endpoint_get(transfer->batch.ep)->ring;
 }
 
 static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
@@ -201,7 +190,7 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 
 	// Issue a Configure Endpoint command, if needed.
 	if (configure_endpoint_needed(setup)) {
-		const int err = xhci_device_configure(xhci_ep->device, hc);
+		const int err = xhci_device_configure(xhci_ep_to_dev(xhci_ep), hc);
 		if (err)
 			return err;
 	}
@@ -225,9 +214,7 @@ static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 
 	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
 
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(transfer->batch.ep);
-	uint8_t slot_id = xhci_ep->device->slot_id;
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[transfer->batch.ep->target.endpoint];
+	xhci_trb_ring_t* ring = get_ring(hc, transfer);
 
 	return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 }
@@ -248,9 +235,7 @@ static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 
 	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
 
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(transfer->batch.ep);
-	uint8_t slot_id = xhci_ep->device->slot_id;
-	xhci_trb_ring_t* ring = hc->dcbaa_virt[slot_id].trs[transfer->batch.ep->target.endpoint];
+	xhci_trb_ring_t* ring = get_ring(hc, transfer);
 
 	return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 }
@@ -265,24 +250,27 @@ static int schedule_isochronous(xhci_hc_t* hc, xhci_transfer_t* transfer)
 int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 {
 	uintptr_t addr = trb->parameter;
-	xhci_transfer_t *transfer = NULL;
+	const unsigned slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
+	const unsigned ep_dci = XHCI_DWORD_EXTRACT(trb->control, 20, 16);
 
-	link_t *transfer_link = list_first(&hc->transfers);
-	while (transfer_link) {
-		transfer = list_get_instance(transfer_link, xhci_transfer_t, link);
-
-		if (transfer->interrupt_trb_phys == addr)
-			break;
-
-		transfer_link = list_next(transfer_link, &hc->transfers);
-	}
-
-	if (!transfer_link) {
-		usb_log_warning("Transfer not found.");
+	xhci_device_t *dev = hc->bus.devices_by_slot[slot_id];
+	if (!dev) {
+		usb_log_error("Transfer event on unknown device slot %u!", slot_id);
 		return ENOENT;
 	}
 
-	list_remove(transfer_link);
+	const usb_endpoint_t ep_num = ep_dci / 2;
+	xhci_endpoint_t *ep = xhci_device_get_endpoint(dev, ep_num);
+	if (!ep) {
+		usb_log_error("Transfer event on unknown endpoint num %u, device slot %u!", ep_num, slot_id);
+		return ENOENT;
+	}
+
+	xhci_transfer_t *transfer = &ep->active_transfer;
+
+	/** FIXME: This is racy. Do we care? */
+	ep->ring.dequeue = addr;
+
 	usb_transfer_batch_t *batch = &transfer->batch;
 
 	batch->error = (TRB_COMPLETION_CODE(*trb) == XHCI_TRBC_SUCCESS) ? EOK : ENAK;
@@ -313,10 +301,7 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 
 	xhci_transfer_t *transfer = xhci_transfer_from_batch(batch);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
-	uint8_t slot_id = xhci_ep->device->slot_id;
-
 	assert(xhci_ep);
-	assert(slot_id);
 
 	const usb_transfer_type_t type = batch->ep->transfer_type;
 	assert(type >= 0 && type < ARRAY_SIZE(transfer_handlers));
@@ -335,8 +320,7 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	if (err)
 		return err;
 
-	list_append(&transfer->link, &hc->transfers);
-
+	const uint8_t slot_id = xhci_ep_to_dev(xhci_ep)->slot_id;
 	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 	return hc_ring_doorbell(hc, slot_id, target);
 }

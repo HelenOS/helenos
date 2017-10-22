@@ -39,6 +39,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <str_error.h>
 
 
 /** Create a batch on given endpoint.
@@ -61,11 +62,10 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
  */
 void usb_transfer_batch_init(usb_transfer_batch_t *batch, endpoint_t *ep)
 {
-	memset(batch, 0, sizeof(*batch));
-
-	batch->ep = ep;
-
 	endpoint_use(ep);
+
+	memset(batch, 0, sizeof(*batch));
+	batch->ep = ep;
 }
 
 /** Call the handler of the batch.
@@ -102,14 +102,17 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 	assert(batch->ep);
 	assert(batch->ep->bus);
 
-	usb_log_debug2("batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",
-	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
-
 	bus_t *bus = batch->ep->bus;
-	if (bus->ops.destroy_batch)
+	if (bus->ops.destroy_batch) {
+		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " destroying.\n",
+		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 		bus->ops.destroy_batch(batch);
-	else
+	}
+	else {
+		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",
+		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 		free(batch);
+	}
 
 	endpoint_release(batch->ep);
 }
@@ -122,8 +125,9 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
  */
 void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 {
-	if (!batch_complete(batch))
-		usb_log_warning("failed to complete batch %p!", batch);
+	const int err = batch_complete(batch);
+	if (err)
+		usb_log_warning("batch %p failed to complete: %s", batch, str_error(err));
 
 	usb_transfer_batch_destroy(batch);
 }
@@ -157,6 +161,8 @@ void usb_transfer_batch_set_old_handlers(usb_transfer_batch_t *batch,
 	void *arg)
 {
 	struct old_handler_wrapper_data *data = malloc(sizeof(*data));
+
+	assert((!in_callback) != (!out_callback));
 
 	data->in_callback = in_callback;
 	data->out_callback = out_callback;

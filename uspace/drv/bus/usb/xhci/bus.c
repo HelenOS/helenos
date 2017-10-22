@@ -34,6 +34,7 @@
 
 #include <adt/hash_table.h>
 #include <adt/hash.h>
+#include <usb/host/utils/malloc32.h>
 #include <usb/host/ddf_helpers.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
@@ -57,11 +58,16 @@ typedef struct {
 	xhci_device_t *device;
 } hashed_device_t;
 
+static int hashed_device_insert(xhci_bus_t *bus, hashed_device_t **hashed_dev, xhci_device_t *dev);
+static int hashed_device_remove(xhci_bus_t *bus, hashed_device_t *hashed_dev);
+static int hashed_device_find_by_address(xhci_bus_t *bus, usb_address_t address, hashed_device_t **dev);
+
 /** TODO: Still some copy-pasta left...
  */
 int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 {
 	int err;
+	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
 	/* TODO: get speed from the default address reservation */
 	dev->speed = USB_SPEED_FULL;
@@ -84,19 +90,47 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 		return err;
 	}
 
+	assert(bus->devices_by_slot[xhci_dev->slot_id] == NULL);
+	bus->devices_by_slot[xhci_dev->slot_id] = xhci_dev;
+
+	hashed_device_t *hashed_dev = NULL;
+	if ((err = hashed_device_insert(bus, &hashed_dev, xhci_dev)))
+		goto err_address;
+
 	/* Read the device descriptor, derive the match ids */
 	if ((err = hcd_ddf_device_explore(hc->hcd, dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
-		bus_release_address(&bus->base, dev->address);
-		return err;
+		goto err_hash;
 	}
 
 	return EOK;
+
+err_hash:
+	bus->devices_by_slot[xhci_dev->slot_id] = NULL;
+	hashed_device_remove(bus, hashed_dev);
+err_address:
+	bus_release_address(&bus->base, dev->address);
+	return err;
 }
 
 int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 {
-	// TODO: Implement me!
+	xhci_device_t *xhci_dev = xhci_device_get(dev);
+
+	// TODO: Release remaining EPs
+
+	hashed_device_t *hashed_dev;
+	int res = hashed_device_find_by_address(bus, dev->address, &hashed_dev);
+	if (res)
+		return res;
+
+	res = hashed_device_remove(bus, hashed_dev);
+	if (res != EOK)
+		return res;
+
+	// XXX: Ugly here. Move to device_destroy at endpoint.c?
+	free32(xhci_dev->dev_ctx);
+	hc->dcbaa[xhci_dev->slot_id] = 0;
 	return ENOTSUP;
 }
 
@@ -133,7 +167,7 @@ static endpoint_t *create_endpoint(bus_t *base)
 {
 	xhci_bus_t *bus = bus_to_xhci_bus(base);
 
-	xhci_endpoint_t *ep = malloc(sizeof(xhci_endpoint_t));
+	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t));
 	if (!ep)
 		return NULL;
 
@@ -178,48 +212,26 @@ static int xhci_endpoint_find_by_target(xhci_bus_t *bus, usb_target_t target, xh
 	return EOK;
 }
 
-static int hashed_device_create(xhci_bus_t *bus, hashed_device_t **hashed_dev, usb_address_t address)
+static int hashed_device_insert(xhci_bus_t *bus, hashed_device_t **hashed_dev, xhci_device_t *dev)
 {
-	int res;
-	xhci_device_t *dev = (xhci_device_t *) malloc(sizeof(xhci_device_t));
-	if (!dev) {
-		res = ENOMEM;
-		goto err_xhci_dev_alloc;
-	}
-
-	res = xhci_device_init(dev, bus, address);
-	if (res != EOK) {
-		goto err_xhci_dev_init;
-	}
-
-	hashed_device_t *ret_dev = (hashed_device_t *) malloc(sizeof(hashed_device_t));
-	if (!ret_dev) {
-		res = ENOMEM;
-		goto err_hashed_dev_alloc;
-	}
+	hashed_device_t *ret_dev = (hashed_device_t *) calloc(1, sizeof(hashed_device_t));
+	if (!ret_dev)
+		return ENOMEM;
 
 	ret_dev->device = dev;
 
-	usb_log_info("Device(%d) registered to XHCI bus.", dev->address);
+	usb_log_info("Device(%d) registered to XHCI bus.", dev->base.address);
 
 	hash_table_insert(&bus->devices, &ret_dev->link);
 	*hashed_dev = ret_dev;
 	return EOK;
-
-err_hashed_dev_alloc:
-err_xhci_dev_init:
-	free(dev);
-err_xhci_dev_alloc:
-	return res;
 }
 
 static int hashed_device_remove(xhci_bus_t *bus, hashed_device_t *hashed_dev)
 {
-	usb_log_info("Device(%d) released from XHCI bus.", hashed_dev->device->address);
+	usb_log_info("Device(%d) released from XHCI bus.", hashed_dev->device->base.address);
 
-	hash_table_remove(&bus->devices, &hashed_dev->device->address);
-	xhci_device_fini(hashed_dev->device);
-	free(hashed_dev->device);
+	hash_table_remove(&bus->devices, &hashed_dev->device->base.address);
 	free(hashed_dev);
 
 	return EOK;
@@ -230,21 +242,11 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
-	hashed_device_t *hashed_dev;
-	int res = hashed_device_find_by_address(bus, ep->target.address, &hashed_dev);
-	if (res != EOK && res != ENOENT)
-		return res;
-
-	if (res == ENOENT) {
-		res = hashed_device_create(bus, &hashed_dev, ep->target.address);
-
-		if (res != EOK)
-			return res;
-	}
-
 	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->target.address, ep->target.endpoint);
 
-	return xhci_device_add_endpoint(hashed_dev->device, xhci_endpoint_get(ep));
+	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
+	return xhci_device_add_endpoint(xhci_dev, xhci_ep);
 }
 
 static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
@@ -254,21 +256,11 @@ static int release_endpoint(bus_t *bus_base, endpoint_t *ep)
 
 	usb_log_info("Endpoint(%d:%d) released from XHCI bus.", ep->target.address, ep->target.endpoint);
 
-	hashed_device_t *hashed_dev;
-	int res = hashed_device_find_by_address(bus, ep->target.address, &hashed_dev);
+	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
+	const int res = xhci_device_remove_endpoint(xhci_dev, xhci_ep);
 	if (res != EOK)
 		return res;
-
-	res = xhci_device_remove_endpoint(hashed_dev->device, xhci_endpoint_get(ep));
-	if (res != EOK)
-		return res;
-
-	if (hashed_dev->device->active_endpoint_count == 0) {
-		res = hashed_device_remove(bus, hashed_dev);
-
-		if (res != EOK)
-			return res;
-	}
 
 	return EOK;
 }
@@ -277,7 +269,7 @@ static endpoint_t* find_endpoint(bus_t *bus_base, usb_target_t target, usb_direc
 {
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
-
+	
 	xhci_endpoint_t *ep;
 	int res = xhci_endpoint_find_by_target(bus, target, &ep);
 	if (res != EOK)
@@ -348,7 +340,7 @@ static const bus_ops_t xhci_bus_ops = {
 static size_t device_ht_hash(const ht_link_t *item)
 {
 	hashed_device_t *dev = hash_table_get_inst(item, hashed_device_t, link);
-	return (size_t) hash_mix(dev->device->address);
+	return (size_t) hash_mix(dev->device->base.address);
 }
 
 static size_t device_ht_key_hash(void *key)
@@ -359,7 +351,7 @@ static size_t device_ht_key_hash(void *key)
 static bool device_ht_key_equal(void *key, const ht_link_t *item)
 {
 	hashed_device_t *dev = hash_table_get_inst(item, hashed_device_t, link);
-	return dev->device->address == *(usb_address_t *) key;
+	return dev->device->base.address == *(usb_address_t *) key;
 }
 
 /** Operations for the device hash table. */
@@ -371,14 +363,18 @@ static hash_table_ops_t device_ht_ops = {
 	.remove_callback = NULL
 };
 
-int xhci_bus_init(xhci_bus_t *bus)
+int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 {
 	assert(bus);
 
-	bus_init(&bus->base, sizeof(device_t));
+	bus_init(&bus->base, sizeof(xhci_device_t));
+
+	bus->devices_by_slot = calloc(hc->max_slots, sizeof(xhci_device_t *));
+	if (!bus->devices_by_slot)
+		return ENOMEM;
 
 	if (!hash_table_create(&bus->devices, 0, 0, &device_ht_ops)) {
-		// FIXME: Dealloc base!
+		free(bus->devices_by_slot);
 		return ENOMEM;
 	}
 

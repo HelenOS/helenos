@@ -43,6 +43,7 @@
 #include <usb/host/hcd.h>
 
 #include "hc.h"
+#include "transfers.h"
 
 typedef struct xhci_device xhci_device_t;
 typedef struct xhci_endpoint xhci_endpoint_t;
@@ -63,19 +64,23 @@ enum {
 typedef struct xhci_endpoint {
 	endpoint_t base;	/**< Inheritance. Keep this first. */
 
-	/** Parent device. */
-	xhci_device_t *device;
+	/** Main TRB ring */
+	xhci_trb_ring_t ring;
+
+	/** There shall be only one transfer active on an endpoint. The
+	 * synchronization is performed using the active flag in base
+	 * endpoint_t */
+	xhci_transfer_t active_transfer;
 } xhci_endpoint_t;
 
 typedef struct xhci_device {
-	/** Unique USB address assigned to the device. */
-	usb_address_t address;
+	device_t base;		/**< Inheritance. Keep this first. */
 
 	/** Slot ID assigned to the device by xHC. */
 	uint32_t slot_id;
 
-	/** Associated device in libusbhost. */
-	device_t *device;
+	/** Place to store virtual address for allocated context */
+	xhci_device_ctx_t *dev_ctx;
 
 	/** All endpoints of the device. Inactive ones are NULL */
 	xhci_endpoint_t *endpoints[XHCI_EP_COUNT];
@@ -96,6 +101,7 @@ void xhci_endpoint_fini(xhci_endpoint_t *);
 int xhci_device_init(xhci_device_t *, xhci_bus_t *, usb_address_t);
 void xhci_device_fini(xhci_device_t *);
 
+uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
 uint8_t xhci_endpoint_index(xhci_endpoint_t *);
 
 int xhci_device_add_endpoint(xhci_device_t *, xhci_endpoint_t *);
@@ -103,10 +109,22 @@ int xhci_device_remove_endpoint(xhci_device_t *, xhci_endpoint_t *);
 xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *, usb_endpoint_t);
 int xhci_device_configure(xhci_device_t *, xhci_hc_t *);
 
+static inline xhci_device_t * xhci_device_get(device_t *dev)
+{
+	assert(dev);
+	return (xhci_device_t *) dev;
+}
+
 static inline xhci_endpoint_t * xhci_endpoint_get(endpoint_t *ep)
 {
 	assert(ep);
 	return (xhci_endpoint_t *) ep;
+}
+
+static inline xhci_device_t * xhci_ep_to_dev(xhci_endpoint_t *ep)
+{
+	assert(ep);
+	return xhci_device_get(ep->base.device);
 }
 
 #endif

@@ -195,14 +195,8 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 	if (!hc->dcbaa)
 		return ENOMEM;
 
-	hc->dcbaa_virt = malloc((1 + hc->max_slots) * sizeof(xhci_virt_device_ctx_t));
-	if (!hc->dcbaa_virt) {
-		err = ENOMEM;
-		goto err_dcbaa;
-	}
-
 	if ((err = xhci_trb_ring_init(&hc->command_ring)))
-		goto err_dcbaa_virt;
+		goto err_dcbaa;
 
 	if ((err = xhci_event_ring_init(&hc->event_ring)))
 		goto err_cmd_ring;
@@ -213,13 +207,10 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 	if ((err = xhci_init_commands(hc)))
 		goto err_scratch;
 
-	if ((err = xhci_init_transfers(hc)))
+	if ((err = xhci_rh_init(&hc->rh, hc, device)))
 		goto err_cmd;
 
-	if ((err = xhci_rh_init(&hc->rh, hc, device)))
-		goto err_transfers;
-
-	if ((err = xhci_bus_init(&hc->bus)))
+	if ((err = xhci_bus_init(&hc->bus, hc)))
 		goto err_rh;
 
 
@@ -227,8 +218,6 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 
 err_rh:
 	xhci_rh_fini(&hc->rh);
-err_transfers:
-	xhci_fini_transfers(hc);
 err_cmd:
 	xhci_fini_commands(hc);
 err_scratch:
@@ -237,8 +226,6 @@ err_event_ring:
 	xhci_event_ring_fini(&hc->event_ring);
 err_cmd_ring:
 	xhci_trb_ring_fini(&hc->command_ring);
-err_dcbaa_virt:
-	free32(hc->dcbaa_virt);
 err_dcbaa:
 	free32(hc->dcbaa);
 	return err;
@@ -526,7 +513,6 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 
 	/* Update the ERDP to make room in the ring. */
 	usb_log_debug2("Copying from ring finished, updating ERDP.");
-	hc->event_ring.dequeue_ptr = host2xhci(64, addr_to_phys(hc->event_ring.dequeue_trb));
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
@@ -579,28 +565,8 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 
 static void hc_dcbaa_fini(xhci_hc_t *hc)
 {
-	xhci_trb_ring_t* trb_ring;
 	xhci_scratchpad_free(hc);
-
-	/* Idx 0 already deallocated by xhci_scratchpad_free. */
-	for (unsigned i = 1; i < hc->max_slots + 1; ++i) {
-		if (hc->dcbaa_virt[i].dev_ctx) {
-			free32(hc->dcbaa_virt[i].dev_ctx);
-			hc->dcbaa_virt[i].dev_ctx = NULL;
-		}
-
-		for (unsigned i = 0; i < XHCI_EP_COUNT; ++i) {
-			trb_ring = hc->dcbaa_virt[i].trs[i];
-			if (trb_ring) {
-				hc->dcbaa_virt[i].trs[i] = NULL;
-				xhci_trb_ring_fini(trb_ring);
-				free32(trb_ring);
-			}
-		}
-	}
-
 	free32(hc->dcbaa);
-	free32(hc->dcbaa_virt);
 }
 
 void hc_fini(xhci_hc_t *hc)
@@ -609,7 +575,6 @@ void hc_fini(xhci_hc_t *hc)
 	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
 	hc_dcbaa_fini(hc);
-	xhci_fini_transfers(hc);
 	xhci_fini_commands(hc);
 	xhci_rh_fini(&hc->rh);
 	pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
