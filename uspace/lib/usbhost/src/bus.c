@@ -181,15 +181,15 @@ int bus_register_endpoint(bus_t *bus, endpoint_t *ep)
 
 int bus_release_endpoint(bus_t *bus, endpoint_t *ep)
 {
-	int err;
-
 	assert(bus);
 	assert(ep);
 
 	fibril_mutex_lock(&bus->guard);
-	if ((err = bus->ops.release_endpoint(bus, ep)))
-		return err;
+	const int r = bus->ops.release_endpoint(bus, ep);
 	fibril_mutex_unlock(&bus->guard);
+
+	if (r)
+		return r;
 
 	/* Bus reference */
 	endpoint_del_ref(ep);
