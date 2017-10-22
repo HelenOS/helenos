@@ -29,9 +29,11 @@
 #ifndef LIBCPP_VECTOR
 #define LIBCPP_VECTOR
 
+#include <algorithm>
 #include <initializer_list>
 #include <iterator>
 #include <memory>
+#include <utility>
 
 namespace std
 {
@@ -60,46 +62,601 @@ namespace std
                 : vector{Allocator{}}
             { /* DUMMY BODY */ }
 
-            explicit vector(const Allocator&);
+            explicit vector(const Allocator& alloc)
+                : data_{nullptr}, size_{}, capacity_{},
+                  allocator_{alloc}
+            { /* DUMMY BODY */ }
 
-            explicit vector(size_type n, const Allocator& alloc = Allocator{});
+            explicit vector(size_type n, const Allocator& alloc = Allocator{})
+                : data_{}, size_{n}, capacity_{n}, allocator_{alloc}
+            {
+                data_ = allocator_.allocate(capacity_);
 
-            vector(size_type n, const T& val, const Allocator& alloc = Allocator{});
+                for (size_type i = 0; i < size_; ++i)
+                    allocator_traits<Allocator>::construct(allocator_, data_ + i);
+            }
+
+            vector(size_type n, const T& val, const Allocator& alloc = Allocator{})
+                : data_{}, size_{n}, capacity_{n}, allocator_{alloc}
+            {
+                data_ = allocator_.allocate(capacity_);
+
+                for (size_type i = 0; i < size_; ++i)
+                    data_[i] = val;
+            }
 
             template<class InputIterator>
             vector(InputIterator first, InputIterator last,
-                   const Allocator& alloc = Allocator{});
+                   const Allocator& alloc = Allocator{})
+            {
+                // TODO: research constraints and provide multiple
+                //       implementations via enable_if
+            }
 
-            vector(const vector& other);
+            vector(const vector& other)
+                : data_{nullptr}, size_{other.size_}, capacity_{other.capacity_},
+                  allocator_{other.allocator_}
+            {
+                data_ = allocator_.allocate(capacity_);
 
-            vector(vector&& other) noexcept;
+                for (size_type i = 0; i < size_; ++i)
+                    data_[i] = other.data_[i];
+            }
 
-            vector(const vector& other, const Allocator& alloc);
+            vector(vector&& other) noexcept
+                : data_{other.data_}, size_{other.size_}, capacity_{other.capacity_},
+                  allocator_{move(other.allocator_)}
+            {
+                // other is guaranteed to be empty()
+                other.size_ = other.capacity_ = 0;
+                other.data_ = nullptr;
+            }
 
-            vector(initializer_list<T> init, const Allocator& alloc = Allocator{});
+            vector(const vector& other, const Allocator& alloc)
+                : data_{nullptr}, size_{other.size_}, capacity_{other.capacity_},
+                  allocator_{alloc}
+            {
+                data_ = allocator_.allocate(capacity_);
 
-            ~vector();
+                for (size_type i = 0; i < size_; ++i)
+                    data_[i] = other.data_[i];
+            }
 
-            vector& operator=(const vector& other);
+            vector(initializer_list<T> init, const Allocator& alloc = Allocator{})
+                : data_{nullptr}, size_{init.size()}, capacity_{init.size()},
+                  allocator_{alloc}
+            {
+                data_ = allocator_.allocate(capacity_);
+
+                auto it = init.begin();
+                for (size_type i = 0; it != init.end(); ++i, ++it)
+                {
+                    data_[i] = *it;
+                }
+            }
+
+            ~vector()
+            {
+                allocator_.deallocate(data_, capacity_);
+            }
+
+            vector& operator=(const vector& other)
+            {
+                vector tmp{other};
+                swap(tmp);
+
+                return *this;
+            }
 
             vector& operator=(vector&& other)
                 noexcept(allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
                          allocator_traits<Allocator>::is_always_equal::value)
             {
+                // TODO: implement
                 return *this;
             }
 
-            vector& operator=(initializer_list<T> init);
+            vector& operator=(initializer_list<T> init)
+            {
+                vector tmp{init, allocator_};
+                swap(tmp);
+
+                return *this;
+            }
 
             template<class InputIterator>
-            void assign(InputIterator first, InputIterator last);
+            void assign(InputIterator first, InputIterator last)
+            {
+                vector tmp{first, last};
+                swap(tmp);
+            }
 
-            void assign(size_type n, const T& val);
+            void assign(size_type size, const T& val)
+            {
+                // Parenthesies required to avoid initializer list
+                // construction.
+                vector tmp(size, val);
+                swap(tmp);
+            }
 
-            void assign(initializer_list<T> init);
+            void assign(initializer_list<T> init)
+            {
+                vector tmp{init};
+                swap(tmp);
+            }
 
-            allocator_type get_allocator() const noexcept;
+            allocator_type get_allocator() const noexcept
+            {
+                return allocator_type{};
+            }
+
+            iterator begin() noexcept
+            {
+                return &data_[0];
+            }
+
+            const_iterator begin() const noexcept
+            {
+                return &data_[0];
+            }
+
+            iterator end() noexcept
+            {
+                return begin() + size_;
+            }
+
+            const_iterator end() const noexcept
+            {
+                return begin() + size_;
+            }
+
+            reverse_iterator rbegin() noexcept
+            {
+                return make_reverse_iterator(begin());
+            }
+
+            const_reverse_iterator rbegin() const noexcept
+            {
+                return make_reverse_iterator(cbegin());
+            }
+
+            reverse_iterator rend() noexcept
+            {
+                return make_reverse_iterator(end());
+            }
+
+            const_reverse_iterator rend() const noexcept
+            {
+                return make_reverse_iterator(cend());
+            }
+
+            const_iterator cbegin() const noexcept
+            {
+                return &data_[0];
+            }
+
+            const_iterator cend() const noexcept
+            {
+                return cbegin() + size_;
+            }
+
+            const_reverse_iterator rcbegin() const noexcept
+            {
+                return rbegin();
+            }
+
+            const_reverse_iterator rcend() const noexcept
+            {
+                return rend();
+            }
+
+            size_type size() const noexcept
+            {
+                return size_;
+            }
+
+            size_type max_size() const noexcept
+            {
+                return std::allocator_traits<Allocator>::max_size(allocator_);
+            }
+
+            void resize(size_type sz)
+            {
+                resize_with_copy_(size_, capacity_);
+            }
+
+            void resize(size_type sz, const value_type& val)
+            {
+                auto old_size = size_;
+                resize_with_copy_(sz, capacity_);
+
+                for (size_type i = old_size - 1; i < size_; ++i)
+                    data_[i] = val;
+            }
+
+            size_type capacity() const noexcept
+            {
+                return capacity_;
+            }
+
+            bool empty() const noexcept
+            {
+                return size_ == 0;
+            }
+
+            void reserve(size_type new_capacity)
+            {
+                // TODO: if new_capacity > max_size() throw
+                //       length_error (this function shall have no
+                //       effect in such case)
+                if (new_capacity > capacity_)
+                    resize_with_copy_(size_, new_capacity);
+            }
+
+            void shrink_to_fit()
+            {
+                resize_with_copy_(size_, size_);
+            }
+
+            reference operator[](size_type idx)
+            {
+                return data_[idx];
+            }
+
+            const_reference operator[](size_type idx) const
+            {
+                return data_[idx];
+            }
+
+            reference at(size_type idx)
+            {
+                // TODO: bounds checking
+                return data_[idx];
+            }
+
+            const_reference at(size_type idx) const
+            {
+                // TODO: bounds checking
+                return data_[idx];
+            }
+
+            reference front()
+            {
+                /**
+                 * Note: Calling front/back on an empty container
+                 *       is undefined, we opted for at-like
+                 *       behavior to provide our users with means
+                 *       to protect their programs from accidental
+                 *       accesses to an empty vector.
+                 */
+                return at(0);
+            }
+
+            const_reference front() const
+            {
+                return at(0);
+            }
+
+            reference back()
+            {
+                return at(size_ - 1);
+            }
+
+            const_reference back() const
+            {
+                return at(size - 1);
+            }
+
+            T* data() noexcept
+            {
+                return data_;
+            }
+
+            const T* data() const noexcept
+            {
+                return data_;
+            }
+
+            template<class... Args>
+            reference emplace_back(Args&&... args)
+            {
+                if (size_ >= capacity_)
+                    resize_with_copy_(size_, next_capacity_());
+
+                allocator_traits<Allocator>::construct(begin() + size_, forward<Args>(args)...);
+
+                return back();
+            }
+
+            // TODO: assert CopyInstertable etc with enable_if!
+            void push_back(const T& x)
+            {
+                if (size_ >= capacity_)
+                    resize_with_copy_(size_, next_capacity_());
+                data_[size_++] = x;
+            }
+
+            void push_back(T&& x)
+            {
+                if (size_ >= capacity_)
+                    resize_with_copy_(size_, next_capacity_());
+                data_[size_++] = forward<T>(x);
+            }
+
+            void pop_back()
+            {
+                destroy_from_end_until_(end() - 1);
+            }
+
+            template<class... Args>
+            iterator emplace(const_iterator position, Args&&... args)
+            {
+                auto idx = shift_right_(position, 1);
+                allocator_.construct(data_ + idx, std::forward<Args>(args)...);
+
+                return begin() + idx;
+            }
+
+            iterator insert(const_iterator position, const value_type& x)
+            {
+                /**
+                 * Note: The reason that all insert functions are done in this weird
+                 *       way with an auxiliary vector instead of just shifting
+                 *       the elements is that we need to provide strong exception
+                 *       guarantee - in the case of exception our vector needs to
+                 *       stay in its pre-instert state and this swap method guarantees
+                 *       that.
+                 * TODO: Avoid reallocation if it still fits!
+                 */
+                size_type idx = static_cast<size_type>(position - cbegin());
+
+                vector tmp{};
+                tmp.resize_without_copy_(max(size_ + 1, capacity_));
+
+                // Copy before insertion index.
+                tmp.copy_(0, begin(), begin() + idx);
+
+                // Insertion.
+                tmp.data_[idx] = x;
+
+                // Copy after insertion index.
+                tmp.copy_(idx + 1, begin() + idx + 1, end());
+                tmp.size_ = size_ + 1;
+                swap(tmp);
+
+                return begin() + idx;
+            }
+
+            iterator insert(const_iterator position, value_type&& x)
+            {
+                size_type idx = static_cast<size_type>(position - cbegin());
+
+                vector tmp{};
+                tmp.resize_without_copy_(max(size_ + 1, capacity_));
+
+                // Copy before insertion index.
+                tmp.copy_(0, begin(), begin() + idx);
+
+                // Insertion.
+                tmp.data_[idx] = std::forward<value_type>(x);
+
+                // Copy after insertion index.
+                tmp.copy_(idx + 1, begin() + idx + 1, end());
+                tmp.size_ = size_ + 1;
+                swap(tmp);
+
+                return begin() + idx;
+            }
+
+            iterator insert(const_iterator position, size_type count, const value_type& x)
+            {
+                size_type idx = static_cast<size_type>(position - cbegin());
+
+                vector tmp{};
+                tmp.resize_without_copy_(max(size_ + 1, capacity_));
+
+                // Copy before insertion index.
+                tmp.copy_(0, begin(), begin() + idx);
+
+                // Insertion.
+                auto tmp_idx = idx;
+                for (size_type i = 0; i < count; ++i, ++tmp_idx)
+                    tmp.data_[tmp_idx] = x;
+
+                // Copy after insertion index.
+                tmp.copy_(tmp_idx, begin() + idx, end());
+                tmp.size_ = size_ + count;
+                swap(tmp);
+
+                return begin() + idx;
+            }
+
+            template<class InputIterator>
+            iterator insert(const_iterator position, InputIterator first,
+                            InputIterator last)
+            {
+                size_type idx = static_cast<size_type>(position - cbegin());
+                size_type count = static_cast<size_type>(last - first);
+
+                return insert_(idx, count, first, last);
+            }
+
+            iterator insert(const_iterator position, initializer_list<T> init)
+            {
+                size_type idx = static_cast<size_type>(position - cbegin());
+                size_type count = init.size();
+
+                return insert_(idx, count, init.begin(), init.end());
+            }
+
+            iterator erase(const_iterator position)
+            {
+                iterator pos = const_cast<iterator>(position);
+                copy(position + 1, cend(), pos);
+                --size_;
+
+                return pos;
+            }
+
+            iterator erase(const_iterator first, const_iterator last)
+            {
+                iterator pos = const_cast<iterator>(first);
+                copy(last, cend(), pos);
+                size_ -= static_cast<size_type>(last - first);
+
+                return pos;
+            }
+
+            void swap(vector& other)
+                noexcept(allocator_traits<Allocator>::propagate_on_container_swap::value ||
+                         allocator_traits<Allocator>::is_always_equal::value)
+            {
+                std::swap(data_, other.data_);
+                std::swap(size_, other.size_);
+                std::swap(capacity_, other.capacity_);
+            }
+
+            void clear() noexcept
+            {
+                // Note: Capacity remains unchanged.
+                destroy_from_end_until_(begin());
+                size_ = 0;
+            }
+
+        private:
+            value_type* data_;
+            size_type size_;
+            size_type capacity_;
+            Allocator allocator_;
+
+            void resize_without_copy_(size_type capacity)
+            {
+                if (data_)
+                    allocator_.deallocate(data_, capacity_);
+
+                data_ = allocator_.allocate(capacity);
+                size_ = 0;
+                capacity_ = capacity;
+            }
+
+            void resize_with_copy_(size_type size, size_type capacity)
+            {
+                if (size < size_)
+                    destroy_from_end_until_(begin() + size);
+
+                if(capacity_ == 0 || capacity_ < capacity)
+                {
+                    auto new_data = allocator_.allocate(capacity);
+
+                    auto to_copy = min(size, size_);
+                    for (size_type i = 0; i < to_copy; ++i)
+                        new_data[i] = move(data_[i]);
+
+                    std::swap(data_, new_data);
+
+                    allocator_.deallocate(new_data, capacity_);
+                }
+
+                capacity_ = capacity;
+                size_ = size;
+            }
+
+            void destroy_from_end_until_(iterator target)
+            {
+                if (!empty())
+                {
+                    auto last = end();
+                    while(last != target)
+                        allocator_traits<Allocator>::destroy(allocator_, --last);
+                }
+            }
+
+            size_type next_capacity_(size_type hint = 0) const noexcept
+            {
+                if (hint != 0)
+                    return max(capacity_ * 2, hint);
+                else
+                    return max(capacity_ * 2, 2ul);
+            }
+
+            template<class Iterator>
+            void copy_(size_type idx, Iterator first, Iterator last)
+            {
+                for (size_type i = idx; first != last; ++i, ++first)
+                    data_[i] = *first;
+            }
+
+            template<class Iterator>
+            iterator insert_(size_type idx, size_type count, Iterator first, Iterator last)
+            {
+                vector tmp{};
+                tmp.resize_without_copy_(max(size_ + count, capacity_));
+
+                // Copy before insertion index.
+                tmp.copy_(0, begin(), begin() + idx);
+
+                // Insertion.
+                tmp.copy_(idx, first, last);
+
+                // Copy after insertion index.
+                tmp.copy_(idx + count, begin() + idx, end());
+                tmp.size_ = size_ + count;
+                swap(tmp);
+
+                return begin() + idx;
+            }
     };
+
+    template<class T, class Alloc>
+    bool operator==(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
+    {
+        // TODO: implement
+        return false;
+    }
+
+    template<class T, class Alloc>
+    bool operator<(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
+    {
+        // TODO: implement
+        return false;
+    }
+
+    template<class T, class Alloc>
+    bool operator!=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    template<class T, class Alloc>
+    bool operator>(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
+    {
+        // TODO: implement
+        return false;
+    }
+
+    template<class T, class Alloc>
+    bool operator>=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
+    {
+        // TODO: implement
+        return false;
+    }
+
+    template<class T, class Alloc>
+    bool operator<=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
+    {
+        // TODO: implement
+        return false;
+    }
+
+    /**
+     * 23.3.6.6, specialized algorithms:
+     */
+    template<class T, class Alloc>
+    void swap(vector<T, Alloc>& lhs, vector<T, Alloc>& rhs)
+        noexcept(noexcept(lhs.swap(rhs)))
+    {
+        lhs.swap(rhs);
+    }
 }
 
 #endif

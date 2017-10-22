@@ -38,10 +38,15 @@ namespace std
      * 20.7.3, pointer traits:
      */
 
-    template<class T>
+    template<class Ptr>
     struct pointer_traits
     {
-        // TODO:
+        using pointer = Ptr;
+        // TODO: element type, difference type
+
+        // TODO: this is conditional, see standard
+        template<class U>
+        using rebind = typename Ptr::template rebind<U>;
     };
 
     /**
@@ -179,8 +184,11 @@ namespace std
         using value_type = typename Alloc::value_type;
         using pointer = typename aux::get_pointer<Alloc>::type;
         using const_pointer = typename aux::get_const_pointer<Alloc, pointer>::type;
-        using void_pointer = typename aux::get_void_pointer<Alloc, pointer>::type;
-        using const_void_pointer = typename aux::get_const_void_pointer<Alloc, pointer>::type;
+        // TODO: fix void pointer typedefs
+        /* using void_pointer = typename aux::get_void_pointer<Alloc, pointer>::type; */
+        /* using const_void_pointer = typename aux::get_const_void_pointer<Alloc, pointer>::type; */
+        using void_pointer = void*;
+        using const_void_pointer = const void*;
         using difference_type = typename aux::get_difference_type<Alloc, pointer>::type;
         using size_type = typename aux::get_size_type<Alloc, difference_type>::type;
 
@@ -278,12 +286,15 @@ namespace std
             using propagate_on_container_move_assignment = true_type;
             using is_always_equal                        = true_type;
 
-            allocator() noexcept;
+            allocator() noexcept = default;
 
-            allocator(const allocator&) noexcept;
+            allocator(const allocator&) noexcept = default;
 
             template<class U>
-            allocator(const allocator<U>&) noexcept;
+            allocator(const allocator<U>&) noexcept
+            {
+                // TODO: implement
+            }
 
             ~allocator() = default;
 
@@ -302,8 +313,9 @@ namespace std
                 /**
                  * Note: The usage of hint is unspecified.
                  *       TODO: Check HelenOS hint allocation capabilities.
+                 * TODO: assert that n < max_size()
                  */
-                return ::operator new(n);
+                return static_cast<pointer>(::operator new(n * sizeof(value_type)));
             }
 
             void deallocate(pointer ptr, size_type n)
