@@ -64,7 +64,7 @@ enum {
 typedef struct xhci_endpoint {
 	endpoint_t base;	/**< Inheritance. Keep this first. */
 
-	/** Main TRB ring (or NULL if endpoint uses streams) */
+	/** Main transfer ring (unused if streams are enabled) */
 	xhci_trb_ring_t ring;
 
 	/** There shall be only one transfer active on an endpoint. The
@@ -75,11 +75,13 @@ typedef struct xhci_endpoint {
 	/** Primary stream context array (or NULL if endpoint doesn't use streams) */
 	xhci_stream_ctx_t *primary_stream_ctx_array;
 
-	/** Maximum number of streams, also a valid range of PSCA above */
-	uint16_t max_streams;
+	/** Maximum number of primary streams (0-16), also a valid range of PSCA above */
+	uint8_t max_streams;
 
-	/* FIXME: Figure out type for these two fields. */
+	/** Maximum number of consecutive USB transactions (0-15) that should be executed per scheduling opportunity */
 	uint8_t max_burst;
+
+	/** Maximum number of bursts within an interval that this endpoint supports */
 	uint8_t mult;
 } xhci_endpoint_t;
 
