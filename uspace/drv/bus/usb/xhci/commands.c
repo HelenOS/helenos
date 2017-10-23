@@ -45,6 +45,7 @@
 
 #define TRB_SET_TCS(trb, tcs)   (trb).control |= host2xhci(32, ((tcs &0x1) << 9))
 #define TRB_SET_TYPE(trb, type) (trb).control |= host2xhci(32, (type) << 10)
+#define TRB_SET_DC(trb, dc)     (trb).control |= host2xhci(32, (dc) << 9)
 #define TRB_SET_EP(trb, ep)     (trb).control |= host2xhci(32, ((ep) & 0x5) << 16)
 #define TRB_SET_STREAM(trb, st) (trb).control |= host2xhci(32, ((st) & 0xFFFF) << 16)
 #define TRB_SET_SUSP(trb, susp) (trb).control |= host2xhci(32, ((susp) & 0x1) << 23)
@@ -322,15 +323,20 @@ int xhci_send_configure_endpoint_command(xhci_hc_t *hc, xhci_cmd_t *cmd, xhci_in
 {
 	assert(hc);
 	assert(cmd);
-	assert(ictx);
 
 	xhci_trb_clean(&cmd->trb);
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
-	TRB_SET_ICTX(cmd->trb, phys_addr);
+	if (!cmd->deconfigure) {
+		/* If the DC flag is on, input context is not evaluated. */
+		assert(ictx);
+
+		uint64_t phys_addr = (uint64_t) addr_to_phys(ictx);
+		TRB_SET_ICTX(cmd->trb, phys_addr);
+	}
 
 	TRB_SET_TYPE(cmd->trb, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD);
 	TRB_SET_SLOT(cmd->trb, cmd->slot_id);
+	TRB_SET_DC(cmd->trb, cmd->deconfigure);
 
 	return enqueue_command(hc, cmd, 0, 0);
 }

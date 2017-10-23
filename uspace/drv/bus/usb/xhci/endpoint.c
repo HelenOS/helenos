@@ -241,28 +241,6 @@ static const setup_ep_ctx_helper setup_ep_ctx_helpers[] = {
 	[USB_TRANSFER_INTERRUPT] = setup_interrupt_ep_ctx,
 };
 
-static int create_valid_input_ctx(xhci_input_ctx_t **out_ictx)
-{
-	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
-	if (!ictx) {
-		return ENOMEM;
-	}
-
-	memset(ictx, 0, sizeof(xhci_input_ctx_t));
-
-	// Quoting sec. 4.6.6: A1, D0, D1 are down, A0 is up.
-	XHCI_INPUT_CTRL_CTX_ADD_CLEAR(ictx->ctrl_ctx, 1);
-	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 0);
-	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
-	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
-
-	if (out_ictx) {
-		*out_ictx = ictx;
-	}
-
-	return EOK;
-}
-
 int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 {
 	assert(dev);
@@ -299,36 +277,17 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 		goto err;
 	}
 
-	/* Issue configure endpoint command (sec 4.3.5). */
-	xhci_input_ctx_t *ictx;
-	if ((err = create_valid_input_ctx(&ictx))) {
+	/* Add endpoint. */
+	xhci_ep_ctx_t ep_ctx;
+	memset(&ep_ctx, 0, sizeof(xhci_ep_ctx_t));
+	setup_ep_ctx_helpers[ep->base.transfer_type](ep, &ep_ctx);
+
+	if ((err = hc_add_endpoint(dev->hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx))) {
 		goto err_ds;
 	}
 
-	const unsigned ep_idx = xhci_endpoint_index(ep);
-	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
-	setup_ep_ctx_helpers[ep->base.transfer_type](ep, &ictx->endpoint_ctx[ep_idx]);
-
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = dev->slot_id;
-
-	if ((err = xhci_send_configure_endpoint_command(dev->hc, &cmd, ictx))) {
-		goto err_ictx;
-	}
-
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
-		goto err_ictx;
-	}
-
-	xhci_cmd_fini(&cmd);
-
-	free32(ictx);
 	return EOK;
 
-err_ictx:
-	free32(ictx);
 err_ds:
 	xhci_endpoint_free_transfer_ds(ep);
 err:
@@ -355,29 +314,10 @@ int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 		return EOK;
 	}
 
-	/* Issue configure endpoint command to drop this endpoint. */
-	xhci_input_ctx_t *ictx;
-	if ((err = create_valid_input_ctx(&ictx))) {
+	/* Drop the endpoint. */
+	if ((err = hc_drop_endpoint(dev->hc, dev->slot_id, xhci_endpoint_index(ep)))) {
 		goto err;
 	}
-
-	const unsigned ep_idx = xhci_endpoint_index(ep);
-	XHCI_INPUT_CTRL_CTX_DROP_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
-
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = dev->slot_id;
-
-	if ((err = xhci_send_configure_endpoint_command(dev->hc, &cmd, ictx))) {
-		goto err_ictx;
-	}
-
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
-		goto err_ictx;
-	}
-
-	xhci_cmd_fini(&cmd);
 
 	/* Tear down TRB ring / PSA. */
 	/* FIXME: For some reason, this causes crash at xhci_trb_ring_fini.
@@ -386,11 +326,8 @@ int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	}
 	*/
 
-	free32(ictx);
 	return EOK;
 
-err_ictx:
-	free32(ictx);
 err:
 	dev->endpoints[ep_num] = ep;
 	++dev->active_endpoint_count;
@@ -400,42 +337,6 @@ err:
 xhci_endpoint_t *xhci_device_get_endpoint(xhci_device_t *dev, usb_endpoint_t ep)
 {
 	return dev->endpoints[ep];
-}
-
-int xhci_device_configure(xhci_device_t *dev, xhci_hc_t *hc)
-{
-	int err;
-
-	/* Issue configure endpoint command (sec 4.3.5). */
-	xhci_input_ctx_t *ictx;
-	if ((err = create_valid_input_ctx(&ictx))) {
-		goto err;
-	}
-
-	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
-
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = dev->slot_id;
-
-	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, ictx))) {
-		goto err_cmd;
-	}
-
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
-		goto err_cmd;
-	}
-
-	xhci_cmd_fini(&cmd);
-
-	free32(ictx);
-	return EOK;
-
-err_cmd:
-	free32(ictx);
-err:
-	return err;
 }
 
 /**

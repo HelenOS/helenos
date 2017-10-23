@@ -121,7 +121,6 @@ uint8_t xhci_endpoint_index(xhci_endpoint_t *);
 int xhci_device_add_endpoint(xhci_device_t *, xhci_endpoint_t *);
 int xhci_device_remove_endpoint(xhci_device_t *, xhci_endpoint_t *);
 xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *, usb_endpoint_t);
-int xhci_device_configure(xhci_device_t *, xhci_hc_t *);
 
 static inline xhci_device_t * xhci_device_get(device_t *dev)
 {

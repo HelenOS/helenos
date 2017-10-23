@@ -94,65 +94,48 @@ static void setup_control_ep0_ctx(xhci_ep_ctx_t *ctx, xhci_trb_ring_t *ring,
 int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 {
 	int err;
-	xhci_device_t *xhci_dev = xhci_device_get(dev);
-
-	/* FIXME: Certainly not generic solution. */
-	const uint32_t route_str = 0;
-
-	xhci_dev->hc = rh->hc;
 
 	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, dev->port);
+	xhci_device_t *xhci_dev = xhci_device_get(dev);
+	xhci_dev->hc = rh->hc;
 	xhci_dev->usb3 = speed->major == 3;
 
-	/* Enable new slot */
+	/* Enable new slot. */
 	if ((err = hc_enable_slot(rh->hc, &xhci_dev->slot_id)) != EOK)
 		return err;
 	usb_log_debug2("Obtained slot ID: %u.\n", xhci_dev->slot_id);
 
-	/* Setup input context */
-	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
-	if (!ictx)
-		return ENOMEM;
-	memset(ictx, 0, sizeof(xhci_input_ctx_t));
-
-	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
-	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
-
-	/* Initialize slot_ctx according to section 4.3.3 point 3. */
-	/* Attaching to root hub port, root string equals to 0. */
-	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, dev->port);
-	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
-	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, route_str);
-
+	/* Create and configure control endpoint. */
 	endpoint_t *ep0_base = bus_create_endpoint(&rh->hc->bus.base);
 	if (!ep0_base)
-		goto err_ictx;
-	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
+		return ENOMEM;
 
-	/* Control endpoints don't use streams. */
+	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
 	/* FIXME: Sync this with xhci_device_add_endpoint. */
 	ep0->max_streams = 0;
 	ep0->max_burst = 0;
 	ep0->mult = 0;
-	if ((err = xhci_endpoint_alloc_transfer_ds(ep0)))
-		goto err_ictx;
 
-	setup_control_ep0_ctx(&ictx->endpoint_ctx[0], &ep0->ring, speed);
+	if ((err = xhci_endpoint_alloc_transfer_ds(ep0)))
+		goto err_ep;
+
+	xhci_ep_ctx_t ep_ctx;
+	memset(&ep_ctx, 0, sizeof(xhci_ep_ctx_t));
+	setup_control_ep0_ctx(&ep_ctx, &ep0->ring, speed);
 
 	/* Setup and register device context */
-	xhci_device_ctx_t *dctx = malloc32(sizeof(xhci_device_ctx_t));
-	if (!dctx) {
+	xhci_dev->dev_ctx = malloc32(sizeof(xhci_device_ctx_t));
+	if (!xhci_dev->dev_ctx) {
 		err = ENOMEM;
-		goto err_ep;
+		goto err_ds;
 	}
-	xhci_dev->dev_ctx = dctx;
-	rh->hc->dcbaa[xhci_dev->slot_id] = addr_to_phys(dctx);
-	memset(dctx, 0, sizeof(xhci_device_ctx_t));
+	rh->hc->dcbaa[xhci_dev->slot_id] = addr_to_phys(xhci_dev->dev_ctx);
+	memset(xhci_dev->dev_ctx, 0, sizeof(xhci_device_ctx_t));
 
 	/* Address device */
-	if ((err = hc_address_device(rh->hc, xhci_dev->slot_id, ictx)) != EOK)
+	if ((err = hc_address_rh_device(rh->hc, xhci_dev->slot_id, dev->port, &ep_ctx)))
 		goto err_dctx;
-	dev->address = XHCI_SLOT_DEVICE_ADDRESS(dctx->slot_ctx);
+	dev->address = XHCI_SLOT_DEVICE_ADDRESS(xhci_dev->dev_ctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.\n", dev->address);
 
 	/* From now on, the device is officially online, yay! */
@@ -177,17 +160,16 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 		rh->devices[dev->port - 1] = xhci_dev;
 	}
 
-	free32(ictx);
 	return EOK;
 
 err_dctx:
-	free32(dctx);
+	free32(xhci_dev->dev_ctx);
 	rh->hc->dcbaa[xhci_dev->slot_id] = 0;
+err_ds:
+	xhci_endpoint_free_transfer_ds(ep0);
 err_ep:
 	xhci_endpoint_fini(ep0);
 	free(ep0);
-err_ictx:
-	free32(ictx);
 	return err;
 }
 
@@ -315,6 +297,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	}
 
 	/* TODO: Figure out how to handle errors here. So far, they are reported and skipped. */
+	/* TODO: Move parts of the code below to xhci_bus_remove_device() */
 
 	/* Make DDF (and all drivers) forget about the device. */
 	if ((err = ddf_fun_unbind(dev->base.fun))) {
@@ -322,8 +305,20 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 		    ddf_fun_get_name(dev->base.fun), str_error(err));
 	}
 
-	// TODO: Remove EP0.
-	// TODO: Deconfigure device.
+	/* Unregister EP0. */
+	if ((err = bus_unregister_endpoint(&rh->hc->bus.base, &dev->endpoints[0]->base))) {
+		usb_log_warning("Failed to unregister configuration endpoint of device '%s' from XHCI bus: %s",
+		    ddf_fun_get_name(dev->base.fun), str_error(err));
+	}
+
+	/* Deconfigure device. */
+	if ((err = hc_deconfigure_device(rh->hc, dev->slot_id))) {
+		usb_log_warning("Failed to deconfigure detached device '%s': %s",
+		    ddf_fun_get_name(dev->base.fun), str_error(err));
+	}
+
+	/* TODO: Free EP0 structures. */
+	/* TODO: Destroy EP0 by removing its last reference. */
 
 	/* Remove device from XHCI bus. */
 	if ((err = xhci_bus_remove_device(&rh->hc->bus, rh->hc, &dev->base))) {

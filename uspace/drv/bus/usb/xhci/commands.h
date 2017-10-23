@@ -57,6 +57,7 @@ typedef struct xhci_command {
 
 	uint32_t slot_id;
 	uint32_t status;
+	bool deconfigure;
 
 	bool completed;
 

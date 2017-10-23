@@ -651,6 +651,199 @@ int hc_address_device(xhci_hc_t *hc, uint32_t slot_id, xhci_input_ctx_t *ictx)
 	return EOK;
 }
 
+static int create_valid_input_ctx(xhci_input_ctx_t **out_ictx)
+{
+	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
+	if (!ictx) {
+		return ENOMEM;
+	}
+
+	memset(ictx, 0, sizeof(xhci_input_ctx_t));
+
+	// Quoting sec. 4.6.6: A1, D0, D1 are down, A0 is up.
+	XHCI_INPUT_CTRL_CTX_ADD_CLEAR(ictx->ctrl_ctx, 1);
+	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 0);
+	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
+
+	if (out_ictx) {
+		*out_ictx = ictx;
+	}
+
+	return EOK;
+}
+
+int hc_address_rh_device(xhci_hc_t *hc, uint32_t slot_id, uint8_t port, xhci_ep_ctx_t *ep_ctx)
+{
+	int err;
+
+	/* Issue configure endpoint command (sec 4.3.5). */
+	xhci_input_ctx_t *ictx;
+	if ((err = create_valid_input_ctx(&ictx))) {
+		goto err;
+	}
+
+	/* Initialize slot_ctx according to section 4.3.3 point 3. */
+	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
+	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
+
+	/* Attaching to root hub port, root string equals to 0. */
+	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, 0);
+
+	/* Copy endpoint 0 context and set A1 flag. */
+	memcpy(&ictx->endpoint_ctx[0], ep_ctx, sizeof(xhci_ep_ctx_t));
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
+
+	if ((err = hc_address_device(hc, slot_id, ictx))) {
+		goto err_cmd;
+	}
+
+	free32(ictx);
+	return EOK;
+
+err_cmd:
+	free32(ictx);
+err:
+	return err;
+}
+
+int hc_configure_device(xhci_hc_t *hc, uint32_t slot_id)
+{
+	int err;
+
+	/* Issue configure endpoint command (sec 4.3.5). */
+	xhci_input_ctx_t *ictx;
+	if ((err = create_valid_input_ctx(&ictx))) {
+		goto err;
+	}
+
+	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
+
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	cmd.slot_id = slot_id;
+
+	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, ictx))) {
+		goto err_cmd;
+	}
+
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
+		goto err_cmd;
+	}
+
+	xhci_cmd_fini(&cmd);
+
+	free32(ictx);
+	return EOK;
+
+err_cmd:
+	free32(ictx);
+err:
+	return err;
+}
+
+int hc_deconfigure_device(xhci_hc_t *hc, uint32_t slot_id)
+{
+	int err;
+
+	/* Issue configure endpoint command (sec 4.3.5) with the DC flag. */
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	cmd.slot_id = slot_id;
+	cmd.deconfigure = true;
+
+	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, NULL))) {
+		return err;
+	}
+
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
+		return err;
+	}
+
+	xhci_cmd_fini(&cmd);
+
+	return EOK;
+}
+
+int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
+{
+	int err;
+
+	/* Issue configure endpoint command (sec 4.3.5). */
+	xhci_input_ctx_t *ictx;
+	if ((err = create_valid_input_ctx(&ictx))) {
+		goto err;
+	}
+
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
+	memcpy(&ictx->endpoint_ctx[ep_idx], ep_ctx, sizeof(xhci_ep_ctx_t));
+
+	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
+
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	cmd.slot_id = slot_id;
+
+	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, ictx))) {
+		goto err_cmd;
+	}
+
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
+		goto err_cmd;
+	}
+
+	xhci_cmd_fini(&cmd);
+
+	free32(ictx);
+	return EOK;
+
+err_cmd:
+	free32(ictx);
+err:
+	return err;
+}
+
+int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
+{
+	int err;
+
+	/* Issue configure endpoint command (sec 4.3.5). */
+	xhci_input_ctx_t *ictx;
+	if ((err = create_valid_input_ctx(&ictx))) {
+		goto err;
+	}
+
+	XHCI_INPUT_CTRL_CTX_DROP_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
+
+	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
+
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	cmd.slot_id = slot_id;
+
+	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, ictx))) {
+		goto err_cmd;
+	}
+
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
+		goto err_cmd;
+	}
+
+	xhci_cmd_fini(&cmd);
+
+	free32(ictx);
+	return EOK;
+
+err_cmd:
+	free32(ictx);
+err:
+	return err;
+}
+
 /**
  * @}
  */
