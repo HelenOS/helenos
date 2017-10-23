@@ -99,9 +99,6 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
 	endif
 endif
 
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
-
 LIB_PREFIX = $(USPACE_PREFIX)/lib
 
 LIBC_PREFIX = $(LIB_PREFIX)/c
@@ -222,17 +219,17 @@ endif
 	TEST_OUTPUT_LIBS += $(TEST_LIBS)
 endif
 
-.PHONY: all clean
+.PHONY: all clean depend
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
-	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 all-test: $(TEST_OUTPUT) $(TEST_DISASM)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
+	rm -f $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
 	find . -name '*.o' -follow -exec rm \{\} \;
 	find . -name '*.lo' -follow -exec rm \{\} \;
+	find . -name '*.d' -follow -exec rm \{\} \;
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -fexec-charset=UTF-8 \
@@ -275,32 +272,14 @@ endif
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
-ifeq ($(COMPILER),gcc_cross)
-	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),gcc_helenos)
-	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),gcc_native)
-	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
 ifeq ($(COMPILER),clang)
 	CFLAGS += $(COMMON_CFLAGS) $(CLANG_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+else
+	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
 endif
 
 LIB_CFLAGS = $(CFLAGS) -fPIC
 LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEPEND)
-endif
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
@@ -308,6 +287,9 @@ LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 TEST_OBJECTS := $(addsuffix .test.o,$(basename $(TEST_SOURCES)))
+DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename $(TEST_SOURCES)))
+
+-include $(DEPENDS)
 
 ifneq ($(BINARY),)
 $(BINARY).disasm: $(BINARY)
@@ -366,52 +348,49 @@ else
 endif
 endif
 
-%.o: %.S $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
+%.o: %.S | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
 endif
 
-%.o: %.s $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
+%.o: %.s | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm
 endif
 
-%.o: %.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
+%.o: %.c | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 endif
 
-%.test.o: %.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS) -c $< -o $@
+%.test.o: %.c | depend
+	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
 endif
 
-%.lo: %.S $(DEPEND)
-	$(CC) $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
+%.lo: %.S | depend
+	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
 endif
 
-%.lo: %.s $(DEPEND)
-	$(CC) $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
+%.lo: %.s | depend
+	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm
 endif
 
-%.lo: %.c $(DEPEND)
-	$(CC) $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
+%.lo: %.c | depend
+	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 endif
 
-$(DEPEND): $(PRE_DEPEND)
-	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
-	makedepend -f - -o.test.o -- $(DEPEND_DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS) -- $(TEST_SOURCES) >> $@ 2> /dev/null
-	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+depend: $(PRE_DEPEND)
 
 ##
 # This explicit dependecy of the output binary on the object files seems to be

@@ -62,8 +62,6 @@ JOBFILE = $(ROOT_PATH)/tools/jobfile.py
 ARCH_INCLUDE = generic/include/arch
 GENARCH_INCLUDE = generic/include/genarch
 
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
 DISTROOT = distroot
 INITRD = initrd
 

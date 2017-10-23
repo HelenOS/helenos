@@ -49,6 +49,7 @@ extern void add_driver(driver_list_t *, driver_t *);
 extern void attach_driver(dev_tree_t *, dev_node_t *, driver_t *);
 extern void detach_driver(dev_tree_t *, dev_node_t *);
 extern bool start_driver(driver_t *);
+extern int stop_driver(driver_t *);
 extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
 extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
 extern int driver_dev_gone(dev_tree_t *, dev_node_t *);

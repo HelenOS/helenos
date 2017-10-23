@@ -116,7 +116,7 @@ endif
 		file_name="`basename "$$file"`" ; \
 		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file_dir/$$file_name/$$file_name.fw" "$(DIST_PATH)/$(DRVS_PATH)/$$file_name/" ; \
 	done
-	if ls $(DIST_OVERLAY_PATH)/* >/dev/null; then \
+	if ls $(DIST_OVERLAY_PATH)/* >/dev/null 2>/dev/null; then \
 		cp -r -L $(DIST_OVERLAY_PATH)/* "$(DIST_PATH)"; \
 	fi
 
@@ -125,8 +125,9 @@ clean: clean_dist
 ifneq ($(POSTBUILD),)
 	$(MAKE) -r -f $(POSTBUILD) clean PRECHECK=$(PRECHECK)
 endif
-	rm -f $(POST_OUTPUT) $(BOOT_OUTPUT) $(DEPEND) $(DEPEND_PREV) arch/*/include/common.h
+	rm -f $(POST_OUTPUT) $(BOOT_OUTPUT) arch/*/include/common.h
 	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
+	find generic/src/ arch/*/src/ genarch/src/ -name '*.d' -follow -exec rm \{\} \;
 
 clean_dist:
 	rm -f $(INITRD).img $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE) $(COMPS).o $(COMPS)_desc.o $(COMPS).zip $(LINK)

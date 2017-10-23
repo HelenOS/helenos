@@ -81,6 +81,7 @@ extern int devman_driver_get_match_id(devman_handle_t, size_t, char *, size_t,
 extern int devman_driver_get_name(devman_handle_t, char *, size_t);
 extern int devman_driver_get_state(devman_handle_t, driver_state_t *);
 extern int devman_driver_load(devman_handle_t);
+extern int devman_driver_unload(devman_handle_t);
 
 #endif
 

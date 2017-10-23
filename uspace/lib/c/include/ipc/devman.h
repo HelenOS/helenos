@@ -155,6 +155,7 @@ typedef enum {
 	DRIVER_DEV_GONE,
 	DRIVER_FUN_ONLINE,
 	DRIVER_FUN_OFFLINE,
+	DRIVER_STOP
 } devman_to_driver_t;
 
 typedef enum {
@@ -175,7 +176,8 @@ typedef enum {
 	DEVMAN_DRIVER_GET_MATCH_ID,
 	DEVMAN_DRIVER_GET_NAME,
 	DEVMAN_DRIVER_GET_STATE,
-	DEVMAN_DRIVER_LOAD
+	DEVMAN_DRIVER_LOAD,
+	DEVMAN_DRIVER_UNLOAD
 } client_to_devman_t;
 
 #endif

@@ -40,18 +40,22 @@ CONFIG_RULES = HelenOS.config
 
 COMMON_MAKEFILE = Makefile.common
 COMMON_HEADER = common.h
-COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
 
-.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release
+.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace
 
-all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
-	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
-	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
-	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
+all: kernel uspace
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
+
+common: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
+
+kernel: common
+	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
+
+uspace: common
+	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
 
 precheck: clean
 	$(MAKE) -r all PRECHECK=y
@@ -78,9 +82,9 @@ endif
 
 # Autotool (detects compiler features)
 
-autotool $(COMMON_MAKEFILE) $(COMMON_HEADER): $(CONFIG_MAKEFILE)
+autotool $(COMMON_MAKEFILE) $(COMMON_HEADER): $(CONFIG_MAKEFILE) $(AUTOTOOL)
 	$(AUTOTOOL)
-	-[ -f $(COMMON_HEADER_PREV) ] && diff -q $(COMMON_HEADER_PREV) $(COMMON_HEADER) && mv -f $(COMMON_HEADER_PREV) $(COMMON_HEADER)
+	diff -q $(COMMON_HEADER).new $(COMMON_HEADER) 2> /dev/null; if [ $$? -ne 0 ]; then mv -f $(COMMON_HEADER).new $(COMMON_HEADER); fi
 
 # Build-time configuration
 
@@ -108,7 +112,7 @@ release:
 # Cleaning
 
 distclean: clean
-	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
+	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
 
 clean:
 	rm -fr $(SANDBOX)
