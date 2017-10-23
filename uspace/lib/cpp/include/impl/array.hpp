@@ -62,12 +62,12 @@ namespace std
 
         void fill(const T& x)
         {
-            // TODO: implement with fill_n when possible
+            fill_n(begin(), N, x);
         }
 
         void swap(array& other) noexcept(noexcept(swap(declval<T&>(), declval<T&>())))
         {
-            // TODO: implement with swap_ranges when possible
+            swap_ranges(begin(), end(), other.begin());
         }
 
         iterator begin() noexcept
