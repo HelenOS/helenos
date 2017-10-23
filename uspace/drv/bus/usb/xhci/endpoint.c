@@ -63,17 +63,35 @@ void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 	// TODO: Something missed?
 }
 
+static bool endpoint_uses_streams(xhci_endpoint_t *xhci_ep)
+{
+	return xhci_ep->base.transfer_type == USB_TRANSFER_BULK
+	    && xhci_ep->max_streams;
+}
+
+static size_t primary_stream_ctx_array_size(xhci_endpoint_t *xhci_ep)
+{
+	if (!endpoint_uses_streams(xhci_ep))
+		return 0;
+
+	/* Section 6.2.3, Table 61 */
+	return 1 << (xhci_ep->max_streams + 1);
+}
+
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	int err;
 
-	if (xhci_ep->max_streams > 0) {
-		// Set up primary stream context array if needed.
-		xhci_ep->primary_stream_ctx_array = malloc32(xhci_ep->max_streams * sizeof(xhci_stream_ctx_t));
+	if (endpoint_uses_streams(xhci_ep)) {
+		/* Set up primary stream context array if needed. */
+		const size_t size = primary_stream_ctx_array_size(xhci_ep);
+
+		xhci_ep->primary_stream_ctx_array = malloc32(size * sizeof(xhci_stream_ctx_t));
 		if (!xhci_ep->primary_stream_ctx_array) {
 			return ENOMEM;
 		}
-		memset(xhci_ep->primary_stream_ctx_array, 0, xhci_ep->max_streams * sizeof(xhci_stream_ctx_t));
+
+		memset(xhci_ep->primary_stream_ctx_array, 0, size * sizeof(xhci_stream_ctx_t));
 	} else {
 		xhci_ep->primary_stream_ctx_array = NULL;
 		if ((err = xhci_trb_ring_init(&xhci_ep->ring))) {
@@ -88,7 +106,7 @@ int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	int err;
 
-	if (xhci_ep->max_streams > 0) {
+	if (endpoint_uses_streams(xhci_ep)) {
 		// TODO: What about secondaries?
 		free32(xhci_ep->primary_stream_ctx_array);
 	} else {
@@ -168,7 +186,7 @@ static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	    xhci_device_get(ep->base.device)->usb3 ? ep->max_burst : 0);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 
-	if (ep->max_streams > 0) {
+	if (endpoint_uses_streams(ep)) {
 		XHCI_EP_MAX_P_STREAMS_SET(*ctx, ep->max_streams);
 		XHCI_EP_TR_DPTR_SET(*ctx, addr_to_phys(ep->primary_stream_ctx_array));
 		// TODO: set HID

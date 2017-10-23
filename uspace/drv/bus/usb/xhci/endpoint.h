@@ -75,7 +75,7 @@ typedef struct xhci_endpoint {
 	/** Primary stream context array (or NULL if endpoint doesn't use streams) */
 	xhci_stream_ctx_t *primary_stream_ctx_array;
 
-	/** Maximum number of primary streams (0-16), also a valid range of PSCA above */
+	/** 2-log of maximum number of primary streams (0-16). Not to be used directly. */
 	uint8_t max_streams;
 
 	/** Maximum number of consecutive USB transactions (0-15) that should be executed per scheduling opportunity */
