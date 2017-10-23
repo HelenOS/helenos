@@ -55,6 +55,7 @@ typedef struct usb2_bus {
 	struct {
 		usb_speed_t speed;      /**< Device speed */
 		bool occupied;          /**< The address is in use. */
+		// TODO: This can be stored in usb2_bus-specific device_t
 		list_t endpoint_list;   /**< Store endpoint_t instances */
 	} devices[USB_ADDRESS_COUNT];
 

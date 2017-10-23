@@ -37,6 +37,7 @@
 #include <macros.h>
 #include <errno.h>
 #include <devman.h>
+#include <usb/host/usb_transfer_batch.h>
 
 #include "usb_iface.h"
 #include "ddf/driver.h"
@@ -538,36 +539,33 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	return trans;
 }
 
-static void callback_out(int outcome, void *arg)
+static int callback_out(usb_transfer_batch_t *batch)
 {
-	async_transaction_t *trans = arg;
+	async_transaction_t *trans = batch->on_complete_data;
 
-	async_answer_0(trans->caller, outcome);
+	const int err = async_answer_0(trans->caller, batch->error);
 
 	async_transaction_destroy(trans);
+
+	return err;
 }
 
-static void callback_in(int outcome, size_t actual_size, void *arg)
+static int callback_in(usb_transfer_batch_t *batch)
 {
-	async_transaction_t *trans = (async_transaction_t *)arg;
-
-	if (outcome != EOK) {
-		async_answer_0(trans->caller, outcome);
-		if (trans->data_caller) {
-			async_answer_0(trans->data_caller, EINTR);
-		}
-		async_transaction_destroy(trans);
-		return;
-	}
+	async_transaction_t *trans = batch->on_complete_data;
 
 	if (trans->data_caller) {
-		async_data_read_finalize(trans->data_caller,
-		    trans->buffer, actual_size);
+		if (batch->error == EOK) {
+			batch->error = async_data_read_finalize(trans->data_caller,
+			    trans->buffer, batch->transfered_size);
+		} else {
+			async_answer_0(trans->data_caller, EINTR);
+		}
 	}
 
-	async_answer_0(trans->caller, EOK);
-
+	const int err = async_answer_0(trans->caller, batch->error);
 	async_transaction_destroy(trans);
+	return err;
 }
 
 void remote_usb_read(
@@ -610,8 +608,13 @@ void remote_usb_read(
 		return;
 	}
 
+	const usb_target_t target = {{
+		/* .address is initialized by read itself */
+		.endpoint = ep,
+	}};
+
 	const int rc = usb_iface->read(
-	    fun, ep, setup, trans->buffer, size, callback_in, trans);
+	    fun, target, setup, trans->buffer, size, callback_in, trans);
 
 	if (rc != EOK) {
 		async_answer_0(trans->data_caller, rc);
@@ -658,8 +661,13 @@ void remote_usb_write(
 		}
 	}
 
+	const usb_target_t target = {{
+		/* .address is initialized by write itself */
+		.endpoint = ep,
+	}};
+
 	const int rc = usb_iface->write(
-	    fun, ep, setup, trans->buffer, size, callback_out, trans);
+	    fun, target, setup, trans->buffer, size, callback_out, trans);
 
 	if (rc != EOK) {
 		async_answer_0(callid, rc);

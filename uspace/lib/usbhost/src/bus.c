@@ -98,10 +98,10 @@ int bus_add_ep(bus_t *bus, device_t *device, usb_endpoint_t endpoint,
 	return err;
 }
 
-int bus_remove_ep(bus_t *bus, usb_target_t target, usb_direction_t dir)
+int bus_remove_ep(bus_t *bus, device_t *dev, usb_target_t target, usb_direction_t dir)
 {
 	assert(bus);
-	endpoint_t *ep = bus_find_endpoint(bus, target, dir);
+	endpoint_t *ep = bus_find_endpoint(bus, dev, target, dir);
 	if (!ep)
 		return ENOENT;
 
@@ -199,12 +199,12 @@ int bus_unregister_endpoint(bus_t *bus, endpoint_t *ep)
 
 /** Searches for an endpoint. Returns a reference.
  */
-endpoint_t *bus_find_endpoint(bus_t *bus, usb_target_t target, usb_direction_t dir)
+endpoint_t *bus_find_endpoint(bus_t *bus, device_t *device, usb_target_t endpoint, usb_direction_t dir)
 {
 	assert(bus);
 
 	fibril_mutex_lock(&bus->guard);
-	endpoint_t *ep = bus->ops.find_endpoint(bus, target, dir);
+	endpoint_t *ep = bus->ops.find_endpoint(bus, device, endpoint, dir);
 	if (ep) {
 		/* Exporting reference */
 		endpoint_add_ref(ep);

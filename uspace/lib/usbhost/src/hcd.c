@@ -79,17 +79,17 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
  * @param name Communication identifier (for nicer output).
  * @return Error code.
  */
-int hcd_send_batch(hcd_t *hcd, usb_target_t target, usb_direction_t direction,
-	void *data, size_t size, uint64_t setup_data,
-	usbhc_iface_transfer_in_callback_t in, usbhc_iface_transfer_out_callback_t out,
-	void *arg, const char *name)
+int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
+    usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
+    usb_transfer_batch_callback_t on_complete, void *arg, const char *name)
 {
 	assert(hcd);
+	assert(device->address == target.address);
 
-	endpoint_t *ep = bus_find_endpoint(hcd->bus, target, direction);
+	endpoint_t *ep = bus_find_endpoint(hcd->bus, device, target, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
-		    target.address, target.endpoint, name);
+		    device->address, target.endpoint, name);
 		return ENOENT;
 	}
 
@@ -119,13 +119,13 @@ int hcd_send_batch(hcd_t *hcd, usb_target_t target, usb_direction_t direction,
 	batch->buffer_size = size;
 	batch->setup.packed = setup_data;
 	batch->dir = direction;
+	batch->on_complete = on_complete;
+	batch->on_complete_data = arg;
 
 	/* Check for commands that reset toggle bit */
 	if (ep->transfer_type == USB_TRANSFER_CONTROL)
 		batch->toggle_reset_mode
 			= usb_request_get_toggle_reset_mode(&batch->setup.packet);
-
-	usb_transfer_batch_set_old_handlers(batch, in, out, arg);
 
 	const int ret = hcd->ops.schedule(hcd, batch);
 	if (ret != EOK) {
@@ -143,46 +143,36 @@ typedef struct {
 	fibril_mutex_t done_mtx;
 	fibril_condvar_t done_cv;
 	unsigned done;
-	int ret;
-	size_t size;
+
+	size_t transfered_size;
+	int error;
 } sync_data_t;
 
-static void transfer_in_cb(int ret, size_t size, void* data)
+static int sync_transfer_complete(usb_transfer_batch_t *batch)
 {
-	sync_data_t *d = data;
+	sync_data_t *d = batch->on_complete_data;
 	assert(d);
-	d->ret = ret;
-	d->size = size;
+	d->transfered_size = batch->transfered_size;
+	d->error = batch->error;
 	fibril_mutex_lock(&d->done_mtx);
 	d->done = 1;
 	fibril_condvar_broadcast(&d->done_cv);
 	fibril_mutex_unlock(&d->done_mtx);
+	return EOK;
 }
 
-static void transfer_out_cb(int ret, void* data)
-{
-	sync_data_t *d = data;
-	assert(data);
-	d->ret = ret;
-	fibril_mutex_lock(&d->done_mtx);
-	d->done = 1;
-	fibril_condvar_broadcast(&d->done_cv);
-	fibril_mutex_unlock(&d->done_mtx);
-}
-
-/** this is really ugly version of sync usb communication */
-ssize_t hcd_send_batch_sync(
-    hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    void *data, size_t size, uint64_t setup_data, const char* name)
+ssize_t hcd_send_batch_sync(hcd_t *hcd, device_t *device, usb_target_t target,
+    usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
+    const char *name)
 {
 	assert(hcd);
-	sync_data_t sd = { .done = 0, .ret = EBUSY, .size = size };
+	sync_data_t sd = { .done = 0 };
 	fibril_mutex_initialize(&sd.done_mtx);
 	fibril_condvar_initialize(&sd.done_cv);
 
-	const int ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
-	    dir == USB_DIRECTION_IN ? transfer_in_cb : NULL,
-	    dir == USB_DIRECTION_OUT ? transfer_out_cb : NULL, &sd, name);
+	const int ret = hcd_send_batch(hcd, device, target, direction,
+	    data, size, setup_data,
+	    sync_transfer_complete, &sd, name);
 	if (ret != EOK)
 		return ret;
 
@@ -191,9 +181,9 @@ ssize_t hcd_send_batch_sync(
 		fibril_condvar_wait(&sd.done_cv, &sd.done_mtx);
 	fibril_mutex_unlock(&sd.done_mtx);
 
-	if (sd.ret == EOK)
-		return sd.size;
-	return sd.ret;
+	return (sd.error == EOK)
+		? (ssize_t) sd.transfered_size
+		: (ssize_t) sd.error;
 }
 
 

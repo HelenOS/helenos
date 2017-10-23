@@ -134,7 +134,7 @@ static int unregister_endpoint(
 	usb_log_debug("Unregister endpoint %d:%d %s.\n",
 		dev->address, endpoint_desc->endpoint_no,
 		usb_str_direction(endpoint_desc->direction));
-	return bus_remove_ep(hcd->bus, target, endpoint_desc->direction);
+	return bus_remove_ep(hcd->bus, dev, target, endpoint_desc->direction);
 }
 
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
@@ -215,20 +215,20 @@ static int get_my_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static int dev_read(ddf_fun_t *fun, usb_endpoint_t endpoint,
-    uint64_t setup_data, uint8_t *data, size_t size,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
+static int dev_read(ddf_fun_t *fun, usb_target_t target,
+    uint64_t setup_data, char *data, size_t size,
+    usb_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(dev);
-	const usb_target_t target = {{
-	    .address  = dev->address,
-	    .endpoint = endpoint,
-	}};
-	return hcd_send_batch(dev_to_hcd(ddf_fun_get_dev(fun)), target,
-	    USB_DIRECTION_IN, data, size, setup_data, callback, NULL, arg,
-	    "READ");
+
+	target.address = dev->address;
+
+	return hcd_send_batch(hcd, dev, target, USB_DIRECTION_IN,
+	    data, size, setup_data,
+	    callback, arg, "READ");
 }
 
 /** Outbound communication interface function.
@@ -241,19 +241,19 @@ static int dev_read(ddf_fun_t *fun, usb_endpoint_t endpoint,
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static int dev_write(ddf_fun_t *fun, usb_endpoint_t endpoint,
-    uint64_t setup_data, const uint8_t *data, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
+static int dev_write(ddf_fun_t *fun, usb_target_t target,
+    uint64_t setup_data, const char *data, size_t size,
+    usb_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(dev);
-	const usb_target_t target = {{
-	    .address  = dev->address,
-	    .endpoint = endpoint,
-	}};
-	return hcd_send_batch(dev_to_hcd(ddf_fun_get_dev(fun)),
-	    target, USB_DIRECTION_OUT, (uint8_t*)data, size, setup_data, NULL,
+
+	target.address = dev->address;
+
+	return hcd_send_batch(hcd, dev, target, USB_DIRECTION_OUT,
+	    (char *) data, size, setup_data,
 	    callback, arg, "WRITE");
 }
 
@@ -410,9 +410,9 @@ int hcd_ddf_device_explore(hcd_t *hcd, device_t *device)
 
 	init_match_ids(&mids);
 
-	usb_target_t control_ep = {{
+	const usb_target_t control_ep = {{
 		.address = device->address,
-		.endpoint = 0
+		.endpoint = 0,
 	}};
 
 	/* Get std device descriptor */
@@ -421,8 +421,8 @@ int hcd_ddf_device_explore(hcd_t *hcd, device_t *device)
 
 	usb_log_debug("Device(%d): Requesting full device descriptor.",
 	    device->address);
-	ssize_t got = hcd_send_batch_sync(hcd, control_ep, USB_DIRECTION_IN,
-	    &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
+	ssize_t got = hcd_send_batch_sync(hcd, device, control_ep, USB_DIRECTION_IN,
+	    (char *) &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
 	    "read device descriptor");
 	if (got < 0) {
 		err = got < 0 ? got : EOVERFLOW;

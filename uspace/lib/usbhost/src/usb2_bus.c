@@ -125,8 +125,8 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 
 	usb_log_debug("Device(%d): Requesting first 8B of device descriptor.",
 	    address);
-	ssize_t got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_IN,
-	    &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
+	ssize_t got = hcd_send_batch_sync(hcd, dev, default_target, USB_DIRECTION_IN,
+	    (char *) &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
 	    "read first 8 bytes of dev descriptor");
 
 	if (got != CTRL_PIPE_MIN_PACKET_SIZE) {
@@ -140,7 +140,7 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	const usb_device_request_setup_packet_t set_address = SET_ADDRESS(address);
 
 	usb_log_debug("Device(%d): Setting USB address.", address);
-	err = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
+	err = hcd_send_batch_sync(hcd, dev, default_target, USB_DIRECTION_OUT,
 	    NULL, 0, *(uint64_t *)&set_address, "set address");
 	if (err != 0) {
 		usb_log_error("Device(%d): Failed to set new address: %s.",
@@ -162,11 +162,11 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 		goto err_default_target;
 	}
 
-	bus_remove_ep(bus, default_target, USB_DIRECTION_BOTH);
+	bus_remove_ep(bus, dev, default_target, USB_DIRECTION_BOTH);
 	return EOK;
 
 err_default_target:
-	bus_remove_ep(bus, default_target, USB_DIRECTION_BOTH);
+	bus_remove_ep(bus, dev, default_target, USB_DIRECTION_BOTH);
 err_address:
 	bus_release_address(bus, address);
 	return err;
@@ -246,7 +246,7 @@ static int usb_bus_get_free_address(usb2_bus_t *bus, usb_address_t *addr)
  * target, NULL if there is no such endpoint registered.
  * @note Assumes that the internal mutex is locked.
  */
-static endpoint_t *usb2_bus_find_ep(bus_t *bus_base, usb_target_t target, usb_direction_t direction)
+static endpoint_t *usb2_bus_find_ep(bus_t *bus_base, device_t *device, usb_target_t target, usb_direction_t direction)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 
@@ -292,7 +292,7 @@ static int usb2_bus_register_ep(bus_t *bus_base, endpoint_t *ep)
 		return ENOENT;
 
 	/* Check for existence */
-	if (usb2_bus_find_ep(bus_base, ep->target, ep->direction))
+	if (usb2_bus_find_ep(bus_base, ep->device, ep->target, ep->direction))
 		return EEXIST;
 
 	/* Check for available bandwidth */

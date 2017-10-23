@@ -132,45 +132,6 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 	usb_transfer_batch_destroy(batch);
 }
 
-
-struct old_handler_wrapper_data {
-	usbhc_iface_transfer_in_callback_t in_callback;
-	usbhc_iface_transfer_out_callback_t out_callback;
-	void *arg;
-};
-
-static int old_handler_wrapper(usb_transfer_batch_t *batch)
-{
-	struct old_handler_wrapper_data *data = batch->on_complete_data;
-
-	assert(data);
-
-	if (data->out_callback)
-		data->out_callback(batch->error, data->arg);
-
-	if (data->in_callback)
-		data->in_callback(batch->error, batch->transfered_size, data->arg);
-
-	free(data);
-	return EOK;
-}
-
-void usb_transfer_batch_set_old_handlers(usb_transfer_batch_t *batch,
-	usbhc_iface_transfer_in_callback_t in_callback,
-	usbhc_iface_transfer_out_callback_t out_callback,
-	void *arg)
-{
-	struct old_handler_wrapper_data *data = malloc(sizeof(*data));
-
-	assert((!in_callback) != (!out_callback));
-
-	data->in_callback = in_callback;
-	data->out_callback = out_callback;
-	data->arg = arg;
-
-	batch->on_complete = old_handler_wrapper;
-	batch->on_complete_data = data;
-}
 /**
  * @}
  */

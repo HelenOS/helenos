@@ -107,12 +107,13 @@ extern int hcd_add_ep(hcd_t *, usb_target_t, usb_direction_t,
 
 extern int hcd_remove_ep(hcd_t *, usb_target_t, usb_direction_t);
 
-extern int hcd_send_batch(hcd_t *, usb_target_t, usb_direction_t, void *,
-    size_t, uint64_t, usbhc_iface_transfer_in_callback_t,
-    usbhc_iface_transfer_out_callback_t, void *, const char *);
+extern int hcd_send_batch(hcd_t *, device_t *, usb_target_t,
+    usb_direction_t direction, char *, size_t, uint64_t,
+    usb_transfer_batch_callback_t, void *, const char *);
 
-extern ssize_t hcd_send_batch_sync(hcd_t *, usb_target_t, usb_direction_t,
-    void *, size_t, uint64_t, const char *);
+extern ssize_t hcd_send_batch_sync(hcd_t *, device_t *, usb_target_t,
+    usb_direction_t direction, char *, size_t, uint64_t,
+    const char *);
 
 #endif
 

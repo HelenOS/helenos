@@ -63,11 +63,11 @@ extern int usb_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
 extern int usb_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
     size_t);
 
-/** Callback for outgoing transfer. */
-typedef void (*usb_iface_transfer_out_callback_t)(int, void *);
+/** Defined in usb/host/usb_transfer_batch.h */
+typedef struct usb_transfer_batch usb_transfer_batch_t;
 
-/** Callback for incoming transfer. */
-typedef void (*usb_iface_transfer_in_callback_t)(int, size_t, void *);
+/** Callback for outgoing transfer - clone of usb_transfer_batch_callback_t */
+typedef int (*usb_iface_transfer_callback_t)(usb_transfer_batch_t *);
 
 /** USB device communication interface. */
 typedef struct {
@@ -83,10 +83,12 @@ typedef struct {
 	int (*register_endpoint)(ddf_fun_t *, usb_endpoint_desc_t *);
 	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_desc_t *);
 
-	int (*read)(ddf_fun_t *, usb_endpoint_t, uint64_t, uint8_t *, size_t,
-	    usb_iface_transfer_in_callback_t, void *);
-	int (*write)(ddf_fun_t *, usb_endpoint_t, uint64_t, const uint8_t *,
-	    size_t, usb_iface_transfer_out_callback_t, void *);
+	int (*read)(ddf_fun_t *, usb_target_t,
+		uint64_t, char *, size_t,
+		usb_iface_transfer_callback_t, void *);
+	int (*write)(ddf_fun_t *, usb_target_t,
+		uint64_t, const char *, size_t,
+		usb_iface_transfer_callback_t, void *);
 } usb_iface_t;
 
 #endif

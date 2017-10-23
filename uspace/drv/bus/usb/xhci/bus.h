@@ -37,7 +37,6 @@
 #ifndef XHCI_BUS_H
 #define XHCI_BUS_H
 
-#include <adt/hash_table.h>
 #include <usb/usb.h>
 #include <usb/host/bus.h>
 
@@ -49,9 +48,6 @@ typedef struct xhci_bus {
 	bus_t base;		/**< Inheritance. Keep this first. */
 
 	xhci_device_t **devices_by_slot;	/**< Devices by Slot ID */
-
-	/** TODO: Do we really need this? */
-	hash_table_t devices;		/**< Devices by address */
 } xhci_bus_t;
 
 int xhci_bus_init(xhci_bus_t *, xhci_hc_t *);

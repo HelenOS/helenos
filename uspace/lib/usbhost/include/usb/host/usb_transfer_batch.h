@@ -107,12 +107,6 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *);
 usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
 void usb_transfer_batch_destroy(usb_transfer_batch_t *);
 
-/** Provided to ease the transition. Wraps old-style handlers into a new one.
- */
-extern void usb_transfer_batch_set_old_handlers(usb_transfer_batch_t *,
-	usbhc_iface_transfer_in_callback_t,
-	usbhc_iface_transfer_out_callback_t, void *);
-
 #endif
 
 /**
