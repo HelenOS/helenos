@@ -138,7 +138,7 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	// XXX: Ugly here. Move to device_destroy at endpoint.c?
 	free32(xhci_dev->dev_ctx);
 	hc->dcbaa[xhci_dev->slot_id] = 0;
-	return ENOTSUP;
+	return EOK;
 }
 
 /** Ops receive generic bus_t pointer. */

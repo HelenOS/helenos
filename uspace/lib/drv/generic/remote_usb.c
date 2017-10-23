@@ -509,9 +509,7 @@ static void remote_usb_unregister_endpoint(ddf_fun_t *fun, void *iface,
 	usb_iface->unregister_endpoint(fun, endpoint_desc);
 
 	free(buffer);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-	}
+	async_answer_0(callid, rc);
 }
 
 static void async_transaction_destroy(async_transaction_t *trans)
