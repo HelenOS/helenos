@@ -78,6 +78,16 @@ static size_t primary_stream_ctx_array_size(xhci_endpoint_t *xhci_ep)
 	return 1 << (xhci_ep->max_streams + 1);
 }
 
+static bool primary_stream_ctx_has_secondary_array(xhci_stream_ctx_t *primary_ctx) {
+	/* Section 6.2.4.1, SCT values */
+	return XHCI_STREAM_SCT(*primary_ctx) >= 2;
+}
+
+static size_t secondary_stream_ctx_array_size(xhci_stream_ctx_t *primary_ctx) {
+	if (XHCI_STREAM_SCT(*primary_ctx) < 2) return 0;
+	return 2 << XHCI_STREAM_SCT(*primary_ctx);
+}
+
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	if (endpoint_uses_streams(xhci_ep)) {
@@ -113,7 +123,15 @@ int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 		usb_log_debug2("Freeing primary stream context array for endpoint %d:%d.",
 		    xhci_ep->base.target.address, xhci_ep->base.target.endpoint);
 
-		// TODO: What about secondaries?
+		// maybe check if LSA, then skip?
+		for (size_t index = 0; index < primary_stream_ctx_array_size(xhci_ep); ++index) {
+			xhci_stream_ctx_t *primary_ctx = xhci_ep->primary_stream_ctx_array + index;
+			if (primary_stream_ctx_has_secondary_array(primary_ctx)) {
+				// uintptr_t phys = XHCI_STREAM_DEQ_PTR(*primary_ctx);
+				/* size_t size = */ secondary_stream_ctx_array_size(primary_ctx);
+				// TODO: somehow map the address to virtual and free the secondary array
+			}
+		}
 		free32(xhci_ep->primary_stream_ctx_array);
 	} else {
 		usb_log_debug2("Freeing main transfer ring for endpoint %d:%d.",
