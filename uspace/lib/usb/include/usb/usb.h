@@ -196,6 +196,11 @@ typedef struct {
 	struct {
 		unsigned polling_interval;
 	} usb2;
+
+	struct {
+		unsigned max_burst;
+		unsigned max_streams;
+	} usb3;
 } usb_endpoint_desc_t;
 
 /** Check USB target for allowed values (address and endpoint).

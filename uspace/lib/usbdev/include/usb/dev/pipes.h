@@ -87,6 +87,8 @@ typedef struct {
 	int interface_setting;
 	/** Found descriptor fitting the description. */
 	const usb_standard_endpoint_descriptor_t *descriptor;
+	/** Relevant superspeed companion descriptor. */
+	const usb_superspeed_endpoint_companion_descriptor_t *companion_descriptor;
 	/** Interface descriptor the endpoint belongs to. */
 	const usb_standard_interface_descriptor_t *interface;
 	/** Whether the endpoint was actually found. */
@@ -94,7 +96,7 @@ typedef struct {
 } usb_endpoint_mapping_t;
 
 int usb_pipe_initialize(usb_pipe_t *, usb_endpoint_t, usb_transfer_type_t,
-    size_t, usb_direction_t, unsigned, usb_dev_session_t *);
+    size_t, usb_direction_t, unsigned, unsigned, unsigned, usb_dev_session_t *);
 int usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
 
 int usb_pipe_probe_default_control(usb_pipe_t *);

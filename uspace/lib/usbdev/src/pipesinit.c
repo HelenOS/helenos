@@ -37,6 +37,7 @@
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
 #include <usb/usb.h>
+#include <usb/debug.h>
 #include <usb/descriptor.h>
 
 #include <assert.h>
@@ -58,6 +59,7 @@ static const usb_dp_descriptor_nesting_t descriptor_nesting[] = {
 	NESTING(INTERFACE, HUB),
 	NESTING(INTERFACE, HID),
 	NESTING(HID, HID_REPORT),
+	NESTING(ENDPOINT, SSPEED_EP_COMPANION),
 	LAST_NESTING
 };
 
@@ -69,6 +71,16 @@ static const usb_dp_descriptor_nesting_t descriptor_nesting[] = {
 static inline bool is_endpoint_descriptor(const uint8_t *descriptor)
 {
 	return descriptor[1] == USB_DESCTYPE_ENDPOINT;
+}
+
+/** Tells whether given descriptor is of superspeed companion type.
+ *
+ * @param descriptor Descriptor in question.
+ * @return Whether the given descriptor is superspeed companion descriptor.
+ */
+static inline bool is_superspeed_companion_descriptor(const uint8_t *descriptor)
+{
+	return descriptor[1] == USB_DESCTYPE_SSPEED_EP_COMPANION;
 }
 
 /** Tells whether found endpoint corresponds to endpoint described by user.
@@ -149,12 +161,14 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
  * @param mapping_count Number of endpoint mappings in @p mapping.
  * @param interface Interface descriptor under which belongs the @p endpoint.
  * @param endpoint Endpoint descriptor.
+ * @param companion Superspeed companion descriptor.
  * @return Error code.
  */
 static int process_endpoint(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     usb_standard_interface_descriptor_t *interface,
     usb_standard_endpoint_descriptor_t *endpoint_desc,
+    usb_superspeed_endpoint_companion_descriptor_t *companion_desc,
     usb_dev_session_t *bus_session)
 {
 
@@ -193,11 +207,18 @@ static int process_endpoint(
 		return EEXIST;
 	}
 
+	unsigned max_burst = 0;
+	unsigned max_streams = 0;
+	if(companion_desc) {
+		max_burst = companion_desc->max_burst;
+		max_streams = SS_COMPANION_MAX_STREAMS(companion_desc->attributes);
+	}
+
 	int rc = usb_pipe_initialize(&ep_mapping->pipe,
 	    ep_no, description.transfer_type,
 	    ED_MPS_PACKET_SIZE_GET(
 	        uint16_usb2host(endpoint_desc->max_packet_size)),
-	    description.direction,
+	    description.direction, max_burst, max_streams,
 	    ED_MPS_TRANS_OPPORTUNITIES_GET(
 	        uint16_usb2host(endpoint_desc->max_packet_size)), bus_session);
 	if (rc != EOK) {
@@ -206,6 +227,7 @@ static int process_endpoint(
 
 	ep_mapping->present = true;
 	ep_mapping->descriptor = endpoint_desc;
+	ep_mapping->companion_descriptor = companion_desc;
 	ep_mapping->interface = interface;
 
 	return EOK;
@@ -234,11 +256,21 @@ static int process_interface(
 
 	do {
 		if (is_endpoint_descriptor(descriptor)) {
+			/* Check if companion descriptor is present too, it should immediatelly follow. */
+			const uint8_t *companion_desc = usb_dp_get_nested_descriptor(parser,
+				parser_data, descriptor);
+			if (companion_desc && !is_superspeed_companion_descriptor(companion_desc)) {
+				/* Not what we wanted, don't pass it further. */
+				companion_desc = NULL;
+			}
+
 			(void) process_endpoint(mapping, mapping_count,
 			    (usb_standard_interface_descriptor_t *)
 			        interface_descriptor,
 			    (usb_standard_endpoint_descriptor_t *)
 			        descriptor,
+			    (usb_superspeed_endpoint_companion_descriptor_t *)
+			        companion_desc,
 			    bus_session);
 		}
 

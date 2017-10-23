@@ -244,6 +244,8 @@ typedef struct {
 	 * whether an isochronous endpoint companion descriptor follows.
 	 */
 	uint8_t attributes;
+#define SS_COMPANION_MAX_STREAMS(attributes) \
+	(attributes & 0x1f)
 	/** The total number of bytes this endpoint will transfer
 	 * every service interval (SI).
 	 * This field is only valid for periodic endpoints.

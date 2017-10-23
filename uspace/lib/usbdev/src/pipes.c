@@ -253,8 +253,10 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
  */
 int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_direction_t direction, unsigned packets, usb_dev_session_t *bus_session)
+    usb_direction_t direction, unsigned packets,
+    unsigned max_burst, unsigned max_streams, usb_dev_session_t *bus_session)
 {
+	// FIXME refactor this function
 	assert(pipe);
 
 	pipe->desc.endpoint_no = endpoint_no;
@@ -262,6 +264,8 @@ int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
 	pipe->desc.packets = packets;
 	pipe->desc.max_packet_size = max_packet_size;
 	pipe->desc.direction = direction;
+	pipe->desc.usb3.max_burst = max_burst;
+	pipe->desc.usb3.max_streams = max_streams;
 	pipe->auto_reset_halt = false;
 	pipe->bus_session = bus_session;
 
@@ -279,7 +283,7 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
 	assert(pipe);
 
 	const int rc = usb_pipe_initialize(pipe, 0, USB_TRANSFER_CONTROL,
-	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH, 1, bus_session);
+	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH, 1, 0, 0, bus_session);
 
 	pipe->auto_reset_halt = true;
 

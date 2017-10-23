@@ -105,6 +105,9 @@ static int register_endpoint(
 		usb_str_direction(endpoint_desc->direction),
 		endpoint_desc->max_packet_size, endpoint_desc->usb2.polling_interval);
 
+	// FIXME: we now have max_streams and max_burst in endpoint_desc->usb3 struct
+	// Hand it down to XHCI, refactor, whatever
+
 	return bus_add_ep(hcd->bus, dev, endpoint_desc->endpoint_no,
 		endpoint_desc->direction, endpoint_desc->transfer_type,
 		endpoint_desc->max_packet_size, endpoint_desc->packets,
