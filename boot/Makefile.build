@@ -108,7 +108,7 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm
 endif
 
-depend: $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH) $(PRE_DEPEND)
+depend: $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(PRE_DEPEND)
 
 $(COMPS).s: $(COMPS).zip
 	unzip -p $< $@ > $@
@@ -132,6 +132,3 @@ $(ARCH_INCLUDE) $(ARCH_INCLUDE)/%.h: arch/$(KARCH)/include/
 
 $(GENARCH_INCLUDE) $(GENARCH_INCLUDE)/%.h: genarch/include/
 	ln -sfn ../../$< $@
-
-$(COMMON_HEADER_ARCH): $(COMMON_HEADER)
-	ln -sfn ../../../$< $@

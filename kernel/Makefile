@@ -457,10 +457,7 @@ $(AGDEPEND): $(AUTOGENS_AG)
 		done \
 	done
 
-depend: $(COMMON_HEADER_ARCH) $(AUTOGENS_H)
-
-$(COMMON_HEADER_ARCH): $(COMMON_HEADER)
-	ln -sfn ../../../../$< $@
+depend: $(AUTOGENS_H)
 
 autogen_clean:
 	-rm $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
