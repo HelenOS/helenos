@@ -349,7 +349,7 @@ NO_TRACE static inline void interrupts_restore(ipl_t ipl) {
 	pstate_reg_t pstate;
 	
 	pstate.value = pstate_read();
-	pstate.ie = ((pstate_reg_t) ipl).ie;
+	pstate.ie = ((pstate_reg_t)(uint64_t) ipl).ie;
 	pstate_write(pstate.value);
 }
 

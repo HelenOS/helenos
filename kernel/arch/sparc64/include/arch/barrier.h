@@ -37,12 +37,6 @@
 
 #include <trace.h>
 
-#ifdef KERNEL
-#include <arch/common.h>
-#else
-#include <libarch/common.h>
-#endif
-
 /*
  * Our critical section barriers are prepared for the weakest RMO memory model.
  */
@@ -87,7 +81,7 @@
 /** Flush Instruction pipeline. */
 NO_TRACE static inline void flush_pipeline(void)
 {
-	uint64_t pc;
+	unsigned long pc;
 	
 	/*
 	 * The FLUSH instruction takes address parameter.

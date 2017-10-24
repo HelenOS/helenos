@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia64
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup bits
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ia64_STDDEF_H_
-#define LIBC_ia64_STDDEF_H_
+#ifndef _BITS_PTRDIFF_T_H_
+#define _BITS_PTRDIFF_T_H_
 
-#include <libarch/common.h>
+#include <_bits/macros.h>
 
-typedef uint64_t size_t;
-typedef int64_t ssize_t;
-typedef int64_t ptrdiff_t;
+typedef __PTRDIFF_TYPE__ ptrdiff_t;
 
 #endif
 

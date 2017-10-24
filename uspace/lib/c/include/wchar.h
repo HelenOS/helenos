@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_arm32_STDINT_H_
-#define LIBC_arm32_STDINT_H_
+#ifndef LIBC_WCHAR_H_
+#define LIBC_WCHAR_H_
 
-#include <libarch/common.h>
+#include <_bits/size_t.h>
+#include <_bits/wchar_t.h>
+#include <_bits/wint_t.h>
 
-#define SIZE_MIN  UINT32_MIN
-#define SIZE_MAX  UINT32_MAX
-
-#define UINTPTR_MAX UINT32_MAX
-typedef uint32_t uintptr_t;
-
-#define INTPTR_MIN INT32_MIN
-#define INTPTR_MAX INT32_MAX
-typedef int32_t intptr_t;
-
-#define UINTMAX_MAX UINT64_MAX
-typedef uint64_t uintmax_t;
-
-#define INTMAX_MAX INT64_MAX
-typedef int64_t intmax_t;
+#include <_bits/NULL.h>
+#include <_bits/WCHAR_MIN.h>
+#include <_bits/WCHAR_MAX.h>
+#include <_bits/WEOF.h>
 
 #endif
 

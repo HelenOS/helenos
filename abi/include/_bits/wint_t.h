@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcamd64
- * @{
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
  */
 
-#ifndef LIBC_amd64_INTTYPES_H_
-#define LIBC_amd64_INTTYPES_H_
+/** @addtogroup bits
+ * @{
+ */
+/** @file
+ */
 
-#define PRIdPTR  PRId64  /**< Format for intptr_t. */
-#define PRIuPTR  PRIu64  /**< Format for uintptr_t. */
-#define PRIxPTR  PRIx64  /**< Format for hexadecimal uintptr_t. */
+#ifndef _BITS_WINT_T_H_
+#define _BITS_WINT_T_H_
 
-#define PRIdn  PRId64  /**< Format for native_t. */
-#define PRIun  PRIu64  /**< Format for sysarg_t. */
-#define PRIxn  PRIx64  /**< Format for hexadecimal sysarg_t. */
-#define PRIua  PRIu64  /**< Format for atomic_count_t. */
+#include <_bits/macros.h>
+
+typedef __WINT_TYPE__ wint_t;
 
 #endif
 

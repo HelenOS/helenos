@@ -37,6 +37,11 @@
 
 #include <types/common.h>
 
+typedef struct {
+	uintptr_t fnc;
+	uintptr_t gp;
+} __attribute__((may_alias)) fncptr_t;
+
 /**
  *
  * Calculate absolute address of function

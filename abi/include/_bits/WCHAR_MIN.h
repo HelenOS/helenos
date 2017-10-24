@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc32
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup bits
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ppc32_TYPES_H_
-#define LIBC_ppc32_TYPES_H_
+#ifndef _BITS_WCHAR_MIN_H_
+#define _BITS_WCHAR_MIN_H_
 
-#include <libarch/common.h>
-#include <libarch/stddef.h>
-#include <libarch/stdint.h>
+#include <_bits/macros.h>
 
-#define __32_BITS__
-
-#define SSIZE_MIN  INT32_MIN
-#define SSIZE_MAX  INT32_MAX
-
-typedef uint32_t sysarg_t;
-typedef int32_t native_t;
-
-typedef uint32_t atomic_count_t;
-typedef int32_t atomic_signed_t;
+#define WCHAR_MIN  __WCHAR_MIN__
 
 #endif
 
 /** @}
  */
-

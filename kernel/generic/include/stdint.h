@@ -35,31 +35,7 @@
 #ifndef KERN_STDINT_H_
 #define KERN_STDINT_H_
 
-#include <arch/common.h>
-
-#define INT8_MIN  INT8_C(0x80)
-#define INT8_MAX  INT8_C(0x7F)
-
-#define UINT8_MIN  UINT8_C(0)
-#define UINT8_MAX  UINT8_C(0xFF)
-
-#define INT16_MIN  INT16_C(0x8000)
-#define INT16_MAX  INT16_C(0x7FFF)
-
-#define UINT16_MIN  UINT16_C(0)
-#define UINT16_MAX  UINT16_C(0xFFFF)
-
-#define INT32_MIN  INT32_C(0x80000000)
-#define INT32_MAX  INT32_C(0x7FFFFFFF)
-
-#define UINT32_MIN  UINT32_C(0)
-#define UINT32_MAX  UINT32_C(0xFFFFFFFF)
-
-#define INT64_MIN  INT64_C(0x8000000000000000)
-#define INT64_MAX  INT64_C(0x7FFFFFFFFFFFFFFF)
-
-#define UINT64_MIN  UINT64_C(0)
-#define UINT64_MAX  UINT64_C(0xFFFFFFFFFFFFFFFF)
+#include <_bits/stdint.h>
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc32
- * @{
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
  */
 
-#ifndef LIBC_ppc32_INTTYPES_H_
-#define LIBC_ppc32_INTTYPES_H_
+/** @addtogroup bits
+ * @{
+ */
+/** @file
+ */
 
-#define PRIdPTR  PRId32  /**< Format for intptr_t. */
-#define PRIuPTR  PRIu32  /**< Format for uintptr_t. */
-#define PRIxPTR  PRIx32  /**< Format for hexadecimal uintptr_t. */
+#ifndef _BITS_ALL_H_
+#define _BITS_ALL_H_
 
-#define PRIdn  PRId32  /**< Format for native_t. */
-#define PRIun  PRIu32  /**< Format for sysarg_t. */
-#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t. */
-#define PRIua  PRIu32  /**< Format for atomic_count_t. */
+#include <_bits/inttypes.h>
+#include <_bits/limits.h>
+#include <_bits/native.h>
+#include <_bits/ptrdiff_t.h>
+#include <_bits/size_t.h>
+#include <_bits/ssize_t.h>
+#include <_bits/stdint.h>
+#include <_bits/wchar_t.h>
+#include <_bits/wint_t.h>
 
 #endif
 

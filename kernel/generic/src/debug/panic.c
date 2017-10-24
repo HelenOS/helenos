@@ -61,7 +61,7 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 		vprintf(fmt, args);
 		printf("\n");
 	} else if (cat == PANIC_BADTRAP) {
-		printf("bad trap %" PRIun ". %s\n", address,
+		printf("bad trap %" PRIuPTR ". %s\n", address,
 		    BANNER_RIGHT);
 		if (fmt) {
 			vprintf(fmt, args);
@@ -95,7 +95,7 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 	
 	printf("THE=%p: ", THE);
 	if (THE != NULL) {
-		printf("pe=%" PRIun " thread=%p task=%p cpu=%p as=%p"
+		printf("pe=%" PRIuPTR " thread=%p task=%p cpu=%p as=%p"
 		    " magic=%#" PRIx32 "\n", THE->preemption,
 		    THE->thread, THE->task, THE->cpu, THE->as, THE->magic);
 		

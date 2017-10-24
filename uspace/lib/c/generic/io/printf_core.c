@@ -45,6 +45,7 @@
 #include <ieee_double.h>
 #include <assert.h>
 #include <macros.h>
+#include <wchar.h>
 
 
 /** show prefixes 0x or 0 */
@@ -113,7 +114,8 @@ typedef enum {
 	PrintfQualifierLong,
 	PrintfQualifierLongLong,
 	PrintfQualifierPointer,
-	PrintfQualifierSize
+	PrintfQualifierSize,
+	PrintfQualifierMax
 } qualifier_t;
 
 static const char *nullstr = "(NULL)";
@@ -1483,6 +1485,11 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				i = nxt;
 				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 				break;
+			case 'j':
+				qualifier = PrintfQualifierMax;
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				break;
 			default:
 				/* Default type */
 				qualifier = PrintfQualifierInt;
@@ -1627,6 +1634,10 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			case PrintfQualifierSize:
 				size = sizeof(size_t);
 				number = (uint64_t) va_arg(ap, size_t);
+				break;
+			case PrintfQualifierMax:
+				size = sizeof(uintmax_t);
+				number = (uint64_t) va_arg(ap, uintmax_t);
 				break;
 			default:
 				/* Unknown qualifier */

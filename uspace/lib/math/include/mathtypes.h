@@ -190,87 +190,37 @@ typedef union {
 	#error Unknown endianess
 #endif
 
-
-#if defined(FLOAT_SIZE_32)
-
-#ifndef float32_t
-	#define float32_t  float
+#if __SIZEOF_FLOAT__ == 4
+#define float32_t float
+#elif __SIZEOF_DOUBLE__ == 4
+#define float32_t double
+#elif __SIZEOF_LONG_DOUBLE__ == 4
+#define float32_t long double
 #endif
 
-#elif defined(FLOAT_SIZE_64)
-
-#ifndef float64_t
-	#define float64_t  float
+#if __SIZEOF_FLOAT__ == 8
+#define float64_t float
+#elif __SIZEOF_DOUBLE__ == 8
+#define float64_t double
+#elif __SIZEOF_LONG_DOUBLE__ == 8
+#define float64_t long double
 #endif
 
-#elif defined(FLOAT_SIZE_96)
-
-#ifndef float96_t
-	#define float96_t  float
+#if __SIZEOF_FLOAT__ == 12
+#define float96_t float
+#elif __SIZEOF_DOUBLE__ == 12
+#define float96_t double
+#elif __SIZEOF_LONG_DOUBLE__ == 12
+#define float96_t long double
 #endif
 
-#elif defined(FLOAT_SIZE_128)
-
-#ifndef float128_t
-	#define float128_t  float
+#if __SIZEOF_FLOAT__ == 16
+#define float128_t float
+#elif __SIZEOF_DOUBLE__ == 16
+#define float128_t double
+#elif __SIZEOF_LONG_DOUBLE__ == 16
+#define float128_t long double
 #endif
-
-#endif
-
-
-#if defined(DOUBLE_SIZE_32)
-
-#ifndef float32_t
-	#define float32_t  double
-#endif
-
-#elif defined(DOUBLE_SIZE_64)
-
-#ifndef float64_t
-	#define float64_t  double
-#endif
-
-#elif defined(DOUBLE_SIZE_96)
-
-#ifndef float96_t
-	#define float96_t  double
-#endif
-
-#elif defined(DOUBLE_SIZE_128)
-
-#ifndef float128_t
-	#define float128_t  double
-#endif
-
-#endif
-
-
-#if defined(LONG_DOUBLE_SIZE_32)
-
-#ifndef float32_t
-	#define float32_t  long double
-#endif
-
-#elif defined(LONG_DOUBLE_SIZE_64)
-
-#ifndef float64_t
-	#define float64_t  long double
-#endif
-
-#elif defined(LONG_DOUBLE_SIZE_96)
-
-#ifndef float96_t
-	#define float96_t  long double
-#endif
-
-#elif defined(LONG_DOUBLE_SIZE_128)
-
-#ifndef float128_t
-	#define float128_t  long double
-#endif
-
-#endif
-
 
 #ifdef float32_t
 

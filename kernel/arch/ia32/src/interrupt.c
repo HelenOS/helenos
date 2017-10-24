@@ -87,7 +87,7 @@ void istate_decode(istate_t *istate)
 	    "ebp=%0#10" PRIx32 "\tesp=%0#10" PRIxn "\n",
 	    istate->esi, istate->edi, istate->ebp,
 	    istate_from_uspace(istate) ? istate->esp :
-	    (uintptr_t) &istate->esp);
+	    (uint32_t) &istate->esp);
 }
 
 static void trap_virtual_eoi(void)

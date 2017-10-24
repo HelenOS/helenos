@@ -31,7 +31,6 @@ USPACE_PREFIX = ../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
-COMMON_HEADER_ARCH = arch/$(UARCH)/include/libarch/common.h
 
 LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
@@ -39,9 +38,9 @@ LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 
-PRE_DEPEND = $(COMMON_HEADER_ARCH)
+PRE_DEPEND =
 EXTRA_OUTPUT = $(LINKER_SCRIPTS)
-EXTRA_CLEAN = $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
+EXTRA_CLEAN = $(LINKER_SCRIPTS)
 LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so.0
@@ -207,6 +206,3 @@ $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
-
-$(COMMON_HEADER_ARCH): $(COMMON_HEADER)
-	ln -sfn ../../../../$< $@

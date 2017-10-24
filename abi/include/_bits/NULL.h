@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32
- * @{
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
  */
 
-#ifndef LIBC_mips32_INTTYPES_H_
-#define LIBC_mips32_INTTYPES_H_
+/** @addtogroup bits
+ * @{
+ */
+/** @file
+ * Definition of constant NULL.
+ *
+ * This definition is designed to work in both C and C++, and use
+ * the special constant `nullptr` in C++11 and above.
+ * Including this file is preferrable to defining the constant separately.
+ */
 
-#define PRIdPTR  PRId32  /**< Format for intptr_t. */
-#define PRIuPTR  PRIu32  /**< Format for uintptr_t. */
-#define PRIxPTR  PRIx32  /**< Format for hexadecimal uintptr_t. */
+#ifndef _BITS_NULL_H_
+#define _BITS_NULL_H_
 
-#define PRIdn  PRId32  /**< Format for native_t. */
-#define PRIun  PRIu32  /**< Format for sysarg_t. */
-#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t. */
-#define PRIua  PRIu32  /**< Format for atomic_count_t. */
+#ifndef NULL
+
+#if __cplusplus >= 201103L
+#define NULL  nullptr
+#elif defined(__cplusplus)
+#define NULL  0L
+#else
+#define NULL  ((void *) 0)
+#endif
+
+#endif
 
 #endif
 

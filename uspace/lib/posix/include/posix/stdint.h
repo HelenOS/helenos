@@ -41,46 +41,6 @@
 
 #include "libc/stdint.h"
 
-#undef INT8_MAX
-#undef INT8_MIN
-#define INT8_MAX  127
-#define INT8_MIN  (-128)
-
-#undef UINT8_MAX
-#undef UINT8_MIN
-#define UINT8_MAX  255
-#define UINT8_MIN  0
-
-#undef INT16_MAX
-#undef INT16_MIN
-#define INT16_MAX  32767
-#define INT16_MIN  (-32768)
-
-#undef UINT16_MAX
-#undef UINT16_MIN
-#define UINT16_MAX  65535
-#define UINT16_MIN  0
-
-#undef INT32_MAX
-#undef INT32_MIN
-#define INT32_MAX  2147483647
-#define INT32_MIN  (-INT32_MAX - 1)
-
-#undef UINT32_MAX
-#undef UINT32_MIN
-#define UINT32_MAX  4294967295U
-#define UINT32_MIN  0U
-
-#undef INT64_MAX
-#undef INT64_MIN
-#define INT64_MAX  9223372036854775807LL
-#define INT64_MIN  (-INT64_MAX - 1LL)
-
-#undef UINT64_MAX
-#undef  UINT64_MIN
-#define UINT64_MAX  18446744073709551615ULL
-#define UINT64_MIN  0ULL
-
 #undef OFF64_MAX
 #undef OFF64_MIN
 #define OFF64_MAX  INT64_MAX
@@ -90,43 +50,6 @@
 #undef AOFF64_MIN
 #define AOFF64_MAX  UINT64_MAX
 #define AOFF64_MIN  UINT64_MIN
-
-#undef INTMAX_MIN
-#undef INTMAX_MAX
-#define INTMAX_MIN INT64_MIN
-#define INTMAX_MAX INT64_MAX
-
-#undef UINTMAX_MIN
-#undef UINTMAX_MAX
-#define UINTMAX_MIN UINT64_MIN
-#define UINTMAX_MAX UINT64_MAX
-
-/*
- * Fast* and least* integer types.
- *
- * The definitions below are correct as long as uint8/16/32/64_t are defined.
- * Considering the entire rest of the system would break down if they were not,
- * these definitions are just fine.
- */
-typedef uint8_t uint_least8_t;
-typedef uint16_t uint_least16_t;
-typedef uint32_t uint_least32_t;
-typedef uint64_t uint_least64_t;
-
-typedef int8_t int_least8_t;
-typedef int16_t int_least16_t;
-typedef int32_t int_least32_t;
-typedef int64_t int_least64_t;
-
-typedef uint8_t uint_fast8_t;
-typedef uint16_t uint_fast16_t;
-typedef uint32_t uint_fast32_t;
-typedef uint64_t uint_fast64_t;
-
-typedef int8_t int_fast8_t;
-typedef int16_t int_fast16_t;
-typedef int32_t int_fast32_t;
-typedef int64_t int_fast64_t;
 
 #endif /* POSIX_STDINT_H_ */
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia64
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup bits
  * @{
  */
 /** @file
+ * A bunch of type aliases HelenOS code uses.
+ *
+ * They were originally defined as either u/int32_t or u/int64_t,
+ * specifically for each architecture, but in practice they are
+ * currently assumed to be identical to u/intptr_t, so we do just that.
  */
 
-#ifndef LIBC_ia64_TYPES_H_
-#define LIBC_ia64_TYPES_H_
+#ifndef _BITS_NATIVE_H_
+#define _BITS_NATIVE_H_
 
-#include <libarch/common.h>
-#include <libarch/stddef.h>
-#include <libarch/stdint.h>
+#include <_bits/macros.h>
 
-#define __64_BITS__
+#define ATOMIC_COUNT_MIN  __UINTPTR_MIN__
+#define ATOMIC_COUNT_MAX  __UINTPTR_MAX__
 
-#define SSIZE_MIN  INT64_MIN
-#define SSIZE_MAX  INT64_MAX
+typedef __UINTPTR_TYPE__ pfn_t;
+typedef __UINTPTR_TYPE__ ipl_t;
+typedef __UINTPTR_TYPE__ sysarg_t;
+typedef __INTPTR_TYPE__  native_t;
+typedef __UINTPTR_TYPE__ atomic_count_t;
+typedef __INTPTR_TYPE__  atomic_signed_t;
 
-typedef uint64_t sysarg_t;
-typedef int64_t native_t;
-
-typedef uint64_t atomic_count_t;
-typedef int64_t atomic_signed_t;
-
-typedef struct {
-	uintptr_t fnc;
-	uintptr_t gp;
-} __attribute__((may_alias)) fncptr_t;
+#define PRIdn  __PRIdPTR__  /**< Format for native_t. */
+#define PRIun  __PRIuPTR__  /**< Format for sysarg_t. */
+#define PRIxn  __PRIxPTR__  /**< Format for hexadecimal sysarg_t. */
+#define PRIua  __PRIuPTR__  /**< Format for atomic_count_t. */
 
 #endif
 

@@ -35,7 +35,6 @@
 #ifndef DDF_INTERRUPT_H_
 #define DDF_INTERRUPT_H_
 
-#include <libarch/common.h>
 #include <types/common.h>
 #include <abi/ddi/irq.h>
 #include <adt/list.h>

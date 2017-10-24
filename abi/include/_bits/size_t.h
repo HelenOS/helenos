@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Martin Decky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup bits
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32_STDDEF_H_
-#define LIBC_abs32_STDDEF_H_
+#ifndef _BITS_SIZE_T_H_
+#define _BITS_SIZE_T_H_
 
-#include <libarch/common.h>
+#include <_bits/macros.h>
 
-typedef uint64_t size_t;
-typedef int64_t ssize_t;
-typedef int64_t ptrdiff_t;
+typedef __SIZE_TYPE__ size_t;
 
 #endif
 

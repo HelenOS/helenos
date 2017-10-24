@@ -32,10 +32,9 @@
 #ifndef BOOT_STDDEF_H_
 #define BOOT_STDDEF_H_
 
-#include <arch/common.h>
 #include <arch/types.h>
 
-#define NULL  ((void *) 0)
+#include <_bits/NULL.h>
 
 #endif
 

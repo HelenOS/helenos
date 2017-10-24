@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcamd64
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup bits
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_amd64_STDINT_H_
-#define LIBC_amd64_STDINT_H_
+#ifndef _BITS_WCHAR_MAX_H_
+#define _BITS_WCHAR_MAX_H_
 
-#include <libarch/common.h>
+#include <_bits/macros.h>
 
-#define SIZE_MIN  UINT64_MIN
-#define SIZE_MAX  UINT64_MAX
-
-#define UINTPTR_MAX UINT64_MAX
-typedef uint64_t uintptr_t;
-
-#define INTPTR_MIN INT64_MIN
-#define INTPTR_MAX INT64_MAX
-typedef int64_t intptr_t;
-
-#define UINTMAX_MAX UINT64_MAX
-typedef uint64_t uintmax_t;
-
-#define INTMAX_MAX INT64_MAX
-typedef int64_t intmax_t;
+#define WCHAR_MAX  __WCHAR_MAX__
 
 #endif
 
