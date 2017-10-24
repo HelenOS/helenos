@@ -34,9 +34,10 @@
  * @brief Simple searching facility.
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <errno.h>
+#include <types/common.h>
 
 #include "search.h"
 #include "search_impl.h"

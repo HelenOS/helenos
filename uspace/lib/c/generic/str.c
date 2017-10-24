@@ -45,6 +45,7 @@
 #include <errno.h>
 #include <align.h>
 #include <mem.h>
+#include <limits.h>
 
 /** Check the condition if wchar_t is signed */
 #ifdef __WCHAR_UNSIGNED__

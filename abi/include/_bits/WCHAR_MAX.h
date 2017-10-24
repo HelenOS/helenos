@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Radim Vansa
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @addtogroup libnic
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup bits
  * @{
  */
-/**
- * @file
- * @brief Generic hash-set based database of addresses
+/** @file
  */
 
-#ifndef __NIC_ADDR_DB_H__
-#define __NIC_ADDR_DB_H__
+#ifndef _BITS_WCHAR_MAX_H_
+#define _BITS_WCHAR_MAX_H_
 
-#ifndef LIBNIC_INTERNAL
-#error "This is internal libnic header, please don't include it"
-#endif
+#include <_bits/macros.h>
 
-#include <adt/hash_table.h>
-#include <types/common.h>
-
-/**
- * Fibril-safe database of addresses implemented using hash set.
- */
-typedef struct nic_addr_db {
-	hash_table_t set;
-	size_t addr_len;
-} nic_addr_db_t;
-
-
-extern int nic_addr_db_init(nic_addr_db_t *db, size_t addr_len);
-extern void nic_addr_db_clear(nic_addr_db_t *db);
-extern void nic_addr_db_destroy(nic_addr_db_t *db);
-extern int nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr);
-extern int nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr);
-extern int nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr);
-extern void nic_addr_db_foreach(const nic_addr_db_t *db,
-	void (*func)(const uint8_t *, void *), void *arg);
+#define WCHAR_MAX  __WCHAR_MAX__
 
 #endif
 

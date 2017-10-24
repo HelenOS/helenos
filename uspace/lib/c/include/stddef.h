@@ -35,9 +35,6 @@
 #ifndef LIBC_STDDEF_H_
 #define LIBC_STDDEF_H_
 
-// TODO: Remove
-#include <_bits/all.h>
-
 #include <_bits/size_t.h>
 #include <_bits/ptrdiff_t.h>
 #include <_bits/wchar_t.h>

@@ -45,6 +45,7 @@
 #include <ieee_double.h>
 #include <assert.h>
 #include <macros.h>
+#include <wchar.h>
 
 
 /** show prefixes 0x or 0 */

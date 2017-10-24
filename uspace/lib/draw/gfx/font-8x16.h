@@ -37,6 +37,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #define FONT_GLYPHS     2899
 #define FONT_WIDTH      8

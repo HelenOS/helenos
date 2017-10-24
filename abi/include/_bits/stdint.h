@@ -171,11 +171,11 @@ typedef __UINTMAX_TYPE__ uintmax_t;
 #define SIZE_MIN  0
 #define SIZE_MAX  __SIZE_MAX__
 
-#define WCHAR_MIN  __WCHAR_MIN__
-#define WCHAR_MAX  __WCHAR_MAX__
-
 #define WINT_MIN  __WINT_MIN__
 #define WINT_MAX  __WINT_MAX__
+
+#include <_bits/WCHAR_MIN.h>
+#include <_bits/WCHAR_MAX.h>
 
 /* Use nonstandard 128-bit types if they are supported by the compiler. */
 

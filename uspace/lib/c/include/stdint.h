@@ -35,9 +35,6 @@
 #ifndef LIBC_STDINT_H_
 #define LIBC_STDINT_H_
 
-// TODO: Remove
-#include <_bits/all.h>
-
 #include <_bits/stdint.h>
 
 #endif

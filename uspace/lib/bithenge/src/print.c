@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <wchar.h>
 #include <bithenge/blob.h>
 #include <bithenge/print.h>
 #include <bithenge/tree.h>

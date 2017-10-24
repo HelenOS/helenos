@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <stddef.h>
+#include <types/common.h>
 
 /** Receive data.
  *
