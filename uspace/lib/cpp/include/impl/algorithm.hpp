@@ -29,6 +29,7 @@
 #ifndef LIBCPP_ALGORITHM
 #define LIBCPP_ALGORITHM
 
+#include <iterator>
 #include <utility>
 
 namespace std

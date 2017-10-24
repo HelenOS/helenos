@@ -37,28 +37,31 @@ namespace std
      * 20.2.1, operators:
      */
 
-    template<typename T>
-    bool operator!=(const T& lhs, const T& rhs)
+    namespace rel_ops
     {
-        return !(lhs == rhs);
-    }
+        template<typename T>
+        bool operator!=(const T& lhs, const T& rhs)
+        {
+            return !(lhs == rhs);
+        }
 
-    template<typename T>
-    bool operator>(const T& lhs, const T& rhs)
-    {
-        return (rhs < lhs);
-    }
+        template<typename T>
+        bool operator>(const T& lhs, const T& rhs)
+        {
+            return (rhs < lhs);
+        }
 
-    template<typename T>
-    bool operator<=(const T& lhs, const T& rhs)
-    {
-        return !(rhs < lhs);
-    }
+        template<typename T>
+        bool operator<=(const T& lhs, const T& rhs)
+        {
+            return !(rhs < lhs);
+        }
 
-    template<typename T>
-    bool operator>=(const T& lhs, const T& rhs)
-    {
-        return !(lhs < rhs);
+        template<typename T>
+        bool operator>=(const T& lhs, const T& rhs)
+        {
+            return !(lhs < rhs);
+        }
     }
 
     /**
