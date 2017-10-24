@@ -127,10 +127,10 @@ $(COMPS).zip: $(COMPONENTS)
 
 include Makefile.initrd
 
-$(ARCH_INCLUDE): arch/$(KARCH)/include/
+$(ARCH_INCLUDE) $(ARCH_INCLUDE)/%.h: arch/$(KARCH)/include/
 	ln -sfn ../../$< $@
 
-$(GENARCH_INCLUDE): genarch/include/
+$(GENARCH_INCLUDE) $(GENARCH_INCLUDE)/%.h: genarch/include/
 	ln -sfn ../../$< $@
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
