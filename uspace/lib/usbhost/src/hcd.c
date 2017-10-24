@@ -86,12 +86,19 @@ int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
 	assert(hcd);
 	assert(device->address == target.address);
 
+	if (!hcd->ops.schedule) {
+		usb_log_error("HCD does not implement scheduler.\n");
+		return ENOTSUP;
+	}
+
 	endpoint_t *ep = bus_find_endpoint(hcd->bus, device, target, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
 		    device->address, target.endpoint, name);
 		return ENOENT;
 	}
+
+	// TODO cut here aka provide helper to call with instance of endpoint_t in hand
 
 	usb_log_debug2("%s %d:%d %zu(%zu).\n",
 	    name, target.address, target.endpoint, size, ep->max_packet_size);
@@ -103,10 +110,6 @@ int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
 		    "but only %zu is reserved.\n",
 		    ep->target.address, ep->target.endpoint, name, bw, ep->bandwidth);
 		return ENOSPC;
-	}
-	if (!hcd->ops.schedule) {
-		usb_log_error("HCD does not implement scheduler.\n");
-		return ENOTSUP;
 	}
 
 	usb_transfer_batch_t *batch = usb_transfer_batch_create(ep);

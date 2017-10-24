@@ -89,6 +89,16 @@ static void setup_control_ep0_ctx(xhci_ep_ctx_t *ctx, xhci_trb_ring_t *ring,
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 }
 
+/* FIXME Are these really static? Older HCs fetch it from descriptor. */
+/* FIXME Add USB3 options, if applicable. */
+static const usb_endpoint_desc_t ep0_desc = {
+	.endpoint_no = 0,
+	.direction = USB_DIRECTION_BOTH,
+	.transfer_type = USB_TRANSFER_CONTROL,
+	.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
+	.packets = 1,
+};
+
 // TODO: This currently assumes the device is attached to rh directly.
 //       Also, we should consider moving a lot of functionailty to xhci bus
 int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
@@ -111,10 +121,6 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 		return ENOMEM;
 
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
-	/* FIXME: Sync this with xhci_device_add_endpoint. */
-	ep0->max_streams = 0;
-	ep0->max_burst = 0;
-	ep0->mult = 0;
 
 	if ((err = xhci_endpoint_alloc_transfer_ds(ep0)))
 		goto err_ep;
@@ -143,17 +149,9 @@ int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
 	xhci_dev->online = true;
 	fibril_mutex_unlock(&dev->guard);
 
-	// XXX: Going around bus, duplicating code
 	ep0_base->device = dev;
-	ep0_base->target.address = dev->address;
-	ep0_base->target.endpoint = 0;
-	ep0_base->direction = USB_DIRECTION_BOTH;
-	ep0_base->transfer_type = USB_TRANSFER_CONTROL;
-	ep0_base->max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE;
-	ep0_base->packets = 1;
-	ep0_base->bandwidth = CTRL_PIPE_MIN_PACKET_SIZE;
 
-	bus_register_endpoint(&rh->hc->bus.base, ep0_base);
+	bus_register_endpoint(&rh->hc->bus.base, ep0_base, &ep0_desc);
 
 	if (!rh->devices[dev->port - 1]) {
 		/* Only save the device if it's the first one connected to this port. */

@@ -82,7 +82,7 @@ typedef struct {
 	int (*remove_device)(bus_t *, hcd_t *, device_t *);
 
 	endpoint_t *(*create_endpoint)(bus_t *);
-	int (*register_endpoint)(bus_t *, endpoint_t *);
+	int (*register_endpoint)(bus_t *, endpoint_t *, const usb_endpoint_desc_t *);
 	int (*unregister_endpoint)(bus_t *, endpoint_t *);
 	endpoint_t *(*find_endpoint)(bus_t *, device_t*, usb_target_t, usb_direction_t);
 	void (*destroy_endpoint)(endpoint_t *);			/**< Optional */
@@ -116,9 +116,7 @@ typedef struct bus {
 void bus_init(bus_t *, size_t);
 int device_init(device_t *);
 
-extern int bus_add_ep(bus_t *bus, device_t *device, usb_endpoint_t endpoint,
-    usb_direction_t dir, usb_transfer_type_t type, size_t max_packet_size,
-    unsigned packets, size_t size);
+extern int bus_add_ep(bus_t *, device_t *, const usb_endpoint_desc_t *);
 extern int bus_remove_ep(bus_t *, device_t *, usb_target_t, usb_direction_t);
 
 int device_set_default_name(device_t *);
@@ -127,7 +125,7 @@ int bus_enumerate_device(bus_t *, hcd_t *, device_t *);
 int bus_remove_device(bus_t *, hcd_t *, device_t *);
 
 endpoint_t *bus_create_endpoint(bus_t *);
-int bus_register_endpoint(bus_t *, endpoint_t *);
+int bus_register_endpoint(bus_t *, endpoint_t *, const usb_endpoint_desc_t *);
 int bus_unregister_endpoint(bus_t *, endpoint_t *);
 endpoint_t *bus_find_endpoint(bus_t *, device_t *, usb_target_t, usb_direction_t);
 

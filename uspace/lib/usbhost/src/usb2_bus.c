@@ -90,14 +90,23 @@ static int usb2_bus_get_speed(bus_t *bus_base, usb_address_t address, usb_speed_
 	return ret;
 }
 
+static const usb_endpoint_desc_t usb2_default_control_ep = {
+	.endpoint_no = 0,
+	.transfer_type = USB_TRANSFER_CONTROL,
+	.direction = USB_DIRECTION_BOTH,
+	.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
+	.packets = 1,
+};
+
+
+static const usb_target_t usb2_default_target = {{
+	.address = USB_ADDRESS_DEFAULT,
+	.endpoint = 0,
+}};
+
 static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 {
 	int err;
-
-	static const usb_target_t default_target = {{
-		.address = USB_ADDRESS_DEFAULT,
-		.endpoint = 0,
-	}};
 
 	/** Reserve address early, we want pretty log messages */
 	const usb_address_t address = bus_reserve_default_address(bus, dev->speed);
@@ -110,8 +119,7 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 
 	/* Add default pipe on default address */
 	usb_log_debug("Device(%d): Adding default target (0:0)", address);
-	err = bus_add_ep(bus, dev, 0, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1);
+	err = bus_add_ep(bus, dev, &usb2_default_control_ep);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to add default target: %s.",
 		    address, str_error(err));
@@ -125,7 +133,7 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 
 	usb_log_debug("Device(%d): Requesting first 8B of device descriptor.",
 	    address);
-	ssize_t got = hcd_send_batch_sync(hcd, dev, default_target, USB_DIRECTION_IN,
+	ssize_t got = hcd_send_batch_sync(hcd, dev, usb2_default_target, USB_DIRECTION_IN,
 	    (char *) &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
 	    "read first 8 bytes of dev descriptor");
 
@@ -133,40 +141,45 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 		err = got < 0 ? got : EOVERFLOW;
 		usb_log_error("Device(%d): Failed to get 8B of dev descr: %s.",
 		    address, str_error(err));
-		goto err_default_target;
+		goto err_default_control_ep;
 	}
 
 	/* Set new address */
 	const usb_device_request_setup_packet_t set_address = SET_ADDRESS(address);
 
 	usb_log_debug("Device(%d): Setting USB address.", address);
-	err = hcd_send_batch_sync(hcd, dev, default_target, USB_DIRECTION_OUT,
+	err = hcd_send_batch_sync(hcd, dev, usb2_default_target, USB_DIRECTION_OUT,
 	    NULL, 0, *(uint64_t *)&set_address, "set address");
 	if (err != 0) {
 		usb_log_error("Device(%d): Failed to set new address: %s.",
 		    address, str_error(got));
-		goto err_default_target;
+		goto err_default_control_ep;
 	}
 
 	dev->address = address;
 
+	const usb_endpoint_desc_t control_ep = {
+		.endpoint_no = 0,
+		.transfer_type = USB_TRANSFER_CONTROL,
+		.direction = USB_DIRECTION_BOTH,
+		.max_packet_size = ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
+		.packets = ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
+	};
+
 	/* Register EP on the new address */
 	usb_log_debug("Device(%d): Registering control EP.", address);
-	err = bus_add_ep(bus, dev, 0, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
-	    ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
-	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)));
+	err = bus_add_ep(bus, dev, &control_ep);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to register EP0: %s",
 		    address, str_error(err));
-		goto err_default_target;
+		goto err_default_control_ep;
 	}
 
-	bus_remove_ep(bus, dev, default_target, USB_DIRECTION_BOTH);
+	bus_remove_ep(bus, dev, usb2_default_target, USB_DIRECTION_BOTH);
 	return EOK;
 
-err_default_target:
-	bus_remove_ep(bus, dev, default_target, USB_DIRECTION_BOTH);
+err_default_control_ep:
+	bus_remove_ep(bus, dev, usb2_default_target, USB_DIRECTION_BOTH);
 err_address:
 	bus_release_address(bus, address);
 	return err;
@@ -277,19 +290,24 @@ static endpoint_t *usb2_bus_create_ep(bus_t *bus)
  * @param bus usb_bus structure, non-null.
  * @param endpoint USB endpoint number.
  */
-static int usb2_bus_register_ep(bus_t *bus_base, endpoint_t *ep)
+static int usb2_bus_register_ep(bus_t *bus_base, endpoint_t *ep, const usb_endpoint_desc_t *desc)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 	assert(ep);
 
-	usb_address_t address = ep->target.address;
+	assert(ep->device);
 
-	if (!usb_address_is_valid(address))
-		return EINVAL;
+	/* Extract USB2-related information from endpoint_desc */
+	ep->target = (usb_target_t) {{
+		.address = ep->device->address,
+		.endpoint = desc->endpoint_no,
+	}};
+	ep->direction = desc->direction;
+	ep->transfer_type = desc->transfer_type;
+	ep->max_packet_size = desc->max_packet_size;
+	ep->packets = desc->packets;
 
-	/* Check for speed and address */
-	if (!bus->devices[address].occupied)
-		return ENOENT;
+	ep->bandwidth = bus_base->ops.count_bw(ep, desc->max_packet_size);
 
 	/* Check for existence */
 	if (usb2_bus_find_ep(bus_base, ep->device, ep->target, ep->direction))
@@ -299,7 +317,7 @@ static int usb2_bus_register_ep(bus_t *bus_base, endpoint_t *ep)
 	if (ep->bandwidth > bus->free_bw)
 		return ENOSPC;
 
-	list_append(&ep->link, get_list(bus, ep->target.address));
+	list_append(&ep->link, get_list(bus, ep->device->address));
 	bus->free_bw -= ep->bandwidth;
 
 	return EOK;

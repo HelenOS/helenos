@@ -274,6 +274,8 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 
 	assert(&dev->base == ep->base.device);
 	assert(dev->base.address == ep->base.target.address);
+
+	// TODO Do not fail hard on runtime conditions
 	assert(!dev->endpoints[ep_num]);
 
 	dev->endpoints[ep_num] = ep;
@@ -284,11 +286,6 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 		 * so we must not issue the command now. */
 		return EOK;
 	}
-
-	// FIXME: Set these from usb_superspeed_endpoint_companion_descriptor_t:
-	ep->max_streams = 0;
-	ep->max_burst = 0;
-	ep->mult = 0;
 
 	/* Set up TRB ring / PSA. */
 	if ((err = xhci_endpoint_alloc_transfer_ds(ep))) {

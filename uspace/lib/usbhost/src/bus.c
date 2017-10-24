@@ -65,9 +65,7 @@ int device_init(device_t *dev)
 	return EOK;
 }
 
-int bus_add_ep(bus_t *bus, device_t *device, usb_endpoint_t endpoint,
-    usb_direction_t dir, usb_transfer_type_t type, size_t max_packet_size,
-    unsigned packets, size_t size)
+int bus_add_ep(bus_t *bus, device_t *device, const usb_endpoint_desc_t *desc)
 {
 	assert(bus);
 	assert(device);
@@ -77,20 +75,8 @@ int bus_add_ep(bus_t *bus, device_t *device, usb_endpoint_t endpoint,
 	if (!ep)
 		return ENOMEM;
 
-	ep->target = (usb_target_t) {
-		.address = device->address,
-		.endpoint = endpoint,
-	};
-
 	ep->device = device;
-	ep->direction = dir;
-	ep->transfer_type = type;
-	ep->max_packet_size = max_packet_size;
-	ep->packets = packets;
-
-	ep->bandwidth = bus_count_bw(ep, size);
-
-	const int err = bus_register_endpoint(bus, ep);
+	const int err = bus_register_endpoint(bus, ep, desc);
 
 	/* drop Temporary reference */
 	endpoint_del_ref(ep);
@@ -164,7 +150,7 @@ endpoint_t *bus_create_endpoint(bus_t *bus)
 	return ep;
 }
 
-int bus_register_endpoint(bus_t *bus, endpoint_t *ep)
+int bus_register_endpoint(bus_t *bus, endpoint_t *ep, const usb_endpoint_desc_t *desc)
 {
 	assert(bus);
 	assert(ep);
@@ -173,7 +159,7 @@ int bus_register_endpoint(bus_t *bus, endpoint_t *ep)
 	endpoint_add_ref(ep);
 
 	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.register_endpoint(bus, ep);
+	const int r = bus->ops.register_endpoint(bus, ep, desc);
 	fibril_mutex_unlock(&bus->guard);
 
 	return r;

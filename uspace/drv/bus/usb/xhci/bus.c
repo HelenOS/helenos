@@ -164,15 +164,32 @@ static void destroy_endpoint(endpoint_t *ep)
 	free(xhci_ep);
 }
 
-static int register_endpoint(bus_t *bus_base, endpoint_t *ep)
+static int register_endpoint(bus_t *bus_base, endpoint_t *ep, const usb_endpoint_desc_t *desc)
 {
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
-	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->target.address, ep->target.endpoint);
+	assert(ep->device);
+
+	/* Extract USB2-related information from endpoint_desc */
+	ep->target = (usb_target_t) {{
+		.address = ep->device->address,
+		.endpoint = desc->endpoint_no,
+	}};
+	ep->direction = desc->direction;
+	ep->transfer_type = desc->transfer_type;
+	ep->max_packet_size = desc->max_packet_size;
+	ep->packets = desc->packets;
 
 	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
+
+	xhci_ep->max_streams = desc->usb3.max_streams;
+	xhci_ep->max_burst = desc->usb3.max_burst;
+	// TODO add this property to usb_endpoint_desc_t and fetch it from ss companion desc
+	xhci_ep->mult = 0;
+
+	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->target.address, ep->target.endpoint);
 	return xhci_device_add_endpoint(xhci_dev, xhci_ep);
 }
 

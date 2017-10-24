@@ -97,21 +97,13 @@ static int register_endpoint(
 	assert(hcd->bus);
 	assert(dev);
 
-	const size_t size = endpoint_desc->max_packet_size;
-
 	usb_log_debug("Register endpoint %d:%d %s-%s %zuB %ums.\n",
 		dev->address, endpoint_desc->endpoint_no,
 		usb_str_transfer_type(endpoint_desc->transfer_type),
 		usb_str_direction(endpoint_desc->direction),
 		endpoint_desc->max_packet_size, endpoint_desc->usb2.polling_interval);
 
-	// FIXME: we now have max_streams and max_burst in endpoint_desc->usb3 struct
-	// Hand it down to XHCI, refactor, whatever
-
-	return bus_add_ep(hcd->bus, dev, endpoint_desc->endpoint_no,
-		endpoint_desc->direction, endpoint_desc->transfer_type,
-		endpoint_desc->max_packet_size, endpoint_desc->packets,
-		size);
+	return bus_add_ep(hcd->bus, dev, endpoint_desc);
 }
 
  /** Unregister endpoint interface function.

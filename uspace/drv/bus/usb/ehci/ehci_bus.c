@@ -113,12 +113,14 @@ static void ehci_endpoint_destroy(endpoint_t *ep)
 }
 
 
-static int ehci_register_ep(bus_t *bus_base, endpoint_t *ep)
+static int ehci_register_ep(bus_t *bus_base, endpoint_t *ep, const usb_endpoint_desc_t *desc)
 {
 	ehci_bus_t *bus = (ehci_bus_t *) bus_base;
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
 
-	const int err = bus->parent_ops.register_endpoint(bus_base, ep);
+	// TODO utilize desc->usb2
+
+	const int err = bus->parent_ops.register_endpoint(bus_base, ep, desc);
 	if (err)
 		return err;
 
