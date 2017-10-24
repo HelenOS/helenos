@@ -43,7 +43,7 @@
 #include <_bits/stdint.h>
 #include <_bits/wchar_t.h>
 
-struct {
+typedef struct {
 	intmax_t quot;
 	intmax_t rem;
 } imaxdiv_t;
