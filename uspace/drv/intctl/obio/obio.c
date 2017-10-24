@@ -41,18 +41,19 @@
  * be found at the same addresses.
  */
 
-#include <ipc/irc.h>
-#include <loc.h>
+#include <align.h>
 #include <as.h>
+#include <async.h>
+#include <ddf/driver.h>
+#include <ddf/log.h>
 #include <ddi.h>
-#include <align.h>
-#include <inttypes.h>
-#include <stdbool.h>
 #include <errno.h>
-#include <async.h>
-#include <align.h>
-#include <async.h>
+#include <inttypes.h>
+#include <ipc/irc.h>
+#include <stdbool.h>
 #include <stdio.h>
+
+#include "obio.h"
 
 #define NAME "obio"
 
@@ -87,7 +88,7 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (1) {
 		int inr;
-	
+
 		callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
@@ -111,75 +112,65 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-/** Initialize the OBIO driver.
- *
- * In the future, the OBIO driver should be integrated with the sun4u platform driver.
- */
-static bool obio_init(void)
+/** Add OBIO device. */
+int obio_add(obio_t *obio, obio_res_t *res)
 {
-	category_id_t irc_cat;
-	service_id_t svc_id;
+	ddf_fun_t *fun_a = NULL;
 	int rc;
-	
+
 	base_phys = (uintptr_t) 0x1fe00000000ULL;
-	
+
 	int flags = AS_AREA_READ | AS_AREA_WRITE;
 	int retval = physmem_map(base_phys,
 	    ALIGN_UP(OBIO_SIZE, PAGE_SIZE) >> PAGE_WIDTH, flags,
 	    (void *) &base_virt);
-	
+
 	if (retval < 0) {
-		printf("%s: Error mapping OBIO registers\n", NAME);
-		return false;
+		ddf_msg(LVL_ERROR, "Error mapping OBIO registers");
+		rc = EIO;
+		goto error;
 	}
-	
-	printf("%s: OBIO registers with base at 0x%" PRIun "\n", NAME, base_phys);
-	
-	async_set_fallback_port_handler(obio_connection, NULL);
-	
-	rc = loc_server_register(NAME);
+
+	ddf_msg(LVL_NOTE, "OBIO registers with base at 0x%" PRIun, base_phys);
+
+	fun_a = ddf_fun_create(obio->dev, fun_exposed, "a");
+	if (fun_a == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	ddf_fun_set_conn_handler(fun_a, obio_connection);
+
+	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		printf("%s: Failed registering server. (%d)\n", NAME, rc);
-		return false;
+		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		goto error;
 	}
-	
-	rc = loc_service_register("irc/" NAME, &svc_id);
-	if (rc != EOK) {
-		printf("%s: Failed registering service. (%d)\n", NAME, rc);
-		return false;
-	}
-	
-	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Failed resolving category 'iplink' (%d).\n", NAME,
-		    rc);
-		return false;
-	}
-	
-	rc = loc_service_add_to_cat(svc_id, irc_cat);
-	if (rc != EOK) {
-		printf("%s: Failed adding service to category (%d).\n", NAME,
-		    rc);
-		return false;
-	}
-	
-	return true;
+
+	rc = ddf_fun_add_to_category(fun_a, "irc");
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	if (fun_a != NULL)
+		ddf_fun_destroy(fun_a);
+	return rc;
 }
 
-int main(int argc, char **argv)
+/** Remove OBIO device */
+int obio_remove(obio_t *obio)
 {
-	printf("%s: HelenOS OBIO driver\n", NAME);
-	
-	if (!obio_init())
-		return -1;
-	
-	printf("%s: Accepting connections\n", NAME);
-	task_retval(0);
-	async_manager();
-	
-	/* Never reached */
-	return 0;
+	return ENOTSUP;
 }
+
+/** OBIO device gone */
+int obio_gone(obio_t *obio)
+{
+	return ENOTSUP;
+}
+
 
 /**
  * @}

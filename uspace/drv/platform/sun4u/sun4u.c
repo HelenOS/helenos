@@ -86,6 +86,31 @@ static driver_t sun4u_driver = {
 	.driver_ops = &sun4u_ops
 };
 
+static hw_resource_t obio_res[] = {
+	{
+		.type = MEM_RANGE,
+		.res.mem_range = {
+			.address = PBM_BASE + PBM_PCI_CONFIG_BASE,
+			.size = PBM_PCI_CONFIG_SIZE,
+			.relative = false,
+			.endianness = LITTLE_ENDIAN
+		}
+	}
+};
+
+static sun4u_fun_t obio_data = {
+	.hw_resources = {
+		.count = sizeof(obio_res) / sizeof(obio_res[0]),
+		.resources = obio_res
+	},
+	.pio_window = {
+		.mem = {
+			.base = PBM_BASE + PBM_PCI_MEM_BASE,
+			.size = PBM_PCI_MEM_SIZE
+		}
+	}
+};
+
 static hw_resource_t pci_conf_regs[] = {
 	{
 		.type = MEM_RANGE,
@@ -200,6 +225,9 @@ failure:
 
 static bool sun4u_add_functions(ddf_dev_t *dev)
 {
+	if (!sun4u_add_fun(dev, "obio", "ebus/obio", &obio_data))
+		return false;
+
 	return sun4u_add_fun(dev, "pci0", "intel_pci", &pci_data);
 }
 

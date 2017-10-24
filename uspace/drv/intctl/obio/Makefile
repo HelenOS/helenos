@@ -27,10 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
+USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = obio
 
 SOURCES = \
+	main.c \
 	obio.c
 
 include $(USPACE_PREFIX)/Makefile.common

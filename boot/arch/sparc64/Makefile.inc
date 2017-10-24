@@ -42,15 +42,11 @@ RD_DRVS_ESSENTIAL += \
 	platform/sun4u \
 	bus/pci/pciintel \
 	bus/isa \
+	intctl/obio \
 	char/ns8250
 
 RD_DRV_CFG += \
 	bus/isa
-
-RD_SRVS_NON_ESSENTIAL +=
-
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/irc/obio/obio
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
