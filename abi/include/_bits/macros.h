@@ -67,6 +67,9 @@
  *	__SIZEOF_LONG__
  *	__SIZEOF_LONG_LONG__
  *	__SIZEOF_POINTER__
+ *	__SIZEOF_FLOAT__
+ *	__SIZEOF_DOUBLE__
+ *	__SIZEOF_LONG_DOUBLE__
  *
  *	__SIZE_TYPE__
  *	__SIZE_MAX__
@@ -88,9 +91,37 @@
  *	__CHAR_UNSIGNED__ when char is unsigned
  *
  * After this header is processed, the following additional macros are
- * guaranteed to be defined:
+ * guaranteed to be defined, or the build will fail:
  *
- *	TODO: List them all.
+ * 	for {type} being one of CHAR, SHRT, INT, LONG, LLONG
+ * 	__{type}_MIN__
+ * 	__{type}_MAX__
+ * 	__U{type}_MAX__
+ *
+ * 	__SCHAR_MIN__
+ * 	__SCHAR_MAX__
+ *
+ * 	for {size} being one of 8, 16, 32, 64, PTR, MAX
+ * 	__INT{size}_TYPE__
+ * 	__INT{size}_MIN__
+ * 	__INT{size}_MAX__
+ * 	__UINT{size}_TYPE__
+ * 	__UINT{size}_MAX__
+ * 	for {tag} being one of d, i, u, o, x, X
+ * 	__PRI{tag}{size}__
+ * 	for {tag} being one of d, i, u, o, x
+ * 	__SCN{tag}{size}__
+ * 	__INT{size}_C
+ * 	__UINT{size}_C
+ * 	(except for __INTPTR_C/__UINTPTR_C, which aren't provided)
+ *
+ * 	__PTRDIFF_MIN__
+ * 	__WCHAR_MIN__
+ * 	__WINT_MIN__
+ * 	__WINT_MAX__
+ * 	__WINT_EOF__
+ * 	__WCHAR_SIGNED__ or __WCHAR_UNSIGNED__
+ * 	__WINT_SIGNED__ or __WINT_UNSIGNED__
  *
  */
 
