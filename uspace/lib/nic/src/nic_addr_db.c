@@ -35,7 +35,6 @@
  * @brief Generic hash-set based database of addresses
  */
 #include "nic_addr_db.h"
-#include "libarch/common.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <stdbool.h>

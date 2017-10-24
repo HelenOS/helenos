@@ -37,8 +37,6 @@
 
 #include <arch/types.h>
 
-typedef native_t ptrdiff_t;
-
 #ifndef NULL
 	#define NULL  ((void *) 0)
 #endif

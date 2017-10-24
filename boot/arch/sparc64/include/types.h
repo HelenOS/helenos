@@ -29,17 +29,10 @@
 #ifndef BOOT_sparc64_TYPES_H_
 #define BOOT_sparc64_TYPES_H_
 
-#include <arch/common.h>
+#include <_bits/all.h>
 
 #define TASKMAP_MAX_RECORDS        32
 #define BOOTINFO_TASK_NAME_BUFLEN  32
-
-typedef uint64_t size_t;
-typedef uint64_t uintptr_t;
-typedef uint64_t sysarg_t;
-typedef int64_t native_t;
-
-typedef int64_t ptrdiff_t;
 
 typedef struct {
 	void *addr;

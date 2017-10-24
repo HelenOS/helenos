@@ -36,17 +36,10 @@
 #ifndef BOOT_arm32_TYPES_H
 #define BOOT_arm32_TYPES_H
 
-#include <arch/common.h>
+#include <_bits/all.h>
 
 #define TASKMAP_MAX_RECORDS        32
 #define BOOTINFO_TASK_NAME_BUFLEN  32
-
-typedef uint32_t size_t;
-typedef uint32_t uintptr_t;
-
-typedef uint32_t pfn_t;
-
-typedef int32_t ptrdiff_t;
 
 typedef struct {
 	/** Address where the task was placed. */

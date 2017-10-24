@@ -29,16 +29,11 @@
 #ifndef BOOT_mips32_TYPES_H_
 #define BOOT_mips32_TYPES_H_
 
-#include <arch/common.h>
+#include <_bits/all.h>
 
 #define TASKMAP_MAX_RECORDS        32
 #define CPUMAP_MAX_RECORDS         32
 #define BOOTINFO_TASK_NAME_BUFLEN  32
-
-typedef uint32_t size_t;
-typedef uint32_t uintptr_t;
-
-typedef int32_t ptrdiff_t;
 
 typedef struct {
 	/** Address where the task was placed. */

@@ -35,7 +35,10 @@
 #ifndef LIBC_INTTYPES_H_
 #define LIBC_INTTYPES_H_
 
-#include <libarch/inttypes.h>
+// TODO: Remove
+#include <_bits/all.h>
+
+#include <_bits/inttypes.h>
 
 #endif
 
