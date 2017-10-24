@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
  */
 
-#ifndef BOOT_STDDEF_H_
-#define BOOT_STDDEF_H_
+/** @addtogroup bits
+ * @{
+ */
+/** @file
+ * Definition of constant NULL.
+ *
+ * This definition is designed to work in both C and C++, and use
+ * the special constant `nullptr` in C++11 and above.
+ * Including this file is preferrable to defining the constant separately.
+ */
 
-#include <arch/types.h>
+#ifndef _BITS_NULL_H_
+#define _BITS_NULL_H_
 
-#include <_bits/NULL.h>
+#ifndef NULL
+
+#if __cplusplus >= 201103L
+#define NULL  nullptr
+#elif defined(__cplusplus)
+#define NULL  0L
+#else
+#define NULL  ((void *) 0)
+#endif
+
+#endif
 
 #endif
 

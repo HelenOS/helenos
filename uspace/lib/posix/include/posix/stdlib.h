@@ -42,9 +42,7 @@
 
 #include "sys/types.h"
 
-#ifndef NULL
-	#define NULL  ((void *) 0)
-#endif
+#include <_bits/NULL.h>
 
 #define RAND_MAX  714025
 

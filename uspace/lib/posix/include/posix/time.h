@@ -42,9 +42,7 @@
 
 #include "sys/types.h"
 
-#ifndef NULL
-	#define NULL  ((void *) 0)
-#endif
+#include <_bits/NULL.h>
 
 #ifndef CLOCKS_PER_SEC
 	#define CLOCKS_PER_SEC (1000000L)
