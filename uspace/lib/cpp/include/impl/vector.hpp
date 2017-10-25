@@ -391,102 +391,72 @@ namespace std
             template<class... Args>
             iterator emplace(const_iterator position, Args&&... args)
             {
-                auto idx = shift_right_(position, 1);
-                allocator_.construct(data_ + idx, std::forward<Args>(args)...);
+                auto pos = const_cast<iterator>(position);
 
-                return begin() + idx;
+                shift_(pos, 1);
+                allocator_.construct(pos, std::forward<Args>(args)...);
+
+                return pos;
             }
 
             iterator insert(const_iterator position, const value_type& x)
             {
-                /**
-                 * Note: The reason that all insert functions are done in this weird
-                 *       way with an auxiliary vector instead of just shifting
-                 *       the elements is that we need to provide strong exception
-                 *       guarantee - in the case of exception our vector needs to
-                 *       stay in its pre-instert state and this swap method guarantees
-                 *       that.
-                 * TODO: Avoid reallocation if it still fits!
-                 */
-                size_type idx = static_cast<size_type>(position - cbegin());
+                auto pos = const_cast<iterator>(position);
 
-                vector tmp{};
-                tmp.resize_without_copy_(max(size_ + 1, capacity_));
+                shift_(pos, 1);
+                *pos = x;
 
-                // Copy before insertion index.
-                tmp.copy_(0, begin(), begin() + idx);
-
-                // Insertion.
-                tmp.data_[idx] = x;
-
-                // Copy after insertion index.
-                tmp.copy_(idx + 1, begin() + idx + 1, end());
-                tmp.size_ = size_ + 1;
-                swap(tmp);
-
-                return begin() + idx;
+                ++size_;
+                return pos;
             }
 
             iterator insert(const_iterator position, value_type&& x)
             {
-                size_type idx = static_cast<size_type>(position - cbegin());
+                auto pos = const_cast<iterator>(position);
 
-                vector tmp{};
-                tmp.resize_without_copy_(max(size_ + 1, capacity_));
+                shift_(pos, 1);
+                *pos = forward<value_type>(x);
 
-                // Copy before insertion index.
-                tmp.copy_(0, begin(), begin() + idx);
-
-                // Insertion.
-                tmp.data_[idx] = std::forward<value_type>(x);
-
-                // Copy after insertion index.
-                tmp.copy_(idx + 1, begin() + idx + 1, end());
-                tmp.size_ = size_ + 1;
-                swap(tmp);
-
-                return begin() + idx;
+                ++size_;
+                return pos;
             }
 
             iterator insert(const_iterator position, size_type count, const value_type& x)
             {
-                size_type idx = static_cast<size_type>(position - cbegin());
+                auto pos = const_cast<iterator>(position);
 
-                vector tmp{};
-                tmp.resize_without_copy_(max(size_ + 1, capacity_));
+                shift_(pos, count);
+                auto copy_target = pos;
+                for (size_type i = 0; i < count; ++i)
+                    *copy_target++ = x;
 
-                // Copy before insertion index.
-                tmp.copy_(0, begin(), begin() + idx);
-
-                // Insertion.
-                auto tmp_idx = idx;
-                for (size_type i = 0; i < count; ++i, ++tmp_idx)
-                    tmp.data_[tmp_idx] = x;
-
-                // Copy after insertion index.
-                tmp.copy_(tmp_idx, begin() + idx, end());
-                tmp.size_ = size_ + count;
-                swap(tmp);
-
-                return begin() + idx;
+                size_ += count;
+                return pos;
             }
 
             template<class InputIterator>
             iterator insert(const_iterator position, InputIterator first,
                             InputIterator last)
             {
-                size_type idx = static_cast<size_type>(position - cbegin());
-                size_type count = static_cast<size_type>(last - first);
+                auto pos = const_cast<iterator>(position);
+                auto count = static_cast<size_type>(last - first);
 
-                return insert_(idx, count, first, last);
+                shift_(pos, count);
+                std::copy(first, last, pos);
+
+                size_ += count;
+                return pos;
             }
 
             iterator insert(const_iterator position, initializer_list<T> init)
             {
-                size_type idx = static_cast<size_type>(position - cbegin());
-                size_type count = init.size();
+                auto pos = const_cast<iterator>(position);
 
-                return insert_(idx, count, init.begin(), init.end());
+                shift_(pos, init.size());
+                std::copy(init.begin(), init.end(), pos);
+
+                size_ += init.size();
+                return pos;
             }
 
             iterator erase(const_iterator position)
@@ -579,31 +549,29 @@ namespace std
                     return max(capacity_ * 2, 2ul);
             }
 
-            template<class Iterator>
-            void copy_(size_type idx, Iterator first, Iterator last)
+            void shift_(iterator position, size_type count)
             {
-                for (size_type i = idx; first != last; ++i, ++first)
-                    data_[i] = *first;
-            }
+                if (size_ + count < capacity_)
+                    std::copy_backwards(pos, end(), end() + count);
+                else
+                {
+                    auto start_idx = static_cast<size_type>(position - begin());
+                    auto end_idx = start_idx + count;
+                    auto new_size = size_ + count;
 
-            template<class Iterator>
-            iterator insert_(size_type idx, size_type count, Iterator first, Iterator last)
-            {
-                vector tmp{};
-                tmp.resize_without_copy_(max(size_ + count, capacity_));
+                    // Auxiliary vector for easier swap.
+                    vector tmp{};
+                    tmp.resize_without_copy_(max(new_size, capacity_));
+                    tmp.size_ = new_size;
 
-                // Copy before insertion index.
-                tmp.copy_(0, begin(), begin() + idx);
+                    // Copy before insertion index.
+                    std::copy(tmp.begin(), tmp.begin() + start_idx, begin());
 
-                // Insertion.
-                tmp.copy_(idx, first, last);
+                    // Copy after insertion index.
+                    std::copy(tmp.begin() + end_idx, tmp.end(), begin() + start_idx);
 
-                // Copy after insertion index.
-                tmp.copy_(idx + count, begin() + idx, end());
-                tmp.size_ = size_ + count;
-                swap(tmp);
-
-                return begin() + idx;
+                    swap(tmp);
+                }
             }
     };
 
