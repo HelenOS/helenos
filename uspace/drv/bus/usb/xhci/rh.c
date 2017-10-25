@@ -373,22 +373,28 @@ static inline int get_hub_available_bandwidth(xhci_device_t* dev, uint8_t speed,
 	// and the command can query only one of them
 	// ctx is an out parameter as of now
 	assert(dev);
+	assert(ctx);
 
-	ctx = malloc(sizeof(xhci_port_bandwidth_ctx_t));
-	if(!ctx)
+	xhci_port_bandwidth_ctx_t *in_ctx = malloc32(sizeof(xhci_port_bandwidth_ctx_t));
+	if (!in_ctx) {
 		return ENOMEM;
-
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	xhci_get_port_bandwidth_command(dev->hc, &cmd, ctx, speed);
-
-	int err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT);
-	if(err != EOK) {
-		free(ctx);
-		ctx = NULL;
 	}
 
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd, XHCI_CMD_GET_PORT_BANDWIDTH);
+
+	cmd.bandwidth_ctx = in_ctx;
+	cmd.device_speed = speed;
+
+	int err;
+	if ((err = xhci_cmd_sync(dev->hc, &cmd))) {
+		goto end;
+	}
+
+	memcpy(ctx, in_ctx, sizeof(xhci_port_bandwidth_ctx_t));
+
+end:
+	xhci_cmd_fini(&cmd);
 	return EOK;
 }
 

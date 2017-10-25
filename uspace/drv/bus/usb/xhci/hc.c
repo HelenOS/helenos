@@ -599,19 +599,19 @@ int hc_enable_slot(xhci_hc_t *hc, uint32_t *slot_id)
 
 	int err;
 	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
+	xhci_cmd_init(&cmd, XHCI_CMD_ENABLE_SLOT);
 
-	if ((err = xhci_send_enable_slot_command(hc, &cmd)) != EOK)
-		return err;
+	if ((err = xhci_cmd_sync(hc, &cmd))) {
+		goto end;
+	}
 
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
-		return err;
-
-	if (slot_id)
+	if (slot_id) {
 		*slot_id = cmd.slot_id;
+	}
 
+end:
 	xhci_cmd_fini(&cmd);
-	return EOK;
+	return err;
 }
 
 int hc_disable_slot(xhci_hc_t *hc, uint32_t slot_id)
@@ -619,18 +619,10 @@ int hc_disable_slot(xhci_hc_t *hc, uint32_t slot_id)
 	assert(hc);
 
 	int err;
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = slot_id;
-
-	if ((err = xhci_send_disable_slot_command(hc, &cmd)) != EOK)
+	if ((err = xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = slot_id))) {
 		return err;
+	}
 
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
-		return err;
-
-	xhci_cmd_fini(&cmd);
 	return EOK;
 }
 
@@ -687,16 +679,10 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
 	xhci_setup_endpoint_context(ep0, &ictx->endpoint_ctx[0]);
 
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = dev->slot_id;
-
-	if ((err = xhci_send_address_device_command(hc, &cmd, ictx)) != EOK)
-		goto err_cmd;
-
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
-		goto err_cmd;
+	/* Issue Address Device command. */
+	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE, .slot_id = dev->slot_id, .input_ctx = ictx))) {
+		goto err_dev_ctx;
+	}
 
 	dev->base.address = XHCI_SLOT_DEVICE_ADDRESS(dev->dev_ctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.\n", dev->base.address);
@@ -706,13 +692,8 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	dev->online = true;
 	fibril_mutex_unlock(&dev->base.guard);
 
-	xhci_cmd_fini(&cmd);
-	free32(ictx);
 	return EOK;
 
-err_cmd:
-	xhci_cmd_fini(&cmd);
-	free32(ictx);
 err_dev_ctx:
 	free32(dev->dev_ctx);
 	hc->dcbaa[dev->slot_id] = 0;
@@ -727,33 +708,15 @@ int hc_configure_device(xhci_hc_t *hc, uint32_t slot_id)
 	/* Issue configure endpoint command (sec 4.3.5). */
 	xhci_input_ctx_t *ictx;
 	if ((err = create_valid_input_ctx(&ictx))) {
-		goto err;
+		return err;
 	}
-
 	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = slot_id;
-
-	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, ictx))) {
-		goto err_cmd;
+	if ((err = xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx))) {
+		return err;
 	}
 
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
-		goto err_cmd;
-	}
-
-	xhci_cmd_fini(&cmd);
-
-	free32(ictx);
 	return EOK;
-
-err_cmd:
-	free32(ictx);
-err:
-	return err;
 }
 
 int hc_deconfigure_device(xhci_hc_t *hc, uint32_t slot_id)
@@ -761,21 +724,9 @@ int hc_deconfigure_device(xhci_hc_t *hc, uint32_t slot_id)
 	int err;
 
 	/* Issue configure endpoint command (sec 4.3.5) with the DC flag. */
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = slot_id;
-	cmd.deconfigure = true;
-
-	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, NULL))) {
+	if ((err = xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .deconfigure = true))) {
 		return err;
 	}
-
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
-		return err;
-	}
-
-	xhci_cmd_fini(&cmd);
 
 	return EOK;
 }
@@ -787,36 +738,18 @@ int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx
 	/* Issue configure endpoint command (sec 4.3.5). */
 	xhci_input_ctx_t *ictx;
 	if ((err = create_valid_input_ctx(&ictx))) {
-		goto err;
+		return err;
 	}
 
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
 	memcpy(&ictx->endpoint_ctx[ep_idx], ep_ctx, sizeof(xhci_ep_ctx_t));
-
 	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = slot_id;
-
-	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, ictx))) {
-		goto err_cmd;
+	if ((err = xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx))) {
+		return err;
 	}
 
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
-		goto err_cmd;
-	}
-
-	xhci_cmd_fini(&cmd);
-
-	free32(ictx);
 	return EOK;
-
-err_cmd:
-	free32(ictx);
-err:
-	return err;
 }
 
 int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
@@ -826,35 +759,17 @@ int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
 	/* Issue configure endpoint command (sec 4.3.5). */
 	xhci_input_ctx_t *ictx;
 	if ((err = create_valid_input_ctx(&ictx))) {
-		goto err;
+		return err;
 	}
 
 	XHCI_INPUT_CTRL_CTX_DROP_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
-
 	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = slot_id;
-
-	if ((err = xhci_send_configure_endpoint_command(hc, &cmd, ictx))) {
-		goto err_cmd;
+	if ((err = xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx))) {
+		return err;
 	}
 
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT))) {
-		goto err_cmd;
-	}
-
-	xhci_cmd_fini(&cmd);
-
-	free32(ictx);
 	return EOK;
-
-err_cmd:
-	free32(ictx);
-err:
-	return err;
 }
 
 /**
