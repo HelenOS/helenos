@@ -122,11 +122,13 @@ int xhci_trb_ring_init(xhci_trb_ring_t *ring)
 
 int xhci_trb_ring_fini(xhci_trb_ring_t *ring)
 {
-	if (!ring)
-		return EOK;
+	assert(ring);
 
-	list_foreach(ring->segments, segments_link, trb_segment_t, segment)
+	list_foreach_safe(ring->segments, cur, next) {
+		trb_segment_t *segment = list_get_instance(cur, trb_segment_t, segments_link);
 		dmamem_unmap_anonymous(segment);
+	}
+
 	return EOK;
 }
 
@@ -292,8 +294,10 @@ int xhci_event_ring_init(xhci_event_ring_t *ring)
 
 int xhci_event_ring_fini(xhci_event_ring_t *ring)
 {
-	list_foreach(ring->segments, segments_link, trb_segment_t, segment)
+	list_foreach_safe(ring->segments, cur, next) {
+		trb_segment_t *segment = list_get_instance(cur, trb_segment_t, segments_link);
 		dmamem_unmap_anonymous(segment);
+	}
 
 	if (ring->erst)
 		free32(ring->erst);
