@@ -73,19 +73,6 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 	return device_init(&hc->rh.device);
 }
 
-static usb_speed_t port_speed_to_usb_speed(const xhci_port_speed_t *port_speed)
-{
-	assert(port_speed->major > 0 && port_speed->major <= USB_SPEED_SUPER);
-
-	switch (port_speed->major) {
-		case 3: return USB_SPEED_SUPER;
-		case 2: return USB_SPEED_HIGH;
-		case 1: return port_speed->minor ? USB_SPEED_FULL : USB_SPEED_LOW;
-	}
-
-	assert(false);
-}
-
 /** Create a device node for device directly connected to RH.
  */
 static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
@@ -109,7 +96,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 
 	dev->hub = &rh->device;
 	dev->port = port_id;
-	dev->speed = port_speed_to_usb_speed(port_speed);
+	dev->speed = port_speed->usb_speed;
 
 	if ((err = xhci_bus_enumerate_device(bus, rh->hc, dev))) {
 		usb_log_error("Failed to enumerate USB device: %s", str_error(err));
@@ -403,7 +390,7 @@ const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *rh, uint8_t port)
 	xhci_port_regs_t *port_regs = &rh->hc->op_regs->portrs[port - 1];
 
 	unsigned psiv = XHCI_REG_RD(port_regs, XHCI_PORT_PS);
-	return &rh->speeds[psiv];
+	return &rh->hc->speeds[psiv];
 }
 
 int xhci_rh_reset_port(xhci_rh_t* rh, uint8_t port)

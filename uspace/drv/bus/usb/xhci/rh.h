@@ -50,6 +50,7 @@ typedef struct xhci_port_speed {
 	char name [4];
 	uint8_t major, minor;
 	uint64_t rx_bps, tx_bps;
+	usb_speed_t usb_speed;
 } xhci_port_speed_t;
 
 typedef struct hcd_roothub hcd_roothub_t;
@@ -66,9 +67,6 @@ typedef struct {
 
 	/* We need this to attach children to */
 	ddf_dev_t *hc_device;
-
-	/** Port speeds reported from HC */
-	xhci_port_speed_t speeds [16];
 
 	/** Interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t *unfinished_interrupt_transfer;

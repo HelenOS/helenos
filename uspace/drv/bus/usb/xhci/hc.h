@@ -74,6 +74,10 @@ typedef struct xhci_hc {
 	unsigned max_slots;
 	bool ac64;
 
+	/** Port speed mapping */
+	xhci_port_speed_t speeds [16];
+	uint8_t speed_to_psiv [USB_SPEED_MAX];
+
 	/* Command list */
 	list_t commands;
 	fibril_mutex_t commands_mtx;

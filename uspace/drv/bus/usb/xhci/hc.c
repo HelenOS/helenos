@@ -52,17 +52,18 @@
  * Default USB Speed ID mapping: Table 157
  */
 #define PSI_TO_BPS(psie, psim) (((uint64_t) psim) << (10 * psie))
-#define PORT_SPEED(mjr, psie, psim) { \
+#define PORT_SPEED(usb, mjr, psie, psim) { \
 	.name = "USB ", \
 	.major = mjr, \
 	.minor = 0, \
+	.usb_speed = USB_SPEED_##usb, \
 	.rx_bps = PSI_TO_BPS(psie, psim), \
 	.tx_bps = PSI_TO_BPS(psie, psim) \
 }
-static const xhci_port_speed_t ps_default_full  = PORT_SPEED(2, 2, 12);
-static const xhci_port_speed_t ps_default_low   = PORT_SPEED(2, 1, 1500);
-static const xhci_port_speed_t ps_default_high  = PORT_SPEED(2, 2, 480);
-static const xhci_port_speed_t ps_default_super = PORT_SPEED(3, 3, 5);
+static const xhci_port_speed_t ps_default_full  = PORT_SPEED(FULL, 2, 2, 12);
+static const xhci_port_speed_t ps_default_low   = PORT_SPEED(LOW, 2, 1, 1500);
+static const xhci_port_speed_t ps_default_high  = PORT_SPEED(HIGH, 2, 2, 480);
+static const xhci_port_speed_t ps_default_super = PORT_SPEED(SUPER, 3, 3, 5);
 
 /**
  * Walk the list of extended capabilities.
@@ -72,7 +73,7 @@ static int hc_parse_ec(xhci_hc_t *hc)
 	unsigned psic, major, minor;
 	xhci_sp_name_t name;
 
-	xhci_port_speed_t *speeds = hc->rh.speeds;
+	xhci_port_speed_t *speeds = hc->speeds;
 
 	for (xhci_extcap_t *ec = hc->xecp; ec; ec = xhci_extcap_next(ec)) {
 		xhci_dump_extcap(ec);
@@ -105,8 +106,13 @@ static int hc_parse_ec(xhci_hc_t *hc)
 					speeds[1] = ps_default_full;
 					speeds[2] = ps_default_low;
 					speeds[3] = ps_default_high;
+
+					hc->speed_to_psiv[USB_SPEED_FULL] = 1;
+					hc->speed_to_psiv[USB_SPEED_LOW] = 2;
+					hc->speed_to_psiv[USB_SPEED_HIGH] = 3;
 				} else if (major == 3) {
 					speeds[4] = ps_default_super;
+					hc->speed_to_psiv[USB_SPEED_SUPER] = 4;
 				} else {
 					return EINVAL;
 				}
@@ -123,6 +129,7 @@ static int hc_parse_ec(xhci_hc_t *hc)
 					speeds[psiv].major = major;
 					speeds[psiv].minor = minor;
 					str_ncpy(speeds[psiv].name, 4, name.str, 4);
+					speeds[psiv].usb_speed = USB_SPEED_MAX;
 
 					uint64_t bps = PSI_TO_BPS(psie, psim);
 
