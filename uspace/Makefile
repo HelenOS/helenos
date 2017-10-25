@@ -239,17 +239,16 @@ LIBS = \
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
-LIBN_BUILD = $(addsuffix .build,$(LIBN))
 BUILDS := $(addsuffix .build,$(DIRS))
 BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) lib/c)
 
-CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
+CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
 
-.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD) $(BUILDS) $(CLEANS) clean
+.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
 
 all: $(BUILDS) $(BUILDS_TESTS)
 
-$(BUILDS_TESTS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
+$(BUILDS_TESTS): $(LIBC_BUILD) $(LIBS_BUILD)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)
@@ -257,10 +256,7 @@ clean: $(CLEANS)
 $(CLEANS):
 	-$(MAKE) -r -C $(basename $@) clean
 
-$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
-	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
-
-$(LIBN_BUILD): $(LIBC_BUILD) $(LIBS_BUILD)
+$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
 	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBS_BUILD): $(LIBC_BUILD)
