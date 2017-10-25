@@ -329,22 +329,22 @@ namespace std
 
             reverse_iterator rbegin() noexcept
             {
-                return make_reverse_iterator(begin());
+                return make_reverse_iterator(end());
             }
 
             const_reverse_iterator rbegin() const noexcept
             {
-                return make_reverse_iterator(cbegin());
+                return make_reverse_iterator(cend());
             }
 
             reverse_iterator rend() noexcept
             {
-                return make_reverse_iterator(end());
+                return make_reverse_iterator(begin());
             }
 
             const_reverse_iterator rend() const noexcept
             {
-                return make_reverse_iterator(cend());
+                return make_reverse_iterator(cbegin());
             }
 
             const_iterator cbegin() const noexcept;
@@ -353,12 +353,12 @@ namespace std
 
             const_reverse_iterator crbegin() const noexcept
             {
-                return make_reverse_iterator(cbegin());
+                return rbegin();
             }
 
             const_reverse_iterator crend() const noexcept
             {
-                return make_reverse_iterator(cend());
+                return rend();
             }
 
             /**
