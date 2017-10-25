@@ -261,20 +261,22 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		return EOK;
 	}
 
+	/* Semantics of NO_OP_CMD is that success is marked as a TRB error. */
+	if (command->_header.cmd == XHCI_CMD_NO_OP && code == XHCI_TRBC_TRB_ERROR)
+		code = XHCI_TRBC_SUCCESS;
+
 	command->status = code;
 	command->slot_id = TRB_GET_SLOT(*trb);
 
 	usb_log_debug2("Completed command trb: %s", xhci_trb_str_type(TRB_TYPE(command->_header.trb)));
-	if (TRB_TYPE(command->_header.trb) != XHCI_TRB_TYPE_NO_OP_CMD) {
-		if (code != XHCI_TRBC_SUCCESS) {
-			report_error(code);
-			xhci_dump_trb(&command->_header.trb);
-		}
+
+	if (code != XHCI_TRBC_SUCCESS) {
+		report_error(code);
+		xhci_dump_trb(&command->_header.trb);
 	}
 
 	switch (TRB_TYPE(command->_header.trb)) {
 	case XHCI_TRB_TYPE_NO_OP_CMD:
-		assert(code == XHCI_TRBC_TRB_ERROR);
 		break;
 	case XHCI_TRB_TYPE_ENABLE_SLOT_CMD:
 		break;
@@ -584,7 +586,7 @@ int xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
 		return err;
 	}
 
-	return EOK;
+	return cmd->status == XHCI_TRBC_SUCCESS ? EOK : EINVAL;
 }
 
 /** Does the same thing as `xhci_cmd_sync` and executes `xhci_cmd_fini`. This
