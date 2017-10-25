@@ -187,7 +187,7 @@ namespace std
 
             allocator_type get_allocator() const noexcept
             {
-                return allocator_type{};
+                return allocator_type{allocator_};
             }
 
             iterator begin() noexcept
@@ -492,7 +492,7 @@ namespace std
             value_type* data_;
             size_type size_;
             size_type capacity_;
-            Allocator allocator_;
+            allocator_type allocator_;
 
             void resize_without_copy_(size_type capacity)
             {
