@@ -577,6 +577,8 @@
 #endif
 #endif
 
+#ifndef __HELENOS_DISABLE_INTMAX__
+
 #if !defined(__INTMAX_TYPE__) || !defined(__INTMAX_MAX__)
 #error HelenOS expects __INTMAX_TYPE__ and __INTMAX_MAX__ \
     to be defined by the toolchain.
@@ -638,6 +640,8 @@
 #define __SCNuMAX__  "ju"
 #define __SCNoMAX__  "jo"
 #define __SCNxMAX__  "jx"
+
+#endif  /* __HELENOS_DISABLE_INTMAX__ */
 
 #ifndef __SIZEOF_FLOAT__
 #error HelenOS expects __SIZEOF_FLOAT__ to be defined.

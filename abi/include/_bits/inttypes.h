@@ -43,11 +43,6 @@
 #include <_bits/stdint.h>
 #include <_bits/wchar_t.h>
 
-typedef struct {
-	intmax_t quot;
-	intmax_t rem;
-} imaxdiv_t;
-
 #define PRId8       __PRId8__
 #define PRIdLEAST8  __PRId8__
 #define PRIdFAST8   __PRId8__
@@ -236,6 +231,8 @@ typedef struct {
 #define SCNuPTR  __SCNuPTR__
 #define SCNxPTR  __SCNxPTR__
 
+#ifndef __HELENOS_DISABLE_INTMAX__
+
 #define PRIdMAX  __PRIdMAX__
 #define PRIiMAX  __PRIiMAX__
 #define PRIoMAX  __PRIoMAX__
@@ -247,6 +244,13 @@ typedef struct {
 #define SCNoMAX  __SCNoMAX__
 #define SCNuMAX  __SCNuMAX__
 #define SCNxMAX  __SCNxMAX__
+
+typedef struct {
+	intmax_t quot;
+	intmax_t rem;
+} imaxdiv_t;
+
+#endif  /* __HELENOS_DISABLE_INTMAX__ */
 
 #endif
 

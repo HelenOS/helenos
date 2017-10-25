@@ -154,6 +154,8 @@ typedef __UINTPTR_TYPE__ uintptr_t;
 #define UINTPTR_MIN  __UINTPTR_C(0)
 #define UINTPTR_MAX  __UINTPTR_MAX__
 
+#ifndef __HELENOS_DISABLE_INTMAX__
+
 typedef __INTMAX_TYPE__  intmax_t;
 typedef __UINTMAX_TYPE__ uintmax_t;
 
@@ -164,6 +166,8 @@ typedef __UINTMAX_TYPE__ uintmax_t;
 
 #define INTMAX_C(x)   __INTMAX_C(x)
 #define UINTMAX_C(x)  __UINTMAX_C(x)
+
+#endif  /* __HELENOS_DISABLE_INTMAX__ */
 
 #define PTRDIFF_MIN  __PTRDIFF_MIN__
 #define PTRDIFF_MAX  __PTRDIFF_MAX__
