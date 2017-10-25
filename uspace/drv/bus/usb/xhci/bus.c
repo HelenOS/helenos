@@ -145,6 +145,7 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	if (xhci_dev->tier >= 2) {
 		const unsigned offset = 4 * (xhci_dev->tier - 2);
 		xhci_dev->route_str |= (dev->port & 0xf) << offset;
+		xhci_dev->rh_port = xhci_hub->rh_port;
 	}
 
 	fibril_mutex_lock(&bus->base.guard);
