@@ -336,7 +336,7 @@ namespace std
     OutputIterator copy(InputIterator first, InputIterator last, OutputIterator result)
     {
         while (first != last)
-            *result++ = first++;
+            *result++ = *first++;
 
         return result;
     }
@@ -371,6 +371,8 @@ namespace std
         // Note: We're copying [first, last) so we need to skip the initial value of last.
         while (last-- != first)
             *result-- = *last;
+
+        return result;
     }
 
     /**
