@@ -250,348 +250,349 @@ namespace std
              class Allocator = allocator<Char>>
     class basic_string
     {
-        using traits_type     = Traits;
-        using value_type      = typename traits_type::char_type;
-        using allocator_type  = Allocator;
-        using size_type       = typename allocator_traits<allocator_type>::size_type;
-        using difference_type = typename allocator_traits<allocator_type>::difference_type;
+        public:
+            using traits_type     = Traits;
+            using value_type      = typename traits_type::char_type;
+            using allocator_type  = Allocator;
+            using size_type       = typename allocator_traits<allocator_type>::size_type;
+            using difference_type = typename allocator_traits<allocator_type>::difference_type;
 
-        using reference       = value_type&;
-        using const_reference = const value_type&;
-        using pointer         = allocator_traits<allocator_type>::pointer;
-        using const_pointer   = allocator_traits<allocator_type>::const_pointer;
+            using reference       = value_type&;
+            using const_reference = const value_type&;
+            using pointer         = allocator_traits<allocator_type>::pointer;
+            using const_pointer   = allocator_traits<allocator_type>::const_pointer;
 
-        using iterator               = pointer;
-        using const_iterator         = const_pointer;
-        using reverse_iterator       = std::reverse_iterator<iterator>;
-        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+            using iterator               = pointer;
+            using const_iterator         = const_pointer;
+            using reverse_iterator       = std::reverse_iterator<iterator>;
+            using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        static constexpr size_type npos = -1;
+            static constexpr size_type npos = -1;
 
-        /**
-         * 21.4.2, construct/copy/destroy:
-         */
-        basic_string() noexcept
-            : basic_string(allocator_type{})
-        { /* DUMMY BODY */ }
+            /**
+             * 21.4.2, construct/copy/destroy:
+             */
+            basic_string() noexcept
+                : basic_string(allocator_type{})
+            { /* DUMMY BODY */ }
 
-        explicit basic_string(const allocator_type& alloc);
+            explicit basic_string(const allocator_type& alloc);
 
-        basic_string(const basic_string& other);
+            basic_string(const basic_string& other);
 
-        basic_string(basic_string&& other);
+            basic_string(basic_string&& other);
 
-        basic_string(const basic_string& other, size_type pos, size_type n = npos,
-                     const allocator_type& alloc = allocator_type{});
+            basic_string(const basic_string& other, size_type pos, size_type n = npos,
+                         const allocator_type& alloc = allocator_type{});
 
-        basic_string(const value_type*, size_type n, const allocator_type& alloc = allocator{});
+            basic_string(const value_type*, size_type n, const allocator_type& alloc = allocator{});
 
-        basic_string(const value_type*, const allocator_type& alloc = allocator{});
+            basic_string(const value_type*, const allocator_type& alloc = allocator{});
 
-        basic_string(size_type n, value_type c, const allocator_type& alloc = allocator{});
+            basic_string(size_type n, value_type c, const allocator_type& alloc = allocator{});
 
-        template<class InputIterator>
-        basic_string(InputIterator first, InputIterator last,
-                     const allocator_type& alloc = allocator{});
+            template<class InputIterator>
+            basic_string(InputIterator first, InputIterator last,
+                         const allocator_type& alloc = allocator{});
 
-        basic_string(initializer_list<value_type> init, const allocator_type& alloc = allocator{});
+            basic_string(initializer_list<value_type> init, const allocator_type& alloc = allocator{});
 
-        basic_string(const basic_string& other, const allocator_type& alloc);
+            basic_string(const basic_string& other, const allocator_type& alloc);
 
-        basic_string(basic_string&& other, const allocator_type& alloc);
+            basic_string(basic_string&& other, const allocator_type& alloc);
 
-        ~basic_string();
+            ~basic_string();
 
-        basic_string& operator=(const basic_string& other);
+            basic_string& operator=(const basic_string& other);
 
-        basic_string& operator=(basic_string&& other)
-            noexcept(allocator_traits<allocator_type>::propagate_on_container_move_assignment::value ||
-                     allocator_traits<allocator_type>::is_always_equal::value);
+            basic_string& operator=(basic_string&& other)
+                noexcept(allocator_traits<allocator_type>::propagate_on_container_move_assignment::value ||
+                         allocator_traits<allocator_type>::is_always_equal::value);
 
-        basic_string& operator=(const value_type* other);
+            basic_string& operator=(const value_type* other);
 
-        basic_string& operator=(value_type c);
+            basic_string& operator=(value_type c);
 
-        basic_string& operator=(initializer_list<value_type>);
+            basic_string& operator=(initializer_list<value_type>);
 
-        /**
-         * 21.4.3, iterators:
-         */
+            /**
+             * 21.4.3, iterators:
+             */
 
-        iterator begin() noexcept;
+            iterator begin() noexcept;
 
-        const_iterator begin() const noexcept;
+            const_iterator begin() const noexcept;
 
-        iterator end() noexcept;
+            iterator end() noexcept;
 
-        const_iterator end() const noexcept;
+            const_iterator end() const noexcept;
 
-        reverse_iterator rbegin() noexcept
-        {
-            return make_reverse_iterator(begin());
-        }
+            reverse_iterator rbegin() noexcept
+            {
+                return make_reverse_iterator(begin());
+            }
 
-        const_reverse_iterator rbegin() const noexcept
-        {
-            return make_reverse_iterator(cbegin());
-        }
+            const_reverse_iterator rbegin() const noexcept
+            {
+                return make_reverse_iterator(cbegin());
+            }
 
-        reverse_iterator rend() noexcept
-        {
-            return make_reverse_iterator(end());
-        }
+            reverse_iterator rend() noexcept
+            {
+                return make_reverse_iterator(end());
+            }
 
-        const_reverse_iterator rend() const noexcept
-        {
-            return make_reverse_iterator(cend());
-        }
+            const_reverse_iterator rend() const noexcept
+            {
+                return make_reverse_iterator(cend());
+            }
 
-        const_iterator cbegin() const noexcept;
+            const_iterator cbegin() const noexcept;
 
-        const_iterator cend() const noexcept;
+            const_iterator cend() const noexcept;
 
-        const_reverse_iterator crbegin() const noexcept
-        {
-            return make_reverse_iterator(cbegin());
-        }
+            const_reverse_iterator crbegin() const noexcept
+            {
+                return make_reverse_iterator(cbegin());
+            }
 
-        const_reverse_iterator crend() const noexcept
-        {
-            return make_reverse_iterator(cend());
-        }
+            const_reverse_iterator crend() const noexcept
+            {
+                return make_reverse_iterator(cend());
+            }
 
-        /**
-         * 21.4.4, capacity:
-         */
+            /**
+             * 21.4.4, capacity:
+             */
 
-        size_type size() const noexcept;
+            size_type size() const noexcept;
 
-        size_type length() const noexcept;
+            size_type length() const noexcept;
 
-        size_type max_size() const noexcept;
+            size_type max_size() const noexcept;
 
-        void resize(size_type n, value_type c);
+            void resize(size_type n, value_type c);
 
-        void resize(size_type n);
+            void resize(size_type n);
 
-        size_type capacity() const noexcept;
+            size_type capacity() const noexcept;
 
-        void reserve(size_type res_arg = 0);
+            void reserve(size_type res_arg = 0);
 
-        void shrink_to_fit();
+            void shrink_to_fit();
 
-        void clear() noexcept;
+            void clear() noexcept;
 
-        bool empty() const noexcept;
+            bool empty() const noexcept;
 
-        /**
-         * 21.4.5, element access:
-         */
+            /**
+             * 21.4.5, element access:
+             */
 
-        const_reference operator[](size_type idx) const;
+            const_reference operator[](size_type idx) const;
 
-        reference operator[](size_type idx);
+            reference operator[](size_type idx);
 
-        const_reference at(size_type idx) const;
+            const_reference at(size_type idx) const;
 
-        reference at(size_type idx);
+            reference at(size_type idx);
 
-        const_reference front() const;
+            const_reference front() const;
 
-        reference front();
+            reference front();
 
-        const_reference back() const;
+            const_reference back() const;
 
-        reference back();
+            reference back();
 
-        /**
-         * 21.4.6, modifiers:
-         */
+            /**
+             * 21.4.6, modifiers:
+             */
 
-        basic_string& operator+=(const basic_string& str);
+            basic_string& operator+=(const basic_string& str);
 
-        basic_string& operator+=(const value_type* str);
+            basic_string& operator+=(const value_type* str);
 
-        basic_string& operator+=(value_type c);
+            basic_string& operator+=(value_type c);
 
-        basic_string& operator+=(initializer_list<value_type> init);
+            basic_string& operator+=(initializer_list<value_type> init);
 
-        basic_string& append(const basic_string& str);
+            basic_string& append(const basic_string& str);
 
-        basic_string& append(const basic_string& str, size_type pos
-                             size_type n = npos);
+            basic_string& append(const basic_string& str, size_type pos
+                                 size_type n = npos);
 
-        basic_string& append(const value_type* str, size_type n);
+            basic_string& append(const value_type* str, size_type n);
 
-        basic_string& append(const value_type* str);
+            basic_string& append(const value_type* str);
 
-        basic_string& append(size_type n, value_type c);
+            basic_string& append(size_type n, value_type c);
 
-        template<class InputIterator>
-        basic_string& append(InputIterator first, InputIterator last);
+            template<class InputIterator>
+            basic_string& append(InputIterator first, InputIterator last);
 
-        basic_string& append(initializer_list<value_type> init);
+            basic_string& append(initializer_list<value_type> init);
 
-        void push_back(value_type c);
+            void push_back(value_type c);
 
-        basic_string& assign(const basic_string& str);
+            basic_string& assign(const basic_string& str);
 
-        basic_string& assign(basic_string&& str);
+            basic_string& assign(basic_string&& str);
 
-        basic_string& assign(const basic_string& str, size_type pos,
-                             size_type n = npos);
+            basic_string& assign(const basic_string& str, size_type pos,
+                                 size_type n = npos);
 
-        basic_string& assign(const value_type* str, size_type n);
+            basic_string& assign(const value_type* str, size_type n);
 
-        basic_string& assign(const value_type* str);
+            basic_string& assign(const value_type* str);
 
-        basic_string& assign(size_type n, value_type c);
+            basic_string& assign(size_type n, value_type c);
 
-        template<class InputIterator>
-        basic_string& assign(InputIterator first, InputIterator last);
+            template<class InputIterator>
+            basic_string& assign(InputIterator first, InputIterator last);
 
-        basic_string& assign(initializer_list<value_type> init);
+            basic_string& assign(initializer_list<value_type> init);
 
-        basic_string& insert(size_type pos, const basic_string& str);
+            basic_string& insert(size_type pos, const basic_string& str);
 
-        basic_string& insert(size_type pos1, const basic_string& str,
-                             size_type pos2, size_type n = npos);
+            basic_string& insert(size_type pos1, const basic_string& str,
+                                 size_type pos2, size_type n = npos);
 
-        basic_string& insert(size_type pos, const value_type* str, size_type n);
+            basic_string& insert(size_type pos, const value_type* str, size_type n);
 
-        basic_string& insert(size_type pos, const value_type* str);
+            basic_string& insert(size_type pos, const value_type* str);
 
-        basic_string& insert(size_type pos, size_type n, value_type c);
+            basic_string& insert(size_type pos, size_type n, value_type c);
 
-        iterator insert(const_iterator pos, value_type c);
+            iterator insert(const_iterator pos, value_type c);
 
-        iterator insert(const_iterator pos, size_type n, value_type c);
+            iterator insert(const_iterator pos, size_type n, value_type c);
 
-        template<class InputIterator>
-        iterator insert(const_iterator pos, InputIterator first,
-                        InputIterator last);
+            template<class InputIterator>
+            iterator insert(const_iterator pos, InputIterator first,
+                            InputIterator last);
 
-        iterator insert(const_iterator pos, initializer_list<value_type>);
+            iterator insert(const_iterator pos, initializer_list<value_type>);
 
-        basic_string& erase(size_type pos = 0; size_type n = npos);
+            basic_string& erase(size_type pos = 0; size_type n = npos);
 
-        iterator erase(const_iterator pos);
+            iterator erase(const_iterator pos);
 
-        iterator erase(const_iterator pos, const_iterator last);
+            iterator erase(const_iterator pos, const_iterator last);
 
-        void pop_back();
+            void pop_back();
 
-        basic_string& replace(size_type pos, size_type n, const basic_string& str);
+            basic_string& replace(size_type pos, size_type n, const basic_string& str);
 
-        basic_string& replace(size_type pos1, size_type n1, const basic_string& str
-                              size_type pos2, size_type n2);
+            basic_string& replace(size_type pos1, size_type n1, const basic_string& str
+                                  size_type pos2, size_type n2);
 
-        basic_string& replace(size_type pos, size_type n1, const value_type* str,
-                              size_type n2);
+            basic_string& replace(size_type pos, size_type n1, const value_type* str,
+                                  size_type n2);
 
-        basic_string& replace(size_type pos, size_type n, const value_type* str);
+            basic_string& replace(size_type pos, size_type n, const value_type* str);
 
-        basic_string& replace(size_type pos, size_type n1, size_type n2,
-                              value_type c);
+            basic_string& replace(size_type pos, size_type n1, size_type n2,
+                                  value_type c);
 
-        basic_string& replace(const_iterator i1, const_iterator i2,
-                              const basic_string& str);
+            basic_string& replace(const_iterator i1, const_iterator i2,
+                                  const basic_string& str);
 
-        basic_string& replace(const_iterator i1, const_iterator i2,
-                              const value_type* str, size_type n);
+            basic_string& replace(const_iterator i1, const_iterator i2,
+                                  const value_type* str, size_type n);
 
-        basic_string& replace(const_iterator i1, const_iterator i2,
-                              const value_type* str);
+            basic_string& replace(const_iterator i1, const_iterator i2,
+                                  const value_type* str);
 
-        basic_string& replace(const_iterator i1, const_iterator i2,
-                              value_type c);
+            basic_string& replace(const_iterator i1, const_iterator i2,
+                                  value_type c);
 
-        template<class InputIterator>
-        basic_string& replace(const_iterator i1, const_iterator i2,
-                              InputIterator j1, InputIterator j2);
+            template<class InputIterator>
+            basic_string& replace(const_iterator i1, const_iterator i2,
+                                  InputIterator j1, InputIterator j2);
 
-        basic_string& replace(const_iterator i1, const_iterator i2,
-                              initializer_list<value_type> init);
+            basic_string& replace(const_iterator i1, const_iterator i2,
+                                  initializer_list<value_type> init);
 
-        size_type copy(value_type* str, size_type n, size_type pos = 0) const;
+            size_type copy(value_type* str, size_type n, size_type pos = 0) const;
 
-        void swap(basic_string& other)
-            noexcept(allocator_traits<allocator_type>::propagate_on_container_swap::value ||
-                     allocator_traits<allocator_type>::is_always_equal);
+            void swap(basic_string& other)
+                noexcept(allocator_traits<allocator_type>::propagate_on_container_swap::value ||
+                         allocator_traits<allocator_type>::is_always_equal);
 
-        /**
-         * 21.4.7, string operations:
-         */
+            /**
+             * 21.4.7, string operations:
+             */
 
-        const value_type* c_str() const noexcept;
+            const value_type* c_str() const noexcept;
 
-        const value_type* data() const noexcept;
+            const value_type* data() const noexcept;
 
-        allocator_type get_allocator() const noexcept;
+            allocator_type get_allocator() const noexcept;
 
-        size_type find(const basic_string& str, size_type pos = 0) const noexcept;
+            size_type find(const basic_string& str, size_type pos = 0) const noexcept;
 
-        size_type find(const value_type* str, size_type pos, size_type n) const;
+            size_type find(const value_type* str, size_type pos, size_type n) const;
 
-        size_type find(const value_type* str, size_type pos = 0) const;
+            size_type find(const value_type* str, size_type pos = 0) const;
 
-        size_type find(value_type c, size_type pos = 0) const;
+            size_type find(value_type c, size_type pos = 0) const;
 
-        size_type rfind(const basic_string& str, size_type pos = npos) const noexcept;
+            size_type rfind(const basic_string& str, size_type pos = npos) const noexcept;
 
-        size_type rfind(const value_type* str, size_type pos, size_type n) const;
+            size_type rfind(const value_type* str, size_type pos, size_type n) const;
 
-        size_type rfind(const value_type* str, size_type pos = npos) const;
+            size_type rfind(const value_type* str, size_type pos = npos) const;
 
-        size_type rfind(value_type c, size_type pos = npos) const;
+            size_type rfind(value_type c, size_type pos = npos) const;
 
-        size_type find_first_of(const basic_string& str, size_type pos = 0) const noexcept;
+            size_type find_first_of(const basic_string& str, size_type pos = 0) const noexcept;
 
-        size_type find_first_of(const value_type* str, size_type pos, size_type n) const;
+            size_type find_first_of(const value_type* str, size_type pos, size_type n) const;
 
-        size_type find_first_of(const value_type* str, size_type pos = 0) const;
+            size_type find_first_of(const value_type* str, size_type pos = 0) const;
 
-        size_type find_first_of(value_type c, size_type pos = 0) const;
+            size_type find_first_of(value_type c, size_type pos = 0) const;
 
-        size_type find_last_of(const basic_string& str, size_type pos = npos) const noexcept;
+            size_type find_last_of(const basic_string& str, size_type pos = npos) const noexcept;
 
-        size_type find_last_of(const value_type* str, size_type pos, size_type n) const;
+            size_type find_last_of(const value_type* str, size_type pos, size_type n) const;
 
-        size_type find_last_of(const value_type* str, size_type pos = npos) const;
+            size_type find_last_of(const value_type* str, size_type pos = npos) const;
 
-        size_type find_last_of(value_type c, size_type pos = npos) const;
+            size_type find_last_of(value_type c, size_type pos = npos) const;
 
-        size_type find_first_not_of(const basic_string& str, size_type pos = 0) const noexcept;
+            size_type find_first_not_of(const basic_string& str, size_type pos = 0) const noexcept;
 
-        size_type find_first_not_of(const value_type* str, size_type pos, size_type n) const;
+            size_type find_first_not_of(const value_type* str, size_type pos, size_type n) const;
 
-        size_type find_first_not_of(const value_type* str, size_type pos = 0) const;
+            size_type find_first_not_of(const value_type* str, size_type pos = 0) const;
 
-        size_type find_first_not_of(value_type c, size_type pos = 0) const;
+            size_type find_first_not_of(value_type c, size_type pos = 0) const;
 
-        size_type find_last_not_of(const basic_string& str, size_type pos = npos) const noexcept;
+            size_type find_last_not_of(const basic_string& str, size_type pos = npos) const noexcept;
 
-        size_type find_last_not_of(const value_type* str, size_type pos, size_type n) const;
+            size_type find_last_not_of(const value_type* str, size_type pos, size_type n) const;
 
-        size_type find_last_not_of(const value_type* str, size_type pos = npos) const;
+            size_type find_last_not_of(const value_type* str, size_type pos = npos) const;
 
-        size_type find_last_not_of(value_type c, size_type pos = npos) const;
+            size_type find_last_not_of(value_type c, size_type pos = npos) const;
 
-        basic_string substr(size_type pos = 0, size_type n = npos) const;
+            basic_string substr(size_type pos = 0, size_type n = npos) const;
 
-        int compare(const basic_string& other) const noexcept;
+            int compare(const basic_string& other) const noexcept;
 
-        int compare(size_type pos, size_type n, const basic_string& other) const;
+            int compare(size_type pos, size_type n, const basic_string& other) const;
 
-        int compare(size_type pos1, size_type n1, const basic_string& other,
-                    size_type pos2, size_type n2 = npos) const;
+            int compare(size_type pos1, size_type n1, const basic_string& other,
+                        size_type pos2, size_type n2 = npos) const;
 
-        int compare(const value_type* other) const;
+            int compare(const value_type* other) const;
 
-        int compare(size_type pos, size_type n, const value_type* other) const;
+            int compare(size_type pos, size_type n, const value_type* other) const;
 
-        int compare(size_type pos1, size_type n1,
-                    const value_type* other, size_type n2) const;
+            int compare(size_type pos1, size_type n1,
+                        const value_type* other, size_type n2) const;
     };
 }
 
