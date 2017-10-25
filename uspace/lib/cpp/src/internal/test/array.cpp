@@ -84,6 +84,20 @@ namespace std::test
             check3.begin(), check3.end()
         );
 
+        arr2.swap(arr3);
+        test_eq(
+            "swap part 1",
+            arr2.begin(), arr2.end(),
+            check3.begin(), check3.end()
+        );
+        test_eq(
+            "swap part 2",
+            arr3.begin(), arr3.end(),
+            check2.begin(), check2.end()
+        );
+
+        // TODO: test bound checking of at when implemented
+
         return true;
     }
 
