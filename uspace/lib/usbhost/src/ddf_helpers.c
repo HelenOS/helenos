@@ -103,7 +103,7 @@ static int register_endpoint(
 		usb_str_direction(endpoint_desc->direction),
 		endpoint_desc->max_packet_size, endpoint_desc->usb2.polling_interval);
 
-	return bus_add_ep(hcd->bus, dev, endpoint_desc);
+	return bus_add_endpoint(hcd->bus, dev, endpoint_desc, NULL);
 }
 
  /** Unregister endpoint interface function.
@@ -129,7 +129,12 @@ static int unregister_endpoint(
 	usb_log_debug("Unregister endpoint %d:%d %s.\n",
 		dev->address, endpoint_desc->endpoint_no,
 		usb_str_direction(endpoint_desc->direction));
-	return bus_remove_ep(hcd->bus, dev, target, endpoint_desc->direction);
+
+	endpoint_t *ep = bus_find_endpoint(hcd->bus, dev, target, endpoint_desc->direction);
+	if (!ep)
+		return ENOENT;
+
+	return bus_remove_endpoint(hcd->bus, ep);
 }
 
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)

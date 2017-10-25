@@ -116,18 +116,14 @@ typedef struct bus {
 void bus_init(bus_t *, size_t);
 int device_init(device_t *);
 
-extern int bus_add_ep(bus_t *, device_t *, const usb_endpoint_desc_t *);
-extern int bus_remove_ep(bus_t *, device_t *, usb_target_t, usb_direction_t);
-
 int device_set_default_name(device_t *);
 
 int bus_enumerate_device(bus_t *, hcd_t *, device_t *);
 int bus_remove_device(bus_t *, hcd_t *, device_t *);
 
-endpoint_t *bus_create_endpoint(bus_t *);
-int bus_register_endpoint(bus_t *, endpoint_t *, const usb_endpoint_desc_t *);
-int bus_unregister_endpoint(bus_t *, endpoint_t *);
+int bus_add_endpoint(bus_t *, device_t *, const usb_endpoint_desc_t *, endpoint_t **);
 endpoint_t *bus_find_endpoint(bus_t *, device_t *, usb_target_t, usb_direction_t);
+int bus_remove_endpoint(bus_t *, endpoint_t *);
 
 size_t bus_count_bw(endpoint_t *, size_t);
 

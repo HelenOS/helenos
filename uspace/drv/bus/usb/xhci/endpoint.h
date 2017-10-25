@@ -118,6 +118,8 @@ int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
 uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
 uint8_t xhci_endpoint_index(xhci_endpoint_t *);
 
+void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
+
 int xhci_device_add_endpoint(xhci_device_t *, xhci_endpoint_t *);
 int xhci_device_remove_endpoint(xhci_device_t *, xhci_endpoint_t *);
 xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *, usb_endpoint_t);

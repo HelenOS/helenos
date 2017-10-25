@@ -65,35 +65,6 @@ int device_init(device_t *dev)
 	return EOK;
 }
 
-int bus_add_ep(bus_t *bus, device_t *device, const usb_endpoint_desc_t *desc)
-{
-	assert(bus);
-	assert(device);
-
-	/* Temporary reference */
-	endpoint_t *ep = bus_create_endpoint(bus);
-	if (!ep)
-		return ENOMEM;
-
-	ep->device = device;
-	const int err = bus_register_endpoint(bus, ep, desc);
-
-	/* drop Temporary reference */
-	endpoint_del_ref(ep);
-
-	return err;
-}
-
-int bus_remove_ep(bus_t *bus, device_t *dev, usb_target_t target, usb_direction_t dir)
-{
-	assert(bus);
-	endpoint_t *ep = bus_find_endpoint(bus, dev, target, dir);
-	if (!ep)
-		return ENOENT;
-
-	return bus_unregister_endpoint(bus, ep);
-}
-
 int device_set_default_name(device_t *dev)
 {
 	assert(dev);
@@ -135,52 +106,39 @@ int bus_remove_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	return r;
 }
 
-endpoint_t *bus_create_endpoint(bus_t *bus)
+int bus_add_endpoint(bus_t *bus, device_t *device, const usb_endpoint_desc_t *desc, endpoint_t **out_ep)
 {
+	int err = ENOMEM;
+
 	assert(bus);
+	assert(device);
 
 	fibril_mutex_lock(&bus->guard);
+
 	endpoint_t *ep = bus->ops.create_endpoint(bus);
-	if (ep) {
-		/* Exporting reference */
-		endpoint_add_ref(ep);
-	}
-	fibril_mutex_unlock(&bus->guard);
-
-	return ep;
-}
-
-int bus_register_endpoint(bus_t *bus, endpoint_t *ep, const usb_endpoint_desc_t *desc)
-{
-	assert(bus);
-	assert(ep);
+	if (!ep)
+		goto err;
 
 	/* Bus reference */
 	endpoint_add_ref(ep);
 
-	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.register_endpoint(bus, ep, desc);
+	ep->device = device;
+	if ((err = bus->ops.register_endpoint(bus, ep, desc)))
+		goto err_ep;
+
+	if (out_ep) {
+		endpoint_add_ref(ep);
+		*out_ep = ep;
+	}
+
 	fibril_mutex_unlock(&bus->guard);
-
-	return r;
-}
-
-int bus_unregister_endpoint(bus_t *bus, endpoint_t *ep)
-{
-	assert(bus);
-	assert(ep);
-
-	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.unregister_endpoint(bus, ep);
-	fibril_mutex_unlock(&bus->guard);
-
-	if (r)
-		return r;
-
-	/* Bus reference */
-	endpoint_del_ref(ep);
-
 	return EOK;
+
+err_ep:
+	endpoint_del_ref(ep);
+err:
+	fibril_mutex_unlock(&bus->guard);
+	return err;
 }
 
 /** Searches for an endpoint. Returns a reference.
@@ -198,6 +156,24 @@ endpoint_t *bus_find_endpoint(bus_t *bus, device_t *device, usb_target_t endpoin
 
 	fibril_mutex_unlock(&bus->guard);
 	return ep;
+}
+
+int bus_remove_endpoint(bus_t *bus, endpoint_t *ep)
+{
+	assert(bus);
+	assert(ep);
+
+	fibril_mutex_lock(&bus->guard);
+	const int r = bus->ops.unregister_endpoint(bus, ep);
+	fibril_mutex_unlock(&bus->guard);
+
+	if (r)
+		return r;
+
+	/* Bus reference */
+	endpoint_del_ref(ep);
+
+	return EOK;
 }
 
 int bus_request_address(bus_t *bus, usb_address_t *hint, bool strict, usb_speed_t speed)

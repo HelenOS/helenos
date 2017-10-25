@@ -82,6 +82,9 @@ typedef struct xhci_hc {
 	hcd_t *hcd;
 } xhci_hc_t;
 
+typedef struct xhci_endpoint xhci_endpoint_t;
+typedef struct xhci_device xhci_device_t;
+
 int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);
 int hc_init_memory(xhci_hc_t *, ddf_dev_t *);
 int hc_claim(xhci_hc_t *, ddf_dev_t *);
@@ -94,8 +97,7 @@ void hc_fini(xhci_hc_t *);
 int hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
 int hc_enable_slot(xhci_hc_t *, uint32_t *);
 int hc_disable_slot(xhci_hc_t *, uint32_t);
-int hc_address_device(xhci_hc_t *, uint32_t, xhci_input_ctx_t *);
-int hc_address_rh_device(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
+int hc_address_device(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *);
 int hc_configure_device(xhci_hc_t *, uint32_t);
 int hc_deconfigure_device(xhci_hc_t *, uint32_t);
 int hc_add_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);

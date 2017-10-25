@@ -48,15 +48,84 @@
 #include "endpoint.h"
 #include "transfers.h"
 
-/** TODO: Still some copy-pasta left...
- */
+
+/* FIXME Are these really static? Older HCs fetch it from descriptor. */
+/* FIXME Add USB3 options, if applicable. */
+static const usb_endpoint_desc_t ep0_desc = {
+	.endpoint_no = 0,
+	.direction = USB_DIRECTION_BOTH,
+	.transfer_type = USB_TRANSFER_CONTROL,
+	.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
+	.packets = 1,
+};
+
+static int prepare_endpoint(xhci_endpoint_t *ep, const usb_endpoint_desc_t *desc)
+{
+	/* Extract information from endpoint_desc */
+	ep->base.target = (usb_target_t) {{
+		.address = ep->base.device->address,
+		.endpoint = desc->endpoint_no,
+	}};
+	ep->base.direction = desc->direction;
+	ep->base.transfer_type = desc->transfer_type;
+	ep->base.max_packet_size = desc->max_packet_size;
+	ep->base.packets = desc->packets;
+	ep->max_streams = desc->usb3.max_streams;
+	ep->max_burst = desc->usb3.max_burst;
+	// TODO add this property to usb_endpoint_desc_t and fetch it from ss companion desc
+	ep->mult = 0;
+
+	return xhci_endpoint_alloc_transfer_ds(ep);
+}
+
+static endpoint_t *create_endpoint(bus_t *base);
+
+static int address_device(xhci_hc_t *hc, xhci_device_t *dev)
+{
+	int err;
+
+	/* Enable new slot. */
+	if ((err = hc_enable_slot(hc, &dev->slot_id)) != EOK)
+		return err;
+	usb_log_debug2("Obtained slot ID: %u.\n", dev->slot_id);
+
+	/* Create and configure control endpoint. */
+	endpoint_t *ep0_base = create_endpoint(&hc->bus.base);
+	if (!ep0_base)
+		goto err_slot;
+
+	/* Temporary reference */
+	endpoint_add_ref(ep0_base);
+
+	ep0_base->device = &dev->base;
+	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
+
+	if ((err = prepare_endpoint(ep0, &ep0_desc)))
+		goto err_ep;
+
+	/* Address device */
+	if ((err = hc_address_device(hc, dev, ep0)))
+		goto err_prepared_ep;
+
+	/* Register EP0, passing Temporary reference */
+	ep0->base.target.address = dev->base.address;
+	dev->endpoints[0] = ep0;
+
+	return EOK;
+
+err_prepared_ep:
+	xhci_endpoint_free_transfer_ds(ep0);
+err_ep:
+	endpoint_del_ref(ep0_base);
+err_slot:
+	hc_disable_slot(hc, dev->slot_id);
+	return err;
+}
+
 int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 {
 	int err;
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
-
-	/* TODO: get speed from the default address reservation */
-	dev->speed = USB_SPEED_FULL;
 
 	/* Manage TT */
 	if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
@@ -71,10 +140,13 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	}
 
 	/* Assign an address to the device */
-	if ((err = xhci_rh_address_device(&hc->rh, dev, bus))) {
+	if ((err = address_device(hc, xhci_dev))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
 		return err;
 	}
+
+	// TODO: Fetch descriptor of EP0 and reconfigure it accordingly
+	assert(xhci_dev->endpoints[0]);
 
 	assert(bus->devices_by_slot[xhci_dev->slot_id] == NULL);
 	bus->devices_by_slot[xhci_dev->slot_id] = xhci_dev;
@@ -92,17 +164,20 @@ err_address:
 	return err;
 }
 
+static int unregister_endpoint(bus_t *, endpoint_t *);
+
 int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 {
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
 	/* Unregister remaining endpoints. */
-	for (size_t i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
+	for (unsigned i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
 		if (!xhci_dev->endpoints[i])
 			continue;
 
-		// FIXME: ignoring return code
-		bus_unregister_endpoint(&bus->base, &xhci_dev->endpoints[i]->base);
+		const int err = unregister_endpoint(&bus->base, &xhci_dev->endpoints[i]->base);
+		if (err)
+			usb_log_warning("Failed to unregister EP (%u:%u): %s", dev->address, i, str_error(err));
 	}
 
 	// XXX: Ugly here. Move to device_destroy at endpoint.c?
@@ -166,28 +241,17 @@ static void destroy_endpoint(endpoint_t *ep)
 
 static int register_endpoint(bus_t *bus_base, endpoint_t *ep, const usb_endpoint_desc_t *desc)
 {
+	int err;
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
 	assert(ep->device);
 
-	/* Extract USB2-related information from endpoint_desc */
-	ep->target = (usb_target_t) {{
-		.address = ep->device->address,
-		.endpoint = desc->endpoint_no,
-	}};
-	ep->direction = desc->direction;
-	ep->transfer_type = desc->transfer_type;
-	ep->max_packet_size = desc->max_packet_size;
-	ep->packets = desc->packets;
-
 	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
 
-	xhci_ep->max_streams = desc->usb3.max_streams;
-	xhci_ep->max_burst = desc->usb3.max_burst;
-	// TODO add this property to usb_endpoint_desc_t and fetch it from ss companion desc
-	xhci_ep->mult = 0;
+	if ((err = prepare_endpoint(xhci_ep, desc)))
+		return err;
 
 	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->target.address, ep->target.endpoint);
 	return xhci_device_add_endpoint(xhci_dev, xhci_ep);

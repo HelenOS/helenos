@@ -119,7 +119,9 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 
 	/* Add default pipe on default address */
 	usb_log_debug("Device(%d): Adding default target (0:0)", address);
-	err = bus_add_ep(bus, dev, &usb2_default_control_ep);
+
+	endpoint_t *default_ep;
+	err = bus_add_endpoint(bus, dev, &usb2_default_control_ep, &default_ep);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to add default target: %s.",
 		    address, str_error(err));
@@ -168,18 +170,25 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 
 	/* Register EP on the new address */
 	usb_log_debug("Device(%d): Registering control EP.", address);
-	err = bus_add_ep(bus, dev, &control_ep);
+	err = bus_add_endpoint(bus, dev, &control_ep, NULL);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to register EP0: %s",
 		    address, str_error(err));
 		goto err_default_control_ep;
 	}
 
-	bus_remove_ep(bus, dev, usb2_default_target, USB_DIRECTION_BOTH);
+	err = bus_remove_endpoint(bus, default_ep);
+	assert(err == EOK);
+	endpoint_del_ref(default_ep);
+
+	err = bus_release_address(bus, address);
+	assert(err == EOK);
+
 	return EOK;
 
 err_default_control_ep:
-	bus_remove_ep(bus, dev, usb2_default_target, USB_DIRECTION_BOTH);
+	bus_remove_endpoint(bus, default_ep);
+	endpoint_del_ref(default_ep);
 err_address:
 	bus_release_address(bus, address);
 	return err;

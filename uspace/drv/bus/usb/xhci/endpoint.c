@@ -196,11 +196,10 @@ static int xhci_endpoint_type(xhci_endpoint_t *ep)
 
 static void setup_control_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
-	// EP0 is configured elsewhere.
-	assert(ep->base.target.endpoint > 0);
-
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, ep->base.max_packet_size);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst);
+	XHCI_EP_MULT_SET(*ctx, ep->mult);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
@@ -210,8 +209,7 @@ static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, ep->base.max_packet_size);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx,
-	    xhci_device_get(ep->base.device)->usb3 ? ep->max_burst : 0);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 
 	if (endpoint_uses_streams(ep)) {
@@ -259,6 +257,18 @@ static const setup_ep_ctx_helper setup_ep_ctx_helpers[] = {
 	[USB_TRANSFER_INTERRUPT] = setup_interrupt_ep_ctx,
 };
 
+void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
+{
+	assert(ep);
+	assert(ep_ctx);
+
+	usb_transfer_type_t tt = ep->base.transfer_type;
+	assert(tt < ARRAY_SIZE(setup_ep_ctx_helpers));
+
+	memset(ep_ctx, 0, sizeof(*ep_ctx));
+	setup_ep_ctx_helpers[tt](ep, ep_ctx);
+}
+
 int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 {
 	assert(dev);
@@ -269,7 +279,6 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 		return EAGAIN;
 	}
 
-	int err = ENOMEM;
 	const usb_endpoint_t ep_num = ep->base.target.endpoint;
 
 	assert(&dev->base == ep->base.device);
@@ -287,28 +296,11 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 		return EOK;
 	}
 
-	/* Set up TRB ring / PSA. */
-	if ((err = xhci_endpoint_alloc_transfer_ds(ep))) {
-		goto err;
-	}
-
 	/* Add endpoint. */
 	xhci_ep_ctx_t ep_ctx;
-	memset(&ep_ctx, 0, sizeof(xhci_ep_ctx_t));
-	setup_ep_ctx_helpers[ep->base.transfer_type](ep, &ep_ctx);
+	xhci_setup_endpoint_context(ep, &ep_ctx);
 
-	if ((err = hc_add_endpoint(dev->hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx))) {
-		goto err_ds;
-	}
-
-	return EOK;
-
-err_ds:
-	xhci_endpoint_free_transfer_ds(ep);
-err:
-	dev->endpoints[ep_num] = NULL;
-	dev->active_endpoint_count--;
-	return err;
+	return hc_add_endpoint(dev->hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx);
 }
 
 int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)

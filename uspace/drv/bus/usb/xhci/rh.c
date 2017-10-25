@@ -73,102 +73,17 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 	return device_init(&hc->rh.device);
 }
 
-static void setup_control_ep0_ctx(xhci_ep_ctx_t *ctx, xhci_trb_ring_t *ring,
-		const xhci_port_speed_t *speed)
+static usb_speed_t port_speed_to_usb_speed(const xhci_port_speed_t *port_speed)
 {
-	XHCI_EP_TYPE_SET(*ctx, EP_TYPE_CONTROL);
-	// TODO: must be changed with a command after USB descriptor is read
-	// See 4.6.5 in XHCI specification, first note
-	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, speed->major == 3 ? 512 : 8);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, 0);
-	XHCI_EP_TR_DPTR_SET(*ctx, ring->dequeue);
-	XHCI_EP_DCS_SET(*ctx, 1);
-	XHCI_EP_INTERVAL_SET(*ctx, 0);
-	XHCI_EP_MAX_P_STREAMS_SET(*ctx, 0);
-	XHCI_EP_MULT_SET(*ctx, 0);
-	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
-}
+	assert(port_speed->major > 0 && port_speed->major <= USB_SPEED_SUPER);
 
-/* FIXME Are these really static? Older HCs fetch it from descriptor. */
-/* FIXME Add USB3 options, if applicable. */
-static const usb_endpoint_desc_t ep0_desc = {
-	.endpoint_no = 0,
-	.direction = USB_DIRECTION_BOTH,
-	.transfer_type = USB_TRANSFER_CONTROL,
-	.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
-	.packets = 1,
-};
-
-// TODO: This currently assumes the device is attached to rh directly.
-//       Also, we should consider moving a lot of functionailty to xhci bus
-int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus)
-{
-	int err;
-
-	const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, dev->port);
-	xhci_device_t *xhci_dev = xhci_device_get(dev);
-	xhci_dev->hc = rh->hc;
-	xhci_dev->usb3 = speed->major == 3;
-
-	/* Enable new slot. */
-	if ((err = hc_enable_slot(rh->hc, &xhci_dev->slot_id)) != EOK)
-		return err;
-	usb_log_debug2("Obtained slot ID: %u.\n", xhci_dev->slot_id);
-
-	/* Create and configure control endpoint. */
-	endpoint_t *ep0_base = bus_create_endpoint(&rh->hc->bus.base);
-	if (!ep0_base)
-		return ENOMEM;
-
-	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
-
-	if ((err = xhci_endpoint_alloc_transfer_ds(ep0)))
-		goto err_ep;
-
-	xhci_ep_ctx_t ep_ctx;
-	memset(&ep_ctx, 0, sizeof(xhci_ep_ctx_t));
-	setup_control_ep0_ctx(&ep_ctx, &ep0->ring, speed);
-
-	/* Setup and register device context */
-	xhci_dev->dev_ctx = malloc32(sizeof(xhci_device_ctx_t));
-	if (!xhci_dev->dev_ctx) {
-		err = ENOMEM;
-		goto err_ds;
-	}
-	rh->hc->dcbaa[xhci_dev->slot_id] = addr_to_phys(xhci_dev->dev_ctx);
-	memset(xhci_dev->dev_ctx, 0, sizeof(xhci_device_ctx_t));
-
-	/* Address device */
-	if ((err = hc_address_rh_device(rh->hc, xhci_dev->slot_id, dev->port, &ep_ctx)))
-		goto err_dctx;
-	dev->address = XHCI_SLOT_DEVICE_ADDRESS(xhci_dev->dev_ctx->slot_ctx);
-	usb_log_debug2("Obtained USB address: %d.\n", dev->address);
-
-	/* From now on, the device is officially online, yay! */
-	fibril_mutex_lock(&dev->guard);
-	xhci_dev->online = true;
-	fibril_mutex_unlock(&dev->guard);
-
-	ep0_base->device = dev;
-
-	bus_register_endpoint(&rh->hc->bus.base, ep0_base, &ep0_desc);
-
-	if (!rh->devices[dev->port - 1]) {
-		/* Only save the device if it's the first one connected to this port. */
-		rh->devices[dev->port - 1] = xhci_dev;
+	switch (port_speed->major) {
+		case 3: return USB_SPEED_SUPER;
+		case 2: return USB_SPEED_HIGH;
+		case 1: return port_speed->minor ? USB_SPEED_FULL : USB_SPEED_LOW;
 	}
 
-	return EOK;
-
-err_dctx:
-	free32(xhci_dev->dev_ctx);
-	rh->hc->dcbaa[xhci_dev->slot_id] = 0;
-err_ds:
-	xhci_endpoint_free_transfer_ds(ep0);
-err_ep:
-	xhci_endpoint_fini(ep0);
-	free(ep0);
-	return err;
+	assert(false);
 }
 
 /** Create a device node for device directly connected to RH.
@@ -187,8 +102,14 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 		return ENOMEM;
 	}
 
+	const xhci_port_speed_t *port_speed = xhci_rh_get_port_speed(rh, port_id);
+	xhci_device_t *xhci_dev = xhci_device_get(dev);
+	xhci_dev->hc = rh->hc;
+	xhci_dev->usb3 = port_speed->major == 3;
+
 	dev->hub = &rh->device;
 	dev->port = port_id;
+	dev->speed = port_speed_to_usb_speed(port_speed);
 
 	if ((err = xhci_bus_enumerate_device(bus, rh->hc, dev))) {
 		usb_log_error("Failed to enumerate USB device: %s", str_error(err));
@@ -206,6 +127,10 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 
 	fibril_mutex_lock(&rh->device.guard);
 	list_append(&dev->link, &rh->device.devices);
+	if (!rh->devices[port_id - 1]) {
+		/* Only save the device if it's the first one connected to this port. */
+		rh->devices[port_id - 1] = xhci_dev;
+	}
 	fibril_mutex_unlock(&rh->device.guard);
 
 	return EOK;
@@ -285,6 +210,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 		if (!ep || !ep->base.active)
 			continue;
 
+		/* FIXME: This is racy. */
 		if ((err = xhci_transfer_abort(&ep->active_transfer))) {
 			usb_log_warning("Failed to abort active %s transfer to "
 			    " endpoint %d of detached device '%s': %s",
@@ -304,7 +230,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	}
 
 	/* Unregister EP0. */
-	if ((err = bus_unregister_endpoint(&rh->hc->bus.base, &dev->endpoints[0]->base))) {
+	if ((err = bus_remove_endpoint(&rh->hc->bus.base, &dev->endpoints[0]->base))) {
 		usb_log_warning("Failed to unregister configuration endpoint of device '%s' from XHCI bus: %s",
 		    ddf_fun_get_name(dev->base.fun), str_error(err));
 	}

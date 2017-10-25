@@ -42,6 +42,8 @@
 #include "hc.h"
 #include "rh.h"
 #include "hw_struct/trb.h"
+#include "hw_struct/context.h"
+#include "endpoint.h"
 #include "commands.h"
 #include "transfers.h"
 #include "trb_ring.h"
@@ -448,6 +450,7 @@ int hc_status(xhci_hc_t *hc, uint32_t *status)
 int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
 	assert(batch);
+	assert(batch->ep);
 
 	usb_log_debug2("Endpoint(%d:%d) started %s transfer of size %lu.",
 		batch->ep->target.address, batch->ep->target.endpoint,
@@ -631,26 +634,6 @@ int hc_disable_slot(xhci_hc_t *hc, uint32_t slot_id)
 	return EOK;
 }
 
-int hc_address_device(xhci_hc_t *hc, uint32_t slot_id, xhci_input_ctx_t *ictx)
-{
-	assert(hc);
-
-	int err;
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd);
-
-	cmd.slot_id = slot_id;
-
-	if ((err = xhci_send_address_device_command(hc, &cmd, ictx)) != EOK)
-		return err;
-
-	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
-		return err;
-
-	xhci_cmd_fini(&cmd);
-	return EOK;
-}
-
 static int create_valid_input_ctx(xhci_input_ctx_t **out_ictx)
 {
 	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
@@ -673,36 +656,66 @@ static int create_valid_input_ctx(xhci_input_ctx_t **out_ictx)
 	return EOK;
 }
 
-int hc_address_rh_device(xhci_hc_t *hc, uint32_t slot_id, uint8_t port, xhci_ep_ctx_t *ep_ctx)
+// TODO: This currently assumes the device is attached to rh directly
+//	-> calculate route string
+int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 {
-	int err;
+	int err = ENOMEM;
+
+	/* Setup and register device context */
+	dev->dev_ctx = malloc32(sizeof(xhci_device_ctx_t));
+	if (!dev->dev_ctx)
+		goto err;
+	memset(dev->dev_ctx, 0, sizeof(xhci_device_ctx_t));
+
+	hc->dcbaa[dev->slot_id] = addr_to_phys(dev->dev_ctx);
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	xhci_input_ctx_t *ictx;
 	if ((err = create_valid_input_ctx(&ictx))) {
-		goto err;
+		goto err_dev_ctx;
 	}
 
 	/* Initialize slot_ctx according to section 4.3.3 point 3. */
-	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, port);
+	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, dev->base.port); // FIXME: This should be port at RH
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
 
 	/* Attaching to root hub port, root string equals to 0. */
-	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, 0);
+	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, 0); // FIXME: This is apparently valid in limited cases
 
 	/* Copy endpoint 0 context and set A1 flag. */
-	memcpy(&ictx->endpoint_ctx[0], ep_ctx, sizeof(xhci_ep_ctx_t));
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
+	xhci_setup_endpoint_context(ep0, &ictx->endpoint_ctx[0]);
 
-	if ((err = hc_address_device(hc, slot_id, ictx))) {
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd);
+
+	cmd.slot_id = dev->slot_id;
+
+	if ((err = xhci_send_address_device_command(hc, &cmd, ictx)) != EOK)
 		goto err_cmd;
-	}
 
+	if ((err = xhci_cmd_wait(&cmd, XHCI_DEFAULT_TIMEOUT)) != EOK)
+		goto err_cmd;
+
+	dev->base.address = XHCI_SLOT_DEVICE_ADDRESS(dev->dev_ctx->slot_ctx);
+	usb_log_debug2("Obtained USB address: %d.\n", dev->base.address);
+
+	/* From now on, the device is officially online, yay! */
+	fibril_mutex_lock(&dev->base.guard);
+	dev->online = true;
+	fibril_mutex_unlock(&dev->base.guard);
+
+	xhci_cmd_fini(&cmd);
 	free32(ictx);
 	return EOK;
 
 err_cmd:
+	xhci_cmd_fini(&cmd);
 	free32(ictx);
+err_dev_ctx:
+	free32(dev->dev_ctx);
+	hc->dcbaa[dev->slot_id] = 0;
 err:
 	return err;
 }
