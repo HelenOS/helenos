@@ -148,5 +148,4 @@ namespace std
     // TODO: standard p. 1012, this is circular, it offers fix
     using streampos  = fpos<char_traits<char>::state_type>;
     using wstreampos = fpos<char_traits<wchar_t>::state_type>;
-    using streampos = fpos<char_traits<char>::state_type> streampos;
 }
