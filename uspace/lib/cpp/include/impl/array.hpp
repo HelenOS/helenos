@@ -30,6 +30,7 @@
 #define LIBCPP_ARRAY
 
 #include <iterator>
+#include <utility>
 
 namespace std
 {
@@ -65,7 +66,9 @@ namespace std
             fill_n(begin(), N, x);
         }
 
-        void swap(array& other) noexcept(noexcept(swap(declval<T&>(), declval<T&>())))
+        void swap(array& other)
+                // TODO: Does not find declval atm :/
+                /* noexcept(noexcept(swap(declval<T&>(), declval<T&>()))) */
         {
             swap_ranges(begin(), end(), other.begin());
         }
