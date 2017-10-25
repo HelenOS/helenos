@@ -42,6 +42,9 @@ SOURCES = \
 	src/new.cpp \
 	src/typeinfo.cpp \
 	src/internal/runtime.cpp \
-	src/internal/unwind.cpp
+	src/internal/unwind.cpp \
+	src/internal/test/array.cpp \
+	src/internal/test/vector.cpp \
+	src/internal/test/test.cpp
 
 include $(USPACE_PREFIX)/Makefile.common
