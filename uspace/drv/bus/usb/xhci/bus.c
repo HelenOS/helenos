@@ -44,6 +44,7 @@
 #include <macros.h>
 #include <stdbool.h>
 
+#include "hc.h"
 #include "bus.h"
 #include "endpoint.h"
 #include "transfers.h"
@@ -135,6 +136,18 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 		dev->tt = dev->hub->tt;
 	}
 
+	/* Calculate route string */
+	xhci_device_t *xhci_hub = xhci_device_get(dev->hub);
+	xhci_dev->tier = xhci_hub->tier + 1;
+	xhci_dev->route_str = xhci_hub->route_str;
+
+	/* Roothub port is not part of the route string */
+	if (xhci_dev->tier >= 2) {
+		const unsigned offset = 4 * (xhci_dev->tier - 2);
+		xhci_dev->route_str |= (dev->port & 0xf) << offset;
+	}
+
+	fibril_mutex_lock(&bus->base.guard);
 	/* Assign an address to the device */
 	if ((err = address_device(hc, xhci_dev))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
@@ -146,6 +159,7 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 
 	assert(bus->devices_by_slot[xhci_dev->slot_id] == NULL);
 	bus->devices_by_slot[xhci_dev->slot_id] = xhci_dev;
+	fibril_mutex_unlock(&bus->base.guard);
 
 	/* Read the device descriptor, derive the match ids */
 	if ((err = hcd_ddf_device_explore(hc->hcd, dev))) {
@@ -304,6 +318,37 @@ static void endpoint_set_toggle(endpoint_t *ep, bool toggle)
 	// TODO: Implement me!
 }
 
+static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
+{
+	assert(addr);
+
+	if (*addr != USB_ADDRESS_DEFAULT)
+		/* xHCI does not allow software to assign addresses. */
+		return ENOTSUP;
+
+	assert(strict);
+
+	xhci_bus_t *xhci_bus = bus_to_xhci_bus(bus_base);
+
+	if (xhci_bus->default_address_speed != USB_SPEED_MAX)
+		/* Already allocated */
+		return ENOENT;
+
+	xhci_bus->default_address_speed = speed;
+	return EOK;
+}
+
+static int release_address(bus_t *bus_base, usb_address_t addr)
+{
+	if (addr != USB_ADDRESS_DEFAULT)
+		return ENOTSUP;
+
+	xhci_bus_t *xhci_bus = bus_to_xhci_bus(bus_base);
+
+	xhci_bus->default_address_speed = USB_SPEED_MAX;
+	return EOK;
+}
+
 static usb_transfer_batch_t *create_batch(bus_t *bus, endpoint_t *ep)
 {
 	xhci_transfer_t *transfer = xhci_transfer_create(ep);
@@ -326,8 +371,8 @@ static const bus_ops_t xhci_bus_ops = {
 	.unregister_endpoint = unregister_endpoint,
 	.find_endpoint = find_endpoint,
 
-	.request_address = NULL,
-	.release_address = NULL,
+	.request_address = request_address,
+	.release_address = release_address,
 	.reset_toggle = reset_toggle,
 
 	.count_bw = count_bw,
@@ -350,6 +395,7 @@ int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 		return ENOMEM;
 
 	bus->base.ops = xhci_bus_ops;
+	bus->default_address_speed = USB_SPEED_MAX;
 	return EOK;
 }
 

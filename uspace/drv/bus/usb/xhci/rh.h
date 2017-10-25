@@ -38,7 +38,9 @@
 
 #include <usb/host/usb_transfer_batch.h>
 #include <usb/host/bus.h>
+
 #include "hw_struct/regs.h"
+#include "endpoint.h"
 
 typedef struct xhci_hc xhci_hc_t;
 typedef struct ddf_dev ddf_dev_t;
@@ -55,7 +57,6 @@ typedef struct xhci_port_speed {
 
 typedef struct hcd_roothub hcd_roothub_t;
 typedef struct xhci_bus xhci_bus_t;
-typedef struct xhci_device xhci_device_t;
 
 /* XHCI root hub instance */
 typedef struct {
@@ -63,7 +64,7 @@ typedef struct {
 	xhci_hc_t *hc;
 
 	/* Root for the device tree */
-	device_t device;
+	xhci_device_t device;
 
 	/* We need this to attach children to */
 	ddf_dev_t *hc_device;

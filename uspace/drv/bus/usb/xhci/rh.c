@@ -68,9 +68,17 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 	rh->hc = hc;
 	rh->max_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
 	rh->devices = (xhci_device_t **) calloc(rh->max_ports, sizeof(xhci_device_t *));
-	hc->rh.hc_device = device;
+	rh->hc_device = device;
 
-	return device_init(&hc->rh.device);
+	const int err = device_init(&rh->device.base);
+	if (err)
+		return err;
+
+	/* Initialize route string */
+	rh->device.route_str = 0;
+	rh->device.tier = 0;
+
+	return EOK;
 }
 
 /** Create a device node for device directly connected to RH.
@@ -80,6 +88,8 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	int err;
 	assert(rh);
 	assert(rh->hc_device);
+
+	assert(rh->devices[port_id - 1] == NULL);
 
 	xhci_bus_t *bus = &rh->hc->bus;
 
@@ -93,8 +103,9 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 	xhci_dev->hc = rh->hc;
 	xhci_dev->usb3 = port_speed->major == 3;
+	xhci_dev->rh_port = port_id;
 
-	dev->hub = &rh->device;
+	dev->hub = &rh->device.base;
 	dev->port = port_id;
 	dev->speed = port_speed->usb_speed;
 
@@ -112,13 +123,10 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 		goto err_usb_dev;
 	}
 
-	fibril_mutex_lock(&rh->device.guard);
-	list_append(&dev->link, &rh->device.devices);
-	if (!rh->devices[port_id - 1]) {
-		/* Only save the device if it's the first one connected to this port. */
-		rh->devices[port_id - 1] = xhci_dev;
-	}
-	fibril_mutex_unlock(&rh->device.guard);
+	fibril_mutex_lock(&rh->device.base.guard);
+	list_append(&dev->link, &rh->device.base.devices);
+	rh->devices[port_id - 1] = xhci_dev;
+	fibril_mutex_unlock(&rh->device.base.guard);
 
 	return EOK;
 
@@ -184,11 +192,11 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	dev->online = false;
 	fibril_mutex_unlock(&dev->base.guard);
 
-	fibril_mutex_lock(&rh->device.guard);
+	fibril_mutex_lock(&rh->device.base.guard);
 	list_remove(&dev->base.link);
-	fibril_mutex_unlock(&rh->device.guard);
-
 	rh->devices[port_id - 1] = NULL;
+	fibril_mutex_unlock(&rh->device.base.guard);
+
 	usb_log_debug2("Aborting all active transfers to '%s'.", ddf_fun_get_name(dev->base.fun));
 
 	/* Abort running transfers. */

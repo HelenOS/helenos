@@ -38,8 +38,10 @@
 
 #include <usb/host/usb_transfer_batch.h>
 
-#include "hc.h"
+#include "hw_struct/context.h"
 #include "trb_ring.h"
+
+typedef struct xhci_hc xhci_hc_t;
 
 typedef struct {
 	usb_transfer_batch_t batch;

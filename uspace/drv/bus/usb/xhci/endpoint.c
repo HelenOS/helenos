@@ -38,7 +38,9 @@
 #include <usb/descriptor.h>
 
 #include <errno.h>
+#include <macros.h>
 
+#include "hc.h"
 #include "bus.h"
 #include "commands.h"
 #include "endpoint.h"

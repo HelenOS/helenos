@@ -86,10 +86,7 @@ int bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	if (!bus->ops.enumerate_device)
 		return ENOTSUP;
 
-	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.enumerate_device(bus, hcd, dev);
-	fibril_mutex_unlock(&bus->guard);
-	return r;
+	return bus->ops.enumerate_device(bus, hcd, dev);
 }
 
 int bus_remove_device(bus_t *bus, hcd_t *hcd, device_t *dev)
@@ -100,10 +97,7 @@ int bus_remove_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	if (!bus->ops.remove_device)
 		return ENOTSUP;
 
-	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.remove_device(bus, hcd, dev);
-	fibril_mutex_unlock(&bus->guard);
-	return r;
+	return bus->ops.remove_device(bus, hcd, dev);
 }
 
 int bus_add_endpoint(bus_t *bus, device_t *device, const usb_endpoint_desc_t *desc, endpoint_t **out_ep)

@@ -48,6 +48,8 @@ typedef struct xhci_bus {
 	bus_t base;		/**< Inheritance. Keep this first. */
 
 	xhci_device_t **devices_by_slot;	/**< Devices by Slot ID */
+
+	usb_speed_t default_address_speed;	/**< Used to get speed from usb hubs */
 } xhci_bus_t;
 
 int xhci_bus_init(xhci_bus_t *, xhci_hc_t *);

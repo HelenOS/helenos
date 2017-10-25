@@ -81,6 +81,7 @@ typedef struct {
 	int (*enumerate_device)(bus_t *, hcd_t *, device_t *);
 	int (*remove_device)(bus_t *, hcd_t *, device_t *);
 
+	/* The following operations are protected by a bus guard. */
 	endpoint_t *(*create_endpoint)(bus_t *);
 	int (*register_endpoint)(bus_t *, endpoint_t *, const usb_endpoint_desc_t *);
 	int (*unregister_endpoint)(bus_t *, endpoint_t *);

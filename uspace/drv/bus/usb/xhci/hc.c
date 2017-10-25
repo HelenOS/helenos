@@ -656,6 +656,13 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 {
 	int err = ENOMEM;
 
+	/* Although we have the precise PSIV value on devices of tier 1,
+	 * we have to rely on reverse mapping on others. */
+	if (!hc->speed_to_psiv[dev->base.speed]) {
+		usb_log_error("Device reported an usb speed that cannot be mapped to HC port speed.");
+		return EINVAL;
+	}
+
 	/* Setup and register device context */
 	dev->dev_ctx = malloc32(sizeof(xhci_device_ctx_t));
 	if (!dev->dev_ctx)
@@ -671,11 +678,16 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	}
 
 	/* Initialize slot_ctx according to section 4.3.3 point 3. */
-	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, dev->base.port); // FIXME: This should be port at RH
+	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, dev->rh_port);
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
+	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, dev->route_str);
+	XHCI_SLOT_SPEED_SET(ictx->slot_ctx, hc->speed_to_psiv[dev->base.speed]);
 
-	/* Attaching to root hub port, root string equals to 0. */
-	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, 0); // FIXME: This is apparently valid in limited cases
+	/* In a very specific case, we have to set also these. But before that,
+	 * we need to refactor how TT is handled in libusbhost. */
+	XHCI_SLOT_TT_HUB_SLOT_ID_SET(ictx->slot_ctx, 0);
+	XHCI_SLOT_TT_HUB_PORT_SET(ictx->slot_ctx, 0);
+	XHCI_SLOT_MTT_SET(ictx->slot_ctx, 0);
 
 	/* Copy endpoint 0 context and set A1 flag. */
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);

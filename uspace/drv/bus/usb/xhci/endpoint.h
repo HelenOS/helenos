@@ -42,7 +42,8 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 
-#include "hc.h"
+#include "trb_ring.h"
+
 #include "transfers.h"
 
 typedef struct xhci_device xhci_device_t;
@@ -96,6 +97,15 @@ typedef struct xhci_device {
 
 	/** Slot ID assigned to the device by xHC. */
 	uint32_t slot_id;
+
+	/** Corresponding port on RH */
+	uint8_t rh_port;
+
+	/** USB Tier of the device */
+	uint8_t tier;
+
+	/** Route string */
+	uint32_t route_str;
 
 	/** Place to store virtual address for allocated context */
 	xhci_device_ctx_t *dev_ctx;
