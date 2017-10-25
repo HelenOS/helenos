@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef LIBCPP_TEST_ARRAY
+#define LIBCPP_TEST_ARRAY
+
 #include <internal/test/test.hpp>
 
 namespace std::test
@@ -40,3 +43,5 @@ namespace std::test
             ~array_test() = default;
     };
 }
+
+#endif

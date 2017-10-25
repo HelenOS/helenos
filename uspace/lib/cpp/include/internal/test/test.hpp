@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef LIBCPP_TEST_TEST
+#define LIBCPP_TEST_TEST
+
 #include <utility>
 
 namespace std::test
@@ -73,3 +76,5 @@ namespace std::test
             }
     };
 }
+
+#endif
