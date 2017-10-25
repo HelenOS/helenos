@@ -319,13 +319,25 @@ namespace std
              * 21.4.3, iterators:
              */
 
-            iterator begin() noexcept;
+            iterator begin() noexcept
+            {
+                return &data_[0];
+            }
 
-            const_iterator begin() const noexcept;
+            const_iterator begin() const noexcept
+            {
+                return &data_[0];
+            }
 
-            iterator end() noexcept;
+            iterator end() noexcept
+            {
+                return begin() + size_;
+            }
 
-            const_iterator end() const noexcept;
+            const_iterator end() const noexcept
+            {
+                return begin() + size_;
+            }
 
             reverse_iterator rbegin() noexcept
             {
@@ -347,9 +359,15 @@ namespace std
                 return make_reverse_iterator(cbegin());
             }
 
-            const_iterator cbegin() const noexcept;
+            const_iterator cbegin() const noexcept
+            {
+                return &data_[0];
+            }
 
-            const_iterator cend() const noexcept;
+            const_iterator cend() const noexcept
+            {
+                return cbegin() + size_;
+            }
 
             const_reverse_iterator crbegin() const noexcept
             {
@@ -365,17 +383,29 @@ namespace std
              * 21.4.4, capacity:
              */
 
-            size_type size() const noexcept;
+            size_type size() const noexcept
+            {
+                return size_;
+            }
 
-            size_type length() const noexcept;
+            size_type length() const noexcept
+            {
+                return size_;
+            }
 
-            size_type max_size() const noexcept;
+            size_type max_size() const noexcept
+            {
+                return allocator_traits<allocator_type>::max_size(allocator_);
+            }
 
             void resize(size_type n, value_type c);
 
             void resize(size_type n);
 
-            size_type capacity() const noexcept;
+            size_type capacity() const noexcept
+            {
+                return capacity_;
+            }
 
             void reserve(size_type res_arg = 0);
 
@@ -383,27 +413,56 @@ namespace std
 
             void clear() noexcept;
 
-            bool empty() const noexcept;
+            bool empty() const noexcept
+            {
+                return size_ == 0;
+            }
 
             /**
              * 21.4.5, element access:
              */
 
-            const_reference operator[](size_type idx) const;
+            const_reference operator[](size_type idx) const
+            {
+                return data_[idx];
+            }
 
-            reference operator[](size_type idx);
+            reference operator[](size_type idx)
+            {
+                return data_[idx];
+            }
 
-            const_reference at(size_type idx) const;
+            const_reference at(size_type idx) const
+            {
+                // TODO: bounds checking
+                return data_[idx];
+            }
 
-            reference at(size_type idx);
+            reference at(size_type idx)
+            {
+                // TODO: bounds checking
+                return data_[idx];
+            }
 
-            const_reference front() const;
+            const_reference front() const
+            {
+                return at(0);
+            }
 
-            reference front();
+            reference front()
+            {
+                return at(0);
+            }
 
-            const_reference back() const;
+            const_reference back() const
+            {
+                return at(size_ - 1);
+            }
 
-            reference back();
+            reference back()
+            {
+                return at(size_ - 1);
+            }
 
             /**
              * 21.4.6, modifiers:
@@ -518,17 +577,31 @@ namespace std
 
             void swap(basic_string& other)
                 noexcept(allocator_traits<allocator_type>::propagate_on_container_swap::value ||
-                         allocator_traits<allocator_type>::is_always_equal);
+                         allocator_traits<allocator_type>::is_always_equal)
+            {
+                std::swap(data_, other.data_);
+                std::swap(size_, other.size_);
+                std::swap(capacity_, other.capacity_);
+            }
 
             /**
              * 21.4.7, string operations:
              */
 
-            const value_type* c_str() const noexcept;
+            const value_type* c_str() const noexcept
+            {
+                return data_;
+            }
 
-            const value_type* data() const noexcept;
+            const value_type* data() const noexcept
+            {
+                return data_;
+            }
 
-            allocator_type get_allocator() const noexcept;
+            allocator_type get_allocator() const noexcept
+            {
+                return allocator_type{allocator_};
+            }
 
             size_type find(const basic_string& str, size_type pos = 0) const noexcept;
 
@@ -593,6 +666,12 @@ namespace std
 
             int compare(size_type pos1, size_type n1,
                         const value_type* other, size_type n2) const;
+
+        private:
+            value_type* data_;
+            size_type size_;
+            size_type capacity_;
+            allocator_type allocator_;
     };
 }
 
