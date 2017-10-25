@@ -221,7 +221,6 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	const bool low_speed =
 	    uhci_batch->base.ep->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->base.ep->max_packet_size;
-	const usb_target_t target = uhci_batch->base.ep->target;
 
 	int toggle = endpoint_toggle_get(uhci_batch->base.ep);
 	assert(toggle == 0 || toggle == 1);
@@ -239,7 +238,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 		assert(td < uhci_batch->td_count);
 		td_init(
 		    &uhci_batch->tds[td], DEFAULT_ERROR_COUNT, packet_size,
-		    toggle, false, low_speed, target, pid, buffer, next_td);
+		    toggle, false, low_speed, uhci_batch->base.target, pid, buffer, next_td);
 
 		++td;
 		toggle = 1 - toggle;
@@ -284,7 +283,7 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch)
 	const bool low_speed =
 	    uhci_batch->base.ep->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->base.ep->max_packet_size;
-	const usb_target_t target = uhci_batch->base.ep->target;
+	const usb_target_t target = uhci_batch->base.target;
 
 	/* setup stage */
 	td_init(

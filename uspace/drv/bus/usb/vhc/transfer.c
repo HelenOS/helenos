@@ -37,7 +37,7 @@
 
 static bool is_set_address_transfer(vhc_transfer_t *transfer)
 {
-	if (transfer->batch->ep->target.endpoint != 0) {
+	if (transfer->batch->target.endpoint != 0) {
 		return false;
 	}
 	if (transfer->batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
@@ -80,13 +80,13 @@ static int process_transfer_local(usb_transfer_batch_t *batch,
 	} else {
 		if (dir == USB_DIRECTION_IN) {
 			rc = usbvirt_data_in(dev, batch->ep->transfer_type,
-			    batch->ep->target.endpoint,
+			    batch->ep->endpoint,
 			    batch->buffer, batch->buffer_size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
 			rc = usbvirt_data_out(dev, batch->ep->transfer_type,
-			    batch->ep->target.endpoint,
+			    batch->ep->endpoint,
 			    batch->buffer, batch->buffer_size);
 		}
 	}
@@ -115,13 +115,13 @@ static int process_transfer_remote(usb_transfer_batch_t *batch,
 		}
 	} else {
 		if (dir == USB_DIRECTION_IN) {
-			rc = usbvirt_ipc_send_data_in(sess, batch->ep->target.endpoint,
+			rc = usbvirt_ipc_send_data_in(sess, batch->ep->endpoint,
 			    batch->ep->transfer_type,
 			    batch->buffer, batch->buffer_size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
-			rc = usbvirt_ipc_send_data_out(sess, batch->ep->target.endpoint,
+			rc = usbvirt_ipc_send_data_out(sess, batch->ep->endpoint,
 			    batch->ep->transfer_type,
 			    batch->buffer, batch->buffer_size);
 		}
@@ -183,7 +183,7 @@ int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 	list_foreach(vhc->devices, link, vhc_virtdev_t, dev) {
 		fibril_mutex_lock(&dev->guard);
-		if (dev->address == transfer->batch->ep->target.address) {
+		if (dev->address == transfer->batch->target.address) {
 			if (!targets) {
 				list_append(&transfer->link, &dev->transfer_queue);
 			}

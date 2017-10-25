@@ -108,7 +108,7 @@ int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
 	if (ep->bandwidth < bw) {
 		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
 		    "but only %zu is reserved.\n",
-		    ep->target.address, ep->target.endpoint, name, bw, ep->bandwidth);
+		    device->address, ep->endpoint, name, bw, ep->bandwidth);
 		return ENOSPC;
 	}
 
@@ -118,6 +118,7 @@ int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
 		return ENOMEM;
 	}
 
+	batch->target = target;
 	batch->buffer = data;
 	batch->buffer_size = size;
 	batch->setup.packed = setup_data;

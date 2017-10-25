@@ -452,12 +452,7 @@ int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	assert(batch);
 	assert(batch->ep);
 
-	usb_log_debug2("Endpoint(%d:%d) started %s transfer of size %lu.",
-		batch->ep->target.address, batch->ep->target.endpoint,
-		usb_str_transfer_type(batch->ep->transfer_type),
-		batch->buffer_size);
-
-	if (!batch->ep->target.address) {
+	if (!batch->target.address) {
 		usb_log_error("Attempted to schedule transfer to address 0.");
 		return EINVAL;
 	}

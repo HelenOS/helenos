@@ -93,8 +93,8 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	if (endpoint_uses_streams(xhci_ep)) {
 		/* Set up primary stream context array if needed. */
 		const size_t size = primary_stream_ctx_array_size(xhci_ep);
-		usb_log_debug2("Allocating primary stream context array of size %lu for endpoint %d:%d.",
-		    size, xhci_ep->base.target.address, xhci_ep->base.target.endpoint);
+		usb_log_debug2("Allocating primary stream context array of size %lu for endpoint " XHCI_EP_FMT,
+		    size, XHCI_EP_ARGS(*xhci_ep));
 
 		xhci_ep->primary_stream_ctx_array = malloc32(size * sizeof(xhci_stream_ctx_t));
 		if (!xhci_ep->primary_stream_ctx_array) {
@@ -103,8 +103,7 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 
 		memset(xhci_ep->primary_stream_ctx_array, 0, size * sizeof(xhci_stream_ctx_t));
 	} else {
-		usb_log_debug2("Allocating main transfer ring for endpoint %d:%d.",
-		    xhci_ep->base.target.address, xhci_ep->base.target.endpoint);
+		usb_log_debug2("Allocating main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 		xhci_ep->primary_stream_ctx_array = NULL;
 
@@ -120,8 +119,7 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	if (endpoint_uses_streams(xhci_ep)) {
-		usb_log_debug2("Freeing primary stream context array for endpoint %d:%d.",
-		    xhci_ep->base.target.address, xhci_ep->base.target.endpoint);
+		usb_log_debug2("Freeing primary stream context array for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 		// maybe check if LSA, then skip?
 		for (size_t index = 0; index < primary_stream_ctx_array_size(xhci_ep); ++index) {
@@ -134,8 +132,7 @@ int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 		}
 		free32(xhci_ep->primary_stream_ctx_array);
 	} else {
-		usb_log_debug2("Freeing main transfer ring for endpoint %d:%d.",
-		    xhci_ep->base.target.address, xhci_ep->base.target.endpoint);
+		usb_log_debug2("Freeing main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 		int err;
 		if ((err = xhci_trb_ring_fini(&xhci_ep->ring))) {
@@ -150,7 +147,7 @@ int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
  */
 uint8_t xhci_endpoint_dci(xhci_endpoint_t *ep)
 {
-	return (2 * ep->base.target.endpoint) +
+	return (2 * ep->base.endpoint) +
 		(ep->base.transfer_type == USB_TRANSFER_CONTROL
 		 || ep->base.direction == USB_DIRECTION_IN);
 }
@@ -279,10 +276,9 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 		return EAGAIN;
 	}
 
-	const usb_endpoint_t ep_num = ep->base.target.endpoint;
+	const usb_endpoint_t ep_num = ep->base.endpoint;
 
 	assert(&dev->base == ep->base.device);
-	assert(dev->base.address == ep->base.target.address);
 
 	// TODO Do not fail hard on runtime conditions
 	assert(!dev->endpoints[ep_num]);
@@ -306,13 +302,12 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 {
 	assert(&dev->base == ep->base.device);
-	assert(dev->base.address == ep->base.target.address);
-	assert(dev->endpoints[ep->base.target.endpoint]);
+	assert(dev->endpoints[ep->base.endpoint]);
 
 	int err = ENOMEM;
-	const usb_endpoint_t ep_num = ep->base.target.endpoint;
+	const usb_endpoint_t ep_num = ep->base.endpoint;
 
-	dev->endpoints[ep->base.target.endpoint] = NULL;
+	dev->endpoints[ep->base.endpoint] = NULL;
 	--dev->active_endpoint_count;
 
 	if (ep_num == 0) {

@@ -54,8 +54,12 @@ typedef int (*usb_transfer_batch_callback_t)(usb_transfer_batch_t *);
 
 /** Structure stores additional data needed for communication with EP */
 typedef struct usb_transfer_batch {
+	/** Target for communication */
+	usb_target_t target;
+
 	/** Endpoint used for communication */
 	endpoint_t *ep;
+
 	/** Size reported to be sent */
 	size_t expected_size;
 
@@ -95,7 +99,7 @@ typedef struct usb_transfer_batch {
  * @param batch USB transfer batch to be dumped.
  */
 #define USB_TRANSFER_BATCH_ARGS(batch) \
-	(batch).ep->target.address, (batch).ep->target.endpoint, \
+	(batch).target.address, (batch).target.endpoint, \
 	usb_str_speed((batch).ep->speed), \
 	usb_str_transfer_type_short((batch).ep->transfer_type), \
 	usb_str_direction((batch).ep->direction), \

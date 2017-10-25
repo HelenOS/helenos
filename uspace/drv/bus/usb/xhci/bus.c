@@ -62,10 +62,7 @@ static const usb_endpoint_desc_t ep0_desc = {
 static int prepare_endpoint(xhci_endpoint_t *ep, const usb_endpoint_desc_t *desc)
 {
 	/* Extract information from endpoint_desc */
-	ep->base.target = (usb_target_t) {{
-		.address = ep->base.device->address,
-		.endpoint = desc->endpoint_no,
-	}};
+	ep->base.endpoint = desc->endpoint_no;
 	ep->base.direction = desc->direction;
 	ep->base.transfer_type = desc->transfer_type;
 	ep->base.max_packet_size = desc->max_packet_size;
@@ -108,7 +105,6 @@ static int address_device(xhci_hc_t *hc, xhci_device_t *dev)
 		goto err_prepared_ep;
 
 	/* Register EP0, passing Temporary reference */
-	ep0->base.target.address = dev->base.address;
 	dev->endpoints[0] = ep0;
 
 	return EOK;
@@ -253,7 +249,7 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep, const usb_endpoint
 	if ((err = prepare_endpoint(xhci_ep, desc)))
 		return err;
 
-	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->target.address, ep->target.endpoint);
+	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->device->address, ep->endpoint);
 	return xhci_device_add_endpoint(xhci_dev, xhci_ep);
 }
 
@@ -262,7 +258,7 @@ static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep)
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
 	assert(bus);
 
-	usb_log_info("Endpoint(%d:%d) unregistered from XHCI bus.", ep->target.address, ep->target.endpoint);
+	usb_log_info("Endpoint(%d:%d) unregistered from XHCI bus.", ep->device->address, ep->endpoint);
 
 	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);

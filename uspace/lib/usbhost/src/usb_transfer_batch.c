@@ -80,11 +80,11 @@ static int batch_complete(usb_transfer_batch_t *batch)
 	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 
 	if (batch->error == EOK && batch->toggle_reset_mode != RESET_NONE) {
-		usb_log_debug2("Reseting %s due to transaction of %d:%d.\n",
-		    batch->toggle_reset_mode == RESET_ALL ? "all EPs toggle" : "EP toggle",
-		    batch->ep->target.address, batch->ep->target.endpoint);
-		bus_reset_toggle(batch->ep->bus,
-		    batch->ep->target, batch->toggle_reset_mode == RESET_ALL);
+		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " resets %s",
+		    batch, USB_TRANSFER_BATCH_ARGS(*batch),
+		    batch->toggle_reset_mode == RESET_ALL ? "all EPs toggle" : "EP toggle");
+		bus_reset_toggle(batch->ep->bus, 
+		    batch->target, batch->toggle_reset_mode == RESET_ALL);
 	}
 
 	return batch->on_complete

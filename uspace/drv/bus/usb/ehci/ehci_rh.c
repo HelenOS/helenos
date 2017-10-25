@@ -143,8 +143,7 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
-	const usb_target_t target = batch->ep->target;
-	batch->error = virthub_base_request(&instance->base, target,
+	batch->error = virthub_base_request(&instance->base, batch->target,
 	    batch->dir, (void*) batch->setup.buffer,
 	    batch->buffer, batch->buffer_size, &batch->transfered_size);
 	if (batch->error == ENAK) {
@@ -178,8 +177,7 @@ int ehci_rh_interrupt(ehci_rh_t *instance)
 	usb_log_debug2("RH(%p): Interrupt. Processing batch: %p",
 	    instance, batch);
 	if (batch) {
-		const usb_target_t target = batch->ep->target;
-		batch->error = virthub_base_request(&instance->base, target,
+		batch->error = virthub_base_request(&instance->base, batch->target,
 		    batch->dir, (void*) batch->setup.buffer,
 		    batch->buffer, batch->buffer_size, &batch->transfered_size);
 		usb_transfer_batch_finish(batch);

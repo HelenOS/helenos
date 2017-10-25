@@ -272,14 +272,13 @@ static endpoint_t *usb2_bus_find_ep(bus_t *bus_base, device_t *device, usb_targe
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 
-	if (!usb_address_is_valid(target.address))
-		return NULL;
+	assert(device->address == target.address);
 
 	list_foreach(*get_list(bus, target.address), link, endpoint_t, ep) {
 		if (((direction == ep->direction)
 		       || (ep->direction == USB_DIRECTION_BOTH)
 		       || (direction == USB_DIRECTION_BOTH))
-		    && (target.packed == ep->target.packed))
+		    && (target.endpoint == ep->endpoint))
 			return ep;
 	}
 	return NULL;
@@ -295,6 +294,17 @@ static endpoint_t *usb2_bus_create_ep(bus_t *bus)
 	return ep;
 }
 
+static usb_target_t usb2_ep_to_target(endpoint_t *ep)
+{
+	assert(ep);
+	assert(ep->device);
+
+	return (usb_target_t) {{
+		.address = ep->device->address,
+		.endpoint = ep->endpoint,
+	}};
+}
+
 /** Register an endpoint to the bus. Reserves bandwidth.
  * @param bus usb_bus structure, non-null.
  * @param endpoint USB endpoint number.
@@ -307,10 +317,7 @@ static int usb2_bus_register_ep(bus_t *bus_base, endpoint_t *ep, const usb_endpo
 	assert(ep->device);
 
 	/* Extract USB2-related information from endpoint_desc */
-	ep->target = (usb_target_t) {{
-		.address = ep->device->address,
-		.endpoint = desc->endpoint_no,
-	}};
+	ep->endpoint = desc->endpoint_no;
 	ep->direction = desc->direction;
 	ep->transfer_type = desc->transfer_type;
 	ep->max_packet_size = desc->max_packet_size;
@@ -319,7 +326,7 @@ static int usb2_bus_register_ep(bus_t *bus_base, endpoint_t *ep, const usb_endpo
 	ep->bandwidth = bus_base->ops.count_bw(ep, desc->max_packet_size);
 
 	/* Check for existence */
-	if (usb2_bus_find_ep(bus_base, ep->device, ep->target, ep->direction))
+	if (usb2_bus_find_ep(bus_base, ep->device, usb2_ep_to_target(ep), ep->direction))
 		return EEXIST;
 
 	/* Check for available bandwidth */
@@ -355,8 +362,9 @@ static int usb2_bus_reset_toggle(bus_t *bus_base, usb_target_t target, bool all)
 	int ret = ENOENT;
 
 	list_foreach(*get_list(bus, target.address), link, endpoint_t, ep) {
-		if ((ep->target.address == target.address)
-		    && (all || ep->target.endpoint == target.endpoint)) {
+		assert(ep->device->address == target.address);
+
+		if (all || ep->endpoint == target.endpoint) {
 			endpoint_toggle_set(ep, 0);
 			ret = EOK;
 		}
@@ -385,11 +393,12 @@ static int usb2_bus_release_address(bus_t *bus_base, usb_address_t address)
 	for (link_t *link = list_first(list); link != NULL; ) {
 		endpoint_t *ep = list_get_instance(link, endpoint_t, link);
 		link = list_next(link, list);
-		assert(ep->target.address == address);
+
+		assert(ep->device->address == address);
 		list_remove(&ep->link);
 
 		usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
-		    ep->target.address, ep->target.endpoint, usb_str_direction(ep->direction));
+		    address, ep->endpoint, usb_str_direction(ep->direction));
 
 		/* Drop bus reference */
 		endpoint_del_ref(ep);

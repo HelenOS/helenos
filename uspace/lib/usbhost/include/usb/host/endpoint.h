@@ -59,8 +59,8 @@ typedef struct endpoint {
 	link_t link;
 	/** USB device */
 	device_t *device;
-	/** USB address. */
-	usb_target_t target;
+	/** Enpoint number */
+	usb_endpoint_t endpoint;
 	/** Communication direction. */
 	usb_direction_t direction;
 	/** USB transfer type. */
@@ -107,6 +107,7 @@ static inline endpoint_t * endpoint_get_instance(link_t *item)
 {
 	return item ? list_get_instance(item, endpoint_t, link) : NULL;
 }
+
 #endif
 
 /**

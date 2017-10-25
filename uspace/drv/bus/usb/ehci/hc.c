@@ -214,7 +214,7 @@ void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 	assert(ep);
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
 	usb_log_debug("HC(%p) enqueue EP(%d:%d:%s:%s)\n", instance,
-	    ep->target.address, ep->target.endpoint,
+	    ep->device->address, ep->endpoint,
 	    usb_str_transfer_type_short(ep->transfer_type),
 	    usb_str_direction(ep->direction));
 	switch (ep->transfer_type)
@@ -238,7 +238,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	assert(ep);
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
 	usb_log_debug("HC(%p) dequeue EP(%d:%d:%s:%s)\n", instance,
-	    ep->target.address, ep->target.endpoint,
+	    ep->device->address, ep->endpoint,
 	    usb_str_transfer_type_short(ep->transfer_type),
 	    usb_str_direction(ep->direction));
 	switch (ep->transfer_type)
@@ -290,7 +290,7 @@ int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	assert(instance);
 
 	/* Check for root hub communication */
-	if (batch->ep->target.address == ehci_rh_get_address(&instance->rh)) {
+	if (batch->target.address == ehci_rh_get_address(&instance->rh)) {
 		usb_log_debug("HC(%p): Scheduling BATCH(%p) for RH(%p)",
 		    instance, batch, &instance->rh);
 		return ehci_rh_schedule(&instance->rh, batch);

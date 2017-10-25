@@ -215,7 +215,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 			usb_log_warning("Failed to abort active %s transfer to "
 			    " endpoint %d of detached device '%s': %s",
 			    usb_str_transfer_type(ep->base.transfer_type),
-			    ep->base.target.endpoint, ddf_fun_get_name(dev->base.fun),
+			    ep->base.endpoint, ddf_fun_get_name(dev->base.fun),
 			    str_error(err));
 		}
 	}

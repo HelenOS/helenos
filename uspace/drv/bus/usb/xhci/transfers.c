@@ -315,7 +315,7 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	xhci_device_t *xhci_dev = xhci_ep_to_dev(xhci_ep);
 
 	/* Offline devices don't schedule transfers other than on EP0. */
-	if (!xhci_dev->online && xhci_ep->base.target.endpoint) {
+	if (!xhci_dev->online && xhci_ep->base.endpoint) {
 		return EAGAIN;
 	}
 

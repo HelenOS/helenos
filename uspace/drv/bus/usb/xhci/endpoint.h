@@ -85,6 +85,12 @@ typedef struct xhci_endpoint {
 	uint8_t mult;
 } xhci_endpoint_t;
 
+#define XHCI_EP_FMT  "(%d:%d %s)"
+#define XHCI_EP_ARGS(ep)		\
+	((ep).base.device->address),	\
+	((ep).base.endpoint),		\
+	(usb_str_transfer_type((ep).base.transfer_type))
+
 typedef struct xhci_device {
 	device_t base;		/**< Inheritance. Keep this first. */
 
