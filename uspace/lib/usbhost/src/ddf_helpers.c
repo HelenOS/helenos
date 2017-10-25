@@ -510,7 +510,7 @@ int hcd_setup_virtual_root_hub(hcd_t *hcd, ddf_dev_t *hc)
 		return err;
 	}
 
-	device_t *dev = hcd_ddf_device_create(hc, USB_SPEED_MAX);
+	device_t *dev = hcd_ddf_device_create(hc, hcd->bus->device_size);
 	if (!dev) {
 		usb_log_error("Failed to create function for the root hub.");
 		goto err_default_address;
