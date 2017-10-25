@@ -393,8 +393,8 @@ namespace std
             {
                 auto pos = const_cast<iterator>(position);
 
-                shift_(pos, 1);
-                allocator_.construct(pos, std::forward<Args>(args)...);
+                pos = shift_(pos, 1);
+                allocator_.construct(pos, forward<Args>(args)...);
 
                 return pos;
             }
@@ -403,10 +403,9 @@ namespace std
             {
                 auto pos = const_cast<iterator>(position);
 
-                shift_(pos, 1);
+                pos = shift_(pos, 1);
                 *pos = x;
 
-                ++size_;
                 return pos;
             }
 
@@ -414,10 +413,9 @@ namespace std
             {
                 auto pos = const_cast<iterator>(position);
 
-                shift_(pos, 1);
+                pos = shift_(pos, 1);
                 *pos = forward<value_type>(x);
 
-                ++size_;
                 return pos;
             }
 
@@ -425,12 +423,11 @@ namespace std
             {
                 auto pos = const_cast<iterator>(position);
 
-                shift_(pos, count);
+                pos = shift_(pos, count);
                 auto copy_target = pos;
                 for (size_type i = 0; i < count; ++i)
                     *copy_target++ = x;
 
-                size_ += count;
                 return pos;
             }
 
@@ -441,10 +438,9 @@ namespace std
                 auto pos = const_cast<iterator>(position);
                 auto count = static_cast<size_type>(last - first);
 
-                shift_(pos, count);
-                std::copy(first, last, pos);
+                pos = shift_(pos, count);
+                copy(first, last, pos);
 
-                size_ += count;
                 return pos;
             }
 
@@ -452,10 +448,9 @@ namespace std
             {
                 auto pos = const_cast<iterator>(position);
 
-                shift_(pos, init.size());
-                std::copy(init.begin(), init.end(), pos);
+                pos = shift_(pos, init.size());
+                copy(init.begin(), init.end(), pos);
 
-                size_ += init.size();
                 return pos;
             }
 
@@ -549,10 +544,15 @@ namespace std
                     return max(capacity_ * 2, 2ul);
             }
 
-            void shift_(iterator position, size_type count)
+            iterator shift_(iterator position, size_type count)
             {
                 if (size_ + count < capacity_)
-                    std::copy_backwards(pos, end(), end() + count);
+                {
+                    copy_backward(position, end(), end() + count);
+                    size_ += count;
+
+                    return position;
+                }
                 else
                 {
                     auto start_idx = static_cast<size_type>(position - begin());
@@ -565,12 +565,15 @@ namespace std
                     tmp.size_ = new_size;
 
                     // Copy before insertion index.
-                    std::copy(tmp.begin(), tmp.begin() + start_idx, begin());
+                    copy(begin(), begin() + start_idx, tmp.begin());
 
                     // Copy after insertion index.
-                    std::copy(tmp.begin() + end_idx, tmp.end(), begin() + start_idx);
+                    copy(begin() + start_idx, end(), tmp.begin() + end_idx);
 
                     swap(tmp);
+
+                    // Position was invalidated!
+                    return begin() + start_idx;
                 }
             }
     };
