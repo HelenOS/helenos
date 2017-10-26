@@ -265,7 +265,7 @@ static int register_endpoint(bus_t *bus_base, endpoint_t *ep, const usb_endpoint
 		return err;
 
 	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->device->address, ep->endpoint);
-	return xhci_device_add_endpoint(xhci_dev, xhci_ep);
+	return xhci_device_add_endpoint(bus->hc, xhci_dev, xhci_ep);
 }
 
 static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep)
@@ -277,7 +277,7 @@ static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep)
 
 	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
-	const int res = xhci_device_remove_endpoint(xhci_dev, xhci_ep);
+	const int res = xhci_device_remove_endpoint(bus->hc, xhci_dev, xhci_ep);
 	if (res != EOK)
 		return res;
 
@@ -395,6 +395,7 @@ int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 	if (!bus->devices_by_slot)
 		return ENOMEM;
 
+	bus->hc = hc;
 	bus->base.ops = xhci_bus_ops;
 	bus->default_address_speed = USB_SPEED_MAX;
 	return EOK;

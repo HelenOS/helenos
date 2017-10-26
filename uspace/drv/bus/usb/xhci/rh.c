@@ -101,7 +101,6 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 
 	const xhci_port_speed_t *port_speed = xhci_rh_get_port_speed(rh, port_id);
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
-	xhci_dev->hc = rh->hc;
 	xhci_dev->usb3 = port_speed->major == 3;
 	xhci_dev->rh_port = port_id;
 
@@ -362,7 +361,7 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 	 */
 }
 
-static inline int get_hub_available_bandwidth(xhci_device_t* dev, uint8_t speed, xhci_port_bandwidth_ctx_t *ctx) {
+static inline int get_hub_available_bandwidth(xhci_hc_t *hc, xhci_device_t* dev, uint8_t speed, xhci_port_bandwidth_ctx_t *ctx) {
 	// TODO: find a correct place for this function + API
 	// We need speed, because a root hub device has both USB 2 and USB 3 speeds
 	// and the command can query only one of them
@@ -382,7 +381,7 @@ static inline int get_hub_available_bandwidth(xhci_device_t* dev, uint8_t speed,
 	cmd.device_speed = speed;
 
 	int err;
-	if ((err = xhci_cmd_sync(dev->hc, &cmd))) {
+	if ((err = xhci_cmd_sync(hc, &cmd))) {
 		goto end;
 	}
 

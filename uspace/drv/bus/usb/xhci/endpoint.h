@@ -116,9 +116,6 @@ typedef struct xhci_device {
 	/** Number of non-NULL endpoints. Reference count of sorts. */
 	uint8_t active_endpoint_count;
 
-	/** Need HC to schedule commands from bus callbacks. TODO: Move this elsewhere. */
-	xhci_hc_t *hc;
-
 	/** Flag indicating whether the device is USB3 (it's USB2 otherwise). */
 	bool usb3;
 
@@ -136,8 +133,8 @@ uint8_t xhci_endpoint_index(xhci_endpoint_t *);
 
 void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
 
-int xhci_device_add_endpoint(xhci_device_t *, xhci_endpoint_t *);
-int xhci_device_remove_endpoint(xhci_device_t *, xhci_endpoint_t *);
+int xhci_device_add_endpoint(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *);
+int xhci_device_remove_endpoint(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *);
 xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *, usb_endpoint_t);
 
 static inline xhci_device_t * xhci_device_get(device_t *dev)

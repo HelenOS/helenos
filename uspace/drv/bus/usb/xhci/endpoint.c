@@ -268,7 +268,7 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 	setup_ep_ctx_helpers[tt](ep, ep_ctx);
 }
 
-int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
+int xhci_device_add_endpoint(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep)
 {
 	assert(dev);
 	assert(ep);
@@ -298,10 +298,10 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	xhci_ep_ctx_t ep_ctx;
 	xhci_setup_endpoint_context(ep, &ep_ctx);
 
-	return hc_add_endpoint(dev->hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx);
+	return hc_add_endpoint(hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx);
 }
 
-int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
+int xhci_device_remove_endpoint(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep)
 {
 	assert(&dev->base == ep->base.device);
 	assert(dev->endpoints[ep->base.endpoint]);
@@ -319,7 +319,7 @@ int xhci_device_remove_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	}
 
 	/* Drop the endpoint. */
-	if ((err = hc_drop_endpoint(dev->hc, dev->slot_id, xhci_endpoint_index(ep)))) {
+	if ((err = hc_drop_endpoint(hc, dev->slot_id, xhci_endpoint_index(ep)))) {
 		goto err;
 	}
 
