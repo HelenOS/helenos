@@ -169,6 +169,14 @@ namespace std::test
             vec5.begin(), vec5.end(),
             check3.begin(), check3.end()
         );
+
+        std::vector<int> vec6{};
+        vec6.insert(vec6.begin(), check3);
+        test_eq(
+            "insert to empty vector",
+            vec6.begin(), vec6.end(),
+            check3.begin(), check3.end()
+        );
     }
 
     void vector_test::test_erase()
