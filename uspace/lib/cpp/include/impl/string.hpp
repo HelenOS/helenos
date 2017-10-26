@@ -80,7 +80,7 @@ namespace std
 
         static size_t length(const char_type* s)
         {
-            return std::str_size(s);
+            return std::str_size(s) + 1;
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)
@@ -183,7 +183,7 @@ namespace std
 
         static size_t length(const char_type* s)
         {
-            return std::wstr_size(s);
+            return std::wstr_size(s) + 1;
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)
@@ -276,44 +276,147 @@ namespace std
                 : basic_string(allocator_type{})
             { /* DUMMY BODY */ }
 
-            explicit basic_string(const allocator_type& alloc);
+            explicit basic_string(const allocator_type& alloc)
+                : data_{}, size_{}, capacity_{}, allocator_{alloc}
+            {
+                /**
+                 * Postconditions:
+                 *  data() = non-null copyable value that can have 0 added to it.
+                 *  size() = 0
+                 *  capacity() = unspecified
+                 */
+                data_ = allocator_.allocate(initial_capacity_);
+                capacity_ = initial_capacity_;
+            }
 
-            basic_string(const basic_string& other);
+            basic_string(const basic_string& other)
+                : data_{}, size_{other.size_}, capacity_{other.capacity_},
+                  allocator_{other.allocator_}
+            {
+                init_(other.data(), size_);
+            }
 
-            basic_string(basic_string&& other);
+            basic_string(basic_string&& other)
+                : data_{other.data_}, size_{other.size_},
+                  capacity_{other.capacity_}, allocator_{move(other.allocator_)}
+            {
+                other.data_ = nullptr;
+                other.size_ = 0;
+                other.capacity_ = 0;
+            }
 
             basic_string(const basic_string& other, size_type pos, size_type n = npos,
-                         const allocator_type& alloc = allocator_type{});
+                         const allocator_type& alloc = allocator_type{})
+                : data_{}, size_{}, capacity_{}, allocator_{alloc}
+            {
+                // TODO: if pos < other.size() throw out_of_range.
+                auto len = min(n, other.size() - pos);
+                init_(other.data() + pos, len);
+            }
 
-            basic_string(const value_type*, size_type n, const allocator_type& alloc = allocator{});
+            basic_string(const value_type* str, size_type n, const allocator_type& alloc = allocator{})
+                : data_{}, size_{n}, capacity_{n}, allocator_{alloc}
+            {
+                init_(str, size_);
+            }
 
-            basic_string(const value_type*, const allocator_type& alloc = allocator{});
+            basic_string(const value_type* str, const allocator_type& alloc = allocator{})
+                : data_{}, size_{}, capacity_{}, allocator_{alloc}
+            {
+                init_(str, traits_type::length(str));
+            }
 
-            basic_string(size_type n, value_type c, const allocator_type& alloc = allocator{});
+            basic_string(size_type n, value_type c, const allocator_type& alloc = allocator{})
+                : data_{}, size_{n}, capacity_{n}, allocator_{alloc}
+            {
+                data_ = allocator_.allocate(capacity_);
+                for (size_type i = 0; i < size_; ++i)
+                    traits_type::asign(data_[i], c);
+                ensure_null_terminator_();
+            }
 
             template<class InputIterator>
             basic_string(InputIterator first, InputIterator last,
-                         const allocator_type& alloc = allocator{});
+                         const allocator_type& alloc = allocator{})
+                : data_{}, size_{}, capacity_{}, allocator_{alloc}
+            {
+                if constexpr (is_integral_t<InputIterator>)
+                { // Required by the standard.
+                    size_ = static_cast<size_type>(first);
+                    capacity_ = size_;
+                    data_ = allocator_.allocate(capacity_);
 
-            basic_string(initializer_list<value_type> init, const allocator_type& alloc = allocator{});
+                    for (size_type i = 0; i < size_; ++i)
+                        traits_type::assign(data_[i], static_cast<value_type>(last));
+                    ensure_null_terminator_();
+                }
+                else
+                {
+                    auto len = static_cast<size_type>(last - first);
+                    init_(static_cast<value_type*>(first), len);
+                }
+            }
 
-            basic_string(const basic_string& other, const allocator_type& alloc);
+            basic_string(initializer_list<value_type> init, const allocator_type& alloc = allocator{})
+                : basic_string{init.begin(), init.size(), alloc}
+            { /* DUMMY BODY */ }
 
-            basic_string(basic_string&& other, const allocator_type& alloc);
+            basic_string(const basic_string& other, const allocator_type& alloc)
+                : data_{}, size_{other.size_}, capacity_{other.capacity_}, allocator_{alloc}
+            {
+                init_(other.data(), size_);
+            }
 
-            ~basic_string();
+            basic_string(basic_string&& other, const allocator_type& alloc)
+                : data_{other.data_}, size_{other.size_}, capacity_{other.capacity_}, allocator_{alloc}
+            {
+                other.data_ = nullptr;
+                other.size_ = 0;
+                other.capacity_ = 0;
+            }
 
-            basic_string& operator=(const basic_string& other);
+            ~basic_string()
+            {
+                allocator_.deallocate(data_, capacity_);
+            }
+
+            basic_string& operator=(const basic_string& other)
+            {
+                if (this != &other)
+                {
+                    basic_string tmp{other};
+                    swap(tmp);
+                }
+            }
 
             basic_string& operator=(basic_string&& other)
                 noexcept(allocator_traits<allocator_type>::propagate_on_container_move_assignment::value ||
-                         allocator_traits<allocator_type>::is_always_equal::value);
+                         allocator_traits<allocator_type>::is_always_equal::value)
+            {
+                if (this != &other)
+                    swap(other);
+            }
 
-            basic_string& operator=(const value_type* other);
+            basic_string& operator=(const value_type* other)
+            {
+                *this = basic_string{other};
 
-            basic_string& operator=(value_type c);
+                return *this;
+            }
 
-            basic_string& operator=(initializer_list<value_type>);
+            basic_string& operator=(value_type c)
+            {
+                *this = basic_string{1, c};
+
+                return *this;
+            }
+
+            basic_string& operator=(initializer_list<value_type> init)
+            {
+                *this = basic_string{init};
+
+                return *this;
+            }
 
             /**
              * 21.4.3, iterators:
@@ -398,20 +501,51 @@ namespace std
                 return allocator_traits<allocator_type>::max_size(allocator_);
             }
 
-            void resize(size_type n, value_type c);
+            void resize(size_type new_size, value_type c)
+            {
+                // TODO: if new_size > max_size() throw length_error.
+                if (new_size > size_)
+                {
+                    ensure_free_space_(new_size - size_ + 1);
+                    for (size_type i = size_; i < new_size; ++i)
+                        traits_type::assign(data_[i], i);
+                }
 
-            void resize(size_type n);
+                size_ = new_size;
+                ensure_null_terminator_();
+            }
+
+            void resize(size_type new_size)
+            {
+                resize(new_size, value_type{});
+            }
 
             size_type capacity() const noexcept
             {
                 return capacity_;
             }
 
-            void reserve(size_type res_arg = 0);
+            void reserve(size_type new_capacity = 0)
+            {
+                // TODO: if new_capacity > max_size() throw
+                //       length_error (this function shall have no
+                //       effect in such case)
+                if (new_capacity > capacity_)
+                    resize_with_copy_(size_, new_capacity);
+                else if (new_capacity < capacity)
+                    shrink_to_fit(); // Non-binding request, but why not.
+            }
 
-            void shrink_to_fit();
+            void shrink_to_fit()
+            {
+                if (size_ != capacity_)
+                    resize_with_copy_(size_);
+            }
 
-            void clear() noexcept;
+            void clear() noexcept
+            {
+                size_ = 0;
+            }
 
             bool empty() const noexcept
             {
@@ -468,78 +602,232 @@ namespace std
              * 21.4.6, modifiers:
              */
 
-            basic_string& operator+=(const basic_string& str);
+            basic_string& operator+=(const basic_string& str)
+            {
+                return append(str);
+            }
 
-            basic_string& operator+=(const value_type* str);
+            basic_string& operator+=(const value_type* str)
+            {
+                return append(str);
+            }
 
-            basic_string& operator+=(value_type c);
+            basic_string& operator+=(value_type c)
+            {
+                push_back(c);
+                return *this;
+            }
 
-            basic_string& operator+=(initializer_list<value_type> init);
+            basic_string& operator+=(initializer_list<value_type> init)
+            {
+                return append(init.begin(), init.size());
+            }
 
-            basic_string& append(const basic_string& str);
+            basic_string& append(const basic_string& str)
+            {
+                return append(str.data(), str.size());
+            }
 
             basic_string& append(const basic_string& str, size_type pos
-                                 size_type n = npos);
+                                 size_type n = npos)
+            {
+                if (pos < str.size())
+                {
+                    auto len = min(n, str.size() - pos);
+                    ensure_free_space_(len);
 
-            basic_string& append(const value_type* str, size_type n);
+                    return append(str.data() + pos, len);
+                }
+                // TODO: Else throw out_of_range.
+            }
 
-            basic_string& append(const value_type* str);
+            basic_string& append(const value_type* str, size_type n)
+            {
+                // TODO: if (size_ + n > max_size()) throw length_error
+                ensure_free_space_(n);
+                traits_type::copy(data_ + size_, str, n);
+                size_ += n;
+                ensure_null_terminator_();
 
-            basic_string& append(size_type n, value_type c);
+                return *this;
+            }
+
+            basic_string& append(const value_type* str)
+            {
+                return append(str, traits_type::length(str));
+            }
+
+            basic_string& append(size_type n, value_type c)
+            {
+                return append(basic_string(n, c));
+            }
 
             template<class InputIterator>
-            basic_string& append(InputIterator first, InputIterator last);
+            basic_string& append(InputIterator first, InputIterator last)
+            {
+                return append(basic_string(frist, last));
+            }
 
-            basic_string& append(initializer_list<value_type> init);
+            basic_string& append(initializer_list<value_type> init)
+            {
+                return append(init.begin(), init.size());
+            }
 
-            void push_back(value_type c);
+            void push_back(value_type c)
+            {
+                ensure_free_space_(1);
+                traits_type::assign(data_[size_++], c);
+                ensure_null_terminator_();
+            }
 
-            basic_string& assign(const basic_string& str);
+            basic_string& assign(const basic_string& str)
+            {
+                return assign(str, 0, npos);
+            }
 
-            basic_string& assign(basic_string&& str);
+            basic_string& assign(basic_string&& str)
+            {
+                swap(str);
+
+                return *this;
+            }
 
             basic_string& assign(const basic_string& str, size_type pos,
-                                 size_type n = npos);
+                                 size_type n = npos)
+            {
+                if (pos < str.size())
+                {
+                    auto len = min(n, str.size() - pos);
+                    ensure_free_space_(len);
 
-            basic_string& assign(const value_type* str, size_type n);
+                    return assign(str.data() + pos, len);
+                }
+                // TODO: Else throw out_of_range.
+            }
 
-            basic_string& assign(const value_type* str);
+            basic_string& assign(const value_type* str, size_type n)
+            {
+                // TODO: if (n > max_size()) throw length_error.
+                resize_without_copy_(n);
+                traits_type::copy(begin(), str, n);
 
-            basic_string& assign(size_type n, value_type c);
+                return *this;
+            }
+
+            basic_string& assign(const value_type* str)
+            {
+                return assign(str, traits_type::length(str));
+            }
+
+            basic_string& assign(size_type n, value_type c)
+            {
+                return assign(basic_string(n, c));
+            }
 
             template<class InputIterator>
-            basic_string& assign(InputIterator first, InputIterator last);
+            basic_string& assign(InputIterator first, InputIterator last)
+            {
+                return assign(basic_string(first, last));
+            }
 
-            basic_string& assign(initializer_list<value_type> init);
+            basic_string& assign(initializer_list<value_type> init)
+            {
+                return assign(init.begin(), init.size());
+            }
 
-            basic_string& insert(size_type pos, const basic_string& str);
+            basic_string& insert(size_type pos, const basic_string& str)
+            {
+                // TODO: if (pos > str.size()) throw out_of_range.
+                return insert(pos, str.data(), str.size());
+            }
 
             basic_string& insert(size_type pos1, const basic_string& str,
-                                 size_type pos2, size_type n = npos);
+                                 size_type pos2, size_type n = npos)
+            {
+                // TODO: if (pos1 > size() or pos2 > str.size()) throw
+                //       out_of_range.
+                auto len = min(n, str.size() - pos2);
 
-            basic_string& insert(size_type pos, const value_type* str, size_type n);
+                return insert(pos1, str.data() + pos2, len);
+            }
 
-            basic_string& insert(size_type pos, const value_type* str);
+            basic_string& insert(size_type pos, const value_type* str, size_type n)
+            {
+                ensure_free_space_(size_ + n);
+                copy_backward_(begin() + pos, end(), end() + n);
+                copy_(begin() + pos, begin() + pos + n, str);
 
-            basic_string& insert(size_type pos, size_type n, value_type c);
+                return *this;
+            }
 
-            iterator insert(const_iterator pos, value_type c);
+            basic_string& insert(size_type pos, const value_type* str)
+            {
+                return insert(pos, str, traits_type::length(str));
+            }
 
-            iterator insert(const_iterator pos, size_type n, value_type c);
+            basic_string& insert(size_type pos, size_type n, value_type c)
+            {
+                return insert(pos, basic_string(n, c));
+            }
+
+            iterator insert(const_iterator pos, value_type c)
+            {
+                auto idx = static_cast<size_type>(pos - begin());
+
+                ensure_free_space_(1);
+                copy_backward_(begin() + pos, end(), end() + 1);
+                ensure_null_terminator_();
+
+                return begin() + idx;
+            }
+
+            iterator insert(const_iterator pos, size_type n, value_type c)
+            {
+                if (n == 0)
+                    return const_cast<iterator>(pos);
+
+                auto idx = static_cast<size_type>(pos - begin());
+
+                ensure_free_space_(n);
+                copy_backward_(begin() + pos, end(), end() + n);
+
+                auto it = position;
+                for (size_type i = 0; i < n; ++i)
+                    type_traits::assign(*it++, c);
+                ensure_null_terminator_();
+
+                return begin() + idx;
+            }
 
             template<class InputIterator>
             iterator insert(const_iterator pos, InputIterator first,
-                            InputIterator last);
+                            InputIterator last)
+            {
+                return insert(pos - begin(), basic_string(first, last));
+            }
 
-            iterator insert(const_iterator pos, initializer_list<value_type>);
+            iterator insert(const_iterator pos, initializer_list<value_type> init)
+            {
+                return insert(pos, init.begin(), init.end());
+            }
 
-            basic_string& erase(size_type pos = 0; size_type n = npos);
+            basic_string& erase(size_type pos = 0; size_type n = npos)
+            {
+                auto len = min(n, size_ - pos);
+                copy_(begin() + pos + n, end(), begin() + pos);
+                size_ -= len;
+                ensure_null_terminator_();
+            }
 
             iterator erase(const_iterator pos);
 
             iterator erase(const_iterator pos, const_iterator last);
 
-            void pop_back();
+            void pop_back()
+            {
+                --size_;
+                ensure_null_terminator_();
+            }
 
             basic_string& replace(size_type pos, size_type n, const basic_string& str);
 
@@ -672,6 +960,101 @@ namespace std
             size_type size_;
             size_type capacity_;
             allocator_type allocator_;
+
+            /**
+             * Arbitrary value, standard just requires
+             * data() to have some capacity.
+             * (Well, we could've done data_ = &data_ and
+             * set capacity to 0, but that would be too cryptic.)
+             */
+            static constexpr size_type default_capacity_{4}
+
+            void init_(const value_type* str, size_type size)
+            {
+                if (data_)
+                    allocator_.deallocate(data_, capacity_);
+
+                size_ = size;
+                capacity_ = size;
+
+                data_ = allocator_.allocate(capacity_);
+                traits_type::copy(data_, str, size);
+                ensure_null_terminator_();
+            }
+
+            size_type next_capacity_(size_type hint = 0) const noexcept
+            {
+                if (hint != 0)
+                    return max(capacity_ * 2, hint);
+                else
+                    return max(capacity_ * 2, 2ul);
+            }
+
+            void ensure_free_space_(size_type n)
+            {
+                /**
+                 * Note: We cannot use reserve like we
+                 *       did in vector, because in string
+                 *       reserve can cause shrinking.
+                 */
+                if (size_ + 1 + n > capacity)
+                    resize_with_copy_(size_, max(size_ + 1 + n, next_capacity_()));
+            }
+
+            void resize_without_copy_(size_type capacity)
+            {
+                if (data_)
+                    allocator_.deallocate(data_, capacity_);
+
+                data_ = allocator_.allocate(capacity);
+                size_ = 0;
+                capacity_ = capacity;
+                ensure_null_terminator_();
+            }
+
+            void resize_with_copy_(size_type size, size_type capacity)
+            {
+                if(capacity_ == 0 || capacity_ < capacity)
+                {
+                    auto new_data = allocator_.allocate(capacity);
+
+                    auto to_copy = min(size, size_);
+                    traits_type::move(new_data, data_, to_copy);
+
+                    std::swap(data_, new_data);
+
+                    allocator_.deallocate(new_data, capacity_);
+                }
+
+                capacity_ = capacity;
+                size_ = size;
+                ensure_null_terminator_();
+            }
+
+            iterator copy_(const_iterator first, const_iterator last,
+                           iterator result)
+            {
+                while (first != last)
+                    traits_type::assign(*result++, *first++);
+
+                ensure_null_terminator_();
+                return result;
+            }
+
+            iterator copy_backward_(const_iterator first, const_iterator last,
+                                    iterator result)
+            {
+                while (last-- != first)
+                    traits_type::assign(*result--, *last);
+
+                ensure_null_terminator_();
+                return result;
+            }
+
+            void ensure_null_terminator_()
+            {
+                traits_type::assign(data_[size_], value_type{});
+            }
     };
 }
 
