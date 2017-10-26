@@ -157,7 +157,7 @@ LIBURI_PREFIX = $(LIB_PREFIX)/uri
 LIBNETTL_PREFIX = $(LIB_PREFIX)/nettl
 
 AFLAGS =
-LFLAGS = --fatal-warnings
+LFLAGS = --fatal-warnings --warn-common
 
 # FIXME: This condition is a workaround for issues #692 and #693.
 ifneq ($(KARCH),ia64)
@@ -233,7 +233,7 @@ clean:
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -fexec-charset=UTF-8 \
-	-finput-charset=UTF-8 -D__$(ENDIANESS)__
+	-finput-charset=UTF-8 -D__$(ENDIANESS)__ -fno-common
 
 GCC_CFLAGS = -ffunction-sections -Wall -Wextra -Wno-clobbered \
 	-Wno-unused-parameter -Wmissing-prototypes -std=gnu99 \

@@ -83,7 +83,7 @@ DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)"
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-fexec-charset=UTF-8 -finput-charset=UTF-8
+	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common
 
 GCC_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
@@ -111,7 +111,7 @@ endif
 # AFLAGS and LFLAGS must be initialized before the inclusion.
 #
 AFLAGS =
-LFLAGS = -n -T $(LINK) -M --fatal-warnings
+LFLAGS = -n -T $(LINK) -M --fatal-warnings --warn-common
 
 # FIXME: This condition is a workaround for issues #693 and #694.
 ifneq ($(KARCH),sparc64)

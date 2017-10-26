@@ -36,7 +36,7 @@ OPTIMIZATION = 3
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 AFLAGS =
-LFLAGS = --fatal-warnings
+LFLAGS = --fatal-warnings --warn-common
 
 # FIXME: This condition is a workaround for issue #693.
 ifneq ($(BARCH),mips32)
@@ -45,7 +45,7 @@ endif
 
 COMMON_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-fexec-charset=UTF-8 -finput-charset=UTF-8
+	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common
 
 GCC_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
