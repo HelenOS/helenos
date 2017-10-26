@@ -55,11 +55,19 @@ def cfg_get(platform, machine, processor):
 	else:
 		return emulators[platform][machine][processor]
 
+def termemu_detect():
+	for termemu in ['xfce4-terminal', 'xterm']:
+		try:
+			subprocess.check_output('which ' + termemu, shell = True)
+			return termemu
+		except:
+			pass
+
 def run_in_console(cmd, title):
-	cmdline = 'xterm -T ' + '"' + title + '"' + ' -e ' + cmd
+	cmdline = termemu_detect() + ' -T ' + '"' + title + '"' + ' -e \'' + cmd + '\''
 	print(cmdline)
 	if not is_override('dryrun'):
-		subprocess.call(cmdline, shell = True);
+		subprocess.call(cmdline, shell = True)
 
 def get_host_native_width():
 	return int(platform.architecture()[0].strip('bit'))
