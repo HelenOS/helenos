@@ -69,13 +69,13 @@ namespace std
      */
 
     template<class T>
-    inline constexpr T&& forward(remove_reference_t<T>& t) noexcept
+    constexpr T&& forward(remove_reference_t<T>& t) noexcept
     {
         return static_cast<T&&>(t);
     }
 
     template<class T>
-    inline constexpr T&& forward(remove_reference_t<T>&& t) noexcept
+    constexpr T&& forward(remove_reference_t<T>&& t) noexcept
     {
         // TODO: check if t is lvalue reference, if it is, the program
         //       is ill-formed according to the standard
@@ -83,7 +83,7 @@ namespace std
     }
 
     template<class T>
-    inline constexpr remove_reference_t<T>&& move(T&& t) noexcept
+    constexpr remove_reference_t<T>&& move(T&& t) noexcept
     {
         return static_cast<remove_reference_t<T>&&>(t);
     }
