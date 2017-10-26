@@ -106,7 +106,7 @@ int xhci_trb_ring_init(xhci_trb_ring_t *ring)
 
 	xhci_trb_t *last = segment_end(segment) - 1;
 	xhci_trb_link_fill(last, segment->phys);
-	xhci_trb_set_cycle(last, true);
+	TRB_LINK_SET_TC(*last, true);
 
 	ring->enqueue_segment = segment;
 	ring->enqueue_trb = segment_begin(segment);
@@ -218,15 +218,14 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	 */
 	trb = first_trb;
 	for (size_t i = 0; i < trbs; ++i, ++trb) {
-		xhci_trb_set_cycle(trb, ring->pcs);
+		TRB_SET_CYCLE(*trb, ring->pcs);
 		xhci_trb_copy(ring->enqueue_trb, trb);
 
 		usb_log_debug2("TRB ring(%p): Enqueued TRB %p", ring, trb);
 		ring->enqueue_trb++;
 
 		if (TRB_TYPE(*ring->enqueue_trb) == XHCI_TRB_TYPE_LINK) {
-			// XXX: Check, whether the order here is correct (ambiguous instructions in 4.11.5.1)
-			xhci_trb_set_cycle(ring->enqueue_trb, ring->pcs);
+			TRB_SET_CYCLE(*ring->enqueue_trb, ring->pcs);
 
 			if (TRB_LINK_TC(*ring->enqueue_trb)) {
 				ring->pcs = !ring->pcs;

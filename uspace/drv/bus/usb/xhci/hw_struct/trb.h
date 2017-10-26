@@ -104,6 +104,11 @@ typedef struct xhci_trb {
 #define TRB_TRANSFER_LENGTH(trb)	XHCI_DWORD_EXTRACT((trb).status, 23, 0)
 #define TRB_COMPLETION_CODE(trb)	XHCI_DWORD_EXTRACT((trb).status, 31, 24)
 
+#define TRB_LINK_SET_TC(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 1, 1)
+#define TRB_SET_CYCLE(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 0, 0)
+
 #define TRB_CTRL_SET_SETUP_WLENGTH(trb, val) \
 	xhci_qword_set_bits(&(trb).parameter, val, 63, 48)
 #define TRB_CTRL_SET_SETUP_WINDEX(trb, val) \
@@ -152,11 +157,6 @@ static inline bool xhci_trb_is_chained(xhci_trb_t *trb) {
 	    || type == XHCI_TRB_TYPE_DATA_STAGE
 	    || type == XHCI_TRB_TYPE_STATUS_STAGE
 	    || type == XHCI_TRB_TYPE_ISOCH);
-}
-
-static inline void xhci_trb_set_cycle(xhci_trb_t *trb, bool cycle)
-{
-	xhci_dword_set_bits(&trb->control, cycle, 0, 0);
 }
 
 static inline void xhci_trb_link_fill(xhci_trb_t *trb, uintptr_t next_phys)
