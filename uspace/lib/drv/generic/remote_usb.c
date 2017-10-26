@@ -34,6 +34,7 @@
  */
 
 #include <async.h>
+#include <assert.h>
 #include <macros.h>
 #include <errno.h>
 #include <devman.h>
@@ -168,7 +169,8 @@ int usb_device_remove(async_exch_t *exch, unsigned port)
 	    IPC_M_USB_DEVICE_REMOVE, port);
 }
 
-int static_assert[sizeof(sysarg_t) >= 4 ? 1 : -1];
+static_assert(sizeof(sysarg_t) >= 4);
+
 typedef union {
 	uint8_t arr[sizeof(sysarg_t)];
 	sysarg_t arg;
