@@ -83,7 +83,8 @@ DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)"
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common
+	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common \
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 
 GCC_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
