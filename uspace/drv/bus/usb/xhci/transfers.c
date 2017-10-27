@@ -319,6 +319,12 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 		return EAGAIN;
 	}
 
+	// FIXME: find a better way to check if the ring is not initialized
+	if (!xhci_ep->ring.segment_count) {
+		usb_log_error("Ring not initialized for endpoint num %u!", xhci_ep->base.endpoint);
+		return EINVAL;
+	}
+
 	const usb_transfer_type_t type = batch->ep->transfer_type;
 	assert(type >= 0 && type < ARRAY_SIZE(transfer_handlers));
 	assert(transfer_handlers[type]);
@@ -326,6 +332,7 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	if (batch->buffer_size > 0) {
 		transfer->hc_buffer = malloc32(batch->buffer_size);
 	}
+
 
 	if (batch->dir != USB_DIRECTION_IN) {
 		// Sending stuff from host to device, we need to copy the actual data.
