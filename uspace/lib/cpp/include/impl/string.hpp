@@ -829,37 +829,83 @@ namespace std
                 ensure_null_terminator_();
             }
 
-            basic_string& replace(size_type pos, size_type n, const basic_string& str);
+            basic_string& replace(size_type pos, size_type n, const basic_string& str)
+            {
+                // TODO: throw out_of_range if pos > size()
+                return replace(pos, n, str.data(), str.size());
+            }
 
             basic_string& replace(size_type pos1, size_type n1, const basic_string& str
-                                  size_type pos2, size_type n2);
+                                  size_type pos2, size_type n2 = npos)
+            {
+                // TODO: throw out_of_range if pos1 > size() or pos2 > str.size()
+                auto len = min(n2, str.size() - pos2);
+                return replace(pos1, n1, str.data() + pos2, len);
+            }
 
             basic_string& replace(size_type pos, size_type n1, const value_type* str,
-                                  size_type n2);
+                                  size_type n2)
+            {
+                // TODO: format and comment this properly
+                // TODO: throw out_of_range if pos > size()
+                auto len = min(n1, size_ - pos);
+                // TODO: if size() - len > max_size() - n2 throw length_error
+                basic_string tmp{};
+                tmp.resize_without_copy_(size_ - len + n2);
+                copy_(begin(), begin() + pos, tmp.begin());
+                traits_type::copy(tmp.begin() + pos + 1, str, n2);
+                copy_(begin() + pos + len, end(), tmp.begin() + pos + 1 + n2);
+                swap(tmp);
+                return *this;
+            }
 
-            basic_string& replace(size_type pos, size_type n, const value_type* str);
+            basic_string& replace(size_type pos, size_type n, const value_type* str)
+            {
+                return replace(pos, n, str, traits_type::length(str));
+            }
 
             basic_string& replace(size_type pos, size_type n1, size_type n2,
-                                  value_type c);
+                                  value_type c)
+            {
+                return replace(pos, n1, basic_string(n2, c));
+            }
 
             basic_string& replace(const_iterator i1, const_iterator i2,
-                                  const basic_string& str);
+                                  const basic_string& str)
+            {
+                return replace(i1 - begin(), i2 - i1, str);
+            }
 
             basic_string& replace(const_iterator i1, const_iterator i2,
-                                  const value_type* str, size_type n);
+                                  const value_type* str, size_type n)
+            {
+                return replace(i1 - begin(), i2 - i1, s, n);
+            }
 
             basic_string& replace(const_iterator i1, const_iterator i2,
-                                  const value_type* str);
+                                  const value_type* str)
+            {
+                return replace(i1 - begin(), i2 - i1, str, traits_type::length(str));
+            }
 
             basic_string& replace(const_iterator i1, const_iterator i2,
-                                  value_type c);
+                                  size_type n, value_type c)
+            {
+                return replace(i1 - begin(), i2 - i1, basic_string(n, c));
+            }
 
             template<class InputIterator>
             basic_string& replace(const_iterator i1, const_iterator i2,
-                                  InputIterator j1, InputIterator j2);
+                                  InputIterator j1, InputIterator j2)
+            {
+                return replace(i1 - begin(), i2 - i1, basic_string(j1, j2));
+            }
 
             basic_string& replace(const_iterator i1, const_iterator i2,
-                                  initializer_list<value_type> init);
+                                  initializer_list<value_type> init)
+            {
+                return replace(i1 - begin(), i2 - i1, init.begin(), init.size());
+            }
 
             size_type copy(value_type* str, size_type n, size_type pos = 0) const;
 
