@@ -69,6 +69,8 @@ def main():
 	as_prolog = sys.argv[3]
 	section = sys.argv[4]
 	
+	timestamp = (1980, 1, 1, 0, 0, 0)
+	
 	header_ctx = []
 	desc_ctx = []
 	size_ctx = []
@@ -78,7 +80,7 @@ def main():
 	
 	archive = zipfile.ZipFile("%s.zip" % dest, "w", zipfile.ZIP_STORED)
 	
-	for src in sys.argv[5:]:
+	for src in sorted(sys.argv[5:]):
 		basename = os.path.basename(src)
 		plainname = os.path.splitext(basename)[0]
 		symbol = basename.replace(".", "_")
@@ -94,7 +96,8 @@ def main():
 		if compress:
 			src_data = deflate(src_data)
 			src_fname = os.path.basename("%s.deflate" % src)
-			archive.writestr(src_fname, src_data)
+			zipinfo = zipfile.ZipInfo(src_fname, timestamp)
+			archive.writestr(zipinfo, src_data)
 		else:
 			src_fname = src
 		
@@ -154,7 +157,8 @@ def main():
 	data += "\n".join(header_ctx)
 	data += "\n\n"
 	data += "#endif\n"
-	archive.writestr("%s.h" % dest, data)
+	zipinfo = zipfile.ZipInfo("%s.h" % dest, timestamp)
+	archive.writestr(zipinfo, data)
 	
 	data = ''
 	data += '/***************************************\n'
@@ -165,7 +169,8 @@ def main():
 	data += "%s\n\n" % section
 	data += "\n".join(data_ctx)
 	data += "\n"
-	archive.writestr("%s.s" % dest, data)
+	zipinfo = zipfile.ZipInfo("%s.s" % dest, timestamp)
+	archive.writestr(zipinfo, data)
 	
 	data = ''
 	data += '/***************************************\n'
@@ -179,7 +184,8 @@ def main():
 	data += "};\n\n"
 	data += "\n".join(size_ctx)
 	data += "\n"
-	archive.writestr("%s_desc.c" % dest, data)
+	zipinfo = zipfile.ZipInfo("%s_desc.c" % dest, timestamp)
+	archive.writestr(zipinfo, data)
 	
 	archive.close()
 

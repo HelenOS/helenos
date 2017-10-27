@@ -79,6 +79,6 @@ include helenos.test.mak
 all-test: $(SELF_TESTS)
 
 test-libpcut-%: $(OUTPUT)
-	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -o $@ $^ $(OUTPUT) $(BASE_LIBS)
+	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -o $@ $(STARTUP) $^ $(OUTPUT) $(BASE_LIBS)
 
 EOF_MAKEFILE_TAIL
