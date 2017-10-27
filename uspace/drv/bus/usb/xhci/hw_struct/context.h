@@ -79,6 +79,8 @@ typedef struct xhci_endpoint_ctx {
 	xhci_dword_set_bits(&(ctx).data[0], val, 23, 16)
 #define XHCI_EP_MAX_P_STREAMS_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], val, 14, 10)
+#define XHCI_EP_LSA_SET(ctx, val) \
+	xhci_dword_set_bits(&(ctx).data[0], val, 15, 15)
 #define XHCI_EP_MULT_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], val, 9, 8)
 #define XHCI_EP_ERROR_COUNT_SET(ctx, val) \
@@ -163,6 +165,9 @@ typedef struct xhci_stream_ctx {
 #define XHCI_STREAM_SCT(ctx)       XHCI_QWORD_EXTRACT((ctx).data[0],  3, 1)
 #define XHCI_STREAM_DEQ_PTR(ctx)   XHCI_QWORD_EXTRACT((ctx).data[0], 63, 4)
 #define XHCI_STREAM_EDTLA(ctx)     XHCI_QWORD_EXTRACT((ctx).data[1], 24, 0)
+
+#define XHCI_STREAM_SCT_SET(ctx, val) \
+	xhci_qword_set_bits(&(ctx).data[0], val, 3, 1)
 } __attribute__((packed)) xhci_stream_ctx_t;
 
 /**

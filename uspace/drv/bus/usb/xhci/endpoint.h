@@ -76,6 +76,9 @@ typedef struct xhci_endpoint {
 	/** Primary stream context array (or NULL if endpoint doesn't use streams) */
 	xhci_stream_ctx_t *primary_stream_ctx_array;
 
+	/** Size of the allocated primary stream context array. */
+	uint16_t primary_stream_ctx_array_size;
+
 	/** 2-log of maximum number of primary streams (0-16). Not to be used directly. */
 	uint8_t max_streams;
 
@@ -127,6 +130,8 @@ int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *);
 int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
+
+int xhci_endpoint_request_streams(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *, unsigned);
 
 uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
 uint8_t xhci_endpoint_index(xhci_endpoint_t *);
