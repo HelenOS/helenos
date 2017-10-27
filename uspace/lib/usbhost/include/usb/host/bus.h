@@ -83,7 +83,7 @@ typedef struct {
 
 	/* The following operations are protected by a bus guard. */
 	endpoint_t *(*create_endpoint)(bus_t *);
-	int (*register_endpoint)(bus_t *, endpoint_t *, const usb_endpoint_desc_t *);
+	int (*register_endpoint)(bus_t *, device_t *, endpoint_t *, const usb_endpoint_desc_t *);
 	int (*unregister_endpoint)(bus_t *, endpoint_t *);
 	endpoint_t *(*find_endpoint)(bus_t *, device_t*, usb_target_t, usb_direction_t);
 	void (*destroy_endpoint)(endpoint_t *);			/**< Optional */

@@ -95,24 +95,29 @@ static int address_device(xhci_hc_t *hc, xhci_device_t *dev)
 	/* Temporary reference */
 	endpoint_add_ref(ep0_base);
 
-	ep0_base->device = &dev->base;
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
 
 	if ((err = prepare_endpoint(ep0, &ep0_desc)))
 		goto err_ep;
 
+	/* Register EP0 */
+	if ((err = xhci_device_add_endpoint(dev, ep0)))
+		goto err_prepared;
+
 	/* Address device */
 	if ((err = hc_address_device(hc, dev, ep0)))
-		goto err_prepared_ep;
+		goto err_added;
 
-	/* Register EP0, passing Temporary reference */
-	dev->endpoints[0] = ep0;
-
+	/* Temporary reference */
+	endpoint_del_ref(ep0_base);
 	return EOK;
 
-err_prepared_ep:
+err_added:
+	xhci_device_remove_endpoint(ep0);
+err_prepared:
 	xhci_endpoint_free_transfer_ds(ep0);
 err_ep:
+	/* Temporary reference */
 	endpoint_del_ref(ep0_base);
 err_slot:
 	hc_disable_slot(hc, dev->slot_id);
@@ -250,36 +255,58 @@ static void destroy_endpoint(endpoint_t *ep)
 	free(xhci_ep);
 }
 
-static int register_endpoint(bus_t *bus_base, endpoint_t *ep, const usb_endpoint_desc_t *desc)
+static int register_endpoint(bus_t *bus_base, device_t *device, endpoint_t *ep_base, const usb_endpoint_desc_t *desc)
 {
 	int err;
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
-	assert(bus);
+	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 
-	assert(ep->device);
+	xhci_device_t *dev = xhci_device_get(device);
 
-	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
-
-	if ((err = prepare_endpoint(xhci_ep, desc)))
+	if ((err = prepare_endpoint(ep, desc)))
 		return err;
 
-	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", ep->device->address, ep->endpoint);
-	return xhci_device_add_endpoint(bus->hc, xhci_dev, xhci_ep);
+	if ((err = xhci_device_add_endpoint(dev, ep)))
+		goto err_prepared;
+
+	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", dev->base.address, ep->base.endpoint);
+
+	xhci_ep_ctx_t ep_ctx;
+	xhci_setup_endpoint_context(ep, &ep_ctx);
+
+	if ((err = hc_add_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx)))
+		goto err_added;
+
+	return EOK;
+
+err_added:
+	xhci_device_remove_endpoint(ep);
+err_prepared:
+	xhci_endpoint_free_transfer_ds(ep);
+	return err;
 }
 
-static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep)
+static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep_base)
 {
+	int err;
 	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
-	assert(bus);
+	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
+	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
-	usb_log_info("Endpoint(%d:%d) unregistered from XHCI bus.", ep->device->address, ep->endpoint);
+	usb_log_info("Endpoint(%d:%d) unregistered from XHCI bus.", dev->base.address, ep->base.endpoint);
 
-	xhci_device_t *xhci_dev = xhci_device_get(ep->device);
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
-	const int res = xhci_device_remove_endpoint(bus->hc, xhci_dev, xhci_ep);
-	if (res != EOK)
-		return res;
+	xhci_device_remove_endpoint(ep);
+
+	/* Drop the endpoint. */
+	if ((err = hc_drop_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep)))) {
+		usb_log_error("Failed to drop endpoint: %s", str_error(err));
+	}
+
+	/* Tear down TRB ring / PSA. */
+	/* TODO: Make this method "noexcept" */
+	if ((err = xhci_endpoint_free_transfer_ds(ep))) {
+		usb_log_error("Failed to free resources of an endpoint.");
+	}
 
 	return EOK;
 }

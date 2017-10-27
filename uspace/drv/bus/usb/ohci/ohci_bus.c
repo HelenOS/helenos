@@ -114,12 +114,12 @@ static void ohci_endpoint_destroy(endpoint_t *ep)
 }
 
 
-static int ohci_register_ep(bus_t *bus_base, endpoint_t *ep, const usb_endpoint_desc_t *desc)
+static int ohci_register_ep(bus_t *bus_base, device_t *dev, endpoint_t *ep, const usb_endpoint_desc_t *desc)
 {
 	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
 
-	const int err = bus->parent_ops.register_endpoint(bus_base, ep, desc);
+	const int err = bus->parent_ops.register_endpoint(bus_base, dev, ep, desc);
 	if (err)
 		return err;
 

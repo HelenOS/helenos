@@ -116,8 +116,7 @@ int bus_add_endpoint(bus_t *bus, device_t *device, const usb_endpoint_desc_t *de
 	/* Bus reference */
 	endpoint_add_ref(ep);
 
-	ep->device = device;
-	if ((err = bus->ops.register_endpoint(bus, ep, desc)))
+	if ((err = bus->ops.register_endpoint(bus, device, ep, desc)))
 		goto err_ep;
 
 	if (out_ep) {

@@ -275,14 +275,15 @@ int loc_service_register(const char *fqsn, service_id_t *sid)
 	aid_t req = async_send_0(exch, LOC_SERVICE_REGISTER, &answer);
 	sysarg_t retval = async_data_write_start(exch, fqsn, str_size(fqsn));
 	
-	loc_exchange_end(exch);
 	
 	if (retval != EOK) {
 		async_forget(req);
+		loc_exchange_end(exch);
 		return retval;
 	}
 	
 	async_wait_for(req, &retval);
+	loc_exchange_end(exch);
 	
 	if (retval != EOK) {
 		if (sid != NULL)

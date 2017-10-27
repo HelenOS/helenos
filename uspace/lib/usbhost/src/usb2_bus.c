@@ -109,11 +109,11 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	int err;
 
 	/** Reserve address early, we want pretty log messages */
-	const usb_address_t address = bus_reserve_default_address(bus, dev->speed);
-	if (address < 0) {
+	usb_address_t address;
+	if ((err = bus_request_address(bus, &address, false, dev->speed))) {
 		usb_log_error("Failed to reserve new address: %s.",
-		    str_error(address));
-		return address;
+		    str_error(err));
+		return err;
 	}
 	usb_log_debug("Device(%d): Reserved new address.", address);
 
@@ -158,6 +158,13 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 		goto err_default_control_ep;
 	}
 
+	/* We need to remove ep before we change the address */
+	if ((err = bus_remove_endpoint(bus, default_ep))) {
+		usb_log_error("Device(%d): Failed to unregister default target: %s", address, str_error(err));
+		goto err_address;
+	}
+	endpoint_del_ref(default_ep);
+
 	dev->address = address;
 
 	const usb_endpoint_desc_t control_ep = {
@@ -174,15 +181,8 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to register EP0: %s",
 		    address, str_error(err));
-		goto err_default_control_ep;
+		goto err_address;
 	}
-
-	err = bus_remove_endpoint(bus, default_ep);
-	assert(err == EOK);
-	endpoint_del_ref(default_ep);
-
-	err = bus_release_address(bus, address);
-	assert(err == EOK);
 
 	return EOK;
 
@@ -209,16 +209,24 @@ static int usb2_bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	}
 	usb_log_debug("Found new %s speed USB device.", usb_str_speed(dev->speed));
 
-	/* Manage TT */
-	if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
-		/* For LS devices under HS hub */
-		/* TODO: How about SS hubs? */
-		dev->tt.address = dev->hub->address;
-		dev->tt.port = dev->port;
+	if (dev->hub) {
+		/* Manage TT */
+		if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
+			/* For LS devices under HS hub */
+			/* TODO: How about SS hubs? */
+			dev->tt.address = dev->hub->address;
+			dev->tt.port = dev->port;
+		}
+		else {
+			/* Inherit hub's TT */
+			dev->tt = dev->hub->tt;
+		}
 	}
 	else {
-		/* Inherit hub's TT */
-		dev->tt = dev->hub->tt;
+		dev->tt = (usb_tt_address_t) {
+			.address = -1,
+			.port = 0,
+		};
 	}
 
 	/* Assign an address to the device */
@@ -309,12 +317,12 @@ static usb_target_t usb2_ep_to_target(endpoint_t *ep)
  * @param bus usb_bus structure, non-null.
  * @param endpoint USB endpoint number.
  */
-static int usb2_bus_register_ep(bus_t *bus_base, endpoint_t *ep, const usb_endpoint_desc_t *desc)
+static int usb2_bus_register_ep(bus_t *bus_base, device_t *device, endpoint_t *ep, const usb_endpoint_desc_t *desc)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 	assert(ep);
 
-	assert(ep->device);
+	ep->device = device;
 
 	/* Extract USB2-related information from endpoint_desc */
 	ep->endpoint = desc->endpoint_no;
@@ -346,6 +354,9 @@ static int usb2_bus_unregister_ep(bus_t *bus_base, endpoint_t *ep)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 	assert(ep);
+
+	list_remove(&ep->link);
+	ep->device = NULL;
 
 	bus->free_bw += ep->bandwidth;
 

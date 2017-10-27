@@ -518,11 +518,6 @@ int hcd_setup_virtual_root_hub(hcd_t *hcd, ddf_dev_t *hc)
 
 	ddf_fun_set_name(dev->fun, "roothub");
 
-	dev->tt = (usb_tt_address_t) {
-		.address = -1,
-		.port = 0,
-	};
-
 	/* Assign an address to the device */
 	if ((err = bus_enumerate_device(hcd->bus, hcd, dev))) {
 		usb_log_error("Failed to enumerate roothub device: %s", str_error(err));

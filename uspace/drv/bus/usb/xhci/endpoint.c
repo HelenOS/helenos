@@ -188,7 +188,7 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 
-	usb_log_debug2("Allocating main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	usb_log_debug2("Allocating main transfer ring for endpoint %u", xhci_ep->base.endpoint);
 
 	xhci_ep->primary_stream_ctx_array = NULL;
 
@@ -322,74 +322,43 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 	setup_ep_ctx_helpers[tt](ep, ep_ctx);
 }
 
-int xhci_device_add_endpoint(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep)
+int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 {
 	assert(dev);
 	assert(ep);
 
 	/* Offline devices don't create new endpoints other than EP0. */
-	if (!dev->online) {
+	if (!dev->online && ep->base.endpoint > 0) {
 		return EAGAIN;
 	}
 
 	const usb_endpoint_t ep_num = ep->base.endpoint;
 
-	assert(&dev->base == ep->base.device);
+	if (dev->endpoints[ep_num])
+		return EEXIST;
 
-	// TODO Do not fail hard on runtime conditions
-	assert(!dev->endpoints[ep_num]);
+	/* Device reference */
+	endpoint_add_ref(&ep->base);
+	ep->base.device = &dev->base;
 
 	dev->endpoints[ep_num] = ep;
 	++dev->active_endpoint_count;
 
-	if (ep_num == 0) {
-		/* EP 0 is initialized while setting up the device,
-		 * so we must not issue the command now. */
-		return EOK;
-	}
-
-	/* Add endpoint. */
-	xhci_ep_ctx_t ep_ctx;
-	xhci_setup_endpoint_context(ep, &ep_ctx);
-
-	return hc_add_endpoint(hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx);
+	return EOK;
 }
 
-int xhci_device_remove_endpoint(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep)
+void xhci_device_remove_endpoint(xhci_endpoint_t *ep)
 {
-	assert(&dev->base == ep->base.device);
-	assert(dev->endpoints[ep->base.endpoint]);
+	assert(ep);
+	xhci_device_t *dev = xhci_device_get(ep->base.device);
 
-	int err = ENOMEM;
-	const usb_endpoint_t ep_num = ep->base.endpoint;
+	assert(dev->endpoints[ep->base.endpoint]);
 
 	dev->endpoints[ep->base.endpoint] = NULL;
 	--dev->active_endpoint_count;
+	ep->base.device = NULL;
 
-	if (ep_num == 0) {
-		/* EP 0 is finalized while releasing the device,
-		 * so we must not issue the command now. */
-		return EOK;
-	}
-
-	/* Drop the endpoint. */
-	if ((err = hc_drop_endpoint(hc, dev->slot_id, xhci_endpoint_index(ep)))) {
-		goto err;
-	}
-
-	/* Tear down TRB ring / PSA. */
-	/* FIXME: For some reason, this causes crash at xhci_trb_ring_fini.
-	if ((err = xhci_endpoint_free_transfer_ds(ep))) {
-		goto err_cmd;
-	}
-	*/
-
-	return EOK;
-
-err:
-	dev->endpoints[ep_num] = ep;
-	++dev->active_endpoint_count;
-	return err;
+	endpoint_del_ref(&ep->base);
 }
 
 xhci_endpoint_t *xhci_device_get_endpoint(xhci_device_t *dev, usb_endpoint_t ep)
