@@ -218,9 +218,9 @@ static int process_endpoint(
 	    ep_no, description.transfer_type,
 	    ED_MPS_PACKET_SIZE_GET(
 	        uint16_usb2host(endpoint_desc->max_packet_size)),
-	    description.direction, max_burst, max_streams,
-	    ED_MPS_TRANS_OPPORTUNITIES_GET(
-	        uint16_usb2host(endpoint_desc->max_packet_size)), bus_session);
+	    description.direction, ED_MPS_TRANS_OPPORTUNITIES_GET(
+	        uint16_usb2host(endpoint_desc->max_packet_size)),
+	    max_burst, max_streams, bus_session);
 	if (rc != EOK) {
 		return rc;
 	}
