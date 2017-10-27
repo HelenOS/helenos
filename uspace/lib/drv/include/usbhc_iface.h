@@ -40,7 +40,7 @@
 #define LIBDRV_USBHC_IFACE_H_
 
 #include "ddf/driver.h"
-#include <usb/usb.h>
+#include <usb_iface.h>
 #include <stdbool.h>
 
 extern int usbhc_read(async_exch_t *, usb_address_t, usb_endpoint_t,

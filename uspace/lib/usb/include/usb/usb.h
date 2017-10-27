@@ -38,6 +38,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <types/common.h>
+#include <usb_iface.h>
 
 /** Convert 16bit value from native (host) endianness to USB endianness. */
 #define uint16_host2usb(n) host2uint16_t_le((n))
@@ -51,38 +52,10 @@
 /** Convert 32bit value from USB endianness into native (host) one. */
 #define uint32_usb2host(n) uint32_t_le2host((n))
 
-
-/** USB transfer type. */
-typedef enum {
-	USB_TRANSFER_CONTROL = 0,
-	USB_TRANSFER_ISOCHRONOUS = 1,
-	USB_TRANSFER_BULK = 2,
-	USB_TRANSFER_INTERRUPT = 3
-} usb_transfer_type_t;
-
 const char * usb_str_transfer_type(usb_transfer_type_t t);
 const char * usb_str_transfer_type_short(usb_transfer_type_t t);
 
-/** USB data transfer direction. */
-typedef enum {
-	USB_DIRECTION_IN,
-	USB_DIRECTION_OUT,
-	USB_DIRECTION_BOTH
-} usb_direction_t;
-
 const char *usb_str_direction(usb_direction_t);
-
-/** USB speeds. */
-typedef enum {
-	/** USB 1.1 low speed (1.5Mbits/s). */
-	USB_SPEED_LOW,
-	/** USB 1.1 full speed (12Mbits/s). */
-	USB_SPEED_FULL,
-	/** USB 2.0 high speed (480Mbits/s). */
-	USB_SPEED_HIGH,
-	/** Psuedo-speed serving as a boundary. */
-	USB_SPEED_MAX
-} usb_speed_t;
 
 static inline bool usb_speed_is_11(const usb_speed_t s)
 {
@@ -107,11 +80,6 @@ typedef enum {
 	USB_REQUEST_RECIPIENT_OTHER = 3
 } usb_request_recipient_t;
 
-/** USB address type.
- * Negative values could be used to indicate error.
- */
-typedef int16_t usb_address_t;
-
 /** Default USB address. */
 #define USB_ADDRESS_DEFAULT 0
 
@@ -131,11 +99,6 @@ static inline bool usb_address_is_valid(usb_address_t a)
 	return (a >= USB_ADDRESS_DEFAULT) && (a <= USB11_ADDRESS_MAX);
 }
 
-/** USB endpoint number type.
- * Negative values could be used to indicate error.
- */
-typedef int16_t usb_endpoint_t;
-
 /** Default control endpoint */
 #define USB_ENDPOINT_DEFAULT_CONTROL 0
 
@@ -154,18 +117,6 @@ static inline bool usb_endpoint_is_valid(usb_endpoint_t ep)
 	return (ep >= USB_ENDPOINT_DEFAULT_CONTROL) &&
 	    (ep < USB11_ENDPOINT_MAX);
 }
-
-
-/** USB complete address type. 
- * Pair address + endpoint is identification of transaction recipient.
- */
-typedef union {
-	struct {
-		usb_address_t address;
-		usb_endpoint_t endpoint;
-	} __attribute__((packed));
-	uint32_t packed;
-} usb_target_t;
 
 /** Check USB target for allowed values (address and endpoint).
  *

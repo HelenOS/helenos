@@ -30,7 +30,6 @@ USPACE_PREFIX = ../..
 LIBRARY = libusb
 EXTRA_CFLAGS += \
 	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
 	-Iinclude
 
 SOURCES = \

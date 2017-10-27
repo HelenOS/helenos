@@ -39,9 +39,56 @@
 
 #include "ddf/driver.h"
 #include <async.h>
-#include <usb/usb.h>
 
 typedef async_sess_t usb_dev_session_t;
+
+/** USB speeds. */
+typedef enum {
+	/** USB 1.1 low speed (1.5Mbits/s). */
+	USB_SPEED_LOW,
+	/** USB 1.1 full speed (12Mbits/s). */
+	USB_SPEED_FULL,
+	/** USB 2.0 high speed (480Mbits/s). */
+	USB_SPEED_HIGH,
+	/** Psuedo-speed serving as a boundary. */
+	USB_SPEED_MAX
+} usb_speed_t;
+
+/** USB endpoint number type.
+ * Negative values could be used to indicate error.
+ */
+typedef int16_t usb_endpoint_t;
+
+/** USB address type.
+ * Negative values could be used to indicate error.
+ */
+typedef int16_t usb_address_t;
+
+/** USB transfer type. */
+typedef enum {
+	USB_TRANSFER_CONTROL = 0,
+	USB_TRANSFER_ISOCHRONOUS = 1,
+	USB_TRANSFER_BULK = 2,
+	USB_TRANSFER_INTERRUPT = 3
+} usb_transfer_type_t;
+
+/** USB data transfer direction. */
+typedef enum {
+	USB_DIRECTION_IN,
+	USB_DIRECTION_OUT,
+	USB_DIRECTION_BOTH
+} usb_direction_t;
+
+/** USB complete address type.
+ * Pair address + endpoint is identification of transaction recipient.
+ */
+typedef union {
+	struct {
+		usb_address_t address;
+		usb_endpoint_t endpoint;
+	} __attribute__((packed));
+	uint32_t packed;
+} usb_target_t;
 
 extern usb_dev_session_t *usb_dev_connect(devman_handle_t);
 extern usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);

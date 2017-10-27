@@ -31,7 +31,6 @@ USPACE_PREFIX = ../..
 EXTRA_CFLAGS = \
 	-Iinclude \
 	-Igeneric/private \
-	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBPCM_PREFIX)/include
 LIBRARY = libdrv
 

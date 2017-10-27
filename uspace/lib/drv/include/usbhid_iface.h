@@ -37,7 +37,6 @@
 #define LIBDRV_USBHID_IFACE_H_
 
 #include "ddf/driver.h"
-#include <usb/usb.h>
 
 extern int usbhid_dev_get_event_length(async_sess_t *, size_t *);
 extern int usbhid_dev_get_event(async_sess_t *, uint8_t *, size_t, size_t *,
