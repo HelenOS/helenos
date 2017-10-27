@@ -58,9 +58,6 @@ MKUIMAGE = $(TOOLS_PATH)/mkuimage.py
 
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
 
-ARCH_INCLUDE = generic/include/arch
-GENARCH_INCLUDE = generic/include/genarch
-
 DISTROOT = distroot
 INITRD = initrd
 

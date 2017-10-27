@@ -30,7 +30,7 @@
 
 include Makefile.common
 
-INCLUDES = -Igeneric/include -I$(ROOT_PATH)/abi/include
+INCLUDES = -Igeneric/include -Iarch/$(KARCH)/include -Igenarch/include -I$(ROOT_PATH)/abi/include
 OPTIMIZATION = 3
 
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
@@ -75,7 +75,7 @@ DEPENDS := $(addsuffix .d,$(basename $(SOURCES)))
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BOOT_OUTPUT)
 
 clean:
-	rm -f $(RAW) $(MAP) $(ARCH_INCLUDE) $(GENARCH_INCLUDE)
+	rm -f $(RAW) $(MAP)
 
 -include $(DEPENDS)
 
@@ -108,7 +108,7 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm
 endif
 
-depend: $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(PRE_DEPEND)
+depend: $(PRE_DEPEND)
 
 $(COMPS).s: $(COMPS).zip
 	unzip -p $< $@ > $@
@@ -127,8 +127,3 @@ $(COMPS).zip: $(COMPONENTS)
 
 include Makefile.initrd
 
-$(ARCH_INCLUDE) $(ARCH_INCLUDE)/%.h: arch/$(KARCH)/include/
-	ln -sfn ../../$< $@
-
-$(GENARCH_INCLUDE) $(GENARCH_INCLUDE)/%.h: genarch/include/
-	ln -sfn ../../$< $@
