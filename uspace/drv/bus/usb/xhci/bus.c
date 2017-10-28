@@ -187,14 +187,6 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	int err;
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
-	/* If the device is still attached, end DDF drivers gracefully. */
-	if (!xhci_dev->detached) {
-		if ((err = ddf_fun_offline(dev->fun))) {
-			usb_log_warning("Failed to offline DDF function of device '%s': %s",
-			    ddf_fun_get_name(dev->fun), str_error(err));
-		}
-	}
-
 	/* Block creation of new endpoints and transfers. */
 	usb_log_debug2("Device '%s' going offline.", ddf_fun_get_name(dev->fun));
 	fibril_mutex_lock(&dev->guard);
@@ -226,14 +218,6 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 		    ddf_fun_get_name(dev->fun), str_error(err));
 	}
 
-	/* Deconfigure device if it's still attached. */
-	if (!xhci_dev->detached) {
-		if ((err = hc_deconfigure_device(hc, xhci_dev->slot_id))) {
-			usb_log_warning("Failed to deconfigure device '%s': %s",
-			    ddf_fun_get_name(dev->fun), str_error(err));
-		}
-	}
-
 	/* Unregister remaining endpoints. */
 	for (unsigned i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
 		if (!xhci_dev->endpoints[i])
@@ -254,6 +238,10 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	hc->dcbaa[xhci_dev->slot_id] = 0;
 
 	bus->devices_by_slot[xhci_dev->slot_id] = NULL;
+
+	/* Destroy DDF device. */
+	/* XXX: Not a good idea, this method should not destroy devices. */
+	hcd_ddf_device_destroy(dev);
 
 	return EOK;
 }
@@ -300,7 +288,16 @@ static int online_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
 	xhci_device_t *dev = xhci_device_get(dev_base);
 	assert(dev);
 
-	// TODO: Prepare the device for use. Reset? Configure?
+	/* Transition the device from the Addressed to the Configured state. */
+	if ((err = hc_configure_device(hc, dev->slot_id))) {
+		usb_log_warning("Failed to configure device %d.", dev_base->address);
+	}
+
+	/* Block creation of new endpoints and transfers. */
+	usb_log_debug2("Device '%s' going online.", ddf_fun_get_name(dev_base->fun));
+	fibril_mutex_lock(&dev_base->guard);
+	dev->online = true;
+	fibril_mutex_unlock(&dev_base->guard);
 
 	if ((err = ddf_fun_online(dev_base->fun))) {
 		return err;
@@ -327,7 +324,43 @@ static int offline_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
 		return err;
 	}
 
-	// TODO: We want to keep the device addressed. Deconfigure?
+	/* Block creation of new endpoints and transfers. */
+	usb_log_debug2("Device '%s' going offline.", ddf_fun_get_name(dev_base->fun));
+	fibril_mutex_lock(&dev_base->guard);
+	dev->online = false;
+	fibril_mutex_unlock(&dev_base->guard);
+
+	/* We will need the endpoint array later for DS deallocation. */
+	xhci_endpoint_t *endpoints[ARRAY_SIZE(dev->endpoints)];
+	memcpy(endpoints, dev->endpoints, sizeof(dev->endpoints));
+
+	/* Remove all endpoints except zero. */
+	for (unsigned i = 1; i < ARRAY_SIZE(endpoints); ++i) {
+		if (!endpoints[i])
+			continue;
+
+		/* FIXME: Asserting here that the endpoint is not active. If not, EBUSY? */
+
+		xhci_device_remove_endpoint(endpoints[i]);
+	}
+
+	/* Issue one HC command to simultaneously drop all endpoints except zero. */
+	if ((err = hc_deconfigure_device(hc, dev->slot_id))) {
+		usb_log_warning("Failed to deconfigure device %d.", dev_base->address);
+	}
+
+	/* Tear down TRB ring / PSA. */
+	/* TODO: Make this method "noexcept" */
+	for (unsigned i = 1; i < ARRAY_SIZE(endpoints); ++i) {
+		if (!endpoints[i])
+			continue;
+
+		if ((err = xhci_endpoint_free_transfer_ds(endpoints[i]))) {
+			usb_log_warning("Failed to free resources of EP (%u:%u): %s", dev_base->address, i, str_error(err));
+		}
+	}
+
+	/* FIXME: What happens to unregistered endpoints now? Destroy them? */
 
 	return EOK;
 }

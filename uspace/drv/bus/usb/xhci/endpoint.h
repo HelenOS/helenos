@@ -124,9 +124,6 @@ typedef struct xhci_device {
 
 	/** True if the device can add new endpoints and schedule transfers. */
 	volatile bool online;
-
-	/** True if the device has been physically detached from the socket. */
-	volatile bool detached;
 } xhci_device_t;
 
 int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);

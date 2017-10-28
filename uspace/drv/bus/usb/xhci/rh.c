@@ -187,10 +187,6 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	usb_log_info("Device '%s' at port %u has been disconnected.", ddf_fun_get_name(dev->base.fun), port_id);
 
 	/* Mark the device as detached. */
-	fibril_mutex_lock(&dev->base.guard);
-	dev->detached = true;
-	fibril_mutex_unlock(&dev->base.guard);
-
 	fibril_mutex_lock(&rh->device.base.guard);
 	list_remove(&dev->base.link);
 	rh->devices[port_id - 1] = NULL;
@@ -201,11 +197,6 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 		usb_log_warning("Failed to remove device '%s' from XHCI bus: %s",
 		    ddf_fun_get_name(dev->base.fun), str_error(err));
 	}
-
-	/* Destroy DDF device. */
-	hcd_ddf_device_destroy(&dev->base);
-
-	/* TODO: Figure out what was forgotten and free that as well. */
 
 	return EOK;
 }
