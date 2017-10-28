@@ -186,9 +186,9 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 
 	usb_log_info("Device '%s' at port %u has been disconnected.", ddf_fun_get_name(dev->base.fun), port_id);
 
-	/* Block creation of new endpoints and transfers. */
+	/* Mark the device as detached. */
 	fibril_mutex_lock(&dev->base.guard);
-	dev->online = false;
+	dev->detached = true;
 	fibril_mutex_unlock(&dev->base.guard);
 
 	fibril_mutex_lock(&rh->device.base.guard);
@@ -196,66 +196,16 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	rh->devices[port_id - 1] = NULL;
 	fibril_mutex_unlock(&rh->device.base.guard);
 
-	usb_log_debug2("Aborting all active transfers to '%s'.", ddf_fun_get_name(dev->base.fun));
-
-	/* Abort running transfers. */
-	for (size_t i = 0; i < ARRAY_SIZE(dev->endpoints); ++i) {
-		xhci_endpoint_t *ep = dev->endpoints[i];
-		if (!ep || !ep->base.active)
-			continue;
-
-		/* FIXME: This is racy. */
-		if ((err = xhci_transfer_abort(&ep->active_transfer))) {
-			usb_log_warning("Failed to abort active %s transfer to "
-			    " endpoint %d of detached device '%s': %s",
-			    usb_str_transfer_type(ep->base.transfer_type),
-			    ep->base.endpoint, ddf_fun_get_name(dev->base.fun),
-			    str_error(err));
-		}
-	}
-
-	/* TODO: Figure out how to handle errors here. So far, they are reported and skipped. */
-	/* TODO: Move parts of the code below to xhci_bus_remove_device() */
-
-	/* Make DDF (and all drivers) forget about the device. */
-	if ((err = ddf_fun_unbind(dev->base.fun))) {
-		usb_log_warning("Failed to unbind DDF function of detached device '%s': %s",
-		    ddf_fun_get_name(dev->base.fun), str_error(err));
-	}
-
-	/* Unregister EP0. */
-	if ((err = bus_remove_endpoint(&rh->hc->bus.base, &dev->endpoints[0]->base))) {
-		usb_log_warning("Failed to unregister configuration endpoint of device '%s' from XHCI bus: %s",
-		    ddf_fun_get_name(dev->base.fun), str_error(err));
-	}
-
-	/* Deconfigure device. */
-	if ((err = hc_deconfigure_device(rh->hc, dev->slot_id))) {
-		usb_log_warning("Failed to deconfigure detached device '%s': %s",
-		    ddf_fun_get_name(dev->base.fun), str_error(err));
-	}
-
-	/* TODO: Free EP0 structures. */
-	/* TODO: Destroy EP0 by removing its last reference. */
-
 	/* Remove device from XHCI bus. */
 	if ((err = xhci_bus_remove_device(&rh->hc->bus, rh->hc, &dev->base))) {
 		usb_log_warning("Failed to remove device '%s' from XHCI bus: %s",
 		    ddf_fun_get_name(dev->base.fun), str_error(err));
 	}
 
-	/* Disable device slot. */
-	if ((err = hc_disable_slot(rh->hc, dev->slot_id))) {
-		usb_log_warning("Failed to disable slot for device '%s': %s",
-		    ddf_fun_get_name(dev->base.fun), str_error(err));
-	}
-
 	/* Destroy DDF device. */
 	hcd_ddf_device_destroy(&dev->base);
 
-	// TODO: Free device context.
-	// TODO: Free TRB rings.
-	// TODO: Figure out what was forgotten and free that as well.
+	/* TODO: Figure out what was forgotten and free that as well. */
 
 	return EOK;
 }

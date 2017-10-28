@@ -184,21 +184,69 @@ static int unregister_endpoint(bus_t *, endpoint_t *);
 
 int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 {
+	int err;
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
+
+	/* Block creation of new endpoints and transfers. */
+	usb_log_debug2("Device '%s' going offline.", ddf_fun_get_name(dev->fun));
+	fibril_mutex_lock(&dev->guard);
+	xhci_dev->online = false;
+	fibril_mutex_unlock(&dev->guard);
+
+	/* Abort running transfers. */
+	usb_log_debug2("Aborting all active transfers to '%s'.", ddf_fun_get_name(dev->fun));
+	for (size_t i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
+		xhci_endpoint_t *ep = xhci_dev->endpoints[i];
+		if (!ep || !ep->base.active)
+			continue;
+
+		/* FIXME: This is racy. */
+		if ((err = xhci_transfer_abort(&ep->active_transfer))) {
+			usb_log_warning("Failed to abort active %s transfer to "
+			    " endpoint %d of detached device '%s': %s",
+			    usb_str_transfer_type(ep->base.transfer_type),
+			    ep->base.endpoint, ddf_fun_get_name(dev->fun),
+			    str_error(err));
+		}
+	}
+
+	/* TODO: Figure out how to handle errors here. So far, they are reported and skipped. */
+
+	/* Make DDF (and all drivers) forget about the device. */
+	if ((err = ddf_fun_unbind(dev->fun))) {
+		usb_log_warning("Failed to unbind DDF function of detached device '%s': %s",
+		    ddf_fun_get_name(dev->fun), str_error(err));
+	}
+
+	/* Deconfigure device if it's still attached. */
+	if (!xhci_dev->detached) {
+		if ((err = hc_deconfigure_device(hc, xhci_dev->slot_id))) {
+			usb_log_warning("Failed to deconfigure detached device '%s': %s",
+			    ddf_fun_get_name(dev->fun), str_error(err));
+		}
+	}
 
 	/* Unregister remaining endpoints. */
 	for (unsigned i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
 		if (!xhci_dev->endpoints[i])
 			continue;
 
-		const int err = unregister_endpoint(&bus->base, &xhci_dev->endpoints[i]->base);
-		if (err)
+		if ((err = unregister_endpoint(&bus->base, &xhci_dev->endpoints[i]->base))) {
 			usb_log_warning("Failed to unregister EP (%u:%u): %s", dev->address, i, str_error(err));
+		}
 	}
 
 	// XXX: Ugly here. Move to device_destroy at endpoint.c?
+	if ((err = hc_disable_slot(hc, xhci_dev->slot_id))) {
+		usb_log_warning("Failed to disable slot %d for device '%s': %s",
+		    xhci_dev->slot_id, ddf_fun_get_name(dev->fun), str_error(err));
+	}
+
 	free32(xhci_dev->dev_ctx);
 	hc->dcbaa[xhci_dev->slot_id] = 0;
+
+	bus->devices_by_slot[xhci_dev->slot_id] = NULL;
+
 	return EOK;
 }
 
@@ -304,9 +352,10 @@ static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep_base)
 
 	/* Tear down TRB ring / PSA. */
 	/* TODO: Make this method "noexcept" */
-	if ((err = xhci_endpoint_free_transfer_ds(ep))) {
+	/* FIXME: There is some memory corruption going on, causing this to crash. */
+	/*if ((err = xhci_endpoint_free_transfer_ds(ep))) {
 		usb_log_error("Failed to free resources of an endpoint.");
-	}
+	}*/
 
 	return EOK;
 }
