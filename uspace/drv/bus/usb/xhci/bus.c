@@ -483,30 +483,32 @@ static void destroy_batch(usb_transfer_batch_t *batch)
 }
 
 static const bus_ops_t xhci_bus_ops = {
-	.enumerate_device = enumerate_device,
-	.remove_device = remove_device,
+#define BIND_OP(op) .op = op,
+	BIND_OP(enumerate_device)
+	BIND_OP(remove_device)
 
-	.online_device = online_device,
-	.offline_device = offline_device,
+	BIND_OP(online_device)
+	BIND_OP(offline_device)
 
-	.create_endpoint = create_endpoint,
-	.destroy_endpoint = destroy_endpoint,
+	BIND_OP(create_endpoint)
+	BIND_OP(destroy_endpoint)
 
-	.register_endpoint = register_endpoint,
-	.unregister_endpoint = unregister_endpoint,
-	.find_endpoint = find_endpoint,
+	BIND_OP(register_endpoint)
+	BIND_OP(unregister_endpoint)
+	BIND_OP(find_endpoint)
 
-	.request_address = request_address,
-	.release_address = release_address,
-	.reset_toggle = reset_toggle,
+	BIND_OP(request_address)
+	BIND_OP(release_address)
+	BIND_OP(reset_toggle)
 
-	.count_bw = count_bw,
+	BIND_OP(count_bw)
 
-	.endpoint_get_toggle = endpoint_get_toggle,
-	.endpoint_set_toggle = endpoint_set_toggle,
+	BIND_OP(endpoint_get_toggle)
+	BIND_OP(endpoint_set_toggle)
 
-	.create_batch = create_batch,
-	.destroy_batch = destroy_batch,
+	BIND_OP(create_batch)
+	BIND_OP(destroy_batch)
+#undef BIND_OP
 };
 
 int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
