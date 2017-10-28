@@ -116,10 +116,44 @@ static int generic_device_gone(ddf_dev_t *gen_dev)
 	return ret;
 }
 
+/** Callback when the driver is asked to online a specific function.
+ *
+ * This callback is a wrapper for USB specific version of @c fun_online.
+ *
+ * @param gen_dev Device function structure as prepared by DDF.
+ * @return Error code.
+ */
+static int generic_function_online(ddf_fun_t *fun)
+{
+	assert(driver);
+	assert(driver->ops);
+	if (driver->ops->function_online == NULL)
+		return ENOTSUP;
+	return driver->ops->function_online(fun);
+}
+
+/** Callback when the driver is asked to offline a specific function.
+ *
+ * This callback is a wrapper for USB specific version of @c fun_offline.
+ *
+ * @param gen_dev Device function structure as prepared by DDF.
+ * @return Error code.
+ */
+static int generic_function_offline(ddf_fun_t *fun)
+{
+	assert(driver);
+	assert(driver->ops);
+	if (driver->ops->function_offline == NULL)
+		return ENOTSUP;
+	return driver->ops->function_offline(fun);
+}
+
 static driver_ops_t generic_driver_ops = {
 	.dev_add = generic_device_add,
 	.dev_remove = generic_device_remove,
 	.dev_gone = generic_device_gone,
+	.fun_online = generic_function_online,
+	.fun_offline = generic_function_offline,
 };
 static driver_t generic_driver = {
 	.driver_ops = &generic_driver_ops

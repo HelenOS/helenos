@@ -123,9 +123,15 @@ static int usb_hid_device_add(usb_device_t *dev)
  */
 static int usb_hid_device_rem(usb_device_t *dev)
 {
-	// TODO: Stop device polling
-	// TODO: Call deinit (stops autorepeat too)
-	return ENOTSUP;
+	assert(dev);
+	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
+	assert(hid_dev);
+
+	/* TODO: Stop device polling prior to deinit. Now it fails on endpoint error. */
+
+	usb_hid_deinit(hid_dev);
+	usb_log_debug2("%s destruction complete.\n", usb_device_get_name(dev));
+	return EOK;
 }
 
 /**
