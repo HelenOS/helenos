@@ -202,6 +202,9 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 
 int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
+	/* FIXME: For some reason (possibly memory corruption), this crashes. */
+	return EOK;
+
 	if (endpoint_using_streams(xhci_ep)) {
 		usb_log_debug2("Freeing primary stream context array for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 

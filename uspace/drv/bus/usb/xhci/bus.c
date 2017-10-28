@@ -438,10 +438,9 @@ static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep_base)
 
 	/* Tear down TRB ring / PSA. */
 	/* TODO: Make this method "noexcept" */
-	/* FIXME: There is some memory corruption going on, causing this to crash. */
-	/*if ((err = xhci_endpoint_free_transfer_ds(ep))) {
+	if ((err = xhci_endpoint_free_transfer_ds(ep))) {
 		usb_log_error("Failed to free resources of an endpoint.");
-	}*/
+	}
 
 	return EOK;
 }
