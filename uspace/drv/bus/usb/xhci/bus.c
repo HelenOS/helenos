@@ -187,6 +187,14 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	int err;
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
+	/* If the device is still attached, end DDF drivers gracefully. */
+	if (!xhci_dev->detached) {
+		if ((err = ddf_fun_offline(dev->fun))) {
+			usb_log_warning("Failed to offline DDF function of device '%s': %s",
+			    ddf_fun_get_name(dev->fun), str_error(err));
+		}
+	}
+
 	/* Block creation of new endpoints and transfers. */
 	usb_log_debug2("Device '%s' going offline.", ddf_fun_get_name(dev->fun));
 	fibril_mutex_lock(&dev->guard);
@@ -214,14 +222,14 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 
 	/* Make DDF (and all drivers) forget about the device. */
 	if ((err = ddf_fun_unbind(dev->fun))) {
-		usb_log_warning("Failed to unbind DDF function of detached device '%s': %s",
+		usb_log_warning("Failed to unbind DDF function of device '%s': %s",
 		    ddf_fun_get_name(dev->fun), str_error(err));
 	}
 
 	/* Deconfigure device if it's still attached. */
 	if (!xhci_dev->detached) {
 		if ((err = hc_deconfigure_device(hc, xhci_dev->slot_id))) {
-			usb_log_warning("Failed to deconfigure detached device '%s': %s",
+			usb_log_warning("Failed to deconfigure device '%s': %s",
 			    ddf_fun_get_name(dev->fun), str_error(err));
 		}
 	}
