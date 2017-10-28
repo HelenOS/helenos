@@ -173,6 +173,7 @@ static int xhci_fun_offline(ddf_fun_t *fun)
 	return hcd_ddf_device_offline(fun);
 }
 
+
 static const driver_ops_t xhci_driver_ops = {
 	.dev_add = xhci_dev_add,
 	.fun_online = xhci_fun_online,

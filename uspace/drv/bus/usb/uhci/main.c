@@ -142,8 +142,20 @@ static int uhci_dev_add(ddf_dev_t *device)
 	return hcd_ddf_add_hc(device, &uhci_hc_driver);
 }
 
+static int uhci_fun_online(ddf_fun_t *fun)
+{
+	return hcd_ddf_device_online(fun);
+}
+
+static int uhci_fun_offline(ddf_fun_t *fun)
+{
+	return hcd_ddf_device_offline(fun);
+}
+
 static const driver_ops_t uhci_driver_ops = {
 	.dev_add = uhci_dev_add,
+	.fun_online = uhci_fun_online,
+	.fun_offline = uhci_fun_offline
 };
 
 static const driver_t uhci_driver = {

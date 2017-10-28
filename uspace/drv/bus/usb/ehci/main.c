@@ -129,9 +129,21 @@ static int ehci_dev_add(ddf_dev_t *device)
 
 }
 
+static int ehci_fun_online(ddf_fun_t *fun)
+{
+	return hcd_ddf_device_online(fun);
+}
+
+static int ehci_fun_offline(ddf_fun_t *fun)
+{
+	return hcd_ddf_device_offline(fun);
+}
+
 
 static const driver_ops_t ehci_driver_ops = {
 	.dev_add = ehci_dev_add,
+	.fun_online = ehci_fun_online,
+	.fun_offline = ehci_fun_offline
 };
 
 static const driver_t ehci_driver = {

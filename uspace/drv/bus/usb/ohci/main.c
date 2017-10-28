@@ -137,8 +137,21 @@ static int ohci_dev_add(ddf_dev_t *device)
 	return hcd_ddf_add_hc(device, &ohci_hc_driver);
 }
 
+static int ohci_fun_online(ddf_fun_t *fun)
+{
+	return hcd_ddf_device_online(fun);
+}
+
+static int ohci_fun_offline(ddf_fun_t *fun)
+{
+	return hcd_ddf_device_offline(fun);
+}
+
+
 static const driver_ops_t ohci_driver_ops = {
 	.dev_add = ohci_dev_add,
+	.fun_online = ohci_fun_online,
+	.fun_offline = ohci_fun_offline
 };
 
 static const driver_t ohci_driver = {
