@@ -828,20 +828,16 @@ restart:
 static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
 {
 	ipc_phone_hangup(cap->kobject->phone);
-	kobject_t *kobj = cap_unpublish_locked(cap->task, cap->handle,
+	kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
 	    KOBJECT_TYPE_PHONE);
 	kobject_put(kobj);
-	cap_free_locked(cap->task, cap->handle);
+	cap_free(cap->task, cap->handle);
 	return true;
 }
 
 static bool irq_cap_cleanup_cb(cap_t *cap, void *arg)
 {
 	ipc_irq_unsubscribe(&TASK->answerbox, cap->handle);
-	kobject_t *kobj = cap_unpublish_locked(cap->task, cap->handle,
-	    KOBJECT_TYPE_IRQ);
-	kobject_put(kobj);
-	cap_free_locked(cap->task, cap->handle);
 	return true;
 }
 
