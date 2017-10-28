@@ -62,8 +62,6 @@ typedef struct uhci_transfer_batch {
 	size_t td_count;
 	/** Data buffer, must be accessible by the UHCI hw */
 	void *device_buffer;
-	/** Generic transfer data */
-	usb_transfer_batch_t *usb_batch;
 	/** List element */
 	link_t link;
 } uhci_transfer_batch_t;
@@ -94,7 +92,6 @@ static inline void * uhci_transfer_batch_data_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
-	assert(uhci_batch->usb_batch);
 	return uhci_transfer_batch_setup_buffer(uhci_batch) +
 	    (uhci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL ? USB_SETUP_PACKET_SIZE : 0);
 }
@@ -107,9 +104,8 @@ static inline void * uhci_transfer_batch_data_buffer(
 static inline void uhci_transfer_batch_abort(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
-	assert(uhci_batch->usb_batch);
-	uhci_batch->usb_batch->error = EINTR;
-	uhci_batch->usb_batch->transfered_size = 0;
+	uhci_batch->base.error = EINTR;
+	uhci_batch->base.transfered_size = 0;
 	usb_transfer_batch_finish(&uhci_batch->base);
 }
 

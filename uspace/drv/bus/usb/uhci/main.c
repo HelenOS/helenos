@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS UHCI driver.\n");
 	log_init(NAME);
-	logctl_set_log_level(NAME, LVL_NOTE);
+	logctl_set_log_level(NAME, LVL_DEBUG2);
 	return ddf_driver_main(&uhci_driver);
 }
 /**

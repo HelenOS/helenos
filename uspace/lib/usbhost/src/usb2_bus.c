@@ -108,6 +108,9 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 {
 	int err;
 
+	/* The default address is currently reserved for this device */
+	dev->address = USB_ADDRESS_DEFAULT;
+
 	/** Reserve address early, we want pretty log messages */
 	usb_address_t address;
 	if ((err = bus_request_address(bus, &address, false, dev->speed))) {

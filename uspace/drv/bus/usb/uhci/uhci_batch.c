@@ -158,8 +158,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
 	    " checking %zu transfer(s) for completion.\n",
-	    uhci_batch->usb_batch,
-	    USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch),
+	    uhci_batch, USB_TRANSFER_BATCH_ARGS(uhci_batch->base),
 	    uhci_batch->td_count);
 	uhci_batch->base.transfered_size = 0;
 
@@ -173,7 +172,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 			assert(uhci_batch->base.ep != NULL);
 
 			usb_log_debug("Batch %p found error TD(%zu->%p):%"
-			    PRIx32 ".\n", uhci_batch->usb_batch, i,
+			    PRIx32 ".\n", uhci_batch, i,
 			    &uhci_batch->tds[i], uhci_batch->tds[i].status);
 			td_print_status(&uhci_batch->tds[i]);
 
@@ -249,10 +248,10 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	endpoint_toggle_set(uhci_batch->base.ep, toggle);
 	usb_log_debug2(
 	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
-	    uhci_batch->usb_batch,
+	    uhci_batch,
 	    usb_str_transfer_type(uhci_batch->base.ep->transfer_type),
 	    usb_str_direction(uhci_batch->base.ep->direction),
-	    USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch));
+	    USB_TRANSFER_BATCH_ARGS(uhci_batch->base));
 }
 
 /** Prepare generic control transfer
