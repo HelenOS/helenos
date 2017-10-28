@@ -817,11 +817,26 @@ namespace std
                 copy_(begin() + pos + n, end(), begin() + pos);
                 size_ -= len;
                 ensure_null_terminator_();
+
+                return *this;
             }
 
-            iterator erase(const_iterator pos);
+            iterator erase(const_iterator pos)
+            {
+                auto idx = static_cast<size_type>(pos - cbegin());
+                erase(dx, 1);
 
-            iterator erase(const_iterator pos, const_iterator last);
+                return begin() + idx;
+            }
+
+            iterator erase(const_iterator first, const_iterator last)
+            {
+                auto idx = static_cast<size_type>(first - cbegin());
+                auto count = static_cast<size_type>(last - first);
+                erase(idx, count);
+
+                return begin() + idx;
+            }
 
             void pop_back()
             {
@@ -937,69 +952,296 @@ namespace std
                 return allocator_type{allocator_};
             }
 
-            size_type find(const basic_string& str, size_type pos = 0) const noexcept;
+            /**
+             * Note: The following find functions have 4 versions each:
+             *       (1) takes basic_string
+             *       (2) takes c string and length
+             *       (3) takes c string
+             *       (4) takes value_type
+             *       According to the C++14 standard, only (1) is marked as
+             *       noexcept and the other three return the first one with
+             *       a newly allocated strings (and thus cannot be noexcept).
+             *       However, allocating a new string results in memory
+             *       allocation and copying of the source and thus we have
+             *       decided to follow C++17 signatures of these functions
+             *       (i.e. all of them being marked as noexcept) and use
+             *       (2) for the actual implementation (and avoiding any
+             *       allocations or copying in the process and also providing
+             *       stronger guarantees to the user).
+             */
 
-            size_type find(const value_type* str, size_type pos, size_type n) const;
+            size_type find(const basic_string& str, size_type pos = 0) const noexcept
+            {
+                return find(str.c_str(), pos, str.size());
+            }
 
-            size_type find(const value_type* str, size_type pos = 0) const;
+            size_type find(const value_type* str, size_type pos, size_type len) const noexcept
+            {
+                if (empty() || len == 0 || len - pos > size())
+                    return npos;
 
-            size_type find(value_type c, size_type pos = 0) const;
+                size_type idx{pos};
 
-            size_type rfind(const basic_string& str, size_type pos = npos) const noexcept;
+                while (idx + len < size_)
+                {
+                    if (substr_starts_at_(idx, str, len))
+                        return idx;
+                    ++idx;
+                }
 
-            size_type rfind(const value_type* str, size_type pos, size_type n) const;
+                return npos;
+            }
 
-            size_type rfind(const value_type* str, size_type pos = npos) const;
+            size_type find(const value_type* str, size_type pos = 0) const noexcept
+            {
+                return find(str, pos, traits_type::length(str));
+            }
 
-            size_type rfind(value_type c, size_type pos = npos) const;
+            size_type find(value_type c, size_type pos = 0) const noexcept
+            {
+                if (empty())
+                    return npos;
 
-            size_type find_first_of(const basic_string& str, size_type pos = 0) const noexcept;
+                for (size_type i = pos; i < size_; ++i)
+                {
+                    if (traits_type::eq(c, data_[i]))
+                        return i;
+                }
 
-            size_type find_first_of(const value_type* str, size_type pos, size_type n) const;
+                return npos;
+            }
 
-            size_type find_first_of(const value_type* str, size_type pos = 0) const;
+            size_type rfind(const basic_string& str, size_type pos = npos) const noexcept
+            {
+                return rfind(str.c_str(), pos, str.size());
+            }
 
-            size_type find_first_of(value_type c, size_type pos = 0) const;
+            size_type rfind(const value_type* str, size_type pos, size_type len) const noexcept
+            {
+                if (empty() || len == 0 || len - pos > size())
+                    return npos;
 
-            size_type find_last_of(const basic_string& str, size_type pos = npos) const noexcept;
+                size_type idx{min(pos, size_ - 1) + 1};
 
-            size_type find_last_of(const value_type* str, size_type pos, size_type n) const;
+                while (idx > 0)
+                {
+                    if (substr_starts_at_(idx - 1, str, len))
+                        return idx - 1;
+                    --idx;
+                }
 
-            size_type find_last_of(const value_type* str, size_type pos = npos) const;
+                return npos;
+            }
 
-            size_type find_last_of(value_type c, size_type pos = npos) const;
+            size_type rfind(const value_type* str, size_type pos = npos) const noexcept
+            {
+                return rfind(str, pos, traits_type::length(str));
+            }
 
-            size_type find_first_not_of(const basic_string& str, size_type pos = 0) const noexcept;
+            size_type rfind(value_type c, size_type pos = npos) const noexcept
+            {
+                if (empty())
+                    return npos;
 
-            size_type find_first_not_of(const value_type* str, size_type pos, size_type n) const;
+                for (size_type i = min(pos, size_ - 1) + 1; i > 0; --i)
+                {
+                    if (traits_type::eq(c, data_[i - 1]))
+                        return i - 1;
+                }
 
-            size_type find_first_not_of(const value_type* str, size_type pos = 0) const;
+                return npos;
+            }
 
-            size_type find_first_not_of(value_type c, size_type pos = 0) const;
+            size_type find_first_of(const basic_string& str, size_type pos = 0) const noexcept
+            {
+                return find_first_of(str.c_str(), pos, str.size());
+            }
 
-            size_type find_last_not_of(const basic_string& str, size_type pos = npos) const noexcept;
+            size_type find_first_of(const value_type* str, size_type pos, size_type len) const noexcept
+            {
+                if (empty() || len == 0 || pos + len > size())
+                    return npos;
 
-            size_type find_last_not_of(const value_type* str, size_type pos, size_type n) const;
+                size_type idx{pos};
 
-            size_type find_last_not_of(const value_type* str, size_type pos = npos) const;
+                while (idx < size_)
+                {
+                    if (is_any_of_(idx, str, len))
+                        return idx;
+                    ++idx;
+                }
 
-            size_type find_last_not_of(value_type c, size_type pos = npos) const;
+                return npos;
+            }
 
-            basic_string substr(size_type pos = 0, size_type n = npos) const;
+            size_type find_first_of(const value_type* str, size_type pos = 0) const noexcept
+            {
+                return find_first_of(str, pos, traits_type::length(str));
+            }
 
-            int compare(const basic_string& other) const noexcept;
+            size_type find_first_of(value_type c, size_type pos = 0) const noexcept
+            {
+                return find(c, pos);
+            }
 
-            int compare(size_type pos, size_type n, const basic_string& other) const;
+            size_type find_last_of(const basic_string& str, size_type pos = npos) const noexcept
+            {
+                return find_last_of(str.c_str(), pos, str.size());
+            }
+
+            size_type find_last_of(const value_type* str, size_type pos, size_type len) const noexcept
+            {
+                if (empty())
+                    return npos;
+
+                for (size_type i = min(pos, size_ - 1) + 1; i > 0; --i)
+                {
+                    if (is_any_of_(i - 1, str, len))
+                        return i - 1;
+                }
+
+                return npos;
+            }
+
+            size_type find_last_of(const value_type* str, size_type pos = npos) const noexcept
+            {
+                return find_last_of(str, pos, traits_type::length(str));
+            }
+
+            size_type find_last_of(value_type c, size_type pos = npos) const noexcept
+            {
+                return rfind(c, pos);
+            }
+
+            size_type find_first_not_of(const basic_string& str, size_type pos = 0) const noexcept
+            {
+                return find_first_not_of(str.c_str(), pos, str.size());
+            }
+
+            size_type find_first_not_of(const value_type* str, size_type pos, size_type len) const noexcept
+            {
+                if (empty() || len == 0 || pos + len > size())
+                    return npos;
+
+                size_type idx{pos};
+
+                while (idx < size_)
+                {
+                    if (!is_any_of_(idx, str, len))
+                        return idx;
+                    ++idx;
+                }
+
+                return npos;
+            }
+
+            size_type find_first_not_of(const value_type* str, size_type pos = 0) const noexcept
+            {
+                return find_first_not_of(str.c_str(), pos, str.size());
+            }
+
+            size_type find_first_not_of(value_type c, size_type pos = 0) const noexcept
+            {
+                if (empty())
+                    return npos;
+
+                for (size_type i = pos; i < size_; ++i)
+                {
+                    if (!traits_type::eq(c, data_[i]))
+                        return i;
+                }
+
+                return npos;
+            }
+
+            size_type find_last_not_of(const basic_string& str, size_type pos = npos) const noexcept
+            {
+                return find_last_not_of(str.c_str(), pos, str.size());
+            }
+
+            size_type find_last_not_of(const value_type* str, size_type pos, size_type len) const noexcept
+            {
+                if (empty())
+                    return npos;
+
+                for (size_type i = min(pos, size_ - 1) + 1; i > 0; --i)
+                {
+                    if (!is_one_of_(i - 1, str, len))
+                        return i - 1;
+                }
+
+                return npos;
+            }
+
+            size_type find_last_not_of(const value_type* str, size_type pos = npos) const noexcept
+            {
+                return find_last_not_of(str, pos, traits_type::length(str));
+            }
+
+            size_type find_last_not_of(value_type c, size_type pos = npos) const noexcept
+            {
+                if (empty())
+                    return npos;
+
+                pos = min(pos, size_ - 1);
+
+                for (size_type i = min(pos, size_ - 1) + 1; i > 1; --i)
+                {
+                    if (!traits_type::eq(c, data_[i - 1]))
+                        return i - 1;
+                }
+
+                return npos;
+            }
+
+            basic_string substr(size_type pos = 0, size_type n = npos) const
+            {
+                // TODO: throw out_of_range if pos > size().
+                auto len = min(n, size_ - pos);
+                return basic_string{data() + pos, len};
+            }
+
+            int compare(const basic_string& other) const noexcept
+            {
+                auto len = min(size(), other.size());
+                auto comp = traits_type::compare(data_, other.data(), len);
+
+                if (comp != 0)
+                    return comp;
+                else if (size() == other.size())
+                    return 0;
+                else if (size() > other.size())
+                    return 1;
+                else if (size() < other.size())
+                    return -1;
+            }
+
+            int compare(size_type pos, size_type n, const basic_string& other) const
+            {
+                return basic_string{*this, pos, n}.compare(other);
+            }
 
             int compare(size_type pos1, size_type n1, const basic_string& other,
-                        size_type pos2, size_type n2 = npos) const;
+                        size_type pos2, size_type n2 = npos) const
+            {
+                return basic_string{*this, pos1, n1}.compare(basic_string{other, pos2, n2});
+            }
 
-            int compare(const value_type* other) const;
+            int compare(const value_type* other) const
+            {
+                return compare(basic_string(other));
+            }
 
-            int compare(size_type pos, size_type n, const value_type* other) const;
+            int compare(size_type pos, size_type n, const value_type* other) const
+            {
+                return basic_string{*this, pos, n}.compare(basic_string{other});
+            }
 
-            int compare(size_type pos1, size_type n1,
-                        const value_type* other, size_type n2) const;
+            int compare(size_type pos, size_type n1,
+                        const value_type* other, size_type n2) const
+            {
+                return basic_string{*this, pos, n1}.compare(basic_string{other, n2});
+            }
 
         private:
             value_type* data_;
@@ -1100,6 +1342,30 @@ namespace std
             void ensure_null_terminator_()
             {
                 traits_type::assign(data_[size_], value_type{});
+            }
+
+            bool is_one_of_(size_type idx, const basic_string& str) const
+            {
+                auto cstr = str.c_str();
+                for (size_type i = 0; i < str.size(); ++i)
+                {
+                    if (traits_type::eq(data_[idx], cstr[i]))
+                        return true;
+                }
+
+                return false;
+            }
+
+            bool substr_starts_at_(size_type idx, const value_type* str, size_type len) const
+            {
+                size_type i{};
+                for (i = 0; i < len; ++i)
+                {
+                    if (!traits_type::eq(data_[idx + i], str[i]))
+                        break;
+                }
+
+                return i == len;
             }
     };
 }
