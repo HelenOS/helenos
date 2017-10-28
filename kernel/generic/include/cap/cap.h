@@ -120,7 +120,10 @@ extern bool caps_apply_to_kobject_type(struct task *, kobject_type_t,
 extern cap_handle_t cap_alloc(struct task *);
 extern void cap_publish(struct task *, cap_handle_t, kobject_t *);
 extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
+extern kobject_t *cap_unpublish_locked(struct task *, cap_handle_t,
+    kobject_type_t);
 extern void cap_free(struct task *, cap_handle_t);
+extern void cap_free_locked(struct task *, cap_handle_t);
 
 extern void kobject_initialize(kobject_t *, kobject_type_t, void *,
     kobject_ops_t *);

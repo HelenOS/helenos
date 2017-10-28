@@ -84,8 +84,6 @@
 
 static slab_cache_t *cap_slab;
 
-static kobject_t *cap_unpublish_locked(task_t *, cap_handle_t, kobject_type_t);
-
 static size_t caps_hash(const ht_link_t *item)
 {
 	cap_t *cap = hash_table_get_inst(item, cap_t, caps_link);
@@ -319,7 +317,12 @@ cap_publish(task_t *task, cap_handle_t handle, kobject_t *kobj)
 	mutex_unlock(&task->cap_info->lock);
 }
 
-static kobject_t *
+/** @copydoc cap_unpublish()
+ *
+ * Can only be called internally by the capability subsytem or from a
+ * caps_apply_to_kobject_type() callback.
+ */
+kobject_t *
 cap_unpublish_locked(task_t *task, cap_handle_t handle, kobject_type_t type)
 {
 	kobject_t *kobj = NULL;
@@ -360,17 +363,16 @@ kobject_t *cap_unpublish(task_t *task, cap_handle_t handle, kobject_type_t type)
 	return kobj;
 }
 
-/** Free allocated capability
+/** @copydoc cap_free()
  *
- * @param task    Task in which to free the capability.
- * @param handle  Capability handle.
+ * Can only be called internally by the capability subsytem or from a
+ * caps_apply_to_kobject_type() callback.
  */
-void cap_free(task_t *task, cap_handle_t handle)
+void cap_free_locked(task_t *task, cap_handle_t handle)
 {
 	assert(handle >= 0);
 	assert(handle < MAX_CAPS);
 
-	mutex_lock(&task->cap_info->lock);
 	cap_t *cap = cap_get(task, handle, CAP_STATE_ALLOCATED);
 
 	assert(cap);
@@ -378,6 +380,17 @@ void cap_free(task_t *task, cap_handle_t handle)
 	hash_table_remove_item(&task->cap_info->caps, &cap->caps_link);
 	ra_free(task->cap_info->handles, handle, 1);
 	slab_free(cap_slab, cap);
+}
+
+/** Free allocated capability
+ *
+ * @param task    Task in which to free the capability.
+ * @param handle  Capability handle.
+ */
+void cap_free(task_t *task, cap_handle_t handle)
+{
+	mutex_lock(&task->cap_info->lock);
+	cap_free_locked(task, handle);
 	mutex_unlock(&task->cap_info->lock);
 }
 
