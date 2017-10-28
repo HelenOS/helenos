@@ -279,6 +279,51 @@ static int remove_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
 	return xhci_bus_remove_device(bus, hc, dev);
 }
 
+static int online_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
+{
+	int err;
+
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	assert(bus);
+
+	xhci_device_t *dev = xhci_device_get(dev_base);
+	assert(dev);
+
+	// TODO: Prepare the device for use. Reset? Configure?
+
+	if ((err = ddf_fun_online(dev_base->fun))) {
+		return err;
+	}
+
+	return EOK;
+}
+
+static int offline_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
+{
+	int err;
+
+	xhci_hc_t *hc = hcd_get_driver_data(hcd);
+	assert(hc);
+
+	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	assert(bus);
+
+	xhci_device_t *dev = xhci_device_get(dev_base);
+	assert(dev);
+
+	/* Tear down all drivers working with the device. */
+	if ((err = ddf_fun_offline(dev_base->fun))) {
+		return err;
+	}
+
+	// TODO: We want to keep the device addressed. Deconfigure?
+
+	return EOK;
+}
+
 static endpoint_t *create_endpoint(bus_t *base)
 {
 	xhci_bus_t *bus = bus_to_xhci_bus(base);
@@ -440,6 +485,9 @@ static void destroy_batch(usb_transfer_batch_t *batch)
 static const bus_ops_t xhci_bus_ops = {
 	.enumerate_device = enumerate_device,
 	.remove_device = remove_device,
+
+	.online_device = online_device,
+	.offline_device = offline_device,
 
 	.create_endpoint = create_endpoint,
 	.destroy_endpoint = destroy_endpoint,

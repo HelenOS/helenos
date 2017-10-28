@@ -447,6 +447,34 @@ out:
 	return err;
 }
 
+int hcd_ddf_device_online(ddf_fun_t *fun)
+{
+	assert(fun);
+
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	device_t *dev = ddf_fun_data_get(fun);
+	assert(dev);
+	assert(hcd->bus);
+
+	usb_log_info("Device(%d): Requested to be brought online.", dev->address);
+
+	return bus_online_device(hcd->bus, hcd, dev);
+}
+
+int hcd_ddf_device_offline(ddf_fun_t *fun)
+{
+	assert(fun);
+
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	device_t *dev = ddf_fun_data_get(fun);
+	assert(dev);
+	assert(hcd->bus);
+
+	usb_log_info("Device(%d): Requested to be taken offline.", dev->address);
+
+	return bus_offline_device(hcd->bus, hcd, dev);
+}
+
 static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned port)
 {
 	int err;

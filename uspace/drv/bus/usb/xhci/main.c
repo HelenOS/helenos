@@ -163,9 +163,20 @@ static int xhci_dev_add(ddf_dev_t *device)
 	return hcd_ddf_add_hc(device, &xhci_ddf_hc_driver);
 }
 
+static int xhci_fun_online(ddf_fun_t *fun)
+{
+	return hcd_ddf_device_online(fun);
+}
+
+static int xhci_fun_offline(ddf_fun_t *fun)
+{
+	return hcd_ddf_device_offline(fun);
+}
 
 static const driver_ops_t xhci_driver_ops = {
 	.dev_add = xhci_dev_add,
+	.fun_online = xhci_fun_online,
+	.fun_offline = xhci_fun_offline
 };
 
 static const driver_t xhci_driver = {

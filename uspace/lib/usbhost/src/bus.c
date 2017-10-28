@@ -100,6 +100,30 @@ int bus_remove_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	return bus->ops.remove_device(bus, hcd, dev);
 }
 
+int bus_online_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+{
+	assert(bus);
+	assert(hcd);
+	assert(dev);
+
+	if (!bus->ops.online_device)
+		return ENOTSUP;
+
+	return bus->ops.online_device(bus, hcd, dev);
+}
+
+int bus_offline_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+{
+	assert(bus);
+	assert(hcd);
+	assert(dev);
+
+	if (!bus->ops.offline_device)
+		return ENOTSUP;
+
+	return bus->ops.offline_device(bus, hcd, dev);
+}
+
 int bus_add_endpoint(bus_t *bus, device_t *device, const usb_endpoint_desc_t *desc, endpoint_t **out_ep)
 {
 	int err = ENOMEM;

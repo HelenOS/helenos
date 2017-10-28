@@ -81,6 +81,9 @@ typedef struct {
 	int (*enumerate_device)(bus_t *, hcd_t *, device_t *);
 	int (*remove_device)(bus_t *, hcd_t *, device_t *);
 
+	int (*online_device)(bus_t *, hcd_t *, device_t *);			/**< Optional */
+	int (*offline_device)(bus_t *, hcd_t *, device_t *);			/**< Optional */
+
 	/* The following operations are protected by a bus guard. */
 	endpoint_t *(*create_endpoint)(bus_t *);
 	int (*register_endpoint)(bus_t *, device_t *, endpoint_t *, const usb_endpoint_desc_t *);
@@ -121,6 +124,9 @@ int device_set_default_name(device_t *);
 
 int bus_enumerate_device(bus_t *, hcd_t *, device_t *);
 int bus_remove_device(bus_t *, hcd_t *, device_t *);
+
+int bus_online_device(bus_t *, hcd_t *, device_t *);
+int bus_offline_device(bus_t *, hcd_t *, device_t *);
 
 int bus_add_endpoint(bus_t *, device_t *, const usb_endpoint_desc_t *, endpoint_t **);
 endpoint_t *bus_find_endpoint(bus_t *, device_t *, usb_target_t, usb_direction_t);
