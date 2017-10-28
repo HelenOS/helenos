@@ -1,3 +1,4 @@
+STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
 ENTRY(__entry)
 
 PHDRS {
