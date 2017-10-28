@@ -198,6 +198,8 @@ int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		if (phone->state == IPC_PHONE_CONNECTED) {
 			irq_spinlock_lock(&phone->callee->lock, true);
 			list_remove(&phone->link);
+			/* Drop callee->connected_phones reference */
+			kobject_put(phone->kobject);
 			phone->state = IPC_PHONE_SLAMMED;
 			irq_spinlock_unlock(&phone->callee->lock, true);
 		}
