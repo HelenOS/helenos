@@ -90,8 +90,9 @@ typedef struct xhci_endpoint {
 } xhci_endpoint_t;
 
 #define XHCI_EP_FMT  "(%d:%d %s)"
+/* FIXME: "Device -1" messes up log messages, figure out a better way. */
 #define XHCI_EP_ARGS(ep)		\
-	((ep).base.device->address),	\
+	((ep).base.device ? (ep).base.device->address : -1),	\
 	((ep).base.endpoint),		\
 	(usb_str_transfer_type((ep).base.transfer_type))
 
@@ -113,11 +114,8 @@ typedef struct xhci_device {
 	/** Place to store virtual address for allocated context */
 	xhci_device_ctx_t *dev_ctx;
 
-	/** All endpoints of the device. Inactive ones are NULL */
+	/** All endpoints of the device. Dropped ones are NULL */
 	xhci_endpoint_t *endpoints[XHCI_EP_COUNT];
-
-	/** Number of non-NULL endpoints. Reference count of sorts. */
-	uint8_t active_endpoint_count;
 
 	/** Flag indicating whether the device is USB3 (it's USB2 otherwise). */
 	bool usb3;
@@ -126,10 +124,13 @@ typedef struct xhci_device {
 	volatile bool online;
 } xhci_device_t;
 
+#define XHCI_DEV_FMT  "(%s, slot %d)"
+#define XHCI_DEV_ARGS(dev)		 ddf_fun_get_name((dev).base.fun), (dev).slot_id
+
 int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *);
-int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
+void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
 
 int xhci_endpoint_request_streams(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *, unsigned);
 

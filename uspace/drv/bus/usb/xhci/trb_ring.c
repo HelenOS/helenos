@@ -120,7 +120,7 @@ int xhci_trb_ring_init(xhci_trb_ring_t *ring)
 	return EOK;
 }
 
-int xhci_trb_ring_fini(xhci_trb_ring_t *ring)
+void xhci_trb_ring_fini(xhci_trb_ring_t *ring)
 {
 	assert(ring);
 
@@ -128,8 +128,6 @@ int xhci_trb_ring_fini(xhci_trb_ring_t *ring)
 		trb_segment_t *segment = list_get_instance(cur, trb_segment_t, segments_link);
 		dmamem_unmap_anonymous(segment);
 	}
-
-	return EOK;
 }
 
 /**
@@ -291,7 +289,7 @@ int xhci_event_ring_init(xhci_event_ring_t *ring)
 	return EOK;
 }
 
-int xhci_event_ring_fini(xhci_event_ring_t *ring)
+void xhci_event_ring_fini(xhci_event_ring_t *ring)
 {
 	list_foreach_safe(ring->segments, cur, next) {
 		trb_segment_t *segment = list_get_instance(cur, trb_segment_t, segments_link);
@@ -300,8 +298,6 @@ int xhci_event_ring_fini(xhci_event_ring_t *ring)
 
 	if (ring->erst)
 		free32(ring->erst);
-
-	return EOK;
 }
 
 static uintptr_t event_ring_dequeue_phys(xhci_event_ring_t *ring)

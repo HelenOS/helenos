@@ -120,7 +120,7 @@ err_ep:
 	/* Temporary reference */
 	endpoint_del_ref(ep0_base);
 err_slot:
-	hc_disable_slot(hc, dev->slot_id);
+	hc_disable_slot(hc, dev);
 	return err;
 }
 
@@ -188,13 +188,13 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
 	/* Block creation of new endpoints and transfers. */
-	usb_log_debug2("Device '%s' going offline.", ddf_fun_get_name(dev->fun));
+	usb_log_debug2("Device " XHCI_DEV_FMT " going offline.", XHCI_DEV_ARGS(*xhci_dev));
 	fibril_mutex_lock(&dev->guard);
 	xhci_dev->online = false;
 	fibril_mutex_unlock(&dev->guard);
 
 	/* Abort running transfers. */
-	usb_log_debug2("Aborting all active transfers to '%s'.", ddf_fun_get_name(dev->fun));
+	usb_log_debug2("Aborting all active transfers to device " XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*xhci_dev));
 	for (size_t i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
 		xhci_endpoint_t *ep = xhci_dev->endpoints[i];
 		if (!ep || !ep->base.active)
@@ -202,10 +202,8 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 
 		/* FIXME: This is racy. */
 		if ((err = xhci_transfer_abort(&ep->active_transfer))) {
-			usb_log_warning("Failed to abort active %s transfer to "
-			    " endpoint %d of detached device '%s': %s",
-			    usb_str_transfer_type(ep->base.transfer_type),
-			    ep->base.endpoint, ddf_fun_get_name(dev->fun),
+			usb_log_warning("Failed to abort active transfer to "
+			    " endpoint " XHCI_EP_FMT ": %s", XHCI_EP_ARGS(*ep),
 			    str_error(err));
 		}
 	}
@@ -214,30 +212,29 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 
 	/* Make DDF (and all drivers) forget about the device. */
 	if ((err = ddf_fun_unbind(dev->fun))) {
-		usb_log_warning("Failed to unbind DDF function of device '%s': %s",
-		    ddf_fun_get_name(dev->fun), str_error(err));
+		usb_log_warning("Failed to unbind DDF function of device " XHCI_DEV_FMT ": %s",
+		    XHCI_DEV_ARGS(*xhci_dev), str_error(err));
 	}
 
-	/* Unregister remaining endpoints. */
+	/* Disable the slot, dropping all endpoints. */
+	const uint32_t slot_id = xhci_dev->slot_id;
+	if ((err = hc_disable_slot(hc, xhci_dev))) {
+		usb_log_warning("Failed to disable slot of device " XHCI_DEV_FMT ": %s",
+		    XHCI_DEV_ARGS(*xhci_dev), str_error(err));
+	}
+
+	bus->devices_by_slot[slot_id] = NULL;
+
+	/* Unregister remaining endpoints, freeing memory. */
 	for (unsigned i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
 		if (!xhci_dev->endpoints[i])
 			continue;
 
 		if ((err = unregister_endpoint(&bus->base, &xhci_dev->endpoints[i]->base))) {
-			usb_log_warning("Failed to unregister EP (%u:%u): %s", dev->address, i, str_error(err));
+			usb_log_warning("Failed to unregister endpoint " XHCI_EP_FMT ": %s",
+			    XHCI_EP_ARGS(*xhci_dev->endpoints[i]), str_error(err));
 		}
 	}
-
-	// XXX: Ugly here. Move to device_destroy at endpoint.c?
-	if ((err = hc_disable_slot(hc, xhci_dev->slot_id))) {
-		usb_log_warning("Failed to disable slot %d for device '%s': %s",
-		    xhci_dev->slot_id, ddf_fun_get_name(dev->fun), str_error(err));
-	}
-
-	free32(xhci_dev->dev_ctx);
-	hc->dcbaa[xhci_dev->slot_id] = 0;
-
-	bus->devices_by_slot[xhci_dev->slot_id] = NULL;
 
 	/* Destroy DDF device. */
 	/* XXX: Not a good idea, this method should not destroy devices. */
@@ -290,11 +287,11 @@ static int online_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
 
 	/* Transition the device from the Addressed to the Configured state. */
 	if ((err = hc_configure_device(hc, dev->slot_id))) {
-		usb_log_warning("Failed to configure device %d.", dev_base->address);
+		usb_log_warning("Failed to configure device " XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*dev));
 	}
 
 	/* Block creation of new endpoints and transfers. */
-	usb_log_debug2("Device '%s' going online.", ddf_fun_get_name(dev_base->fun));
+	usb_log_debug2("Device " XHCI_DEV_FMT " going online.", XHCI_DEV_ARGS(*dev));
 	fibril_mutex_lock(&dev_base->guard);
 	dev->online = true;
 	fibril_mutex_unlock(&dev_base->guard);
@@ -325,7 +322,7 @@ static int offline_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
 	}
 
 	/* Block creation of new endpoints and transfers. */
-	usb_log_debug2("Device '%s' going offline.", ddf_fun_get_name(dev_base->fun));
+	usb_log_debug2("Device " XHCI_DEV_FMT " going offline.", XHCI_DEV_ARGS(*dev));
 	fibril_mutex_lock(&dev_base->guard);
 	dev->online = false;
 	fibril_mutex_unlock(&dev_base->guard);
@@ -346,18 +343,16 @@ static int offline_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
 
 	/* Issue one HC command to simultaneously drop all endpoints except zero. */
 	if ((err = hc_deconfigure_device(hc, dev->slot_id))) {
-		usb_log_warning("Failed to deconfigure device %d.", dev_base->address);
+		usb_log_warning("Failed to deconfigure device " XHCI_DEV_FMT ".",
+		    XHCI_DEV_ARGS(*dev));
 	}
 
 	/* Tear down TRB ring / PSA. */
-	/* TODO: Make this method "noexcept" */
 	for (unsigned i = 1; i < ARRAY_SIZE(endpoints); ++i) {
 		if (!endpoints[i])
 			continue;
 
-		if ((err = xhci_endpoint_free_transfer_ds(endpoints[i]))) {
-			usb_log_warning("Failed to free resources of EP (%u:%u): %s", dev_base->address, i, str_error(err));
-		}
+		xhci_endpoint_free_transfer_ds(endpoints[i]);
 	}
 
 	/* FIXME: What happens to unregistered endpoints now? Destroy them? */
@@ -403,7 +398,7 @@ static int register_endpoint(bus_t *bus_base, device_t *device, endpoint_t *ep_b
 	if ((err = xhci_device_add_endpoint(dev, ep)))
 		goto err_prepared;
 
-	usb_log_info("Endpoint(%d:%d) registered to XHCI bus.", dev->base.address, ep->base.endpoint);
+	usb_log_info("Endpoint " XHCI_EP_FMT " registered to XHCI bus.", XHCI_EP_ARGS(*ep));
 
 	xhci_ep_ctx_t ep_ctx;
 	xhci_setup_endpoint_context(ep, &ep_ctx);
@@ -427,20 +422,22 @@ static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep_base)
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
-	usb_log_info("Endpoint(%d:%d) unregistered from XHCI bus.", dev->base.address, ep->base.endpoint);
+	usb_log_info("Endpoint " XHCI_EP_FMT " unregistered from XHCI bus.", XHCI_EP_ARGS(*ep));
 
 	xhci_device_remove_endpoint(ep);
 
-	/* Drop the endpoint. */
-	if ((err = hc_drop_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep)))) {
-		usb_log_error("Failed to drop endpoint: %s", str_error(err));
+	/* If device slot is still available, drop the endpoint. */
+	if (dev->slot_id) {
+		if ((err = hc_drop_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep)))) {
+			usb_log_error("Failed to drop endpoint " XHCI_EP_FMT ": %s", XHCI_EP_ARGS(*ep), str_error(err));
+		}
+	} else {
+		usb_log_debug("Not going to drop endpoint " XHCI_EP_FMT " because"
+		    " the slot has already been disabled.", XHCI_EP_ARGS(*ep));
 	}
 
 	/* Tear down TRB ring / PSA. */
-	/* TODO: Make this method "noexcept" */
-	if ((err = xhci_endpoint_free_transfer_ds(ep))) {
-		usb_log_error("Failed to free resources of an endpoint.");
-	}
+	xhci_endpoint_free_transfer_ds(ep);
 
 	return EOK;
 }

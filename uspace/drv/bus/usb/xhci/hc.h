@@ -101,7 +101,7 @@ void hc_interrupt(xhci_hc_t *, uint32_t);
 void hc_fini(xhci_hc_t *);
 int hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
 int hc_enable_slot(xhci_hc_t *, uint32_t *);
-int hc_disable_slot(xhci_hc_t *, uint32_t);
+int hc_disable_slot(xhci_hc_t *, xhci_device_t *);
 int hc_address_device(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *);
 int hc_configure_device(xhci_hc_t *, uint32_t);
 int hc_deconfigure_device(xhci_hc_t *, uint32_t);

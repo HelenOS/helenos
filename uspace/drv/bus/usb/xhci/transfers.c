@@ -264,14 +264,15 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 
 	xhci_device_t *dev = hc->bus.devices_by_slot[slot_id];
 	if (!dev) {
-		usb_log_error("Transfer event on unknown device slot %u!", slot_id);
+		usb_log_error("Transfer event on disabled slot %u", slot_id);
 		return ENOENT;
 	}
 
 	const usb_endpoint_t ep_num = ep_dci / 2;
 	xhci_endpoint_t *ep = xhci_device_get_endpoint(dev, ep_num);
 	if (!ep) {
-		usb_log_error("Transfer event on unknown endpoint num %u, device slot %u!", ep_num, slot_id);
+		usb_log_error("Transfer event on dropped endpoint %u of device "
+		    XHCI_DEV_FMT, ep_num, XHCI_DEV_ARGS(*dev));
 		return ENOENT;
 	}
 
@@ -321,7 +322,8 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 
 	// FIXME: find a better way to check if the ring is not initialized
 	if (!xhci_ep->ring.segment_count) {
-		usb_log_error("Ring not initialized for endpoint num %u!", xhci_ep->base.endpoint);
+		usb_log_error("Ring not initialized for endpoint " XHCI_EP_FMT,
+                    XHCI_EP_ARGS(*xhci_ep));
 		return EINVAL;
 	}
 

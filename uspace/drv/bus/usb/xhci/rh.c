@@ -118,7 +118,8 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	}
 
 	if ((err = ddf_fun_bind(dev->fun))) {
-		usb_log_error("Device(%d): Failed to register: %s.", dev->address, str_error(err));
+		usb_log_error("Failed to register device " XHCI_DEV_FMT " DDF function: %s.",
+		    XHCI_DEV_ARGS(*xhci_dev), str_error(err));
 		goto err_usb_dev;
 	}
 
@@ -184,7 +185,8 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 		return EOK;
 	}
 
-	usb_log_info("Device '%s' at port %u has been disconnected.", ddf_fun_get_name(dev->base.fun), port_id);
+	usb_log_info("Device " XHCI_DEV_FMT " at port %u has been disconnected.",
+	    XHCI_DEV_ARGS(*dev), port_id);
 
 	/* Mark the device as detached. */
 	fibril_mutex_lock(&rh->device.base.guard);
@@ -194,8 +196,8 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 
 	/* Remove device from XHCI bus. */
 	if ((err = xhci_bus_remove_device(&rh->hc->bus, rh->hc, &dev->base))) {
-		usb_log_warning("Failed to remove device '%s' from XHCI bus: %s",
-		    ddf_fun_get_name(dev->base.fun), str_error(err));
+		usb_log_warning("Failed to remove device " XHCI_DEV_FMT " from XHCI bus: %s",
+		    XHCI_DEV_ARGS(*dev), str_error(err));
 	}
 
 	return EOK;

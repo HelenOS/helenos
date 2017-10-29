@@ -187,8 +187,8 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
-
-	usb_log_debug2("Allocating main transfer ring for endpoint %u", xhci_ep->base.endpoint);
+	/* Can't use XHCI_EP_FMT because the endpoint may not have device. */
+	usb_log_debug2("Allocating main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	xhci_ep->primary_stream_ctx_array = NULL;
 
@@ -200,13 +200,10 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	return EOK;
 }
 
-int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
+void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
-	/* FIXME: For some reason (possibly memory corruption), this crashes. */
-	return EOK;
-
 	if (endpoint_using_streams(xhci_ep)) {
-		usb_log_debug2("Freeing primary stream context array for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+		usb_log_debug2("Freeing primary stream context array of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 		// maybe check if LSA, then skip?
 		// for (size_t index = 0; index < primary_stream_ctx_array_size(xhci_ep); ++index) {
@@ -222,15 +219,10 @@ int xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 		}
 		free32(xhci_ep->primary_stream_ctx_array);
 	} else {
-		usb_log_debug2("Freeing main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+		usb_log_debug2("Freeing main transfer ring of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
-		int err;
-		if ((err = xhci_trb_ring_fini(&xhci_ep->ring))) {
-			return err;
-		}
+		xhci_trb_ring_fini(&xhci_ep->ring);
 	}
-
-	return EOK;
 }
 
 /** See section 4.5.1 of the xHCI spec.
@@ -343,9 +335,7 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	/* Device reference */
 	endpoint_add_ref(&ep->base);
 	ep->base.device = &dev->base;
-
 	dev->endpoints[ep_num] = ep;
-	++dev->active_endpoint_count;
 
 	return EOK;
 }
@@ -356,9 +346,7 @@ void xhci_device_remove_endpoint(xhci_endpoint_t *ep)
 	xhci_device_t *dev = xhci_device_get(ep->base.device);
 
 	assert(dev->endpoints[ep->base.endpoint]);
-
 	dev->endpoints[ep->base.endpoint] = NULL;
-	--dev->active_endpoint_count;
 	ep->base.device = NULL;
 
 	endpoint_del_ref(&ep->base);

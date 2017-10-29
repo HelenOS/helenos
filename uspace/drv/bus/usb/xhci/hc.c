@@ -616,10 +616,26 @@ end:
 	return err;
 }
 
-int hc_disable_slot(xhci_hc_t *hc, uint32_t slot_id)
+int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
 {
+	int err;
 	assert(hc);
-	return xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = slot_id);
+
+	if ((err = xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = dev->slot_id))) {
+		return err;
+	}
+
+	/* Free the device context. */
+	hc->dcbaa[dev->slot_id] = 0;
+	if (dev->dev_ctx) {
+		free32(dev->dev_ctx);
+		dev->dev_ctx = NULL;
+	}
+
+	/* Mark the slot as invalid. */
+	dev->slot_id = 0;
+
+	return EOK;
 }
 
 static int create_valid_input_ctx(xhci_input_ctx_t **out_ictx)
@@ -653,7 +669,7 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	/* Although we have the precise PSIV value on devices of tier 1,
 	 * we have to rely on reverse mapping on others. */
 	if (!hc->speed_to_psiv[dev->base.speed]) {
-		usb_log_error("Device reported an usb speed that cannot be mapped to HC port speed.");
+		usb_log_error("Device reported an USB speed that cannot be mapped to HC port speed.");
 		return EINVAL;
 	}
 
