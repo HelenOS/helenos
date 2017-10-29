@@ -67,7 +67,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 
 	rh->hc = hc;
 	rh->max_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
-	rh->devices = (xhci_device_t **) calloc(rh->max_ports, sizeof(xhci_device_t *));
+	rh->devices_by_port = (xhci_device_t **) calloc(rh->max_ports, sizeof(xhci_device_t *));
 	rh->hc_device = device;
 
 	const int err = device_init(&rh->device.base);
@@ -89,7 +89,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	assert(rh);
 	assert(rh->hc_device);
 
-	assert(rh->devices[port_id - 1] == NULL);
+	assert(rh->devices_by_port[port_id - 1] == NULL);
 
 	xhci_bus_t *bus = &rh->hc->bus;
 
@@ -125,7 +125,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 
 	fibril_mutex_lock(&rh->device.base.guard);
 	list_append(&dev->link, &rh->device.base.devices);
-	rh->devices[port_id - 1] = xhci_dev;
+	rh->devices_by_port[port_id - 1] = xhci_dev;
 	fibril_mutex_unlock(&rh->device.base.guard);
 
 	return EOK;
@@ -179,7 +179,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	int err;
 
 	/* Find XHCI device by the port. */
-	xhci_device_t *dev = rh->devices[port_id - 1];
+	xhci_device_t *dev = rh->devices_by_port[port_id - 1];
 	if (!dev) {
 		/* Must be extraneous call. */
 		return EOK;
@@ -191,7 +191,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	/* Mark the device as detached. */
 	fibril_mutex_lock(&rh->device.base.guard);
 	list_remove(&dev->base.link);
-	rh->devices[port_id - 1] = NULL;
+	rh->devices_by_port[port_id - 1] = NULL;
 	fibril_mutex_unlock(&rh->device.base.guard);
 
 	/* Remove device from XHCI bus. */
@@ -357,7 +357,7 @@ int xhci_rh_fini(xhci_rh_t *rh)
 	/* TODO: Implement me! */
 	usb_log_debug2("Called xhci_rh_fini().");
 
-	free(rh->devices);
+	free(rh->devices_by_port);
 
 	return EOK;
 }
