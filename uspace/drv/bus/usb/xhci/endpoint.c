@@ -115,12 +115,15 @@ static size_t primary_stream_ctx_array_max_size(xhci_endpoint_t *xhci_ep)
 
 static void initialize_primary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, unsigned count) {
 	for (size_t index = 0; index < count; ++index) {
-		// Create trb ring for every primary stream
-		// Store it somewhere
-		// Set the dequeue pointer in stream context structure
+		xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[index];
+		xhci_trb_ring_t *ring = &xhci_ep->primary_stream_rings[index];
 
-		// Set to linear stream array
-		XHCI_STREAM_SCT_SET(xhci_ep->primary_stream_ctx_array[index], 1);
+		/* Init and register TRB ring for every primary stream */
+		xhci_trb_ring_init(ring);
+		XHCI_STREAM_DEQ_PTR_SET(*ctx, ring->dequeue);
+
+		/* Set to linear stream array */
+		XHCI_STREAM_SCT_SET(*ctx, 1);
 	}
 }
 
@@ -150,7 +153,7 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 
 	uint8_t max_psa_size = 2 << XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PSA_SIZE);
 	if (count > max_psa_size) {
-		// We don't support secondary stream arrays yet, so we just give up for this
+		// FIXME: We don't support secondary stream arrays yet, so we just give up for this
 		return ENOTSUP;
 	}
 
@@ -168,6 +171,12 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 			return ENOMEM;
 		}
 
+		xhci_ep->primary_stream_rings = calloc(count, sizeof(xhci_trb_ring_t));
+		if (!xhci_ep->primary_stream_rings) {
+			free32(xhci_ep->primary_stream_ctx_array);
+			return ENOMEM;
+		}
+
 		// FIXME: count should be rounded to nearest power of 2 for xHC, workaround for now
 		count = 1024;
 		// FIXME: pstreams are "log2(count) - 1"
@@ -181,7 +190,7 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 		setup_stream_context(xhci_ep, &ep_ctx, pstreams);
 		return hc_add_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
 	}
-	// Complex stuff not supported yet
+	// FIXME: Complex stuff not supported yet
 	return ENOTSUP;
 }
 

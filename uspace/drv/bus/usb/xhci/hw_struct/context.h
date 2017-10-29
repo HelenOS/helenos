@@ -168,6 +168,8 @@ typedef struct xhci_stream_ctx {
 
 #define XHCI_STREAM_SCT_SET(ctx, val) \
 	xhci_qword_set_bits(&(ctx).data[0], val, 3, 1)
+#define XHCI_STREAM_DEQ_PTR_SET(ctx, val) \
+	xhci_qword_set_bits(&(ctx).data[0], (val >> 4), 63, 4)
 } __attribute__((packed)) xhci_stream_ctx_t;
 
 /**

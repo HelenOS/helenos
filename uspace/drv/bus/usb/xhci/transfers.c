@@ -323,7 +323,7 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	// FIXME: find a better way to check if the ring is not initialized
 	if (!xhci_ep->ring.segment_count) {
 		usb_log_error("Ring not initialized for endpoint " XHCI_EP_FMT,
-                    XHCI_EP_ARGS(*xhci_ep));
+		    XHCI_EP_ARGS(*xhci_ep));
 		return EINVAL;
 	}
 

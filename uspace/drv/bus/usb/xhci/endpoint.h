@@ -73,10 +73,13 @@ typedef struct xhci_endpoint {
 	 * endpoint_t */
 	xhci_transfer_t active_transfer;
 
-	/** Primary stream context array (or NULL if endpoint doesn't use streams) */
+	/** Primary stream context array (or NULL if endpoint doesn't use streams). */
 	xhci_stream_ctx_t *primary_stream_ctx_array;
 
-	/** Size of the allocated primary stream context array. */
+	/** Primary stream ring array (or NULL if endpoint doesn't use streams). */
+	xhci_trb_ring_t *primary_stream_rings;
+
+	/** Size of the allocated primary stream context array (and ring array). */
 	uint16_t primary_stream_ctx_array_size;
 
 	/** 2-log of maximum number of primary streams (0-16). Not to be used directly. */
