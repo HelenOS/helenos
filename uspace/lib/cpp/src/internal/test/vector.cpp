@@ -28,10 +28,9 @@
 
 #include <algorithm>
 #include <initializer_list>
-#include <internal/test/vector.hpp>
+#include <internal/test/tests.hpp>
 #include <utility>
 #include <vector>
-#include <cstdio>
 
 namespace std::test
 {

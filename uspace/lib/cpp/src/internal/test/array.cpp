@@ -29,7 +29,7 @@
 #include <algorithm>
 #include <array>
 #include <initializer_list>
-#include <internal/test/array.hpp>
+#include <internal/test/tests.hpp>
 
 namespace std::test
 {
