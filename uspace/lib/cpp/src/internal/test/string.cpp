@@ -36,6 +36,7 @@ namespace std::test
     bool string_test::run()
     {
         test_construction_and_assignment();
+        test_append();
 
         return true;
     }
@@ -80,13 +81,13 @@ namespace std::test
 
         std::string str4{};
         test_eq(
-            "default constrcutor empty",
+            "default constructor empty",
             str4.size(), 0ul
         );
 
         str4.assign(str3, 2ul, 2ul);
         test_eq(
-            "assign substring to empty string",
+            "assign substring to an empty string",
             str4.begin(), str4.end(),
             str3.begin() + 2, str3.begin() + 4
         );
@@ -96,6 +97,60 @@ namespace std::test
             "constructor from a pair of iterators",
             str5.begin(), str5.end(),
             str3.begin() + 2, str3.begin() + 4
+        );
+    }
+
+    void string_test::test_append()
+    {
+        std::string check{"hello, world"};
+
+        std::string str1{"hello, "};
+        str1.append("world");
+        test_eq(
+            "append cstring",
+            str1.begin(), str1.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str2{"hello, "};
+        str2.append(std::string{"world"});
+        test_eq(
+            "append rvalue string",
+            str2.begin(), str2.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str3{"hello, "};
+        std::string apendee{"world"};
+        str3.append(apendee);
+        test_eq(
+            "append lvalue string",
+            str3.begin(), str3.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str4{"hello, "};
+        str4.append(apendee.begin(), apendee.end());
+        test_eq(
+            "append iterator range",
+            str4.begin(), str4.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str5{"hello, "};
+        str5.append({'w', 'o', 'r', 'l', 'd', '\0'});
+        test_eq(
+            "append initializer list",
+            str5.begin(), str5.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str6{"hello, "};
+        str6 += "world";
+        test_eq(
+            "append using +=",
+            str6.begin(), str6.end(),
+            check.begin(), check.end()
         );
     }
 }
