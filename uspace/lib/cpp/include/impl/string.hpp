@@ -641,7 +641,6 @@ namespace std
                 if (pos < str.size())
                 {
                     auto len = min(n, str.size() - pos);
-                    ensure_free_space_(len);
 
                     return append(str.data() + pos, len);
                 }
@@ -652,8 +651,8 @@ namespace std
             {
                 // TODO: if (size_ + n > max_size()) throw length_error
                 ensure_free_space_(n);
-                traits_type::copy(data_ + size_, str, n);
-                size_ += n;
+                traits_type::copy(data_ + size_ - 1, str, n);
+                size_ += n - 1; // We are not copying str's null terminator.
                 ensure_null_terminator_();
 
                 return *this;
