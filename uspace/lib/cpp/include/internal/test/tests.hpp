@@ -26,13 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_TEST_VECTOR
-#define LIBCPP_TEST_VECTOR
+#ifndef LIBCPP_TESTS
+#define LIBCPP_TESTS
 
 #include <internal/test/test.hpp>
 
 namespace std::test
 {
+    class array_test: public test_suite
+    {
+        public:
+            bool run() override;
+            const char* name() override;
+
+            array_test() = default;
+            ~array_test() = default;
+    };
+
     class vector_test: public test_suite
     {
         public:
@@ -46,6 +56,16 @@ namespace std::test
             void test_construction_and_assignment();
             void test_insert();
             void test_erase();
+    };
+
+    class string_test: public test_suite
+    {
+        public:
+            bool run() override;
+            const char* name() override;
+
+        private:
+            void test_construction_and_assignment();
     };
 }
 
