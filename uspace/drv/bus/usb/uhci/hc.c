@@ -176,7 +176,7 @@ void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
 			list_remove(current);
 			uhci_transfer_batch_t *batch =
 			    uhci_transfer_batch_from_link(current);
-			usb_transfer_batch_finish(&batch->base);
+			uhci_transfer_batch_finish(batch);
 		}
 	}
 	/* Resume interrupts are not supported */

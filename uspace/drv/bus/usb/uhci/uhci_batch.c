@@ -63,6 +63,15 @@ void uhci_transfer_batch_destroy(uhci_transfer_batch_t *uhci_batch)
 	free(uhci_batch);
 }
 
+void uhci_transfer_batch_finish(uhci_transfer_batch_t *batch)
+{
+	if (batch->base.dir == USB_DIRECTION_IN) {
+		assert(batch->base.transfered_size <= batch->base.buffer_size);
+		memcpy(batch->base.buffer, uhci_transfer_batch_data_buffer(batch), batch->base.transfered_size);
+	}
+	usb_transfer_batch_finish(&batch->base);
+}
+
 /** Allocate memory and initialize internal data structure.
  *
  * @param[in] usb_batch Pointer to generic USB batch structure.
@@ -130,7 +139,7 @@ int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 	memcpy(dest, usb_batch->setup.buffer, setup_size);
 	dest += setup_size;
 	/* Copy generic data unless they are provided by the device */
-	if (usb_batch->ep->direction != USB_DIRECTION_IN) {
+	if (usb_batch->dir != USB_DIRECTION_IN) {
 		memcpy(dest, usb_batch->buffer, usb_batch->buffer_size);
 	}
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT

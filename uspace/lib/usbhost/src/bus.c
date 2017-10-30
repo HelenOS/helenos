@@ -35,6 +35,7 @@
 
 #include <usb/host/bus.h>
 #include <usb/host/endpoint.h>
+#include <usb/debug.h>
 #include <ddf/driver.h>
 
 #include <mem.h>
@@ -126,13 +127,17 @@ int bus_offline_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 
 int bus_add_endpoint(bus_t *bus, device_t *device, const usb_endpoint_desc_t *desc, endpoint_t **out_ep)
 {
-	int err = ENOMEM;
-
 	assert(bus);
 	assert(device);
 
 	fibril_mutex_lock(&bus->guard);
 
+	if (desc->max_packet_size == 0 || desc->packets == 0) {
+		usb_log_warning("Invalid endpoint description (mps %zu, %u packets)", desc->max_packet_size, desc->packets);
+		return EINVAL;
+	}
+
+	int err = ENOMEM;
 	endpoint_t *ep = bus->ops.create_endpoint(bus);
 	if (!ep)
 		goto err;
