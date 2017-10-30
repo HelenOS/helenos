@@ -932,7 +932,14 @@ namespace std
                 return replace(i1 - begin(), i2 - i1, init.begin(), init.size());
             }
 
-            size_type copy(value_type* str, size_type n, size_type pos = 0) const;
+            size_type copy(value_type* str, size_type n, size_type pos = 0) const
+            {
+                auto len = min(n , size_ - pos);
+                for (size_type i = 0; i < len; ++i)
+                    traits_type::assign(str[i], data_[pos + i]);
+
+                return len;
+            }
 
             void swap(basic_string& other)
                 noexcept(allocator_traits<allocator_type>::propagate_on_container_swap::value ||
