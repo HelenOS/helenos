@@ -81,11 +81,11 @@ namespace std
 
     template<class Char, class Traits = char_traits<Char>,
              class Allocator = allocator<Char>>
-    class basic_istringstream;
+    class basic_ostringstream;
 
     template<class Char, class Traits = char_traits<Char>,
              class Allocator = allocator<Char>>
-    class basic_istringstream;
+    class basic_stringstream;
 
 
 
@@ -146,6 +146,11 @@ namespace std
     class fpos;
 
     // TODO: standard p. 1012, this is circular, it offers fix
-    using streampos  = fpos<char_traits<char>::state_type>;
-    using wstreampos = fpos<char_traits<wchar_t>::state_type>;
+    /* using streampos  = fpos<char_traits<char>::state_type>; */
+    /* using wstreampos = fpos<char_traits<wchar_t>::state_type>; */
+    // Temporary workaround.
+    using streampos =  unsigned long long;
+    using wstreampos = unsigned long long;
+    // TODO: This should be in ios and not here?
+    using streamoff = long long;
 }

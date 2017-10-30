@@ -29,11 +29,16 @@
 #ifndef LIBCPP_STRING
 #define LIBCPP_STRING
 
-#include <initializer_list>
+#include <algorithm>
 #include <iosfwd>
+#include <iterator>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
+#include <utility>
+
+#include <initializer_list>
 
 namespace std
 {
@@ -178,7 +183,9 @@ namespace std
 
         static int compare(const char_type* s1, const char_type* s2, size_t n)
         {
-            return std::wstr_lcmp(s1, s2, n);
+            // TODO: This function does not exits...
+            //return std::wstr_lcmp(s1, s2, n);
+            return 0;
         }
 
         static size_t length(const char_type* s)
@@ -259,8 +266,8 @@ namespace std
 
             using reference       = value_type&;
             using const_reference = const value_type&;
-            using pointer         = allocator_traits<allocator_type>::pointer;
-            using const_pointer   = allocator_traits<allocator_type>::const_pointer;
+            using pointer         = typename allocator_traits<allocator_type>::pointer;
+            using const_pointer   = typename allocator_traits<allocator_type>::const_pointer;
 
             using iterator               = pointer;
             using const_iterator         = const_pointer;
@@ -285,8 +292,8 @@ namespace std
                  *  size() = 0
                  *  capacity() = unspecified
                  */
-                data_ = allocator_.allocate(initial_capacity_);
-                capacity_ = initial_capacity_;
+                data_ = allocator_.allocate(default_capacity_);
+                capacity_ = default_capacity_;
             }
 
             basic_string(const basic_string& other)
@@ -314,19 +321,19 @@ namespace std
                 init_(other.data() + pos, len);
             }
 
-            basic_string(const value_type* str, size_type n, const allocator_type& alloc = allocator{})
+            basic_string(const value_type* str, size_type n, const allocator_type& alloc = allocator_type{})
                 : data_{}, size_{n}, capacity_{n}, allocator_{alloc}
             {
                 init_(str, size_);
             }
 
-            basic_string(const value_type* str, const allocator_type& alloc = allocator{})
+            basic_string(const value_type* str, const allocator_type& alloc = allocator_type{})
                 : data_{}, size_{}, capacity_{}, allocator_{alloc}
             {
                 init_(str, traits_type::length(str));
             }
 
-            basic_string(size_type n, value_type c, const allocator_type& alloc = allocator{})
+            basic_string(size_type n, value_type c, const allocator_type& alloc = allocator_type{})
                 : data_{}, size_{n}, capacity_{n}, allocator_{alloc}
             {
                 data_ = allocator_.allocate(capacity_);
@@ -337,10 +344,10 @@ namespace std
 
             template<class InputIterator>
             basic_string(InputIterator first, InputIterator last,
-                         const allocator_type& alloc = allocator{})
+                         const allocator_type& alloc = allocator_type{})
                 : data_{}, size_{}, capacity_{}, allocator_{alloc}
             {
-                if constexpr (is_integral_t<InputIterator>)
+                if constexpr (is_integral<InputIterator>::value)
                 { // Required by the standard.
                     size_ = static_cast<size_type>(first);
                     capacity_ = size_;
@@ -357,7 +364,7 @@ namespace std
                 }
             }
 
-            basic_string(initializer_list<value_type> init, const allocator_type& alloc = allocator{})
+            basic_string(initializer_list<value_type> init, const allocator_type& alloc = allocator_type{})
                 : basic_string{init.begin(), init.size(), alloc}
             { /* DUMMY BODY */ }
 
@@ -628,7 +635,7 @@ namespace std
                 return append(str.data(), str.size());
             }
 
-            basic_string& append(const basic_string& str, size_type pos
+            basic_string& append(const basic_string& str, size_type pos,
                                  size_type n = npos)
             {
                 if (pos < str.size())
@@ -665,7 +672,7 @@ namespace std
             template<class InputIterator>
             basic_string& append(InputIterator first, InputIterator last)
             {
-                return append(basic_string(frist, last));
+                return append(basic_string(first, last));
             }
 
             basic_string& append(initializer_list<value_type> init)
@@ -703,6 +710,8 @@ namespace std
                     return assign(str.data() + pos, len);
                 }
                 // TODO: Else throw out_of_range.
+
+                return *this;
             }
 
             basic_string& assign(const value_type* str, size_type n)
@@ -710,6 +719,8 @@ namespace std
                 // TODO: if (n > max_size()) throw length_error.
                 resize_without_copy_(n);
                 traits_type::copy(begin(), str, n);
+                size_ = n;
+                ensure_null_terminator_();
 
                 return *this;
             }
@@ -791,9 +802,9 @@ namespace std
                 ensure_free_space_(n);
                 copy_backward_(begin() + pos, end(), end() + n);
 
-                auto it = position;
+                auto it = pos;
                 for (size_type i = 0; i < n; ++i)
-                    type_traits::assign(*it++, c);
+                    traits_type::assign(*it++, c);
                 ensure_null_terminator_();
 
                 return begin() + idx;
@@ -811,7 +822,7 @@ namespace std
                 return insert(pos, init.begin(), init.end());
             }
 
-            basic_string& erase(size_type pos = 0; size_type n = npos)
+            basic_string& erase(size_type pos = 0, size_type n = npos)
             {
                 auto len = min(n, size_ - pos);
                 copy_(begin() + pos + n, end(), begin() + pos);
@@ -824,7 +835,7 @@ namespace std
             iterator erase(const_iterator pos)
             {
                 auto idx = static_cast<size_type>(pos - cbegin());
-                erase(dx, 1);
+                erase(idx, 1);
 
                 return begin() + idx;
             }
@@ -850,7 +861,7 @@ namespace std
                 return replace(pos, n, str.data(), str.size());
             }
 
-            basic_string& replace(size_type pos1, size_type n1, const basic_string& str
+            basic_string& replace(size_type pos1, size_type n1, const basic_string& str,
                                   size_type pos2, size_type n2 = npos)
             {
                 // TODO: throw out_of_range if pos1 > size() or pos2 > str.size()
@@ -894,7 +905,7 @@ namespace std
             basic_string& replace(const_iterator i1, const_iterator i2,
                                   const value_type* str, size_type n)
             {
-                return replace(i1 - begin(), i2 - i1, s, n);
+                return replace(i1 - begin(), i2 - i1, str, n);
             }
 
             basic_string& replace(const_iterator i1, const_iterator i2,
@@ -1255,7 +1266,7 @@ namespace std
              * (Well, we could've done data_ = &data_ and
              * set capacity to 0, but that would be too cryptic.)
              */
-            static constexpr size_type default_capacity_{4}
+            static constexpr size_type default_capacity_{4};
 
             void init_(const value_type* str, size_type size)
             {
@@ -1285,7 +1296,7 @@ namespace std
                  *       did in vector, because in string
                  *       reserve can cause shrinking.
                  */
-                if (size_ + 1 + n > capacity)
+                if (size_ + 1 + n > capacity_)
                     resize_with_copy_(size_, max(size_ + 1 + n, next_capacity_()));
             }
 
@@ -1341,7 +1352,8 @@ namespace std
 
             void ensure_null_terminator_()
             {
-                traits_type::assign(data_[size_], value_type{});
+                value_type c{};
+                traits_type::assign(data_[size_], c);
             }
 
             bool is_one_of_(size_type idx, const basic_string& str) const
@@ -1368,6 +1380,8 @@ namespace std
                 return i == len;
             }
     };
+
+    using string = basic_string<char>;
 }
 
 #endif

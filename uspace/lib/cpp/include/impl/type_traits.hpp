@@ -152,8 +152,8 @@ namespace std
     struct __is_integral<unsigned long long>: true_type
     { /* DUMMY BODY */ };
 
-    template<class T>
-    struct is_integral: __is_integral<remove_cv_t<T>>
+    template<class T> // TODO: use remove_cv when implemented
+    struct is_integral: __is_integral<T>
     { /* DUMMY BODY */ };
 
     template<class>
