@@ -67,6 +67,10 @@
 #define PBM_PCI_MEM_BASE	UINT64_C(0x00100000000)
 #define PBM_PCI_MEM_SIZE	UINT64_C(0x00100000000)
 
+#define PBM_OBIO_BASE		UINT64_C(0)
+#define PBM_OBIO_SIZE		UINT64_C(0x1898)
+
+
 typedef struct sun4u_fun {
 	hw_resource_list_t hw_resources;
 	pio_window_t pio_window;
@@ -90,8 +94,8 @@ static hw_resource_t obio_res[] = {
 	{
 		.type = MEM_RANGE,
 		.res.mem_range = {
-			.address = PBM_BASE + PBM_PCI_CONFIG_BASE,
-			.size = PBM_PCI_CONFIG_SIZE,
+			.address = PBM_BASE + PBM_OBIO_BASE,
+			.size = PBM_OBIO_SIZE,
 			.relative = false,
 			.endianness = LITTLE_ENDIAN
 		}
@@ -105,8 +109,8 @@ static sun4u_fun_t obio_data = {
 	},
 	.pio_window = {
 		.mem = {
-			.base = PBM_BASE + PBM_PCI_MEM_BASE,
-			.size = PBM_PCI_MEM_SIZE
+			.base = PBM_BASE + PBM_OBIO_BASE,
+			.size = PBM_OBIO_SIZE
 		}
 	}
 };

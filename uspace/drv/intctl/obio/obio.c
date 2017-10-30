@@ -118,10 +118,8 @@ int obio_add(obio_t *obio, obio_res_t *res)
 	ddf_fun_t *fun_a = NULL;
 	int rc;
 
-	base_phys = (uintptr_t) 0x1fe00000000ULL;
-
 	int flags = AS_AREA_READ | AS_AREA_WRITE;
-	int retval = physmem_map(base_phys,
+	int retval = physmem_map(res->base,
 	    ALIGN_UP(OBIO_SIZE, PAGE_SIZE) >> PAGE_WIDTH, flags,
 	    (void *) &base_virt);
 
