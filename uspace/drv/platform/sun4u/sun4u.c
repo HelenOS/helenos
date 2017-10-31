@@ -67,6 +67,10 @@
 #define PBM_PCI_MEM_BASE	UINT64_C(0x00100000000)
 #define PBM_PCI_MEM_SIZE	UINT64_C(0x00100000000)
 
+#define PBM_OBIO_BASE		UINT64_C(0)
+#define PBM_OBIO_SIZE		UINT64_C(0x1898)
+
+
 typedef struct sun4u_fun {
 	hw_resource_list_t hw_resources;
 	pio_window_t pio_window;
@@ -84,6 +88,31 @@ static driver_ops_t sun4u_ops = {
 static driver_t sun4u_driver = {
 	.name = NAME,
 	.driver_ops = &sun4u_ops
+};
+
+static hw_resource_t obio_res[] = {
+	{
+		.type = MEM_RANGE,
+		.res.mem_range = {
+			.address = PBM_BASE + PBM_OBIO_BASE,
+			.size = PBM_OBIO_SIZE,
+			.relative = false,
+			.endianness = LITTLE_ENDIAN
+		}
+	}
+};
+
+static sun4u_fun_t obio_data = {
+	.hw_resources = {
+		.count = sizeof(obio_res) / sizeof(obio_res[0]),
+		.resources = obio_res
+	},
+	.pio_window = {
+		.mem = {
+			.base = PBM_BASE + PBM_OBIO_BASE,
+			.size = PBM_OBIO_SIZE
+		}
+	}
 };
 
 static hw_resource_t pci_conf_regs[] = {
@@ -200,6 +229,9 @@ failure:
 
 static bool sun4u_add_functions(ddf_dev_t *dev)
 {
+	if (!sun4u_add_fun(dev, "obio", "ebus/obio", &obio_data))
+		return false;
+
 	return sun4u_add_fun(dev, "pci0", "intel_pci", &pci_data);
 }
 
