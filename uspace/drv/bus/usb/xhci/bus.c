@@ -197,15 +197,10 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	usb_log_debug2("Aborting all active transfers to device " XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*xhci_dev));
 	for (size_t i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
 		xhci_endpoint_t *ep = xhci_dev->endpoints[i];
-		if (!ep || !ep->base.active)
+		if (!ep)
 			continue;
 
-		/* FIXME: This is racy. */
-		if ((err = xhci_transfer_abort(&ep->active_transfer))) {
-			usb_log_warning("Failed to abort active transfer to "
-			    " endpoint " XHCI_EP_FMT ": %s", XHCI_EP_ARGS(*ep),
-			    str_error(err));
-		}
+		endpoint_abort(&ep->base);
 	}
 
 	/* TODO: Figure out how to handle errors here. So far, they are reported and skipped. */
@@ -453,7 +448,7 @@ static endpoint_t* find_endpoint(bus_t *bus_base, device_t *dev_base, usb_target
 	return &ep->base;
 }
 
-static int reset_toggle(bus_t *bus_base, usb_target_t target, bool all)
+static int reset_toggle(bus_t *bus_base, usb_target_t target, toggle_reset_mode_t mode)
 {
 	// TODO: Implement me!
 	return ENOTSUP;

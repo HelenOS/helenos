@@ -39,7 +39,9 @@
 #include <usb/usb.h>
 #include <usb/request.h>
 
+#include <atomic.h>
 #include <stddef.h>
+#include <errno.h>
 #include <stdint.h>
 #include <usbhc_iface.h>
 
@@ -85,9 +87,9 @@ typedef struct usb_transfer_batch {
 	char *buffer;
 	/** Size of memory pointed to by buffer member */
 	size_t buffer_size;
-
 	/** Actually used portion of the buffer */
 	size_t transfered_size;
+
 	/** Indicates success/failure of the communication */
 	int error;
 } usb_transfer_batch_t;
@@ -105,10 +107,22 @@ typedef struct usb_transfer_batch {
 	usb_str_direction((batch).ep->direction), \
 	(batch).buffer_size, (batch).ep->max_packet_size
 
+/** Wrapper for bus operation. */
+usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
+
+/** Batch initializer. */
 void usb_transfer_batch_init(usb_transfer_batch_t *, endpoint_t *);
+
+/** Call after status is known, but before releasing endpoint */
+int usb_transfer_batch_reset_toggle(usb_transfer_batch_t *);
+
+/** Batch finalization. */
+void usb_transfer_batch_abort(usb_transfer_batch_t *);
 void usb_transfer_batch_finish(usb_transfer_batch_t *);
 
-usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
+/** To be called from outside only when the transfer is not going to be finished
+ * (i.o.w. until successfuly scheduling)
+ */
 void usb_transfer_batch_destroy(usb_transfer_batch_t *);
 
 #endif

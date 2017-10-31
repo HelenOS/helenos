@@ -68,11 +68,6 @@ typedef struct xhci_endpoint {
 	/** Main transfer ring (unused if streams are enabled) */
 	xhci_trb_ring_t ring;
 
-	/** There shall be only one transfer active on an endpoint. The
-	 * synchronization is performed using the active flag in base
-	 * endpoint_t */
-	xhci_transfer_t active_transfer;
-
 	/** Primary stream context array (or NULL if endpoint doesn't use streams). */
 	xhci_stream_ctx_t *primary_stream_ctx_array;
 

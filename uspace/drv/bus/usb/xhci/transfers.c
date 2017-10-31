@@ -100,18 +100,11 @@ static inline bool configure_endpoint_needed(usb_device_request_setup_packet_t *
  */
 xhci_transfer_t* xhci_transfer_create(endpoint_t* ep)
 {
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
-	xhci_transfer_t *transfer = &xhci_ep->active_transfer;
-
-	/* Do not access the transfer yet, it may be still in use. */
+	xhci_transfer_t *transfer = calloc(1, sizeof(xhci_transfer_t));
+	if (!transfer)
+		return NULL;
 
 	usb_transfer_batch_init(&transfer->batch, ep);
-	assert(ep->active);
-
-	/* Clean just our data. */
-	memset(((void *) transfer) + sizeof(usb_transfer_batch_t), 0,
-	    sizeof(xhci_transfer_t) - sizeof(usb_transfer_batch_t));
-
 	return transfer;
 }
 
@@ -247,15 +240,6 @@ static int schedule_isochronous(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	return ENOTSUP;
 }
 
-int xhci_transfer_abort(xhci_transfer_t *transfer)
-{
-	usb_transfer_batch_t *batch = &transfer->batch;
-	batch->error = EAGAIN;
-	batch->transfered_size = 0;
-	usb_transfer_batch_finish(batch);
-	return EOK;
-}
-
 int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 {
 	uintptr_t addr = trb->parameter;
@@ -276,15 +260,23 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		return ENOENT;
 	}
 
-	xhci_transfer_t *transfer = &ep->active_transfer;
-
-	/** FIXME: This is racy. Do we care? */
+	/* FIXME: This is racy. Do we care? */
 	ep->ring.dequeue = addr;
 
-	usb_transfer_batch_t *batch = &transfer->batch;
+	fibril_mutex_lock(&ep->base.guard);
+	usb_transfer_batch_t *batch = ep->base.active_batch;
+	if (!batch) {
+		fibril_mutex_unlock(&ep->base.guard);
+		return ENOENT;
+	}
 
 	batch->error = (TRB_COMPLETION_CODE(*trb) == XHCI_TRBC_SUCCESS) ? EOK : ENAK;
 	batch->transfered_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
+	usb_transfer_batch_reset_toggle(batch);
+	endpoint_deactivate_locked(&ep->base);
+	fibril_mutex_unlock(&ep->base.guard);
+
+	xhci_transfer_t *transfer = xhci_transfer_from_batch(batch);
 
 	if (batch->dir == USB_DIRECTION_IN) {
 		assert(batch->buffer);
@@ -308,15 +300,14 @@ static const transfer_handler transfer_handlers[] = {
 int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 {
 	assert(hc);
+	endpoint_t *ep = batch->ep;
 
 	xhci_transfer_t *transfer = xhci_transfer_from_batch(batch);
-	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(batch->ep);
-	assert(xhci_ep);
-
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
 	xhci_device_t *xhci_dev = xhci_ep_to_dev(xhci_ep);
 
 	/* Offline devices don't schedule transfers other than on EP0. */
-	if (!xhci_dev->online && xhci_ep->base.endpoint) {
+	if (!xhci_dev->online && ep->endpoint > 0) {
 		return EAGAIN;
 	}
 
@@ -333,17 +324,28 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 
 	if (batch->buffer_size > 0) {
 		transfer->hc_buffer = malloc32(batch->buffer_size);
+		if (!transfer->hc_buffer)
+			return ENOMEM;
 	}
-
 
 	if (batch->dir != USB_DIRECTION_IN) {
 		// Sending stuff from host to device, we need to copy the actual data.
 		memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
 	}
 
+	fibril_mutex_lock(&ep->guard);
+	endpoint_activate_locked(ep, batch);
 	const int err = transfer_handlers[batch->ep->transfer_type](hc, transfer);
-	if (err)
+
+	if (err) {
+		endpoint_deactivate_locked(ep);
+		fibril_mutex_unlock(&ep->guard);
 		return err;
+	}
+
+	/* After the critical section, the transfer can already be finished or aborted. */
+	transfer = NULL; batch = NULL;
+	fibril_mutex_unlock(&ep->guard);
 
 	const uint8_t slot_id = xhci_dev->slot_id;
 	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */

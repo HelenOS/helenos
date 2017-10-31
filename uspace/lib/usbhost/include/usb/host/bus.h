@@ -43,6 +43,7 @@
 #define LIBUSBHOST_HOST_BUS_H
 
 #include <usb/usb.h>
+#include <usb/request.h>
 
 #include <assert.h>
 #include <fibril_synch.h>
@@ -96,7 +97,7 @@ typedef struct {
 	int (*request_address)(bus_t *, usb_address_t*, bool, usb_speed_t);
 	int (*release_address)(bus_t *, usb_address_t);
 
-	int (*reset_toggle)(bus_t *, usb_target_t, bool);
+	int (*reset_toggle)(bus_t *, usb_target_t, toggle_reset_mode_t);
 
 	size_t (*count_bw) (endpoint_t *, size_t);
 

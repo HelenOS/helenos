@@ -97,19 +97,6 @@ static inline void * uhci_transfer_batch_data_buffer(
 	    (uhci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL ? USB_SETUP_PACKET_SIZE : 0);
 }
 
-/** Aborts the batch.
- * Sets error to EINTR and size off transferd data to 0, before finishing the
- * batch.
- * @param uhci_batch Batch to abort.
- */
-static inline void uhci_transfer_batch_abort(uhci_transfer_batch_t *uhci_batch)
-{
-	assert(uhci_batch);
-	uhci_batch->base.error = EINTR;
-	uhci_batch->base.transfered_size = 0;
-	usb_transfer_batch_finish(&uhci_batch->base);
-}
-
 /** Linked list conversion wrapper.
  * @param l Linked list link.
  * @return Pointer to the uhci batch structure.

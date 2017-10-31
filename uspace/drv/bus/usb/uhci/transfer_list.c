@@ -114,6 +114,14 @@ void transfer_list_add_batch(
 {
 	assert(instance);
 	assert(uhci_batch);
+
+	endpoint_t *ep = uhci_batch->base.ep;
+
+	/* First, wait until the endpoint is free to use */
+	fibril_mutex_lock(&ep->guard);
+	endpoint_activate_locked(ep, &uhci_batch->base);
+	fibril_mutex_unlock(&ep->guard);
+
 	usb_log_debug2("Batch %p adding to queue %s.\n",
 	    uhci_batch, instance->name);
 
@@ -188,7 +196,7 @@ void transfer_list_abort_all(transfer_list_t *instance)
 		uhci_transfer_batch_t *batch =
 		    uhci_transfer_batch_from_link(current);
 		transfer_list_remove_batch(instance, batch);
-		uhci_transfer_batch_abort(batch);
+		endpoint_abort(batch->base.ep);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }

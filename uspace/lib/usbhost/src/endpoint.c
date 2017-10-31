@@ -35,6 +35,7 @@
  */
 
 #include <usb/host/endpoint.h>
+#include <usb/host/usb_transfer_batch.h>
 #include <usb/host/bus.h>
 
 #include <assert.h>
@@ -67,7 +68,7 @@ void endpoint_del_ref(endpoint_t *ep)
 			ep->bus->ops.destroy_endpoint(ep);
 		}
 		else {
-			assert(!ep->active);
+			assert(ep->active_batch == NULL);
 
 			/* Assume mostly the eps will be allocated by malloc. */
 			free(ep);
@@ -78,30 +79,48 @@ void endpoint_del_ref(endpoint_t *ep)
 /** Mark the endpoint as active and block access for further fibrils.
  * @param ep endpoint_t structure.
  */
-void endpoint_use(endpoint_t *ep)
+void endpoint_activate_locked(endpoint_t *ep, usb_transfer_batch_t *batch)
 {
 	assert(ep);
-	/* Add reference for active endpoint. */
-	endpoint_add_ref(ep);
-	fibril_mutex_lock(&ep->guard);
-	while (ep->active)
+	assert(batch);
+	assert(batch->ep == ep);
+	assert(fibril_mutex_is_locked(&ep->guard));
+
+	while (ep->active_batch != NULL)
 		fibril_condvar_wait(&ep->avail, &ep->guard);
-	ep->active = true;
-	fibril_mutex_unlock(&ep->guard);
+	ep->active_batch = batch;
 }
 
 /** Mark the endpoint as inactive and allow access for further fibrils.
  * @param ep endpoint_t structure.
  */
-void endpoint_release(endpoint_t *ep)
+void endpoint_deactivate_locked(endpoint_t *ep)
 {
 	assert(ep);
-	fibril_mutex_lock(&ep->guard);
-	ep->active = false;
-	fibril_mutex_unlock(&ep->guard);
+	assert(fibril_mutex_is_locked(&ep->guard));
+
+	if (ep->active_batch && ep->active_batch->error == EOK)
+		usb_transfer_batch_reset_toggle(ep->active_batch);
+
+	ep->active_batch = NULL;
 	fibril_condvar_signal(&ep->avail);
-	/* Drop reference for active endpoint. */
-	endpoint_del_ref(ep);
+}
+
+/** Abort an active batch on endpoint, if any.
+ *
+ * @param[in] ep endpoint_t structure.
+ */
+void endpoint_abort(endpoint_t *ep)
+{
+	assert(ep);
+
+	fibril_mutex_lock(&ep->guard);
+	usb_transfer_batch_t *batch = ep->active_batch;
+	endpoint_deactivate_locked(ep);
+	fibril_mutex_unlock(&ep->guard);
+
+	if (batch)
+		usb_transfer_batch_abort(batch);
 }
 
 /** Get the value of toggle bit. Either uses the toggle_get op, or just returns
@@ -111,30 +130,26 @@ void endpoint_release(endpoint_t *ep)
 int endpoint_toggle_get(endpoint_t *ep)
 {
 	assert(ep);
-	fibril_mutex_lock(&ep->guard);
-	const int ret = ep->bus->ops.endpoint_get_toggle
+
+	return ep->bus->ops.endpoint_get_toggle
 	    ? ep->bus->ops.endpoint_get_toggle(ep)
 	    : ep->toggle;
-	fibril_mutex_unlock(&ep->guard);
-	return ret;
 }
 
 /** Set the value of toggle bit. Either uses the toggle_set op, or just sets
  * the toggle inside.
  * @param ep endpoint_t structure.
  */
-void endpoint_toggle_set(endpoint_t *ep, unsigned toggle)
+void endpoint_toggle_set(endpoint_t *ep, bool toggle)
 {
 	assert(ep);
-	assert(toggle == 0 || toggle == 1);
-	fibril_mutex_lock(&ep->guard);
+
 	if (ep->bus->ops.endpoint_set_toggle) {
 		ep->bus->ops.endpoint_set_toggle(ep, toggle);
 	}
 	else {
 		ep->toggle = toggle;
 	}
-	fibril_mutex_unlock(&ep->guard);
 }
 
 

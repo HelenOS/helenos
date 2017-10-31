@@ -366,19 +366,22 @@ static int usb2_bus_unregister_ep(bus_t *bus_base, endpoint_t *ep)
 	return EOK;
 }
 
-static int usb2_bus_reset_toggle(bus_t *bus_base, usb_target_t target, bool all)
+static int usb2_bus_reset_toggle(bus_t *bus_base, usb_target_t target, toggle_reset_mode_t mode)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 
 	if (!usb_target_is_valid(target))
 		return EINVAL;
 
+	if (mode == RESET_NONE)
+		return EOK;
+
 	int ret = ENOENT;
 
 	list_foreach(*get_list(bus, target.address), link, endpoint_t, ep) {
 		assert(ep->device->address == target.address);
 
-		if (all || ep->endpoint == target.endpoint) {
+		if (mode == RESET_ALL || ep->endpoint == target.endpoint) {
 			endpoint_toggle_set(ep, 0);
 			ret = EOK;
 		}

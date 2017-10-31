@@ -62,34 +62,26 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
  */
 void usb_transfer_batch_init(usb_transfer_batch_t *batch, endpoint_t *ep)
 {
-	endpoint_use(ep);
-
 	memset(batch, 0, sizeof(*batch));
 	batch->ep = ep;
 }
 
-/** Call the handler of the batch.
+/** Resolve resetting toggle.
  *
  * @param[in] batch Batch structure to use.
  */
-static int batch_complete(usb_transfer_batch_t *batch)
+int usb_transfer_batch_reset_toggle(usb_transfer_batch_t *batch)
 {
 	assert(batch);
 
-	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " completed.\n",
-	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
+	if (batch->error != EOK || batch->toggle_reset_mode == RESET_NONE)
+		return EOK;
 
-	if (batch->error == EOK && batch->toggle_reset_mode != RESET_NONE) {
-		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " resets %s",
-		    batch, USB_TRANSFER_BATCH_ARGS(*batch),
-		    batch->toggle_reset_mode == RESET_ALL ? "all EPs toggle" : "EP toggle");
-		bus_reset_toggle(batch->ep->bus, 
-		    batch->target, batch->toggle_reset_mode == RESET_ALL);
-	}
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " resets %s",
+	    batch, USB_TRANSFER_BATCH_ARGS(*batch),
+	    batch->toggle_reset_mode == RESET_ALL ? "all EPs toggle" : "EP toggle");
 
-	return batch->on_complete
-		? batch->on_complete(batch)
-		: EOK;
+	return bus_reset_toggle(batch->ep->bus, batch->target, batch->toggle_reset_mode);
 }
 
 /** Destroy the batch.
@@ -113,8 +105,6 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 		free(batch);
 	}
-
-	endpoint_release(batch->ep);
 }
 
 /** Finish a transfer batch: call handler, destroy batch, release endpoint.
@@ -125,11 +115,33 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
  */
 void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 {
-	const int err = batch_complete(batch);
-	if (err)
-		usb_log_warning("batch %p failed to complete: %s", batch, str_error(err));
+	assert(batch);
+	assert(batch->ep);
+
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " finishing.\n",
+	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
+
+	if (batch->on_complete) {
+		const int err = batch->on_complete(batch);
+		if (err)
+			usb_log_warning("batch %p failed to complete: %s",
+			    batch, str_error(err));
+	}
 
 	usb_transfer_batch_destroy(batch);
+}
+
+/** Finish a transfer batch as an aborted one.
+ *
+ * @param[in] batch Batch structure to use.
+ */
+void usb_transfer_batch_abort(usb_transfer_batch_t *batch)
+{
+	assert(batch);
+	assert(batch->ep);
+
+	batch->error = EAGAIN;
+	usb_transfer_batch_finish(batch);
 }
 
 /**

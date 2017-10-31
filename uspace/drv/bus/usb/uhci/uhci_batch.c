@@ -63,15 +63,6 @@ void uhci_transfer_batch_destroy(uhci_transfer_batch_t *uhci_batch)
 	free(uhci_batch);
 }
 
-void uhci_transfer_batch_finish(uhci_transfer_batch_t *batch)
-{
-	if (batch->base.dir == USB_DIRECTION_IN) {
-		assert(batch->base.transfered_size <= batch->base.buffer_size);
-		memcpy(batch->base.buffer, uhci_transfer_batch_data_buffer(batch), batch->base.transfered_size);
-	}
-	usb_transfer_batch_finish(&batch->base);
-}
-
 /** Allocate memory and initialize internal data structure.
  *
  * @param[in] usb_batch Pointer to generic USB batch structure.
@@ -112,7 +103,7 @@ int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 		uhci_batch->td_count += 2;
 	}
 
-	const size_t setup_size = (uhci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL)
+	const size_t setup_size = (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL)
 		? USB_SETUP_PACKET_SIZE
 		: 0;
 
@@ -164,42 +155,56 @@ int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
+	usb_transfer_batch_t *batch = &uhci_batch->base;
 
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
 	    " checking %zu transfer(s) for completion.\n",
-	    uhci_batch, USB_TRANSFER_BATCH_ARGS(uhci_batch->base),
+	    uhci_batch, USB_TRANSFER_BATCH_ARGS(*batch),
 	    uhci_batch->td_count);
-	uhci_batch->base.transfered_size = 0;
+	batch->transfered_size = 0;
 
 	for (size_t i = 0;i < uhci_batch->td_count; ++i) {
 		if (td_is_active(&uhci_batch->tds[i])) {
 			return false;
 		}
 
-		uhci_batch->base.error = td_status(&uhci_batch->tds[i]);
-		if (uhci_batch->base.error != EOK) {
-			assert(uhci_batch->base.ep != NULL);
+		batch->error = td_status(&uhci_batch->tds[i]);
+		if (batch->error != EOK) {
+			assert(batch->ep != NULL);
 
 			usb_log_debug("Batch %p found error TD(%zu->%p):%"
 			    PRIx32 ".\n", uhci_batch, i,
 			    &uhci_batch->tds[i], uhci_batch->tds[i].status);
 			td_print_status(&uhci_batch->tds[i]);
 
-			endpoint_toggle_set(uhci_batch->base.ep,
+			endpoint_toggle_set(batch->ep,
 			    td_toggle(&uhci_batch->tds[i]));
 			if (i > 0)
 				goto substract_ret;
 			return true;
 		}
 
-		uhci_batch->base.transfered_size
+		batch->transfered_size
 		    += td_act_size(&uhci_batch->tds[i]);
 		if (td_is_short(&uhci_batch->tds[i]))
 			goto substract_ret;
 	}
 substract_ret:
-	if (uhci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL)
-		uhci_batch->base.transfered_size -= USB_SETUP_PACKET_SIZE;
+	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL)
+		batch->transfered_size -= USB_SETUP_PACKET_SIZE;
+
+	fibril_mutex_lock(&batch->ep->guard);
+	usb_transfer_batch_reset_toggle(batch);
+	endpoint_deactivate_locked(batch->ep);
+	fibril_mutex_unlock(&batch->ep->guard);
+
+	if (batch->dir == USB_DIRECTION_IN) {
+		assert(batch->transfered_size <= batch->buffer_size);
+		memcpy(batch->buffer,
+		    uhci_transfer_batch_data_buffer(uhci_batch),
+		    batch->transfered_size);
+	}
+
 	return true;
 }
 
