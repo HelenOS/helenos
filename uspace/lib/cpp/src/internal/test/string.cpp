@@ -37,6 +37,7 @@ namespace std::test
     {
         test_construction_and_assignment();
         test_append();
+        test_insert();
 
         return true;
     }
@@ -152,5 +153,45 @@ namespace std::test
             str6.begin(), str6.end(),
             check.begin(), check.end()
         );
+    }
+
+    void string_test::test_insert()
+    {
+        std::string check{"hello, world"};
+
+        std::string str1{", world"};
+        str1.insert(0, "hello");
+        test_eq(
+            "insert at the beggining",
+            str1.begin(), str1.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str2{"hello,world"};
+        str2.insert(str2.begin() + 6, ' ');
+        test_eq(
+            "insert char in the middle",
+            str2.begin(), str2.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str3{"heo, world"};
+        str3.insert(str3.begin() + 2, 2ul, 'l');
+        test_eq(
+            "insert n chars",
+            str3.begin(), str3.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str4{"h, world"};
+        std::string insertee{"ello"};
+        str4.insert(str4.begin() + 1, insertee.begin(),
+                    insertee.end() - 1);
+        test_eq(
+            "insert iterator range",
+            str4.begin(), str4.end(),
+            check.begin(), check.end()
+        );
+        /* std::printf("|%s|\n", str4.c_str()); */
     }
 }

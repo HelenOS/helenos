@@ -67,6 +67,7 @@ namespace std::test
         private:
             void test_construction_and_assignment();
             void test_append();
+            void test_insert();
     };
 }
 
