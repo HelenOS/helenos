@@ -1,4 +1,4 @@
-#
+x#
 # Copyright (c) 2006 Martin Decky
 # All rights reserved.
 #

@@ -67,9 +67,6 @@
 
 #define INO_MASK	0x1f
 
-static uintptr_t base_phys;
-static volatile uint64_t *base_virt = (volatile uint64_t *) AS_AREA_ANY;
-
 /** Handle one connection to obio.
  *
  * @param iid		Hash of the request that opened the connection.
@@ -80,11 +77,14 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
+	obio_t *obio;
 
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
 	async_answer_0(iid, EOK);
+
+	obio = (obio_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (1) {
 		int inr;
@@ -93,7 +93,7 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
-			base_virt[OBIO_IMR(inr & INO_MASK)] |= (1UL << 31);
+			((volatile uint64_t *)(obio->regs))[OBIO_IMR(inr & INO_MASK)] |= (1UL << 31);
 			async_answer_0(callid, EOK);
 			break;
 		case IRC_DISABLE_INTERRUPT:
@@ -102,7 +102,7 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case IRC_CLEAR_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
-			base_virt[OBIO_CIR(inr & INO_MASK)] = 0;
+			((volatile uint64_t *)(obio->regs))[OBIO_CIR(inr & INO_MASK)] = 0;
 			async_answer_0(callid, EOK);
 			break;
 		default:
@@ -116,12 +116,15 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 int obio_add(obio_t *obio, obio_res_t *res)
 {
 	ddf_fun_t *fun_a = NULL;
+	int flags;
+	int retval;
 	int rc;
 
-	int flags = AS_AREA_READ | AS_AREA_WRITE;
-	int retval = physmem_map(res->base,
+	flags = AS_AREA_READ | AS_AREA_WRITE;
+	obio->regs = (volatile uint64_t *)AS_AREA_ANY;
+	retval = physmem_map(res->base,
 	    ALIGN_UP(OBIO_SIZE, PAGE_SIZE) >> PAGE_WIDTH, flags,
-	    (void *) &base_virt);
+	    (void *) &obio->regs);
 
 	if (retval < 0) {
 		ddf_msg(LVL_ERROR, "Error mapping OBIO registers");
@@ -129,7 +132,7 @@ int obio_add(obio_t *obio, obio_res_t *res)
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "OBIO registers with base at 0x%" PRIun, base_phys);
+	ddf_msg(LVL_NOTE, "OBIO registers with base at 0x%" PRIun, res->base);
 
 	fun_a = ddf_fun_create(obio->dev, fun_exposed, "a");
 	if (fun_a == NULL) {
