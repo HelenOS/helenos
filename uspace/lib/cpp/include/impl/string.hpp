@@ -63,7 +63,7 @@ namespace std
         using pos_type   = streampos;
         /* using state_type = mbstate_t; */
 
-        static void assign(char_type& c1, char_type& c2) noexcept
+        static void assign(char_type& c1, const char_type& c2) noexcept
         {
             c1 = c2;
         }
@@ -85,7 +85,7 @@ namespace std
 
         static size_t length(const char_type* s)
         {
-            return std::str_size(s) + 1;
+            return std::str_size(s);
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)
@@ -166,7 +166,7 @@ namespace std
         using pos_type   = wstreampos;
         /* using state_type = mbstate_t; */
 
-        static void assign(char_type& c1, char_type& c2) noexcept
+        static void assign(char_type& c1, const char_type& c2) noexcept
         {
             c1 = c2;
         }
@@ -190,7 +190,7 @@ namespace std
 
         static size_t length(const char_type* s)
         {
-            return std::wstr_size(s) + 1;
+            return std::wstr_size(s);
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)
@@ -330,7 +330,7 @@ namespace std
             basic_string(const value_type* str, const allocator_type& alloc = allocator_type{})
                 : data_{}, size_{}, capacity_{}, allocator_{alloc}
             {
-                init_(str, traits_type::length(str));
+                init_(str, traits_type::length(str) + 1);
             }
 
             basic_string(size_type n, value_type c, const allocator_type& alloc = allocator_type{})
@@ -660,7 +660,7 @@ namespace std
 
             basic_string& append(const value_type* str)
             {
-                return append(str, traits_type::length(str));
+                return append(str, traits_type::length(str) + 1);
             }
 
             basic_string& append(size_type n, value_type c)
@@ -763,10 +763,16 @@ namespace std
 
             basic_string& insert(size_type pos, const value_type* str, size_type n)
             {
-                ensure_free_space_(size_ + n);
-                copy_backward_(begin() + pos, end(), end() + n);
-                copy_(begin() + pos, begin() + pos + n, str);
+                // TODO: throw out_of_range if pos > size()
+                // TODO: throw length_error if size() + n > max_size()
+                ensure_free_space_(n);
 
+                copy_backward_(begin() + pos, end(), end() + n);
+                std::printf("|%s|\n", data_);
+                copy_(str, str + n, begin() + pos);
+                size_ += n;
+
+                ensure_null_terminator_();
                 return *this;
             }
 
@@ -785,7 +791,10 @@ namespace std
                 auto idx = static_cast<size_type>(pos - begin());
 
                 ensure_free_space_(1);
-                copy_backward_(begin() + pos, end(), end() + 1);
+                copy_backward_(begin() + idx, end(), end() + 1);
+                traits_type::assign(data_[idx], c);
+
+                ++size_;
                 ensure_null_terminator_();
 
                 return begin() + idx;
@@ -799,11 +808,12 @@ namespace std
                 auto idx = static_cast<size_type>(pos - begin());
 
                 ensure_free_space_(n);
-                copy_backward_(begin() + pos, end(), end() + n);
+                copy_backward_(begin() + idx, end(), end() + n);
 
-                auto it = pos;
+                auto it = begin() + idx;
                 for (size_type i = 0; i < n; ++i)
                     traits_type::assign(*it++, c);
+                size_ += n;
                 ensure_null_terminator_();
 
                 return begin() + idx;
@@ -813,7 +823,14 @@ namespace std
             iterator insert(const_iterator pos, InputIterator first,
                             InputIterator last)
             {
-                return insert(pos - begin(), basic_string(first, last));
+                if (first == last)
+                    return const_cast<iterator>(pos);
+
+                auto idx = static_cast<size_type>(pos - begin());
+                auto str = basic_string{first, last};
+                insert(idx, str);
+
+                return begin() + idx;
             }
 
             iterator insert(const_iterator pos, initializer_list<value_type> init)
@@ -1336,23 +1353,23 @@ namespace std
                 ensure_null_terminator_();
             }
 
-            iterator copy_(const_iterator first, const_iterator last,
-                           iterator result)
+            template<class Iterator1, class Iterator2>
+            Iterator2 copy_(Iterator1 first, Iterator1 last,
+                            Iterator2 result)
             {
                 while (first != last)
                     traits_type::assign(*result++, *first++);
 
-                ensure_null_terminator_();
                 return result;
             }
 
-            iterator copy_backward_(const_iterator first, const_iterator last,
-                                    iterator result)
+            template<class Iterator1, class Iterator2>
+            Iterator2 copy_backward_(Iterator1 first, Iterator1 last,
+                                     Iterator2 result)
             {
-                while (last-- != first)
-                    traits_type::assign(*result--, *last);
+                while (last != first)
+                    traits_type::assign(*--result, *--last);
 
-                ensure_null_terminator_();
                 return result;
             }
 
