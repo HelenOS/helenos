@@ -54,12 +54,12 @@ namespace std::test
         std::string str1{"hello"};
         test_eq(
             "size of string",
-            str1.size(), 6ul
+            str1.size(), 5ul
         );
         test_eq(
             "initialization from a cstring literal",
             str1.begin(), str1.end(),
-            check1, check1 + 6
+            check1, check1 + 5
         );
 
         std::string str2{str1};
@@ -139,7 +139,7 @@ namespace std::test
         );
 
         std::string str5{"hello, "};
-        str5.append({'w', 'o', 'r', 'l', 'd', '\0'});
+        str5.append({'w', 'o', 'r', 'l', 'd'});
         test_eq(
             "append initializer list",
             str5.begin(), str5.end(),
@@ -186,12 +186,20 @@ namespace std::test
         std::string str4{"h, world"};
         std::string insertee{"ello"};
         str4.insert(str4.begin() + 1, insertee.begin(),
-                    insertee.end() - 1);
+                    insertee.end());
         test_eq(
             "insert iterator range",
             str4.begin(), str4.end(),
             check.begin(), check.end()
         );
-        /* std::printf("|%s|\n", str4.c_str()); */
+
+        std::string str5{"hel, world"};
+        std::initializer_list<char> init{'l', 'o'};
+        str5.insert(str5.begin() + 3, init);
+        test_eq(
+            "insert initializer list",
+            str5.begin(), str5.end(),
+            check.begin(), check.end()
+        );
     }
 }

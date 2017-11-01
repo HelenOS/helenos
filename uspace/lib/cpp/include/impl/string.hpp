@@ -330,7 +330,7 @@ namespace std
             basic_string(const value_type* str, const allocator_type& alloc = allocator_type{})
                 : data_{}, size_{}, capacity_{}, allocator_{alloc}
             {
-                init_(str, traits_type::length(str) + 1);
+                init_(str, traits_type::length(str));
             }
 
             basic_string(size_type n, value_type c, const allocator_type& alloc = allocator_type{})
@@ -360,7 +360,7 @@ namespace std
                 else
                 {
                     auto len = static_cast<size_type>(last - first);
-                    init_(static_cast<value_type*>(first), len);
+                    init_(first, len);
                 }
             }
 
@@ -500,7 +500,7 @@ namespace std
 
             size_type length() const noexcept
             {
-                return size_;
+                return size();
             }
 
             size_type max_size() const noexcept
@@ -651,8 +651,8 @@ namespace std
             {
                 // TODO: if (size_ + n > max_size()) throw length_error
                 ensure_free_space_(n);
-                traits_type::copy(data_ + size_ - 1, str, n);
-                size_ += n - 1; // We are not copying str's null terminator.
+                traits_type::copy(data_ + size(), str, n);
+                size_ += n;
                 ensure_null_terminator_();
 
                 return *this;
@@ -660,7 +660,7 @@ namespace std
 
             basic_string& append(const value_type* str)
             {
-                return append(str, traits_type::length(str) + 1);
+                return append(str, traits_type::length(str));
             }
 
             basic_string& append(size_type n, value_type c)
@@ -768,7 +768,6 @@ namespace std
                 ensure_free_space_(n);
 
                 copy_backward_(begin() + pos, end(), end() + n);
-                std::printf("|%s|\n", data_);
                 copy_(str, str + n, begin() + pos);
                 size_ += n;
 
