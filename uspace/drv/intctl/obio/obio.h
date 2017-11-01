@@ -46,7 +46,7 @@ typedef struct {
 
 /** OBIO */
 typedef struct {
-	volatile uint64_t *regs;
+	ioport64_t *regs;
 	uintptr_t phys_base;
 	ddf_dev_t *dev;
 } obio_t;

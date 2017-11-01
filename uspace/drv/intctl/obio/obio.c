@@ -93,7 +93,8 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
-			((volatile uint64_t *)(obio->regs))[OBIO_IMR(inr & INO_MASK)] |= (1UL << 31);
+			pio_set_64(&obio->regs[OBIO_IMR(inr & INO_MASK)],
+			    1UL << 31, 0);
 			async_answer_0(callid, EOK);
 			break;
 		case IRC_DISABLE_INTERRUPT:
@@ -102,7 +103,7 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case IRC_CLEAR_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
-			((volatile uint64_t *)(obio->regs))[OBIO_CIR(inr & INO_MASK)] = 0;
+			pio_write_64(&obio->regs[OBIO_CIR(inr & INO_MASK)], 0);
 			async_answer_0(callid, EOK);
 			break;
 		default:
@@ -121,7 +122,7 @@ int obio_add(obio_t *obio, obio_res_t *res)
 	int rc;
 
 	flags = AS_AREA_READ | AS_AREA_WRITE;
-	obio->regs = (volatile uint64_t *)AS_AREA_ANY;
+	obio->regs = (ioport64_t *)AS_AREA_ANY;
 	retval = physmem_map(res->base,
 	    ALIGN_UP(OBIO_SIZE, PAGE_SIZE) >> PAGE_WIDTH, flags,
 	    (void *) &obio->regs);
