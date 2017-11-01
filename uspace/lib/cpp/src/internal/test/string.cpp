@@ -41,6 +41,7 @@ namespace std::test
         test_erase();
         test_replace();
         test_copy();
+        test_find();
 
         return true;
     }
@@ -384,6 +385,46 @@ namespace std::test
             "copy",
             str2.begin(), str2.end(),
             check.begin(), check.end()
+        );
+    }
+
+    void string_test::test_find()
+    {
+        std::string target{"ABC"};
+        auto miss = std::string::npos;
+
+        std::string str1{"xxABCxx"};
+
+        auto idx = str1.find(target, 0);
+        test_eq(
+            "find from start (success)",
+            idx, 2ul
+        );
+
+        idx = str1.find(target, 3);
+        test_eq(
+            "find from start (fail, late start)",
+            idx, miss
+        );
+
+        idx = str1.rfind(target, miss);
+        test_eq(
+            "rfind from start (success)",
+            idx, 2ul
+        );
+
+        idx = str1.rfind(target, 1);
+        test_eq(
+            "rfind from start (fail, late start)",
+            idx, miss
+        );
+
+        std::string str2{"xxABCxxABCxx"};
+
+        idx = str2.find(target, 0);
+        test_eq(
+            "find from start (success, multiple)",
+            idx, 2ul
         );
     }
 }
