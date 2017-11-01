@@ -69,6 +69,7 @@ namespace std::test
             void test_append();
             void test_insert();
             void test_erase();
+            void test_replace();
     };
 }
 

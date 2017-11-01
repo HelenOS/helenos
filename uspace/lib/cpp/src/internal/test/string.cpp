@@ -39,6 +39,7 @@ namespace std::test
         test_append();
         test_insert();
         test_erase();
+        test_replace();
 
         return true;
     }
@@ -261,6 +262,111 @@ namespace std::test
         test_eq(
             "erase iterator range",
             str7.begin(), str7.end(),
+            check.begin(), check.end()
+        );
+    }
+
+    void string_test::test_replace()
+    {
+        std::string check{"hello, world"};
+
+        std::string str1{"helXXX world"};
+        str1.replace(3, 3, "lo,", 3);
+        test_eq(
+            "replace with full string",
+            str1.begin(), str1.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str2{"helXXX world"};
+        str2.replace(3, 3, "lo,YYY", 3);
+        test_eq(
+            "replace with prefix of a string",
+            str2.begin(), str2.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str3{"helXXX world"};
+        str3.replace(3, 3, "YYlo,YYY", 2, 3);
+        test_eq(
+            "replace with substring of a string",
+            str3.begin(), str3.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str4{"heXXo, world"};
+        str4.replace(2, 2, 2, 'l');
+        test_eq(
+            "replace with repeated characters",
+            str4.begin(), str4.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str5{"heXXXXo, world"};
+        str5.replace(2, 4, 2, 'l');
+        test_eq(
+            "replace with repeated characters (shrinking)",
+            str5.begin(), str5.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str6{"helXXXXX world"};
+        str6.replace(3, 5, "YYlo,YYY", 2, 3);
+        test_eq(
+            "replace with substring of a string (shrinking)",
+            str6.begin(), str6.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str7{"helXXXXX world"};
+        std::string replacer{"YYlo,YYY"};
+        str7.replace(3, 5, replacer, 2, 3);
+        test_eq(
+            "replace with substring of a string (shrinking, std::string)",
+            str7.begin(), str7.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str8{"helXXXXX world"};
+        str8.replace(str8.begin() + 3, str8.begin() + 8, "lo,");
+        test_eq(
+            "replace with a string (iterators)",
+            str8.begin(), str8.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str9{"heXXXXo, world"};
+        str9.replace(str9.begin() + 2, str9.begin() + 6, 2, 'l');
+        test_eq(
+            "replace with repeated characters (shrinking, iterators)",
+            str9.begin(), str9.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str10{"helXXXXX world"};
+        str10.replace(str10.begin() + 3, str10.begin() + 8,
+                      replacer.begin() + 2, replacer.begin() + 5);
+        test_eq(
+            "replace with substring of a string (shrinking, iterators x2)",
+            str10.begin(), str10.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str11{"helXXXXX world"};
+        str11.replace(str11.begin() + 3, str11.begin() + 8,
+                      {'l', 'o', ','});
+        test_eq(
+            "replace with an initializer list (shrinking, iterators)",
+            str11.begin(), str11.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str12{"helXXX world"};
+        str12.replace(str12.begin() + 3, str12.begin() + 6,
+                      {'l', 'o', ','});
+        test_eq(
+            "replace with an initializer list (iterators)",
+            str12.begin(), str12.end(),
             check.begin(), check.end()
         );
     }
