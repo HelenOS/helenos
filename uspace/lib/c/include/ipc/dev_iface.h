@@ -55,8 +55,6 @@ typedef enum {
 
 	/** Interface provided by any USB device. */
 	USB_DEV_IFACE,
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
 	/** Interface provided by USB HID devices. */
 	USBHID_DEV_IFACE,
 

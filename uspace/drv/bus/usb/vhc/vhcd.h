@@ -37,7 +37,6 @@
 #define VHCD_VHCD_H_
 
 #include <usbvirt/device.h>
-#include <usbhc_iface.h>
 #include <async.h>
 
 #include <usb/host/hcd.h>

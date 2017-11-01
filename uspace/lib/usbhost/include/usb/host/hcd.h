@@ -42,7 +42,7 @@
 #include <usb/usb.h>
 
 #include <assert.h>
-#include <usbhc_iface.h>
+#include <mem.h>
 #include <stddef.h>
 #include <stdint.h>
 

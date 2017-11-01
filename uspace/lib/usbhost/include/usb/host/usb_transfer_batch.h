@@ -43,7 +43,6 @@
 #include <stddef.h>
 #include <errno.h>
 #include <stdint.h>
-#include <usbhc_iface.h>
 
 #define USB_SETUP_PACKET_SIZE 8
 

@@ -41,6 +41,7 @@
 #include <usb/debug.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
+#include <ddf/driver.h>
 
 #include "trb_ring.h"
 
