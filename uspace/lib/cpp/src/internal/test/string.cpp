@@ -38,6 +38,7 @@ namespace std::test
         test_construction_and_assignment();
         test_append();
         test_insert();
+        test_erase();
 
         return true;
     }
@@ -199,6 +200,59 @@ namespace std::test
         test_eq(
             "insert initializer list",
             str5.begin(), str5.end(),
+            check.begin(), check.end()
+        );
+    }
+
+    void string_test::test_erase()
+    {
+        std::string check{"hello"};
+
+        std::string str1{"heXllo"};
+        str1.erase(str1.begin() + 2);
+        test_eq(
+            "erase single char in the middle",
+            str1.begin(), str1.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str2{"Xhello"};
+        str2.erase(str2.begin());
+        test_eq(
+            "erase single char at the beginning",
+            str2.begin(), str2.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str3{"helloX"};
+        str3.erase(str3.begin() + 5);
+        test_eq(
+            "erase single char at the end",
+            str3.begin(), str3.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str4{"XXXhello"};
+        str4.erase(0, 3);
+        test_eq(
+            "erase string at the beginning",
+            str4.begin(), str4.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str5{"heXXXllo"};
+        str5.erase(2, 3);
+        test_eq(
+            "erase string in the middle",
+            str5.begin(), str5.end(),
+            check.begin(), check.end()
+        );
+
+        std::string str6{"helloXXX"};
+        str6.erase(5);
+        test_eq(
+            "erase string at the end",
+            str6.begin(), str6.end(),
             check.begin(), check.end()
         );
     }
