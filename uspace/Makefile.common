@@ -292,14 +292,14 @@ DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename
 
 -include $(DEPENDS)
 
-ifneq ($(BINARY),)
-$(BINARY).disasm: $(BINARY)
+%.disasm: %
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
 else
 	$(OBJDUMP) -d $< > $@
 endif
 
+ifneq ($(BINARY),)
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
 	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
 ifeq ($(CONFIG_STRIP_BINARIES),y)
@@ -308,13 +308,6 @@ endif
 endif
 
 ifneq ($(SLIBRARY),)
-$(LOUTPUT).disasm: $(LOUTPUT)
-ifeq ($(CONFIG_LINE_DEBUG),y)
-	$(OBJDUMP) -d -S $< > $@
-else
-	$(OBJDUMP) -d $< > $@
-endif
-
 $(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
 	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
 
@@ -340,12 +333,6 @@ $(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
 	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(TEST_OUTPUT).map -o $@ $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS) $(LIBS) $(BASE_LIBS)
 ifeq ($(CONFIG_STRIP_BINARIES),y)
 	$(STRIP) $(TEST_OUTPUT)
-endif
-$(TEST_BINARY).disasm: $(TEST_BINARY)
-ifeq ($(CONFIG_LINE_DEBUG),y)
-	$(OBJDUMP) -d -S $< > $@
-else
-	$(OBJDUMP) -d $< > $@
 endif
 endif
 
