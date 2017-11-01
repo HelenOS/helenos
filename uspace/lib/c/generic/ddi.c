@@ -337,6 +337,12 @@ void pio_write_32(ioport32_t *reg, uint32_t val)
 	arch_pio_write_32(reg, val);
 }
 
+void pio_write_64(ioport64_t *reg, uint64_t val)
+{
+	pio_trace_log(reg, val, true);
+	arch_pio_write_64(reg, val);
+}
+
 uint8_t pio_read_8(const ioport8_t *reg)
 {
 	const uint8_t val = arch_pio_read_8(reg);
@@ -354,6 +360,13 @@ uint16_t pio_read_16(const ioport16_t *reg)
 uint32_t pio_read_32(const ioport32_t *reg)
 {
 	const uint32_t val = arch_pio_read_32(reg);
+	pio_trace_log(reg, val, false);
+	return val;
+}
+
+uint64_t pio_read_64(const ioport64_t *reg)
+{
+	const uint64_t val = arch_pio_read_64(reg);
 	pio_trace_log(reg, val, false);
 	return val;
 }
