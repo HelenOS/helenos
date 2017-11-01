@@ -53,7 +53,7 @@
 #                      (e.g. uses thread-local variables)
 #
 # Optionally, for a libary:
-#   SLIBRARY           Name with full version, e.g. libfoo.so.0.0 
+#   SLIBRARY           Name with full version, e.g. libfoo.so.0.0
 #   LSONAME            Soname / name with short version, e.g. libfoo.so.0
 #
 # (x) required variables
@@ -93,7 +93,7 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
 		LARCHIVE = $(LIBRARY).la
 		LOUTPUT = $(SLIBRARY)
 		EXTRA_OUTPUT += $(LOUTPUT).disasm $(LIBRARY).so $(LSONAME)
-		EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).ldisasm \
+		EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).disasm \
 		    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld \
 		    $(LIBRARY).so $(LSONAME)
 	endif
@@ -219,7 +219,7 @@ endif
 	TEST_OUTPUT_LIBS += $(TEST_LIBS)
 endif
 
-.PHONY: all clean depend
+.PHONY: all all-test clean depend
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
 
