@@ -121,6 +121,10 @@ ifneq ($(KARCH),mips32)
 endif
 endif
 
+ifeq ($(CONFIG_STRIP_BINARIES),y)
+	LFLAGS += --strip-all
+endif
+
 #
 # Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.
 # The arch Makefile.inc must be included after the initialization.
@@ -391,9 +395,6 @@ ifeq ($(CONFIG_LTO),y)
 	$(CC) $(DEFS) $(CFLAGS) $(LD_CFLAGS) -Xlinker -Map -Xlinker $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 else
 	$(LD) $(LFLAGS) -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
-endif
-ifeq ($(CONFIG_STRIP_BINARIES),y)
-	$(STRIP) $(RAW)
 endif
 
 $(LINK): $(LINK).in | depend

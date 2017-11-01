@@ -279,6 +279,10 @@ else
 	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
 endif
 
+ifeq ($(CONFIG_STRIP_BINARIES),y)
+	LFLAGS += --strip-all
+endif
+
 LIB_CFLAGS = $(CFLAGS) -fPIC
 LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
 
@@ -302,9 +306,6 @@ endif
 ifneq ($(BINARY),)
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
 	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
-ifeq ($(CONFIG_STRIP_BINARIES),y)
-	$(STRIP) $(BINARY)
-endif
 endif
 
 ifneq ($(SLIBRARY),)
@@ -331,9 +332,6 @@ endif
 ifneq ($(TEST_OUTPUT),)
 $(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
 	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(TEST_OUTPUT).map -o $@ $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS) $(LIBS) $(BASE_LIBS)
-ifeq ($(CONFIG_STRIP_BINARIES),y)
-	$(STRIP) $(TEST_OUTPUT)
-endif
 endif
 
 %.o: %.S | depend
