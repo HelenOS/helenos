@@ -53,8 +53,6 @@ typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
 typedef volatile uint64_t ioport64_t;
 
-extern int device_assign_devno(void);
-
 extern int physmem_map(uintptr_t, size_t, unsigned int, void **);
 extern int physmem_unmap(void *);
 
