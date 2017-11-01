@@ -40,6 +40,7 @@ namespace std::test
         test_insert();
         test_erase();
         test_replace();
+        test_copy();
 
         return true;
     }
@@ -367,6 +368,21 @@ namespace std::test
         test_eq(
             "replace with an initializer list (iterators)",
             str12.begin(), str12.end(),
+            check.begin(), check.end()
+        );
+    }
+
+    void string_test::test_copy()
+    {
+        std::string check{"CCABB"};
+
+        std::string str1{"ACCCA"};
+        std::string str2{"BBBBB"};
+
+        str1.copy(const_cast<char*>(str2.c_str()), 3, 2);
+        test_eq(
+            "copy",
+            str2.begin(), str2.end(),
             check.begin(), check.end()
         );
     }
