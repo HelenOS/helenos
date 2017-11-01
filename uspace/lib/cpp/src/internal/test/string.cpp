@@ -255,5 +255,13 @@ namespace std::test
             str6.begin(), str6.end(),
             check.begin(), check.end()
         );
+
+        std::string str7{"hellXXXo"};
+        str7.erase(str7.begin() + 4, str7.begin() + 7);
+        test_eq(
+            "erase iterator range",
+            str7.begin(), str7.end(),
+            check.begin(), check.end()
+        );
     }
 }
