@@ -338,7 +338,7 @@ namespace std
             {
                 data_ = allocator_.allocate(capacity_);
                 for (size_type i = 0; i < size_; ++i)
-                    traits_type::asign(data_[i], c);
+                    traits_type::assign(data_[i], c);
                 ensure_null_terminator_();
             }
 
@@ -887,15 +887,23 @@ namespace std
             basic_string& replace(size_type pos, size_type n1, const value_type* str,
                                   size_type n2)
             {
-                // TODO: format and comment this properly
                 // TODO: throw out_of_range if pos > size()
-                auto len = min(n1, size_ - pos);
                 // TODO: if size() - len > max_size() - n2 throw length_error
+                auto len = min(n1, size_ - pos);
+
                 basic_string tmp{};
                 tmp.resize_without_copy_(size_ - len + n2);
+
+                // Prefix.
                 copy_(begin(), begin() + pos, tmp.begin());
-                traits_type::copy(tmp.begin() + pos + 1, str, n2);
-                copy_(begin() + pos + len, end(), tmp.begin() + pos + 1 + n2);
+
+                // Substitution.
+                traits_type::copy(tmp.begin() + pos, str, n2);
+
+                // Suffix.
+                copy_(begin() + pos + len, end(), tmp.begin() + pos + n2);
+
+                tmp.size_ = size_ - len + n2;
                 swap(tmp);
                 return *this;
             }
@@ -959,7 +967,7 @@ namespace std
 
             void swap(basic_string& other)
                 noexcept(allocator_traits<allocator_type>::propagate_on_container_swap::value ||
-                         allocator_traits<allocator_type>::is_always_equal)
+                         allocator_traits<allocator_type>::is_always_equal::value)
             {
                 std::swap(data_, other.data_);
                 std::swap(size_, other.size_);
