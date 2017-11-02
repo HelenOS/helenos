@@ -45,6 +45,7 @@ namespace std::test
         test_copy();
         test_find();
         test_substr();
+        test_compare();
 
         return end();
     }
@@ -662,6 +663,43 @@ namespace std::test
             "suffix substring",
             substr3.begin(), substr3.end(),
             check3.begin(), check3.end()
+        );
+    }
+
+    void string_test::test_compare()
+    {
+        std::string str1{"aabbb"};
+        std::string str2{"bbbaa"};
+        std::string str3{"bbb"};
+
+        auto res = str1.compare(str1);
+        test_eq(
+            "compare equal",
+            res, 0
+        );
+
+        res = str1.compare(str2.c_str());
+        test_eq(
+            "compare less",
+            res, -1
+        );
+
+        res = str2.compare(str1);
+        test_eq(
+            "compare greater",
+            res, 1
+        );
+
+        res = str1.compare(2, 3, str2);
+        test_eq(
+            "compare substring less",
+            res, -1
+        );
+
+        res = str1.compare(2, 3, str3);
+        test_eq(
+            "compare substring equal",
+            res, 0
         );
     }
 }
