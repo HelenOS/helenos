@@ -1253,7 +1253,7 @@ namespace std
                     return 0;
                 else if (size() > other.size())
                     return 1;
-                else if (size() < other.size())
+                else
                     return -1;
             }
 
