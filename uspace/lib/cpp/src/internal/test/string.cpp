@@ -409,7 +409,7 @@ namespace std::test
 
         idx = str1.rfind(target, miss);
         test_eq(
-            "rfind from start (success)",
+            "rfind from end (success)",
             idx, 2ul
         );
 
@@ -419,12 +419,216 @@ namespace std::test
             idx, miss
         );
 
+        idx = str1.find('B', 2);
+        test_eq(
+            "find char from middle (success)",
+            idx, 3ul
+        );
+
+        idx = str1.rfind('B', 2);
+        test_eq(
+            "rfind char from middle (success)",
+            idx, 3ul
+        );
+
         std::string str2{"xxABCxxABCxx"};
 
         idx = str2.find(target, 0);
         test_eq(
             "find from start (success, multiple)",
             idx, 2ul
+        );
+
+        idx = str2.find(target, 5);
+        test_eq(
+            "find from middle (success, multiple)",
+            idx, 7ul
+        );
+
+        idx = str2.rfind(target, miss);
+        test_eq(
+            "rfind from end (success, multiple)",
+            idx, 7ul
+        );
+
+        idx = str2.rfind(target, 6);
+        test_eq(
+            "rfind from mid (success, multiple)",
+            idx, 2ul
+        );
+
+        std::string str3{"xxBxxAxxCxx"};
+
+        idx = str3.find_first_of(target);
+        test_eq(
+            "find first of from start (success)",
+            idx, 2ul
+        );
+
+        idx = str3.find_first_of(target, 6);
+        test_eq(
+            "find first of from middle (success)",
+            idx, 8ul
+        );
+
+        idx = str3.find_first_of("DEF", 3);
+        test_eq(
+            "find first of from middle (fail, not in string)",
+            idx, miss
+        );
+
+        idx = str3.find_first_of(target, 9);
+        test_eq(
+            "find first of from middle (fail, late start)",
+            idx, miss
+        );
+
+        idx = str3.find_first_of("");
+        test_eq(
+            "find first of from start (fail, no target)",
+            idx, miss
+        );
+
+        idx = str3.find_first_of('A', 1);
+        test_eq(
+            "find first of char (success)",
+            idx, 5ul
+        );
+
+        idx = str3.find_first_of('A', 6);
+        test_eq(
+            "find first of char (fail)",
+            idx, miss
+        );
+
+        idx = str3.find_last_of(target);
+        test_eq(
+            "find last of from start (success)",
+            idx, 8ul
+        );
+
+        idx = str3.find_last_of(target, 6);
+        test_eq(
+            "find last of from middle (success)",
+            idx, 5ul
+        );
+
+        idx = str3.find_last_of("DEF", 3);
+        test_eq(
+            "find last of from middle (fail, not in string)",
+            idx, miss
+        );
+
+        idx = str3.find_last_of(target, 1);
+        test_eq(
+            "find last of from middle (fail, late start)",
+            idx, miss
+        );
+
+        idx = str3.find_last_of("");
+        test_eq(
+            "find last of from start (fail, no target)",
+            idx, miss
+        );
+
+        idx = str3.find_last_of('A', str3.size() - 1);
+        test_eq(
+            "find last of char (success)",
+            idx, 5ul
+        );
+
+        idx = str3.find_last_of('A', 3);
+        test_eq(
+            "find last of char (fail)",
+            idx, miss
+        );
+
+        std::string not_target{"xB"};
+
+        idx = str3.find_first_not_of(not_target);
+        test_eq(
+            "find first not of from start (success)",
+            idx, 5ul
+        );
+
+        idx = str3.find_first_not_of(not_target, 6);
+        test_eq(
+            "find first not of from middle (success)",
+            idx, 8ul
+        );
+
+        idx = str3.find_first_not_of("xABC", 3);
+        test_eq(
+            "find first not of from middle (fail, not in string)",
+            idx, miss
+        );
+
+        idx = str3.find_first_not_of(not_target, 9);
+        test_eq(
+            "find first not of from middle (fail, late start)",
+            idx, miss
+        );
+
+        idx = str3.find_first_not_of("");
+        test_eq(
+            "find first not of from start (success, no target)",
+            idx, 0ul
+        );
+
+        idx = str3.find_first_not_of('x', 3);
+        test_eq(
+            "find first not of char (success)",
+            idx, 5ul
+        );
+
+        idx = str3.find_first_of('a', 9);
+        test_eq(
+            "find first not of char (fail)",
+            idx, miss
+        );
+
+        std::string not_last_target{"xC"};
+
+        idx = str3.find_last_not_of(not_last_target);
+        test_eq(
+            "find last not of from start (success)",
+            idx, 5ul
+        );
+
+        idx = str3.find_last_not_of(not_last_target, 4);
+        test_eq(
+            "find last not of from middle (success)",
+            idx, 2ul
+        );
+
+        idx = str3.find_last_not_of("xABC");
+        test_eq(
+            "find last not of from middle (fail, not in string)",
+            idx, miss
+        );
+
+        idx = str3.find_last_not_of(not_last_target, 1);
+        test_eq(
+            "find last not of from middle (fail, late start)",
+            idx, miss
+        );
+
+        idx = str3.find_last_not_of("");
+        test_eq(
+            "find last not of from start (success, no target)",
+            idx, str3.size() - 1
+        );
+
+        idx = str3.find_last_not_of('x', str3.size() - 1);
+        test_eq(
+            "find last not of char (success)",
+            idx, 8ul
+        );
+
+        idx = str3.find_last_not_of('x', 1);
+        test_eq(
+            "find last not of char (fail)",
+            idx, miss
         );
     }
 }
