@@ -1018,7 +1018,7 @@ namespace std
 
             size_type find(const value_type* str, size_type pos, size_type len) const noexcept
             {
-                if (empty() || len == 0 || len - pos > size())
+                if (empty() || len == 0 || len + pos > size())
                     return npos;
 
                 size_type idx{pos};
@@ -1059,7 +1059,7 @@ namespace std
 
             size_type rfind(const value_type* str, size_type pos, size_type len) const noexcept
             {
-                if (empty() || len == 0 || len - pos > size())
+                if (empty() || len == 0 || len + pos > size())
                     return npos;
 
                 size_type idx{min(pos, size_ - 1) + 1};
@@ -1084,7 +1084,7 @@ namespace std
                 if (empty())
                     return npos;
 
-                for (size_type i = min(pos, size_ - 1) + 1; i > 0; --i)
+                for (size_type i = min(pos + 1, size_ - 1) + 1; i > 0; --i)
                 {
                     if (traits_type::eq(c, data_[i - 1]))
                         return i - 1;
@@ -1100,7 +1100,7 @@ namespace std
 
             size_type find_first_of(const value_type* str, size_type pos, size_type len) const noexcept
             {
-                if (empty() || len == 0 || pos + len > size())
+                if (empty() || len == 0 || pos >= size())
                     return npos;
 
                 size_type idx{pos};
@@ -1132,7 +1132,7 @@ namespace std
 
             size_type find_last_of(const value_type* str, size_type pos, size_type len) const noexcept
             {
-                if (empty())
+                if (empty() || len == 0)
                     return npos;
 
                 for (size_type i = min(pos, size_ - 1) + 1; i > 0; --i)
@@ -1161,7 +1161,7 @@ namespace std
 
             size_type find_first_not_of(const value_type* str, size_type pos, size_type len) const noexcept
             {
-                if (empty() || len == 0 || pos + len > size())
+                if (empty() || pos >= size())
                     return npos;
 
                 size_type idx{pos};
@@ -1178,7 +1178,7 @@ namespace std
 
             size_type find_first_not_of(const value_type* str, size_type pos = 0) const noexcept
             {
-                return find_first_not_of(str.c_str(), pos, str.size());
+                return find_first_not_of(str, pos, traits_type::length(str));
             }
 
             size_type find_first_not_of(value_type c, size_type pos = 0) const noexcept
@@ -1207,7 +1207,7 @@ namespace std
 
                 for (size_type i = min(pos, size_ - 1) + 1; i > 0; --i)
                 {
-                    if (!is_one_of_(i - 1, str, len))
+                    if (!is_any_of_(i - 1, str, len))
                         return i - 1;
                 }
 
@@ -1386,12 +1386,11 @@ namespace std
                 traits_type::assign(data_[size_], c);
             }
 
-            bool is_one_of_(size_type idx, const basic_string& str) const
+            bool is_any_of_(size_type idx, const value_type* str, size_type len) const
             {
-                auto cstr = str.c_str();
-                for (size_type i = 0; i < str.size(); ++i)
+                for (size_type i = 0; i < len; ++i)
                 {
-                    if (traits_type::eq(data_[idx], cstr[i]))
+                    if (traits_type::eq(data_[idx], str[i]))
                         return true;
                 }
 
