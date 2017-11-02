@@ -46,8 +46,18 @@ namespace std::test
 
     bool test_suite::end()
     {
-        std::printf("[TEST END][%s][%lu OK][%lu FAIL]\n",
+        std::printf("[TEST END][%s][%u OK][%u FAIL]\n",
                     name(), succeeded_, failed_);
         return ok_;
+    }
+
+    unsigned int test_suite::get_failed() const noexcept
+    {
+        return failed_;
+    }
+
+    unsigned int test_suite::get_succeeded() const noexcept
+    {
+        return succeeded_;
     }
 }

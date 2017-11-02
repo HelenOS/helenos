@@ -29,10 +29,57 @@
 #ifndef LIBCPP_TESTS
 #define LIBCPP_TESTS
 
+#include <cstdio>
 #include <internal/test/test.hpp>
+#include <vector>
 
 namespace std::test
 {
+    class test_set
+    {
+        public:
+            test_set() = default;
+
+            template<class T>
+            void add()
+            {
+                tests_.push_back(new T{});
+            }
+
+            bool run()
+            {
+                bool res{true};
+                unsigned int succeeded{};
+                unsigned int failed{};
+
+                for (auto test: tests_)
+                {
+                    res &= test->run();
+                    succeeded += test->get_succeeded();
+                    failed += test->get_failed();
+                }
+
+                std::printf("\n");
+                if (res)
+                    std::printf("[TESTS SUCCEEDED!]");
+                else
+                    std::printf("[TESTS FAILED]");
+                std::printf("[%u OK][%u FAIL][%u TOTAL]\n",
+                            succeeded, failed, (succeeded + failed));
+
+                return res;
+            }
+
+            ~test_set()
+            {
+                // TODO: Gimme unique_ptr!
+                for (auto ptr: tests_)
+                    delete ptr;
+            }
+        private:
+            std::vector<test_suite*> tests_{};
+    };
+
     class array_test: public test_suite
     {
         public:

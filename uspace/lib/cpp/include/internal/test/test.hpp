@@ -41,6 +41,10 @@ namespace std::test
 
             virtual ~test_suite() = default;
 
+            unsigned int get_failed() const noexcept;
+
+            unsigned int get_succeeded() const noexcept;
+
         protected:
             void report(bool, const char*);
             void start();
