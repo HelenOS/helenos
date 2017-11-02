@@ -64,7 +64,8 @@ def termemu_detect():
 			pass
 
 def run_in_console(cmd, title):
-	cmdline = termemu_detect() + ' -T ' + '"' + title + '"' + ' -e \'' + cmd + '\''
+	ecmd = cmd.replace('"', '\\"')
+	cmdline = termemu_detect() + ' -T ' + '"' + title + '"' + ' -e "' + ecmd + '"'
 	print(cmdline)
 	if not is_override('dryrun'):
 		subprocess.call(cmdline, shell = True)
