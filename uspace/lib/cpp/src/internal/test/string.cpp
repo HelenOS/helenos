@@ -44,6 +44,7 @@ namespace std::test
         test_replace();
         test_copy();
         test_find();
+        test_substr();
 
         return end();
     }
@@ -631,6 +632,36 @@ namespace std::test
         test_eq(
             "find last not of char (fail)",
             idx, miss
+        );
+    }
+
+    void string_test::test_substr()
+    {
+        std::string check1{"abcd"};
+        std::string check2{"bcd"};
+        std::string check3{"def"};
+
+        std::string str{"abcdef"};
+        auto substr1 = str.substr(0, 4);
+        auto substr2 = str.substr(1, 3);
+        auto substr3 = str.substr(3);
+
+        test_eq(
+            "prefix substring",
+            substr1.begin(), substr1.end(),
+            check1.begin(), check1.end()
+        );
+
+        test_eq(
+            "substring",
+            substr2.begin(), substr2.end(),
+            check2.begin(), check2.end()
+        );
+
+        test_eq(
+            "suffix substring",
+            substr3.begin(), substr3.end(),
+            check3.begin(), check3.end()
         );
     }
 }

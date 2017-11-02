@@ -72,6 +72,7 @@ namespace std::test
             void test_replace();
             void test_copy();
             void test_find();
+            void test_substr();
     };
 }
 
