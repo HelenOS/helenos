@@ -51,6 +51,7 @@ SOURCES = \
 	generic/remote_ieee80211.c \
 	generic/remote_usb.c \
 	generic/remote_pci.c \
+	generic/remote_usbhc.c \
 	generic/remote_usbhid.c \
 	generic/remote_clock_dev.c \
 	generic/remote_led_dev.c \

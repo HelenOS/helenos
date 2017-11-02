@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2017 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,30 +32,54 @@
  * @{
  */
 /** @file
- * @brief USB device interface definition.
+ * @brief USB host controler interface definition. This is the interface of
+ * USB host controller function, which can be used by usb device drivers.
  */
 
-#ifndef LIBDRV_USB_IFACE_H_
-#define LIBDRV_USB_IFACE_H_
+#ifndef LIBDRV_USBHC_IFACE_H_
+#define LIBDRV_USBHC_IFACE_H_
 
 #include "ddf/driver.h"
 #include <async.h>
 #include <usb/usb.h>
 
-typedef async_sess_t usb_dev_session_t;
+extern int usbhc_reserve_default_address(async_exch_t *, usb_speed_t);
+extern int usbhc_release_default_address(async_exch_t *);
 
-extern usb_dev_session_t *usb_dev_connect(devman_handle_t);
-extern usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
-extern void usb_dev_disconnect(usb_dev_session_t *);
+extern int usbhc_device_enumerate(async_exch_t *, unsigned port);
+extern int usbhc_device_remove(async_exch_t *, unsigned port);
 
-extern int usb_get_my_interface(async_exch_t *, int *);
-extern int usb_get_my_device_handle(async_exch_t *, devman_handle_t *);
+extern int usbhc_register_endpoint(async_exch_t *, usb_endpoint_desc_t *);
+extern int usbhc_unregister_endpoint(async_exch_t *, usb_endpoint_desc_t *);
+extern int usbhc_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
+    size_t *);
+extern int usbhc_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
+    size_t);
+
+/** Defined in usb/host/usb_transfer_batch.h */
+typedef struct usb_transfer_batch usb_transfer_batch_t;
+
+/** Callback for outgoing transfer - clone of usb_transfer_batch_callback_t */
+typedef int (*usbhc_iface_transfer_callback_t)(usb_transfer_batch_t *);
 
 /** USB device communication interface. */
 typedef struct {
-	int (*get_my_interface)(ddf_fun_t *, int *);
-	int (*get_my_device_handle)(ddf_fun_t *, devman_handle_t *);
-} usb_iface_t;
+	int (*reserve_default_address)(ddf_fun_t *, usb_speed_t);
+	int (*release_default_address)(ddf_fun_t *);
+
+	int (*device_enumerate)(ddf_fun_t *, unsigned);
+	int (*device_remove)(ddf_fun_t *, unsigned);
+
+	int (*register_endpoint)(ddf_fun_t *, usb_endpoint_desc_t *);
+	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_desc_t *);
+
+	int (*read)(ddf_fun_t *, usb_target_t,
+		uint64_t, char *, size_t,
+		usbhc_iface_transfer_callback_t, void *);
+	int (*write)(ddf_fun_t *, usb_target_t,
+		uint64_t, const char *, size_t,
+		usbhc_iface_transfer_callback_t, void *);
+} usbhc_iface_t;
 
 #endif
 /**

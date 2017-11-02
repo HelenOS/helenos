@@ -52,6 +52,7 @@
 #include <stdlib.h>
 #include <str_error.h>
 #include <usb_iface.h>
+#include <usbhc_iface.h>
 
 #include "ddf_helpers.h"
 
@@ -217,7 +218,7 @@ static int get_my_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
  */
 static int dev_read(ddf_fun_t *fun, usb_target_t target,
     uint64_t setup_data, char *data, size_t size,
-    usb_iface_transfer_callback_t callback, void *arg)
+    usbhc_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -243,7 +244,7 @@ static int dev_read(ddf_fun_t *fun, usb_target_t target,
  */
 static int dev_write(ddf_fun_t *fun, usb_target_t target,
     uint64_t setup_data, const char *data, size_t size,
-    usb_iface_transfer_callback_t callback, void *arg)
+    usbhc_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -260,7 +261,10 @@ static int dev_write(ddf_fun_t *fun, usb_target_t target,
 /** USB device interface */
 static usb_iface_t usb_iface = {
 	.get_my_device_handle = get_my_device_handle,
+};
 
+/** USB host controller interface */
+static usbhc_iface_t usbhc_iface = {
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
 
@@ -277,6 +281,7 @@ static usb_iface_t usb_iface = {
 /** Standard USB device interface) */
 static ddf_dev_ops_t usb_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
+	.interfaces[USBHC_DEV_IFACE] = &usbhc_iface,
 };
 
 

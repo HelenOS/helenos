@@ -39,6 +39,7 @@
 #include <str_error.h>
 #include <inttypes.h>
 #include <fibril_synch.h>
+#include <usbhc_iface.h>
 
 #include <usb/debug.h>
 
@@ -266,7 +267,7 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	async_exch_t *exch = usb_device_bus_exchange_begin(hub->usb_device);
 	if (!exch)
 		return ENOMEM;
-	const int rc = usb_device_remove(exch, port->port_number);
+	const int rc = usbhc_device_remove(exch, port->port_number);
 	usb_device_bus_exchange_end(exch);
 	if (rc == EOK)
 		port->device_attached = false;
@@ -404,7 +405,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	}
 
 	/* Reserve default address */
-	while ((ret = usb_reserve_default_address(exch, speed)) == ENOENT) {
+	while ((ret = usbhc_reserve_default_address(exch, speed)) == ENOENT) {
 		async_usleep(1000000);
 	}
 	if (ret != EOK) {
@@ -420,7 +421,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	if (ret != EOK) {
 		usb_log_error("(%p-%u): Failed to reset port.", hub,
 		    port->port_number);
-		if (usb_release_default_address(exch) != EOK)
+		if (usbhc_release_default_address(exch) != EOK)
 			usb_log_warning("(%p-%u): Failed to release default "
 			    "address.", hub, port->port_number);
 		ret = EIO;
@@ -429,7 +430,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	usb_log_debug("(%p-%u): Port reset, enumerating device", hub,
 	    port->port_number);
 
-	ret = usb_device_enumerate(exch, port->port_number);
+	ret = usbhc_device_enumerate(exch, port->port_number);
 	if (ret != EOK) {
 		usb_log_error("(%p-%u): Failed to enumerate device: %s", hub,
 		    port->port_number, str_error(ret));
@@ -439,7 +440,7 @@ int add_device_phase1_worker_fibril(void *arg)
 			    "NOT releasing default address.", hub,
 			    port->port_number, str_error(ret));
 		} else {
-			const int ret = usb_release_default_address(exch);
+			const int ret = usbhc_release_default_address(exch);
 			if (ret != EOK)
 				usb_log_warning("(%p-%u): Failed to release "
 				    "default address: %s", hub,
@@ -449,7 +450,7 @@ int add_device_phase1_worker_fibril(void *arg)
 		usb_log_debug("(%p-%u): Device enumerated", hub,
 		    port->port_number);
 		port->device_attached = true;
-		if (usb_release_default_address(exch) != EOK)
+		if (usbhc_release_default_address(exch) != EOK)
 			usb_log_warning("(%p-%u): Failed to release default "
 			    "address", hub, port->port_number);
 	}

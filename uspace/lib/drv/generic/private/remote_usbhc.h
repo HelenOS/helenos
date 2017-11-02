@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2017 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,36 +28,18 @@
  */
 
 /** @addtogroup libdrv
- * @addtogroup usb
  * @{
  */
 /** @file
- * @brief USB device interface definition.
  */
 
-#ifndef LIBDRV_USB_IFACE_H_
-#define LIBDRV_USB_IFACE_H_
+#ifndef LIBDRV_REMOTE_USBHC_H_
+#define LIBDRV_REMOTE_USBHC_H_
 
-#include "ddf/driver.h"
-#include <async.h>
-#include <usb/usb.h>
-
-typedef async_sess_t usb_dev_session_t;
-
-extern usb_dev_session_t *usb_dev_connect(devman_handle_t);
-extern usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
-extern void usb_dev_disconnect(usb_dev_session_t *);
-
-extern int usb_get_my_interface(async_exch_t *, int *);
-extern int usb_get_my_device_handle(async_exch_t *, devman_handle_t *);
-
-/** USB device communication interface. */
-typedef struct {
-	int (*get_my_interface)(ddf_fun_t *, int *);
-	int (*get_my_device_handle)(ddf_fun_t *, devman_handle_t *);
-} usb_iface_t;
+extern remote_iface_t remote_usbhc_iface;
 
 #endif
+
 /**
  * @}
  */

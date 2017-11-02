@@ -35,7 +35,7 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
 #include <usb/usb.h>
-#include <usb_iface.h>
+#include <usbhc_iface.h>
 
 #include <assert.h>
 #include <async.h>
@@ -97,7 +97,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc = usb_read(exch, pipe->desc.endpoint_no, setup_packet, buffer,
+	const int rc = usbhc_read(exch, pipe->desc.endpoint_no, setup_packet, buffer,
 	    buffer_size, &act_size);
 	async_exchange_end(exch);
 
@@ -150,7 +150,7 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 	memcpy(&setup_packet, setup_buffer, 8);
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	const int rc = usb_write(exch,
+	const int rc = usbhc_write(exch,
 	    pipe->desc.endpoint_no, setup_packet, buffer, buffer_size);
 	async_exchange_end(exch);
 
@@ -198,7 +198,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
 	const int rc =
-	    usb_read(exch, pipe->desc.endpoint_no, 0, buffer, size, &act_size);
+	    usbhc_read(exch, pipe->desc.endpoint_no, 0, buffer, size, &act_size);
 	async_exchange_end(exch);
 
 	if (rc == EOK && size_transfered != NULL) {
@@ -237,7 +237,7 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 	    return ENOTSUP;
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	const int rc = usb_write(exch, pipe->desc.endpoint_no, 0, buffer, size);
+	const int rc = usbhc_write(exch, pipe->desc.endpoint_no, 0, buffer, size);
 	async_exchange_end(exch);
 	return rc;
 }
@@ -306,7 +306,7 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 	if (!exch)
 		return ENOMEM;
 
-	const int ret = usb_register_endpoint(exch, &pipe->desc);
+	const int ret = usbhc_register_endpoint(exch, &pipe->desc);
 
 	async_exchange_end(exch);
 	return ret;
@@ -325,7 +325,7 @@ int usb_pipe_unregister(usb_pipe_t *pipe)
 	if (!exch)
 		return ENOMEM;
 
-	const int ret = usb_unregister_endpoint(exch, &pipe->desc);
+	const int ret = usbhc_unregister_endpoint(exch, &pipe->desc);
 
 	async_exchange_end(exch);
 	return ret;

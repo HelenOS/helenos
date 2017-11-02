@@ -39,7 +39,6 @@
 
 #include <usb/dev/driver.h>
 #include <usb/classes/hub.h>
-#include <usb_iface.h>
 
 typedef struct usb_hub_dev usb_hub_dev_t;
 
