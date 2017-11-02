@@ -35,6 +35,8 @@ namespace std::test
 {
     bool string_test::run()
     {
+        start();
+
         test_construction_and_assignment();
         test_append();
         test_insert();
@@ -43,7 +45,7 @@ namespace std::test
         test_copy();
         test_find();
 
-        return true;
+        return end();
     }
 
     const char* string_test::name()

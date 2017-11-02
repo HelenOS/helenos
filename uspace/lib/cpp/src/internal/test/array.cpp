@@ -35,6 +35,8 @@ namespace std::test
 {
     bool array_test::run()
     {
+        start();
+
         auto check1 = {1, 2, 3, 4};
         auto check2 = {4, 3, 2, 1};
         auto check3 = {5, 5, 5, 5};
@@ -98,7 +100,7 @@ namespace std::test
 
         // TODO: test bound checking of at when implemented
 
-        return true;
+        return end();
     }
 
     const char* array_test::name()

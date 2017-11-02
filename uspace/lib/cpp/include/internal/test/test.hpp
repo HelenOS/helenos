@@ -43,14 +43,27 @@ namespace std::test
 
         protected:
             void report(bool, const char*);
+            void start();
+            bool end();
+
+            unsigned int failed_{};
+            unsigned int succeeded_{};
+            bool ok_{true};
 
             template<class... Args>
             void test_eq(const char* tname, Args&&... args)
             {
                 if (!assert_eq(std::forward<Args>(args)...))
+                {
                     report(false, tname);
+                    ++failed_;
+                    ok_ = false;
+                }
                 else
+                {
                     report(true, tname);
+                    ++succeeded_;
+                }
             }
 
             template<class T>

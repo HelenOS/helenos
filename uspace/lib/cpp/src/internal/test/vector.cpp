@@ -36,10 +36,13 @@ namespace std::test
 {
     bool vector_test::run()
     {
+        start();
+
         test_construction_and_assignment();
         test_insert();
         test_erase();
-        return true;
+
+        return end();
     }
 
     const char* vector_test::name()

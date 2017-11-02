@@ -31,7 +31,6 @@
 
 namespace std::test
 {
-
     void test_suite::report(bool result, const char* tname)
     {
         if (result)
@@ -40,4 +39,15 @@ namespace std::test
             std::printf("[%s][%s] ... FAIL\n", name(), tname);
     }
 
+    void test_suite::start()
+    {
+        std::printf("\n[TEST START][%s]\n", name());
+    }
+
+    bool test_suite::end()
+    {
+        std::printf("[TEST END][%s][%lu OK][%lu FAIL]\n",
+                    name(), succeeded_, failed_);
+        return ok_;
+    }
 }
