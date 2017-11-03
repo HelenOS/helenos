@@ -151,11 +151,179 @@ namespace std
 
     template<>
     struct char_traits<char16_t>
-    { /* TODO: implement */ };
+    {
+        // TODO: implement
+        using char_type  = char16_t;
+        using int_type   = int16_t;
+        using off_type   = streamoff;
+        using pos_type   = streampos;
+        /* using state_type = mbstate_t; */
+
+        static void assign(char_type& c1, const char_type& c2) noexcept
+        {
+            c1 = c2;
+        }
+
+        static constexpr bool eq(char_type c1, char_type c2) noexcept
+        {
+            return c1 == c2;
+        }
+
+        static constexpr bool lt(char_type c1, char_type c2) noexcept
+        {
+            return c1 < c2;
+        }
+
+        static int compare(const char_type* s1, const char_type* s2, size_t n)
+        {
+            // TODO: implement
+            return 0;
+        }
+
+        static size_t length(const char_type* s)
+        {
+            // TODO: implement
+            return 0;
+        }
+
+        static const char_type* find(const char_type* s, size_t n, const char_type& c)
+        {
+            // TODO: implement
+            return nullptr;
+        }
+
+        static char_type* move(char_type* s1, const char_type* s2, size_t n)
+        {
+            // TODO: implement
+            return nullptr;
+        }
+
+        static char_type* copy(char_type* s1, const char_type* s2, size_t n)
+        {
+            // TODO: implement
+            return nullptr;
+        }
+
+        static char_type* assign(char_type* s, size_t n, char_type c)
+        {
+            // TODO: implement
+            return nullptr;
+        }
+
+        static constexpr int_type not_eof(int_type c) noexcept
+        {
+            // TODO: implement
+            return int_type{};
+        }
+
+        static constexpr char_type to_char_type(int_type c) noexcept
+        {
+            return static_cast<char_type>(c);
+        }
+
+        static constexpr int_type to_int_type(char_type c) noexcept
+        {
+            return static_cast<int_type>(c);
+        }
+
+        static constexpr bool eq_int_type(int_type c1, int_type c2) noexcept
+        {
+            return c1 == c2;
+        }
+
+        static constexpr int_type eof() noexcept
+        {
+            return static_cast<int_type>(EOF);
+        }
+    };
 
     template<>
     struct char_traits<char32_t>
-    { /* TODO: implement */ };
+    {
+        // TODO: implement
+        using char_type  = char32_t;
+        using int_type   = int32_t;
+        using off_type   = streamoff;
+        using pos_type   = streampos;
+        /* using state_type = mbstate_t; */
+
+        static void assign(char_type& c1, const char_type& c2) noexcept
+        {
+            c1 = c2;
+        }
+
+        static constexpr bool eq(char_type c1, char_type c2) noexcept
+        {
+            return c1 == c2;
+        }
+
+        static constexpr bool lt(char_type c1, char_type c2) noexcept
+        {
+            return c1 < c2;
+        }
+
+        static int compare(const char_type* s1, const char_type* s2, size_t n)
+        {
+            // TODO: implement
+            return 0;
+        }
+
+        static size_t length(const char_type* s)
+        {
+            // TODO: implement
+            return 0;
+        }
+
+        static const char_type* find(const char_type* s, size_t n, const char_type& c)
+        {
+            // TODO: implement
+            return nullptr;
+        }
+
+        static char_type* move(char_type* s1, const char_type* s2, size_t n)
+        {
+            // TODO: implement
+            return nullptr;
+        }
+
+        static char_type* copy(char_type* s1, const char_type* s2, size_t n)
+        {
+            // TODO: implement
+            return nullptr;
+        }
+
+        static char_type* assign(char_type* s, size_t n, char_type c)
+        {
+            // TODO: implement
+            return nullptr;
+        }
+
+        static constexpr int_type not_eof(int_type c) noexcept
+        {
+            // TODO: implement
+            return int_type{};
+        }
+
+        static constexpr char_type to_char_type(int_type c) noexcept
+        {
+            return static_cast<char_type>(c);
+        }
+
+        static constexpr int_type to_int_type(char_type c) noexcept
+        {
+            return static_cast<int_type>(c);
+        }
+
+        static constexpr bool eq_int_type(int_type c1, int_type c2) noexcept
+        {
+            return c1 == c2;
+        }
+
+        static constexpr int_type eof() noexcept
+        {
+            return static_cast<int_type>(EOF);
+        }
+    };
 
     template<>
     struct char_traits<wchar_t>
@@ -1410,7 +1578,372 @@ namespace std
             }
     };
 
-    using string = basic_string<char>;
+    using string    = basic_string<char>;
+    using u16string = basic_string<char16_t>;
+    using u32string = basic_string<char32_t>;
+    using wstring   = basic_string<wchar_t>;
+
+    /**
+     * 21.4.8, basic_string non-member functions:
+     */
+
+    /**
+     * 21.4.8.1, operator+:
+     */
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(const basic_string<Char, Traits, Allocator>& lhs,
+              const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return basic_string<Char, Traits, Allocator>{lhs}.append(rhs);
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(basic_string<Char, Traits, Allocator>&& lhs,
+              const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return move(lhs.append(rhs));
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(const basic_string<Char, Traits, Allocator>& lhs,
+              basic_string<Char, Traits, Allocator>&& rhs)
+    {
+        return move(rhs.insert(0, lhs));
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(basic_string<Char, Traits, Allocator>&& lhs,
+              basic_string<Char, Traits, Allocator>&& rhs)
+    {
+        return move(lhs.append(rhs));
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(const Char* lhs,
+              const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return basic_string<Char, Traits, Allocator>{lhs} + rhs;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(const Char* lhs,
+              basic_string<Char, Traits, Allocator>&& rhs)
+    {
+        return move(rhs.insert(0, lhs));
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(Char lhs,
+              const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return basic_string<Char, Traits, Allocator>{1, lhs}.append(rhs);
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(Char lhs,
+              basic_string<Char, Traits, Allocator>&& rhs)
+    {
+        return move(rhs.insert(0, 1, lhs));
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(const basic_string<Char, Traits, Allocator>& lhs,
+              const Char* rhs)
+    {
+        return lhs + basic_string<Char, Traits, Allocator>{rhs};
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(basic_string<Char, Traits, Allocator>&& lhs,
+              const Char* rhs)
+    {
+        return move(lhs.append(rhs));
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(const basic_string<Char, Traits, Allocator>& lhs,
+              Char rhs)
+    {
+        return lhs + basic_string<Char, Traits, Allocator>{1, rhs};
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator+(basic_string<Char, Traits, Allocator>&& lhs,
+              Char rhs)
+    {
+        return move(lhs.append(1, rhs));
+    }
+
+    /**
+     * 21.4.8.2, operator==:
+     */
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator==(const basic_string<Char, Traits, Allocator>& lhs,
+               const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    {
+        return lhs.compare(rhs) == 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator==(const Char* lhs,
+               const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return rhs == lhs;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator==(const basic_string<Char, Traits, Allocator>& lhs,
+               const Char* rhs)
+    {
+        return lhs.compare(rhs) == 0;
+    }
+
+    /**
+     * 21.4.8.3, operator!=:
+     */
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator!=(const basic_string<Char, Traits, Allocator>& lhs,
+               const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    {
+        return !(lhs == rhs);
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator!=(const Char* lhs,
+               const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return rhs != lhs;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator!=(const basic_string<Char, Traits, Allocator>& lhs,
+               const Char* rhs)
+    {
+        return lhs.compare(rhs) != 0;
+    }
+
+    /**
+     * 21.4.8.4, operator<:
+     */
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator<(const basic_string<Char, Traits, Allocator>& lhs,
+              const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    {
+        return lhs.compare(rhs) < 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator<(const Char* lhs,
+              const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return rhs.compare(lhs) > 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator<(const basic_string<Char, Traits, Allocator>& lhs,
+              const Char* rhs)
+    {
+        return lhs.compare(rhs) < 0;
+    }
+
+    /**
+     * 21.4.8.5, operator>:
+     */
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator>(const basic_string<Char, Traits, Allocator>& lhs,
+              const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    {
+        return lhs.compare(rhs) > 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator>(const Char* lhs,
+              const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return rhs.compare(lhs) < 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator>(const basic_string<Char, Traits, Allocator>& lhs,
+              const Char* rhs)
+    {
+        return lhs.compare(rhs) > 0;
+    }
+
+    /**
+     * 21.4.8.6, operator<=:
+     */
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator<=(const basic_string<Char, Traits, Allocator>& lhs,
+               const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    {
+        return lhs.compare(rhs) <= 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator<=(const Char* lhs,
+               const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return rhs.compare(lhs) >= 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator<=(const basic_string<Char, Traits, Allocator>& lhs,
+               const Char* rhs)
+    {
+        return lhs.compare(rhs) <= 0;
+    }
+
+    /**
+     * 21.4.8.7, operator>=:
+     */
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator>=(const basic_string<Char, Traits, Allocator>& lhs,
+               const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    {
+        return lhs.compare(rhs) >= 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator>=(const Char* lhs,
+               const basic_string<Char, Traits, Allocator>& rhs)
+    {
+        return rhs.compare(lhs) <= 0;
+    }
+
+    template<class Char, class Traits, class Allocator>
+    basic_string<Char, Traits, Allocator>
+    operator>=(const basic_string<Char, Traits, Allocator>& lhs,
+               const Char* rhs)
+    {
+        return lhs.compare(rhs) >= 0;
+    }
+
+    /**
+     * 21.4.8.8, swap:
+     */
+
+    template<class Char, class Traits, class Allocator>
+    void swap(basic_string<Char, Traits, Allocator>& lhs,
+              basic_string<Char, Traits, Allocator>& rhs)
+        noexcept(noexcept(lhs.swap(rhs)))
+    {
+        lhs.swap(rhs);
+    }
+
+    /**
+     * 21.4.8.9, inserters and extractors:
+     */
+
+    // TODO: implement
+
+    /**
+     * 21.5, numeric conversions:
+     */
+
+    int stoi(const string& str, size_t* idx = nullptr, int base = 10);
+    long stol(const string& str, size_t* idx = nullptr, int base = 10);
+    unsigned long stoul(const string& str, size_t* idx = nullptr, int base = 10);
+    long long stoll(const string& str, size_t* idx = nullptr, int base = 10);
+    unsigned long long stoull(const string& str, size_t* idx = nullptr, int base = 10);
+
+    float stof(const string& str, size_t* idx = nullptr);
+    double stod(const string& str, size_t* idx = nullptr);
+    long double stold(const string& str, size_t* idx = nullptr);
+
+    string to_string(int val);
+    string to_string(unsigned val);
+    string to_string(long val);
+    string to_string(unsigned long val);
+    string to_string(long long val);
+    string to_string(unsigned long long val);
+    string to_string(float val);
+    string to_string(double val);
+    string to_string(long double val);
+
+    int stoi(const wstring& str, size_t* idx = nullptr, int base = 10);
+    long stol(const wstring& str, size_t* idx = nullptr, int base = 10);
+    unsigned long stoul(const wstring& str, size_t* idx = nullptr, int base = 10);
+    long long stoll(const wstring& str, size_t* idx = nullptr, int base = 10);
+    unsigned long long stoull(const wstring& str, size_t* idx = nullptr, int base = 10);
+
+    float stof(const wstring& str, size_t* idx = nullptr);
+    double stod(const wstring& str, size_t* idx = nullptr);
+    long double stold(const wstring& str, size_t* idx = nullptr);
+
+    wstring to_wstring(int val);
+    wstring to_wstring(unsigned val);
+    wstring to_wstring(long val);
+    wstring to_wstring(unsigned long val);
+    wstring to_wstring(long long val);
+    wstring to_wstring(unsigned long long val);
+    wstring to_wstring(float val);
+    wstring to_wstring(double val);
+    wstring to_wstring(long double val);
+
+    /**
+     * 21.6, hash support:
+     */
+
+    // TODO: implement
+
+    /**
+     * 21.7, suffix for basic_string literals:
+     */
+
+    /**
+     * Note: According to the standard, literal suffixes that do not
+     *       start with an underscore are reserved for future standardization,
+     *       but since we are implementing the standard, we're going to ignore it.
+     *       This should work (according to their documentation) work for clang,
+     *       but that should be tested.
+     */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wliteral-suffix"
+    string operator "" s(const char* str, size_t len);
+    u16string operator "" s(const char16_t* str, size_t len);
+    u32string operator "" s(const char32_t* str, size_t len);
+
+    /* Problem: wchar_t == int in HelenOS, but standard forbids it.
+    wstring operator "" s(const wchar_t* str, size_t len);
+    */
+#pragma GCC diagnostic pop
 }
 
 #endif
