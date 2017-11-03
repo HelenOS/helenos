@@ -82,6 +82,7 @@ uspace/app/bithenge/bithenge
 uspace/app/blkdump/blkdump
 uspace/app/bnchmark/bnchmark
 uspace/app/corecfg/corecfg
+uspace/app/cpptest/cpptest
 uspace/app/date/date
 uspace/app/devctl/devctl
 uspace/app/df/df
@@ -158,6 +159,7 @@ uspace/dist/app/bithenge
 uspace/dist/app/blkdump
 uspace/dist/app/bnchmark
 uspace/dist/app/corecfg
+uspace/dist/app/cpptest
 uspace/dist/app/date
 uspace/dist/app/devctl
 uspace/dist/app/df

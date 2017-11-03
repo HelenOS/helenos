@@ -176,6 +176,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/blkdump/blkdump \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
 	$(USPACE_PATH)/app/corecfg/corecfg \
+	$(USPACE_PATH)/app/cpptest/cpptest \
 	$(USPACE_PATH)/app/devctl/devctl \
 	$(USPACE_PATH)/app/dnscfg/dnscfg \
 	$(USPACE_PATH)/app/dnsres/dnsres \
