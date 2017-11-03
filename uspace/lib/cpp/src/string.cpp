@@ -318,23 +318,23 @@ namespace std
      */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wliteral-suffix"
-    inline string operator "" s(const char* str, size_t len)
+    string operator "" s(const char* str, size_t len)
     {
         return string{str, len};
     }
 
-    inline u16string operator "" s(const char16_t* str, size_t len)
+    u16string operator "" s(const char16_t* str, size_t len)
     {
         return u16string{str, len};
     }
 
-    inline u32string operator "" s(const char32_t* str, size_t len)
+    u32string operator "" s(const char32_t* str, size_t len)
     {
         return u32string{str, len};
     }
 
     /* Problem: wchar_t == int in HelenOS, but standard forbids it.
-    inline wstring operator "" s(const wchar_t* str, size_t len)
+    wstring operator "" s(const wchar_t* str, size_t len)
     {
         return wstring{str, len};
     }
