@@ -79,9 +79,9 @@ namespace std
             static constexpr fmtflags skipws      = 0b00'0001'0000'0000'0000;
             static constexpr fmtflags unitbuf     = 0b00'0010'0000'0000'0000;
             static constexpr fmtflags uppercase   = 0b00'0100'0000'0000'0000;
-            static constexpr fmtflags adjustfield = 0b00'1000'0000'0000'0000;
-            static constexpr fmtflags basefield   = 0b01'0000'0000'0000'0000;
-            static constexpr fmtflags floatfield  = 0b10'0000'0000'0000'0000;
+            static constexpr fmtflags adjustfield = left | right | internal;
+            static constexpr fmtflags basefield   = dec  | oct   | hex;
+            static constexpr fmtflags floatfield  = scientific   | fixed;
 
             /**
              * 27.5.3.1.3, iostate:
