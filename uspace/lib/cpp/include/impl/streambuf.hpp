@@ -51,9 +51,7 @@ namespace std
             using off_type    = typename traits_type::off_type;
 
             virtual ~basic_streambuf()
-            {
-                // TODO: implement
-            }
+            { /* DUMMY BODY */ }
 
             /**
              * 27.6.3.2.1, locales:
@@ -61,12 +59,12 @@ namespace std
 
             locale pubimbue(const locale& loc)
             {
-                // TODO: implement
+                return imbue(loc);
             }
 
             locale& getloc() const
             {
-                // TODO: implement
+                return locale_;
             }
 
             /**
@@ -75,24 +73,24 @@ namespace std
 
             basic_streambuf<Char, Traits>* pubsetbuf(char_type* s, streamsize n)
             {
-                // TODO: implement
+                return setbuf(s, n);
             }
 
             pos_type pubseekoff(off_type off, ios_base::seekdir way,
                                 ios_base::openmode which = ios_base::in | ios_base::out)
             {
-                // TODO: implement
+                return seekoff(off, way, which);
             }
 
             pos_type pubseekpos(pos_type pos, ios_base::openmode which =
                                 ios_base::in | ios_base::out)
             {
-                // TODO: implement
+                return seekpos(pos, which);
             }
 
             int pubsync()
             {
-                // TODO: implement
+                return sync();
             }
 
             /**
@@ -101,27 +99,39 @@ namespace std
 
             streamsize in_avail()
             {
-                // TODO: implement
+                if (read_avail_())
+                    return egptr() - gptr();
+                else
+                    return showmanyc();
             }
 
             int_type snextc()
             {
-                // TODO: implement
+                if (traits_type::eq(sbumpc, traits_type::eof()))
+                    return traits_type::eof();
+                else
+                    return sgetc();
             }
 
             int_type sbumpc()
             {
-                // TODO: implement
+                if (read_avail_())
+                    return traits_type::to_int_type(*input_next++);
+                else
+                    return uflow();
             }
 
             int_type sgetc()
             {
-                // TODO: implement
+                if (read_avail_())
+                    return traits_type::to_int_type(*input_next++);
+                else
+                    return underflow();
             }
 
             streamsize sgetn(char_type* s, streamsize n)
             {
-                // TODO: implement
+                return xsgetn(s, n);
             }
 
             /**
@@ -130,12 +140,18 @@ namespace std
 
             int_type sputbackc(char_type c)
             {
-                // TODO: implement
+                if (!putback_avail_() || traits_type::eq(c, gptr()[-1]))
+                    return pbackfail(traits_type::to_int_type(c));
+                else
+                    return traits_type::to_int_type(*(--input_next));
             }
 
             int_type sungetc()
             {
-                // TODO: implement
+                if (!putback_avail_())
+                    return pbackfail();
+                else
+                    return traits_type::to_int_type(*(--input_next));
             }
 
             /**
@@ -144,33 +160,67 @@ namespace std
 
             int_type sputc(char_type c)
             {
-                // TODO: implement
+                if (!write_avail_())
+                    return overflow(traits_type::to_int_type(c));
+                else
+                {
+                    traits_type::assign(*output_next_++, c);
+
+                    return traits_type::to_int_type(c);
+                }
             }
 
             streamsize sputn(const char_type* s, streamsize n)
             {
-                // TODO: implement
+                return xsputn(s, n);
             }
 
         protected:
             basic_streambuf()
-            {
-                // TODO: implement
-            }
+                : input_begin_{}, input_next_{}, input_end_{},
+                  output_begin_{}, output_next_{}, output_end_{},
+                  locale_{locale()}
+            { /* DUMMY BODY */ }
 
             basic_streambuf(const basic_streambuf& rhs)
             {
-                // TODO: implement
+                input_begin_ = rhs.input_begin_;
+                input_next_ = rhs.input_next_;
+                input_end_ = rhs.input_end_;
+
+                output_begin_ = rhs.output_begin_;
+                output_next_ = rhs.output_next_;
+                output_end_ = rhs.output_end_;
+
+                locale_ = rhs.locale_;
             }
 
             basic_strambuf& operator=(const basic_streambuf& rhs)
             {
-                // TODO: implement
+                input_begin_ = rhs.input_begin_;
+                input_next_  = rhs.input_next_;
+                input_end_   = rhs.input_end_;
+
+                output_begin_ = rhs.output_begin_;
+                output_next_  = rhs.output_next_;
+                output_end_   = rhs.output_end_;
+
+                locale_ = rhs.locale_;
+
+                return *this;
             }
 
             void swap(basic_streambuf& rhs)
             {
-                // TODO: implement
+                swap(input_begin_, rhs.input_begin_);
+                swap(input_next_, rhs.input_next_);
+                swap(input_end_, rhs.input_end_);
+
+                swap(output_begin_, rhs.output_begin_);
+                swap(output_next_, rhs.output_next_);
+                swap(output_end_, rhs.output_end_);
+
+                swap(locale_, rhs.locale_);
             }
 
             /**
@@ -179,27 +229,29 @@ namespace std
 
             char_type* eback() const
             {
-                // TODO: implement
+                return input_begin_;
             }
 
             char_type* gptr() const
             {
-                // TODO: implement
+                return input_next_;
             }
 
             char_type* egptr() const
             {
-                // TODO: implement
+                return input_end_;
             }
 
             void gbump(int n)
             {
-                // TODO: implement
+                input_next_ += n;
             }
 
             void setg(char_type* gbeg, char_type* gnext, char_type* gend)
             {
-                // TODO: implement
+                input_begin_ = gbeg;
+                input_next_  = gnext;
+                input_end_   = gend;
             }
 
             /**
@@ -208,27 +260,29 @@ namespace std
 
             char_type* pbase() const
             {
-                // TODO: implement
+                return output_begin_;
             }
 
             char_type* pptr() const
             {
-                // TODO: implement
+                return output_next_;
             }
 
             char_type* epptr() const
             {
-                // TODO: implement
+                return output_end_;
             }
 
             void pbump(int n)
             {
-                // TODO: implement
+                output_next_ += n;
             }
 
             void setp(char_type* pbeg, char_type* pend)
             {
-                // TODO: implement
+                output_begin_ = pbeg;
+                output_next_  = pbeg;
+                output_end_   = pend;
             }
 
             /**
@@ -236,9 +290,7 @@ namespace std
              */
 
             virtual void imbue(const locale& loc)
-            {
-                // TODO: implement
-            }
+            { /* DUMMY BODY */ }
 
             /**
              * 27.6.3.4.2, buffer management and positioning:
@@ -247,24 +299,24 @@ namespace std
             virtual basic_streambuf<Char, Traits>*
             setbuf(char_type* s, streamsize n)
             {
-                // TODO: implement
+                return *this;
             }
 
             virtual pos_type seekoff(off_type off, ios_base::seekdir way,
                                      ios_base::openmode which = ios_base::in | ops_base::out)
             {
-                // TODO: implement
+                return pos_type(off_type(-1));
             }
 
             virtual pos_type seekpos(pos_type pos, ios_base::openmode which =
                                      ios_base::in | ios_base::out)
             {
-                // TODO: implement
+                return pos_type(off_type(-1));
             }
 
             virtual int sync()
             {
-                // TODO: implement
+                return 0;
             }
 
             /**
@@ -273,22 +325,39 @@ namespace std
 
             virtual streamsize showmanyc()
             {
-                // TODO: implement
+                return 0;
             }
 
             virtual streamsize xsgetn(char_type* s, streamsize n)
             {
-                // TODO: implement
+                if (!s || n == 0)
+                    return 0;
+
+                streamsize i{0};
+                auto eof = traits_type::eof();
+                for (; i <= n; ++i)
+                {
+                    if (!read_avail_() && traits_type::eq_int_type(uflow(), eof))
+                        break;
+
+                    traits_type::asign(*s++, *input_next_++);
+                }
+
+                return i;
             }
 
             virtual int_type underflow()
             {
-                // TODO: implement
+                return traits_type::eof();
             }
 
             virtual int_type uflow()
             {
-                // TODO: implement
+                auto res = underflow();
+                if (traits_type::eq_int_type(res, traits_type::eof()))
+                    return traits_type::eof();
+                else
+                    return traits_type::to_int_type(*input_next_++);
             }
 
             /**
@@ -297,7 +366,7 @@ namespace std
 
             virtual int_type pbackfail(int_type c = traits_type::eof())
             {
-                // TODO: implement
+                return traits_type::eof();
             }
 
             /**
@@ -306,16 +375,52 @@ namespace std
 
             virtual streamsize xsputn(const char_type* s, streamsize n)
             {
-                // TODO: implement
+                if (!s || n == 0)
+                    return 0;
+
+                char* = &s[0];
+                streamsize i{0};
+                for (; i <= n; ++i)
+                {
+                    if (!write_avail_() && traits_type::eq_int_type(overflow(), eof))
+                        break;
+
+                    traits_type::assign(*s++, *output_next_++);
+                }
+
+                return i;
             }
 
             virtual int_type overflow(int_type c = traits_type::eof())
             {
-                // TODO: implement
+                return traits_type::eof();
             }
 
         private:
-            // TODO: implement
+            value_type* input_begin_;
+            value_type* input_next_;
+            value_type* input_end_;
+
+            value_type* output_begin_;
+            value_type* output_next_;
+            value_type* output_end_;
+
+            locale locale_;
+
+            bool write_avail_() const
+            {
+                return output_next_ && output_next_ < output_end_;
+            }
+
+            bool putback_avail_() const
+            {
+                return input_next_ && input_begin_ < input_next_;
+            }
+
+            bool read_avail_() const
+            {
+                return input_next_ && input_next_ < input_end_;
+            }
     };
 
     using streambuf  = basic_streambuf<char>;
