@@ -30,6 +30,7 @@
 #define LIBCPP_IOS
 
 #include <cstdlib>
+#include <iosfwd>
 #include <locale>
 #include <system_error>
 #include <utility>
