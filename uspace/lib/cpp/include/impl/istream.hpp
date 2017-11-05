@@ -30,6 +30,7 @@
 #define LIBCPP_ISTREAM
 
 #include <iosfwd>
+#include <utility>
 
 namespace std
 {
@@ -53,20 +54,53 @@ namespace std
              */
 
             explicit basic_istream(basic_streambuf<Char, Traits>* sb)
+                : gcount_{0}
             {
-                // TODO: implement
+                basic_ios::init(sb);
             }
 
             virtual ~basic_stream()
-            {
-                // TODO: implement
-            }
+            { /* DUMMY BODY */ }
 
             /**
              * 27.7.2.1.3, prefix/suffix:
              */
 
-            class sentry;
+            class sentry
+            {
+                public:
+                    explicit sentry(basic_istream<Char, Traits>& is, bool noskipws = false)
+                        : ok_{false}
+                    {
+                        if (!is.good())
+                            is.setstate(ios_base::failbit);
+                        else
+                        {
+                            if (is.tie())
+                                is.tie()->flush();
+
+                            if (!noskipws && ((is.flags() & ios_base::skipws) != 0))
+                            {
+                                // TODO: implement when we have istream_iterator and locale,
+                                //       skip whitespace using is.locale()
+                            }
+                        }
+                    }
+
+                    ~sentry() = default;
+
+                    explicit operator bool() const
+                    {
+                        return ok_;
+                    }
+
+                    sentry(const sentry&) = delete;
+                    sentry& operator=(const sentry&) = delete;
+
+                private:
+                    using traits_type = Traits;
+                    bool ok_;
+            }
 
             /**
              * 27.7.2.2, formatted input:
@@ -169,7 +203,7 @@ namespace std
 
             streamsize gcount() const
             {
-                // TODO: implement
+                return gcount_;
             }
 
             int_type get()
@@ -263,11 +297,17 @@ namespace std
             }
 
         protected:
+            streamsize gcount_;
+
             basic_istream(const basic_istream&) = delete;
 
             basic_istream(basic_istream&& rhs)
             {
-                // TODO: implement
+                gcount_ = rhs.gcout_;
+
+                basic_ios::move(rhs);
+
+                rhs.gcount_ = 0;
             }
 
             /**
@@ -278,12 +318,15 @@ namespace std
 
             basic_istream& operator=(basic_istream&& rhs)
             {
-                // TODO: implement
+                swap(rhs);
+
+                return *this;
             }
 
             void swap(basic_stream& rhs)
             {
-                // TODO: implement
+                basic_ios::swap(rhs);
+                swap(gcoung_, rhs.gcount_);
             }
     };
 
