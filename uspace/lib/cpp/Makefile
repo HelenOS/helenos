@@ -42,6 +42,7 @@ SOURCES = \
 	src/ios.cpp \
 	src/new.cpp \
 	src/string.cpp \
+	src/typeindex.cpp \
 	src/typeinfo.cpp \
 	src/internal/runtime.cpp \
 	src/internal/unwind.cpp \
