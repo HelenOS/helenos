@@ -56,7 +56,13 @@ MKFAT = $(TOOLS_PATH)/mkfat.py
 MKEXT4 = $(TOOLS_PATH)/mkext4.py
 MKUIMAGE = $(TOOLS_PATH)/mkuimage.py
 
-JOBFILE = $(ROOT_PATH)/tools/jobfile.py
+ifeq ($(PRECHECK),y)
+	JOBFILE = $(TOOLS_PATH)/jobfile.py
+	# XXX: Do not change the order of arguments.
+	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
+else
+	CC_JOB = $(CC) $< -o $@
+endif
 
 DISTROOT = distroot
 INITRD = initrd

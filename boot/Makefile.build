@@ -91,23 +91,14 @@ $(RAW): $(OBJECTS) $(LINK)
 $(LINK): | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
 
+%.o: %.s | depend
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+
 %.o: %.S | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
-endif
-
-%.o: %.s | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS)
 
 depend: $(PRE_DEPEND)
 

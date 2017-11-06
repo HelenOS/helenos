@@ -271,7 +271,13 @@ endif
 ## Compilation options
 #
 
-JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
+ifeq ($(PRECHECK),y)
+	JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
+	# XXX: Do not change the order of arguments.
+	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
+else
+	CC_JOB = $(CC) $< -o $@
+endif
 
 ifeq ($(COMPILER),clang)
 	CFLAGS += $(COMMON_CFLAGS) $(CLANG_CFLAGS)
@@ -335,46 +341,25 @@ $(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
 endif
 
 %.o: %.S | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.s | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.test.o: %.c | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS) -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
 
 %.lo: %.S | depend
-	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.lo: %.s | depend
-	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.lo: %.c | depend
-	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 depend: $(PRE_DEPEND)
 

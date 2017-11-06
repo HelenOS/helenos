@@ -58,11 +58,18 @@ DUMP = kernel.dump
 REAL_MAP = generic/src/debug/real_map
 
 GENMAP = tools/genmap.py
-JOBFILE = $(ROOT_PATH)/tools/jobfile.py
 
 LINK = arch/$(KARCH)/_link.ld
 EMPTY_MAP = generic/src/debug/empty_map.o
 SIZEOK_MAP = generic/src/debug/sizeok_map.o
+
+ifeq ($(PRECHECK),y)
+	JOBFILE = $(ROOT_PATH)/tools/jobfile.py
+	# XXX: Do not change the order of arguments.
+	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
+else
+	CC_JOB = $(CC) $< -o $@
+endif
 
 .PHONY: all clean autogen_clean depend
 
@@ -406,22 +413,13 @@ $(LINK): $(LINK).in | depend
 	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
 %.o: %.S | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.s | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION)) -c -o $@ $<
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
-endif
+	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION))
 
 $(REAL_MAP).o: $(REAL_MAP).bin
 	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$<\"" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $@ -
