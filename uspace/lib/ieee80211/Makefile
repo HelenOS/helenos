@@ -29,11 +29,6 @@
 USPACE_PREFIX = ../..
 LIBRARY = libieee80211
 
-LIBS = \
-	$(LIBDRV_PREFIX)/libdrv.a \
-	$(LIBNIC_PREFIX)/libnic.a \
-	$(LIBCRYPTO_PREFIX)/libcrypto.a
-
 EXTRA_CFLAGS += \
 	-Iinclude \
 	-I$(LIBDRV_PREFIX)/include \
