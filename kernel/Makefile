@@ -413,13 +413,13 @@ $(LINK): $(LINK).in | depend
 	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION))
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION))
 
 $(REAL_MAP).o: $(REAL_MAP).bin
 	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$<\"" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $@ -

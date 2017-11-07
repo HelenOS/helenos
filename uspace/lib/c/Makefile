@@ -42,8 +42,7 @@ PRE_DEPEND =
 EXTRA_OUTPUT = $(LINKER_SCRIPTS)
 EXTRA_CLEAN = $(LINKER_SCRIPTS)
 LIBRARY = libc
-SLIBRARY = libc.so.0.0
-LSONAME = libc.so.0
+SOVERSION = 0.0
 
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc

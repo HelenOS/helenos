@@ -92,13 +92,13 @@ $(LINK): | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS)
 
 depend: $(PRE_DEPEND)
 

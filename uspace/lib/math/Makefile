@@ -32,8 +32,7 @@ ROOT_PATH = $(USPACE_PREFIX)/..
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 LIBRARY = libmath
-SLIBRARY = libmath.so.0.0
-LSONAME = libmath.so.0
+SOVERSION = 0.0
 MATH = y
 
 -include $(CONFIG_MAKEFILE)

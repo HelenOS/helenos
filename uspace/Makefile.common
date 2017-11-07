@@ -52,9 +52,9 @@
 #   STATIC_ONLY        set to 'y' if binary cannot be linked dynamically
 #                      (e.g. uses thread-local variables)
 #
-# Optionally, for a libary:
-#   SLIBRARY           Name with full version, e.g. libfoo.so.0.0
-#   LSONAME            Soname / name with short version, e.g. libfoo.so.0
+# Optionally, for a library:
+#   SOVERSION            shared library version (major.minor),
+#                        if missing, no shared library is built
 #
 # (x) required variables
 # (/) exactly one of the variables must be defined
@@ -62,40 +62,36 @@
 
 ROOT_PATH = $(USPACE_PREFIX)/..
 
-VERSION_DEF = $(ROOT_PATH)/version
-
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 COMMON_HEADER = $(ROOT_PATH)/common.h
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 CONFIG_HEADER = $(ROOT_PATH)/config.h
 
--include $(VERSION_DEF)
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
+OUTPUTS = $(EXTRA_OUTPUT)
+
 ifneq ($(BINARY),)
 	JOB = $(BINARY).job
-	OUTPUT = $(BINARY)
 	TEST_BINARY = test-$(BINARY)
-	EXTRA_OUTPUT += $(BINARY).disasm
+	OUTPUTS += $(BINARY) $(BINARY).disasm
 	EXTRA_CLEAN += $(BINARY).map
 endif
 
 ifneq ($(LIBRARY),)
 	JOB = $(LIBRARY).job
-	OUTPUT = $(LIBRARY).a
 	TEST_BINARY = test-$(LIBRARY)
+	OUTPUTS += $(LIBRARY).a
 endif
 
 ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
-	ifneq ($(SLIBRARY),)
-		LARCHIVE = $(LIBRARY).la
-		LOUTPUT = $(SLIBRARY)
-		EXTRA_OUTPUT += $(LOUTPUT).disasm $(LIBRARY).so $(LSONAME)
-		EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).disasm \
-		    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld \
-		    $(LIBRARY).so $(LSONAME)
+	ifneq ($(SOVERSION),)
+		SLIBRARY = $(LIBRARY).so.$(SOVERSION)
+		LSONAME = $(LIBRARY).so.$(basename $(SOVERSION))
+		OUTPUTS += $(SLIBRARY) $(SLIBRARY).disasm $(LSONAME)
+		EXTRA_CLEAN += $(LIBRARY).la $(SLIBRARY).map
 	endif
 endif
 
@@ -200,6 +196,8 @@ else
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 endif
 
+LIB_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
+
 ifeq ($(MATH),y)
 	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS) $(LIBMATH_INCLUDES_FLAGS)
 else
@@ -208,25 +206,15 @@ endif
 
 # PCUT-based unit tests
 ifneq ($(TEST_SOURCES),)
-	TEST_OUTPUT = $(TEST_BINARY)
-	TEST_DISASM = $(TEST_BINARY).disasm
+	TEST_OUTPUTS = $(TEST_BINARY) $(TEST_BINARY).disasm
 	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__
-	TEST_OUTPUT_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
-	EXTRA_CLEAN += $(TEST_OUTPUT) $(TEST_OUTPUT).map $(TEST_DISASM)
+	TEST_BINARY_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
+	EXTRA_CLEAN += $(TEST_OUTPUTS) $(TEST_BINARY).map
 ifneq ($(LIBRARY),)
-	TEST_OUTPUT_LIBS += $(OUTPUT)
+	TEST_BINARY_LIBS += $(LIBRARY).a
 endif
-	TEST_OUTPUT_LIBS += $(TEST_LIBS)
+	TEST_BINARY_LIBS += $(TEST_LIBS)
 endif
-
-.PHONY: all all-test clean depend
-
-all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
-
-all-test: $(TEST_OUTPUT) $(TEST_DISASM)
-
-clean:
-	rm -f $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -fexec-charset=UTF-8 \
@@ -287,7 +275,7 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 
 LIB_CFLAGS = $(CFLAGS) -fPIC
-LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
+LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME)
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
@@ -299,6 +287,17 @@ DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename
 
 -include $(DEPENDS)
 
+.PHONY: all all-test clean depend
+
+all: $(OUTPUTS)
+
+all-test: $(TEST_OUTPUTS)
+
+clean:
+	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN)
+
+depend: $(PRE_DEPEND)
+
 %.disasm: %
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
@@ -308,18 +307,12 @@ endif
 
 ifneq ($(BINARY),)
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
-	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
+	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(OBJECTS) $(LIBS) $(BASE_LIBS)
 endif
 
-ifneq ($(SLIBRARY),)
-$(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
-	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
-
-$(LIBRARY).so:
-	ln -s $(SLIBRARY) $@
-
-$(LSONAME):
-	ln -s $(SLIBRARY) $@
+ifneq ($(TEST_BINARY),)
+$(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS)
+	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBS) $(BASE_LIBS)
 endif
 
 ifneq ($(LIBRARY),)
@@ -327,42 +320,35 @@ $(LIBRARY).a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
 endif
 
-ifneq ($(LARCHIVE),)
-$(LARCHIVE): $(LOBJECTS)
+ifneq ($(SLIBRARY),)
+$(LIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
-endif
 
-ifneq ($(TEST_OUTPUT),)
-$(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
-	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(TEST_OUTPUT).map -o $@ $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS) $(LIBS) $(BASE_LIBS)
+$(SLIBRARY): $(LIB_LINKER_SCRIPT) $(LIBRARY).la
+	$(LD) $(LIB_LFLAGS) -T $(LIB_LINKER_SCRIPT) -Map $@.map -o $@ --whole-archive $(LIBRARY).la --no-whole-archive
+
+$(LSONAME):
+	ln -s $(SLIBRARY) $@
 endif
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.test.o: %.c | depend
-	$(CC_JOB) -c -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
 
 %.lo: %.S | depend
-	$(CC_JOB) -c -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.lo: %.s | depend
-	$(CC_JOB) -c -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.lo: %.c | depend
-	$(CC_JOB) -c -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
-depend: $(PRE_DEPEND)
-
-##
-# This explicit dependecy of the output binary on the object files seems to be
-# necessary to prevent parallel build failures (GNU make bug #26893 ???).
-$(OUTPUT): $(OBJECTS)
-
-$(LARCHIVE): $(LOBJECTS)
