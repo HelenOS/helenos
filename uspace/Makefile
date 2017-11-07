@@ -252,6 +252,9 @@ $(BUILDS_TESTS): $(LIBC_BUILD) $(LIBS_BUILD)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)
+	find lib app drv srv -name '*.o' -follow -exec rm \{\} \;
+	find lib app drv srv -name '*.lo' -follow -exec rm \{\} \;
+	find lib app drv srv -name '*.d' -follow -exec rm \{\} \;
 
 $(CLEANS):
 	-$(MAKE) -r -C $(basename $@) clean
