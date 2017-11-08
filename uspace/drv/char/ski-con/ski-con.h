@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief Keyboard port driver interface.
- * @ingroup input
+/** @addtogroup genarch
  * @{
  */
 /** @file
  */
 
-#ifndef KBD_PORT_H_
-#define KBD_PORT_H_
+#ifndef SKI_CON_H
+#define SKI_CON_H
 
+#include <async.h>
+#include <ddf/driver.h>
+#include <loc.h>
 #include <stdint.h>
 
-struct kbd_dev;
+/** IntegratorCP Interrupt Controller */
+typedef struct {
+	async_sess_t *client_sess;
+	ddf_dev_t *dev;
+} ski_con_t;
 
-typedef struct kbd_port_ops {
-	int (*init)(struct kbd_dev *);
-	void (*write)(uint8_t);
-} kbd_port_ops_t;
-
-extern kbd_port_ops_t adb_port;
-extern kbd_port_ops_t chardev_port;
-extern kbd_port_ops_t msim_port;
-extern kbd_port_ops_t niagara_port;
-extern kbd_port_ops_t ns16550_port;
+extern int ski_con_add(ski_con_t *);
+extern int ski_con_remove(ski_con_t *);
+extern int ski_con_gone(ski_con_t *);
 
 #endif
 
-/**
- * @}
+/** @}
  */

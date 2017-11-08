@@ -154,11 +154,12 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
+	drv/char/atkbd \
 	drv/char/i8042 \
 	drv/char/ns8250 \
 	drv/char/pl050 \
 	drv/char/ps2mouse \
-	drv/char/atkbd \
+	drv/char/ski-con \
 	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
@@ -180,6 +181,7 @@ DIRS = \
 	drv/platform/malta \
 	drv/platform/msim \
 	drv/platform/pc \
+	drv/platform/ski \
 	drv/time/cmos-rtc
 
 ## sun4u driver won't compile on 32-bit targets

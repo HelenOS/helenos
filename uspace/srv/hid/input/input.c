@@ -636,8 +636,8 @@ static void kbd_add_legacy_devs(void)
 #if defined(UARCH_arm32) && defined(MACHINE_gta02)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
-#if defined(MACHINE_ski)
-	kbd_add_dev(&ski_port, &stty_ctl);
+#if defined(UARCH_ia64) && defined(MACHINE_ski)
+	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
 #if defined(MACHINE_msim)
 	kbd_add_dev(&msim_port, &stty_ctl);

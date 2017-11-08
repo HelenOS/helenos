@@ -58,7 +58,10 @@ static async_sess_t *dev_sess;
 
 /** List of devices to try connecting to. */
 static const char *in_devs[] = {
-	"char/s3c24xx_uart"
+	/** S3C24xx UART - Openmoko debug console */
+	"char/s3c24xx_uart",
+	/** Ski console */
+	"devices/\\hw\\console\\a"
 };
 
 static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);
@@ -73,9 +76,12 @@ static int chardev_port_init(kbd_dev_t *kdev)
 	kbd_dev = kdev;
 	
 	for (i = 0; i < num_devs; i++) {
+		printf("%s: Probe service '%s'\n", NAME, in_devs[i]);
 		rc = loc_service_get_id(in_devs[i], &service_id, 0);
-		if (rc == EOK)
+		if (rc == EOK) {
+			printf("%s: success \n", NAME);
 			break;
+		}
 	}
 	
 	if (i >= num_devs) {
@@ -108,6 +114,7 @@ static int chardev_port_init(kbd_dev_t *kdev)
 		async_hangup(dev_sess);
 		return -1;
 	}
+	printf("%s: Connected input device\n", NAME);
 	
 	return 0;
 }
