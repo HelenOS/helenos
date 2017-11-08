@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef LIBCPP_IOSFWD
+#define LIBCPP_IOSFWD
+
 namespace std
 {
     /**
@@ -154,3 +157,5 @@ namespace std
     // TODO: This should be in ios and not here?
     using streamoff = long long;
 }
+
+#endif
