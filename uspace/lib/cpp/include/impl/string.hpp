@@ -562,6 +562,8 @@ namespace std
                     basic_string tmp{other};
                     swap(tmp);
                 }
+
+                return *this;
             }
 
             basic_string& operator=(basic_string&& other)
@@ -570,6 +572,8 @@ namespace std
             {
                 if (this != &other)
                     swap(other);
+
+                return *this;
             }
 
             basic_string& operator=(const value_type* other)
@@ -1692,25 +1696,22 @@ namespace std
      */
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator==(const basic_string<Char, Traits, Allocator>& lhs,
-               const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    bool operator==(const basic_string<Char, Traits, Allocator>& lhs,
+                    const basic_string<Char, Traits, Allocator>& rhs) noexcept
     {
         return lhs.compare(rhs) == 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator==(const Char* lhs,
-               const basic_string<Char, Traits, Allocator>& rhs)
+    bool operator==(const Char* lhs,
+                    const basic_string<Char, Traits, Allocator>& rhs)
     {
         return rhs == lhs;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator==(const basic_string<Char, Traits, Allocator>& lhs,
-               const Char* rhs)
+    bool operator==(const basic_string<Char, Traits, Allocator>& lhs,
+                    const Char* rhs)
     {
         return lhs.compare(rhs) == 0;
     }
@@ -1720,25 +1721,22 @@ namespace std
      */
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator!=(const basic_string<Char, Traits, Allocator>& lhs,
-               const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    bool operator!=(const basic_string<Char, Traits, Allocator>& lhs,
+                    const basic_string<Char, Traits, Allocator>& rhs) noexcept
     {
         return !(lhs == rhs);
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator!=(const Char* lhs,
-               const basic_string<Char, Traits, Allocator>& rhs)
+    bool operator!=(const Char* lhs,
+                    const basic_string<Char, Traits, Allocator>& rhs)
     {
         return rhs != lhs;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator!=(const basic_string<Char, Traits, Allocator>& lhs,
-               const Char* rhs)
+    bool operator!=(const basic_string<Char, Traits, Allocator>& lhs,
+                    const Char* rhs)
     {
         return lhs.compare(rhs) != 0;
     }
@@ -1748,25 +1746,22 @@ namespace std
      */
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator<(const basic_string<Char, Traits, Allocator>& lhs,
-              const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    bool operator<(const basic_string<Char, Traits, Allocator>& lhs,
+                   const basic_string<Char, Traits, Allocator>& rhs) noexcept
     {
         return lhs.compare(rhs) < 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator<(const Char* lhs,
-              const basic_string<Char, Traits, Allocator>& rhs)
+    bool operator<(const Char* lhs,
+                   const basic_string<Char, Traits, Allocator>& rhs)
     {
         return rhs.compare(lhs) > 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator<(const basic_string<Char, Traits, Allocator>& lhs,
-              const Char* rhs)
+    bool operator<(const basic_string<Char, Traits, Allocator>& lhs,
+                   const Char* rhs)
     {
         return lhs.compare(rhs) < 0;
     }
@@ -1776,25 +1771,22 @@ namespace std
      */
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator>(const basic_string<Char, Traits, Allocator>& lhs,
-              const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    bool operator>(const basic_string<Char, Traits, Allocator>& lhs,
+                   const basic_string<Char, Traits, Allocator>& rhs) noexcept
     {
         return lhs.compare(rhs) > 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator>(const Char* lhs,
-              const basic_string<Char, Traits, Allocator>& rhs)
+    bool operator>(const Char* lhs,
+                   const basic_string<Char, Traits, Allocator>& rhs)
     {
         return rhs.compare(lhs) < 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator>(const basic_string<Char, Traits, Allocator>& lhs,
-              const Char* rhs)
+    bool operator>(const basic_string<Char, Traits, Allocator>& lhs,
+                   const Char* rhs)
     {
         return lhs.compare(rhs) > 0;
     }
@@ -1804,25 +1796,22 @@ namespace std
      */
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator<=(const basic_string<Char, Traits, Allocator>& lhs,
-               const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    bool operator<=(const basic_string<Char, Traits, Allocator>& lhs,
+                    const basic_string<Char, Traits, Allocator>& rhs) noexcept
     {
         return lhs.compare(rhs) <= 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator<=(const Char* lhs,
-               const basic_string<Char, Traits, Allocator>& rhs)
+    bool operator<=(const Char* lhs,
+                    const basic_string<Char, Traits, Allocator>& rhs)
     {
         return rhs.compare(lhs) >= 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator<=(const basic_string<Char, Traits, Allocator>& lhs,
-               const Char* rhs)
+    bool operator<=(const basic_string<Char, Traits, Allocator>& lhs,
+                    const Char* rhs)
     {
         return lhs.compare(rhs) <= 0;
     }
@@ -1832,25 +1821,22 @@ namespace std
      */
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator>=(const basic_string<Char, Traits, Allocator>& lhs,
-               const basic_string<Char, Traits, Allocator>& rhs) noexcept
+    bool operator>=(const basic_string<Char, Traits, Allocator>& lhs,
+                    const basic_string<Char, Traits, Allocator>& rhs) noexcept
     {
         return lhs.compare(rhs) >= 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator>=(const Char* lhs,
-               const basic_string<Char, Traits, Allocator>& rhs)
+    bool operator>=(const Char* lhs,
+                    const basic_string<Char, Traits, Allocator>& rhs)
     {
         return rhs.compare(lhs) <= 0;
     }
 
     template<class Char, class Traits, class Allocator>
-    basic_string<Char, Traits, Allocator>
-    operator>=(const basic_string<Char, Traits, Allocator>& lhs,
-               const Char* rhs)
+    bool operator>=(const basic_string<Char, Traits, Allocator>& lhs,
+                    const Char* rhs)
     {
         return lhs.compare(rhs) >= 0;
     }
