@@ -30,7 +30,6 @@
 USPACE_PREFIX = ../..
 EXTRA_CFLAGS = -Iinclude
 LIBRARY = libsoftint
-SOVERSION = 0.0
 
 SOURCES = \
 	generic/bits.c \
