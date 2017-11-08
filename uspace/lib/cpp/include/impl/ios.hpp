@@ -67,21 +67,21 @@ namespace std
              */
 
             using fmtflags = uint16_t;
-            static constexpr fmtflags boolalpha   = 0b'0000'0000'0000'0001;
-            static constexpr fmtflags dec         = 0b'0000'0000'0000'0010;
-            static constexpr fmtflags fixed       = 0b'0000'0000'0000'0100;
-            static constexpr fmtflags hex         = 0b'0000'0000'0000'1000;
-            static constexpr fmtflags internal    = 0b'0000'0000'0001'0000;
-            static constexpr fmtflags left        = 0b'0000'0000'0010'0000;
-            static constexpr fmtflags oct         = 0b'0000'0000'0100'0000;
-            static constexpr fmtflags right       = 0b'0000'0000'1000'0000;
-            static constexpr fmtflags scientific  = 0b'0000'0001'0000'0000;
-            static constexpr fmtflags showbase    = 0b'0000'0010'0000'0000;
-            static constexpr fmtflags showpoint   = 0b'0000'0100'0000'0000;
-            static constexpr fmtflags showpos     = 0b'0000'1000'0000'0000;
-            static constexpr fmtflags skipws      = 0b'0001'0000'0000'0000;
-            static constexpr fmtflags unitbuf     = 0b'0010'0000'0000'0000;
-            static constexpr fmtflags uppercase   = 0b'0100'0000'0000'0000;
+            static constexpr fmtflags boolalpha   = 0b0000'0000'0000'0001;
+            static constexpr fmtflags dec         = 0b0000'0000'0000'0010;
+            static constexpr fmtflags fixed       = 0b0000'0000'0000'0100;
+            static constexpr fmtflags hex         = 0b0000'0000'0000'1000;
+            static constexpr fmtflags internal    = 0b0000'0000'0001'0000;
+            static constexpr fmtflags left        = 0b0000'0000'0010'0000;
+            static constexpr fmtflags oct         = 0b0000'0000'0100'0000;
+            static constexpr fmtflags right       = 0b0000'0000'1000'0000;
+            static constexpr fmtflags scientific  = 0b0000'0001'0000'0000;
+            static constexpr fmtflags showbase    = 0b0000'0010'0000'0000;
+            static constexpr fmtflags showpoint   = 0b0000'0100'0000'0000;
+            static constexpr fmtflags showpos     = 0b0000'1000'0000'0000;
+            static constexpr fmtflags skipws      = 0b0001'0000'0000'0000;
+            static constexpr fmtflags unitbuf     = 0b0010'0000'0000'0000;
+            static constexpr fmtflags uppercase   = 0b0100'0000'0000'0000;
             static constexpr fmtflags adjustfield = left | right | internal;
             static constexpr fmtflags basefield   = dec  | oct   | hex;
             static constexpr fmtflags floatfield  = scientific   | fixed;
@@ -128,7 +128,7 @@ namespace std
                     ~Init();
 
                 private:
-                    static int init_cnt{};
+                    static int init_cnt;
             };
 
             /**
@@ -194,11 +194,11 @@ namespace std
             ios_base();
 
         private:
-            static int index_{};
-            static bool sync_{true};
+            static int index_;
+            static bool sync_;
 
-            static long ierror_{0};
-            static long perror_{nullptr};
+            static long ierror_;
+            static void* perror_;
             static constexpr size_t initial_size_{10};
 
             long* iarray_;
@@ -281,7 +281,7 @@ namespace std
                 else
                     rdstate_ = state | badbit;
 
-                if (((state | (rdbuf_ ? goodbit | badbit)) & exceptions_) == 0)
+                if (((state | (rdbuf_ ? goodbit : badbit)) & exceptions_) == 0)
                     return;
                 // TODO: Else throw failure.
                 return;
@@ -379,22 +379,22 @@ namespace std
                 flags_      = rhs.flags_;
                 width_      = rhs.width_;
                 precision_  = rhs.precision_;
-                fille_      = rhs.fill_;
+                fill_      = rhs.fill_;
                 locale_     = rhs.locale_;
 
-                delete[] iarray;
+                delete[] iarray_;
                 iarray_size_ = rhs.iarray_size_;
                 iarray_ = new long[iarray_size_];
 
                 for (size_t i = 0; i < iarray_size_; ++i)
-                    iarrai_[i] = rhs.iarray_[i];
+                    iarray_[i] = rhs.iarray_[i];
 
-                delete[] parray;
+                delete[] parray_;
                 parray_size_ = rhs.parray_size_;
                 parray_ = new long[parray_size_];
 
                 for (size_t i = 0; i < parray_size_; ++i)
-                    iarrai_[i] = rhs.parray_[i];
+                    parray_[i] = rhs.parray_[i];
 
                 for (auto& callback: callbacks_)
                     callback.first(copyfmt_event, *this, index_);
@@ -455,8 +455,8 @@ namespace std
                 fill_ = widen(' ');
                 locale_ = locale();
 
-                iarray = nullptr;
-                parray = nullptr
+                iarray_ = nullptr;
+                parray_ = nullptr;
             }
 
             void move(basic_ios& rhs)
@@ -526,7 +526,7 @@ namespace std
                 swap(iarray_);
                 swap(iarray_size_);
                 swap(parray_);
-                swap(parray_size_)
+                swap(parray_size_);
             }
 
             void set_rdbuf(basic_streambuf<Char, Traits>* sb)

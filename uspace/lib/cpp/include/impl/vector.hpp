@@ -363,7 +363,8 @@ namespace std
                 if (size_ >= capacity_)
                     resize_with_copy_(size_, next_capacity_());
 
-                allocator_traits<Allocator>::construct(begin() + size_, forward<Args>(args)...);
+                allocator_traits<Allocator>::construct(allocator_,
+                                                       begin() + size_, forward<Args>(args)...);
 
                 return back();
             }

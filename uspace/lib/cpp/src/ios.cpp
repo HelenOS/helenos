@@ -30,19 +30,24 @@
 
 namespace std
 {
+    int ios_base::index_{};
+    bool ios_base::sync_{true};
+    long ios_base::ierror_{0};
+    void* ios_base::perror_{nullptr};
+
     ios_base::ios_base()
         : iarray_{}, parray_{}, iarray_size_{}, parray_size_{},
           flags_{}, precision_{}, width_{}, locale_{/* TODO: use locale()? */},
           callbacks_{}
     { /* DUMMY BODY */ }
 
-    ~ios_base::ios_base()
+    ios_base::~ios_base()
     {
         for (auto& callback: callbacks_)
             callback.first(erase_event, *this, callback.second);
     }
 
-    auto ios_base::flags() -> fmtflags const
+    auto ios_base::flags() const -> fmtflags
     {
         return flags_;
     }
@@ -74,7 +79,7 @@ namespace std
 
     void ios_base::unsetf(fmtflags fmtfl)
     {
-        flags_ &= ~fmtflags;
+        flags_ &= ~fmtfl;
     }
 
     streamsize ios_base::precision() const
@@ -114,7 +119,7 @@ namespace std
         return old;
     }
 
-    locale ios_base::get_loc() const
+    locale ios_base::getloc() const
     {
         return locale_;
     }
@@ -155,7 +160,7 @@ namespace std
     {
         if (!parray_)
         {
-            parray_ = new long[initial_size_];
+            parray_ = new void*[initial_size_];
             parray_size_ = initial_size_;
         }
 
@@ -164,7 +169,7 @@ namespace std
         { // TODO: Enclose in try block and set failbit if needed
           //       and return perror_.
             size_t new_size = max(parray_size_ * 2, idx + 1);
-            auto tmp = new long[new_size];
+            auto tmp = new void*[new_size];
 
             for (size_t i = 0; i < parray_size_; ++i)
                 tmp[i] = parray_[i];
@@ -185,7 +190,7 @@ namespace std
 
     void ios_base::register_callback(event_callback fn, int index)
     {
-        callbacks.emplace_back(fn, index);
+        callbacks_.emplace_back(fn, index);
     }
 
     ios_base& boolalpha(ios_base& str)
