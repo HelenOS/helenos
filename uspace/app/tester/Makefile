@@ -30,11 +30,10 @@
 USPACE_PREFIX = ../..
 
 # TODO: softfloat testing should be done via unit tests.
-LIBS = block softfloat drv
+LIBS = block softfloat drv math
 EXTRA_CFLAGS = -I$(LIBSOFTFLOAT_PREFIX)
 
 BINARY = tester
-MATH = y
 
 SOURCES = \
 	tester.c \

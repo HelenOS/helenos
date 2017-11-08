@@ -29,10 +29,9 @@
 USPACE_PREFIX = ../..
 
 # TODO: Should be just "gui graph", rest is transitive dependencies.
-LIBS = gui graph draw softrend compress
+LIBS = gui graph draw softrend compress math
 
 BINARY = vterm
-MATH = y
 
 SOURCES = \
 	vterm.c

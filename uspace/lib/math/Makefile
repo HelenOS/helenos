@@ -33,7 +33,8 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 LIBRARY = libmath
 SOVERSION = 0.0
-MATH = y
+
+EXTRA_CFLAGS += -Iarch/$(UARCH)/include
 
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc

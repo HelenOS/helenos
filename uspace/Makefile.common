@@ -43,7 +43,6 @@
 #   EXTRA_OUTPUT       additional output targets
 #   EXTRA_CLEAN        additional cleanup targets
 #
-#   MATH               set to 'y' to use the math library
 #   POSIX_COMPAT       set to 'y' to use POSIX compatibility layer
 #
 # Optionally, for a binary:
@@ -139,15 +138,9 @@ endif
 
 ifeq ($(STATIC_BUILD),y)
 	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
-	ifeq ($(MATH),y)
-		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
-	endif
 else
 	BASE_LIBS = $(LIBC_PREFIX)/libc.so.0 $(LIBSOFTINT_PREFIX)/libsoftint.so.0
 	LINK_DYNAMIC = y
-	ifeq ($(MATH),y)
-		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.so.0
-	endif
 endif
 
 # Prepare for POSIX before including platform specific stuff
@@ -167,17 +160,18 @@ endif
 
 LIB_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
 
-ifeq ($(MATH),y)
-	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS) $(LIBMATH_INCLUDES_FLAGS)
-else
-	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
-endif
+INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
 
 ifneq ($(LIBRARY),)
 	INCLUDES_FLAGS += -Iinclude -I.
 endif
 
 INCLUDES_FLAGS += $(foreach lib,$(LIBS), -I$(LIB_PREFIX)/$(lib) -I$(LIB_PREFIX)/$(lib)/include)
+
+# TODO: get rid of this special case
+ifneq ($(filter math, $(LIBS)),)
+	INCLUDES_FLAGS += $(LIBMATH_INCLUDES_FLAGS)
+endif
 
 # PCUT-based unit tests
 ifneq ($(TEST_SOURCES),)

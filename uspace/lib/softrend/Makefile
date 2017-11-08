@@ -28,7 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libsoftrend
-MATH = y
+LIBS = math
 
 SOURCES = \
 	compose.c \

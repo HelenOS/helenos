@@ -29,10 +29,9 @@
 USPACE_PREFIX = ../..
 
 # TODO: Should be just "gui", rest is transitive dependencies.
-LIBS = gui draw softrend compress
+LIBS = gui draw softrend compress math
 
 BINARY = vdemo
-MATH = y
 
 SOURCES = \
 	vdemo.c

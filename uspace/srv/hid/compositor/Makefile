@@ -28,10 +28,9 @@
 
 USPACE_PREFIX = ../../..
 
-LIBS = draw softrend drv compress
+LIBS = draw softrend drv compress math
 
 BINARY = compositor
-MATH = y
 
 SOURCES = \
 	compositor.c

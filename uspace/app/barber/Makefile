@@ -29,10 +29,9 @@
 USPACE_PREFIX = ../..
 
 # TODO: Should be just "gui", rest is transitive dependencies.
-LIBS = gui draw compress softrend
+LIBS = gui draw compress softrend math
 
 BINARY = barber
-MATH = y
 
 IMG = image
 IMGS = $(IMG)s
