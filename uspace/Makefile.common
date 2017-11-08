@@ -263,6 +263,15 @@ depend: $(PRE_DEPEND)
 tag:
 	touch tag
 
+# Generate inter-module make dependencies.
+# This is needed to ensure correct build order of libraries and code depending on them.
+deps.mk: Makefile
+	echo > $@.new
+	for lib in $(LIBS); do \
+		echo "$(SELF_TARGET): lib/$$lib.build" >> $@.new; \
+	done
+	mv -f $@.new $@
+
 %.disasm: %
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@

@@ -201,7 +201,11 @@ endif
 ## System libraries
 #
 
-LIBC = lib/c
+BASE_LIBS = \
+	lib/c \
+	lib/softint \
+	lib/softfloat
+
 LIBS = \
 	lib/fs \
 	lib/block \
@@ -212,8 +216,6 @@ LIBS = \
 	lib/fmtutil \
 	lib/scsi \
 	lib/compress \
-	lib/softint \
-	lib/softfloat \
 	lib/drv \
 	lib/graph \
 	lib/gui \
@@ -240,18 +242,17 @@ LIBS = \
 	lib/posix \
 	lib/ieee80211
 
-LIBC_BUILD = $(addsuffix .build,$(LIBC))
-LIBS_BUILD = $(addsuffix .build,$(LIBS))
-BUILDS := $(addsuffix .build,$(DIRS))
-BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) lib/c)
+BASE_BUILDS := $(addsuffix .build,$(BASE_LIBS))
+BUILDS := $(addsuffix .build,$(DIRS) $(LIBS))
+BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) $(BASE_LIBS))
+DEPS = $(addsuffix /deps.mk,$(DIRS) $(LIBS))
+CLEANS := $(addsuffix .clean,$(DIRS) $(LIBS) $(BASE_LIBS))
 
-CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
-
-.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
+.PHONY: all $(BASE_BUILDS) $(BUILDS) $(BUILDS_TESTS) $(CLEANS) clean
 
 all: $(BUILDS) $(BUILDS_TESTS)
 
-$(BUILDS_TESTS): $(LIBC_BUILD) $(LIBS_BUILD)
+$(BUILDS_TESTS): $(BASE_BUILDS) $(BUILDS)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)
@@ -263,11 +264,16 @@ clean: $(CLEANS)
 $(CLEANS):
 	-$(MAKE) -r -C $(basename $@) clean
 
-$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
+$(BASE_BUILDS) $(BUILDS):
 	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
 
-$(LIBS_BUILD): $(LIBC_BUILD)
-	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
+$(DEPS): %/deps.mk: %/Makefile
+	$(MAKE) -r -C $(@D) deps.mk SELF_TARGET="$(@D).build"
 
-$(LIBC_BUILD):
-	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
+# Special case for base libraries.
+lib/c.build: lib/softfloat.build lib/softint.build
+
+$(BUILDS): $(BASE_BUILDS)
+
+-include $(DEPS)
+
