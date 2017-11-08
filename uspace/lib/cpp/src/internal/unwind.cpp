@@ -79,51 +79,51 @@ namespace __cxxabiv1
         _Unwind_Context*, void*
     );
 
-    _Unwind_Reason_Code _Unwind_ForcedUnwind(_Unwind_Exception*, _Unwind_Stop_Fn, void*)
+    extern "C" _Unwind_Reason_Code _Unwind_ForcedUnwind(_Unwind_Exception*, _Unwind_Stop_Fn, void*)
     {
         // TODO: implement
         return _URC_NO_REASON;
     }
 
-    void _Unwind_Resume(_Unwind_Exception*)
+    extern "C" void _Unwind_Resume(_Unwind_Exception*)
     {
         // TODO: implement
     }
 
-    void _Unwind_DeleteException(_Unwind_Exception*)
+    extern "C" void _Unwind_DeleteException(_Unwind_Exception*)
     {
         // TODO: implement
     }
 
-    std::uint64_t _Unwind_GetGR(_Unwind_Context*, int)
-    {
-        // TODO: implement
-        return 0;
-    }
-
-    void _Unwind_SetGR(_Unwind_Context*, int, std::uint64_t)
-    {
-        // TODO: implement
-    }
-
-    std::uint64_t _Unwind_GetIP(_Unwind_Context*)
+    extern "C" std::uint64_t _Unwind_GetGR(_Unwind_Context*, int)
     {
         // TODO: implement
         return 0;
     }
 
-    void _Unwind_SetIP(_Unwind_Context*, std::uint64_t)
+    extern "C" void _Unwind_SetGR(_Unwind_Context*, int, std::uint64_t)
     {
         // TODO: implement
     }
 
-    std::uint64_t _Unwind_GetLanguageSpecificData(_Unwind_Context*)
+    extern "C" std::uint64_t _Unwind_GetIP(_Unwind_Context*)
     {
         // TODO: implement
         return 0;
     }
 
-    std::uint64_t _Unwind_GetRegionStart(_Unwind_Context*)
+    extern "C" void _Unwind_SetIP(_Unwind_Context*, std::uint64_t)
+    {
+        // TODO: implement
+    }
+
+    extern "C" std::uint64_t _Unwind_GetLanguageSpecificData(_Unwind_Context*)
+    {
+        // TODO: implement
+        return 0;
+    }
+
+    extern "C" std::uint64_t _Unwind_GetRegionStart(_Unwind_Context*)
     {
         // TODO: implement
         return 0;
