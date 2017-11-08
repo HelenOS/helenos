@@ -40,6 +40,7 @@ LSONAME = libcpp.so.0
 SOURCES = \
 	src/exception.cpp \
 	src/ios.cpp \
+	src/locale.cpp \
 	src/new.cpp \
 	src/string.cpp \
 	src/typeindex.cpp \
