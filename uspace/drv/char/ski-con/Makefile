@@ -27,7 +27,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
+LIBS = drv
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = ski-con
 

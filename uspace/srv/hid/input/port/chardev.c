@@ -76,12 +76,9 @@ static int chardev_port_init(kbd_dev_t *kdev)
 	kbd_dev = kdev;
 	
 	for (i = 0; i < num_devs; i++) {
-		printf("%s: Probe service '%s'\n", NAME, in_devs[i]);
 		rc = loc_service_get_id(in_devs[i], &service_id, 0);
-		if (rc == EOK) {
-			printf("%s: success \n", NAME);
+		if (rc == EOK)
 			break;
-		}
 	}
 	
 	if (i >= num_devs) {
@@ -114,7 +111,6 @@ static int chardev_port_init(kbd_dev_t *kdev)
 		async_hangup(dev_sess);
 		return -1;
 	}
-	printf("%s: Connected input device\n", NAME);
 	
 	return 0;
 }
