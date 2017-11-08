@@ -40,7 +40,7 @@ namespace std
      * 27.6.3, class template basic_streambuf:
      */
 
-    template<class Char, class Traits = character_traits<Char>>
+    template<class Char, class Traits>
     class basic_streambuf
     {
         public:

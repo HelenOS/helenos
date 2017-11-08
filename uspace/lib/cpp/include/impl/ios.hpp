@@ -246,7 +246,7 @@ namespace std
      * 27.5.5, basic_ios:
      */
 
-    template<class Char, class Traits = char_traits<Char>>
+    template<class Char, class Traits>
     class basic_ios: public ios_base
     {
         public:

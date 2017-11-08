@@ -39,7 +39,7 @@ namespace std
      * 27.7.2.1, class template basic_stream:
      */
 
-    template<class Char, class Traits = char_traits<Char>>
+    template<class Char, class Traits>
     class basic_istream: virtual public basic_ios<Char, Traits>
     {
         public:
@@ -379,7 +379,7 @@ namespace std
     using istream  = basic_istream<char>;
     using wistream = basic_istream<wchar_t>;
 
-    template<class Char, class Traits = char_traits<Char>>
+    template<class Char, class Traits>
     class basic_iostream;
 
     using iostream  = basic_iostream<char>;

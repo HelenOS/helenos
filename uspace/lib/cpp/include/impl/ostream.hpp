@@ -33,7 +33,7 @@
 
 namespace std
 {
-    template<class Char, class Traits = char_traits<Char>>
+    template<class Char, class Traits>
     class basic_ostream;
 
     using ostream  = basic_ostream<char>;
