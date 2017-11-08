@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = \
-	-Iinclude \
-	-Igeneric/private \
-	-I$(LIBPCM_PREFIX)/include
+EXTRA_CFLAGS = -Igeneric/private
 LIBRARY = libdrv
+LIBS = pcm
 
 SOURCES = \
 	generic/driver.c \

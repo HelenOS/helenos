@@ -28,8 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBSCSI_PREFIX)/include
+LIBS = block scsi
 BINARY = blkdump
 
 SOURCES = \

@@ -5,6 +5,7 @@
 *.prev
 *.so.*
 *.d
+tag
 Makefile.ag.depend
 Makefile.common
 Makefile.config

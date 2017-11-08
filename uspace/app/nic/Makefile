@@ -28,8 +28,7 @@
 
 USPACE_PREFIX = ../..
 BINARY = nic
-EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
+LIBS = drv
 
 SOURCES = \
 	nic.c

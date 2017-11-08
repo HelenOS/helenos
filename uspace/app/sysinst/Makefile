@@ -27,14 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = \
-    $(LIBBLOCK_PREFIX)/libblock.a \
-    $(LIBFDISK_PREFIX)/libfdisk.a \
-
-EXTRA_CFLAGS = \
-    -I$(LIBBLOCK_PREFIX) \
-    -I$(LIBFDISK_PREFIX)/include \
-    -Iinclude
+LIBS = block fdisk
 
 BINARY = sysinst
 

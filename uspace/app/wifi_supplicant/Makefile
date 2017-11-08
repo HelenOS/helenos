@@ -28,8 +28,7 @@
 
 USPACE_PREFIX = ../..
 BINARY = wifi_supplicant
-EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
+LIBS = drv
 
 SOURCES = \
 	wifi_supplicant.c

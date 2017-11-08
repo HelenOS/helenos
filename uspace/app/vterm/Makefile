@@ -28,18 +28,8 @@
 
 USPACE_PREFIX = ../..
 
-LIBS = \
-	$(LIBGUI_PREFIX)/libgui.a \
-	$(LIBDRAW_PREFIX)/libdraw.a \
-	$(LIBSOFTREND_PREFIX)/libsoftrend.a \
-	$(LIBGRAPH_PREFIX)/libgraph.a \
-	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBGUI_PREFIX) \
-	-I$(LIBDRAW_PREFIX) \
-	-I$(LIBSOFTREND_PREFIX) \
-	-I$(LIBGRAPH_PREFIX)
+# TODO: Should be just "gui graph", rest is transitive dependencies.
+LIBS = gui graph draw softrend compress
 
 BINARY = vterm
 MATH = y

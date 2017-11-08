@@ -27,8 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude/hound -Iinclude -I$(LIBPCM_PREFIX)/include
+EXTRA_CFLAGS = -Iinclude/hound
 LIBRARY = libhound
+LIBS = pcm
 
 SOURCES = \
 	src/protocol.c \

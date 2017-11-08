@@ -28,9 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBCLUI_PREFIX)/libclui.a $(LIBFMTUTIL_PREFIX)/libfmtutil.a
-EXTRA_CFLAGS = -I$(LIBCLUI_PREFIX) -I$(LIBFMTUTIL_PREFIX) \
-	-I. -Icmds/ -Icmds/builtins -Icmds/modules
+LIBS = clui fmtutil
+EXTRA_CFLAGS = -I. -Icmds/ -Icmds/builtins -Icmds/modules
 BINARY = bdsh
 
 SOURCES = \

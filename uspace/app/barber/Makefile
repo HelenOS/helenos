@@ -28,17 +28,8 @@
 
 USPACE_PREFIX = ../..
 
-LIBS = \
-	$(LIBGUI_PREFIX)/libgui.a \
-	$(LIBDRAW_PREFIX)/libdraw.a \
-	$(LIBCOMPRESS_PREFIX)/libcompress.a \
-	$(LIBSOFTREND_PREFIX)/libsoftrend.a \
-	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBGUI_PREFIX) \
-	-I$(LIBDRAW_PREFIX) \
-	-I$(LIBSOFTREND_PREFIX)
+# TODO: Should be just "gui", rest is transitive dependencies.
+LIBS = gui draw compress softrend
 
 BINARY = barber
 MATH = y

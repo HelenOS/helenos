@@ -29,8 +29,7 @@
 
 USPACE_PREFIX = ../../..
 BINARY = output
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
+LIBS = drv
 
 SOURCES = \
 	ctl/serial.c \

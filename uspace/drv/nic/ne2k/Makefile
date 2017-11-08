@@ -27,8 +27,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBNIC_PREFIX)/libnic.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBNIC_PREFIX)/include
+LIBS = drv nic
 BINARY = ne2k
 
 SOURCES = \

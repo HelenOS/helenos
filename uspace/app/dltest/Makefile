@@ -27,8 +27,8 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -I$(LIBDLTEST_PREFIX) -DDLTEST_LINKED
-LIBS = $(LIBDLTEST_PREFIX)/libdltest.so.0.0
+EXTRA_CFLAGS = -DDLTEST_LINKED
+LIBS = dltest
 # Need a dynamic link, but possibly still use static libc
 LINK_DYNAMIC = y
 

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017 Jiri Svoboda
+# Copyright (c) 2017 CZ.NIC, z.s.p.o.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,10 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = gunzip
-
-LIBS = compress
+LIBRARY = libminix
 
 SOURCES = \
-	gunzip.c
+	minix.c
 
 include $(USPACE_PREFIX)/Makefile.common
+

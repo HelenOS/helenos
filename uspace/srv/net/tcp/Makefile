@@ -28,11 +28,7 @@
 
 USPACE_PREFIX = ../../..
 
-LIBS = \
-	$(LIBNETTL_PREFIX)/libnettl.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBNETTL_PREFIX)/include
+LIBS = nettl
 
 BINARY = tcp
 

@@ -27,15 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = \
-	$(LIBTRACKMOD_PREFIX)/libtrackmod.a \
-	$(LIBHOUND_PREFIX)/libhound.a \
-	$(LIBPCM_PREFIX)/libpcm.a
-
-EXTRA_CFLAGS = \
-	-I$(LIBTRACKMOD_PREFIX) \
-	-I$(LIBHOUND_PREFIX)/include \
-	-I$(LIBPCM_PREFIX)/include
+LIBS = trackmod hound pcm
 
 BINARY = modplay
 

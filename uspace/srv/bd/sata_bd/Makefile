@@ -28,8 +28,7 @@
 
 USPACE_PREFIX = ../../..
 BINARY = sata_bd
-EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
+LIBS = drv
 
 SOURCES = \
 	sata_bd.c

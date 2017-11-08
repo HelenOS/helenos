@@ -111,46 +111,7 @@ LIBMATH_INCLUDES_FLAGS = \
 	-I$(LIBMATH_PREFIX)/arch/$(UARCH)/include
 
 LIBPOSIX_PREFIX = $(LIB_PREFIX)/posix
-
-LIBCRYPTO_PREFIX = $(LIB_PREFIX)/crypto
-LIBBLOCK_PREFIX = $(LIB_PREFIX)/block
-LIBFDISK_PREFIX = $(LIB_PREFIX)/fdisk
-LIBLABEL_PREFIX = $(LIB_PREFIX)/label
-LIBFS_PREFIX = $(LIB_PREFIX)/fs
-LIBCLUI_PREFIX = $(LIB_PREFIX)/clui
-LIBFMTUTIL_PREFIX = $(LIB_PREFIX)/fmtutil
-
-LIBGRAPH_PREFIX = $(LIB_PREFIX)/graph
-LIBSOFTREND_PREFIX = $(LIB_PREFIX)/softrend
-LIBDRAW_PREFIX = $(LIB_PREFIX)/draw
-LIBGUI_PREFIX = $(LIB_PREFIX)/gui
-
-LIBEXT4_PREFIX = $(LIB_PREFIX)/ext4
-
-LIBUSB_PREFIX = $(LIB_PREFIX)/usb
-LIBUSBHOST_PREFIX = $(LIB_PREFIX)/usbhost
-LIBUSBDEV_PREFIX = $(LIB_PREFIX)/usbdev
-LIBUSBHID_PREFIX = $(LIB_PREFIX)/usbhid
-LIBUSBVIRT_PREFIX = $(LIB_PREFIX)/usbvirt
-
-LIBDRV_PREFIX = $(LIB_PREFIX)/drv
-LIBHOUND_PREFIX = $(LIB_PREFIX)/hound
-LIBPCM_PREFIX = $(LIB_PREFIX)/pcm
-LIBNIC_PREFIX = $(LIB_PREFIX)/nic
-LIBIEEE80211_PREFIX = $(LIB_PREFIX)/ieee80211
-LIBMINIX_PREFIX = $(LIB_PREFIX)/minix
-LIBCOMPRESS_PREFIX = $(LIB_PREFIX)/compress
 LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
-
-LIBSCSI_PREFIX = $(LIB_PREFIX)/scsi
-LIBTRACKMOD_PREFIX = $(LIB_PREFIX)/trackmod
-
-LIBBITHENGE_PREFIX = $(LIB_PREFIX)/bithenge
-
-LIBHTTP_PREFIX = $(LIB_PREFIX)/http
-LIBURI_PREFIX = $(LIB_PREFIX)/uri
-
-LIBNETTL_PREFIX = $(LIB_PREFIX)/nettl
 
 AFLAGS =
 LFLAGS = --fatal-warnings --warn-common
@@ -203,6 +164,12 @@ ifeq ($(MATH),y)
 else
 	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
 endif
+
+ifneq ($(LIBRARY),)
+	INCLUDES_FLAGS += -Iinclude -I.
+endif
+
+INCLUDES_FLAGS += $(foreach lib,$(LIBS), -I$(LIB_PREFIX)/$(lib) -I$(LIB_PREFIX)/$(lib)/include)
 
 # PCUT-based unit tests
 ifneq ($(TEST_SOURCES),)
@@ -285,11 +252,14 @@ LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 TEST_OBJECTS := $(addsuffix .test.o,$(basename $(TEST_SOURCES)))
 DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename $(TEST_SOURCES)))
 
+LIBTAGS := $(foreach lib,$(LIBS), $(USPACE_PREFIX)/lib/$(lib)/tag)
+LIBARGS := $(addprefix -L$(USPACE_PREFIX)/lib/, $(LIBS)) $(addprefix -l, $(LIBS))
+
 -include $(DEPENDS)
 
 .PHONY: all all-test clean depend
 
-all: $(OUTPUTS)
+all: tag $(OUTPUTS)
 
 all-test: $(TEST_OUTPUTS)
 
@@ -297,6 +267,13 @@ clean:
 	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN)
 
 depend: $(PRE_DEPEND)
+
+# "Tag" files are used to force relink of binaries when dependencies get rebuilt,
+# regardless of whether the dependency was linked statically or dynamically,
+# or which version of a dynamic library was used. Prerequisites for this file
+# are defined further down.
+tag:
+	touch tag
 
 %.disasm: %
 ifeq ($(CONFIG_LINE_DEBUG),y)
@@ -306,21 +283,25 @@ else
 endif
 
 ifneq ($(BINARY),)
-$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
-	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(OBJECTS) $(LIBS) $(BASE_LIBS)
+$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
+	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(TEST_BINARY),)
-$(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS)
-	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBS) $(BASE_LIBS)
+$(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS) $(BASE_LIBS)
+	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(LIBRARY),)
+tag: $(LIBRARY).a
+
 $(LIBRARY).a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
 endif
 
 ifneq ($(SLIBRARY),)
+tag: $(SLIBRARY)
+
 $(LIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 

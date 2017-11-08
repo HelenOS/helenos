@@ -28,12 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libieee80211
-
-EXTRA_CFLAGS += \
-	-Iinclude \
-	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBNIC_PREFIX)/include \
-	-I$(LIBCRYPTO_PREFIX)
+LIBS = drv nic crypto
 
 SOURCES = \
 	src/ieee80211.c \

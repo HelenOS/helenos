@@ -28,7 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libdraw
-EXTRA_CFLAGS += -I$(LIBSOFTREND_PREFIX) -I$(LIBCOMPRESS_PREFIX)
+LIBS = softrend compress
 
 SOURCES = \
 	codec/tga.c \

@@ -27,7 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude/pcm -Iinclude
+EXTRA_CFLAGS = -Iinclude/pcm
 LIBRARY = libpcm
 
 SOURCES = \

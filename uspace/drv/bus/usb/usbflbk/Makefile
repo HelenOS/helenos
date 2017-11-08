@@ -28,15 +28,7 @@
 
 USPACE_PREFIX = ../../../..
 
-LIBS = \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
+LIBS = usbdev usb drv
 
 BINARY = usbflbk
 

@@ -28,8 +28,7 @@
 
 USPACE_PREFIX = ../../..
 BINARY = slip
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
+LIBS = drv
 SOURCES = \
 	slip.c
 

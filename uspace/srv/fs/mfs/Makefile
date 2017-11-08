@@ -28,8 +28,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a
-EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX) -I$(LIBMINIX_PREFIX)
+LIBS = block fs minix
 BINARY = mfs
 
 SOURCES = \

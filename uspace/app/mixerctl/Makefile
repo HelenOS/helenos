@@ -29,11 +29,7 @@
 USPACE_PREFIX = ../..
 BINARY = mixerctl
 
-LIBS = \
-	$(LIBDRV_PREFIX)/libdrv.a
-
-EXTRA_CFLAGS = \
-	-I$(LIBDRV_PREFIX)/include
+LIBS = drv
 
 SOURCES = \
 	mixerctl.c

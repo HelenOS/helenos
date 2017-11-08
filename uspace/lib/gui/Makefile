@@ -28,7 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libgui
-EXTRA_CFLAGS += -I$(LIBDRAW_PREFIX) -I$(LIBSOFTREND_PREFIX) -I$(LIBGRAPH_PREFIX)
+LIBS = draw softrend graph
 
 SOURCES = \
 	common.c \

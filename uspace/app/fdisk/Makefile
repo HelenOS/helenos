@@ -27,13 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = \
-	$(LIBCLUI_PREFIX)/libclui.a \
-	$(LIBFDISK_PREFIX)/libfdisk.a
-
-EXTRA_CFLAGS = \
-	-I$(LIBCLUI_PREFIX) \
-	-I$(LIBFDISK_PREFIX)/include
+LIBS = clui fdisk
 
 BINARY = fdisk
 

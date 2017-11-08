@@ -28,7 +28,8 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libbithenge
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -D__HELENOS__ -Iinclude
+EXTRA_CFLAGS = -D__HELENOS__
+LIBS = block
 
 SOURCES = \
 	src/helenos/block.c \

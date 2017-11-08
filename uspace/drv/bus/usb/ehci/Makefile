@@ -28,18 +28,7 @@
 
 USPACE_PREFIX = ../../../..
 
-LIBS = \
-	$(LIBUSBHOST_PREFIX)/libusbhost.a \
-	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBUSBHOST_PREFIX)/include \
-	-I$(LIBUSBVIRT_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
+LIBS = usbhost usbvirt usb drv usbdev
 
 BINARY = ehci
 
