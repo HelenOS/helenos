@@ -28,7 +28,6 @@
 
 USPACE_PREFIX = ../../..
 LIBS = drv
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = ski
 
 SOURCES = \
