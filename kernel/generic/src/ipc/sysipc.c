@@ -371,7 +371,7 @@ sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
 	
 	if (check_call_limit(kobj->phone)) {
 		kobject_put(kobj);
-		return IPC_CALLRET_TEMPORARY;
+		return IPC_CALLRET_FATAL;
 	}
 	
 	call_t *call = ipc_call_alloc(0);
@@ -414,7 +414,7 @@ sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data)
 
 	if (check_call_limit(kobj->phone)) {
 		kobject_put(kobj);
-		return IPC_CALLRET_TEMPORARY;
+		return IPC_CALLRET_FATAL;
 	}
 
 	call_t *call = ipc_call_alloc(0);
