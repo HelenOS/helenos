@@ -43,7 +43,7 @@
 #define IPC_CALL_LEN  6
 
 /** Maximum active async calls per phone */
-#define IPC_MAX_ASYNC_CALLS  4
+#define IPC_MAX_ASYNC_CALLS  64
 
 /* Flags for calls */
 
