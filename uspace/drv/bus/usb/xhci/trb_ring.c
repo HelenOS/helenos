@@ -217,7 +217,7 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	trb = first_trb;
 	for (size_t i = 0; i < trbs; ++i, ++trb) {
 		TRB_SET_CYCLE(*trb, ring->pcs);
-		xhci_trb_copy(ring->enqueue_trb, trb);
+		xhci_trb_copy_to_pio(ring->enqueue_trb, trb);
 
 		usb_log_debug2("TRB ring(%p): Enqueued TRB %p", ring, trb);
 		ring->enqueue_trb++;

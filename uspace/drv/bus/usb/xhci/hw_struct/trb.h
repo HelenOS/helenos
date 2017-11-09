@@ -39,6 +39,7 @@
 #define XHCI_TRB_H
 
 #include "common.h"
+#include <libarch/barrier.h>
 
 /**
  * TRB types: section 6.4.6, table 139
@@ -168,7 +169,7 @@ static inline void xhci_trb_link_fill(xhci_trb_t *trb, uintptr_t next_phys)
 	xhci_qword_set(&trb->parameter, next_phys);
 }
 
-static inline void xhci_trb_copy(xhci_trb_t *dst, xhci_trb_t *src)
+static inline void xhci_trb_copy_to_pio(xhci_trb_t *dst, xhci_trb_t *src)
 {
 	/*
 	 * As we do not know, whether our architecture is capable of copying 16
@@ -176,6 +177,9 @@ static inline void xhci_trb_copy(xhci_trb_t *dst, xhci_trb_t *src)
 	 */
 	dst->parameter = src->parameter;
 	dst->status = src->status;
+
+	write_barrier();
+
 	dst->control = src->control;
 }
 
