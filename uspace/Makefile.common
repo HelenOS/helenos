@@ -243,8 +243,6 @@ DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename
 LIBTAGS := $(foreach lib,$(LIBS), $(USPACE_PREFIX)/lib/$(lib)/tag)
 LIBARGS := $(addprefix -L$(USPACE_PREFIX)/lib/, $(LIBS)) $(addprefix -l, $(LIBS))
 
--include $(DEPENDS)
-
 .PHONY: all all-test clean depend
 
 all: tag $(OUTPUTS)
@@ -329,4 +327,6 @@ endif
 
 %.lo: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
+
+-include $(DEPENDS)
 
