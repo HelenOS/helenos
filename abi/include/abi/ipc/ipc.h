@@ -81,8 +81,6 @@
 
 /* Return values from sys_ipc_call_async(). */
 #define IPC_CALLRET_FATAL      -1
-#define IPC_CALLRET_TEMPORARY  -2
-
 
 /* Macros for manipulating calling data */
 #define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (retval))

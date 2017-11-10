@@ -358,8 +358,6 @@ static int check_call_limit(phone_t *phone)
  *
  * @return Call hash on success.
  * @return IPC_CALLRET_FATAL in case of a fatal error.
- * @return IPC_CALLRET_TEMPORARY if there are too many pending
- *         asynchronous requests; answers should be handled first.
  *
  */
 sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
