@@ -160,6 +160,7 @@ DIRS = \
 	drv/char/pl050 \
 	drv/char/ps2mouse \
 	drv/char/ski-con \
+	drv/char/sun4v-con \
 	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
@@ -182,6 +183,7 @@ DIRS = \
 	drv/platform/msim \
 	drv/platform/pc \
 	drv/platform/ski \
+	drv/platform/sun4v \
 	drv/time/cmos-rtc
 
 ## sun4u driver won't compile on 32-bit targets

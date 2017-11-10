@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2017 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,26 +27,10 @@
 #
 
 USPACE_PREFIX = ../../..
-BINARY = input
 LIBS = drv
+BINARY = sun4v
 
 SOURCES = \
-	layout/cz.c \
-	layout/us_qwerty.c \
-	layout/us_dvorak.c \
-	layout/ar.c \
-	port/adb.c \
-	port/adb_mouse.c \
-	port/chardev.c \
-	proto/adb.c \
-	proto/mousedev.c \
-	ctl/apple.c \
-	ctl/kbdev.c \
-	ctl/stty.c \
-	ctl/sun.c \
-	gsp.c \
-	input.c \
-	layout.c \
-	stroke.c
+	sun4v.c
 
 include $(USPACE_PREFIX)/Makefile.common

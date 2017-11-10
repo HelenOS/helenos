@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief Keyboard port driver interface.
- * @ingroup input
+/** @addtogroup genarch
  * @{
  */
 /** @file
  */
 
-#ifndef KBD_PORT_H_
-#define KBD_PORT_H_
+#ifndef SUN4V_CON_H
+#define SUN4V_CON_H
 
+#include <async.h>
+#include <ddf/driver.h>
+#include <loc.h>
 #include <stdint.h>
 
-struct kbd_dev;
+/** Sun4v console */
+typedef struct {
+	async_sess_t *client_sess;
+	ddf_dev_t *dev;
+} sun4v_con_t;
 
-typedef struct kbd_port_ops {
-	int (*init)(struct kbd_dev *);
-	void (*write)(uint8_t);
-} kbd_port_ops_t;
+extern int sun4v_con_init(sun4v_con_t *);
+extern void sun4v_con_write(uint8_t data);
 
-extern kbd_port_ops_t adb_port;
-extern kbd_port_ops_t chardev_port;
-extern kbd_port_ops_t ns16550_port;
+
+extern int sun4v_con_add(sun4v_con_t *);
+extern int sun4v_con_remove(sun4v_con_t *);
+extern int sun4v_con_gone(sun4v_con_t *);
 
 #endif
 
-/**
- * @}
+/** @}
  */

@@ -60,7 +60,7 @@ static async_sess_t *dev_sess;
 static const char *in_devs[] = {
 	/** S3C24xx UART - Openmoko debug console */
 	"char/s3c24xx_uart",
-	/** Ski console, MSIM console */
+	/** Ski console, MSIM console, Sun4v console */
 	"devices/\\hw\\console\\a"
 };
 

@@ -646,7 +646,7 @@ static void kbd_add_legacy_devs(void)
 	kbd_add_dev(&adb_port, &apple_ctl);
 #endif
 #if defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
-	kbd_add_dev(&niagara_port, &stty_ctl);
+	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
 	/* Silence warning on abs32le about kbd_add_dev() being unused */
 	(void) kbd_add_dev;

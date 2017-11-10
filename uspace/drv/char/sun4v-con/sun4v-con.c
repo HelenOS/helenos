@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2008 Pavel Rimsky
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,67 +27,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file
- * @brief Msim console driver.
+/** @file Sun4v console driver
  */
 
+#include <as.h>
 #include <async.h>
-#include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
 #include <ipc/char.h>
+#include <stdbool.h>
 #include <sysinfo.h>
+#include <thread.h>
 
-#include "msim-con.h"
+#include "sun4v-con.h"
 
-static void msim_con_connection(ipc_callid_t, ipc_call_t *, void *);
+static void sun4v_con_connection(ipc_callid_t, ipc_call_t *, void *);
 
-static irq_pio_range_t msim_ranges[] = {
-	{
-		.base = 0,
-		.size = 1
-	}
-};
+#define POLL_INTERVAL  10000
 
-static irq_cmd_t msim_cmds[] = {
-	{
-		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0,	/* will be patched in run-time */
-		.dstarg = 2
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
+/*
+ * Kernel counterpart of the driver pushes characters (it has read) here.
+ * Keep in sync with the definition from
+ * kernel/arch/sparc64/src/drivers/niagara.c.
+ */
+#define INPUT_BUFFER_SIZE  ((PAGE_SIZE) - 2 * 8)
 
-static irq_code_t msim_kbd = {
-	sizeof(msim_ranges) / sizeof(irq_pio_range_t),
-	msim_ranges,
-	sizeof(msim_cmds) / sizeof(irq_cmd_t),
-	msim_cmds
-};
+typedef volatile struct {
+	uint64_t write_ptr;
+	uint64_t read_ptr;
+	char data[INPUT_BUFFER_SIZE];
+} __attribute__((packed)) __attribute__((aligned(PAGE_SIZE))) *input_buffer_t;
 
-static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
+/* virtual address of the shared buffer */
+static input_buffer_t input_buffer;
+
+static void sun4v_thread_impl(void *arg);
+
+static void sun4v_con_putchar(sun4v_con_t *con, uint8_t data)
 {
-	msim_con_t *con = (msim_con_t *) arg;
-	uint8_t c;
-
-	c = IPC_GET_ARG2(*call);
-
-	if (con->client_sess != NULL) {
-		async_exch_t *exch = async_exchange_begin(con->client_sess);
-		async_msg_1(exch, CHAR_NOTIF_BYTE, c);
-		async_exchange_end(exch);
-	}
+	(void) con;
+	(void) data;
 }
 
-/** Add msim console device. */
-int msim_con_add(msim_con_t *con)
+/** Add sun4v console device. */
+int sun4v_con_add(sun4v_con_t *con)
 {
 	ddf_fun_t *fun = NULL;
-	bool subscribed = false;
 	int rc;
+
+	input_buffer = (input_buffer_t) AS_AREA_ANY;
 
 	fun = ddf_fun_create(con->dev, fun_exposed, "a");
 	if (fun == NULL) {
@@ -96,24 +85,26 @@ int msim_con_add(msim_con_t *con)
 		goto error;
 	}
 
-	ddf_fun_set_conn_handler(fun, msim_con_connection);
+	ddf_fun_set_conn_handler(fun, sun4v_con_connection);
 
 	sysarg_t paddr;
-	if (sysinfo_get_value("kbd.address.physical", &paddr) != EOK) {
-		rc = ENOENT;
+	rc = sysinfo_get_value("niagara.inbuf.address", &paddr);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "niagara.inbuf.address not set (%d)", rc);
 		goto error;
 	}
 
-	sysarg_t inr;
-	if (sysinfo_get_value("kbd.inr", &inr) != EOK) {
-		rc = ENOENT;
+	rc = physmem_map(paddr, 1, AS_AREA_READ | AS_AREA_WRITE,
+	    (void *) &input_buffer);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error mapping memory: %d", rc);
 		goto error;
 	}
 
-	msim_ranges[0].base = paddr;
-	msim_cmds[0].addr = (void *) paddr;
-	async_irq_subscribe(inr, msim_irq_handler, con, &msim_kbd);
-	subscribed = true;
+	thread_id_t tid;
+	rc = thread_create(sun4v_thread_impl, con, "kbd_poll", &tid);
+	if (rc != EOK)
+		goto error;
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -123,40 +114,73 @@ int msim_con_add(msim_con_t *con)
 
 	return EOK;
 error:
-	if (subscribed)
-		async_irq_unsubscribe(inr);
+	/* XXX Clean up thread */
+
+	if (input_buffer != (input_buffer_t) AS_AREA_ANY)
+		physmem_unmap((void *) input_buffer);
+
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 
 	return rc;
 }
 
-/** Remove msim console device */
-int msim_con_remove(msim_con_t *con)
+/** Remove sun4v console device */
+int sun4v_con_remove(sun4v_con_t *con)
 {
 	return ENOTSUP;
 }
 
 /** Msim console device gone */
-int msim_con_gone(msim_con_t *con)
+int sun4v_con_gone(sun4v_con_t *con)
 {
 	return ENOTSUP;
 }
 
-static void msim_con_putchar(msim_con_t *con, uint8_t ch)
+/**
+ * Called regularly by the polling thread. Reads codes of all the
+ * pressed keys from the buffer.
+ */
+static void sun4v_key_pressed(sun4v_con_t *con)
 {
+	char c;
+
+	while (input_buffer->read_ptr != input_buffer->write_ptr) {
+		c = input_buffer->data[input_buffer->read_ptr];
+		input_buffer->read_ptr =
+		    ((input_buffer->read_ptr) + 1) % INPUT_BUFFER_SIZE;
+		if (con->client_sess != NULL) {
+			async_exch_t *exch = async_exchange_begin(con->client_sess);
+			async_msg_1(exch, CHAR_NOTIF_BYTE, c);
+			async_exchange_end(exch);
+		}
+		(void) c;
+	}
+}
+
+/**
+ * Thread to poll Sun4v console for keypresses.
+ */
+static void sun4v_thread_impl(void *arg)
+{
+	sun4v_con_t *con = (sun4v_con_t *) arg;
+
+	while (true) {
+		sun4v_key_pressed(con);
+		thread_usleep(POLL_INTERVAL);
+	}
 }
 
 /** Character device connection handler. */
-static void msim_con_connection(ipc_callid_t iid, ipc_call_t *icall,
+static void sun4v_con_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	msim_con_t *con;
+	sun4v_con_t *con;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	async_answer_0(iid, EOK);
 
-	con = (msim_con_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
+	con = (sun4v_con_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (true) {
 		ipc_call_t call;
@@ -182,7 +206,7 @@ static void msim_con_connection(ipc_callid_t iid, ipc_call_t *icall,
 			case CHAR_WRITE_BYTE:
 				ddf_msg(LVL_DEBUG, "Write %" PRIun " to device\n",
 				    IPC_GET_ARG1(call));
-				msim_con_putchar(con, (uint8_t) IPC_GET_ARG1(call));
+				sun4v_con_putchar(con, (uint8_t) IPC_GET_ARG1(call));
 				async_answer_0(callid, EOK);
 				break;
 			default:
