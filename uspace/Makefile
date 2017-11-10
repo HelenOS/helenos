@@ -259,10 +259,9 @@ clean: $(CLEANS)
 	find lib app drv srv -name '*.o' -follow -exec rm \{\} \;
 	find lib app drv srv -name '*.lo' -follow -exec rm \{\} \;
 	find lib app drv srv -name '*.d' -follow -exec rm \{\} \;
-	find lib app drv srv -name 'tag' -follow -exec rm \{\} \;
 
 $(CLEANS):
-	-$(MAKE) -r -C $(basename $@) clean
+	-$(MAKE) -r -C $(basename $@) fasterclean
 
 $(BASE_BUILDS) $(BUILDS):
 	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)

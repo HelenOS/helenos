@@ -243,14 +243,20 @@ DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename
 LIBTAGS := $(foreach lib,$(LIBS), $(USPACE_PREFIX)/lib/$(lib)/tag)
 LIBARGS := $(addprefix -L$(USPACE_PREFIX)/lib/, $(LIBS)) $(addprefix -l, $(LIBS))
 
-.PHONY: all all-test clean depend
+.PHONY: all all-test clean fasterclean depend
 
 all: tag $(OUTPUTS)
 
 all-test: $(TEST_OUTPUTS)
 
 clean:
-	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN)
+	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN) tag deps.mk
+	find . -name '*.o' -follow -exec rm \{\} \;
+	find . -name '*.lo' -follow -exec rm \{\} \;
+	find . -name '*.d' -follow -exec rm \{\} \;
+
+fasterclean:
+	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN) tag deps.mk
 
 depend: $(PRE_DEPEND)
 

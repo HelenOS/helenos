@@ -6,6 +6,7 @@
 *.so.*
 *.d
 tag
+deps.mk
 Makefile.ag.depend
 Makefile.common
 Makefile.config
