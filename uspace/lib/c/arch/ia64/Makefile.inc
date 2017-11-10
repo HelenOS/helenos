@@ -27,7 +27,6 @@
 #
 
 ARCH_SOURCES = \
-	arch/$(UARCH)/src/entry.S \
 	arch/$(UARCH)/src/entryjmp.S \
 	arch/$(UARCH)/src/thread_entry.S \
 	arch/$(UARCH)/src/syscall.S \
@@ -41,4 +40,4 @@ ARCH_AUTOGENS_AG = \
 	arch/$(UARCH)/include/libarch/istate_struct.ag \
 	arch/$(UARCH)/include/libarch/fibril_context.ag
 
-.PRECIOUS: arch/$(UARCH)/src/entry.o
+EXTRA_OUTPUT += arch/$(UARCH)/src/entry.o
