@@ -73,8 +73,8 @@ endif
 ifeq ($(MACHINE), integratorcp)
 	RD_DRVS_ESSENTIAL += \
 		char/pl050 \
-		char/atkbd \
-		char/ps2mouse \
+		hid/atkbd \
+		hid/ps2mouse \
 		intctl/icp-ic \
 		platform/icp
 endif

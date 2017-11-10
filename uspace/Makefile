@@ -154,19 +154,19 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
-	drv/char/atkbd \
 	drv/char/i8042 \
 	drv/char/ns8250 \
 	drv/char/pl050 \
-	drv/char/ps2mouse \
 	drv/char/ski-con \
 	drv/char/sun4v-con \
-	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
 	drv/test/test3 \
 	drv/fb/amdm37x_dispc \
 	drv/fb/kfb \
+	drv/hid/atkbd \
+	drv/hid/ps2mouse \
+	drv/hid/xtkbd \
 	drv/intctl/apic \
 	drv/intctl/i8259 \
 	drv/intctl/icp-ic \

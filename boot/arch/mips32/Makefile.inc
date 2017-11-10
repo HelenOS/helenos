@@ -57,8 +57,8 @@ ifeq ($(MACHINE), $(filter $(MACHINE),bmalta lmalta))
 		bus/pci/pciintel \
 		bus/isa \
 		char/i8042 \
-		char/ps2mouse \
-		char/xtkbd
+		hid/ps2mouse \
+		hid/xtkbd
 
 	RD_DRV_CFG += \
 		bus/isa

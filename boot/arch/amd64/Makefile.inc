@@ -38,8 +38,8 @@ RD_DRVS_ESSENTIAL += \
 	bus/isa \
 	audio/sb16 \
 	char/i8042 \
-	char/ps2mouse \
-	char/xtkbd
+	hid/ps2mouse \
+	hid/xtkbd
 
 RD_DRVS_NON_ESSENTIAL += \
 	audio/hdaudio \

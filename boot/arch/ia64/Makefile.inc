@@ -71,7 +71,7 @@ RD_DRVS_ESSENTIAL += \
 	bus/pci/pciintel \
 	bus/isa \
 	char/i8042 \
-	char/xtkbd
+	hid/xtkbd
 
 RD_DRVS_NON_ESSENTIAL += \
 	char/ns8250 \
