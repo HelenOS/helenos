@@ -60,7 +60,7 @@ static async_sess_t *dev_sess;
 static const char *in_devs[] = {
 	/** S3C24xx UART - Openmoko debug console */
 	"char/s3c24xx_uart",
-	/** Ski console */
+	/** Ski console, MSIM console */
 	"devices/\\hw\\console\\a"
 };
 
@@ -74,7 +74,7 @@ static int chardev_port_init(kbd_dev_t *kdev)
 	int rc;
 	
 	kbd_dev = kdev;
-	
+again:
 	for (i = 0; i < num_devs; i++) {
 		rc = loc_service_get_id(in_devs[i], &service_id, 0);
 		if (rc == EOK)
@@ -82,8 +82,10 @@ static int chardev_port_init(kbd_dev_t *kdev)
 	}
 	
 	if (i >= num_devs) {
-		printf("%s: Could not find any suitable input device\n", NAME);
-		return -1;
+		/* XXX This is just a hack. */
+		printf("%s: No input device found, sleep for retry.\n", NAME);
+		async_usleep(1000 * 1000);
+		goto again;
 	}
 	
 	dev_sess = loc_service_connect(service_id, INTERFACE_DDF,
@@ -112,6 +114,7 @@ static int chardev_port_init(kbd_dev_t *kdev)
 		return -1;
 	}
 	
+	printf("%s: Found input device '%s'\n", NAME, in_devs[i]);
 	return 0;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,36 +27,69 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Ski console driver.
+/** @file
+ * @brief Msim console driver.
  */
 
+#include <async.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <ddi.h>
 #include <errno.h>
 #include <ipc/char.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <thread.h>
-#include <stdbool.h>
+#include <sysinfo.h>
 
-#include "ski-con.h"
+#include "msim-con.h"
 
-#define SKI_GETCHAR		21
+static void msim_con_connection(ipc_callid_t, ipc_call_t *, void *);
 
-#define POLL_INTERVAL		10000
+static irq_pio_range_t msim_ranges[] = {
+	{
+		.base = 0,
+		.size = 1
+	}
+};
 
-static void ski_con_thread_impl(void *arg);
-static int32_t ski_con_getchar(void);
-static void ski_con_connection(ipc_callid_t, ipc_call_t *, void *);
+static irq_cmd_t msim_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = (void *) 0,	/* will be patched in run-time */
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
 
-/** Add ski console device. */
-int ski_con_add(ski_con_t *con)
+static irq_code_t msim_kbd = {
+	sizeof(msim_ranges) / sizeof(irq_pio_range_t),
+	msim_ranges,
+	sizeof(msim_cmds) / sizeof(irq_cmd_t),
+	msim_cmds
+};
+#include <stdio.h>
+static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
 {
-	thread_id_t tid;
+	msim_con_t *con = (msim_con_t *) arg;
+	uint8_t c;
+
+	c = IPC_GET_ARG2(*call);
+	printf("key=%d\n", c);
+	if (con->client_sess != NULL) {
+		async_exch_t *exch = async_exchange_begin(con->client_sess);
+		async_msg_1(exch, CHAR_NOTIF_BYTE, c);
+		async_exchange_end(exch);
+	}
+}
+
+/** Add msim console device. */
+int msim_con_add(msim_con_t *con)
+{
 	ddf_fun_t *fun = NULL;
-	bool bound = false;
+	bool subscribed = false;
 	int rc;
 
+	printf("msim_con_add\n");
 	fun = ddf_fun_create(con->dev, fun_exposed, "a");
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Error creating function 'a'.");
@@ -64,108 +97,73 @@ int ski_con_add(ski_con_t *con)
 		goto error;
 	}
 
-	ddf_fun_set_conn_handler(fun, ski_con_connection);
+	ddf_fun_set_conn_handler(fun, msim_con_connection);
 
+	sysarg_t paddr;
+	if (sysinfo_get_value("kbd.address.physical", &paddr) != EOK) {
+		rc = ENOENT;
+		goto error;
+	}
+
+	sysarg_t inr;
+	if (sysinfo_get_value("kbd.inr", &inr) != EOK) {
+		rc = ENOENT;
+		goto error;
+	}
+
+	printf("msim_con_add: irq subscribe\n");
+
+	msim_ranges[0].base = paddr;
+	msim_cmds[0].addr = (void *) paddr;
+	async_irq_subscribe(inr, msim_irq_handler, con, &msim_kbd);
+	subscribed = true;
+
+	printf("msim_con_add: bind\n");
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error binding function 'a'.");
 		goto error;
 	}
 
-	bound = true;
-
-	rc = thread_create(ski_con_thread_impl, con, "kbd_poll", &tid);
-	if (rc != 0) {
-		return rc;
-	}
-
+	printf("msim_con_add: DONE\n");
 	return EOK;
 error:
-	if (bound)
-		ddf_fun_unbind(fun);
+	if (subscribed)
+		async_irq_unsubscribe(inr);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 
 	return rc;
 }
 
-/** Remove ski console device */
-int ski_con_remove(ski_con_t *con)
+/** Remove msim console device */
+int msim_con_remove(msim_con_t *con)
 {
 	return ENOTSUP;
 }
 
-/** Ski console device gone */
-int ski_con_gone(ski_con_t *con)
+/** Msim console device gone */
+int msim_con_gone(msim_con_t *con)
 {
 	return ENOTSUP;
 }
 
-/** Thread to poll Ski for keypresses. */
-static void ski_con_thread_impl(void *arg)
+static void msim_con_putchar(msim_con_t *con, uint8_t ch)
 {
-	int32_t c;
-	ski_con_t *con = (ski_con_t *) arg;
-
-	while (1) {
-		while (1) {
-			c = ski_con_getchar();
-			if (c == 0)
-				break;
-
-			if (con->client_sess != NULL) {
-				async_exch_t *exch = async_exchange_begin(con->client_sess);
-				async_msg_1(exch, CHAR_NOTIF_BYTE, c);
-				async_exchange_end(exch);
-			}
-		}
-
-		thread_usleep(POLL_INTERVAL);
-	}
-}
-
-/** Ask Ski if a key was pressed.
- *
- * Use SSC (Simulator System Call) to get character from the debug console.
- * This call is non-blocking.
- *
- * @return ASCII code of pressed key or 0 if no key pressed.
- */
-static int32_t ski_con_getchar(void)
-{
-	uint64_t ch;
-
-#ifdef UARCH_ia64
-	asm volatile (
-		"mov r15 = %1\n"
-		"break 0x80000;;\n"	/* modifies r8 */
-		"mov %0 = r8;;\n"
-
-		: "=r" (ch)
-		: "i" (SKI_GETCHAR)
-		: "r15", "r8"
-	);
-#else
-	ch = 0;
-#endif
-	return (int32_t) ch;
-}
-
-static void ski_con_putchar(ski_con_t *con, char ch)
-{
-	
 }
 
 /** Character device connection handler. */
-static void ski_con_connection(ipc_callid_t iid, ipc_call_t *icall,
+static void msim_con_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	ski_con_t *con;
+	msim_con_t *con;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	async_answer_0(iid, EOK);
 
-	con = (ski_con_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
+	printf("msim_con_connection\n");
+
+	con = (msim_con_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (true) {
 		ipc_call_t call;
@@ -186,12 +184,13 @@ static void ski_con_connection(ipc_callid_t iid, ipc_call_t *icall,
 				async_answer_0(callid, EOK);
 			} else
 				async_answer_0(callid, ELIMIT);
+			printf("msim_con_connection: set client_sess\n");
 		} else {
 			switch (method) {
 			case CHAR_WRITE_BYTE:
 				ddf_msg(LVL_DEBUG, "Write %" PRIun " to device\n",
 				    IPC_GET_ARG1(call));
-				ski_con_putchar(con, (uint8_t) IPC_GET_ARG1(call));
+				msim_con_putchar(con, (uint8_t) IPC_GET_ARG1(call));
 				async_answer_0(callid, EOK);
 				break;
 			default:

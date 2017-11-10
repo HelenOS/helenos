@@ -40,7 +40,7 @@
 #include <loc.h>
 #include <stdint.h>
 
-/** IntegratorCP Interrupt Controller */
+/** Ski console */
 typedef struct {
 	async_sess_t *client_sess;
 	ddf_dev_t *dev;

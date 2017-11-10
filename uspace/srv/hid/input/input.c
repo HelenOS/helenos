@@ -640,7 +640,7 @@ static void kbd_add_legacy_devs(void)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
 #if defined(MACHINE_msim)
-	kbd_add_dev(&msim_port, &stty_ctl);
+	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
 #if defined(UARCH_ppc32)
 	kbd_add_dev(&adb_port, &apple_ctl);

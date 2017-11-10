@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,84 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd_port
- * @ingroup  kbd
+/** @addtogroup genarch
  * @{
  */
 /** @file
- * @brief Msim keyboard port driver.
  */
 
+#ifndef MSIM_CON_H
+#define MSIM_CON_H
+
 #include <async.h>
-#include <sysinfo.h>
-#include <ddi.h>
-#include <errno.h>
-#include "../kbd_port.h"
-#include "../kbd.h"
+#include <ddf/driver.h>
+#include <loc.h>
+#include <stdint.h>
 
-static int msim_port_init(kbd_dev_t *);
-static void msim_port_write(uint8_t data);
+/** MSIM console */
+typedef struct {
+	async_sess_t *client_sess;
+	ddf_dev_t *dev;
+} msim_con_t;
 
-kbd_port_ops_t msim_port = {
-	.init = msim_port_init,
-	.write = msim_port_write
-};
+extern int msim_con_init(msim_con_t *);
+extern void msim_con_write(uint8_t data);
 
-static kbd_dev_t *kbd_dev;
 
-static irq_pio_range_t msim_ranges[] = {
-	{
-		.base = 0,
-		.size = 1
-	}
-};
+extern int msim_con_add(msim_con_t *);
+extern int msim_con_remove(msim_con_t *);
+extern int msim_con_gone(msim_con_t *);
 
-static irq_cmd_t msim_cmds[] = {
-	{
-		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0,	/* will be patched in run-time */
-		.dstarg = 2
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-
-static irq_code_t msim_kbd = {
-	sizeof(msim_ranges) / sizeof(irq_pio_range_t),
-	msim_ranges,
-	sizeof(msim_cmds) / sizeof(irq_cmd_t),
-	msim_cmds
-};
-
-static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
-{
-	kbd_push_data(kbd_dev, IPC_GET_ARG2(*call));
-}
-
-static int msim_port_init(kbd_dev_t *kdev)
-{
-	kbd_dev = kdev;
-
-	sysarg_t paddr;
-	if (sysinfo_get_value("kbd.address.physical", &paddr) != EOK)
-		return -1;
-	
-	sysarg_t inr;
-	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
-		return -1;
-	
-	msim_ranges[0].base = paddr;
-	msim_cmds[0].addr = (void *) paddr;
-	async_irq_subscribe(inr, msim_irq_handler, NULL, &msim_kbd);
-	
-	return 0;
-}
-
-static void msim_port_write(uint8_t data)
-{
-	(void) data;
-}
+#endif
 
 /** @}
  */
