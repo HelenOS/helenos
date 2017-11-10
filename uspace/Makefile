@@ -155,6 +155,7 @@ DIRS = \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
 	drv/char/i8042 \
+	drv/char/msim-con \
 	drv/char/ns8250 \
 	drv/char/pl050 \
 	drv/char/ski-con \
