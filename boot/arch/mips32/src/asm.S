@@ -32,7 +32,6 @@
 
 .set noat
 .set noreorder
-.set nomacro
 
 .section BOOTSTRAP
 

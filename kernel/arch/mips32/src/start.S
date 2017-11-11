@@ -37,7 +37,6 @@
 
 .set noat
 .set noreorder
-.set nomacro
 
 /*
  * Which status bits are thread-local:
