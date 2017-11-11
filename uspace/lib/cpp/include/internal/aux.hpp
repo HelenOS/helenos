@@ -29,10 +29,7 @@
 #ifndef LIBCPP_AUX
 #define LIBCPP_AUX
 
-namespace std
-{
-
-namespace aux
+namespace std::aux
 {
     /**
      * Two very handy templates, this allows us
@@ -62,8 +59,6 @@ namespace aux
     {
         static constexpr T value = v;
     };
-}
-
 }
 
 #endif
