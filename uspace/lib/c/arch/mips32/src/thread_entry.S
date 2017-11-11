@@ -61,3 +61,4 @@ SYMBOL(__thread_entry)
 	# Not reached.
 	#
 	addiu $sp, ABI_STACK_FRAME
+	.end __thread_entry
