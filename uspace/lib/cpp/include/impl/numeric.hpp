@@ -96,7 +96,7 @@ namespace std
                                OutputIterator result)
     {
         if (first == last)
-            return;
+            return result;
 
         auto acc{*first++};
         *result++ = acc;
@@ -112,7 +112,7 @@ namespace std
                                OutputIterator result, BinaryOperation op)
     {
         if (first == last)
-            return;
+            return result;
 
         auto acc{*first++};
         *result++ = acc;
@@ -132,7 +132,7 @@ namespace std
                                        OutputIterator result)
     {
         if (first == last)
-            return;
+            return result;
 
         auto acc{*first++};
         *result++ = acc;
@@ -152,7 +152,7 @@ namespace std
                                        OutputIterator result, BinaryOperation op)
     {
         if (first == last)
-            return;
+            return result;
 
         auto acc{*first++};
         *result++ = acc;
