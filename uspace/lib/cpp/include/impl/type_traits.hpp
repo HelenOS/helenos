@@ -61,119 +61,57 @@ namespace std
     using true_type = integral_constant<bool, true>;
     using false_type = integral_constant<bool, false>;
 
-    /**
-     * 20.10.4.1, primary type categories:
-     */
-
     template<class>
     struct remove_cv;
 
     template<class T>
     using remove_cv_t = typename remove_cv<T>::type;
 
-    template<class>
-    struct __is_void: false_type
-    { /* DUMMY BODY */ };
+    namespace aux
+    {
+        template<class T, class U>
+        struct is_same: false_type
+        { /* DUMMY BODY */ };
 
-    template<>
-    struct __is_void<void>: true_type
+        template<class T>
+        struct is_same<T, T>: true_type
+        { /* DUMMY BODY */ };
+
+        template<class T, class U>
+        struct is_one_of: is_same<T, Y>
+        { /* DUMMY BODY */ };
+
+        template<class T, class, class... Ts>
+        struct is_one_of: is_one_of<T, Ts...>
+        { /* DUMMY BODY */ };
+
+        template<class T, class U, class...>
+        struct is_one_of: true_type
+        { /* DUMMY BODY */ };
+    }
+
+    /**
+     * 20.10.4.1, primary type categories:
+     */
+
+    template<class T>
+    struct is_void: is_same<remove_cv_t<T>, void>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_void: __is_void<remove_cv_t<T>>
-    { /* DUMMY BODY */ };
-
-    template<class>
-    struct __is_null_pointer: false_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_null_pointer<nullptr_t>: true_type
+    struct is_null_pointer: is_same<remove_cv_t<T>, nullptr_t>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_null_pointer: __is_null_pointer<remove_cv_t<T>>
+    struct is_integral: aux::is_one_of<remove_cv_t<T>,
+            bool, char, unsigned char, signed char,
+            long, unsigned long, int, unsigned int, short,
+            unsigned short, long long, unsigned long long>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct __is_integral: false_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<bool>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<char>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<signed char>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<unsigned char>: true_type
-    { /* DUMMY BODY */ };
-
-    /* TODO: Problem - wchar_t is typedef'd to int here.
-    template<>
-    struct __is_integral<wchar_t>;
-    */
-
-    template<>
-    struct __is_integral<long>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<unsigned long>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<int>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<unsigned int>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<short>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<unsigned short>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<long long>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_integral<unsigned long long>: true_type
-    { /* DUMMY BODY */ };
-
-    template<class T> // TODO: use remove_cv when implemented
-    struct is_integral: __is_integral<T>
-    { /* DUMMY BODY */ };
-
-    template<class>
-    struct __is_floating_point: false_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_floating_point<float>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_floating_point<double>: true_type
-    { /* DUMMY BODY */ };
-
-    template<>
-    struct __is_floating_point<long double>: true_type
-    { /* DUMMY BODY */ };
-
-    template<class T>
-    struct is_floating_point: __is_floating_point<remove_cv_t<T>>
+    struct is_floating_point
+        : is_one_of<remove_cv_t<T>, float, double, long double>
     { /* DUMMY BODY */ };
 
     template<class>
@@ -184,16 +122,19 @@ namespace std
     struct is_array<T[]>: true_type
     { /* DUMMY BODY */ };
 
-    template<class>
-    struct __is_pointer: false_type
-    { /* DUMMY BODY */ };
+    namespace aux
+    {
+        template<class>
+        struct is_pointer: false_type
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        struct is_pointer<T*>: true_type
+        { /* DUMMY BODY */ };
+    }
 
     template<class T>
-    struct __is_pointer<T*>: true_type
-    { /* DUMMY BODY */ };
-
-    template<class T>
-    struct is_pointer: __is_pointer<remove_cv_t<T>>
+    struct is_pointer: aux::is_pointer<remove_cv_t<T>>
     { /* DUMMY BODY */ };
 
     template<class T>
@@ -227,26 +168,32 @@ namespace std
     template<class>
     struct is_function;
 
+    namespace aux
+    {
+        template<class T>
+        struct is_member_function_pointer: false_type
+        { /* DUMMY BODY */ };
+
+        template<class T, class U>
+        struct is_member_function_pointer<T U::*>: is_function<T>
+        { /* DUMMY BODY */ };
+    }
+
     template<class T>
-    struct __is_member_function_pointer: false_type
+    struct is_member_function_pointer: aux::is_member_function_pointer<remove_cv_t<T>>
     { /* DUMMY BODY */ };
 
-    template<class T, class U>
-    struct __is_member_function_pointer<T U::*>: is_function<T>
+    template<class T>
+    struct is_enum: aux::value_is<__is_enum(T)>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_member_function_pointer: __is_member_function_pointer<remove_cv_t<T>>
+    struct is_union: aux::value_is<__is_union(T)>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_enum; // TODO: No idea how to implement.
-
-    template<class T>
-    struct is_union; // TODO: No idea how to implement.
-
-    template<class T>
-    struct is_class; // TODO: No idea how to implement.
+    struct is_class: aux::value_is<__is_class(T)>
+    { /* DUMMY BODY */ };
 
     /**
      * Note: is_function taken from possile implementation on cppreference.com
@@ -456,7 +403,10 @@ namespace std
     struct is_reference;
 
     template<class T>
-    struct is_arithmetic;
+    struct is_arithmetic: aux::value_is<
+        bool,
+        is_integral<T>::value || is_floating_point<T>::value>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_fundamental;
@@ -470,16 +420,19 @@ namespace std
     template<class T>
     struct is_compound;
 
-    template<class T>
-    struct __is_member_pointer: false_type
-    { /* DUMMY BODY */ };
+    namespace aux
+    {
+        template<class T>
+        struct is_member_pointer: false_type
+        { /* DUMMY BODY */ };
 
-    template<class T, class U>
-    struct __is_member_pointer<T U::*>: true_type
-    { /* DUMMY BODY */ };
+        template<class T, class U>
+        struct is_member_pointer<T U::*>: true_type
+        { /* DUMMY BODY */ };
+    }
 
     template<class T>
-    struct is_member_pointer: __is_member_pointer<remove_cv_t<T>>
+    struct is_member_pointer: aux::is_member_pointer<remove_cv_t<T>>
     { /* DUMMY BODY */ };
 
     /**
@@ -487,43 +440,90 @@ namespace std
      */
 
     template<class T>
-    struct is_const;
+    struct is_const: false_type
+    { /* DUMMY BODY */};
 
     template<class T>
-    struct is_volatile;
+    struct is_const<T const>: true_type
+    { /* DUMMY BODY */};
 
     template<class T>
-    struct is_trivial;
+    struct is_volatile: false_type
+    { /* DUMMY BODY */};
 
     template<class T>
-    struct is_trivially_copyable;
+    struct is_volatile<T volatile>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_trivial: aux::value_is<
+        bool,
+        is_trivially_copyable<T>::value &&
+        is_trivially_default_constructible<T>::value>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_trivially_copyable: aux::value_is<bool, __has_trivial_copy(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_standard_layout;
 
     template<class T>
-    struct is_pod;
+    struct is_pod: aux::value_is<bool, __is_pod(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_literal_type;
+    struct is_literal_type: aux::value_is<bool, __is_literal_type(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_empty;
+    struct is_empty: aux::value_is<bool, __is_empty(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_polymorphic;
+    struct is_polymorphic: aux::value_is<bool, __is_polymorphic(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_abstract;
+    struct is_abstract: aux::value_is<bool, __is_abstract(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_final;
+    struct is_final: aux::value_is<bool, __is_final(T)>
+    { /* DUMMY BODY */ };
+
+    namespace aux
+    {
+        /**
+         * Note: We cannot simply use !is_signed to define
+         *       is_unsigned because non-arithmetic types
+         *       are neither signer nor unsigned.
+         */
+        template<class T, bool = is_arithmetic<T>::value>
+        struct is_signed: value_is<bool, T(-1) < T(0)>
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        struct is_signed<T, false>: false_type
+        { /* DUMMY BODY */ };
+
+        template<class T, bool = is_arithmetic<T>::value>
+        struct is_unsigned: value_is<bool, T(0) < T(-1)>
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        struct is_unsigned<T, false>: false_type
+        { /* DUMMY BODY */ };
+    }
 
     template<class T>
-    struct is_signed;
+    struct is_signed: aux::is_signed<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_unsidned;
+    struct is_unsigned: aux::is_unsigned<T>
+    { /* DUMMY BODY */ };
 
     template<class T, class... Args>
     struct is_constructible;
@@ -550,19 +550,22 @@ namespace std
     struct is_destructible;
 
     template<class T, class... Args>
-    struct is_trivially_constructible;
+    struct is_trivially_constructible: aux::value_is<bool, __has_trivial_constructor(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_trivially_default_constructible;
 
     template<class T>
-    struct is_trivially_copy_constructible;
+    struct is_trivially_copy_constructible: aux::value_is<bool, __has_trivial_copy(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_trivially_move_constructible;
 
     template<class T, class U>
-    struct is_trivially_assignable;
+    struct is_trivially_assignable: aux::value_is<bool, __has_trivial_assign(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_trivially_copy_assignable;
@@ -571,22 +574,26 @@ namespace std
     struct is_trivially_move_assignable;
 
     template<class T>
-    struct is_trivially_destructible;
+    struct is_trivially_destructible: aux::value_is<bool, __has_trivial_destructor(T)>
+    { /* DUMMY BODY */ };
 
     template<class T, class... Args>
-    struct is_nothrow_constructible;
+    struct is_nothrow_constructible: aux::value_is<bool, __has_nothrow_constructor(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_nothrow_default_constructible;
 
     template<class T>
-    struct is_nothrow_copy_constructible;
+    struct is_nothrow_copy_constructible: aux::value_is<bool, __has_nothrow_copy(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_nothrow_move_constructible;
 
     template<class T, class U>
-    struct is_nothrow_assignable;
+    struct is_nothrow_assignable: aux::value_is<bool, __has_nothrow_assign(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_nothrow_copy_assignable;
@@ -598,7 +605,8 @@ namespace std
     struct is_nothrow_destructible;
 
     template<class T>
-    struct has_virtual_destructor;
+    struct has_virtual_destructor: aux::value_is<bool, __has_nothrow_destructor(T)>
+    { /* DUMMY BODY */ };
 
     /**
      * 20.10.5, type property queries:
@@ -627,11 +635,7 @@ namespace std
      */
 
     template<class T, class U>
-    struct is_same: false_type
-    { /* DUMMY BODY */ };
-
-    template<class T>
-    struct is_same<T, T>: true_type
+    struct is_same: aux::is_same<T, U>
     { /* DUMMY BODY */ };
 
     template<class Base, class Derived>
@@ -779,10 +783,20 @@ namespace std
     struct decay;
 
     template<bool, class T = void>
-    struct enable_if;
+    struct enable_if
+    { /* DUMMY BODY */ }
+
+    template<class T>
+    struct enable_if<true, T>: aux::type_is<T>
+    { /* DUMMY BODY */ }
 
     template<bool, class T, class F>
-    struct conditional;
+    struct conditional: aux::type_is<F>
+    { /* DUMMY BODY */ };
+
+    template<class T, class F>
+    struct conditional<true, T, F>: aux::type_is<T>
+    { /* DUMMY BODY */ };
 
     template<class... T>
     struct common_type;
