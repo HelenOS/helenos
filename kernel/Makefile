@@ -118,15 +118,8 @@ endif
 # Mind the mutual ordering with the inclusion of the arch Makefile.inc.
 # AFLAGS and LFLAGS must be initialized before the inclusion.
 #
-AFLAGS =
+AFLAGS = --fatal-warnings
 LFLAGS = -n -T $(LINK) -M --fatal-warnings --warn-common
-
-# FIXME: This condition is a workaround for issues #693 and #694.
-ifneq ($(KARCH),sparc64)
-ifneq ($(KARCH),mips32)
-	AFLAGS += --fatal-warnings
-endif
-endif
 
 ifeq ($(CONFIG_STRIP_BINARIES),y)
 	LFLAGS += --strip-all

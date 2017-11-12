@@ -110,15 +110,8 @@ LIBMATH_INCLUDES_FLAGS = \
 LIBPOSIX_PREFIX = $(LIB_PREFIX)/posix
 LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
-AFLAGS =
+AFLAGS = --fatal-warnings
 LFLAGS = --fatal-warnings --warn-common
-
-# FIXME: This condition is a workaround for issues #692 and #693.
-ifneq ($(KARCH),ia64)
-ifneq ($(KARCH),mips32)
-	AFLAGS += --fatal-warnings
-endif
-endif
 
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
