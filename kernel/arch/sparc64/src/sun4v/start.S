@@ -322,7 +322,7 @@ SYMBOL(temp_cpu_mondo_handler)
 	__HYPERCALL_FAST(MMU_ENABLE)
 
 before_ap_boots:
-	setx 0x80400000, %g0, %o0
+	setx 0x80400000, %g1, %o0
 	ba,a %xcc, kernel_image_start
 
 .section K_DATA_START, "aw", @progbits
