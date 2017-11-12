@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Vojtech Horky
+# Copyright (c) 2010-2011 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,28 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
+USPACE_PREFIX = ../../..
 
-LIBS = usbdev usb drv scsi
+LIBS = usbhid usbdev usb drv
 
-BINARY = usbmast
+EXTRA_CFLAGS += -I.
+
+BINARY = usbhid
+
+SUBDRIVER_SOURCES = \
+	kbd/conv.c \
+	kbd/kbddev.c \
+	kbd/kbdrepeat.c \
+	mouse/mousedev.c \
+	multimedia/multimedia.c \
+	multimedia/keymap.c \
+	blink1/blink1.c
 
 SOURCES = \
-	bo_trans.c \
-	cmdw.c \
 	main.c \
-	scsi_ms.c
+	usbhid.c \
+	subdrivers.c \
+	generic/hiddev.c \
+	$(SUBDRIVER_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common

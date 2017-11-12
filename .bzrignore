@@ -280,6 +280,7 @@ uspace/drv/audio/sb16/sb16
 uspace/drv/block/ahci/ahci
 uspace/drv/block/ata_bd/ata_bd
 uspace/drv/block/ddisk/ddisk
+uspace/drv/block/usbmast/usbmast
 uspace/drv/bus/adb/cuda_adb/cuda_adb
 uspace/drv/bus/isa/isa
 uspace/drv/bus/pci/pciintel/pciintel
@@ -287,9 +288,7 @@ uspace/drv/bus/usb/ehci/ehci
 uspace/drv/bus/usb/ohci/ohci
 uspace/drv/bus/usb/uhci/uhci
 uspace/drv/bus/usb/usbflbk/usbflbk
-uspace/drv/bus/usb/usbhid/usbhid
 uspace/drv/bus/usb/usbhub/usbhub
-uspace/drv/bus/usb/usbmast/usbmast
 uspace/drv/bus/usb/usbmid/usbmid
 uspace/drv/bus/usb/vhc/vhc
 uspace/drv/char/i8042/i8042
@@ -303,6 +302,7 @@ uspace/drv/fb/kfb/kfb
 uspace/drv/hid/atkbd/atkbd
 uspace/drv/hid/xtkbd/xtkbd
 uspace/drv/hid/ps2mouse/ps2mouse
+uspace/drv/hid/usbhid/usbhid
 uspace/drv/intctl/apic/apic
 uspace/drv/intctl/i8259/i8259
 uspace/drv/intctl/icp-ic/icp-ic
