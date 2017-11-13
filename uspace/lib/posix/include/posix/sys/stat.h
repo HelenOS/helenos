@@ -128,8 +128,8 @@ struct __POSIX_DEF__(stat) {
 };
 
 extern int __POSIX_DEF__(fstat)(int fd, struct __POSIX_DEF__(stat) *st);
-extern int __POSIX_DEF__(lstat)(const char *restrict path, struct __POSIX_DEF__(stat) *restrict st);
-extern int __POSIX_DEF__(stat)(const char *restrict path, struct __POSIX_DEF__(stat) *restrict st);
+extern int __POSIX_DEF__(lstat)(const char *__restrict__ path, struct __POSIX_DEF__(stat) *__restrict__ st);
+extern int __POSIX_DEF__(stat)(const char *__restrict__ path, struct __POSIX_DEF__(stat) *__restrict__ st);
 extern int __POSIX_DEF__(chmod)(const char *path, __POSIX_DEF__(mode_t) mode);
 extern __POSIX_DEF__(mode_t) __POSIX_DEF__(umask)(__POSIX_DEF__(mode_t) mask);
 extern int __POSIX_DEF__(mkdir)(const char *path, __POSIX_DEF__(mode_t) mode);

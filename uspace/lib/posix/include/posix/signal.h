@@ -228,8 +228,8 @@ enum {
 	POLL_HUP
 };
 
-extern int __POSIX_DEF__(sigaction)(int sig, const struct __POSIX_DEF__(sigaction) *restrict act,
-    struct __POSIX_DEF__(sigaction) *restrict oact);
+extern int __POSIX_DEF__(sigaction)(int sig, const struct __POSIX_DEF__(sigaction) *__restrict__ act,
+    struct __POSIX_DEF__(sigaction) *__restrict__ oact);
 
 extern void (*__POSIX_DEF__(signal)(int sig, void (*func)(int)))(int);
 extern int __POSIX_DEF__(raise)(int sig);
@@ -245,10 +245,10 @@ extern int __POSIX_DEF__(sigaddset)(__POSIX_DEF__(sigset_t) *set, int signo);
 extern int __POSIX_DEF__(sigdelset)(__POSIX_DEF__(sigset_t) *set, int signo);
 extern int __POSIX_DEF__(sigismember)(const __POSIX_DEF__(sigset_t) *set, int signo);
 
-extern int __POSIX_DEF__(thread_sigmask)(int how, const __POSIX_DEF__(sigset_t) *restrict set,
-    __POSIX_DEF__(sigset_t) *restrict oset);
-extern int __POSIX_DEF__(sigprocmask)(int how, const __POSIX_DEF__(sigset_t) *restrict set,
-    __POSIX_DEF__(sigset_t) *restrict oset);
+extern int __POSIX_DEF__(thread_sigmask)(int how, const __POSIX_DEF__(sigset_t) *__restrict__ set,
+    __POSIX_DEF__(sigset_t) *__restrict__ oset);
+extern int __POSIX_DEF__(sigprocmask)(int how, const __POSIX_DEF__(sigset_t) *__restrict__ set,
+    __POSIX_DEF__(sigset_t) *__restrict__ oset);
 
 
 #endif /* POSIX_SIGNAL_H_ */

@@ -88,17 +88,17 @@ extern void __POSIX_DEF__(tzset)(void);
 extern time_t __POSIX_DEF__(time)(time_t *t);
 
 /* Broken-down Time */
-extern struct tm *__POSIX_DEF__(gmtime_r)(const time_t *restrict timer,
-    struct tm *restrict result);
-extern struct tm *__POSIX_DEF__(gmtime)(const time_t *restrict timep);
-extern struct tm *__POSIX_DEF__(localtime_r)(const time_t *restrict timer,
-    struct tm *restrict result);
-extern struct tm *__POSIX_DEF__(localtime)(const time_t *restrict timep);
+extern struct tm *__POSIX_DEF__(gmtime_r)(const time_t *__restrict__ timer,
+    struct tm *__restrict__ result);
+extern struct tm *__POSIX_DEF__(gmtime)(const time_t *__restrict__ timep);
+extern struct tm *__POSIX_DEF__(localtime_r)(const time_t *__restrict__ timer,
+    struct tm *__restrict__ result);
+extern struct tm *__POSIX_DEF__(localtime)(const time_t *__restrict__ timep);
 
 /* Formatting Calendar Time */
-extern char *__POSIX_DEF__(asctime_r)(const struct tm *restrict timeptr,
-    char *restrict buf);
-extern char *__POSIX_DEF__(asctime)(const struct tm *restrict timeptr);
+extern char *__POSIX_DEF__(asctime_r)(const struct tm *__restrict__ timeptr,
+    char *__restrict__ buf);
+extern char *__POSIX_DEF__(asctime)(const struct tm *__restrict__ timeptr);
 extern char *__POSIX_DEF__(ctime_r)(const time_t *timer, char *buf);
 extern char *__POSIX_DEF__(ctime)(const time_t *timer);
 extern time_t time(time_t *t);

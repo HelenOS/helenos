@@ -79,8 +79,8 @@ extern int pthread_detach(pthread_t);
 extern int pthread_attr_init(pthread_attr_t *);
 extern int pthread_attr_destroy(pthread_attr_t *);
 
-extern int pthread_mutex_init(pthread_mutex_t *restrict,
-    const pthread_mutexattr_t *restrict);
+extern int pthread_mutex_init(pthread_mutex_t *__restrict__,
+    const pthread_mutexattr_t *__restrict__);
 extern int pthread_mutex_destroy(pthread_mutex_t *);
 extern int pthread_mutex_lock(pthread_mutex_t *);
 extern int pthread_mutex_trylock(pthread_mutex_t *);
@@ -88,19 +88,19 @@ extern int pthread_mutex_unlock(pthread_mutex_t *);
 
 extern int pthread_mutexattr_init(pthread_mutexattr_t *);
 extern int pthread_mutexattr_destroy(pthread_mutexattr_t *);
-extern int pthread_mutexattr_gettype(const pthread_mutexattr_t *restrict,
-    int *restrict);
+extern int pthread_mutexattr_gettype(const pthread_mutexattr_t *__restrict__,
+    int *__restrict__);
 extern int pthread_mutexattr_settype(pthread_mutexattr_t *, int);
 
-extern int pthread_cond_init(pthread_cond_t *restrict,
-    const pthread_condattr_t *restrict);
+extern int pthread_cond_init(pthread_cond_t *__restrict__,
+    const pthread_condattr_t *__restrict__);
 extern int pthread_cond_destroy(pthread_cond_t *);
 extern int pthread_cond_broadcast(pthread_cond_t *);
 extern int pthread_cond_signal(pthread_cond_t *);
-extern int pthread_cond_timedwait(pthread_cond_t *restrict,
-    pthread_mutex_t *restrict, const struct __POSIX_DEF__(timespec) *restrict);
-extern int pthread_cond_wait(pthread_cond_t *restrict,
-    pthread_mutex_t *restrict);
+extern int pthread_cond_timedwait(pthread_cond_t *__restrict__,
+    pthread_mutex_t *__restrict__, const struct __POSIX_DEF__(timespec) *__restrict__);
+extern int pthread_cond_wait(pthread_cond_t *__restrict__,
+    pthread_mutex_t *__restrict__);
 
 extern int pthread_condattr_destroy(pthread_condattr_t *);
 extern int pthread_condattr_init(pthread_condattr_t *);
