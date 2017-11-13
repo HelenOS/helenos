@@ -459,17 +459,14 @@ def create_output(mkname, mcname, config, rules):
 	sys.stderr.write("Fetching current revision identifier ... ")
 	
 	try:
-		version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].decode().split(':')
+		version = subprocess.Popen(['git', 'log', '-1', '--pretty=%h'], stdout = subprocess.PIPE).communicate()[0].decode().strip()
 		sys.stderr.write("ok\n")
 	except:
-		version = [1, "unknown", "unknown"]
+		version = None
 		sys.stderr.write("failed\n")
 	
-	if (not strip_rev_info) and (len(version) == 3):
-		revision = version[1]
-		if version[0] != 1:
-			revision += 'M'
-		revision += ' (%s)' % version[2]
+	if (not strip_rev_info) and (version is not None):
+		revision = version
 	else:
 		revision = None
 	
