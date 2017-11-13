@@ -1,10 +1,15 @@
 *.disasm
+*.a
+*.o
 *.la
 *.lo
 *.map
 *.prev
 *.so.*
 *.d
+*.ag.probe.s
+*.ag.probe.c
+*.pyc
 tag
 deps.mk
 Makefile.ag.depend
@@ -295,6 +300,7 @@ uspace/drv/bus/usb/vhc/vhc
 uspace/drv/bus/usb/xhci/xhci
 uspace/drv/bus/usb/xhci/test-xhci
 uspace/drv/char/i8042/i8042
+uspace/drv/char/msim-con/msim-con
 uspace/drv/char/ns8250/ns8250
 uspace/drv/char/pl050/pl050
 uspace/drv/char/ps2mouse/ps2mouse
