@@ -46,10 +46,6 @@ typedef struct {
 	ddf_dev_t *dev;
 } msim_con_t;
 
-extern int msim_con_init(msim_con_t *);
-extern void msim_con_write(uint8_t data);
-
-
 extern int msim_con_add(msim_con_t *);
 extern int msim_con_remove(msim_con_t *);
 extern int msim_con_gone(msim_con_t *);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief Keyboard port driver interface.
- * @ingroup input
- * @{
- */
 /** @file
  */
 
-#ifndef KBD_PORT_H_
-#define KBD_PORT_H_
+#ifndef ADB_KBD_H
+#define ADB_KBD_H
 
-#include <stdint.h>
+#include <async.h>
+#include <ddf/driver.h>
 
-struct kbd_dev;
+/** ADB keyboard */
+typedef struct {
+	ddf_dev_t *dev;
+	async_sess_t *parent_sess;
+	ddf_fun_t *fun;
+	async_sess_t *client_sess;
+} adb_kbd_t;
 
-typedef struct kbd_port_ops {
-	int (*init)(struct kbd_dev *);
-	void (*write)(uint8_t);
-} kbd_port_ops_t;
-
-extern kbd_port_ops_t chardev_port;
-extern kbd_port_ops_t ns16550_port;
+extern int adb_kbd_add(adb_kbd_t *);
+extern int adb_kbd_remove(adb_kbd_t *);
+extern int adb_kbd_gone(adb_kbd_t *);
 
 #endif
 
-/**
- * @}
+/** @}
  */

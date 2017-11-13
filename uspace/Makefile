@@ -161,6 +161,8 @@ DIRS = \
 	drv/char/sun4v-con \
 	drv/fb/amdm37x_dispc \
 	drv/fb/kfb \
+	drv/hid/adb-kbd \
+	drv/hid/adb-mouse \
 	drv/hid/atkbd \
 	drv/hid/ps2mouse \
 	drv/hid/usbhid \

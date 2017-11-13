@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief Keyboard port driver interface.
- * @ingroup input
- * @{
- */
-/** @file
+/** @file ADB mouse driver
  */
 
-#ifndef KBD_PORT_H_
-#define KBD_PORT_H_
+#ifndef ADB_MOUSE_H
+#define ADB_MOUSE_H
 
-#include <stdint.h>
+#include <async.h>
+#include <ddf/driver.h>
+#include <stdbool.h>
 
-struct kbd_dev;
+/** ADB mouse */
+typedef struct {
+	ddf_dev_t *dev;
+	async_sess_t *parent_sess;
+	ddf_fun_t *fun;
+	async_sess_t *client_sess;
+	bool b1_pressed;
+	bool b2_pressed;
+} adb_mouse_t;
 
-typedef struct kbd_port_ops {
-	int (*init)(struct kbd_dev *);
-	void (*write)(uint8_t);
-} kbd_port_ops_t;
-
-extern kbd_port_ops_t chardev_port;
-extern kbd_port_ops_t ns16550_port;
+extern int adb_mouse_add(adb_mouse_t *);
+extern int adb_mouse_remove(adb_mouse_t *);
+extern int adb_mouse_gone(adb_mouse_t *);
 
 #endif
 
-/**
- * @}
+/** @}
  */

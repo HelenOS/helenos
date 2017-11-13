@@ -47,7 +47,6 @@ typedef struct kbd_ctl_ops {
 	void (*set_ind)(struct kbd_dev *, unsigned int);
 } kbd_ctl_ops_t;
 
-extern kbd_ctl_ops_t apple_ctl;
 extern kbd_ctl_ops_t kbdev_ctl;
 extern kbd_ctl_ops_t stty_ctl;
 extern kbd_ctl_ops_t sun_ctl;

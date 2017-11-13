@@ -457,34 +457,6 @@ fail:
 	free(kdev);
 }
 
-/** Add new legacy mouse device. */
-static void mouse_add_dev(mouse_port_ops_t *port, mouse_proto_ops_t *proto)
-{
-	mouse_dev_t *mdev = mouse_dev_new();
-	if (mdev == NULL)
-		return;
-	
-	mdev->port_ops = port;
-	mdev->proto_ops = proto;
-	mdev->svc_id = 0;
-	
-	/* Initialize port driver. */
-	if ((*mdev->port_ops->init)(mdev) != 0)
-		goto fail;
-	
-	/* Initialize protocol driver. */
-	if ((*mdev->proto_ops->init)(mdev) != 0) {
-		/* XXX Uninit port */
-		goto fail;
-	}
-	
-	list_append(&mdev->link, &mouse_devs);
-	return;
-	
-fail:
-	free(mdev);
-}
-
 /** Add new kbdev device.
  *
  * @param service_id Service ID of the keyboard device
@@ -642,28 +614,11 @@ static void kbd_add_legacy_devs(void)
 #if defined(MACHINE_msim)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
-#if defined(UARCH_ppc32)
-	kbd_add_dev(&adb_port, &apple_ctl);
-#endif
 #if defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
 	/* Silence warning on abs32le about kbd_add_dev() being unused */
 	(void) kbd_add_dev;
-}
-
-/** Add legacy drivers/devices. */
-static void mouse_add_legacy_devs(void)
-{
-	/*
-	 * Need to add these drivers based on config unless we can probe
-	 * them automatically.
-	 */
-#if defined(UARCH_ppc32)
-	mouse_add_dev(&adb_mouse_port, &adb_proto);
-#endif
-	/* Silence warning on abs32le about mouse_add_dev() being unused */
-	(void) mouse_add_dev;
 }
 
 static int dev_check_new_kbdevs(void)
@@ -893,9 +848,6 @@ int main(int argc, char **argv)
 	
 	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();
-	
-	/* Add legacy mouse devices. */
-	mouse_add_legacy_devs();
 	
 	/* Register driver */
 	async_set_client_data_constructor(client_data_create);

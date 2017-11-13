@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2017 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,22 +27,11 @@
 #
 
 USPACE_PREFIX = ../../..
-BINARY = input
 LIBS = drv
+BINARY = adb-mouse
 
 SOURCES = \
-	layout/cz.c \
-	layout/us_qwerty.c \
-	layout/us_dvorak.c \
-	layout/ar.c \
-	port/chardev.c \
-	proto/mousedev.c \
-	ctl/kbdev.c \
-	ctl/stty.c \
-	ctl/sun.c \
-	gsp.c \
-	input.c \
-	layout.c \
-	stroke.c
+	main.c \
+	adb-mouse.c
 
 include $(USPACE_PREFIX)/Makefile.common

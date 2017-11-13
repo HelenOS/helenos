@@ -305,6 +305,8 @@ uspace/drv/char/ski-con/ski-con
 uspace/drv/char/sun4v-con/sun4v-con
 uspace/drv/fb/amdm37x_dispc/amdm37x_dispc
 uspace/drv/fb/kfb/kfb
+uspace/drv/hid/adb-kbd/adb-kbd
+uspace/drv/hid/adb-mouse/adb-mouse
 uspace/drv/hid/atkbd/atkbd
 uspace/drv/hid/xtkbd/xtkbd
 uspace/drv/hid/ps2mouse/ps2mouse

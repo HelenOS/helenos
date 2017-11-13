@@ -26,30 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd_ctl
- * @ingroup input
- * @{
- */
 /**
  * @file
- * @brief Apple ADB keyboard controller driver.
+ * @brief Apple ADB keyboard controller
  */
 
+#include <errno.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include "../kbd.h"
-#include "../kbd_ctl.h"
-#include "../kbd_port.h"
 
-static void apple_ctl_parse(sysarg_t);
-static int apple_ctl_init(kbd_dev_t *);
-static void apple_ctl_set_ind(kbd_dev_t *, unsigned int);
-
-kbd_ctl_ops_t apple_ctl = {
-	.parse = apple_ctl_parse,
-	.init = apple_ctl_init,
-	.set_ind = apple_ctl_set_ind
-};
+#include "ctl.h"
 
 #define KBD_KEY_RELEASE  0x80
 
@@ -184,35 +170,37 @@ static unsigned int scanmap[] = {
 	[0x7f] = 0
 };
 
-static kbd_dev_t *kbd_dev;
-
-static int apple_ctl_init(kbd_dev_t *kdev)
+/** Translate ADB keyboard scancode into keyboard event.
+ *
+ * @param scancode Scancode
+ * @param rtype Place to store type of keyboard event (press or release)
+ * @param rkey Place to store key code
+ *
+ * @return EOK on success, ENOENT if no translation exists
+ */
+int adb_kbd_key_translate(sysarg_t scancode, kbd_event_type_t *rtype,
+    unsigned int *rkey)
 {
-	kbd_dev = kdev;
-	return 0;
-}
+	kbd_event_type_t etype;
+	unsigned int key;
 
-static void apple_ctl_parse(sysarg_t scancode)
-{
-	kbd_event_type_t type;
-	
 	if (scancode & KBD_KEY_RELEASE) {
 		scancode &= ~KBD_KEY_RELEASE;
-		type = KEY_RELEASE;
-	} else
-		type = KEY_PRESS;
-	
-	if (scancode >= sizeof(scanmap) / sizeof(unsigned int))
-		return;
-	
-	unsigned int key = scanmap[scancode];
-	if (key != 0)
-		kbd_push_event(kbd_dev, type, key);
-}
+		etype = KEY_RELEASE;
+	} else {
+		etype = KEY_PRESS;
+	}
 
-static void apple_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
-{
-	(void) mods;
+	if (scancode >= sizeof(scanmap) / sizeof(unsigned int))
+		return ENOENT;
+
+	key = scanmap[scancode];
+	if (key == 0)
+		return ENOENT;
+
+	*rtype = etype;
+	*rkey = key;
+	return EOK;
 }
 
 /** @}

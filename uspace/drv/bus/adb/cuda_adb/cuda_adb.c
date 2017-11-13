@@ -108,15 +108,23 @@ static irq_code_t cuda_irq_code = {
 	cuda_cmds
 };
 
-static int cuda_dev_create(cuda_t *cuda, const char *name, adb_dev_t **rdev)
+static int cuda_dev_create(cuda_t *cuda, const char *name, const char *id,
+    adb_dev_t **rdev)
 {
 	adb_dev_t *dev = NULL;
 	ddf_fun_t *fun;
 	int rc;
 
-	fun = ddf_fun_create(cuda->dev, fun_exposed, name);
+	fun = ddf_fun_create(cuda->dev, fun_inner, name);
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating function '%s'.", name);
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = ddf_fun_add_match_id(fun, id, 10);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match ID.");
 		rc = ENOMEM;
 		goto error;
 	}
@@ -155,11 +163,11 @@ int cuda_add(cuda_t *cuda, cuda_res_t *res)
 
 	cuda->phys_base = res->base;
 
-	rc = cuda_dev_create(cuda, "kbd", &kbd);
+	rc = cuda_dev_create(cuda, "kbd", "adb/keyboard", &kbd);
 	if (rc != EOK)
 		goto error;
 
-	rc = cuda_dev_create(cuda, "mouse", &mouse);
+	rc = cuda_dev_create(cuda, "mouse", "adb/mouse", &mouse);
 	if (rc != EOK)
 		goto error;
 
