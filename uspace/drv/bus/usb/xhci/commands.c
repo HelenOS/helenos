@@ -36,7 +36,6 @@
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
-#include <usb/host/utils/malloc32.h>
 #include "commands.h"
 #include "debug.h"
 #include "hc.h"
@@ -56,7 +55,7 @@
  * TODO: Not sure about SCT and DCS (see section 6.4.3.9).
  */
 #define TRB_SET_DEQUEUE_PTR(trb, dptr) (trb).parameter |= host2xhci(64, (dptr))
-#define TRB_SET_ICTX(trb, phys) (trb).parameter |= host2xhci(64, phys_addr & (~0xF))
+#define TRB_SET_ICTX(trb, phys) (trb).parameter |= host2xhci(64, (phys) & (~0xF))
 
 #define TRB_GET_CODE(trb) XHCI_DWORD_EXTRACT((trb).status, 31, 24)
 #define TRB_GET_SLOT(trb) XHCI_DWORD_EXTRACT((trb).control, 31, 24)
@@ -98,13 +97,8 @@ void xhci_cmd_fini(xhci_cmd_t *cmd)
 {
 	list_remove(&cmd->_header.link);
 
-	if (cmd->input_ctx) {
-		free32(cmd->input_ctx);
-	};
-
-	if (cmd->bandwidth_ctx) {
-		free32(cmd->bandwidth_ctx);
-	}
+	dma_buffer_free(&cmd->input_ctx);
+	dma_buffer_free(&cmd->bandwidth_ctx);
 
 	if (cmd->_header.async) {
 		free(cmd);
@@ -359,7 +353,7 @@ static int address_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
-	assert(cmd->input_ctx);
+	assert(dma_buffer_is_set(&cmd->input_ctx));
 
 	/**
 	 * TODO: Requirements for this command:
@@ -370,8 +364,7 @@ static int address_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	xhci_trb_clean(&cmd->_header.trb);
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->input_ctx);
-	TRB_SET_ICTX(cmd->_header.trb, phys_addr);
+	TRB_SET_ICTX(cmd->_header.trb, cmd->input_ctx.phys);
 
 	/**
 	 * Note: According to section 6.4.3.4, we can set the 9th bit
@@ -395,10 +388,9 @@ static int configure_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	if (!cmd->deconfigure) {
 		/* If the DC flag is on, input context is not evaluated. */
-		assert(cmd->input_ctx);
+		assert(dma_buffer_is_set(&cmd->input_ctx));
 
-		uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->input_ctx);
-		TRB_SET_ICTX(cmd->_header.trb, phys_addr);
+		TRB_SET_ICTX(cmd->_header.trb, cmd->input_ctx.phys);
 	}
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD);
@@ -412,7 +404,7 @@ static int evaluate_context_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
-	assert(cmd->input_ctx);
+	assert(dma_buffer_is_set(&cmd->input_ctx));
 
 	/**
 	 * Note: All Drop Context flags of the input context shall be 0,
@@ -422,8 +414,7 @@ static int evaluate_context_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 */
 	xhci_trb_clean(&cmd->_header.trb);
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->input_ctx);
-	TRB_SET_ICTX(cmd->_header.trb, phys_addr);
+	TRB_SET_ICTX(cmd->_header.trb, cmd->input_ctx.phys);
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
@@ -505,8 +496,7 @@ static int get_port_bandwidth_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	xhci_trb_clean(&cmd->_header.trb);
 
-	uint64_t phys_addr = (uint64_t) addr_to_phys(cmd->bandwidth_ctx);
-	TRB_SET_ICTX(cmd->_header.trb, phys_addr);
+	TRB_SET_ICTX(cmd->_header.trb, cmd->bandwidth_ctx.phys);
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_GET_PORT_BANDWIDTH_CMD);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);

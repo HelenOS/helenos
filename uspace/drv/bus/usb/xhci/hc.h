@@ -63,7 +63,9 @@ typedef struct xhci_hc {
 	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
 	uint64_t *dcbaa;
-	xhci_scratchpad_t *scratchpad;
+	dma_buffer_t dcbaa_dma;
+	dma_buffer_t scratchpad_array;
+	dma_buffer_t *scratchpad_buffers;
 
 	/* Root hub emulation */
 	xhci_rh_t rh;

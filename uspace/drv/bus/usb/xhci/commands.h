@@ -39,6 +39,7 @@
 #include <adt/list.h>
 #include <stdbool.h>
 #include <fibril_synch.h>
+#include <usb/host/dma_buffer.h>
 #include "hw_struct/trb.h"
 
 #define XHCI_DEFAULT_TIMEOUT       1000000
@@ -92,8 +93,7 @@ typedef struct xhci_command {
 	uint32_t endpoint_id;
 	uint16_t stream_id;
 
-	xhci_input_ctx_t *input_ctx;
-	xhci_port_bandwidth_ctx_t *bandwidth_ctx;
+	dma_buffer_t input_ctx, bandwidth_ctx;
 	uintptr_t dequeue_ptr;
 
 	uint8_t tcs;

@@ -39,6 +39,7 @@
 #include <assert.h>
 
 #include <usb/debug.h>
+#include <usb/host/dma_buffer.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 #include <ddf/driver.h>
@@ -71,6 +72,7 @@ typedef struct xhci_endpoint {
 
 	/** Primary stream context array (or NULL if endpoint doesn't use streams). */
 	xhci_stream_ctx_t *primary_stream_ctx_array;
+	dma_buffer_t primary_stream_ctx_dma;
 
 	/** Primary stream ring array (or NULL if endpoint doesn't use streams). */
 	xhci_trb_ring_t *primary_stream_rings;
@@ -110,8 +112,8 @@ typedef struct xhci_device {
 	/** Route string */
 	uint32_t route_str;
 
-	/** Place to store virtual address for allocated context */
-	xhci_device_ctx_t *dev_ctx;
+	/** Place to store the allocated context */
+	dma_buffer_t dev_ctx;
 
 	/** All endpoints of the device. Dropped ones are NULL */
 	xhci_endpoint_t *endpoints[XHCI_EP_COUNT];

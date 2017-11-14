@@ -32,7 +32,6 @@
  * HC Endpoint management.
  */
 
-#include <usb/host/utils/malloc32.h>
 #include <usb/host/ddf_helpers.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>

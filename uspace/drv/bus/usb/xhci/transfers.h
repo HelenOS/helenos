@@ -49,8 +49,7 @@ typedef struct {
 
 	uint8_t direction;
 
-	void* hc_buffer;                    /* Virtual address of the buffer start. */
-	uintptr_t hc_buffer_phys;
+	dma_buffer_t hc_buffer;
 
 	uintptr_t interrupt_trb_phys;
 } xhci_transfer_t;

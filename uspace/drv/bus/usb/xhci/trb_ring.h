@@ -45,6 +45,7 @@
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <libarch/config.h>
+#include <usb/host/dma_buffer.h>
 
 typedef struct trb_segment trb_segment_t;
 typedef struct xhci_hc xhci_hc_t;
@@ -103,7 +104,7 @@ typedef struct xhci_event_ring {
 	xhci_trb_t *dequeue_trb;        /* Next TRB to be processed */
 	uintptr_t dequeue_ptr;          /* Physical address of the ERDP to be reported to the HC */
 
-	xhci_erst_entry_t *erst;        /* ERST given to the HC */
+	dma_buffer_t erst;              /* ERST given to the HC */
 
 	bool ccs;                       /* Consumer Cycle State: section 4.9.2 */
 

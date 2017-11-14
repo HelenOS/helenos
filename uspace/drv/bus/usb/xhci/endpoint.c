@@ -33,7 +33,6 @@
  * @brief The host controller endpoint management.
  */
 
-#include <usb/host/utils/malloc32.h>
 #include <usb/host/endpoint.h>
 #include <usb/descriptor.h>
 
@@ -134,7 +133,7 @@ static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, u
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 
 	XHCI_EP_MAX_P_STREAMS_SET(*ctx, pstreams);
-	XHCI_EP_TR_DPTR_SET(*ctx, addr_to_phys(xhci_ep->primary_stream_ctx_array));
+	XHCI_EP_TR_DPTR_SET(*ctx, xhci_ep->primary_stream_ctx_dma.phys);
 	// TODO: set HID?
 	XHCI_EP_LSA_SET(*ctx, 1);
 }
@@ -166,14 +165,13 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 	if (count <= 1024) {
 		usb_log_debug2("Allocating primary stream context array of size %u for endpoint " XHCI_EP_FMT,
 			count, XHCI_EP_ARGS(*xhci_ep));
-		xhci_ep->primary_stream_ctx_array = malloc32(count * sizeof(xhci_stream_ctx_t));
-		if (!xhci_ep->primary_stream_ctx_array) {
+		if ((dma_buffer_alloc(&xhci_ep->primary_stream_ctx_dma, count * sizeof(xhci_stream_ctx_t))))
 			return ENOMEM;
-		}
+		xhci_ep->primary_stream_ctx_array = xhci_ep->primary_stream_ctx_dma.virt;
 
 		xhci_ep->primary_stream_rings = calloc(count, sizeof(xhci_trb_ring_t));
 		if (!xhci_ep->primary_stream_rings) {
-			free32(xhci_ep->primary_stream_ctx_array);
+			dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
 			return ENOMEM;
 		}
 
@@ -226,7 +224,7 @@ void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 		for (size_t index = 0; index < xhci_ep->primary_stream_ctx_array_size; ++index) {
 			// FIXME: Get the trb ring associated with stream [index] and fini it
 		}
-		free32(xhci_ep->primary_stream_ctx_array);
+		dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
 	} else {
 		usb_log_debug2("Freeing main transfer ring of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 

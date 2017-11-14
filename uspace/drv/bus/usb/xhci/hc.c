@@ -37,7 +37,6 @@
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usb/host/endpoint.h>
-#include <usb/host/utils/malloc32.h>
 #include "debug.h"
 #include "hc.h"
 #include "rh.h"
@@ -200,9 +199,9 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 {
 	int err;
 
-	hc->dcbaa = malloc32((1 + hc->max_slots) * sizeof(uint64_t));
-	if (!hc->dcbaa)
+	if (dma_buffer_alloc(&hc->dcbaa_dma, (1 + hc->max_slots) * sizeof(uint64_t)))
 		return ENOMEM;
+	hc->dcbaa = hc->dcbaa_dma.virt;
 
 	if ((err = xhci_trb_ring_init(&hc->command_ring)))
 		goto err_dcbaa;
@@ -236,7 +235,8 @@ err_event_ring:
 err_cmd_ring:
 	xhci_trb_ring_fini(&hc->command_ring);
 err_dcbaa:
-	free32(hc->dcbaa);
+	hc->dcbaa = NULL;
+	dma_buffer_free(&hc->dcbaa_dma);
 	return err;
 }
 
@@ -401,7 +401,7 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_CNR))
 		async_usleep(1000);
 
-	uint64_t dcbaaptr = addr_to_phys(hc->dcbaa);
+	uint64_t dcbaaptr = hc->dcbaa_dma.phys;
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_LO, LOWER32(dcbaaptr));
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_HI, UPPER32(dcbaaptr));
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, 0);
@@ -410,12 +410,12 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_LO, LOWER32(crptr) >> 6);
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, UPPER32(crptr));
 
-	uint64_t erstptr = addr_to_phys(hc->event_ring.erst);
-	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTSZ, hc->event_ring.segment_count);
+	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	XHCI_REG_WR(intr0, XHCI_INTR_ERDP_LO, LOWER32(erdp));
 	XHCI_REG_WR(intr0, XHCI_INTR_ERDP_HI, UPPER32(erdp));
+	uint64_t erstptr = hc->event_ring.erst.phys;
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_LO, LOWER32(erstptr));
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_HI, UPPER32(erstptr));
 
@@ -571,7 +571,7 @@ void hc_interrupt(xhci_hc_t *hc, uint32_t status)
 static void hc_dcbaa_fini(xhci_hc_t *hc)
 {
 	xhci_scratchpad_free(hc);
-	free32(hc->dcbaa);
+	dma_buffer_free(&hc->dcbaa_dma);
 }
 
 void hc_fini(xhci_hc_t *hc)
@@ -627,10 +627,7 @@ int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
 
 	/* Free the device context. */
 	hc->dcbaa[dev->slot_id] = 0;
-	if (dev->dev_ctx) {
-		free32(dev->dev_ctx);
-		dev->dev_ctx = NULL;
-	}
+	dma_buffer_free(&dev->dev_ctx);
 
 	/* Mark the slot as invalid. */
 	dev->slot_id = 0;
@@ -638,13 +635,13 @@ int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
 	return EOK;
 }
 
-static int create_valid_input_ctx(xhci_input_ctx_t **out_ictx)
+static int create_valid_input_ctx(dma_buffer_t *dma_buf)
 {
-	xhci_input_ctx_t *ictx = malloc32(sizeof(xhci_input_ctx_t));
-	if (!ictx) {
-		return ENOMEM;
-	}
+	const int err = dma_buffer_alloc(dma_buf, sizeof(xhci_input_ctx_t));
+	if (err)
+		return err;
 
+	xhci_input_ctx_t *ictx = dma_buf->virt;
 	memset(ictx, 0, sizeof(xhci_input_ctx_t));
 
 	// Quoting sec. 4.6.6: A1, D0, D1 are down, A0 is up.
@@ -652,10 +649,6 @@ static int create_valid_input_ctx(xhci_input_ctx_t **out_ictx)
 	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 0);
 	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
-
-	if (out_ictx) {
-		*out_ictx = ictx;
-	}
 
 	return EOK;
 }
@@ -674,18 +667,18 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	}
 
 	/* Setup and register device context */
-	dev->dev_ctx = malloc32(sizeof(xhci_device_ctx_t));
-	if (!dev->dev_ctx)
+	if (dma_buffer_alloc(&dev->dev_ctx, sizeof(xhci_device_ctx_t)))
 		goto err;
-	memset(dev->dev_ctx, 0, sizeof(xhci_device_ctx_t));
+	memset(dev->dev_ctx.virt, 0, sizeof(xhci_device_ctx_t));
 
-	hc->dcbaa[dev->slot_id] = addr_to_phys(dev->dev_ctx);
+	hc->dcbaa[dev->slot_id] = host2xhci(64, dev->dev_ctx.phys);
 
 	/* Issue configure endpoint command (sec 4.3.5). */
-	xhci_input_ctx_t *ictx;
-	if ((err = create_valid_input_ctx(&ictx))) {
+	dma_buffer_t ictx_dma_buf;
+	if ((err = create_valid_input_ctx(&ictx_dma_buf))) {
 		goto err_dev_ctx;
 	}
+	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 
 	/* Initialize slot_ctx according to section 4.3.3 point 3. */
 	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, dev->rh_port);
@@ -704,11 +697,12 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	xhci_setup_endpoint_context(ep0, &ictx->endpoint_ctx[0]);
 
 	/* Issue Address Device command. */
-	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE, .slot_id = dev->slot_id, .input_ctx = ictx))) {
+	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf))) {
 		goto err_dev_ctx;
 	}
 
-	dev->base.address = XHCI_SLOT_DEVICE_ADDRESS(dev->dev_ctx->slot_ctx);
+	xhci_device_ctx_t *dev_ctx = dev->dev_ctx.virt;
+	dev->base.address = XHCI_SLOT_DEVICE_ADDRESS(dev_ctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.\n", dev->base.address);
 
 	/* From now on, the device is officially online, yay! */
@@ -719,8 +713,8 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	return EOK;
 
 err_dev_ctx:
-	free32(dev->dev_ctx);
 	hc->dcbaa[dev->slot_id] = 0;
+	dma_buffer_free(&dev->dev_ctx);
 err:
 	return err;
 }
@@ -728,14 +722,14 @@ err:
 int hc_configure_device(xhci_hc_t *hc, uint32_t slot_id)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
-	xhci_input_ctx_t *ictx;
-	const int err = create_valid_input_ctx(&ictx);
+	dma_buffer_t ictx_dma_buf;
+	const int err = create_valid_input_ctx(&ictx_dma_buf);
 	if (err)
 		return err;
 
 	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
 }
 
 int hc_deconfigure_device(xhci_hc_t *hc, uint32_t slot_id)
@@ -747,30 +741,32 @@ int hc_deconfigure_device(xhci_hc_t *hc, uint32_t slot_id)
 int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
-	xhci_input_ctx_t *ictx;
-	const int err = create_valid_input_ctx(&ictx);
+	dma_buffer_t ictx_dma_buf;
+	const int err = create_valid_input_ctx(&ictx_dma_buf);
 	if (err)
 		return err;
 
+	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
 	memcpy(&ictx->endpoint_ctx[ep_idx], ep_ctx, sizeof(xhci_ep_ctx_t));
 	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
 }
 
 int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
-	xhci_input_ctx_t *ictx;
-	const int err = create_valid_input_ctx(&ictx);
+	dma_buffer_t ictx_dma_buf;
+	const int err = create_valid_input_ctx(&ictx_dma_buf);
 	if (err)
 		return err;
 
+	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 	XHCI_INPUT_CTRL_CTX_DROP_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
 	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
 }
 
 /**

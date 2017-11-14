@@ -40,16 +40,9 @@
 #ifndef XHCI_SCRATCHPAD_H
 #define XHCI_SCRATCHPAD_H
 
-typedef struct xhci_hc xhci_hc_t;
+#include <usb/host/dma_buffer.h>
 
-typedef struct xhci_scratchpad {
-	/* Pointers to scratchpad buffers used by the xHC. */
-	uint64_t phys_ptr;
-	/* Pointers to scratchpad buffers used for deallocation. */
-	uint64_t virt_ptr;
-	/* Pointers to the scratchpad array used for deallocation. */
-	uint64_t phys_bck;
-} xhci_scratchpad_t;
+typedef struct xhci_hc xhci_hc_t;
 
 int xhci_scratchpad_alloc(xhci_hc_t *);
 void xhci_scratchpad_free(xhci_hc_t *);

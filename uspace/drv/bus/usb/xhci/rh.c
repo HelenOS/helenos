@@ -37,9 +37,9 @@
 #include <str_error.h>
 #include <usb/request.h>
 #include <usb/debug.h>
-#include <usb/host/utils/malloc32.h>
 #include <usb/host/bus.h>
 #include <usb/host/ddf_helpers.h>
+#include <usb/host/dma_buffer.h>
 #include <usb/host/hcd.h>
 
 #include "debug.h"
@@ -304,7 +304,10 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 	 */
 }
 
-static inline int get_hub_available_bandwidth(xhci_hc_t *hc, xhci_device_t* dev, uint8_t speed, xhci_port_bandwidth_ctx_t *ctx) {
+static inline int get_hub_available_bandwidth(xhci_hc_t *hc, xhci_device_t* dev, uint8_t speed, xhci_port_bandwidth_ctx_t *ctx)
+{
+	int err = EOK;
+
 	// TODO: find a correct place for this function + API
 	// We need speed, because a root hub device has both USB 2 and USB 3 speeds
 	// and the command can query only one of them
@@ -312,27 +315,22 @@ static inline int get_hub_available_bandwidth(xhci_hc_t *hc, xhci_device_t* dev,
 	assert(dev);
 	assert(ctx);
 
-	xhci_port_bandwidth_ctx_t *in_ctx = malloc32(sizeof(xhci_port_bandwidth_ctx_t));
-	if (!in_ctx) {
-		return ENOMEM;
-	}
-
 	xhci_cmd_t cmd;
 	xhci_cmd_init(&cmd, XHCI_CMD_GET_PORT_BANDWIDTH);
 
-	cmd.bandwidth_ctx = in_ctx;
+	if ((err = dma_buffer_alloc(&cmd.bandwidth_ctx, sizeof(xhci_port_bandwidth_ctx_t))))
+		goto end;
+
 	cmd.device_speed = speed;
 
-	int err;
-	if ((err = xhci_cmd_sync(hc, &cmd))) {
+	if ((err = xhci_cmd_sync(hc, &cmd)))
 		goto end;
-	}
 
-	memcpy(ctx, in_ctx, sizeof(xhci_port_bandwidth_ctx_t));
+	memcpy(ctx, cmd.bandwidth_ctx.virt, sizeof(xhci_port_bandwidth_ctx_t));
 
 end:
 	xhci_cmd_fini(&cmd);
-	return EOK;
+	return err;
 }
 
 const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *rh, uint8_t port)

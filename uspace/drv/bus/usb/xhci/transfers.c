@@ -33,7 +33,6 @@
  * @brief The host controller transfer ring management
  */
 
-#include <usb/host/utils/malloc32.h>
 #include <usb/debug.h>
 #include <usb/request.h>
 #include "endpoint.h"
@@ -112,8 +111,7 @@ void xhci_transfer_destroy(xhci_transfer_t* transfer)
 {
 	assert(transfer);
 
-	if (transfer->hc_buffer)
-		free32(transfer->hc_buffer);
+	dma_buffer_free(&transfer->hc_buffer);
 }
 
 static xhci_trb_ring_t *get_ring(xhci_hc_t *hc, xhci_transfer_t *transfer)
@@ -155,7 +153,7 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 		trb_data = trbs + trbs_used++;
 		xhci_trb_clean(trb_data);
 
-		trb_data->parameter = addr_to_phys(transfer->hc_buffer);
+		trb_data->parameter = host2xhci(64, transfer->hc_buffer.phys);
 
 		// data size (sent for OUT, or buffer size)
 		TRB_CTRL_SET_XFER_LEN(*trb_data, batch->buffer_size);
@@ -195,7 +193,7 @@ static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 {
 	xhci_trb_t trb;
 	xhci_trb_clean(&trb);
-	trb.parameter = addr_to_phys(transfer->hc_buffer);
+	trb.parameter = host2xhci(64, transfer->hc_buffer.phys);
 
 	// data size (sent for OUT, or buffer size)
 	TRB_CTRL_SET_XFER_LEN(trb, transfer->batch.buffer_size);
@@ -216,7 +214,7 @@ static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
 	xhci_trb_t trb;
 	xhci_trb_clean(&trb);
-	trb.parameter = addr_to_phys(transfer->hc_buffer);
+	trb.parameter = host2xhci(64, transfer->hc_buffer.phys);
 
 	// data size (sent for OUT, or buffer size)
 	TRB_CTRL_SET_XFER_LEN(trb, transfer->batch.buffer_size);
@@ -281,7 +279,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	if (batch->dir == USB_DIRECTION_IN) {
 		assert(batch->buffer);
 		assert(batch->transfered_size <= batch->buffer_size);
-		memcpy(batch->buffer, transfer->hc_buffer, batch->transfered_size);
+		memcpy(batch->buffer, transfer->hc_buffer.virt, batch->transfered_size);
 	}
 
 	usb_transfer_batch_finish(batch);
@@ -323,14 +321,13 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	assert(transfer_handlers[type]);
 
 	if (batch->buffer_size > 0) {
-		transfer->hc_buffer = malloc32(batch->buffer_size);
-		if (!transfer->hc_buffer)
+		if (dma_buffer_alloc(&transfer->hc_buffer, batch->buffer_size))
 			return ENOMEM;
 	}
 
 	if (batch->dir != USB_DIRECTION_IN) {
 		// Sending stuff from host to device, we need to copy the actual data.
-		memcpy(transfer->hc_buffer, batch->buffer, batch->buffer_size);
+		memcpy(transfer->hc_buffer.virt, batch->buffer, batch->buffer_size);
 	}
 
 	fibril_mutex_lock(&ep->guard);

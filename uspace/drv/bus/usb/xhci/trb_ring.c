@@ -32,7 +32,6 @@
 #include <as.h>
 #include <align.h>
 #include <usb/debug.h>
-#include <usb/host/utils/malloc32.h>
 #include "hw_struct/trb.h"
 #include "trb_ring.h"
 
@@ -67,24 +66,25 @@ static inline xhci_trb_t *segment_end(trb_segment_t *segment)
  * TODO: When the HC supports 64-bit addressing, there's no need to restrict
  * to DMAMEM_4GiB.
  */
-static int trb_segment_allocate(trb_segment_t **segment)
+static int trb_segment_alloc(trb_segment_t **segment)
 {
-	uintptr_t phys;
-	int err;
+	dma_buffer_t dbuf;
 
-	*segment = AS_AREA_ANY;
-	err = dmamem_map_anonymous(PAGE_SIZE,
-	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
-	    (void *) segment);
+	const int err = dma_buffer_alloc(&dbuf, PAGE_SIZE);
+	if (err)
+		return err;
 
-	if (err == EOK) {
-		memset(*segment, 0, PAGE_SIZE);
-		(*segment)->phys = phys;
+	*segment = dbuf.virt;
+	memset(*segment, 0, PAGE_SIZE);
+	(*segment)->phys = dbuf.phys;
+	usb_log_debug2("Allocated new ring segment.");
+	return EOK;
+}
 
-		usb_log_debug2("Allocated new ring segment.");
-	}
-
-	return err;
+static void trb_segment_free(trb_segment_t *segment)
+{
+	dma_buffer_t dbuf = { .virt = segment, .phys = segment->phys };
+	dma_buffer_free(&dbuf);
 }
 
 /**
@@ -98,7 +98,7 @@ int xhci_trb_ring_init(xhci_trb_ring_t *ring)
 
 	list_initialize(&ring->segments);
 
-	if ((err = trb_segment_allocate(&segment)) != EOK)
+	if ((err = trb_segment_alloc(&segment)) != EOK)
 		return err;
 
 	list_append(&segment->segments_link, &ring->segments);
@@ -126,7 +126,7 @@ void xhci_trb_ring_fini(xhci_trb_ring_t *ring)
 
 	list_foreach_safe(ring->segments, cur, next) {
 		trb_segment_t *segment = list_get_instance(cur, trb_segment_t, segments_link);
-		dmamem_unmap_anonymous(segment);
+		trb_segment_free(segment);
 	}
 }
 
@@ -263,7 +263,7 @@ int xhci_event_ring_init(xhci_event_ring_t *ring)
 
 	list_initialize(&ring->segments);
 
-	if ((err = trb_segment_allocate(&segment)) != EOK)
+	if ((err = trb_segment_alloc(&segment)) != EOK)
 		return err;
 
 	list_append(&segment->segments_link, &ring->segments);
@@ -273,12 +273,12 @@ int xhci_event_ring_init(xhci_event_ring_t *ring)
 	ring->dequeue_trb = segment_begin(segment);
 	ring->dequeue_ptr = segment->phys;
 
-	ring->erst = malloc32(PAGE_SIZE);
-	if (ring->erst == NULL)
+	if (dma_buffer_alloc(&ring->erst, PAGE_SIZE))
 		return ENOMEM;
-	memset(ring->erst, 0, PAGE_SIZE);
+	xhci_erst_entry_t *erst = ring->erst.virt;
 
-	xhci_fill_erst_entry(&ring->erst[0], segment->phys, SEGMENT_TRB_COUNT);
+	memset(erst, 0, PAGE_SIZE);
+	xhci_fill_erst_entry(&erst[0], segment->phys, SEGMENT_TRB_COUNT);
 
 	ring->ccs = 1;
 
@@ -296,8 +296,7 @@ void xhci_event_ring_fini(xhci_event_ring_t *ring)
 		dmamem_unmap_anonymous(segment);
 	}
 
-	if (ring->erst)
-		free32(ring->erst);
+	dma_buffer_free(&ring->erst);
 }
 
 static uintptr_t event_ring_dequeue_phys(xhci_event_ring_t *ring)
