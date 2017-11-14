@@ -42,9 +42,6 @@
 #include <nic.h>
 #include <pci_dev_iface.h>
 
-#include <sysinfo.h>
-#include <ipc/ns.h>
-
 #include <str.h>
 
 #include "defs.h"

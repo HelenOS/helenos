@@ -45,7 +45,6 @@
 #include <libarch/ddi.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <sysinfo.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
