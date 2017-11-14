@@ -41,8 +41,6 @@
  * be found at the same addresses.
  */
 
-#include <align.h>
-#include <as.h>
 #include <async.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
