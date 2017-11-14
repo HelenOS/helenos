@@ -28,13 +28,9 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libusbvirt
-
 EXTRA_CFLAGS = \
-	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-Iinclude \
 	-Iinclude/usbvirt
+LIBS = drv usb usbdev
 
 SOURCES = \
 	src/ctrltransfer.c \

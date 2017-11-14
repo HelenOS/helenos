@@ -58,11 +58,18 @@ DUMP = kernel.dump
 REAL_MAP = generic/src/debug/real_map
 
 GENMAP = tools/genmap.py
-JOBFILE = $(ROOT_PATH)/tools/jobfile.py
 
 LINK = arch/$(KARCH)/_link.ld
 EMPTY_MAP = generic/src/debug/empty_map.o
 SIZEOK_MAP = generic/src/debug/sizeok_map.o
+
+ifeq ($(PRECHECK),y)
+	JOBFILE = $(ROOT_PATH)/tools/jobfile.py
+	# XXX: Do not change the order of arguments.
+	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
+else
+	CC_JOB = $(CC) $< -o $@
+endif
 
 .PHONY: all clean autogen_clean depend
 
@@ -83,7 +90,8 @@ DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)"
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-fexec-charset=UTF-8 -finput-charset=UTF-8
+	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common \
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 
 GCC_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
@@ -110,14 +118,11 @@ endif
 # Mind the mutual ordering with the inclusion of the arch Makefile.inc.
 # AFLAGS and LFLAGS must be initialized before the inclusion.
 #
-AFLAGS =
-LFLAGS = -n -T $(LINK) -M --fatal-warnings
+AFLAGS = --fatal-warnings
+LFLAGS = -n -T $(LINK) -M --fatal-warnings --warn-common
 
-# FIXME: This condition is a workaround for issues #693 and #694.
-ifneq ($(KARCH),sparc64)
-ifneq ($(KARCH),mips32)
-	AFLAGS += --fatal-warnings
-endif
+ifeq ($(CONFIG_STRIP_BINARIES),y)
+	LFLAGS += --strip-all
 endif
 
 #
@@ -391,9 +396,6 @@ ifeq ($(CONFIG_LTO),y)
 else
 	$(LD) $(LFLAGS) -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 endif
-ifeq ($(CONFIG_STRIP_BINARIES),y)
-	$(STRIP) $(RAW)
-endif
 
 $(LINK): $(LINK).in | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
@@ -404,22 +406,13 @@ $(LINK): $(LINK).in | depend
 	$(AUTOGEN) generate $< <$<.probe.s >$@   
 
 %.o: %.S | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.s | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c -o $@ $<
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION)) -c -o $@ $<
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION))
 
 $(REAL_MAP).o: $(REAL_MAP).bin
 	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$<\"" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $@ -
@@ -457,10 +450,7 @@ $(AGDEPEND): $(AUTOGENS_AG)
 		done \
 	done
 
-depend: $(COMMON_HEADER_ARCH) $(AUTOGENS_H)
-
-$(COMMON_HEADER_ARCH): $(COMMON_HEADER)
-	ln -sfn ../../../../$< $@
+depend: $(AUTOGENS_H)
 
 autogen_clean:
 	-rm $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)

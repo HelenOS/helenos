@@ -198,6 +198,8 @@ int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		if (phone->state == IPC_PHONE_CONNECTED) {
 			irq_spinlock_lock(&phone->callee->lock, true);
 			list_remove(&phone->link);
+			/* Drop callee->connected_phones reference */
+			kobject_put(phone->kobject);
 			phone->state = IPC_PHONE_SLAMMED;
 			irq_spinlock_unlock(&phone->callee->lock, true);
 		}
@@ -356,8 +358,6 @@ static int check_call_limit(phone_t *phone)
  *
  * @return Call hash on success.
  * @return IPC_CALLRET_FATAL in case of a fatal error.
- * @return IPC_CALLRET_TEMPORARY if there are too many pending
- *         asynchronous requests; answers should be handled first.
  *
  */
 sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
@@ -369,7 +369,7 @@ sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
 	
 	if (check_call_limit(kobj->phone)) {
 		kobject_put(kobj);
-		return IPC_CALLRET_TEMPORARY;
+		return IPC_CALLRET_FATAL;
 	}
 	
 	call_t *call = ipc_call_alloc(0);
@@ -412,7 +412,7 @@ sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data)
 
 	if (check_call_limit(kobj->phone)) {
 		kobject_put(kobj);
-		return IPC_CALLRET_TEMPORARY;
+		return IPC_CALLRET_FATAL;
 	}
 
 	call_t *call = ipc_call_alloc(0);

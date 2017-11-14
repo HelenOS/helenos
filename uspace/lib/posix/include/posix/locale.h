@@ -39,9 +39,7 @@
 #define __POSIX_DEF__(x) x
 #endif
 
-#ifndef NULL
-	#define NULL ((void *) 0)
-#endif
+#include <_bits/NULL.h>
 
 #ifndef __locale_t_defined
 	#define __locale_t_defined

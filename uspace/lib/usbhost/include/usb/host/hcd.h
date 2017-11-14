@@ -45,6 +45,7 @@
 #include <mem.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <usbhc_iface.h>
 
 typedef struct hcd hcd_t;
 
@@ -109,7 +110,7 @@ extern int hcd_remove_ep(hcd_t *, usb_target_t, usb_direction_t);
 
 extern int hcd_send_batch(hcd_t *, device_t *, usb_target_t,
     usb_direction_t direction, char *, size_t, uint64_t,
-    usb_transfer_batch_callback_t, void *, const char *);
+    usbhc_iface_transfer_callback_t, void *, const char *);
 
 extern ssize_t hcd_send_batch_sync(hcd_t *, device_t *, usb_target_t,
     usb_direction_t direction, char *, size_t, uint64_t,

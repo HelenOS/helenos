@@ -352,8 +352,8 @@ static void ra_span_free(ra_span_t *span, size_t base, size_t size)
 	 */
 	link = hash_table_find(&span->used, &key);
 	if (!link) {
-		panic("Freeing segment which is not known to be used (base=%"
-		    PRIxn ", size=%" PRIdn ").", base, size);
+		panic("Freeing segment which is not known to be used (base=%zx"
+		    ", size=%zd).", base, size);
 	}
 	seg = hash_table_get_inst(link, ra_segment_t, uh_link);
 
@@ -446,7 +446,7 @@ void ra_free(ra_arena_t *arena, uintptr_t base, size_t size)
 	}
 	irq_spinlock_unlock(&arena->lock, true);
 
-	panic("Freeing to wrong arena (base=%" PRIxn ", size=%" PRIdn ").",
+	panic("Freeing to wrong arena (base=%" PRIxPTR ", size=%zd).",
 	    base, size);
 }
 

@@ -141,12 +141,12 @@ void istate_decode(istate_t *istate)
 	printf("cr.isr=%#0" PRIx64 "\tcr.ipsr=%#0" PRIx64 "\n",
 	    istate->cr_isr.value, istate->cr_ipsr.value);
 	
-	printf("cr.iip=%#0" PRIx64 ", #%u\t(%s)\n",
+	printf("cr.iip=%#0" PRIxPTR ", #%u\t(%s)\n",
 	    istate->cr_iip, istate->cr_isr.ei,
 	    symtab_fmt_name_lookup(istate->cr_iip));
-	printf("cr.iipa=%#0" PRIx64 "\t(%s)\n", istate->cr_iipa,
+	printf("cr.iipa=%#0" PRIxPTR "\t(%s)\n", istate->cr_iipa,
 	    symtab_fmt_name_lookup(istate->cr_iipa));
-	printf("cr.ifa=%#0" PRIx64 "\t(%s)\n", istate->cr_ifa,
+	printf("cr.ifa=%#0" PRIxPTR "\t(%s)\n", istate->cr_ifa,
 	    symtab_fmt_name_lookup(istate->cr_ifa));
 }
 

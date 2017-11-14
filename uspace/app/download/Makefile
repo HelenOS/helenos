@@ -27,8 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBHTTP_PREFIX)/libhttp.a $(LIBURI_PREFIX)/liburi.a
-EXTRA_CFLAGS = -I$(LIBHTTP_PREFIX)/include -I$(LIBURI_PREFIX)
+LIBS = http uri
 DEFS = -DRELEASE=$(RELEASE)
 BINARY = download
 

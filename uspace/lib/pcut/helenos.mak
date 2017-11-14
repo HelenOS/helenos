@@ -36,5 +36,6 @@ SOURCES = \
 	src/report/tap.c \
 	src/report/xml.c \
 	src/run.c
-EXTRA_CFLAGS = -D__helenos__ -Iinclude
+
+EXTRA_CFLAGS = -D__helenos__
 LIBRARY = libpcut

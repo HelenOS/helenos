@@ -31,6 +31,7 @@
 #include "private/power_of_ten.h"
 #include <ieee_double.h>
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>

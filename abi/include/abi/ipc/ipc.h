@@ -43,7 +43,7 @@
 #define IPC_CALL_LEN  6
 
 /** Maximum active async calls per phone */
-#define IPC_MAX_ASYNC_CALLS  4
+#define IPC_MAX_ASYNC_CALLS  64
 
 /* Flags for calls */
 
@@ -81,8 +81,6 @@
 
 /* Return values from sys_ipc_call_async(). */
 #define IPC_CALLRET_FATAL      -1
-#define IPC_CALLRET_TEMPORARY  -2
-
 
 /* Macros for manipulating calling data */
 #define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (retval))

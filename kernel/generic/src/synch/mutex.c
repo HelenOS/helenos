@@ -45,19 +45,22 @@
 
 /** Initialize mutex.
  *
- * @param mtx  Mutex.
- * @param type Type of the mutex.
+ * @param mtx   Mutex.
+ * @param type  Type of the mutex.
  */
 void mutex_initialize(mutex_t *mtx, mutex_type_t type)
 {
 	mtx->type = type;
+	mtx->owner = NULL;
+	mtx->nesting = 0;
 	semaphore_initialize(&mtx->sem, 1);
 }
 
 /** Find out whether the mutex is currently locked.
  *
- * @param mtx		Mutex.
- * @return 		True if the mutex is locked, false otherwise.
+ * @param mtx  Mutex.
+ *
+ * @return  True if the mutex is locked, false otherwise.
  */
 bool mutex_locked(mutex_t *mtx)
 {
@@ -70,12 +73,12 @@ bool mutex_locked(mutex_t *mtx)
  *
  * Timeout mode and non-blocking mode can be requested.
  *
- * @param mtx   Mutex.
- * @param usec  Timeout in microseconds.
- * @param flags Specify mode of operation.
+ * @param mtx    Mutex.
+ * @param usec   Timeout in microseconds.
+ * @param flags  Specify mode of operation.
  *
- * For exact description of possible combinations of
- * usec and flags, see comment for waitq_sleep_timeout().
+ * For exact description of possible combinations of usec and flags, see
+ * comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  *
@@ -84,10 +87,23 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 {
 	int rc;
 
-	if ((mtx->type == MUTEX_PASSIVE) && (THREAD)) {
+	if (mtx->type == MUTEX_PASSIVE && THREAD) {
 		rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
+	} else if (mtx->type == MUTEX_RECURSIVE) {
+		assert(THREAD);
+
+		if (mtx->owner == THREAD) {
+			mtx->nesting++;
+			return ESYNCH_OK_ATOMIC;
+		} else {
+			rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
+			if (SYNCH_OK(rc)) {
+				mtx->owner = THREAD;
+				mtx->nesting = 1;
+			}
+		}
 	} else {
-		assert((mtx->type == MUTEX_ACTIVE) || (!THREAD));
+		assert((mtx->type == MUTEX_ACTIVE) || !THREAD);
 		assert(usec == SYNCH_NO_TIMEOUT);
 		assert(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
 		
@@ -113,10 +129,16 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 
 /** Release mutex.
  *
- * @param mtx Mutex.
+ * @param mtx  Mutex.
  */
 void mutex_unlock(mutex_t *mtx)
 {
+	if (mtx->type == MUTEX_RECURSIVE) {
+		assert(mtx->owner == THREAD);
+		if (--mtx->nesting > 0)
+			return;
+		mtx->owner = NULL;
+	}
 	semaphore_up(&mtx->sem);
 }
 

@@ -30,22 +30,18 @@
 
 include Makefile.common
 
-INCLUDES = -Igeneric/include -I$(ROOT_PATH)/abi/include
+INCLUDES = -Igeneric/include -Iarch/$(KARCH)/include -Igenarch/include -I$(ROOT_PATH)/abi/include
 OPTIMIZATION = 3
 
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
-AFLAGS =
-LFLAGS = --fatal-warnings
-
-# FIXME: This condition is a workaround for issue #693.
-ifneq ($(BARCH),mips32)
-	AFLAGS += --fatal-warnings
-endif
+AFLAGS = --fatal-warnings
+LFLAGS = --fatal-warnings --warn-common
 
 COMMON_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-fexec-charset=UTF-8 -finput-charset=UTF-8
+	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common \
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 
 GCC_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
@@ -75,7 +71,7 @@ DEPENDS := $(addsuffix .d,$(basename $(SOURCES)))
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BOOT_OUTPUT)
 
 clean:
-	rm -f $(RAW) $(MAP) $(ARCH_INCLUDE) $(GENARCH_INCLUDE)
+	rm -f $(RAW) $(MAP)
 
 -include $(DEPENDS)
 
@@ -90,25 +86,16 @@ $(RAW): $(OBJECTS) $(LINK)
 $(LINK): | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
 
+%.o: %.s | depend
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+
 %.o: %.S | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS)
 
-%.o: %.s | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm
-endif
-
-depend: $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH) $(PRE_DEPEND)
+depend: $(PRE_DEPEND)
 
 $(COMPS).s: $(COMPS).zip
 	unzip -p $< $@ > $@
@@ -127,11 +114,3 @@ $(COMPS).zip: $(COMPONENTS)
 
 include Makefile.initrd
 
-$(ARCH_INCLUDE): arch/$(KARCH)/include/
-	ln -sfn ../../$< $@
-
-$(GENARCH_INCLUDE): genarch/include/
-	ln -sfn ../../$< $@
-
-$(COMMON_HEADER_ARCH): $(COMMON_HEADER)
-	ln -sfn ../../../$< $@

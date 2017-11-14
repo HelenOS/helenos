@@ -42,7 +42,7 @@ SYMBOL(__thread_entry)
 	# r8 contains address of uarg structure.
 	#
 	
-	mov out0 = r8
+	mov out0 = r8 ;;
 	br.call.sptk.many b0 = __thread_main
 	
 	#

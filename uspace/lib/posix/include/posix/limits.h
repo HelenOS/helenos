@@ -41,10 +41,6 @@
 #undef PATH_MAX
 #define PATH_MAX 256
 
-/* it's probably a safe assumption */
-#undef CHAR_BIT
-#define CHAR_BIT 8
-
 #endif /* POSIX_LIMITS_H_ */
 
 /** @}

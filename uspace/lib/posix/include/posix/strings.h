@@ -41,7 +41,7 @@
 #endif
 
 
-#include <types/common.h>
+#include "libc/types/common.h"
 
 /* Search Functions */
 #ifndef POSIX_STRING_H_

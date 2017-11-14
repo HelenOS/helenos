@@ -73,8 +73,8 @@ endif
 ifeq ($(MACHINE), integratorcp)
 	RD_DRVS_ESSENTIAL += \
 		char/pl050 \
-		char/atkbd \
-		char/ps2mouse \
+		hid/atkbd \
+		hid/ps2mouse \
 		intctl/icp-ic \
 		platform/icp
 endif
@@ -84,9 +84,9 @@ RD_DRVS_ESSENTIAL += \
 	bus/usb/ohci \
 	bus/usb/usbflbk \
 	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
-	bus/usb/usbmid
+	bus/usb/usbmid \
+	block/usbmast \
+	hid/usbhid
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

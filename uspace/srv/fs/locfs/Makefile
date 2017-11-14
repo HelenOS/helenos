@@ -28,8 +28,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBFS_PREFIX)/libfs.a
-EXTRA_CFLAGS += -I$(LIBFS_PREFIX)
+LIBS = fs
 BINARY = locfs
 
 SOURCES = \

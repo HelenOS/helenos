@@ -35,9 +35,7 @@
 #ifndef LIBC_LIMITS_H_
 #define LIBC_LIMITS_H_
 
-/* XXX Make this more accurate */
-#include <stdint.h>
-#include <libarch/stdint.h>
+#include <_bits/limits.h>
 
 #endif
 

@@ -93,6 +93,14 @@ static inline void arch_pio_write_32(ioport32_t *port, uint32_t v)
 	asm volatile ("mf.a\n" ::: "memory");
 }
 
+static inline void arch_pio_write_64(ioport64_t *port, uint64_t v)
+{
+	*port = v;
+
+	asm volatile ("mf\n" ::: "memory");
+	asm volatile ("mf.a\n" ::: "memory");
+}
+
 static inline uint8_t arch_pio_read_8(const ioport8_t *port)
 {
 	uint8_t v;
@@ -147,6 +155,19 @@ static inline uint32_t arch_pio_read_32(const ioport32_t *port)
 	} else {
 		v = *port;
 	}
+
+	asm volatile ("mf.a\n" ::: "memory");
+
+	return v;
+}
+
+static inline uint64_t arch_pio_read_64(const ioport64_t *port)
+{
+	uint64_t v;
+
+	asm volatile ("mf\n" ::: "memory");
+
+	v = *port;
 
 	asm volatile ("mf.a\n" ::: "memory");
 

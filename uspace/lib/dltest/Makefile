@@ -28,8 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libdltest
-SLIBRARY = libdltest.so.0.0
-LSONAME = libdltest.so.0
+SOVERSION = 0.0
 
 SOURCES = \
 	dltest.c

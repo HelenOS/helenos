@@ -29,18 +29,11 @@
 
 USPACE_PREFIX = ../..
 
-LIBS = \
-	$(LIBBLOCK_PREFIX)/libblock.a \
-	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
-	$(LIBDRV_PREFIX)/libdrv.a
-
-EXTRA_CFLAGS = \
-	-I$(LIBBLOCK_PREFIX) \
-	-I$(LIBSOFTFLOAT_PREFIX) \
-	-I$(LIBDRV_PREFIX)/include
+# TODO: softfloat testing should be done via unit tests.
+LIBS = block softfloat drv math
+EXTRA_CFLAGS = -I$(LIBSOFTFLOAT_PREFIX)
 
 BINARY = tester
-MATH = y
 
 SOURCES = \
 	tester.c \

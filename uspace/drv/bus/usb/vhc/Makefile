@@ -28,19 +28,8 @@
 
 USPACE_PREFIX = ../../../..
 
-LIBS = \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSBHOST_PREFIX)/libusbhost.a \
-	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+LIBS = usbdev usbhost usbvirt usb drv
 
-EXTRA_CFLAGS += \
-	-I$(LIBUSBVIRT_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBUSBHOST_PREFIX)/include \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
 BINARY = vhc
 
 SOURCES = \

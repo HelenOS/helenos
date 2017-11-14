@@ -27,7 +27,6 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -I.
 LIBRARY = libfmtutil
 
 SOURCES = \

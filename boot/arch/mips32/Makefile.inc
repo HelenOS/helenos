@@ -57,8 +57,8 @@ ifeq ($(MACHINE), $(filter $(MACHINE),bmalta lmalta))
 		bus/pci/pciintel \
 		bus/isa \
 		char/i8042 \
-		char/ps2mouse \
-		char/xtkbd
+		hid/ps2mouse \
+		hid/xtkbd
 
 	RD_DRV_CFG += \
 		bus/isa
@@ -67,7 +67,8 @@ endif
 ifeq ($(MACHINE),msim)
 	RD_DRVS_ESSENTIAL += \
 		platform/msim \
-		block/ddisk
+		block/ddisk \
+		char/msim-con
 endif
 
 SOURCES = \

@@ -27,8 +27,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+LIBS = drv
 BINARY = virt
 
 SOURCES = \

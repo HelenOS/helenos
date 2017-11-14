@@ -41,6 +41,6 @@ SYMBOL(__entry)
 	movl gp = __gp
 	
 	# Pass PCB pointer as the first argument to __main
-	mov out0 = r2
+	mov out0 = r2 ;;
 	br.call.sptk.many b0 = __main
 

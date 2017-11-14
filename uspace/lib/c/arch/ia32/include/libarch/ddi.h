@@ -85,6 +85,11 @@ static inline uint32_t arch_pio_read_32(const ioport32_t *port)
 		return (uint32_t) *port;
 }
 
+static inline uint64_t arch_pio_read_64(const ioport64_t *port)
+{
+	return (uint64_t) *port;
+}
+
 static inline void arch_pio_write_8(ioport8_t *port, uint8_t val)
 {
 	if (port < (ioport8_t *) IO_SPACE_BOUNDARY) {
@@ -116,6 +121,11 @@ static inline void arch_pio_write_32(ioport32_t *port, uint32_t val)
 		);
 	} else
 		*port = val;
+}
+
+static inline void arch_pio_write_64(ioport64_t *port, uint64_t val)
+{
+	*port = val;
 }
 
 #endif

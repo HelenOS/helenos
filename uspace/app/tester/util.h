@@ -36,6 +36,7 @@
 #define UTIL_H_
 
 #include <stdio.h>
+#include <inttypes.h>
 #include "tester.h"
 
 #define ASSERT_EQ_FN_DEF(type, fmt, fmtx) \

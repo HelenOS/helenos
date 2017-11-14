@@ -28,11 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libext4
-EXTRA_CFLAGS = \
-    -I$(LIBBLOCK_PREFIX) \
-    -I$(LIBCRYPTO_PREFIX) \
-    -I$(LIBFS_PREFIX) \
-    -Iinclude
+LIBS = block crypto fs
 
 SOURCES = \
 	src/balloc.c \

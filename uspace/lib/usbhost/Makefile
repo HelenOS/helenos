@@ -29,10 +29,8 @@
 USPACE_PREFIX = ../..
 LIBRARY = libusbhost
 EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include \
-	-Iinclude/usb/host \
-	-Iinclude
+	-Iinclude/usb/host
+LIBS = usb drv
 
 SOURCES = \
 	src/ddf_helpers.c \

@@ -40,8 +40,8 @@
 #define LIBDRV_USBHC_IFACE_H_
 
 #include "ddf/driver.h"
+#include "usb_iface.h"
 #include <async.h>
-#include <usb/usb.h>
 
 extern int usbhc_reserve_default_address(async_exch_t *, usb_speed_t);
 extern int usbhc_release_default_address(async_exch_t *);
@@ -56,11 +56,8 @@ extern int usbhc_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
 extern int usbhc_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
     size_t);
 
-/** Defined in usb/host/usb_transfer_batch.h */
-typedef struct usb_transfer_batch usb_transfer_batch_t;
-
-/** Callback for outgoing transfer - clone of usb_transfer_batch_callback_t */
-typedef int (*usbhc_iface_transfer_callback_t)(usb_transfer_batch_t *);
+/** Callback for outgoing transfer */
+typedef int (*usbhc_iface_transfer_callback_t)(void *, int, size_t);
 
 /** USB device communication interface. */
 typedef struct {

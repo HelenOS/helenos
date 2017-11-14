@@ -27,13 +27,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = \
-    $(LIBEXT4_PREFIX)/libext4.a \
-    $(LIBBLOCK_PREFIX)/libblock.a \
-    $(LIBFS_PREFIX)/libfs.a \
-    $(LIBCRYPTO_PREFIX)/libcrypto.a
-
-EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX) -I$(LIBEXT4_PREFIX)/include -I$(LIBCRYPTO_PREFIX)
+LIBS = ext4 block fs crypto
 BINARY = ext4fs
 STATIC_NEEDED = y
 

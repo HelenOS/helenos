@@ -34,10 +34,10 @@
  */
 
 #include <async.h>
+#include <assert.h>
 #include <macros.h>
 #include <errno.h>
 #include <devman.h>
-#include <usb/host/usb_transfer_batch.h>
 
 #include "usb_iface.h"
 #include "ddf/driver.h"

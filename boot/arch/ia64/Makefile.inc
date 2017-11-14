@@ -65,12 +65,13 @@ SOURCES += \
 	arch/$(BARCH)/src/ski.c
 endif
 
+ifeq ($(MACHINE),i460GX)
 RD_DRVS_ESSENTIAL += \
 	platform/pc \
 	bus/pci/pciintel \
 	bus/isa \
 	char/i8042 \
-	char/xtkbd
+	hid/xtkbd
 
 RD_DRVS_NON_ESSENTIAL += \
 	char/ns8250 \
@@ -80,12 +81,19 @@ RD_DRVS_NON_ESSENTIAL += \
 	bus/usb/uhci \
 	bus/usb/usbflbk \
 	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
 	bus/usb/usbmid \
-	bus/usb/vhc
+	bus/usb/vhc \
+	block/usbmast \
+	hid/usbhid
 
 RD_DRV_CFG += \
 	bus/isa
+endif
+
+ifeq ($(MACHINE),ski)
+RD_DRVS_ESSENTIAL += \
+	char/ski-con \
+	platform/ski
+endif
 
 PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE)

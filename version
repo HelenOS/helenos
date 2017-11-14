@@ -36,7 +36,7 @@
 
 VERSION = 0
 PATCHLEVEL = 7
-SUBLEVEL = 0
+SUBLEVEL = 1
 
 ifdef EXTRAVERSION
 	RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL).$(EXTRAVERSION)
@@ -44,5 +44,5 @@ else
 	RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)
 endif
 
-NAME = Parabolic Potassium
+NAME = Enlightened Zeal
 COPYRIGHT = Copyright (c) 2001-2017 HelenOS project

@@ -50,9 +50,7 @@
  * size_t   strxfrm_l(char *restrict, const char *restrict, size_t, locale_t);
  */
 
-#ifndef NULL
-	#define NULL  ((void *) 0)
-#endif
+#include <_bits/NULL.h>
 
 /*
  * These are the same as in HelenOS libc.

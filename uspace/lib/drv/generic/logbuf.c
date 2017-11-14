@@ -30,7 +30,6 @@
  * @{
  */
 
-#include <libarch/common.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <ddf/log.h>

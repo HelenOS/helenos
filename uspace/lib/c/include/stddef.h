@@ -35,11 +35,11 @@
 #ifndef LIBC_STDDEF_H_
 #define LIBC_STDDEF_H_
 
-#include <libarch/stddef.h>
+#include <_bits/size_t.h>
+#include <_bits/ptrdiff_t.h>
+#include <_bits/wchar_t.h>
 
-#ifndef NULL
-	#define NULL  ((void *) 0)
-#endif
+#include <_bits/NULL.h>
 
 #define offsetof(type, member) \
 	((size_t) &(((type *) 0)->member))

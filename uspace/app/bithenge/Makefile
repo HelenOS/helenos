@@ -27,8 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBITHENGE_PREFIX)/libbithenge.a $(LIBBLOCK_PREFIX)/libblock.a
-EXTRA_CFLAGS = -I$(LIBBITHENGE_PREFIX)/include -D__HELENOS__
+# TODO: Should be just "bithenge", rest is transitive linker dependencies.
+LIBS = bithenge block
+EXTRA_CFLAGS = -D__HELENOS__
 BINARY = bithenge
 
 SOURCES = \

@@ -34,8 +34,6 @@ LFLAGS += --gc-sections
 
 ifeq ($(CONFIG_FPU),y)
 	COMMON_CFLAGS += -mfloat-abi=hard
-else
-	BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 endif
 
 ENDIANESS = LE

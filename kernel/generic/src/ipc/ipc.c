@@ -96,6 +96,8 @@ void ipc_call_release(call_t *call)
 	if (atomic_predec(&call->refcnt) == 0) {
 		if (call->buffer)
 			free(call->buffer);
+		if (call->caller_phone)
+			kobject_put(call->caller_phone->kobject);
 		slab_free(call_slab, call);
 	}
 }
@@ -345,6 +347,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
 	task_t *caller = phone->caller;
 
 	call->caller_phone = phone;
+	kobject_add_ref(phone->kobject);
 
 	if (preforget) {
 		call->forget = true;
@@ -825,6 +828,10 @@ restart:
 static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
 {
 	ipc_phone_hangup(cap->kobject->phone);
+	kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
+	    KOBJECT_TYPE_PHONE);
+	kobject_put(kobj);
+	cap_free(cap->task, cap->handle);
 	return true;
 }
 

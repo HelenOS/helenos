@@ -84,8 +84,6 @@
 
 static slab_cache_t *cap_slab;
 
-static kobject_t *cap_unpublish_locked(task_t *, cap_handle_t, kobject_type_t);
-
 static size_t caps_hash(const ht_link_t *item)
 {
 	cap_t *cap = hash_table_get_inst(item, cap_t, caps_link);
@@ -149,7 +147,7 @@ error_handles:
  */
 void caps_task_init(task_t *task)
 {
-	mutex_initialize(&task->cap_info->lock, MUTEX_PASSIVE);
+	mutex_initialize(&task->cap_info->lock, MUTEX_RECURSIVE);
 
 	for (kobject_type_t t = 0; t < KOBJECT_TYPE_MAX; t++)
 		list_initialize(&task->cap_info->type_list[t]);
@@ -239,7 +237,7 @@ static bool cap_reclaimer(ht_link_t *link, void *arg)
 
 	if (cap->state == CAP_STATE_PUBLISHED && cap->kobject->ops->reclaim &&
 	    cap->kobject->ops->reclaim(cap->kobject)) {
-		kobject_t *kobj = cap_unpublish_locked(cap->task, cap->handle,
+		kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
 		    cap->kobject->type);
 		kobject_put(kobj);
 		cap_initialize(cap, cap->task, cap->handle);
@@ -319,25 +317,6 @@ cap_publish(task_t *task, cap_handle_t handle, kobject_t *kobj)
 	mutex_unlock(&task->cap_info->lock);
 }
 
-static kobject_t *
-cap_unpublish_locked(task_t *task, cap_handle_t handle, kobject_type_t type)
-{
-	kobject_t *kobj = NULL;
-
-	cap_t *cap = cap_get(task, handle, CAP_STATE_PUBLISHED);
-	if (cap) {
-		if (cap->kobject->type == type) {
-			/* Hand over cap's reference to kobj */
-			kobj = cap->kobject;
-			cap->kobject = NULL;
-			list_remove(&cap->type_link);
-			cap->state = CAP_STATE_ALLOCATED;
-		}
-	}
-
-	return kobj;
-}
-
 /** Unpublish published capability
  *
  * The kernel object is moved out of the capability. In other words, the
@@ -352,9 +331,19 @@ cap_unpublish_locked(task_t *task, cap_handle_t handle, kobject_type_t type)
  */
 kobject_t *cap_unpublish(task_t *task, cap_handle_t handle, kobject_type_t type)
 {
+	kobject_t *kobj = NULL;
 
 	mutex_lock(&task->cap_info->lock);
-	kobject_t *kobj = cap_unpublish_locked(task, handle, type);
+	cap_t *cap = cap_get(task, handle, CAP_STATE_PUBLISHED);
+	if (cap) {
+		if (cap->kobject->type == type) {
+			/* Hand over cap's reference to kobj */
+			kobj = cap->kobject;
+			cap->kobject = NULL;
+			list_remove(&cap->type_link);
+			cap->state = CAP_STATE_ALLOCATED;
+		}
+	}
 	mutex_unlock(&task->cap_info->lock);
 
 	return kobj;

@@ -40,6 +40,7 @@
 #include <stddef.h>
 #include <malloc.h>
 #include <bitops.h>
+#include <inttypes.h>
 
 #define INET_PREFIXSTRSIZE  5
 

@@ -38,7 +38,6 @@
 #include <macros.h>
 #include <errno.h>
 #include <devman.h>
-#include <usb/host/usb_transfer_batch.h>
 
 #include "usbhc_iface.h"
 #include "ddf/driver.h"
@@ -444,31 +443,31 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	return trans;
 }
 
-static int callback_out(usb_transfer_batch_t *batch)
+static int callback_out(void *arg, int error, size_t transfered_size)
 {
-	async_transaction_t *trans = batch->on_complete_data;
+	async_transaction_t *trans = arg;
 
-	const int err = async_answer_0(trans->caller, batch->error);
+	const int err = async_answer_0(trans->caller, error);
 
 	async_transaction_destroy(trans);
 
 	return err;
 }
 
-static int callback_in(usb_transfer_batch_t *batch)
+static int callback_in(void *arg, int error, size_t transfered_size)
 {
-	async_transaction_t *trans = batch->on_complete_data;
+	async_transaction_t *trans = arg;
 
 	if (trans->data_caller) {
-		if (batch->error == EOK) {
-			batch->error = async_data_read_finalize(trans->data_caller,
-			    trans->buffer, batch->transfered_size);
+		if (error == EOK) {
+			error = async_data_read_finalize(trans->data_caller,
+			    trans->buffer, transfered_size);
 		} else {
 			async_answer_0(trans->data_caller, EINTR);
 		}
 	}
 
-	const int err = async_answer_0(trans->caller, batch->error);
+	const int err = async_answer_0(trans->caller, error);
 	async_transaction_destroy(trans);
 	return err;
 }

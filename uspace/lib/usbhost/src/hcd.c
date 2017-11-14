@@ -81,7 +81,7 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
  */
 int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
-    usb_transfer_batch_callback_t on_complete, void *arg, const char *name)
+    usbhc_iface_transfer_callback_t on_complete, void *arg, const char *name)
 {
 	assert(hcd);
 	assert(device->address == target.address);
@@ -152,12 +152,12 @@ typedef struct {
 	int error;
 } sync_data_t;
 
-static int sync_transfer_complete(usb_transfer_batch_t *batch)
+static int sync_transfer_complete(void *arg, int error, size_t transfered_size)
 {
-	sync_data_t *d = batch->on_complete_data;
+	sync_data_t *d = arg;
 	assert(d);
-	d->transfered_size = batch->transfered_size;
-	d->error = batch->error;
+	d->transfered_size = transfered_size;
+	d->error = error;
 	fibril_mutex_lock(&d->done_mtx);
 	d->done = 1;
 	fibril_condvar_broadcast(&d->done_cv);

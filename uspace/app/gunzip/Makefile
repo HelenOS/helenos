@@ -29,8 +29,7 @@
 USPACE_PREFIX = ../..
 BINARY = gunzip
 
-EXTRA_CFLAGS += -I$(LIBCOMPRESS_PREFIX)
-LIBS = $(LIBCOMPRESS_PREFIX)/libcompress.a
+LIBS = compress
 
 SOURCES = \
 	gunzip.c

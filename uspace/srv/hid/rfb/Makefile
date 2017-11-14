@@ -27,8 +27,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBGRAPH_PREFIX)/libgraph.a
-EXTRA_CFLAGS = -I$(LIBGRAPH_PREFIX)
+LIBS = graph
 BINARY = rfb
 
 SOURCES = \

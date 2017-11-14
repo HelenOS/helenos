@@ -556,9 +556,14 @@ static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
 	loc_service_unregister_core(svc);
 	fibril_mutex_unlock(&cdir.mutex);
 	fibril_mutex_unlock(&services_list_mutex);
-	async_answer_0(iid, EOK);
 
+	/*
+	 * First send out all notifications and only then answer the request.
+	 * Otherwise the current fibril might block and transitively wait for
+	 * the completion of requests that are routed to it via an IPC loop.
+	 */
 	loc_category_change_event();
+	async_answer_0(iid, EOK);
 }
 
 static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
@@ -1296,9 +1301,13 @@ static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&cdir.mutex);
 	fibril_mutex_unlock(&services_list_mutex);
 
-	async_answer_0(iid, retval);
-
+	/*
+	 * First send out all notifications and only then answer the request.
+	 * Otherwise the current fibril might block and transitively wait for
+	 * the completion of requests that are routed to it via an IPC loop.
+	 */
 	loc_category_change_event();
+	async_answer_0(iid, retval);
 }
 
 

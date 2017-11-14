@@ -43,6 +43,7 @@
 #endif
 
 #include <adt/hash_table.h>
+#include <types/common.h>
 
 /**
  * Fibril-safe database of addresses implemented using hash set.

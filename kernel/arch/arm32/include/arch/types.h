@@ -36,33 +36,16 @@
 #ifndef KERN_arm32_TYPES_H_
 #define KERN_arm32_TYPES_H_
 
-#include <arch/common.h>
-
 #ifndef DOXYGEN
 	#define ATTRIBUTE_PACKED __attribute__((packed))
 #else
 	#define ATTRIBUTE_PACKED
 #endif
 
-typedef uint32_t size_t;
-typedef int32_t ssize_t;
-
-typedef uint32_t uintptr_t;
-typedef uint32_t pfn_t;
-
-typedef uint32_t ipl_t;
-
-typedef uint32_t sysarg_t;
-typedef int32_t native_t;
-typedef uint32_t atomic_count_t;
+#include <_bits/all.h>
 
 typedef struct {
 } fncptr_t;
-
-#define PRIdn  PRId32  /**< Format for native_t. */
-#define PRIun  PRIu32  /**< Format for sysarg_t. */
-#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t. */
-#define PRIua  PRIu32  /**< Format for atomic_count_t. */
 
 #endif
 

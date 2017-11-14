@@ -134,7 +134,6 @@ DIRS = \
 	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
-	srv/hw/irc/obio \
 	srv/hid/rfb \
 	drv/audio/hdaudio \
 	drv/audio/sb16 \
@@ -143,6 +142,7 @@ DIRS = \
 	drv/block/ahci \
 	drv/block/ata_bd \
 	drv/block/ddisk \
+	drv/block/usbmast \
 	drv/bus/adb/cuda_adb \
 	drv/bus/isa \
 	drv/bus/pci/pciintel \
@@ -150,26 +150,26 @@ DIRS = \
 	drv/bus/usb/ohci \
 	drv/bus/usb/uhci \
 	drv/bus/usb/usbflbk \
-	drv/bus/usb/usbhid \
 	drv/bus/usb/usbhub \
-	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
 	drv/bus/usb/xhci \
 	drv/char/i8042 \
+	drv/char/msim-con \
 	drv/char/ns8250 \
 	drv/char/pl050 \
-	drv/char/ps2mouse \
-	drv/char/atkbd \
-	drv/char/xtkbd \
-	drv/test/test1 \
-	drv/test/test2 \
-	drv/test/test3 \
+	drv/char/ski-con \
+	drv/char/sun4v-con \
 	drv/fb/amdm37x_dispc \
 	drv/fb/kfb \
+	drv/hid/atkbd \
+	drv/hid/ps2mouse \
+	drv/hid/usbhid \
+	drv/hid/xtkbd \
 	drv/intctl/apic \
 	drv/intctl/i8259 \
 	drv/intctl/icp-ic \
+	drv/intctl/obio \
 	drv/nic/ne2k \
 	drv/nic/e1k \
 	drv/nic/rtl8139 \
@@ -181,6 +181,11 @@ DIRS = \
 	drv/platform/malta \
 	drv/platform/msim \
 	drv/platform/pc \
+	drv/platform/ski \
+	drv/platform/sun4v \
+	drv/test/test1 \
+	drv/test/test2 \
+	drv/test/test3 \
 	drv/time/cmos-rtc
 
 ## sun4u driver won't compile on 32-bit targets
@@ -200,7 +205,11 @@ endif
 ## System libraries
 #
 
-LIBC = lib/c
+BASE_LIBS = \
+	lib/c \
+	lib/softint \
+	lib/softfloat
+
 LIBS = \
 	lib/fs \
 	lib/block \
@@ -211,8 +220,6 @@ LIBS = \
 	lib/fmtutil \
 	lib/scsi \
 	lib/compress \
-	lib/softint \
-	lib/softfloat \
 	lib/drv \
 	lib/graph \
 	lib/gui \
@@ -222,6 +229,7 @@ LIBS = \
 	lib/draw \
 	lib/label \
 	lib/math \
+	lib/minix \
 	lib/nettl \
 	lib/nic \
 	lib/ext4 \
@@ -238,34 +246,37 @@ LIBS = \
 	lib/posix \
 	lib/ieee80211
 
-LIBC_BUILD = $(addsuffix .build,$(LIBC))
-LIBS_BUILD = $(addsuffix .build,$(LIBS))
-LIBN_BUILD = $(addsuffix .build,$(LIBN))
-BUILDS := $(addsuffix .build,$(DIRS))
-BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) lib/c)
+BASE_BUILDS := $(addsuffix .build,$(BASE_LIBS))
+BUILDS := $(addsuffix .build,$(DIRS) $(LIBS))
+BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) $(BASE_LIBS))
+DEPS = $(addsuffix /deps.mk,$(DIRS) $(LIBS))
+CLEANS := $(addsuffix .clean,$(DIRS) $(LIBS) $(BASE_LIBS))
 
-CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
-
-.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD) $(BUILDS) $(CLEANS) clean
+.PHONY: all $(BASE_BUILDS) $(BUILDS) $(BUILDS_TESTS) $(CLEANS) clean
 
 all: $(BUILDS) $(BUILDS_TESTS)
 
-$(BUILDS_TESTS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
+$(BUILDS_TESTS): $(BASE_BUILDS) $(BUILDS)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)
+	find lib app drv srv -name '*.o' -follow -exec rm \{\} \;
+	find lib app drv srv -name '*.lo' -follow -exec rm \{\} \;
+	find lib app drv srv -name '*.d' -follow -exec rm \{\} \;
 
 $(CLEANS):
-	-$(MAKE) -r -C $(basename $@) clean
+	-$(MAKE) -r -C $(basename $@) fasterclean
 
-$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
+$(BASE_BUILDS) $(BUILDS):
 	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
 
-$(LIBN_BUILD): $(LIBC_BUILD) $(LIBS_BUILD)
-	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
+$(DEPS): %/deps.mk: %/Makefile
+	$(MAKE) -r -C $(@D) deps.mk SELF_TARGET="$(@D).build"
 
-$(LIBS_BUILD): $(LIBC_BUILD)
-	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
+# Special case for base libraries.
+lib/c.build: lib/softfloat.build lib/softint.build
 
-$(LIBC_BUILD):
-	$(MAKE) -r -C $(basename $@) all PRECHECK=$(PRECHECK)
+$(BUILDS): $(BASE_BUILDS)
+
+-include $(DEPS)
+

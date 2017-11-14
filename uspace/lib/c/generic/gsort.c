@@ -40,6 +40,7 @@
  */
 
 #include <gsort.h>
+#include <inttypes.h>
 #include <mem.h>
 #include <malloc.h>
 

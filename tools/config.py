@@ -444,8 +444,16 @@ def preprocess_config(config, rules):
 
 def create_output(mkname, mcname, config, rules):
 	"Create output configuration"
-
-	timestamp_unix = int(time.time())
+	
+	varname_strip = 'CONFIG_STRIP_REVISION_INFO'
+	strip_rev_info = (varname_strip in config) and (config[varname_strip] == 'y')
+	
+	if strip_rev_info:
+		timestamp_unix = int(0)
+	else:
+		# TODO: Use commit timestamp instead of build time.
+		timestamp_unix = int(time.time())
+	
 	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp_unix))
 	
 	sys.stderr.write("Fetching current revision identifier ... ")
@@ -457,7 +465,7 @@ def create_output(mkname, mcname, config, rules):
 		version = [1, "unknown", "unknown"]
 		sys.stderr.write("failed\n")
 	
-	if len(version) == 3:
+	if (not strip_rev_info) and (len(version) == 3):
 		revision = version[1]
 		if version[0] != 1:
 			revision += 'M'

@@ -127,7 +127,7 @@ ifneq ($(POSTBUILD),)
 endif
 	rm -f $(POST_OUTPUT) $(BOOT_OUTPUT) arch/*/include/common.h
 	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
-	find generic/src/ arch/*/src/ genarch/src/ -name '*.d' -follow -exec rm \{\} \;
+	find . -name '*.d' -follow -exec rm \{\} \;
 
 clean_dist:
 	rm -f $(INITRD).img $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE) $(COMPS).o $(COMPS)_desc.o $(COMPS).zip $(LINK)

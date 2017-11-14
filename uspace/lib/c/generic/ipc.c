@@ -147,21 +147,6 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 		return;
 	}
 	
-	if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
-		futex_unlock(&ipc_futex);
-		
-		call->u.msg.phoneid = phoneid;
-		
-		futex_down(&async_futex);
-		list_append(&call->list, &queued_calls);
-		
-		call->fid = fibril_get_id();
-		fibril_switch(FIBRIL_TO_MANAGER);
-		/* Async futex unlocked by previous call */
-		
-		return;
-	}
-	
 	call->u.callid = callid;
 	
 	/* Add call to the list of dispatched calls */
@@ -209,29 +194,6 @@ void ipc_call_async_fast(int phoneid, sysarg_t imethod, sysarg_t arg1,
 	futex_lock(&ipc_futex);
 	ipc_callid_t callid = __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phoneid,
 	    imethod, arg1, arg2, arg3, arg4);
-	
-	if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
-		if (!call) {
-			call = ipc_prepare_async(private, callback);
-			if (!call) {
-				futex_unlock(&ipc_futex);
-				return;
-			}
-		}
-		
-		IPC_SET_IMETHOD(call->u.msg.data, imethod);
-		IPC_SET_ARG1(call->u.msg.data, arg1);
-		IPC_SET_ARG2(call->u.msg.data, arg2);
-		IPC_SET_ARG3(call->u.msg.data, arg3);
-		IPC_SET_ARG4(call->u.msg.data, arg4);
-		
-		/*
-		 * To achieve deterministic behavior, we always zero out the
-		 * arguments that are beyond the limits of the fast version.
-		 */
-		
-		IPC_SET_ARG5(call->u.msg.data, 0);
-	}
 	
 	ipc_finish_async(callid, phoneid, call);
 }
@@ -350,9 +312,6 @@ static void dispatch_queued_calls(void)
 		    list_get_instance(list_first(&queued_calls), async_call_t, list);
 		ipc_callid_t callid =
 		    ipc_call_async_internal(call->u.msg.phoneid, &call->u.msg.data);
-		
-		if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY)
-			break;
 		
 		list_remove(&call->list);
 		

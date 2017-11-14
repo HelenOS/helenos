@@ -36,6 +36,7 @@
 #define LIBUSB_REQUEST_H_
 
 #include <stdint.h>
+#include <assert.h>
 
 /** Standard device request. */
 typedef enum {
@@ -106,7 +107,7 @@ typedef struct {
 	uint16_t length;
 } __attribute__ ((packed)) usb_device_request_setup_packet_t;
 
-int assert[(sizeof(usb_device_request_setup_packet_t) == 8) ? 1: -1];
+static_assert(sizeof(usb_device_request_setup_packet_t) == 8);
 
 /** How many toggles need to be reset */
 typedef enum {

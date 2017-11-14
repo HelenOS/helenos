@@ -35,7 +35,7 @@
 #ifndef LIBC_INTTYPES_H_
 #define LIBC_INTTYPES_H_
 
-#include <libarch/inttypes.h>
+#include <_bits/inttypes.h>
 
 #endif
 

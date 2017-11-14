@@ -28,10 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libusbdev
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include \
-	-Iinclude
+LIBS = usb drv
 
 SOURCES = \
 	src/altiface.c \

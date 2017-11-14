@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <inttypes.h>
 #include <mathtypes.h>
 #include <add.h>
 #include <sub.h>

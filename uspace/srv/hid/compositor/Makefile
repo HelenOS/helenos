@@ -28,19 +28,9 @@
 
 USPACE_PREFIX = ../../..
 
-LIBS = \
-	$(LIBDRAW_PREFIX)/libdraw.a \
-	$(LIBSOFTREND_PREFIX)/libsoftrend.a \
-	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
-	$(LIBDRV_PREFIX)/libdrv.a
-
-EXTRA_CFLAGS += \
-	-I$(LIBDRAW_PREFIX) \
-	-I$(LIBSOFTREND_PREFIX) \
-	-I$(LIBDRV_PREFIX)/include
+LIBS = draw softrend drv compress math
 
 BINARY = compositor
-MATH = y
 
 SOURCES = \
 	compositor.c

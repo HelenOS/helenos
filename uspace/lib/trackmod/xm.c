@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mem.h>
+#include <types/common.h>
 
 #include "byteorder.h"
 #include "xm.h"

@@ -28,11 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libusbhid
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include \
-	-Iinclude
+LIBS = usb usbdev drv
 
 SOURCES = \
 	src/hiddescriptor.c \

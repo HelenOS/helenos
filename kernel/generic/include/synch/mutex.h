@@ -42,12 +42,17 @@
 
 typedef enum {
 	MUTEX_PASSIVE,
+	MUTEX_RECURSIVE,
 	MUTEX_ACTIVE
 } mutex_type_t;
+
+struct thread;
 
 typedef struct {
 	mutex_type_t type;
 	semaphore_t sem;
+	struct thread *owner;
+	unsigned nesting;
 } mutex_t;
 
 #define mutex_lock(mtx) \

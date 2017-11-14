@@ -29,16 +29,9 @@
 USPACE_PREFIX = ../../..
 BINARY = hound
 
-EXTRA_CFLAGS = \
-	-DNAME="\"hound\"" \
-	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBHOUND_PREFIX)/include \
-	-I$(LIBPCM_PREFIX)/include
+EXTRA_CFLAGS = -DNAME="\"hound\""
 
-LIBS = \
-	$(LIBDRV_PREFIX)/libdrv.a \
-	$(LIBHOUND_PREFIX)/libhound.a \
-	$(LIBPCM_PREFIX)/libpcm.a
+LIBS = drv hound pcm
 
 SOURCES = \
 	audio_data.c \

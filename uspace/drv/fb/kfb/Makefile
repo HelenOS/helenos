@@ -29,8 +29,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBGRAPH_PREFIX)/libgraph.a $(LIBSOFTREND_PREFIX)/libsoftrend.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBGRAPH_PREFIX) -I$(LIBSOFTREND_PREFIX)
+LIBS = drv graph softrend
 BINARY = kfb
 
 SOURCES = \

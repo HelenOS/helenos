@@ -48,10 +48,10 @@ RD_DRVS_ESSENTIAL += \
 	bus/usb/ohci \
 	bus/usb/usbflbk \
 	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
 	bus/usb/usbmid \
-	bus/usb/vhc
+	bus/usb/vhc \
+	block/usbmast \
+	hid/usbhid
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

@@ -27,7 +27,6 @@
 #
 
 ARCH_SOURCES = \
-	arch/$(UARCH)/src/entry.c \
 	arch/$(UARCH)/src/entryjmp.c \
 	arch/$(UARCH)/src/thread_entry.c \
 	arch/$(UARCH)/src/fibril.c \
@@ -35,4 +34,4 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/stacktrace.c
 
-.PRECIOUS: arch/$(UARCH)/src/entry.o
+EXTRA_OUTPUT += arch/$(UARCH)/src/entry.o

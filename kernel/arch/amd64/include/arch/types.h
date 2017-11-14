@@ -35,27 +35,10 @@
 #ifndef KERN_amd64_TYPES_H_
 #define KERN_amd64_TYPES_H_
 
-#include <arch/common.h>
-
-typedef uint64_t size_t;
-typedef int64_t ssize_t;
-
-typedef uint64_t uintptr_t;
-typedef uint64_t pfn_t;
-
-typedef uint64_t ipl_t;
-
-typedef uint64_t sysarg_t;
-typedef int64_t native_t;
-typedef uint64_t atomic_count_t;
+#include <_bits/all.h>
 
 typedef struct {
 } fncptr_t;
-
-#define PRIdn  PRId64  /**< Format for native_t. */
-#define PRIun  PRIu64  /**< Format for sysarg_t. */
-#define PRIxn  PRIx64  /**< Format for hexadecimal sysarg_t. */
-#define PRIua  PRIu64  /**< Format for atomic_count_t. */
 
 #endif
 

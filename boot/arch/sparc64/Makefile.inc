@@ -38,19 +38,21 @@ BITS = 64
 ENDIANESS = BE
 EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu -mcmodel=medlow
 
+ifeq ($(PROCESSOR), sun4v)
+RD_DRVS_ESSENTIAL += \
+	platform/sun4v \
+	char/sun4v-con
+else
 RD_DRVS_ESSENTIAL += \
 	platform/sun4u \
 	bus/pci/pciintel \
 	bus/isa \
+	intctl/obio \
 	char/ns8250
 
 RD_DRV_CFG += \
 	bus/isa
-
-RD_SRVS_NON_ESSENTIAL +=
-
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/irc/obio/obio
+endif
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

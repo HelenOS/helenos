@@ -43,18 +43,15 @@
 #   EXTRA_OUTPUT       additional output targets
 #   EXTRA_CLEAN        additional cleanup targets
 #
-#   MATH               set to 'y' to use the math library
-#   POSIX_COMPAT       set to 'y' to use POSIX compatibility layer
-#
 # Optionally, for a binary:
 #   STATIC_NEEDED      set to 'y' for init binaries, will build statically
 #                      linked version
 #   STATIC_ONLY        set to 'y' if binary cannot be linked dynamically
 #                      (e.g. uses thread-local variables)
 #
-# Optionally, for a libary:
-#   SLIBRARY           Name with full version, e.g. libfoo.so.0.0 
-#   LSONAME            Soname / name with short version, e.g. libfoo.so.0
+# Optionally, for a library:
+#   SOVERSION            shared library version (major.minor),
+#                        if missing, no shared library is built
 #
 # (x) required variables
 # (/) exactly one of the variables must be defined
@@ -74,28 +71,27 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
+OUTPUTS = $(EXTRA_OUTPUT)
+
 ifneq ($(BINARY),)
 	JOB = $(BINARY).job
-	OUTPUT = $(BINARY)
 	TEST_BINARY = test-$(BINARY)
-	EXTRA_OUTPUT += $(BINARY).disasm
+	OUTPUTS += $(BINARY) $(BINARY).disasm
 	EXTRA_CLEAN += $(BINARY).map
 endif
 
 ifneq ($(LIBRARY),)
 	JOB = $(LIBRARY).job
-	OUTPUT = $(LIBRARY).a
 	TEST_BINARY = test-$(LIBRARY)
+	OUTPUTS += $(LIBRARY).a
 endif
 
 ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
-	ifneq ($(SLIBRARY),)
-		LARCHIVE = $(LIBRARY).la
-		LOUTPUT = $(SLIBRARY)
-		EXTRA_OUTPUT += $(LOUTPUT).disasm $(LIBRARY).so $(LSONAME)
-		EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).ldisasm \
-		    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld \
-		    $(LIBRARY).so $(LSONAME)
+	ifneq ($(SOVERSION),)
+		SLIBRARY = $(LIBRARY).so.$(SOVERSION)
+		LSONAME = $(LIBRARY).so.$(basename $(SOVERSION))
+		OUTPUTS += $(SLIBRARY) $(SLIBRARY).disasm $(LSONAME)
+		EXTRA_CLEAN += $(LIBRARY).la $(SLIBRARY).map
 	endif
 endif
 
@@ -115,56 +111,10 @@ LIBMATH_INCLUDES_FLAGS = \
 	-I$(LIBMATH_PREFIX)/arch/$(UARCH)/include
 
 LIBPOSIX_PREFIX = $(LIB_PREFIX)/posix
-
-LIBCRYPTO_PREFIX = $(LIB_PREFIX)/crypto
-LIBBLOCK_PREFIX = $(LIB_PREFIX)/block
-LIBFDISK_PREFIX = $(LIB_PREFIX)/fdisk
-LIBLABEL_PREFIX = $(LIB_PREFIX)/label
-LIBFS_PREFIX = $(LIB_PREFIX)/fs
-LIBCLUI_PREFIX = $(LIB_PREFIX)/clui
-LIBFMTUTIL_PREFIX = $(LIB_PREFIX)/fmtutil
-
-LIBGRAPH_PREFIX = $(LIB_PREFIX)/graph
-LIBSOFTREND_PREFIX = $(LIB_PREFIX)/softrend
-LIBDRAW_PREFIX = $(LIB_PREFIX)/draw
-LIBGUI_PREFIX = $(LIB_PREFIX)/gui
-
-LIBEXT4_PREFIX = $(LIB_PREFIX)/ext4
-
-LIBUSB_PREFIX = $(LIB_PREFIX)/usb
-LIBUSBHOST_PREFIX = $(LIB_PREFIX)/usbhost
-LIBUSBDEV_PREFIX = $(LIB_PREFIX)/usbdev
-LIBUSBHID_PREFIX = $(LIB_PREFIX)/usbhid
-LIBUSBVIRT_PREFIX = $(LIB_PREFIX)/usbvirt
-
-LIBDRV_PREFIX = $(LIB_PREFIX)/drv
-LIBHOUND_PREFIX = $(LIB_PREFIX)/hound
-LIBPCM_PREFIX = $(LIB_PREFIX)/pcm
-LIBNIC_PREFIX = $(LIB_PREFIX)/nic
-LIBIEEE80211_PREFIX = $(LIB_PREFIX)/ieee80211
-LIBMINIX_PREFIX = $(LIB_PREFIX)/minix
-LIBCOMPRESS_PREFIX = $(LIB_PREFIX)/compress
 LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
-LIBSCSI_PREFIX = $(LIB_PREFIX)/scsi
-LIBTRACKMOD_PREFIX = $(LIB_PREFIX)/trackmod
-
-LIBBITHENGE_PREFIX = $(LIB_PREFIX)/bithenge
-
-LIBHTTP_PREFIX = $(LIB_PREFIX)/http
-LIBURI_PREFIX = $(LIB_PREFIX)/uri
-
-LIBNETTL_PREFIX = $(LIB_PREFIX)/nettl
-
-AFLAGS =
-LFLAGS = --fatal-warnings
-
-# FIXME: This condition is a workaround for issues #692 and #693.
-ifneq ($(KARCH),ia64)
-ifneq ($(KARCH),mips32)
-	AFLAGS += --fatal-warnings
-endif
-endif
+AFLAGS = --fatal-warnings
+LFLAGS = --fatal-warnings --warn-common
 
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
@@ -181,17 +131,13 @@ else
 endif
 
 ifeq ($(STATIC_BUILD),y)
-	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
-	ifeq ($(MATH),y)
-		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
-	endif
+	BASE_LIBS = $(LIBC_PREFIX)/libc.a
 else
-	BASE_LIBS = $(LIBC_PREFIX)/libc.so.0 $(LIBSOFTINT_PREFIX)/libsoftint.so.0
+	BASE_LIBS = $(LIBC_PREFIX)/libc.so.0
 	LINK_DYNAMIC = y
-	ifeq ($(MATH),y)
-		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.so.0
-	endif
 endif
+
+BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 
 ifeq ($(LINK_DYNAMIC),y)
 	LFLAGS += -Bdynamic
@@ -200,40 +146,37 @@ else
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 endif
 
-ifeq ($(MATH),y)
-	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS) $(LIBMATH_INCLUDES_FLAGS)
-else
-	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
+LIB_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
+
+INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
+
+ifneq ($(LIBRARY),)
+	INCLUDES_FLAGS += -Iinclude -I.
+endif
+
+INCLUDES_FLAGS += $(foreach lib,$(LIBS), -I$(LIB_PREFIX)/$(lib) -I$(LIB_PREFIX)/$(lib)/include)
+
+# TODO: get rid of this special case
+ifneq ($(filter math, $(LIBS)),)
+	INCLUDES_FLAGS += $(LIBMATH_INCLUDES_FLAGS)
 endif
 
 # PCUT-based unit tests
 ifneq ($(TEST_SOURCES),)
-	TEST_OUTPUT = $(TEST_BINARY)
-	TEST_DISASM = $(TEST_BINARY).disasm
+	TEST_OUTPUTS = $(TEST_BINARY) $(TEST_BINARY).disasm
 	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__
-	TEST_OUTPUT_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
-	EXTRA_CLEAN += $(TEST_OUTPUT) $(TEST_OUTPUT).map $(TEST_DISASM)
+	TEST_BINARY_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
+	EXTRA_CLEAN += $(TEST_OUTPUTS) $(TEST_BINARY).map
 ifneq ($(LIBRARY),)
-	TEST_OUTPUT_LIBS += $(OUTPUT)
+	TEST_BINARY_LIBS += $(LIBRARY).a
 endif
-	TEST_OUTPUT_LIBS += $(TEST_LIBS)
+	TEST_BINARY_LIBS += $(TEST_LIBS)
 endif
-
-.PHONY: all clean depend
-
-all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
-
-all-test: $(TEST_OUTPUT) $(TEST_DISASM)
-
-clean:
-	rm -f $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
-	find . -name '*.o' -follow -exec rm \{\} \;
-	find . -name '*.lo' -follow -exec rm \{\} \;
-	find . -name '*.d' -follow -exec rm \{\} \;
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -fexec-charset=UTF-8 \
-	-finput-charset=UTF-8 -D__$(ENDIANESS)__
+	-finput-charset=UTF-8 -D__$(ENDIANESS)__ -fno-common \
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 
 GCC_CFLAGS = -ffunction-sections -Wall -Wextra -Wno-clobbered \
 	-Wno-unused-parameter -Wmissing-prototypes -std=gnu99 \
@@ -256,12 +199,6 @@ ifeq ($(CONFIG_LINE_DEBUG),y)
 	CLANG_CFLAGS += -g
 endif
 
-# Prepare for POSIX before including platform specific stuff
-ifeq ($(POSIX_COMPAT),y)
-	CFLAGS += -I$(LIBPOSIX_PREFIX)/include/posix -I$(LIBPOSIX_PREFIX)/include/
-	BASE_LIBS = $(LIBPOSIX_PREFIX)/libposixaslibc.a $(LIBPOSIX_PREFIX)/libc4posix.a $(LIBSOFTINT_PREFIX)/libsoftint.a
-endif
-
 ## Setup platform configuration
 #
 
@@ -270,7 +207,13 @@ endif
 ## Compilation options
 #
 
-JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
+ifeq ($(PRECHECK),y)
+	JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
+	# XXX: Do not change the order of arguments.
+	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
+else
+	CC_JOB = $(CC) $< -o $@
+endif
 
 ifeq ($(COMPILER),clang)
 	CFLAGS += $(COMMON_CFLAGS) $(CLANG_CFLAGS)
@@ -278,8 +221,12 @@ else
 	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
 endif
 
+ifeq ($(CONFIG_STRIP_BINARIES),y)
+	LFLAGS += --strip-all
+endif
+
 LIB_CFLAGS = $(CFLAGS) -fPIC
-LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
+LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME)
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
@@ -289,112 +236,99 @@ LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 TEST_OBJECTS := $(addsuffix .test.o,$(basename $(TEST_SOURCES)))
 DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename $(TEST_SOURCES)))
 
--include $(DEPENDS)
+LIBTAGS := $(foreach lib,$(LIBS), $(USPACE_PREFIX)/lib/$(lib)/tag)
+LIBARGS := $(addprefix -L$(USPACE_PREFIX)/lib/, $(LIBS)) $(addprefix -l, $(LIBS))
 
-ifneq ($(BINARY),)
-$(BINARY).disasm: $(BINARY)
+.PHONY: all all-test clean fasterclean depend
+
+all: tag $(OUTPUTS)
+
+all-test: $(TEST_OUTPUTS)
+
+clean:
+	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN) tag deps.mk
+	find . -name '*.o' -follow -exec rm \{\} \;
+	find . -name '*.lo' -follow -exec rm \{\} \;
+	find . -name '*.d' -follow -exec rm \{\} \;
+
+fasterclean:
+	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN) tag deps.mk
+
+depend: $(PRE_DEPEND)
+
+# "Tag" files are used to force relink of binaries when dependencies get rebuilt,
+# regardless of whether the dependency was linked statically or dynamically,
+# or which version of a dynamic library was used. Prerequisites for this file
+# are defined further down.
+tag:
+	touch tag
+
+# Generate inter-module make dependencies.
+# This is needed to ensure correct build order of libraries and code depending on them.
+deps.mk: Makefile
+	echo > $@.new
+	for lib in $(LIBS); do \
+		echo "$(SELF_TARGET): lib/$$lib.build" >> $@.new; \
+	done
+	mv -f $@.new $@
+
+%.disasm: %
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
 else
 	$(OBJDUMP) -d $< > $@
 endif
 
-$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
-	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
-ifeq ($(CONFIG_STRIP_BINARIES),y)
-	$(STRIP) $(BINARY)
+ifneq ($(BINARY),)
+$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
+	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
+
+ifneq ($(TEST_BINARY),)
+$(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS) $(BASE_LIBS)
+	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
+endif
+
+ifneq ($(LIBRARY),)
+tag: $(LIBRARY).a
+
+$(LIBRARY).a: $(OBJECTS)
+	$(AR) rc $@ $(OBJECTS)
 endif
 
 ifneq ($(SLIBRARY),)
-$(LOUTPUT).disasm: $(LOUTPUT)
-ifeq ($(CONFIG_LINE_DEBUG),y)
-	$(OBJDUMP) -d -S $< > $@
-else
-	$(OBJDUMP) -d $< > $@
-endif
+tag: $(SLIBRARY)
 
-$(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
-	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
+$(LIBRARY).la: $(LOBJECTS)
+	$(AR) rc $@ $(LOBJECTS)
 
-$(LIBRARY).so:
-	ln -s $(SLIBRARY) $@
+$(SLIBRARY): $(LIB_LINKER_SCRIPT) $(LIBRARY).la
+	$(LD) $(LIB_LFLAGS) -T $(LIB_LINKER_SCRIPT) -Map $@.map -o $@ --whole-archive $(LIBRARY).la --no-whole-archive
 
 $(LSONAME):
 	ln -s $(SLIBRARY) $@
 endif
 
-ifneq ($(LIBRARY),)
-$(LIBRARY).a: $(OBJECTS)
-	$(AR) rc $@ $(OBJECTS)
-endif
-
-ifneq ($(LARCHIVE),)
-$(LARCHIVE): $(LOBJECTS)
-	$(AR) rc $@ $(LOBJECTS)
-endif
-
-ifneq ($(TEST_OUTPUT),)
-$(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
-	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(TEST_OUTPUT).map -o $@ $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS) $(LIBS) $(BASE_LIBS)
-ifeq ($(CONFIG_STRIP_BINARIES),y)
-	$(STRIP) $(TEST_OUTPUT)
-endif
-$(TEST_BINARY).disasm: $(TEST_BINARY)
-ifeq ($(CONFIG_LINE_DEBUG),y)
-	$(OBJDUMP) -d -S $< > $@
-else
-	$(OBJDUMP) -d $< > $@
-endif
-endif
-
 %.o: %.S | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.s | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.o: %.c | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.test.o: %.c | depend
-	$(CC) -MD $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS) -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
 
 %.lo: %.S | depend
-	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -D__ASM__
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.lo: %.s | depend
-	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__ -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
 
 %.lo: %.c | depend
-	$(CC) -MD $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
-ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
-endif
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
-depend: $(PRE_DEPEND)
+-include $(DEPENDS)
 
-##
-# This explicit dependecy of the output binary on the object files seems to be
-# necessary to prevent parallel build failures (GNU make bug #26893 ???).
-$(OUTPUT): $(OBJECTS)
-
-$(LARCHIVE): $(LOBJECTS)

@@ -29,15 +29,7 @@
 USPACE_PREFIX = ../..
 BINARY = wavplay
 
-LIBS = \
-	$(LIBHOUND_PREFIX)/libhound.a \
-	$(LIBDRV_PREFIX)/libdrv.a \
-	$(LIBPCM_PREFIX)/libpcm.a
-
-EXTRA_CFLAGS = \
-	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBHOUND_PREFIX)/include \
-	-I$(LIBPCM_PREFIX)/include
+LIBS = drv hound pcm
 
 SOURCES = \
 	dplay.c \

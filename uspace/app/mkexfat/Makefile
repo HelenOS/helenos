@@ -27,8 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
+LIBS = block
 BINARY = mkexfat
 
 SOURCES = \

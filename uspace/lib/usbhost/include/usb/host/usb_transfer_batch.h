@@ -38,6 +38,7 @@
 
 #include <usb/usb.h>
 #include <usb/request.h>
+#include <usbhc_iface.h>
 
 #include <atomic.h>
 #include <stddef.h>
@@ -48,10 +49,6 @@
 
 typedef struct endpoint endpoint_t;
 typedef struct bus bus_t;
-typedef struct usb_transfer_batch usb_transfer_batch_t;
-
-/** Callback to be called on transfer. */
-typedef int (*usb_transfer_batch_callback_t)(usb_transfer_batch_t *);
 
 /** Structure stores additional data needed for communication with EP */
 typedef struct usb_transfer_batch {
@@ -68,7 +65,7 @@ typedef struct usb_transfer_batch {
 	usb_direction_t dir;
 
 	/** Function called on completion */
-	usb_transfer_batch_callback_t on_complete;
+	usbhc_iface_transfer_callback_t on_complete;
 	/** Arbitrary data for the handler */
 	void *on_complete_data;
 

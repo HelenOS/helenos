@@ -270,9 +270,26 @@ error:
 	return NULL;
 }
 
+static void irq_hash_out(irq_t *irq)
+{
+	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
+	irq_spinlock_lock(&irq->lock, false);
+	
+	if (irq->notif_cfg.hashed_in) {
+		/* Remove the IRQ from the uspace IRQ hash table. */
+		hash_table_remove_item(&irq_uspace_hash_table, &irq->link);
+		irq->notif_cfg.hashed_in = false;
+	}
+
+	irq_spinlock_unlock(&irq->lock, false);
+	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
+}
+
 static void irq_destroy(void *arg)
 {
 	irq_t *irq = (irq_t *) arg;
+
+	irq_hash_out(irq);
 
 	/* Free up the IRQ code and associated structures. */
 	code_free(irq->notif_cfg.code);
@@ -372,18 +389,7 @@ int ipc_irq_unsubscribe(answerbox_t *box, int handle)
 	
 	assert(kobj->irq->notif_cfg.answerbox == box);
 
-	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
-	irq_spinlock_lock(&kobj->irq->lock, false);
-	
-	if (kobj->irq->notif_cfg.hashed_in) {
-		/* Remove the IRQ from the uspace IRQ hash table. */
-		hash_table_remove_item(&irq_uspace_hash_table,
-		    &kobj->irq->link);
-		kobj->irq->notif_cfg.hashed_in = false;
-	}
-
-	irq_spinlock_unlock(&kobj->irq->lock, false);
-	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
+	irq_hash_out(kobj->irq);
 
 	kobject_put(kobj);
 	cap_free(TASK, handle);

@@ -28,22 +28,9 @@
 
 USPACE_PREFIX = ../../..
 
-LIBS = \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a \
-	$(LIBNIC_PREFIX)/libnic.a \
-	$(LIBIEEE80211_PREFIX)/libieee80211.a \
-	$(LIBCRYPTO_PREFIX)/libcrypto.a
+LIBS = usbdev usb drv nic ieee80211 crypto
 
-EXTRA_CFLAGS += \
-	-I. \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBNIC_PREFIX)/include \
-	-I$(LIBIEEE80211_PREFIX)/include \
-	-I$(LIBCRYPTO_PREFIX)
+EXTRA_CFLAGS += -I.
 
 BINARY = ar9271
 
