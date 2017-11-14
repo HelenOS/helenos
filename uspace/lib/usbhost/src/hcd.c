@@ -59,16 +59,6 @@ void hcd_init(hcd_t *hcd) {
 	hcd_set_implementation(hcd, NULL, NULL, NULL);
 }
 
-usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
-{
-	assert(hcd);
-	usb_address_t address = 0;
-	const int ret = bus_request_address(hcd->bus, &address, false, speed);
-	if (ret != EOK)
-		return ret;
-	return address;
-}
-
 /** Prepare generic usb_transfer_batch and schedule it.
  * @param hcd Host controller driver.
  * @param target address and endpoint number.
