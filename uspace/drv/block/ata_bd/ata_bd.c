@@ -61,11 +61,9 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <str.h>
-#include <loc.h>
 #include <inttypes.h>
 #include <errno.h>
 #include <byteorder.h>
-#include <task.h>
 #include <macros.h>
 
 #include "ata_hw.h"
