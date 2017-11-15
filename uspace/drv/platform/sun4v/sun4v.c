@@ -35,15 +35,23 @@
 /** @file
  */
 
+#include <as.h>
 #include <assert.h>
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <errno.h>
+#include <ops/hw_res.h>
+#include <ops/pio_window.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sysinfo.h>
 
 #define NAME "sun4v"
+
+typedef struct sun4v_fun {
+	hw_resource_list_t hw_resources;
+	pio_window_t pio_window;
+} sun4v_fun_t;
 
 static int sun4v_dev_add(ddf_dev_t *dev);
 
@@ -56,7 +64,71 @@ static driver_t sun4v_driver = {
 	.driver_ops = &sun4v_ops
 };
 
-static int sun4v_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id)
+static hw_resource_t console_res[] = {
+	{
+		.type = MEM_RANGE,
+		.res.mem_range = {
+			.address = 0,
+			.size = PAGE_SIZE,
+			.relative = true,
+			.endianness = LITTLE_ENDIAN
+		}
+	},
+};
+
+static sun4v_fun_t console_data = {
+	.hw_resources = {
+		sizeof(console_res) / sizeof(console_res[0]),
+		console_res
+	},
+	.pio_window = {
+		.mem = {
+			.base = 0,
+			.size = PAGE_SIZE
+		}
+	}
+};
+
+/** Obtain function soft-state from DDF function node */
+static sun4v_fun_t *sun4v_fun(ddf_fun_t *fnode)
+{
+	return ddf_fun_data_get(fnode);
+}
+
+static hw_resource_list_t *sun4v_get_resources(ddf_fun_t *fnode)
+{
+	sun4v_fun_t *fun = sun4v_fun(fnode);
+
+	assert(fun != NULL);
+	return &fun->hw_resources;
+}
+
+static int sun4v_enable_interrupt(ddf_fun_t *fun, int irq)
+{
+	return true;
+}
+
+static pio_window_t *sun4v_get_pio_window(ddf_fun_t *fnode)
+{
+	sun4v_fun_t *fun = sun4v_fun(fnode);
+
+	assert(fun != NULL);
+	return &fun->pio_window;
+}
+
+static hw_res_ops_t fun_hw_res_ops = {
+	.get_resource_list = &sun4v_get_resources,
+	.enable_interrupt = &sun4v_enable_interrupt,
+};
+
+static pio_window_ops_t fun_pio_window_ops = {
+	.get_pio_window = &sun4v_get_pio_window
+};
+
+static ddf_dev_ops_t sun4v_fun_ops;
+
+static int sun4v_add_fun(ddf_dev_t *dev, const char *name,
+    const char *str_match_id, sun4v_fun_t *fun_proto)
 {
 	ddf_msg(LVL_NOTE, "Adding function '%s'.", name);
 
@@ -71,6 +143,14 @@ static int sun4v_add_fun(ddf_dev_t *dev, const char *name, const char *str_match
 		goto error;
 	}
 
+	sun4v_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(sun4v_fun_t));
+	if (fun == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	*fun = *fun_proto;
+
 	/* Add match ID */
 	rc = ddf_fun_add_match_id(fnode, str_match_id, 100);
 	if (rc != EOK) {
@@ -78,8 +158,12 @@ static int sun4v_add_fun(ddf_dev_t *dev, const char *name, const char *str_match
 		goto error;
 	}
 
+	/* Set provided operations to the device. */
+	ddf_fun_set_ops(fnode, &sun4v_fun_ops);
+
 	/* Register function. */
-	if (ddf_fun_bind(fnode) != EOK) {
+	rc = ddf_fun_bind(fnode);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
 		goto error;
 	}
@@ -97,7 +181,7 @@ static int sun4v_add_functions(ddf_dev_t *dev)
 {
 	int rc;
 
-	rc = sun4v_add_fun(dev, "console", "sun4v/console");
+	rc = sun4v_add_fun(dev, "console", "sun4v/console", &console_data);
 	if (rc != EOK)
 		return rc;
 
@@ -107,7 +191,7 @@ static int sun4v_add_functions(ddf_dev_t *dev)
 /** Add device. */
 static int sun4v_dev_add(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_NOTE, "sun4v_dev_add, device handle = %d",
+	ddf_msg(LVL_DEBUG, "sun4v_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));
 
 	/* Register functions. */
@@ -118,17 +202,39 @@ static int sun4v_dev_add(ddf_dev_t *dev)
 	return EOK;
 }
 
+static int sun4v_init(void)
+{
+	int rc;
+	sysarg_t paddr;
+
+	sun4v_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
+	sun4v_fun_ops.interfaces[PIO_WINDOW_DEV_IFACE] = &fun_pio_window_ops;
+
+	rc = ddf_log_init(NAME);
+	if (rc != EOK) {
+		printf(NAME ": Failed initializing logging service\n");
+		return rc;
+	}
+
+	rc = sysinfo_get_value("niagara.inbuf.address", &paddr);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "niagara.inbuf.address not set (%d)", rc);
+		return rc;
+	}
+
+	console_data.pio_window.mem.base = paddr;
+	return EOK;
+}
+
 int main(int argc, char *argv[])
 {
 	int rc;
 
 	printf(NAME ": Sun4v platform driver\n");
 
-	rc = ddf_log_init(NAME);
-	if (rc != EOK) {
-		printf(NAME ": Failed initializing logging service");
+	rc = sun4v_init();
+	if (rc != EOK)
 		return 1;
-	}
 
 	return ddf_driver_main(&sun4v_driver);
 }

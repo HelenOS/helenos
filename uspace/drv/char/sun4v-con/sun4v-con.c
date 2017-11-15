@@ -37,7 +37,6 @@
 #include <errno.h>
 #include <ipc/char.h>
 #include <stdbool.h>
-#include <sysinfo.h>
 #include <thread.h>
 
 #include "sun4v-con.h"
@@ -71,11 +70,12 @@ static void sun4v_con_putchar(sun4v_con_t *con, uint8_t data)
 }
 
 /** Add sun4v console device. */
-int sun4v_con_add(sun4v_con_t *con)
+int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 {
 	ddf_fun_t *fun = NULL;
 	int rc;
 
+	con->res = *res;
 	input_buffer = (input_buffer_t) AS_AREA_ANY;
 
 	fun = ddf_fun_create(con->dev, fun_exposed, "a");
@@ -87,14 +87,7 @@ int sun4v_con_add(sun4v_con_t *con)
 
 	ddf_fun_set_conn_handler(fun, sun4v_con_connection);
 
-	sysarg_t paddr;
-	rc = sysinfo_get_value("niagara.inbuf.address", &paddr);
-	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "niagara.inbuf.address not set (%d)", rc);
-		goto error;
-	}
-
-	rc = physmem_map(paddr, 1, AS_AREA_READ | AS_AREA_WRITE,
+	rc = physmem_map(res->base, 1, AS_AREA_READ | AS_AREA_WRITE,
 	    (void *) &input_buffer);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error mapping memory: %d", rc);

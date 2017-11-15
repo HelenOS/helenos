@@ -40,17 +40,19 @@
 #include <loc.h>
 #include <stdint.h>
 
+/** Sun4v console resources */
+typedef struct {
+	uintptr_t base;
+} sun4v_con_res_t;
+
 /** Sun4v console */
 typedef struct {
 	async_sess_t *client_sess;
 	ddf_dev_t *dev;
+	sun4v_con_res_t res;
 } sun4v_con_t;
 
-extern int sun4v_con_init(sun4v_con_t *);
-extern void sun4v_con_write(uint8_t data);
-
-
-extern int sun4v_con_add(sun4v_con_t *);
+extern int sun4v_con_add(sun4v_con_t *, sun4v_con_res_t *);
 extern int sun4v_con_remove(sun4v_con_t *);
 extern int sun4v_con_gone(sun4v_con_t *);
 

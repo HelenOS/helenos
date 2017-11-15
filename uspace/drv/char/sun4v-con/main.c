@@ -31,6 +31,7 @@
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <device/hw_res_parsed.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -57,9 +58,39 @@ static driver_t sun4v_con_driver = {
 	.driver_ops = &driver_ops
 };
 
+static int sun4v_con_get_res(ddf_dev_t *dev, sun4v_con_res_t *res)
+{
+	async_sess_t *parent_sess;
+	hw_res_list_parsed_t hw_res;
+	int rc;
+
+	parent_sess = ddf_dev_parent_sess_get(dev);
+	if (parent_sess == NULL)
+		return ENOMEM;
+
+	hw_res_list_parsed_init(&hw_res);
+	rc = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
+	if (rc != EOK)
+		return rc;
+
+	if (hw_res.mem_ranges.count != 1) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	res->base = RNGABS(hw_res.mem_ranges.ranges[0]);
+	return EOK;
+error:
+	hw_res_list_parsed_clean(&hw_res);
+	return rc;
+}
+
+
 static int sun4v_con_dev_add(ddf_dev_t *dev)
 {
 	sun4v_con_t *sun4v_con;
+	sun4v_con_res_t res;
+	int rc;
 
         ddf_msg(LVL_DEBUG, "sun4v_con_dev_add(%p)", dev);
 	sun4v_con = ddf_dev_data_alloc(dev, sizeof(sun4v_con_t));
@@ -70,7 +101,13 @@ static int sun4v_con_dev_add(ddf_dev_t *dev)
 
 	sun4v_con->dev = dev;
 
-	return sun4v_con_add(sun4v_con);
+	rc = sun4v_con_get_res(dev, &res);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed getting hardware resource list.\n");
+		return EIO;
+	}
+
+	return sun4v_con_add(sun4v_con, &res);
 }
 
 static int sun4v_con_dev_remove(ddf_dev_t *dev)

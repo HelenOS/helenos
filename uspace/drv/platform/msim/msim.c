@@ -64,12 +64,12 @@ typedef struct msim_fun {
 static int msim_dev_add(ddf_dev_t *dev);
 static void msim_init(void);
 
-/** The root device driver's standard operations. */
+/** Standard driver operations. */
 static driver_ops_t msim_ops = {
 	.dev_add = &msim_dev_add
 };
 
-/** The root device driver structure. */
+/** Driver structure. */
 static driver_t msim_driver = {
 	.name = NAME,
 	.driver_ops = &msim_ops
@@ -193,6 +193,9 @@ msim_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 		goto failure;
 	
 	msim_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(msim_fun_t));
+	if (fun == NULL)
+		goto failure;
+	
 	*fun = *fun_proto;
 	
 	/* Add match ID */
@@ -229,11 +232,10 @@ static bool msim_add_functions(ddf_dev_t *dev)
 	return true;
 }
 
-/** Get the root device.
+/** Add MSIM platform device.
  *
- * @param dev		The device which is root of the whole device tree (both
- *			of HW and pseudo devices).
- * @return		Zero on success, negative error number otherwise.
+ * @param dev DDF device
+ * @return Zero on success or non-zero error code.
  */
 static int msim_dev_add(ddf_dev_t *dev)
 {
