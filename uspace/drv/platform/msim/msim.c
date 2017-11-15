@@ -37,24 +37,24 @@
  */
 
 #include <assert.h>
-#include <stdio.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <macros.h>
-
-#include <ddi.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <errno.h>
 #include <ipc/dev_iface.h>
 #include <ops/hw_res.h>
 #include <ops/pio_window.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 #define NAME "msim"
 
-#define MSIM_DISK_BASE	UINT32_C(0x10000200)
-#define MSIM_DISK_SIZE	UINT32_C(0x00000010)
+#define MSIM_DDISK_BASE	UINT32_C(0x10000200)
+#define MSIM_DDISK_SIZE	UINT32_C(0x00000010)
+#define MSIM_DDISK_IRQ 6
+
+#define MSIM_KBD_ADDRESS UINT32_C(0x10000000)
+#define MSIM_KBD_SIZE 1
+#define MSIM_KBD_IRQ 2
 
 typedef struct msim_fun {
 	hw_resource_list_t hw_resources;
@@ -88,7 +88,7 @@ static hw_resource_t disk_regs[] = {
 	{
 		.type = INTERRUPT,
 		.res.interrupt = {
-			.irq = 6
+			.irq = MSIM_DDISK_IRQ
 		}
 	}
 };
@@ -100,8 +100,39 @@ static msim_fun_t disk_data = {
 	},
 	.pio_window = {
 		.mem = {
-			.base = MSIM_DISK_BASE,
-			.size = MSIM_DISK_SIZE
+			.base = MSIM_DDISK_BASE,
+			.size = MSIM_DDISK_SIZE
+		}
+	}
+};
+
+static hw_resource_t console_regs[] = {
+	{
+		.type = MEM_RANGE,
+		.res.mem_range = {
+			.address = 0,
+			.size = 1,
+			.relative = true,
+			.endianness = LITTLE_ENDIAN
+		}
+	},
+	{
+		.type = INTERRUPT,
+		.res.interrupt = {
+			.irq = MSIM_KBD_IRQ
+		}
+	}
+};
+
+static msim_fun_t console_data = {
+	.hw_resources = {
+		sizeof(console_regs) / sizeof(console_regs[0]),
+		console_regs
+	},
+	.pio_window = {
+		.mem = {
+			.base = MSIM_KBD_ADDRESS,
+			.size = MSIM_KBD_SIZE
 		}
 	}
 };
@@ -193,7 +224,7 @@ static bool msim_add_functions(ddf_dev_t *dev)
 {
 	if (!msim_add_fun(dev, "disk0", "msim/ddisk", &disk_data))
 		return false;
-	if (!msim_add_fun(dev, "console", "msim/console", &disk_data))
+	if (!msim_add_fun(dev, "console", "msim/console", &console_data))
 		return false;
 	return true;
 }
