@@ -42,6 +42,7 @@ PROFILES = \
 	ia64/i460GX \
 	ia64/ski \
 	mips32/malta-be \
+	mips32/malta-le \
 	mips32/msim \
 	ppc32 \
 	sparc64/niagara \
