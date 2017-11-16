@@ -80,68 +80,6 @@ extern cpu_t *cpus;
 /** maximum number of strands per a physical core detected */
 unsigned int max_core_strands = 0;
 
-#ifdef CONFIG_SIMICS_SMP_HACK
-/**
- * Copies a piece of HelenOS code to the place where OBP had its IPI handler.
- * By sending an IPI by the BSP to the AP the code will be executed.
- * The code will jump to the first instruction of the kernel. This is
- * a workaround how to make APs execute HelenOS code on Simics.
- */
-static void simics_smp_hack_init(void) {
-	asm volatile (
-		"setx temp_cpu_mondo_handler, %g4, %g6 \n"
-		"setx 0x80200f80, %g4, %g7 \n"
-
-		"ldx [%g6], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"add %g7, 0x8, %g7 \n"
-		"ldx [%g6 + 0x8], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"add %g7, 0x8, %g7 \n"
-		"ldx [%g6 + 0x10], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"add %g7, 0x8, %g7 \n"
-		"ldx [%g6 + 0x18], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"add %g7, 0x8, %g7 \n"
-		"ldx [%g6 + 0x20], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"add %g7, 0x8, %g7 \n"
-		"ldx [%g6 + 0x28], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"add %g7, 0x8, %g7 \n"
-		"ldx [%g6 + 0x30], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"add %g7, 0x8, %g7 \n"
-		"ldx [%g6 + 0x38], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"add %g7, 0x8, %g7 \n"
-		"ldx [%g6 + 0x40], %g4 \n"
-		"stxa %g4, [%g7] 0x14 \n"
-		"membar #Sync \n"
-
-		"flush %i7"
-
-		);
-}
-#endif
-
 #if 0
 /**
  * Proposes the optimal number of ready threads for each virtual processor
@@ -371,9 +309,6 @@ static void detect_execution_units(void)
 void smp_init(void)
 {
 	detect_execution_units();
-#ifdef CONFIG_SIMICS_SMP_HACK
-	simics_smp_hack_init();
-#endif
 }
 
 /**

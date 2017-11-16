@@ -308,23 +308,6 @@ SYMBOL(kernel_image_start)
 0:
 	ba,a %xcc, 0b
 
-.align 8
-SYMBOL(temp_cpu_mondo_handler)
-
-	set 0x3c, %o0
-	set 0x15, %o5
-	ta 0x80
-
-	mov 0, %o0
-	setx before_ap_boots, %g1, %o1
-	setx 0x80400000, %g1, %o2
-	add %o1, %o2, %o1
-	__HYPERCALL_FAST(MMU_ENABLE)
-
-before_ap_boots:
-	setx 0x80400000, %g1, %o0
-	ba,a %xcc, kernel_image_start
-
 .section K_DATA_START, "aw", @progbits
 
 #define INITIAL_STACK_SIZE		1024
