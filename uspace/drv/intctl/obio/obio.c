@@ -124,7 +124,7 @@ int obio_add(obio_t *obio, obio_res_t *res)
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "OBIO registers with base at 0x%" PRIun, res->base);
+	ddf_msg(LVL_NOTE, "OBIO registers with base at 0x%" PRIxn, res->base);
 
 	fun_a = ddf_fun_create(obio->dev, fun_exposed, "a");
 	if (fun_a == NULL) {
