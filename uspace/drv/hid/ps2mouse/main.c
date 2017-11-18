@@ -29,7 +29,7 @@
  * @{
  */
 /** @file
- * @brief ps/2 mouse driver
+ * @brief PS/2 mouse driver
  */
 
 #include <inttypes.h>

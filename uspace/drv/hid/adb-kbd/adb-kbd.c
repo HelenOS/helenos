@@ -33,6 +33,7 @@
 #include <async.h>
 #include <ddf/log.h>
 #include <errno.h>
+#include <io/chardev.h>
 #include <io/console.h>
 #include <ipc/adb.h>
 #include <ipc/kbdev.h>

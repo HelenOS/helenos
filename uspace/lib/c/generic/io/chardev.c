@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +27,84 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libc
+ * @{
+ */
+/**
+ * @file
+ * @brief Character device client interface
+ */
+
 #include <errno.h>
 #include <mem.h>
 #include <io/chardev.h>
 #include <ipc/chardev.h>
+#include <stdlib.h>
 
-ssize_t chardev_read(async_exch_t *exch, void *data, size_t size)
+/** Open character device.
+ *
+ * @param sess Session with the character device
+ * @param rchardev Place to store pointer to the new character device structure
+ *
+ * @return EOK on success, ENOMEM if out of memory, EIO on I/O error
+ */
+int chardev_open(async_sess_t *sess, chardev_t **rchardev)
 {
-	if (!exch)
-		return EBADMEM;
+	chardev_t *chardev;
+
+	chardev = calloc(1, sizeof(chardev_t));
+	if (chardev == NULL)
+		return ENOMEM;
+
+	chardev->sess = sess;
+	*rchardev = chardev;
+
+	/* EIO might be used in a future implementation */
+	return EOK;
+}
+
+/** Close character device.
+ *
+ * Frees the character device structure. The underlying session is
+ * not affected.
+ *
+ * @param chardev Character device or @c NULL
+ */
+void chardev_close(chardev_t *chardev)
+{
+	free(chardev);
+}
+
+ssize_t chardev_read(chardev_t *chardev, void *data, size_t size)
+{
 	if (size > 4 * sizeof(sysarg_t))
 		return ELIMIT;
 
+	async_exch_t *exch = async_exchange_begin(chardev->sess);
 	sysarg_t message[4] = { 0 };
 	const ssize_t ret = async_req_1_4(exch, CHARDEV_READ, size,
 	    &message[0], &message[1], &message[2], &message[3]);
+	async_exchange_end(exch);
 	if (ret > 0 && (size_t)ret <= size)
 		memcpy(data, message, size);
 	return ret;
 }
 
-ssize_t chardev_write(async_exch_t *exch, const void *data, size_t size)
+ssize_t chardev_write(chardev_t *chardev, const void *data, size_t size)
 {
-	if (!exch)
-		return EBADMEM;
+	int ret;
+
 	if (size > 3 * sizeof(sysarg_t))
 		return ELIMIT;
 
+	async_exch_t *exch = async_exchange_begin(chardev->sess);
 	sysarg_t message[3] = { 0 };
 	memcpy(message, data, size);
-	return async_req_4_0(exch, CHARDEV_WRITE, size,
+	ret = async_req_4_0(exch, CHARDEV_WRITE, size,
 	    message[0], message[1], message[2]);
+	async_exchange_end(exch);
+	return ret;
 }
+
+/** @}
+ */
