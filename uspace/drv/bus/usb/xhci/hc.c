@@ -635,7 +635,7 @@ int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
 	return EOK;
 }
 
-static int create_valid_input_ctx(dma_buffer_t *dma_buf)
+static int create_configure_ep_input_ctx(dma_buffer_t *dma_buf)
 {
 	const int err = dma_buffer_alloc(dma_buf, sizeof(xhci_input_ctx_t));
 	if (err)
@@ -644,10 +644,7 @@ static int create_valid_input_ctx(dma_buffer_t *dma_buf)
 	xhci_input_ctx_t *ictx = dma_buf->virt;
 	memset(ictx, 0, sizeof(xhci_input_ctx_t));
 
-	// Quoting sec. 4.6.6: A1, D0, D1 are down, A0 is up.
-	XHCI_INPUT_CTRL_CTX_ADD_CLEAR(ictx->ctrl_ctx, 1);
-	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 0);
-	XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ictx->ctrl_ctx, 1);
+	// Quoting sec. 4.6.5 and 4.6.6: A1, D0, D1 are down (already zeroed), A0 is up.
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
 
 	return EOK;
@@ -675,7 +672,7 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	if ((err = create_valid_input_ctx(&ictx_dma_buf))) {
+	if ((err = create_configure_ep_input_ctx(&ictx_dma_buf))) {
 		goto err_dev_ctx;
 	}
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
@@ -723,7 +720,7 @@ int hc_configure_device(xhci_hc_t *hc, uint32_t slot_id)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_valid_input_ctx(&ictx_dma_buf);
+	const int err = create_configure_ep_input_ctx(&ictx_dma_buf);
 	if (err)
 		return err;
 
@@ -742,7 +739,7 @@ int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_valid_input_ctx(&ictx_dma_buf);
+	const int err = create_configure_ep_input_ctx(&ictx_dma_buf);
 	if (err)
 		return err;
 
@@ -758,7 +755,7 @@ int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_valid_input_ctx(&ictx_dma_buf);
+	const int err = create_configure_ep_input_ctx(&ictx_dma_buf);
 	if (err)
 		return err;
 
