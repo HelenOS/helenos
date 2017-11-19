@@ -131,23 +131,9 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 		goto err_address;
 	}
 
-	/* Get max packet size for default pipe */
-	usb_standard_device_descriptor_t desc = { 0 };
-	const usb_device_request_setup_packet_t get_device_desc_8 =
-	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
-
-	usb_log_debug("Device(%d): Requesting first 8B of device descriptor.",
-	    address);
-	ssize_t got = hcd_send_batch_sync(hcd, dev, usb2_default_target, USB_DIRECTION_IN,
-	    (char *) &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
-	    "read first 8 bytes of dev descriptor");
-
-	if (got != CTRL_PIPE_MIN_PACKET_SIZE) {
-		err = got < 0 ? got : EOVERFLOW;
-		usb_log_error("Device(%d): Failed to get 8B of dev descr: %s.",
-		    address, str_error(err));
-		goto err_default_control_ep;
-	}
+	uint16_t max_packet_size;
+	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, hcd, dev)))
+		goto err_address;
 
 	/* Set new address */
 	const usb_device_request_setup_packet_t set_address = SET_ADDRESS(address);
@@ -157,7 +143,7 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	    NULL, 0, *(uint64_t *)&set_address, "set address");
 	if (err != 0) {
 		usb_log_error("Device(%d): Failed to set new address: %s.",
-		    address, str_error(got));
+		    address, str_error(err));
 		goto err_default_control_ep;
 	}
 
@@ -174,8 +160,8 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 		.endpoint_no = 0,
 		.transfer_type = USB_TRANSFER_CONTROL,
 		.direction = USB_DIRECTION_BOTH,
-		.max_packet_size = ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
-		.packets = ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
+		.max_packet_size = max_packet_size,
+		.packets = 1,
 	};
 
 	/* Register EP on the new address */

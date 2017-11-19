@@ -109,6 +109,7 @@ int hc_configure_device(xhci_hc_t *, uint32_t);
 int hc_deconfigure_device(xhci_hc_t *, uint32_t);
 int hc_add_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
 int hc_drop_endpoint(xhci_hc_t *, uint32_t, uint8_t);
+int hc_update_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
 
 #endif
 

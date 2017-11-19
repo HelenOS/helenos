@@ -650,8 +650,6 @@ static int create_configure_ep_input_ctx(dma_buffer_t *dma_buf)
 	return EOK;
 }
 
-// TODO: This currently assumes the device is attached to rh directly
-//	-> calculate route string
 int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 {
 	int err = ENOMEM;
@@ -764,6 +762,22 @@ int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
 	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
 	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
+}
+
+int hc_update_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
+{
+	dma_buffer_t ictx_dma_buf;
+	const int err = dma_buffer_alloc(&ictx_dma_buf, sizeof(xhci_input_ctx_t));
+	if (err)
+		return err;
+
+	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
+	memset(ictx, 0, sizeof(xhci_input_ctx_t));
+
+	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1);
+	memcpy(&ictx->endpoint_ctx[ep_idx], ep_ctx, sizeof(xhci_ep_ctx_t));
+
+	return xhci_cmd_sync_inline(hc, EVALUATE_CONTEXT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
 }
 
 /**

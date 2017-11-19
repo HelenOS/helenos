@@ -49,9 +49,7 @@
 #include "transfers.h"
 
 
-/* FIXME Are these really static? Older HCs fetch it from descriptor. */
-/* FIXME Add USB3 options, if applicable. */
-static const usb_endpoint_desc_t ep0_desc = {
+static const usb_endpoint_desc_t ep0_initial_desc = {
 	.endpoint_no = 0,
 	.direction = USB_DIRECTION_BOTH,
 	.transfer_type = USB_TRANSFER_CONTROL,
@@ -96,7 +94,7 @@ static int address_device(xhci_hc_t *hc, xhci_device_t *dev)
 
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
 
-	if ((err = prepare_endpoint(ep0, &ep0_desc)))
+	if ((err = prepare_endpoint(ep0, &ep0_initial_desc)))
 		goto err_ep;
 
 	/* Register EP0 */
@@ -121,6 +119,31 @@ err_ep:
 err_slot:
 	hc_disable_slot(hc, dev);
 	return err;
+}
+
+static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
+{
+	int err;
+
+	uint16_t max_packet_size;
+	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, hc->hcd, &dev->base)))
+		return err;
+
+	xhci_endpoint_t *ep0 = dev->endpoints[0];
+	assert(ep0);
+
+	if (ep0->base.max_packet_size == max_packet_size)
+		return EOK;
+
+	ep0->base.max_packet_size = max_packet_size;
+
+	xhci_ep_ctx_t ep_ctx;
+	xhci_setup_endpoint_context(ep0, &ep_ctx);
+
+	if ((err = hc_update_endpoint(hc, dev->slot_id, 0, &ep_ctx)))
+		return err;
+
+	return EOK;
 }
 
 int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
@@ -159,8 +182,10 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 		return err;
 	}
 
-	// TODO: Fetch descriptor of EP0 and reconfigure it accordingly
-	assert(xhci_dev->endpoints[0]);
+	if ((err = setup_ep0_packet_size(hc, xhci_dev))) {
+		usb_log_error("Failed to setup control endpoint of the new device: %s", str_error(err));
+		goto err_address;
+	}
 
 	assert(bus->devices_by_slot[xhci_dev->slot_id] == NULL);
 	bus->devices_by_slot[xhci_dev->slot_id] = xhci_dev;

@@ -34,11 +34,13 @@
  */
 
 #include <usb/debug.h>
+#include <usb/descriptor.h>
 #include <usb/request.h>
 
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <macros.h>
 #include <usb_iface.h>
 #include <str_error.h>
 
@@ -58,6 +60,52 @@ void hcd_init(hcd_t *hcd) {
 
 	hcd_set_implementation(hcd, NULL, NULL, NULL);
 }
+
+/** Get max packet size for the control endpoint 0.
+ *
+ * For LS, HS, and SS devices this value is fixed. For FS devices we must fetch
+ * the first 8B of the device descriptor to determine it.
+ *
+ * @return Combined value of max_packet_size and scheduling oppertunities,
+ *	see usb_standard_device_descriptor_t.
+ */
+int hcd_get_ep0_max_packet_size(uint16_t *mps, hcd_t *hcd, device_t *dev)
+{
+	static const uint16_t mps_fixed [] = {
+		[USB_SPEED_LOW] = 8,
+		[USB_SPEED_HIGH] = 64,
+		[USB_SPEED_SUPER] = 512,
+	};
+
+	if (dev->speed < ARRAY_SIZE(mps_fixed) && mps_fixed[dev->speed] != 0) {
+		*mps = mps_fixed[dev->speed];
+		return EOK;
+	}
+
+	const usb_target_t control_ep = {{
+		.address = dev->address,
+		.endpoint = 0,
+	}};
+
+	usb_standard_device_descriptor_t desc = { 0 };
+	const usb_device_request_setup_packet_t get_device_desc_8 =
+	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
+
+	usb_log_debug("Requesting first 8B of device descriptor.");
+	ssize_t got = hcd_send_batch_sync(hcd, dev, control_ep, USB_DIRECTION_IN,
+	    (char *) &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
+	    "read first 8 bytes of dev descriptor");
+
+	if (got != CTRL_PIPE_MIN_PACKET_SIZE) {
+		const int err = got < 0 ? got : EOVERFLOW;
+		usb_log_error("Failed to get 8B of dev descr: %s.", str_error(err));
+		return err;
+	}
+
+	*mps = uint16_usb2host(desc.max_packet_size);
+	return EOK;
+}
+
 
 /** Prepare generic usb_transfer_batch and schedule it.
  * @param hcd Host controller driver.
