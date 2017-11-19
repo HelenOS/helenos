@@ -34,7 +34,7 @@
 #define LIBC_IO_CHARDEV_H_
 
 #include <async.h>
-#include <types/common.h>
+#include <stddef.h>
 
 typedef struct {
 	async_sess_t *sess;
@@ -42,8 +42,8 @@ typedef struct {
 
 extern int chardev_open(async_sess_t *, chardev_t **);
 extern void chardev_close(chardev_t *);
-extern ssize_t chardev_read(chardev_t *, void *, size_t);
-extern ssize_t chardev_write(chardev_t *, const void *, size_t);
+extern int chardev_read(chardev_t *, void *, size_t, size_t *);
+extern int chardev_write(chardev_t *, const void *, size_t, size_t *);
 
 #endif
 /**

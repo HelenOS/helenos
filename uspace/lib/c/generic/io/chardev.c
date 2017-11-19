@@ -39,6 +39,7 @@
 #include <mem.h>
 #include <io/chardev.h>
 #include <ipc/chardev.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 /** Open character device.
@@ -75,7 +76,7 @@ void chardev_close(chardev_t *chardev)
 	free(chardev);
 }
 
-ssize_t chardev_read(chardev_t *chardev, void *data, size_t size)
+int chardev_read(chardev_t *chardev, void *data, size_t size, size_t *nread)
 {
 	if (size > 4 * sizeof(sysarg_t))
 		return ELIMIT;
@@ -87,10 +88,18 @@ ssize_t chardev_read(chardev_t *chardev, void *data, size_t size)
 	async_exchange_end(exch);
 	if (ret > 0 && (size_t)ret <= size)
 		memcpy(data, message, size);
-	return ret;
+
+	if (ret < 0) {
+		*nread = 0;
+		return ret;
+	}
+
+	*nread = ret;
+	return EOK;
 }
 
-ssize_t chardev_write(chardev_t *chardev, const void *data, size_t size)
+int chardev_write(chardev_t *chardev, const void *data, size_t size,
+    size_t *nwritten)
 {
 	int ret;
 
@@ -103,7 +112,14 @@ ssize_t chardev_write(chardev_t *chardev, const void *data, size_t size)
 	ret = async_req_4_0(exch, CHARDEV_WRITE, size,
 	    message[0], message[1], message[2]);
 	async_exchange_end(exch);
-	return ret;
+
+	if (ret < 0) {
+		*nwritten = 0;
+		return ret;
+	}
+
+	*nwritten = ret;
+	return EOK;
 }
 
 /** @}

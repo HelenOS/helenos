@@ -202,11 +202,13 @@ static void push_event(async_sess_t *sess, kbd_event_type_t type,
 static int polling(void *arg)
 {
 	at_kbd_t *kbd = arg;
+	size_t nwr;
+	int rc;
 	
 	while (true) {
 		uint8_t code = 0;
-		ssize_t size = chardev_read(kbd->chardev, &code, 1);
-		if (size != 1)
+		rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+		if (rc != EOK)
 			return EIO;
 		
 		const unsigned int *map;
@@ -216,48 +218,48 @@ static int polling(void *arg)
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(unsigned int);
 			
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 		} else if (code == KBD_SCANCODE_SET_EXTENDED_SPECIAL) {
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0x14)
 				continue;
 
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0x77)
 				continue;
 
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0xe1)
 				continue;
 
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0xf0)
 				continue;
 
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0x14)
 				continue;
 
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0xf0)
 				continue;
 
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code == 0x77)
 				push_event(kbd->client_sess, KEY_PRESS, KC_BREAK);
@@ -271,8 +273,8 @@ static int polling(void *arg)
 		kbd_event_type_t type;
 		if (code == KBD_SCANCODE_KEY_RELEASE) {
 			type = KEY_RELEASE;
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 		} else {
 			type = KEY_PRESS;

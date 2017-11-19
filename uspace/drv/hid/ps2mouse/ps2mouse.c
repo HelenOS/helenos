@@ -74,10 +74,11 @@
 do { \
 	uint8_t value = (value_); \
 	uint8_t data = 0; \
-	const ssize_t size = chardev_read((mouse)->chardev, &data, 1); \
-	if (size != 1) { \
-		ddf_msg(LVL_ERROR, "Failed reading byte: %zd)", size);\
-		return size < 0 ? size : EIO; \
+	size_t nread; \
+	const int rc = chardev_read((mouse)->chardev, &data, 1, &nread); \
+	if (rc != EOK) { \
+		ddf_msg(LVL_ERROR, "Failed reading byte: %d", rc);\
+		return rc; \
 	} \
 	if (data != value) { \
 		ddf_msg(LVL_DEBUG, "Failed testing byte: got %hhx vs. %hhx)", \
@@ -90,10 +91,11 @@ do { \
 do { \
 	uint8_t value = (value_); \
 	uint8_t data = (value); \
-	const ssize_t size = chardev_write((mouse)->chardev, &data, 1); \
-	if (size < 0 ) { \
-		ddf_msg(LVL_ERROR, "Failed writing byte: %hhx", value); \
-		return size; \
+	size_t nwr; \
+	const int rc = chardev_write((mouse)->chardev, &data, 1, &nwr); \
+	if (rc != EOK) { \
+		ddf_msg(LVL_ERROR, "Failed writing byte: %d", rc); \
+		return rc; \
 	} \
 } while (0)
 
@@ -171,15 +173,17 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 
 	/* Enable mouse data reporting. */
 	uint8_t report = PS2_MOUSE_ENABLE_DATA_REPORT;
-	ssize_t size = chardev_write(mouse->chardev, &report, 1);
-	if (size != 1) {
+	size_t nwr;
+	rc = chardev_write(mouse->chardev, &report, 1, &nwr);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to enable data reporting.");
 		rc = EIO;
 		goto error;
 	}
 
-	size = chardev_read(mouse->chardev, &report, 1);
-	if (size != 1 || report != PS2_MOUSE_ACK) {
+	size_t nread;
+	rc = chardev_read(mouse->chardev, &report, 1, &nread);
+	if (rc != EOK || report != PS2_MOUSE_ACK) {
 		ddf_msg(LVL_ERROR, "Failed to confirm data reporting: %hhx.",
 		    report);
 		rc = EIO;
@@ -214,17 +218,18 @@ error:
 int polling_ps2(void *arg)
 {
 	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
+	size_t nread;
+	int rc;
 
 	bool buttons[PS2_BUTTON_COUNT] = {};
 	while (1) {
 		uint8_t packet[PS2_BUFSIZE] = {};
-		const ssize_t size =
-		    chardev_read(mouse->chardev, packet, PS2_BUFSIZE);
-
-		if (size != PS2_BUFSIZE) {
-			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", size);
+		rc = chardev_read(mouse->chardev, packet, PS2_BUFSIZE, &nread);
+		if (rc != EOK || nread != PS2_BUFSIZE) {
+			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", nread);
 			continue;
 		}
+
 		ddf_msg(LVL_DEBUG2, "Got packet: %hhx:%hhx:%hhx.",
 		    packet[0], packet[1], packet[2]);
 
@@ -268,15 +273,16 @@ int polling_ps2(void *arg)
 static int polling_intellimouse(void *arg)
 {
 	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
+	size_t nread;
+	int rc;
 
 	bool buttons[INTELLIMOUSE_BUTTON_COUNT] = {};
 	while (1) {
 		uint8_t packet[INTELLIMOUSE_BUFSIZE] = {};
-		const ssize_t size = chardev_read(
-		    mouse->chardev, packet, INTELLIMOUSE_BUFSIZE);
-
-		if (size != INTELLIMOUSE_BUFSIZE) {
-			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", size);
+		rc = chardev_read(mouse->chardev, packet, INTELLIMOUSE_BUFSIZE,
+		    &nread);
+		if (rc != EOK || nread != INTELLIMOUSE_BUFSIZE) {
+			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", nread);
 			continue;
 		}
 		ddf_msg(LVL_DEBUG2, "Got packet: %hhx:%hhx:%hhx:%hhx.",

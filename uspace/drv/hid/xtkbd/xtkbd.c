@@ -207,14 +207,16 @@ static void push_event(async_sess_t *sess, kbd_event_type_t type,
 static int polling(void *arg)
 {
 	xt_kbd_t *kbd = arg;
+	size_t nread;
+	int rc;
 	
 	while (true) {
 		const unsigned int *map = scanmap_simple;
 		size_t map_size = sizeof(scanmap_simple) / sizeof(unsigned int);
 		
 		uint8_t code = 0;
-		ssize_t size = chardev_read(kbd->chardev, &code, 1);
-		if (size != 1)
+		rc = chardev_read(kbd->chardev, &code, 1, &nread);
+		if (rc != EOK)
 			return EIO;
 		
 		/* Ignore AT command reply */
@@ -226,22 +228,22 @@ static int polling(void *arg)
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(unsigned int);
 			
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			/* Handle really special keys */
 			
 			if (code == 0x2a) {  /* Print Screen */
-				size = chardev_read(kbd->chardev, &code, 1);
-				if (size != 1)
+				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				if (rc != EOK)
 					return EIO;
 				
 				if (code != 0xe0)
 					continue;
 				
-				size = chardev_read(kbd->chardev, &code, 1);
-				if (size != 1)
+				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				if (rc != EOK)
 					return EIO;
 				
 				if (code == 0x37)
@@ -251,15 +253,15 @@ static int polling(void *arg)
 			}
 			
 			if (code == 0x46) {  /* Break */
-				size = chardev_read(kbd->chardev, &code, 1);
-				if (size != 1)
+				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				if (rc != EOK)
 					return EIO;
 				
 				if (code != 0xe0)
 					continue;
 				
-				size = chardev_read(kbd->chardev, &code, 1);
-				if (size != 1)
+				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				if (rc != EOK)
 					return EIO;
 				
 				if (code == 0xc6)
@@ -271,36 +273,36 @@ static int polling(void *arg)
 		
 		/* Extended special set */
 		if (code == KBD_SCANCODE_SET_EXTENDED_SPECIAL) {
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code != 0x1d)
 				continue;
 			
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code != 0x45)
 				continue;
 			
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code != 0xe1)
 				continue;
 			
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code != 0x9d)
 				continue;
 			
-			size = chardev_read(kbd->chardev, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code == 0xc5)
@@ -349,9 +351,12 @@ static void default_connection_handler(ddf_fun_t *fun,
 		    ((mods & KM_SCROLL_LOCK) ? LI_SCROLL : 0);
 		uint8_t cmds[] = { KBD_CMD_SET_LEDS, status };
 		
-		ssize_t size = chardev_write(kbd->chardev, cmds, sizeof(cmds));
-		
-		async_answer_0(icallid, size < 0 ? size : EOK);
+		size_t nwr;
+		int rc = chardev_write(kbd->chardev, cmds, sizeof(cmds), &nwr);
+		if (nwr != sizeof(cmds))
+			rc = EIO;
+
+		async_answer_0(icallid, rc);
 		break;
 	}
 	/*
