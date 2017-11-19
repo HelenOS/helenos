@@ -352,10 +352,13 @@ static void default_connection_handler(ddf_fun_t *fun,
 		uint8_t cmds[] = { KBD_CMD_SET_LEDS, status };
 		
 		size_t nwr;
-		int rc = chardev_write(kbd->chardev, cmds, sizeof(cmds), &nwr);
-		if (nwr != sizeof(cmds))
-			rc = EIO;
+		int rc = chardev_write(kbd->chardev, &cmds[0], 1, &nwr);
+		if (rc != EOK) {
+			async_answer_0(icallid, rc);
+			break;
+		}
 
+		rc = chardev_write(kbd->chardev, &cmds[1], 1, &nwr);
 		async_answer_0(icallid, rc);
 		break;
 	}

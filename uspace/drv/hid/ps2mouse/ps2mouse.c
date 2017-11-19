@@ -211,6 +211,37 @@ error:
 	return rc;
 }
 
+/** Read fixed-size mouse packet.
+ *
+ * Continue reading until entire packet is received.
+ *
+ * @param mouse Mouse device
+ * @param pbuf Buffer for storing packet
+ * @param psize Packet size
+ *
+ * @return EOK on success or non-zero error code
+ */
+static int ps2_mouse_read_packet(ps2_mouse_t *mouse, void *pbuf, size_t psize)
+{
+	int rc;
+	size_t pos;
+	size_t nread;
+
+	pos = 0;
+	while (pos < psize) {
+		rc = chardev_read(mouse->chardev, pbuf + pos, psize - pos,
+		    &nread);
+		if (rc != EOK) {
+			ddf_msg(LVL_WARN, "Error reading packet.");
+			return rc;
+		}
+
+		pos += nread;
+	}
+
+	return EOK;
+}
+
 /** Get data and parse ps2 protocol packets.
  * @param arg Pointer to ps2_mouse_t structure.
  * @return Never.
@@ -218,17 +249,14 @@ error:
 int polling_ps2(void *arg)
 {
 	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
-	size_t nread;
 	int rc;
 
 	bool buttons[PS2_BUTTON_COUNT] = {};
 	while (1) {
 		uint8_t packet[PS2_BUFSIZE] = {};
-		rc = chardev_read(mouse->chardev, packet, PS2_BUFSIZE, &nread);
-		if (rc != EOK || nread != PS2_BUFSIZE) {
-			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", nread);
+		rc = ps2_mouse_read_packet(mouse, packet, PS2_BUFSIZE);
+		if (rc != EOK)
 			continue;
-		}
 
 		ddf_msg(LVL_DEBUG2, "Got packet: %hhx:%hhx:%hhx.",
 		    packet[0], packet[1], packet[2]);
@@ -273,18 +301,15 @@ int polling_ps2(void *arg)
 static int polling_intellimouse(void *arg)
 {
 	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
-	size_t nread;
 	int rc;
 
 	bool buttons[INTELLIMOUSE_BUTTON_COUNT] = {};
 	while (1) {
 		uint8_t packet[INTELLIMOUSE_BUFSIZE] = {};
-		rc = chardev_read(mouse->chardev, packet, INTELLIMOUSE_BUFSIZE,
-		    &nread);
-		if (rc != EOK || nread != INTELLIMOUSE_BUFSIZE) {
-			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", nread);
+		rc = ps2_mouse_read_packet(mouse, packet, INTELLIMOUSE_BUFSIZE);
+		if (rc != EOK)
 			continue;
-		}
+
 		ddf_msg(LVL_DEBUG2, "Got packet: %hhx:%hhx:%hhx:%hhx.",
 		    packet[0], packet[1], packet[2], packet[3]);
 

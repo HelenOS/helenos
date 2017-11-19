@@ -245,8 +245,10 @@ static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
 
 	left = size;
 	while (left > 0) {
-		while (pl050->buf_rp == pl050->buf_wp)
+		while (left == size && pl050->buf_rp == pl050->buf_wp)
 			fibril_condvar_wait(&pl050->buf_cv, &pl050->buf_lock);
+		if (pl050->buf_rp == pl050->buf_wp)
+			break;
 		*bp++ = pl050->buffer[pl050->buf_rp];
 		--left;
 		pl050->buf_rp = (pl050->buf_rp + 1) % buffer_size;
@@ -254,7 +256,7 @@ static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
 
 	fibril_mutex_unlock(&pl050->buf_lock);
 
-	return size;
+	return size - left;
 }
 
 static int pl050_write(chardev_srv_t *srv, const void *data, size_t size)

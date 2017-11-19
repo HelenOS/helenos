@@ -373,14 +373,20 @@ static int i8042_read(chardev_srv_t *srv, void *dest, size_t size)
 	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
 	i8042_t *i8042 = port->ctl;
 	uint8_t *destp = (uint8_t *)dest;
+	int rc;
+	size_t i;
 	
 	buffer_t *buffer = (port == i8042->aux) ?
 	    &i8042->aux_buffer : &i8042->kbd_buffer;
 	
-	for (size_t i = 0; i < size; ++i)
-		*destp++ = buffer_read(buffer);
+	for (i = 0; i < size; ++i) {
+		rc = buffer_read(buffer, destp, i == 0);
+		if (rc != EOK)
+			break;
+		++destp;
+	}
 	
-	return size;
+	return i;
 }
 
 /** Handle data requests.

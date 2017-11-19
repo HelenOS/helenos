@@ -76,7 +76,24 @@ void chardev_close(chardev_t *chardev)
 	free(chardev);
 }
 
-int chardev_read(chardev_t *chardev, void *data, size_t size, size_t *nread)
+/** Read from character device.
+ *
+ * Read as much data as is available from character device up to @a size
+ * bytes into @a buf. On success EOK is returned and at least one byte
+ * is read (if no byte is available the function blocks). The number
+ * of bytes read is stored in @a *nread.
+ *
+ * On error a non-zero error code is returned and @a *nread is filled with
+ * the number of bytes that were successfully transferred.
+ *
+ * @param chardev Character device
+ * @param buf Destination buffer
+ * @param size Maximum number of bytes to read
+ * @param nread Place to store actual number of bytes read
+ *
+ * @return EOK on success or non-zero error code
+ */
+int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 {
 	if (size > 4 * sizeof(sysarg_t))
 		return ELIMIT;
@@ -87,7 +104,7 @@ int chardev_read(chardev_t *chardev, void *data, size_t size, size_t *nread)
 	    &message[0], &message[1], &message[2], &message[3]);
 	async_exchange_end(exch);
 	if (ret > 0 && (size_t)ret <= size)
-		memcpy(data, message, size);
+		memcpy(buf, message, size);
 
 	if (ret < 0) {
 		*nread = 0;
@@ -98,6 +115,21 @@ int chardev_read(chardev_t *chardev, void *data, size_t size, size_t *nread)
 	return EOK;
 }
 
+/** Write to character device.
+ *
+ * Write @a size bytes from @a data to character device. On success EOK
+ * is returned, all bytes were written and @a *nwritten is set to @a size.
+ *
+ * On error a non-zero error code is returned and @a *nwritten is filled with
+ * the number of bytes that were successfully transferred.
+ *
+ * @param chardev Character device
+ * @param buf Destination buffer
+ * @param size Maximum number of bytes to read
+ * @param nwritten Place to store actual number of bytes written
+ *
+ * @return EOK on success or non-zero error code
+ */
 int chardev_write(chardev_t *chardev, const void *data, size_t size,
     size_t *nwritten)
 {

@@ -112,17 +112,24 @@ static inline void buffer_write(buffer_t *buffer, uint8_t data)
 /** Read byte from cyclic buffer.
  *
  * @param buffer Cyclic buffer to read from.
+ * @param rb Place to store byte read
+ * @param wait @c True to wait until byte is available
  *
- * @return Byte read.
+ * @return EOK on success, EAGAIN if @c wait is false and no data is available
  *
  */
-static inline uint8_t buffer_read(buffer_t *buffer)
+static inline int buffer_read(buffer_t *buffer, uint8_t *rb, bool wait)
 {
 	fibril_mutex_lock(&buffer->guard);
 	
 	/* Buffer is empty. */
-	while (buffer->write_head == buffer->read_head)
+	while (wait && buffer->write_head == buffer->read_head)
 		fibril_condvar_wait(&buffer->change, &buffer->guard);
+	
+	if (buffer->write_head == buffer->read_head) {
+		fibril_mutex_unlock(&buffer->guard);
+		return EAGAIN;
+	}
 	
 	/* Next position. */
 	uint8_t *new_head = buffer->read_head + 1;
@@ -143,7 +150,8 @@ static inline uint8_t buffer_read(buffer_t *buffer)
 	buffer->read_head = new_head;
 	
 	fibril_mutex_unlock(&buffer->guard);
-	return data;
+	*rb = data;
+	return EOK;
 }
 
 #endif
