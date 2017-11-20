@@ -57,7 +57,7 @@ void ohci_transfer_batch_destroy(ohci_transfer_batch_t *ohci_batch)
 	assert(ohci_batch);
 	if (ohci_batch->tds) {
 		const ohci_endpoint_t *ohci_ep =
-		    ohci_endpoint_get(ohci_batch->usb_batch->ep);
+		    ohci_endpoint_get(ohci_batch->base.ep);
 		assert(ohci_ep);
 		for (unsigned i = 0; i < ohci_batch->td_count; ++i) {
 			if (ohci_batch->tds[i] != ohci_ep->td)
@@ -71,7 +71,7 @@ void ohci_transfer_batch_destroy(ohci_transfer_batch_t *ohci_batch)
 
 /** Allocate memory and initialize internal data structure.
  *
- * @param[in] usb_batch Pointer to generic USB batch structure.
+ * @param[in] ep Endpoint for which the batch will be created
  * @return Valid pointer if all structures were successfully created,
  * NULL otherwise.
  */
@@ -175,7 +175,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 	assert(ohci_batch);
 
 	usb_log_debug("Batch %p checking %zu td(s) for completion.\n",
-	    ohci_batch->usb_batch, ohci_batch->td_count);
+	    &ohci_batch->base, ohci_batch->td_count);
 	usb_log_debug2("ED: %08x:%08x:%08x:%08x.\n",
 	    ohci_batch->ed->status, ohci_batch->ed->td_head,
 	    ohci_batch->ed->td_tail, ohci_batch->ed->next);
@@ -217,7 +217,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			    -= td_remain_size(ohci_batch->tds[i]);
 		} else {
 			usb_log_debug("Batch %p found error TD(%zu):%08x.\n",
-			    ohci_batch->usb_batch, i,
+			    &ohci_batch->base, i,
 			    ohci_batch->tds[i]->status);
 
 			/* ED should be stopped because of errors */
@@ -247,8 +247,14 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 	assert(ohci_batch->base.transfered_size <=
 	    ohci_batch->base.buffer_size);
 
+	const size_t setup_size = (ohci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL)
+		? USB_SETUP_PACKET_SIZE
+		: 0;
+
 	if (ohci_batch->base.dir == USB_DIRECTION_IN)
-		memcpy(ohci_batch->base.buffer, ohci_batch->device_buffer, ohci_batch->base.transfered_size);
+		memcpy(ohci_batch->base.buffer,
+		    ohci_batch->device_buffer + setup_size,
+		    ohci_batch->base.transfered_size);
 
 	/* Store the remaining TD */
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ohci_batch->base.ep);
@@ -312,7 +318,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch)
 
 	/* Data stage */
 	size_t td_current = 1;
-	size_t remain_size = ohci_batch->usb_batch->buffer_size;
+	size_t remain_size = ohci_batch->base.buffer_size;
 	while (remain_size > 0) {
 		const size_t transfer_size =
 		    min(remain_size, OHCI_TD_MAX_TRANSFER);
@@ -344,10 +350,10 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch)
 	    ohci_batch->tds[td_current]->be);
 	usb_log_debug2(
 	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
-	    ohci_batch->usb_batch,
-	    usb_str_transfer_type(ohci_batch->usb_batch->ep->transfer_type),
+	    &ohci_batch->base,
+	    usb_str_transfer_type(ohci_batch->base.ep->transfer_type),
 	    usb_str_direction(dir),
-	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
+	    USB_TRANSFER_BATCH_ARGS(ohci_batch->base));
 }
 
 /** Prepare generic data transfer
@@ -369,7 +375,7 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 	    ohci_batch->ed->td_head, ohci_batch->ed->next);
 
 	size_t td_current = 0;
-	size_t remain_size = ohci_batch->usb_batch->buffer_size;
+	size_t remain_size = ohci_batch->base.buffer_size;
 	char *buffer = ohci_batch->device_buffer;
 	while (remain_size > 0) {
 		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER
@@ -392,10 +398,10 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 	}
 	usb_log_debug2(
 	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
-	    ohci_batch->usb_batch,
-	    usb_str_transfer_type(ohci_batch->usb_batch->ep->transfer_type),
+	    &ohci_batch->base,
+	    usb_str_transfer_type(ohci_batch->base.ep->transfer_type),
 	    usb_str_direction(dir),
-	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
+	    USB_TRANSFER_BATCH_ARGS(ohci_batch->base));
 }
 
 /** Transfer setup table. */

@@ -56,8 +56,6 @@ typedef struct ohci_transfer_batch {
 	size_t td_count;
 	/** Data buffer, must be accessible by the OHCI hw. */
 	char *device_buffer;
-	/** Generic USB transfer structure */
-	usb_transfer_batch_t *usb_batch;
 } ohci_transfer_batch_t;
 
 ohci_transfer_batch_t * ohci_transfer_batch_create(endpoint_t *batch);
