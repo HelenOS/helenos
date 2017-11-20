@@ -135,6 +135,7 @@ DIRS = \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
 	srv/hid/rfb \
+	srv/test/chardev-test \
 	drv/audio/hdaudio \
 	drv/audio/sb16 \
 	drv/root/root \
