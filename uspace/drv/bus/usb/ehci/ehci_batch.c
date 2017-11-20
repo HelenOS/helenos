@@ -237,8 +237,14 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 
 	assert(ehci_batch->base.transfered_size <= ehci_batch->base.buffer_size);
 
+	const size_t setup_size = (ehci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL)
+		? USB_SETUP_PACKET_SIZE
+		: 0;
+
 	if (ehci_batch->base.dir == USB_DIRECTION_IN)
-		memcpy(ehci_batch->base.buffer, ehci_batch->device_buffer, ehci_batch->base.transfered_size);
+		memcpy(ehci_batch->base.buffer,
+		    ehci_batch->device_buffer + setup_size,
+		    ehci_batch->base.transfered_size);
 
 	/* Clear TD pointers */
 	ehci_batch->qh->next = LINK_POINTER_TERM;
