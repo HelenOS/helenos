@@ -286,10 +286,10 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 
 	isoch_transfer->size = transfer->batch.buffer_size;
 	if (isoch_transfer->size > 0) {
-		memcpy(isoch_transfer->data_virt, transfer->batch.buffer, isoch_transfer->size);
+		memcpy(isoch_transfer->data.virt, transfer->batch.buffer, isoch_transfer->size);
 	}
 
-	trb.parameter = isoch_transfer->data_phys;
+	trb.parameter = isoch_transfer->data.phys;
 
 	xhci_trb_ring_t *ring = get_ring(hc, transfer);
 	int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
@@ -340,7 +340,7 @@ static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhc
 	isoch_transfer->size = transfer->batch.buffer_size;
 	if (transfer->batch.buffer_size <= isoch_transfer->size) {
 		if (transfer->batch.buffer_size > 0) {
-			memcpy(transfer->batch.buffer, isoch_transfer->data_virt, transfer->batch.buffer_size);
+			memcpy(transfer->batch.buffer, isoch_transfer->data.virt, transfer->batch.buffer_size);
 		}
 		if (transfer->batch.buffer_size < isoch_transfer->size) {
 			// FIXME: somehow notify that buffer was too small, probably batch error code
@@ -348,7 +348,7 @@ static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhc
 		transfer->batch.transfered_size = transfer->batch.buffer_size;
 	}
 	else {
-		memcpy(transfer->batch.buffer, isoch_transfer->data_virt, isoch_transfer->size);
+		memcpy(transfer->batch.buffer, isoch_transfer->data.virt, isoch_transfer->size);
 		transfer->batch.transfered_size = isoch_transfer->size;
 	}
 
@@ -356,7 +356,7 @@ static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhc
 	xhci_trb_t trb;
 	xhci_trb_clean(&trb);
 
-	trb.parameter = isoch_transfer->data_phys;
+	trb.parameter = isoch_transfer->data.phys;
 	isoch_transfer->size = xhci_ep->isoch_max_size;
 
 	xhci_trb_ring_t *ring = get_ring(hc, transfer);

@@ -192,6 +192,30 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 	return ENOTSUP;
 }
 
+static int xhci_isoch_alloc_transfers(xhci_endpoint_t *xhci_ep) {
+	int i = 0;
+	int err = EOK;
+	while (i < XHCI_ISOCH_BUFFER_COUNT) {
+		xhci_isoch_transfer_t *transfer = xhci_ep->isoch_transfers[i];
+		if (dma_buffer_alloc(&transfer->data, xhci_ep->isoch_max_size)) {
+			err = ENOMEM;
+			break;
+		}
+		transfer->size = 0;
+		++i;
+	}
+
+	if (err) {
+		--i;
+		while(i >= 0) {
+			dma_buffer_free(&xhci_ep->isoch_transfers[i]->data);
+			--i;
+		}
+	}
+
+	return err;
+}
+
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	/* Can't use XHCI_EP_FMT because the endpoint may not have device. */
@@ -202,6 +226,13 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	int err;
 	if ((err = xhci_trb_ring_init(&xhci_ep->ring))) {
 		return err;
+	}
+
+	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		if((err = xhci_isoch_alloc_transfers(xhci_ep))) {
+			xhci_trb_ring_fini(&xhci_ep->ring);
+			return err;
+		}
 	}
 
 	return EOK;
@@ -288,7 +319,9 @@ static void setup_isoch_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 0);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
-	// TODO: max ESIT payload
+
+	XHCI_EP_MAX_ESIT_PAYLOAD_LO_SET(*ctx, ep->isoch_max_size & 0xFFFF);
+	XHCI_EP_MAX_ESIT_PAYLOAD_HI_SET(*ctx, (ep->isoch_max_size >> 16) & 0xFF);
 }
 
 static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)

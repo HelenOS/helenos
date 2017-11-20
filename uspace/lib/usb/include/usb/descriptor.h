@@ -239,13 +239,16 @@ typedef struct {
 	/** Valid only for bulk and isochronous endpoints.
 	 * For bulk endpoints, this field contains the amount of streams
 	 * supported by the endpoint.
-	 * For isochronous endpoints, this field contains either maximum
-	 * number of packets supported within a service interval, or
-	 * whether an isochronous endpoint companion descriptor follows.
+	 * For isochronous endpoints, this field contains maximum
+	 * number of packets supported within a service interval.
+	 * Warning: the values returned by macros may not make any sense
+	 * for specific endpoint types.
 	 */
 	uint8_t attributes;
 #define SS_COMPANION_MAX_STREAMS(attributes) \
 	(attributes & 0x1f)
+#define SS_COMPANION_MULT(attributes) \
+	(attributes & 0x3)
 	/** The total number of bytes this endpoint will transfer
 	 * every service interval (SI).
 	 * This field is only valid for periodic endpoints.

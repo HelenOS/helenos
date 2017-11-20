@@ -125,6 +125,8 @@ typedef struct {
 	struct {
 		unsigned max_burst;
 		unsigned max_streams;
+		unsigned mult;
+		unsigned bytes_per_interval;
 	} usb3;
 } usb_endpoint_desc_t;
 

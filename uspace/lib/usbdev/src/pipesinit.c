@@ -209,18 +209,24 @@ static int process_endpoint(
 
 	unsigned max_burst = 0;
 	unsigned max_streams = 0;
+	unsigned bytes_per_interval = 0;
+	unsigned mult = 0;
 	if(companion_desc) {
 		max_burst = companion_desc->max_burst;
 		max_streams = SS_COMPANION_MAX_STREAMS(companion_desc->attributes);
+		bytes_per_interval = companion_desc->bytes_per_interval;
+		mult = SS_COMPANION_MULT(companion_desc->attributes);
 	}
 
+	// FIXME: USB2 packets and USB3 max_burst are probably the same thing
+	// See 4.14.2.1.1 of XHCI specification -> possibly refactor into one somehow-named field
 	int rc = usb_pipe_initialize(&ep_mapping->pipe,
 	    ep_no, description.transfer_type,
 	    ED_MPS_PACKET_SIZE_GET(
 	        uint16_usb2host(endpoint_desc->max_packet_size)),
 	    description.direction, ED_MPS_TRANS_OPPORTUNITIES_GET(
 	        uint16_usb2host(endpoint_desc->max_packet_size)),
-	    max_burst, max_streams, bus_session);
+	    max_burst, max_streams, bytes_per_interval, mult, bus_session);
 	if (rc != EOK) {
 		return rc;
 	}

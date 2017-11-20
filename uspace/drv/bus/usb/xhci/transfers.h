@@ -57,10 +57,8 @@ typedef struct {
 typedef struct {
 	/* Used buffer size */
 	uint64_t size;
-	/* Pointer to data in virt memory */
-	void *data_virt;
-	/* Physical address of the buffer */
-	uintptr_t data_phys;
+	/* Buffer with data */
+	dma_buffer_t data;
 	/* Physical address of enqueued TRB */
 	uintptr_t interrupt_trb_phys;
 } xhci_isoch_transfer_t;

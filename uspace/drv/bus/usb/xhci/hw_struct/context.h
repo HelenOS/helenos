@@ -75,6 +75,8 @@ typedef struct xhci_endpoint_ctx {
 	xhci_qword_set_bits(&(ctx).data2, val, 0, 0)
 #define XHCI_EP_MAX_ESIT_PAYLOAD_LO_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data3, val, 31, 16)
+#define XHCI_EP_MAX_ESIT_PAYLOAD_HI_SET(ctx, val) \
+	xhci_dword_set_bits(&(ctx).data[0], val, 31, 24)
 #define XHCI_EP_INTERVAL_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], val, 23, 16)
 #define XHCI_EP_MAX_P_STREAMS_SET(ctx, val) \
@@ -101,7 +103,8 @@ typedef struct xhci_endpoint_ctx {
 #define XHCI_EP_DCS(ctx)                XHCI_QWORD_EXTRACT((ctx).data2,  0,  0)
 #define XHCI_EP_TR_DPTR(ctx)            XHCI_QWORD_EXTRACT((ctx).data2, 63,  4)
 
-#define XHCI_EP_MAX_ESIT_PAYLOAD_LO(ctx) XHCI_DWORD_EXTRACT((ctx).data3, 31,  16)
+#define XHCI_EP_MAX_ESIT_PAYLOAD_LO(ctx) XHCI_DWORD_EXTRACT((ctx).data3, 31, 16)
+#define XHCI_EP_MAX_ESIT_PAYLOAD_HI(ctx) XHCI_DWORD_EXTRACT((ctx).data[0], 31, 24)
 
 } __attribute__((packed)) xhci_ep_ctx_t;
 

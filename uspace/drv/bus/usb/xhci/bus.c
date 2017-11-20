@@ -67,8 +67,22 @@ static int prepare_endpoint(xhci_endpoint_t *ep, const usb_endpoint_desc_t *desc
 	ep->base.packets = desc->packets;
 	ep->max_streams = desc->usb3.max_streams;
 	ep->max_burst = desc->usb3.max_burst;
-	// TODO add this property to usb_endpoint_desc_t and fetch it from ss companion desc
-	ep->mult = 0;
+	ep->mult = desc->usb3.mult;
+
+	if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		if (ep->base.device->speed <= USB_SPEED_HIGH) {
+			ep->isoch_max_size = desc->max_packet_size * (desc->packets + 1);
+		}
+		else if (ep->base.device->speed == USB_SPEED_SUPER) {
+			ep->isoch_max_size = desc->usb3.bytes_per_interval;
+		}
+		/* Technically there could be superspeed plus too. */
+
+		/* Allocate and setup isochronous-specific structures. */
+		ep->isoch_enqueue = 0;
+		ep->isoch_dequeue = XHCI_ISOCH_BUFFER_COUNT - 1;
+		ep->isoch_started = false;
+	}
 
 	return xhci_endpoint_alloc_transfer_ds(ep);
 }
