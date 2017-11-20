@@ -198,24 +198,14 @@ static int usb2_bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	}
 	usb_log_debug("Found new %s speed USB device.", usb_str_speed(dev->speed));
 
-	if (dev->hub) {
-		/* Manage TT */
-		if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
-			/* For LS devices under HS hub */
-			/* TODO: How about SS hubs? */
-			dev->tt.address = dev->hub->address;
-			dev->tt.port = dev->port;
-		}
-		else {
-			/* Inherit hub's TT */
-			dev->tt = dev->hub->tt;
-		}
-	}
-	else {
+	if (!dev->hub) {
+		/* The device is the roothub */
 		dev->tt = (usb_tt_address_t) {
 			.address = -1,
 			.port = 0,
 		};
+	} else {
+		hcd_setup_device_tt(dev);
 	}
 
 	/* Assign an address to the device */

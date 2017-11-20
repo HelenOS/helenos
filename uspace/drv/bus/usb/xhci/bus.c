@@ -151,17 +151,7 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	int err;
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
-	/* Manage TT */
-	if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
-		/* For LS devices under HS hub */
-		/* TODO: How about SS hubs? */
-		dev->tt.address = dev->hub->address;
-		dev->tt.port = dev->port;
-	}
-	else {
-		/* Inherit hub's TT */
-		dev->tt = dev->hub->tt;
-	}
+	hcd_setup_device_tt(dev);
 
 	/* Calculate route string */
 	xhci_device_t *xhci_hub = xhci_device_get(dev->hub);

@@ -102,6 +102,7 @@ static inline void * hcd_get_driver_data(hcd_t *hcd)
 }
 
 extern int hcd_get_ep0_max_packet_size(uint16_t *, hcd_t *, device_t *);
+extern void hcd_setup_device_tt(device_t *);
 
 extern int hcd_send_batch(hcd_t *, device_t *, usb_target_t,
     usb_direction_t direction, char *, size_t, uint64_t,
