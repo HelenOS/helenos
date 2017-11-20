@@ -140,7 +140,7 @@ static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, u
 
 int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *xhci_ep, unsigned count) {
 	if (xhci_ep->base.transfer_type != USB_TRANSFER_BULK
-		|| xhci_ep->base.speed != USB_SPEED_SUPER) {
+		|| dev->base.speed != USB_SPEED_SUPER) {
 		usb_log_error("Streams are only supported by superspeed bulk endpoints.");
 		return EINVAL;
 	}

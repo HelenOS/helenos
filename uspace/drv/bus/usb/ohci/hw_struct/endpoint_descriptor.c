@@ -87,7 +87,7 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 	        << ED_STATUS_MPS_SHIFT));
 
 	/* Low speed flag */
-	if (ep->speed == USB_SPEED_LOW)
+	if (ep->device->speed == USB_SPEED_LOW)
 		OHCI_MEM32_SET(instance->status, ED_STATUS_S_FLAG);
 
 	/* Isochronous format flag */

@@ -232,7 +232,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 
 	const usb_packet_id pid = direction_pids[dir];
 	const bool low_speed =
-	    uhci_batch->base.ep->speed == USB_SPEED_LOW;
+	    uhci_batch->base.ep->device->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->base.ep->max_packet_size;
 
 	int toggle = endpoint_toggle_get(uhci_batch->base.ep);
@@ -294,7 +294,7 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch)
 	const usb_packet_id data_stage_pid = direction_pids[dir];
 	const usb_packet_id status_stage_pid = status_stage_pids[dir];
 	const bool low_speed =
-	    uhci_batch->base.ep->speed == USB_SPEED_LOW;
+	    uhci_batch->base.ep->device->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->base.ep->max_packet_size;
 	const usb_target_t target = uhci_batch->base.target;
 

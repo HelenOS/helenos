@@ -35,20 +35,21 @@
 
 #include <usb/host/bandwidth.h>
 #include <usb/host/endpoint.h>
+#include <usb/host/bus.h>
 
 #include <assert.h>
 #include <stdlib.h>
 
 /** Calculate bandwidth that needs to be reserved for communication with EP.
  * Calculation follows USB 1.1 specification.
- * @param speed Device's speed.
- * @param type Type of the transfer.
- * @param size Number of byte to transfer.
+ * @param ep Registered endpoint
+ * @param size Number of bytes to transfer.
  * @param max_packet_size Maximum bytes in one packet.
  */
 size_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
 {
 	assert(ep);
+	assert(ep->device);
 
 	const usb_transfer_type_t type = ep->transfer_type;
 
@@ -65,7 +66,7 @@ size_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
 	/* TODO: It may be that ISO and INT transfers use only one packet per
 	 * transaction, but I did not find text in USB spec to confirm this */
 	/* NOTE: All data packets will be considered to be max_packet_size */
-	switch (ep->speed)
+	switch (ep->device->speed)
 	{
 	case USB_SPEED_LOW:
 		assert(type == USB_TRANSFER_INTERRUPT);

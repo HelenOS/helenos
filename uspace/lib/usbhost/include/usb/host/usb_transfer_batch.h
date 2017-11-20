@@ -38,6 +38,7 @@
 
 #include <usb/usb.h>
 #include <usb/request.h>
+#include <usb/host/bus.h>
 #include <usbhc_iface.h>
 
 #include <atomic.h>
@@ -98,7 +99,7 @@ typedef struct usb_transfer_batch {
  */
 #define USB_TRANSFER_BATCH_ARGS(batch) \
 	(batch).target.address, (batch).target.endpoint, \
-	usb_str_speed((batch).ep->speed), \
+	usb_str_speed((batch).ep->device->speed), \
 	usb_str_transfer_type_short((batch).ep->transfer_type), \
 	usb_str_direction((batch).ep->direction), \
 	(batch).buffer_size, (batch).ep->max_packet_size

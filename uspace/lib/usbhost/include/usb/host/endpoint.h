@@ -65,8 +65,6 @@ typedef struct endpoint {
 	usb_direction_t direction;
 	/** USB transfer type. */
 	usb_transfer_type_t transfer_type;
-	/** Communication speed. */
-	usb_speed_t speed;
 	/** Maximum size of data packets. */
 	size_t max_packet_size;
 	/** Additional opportunities per uframe */

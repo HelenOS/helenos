@@ -474,7 +474,7 @@ int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 		return err;
 
 	transfer_list_t *list =
-	    instance->transfers[batch->ep->speed][batch->ep->transfer_type];
+	    instance->transfers[batch->ep->device->speed][batch->ep->transfer_type];
 	assert(list);
 	transfer_list_add_batch(list, uhci_batch);
 
