@@ -54,6 +54,17 @@ typedef struct {
 	uintptr_t interrupt_trb_phys;
 } xhci_transfer_t;
 
+typedef struct {
+	/* Used buffer size */
+	uint64_t size;
+	/* Pointer to data in virt memory */
+	void *data_virt;
+	/* Physical address of the buffer */
+	uintptr_t data_phys;
+	/* Physical address of enqueued TRB */
+	uintptr_t interrupt_trb_phys;
+} xhci_isoch_transfer_t;
+
 xhci_transfer_t* xhci_transfer_create(endpoint_t *);
 int xhci_transfer_schedule(xhci_hc_t *, usb_transfer_batch_t *);
 int xhci_handle_transfer_event(xhci_hc_t *, xhci_trb_t *);

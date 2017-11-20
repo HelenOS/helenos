@@ -88,6 +88,19 @@ typedef struct xhci_endpoint {
 
 	/** Maximum number of bursts within an interval that this endpoint supports */
 	uint8_t mult;
+
+	/** The maximum size of an isochronous transfer and therefore the size of buffers */
+	size_t isoch_max_size;
+
+	/** Isochronous scheduled transfers with respective buffers */
+	#define XHCI_ISOCH_BUFFER_COUNT 4
+	xhci_isoch_transfer_t* isoch_transfers[XHCI_ISOCH_BUFFER_COUNT];
+
+	/** Indices to transfers */
+	size_t isoch_dequeue, isoch_enqueue;
+
+	/** Are isochronous transfers started? */
+	bool isoch_started;
 } xhci_endpoint_t;
 
 #define XHCI_EP_FMT  "(%d:%d %s)"

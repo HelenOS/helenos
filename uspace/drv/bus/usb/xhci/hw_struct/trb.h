@@ -146,6 +146,13 @@ typedef struct xhci_trb {
 #define TRB_CTRL_SET_TRT(trb, val) \
 	xhci_dword_set_bits(&(trb).control, val, 17, 16)
 
+#define TRB_CTRL_SET_TBC(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 8, 7)
+#define TRB_CTRL_SET_TLBPC(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 19, 16)
+#define TRB_CTRL_SET_SIA(trb, val) \
+	xhci_dword_set_bits(&(trb).control, val, 31, 31)
+
 /**
  * The Chain bit is valid only in specific TRB types.
  */

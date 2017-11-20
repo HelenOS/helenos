@@ -231,11 +231,182 @@ static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 }
 
-static int schedule_isochronous(xhci_hc_t* hc, xhci_transfer_t* transfer)
+static xhci_isoch_transfer_t* isoch_transfer_get_enqueue(xhci_endpoint_t *ep) {
+	if ((ep->isoch_enqueue % XHCI_ISOCH_BUFFER_COUNT) == ep->isoch_dequeue) {
+		/* None ready */
+		return NULL;
+	}
+	xhci_isoch_transfer_t *isoch_transfer = ep->isoch_transfers[ep->isoch_enqueue];
+	ep->isoch_enqueue = (ep->isoch_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+	return isoch_transfer;
+}
+
+static xhci_isoch_transfer_t* isoch_transfer_get_dequeue(xhci_endpoint_t *ep) {
+	xhci_isoch_transfer_t *isoch_transfer = ep->isoch_transfers[ep->isoch_dequeue];
+	ep->isoch_dequeue = (ep->isoch_dequeue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+	return isoch_transfer;
+}
+
+static int schedule_isochronous_trb(xhci_trb_ring_t *ring, xhci_endpoint_t *ep, xhci_trb_t *trb,
+	const size_t len, uintptr_t *trb_phys)
 {
-	/* TODO: Implement me. */
-	usb_log_error("Isochronous transfers are not yet implemented!");
-	return ENOTSUP;
+	TRB_CTRL_SET_XFER_LEN(*trb, len);
+	// FIXME: TD size 4.11.2.4 (there is no next TRB, so 0?)
+	TRB_CTRL_SET_TD_SIZE(*trb, 0);
+	TRB_CTRL_SET_IOC(*trb, 1);
+	TRB_CTRL_SET_TRB_TYPE(*trb, XHCI_TRB_TYPE_ISOCH);
+
+	// see 4.14.1 and 4.11.2.3 for the explanation, how to calculate those
+	size_t tdpc = len / 1024 + ((len % 1024) ? 1 : 0);
+	size_t tbc = tdpc / (ep->max_burst + 1);
+	if(!tdpc % (ep->max_burst + 1)) --tbc;
+	size_t bsp = tdpc % (ep->max_burst + 1);
+	size_t tlbpc = (bsp ? bsp - 1 : ep->max_burst);
+
+	TRB_CTRL_SET_TBC(*trb, tbc);
+	TRB_CTRL_SET_TLBPC(*trb, tlbpc);
+
+	// FIXME: do we want this? 6.4.1.3, p 366 (also possibly frame id?)
+	TRB_CTRL_SET_SIA(*trb, 1);
+
+	return xhci_trb_ring_enqueue(ring, trb, trb_phys);
+}
+
+static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_endpoint_t *xhci_ep,
+	xhci_device_t *xhci_dev)
+{
+	xhci_trb_t trb;
+	xhci_trb_clean(&trb);
+
+	// FIXME add some locks
+	xhci_isoch_transfer_t *isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
+	while (!isoch_transfer) {
+		// FIXME: add condvar sleep;
+	}
+
+	isoch_transfer->size = transfer->batch.buffer_size;
+	if (isoch_transfer->size > 0) {
+		memcpy(isoch_transfer->data_virt, transfer->batch.buffer, isoch_transfer->size);
+	}
+
+	trb.parameter = isoch_transfer->data_phys;
+
+	xhci_trb_ring_t *ring = get_ring(hc, transfer);
+	int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
+		&isoch_transfer->interrupt_trb_phys);
+	if (err) {
+		return err;
+	}
+
+	/* If not yet started, start the isochronous endpoint transfers - after buffer count - 1 writes */
+	/* The -2 is there because of the enqueue != dequeue check. The buffer must have at least 2 transfers. */
+	if (xhci_ep->isoch_enqueue == XHCI_ISOCH_BUFFER_COUNT - 2 && !xhci_ep->isoch_started) {
+		const uint8_t slot_id = xhci_dev->slot_id;
+		const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
+		err = hc_ring_doorbell(hc, slot_id, target);
+		if (err) {
+			return err;
+		}
+		xhci_ep->isoch_started = true;
+	}
+
+	/* Isochronous transfers don't handle errors, they skip them all. */
+	transfer->batch.error = EOK;
+	transfer->batch.transfered_size = transfer->batch.buffer_size;
+	usb_transfer_batch_finish(&transfer->batch);
+	return EOK;
+}
+
+static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_endpoint_t *xhci_ep,
+	xhci_device_t *xhci_dev)
+{
+	/* If not yet started, start the isochronous endpoint transfers - before first read */
+	if (!xhci_ep->isoch_started) {
+		const uint8_t slot_id = xhci_dev->slot_id;
+		const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
+		int err = hc_ring_doorbell(hc, slot_id, target);
+		if (err) {
+			return err;
+		}
+		xhci_ep->isoch_started = true;
+	}
+
+	// FIXME add some locks
+	xhci_isoch_transfer_t *isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
+	while(!isoch_transfer) {
+		// FIXME: add condvar sleep;
+	}
+
+	isoch_transfer->size = transfer->batch.buffer_size;
+	if (transfer->batch.buffer_size <= isoch_transfer->size) {
+		if (transfer->batch.buffer_size > 0) {
+			memcpy(transfer->batch.buffer, isoch_transfer->data_virt, transfer->batch.buffer_size);
+		}
+		if (transfer->batch.buffer_size < isoch_transfer->size) {
+			// FIXME: somehow notify that buffer was too small, probably batch error code
+		}
+		transfer->batch.transfered_size = transfer->batch.buffer_size;
+	}
+	else {
+		memcpy(transfer->batch.buffer, isoch_transfer->data_virt, isoch_transfer->size);
+		transfer->batch.transfered_size = isoch_transfer->size;
+	}
+
+	// Clear and requeue the transfer with new TRB
+	xhci_trb_t trb;
+	xhci_trb_clean(&trb);
+
+	trb.parameter = isoch_transfer->data_phys;
+	isoch_transfer->size = xhci_ep->isoch_max_size;
+
+	xhci_trb_ring_t *ring = get_ring(hc, transfer);
+	int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
+		&isoch_transfer->interrupt_trb_phys);
+	if (err) {
+		return err;
+	}
+
+	/* Isochronous transfers don't handle errors, they skip them all. */
+	transfer->batch.error = EOK;
+	usb_transfer_batch_finish(&transfer->batch);
+	return EOK;
+}
+
+static int schedule_isochronous(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_endpoint_t *xhci_ep,
+	xhci_device_t *xhci_dev)
+{
+	if (transfer->batch.buffer_size > xhci_ep->isoch_max_size) {
+		usb_log_error("Cannot schedule an oversized isochronous transfer.");
+		return EINVAL;
+	}
+
+	if (xhci_ep->base.direction == USB_DIRECTION_OUT) {
+		return schedule_isochronous_out(hc, transfer, xhci_ep, xhci_dev);
+	}
+	else {
+		return schedule_isochronous_in(hc, transfer, xhci_ep, xhci_dev);
+	}
+}
+
+static int handle_isochronous_transfer_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_endpoint_t *ep) {
+	fibril_mutex_lock(&ep->base.guard);
+
+	xhci_isoch_transfer_t *isoch_transfer = isoch_transfer_get_dequeue(ep);
+	if (isoch_transfer->interrupt_trb_phys != trb->parameter) {
+		usb_log_error("Non-matching trb to isochronous transfer, skipping.");
+		// FIXME: what to do? probably just kill the whole endpoint
+		return ENOENT;
+	}
+
+	if (ep->base.direction == USB_DIRECTION_IN) {
+		// We may have received less data, that's fine
+		isoch_transfer->size -= TRB_TRANSFER_LENGTH(*trb);
+	}
+
+	// TODO: Send notify to waiting fibrils in case they are waiting here
+
+	fibril_mutex_unlock(&ep->base.guard);
+	return EOK;
 }
 
 int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
@@ -260,6 +431,10 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 
 	/* FIXME: This is racy. Do we care? */
 	ep->ring.dequeue = addr;
+
+	if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		return handle_isochronous_transfer_event(hc, trb, ep);
+	}
 
 	fibril_mutex_lock(&ep->base.guard);
 	usb_transfer_batch_t *batch = ep->base.active_batch;
@@ -290,7 +465,7 @@ typedef int (*transfer_handler)(xhci_hc_t *, xhci_transfer_t *);
 
 static const transfer_handler transfer_handlers[] = {
 	[USB_TRANSFER_CONTROL] = schedule_control,
-	[USB_TRANSFER_ISOCHRONOUS] = schedule_isochronous,
+	[USB_TRANSFER_ISOCHRONOUS] = NULL,
 	[USB_TRANSFER_BULK] = schedule_bulk,
 	[USB_TRANSFER_INTERRUPT] = schedule_interrupt,
 };
@@ -314,6 +489,11 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 		usb_log_error("Ring not initialized for endpoint " XHCI_EP_FMT,
 		    XHCI_EP_ARGS(*xhci_ep));
 		return EINVAL;
+	}
+
+	// Isochronous transfer needs to be handled differently
+	if(batch->ep->transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		return schedule_isochronous(hc, transfer, xhci_ep, xhci_dev);
 	}
 
 	const usb_transfer_type_t type = batch->ep->transfer_type;
