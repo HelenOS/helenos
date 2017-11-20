@@ -29,7 +29,7 @@
 /** @addtogroup libc
  * @{
  */
-/** @file
+/** @file Block device client interface
  */
 
 #ifndef LIBC_BD_H_

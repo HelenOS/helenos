@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief IP link client stub
+ * @brief Block device client interface
  */
 
 #include <async.h>
