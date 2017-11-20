@@ -95,24 +95,86 @@ void chardev_close(chardev_t *chardev)
  */
 int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 {
-	if (size > 4 * sizeof(sysarg_t))
-		return ELIMIT;
-
 	async_exch_t *exch = async_exchange_begin(chardev->sess);
-	sysarg_t message[4] = { 0 };
-	const ssize_t ret = async_req_1_4(exch, CHARDEV_READ, size,
-	    &message[0], &message[1], &message[2], &message[3]);
-	async_exchange_end(exch);
-	if (ret > 0 && (size_t)ret <= size)
-		memcpy(buf, message, size);
 
-	if (ret < 0) {
-		*nread = 0;
-		return ret;
+	if (size > DATA_XFER_LIMIT) {
+		/* This should not hurt anything. */
+		size = DATA_XFER_LIMIT;
 	}
 
-	*nread = ret;
-	return EOK;
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, CHARDEV_READ, &answer);
+	int rc = async_data_read_start(exch, buf, size);
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		*nread = 0;
+		return rc;
+	}
+
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK) {
+		*nread = 0;
+		return retval;
+	}
+
+	*nread = IPC_GET_ARG2(answer);
+	/* In case of partial success, ARG1 contains the error code */
+	return IPC_GET_ARG1(answer);
+
+}
+
+/** Write up to DATA_XFER_LIMIT bytes to character device.
+ *
+ * Write up to @a size or DATA_XFER_LIMIT bytes from @a data to character
+ * device. On success EOK is returned, bytes were written and @a *nwritten
+ * is set to min(@a size, DATA_XFER_LIMIT)
+ *
+ * On error a non-zero error code is returned and @a *nwritten is filled with
+ * the number of bytes that were successfully transferred.
+ *
+ * @param chardev Character device
+ * @param buf Destination buffer
+ * @param size Maximum number of bytes to read
+ * @param nwritten Place to store actual number of bytes written
+ *
+ * @return EOK on success or non-zero error code
+ */
+static int chardev_write_once(chardev_t *chardev, const void *data,
+    size_t size, size_t *nwritten)
+{
+	async_exch_t *exch = async_exchange_begin(chardev->sess);
+	ipc_call_t answer;
+	aid_t req;
+	int rc;
+
+	/* Break down large transfers */
+	if (size > DATA_XFER_LIMIT)
+		size = DATA_XFER_LIMIT;
+
+	req = async_send_0(exch, CHARDEV_WRITE, &answer);
+	rc = async_data_write_start(exch, data, size);
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		*nwritten = 0;
+		return rc;
+	}
+
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	if (retval != EOK) {
+		*nwritten = 0;
+		return retval;
+	}
+
+	*nwritten = IPC_GET_ARG2(answer);
+	/* In case of partial success, ARG1 contains the error code */
+	return IPC_GET_ARG1(answer);
 }
 
 /** Write to character device.
@@ -133,24 +195,24 @@ int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 int chardev_write(chardev_t *chardev, const void *data, size_t size,
     size_t *nwritten)
 {
-	int ret;
+	size_t nw;
+	size_t p;
+	int rc;
 
-	if (size > 3 * sizeof(sysarg_t))
-		return ELIMIT;
+	p = 0;
+	while (p < size) {
+		rc = chardev_write_once(chardev, data + p, size - p, &nw);
+		/* nw is always valid, we can have partial success */
+		p += nw;
 
-	async_exch_t *exch = async_exchange_begin(chardev->sess);
-	sysarg_t message[3] = { 0 };
-	memcpy(message, data, size);
-	ret = async_req_4_0(exch, CHARDEV_WRITE, size,
-	    message[0], message[1], message[2]);
-	async_exchange_end(exch);
-
-	if (ret < 0) {
-		*nwritten = 0;
-		return ret;
+		if (rc != EOK) {
+			/* We can return partial success */
+			*nwritten = p;
+			return rc;
+		}
 	}
 
-	*nwritten = ret;
+	*nwritten = p;
 	return EOK;
 }
 
