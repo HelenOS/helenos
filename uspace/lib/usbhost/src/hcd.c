@@ -66,11 +66,12 @@ void hcd_init(hcd_t *hcd) {
  * For LS, HS, and SS devices this value is fixed. For FS devices we must fetch
  * the first 8B of the device descriptor to determine it.
  *
- * @return Combined value of max_packet_size and scheduling oppertunities,
- *	see usb_standard_device_descriptor_t.
+ * @return Max packet size for EP 0
  */
 int hcd_get_ep0_max_packet_size(uint16_t *mps, hcd_t *hcd, device_t *dev)
 {
+	assert(mps);
+
 	static const uint16_t mps_fixed [] = {
 		[USB_SPEED_LOW] = 8,
 		[USB_SPEED_HIGH] = 64,
@@ -91,7 +92,7 @@ int hcd_get_ep0_max_packet_size(uint16_t *mps, hcd_t *hcd, device_t *dev)
 	const usb_device_request_setup_packet_t get_device_desc_8 =
 	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
 
-	usb_log_debug("Requesting first 8B of device descriptor.");
+	usb_log_debug("Requesting first 8B of device descriptor to determine MPS.");
 	ssize_t got = hcd_send_batch_sync(hcd, dev, control_ep, USB_DIRECTION_IN,
 	    (char *) &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
 	    "read first 8 bytes of dev descriptor");
@@ -102,7 +103,19 @@ int hcd_get_ep0_max_packet_size(uint16_t *mps, hcd_t *hcd, device_t *dev)
 		return err;
 	}
 
-	*mps = uint16_usb2host(desc.max_packet_size);
+	if (desc.descriptor_type != USB_DESCTYPE_DEVICE) {
+		usb_log_error("The device responded with wrong device descriptor.");
+		return EIO;
+	}
+
+	uint16_t version = uint16_usb2host(desc.usb_spec_version);
+	if (version < 0x0300) {
+		/* USB 2 and below have MPS raw in the field */
+		*mps = desc.max_packet_size;
+	} else {
+		/* USB 3 have MPS as an 2-based exponent */
+		*mps = (1 << desc.max_packet_size);
+	}
 	return EOK;
 }
 
