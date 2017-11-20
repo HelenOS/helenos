@@ -53,8 +53,8 @@ static int pl050_dev_add(ddf_dev_t *);
 static int pl050_fun_online(ddf_fun_t *);
 static int pl050_fun_offline(ddf_fun_t *);
 static void pl050_char_conn(ipc_callid_t, ipc_call_t *, void *);
-static int pl050_read(chardev_srv_t *, void *, size_t);
-static int pl050_write(chardev_srv_t *, const void *, size_t);
+static int pl050_read(chardev_srv_t *, void *, size_t, size_t *);
+static int pl050_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &pl050_dev_add,
@@ -235,7 +235,8 @@ error:
 	return rc;
 }
 
-static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
+static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size,
+    size_t *nread)
 {
 	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
 	uint8_t *bp = buffer;
@@ -256,10 +257,12 @@ static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
 
 	fibril_mutex_unlock(&pl050->buf_lock);
 
-	return size - left;
+	*nread = size - left;
+	return EOK;
 }
 
-static int pl050_write(chardev_srv_t *srv, const void *data, size_t size)
+static int pl050_write(chardev_srv_t *srv, const void *data, size_t size,
+    size_t *nwritten)
 {
 	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
 	uint8_t *dp = (uint8_t *)data;
@@ -277,7 +280,8 @@ static int pl050_write(chardev_srv_t *srv, const void *data, size_t size)
 	}
 	ddf_msg(LVL_NOTE, "%s/pl050_write() success", pl050->name);
 
-	return size;
+	*nwritten = size;
+	return EOK;
 }
 
 void pl050_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)

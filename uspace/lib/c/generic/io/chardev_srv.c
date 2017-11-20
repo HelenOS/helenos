@@ -47,6 +47,7 @@ static void chardev_read_srv(chardev_srv_t *srv, ipc_callid_t callid,
 {
 	void *buf;
 	size_t size;
+	size_t nread;
 	int rc;
 	ipc_callid_t rcallid;
 
@@ -69,18 +70,18 @@ static void chardev_read_srv(chardev_srv_t *srv, ipc_callid_t callid,
 		return;
 	}
 
-	rc = srv->srvs->ops->read(srv, buf, size);
-	if (rc < 0) {
+	rc = srv->srvs->ops->read(srv, buf, size, &nread);
+	if (rc != EOK && nread == 0) {
 		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
 		free(buf);
 		return;
 	}
 
-	async_data_read_finalize(rcallid, buf, size);
+	async_data_read_finalize(rcallid, buf, nread);
 
 	free(buf);
-	async_answer_2(callid, EOK, EOK, rc /* nread */);
+	async_answer_2(callid, EOK, rc, nread);
 }
 
 static void chardev_write_srv(chardev_srv_t *srv, ipc_callid_t callid,
@@ -88,6 +89,7 @@ static void chardev_write_srv(chardev_srv_t *srv, ipc_callid_t callid,
 {
 	void *data;
 	size_t size;
+	size_t nwr;
 	int rc;
 
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
@@ -101,12 +103,14 @@ static void chardev_write_srv(chardev_srv_t *srv, ipc_callid_t callid,
 		return;
 	}
 
-	rc = srv->srvs->ops->write(srv, data, size);
+	rc = srv->srvs->ops->write(srv, data, size, &nwr);
 	free(data);
-	if (rc < 0)
+	if (rc != EOK && nwr == 0) {
 		async_answer_0(callid, rc);
+		return;
+	}
 
-	async_answer_2(callid, EOK, EOK, rc /* nwritten */);
+	async_answer_2(callid, EOK, rc, nwr);
 }
 
 static chardev_srv_t *chardev_srv_create(chardev_srvs_t *srvs)

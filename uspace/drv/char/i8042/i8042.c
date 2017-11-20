@@ -66,8 +66,8 @@
 #define i8042_KBD_TRANSLATE  0x40  /* Use this to switch to XT scancodes */
 
 static void i8042_char_conn(ipc_callid_t, ipc_call_t *, void *);
-static int i8042_read(chardev_srv_t *, void *, size_t);
-static int i8042_write(chardev_srv_t *, const void *, size_t);
+static int i8042_read(chardev_srv_t *, void *, size_t, size_t *);
+static int i8042_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t i8042_chardev_ops = {
 	.read = i8042_read,
@@ -332,11 +332,13 @@ error:
  * @param srv	 Connection-specific data
  * @param buffer Data source
  * @param size   Data size
+ * @param nwr    Place to store number of bytes successfully written
  *
- * @return Bytes written.
+ * @return EOK on success or non-zero error code
  *
  */
-static int i8042_write(chardev_srv_t *srv, const void *data, size_t size)
+static int i8042_write(chardev_srv_t *srv, const void *data, size_t size,
+    size_t *nwr)
 {
 	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
 	i8042_t *i8042 = port->ctl;
@@ -356,7 +358,8 @@ static int i8042_write(chardev_srv_t *srv, const void *data, size_t size)
 	}
 	
 	fibril_mutex_unlock(&i8042->write_guard);
-	return size;
+	*nwr = size;
+	return EOK;
 }
 
 /** Read data from i8042 port.
@@ -364,11 +367,13 @@ static int i8042_write(chardev_srv_t *srv, const void *data, size_t size)
  * @param srv	 Connection-specific data
  * @param buffer Data place
  * @param size   Data place size
+ * @param nread  Place to store number of bytes successfully read
  *
- * @return Bytes read.
+ * @return EOK on success or non-zero error code
  *
  */
-static int i8042_read(chardev_srv_t *srv, void *dest, size_t size)
+static int i8042_read(chardev_srv_t *srv, void *dest, size_t size,
+    size_t *nread)
 {
 	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
 	i8042_t *i8042 = port->ctl;
@@ -386,7 +391,8 @@ static int i8042_read(chardev_srv_t *srv, void *dest, size_t size)
 		++destp;
 	}
 	
-	return i;
+	*nread = i;
+	return EOK;
 }
 
 /** Handle data requests.
