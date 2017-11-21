@@ -28,7 +28,7 @@
 
 #include <char_dev_iface.h>
 #include <errno.h>
-#include <ipc/serial_ctl.h>
+#include <io/serial.h>
 #include <loc.h>
 #include <stdio.h>
 
@@ -43,6 +43,7 @@ int main(int argc, char **argv)
 {
 	sysarg_t baud = 9600;
 	service_id_t svc_id;
+	serial_t *serial;
 
 	int arg = 1;
 	int rc;
@@ -112,15 +113,18 @@ int main(int argc, char **argv)
 
 	async_sess_t *sess = loc_service_connect(svc_id, INTERFACE_DDF,
 	    IPC_FLAG_BLOCKING);
-	if (!sess) {
+	if (sess == NULL) {
 		fprintf(stderr, "Failed connecting to service\n");
+		return 2;
 	}
 
-	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_req_4_0(exch, SERIAL_SET_COM_PROPS, baud,
-	    SERIAL_NO_PARITY, 8, 1);
-	async_exchange_end(exch);
+	rc = serial_open(sess, &serial);
+	if (rc != EOK) {
+		fprintf(stderr, "Failed opening serial port\n");
+		return 2;
+	}
 
+	rc = serial_set_comm_props(serial, baud, SERIAL_NO_PARITY, 8, 1);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed setting serial properties\n");
 		return 2;
@@ -146,6 +150,8 @@ int main(int argc, char **argv)
 	}
 
 	free(buf);
+	serial_close(serial);
+	async_hangup(sess);
 	return 0;
 }
 

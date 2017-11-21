@@ -45,7 +45,7 @@
 #include <loc.h>
 #include <char_dev_iface.h>
 #include <str.h>
-#include <ipc/serial_ctl.h>
+#include <io/serial.h>
 #include "../../tester.h"
 
 #define DEFAULT_COUNT  1024
@@ -55,6 +55,7 @@
 const char *test_serial1(void)
 {
 	size_t cnt;
+	serial_t *serial;
 	
 	if (test_argc < 1)
 		cnt = DEFAULT_COUNT;
@@ -78,38 +79,38 @@ const char *test_serial1(void)
 	
 	async_sess_t *sess = loc_service_connect(svc_id, INTERFACE_DDF,
 	    IPC_FLAG_BLOCKING);
-	if (!sess)
+	if (sess == NULL)
 		return "Failed connecting to serial device";
+	
+	res = serial_open(sess, &serial);
+	if (res != EOK)
+		return "Failed opening serial port";
 	
 	char *buf = (char *) malloc(cnt + 1);
 	if (buf == NULL) {
+		serial_close(serial);
 		async_hangup(sess);
 		return "Failed allocating input buffer";
 	}
 	
-	sysarg_t old_baud;
-	sysarg_t old_par;
-	sysarg_t old_stop;
-	sysarg_t old_word_size;
+	unsigned old_baud;
+	serial_parity_t old_par;
+	unsigned old_stop;
+	unsigned old_word_size;
 	
-	async_exch_t *exch = async_exchange_begin(sess);
-	res = async_req_0_4(exch, SERIAL_GET_COM_PROPS, &old_baud,
-	    &old_par, &old_word_size, &old_stop);
-	async_exchange_end(exch);
-	
+	res = serial_get_comm_props(serial, &old_baud, &old_par,
+	    &old_word_size, &old_stop);
 	if (res != EOK) {
 		free(buf);
+		serial_close(serial);
 		async_hangup(sess);
 		return "Failed to get old serial communication parameters";
 	}
 	
-	exch = async_exchange_begin(sess);
-	res = async_req_4_0(exch, SERIAL_SET_COM_PROPS, 1200,
-	    SERIAL_NO_PARITY, 8, 1);
-	async_exchange_end(exch);
-	
+	res = serial_set_comm_props(serial, 1200, SERIAL_NO_PARITY, 8, 1);
 	if (EOK != res) {
 		free(buf);
+		serial_close(serial);
 		async_hangup(sess);
 		return "Failed setting serial communication parameters";
 	}
@@ -122,23 +123,21 @@ const char *test_serial1(void)
 		ssize_t read = char_dev_read(sess, buf, cnt - total);
 		
 		if (read < 0) {
-			exch = async_exchange_begin(sess);
-			async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
+			(void) serial_set_comm_props(serial, old_baud,
 			    old_par, old_word_size, old_stop);
-			async_exchange_end(exch);
 			
 			free(buf);
+			serial_close(serial);
 			async_hangup(sess);
 			return "Failed reading from serial device";
 		}
 		
 		if ((size_t) read > cnt - total) {
-			exch = async_exchange_begin(sess);
-			async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
+			(void) serial_set_comm_props(serial, old_baud,
 			    old_par, old_word_size, old_stop);
-			async_exchange_end(exch);
 			
 			free(buf);
+			serial_close(serial);
 			async_hangup(sess);
 			return "Read more data than expected";
 		}
@@ -157,23 +156,21 @@ const char *test_serial1(void)
 			ssize_t written = char_dev_write(sess, buf, read);
 			
 			if (written < 0) {
-				exch = async_exchange_begin(sess);
-				async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
+				(void) serial_set_comm_props(serial, old_baud,
 				    old_par, old_word_size, old_stop);
-				async_exchange_end(exch);
 				
 				free(buf);
+				serial_close(serial);
 				async_hangup(sess);
 				return "Failed writing to serial device";
 			}
 			
 			if (written != read) {
-				exch = async_exchange_begin(sess);
-				async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
+				(void) serial_set_comm_props(serial, old_baud,
 				    old_par, old_word_size, old_stop);
-				async_exchange_end(exch);
 				
 				free(buf);
+				serial_close(serial);
 				async_hangup(sess);
 				return "Written less data than read from serial device";
 			}
@@ -189,12 +186,11 @@ const char *test_serial1(void)
 	size_t eot_size = str_size(EOT);
 	ssize_t written = char_dev_write(sess, (void *) EOT, eot_size);
 	
-	exch = async_exchange_begin(sess);
-	async_req_4_0(exch, SERIAL_SET_COM_PROPS, old_baud,
-	    old_par, old_word_size, old_stop);
-	async_exchange_end(exch);
+	(void) serial_set_comm_props(serial, old_baud, old_par, old_word_size,
+	    old_stop);
 	
 	free(buf);
+	serial_close(serial);
 	async_hangup(sess);
 	
 	if (written < 0)

@@ -26,8 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __ISDV4_H__
-#define __ISDV4_H__
+#ifndef ISDV4_H_
+#define ISDV4_H_
+
+#include <async.h>
 
 typedef struct isdv4_event isdv4_event_t;
 

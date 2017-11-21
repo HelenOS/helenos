@@ -26,15 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <char_dev_iface.h>
+#include <async.h>
 #include <errno.h>
-#include <ipc/serial_ctl.h>
-#include <loc.h>
-#include <stdio.h>
 #include <fibril_synch.h>
-#include <abi/ipc/methods.h>
+#include <io/serial.h>
 #include <ipc/mouseev.h>
-#include <inttypes.h>
+#include <loc.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <task.h>
 
 #include "isdv4.h"
@@ -178,6 +177,7 @@ int main(int argc, char **argv)
 {
 	sysarg_t baud = 38400;
 	service_id_t svc_id;
+	serial_t *serial;
 	char *serial_port_name = NULL;
 
 	int arg = 1;
@@ -267,13 +267,16 @@ int main(int argc, char **argv)
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
 		fprintf(stderr, "Failed connecting to service\n");
+		return 2;
 	}
 
-	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_req_4_0(exch, SERIAL_SET_COM_PROPS, baud,
-	    SERIAL_NO_PARITY, 8, 1);
-	async_exchange_end(exch);
+	rc = serial_open(sess, &serial);
+	if (rc != EOK) {
+		fprintf(stderr, "Failed opening serial port\n");
+		return 2;
+	}
 
+	rc = serial_set_comm_props(serial, baud, SERIAL_NO_PARITY, 8, 1);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed setting serial properties\n");
 		return 2;

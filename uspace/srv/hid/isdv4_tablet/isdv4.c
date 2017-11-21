@@ -28,6 +28,8 @@
 
 #include <char_dev_iface.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <mem.h>
 #include <thread.h>
