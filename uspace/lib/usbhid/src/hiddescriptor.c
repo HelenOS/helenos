@@ -245,21 +245,7 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 
 		field->size = report_item->size;
 
-		if(report_item->type == USB_HID_REPORT_TYPE_INPUT) {
-			int offset = report_item->offset + report_item->size * i;
-			int field_offset = (offset/8)*8 + (offset/8 + 1) * 8 - 
-				offset - report_item->size;
-			if(field_offset < 0) {
-				field->offset = 0;
-			}
-			else {
-				field->offset = field_offset;
-			}
-		}
-		else {
-			field->offset = report_item->offset + (i * report_item->size);
-		}
-
+		field->offset = report_item->offset + (i * report_item->size);
 
 		if(report->use_report_ids != 0) {
 			field->offset += 8;
@@ -900,7 +886,7 @@ void usb_hid_descriptor_print_list(list_t *list)
 
         list_foreach(*list, ritems_link, usb_hid_report_field_t,
     	    report_item) {
-		usb_log_debug("\t\tOFFSET: %X\n", report_item->offset);
+		usb_log_debug("\t\tOFFSET: %u\n", report_item->offset);
 		usb_log_debug("\t\tSIZE: %zu\n", report_item->size);
 		usb_log_debug("\t\tLOGMIN: %d\n",
 			report_item->logical_minimum);

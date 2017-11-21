@@ -39,6 +39,8 @@
 #include <mem.h>
 #include <usb/debug.h>
 #include <assert.h>
+#include <bitops.h>
+#include <macros.h>
 
 
 /*
@@ -198,14 +200,6 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
  */
 int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 {
-	int resolution;
-	int offset;
-	int part_size;
-	
-	int32_t value = 0;
-	int32_t mask = 0;
-	const uint8_t *foo = 0;
-
 	/* now only short tags are allowed */
 	if (item->size > 32) {
 		return 0;
@@ -213,53 +207,46 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 
 	if ((item->physical_minimum == 0) && (item->physical_maximum == 0)) {
 		item->physical_minimum = item->logical_minimum;
-		item->physical_maximum = item->logical_maximum;			
+		item->physical_maximum = item->logical_maximum;
 	}
-	
 
+	int resolution;
 	if (item->physical_maximum == item->physical_minimum) {
 	    resolution = 1;
 	} else {
-	    resolution = (item->logical_maximum - item->logical_minimum) / 
-		((item->physical_maximum - item->physical_minimum) * 
+	    resolution = (item->logical_maximum - item->logical_minimum) /
+		((item->physical_maximum - item->physical_minimum) *
 		(usb_pow(10, (item->unit_exponent))));
 	}
 
-	offset = item->offset;
-	// FIXME
-	if ((size_t) (offset / 8) != (size_t) ((offset+item->size - 1) / 8)) {
-		
-		part_size = 0;
+	int32_t value = 0;
 
-		size_t i = 0;
-		for (i = (size_t) (offset / 8);
-		    i <= (size_t) (offset + item->size - 1) / 8; i++) {
-			if (i == (size_t) (offset / 8)) {
-				/* the higher one */
-				part_size = 8 - (offset % 8);
-				foo = data + i;
-				mask =  ((1 << (item->size - part_size)) - 1);
-				value = (*foo & mask);
-			} else if (i == ((offset + item->size - 1) / 8)) {
-				/* the lower one */
-				foo = data + i;
-				mask = ((1 << (item->size - part_size)) - 1) <<
-				    (8 - (item->size - part_size));
+	/* First, skip all bytes we don't care */
+	data += item->offset / 8;
 
-				value = (((*foo & mask) >> (8 - 
-				    (item->size - part_size))) << part_size) + 
-				    value;
-			} else {
-				value = (*(data + 1) << (part_size + 8)) +
-				    value;
-				part_size += 8;
-			}
-		}
-	} else {		
-		foo = data + (offset / 8);
-		mask = ((1 << item->size) - 1) <<
-		    (8 - ((offset % 8) + item->size));
-		value = (*foo & mask) >> (8 - ((offset % 8) + item->size));
+	int bits = item->size;
+	int taken = 0;
+
+	/* Than we take the higher bits from the LSB */
+	const unsigned bit_offset = item->offset % 8;
+	const int lsb_bits = min(bits, 8);
+
+	value |= (*data >> bit_offset) & BIT_RRANGE(uint8_t, lsb_bits);
+	bits -= lsb_bits;
+	taken += lsb_bits;
+	data++;
+
+	/* Then there may be bytes, which we take as a whole. */
+	while (bits > 8) {
+		value |= *data << taken;
+		taken += 8;
+		bits -= 8;
+		data++;
+	}
+
+	/* And, finally, lower bits from HSB. */
+	if (bits > 0) {
+		value |= (*data & BIT_RRANGE(uint8_t, bits)) << taken;
 	}
 
 	if ((item->logical_minimum < 0) || (item->logical_maximum < 0)) {
