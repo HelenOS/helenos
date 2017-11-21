@@ -443,8 +443,21 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		return ENOENT;
 	}
 
-	batch->error = (TRB_COMPLETION_CODE(*trb) == XHCI_TRBC_SUCCESS) ? EOK : ENAK;
-	batch->transfered_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
+	const xhci_trb_completion_code_t completion_code = TRB_COMPLETION_CODE(*trb);
+	switch (completion_code) {
+		case XHCI_TRBC_SHORT_PACKET:
+			usb_log_debug("Short transfer.");
+			/* fallthrough */
+		case XHCI_TRBC_SUCCESS:
+			batch->error = EOK;
+			batch->transfered_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
+			break;
+
+		default:
+			usb_log_warning("Transfer not successfull: %u", completion_code);
+			batch->error = EIO;
+	}
+
 	usb_transfer_batch_reset_toggle(batch);
 	endpoint_deactivate_locked(&ep->base);
 	fibril_mutex_unlock(&ep->base.guard);

@@ -210,7 +210,7 @@ static inline void xhci_fill_erst_entry(xhci_erst_entry_t *entry, uintptr_t phys
 	xhci_dword_set_bits(&entry->size, segments, 16, 0);
 }
 
-enum xhci_trb_completion_code {
+typedef enum xhci_trb_completion_code {
 	XHCI_TRBC_INVALID = 0,
 	XHCI_TRBC_SUCCESS,
 	XHCI_TRBC_DATA_BUFFER_ERROR,
@@ -254,6 +254,6 @@ enum xhci_trb_completion_code {
 	 * 192 - 223 vendor defined error
 	 * 224 - 255 vendor defined info
 	 */
-};
+} xhci_trb_completion_code_t;
 
 #endif
