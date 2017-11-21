@@ -146,28 +146,22 @@ static void default_connection_handler(ddf_fun_t *fun,
 	}
 }
 
-static int get_mouse_axis_move_value(uint8_t rid, usb_hid_report_t *report,
+static const usb_hid_report_field_t *get_mouse_axis_move_field(uint8_t rid, usb_hid_report_t *report,
     int32_t usage)
 {
-	int result = 0;
-
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP,
 	    usage);
 
 	usb_hid_report_path_set_report_id(path, rid);
 
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	const usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    report, NULL, path, USB_HID_PATH_COMPARE_END,
 	    USB_HID_REPORT_TYPE_INPUT);
 
-	if (field != NULL) {
-		result = field->value;
-	}
-
 	usb_hid_report_path_free(path);
 
-	return result;
+	return field;
 }
 
 static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
@@ -180,19 +174,49 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		return true;
 	}
 
-	const int shift_x = get_mouse_axis_move_value(hid_dev->report_id,
-	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
-	const int shift_y = get_mouse_axis_move_value(hid_dev->report_id,
-	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
-	const int wheel = get_mouse_axis_move_value(hid_dev->report_id,
-	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
+	const usb_hid_report_field_t *move_x = get_mouse_axis_move_field(
+	    hid_dev->report_id, &hid_dev->report,
+	    USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
+	const usb_hid_report_field_t *move_y = get_mouse_axis_move_field(
+	    hid_dev->report_id, &hid_dev->report,
+	    USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
+	const usb_hid_report_field_t *wheel= get_mouse_axis_move_field(
+	    hid_dev->report_id, &hid_dev->report,
+	    USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
-	if (shift_x || shift_y || wheel) {
+	bool absolute_x = move_x && !USB_HID_ITEM_FLAG_RELATIVE(move_x->item_flags);
+	bool absolute_y = move_y && !USB_HID_ITEM_FLAG_RELATIVE(move_y->item_flags);
+
+	/* Tablet shall always report both X and Y */
+	if (absolute_x != absolute_y) {
+		usb_log_error(NAME " cannot handle mix of absolute and relative mouse move.");
+		return true;
+	}
+
+	int shift_x = move_x ? move_x->value : 0;
+	int shift_y = move_y ? move_y->value : 0;
+	int shift_z =  wheel ?  wheel->value : 0;
+
+	if (absolute_x && absolute_y) {
+		async_exch_t *exch =
+		    async_exchange_begin(mouse_dev->mouse_sess);
+		if (exch != NULL) {
+			async_msg_4(exch, MOUSEEV_ABS_MOVE_EVENT,
+			    shift_x, shift_y, move_x->logical_maximum, move_y->logical_maximum);
+			async_exchange_end(exch);
+		}
+
+		// Even if we move the mouse absolutely, we need to resolve wheel
+		shift_x = shift_y = 0;
+	}
+
+
+	if (shift_x || shift_y || shift_z) {
 		async_exch_t *exch =
 		    async_exchange_begin(mouse_dev->mouse_sess);
 		if (exch != NULL) {
 			async_msg_3(exch, MOUSEEV_MOVE_EVENT,
-			    shift_x, shift_y, wheel);
+			    shift_x, shift_y, shift_z);
 			async_exchange_end(exch);
 		}
 	}
