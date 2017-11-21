@@ -285,12 +285,12 @@ int ipc_req_internal(cap_handle_t handle, ipc_data_t *data, sysarg_t priv)
 		udebug_stoppable_begin();
 #endif
 
-		ipc_call_hold(call);
+		kobject_add_ref(call->kobject);
 		rc = ipc_call_sync(kobj->phone, call);
 		spinlock_lock(&call->forget_lock);
 		bool forgotten = call->forget;
 		spinlock_unlock(&call->forget_lock);
-		ipc_call_release(call);
+		kobject_put(call->kobject);
 
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_end();
@@ -305,7 +305,7 @@ int ipc_req_internal(cap_handle_t handle, ipc_data_t *data, sysarg_t priv)
 				 * its owners and are responsible for its
 				 * deallocation.
 				 */
-				ipc_call_free(call);
+				kobject_put(call->kobject);
 			} else {
 				/*
 				 * The call was forgotten and it changed hands.
@@ -322,7 +322,7 @@ int ipc_req_internal(cap_handle_t handle, ipc_data_t *data, sysarg_t priv)
 		IPC_SET_RETVAL(call->data, rc);
 	
 	memcpy(data->args, call->data.args, sizeof(data->args));
-	ipc_call_free(call);
+	kobject_put(call->kobject);
 	kobject_put(kobj);
 	
 	return EOK;
@@ -419,7 +419,7 @@ sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data)
 	int rc = copy_from_uspace(&call->data.args, &data->args,
 	    sizeof(call->data.args));
 	if (rc != 0) {
-		ipc_call_free(call);
+		kobject_put(call->kobject);
 		kobject_put(kobj);
 		return (sysarg_t) rc;
 	}
@@ -752,7 +752,7 @@ restart:
 		
 		STRUCT_TO_USPACE(calldata, &call->data);
 		
-		ipc_call_free(call);
+		kobject_put(call->kobject);
 		
 		return ((sysarg_t) call) | IPC_CALLID_NOTIFICATION;
 	}
@@ -761,12 +761,12 @@ restart:
 		process_answer(call);
 		
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
-			ipc_call_free(call);
+			kobject_put(call->kobject);
 			goto restart;
 		}
 		
 		STRUCT_TO_USPACE(calldata, &call->data);
-		ipc_call_free(call);
+		kobject_put(call->kobject);
 		
 		return ((sysarg_t) call) | IPC_CALLID_ANSWERED;
 	}

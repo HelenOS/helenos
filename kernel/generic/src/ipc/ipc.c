@@ -86,21 +86,20 @@ static void _ipc_call_init(call_t *call)
 	call->buffer = NULL;
 }
 
-void ipc_call_hold(call_t *call)
+static void call_destroy(void *arg)
 {
-	atomic_inc(&call->refcnt);
+	call_t *call = (call_t *) arg;
+
+	if (call->buffer)
+		free(call->buffer);
+	if (call->caller_phone)
+		kobject_put(call->caller_phone->kobject);
+	slab_free(call_slab, call);
 }
 
-void ipc_call_release(call_t *call)
-{
-	if (atomic_predec(&call->refcnt) == 0) {
-		if (call->buffer)
-			free(call->buffer);
-		if (call->caller_phone)
-			kobject_put(call->caller_phone->kobject);
-		slab_free(call_slab, call);
-	}
-}
+static kobject_ops_t call_kobject_ops = {
+	.destroy = call_destroy
+};
 
 /** Allocate and initialize a call structure.
  *
@@ -116,22 +115,19 @@ void ipc_call_release(call_t *call)
 call_t *ipc_call_alloc(unsigned int flags)
 {
 	call_t *call = slab_alloc(call_slab, flags);
-	if (call) {
-		_ipc_call_init(call);
-		ipc_call_hold(call);
+	if (!call)
+		return NULL;
+	kobject_t *kobj = (kobject_t *) malloc(sizeof(kobject_t), flags);
+	if (!kobj) {
+		slab_free(call_slab, call);
+		return NULL;
 	}
+
+	_ipc_call_init(call);
+	kobject_initialize(kobj, KOBJECT_TYPE_CALL, call, &call_kobject_ops);
+	call->kobject = kobj;
 	
 	return call;
-}
-
-/** Deallocate a call structure.
- *
- * @param call Call structure to be freed.
- *
- */
-void ipc_call_free(call_t *call)
-{
-	ipc_call_release(call);
 }
 
 /** Initialize an answerbox structure.
@@ -289,7 +285,7 @@ void _ipc_answer_free_call(call_t *call, bool selflocked)
 	if (call->forget) {
 		/* This is a forgotten call and call->sender is not valid. */
 		spinlock_unlock(&call->forget_lock);
-		ipc_call_free(call);
+		kobject_put(call->kobject);
 		return;
 	} else {
 		/*
@@ -704,7 +700,7 @@ static void ipc_forget_call(call_t *call)
 	 * with it; to avoid working with a destroyed call_t structure, we
 	 * must hold a reference to it.
 	 */
-	ipc_call_hold(call);
+	kobject_add_ref(call->kobject);
 
 	spinlock_unlock(&call->forget_lock);
 	spinlock_unlock(&TASK->active_calls_lock);
@@ -713,7 +709,7 @@ static void ipc_forget_call(call_t *call)
 
 	SYSIPC_OP(request_forget, call);
 
-	ipc_call_release(call);
+	kobject_put(call->kobject);
 }
 
 static void ipc_forget_all_active_calls(void)
@@ -821,7 +817,7 @@ restart:
 
 	SYSIPC_OP(answer_process, call);
 
-	ipc_call_free(call);
+	kobject_put(call->kobject);
 	goto restart;
 }
 

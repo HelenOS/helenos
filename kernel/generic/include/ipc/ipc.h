@@ -108,14 +108,14 @@ typedef struct {
 } ipc_data_t;
 
 typedef struct {
+	kobject_t *kobject;
+
 	/**
 	 * Task link.
 	 * Valid only when the call is not forgotten.
 	 * Protected by the task's active_calls_lock.
 	 */
 	link_t ta_link;
-
-	atomic_t refcnt;
 
 	/** Answerbox link. */
 	link_t ab_link;
