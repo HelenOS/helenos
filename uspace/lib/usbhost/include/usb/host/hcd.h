@@ -111,6 +111,13 @@ extern ssize_t hcd_send_batch_sync(hcd_t *, device_t *, usb_target_t,
     usb_direction_t direction, char *, size_t, uint64_t,
     const char *);
 
+/** How many toggles need to be reset */
+typedef enum {
+	RESET_NONE,
+	RESET_EP,
+	RESET_ALL
+} toggle_reset_mode_t;
+
 #endif
 
 /**

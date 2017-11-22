@@ -146,6 +146,45 @@ void hcd_setup_device_tt(device_t *dev)
 	}
 }
 
+/** Check setup packet data for signs of toggle reset.
+ *
+ * @param[in] requst Setup requst data.
+ *
+ * @retval -1 No endpoints need reset.
+ * @retval 0 All endpoints need reset.
+ * @retval >0 Specified endpoint needs reset.
+ *
+ */
+static toggle_reset_mode_t hcd_get_request_toggle_reset_mode(
+    const usb_device_request_setup_packet_t *request)
+{
+	assert(request);
+	switch (request->request)
+	{
+	/* Clear Feature ENPOINT_STALL */
+	case USB_DEVREQ_CLEAR_FEATURE: /*resets only cleared ep */
+		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
+		if ((request->request_type == 0x2) &&
+		    (request->value == USB_FEATURE_ENDPOINT_HALT))
+			return RESET_EP;
+		break;
+	case USB_DEVREQ_SET_CONFIGURATION:
+	case USB_DEVREQ_SET_INTERFACE:
+		/* Recipient must be device, this resets all endpoints,
+		 * In fact there should be no endpoints but EP 0 registered
+		 * as different interfaces use different endpoints,
+		 * unless you're changing configuration or alternative
+		 * interface of an already setup device. */
+		if (!(request->request_type & SETUP_REQUEST_TYPE_DEVICE_TO_HOST))
+			return RESET_ALL;
+		break;
+	default:
+		break;
+	}
+
+	return RESET_NONE;
+}
+
 /** Prepare generic usb_transfer_batch and schedule it.
  * @param hcd Host controller driver.
  * @param target address and endpoint number.
@@ -206,7 +245,7 @@ int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
 	/* Check for commands that reset toggle bit */
 	if (ep->transfer_type == USB_TRANSFER_CONTROL)
 		batch->toggle_reset_mode
-			= usb_request_get_toggle_reset_mode(&batch->setup.packet);
+			= hcd_get_request_toggle_reset_mode(&batch->setup.packet);
 
 	const int ret = hcd->ops.schedule(hcd, batch);
 	if (ret != EOK) {
