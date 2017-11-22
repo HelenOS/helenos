@@ -70,6 +70,9 @@ typedef enum {
 /** USB endpoint status - endpoint is halted (stalled). */
 #define USB_ENDPOINT_STATUS_HALTED ((uint16_t)(1 << 0))
 
+/** Size of the USB setup packet */
+#define USB_SETUP_PACKET_SIZE 8
+
 /** Device request setup packet.
  * The setup packet describes the request.
  */
@@ -107,7 +110,7 @@ typedef struct {
 	uint16_t length;
 } __attribute__ ((packed)) usb_device_request_setup_packet_t;
 
-static_assert(sizeof(usb_device_request_setup_packet_t) == 8);
+static_assert(sizeof(usb_device_request_setup_packet_t) == USB_SETUP_PACKET_SIZE);
 
 /** How many toggles need to be reset */
 typedef enum {

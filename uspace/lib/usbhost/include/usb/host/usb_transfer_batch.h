@@ -46,8 +46,6 @@
 #include <errno.h>
 #include <stdint.h>
 
-#define USB_SETUP_PACKET_SIZE 8
-
 typedef struct endpoint endpoint_t;
 typedef struct bus bus_t;
 
