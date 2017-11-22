@@ -34,18 +34,17 @@
  * @file
  */
 
-#include <inttypes.h>
+#include <async.h>
 #include <errno.h>
+#include <io/chardev.h>
+#include <io/serial.h>
+#include <ipc/services.h>
+#include <loc.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <async.h>
-#include <thread.h>
-#include <ipc/services.h>
-#include <loc.h>
-#include <char_dev_iface.h>
 #include <str.h>
-#include <io/serial.h>
+#include <thread.h>
 #include "../../tester.h"
 
 #define DEFAULT_COUNT  1024
@@ -56,6 +55,10 @@ const char *test_serial1(void)
 {
 	size_t cnt;
 	serial_t *serial;
+	chardev_t *chardev;
+	int rc;
+	size_t nread;
+	size_t nwritten;
 	
 	if (test_argc < 1)
 		cnt = DEFAULT_COUNT;
@@ -82,12 +85,22 @@ const char *test_serial1(void)
 	if (sess == NULL)
 		return "Failed connecting to serial device";
 	
-	res = serial_open(sess, &serial);
-	if (res != EOK)
+	res = chardev_open(sess, &chardev);
+	if (res != EOK) {
+		async_hangup(sess);
 		return "Failed opening serial port";
+	}
+	
+	res = serial_open(sess, &serial);
+	if (res != EOK) {
+		chardev_close(chardev);
+		async_hangup(sess);
+		return "Failed opening serial port";
+	}
 	
 	char *buf = (char *) malloc(cnt + 1);
 	if (buf == NULL) {
+		chardev_close(chardev);
 		serial_close(serial);
 		async_hangup(sess);
 		return "Failed allocating input buffer";
@@ -102,6 +115,7 @@ const char *test_serial1(void)
 	    &old_word_size, &old_stop);
 	if (res != EOK) {
 		free(buf);
+		chardev_close(chardev);
 		serial_close(serial);
 		async_hangup(sess);
 		return "Failed to get old serial communication parameters";
@@ -110,6 +124,7 @@ const char *test_serial1(void)
 	res = serial_set_comm_props(serial, 1200, SERIAL_NO_PARITY, 8, 1);
 	if (EOK != res) {
 		free(buf);
+		chardev_close(chardev);
 		serial_close(serial);
 		async_hangup(sess);
 		return "Failed setting serial communication parameters";
@@ -120,83 +135,87 @@ const char *test_serial1(void)
 	
 	size_t total = 0;
 	while (total < cnt) {
-		ssize_t read = char_dev_read(sess, buf, cnt - total);
 		
-		if (read < 0) {
+		rc = chardev_read(chardev, buf, cnt - total, &nread);
+		if (rc != EOK) {
 			(void) serial_set_comm_props(serial, old_baud,
 			    old_par, old_word_size, old_stop);
 			
 			free(buf);
+			chardev_close(chardev);
 			serial_close(serial);
 			async_hangup(sess);
 			return "Failed reading from serial device";
 		}
 		
-		if ((size_t) read > cnt - total) {
+		if (nread > cnt - total) {
 			(void) serial_set_comm_props(serial, old_baud,
 			    old_par, old_word_size, old_stop);
 			
 			free(buf);
+			chardev_close(chardev);
 			serial_close(serial);
 			async_hangup(sess);
 			return "Read more data than expected";
 		}
 		
-		TPRINTF("Read %zd bytes\n", read);
+		TPRINTF("Read %zd bytes\n", nread);
 		
-		if (read == 0)
+		if (nread == 0)
 			thread_usleep(DEFAULT_SLEEP);
 		else {
-			buf[read] = 0;
+			buf[nread] = 0;
 			
 			/*
 			 * Write data back to the device to test the opposite
 			 * direction of data transfer.
 			 */
-			ssize_t written = char_dev_write(sess, buf, read);
-			
-			if (written < 0) {
+			rc = chardev_write(chardev, buf, nread, &nwritten);
+			if (rc != EOK) {
 				(void) serial_set_comm_props(serial, old_baud,
 				    old_par, old_word_size, old_stop);
 				
 				free(buf);
+				chardev_close(chardev);
 				serial_close(serial);
 				async_hangup(sess);
 				return "Failed writing to serial device";
 			}
 			
-			if (written != read) {
+			if (nwritten != nread) {
 				(void) serial_set_comm_props(serial, old_baud,
 				    old_par, old_word_size, old_stop);
 				
 				free(buf);
+				chardev_close(chardev);
 				serial_close(serial);
 				async_hangup(sess);
 				return "Written less data than read from serial device";
 			}
 			
-			TPRINTF("Written %zd bytes\n", written);
+			TPRINTF("Written %zd bytes\n", nwritten);
 		}
 		
-		total += read;
+		total += nread;
 	}
 	
 	TPRINTF("Trying to write EOT banner to the serial device\n");
 	
 	size_t eot_size = str_size(EOT);
-	ssize_t written = char_dev_write(sess, (void *) EOT, eot_size);
+	rc = chardev_write(chardev, (void *) EOT, eot_size, &nwritten);
 	
 	(void) serial_set_comm_props(serial, old_baud, old_par, old_word_size,
 	    old_stop);
 	
 	free(buf);
+	chardev_close(chardev);
 	serial_close(serial);
 	async_hangup(sess);
 	
-	if (written < 0)
+	if (rc != EOK)
 		return "Failed to write EOT banner to serial device";
 	
-	if ((size_t) written != eot_size)
+	if (nwritten != eot_size)
 		return "Written less data than the size of the EOT banner "
 		    "to serial device";
 	

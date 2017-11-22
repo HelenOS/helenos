@@ -176,10 +176,7 @@ static int test1_dev_add(ddf_dev_t *dev)
 
 	ddf_fun_add_to_category(fun_a, "virtual");
 
-	if (str_cmp(dev_name, "null") == 0) {
-		ddf_fun_set_ops(fun_a,  &char_device_ops);
-		ddf_fun_add_to_category(fun_a, "virt-null");
-	} else if (str_cmp(dev_name, "test1") == 0) {
+	if (str_cmp(dev_name, "test1") == 0) {
 		(void) register_fun_verbose(dev,
 		    "cloning myself ;-)", "clone",
 		    "virtual&test1", 10, EOK, &test1->clone);

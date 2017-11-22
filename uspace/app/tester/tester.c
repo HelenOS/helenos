@@ -75,7 +75,6 @@ test_t tests[] = {
 #include "mm/mapping1.def"
 #include "mm/pager1.def"
 #include "hw/serial/serial1.def"
-#include "hw/misc/virtchar1.def"
 #include "chardev/chardev1.def"
 	{NULL, NULL, NULL, false}
 };

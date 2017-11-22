@@ -247,6 +247,7 @@ uspace/dist/inc/_link.ld
 uspace/dist/inc/c/
 uspace/dist/logo.tga
 uspace/dist/srv/cdfs
+uspace/dist/srv/chardev-test
 uspace/dist/srv/clipboard
 uspace/dist/srv/compositor
 uspace/dist/srv/console
@@ -419,5 +420,6 @@ uspace/srv/net/tcp/test-tcp
 uspace/srv/net/udp/udp
 uspace/srv/ns/ns
 uspace/srv/taskmon/taskmon
+uspace/srv/test/chardev-test/chardev-test
 uspace/srv/vfs/vfs
 uspace/srv/volsrv/volsrv

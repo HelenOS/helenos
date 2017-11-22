@@ -168,7 +168,10 @@ int chardev_conn(ipc_callid_t iid, ipc_call_t *icall, chardev_srvs_t *srvs)
 			chardev_write_srv(srv, callid, &call);
 			break;
 		default:
-			async_answer_0(callid, EINVAL);
+			if (srv->srvs->ops->def_handler != NULL)
+				srv->srvs->ops->def_handler(srv, callid, &call);
+			else
+				async_answer_0(callid, ENOTSUP);
 		}
 	}
 

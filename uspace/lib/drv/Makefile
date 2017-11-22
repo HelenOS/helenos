@@ -42,7 +42,6 @@ SOURCES = \
 	generic/remote_audio_pcm.c \
 	generic/remote_hw_res.c \
 	generic/remote_pio_window.c \
-	generic/remote_char_dev.c \
 	generic/remote_nic.c \
 	generic/remote_ieee80211.c \
 	generic/remote_usb.c \
