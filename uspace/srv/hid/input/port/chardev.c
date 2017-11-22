@@ -34,19 +34,20 @@
  * @brief Chardev keyboard port driver.
  */
 
-#include <ipc/char.h>
 #include <async.h>
-#include <loc.h>
 #include <errno.h>
+#include <fibril.h>
+#include <io/chardev.h>
+#include <loc.h>
 #include <stdio.h>
 #include "../input.h"
 #include "../kbd_port.h"
 #include "../kbd.h"
 
-static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+static int kbd_port_fibril(void *);
 
 static int chardev_port_init(kbd_dev_t *);
-static void chardev_port_write(uint8_t data);
+static void chardev_port_write(uint8_t);
 
 kbd_port_ops_t chardev_port = {
 	.init = chardev_port_init,
@@ -55,6 +56,7 @@ kbd_port_ops_t chardev_port = {
 
 static kbd_dev_t *kbd_dev;
 static async_sess_t *dev_sess;
+static chardev_t *chardev;
 
 /** List of devices to try connecting to. */
 static const char *in_devs[] = {
@@ -69,8 +71,8 @@ static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);
 static int chardev_port_init(kbd_dev_t *kdev)
 {
 	service_id_t service_id;
-	async_exch_t *exch;
 	unsigned int i;
+	fid_t fid;
 	int rc;
 	
 	kbd_dev = kdev;
@@ -95,24 +97,22 @@ again:
 		return ENOENT;
 	}
 	
-	exch = async_exchange_begin(dev_sess);
-	if (exch == NULL) {
-		printf("%s: Failed starting exchange with device\n", NAME);
+	rc = chardev_open(dev_sess, &chardev);
+	if (rc != EOK) {
+		printf("%s: Failed opening character device\n", NAME);
 		async_hangup(dev_sess);
 		return ENOMEM;
 	}
 	
-	port_id_t port;
-	rc = async_create_callback_port(exch, INTERFACE_CHAR_CB, 0, 0,
-	    kbd_port_events, NULL, &port);
-	
-	async_exchange_end(exch);
-	
-	if (rc != 0) {
-		printf("%s: Failed to create callback from device\n", NAME);
+	fid = fibril_create(kbd_port_fibril, NULL);
+	if (fid == 0) {
+		printf("%s: Failed creating fibril\n", NAME);
+		chardev_close(chardev);
 		async_hangup(dev_sess);
-		return -1;
+		return ENOMEM;
 	}
+
+	fibril_add_ready(fid);
 	
 	printf("%s: Found input device '%s'\n", NAME, in_devs[i]);
 	return 0;
@@ -120,42 +120,34 @@ again:
 
 static void chardev_port_write(uint8_t data)
 {
-	async_exch_t *exch = async_exchange_begin(dev_sess);
-	if (exch == NULL) {
-		printf("%s: Failed starting exchange with device\n", NAME);
+	int rc;
+	size_t nwr;
+
+	rc = chardev_write(chardev, &data, sizeof(data), &nwr);
+	if (rc != EOK || nwr != sizeof(data)) {
+		printf("%s: Failed writing to character device\n", NAME);
 		return;
 	}
-
-	async_msg_1(exch, CHAR_WRITE_BYTE, data);
-	async_exchange_end(exch);
 }
 
-static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static int kbd_port_fibril(void *arg)
 {
-	/* Ignore parameters, the connection is already opened */
+	int rc;
+	size_t nread;
+	uint8_t b;
+
 	while (true) {
-
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		if (!IPC_GET_IMETHOD(call)) {
-			/* TODO: Handle hangup */
-			return;
+		rc = chardev_read(chardev, &b, sizeof(b), &nread);
+		if (rc != EOK || nread != sizeof(b)) {
+			printf("%s: Error reading data", NAME);
+			continue;
 		}
 
-		int retval = EOK;
-
-		switch (IPC_GET_IMETHOD(call)) {
-		case CHAR_NOTIF_BYTE:
-			kbd_push_data(kbd_dev, IPC_GET_ARG1(call));
-			break;
-		default:
-			retval = ENOENT;
-		}
-		async_answer_0(callid, retval);
+		kbd_push_data(kbd_dev, b);
 	}
-}
 
+	return 0;
+}
 
 /**
  * @}

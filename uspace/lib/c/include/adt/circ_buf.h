@@ -26,37 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup libc
  * @{
  */
-/** @file
+/** @file Circular buffer
  */
 
-#ifndef SUN4V_CON_H
-#define SUN4V_CON_H
+#ifndef LIBC_CIRC_BUF_H_
+#define LIBC_CIRC_BUF_H_
 
-#include <async.h>
-#include <ddf/driver.h>
-#include <io/chardev_srv.h>
-#include <loc.h>
-#include <stdint.h>
+#include <stddef.h>
 
-/** Sun4v console resources */
+/** Circular buffer */
 typedef struct {
-	uintptr_t base;
-} sun4v_con_res_t;
+	/** Buffer */
+	void *buf;
+	/** Number of buffer members */
+	size_t nmemb;
+	/** Member size */
+	size_t size;
+	/** Read position */
+	size_t rp;
+	/** Write position */
+	size_t wp;
+	/** Number of used entries */
+	size_t nused;
+} circ_buf_t;
 
-/** Sun4v console */
-typedef struct {
-	async_sess_t *client_sess;
-	ddf_dev_t *dev;
-	chardev_srvs_t cds;
-	sun4v_con_res_t res;
-} sun4v_con_t;
-
-extern int sun4v_con_add(sun4v_con_t *, sun4v_con_res_t *);
-extern int sun4v_con_remove(sun4v_con_t *);
-extern int sun4v_con_gone(sun4v_con_t *);
+extern void circ_buf_init(circ_buf_t *, void *, size_t, size_t);
+extern size_t circ_buf_nfree(circ_buf_t *);
+extern size_t circ_buf_nused(circ_buf_t *);
+extern int circ_buf_push(circ_buf_t *, const void *);
+extern int circ_buf_pop(circ_buf_t *, void *);
 
 #endif
 

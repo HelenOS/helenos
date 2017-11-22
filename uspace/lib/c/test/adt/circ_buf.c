@@ -26,39 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
- * @{
+#include <adt/circ_buf.h>
+#include <pcut/pcut.h>
+
+PCUT_INIT
+
+PCUT_TEST_SUITE(circ_buf);
+
+enum {
+	buffer_size = 16
+};
+
+static int buffer[buffer_size];
+
+/** Basic insertion/deletion test.
+ *
+ * Test initialization, emptiness, pushing buffer until it is full,
+ * then emptying it again.
  */
-/** @file
- */
+PCUT_TEST(push_pop)
+{
+	circ_buf_t cbuf;
+	int i;
+	int j;
+	int rc;
 
-#ifndef SUN4V_CON_H
-#define SUN4V_CON_H
+	circ_buf_init(&cbuf, buffer, buffer_size, sizeof(int));
 
-#include <async.h>
-#include <ddf/driver.h>
-#include <io/chardev_srv.h>
-#include <loc.h>
-#include <stdint.h>
+	for (i = 0; i < buffer_size; i++) {
+		PCUT_ASSERT_INT_EQUALS(buffer_size - i, circ_buf_nfree(&cbuf));
+		PCUT_ASSERT_INT_EQUALS(i, circ_buf_nused(&cbuf));
+		rc = circ_buf_push(&cbuf, &i);
+		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	}
 
-/** Sun4v console resources */
-typedef struct {
-	uintptr_t base;
-} sun4v_con_res_t;
+	rc = circ_buf_push(&cbuf, &i);
+	PCUT_ASSERT_ERRNO_VAL(EAGAIN, rc);
 
-/** Sun4v console */
-typedef struct {
-	async_sess_t *client_sess;
-	ddf_dev_t *dev;
-	chardev_srvs_t cds;
-	sun4v_con_res_t res;
-} sun4v_con_t;
+	for (i = 0; i < buffer_size; i++) {
+		PCUT_ASSERT_INT_EQUALS(i, circ_buf_nfree(&cbuf));
+		PCUT_ASSERT_INT_EQUALS(buffer_size - i, circ_buf_nused(&cbuf));
+		rc = circ_buf_pop(&cbuf, &j);
+		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+		PCUT_ASSERT_INT_EQUALS(i, j);
+	}
 
-extern int sun4v_con_add(sun4v_con_t *, sun4v_con_res_t *);
-extern int sun4v_con_remove(sun4v_con_t *);
-extern int sun4v_con_gone(sun4v_con_t *);
+	PCUT_ASSERT_INT_EQUALS(buffer_size, circ_buf_nfree(&cbuf));
+	PCUT_ASSERT_INT_EQUALS(0, circ_buf_nused(&cbuf));
 
-#endif
+	rc = circ_buf_pop(&cbuf, &j);
+	PCUT_ASSERT_ERRNO_VAL(EAGAIN, rc);
+}
 
-/** @}
- */
+PCUT_EXPORT(circ_buf);

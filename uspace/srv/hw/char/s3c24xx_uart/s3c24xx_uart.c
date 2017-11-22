@@ -26,9 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup driver_serial
- * @{
- */
 /**
  * @file
  * @brief Samsung S3C24xx on-chip UART driver.
@@ -36,15 +33,15 @@
  * This UART is present on the Samsung S3C24xx CPU (on the gta02 platform).
  */
 
-#include <ddi.h>
-#include <loc.h>
-#include <ipc/char.h>
 #include <async.h>
+#include <ddi.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <io/chardev_srv.h>
+#include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysinfo.h>
-#include <errno.h>
-#include <inttypes.h>
 #include "s3c24xx_uart.h"
 
 #define NAME       "s3c24ser"
@@ -71,11 +68,19 @@ static void s3c24xx_uart_irq_handler(ipc_callid_t, ipc_call_t *, void *);
 static int s3c24xx_uart_init(s3c24xx_uart_t *);
 static void s3c24xx_uart_sendb(s3c24xx_uart_t *, uint8_t);
 
+static int s3c24xx_uart_read(chardev_srv_t *, void *, size_t, size_t *);
+static int s3c24xx_uart_write(chardev_srv_t *, const void *, size_t, size_t *);
+
+static chardev_ops_t s3c24xx_uart_chardev_ops = {
+	.read = s3c24xx_uart_read,
+	.write = s3c24xx_uart_write
+};
+
 int main(int argc, char *argv[])
 {
 	printf("%s: S3C24xx on-chip UART driver\n", NAME);
 	
-	async_set_fallback_port_handler(s3c24xx_uart_connection, NULL);
+	async_set_fallback_port_handler(s3c24xx_uart_connection, uart);
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server.\n", NAME);
@@ -110,46 +115,17 @@ int main(int argc, char *argv[])
 static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
-		
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		async_sess_t *sess =
-		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
-		if (sess != NULL) {
-			if (uart->client_sess == NULL) {
-				uart->client_sess = sess;
-				async_answer_0(callid, EOK);
-			} else
-				async_answer_0(callid, ELIMIT);
-		} else {
-			switch (method) {
-			case CHAR_WRITE_BYTE:
-				printf(NAME ": write %" PRIun " to device\n",
-				    IPC_GET_ARG1(call));
-				s3c24xx_uart_sendb(uart, (uint8_t) IPC_GET_ARG1(call));
-				async_answer_0(callid, EOK);
-				break;
-			default:
-				async_answer_0(callid, EINVAL);
-			}
-		}
-	}
+	s3c24xx_uart_t *uart = (s3c24xx_uart_t *) arg;
+
+	chardev_conn(iid, icall, &uart->cds);
 }
+
 
 static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call,
     void *arg)
 {
+	int rc;
+
 	(void) iid;
 	(void) call;
 	(void) arg;
@@ -158,11 +134,14 @@ static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call,
 		uint32_t data = pio_read_32(&uart->io->urxh) & 0xff;
 		uint32_t status = pio_read_32(&uart->io->uerstat);
 
-		if (uart->client_sess != NULL) {
-			async_exch_t *exch = async_exchange_begin(uart->client_sess);
-			async_msg_1(exch, CHAR_NOTIF_BYTE, data);
-			async_exchange_end(exch);
-		}
+		fibril_mutex_lock(&uart->buf_lock);
+
+		rc = circ_buf_push(&uart->cbuf, &data);
+		if (rc != EOK)
+			printf(NAME ": Buffer overrun\n");
+
+		fibril_mutex_unlock(&uart->buf_lock);
+		fibril_condvar_broadcast(&uart->buf_cv);
 
 		if (status != 0)
 			printf(NAME ": Error status 0x%x\n", status);
@@ -174,6 +153,10 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 {
 	void *vaddr;
 	sysarg_t inr;
+
+	circ_buf_init(&uart->cbuf, uart->buf, s3c24xx_uart_buf_size, 1);
+	fibril_mutex_initialize(&uart->buf_lock);
+	fibril_condvar_initialize(&uart->buf_cv);
 
 	if (sysinfo_get_value("s3c24xx_uart.address.physical",
 	    &uart->paddr) != EOK)
@@ -187,7 +170,6 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 		return -1;
 
 	uart->io = vaddr;
-	uart->client_sess = NULL;
 
 	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
 	    (void *) uart->paddr, inr);
@@ -202,6 +184,10 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 	pio_write_32(&uart->io->ucon,
 	    pio_read_32(&uart->io->ucon) & ~UCON_RX_INT_LEVEL);
 
+	chardev_srvs_init(&uart->cds);
+	uart->cds.ops = &s3c24xx_uart_chardev_ops;
+	uart->cds.sarg = uart;
+
 	return EOK;
 }
 
@@ -214,6 +200,48 @@ static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte)
 
 	pio_write_32(&uart->io->utxh, byte);
 }
+
+static int s3c24xx_uart_read(chardev_srv_t *srv, void *buf, size_t size,
+    size_t *nread)
+{
+	s3c24xx_uart_t *uart = (s3c24xx_uart_t *) srv->srvs->sarg;
+	size_t p;
+	uint8_t *bp = (uint8_t *) buf;
+	int rc;
+
+	fibril_mutex_lock(&uart->buf_lock);
+
+	while (circ_buf_nused(&uart->cbuf) == 0)
+		fibril_condvar_wait(&uart->buf_cv, &uart->buf_lock);
+
+	p = 0;
+	while (p < size) {
+		rc = circ_buf_pop(&uart->cbuf, &bp[p]);
+		if (rc != EOK)
+			break;
+		++p;
+	}
+
+	fibril_mutex_unlock(&uart->buf_lock);
+
+	*nread = p;
+	return EOK;
+}
+
+static int s3c24xx_uart_write(chardev_srv_t *srv, const void *data, size_t size,
+    size_t *nwr)
+{
+	s3c24xx_uart_t *uart = (s3c24xx_uart_t *) srv->srvs->sarg;
+	size_t i;
+	uint8_t *dp = (uint8_t *) data;
+
+	for (i = 0; i < size; i++)
+		s3c24xx_uart_sendb(uart, dp[i]); 
+
+	*nwr = size;
+	return EOK;
+}
+
 
 /** @}
  */

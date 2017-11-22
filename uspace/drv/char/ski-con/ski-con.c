@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005 Jakub Jermar
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,10 +33,10 @@
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <errno.h>
-#include <ipc/char.h>
+#include <fibril.h>
+#include <io/chardev.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <thread.h>
 #include <stdbool.h>
 
 #include "ski-con.h"
@@ -45,17 +45,29 @@
 
 #define POLL_INTERVAL		10000
 
-static void ski_con_thread_impl(void *arg);
+static int ski_con_fibril(void *arg);
 static int32_t ski_con_getchar(void);
 static void ski_con_connection(ipc_callid_t, ipc_call_t *, void *);
+
+static int ski_con_read(chardev_srv_t *, void *, size_t, size_t *);
+static int ski_con_write(chardev_srv_t *, const void *, size_t, size_t *);
+
+static chardev_ops_t ski_con_chardev_ops = {
+	.read = ski_con_read,
+	.write = ski_con_write
+};
 
 /** Add ski console device. */
 int ski_con_add(ski_con_t *con)
 {
-	thread_id_t tid;
+	fid_t fid;
 	ddf_fun_t *fun = NULL;
 	bool bound = false;
 	int rc;
+
+	circ_buf_init(&con->cbuf, con->buf, ski_con_buf_size, 1);
+	fibril_mutex_initialize(&con->buf_lock);
+	fibril_condvar_initialize(&con->buf_cv);
 
 	fun = ddf_fun_create(con->dev, fun_exposed, "a");
 	if (fun == NULL) {
@@ -66,6 +78,10 @@ int ski_con_add(ski_con_t *con)
 
 	ddf_fun_set_conn_handler(fun, ski_con_connection);
 
+	chardev_srvs_init(&con->cds);
+	con->cds.ops = &ski_con_chardev_ops;
+	con->cds.sarg = con;
+
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error binding function 'a'.");
@@ -74,11 +90,14 @@ int ski_con_add(ski_con_t *con)
 
 	bound = true;
 
-	rc = thread_create(ski_con_thread_impl, con, "kbd_poll", &tid);
-	if (rc != 0) {
-		return rc;
+	fid = fibril_create(ski_con_fibril, con);
+	if (fid == 0) {
+		ddf_msg(LVL_ERROR, "Error creating fibril.");
+		rc = ENOMEM;
+		goto error;
 	}
 
+	fibril_add_ready(fid);
 	return EOK;
 error:
 	if (bound)
@@ -101,11 +120,12 @@ int ski_con_gone(ski_con_t *con)
 	return ENOTSUP;
 }
 
-/** Thread to poll Ski for keypresses. */
-static void ski_con_thread_impl(void *arg)
+/** Poll Ski for keypresses. */
+static int ski_con_fibril(void *arg)
 {
 	int32_t c;
 	ski_con_t *con = (ski_con_t *) arg;
+	int rc;
 
 	while (1) {
 		while (1) {
@@ -113,15 +133,20 @@ static void ski_con_thread_impl(void *arg)
 			if (c == 0)
 				break;
 
-			if (con->client_sess != NULL) {
-				async_exch_t *exch = async_exchange_begin(con->client_sess);
-				async_msg_1(exch, CHAR_NOTIF_BYTE, c);
-				async_exchange_end(exch);
-			}
+			fibril_mutex_lock(&con->buf_lock);
+
+			rc = circ_buf_push(&con->cbuf, &c);
+			if (rc != EOK)
+				ddf_msg(LVL_ERROR, "Buffer overrun");
+
+			fibril_mutex_unlock(&con->buf_lock);
+			fibril_condvar_broadcast(&con->buf_cv);
 		}
 
-		thread_usleep(POLL_INTERVAL);
+		fibril_usleep(POLL_INTERVAL);
 	}
+
+	return 0;
 }
 
 /** Ask Ski if a key was pressed.
@@ -156,49 +181,57 @@ static void ski_con_putchar(ski_con_t *con, char ch)
 	
 }
 
+/** Read from Ski console device */
+static int ski_con_read(chardev_srv_t *srv, void *buf, size_t size,
+    size_t *nread)
+{
+	ski_con_t *con = (ski_con_t *) srv->srvs->sarg;
+	size_t p;
+	uint8_t *bp = (uint8_t *) buf;
+	int rc;
+
+	fibril_mutex_lock(&con->buf_lock);
+
+	while (circ_buf_nused(&con->cbuf) == 0)
+		fibril_condvar_wait(&con->buf_cv, &con->buf_lock);
+
+	p = 0;
+	while (p < size) {
+		rc = circ_buf_pop(&con->cbuf, &bp[p]);
+		if (rc != EOK)
+			break;
+		++p;
+	}
+
+	fibril_mutex_unlock(&con->buf_lock);
+
+	*nread = p;
+	return EOK;
+}
+
+/** Write to Ski console device */
+static int ski_con_write(chardev_srv_t *srv, const void *data, size_t size,
+    size_t *nwr)
+{
+	ski_con_t *con = (ski_con_t *) srv->srvs->sarg;
+	size_t i;
+	uint8_t *dp = (uint8_t *) data;
+
+	for (i = 0; i < size; i++)
+		ski_con_putchar(con, dp[i]); 
+
+	*nwr = size;
+	return EOK;
+}
+
 /** Character device connection handler. */
 static void ski_con_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	ski_con_t *con;
+	ski_con_t *con = (ski_con_t *) ddf_dev_data_get(
+	    ddf_fun_get_dev((ddf_fun_t *) arg));
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
-
-	con = (ski_con_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
-
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
-
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-
-		async_sess_t *sess =
-		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
-		if (sess != NULL) {
-			if (con->client_sess == NULL) {
-				con->client_sess = sess;
-				async_answer_0(callid, EOK);
-			} else
-				async_answer_0(callid, ELIMIT);
-		} else {
-			switch (method) {
-			case CHAR_WRITE_BYTE:
-				ddf_msg(LVL_DEBUG, "Write %" PRIun " to device\n",
-				    IPC_GET_ARG1(call));
-				ski_con_putchar(con, (uint8_t) IPC_GET_ARG1(call));
-				async_answer_0(callid, EOK);
-				break;
-			default:
-				async_answer_0(callid, EINVAL);
-			}
-		}
-	}
+	chardev_conn(iid, icall, &con->cds);
 }
 
 /** @}
