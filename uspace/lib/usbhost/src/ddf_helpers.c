@@ -33,13 +33,6 @@
  *
  */
 
-#include <usb/classes/classes.h>
-#include <usb/host/bus.h>
-#include <usb/debug.h>
-#include <usb/descriptor.h>
-#include <usb/request.h>
-#include <usb/usb.h>
-
 #include <adt/list.h>
 #include <assert.h>
 #include <async.h>
@@ -47,12 +40,15 @@
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
 #include <errno.h>
-#include <fibril_synch.h>
-#include <macros.h>
-#include <stdlib.h>
 #include <str_error.h>
+#include <usb/classes/classes.h>
+#include <usb/debug.h>
+#include <usb/descriptor.h>
+#include <usb/usb.h>
 #include <usb_iface.h>
 #include <usbhc_iface.h>
+
+#include "bus.h"
 
 #include "ddf_helpers.h"
 

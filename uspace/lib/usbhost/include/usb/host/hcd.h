@@ -36,18 +36,17 @@
 #ifndef LIBUSBHOST_HOST_HCD_H
 #define LIBUSBHOST_HOST_HCD_H
 
-#include <usb/host/endpoint.h>
-#include <usb/host/bus.h>
-#include <usb/host/usb_transfer_batch.h>
-#include <usb/usb.h>
-
 #include <assert.h>
 #include <mem.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <usb/usb.h>
 #include <usbhc_iface.h>
 
 typedef struct hcd hcd_t;
+typedef struct bus bus_t;
+typedef struct device device_t;
+typedef struct usb_transfer_batch usb_transfer_batch_t;
 
 typedef int (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
 typedef void (*interrupt_hook_t)(hcd_t *, uint32_t);

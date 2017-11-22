@@ -34,14 +34,15 @@
  * @brief UHCI host controller driver structure
  */
 
-#include <usb/host/endpoint.h>
-#include <usb/host/usb_transfer_batch.h>
-#include <usb/host/bus.h>
-
 #include <assert.h>
 #include <atomic.h>
 #include <mem.h>
 #include <stdlib.h>
+
+#include "usb_transfer_batch.h"
+#include "bus.h"
+
+#include "endpoint.h"
 
 /** Initialize provided endpoint structure.
  */
@@ -151,7 +152,6 @@ void endpoint_toggle_set(endpoint_t *ep, bool toggle)
 		ep->toggle = toggle;
 	}
 }
-
 
 /**
  * @}

@@ -33,14 +33,14 @@
  *
  */
 
-#include <usb/host/bus.h>
-#include <usb/host/endpoint.h>
-#include <usb/debug.h>
 #include <ddf/driver.h>
-
-#include <mem.h>
 #include <errno.h>
+#include <mem.h>
 #include <stdio.h>
+#include <usb/debug.h>
+
+#include "endpoint.h"
+#include "bus.h"
 
 /**
  * Initializes the bus structure.

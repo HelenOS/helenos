@@ -33,16 +33,19 @@
  *
  */
 
-#include <usb/debug.h>
-#include <usb/descriptor.h>
-#include <usb/request.h>
-
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
 #include <macros.h>
-#include <usb_iface.h>
 #include <str_error.h>
+#include <usb/debug.h>
+#include <usb/descriptor.h>
+#include <usb/request.h>
+#include <usb_iface.h>
+
+#include "bus.h"
+#include "endpoint.h"
+#include "usb_transfer_batch.h"
 
 #include "hcd.h"
 

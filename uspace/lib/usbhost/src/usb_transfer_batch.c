@@ -32,16 +32,16 @@
  * USB transfer transaction structures (implementation).
  */
 
-#include <usb/host/usb_transfer_batch.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/bus.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <str_error.h>
 #include <usb/debug.h>
 
-#include <assert.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <str_error.h>
+#include "endpoint.h"
+#include "bus.h"
 
+#include "usb_transfer_batch.h"
 
 /** Create a batch on given endpoint.
  */

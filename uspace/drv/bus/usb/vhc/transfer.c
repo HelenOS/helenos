@@ -31,6 +31,8 @@
 #include <usb/debug.h>
 #include <usbvirt/device.h>
 #include <usb/host/bandwidth.h>
+#include <usb/host/endpoint.h>
+#include <usb/host/usb_transfer_batch.h>
 #include <usbvirt/ipc.h>
 #include "vhcd.h"
 #include "hub/virthub.h"

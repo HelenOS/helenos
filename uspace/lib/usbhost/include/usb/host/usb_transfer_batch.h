@@ -36,15 +36,17 @@
 #ifndef LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 #define LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 
-#include <usb/usb.h>
+#include <atomic.h>
+#include <errno.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <usb/request.h>
-#include <usb/host/bus.h>
+#include <usb/usb.h>
 #include <usbhc_iface.h>
 
-#include <atomic.h>
-#include <stddef.h>
-#include <errno.h>
-#include <stdint.h>
+#include <usb/host/hcd.h>
+#include <usb/host/endpoint.h>
+#include <usb/host/bus.h>
 
 typedef struct endpoint endpoint_t;
 typedef struct bus bus_t;
@@ -86,17 +88,20 @@ typedef struct usb_transfer_batch {
 	int error;
 } usb_transfer_batch_t;
 
-/** Printf formatting string for dumping usb_transfer_batch_t. */
+/**
+ * Printf formatting string for dumping usb_transfer_batch_t.
+ *  [address:endpoint speed transfer_type-direction buffer_sizeB/max_packet_size]
+ * */
 #define USB_TRANSFER_BATCH_FMT "[%d:%d %s %s-%s %zuB/%zu]"
 
 /** Printf arguments for dumping usb_transfer_batch_t.
  * @param batch USB transfer batch to be dumped.
  */
 #define USB_TRANSFER_BATCH_ARGS(batch) \
-	(batch).target.address, (batch).target.endpoint, \
+	((batch).ep->device->address), ((batch).ep->endpoint), \
 	usb_str_speed((batch).ep->device->speed), \
 	usb_str_transfer_type_short((batch).ep->transfer_type), \
-	usb_str_direction((batch).ep->direction), \
+	usb_str_direction((batch).dir), \
 	(batch).buffer_size, (batch).ep->max_packet_size
 
 /** Wrapper for bus operation. */

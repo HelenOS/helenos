@@ -44,6 +44,7 @@
 
 #include <usb/usb.h>
 #include <usb/request.h>
+#include <usb/host/hcd.h>
 
 #include <assert.h>
 #include <fibril_synch.h>

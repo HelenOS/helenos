@@ -36,11 +36,11 @@
 #ifndef LIBUSBHOST_HOST_USB2_BUS_H
 #define LIBUSBHOST_HOST_USB2_BUS_H
 
-#include <usb/usb.h>
-#include <usb/host/bus.h>
-
 #include <adt/list.h>
 #include <stdbool.h>
+#include <usb/usb.h>
+
+#include <usb/host/bus.h>
 
 typedef struct usb2_bus usb2_bus_t;
 typedef struct endpoint endpoint_t;

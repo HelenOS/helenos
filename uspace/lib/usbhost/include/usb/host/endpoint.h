@@ -39,11 +39,11 @@
 #ifndef LIBUSBHOST_HOST_ENDPOINT_H
 #define LIBUSBHOST_HOST_ENDPOINT_H
 
-#include <stdbool.h>
 #include <adt/list.h>
-#include <fibril_synch.h>
-#include <usb/usb.h>
 #include <atomic.h>
+#include <fibril_synch.h>
+#include <stdbool.h>
+#include <usb/usb.h>
 
 typedef struct bus bus_t;
 typedef struct device device_t;

@@ -32,12 +32,12 @@
 /** @file
  */
 
-#include <usb/host/dma_buffer.h>
-
 #include <align.h>
 #include <as.h>
 #include <ddi.h>
 #include <stddef.h>
+
+#include "dma_buffer.h"
 
 dma_policy_t dma_policy_default = {
 	.use64 = false,

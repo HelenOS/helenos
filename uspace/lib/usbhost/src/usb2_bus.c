@@ -33,20 +33,21 @@
  * HC Endpoint management.
  */
 
-#include <usb/host/usb2_bus.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/ddf_helpers.h>
-#include <usb/debug.h>
-#include <usb/request.h>
-#include <usb/descriptor.h>
-#include <usb/usb.h>
-
 #include <assert.h>
 #include <errno.h>
 #include <macros.h>
-#include <str_error.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <str_error.h>
+#include <usb/debug.h>
+#include <usb/descriptor.h>
+#include <usb/request.h>
+#include <usb/usb.h>
+
+#include "endpoint.h"
+#include "ddf_helpers.h"
+
+#include "usb2_bus.h"
 
 /** Ops receive generic bus_t pointer. */
 static inline usb2_bus_t *bus_to_usb2_bus(bus_t *bus_base)

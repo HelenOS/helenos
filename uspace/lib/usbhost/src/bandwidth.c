@@ -33,12 +33,13 @@
  * Bandwidth calculation functions. Shared among uhci, ohci and ehci drivers.
  */
 
-#include <usb/host/bandwidth.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/bus.h>
-
 #include <assert.h>
 #include <stdlib.h>
+
+#include "endpoint.h"
+#include "bus.h"
+
+#include "bandwidth.h"
 
 /** Calculate bandwidth that needs to be reserved for communication with EP.
  * Calculation follows USB 1.1 specification.
