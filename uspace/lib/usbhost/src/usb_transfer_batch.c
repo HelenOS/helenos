@@ -54,7 +54,7 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
 	if (ep->bus->ops.create_batch)
 		batch = ep->bus->ops.create_batch(ep->bus, ep);
 	else
-		batch = malloc(sizeof(usb_transfer_batch_t));
+		batch = calloc(1, sizeof(usb_transfer_batch_t));
 
 	return batch;
 }
@@ -63,7 +63,6 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
  */
 void usb_transfer_batch_init(usb_transfer_batch_t *batch, endpoint_t *ep)
 {
-	memset(batch, 0, sizeof(*batch));
 	batch->ep = ep;
 }
 
