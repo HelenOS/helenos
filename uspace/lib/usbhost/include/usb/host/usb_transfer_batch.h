@@ -57,9 +57,6 @@ typedef struct usb_transfer_batch {
 	/** Endpoint used for communication */
 	endpoint_t *ep;
 
-	/** Size reported to be sent */
-	size_t expected_size;
-
 	/** Direction of the transfer */
 	usb_direction_t dir;
 
