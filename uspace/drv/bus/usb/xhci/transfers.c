@@ -112,6 +112,7 @@ void xhci_transfer_destroy(xhci_transfer_t* transfer)
 	assert(transfer);
 
 	dma_buffer_free(&transfer->hc_buffer);
+	free(transfer);
 }
 
 static xhci_trb_ring_t *get_ring(xhci_hc_t *hc, xhci_transfer_t *transfer)
