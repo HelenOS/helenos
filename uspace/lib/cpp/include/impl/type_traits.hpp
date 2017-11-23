@@ -77,16 +77,19 @@ namespace std
         struct is_same<T, T>: true_type
         { /* DUMMY BODY */ };
 
-        template<class T, class U>
-        struct is_one_of: is_same<T, Y>
+        template<class T, class... Ts>
+        struct is_one_of;
+
+        template<class T>
+        struct is_one_of<T>: false_type
         { /* DUMMY BODY */ };
 
-        template<class T, class, class... Ts>
-        struct is_one_of: is_one_of<T, Ts...>
+        template<class T, class... Ts>
+        struct is_one_of<T, T, Ts...>: true_type
         { /* DUMMY BODY */ };
 
-        template<class T, class U, class...>
-        struct is_one_of: true_type
+        template<class T, class U, class... Ts>
+        struct is_one_of<T, U, Ts...>: is_one_of<T, Ts...>
         { /* DUMMY BODY */ };
     }
 
@@ -95,11 +98,11 @@ namespace std
      */
 
     template<class T>
-    struct is_void: is_same<remove_cv_t<T>, void>
+    struct is_void: aux::is_same<remove_cv_t<T>, void>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_null_pointer: is_same<remove_cv_t<T>, nullptr_t>
+    struct is_null_pointer: aux::is_same<remove_cv_t<T>, nullptr_t>
     { /* DUMMY BODY */ };
 
     template<class T>
@@ -111,7 +114,7 @@ namespace std
 
     template<class T>
     struct is_floating_point
-        : is_one_of<remove_cv_t<T>, float, double, long double>
+        : aux::is_one_of<remove_cv_t<T>, float, double, long double>
     { /* DUMMY BODY */ };
 
     template<class>
@@ -184,15 +187,15 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_enum: aux::value_is<__is_enum(T)>
+    struct is_enum: aux::value_is<bool, __is_enum(T)>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_union: aux::value_is<__is_union(T)>
+    struct is_union: aux::value_is<bool, __is_union(T)>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_class: aux::value_is<__is_class(T)>
+    struct is_class: aux::value_is<bool, __is_class(T)>
     { /* DUMMY BODY */ };
 
     /**
@@ -400,7 +403,16 @@ namespace std
      */
 
     template<class T>
-    struct is_reference;
+    struct is_reference: false_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_reference<T&>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct is_reference<T&&>: true_type
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_arithmetic: aux::value_is<
@@ -454,6 +466,16 @@ namespace std
     template<class T>
     struct is_volatile<T volatile>: true_type
     { /* DUMMY BODY */ };
+
+    /**
+     * 2 forward declarations.
+     */
+
+    template<class T>
+    struct is_trivially_copyable;
+
+    template<class T>
+    struct is_trivially_default_constructible;
 
     template<class T>
     struct is_trivial: aux::value_is<
@@ -605,7 +627,7 @@ namespace std
     struct is_nothrow_destructible;
 
     template<class T>
-    struct has_virtual_destructor: aux::value_is<bool, __has_nothrow_destructor(T)>
+    struct has_virtual_destructor: aux::value_is<bool, __has_virtual_destructor(T)>
     { /* DUMMY BODY */ };
 
     /**
@@ -660,7 +682,20 @@ namespace std
     struct remove_volatile;
 
     template<class T>
-    struct remove_cv;
+    struct remove_cv: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_cv<T const>: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_cv<T volatile>: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_cv<T const volatile>: aux::type_is<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct add_const;
@@ -708,8 +743,14 @@ namespace std
     template<class T>
     struct add_lvalue_reference;
 
+    // TODO: Special case when T is not referencable!
     template<class T>
-    struct add_rvalue_reference;
+    struct add_rvalue_reference: aux::type_is<T&&>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct add_rvalue_reference<T&>: aux::type_is<T&>
+    { /* DUMMY BODY */ };
 
     template<class T>
     using remove_reference_t = typename remove_reference<T>::type;
@@ -772,6 +813,9 @@ namespace std
      * 20.10.7.6, other transformations:
      */
 
+    template<class...>
+    using void_t = void;
+
     // TODO: consult standard on the default value of align
     template<std::size_t Len, std::size_t Align = 0>
     struct aligned_storage;
@@ -779,16 +823,21 @@ namespace std
     template<std::size_t Len, class... Types>
     struct aligned_union;
 
+	// TODO: this is very basic implementation for chrono, fix!
     template<class T>
-    struct decay;
+    struct decay: aux::type_is<remove_cv_t<remove_reference_t<T>>>
+	{ /* DUMMY BODY */ };
+
+	template<class T>
+    using decay_t = typename decay<T>::type;
 
     template<bool, class T = void>
     struct enable_if
-    { /* DUMMY BODY */ }
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct enable_if<true, T>: aux::type_is<T>
-    { /* DUMMY BODY */ }
+    { /* DUMMY BODY */ };
 
     template<bool, class T, class F>
     struct conditional: aux::type_is<F>
@@ -799,7 +848,28 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class... T>
-    struct common_type;
+    struct common_type
+    { /* DUMMY BODY */ };
+
+    template<class... T>
+    using common_type_t = typename common_type<T...>::type;
+
+    template<class T>
+    struct common_type<T>: common_type<T, T>
+    { /* DUMMY BODY */ };
+
+    // To avoid circular dependency with <utility>.
+    template<class T>
+    add_rvalue_reference_t<T> declval() noexcept;
+
+    template<class T1, class T2>
+    struct common_type<T1, T2>: aux::type_is<decay_t<decltype(false ? declval<T1>() : declval<T2>())>>
+    { /* DUMMY BODY */ };
+
+    template<class T1, class T2, class... Ts>
+    struct common_type<T1, T2, Ts...>
+        : aux::type_is<common_type_t<common_type_t<T1, T2>, Ts...>>
+    { /* DUMMY BODY */ };
 
     template<class... T>
     struct underlying_type;
@@ -816,26 +886,17 @@ namespace std
     template<std::size_t Len, class... Types>
     using aligned_union_t = typename aligned_union<Len, Types...>::type;
 
-    template<class T>
-    using decay_t = typename decay<T>::type;
-
     template<bool b, class T = void>
     using enable_if_t = typename enable_if<b, T>::type;
 
     template<bool b, class T, class F>
     using conditional_t = typename conditional<b, T, F>::type;
 
-    template<class... T>
-    using common_type_t = typename common_type<T...>::type;
-
     template<class T>
     using underlying_type_t = typename underlying_type<T>::type;
 
     template<class T>
     using result_of_t = typename result_of<T>::type;
-
-    template<class...>
-    using void_t = void;
 }
 
 #endif
