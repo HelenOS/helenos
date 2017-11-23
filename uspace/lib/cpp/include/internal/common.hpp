@@ -16,4 +16,7 @@
  */
 #define restrict __restrict__
 
+#undef NULL
+#define NULL nullptr
+
 #endif
