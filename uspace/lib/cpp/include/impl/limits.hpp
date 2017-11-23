@@ -358,6 +358,11 @@ namespace std
             {
                 return INT8_MIN;
             }
+
+            static constexpr int8_t lowest()
+            {
+                return min();
+            }
     };
 
     template<>
@@ -374,6 +379,11 @@ namespace std
             static constexpr int16_t min()
             {
                 return INT16_MIN;
+            }
+
+            static constexpr int16_t lowest()
+            {
+                return min();
             }
     };
 
@@ -392,6 +402,11 @@ namespace std
             {
                 return INT32_MIN;
             }
+
+            static constexpr int32_t lowest()
+            {
+                return min();
+            }
     };
 
     template<>
@@ -408,6 +423,11 @@ namespace std
             static constexpr int64_t min()
             {
                 return INT64_MIN;
+            }
+
+            static constexpr int64_t lowest()
+            {
+                return min();
             }
     };
 
@@ -426,6 +446,11 @@ namespace std
             {
                 return UINT8_MIN;
             }
+
+            static constexpr uint8_t lowest()
+            {
+                return min();
+            }
     };
 
     template<>
@@ -442,6 +467,11 @@ namespace std
             static constexpr uint16_t min()
             {
                 return UINT16_MIN;
+            }
+
+            static constexpr uint16_t lowest()
+            {
+                return min();
             }
     };
 
@@ -460,6 +490,11 @@ namespace std
             {
                 return UINT32_MIN;
             }
+
+            static constexpr uint32_t lowest()
+            {
+                return min();
+            }
     };
 
     template<>
@@ -476,6 +511,11 @@ namespace std
             static constexpr uint64_t min()
             {
                 return UINT64_MIN;
+            }
+
+            static constexpr uint64_t lowest()
+            {
+                return min();
             }
     };
 
