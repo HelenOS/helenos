@@ -727,10 +727,6 @@ sysarg_t sys_ipc_hangup(sysarg_t handle)
  *                 for explanation.
  *
  * @return Hash of the call.
- *         If IPC_CALLID_NOTIFICATION bit is set in the hash, the
- *         call is a notification. IPC_CALLID_ANSWERED denotes an
- *         answer.
- *
  */
 sysarg_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
     unsigned int flags)
@@ -757,11 +753,12 @@ restart:
 		/* Set in_phone_hash to the interrupt counter */
 		call->data.phone = (void *) call->priv;
 		
+		call->data.flags = IPC_CALLID_NOTIFICATION;
+
 		STRUCT_TO_USPACE(calldata, &call->data);
-		
 		kobject_put(call->kobject);
 		
-		return ((sysarg_t) call) | IPC_CALLID_NOTIFICATION;
+		return (sysarg_t) call;
 	}
 	
 	if (call->flags & IPC_CALL_ANSWERED) {
@@ -771,11 +768,13 @@ restart:
 			kobject_put(call->kobject);
 			goto restart;
 		}
+
+		call->data.flags = IPC_CALLID_ANSWERED;
 		
 		STRUCT_TO_USPACE(calldata, &call->data);
 		kobject_put(call->kobject);
 		
-		return ((sysarg_t) call) | IPC_CALLID_ANSWERED;
+		return (sysarg_t) call;
 	}
 	
 	if (process_request(&TASK->answerbox, call))

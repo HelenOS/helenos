@@ -258,10 +258,7 @@ static void handle_answer(ipc_callid_t callid, ipc_call_t *data)
  * @param usec  Timeout in microseconds
  * @param flags Flags passed to SYS_IPC_WAIT (blocking, nonblocking).
  *
- * @return Hash of the call. Note that certain bits have special
- *         meaning: IPC_CALLID_ANSWERED is set in an answer
- *         and IPC_CALLID_NOTIFICATION is used for notifications.
- *
+ * @return Hash of the call.
  */
 ipc_callid_t ipc_wait_cycle(ipc_call_t *call, sysarg_t usec,
     unsigned int flags)
@@ -270,7 +267,7 @@ ipc_callid_t ipc_wait_cycle(ipc_call_t *call, sysarg_t usec,
 	    __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
 	
 	/* Handle received answers */
-	if (callid & IPC_CALLID_ANSWERED)
+	if (callid && (call->flags & IPC_CALLID_ANSWERED))
 		handle_answer(callid, call);
 	
 	return callid;
@@ -300,7 +297,7 @@ ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
 	
 	do {
 		callid = ipc_wait_cycle(call, usec, SYNCH_FLAGS_NONE);
-	} while (callid & IPC_CALLID_ANSWERED);
+	} while (callid && (call->flags & IPC_CALLID_ANSWERED));
 	
 	return callid;
 }
@@ -321,7 +318,7 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
 	do {
 		callid = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT,
 		    SYNCH_FLAGS_NON_BLOCKING);
-	} while (callid & IPC_CALLID_ANSWERED);
+	} while (callid && (call->flags & IPC_CALLID_ANSWERED));
 	
 	return callid;
 }

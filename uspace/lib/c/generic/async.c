@@ -1340,7 +1340,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	assert(call);
 	
 	/* Kernel notification */
-	if ((callid & IPC_CALLID_NOTIFICATION)) {
+	if (call->flags & IPC_CALLID_NOTIFICATION) {
 		fibril_t *fibril = (fibril_t *) __tcb_get()->fibril_data;
 		unsigned oldsw = fibril->switches;
 		
@@ -1494,7 +1494,7 @@ static int async_manager_worker(void)
 			continue;
 		}
 		
-		if (callid & IPC_CALLID_ANSWERED)
+		if (call.flags & IPC_CALLID_ANSWERED)
 			continue;
 		
 		handle_call(callid, &call);

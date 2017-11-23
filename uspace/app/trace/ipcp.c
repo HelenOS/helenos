@@ -322,15 +322,14 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	ht_link_t *item;
 	pending_call_t *pcall;
 	
-	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
+	if ((call->flags & IPC_CALLID_ANSWERED) == 0 &&
+	    hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
 			printf("Not a response (hash %p)\n", (void *) hash);
 		}
 		return;
 	}
-	
-	hash = hash & ~IPC_CALLID_ANSWERED;
 	
 	item = hash_table_find(&pending_calls, &hash);
 	if (item == NULL)
