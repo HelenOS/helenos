@@ -49,8 +49,7 @@
 #include <macros.h>
 
 /**
- * Structures of this type are used for keeping track
- * of sent asynchronous calls and queing unsent calls.
+ * Structures of this type are used for keeping track of sent asynchronous calls.
  */
 typedef struct {
 	link_t list;
@@ -71,14 +70,6 @@ typedef struct {
 } async_call_t;
 
 LIST_INITIALIZE(dispatched_calls);
-
-/** List of asynchronous calls that were not accepted by kernel.
- *
- * Protected by async_futex, because if the call is not accepted
- * by the kernel, the async framework is used automatically.
- *
- */
-LIST_INITIALIZE(queued_calls);
 
 static futex_t ipc_futex = FUTEX_INITIALIZER;
 
@@ -295,50 +286,6 @@ sysarg_t ipc_answer_slow(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
 	return __SYSCALL2(SYS_IPC_ANSWER_SLOW, callid, (sysarg_t) &data);
 }
 
-/** Try to dispatch queued calls from the async queue.
- *
- */
-static void dispatch_queued_calls(void)
-{
-	/** @todo
-	 * Integrate intelligently ipc_futex so that it is locked during
-	 * ipc_call_async_*() until it is added to dispatched_calls.
-	 */
-	
-	futex_down(&async_futex);
-	
-	while (!list_empty(&queued_calls)) {
-		async_call_t *call =
-		    list_get_instance(list_first(&queued_calls), async_call_t, list);
-		ipc_callid_t callid =
-		    ipc_call_async_internal(call->u.msg.phoneid, &call->u.msg.data);
-		
-		list_remove(&call->list);
-		
-		futex_up(&async_futex);
-		
-		assert(call->fid);
-		fibril_add_ready(call->fid);
-		
-		if (callid == (ipc_callid_t) IPC_CALLRET_FATAL) {
-			if (call->callback)
-				call->callback(call->private, ENOENT, NULL);
-			
-			free(call);
-		} else {
-			call->u.callid = callid;
-			
-			futex_lock(&ipc_futex);
-			list_append(&call->list, &dispatched_calls);
-			futex_unlock(&ipc_futex);
-		}
-		
-		futex_down(&async_futex);
-	}
-	
-	futex_up(&async_futex);
-}
-
 /** Handle received answer.
  *
  * Find the hash of the answer and call the answer callback.
@@ -399,10 +346,8 @@ ipc_callid_t ipc_wait_cycle(ipc_call_t *call, sysarg_t usec,
 	    __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
 	
 	/* Handle received answers */
-	if (callid & IPC_CALLID_ANSWERED) {
+	if (callid & IPC_CALLID_ANSWERED)
 		handle_answer(callid, call);
-		dispatch_queued_calls();
-	}
 	
 	return callid;
 }
