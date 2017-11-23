@@ -387,6 +387,7 @@ namespace std
             void pop_back()
             {
                 destroy_from_end_until_(end() - 1);
+                --size_;
             }
 
             template<class... Args>
