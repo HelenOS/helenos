@@ -134,13 +134,9 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 void ipc_call_async_fast(int phoneid, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, void *private, ipc_async_callback_t callback)
 {
-	async_call_t *call = NULL;
-	
-	if (callback) {
-		call = ipc_prepare_async(private, callback);
-		if (!call)
-			return;
-	}
+	async_call_t *call = ipc_prepare_async(private, callback);
+	if (!call)
+		return;
 	
 	ipc_callid_t callid = __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phoneid,
 	    imethod, arg1, arg2, arg3, (sysarg_t) call);
