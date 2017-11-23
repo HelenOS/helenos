@@ -43,6 +43,7 @@ SOURCES = \
 	src/locale.cpp \
 	src/new.cpp \
 	src/string.cpp \
+	src/thread.cpp \
 	src/typeindex.cpp \
 	src/typeinfo.cpp \
 	src/internal/runtime.cpp \
