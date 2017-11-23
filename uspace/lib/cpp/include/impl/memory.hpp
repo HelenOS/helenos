@@ -267,6 +267,9 @@ namespace std
     };
 
     template<class T>
+    T* addressof(T& x) noexcept;
+
+    template<class T>
     class allocator
     {
         public:
@@ -300,13 +303,13 @@ namespace std
             ~allocator() = default;
 
             pointer address(reference x) const noexcept
-            { // TODO: see std::addressof
-                return &x;
+            {
+                return addressof(x);
             }
 
             const_pointer address(const_reference x) const noexcept
-            { // TODO: see std::addressof
-                return &x;
+            {
+                return addressof(x);
             }
 
             pointer allocate(size_type n, allocator<void>::const_pointer hint = 0)
@@ -372,9 +375,15 @@ namespace std
 
     template<class T>
     T* addressof(T& x) noexcept
-    { // TODO: This should actually work even with overloaded operator&.
-        return &x;
+    {
+        return reinterpret_cast<T*>(
+            &const_cast<char&>(
+                reinterpret_cast<const volatile char&>(x)
+        ));
     }
+
+    template<class Iterator>
+    struct iterator_traits;
 
     template<class InputIterator, class ForwardIterator>
     ForwardIterator unitialized_copy(
