@@ -35,6 +35,7 @@ namespace __cxxabiv1
      * No need for a body, this function is called when a virtual
      * call of a pure virtual function cannot be made.
      */
+    // TODO: terminate in this
     extern "C" void __cxa_pure_call()
     { /* DUMMY BODY */ }
 
@@ -68,10 +69,26 @@ namespace __cxxabiv1
     __pointer_to_member_type_info::~__pointer_to_member_type_info()
     { /* DUMMY BODY */ }
 
+    /**
+     * This structure represents part of the vtable segment
+     * that contains data related to dynamic_cast.
+     */
+    struct vtable
+    {
+        // Unimportant to us.
+
+        std::ptrdiff_t offset_to_top;
+        std::type_info* tinfo;
+
+        // Actual vtable.
+    };
     extern "C" void* __dynamic_cast(const void* sub, const __class_type_info* src,
                                     const __class_type_info* dst, std::ptrdiff_t offset)
     {
         // TODO: implement
+        // NOTE: as far as I understand it, we get vtable prefix from sub, get the type_info
+        //       ptr from that and then climb the inheritance hierarchy upwards till we either
+        //       fint dst or fail and return nullptr
         return nullptr;
     }
 }
