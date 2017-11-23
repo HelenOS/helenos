@@ -88,28 +88,27 @@ extern sysarg_t ipc_answer_slow(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
  */
 
 #define ipc_call_async_0(phoneid, method, private, callback) \
-	ipc_call_async_fast((phoneid), (method), 0, 0, 0, 0, (private), \
-	    (callback))
+	ipc_call_async_fast((phoneid), (method), 0, 0, 0, (private), (callback))
 #define ipc_call_async_1(phoneid, method, arg1, private, callback) \
-	ipc_call_async_fast((phoneid), (method), (arg1), 0, 0, 0, (private), \
+	ipc_call_async_fast((phoneid), (method), (arg1), 0, 0, (private), \
 	    (callback))
 #define ipc_call_async_2(phoneid, method, arg1, arg2, private, callback) \
-	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), 0, 0, \
+	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), 0, \
 	    (private), (callback))
 #define ipc_call_async_3(phoneid, method, arg1, arg2, arg3, private, callback) \
-	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, \
+	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (private), (callback))
 #define ipc_call_async_4(phoneid, method, arg1, arg2, arg3, arg4, private, \
     callback) \
-	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), (arg3), \
-	    (arg4), (private), (callback))
+	ipc_call_async_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), 0, (private), (callback))
 #define ipc_call_async_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, \
     private, callback) \
 	ipc_call_async_slow((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (arg5), (private), (callback))
 
 extern void ipc_call_async_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, void *, ipc_async_callback_t);
+    void *, ipc_async_callback_t);
 extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, void *, ipc_async_callback_t);
 

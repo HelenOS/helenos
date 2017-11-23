@@ -346,7 +346,7 @@ static int check_call_limit(phone_t *phone)
 
 /** Make a fast asynchronous call over IPC.
  *
- * This function can only handle four arguments of payload, but is faster than
+ * This function can only handle three arguments of payload, but is faster than
  * the generic function sys_ipc_call_async_slow().
  *
  * @param handle   Phone capability handle for the call.
@@ -354,14 +354,14 @@ static int check_call_limit(phone_t *phone)
  * @param arg1     Service-defined payload argument.
  * @param arg2     Service-defined payload argument.
  * @param arg3     Service-defined payload argument.
- * @param arg4     Service-defined payload argument.
+ * @param label    User-defined label.
  *
  * @return Call hash on success.
  * @return IPC_CALLRET_FATAL in case of a fatal error.
  *
  */
 sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
-    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t label)
 {
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
@@ -377,13 +377,15 @@ sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
 	IPC_SET_ARG3(call->data, arg3);
-	IPC_SET_ARG4(call->data, arg4);
 	
 	/*
 	 * To achieve deterministic behavior, zero out arguments that are beyond
 	 * the limits of the fast version.
 	 */
 	IPC_SET_ARG5(call->data, 0);
+
+	/* Set the user-defined label */
+	call->data.label = label;
 	
 	int res = request_preprocess(call, kobj->phone);
 	
@@ -400,11 +402,13 @@ sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
  *
  * @param handle  Phone capability for the call.
  * @param data    Userspace address of call data with the request.
+ * @param label   User-defined label.
  *
  * @return See sys_ipc_call_async_fast().
  *
  */
-sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data)
+sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data,
+    sysarg_t label)
 {
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
@@ -423,6 +427,9 @@ sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data)
 		kobject_put(kobj);
 		return (sysarg_t) rc;
 	}
+
+	/* Set the user-defined label */
+	call->data.label = label;
 	
 	int res = request_preprocess(call, kobj->phone);
 	

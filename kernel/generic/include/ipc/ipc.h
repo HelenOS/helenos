@@ -105,6 +105,8 @@ typedef struct {
 	task_id_t task_id;
 	/** Phone which made or last masqueraded this call. */
 	phone_t *phone;
+	/** User-defined label */
+	sysarg_t label;
 } ipc_data_t;
 
 typedef struct {

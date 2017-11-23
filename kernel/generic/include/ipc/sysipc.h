@@ -43,7 +43,7 @@ extern int ipc_req_internal(int, ipc_data_t *, sysarg_t);
 
 extern sysarg_t sys_ipc_call_async_fast(sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
-extern sysarg_t sys_ipc_call_async_slow(sysarg_t, ipc_data_t *);
+extern sysarg_t sys_ipc_call_async_slow(sysarg_t, ipc_data_t *, sysarg_t);
 extern sysarg_t sys_ipc_answer_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
 extern sysarg_t sys_ipc_answer_slow(sysarg_t, ipc_data_t *);

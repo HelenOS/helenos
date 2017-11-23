@@ -42,10 +42,13 @@
 
 #define IPC_FLAG_BLOCKING  0x01
 
+struct async_call;
+
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
 	task_id_t in_task_id;
 	sysarg_t in_phone_hash;
+	struct async_call *label;
 } ipc_call_t;
 
 typedef sysarg_t ipc_callid_t;
