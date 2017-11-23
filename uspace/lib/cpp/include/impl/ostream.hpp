@@ -48,7 +48,7 @@ namespace std
     template<class Char, class Traits = char_traits<Char>>
     basic_ostream<Char, Traits>& flush(basic_ostream<Char, Traits>& os);
 
-    template<class Char, class Tratis = char_traits<Char>>
+    template<class Char, class Traits = char_traits<Char>, class T>
     basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, const T& x);
 }
 
