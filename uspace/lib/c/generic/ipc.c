@@ -64,9 +64,6 @@ typedef struct {
 			int phoneid;
 		} msg;
 	} u;
-	
-	/** Fibril waiting for sending this call. */
-	fid_t fid;
 } async_call_t;
 
 LIST_INITIALIZE(dispatched_calls);
