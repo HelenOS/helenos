@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -38,6 +38,7 @@
  * @brief i8042 PS/2 port driver.
  */
 
+#include <adt/circ_buf.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <ddi.h>
@@ -129,14 +130,24 @@ static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call,
     ddf_dev_t *dev)
 {
 	i8042_t *controller = ddf_dev_data_get(dev);
+	int rc;
 	
 	const uint8_t status = IPC_GET_ARG1(*call);
 	const uint8_t data = IPC_GET_ARG2(*call);
 	
-	buffer_t *buffer = (status & i8042_AUX_DATA) ?
+	circ_buf_t *cbuf = (status & i8042_AUX_DATA) ?
 	    &controller->aux_buffer : &controller->kbd_buffer;
+	i8042_port_t *port = (status & i8042_AUX_DATA) ?
+	    controller->aux : controller->kbd;
 	
-	buffer_write(buffer, data);
+	fibril_mutex_lock(&port->buf_lock);
+	
+	rc = circ_buf_push(cbuf, &data);
+	if (rc != EOK)
+		ddf_msg(LVL_ERROR, "Buffer overrun");
+
+	fibril_mutex_unlock(&port->buf_lock);
+	fibril_condvar_broadcast(&port->buf_cv);
 }
 
 /** Initialize i8042 driver structure.
@@ -193,6 +204,8 @@ int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	chardev_srvs_init(&dev->kbd->cds);
 	dev->kbd->cds.ops = &i8042_chardev_ops;
 	dev->kbd->cds.sarg = dev->kbd;
+	fibril_mutex_initialize(&dev->kbd->buf_lock);
+	fibril_condvar_initialize(&dev->kbd->buf_cv);
 	
 	rc = ddf_fun_add_match_id(dev->kbd_fun, "char/xtkbd", 90);
 	if (rc != EOK)
@@ -214,6 +227,8 @@ int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	chardev_srvs_init(&dev->aux->cds);
 	dev->aux->cds.ops = &i8042_chardev_ops;
 	dev->aux->cds.sarg = dev->aux;
+	fibril_mutex_initialize(&dev->aux->buf_lock);
+	fibril_condvar_initialize(&dev->aux->buf_cv);
 	
 	rc = ddf_fun_add_match_id(dev->aux_fun, "char/ps2mouse", 90);
 	if (rc != EOK)
@@ -222,8 +237,8 @@ int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	ddf_fun_set_conn_handler(dev->kbd_fun, i8042_char_conn);
 	ddf_fun_set_conn_handler(dev->aux_fun, i8042_char_conn);
 	
-	buffer_init(&dev->kbd_buffer, dev->kbd_data, BUFFER_SIZE);
-	buffer_init(&dev->aux_buffer, dev->aux_data, BUFFER_SIZE);
+	circ_buf_init(&dev->kbd_buffer, dev->kbd_data, BUFFER_SIZE, 1);
+	circ_buf_init(&dev->aux_buffer, dev->aux_data, BUFFER_SIZE, 1);
 	fibril_mutex_initialize(&dev->write_guard);
 	
 	rc = ddf_fun_bind(dev->kbd_fun);
@@ -376,22 +391,30 @@ static int i8042_read(chardev_srv_t *srv, void *dest, size_t size,
     size_t *nread)
 {
 	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
+	size_t p;
 	i8042_t *i8042 = port->ctl;
 	uint8_t *destp = (uint8_t *)dest;
 	int rc;
-	size_t i;
 	
-	buffer_t *buffer = (port == i8042->aux) ?
+	circ_buf_t *cbuf = (port == i8042->aux) ?
 	    &i8042->aux_buffer : &i8042->kbd_buffer;
 	
-	for (i = 0; i < size; ++i) {
-		rc = buffer_read(buffer, destp, i == 0);
+	fibril_mutex_lock(&port->buf_lock);
+	
+	while (circ_buf_nused(cbuf) == 0)
+		fibril_condvar_wait(&port->buf_cv, &port->buf_lock);
+
+	p = 0;
+	while (p < size) {
+		rc = circ_buf_pop(cbuf, &destp[p]);
 		if (rc != EOK)
 			break;
-		++destp;
+		++p;
 	}
-	
-	*nread = i;
+
+	fibril_mutex_unlock(&port->buf_lock);
+
+	*nread = p;
 	return EOK;
 }
 

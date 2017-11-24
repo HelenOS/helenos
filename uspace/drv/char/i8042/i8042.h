@@ -39,11 +39,11 @@
 #ifndef i8042_H_
 #define i8042_H_
 
+#include <adt/circ_buf.h>
 #include <io/chardev_srv.h>
 #include <ddi.h>
 #include <fibril_synch.h>
 #include <ddf/driver.h>
-#include "buffer.h"
 
 #define NAME  "i8042"
 
@@ -60,6 +60,8 @@ typedef struct {
 typedef struct {
 	struct i8042 *ctl;		/**< Controller */
 	chardev_srvs_t cds;		/**< Character device server data */
+	fibril_mutex_t buf_lock;	/**< Protect buffer */
+	fibril_condvar_t buf_cv;	/**< Signal new data in buffer */
 } i8042_port_t;
 
 /** i8042 Controller. */
@@ -67,8 +69,8 @@ typedef struct i8042 {
 	i8042_regs_t *regs;             /**< I/O registers. */
 	ddf_fun_t *kbd_fun;             /**< Pirmary port device function. */
 	ddf_fun_t *aux_fun;             /**< Auxiliary port device function. */
-	buffer_t kbd_buffer;            /**< Primary port buffer. */
-	buffer_t aux_buffer;            /**< Aux. port buffer. */
+	circ_buf_t kbd_buffer;          /**< Primary port buffer. */
+	circ_buf_t aux_buffer;          /**< Aux. port buffer. */
 	uint8_t aux_data[BUFFER_SIZE];  /**< Primary port buffer space. */
 	uint8_t kbd_data[BUFFER_SIZE];  /**< Aux. port buffer space. */
 	i8042_port_t *kbd;
