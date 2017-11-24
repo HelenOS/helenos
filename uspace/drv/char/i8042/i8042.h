@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,26 +59,33 @@ typedef struct {
 
 /** i8042 Port. */
 typedef struct {
-	struct i8042 *ctl;		/**< Controller */
-	chardev_srvs_t cds;		/**< Character device server data */
-	fibril_mutex_t buf_lock;	/**< Protect buffer */
-	fibril_condvar_t buf_cv;	/**< Signal new data in buffer */
+	/** Controller */
+	struct i8042 *ctl;
+	/** Device function */
+	ddf_fun_t *fun;
+	/** Character device server data */
+	chardev_srvs_t cds;
+	/** Circular buffer */
+	circ_buf_t cbuf;
+	/** Buffer data space */
+	uint8_t buf_data[BUFFER_SIZE];
+	/** Protect buffer */
+	fibril_mutex_t buf_lock;
+	/** Signal new data in buffer */
+	fibril_condvar_t buf_cv;
 } i8042_port_t;
 
 /** i8042 Controller. */
 typedef struct i8042 {
-	i8042_regs_t *regs;             /**< I/O registers. */
-	ddf_fun_t *kbd_fun;             /**< Pirmary port device function. */
-	ddf_fun_t *aux_fun;             /**< Auxiliary port device function. */
-	circ_buf_t kbd_buffer;          /**< Primary port buffer. */
-	circ_buf_t aux_buffer;          /**< Aux. port buffer. */
-	uint8_t aux_data[BUFFER_SIZE];  /**< Primary port buffer space. */
-	uint8_t kbd_data[BUFFER_SIZE];  /**< Aux. port buffer space. */
+	/**< I/O registers. */
+	i8042_regs_t *regs;
+	/** Keyboard port */
 	i8042_port_t *kbd;
+	/** AUX port */
 	i8042_port_t *aux;
-	fibril_mutex_t write_guard;     /**< Prevents simultanous port writes.*/
+	/** Prevents simultanous port writes.*/
+	fibril_mutex_t write_guard;
 } i8042_t;
-
 
 extern int i8042_init(i8042_t *, addr_range_t *, int, int, ddf_dev_t *);
 
