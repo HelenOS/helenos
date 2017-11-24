@@ -72,6 +72,7 @@
  */
 
 #include <cap/cap.h>
+#include <abi/cap.h>
 #include <proc/task.h>
 #include <synch/mutex.h>
 #include <abi/errno.h>
@@ -80,7 +81,9 @@
 
 #include <stdint.h>
 
-#define MAX_CAPS	INT_MAX
+#define CAPS_START	(CAP_NIL + 1)
+#define CAPS_SIZE	(INT_MAX - CAPS_START)
+#define CAPS_LAST	(CAPS_SIZE - 1)
 
 static slab_cache_t *cap_slab;
 
@@ -128,7 +131,7 @@ int caps_task_alloc(task_t *task)
 	task->cap_info->handles = ra_arena_create();
 	if (!task->cap_info->handles)
 		goto error_handles;
-	if (!ra_span_add(task->cap_info->handles, 0, MAX_CAPS))
+	if (!ra_span_add(task->cap_info->handles, CAPS_START, CAPS_SIZE))
 		goto error_span;
 	if (!hash_table_create(&task->cap_info->caps, 0, 0, &caps_ops))
 		goto error_span;
@@ -219,7 +222,7 @@ static cap_t *cap_get(task_t *task, cap_handle_t handle, cap_state_t state)
 {
 	assert(mutex_locked(&task->cap_info->lock));
 
-	if ((handle < 0) || (handle >= MAX_CAPS))
+	if ((handle < CAPS_START) || (handle > CAPS_LAST))
 		return NULL;
 	ht_link_t *link = hash_table_find(&task->cap_info->caps, &handle);
 	if (!link)
@@ -356,8 +359,8 @@ kobject_t *cap_unpublish(task_t *task, cap_handle_t handle, kobject_type_t type)
  */
 void cap_free(task_t *task, cap_handle_t handle)
 {
-	assert(handle >= 0);
-	assert(handle < MAX_CAPS);
+	assert(handle >= CAPS_START);
+	assert(handle <= CAPS_LAST);
 
 	mutex_lock(&task->cap_info->lock);
 	cap_t *cap = cap_get(task, handle, CAP_STATE_ALLOCATED);
