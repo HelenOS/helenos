@@ -40,6 +40,7 @@
  *
  * A kernel object (kobject_t) encapsulates one of the following raw objects:
  *
+ * - IPC call
  * - IPC phone
  * - IRQ object
  *
