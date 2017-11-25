@@ -35,6 +35,7 @@
 #ifndef KERN_CAP_H_
 #define KERN_CAP_H_
 
+#include <abi/cap.h>
 #include <typedefs.h>
 #include <adt/list.h>
 #include <adt/hash.h>
@@ -42,8 +43,6 @@
 #include <lib/ra.h>
 #include <synch/mutex.h>
 #include <atomic.h>
-
-typedef int cap_handle_t;
 
 typedef enum {
 	CAP_STATE_FREE,

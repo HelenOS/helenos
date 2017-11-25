@@ -37,6 +37,8 @@
 
 #define CAP_NIL		0
 
+typedef int cap_handle_t;
+
 #endif
 
 /** @}
