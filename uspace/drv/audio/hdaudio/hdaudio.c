@@ -57,7 +57,7 @@ static int hda_dev_gone(ddf_dev_t *dev);
 static int hda_fun_online(ddf_fun_t *fun);
 static int hda_fun_offline(ddf_fun_t *fun);
 
-static void hdaudio_interrupt(ipc_callid_t, ipc_call_t *, ddf_dev_t *);
+static void hdaudio_interrupt(ipc_call_t *, ddf_dev_t *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &hda_dev_add,
@@ -367,8 +367,7 @@ static int hda_fun_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-static void hdaudio_interrupt(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev)
+static void hdaudio_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	hda_t *hda = (hda_t *)ddf_dev_data_get(dev);
 

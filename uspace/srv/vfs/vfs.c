@@ -75,7 +75,7 @@ static void vfs_pager(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static void notification_handler(ipc_callid_t callid, ipc_call_t *call, void *arg)
+static void notification_handler(ipc_call_t *call, void *arg)
 {
 	if (IPC_GET_ARG1(*call) == VFS_PASS_HANDLE)
 		vfs_op_pass_handle(

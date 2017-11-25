@@ -121,7 +121,7 @@ static irq_cmd_t ne2k_cmds_prototype[] = {
 	}
 };
 
-static void ne2k_interrupt_handler(ipc_callid_t, ipc_call_t *, ddf_dev_t *);
+static void ne2k_interrupt_handler(ipc_call_t *, ddf_dev_t *);
 
 static int ne2k_register_interrupt(nic_t *nic_data)
 {
@@ -238,12 +238,10 @@ failed:
 	return rc;
 }
 
-void ne2k_interrupt_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
+void ne2k_interrupt_handler(ipc_call_t *call, ddf_dev_t *dev)
 {
 	nic_t *nic_data = DRIVER_DATA(dev);
 	ne2k_interrupt(nic_data, IRQ_GET_ISR(*call), IRQ_GET_TSR(*call));
-	
-	async_answer_0(iid, EOK);
 }
 
 static int ne2k_on_activating(nic_t *nic_data)

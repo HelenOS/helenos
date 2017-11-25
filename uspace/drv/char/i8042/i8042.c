@@ -121,13 +121,11 @@ static void wait_ready(i8042_t *dev)
  *
  * Write new data to the corresponding buffer.
  *
- * @param iid  Call id.
  * @param call pointerr to call data.
  * @param dev  Device that caued the interrupt.
  *
  */
-static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call,
-    ddf_dev_t *dev)
+static void i8042_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 {
 	i8042_t *controller = ddf_dev_data_get(dev);
 	int rc;

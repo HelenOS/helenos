@@ -43,17 +43,18 @@
 #include <abi/ipc/methods.h>
 #include <abi/synch.h>
 #include <abi/proc/task.h>
+#include <abi/cap.h>
 
 typedef void (*ipc_async_callback_t)(void *, int, ipc_call_t *);
 
-extern ipc_callid_t ipc_wait_cycle(ipc_call_t *, sysarg_t, unsigned int);
+extern cap_handle_t ipc_wait_cycle(ipc_call_t *, sysarg_t, unsigned int);
 extern void ipc_poke(void);
 
 #define ipc_wait_for_call(data) \
 	ipc_wait_for_call_timeout(data, SYNCH_NO_TIMEOUT);
 
-extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *, sysarg_t);
-extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *);
+extern cap_handle_t ipc_wait_for_call_timeout(ipc_call_t *, sysarg_t);
+extern cap_handle_t ipc_trywait_for_call(ipc_call_t *);
 
 /*
  * User-friendly wrappers for ipc_answer_fast() and ipc_answer_slow().
@@ -62,22 +63,23 @@ extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *);
  * to m.
  */
 
-#define ipc_answer_0(callid, retval) \
-	ipc_answer_fast((callid), (retval), 0, 0, 0, 0)
-#define ipc_answer_1(callid, retval, arg1) \
-	ipc_answer_fast((callid), (retval), (arg1), 0, 0, 0)
-#define ipc_answer_2(callid, retval, arg1, arg2) \
-	ipc_answer_fast((callid), (retval), (arg1), (arg2), 0, 0)
-#define ipc_answer_3(callid, retval, arg1, arg2, arg3) \
-	ipc_answer_fast((callid), (retval), (arg1), (arg2), (arg3), 0)
-#define ipc_answer_4(callid, retval, arg1, arg2, arg3, arg4) \
-	ipc_answer_fast((callid), (retval), (arg1), (arg2), (arg3), (arg4))
-#define ipc_answer_5(callid, retval, arg1, arg2, arg3, arg4, arg5) \
-	ipc_answer_slow((callid), (retval), (arg1), (arg2), (arg3), (arg4), (arg5))
+#define ipc_answer_0(chandle, retval) \
+	ipc_answer_fast((chandle), (retval), 0, 0, 0, 0)
+#define ipc_answer_1(chandle, retval, arg1) \
+	ipc_answer_fast((chandle), (retval), (arg1), 0, 0, 0)
+#define ipc_answer_2(chandle, retval, arg1, arg2) \
+	ipc_answer_fast((chandle), (retval), (arg1), (arg2), 0, 0)
+#define ipc_answer_3(chandle, retval, arg1, arg2, arg3) \
+	ipc_answer_fast((chandle), (retval), (arg1), (arg2), (arg3), 0)
+#define ipc_answer_4(chandle, retval, arg1, arg2, arg3, arg4) \
+	ipc_answer_fast((chandle), (retval), (arg1), (arg2), (arg3), (arg4))
+#define ipc_answer_5(chandle, retval, arg1, arg2, arg3, arg4, arg5) \
+	ipc_answer_slow((chandle), (retval), (arg1), (arg2), (arg3), (arg4), \
+	    (arg5))
 
-extern sysarg_t ipc_answer_fast(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
+extern sysarg_t ipc_answer_fast(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
-extern sysarg_t ipc_answer_slow(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
+extern sysarg_t ipc_answer_slow(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
 /*
@@ -87,37 +89,37 @@ extern sysarg_t ipc_answer_slow(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
  * to m.
  */
 
-#define ipc_call_async_0(phoneid, method, private, callback) \
-	ipc_call_async_fast((phoneid), (method), 0, 0, 0, (private), (callback))
-#define ipc_call_async_1(phoneid, method, arg1, private, callback) \
-	ipc_call_async_fast((phoneid), (method), (arg1), 0, 0, (private), \
+#define ipc_call_async_0(phandle, method, private, callback) \
+	ipc_call_async_fast((phandle), (method), 0, 0, 0, (private), (callback))
+#define ipc_call_async_1(phandle, method, arg1, private, callback) \
+	ipc_call_async_fast((phandle), (method), (arg1), 0, 0, (private), \
 	    (callback))
-#define ipc_call_async_2(phoneid, method, arg1, arg2, private, callback) \
-	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), 0, \
+#define ipc_call_async_2(phandle, method, arg1, arg2, private, callback) \
+	ipc_call_async_fast((phandle), (method), (arg1), (arg2), 0, \
 	    (private), (callback))
-#define ipc_call_async_3(phoneid, method, arg1, arg2, arg3, private, callback) \
-	ipc_call_async_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+#define ipc_call_async_3(phandle, method, arg1, arg2, arg3, private, callback) \
+	ipc_call_async_fast((phandle), (method), (arg1), (arg2), (arg3), \
 	    (private), (callback))
-#define ipc_call_async_4(phoneid, method, arg1, arg2, arg3, arg4, private, \
+#define ipc_call_async_4(phandle, method, arg1, arg2, arg3, arg4, private, \
     callback) \
-	ipc_call_async_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	ipc_call_async_slow((phandle), (method), (arg1), (arg2), (arg3), \
 	    (arg4), 0, (private), (callback))
-#define ipc_call_async_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, \
+#define ipc_call_async_5(phandle, method, arg1, arg2, arg3, arg4, arg5, \
     private, callback) \
-	ipc_call_async_slow((phoneid), (method), (arg1), (arg2), (arg3), \
+	ipc_call_async_slow((phandle), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (arg5), (private), (callback))
 
-extern void ipc_call_async_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    void *, ipc_async_callback_t);
-extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, void *, ipc_async_callback_t);
+extern void ipc_call_async_fast(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, void *, ipc_async_callback_t);
+extern void ipc_call_async_slow(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, void *, ipc_async_callback_t);
 
-extern int ipc_hangup(int);
+extern int ipc_hangup(cap_handle_t);
 
-extern int ipc_forward_fast(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
-    unsigned int);
-extern int ipc_forward_slow(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t, unsigned int);
+extern int ipc_forward_fast(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
+    sysarg_t, unsigned int);
+extern int ipc_forward_slow(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
 extern int ipc_connect_kbox(task_id_t);
 

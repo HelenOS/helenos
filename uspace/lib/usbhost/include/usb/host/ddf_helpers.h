@@ -75,7 +75,7 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
     const hw_res_list_parsed_t *hw_res,
     interrupt_handler_t handler,
     int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *));
-void ddf_hcd_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev);
+void ddf_hcd_gen_irq_handler(ipc_call_t *call, ddf_dev_t *dev);
 
 #endif
 

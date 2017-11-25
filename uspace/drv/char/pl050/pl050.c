@@ -136,7 +136,7 @@ static pl050_t *pl050_from_fun(ddf_fun_t *fun)
 	return (pl050_t *)ddf_dev_data_get(ddf_fun_get_dev(fun));
 }
 
-static void pl050_interrupt(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
+static void pl050_interrupt(ipc_call_t *call, ddf_dev_t *dev)
 {
 	pl050_t *pl050 = (pl050_t *)ddf_dev_data_get(dev);
 	size_t nidx;

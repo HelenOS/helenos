@@ -39,6 +39,7 @@
 #include <atomic.h>
 #include <abi/proc/task.h>
 #include <futex.h>
+#include <abi/cap.h>
 
 #define IPC_FLAG_BLOCKING  0x01
 
@@ -52,7 +53,7 @@ typedef struct {
 	struct async_call *label;
 } ipc_call_t;
 
-typedef sysarg_t ipc_callid_t;
+typedef cap_handle_t ipc_callid_t;
 
 extern futex_t async_futex;
 

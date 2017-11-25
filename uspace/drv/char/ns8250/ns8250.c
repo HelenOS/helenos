@@ -782,8 +782,7 @@ static void ns8250_read_from_device(ns8250_t *ns)
  * @param dev The serial port device.
  *
  */
-static inline void ns8250_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev)
+static inline void ns8250_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	ns8250_t *ns = dev_ns8250(dev);
 	uint8_t iir = pio_read_8(&ns->regs->iid);

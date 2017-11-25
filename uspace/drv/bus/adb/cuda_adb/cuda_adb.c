@@ -56,7 +56,7 @@
 
 static void cuda_dev_connection(ipc_callid_t, ipc_call_t *, void *);
 static int cuda_init(cuda_t *);
-static void cuda_irq_handler(ipc_callid_t, ipc_call_t *, void *);
+static void cuda_irq_handler(ipc_call_t *, void *);
 
 static void cuda_irq_listen(cuda_t *);
 static void cuda_irq_receive(cuda_t *);
@@ -263,7 +263,7 @@ static int cuda_init(cuda_t *cuda)
 	return EOK;
 }
 
-static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
+static void cuda_irq_handler(ipc_call_t *call, void *arg)
 {
 	uint8_t rbuf[CUDA_RCV_BUF_SIZE];
 	cuda_t *cuda = (cuda_t *)arg;

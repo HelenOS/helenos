@@ -143,13 +143,11 @@ static int consumer(void *data)
  *
  * Receives kernel kio notifications.
  *
- * @param callid IPC call ID
  * @param call   IPC call structure
  * @param arg    Local argument
  *
  */
-static void kio_notification_handler(ipc_callid_t callid, ipc_call_t *call,
-    void *arg)
+static void kio_notification_handler(ipc_call_t *call, void *arg)
 {
 	/*
 	 * Make sure we process only a single notification

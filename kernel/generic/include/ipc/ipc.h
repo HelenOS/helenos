@@ -111,7 +111,7 @@ typedef struct {
 	sysarg_t label;
 } ipc_data_t;
 
-typedef struct {
+typedef struct call {
 	kobject_t *kobject;
 
 	/**

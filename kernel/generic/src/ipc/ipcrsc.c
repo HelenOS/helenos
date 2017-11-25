@@ -136,33 +136,6 @@
 #include <cap/cap.h>
 #include <mm/slab.h>
 
-/** Find call_t * in call table according to callid.
- *
- * @todo Some speedup (hash table?)
- *
- * @param callid Userspace hash of the call. Currently it is the call structure
- *               kernel address.
- *
- * @return NULL on not found, otherwise pointer to the call structure.
- *
- */
-call_t *get_call(sysarg_t callid)
-{
-	call_t *result = NULL;
-	
-	irq_spinlock_lock(&TASK->answerbox.lock, true);
-	
-	list_foreach(TASK->answerbox.dispatched_calls, ab_link, call_t, call) {
-		if ((sysarg_t) call == callid) {
-			result = call;
-			break;
-		}
-	}
-	
-	irq_spinlock_unlock(&TASK->answerbox.lock, true);
-	return result;
-}
-
 static bool phone_reclaim(kobject_t *kobj)
 {
 	bool gc = false;

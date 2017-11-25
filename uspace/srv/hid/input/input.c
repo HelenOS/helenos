@@ -364,8 +364,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static void kconsole_event_handler(ipc_callid_t callid, ipc_call_t *call,
-    void *arg)
+static void kconsole_event_handler(ipc_call_t *call, void *arg)
 {
 	if (IPC_GET_ARG1(*call)) {
 		/* Kernel console activated */

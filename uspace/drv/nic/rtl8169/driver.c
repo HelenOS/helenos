@@ -71,8 +71,7 @@ static int rtl8169_defective_set_mode(ddf_fun_t *fun, uint32_t mode);
 static int rtl8169_on_activated(nic_t *nic_data);
 static int rtl8169_on_stopped(nic_t *nic_data);
 static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size);
-static void rtl8169_irq_handler(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev);
+static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev);
 static inline int rtl8169_register_int_handler(nic_t *nic_data);
 static inline void rtl8169_get_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr);
 static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, const nic_address_t *addr);
@@ -1031,8 +1030,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 
 }
 
-static void rtl8169_irq_handler(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev)
+static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	assert(dev);
 	assert(icall);

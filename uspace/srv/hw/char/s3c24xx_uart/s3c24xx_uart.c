@@ -64,7 +64,7 @@ static irq_code_t uart_irq_code = {
 static s3c24xx_uart_t *uart;
 
 static void s3c24xx_uart_connection(ipc_callid_t, ipc_call_t *, void *);
-static void s3c24xx_uart_irq_handler(ipc_callid_t, ipc_call_t *, void *);
+static void s3c24xx_uart_irq_handler(ipc_call_t *, void *);
 static int s3c24xx_uart_init(s3c24xx_uart_t *);
 static void s3c24xx_uart_sendb(s3c24xx_uart_t *, uint8_t);
 
@@ -121,12 +121,10 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
 }
 
 
-static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call,
-    void *arg)
+static void s3c24xx_uart_irq_handler(ipc_call_t *call, void *arg)
 {
 	int rc;
 
-	(void) iid;
 	(void) call;
 	(void) arg;
 

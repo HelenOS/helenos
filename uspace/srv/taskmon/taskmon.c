@@ -50,7 +50,7 @@ static bool write_core_files;
 
 static void corecfg_client_conn(ipc_callid_t , ipc_call_t *, void *);
 
-static void fault_event(ipc_callid_t callid, ipc_call_t *call, void *arg)
+static void fault_event(ipc_call_t *call, void *arg)
 {
 	const char *fname;
 	char *s_taskid;

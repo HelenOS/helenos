@@ -61,7 +61,7 @@ static irq_cmd_t msim_cmds_proto[] = {
 	}
 };
 
-static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
+static void msim_irq_handler(ipc_call_t *call, void *arg)
 {
 	msim_con_t *con = (msim_con_t *) arg;
 	uint8_t c;

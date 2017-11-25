@@ -815,13 +815,11 @@ static void rtl8139_interrupt_impl(nic_t *nic_data, uint16_t isr)
 
 /** Handle device interrupt
  *
- * @param iid    The IPC call id
  * @param icall  The IPC call structure
  * @param dev    The rtl8139 device
  *
  */
-static void rtl8139_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev)
+static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	assert(dev);
 	assert(icall);

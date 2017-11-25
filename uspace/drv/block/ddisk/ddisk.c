@@ -63,7 +63,7 @@ static int ddisk_fun_offline(ddf_fun_t *);
 
 static void ddisk_bd_connection(ipc_callid_t, ipc_call_t *, void *);
 
-static void ddisk_irq_handler(ipc_callid_t, ipc_call_t *, ddf_dev_t *);
+static void ddisk_irq_handler(ipc_call_t *, ddf_dev_t *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = ddisk_dev_add,
@@ -175,7 +175,7 @@ irq_code_t ddisk_irq_code = {
 	.cmds = ddisk_irq_commands,
 };
 
-void ddisk_irq_handler(ipc_callid_t iid, ipc_call_t *icall, ddf_dev_t *dev)
+void ddisk_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "ddisk_irq_handler(), status=%" PRIx32,
 	    (uint32_t) IPC_GET_ARG1(*icall));
