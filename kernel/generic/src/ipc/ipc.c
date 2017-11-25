@@ -837,6 +837,19 @@ static bool irq_cap_cleanup_cb(cap_t *cap, void *arg)
 	return true;
 }
 
+static bool call_cap_cleanup_cb(cap_t *cap, void *arg)
+{
+	/*
+	 * Here we just free the capability and release the kobject.
+	 * The kernel answers the remaining calls elsewhere in ipc_cleanup().
+	 */
+	kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
+	    KOBJECT_TYPE_CALL);
+	kobject_put(kobj);
+	cap_free(cap->task, cap->handle);
+	return true;
+}
+
 /** Clean up all IPC communication of the current task.
  *
  * Note: ipc_hangup sets returning answerbox to TASK->answerbox, you
@@ -873,6 +886,10 @@ void ipc_cleanup(void)
 	/* Clean up kbox thread and communications */
 	ipc_kbox_cleanup();
 #endif
+
+	/* Destroy all call capabilities */
+	caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_CALL, call_cap_cleanup_cb,
+	    NULL);
 	
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
 	ipc_cleanup_call_list(&TASK->answerbox, &TASK->answerbox.calls);
