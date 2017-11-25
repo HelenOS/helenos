@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
+#include <adt/circ_buf.h>
+#include <pcut/pcut.h>
+
+PCUT_INIT
+
+PCUT_TEST_SUITE(circ_buf);
+
+enum {
+	buffer_size = 16
+};
+
+static int buffer[buffer_size];
+
+/** Basic insertion/deletion test.
+ *
+ * Test initialization, emptiness, pushing buffer until it is full,
+ * then emptying it again.
  */
-/** @file
- * @brief Character device interface.
- */
+PCUT_TEST(push_pop)
+{
+	circ_buf_t cbuf;
+	int i;
+	int j;
+	int rc;
 
-#ifndef LIBC_IPC_CHAR_H_
-#define LIBC_IPC_CHAR_H_
+	circ_buf_init(&cbuf, buffer, buffer_size, sizeof(int));
 
-#include <ipc/common.h>
+	for (i = 0; i < buffer_size; i++) {
+		PCUT_ASSERT_INT_EQUALS(buffer_size - i, circ_buf_nfree(&cbuf));
+		PCUT_ASSERT_INT_EQUALS(i, circ_buf_nused(&cbuf));
+		rc = circ_buf_push(&cbuf, &i);
+		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	}
 
-typedef enum {
-	CHAR_WRITE_BYTE = IPC_FIRST_USER_METHOD
-} char_request_t;
+	rc = circ_buf_push(&cbuf, &i);
+	PCUT_ASSERT_ERRNO_VAL(EAGAIN, rc);
 
-typedef enum {
-	CHAR_NOTIF_BYTE = IPC_FIRST_USER_METHOD
-} char_notif_t;
+	for (i = 0; i < buffer_size; i++) {
+		PCUT_ASSERT_INT_EQUALS(i, circ_buf_nfree(&cbuf));
+		PCUT_ASSERT_INT_EQUALS(buffer_size - i, circ_buf_nused(&cbuf));
+		rc = circ_buf_pop(&cbuf, &j);
+		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+		PCUT_ASSERT_INT_EQUALS(i, j);
+	}
 
-#endif
+	PCUT_ASSERT_INT_EQUALS(buffer_size, circ_buf_nfree(&cbuf));
+	PCUT_ASSERT_INT_EQUALS(0, circ_buf_nused(&cbuf));
 
-/** @}
- */
+	rc = circ_buf_pop(&cbuf, &j);
+	PCUT_ASSERT_ERRNO_VAL(EAGAIN, rc);
+}
+
+PCUT_EXPORT(circ_buf);

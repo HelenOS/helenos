@@ -29,17 +29,17 @@
 /** @file
  */
 
+#include <async.h>
+#include <config.h>
+#include <errno.h>
+#include <fibril_synch.h>
+#include <io/chardev.h>
+#include <loc.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <char_dev_iface.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <async.h>
-#include <fibril_synch.h>
-#include <loc.h>
-#include <errno.h>
 #include <str.h>
-#include <config.h>
 #include "../ctl/serial.h"
 #include "../output.h"
 #include "chardev.h"
@@ -47,6 +47,7 @@
 static char *console;
 
 static async_sess_t *sess;
+static chardev_t *chardev;
 static service_id_t serial_cat_id;
 
 static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
@@ -56,12 +57,16 @@ static FIBRIL_CONDVAR_INITIALIZE(discovery_cv);
 static void chardev_putchar(wchar_t ch)
 {
 	uint8_t byte = (uint8_t) ch;
-	char_dev_write(sess, &byte, 1); 
+	size_t nwr;
+	chardev_write(chardev, &byte, 1, &nwr);
+	/* XXX Handle error */
 }
 
 static void chardev_control_puts(const char *str)
 {
-	char_dev_write(sess, (void *) str, str_size(str));
+	size_t nwr;
+	chardev_write(chardev, (void *) str, str_size(str), &nwr);
+	/* XXX Handle error */
 }
 
 /*
@@ -125,6 +130,14 @@ static void check_for_dev(void)
 		printf("%s: Failed connecting to device\n", NAME);
 		return;
 	}
+
+	rc = chardev_open(sess, &chardev);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&discovery_lock);
+		printf("%s: Failed opening character device\n", NAME);
+		return;
+	}
+
 	serial_init(chardev_putchar, chardev_control_puts);
 
 	discovery_finished = true;

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
-#include <ops/char_dev.h>
+#include <io/chardev_srv.h>
 
 #include <device/hw_res.h>
 #include <ipc/serial_ctl.h>
@@ -152,6 +152,8 @@ typedef struct ns8250 {
 	ddf_dev_t *dev;
 	/** DDF function node */
 	ddf_fun_t *fun;
+	/** Character device service */
+	chardev_srvs_t cds;
 	/** Parent session */
 	async_sess_t *parent_sess;
 	/** I/O registers **/
@@ -187,6 +189,13 @@ static ns8250_t *fun_ns8250(ddf_fun_t *fun)
 {
 	return dev_ns8250(ddf_fun_get_dev(fun));
 }
+
+/** Obtain soft-state structure from chardev srv */
+static ns8250_t *srv_ns8250(chardev_srv_t *srv)
+{
+	return (ns8250_t *)srv->srvs->sarg;
+}
+
 
 /** Find out if there is some incoming data available on the serial port.
  *
@@ -233,30 +242,35 @@ static void ns8250_write_8(ns8250_regs_t *regs, uint8_t c)
 
 /** Read data from the serial port device.
  *
- * @param fun		The serial port function
+ * @param srv		Server-side connection data
  * @param buf		The output buffer for read data.
  * @param count		The number of bytes to be read.
+ * @param nread		Place to store number of bytes actually read
  *
- * @return		The number of bytes actually read on success, negative
- *			error number otherwise.
+ * @return		EOK on success or non-zero error code
  */
-static int ns8250_read(ddf_fun_t *fun, char *buf, size_t count)
+static int ns8250_read(chardev_srv_t *srv, void *buf, size_t count, size_t *nread)
 {
-	ns8250_t *ns = fun_ns8250(fun);
-	int ret = 0;
+	ns8250_t *ns = srv_ns8250(srv);
+	char *bp = (char *) buf;
+	size_t pos = 0;
 	
-	if (count == 0) return 0;
+	if (count == 0) {
+		*nread = 0;
+		return EOK;
+	}
 	
 	fibril_mutex_lock(&ns->mutex);
 	while (buf_is_empty(&ns->input_buffer))
 		fibril_condvar_wait(&ns->input_buffer_available, &ns->mutex);
-	while (!buf_is_empty(&ns->input_buffer) && (size_t)ret < count) {
-		buf[ret] = (char)buf_pop_front(&ns->input_buffer);
-		ret++;
+	while (!buf_is_empty(&ns->input_buffer) && pos < count) {
+		bp[pos] = (char)buf_pop_front(&ns->input_buffer);
+		pos++;
 	}
 	fibril_mutex_unlock(&ns->mutex);
 	
-	return ret;
+	*nread = pos;
+	return EOK;
 }
 
 /** Write a character to the serial port.
@@ -273,29 +287,40 @@ static inline void ns8250_putchar(ns8250_t *ns, uint8_t c)
 
 /** Write data to the serial port.
  *
- * @param fun		The serial port function
+ * @param srv		Server-side connection data
  * @param buf		The data to be written
  * @param count		The number of bytes to be written
- * @return		Zero on success
+ * @param nwritten	Place to store number of bytes successfully written
+ * @return		EOK on success or non-zero error code
  */
-static int ns8250_write(ddf_fun_t *fun, char *buf, size_t count)
+static int ns8250_write(chardev_srv_t *srv, const void *buf, size_t count,
+    size_t *nwritten)
 {
-	ns8250_t *ns = fun_ns8250(fun);
+	ns8250_t *ns = srv_ns8250(srv);
 	size_t idx;
+	uint8_t *bp = (uint8_t *) buf;
 	
 	for (idx = 0; idx < count; idx++)
-		ns8250_putchar(ns, (uint8_t) buf[idx]);
+		ns8250_putchar(ns, bp[idx]);
 	
-	return count;
+	*nwritten = count;
+	return EOK;
 }
 
-static ddf_dev_ops_t ns8250_dev_ops;
+static int ns8250_open(chardev_srvs_t *, chardev_srv_t *);
+static int ns8250_close(chardev_srv_t *);
+static void ns8250_default_handler(chardev_srv_t *, ipc_callid_t, ipc_call_t *);
 
 /** The character interface's callbacks. */
-static char_dev_ops_t ns8250_char_dev_ops = {
-	.read = &ns8250_read,
-	.write = &ns8250_write
+static chardev_ops_t ns8250_chardev_ops = {
+	.open = ns8250_open,
+	.close = ns8250_close,
+	.read = ns8250_read,
+	.write = ns8250_write,
+	.def_handler = ns8250_default_handler
 };
+
+static void ns8250_char_conn(ipc_callid_t, ipc_call_t *, void *);
 
 static int ns8250_dev_add(ddf_dev_t *dev);
 static int ns8250_dev_remove(ddf_dev_t *dev);
@@ -871,8 +896,12 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 		goto fail;
 	}
 	
-	/* Set device operations. */
-	ddf_fun_set_ops(fun, &ns8250_dev_ops);
+	ddf_fun_set_conn_handler(fun, ns8250_char_conn);
+	
+	chardev_srvs_init(&ns->cds);
+	ns->cds.ops = &ns8250_chardev_ops;
+	ns->cds.sarg = ns;
+	
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function.");
@@ -929,11 +958,12 @@ static int ns8250_dev_remove(ddf_dev_t *dev)
  * This is a callback function called when a client tries to connect to the
  * device.
  *
- * @param dev		The device.
+ * @param srvs		Service structure
+ * @param srv		Server-side connection structure
  */
-static int ns8250_open(ddf_fun_t *fun)
+static int ns8250_open(chardev_srvs_t *srvs, chardev_srv_t *srv)
 {
-	ns8250_t *ns = fun_ns8250(fun);
+	ns8250_t *ns = srv_ns8250(srv);
 	int res;
 	
 	fibril_mutex_lock(&ns->mutex);
@@ -953,11 +983,11 @@ static int ns8250_open(ddf_fun_t *fun)
  * This is a callback function called when a client tries to disconnect from
  * the device.
  *
- * @param dev		The device.
+ * @param srv		Server-side connection structure
  */
-static void ns8250_close(ddf_fun_t *fun)
+static int ns8250_close(chardev_srv_t *srv)
 {
-	ns8250_t *data = fun_ns8250(fun);
+	ns8250_t *data = srv_ns8250(srv);
 	
 	fibril_mutex_lock(&data->mutex);
 	
@@ -967,6 +997,8 @@ static void ns8250_close(ddf_fun_t *fun)
 		buf_clear(&data->input_buffer);
 	
 	fibril_mutex_unlock(&data->mutex);
+	
+	return EOK;
 }
 
 /** Get parameters of the serial communication which are set to the specified
@@ -1033,16 +1065,17 @@ static int ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
  *
  * Configure the parameters of the serial communication.
  */
-static void ns8250_default_handler(ddf_fun_t *fun, ipc_callid_t callid,
+static void ns8250_default_handler(chardev_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
+	ns8250_t *ns8250 = srv_ns8250(srv);
 	sysarg_t method = IPC_GET_IMETHOD(*call);
 	int ret;
 	unsigned int baud_rate, parity, word_length, stop_bits;
 	
 	switch (method) {
 	case SERIAL_GET_COM_PROPS:
-		ns8250_get_props(ddf_fun_get_dev(fun), &baud_rate, &parity, &word_length,
+		ns8250_get_props(ns8250->dev, &baud_rate, &parity, &word_length,
 		    &stop_bits);
 		async_answer_4(callid, EOK, baud_rate, parity, word_length,
 		    stop_bits);
@@ -1053,7 +1086,7 @@ static void ns8250_default_handler(ddf_fun_t *fun, ipc_callid_t callid,
 		parity = IPC_GET_ARG2(*call);
 		word_length = IPC_GET_ARG3(*call);
 		stop_bits = IPC_GET_ARG4(*call);
-		ret = ns8250_set_props(ddf_fun_get_dev(fun), baud_rate, parity, word_length,
+		ret = ns8250_set_props(ns8250->dev, baud_rate, parity, word_length,
 		    stop_bits);
 		async_answer_0(callid, ret);
 		break;
@@ -1061,6 +1094,13 @@ static void ns8250_default_handler(ddf_fun_t *fun, ipc_callid_t callid,
 	default:
 		async_answer_0(callid, ENOTSUP);
 	}
+}
+
+void ns8250_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	ns8250_t *ns8250 = fun_ns8250((ddf_fun_t *)arg);
+
+	chardev_conn(iid, icall, &ns8250->cds);
 }
 
 /** Initialize the serial port driver.
@@ -1071,12 +1111,6 @@ static void ns8250_default_handler(ddf_fun_t *fun, ipc_callid_t callid,
 static void ns8250_init(void)
 {
 	ddf_log_init(NAME);
-	
-	ns8250_dev_ops.open = &ns8250_open;
-	ns8250_dev_ops.close = &ns8250_close;
-	
-	ns8250_dev_ops.interfaces[CHAR_DEV_IFACE] = &ns8250_char_dev_ops;
-	ns8250_dev_ops.default_handler = &ns8250_default_handler;
 }
 
 int main(int argc, char *argv[])

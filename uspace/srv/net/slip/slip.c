@@ -39,7 +39,7 @@
 #include <loc.h>
 #include <inet/addr.h>
 #include <inet/iplink_srv.h>
-#include <char_dev_iface.h>
+#include <io/chardev.h>
 #include <io/log.h>
 #include <errno.h>
 #include <task.h>
@@ -95,31 +95,31 @@ int slip_close(iplink_srv_t *srv)
 	return EOK;
 }
 
-static void write_flush(async_sess_t *sess)
+static void write_flush(chardev_t *chardev)
 {
 	size_t written = 0;
 
 	while (slip_send_pending > 0) {
-		ssize_t size;
+		int rc;
+		size_t nwr;
 
-		size = char_dev_write(sess, &slip_send_buf[written],
-		    slip_send_pending);
-		if (size < 0) {
+		rc = chardev_write(chardev, &slip_send_buf[written],
+		    slip_send_pending, &nwr);
+		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "char_dev_write() returned %d",
-			    (int) size);
+			    "chardev_write() returned %d", rc);
 			slip_send_pending = 0;
 			break;
 		}
-		written += size;
-		slip_send_pending -= size;
+		written += nwr;
+		slip_send_pending -= nwr;
 	}
 }
 
-static void write_buffered(async_sess_t *sess, uint8_t ch)
+static void write_buffered(chardev_t *chardev, uint8_t ch)
 {
 	if (slip_send_pending == sizeof(slip_send_buf))
-		write_flush(sess);
+		write_flush(chardev);
 	slip_send_buf[slip_send_pending++] = ch;
 }
 
@@ -127,7 +127,7 @@ int slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send()");
 	
-	async_sess_t *sess = (async_sess_t *) srv->arg;
+	chardev_t *chardev = (chardev_t *) srv->arg;
 	uint8_t *data = sdu->data;
 	
 	/*
@@ -135,26 +135,26 @@ int slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	 * suggests to start with sending a SLIP_END byte as a synchronization
 	 * measure for dealing with previous possible noise on the line.
 	 */
-	write_buffered(sess, SLIP_END);
+	write_buffered(chardev, SLIP_END);
 	
 	for (size_t i = 0; i < sdu->size; i++) {
 		switch (data[i]) {
 		case SLIP_END:
-			write_buffered(sess, SLIP_ESC);
-			write_buffered(sess, SLIP_ESC_END);
+			write_buffered(chardev, SLIP_ESC);
+			write_buffered(chardev, SLIP_ESC_END);
 			break;
 		case SLIP_ESC:
-			write_buffered(sess, SLIP_ESC);
-			write_buffered(sess, SLIP_ESC_ESC);
+			write_buffered(chardev, SLIP_ESC);
+			write_buffered(chardev, SLIP_ESC_ESC);
 			break;
 		default:
-			write_buffered(sess, data[i]);
+			write_buffered(chardev, data[i]);
 			break;
 		}
 	}
 	
-	write_buffered(sess, SLIP_END);
-	write_flush(sess);
+	write_buffered(chardev, SLIP_END);
+	write_flush(chardev);
 	
 	return EOK;
 }
@@ -202,19 +202,23 @@ static void slip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	iplink_conn(iid, icall, &slip_iplink);
 }
 
-static uint8_t read_buffered(async_sess_t *sess)
+static uint8_t read_buffered(chardev_t *chardev)
 {
 	while (slip_recv_pending == 0) {
-		ssize_t size;
+		int rc;
+		size_t nread;
 
-		size = char_dev_read(sess, slip_recv_buf,
-		    sizeof(slip_recv_buf));
-		if (size < 0) {
+		rc = chardev_read(chardev, slip_recv_buf,
+		    sizeof(slip_recv_buf), &nread);
+		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "char_dev_read() returned %d", (int) size);
-			return SLIP_END;
+			    "char_dev_read() returned %d", rc);
 		}
-		slip_recv_pending = size;
+
+		if (nread == 0)
+			return SLIP_END;
+
+		slip_recv_pending = nread;
 		slip_recv_read = 0;
 	}
 	slip_recv_pending--;
@@ -223,7 +227,7 @@ static uint8_t read_buffered(async_sess_t *sess)
 
 static int slip_recv_fibril(void *arg)
 {
-	async_sess_t *sess = (async_sess_t *) arg;
+	chardev_t *chardev = (chardev_t *) arg;
 	static uint8_t recv_final[SLIP_MTU];
 	iplink_recv_sdu_t sdu;
 	uint8_t ch;
@@ -233,7 +237,7 @@ static int slip_recv_fibril(void *arg)
 
 	while (true) {
 		for (sdu.size = 0; sdu.size < sizeof(recv_final); /**/) {
-			ch = read_buffered(sess);
+			ch = read_buffered(chardev);
 			switch (ch) {
 			case SLIP_END:
 				if (sdu.size == 0) {
@@ -245,11 +249,11 @@ static int slip_recv_fibril(void *arg)
 				goto pass;
 
 			case SLIP_ESC:
-				ch = read_buffered(sess);
+				ch = read_buffered(chardev);
 				if (ch == SLIP_ESC_END) {
 					recv_final[sdu.size++] = SLIP_END;
 					break;
-				} else if (ch ==  SLIP_ESC_ESC) {
+				} else if (ch == SLIP_ESC_ESC) {
 					recv_final[sdu.size++] = SLIP_ESC;
 					break;
 				}
@@ -294,6 +298,8 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	category_id_t iplinkcid;
 	async_sess_t *sess_in = NULL;
 	async_sess_t *sess_out = NULL;
+	chardev_t *chardev_in = NULL;
+	chardev_t *chardev_out = NULL;
 	fid_t fid;
 	int rc;
 
@@ -335,7 +341,15 @@ static int slip_init(const char *svcstr, const char *linkstr)
 		    svcstr, (int) svcid);
 		return ENOENT;
 	}
-	slip_iplink.arg = sess_out;
+
+	rc = chardev_open(sess_out, &chardev_out);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed opening character device.");
+		return ENOENT;
+	}
+
+	slip_iplink.arg = chardev_out;
 
 	sess_in = loc_service_connect(svcid, INTERFACE_DDF, 0);
 	if (!sess_in) {
@@ -344,6 +358,13 @@ static int slip_init(const char *svcstr, const char *linkstr)
 		    svcstr, (int) svcid);
 		rc = ENOENT;
 		goto fail;
+	}
+
+	rc = chardev_open(sess_in, &chardev_in);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed opening character device.");
+		return ENOENT;
 	}
 
 	rc = loc_service_register(linkstr, &linksid);
@@ -362,7 +383,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 		goto fail;
 	}
 
-	fid = fibril_create(slip_recv_fibril, sess_in);
+	fid = fibril_create(slip_recv_fibril, chardev_in);
 	if (!fid) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to create receive fibril.");
@@ -374,8 +395,10 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	return EOK;
 
 fail:
+	chardev_close(chardev_out);
 	if (sess_out)
 		async_hangup(sess_out);
+	chardev_close(chardev_in);
 	if (sess_in)
 		async_hangup(sess_in);
 

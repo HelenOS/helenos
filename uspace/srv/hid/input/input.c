@@ -36,32 +36,33 @@
 /** @file
  */
 
-#include <adt/list.h>
-#include <stdbool.h>
-#include <fibril_synch.h>
-#include <ipc/services.h>
-#include <ipc/input.h>
-#include <config.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
 #include <adt/fifo.h>
+#include <adt/list.h>
+#include <async.h>
+#include <config.h>
+#include <errno.h>
+#include <fibril.h>
+#include <fibril_synch.h>
+#include <io/chardev.h>
 #include <io/console.h>
 #include <io/keycode.h>
+#include <ipc/services.h>
+#include <ipc/input.h>
 #include <loc.h>
+#include <ns.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <str_error.h>
-#include <char_dev_iface.h>
-#include <fibril.h>
-#include "layout.h"
+
+#include "input.h"
 #include "kbd.h"
 #include "kbd_port.h"
 #include "kbd_ctl.h"
+#include "layout.h"
 #include "mouse.h"
 #include "mouse_proto.h"
 #include "serial.h"
-#include "input.h"
 
 #define NUM_LAYOUTS  4
 
@@ -535,8 +536,10 @@ static int serial_consumer(void *arg)
 
 	while (true) {
 		uint8_t data;
+		size_t nread;
 
-		char_dev_read(sdev->sess, &data, sizeof(data));
+		chardev_read(sdev->chardev, &data, sizeof(data), &nread);
+		/* XXX Handle error */
 		kbd_push_data(sdev->kdev, data);
 	}
 
@@ -551,6 +554,7 @@ static int serial_consumer(void *arg)
 static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 {
 	bool match = false;
+	int rc;
 
 	serial_dev_t *sdev = serial_dev_new();
 	if (sdev == NULL)
@@ -558,7 +562,7 @@ static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 	
 	sdev->kdev->svc_id = service_id;
 	
-	int rc = loc_service_get_name(service_id, &sdev->kdev->svc_name);
+	rc = loc_service_get_name(service_id, &sdev->kdev->svc_name);
 	if (rc != EOK)
 		goto fail;
 
@@ -581,6 +585,14 @@ static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 
 		sdev->sess = loc_service_connect(service_id, INTERFACE_DDF,
 		    IPC_FLAG_BLOCKING);
+
+		rc = chardev_open(sdev->sess, &sdev->chardev);
+		if (rc != EOK) {
+			async_hangup(sdev->sess);
+			sdev->sess = NULL;
+			list_remove(&sdev->link);
+			goto fail;
+		}
 
 		fid_t fid = fibril_create(serial_consumer, sdev);
 		fibril_add_ready(fid);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup libc
  * @{
  */
-/** @file
+/** @file Circular buffer
  */
 
-#ifndef LIBDRV_REMOTE_CHAR_DEV_H_
-#define LIBDRV_REMOTE_CHAR_DEV_H_
+#ifndef LIBC_CIRC_BUF_H_
+#define LIBC_CIRC_BUF_H_
 
-extern remote_iface_t remote_char_dev_iface;
+#include <stddef.h>
+
+/** Circular buffer */
+typedef struct {
+	/** Buffer */
+	void *buf;
+	/** Number of buffer members */
+	size_t nmemb;
+	/** Member size */
+	size_t size;
+	/** Read position */
+	size_t rp;
+	/** Write position */
+	size_t wp;
+	/** Number of used entries */
+	size_t nused;
+} circ_buf_t;
+
+extern void circ_buf_init(circ_buf_t *, void *, size_t, size_t);
+extern size_t circ_buf_nfree(circ_buf_t *);
+extern size_t circ_buf_nused(circ_buf_t *);
+extern int circ_buf_push(circ_buf_t *, const void *);
+extern int circ_buf_pop(circ_buf_t *, void *);
 
 #endif
 
-/**
- * @}
+/** @}
  */

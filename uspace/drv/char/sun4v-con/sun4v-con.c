@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2008 Pavel Rimsky
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
-#include <ipc/char.h>
+#include <io/chardev_srv.h>
 #include <stdbool.h>
 #include <thread.h>
 
@@ -61,7 +61,13 @@ typedef volatile struct {
 /* virtual address of the shared buffer */
 static input_buffer_t input_buffer;
 
-static void sun4v_thread_impl(void *arg);
+static int sun4v_con_read(chardev_srv_t *, void *, size_t, size_t *);
+static int sun4v_con_write(chardev_srv_t *, const void *, size_t, size_t *);
+
+static chardev_ops_t sun4v_con_chardev_ops = {
+	.read = sun4v_con_read,
+	.write = sun4v_con_write
+};
 
 static void sun4v_con_putchar(sun4v_con_t *con, uint8_t data)
 {
@@ -85,6 +91,10 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 		goto error;
 	}
 
+	chardev_srvs_init(&con->cds);
+	con->cds.ops = &sun4v_con_chardev_ops;
+	con->cds.sarg = con;
+
 	ddf_fun_set_conn_handler(fun, sun4v_con_connection);
 
 	rc = physmem_map(res->base, 1, AS_AREA_READ | AS_AREA_WRITE,
@@ -93,11 +103,6 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 		ddf_msg(LVL_ERROR, "Error mapping memory: %d", rc);
 		goto error;
 	}
-
-	thread_id_t tid;
-	rc = thread_create(sun4v_thread_impl, con, "kbd_poll", &tid);
-	if (rc != EOK)
-		goto error;
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -130,83 +135,52 @@ int sun4v_con_gone(sun4v_con_t *con)
 	return ENOTSUP;
 }
 
-/**
- * Called regularly by the polling thread. Reads codes of all the
- * pressed keys from the buffer.
- */
-static void sun4v_key_pressed(sun4v_con_t *con)
+/** Read from Sun4v console device */
+static int sun4v_con_read(chardev_srv_t *srv, void *buf, size_t size,
+    size_t *nread)
 {
+	size_t p;
+	uint8_t *bp = (uint8_t *) buf;
 	char c;
 
-	while (input_buffer->read_ptr != input_buffer->write_ptr) {
+	while (input_buffer->read_ptr == input_buffer->write_ptr)
+		fibril_usleep(POLL_INTERVAL);
+
+	p = 0;
+	while (p < size && input_buffer->read_ptr != input_buffer->write_ptr) {
 		c = input_buffer->data[input_buffer->read_ptr];
 		input_buffer->read_ptr =
 		    ((input_buffer->read_ptr) + 1) % INPUT_BUFFER_SIZE;
-		if (con->client_sess != NULL) {
-			async_exch_t *exch = async_exchange_begin(con->client_sess);
-			async_msg_1(exch, CHAR_NOTIF_BYTE, c);
-			async_exchange_end(exch);
-		}
-		(void) c;
+		bp[p++] = c;
 	}
+
+	*nread = p;
+	return EOK;
 }
 
-/**
- * Thread to poll Sun4v console for keypresses.
- */
-static void sun4v_thread_impl(void *arg)
+/** Write to Sun4v console device */
+static int sun4v_con_write(chardev_srv_t *srv, const void *data, size_t size,
+    size_t *nwr)
 {
-	sun4v_con_t *con = (sun4v_con_t *) arg;
+	sun4v_con_t *con = (sun4v_con_t *) srv->srvs->sarg;
+	size_t i;
+	uint8_t *dp = (uint8_t *) data;
 
-	while (true) {
-		sun4v_key_pressed(con);
-		thread_usleep(POLL_INTERVAL);
-	}
+	for (i = 0; i < size; i++)
+		sun4v_con_putchar(con, dp[i]); 
+
+	*nwr = size;
+	return EOK;
 }
 
 /** Character device connection handler. */
 static void sun4v_con_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	sun4v_con_t *con;
+	sun4v_con_t *con = (sun4v_con_t *) ddf_dev_data_get(
+	    ddf_fun_get_dev((ddf_fun_t *) arg));
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
-
-	con = (sun4v_con_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
-
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
-
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-
-		async_sess_t *sess =
-		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
-		if (sess != NULL) {
-			if (con->client_sess == NULL) {
-				con->client_sess = sess;
-				async_answer_0(callid, EOK);
-			} else
-				async_answer_0(callid, ELIMIT);
-		} else {
-			switch (method) {
-			case CHAR_WRITE_BYTE:
-				ddf_msg(LVL_DEBUG, "Write %" PRIun " to device\n",
-				    IPC_GET_ARG1(call));
-				sun4v_con_putchar(con, (uint8_t) IPC_GET_ARG1(call));
-				async_answer_0(callid, EOK);
-				break;
-			default:
-				async_answer_0(callid, EINVAL);
-			}
-		}
-	}
+	chardev_conn(iid, icall, &con->cds);
 }
 
 /** @}

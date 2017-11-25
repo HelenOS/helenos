@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <ddf/driver.h>
+#include <io/chardev_srv.h>
 #include <loc.h>
 #include <stdint.h>
 
@@ -49,6 +50,7 @@ typedef struct {
 typedef struct {
 	async_sess_t *client_sess;
 	ddf_dev_t *dev;
+	chardev_srvs_t cds;
 	sun4v_con_res_t res;
 } sun4v_con_t;
 

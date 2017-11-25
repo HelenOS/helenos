@@ -142,6 +142,7 @@ GENERIC_SOURCES = \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/checksum.c \
+	generic/adt/circ_buf.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
 	generic/adt/odict.c \
@@ -180,6 +181,7 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 TEST_SOURCES = \
+	test/adt/circ_buf.c \
 	test/fibril/timer.c \
 	test/main.c \
 	test/io/table.c \

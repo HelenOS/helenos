@@ -26,11 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <char_dev_iface.h>
 #include <errno.h>
+#include <io/chardev.h>
 #include <io/serial.h>
 #include <loc.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define BUF_SIZE 1
 
@@ -43,7 +44,9 @@ int main(int argc, char **argv)
 {
 	sysarg_t baud = 9600;
 	service_id_t svc_id;
+	chardev_t *chardev;
 	serial_t *serial;
+	size_t nread;
 
 	int arg = 1;
 	int rc;
@@ -118,6 +121,12 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
+	rc = chardev_open(sess, &chardev);
+	if (rc != EOK) {
+		fprintf(stderr, "Failed opening character device\n");
+		return 2;
+	}
+
 	rc = serial_open(sess, &serial);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed opening serial port\n");
@@ -137,20 +146,20 @@ int main(int argc, char **argv)
 	}
 
 	while (true) {
-		ssize_t read = char_dev_read(sess, buf, BUF_SIZE);
-		if (read < 0) {
-			fprintf(stderr, "Failed reading from serial device\n");
-			break;
-		}
-		ssize_t i;
-		for (i = 0; i < read; i++) {
+		rc = chardev_read(chardev, buf, BUF_SIZE, &nread);
+		for (size_t i = 0; i < nread; i++) {
 			printf("%02hhx ", buf[i]);
+		}
+		if (rc != EOK) {
+			fprintf(stderr, "\nFailed reading from serial device\n");
+			break;
 		}
 		fflush(stdout);
 	}
 
 	free(buf);
 	serial_close(serial);
+	chardev_close(chardev);
 	async_hangup(sess);
 	return 0;
 }

@@ -30,6 +30,7 @@
 #define ISDV4_H_
 
 #include <async.h>
+#include <io/chardev.h>
 
 typedef struct isdv4_event isdv4_event_t;
 
@@ -57,15 +58,17 @@ typedef struct {
 	bool button2_pressed; /* Reported as stylus button 3 */
 	bool finger1_pressed; /* Reported as touch button 1 */
 
-	/* Session to the serial device */
+	/** Session with the serial device */
 	async_sess_t *sess;
+	/** Character device */
+	chardev_t *chardev;
 
 	/* Receive buffer state */
 	uint8_t *buf;
 	size_t buf_size;
 	size_t buf_end;
 
-	/* Callbacks */
+	/** Callbacks */
 	isdv4_event_fn emit_event_fn;
 } isdv4_state_t;
 

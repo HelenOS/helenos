@@ -41,7 +41,6 @@
 #include "dev_iface.h"
 #include "remote_hw_res.h"
 #include "remote_pio_window.h"
-#include "remote_char_dev.h"
 #include "remote_clock_dev.h"
 #include "remote_led_dev.h"
 #include "remote_battery_dev.h"
@@ -61,7 +60,6 @@ static const iface_dipatch_table_t remote_ifaces = {
 		[AUDIO_PCM_BUFFER_IFACE] = &remote_audio_pcm_iface,
 		[HW_RES_DEV_IFACE] = &remote_hw_res_iface,
 		[PIO_WINDOW_DEV_IFACE] = &remote_pio_window_iface,
-		[CHAR_DEV_IFACE] = &remote_char_dev_iface,
 		[NIC_DEV_IFACE] = &remote_nic_iface,
 		[IEEE80211_DEV_IFACE] = &remote_ieee80211_iface,
 		[PCI_DEV_IFACE] = &remote_pci_iface,

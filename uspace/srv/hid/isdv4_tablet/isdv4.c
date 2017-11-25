@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <char_dev_iface.h>
 #include <errno.h>
+#include <io/chardev.h>
+#include <mem.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <mem.h>
 #include <thread.h>
 
 #include "isdv4.h"
@@ -297,11 +297,14 @@ static int read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 {
 	bool reading = true;
 	while (reading) {
-		ssize_t read = char_dev_read(state->sess, state->buf + state->buf_end,
-		    state->buf_size - state->buf_end);
-		if (read < 0)
+		size_t nread;
+		int rc;
+
+		rc = chardev_read(state->chardev, state->buf + state->buf_end,
+		    state->buf_size - state->buf_end, &nread);
+		if (rc != EOK && nread == 0)
 			return EIO;
-		state->buf_end += read;
+		state->buf_end += nread;
 
 		size_t i = 0;
 
@@ -356,19 +359,37 @@ static int read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 	}
 	return EOK;
 }
-static bool write_command(async_sess_t *sess, uint8_t command)
+
+static bool write_command(chardev_t *chardev, uint8_t command)
 {
-	return char_dev_write(sess, &command, 1) == 1;
+	int rc;
+	size_t nwr;
+
+	rc = chardev_write(chardev, &command, 1, &nwr);
+	return rc == EOK;
 }
 
 int isdv4_init(isdv4_state_t *state, async_sess_t *sess,
     isdv4_event_fn event_fn)
 {
+	chardev_t *chardev;
+	int rc;
+
+	rc = chardev_open(sess, &chardev);
+	if (rc != EOK)
+		return rc;
+
 	memset(state, 0, sizeof(isdv4_state_t));
+
 	state->sess = sess;
+	state->chardev = chardev;
+
 	state->buf = malloc(BUF_SIZE);
-	if (state->buf == NULL)
+	if (state->buf == NULL) {
+		chardev_close(chardev);
 		return ENOMEM;
+	}
+
 	state->buf_size = BUF_SIZE;
 	state->emit_event_fn = event_fn;
 	return EOK;
@@ -376,27 +397,27 @@ int isdv4_init(isdv4_state_t *state, async_sess_t *sess,
 
 int isdv4_init_tablet(isdv4_state_t *state)
 {
-	if (!write_command(state->sess, CMD_STOP))
+	if (!write_command(state->chardev, CMD_STOP))
 		return EIO;
 
 	thread_usleep(250000); /* 250 ms */
 
 	// FIXME: Read all possible garbage before sending commands
-	if (!write_command(state->sess, CMD_QUERY_STYLUS))
+	if (!write_command(state->chardev, CMD_QUERY_STYLUS))
 		return EIO;
 
 	int rc = read_packets(state, parse_response_stylus);
 	if (rc != EOK)
 		return rc;
 
-	if (!write_command(state->sess, CMD_QUERY_TOUCH))
+	if (!write_command(state->chardev, CMD_QUERY_TOUCH))
 		return EIO;
 
 	rc = read_packets(state, parse_response_touch);
 	if (rc != EOK)
 		return rc;
 
-	if (!write_command(state->sess, CMD_START))
+	if (!write_command(state->chardev, CMD_START))
 		return EIO;
 
 	return EOK;
