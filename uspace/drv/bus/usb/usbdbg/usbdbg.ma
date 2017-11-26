@@ -1,1 +1,2 @@
-100 usb&dbg
+100 usb&diagnostic
+100 usb&class=diagnostic
