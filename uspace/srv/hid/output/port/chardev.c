@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016 Jakub Jermar
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +50,7 @@ static char *console;
 static async_sess_t *sess;
 static chardev_t *chardev;
 static service_id_t serial_cat_id;
+static service_id_t console_cat_id;
 
 static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
 static bool discovery_finished;
@@ -69,38 +71,22 @@ static void chardev_control_puts(const char *str)
 	/* XXX Handle error */
 }
 
-/*
- * This callback scans all the services in the 'serial' category, hoping to see
- * the single one the user wishes to use as a serial console. If it spots it, it
- * connects to it and registers it as an output device. Then it unblocks the
- * fibril blocked in chardev_init().
- */
-static void check_for_dev(void)
+static bool find_output_dev(service_id_t *svcid)
 {
-	int rc;
-
-	fibril_mutex_lock(&discovery_lock);
-	if (discovery_finished) {
-		// TODO: no need to receive these callbacks anymore
-		fibril_mutex_unlock(&discovery_lock);
-		return;
-	}
-
 	service_id_t *svc;
 	size_t svcs;
+	int rc;
+
 	rc = loc_category_get_svcs(serial_cat_id, &svc, &svcs);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&discovery_lock);
 		printf("%s: Failed to get services\n", NAME);
-		return;
+		return false;
 	}
 
-	service_id_t sid;
-	bool found = false;
-
-	for (size_t i = 0; i < svcs && !found; i++) {
+	for (size_t i = 0; i < svcs; i++) {
 		char *name;
-		
+
 		rc = loc_service_get_name(svc[i], &name);
 		if (rc != EOK)
 			continue;
@@ -110,15 +96,55 @@ static void check_for_dev(void)
 			 * This is the serial console service that the user
 			 * wanted to use.
 			 */
-			found = true;
-			sid = svc[i];
+			*svcid = svc[i];
+			free(svc);
+			return true;
 		}
-			
+
 		free(name);
 	}
 
 	free(svc);
 
+	/* Look for any service in the 'console' category */
+
+	rc = loc_category_get_svcs(console_cat_id, &svc, &svcs);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&discovery_lock);
+		printf("%s: Failed to get services\n", NAME);
+		return false;
+	}
+
+	if (svcs > 0) {
+		*svcid = svc[0];
+		free(svc);
+		return true;
+	}
+
+	free(svc);
+	return false;
+}
+
+/*
+ * This callback scans all the services in the 'serial' category, hoping to see
+ * the single one the user wishes to use as a serial console. If it spots it, it
+ * connects to it and registers it as an output device. Then it unblocks the
+ * fibril blocked in chardev_init().
+ */
+static void check_for_dev(void)
+{
+	int rc;
+	bool found;
+	service_id_t sid;
+
+	fibril_mutex_lock(&discovery_lock);
+	if (discovery_finished) {
+		// TODO: no need to receive these callbacks anymore
+		fibril_mutex_unlock(&discovery_lock);
+		return;
+	}
+
+	found = find_output_dev(&sid);
 	if (!found) {
 		fibril_mutex_unlock(&discovery_lock);
 		return;
@@ -147,17 +173,26 @@ static void check_for_dev(void)
 
 int chardev_init(void)
 {
-	console = config_get_value("console");
-	if (!console) {
-		/*
-		 * The system is not configured to use serial console.
-		 */
+	if (!config_key_exists("console")) {
+		console = NULL;
+#ifndef MACHINE_ski
 		return EOK;
+#endif
+	} else {
+		console = config_get_value("console");
+		if (!console)
+			return EOK;
 	}
 
 	int rc = loc_category_get_id("serial", &serial_cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed to get \"serial\" category ID.\n", NAME);
+		return rc;
+	} 
+
+	rc = loc_category_get_id("console", &console_cat_id, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed to get \"console\" category ID.\n", NAME);
 		return rc;
 	} 
 
@@ -167,6 +202,8 @@ int chardev_init(void)
 		    NAME);
 		return rc;
 	}
+
+	check_for_dev();
 
 	fibril_mutex_lock(&discovery_lock);
 	while (!discovery_finished)

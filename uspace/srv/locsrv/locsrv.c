@@ -1346,6 +1346,9 @@ static bool loc_init(void)
 	cat = category_new("serial");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("console");
+	categ_dir_add_cat(&cdir, cat);
+
 	cat = category_new("clock");
 	categ_dir_add_cat(&cdir, cat);
 

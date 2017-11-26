@@ -37,7 +37,6 @@
 #include "port/ega.h"
 #include "port/kchar.h"
 #include "port/niagara.h"
-#include "port/ski.h"
 #include "port/chardev.h"
 #include "output.h"
 
@@ -480,10 +479,9 @@ int main(int argc, char *argv[])
 		ega_init();
 		kchar_init();
 		niagara_init();
-		ski_init();
-	} else {
-		chardev_init();
 	}
+	
+	chardev_init();
 	
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);

@@ -42,6 +42,7 @@
 #include "ski-con.h"
 
 #define SKI_GETCHAR		21
+#define SKI_PUTCHAR		31
 
 #define POLL_INTERVAL		10000
 
@@ -56,6 +57,8 @@ static chardev_ops_t ski_con_chardev_ops = {
 	.read = ski_con_read,
 	.write = ski_con_write
 };
+
+static void ski_con_putchar(ski_con_t *con, char ch); /* XXX */
 
 /** Add ski console device. */
 int ski_con_add(ski_con_t *con)
@@ -87,6 +90,8 @@ int ski_con_add(ski_con_t *con)
 		ddf_msg(LVL_ERROR, "Error binding function 'a'.");
 		goto error;
 	}
+
+	ddf_fun_add_to_category(fun, "console");
 
 	bound = true;
 
@@ -176,9 +181,31 @@ static int32_t ski_con_getchar(void)
 	return (int32_t) ch;
 }
 
+
+/** Display character on ski debug console
+ *
+ * Use SSC (Simulator System Call) to
+ * display character on debug console.
+ *
+ * @param c Character to be printed.
+ *
+ */
 static void ski_con_putchar(ski_con_t *con, char ch)
 {
-	
+#ifdef UARCH_ia64
+	asm volatile (
+		"mov r15 = %0\n"
+		"mov r32 = %1\n"   /* r32 is in0 */
+		"break 0x80000\n"  /* modifies r8 */
+		:
+		: "i" (SKI_PUTCHAR), "r" (ch)
+		: "r15", "in0", "r8"
+	);
+#else
+	(void) ch;
+#endif
+	if (ch == '\n')
+		ski_con_putchar(con, '\r');
 }
 
 /** Read from Ski console device */
