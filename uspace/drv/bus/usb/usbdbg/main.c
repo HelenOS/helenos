@@ -37,45 +37,74 @@
 #include <usb/debug.h>
 #include <usb/dev/driver.h>
 
+#include "usbdbg.h"
+#include "device.h"
+
 #define NAME "usbdbg"
 
-static int usbdbg_device_add(usb_device_t *dev)
+static int device_add(usb_device_t *dev)
 {
-	usb_log_info("usbdbg_device_add");
+	usb_log_info("Adding device '%s'", usb_device_get_name(dev));
+
+	int err;
+
+	usb_dbg_dev_t *dbg_dev;
+	if ((err = usb_dbg_dev_create(dev, &dbg_dev)))
+		return err;
+
+	/* TODO: Register device in some list. */
+	/* TODO: Register device DDF function. */
+
 	return EOK;
 }
 
-static int usbdbg_device_remove(usb_device_t *dev)
+static int device_remove(usb_device_t *dev)
 {
-	usb_log_info("usbdbg_device_remove");
+	usb_log_info("Removing device '%s'", usb_device_get_name(dev));
+
+	usb_dbg_dev_t *dbg_dev = usb_dbg_dev_get(dev);
+
+	/* TODO: Make sure nothing is going on with the device. */
+	/* TODO: Unregister device DDF function. */
+	/* TODO: Remove device from list */
+
+	usb_dbg_dev_destroy(dbg_dev);
+
 	return EOK;
 }
 
-static int usbdbg_device_gone(usb_device_t *dev)
+static int device_gone(usb_device_t *dev)
 {
-	usb_log_info("usbdbg_device_gone");
+	usb_log_info("Device '%s' gone.", usb_device_get_name(dev));
+
+	usb_dbg_dev_t *dbg_dev = usb_dbg_dev_get(dev);
+
+	/* TODO: Make sure nothing is going on with the device. */
+	/* TODO: Unregister device DDF function. */
+	/* TODO: Remove device from list */
+
+	usb_dbg_dev_destroy(dbg_dev);
+
 	return EOK;
 }
 
-static int usbdbg_function_online(ddf_fun_t *fun)
+static int function_online(ddf_fun_t *fun)
 {
-	/* TODO: What if this is the control function? */
 	return ddf_fun_online(fun);
 }
 
-static int usbdbg_function_offline(ddf_fun_t *fun)
+static int function_offline(ddf_fun_t *fun)
 {
-	/* TODO: What if this is the control function? */
 	return ddf_fun_offline(fun);
 }
 
 /** USB debug driver ops. */
 static const usb_driver_ops_t dbg_driver_ops = {
-	.device_add = usbdbg_device_add,
-	.device_rem = usbdbg_device_remove,
-	.device_gone = usbdbg_device_gone,
-	.function_online = usbdbg_function_online,
-	.function_offline = usbdbg_function_offline
+	.device_add = device_add,
+	.device_rem = device_remove,
+	.device_gone = device_gone,
+	.function_online = function_online,
+	.function_offline = function_offline
 };
 
 /** USB debug driver. */

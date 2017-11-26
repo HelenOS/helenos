@@ -33,6 +33,7 @@ LIBS = usbdev usb drv
 BINARY = usbdbg
 
 SOURCES = \
+	device.c \
 	main.c \
 
 include $(USPACE_PREFIX)/Makefile.common
