@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2017 Petr Manek
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 BINARY = tmon
 
-LIBS = 
+LIBS =
 
 SOURCES = \
 	main.c
