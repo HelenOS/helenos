@@ -73,6 +73,7 @@ DIRS = \
 	app/testread \
 	app/testwrit \
 	app/tetris \
+	app/tmon \
 	app/trace \
 	app/top \
 	app/untar \
@@ -279,4 +280,3 @@ lib/c.build: lib/softfloat.build lib/softint.build
 $(BUILDS): $(BASE_BUILDS)
 
 -include $(DEPS)
-

@@ -113,6 +113,7 @@ uspace/app/tester/tester
 uspace/app/testread/testread
 uspace/app/testwrit/testwrit
 uspace/app/tetris/tetris
+uspace/app/tmon/tmon
 uspace/app/top/top
 uspace/app/trace/trace
 uspace/app/untar/untar
@@ -185,6 +186,7 @@ uspace/dist/app/tester
 uspace/dist/app/testread
 uspace/dist/app/testwrit
 uspace/dist/app/tetris
+uspace/dist/app/tmon
 uspace/dist/app/top
 uspace/dist/app/trace
 uspace/dist/app/untar
