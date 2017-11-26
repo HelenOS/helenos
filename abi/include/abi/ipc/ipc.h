@@ -79,9 +79,6 @@
 /** Type of this call is 'notification' */
 #define IPC_CALLID_NOTIFICATION  2
 
-/* Return values from sys_ipc_call_async(). */
-#define IPC_CALLRET_FATAL      -1
-
 /* Macros for manipulating calling data */
 #define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (retval))
 #define IPC_SET_IMETHOD(data, val)    ((data).args[0] = (val))

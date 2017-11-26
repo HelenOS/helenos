@@ -99,7 +99,7 @@ static inline void ipc_finish_async(int rc, async_call_t *call)
 		return;
 	}
 	
-	if (rc == IPC_CALLRET_FATAL) {
+	if (rc != EOK) {
 		/* Call asynchronous handler with error code */
 		if (call->callback)
 			call->callback(call->private, ENOENT, NULL);

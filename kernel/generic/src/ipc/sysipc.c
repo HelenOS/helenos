@@ -357,8 +357,8 @@ static int check_call_limit(phone_t *phone)
  * @param arg3     Service-defined payload argument.
  * @param label    User-defined label.
  *
- * @return Call hash on success.
- * @return IPC_CALLRET_FATAL in case of a fatal error.
+ * @return EOK on success.
+ * @return Negative error code on error.
  *
  */
 sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
@@ -366,11 +366,11 @@ sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
 {
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
-		return IPC_CALLRET_FATAL;
+		return ENOENT;
 	
 	if (check_call_limit(kobj->phone)) {
 		kobject_put(kobj);
-		return IPC_CALLRET_FATAL;
+		return ELIMIT;
 	}
 	
 	call_t *call = ipc_call_alloc(0);
@@ -413,11 +413,11 @@ sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data,
 {
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
-		return IPC_CALLRET_FATAL;
+		return ENOENT;
 
 	if (check_call_limit(kobj->phone)) {
 		kobject_put(kobj);
-		return IPC_CALLRET_FATAL;
+		return ELIMIT;
 	}
 
 	call_t *call = ipc_call_alloc(0);
