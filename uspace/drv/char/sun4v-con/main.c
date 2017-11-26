@@ -73,12 +73,13 @@ static int sun4v_con_get_res(ddf_dev_t *dev, sun4v_con_res_t *res)
 	if (rc != EOK)
 		return rc;
 
-	if (hw_res.mem_ranges.count != 1) {
+	if (hw_res.mem_ranges.count != 2) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	res->base = RNGABS(hw_res.mem_ranges.ranges[0]);
+	res->in_base = RNGABS(hw_res.mem_ranges.ranges[0]);
+	res->out_base = RNGABS(hw_res.mem_ranges.ranges[1]);
 	return EOK;
 error:
 	hw_res_list_parsed_clean(&hw_res);

@@ -37,7 +37,6 @@
 #include <errno.h>
 #include <io/chardev_srv.h>
 #include <stdbool.h>
-#include <sysinfo.h>
 
 #include "sun4v-con.h"
 
@@ -114,23 +113,16 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 
 	ddf_fun_set_conn_handler(fun, sun4v_con_connection);
 
-	rc = physmem_map(res->base, 1, AS_AREA_READ | AS_AREA_WRITE,
+	rc = physmem_map(res->in_base, 1, AS_AREA_READ | AS_AREA_WRITE,
 	    (void *) &input_buffer);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error mapping memory: %d", rc);
 		goto error;
 	}
 
-	sysarg_t paddr;
-	rc = sysinfo_get_value("niagara.outbuf.address", &paddr);
-	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Outbuf address information not found");
-		return rc;
-	}
-
 	output_fifo = (output_fifo_t *) AS_AREA_ANY;
 
-	rc = physmem_map(paddr, 1, AS_AREA_READ | AS_AREA_WRITE,
+	rc = physmem_map(res->out_base, 1, AS_AREA_READ | AS_AREA_WRITE,
 	    (void *) &output_fifo);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error mapping memory: %d", rc);
@@ -149,6 +141,9 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 error:
 	if (input_buffer != (input_buffer_t) AS_AREA_ANY)
 		physmem_unmap((void *) input_buffer);
+
+	if (output_fifo != (output_fifo_t *) AS_AREA_ANY)
+		physmem_unmap((void *) output_fifo);
 
 	if (fun != NULL)
 		ddf_fun_destroy(fun);

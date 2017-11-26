@@ -43,7 +43,8 @@
 
 /** Sun4v console resources */
 typedef struct {
-	uintptr_t base;
+	uintptr_t in_base;
+	uintptr_t out_base;
 } sun4v_con_res_t;
 
 /** Sun4v console */

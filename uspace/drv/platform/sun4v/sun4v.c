@@ -74,6 +74,15 @@ static hw_resource_t console_res[] = {
 			.endianness = LITTLE_ENDIAN
 		}
 	},
+	{
+		.type = MEM_RANGE,
+		.res.mem_range = {
+			.address = 0,
+			.size = PAGE_SIZE,
+			.relative = true,
+			.endianness = LITTLE_ENDIAN
+		}
+	},
 };
 
 static sun4v_fun_t console_data = {
@@ -222,7 +231,15 @@ static int sun4v_init(void)
 		return rc;
 	}
 
-	console_data.pio_window.mem.base = paddr;
+	console_res[0].res.mem_range.address = paddr;
+
+	rc = sysinfo_get_value("niagara.outbuf.address", &paddr);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "niagara.outbuf.address not set (%d)", rc);
+		return rc;
+	}
+
+	console_res[1].res.mem_range.address = paddr;
 	return EOK;
 }
 
