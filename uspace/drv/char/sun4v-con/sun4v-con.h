@@ -41,6 +41,8 @@
 #include <loc.h>
 #include <stdint.h>
 
+#include "niagara_buf.h"
+
 /** Sun4v console resources */
 typedef struct {
 	uintptr_t in_base;
@@ -53,6 +55,10 @@ typedef struct {
 	ddf_dev_t *dev;
 	chardev_srvs_t cds;
 	sun4v_con_res_t res;
+	/** Virtual address of the shared input buffer */
+	niagara_input_buffer_t *input_buffer;
+	/** Virtual address of the shared input buffer */
+	niagara_output_buffer_t *output_buffer;
 } sun4v_con_t;
 
 extern int sun4v_con_add(sun4v_con_t *, sun4v_con_res_t *);
