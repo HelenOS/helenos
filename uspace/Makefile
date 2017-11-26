@@ -215,12 +215,12 @@ endif
 
 BASE_LIBS = \
 	lib/c \
+	lib/cpp \
 	lib/softint \
 	lib/softfloat \
 	lib/untar
 
 LIBS = \
-	lib/cpp \
 	lib/fs \
 	lib/block \
 	lib/crypto \

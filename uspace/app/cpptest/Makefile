@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 
 # TODO: Force linker to link libcpp by default when linking cpp apps?
-LIBS = $(USPACE_PREFIX)/lib/cpp/libcpp.a
+LIBS = cpp
 
 BINARY = cpptest
 

@@ -36,6 +36,7 @@
 #define LIBC_STDDEF_H_
 
 #include <_bits/size_t.h>
+#include <_bits/ssize_t.h>
 #include <_bits/ptrdiff_t.h>
 #include <_bits/wchar_t.h>
 

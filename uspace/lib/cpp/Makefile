@@ -32,8 +32,7 @@ ROOT_PATH = $(USPACE_PREFIX)/..
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 LIBRARY = libcpp
-SLIBRARY = libcpp.so.0.0
-LSONAME = libcpp.so.0
+SOVERSION = 0.0
 
 -include $(CONFIG_MAKEFILE)
 

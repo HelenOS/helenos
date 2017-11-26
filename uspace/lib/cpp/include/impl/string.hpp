@@ -35,6 +35,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cwchar>
 #include <memory>
 #include <utility>
 
