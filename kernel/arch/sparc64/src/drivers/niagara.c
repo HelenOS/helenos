@@ -41,6 +41,7 @@
 #include <arch/asm.h>
 #include <arch.h>
 #include <mm/slab.h>
+#include <arch/drivers/niagara_buf.h>
 #include <arch/drivers/kbd.h>
 #include <arch/sun4v/hypercall.h>
 #include <sysinfo/sysinfo.h>
@@ -80,26 +81,16 @@ static outdev_operations_t niagara_ops = {
  * output operation it does is performed using the mapped buffer. The shared
  * buffer definition follows.
  */
-#define OUTPUT_BUFFER_SIZE  ((PAGE_SIZE) - 2 * 8)
-
-static volatile struct {
-	uint64_t read_ptr;
-	uint64_t write_ptr;
-	char data[OUTPUT_BUFFER_SIZE];
-} __attribute__ ((packed)) __attribute__ ((aligned(PAGE_SIZE))) output_buffer;
+static volatile niagara_output_buffer_t __attribute__ ((aligned(PAGE_SIZE)))
+    output_buffer;
 
 static parea_t outbuf_parea;
 
 /**
  * Analogous to the output_buffer, see the previous definition.
  */
-#define INPUT_BUFFER_SIZE  ((PAGE_SIZE) - 2 * 8)
-
-static volatile struct {
-	uint64_t write_ptr;
-	uint64_t read_ptr;
-	char data[INPUT_BUFFER_SIZE];
-} __attribute__ ((packed)) __attribute__ ((aligned(PAGE_SIZE))) input_buffer;
+static volatile niagara_input_buffer_t __attribute__ ((aligned(PAGE_SIZE)))
+    input_buffer;
 
 static parea_t inbuf_parea;
 

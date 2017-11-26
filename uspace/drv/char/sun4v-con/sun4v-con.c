@@ -38,36 +38,16 @@
 #include <io/chardev_srv.h>
 #include <stdbool.h>
 
+#include "niagara_buf.h"
 #include "sun4v-con.h"
 
 static void sun4v_con_connection(ipc_callid_t, ipc_call_t *, void *);
 
 #define POLL_INTERVAL  10000
 
-/*
- * Kernel counterpart of the driver pushes characters (it has read) here.
- * Keep in sync with the definition from
- * kernel/arch/sparc64/src/drivers/niagara.c.
- */
-#define INPUT_BUFFER_SIZE  ((PAGE_SIZE) - 2 * 8)
-
-typedef volatile struct {
-	uint64_t write_ptr;
-	uint64_t read_ptr;
-	char data[INPUT_BUFFER_SIZE];
-} __attribute__((packed)) __attribute__((aligned(PAGE_SIZE))) *input_buffer_t;
-
-#define OUTPUT_FIFO_SIZE  ((PAGE_SIZE) - 2 * sizeof(uint64_t))
-
-typedef volatile struct {
-	uint64_t read_ptr;
-	uint64_t write_ptr;
-	char data[OUTPUT_FIFO_SIZE];
-} __attribute__((packed)) output_fifo_t;
-
 /* virtual address of the shared buffer */
-static input_buffer_t input_buffer;
-static output_fifo_t *output_fifo;
+static niagara_input_buffer_t *input_buffer;
+static niagara_output_buffer_t *output_fifo;
 
 static int sun4v_con_read(chardev_srv_t *, void *, size_t, size_t *);
 static int sun4v_con_write(chardev_srv_t *, const void *, size_t, size_t *);
@@ -83,12 +63,12 @@ static void sun4v_con_putchar(sun4v_con_t *con, uint8_t data)
 		sun4v_con_putchar(con, '\r');
 
 	while (output_fifo->write_ptr ==
-	    (output_fifo->read_ptr + OUTPUT_FIFO_SIZE - 1)
-	    % OUTPUT_FIFO_SIZE);
+	    (output_fifo->read_ptr + OUTPUT_BUFFER_SIZE - 1)
+	    % OUTPUT_BUFFER_SIZE);
 
 	output_fifo->data[output_fifo->write_ptr] = data;
 	output_fifo->write_ptr =
-	    ((output_fifo->write_ptr) + 1) % OUTPUT_FIFO_SIZE;
+	    ((output_fifo->write_ptr) + 1) % OUTPUT_BUFFER_SIZE;
 }
 
 /** Add sun4v console device. */
@@ -98,7 +78,7 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 	int rc;
 
 	con->res = *res;
-	input_buffer = (input_buffer_t) AS_AREA_ANY;
+	input_buffer = (niagara_input_buffer_t *) AS_AREA_ANY;
 
 	fun = ddf_fun_create(con->dev, fun_exposed, "a");
 	if (fun == NULL) {
@@ -120,7 +100,7 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 		goto error;
 	}
 
-	output_fifo = (output_fifo_t *) AS_AREA_ANY;
+	output_fifo = (niagara_output_buffer_t *) AS_AREA_ANY;
 
 	rc = physmem_map(res->out_base, 1, AS_AREA_READ | AS_AREA_WRITE,
 	    (void *) &output_fifo);
@@ -139,10 +119,10 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 
 	return EOK;
 error:
-	if (input_buffer != (input_buffer_t) AS_AREA_ANY)
+	if (input_buffer != (niagara_input_buffer_t *) AS_AREA_ANY)
 		physmem_unmap((void *) input_buffer);
 
-	if (output_fifo != (output_fifo_t *) AS_AREA_ANY)
+	if (output_fifo != (niagara_output_buffer_t *) AS_AREA_ANY)
 		physmem_unmap((void *) output_fifo);
 
 	if (fun != NULL)
