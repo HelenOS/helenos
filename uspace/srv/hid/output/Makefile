@@ -35,7 +35,6 @@ SOURCES = \
 	ctl/serial.c \
 	port/ega.c \
 	port/kchar.c \
-	port/niagara.c \
 	port/chardev.c \
 	proto/vt100.c \
 	output.c

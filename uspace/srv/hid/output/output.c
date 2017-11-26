@@ -36,7 +36,6 @@
 #include <config.h>
 #include "port/ega.h"
 #include "port/kchar.h"
-#include "port/niagara.h"
 #include "port/chardev.h"
 #include "output.h"
 
@@ -478,7 +477,6 @@ int main(int argc, char *argv[])
 	if (!config_key_exists("console")) {
 		ega_init();
 		kchar_init();
-		niagara_init();
 	}
 	
 	chardev_init();

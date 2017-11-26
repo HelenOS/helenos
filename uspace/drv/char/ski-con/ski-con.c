@@ -192,6 +192,9 @@ static int32_t ski_con_getchar(void)
  */
 static void ski_con_putchar(ski_con_t *con, char ch)
 {
+	if (ch == '\n')
+		ski_con_putchar(con, '\r');
+
 #ifdef UARCH_ia64
 	asm volatile (
 		"mov r15 = %0\n"
@@ -204,8 +207,6 @@ static void ski_con_putchar(ski_con_t *con, char ch)
 #else
 	(void) ch;
 #endif
-	if (ch == '\n')
-		ski_con_putchar(con, '\r');
 }
 
 /** Read from Ski console device */

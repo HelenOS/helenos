@@ -150,6 +150,16 @@ static void check_for_dev(void)
 		return;
 	}
 
+	printf("%s: Connecting service %zu\n", NAME, sid);
+	char *name;
+	rc = loc_service_get_name(sid, &name);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&discovery_lock);
+		return;
+	}
+	printf("%s: Service name is %s\n", NAME, name);
+	free(name);
+
 	sess = loc_service_connect(sid, INTERFACE_DDF, IPC_FLAG_BLOCKING);
 	if (!sess) {
 		fibril_mutex_unlock(&discovery_lock);
@@ -175,7 +185,11 @@ int chardev_init(void)
 {
 	if (!config_key_exists("console")) {
 		console = NULL;
-#ifndef MACHINE_ski
+#ifdef MACHINE_ski
+		/* OK */
+#elif defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
+		/* OK */
+#else
 		return EOK;
 #endif
 	} else {

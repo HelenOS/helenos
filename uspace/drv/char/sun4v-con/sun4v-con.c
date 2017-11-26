@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <io/chardev_srv.h>
 #include <stdbool.h>
-#include <thread.h>
+#include <sysinfo.h>
 
 #include "sun4v-con.h"
 
@@ -58,8 +58,17 @@ typedef volatile struct {
 	char data[INPUT_BUFFER_SIZE];
 } __attribute__((packed)) __attribute__((aligned(PAGE_SIZE))) *input_buffer_t;
 
+#define OUTPUT_FIFO_SIZE  ((PAGE_SIZE) - 2 * sizeof(uint64_t))
+
+typedef volatile struct {
+	uint64_t read_ptr;
+	uint64_t write_ptr;
+	char data[OUTPUT_FIFO_SIZE];
+} __attribute__((packed)) output_fifo_t;
+
 /* virtual address of the shared buffer */
 static input_buffer_t input_buffer;
+static output_fifo_t *output_fifo;
 
 static int sun4v_con_read(chardev_srv_t *, void *, size_t, size_t *);
 static int sun4v_con_write(chardev_srv_t *, const void *, size_t, size_t *);
@@ -71,8 +80,16 @@ static chardev_ops_t sun4v_con_chardev_ops = {
 
 static void sun4v_con_putchar(sun4v_con_t *con, uint8_t data)
 {
-	(void) con;
-	(void) data;
+	if (data == '\n')
+		sun4v_con_putchar(con, '\r');
+
+	while (output_fifo->write_ptr ==
+	    (output_fifo->read_ptr + OUTPUT_FIFO_SIZE - 1)
+	    % OUTPUT_FIFO_SIZE);
+
+	output_fifo->data[output_fifo->write_ptr] = data;
+	output_fifo->write_ptr =
+	    ((output_fifo->write_ptr) + 1) % OUTPUT_FIFO_SIZE;
 }
 
 /** Add sun4v console device. */
@@ -104,16 +121,32 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 		goto error;
 	}
 
+	sysarg_t paddr;
+	rc = sysinfo_get_value("niagara.outbuf.address", &paddr);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Outbuf address information not found");
+		return rc;
+	}
+
+	output_fifo = (output_fifo_t *) AS_AREA_ANY;
+
+	rc = physmem_map(paddr, 1, AS_AREA_READ | AS_AREA_WRITE,
+	    (void *) &output_fifo);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error mapping memory: %d", rc);
+		return rc;
+	}
+
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error binding function 'a'.");
 		goto error;
 	}
 
+	ddf_fun_add_to_category(fun, "console");
+
 	return EOK;
 error:
-	/* XXX Clean up thread */
-
 	if (input_buffer != (input_buffer_t) AS_AREA_ANY)
 		physmem_unmap((void *) input_buffer);
 
