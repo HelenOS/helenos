@@ -283,7 +283,7 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 	ipc_call_t call;
 	sysarg_t phoneid;
 	
-	if (sc_rc == (sysarg_t) EOK)
+	if (sc_rc != (sysarg_t) EOK)
 		return;
 
 	phoneid = sc_args[0];
@@ -303,7 +303,7 @@ static void sc_ipc_call_async_slow(sysarg_t *sc_args, sysarg_t sc_rc)
 	ipc_call_t call;
 	int rc;
 
-	if (sc_rc == (sysarg_t) EOK)
+	if (sc_rc != (sysarg_t) EOK)
 		return;
 
 	memset(&call, 0, sizeof(call));
