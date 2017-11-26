@@ -396,7 +396,7 @@ sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
 		ipc_backsend_err(kobj->phone, call, res);
 	
 	kobject_put(kobj);
-	return (sysarg_t) call;
+	return EOK;
 }
 
 /** Make an asynchronous IPC call allowing to transmit the entire payload.
@@ -440,7 +440,7 @@ sysarg_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data,
 		ipc_backsend_err(kobj->phone, call, res);
 	
 	kobject_put(kobj);
-	return (sysarg_t) call;
+	return EOK;
 }
 
 /** Forward a received call to another destination
