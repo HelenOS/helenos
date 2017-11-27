@@ -58,7 +58,7 @@ function grub_files_update()
 	cp -R "$builddir"/"$platform"/lib64/grub/"$platform" "$helenosdir"/boot/"$gdir" || exit 1
 	rm -f "$helenosdir"/boot/"$gdir"/"$platform"/*.image || exit 1
 	rm -f "$helenosdir"/boot/"$gdir"/"$platform"/*.module || exit 1
-	bzr add "$helenosdir"/boot/"$gdir"/"$platform" || exit 1
+	git add "$helenosdir"/boot/"$gdir"/"$platform" || exit 1
 }
 
 # Prepare a clone of Grub2 repo
