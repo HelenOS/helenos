@@ -189,6 +189,8 @@ int chardev_init(void)
 		/* OK */
 #elif defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
 		/* OK */
+#elif defined(MACHINE_msim)
+		/* OK */
 #else
 		return EOK;
 #endif

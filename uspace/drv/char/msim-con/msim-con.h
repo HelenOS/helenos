@@ -38,6 +38,7 @@
 #include <adt/circ_buf.h>
 #include <async.h>
 #include <ddf/driver.h>
+#include <ddi.h>
 #include <fibril_synch.h>
 #include <io/chardev_srv.h>
 #include <loc.h>
@@ -65,6 +66,7 @@ typedef struct {
 	uint8_t buf[msim_con_buf_size];
 	fibril_mutex_t buf_lock;
 	fibril_condvar_t buf_cv;
+	ioport8_t *out_reg;
 } msim_con_t;
 
 extern int msim_con_add(msim_con_t *, msim_con_res_t *);

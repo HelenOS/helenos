@@ -105,6 +105,12 @@ int msim_con_add(msim_con_t *con, msim_con_res_t *res)
 		goto error;
 	}
 
+	rc = pio_enable((void *)res->base, 1, (void **) &con->out_reg);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error enabling I/O");
+		goto error;
+	}
+
 	ddf_fun_set_conn_handler(fun, msim_con_connection);
 
 	con->irq_range[0].base = res->base;
@@ -131,6 +137,8 @@ int msim_con_add(msim_con_t *con, msim_con_res_t *res)
 		goto error;
 	}
 
+	ddf_fun_add_to_category(fun, "console");
+
 	return EOK;
 error:
 	if (subscribed)
@@ -156,6 +164,7 @@ int msim_con_gone(msim_con_t *con)
 
 static void msim_con_putchar(msim_con_t *con, uint8_t ch)
 {
+	pio_write_8(con->out_reg, ch);
 }
 
 /** Read from msim console device */
