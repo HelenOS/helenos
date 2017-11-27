@@ -48,7 +48,7 @@ PROFILES = \
 	sparc64/niagara \
 	sparc64/ultra
 
-BZR = bzr
+GIT = git
 TAR = tar
 
 # To determine IMG_FILE
@@ -91,7 +91,7 @@ release: src_rel
 $(EXPORT_DIR) export:
 	rm -rf $(EXPORT_DIR)
 	mkdir -p $(EXPORT_DIR)
-	$(BZR) export $(EXPORT_DIR) ../
+	(cd ..; $(GIT) archive master) | $(TAR) -x -C $(EXPORT_DIR)
 
 src_rel $(SRC_ARCHIVE): export
 	$(TAR) -C $(shell dirname $(EXPORT_DIR)) \
