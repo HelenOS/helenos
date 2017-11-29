@@ -1030,6 +1030,7 @@ static void pane_status_display(void)
 
 	printf("%s", text);
 	free(text);
+	free(fname);
 finish:
 	/* Fill the rest of the line */
 	pos = scr_columns - 1 - n;
