@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <async.h>
 #include <errno.h>
 #include <io/chardev.h>
 #include <mem.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <thread.h>
 
 #include "isdv4.h"
 
@@ -400,7 +400,7 @@ int isdv4_init_tablet(isdv4_state_t *state)
 	if (!write_command(state->chardev, CMD_STOP))
 		return EIO;
 
-	thread_usleep(250000); /* 250 ms */
+	async_usleep(250000); /* 250 ms */
 
 	// FIXME: Read all possible garbage before sending commands
 	if (!write_command(state->chardev, CMD_QUERY_STYLUS))

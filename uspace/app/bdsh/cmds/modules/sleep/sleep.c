@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <async.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <thread.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -130,7 +130,7 @@ int cmd_sleep(char **argv)
 		return CMD_FAILURE;
 	}
 
-	(void) thread_usleep(duration);
+	async_usleep(duration);
 
 	return CMD_SUCCESS;
 }

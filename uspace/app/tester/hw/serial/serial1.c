@@ -44,7 +44,6 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <str.h>
-#include <thread.h>
 #include "../../tester.h"
 
 #define DEFAULT_COUNT  1024
@@ -161,40 +160,36 @@ const char *test_serial1(void)
 		
 		TPRINTF("Read %zd bytes\n", nread);
 		
-		if (nread == 0)
-			thread_usleep(DEFAULT_SLEEP);
-		else {
-			buf[nread] = 0;
+		buf[nread] = 0;
+		
+		/*
+		 * Write data back to the device to test the opposite
+		 * direction of data transfer.
+		 */
+		rc = chardev_write(chardev, buf, nread, &nwritten);
+		if (rc != EOK) {
+			(void) serial_set_comm_props(serial, old_baud,
+			    old_par, old_word_size, old_stop);
 			
-			/*
-			 * Write data back to the device to test the opposite
-			 * direction of data transfer.
-			 */
-			rc = chardev_write(chardev, buf, nread, &nwritten);
-			if (rc != EOK) {
-				(void) serial_set_comm_props(serial, old_baud,
-				    old_par, old_word_size, old_stop);
-				
-				free(buf);
-				chardev_close(chardev);
-				serial_close(serial);
-				async_hangup(sess);
-				return "Failed writing to serial device";
-			}
-			
-			if (nwritten != nread) {
-				(void) serial_set_comm_props(serial, old_baud,
-				    old_par, old_word_size, old_stop);
-				
-				free(buf);
-				chardev_close(chardev);
-				serial_close(serial);
-				async_hangup(sess);
-				return "Written less data than read from serial device";
-			}
-			
-			TPRINTF("Written %zd bytes\n", nwritten);
+			free(buf);
+			chardev_close(chardev);
+			serial_close(serial);
+			async_hangup(sess);
+			return "Failed writing to serial device";
 		}
+		
+		if (nwritten != nread) {
+			(void) serial_set_comm_props(serial, old_baud,
+			    old_par, old_word_size, old_stop);
+			
+			free(buf);
+			chardev_close(chardev);
+			serial_close(serial);
+			async_hangup(sess);
+			return "Written less data than read from serial device";
+		}
+		
+		TPRINTF("Written %zd bytes\n", nwritten);
 		
 		total += nread;
 	}
