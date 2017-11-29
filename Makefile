@@ -72,6 +72,9 @@ cscope_parts:
 format:
 	find abi kernel boot uspace -type f -regex '^.*\.[ch]$$' | xargs $(FORMAT) -i -sort-includes -style=file
 
+doxy:
+	$(MAKE) -r -C doxygen
+
 # Pre-integration build check
 check: $(CHECK)
 ifdef JOBS 
@@ -119,5 +122,6 @@ clean:
 	$(MAKE) -r -C kernel clean
 	$(MAKE) -r -C uspace clean
 	$(MAKE) -r -C boot clean
+	$(MAKE) -r -C doxygen clean
 
 -include Makefile.local

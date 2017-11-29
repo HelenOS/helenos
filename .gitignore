@@ -21,6 +21,10 @@ boot/initrd.img
 /common.h
 /config.h
 /cscope.out
+doxygen/doxygen.cfg
+doxygen/doxygen.cfg.gen
+doxygen/html/
+doxygen/latex/
 /hdisk.img
 /image.iso
 kernel/arch/amd64/_link.ld
