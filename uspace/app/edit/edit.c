@@ -954,20 +954,85 @@ static void pane_status_display(void)
 	spt_t caret_pt;
 	coord_t coord;
 	int last_row;
+	char *fname;
+	char *p;
+	char *text;
+	size_t n;
+	int pos;
+	size_t nextra;
+	size_t fnw;
 
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
 
 	sheet_get_num_rows(doc.sh, &last_row);
 
-	const char *fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
+	if (doc.file_name != NULL) {
+		/* Remove directory component */
+		p = str_rchr(doc.file_name, '/');
+		if (p != NULL)
+			fname = str_dup(p + 1);
+		else
+			fname = str_dup(doc.file_name);
+	} else {
+		fname = str_dup("<unnamed>");
+	}
+
+	if (fname == NULL)
+		return;
 
 	console_set_pos(con, 0, scr_rows - 1);
 	console_set_style(con, STYLE_INVERTED);
-	int n = printf(" %d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
-	    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
-	
-	int pos = scr_columns - 1 - n;
+
+	/*
+	 * Make sure the status fits on the screen. This loop should
+	 * be executed at most twice.
+	 */
+	while (true) {
+		int rc = asprintf(&text, " %d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+		    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
+		if (rc < 0) {
+			n = 0;
+			goto finish;
+		}
+
+		/* If it already fits, we're done */
+		n = str_width(text);
+		if (n <= scr_columns - 2)
+			break;
+
+		/* Compute number of excess characters */
+		nextra = n - (scr_columns - 2);
+		/** With of the file name part */
+		fnw = str_width(fname);
+
+		/*
+		 * If reducing file name to two characters '..' won't help,
+		 * just give up and print a blank status.
+		 */
+		if (nextra > fnw - 2)
+			goto finish;
+
+		/* Compute position where we overwrite with '..\0' */
+		if (fnw >= nextra + 2) {
+			p = fname + str_lsize(fname, fnw - nextra - 2);
+		} else {
+			p = fname;
+		}
+
+		/* Shorten the string */
+		p[0] = p[1] = '.';
+		p[2] = '\0';
+
+		/* Need to format the string once more. */
+		free(text);
+	}
+
+	printf("%s", text);
+	free(text);
+finish:
+	/* Fill the rest of the line */
+	pos = scr_columns - 1 - n;
 	printf("%*s", pos, "");
 	console_flush(con);
 	console_set_style(con, STYLE_NORMAL);
