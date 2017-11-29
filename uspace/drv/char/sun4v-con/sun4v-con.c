@@ -148,7 +148,7 @@ static int sun4v_con_read(chardev_srv_t *srv, void *buf, size_t size,
 	char c;
 
 	while (con->input_buffer->read_ptr == con->input_buffer->write_ptr)
-		fibril_usleep(POLL_INTERVAL);
+		async_usleep(POLL_INTERVAL);
 
 	p = 0;
 	while (p < size && con->input_buffer->read_ptr != con->input_buffer->write_ptr) {

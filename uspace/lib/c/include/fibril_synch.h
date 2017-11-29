@@ -172,8 +172,6 @@ extern void fibril_timer_set_locked(fibril_timer_t *, suseconds_t,
     fibril_timer_fun_t, void *);
 extern fibril_timer_state_t fibril_timer_clear(fibril_timer_t *);
 extern fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *);
-extern void fibril_usleep(useconds_t);
-extern void fibril_sleep(unsigned int);
 
 #endif
 

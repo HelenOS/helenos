@@ -150,6 +150,8 @@ extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
 extern void async_forget(aid_t);
 
 extern void async_usleep(suseconds_t);
+extern void async_sleep(unsigned int);
+
 extern void async_create_manager(void);
 extern void async_destroy_manager(void);
 

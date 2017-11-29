@@ -30,6 +30,7 @@
 /** @file Ski console driver.
  */
 
+#include <async.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <errno.h>
@@ -148,7 +149,7 @@ static int ski_con_fibril(void *arg)
 			fibril_condvar_broadcast(&con->buf_cv);
 		}
 
-		fibril_usleep(POLL_INTERVAL);
+		async_usleep(POLL_INTERVAL);
 	}
 
 	return 0;

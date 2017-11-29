@@ -33,8 +33,8 @@
  */
 
 #include <assert.h>
+#include <async.h>
 #include <errno.h>
-#include <fibril_synch.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
 #include <irc.h>
@@ -71,7 +71,7 @@ static int irc_init(void)
 		free(svcs);
 
 		// XXX This is just a temporary hack
-		fibril_usleep(500 * 1000);
+		async_usleep(500 * 1000);
 	}
 
 	irc_sess = loc_service_connect(svcs[0], INTERFACE_IRC,
