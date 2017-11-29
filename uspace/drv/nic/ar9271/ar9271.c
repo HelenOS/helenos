@@ -32,6 +32,7 @@
  *
  */
 
+#include <async.h>
 #include <ieee80211.h>
 #include <usb/classes/classes.h>
 #include <usb/dev/request.h>
@@ -42,7 +43,6 @@
 #include <errno.h>
 #include <nic.h>
 #include <macros.h>
-#include <thread.h>
 #include "ath_usb.h"
 #include "wmi.h"
 #include "hw.h"
@@ -817,7 +817,7 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 	usb_log_info("Firmware uploaded successfully.\n");
 	
 	/* Wait until firmware is ready - wait for 1 second to be sure. */
-	thread_sleep(1);
+	async_sleep(1);
 	
 	return rc;
 }
