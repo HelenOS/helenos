@@ -138,7 +138,8 @@ static void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
 }
 
 vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
-    vt100_putchar_t putchar_fn, vt100_control_puts_t control_puts_fn)
+    vt100_putchar_t putchar_fn, vt100_control_puts_t control_puts_fn,
+	vt100_flush_t flush_fn)
 {
 	vt100_state_t *state = malloc(sizeof(vt100_state_t));
 	if (state == NULL)
@@ -146,6 +147,7 @@ vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
 	
 	state->putchar = putchar_fn;
 	state->control_puts = control_puts_fn;
+	state->flush = flush_fn;
 	
 	state->cols = cols;
 	state->rows = rows;
@@ -225,6 +227,11 @@ void vt100_putchar(vt100_state_t *state, wchar_t ch)
 		state->cur_row += state->cur_col / state->cols;
 		state->cur_col %= state->cols;
 	}
+}
+
+void vt100_flush(vt100_state_t *state)
+{
+	state->flush();
 }
 
 /** @}

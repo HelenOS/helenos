@@ -45,6 +45,10 @@
 #include "../output.h"
 #include "chardev.h"
 
+enum {
+	chardev_buf_size = 4096
+};
+
 static char *console;
 
 static async_sess_t *sess;
@@ -52,23 +56,42 @@ static chardev_t *chardev;
 static service_id_t serial_cat_id;
 static service_id_t console_cat_id;
 
+static uint8_t chardev_buf[chardev_buf_size];
+static size_t chardev_bused;
+
 static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
 static bool discovery_finished;
 static FIBRIL_CONDVAR_INITIALIZE(discovery_cv);
 
+static void chardev_flush(void)
+{
+	size_t nwr;
+
+	if (chardev_bused == 0)
+		return;
+
+	chardev_write(chardev, chardev_buf, chardev_bused, &nwr);
+	/* XXX Handle error */
+
+	chardev_bused = 0;
+}
+
 static void chardev_putchar(wchar_t ch)
 {
-	uint8_t byte = (uint8_t) ch;
-	size_t nwr;
-	chardev_write(chardev, &byte, 1, &nwr);
-	/* XXX Handle error */
+	if (chardev_bused == chardev_buf_size)
+		chardev_flush();
+	if (!ascii_check(ch))
+		ch = '?';
+	chardev_buf[chardev_bused++] = (uint8_t) ch;
 }
 
 static void chardev_control_puts(const char *str)
 {
-	size_t nwr;
-	chardev_write(chardev, (void *) str, str_size(str), &nwr);
-	/* XXX Handle error */
+	const char *p;
+
+	p = str;
+	while (*p != '\0')
+		chardev_putchar(*p++);
 }
 
 static bool find_output_dev(service_id_t *svcid)
@@ -174,7 +197,7 @@ static void check_for_dev(void)
 		return;
 	}
 
-	serial_init(chardev_putchar, chardev_control_puts);
+	serial_init(chardev_putchar, chardev_control_puts, chardev_flush);
 
 	discovery_finished = true;
 	fibril_condvar_signal(&discovery_cv);

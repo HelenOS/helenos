@@ -218,6 +218,8 @@ static void srv_cursor_update(ipc_callid_t iid, ipc_call_t *icall)
 		
 		dev->ops.cursor_update(dev, prev_col, prev_row, col, row,
 		    visible);
+		dev->ops.flush(dev);
+
 	}
 	
 	async_answer_0(iid, EOK);
@@ -341,7 +343,10 @@ static void srv_update(ipc_callid_t iid, ipc_call_t *icall)
 					dev->ops.char_update(dev, x, y);
 			}
 		}
+		
+		dev->ops.flush(dev);
 	}
+	
 	
 	async_answer_0(iid, EOK);
 }
@@ -379,8 +384,9 @@ static void srv_damage(ipc_callid_t iid, ipc_call_t *icall)
 				dev->ops.char_update(dev, col + x, row + y);
 			}
 		}
+		dev->ops.flush(dev);
+
 	}
-	
 	async_answer_0(iid, EOK);
 }
 

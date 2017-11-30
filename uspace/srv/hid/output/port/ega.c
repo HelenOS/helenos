@@ -168,13 +168,18 @@ static void ega_char_update(outdev_t *dev, sysarg_t col, sysarg_t row)
 	draw_char(field, col, row);
 }
 
+static void ega_flush(outdev_t *dev)
+{
+}
+
 static outdev_ops_t ega_ops = {
 	.yield = ega_yield,
 	.claim = ega_claim,
 	.get_dimensions = ega_get_dimensions,
 	.get_caps = ega_get_caps,
 	.cursor_update = ega_cursor_update,
-	.char_update = ega_char_update
+	.char_update = ega_char_update,
+	.flush = ega_flush
 };
 
 int ega_init(void)
