@@ -31,9 +31,9 @@
 
 #include <inttypes.h>
 #include <errno.h>
-#include <stdio.h>
 #include <stddef.h>
-#include <malloc.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <io/color.h>
 #include <types/common.h>
 #include "vt100.h"

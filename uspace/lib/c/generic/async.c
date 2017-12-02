@@ -112,7 +112,7 @@
 #include <sys/time.h>
 #include <libarch/barrier.h>
 #include <stdbool.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <macros.h>

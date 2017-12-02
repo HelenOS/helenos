@@ -42,9 +42,9 @@
 #include <ns.h>
 #include <async.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <str_error.h>
-#include <malloc.h>
 #include "logger.h"
 
 static void connection_handler_control(ipc_callid_t iid, ipc_call_t *icall,

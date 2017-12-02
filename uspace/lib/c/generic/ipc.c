@@ -42,7 +42,7 @@
 
 #include <ipc/ipc.h>
 #include <libc.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <adt/list.h>
 #include <futex.h>

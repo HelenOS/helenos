@@ -35,10 +35,10 @@
 #include <usb/hid/hidparser.h>
 #include <errno.h>
 #include <stdio.h>
-#include <malloc.h>
 #include <mem.h>
 #include <usb/debug.h>
 #include <assert.h>
+#include <stdlib.h>
 
 
 /*

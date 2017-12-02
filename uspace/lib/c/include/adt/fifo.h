@@ -45,7 +45,7 @@
 #ifndef LIBC_FIFO_H_
 #define LIBC_FIFO_H_
 
-#include <malloc.h>
+#include <stdlib.h>
 
 typedef unsigned long fifo_count_t;
 typedef unsigned long fifo_index_t;

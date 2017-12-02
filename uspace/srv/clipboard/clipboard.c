@@ -32,9 +32,9 @@
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <loc.h>
-#include <malloc.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <task.h>
 
 #define NAME  "clipboard"

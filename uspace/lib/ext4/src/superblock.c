@@ -39,8 +39,8 @@
 #include <block.h>
 #include <byteorder.h>
 #include <errno.h>
-#include <malloc.h>
 #include <mem.h>
+#include <stdlib.h>
 #include "ext4/superblock.h"
 
 /** Get number of i-nodes in the whole filesystem.

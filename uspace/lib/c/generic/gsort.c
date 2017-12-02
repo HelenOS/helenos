@@ -42,7 +42,7 @@
 #include <gsort.h>
 #include <inttypes.h>
 #include <mem.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 /** Immediate buffer size.
  *

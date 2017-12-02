@@ -38,7 +38,7 @@
 #include <stddef.h>
 #include <align.h>
 #include <tls.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <str.h>
 
 #ifdef CONFIG_RTLD

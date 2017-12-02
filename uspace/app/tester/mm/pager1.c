@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <vfs/vfs.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <as.h>
 #include <ns.h>
 #include <async.h>

@@ -34,9 +34,9 @@
 /** @file
  */
 
-#include <malloc.h>
 #include <macros.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <str_error.h>
 
 #include "hound_ctx.h"

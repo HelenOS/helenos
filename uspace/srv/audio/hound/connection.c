@@ -33,8 +33,8 @@
 /** @file
  */
 
-#include <malloc.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include "log.h"
 #include "connection.h"

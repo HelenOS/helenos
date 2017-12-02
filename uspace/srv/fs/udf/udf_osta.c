@@ -44,7 +44,7 @@
  * @brief OSTA compliant functions.
  */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <str.h>
 #include <macros.h>
 #include <errno.h>

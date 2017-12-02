@@ -30,8 +30,8 @@
 #include <stddef.h>
 #include <errno.h>
 #include <mem.h>
-#include <malloc.h>
 #include <byteorder.h>
+#include <stdlib.h>
 #include "gzip.h"
 #include "inflate.h"
 

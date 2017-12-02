@@ -34,7 +34,7 @@
 
 #include <usb/debug.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <mem.h>
 #include <byteorder.h>
 #include "wmi.h"

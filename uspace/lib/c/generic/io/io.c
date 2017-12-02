@@ -37,7 +37,7 @@
 #include <str.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <async.h>
 #include <io/kio.h>
 #include <vfs/vfs.h>

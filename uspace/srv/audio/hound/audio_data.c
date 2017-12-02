@@ -34,7 +34,7 @@
  */
 
 #include <macros.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "audio_data.h"
 #include "log.h"

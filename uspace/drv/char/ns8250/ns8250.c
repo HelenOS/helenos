@@ -45,7 +45,7 @@
 #include <str.h>
 #include <ctype.h>
 #include <macros.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <dirent.h>
 #include <ddi.h>
 

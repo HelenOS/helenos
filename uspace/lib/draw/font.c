@@ -34,8 +34,8 @@
  * @file
  */
 
-#include <malloc.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <str.h>
 
 #include "font.h"

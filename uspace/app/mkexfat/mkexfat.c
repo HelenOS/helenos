@@ -42,7 +42,7 @@
 #include <block.h>
 #include <assert.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <byteorder.h>
 #include <align.h>
 #include <str.h>

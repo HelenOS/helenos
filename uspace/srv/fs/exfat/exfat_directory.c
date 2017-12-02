@@ -42,7 +42,7 @@
 #include <errno.h>
 #include <byteorder.h>
 #include <mem.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <str.h>
 #include <align.h>
 

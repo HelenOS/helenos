@@ -38,9 +38,9 @@
 #include <block.h>
 #include <libfs.h>
 #include <adt/list.h>
-#include <malloc.h>
 #include <mem.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
 #include <stdbool.h>

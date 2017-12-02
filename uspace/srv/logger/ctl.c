@@ -34,8 +34,8 @@
 /** @file
  */
 
-#include <malloc.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <io/logctl.h>
 #include <ipc/logger.h>

@@ -47,8 +47,8 @@
 #include <align.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <malloc.h>
 #include <mem.h>
+#include <stdlib.h>
 #include <str.h>
 
 

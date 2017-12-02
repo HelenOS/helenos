@@ -36,12 +36,11 @@
  */
 
 #include <str.h>
-#include <stdlib.h>
 #include <stddef.h>
-#include <assert.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <ctype.h>
-#include <malloc.h>
 #include <errno.h>
 #include <align.h>
 #include <mem.h>

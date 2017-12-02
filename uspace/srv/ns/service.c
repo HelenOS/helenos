@@ -35,7 +35,7 @@
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include "service.h"
 #include "ns.h"
 

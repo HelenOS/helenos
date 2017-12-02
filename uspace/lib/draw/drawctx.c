@@ -35,7 +35,7 @@
 
 #include <assert.h>
 #include <adt/list.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "drawctx.h"
 

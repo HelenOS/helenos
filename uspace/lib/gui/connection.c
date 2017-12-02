@@ -34,7 +34,7 @@
  */
 
 #include <mem.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>
 #include <fibril_synch.h>

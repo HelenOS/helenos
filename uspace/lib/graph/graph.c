@@ -37,8 +37,8 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
-#include <malloc.h>
 #include <as.h>
+#include <stdlib.h>
 #include "graph.h"
 
 #define NAMESPACE         "graphemu"

@@ -35,7 +35,6 @@
  */
 
 #include <tls.h>
-#include <malloc.h>
 
 tcb_t *tls_alloc_arch(void **data, size_t size)
 {

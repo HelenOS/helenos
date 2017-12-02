@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "../gfx/cursor-11x18.h"
 #include "embedded.h"

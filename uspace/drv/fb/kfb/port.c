@@ -41,7 +41,7 @@
 #include <stdint.h>
 #include <errno.h>
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <mem.h>
 #include <as.h>
 #include <align.h>

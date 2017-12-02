@@ -43,7 +43,7 @@
 #include <fibril_synch.h>
 #include <async.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 static FIBRIL_MUTEX_INITIALIZE(devman_driver_block_mutex);
 static FIBRIL_MUTEX_INITIALIZE(devman_client_block_mutex);

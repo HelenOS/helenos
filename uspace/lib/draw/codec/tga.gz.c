@@ -35,7 +35,7 @@
 
 #include <errno.h>
 #include <gzip.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include "tga.gz.h"
 #include "tga.h"
 

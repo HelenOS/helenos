@@ -35,8 +35,8 @@
 #include <usb/hid/hidparser.h>
 #include <errno.h>
 #include <stdio.h>
-#include <malloc.h>
 #include <mem.h>
+#include <stdlib.h>
 #include <usb/debug.h>
 #include <assert.h>
 

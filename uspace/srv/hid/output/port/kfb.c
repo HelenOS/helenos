@@ -40,7 +40,7 @@
 #include <bool.h>
 #include <sysinfo.h>
 #include <ddi.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <mem.h>
 #include <as.h>
 #include <align.h>

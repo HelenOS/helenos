@@ -37,7 +37,7 @@
 #include <block.h>
 #include <libfs.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include <io/log.h>
 #include <mem.h>

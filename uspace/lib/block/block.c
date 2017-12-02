@@ -48,7 +48,7 @@
 #include <adt/hash_table.h>
 #include <macros.h>
 #include <mem.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <stacktrace.h>
 #include <offset.h>

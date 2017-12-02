@@ -39,6 +39,7 @@
 #include <inet/dhcp.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <loc.h>
 
 #define NAME  "wifi_supplicant"

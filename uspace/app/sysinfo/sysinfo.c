@@ -38,7 +38,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sysinfo.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 static void dump_bytes_hex(char *data, size_t size)
 {

@@ -34,8 +34,8 @@
 #define DEVMAN_UTIL_H_
 
 #include <ctype.h>
+#include <stdlib.h>
 #include <str.h>
-#include <malloc.h>
 
 extern char *get_abs_path(const char *, const char *, const char *);
 extern char *get_path_elem_end(char *);

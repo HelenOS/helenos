@@ -33,9 +33,9 @@
  */
 
 #include <device/hw_res_parsed.h>
-#include <malloc.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdlib.h>
 
 static void hw_res_parse_add_dma_channel(hw_res_list_parsed_t *out,
     const hw_resource_t *res, int flags)

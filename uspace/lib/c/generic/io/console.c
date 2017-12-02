@@ -37,7 +37,7 @@
 #include <libc.h>
 #include <async.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <vfs/vfs_sess.h>
 #include <io/console.h>
 #include <ipc/console.h>

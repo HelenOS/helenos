@@ -34,7 +34,7 @@
  */
 
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <io/chargrid.h>
 #include <surface.h>
 #include <gfx/font-8x16.h>

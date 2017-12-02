@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <inttypes.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #define SYSINFO_STATS_MAX_PATH  64
 

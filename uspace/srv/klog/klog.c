@@ -43,7 +43,7 @@
 #include <str_error.h>
 #include <io/klog.h>
 #include <sysinfo.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>

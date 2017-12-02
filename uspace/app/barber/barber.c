@@ -35,7 +35,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <task.h>
 #include <loc.h>
 #include <stats.h>

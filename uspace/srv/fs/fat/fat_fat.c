@@ -47,8 +47,8 @@
 #include <align.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <malloc.h>
 #include <mem.h>
+#include <stdlib.h>
 
 #define IS_ODD(number)	(number & 0x1)
 

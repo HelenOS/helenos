@@ -42,10 +42,10 @@
 #include <io/klog.h>
 #include <ns.h>
 #include <async.h>
-#include <stdio.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <str_error.h>
-#include <malloc.h>
 #include "logger.h"
 
 

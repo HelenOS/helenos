@@ -32,7 +32,7 @@
 #include <errno.h>
 #include <loc.h>
 #include <time.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
 

@@ -38,7 +38,7 @@
 #include <macros.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <str.h>
 #include <libfs.h>
 #include <fibril_synch.h>

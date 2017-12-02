@@ -35,12 +35,12 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <malloc.h>
 #include <errno.h>
 #include <byteorder.h>
 #include <stdio.h>
 #include <align.h>
 #include <offset.h>
+#include <stdlib.h>
 
 #include "pcf.h"
 #include "../drawctx.h"

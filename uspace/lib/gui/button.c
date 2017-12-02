@@ -34,7 +34,7 @@
  */
 
 #include <str.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <drawctx.h>
 #include <surface.h>
 #include <font/embedded.h>

@@ -41,13 +41,13 @@
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <adt/hash.h>
-#include <malloc.h>
 #include <mem.h>
 #include <loc.h>
 #include <libfs.h>
 #include <errno.h>
 #include <block.h>
 #include <scsi/mmc.h>
+#include <stdlib.h>
 #include <str.h>
 #include <byteorder.h>
 #include <macros.h>

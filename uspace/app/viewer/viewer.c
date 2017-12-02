@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <vfs/vfs.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <window.h>
 #include <canvas.h>

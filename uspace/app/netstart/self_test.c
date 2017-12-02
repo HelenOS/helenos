@@ -36,7 +36,7 @@
  */
 
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include <net_checksum.h>

@@ -38,7 +38,7 @@
 #include <inet/addr.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <bitops.h>
 #include <inttypes.h>
 

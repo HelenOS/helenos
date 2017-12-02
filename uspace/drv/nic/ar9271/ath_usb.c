@@ -34,7 +34,7 @@
 
 #include <usb/dev/pipes.h>
 #include <usb/debug.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <errno.h>
 #include "ath_usb.h"
 

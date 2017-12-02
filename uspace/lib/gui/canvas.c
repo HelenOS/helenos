@@ -33,7 +33,7 @@
  * @file
  */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <transform.h>
 #include <source.h>
 #include <surface.h>

@@ -44,7 +44,7 @@
 #include <async.h>
 #include <errno.h>
 #include <ns.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <libc.h>
 #include "private/ns.h"
 #include <vfs/vfs.h>

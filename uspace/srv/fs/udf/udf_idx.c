@@ -39,7 +39,7 @@
 #include <str.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <adt/hash_table.h>
 #include <adt/hash.h>
 #include <adt/list.h>

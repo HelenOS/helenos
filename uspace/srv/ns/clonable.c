@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <loader/loader.h>
 #include "clonable.h"
 #include "ns.h"

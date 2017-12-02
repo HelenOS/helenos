@@ -50,7 +50,6 @@
 #include <assert.h>
 #include <loc.h>
 #include <device/clock_dev.h>
-#include <malloc.h>
 #include <thread.h>
 
 #define ASCTIME_BUF_LEN  26

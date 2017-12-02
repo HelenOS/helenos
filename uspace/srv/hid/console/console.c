@@ -46,10 +46,10 @@
 #include <io/chargrid.h>
 #include <io/output.h>
 #include <align.h>
-#include <malloc.h>
 #include <as.h>
 #include <task.h>
 #include <fibril_synch.h>
+#include <stdlib.h>
 #include "console.h"
 
 #define NAME       "console"

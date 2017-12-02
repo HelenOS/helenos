@@ -33,7 +33,7 @@
  */
 
 #include <io/style.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>

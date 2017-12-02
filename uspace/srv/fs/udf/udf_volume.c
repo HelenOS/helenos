@@ -38,8 +38,8 @@
 #include <block.h>
 #include <libfs.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <str.h>
-#include <malloc.h>
 #include <mem.h>
 #include <inttypes.h>
 #include <io/log.h>

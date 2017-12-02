@@ -36,8 +36,8 @@
 
 #include <byteorder.h>
 #include <errno.h>
-#include <malloc.h>
 #include <mem.h>
+#include <stdlib.h>
 #include "ext4/balloc.h"
 #include "ext4/extent.h"
 #include "ext4/inode.h"

@@ -35,7 +35,7 @@
 #include <device/hw_res.h>
 #include <errno.h>
 #include <async.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 int hw_res_get_resource_list(async_sess_t *sess,
     hw_resource_list_t *hw_resources)

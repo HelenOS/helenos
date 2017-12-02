@@ -40,7 +40,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <task.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <macros.h>
 #include <str.h>
 #include <loc.h>

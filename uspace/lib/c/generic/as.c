@@ -39,7 +39,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <bitops.h>
-#include <malloc.h>
 #include "private/libc.h"
 
 /** Create address space area.

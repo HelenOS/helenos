@@ -48,7 +48,7 @@
 #include <str_error.h>
 #include <ctype.h>
 #include <macros.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <dirent.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>

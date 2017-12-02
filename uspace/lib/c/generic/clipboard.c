@@ -44,7 +44,7 @@
 #include <ipc/clipboard.h>
 #include <ipc/services.h>
 #include <loc.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <str.h>
 
 static FIBRIL_MUTEX_INITIALIZE(clip_mutex);

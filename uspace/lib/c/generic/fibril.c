@@ -38,7 +38,7 @@
 #include <thread.h>
 #include <stack.h>
 #include <tls.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <abi/mm/as.h>
 #include <as.h>
 #include <stdio.h>
