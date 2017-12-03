@@ -256,6 +256,17 @@ int vfs_fd_alloc(vfs_file_t **file, bool desc)
 	return _vfs_fd_alloc(VFS_DATA, file, desc);
 }
 
+static int _vfs_fd_free_locked(vfs_client_data_t *vfs_data, int fd)
+{
+	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || !vfs_data->files[fd]) {
+		return EBADF;
+	}
+
+	int rc = vfs_file_delref(vfs_data, vfs_data->files[fd]);
+	vfs_data->files[fd] = NULL;
+	return rc;
+}
+
 static int _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
 {
 	int rc;
@@ -264,13 +275,7 @@ static int _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
 		return ENOMEM;
 
 	fibril_mutex_lock(&vfs_data->lock);	
-	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || !vfs_data->files[fd]) {
-		fibril_mutex_unlock(&vfs_data->lock);
-		return EBADF;
-	}
-	
-	rc = vfs_file_delref(vfs_data, vfs_data->files[fd]);
-	vfs_data->files[fd] = NULL;
+	rc = _vfs_fd_free_locked(vfs_data, fd);
 	fibril_mutex_unlock(&vfs_data->lock);
 	
 	return rc;
@@ -307,10 +312,10 @@ int vfs_fd_assign(vfs_file_t *file, int fd)
 		fibril_mutex_unlock(&VFS_DATA->lock);
 		return EBADF;
 	}
-	if (FILES[fd] != NULL) {
-		fibril_mutex_unlock(&VFS_DATA->lock);
-		return EEXIST;
-	}
+
+	/* Make sure fd is closed. */
+	(void) _vfs_fd_free_locked(VFS_DATA, fd);
+	assert(FILES[fd] == NULL);
 	
 	FILES[fd] = file;
 	vfs_file_addref(VFS_DATA, FILES[fd]);

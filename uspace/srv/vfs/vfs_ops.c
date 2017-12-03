@@ -101,8 +101,6 @@ int vfs_op_clone(int oldfd, int newfd, bool desc)
 	assert(oldfile->node != NULL);
 
 	if (newfd != -1) {
-		/* Make sure newfd is closed. */
-		(void) vfs_fd_free(newfd);
 		/* Assign the old file to newfd. */
 		rc = vfs_fd_assign(oldfile, newfd);
 	} else {
