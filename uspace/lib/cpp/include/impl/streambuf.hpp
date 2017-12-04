@@ -107,7 +107,7 @@ namespace std
 
             int_type snextc()
             {
-                if (traits_type::eq(sbumpc, traits_type::eof()))
+                if (traits_type::eq(sbumpc(), traits_type::eof()))
                     return traits_type::eof();
                 else
                     return sgetc();
@@ -116,7 +116,7 @@ namespace std
             int_type sbumpc()
             {
                 if (read_avail_())
-                    return traits_type::to_int_type(*input_next++);
+                    return traits_type::to_int_type(*input_next_++);
                 else
                     return uflow();
             }
@@ -124,7 +124,7 @@ namespace std
             int_type sgetc()
             {
                 if (read_avail_())
-                    return traits_type::to_int_type(*input_next++);
+                    return traits_type::to_int_type(*input_next_);
                 else
                     return underflow();
             }
@@ -143,7 +143,7 @@ namespace std
                 if (!putback_avail_() || traits_type::eq(c, gptr()[-1]))
                     return pbackfail(traits_type::to_int_type(c));
                 else
-                    return traits_type::to_int_type(*(--input_next));
+                    return traits_type::to_int_type(*(--input_next_));
             }
 
             int_type sungetc()
@@ -151,7 +151,7 @@ namespace std
                 if (!putback_avail_())
                     return pbackfail();
                 else
-                    return traits_type::to_int_type(*(--input_next));
+                    return traits_type::to_int_type(*(--input_next_));
             }
 
             /**
@@ -195,7 +195,7 @@ namespace std
                 locale_ = rhs.locale_;
             }
 
-            basic_strambuf& operator=(const basic_streambuf& rhs)
+            basic_streambuf& operator=(const basic_streambuf& rhs)
             {
                 input_begin_ = rhs.input_begin_;
                 input_next_  = rhs.input_next_;
@@ -299,11 +299,11 @@ namespace std
             virtual basic_streambuf<Char, Traits>*
             setbuf(char_type* s, streamsize n)
             {
-                return *this;
+                return this;
             }
 
             virtual pos_type seekoff(off_type off, ios_base::seekdir way,
-                                     ios_base::openmode which = ios_base::in | ops_base::out)
+                                     ios_base::openmode which = ios_base::in | ios_base::out)
             {
                 return pos_type(off_type(-1));
             }
@@ -340,7 +340,7 @@ namespace std
                     if (!read_avail_() && traits_type::eq_int_type(uflow(), eof))
                         break;
 
-                    traits_type::asign(*s++, *input_next_++);
+                    *s++ = *input_next_++;
                 }
 
                 return i;
@@ -378,14 +378,13 @@ namespace std
                 if (!s || n == 0)
                     return 0;
 
-                char* = &s[0];
                 streamsize i{0};
                 for (; i <= n; ++i)
                 {
-                    if (!write_avail_() && traits_type::eq_int_type(overflow(), eof))
+                    if (!write_avail_() && traits_type::eq_int_type(overflow(), traits_type::eof()))
                         break;
 
-                    traits_type::assign(*s++, *output_next_++);
+                    *output_next_++ = *s++;
                 }
 
                 return i;
@@ -396,16 +395,18 @@ namespace std
                 return traits_type::eof();
             }
 
-        private:
-            value_type* input_begin_;
-            value_type* input_next_;
-            value_type* input_end_;
+        protected:
+            char_type* input_begin_;
+            char_type* input_next_;
+            char_type* input_end_;
 
-            value_type* output_begin_;
-            value_type* output_next_;
-            value_type* output_end_;
+            char_type* output_begin_;
+            char_type* output_next_;
+            char_type* output_end_;
 
             locale locale_;
+
+        private:
 
             bool write_avail_() const
             {
