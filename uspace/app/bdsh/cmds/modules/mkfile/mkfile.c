@@ -84,28 +84,32 @@ void help_cmd_mkfile(unsigned int level)
  * <unit> is 'k', 'm' or 'g' for kB, MB, GB.
  *
  * @param str	String containing the size specification.
- * @return	Non-negative size in bytes on success, -1 on failure.
+ * @param rsize	Place to store size in bytes
+ * @return	EOK on success or error code
  */
-static ssize_t read_size(const char *str)
+static int read_size(const char *str, size_t *rsize)
 {
-	ssize_t number, unit;
+	size_t number, unit;
 	char *ep;
 
 	number = strtol(str, &ep, 10);
-	if (ep[0] == '\0')
-		return number;
+	if (ep[0] == '\0') {
+		*rsize = number;
+		return EOK;
+	}
 
 	if (ep[1] != '\0')
-		    return -1;
+		    return EINVAL;
 
 	switch (tolower(ep[0])) {
 	case 'k': unit = 1024; break;
 	case 'm': unit = 1024*1024; break;
 	case 'g': unit = 1024*1024*1024; break;
-	default: return -1;
+	default: return EINVAL;
 	}
 
-	return number * unit;
+	*rsize = number * unit;
+	return EOK;
 }
 
 int cmd_mkfile(char **argv)
@@ -113,9 +117,11 @@ int cmd_mkfile(char **argv)
 	unsigned int argc;
 	int c, opt_ind;
 	int fd;
-	ssize_t file_size;
-	ssize_t total_written;
-	ssize_t to_write, rc, rc2 = 0;
+	size_t file_size;
+	size_t total_written;
+	size_t to_write;
+	size_t nwritten;
+	int rc;
 	char *file_name;
 	void *buffer;
 	bool create_sparse = false;
@@ -135,8 +141,8 @@ int cmd_mkfile(char **argv)
 			create_sparse = true;
 			break;
 		case 's':
-			file_size = read_size(optarg);
-			if (file_size < 0) {
+			rc = read_size(optarg, &file_size);
+			if (rc != EOK) {
 				printf("%s: Invalid file size specification.\n",
 				    cmdname);
 				return CMD_FAILURE;
@@ -165,8 +171,8 @@ int cmd_mkfile(char **argv)
 		const char byte = 0x00;
 		
 		pos = file_size - 1;
-		rc2 = vfs_write(fd, &pos, &byte, sizeof(char));
-		if (rc2 < 0) {
+		rc = vfs_write(fd, &pos, &byte, sizeof(char), &nwritten);
+		if (rc != EOK) {
 			vfs_put(fd);
 			goto error;
 		}
@@ -182,14 +188,14 @@ int cmd_mkfile(char **argv)
 	total_written = 0;
 	while (total_written < file_size) {
 		to_write = min(file_size - total_written, BUFFER_SIZE);
-		rc = vfs_write(fd, &pos, buffer, to_write);
-		if (rc <= 0) {
+		rc = vfs_write(fd, &pos, buffer, to_write, &nwritten);
+		if (rc != EOK) {
 			printf("%s: Error writing file (%d).\n", cmdname, errno);
 			vfs_put(fd);
 			free(buffer);
 			return CMD_FAILURE;
 		}
-		total_written += rc;
+		total_written += nwritten;
 	}
 
 	free(buffer);

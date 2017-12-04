@@ -43,6 +43,9 @@ int fd;
 
 static void *create_paged_area(size_t size)
 {
+	size_t nwr;
+	int rc;
+
 	TPRINTF("Creating temporary file...\n");
 
 	fd = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
@@ -51,7 +54,8 @@ static void *create_paged_area(size_t size)
 		return NULL;
 	(void) vfs_unlink_path(TEST_FILE);
 
-	if (vfs_write(fd, (aoff64_t []) {0}, text, sizeof(text)) < 0) {
+	rc = vfs_write(fd, (aoff64_t []) {0}, text, sizeof(text), &nwr);
+	if (rc != EOK) {
 		vfs_put(fd);
 		return NULL;
 	}

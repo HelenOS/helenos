@@ -70,6 +70,7 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 
 	int fd;
 	int rc;
+	size_t nread;
 	int i;
 
 	bool load_sec, sec_is_symtab;
@@ -87,8 +88,8 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 		return ENOENT;
 	}
 
-	rc = vfs_read(fd, &pos, &elf_hdr, sizeof(elf_header_t));
-	if (rc != sizeof(elf_header_t)) {
+	rc = vfs_read(fd, &pos, &elf_hdr, sizeof(elf_header_t), &nread);
+	if (rc != EOK || nread != sizeof(elf_header_t)) {
 		printf("failed reading elf header\n");
 		free(stab);
 		return EIO;
@@ -303,10 +304,11 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
     elf_section_header_t *sec_hdr)
 {
 	int rc;
+	size_t nread;
 	aoff64_t pos = elf_hdr->e_shoff + idx * sizeof(elf_section_header_t);
 
-	rc = vfs_read(fd, &pos, sec_hdr, sizeof(elf_section_header_t));
-	if (rc != sizeof(elf_section_header_t))
+	rc = vfs_read(fd, &pos, sec_hdr, sizeof(elf_section_header_t), &nread);
+	if (rc != EOK || nread != sizeof(elf_section_header_t))
 		return EIO;
 
 	return EOK;
@@ -325,7 +327,8 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
  */
 static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 {
-	ssize_t rc;
+	int rc;
+	size_t nread;
 	aoff64_t pos = start;
 
 	*ptr = malloc(size);
@@ -334,8 +337,8 @@ static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 		return ENOMEM;
 	}
 
-	rc = vfs_read(fd, &pos, *ptr, size);
-	if (rc != (ssize_t) size) {
+	rc = vfs_read(fd, &pos, *ptr, size, &nread);
+	if (rc != EOK || nread != size) {
 		printf("failed reading chunk\n");
 		free(*ptr);
 		*ptr = NULL;

@@ -276,7 +276,8 @@ static char *fun_conf_read(const char *conf_path)
 	bool opened = false;
 	int fd;
 	size_t len;
-	ssize_t r;
+	int rc;
+	size_t nread;
 	struct stat st;
 
 	fd = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ);
@@ -305,13 +306,13 @@ static char *fun_conf_read(const char *conf_path)
 		goto cleanup;
 	}
 
-	r = vfs_read(fd, (aoff64_t []) {0}, buf, len);
-	if (r < 0) {
+	rc = vfs_read(fd, (aoff64_t []) {0}, buf, len, &nread);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
 		goto cleanup;
 	}
 
-	buf[len] = 0;
+	buf[nread] = 0;
 
 	suc = true;
 

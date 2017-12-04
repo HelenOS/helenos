@@ -71,11 +71,11 @@ void help_cmd_cmp(unsigned int level)
 
 static int cmp_files(const char *fn0, const char *fn1)
 {
-	int rc = 0;
+	int rc = EOK;
 	const char *fn[2] = {fn0, fn1};
 	int fd[2] = {-1, -1};
 	char buffer[2][CMP_BUFLEN];
-	ssize_t offset[2];
+	size_t offset[2];
 	aoff64_t pos[2] = {};
 
 	for (int i = 0; i < 2; i++) {
@@ -89,24 +89,18 @@ static int cmp_files(const char *fn0, const char *fn1)
 
 	do {
 		for (int i = 0; i < 2; i++) {
-			offset[i] = 0;
-			ssize_t size;
-			do {
-				size = vfs_read(fd[i], &pos[i],
-				    buffer[i] + offset[i],
-				    CMP_BUFLEN - offset[i]);
-				if (size < 0) {
-					rc = size;
-					printf("Error reading from %s\n",
-					    fn[i]);
-					goto end;
-				}
-				offset[i] += size;
-			} while (size && offset[i] < CMP_BUFLEN);
+			rc = vfs_read(fd[i], &pos[i], buffer[i], CMP_BUFLEN,
+			    &offset[i]);
+			if (rc != EOK) {
+				printf("Error reading from %s\n",
+				    fn[i]);
+				goto end;
+			}
 		}
 
 		if (offset[0] != offset[1] ||
 		    memcmp(buffer[0], buffer[1], offset[0]) != 0) {
+			printf("Return 1\n");
 			rc = 1;
 			goto end;
 		}
@@ -148,7 +142,7 @@ int cmd_cmp(char **argv)
 	}
 
 	rc = cmp_files(argv[optind], argv[optind + 1]);
-	if (rc)
+	if (rc != EOK)
 		return CMD_FAILURE;
 	else
 		return CMD_SUCCESS;

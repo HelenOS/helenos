@@ -212,7 +212,8 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	fibril_mutex_unlock(&forced_termination_mutex);
 
 	aoff64_t pos = 0;
-	vfs_read(tempfile, &pos, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+	size_t nread;
+	vfs_read(tempfile, &pos, extra_output_buffer, OUTPUT_BUFFER_SIZE, &nread);
 
 leave_close_tempfile:
 	vfs_put(tempfile);

@@ -429,19 +429,21 @@ FILE *freopen(const char *path, const char *mode, FILE *stream)
  */
 static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
+	int rc;
+	size_t nread;
+
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	ssize_t rd = vfs_read(stream->fd, &stream->pos, buf, size * nmemb);
-	if (rd < 0) {
-		errno = rd;
+	rc = vfs_read(stream->fd, &stream->pos, buf, size * nmemb, &nread);
+	if (rc != EOK) {
+		errno = rc;
 		stream->error = true;
-		rd = 0;
-	} else if (rd == 0) {
+	} else if (nread == 0) {
 		stream->eof = true;
 	}
-	
-	return (rd / size);
+
+	return (nread / size);
 }
 
 /** Write to a stream (unbuffered).
@@ -456,32 +458,31 @@ static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
  */
 static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 {
+	int rc;
+	size_t nwritten;
+
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	ssize_t wr;
 	if (stream->kio) {
-		size_t nwritten;
-		wr = kio_write(buf, size * nmemb, &nwritten);
-		if (wr != EOK) {
+		rc = kio_write(buf, size * nmemb, &nwritten);
+		if (rc != EOK) {
 			stream->error = true;
-			wr = 0;
-		} else {
-			wr = nwritten;
+			nwritten = 0;
 		}
 	} else {
-		wr = vfs_write(stream->fd, &stream->pos, buf, size * nmemb);
-		if (wr < 0) {
-			errno = wr;
+		rc = vfs_write(stream->fd, &stream->pos, buf, size * nmemb,
+		    &nwritten);
+		if (rc != EOK) {
+			errno = rc;
 			stream->error = true;
-			wr = 0;
 		}
 	}
 
-	if (wr > 0)
+	if (nwritten > 0)
 		stream->need_sync = true;
-	
-	return (wr / size);
+
+	return (nwritten / size);
 }
 
 /** Read some data in stream buffer.
@@ -490,23 +491,25 @@ static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
  */
 static void _ffillbuf(FILE *stream)
 {
-	ssize_t rc;
+	int rc;
+	size_t nread;
 
 	stream->buf_head = stream->buf_tail = stream->buf;
 
-	rc = vfs_read(stream->fd, &stream->pos, stream->buf, stream->buf_size);
-	if (rc < 0) {
+	rc = vfs_read(stream->fd, &stream->pos, stream->buf, stream->buf_size,
+	    &nread);
+	if (rc != EOK) {
 		errno = rc;
 		stream->error = true;
 		return;
 	}
 
-	if (rc == 0) {
+	if (nread == 0) {
 		stream->eof = true;
 		return;
 	}
 
-	stream->buf_head += rc;
+	stream->buf_head += nread;
 	stream->buf_state = _bs_read;
 }
 

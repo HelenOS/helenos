@@ -246,6 +246,7 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	char *fbuf = NULL;
 	char *fname = NULL;
 	int rc;
+	size_t nr;
 	int fd = -1;
 	
 	fbuf = calloc(BUFFER_SIZE, 1);
@@ -278,14 +279,12 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	
 	aoff64_t pos = 0;
 	while (true) {
-		ssize_t nr = vfs_read(fd, &pos, fbuf, BUFFER_SIZE);
+		rc = vfs_read(fd, &pos, fbuf, BUFFER_SIZE, &nr);
+		if (rc != EOK)
+			goto out;
+		
 		if (nr == 0)
 			break;
-		
-		if (nr < 0) {
-			rc = EIO;
-			goto out;
-		}
 		
 		rc = tcp_conn_send(conn, fbuf, nr);
 		if (rc != EOK) {

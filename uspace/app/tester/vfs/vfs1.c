@@ -83,8 +83,9 @@ const char *test_vfs1(void)
 	TPRINTF("Created file %s (fd=%d)\n", TEST_FILE, fd0);
 	
 	size_t size = sizeof(text);
-	ssize_t cnt = vfs_write(fd0, &pos, text, size);
-	if (cnt < 0)
+	size_t cnt;
+	rc  = vfs_write(fd0, &pos, text, size, &cnt);
+	if (rc != EOK)
 		return "write() failed";
 	TPRINTF("Written %zd bytes\n", cnt);
 
@@ -92,17 +93,17 @@ const char *test_vfs1(void)
 	
 	char buf[BUF_SIZE];
 	TPRINTF("read..\n");
-	while ((cnt = vfs_read(fd0, &pos, buf, BUF_SIZE))) {
-		TPRINTF("read returns %zd\n", cnt);
-		if (cnt < 0)
+	while ((rc = vfs_read(fd0, &pos, buf, BUF_SIZE, &cnt))) {
+		TPRINTF("read returns rc = %d, cnt = %zu\n", rc, cnt);
+		if (rc != EOK)
 			return "read() failed";
 		
-		int _cnt = (int) cnt;
-		if (_cnt != cnt) {
+		int icnt = (int) cnt;
+		if ((size_t) icnt != cnt) {
 			/* Count overflow, just to be sure. */
 			TPRINTF("Read %zd bytes\n", cnt);
 		} else {
-			TPRINTF("Read %zd bytes: \"%.*s\"\n", cnt, _cnt, buf);
+			TPRINTF("Read %zd bytes: \"%.*s\"\n", cnt, icnt, buf);
 		}
 	}
 	

@@ -85,7 +85,7 @@
  * returned to the system using vfs_put(). Non-returned file handles are in use
  * and consume system resources.
  *
- * Functions that return int return a negative error code on error and do not
+ * Functions that return int return an error code on error and do not
  * set errno. Depending on function, success is signalled by returning either
  * EOK or a non-negative file handle.
  *
@@ -103,13 +103,14 @@
  * 	}
  * 	aoff64_t pos = 42;
  * 	char buf[512];
- * 	ssize_t size = vfs_read(file, &pos, buf, sizeof(buf));
- * 	if (size < 0) {
+ *	size_t nread;
+ * 	rc = vfs_read(file, &pos, buf, sizeof(buf), &nread);
+ * 	if (rc != EOK) {
  * 		vfs_put(file);
- * 		return size;
+ * 		return rc;
  * 	}
  *
- *	// buf is now filled with data from file
+ *	// buf is now filled with nread bytes from file
  *
  *	vfs_put(file);
  */
@@ -807,29 +808,35 @@ int vfs_receive_handle(bool high)
  * @param[inout] pos    Position to read from, updated by the actual bytes read
  * @param buf		Buffer, @a nbytes bytes long
  * @param nbytes	Number of bytes to read
+ * @param nread		Place to store number of bytes actually read
  *
- * @return              On success, non-negative number of bytes read
- * @return              On failure, a negative error code
+ * @return              On success, EOK and @a *nread is filled with number
+ *			of bytes actually read.
+ * @return              On failure, an error code
  */
-ssize_t vfs_read(int file, aoff64_t *pos, void *buf, size_t nbyte)
+int vfs_read(int file, aoff64_t *pos, void *buf, size_t nbyte, size_t *nread)
 {
 	ssize_t cnt = 0;
-	size_t nread = 0;
+	size_t nr = 0;
 	uint8_t *bp = (uint8_t *) buf;
 	int rc;
 	
 	do {
 		bp += cnt;
-		nread += cnt;
+		nr += cnt;
 		*pos += cnt;
-		rc = vfs_read_short(file, *pos, bp, nbyte - nread, &cnt);
-	} while (rc == EOK && cnt > 0 && (nbyte - nread - cnt) > 0);
+		rc = vfs_read_short(file, *pos, bp, nbyte - nr, &cnt);
+	} while (rc == EOK && cnt > 0 && (nbyte - nr - cnt) > 0);
 	
-	if (rc != EOK)
+	if (rc != EOK) {
+		*nread = nr;
 		return rc;
+	}
 	
+	nr += cnt;
 	*pos += cnt;
-	return nread + cnt;
+	*nread = nr;
+	return EOK;
 }
 
 /** Read bytes from a file
@@ -1246,29 +1253,36 @@ int vfs_walk(int parent, const char *path, int flags)
  *                      written
  * @param buf           Data, @a nbytes bytes long
  * @param nbytes        Number of bytes to write
+ * @param nwritten	Place to store number of bytes written
  *
- * @return		On success, non-negative number of bytes written
- * @return              On failure, a negative error code
+ * @return		On success, EOK, @a *nwr is filled with number
+ *			of bytes written
+ * @return              On failure, an error code
  */
-ssize_t vfs_write(int file, aoff64_t *pos, const void *buf, size_t nbyte)
+int vfs_write(int file, aoff64_t *pos, const void *buf, size_t nbyte,
+    size_t *nwritten)
 {
 	ssize_t cnt = 0;
-	ssize_t nwritten = 0;
+	ssize_t nwr = 0;
 	const uint8_t *bp = (uint8_t *) buf;
 	int rc;
 
 	do {
 		bp += cnt;
-		nwritten += cnt;
+		nwr += cnt;
 		*pos += cnt;
-		rc = vfs_write_short(file, *pos, bp, nbyte - nwritten, &cnt);
-	} while (rc == EOK && ((ssize_t )nbyte - nwritten - cnt) > 0);
+		rc = vfs_write_short(file, *pos, bp, nbyte - nwr, &cnt);
+	} while (rc == EOK && ((ssize_t )nbyte - nwr - cnt) > 0);
 
-	if (rc != EOK)
+	if (rc != EOK) {
+		*nwritten = nwr;
 		return rc;
+	}
 
+	nwr += cnt;
 	*pos += cnt;
-	return nbyte;
+	*nwritten = nwr;
+	return EOK;
 }
 
 /** Write bytes to a file

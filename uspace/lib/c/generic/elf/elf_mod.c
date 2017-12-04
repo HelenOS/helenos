@@ -136,10 +136,11 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	elf_header_t header_buf;
 	elf_header_t *header = &header_buf;
 	aoff64_t pos = 0;
+	size_t nr;
 	int i, rc;
 
-	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t));
-	if (rc != sizeof(elf_header_t)) {
+	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t), &nr);
+	if (rc != EOK || nr != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n"); 
 		return EE_INVALID;
 	}
@@ -198,8 +199,8 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 
 		pos = header->e_phoff + i * sizeof(elf_segment_header_t);
 		rc = vfs_read(elf->fd, &pos, &segment_hdr,
-		    sizeof(elf_segment_header_t));
-		if (rc != sizeof(elf_segment_header_t)) {
+		    sizeof(elf_segment_header_t), &nr);
+		if (rc != EOK || nr != sizeof(elf_segment_header_t)) {
 			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
@@ -217,8 +218,8 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 
 		pos = header->e_shoff + i * sizeof(elf_section_header_t);
 		rc = vfs_read(elf->fd, &pos, &section_hdr,
-		    sizeof(elf_section_header_t));
-		if (rc != sizeof(elf_section_header_t)) {
+		    sizeof(elf_section_header_t), &nr);
+		if (rc != EOK || nr != sizeof(elf_section_header_t)) {
 			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
@@ -329,7 +330,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	uintptr_t seg_addr;
 	size_t mem_sz;
 	aoff64_t pos;
-	ssize_t rc;
+	int rc;
+	size_t nr;
 
 	bias = elf->bias;
 
@@ -387,8 +389,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 * Load segment data
 	 */
 	pos = entry->p_offset;
-	rc = vfs_read(elf->fd, &pos, seg_ptr, entry->p_filesz);
-	if (rc < 0) {
+	rc = vfs_read(elf->fd, &pos, seg_ptr, entry->p_filesz, &nr);
+	if (rc != EOK || nr != entry->p_filesz) {
 		DPRINTF("read error\n");
 		return EE_INVALID;
 	}
