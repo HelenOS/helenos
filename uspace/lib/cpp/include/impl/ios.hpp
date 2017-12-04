@@ -30,8 +30,9 @@
 #define LIBCPP_IOS
 
 #include <cstdlib>
+#include <internal/locale.hpp>
+#include <internal/locale/ctype.hpp>
 #include <iosfwd>
-#include <locale>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -94,7 +95,7 @@ namespace std
             static constexpr iostate badbit  = 0b0001;
             static constexpr iostate eofbit  = 0b0010;
             static constexpr iostate failbit = 0b0100;
-            static constexpr iostate goodbit = 0b1000;
+            static constexpr iostate goodbit = 0b0000;
 
             /**
              * 27.5.3.1.4, openmode:
@@ -128,7 +129,7 @@ namespace std
                     ~Init();
 
                 private:
-                    static int init_cnt;
+                    static int init_cnt_;
             };
 
             /**
@@ -193,7 +194,6 @@ namespace std
         protected:
             ios_base();
 
-        private:
             static int index_;
             static bool sync_;
 
@@ -209,6 +209,7 @@ namespace std
             fmtflags flags_;
             streamsize precision_;
             streamsize width_;
+
             locale locale_;
 
             vector<pair<event_callback, int>> callbacks_;
