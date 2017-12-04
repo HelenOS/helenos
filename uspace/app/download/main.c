@@ -223,8 +223,8 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 		
-		int body_size;
-		while ((body_size = recv_buffer(&http->recv_buffer, buf, buf_size)) > 0) {
+		size_t body_size;
+		while ((rc = recv_buffer(&http->recv_buffer, buf, buf_size, &body_size)) == EOK && body_size > 0) {
 			fwrite(buf, 1, body_size, ofile != NULL ? ofile : stdout);
 		}
 		

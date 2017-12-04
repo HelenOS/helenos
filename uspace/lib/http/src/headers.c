@@ -145,8 +145,9 @@ int http_header_receive_value(receive_buffer_t *rb,
 		if (c != '\r' && c != '\n')
 			continue;
 		
-		rc = recv_discard(rb, (c == '\r' ? '\n' : '\r'));
-		if (rc < 0)
+		size_t nrecv;
+		rc = recv_discard(rb, (c == '\r' ? '\n' : '\r'), &nrecv);
+		if (rc != EOK)
 			return rc;
 		
 		rc = recv_char(rb, &c, false);

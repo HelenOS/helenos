@@ -45,9 +45,10 @@
  * @param client_data client data
  * @param buf buffer to store the data
  * @param buf_size buffer size
- * @return number of bytes received or negative error code
+ * @param nrecv number of bytes actually received
+ * @return EOK on success or error code
  */
-typedef ssize_t (*receive_func_t)(void *, void *, size_t);
+typedef int (*receive_func_t)(void *, void *, size_t, size_t *);
 
 typedef struct {
 	size_t size;
@@ -80,12 +81,12 @@ extern int recv_cut(receive_buffer_t *, receive_buffer_mark_t *,
 extern int recv_cut_str(receive_buffer_t *, receive_buffer_mark_t *,
     receive_buffer_mark_t *, char **);
 extern int recv_char(receive_buffer_t *, char *, bool);
-extern ssize_t recv_buffer(receive_buffer_t *, char *, size_t);
-extern ssize_t recv_discard(receive_buffer_t *, char);
-extern ssize_t recv_discard_str(receive_buffer_t *, const char *);
-extern ssize_t recv_while(receive_buffer_t *, char_class_func_t);
-extern ssize_t recv_eol(receive_buffer_t *);
-extern ssize_t recv_line(receive_buffer_t *, char *, size_t);
+extern int recv_buffer(receive_buffer_t *, char *, size_t, size_t *);
+extern int recv_discard(receive_buffer_t *, char, size_t *);
+extern int recv_discard_str(receive_buffer_t *, const char *, size_t *);
+extern int recv_while(receive_buffer_t *, char_class_func_t);
+extern int recv_eol(receive_buffer_t *, size_t *);
+extern int recv_line(receive_buffer_t *, char *, size_t, size_t *);
 
 #endif
 
