@@ -39,37 +39,7 @@
 
 #define errno  (*(__errno()))
 
-extern int *__errno(void) __attribute__((const));
-
-#define EMFILE        (-18)
-#define ENAMETOOLONG  (-256)
-#define EISDIR        (-257)
-#define ENOTDIR       (-258)
-#define ENOSPC        (-259)
-#define ENOTEMPTY     (-261)
-#define EBADF         (-262)
-#define EDOM          (-263)
-#define ERANGE        (-264)
-#define EXDEV         (-265)
-#define EIO           (-266)
-#define EMLINK        (-267)
-#define ENXIO         (-268)
-#define ENOFS         (-269)
-
-/** Bad checksum. */
-#define EBADCHECKSUM  (-300)
-
-/** USB: stalled operation. */
-#define ESTALL (-301)
-
-/** Empty resource (no data). */
-#define EEMPTY (-302)
-
-/** Negative acknowledgment. */
-#define ENAK (-303)
-
-/** The requested operation was not performed. Try again later. */
-#define EAGAIN  (-11002)
+extern errno_t *__errno(void) __attribute__((const));
 
 #endif
 

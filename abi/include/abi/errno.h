@@ -40,36 +40,69 @@
  * values in the range [-256, -512] are user error codes.
  */
 
-#define EOK             0   /* No error */
-#define ENOENT         -1   /* No such entry */
-#define ENOMEM         -2   /* Not enough memory */
-#define ELIMIT         -3   /* Limit exceeded */
-#define EREFUSED       -4   /* Connection refused */
-#define EFORWARD       -5   /* Forward error */
-#define EPERM          -6   /* Permission denied */
+typedef enum {
+	EOK           =  0,   /* No error */
+	ENOENT        = -1,   /* No such entry */
+	ENOMEM        = -2,   /* Not enough memory */
+	ELIMIT        = -3,   /* Limit exceeded */
+	EREFUSED      = -4,   /* Connection refused */
+	EFORWARD      = -5,   /* Forward error */
+	EPERM         = -6,   /* Permission denied */
 
 /*
  * Answerbox closed connection, call
  * sys_ipc_hangup() to close the connection.
  * Used by answerbox to close the connection.
  */
-#define EHANGUP        -7
+	EHANGUP       = -7,
 
 /*
  * The other party encountered an error when
  * receiving the call.
  */
-#define EPARTY         -8
+	EPARTY        = -8,
 
-#define EEXIST         -9   /* Entry already exists */
-#define EBADMEM        -10  /* Bad memory pointer */
-#define ENOTSUP        -11  /* Not supported */
-#define EADDRNOTAVAIL  -12  /* Address not available. */
-#define ETIMEOUT       -13  /* Timeout expired */
-#define EINVAL         -14  /* Invalid value */
-#define EBUSY          -15  /* Resource is busy */
-#define EOVERFLOW      -16  /* The result does not fit its size. */
-#define EINTR          -17  /* Operation was interrupted. */
+	EEXIST        = -9,   /* Entry already exists */
+	EBADMEM       = -10,  /* Bad memory pointer */
+	ENOTSUP       = -11,  /* Not supported */
+	EADDRNOTAVAIL = -12,  /* Address not available. */
+	ETIMEOUT      = -13,  /* Timeout expired */
+	EINVAL        = -14,  /* Invalid value */
+	EBUSY         = -15,  /* Resource is busy */
+	EOVERFLOW     = -16,  /* The result does not fit its size. */
+	EINTR         = -17,  /* Operation was interrupted. */
+
+	EMFILE        = -18,
+	ENAMETOOLONG  = -256,
+	EISDIR        = -257,
+	ENOTDIR       = -258,
+	ENOSPC        = -259,
+	ENOTEMPTY     = -261,
+	EBADF         = -262,
+	EDOM          = -263,
+	ERANGE        = -264,
+	EXDEV         = -265,
+	EIO           = -266,
+	EMLINK        = -267,
+	ENXIO         = -268,
+	ENOFS         = -269,
+
+/** Bad checksum. */
+	EBADCHECKSUM  = -300,
+
+/** USB: stalled operation. */
+	ESTALL        = -301,
+
+/** Empty resource (no data). */
+	EEMPTY        = -302,
+
+/** Negative acknowledgment. */
+	ENAK          = -303,
+
+/** The requested operation was not performed. Try again later. */
+	EAGAIN        = -11002,
+} errno_t;
+
 
 #endif
 
