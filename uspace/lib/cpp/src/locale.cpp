@@ -30,9 +30,14 @@
 
 namespace std
 {
-    namespace aux
+    locale::facet::facet(size_t refs)
     {
-        // TODO: implement facet
+        // TODO:
+    }
+
+    locale::facet::~facet()
+    {
+        // TODO:
     }
 
     locale::locale() noexcept
