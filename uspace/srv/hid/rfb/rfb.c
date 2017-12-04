@@ -417,10 +417,10 @@ static void cpixel_encode(rfb_t *rfb, cpixel_ctx_t *cpixel, void *buf,
 	}
 }
 
-static ssize_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
+static size_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
     rfb_rectangle_t *tile, void *buf)
 {
-	ssize_t size = tile->width * tile->height * cpixel->size;
+	size_t size = tile->width * tile->height * cpixel->size;
 	if (buf == NULL)
 		return size;
 	
@@ -434,22 +434,23 @@ static ssize_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
 	return size;
 }
 
-static ssize_t rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
-    rfb_rectangle_t *tile, void *buf)
+static size_t rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
+    rfb_rectangle_t *tile, void *buf, size_t *size)
 {
 	/* Check if it is single color */
 	pixel_t the_color = pixelmap_get_pixel(&rfb->framebuffer, tile->x, tile->y);
 	for (uint16_t y = tile->y; y < tile->y + tile->height; y++) {
 		for (uint16_t x = tile->x; x < tile->x + tile->width; x++) {
 			if (pixelmap_get_pixel(&rfb->framebuffer, x, y) != the_color)
-				return -1;
+				return EINVAL;
 		}
 	}
 	
 	/* OK, encode it */
 	if (buf)
 		cpixel_encode(rfb, cpixel, buf, the_color);
-	return cpixel->size;
+	*size = cpixel->size;
+	return EOK;
 }
 
 static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
@@ -473,8 +474,10 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 				buf +=  1;
 			
 			uint8_t tile_enctype = RFB_TILE_ENCODING_SOLID;
-			ssize_t tile_size = rfb_tile_encode_solid(rfb, &cpixel, &tile, buf);
-			if (tile_size < 0) {
+			size_t tile_size;
+			int rc = rfb_tile_encode_solid(rfb, &cpixel, &tile, buf,
+			    &tile_size);
+			if (rc != EOK) {
 				tile_size = rfb_tile_encode_raw(rfb, &cpixel, &tile, buf);
 				tile_enctype = RFB_TILE_ENCODING_RAW;
 			}
