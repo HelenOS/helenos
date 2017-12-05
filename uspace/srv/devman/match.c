@@ -231,8 +231,8 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	size_t read_bytes;
 	int rc = vfs_read(fd, (aoff64_t []) {0}, buf, len, &read_bytes);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%d).", conf_path,
-		    errno);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s': %s.", conf_path,
+		    str_error(errno));
 		goto cleanup;
 	}
 	buf[read_bytes] = 0;

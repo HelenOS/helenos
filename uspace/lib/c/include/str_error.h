@@ -35,7 +35,10 @@
 #ifndef LIBC_STRERROR_H_
 #define LIBC_STRERROR_H_
 
-const char *str_error(const int);
+#include <errno.h>
+
+const char *str_error(errno_t);
+const char *str_error_name(errno_t);
 
 #endif
 

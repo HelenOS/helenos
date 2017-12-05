@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <str_error.h>
 #include <errno.h>
 #include <udebug.h>
 #include <task.h>
@@ -134,7 +135,7 @@ static int connect_task(task_id_t task_id)
 		}
 		
 		printf("Error connecting\n");
-		printf("async_connect_kbox(%" PRIu64 ") -> %d ", task_id, errno);
+		printf("async_connect_kbox(%" PRIu64 ") -> %s", task_id, str_error_name(errno));
 		return errno;
 	}
 	

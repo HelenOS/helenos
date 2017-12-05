@@ -37,6 +37,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <str_error.h>
 #include <inttypes.h>
 #include <fibril.h>
 #include <errno.h>
@@ -156,7 +157,7 @@ static int connect_task(task_id_t task_id)
 		}
 		
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%" PRIu64 ") -> %d ", task_id, errno);
+		printf("ipc_connect_task(%" PRIu64 ") -> %s ", task_id, str_error_name(errno));
 		return errno;
 	}
 	

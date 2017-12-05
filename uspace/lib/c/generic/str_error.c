@@ -40,11 +40,34 @@
 #define MIN_ERRNO  -17
 #define NOERR_LEN  64
 
+// TODO: this file should be generated from errno declarations
+
+static const char* err_name[] = {
+	"EOK",
+	"ENOENT",
+	"ENOMEM",
+	"ELIMIT",
+	"EREFUSED",
+	"EFORWARD",
+	"EPERM",
+	"EHANGUP",
+	"EPARTY",
+	"EEXIST",
+	"EBADMEM",
+	"ENOTSUP",
+	"EADDRNOTAVAIL",
+	"ETIMEOUT",
+	"EINVAL",
+	"EBUSY",
+	"EOVERFLOW",
+	"EINTR"
+};
+
 static const char* err_desc[] = {
 	"No error",
 	"No such entry",
 	"Not enough memory",
-	"Limit exceeded", 
+	"Limit exceeded",
 	"Connection refused",
 	"Forwarding error",
 	"Permission denied",
@@ -63,7 +86,33 @@ static const char* err_desc[] = {
 
 static fibril_local char noerr[NOERR_LEN];
 
-const char *str_error(const int e)
+const char *str_error_name(errno_t e)
+{
+	if ((e <= 0) && (e >= MIN_ERRNO))
+		return err_name[-e];
+
+	/* Ad hoc descriptions of error codes interesting for USB. */
+	// FIXME: integrate these as first-class error values
+	switch (e) {
+		case ENOFS:
+			return "ENOFS";
+		case EBADCHECKSUM:
+			return "EBADCHECKSUM";
+		case ESTALL:
+			return "ESTALL";
+		case EAGAIN:
+			return "EAGAIN";
+		case EEMPTY:
+			return "EEMPTY";
+		default:
+			break;
+	}
+
+	snprintf(noerr, NOERR_LEN, "(%d)", (int)e);
+	return noerr;
+}
+
+const char *str_error(errno_t e)
 {
 	if ((e <= 0) && (e >= MIN_ERRNO))
 		return err_desc[-e];
@@ -85,7 +134,7 @@ const char *str_error(const int e)
 			break;
 	}
 
-	snprintf(noerr, NOERR_LEN, "Unkown error code %d", e);
+	snprintf(noerr, NOERR_LEN, "Unknown error code (%d)", (int)e);
 	return noerr;
 }
 

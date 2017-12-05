@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <str_error.h>
 #include <dirent.h>
 #include <macros.h>
 #include <getopt.h>
@@ -190,7 +191,7 @@ int cmd_mkfile(char **argv)
 		to_write = min(file_size - total_written, BUFFER_SIZE);
 		rc = vfs_write(fd, &pos, buffer, to_write, &nwritten);
 		if (rc != EOK) {
-			printf("%s: Error writing file (%d).\n", cmdname, errno);
+			printf("%s: Error writing file (%s).\n", cmdname, str_error(errno));
 			vfs_put(fd);
 			free(buffer);
 			return CMD_FAILURE;
@@ -205,6 +206,6 @@ int cmd_mkfile(char **argv)
 
 	return CMD_SUCCESS;
 error:
-	printf("%s: Error writing file (%d).\n", cmdname, errno);
+	printf("%s: Error writing file (%s).\n", cmdname, str_error(errno));
 	return CMD_FAILURE;
 }

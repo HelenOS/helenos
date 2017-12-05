@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <str_error.h>
 #include <getopt.h>
 #include <errno.h>
 #include <adt/list.h>
@@ -117,8 +118,8 @@ int main(int argc, char *argv[])
 			if (rc != EOK)
 				return 1;
 		} else {
-			fprintf(stderr, "Cannot get information for '%s' (%d).\n",
-			    mtab_ent->mp, errno);
+			fprintf(stderr, "Cannot get information for '%s' (%s).\n",
+			    mtab_ent->mp, str_error(errno));
 		}
 	}
 
