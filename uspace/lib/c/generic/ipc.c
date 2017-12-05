@@ -263,7 +263,7 @@ cap_handle_t ipc_wait_cycle(ipc_call_t *call, sysarg_t usec, unsigned int flags)
 	    __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
 	
 	/* Handle received answers */
-	if ((chandle == CAP_NIL) && (call->flags & IPC_CALLID_ANSWERED))
+	if ((chandle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED))
 		handle_answer(call);
 	
 	return chandle;
@@ -294,7 +294,7 @@ cap_handle_t ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
 	
 	do {
 		chandle = ipc_wait_cycle(call, usec, SYNCH_FLAGS_NONE);
-	} while ((chandle == CAP_NIL) && (call->flags & IPC_CALLID_ANSWERED));
+	} while ((chandle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED));
 	
 	return chandle;
 }
@@ -316,7 +316,7 @@ cap_handle_t ipc_trywait_for_call(ipc_call_t *call)
 	do {
 		chandle = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT,
 		    SYNCH_FLAGS_NON_BLOCKING);
-	} while ((chandle == CAP_NIL) && (call->flags & IPC_CALLID_ANSWERED));
+	} while ((chandle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED));
 	
 	return chandle;
 }

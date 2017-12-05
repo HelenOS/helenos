@@ -322,7 +322,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	ht_link_t *item;
 	pending_call_t *pcall;
 	
-	if ((call->flags & IPC_CALLID_ANSWERED) == 0 &&
+	if ((call->flags & IPC_CALL_ANSWERED) == 0 &&
 	    hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {

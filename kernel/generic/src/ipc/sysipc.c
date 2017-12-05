@@ -774,7 +774,7 @@ restart:
 		/* Set in_phone_hash to the interrupt counter */
 		call->data.phone = (void *) call->priv;
 		
-		call->data.flags = IPC_CALLID_NOTIFICATION;
+		call->data.flags = IPC_CALL_NOTIF;
 
 		STRUCT_TO_USPACE(calldata, &call->data);
 		kobject_put(call->kobject);
@@ -790,7 +790,7 @@ restart:
 			goto restart;
 		}
 
-		call->data.flags = IPC_CALLID_ANSWERED;
+		call->data.flags = IPC_CALL_ANSWERED;
 		
 		STRUCT_TO_USPACE(calldata, &call->data);
 		kobject_put(call->kobject);
