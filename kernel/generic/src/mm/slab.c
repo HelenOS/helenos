@@ -817,12 +817,10 @@ size_t slab_reclaim(unsigned int flags)
 	return frames;
 }
 
-/* Print list of slabs
- *
- */
+/* Print list of caches */
 void slab_print_list(void)
 {
-	printf("[slab name       ] [size  ] [pages ] [obj/pg] [slabs ]"
+	printf("[cache name      ] [size  ] [pages ] [obj/pg] [slabs ]"
 	    " [cached] [alloc ] [ctl]\n");
 	
 	size_t skip = 0;

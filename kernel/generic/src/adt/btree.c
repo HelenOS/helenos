@@ -54,7 +54,7 @@
 #include <print.h>
 #include <trace.h>
 
-static slab_cache_t *btree_node_slab;
+static slab_cache_t *btree_node_cache;
 
 #define ROOT_NODE(n)   (!(n)->parent)
 #define INDEX_NODE(n)  ((n)->subtree[0] != NULL)
@@ -70,7 +70,7 @@ static slab_cache_t *btree_node_slab;
 /** Initialize B-trees. */
 void btree_init(void)
 {
-	btree_node_slab = slab_cache_create("btree_node_t",
+	btree_node_cache = slab_cache_create("btree_node_t",
 	    sizeof(btree_node_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 }
 
@@ -108,7 +108,7 @@ NO_TRACE static void node_initialize(btree_node_t *node)
 void btree_create(btree_t *t)
 {
 	list_initialize(&t->leaf_list);
-	t->root = (btree_node_t *) slab_alloc(btree_node_slab, 0);
+	t->root = (btree_node_t *) slab_alloc(btree_node_cache, 0);
 	node_initialize(t->root);
 	list_append(&t->root->leaf_link, &t->leaf_list);
 }
@@ -129,7 +129,7 @@ NO_TRACE static void btree_destroy_subtree(btree_node_t *root)
 		}
 	}
 	
-	slab_free(btree_node_slab, root);
+	slab_free(btree_node_cache, root);
 }
 
 /** Destroy empty B-tree. */
@@ -515,7 +515,7 @@ NO_TRACE static btree_node_t *node_split(btree_node_t *node, btree_key_t key,
 	/*
 	 * Allocate and initialize new right sibling.
 	 */
-	rnode = (btree_node_t *) slab_alloc(btree_node_slab, 0);
+	rnode = (btree_node_t *) slab_alloc(btree_node_cache, 0);
 	node_initialize(rnode);
 	rnode->parent = node->parent;
 	rnode->depth = node->depth;
@@ -594,7 +594,7 @@ NO_TRACE static void _btree_insert(btree_t *t, btree_key_t key, void *value,
 			/*
 			 * We split the root node. Create new root.
 			 */
-			t->root = (btree_node_t *) slab_alloc(btree_node_slab, 0);
+			t->root = (btree_node_t *) slab_alloc(btree_node_cache, 0);
 			node->parent = t->root;
 			rnode->parent = t->root;
 			node_initialize(t->root);
@@ -778,7 +778,7 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 			 */
 			t->root = node->subtree[0];
 			t->root->parent = NULL;
-			slab_free(btree_node_slab, node);
+			slab_free(btree_node_cache, node);
 		} else {
 			/*
 			 * Remove the key from the root node.
@@ -837,7 +837,7 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 		
 		idx = find_key_by_subtree(parent, rnode, true);
 		assert((int) idx != -1);
-		slab_free(btree_node_slab, rnode);
+		slab_free(btree_node_cache, rnode);
 		_btree_remove(t, parent->key[idx], parent);
 	}
 }

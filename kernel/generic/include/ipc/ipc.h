@@ -172,7 +172,7 @@ typedef struct call {
 	uint8_t *buffer;
 } call_t;
 
-extern slab_cache_t *phone_slab;
+extern slab_cache_t *phone_cache;
 
 extern answerbox_t *ipc_phone_0;
 

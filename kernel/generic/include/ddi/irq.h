@@ -131,7 +131,7 @@ typedef struct irq {
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
 extern hash_table_t irq_uspace_hash_table;
 
-extern slab_cache_t *irq_slab;
+extern slab_cache_t *irq_cache;
 
 extern inr_t last_inr;
 

@@ -152,7 +152,7 @@ static bool phone_reclaim(kobject_t *kobj)
 static void phone_destroy(void *arg)
 {
 	phone_t *phone = (phone_t *) arg;
-	slab_free(phone_slab, phone);
+	slab_free(phone_cache, phone);
 }
 
 static kobject_ops_t phone_kobject_ops = {
@@ -172,7 +172,7 @@ cap_handle_t phone_alloc(task_t *task)
 {
 	cap_handle_t handle = cap_alloc(task);
 	if (handle >= 0) {
-		phone_t *phone = slab_alloc(phone_slab, FRAME_ATOMIC);
+		phone_t *phone = slab_alloc(phone_cache, FRAME_ATOMIC);
 		if (!phone) {
 			cap_free(TASK, handle);
 			return ENOMEM;
@@ -180,7 +180,7 @@ cap_handle_t phone_alloc(task_t *task)
 		kobject_t *kobject = malloc(sizeof(kobject_t), FRAME_ATOMIC);
 		if (!kobject) {
 			cap_free(TASK, handle);
-			slab_free(phone_slab, phone);
+			slab_free(phone_cache, phone);
 			return ENOMEM;
 		}
 

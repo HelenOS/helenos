@@ -78,7 +78,7 @@ avltree_t tasks_tree;
 
 static task_id_t task_counter = 0;
 
-static slab_cache_t *task_slab;
+static slab_cache_t *task_cache;
 
 /* Forward declarations. */
 static void task_kill_internal(task_t *);
@@ -92,7 +92,7 @@ void task_init(void)
 {
 	TASK = NULL;
 	avltree_create(&tasks_tree);
-	task_slab = slab_cache_create("task_t", sizeof(task_t), 0,
+	task_cache = slab_cache_create("task_t", sizeof(task_t), 0,
 	    tsk_constructor, tsk_destructor, 0);
 }
 
@@ -205,7 +205,7 @@ size_t tsk_destructor(void *obj)
  */
 task_t *task_create(as_t *as, const char *name)
 {
-	task_t *task = (task_t *) slab_alloc(task_slab, 0);
+	task_t *task = (task_t *) slab_alloc(task_cache, 0);
 	task_create_arch(task);
 	
 	task->as = as;
@@ -294,7 +294,7 @@ void task_destroy(task_t *task)
 	 */
 	as_release(task->as);
 	
-	slab_free(task_slab, task);
+	slab_free(task_cache, task);
 }
 
 /** Hold a reference to a task.

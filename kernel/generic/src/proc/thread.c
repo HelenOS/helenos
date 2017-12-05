@@ -102,10 +102,10 @@ avltree_t threads_tree;
 IRQ_SPINLOCK_STATIC_INITIALIZE(tidlock);
 static thread_id_t last_tid = 0;
 
-static slab_cache_t *thread_slab;
+static slab_cache_t *thread_cache;
 
 #ifdef CONFIG_FPU
-slab_cache_t *fpu_context_slab;
+slab_cache_t *fpu_context_cache;
 #endif
 
 /** Thread wrapper.
@@ -168,7 +168,7 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 #ifdef CONFIG_FPU_LAZY
 	thread->saved_fpu_context = NULL;
 #else /* CONFIG_FPU_LAZY */
-	thread->saved_fpu_context = slab_alloc(fpu_context_slab, kmflags);
+	thread->saved_fpu_context = slab_alloc(fpu_context_cache, kmflags);
 	if (!thread->saved_fpu_context)
 		return -1;
 #endif /* CONFIG_FPU_LAZY */
@@ -198,7 +198,7 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 	if (!stack_phys) {
 #ifdef CONFIG_FPU
 		if (thread->saved_fpu_context)
-			slab_free(fpu_context_slab, thread->saved_fpu_context);
+			slab_free(fpu_context_cache, thread->saved_fpu_context);
 #endif
 		return -1;
 	}
@@ -224,7 +224,7 @@ static size_t thr_destructor(void *obj)
 	
 #ifdef CONFIG_FPU
 	if (thread->saved_fpu_context)
-		slab_free(fpu_context_slab, thread->saved_fpu_context);
+		slab_free(fpu_context_cache, thread->saved_fpu_context);
 #endif
 	
 	return STACK_FRAMES;  /* number of frames freed */
@@ -240,11 +240,11 @@ void thread_init(void)
 	THREAD = NULL;
 	
 	atomic_set(&nrdy, 0);
-	thread_slab = slab_cache_create("thread_t", sizeof(thread_t), 0,
+	thread_cache = slab_cache_create("thread_t", sizeof(thread_t), 0,
 	    thr_constructor, thr_destructor, 0);
 	
 #ifdef CONFIG_FPU
-	fpu_context_slab = slab_cache_create("fpu_context_t",
+	fpu_context_cache = slab_cache_create("fpu_context_t",
 	    sizeof(fpu_context_t), FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
 	
@@ -340,7 +340,7 @@ void thread_ready(thread_t *thread)
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
     thread_flags_t flags, const char *name)
 {
-	thread_t *thread = (thread_t *) slab_alloc(thread_slab, 0);
+	thread_t *thread = (thread_t *) slab_alloc(thread_cache, 0);
 	if (!thread)
 		return NULL;
 	
@@ -456,7 +456,7 @@ void thread_destroy(thread_t *thread, bool irq_res)
 	 * Drop the reference to the containing task.
 	 */
 	task_release(thread->task);
-	slab_free(thread_slab, thread);
+	slab_free(thread_cache, thread);
 }
 
 /** Make the thread visible to the system.
@@ -973,7 +973,7 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				 * is still not visible to the system.
 				 * We can safely deallocate it.
 				 */
-				slab_free(thread_slab, thread);
+				slab_free(thread_cache, thread);
 				free(kernel_uarg);
 				
 				return (sysarg_t) rc;

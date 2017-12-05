@@ -89,7 +89,7 @@ as_operations_t *as_operations = NULL;
 /** Slab for as_t objects.
  *
  */
-static slab_cache_t *as_slab;
+static slab_cache_t *as_cache;
 
 /** ASID subsystem lock.
  *
@@ -130,7 +130,7 @@ void as_init(void)
 {
 	as_arch_init();
 	
-	as_slab = slab_cache_create("as_t", sizeof(as_t), 0,
+	as_cache = slab_cache_create("as_t", sizeof(as_t), 0,
 	    as_constructor, as_destructor, SLAB_CACHE_MAGDEFERRED);
 	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
@@ -152,7 +152,7 @@ void as_init(void)
  */
 as_t *as_create(unsigned int flags)
 {
-	as_t *as = (as_t *) slab_alloc(as_slab, 0);
+	as_t *as = (as_t *) slab_alloc(as_cache, 0);
 	(void) as_create_arch(as, 0);
 	
 	btree_create(&as->as_area_btree);
@@ -253,7 +253,7 @@ retry:
 	page_table_destroy(NULL);
 #endif
 	
-	slab_free(as_slab, as);
+	slab_free(as_cache, as);
 }
 
 /** Hold a reference to an address space.

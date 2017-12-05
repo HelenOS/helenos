@@ -65,10 +65,10 @@ static void ipc_forget_call(call_t *);
 /** Open channel that is assigned automatically to new tasks */
 answerbox_t *ipc_phone_0 = NULL;
 
-static slab_cache_t *call_slab;
-static slab_cache_t *answerbox_slab;
+static slab_cache_t *call_cache;
+static slab_cache_t *answerbox_cache;
 
-slab_cache_t *phone_slab = NULL; 
+slab_cache_t *phone_cache = NULL; 
 
 /** Initialize a call structure.
  *
@@ -94,7 +94,7 @@ static void call_destroy(void *arg)
 		free(call->buffer);
 	if (call->caller_phone)
 		kobject_put(call->caller_phone->kobject);
-	slab_free(call_slab, call);
+	slab_free(call_cache, call);
 }
 
 static kobject_ops_t call_kobject_ops = {
@@ -114,12 +114,12 @@ static kobject_ops_t call_kobject_ops = {
  */
 call_t *ipc_call_alloc(unsigned int flags)
 {
-	call_t *call = slab_alloc(call_slab, flags);
+	call_t *call = slab_alloc(call_cache, flags);
 	if (!call)
 		return NULL;
 	kobject_t *kobj = (kobject_t *) malloc(sizeof(kobject_t), flags);
 	if (!kobj) {
-		slab_free(call_slab, call);
+		slab_free(call_cache, call);
 		return NULL;
 	}
 
@@ -209,7 +209,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
  */
 int ipc_call_sync(phone_t *phone, call_t *request)
 {
-	answerbox_t *mybox = slab_alloc(answerbox_slab, 0);
+	answerbox_t *mybox = slab_alloc(answerbox_cache, 0);
 	ipc_answerbox_init(mybox, TASK);
 	
 	/* We will receive data in a special box. */
@@ -217,7 +217,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 	
 	int rc = ipc_call(phone, request);
 	if (rc != EOK) {
-		slab_free(answerbox_slab, mybox);
+		slab_free(answerbox_cache, mybox);
 		return rc;
 	}
 
@@ -264,7 +264,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 	}
 	assert(!answer || request == answer);
 	
-	slab_free(answerbox_slab, mybox);
+	slab_free(answerbox_cache, mybox);
 	return rc;
 }
 
@@ -905,11 +905,11 @@ void ipc_cleanup(void)
  */
 void ipc_init(void)
 {
-	call_slab = slab_cache_create("call_t", sizeof(call_t), 0, NULL,
+	call_cache = slab_cache_create("call_t", sizeof(call_t), 0, NULL,
 	    NULL, 0);
-	phone_slab = slab_cache_create("phone_t", sizeof(phone_t), 0, NULL,
+	phone_cache = slab_cache_create("phone_t", sizeof(phone_t), 0, NULL,
 	    NULL, 0);
-	answerbox_slab = slab_cache_create("answerbox_t", sizeof(answerbox_t),
+	answerbox_cache = slab_cache_create("answerbox_t", sizeof(answerbox_t),
 	    0, NULL, NULL, 0);
 }
 

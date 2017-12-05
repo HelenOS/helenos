@@ -52,7 +52,7 @@ bool fb_exported = false;
 static sysinfo_item_t *global_root = NULL;
 
 /** Sysinfo SLAB cache */
-static slab_cache_t *sysinfo_item_slab;
+static slab_cache_t *sysinfo_item_cache;
 
 /** Sysinfo lock */
 static mutex_t sysinfo_lock;
@@ -97,7 +97,7 @@ NO_TRACE static size_t sysinfo_item_destructor(void *obj)
  */
 void sysinfo_init(void)
 {
-	sysinfo_item_slab = slab_cache_create("sysinfo_item_t",
+	sysinfo_item_cache = slab_cache_create("sysinfo_item_t",
 	    sizeof(sysinfo_item_t), 0, sysinfo_item_constructor,
 	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
 	
@@ -203,7 +203,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 			i++;
 		
 		*psubtree =
-		    (sysinfo_item_t *) slab_alloc(sysinfo_item_slab, 0);
+		    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, 0);
 		assert(*psubtree);
 		
 		/* Fill in item name up to the delimiter */
@@ -267,7 +267,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 				i++;
 			
 			sysinfo_item_t *item =
-			    (sysinfo_item_t *) slab_alloc(sysinfo_item_slab, 0);
+			    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, 0);
 			assert(item);
 			
 			cur->next = item;
