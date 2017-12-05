@@ -43,8 +43,6 @@
 #include "trace.h"
 #include "ipcp.h"
 
-#define IPCP_CALLID_SYNC 0
-
 typedef struct {
 	sysarg_t phone_hash;
 	ipc_call_t question;
@@ -144,7 +142,7 @@ void ipcp_init(void)
 		V_INTEGER,
 		V_INTEGER,
 		V_INTEGER,
-		V_INTEGER		
+		V_INTEGER
 	};
 
 	/*
@@ -322,8 +320,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	ht_link_t *item;
 	pending_call_t *pcall;
 	
-	if ((call->flags & IPC_CALL_ANSWERED) == 0 &&
-	    hash != IPCP_CALLID_SYNC) {
+	if ((call->flags & IPC_CALL_ANSWERED) == 0) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
 			printf("Not a response (hash %d)\n", hash);
@@ -344,12 +341,6 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	
 	parse_answer(hash, pcall, call);
 	free(pcall);
-}
-
-void ipcp_call_sync(int phone, ipc_call_t *call, ipc_call_t *answer)
-{
-	ipcp_call_out(phone, call, IPCP_CALLID_SYNC);
-	ipcp_call_in(answer, IPCP_CALLID_SYNC);
 }
 
 void ipcp_hangup(int phone, int rc)
