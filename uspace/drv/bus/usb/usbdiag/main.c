@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbdbg
+/** @addtogroup drvusbdiag
  * @{
  */
 /**
@@ -37,10 +37,10 @@
 #include <usb/debug.h>
 #include <usb/dev/driver.h>
 
-#include "usbdbg.h"
+#include "usbdiag.h"
 #include "device.h"
 
-#define NAME "usbdbg"
+#define NAME "usbdiag"
 
 static int device_add(usb_device_t *dev)
 {
@@ -48,8 +48,8 @@ static int device_add(usb_device_t *dev)
 
 	int err;
 
-	usb_dbg_dev_t *dbg_dev;
-	if ((err = usb_dbg_dev_create(dev, &dbg_dev)))
+	usb_diag_dev_t *diag_dev;
+	if ((err = usb_diag_dev_create(dev, &diag_dev)))
 		return err;
 
 	/* TODO: Register device in some list. */
@@ -62,13 +62,13 @@ static int device_remove(usb_device_t *dev)
 {
 	usb_log_info("Removing device '%s'", usb_device_get_name(dev));
 
-	usb_dbg_dev_t *dbg_dev = usb_dbg_dev_get(dev);
+	usb_diag_dev_t *diag_dev = usb_diag_dev_get(dev);
 
 	/* TODO: Make sure nothing is going on with the device. */
 	/* TODO: Unregister device DDF function. */
 	/* TODO: Remove device from list */
 
-	usb_dbg_dev_destroy(dbg_dev);
+	usb_diag_dev_destroy(diag_dev);
 
 	return EOK;
 }
@@ -77,13 +77,13 @@ static int device_gone(usb_device_t *dev)
 {
 	usb_log_info("Device '%s' gone.", usb_device_get_name(dev));
 
-	usb_dbg_dev_t *dbg_dev = usb_dbg_dev_get(dev);
+	usb_diag_dev_t *diag_dev = usb_diag_dev_get(dev);
 
 	/* TODO: Make sure nothing is going on with the device. */
 	/* TODO: Unregister device DDF function. */
 	/* TODO: Remove device from list */
 
-	usb_dbg_dev_destroy(dbg_dev);
+	usb_diag_dev_destroy(diag_dev);
 
 	return EOK;
 }
@@ -99,7 +99,7 @@ static int function_offline(ddf_fun_t *fun)
 }
 
 /** USB debug driver ops. */
-static const usb_driver_ops_t dbg_driver_ops = {
+static const usb_driver_ops_t diag_driver_ops = {
 	.device_add = device_add,
 	.device_rem = device_remove,
 	.device_gone = device_gone,
@@ -108,9 +108,9 @@ static const usb_driver_ops_t dbg_driver_ops = {
 };
 
 /** USB debug driver. */
-static const usb_driver_t dbg_driver = {
+static const usb_driver_t diag_driver = {
 	.name = NAME,
-	.ops = &dbg_driver_ops,
+	.ops = &diag_driver_ops,
 	.endpoints = NULL
 };
 
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
 
 	log_init(NAME);
 
-	return usb_driver_main(&dbg_driver);
+	return usb_driver_main(&diag_driver);
 }
 
 /**

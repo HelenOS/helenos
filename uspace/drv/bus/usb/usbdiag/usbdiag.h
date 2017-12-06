@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbdbg
+/** @addtogroup drvusbdiag
  * @{
  */
 /** @file
- * USB debug device driver API.
+ * USB diagnostic device driver API.
  */
 
-#ifndef USB_DBG_USBDBG_H_
-#define USB_DBG_USBDBG_H_
+#ifndef USB_DIAG_USBDIAG_H_
+#define USB_DIAG_USBDIAG_H_
 
 // TODO: Add some API.
 
-#endif /* USB_DBG_USBDBG_H_ */
+#endif /* USB_DIAG_USBDIAG_H_ */
 
 /**
  * @}

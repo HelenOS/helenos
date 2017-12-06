@@ -237,7 +237,7 @@ uspace/dist/drv/test1/
 uspace/dist/drv/test2/
 uspace/dist/drv/test3/
 uspace/dist/drv/uhci/
-uspace/dist/drv/usbdbg/
+uspace/dist/drv/usbdiag/
 uspace/dist/drv/usbflbk/
 uspace/dist/drv/usbhid/
 uspace/dist/drv/usbhub/
@@ -296,7 +296,7 @@ uspace/drv/bus/pci/pciintel/pciintel
 uspace/drv/bus/usb/ehci/ehci
 uspace/drv/bus/usb/ohci/ohci
 uspace/drv/bus/usb/uhci/uhci
-uspace/drv/bus/usb/usbdbg/usbdbg
+uspace/drv/bus/usb/usbdiag/usbdiag
 uspace/drv/bus/usb/usbflbk/usbflbk
 uspace/drv/bus/usb/usbhub/usbhub
 uspace/drv/bus/usb/usbmid/usbmid

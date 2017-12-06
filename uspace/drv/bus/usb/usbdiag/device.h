@@ -26,35 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbdbg
+/** @addtogroup drvusbdiag
  * @{
  */
 /** @file
- * USB debug device structures.
+ * USB diagnostic device structures.
  */
 
-#ifndef USB_DBG_DEVICE_H_
-#define USB_DBG_DEVICE_H_
+#ifndef USB_DIAG_DEVICE_H_
+#define USB_DIAG_DEVICE_H_
 
 #include <usb/dev/device.h>
 
 /**
  * USB debug device.
  */
-typedef struct usb_dbg_dev {
+typedef struct usb_diag_dev {
 	usb_device_t *usb_dev;
-} usb_dbg_dev_t;
+} usb_diag_dev_t;
 
-int usb_dbg_dev_create(usb_device_t *, usb_dbg_dev_t **);
-void usb_dbg_dev_destroy(usb_dbg_dev_t *);
+int usb_diag_dev_create(usb_device_t *, usb_diag_dev_t **);
+void usb_diag_dev_destroy(usb_diag_dev_t *);
 
-static inline usb_dbg_dev_t * usb_dbg_dev_get(usb_device_t *usb_dev)
+static inline usb_diag_dev_t * usb_diag_dev_get(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_device_data_get(usb_dev);
 }
 
-#endif /* USB_DBG_USBDBG_H_ */
+#endif /* USB_DIAG_USBDIAG_H_ */
 
 /**
  * @}

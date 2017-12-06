@@ -150,7 +150,7 @@ DIRS = \
 	drv/bus/usb/ehci \
 	drv/bus/usb/ohci \
 	drv/bus/usb/uhci \
-	drv/bus/usb/usbdbg \
+	drv/bus/usb/usbdiag \
 	drv/bus/usb/usbflbk \
 	drv/bus/usb/usbhub \
 	drv/bus/usb/usbmid \

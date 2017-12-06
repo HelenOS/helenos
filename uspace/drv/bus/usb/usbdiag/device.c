@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbdbg
+/** @addtogroup drvusbdiag
  * @{
  */
 /**
@@ -38,36 +38,36 @@
 
 #include "device.h"
 
-#define NAME "usbdbg"
+#define NAME "usbdiag"
 
-static int device_init(usb_dbg_dev_t *dev)
+static int device_init(usb_diag_dev_t *dev)
 {
 	// TODO: allocate data structures, set up stuffs
 
 	return EOK;
 }
 
-static void device_fini(usb_dbg_dev_t *dev)
+static void device_fini(usb_diag_dev_t *dev)
 {
 	// TODO: tear down data structures
 }
 
-int usb_dbg_dev_create(usb_device_t *dev, usb_dbg_dev_t **out_dbg_dev)
+int usb_diag_dev_create(usb_device_t *dev, usb_diag_dev_t **out_diag_dev)
 {
 	assert(dev);
-	assert(out_dbg_dev);
+	assert(out_diag_dev);
 
-	usb_dbg_dev_t *dbg_dev = usb_device_data_alloc(dev, sizeof(usb_dbg_dev_t));
-	if (!dbg_dev)
+	usb_diag_dev_t *diag_dev = usb_device_data_alloc(dev, sizeof(usb_diag_dev_t));
+	if (!diag_dev)
 		return ENOMEM;
 
-	dbg_dev->usb_dev = dev;
+	diag_dev->usb_dev = dev;
 
 	int err;
-	if ((err = device_init(dbg_dev)))
+	if ((err = device_init(diag_dev)))
 		goto err_init;
 
-	*out_dbg_dev = dbg_dev;
+	*out_diag_dev = diag_dev;
 	return EOK;
 
 err_init:
@@ -75,7 +75,7 @@ err_init:
 	return err;
 }
 
-void usb_dbg_dev_destroy(usb_dbg_dev_t *dev)
+void usb_diag_dev_destroy(usb_diag_dev_t *dev)
 {
 	assert(dev);
 

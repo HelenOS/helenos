@@ -30,7 +30,7 @@ USPACE_PREFIX = ../../../..
 
 LIBS = usbdev usb drv
 
-BINARY = usbdbg
+BINARY = usbdiag
 
 SOURCES = \
 	device.c \
