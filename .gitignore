@@ -428,6 +428,16 @@ uspace/srv/test/chardev-test/chardev-test
 uspace/srv/vfs/vfs
 uspace/srv/volsrv/volsrv
 tools/amd64-unknown-elf
+tools/arm-linux-gnueabi
+tools/i686-pc-linux-gnu
+tools/ia64-pc-linux-gnu
+tools/mips-linux-gnu
+tools/mips64el-linux-gnu
+tools/mipsel-linux-gnu
+tools/ppc-linux-gnu
+tools/ppc64-linux-gnu
+tools/riscv64-unknown-linux-gnu
+tools/sparc64-linux-gnu
 tools/binutils-*.tar.bz2
 tools/gcc-*.tar.bz2
 tools/gdb-*.tar.gz
