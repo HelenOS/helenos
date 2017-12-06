@@ -26,35 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tmon
+/** @addtogroup libusbdiag
  * @{
  */
-/**
- * @file
- * USB transfer debugging.
+/** @file
+ * Testing stuff
  */
 
-#include <stdio.h>
 #include <usb/diag/diag.h>
 
-#define NAME "tmon"
-
-static void print_usage(char *app_name)
+int usb_diag_test(int x)
 {
-	printf(NAME ": hello USB transfers!\n\n");
+	return x + 42;
 }
 
-int main(int argc, char *argv[])
-{
-	if (argc <= 1) {
-		print_usage(argv[0]);
-		return -1;
-	}
-
-	printf("The number is %d.\n", usb_diag_test(0));
-
-	return 0;
-}
-
-/** @}
+/**
+ * @}
  */

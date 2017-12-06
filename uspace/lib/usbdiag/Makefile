@@ -27,11 +27,10 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = tmon
-
-LIBS = usbdiag
+LIBRARY = libusbdiag
+LIBS = usb
 
 SOURCES = \
-	main.c
+	src/test.c
 
 include $(USPACE_PREFIX)/Makefile.common

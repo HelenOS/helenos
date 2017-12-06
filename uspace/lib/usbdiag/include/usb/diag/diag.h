@@ -26,35 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tmon
+/** @addtogroup libusbdiag
  * @{
  */
-/**
- * @file
- * USB transfer debugging.
+/** @file
+ * @brief USB diagnostic device related types.
  */
+#ifndef LIBUSBDIAG_DIAG_H_
+#define LIBUSBDIAG_DIAG_H_
 
-#include <stdio.h>
-#include <usb/diag/diag.h>
+/** Just a dummy symbol to make compiler happy. TODO: remove it */
+int usb_diag_test(int);
 
-#define NAME "tmon"
-
-static void print_usage(char *app_name)
-{
-	printf(NAME ": hello USB transfers!\n\n");
-}
-
-int main(int argc, char *argv[])
-{
-	if (argc <= 1) {
-		print_usage(argv[0]);
-		return -1;
-	}
-
-	printf("The number is %d.\n", usb_diag_test(0));
-
-	return 0;
-}
-
-/** @}
+#endif
+/**
+ * @}
  */
