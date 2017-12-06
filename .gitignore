@@ -427,3 +427,7 @@ uspace/srv/taskmon/taskmon
 uspace/srv/test/chardev-test/chardev-test
 uspace/srv/vfs/vfs
 uspace/srv/volsrv/volsrv
+tools/amd64-unknown-elf
+tools/binutils-*.tar.bz2
+tools/gcc-*.tar.bz2
+tools/gdb-*.tar.gz
