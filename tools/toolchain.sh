@@ -71,6 +71,7 @@ BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.gz"
 ISL="isl-${ISL_VERSION}.tar.bz2"
+CPUCOUNT="`python -c 'import multiprocessing as mp; print(mp.cpu_count())' `"
 
 REAL_INSTALL=true
 USE_HELENOS_TARGET=false
@@ -499,7 +500,7 @@ build_target() {
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
-	make all
+	make -j$CPUCOUNT all
 	check_error $? "Error compiling binutils."
 	
 	change_title "binutils: install (${PLATFORM})"
@@ -522,7 +523,7 @@ build_target() {
 	check_error $? "Error configuring GCC."
 	
 	change_title "GCC: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gcc
+	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make -j$CPUCOUNT all-gcc
 	check_error $? "Error compiling GCC."
 	
 	change_title "GCC: install (${PLATFORM})"
@@ -544,7 +545,7 @@ build_target() {
 		check_error $? "Error configuring GDB."
 		
 		change_title "GDB: make (${PLATFORM})"
-		PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
+		PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make -j$CPUCOUNT all
 		check_error $? "Error compiling GDB."
 		
 		change_title "GDB: make (${PLATFORM})"
