@@ -85,7 +85,7 @@ static void out_destroy(vfs_triplet_t *file)
 	vfs_exchange_release(exch);
 }
 
-int vfs_op_clone(int oldfd, int newfd, bool desc)
+int vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
 {
 	int rc;
 
@@ -117,7 +117,12 @@ int vfs_op_clone(int oldfd, int newfd, bool desc)
 	}
 	vfs_file_put(oldfile);
 	
-	return rc;
+	if (rc < 0) {
+		return rc;
+	}
+	
+	*out_fd = rc;
+	return EOK;
 }
 
 int vfs_op_put(int fd)

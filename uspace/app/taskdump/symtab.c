@@ -81,9 +81,9 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 	if (stab == NULL)
 		return ENOMEM;
 
-	fd = vfs_lookup_open(file_name, WALK_REGULAR, MODE_READ);
-	if (fd < 0) {
-		printf("failed opening file\n");
+	rc = vfs_lookup_open(file_name, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK) {
+		printf("failed opening file '%s': %s\n", file_name, str_error(rc));
 		free(stab);
 		return ENOENT;
 	}

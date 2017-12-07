@@ -51,9 +51,7 @@
  *
  * @param name Symbolic name to set on the newly created task.
  *
- * @return Pointer to the loader connection structure (should be
- *         deallocated using free() after use).
- *
+ * @return Error code.
  */
 int loader_spawn(const char *name)
 {
@@ -197,12 +195,13 @@ int loader_set_program_path(loader_t *ldr, const char *path)
 		name++;
 	}
 	
-	int fd = vfs_lookup(path, 0);
-	if (fd < 0) {
-		return fd;
+	int fd;
+	int rc = vfs_lookup(path, 0, &fd);
+	if (rc != EOK) {
+		return rc;
 	}
 	
-	int rc = loader_set_program(ldr, name, fd);
+	rc = loader_set_program(ldr, name, fd);
 	vfs_put(fd);
 	return rc;
 }

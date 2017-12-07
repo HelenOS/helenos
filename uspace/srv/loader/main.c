@@ -151,8 +151,9 @@ static void ldr_set_program(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	int file = vfs_receive_handle(true);
-	if (file < 0) {
+	int file;
+	rc = vfs_receive_handle(true, &file);
+	if (rc != EOK) {
 		async_answer_0(rid, EINVAL);
 		return;
 	}
@@ -253,8 +254,9 @@ static void ldr_add_inbox(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	int file = vfs_receive_handle(true);
-	if (file < 0) {
+	int file;
+	rc = vfs_receive_handle(true, &file);
+	if (rc != EOK) {
 		async_answer_0(rid, EINVAL);
 		return;
 	}

@@ -48,9 +48,9 @@ static void *create_paged_area(size_t size)
 
 	TPRINTF("Creating temporary file...\n");
 
-	fd = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
-	    MODE_READ | MODE_WRITE);
-	if (fd < 0)
+	rc = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_READ | MODE_WRITE, &fd);
+	if (rc != EOK)
 		return NULL;
 	(void) vfs_unlink_path(TEST_FILE);
 

@@ -393,14 +393,14 @@ static int copy_file(const char *src, const char *dest,
 	if (vb)
 		printf("Copying %s to %s\n", src, dest);
 
-	fd1 = vfs_lookup_open(src, WALK_REGULAR, MODE_READ);
-	if (fd1 < 0) {
+	rc = vfs_lookup_open(src, WALK_REGULAR, MODE_READ, &fd1);
+	if (rc != EOK) {
 		printf("Unable to open source file %s\n", src);
 		return -1;
 	}
 
-	fd2 = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
-	if (fd2 < 0) {
+	rc = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE, &fd2);
+	if (rc != EOK) {
 		printf("Unable to open destination file %s\n", dest);
 		vfs_put(fd1);
 		return -1;

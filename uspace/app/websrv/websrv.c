@@ -264,8 +264,8 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 		goto out;
 	}
 	
-	fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
-	if (fd < 0) {
+	rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK) {
 		rc = send_response(conn, msg_not_found);
 		goto out;
 	}

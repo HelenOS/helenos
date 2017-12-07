@@ -194,8 +194,12 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		fd = fileno(stdin);
 		/* Allow storing the whole UTF-8 character. */
 		blen = STR_BOUNDS(1);
-	} else
-		fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
+	} else {
+		int rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
+		if (rc != EOK) {
+			fd = -1;
+		}
+	}
 	
 	if (fd < 0) {
 		printf("Unable to open %s\n", fname);

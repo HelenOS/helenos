@@ -40,8 +40,9 @@ static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
 	int newfd = IPC_GET_ARG2(*request);
 	bool desc = IPC_GET_ARG3(*request);
 	
-	int ret = vfs_op_clone(oldfd, newfd, desc);
-	async_answer_0(rid, ret);
+	int outfd = -1;
+	int rc = vfs_op_clone(oldfd, newfd, desc, &outfd);
+	async_answer_1(rid, rc, outfd);
 }
 
 static void vfs_in_fsprobe(ipc_callid_t rid, ipc_call_t *request)

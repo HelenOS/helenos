@@ -280,8 +280,8 @@ static char *fun_conf_read(const char *conf_path)
 	size_t nread;
 	struct stat st;
 
-	fd = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ);
-	if (fd < 0) {
+	rc = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Unable to open %s", conf_path);
 		goto cleanup;
 	}

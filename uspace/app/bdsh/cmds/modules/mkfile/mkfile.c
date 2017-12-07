@@ -162,8 +162,8 @@ int cmd_mkfile(char **argv)
 
 	file_name = argv[optind];
 
-	fd = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MUST_CREATE, MODE_WRITE);
-	if (fd < 0) {
+	rc = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MUST_CREATE, MODE_WRITE, &fd);
+	if (rc != EOK) {
 		printf("%s: failed to create file %s.\n", cmdname, file_name);
 		return CMD_FAILURE;
 	}

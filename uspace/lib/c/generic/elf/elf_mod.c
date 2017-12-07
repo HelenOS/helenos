@@ -96,8 +96,11 @@ int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info
 {
 	elf_ld_t elf;
 
-	int ofile = vfs_clone(file, -1, true);
-	int rc = vfs_open(ofile, MODE_READ);
+	int ofile;
+	int rc = vfs_clone(file, -1, true, &ofile);
+	if (rc == EOK) {
+		rc = vfs_open(ofile, MODE_READ);
+	}
 	if (rc != EOK) {
 		return rc;
 	}
@@ -115,9 +118,12 @@ int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info
 int elf_load_file_name(const char *path, size_t so_bias, eld_flags_t flags,
     elf_finfo_t *info)
 {
-	int file = vfs_lookup(path, 0);
-	int rc = elf_load_file(file, so_bias, flags, info);
-	vfs_put(file);
+	int file;
+	int rc = vfs_lookup(path, 0, &file);
+	if (rc == EOK) {
+		rc = elf_load_file(file, so_bias, flags, info);
+		vfs_put(file);
+	}
 	return rc;
 }
 

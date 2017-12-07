@@ -72,14 +72,15 @@ const char *test_vfs1(void)
 
 	rc = vfs_link_path(TEST_DIRECTORY, KIND_DIRECTORY, NULL);
 	if (rc != EOK) {
-		TPRINTF("rc=%d\n", rc);
+		TPRINTF("rc=%s\n", str_error_name(rc));
 		return "vfs_link_path() failed";
 	}
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	
-	int fd0 = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
-	    MODE_READ | MODE_WRITE);
-	if (fd0 < 0)
+	int fd0;
+	rc = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_READ | MODE_WRITE, &fd0);
+	if (rc != EOK)
 		return "vfs_lookup_open() failed";
 	TPRINTF("Created file %s (fd=%d)\n", TEST_FILE, fd0);
 	

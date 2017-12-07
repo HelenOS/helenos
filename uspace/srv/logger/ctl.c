@@ -86,9 +86,13 @@ void logger_connection_handler_control(ipc_callid_t callid)
 			break;
 		}
 		case LOGGER_CONTROL_SET_ROOT: {
-			int fd = vfs_receive_handle(true);
-			vfs_root_set(fd);
-			async_answer_0(callid, fd >= 0 ? EOK : fd);
+			int fd;
+			int rc = vfs_receive_handle(true, &fd);
+			if (rc == EOK) {
+				rc = vfs_root_set(fd);
+				vfs_put(fd);
+			}
+			async_answer_0(callid, rc);
 			break;
 		}
 		default:

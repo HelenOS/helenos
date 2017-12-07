@@ -62,12 +62,12 @@ int futil_copy_file(const char *srcp, const char *destp)
 
 	printf("Copy '%s' to '%s'.\n", srcp, destp);
 
-	sf = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ);
-	if (sf < 0)
+	rc = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ, &sf);
+	if (rc != EOK)
 		return EIO;
 
-	df = vfs_lookup_open(destp, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
-	if (df < 0)
+	rc = vfs_lookup_open(destp, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE, &df);
+	if (rc != EOK)
 		return EIO;
 
 	do {
@@ -86,7 +86,7 @@ int futil_copy_file(const char *srcp, const char *destp)
 	(void) vfs_put(sf);
 
 	rc = vfs_put(df);
-	if (rc < 0)
+	if (rc != EOK)
 		return EIO;
 
 	return EOK;
@@ -166,8 +166,8 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 	char *data;
 	struct stat st;
 
-	sf = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ);
-	if (sf < 0)
+	rc = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ, &sf);
+	if (rc != EOK)
 		return ENOENT;
 
 	if (vfs_stat(sf, &st) != EOK) {

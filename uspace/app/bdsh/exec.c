@@ -57,8 +57,8 @@ static int try_access(const char *f)
 {
 	int fd;
 
-	fd = vfs_lookup_open(f, WALK_REGULAR, MODE_READ);
-	if (fd >= 0) {
+	int rc = vfs_lookup_open(f, WALK_REGULAR, MODE_READ, &fd);
+	if (rc == EOK) {
 		vfs_put(fd);
 		return 0;
 	} else

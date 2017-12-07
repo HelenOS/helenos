@@ -53,15 +53,16 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 	
-	int fd = vfs_lookup(dirname, WALK_DIRECTORY);
-	if (fd < 0) {
+	int fd;
+	int rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
+	if (rc != EOK) {
 		free(dirp);
-		errno = fd;
+		errno = rc;
 		return NULL;
 	}
 	
-	int rc = vfs_open(fd, MODE_READ);
-	if (rc < 0) {
+	rc = vfs_open(fd, MODE_READ);
+	if (rc != EOK) {
 		free(dirp);
 		vfs_put(fd);
 		errno = rc;

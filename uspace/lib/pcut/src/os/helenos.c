@@ -158,8 +158,9 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
 	snprintf(tempfile_name, PCUT_TEMP_FILENAME_BUFFER_SIZE - 1, "pcut_%lld.tmp", (unsigned long long) task_get_id());
-	int tempfile = vfs_lookup_open(tempfile_name, WALK_REGULAR | WALK_MAY_CREATE, MODE_READ | MODE_WRITE);
-	if (tempfile < 0) {
+	int tempfile;
+	int rc = vfs_lookup_open(tempfile_name, WALK_REGULAR | WALK_MAY_CREATE, MODE_READ | MODE_WRITE, &tempfile);
+	if (rc != EOK) {
 		pcut_report_test_done(test, PCUT_OUTCOME_INTERNAL_ERROR, "Failed to create temporary file.", NULL, NULL);
 		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
@@ -176,7 +177,7 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	int status = PCUT_OUTCOME_PASS;
 
 	task_wait_t test_task_wait;
-	int rc = task_spawnvf(&test_task_id, &test_task_wait, self_path, arguments,
+	rc = task_spawnvf(&test_task_id, &test_task_wait, self_path, arguments,
 	    fileno(stdin), tempfile, tempfile);
 	if (rc != EOK) {
 		status = PCUT_OUTCOME_INTERNAL_ERROR;

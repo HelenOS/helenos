@@ -354,7 +354,13 @@ int posix_dup(int fildes)
  */
 int posix_dup2(int fildes, int fildes2)
 {
-	return negerrno(vfs_clone, fildes, fildes2, false);
+	int file;
+	int rc = vfs_clone(fildes, fildes2, false, &file);
+	if (rc != EOK) {
+		errno = rc < 0 ? -rc : rc;
+		return -1;
+	}
+	return file;
 }
 
 /**

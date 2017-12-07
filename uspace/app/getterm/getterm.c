@@ -64,14 +64,18 @@ static void reopen(FILE **stream, int fd, const char *path, int mode,
 	
 	*stream = NULL;
 	
-	int oldfd = vfs_lookup_open(path, WALK_REGULAR, mode);
-	if (oldfd < 0)
+	int oldfd;
+	int rc = vfs_lookup_open(path, WALK_REGULAR, mode, &oldfd);
+	if (rc != EOK)
 		return;
 	
 	if (oldfd != fd) {
-		if (vfs_clone(oldfd, fd, false) != fd)
+		int newfd;
+		if (vfs_clone(oldfd, fd, false, &newfd) != EOK)
 			return;
 		
+		assert(newfd == fd);
+
 		if (vfs_put(oldfd))
 			return;
 	}

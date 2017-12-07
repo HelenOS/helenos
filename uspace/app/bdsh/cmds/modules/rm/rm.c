@@ -148,8 +148,7 @@ static unsigned int rm_scope(const char *path)
 		return RM_DIR;
 	}
 
-	fd = vfs_lookup(path, WALK_REGULAR);
-	if (fd >= 0) {
+	if (vfs_lookup(path, WALK_REGULAR, &fd) == EOK) {
 		vfs_put(fd);
 		return RM_FILE;
 	}

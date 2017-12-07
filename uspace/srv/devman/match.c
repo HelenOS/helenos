@@ -201,17 +201,18 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	size_t len = 0;
 	struct stat st;
 	
-	fd = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ);
-	if (fd < 0) {
+	int rc = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
-		    conf_path, str_error(errno));
+		    conf_path, str_error(rc));
 		goto cleanup;
 	}
 	opened = true;
 	
-	if (vfs_stat(fd, &st) != EOK) {
+	rc = vfs_stat(fd, &st);
+	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to fstat %d: %s.", fd,
-		    str_error(errno));
+		    str_error(rc));
 		goto cleanup;
 	}
 	len = st.size;
@@ -229,10 +230,10 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	}
 	
 	size_t read_bytes;
-	int rc = vfs_read(fd, (aoff64_t []) {0}, buf, len, &read_bytes);
+	rc = vfs_read(fd, (aoff64_t []) {0}, buf, len, &read_bytes);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s': %s.", conf_path,
-		    str_error(errno));
+		    str_error(rc));
 		goto cleanup;
 	}
 	buf[read_bytes] = 0;

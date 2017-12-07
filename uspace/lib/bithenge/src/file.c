@@ -144,9 +144,10 @@ int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 {
 	assert(filename);
 
-	int fd = vfs_lookup_open(filename, WALK_REGULAR, MODE_READ);
-	if (fd < 0)
-		return errno;
+	int fd;
+	int rc = vfs_lookup_open(filename, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK)
+		return rc;
 
 	return new_file_blob(out, fd, true);
 }

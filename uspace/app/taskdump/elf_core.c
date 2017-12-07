@@ -122,10 +122,10 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		return ENOMEM;
 	}
 
-	fd = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MAY_CREATE,
-	    MODE_WRITE);
-	if (fd < 0) {
-		printf("Failed opening file.\n");
+	rc = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_WRITE, &fd);
+	if (rc != EOK) {
+		printf("Failed opening file '%s': %s.\n", file_name, str_error(rc));
 		free(p_hdr);
 		return ENOENT;
 	}

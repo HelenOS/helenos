@@ -134,8 +134,9 @@ int posix_open(const char *pathname, int posix_flags, ...)
 	    ((posix_flags & O_WRONLY) ? MODE_WRITE : 0) |
 	    ((posix_flags & O_APPEND) ? MODE_APPEND : 0);
 
-	int file = rcerrno(vfs_lookup, pathname, flags);
-	if (file < 0)
+	int file;
+	rc = rcerrno(vfs_lookup, pathname, flags, &file);
+	if (rc != EOK)
 		return -1;
 
 	rc = rcerrno(vfs_open, file, mode);

@@ -107,10 +107,10 @@ void __stdio_init(void)
 	/* The first three standard file descriptors are assigned for compatibility.
 	 * This will probably be removed later.
 	 */
-	 
 	int infd = inbox_get("stdin");
 	if (infd >= 0) {
-		int stdinfd = vfs_clone(infd, -1, false);
+		int stdinfd = -1;
+		(void) vfs_clone(infd, -1, false, &stdinfd);
 		assert(stdinfd == 0);
 		vfs_open(stdinfd, MODE_READ);
 		stdin = fdopen(stdinfd, "r");
@@ -121,10 +121,11 @@ void __stdio_init(void)
 	
 	int outfd = inbox_get("stdout");
 	if (outfd >= 0) {
-		int stdoutfd = vfs_clone(outfd, -1, false);
+		int stdoutfd = -1;
+		(void) vfs_clone(outfd, -1, false, &stdoutfd);
 		assert(stdoutfd <= 1);
 		while (stdoutfd < 1)
-			stdoutfd = vfs_clone(outfd, -1, false);
+			(void) vfs_clone(outfd, -1, false, &stdoutfd);
 		vfs_open(stdoutfd, MODE_APPEND);
 		stdout = fdopen(stdoutfd, "a");
 	} else {
@@ -134,10 +135,11 @@ void __stdio_init(void)
 	
 	int errfd = inbox_get("stderr");
 	if (errfd >= 0) {
-		int stderrfd = vfs_clone(errfd, -1, false);
+		int stderrfd = -1;
+		(void) vfs_clone(errfd, -1, false, &stderrfd);
 		assert(stderrfd <= 2);
 		while (stderrfd < 2)
-			stderrfd = vfs_clone(errfd, -1, false);
+			(void) vfs_clone(errfd, -1, false, &stderrfd);
 		vfs_open(stderrfd, MODE_APPEND);
 		stderr = fdopen(stderrfd, "a");
 	} else {
@@ -293,14 +295,15 @@ FILE *fopen(const char *path, const char *fmode)
 	int flags = WALK_REGULAR;
 	if (create)
 		flags |= WALK_MAY_CREATE;
-	int file = vfs_lookup(path, flags);
-	if (file < 0) {
-		errno = file;
+	int file;
+	int rc = vfs_lookup(path, flags, &file);
+	if (rc != EOK) {
+		errno = rc;
 		free(stream);
 		return NULL;
 	}
 
-	int rc = vfs_open(file, mode);
+	rc = vfs_open(file, mode);
 	if (rc != EOK) {
 		errno = rc;
 		vfs_put(file);
@@ -372,8 +375,8 @@ static int _fclose_nofree(FILE *stream)
 	
 	list_remove(&stream->link);
 	
-	if (rc != 0) {
-		/* errno was set by close() */
+	if (rc != EOK) {
+		errno = rc;
 		return EOF;
 	}
 	

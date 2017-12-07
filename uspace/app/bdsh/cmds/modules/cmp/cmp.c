@@ -79,9 +79,8 @@ static int cmp_files(const char *fn0, const char *fn1)
 	aoff64_t pos[2] = {};
 
 	for (int i = 0; i < 2; i++) {
-		fd[i] = vfs_lookup_open(fn[i], WALK_REGULAR, MODE_READ);
-		if (fd[i] < 0) {
-			rc = fd[i];
+		rc = vfs_lookup_open(fn[i], WALK_REGULAR, MODE_READ, &(fd[i]));
+		if (rc != EOK) {
 			printf("Unable to open %s\n", fn[i]);
 			goto end;
 		}
