@@ -141,7 +141,7 @@ static int connect_task(task_id_t task_id)
 	
 	int rc = udebug_begin(ksess);
 	if (rc < 0) {
-		printf("udebug_begin() -> %d\n", rc);
+		printf("udebug_begin() -> %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -223,7 +223,7 @@ static int threads_dump(void)
 	/* TODO: See why NULL does not work. */
 	rc = udebug_thread_read(sess, &dummy_buf, 0, &copied, &needed);
 	if (rc < 0) {
-		printf("udebug_thread_read() -> %d\n", rc);
+		printf("udebug_thread_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
 
@@ -237,7 +237,7 @@ static int threads_dump(void)
 
 	rc = udebug_thread_read(sess, thash_buf, buf_size, &copied, &needed);
 	if (rc < 0) {
-		printf("udebug_thread_read() -> %d\n", rc);
+		printf("udebug_thread_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
 
@@ -272,7 +272,7 @@ static int areas_dump(void)
 
 	rc = udebug_areas_read(sess, &dummy_buf, 0, &copied, &needed);
 	if (rc < 0) {
-		printf("udebug_areas_read() -> %d\n", rc);
+		printf("udebug_areas_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
 
@@ -281,7 +281,7 @@ static int areas_dump(void)
 
 	rc = udebug_areas_read(sess, ainfo_buf, buf_size, &copied, &needed);
 	if (rc < 0) {
-		printf("udebug_areas_read() -> %d\n", rc);
+		printf("udebug_areas_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
 
@@ -357,7 +357,7 @@ static int thread_dump(uintptr_t thash)
 
 	rc = udebug_regs_read(sess, thash, &istate);
 	if (rc < 0) {
-		printf("Failed reading registers (%d).\n", rc);
+		printf("Failed reading registers: %s.\n", str_error_name(rc));
 		return EIO;
 	}
 

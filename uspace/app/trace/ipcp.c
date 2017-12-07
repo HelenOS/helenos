@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 #include <inttypes.h>
 #include <adt/hash_table.h>
 #include <abi/ipc/methods.h>
@@ -346,7 +347,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 void ipcp_hangup(int phone, int rc)
 {
 	if ((display_mask & DM_SYSTEM) != 0) {
-		printf("Hang phone %d up -> %d\n", phone, rc);
+		printf("Hang phone %d up -> %s\n", phone, str_error_name(rc));
 		ipcp_connection_clear(phone);
 	}
 }

@@ -27,6 +27,7 @@
  */
 
 #include <errno.h>
+#include <str_error.h>
 #include <ipc/services.h>
 #include <io/chardev.h>
 #include <loc.h>
@@ -176,7 +177,8 @@ static const char *test_chardev1_partialx(void)
 		return "Failed sending data";
 	}
 
-	TPRINTF("Sent %zu bytes and got rc = %d (expected)\n", nbytes, rc);
+	TPRINTF("Sent %zu bytes and got rc = %s (expected)\n", nbytes,
+	    str_error_name(rc));
 
 	rc = chardev_read(chardev, small_buffer, SMALL_BUFFER_SIZE, &nbytes);
 	if (rc != EIO || nbytes != 1) {
@@ -185,7 +187,8 @@ static const char *test_chardev1_partialx(void)
 		return "Failed receiving data";
 	}
 
-	TPRINTF("Received %zu bytes and got rc = %d (expected)\n", nbytes, rc);
+	TPRINTF("Received %zu bytes and got rc = %s (expected)\n", nbytes,
+	    str_error_name(rc));
 
 	chardev_close(chardev);
 	async_hangup(sess);

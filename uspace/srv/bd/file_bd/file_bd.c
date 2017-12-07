@@ -47,6 +47,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdbool.h>
 #include <task.h>
 #include <macros.h>
@@ -133,21 +134,21 @@ int main(int argc, char **argv)
 
 	rc = loc_service_register(device_name, &service_id);
 	if (rc != EOK) {
-		printf("%s: Unable to register device '%s'.\n",
-		    NAME, device_name);
+		printf("%s: Unable to register device '%s': %s.\n",
+		    NAME, device_name, str_error(rc));
 		return rc;
 	}
 
 	rc = loc_category_get_id("disk", &disk_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Failed resolving category 'disk'.\n", NAME);
+		printf("%s: Failed resolving category 'disk': %s\n", NAME, str_error(rc));
 		return rc;
 	}
 
 	rc = loc_service_add_to_cat(service_id, disk_cat);
 	if (rc != EOK) {
-		printf("%s: Failed adding %s to category.",
-		    NAME, device_name);
+		printf("%s: Failed adding %s to category: %s",
+		    NAME, device_name, str_error(rc));
 		return rc;
 	}
 

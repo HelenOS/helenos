@@ -47,6 +47,7 @@
 #include <align.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <stdio.h>
@@ -178,7 +179,7 @@ static bool rd_init(void)
 	async_set_fallback_port_handler(rd_client_conn, NULL);
 	ret = loc_server_register(NAME);
 	if (ret != EOK) {
-		printf("%s: Unable to register driver (%d)\n", NAME, ret);
+		printf("%s: Unable to register driver: %s\n", NAME, str_error(ret));
 		return false;
 	}
 	

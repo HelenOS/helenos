@@ -323,13 +323,13 @@ static int drv_load(const char *drvname)
 
 	rc = devman_driver_get_handle(drvname, &drvh);
 	if (rc != EOK) {
-		printf("Failed resolving driver '%s' (%d).\n", drvname, rc);
+		printf("Failed resolving driver '%s': %s.\n", drvname, str_error(rc));
 		return rc;
 	}
 
 	rc = devman_driver_load(drvh);
 	if (rc != EOK) {
-		printf("Failed loading driver '%s' (%d).\n", drvname, rc);
+		printf("Failed loading driver '%s': %s.\n", drvname, str_error(rc));
 		return rc;
 	}
 
@@ -343,13 +343,13 @@ static int drv_unload(const char *drvname)
 
 	rc = devman_driver_get_handle(drvname, &drvh);
 	if (rc != EOK) {
-		printf("Failed resolving driver '%s' (%d).\n", drvname, rc);
+		printf("Failed resolving driver '%s': %s.\n", drvname, str_error(rc));
 		return rc;
 	}
 
 	rc = devman_driver_unload(drvh);
 	if (rc != EOK) {
-		printf("Failed unloading driver '%s' (%d).\n", drvname, rc);
+		printf("Failed unloading driver '%s': %s.\n", drvname, str_error(rc));
 		return rc;
 	}
 

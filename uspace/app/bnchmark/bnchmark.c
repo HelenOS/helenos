@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <str_error.h>
 #include <mem.h>
 #include <loc.h>
 #include <byteorder.h>
@@ -185,7 +186,7 @@ int main(int argc, char **argv)
 	for (iteration = 0; iteration < iterations; iteration++) {
 		rc = measure(fn, path, &milliseconds_taken);
 		if (rc != EOK) {
-			fprintf(stderr, "Error %d\n", rc);
+			fprintf(stderr, "Error: %s\n", str_error(rc));
 			return 1;
 		}
 	

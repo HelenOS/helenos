@@ -43,6 +43,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 #include <task.h>
 #include <vfs/vfs.h>
 
@@ -116,7 +117,7 @@ static int sysinst_label_dev(const char *dev, char **pdev)
 
 	rc = fdisk_label_create(fdev, lt_mbr);
 	if (rc != EOK) {
-		printf("Error creating label (%d).\n", rc);
+		printf("Error creating label: %s.\n", str_error(rc));
 		return rc;
 	}
 
@@ -124,7 +125,7 @@ static int sysinst_label_dev(const char *dev, char **pdev)
 
 	rc = fdisk_part_get_max_avail(fdev, spc_pri, &cap);
 	if (rc != EOK) {
-		printf("Error getting available capacity (%d).\n", rc);
+		printf("Error getting available capacity: %s.\n", str_error(rc));
 		return rc;
 	}
 

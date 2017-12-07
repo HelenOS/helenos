@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <str_error.h>
 #include <str.h>
 #include <vfs/vfs.h>
 #include <dirent.h>
@@ -94,7 +95,7 @@ const char *test_vfs1(void)
 	char buf[BUF_SIZE];
 	TPRINTF("read..\n");
 	while ((rc = vfs_read(fd0, &pos, buf, BUF_SIZE, &cnt))) {
-		TPRINTF("read returns rc = %d, cnt = %zu\n", rc, cnt);
+		TPRINTF("read returns rc = %s, cnt = %zu\n", str_error_name(rc), cnt);
 		if (rc != EOK)
 			return "read() failed";
 		

@@ -167,7 +167,7 @@ static int recv_char(recv_t *recv, char *c)
 		
 		rc = tcp_conn_recv_wait(recv->conn, recv->rbuf, BUFFER_SIZE, &nrecv);
 		if (rc != EOK) {
-			fprintf(stderr, "tcp_conn_recv() failed (%d)\n", rc);
+			fprintf(stderr, "tcp_conn_recv() failed: %s\n", str_error(rc));
 			return rc;
 		}
 		

@@ -46,6 +46,7 @@
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
+#include <str_error.h>
 #include <inttypes.h>
 #include <ipc/irc.h>
 #include <stdbool.h>
@@ -137,7 +138,7 @@ int obio_add(obio_t *obio, obio_res_t *res)
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed binding function 'a': %s", str_error(rc));
 		goto error;
 	}
 

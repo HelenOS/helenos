@@ -44,6 +44,7 @@
 #include <ddi.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <async.h>
 #include <stdio.h>
 
@@ -236,7 +237,7 @@ int apic_add(apic_t *apic, apic_res_t *res)
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed binding function 'a': %s", str_error(rc));
 		goto error;
 	}
 

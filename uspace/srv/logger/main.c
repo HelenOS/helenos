@@ -71,13 +71,17 @@ int main(int argc, char *argv[])
 	port_id_t port;
 	int rc = async_create_port(INTERFACE_LOGGER_CONTROL,
 	    connection_handler_control, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error while creating control port: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	rc = async_create_port(INTERFACE_LOGGER_WRITER,
 	    connection_handler_writer, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error while creating writer port: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	rc = service_register(SERVICE_LOGGER);
 	if (rc != EOK) {

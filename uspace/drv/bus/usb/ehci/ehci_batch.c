@@ -233,10 +233,10 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 			ehci_batch->usb_batch->transfered_size
 			    -= td_remain_size(ehci_batch->tds[i]);
 		} else {
-			usb_log_debug("Batch %p found error TD(%zu):%08x (%d).",
+			usb_log_debug("Batch %p found error TD(%zu):%08x: %s.",
 			    ehci_batch->usb_batch, i,
 			    ehci_batch->tds[i]->status,
-			    ehci_batch->usb_batch->error);
+			    str_error_name(ehci_batch->usb_batch->error));
 			/* Clear possible ED HALT */
 			qh_clear_halt(ehci_batch->qh);
 			break;

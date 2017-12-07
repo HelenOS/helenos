@@ -35,6 +35,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <io/log.h>
 #include <ipc/dnsr.h>
 #include <ipc/services.h>
@@ -67,7 +68,7 @@ static int dnsr_init(void)
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		transport_fini();
 		return EEXIST;
 	}
@@ -75,7 +76,7 @@ static int dnsr_init(void)
 	service_id_t sid;
 	rc = loc_service_register(SERVICE_NAME_DNSR, &sid);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		transport_fini();
 		return EEXIST;
 	}

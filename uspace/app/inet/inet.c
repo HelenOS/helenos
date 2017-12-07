@@ -88,7 +88,7 @@ static int addr_create_static(int argc, char *argv[])
 
 	rc = loc_service_get_id(link_name, &link_id, 0);
 	if (rc != EOK) {
-		printf(NAME ": Service '%s' not found (%d).\n", link_name, rc);
+		printf(NAME ": Service '%s' not found: %s.\n", link_name, str_error(rc));
 		return ENOENT;
 	}
 
@@ -134,20 +134,22 @@ static int addr_delete(int argc, char *argv[])
 
 	rc = loc_service_get_id(link_name, &link_id, 0);
 	if (rc != EOK) {
-		printf(NAME ": Service '%s' not found (%d).\n", link_name, rc);
+		printf(NAME ": Service '%s' not found: %s.\n", link_name,
+		    str_error(rc));
 		return ENOENT;
 	}
 
 	rc = inetcfg_addr_get_id(aobj_name, link_id, &addr_id);
 	if (rc != EOK) {
-		printf(NAME ": Address '%s' not found (%d).\n", aobj_name, rc);
+		printf(NAME ": Address '%s' not found: %s.\n", aobj_name,
+		    str_error(rc));
 		return ENOENT;
 	}
 
 	rc = inetcfg_addr_delete(addr_id);
 	if (rc != EOK) {
-		printf(NAME ": Failed deleting address '%s' (%d)\n", aobj_name,
-		    rc);
+		printf(NAME ": Failed deleting address '%s': %s\n", aobj_name,
+		    str_error(rc));
 		return EIO;
 	}
 
@@ -196,8 +198,8 @@ static int sroute_create(int argc, char *argv[])
 
 	rc = inetcfg_sroute_create(route_name, &dest, &router, &sroute_id);
 	if (rc != EOK) {
-		printf(NAME ": Failed creating static route '%s' (%d)\n",
-		    route_name, rc);
+		printf(NAME ": Failed creating static route '%s': %s\n",
+		    route_name, str_error(rc));
 		return EIO;
 	}
 
@@ -226,15 +228,15 @@ static int sroute_delete(int argc, char *argv[])
 
 	rc = inetcfg_sroute_get_id(route_name, &sroute_id);
 	if (rc != EOK) {
-		printf(NAME ": Static route '%s' not found (%d).\n",
-		    route_name, rc);
+		printf(NAME ": Static route '%s' not found: %s.\n",
+		    route_name, str_error(rc));
 		return ENOENT;
 	}
 
 	rc = inetcfg_sroute_delete(sroute_id);
 	if (rc != EOK) {
-		printf(NAME ": Failed deleting static route '%s' (%d)\n",
-		    route_name, rc);
+		printf(NAME ": Failed deleting static route '%s': %s\n",
+		    route_name, str_error(rc));
 		return EIO;
 	}
 
@@ -485,8 +487,8 @@ int main(int argc, char *argv[])
 
 	rc = inetcfg_init();
 	if (rc != EOK) {
-		printf(NAME ": Failed connecting to internet service (%d).\n",
-		    rc);
+		printf(NAME ": Failed connecting to internet service: %s.\n",
+		    str_error(rc));
 		return 1;
 	}
 

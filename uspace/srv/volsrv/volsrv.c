@@ -35,6 +35,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <io/log.h>
 #include <ipc/services.h>
 #include <ipc/vol.h>
@@ -69,14 +70,14 @@ static int vol_init(void)
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		return EEXIST;
 	}
 
 	service_id_t sid;
 	rc = loc_service_register(SERVICE_NAME_VOLSRV, &sid);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		return EEXIST;
 	}
 

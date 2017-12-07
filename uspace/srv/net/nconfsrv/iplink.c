@@ -36,6 +36,7 @@
 
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril_synch.h>
 #include <inet/dhcp.h>
 #include <inet/inetcfg.h>
@@ -180,7 +181,7 @@ int ncs_link_discovery_start(void)
 	rc = loc_register_cat_change_cb(ncs_link_cat_change_cb);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback for IP link "
-		    "discovery (%d).", rc);
+		    "discovery: %s.", str_error(rc));
 		return rc;
 	}
 

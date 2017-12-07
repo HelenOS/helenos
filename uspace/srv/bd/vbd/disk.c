@@ -37,6 +37,7 @@
 #include <bd_srv.h>
 #include <block.h>
 #include <errno.h>
+#include <str_error.h>
 #include <io/log.h>
 #include <label/empty.h>
 #include <label/label.h>
@@ -455,7 +456,7 @@ int vbds_disk_discovery_start(void)
 	rc = loc_register_cat_change_cb(vbds_disk_cat_change_cb);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback "
-		    "for disk discovery (%d).", rc);
+		    "for disk discovery: %s.", str_error(rc));
 		return rc;
 	}
 
@@ -1123,7 +1124,7 @@ static int vbds_part_svc_register(vbds_part_t *part)
 	rc = loc_service_register(name, &psid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "
-		    "service %s (%d).", name, rc);
+		    "service %s: %s.", name, str_error(rc));
 		free(name);
 		free(part);
 		return EIO;

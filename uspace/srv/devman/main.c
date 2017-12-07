@@ -41,6 +41,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdbool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
@@ -317,7 +318,7 @@ int main(int argc, char *argv[])
 	
 	int rc = log_init(NAME);
 	if (rc != EOK) {
-		printf("%s: Error initializing logging subsystem.\n", NAME);
+		printf("%s: Error initializing logging subsystem: %s\n", NAME, str_error(rc));
 		return rc;
 	}
 	
@@ -328,23 +329,31 @@ int main(int argc, char *argv[])
 	port_id_t port;
 	rc = async_create_port(INTERFACE_DDF_DRIVER,
 	    devman_connection_driver, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error creating DDF driver port: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	rc = async_create_port(INTERFACE_DDF_CLIENT,
 	    devman_connection_client, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error creating DDF client port: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	rc = async_create_port(INTERFACE_DEVMAN_DEVICE,
 	    devman_connection_device, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error creating devman device port: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	rc = async_create_port(INTERFACE_DEVMAN_PARENT,
 	    devman_connection_parent, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error creating devman parent port: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	async_set_fallback_port_handler(devman_forward, NULL);
 	
@@ -356,7 +365,7 @@ int main(int argc, char *argv[])
 	/* Register device manager at naming service. */
 	rc = service_register(SERVICE_DEVMAN);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering as a service.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering as a service: %s", str_error(rc));
 		return rc;
 	}
 	

@@ -36,6 +36,7 @@
 
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril_synch.h>
 #include <io/log.h>
 #include <loc.h>
@@ -270,7 +271,7 @@ int vol_part_discovery_start(void)
 	rc = loc_register_cat_change_cb(vol_part_cat_change_cb);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback "
-		    "for partition discovery (%d).", rc);
+		    "for partition discovery: %s.", str_error(rc));
 		return rc;
 	}
 

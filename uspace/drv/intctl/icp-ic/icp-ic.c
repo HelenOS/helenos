@@ -40,6 +40,7 @@
 #include <ddi.h>
 #include <ddf/log.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ipc/irc.h>
 #include <stdint.h>
 
@@ -135,7 +136,7 @@ int icpic_add(icpic_t *icpic, icpic_res_t *res)
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed binding function 'a': %s", str_error(rc));
 		goto error;
 	}
 

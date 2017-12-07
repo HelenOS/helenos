@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 #include <loc.h>
 
 #define NAME  "wifi_supplicant"
@@ -138,7 +139,7 @@ static int wifi_list(void)
 	
 	int rc = get_wifi_list(&wifis, &count);
 	if (rc != EOK) {
-		printf("Error fetching wifi list.\n");
+		printf("Error fetching wifi list: %s\n", str_error(rc));
 		return EINVAL;
 	}
 	
@@ -147,7 +148,7 @@ static int wifi_list(void)
 		char *svc_name;
 		rc = loc_service_get_name(wifis[i], &svc_name);
 		if (rc != EOK) {
-			printf("Error getting service name.\n");
+			printf("Error getting service name: %s\n", str_error(rc));
 			free(wifis);
 			return rc;
 		}
@@ -176,8 +177,8 @@ static int wifi_connect(uint32_t index, char *ssid_start, char *password)
 		if (rc == EREFUSED)
 			printf("Device is not ready yet.\n");
 		else
-			printf("Error when disconnecting device. "
-			    "Error: %d\n", rc);
+			printf("Error when disconnecting device: %s\n",
+			    str_error(rc));
 		
 		return rc;
 	}
@@ -191,8 +192,8 @@ static int wifi_connect(uint32_t index, char *ssid_start, char *password)
 		else if (rc == ENOENT)
 			printf("Given SSID not in scan results.\n");
 		else
-			printf("Error when connecting to network. "
-			    "Error: %d\n", rc);
+			printf("Error when connecting to network: %s\n",
+			    str_error(rc));
 		
 		return rc;
 	}
@@ -220,8 +221,8 @@ static int wifi_disconnect(uint32_t index)
 		else if (rc == EINVAL)
 			printf("Not connected to any WiFi network.\n");
 		else
-			printf("Error when disconnecting from network. "
-			    "Error: %d\n", rc);
+			printf("Error when disconnecting from network: %s\n",
+			    str_error(rc));
 		
 		return rc;
 	}
@@ -246,7 +247,8 @@ static int wifi_scan(uint32_t index, bool now)
 		if (rc == EREFUSED)
 			printf("Device is not ready yet.\n");
 		else
-			printf("Failed to fetch scan results. Error: %d\n", rc);
+			printf("Failed to fetch scan results: %s\n",
+			    str_error(rc));
 		
 		return rc;
 	}
@@ -276,15 +278,15 @@ int main(int argc, char *argv[])
 {
 	int rc = inetcfg_init();
 	if (rc != EOK) {
-		printf("%s: Failed connecting to inetcfg service (%d).\n",
-		    NAME, rc);
+		printf("%s: Failed connecting to inetcfg service: %s.\n",
+		    NAME, str_error(rc));
 		return 1;
 	}
 	
 	rc = dhcp_init();
 	if (rc != EOK) {
-		printf("%s: Failed connecting to dhcp service (%d).\n",
-		    NAME, rc);
+		printf("%s: Failed connecting to dhcp service: %s.\n",
+		    NAME, str_error(rc));
 		return 1;
 	}
 	

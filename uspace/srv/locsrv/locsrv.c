@@ -46,6 +46,7 @@
 #include <macros.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <ipc/loc.h>
 #include <assert.h>
 
@@ -1528,21 +1529,27 @@ int main(int argc, char *argv[])
 	port_id_t port;
 	int rc = async_create_port(INTERFACE_LOC_SUPPLIER,
 	    loc_connection_supplier, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error while creating supplier port: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	rc = async_create_port(INTERFACE_LOC_CONSUMER,
 	    loc_connection_consumer, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error while creating consumer port: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	/* Set a handler of incomming connections */
 	async_set_fallback_port_handler(loc_forward, NULL);
 	
 	/* Register location service at naming service */
 	rc = service_register(SERVICE_LOC);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Error while registering service: %s\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	printf("%s: Accepting connections\n", NAME);
 	async_manager();

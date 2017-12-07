@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <str_error.h>
 #include <window.h>
 #include <canvas.h>
 #include <surface.h>
@@ -96,7 +97,7 @@ static void on_keyboard_event(widget_t *widget, void *data)
 	
 	int rc = draw();
 	if (rc != EOK) {
-		printf("Failed drawing: %d.\n", rc);
+		printf("Failed drawing: %s.\n", str_error(rc));
 		exit(1);
 	}
 	update_canvas(canvas, surface);
@@ -275,7 +276,7 @@ int main(int argc, char *argv[])
 	
 	int rc = draw();
 	if (rc != EOK) {
-		printf("Failed drawing: %d.\n", rc);
+		printf("Failed drawing: %s.\n", str_error(rc));
 		return 2;
 	}
 	

@@ -36,6 +36,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <inet/endpoint.h>
 #include <inet/inet.h>
 #include <io/log.h>
@@ -1094,7 +1095,7 @@ static void tcp_conn_recv_wait_srv(tcp_client_t *client, ipc_callid_t iid,
 
 	rc = tcp_conn_recv_impl(client, conn_id, data, size, &rsize);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - recv_impl failed rc=%d", rc);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - recv_impl failed rc=%s", str_error_name(rc));
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
 		free(data);

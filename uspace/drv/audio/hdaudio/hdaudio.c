@@ -258,7 +258,7 @@ static int hda_dev_add(ddf_dev_t *dev)
 
 	rc = hw_res_enable_interrupt(hda->parent_sess, res.irqs.irqs[0]);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed enabling interrupt. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed enabling interrupt.: %s", str_error(rc));
 		goto error;
 	}
 

@@ -40,6 +40,7 @@
 #include <bd_srv.h>
 #include <devman.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 #include <str.h>
 #include <loc.h>
@@ -250,18 +251,19 @@ int main(int argc, char **argv)
 	async_set_fallback_port_handler(sata_bd_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+		printf(NAME ": Unable to register driver: %s.\n", str_error(rc));
 		return rc;
 	}
 	
 	rc = get_sata_disks();
 	if (rc != EOK) {
+		// TODO: log the error
 		return rc;
 	}
 
 	rc = loc_category_get_id("disk", &disk_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Failed resolving category 'disk'.\n", NAME);
+		printf("%s: Failed resolving category 'disk': %s.\n", NAME, str_error(rc));
 		return rc;
 	}
 
@@ -270,14 +272,14 @@ int main(int argc, char **argv)
 		snprintf(name, 1024, "%s/%s", NAMESPACE, disk[i].dev_name);
 		rc = loc_service_register(name, &disk[i].service_id);
 		if (rc != EOK) {
-			printf(NAME ": Unable to register device %s.\n", name);
+			printf(NAME ": Unable to register device %s: %s\n", name, str_error(rc));
 			return rc;
 		}
 
 		rc = loc_service_add_to_cat(disk[i].service_id, disk_cat);
 		if (rc != EOK) {
-			printf("%s: Failed adding %s to category.",
-			    NAME, disk[i].dev_name);
+			printf("%s: Failed adding %s to category: %s.",
+			    NAME, disk[i].dev_name, str_error(rc));
 			return rc;
 		}
 	}

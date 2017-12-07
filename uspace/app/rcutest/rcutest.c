@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <str_error.h>
 #include <mem.h>
 #include <errno.h>
 #include <thread.h>
@@ -779,7 +780,7 @@ static bool create_threads(size_t cnt)
 		
 		int ret = thread_create(dummy_fibril, NULL, "urcu-test-worker", &tid);
 		if (EOK != ret) {
-			printf("Failed to create thread '%zu' (error: %d)\n", k + 1, ret);
+			printf("Failed to create thread '%zu' (error: %s)\n", k + 1, str_error_name(ret));
 			return false;
 		}
 	}

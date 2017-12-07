@@ -36,12 +36,14 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <loc.h>
 #include <inet/addr.h>
 #include <inet/iplink_srv.h>
 #include <io/chardev.h>
 #include <io/log.h>
 #include <errno.h>
+#include <str_error.h>
 #include <task.h>
 
 #define NAME		"slip"
@@ -107,7 +109,7 @@ static void write_flush(chardev_t *chardev)
 		    slip_send_pending, &nwr);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "chardev_write() returned %d", rc);
+			    "chardev_write() -> %s", str_error_name(rc));
 			slip_send_pending = 0;
 			break;
 		}
@@ -212,7 +214,7 @@ static uint8_t read_buffered(chardev_t *chardev)
 		    sizeof(slip_recv_buf), &nread);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "char_dev_read() returned %d", rc);
+			    "char_dev_read() -> %s", str_error_name(rc));
 		}
 
 		if (nread == 0)
@@ -284,7 +286,7 @@ pass:
 		rc = iplink_ev_recv(&slip_iplink, &sdu, ip_v4);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "iplink_ev_recv() returned %d", rc);
+			    "iplink_ev_recv() -> %s", str_error_name(rc));
 		}
 	}
 

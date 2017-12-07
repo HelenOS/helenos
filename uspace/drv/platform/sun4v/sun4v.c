@@ -40,6 +40,7 @@
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ops/hw_res.h>
 #include <ops/pio_window.h>
 #include <stdio.h>
@@ -227,7 +228,7 @@ static int sun4v_init(void)
 
 	rc = sysinfo_get_value("niagara.inbuf.address", &paddr);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "niagara.inbuf.address not set (%d)", rc);
+		ddf_msg(LVL_ERROR, "niagara.inbuf.address not set: %s", str_error(rc));
 		return rc;
 	}
 
@@ -235,7 +236,7 @@ static int sun4v_init(void)
 
 	rc = sysinfo_get_value("niagara.outbuf.address", &paddr);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "niagara.outbuf.address not set (%d)", rc);
+		ddf_msg(LVL_ERROR, "niagara.outbuf.address not set: %s", str_error(rc));
 		return rc;
 	}
 

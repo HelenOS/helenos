@@ -144,8 +144,8 @@ static int ping_send(uint16_t seq_no)
 	
 	int rc = inetping_send(&sdu);
 	if (rc != EOK)
-		printf("Failed sending echo request: %s (%d).\n",
-		    str_error(rc), rc);
+		printf("Failed sending echo request: %s: %s.\n",
+		    str_error_name(rc), str_error(rc));
 	
 	return rc;
 }
@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 	int rc = inetping_init(&ev_ops);
 	if (rc != EOK) {
 		printf("Failed connecting to internet ping service: "
-		    "%s (%d).\n", str_error(rc), rc);
+		    "%s: %s.\n", str_error_name(rc), str_error(rc));
 		goto error;
 	}
 	

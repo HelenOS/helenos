@@ -35,6 +35,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <io/log.h>
 #include <ipc/services.h>
 #include <ipc/vbd.h>
@@ -68,13 +69,13 @@ static int vbds_init(void)
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		return EEXIST;
 	}
 
 	rc = loc_service_register(SERVICE_NAME_VBD, &ctl_sid);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		return EEXIST;
 	}
 

@@ -37,6 +37,7 @@
 #include <adt/prodcons.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <inet/iplink_srv.h>
 #include <inet/addr.h>
 #include <io/log.h>
@@ -250,13 +251,15 @@ int main(int argc, char *argv[])
 	
 	int rc = log_init(NAME);
 	if (rc != EOK) {
-		printf("%s: Failed to initialize logging.\n", NAME);
+		printf("%s: Failed to initialize logging: %s.\n", NAME, str_error(rc));
 		return rc;
 	}
 	
 	rc = loopip_init();
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Failed to initialize loopip: %s.\n", NAME, str_error(rc));
 		return rc;
+	}
 	
 	printf("%s: Accepting connections.\n", NAME);
 	task_retval(0);

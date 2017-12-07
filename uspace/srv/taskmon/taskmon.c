@@ -149,16 +149,16 @@ int main(int argc, char *argv[])
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		printf("%s: Failed registering server (%d).\n",
-		    NAME, rc);
+		printf("%s: Failed registering server: %s.\n",
+		    NAME, str_error(rc));
 		return -1;
 	}
 	
 	service_id_t sid;
 	rc = loc_service_register(SERVICE_NAME_CORECFG, &sid);
 	if (rc != EOK) {
-		printf("%s: Failed registering service (%d).\n",
-		    NAME, rc);
+		printf("%s: Failed registering service: %s.\n",
+		    NAME, str_error(rc));
 		return -1;
 	}
 	

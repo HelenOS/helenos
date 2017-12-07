@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stacktrace.h>
+#include <str_error.h>
 #include <offset.h>
 #include <inttypes.h>
 #include "block.h"
@@ -924,8 +925,8 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *buf,
 	
 	int rc = bd_read_blocks(devcon->bd, ba, cnt, buf, size);
 	if (rc != EOK) {
-		printf("Error %d reading %zu blocks starting at block %" PRIuOFF64
-		    " from device handle %" PRIun "\n", rc, cnt, ba,
+		printf("Error %s reading %zu blocks starting at block %" PRIuOFF64
+		    " from device handle %" PRIun "\n", str_error_name(rc), cnt, ba,
 		    devcon->service_id);
 #ifndef NDEBUG
 		stacktrace_print();
@@ -951,8 +952,8 @@ static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *data,
 	
 	int rc = bd_write_blocks(devcon->bd, ba, cnt, data, size);
 	if (rc != EOK) {
-		printf("Error %d writing %zu blocks starting at block %" PRIuOFF64
-		    " to device handle %" PRIun "\n", rc, cnt, ba, devcon->service_id);
+		printf("Error %s writing %zu blocks starting at block %" PRIuOFF64
+		    " to device handle %" PRIun "\n", str_error_name(rc), cnt, ba, devcon->service_id);
 #ifndef NDEBUG
 		stacktrace_print();
 #endif
