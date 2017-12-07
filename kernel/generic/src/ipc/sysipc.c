@@ -743,8 +743,6 @@ sysarg_t sys_ipc_hangup(sysarg_t handle)
  * @param flags    Select mode of sleep operation. See waitq_sleep_timeout()
  *                 for explanation.
  *
- * @return Capability handle of the received request.
- * @return CAP_NIL for answers, notifications and when there is no call.
  * @return Negative error code on error.
  */
 sysarg_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
@@ -766,8 +764,10 @@ restart:
 #endif
 
 	if (!call) {
-		STRUCT_TO_USPACE(calldata, &(ipc_data_t){});
-		return CAP_NIL;
+		ipc_data_t data = {0};
+		data.cap_handle = CAP_NIL;
+		STRUCT_TO_USPACE(calldata, &data);
+		return EOK;
 	}
 	
 	if (call->flags & IPC_CALL_NOTIF) {
@@ -775,11 +775,12 @@ restart:
 		call->data.phone = (void *) call->priv;
 		
 		call->data.flags = IPC_CALL_NOTIF;
+		call->data.cap_handle = CAP_NIL;
 
 		STRUCT_TO_USPACE(calldata, &call->data);
 		kobject_put(call->kobject);
 		
-		return CAP_NIL;
+		return EOK;
 	}
 	
 	if (call->flags & IPC_CALL_ANSWERED) {
@@ -791,11 +792,12 @@ restart:
 		}
 
 		call->data.flags = IPC_CALL_ANSWERED;
+		call->data.cap_handle = CAP_NIL;
 		
 		STRUCT_TO_USPACE(calldata, &call->data);
 		kobject_put(call->kobject);
 		
-		return CAP_NIL;
+		return EOK;
 	}
 	
 	if (process_request(&TASK->answerbox, call))
@@ -808,6 +810,8 @@ restart:
 		goto error;
 	}
 	
+	call->data.cap_handle = handle;
+
 	/*
 	 * Include phone hash of the caller in the request, copy the whole
 	 * call->data, not only call->data.args.
@@ -818,7 +822,7 @@ restart:
 
 	kobject_add_ref(call->kobject);
 	cap_publish(TASK, handle, call->kobject);
-	return handle;
+	return EOK;
 
 error:
 	if (handle >= 0)

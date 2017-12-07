@@ -47,14 +47,14 @@
 
 typedef void (*ipc_async_callback_t)(void *, int, ipc_call_t *);
 
-extern cap_handle_t ipc_wait_cycle(ipc_call_t *, sysarg_t, unsigned int);
+extern int ipc_wait_cycle(ipc_call_t *, sysarg_t, unsigned int);
 extern void ipc_poke(void);
 
 #define ipc_wait_for_call(data) \
 	ipc_wait_for_call_timeout(data, SYNCH_NO_TIMEOUT);
 
-extern cap_handle_t ipc_wait_for_call_timeout(ipc_call_t *, sysarg_t);
-extern cap_handle_t ipc_trywait_for_call(ipc_call_t *);
+extern int ipc_wait_for_call_timeout(ipc_call_t *, sysarg_t);
+extern int ipc_trywait_for_call(ipc_call_t *);
 
 /*
  * User-friendly wrappers for ipc_answer_fast() and ipc_answer_slow().

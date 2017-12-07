@@ -1482,13 +1482,13 @@ static int async_manager_worker(void)
 		atomic_inc(&threads_in_ipc_wait);
 		
 		ipc_call_t call;
-		cap_handle_t chandle = ipc_wait_cycle(&call, timeout, flags);
+		int rc = ipc_wait_cycle(&call, timeout, flags);
 		
 		atomic_dec(&threads_in_ipc_wait);
 		
-		assert(chandle >= 0);
+		assert(rc == EOK);
 
-		if (chandle == CAP_NIL) {
+		if (call.cap_handle == CAP_NIL) {
 			if (call.flags == 0) {
 				/* This neither a notification nor an answer. */
 				handle_expired_timeouts();
@@ -1499,7 +1499,7 @@ static int async_manager_worker(void)
 		if (call.flags & IPC_CALL_ANSWERED)
 			continue;
 
-		handle_call(chandle, &call);
+		handle_call(call.cap_handle, &call);
 	}
 
 	return 0;

@@ -109,6 +109,8 @@ typedef struct {
 	unsigned flags;
 	/** User-defined label */
 	sysarg_t label;
+	/** Capability handle */
+	cap_handle_t cap_handle;
 } ipc_data_t;
 
 typedef struct call {

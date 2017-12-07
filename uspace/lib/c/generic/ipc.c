@@ -253,20 +253,21 @@ static void handle_answer(ipc_call_t *data)
  * @param call   Incoming call storage.
  * @param usec   Timeout in microseconds
  * @param flags  Flags passed to SYS_IPC_WAIT (blocking, nonblocking).
+ * @param[out] out_handle  Call handle.
  *
- * @return  Call handle.
- * @return  Negative error code.
+ * @return  Error code.
  */
-cap_handle_t ipc_wait_cycle(ipc_call_t *call, sysarg_t usec, unsigned int flags)
+int ipc_wait_cycle(ipc_call_t *call, sysarg_t usec, unsigned int flags)
 {
-	cap_handle_t chandle =
-	    __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
+	int rc = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
 	
 	/* Handle received answers */
-	if ((chandle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED))
+	if ((rc == EOK) && (call->cap_handle == CAP_NIL) &&
+	    (call->flags & IPC_CALL_ANSWERED)) {
 		handle_answer(call);
+	}
 	
-	return chandle;
+	return rc;
 }
 
 /** Interrupt one thread of this task from waiting for IPC.
@@ -284,19 +285,18 @@ void ipc_poke(void)
  * @param call  Incoming call storage.
  * @param usec  Timeout in microseconds
  *
- * @return  Call handle.
- * @return  Negative error code.
+ * @return  Error code.
  *
  */
-cap_handle_t ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
+int ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
 {
-	cap_handle_t chandle;
+	int rc;
 	
 	do {
-		chandle = ipc_wait_cycle(call, usec, SYNCH_FLAGS_NONE);
-	} while ((chandle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED));
+		rc = ipc_wait_cycle(call, usec, SYNCH_FLAGS_NONE);
+	} while ((rc == EOK) && (call->cap_handle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED));
 	
-	return chandle;
+	return rc;
 }
 
 /** Check if there is an IPC call waiting to be picked up.
@@ -305,20 +305,19 @@ cap_handle_t ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
  *
  * @param call  Incoming call storage.
  *
- * @return  Call handle.
- * @return  Negative error code.
+ * @return  Error code.
  *
  */
-cap_handle_t ipc_trywait_for_call(ipc_call_t *call)
+int ipc_trywait_for_call(ipc_call_t *call)
 {
-	cap_handle_t chandle;
+	int rc;
 	
 	do {
-		chandle = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT,
+		rc = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT,
 		    SYNCH_FLAGS_NON_BLOCKING);
-	} while ((chandle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED));
+	} while ((rc == EOK) && (call->cap_handle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED));
 	
-	return chandle;
+	return rc;
 }
 
 /** Hang up a phone.
