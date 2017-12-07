@@ -863,17 +863,19 @@ sysarg_t sys_ipc_poke(void)
  * @param imethod Interface and method to be associated with the notification.
  * @param ucode   Uspace pointer to the top-half pseudocode.
  *
- * @return IRQ kernel object capability
+ * @param[out] uspace_handle  Uspace pointer to IRQ kernel object capability
+ *
  * @return EPERM
  * @return Error code returned by ipc_irq_subscribe().
  *
  */
-sysarg_t sys_ipc_irq_subscribe(inr_t inr, sysarg_t imethod, irq_code_t *ucode)
+sysarg_t sys_ipc_irq_subscribe(inr_t inr, sysarg_t imethod, irq_code_t *ucode,
+	cap_handle_t *uspace_handle)
 {
 	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
 	
-	return ipc_irq_subscribe(&TASK->answerbox, inr, imethod, ucode);
+	return ipc_irq_subscribe(&TASK->answerbox, inr, imethod, ucode, uspace_handle);
 }
 
 /** Disconnect an IRQ handler from a task.

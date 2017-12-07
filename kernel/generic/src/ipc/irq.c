@@ -307,12 +307,13 @@ static kobject_ops_t irq_kobject_ops = {
  * @param imethod Interface and method to be associated with the notification.
  * @param ucode   Uspace pointer to top-half IRQ code.
  *
- * @return  IRQ capability handle.
- * @return  Negative error code.
+ * @param[out] uspace_handle  Uspace pointer to IRQ capability handle
+ *
+ * @return  Error code.
  *
  */
 int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
-    irq_code_t *ucode)
+    irq_code_t *ucode, cap_handle_t *uspace_handle)
 {
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;
@@ -332,6 +333,12 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	if (handle < 0)
 		return handle;
 	
+	int rc = copy_to_uspace(uspace_handle, &handle, sizeof(cap_handle_t));
+	if (rc != EOK) {
+		cap_free(TASK, handle);
+		return rc;
+	}
+
 	irq_t *irq = (irq_t *) slab_alloc(irq_cache, FRAME_ATOMIC);
 	if (!irq) {
 		cap_free(TASK, handle);
@@ -370,7 +377,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	kobject_initialize(kobject, KOBJECT_TYPE_IRQ, irq, &irq_kobject_ops);
 	cap_publish(TASK, handle, kobject);
 	
-	return handle;
+	return EOK;
 }
 
 /** Unsubscribe task from IRQ notification.

@@ -1075,7 +1075,12 @@ int async_irq_subscribe(int inr, async_notification_handler_t handler,
 	
 	futex_up(&async_futex);
 	
-	return ipc_irq_subscribe(inr, imethod, ucode);
+	cap_handle_t cap;
+	int rc = ipc_irq_subscribe(inr, imethod, ucode, &cap);
+	if (rc != EOK) {
+		return rc;
+	}
+	return cap;
 }
 
 /** Unsubscribe from IRQ notification.

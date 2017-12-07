@@ -57,16 +57,19 @@ static const irq_code_t default_ucode = {
  * @param method Use this method for notifying me.
  * @param ucode  Top-half pseudocode handler.
  *
- * @return IRQ capability handle returned by the kernel.
+ * @param[out] out_handle  IRQ capability handle returned by the kernel.
+ *
  * @return Error code returned by the kernel.
  *
  */
-int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode)
+int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode,
+    cap_handle_t *out_handle)
 {
 	if (ucode == NULL)
 		ucode = &default_ucode;
 	
-	return __SYSCALL3(SYS_IPC_IRQ_SUBSCRIBE, inr, method, (sysarg_t) ucode);
+	return __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, method, (sysarg_t) ucode,
+	    (sysarg_t) out_handle);
 }
 
 /** Unsubscribe from IRQ notification.
@@ -76,7 +79,7 @@ int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode)
  * @return Value returned by the kernel.
  *
  */
-int ipc_irq_unsubscribe(int cap)
+int ipc_irq_unsubscribe(cap_handle_t cap)
 {
 	return __SYSCALL1(SYS_IPC_IRQ_UNSUBSCRIBE, cap);
 }
