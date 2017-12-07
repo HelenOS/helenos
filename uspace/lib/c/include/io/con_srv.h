@@ -68,8 +68,8 @@ typedef struct {
 struct con_ops {
 	int (*open)(con_srvs_t *, con_srv_t *);
 	int (*close)(con_srv_t *);
-	int (*read)(con_srv_t *, void *, size_t);
-	int (*write)(con_srv_t *, void *, size_t);
+	int (*read)(con_srv_t *, void *, size_t, size_t *);
+	int (*write)(con_srv_t *, void *, size_t, size_t *);
 	void (*sync)(con_srv_t *);
 	void (*clear)(con_srv_t *);
 	void (*set_pos)(con_srv_t *, sysarg_t col, sysarg_t row);

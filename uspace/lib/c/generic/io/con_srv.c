@@ -92,21 +92,19 @@ static void con_read_srv(con_srv_t *srv, ipc_callid_t callid,
 		return;
 	}
 
-	rc = srv->srvs->ops->read(srv, buf, size);
-	if (rc < 0) {
+	size_t nread;
+	rc = srv->srvs->ops->read(srv, buf, size, &nread);
+	if (rc != EOK) {
 		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
 		free(buf);
 		return;
 	}
 
-	async_data_read_finalize(rcallid, buf, size);
+	async_data_read_finalize(rcallid, buf, nread);
 	free(buf);
 
-	if (rc >= 0)
-		async_answer_1(callid, EOK, rc);
-	else
-		async_answer_0(callid, rc);
+	async_answer_1(callid, EOK, nread);
 }
 
 static void con_write_srv(con_srv_t *srv, ipc_callid_t callid,
@@ -127,13 +125,11 @@ static void con_write_srv(con_srv_t *srv, ipc_callid_t callid,
 		return;
 	}
 
-	rc = srv->srvs->ops->write(srv, data, size);
+	size_t nwritten = 0;
+	rc = srv->srvs->ops->write(srv, data, size, &nwritten);
 	free(data);
 
-	if (rc >= 0)
-		async_answer_1(callid, EOK, rc);
-	else
-		async_answer_0(callid, rc);
+	async_answer_1(callid, rc, nwritten);
 }
 
 static void con_sync_srv(con_srv_t *srv, ipc_callid_t callid,

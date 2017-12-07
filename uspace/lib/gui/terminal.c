@@ -63,8 +63,8 @@ static LIST_INITIALIZE(terms);
 
 static int term_open(con_srvs_t *, con_srv_t *);
 static int term_close(con_srv_t *);
-static int term_read(con_srv_t *, void *, size_t);
-static int term_write(con_srv_t *, void *, size_t);
+static int term_read(con_srv_t *, void *, size_t, size_t *);
+static int term_write(con_srv_t *, void *, size_t, size_t *);
 static void term_sync(con_srv_t *);
 static void term_clear(con_srv_t *);
 static void term_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
@@ -385,7 +385,7 @@ static int term_close(con_srv_t *srv)
 	return EOK;
 }
 
-static int term_read(con_srv_t *srv, void *buf, size_t size)
+static int term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	uint8_t *bbuf = buf;
@@ -430,7 +430,8 @@ static int term_read(con_srv_t *srv, void *buf, size_t size)
 		}
 	}
 	
-	return size;
+	*nread = size;
+	return EOK;
 }
 
 static void term_write_char(terminal_t *term, wchar_t ch)
@@ -461,7 +462,7 @@ static void term_write_char(terminal_t *term, wchar_t ch)
 		term_update(term);
 }
 
-static int term_write(con_srv_t *srv, void *data, size_t size)
+static int term_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	
@@ -469,7 +470,8 @@ static int term_write(con_srv_t *srv, void *data, size_t size)
 	while (off < size)
 		term_write_char(term, str_decode(data, &off, size));
 	
-	return size;
+	*nwritten = size;
+	return EOK;
 }
 
 static void term_sync(con_srv_t *srv)

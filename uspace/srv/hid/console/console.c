@@ -118,8 +118,8 @@ static input_ev_ops_t input_ev_ops = {
 
 static int cons_open(con_srvs_t *, con_srv_t *);
 static int cons_close(con_srv_t *);
-static int cons_read(con_srv_t *, void *, size_t);
-static int cons_write(con_srv_t *, void *, size_t);
+static int cons_read(con_srv_t *, void *, size_t, size_t *);
+static int cons_write(con_srv_t *, void *, size_t, size_t *);
 static void cons_sync(con_srv_t *);
 static void cons_clear(con_srv_t *);
 static void cons_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
@@ -337,7 +337,7 @@ static int cons_close(con_srv_t *srv)
 	return EOK;
 }
 
-static int cons_read(con_srv_t *srv, void *buf, size_t size)
+static int cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 {
 	uint8_t *bbuf = buf;
 	console_t *cons = srv_to_console(srv);
@@ -377,10 +377,11 @@ static int cons_read(con_srv_t *srv, void *buf, size_t size)
 		}
 	}
 	
-	return size;
+	*nread = size;
+	return EOK;
 }
 
-static int cons_write(con_srv_t *srv, void *data, size_t size)
+static int cons_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	console_t *cons = srv_to_console(srv);
 
@@ -388,7 +389,8 @@ static int cons_write(con_srv_t *srv, void *data, size_t size)
 	while (off < size)
 		cons_write_char(cons, str_decode(data, &off, size));
 	
-	return size;
+	*nwritten = size;
+	return EOK;
 }
 
 static void cons_sync(con_srv_t *srv)

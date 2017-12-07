@@ -71,7 +71,7 @@ static const size_t telnet_force_character_mode_command_count =
 
 static int remcons_open(con_srvs_t *, con_srv_t *);
 static int remcons_close(con_srv_t *);
-static int remcons_write(con_srv_t *, void *, size_t);
+static int remcons_write(con_srv_t *, void *, size_t, size_t *);
 static void remcons_sync(con_srv_t *);
 static void remcons_clear(con_srv_t *);
 static void remcons_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
@@ -136,7 +136,7 @@ static int remcons_close(con_srv_t *srv)
 	return EOK;
 }
 
-static int remcons_write(con_srv_t *srv, void *data, size_t size)
+static int remcons_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	telnet_user_t *user = srv_to_user(srv);
 	int rc;
@@ -145,7 +145,8 @@ static int remcons_write(con_srv_t *srv, void *data, size_t size)
 	if (rc != EOK)
 		return rc;
 
-	return size;
+	*nwritten = size;
+	return EOK;
 }
 
 static void remcons_sync(con_srv_t *srv)
