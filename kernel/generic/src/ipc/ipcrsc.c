@@ -136,19 +136,6 @@
 #include <cap/cap.h>
 #include <mm/slab.h>
 
-static bool phone_reclaim(kobject_t *kobj)
-{
-	bool gc = false;
-
-	mutex_lock(&kobj->phone->lock);
-	if (kobj->phone->state == IPC_PHONE_HUNGUP &&
-	    atomic_get(&kobj->phone->active_calls) == 0)
-		gc = true;
-	mutex_unlock(&kobj->phone->lock);
-
-	return gc;
-}
-
 static void phone_destroy(void *arg)
 {
 	phone_t *phone = (phone_t *) arg;
@@ -156,7 +143,6 @@ static void phone_destroy(void *arg)
 }
 
 static kobject_ops_t phone_kobject_ops = {
-	.reclaim = phone_reclaim,
 	.destroy = phone_destroy
 };
 
