@@ -139,11 +139,12 @@ int hw_res_dma_channel_setup(async_sess_t *sess,
  *
  * @param channel DMA channel.
  *
- * @return Number of bytes remaining in the buffer if positive.
- * @return Error code if negative.
+ * @param[out] rem Number of bytes remaining in the buffer if positive.
+ *
+ * @return Error code.
  *
  */
-int hw_res_dma_channel_remain(async_sess_t *sess, unsigned channel)
+int hw_res_dma_channel_remain(async_sess_t *sess, unsigned channel, size_t *rem)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
@@ -154,7 +155,7 @@ int hw_res_dma_channel_remain(async_sess_t *sess, unsigned channel)
 	async_exchange_end(exch);
 	
 	if (ret == EOK)
-		return remain;
+		*rem = remain;
 	
 	return ret;
 }

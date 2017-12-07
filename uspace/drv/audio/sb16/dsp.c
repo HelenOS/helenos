@@ -302,12 +302,12 @@ int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 	async_sess_t *sess = ddf_dev_parent_sess_get(dsp->sb_dev);
 
 	// TODO: Assumes DMA 16
-	const int remain = hw_res_dma_channel_remain(sess, dsp->dma16_channel);
-	if (remain >= 0) {
+	size_t remain;
+	int rc = hw_res_dma_channel_remain(sess, dsp->dma16_channel, &remain);
+	if (rc == EOK) {
 		*pos = dsp->buffer.size - remain;
-		return EOK;
 	}
-	return remain;
+	return rc;
 }
 
 int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,

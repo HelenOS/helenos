@@ -122,7 +122,7 @@ extern int hw_res_clear_interrupt(async_sess_t *, int);
 
 extern int hw_res_dma_channel_setup(async_sess_t *, unsigned int, uint32_t,
     uint32_t, uint8_t);
-extern int hw_res_dma_channel_remain(async_sess_t *, unsigned);
+extern int hw_res_dma_channel_remain(async_sess_t *, unsigned, size_t *);
 
 #endif
 
