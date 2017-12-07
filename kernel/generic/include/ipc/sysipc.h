@@ -60,13 +60,13 @@ extern sysarg_t sys_ipc_irq_unsubscribe(sysarg_t);
 
 #ifdef __32_BITS__
 
-extern sysarg_t sys_ipc_connect_kbox(sysarg64_t *);
+extern sysarg_t sys_ipc_connect_kbox(sysarg64_t *, cap_handle_t *);
 
 #endif  /* __32_BITS__ */
 
 #ifdef __64_BITS__
 
-extern sysarg_t sys_ipc_connect_kbox(sysarg_t);
+extern sysarg_t sys_ipc_connect_kbox(sysarg_t, cap_handle_t *);
 
 #endif  /* __64_BITS__ */
 

@@ -121,7 +121,7 @@ extern int ipc_forward_fast(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
 extern int ipc_forward_slow(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
-extern int ipc_connect_kbox(task_id_t);
+extern int ipc_connect_kbox(task_id_t, cap_handle_t *);
 
 #endif
 

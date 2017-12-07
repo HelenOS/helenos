@@ -205,10 +205,11 @@ static void kbox_thread_proc(void *arg)
  * a kbox thread has been created. This must be taken into account in the
  * cleanup code.
  *
- * @return Phone capability handle on success, or negative error code.
+ * @param[out] out_phone  Phone capability handle on success.
+ * @return Error code.
  *
  */
-int ipc_connect_kbox(task_id_t taskid)
+int ipc_connect_kbox(task_id_t taskid, cap_handle_t *out_phone)
 {
 	irq_spinlock_lock(&tasks_lock, true);
 	
@@ -249,13 +250,15 @@ int ipc_connect_kbox(task_id_t taskid)
 	
 	if (task->kb.thread != NULL) {
 		mutex_unlock(&task->kb.cleanup_lock);
-		return phone_handle;
+		*out_phone = phone_handle;
+		return EOK;
 	}
 	
 	/* Create a kbox thread */
 	thread_t *kb_thread = thread_create(kbox_thread_proc, NULL, task,
 	    THREAD_FLAG_NONE, "kbox");
 	if (!kb_thread) {
+		// FIXME: Shouldn't we clean up phone_handle?
 		mutex_unlock(&task->kb.cleanup_lock);
 		return ENOMEM;
 	}
@@ -265,7 +268,8 @@ int ipc_connect_kbox(task_id_t taskid)
 	
 	mutex_unlock(&task->kb.cleanup_lock);
 	
-	return phone_handle;
+	*out_phone = phone_handle;
+	return EOK;
 }
 
 /** @}
