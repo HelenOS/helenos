@@ -234,24 +234,6 @@ static cap_t *cap_get(task_t *task, cap_handle_t handle, cap_state_t state)
 	return cap;
 }
 
-static bool cap_reclaimer(ht_link_t *link, void *arg)
-{
-	cap_t **result = (cap_t **) arg;
-	cap_t *cap = hash_table_get_inst(link, cap_t, caps_link);
-
-	if (cap->state == CAP_STATE_PUBLISHED && cap->kobject->ops->reclaim &&
-	    cap->kobject->ops->reclaim(cap->kobject)) {
-		kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
-		    cap->kobject->type);
-		kobject_put(kobj);
-		cap_initialize(cap, cap->task, cap->handle);
-		*result = cap;
-		return false;
-	}
-
-	return true;
-}
-
 /** Allocate new capability
  *
  * @param task  Task for which to allocate the new capability.
@@ -262,34 +244,20 @@ static bool cap_reclaimer(ht_link_t *link, void *arg)
  */
 errno_t cap_alloc(task_t *task, cap_handle_t *handle)
 {
-	cap_t *cap = NULL;
-
-	/*
-	 * First of all, see if we can reclaim a capability. Note that this
-	 * feature is only temporary and capability reclamaition will eventually
-	 * be phased out.
-	 */
 	mutex_lock(&task->cap_info->lock);
-	hash_table_apply(&task->cap_info->caps, cap_reclaimer, &cap);
-
-	/*
-	 * If we don't have a capability by now, try to allocate a new one.
-	 */
+	cap_t *cap = slab_alloc(cap_cache, FRAME_ATOMIC);
 	if (!cap) {
-		cap = slab_alloc(cap_cache, FRAME_ATOMIC);
-		if (!cap) {
-			mutex_unlock(&task->cap_info->lock);
-			return ENOMEM;
-		}
-		uintptr_t hbase;
-		if (!ra_alloc(task->cap_info->handles, 1, 1, &hbase)) {
-			slab_free(cap_cache, cap);
-			mutex_unlock(&task->cap_info->lock);
-			return ENOMEM;
-		}
-		cap_initialize(cap, task, (cap_handle_t) hbase);
-		hash_table_insert(&task->cap_info->caps, &cap->caps_link);
+		mutex_unlock(&task->cap_info->lock);
+		return ENOMEM;
 	}
+	uintptr_t hbase;
+	if (!ra_alloc(task->cap_info->handles, 1, 1, &hbase)) {
+		slab_free(cap_cache, cap);
+		mutex_unlock(&task->cap_info->lock);
+		return ENOMEM;
+	}
+	cap_initialize(cap, task, (cap_handle_t) hbase);
+	hash_table_insert(&task->cap_info->caps, &cap->caps_link);
 
 	cap->state = CAP_STATE_ALLOCATED;
 	*handle = cap->handle;
