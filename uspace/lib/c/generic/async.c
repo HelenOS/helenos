@@ -2122,9 +2122,13 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 }
 
 static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
-    sysarg_t arg3, sysarg_t arg4)
+    sysarg_t arg3, sysarg_t arg4, int *out_phone)
 {
 	ipc_call_t result;
+	
+	// XXX: Workaround for GCC's inability to infer association between
+	// rc == EOK and *out_phone being assigned.
+	*out_phone = -1;
 	
 	amsg_t *msg = amsg_create();
 	if (!msg)
@@ -2142,7 +2146,8 @@ static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
 	if (rc != EOK)
 		return rc;
 	
-	return (int) IPC_GET_ARG5(result);
+	*out_phone = (int) IPC_GET_ARG5(result);
+	return EOK;
 }
 
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
@@ -2172,10 +2177,11 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 		return NULL;
 	}
 	
-	int phone = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
-	    0);
-	if (phone < 0) {
-		errno = phone;
+	int phone;
+	int rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
+	    0, &phone);
+	if (rc != EOK) {
+		errno = rc;
 		free(sess);
 		return NULL;
 	}
@@ -2224,10 +2230,11 @@ async_sess_t *async_connect_me_to_iface(async_exch_t *exch, iface_t iface,
 		return NULL;
 	}
 	
-	int phone = async_connect_me_to_internal(exch->phone, iface, arg2,
-	    arg3, 0);
-	if (phone < 0) {
-		errno = phone;
+	int phone;
+	int rc = async_connect_me_to_internal(exch->phone, iface, arg2,
+	    arg3, 0, &phone);
+	if (rc != EOK) {
+		errno = rc;
 		free(sess);
 		return NULL;
 	}
@@ -2294,11 +2301,12 @@ async_sess_t *async_connect_me_to_blocking(exch_mgmt_t mgmt, async_exch_t *exch,
 		return NULL;
 	}
 	
-	int phone = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
-	    IPC_FLAG_BLOCKING);
+	int phone;
+	int rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
+	    IPC_FLAG_BLOCKING, &phone);
 	
-	if (phone < 0) {
-		errno = phone;
+	if (rc != EOK) {
+		errno = rc;
 		free(sess);
 		return NULL;
 	}
@@ -2347,10 +2355,11 @@ async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *exch, iface_t ifa
 		return NULL;
 	}
 	
-	int phone = async_connect_me_to_internal(exch->phone, iface, arg2,
-	    arg3, IPC_FLAG_BLOCKING);
-	if (phone < 0) {
-		errno = phone;
+	int phone;
+	int rc = async_connect_me_to_internal(exch->phone, iface, arg2,
+	    arg3, IPC_FLAG_BLOCKING, &phone);
+	if (rc != EOK) {
+		errno = rc;
 		free(sess);
 		return NULL;
 	}
@@ -2501,14 +2510,15 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 			}
 		} else if (mgmt == EXCHANGE_PARALLEL) {
 			int phone;
+			int rc;
 			
 		retry:
 			/*
 			 * Make a one-time attempt to connect a new data phone.
 			 */
-			phone = async_connect_me_to_internal(sess->phone, sess->arg1,
-			    sess->arg2, sess->arg3, 0);
-			if (phone >= 0) {
+			rc = async_connect_me_to_internal(sess->phone, sess->arg1,
+			    sess->arg2, sess->arg3, 0, &phone);
+			if (rc == EOK) {
 				exch = (async_exch_t *) malloc(sizeof(async_exch_t));
 				if (exch != NULL) {
 					link_initialize(&exch->sess_link);
