@@ -565,13 +565,13 @@ static char *cdfs_decode_vol_ident(void *data, size_t dsize, cdfs_enc_t enc)
 	return ident;
 }
 
-static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
+static int cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 {
 	cdfs_node_t *node = CDFS_NODE(fs_node);
 	assert(node);
 	
 	if (node->processed)
-		return true;
+		return EOK;
 	
 	uint32_t blocks = node->size / BLOCK_SIZE;
 	if ((node->size % BLOCK_SIZE) != 0)
@@ -581,7 +581,7 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 		block_t *block;
 		int rc = block_get(&block, fs->service_id, node->lba + i, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
-			return false;
+			return rc;
 		
 		cdfs_dir_t *dir;
 		
@@ -615,8 +615,10 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 			fs_node_t *fn;
 			int rc = create_node(&fn, fs, dentry_type,
 			    (node->lba + i) * BLOCK_SIZE + offset);
-			if ((rc != EOK) || (fn == NULL))
-				return false;
+			if (rc != EOK)
+				return rc;
+
+			assert(fn != NULL);
 			
 			cdfs_node_t *cur = CDFS_NODE(fn);
 			cur->lba = uint32_lb(dir->lba);
@@ -625,7 +627,7 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 			char *name = cdfs_decode_name(dir->name,
 			    dir->name_length, node->fs->enc, dentry_type);
 			if (name == NULL)
-				return false;
+				return EIO;
 			
 			// FIXME: check return value
 			
@@ -640,7 +642,7 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 	}
 	
 	node->processed = true;
-	return true;
+	return EOK;
 }
 
 static fs_node_t *get_uncached_node(cdfs_t *fs, fs_index_t index)
