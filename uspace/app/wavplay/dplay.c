@@ -344,7 +344,9 @@ int dplay(const char *device, const char *file)
 		return 1;
 	}
 	printf("Playing on device: %s.\n", device);
-	if (audio_pcm_query_cap(session, AUDIO_CAP_PLAYBACK) <= 0) {
+	sysarg_t val;
+	ret = audio_pcm_query_cap(session, AUDIO_CAP_PLAYBACK, &val);
+	if (ret != EOK || !val) {
 		printf("Device %s does not support playback\n", device);
 		ret = ENOTSUP;
 		goto close_session;
@@ -385,10 +387,12 @@ int dplay(const char *device, const char *file)
 		printf("Error parsing wav header: %s.\n", error);
 		goto cleanup;
 	}
-	if (audio_pcm_query_cap(pb.device, AUDIO_CAP_BUFFER_POS) > 0) {
+	ret = audio_pcm_query_cap(pb.device, AUDIO_CAP_BUFFER_POS, &val);
+	if (ret == EOK && val) {
 		play(&pb);
 	} else {
-		if (audio_pcm_query_cap(pb.device, AUDIO_CAP_INTERRUPT) > 0)
+		ret = audio_pcm_query_cap(pb.device, AUDIO_CAP_INTERRUPT, &val);
+		if (ret == EOK && val)
 			play_fragment(&pb);
 		else
 			printf("Neither playing method is supported");

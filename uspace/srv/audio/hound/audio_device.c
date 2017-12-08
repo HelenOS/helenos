@@ -120,7 +120,9 @@ void audio_device_fini(audio_device_t *dev)
 audio_source_t * audio_device_get_source(audio_device_t *dev)
 {
 	assert(dev);
-	if (audio_pcm_query_cap(dev->sess, AUDIO_CAP_CAPTURE))
+	sysarg_t val;
+	int rc = audio_pcm_query_cap(dev->sess, AUDIO_CAP_CAPTURE, &val);
+	if (rc == EOK && val)
 		return &dev->source;
 	return NULL;
 }
@@ -134,7 +136,9 @@ audio_source_t * audio_device_get_source(audio_device_t *dev)
 audio_sink_t * audio_device_get_sink(audio_device_t *dev)
 {
 	assert(dev);
-	if (audio_pcm_query_cap(dev->sess, AUDIO_CAP_PLAYBACK))
+	sysarg_t val;
+	int rc = audio_pcm_query_cap(dev->sess, AUDIO_CAP_PLAYBACK, &val);
+	if (rc == EOK && val)
 		return &dev->sink;
 	return NULL;
 }

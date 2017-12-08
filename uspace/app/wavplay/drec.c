@@ -175,6 +175,7 @@ int drecord(const char *device, const char *file)
 {
 	int ret = EOK;
 	audio_pcm_sess_t *session = NULL;
+	sysarg_t val;
 	if (str_cmp(device, "default") == 0) {
 		session = audio_pcm_open_default();
 	} else {
@@ -185,7 +186,8 @@ int drecord(const char *device, const char *file)
 		return 1;
 	}
 	printf("Recording on device: %s.\n", device);
-	if (audio_pcm_query_cap(session, AUDIO_CAP_CAPTURE) <= 0) {
+	ret = audio_pcm_query_cap(session, AUDIO_CAP_CAPTURE, &val);
+	if (ret != EOK || !val) {
 		printf("Device %s does not support recording\n", device);
 		ret = ENOTSUP;
 		goto close_session;
@@ -224,7 +226,8 @@ int drecord(const char *device, const char *file)
 		printf("Error parsing wav header\n");
 		goto cleanup;
 	}
-	if (audio_pcm_query_cap(rec.device, AUDIO_CAP_INTERRUPT) > 0)
+	ret = audio_pcm_query_cap(rec.device, AUDIO_CAP_INTERRUPT, &val);
+	if (ret == EOK && val)
 		record_fragment(&rec, format);
 	else
 		printf("Recording method is not supported");
