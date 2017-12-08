@@ -34,8 +34,12 @@
  * by the testing framework.
  */
 
-/** We need _BSD_SOURCE because of vsnprintf() when compiling under C89. */
+/*
+ * We need _BSD_SOURCE because of vsnprintf() when compiling under C89.
+ * In newer versions of features.h, _DEFAULT_SOURCE must be defined as well.
+ */
 #define _BSD_SOURCE
+#define _DEFAULT_SOURCE
 
 #include "internal.h"
 #include <setjmp.h>

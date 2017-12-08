@@ -80,4 +80,5 @@ ok 77 my_test_077
 ok 78 my_test_078
 ok 79 my_test_079
 ok 80 my_test_080
-#> Finished suite Default (failed 0 of 80).
+#> Finished suite Default (passed).
+#> Done: all tests passed.

@@ -143,7 +143,7 @@ static DWORD WINAPI read_test_output_on_background(LPVOID test_output_data_ptr) 
  * @param self_path Path to itself, that is to current binary.
  * @param test Test to be run.
  */
-void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
+int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	/* TODO: clean-up if something goes wrong "in the middle" */
 	BOOL okay = FALSE;
 	DWORD rc;
@@ -172,36 +172,36 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	okay = CreatePipe(&link_stdout[0], &link_stdout[1], &security_attributes, 0);
 	if (!okay) {
 		report_func_fail(test, "CreatePipe(/* stdout */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 	okay = SetHandleInformation(link_stdout[0], HANDLE_FLAG_INHERIT, 0);
 	if (!okay) {
 		report_func_fail(test, "SetHandleInformation(/* stdout */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	/* Create pipe for stderr, make sure it is not inherited. */
 	okay = CreatePipe(&link_stderr[0], &link_stderr[1], &security_attributes, 0);
 	if (!okay) {
 		report_func_fail(test, "CreatePipe(/* stderr */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 	okay = SetHandleInformation(link_stderr[0], HANDLE_FLAG_INHERIT, 0);
 	if (!okay) {
 		report_func_fail(test, "SetHandleInformation(/* stderr */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	/* Create pipe for stdin, make sure it is not inherited. */
 	okay = CreatePipe(&link_stdin[0], &link_stdin[1], &security_attributes, 0);
 	if (!okay) {
 		report_func_fail(test, "CreatePipe(/* stdin */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 	okay = SetHandleInformation(link_stdin[1], HANDLE_FLAG_INHERIT, 0);
 	if (!okay) {
 		report_func_fail(test, "SetHandleInformation(/* stdin */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	/* Prepare information for the child process. */
@@ -223,7 +223,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	if (!okay) {
 		report_func_fail(test, "CreateProcess()");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	// FIXME: kill the process on error
@@ -235,17 +235,17 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	okay = CloseHandle(link_stdout[1]);
 	if (!okay) {
 		report_func_fail(test, "CloseHandle(/* stdout */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 	okay = CloseHandle(link_stderr[1]);
 	if (!okay) {
 		report_func_fail(test, "CloseHandle(/* stderr */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 	okay = CloseHandle(link_stdin[0]);
 	if (!okay) {
 		report_func_fail(test, "CloseHandle(/* stdin */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	/*
@@ -266,7 +266,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	if (test_output_thread_reader == NULL) {
 		report_func_fail(test, "CreateThread(/* read test stdout */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	/* Wait for the process to terminate. */
@@ -280,38 +280,40 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 		okay = TerminateProcess(process_info.hProcess, 5);
 		if (!okay) {
 			report_func_fail(test, "TerminateProcess(/* PROCESS_INFORMATION.hProcess */)");
-			return;
+			return PCUT_ERROR_INTERNAL_FAILURE;
 		}
 		rc = WaitForSingleObject(process_info.hProcess, INFINITE);
 	}
 	if (rc != WAIT_OBJECT_0) {
 		report_func_fail(test, "WaitForSingleObject(/* PROCESS_INFORMATION.hProcess */)");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	/* Get the return code and convert it to outcome. */
 	okay = GetExitCodeProcess(process_info.hProcess, &rc);
 	if (!okay) {
 		report_func_fail(test, "GetExitCodeProcess()");
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	if (rc == 0) {
-		outcome = TEST_OUTCOME_PASS;
+		outcome = PCUT_OUTCOME_PASS;
 	} else if ((rc > 0) && (rc < 10) && !timed_out) {
-		outcome = TEST_OUTCOME_FAIL;
+		outcome = PCUT_OUTCOME_FAIL;
 	} else {
-		outcome = TEST_OUTCOME_ERROR;
+		outcome = PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	/* Wait for the reader thread (shall be terminated by now). */
 	rc = WaitForSingleObject(test_output_thread_reader, INFINITE);
 	if (rc != WAIT_OBJECT_0) {
 		report_func_fail(test, "WaitForSingleObject(/* stdout reader thread */)");
-		return;
+		return PCUT_ERROR_INTERNAL_FAILURE;
 	}
 
 	pcut_report_test_done_unparsed(test, outcome, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+
+	return outcome;
 }
 
 void pcut_hook_before_test(pcut_item_t *test) {

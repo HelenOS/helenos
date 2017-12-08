@@ -27,6 +27,7 @@
  */
 
 #define _BSD_SOURCE
+#define _DEFAULT_SOURCE
 
 #include <pcut/pcut.h>
 #include <stdlib.h>

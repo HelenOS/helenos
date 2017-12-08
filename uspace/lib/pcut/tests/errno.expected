@@ -5,3 +5,4 @@ not ok 1 errno_value failed
 not ok 2 errno_variable failed
 # error: errno.c:54: Expected error 0 (EOK, *****) but got error ***** (*****)
 #> Finished suite Default (failed 2 of 2).
+#> Done: 2 of 2 tests failed.

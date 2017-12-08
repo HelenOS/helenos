@@ -78,16 +78,6 @@
  */
 #define PCUT_RUN_MODE_SINGLE 2
 
-/** Test outcome: test passed. */
-#define TEST_OUTCOME_PASS 1
-
-/** Test outcome: test failed. */
-#define TEST_OUTCOME_FAIL 2
-
-/** Test outcome: test failed unexpectedly. */
-#define TEST_OUTCOME_ERROR 3
-
-
 /*
  * Use sprintf_s in Windows but only with Microsoft compiler.
  * Namely, let MinGW use snprintf.
@@ -108,7 +98,7 @@ pcut_item_t *pcut_get_real(pcut_item_t *item);
 void pcut_print_tests(pcut_item_t *first);
 int pcut_is_arg_with_number(const char *arg, const char *opt, int *value);
 
-void pcut_run_test_forking(const char *self_path, pcut_item_t *test);
+int pcut_run_test_forking(const char *self_path, pcut_item_t *test);
 int pcut_run_test_forked(pcut_item_t *test);
 int pcut_run_test_single(pcut_item_t *test);
 

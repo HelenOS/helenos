@@ -134,22 +134,19 @@ static void xml_test_done(pcut_item_t *test, int outcome,
 	const char *test_name = test->name;
 	const char *status_str = NULL;
 
-	if (outcome != TEST_OUTCOME_PASS) {
+	if (outcome != PCUT_OUTCOME_PASS) {
 		failed_tests_in_suite++;
 	}
 
 	switch (outcome) {
-	case TEST_OUTCOME_PASS:
+	case PCUT_OUTCOME_PASS:
 		status_str = "pass";
 		break;
-	case TEST_OUTCOME_FAIL:
+	case PCUT_OUTCOME_FAIL:
 		status_str = "fail";
 		break;
-	case TEST_OUTCOME_ERROR:
-		status_str = "error";
-		break;
 	default:
-		/* Shall not get here. */
+		status_str = "error";
 		break;
 	}
 

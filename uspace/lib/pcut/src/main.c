@@ -89,10 +89,13 @@ static pcut_item_t *pcut_find_by_id(pcut_item_t *first, int id) {
  * @param suite Suite to run.
  * @param last Pointer to first item after this suite is stored here.
  * @param prog_path Path to the current binary (used in forked mode).
+ * @return Error code.
  */
-static void run_suite(pcut_item_t *suite, pcut_item_t **last, const char *prog_path) {
+static int run_suite(pcut_item_t *suite, pcut_item_t **last, const char *prog_path) {
 	int is_first_test = 1;
 	int total_count = 0;
+	int ret_code = PCUT_OUTCOME_PASS;
+	int ret_code_tmp;
 
 	pcut_item_t *it = pcut_get_real_next(suite);
 	if ((it == NULL) || (it->kind == PCUT_KIND_TESTSUITE)) {
@@ -113,10 +116,21 @@ static void run_suite(pcut_item_t *suite, pcut_item_t **last, const char *prog_p
 		}
 
 		if (pcut_run_mode == PCUT_RUN_MODE_FORKING) {
-			pcut_run_test_forking(prog_path, it);
+			ret_code_tmp = pcut_run_test_forking(prog_path, it);
 		} else {
-			pcut_run_test_single(it);
+			ret_code_tmp = pcut_run_test_single(it);
 		}
+
+		/*
+		 * Override final return code in case of failure.
+		 *
+		 * In this case we suppress any special error codes as
+		 * to the outside, there was a failure.
+		 */
+		if (ret_code_tmp != PCUT_OUTCOME_PASS) {
+			ret_code = PCUT_OUTCOME_FAIL;
+		}
+
 		total_count++;
 	}
 
@@ -129,6 +143,8 @@ leave_no_print:
 	if (last != NULL) {
 		*last = it;
 	}
+
+	return ret_code;
 }
 
 /** Add direct pointers to set-up/tear-down functions to a suites.
@@ -180,6 +196,8 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 	int run_only_suite = -1;
 	int run_only_test = -1;
 
+	int rc, rc_tmp;
+
 	if (main_extras == NULL) {
 		main_extras = empty_main_extra;
 	}
@@ -202,7 +220,7 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 			pcut_is_arg_with_number(argv[i], "-t", &run_only_test);
 			if (pcut_str_equals(argv[i], "-l")) {
 				pcut_print_tests(items);
-				return 0;
+				return PCUT_OUTCOME_PASS;
 			}
 			if (pcut_str_equals(argv[i], "-x")) {
 				pcut_report_register_handler(&pcut_report_xml);
@@ -228,34 +246,33 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 
 	if ((run_only_suite >= 0) && (run_only_test >= 0)) {
 		printf("Specify either -s or -t!\n");
-		return 1;
+		return PCUT_OUTCOME_BAD_INVOCATION;
 	}
 
 	if (run_only_suite > 0) {
 		pcut_item_t *suite = pcut_find_by_id(items, run_only_suite);
 		if (suite == NULL) {
 			printf("Suite not found, aborting!\n");
-			return 2;
+			return PCUT_OUTCOME_BAD_INVOCATION;
 		}
 		if (suite->kind != PCUT_KIND_TESTSUITE) {
 			printf("Invalid suite id!\n");
-			return 3;
+			return PCUT_OUTCOME_BAD_INVOCATION;
 		}
 
 		run_suite(suite, NULL, argv[0]);
-		return 0;
+		return PCUT_OUTCOME_PASS;
 	}
 
 	if (run_only_test > 0) {
-		int rc;
 		pcut_item_t *test = pcut_find_by_id(items, run_only_test);
 		if (test == NULL) {
 			printf("Test not found, aborting!\n");
-			return 2;
+			return PCUT_OUTCOME_BAD_INVOCATION;
 		}
 		if (test->kind != PCUT_KIND_TEST) {
 			printf("Invalid test id!\n");
-			return 3;
+			return PCUT_OUTCOME_BAD_INVOCATION;
 		}
 
 		if (pcut_run_mode == PCUT_RUN_MODE_SINGLE) {
@@ -270,11 +287,16 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 	/* Otherwise, run the whole thing. */
 	pcut_report_init(items);
 
+	rc = PCUT_OUTCOME_PASS;
+
 	it = items;
 	while (it != NULL) {
 		if (it->kind == PCUT_KIND_TESTSUITE) {
 			pcut_item_t *tmp;
-			run_suite(it, &tmp, argv[0]);
+			rc_tmp = run_suite(it, &tmp, argv[0]);
+			if (rc_tmp != PCUT_OUTCOME_PASS) {
+				rc = rc_tmp;
+			}
 			it = tmp;
 		} else {
 			it = pcut_get_real_next(it);
@@ -283,5 +305,5 @@ int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
 
 	pcut_report_done();
 
-	return 0;
+	return rc;
 }

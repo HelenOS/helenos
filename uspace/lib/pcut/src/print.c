@@ -80,6 +80,10 @@ void pcut_print_tests(pcut_item_t *first) {
 		case PCUT_KIND_TEST:
 			printf("    Test `%s' [%d]\n", it->name, it->id);
 			break;
+		case PCUT_KIND_SETUP:
+		case PCUT_KIND_TEARDOWN:
+			/* Fall-through, do nothing. */
+			break;
 		default:
 			assert(0 && "unreachable case in item-kind switch");
 			break;

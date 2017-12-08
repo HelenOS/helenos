@@ -35,4 +35,18 @@
 #include <pcut/asserts.h>
 #include <pcut/tests.h>
 
+
+/** PCUT outcome: test passed. */
+#define PCUT_OUTCOME_PASS 0
+
+/** PCUT outcome: test failed. */
+#define PCUT_OUTCOME_FAIL 1
+
+/** PCUT outcome: test failed unexpectedly. */
+#define PCUT_OUTCOME_INTERNAL_ERROR 2
+
+/** PCUT outcome: invalid invocation of the final program. */
+#define PCUT_OUTCOME_BAD_INVOCATION 3
+
+
 #endif

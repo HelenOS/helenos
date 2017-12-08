@@ -17,3 +17,4 @@ not ok 8 assert_true failed
 not ok 9 assert_false failed
 # error: asserts.c:72: Expected false but got <42>
 #> Finished suite Default (failed 7 of 9).
+#> Done: 7 of 9 tests failed.

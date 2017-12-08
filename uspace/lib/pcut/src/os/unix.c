@@ -35,9 +35,13 @@
 #define _POSIX_SOURCE
 /** We need _BSD_SOURCE because of snprintf() when compiling under C89. */
 #define _BSD_SOURCE
+
+/** Newer versions of features.h needs _DEFAULT_SOURCE. */
+#define _DEFAULT_SOURCE
+
 #include <stdlib.h>
 #include <unistd.h>
-#include <stddef.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <errno.h>
 #include <assert.h>
@@ -119,14 +123,14 @@ static size_t read_all(int fd, char *buffer, size_t buffer_size) {
 static int convert_wait_status_to_outcome(int status) {
 	if (WIFEXITED(status)) {
 		if (WEXITSTATUS(status) != 0) {
-			return TEST_OUTCOME_FAIL;
+			return PCUT_OUTCOME_FAIL;
 		} else {
-			return TEST_OUTCOME_PASS;
+			return PCUT_OUTCOME_PASS;
 		}
 	}
 
 	if (WIFSIGNALED(status)) {
-		return TEST_OUTCOME_ERROR;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	return status;
@@ -137,9 +141,9 @@ static int convert_wait_status_to_outcome(int status) {
  * @param self_path Ignored.
  * @param test Test to be run.
  */
-void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
+int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	int link_stdout[2], link_stderr[2];
-	int rc, status;
+	int rc, status, outcome;
 	size_t stderr_size;
 
 	PCUT_UNUSED(self_path);
@@ -151,22 +155,22 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	if (rc == -1) {
 		snprintf(error_message_buffer, OUTPUT_BUFFER_SIZE - 1,
 				"pipe() failed: %s.", strerror(rc));
-		pcut_report_test_done(test, TEST_OUTCOME_ERROR, error_message_buffer, NULL, NULL);
-		return;
+		pcut_report_test_done(test, PCUT_OUTCOME_INTERNAL_ERROR, error_message_buffer, NULL, NULL);
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 	rc = pipe(link_stderr);
 	if (rc == -1) {
 		snprintf(error_message_buffer, OUTPUT_BUFFER_SIZE - 1,
 				"pipe() failed: %s.", strerror(rc));
-		pcut_report_test_done(test, TEST_OUTCOME_ERROR, error_message_buffer, NULL, NULL);
-		return;
+		pcut_report_test_done(test, PCUT_OUTCOME_INTERNAL_ERROR, error_message_buffer, NULL, NULL);
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	child_pid = fork();
 	if (child_pid == (pid_t)-1) {
 		snprintf(error_message_buffer, OUTPUT_BUFFER_SIZE - 1,
 			"fork() failed: %s.", strerror(rc));
-		rc = TEST_OUTCOME_ERROR;
+		outcome = PCUT_OUTCOME_INTERNAL_ERROR;
 		goto leave_close_pipes;
 	}
 
@@ -177,9 +181,9 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 		dup2(link_stderr[1], STDERR_FILENO);
 		close(link_stderr[0]);
 
-		rc = pcut_run_test_forked(test);
+		outcome = pcut_run_test_forked(test);
 
-		exit(rc);
+		exit(outcome);
 	}
 
 	close(link_stdout[1]);
@@ -194,7 +198,7 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	wait(&status);
 	alarm(0);
 
-	rc = convert_wait_status_to_outcome(status);
+	outcome = convert_wait_status_to_outcome(status);
 
 	goto leave_close_parent_pipe;
 
@@ -205,7 +209,9 @@ leave_close_parent_pipe:
 	close(link_stdout[0]);
 	close(link_stderr[0]);
 
-	pcut_report_test_done_unparsed(test, rc, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+	pcut_report_test_done_unparsed(test, outcome, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+
+	return outcome;
 }
 
 void pcut_hook_before_test(pcut_item_t *test) {
