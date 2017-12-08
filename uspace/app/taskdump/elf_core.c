@@ -54,6 +54,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <errno.h>
+#include <str_error.h>
 #include <mem.h>
 #include <as.h>
 #include <udebug.h>
