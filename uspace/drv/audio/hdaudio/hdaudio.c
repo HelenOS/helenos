@@ -262,10 +262,10 @@ static int hda_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	int irq_cap = register_interrupt_handler(dev, res.irqs.irqs[0],
-	    hdaudio_interrupt, &irq_code);
-	if (irq_cap < 0) {
-		rc = irq_cap;
+	int irq_cap;
+	rc = register_interrupt_handler(dev, res.irqs.irqs[0],
+	    hdaudio_interrupt, &irq_code, &irq_cap);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
 		    rc);
 		goto error;

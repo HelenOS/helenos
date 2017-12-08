@@ -1183,14 +1183,15 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	ct.rangecount = sizeof(ahci_ranges) / sizeof(irq_pio_range_t);
 	ct.ranges = ahci_ranges;
 	
-	int irq_cap = register_interrupt_handler(dev,
-	    hw_res_parsed.irqs.irqs[0], ahci_interrupt, &ct);
-	if (irq_cap < 0) {
+	int irq_cap;
+	int rc = register_interrupt_handler(dev,
+	    hw_res_parsed.irqs.irqs[0], ahci_interrupt, &ct, &irq_cap);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler.");
 		goto error_register_interrupt_handler;
 	}
 	
-	int rc = hw_res_enable_interrupt(ahci->parent_sess,
+	rc = hw_res_enable_interrupt(ahci->parent_sess,
 	    hw_res_parsed.irqs.irqs[0]);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed enable interupt.");

@@ -123,7 +123,7 @@ static irq_cmd_t ne2k_cmds_prototype[] = {
 
 static void ne2k_interrupt_handler(ipc_call_t *, ddf_dev_t *);
 
-static int ne2k_register_interrupt(nic_t *nic_data)
+static int ne2k_register_interrupt(nic_t *nic_data, cap_handle_t *handle)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
@@ -159,9 +159,8 @@ static int ne2k_register_interrupt(nic_t *nic_data)
 		ne2k->code.cmds = ne2k_cmds;
 	}
 
-	int irq_cap = register_interrupt_handler(nic_get_ddf_dev(nic_data),
-		ne2k->irq, ne2k_interrupt_handler, &ne2k->code);
-	return irq_cap;
+	return register_interrupt_handler(nic_get_ddf_dev(nic_data),
+		ne2k->irq, ne2k_interrupt_handler, &ne2k->code, handle);
 }
 
 static ddf_dev_ops_t ne2k_dev_ops;
@@ -227,8 +226,7 @@ static int ne2k_dev_init(nic_t *nic_data)
 	
 	ne2k->probed = true;
 	
-	int irq_cap = ne2k_register_interrupt(nic_data);
-	if (irq_cap < 0)
+	if (ne2k_register_interrupt(nic_data, NULL) != EOK)
 		return EINVAL;
 	
 	return EOK;

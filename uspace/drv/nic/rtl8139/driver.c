@@ -841,10 +841,11 @@ static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
  *
  *  @param nic_data  The driver data
  *
- *  @return IRQ capability handle if the handler was registered.
+ *  @param[out] handle  IRQ capability handle if the handler was registered.
+ *
  *  @return Negative error code otherwise.
  */
-inline static int rtl8139_register_int_handler(nic_t *nic_data)
+inline static int rtl8139_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
 {
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 
@@ -855,12 +856,12 @@ inline static int rtl8139_register_int_handler(nic_t *nic_data)
 	rtl8139_irq_code.cmds[0].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[2].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[3].addr = rtl8139->io_addr + IMR;
-	int cap = register_interrupt_handler(nic_get_ddf_dev(nic_data),
-	    rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code);
+	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
+	    rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code, handle);
 
 	RTL8139_IRQ_STRUCT_UNLOCK();
 
-	return cap;
+	return rc;
 }
 
 /** Start the controller
@@ -1286,9 +1287,9 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	rtl8139_data_init(rtl8139);
 
 	/* Register interrupt handler */
-	int irq_cap = rtl8139_register_int_handler(nic_data);
-	if (irq_cap < 0) {
-		rc = irq_cap;
+	int irq_cap;
+	rc = rtl8139_register_int_handler(nic_data, &irq_cap);
+	if (rc != EOK) {
 		goto err_pio;
 	}
 

@@ -136,7 +136,7 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
 	    (void *) ts->paddr, inr);
 
-	async_irq_subscribe(inr, s3c24xx_ts_irq_handler, NULL, &ts_irq_code);
+	async_irq_subscribe(inr, s3c24xx_ts_irq_handler, NULL, &ts_irq_code, NULL);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 

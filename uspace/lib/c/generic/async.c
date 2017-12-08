@@ -1050,12 +1050,13 @@ static void process_notification(ipc_call_t *call)
  * @param data    Notification handler client data.
  * @param ucode   Top-half pseudocode handler.
  *
- * @return IRQ capability handle on success.
+ * @param[out] handle  IRQ capability handle on success.
+ *
  * @return Negative error code.
  *
  */
 int async_irq_subscribe(int inr, async_notification_handler_t handler,
-    void *data, const irq_code_t *ucode)
+    void *data, const irq_code_t *ucode, cap_handle_t *handle)
 {
 	notification_t *notification =
 	    (notification_t *) malloc(sizeof(notification_t));
@@ -1077,10 +1078,10 @@ int async_irq_subscribe(int inr, async_notification_handler_t handler,
 	
 	cap_handle_t cap;
 	int rc = ipc_irq_subscribe(inr, imethod, ucode, &cap);
-	if (rc != EOK) {
-		return rc;
+	if (rc == EOK && handle != NULL) {
+		*handle = cap;
 	}
-	return cap;
+	return rc;
 }
 
 /** Unsubscribe from IRQ notification.

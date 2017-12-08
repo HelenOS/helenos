@@ -251,7 +251,7 @@ static int cuda_init(cuda_t *cuda)
 	cuda_irq_code.ranges[0].base = (uintptr_t) cuda->phys_base;
 	cuda_irq_code.cmds[0].addr = (void *) &((cuda_regs_t *)
 	    cuda->phys_base)->ifr;
-	async_irq_subscribe(10, cuda_irq_handler, cuda, &cuda_irq_code);
+	async_irq_subscribe(10, cuda_irq_handler, cuda, &cuda_irq_code, NULL);
 
 	/* Enable SR interrupt. */
 	pio_write_8(&cuda->regs->ier, TIP | TREQ);

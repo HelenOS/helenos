@@ -72,7 +72,7 @@ static int rtl8169_on_activated(nic_t *nic_data);
 static int rtl8169_on_stopped(nic_t *nic_data);
 static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size);
 static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev);
-static inline int rtl8169_register_int_handler(nic_t *nic_data);
+static inline int rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle);
 static inline void rtl8169_get_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr);
 static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, const nic_address_t *addr);
 
@@ -358,7 +358,7 @@ failed:
 
 }
 
-inline static int rtl8169_register_int_handler(nic_t *nic_data)
+inline static int rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
@@ -366,10 +366,10 @@ inline static int rtl8169_register_int_handler(nic_t *nic_data)
 	rtl8169_irq_code.cmds[0].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[2].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[3].addr = rtl8169->regs + IMR;
-	int irq_cap = register_interrupt_handler(nic_get_ddf_dev(nic_data),
-	    rtl8169->irq, rtl8169_irq_handler, &rtl8169_irq_code);
+	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
+	    rtl8169->irq, rtl8169_irq_handler, &rtl8169_irq_code, handle);
 
-	return irq_cap;
+	return rc;
 }
 
 static int rtl8169_dev_add(ddf_dev_t *dev)
@@ -426,9 +426,9 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_pio;
 
-	int irq_cap = rtl8169_register_int_handler(nic_data);
-	if (irq_cap < 0) {
-		rc = irq_cap;
+	int irq_cap;
+	rc = rtl8169_register_int_handler(nic_data, &irq_cap);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to register IRQ handler (%d)", rc);
 		goto err_irq;
 	}

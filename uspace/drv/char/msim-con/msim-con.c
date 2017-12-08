@@ -124,7 +124,7 @@ int msim_con_add(msim_con_t *con, msim_con_res_t *res)
 	con->irq_code.cmdcount = sizeof(msim_cmds_proto) / sizeof(irq_cmd_t);
 	con->irq_code.cmds = msim_cmds;
 
-	async_irq_subscribe(res->irq, msim_irq_handler, con, &con->irq_code);
+	async_irq_subscribe(res->irq, msim_irq_handler, con, &con->irq_code, NULL);
 	subscribed = true;
 
 	chardev_srvs_init(&con->cds);

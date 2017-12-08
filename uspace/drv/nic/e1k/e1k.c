@@ -1258,11 +1258,12 @@ static void e1000_interrupt_handler(ipc_call_t *icall,
  *
  * @param nic Driver data
  *
- * @return IRQ capability handle if the handler was registered
+ * @param[out] handle  IRQ capability handle if the handler was registered
+ *
  * @return Negative error code otherwise
  *
  */
-inline static int e1000_register_int_handler(nic_t *nic)
+inline static int e1000_register_int_handler(nic_t *nic, cap_handle_t *handle)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
@@ -1273,11 +1274,11 @@ inline static int e1000_register_int_handler(nic_t *nic)
 	e1000_irq_code.cmds[0].addr = e1000->reg_base_phys + E1000_ICR;
 	e1000_irq_code.cmds[2].addr = e1000->reg_base_phys + E1000_IMC;
 	
-	int cap = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
-	    e1000_interrupt_handler, &e1000_irq_code);
+	int rc = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
+	    e1000_interrupt_handler, &e1000_irq_code, handle);
 	
 	fibril_mutex_unlock(&irq_reg_mutex);
-	return cap;
+	return rc;
 }
 
 /** Force receiving all frames in the receive buffer
@@ -2163,9 +2164,9 @@ int e1000_dev_add(ddf_dev_t *dev)
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &e1000_dev_ops);
 	
-	int irq_cap = e1000_register_int_handler(nic);
-	if (irq_cap < 0) {
-		rc = irq_cap;
+	int irq_cap;
+	rc = e1000_register_int_handler(nic, &irq_cap);
+	if (rc != EOK) {
 		goto err_fun_create;
 	}
 	

@@ -801,10 +801,11 @@ static inline void ns8250_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
  *
  * @param ns		Serial port device
  */
-static inline int ns8250_register_interrupt_handler(ns8250_t *ns)
+static inline int ns8250_register_interrupt_handler(ns8250_t *ns,
+    cap_handle_t *handle)
 {
 	return register_interrupt_handler(ns->dev, ns->irq,
-	    ns8250_interrupt_handler, NULL);
+	    ns8250_interrupt_handler, NULL, handle);
 }
 
 /** Unregister the interrupt handler for the device.
@@ -873,8 +874,8 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	ns8250_initialize_port(ns);
 	
 	/* Register interrupt handler. */
-	ns->irq_cap = ns8250_register_interrupt_handler(ns);
-	if (ns->irq_cap < 0) {
+	rc = ns8250_register_interrupt_handler(ns, &ns->irq_cap);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
 		rc = EADDRNOTAVAIL;
 		goto fail;

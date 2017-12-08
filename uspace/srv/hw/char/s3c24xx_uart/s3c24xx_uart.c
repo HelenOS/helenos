@@ -172,7 +172,7 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
 	    (void *) uart->paddr, inr);
 
-	async_irq_subscribe(inr, s3c24xx_uart_irq_handler, NULL, &uart_irq_code);
+	async_irq_subscribe(inr, s3c24xx_uart_irq_handler, NULL, &uart_irq_code, NULL);
 
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
 	pio_write_32(&uart->io->ufcon, UFCON_FIFO_ENABLE |

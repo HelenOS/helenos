@@ -502,10 +502,9 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	ddisk_irq_pio_ranges[0].base = res.base;
 	ddisk_irq_commands[0].addr = (void *) &res_phys->status;
 	ddisk_irq_commands[3].addr = (void *) &res_phys->command;
-	ddisk->irq_cap = register_interrupt_handler(dev, ddisk->ddisk_res.irq,
-	    ddisk_irq_handler, &ddisk_irq_code);
-	if (ddisk->irq_cap < 0) {
-		rc = ddisk->irq_cap;
+	rc = register_interrupt_handler(dev, ddisk->ddisk_res.irq,
+	    ddisk_irq_handler, &ddisk_irq_code, &ddisk->irq_cap);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
 		goto error;
 	}
