@@ -41,20 +41,16 @@
 #include <io/klog.h>
 #include <abi/log.h>
 
-size_t klog_write(log_level_t lvl, const void *buf, size_t size)
+int klog_write(log_level_t lvl, const void *buf, size_t size)
 {
-	ssize_t ret = (ssize_t) __SYSCALL4(SYS_KLOG, KLOG_WRITE, (sysarg_t) buf,
+	return (int) __SYSCALL4(SYS_KLOG, KLOG_WRITE, (sysarg_t) buf,
 	    size, lvl);
-	
-	if (ret >= 0)
-		return (size_t) ret;
-	
-	return 0;
 }
 
-int klog_read(void *data, size_t size)
+int klog_read(void *data, size_t size, size_t *nread)
 {
-	return (int) __SYSCALL4(SYS_KLOG, KLOG_READ, (uintptr_t) data, size, 0);
+	return (int) __SYSCALL5(SYS_KLOG, KLOG_READ, (uintptr_t) data,
+	    size, 0, (sysarg_t) nread);
 }
 
 /** @}

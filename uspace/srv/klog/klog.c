@@ -99,15 +99,14 @@ static log_t facility_ctx[facility_len];
  */
 static void producer(void)
 {
-	int read = klog_read(buffer, BUFFER_SIZE);
-	
-	if (read < 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "klog_read failed, rc = %d",
-		    read);
+	size_t len = 0;
+	int rc = klog_read(buffer, BUFFER_SIZE, &len);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "klog_read failed, rc = %s",
+		    str_error_name(rc));
 		return;
 	}
 	
-	size_t len = read;
 	size_t offset = 0;
 	while (offset < len) {
 		size_t entry_len = *((unaligned_size_t *) (buffer + offset));

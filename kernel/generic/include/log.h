@@ -51,7 +51,7 @@ extern int log(log_facility_t, log_level_t, const char *, ...)
     PRINTF_ATTRIBUTE(3, 4);
 
 extern sysarg_t sys_klog(sysarg_t, void *buf, size_t size,
-    sysarg_t level);
+    sysarg_t level, size_t *uspace_nread);
 
 #endif /* KERN_LOG_H_ */
 

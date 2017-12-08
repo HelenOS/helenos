@@ -43,8 +43,8 @@
 #include <str.h>
 #include <abi/log.h>
 
-extern size_t klog_write(log_level_t, const void *, size_t);
-extern int klog_read(void *, size_t);
+extern int klog_write(log_level_t, const void *, size_t);
+extern int klog_read(void *, size_t, size_t *);
 
 #define KLOG_PRINTF(lvl, fmt, ...) ({ \
 	char *_fmt = str_dup(fmt); \
