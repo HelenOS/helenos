@@ -35,7 +35,6 @@ SOURCES = \
 	syscalls.c \
 	ipcp.c \
 	ipc_desc.c \
-	proto.c \
-	errors.c
+	proto.c
 
 include $(USPACE_PREFIX)/Makefile.common

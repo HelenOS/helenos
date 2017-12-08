@@ -62,7 +62,6 @@
 
 #include "syscalls.h"
 #include "ipcp.h"
-#include "errors.h"
 #include "trace.h"
 
 #define THBUF_SIZE 64
@@ -225,8 +224,8 @@ void val_print(sysarg_t val, val_type_t v_type)
 	case V_ERRNO:
 		if (sval >= -15 && sval <= 0) {
 			printf("%ld %s (%s)", sval,
-			    err_desc[-sval].name,
-			    err_desc[-sval].desc);
+			    str_error_name((int) sval),
+			    str_error((int) sval));
 		} else {
 			printf("%ld", sval);
 		}
@@ -234,8 +233,8 @@ void val_print(sysarg_t val, val_type_t v_type)
 	case V_INT_ERRNO:
 		if (sval >= -15 && sval < 0) {
 			printf("%ld %s (%s)", sval,
-			    err_desc[-sval].name,
-			    err_desc[-sval].desc);
+			    str_error_name((int) sval),
+			    str_error((int) sval));
 		} else {
 			printf("%ld", sval);
 		}
