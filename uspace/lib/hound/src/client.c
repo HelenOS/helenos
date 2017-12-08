@@ -122,9 +122,10 @@ static hound_context_t *hound_context_create(const char *name, bool record,
 			free(new_context);
 			return NULL;
 		}
-		new_context->id = hound_service_register_context(
-		    new_context->session, new_context->name, record);
-		if (hound_context_id_err(new_context->id) != EOK) {
+		int rc = hound_service_register_context(
+		    new_context->session, new_context->name, record,
+		    &new_context->id);
+		if (rc != EOK) {
 			hound_service_disconnect(new_context->session);
 			free(new_context->name);
 			free(new_context);
