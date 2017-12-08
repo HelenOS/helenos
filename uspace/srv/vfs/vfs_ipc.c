@@ -279,8 +279,9 @@ static void vfs_in_unmount(ipc_callid_t rid, ipc_call_t *request)
 static void vfs_in_wait_handle(ipc_callid_t rid, ipc_call_t *request)
 {
 	bool high_fd = IPC_GET_ARG1(*request);
-	int fd = vfs_op_wait_handle(high_fd);
-	async_answer_1(rid, EOK, fd);
+	int fd = -1;
+	int rc = vfs_op_wait_handle(high_fd, &fd);
+	async_answer_1(rid, rc, fd);
 }
 
 static void vfs_in_walk(ipc_callid_t rid, ipc_call_t *request)

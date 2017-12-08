@@ -193,12 +193,12 @@ extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
 extern void vfs_op_pass_handle(task_id_t, task_id_t, int);
-extern int vfs_wait_handle_internal(bool);
+extern int vfs_wait_handle_internal(bool, int *);
 
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);
 extern int vfs_fd_assign(vfs_file_t *, int);
-extern int vfs_fd_alloc(vfs_file_t **file, bool desc);
+extern int vfs_fd_alloc(vfs_file_t **file, bool desc, int *);
 extern int vfs_fd_free(int);
 
 extern void vfs_node_addref(vfs_node_t *);
@@ -219,7 +219,7 @@ extern int vfs_op_statfs(int fd);
 extern int vfs_op_sync(int fd);
 extern int vfs_op_unlink(int parentfd, int expectfd, char *path);
 extern int vfs_op_unmount(int mpfd);
-extern int vfs_op_wait_handle(bool high_fd);
+extern int vfs_op_wait_handle(bool high_fd, int *out_fd);
 extern int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd);
 extern int vfs_op_write(int fd, aoff64_t, size_t *out_bytes);
 

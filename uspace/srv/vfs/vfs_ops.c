@@ -103,26 +103,21 @@ int vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
 	if (newfd != -1) {
 		/* Assign the old file to newfd. */
 		rc = vfs_fd_assign(oldfile, newfd);
+		*out_fd = newfd;
 	} else {
 		vfs_file_t *newfile;
-		int newfd = vfs_fd_alloc(&newfile, desc);
-		if (newfd >= 0) {
+		rc = vfs_fd_alloc(&newfile, desc, out_fd);
+		if (rc == EOK) {
 			newfile->node = oldfile->node;
 			newfile->permissions = oldfile->permissions;
 			vfs_node_addref(newfile->node);
 	
 			vfs_file_put(newfile);
 		}
-		rc = newfd;
 	}
 	vfs_file_put(oldfile);
 	
-	if (rc < 0) {
-		return rc;
-	}
-	
-	*out_fd = rc;
-	return EOK;
+	return rc;
 }
 
 int vfs_op_put(int fd)
@@ -227,12 +222,12 @@ int vfs_op_fsprobe(const char *fs_name, service_id_t sid,
 }
 
 int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
-    unsigned instance, const char *opts, const char *fs_name, int *outfd)
+    unsigned instance, const char *opts, const char *fs_name, int *out_fd)
 {
 	int rc;
 	vfs_file_t *mp = NULL;
 	vfs_file_t *file = NULL;
-	int fd = -1;
+	*out_fd = -1;
 	
 	if (!(flags & VFS_MOUNT_CONNECT_ONLY)) {
 		mp = vfs_file_get(mpfd);
@@ -258,9 +253,8 @@ int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 	}
 	
 	if (!(flags & VFS_MOUNT_NO_REF)) {
-		fd = vfs_fd_alloc(&file, false);
-		if (fd < 0) {
-			rc = fd;
+		rc = vfs_fd_alloc(&file, false, out_fd);
+		if (rc != EOK) {
 			goto out;
 		}
 	}
@@ -299,12 +293,11 @@ out:
 	if (file)
 		vfs_file_put(file);
 
-	if (rc != EOK && fd >= 0) {
-		vfs_fd_free(fd);
-		fd = 0;
+	if (rc != EOK && *out_fd >= 0) {
+		vfs_fd_free(*out_fd);
+		*out_fd = -1;
 	}
 	
-	*outfd = fd;
 	return rc;
 }
 
@@ -832,9 +825,9 @@ int vfs_op_unmount(int mpfd)
 	return EOK;
 }
 
-int vfs_op_wait_handle(bool high_fd)
+int vfs_op_wait_handle(bool high_fd, int *out_fd)
 {
-	return vfs_wait_handle_internal(high_fd);
+	return vfs_wait_handle_internal(high_fd, out_fd);
 }
 
 static inline bool walk_flags_valid(int flags)
@@ -896,11 +889,11 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	}
 	
 	vfs_file_t *file;
-	int fd = vfs_fd_alloc(&file, false);
-	if (fd < 0) {
+	rc = vfs_fd_alloc(&file, false, out_fd);
+	if (rc != EOK) {
 		vfs_node_put(node);
 		vfs_file_put(parent);
-		return fd;
+		return rc;
 	}
 	assert(file != NULL);
 	
@@ -914,7 +907,6 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	
 	fibril_rwlock_read_unlock(&namespace_rwlock);
 
-	*out_fd = fd;
 	return EOK;
 }
 
