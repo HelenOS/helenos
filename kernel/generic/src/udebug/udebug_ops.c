@@ -166,7 +166,7 @@ static void _thread_op_end(thread_t *thread)
  *
  * @param call The BEGIN call we are servicing.
  *
- * @return EOK or negative error code.
+ * @return 0 (OK, but not done yet), 1 (done) or negative error code.
  *
  */
 int udebug_begin(call_t *call)
@@ -184,6 +184,15 @@ int udebug_begin(call_t *call)
 	TASK->udebug.begin_call = call;
 	TASK->udebug.debugger = call->sender;
 	
+	int reply;
+	
+	if (TASK->udebug.not_stoppable_count == 0) {
+		TASK->udebug.dt_state = UDEBUG_TS_ACTIVE;
+		TASK->udebug.begin_call = NULL;
+		reply = 1;  /* immediate reply */
+	} else
+		reply = 0;  /* no reply */
+	
 	/* Set udebug.active on all of the task's userspace threads. */
 	
 	list_foreach(TASK->threads, th_link, thread_t, thread) {
@@ -197,7 +206,7 @@ int udebug_begin(call_t *call)
 	}
 	
 	mutex_unlock(&TASK->udebug.lock);
-	return EOK;
+	return reply;
 }
 
 /** Finish debugging the current task.
