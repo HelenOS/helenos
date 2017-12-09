@@ -231,11 +231,26 @@ int ipc_connect_kbox(task_id_t taskid, cap_handle_t *out_phone)
 		return ENOENT;
 	}
 	
-	if (task->kb.finished != false) {
+	if (task->kb.finished) {
 		mutex_unlock(&task->kb.cleanup_lock);
 		return EINVAL;
 	}
 	
+	/* Create a kbox thread if necessary. */
+	if (task->kb.thread == NULL) {
+		thread_t *kb_thread = thread_create(kbox_thread_proc, NULL, task,
+		    THREAD_FLAG_NONE, "kbox");
+		
+		if (!kb_thread) {
+			mutex_unlock(&task->kb.cleanup_lock);
+			return ENOMEM;
+		}
+		
+		task->kb.thread = kb_thread;
+		thread_ready(kb_thread);
+	}
+	
+	/* Allocate a new phone. */
 	cap_handle_t phone_handle = phone_alloc(TASK);
 	if (phone_handle < 0) {
 		mutex_unlock(&task->kb.cleanup_lock);
@@ -248,26 +263,7 @@ int ipc_connect_kbox(task_id_t taskid, cap_handle_t *out_phone)
 	/* Hand over phone_obj's reference to ipc_phone_connect() */
 	(void) ipc_phone_connect(phone_obj->phone, &task->kb.box);
 	
-	if (task->kb.thread != NULL) {
-		mutex_unlock(&task->kb.cleanup_lock);
-		*out_phone = phone_handle;
-		return EOK;
-	}
-	
-	/* Create a kbox thread */
-	thread_t *kb_thread = thread_create(kbox_thread_proc, NULL, task,
-	    THREAD_FLAG_NONE, "kbox");
-	if (!kb_thread) {
-		// FIXME: Shouldn't we clean up phone_handle?
-		mutex_unlock(&task->kb.cleanup_lock);
-		return ENOMEM;
-	}
-	
-	task->kb.thread = kb_thread;
-	thread_ready(kb_thread);
-	
 	mutex_unlock(&task->kb.cleanup_lock);
-	
 	*out_phone = phone_handle;
 	return EOK;
 }
