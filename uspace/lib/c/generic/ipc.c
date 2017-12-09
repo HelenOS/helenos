@@ -376,16 +376,9 @@ int ipc_forward_slow(cap_handle_t chandle, cap_handle_t phandle,
 /** Connect to a task specified by id.
  *
  */
-int ipc_connect_kbox(task_id_t id)
+int ipc_connect_kbox(task_id_t id, cap_handle_t *phone)
 {
-#ifdef __32_BITS__
-	sysarg64_t arg = (sysarg64_t) id;
-	return __SYSCALL1(SYS_IPC_CONNECT_KBOX, (sysarg_t) &arg);
-#endif
-	
-#ifdef __64_BITS__
-	return __SYSCALL1(SYS_IPC_CONNECT_KBOX, (sysarg_t) id);
-#endif
+	return __SYSCALL2(SYS_IPC_CONNECT_KBOX, (sysarg_t) &id, (sysarg_t) phone);
 }
 
 /** @}

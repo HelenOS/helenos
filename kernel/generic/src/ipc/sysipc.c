@@ -896,46 +896,35 @@ sysarg_t sys_ipc_irq_unsubscribe(sysarg_t cap)
 	return 0;
 }
 
-#ifdef __32_BITS__
-
-/** Syscall connect to a task by ID (32 bits)
+/** Syscall connect to a task by ID
  *
- * @return Phone id on success, or negative error code.
+ * @return Error code.
  *
  */
-sysarg_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid)
+sysarg_t sys_ipc_connect_kbox(task_id_t *uspace_taskid, cap_handle_t *uspace_phone)
 {
 #ifdef CONFIG_UDEBUG
-	sysarg64_t taskid;
-	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
-	if (rc != 0)
-		return (sysarg_t) rc;
+	task_id_t taskid;
+	cap_handle_t phone;
 	
-	return ipc_connect_kbox((task_id_t) taskid);
+	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(task_id_t));
+	if (rc == EOK) {
+		rc = ipc_connect_kbox((task_id_t) taskid, &phone);
+	}
+	
+	if (rc == EOK) {
+		rc = copy_to_uspace(uspace_phone, &phone, sizeof(cap_handle_t));
+		if (rc != EOK) {
+			// Clean up the phone on failure.
+			sys_ipc_hangup(phone);
+		}
+	}
+	
+	return (sysarg_t) rc;
 #else
 	return (sysarg_t) ENOTSUP;
 #endif
 }
-
-#endif  /* __32_BITS__ */
-
-#ifdef __64_BITS__
-
-/** Syscall connect to a task by ID (64 bits)
- *
- * @return Phone id on success, or negative error code.
- *
- */
-sysarg_t sys_ipc_connect_kbox(sysarg_t taskid)
-{
-#ifdef CONFIG_UDEBUG
-	return ipc_connect_kbox((task_id_t) taskid);
-#else
-	return (sysarg_t) ENOTSUP;
-#endif
-}
-
-#endif  /* __64_BITS__ */
 
 /** @}
  */

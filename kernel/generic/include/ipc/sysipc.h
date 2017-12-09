@@ -58,17 +58,7 @@ extern sysarg_t sys_ipc_hangup(sysarg_t);
 extern sysarg_t sys_ipc_irq_subscribe(inr_t, sysarg_t, irq_code_t *, cap_handle_t *);
 extern sysarg_t sys_ipc_irq_unsubscribe(sysarg_t);
 
-#ifdef __32_BITS__
-
-extern sysarg_t sys_ipc_connect_kbox(sysarg64_t *);
-
-#endif  /* __32_BITS__ */
-
-#ifdef __64_BITS__
-
-extern sysarg_t sys_ipc_connect_kbox(sysarg_t);
-
-#endif  /* __64_BITS__ */
+extern sysarg_t sys_ipc_connect_kbox(task_id_t *, cap_handle_t *);
 
 #endif
 

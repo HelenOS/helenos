@@ -2397,9 +2397,10 @@ async_sess_t *async_connect_kbox(task_id_t id)
 		return NULL;
 	}
 	
-	int phone = ipc_connect_kbox(id);
-	if (phone < 0) {
-		errno = phone;
+	cap_handle_t phone;
+	int rc = ipc_connect_kbox(id, &phone);
+	if (rc != EOK) {
+		errno = rc;
 		free(sess);
 		return NULL;
 	}
