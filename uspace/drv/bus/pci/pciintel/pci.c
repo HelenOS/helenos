@@ -513,7 +513,7 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 #define IO_MASK  (~0x3)
 #define MEM_MASK (~0xf)
 	
-	io = (bool) (val & 1);
+	io = (val & 1) != 0;
 	if (io) {
 		addrw64 = false;
 		mask = IO_MASK;

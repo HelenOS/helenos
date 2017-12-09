@@ -188,7 +188,7 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
 
 	ipc_call_t res_call;
 	aid_t mid = async_send_3(exch, IPC_M_HOUND_GET_LIST, flags, *count,
-	    (bool)connection, &res_call);
+	    connection != NULL, &res_call);
 
 	sysarg_t ret = EOK;
 	if (mid && connection)

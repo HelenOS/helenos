@@ -61,7 +61,7 @@ static inline bool is_running(audio_device_t *dev)
 {
 	assert(dev);
 	/* we release buffer on stop so this should be enough */
-	return (bool)dev->buffer.base;
+	return dev->buffer.base != NULL;
 }
 
 /**

@@ -832,7 +832,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 			    list_get_instance(list_last(&area->used_space.leaf_list),
 			    btree_node_t, leaf_link);
 			
-			if ((cond = (bool) node->keys)) {
+			if ((cond = (node->keys != 0))) {
 				uintptr_t ptr = node->key[node->keys - 1];
 				size_t node_size =
 				    (size_t) node->value[node->keys - 1];
