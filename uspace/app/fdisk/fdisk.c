@@ -268,6 +268,8 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 	*rsvcid = svcid;
 	return EOK;
 error:
+	assert(rc != EOK);
+	*rsvcid = 0;
 	if (devlist != NULL)
 		fdisk_dev_list_free(devlist);
 	if (choice != NULL)
