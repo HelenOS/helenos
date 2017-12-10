@@ -126,7 +126,7 @@ typedef struct hc {
 extern int hc_init(hc_t *, const hw_res_list_parsed_t *, bool);
 extern void hc_fini(hc_t *);
 
-extern int uhci_hc_gen_irq_code(irq_code_t *, const hw_res_list_parsed_t *);
+extern int uhci_hc_gen_irq_code(irq_code_t *, const hw_res_list_parsed_t *, int *);
 
 extern void uhci_hc_interrupt(hcd_t *, uint32_t);
 extern int uhci_hc_status(hcd_t *, uint32_t *);

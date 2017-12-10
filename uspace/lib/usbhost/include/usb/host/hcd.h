@@ -101,7 +101,7 @@ static inline void * hcd_get_driver_data(hcd_t *hcd)
 	return hcd->driver_data;
 }
 
-extern usb_address_t hcd_request_address(hcd_t *, usb_speed_t);
+extern int hcd_request_address(hcd_t *, usb_speed_t, usb_address_t *);
 
 extern int hcd_release_address(hcd_t *, usb_address_t);
 
@@ -122,8 +122,8 @@ extern int hcd_send_batch(hcd_t *, usb_target_t, usb_direction_t, void *,
     size_t, uint64_t, usbhc_iface_transfer_in_callback_t,
     usbhc_iface_transfer_out_callback_t, void *, const char *);
 
-extern ssize_t hcd_send_batch_sync(hcd_t *, usb_target_t, usb_direction_t,
-    void *, size_t, uint64_t, const char *);
+extern int hcd_send_batch_sync(hcd_t *, usb_target_t, usb_direction_t,
+    void *, size_t, uint64_t, const char *, size_t *);
 
 #endif
 

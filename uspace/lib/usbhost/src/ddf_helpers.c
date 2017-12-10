@@ -480,11 +480,12 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 		.endpoint = 0,
 	}};
 
-	const usb_address_t address = hcd_request_address(hcd, speed);
-	if (address < 0) {
+	usb_address_t address;
+	ret = hcd_request_address(hcd, speed, &address);
+	if (ret != EOK) {
 		usb_log_error("Failed to reserve new address: %s.",
-		    str_error(address));
-		return address;
+		    str_error(ret));
+		return ret;
 	}
 
 	usb_log_debug("Reserved new address: %d\n", address);
@@ -517,12 +518,16 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	// TODO CALLBACKS
 	usb_log_debug("Device(%d): Requesting first 8B of device descriptor.",
 	    address);
-	ssize_t got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_IN,
+	size_t got;
+	ret = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_IN,
 	    &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
-	    "read first 8 bytes of dev descriptor");
+	    "read first 8 bytes of dev descriptor", &got);
 
-	if (got != CTRL_PIPE_MIN_PACKET_SIZE) {
-		ret = got < 0 ? got : EOVERFLOW;
+	if (ret == EOK && got != CTRL_PIPE_MIN_PACKET_SIZE) {
+		ret = EOVERFLOW;
+	}
+
+	if (ret != EOK) {
 		usb_log_error("Device(%d): Failed to get 8B of dev descr: %s.",
 		    address, str_error(ret));
 		hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
@@ -551,18 +556,18 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	    SET_ADDRESS(target.address);
 
 	usb_log_debug("Device(%d): Setting USB address.", address);
-	got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
-	    NULL, 0, *(uint64_t *)&set_address, "set address");
+	ret = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
+	    NULL, 0, *(uint64_t *)&set_address, "set address", &got);
 
 	usb_log_debug("Device(%d): Removing default (0:0) EP.", address);
 	hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
 
-	if (got != 0) {
+	if (ret != EOK) {
 		usb_log_error("Device(%d): Failed to set new address: %s.",
-		    address, str_error(got));
+		    address, str_error(ret));
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
 		hcd_release_address(hcd, address);
-		return got;
+		return ret;
 	}
 
 	/* Get std device descriptor */
@@ -571,9 +576,9 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 
 	usb_log_debug("Device(%d): Requesting full device descriptor.",
 	    address);
-	got = hcd_send_batch_sync(hcd, target, USB_DIRECTION_IN,
+	ret = hcd_send_batch_sync(hcd, target, USB_DIRECTION_IN,
 	    &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
-	    "read device descriptor");
+	    "read device descriptor", &got);
 	if (ret != EOK) {
 		usb_log_error("Device(%d): Failed to set get dev descriptor: %s",
 		    address, str_error(ret));
@@ -748,7 +753,7 @@ static inline void irq_code_clean(irq_code_t *code)
 int hcd_ddf_setup_interrupts(ddf_dev_t *device,
     const hw_res_list_parsed_t *hw_res,
     interrupt_handler_t handler,
-    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *hw_res),
+    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *, int *),
     cap_handle_t *handle)
 {
 
@@ -758,15 +763,16 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 
 	irq_code_t irq_code = {0};
 
-	const int irq = gen_irq_code(&irq_code, hw_res);
-	if (irq < 0) {
+	int irq;
+	int ret = gen_irq_code(&irq_code, hw_res, &irq);
+	if (ret != EOK) {
 		usb_log_error("Failed to generate IRQ code: %s.\n",
-		    str_error(irq));
-		return irq;
+		    str_error(ret));
+		return ret;
 	}
 
 	/* Register handler to avoid interrupt lockup */
-	int ret = register_interrupt_handler(device, irq, handler,
+	ret = register_interrupt_handler(device, irq, handler,
 	    &irq_code, handle);
 	irq_code_clean(&irq_code);
 	if (ret != EOK) {

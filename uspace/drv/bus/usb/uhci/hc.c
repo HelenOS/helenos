@@ -102,10 +102,11 @@ static int hc_debug_checker(void *arg);
 /** Generate IRQ code.
  * @param[out] code IRQ code structure.
  * @param[in] hw_res Device's resources.
+ * @param[out] irq
  *
  * @return Error code.
  */
-int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
+int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -141,7 +142,8 @@ int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.\n",
 	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
 
-	return hw_res->irqs.irqs[0];
+	*irq = hw_res->irqs.irqs[0];
+	return EOK;
 }
 
 /** Take action based on the interrupt cause.

@@ -101,15 +101,10 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	hcd_set_implementation(hcd, NULL, NULL);
 }
 
-usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
+int hcd_request_address(hcd_t *hcd, usb_speed_t speed, usb_address_t *address)
 {
 	assert(hcd);
-	usb_address_t address = 0;
-	const int ret = usb_bus_request_address(
-	    &hcd->bus, &address, false, speed);
-	if (ret != EOK)
-		return ret;
-	return address;
+	return usb_bus_request_address(&hcd->bus, address, false, speed);
 }
 
 int hcd_release_address(hcd_t *hcd, usb_address_t address)
@@ -270,9 +265,9 @@ static void transfer_out_cb(int ret, void* data)
 }
 
 /** this is really ugly version of sync usb communication */
-ssize_t hcd_send_batch_sync(
+int hcd_send_batch_sync(
     hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    void *data, size_t size, uint64_t setup_data, const char* name)
+    void *data, size_t size, uint64_t setup_data, const char* name, size_t *out_size)
 {
 	assert(hcd);
 	sync_data_t sd = { .done = 0, .ret = EBUSY, .size = size };
@@ -288,7 +283,7 @@ ssize_t hcd_send_batch_sync(
 	}
 
 	if (sd.ret == EOK)
-		return sd.size;
+		*out_size = sd.size;
 	return sd.ret;
 }
 

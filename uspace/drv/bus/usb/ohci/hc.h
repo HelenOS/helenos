@@ -85,7 +85,7 @@ extern void hc_fini(hc_t *);
 extern void hc_enqueue_endpoint(hc_t *, const endpoint_t *);
 extern void hc_dequeue_endpoint(hc_t *, const endpoint_t *);
 
-int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
+int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq);
 
 extern void ohci_hc_interrupt(hcd_t *, uint32_t);
 extern int ohci_hc_status(hcd_t *, uint32_t *);
