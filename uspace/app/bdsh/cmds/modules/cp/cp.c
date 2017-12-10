@@ -27,6 +27,7 @@
  */
 
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <io/console.h>
@@ -431,7 +432,7 @@ static int copy_file(const char *src, const char *dest,
 	}
 
 	if (rc != EOK) {
-		printf("\nError copying %s, (%d)\n", src, rc);
+		printf("\nError copying %s: %s\n", src, str_error(rc));
 		return rc;
 	}
 

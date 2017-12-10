@@ -35,6 +35,7 @@
 #include <usb/debug.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <str_error.h>
 #include "wmi.h"
 #include "htc.h"
 #include "nic/nic.h"
@@ -263,7 +264,7 @@ static int htc_connect_service(htc_device_t *htc_device,
 	    htc_device->endpoints.ctrl_endpoint);
 	if (rc != EOK) {
 		free(buffer);
-		usb_log_error("Failed to send HTC message. Error: %d\n", rc);
+		usb_log_error("Failed to send HTC message. Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -277,7 +278,7 @@ static int htc_connect_service(htc_device_t *htc_device,
 	if (rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to receive HTC service connect response. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -330,7 +331,7 @@ static int htc_config_credits(htc_device_t *htc_device)
 	if (rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to send HTC config message. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -343,7 +344,7 @@ static int htc_config_credits(htc_device_t *htc_device)
 	rc = htc_read_control_message(htc_device, buffer, buffer_size, NULL);
 	if (rc != EOK) {
 		usb_log_error("Failed to receive HTC config response message. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 	}
 	
 	free(buffer);
@@ -375,7 +376,7 @@ static int htc_complete_setup(htc_device_t *htc_device)
 	    htc_device->endpoints.ctrl_endpoint);
 	if (rc != EOK)
 		usb_log_error("Failed to send HTC setup complete message. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 	
 	free(buffer);
 	
@@ -403,7 +404,7 @@ static int htc_check_ready(htc_device_t *htc_device)
 	if (rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to receive HTC check ready message. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	

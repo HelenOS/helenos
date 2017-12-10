@@ -266,8 +266,8 @@ static int hda_dev_add(ddf_dev_t *dev)
 	rc = register_interrupt_handler(dev, res.irqs.irqs[0],
 	    hdaudio_interrupt, &irq_code, &irq_cap);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
-		    rc);
+		ddf_msg(LVL_ERROR, "Failed registering interrupt handler: %s",
+		    str_error_name(rc));
 		goto error;
 	}
 
@@ -313,7 +313,7 @@ error:
 	// pio_disable(regs);
 	hw_res_list_parsed_clean(&res);
 
-	ddf_msg(LVL_NOTE, "Failing hda_dev_add() -> %d", rc);
+	ddf_msg(LVL_NOTE, "Failing hda_dev_add() -> %s", str_error_name(rc));
 	return rc;
 }
 

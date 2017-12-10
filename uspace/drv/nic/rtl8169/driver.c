@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <align.h>
 #include <byteorder.h>
 #include <libarch/barrier.h>
@@ -429,7 +430,7 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 	int irq_cap;
 	rc = rtl8169_register_int_handler(nic_data, &irq_cap);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed to register IRQ handler (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed to register IRQ handler (%s)", str_error_name(rc));
 		goto err_irq;
 	}
 
@@ -705,7 +706,7 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	/* Allocate buffers */
 	rc = rtl8169_allocate_buffers(rtl8169);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Error allocating buffers: %d", rc);
+		ddf_msg(LVL_ERROR, "Error allocating buffers: %s", str_error_name(rc));
 		return 0;
 	}
 

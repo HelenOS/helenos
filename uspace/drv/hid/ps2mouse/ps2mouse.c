@@ -35,6 +35,7 @@
 
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ddf/log.h>
 #include <io/keycode.h>
 #include <io/chardev.h>
@@ -77,7 +78,7 @@ do { \
 	size_t nread; \
 	const int rc = chardev_read((mouse)->chardev, &data, 1, &nread); \
 	if (rc != EOK) { \
-		ddf_msg(LVL_ERROR, "Failed reading byte: %d", rc);\
+		ddf_msg(LVL_ERROR, "Failed reading byte: %s", str_error_name(rc));\
 		return rc; \
 	} \
 	if (data != value) { \
@@ -94,7 +95,7 @@ do { \
 	size_t nwr; \
 	const int rc = chardev_write((mouse)->chardev, &data, 1, &nwr); \
 	if (rc != EOK) { \
-		ddf_msg(LVL_ERROR, "Failed writing byte: %d", rc); \
+		ddf_msg(LVL_ERROR, "Failed writing byte: %s", str_error_name(rc)); \
 		return rc; \
 	} \
 } while (0)

@@ -600,14 +600,16 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	/* Version handshake */
 	int rc = tcp_conn_send(conn, "RFB 003.008\n", 12);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server version %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server version: %s",
+		    str_error(rc));
 		return;
 	}
 	
 	char client_version[12];
 	rc = recv_chars(conn, client_version, 12);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client version: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client version: %s",
+		    str_error(rc));
 		return;
 	}
 	
@@ -625,14 +627,15 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	rc = tcp_conn_send(conn, sec_types, 2);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN,
-		    "Failed sending security handshake: %d", rc);
+		    "Failed sending security handshake: %s", str_error(rc));
 		return;
 	}
 	
 	char selected_sec_type = 0;
 	rc = recv_char(conn, &selected_sec_type);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving security type: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving security type: %s",
+		    str_error(rc));
 		return;
 	}
 	if (selected_sec_type != RFB_SECURITY_NONE) {
@@ -643,7 +646,8 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	uint32_t security_result = RFB_SECURITY_HANDSHAKE_OK;
 	rc = tcp_conn_send(conn, &security_result, sizeof(uint32_t));
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending security result: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending security result: %s",
+		    str_error(rc));
 		return;
 	}
 	
@@ -651,7 +655,8 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	char shared_flag;
 	rc = recv_char(conn, &shared_flag);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client init: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client init: %s",
+		    str_error(rc));
 		return;
 	}
 	
@@ -674,7 +679,8 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	fibril_mutex_unlock(&rfb->lock);
 	rc = tcp_conn_send(conn, server_init, msg_length);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server init: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server init: %s",
+		    str_error(rc));
 		return;
 	}
 	

@@ -38,6 +38,7 @@
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
+#include <str_error.h>
 #include <macros.h>
 #include <stdlib.h>
 
@@ -121,7 +122,7 @@ int hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 	    hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
 	    0, &buffer_phys, &buffer);
 	if (rc != EOK) {
-		ddf_msg(LVL_NOTE, "dmamem_map_anon -> %d", rc);
+		ddf_msg(LVL_NOTE, "dmamem_map_anon -> %s", str_error_name(rc));
 		goto error;
 	}
 

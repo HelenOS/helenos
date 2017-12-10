@@ -31,6 +31,7 @@
  * As more stuff is completed and exposed in libc, this will improve */
 
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -183,7 +184,7 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		rc = vfs_stat_path(buff, &tosort[nbdirs++].s);
 		if (rc != EOK) {
 			printf("ls: skipping bogus node %s\n", buff);
-			printf("error=%d\n", rc);
+			printf("error=%s\n", str_error_name(rc));
 			goto out;
 		}
 	}

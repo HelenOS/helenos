@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <vfs/vfs.h>
 #include <errno.h>
+#include <str_error.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -67,7 +68,7 @@ int cmd_unmount(char **argv)
 
 	rc = vfs_unmount_path(argv[1]);
 	if (rc != EOK) {
-		printf("Unable to unmount %s (rc=%d)\n", argv[1], rc);
+		printf("Unable to unmount %s: %s\n", argv[1], str_error(rc));
 		return CMD_FAILURE;
 	}
 

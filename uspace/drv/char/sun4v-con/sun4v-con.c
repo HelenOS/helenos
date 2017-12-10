@@ -35,6 +35,7 @@
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
+#include <str_error.h>
 #include <io/chardev_srv.h>
 #include <stdbool.h>
 
@@ -91,7 +92,7 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 	rc = physmem_map(res->in_base, 1, AS_AREA_READ | AS_AREA_WRITE,
 	    (void *) &con->input_buffer);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Error mapping memory: %d", rc);
+		ddf_msg(LVL_ERROR, "Error mapping memory: %s", str_error_name(rc));
 		goto error;
 	}
 
@@ -100,7 +101,7 @@ int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 	rc = physmem_map(res->out_base, 1, AS_AREA_READ | AS_AREA_WRITE,
 	    (void *) &con->output_buffer);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Error mapping memory: %d", rc);
+		ddf_msg(LVL_ERROR, "Error mapping memory: %s", str_error_name(rc));
 		return rc;
 	}
 

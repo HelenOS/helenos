@@ -826,8 +826,8 @@ static int input_start_dev_discovery(void)
 {
 	int rc = loc_register_cat_change_cb(cat_change_cb);
 	if (rc != EOK) {
-		printf("%s: Failed registering callback for device discovery. "
-		    "(%d)\n", NAME, rc);
+		printf("%s: Failed registering callback for device discovery: "
+		    "%s\n", NAME, str_error(rc));
 		return rc;
 	}
 	

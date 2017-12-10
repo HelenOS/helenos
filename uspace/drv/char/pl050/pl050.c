@@ -216,8 +216,8 @@ static int pl050_init(pl050_t *pl050)
 	rc = register_interrupt_handler(pl050->dev,
 	    res.irqs.irqs[0], pl050_interrupt, &pl050_irq_code, &irq_cap);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
-		    rc);
+		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%s)",
+		    str_error_name(rc));
 		goto error;
 	}
 

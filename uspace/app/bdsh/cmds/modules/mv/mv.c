@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <str_error.h>
 #include <vfs/vfs.h>
 #include "config.h"
 #include "util.h"
@@ -61,8 +62,8 @@ int cmd_mv(char **argv)
 
 	rc = vfs_rename_path(argv[1], argv[2]);
 	if (rc != EOK) {
-		printf("Unable to rename %s to %s (error=%d)\n",
-		    argv[1], argv[2], rc);
+		printf("Unable to rename %s to %s: %s)\n",
+		    argv[1], argv[2], str_error(rc));
 		return CMD_FAILURE;
 	}
 

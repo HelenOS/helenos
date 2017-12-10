@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <ddf/interrupt.h>
 #include <errno.h>
+#include <str_error.h>
 #include <nic.h>
 #include <macros.h>
 #include "ath_usb.h"
@@ -783,7 +784,7 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 			free(fw_data);
 			free(buffer);
 			usb_log_error("Error while uploading firmware. "
-			    "Error: %d\n", rc);
+			    "Error: %s\n", str_error_name(rc));
 			return rc;
 		}
 		
@@ -835,7 +836,7 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	int rc = usb_device_create_ddf(dev, endpoints, &err_msg);
 	if (rc != EOK) {
 		usb_log_error("Failed to create USB device: %s, "
-		    "ERR_NUM = %d\n", err_msg, rc);
+		    "ERR_NUM = %s\n", err_msg, str_error_name(rc));
 		return NULL;
 	}
 	
@@ -852,8 +853,8 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	rc = ar9271_init(ar9271, usb_device_get(dev));
 	if (rc != EOK) {
 		free(ar9271);
-		usb_log_error("Failed to initialize AR9271 structure: %d\n",
-		    rc);
+		usb_log_error("Failed to initialize AR9271 structure: %s\n",
+		    str_error_name(rc));
 		return NULL;
 	}
 	

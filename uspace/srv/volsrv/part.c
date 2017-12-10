@@ -328,8 +328,8 @@ int vol_part_empty_part(vol_part_t *part)
 
 	rc = volsrv_part_empty(part->svc_id);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_part() - failed %d",
-		    rc);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_part() - failed %s",
+		    str_error(rc));
 		return rc;
 	}
 
@@ -348,8 +348,8 @@ int vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 
 	rc = volsrv_part_mkfs(part->svc_id, fstype, label);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part() - failed %d",
-		    rc);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part() - failed %s",
+		    str_error(rc));
 		fibril_mutex_unlock(&vol_parts_lock);
 		return rc;
 	}

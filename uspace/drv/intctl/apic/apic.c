@@ -220,7 +220,7 @@ int apic_add(apic_t *apic, apic_res_t *res)
 	
 	rc = pio_enable((void *) res->base, IO_APIC_SIZE, &regs);
 	if (rc != EOK) {
-		printf("%s: Failed to enable PIO for APIC: %d\n", NAME, rc);
+		printf("%s: Failed to enable PIO for APIC: %s\n", NAME, str_error(rc));
 		return EIO;
 	}
 

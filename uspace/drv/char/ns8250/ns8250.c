@@ -39,6 +39,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdbool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
@@ -886,7 +887,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	rc = ns8250_interrupt_enable(ns);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to enable the interrupt. Error code = "
-		    "%d.", rc);
+		    "%s.", str_error_name(rc));
 		goto fail;
 	}
 	

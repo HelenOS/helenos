@@ -34,6 +34,7 @@
 
 #include <usb/debug.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdlib.h>
 #include <mem.h>
 #include <byteorder.h>
@@ -244,7 +245,7 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	    htc_device->endpoints.wmi_endpoint);
 	if (rc != EOK) {
 		free(buffer);
-		usb_log_error("Failed to send WMI message. Error: %d\n", rc);
+		usb_log_error("Failed to send WMI message. Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -267,7 +268,7 @@ int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 		if (rc != EOK) {
 			free(buffer);
 			usb_log_error("Failed to receive WMI message response. "
-			    "Error: %d\n", rc);
+			    "Error: %s\n", str_error_name(rc));
 			return rc;
 		}
 		
