@@ -71,9 +71,10 @@ int udebug_request_preprocess(call_t *call, phone_t *phone)
 static void udebug_receive_begin(call_t *call)
 {
 	int rc;
+	bool active;
 
-	rc = udebug_begin(call);
-	if (rc < 0) {
+	rc = udebug_begin(call, &active);
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
@@ -83,8 +84,8 @@ static void udebug_receive_begin(call_t *call)
 	 * If the initialization of the debugging session has finished,
 	 * send a reply.
 	 */
-	if (rc != 0) {
-		IPC_SET_RETVAL(call->data, 0);
+	if (active) {
+		IPC_SET_RETVAL(call->data, EOK);
 		ipc_answer(&TASK->kb.box, call);
 	}
 }
