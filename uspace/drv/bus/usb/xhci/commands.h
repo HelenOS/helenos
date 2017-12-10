@@ -43,8 +43,8 @@
 #include "hw_struct/trb.h"
 #include "trb_ring.h"
 
-#define XHCI_COMMAND_TIMEOUT       10000
-#define XHCI_CR_ABORT_TIMEOUT       5000
+#define XHCI_COMMAND_TIMEOUT       10000000
+#define XHCI_CR_ABORT_TIMEOUT       5000000
 
 typedef struct xhci_hc xhci_hc_t;
 typedef struct xhci_input_ctx xhci_input_ctx_t;
