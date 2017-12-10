@@ -90,7 +90,7 @@ static inline uintptr_t xhci_trb_ring_get_dequeue_ptr(xhci_trb_ring_t *ring)
  * When an event is received by the upper layer, it needs to update the dequeue
  * pointer inside the ring. Otherwise, the ring will soon show up as full.
  */
-void xhci_trb_ring_update_dequeue(xhci_trb_ring_t *, uintptr_t);
+static inline void xhci_trb_ring_update_dequeue(xhci_trb_ring_t *ring, uintptr_t phys) {}
 uintptr_t xhci_trb_ring_get_dequeue_ptr(xhci_trb_ring_t *);
 
 /**

@@ -43,7 +43,6 @@
 #include "hw_struct/trb.h"
 #include "hw_struct/context.h"
 #include "endpoint.h"
-#include "commands.h"
 #include "transfers.h"
 #include "trb_ring.h"
 
@@ -203,11 +202,8 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 		return ENOMEM;
 	hc->dcbaa = hc->dcbaa_dma.virt;
 
-	if ((err = xhci_trb_ring_init(&hc->command_ring)))
-		goto err_dcbaa;
-
 	if ((err = xhci_event_ring_init(&hc->event_ring)))
-		goto err_cmd_ring;
+		goto err_dcbaa;
 
 	if ((err = xhci_scratchpad_alloc(hc)))
 		goto err_event_ring;
@@ -232,8 +228,6 @@ err_scratch:
 	xhci_scratchpad_free(hc);
 err_event_ring:
 	xhci_event_ring_fini(&hc->event_ring);
-err_cmd_ring:
-	xhci_trb_ring_fini(&hc->command_ring);
 err_dcbaa:
 	hc->dcbaa = NULL;
 	dma_buffer_free(&hc->dcbaa_dma);
@@ -398,6 +392,7 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	if ((err = hc_reset(hc)))
 		return err;
 
+	// FIXME: Waiting forever.
 	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_CNR))
 		async_usleep(1000);
 
@@ -406,7 +401,7 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_HI, UPPER32(dcbaaptr));
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, 0);
 
-	uint64_t crptr = xhci_trb_ring_get_dequeue_ptr(&hc->command_ring);
+	uint64_t crptr = xhci_trb_ring_get_dequeue_ptr(&hc->cr.trb_ring);
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_LO, LOWER32(crptr) >> 6);
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, UPPER32(crptr));
 
@@ -577,7 +572,6 @@ static void hc_dcbaa_fini(xhci_hc_t *hc)
 void hc_fini(xhci_hc_t *hc)
 {
 	xhci_bus_fini(&hc->bus);
-	xhci_trb_ring_fini(&hc->command_ring);
 	xhci_event_ring_fini(&hc->event_ring);
 	hc_dcbaa_fini(hc);
 	xhci_fini_commands(hc);

@@ -44,7 +44,10 @@
 #include "trb_ring.h"
 
 #include "rh.h"
+#include "commands.h"
 #include "bus.h"
+
+typedef struct xhci_command xhci_cmd_t;
 
 typedef struct xhci_hc {
 	/* MMIO range */
@@ -60,12 +63,14 @@ typedef struct xhci_hc {
 	xhci_legsup_t *legsup;		/**< Legacy support capability */
 
 	/* Structures in allocated memory */
-	xhci_trb_ring_t command_ring;
 	xhci_event_ring_t event_ring;
 	uint64_t *dcbaa;
 	dma_buffer_t dcbaa_dma;
 	dma_buffer_t scratchpad_array;
 	dma_buffer_t *scratchpad_buffers;
+
+	/* Command ring management */
+	xhci_cmd_ring_t cr;
 
 	/* Root hub emulation */
 	xhci_rh_t rh;
@@ -80,10 +85,6 @@ typedef struct xhci_hc {
 	/** Port speed mapping */
 	xhci_port_speed_t speeds [16];
 	uint8_t speed_to_psiv [USB_SPEED_MAX];
-
-	/* Command list */
-	list_t commands;
-	fibril_mutex_t commands_mtx;
 
 	/* TODO: Hack. Figure out a better way. */
 	hcd_t *hcd;

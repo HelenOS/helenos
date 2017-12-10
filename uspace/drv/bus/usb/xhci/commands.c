@@ -63,20 +63,34 @@
 
 /* Control functions */
 
-int xhci_init_commands(xhci_hc_t *hc)
+static xhci_cmd_ring_t *get_cmd_ring(xhci_hc_t *hc)
 {
 	assert(hc);
+	return &hc->cr;
+}
 
-	list_initialize(&hc->commands);
+int xhci_init_commands(xhci_hc_t *hc)
+{
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
+	int err;
 
-	fibril_mutex_initialize(&hc->commands_mtx);
+	if ((err = xhci_trb_ring_init(&cr->trb_ring)))
+		return err;
+
+	fibril_mutex_initialize(&cr->guard);
+	fibril_condvar_initialize(&cr->state_cv);
+	fibril_condvar_initialize(&cr->stopped_cv);
+
+	list_initialize(&cr->cmd_list);
+
+	cr->state = XHCI_CR_STATE_OPEN;
 
 	return EOK;
 }
 
 void xhci_fini_commands(xhci_hc_t *hc)
 {
-	// Note: Untested.
+	xhci_stop_command_ring(hc);
 	assert(hc);
 }
 
@@ -90,7 +104,6 @@ void xhci_cmd_init(xhci_cmd_t *cmd, xhci_cmd_type_t type)
 	fibril_condvar_initialize(&cmd->_header.completed_cv);
 
 	cmd->_header.cmd = type;
-	cmd->_header.timeout = XHCI_DEFAULT_TIMEOUT;
 }
 
 void xhci_cmd_fini(xhci_cmd_t *cmd)
@@ -105,11 +118,13 @@ void xhci_cmd_fini(xhci_cmd_t *cmd)
 	}
 }
 
-static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
+/** Call with guard locked. */
+static inline xhci_cmd_t *find_command(xhci_hc_t *hc, uint64_t phys)
 {
-	fibril_mutex_lock(&hc->commands_mtx);
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
+	assert(fibril_mutex_is_locked(&cr->guard));
 
-	link_t *cmd_link = list_first(&hc->commands);
+	link_t *cmd_link = list_first(&cr->cmd_list);
 
 	while (cmd_link != NULL) {
 		xhci_cmd_t *cmd = list_get_instance(cmd_link, xhci_cmd_t, _header.link);
@@ -117,66 +132,64 @@ static inline xhci_cmd_t *get_command(xhci_hc_t *hc, uint64_t phys)
 		if (cmd->_header.trb_phys == phys)
 			break;
 
-		cmd_link = list_next(cmd_link, &hc->commands);
+		cmd_link = list_next(cmd_link, &cr->cmd_list);
 	}
 
-	if (cmd_link != NULL) {
-		list_remove(cmd_link);
-		fibril_mutex_unlock(&hc->commands_mtx);
-
-		return list_get_instance(cmd_link, xhci_cmd_t, _header.link);
-	}
-
-	fibril_mutex_unlock(&hc->commands_mtx);
-	return NULL;
+	return cmd_link ? list_get_instance(cmd_link, xhci_cmd_t, _header.link)
+		: NULL;
 }
 
 static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd, unsigned doorbell, unsigned target)
 {
-	assert(hc);
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
 	assert(cmd);
 
-	fibril_mutex_lock(&hc->commands_mtx);
-	list_append(&cmd->_header.link, &hc->commands);
-	fibril_mutex_unlock(&hc->commands_mtx);
+	fibril_mutex_lock(&cr->guard);
 
-	xhci_trb_ring_enqueue(&hc->command_ring, &cmd->_header.trb, &cmd->_header.trb_phys);
-	hc_ring_doorbell(hc, doorbell, target);
+	while (cr->state == XHCI_CR_STATE_CHANGING)
+		fibril_condvar_wait(&cr->state_cv, &cr->guard);
 
-	usb_log_debug2("HC(%p): Sent command:", hc);
+	if (cr->state != XHCI_CR_STATE_OPEN) {
+		fibril_mutex_unlock(&cr->guard);
+		return ENAK;
+	}
+
+	usb_log_debug2("HC(%p): Sending command:", hc);
 	xhci_dump_trb(&cmd->_header.trb);
+
+	list_append(&cmd->_header.link, &cr->cmd_list);
+
+	xhci_trb_ring_enqueue(&cr->trb_ring, &cmd->_header.trb, &cmd->_header.trb_phys);
+	hc_ring_doorbell(hc, 0, 0);
+
+	fibril_mutex_unlock(&cr->guard);
 
 	return EOK;
 }
 
 void xhci_stop_command_ring(xhci_hc_t *hc)
 {
-	assert(hc);
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
+
+	fibril_mutex_lock(&cr->guard);
+
+	// Prevent others from starting CR again.
+	cr->state = XHCI_CR_STATE_CLOSED;
+	fibril_condvar_broadcast(&cr->state_cv);
 
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_CS, 1);
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0); // Some systems (incl. QEMU) require 64-bit write
 
-	/**
-	 * Note: There is a bug in qemu that checks CS only when CRCR_HI
-	 *       is written, this (and the read/write in abort) ensures
-	 *       the command rings stops.
-	 */
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, XHCI_REG_RD(hc->op_regs, XHCI_OP_CRCR_HI));
+	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_CRR))
+		fibril_condvar_wait(&cr->stopped_cv, &cr->guard);
+
+	fibril_mutex_unlock(&cr->guard);
 }
 
-void xhci_abort_command_ring(xhci_hc_t *hc)
+static void abort_command_ring(xhci_hc_t *hc)
 {
-	assert(hc);
-
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CA, 1);
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, XHCI_REG_RD(hc->op_regs, XHCI_OP_CRCR_HI));
-}
-
-void xhci_start_command_ring(xhci_hc_t *hc)
-{
-	assert(hc);
-
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRR, 1);
-	hc_ring_doorbell(hc, 0, 0);
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0); // Some systems (incl. QEMU) require 64-bit write
 }
 
 static const char *trb_codes [] = {
@@ -232,28 +245,42 @@ static void report_error(int code)
 
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
-	// TODO: Update dequeue ptrs.
-	assert(hc);
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
 	assert(trb);
 
 	usb_log_debug2("HC(%p) Command completed.", hc);
 
-	int code;
-	uint64_t phys;
-	xhci_cmd_t *command;
+	fibril_mutex_lock(&cr->guard);
 
-	code = TRB_GET_CODE(*trb);
-	phys = TRB_GET_PHYS(*trb);;
-	command = get_command(hc, phys);
+	int code = TRB_GET_CODE(*trb);
+	const uint64_t phys = TRB_GET_PHYS(*trb);
+
+	xhci_trb_ring_update_dequeue(&cr->trb_ring, phys);
+
+	if (code == XHCI_TRBC_COMMAND_RING_STOPPED) {
+		/* This can either mean that the ring is being stopped, or
+		 * a command was aborted. In either way, wake threads waiting
+		 * on stopped_cv.
+		 *
+		 * Note that we need to hold mutex, because we must be sure the
+		 * requesting thread is waiting inside the CV.
+		 */
+		fibril_condvar_broadcast(&cr->stopped_cv);
+		fibril_mutex_unlock(&cr->guard);
+		return EOK;
+	}
+
+	xhci_cmd_t *command = find_command(hc, phys);
 	if (command == NULL) {
-		// TODO: STOP & ABORT may not have command structs in the list!
-		usb_log_warning("No command struct for this completion event found.");
+		usb_log_error("No command struct for this completion event found.");
 
 		if (code != XHCI_TRBC_SUCCESS)
 			report_error(code);
 
 		return EOK;
 	}
+
+	list_remove(&command->_header.link);
 
 	/* Semantics of NO_OP_CMD is that success is marked as a TRB error. */
 	if (command->_header.cmd == XHCI_CMD_NO_OP && code == XHCI_TRBC_TRB_ERROR)
@@ -271,17 +298,11 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 
 	switch (TRB_TYPE(command->_header.trb)) {
 	case XHCI_TRB_TYPE_NO_OP_CMD:
-		break;
 	case XHCI_TRB_TYPE_ENABLE_SLOT_CMD:
-		break;
 	case XHCI_TRB_TYPE_DISABLE_SLOT_CMD:
-		break;
 	case XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD:
-		break;
 	case XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD:
-		break;
 	case XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD:
-		break;
 	case XHCI_TRB_TYPE_RESET_ENDPOINT_CMD:
 		break;
 	case XHCI_TRB_TYPE_STOP_ENDPOINT_CMD:
@@ -293,10 +314,10 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		break;
 	default:
 		usb_log_debug2("Unsupported command trb: %s", xhci_trb_str_type(TRB_TYPE(command->_header.trb)));
-
-		command->_header.completed = true;
 		return ENAK;
 	}
+
+	fibril_mutex_unlock(&cr->guard);
 
 	fibril_mutex_lock(&command->_header.completed_mtx);
 	command->_header.completed = true;
@@ -532,18 +553,75 @@ static cmd_handler cmd_handlers [] = {
 	[XHCI_CMD_NO_OP] = no_op_cmd
 };
 
-static int wait_for_cmd_completion(xhci_cmd_t *cmd)
+static int try_abort_current_command(xhci_hc_t *hc)
+{
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
+
+	fibril_mutex_lock(&cr->guard);
+
+	if (cr->state != XHCI_CR_STATE_OPEN) {
+		// The CR is either stopped, or different fibril is already
+		// restarting it.
+		fibril_mutex_unlock(&cr->guard);
+		return EOK;
+	}
+
+	usb_log_error("HC(%p): Timeout while waiting for command: aborting current command.", hc);
+
+	cr->state = XHCI_CR_STATE_CHANGING;
+	fibril_condvar_broadcast(&cr->state_cv);
+
+	abort_command_ring(hc);
+
+	fibril_condvar_wait_timeout(&cr->stopped_cv, &cr->guard, XHCI_CR_ABORT_TIMEOUT);
+
+	if (XHCI_REG_RD(hc->op_regs, XHCI_OP_CRR)) {
+		/* 4.6.1.2, implementation note
+		 * Assume there are larger problems with HC and
+		 * reset it.
+		 */
+		usb_log_error("HC(%p): Command didn't abort.", hc);
+
+		cr->state = XHCI_CR_STATE_CLOSED;
+		fibril_condvar_broadcast(&cr->state_cv);
+
+		// TODO: Reset HC completely.
+		// Don't forget to somehow complete all commands with error.
+
+		fibril_mutex_unlock(&cr->guard);
+		return ENAK;
+	}
+
+	usb_log_error("HC(%p): Command ring stopped. Starting again.", hc);
+	hc_ring_doorbell(hc, 0, 0);
+
+	cr->state = XHCI_CR_STATE_OPEN;
+	fibril_condvar_broadcast(&cr->state_cv);
+
+	fibril_mutex_unlock(&cr->guard);
+	return EOK;
+}
+
+static int wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	int rv = EOK;
 
 	fibril_mutex_lock(&cmd->_header.completed_mtx);
 	while (!cmd->_header.completed) {
-		usb_log_debug2("Waiting for event completion: going to sleep.");
-		rv = fibril_condvar_wait_timeout(&cmd->_header.completed_cv, &cmd->_header.completed_mtx, cmd->_header.timeout);
 
-		usb_log_debug2("Waiting for event completion: woken: %s", str_error(rv));
-		if (rv == ETIMEOUT) {
-			break;
+		rv = fibril_condvar_wait_timeout(&cmd->_header.completed_cv, &cmd->_header.completed_mtx, XHCI_COMMAND_TIMEOUT);
+
+		/* The waiting timed out. Current command (not necessarily
+		 * ours) is probably blocked.
+		 */
+		if (!cmd->_header.completed && rv == ETIMEOUT) {
+			fibril_mutex_unlock(&cmd->_header.completed_mtx);
+
+			rv = try_abort_current_command(hc);
+			if (rv)
+				return rv;
+
+			fibril_mutex_lock(&cmd->_header.completed_mtx);
 		}
 	}
 	fibril_mutex_unlock(&cmd->_header.completed_mtx);
@@ -571,8 +649,8 @@ int xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
 		return err;
 	}
 
-	if ((err = wait_for_cmd_completion(cmd))) {
-		/* Timeout expired or command failed. */
+	if ((err = wait_for_cmd_completion(hc, cmd))) {
+		/* Command failed. */
 		return err;
 	}
 

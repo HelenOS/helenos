@@ -41,9 +41,10 @@
 #include <fibril_synch.h>
 #include <usb/host/dma_buffer.h>
 #include "hw_struct/trb.h"
+#include "trb_ring.h"
 
-#define XHCI_DEFAULT_TIMEOUT       1000000
-#define XHCI_BLOCK_INDEFINITELY    0
+#define XHCI_COMMAND_TIMEOUT       10000
+#define XHCI_CR_ABORT_TIMEOUT       5000
 
 typedef struct xhci_hc xhci_hc_t;
 typedef struct xhci_input_ctx xhci_input_ctx_t;
@@ -67,13 +68,31 @@ typedef enum xhci_cmd_type {
 	XHCI_CMD_NO_OP,
 } xhci_cmd_type_t;
 
+typedef enum {
+	XHCI_CR_STATE_CLOSED,		/**< Commands are rejected with ENAK. */
+	XHCI_CR_STATE_OPEN,		/**< Commands are enqueued normally. */
+	XHCI_CR_STATE_CHANGING,		/**< Commands wait until state changes. */
+} xhci_cr_state;
+
+typedef struct xhci_command_ring {
+	xhci_trb_ring_t trb_ring;
+
+	fibril_mutex_t guard;		/**< Guard access to this structure. */
+	list_t cmd_list;
+
+	xhci_cr_state state;		/**< Whether commands are allowed to be
+					     added. */
+	fibril_condvar_t state_cv;	/**< For waiting on CR state change. */
+
+	fibril_condvar_t stopped_cv;	/**< For waiting on CR stopped event. */
+} xhci_cmd_ring_t;
+
 typedef struct xhci_command {
 	/** Internal fields used for bookkeeping. Need not worry about these. */
 	struct {
 		link_t link;
 
 		xhci_cmd_type_t cmd;
-		suseconds_t timeout;
 
 		xhci_trb_t trb;
 		uintptr_t trb_phys;
@@ -128,10 +147,6 @@ static inline int xhci_cmd_sync_inline_wrapper(xhci_hc_t *hc, xhci_cmd_t cmd)
 	link_initialize(&cmd._header.link);
 	fibril_mutex_initialize(&cmd._header.completed_mtx);
 	fibril_condvar_initialize(&cmd._header.completed_cv);
-
-	if (!cmd._header.timeout) {
-		cmd._header.timeout = XHCI_DEFAULT_TIMEOUT;
-	}
 
 	/* Issue the command */
 	const int err = xhci_cmd_sync(hc, &cmd);
