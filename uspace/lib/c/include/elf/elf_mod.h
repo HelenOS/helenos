@@ -52,6 +52,7 @@
 #define EE_UNSUPPORTED		4	/* Non-supported ELF (e.g. dynamic ELFs) */
 #define EE_LOADER		5	/* The image is actually a program loader. */
 #define EE_IRRECOVERABLE	6
+#define EE_IO			7	/* Could not read file. */
 
 typedef enum {
 	/** Leave all segments in RW access mode. */

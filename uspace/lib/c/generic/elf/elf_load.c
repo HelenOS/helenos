@@ -52,7 +52,7 @@
  *
  * @param file File handle 
  * @param info Place to store ELF program information
- * @return EOK on success or an error code
+ * @return EE_OK on success or an EE_x error code
  */
 int elf_load(int file, elf_info_t *info)
 {
