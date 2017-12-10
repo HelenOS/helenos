@@ -179,21 +179,22 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 		xhci_dev->rh_port = xhci_hub->rh_port;
 	}
 
-	fibril_mutex_lock(&bus->base.guard);
 	/* Assign an address to the device */
 	if ((err = address_device(hc, xhci_dev))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
 		return err;
 	}
 
+	/* Setup EP0 might already need to issue a transfer. */
+	fibril_mutex_lock(&bus->base.guard);
+	assert(bus->devices_by_slot[xhci_dev->slot_id] == NULL);
+	bus->devices_by_slot[xhci_dev->slot_id] = xhci_dev;
+	fibril_mutex_unlock(&bus->base.guard);
+
 	if ((err = setup_ep0_packet_size(hc, xhci_dev))) {
 		usb_log_error("Failed to setup control endpoint of the new device: %s", str_error(err));
 		goto err_address;
 	}
-
-	assert(bus->devices_by_slot[xhci_dev->slot_id] == NULL);
-	bus->devices_by_slot[xhci_dev->slot_id] = xhci_dev;
-	fibril_mutex_unlock(&bus->base.guard);
 
 	/* Read the device descriptor, derive the match ids */
 	if ((err = hcd_ddf_device_explore(hc->hcd, dev))) {

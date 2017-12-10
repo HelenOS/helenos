@@ -130,12 +130,12 @@ int bus_add_endpoint(bus_t *bus, device_t *device, const usb_endpoint_desc_t *de
 	assert(bus);
 	assert(device);
 
-	fibril_mutex_lock(&bus->guard);
-
 	if (desc->max_packet_size == 0 || desc->packets == 0) {
 		usb_log_warning("Invalid endpoint description (mps %zu, %u packets)", desc->max_packet_size, desc->packets);
 		return EINVAL;
 	}
+
+	fibril_mutex_lock(&bus->guard);
 
 	int err = ENOMEM;
 	endpoint_t *ep = bus->ops.create_endpoint(bus);
