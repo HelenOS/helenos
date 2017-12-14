@@ -51,7 +51,6 @@ typedef struct usb_transfer_batch usb_transfer_batch_t;
 typedef int (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
 typedef void (*interrupt_hook_t)(hcd_t *, uint32_t);
 typedef int (*status_hook_t)(hcd_t *, uint32_t *);
-typedef int (*address_device_hook_t)(hcd_t *, usb_speed_t, usb_tt_address_t, usb_address_t *);
 
 typedef struct {
 	/** Transfer scheduling, implement in device driver. */
@@ -60,8 +59,6 @@ typedef struct {
 	interrupt_hook_t irq_hook;
 	/** Periodic polling hook */
 	status_hook_t status_hook;
-	/** Hook to setup device address */
-	address_device_hook_t address_device;
 } hcd_ops_t;
 
 /** Generic host controller driver structure. */
