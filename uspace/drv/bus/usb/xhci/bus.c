@@ -82,6 +82,9 @@ static int prepare_endpoint(xhci_endpoint_t *ep, const usb_endpoint_desc_t *desc
 		ep->isoch_enqueue = 0;
 		ep->isoch_dequeue = XHCI_ISOCH_BUFFER_COUNT - 1;
 		ep->isoch_started = false;
+
+		fibril_mutex_initialize(&ep->isoch_guard);
+		fibril_condvar_initialize(&ep->isoch_avail);
 	}
 
 	return xhci_endpoint_alloc_transfer_ds(ep);

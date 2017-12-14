@@ -101,6 +101,13 @@ typedef struct xhci_endpoint {
 
 	/** Are isochronous transfers started? */
 	bool isoch_started;
+
+	/** Protects common buffers. */
+	fibril_mutex_t isoch_guard;
+
+	/** Signals filled buffer. */
+	fibril_condvar_t isoch_avail;
+
 } xhci_endpoint_t;
 
 #define XHCI_EP_FMT  "(%d:%d %s)"

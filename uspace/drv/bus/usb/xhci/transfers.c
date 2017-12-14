@@ -279,10 +279,11 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 	xhci_trb_t trb;
 	xhci_trb_clean(&trb);
 
-	// FIXME add some locks
+	fibril_mutex_lock(&xhci_ep->isoch_guard);
 	xhci_isoch_transfer_t *isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
 	while (!isoch_transfer) {
-		// FIXME: add condvar sleep;
+		fibril_condvar_wait(&xhci_ep->isoch_avail, &xhci_ep->isoch_guard);
+		isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
 	}
 
 	isoch_transfer->size = transfer->batch.buffer_size;
@@ -296,6 +297,7 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 	int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
 		&isoch_transfer->interrupt_trb_phys);
 	if (err) {
+		fibril_mutex_unlock(&xhci_ep->isoch_guard);
 		return err;
 	}
 
@@ -305,10 +307,11 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 		const uint8_t slot_id = xhci_dev->slot_id;
 		const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 		err = hc_ring_doorbell(hc, slot_id, target);
-		if (err) {
-			return err;
-		}
 		xhci_ep->isoch_started = true;
+	}
+	fibril_mutex_unlock(&xhci_ep->isoch_guard);
+	if (err) {
+		return err;
 	}
 
 	/* Isochronous transfers don't handle errors, they skip them all. */
@@ -321,21 +324,23 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_endpoint_t *xhci_ep,
 	xhci_device_t *xhci_dev)
 {
+	fibril_mutex_lock(&xhci_ep->isoch_guard);
 	/* If not yet started, start the isochronous endpoint transfers - before first read */
 	if (!xhci_ep->isoch_started) {
 		const uint8_t slot_id = xhci_dev->slot_id;
 		const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 		int err = hc_ring_doorbell(hc, slot_id, target);
 		if (err) {
+			fibril_mutex_unlock(&xhci_ep->isoch_guard);
 			return err;
 		}
 		xhci_ep->isoch_started = true;
 	}
 
-	// FIXME add some locks
 	xhci_isoch_transfer_t *isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
 	while(!isoch_transfer) {
-		// FIXME: add condvar sleep;
+		fibril_condvar_wait(&xhci_ep->isoch_avail, &xhci_ep->isoch_guard);
+		isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
 	}
 
 	isoch_transfer->size = transfer->batch.buffer_size;
@@ -363,6 +368,8 @@ static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhc
 	xhci_trb_ring_t *ring = get_ring(hc, transfer);
 	int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
 		&isoch_transfer->interrupt_trb_phys);
+	fibril_mutex_unlock(&xhci_ep->isoch_guard);
+
 	if (err) {
 		return err;
 	}
@@ -390,13 +397,33 @@ static int schedule_isochronous(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_e
 }
 
 static int handle_isochronous_transfer_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_endpoint_t *ep) {
-	fibril_mutex_lock(&ep->base.guard);
+	fibril_mutex_lock(&ep->isoch_guard);
+
+	int err = EOK;
+
+	const xhci_trb_completion_code_t completion_code = TRB_COMPLETION_CODE(*trb);
+	switch (completion_code) {
+		case XHCI_TRBC_RING_OVERRUN:
+		case XHCI_TRBC_RING_UNDERRUN:
+			// TODO: abort the phone; rings are unscheduled by xHC by now
+			ep->isoch_started = false;
+			err = EIO;
+			break;
+		case XHCI_TRBC_SHORT_PACKET:
+			usb_log_debug("Short transfer.");
+			/* fallthrough */
+		case XHCI_TRBC_SUCCESS:
+			break;
+		default:
+			usb_log_warning("Transfer not successfull: %u", completion_code);
+			err = EIO;
+	}
 
 	xhci_isoch_transfer_t *isoch_transfer = isoch_transfer_get_dequeue(ep);
 	if (isoch_transfer->interrupt_trb_phys != trb->parameter) {
 		usb_log_error("Non-matching trb to isochronous transfer, skipping.");
 		// FIXME: what to do? probably just kill the whole endpoint
-		return ENOENT;
+		err = ENOENT;
 	}
 
 	if (ep->base.direction == USB_DIRECTION_IN) {
@@ -404,10 +431,9 @@ static int handle_isochronous_transfer_event(xhci_hc_t *hc, xhci_trb_t *trb, xhc
 		isoch_transfer->size -= TRB_TRANSFER_LENGTH(*trb);
 	}
 
-	// TODO: Send notify to waiting fibrils in case they are waiting here
-
-	fibril_mutex_unlock(&ep->base.guard);
-	return EOK;
+	fibril_condvar_signal(&ep->isoch_avail);
+	fibril_mutex_unlock(&ep->isoch_guard);
+	return err;
 }
 
 int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
