@@ -44,15 +44,32 @@
 #include "commands.h"
 #include "endpoint.h"
 
-int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, xhci_bus_t *xhci_bus)
+int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoint_desc_t *desc)
 {
 	assert(xhci_ep);
-	assert(xhci_bus);
 
-	bus_t *bus = &xhci_bus->base;
 	endpoint_t *ep = &xhci_ep->base;
 
-	endpoint_init(ep, bus);
+	endpoint_init(ep, dev, desc);
+
+	xhci_ep->max_streams = desc->usb3.max_streams;
+	xhci_ep->max_burst = desc->usb3.max_burst;
+	xhci_ep->mult = desc->usb3.mult;
+
+	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		xhci_ep->isoch_max_size = desc->usb3.bytes_per_interval
+			? desc->usb3.bytes_per_interval
+			: desc->max_packet_size * (desc->packets + 1);
+		/* Technically there could be superspeed plus too. */
+
+		/* Allocate and setup isochronous-specific structures. */
+		xhci_ep->isoch_enqueue = 0;
+		xhci_ep->isoch_dequeue = XHCI_ISOCH_BUFFER_COUNT - 1;
+		xhci_ep->isoch_started = false;
+
+		fibril_mutex_initialize(&xhci_ep->isoch_guard);
+		fibril_condvar_initialize(&xhci_ep->isoch_avail);
+	}
 
 	return EOK;
 }

@@ -70,7 +70,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 	rh->devices_by_port = (xhci_device_t **) calloc(rh->max_ports, sizeof(xhci_device_t *));
 	rh->hc_device = device;
 
-	const int err = device_init(&rh->device.base);
+	const int err = bus_device_init(&rh->device.base, &rh->hc->bus.base);
 	if (err)
 		return err;
 
@@ -93,7 +93,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 
 	xhci_bus_t *bus = &rh->hc->bus;
 
-	device_t *dev = hcd_ddf_device_create(rh->hc_device, bus->base.device_size);
+	device_t *dev = hcd_ddf_device_create(rh->hc_device, &bus->base);
 	if (!dev) {
 		usb_log_error("Failed to create USB device function.");
 		return ENOMEM;
@@ -108,13 +108,13 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	dev->port = port_id;
 	dev->speed = port_speed->usb_speed;
 
-	if ((err = xhci_bus_enumerate_device(bus, rh->hc, dev))) {
+	if ((err = xhci_bus_enumerate_device(bus, dev))) {
 		usb_log_error("Failed to enumerate USB device: %s", str_error(err));
 		return err;
 	}
 
 	if (!ddf_fun_get_name(dev->fun)) {
-		device_set_default_name(dev);
+		bus_device_set_default_name(dev);
 	}
 
 	if ((err = ddf_fun_bind(dev->fun))) {
@@ -195,7 +195,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	fibril_mutex_unlock(&rh->device.base.guard);
 
 	/* Remove device from XHCI bus. */
-	if ((err = xhci_bus_remove_device(&rh->hc->bus, rh->hc, &dev->base))) {
+	if ((err = xhci_bus_remove_device(&rh->hc->bus, &dev->base))) {
 		usb_log_warning("Failed to remove device " XHCI_DEV_FMT " from XHCI bus: %s",
 		    XHCI_DEV_ARGS(*dev), str_error(err));
 	}

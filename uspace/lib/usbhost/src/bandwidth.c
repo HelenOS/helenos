@@ -47,7 +47,7 @@
  * @param size Number of bytes to transfer.
  * @param max_packet_size Maximum bytes in one packet.
  */
-size_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
+ssize_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
 {
 	assert(ep);
 	assert(ep->device);
@@ -101,7 +101,7 @@ size_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
  * @param size Number of byte to transfer.
  * @param max_packet_size Maximum bytes in one packet.
  */
-size_t bandwidth_count_usb20(endpoint_t *ep, size_t size)
+ssize_t bandwidth_count_usb20(endpoint_t *ep, size_t size)
 {
 	assert(ep);
 

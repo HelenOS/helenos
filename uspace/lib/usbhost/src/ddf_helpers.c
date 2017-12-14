@@ -100,7 +100,7 @@ static int register_endpoint(
 		usb_str_direction(endpoint_desc->direction),
 		endpoint_desc->max_packet_size, endpoint_desc->usb2.polling_interval);
 
-	return bus_add_endpoint(hcd->bus, dev, endpoint_desc, NULL);
+	return bus_endpoint_add(dev, endpoint_desc, NULL);
 }
 
  /** Unregister endpoint interface function.
@@ -127,11 +127,11 @@ static int unregister_endpoint(
 		dev->address, endpoint_desc->endpoint_no,
 		usb_str_direction(endpoint_desc->direction));
 
-	endpoint_t *ep = bus_find_endpoint(hcd->bus, dev, target, endpoint_desc->direction);
+	endpoint_t *ep = bus_find_endpoint(dev, target, endpoint_desc->direction);
 	if (!ep)
 		return ENOENT;
 
-	return bus_remove_endpoint(hcd->bus, ep);
+	return bus_endpoint_remove(ep);
 }
 
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
@@ -361,7 +361,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub,
 		fibril_mutex_unlock(&hub->guard);
 		const int ret = ddf_fun_unbind(victim->fun);
 		if (ret == EOK) {
-			bus_remove_device(hcd->bus, hcd, victim);
+			bus_device_remove(victim);
 			ddf_fun_destroy(victim->fun);
 		} else {
 			usb_log_warning("Failed to unbind device `%s': %s\n",
@@ -373,7 +373,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub,
 	return ENOENT;
 }
 
-device_t *hcd_ddf_device_create(ddf_dev_t *hc, size_t device_size)
+device_t *hcd_ddf_device_create(ddf_dev_t *hc, bus_t *bus)
 {
 	/* Create DDF function for the new device */
 	ddf_fun_t *fun = ddf_fun_create(hc, fun_inner, NULL);
@@ -383,13 +383,13 @@ device_t *hcd_ddf_device_create(ddf_dev_t *hc, size_t device_size)
 	ddf_fun_set_ops(fun, &usb_ops);
 
 	/* Create USB device node for the new device */
-	device_t *dev = ddf_fun_data_alloc(fun, device_size);
+	device_t *dev = ddf_fun_data_alloc(fun, bus->device_size);
 	if (!dev) {
 		ddf_fun_destroy(fun);
 		return NULL;
 	}
 
-	device_init(dev);
+	bus_device_init(dev, bus);
 	dev->fun = fun;
 	return dev;
 }
@@ -401,7 +401,7 @@ void hcd_ddf_device_destroy(device_t *dev)
 	ddf_fun_destroy(dev->fun);
 }
 
-int hcd_ddf_device_explore(hcd_t *hcd, device_t *device)
+int hcd_ddf_device_explore(device_t *device)
 {
 	int err;
 	match_id_list_t mids;
@@ -420,7 +420,7 @@ int hcd_ddf_device_explore(hcd_t *hcd, device_t *device)
 
 	usb_log_debug("Device(%d): Requesting full device descriptor.",
 	    device->address);
-	ssize_t got = hcd_send_batch_sync(hcd, device, control_ep, USB_DIRECTION_IN,
+	ssize_t got = hcd_send_batch_sync(device->bus->hcd, device, control_ep, USB_DIRECTION_IN,
 	    (char *) &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
 	    "read device descriptor");
 	if (got < 0) {
@@ -457,7 +457,7 @@ int hcd_ddf_device_online(ddf_fun_t *fun)
 
 	usb_log_info("Device(%d): Requested to be brought online.", dev->address);
 
-	return bus_online_device(hcd->bus, hcd, dev);
+	return bus_device_online(dev);
 }
 
 int hcd_ddf_device_offline(ddf_fun_t *fun)
@@ -471,7 +471,7 @@ int hcd_ddf_device_offline(ddf_fun_t *fun)
 
 	usb_log_info("Device(%d): Requested to be taken offline.", dev->address);
 
-	return bus_offline_device(hcd->bus, hcd, dev);
+	return bus_device_offline(dev);
 }
 
 static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned port)
@@ -482,7 +482,7 @@ static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned
 	assert(hub);
 	assert(hc);
 
-	device_t *dev = hcd_ddf_device_create(hc, hcd->bus->device_size);
+	device_t *dev = hcd_ddf_device_create(hc, hcd->bus);
 	if (!dev) {
 		usb_log_error("Failed to create USB device function.");
 		return ENOMEM;
@@ -491,7 +491,7 @@ static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned
 	dev->hub = hub;
 	dev->port = port;
 
-	if ((err = bus_enumerate_device(hcd->bus, hcd, dev))) {
+	if ((err = bus_device_enumerate(dev))) {
 		usb_log_error("Failed to initialize USB dev memory structures.");
 		return err;
 	}
@@ -500,7 +500,7 @@ static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned
 	 * do it in some generic way.
 	 */
 	if (!ddf_fun_get_name(dev->fun)) {
-		device_set_default_name(dev);
+		bus_device_set_default_name(dev);
 	}
 
 	if ((err = ddf_fun_bind(dev->fun))) {
@@ -537,7 +537,7 @@ int hcd_setup_virtual_root_hub(hcd_t *hcd, ddf_dev_t *hc)
 		return err;
 	}
 
-	device_t *dev = hcd_ddf_device_create(hc, hcd->bus->device_size);
+	device_t *dev = hcd_ddf_device_create(hc, hcd->bus);
 	if (!dev) {
 		usb_log_error("Failed to create function for the root hub.");
 		goto err_default_address;
@@ -546,7 +546,7 @@ int hcd_setup_virtual_root_hub(hcd_t *hcd, ddf_dev_t *hc)
 	ddf_fun_set_name(dev->fun, "roothub");
 
 	/* Assign an address to the device */
-	if ((err = bus_enumerate_device(hcd->bus, hcd, dev))) {
+	if ((err = bus_device_enumerate(dev))) {
 		usb_log_error("Failed to enumerate roothub device: %s", str_error(err));
 		goto err_usb_dev;
 	}

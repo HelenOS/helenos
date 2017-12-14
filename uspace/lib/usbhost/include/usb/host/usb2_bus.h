@@ -45,8 +45,6 @@
 typedef struct usb2_bus usb2_bus_t;
 typedef struct endpoint endpoint_t;
 
-typedef size_t (*count_bw_func_t)(endpoint_t *, size_t);
-
 /** Endpoint management structure */
 typedef struct usb2_bus {
 	bus_t base;			/**< Inheritance - keep this first */
@@ -65,7 +63,9 @@ typedef struct usb2_bus {
 	usb_address_t last_address;
 } usb2_bus_t;
 
-extern int usb2_bus_init(usb2_bus_t *, size_t, count_bw_func_t);
+extern const bus_ops_t usb2_bus_ops;
+
+extern int usb2_bus_init(usb2_bus_t *, hcd_t *, size_t);
 
 #endif
 /**

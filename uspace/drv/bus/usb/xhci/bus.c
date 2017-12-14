@@ -57,52 +57,19 @@ static const usb_endpoint_desc_t ep0_initial_desc = {
 	.packets = 1,
 };
 
-static int prepare_endpoint(xhci_endpoint_t *ep, const usb_endpoint_desc_t *desc)
-{
-	/* Extract information from endpoint_desc */
-	ep->base.endpoint = desc->endpoint_no;
-	ep->base.direction = desc->direction;
-	ep->base.transfer_type = desc->transfer_type;
-	ep->base.max_packet_size = desc->max_packet_size;
-	ep->base.packets = desc->packets;
-	ep->max_streams = desc->usb3.max_streams;
-	ep->max_burst = desc->usb3.max_burst;
-	ep->mult = desc->usb3.mult;
+static endpoint_t *endpoint_create(device_t *, const usb_endpoint_desc_t *);
 
-	if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		if (ep->base.device->speed <= USB_SPEED_HIGH) {
-			ep->isoch_max_size = desc->max_packet_size * (desc->packets + 1);
-		}
-		else if (ep->base.device->speed == USB_SPEED_SUPER) {
-			ep->isoch_max_size = desc->usb3.bytes_per_interval;
-		}
-		/* Technically there could be superspeed plus too. */
-
-		/* Allocate and setup isochronous-specific structures. */
-		ep->isoch_enqueue = 0;
-		ep->isoch_dequeue = XHCI_ISOCH_BUFFER_COUNT - 1;
-		ep->isoch_started = false;
-
-		fibril_mutex_initialize(&ep->isoch_guard);
-		fibril_condvar_initialize(&ep->isoch_avail);
-	}
-
-	return xhci_endpoint_alloc_transfer_ds(ep);
-}
-
-static endpoint_t *create_endpoint(bus_t *base);
-
-static int address_device(xhci_hc_t *hc, xhci_device_t *dev)
+static int address_device(xhci_bus_t *bus, xhci_device_t *dev)
 {
 	int err;
 
 	/* Enable new slot. */
-	if ((err = hc_enable_slot(hc, &dev->slot_id)) != EOK)
+	if ((err = hc_enable_slot(bus->hc, &dev->slot_id)) != EOK)
 		return err;
 	usb_log_debug2("Obtained slot ID: %u.\n", dev->slot_id);
 
 	/* Create and configure control endpoint. */
-	endpoint_t *ep0_base = create_endpoint(&hc->bus.base);
+	endpoint_t *ep0_base = endpoint_create(&dev->base, &ep0_initial_desc);
 	if (!ep0_base)
 		goto err_slot;
 
@@ -111,7 +78,7 @@ static int address_device(xhci_hc_t *hc, xhci_device_t *dev)
 
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
 
-	if ((err = prepare_endpoint(ep0, &ep0_initial_desc)))
+	if ((err = xhci_endpoint_alloc_transfer_ds(ep0)))
 		goto err_ep;
 
 	/* Register EP0 */
@@ -119,7 +86,7 @@ static int address_device(xhci_hc_t *hc, xhci_device_t *dev)
 		goto err_prepared;
 
 	/* Address device */
-	if ((err = hc_address_device(hc, dev, ep0)))
+	if ((err = hc_address_device(bus->hc, dev, ep0)))
 		goto err_added;
 
 	/* Temporary reference */
@@ -134,7 +101,7 @@ err_ep:
 	/* Temporary reference */
 	endpoint_del_ref(ep0_base);
 err_slot:
-	hc_disable_slot(hc, dev);
+	hc_disable_slot(bus->hc, dev);
 	return err;
 }
 
@@ -163,7 +130,7 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	return EOK;
 }
 
-int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
+int xhci_bus_enumerate_device(xhci_bus_t *bus, device_t *dev)
 {
 	int err;
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
@@ -183,7 +150,7 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	}
 
 	/* Assign an address to the device */
-	if ((err = address_device(hc, xhci_dev))) {
+	if ((err = address_device(bus, xhci_dev))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
 		return err;
 	}
@@ -194,13 +161,13 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	bus->devices_by_slot[xhci_dev->slot_id] = xhci_dev;
 	fibril_mutex_unlock(&bus->base.guard);
 
-	if ((err = setup_ep0_packet_size(hc, xhci_dev))) {
+	if ((err = setup_ep0_packet_size(bus->hc, xhci_dev))) {
 		usb_log_error("Failed to setup control endpoint of the new device: %s", str_error(err));
 		goto err_address;
 	}
 
 	/* Read the device descriptor, derive the match ids */
-	if ((err = hcd_ddf_device_explore(hc->hcd, dev))) {
+	if ((err = hcd_ddf_device_explore(dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
 		goto err_address;
 	}
@@ -212,9 +179,9 @@ err_address:
 	return err;
 }
 
-static int unregister_endpoint(bus_t *, endpoint_t *);
+static int endpoint_unregister(endpoint_t *);
 
-int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
+int xhci_bus_remove_device(xhci_bus_t *bus, device_t *dev)
 {
 	int err;
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
@@ -245,7 +212,7 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 
 	/* Disable the slot, dropping all endpoints. */
 	const uint32_t slot_id = xhci_dev->slot_id;
-	if ((err = hc_disable_slot(hc, xhci_dev))) {
+	if ((err = hc_disable_slot(bus->hc, xhci_dev))) {
 		usb_log_warning("Failed to disable slot of device " XHCI_DEV_FMT ": %s",
 		    XHCI_DEV_ARGS(*xhci_dev), str_error(err));
 	}
@@ -257,7 +224,7 @@ int xhci_bus_remove_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 		if (!xhci_dev->endpoints[i])
 			continue;
 
-		if ((err = unregister_endpoint(&bus->base, &xhci_dev->endpoints[i]->base))) {
+		if ((err = endpoint_unregister(&xhci_dev->endpoints[i]->base))) {
 			usb_log_warning("Failed to unregister endpoint " XHCI_EP_FMT ": %s",
 			    XHCI_EP_ARGS(*xhci_dev->endpoints[i]), str_error(err));
 		}
@@ -277,43 +244,30 @@ static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
 	return (xhci_bus_t *) bus_base;
 }
 
-static int enumerate_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
+static int device_enumerate(device_t *dev)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
-	assert(bus);
-
-	return xhci_bus_enumerate_device(bus, hc, dev);
+	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
+	return xhci_bus_enumerate_device(bus, dev);
 }
 
-static int remove_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
+static int device_remove(device_t *dev)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
-	assert(bus);
-
-	return xhci_bus_remove_device(bus, hc, dev);
+	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
+	return xhci_bus_remove_device(bus, dev);
 }
 
-static int online_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
+static int device_online(device_t *dev_base)
 {
 	int err;
 
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	xhci_bus_t *bus = bus_to_xhci_bus(dev_base->bus);
 	assert(bus);
 
 	xhci_device_t *dev = xhci_device_get(dev_base);
 	assert(dev);
 
 	/* Transition the device from the Addressed to the Configured state. */
-	if ((err = hc_configure_device(hc, dev->slot_id))) {
+	if ((err = hc_configure_device(bus->hc, dev->slot_id))) {
 		usb_log_warning("Failed to configure device " XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*dev));
 	}
 
@@ -330,14 +284,11 @@ static int online_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
 	return EOK;
 }
 
-static int offline_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
+static int device_offline(device_t *dev_base)
 {
 	int err;
 
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	xhci_bus_t *bus = bus_to_xhci_bus(dev_base->bus);
 	assert(bus);
 
 	xhci_device_t *dev = xhci_device_get(dev_base);
@@ -369,7 +320,7 @@ static int offline_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
 	}
 
 	/* Issue one HC command to simultaneously drop all endpoints except zero. */
-	if ((err = hc_deconfigure_device(hc, dev->slot_id))) {
+	if ((err = hc_deconfigure_device(bus->hc, dev->slot_id))) {
 		usb_log_warning("Failed to deconfigure device " XHCI_DEV_FMT ".",
 		    XHCI_DEV_ARGS(*dev));
 	}
@@ -387,15 +338,13 @@ static int offline_device(bus_t *bus_base, hcd_t *hcd, device_t *dev_base)
 	return EOK;
 }
 
-static endpoint_t *create_endpoint(bus_t *base)
+static endpoint_t *endpoint_create(device_t *dev, const usb_endpoint_desc_t *desc)
 {
-	xhci_bus_t *bus = bus_to_xhci_bus(base);
-
 	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t));
 	if (!ep)
 		return NULL;
 
-	if (xhci_endpoint_init(ep, bus)) {
+	if (xhci_endpoint_init(ep, dev, desc)) {
 		free(ep);
 		return NULL;
 	}
@@ -403,7 +352,7 @@ static endpoint_t *create_endpoint(bus_t *base)
 	return &ep->base;
 }
 
-static void destroy_endpoint(endpoint_t *ep)
+static void endpoint_destroy(endpoint_t *ep)
 {
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
 
@@ -411,15 +360,15 @@ static void destroy_endpoint(endpoint_t *ep)
 	free(xhci_ep);
 }
 
-static int register_endpoint(bus_t *bus_base, device_t *device, endpoint_t *ep_base, const usb_endpoint_desc_t *desc)
+static int endpoint_register(endpoint_t *ep_base)
 {
 	int err;
-	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	xhci_bus_t *bus = bus_to_xhci_bus(endpoint_get_bus(ep_base));
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 
-	xhci_device_t *dev = xhci_device_get(device);
+	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
-	if ((err = prepare_endpoint(ep, desc)))
+	if ((err = xhci_endpoint_alloc_transfer_ds(ep)))
 		return err;
 
 	if ((err = xhci_device_add_endpoint(dev, ep)))
@@ -442,10 +391,10 @@ err_prepared:
 	return err;
 }
 
-static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep_base)
+static int endpoint_unregister(endpoint_t *ep_base)
 {
 	int err;
-	xhci_bus_t *bus = bus_to_xhci_bus(bus_base);
+	xhci_bus_t *bus = bus_to_xhci_bus(endpoint_get_bus(ep_base));
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
@@ -469,7 +418,7 @@ static int unregister_endpoint(bus_t *bus_base, endpoint_t *ep_base)
 	return EOK;
 }
 
-static endpoint_t* find_endpoint(bus_t *bus_base, device_t *dev_base, usb_target_t target, usb_direction_t direction)
+static endpoint_t* device_find_endpoint(device_t *dev_base, usb_target_t target, usb_direction_t direction)
 {
 	xhci_device_t *dev = xhci_device_get(dev_base);
 
@@ -484,12 +433,6 @@ static int reset_toggle(bus_t *bus_base, usb_target_t target, toggle_reset_mode_
 {
 	// TODO: Implement me!
 	return ENOTSUP;
-}
-
-static size_t count_bw(endpoint_t *ep, size_t size)
-{
-	// TODO: Implement me!
-	return 0;
 }
 
 /* Endpoint ops, optional (have generic fallback) */
@@ -524,43 +467,38 @@ static int release_default_address(bus_t *bus_base)
 	return EOK;
 }
 
-static usb_transfer_batch_t *create_batch(bus_t *bus, endpoint_t *ep)
+static usb_transfer_batch_t *batch_create(endpoint_t *ep)
 {
 	xhci_transfer_t *transfer = xhci_transfer_create(ep);
 	return &transfer->batch;
 }
 
-static void destroy_batch(usb_transfer_batch_t *batch)
+static void batch_destroy(usb_transfer_batch_t *batch)
 {
 	xhci_transfer_destroy(xhci_transfer_from_batch(batch));
 }
 
 static const bus_ops_t xhci_bus_ops = {
 #define BIND_OP(op) .op = op,
-	BIND_OP(enumerate_device)
-	BIND_OP(remove_device)
-
-	BIND_OP(online_device)
-	BIND_OP(offline_device)
-
-	BIND_OP(create_endpoint)
-	BIND_OP(destroy_endpoint)
-
-	BIND_OP(register_endpoint)
-	BIND_OP(unregister_endpoint)
-	BIND_OP(find_endpoint)
-
 	BIND_OP(reserve_default_address)
 	BIND_OP(release_default_address)
-
 	BIND_OP(reset_toggle)
-	BIND_OP(count_bw)
 
+	BIND_OP(device_enumerate)
+	BIND_OP(device_remove)
+	BIND_OP(device_online)
+	BIND_OP(device_offline)
+	BIND_OP(device_find_endpoint)
+
+	BIND_OP(endpoint_create)
+	BIND_OP(endpoint_destroy)
+	BIND_OP(endpoint_register)
+	BIND_OP(endpoint_unregister)
 	BIND_OP(endpoint_get_toggle)
 	BIND_OP(endpoint_set_toggle)
 
-	BIND_OP(create_batch)
-	BIND_OP(destroy_batch)
+	BIND_OP(batch_create)
+	BIND_OP(batch_destroy)
 #undef BIND_OP
 };
 
@@ -568,14 +506,14 @@ int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 {
 	assert(bus);
 
-	bus_init(&bus->base, sizeof(xhci_device_t));
+	bus_init(&bus->base, hc->hcd, sizeof(xhci_device_t));
 
 	bus->devices_by_slot = calloc(hc->max_slots, sizeof(xhci_device_t *));
 	if (!bus->devices_by_slot)
 		return ENOMEM;
 
 	bus->hc = hc;
-	bus->base.ops = xhci_bus_ops;
+	bus->base.ops = &xhci_bus_ops;
 	bus->default_address_speed = USB_SPEED_MAX;
 	return EOK;
 }

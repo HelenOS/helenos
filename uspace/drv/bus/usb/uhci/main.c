@@ -79,7 +79,7 @@ static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, ddf_dev
 	if (!instance)
 		return ENOMEM;
 
-	if ((err = hc_init(instance, res)) != EOK)
+	if ((err = hc_init(instance, hcd, res)) != EOK)
 		goto err;
 
 	hcd_set_implementation(hcd, instance, &uhci_hc_driver.ops, &instance->bus.base);

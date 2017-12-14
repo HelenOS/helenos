@@ -148,7 +148,7 @@ int ehci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
+int hc_init(hc_t *instance, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	assert(instance);
 	assert(hw_res);
@@ -189,7 +189,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
 	ehci_rh_init(
 	    &instance->rh, instance->caps, instance->registers, "ehci rh");
 
-	ehci_bus_init(&instance->bus, instance);
+	ehci_bus_init(&instance->bus, hcd, instance);
 	return EOK;
 }
 

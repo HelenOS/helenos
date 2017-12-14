@@ -82,7 +82,7 @@ static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, ddf_dev
 	if ((err = hc_init(instance, res)) != EOK)
 		goto err;
 
-	if ((err = ohci_bus_init(&instance->bus, instance)))
+	if ((err = ohci_bus_init(&instance->bus, hcd, instance)))
 		goto err;
 
 	hcd_set_implementation(hcd, instance, &ohci_hc_driver.ops, &instance->bus.base.base);

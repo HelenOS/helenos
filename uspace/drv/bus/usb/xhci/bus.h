@@ -57,8 +57,8 @@ typedef struct xhci_bus {
 int xhci_bus_init(xhci_bus_t *, xhci_hc_t *);
 void xhci_bus_fini(xhci_bus_t *);
 
-int xhci_bus_enumerate_device(xhci_bus_t *, xhci_hc_t *, device_t *);
-int xhci_bus_remove_device(xhci_bus_t *, xhci_hc_t *, device_t *);
+int xhci_bus_enumerate_device(xhci_bus_t *, device_t *);
+int xhci_bus_remove_device(xhci_bus_t *, device_t *);
 
 #endif
 /**

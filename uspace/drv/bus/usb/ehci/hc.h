@@ -84,7 +84,7 @@ typedef struct hc {
 	ehci_bus_t bus;
 } hc_t;
 
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res);
+int hc_init(hc_t *instance, hcd_t *hcd, const hw_res_list_parsed_t *hw_res);
 int hc_start(hc_t *instance, bool interrupts);
 void hc_fini(hc_t *instance);
 

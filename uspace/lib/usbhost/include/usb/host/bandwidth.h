@@ -50,9 +50,9 @@
 
 typedef struct endpoint endpoint_t;
 
-extern size_t bandwidth_count_usb11(endpoint_t *, size_t);
+extern ssize_t bandwidth_count_usb11(endpoint_t *, size_t);
 
-extern size_t bandwidth_count_usb20(endpoint_t *, size_t);
+extern ssize_t bandwidth_count_usb20(endpoint_t *, size_t);
 
 #endif
 /**

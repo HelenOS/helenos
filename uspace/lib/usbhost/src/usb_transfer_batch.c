@@ -48,21 +48,25 @@
 usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
 {
 	assert(ep);
-	assert(ep->bus);
 
-	usb_transfer_batch_t *batch;
-	if (ep->bus->ops.create_batch)
-		batch = ep->bus->ops.create_batch(ep->bus, ep);
-	else
-		batch = calloc(1, sizeof(usb_transfer_batch_t));
+	bus_t *bus = endpoint_get_bus(ep);
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, batch_create);
 
-	return batch;
+	if (!ops) {
+		usb_transfer_batch_t *batch = calloc(1, sizeof(usb_transfer_batch_t));
+		usb_transfer_batch_init(batch, ep);
+		return batch;
+	}
+
+	return ops->batch_create(ep);
 }
 
 /** Initialize given batch structure.
  */
 void usb_transfer_batch_init(usb_transfer_batch_t *batch, endpoint_t *ep)
 {
+	assert(ep);
+	endpoint_add_ref(ep);
 	batch->ep = ep;
 }
 
@@ -81,7 +85,7 @@ int usb_transfer_batch_reset_toggle(usb_transfer_batch_t *batch)
 	    batch, USB_TRANSFER_BATCH_ARGS(*batch),
 	    batch->toggle_reset_mode == RESET_ALL ? "all EPs toggle" : "EP toggle");
 
-	return bus_reset_toggle(batch->ep->bus, batch->target, batch->toggle_reset_mode);
+	return bus_reset_toggle(endpoint_get_bus(batch->ep), batch->target, batch->toggle_reset_mode);
 }
 
 /** Destroy the batch.
@@ -92,13 +96,16 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 {
 	assert(batch);
 	assert(batch->ep);
-	assert(batch->ep->bus);
 
-	bus_t *bus = batch->ep->bus;
-	if (bus->ops.destroy_batch) {
+	bus_t *bus = endpoint_get_bus(batch->ep);
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, batch_destroy);
+
+	endpoint_del_ref(batch->ep);
+
+	if (ops) {
 		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " destroying.\n",
 		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
-		bus->ops.destroy_batch(batch);
+		ops->batch_destroy(batch);
 	}
 	else {
 		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",

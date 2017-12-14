@@ -45,19 +45,26 @@
 /**
  * Initializes the bus structure.
  */
-void bus_init(bus_t *bus, size_t device_size)
+void bus_init(bus_t *bus, hcd_t *hcd, size_t device_size)
 {
 	assert(bus);
+	assert(hcd);
 	assert(device_size >= sizeof(device_t));
 	memset(bus, 0, sizeof(bus_t));
 
 	fibril_mutex_initialize(&bus->guard);
+	bus->hcd = hcd;
 	bus->device_size = device_size;
 }
 
-int device_init(device_t *dev)
+int bus_device_init(device_t *dev, bus_t *bus)
 {
+	assert(bus);
+	assert(bus->hcd);
+
 	memset(dev, 0, sizeof(*dev));
+
+	dev->bus = bus;
 
 	link_initialize(&dev->link);
 	list_initialize(&dev->devices);
@@ -66,7 +73,7 @@ int device_init(device_t *dev)
 	return EOK;
 }
 
-int device_set_default_name(device_t *dev)
+int bus_device_set_default_name(device_t *dev)
 {
 	assert(dev);
 	assert(dev->fun);
@@ -78,99 +85,104 @@ int device_set_default_name(device_t *dev)
 	return ddf_fun_set_name(dev->fun, buf);
 }
 
-int bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+int bus_device_enumerate(device_t *dev)
 {
-	assert(bus);
-	assert(hcd);
 	assert(dev);
 
-	if (!bus->ops.enumerate_device)
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_enumerate);
+	if (!ops)
 		return ENOTSUP;
 
-	return bus->ops.enumerate_device(bus, hcd, dev);
+	return ops->device_enumerate(dev);
 }
 
-int bus_remove_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+int bus_device_remove(device_t *dev)
 {
-	assert(bus);
 	assert(dev);
 
-	if (!bus->ops.remove_device)
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_remove);
+
+	if (!ops)
 		return ENOTSUP;
 
-	return bus->ops.remove_device(bus, hcd, dev);
+	return ops->device_remove(dev);
 }
 
-int bus_online_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+int bus_device_online(device_t *dev)
 {
-	assert(bus);
-	assert(hcd);
 	assert(dev);
 
-	if (!bus->ops.online_device)
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_online);
+	if (!ops)
 		return ENOTSUP;
 
-	return bus->ops.online_device(bus, hcd, dev);
+	return ops->device_online(dev);
 }
 
-int bus_offline_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+int bus_device_offline(device_t *dev)
 {
-	assert(bus);
-	assert(hcd);
 	assert(dev);
 
-	if (!bus->ops.offline_device)
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_offline);
+	if (!ops)
 		return ENOTSUP;
 
-	return bus->ops.offline_device(bus, hcd, dev);
+	return ops->device_offline(dev);
 }
 
-int bus_add_endpoint(bus_t *bus, device_t *device, const usb_endpoint_desc_t *desc, endpoint_t **out_ep)
+int bus_endpoint_add(device_t *device, const usb_endpoint_desc_t *desc, endpoint_t **out_ep)
 {
-	assert(bus);
+	int err;
 	assert(device);
+
+	bus_t *bus = device->bus;
 
 	if (desc->max_packet_size == 0 || desc->packets == 0) {
 		usb_log_warning("Invalid endpoint description (mps %zu, %u packets)", desc->max_packet_size, desc->packets);
 		return EINVAL;
 	}
 
-	fibril_mutex_lock(&bus->guard);
+	const bus_ops_t *create_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_create);
+	const bus_ops_t *register_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_register);
+	if (!create_ops || !register_ops)
+		return ENOTSUP;
 
-	int err = ENOMEM;
-	endpoint_t *ep = bus->ops.create_endpoint(bus);
+	endpoint_t *ep = create_ops->endpoint_create(device, desc);
 	if (!ep)
-		goto err;
+		return ENOMEM;
 
-	/* Bus reference */
+	/* Temporary reference */
 	endpoint_add_ref(ep);
 
-	if ((err = bus->ops.register_endpoint(bus, device, ep, desc)))
-		goto err_ep;
+	fibril_mutex_lock(&bus->guard);
+	err = register_ops->endpoint_register(ep);
+	fibril_mutex_unlock(&bus->guard);
 
 	if (out_ep) {
+		/* Exporting reference */
 		endpoint_add_ref(ep);
 		*out_ep = ep;
 	}
 
-	fibril_mutex_unlock(&bus->guard);
-	return EOK;
-
-err_ep:
+	/* Temporary reference */
 	endpoint_del_ref(ep);
-err:
-	fibril_mutex_unlock(&bus->guard);
 	return err;
 }
 
 /** Searches for an endpoint. Returns a reference.
  */
-endpoint_t *bus_find_endpoint(bus_t *bus, device_t *device, usb_target_t endpoint, usb_direction_t dir)
+endpoint_t *bus_find_endpoint(device_t *device, usb_target_t endpoint, usb_direction_t dir)
 {
-	assert(bus);
+	assert(device);
+
+	bus_t *bus = device->bus;
+
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, device_find_endpoint);
+	if (!ops)
+		return NULL;
 
 	fibril_mutex_lock(&bus->guard);
-	endpoint_t *ep = bus->ops.find_endpoint(bus, device, endpoint, dir);
+	endpoint_t *ep = ops->device_find_endpoint(device, endpoint, dir);
 	if (ep) {
 		/* Exporting reference */
 		endpoint_add_ref(ep);
@@ -180,13 +192,18 @@ endpoint_t *bus_find_endpoint(bus_t *bus, device_t *device, usb_target_t endpoin
 	return ep;
 }
 
-int bus_remove_endpoint(bus_t *bus, endpoint_t *ep)
+int bus_endpoint_remove(endpoint_t *ep)
 {
-	assert(bus);
 	assert(ep);
 
+	bus_t *bus = endpoint_get_bus(ep);
+
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(ep->device->bus->ops, endpoint_unregister);
+	if (!ops)
+		return ENOTSUP;
+
 	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.unregister_endpoint(bus, ep);
+	const int r = ops->endpoint_unregister(ep);
 	fibril_mutex_unlock(&bus->guard);
 
 	if (r)
@@ -202,11 +219,12 @@ int bus_reserve_default_address(bus_t *bus, usb_speed_t speed)
 {
 	assert(bus);
 
-	if (!bus->ops.reserve_default_address)
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, reserve_default_address);
+	if (!ops)
 		return ENOTSUP;
 
 	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.reserve_default_address(bus, speed);
+	const int r = ops->reserve_default_address(bus, speed);
 	fibril_mutex_unlock(&bus->guard);
 	return r;
 }
@@ -215,12 +233,12 @@ int bus_release_default_address(bus_t *bus)
 {
 	assert(bus);
 
-	/* If this op is not set, allow everything */
-	if (!bus->ops.release_default_address)
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, release_default_address);
+	if (!ops)
 		return ENOTSUP;
 
 	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.release_default_address(bus);
+	const int r = ops->release_default_address(bus);
 	fibril_mutex_unlock(&bus->guard);
 	return r;
 }
@@ -229,23 +247,14 @@ int bus_reset_toggle(bus_t *bus, usb_target_t target, bool all)
 {
 	assert(bus);
 
-	if (!bus->ops.reset_toggle)
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, reset_toggle);
+	if (!ops)
 		return ENOTSUP;
 
 	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.reset_toggle(bus, target, all);
+	const int r = ops->reset_toggle(bus, target, all);
 	fibril_mutex_unlock(&bus->guard);
 	return r;
-}
-
-size_t bus_count_bw(endpoint_t *ep, size_t size)
-{
-	assert(ep);
-
-	fibril_mutex_lock(&ep->guard);
-	const size_t bw = ep->bus->ops.count_bw(ep, size);
-	fibril_mutex_unlock(&ep->guard);
-	return bw;
 }
 
 /**

@@ -71,15 +71,15 @@ static bool ohci_ep_toggle_get(endpoint_t *ep)
 
 /** Creates new hcd endpoint representation.
  */
-static endpoint_t *ohci_endpoint_create(bus_t *bus)
+static endpoint_t *ohci_endpoint_create(device_t *dev, const usb_endpoint_desc_t *desc)
 {
-	assert(bus);
+	assert(dev);
 
 	ohci_endpoint_t *ohci_ep = malloc(sizeof(ohci_endpoint_t));
 	if (ohci_ep == NULL)
 		return NULL;
 
-	endpoint_init(&ohci_ep->base, bus);
+	endpoint_init(&ohci_ep->base, dev, desc);
 
 	ohci_ep->ed = malloc32(sizeof(ed_t));
 	if (ohci_ep->ed == NULL) {
@@ -114,12 +114,13 @@ static void ohci_endpoint_destroy(endpoint_t *ep)
 }
 
 
-static int ohci_register_ep(bus_t *bus_base, device_t *dev, endpoint_t *ep, const usb_endpoint_desc_t *desc)
+static int ohci_register_ep(endpoint_t *ep)
 {
+	bus_t *bus_base = endpoint_get_bus(ep);
 	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
 
-	const int err = bus->parent_ops.register_endpoint(bus_base, dev, ep, desc);
+	const int err = usb2_bus_ops.endpoint_register(ep);
 	if (err)
 		return err;
 
@@ -129,13 +130,12 @@ static int ohci_register_ep(bus_t *bus_base, device_t *dev, endpoint_t *ep, cons
 	return EOK;
 }
 
-static int ohci_unregister_ep(bus_t *bus_base, endpoint_t *ep)
+static int ohci_unregister_ep(endpoint_t *ep)
 {
-	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
-	assert(bus);
+	ohci_bus_t *bus = (ohci_bus_t *) endpoint_get_bus(ep);
 	assert(ep);
 
-	const int err = bus->parent_ops.unregister_endpoint(bus_base, ep);
+	const int err = usb2_bus_ops.endpoint_unregister(ep);
 	if (err)
 		return err;
 
@@ -143,36 +143,43 @@ static int ohci_unregister_ep(bus_t *bus_base, endpoint_t *ep)
 	return EOK;
 }
 
-static usb_transfer_batch_t *ohci_bus_create_batch(bus_t *bus, endpoint_t *ep)
+static usb_transfer_batch_t *ohci_create_batch(endpoint_t *ep)
 {
 	ohci_transfer_batch_t *batch = ohci_transfer_batch_create(ep);
 	return &batch->base;
 }
 
-static void ohci_bus_destroy_batch(usb_transfer_batch_t *batch)
+static void ohci_destroy_batch(usb_transfer_batch_t *batch)
 {
 	ohci_transfer_batch_destroy(ohci_transfer_batch_get(batch));
 }
 
-int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
+static const bus_ops_t ohci_bus_ops = {
+	.parent = &usb2_bus_ops,
+
+	.endpoint_destroy = ohci_endpoint_destroy,
+	.endpoint_create = ohci_endpoint_create,
+	.endpoint_register = ohci_register_ep,
+	.endpoint_unregister = ohci_unregister_ep,
+	.endpoint_count_bw = bandwidth_count_usb11,
+	.endpoint_set_toggle = ohci_ep_toggle_set,
+	.endpoint_get_toggle = ohci_ep_toggle_get,
+	.batch_create = ohci_create_batch,
+	.batch_destroy = ohci_destroy_batch,
+};
+
+
+int ohci_bus_init(ohci_bus_t *bus, hcd_t *hcd, hc_t *hc)
 {
 	assert(hc);
 	assert(bus);
 
-	usb2_bus_init(&bus->base, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 
-	bus_ops_t *ops = &bus->base.base.ops;
-	bus->parent_ops = *ops;
-	ops->create_endpoint = ohci_endpoint_create;
-	ops->destroy_endpoint = ohci_endpoint_destroy;
-	ops->endpoint_set_toggle = ohci_ep_toggle_set;
-	ops->endpoint_get_toggle = ohci_ep_toggle_get;
+	usb2_bus_t *usb2_bus = (usb2_bus_t *) bus;
+	bus_t *bus_base = (bus_t *) bus;
 
-	ops->register_endpoint = ohci_register_ep;
-	ops->unregister_endpoint = ohci_unregister_ep;
-
-	ops->create_batch = ohci_bus_create_batch;
-	ops->destroy_batch = ohci_bus_destroy_batch;
+	usb2_bus_init(usb2_bus, hcd, BANDWIDTH_AVAILABLE_USB11);
+	bus_base->ops = &ohci_bus_ops;
 
 	bus->hc = hc;
 

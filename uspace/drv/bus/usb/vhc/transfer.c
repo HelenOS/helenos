@@ -156,12 +156,18 @@ static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
 	free(transfer);
 }
 
-int vhc_init(vhc_data_t *instance)
+static const bus_ops_t vhc_bus_ops = {
+	.parent = &usb2_bus_ops,
+	.endpoint_count_bw = bandwidth_count_usb11,
+};
+
+int vhc_init(vhc_data_t *instance, hcd_t *hcd)
 {
 	assert(instance);
 	list_initialize(&instance->devices);
 	fibril_mutex_initialize(&instance->guard);
-	usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
+	usb2_bus_init(&instance->bus, hcd, BANDWIDTH_AVAILABLE_USB11);
+	instance->bus.base.ops = &vhc_bus_ops;
 	instance->magic = 0xDEADBEEF;
 	return virthub_init(&instance->hub, "root hub");
 }

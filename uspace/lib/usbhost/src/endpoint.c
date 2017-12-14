@@ -46,15 +46,30 @@
 
 /** Initialize provided endpoint structure.
  */
-void endpoint_init(endpoint_t *ep, bus_t *bus)
+void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_desc_t *desc)
 {
 	memset(ep, 0, sizeof(endpoint_t));
 
-	ep->bus = bus;
+	assert(dev);
+	ep->device = dev;
+
 	atomic_set(&ep->refcnt, 0);
 	link_initialize(&ep->link);
 	fibril_mutex_initialize(&ep->guard);
 	fibril_condvar_initialize(&ep->avail);
+
+	ep->endpoint = desc->endpoint_no;
+	ep->direction = desc->direction;
+	ep->transfer_type = desc->transfer_type;
+	ep->max_packet_size = desc->max_packet_size;
+	ep->packets = desc->packets;
+
+	ep->bandwidth = endpoint_count_bw(ep, desc->max_packet_size);
+}
+
+static inline const bus_ops_t *get_bus_ops(endpoint_t *ep)
+{
+	return ep->device->bus->ops;
 }
 
 void endpoint_add_ref(endpoint_t *ep)
@@ -62,18 +77,23 @@ void endpoint_add_ref(endpoint_t *ep)
 	atomic_inc(&ep->refcnt);
 }
 
+static inline void endpoint_destroy(endpoint_t *ep)
+{
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_destroy);
+	if (ops) {
+		ops->endpoint_destroy(ep);
+	} else {
+		assert(ep->active_batch == NULL);
+
+		/* Assume mostly the eps will be allocated by malloc. */
+		free(ep);
+	}
+}
+
 void endpoint_del_ref(endpoint_t *ep)
 {
 	if (atomic_predec(&ep->refcnt) == 0) {
-		if (ep->bus->ops.destroy_endpoint) {
-			ep->bus->ops.destroy_endpoint(ep);
-		}
-		else {
-			assert(ep->active_batch == NULL);
-
-			/* Assume mostly the eps will be allocated by malloc. */
-			free(ep);
-		}
+		endpoint_destroy(ep);
 	}
 }
 
@@ -132,8 +152,9 @@ int endpoint_toggle_get(endpoint_t *ep)
 {
 	assert(ep);
 
-	return ep->bus->ops.endpoint_get_toggle
-	    ? ep->bus->ops.endpoint_get_toggle(ep)
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_get_toggle);
+	return ops
+	    ? ops->endpoint_get_toggle(ep)
 	    : ep->toggle;
 }
 
@@ -145,12 +166,24 @@ void endpoint_toggle_set(endpoint_t *ep, bool toggle)
 {
 	assert(ep);
 
-	if (ep->bus->ops.endpoint_set_toggle) {
-		ep->bus->ops.endpoint_set_toggle(ep, toggle);
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_set_toggle);
+	if (ops) {
+		ops->endpoint_set_toggle(ep, toggle);
 	}
 	else {
 		ep->toggle = toggle;
 	}
+}
+
+ssize_t endpoint_count_bw(endpoint_t *ep, size_t packet_size)
+{
+	assert(ep);
+
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_count_bw);
+	if (!ops)
+		return 0;
+
+	return ops->endpoint_count_bw(ep, packet_size);
 }
 
 /**

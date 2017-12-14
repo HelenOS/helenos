@@ -207,7 +207,7 @@ int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
 		return ENOTSUP;
 	}
 
-	endpoint_t *ep = bus_find_endpoint(hcd->bus, device, target, direction);
+	endpoint_t *ep = bus_find_endpoint(device, target, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
 		    device->address, target.endpoint, name);
@@ -215,11 +215,12 @@ int hcd_send_batch(hcd_t *hcd, device_t *device, usb_target_t target,
 	}
 
 	// TODO cut here aka provide helper to call with instance of endpoint_t in hand
+	assert(ep->device == device);
 
 	usb_log_debug2("%s %d:%d %zu(%zu).\n",
 	    name, target.address, target.endpoint, size, ep->max_packet_size);
 
-	const size_t bw = bus_count_bw(ep, size);
+	const size_t bw = endpoint_count_bw(ep, size);
 	/* Check if we have enough bandwidth reserved */
 	if (ep->bandwidth < bw) {
 		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "

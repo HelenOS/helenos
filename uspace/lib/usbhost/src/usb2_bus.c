@@ -199,9 +199,12 @@ static const usb_target_t usb2_default_target = {{
 	.endpoint = 0,
 }};
 
-static int address_device(usb2_bus_t *bus, hcd_t *hcd, device_t *dev)
+static int address_device(device_t *dev)
 {
 	int err;
+
+	usb2_bus_t *bus = (usb2_bus_t *) dev->bus;
+	hcd_t *hcd = (hcd_t *) bus->base.hcd;
 
 	/* The default address is currently reserved for this device */
 	dev->address = USB_ADDRESS_DEFAULT;
@@ -219,7 +222,7 @@ static int address_device(usb2_bus_t *bus, hcd_t *hcd, device_t *dev)
 	usb_log_debug("Device(%d): Adding default target (0:0)", address);
 
 	endpoint_t *default_ep;
-	err = bus_add_endpoint(&bus->base, dev, &usb2_default_control_ep, &default_ep);
+	err = bus_endpoint_add(dev, &usb2_default_control_ep, &default_ep);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to add default target: %s.",
 		    address, str_error(err));
@@ -243,7 +246,7 @@ static int address_device(usb2_bus_t *bus, hcd_t *hcd, device_t *dev)
 	}
 
 	/* We need to remove ep before we change the address */
-	if ((err = bus_remove_endpoint(&bus->base, default_ep))) {
+	if ((err = bus_endpoint_remove(default_ep))) {
 		usb_log_error("Device(%d): Failed to unregister default target: %s", address, str_error(err));
 		goto err_address;
 	}
@@ -261,7 +264,7 @@ static int address_device(usb2_bus_t *bus, hcd_t *hcd, device_t *dev)
 
 	/* Register EP on the new address */
 	usb_log_debug("Device(%d): Registering control EP.", address);
-	err = bus_add_endpoint(&bus->base, dev, &control_ep, NULL);
+	err = bus_endpoint_add(dev, &control_ep, NULL);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to register EP0: %s",
 		    address, str_error(err));
@@ -271,7 +274,7 @@ static int address_device(usb2_bus_t *bus, hcd_t *hcd, device_t *dev)
 	return EOK;
 
 err_default_control_ep:
-	bus_remove_endpoint(&bus->base, default_ep);
+	bus_endpoint_remove(default_ep);
 	endpoint_del_ref(default_ep);
 err_address:
 	release_address(bus, address);
@@ -280,10 +283,10 @@ err_address:
 
 /** Enumerate a new USB device
  */
-static int usb2_bus_enumerate_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
+static int usb2_bus_device_enumerate(device_t *dev)
 {
 	int err;
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
+	usb2_bus_t *bus = bus_to_usb2_bus(dev->bus);
 
 	/* The speed of the new device was reported by the hub when reserving
 	 * default address.
@@ -305,13 +308,13 @@ static int usb2_bus_enumerate_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
 	}
 
 	/* Assign an address to the device */
-	if ((err = address_device(bus, hcd, dev))) {
+	if ((err = address_device(dev))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
 		return err;
 	}
 
 	/* Read the device descriptor, derive the match ids */
-	if ((err = hcd_ddf_device_explore(hcd, dev))) {
+	if ((err = hcd_ddf_device_explore(dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
 		release_address(bus, dev->address);
 		return err;
@@ -328,9 +331,9 @@ static int usb2_bus_enumerate_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
  * target, NULL if there is no such endpoint registered.
  * @note Assumes that the internal mutex is locked.
  */
-static endpoint_t *usb2_bus_find_ep(bus_t *bus_base, device_t *device, usb_target_t target, usb_direction_t direction)
+static endpoint_t *usb2_bus_find_ep(device_t *device, usb_target_t target, usb_direction_t direction)
 {
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
+	usb2_bus_t *bus = bus_to_usb2_bus(device->bus);
 
 	assert(device->address == target.address);
 
@@ -344,13 +347,13 @@ static endpoint_t *usb2_bus_find_ep(bus_t *bus_base, device_t *device, usb_targe
 	return NULL;
 }
 
-static endpoint_t *usb2_bus_create_ep(bus_t *bus)
+static endpoint_t *usb2_bus_create_ep(device_t *dev, const usb_endpoint_desc_t *desc)
 {
 	endpoint_t *ep = malloc(sizeof(endpoint_t));
 	if (!ep)
 		return NULL;
 
-	endpoint_init(ep, bus);
+	endpoint_init(ep, dev, desc);
 	return ep;
 }
 
@@ -369,48 +372,38 @@ static usb_target_t usb2_ep_to_target(endpoint_t *ep)
  * @param bus usb_bus structure, non-null.
  * @param endpoint USB endpoint number.
  */
-static int usb2_bus_register_ep(bus_t *bus_base, device_t *device, endpoint_t *ep, const usb_endpoint_desc_t *desc)
+static int usb2_bus_register_ep(endpoint_t *ep)
 {
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
+	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
+	assert(fibril_mutex_is_locked(&bus->base.guard));
 	assert(ep);
 
-	ep->device = device;
-
-	/* Extract USB2-related information from endpoint_desc */
-	ep->endpoint = desc->endpoint_no;
-	ep->direction = desc->direction;
-	ep->transfer_type = desc->transfer_type;
-	ep->max_packet_size = desc->max_packet_size;
-	ep->packets = desc->packets;
-
-	ep->bandwidth = bus_base->ops.count_bw(ep, desc->max_packet_size);
-
 	/* Check for existence */
-	if (usb2_bus_find_ep(bus_base, ep->device, usb2_ep_to_target(ep), ep->direction))
+	if (usb2_bus_find_ep(ep->device, usb2_ep_to_target(ep), ep->direction))
 		return EEXIST;
 
 	/* Check for available bandwidth */
 	if (ep->bandwidth > bus->free_bw)
 		return ENOSPC;
 
+	endpoint_add_ref(ep);
 	list_append(&ep->link, get_list(bus, ep->device->address));
 	bus->free_bw -= ep->bandwidth;
 
 	return EOK;
 }
 
-
 /** Release bandwidth reserved by the given endpoint.
  */
-static int usb2_bus_unregister_ep(bus_t *bus_base, endpoint_t *ep)
+static int usb2_bus_unregister_ep(endpoint_t *ep)
 {
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
+	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
 	assert(ep);
 
 	list_remove(&ep->link);
-	ep->device = NULL;
 
 	bus->free_bw += ep->bandwidth;
+	endpoint_del_ref(ep);
 
 	return EOK;
 }
@@ -451,15 +444,15 @@ static int usb2_bus_release_default_address(bus_t *bus_base)
 	return release_address(bus, USB_ADDRESS_DEFAULT);
 }
 
-static const bus_ops_t usb2_bus_ops = {
+const bus_ops_t usb2_bus_ops = {
 	.reserve_default_address = usb2_bus_register_default_address,
 	.release_default_address = usb2_bus_release_default_address,
-	.enumerate_device = usb2_bus_enumerate_device,
-	.create_endpoint = usb2_bus_create_ep,
-	.find_endpoint = usb2_bus_find_ep,
-	.unregister_endpoint = usb2_bus_unregister_ep,
-	.register_endpoint = usb2_bus_register_ep,
 	.reset_toggle = usb2_bus_reset_toggle,
+	.device_enumerate = usb2_bus_device_enumerate,
+	.device_find_endpoint = usb2_bus_find_ep,
+	.endpoint_create= usb2_bus_create_ep,
+	.endpoint_register= usb2_bus_register_ep,
+	.endpoint_unregister= usb2_bus_unregister_ep,
 };
 
 /** Initialize to default state.
@@ -469,14 +462,12 @@ static const bus_ops_t usb2_bus_ops = {
  * @param bw_count function to use to calculate endpoint bw requirements.
  * @return Error code.
  */
-int usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth, count_bw_func_t count_bw)
+int usb2_bus_init(usb2_bus_t *bus, hcd_t *hcd, size_t available_bandwidth)
 {
 	assert(bus);
 
-	bus_init(&bus->base, sizeof(device_t));
-
-	bus->base.ops = usb2_bus_ops;
-	bus->base.ops.count_bw = count_bw;
+	bus_init(&bus->base, hcd, sizeof(device_t));
+	bus->base.ops = &usb2_bus_ops;
 
 	bus->free_bw = available_bandwidth;
 	bus->last_address = 0;

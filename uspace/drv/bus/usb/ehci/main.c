@@ -80,7 +80,7 @@ static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, ddf_dev
 	if (!instance)
 		return ENOMEM;
 
-	const int ret = hc_init(instance, res);
+	const int ret = hc_init(instance, hcd, res);
 	if (ret == EOK) {
 		hcd_set_implementation(hcd, instance, &ehci_hc_driver.ops, &instance->bus.base.base);
 	} else {

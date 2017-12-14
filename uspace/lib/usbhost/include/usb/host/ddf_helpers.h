@@ -80,9 +80,9 @@ void hcd_ddf_clean_hc(ddf_dev_t *device);
 
 int hcd_setup_virtual_root_hub(hcd_t *, ddf_dev_t *);
 
-device_t *hcd_ddf_device_create(ddf_dev_t *, size_t);
+device_t *hcd_ddf_device_create(ddf_dev_t *, bus_t *);
 void hcd_ddf_device_destroy(device_t *);
-int hcd_ddf_device_explore(hcd_t *, device_t *);
+int hcd_ddf_device_explore(device_t *);
 int hcd_ddf_device_online(ddf_fun_t *);
 int hcd_ddf_device_offline(ddf_fun_t *);
 

@@ -125,7 +125,7 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-extern int hc_init(hc_t *, const hw_res_list_parsed_t *);
+extern int hc_init(hc_t *, hcd_t *, const hw_res_list_parsed_t *);
 extern void hc_start(hc_t *);
 extern void hc_fini(hc_t *);
 

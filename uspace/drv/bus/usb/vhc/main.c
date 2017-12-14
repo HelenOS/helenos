@@ -68,7 +68,7 @@ static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 		*fun = NULL;
 		return ret;
 	}
-	vhc_init(vhc);
+	vhc_init(vhc, dev_to_hcd(dev));
 	return EOK;
 }
 

@@ -211,17 +211,16 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 	if ((err = xhci_init_commands(hc)))
 		goto err_scratch;
 
-	if ((err = xhci_rh_init(&hc->rh, hc, device)))
+	if ((err = xhci_bus_init(&hc->bus, hc)))
 		goto err_cmd;
 
-	if ((err = xhci_bus_init(&hc->bus, hc)))
-		goto err_rh;
-
+	if ((err = xhci_rh_init(&hc->rh, hc, device)))
+		goto err_bus;
 
 	return EOK;
 
-err_rh:
-	xhci_rh_fini(&hc->rh);
+err_bus:
+	xhci_bus_fini(&hc->bus);
 err_cmd:
 	xhci_fini_commands(hc);
 err_scratch:

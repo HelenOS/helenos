@@ -148,7 +148,7 @@ typedef struct xhci_device {
 #define XHCI_DEV_FMT  "(%s, slot %d)"
 #define XHCI_DEV_ARGS(dev)		 ddf_fun_get_name((dev).base.fun), (dev).slot_id
 
-int xhci_endpoint_init(xhci_endpoint_t *, xhci_bus_t *);
+int xhci_endpoint_init(xhci_endpoint_t *, device_t *, const usb_endpoint_desc_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *);
 void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);

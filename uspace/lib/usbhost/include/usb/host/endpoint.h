@@ -44,6 +44,7 @@
 #include <fibril_synch.h>
 #include <stdbool.h>
 #include <usb/usb.h>
+#include <usb/host/bus.h>
 
 typedef struct bus bus_t;
 typedef struct device device_t;
@@ -53,12 +54,10 @@ typedef struct usb_transfer_batch usb_transfer_batch_t;
 typedef struct endpoint {
 	/** Part of linked list. */
 	link_t link;
-	/** Managing bus */
-	bus_t *bus;
-	/** Reference count. */
-	atomic_t refcnt;
 	/** USB device */
 	device_t *device;
+	/** Reference count. */
+	atomic_t refcnt;
 	/** Enpoint number */
 	usb_endpoint_t endpoint;
 	/** Communication direction. */
@@ -83,7 +82,7 @@ typedef struct endpoint {
 	/* This structure is meant to be extended by overriding. */
 } endpoint_t;
 
-extern void endpoint_init(endpoint_t *, bus_t *);
+extern void endpoint_init(endpoint_t *, device_t *, const usb_endpoint_desc_t *);
 
 extern void endpoint_add_ref(endpoint_t *);
 extern void endpoint_del_ref(endpoint_t *);
@@ -102,8 +101,17 @@ extern void endpoint_deactivate_locked(endpoint_t *);
 /* Abort the currenty active batch. */
 void endpoint_abort(endpoint_t *);
 
+/* Manage the toggle bit */
 extern int endpoint_toggle_get(endpoint_t *);
 extern void endpoint_toggle_set(endpoint_t *, bool);
+
+/* Calculate bandwidth */
+ssize_t endpoint_count_bw(endpoint_t *, size_t);
+
+static inline bus_t *endpoint_get_bus(endpoint_t *ep)
+{
+	return ep->device->bus;
+}
 
 /** list_get_instance wrapper.
  *

@@ -94,7 +94,7 @@ static const irq_cmd_t uhci_irq_commands[] = {
 };
 
 static void hc_init_hw(const hc_t *instance);
-static int hc_init_mem_structures(hc_t *instance);
+static int hc_init_mem_structures(hc_t *instance, hcd_t *);
 static int hc_init_transfer_lists(hc_t *instance);
 
 static int hc_debug_checker(void *arg);
@@ -214,7 +214,7 @@ void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
+int hc_init(hc_t *instance, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	assert(instance);
 	assert(hw_res);
@@ -237,7 +237,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
 	    hw_res->io_ranges.ranges[0].address.absolute,
 	    hw_res->io_ranges.ranges[0].size);
 
-	ret = hc_init_mem_structures(instance);
+	ret = hc_init_mem_structures(instance, hcd);
 	if (ret != EOK) {
 		usb_log_error("Failed to init UHCI memory structures: %s.\n",
 		    str_error(ret));
@@ -308,7 +308,7 @@ void hc_init_hw(const hc_t *instance)
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
 }
 
-static usb_transfer_batch_t *create_transfer_batch(bus_t *bus, endpoint_t *ep)
+static usb_transfer_batch_t *create_transfer_batch(endpoint_t *ep)
 {
 	uhci_transfer_batch_t *batch = uhci_transfer_batch_create(ep);
 	return &batch->base;
@@ -318,6 +318,14 @@ static void destroy_transfer_batch(usb_transfer_batch_t *batch)
 {
 	uhci_transfer_batch_destroy(uhci_transfer_batch_get(batch));
 }
+
+static const bus_ops_t uhci_bus_ops = {
+	.parent = &usb2_bus_ops,
+
+	.endpoint_count_bw = bandwidth_count_usb11,
+	.batch_create = create_transfer_batch,
+	.batch_destroy = destroy_transfer_batch,
+};
 
 /** Initialize UHCI hc memory structures.
  *
@@ -329,16 +337,16 @@ static void destroy_transfer_batch(usb_transfer_batch_t *batch)
  *  - transfer lists (queue heads need to be accessible by the hw)
  *  - frame list page (needs to be one UHCI hw accessible 4K page)
  */
-int hc_init_mem_structures(hc_t *instance)
+int hc_init_mem_structures(hc_t *instance, hcd_t *hcd)
 {
 	int err;
 	assert(instance);
 
-	if ((err = usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11)))
+	if ((err = usb2_bus_init(&instance->bus, hcd, BANDWIDTH_AVAILABLE_USB11)))
 		return err;
 
-	instance->bus.base.ops.create_batch = create_transfer_batch;
-	instance->bus.base.ops.destroy_batch = destroy_transfer_batch;
+	bus_t *bus = (bus_t *) &instance->bus;
+	bus->ops = &uhci_bus_ops;
 
 	/* Init USB frame list page */
 	instance->frame_list = get_page();

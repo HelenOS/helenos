@@ -59,12 +59,9 @@ typedef struct hc hc_t;
 typedef struct {
 	usb2_bus_t base;
 	hc_t *hc;
-
-	/* Stored original ops from base, they are called in our handlers */
-	bus_ops_t parent_ops;
 } ohci_bus_t;
 
-int ohci_bus_init(ohci_bus_t *, hc_t *);
+int ohci_bus_init(ohci_bus_t *, hcd_t *, hc_t *);
 
 /** Get and convert assigned ohci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.

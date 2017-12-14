@@ -76,7 +76,7 @@ int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
 int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *, usb_address_t address);
 void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
 
-int vhc_init(vhc_data_t *instance);
+int vhc_init(vhc_data_t *instance, hcd_t *);
 int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 int vhc_transfer_queue_processor(void *arg);
 

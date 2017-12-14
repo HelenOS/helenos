@@ -81,11 +81,12 @@ static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res, ddf_de
 	if ((err = hc_init_mmio(hc, hw_res)))
 		goto err;
 
+	hc->hcd = hcd;
+
 	if ((err = hc_init_memory(hc, device)))
 		goto err;
 
 	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops, &hc->bus.base);
-	hc->hcd = hcd;
 
 	return EOK;
 err:
