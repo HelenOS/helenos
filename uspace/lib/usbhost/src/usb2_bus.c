@@ -75,20 +75,114 @@ static list_t * get_list(usb2_bus_t *bus, usb_address_t addr)
  * @param[out] speed Assigned speed.
  * @return Error code.
  */
-static int usb2_bus_get_speed(bus_t *bus_base, usb_address_t address, usb_speed_t *speed)
+static int get_speed(usb2_bus_t *bus, usb_address_t address, usb_speed_t *speed)
 {
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
-
-	if (!usb_address_is_valid(address)) {
+	if (!usb_address_is_valid(address))
 		return EINVAL;
-	}
+
+	if (!bus->devices[address].occupied)
+		return ENOENT;
+
+	if (speed)
+		*speed = bus->devices[address].speed;
+
+	return EOK;
+}
+
+/** Get a free USB address
+ *
+ * @param[in] bus Device manager structure to use.
+ * @return Free address, or error code.
+ */
+static int get_free_address(usb2_bus_t *bus, usb_address_t *addr)
+{
+	usb_address_t new_address = bus->last_address;
+	do {
+		new_address = (new_address + 1) % USB_ADDRESS_COUNT;
+		if (new_address == USB_ADDRESS_DEFAULT)
+			new_address = 1;
+		if (new_address == bus->last_address)
+			return ENOSPC;
+	} while (bus->devices[new_address].occupied);
+
+	assert(new_address != USB_ADDRESS_DEFAULT);
+	bus->last_address = new_address;
+
+	*addr = new_address;
+	return EOK;
+}
+
+/** Unregister and destroy all endpoints using given address.
+ * @param bus usb_bus structure, non-null.
+ * @param address USB address.
+ * @param endpoint USB endpoint number.
+ * @param direction Communication direction.
+ * @return Error code.
+ */
+static int release_address(usb2_bus_t *bus, usb_address_t address)
+{
+	if (!usb_address_is_valid(address))
+		return EINVAL;
 
 	const int ret = bus->devices[address].occupied ? EOK : ENOENT;
-	if (speed && bus->devices[address].occupied) {
-		*speed = bus->devices[address].speed;
+	bus->devices[address].occupied = false;
+
+	list_t *list = get_list(bus, address);
+	for (link_t *link = list_first(list); link != NULL; ) {
+		endpoint_t *ep = list_get_instance(link, endpoint_t, link);
+		link = list_next(link, list);
+
+		assert(ep->device->address == address);
+		list_remove(&ep->link);
+
+		usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
+		    address, ep->endpoint, usb_str_direction(ep->direction));
+
+		/* Drop bus reference */
+		endpoint_del_ref(ep);
 	}
 
 	return ret;
+}
+
+/** Request USB address.
+ * @param bus usb_device_manager
+ * @param addr Pointer to requested address value, place to store new address
+ * @parma strict Fail if the requested address is not available.
+ * @return Error code.
+ * @note Default address is only available in strict mode.
+ */
+static int request_address(usb2_bus_t *bus, usb_address_t *addr, bool strict, usb_speed_t speed)
+{
+	int err;
+
+	assert(bus);
+	assert(addr);
+
+	if (!usb_address_is_valid(*addr))
+		return EINVAL;
+
+	/* Only grant default address to strict requests */
+	if ((*addr == USB_ADDRESS_DEFAULT) && !strict) {
+		if ((err = get_free_address(bus, addr)))
+			return err;
+	}
+	else if (bus->devices[*addr].occupied) {
+		if (strict) {
+			return ENOENT;
+		}
+		if ((err = get_free_address(bus, addr)))
+			return err;
+	}
+
+	assert(usb_address_is_valid(*addr));
+	assert(bus->devices[*addr].occupied == false);
+	assert(*addr != USB_ADDRESS_DEFAULT || strict);
+
+	bus->devices[*addr].occupied = true;
+	bus->devices[*addr].speed = speed;
+
+	return EOK;
 }
 
 static const usb_endpoint_desc_t usb2_default_control_ep = {
@@ -105,7 +199,7 @@ static const usb_target_t usb2_default_target = {{
 	.endpoint = 0,
 }};
 
-static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+static int address_device(usb2_bus_t *bus, hcd_t *hcd, device_t *dev)
 {
 	int err;
 
@@ -114,7 +208,7 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 
 	/** Reserve address early, we want pretty log messages */
 	usb_address_t address;
-	if ((err = bus_request_address(bus, &address, false, dev->speed))) {
+	if ((err = request_address(bus, &address, false, dev->speed))) {
 		usb_log_error("Failed to reserve new address: %s.",
 		    str_error(err));
 		return err;
@@ -125,7 +219,7 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	usb_log_debug("Device(%d): Adding default target (0:0)", address);
 
 	endpoint_t *default_ep;
-	err = bus_add_endpoint(bus, dev, &usb2_default_control_ep, &default_ep);
+	err = bus_add_endpoint(&bus->base, dev, &usb2_default_control_ep, &default_ep);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to add default target: %s.",
 		    address, str_error(err));
@@ -149,7 +243,7 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	}
 
 	/* We need to remove ep before we change the address */
-	if ((err = bus_remove_endpoint(bus, default_ep))) {
+	if ((err = bus_remove_endpoint(&bus->base, default_ep))) {
 		usb_log_error("Device(%d): Failed to unregister default target: %s", address, str_error(err));
 		goto err_address;
 	}
@@ -167,7 +261,7 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 
 	/* Register EP on the new address */
 	usb_log_debug("Device(%d): Registering control EP.", address);
-	err = bus_add_endpoint(bus, dev, &control_ep, NULL);
+	err = bus_add_endpoint(&bus->base, dev, &control_ep, NULL);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to register EP0: %s",
 		    address, str_error(err));
@@ -177,23 +271,24 @@ static int usb2_bus_address_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	return EOK;
 
 err_default_control_ep:
-	bus_remove_endpoint(bus, default_ep);
+	bus_remove_endpoint(&bus->base, default_ep);
 	endpoint_del_ref(default_ep);
 err_address:
-	bus_release_address(bus, address);
+	release_address(bus, address);
 	return err;
 }
 
 /** Enumerate a new USB device
  */
-static int usb2_bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
+static int usb2_bus_enumerate_device(bus_t *bus_base, hcd_t *hcd, device_t *dev)
 {
 	int err;
+	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 
 	/* The speed of the new device was reported by the hub when reserving
 	 * default address.
 	 */
-	if ((err = usb2_bus_get_speed(bus, USB_ADDRESS_DEFAULT, &dev->speed))) {
+	if ((err = get_speed(bus, USB_ADDRESS_DEFAULT, &dev->speed))) {
 		usb_log_error("Failed to verify speed: %s.", str_error(err));
 		return err;
 	}
@@ -210,7 +305,7 @@ static int usb2_bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	}
 
 	/* Assign an address to the device */
-	if ((err = usb2_bus_address_device(bus, hcd, dev))) {
+	if ((err = address_device(bus, hcd, dev))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
 		return err;
 	}
@@ -218,33 +313,10 @@ static int usb2_bus_enumerate_device(bus_t *bus, hcd_t *hcd, device_t *dev)
 	/* Read the device descriptor, derive the match ids */
 	if ((err = hcd_ddf_device_explore(hcd, dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
-		bus_release_address(bus, dev->address);
+		release_address(bus, dev->address);
 		return err;
 	}
 
-	return EOK;
-}
-
-/** Get a free USB address
- *
- * @param[in] bus Device manager structure to use.
- * @return Free address, or error code.
- */
-static int usb_bus_get_free_address(usb2_bus_t *bus, usb_address_t *addr)
-{
-	usb_address_t new_address = bus->last_address;
-	do {
-		new_address = (new_address + 1) % USB_ADDRESS_COUNT;
-		if (new_address == USB_ADDRESS_DEFAULT)
-			new_address = 1;
-		if (new_address == bus->last_address)
-			return ENOSPC;
-	} while (bus->devices[new_address].occupied);
-
-	assert(new_address != USB_ADDRESS_DEFAULT);
-	bus->last_address = new_address;
-
-	*addr = new_address;
 	return EOK;
 }
 
@@ -366,89 +438,27 @@ static int usb2_bus_reset_toggle(bus_t *bus_base, usb_target_t target, toggle_re
 	return ret;
 }
 
-/** Unregister and destroy all endpoints using given address.
- * @param bus usb_bus structure, non-null.
- * @param address USB address.
- * @param endpoint USB endpoint number.
- * @param direction Communication direction.
- * @return Error code.
- */
-static int usb2_bus_release_address(bus_t *bus_base, usb_address_t address)
+static int usb2_bus_register_default_address(bus_t *bus_base, usb_speed_t speed)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
-
-	if (!usb_address_is_valid(address))
-		return EINVAL;
-
-	const int ret = bus->devices[address].occupied ? EOK : ENOENT;
-	bus->devices[address].occupied = false;
-
-	list_t *list = get_list(bus, address);
-	for (link_t *link = list_first(list); link != NULL; ) {
-		endpoint_t *ep = list_get_instance(link, endpoint_t, link);
-		link = list_next(link, list);
-
-		assert(ep->device->address == address);
-		list_remove(&ep->link);
-
-		usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
-		    address, ep->endpoint, usb_str_direction(ep->direction));
-
-		/* Drop bus reference */
-		endpoint_del_ref(ep);
-	}
-
-	return ret;
+	usb_address_t addr = USB_ADDRESS_DEFAULT;
+	return request_address(bus, &addr, true, speed);
 }
 
-/** Request USB address.
- * @param bus usb_device_manager
- * @param addr Pointer to requested address value, place to store new address
- * @parma strict Fail if the requested address is not available.
- * @return Error code.
- * @note Default address is only available in strict mode.
- */
-static int usb2_bus_request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
+static int usb2_bus_release_default_address(bus_t *bus_base)
 {
-	int err;
-
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
-	assert(addr);
-
-	if (!usb_address_is_valid(*addr))
-		return EINVAL;
-
-	/* Only grant default address to strict requests */
-	if ((*addr == USB_ADDRESS_DEFAULT) && !strict) {
-		if ((err = usb_bus_get_free_address(bus, addr)))
-			return err;
-	}
-	else if (bus->devices[*addr].occupied) {
-		if (strict) {
-			return ENOENT;
-		}
-		if ((err = usb_bus_get_free_address(bus, addr)))
-			return err;
-	}
-
-	assert(usb_address_is_valid(*addr));
-	assert(bus->devices[*addr].occupied == false);
-	assert(*addr != USB_ADDRESS_DEFAULT || strict);
-
-	bus->devices[*addr].occupied = true;
-	bus->devices[*addr].speed = speed;
-
-	return EOK;
+	return release_address(bus, USB_ADDRESS_DEFAULT);
 }
 
 static const bus_ops_t usb2_bus_ops = {
+	.reserve_default_address = usb2_bus_register_default_address,
+	.release_default_address = usb2_bus_release_default_address,
 	.enumerate_device = usb2_bus_enumerate_device,
 	.create_endpoint = usb2_bus_create_ep,
 	.find_endpoint = usb2_bus_find_ep,
 	.unregister_endpoint = usb2_bus_unregister_ep,
 	.register_endpoint = usb2_bus_register_ep,
-	.request_address = usb2_bus_request_address,
-	.release_address = usb2_bus_release_address,
 	.reset_toggle = usb2_bus_reset_toggle,
 };
 

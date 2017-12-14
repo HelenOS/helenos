@@ -208,7 +208,7 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, xhci_hc_t *hc, device_t *dev)
 	return EOK;
 
 err_address:
-	bus_release_address(&bus->base, dev->address);
+	// TODO: deaddress device
 	return err;
 }
 
@@ -504,16 +504,8 @@ static void endpoint_set_toggle(endpoint_t *ep, bool toggle)
 	// TODO: Implement me!
 }
 
-static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, usb_speed_t speed)
+static int reserve_default_address(bus_t *bus_base, usb_speed_t speed)
 {
-	assert(addr);
-
-	if (*addr != USB_ADDRESS_DEFAULT)
-		/* xHCI does not allow software to assign addresses. */
-		return ENOTSUP;
-
-	assert(strict);
-
 	xhci_bus_t *xhci_bus = bus_to_xhci_bus(bus_base);
 
 	if (xhci_bus->default_address_speed != USB_SPEED_MAX)
@@ -524,11 +516,8 @@ static int request_address(bus_t *bus_base, usb_address_t *addr, bool strict, us
 	return EOK;
 }
 
-static int release_address(bus_t *bus_base, usb_address_t addr)
+static int release_default_address(bus_t *bus_base)
 {
-	if (addr != USB_ADDRESS_DEFAULT)
-		return ENOTSUP;
-
 	xhci_bus_t *xhci_bus = bus_to_xhci_bus(bus_base);
 
 	xhci_bus->default_address_speed = USB_SPEED_MAX;
@@ -561,10 +550,10 @@ static const bus_ops_t xhci_bus_ops = {
 	BIND_OP(unregister_endpoint)
 	BIND_OP(find_endpoint)
 
-	BIND_OP(request_address)
-	BIND_OP(release_address)
-	BIND_OP(reset_toggle)
+	BIND_OP(reserve_default_address)
+	BIND_OP(release_default_address)
 
+	BIND_OP(reset_toggle)
 	BIND_OP(count_bw)
 
 	BIND_OP(endpoint_get_toggle)

@@ -95,8 +95,8 @@ typedef struct {
 	bool (*endpoint_get_toggle)(endpoint_t *);		/**< Optional */
 	void (*endpoint_set_toggle)(endpoint_t *, bool);	/**< Optional */
 
-	int (*request_address)(bus_t *, usb_address_t*, bool, usb_speed_t);
-	int (*release_address)(bus_t *, usb_address_t);
+	int (*reserve_default_address)(bus_t *, usb_speed_t);
+	int (*release_default_address)(bus_t *);
 
 	int (*reset_toggle)(bus_t *, usb_target_t, toggle_reset_mode_t);
 
@@ -136,21 +136,8 @@ int bus_remove_endpoint(bus_t *, endpoint_t *);
 
 size_t bus_count_bw(endpoint_t *, size_t);
 
-int bus_request_address(bus_t *, usb_address_t *, bool, usb_speed_t);
-int bus_release_address(bus_t *, usb_address_t);
-
-
-static inline int bus_reserve_default_address(bus_t *bus, usb_speed_t speed) {
-	usb_address_t addr = USB_ADDRESS_DEFAULT;
-
-	const int r = bus_request_address(bus, &addr, true, speed);
-	assert(addr == USB_ADDRESS_DEFAULT);
-	return r;
-}
-
-static inline int bus_release_default_address(bus_t *bus) {
-	return bus_release_address(bus, USB_ADDRESS_DEFAULT);
-}
+int bus_reserve_default_address(bus_t *, usb_speed_t);
+int bus_release_default_address(bus_t *);
 
 int bus_reset_toggle(bus_t *, usb_target_t, bool);
 

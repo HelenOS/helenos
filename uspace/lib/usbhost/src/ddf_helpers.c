@@ -361,10 +361,8 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub,
 		fibril_mutex_unlock(&hub->guard);
 		const int ret = ddf_fun_unbind(victim->fun);
 		if (ret == EOK) {
-			usb_address_t address = victim->address;
 			bus_remove_device(hcd->bus, hcd, victim);
 			ddf_fun_destroy(victim->fun);
-			bus_release_address(hcd->bus, address);
 		} else {
 			usb_log_warning("Failed to unbind device `%s': %s\n",
 			    ddf_fun_get_name(victim->fun), str_error(ret));

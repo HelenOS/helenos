@@ -198,28 +198,29 @@ int bus_remove_endpoint(bus_t *bus, endpoint_t *ep)
 	return EOK;
 }
 
-int bus_request_address(bus_t *bus, usb_address_t *hint, bool strict, usb_speed_t speed)
+int bus_reserve_default_address(bus_t *bus, usb_speed_t speed)
 {
 	assert(bus);
 
-	if (!bus->ops.request_address)
+	if (!bus->ops.reserve_default_address)
 		return ENOTSUP;
 
 	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.request_address(bus, hint, strict, speed);
+	const int r = bus->ops.reserve_default_address(bus, speed);
 	fibril_mutex_unlock(&bus->guard);
 	return r;
 }
 
-int bus_release_address(bus_t *bus, usb_address_t address)
+int bus_release_default_address(bus_t *bus)
 {
 	assert(bus);
 
-	if (!bus->ops.release_address)
+	/* If this op is not set, allow everything */
+	if (!bus->ops.release_default_address)
 		return ENOTSUP;
 
 	fibril_mutex_lock(&bus->guard);
-	const int r = bus->ops.release_address(bus, address);
+	const int r = bus->ops.release_default_address(bus);
 	fibril_mutex_unlock(&bus->guard);
 	return r;
 }
