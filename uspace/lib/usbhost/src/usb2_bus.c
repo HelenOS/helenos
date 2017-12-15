@@ -210,7 +210,7 @@ static int address_device(device_t *dev)
 	dev->address = USB_ADDRESS_DEFAULT;
 
 	/** Reserve address early, we want pretty log messages */
-	usb_address_t address;
+	usb_address_t address = USB_ADDRESS_DEFAULT;
 	if ((err = request_address(bus, &address, false, dev->speed))) {
 		usb_log_error("Failed to reserve new address: %s.",
 		    str_error(err));
