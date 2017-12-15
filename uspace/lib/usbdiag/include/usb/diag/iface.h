@@ -30,26 +30,24 @@
  * @{
  */
 /** @file
- * Testing stuff
+ * @brief USB diagnostic device communication interface.
  */
+#ifndef LIBUSBDIAG_IFACE_H_
+#define LIBUSBDIAG_IFACE_H_
 
 #include <async.h>
-#include <usb/diag/diag.h>
+#include <ddf/driver.h>
 
-int usb_diag_test(int x, int *out)
-{
-	sysarg_t _out;
-	async_sess_t *session = NULL;
-	async_exch_t *exch = async_exchange_begin(session);
-	const int rc = async_req_1_1(exch, USB_DIAG_IN_TEST, x, &_out);
-	async_exchange_end(exch);
+async_sess_t *usb_diag_connect(devman_handle_t);
+void usb_diag_disconnect(async_sess_t*);
+int usb_diag_test(async_exch_t*, int, int*);
 
-	if (out)
-		*out = (int) _out;
+/** USB diagnostic device communication interface. */
+typedef struct {
+	int (*test)(ddf_fun_t*, int, int*);
+} usb_diag_iface_t;
 
-	return rc;
-}
-
+#endif
 /**
  * @}
  */

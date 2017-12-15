@@ -35,13 +35,53 @@
  */
 
 #include <stdio.h>
+#include <loc.h>
 #include <usb/diag/diag.h>
+#include <usb/diag/iface.h>
+#include <devman.h>
+#include <errno.h>
 
 #define NAME "tmon"
 
 static void print_usage(char *app_name)
 {
 	printf(NAME ": hello USB transfers!\n\n");
+}
+
+static void print_list_item(service_id_t svc)
+{
+	int rc;
+	devman_handle_t diag_handle = 0;
+
+	if ((rc = devman_fun_sid_to_handle(svc, &diag_handle))) {
+		printf(NAME ": Error resolving handle of device with SID %ld, skipping.\n", svc);
+		return;
+	}
+}
+
+static int print_list()
+{
+	category_id_t diag_cat;
+	service_id_t *svcs;
+	size_t count;
+	int rc;
+
+	if ((rc = loc_category_get_id(USB_DIAG_CATEGORY, &diag_cat, 0))) {
+		printf(NAME ": Error resolving category '%s'", USB_DIAG_CATEGORY);
+		return 1;
+	}
+
+	if ((rc = loc_category_get_svcs(diag_cat, &svcs, &count))) {
+		printf(NAME ": Error getting list of host controllers.\n");
+		return 1;
+	}
+
+	for (unsigned i = 0; i < count; ++i) {
+		print_list_item(svcs[i]);
+	}
+
+	free(svcs);
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -51,15 +91,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	int out;
-	const int rc = usb_diag_test(0, &out);
-	if (rc) {
-		printf("Error: %d\n", rc);
-	} else {
-		printf("The number is %d.\n", out);
-	}
-
-	return 0;
+	return print_list();
 }
 
 /** @}

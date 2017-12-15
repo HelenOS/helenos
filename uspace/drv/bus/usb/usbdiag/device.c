@@ -35,21 +35,49 @@
  */
 #include <errno.h>
 #include <usb/debug.h>
+#include <usb/diag/iface.h>
 
 #include "device.h"
 
 #define NAME "usbdiag"
 
+static void connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	// usb_diag_fun_t *fun = (usb_diag_fun_t *) ddf_fun_data_get((ddf_fun_t *) arg);
+
+	// FIXME: handle connection
+}
+
+static int some_test(ddf_fun_t *fun, int x, int *y)
+{
+	*y = x + 42;
+	return EOK;
+}
+
+static usb_diag_iface_t diag_interface = {
+	.test = some_test,
+};
+
+static ddf_dev_ops_t diag_ops = {
+	.interfaces[USBDIAG_DEV_IFACE] = &diag_interface
+};
+
 static int device_init(usb_diag_dev_t *dev)
 {
-	// TODO: allocate data structures, set up stuffs
+	ddf_fun_t *fun = usb_device_ddf_fun_create(dev->usb_dev, fun_exposed, "tmon");
+	if (!fun)
+		return ENOMEM;
 
+	ddf_fun_set_conn_handler(fun, connection);
+	ddf_fun_set_ops(fun, &diag_ops);
+
+	dev->fun = fun;
 	return EOK;
 }
 
 static void device_fini(usb_diag_dev_t *dev)
 {
-	// TODO: tear down data structures
+	ddf_fun_destroy(dev->fun);
 }
 
 int usb_diag_dev_create(usb_device_t *dev, usb_diag_dev_t **out_diag_dev)

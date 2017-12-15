@@ -31,6 +31,6 @@ LIBRARY = libusbdiag
 LIBS = drv usb
 
 SOURCES = \
-	src/test.c
+	src/remote_usbdiag.c
 
 include $(USPACE_PREFIX)/Makefile.common

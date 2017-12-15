@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 BINARY = tmon
 
-LIBS = usbdiag
+LIBS = drv usbdiag
 
 SOURCES = \
 	main.c

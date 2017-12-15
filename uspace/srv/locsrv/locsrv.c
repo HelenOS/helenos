@@ -1352,6 +1352,9 @@ static bool loc_init(void)
 	cat = category_new("test3");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("usbdiag");
+	categ_dir_add_cat(&cdir, cat);
+
 	cat = category_new("usbhc");
 	categ_dir_add_cat(&cdir, cat);
 

@@ -39,10 +39,11 @@
 #include <usb/dev/device.h>
 
 /**
- * USB debug device.
+ * USB diagnostic device.
  */
 typedef struct usb_diag_dev {
 	usb_device_t *usb_dev;
+	ddf_fun_t *fun;
 } usb_diag_dev_t;
 
 int usb_diag_dev_create(usb_device_t *, usb_diag_dev_t **);

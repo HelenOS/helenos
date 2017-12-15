@@ -37,48 +37,65 @@
 #include <usb/debug.h>
 #include <usb/dev/driver.h>
 #include <usb/diag/diag.h>
+#include <str_error.h>
 
 #include "usbdiag.h"
 #include "device.h"
 
 #define NAME "usbdiag"
 
-static void usb_diag_test_impl(ipc_callid_t rid, ipc_call_t *request)
-{
-	int x = IPC_GET_ARG1(*request);
-	int ret = 4200 + x;
-	async_answer_0(rid, ret);
-}
-
 static int device_add(usb_device_t *dev)
 {
+	int rc;
 	usb_log_info("Adding device '%s'", usb_device_get_name(dev));
 
-	int err;
-
 	usb_diag_dev_t *diag_dev;
-	if ((err = usb_diag_dev_create(dev, &diag_dev)))
-		return err;
+	if ((rc = usb_diag_dev_create(dev, &diag_dev))) {
+		usb_log_error("Failed create device: %s.\n", str_error(rc));
+		goto err;
+	}
 
-	/* TODO: Register device in some list. */
-	/* TODO: Register device DDF function. */
+	if ((rc = ddf_fun_bind(diag_dev->fun))) {
+		usb_log_error("Failed to bind DDF function: %s.\n", str_error(rc));
+		goto err_create;
+	}
+
+	if ((rc = ddf_fun_add_to_category(diag_dev->fun, USB_DIAG_CATEGORY))) {
+		usb_log_error("Failed add DDF to category '"
+		    USB_DIAG_CATEGORY "': %s.\n", str_error(rc));
+		goto err_bind;
+	}
 
 	return EOK;
+
+err_bind:
+	ddf_fun_unbind(diag_dev->fun);
+err_create:
+	usb_diag_dev_destroy(diag_dev);
+err:
+	return rc;
 }
 
 static int device_remove(usb_device_t *dev)
 {
+	int rc;
 	usb_log_info("Removing device '%s'", usb_device_get_name(dev));
 
 	usb_diag_dev_t *diag_dev = usb_diag_dev_get(dev);
 
 	/* TODO: Make sure nothing is going on with the device. */
-	/* TODO: Unregister device DDF function. */
-	/* TODO: Remove device from list */
+
+	if ((rc = ddf_fun_unbind(diag_dev->fun))) {
+		usb_log_error("Failed to unbind DDF function: %s\n", str_error(rc));
+		goto err;
+	}
 
 	usb_diag_dev_destroy(diag_dev);
 
 	return EOK;
+
+err:
+	return rc;
 }
 
 static int device_gone(usb_device_t *dev)
@@ -106,43 +123,6 @@ static int function_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-static void connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	bool cont = true;
-
-	async_answer_0(iid, EOK);
-
-	while (cont) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-
-		if (!IPC_GET_IMETHOD(call))
-			break;
-
-		switch (IPC_GET_IMETHOD(call)) {
-		case USB_DIAG_IN_TEST:
-			usb_diag_test_impl(callid, &call);
-			break;
-		default:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		}
-	}
-}
-
-static int server_fibril(void *arg)
-{
-	// async_set_client_data_constructor(NULL);
-	// async_set_client_data_destructor(NULL);
-	async_set_fallback_port_handler(connection, NULL);
-	// async_event_task_subscribe();
-	// service_register();
-	async_manager();
-
-	/* Never reached. */
-	return EOK;
-}
-
 /** USB diagnostic driver ops. */
 static const usb_driver_ops_t diag_driver_ops = {
 	.device_add = device_add,
@@ -164,12 +144,6 @@ int main(int argc, char *argv[])
 	printf(NAME ": USB diagnostic device driver.\n");
 
 	log_init(NAME);
-
-	/* Start usbdiag service. */
-	fid_t srv = fibril_create(server_fibril, NULL);
-	if (!srv)
-		return ENOMEM;
-	fibril_add_ready(srv);
 
 	return usb_driver_main(&diag_driver);
 }
