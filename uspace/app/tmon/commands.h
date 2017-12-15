@@ -30,53 +30,15 @@
  * @{
  */
 /**
- * @file
- * USB transfer debugging.
+ * @file USB diagnostic device commands.
  */
 
-#include <stdio.h>
-#include "commands.h"
+#ifndef TMON_COMMANDS_H_
+#define TMON_COMMANDS_H_
 
-#define NAME "tmon"
+int tmon_list(int, char **);
 
-static void print_usage(char *app_name)
-{
-	printf(NAME ": hello USB transfers!\n\n");
-}
-
-typedef struct {
-	const char *name;
-	int (*action)(int, char **);
-} usb_diag_cmd_t;
-
-static usb_diag_cmd_t commands[] = {
-	{
-		.name = "list",
-		.action = tmon_list,
-	},
-	{
-		.name = NULL
-	}
-};
-
-int main(int argc, char *argv[])
-{
-	// Find a command to execute.
-	usb_diag_cmd_t *cmd = NULL;
-	for (int i = 0; argc > 1 && commands[i].name; ++i) {
-		if (str_cmp(argv[1], commands[i].name) == 0) {
-			cmd = commands + i;
-			break;
-		}
-	}
-
-	if (!cmd) {
-		print_usage(argv[0]);
-		return -1;
-	}
-
-	return cmd->action(argc - 2, argv + 2);
-}
+#endif /* TMON_COMMANDS_H_ */
 
 /** @}
  */

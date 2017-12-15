@@ -32,6 +32,7 @@ BINARY = tmon
 LIBS = drv usbdiag
 
 SOURCES = \
-	main.c
+	main.c\
+	list.c
 
 include $(USPACE_PREFIX)/Makefile.common

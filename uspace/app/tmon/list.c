@@ -35,47 +35,51 @@
  */
 
 #include <stdio.h>
+#include <devman.h>
+#include <loc.h>
+#include <usb/diag/diag.h>
+#include <usb/diag/iface.h>
+#include <errno.h>
 #include "commands.h"
 
 #define NAME "tmon"
 
-static void print_usage(char *app_name)
+static void print_list_item(service_id_t svc)
 {
-	printf(NAME ": hello USB transfers!\n\n");
+	int rc;
+	devman_handle_t diag_handle = 0;
+
+	if ((rc = devman_fun_sid_to_handle(svc, &diag_handle))) {
+		printf(NAME ": Error resolving handle of device with SID %ld, skipping.\n", svc);
+		return;
+	}
+
+	// FIXME: print something
 }
 
-typedef struct {
-	const char *name;
-	int (*action)(int, char **);
-} usb_diag_cmd_t;
-
-static usb_diag_cmd_t commands[] = {
-	{
-		.name = "list",
-		.action = tmon_list,
-	},
-	{
-		.name = NULL
-	}
-};
-
-int main(int argc, char *argv[])
+int tmon_list(int argc, char *argv[])
 {
-	// Find a command to execute.
-	usb_diag_cmd_t *cmd = NULL;
-	for (int i = 0; argc > 1 && commands[i].name; ++i) {
-		if (str_cmp(argv[1], commands[i].name) == 0) {
-			cmd = commands + i;
-			break;
-		}
+	category_id_t diag_cat;
+	service_id_t *svcs;
+	size_t count;
+	int rc;
+
+	if ((rc = loc_category_get_id(USB_DIAG_CATEGORY, &diag_cat, 0))) {
+		printf(NAME ": Error resolving category '%s'", USB_DIAG_CATEGORY);
+		return 1;
 	}
 
-	if (!cmd) {
-		print_usage(argv[0]);
-		return -1;
+	if ((rc = loc_category_get_svcs(diag_cat, &svcs, &count))) {
+		printf(NAME ": Error getting list of host controllers.\n");
+		return 1;
 	}
 
-	return cmd->action(argc - 2, argv + 2);
+	for (unsigned i = 0; i < count; ++i) {
+		print_list_item(svcs[i]);
+	}
+
+	free(svcs);
+	return 0;
 }
 
 /** @}
