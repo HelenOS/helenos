@@ -31,16 +31,24 @@
  */
 /**
  * @file
- * Main routines of USB debug device driver.
+ * Main routines of USB diagnostic device driver.
  */
 #include <errno.h>
 #include <usb/debug.h>
 #include <usb/dev/driver.h>
+#include <usb/diag/diag.h>
 
 #include "usbdiag.h"
 #include "device.h"
 
 #define NAME "usbdiag"
+
+static void usb_diag_test_impl(ipc_callid_t rid, ipc_call_t *request)
+{
+	int x = IPC_GET_ARG1(*request);
+	int ret = 4200 + x;
+	async_answer_0(rid, ret);
+}
 
 static int device_add(usb_device_t *dev)
 {
@@ -98,7 +106,44 @@ static int function_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-/** USB debug driver ops. */
+static void connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	bool cont = true;
+
+	async_answer_0(iid, EOK);
+
+	while (cont) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+
+		if (!IPC_GET_IMETHOD(call))
+			break;
+
+		switch (IPC_GET_IMETHOD(call)) {
+		case USB_DIAG_IN_TEST:
+			usb_diag_test_impl(callid, &call);
+			break;
+		default:
+			async_answer_0(callid, ENOTSUP);
+			break;
+		}
+	}
+}
+
+static int server_fibril(void *arg)
+{
+	// async_set_client_data_constructor(NULL);
+	// async_set_client_data_destructor(NULL);
+	async_set_fallback_port_handler(connection, NULL);
+	// async_event_task_subscribe();
+	// service_register();
+	async_manager();
+
+	/* Never reached. */
+	return EOK;
+}
+
+/** USB diagnostic driver ops. */
 static const usb_driver_ops_t diag_driver_ops = {
 	.device_add = device_add,
 	.device_rem = device_remove,
@@ -107,7 +152,7 @@ static const usb_driver_ops_t diag_driver_ops = {
 	.function_offline = function_offline
 };
 
-/** USB debug driver. */
+/** USB diagnostic driver. */
 static const usb_driver_t diag_driver = {
 	.name = NAME,
 	.ops = &diag_driver_ops,
@@ -116,9 +161,15 @@ static const usb_driver_t diag_driver = {
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": USB debug device driver.\n");
+	printf(NAME ": USB diagnostic device driver.\n");
 
 	log_init(NAME);
+
+	/* Start usbdiag service. */
+	fid_t srv = fibril_create(server_fibril, NULL);
+	if (!srv)
+		return ENOMEM;
+	fibril_add_ready(srv);
 
 	return usb_driver_main(&diag_driver);
 }

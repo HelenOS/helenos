@@ -28,7 +28,7 @@
 
 USPACE_PREFIX = ../../../..
 
-LIBS = usbdev usb drv
+LIBS = usbdiag usbdev usb drv
 
 BINARY = usbdiag
 

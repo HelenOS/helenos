@@ -33,11 +33,21 @@
  * Testing stuff
  */
 
+#include <async.h>
 #include <usb/diag/diag.h>
 
-int usb_diag_test(int x)
+int usb_diag_test(int x, int *out)
 {
-	return x + 42;
+	sysarg_t _out;
+	async_sess_t *session = NULL;
+	async_exch_t *exch = async_exchange_begin(session);
+	const int rc = async_req_1_1(exch, USB_DIAG_IN_TEST, x, &_out);
+	async_exchange_end(exch);
+
+	if (out)
+		*out = (int) _out;
+
+	return rc;
 }
 
 /**

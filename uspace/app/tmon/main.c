@@ -51,7 +51,13 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	printf("The number is %d.\n", usb_diag_test(0));
+	int out;
+	const int rc = usb_diag_test(0, &out);
+	if (rc) {
+		printf("Error: %d\n", rc);
+	} else {
+		printf("The number is %d.\n", out);
+	}
 
 	return 0;
 }

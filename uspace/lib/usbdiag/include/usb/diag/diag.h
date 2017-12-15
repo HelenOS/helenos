@@ -35,8 +35,14 @@
 #ifndef LIBUSBDIAG_DIAG_H_
 #define LIBUSBDIAG_DIAG_H_
 
+#include <ipc/common.h>
+
+typedef enum {
+  USB_DIAG_IN_TEST = IPC_FIRST_USER_METHOD,
+} usb_diag_in_request_t;
+
 /** Just a dummy symbol to make compiler happy. TODO: remove it */
-int usb_diag_test(int);
+int usb_diag_test(int, int*);
 
 #endif
 /**

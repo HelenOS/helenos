@@ -28,7 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libusbdiag
-LIBS = usb
+LIBS = drv usb
 
 SOURCES = \
 	src/test.c
