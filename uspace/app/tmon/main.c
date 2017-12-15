@@ -55,6 +55,10 @@ static usb_diag_cmd_t commands[] = {
 		.action = tmon_list,
 	},
 	{
+		.name = "test-bulk",
+		.action = tmon_test_bulk,
+	},
+	{
 		.name = NULL
 	}
 };

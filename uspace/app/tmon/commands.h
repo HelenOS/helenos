@@ -37,6 +37,7 @@
 #define TMON_COMMANDS_H_
 
 int tmon_list(int, char **);
+int tmon_test_bulk(int, char **);
 
 #endif /* TMON_COMMANDS_H_ */
 

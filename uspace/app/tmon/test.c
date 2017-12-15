@@ -37,27 +37,14 @@
 #include <stdio.h>
 #include <devman.h>
 #include <loc.h>
-#include <usb/diag/diag.h>
-#include <usb/diag/iface.h>
 #include <errno.h>
+#include <str_error.h>
+#include <usb/diag/diag.h>
 #include "commands.h"
 
 #define NAME "tmon"
 
-static void print_list_item(service_id_t svc)
-{
-	int rc;
-	devman_handle_t diag_handle = 0;
-
-	if ((rc = devman_fun_sid_to_handle(svc, &diag_handle))) {
-		printf(NAME ": Error resolving handle of device with SID %ld, skipping.\n", svc);
-		return;
-	}
-
-	// FIXME: print something
-}
-
-int tmon_list(int argc, char *argv[])
+static int resolve_default_fun(devman_handle_t *fun)
 {
 	category_id_t diag_cat;
 	service_id_t *svcs;
@@ -66,20 +53,74 @@ int tmon_list(int argc, char *argv[])
 
 	if ((rc = loc_category_get_id(USB_DIAG_CATEGORY, &diag_cat, 0))) {
 		printf(NAME ": Error resolving category '%s'", USB_DIAG_CATEGORY);
-		return 1;
+		return rc;
 	}
 
 	if ((rc = loc_category_get_svcs(diag_cat, &svcs, &count))) {
 		printf(NAME ": Error getting list of diagnostic devices.\n");
+		return rc;
+	}
+
+	// There must be exactly one diagnostic device for this to work.
+	if (count != 1) {
+		if (count) {
+			printf(NAME ": Found %ld devices. Please specify which to use.\n", count);
+		} else {
+			printf(NAME ": No diagnostic devices found.\n");
+		}
+		return ENOENT;
+	}
+
+	if ((rc = devman_fun_sid_to_handle(svcs[0], fun))) {
+		printf(NAME ": Error resolving handle of device with SID %ld.\n", svcs[0]);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int resolve_named_fun(const char *dev_path, devman_handle_t *fun)
+{
+	int rc;
+	service_id_t svc;
+	if ((rc = loc_service_get_id(dev_path, &svc, IPC_FLAG_BLOCKING))) {
+		printf(NAME ": Error resolving device. %s\n", str_error(rc));
+		return rc;
+	}
+
+	if ((rc = devman_fun_sid_to_handle(svc, fun))) {
+		printf(NAME ": Error resolving handle of device with SID %ld.\n", svc);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int resolve_and_test(int argc, char *argv[], int (*test)(devman_handle_t)) {
+	devman_handle_t fun = -1;
+
+	if (argc == 0) {
+		if (resolve_default_fun(&fun))
+			return 1;
+	} else if (argc == 1) {
+		if (resolve_named_fun(argv[0], &fun))
+			return 1;
+	} else {
+		printf(NAME ": Too many arguments provided.\n");
 		return 1;
 	}
 
-	for (unsigned i = 0; i < count; ++i) {
-		print_list_item(svcs[i]);
-	}
+	return test(fun);
+}
 
-	free(svcs);
+static int bulk_worker(devman_handle_t fun) {
+	// TODO: do some testing
 	return 0;
+}
+
+int tmon_test_bulk(int argc, char *argv[])
+{
+	return resolve_and_test(argc, argv, bulk_worker);
 }
 
 /** @}
