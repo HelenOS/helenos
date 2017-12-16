@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <usb/diag/diag.h>
+#include <usb/diag/iface.h>
 #include "commands.h"
 
 #define NAME "tmon"
@@ -114,7 +115,21 @@ static int resolve_and_test(int argc, char *argv[], int (*test)(devman_handle_t)
 }
 
 static int bulk_worker(devman_handle_t fun) {
+	async_sess_t *sess = usb_diag_connect(fun);
+	async_exch_t *exch = async_exchange_begin(sess);
+
 	// TODO: do some testing
+	int y;
+	int rc = usb_diag_test(exch, 4200, &y);
+
+	if (rc) {
+		printf(NAME ": %s\n", str_error(rc));
+	} else {
+		printf("The number is %d.\n", y);
+	}
+
+	async_exchange_end(exch);
+	usb_diag_disconnect(sess);
 	return 0;
 }
 

@@ -38,8 +38,6 @@
 #include <devman.h>
 #include <loc.h>
 #include <usb/diag/diag.h>
-#include <usb/diag/iface.h>
-#include <errno.h>
 #include "commands.h"
 
 #define NAME "tmon"
