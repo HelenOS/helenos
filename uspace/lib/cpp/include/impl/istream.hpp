@@ -60,7 +60,6 @@ namespace std
             explicit basic_istream(basic_streambuf<Char, Traits>* sb)
                 : gcount_{0}
             {
-                printf("ISTREAM\n");
                 basic_ios<Char, Traits>::init(sb);
             }
 
@@ -97,7 +96,7 @@ namespace std
                                     }
 
                                     auto c = Traits::to_char_type(i);
-                                    if (!ct.is(c, ct.space))
+                                    if (!ct.is(ctype_base::space, c))
                                         break;
                                     else
                                         is.rdbuf()->sbumpc();
