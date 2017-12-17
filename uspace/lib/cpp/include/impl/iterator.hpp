@@ -818,17 +818,17 @@ namespace std
             class proxy_type
             {
                 public:
-                    char_type operator*()
-                    {
-                        return char_;
-                    }
-
-                private:
-                    proxy_type(char_type c, streambuf_type sbuf)
+                    proxy_type(int_type c, streambuf_type* sbuf)
                         : char_{c}, sbuf_{sbuf}
                     { /* DUMMY BODY */ }
 
-                    char_type char_;
+                    char_type operator*()
+                    {
+                        return traits_type::to_char_type(char_);
+                    }
+
+                private:
+                    int_type char_;
 
                     streambuf_type* sbuf_;
             };
@@ -853,7 +853,7 @@ namespace std
                 : sbuf_{proxy.sbuf_}
             { /* DUMMY BODY */ }
 
-            char_type operator*() const
+            char_type operator*() /* const */ // TODO: Should be const :/
             {
                 if (sbuf_)
                 {
