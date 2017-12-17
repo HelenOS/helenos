@@ -41,13 +41,6 @@
 
 #define NAME "usbdiag"
 
-static void connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	// usb_diag_fun_t *fun = (usb_diag_fun_t *) ddf_fun_data_get((ddf_fun_t *) arg);
-
-	// FIXME: handle connection
-}
-
 static int some_test(ddf_fun_t *fun, int x, int *y)
 {
 	*y = x + 42;
@@ -68,7 +61,6 @@ static int device_init(usb_diag_dev_t *dev)
 	if (!fun)
 		return ENOMEM;
 
-	ddf_fun_set_conn_handler(fun, connection);
 	ddf_fun_set_ops(fun, &diag_ops);
 
 	dev->fun = fun;
