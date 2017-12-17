@@ -81,14 +81,16 @@ namespace std::aux
                 {
                     auto c = fgetc(in_);
                     putchar(c); // TODO: Temporary source of feedback.
-                    auto ic = traits_type::to_int_type(c);
-                    if (traits_type::eq_int_type(ic, traits_type::eof()))
+                    if (c == traits_type::eof())
                         break;
 
-                    buffer_[i] = c;
+                    buffer_[i] = static_cast<char_type>(c);
 
-                    if (c == '\n')
+                    if (buffer_[i] == '\n')
+                    {
+                        ++i;
                         break;
+                    }
                 }
 
                 input_next_ = input_begin_;
@@ -102,9 +104,8 @@ namespace std::aux
 
             int_type uflow() override
             {
-                // TODO: what is the difference between uflow and underflow?
                 auto res = underflow();
-                ++*input_next_;
+                ++input_next_;
 
                 return res;
             }
