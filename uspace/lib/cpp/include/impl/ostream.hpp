@@ -134,92 +134,263 @@ namespace std
 
             basic_ostream<Char, Traits>& operator<<(bool x)
             {
-                // TODO: sentry etc
-                /* bool failed = use_facet< */
-                /*     num_put<char_type, ostreambuf_iterator<char_type, traits_type>> */
-                /* >(this->getloc()).put(*this, *this, this->fill(), x).failed(); */
+                sentry sen{*this};
 
-                /* if (failed) */
-                /*     this->setstate(ios_base::badbit); */
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), x).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
 
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(short x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    auto basefield = (this->flags() & ios_base::basefield);
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(),
+                                          (basefield == ios_base::oct || basefield == ios_base::hex)
+                                          ? static_cast<long>(static_cast<unsigned short>(x))
+                                          : static_cast<long>(x)).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(unsigned short x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(),
+                                          static_cast<unsigned long>(x)).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(int x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    auto basefield = (this->flags() & ios_base::basefield);
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(),
+                                          (basefield == ios_base::oct || basefield == ios_base::hex)
+                                          ? static_cast<long>(static_cast<unsigned int>(x))
+                                          : static_cast<long>(x)).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(unsigned int x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(),
+                                          static_cast<unsigned long>(x)).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(long x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), x).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(unsigned long x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), x).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(long long x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), x).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(unsigned long long x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), x).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(float x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), static_cast<double>(x)).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(double x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), x).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(long double x)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), x).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(const void* p)
             {
-                // TODO: implement
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    bool failed = use_facet<
+                        num_put<char_type, ostreambuf_iterator<char_type, traits_type>>
+                    >(this->getloc()).put(*this, *this, this->fill(), p).failed();
+
+                    if (failed)
+                        this->setstate(ios_base::badbit);
+                }
+
                 return *this;
             }
 
             basic_ostream<Char, Traits>& operator<<(basic_streambuf<Char, Traits>* sb)
             {
-                // TODO: implement
+                if (!sb)
+                    return *this;
+
+                sentry sen{*this};
+
+                if (sen)
+                {
+                    size_t count{};
+
+                    int_type c = sb->sgetc();
+                    while (!traits_type::eq_int_type(c, traits_type::eof()))
+                    {
+                        this->put(traits_type::to_char_type(c));
+
+                        if (!(*this))
+                            break;
+
+                        ++count;
+                        sb->sbumpc();
+                        c = sb->sgetc();
+                    }
+
+                    if (count == 0)
+                        this->setstate(ios_base::failbit);
+                }
+
                 return *this;
             }
 
@@ -331,23 +502,311 @@ namespace std
     using ostream  = basic_ostream<char>;
     using wostream = basic_ostream<wchar_t>;
 
+    /**
+     * 27.7.6.3.4, character inserter function templates:
+     */
+
+    template<class Char, class Traits>
+    basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os,
+                                            Char c)
+    {
+        typename basic_ostream<Char, Traits>::sentry sen{os};
+
+        if (sen)
+        {
+            if (os.width() > 0)
+            {
+                if ((os.flags() & ios_base::adjustfield) != ios_base::left)
+                {
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                    os.put(c);
+                }
+                else
+                {
+                    os.put(c);
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                }
+            }
+            else
+                os.put(c);
+
+            os.width(0);
+        }
+
+        return os;
+    }
+
+    template<class Char, class Traits>
+    basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os,
+                                            char c)
+    {
+        typename basic_ostream<Char, Traits>::sentry sen{os};
+
+        if (sen)
+        {
+            if (os.width() > 0)
+            {
+                if ((os.flags() & ios_base::adjustfield) != ios_base::left)
+                {
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                    os.put(os.widen(c));
+                }
+                else
+                {
+                    os.put(os.widen(c));
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                }
+            }
+            else
+                os.put(os.widen(c));
+
+            os.width(0);
+        }
+        return os;
+    }
+
+    template<class Traits>
+    basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
+                                            char c)
+    {
+        typename basic_ostream<char, Traits>::sentry sen{os};
+
+        if (sen)
+        {
+            if (os.width() > 0)
+            {
+                if ((os.flags() & ios_base::adjustfield) != ios_base::left)
+                {
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                    os.put(c);
+                }
+                else
+                {
+                    os.put(c);
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                }
+            }
+            else
+                os.put(c);
+
+            os.width(0);
+            }
+
+        return os;
+    }
+
+    template<class Traits>
+    basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
+                                            signed char c)
+    {
+        typename basic_ostream<char, Traits>::sentry sen{os};
+
+        if (sen)
+        {
+            if (os.width() > 0)
+            {
+                if ((os.flags() & ios_base::adjustfield) != ios_base::left)
+                {
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                    os.put(c);
+                }
+                else
+                {
+                    os.put(c);
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                }
+            }
+            else
+                os.put(c);
+
+            os.width(0);
+        }
+
+        return os;
+    }
+
+    template<class Traits>
+    basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
+                                            unsigned char c)
+    {
+        typename basic_ostream<char, Traits>::sentry sen{os};
+
+        if (sen)
+        {
+            if (os.width() > 0)
+            {
+                if ((os.flags() & ios_base::adjustfield) != ios_base::left)
+                {
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                    os.put(c);
+                }
+                else
+                {
+                    os.put(c);
+                    for (decltype(os.width()) i = 0; i < os.width(); ++i)
+                        os.put(os.fill());
+                }
+            }
+            else
+                os.put(c);
+
+            os.width(0);
+        }
+
+        return os;
+    }
+
+    namespace aux
+    {
+        template<class Char, class Traits>
+        basic_ostream<Char, Traits>& insert(basic_ostream<Char, Traits>& os,
+                                            const Char* str, size_t len)
+        {
+            if (os.width() > 0 && static_cast<size_t>(os.width()) > len)
+            {
+                size_t to_pad = (static_cast<size_t>(os.width()) - len);
+
+                if ((os.flags() & ios_base::adjustfield) != ios_base::left)
+                {
+                    for (size_t i = 0; i < to_pad; ++i)
+                        os.put(os.fill());
+                    for (size_t i = 0; i < len; ++i)
+                        os.put(os.widen(str[i]));
+                }
+                else
+                {
+                    for (size_t i = 0; i < len; ++i)
+                        os.put(os.widen(str[i]));
+                    for (size_t i = 0; i < to_pad; ++i)
+                        os.put(os.fill());
+                }
+            }
+            else
+            {
+                for (size_t i = 0; i < len; ++i)
+                    os.put(os.widen(str[i]));
+            }
+
+            os.width(0);
+            return os;
+        }
+    }
+
+    template<class Char, class Traits>
+    basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os,
+                                            const Char* str)
+    {
+        typename basic_ostream<Char, Traits>::sentry sen{os};
+
+        auto len = Traits::length(str);
+
+        return aux::insert(os, str, len);
+    }
+
+    template<class Char, class Traits>
+    basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os,
+                                            const char* str)
+    {
+        typename basic_ostream<Char, Traits>::sentry sen{os};
+
+        auto len = std::char_traits<char>::length(str);
+
+        return aux::insert(os, str, len);
+    }
+
+    template<class Traits>
+    basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
+                                            const char* str)
+    {
+        typename basic_ostream<char, Traits>::sentry sen{os};
+
+        if (sen)
+        {
+            auto len = Traits::length(str);
+
+            return aux::insert(os, str, len);
+        }
+        else
+            return os;
+    }
+
+    template<class Traits>
+    basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
+                                            const signed char* str)
+    {
+        typename basic_ostream<char, Traits>::sentry sen{os};
+
+        if (sen)
+        {
+            auto len = Traits::length(reinterpret_cast<const char*>(str));
+
+            return aux::insert(os, str, len);
+        }
+        else
+            return os;
+    }
+
+    template<class Traits>
+    basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
+                                            const unsigned char* str)
+    {
+        typename basic_ostream<char, Traits>::sentry sen{os};
+
+        if (sen)
+        {
+            auto len = Traits::length(reinterpret_cast<const char*>(str));
+
+            return aux::insert(os, str, len);
+        }
+        else
+            return os;
+    }
+
+    /**
+     * 27.7.3.8, standard basic_ostream manipulators:
+     */
+
     template<class Char, class Traits = char_traits<Char>>
     basic_ostream<Char, Traits>& endl(basic_ostream<Char, Traits>& os)
     {
-        os.put('\n');
+        os.put(os.widen('\n'));
         os.flush();
 
         return os;
     }
 
     template<class Char, class Traits = char_traits<Char>>
-    basic_ostream<Char, Traits>& ends(basic_ostream<Char, Traits>& os);
+    basic_ostream<Char, Traits>& ends(basic_ostream<Char, Traits>& os)
+    {
+        os.put(Char{});
+
+        return os;
+    }
 
     template<class Char, class Traits = char_traits<Char>>
-    basic_ostream<Char, Traits>& flush(basic_ostream<Char, Traits>& os);
+    basic_ostream<Char, Traits>& flush(basic_ostream<Char, Traits>& os)
+    {
+        os.flush();
+
+        return os;
+    }
 
     template<class Char, class Traits = char_traits<Char>, class T>
-    basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os, const T& x);
+    basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>&& os, const T& x)
+    {
+        os << x;
+
+        return os;
+    }
 }
 
 #endif
