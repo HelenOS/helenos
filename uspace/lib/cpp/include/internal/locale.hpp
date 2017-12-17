@@ -29,7 +29,7 @@
 #ifndef LIBCPP_INTERNAL_LOCALE
 #define LIBCPP_INTERNAL_LOCALE
 
-#include <string>
+#include <impl/string.hpp>
 
 namespace std
 {

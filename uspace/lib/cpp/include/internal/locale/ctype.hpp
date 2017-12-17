@@ -31,7 +31,7 @@
 
 #include <cctype>
 #include <internal/locale.hpp>
-#include <string>
+#include <impl/string.hpp>
 
 namespace std
 {

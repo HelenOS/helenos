@@ -89,7 +89,8 @@ namespace std
             using char_type   = char;
             using string_type = basic_string<char>;
 
-            explicit numpunct(size_t refs = 0);
+            explicit numpunct(size_t refs = 0)
+            { /* DUMMY BODY */ }
 
             char_type decimal_point() const
             {
@@ -116,7 +117,8 @@ namespace std
                 return do_falsename();
             }
 
-            ~numpunct();
+            ~numpunct()
+            { /* DUMMY BODY */ }
 
         protected:
             char_type do_decimal_point() const
