@@ -220,6 +220,9 @@ namespace std
 
             template<class Char, class Iterator>
             friend class num_put;
+
+            template<class Char, class Iterator>
+            friend class num_get;
     };
 
     /**
