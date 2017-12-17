@@ -213,6 +213,13 @@ namespace std
             locale locale_;
 
             vector<pair<event_callback, int>> callbacks_;
+
+        private:
+            static constexpr size_t buffer_size_{64};
+            char buffer_[buffer_size_];
+
+            template<class Char, class Iterator>
+            friend class num_put;
     };
 
     /**
