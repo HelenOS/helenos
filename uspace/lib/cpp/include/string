@@ -27,3 +27,4 @@
  */
 
 #include <impl/string.hpp>
+#include <internal/string.hpp>

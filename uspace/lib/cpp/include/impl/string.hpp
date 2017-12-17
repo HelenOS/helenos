@@ -1856,65 +1856,6 @@ namespace std
     }
 
     /**
-     * 21.4.8.9, inserters and extractors:
-     */
-
-    template<class Char, class Traits, class Allocator>
-    basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
-                                            basic_string<Char, Traits, Allocator>& str)
-    {
-        using sentry = typename basic_istream<Char, Traits>::sentry;
-        sentry sen{is, true};
-
-        if (sen)
-        {
-            str.erase();
-
-            auto max_size = is.width();
-            if (max_size == 0)
-                max_size = static_cast<decltype(max_size)>(str.max_size());
-
-            decltype(is.width()) i{};
-            for(; i < max_size; ++i)
-            {
-                auto ic = is.rdbuf()->sgetc();
-                if (Traits::eq_int_type(ic, Traits::eof()))
-                    break;
-
-                auto c = Traits::to_char_type(ic);
-                if(isspace(c, is.getloc()))
-                    break;
-
-                str.append(1, c);
-                is.rdbuf()->sbumpc();
-            }
-        }
-
-        return is;
-    }
-
-    template<class Char, class Traits, class Allocator>
-    basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os,
-                                            basic_string<Char, Traits, Allocator>& str)
-    {
-        // TODO: determine padding as described in 27.7.3.6.1
-        using sentry = typename basic_ostream<Char, Traits>::sentry;
-        sentry sen{os};
-
-        if (sen)
-        {
-            auto size = str.size();
-            if (size < static_cast<decltype(size)>(os.width()))
-                size = os.width();
-
-            os.rdbuf()->sputn(str.data(), size);
-            os.width(0);
-        }
-
-        return os;
-    }
-
-    /**
      * 21.5, numeric conversions:
      */
 
