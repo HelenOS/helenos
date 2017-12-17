@@ -154,47 +154,185 @@ namespace std
 
             basic_istream<Char, Traits>& operator>>(bool& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(short& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    long tmp{};
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, tmp);
+
+                    if (tmp < numeric_limits<short>::min())
+                    {
+                        err |= ios_base::failbit;
+                        x = numeric_limits<short>::min();
+                    }
+                    else if (numeric_limits<short>::max() < tmp)
+                    {
+                        err |= ios_base::failbit;
+                        x = numeric_limits<short>::max();
+                    }
+                    else
+                        x = static_cast<short>(tmp);
+
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(unsigned short& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(int& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    long tmp{};
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, tmp);
+
+                    if (tmp < numeric_limits<int>::min())
+                    {
+                        err |= ios_base::failbit;
+                        x = numeric_limits<int>::min();
+                    }
+                    else if (numeric_limits<int>::max() < tmp)
+                    {
+                        err |= ios_base::failbit;
+                        x = numeric_limits<int>::max();
+                    }
+                    else
+                        x = static_cast<int>(tmp);
+
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(unsigned int& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(long& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(unsigned long& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(long long& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(unsigned long long& x)
             {
-                // TODO: implement
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(float& x)
