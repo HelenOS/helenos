@@ -47,6 +47,8 @@ namespace std
     {
         if (init_cnt_++ == 0)
         {
+            // TODO: These buffers should be static too
+            //       in case somebody reassigns to cout/cin.
             ::new(&cin) istream{::new aux::stdin_streambuf<char>{}};
             ::new(&cout) ostream{::new aux::stdout_streambuf<char>{}};
 
