@@ -39,7 +39,7 @@
 #include <ipc/ipc.h>
 #include <cap/cap.h>
 
-extern cap_handle_t phone_alloc(task_t *);
+extern int phone_alloc(task_t *, cap_handle_t *);
 extern bool phone_connect(cap_handle_t, answerbox_t *);
 extern void phone_dealloc(cap_handle_t);
 

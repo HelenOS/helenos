@@ -803,10 +803,9 @@ restart:
 	if (process_request(&TASK->answerbox, call))
 		goto restart;
 	
-	int rc;
-	cap_handle_t handle = cap_alloc(TASK);
-	if (handle < 0) {
-		rc = handle;
+	cap_handle_t handle;
+	int rc = cap_alloc(TASK, &handle);
+	if (rc != EOK) {
 		goto error;
 	}
 	

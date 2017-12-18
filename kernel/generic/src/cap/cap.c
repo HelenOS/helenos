@@ -256,13 +256,13 @@ static bool cap_reclaimer(ht_link_t *link, void *arg)
  *
  * @param task  Task for which to allocate the new capability.
  *
- * @return New capability handle on success.
+ * @param[out] handle  New capability handle on success.
+ *
  * @return Negative error code in case of error.
  */
-cap_handle_t cap_alloc(task_t *task)
+int cap_alloc(task_t *task, cap_handle_t *handle)
 {
 	cap_t *cap = NULL;
-	cap_handle_t handle;
 
 	/*
 	 * First of all, see if we can reclaim a capability. Note that this
@@ -292,10 +292,10 @@ cap_handle_t cap_alloc(task_t *task)
 	}
 
 	cap->state = CAP_STATE_ALLOCATED;
-	handle = cap->handle;
+	*handle = cap->handle;
 	mutex_unlock(&task->cap_info->lock);
 
-	return handle;
+	return EOK;
 }
 
 /** Publish allocated capability

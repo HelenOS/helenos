@@ -329,11 +329,12 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	/*
 	 * Allocate and populate the IRQ kernel object.
 	 */
-	cap_handle_t handle = cap_alloc(TASK);
-	if (handle < 0)
-		return handle;
+	cap_handle_t handle;
+	int rc = cap_alloc(TASK, &handle);
+	if (rc != EOK)
+		return rc;
 	
-	int rc = copy_to_uspace(uspace_handle, &handle, sizeof(cap_handle_t));
+	rc = copy_to_uspace(uspace_handle, &handle, sizeof(cap_handle_t));
 	if (rc != EOK) {
 		cap_free(TASK, handle);
 		return rc;

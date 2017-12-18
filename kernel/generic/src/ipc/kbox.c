@@ -251,10 +251,11 @@ int ipc_connect_kbox(task_id_t taskid, cap_handle_t *out_phone)
 	}
 	
 	/* Allocate a new phone. */
-	cap_handle_t phone_handle = phone_alloc(TASK);
-	if (phone_handle < 0) {
+	cap_handle_t phone_handle;
+	int rc = phone_alloc(TASK, &phone_handle);
+	if (rc != EOK) {
 		mutex_unlock(&task->kb.cleanup_lock);
-		return phone_handle;
+		return rc;
 	}
 	
 	kobject_t *phone_obj = kobject_get(TASK, phone_handle,

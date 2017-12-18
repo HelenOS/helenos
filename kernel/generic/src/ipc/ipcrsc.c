@@ -165,13 +165,15 @@ static kobject_ops_t phone_kobject_ops = {
  *
  * @param task  Task for which to allocate a new phone.
  *
- * @return  New phone capability handle.
+ * @param[out] out_handle  New phone capability handle.
+ *
  * @return  Negative error code if a new capability cannot be allocated.
  */
-cap_handle_t phone_alloc(task_t *task)
+int phone_alloc(task_t *task, cap_handle_t *out_handle)
 {
-	cap_handle_t handle = cap_alloc(task);
-	if (handle >= 0) {
+	cap_handle_t handle;
+	int rc = cap_alloc(task, &handle);
+	if (rc == EOK) {
 		phone_t *phone = slab_alloc(phone_cache, FRAME_ATOMIC);
 		if (!phone) {
 			cap_free(TASK, handle);
@@ -192,9 +194,10 @@ cap_handle_t phone_alloc(task_t *task)
 		phone->kobject = kobject;
 		
 		cap_publish(task, handle, kobject);
+
+		*out_handle = handle;
 	}
-	
-	return handle;
+	return rc;
 }
 
 /** Free slot from a disconnected phone.

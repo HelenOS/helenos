@@ -244,8 +244,9 @@ task_t *task_create(as_t *as, const char *name)
 	
 	if ((ipc_phone_0) &&
 	    (container_check(ipc_phone_0->task->container, task->container))) {
-		cap_handle_t phone_handle = phone_alloc(task);
-		if (phone_handle < 0) {
+		cap_handle_t phone_handle;
+		int rc = phone_alloc(task, &phone_handle);
+		if (rc != EOK) {
 			task->as = NULL;
 			task_destroy_arch(task);
 			slab_free(task_cache, task);
