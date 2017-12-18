@@ -99,6 +99,9 @@ typedef struct uhci_regs {
 
 /** Main UHCI driver structure */
 typedef struct hc {
+	/* Common hc_device header */
+	hc_device_t base;
+
 	uhci_rh_t rh;
 	usb2_bus_t bus;
 	/** Addresses of I/O registers */
@@ -118,22 +121,27 @@ typedef struct hc {
 
 	/** Pointer table to the above lists, helps during scheduling */
 	transfer_list_t *transfers[2][4];
-	/** Indicator of hw interrupts availability */
-	bool hw_interrupts;
 
 	/** Number of hw failures detected. */
 	unsigned hw_failures;
 } hc_t;
 
-extern int hc_init(hc_t *, hcd_t *, const hw_res_list_parsed_t *);
-extern void hc_start(hc_t *);
-extern void hc_fini(hc_t *);
+static inline hc_t *hcd_to_hc(hc_device_t *hcd)
+{
+	assert(hcd);
+	return (hc_t *) hcd;
+}
 
-extern int uhci_hc_gen_irq_code(irq_code_t *, hcd_t *,const hw_res_list_parsed_t *);
+static inline hc_t *bus_to_hc(bus_t *bus)
+{
+	assert(bus);
+	return member_to_inst(bus, hc_t, bus);
+}
 
-extern void uhci_hc_interrupt(hcd_t *, uint32_t);
-extern int uhci_hc_status(hcd_t *, uint32_t *);
-extern int uhci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
+extern int hc_add(hc_device_t *, const hw_res_list_parsed_t *);
+extern int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *);
+extern int hc_start(hc_device_t *);
+extern int hc_gone(hc_device_t *);
 
 #endif
 

@@ -47,116 +47,17 @@
 #include "ohci_bus.h"
 
 #define NAME "ohci"
-static int ohci_driver_init(hcd_t *, const hw_res_list_parsed_t *, ddf_dev_t *);
-static int ohci_driver_start(hcd_t *, bool);
-static int ohci_driver_claim(hcd_t *, ddf_dev_t *);
-static void ohci_driver_fini(hcd_t *);
 
-static const ddf_hc_driver_t ohci_hc_driver = {
-        .irq_code_gen = ohci_hc_gen_irq_code,
-        .init = ohci_driver_init,
-        .claim = ohci_driver_claim,
-        .start = ohci_driver_start,
-	.setup_root_hub = hcd_setup_virtual_root_hub,
-        .fini = ohci_driver_fini,
-        .name = "OHCI",
-	.ops = {
-                .schedule       = ohci_hc_schedule,
-                .irq_hook       = ohci_hc_interrupt,
-                .status_hook    = ohci_hc_status,
-	},
-};
-
-
-static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, ddf_dev_t *device)
-{
-	int err;
-
-	assert(hcd);
-	assert(hcd_get_driver_data(hcd) == NULL);
-
-	hc_t *instance = malloc(sizeof(hc_t));
-	if (!instance)
-		return ENOMEM;
-
-	if ((err = hc_init(instance, res)) != EOK)
-		goto err;
-
-	if ((err = ohci_bus_init(&instance->bus, hcd, instance)))
-		goto err;
-
-	hcd_set_implementation(hcd, instance, &ohci_hc_driver.ops, &instance->bus.base.base);
-
-	return EOK;
-
-err:
-	free(instance);
-	return err;
-}
-
-static int ohci_driver_claim(hcd_t *hcd, ddf_dev_t *dev)
-{
-	hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	hc_gain_control(hc);
-
-	return EOK;
-}
-
-static int ohci_driver_start(hcd_t *hcd, bool interrupts)
-{
-	hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	hc->hw_interrupts = interrupts;
-	hc_start(hc);
-	return EOK;
-}
-
-static void ohci_driver_fini(hcd_t *hcd)
-{
-	assert(hcd);
-	hc_t *hc = hcd_get_driver_data(hcd);
-	if (hc)
-		hc_fini(hc);
-
-	hcd_set_implementation(hcd, NULL, NULL, NULL);
-	free(hc);
-}
-
-/** Initializes a new ddf driver instance of OHCI hcd.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- */
-static int ohci_dev_add(ddf_dev_t *device)
-{
-	usb_log_debug("ohci_dev_add() called\n");
-	assert(device);
-	return hcd_ddf_add_hc(device, &ohci_hc_driver);
-}
-
-static int ohci_fun_online(ddf_fun_t *fun)
-{
-	return hcd_ddf_device_online(fun);
-}
-
-static int ohci_fun_offline(ddf_fun_t *fun)
-{
-	return hcd_ddf_device_offline(fun);
-}
-
-
-static const driver_ops_t ohci_driver_ops = {
-	.dev_add = ohci_dev_add,
-	.fun_online = ohci_fun_online,
-	.fun_offline = ohci_fun_offline
-};
-
-static const driver_t ohci_driver = {
+static const hc_driver_t ohci_driver = {
 	.name = NAME,
-	.driver_ops = &ohci_driver_ops
+	.hc_device_size = sizeof(hc_t),
+
+	.hc_add = hc_add,
+	.irq_code_gen = hc_gen_irq_code,
+	.claim = hc_gain_control,
+	.start = hc_start,
+	.setup_root_hub = hcd_setup_virtual_root_hub,
+	.hc_gone = hc_gone,
 };
 
 /** Initializes global driver structures (NONE).
@@ -170,7 +71,7 @@ static const driver_t ohci_driver = {
 int main(int argc, char *argv[])
 {
 	log_init(NAME);
-	return ddf_driver_main(&ohci_driver);
+	return hc_driver_main(&ohci_driver);
 }
 
 /**

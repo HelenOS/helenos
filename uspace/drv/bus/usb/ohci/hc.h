@@ -57,6 +57,9 @@
 
 /** Main OHCI driver structure */
 typedef struct hc {
+	/** Common hcd header */
+	hc_device_t base;
+
 	/** Memory mapped I/O registers area */
 	ohci_regs_t *registers;
 	
@@ -69,14 +72,8 @@ typedef struct hc {
 	/** List of active transfers */
 	list_t pending_batches;
 
-	/** Fibril for periodic checks if interrupts can't be used */
-	fid_t interrupt_emulator;
-
 	/** Guards schedule and endpoint manipulation */
 	fibril_mutex_t guard;
-
-	/** interrupts available */
-	bool hw_interrupts;
 
 	/** USB hub emulation structure */
 	ohci_rh_t rh;
@@ -85,19 +82,24 @@ typedef struct hc {
 	ohci_bus_t bus;
 } hc_t;
 
-extern int hc_init(hc_t *, const hw_res_list_parsed_t *);
-extern void hc_gain_control(hc_t *instance);
-extern void hc_start(hc_t *instance);
-extern void hc_fini(hc_t *);
+static inline hc_t * hcd_to_hc(hc_device_t *hcd)
+{
+	assert(hcd);
+	return (hc_t *) hcd;
+}
+
+extern int hc_add(hc_device_t *, const hw_res_list_parsed_t *);
+extern int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *);
+extern int hc_gain_control(hc_device_t *);
+extern int hc_start(hc_device_t *);
+extern int hc_gone(hc_device_t *);
 
 extern void hc_enqueue_endpoint(hc_t *, const endpoint_t *);
 extern void hc_dequeue_endpoint(hc_t *, const endpoint_t *);
 
-int ohci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res);
-
-extern void ohci_hc_interrupt(hcd_t *, uint32_t);
-extern int ohci_hc_status(hcd_t *, uint32_t *);
-extern int ohci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
+extern int ohci_hc_schedule(usb_transfer_batch_t *);
+extern int ohci_hc_status(bus_t *, uint32_t *);
+extern void ohci_hc_interrupt(bus_t *, uint32_t);
 
 #endif
 

@@ -52,28 +52,8 @@
 
 #include "ddf_helpers.h"
 
-typedef struct hc_dev {
-	ddf_fun_t *ctl_fun;
-	hcd_t hcd;
-} hc_dev_t;
 
-static hc_dev_t *dev_to_hc_dev(ddf_dev_t *dev)
-{
-	return ddf_dev_data_get(dev);
-}
-
-hcd_t *dev_to_hcd(ddf_dev_t *dev)
-{
-	hc_dev_t *hc_dev = dev_to_hc_dev(dev);
-	if (!hc_dev) {
-		usb_log_error("Invalid HCD device.\n");
-		return NULL;
-	}
-	return &hc_dev->hcd;
-}
-
-
-static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub_dev, unsigned port);
+static int hcd_ddf_new_device(hc_device_t *hcd, ddf_dev_t *hc, device_t *hub_dev, unsigned port);
 static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub, unsigned port);
 
 
@@ -88,7 +68,7 @@ static int register_endpoint(
 	ddf_fun_t *fun, usb_endpoint_desc_t *endpoint_desc)
 {
 	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(hcd);
 	assert(hcd->bus);
@@ -112,7 +92,7 @@ static int unregister_endpoint(
 	ddf_fun_t *fun, usb_endpoint_desc_t *endpoint_desc)
 {
 	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(hcd);
 	assert(hcd->bus);
@@ -137,7 +117,7 @@ static int unregister_endpoint(
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
 	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(hcd);
 	assert(hcd->bus);
@@ -151,7 +131,7 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 static int release_default_address(ddf_fun_t *fun)
 {
 	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(hcd);
 	assert(hcd->bus);
@@ -166,7 +146,7 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port)
 	assert(fun);
 	ddf_dev_t *hc = ddf_fun_get_dev(fun);
 	assert(hc);
-	hcd_t *hcd = dev_to_hcd(hc);
+	hc_device_t *hcd = dev_to_hcd(hc);
 	assert(hcd);
 	device_t *hub = ddf_fun_data_get(fun);
 	assert(hub);
@@ -217,13 +197,12 @@ static int dev_read(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(dev);
 
 	target.address = dev->address;
 
-	return hcd_send_batch(hcd, dev, target, USB_DIRECTION_IN,
+	return bus_device_send_batch(dev, target, USB_DIRECTION_IN,
 	    data, size, setup_data,
 	    callback, arg, "READ");
 }
@@ -243,13 +222,12 @@ static int dev_write(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(dev);
 
 	target.address = dev->address;
 
-	return hcd_send_batch(hcd, dev, target, USB_DIRECTION_OUT,
+	return bus_device_send_batch(dev, target, USB_DIRECTION_OUT,
 	    (char *) data, size, setup_data,
 	    callback, arg, "WRITE");
 }
@@ -336,12 +314,9 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub,
 {
 	assert(device);
 
-	hcd_t *hcd = dev_to_hcd(device);
+	hc_device_t *hcd = dev_to_hcd(device);
 	assert(hcd);
 	assert(hcd->bus);
-
-	hc_dev_t *hc_dev = dev_to_hc_dev(device);
-	assert(hc_dev);
 
 	fibril_mutex_lock(&hub->guard);
 
@@ -373,35 +348,35 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub,
 	return ENOENT;
 }
 
-device_t *hcd_ddf_device_create(ddf_dev_t *hc, bus_t *bus)
+device_t *hcd_ddf_fun_create(hc_device_t *hc)
 {
 	/* Create DDF function for the new device */
-	ddf_fun_t *fun = ddf_fun_create(hc, fun_inner, NULL);
+	ddf_fun_t *fun = ddf_fun_create(hc->ddf_dev, fun_inner, NULL);
 	if (!fun)
 		return NULL;
 
 	ddf_fun_set_ops(fun, &usb_ops);
 
 	/* Create USB device node for the new device */
-	device_t *dev = ddf_fun_data_alloc(fun, bus->device_size);
+	device_t *dev = ddf_fun_data_alloc(fun, hc->bus->device_size);
 	if (!dev) {
 		ddf_fun_destroy(fun);
 		return NULL;
 	}
 
-	bus_device_init(dev, bus);
+	bus_device_init(dev, hc->bus);
 	dev->fun = fun;
 	return dev;
 }
 
-void hcd_ddf_device_destroy(device_t *dev)
+void hcd_ddf_fun_destroy(device_t *dev)
 {
 	assert(dev);
 	assert(dev->fun);
 	ddf_fun_destroy(dev->fun);
 }
 
-int hcd_ddf_device_explore(device_t *device)
+int hcd_device_explore(device_t *device)
 {
 	int err;
 	match_id_list_t mids;
@@ -420,7 +395,7 @@ int hcd_ddf_device_explore(device_t *device)
 
 	usb_log_debug("Device(%d): Requesting full device descriptor.",
 	    device->address);
-	ssize_t got = hcd_send_batch_sync(device->bus->hcd, device, control_ep, USB_DIRECTION_IN,
+	ssize_t got = bus_device_send_batch_sync(device, control_ep, USB_DIRECTION_IN,
 	    (char *) &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
 	    "read device descriptor");
 	if (got < 0) {
@@ -446,35 +421,7 @@ out:
 	return err;
 }
 
-int hcd_ddf_device_online(ddf_fun_t *fun)
-{
-	assert(fun);
-
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	device_t *dev = ddf_fun_data_get(fun);
-	assert(dev);
-	assert(hcd->bus);
-
-	usb_log_info("Device(%d): Requested to be brought online.", dev->address);
-
-	return bus_device_online(dev);
-}
-
-int hcd_ddf_device_offline(ddf_fun_t *fun)
-{
-	assert(fun);
-
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	device_t *dev = ddf_fun_data_get(fun);
-	assert(dev);
-	assert(hcd->bus);
-
-	usb_log_info("Device(%d): Requested to be taken offline.", dev->address);
-
-	return bus_device_offline(dev);
-}
-
-static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned port)
+static int hcd_ddf_new_device(hc_device_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned port)
 {
 	int err;
 	assert(hcd);
@@ -482,7 +429,7 @@ static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned
 	assert(hub);
 	assert(hc);
 
-	device_t *dev = hcd_ddf_device_create(hc, hcd->bus);
+	device_t *dev = hcd_ddf_fun_create(hcd);
 	if (!dev) {
 		usb_log_error("Failed to create USB device function.");
 		return ENOMEM;
@@ -515,7 +462,7 @@ static int hcd_ddf_new_device(hcd_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned
 	return EOK;
 
 err_usb_dev:
-	hcd_ddf_device_destroy(dev);
+	hcd_ddf_fun_destroy(dev);
 	return err;
 }
 
@@ -524,20 +471,18 @@ err_usb_dev:
  * @param[in] device Host controller ddf device
  * @return Error code
  */
-int hcd_setup_virtual_root_hub(hcd_t *hcd, ddf_dev_t *hc)
+int hcd_setup_virtual_root_hub(hc_device_t *hcd)
 {
 	int err;
 
-	assert(hc);
 	assert(hcd);
-	assert(hcd->bus);
 
 	if ((err = bus_reserve_default_address(hcd->bus, USB_SPEED_MAX))) {
 		usb_log_error("Failed to reserve default address for roothub setup: %s", str_error(err));
 		return err;
 	}
 
-	device_t *dev = hcd_ddf_device_create(hc, hcd->bus);
+	device_t *dev = hcd_ddf_fun_create(hcd);
 	if (!dev) {
 		usb_log_error("Failed to create function for the root hub.");
 		goto err_default_address;
@@ -560,7 +505,7 @@ int hcd_setup_virtual_root_hub(hcd_t *hcd, ddf_dev_t *hc)
 	return EOK;
 
 err_usb_dev:
-	hcd_ddf_device_destroy(dev);
+	hcd_ddf_fun_destroy(dev);
 err_default_address:
 	bus_release_default_address(hcd->bus);
 	return err;
@@ -576,16 +521,16 @@ err_default_address:
  * @return Error code.
  * This function does all the ddf work for hc driver.
  */
-int hcd_ddf_setup_hc(ddf_dev_t *device)
+int hcd_ddf_setup_hc(ddf_dev_t *device, size_t size)
 {
 	assert(device);
 
-	hc_dev_t *instance = ddf_dev_data_alloc(device, sizeof(hc_dev_t));
+	hc_device_t *instance = ddf_dev_data_alloc(device, size);
 	if (instance == NULL) {
 		usb_log_error("Failed to allocate HCD ddf structure.\n");
 		return ENOMEM;
 	}
-	hcd_init(&instance->hcd);
+	instance->ddf_dev = device;
 
 	int ret = ENOMEM;
 	instance->ctl_fun = ddf_fun_create(device, fun_exposed, "ctl");
@@ -617,36 +562,30 @@ err_destroy_fun:
 	return ret;
 }
 
-void hcd_ddf_clean_hc(ddf_dev_t *device)
+void hcd_ddf_clean_hc(hc_device_t *hcd)
 {
-	assert(device);
-	hc_dev_t *hc = dev_to_hc_dev(device);
-	assert(hc);
-	const int ret = ddf_fun_unbind(hc->ctl_fun);
-	if (ret == EOK)
-		ddf_fun_destroy(hc->ctl_fun);
+	if (ddf_fun_unbind(hcd->ctl_fun) == EOK)
+		ddf_fun_destroy(hcd->ctl_fun);
 }
 
-//TODO: Cache parent session in HCD
 /** Call the parent driver with a request to enable interrupt
  *
  * @param[in] device Device asking for interrupts
  * @param[in] inum Interrupt number
  * @return Error code.
  */
-int hcd_ddf_enable_interrupt(ddf_dev_t *device, int inum)
+int hcd_ddf_enable_interrupt(hc_device_t *hcd, int inum)
 {
-	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(hcd->ddf_dev);
 	if (parent_sess == NULL)
 		return EIO;
 
 	return hw_res_enable_interrupt(parent_sess, inum);
 }
 
-//TODO: Cache parent session in HCD
-int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
+int hcd_ddf_get_registers(hc_device_t *hcd, hw_res_list_parsed_t *hw_res)
 {
-	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(hcd->ddf_dev);
 	if (parent_sess == NULL)
 		return EIO;
 
@@ -654,231 +593,6 @@ int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
 	const int ret = hw_res_get_list_parsed(parent_sess, hw_res, 0);
 	if (ret != EOK)
 		hw_res_list_parsed_clean(hw_res);
-	return ret;
-}
-
-// TODO: move this someplace else
-static inline void irq_code_clean(irq_code_t *code)
-{
-	if (code) {
-		free(code->ranges);
-		free(code->cmds);
-		code->ranges = NULL;
-		code->cmds = NULL;
-		code->rangecount = 0;
-		code->cmdcount = 0;
-	}
-}
-
-/** Register interrupt handler
- *
- * @param[in] device Host controller DDF device
- * @param[in] regs Register range
- * @param[in] irq Interrupt number
- * @paran[in] handler Interrupt handler
- * @param[in] gen_irq_code IRQ code generator.
- *
- * @return IRQ capability handle on success.
- * @return Negative error code.
- */
-int hcd_ddf_setup_interrupts(ddf_dev_t *device,
-    const hw_res_list_parsed_t *hw_res,
-    interrupt_handler_t handler,
-    irq_code_gen_t gen_irq_code)
-{
-	assert(device);
-
-	hcd_t *hcd = dev_to_hcd(device);
-
-	if (!handler || !gen_irq_code)
-		return ENOTSUP;
-
-	irq_code_t irq_code = {0};
-
-	const int irq = gen_irq_code(&irq_code, hcd, hw_res);
-	if (irq < 0) {
-		usb_log_error("Failed to generate IRQ code: %s.\n",
-		    str_error(irq));
-		return irq;
-	}
-
-	/* Register handler to avoid interrupt lockup */
-	const int irq_cap = register_interrupt_handler(device, irq, handler,
-	    &irq_code);
-	irq_code_clean(&irq_code);
-	if (irq_cap < 0) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(irq_cap));
-		return irq_cap;
-	}
-
-	/* Enable interrupts */
-	int ret = hcd_ddf_enable_interrupt(device, irq);
-	if (ret != EOK) {
-		usb_log_error("Failed to enable interrupts: %s.\n",
-		    str_error(ret));
-		unregister_interrupt_handler(device, irq_cap);
-		return ret;
-	}
-	return irq_cap;
-}
-
-/** IRQ handling callback, forward status from call to diver structure.
- *
- * @param[in] dev DDF instance of the device to use.
- * @param[in] iid (Unused).
- * @param[in] call Pointer to the call from kernel.
- */
-void ddf_hcd_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
-{
-	assert(dev);
-	hcd_t *hcd = dev_to_hcd(dev);
-	if (!hcd || !hcd->ops.irq_hook) {
-		usb_log_error("Interrupt on not yet initialized device.\n");
-		return;
-	}
-	const uint32_t status = IPC_GET_ARG1(*call);
-	hcd->ops.irq_hook(hcd, status);
-}
-
-static int interrupt_polling(void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(hcd);
-	if (!hcd->ops.status_hook || !hcd->ops.irq_hook)
-		return ENOTSUP;
-	uint32_t status = 0;
-	while (hcd->ops.status_hook(hcd, &status) == EOK) {
-		hcd->ops.irq_hook(hcd, status);
-		status = 0;
-		/* We should wait 1 frame - 1ms here, but this polling is a
-		 * lame crutch anyway so don't hog the system. 10ms is still
-		 * good enough for emergency mode */
-		async_usleep(10000);
-	}
-	return EOK;
-}
-
-/** Initialize hc and rh DDF structures and their respective drivers.
- *
- * @param device DDF instance of the device to use
- * @param speed Maximum supported speed
- * @param bw Available bandwidth (arbitrary units)
- * @param bw_count Bandwidth computing function
- * @param irq_handler IRQ handling function
- * @param gen_irq_code Function to generate IRQ pseudocode
- *                     (it needs to return used irq number)
- * @param driver_init Function to initialize HC driver
- * @param driver_fini Function to cleanup HC driver
- * @return Error code
- *
- * This function does all the preparatory work for hc and rh drivers:
- *  - gets device's hw resources
- *  - attempts to enable interrupts
- *  - registers interrupt handler
- *  - calls driver specific initialization
- *  - registers root hub
- */
-int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
-{
-	assert(driver);
-
-	int ret = EOK;
-
-	hw_res_list_parsed_t hw_res;
-	ret = hcd_ddf_get_registers(device, &hw_res);
-	if (ret != EOK) {
-		usb_log_error("Failed to get register memory addresses "
-		    "for `%s': %s.\n", ddf_dev_get_name(device),
-		    str_error(ret));
-		return ret;
-	}
-
-	ret = hcd_ddf_setup_hc(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to setup generic HCD.\n");
-		goto err_hw_res;
-	}
-
-	hcd_t *hcd = dev_to_hcd(device);
-
-	if (driver->init)
-		ret = driver->init(hcd, &hw_res, device);
-	if (ret != EOK) {
-		usb_log_error("Failed to init HCD.\n");
-		goto err_hcd;
-	}
-
-	/* Setup interrupts  */
-	interrupt_handler_t *irq_handler =
-	    driver->irq_handler ? driver->irq_handler : ddf_hcd_gen_irq_handler;
-	const int irq_cap = hcd_ddf_setup_interrupts(device, &hw_res,
-	    irq_handler, driver->irq_code_gen);
-	bool irqs_enabled = !(irq_cap < 0);
-	if (irqs_enabled) {
-		usb_log_debug("Hw interrupts enabled.\n");
-	}
-
-	/* Claim the device from BIOS */
-	if (driver->claim)
-		ret = driver->claim(hcd, device);
-	if (ret != EOK) {
-		usb_log_error("Failed to claim `%s' for driver `%s': %s",
-		    ddf_dev_get_name(device), driver->name, str_error(ret));
-		goto err_irq;
-	}
-
-	/* Start hw driver */
-	if (driver->start)
-		ret = driver->start(hcd, irqs_enabled);
-	if (ret != EOK) {
-		usb_log_error("Failed to start HCD: %s.\n", str_error(ret));
-		goto err_irq;
-	}
-
-	/* Need working irq replacement to setup root hub */
-	if (!irqs_enabled && hcd->ops.status_hook) {
-		hcd->polling_fibril = fibril_create(interrupt_polling, hcd);
-		if (hcd->polling_fibril == 0) {
-			usb_log_error("Failed to create polling fibril\n");
-			ret = ENOMEM;
-			goto err_started;
-		}
-		fibril_add_ready(hcd->polling_fibril);
-		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling.\n", str_error(irq_cap));
-	}
-
-	/*
-	 * Creating root hub registers a new USB device so HC
-	 * needs to be ready at this time.
-	 */
-	if (driver->setup_root_hub)
-		ret = driver->setup_root_hub(hcd, device);
-	if (ret != EOK) {
-		usb_log_error("Failed to setup HC root hub: %s.\n",
-		    str_error(ret));
-		goto err_polling;
-	}
-
-	usb_log_info("Controlling new `%s' device `%s'.\n",
-	    driver->name, ddf_dev_get_name(device));
-	return EOK;
-
-err_polling:
-	// TODO: Stop the polling fibril (refactor the interrupt_polling func)
-	//
-err_started:
-	if (driver->stop)
-		driver->stop(hcd);
-err_irq:
-	unregister_interrupt_handler(device, irq_cap);
-	if (driver->fini)
-		driver->fini(hcd);
-err_hcd:
-	hcd_ddf_clean_hc(device);
-err_hw_res:
-	hw_res_list_parsed_clean(&hw_res);
 	return ret;
 }
 

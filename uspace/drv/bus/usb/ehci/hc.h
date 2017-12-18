@@ -54,6 +54,9 @@
 
 /** Main EHCI driver structure */
 typedef struct hc {
+	/* Common device header */
+	hc_device_t base;
+
 	/** Memory mapped CAPS register area */
 	ehci_caps_regs_t *caps;
 	/** Memory mapped I/O registers area */
@@ -84,18 +87,26 @@ typedef struct hc {
 	ehci_bus_t bus;
 } hc_t;
 
-int hc_init(hc_t *instance, hcd_t *hcd, const hw_res_list_parsed_t *hw_res);
-int hc_start(hc_t *instance, bool interrupts);
-void hc_fini(hc_t *instance);
+static inline hc_t *hcd_to_hc(hc_device_t *hcd)
+{
+	assert(hcd);
+	return (hc_t *) hcd;
+}
 
-void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep);
-void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep);
+void hc_enqueue_endpoint(hc_t *, const endpoint_t *);
+void hc_dequeue_endpoint(hc_t *, const endpoint_t *);
 
-int ehci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res);
+/* Boottime operations */
+int hc_add(hc_device_t *, const hw_res_list_parsed_t *);
+int hc_start(hc_device_t *);
+int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *);
+int hc_gone(hc_device_t *);
 
-void ehci_hc_interrupt(hcd_t *hcd, uint32_t status);
-int ehci_hc_status(hcd_t *hcd, uint32_t *status);
-int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+/** Runtime operations */
+void ehci_hc_interrupt(bus_t *, uint32_t);
+int ehci_hc_status(bus_t *, uint32_t *);
+int ehci_hc_schedule(usb_transfer_batch_t *);
+
 #endif
 /**
  * @}

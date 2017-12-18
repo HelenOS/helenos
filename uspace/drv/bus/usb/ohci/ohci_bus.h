@@ -61,7 +61,7 @@ typedef struct {
 	hc_t *hc;
 } ohci_bus_t;
 
-int ohci_bus_init(ohci_bus_t *, hcd_t *, hc_t *);
+int ohci_bus_init(ohci_bus_t *, hc_t *);
 
 /** Get and convert assigned ohci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.

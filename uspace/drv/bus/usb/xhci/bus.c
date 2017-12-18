@@ -110,7 +110,7 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	int err;
 
 	uint16_t max_packet_size;
-	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, hc->hcd, &dev->base)))
+	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, (bus_t *) &hc->bus, &dev->base)))
 		return err;
 
 	xhci_endpoint_t *ep0 = dev->endpoints[0];
@@ -167,7 +167,7 @@ int xhci_bus_enumerate_device(xhci_bus_t *bus, device_t *dev)
 	}
 
 	/* Read the device descriptor, derive the match ids */
-	if ((err = hcd_ddf_device_explore(dev))) {
+	if ((err = hcd_device_explore(dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
 		goto err_address;
 	}
@@ -232,7 +232,7 @@ int xhci_bus_remove_device(xhci_bus_t *bus, device_t *dev)
 
 	/* Destroy DDF device. */
 	/* XXX: Not a good idea, this method should not destroy devices. */
-	hcd_ddf_device_destroy(dev);
+	hcd_ddf_fun_destroy(dev);
 
 	return EOK;
 }
@@ -500,13 +500,17 @@ static const bus_ops_t xhci_bus_ops = {
 	BIND_OP(batch_create)
 	BIND_OP(batch_destroy)
 #undef BIND_OP
+
+	.interrupt = hc_interrupt,
+	.status = hc_status,
+	.batch_schedule = hc_schedule,
 };
 
 int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 {
 	assert(bus);
 
-	bus_init(&bus->base, hc->hcd, sizeof(xhci_device_t));
+	bus_init(&bus->base, sizeof(xhci_device_t));
 
 	bus->devices_by_slot = calloc(hc->max_slots, sizeof(xhci_device_t *));
 	if (!bus->devices_by_slot)

@@ -46,146 +46,62 @@
 
 #define NAME "xhci"
 
-static int hc_driver_init(hcd_t *, const hw_res_list_parsed_t *, ddf_dev_t *);
-static int hcd_irq_code_gen(irq_code_t *, hcd_t *, const hw_res_list_parsed_t *);
-static int hcd_claim(hcd_t *, ddf_dev_t *);
-static int hcd_start(hcd_t *, bool);
-static int hcd_status(hcd_t *, uint32_t *);
-static void hcd_interrupt(hcd_t *, uint32_t);
-static int hcd_schedule(hcd_t *, usb_transfer_batch_t *);
-static void hc_driver_fini(hcd_t *);
-
-static const ddf_hc_driver_t xhci_ddf_hc_driver = {
-	.name = "XHCI-PCI",
-	.init = hc_driver_init,
-	.irq_code_gen = hcd_irq_code_gen,
-	.claim = hcd_claim,
-	.start = hcd_start,
-	.setup_root_hub = NULL,
-	.fini = hc_driver_fini,
-	.ops = {
-		.schedule       = hcd_schedule,
-		.irq_hook       = hcd_interrupt,
-		.status_hook    = hcd_status,
-	}
-};
-
-static int hc_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *hw_res, ddf_dev_t *device)
+static inline xhci_hc_t *hcd_to_hc(hc_device_t *hcd)
 {
-	int err;
-
-	xhci_hc_t *hc = malloc(sizeof(xhci_hc_t));
-	if (!hc)
-		return ENOMEM;
-
-	if ((err = hc_init_mmio(hc, hw_res)))
-		goto err;
-
-	hc->hcd = hcd;
-
-	if ((err = hc_init_memory(hc, device)))
-		goto err;
-
-	hcd_set_implementation(hcd, hc, &xhci_ddf_hc_driver.ops, &hc->bus.base);
-
-	return EOK;
-err:
-	free(hc);
-	return err;
+	assert(hcd);
+	return (xhci_hc_t *) hcd;
 }
 
-static int hcd_irq_code_gen(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
+static int hcd_hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
+	int err;
+	xhci_hc_t *hc = hcd_to_hc(hcd);
+	hc_device_setup(hcd, (bus_t *) &hc->bus);
 
+	if ((err = hc_init_mmio(hc, hw_res)))
+		return err;
+
+	if ((err = hc_init_memory(hc, hcd->ddf_dev)))
+		return err;
+
+	return EOK;
+}
+
+static int hcd_irq_code_gen(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
+{
+	xhci_hc_t *hc = hcd_to_hc(hcd);
 	return hc_irq_code_gen(code, hc, hw_res);
 }
 
-static int hcd_claim(hcd_t *hcd, ddf_dev_t *dev)
+static int hcd_claim(hc_device_t *hcd)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	return hc_claim(hc, dev);
+	xhci_hc_t *hc = hcd_to_hc(hcd);
+	return hc_claim(hc, hcd->ddf_dev);
 }
 
-static int hcd_start(hcd_t *hcd, bool irq)
+static int hcd_start(hc_device_t *hcd)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	return hc_start(hc, irq);
+	xhci_hc_t *hc = hcd_to_hc(hcd);
+	return hc_start(hc, hcd->irq_cap >= 0);
 }
 
-static int hcd_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+static int hcd_hc_gone(hc_device_t *hcd)
 {
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	return hc_schedule(hc, batch);
-}
-
-static int hcd_status(hcd_t *hcd, uint32_t *status)
-{
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-	assert(status);
-
-	return hc_status(hc, status);
-}
-
-static void hcd_interrupt(hcd_t *hcd, uint32_t status)
-{
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
-	hc_interrupt(hc, status);
-}
-
-static void hc_driver_fini(hcd_t *hcd)
-{
-	xhci_hc_t *hc = hcd_get_driver_data(hcd);
-	assert(hc);
-
+	xhci_hc_t *hc = hcd_to_hc(hcd);
 	hc_fini(hc);
-
-	free(hc);
+	return EOK;
 }
 
-/** Initializes a new ddf driver instance of XHCI hcd.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- */
-static int xhci_dev_add(ddf_dev_t *device)
-{
-	usb_log_info("Adding device %s", ddf_dev_get_name(device));
-	return hcd_ddf_add_hc(device, &xhci_ddf_hc_driver);
-}
-
-static int xhci_fun_online(ddf_fun_t *fun)
-{
-	return hcd_ddf_device_online(fun);
-}
-
-static int xhci_fun_offline(ddf_fun_t *fun)
-{
-	return hcd_ddf_device_offline(fun);
-}
-
-
-static const driver_ops_t xhci_driver_ops = {
-	.dev_add = xhci_dev_add,
-	.fun_online = xhci_fun_online,
-	.fun_offline = xhci_fun_offline
-};
-
-static const driver_t xhci_driver = {
+static const hc_driver_t xhci_driver = {
 	.name = NAME,
-	.driver_ops = &xhci_driver_ops
-};
+	.hc_device_size = sizeof(xhci_hc_t),
 
+	.hc_add = hcd_hc_add,
+	.irq_code_gen = hcd_irq_code_gen,
+	.claim = hcd_claim,
+	.start = hcd_start,
+	.hc_gone = hcd_hc_gone,
+};
 
 /** Initializes global driver structures (NONE).
  *
@@ -199,7 +115,7 @@ int main(int argc, char *argv[])
 {
 	log_init(NAME);
 	logctl_set_log_level(NAME, LVL_DEBUG2);
-	return ddf_driver_main(&xhci_driver);
+	return hc_driver_main(&xhci_driver);
 }
 
 /**

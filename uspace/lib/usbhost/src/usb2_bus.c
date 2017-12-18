@@ -204,7 +204,6 @@ static int address_device(device_t *dev)
 	int err;
 
 	usb2_bus_t *bus = (usb2_bus_t *) dev->bus;
-	hcd_t *hcd = (hcd_t *) bus->base.hcd;
 
 	/* The default address is currently reserved for this device */
 	dev->address = USB_ADDRESS_DEFAULT;
@@ -230,14 +229,14 @@ static int address_device(device_t *dev)
 	}
 
 	uint16_t max_packet_size;
-	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, hcd, dev)))
+	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, &bus->base, dev)))
 		goto err_address;
 
 	/* Set new address */
 	const usb_device_request_setup_packet_t set_address = SET_ADDRESS(address);
 
 	usb_log_debug("Device(%d): Setting USB address.", address);
-	err = hcd_send_batch_sync(hcd, dev, usb2_default_target, USB_DIRECTION_OUT,
+	err = bus_device_send_batch_sync(dev, usb2_default_target, USB_DIRECTION_OUT,
 	    NULL, 0, *(uint64_t *)&set_address, "set address");
 	if (err != 0) {
 		usb_log_error("Device(%d): Failed to set new address: %s.",
@@ -314,7 +313,7 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	}
 
 	/* Read the device descriptor, derive the match ids */
-	if ((err = hcd_ddf_device_explore(dev))) {
+	if ((err = hcd_device_explore(dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
 		release_address(bus, dev->address);
 		return err;
@@ -462,11 +461,11 @@ const bus_ops_t usb2_bus_ops = {
  * @param bw_count function to use to calculate endpoint bw requirements.
  * @return Error code.
  */
-int usb2_bus_init(usb2_bus_t *bus, hcd_t *hcd, size_t available_bandwidth)
+int usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
 {
 	assert(bus);
 
-	bus_init(&bus->base, hcd, sizeof(device_t));
+	bus_init(&bus->base, sizeof(device_t));
 	bus->base.ops = &usb2_bus_ops;
 
 	bus->free_bw = available_bandwidth;

@@ -45,22 +45,19 @@
 /**
  * Initializes the bus structure.
  */
-void bus_init(bus_t *bus, hcd_t *hcd, size_t device_size)
+void bus_init(bus_t *bus, size_t device_size)
 {
 	assert(bus);
-	assert(hcd);
 	assert(device_size >= sizeof(device_t));
 	memset(bus, 0, sizeof(bus_t));
 
 	fibril_mutex_initialize(&bus->guard);
-	bus->hcd = hcd;
 	bus->device_size = device_size;
 }
 
 int bus_device_init(device_t *dev, bus_t *bus)
 {
 	assert(bus);
-	assert(bus->hcd);
 
 	memset(dev, 0, sizeof(*dev));
 
@@ -255,6 +252,90 @@ int bus_reset_toggle(bus_t *bus, usb_target_t target, bool all)
 	const int r = ops->reset_toggle(bus, target, all);
 	fibril_mutex_unlock(&bus->guard);
 	return r;
+}
+
+/** Prepare generic usb_transfer_batch and schedule it.
+ * @param device Device for which to send the batch
+ * @param target address and endpoint number.
+ * @param setup_data Data to use in setup stage (Control communication type)
+ * @param in Callback for device to host communication.
+ * @param out Callback for host to device communication.
+ * @param arg Callback parameter.
+ * @param name Communication identifier (for nicer output).
+ * @return Error code.
+ */
+int bus_device_send_batch(device_t *device, usb_target_t target,
+    usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
+    usbhc_iface_transfer_callback_t on_complete, void *arg, const char *name)
+{
+	assert(device->address == target.address);
+
+	/* Temporary reference */
+	endpoint_t *ep = bus_find_endpoint(device, target, direction);
+	if (ep == NULL) {
+		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
+		    device->address, target.endpoint, name);
+		return ENOENT;
+	}
+
+	assert(ep->device == device);
+
+	const int err = endpoint_send_batch(ep, target, direction, data, size, setup_data,
+	    on_complete, arg, name);
+
+	/* Temporary reference */
+	endpoint_del_ref(ep);
+
+	return err;
+}
+
+typedef struct {
+	fibril_mutex_t done_mtx;
+	fibril_condvar_t done_cv;
+	unsigned done;
+
+	size_t transfered_size;
+	int error;
+} sync_data_t;
+
+static int sync_transfer_complete(void *arg, int error, size_t transfered_size)
+{
+	sync_data_t *d = arg;
+	assert(d);
+	d->transfered_size = transfered_size;
+	d->error = error;
+	fibril_mutex_lock(&d->done_mtx);
+	d->done = 1;
+	fibril_condvar_broadcast(&d->done_cv);
+	fibril_mutex_unlock(&d->done_mtx);
+	return EOK;
+}
+
+ssize_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
+    usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
+    const char *name)
+{
+	sync_data_t sd = { .done = 0 };
+	fibril_mutex_initialize(&sd.done_mtx);
+	fibril_condvar_initialize(&sd.done_cv);
+
+	const int ret = bus_device_send_batch(device, target, direction,
+	    data, size, setup_data,
+	    sync_transfer_complete, &sd, name);
+	if (ret != EOK)
+		return ret;
+
+	fibril_mutex_lock(&sd.done_mtx);
+	while (!sd.done) {
+		fibril_condvar_wait_timeout(&sd.done_cv, &sd.done_mtx, 3000000);
+		if (!sd.done)
+			usb_log_debug2("Still waiting...");
+	}
+	fibril_mutex_unlock(&sd.done_mtx);
+
+	return (sd.error == EOK)
+		? (ssize_t) sd.transfered_size
+		: (ssize_t) sd.error;
 }
 
 /**

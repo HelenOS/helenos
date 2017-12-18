@@ -44,6 +44,7 @@
 #include <device/hw_res_parsed.h>
 #include <pci_dev_iface.h>
 
+#include "hc.h"
 #include "res.h"
 #include "ehci_regs.h"
 
@@ -171,11 +172,11 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	return ret;
 }
 
-int disable_legacy(hc_t *hc, ddf_dev_t *device)
+int disable_legacy(hc_device_t *hcd)
 {
-	assert(device);
+	hc_t *hc = hcd_to_hc(hcd);
 
-	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(hcd->ddf_dev);
 	if (parent_sess == NULL)
 		return ENOMEM;
 

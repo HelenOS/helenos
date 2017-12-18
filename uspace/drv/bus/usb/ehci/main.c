@@ -34,15 +34,8 @@
  * Main routines of EHCI driver.
  */
 
-#include <ddf/driver.h>
-#include <ddf/interrupt.h>
-#include <device/hw_res.h>
-#include <errno.h>
-#include <str_error.h>
 #include <io/logctl.h>
-
-#include <usb_iface.h>
-#include <usb/debug.h>
+#include <usb/host/hcd.h>
 #include <usb/host/ddf_helpers.h>
 
 #include "res.h"
@@ -50,107 +43,17 @@
 
 #define NAME "ehci"
 
-static int ehci_driver_init(hcd_t *, const hw_res_list_parsed_t *, ddf_dev_t *);
-static int ehci_driver_claim(hcd_t *, ddf_dev_t *);
-static int ehci_driver_start(hcd_t *, bool);
-static void ehci_driver_fini(hcd_t *);
-
-static const ddf_hc_driver_t ehci_hc_driver = {
-	.name = "EHCI-PCI",
-	.init = ehci_driver_init,
-	.irq_code_gen = ehci_hc_gen_irq_code,
-	.claim = ehci_driver_claim,
-	.start = ehci_driver_start,
-	.setup_root_hub = hcd_setup_virtual_root_hub,
-	.fini = ehci_driver_fini,
-	.ops = {
-		.schedule       = ehci_hc_schedule,
-		.irq_hook       = ehci_hc_interrupt,
-		.status_hook    = ehci_hc_status,
-	}
-};
-
-
-static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, ddf_dev_t *device)
-{
-	assert(hcd);
-	assert(hcd_get_driver_data(hcd) == NULL);
-
-	hc_t *instance = malloc(sizeof(hc_t));
-	if (!instance)
-		return ENOMEM;
-
-	const int ret = hc_init(instance, hcd, res);
-	if (ret == EOK) {
-		hcd_set_implementation(hcd, instance, &ehci_hc_driver.ops, &instance->bus.base.base);
-	} else {
-		free(instance);
-	}
-	return ret;
-}
-
-static int ehci_driver_claim(hcd_t *hcd, ddf_dev_t *dev)
-{
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
-
-	return disable_legacy(instance, dev);
-}
-
-static int ehci_driver_start(hcd_t *hcd, bool irq) {
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
-
-	return hc_start(instance, irq);
-}
-
-static void ehci_driver_fini(hcd_t *hcd)
-{
-	assert(hcd);
-	hc_t *hc = hcd_get_driver_data(hcd);
-	if (hc)
-		hc_fini(hc);
-
-	free(hc);
-	hcd_set_implementation(hcd, NULL, NULL, NULL);
-}
-
-/** Initializes a new ddf driver instance of EHCI hcd.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- */
-static int ehci_dev_add(ddf_dev_t *device)
-{
-	usb_log_debug("ehci_dev_add() called\n");
-	assert(device);
-
-	return hcd_ddf_add_hc(device, &ehci_hc_driver);
-
-}
-
-static int ehci_fun_online(ddf_fun_t *fun)
-{
-	return hcd_ddf_device_online(fun);
-}
-
-static int ehci_fun_offline(ddf_fun_t *fun)
-{
-	return hcd_ddf_device_offline(fun);
-}
-
-
-static const driver_ops_t ehci_driver_ops = {
-	.dev_add = ehci_dev_add,
-	.fun_online = ehci_fun_online,
-	.fun_offline = ehci_fun_offline
-};
-
-static const driver_t ehci_driver = {
+static const hc_driver_t ehci_driver = {
 	.name = NAME,
-	.driver_ops = &ehci_driver_ops
-};
+	.hc_device_size = sizeof(hc_t),
 
+	.hc_add = hc_add,
+	.irq_code_gen = hc_gen_irq_code,
+	.claim = disable_legacy,
+	.start = hc_start,
+	.setup_root_hub = hcd_setup_virtual_root_hub,
+	.hc_gone = hc_gone,
+};
 
 /** Initializes global driver structures (NONE).
  *
@@ -164,7 +67,7 @@ int main(int argc, char *argv[])
 {
 	log_init(NAME);
 	logctl_set_log_level(NAME, LVL_NOTE);
-	return ddf_driver_main(&ehci_driver);
+	return hc_driver_main(&ehci_driver);
 }
 
 /**

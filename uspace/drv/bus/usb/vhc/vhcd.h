@@ -38,9 +38,11 @@
 
 #include <usbvirt/device.h>
 #include <async.h>
+#include <macros.h>
 
 #include <usb/host/hcd.h>
 #include <usb/host/usb2_bus.h>
+#include <usb/host/usb_transfer_batch.h>
 
 #define NAME "vhc"
 
@@ -55,17 +57,31 @@ typedef struct {
 } vhc_virtdev_t;
 
 typedef struct {
-	uint32_t magic;
+	hc_device_t base;
+
+	usb2_bus_t bus;
+	ddf_fun_t *virtual_fun;
 	list_t devices;
 	fibril_mutex_t guard;
 	usbvirt_device_t hub;
-	usb2_bus_t bus;
 } vhc_data_t;
 
 typedef struct {
+	usb_transfer_batch_t batch;
 	link_t link;
-	usb_transfer_batch_t *batch;
 } vhc_transfer_t;
+
+static inline vhc_data_t *hcd_to_vhc(hc_device_t *hcd)
+{
+	assert(hcd);
+	return (vhc_data_t *) hcd;
+}
+
+static inline vhc_data_t *bus_to_vhc(bus_t *bus)
+{
+	assert(bus);
+	return member_to_inst(bus, vhc_data_t, bus);
+}
 
 void on_client_close(ddf_fun_t *fun);
 void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
@@ -76,8 +92,8 @@ int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
 int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *, usb_address_t address);
 void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
 
-int vhc_init(vhc_data_t *instance, hcd_t *);
-int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+int vhc_init(vhc_data_t *);
+int vhc_schedule(usb_transfer_batch_t *);
 int vhc_transfer_queue_processor(void *arg);
 
 #endif

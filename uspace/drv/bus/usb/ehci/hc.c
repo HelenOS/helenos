@@ -96,12 +96,11 @@ static int hc_init_memory(hc_t *instance);
  *
  * @return Error code.
  */
-int ehci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
+int hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
 	assert(hw_res);
-
-	hc_t *instance = hcd_get_driver_data(hcd);
+	hc_t *instance = hcd_to_hc(hcd);
 
 	if (hw_res->irqs.count != 1 || hw_res->mem_ranges.count != 1)
 		return EINVAL;
@@ -148,9 +147,9 @@ int ehci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
+int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
-	assert(instance);
+	hc_t *instance = hcd_to_hc(hcd);
 	assert(hw_res);
 	if (hw_res->mem_ranges.count != 1 ||
 	    hw_res->mem_ranges.ranges[0].size <
@@ -189,7 +188,8 @@ int hc_init(hc_t *instance, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
 	ehci_rh_init(
 	    &instance->rh, instance->caps, instance->registers, "ehci rh");
 
-	ehci_bus_init(&instance->bus, hcd, instance);
+	ehci_bus_init(&instance->bus, instance);
+	hc_device_setup(hcd, (bus_t *) &instance->bus);
 	return EOK;
 }
 
@@ -197,9 +197,10 @@ int hc_init(hc_t *instance, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
  *
  * @param[in] instance Host controller structure to use.
  */
-void hc_fini(hc_t *instance)
+int hc_gone(hc_device_t *instance)
 {
 	assert(instance);
+	return EOK;
 	//TODO: stop the hw
 #if 0
 	endpoint_list_fini(&instance->async_list);
@@ -262,18 +263,21 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	fibril_mutex_unlock(&instance->guard);
 }
 
-int ehci_hc_status(hcd_t *hcd, uint32_t *status)
+int ehci_hc_status(bus_t *bus_base, uint32_t *status)
 {
-	assert(hcd);
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
+	assert(bus_base);
 	assert(status);
+
+	ehci_bus_t *bus = (ehci_bus_t *) bus_base;
+	hc_t *hc = bus->hc;
+	assert(hc);
+
 	*status = 0;
-	if (instance->registers) {
-		*status = EHCI_RD(instance->registers->usbsts);
-		EHCI_WR(instance->registers->usbsts, *status);
+	if (hc->registers) {
+		*status = EHCI_RD(hc->registers->usbsts);
+		EHCI_WR(hc->registers->usbsts, *status);
 	}
-	usb_log_debug2("HC(%p): Read status: %x", instance, *status);
+	usb_log_debug2("HC(%p): Read status: %x", hc, *status);
 	return EOK;
 }
 
@@ -283,17 +287,19 @@ int ehci_hc_status(hcd_t *hcd, uint32_t *status)
  * @param[in] batch Batch representing the transfer.
  * @return Error code.
  */
-int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+int ehci_hc_schedule(usb_transfer_batch_t *batch)
 {
-	assert(hcd);
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
+	assert(batch);
+
+	ehci_bus_t *bus = (ehci_bus_t *) endpoint_get_bus(batch->ep);
+	hc_t *hc = bus->hc;
+	assert(hc);
 
 	/* Check for root hub communication */
-	if (batch->target.address == ehci_rh_get_address(&instance->rh)) {
+	if (batch->target.address == ehci_rh_get_address(&hc->rh)) {
 		usb_log_debug("HC(%p): Scheduling BATCH(%p) for RH(%p)",
-		    instance, batch, &instance->rh);
-		return ehci_rh_schedule(&instance->rh, batch);
+		    hc, batch, &hc->rh);
+		return ehci_rh_schedule(&hc->rh, batch);
 	}
 
 	ehci_transfer_batch_t *ehci_batch = ehci_transfer_batch_get(batch);
@@ -302,13 +308,13 @@ int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	if (err)
 		return err;
 
-	fibril_mutex_lock(&instance->guard);
-	usb_log_debug2("HC(%p): Appending BATCH(%p)", instance, batch);
-	list_append(&ehci_batch->link, &instance->pending_batches);
-	usb_log_debug("HC(%p): Committing BATCH(%p)", instance, batch);
+	fibril_mutex_lock(&hc->guard);
+	usb_log_debug2("HC(%p): Appending BATCH(%p)", hc, batch);
+	list_append(&ehci_batch->link, &hc->pending_batches);
+	usb_log_debug("HC(%p): Committing BATCH(%p)", hc, batch);
 	ehci_transfer_batch_commit(ehci_batch);
 
-	fibril_mutex_unlock(&instance->guard);
+	fibril_mutex_unlock(&hc->guard);
 	return EOK;
 }
 
@@ -317,31 +323,32 @@ int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
  * @param[in] hcd HCD driver structure.
  * @param[in] status Value of the status register at the time of interrupt.
  */
-void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
+void ehci_hc_interrupt(bus_t *bus_base, uint32_t status)
 {
-	assert(hcd);
-	hc_t *instance = hcd_get_driver_data(hcd);
-	status = EHCI_RD(status);
-	assert(instance);
+	assert(bus_base);
 
-	usb_log_debug2("HC(%p): Interrupt: %"PRIx32, instance, status);
+	ehci_bus_t *bus = (ehci_bus_t *) bus_base;
+	hc_t *hc = bus->hc;
+	assert(hc);
+
+	usb_log_debug2("HC(%p): Interrupt: %"PRIx32, hc, status);
 	if (status & USB_STS_PORT_CHANGE_FLAG) {
-		ehci_rh_interrupt(&instance->rh);
+		ehci_rh_interrupt(&hc->rh);
 	}
 
 	if (status & USB_STS_IRQ_ASYNC_ADVANCE_FLAG) {
-		fibril_mutex_lock(&instance->guard);
-		usb_log_debug2("HC(%p): Signaling doorbell", instance);
-		fibril_condvar_broadcast(&instance->async_doorbell);
-		fibril_mutex_unlock(&instance->guard);
+		fibril_mutex_lock(&hc->guard);
+		usb_log_debug2("HC(%p): Signaling doorbell", hc);
+		fibril_condvar_broadcast(&hc->async_doorbell);
+		fibril_mutex_unlock(&hc->guard);
 	}
 
 	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
-		fibril_mutex_lock(&instance->guard);
+		fibril_mutex_lock(&hc->guard);
 
-		usb_log_debug2("HC(%p): Scanning %lu pending batches", instance,
-			list_count(&instance->pending_batches));
-		list_foreach_safe(instance->pending_batches, current, next) {
+		usb_log_debug2("HC(%p): Scanning %lu pending batches", hc,
+			list_count(&hc->pending_batches));
+		list_foreach_safe(hc->pending_batches, current, next) {
 			ehci_transfer_batch_t *batch =
 			    ehci_transfer_batch_from_link(current);
 
@@ -350,11 +357,11 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 				usb_transfer_batch_finish(&batch->base);
 			}
 		}
-		fibril_mutex_unlock(&instance->guard);
+		fibril_mutex_unlock(&hc->guard);
 	}
 
 	if (status & USB_STS_HOST_ERROR_FLAG) {
-		usb_log_fatal("HCD(%p): HOST SYSTEM ERROR!", instance);
+		usb_log_fatal("HCD(%p): HOST SYSTEM ERROR!", hc);
 		//TODO do something here
 	}
 }
@@ -363,9 +370,9 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
  *
  * @param[in] instance EHCI hc driver structure.
  */
-int hc_start(hc_t *instance, bool interrupts)
+int hc_start(hc_device_t *hcd)
 {
-	assert(instance);
+	hc_t *instance = hcd_to_hc(hcd);
 	usb_log_debug("HC(%p): Starting HW.", instance);
 
 	/* Turn off the HC if it's running, Reseting a running device is

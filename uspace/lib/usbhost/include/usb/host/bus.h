@@ -42,13 +42,13 @@
 #ifndef LIBUSBHOST_HOST_BUS_H
 #define LIBUSBHOST_HOST_BUS_H
 
-#include <usb/usb.h>
-#include <usb/request.h>
-#include <usb/host/hcd.h>
-
 #include <assert.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
+#include <usb/host/hcd.h>
+#include <usb/request.h>
+#include <usb/usb.h>
+#include <usbhc_iface.h>
 
 typedef struct hcd hcd_t;
 typedef struct endpoint endpoint_t;
@@ -93,6 +93,8 @@ struct bus_ops {
 	const bus_ops_t *parent;
 
 	/* Global operations on the bus */
+	void (*interrupt)(bus_t *, uint32_t);
+	int (*status)(bus_t *, uint32_t *);
 	int (*reserve_default_address)(bus_t *, usb_speed_t);
 	int (*release_default_address)(bus_t *);
 	int (*reset_toggle)(bus_t *, usb_target_t, toggle_reset_mode_t);
@@ -115,7 +117,8 @@ struct bus_ops {
 	usb_transfer_batch_t *(*batch_create)(endpoint_t *);	/**< Optional */
 
 	/* Operations on batch */
-	void (*batch_destroy)(usb_transfer_batch_t *);	/**< Optional */
+	void (*batch_destroy)(usb_transfer_batch_t *);		/**< Optional */
+	int (*batch_schedule)(usb_transfer_batch_t *);
 };
 
 /**
@@ -128,9 +131,7 @@ typedef struct bus {
 	/* Synchronization of ops */
 	fibril_mutex_t guard;
 
-	/* TODO: get rid of this one. */
-	hcd_t *hcd;
-
+	/* Size of the device_t extended structure */
 	size_t device_size;
 
 	/* Do not call directly, ops are synchronized. */
@@ -139,7 +140,7 @@ typedef struct bus {
 	/* This structure is meant to be extended by overriding. */
 } bus_t;
 
-void bus_init(bus_t *, hcd_t *, size_t);
+void bus_init(bus_t *, size_t);
 int bus_device_init(device_t *, bus_t *);
 
 int bus_device_set_default_name(device_t *);
@@ -149,6 +150,14 @@ int bus_device_remove(device_t *);
 
 int bus_device_online(device_t *);
 int bus_device_offline(device_t *);
+
+int bus_device_send_batch(device_t *, usb_target_t,
+    usb_direction_t direction, char *, size_t, uint64_t,
+    usbhc_iface_transfer_callback_t, void *, const char *);
+
+ssize_t bus_device_send_batch_sync(device_t *, usb_target_t,
+    usb_direction_t direction, char *, size_t, uint64_t,
+    const char *);
 
 int bus_endpoint_add(device_t *, const usb_endpoint_desc_t *, endpoint_t **);
 endpoint_t *bus_find_endpoint(device_t *, usb_target_t, usb_direction_t);

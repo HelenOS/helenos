@@ -100,7 +100,7 @@ static int hc_init_memory(hc_t *instance);
  *
  * @return Error code.
  */
-int ohci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_t *hw_res)
+int hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
 	assert(hw_res);
@@ -148,9 +148,9 @@ int ohci_hc_gen_irq_code(irq_code_t *code, hcd_t *hcd, const hw_res_list_parsed_
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
+int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
-	assert(instance);
+	hc_t *instance = hcd_to_hc(hcd);
 	assert(hw_res);
 	if (hw_res->mem_ranges.count != 1 ||
 	    hw_res->mem_ranges.ranges[0].size < sizeof(ohci_regs_t))
@@ -185,11 +185,12 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res)
  *
  * @param[in] instance Host controller structure to use.
  */
-void hc_fini(hc_t *instance)
+int hc_gone(hc_device_t *instance)
 {
 	assert(instance);
 	/* TODO: implement*/
-};
+	return ENOTSUP;
+}
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
@@ -259,16 +260,18 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	}
 }
 
-int ohci_hc_status(hcd_t *hcd, uint32_t *status)
+int ohci_hc_status(bus_t *bus_base, uint32_t *status)
 {
-	assert(hcd);
+	assert(bus_base);
 	assert(status);
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
 
-	if (instance->registers){
-		*status = OHCI_RD(instance->registers->interrupt_status);
-		OHCI_WR(instance->registers->interrupt_status, *status);
+	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
+	hc_t *hc = bus->hc;
+	assert(hc);
+
+	if (hc->registers){
+		*status = OHCI_RD(hc->registers->interrupt_status);
+		OHCI_WR(hc->registers->interrupt_status, *status);
 	}
 	return EOK;
 }
@@ -279,16 +282,18 @@ int ohci_hc_status(hcd_t *hcd, uint32_t *status)
  * @param[in] batch Batch representing the transfer.
  * @return Error code.
  */
-int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+int ohci_hc_schedule(usb_transfer_batch_t *batch)
 {
-	assert(hcd);
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
+	assert(batch);
+
+	ohci_bus_t *bus = (ohci_bus_t *) endpoint_get_bus(batch->ep);
+	hc_t *hc = bus->hc;
+	assert(hc);
 
 	/* Check for root hub communication */
-	if (batch->target.address == ohci_rh_get_address(&instance->rh)) {
+	if (batch->target.address == ohci_rh_get_address(&hc->rh)) {
 		usb_log_debug("OHCI root hub request.\n");
-		return ohci_rh_schedule(&instance->rh, batch);
+		return ohci_rh_schedule(&hc->rh, batch);
 	}
 	ohci_transfer_batch_t *ohci_batch = ohci_transfer_batch_get(batch);
 	if (!ohci_batch)
@@ -298,23 +303,23 @@ int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	if (err)
 		return err;
 
-	fibril_mutex_lock(&instance->guard);
-	list_append(&ohci_batch->link, &instance->pending_batches);
+	fibril_mutex_lock(&hc->guard);
+	list_append(&ohci_batch->link, &hc->pending_batches);
 	ohci_transfer_batch_commit(ohci_batch);
 
 	/* Control and bulk schedules need a kick to start working */
 	switch (batch->ep->transfer_type)
 	{
 	case USB_TRANSFER_CONTROL:
-		OHCI_SET(instance->registers->command_status, CS_CLF);
+		OHCI_SET(hc->registers->command_status, CS_CLF);
 		break;
 	case USB_TRANSFER_BULK:
-		OHCI_SET(instance->registers->command_status, CS_BLF);
+		OHCI_SET(hc->registers->command_status, CS_BLF);
 		break;
 	default:
 		break;
 	}
-	fibril_mutex_unlock(&instance->guard);
+	fibril_mutex_unlock(&hc->guard);
 	return EOK;
 }
 
@@ -323,28 +328,32 @@ int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
  * @param[in] hcd HCD driver structure.
  * @param[in] status Value of the status register at the time of interrupt.
  */
-void ohci_hc_interrupt(hcd_t *hcd, uint32_t status)
+void ohci_hc_interrupt(bus_t *bus_base, uint32_t status)
 {
-	assert(hcd);
-	hc_t *instance = hcd_get_driver_data(hcd);
+	assert(bus_base);
+
+	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
+	hc_t *hc = bus->hc;
+	assert(hc);
+
 	status = OHCI_RD(status);
-	assert(instance);
+	assert(hc);
 	if ((status & ~I_SF) == 0) /* ignore sof status */
 		return;
-	usb_log_debug2("OHCI(%p) interrupt: %x.\n", instance, status);
+	usb_log_debug2("OHCI(%p) interrupt: %x.\n", hc, status);
 	if (status & I_RHSC)
-		ohci_rh_interrupt(&instance->rh);
+		ohci_rh_interrupt(&hc->rh);
 
 	if (status & I_WDH) {
-		fibril_mutex_lock(&instance->guard);
-		usb_log_debug2("HCCA: %p-%#" PRIx32 " (%p).\n", instance->hcca,
-		    OHCI_RD(instance->registers->hcca),
-		    (void *) addr_to_phys(instance->hcca));
+		fibril_mutex_lock(&hc->guard);
+		usb_log_debug2("HCCA: %p-%#" PRIx32 " (%p).\n", hc->hcca,
+		    OHCI_RD(hc->registers->hcca),
+		    (void *) addr_to_phys(hc->hcca));
 		usb_log_debug2("Periodic current: %#" PRIx32 ".\n",
-		    OHCI_RD(instance->registers->periodic_current));
+		    OHCI_RD(hc->registers->periodic_current));
 
-		link_t *current = list_first(&instance->pending_batches);
-		while (current && current != &instance->pending_batches.head) {
+		link_t *current = list_first(&hc->pending_batches);
+		while (current && current != &hc->pending_batches.head) {
 			link_t *next = current->next;
 			ohci_transfer_batch_t *batch =
 			    ohci_transfer_batch_from_link(current);
@@ -356,12 +365,12 @@ void ohci_hc_interrupt(hcd_t *hcd, uint32_t status)
 
 			current = next;
 		}
-		fibril_mutex_unlock(&instance->guard);
+		fibril_mutex_unlock(&hc->guard);
 	}
 
 	if (status & I_UE) {
 		usb_log_fatal("Error like no other!\n");
-		hc_start(instance);
+		hc_start(&hc->base);
 	}
 
 }
@@ -373,9 +382,9 @@ void ohci_hc_interrupt(hcd_t *hcd, uint32_t status)
  *
  * @param[in] instance OHCI hc driver structure.
  */
-void hc_gain_control(hc_t *instance)
+int hc_gain_control(hc_device_t *hcd)
 {
-	assert(instance);
+	hc_t *instance = hcd_to_hc(hcd);
 
 	usb_log_debug("Requesting OHCI control.\n");
 	if (OHCI_RD(instance->registers->revision) & R_LEGACY_FLAG) {
@@ -408,7 +417,7 @@ void hc_gain_control(hc_t *instance)
 		usb_log_info("SMM driver: Ownership taken.\n");
 		C_HCFS_SET(instance->registers->control, C_HCFS_RESET);
 		async_usleep(50000);
-		return;
+		return EOK;
 	}
 
 	const unsigned hc_status = C_HCFS_GET(instance->registers->control);
@@ -417,27 +426,29 @@ void hc_gain_control(hc_t *instance)
 		usb_log_debug("BIOS driver found.\n");
 		if (hc_status == C_HCFS_OPERATIONAL) {
 			usb_log_info("BIOS driver: HC operational.\n");
-			return;
+			return EOK;
 		}
 		/* HC is suspended assert resume for 20ms */
 		C_HCFS_SET(instance->registers->control, C_HCFS_RESUME);
 		async_usleep(20000);
 		usb_log_info("BIOS driver: HC resumed.\n");
-		return;
+		return EOK;
 	}
 
 	/* HC is in reset (hw startup) => no other driver
 	 * maintain reset for at least the time specified in USB spec (50 ms)*/
 	usb_log_debug("Host controller found in reset state.\n");
 	async_usleep(50000);
+	return EOK;
 }
 
 /** OHCI hw initialization routine.
  *
  * @param[in] instance OHCI hc driver structure.
  */
-void hc_start(hc_t *instance)
+int hc_start(hc_device_t *hcd)
 {
+	hc_t *instance = hcd_to_hc(hcd);
 	ohci_rh_init(&instance->rh, instance->registers, "ohci rh");
 
 	/* OHCI guide page 42 */
@@ -488,7 +499,7 @@ void hc_start(hc_t *instance)
 	    OHCI_RD(instance->registers->control));
 
 	/* Enable interrupts */
-	if (instance->hw_interrupts) {
+	if (instance->base.irq_cap >= 0) {
 		OHCI_WR(instance->registers->interrupt_enable,
 		    OHCI_USED_INTERRUPTS);
 		usb_log_debug("Enabled interrupts: %x.\n",
@@ -507,6 +518,8 @@ void hc_start(hc_t *instance)
 	C_HCFS_SET(instance->registers->control, C_HCFS_OPERATIONAL);
 	usb_log_debug("OHCI HC up and running (ctl_reg=0x%x).\n",
 	    OHCI_RD(instance->registers->control));
+
+	return EOK;
 }
 
 /** Initialize schedule queues
@@ -554,7 +567,7 @@ int hc_init_memory(hc_t *instance)
 
 	memset(&instance->rh, 0, sizeof(instance->rh));
 	/* Init queues */
-	const int ret = hc_init_transfer_lists(instance);
+	int ret = hc_init_transfer_lists(instance);
 	if (ret != EOK) {
 		return ret;
 	}
@@ -572,6 +585,14 @@ int hc_init_memory(hc_t *instance)
 	usb_log_debug2("Interrupt HEADs set to: %p (%#" PRIx32 ").\n",
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head,
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa);
+
+	if ((ret = ohci_bus_init(&instance->bus, instance))) {
+		usb_log_error("HC(%p): Failed to setup bus : %s",
+		    instance, str_error(ret));
+		return ret;
+	}
+
+	hc_device_setup(&instance->base, (bus_t *) &instance->bus);
 
 	return EOK;
 }

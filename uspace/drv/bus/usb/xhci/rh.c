@@ -93,7 +93,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 
 	xhci_bus_t *bus = &rh->hc->bus;
 
-	device_t *dev = hcd_ddf_device_create(rh->hc_device, &bus->base);
+	device_t *dev = hcd_ddf_fun_create(&rh->hc->base);
 	if (!dev) {
 		usb_log_error("Failed to create USB device function.");
 		return ENOMEM;
@@ -131,7 +131,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	return EOK;
 
 err_usb_dev:
-	hcd_ddf_device_destroy(dev);
+	hcd_ddf_fun_destroy(dev);
 	return err;
 }
 

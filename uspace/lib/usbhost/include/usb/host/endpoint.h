@@ -108,6 +108,10 @@ extern void endpoint_toggle_set(endpoint_t *, bool);
 /* Calculate bandwidth */
 ssize_t endpoint_count_bw(endpoint_t *, size_t);
 
+int endpoint_send_batch(endpoint_t *, usb_target_t, usb_direction_t,
+    char *, size_t, uint64_t, usbhc_iface_transfer_callback_t, void *,
+    const char *);
+
 static inline bus_t *endpoint_get_bus(endpoint_t *ep)
 {
 	return ep->device->bus;

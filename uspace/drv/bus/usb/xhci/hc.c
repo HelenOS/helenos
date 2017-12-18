@@ -431,8 +431,9 @@ int hc_start(xhci_hc_t *hc, bool irq)
 /**
  * Used only when polling. Shall supplement the irq_commands.
  */
-int hc_status(xhci_hc_t *hc, uint32_t *status)
+int hc_status(bus_t *bus, uint32_t *status)
 {
+	xhci_hc_t *hc = bus_to_hc(bus);
 	int ip = XHCI_REG_RD(hc->rt_regs->ir, XHCI_INTR_IP);
 	if (ip) {
 		*status = XHCI_REG_RD(hc->op_regs, XHCI_OP_STATUS);
@@ -448,10 +449,10 @@ int hc_status(xhci_hc_t *hc, uint32_t *status)
 	return EOK;
 }
 
-int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
+int hc_schedule(usb_transfer_batch_t *batch)
 {
 	assert(batch);
-	assert(batch->ep);
+	xhci_hc_t *hc = bus_to_hc(endpoint_get_bus(batch->ep));
 
 	if (!batch->target.address) {
 		usb_log_error("Attempted to schedule transfer to address 0.");
@@ -531,8 +532,9 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	usb_log_debug2("Event ring run finished.");
 }
 
-void hc_interrupt(xhci_hc_t *hc, uint32_t status)
+void hc_interrupt(bus_t *bus, uint32_t status)
 {
+	xhci_hc_t *hc = bus_to_hc(bus);
 	status = xhci2host(32, status);
 
 	if (status & XHCI_REG_MASK(XHCI_OP_PCD)) {

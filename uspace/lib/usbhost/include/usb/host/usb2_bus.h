@@ -65,7 +65,7 @@ typedef struct usb2_bus {
 
 extern const bus_ops_t usb2_bus_ops;
 
-extern int usb2_bus_init(usb2_bus_t *, hcd_t *, size_t);
+extern int usb2_bus_init(usb2_bus_t *, size_t);
 
 #endif
 /**

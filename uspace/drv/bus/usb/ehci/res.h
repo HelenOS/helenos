@@ -35,12 +35,9 @@
 #ifndef DRV_EHCI_PCI_H
 #define DRV_EHCI_PCI_H
 
-#include <ddf/driver.h>
-#include <device/hw_res_parsed.h>
+typedef struct hc_device hc_device_t;
 
-#include "hc.h"
-
-extern int disable_legacy(hc_t *, ddf_dev_t *);
+extern int disable_legacy(hc_device_t *);
 
 #endif
 /**

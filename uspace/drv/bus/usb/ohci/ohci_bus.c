@@ -157,6 +157,9 @@ static void ohci_destroy_batch(usb_transfer_batch_t *batch)
 static const bus_ops_t ohci_bus_ops = {
 	.parent = &usb2_bus_ops,
 
+	.interrupt = ohci_hc_interrupt,
+	.status = ohci_hc_status,
+
 	.endpoint_destroy = ohci_endpoint_destroy,
 	.endpoint_create = ohci_endpoint_create,
 	.endpoint_register = ohci_register_ep,
@@ -166,19 +169,19 @@ static const bus_ops_t ohci_bus_ops = {
 	.endpoint_get_toggle = ohci_ep_toggle_get,
 	.batch_create = ohci_create_batch,
 	.batch_destroy = ohci_destroy_batch,
+	.batch_schedule = ohci_hc_schedule,
 };
 
 
-int ohci_bus_init(ohci_bus_t *bus, hcd_t *hcd, hc_t *hc)
+int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
 {
 	assert(hc);
 	assert(bus);
 
-
 	usb2_bus_t *usb2_bus = (usb2_bus_t *) bus;
 	bus_t *bus_base = (bus_t *) bus;
 
-	usb2_bus_init(usb2_bus, hcd, BANDWIDTH_AVAILABLE_USB11);
+	usb2_bus_init(usb2_bus, BANDWIDTH_AVAILABLE_USB11);
 	bus_base->ops = &ohci_bus_ops;
 
 	bus->hc = hc;

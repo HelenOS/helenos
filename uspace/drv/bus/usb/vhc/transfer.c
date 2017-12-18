@@ -39,17 +39,17 @@
 
 static bool is_set_address_transfer(vhc_transfer_t *transfer)
 {
-	if (transfer->batch->target.endpoint != 0) {
+	if (transfer->batch.target.endpoint != 0) {
 		return false;
 	}
-	if (transfer->batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
+	if (transfer->batch.ep->transfer_type != USB_TRANSFER_CONTROL) {
 		return false;
 	}
-	if (transfer->batch->dir != USB_DIRECTION_OUT) {
+	if (transfer->batch.dir != USB_DIRECTION_OUT) {
 		return false;
 	}
 	const usb_device_request_setup_packet_t *setup
-		= &transfer->batch->setup.packet;
+		= &transfer->batch.setup.packet;
 	if (setup->request_type != 0) {
 		return false;
 	}
@@ -149,41 +149,44 @@ static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
 {
 	assert(outcome != ENAK);
 	assert(transfer);
-	assert(transfer->batch);
-	transfer->batch->error = outcome;
-	transfer->batch->transfered_size = data_transfer_size;
-	usb_transfer_batch_finish(transfer->batch);
+	transfer->batch.error = outcome;
+	transfer->batch.transfered_size = data_transfer_size;
+	usb_transfer_batch_finish(&transfer->batch);
 	free(transfer);
+}
+
+static usb_transfer_batch_t *batch_create(endpoint_t *ep)
+{
+	vhc_transfer_t *transfer = calloc(1, sizeof(vhc_transfer_t));
+	usb_transfer_batch_init(&transfer->batch, ep);
+	link_initialize(&transfer->link);
+	return &transfer->batch;
 }
 
 static const bus_ops_t vhc_bus_ops = {
 	.parent = &usb2_bus_ops,
+
 	.endpoint_count_bw = bandwidth_count_usb11,
+	.batch_create = batch_create,
+	.batch_schedule = vhc_schedule,
 };
 
-int vhc_init(vhc_data_t *instance, hcd_t *hcd)
+int vhc_init(vhc_data_t *instance)
 {
 	assert(instance);
 	list_initialize(&instance->devices);
 	fibril_mutex_initialize(&instance->guard);
-	usb2_bus_init(&instance->bus, hcd, BANDWIDTH_AVAILABLE_USB11);
+	usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11);
 	instance->bus.base.ops = &vhc_bus_ops;
-	instance->magic = 0xDEADBEEF;
 	return virthub_init(&instance->hub, "root hub");
 }
 
-int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+int vhc_schedule(usb_transfer_batch_t *batch)
 {
-	assert(hcd);
 	assert(batch);
-	vhc_data_t *vhc = hcd_get_driver_data(hcd);
+	vhc_transfer_t *transfer = (vhc_transfer_t *) batch;
+	vhc_data_t *vhc = bus_to_vhc(endpoint_get_bus(batch->ep));
 	assert(vhc);
-
-	vhc_transfer_t *transfer = malloc(sizeof(vhc_transfer_t));
-	if (!transfer)
-		return ENOMEM;
-	link_initialize(&transfer->link);
-	transfer->batch = batch;
 
 	fibril_mutex_lock(&vhc->guard);
 
@@ -191,7 +194,7 @@ int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 	list_foreach(vhc->devices, link, vhc_virtdev_t, dev) {
 		fibril_mutex_lock(&dev->guard);
-		if (dev->address == transfer->batch->target.address) {
+		if (dev->address == transfer->batch.target.address) {
 			if (!targets) {
 				list_append(&transfer->link, &dev->transfer_queue);
 			}
@@ -226,10 +229,10 @@ int vhc_transfer_queue_processor(void *arg)
 		int rc = EOK;
 		size_t data_transfer_size = 0;
 		if (dev->dev_sess) {
-			rc = process_transfer_remote(transfer->batch,
+			rc = process_transfer_remote(&transfer->batch,
 			    dev->dev_sess, &data_transfer_size);
 		} else if (dev->dev_local != NULL) {
-			rc = process_transfer_local(transfer->batch,
+			rc = process_transfer_local(&transfer->batch,
 			    dev->dev_local, &data_transfer_size);
 		} else {
 			usb_log_warning("Device has no remote phone nor local node.\n");
@@ -243,7 +246,7 @@ int vhc_transfer_queue_processor(void *arg)
 		if (rc == EOK) {
 			if (is_set_address_transfer(transfer)) {
 				usb_device_request_setup_packet_t *setup =
-				    (void*) transfer->batch->setup.buffer;
+				    (void*) transfer->batch.setup.buffer;
 				dev->address = setup->value;
 				usb_log_debug2("Address changed to %d\n",
 				    dev->address);

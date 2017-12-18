@@ -62,11 +62,11 @@ typedef struct {
 
 void ehci_bus_prepare_ops(void);
 
-int ehci_bus_init(ehci_bus_t *, hcd_t *, hc_t *);
+int ehci_bus_init(ehci_bus_t *, hc_t *);
 
 /** Get and convert assigned ehci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.
- * @return Pointer to assigned hcd endpoint structure
+ * @return Pointer to assigned ehci endpoint structure
  */
 static inline ehci_endpoint_t * ehci_endpoint_get(const endpoint_t *ep)
 {

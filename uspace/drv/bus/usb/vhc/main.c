@@ -68,38 +68,33 @@ static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 		*fun = NULL;
 		return ret;
 	}
-	vhc_init(vhc, dev_to_hcd(dev));
 	return EOK;
 }
 
-hcd_ops_t vhc_hc_ops = {
-	.schedule = vhc_schedule,
-};
-
 static int vhc_dev_add(ddf_dev_t *dev)
 {
+	/* Initialize generic structures */
+	int ret = hcd_ddf_setup_hc(dev, sizeof(vhc_data_t));
+	if (ret != EOK) {
+		usb_log_error("Failed to init HCD structures: %s.\n",
+		   str_error(ret));
+		return ret;
+	}
+	vhc_data_t *vhc = ddf_dev_data_get(dev);
+	vhc_init(vhc);
+
+	hc_device_setup(&vhc->base, (bus_t *) &vhc->bus);
+
 	/* Initialize virtual structure */
 	ddf_fun_t *ctl_fun = NULL;
-	int ret = vhc_control_node(dev, &ctl_fun);
+	ret = vhc_control_node(dev, &ctl_fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup control node.\n");
 		return ret;
 	}
-	vhc_data_t *data = ddf_fun_data_get(ctl_fun);
-
-	/* Initialize generic structures */
-	ret = hcd_ddf_setup_hc(dev);
-	if (ret != EOK) {
-		usb_log_error("Failed to init HCD structures: %s.\n",
-		   str_error(ret));
-		ddf_fun_destroy(ctl_fun);
-		return ret;
-	}
-
-	hcd_set_implementation(dev_to_hcd(dev), data, &vhc_hc_ops, &data->bus.base);
 
 	/* Add virtual hub device */
-	ret = vhc_virtdev_plug_hub(data, &data->hub, NULL, 0);
+	ret = vhc_virtdev_plug_hub(vhc, &vhc->hub, NULL, 0);
 	if (ret != EOK) {
 		usb_log_error("Failed to plug root hub: %s.\n", str_error(ret));
 		ddf_fun_destroy(ctl_fun);
@@ -110,7 +105,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	 * Creating root hub registers a new USB device so HC
 	 * needs to be ready at this time.
 	 */
-	ret = hcd_setup_virtual_root_hub(dev_to_hcd(dev), dev);
+	ret = hcd_setup_virtual_root_hub(&vhc->base);
 	if (ret != EOK) {
 		usb_log_error("Failed to init VHC root hub: %s\n",
 			str_error(ret));

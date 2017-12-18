@@ -161,6 +161,8 @@ static void ehci_destroy_batch(usb_transfer_batch_t *batch)
 static const bus_ops_t ehci_bus_ops = {
 	.parent = &usb2_bus_ops,
 
+	.interrupt = ehci_hc_interrupt,
+	.status = ehci_hc_status,
 	.endpoint_destroy = ehci_endpoint_destroy,
 	.endpoint_create = ehci_endpoint_create,
 	.endpoint_register = ehci_register_ep,
@@ -170,9 +172,10 @@ static const bus_ops_t ehci_bus_ops = {
 	.endpoint_count_bw = bandwidth_count_usb11,
 	.batch_create = ehci_create_batch,
 	.batch_destroy = ehci_destroy_batch,
+	.batch_schedule = ehci_hc_schedule,
 };
 
-int ehci_bus_init(ehci_bus_t *bus, hcd_t *hcd, hc_t *hc)
+int ehci_bus_init(ehci_bus_t *bus, hc_t *hc)
 {
 	assert(hc);
 	assert(bus);
@@ -180,7 +183,7 @@ int ehci_bus_init(ehci_bus_t *bus, hcd_t *hcd, hc_t *hc)
 	usb2_bus_t *usb2_bus = (usb2_bus_t *) bus;
 	bus_t *bus_base = (bus_t *) bus;
 
-	usb2_bus_init(usb2_bus, hcd, BANDWIDTH_AVAILABLE_USB11);
+	usb2_bus_init(usb2_bus, BANDWIDTH_AVAILABLE_USB11);
 	bus_base->ops = &ehci_bus_ops;
 
 	bus->hc = hc;

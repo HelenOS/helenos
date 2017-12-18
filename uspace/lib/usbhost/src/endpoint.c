@@ -38,6 +38,9 @@
 #include <atomic.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <str_error.h>
+#include <usb/debug.h>
+#include <usb/host/hcd.h>
 
 #include "usb_transfer_batch.h"
 #include "bus.h"
@@ -184,6 +187,67 @@ ssize_t endpoint_count_bw(endpoint_t *ep, size_t packet_size)
 		return 0;
 
 	return ops->endpoint_count_bw(ep, packet_size);
+}
+
+/** Prepare generic usb_transfer_batch and schedule it.
+ * @param ep Endpoint for which the batch shall be created.
+ * @param target address and endpoint number.
+ * @param setup_data Data to use in setup stage (Control communication type)
+ * @param in Callback for device to host communication.
+ * @param out Callback for host to device communication.
+ * @param arg Callback parameter.
+ * @param name Communication identifier (for nicer output).
+ * @return Error code.
+ */
+int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
+    usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
+    usbhc_iface_transfer_callback_t on_complete, void *arg, const char *name)
+{
+	usb_log_debug2("%s %d:%d %zu(%zu).\n",
+	    name, target.address, target.endpoint, size, ep->max_packet_size);
+
+	bus_t *bus = endpoint_get_bus(ep);
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, batch_schedule);
+	if (!ops) {
+		usb_log_error("HCD does not implement scheduler.\n");
+		return ENOTSUP;
+	}
+
+	const size_t bw = endpoint_count_bw(ep, size);
+	/* Check if we have enough bandwidth reserved */
+	if (ep->bandwidth < bw) {
+		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
+		    "but only %zu is reserved.\n",
+		    ep->device->address, ep->endpoint, name, bw, ep->bandwidth);
+		return ENOSPC;
+	}
+
+	usb_transfer_batch_t *batch = usb_transfer_batch_create(ep);
+	if (!batch) {
+		usb_log_error("Failed to create transfer batch.\n");
+		return ENOMEM;
+	}
+
+	batch->target = target;
+	batch->buffer = data;
+	batch->buffer_size = size;
+	batch->setup.packed = setup_data;
+	batch->dir = direction;
+	batch->on_complete = on_complete;
+	batch->on_complete_data = arg;
+
+	/* Check for commands that reset toggle bit */
+	if (ep->transfer_type == USB_TRANSFER_CONTROL)
+		batch->toggle_reset_mode
+			= hcd_get_request_toggle_reset_mode(&batch->setup.packet);
+
+	const int ret = ops->batch_schedule(batch);
+	if (ret != EOK) {
+		usb_log_warning("Batch %p failed to schedule: %s", batch, str_error(ret));
+		usb_transfer_batch_destroy(batch);
+	}
+
+	return ret;
 }
 
 /**

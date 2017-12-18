@@ -50,6 +50,9 @@
 typedef struct xhci_command xhci_cmd_t;
 
 typedef struct xhci_hc {
+	/** Common HC device header */
+	hc_device_t base;
+
 	/* MMIO range */
 	addr_range_t mmio_range;
 
@@ -85,10 +88,13 @@ typedef struct xhci_hc {
 	/** Port speed mapping */
 	xhci_port_speed_t speeds [16];
 	uint8_t speed_to_psiv [USB_SPEED_MAX];
-
-	/* TODO: Hack. Figure out a better way. */
-	hcd_t *hcd;
 } xhci_hc_t;
+
+static inline xhci_hc_t *bus_to_hc(bus_t *bus)
+{
+	assert(bus);
+	return member_to_inst(bus, xhci_hc_t, bus);
+}
 
 typedef struct xhci_endpoint xhci_endpoint_t;
 typedef struct xhci_device xhci_device_t;
@@ -98,9 +104,6 @@ int hc_init_memory(xhci_hc_t *, ddf_dev_t *);
 int hc_claim(xhci_hc_t *, ddf_dev_t *);
 int hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *);
 int hc_start(xhci_hc_t *, bool);
-int hc_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch);
-int hc_status(xhci_hc_t *, uint32_t *);
-void hc_interrupt(xhci_hc_t *, uint32_t);
 void hc_fini(xhci_hc_t *);
 int hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
 int hc_enable_slot(xhci_hc_t *, uint32_t *);
@@ -111,6 +114,10 @@ int hc_deconfigure_device(xhci_hc_t *, uint32_t);
 int hc_add_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
 int hc_drop_endpoint(xhci_hc_t *, uint32_t, uint8_t);
 int hc_update_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
+
+int hc_schedule(usb_transfer_batch_t *batch);
+int hc_status(bus_t *, uint32_t *);
+void hc_interrupt(bus_t *, uint32_t);
 
 #endif
 

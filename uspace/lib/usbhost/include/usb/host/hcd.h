@@ -36,77 +36,84 @@
 #ifndef LIBUSBHOST_HOST_HCD_H
 #define LIBUSBHOST_HOST_HCD_H
 
-#include <assert.h>
-#include <mem.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <usb/usb.h>
-#include <usbhc_iface.h>
+#include <ddf/driver.h>
+#include <usb/request.h>
 
-typedef struct hcd hcd_t;
+typedef struct hw_resource_list_parsed hw_res_list_parsed_t;
 typedef struct bus bus_t;
 typedef struct device device_t;
-typedef struct usb_transfer_batch usb_transfer_batch_t;
 
-typedef int (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
-typedef void (*interrupt_hook_t)(hcd_t *, uint32_t);
-typedef int (*status_hook_t)(hcd_t *, uint32_t *);
-
-typedef struct {
-	/** Transfer scheduling, implement in device driver. */
-	schedule_hook_t schedule;
-	/** Hook to be called on device interrupt, passes ARG1 */
-	interrupt_hook_t irq_hook;
-	/** Periodic polling hook */
-	status_hook_t status_hook;
-} hcd_ops_t;
-
-/** Generic host controller driver structure. */
-struct hcd {
-	/** Endpoint manager. */
+/* Treat this header as read-only in driver code.
+ * It could be opaque, but why to complicate matters.
+ */
+typedef struct hc_device {
+	/* Bus instance */
 	bus_t *bus;
+
+	/* Managed DDF device */
+	ddf_dev_t *ddf_dev;
+
+	/* Control function */
+	ddf_fun_t *ctl_fun;
+
+	/* Result of enabling HW IRQs */
+	int irq_cap;
 
 	/** Interrupt replacement fibril */
 	fid_t polling_fibril;
 
-	/** Driver implementation */
-	hcd_ops_t ops;
+	/* This structure is meant to be extended by driver code. */
+} hc_device_t;
 
-	/** Device specific driver data. */
-	void * driver_data;
-};
+typedef struct hc_driver {
+	const char *name;
 
-extern void hcd_init(hcd_t *);
+	/** Size of the device data to be allocated, and passed as the
+	 * hc_device_t. */
+	size_t hc_device_size;
 
-static inline void hcd_set_implementation(hcd_t *hcd, void *data,
-    const hcd_ops_t *ops, bus_t *bus)
-{
-	assert(hcd);
-	if (ops) {
-		hcd->driver_data = data;
-		hcd->ops = *ops;
-		hcd->bus = bus;
-	} else {
-		memset(&hcd->ops, 0, sizeof(hcd->ops));
-	}
+	/** Initialize device structures. */
+	int (*hc_add)(hc_device_t *, const hw_res_list_parsed_t *);
+
+	/** Generate IRQ code to handle interrupts. */
+	int (*irq_code_gen)(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *);
+
+	/** Claim device from BIOS. */
+	int (*claim)(hc_device_t *);
+
+	/** Start the host controller. */
+	int (*start)(hc_device_t *);
+
+	/** Setup the virtual roothub. */
+	int (*setup_root_hub)(hc_device_t *);
+
+	/** Stop the host controller (after start has been called) */
+	int (*stop)(hc_device_t *);
+
+	/** HC was asked to be removed (after hc_add has been called) */
+	int (*hc_remove)(hc_device_t *);
+
+	/** HC is gone. */
+	int (*hc_gone)(hc_device_t *);
+} hc_driver_t;
+
+/* Drivers should call this before leaving hc_add */
+static inline void hc_device_setup(hc_device_t *hcd, bus_t *bus) {
+	hcd->bus = bus;
 }
 
-static inline void * hcd_get_driver_data(hcd_t *hcd)
+static inline hc_device_t *dev_to_hcd(ddf_dev_t *dev)
 {
-	assert(hcd);
-	return hcd->driver_data;
+	return ddf_dev_data_get(dev);
 }
 
-extern int hcd_get_ep0_max_packet_size(uint16_t *, hcd_t *, device_t *);
+int hc_driver_main(const hc_driver_t *);
+
+/* TODO: These are a kind of utility functions, they should probably go
+ * somewhere else.
+ */
+extern int hcd_get_ep0_max_packet_size(uint16_t *, bus_t *, device_t *);
 extern void hcd_setup_device_tt(device_t *);
-
-extern int hcd_send_batch(hcd_t *, device_t *, usb_target_t,
-    usb_direction_t direction, char *, size_t, uint64_t,
-    usbhc_iface_transfer_callback_t, void *, const char *);
-
-extern ssize_t hcd_send_batch_sync(hcd_t *, device_t *, usb_target_t,
-    usb_direction_t direction, char *, size_t, uint64_t,
-    const char *);
 
 /** How many toggles need to be reset */
 typedef enum {
@@ -114,6 +121,9 @@ typedef enum {
 	RESET_EP,
 	RESET_ALL
 } toggle_reset_mode_t;
+
+extern toggle_reset_mode_t hcd_get_request_toggle_reset_mode(
+    const usb_device_request_setup_packet_t *request);
 
 #endif
 
