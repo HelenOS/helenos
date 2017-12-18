@@ -328,6 +328,7 @@ namespace std
 
                 auto loc = base.getloc();
                 const auto& ct = use_facet<ctype<char_type>>(loc);
+                auto hex = ((base.flags() & ios_base::hex) != 0);
 
                 size_t i{};
                 if (*in == '+' || *in == '-')
@@ -336,7 +337,9 @@ namespace std
                 while (in != end && i < ios_base::buffer_size_ - 1)
                 {
                     auto c = *in;
-                    if (ct.is(ctype_base::digit, c))
+                    if (ct.is(ctype_base::digit, c) || (hex &&
+                       ((c >= ct.widen('A') && c <= ct.widen('F')) ||
+                        (c >= ct.widen('a') && c <= ct.widen('f')))))
                     {
                         ++in;
                         base.buffer_[i++] = c;
@@ -344,7 +347,7 @@ namespace std
                     else
                         break;
                 }
-                base.buffer_[i] = '\0';
+                base.buffer_[i] = char_type{};
 
                 return i;
             }
