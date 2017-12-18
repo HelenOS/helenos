@@ -357,7 +357,36 @@ namespace std
 
             basic_istream<Char, Traits>& operator>>(basic_streambuf<Char, Traits>* sb)
             {
-                // TODO: implement
+                if (!sb)
+                {
+                    this->setstate(ios_base::failbit);
+                    return *this;
+                }
+
+                gcount_ = 0;
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    while (true)
+                    {
+                        auto ic = this->rdbuf()->sgetc();
+                        if (traits_type::eq_int_type(ic, traits_type::eof()))
+                        {
+                            this->setstate(ios_base::eofbit);
+                            break;
+                        }
+
+                        auto res = sb->sputc(traits_type::to_char_type(ic));
+                        if (traits_type::eq_int_type(res, traits_type::eof()))
+                            break;
+
+                        ++gcount_;
+                        this->rdbuf()->sbumpc();
+                    }
+                }
+
+                return *this;
             }
 
             /**
@@ -750,42 +779,88 @@ namespace std
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
                                             Char& c)
     {
-        // TODO: implement
+        typename basic_istream<Char, Traits>::sentry sen{is, false};
+
+        if (sen)
+        {
+            auto ic = is.rdbuf()->sgetc();
+            if (Traits::eq_int_type(ic, Traits::eof()))
+            {
+                is.setstate(ios_base::failbit | ios_base::eofbit);
+                return is;
+            }
+
+            c = Traits::to_char_type(is.rdbuf()->sbumpc());
+        }
+
+        return is;
     }
 
     template<class Char, class Traits>
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
                                             unsigned char& c)
     {
-        // TODO: implement
+        return is >> static_cast<char&>(c);
     }
 
     template<class Char, class Traits>
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
                                             signed char& c)
     {
-        // TODO: implement
+        return is >> static_cast<char&>(c);
     }
 
     template<class Char, class Traits>
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
-                                            Char* c)
+                                            Char* str)
     {
-        // TODO: implement
+        typename basic_istream<Char, Traits>::sentry sen{is, false};
+
+        if (sen)
+        {
+            const auto& ct = use_facet<ctype<Char>>(is.getloc());
+
+            size_t n{};
+            if (is.width() > 0)
+                n = static_cast<size_t>(is.width());
+            else
+                n = (numeric_limits<size_t>::max() / sizeof(Char)) - sizeof(Char);
+
+            size_t i{};
+            for (; i < n - 1; ++i)
+            {
+                auto ic = is.rdbuf()->sgetc();
+                if (Traits::eq_int_type(ic, Traits::eof()))
+                    break;
+
+                auto c = Traits::to_char_type(ic);
+                if (ct.is(ctype_base::space, c))
+                    break;
+
+                str[i] = c;
+                is.rdbuf()->sbumpc();
+            }
+
+            str[i] = Char{};
+            if (i == 0)
+                is.setstate(ios_base::failbit);
+        }
+
+        return is;
     }
 
     template<class Char, class Traits>
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
-                                            unsigned char* c)
+                                            unsigned char* str)
     {
-        // TODO: implement
+        return is >> static_cast<char*>(str);
     }
 
     template<class Char, class Traits>
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
-                                            signed char* c)
+                                            signed char* str)
     {
-        // TODO: implement
+        return is >> static_cast<char*>(str);
     }
 
     /**
