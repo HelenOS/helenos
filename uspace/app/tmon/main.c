@@ -39,29 +39,59 @@
 
 #define NAME "tmon"
 
-static void print_usage(char *app_name)
+static int fallback(int argc, char *argv[])
 {
-	printf(NAME ": hello USB transfers!\n\n");
+	// FIXME
+	printf(NAME ": Not implemented, lol!\n");
+	return 1;
 }
 
 typedef struct {
 	const char *name;
+	const char *description;
 	int (*action)(int, char **);
 } usb_diag_cmd_t;
 
 static usb_diag_cmd_t commands[] = {
 	{
 		.name = "list",
+		.description = "Print a list of connected diagnostic devices.",
 		.action = tmon_list,
 	},
 	{
 		.name = "test-bulk",
+		.description = "Benchmark bulk endpoints of a diagnostic device.",
 		.action = tmon_test_bulk,
+	},
+	{
+		.name = "test-intr",
+		.description = "Benchmark interrupt endpoints of a diagnostic device.",
+		.action = fallback,
+	},
+	{
+		.name = "test-isoch",
+		.description = "Benchmark isochronous endpoints of a diagnostic device.",
+		.action = fallback,
 	},
 	{
 		.name = NULL
 	}
 };
+
+static void print_usage(char *app_name)
+{
+	printf(NAME ": benchmark USB diagnostic device\n\n");
+
+	printf("Usage: %s command [options] [device]\n", app_name);
+	printf("Available commands:\n");
+	for (int i = 0; commands[i].name; ++i) {
+		printf("      %s - %s\n", commands[i].name, commands[i].description);
+	}
+
+	// TODO: Print options.
+
+	printf("\nIf no device is specified, the first device is used provided that no other device is connected.\n\n");
+}
 
 int main(int argc, char *argv[])
 {
