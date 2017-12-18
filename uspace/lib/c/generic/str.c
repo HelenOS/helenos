@@ -1688,6 +1688,51 @@ errno_t str_uint64_t(const char *nptr, const char **endptr, unsigned int base,
 	return EOK;
 }
 
+/** Convert string to int64_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_int64_t(const char *nptr, const char **endptr, unsigned int base,
+    bool strict, int64_t *result)
+{
+	assert(result != NULL);
+
+	bool neg;
+	char *lendptr;
+	uint64_t unsigned_result;
+	int ret = str_uint(nptr, &lendptr, base, &neg, &unsigned_result);
+
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+
+	if (ret != EOK)
+		return ret;
+
+	/* Do not allow negative values */
+	if (neg) {
+		if (unsigned_result == UINT64_MAX)
+			return EINVAL;
+
+		*result = -(int64_t)unsigned_result;
+	} else
+		*result = unsigned_result;
+
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+
+	return EOK;
+}
+
 /** Convert string to size_t.
  *
  * @param nptr   Pointer to string.
