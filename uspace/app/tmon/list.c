@@ -41,6 +41,7 @@
 #include "commands.h"
 
 #define NAME "tmon"
+#define MAX_PATH_LENGTH 1024
 
 static void print_list_item(service_id_t svc)
 {
@@ -52,7 +53,13 @@ static void print_list_item(service_id_t svc)
 		return;
 	}
 
-	// FIXME: print something
+	char path[MAX_PATH_LENGTH];
+	if ((rc = devman_fun_get_path(diag_handle, path, sizeof(path)))) {
+		printf(NAME ": Error resolving path of device with SID %ld, skipping.\n", svc);
+		return;
+	}
+
+	printf("%s\n", path);
 }
 
 int tmon_list(int argc, char *argv[])
