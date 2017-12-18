@@ -81,7 +81,7 @@ static int device_remove(usb_device_t *dev)
 	int rc;
 	usb_log_info("Removing device '%s'", usb_device_get_name(dev));
 
-	usb_diag_dev_t *diag_dev = usb_diag_dev_get(dev);
+	usb_diag_dev_t *diag_dev = usb_device_to_usb_diag_dev(dev);
 
 	/* TODO: Make sure nothing is going on with the device. */
 
@@ -102,7 +102,7 @@ static int device_gone(usb_device_t *dev)
 {
 	usb_log_info("Device '%s' gone.", usb_device_get_name(dev));
 
-	usb_diag_dev_t *diag_dev = usb_diag_dev_get(dev);
+	usb_diag_dev_t *diag_dev = usb_device_to_usb_diag_dev(dev);
 
 	/* TODO: Make sure nothing is going on with the device. */
 	/* TODO: Unregister device DDF function. */

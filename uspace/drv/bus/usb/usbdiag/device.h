@@ -44,15 +44,29 @@
 typedef struct usb_diag_dev {
 	usb_device_t *usb_dev;
 	ddf_fun_t *fun;
+	usb_pipe_t *bulk_in;
+	usb_pipe_t *bulk_out;
 } usb_diag_dev_t;
 
 int usb_diag_dev_create(usb_device_t *, usb_diag_dev_t **);
 void usb_diag_dev_destroy(usb_diag_dev_t *);
 
-static inline usb_diag_dev_t * usb_diag_dev_get(usb_device_t *usb_dev)
+static inline usb_diag_dev_t * usb_device_to_usb_diag_dev(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_device_data_get(usb_dev);
+}
+
+static inline usb_diag_dev_t * ddf_dev_to_usb_diag_dev(ddf_dev_t *ddf_dev)
+{
+	assert(ddf_dev);
+	return usb_device_to_usb_diag_dev(usb_device_get(ddf_dev));
+}
+
+static inline usb_diag_dev_t * ddf_fun_to_usb_diag_dev(ddf_fun_t *ddf_fun)
+{
+	assert(ddf_fun);
+	return ddf_dev_to_usb_diag_dev(ddf_fun_get_dev(ddf_fun));
 }
 
 #endif /* USB_DIAG_USBDIAG_H_ */
