@@ -39,8 +39,7 @@
 #include <loc.h>
 #include <errno.h>
 #include <str_error.h>
-#include <usb/diag/diag.h>
-#include <usb/diag/iface.h>
+#include <usbdiag_iface.h>
 #include "commands.h"
 
 #define NAME "tmon"
@@ -52,8 +51,8 @@ static int resolve_default_fun(devman_handle_t *fun)
 	size_t count;
 	int rc;
 
-	if ((rc = loc_category_get_id(USB_DIAG_CATEGORY, &diag_cat, 0))) {
-		printf(NAME ": Error resolving category '%s'", USB_DIAG_CATEGORY);
+	if ((rc = loc_category_get_id(USBDIAG_CATEGORY, &diag_cat, 0))) {
+		printf(NAME ": Error resolving category '%s'", USBDIAG_CATEGORY);
 		return rc;
 	}
 
@@ -115,12 +114,12 @@ static int resolve_and_test(int argc, char *argv[], int (*test)(devman_handle_t)
 }
 
 static int bulk_worker(devman_handle_t fun) {
-	async_sess_t *sess = usb_diag_connect(fun);
+	async_sess_t *sess = usbdiag_connect(fun);
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	// TODO: do some testing
 	int y;
-	int rc = usb_diag_test(exch, 4200, &y);
+	int rc = usbdiag_test(exch, 4200, &y);
 
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
@@ -129,7 +128,7 @@ static int bulk_worker(devman_handle_t fun) {
 	}
 
 	async_exchange_end(exch);
-	usb_diag_disconnect(sess);
+	usbdiag_disconnect(sess);
 	return 0;
 }
 

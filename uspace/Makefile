@@ -240,7 +240,6 @@ LIBS = \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
-	lib/usbdiag \
 	lib/usbhid \
 	lib/usbvirt \
 	lib/pcm \

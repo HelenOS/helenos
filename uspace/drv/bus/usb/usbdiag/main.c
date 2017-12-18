@@ -36,7 +36,7 @@
 #include <errno.h>
 #include <usb/debug.h>
 #include <usb/dev/driver.h>
-#include <usb/diag/diag.h>
+#include <usbdiag_iface.h>
 #include <str_error.h>
 
 #include "usbdiag.h"
@@ -60,9 +60,9 @@ static int device_add(usb_device_t *dev)
 		goto err_create;
 	}
 
-	if ((rc = ddf_fun_add_to_category(diag_dev->fun, USB_DIAG_CATEGORY))) {
+	if ((rc = ddf_fun_add_to_category(diag_dev->fun, USBDIAG_CATEGORY))) {
 		usb_log_error("Failed add DDF to category '"
-		    USB_DIAG_CATEGORY "': %s.\n", str_error(rc));
+		    USBDIAG_CATEGORY "': %s.\n", str_error(rc));
 		goto err_bind;
 	}
 

@@ -35,7 +35,7 @@
  */
 #include <errno.h>
 #include <usb/debug.h>
-#include <usb/diag/iface.h>
+#include <usbdiag_iface.h>
 
 #include "device.h"
 
@@ -47,7 +47,7 @@ static int some_test(ddf_fun_t *fun, int x, int *y)
 	return EOK;
 }
 
-static usb_diag_iface_t diag_interface = {
+static usbdiag_iface_t diag_interface = {
 	.test = some_test,
 };
 

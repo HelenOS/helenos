@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <devman.h>
 #include <loc.h>
-#include <usb/diag/diag.h>
+#include <usbdiag_iface.h>
 #include "commands.h"
 
 #define NAME "tmon"
@@ -69,8 +69,8 @@ int tmon_list(int argc, char *argv[])
 	size_t count;
 	int rc;
 
-	if ((rc = loc_category_get_id(USB_DIAG_CATEGORY, &diag_cat, 0))) {
-		printf(NAME ": Error resolving category '%s'", USB_DIAG_CATEGORY);
+	if ((rc = loc_category_get_id(USBDIAG_CATEGORY, &diag_cat, 0))) {
+		printf(NAME ": Error resolving category '%s'", USBDIAG_CATEGORY);
 		return 1;
 	}
 
