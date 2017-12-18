@@ -43,23 +43,15 @@
 
 #define NAME "usbdiag"
 
-static const usb_endpoint_description_t bulk_in_ep = {
-	.transfer_type = USB_TRANSFER_BULK,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = 0xDC,
-	.interface_subclass = 0x00,
-	.interface_protocol = 0x01,
-	.flags = 0
-};
+#define EP_DIR_OUT    0
+#define EP_DIR_IN     0x80
+#define EP_INT_IN     (EP_DIR_IN | 0x01)
+#define EP_INT_OUT    (EP_DIR_OUT | 0x02)
+#define EP_BULK_IN    (EP_DIR_IN | 0x03)
+#define EP_BULK_OUT   (EP_DIR_OUT | 0x04)
+#define EP_ISOC_IN    (EP_DIR_IN | 0x05)
+#define EP_ISOC_OUT   (EP_DIR_OUT | 0x06)
 
-static const usb_endpoint_description_t bulk_out_ep = {
-	.transfer_type = USB_TRANSFER_BULK,
-	.direction = USB_DIRECTION_OUT,
-	.interface_class = 0xDC,
-	.interface_subclass = 0x00,
-	.interface_protocol = 0x01,
-	.flags = 0
-};
 
 static int some_test(ddf_fun_t *fun, int x, int *y)
 {
@@ -121,8 +113,8 @@ static int device_init(usb_diag_dev_t *dev)
 	ddf_fun_set_ops(fun, &diag_ops);
 	dev->fun = fun;
 
-	usb_endpoint_mapping_t *epm_out = usb_device_get_mapped_ep_desc(dev->usb_dev, &bulk_out_ep);
-	usb_endpoint_mapping_t *epm_in = usb_device_get_mapped_ep_desc(dev->usb_dev, &bulk_in_ep);
+	usb_endpoint_mapping_t *epm_out = usb_device_get_mapped_ep(dev->usb_dev, EP_BULK_OUT);
+	usb_endpoint_mapping_t *epm_in = usb_device_get_mapped_ep(dev->usb_dev, EP_BULK_IN);
 
 	if (!epm_in || !epm_out || !epm_in->present || !epm_out->present) {
 		usb_log_error("Required EPs were not mapped.\n");
