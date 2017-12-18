@@ -51,7 +51,7 @@ static int pagein_request_preprocess(call_t *call, phone_t *phone)
 	 * pagein_answer_preprocess() that could happen if two tasks
 	 * wanted to be each other's pager.
 	 */
-	if (call->sender->taskid <= TASK->taskid)
+	if (TASK->taskid <= phone->callee->task->taskid)
 		return ENOTSUP;
 	else
 		return EOK;
