@@ -36,6 +36,7 @@
 #define KERN_BITMAP_H_
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #define BITMAP_ELEMENT   8
 #define BITMAP_REMAINER  7
@@ -80,7 +81,7 @@ extern void bitmap_initialize(bitmap_t *, size_t, void *);
 extern void bitmap_set_range(bitmap_t *, size_t, size_t);
 extern void bitmap_clear_range(bitmap_t *, size_t, size_t);
 
-extern int bitmap_allocate_range(bitmap_t *, size_t, size_t, size_t, size_t,
+extern bool bitmap_allocate_range(bitmap_t *, size_t, size_t, size_t, size_t,
     size_t *);
 extern void bitmap_copy(bitmap_t *, bitmap_t *, size_t);
 

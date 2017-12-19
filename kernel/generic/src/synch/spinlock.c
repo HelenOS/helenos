@@ -152,20 +152,20 @@ void spinlock_unlock_debug(spinlock_t *lock)
  * @return Zero on failure, non-zero otherwise.
  *
  */
-int spinlock_trylock(spinlock_t *lock)
+bool spinlock_trylock(spinlock_t *lock)
 {
 	preemption_disable();
-	int rc = !test_and_set(&lock->val);
+	bool ret = !test_and_set(&lock->val);
 	
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */
 	CS_ENTER_BARRIER();
 	
-	if (!rc)
+	if (!ret)
 		preemption_enable();
 	
-	return rc;
+	return ret;
 }
 
 /** Find out whether the spinlock is currently locked.
@@ -256,13 +256,13 @@ void irq_spinlock_unlock(irq_spinlock_t *lock, bool irq_res)
  * @return Zero on failure, non-zero otherwise.
  *
  */
-int irq_spinlock_trylock(irq_spinlock_t *lock)
+bool irq_spinlock_trylock(irq_spinlock_t *lock)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
-	int rc = spinlock_trylock(&(lock->lock));
+	bool ret = spinlock_trylock(&(lock->lock));
 	
-	ASSERT_IRQ_SPINLOCK((!rc) || (!lock->guard), lock);
-	return rc;
+	ASSERT_IRQ_SPINLOCK((!ret) || (!lock->guard), lock);
+	return ret;
 }
 
 /** Pass lock from one interrupts-disabled spinlock to another

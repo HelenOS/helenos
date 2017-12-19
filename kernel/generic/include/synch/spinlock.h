@@ -111,7 +111,7 @@ typedef struct spinlock {
 	SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, #lock_name)
 
 extern void spinlock_initialize(spinlock_t *, const char *);
-extern int spinlock_trylock(spinlock_t *);
+extern bool spinlock_trylock(spinlock_t *);
 extern void spinlock_lock_debug(spinlock_t *);
 extern void spinlock_unlock_debug(spinlock_t *);
 extern bool spinlock_locked(spinlock_t *);
@@ -286,7 +286,7 @@ typedef struct {
 extern void irq_spinlock_initialize(irq_spinlock_t *, const char *);
 extern void irq_spinlock_lock(irq_spinlock_t *, bool);
 extern void irq_spinlock_unlock(irq_spinlock_t *, bool);
-extern int irq_spinlock_trylock(irq_spinlock_t *);
+extern bool irq_spinlock_trylock(irq_spinlock_t *);
 extern void irq_spinlock_pass(irq_spinlock_t *, irq_spinlock_t *);
 extern void irq_spinlock_exchange(irq_spinlock_t *, irq_spinlock_t *);
 extern bool irq_spinlock_locked(irq_spinlock_t *);
