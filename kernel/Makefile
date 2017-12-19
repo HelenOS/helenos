@@ -212,6 +212,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/memfnc.c \
 	generic/src/lib/gsort.c \
 	generic/src/lib/str.c \
+	generic/src/lib/str_error.c \
 	generic/src/lib/elf.c \
 	generic/src/lib/ra.c \
 	generic/src/lib/rd.c \

@@ -38,6 +38,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <errno.h>
 
 /**< Common Unicode characters */
 #define U_SPECIAL      '?'
@@ -102,6 +103,9 @@ extern int str_uint64_t(const char *, char **, unsigned int, bool, uint64_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);
 extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);
+
+extern const char *str_error(errno_t err);
+extern const char *str_error_name(errno_t err);
 
 #endif
 

@@ -289,8 +289,8 @@ void kinit(void *arg)
 		} else
 			log(LF_OTHER, LVL_ERROR,
 			    "init[%zu]: Init binary load failed "
-			    "(error %d, loader status %u)", i, rc,
-			    programs[i].loader_status);
+			    "(error %s, loader status %u)", i,
+			    str_error_name(rc), programs[i].loader_status);
 	}
 	
 	/*
