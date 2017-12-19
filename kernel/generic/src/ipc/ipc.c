@@ -443,8 +443,8 @@ int ipc_call(phone_t *phone, call_t *call)
  *
  * @param phone Phone structure to be hung up.
  *
- * @return 0 if the phone is disconnected.
- * @return -1 if the phone was already disconnected.
+ * @return EOK if the phone is disconnected.
+ * @return EINVAL if the phone was already disconnected.
  *
  */
 int ipc_phone_hangup(phone_t *phone)
@@ -454,7 +454,7 @@ int ipc_phone_hangup(phone_t *phone)
 	    phone->state == IPC_PHONE_HUNGUP ||
 	    phone->state == IPC_PHONE_CONNECTING) {
 		mutex_unlock(&phone->lock);
-		return -1;
+		return EINVAL;
 	}
 	
 	answerbox_t *box = phone->callee;
@@ -477,7 +477,7 @@ int ipc_phone_hangup(phone_t *phone)
 	phone->state = IPC_PHONE_HUNGUP;
 	mutex_unlock(&phone->lock);
 	
-	return 0;
+	return EOK;
 }
 
 /** Forwards call from one answerbox to another one.

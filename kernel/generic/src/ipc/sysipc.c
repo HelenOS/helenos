@@ -727,13 +727,9 @@ sysarg_t sys_ipc_hangup(sysarg_t handle)
 	if (!kobj)
 		return ENOENT;
 	
-	if (ipc_phone_hangup(kobj->phone)) {
-		kobject_put(kobj);
-		return -1;
-	}
-	
+	int rc = ipc_phone_hangup(kobj->phone);
 	kobject_put(kobj);
-	return 0;
+	return rc;
 }
 
 /** Wait for an incoming IPC call or an answer.
