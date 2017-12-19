@@ -38,6 +38,7 @@
 #include <arch/smp/ap.h>
 #include <arch/boot/boot.h>
 #include <assert.h>
+#include <errno.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <config.h>
@@ -177,7 +178,7 @@ void kmp(void *arg __attribute__((unused)))
 			 * supposed to wake us up.
 			 */
 			if (waitq_sleep_timeout(&ap_completion_wq, 1000000,
-			    SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT) {
+			    SYNCH_FLAGS_NONE, NULL) == ETIMEOUT) {
 				log(LF_ARCH, LVL_NOTE, "%s: waiting for cpu%u "
 				    "(APIC ID = %d) timed out", __FUNCTION__,
 				    i, ops->cpu_apic_id(i));

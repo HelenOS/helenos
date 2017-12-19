@@ -44,6 +44,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 #include <proc/thread.h>
@@ -237,6 +238,10 @@ void waitq_unsleep(waitq_t *wq)
  * @param usec  Timeout in microseconds.
  * @param flags Specify mode of the sleep.
  *
+ * @param[out] blocked  On return, regardless of the return code,
+ *                      `*blocked` is set to `true` iff the thread went to
+ *                      sleep.
+ *
  * The sleep can be interrupted only if the
  * SYNCH_FLAGS_INTERRUPTIBLE bit is specified in flags.
  *
@@ -250,25 +255,30 @@ void waitq_unsleep(waitq_t *wq)
  * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is set in flags, the
  * call will immediately return, reporting either success or failure.
  *
- * @return ESYNCH_WOULD_BLOCK, meaning that the sleep failed because at the
- *         time of the call there was no pending wakeup
- * @return ESYNCH_TIMEOUT, meaning that the sleep timed out.
- * @return ESYNCH_INTERRUPTED, meaning that somebody interrupted the sleeping
- *         thread.
- * @return ESYNCH_OK_ATOMIC, meaning that the sleep succeeded and that there
- *         was a pending wakeup at the time of the call. The caller was not put
- *         asleep at all.
- * @return ESYNCH_OK_BLOCKED, meaning that the sleep succeeded; the full sleep
- *         was attempted.
+ * @return EAGAIN, meaning that the sleep failed because it was requested
+ *                 as SYNCH_FLAGS_NON_BLOCKING, but there was no pending wakeup.
+ * @return ETIMEOUT, meaning that the sleep timed out.
+ * @return EINTR, meaning that somebody interrupted the sleeping
+ *         thread. Check the value of `*blocked` to see if the thread slept,
+ *         or if a pending interrupt forced it to return immediately.
+ * @return EOK, meaning that none of the above conditions occured, and the
+ *              thread was woken up successfuly by `waitq_wakeup()`. Check
+ *              the value of `*blocked` to see if the thread slept or if
+ *              the wakeup was already pending.
  *
  */
-int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags)
+int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
 {
 	assert((!PREEMPTION_DISABLED) || (PARAM_NON_BLOCKING(flags, usec)));
 	
 	ipl_t ipl = waitq_sleep_prepare(wq);
-	int rc = waitq_sleep_timeout_unsafe(wq, usec, flags);
-	waitq_sleep_finish(wq, rc, ipl);
+	bool nblocked;
+	int rc = waitq_sleep_timeout_unsafe(wq, usec, flags, &nblocked);
+	waitq_sleep_finish(wq, nblocked, ipl);
+
+	if (blocked != NULL) {
+		*blocked = nblocked;
+	}
 	return rc;
 }
 
@@ -319,34 +329,29 @@ restart:
  * to the call to waitq_sleep_prepare(). If necessary, the wait queue
  * lock is released.
  *
- * @param wq  Wait queue.
- * @param rc  Return code of waitq_sleep_timeout_unsafe().
- * @param ipl Interrupt level returned by waitq_sleep_prepare().
+ * @param wq       Wait queue.
+ * @param blocked  Out parameter of waitq_sleep_timeout_unsafe().
+ * @param ipl      Interrupt level returned by waitq_sleep_prepare().
  *
  */
-void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl)
+void waitq_sleep_finish(waitq_t *wq, bool blocked, ipl_t ipl)
 {
-	switch (rc) {
-	case ESYNCH_WOULD_BLOCK:
-	case ESYNCH_OK_ATOMIC:
-		irq_spinlock_unlock(&wq->lock, false);
-		break;
-	default:
-		/* 
+	if (blocked) {
+		/*
 		 * Wait for a waitq_wakeup() or waitq_unsleep() to complete
 		 * before returning from waitq_sleep() to the caller. Otherwise
 		 * the caller might expect that the wait queue is no longer used 
 		 * and deallocate it (although the wakeup on a another cpu has 
-		 * not yet completed and is using the wait queue). 
-		 * 
-		 * Note that we have to do this for ESYNCH_OK_BLOCKED and
-		 * ESYNCH_INTERRUPTED, but not necessarily for ESYNCH_TIMEOUT
-		 * where the timeout handler stops using the waitq before waking 
-		 * us up. To be on the safe side, ensure the waitq is not in use 
-		 * anymore in this case as well.
+		 * not yet completed and is using the wait queue).
+		 *
+		 * Note that we have to do this for EOK and EINTR, but not
+		 * necessarily for ETIMEOUT where the timeout handler stops
+		 * using the waitq before waking us up. To be on the safe side,
+		 * ensure the waitq is not in use anymore in this case as well.
 		 */
 		waitq_complete_wakeup(wq);
-		break;
+	} else {
+		irq_spinlock_unlock(&wq->lock, false);
 	}
 	
 	interrupts_restore(ipl);
@@ -362,19 +367,23 @@ void waitq_sleep_finish(waitq_t *wq, int rc, ipl_t ipl)
  * @param usec  See waitq_sleep_timeout().
  * @param flags See waitq_sleep_timeout().
  *
+ * @param[out] blocked  See waitq_sleep_timeout().
+ *
  * @return See waitq_sleep_timeout().
  *
  */
-int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
+int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
 {
+	*blocked = false;
+
 	/* Checks whether to go to sleep at all */
 	if (wq->missed_wakeups) {
 		wq->missed_wakeups--;
-		return ESYNCH_OK_ATOMIC;
+		return EOK;
 	} else {
 		if (PARAM_NON_BLOCKING(flags, usec)) {
 			/* Return immediately instead of going to sleep */
-			return ESYNCH_WOULD_BLOCK;
+			return EAGAIN;
 		}
 	}
 	
@@ -391,8 +400,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
 		 */
 		if (THREAD->interrupted) {
 			irq_spinlock_unlock(&THREAD->lock, false);
-			irq_spinlock_unlock(&wq->lock, false);
-			return ESYNCH_INTERRUPTED;
+			return EINTR;
 		}
 		
 		/*
@@ -404,7 +412,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
 			/* Short emulation of scheduler() return code. */
 			THREAD->last_cycle = get_cycle();
 			irq_spinlock_unlock(&THREAD->lock, false);
-			return ESYNCH_INTERRUPTED;
+			return EINTR;
 		}
 	} else
 		THREAD->sleep_interruptible = false;
@@ -415,7 +423,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
 			/* Short emulation of scheduler() return code. */
 			THREAD->last_cycle = get_cycle();
 			irq_spinlock_unlock(&THREAD->lock, false);
-			return ESYNCH_TIMEOUT;
+			return ETIMEOUT;
 		}
 		
 		THREAD->timeout_pending = true;
@@ -432,12 +440,17 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
 	THREAD->state = Sleeping;
 	THREAD->sleep_queue = wq;
 	
+	/* Must be before entry to scheduler, because there are multiple
+	 * return vectors.
+	 */
+	*blocked = true;
+	
 	irq_spinlock_unlock(&THREAD->lock, false);
 	
 	/* wq->lock is released in scheduler_separated_stack() */
 	scheduler();
 	
-	return ESYNCH_OK_BLOCKED;
+	return EOK;
 }
 
 /** Wake up first thread sleeping in a wait queue

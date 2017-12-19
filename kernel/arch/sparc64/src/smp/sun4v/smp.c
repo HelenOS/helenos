@@ -372,8 +372,8 @@ static bool wake_cpu(uint64_t cpuid)
 		return false;
 #endif
 	
-	if (waitq_sleep_timeout(&ap_completion_wq, 10000000, SYNCH_FLAGS_NONE) ==
-	    ESYNCH_TIMEOUT)
+	if (waitq_sleep_timeout(&ap_completion_wq, 10000000,
+	    SYNCH_FLAGS_NONE, NULL) == ETIMEOUT)
 		printf("%s: waiting for processor (cpuid = %" PRIu64 ") timed out\n",
 		    __func__, cpuid);
 	

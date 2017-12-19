@@ -547,7 +547,7 @@ restart:
 /** Interrupts an existing thread so that it may exit as soon as possible.
  * 
  * Threads that are blocked waiting for a synchronization primitive 
- * are woken up with a return code of ESYNCH_INTERRUPTED if the
+ * are woken up with a return code of EINTR if the
  * blocking call was interruptable. See waitq_sleep_timeout().
  * 
  * The caller must guarantee the thread object is valid during the entire
@@ -652,7 +652,7 @@ int thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 	assert(!thread->detached);
 	irq_spinlock_unlock(&thread->lock, true);
 	
-	return waitq_sleep_timeout(&thread->join_wq, usec, flags);
+	return waitq_sleep_timeout(&thread->join_wq, usec, flags, NULL);
 }
 
 /** Detach thread.
@@ -699,7 +699,7 @@ void thread_usleep(uint32_t usec)
 	
 	waitq_initialize(&wq);
 	
-	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING);
+	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING, NULL);
 }
 
 static bool thread_walker(avltree_node_t *node, void *arg)

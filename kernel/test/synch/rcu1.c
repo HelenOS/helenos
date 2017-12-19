@@ -113,9 +113,9 @@ static void join_all(void)
 			bool joined = false;
 			do {
 				int ret = thread_join_timeout(thread[i], 5 * 1000 * 1000, 0);
-				joined = (ret != ESYNCH_TIMEOUT);
+				joined = (ret != ETIMEOUT);
 				
-				if (ret == ESYNCH_OK_BLOCKED) {
+				if (ret == EOK) {
 					TPRINTF("%zu threads remain\n", thread_cnt - i - 1);
 				}
 			} while (!joined);

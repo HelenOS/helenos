@@ -37,6 +37,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <synch/workqueue.h>
 #include <synch/spinlock.h>
 #include <synch/condvar.h>
@@ -896,7 +897,7 @@ static bool dequeue_add_req(nonblock_adder_t *info, struct work_queue **pworkq)
 		int ret = _condvar_wait_timeout_irq_spinlock(&info->req_cv, 
 			&info->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 		
-		stop = (ret == ESYNCH_INTERRUPTED);
+		stop = (ret == EINTR);
 	}
 	
 	if (!stop) {

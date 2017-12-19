@@ -537,8 +537,8 @@ call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags)
 	int rc;
 	
 restart:
-	rc = waitq_sleep_timeout(&box->wq, usec, flags);
-	if (SYNCH_FAILED(rc))
+	rc = waitq_sleep_timeout(&box->wq, usec, flags, NULL);
+	if (rc != EOK)
 		return NULL;
 	
 	irq_spinlock_lock(&box->lock, true);
@@ -637,7 +637,7 @@ restart_phones:
 	while (!list_empty(&box->connected_phones)) {
 		phone = list_get_instance(list_first(&box->connected_phones),
 		    phone_t, link);
-		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
+		if (mutex_trylock(&phone->lock) != EOK) {
 			irq_spinlock_unlock(&box->lock, true);
 			DEADLOCK_PROBE(p_phonelck, DEADLOCK_THRESHOLD);
 			goto restart_phones;

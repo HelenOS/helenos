@@ -105,8 +105,8 @@ static void wakeup_cpu(ofw_tree_node_t *node)
 
 	waking_up_mid = mid;
 		
-	if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_FLAGS_NONE) ==
-	    ESYNCH_TIMEOUT)
+	if (waitq_sleep_timeout(&ap_completion_wq, 1000000,
+	    SYNCH_FLAGS_NONE, NULL) == ETIMEOUT)
 		log(LF_ARCH, LVL_NOTE, "%s: waiting for processor (mid = %" PRIu32
 		    ") timed out", __func__, mid);
 }
