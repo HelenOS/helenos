@@ -73,7 +73,7 @@ static fibril_local char noerr[NOERR_LEN];
 static int find_errno(errno_t e)
 {
 	/* Just a dumb linear search.
-	 * There too few entries to warrant anything smarter.
+	 * There are too few entries to warrant anything smarter.
 	 */
 
 	int len = sizeof(err_num) / sizeof(errno_t);
