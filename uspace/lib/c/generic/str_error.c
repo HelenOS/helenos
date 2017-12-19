@@ -40,7 +40,7 @@
 
 #define NOERR_LEN  64
 
-/* The arrays bellow are automatically generated from the same file that
+/* The arrays below are automatically generated from the same file that
  * errno.h constants are generated from. Triple-include of the same list
  * with redefinitions of __errno() macro are used to ensure that the
  * information cannot get out of synch. This is inpired by musl libc.
