@@ -45,9 +45,9 @@
 #define USER_ADDRESS_SPACE_START_ARCH    UINT64_C(0x0000000000000000)
 #define USER_ADDRESS_SPACE_END_ARCH      UINT64_C(0x00007fffffffffff)
 
-#define as_constructor_arch(as, flags)  (as != as)
-#define as_destructor_arch(as)          (as != as)
-#define as_create_arch(as, flags)       (as != as)
+#define as_constructor_arch(as, flags)  ((void)as, (void)flags, EOK)
+#define as_destructor_arch(as)          ((void)as, 0)
+#define as_create_arch(as, flags)       ((void)as, (void)flags, EOK)
 
 #define as_install_arch(as)
 #define as_deinstall_arch(as)
