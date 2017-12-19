@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,75 +38,61 @@
 #include <stdio.h>
 #include <fibril.h>
 
-#define MIN_ERRNO  -17
 #define NOERR_LEN  64
 
-// TODO: this file should be generated from errno declarations
+/* The arrays bellow are automatically generated from the same file that
+ * errno.h constants are generated from. Triple-include of the same list
+ * with redefinitions of __errno() macro are used to ensure that the
+ * information cannot get out of synch. This is inpired by musl libc.
+ */
 
-static const char* err_name[] = {
-	"EOK",
-	"ENOENT",
-	"ENOMEM",
-	"ELIMIT",
-	"EREFUSED",
-	"EFORWARD",
-	"EPERM",
-	"EHANGUP",
-	"EPARTY",
-	"EEXIST",
-	"EBADMEM",
-	"ENOTSUP",
-	"EADDRNOTAVAIL",
-	"ETIMEOUT",
-	"EINVAL",
-	"EBUSY",
-	"EOVERFLOW",
-	"EINTR"
+#undef __errno_entry
+#define __errno_entry(name, num, desc) num,
+
+static const int err_num[] = {
+#include <abi/errno.in>
 };
 
+#undef __errno_entry
+#define __errno_entry(name, num, desc) #name,
+
+static const char* err_name[] = {
+#include <abi/errno.in>
+};
+
+#undef __errno_entry
+#define __errno_entry(name, num, desc) "[" #name "]" desc,
+
 static const char* err_desc[] = {
-	"No error",
-	"No such entry",
-	"Not enough memory",
-	"Limit exceeded",
-	"Connection refused",
-	"Forwarding error",
-	"Permission denied",
-	"Answerbox closed connection",
-	"Other party error",
-	"Entry already exists",
-	"Bad memory pointer",
-	"Not supported",
-	"Address not available",
-	"Timeout expired",
-	"Invalid value",
-	"Resource is busy",
-	"Result does not fit its size",
-	"Operation interrupted"
+#include <abi/errno.in>
 };
 
 static fibril_local char noerr[NOERR_LEN];
 
+/* Returns index corresponding to the given errno, or -1 if not found. */
+static int find_errno(errno_t e)
+{
+	/* Just a dumb linear search.
+	 * There too few entries to warrant anything smarter.
+	 */
+
+	int len = sizeof(err_num) / sizeof(errno_t);
+
+	for (int i = 0; i < len; i++) {
+		if (err_num[i] == e) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
 const char *str_error_name(errno_t e)
 {
-	if ((e <= 0) && (e >= MIN_ERRNO))
-		return err_name[-e];
+	int i = find_errno(e);
 
-	/* Ad hoc descriptions of error codes interesting for USB. */
-	// FIXME: integrate these as first-class error values
-	switch (e) {
-		case ENOFS:
-			return "ENOFS";
-		case EBADCHECKSUM:
-			return "EBADCHECKSUM";
-		case ESTALL:
-			return "ESTALL";
-		case EAGAIN:
-			return "EAGAIN";
-		case EEMPTY:
-			return "EEMPTY";
-		default:
-			break;
+	if (i >= 0) {
+		return err_name[i];
 	}
 
 	snprintf(noerr, NOERR_LEN, "(%d)", (int)e);
@@ -114,24 +101,10 @@ const char *str_error_name(errno_t e)
 
 const char *str_error(errno_t e)
 {
-	if ((e <= 0) && (e >= MIN_ERRNO))
-		return err_desc[-e];
-	
-	/* Ad hoc descriptions of error codes interesting for USB. */
-	// FIXME: integrate these as first-class error values
-	switch (e) {
-		case ENOFS:
-			return "No such file system type";
-		case EBADCHECKSUM:
-			return "Bad checksum";
-		case ESTALL:
-			return "Operation stalled";
-		case EAGAIN:
-			return "Resource temporarily unavailable";
-		case EEMPTY:
-			return "Resource is empty";
-		default:
-			break;
+	int i = find_errno(e);
+
+	if (i >= 0) {
+		return err_desc[i];
 	}
 
 	snprintf(noerr, NOERR_LEN, "Unknown error code (%d)", (int)e);

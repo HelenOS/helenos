@@ -43,13 +43,15 @@ COMMON_HEADER = common.h
 
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
+ERRNO_HEADER = abi/include/abi/errno.h
+ERRNO_INPUT = abi/include/abi/errno.in
 
 .PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace
 
 all: kernel uspace
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
 
-common: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
+common: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER)
 
 kernel: common
 	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
@@ -123,5 +125,10 @@ clean:
 	$(MAKE) -r -C uspace clean
 	$(MAKE) -r -C boot clean
 	$(MAKE) -r -C doxygen clean
+
+$(ERRNO_HEADER): $(ERRNO_INPUT)
+	echo '/* Generated file. Edit errno.in instead. */' > $@.new
+	sed 's/__errno_entry(\([^,]*\),\([^,]*\),.*/#define \1 \2/' < $< >> $@.new
+	mv $@.new $@
 
 -include Makefile.local
