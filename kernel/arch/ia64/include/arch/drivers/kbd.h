@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Jakub Jermar, Jakub Vana
+ * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

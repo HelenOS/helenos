@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2007 Michal Kebrt, Petr Stepan
+ * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2007 Petr Stepan
  *
  * All rights reserved.
  *
