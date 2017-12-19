@@ -170,7 +170,7 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 #else /* CONFIG_FPU_LAZY */
 	thread->saved_fpu_context = slab_alloc(fpu_context_cache, kmflags);
 	if (!thread->saved_fpu_context)
-		return -1;
+		return ENOMEM;
 #endif /* CONFIG_FPU_LAZY */
 #endif /* CONFIG_FPU */
 	
@@ -200,7 +200,7 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 		if (thread->saved_fpu_context)
 			slab_free(fpu_context_cache, thread->saved_fpu_context);
 #endif
-		return -1;
+		return ENOMEM;
 	}
 	
 	thread->kstack = (uint8_t *) PA2KA(stack_phys);
@@ -209,7 +209,7 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 	mutex_initialize(&thread->udebug.lock, MUTEX_PASSIVE);
 #endif
 	
-	return 0;
+	return EOK;
 }
 
 /** Destruction of thread_t object */
@@ -1007,9 +1007,6 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 sysarg_t sys_thread_exit(int uspace_status)
 {
 	thread_exit();
-	
-	/* Unreachable */
-	return 0;
 }
 
 /** Syscall for getting TID.

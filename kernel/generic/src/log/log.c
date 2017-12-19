@@ -222,7 +222,7 @@ static int log_printf_wstr_write(const wchar_t *wstr, size_t size, void *data)
 		size_t buffer_offset = 0;
 		int rc = chr_encode(wstr[chars], buffer, &buffer_offset, 16);
 		if (rc != EOK) {
-			return rc;
+			return EOF;
 		}
 		
 		log_append((const uint8_t *)buffer, buffer_offset);

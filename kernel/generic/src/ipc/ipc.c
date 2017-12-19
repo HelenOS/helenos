@@ -370,7 +370,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
  * @param err   Return value to be used for the answer.
  *
  */
-void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
+void ipc_backsend_err(phone_t *phone, call_t *call, int err)
 {
 	_ipc_call_actions_internal(phone, call, false);
 	IPC_SET_RETVAL(call->data, err);

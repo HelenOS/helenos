@@ -252,7 +252,7 @@ int udebug_set_evmask(udebug_evmask_t mask)
 	TASK->udebug.evmask = mask;
 	mutex_unlock(&TASK->udebug.lock);
 	
-	return 0;
+	return EOK;
 }
 
 /** Give thread GO.
@@ -284,7 +284,7 @@ int udebug_go(thread_t *thread, call_t *call)
 	
 	_thread_op_end(thread);
 	
-	return 0;
+	return EOK;
 }
 
 /** Stop a thread (i.e. take its GO away)
@@ -315,7 +315,7 @@ int udebug_stop(thread_t *thread, call_t *call)
 	if (thread->udebug.stoppable != true) {
 		/* Answer will be sent when the thread becomes stoppable. */
 		_thread_op_end(thread);
-		return 0;
+		return EOK;
 	}
 	
 	/*
@@ -338,7 +338,7 @@ int udebug_stop(thread_t *thread, call_t *call)
 	ipc_answer(&TASK->answerbox, call);
 	mutex_unlock(&TASK->udebug.lock);
 	
-	return 0;
+	return EOK;
 }
 
 /** Read the list of userspace threads in the current task.
@@ -413,7 +413,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	*stored = copied_ids * sizeof(sysarg_t);
 	*needed = (copied_ids + extra_ids) * sizeof(sysarg_t);
 	
-	return 0;
+	return EOK;
 }
 
 /** Read task name.
@@ -436,7 +436,7 @@ int udebug_name_read(char **data, size_t *data_size)
 	
 	memcpy(*data, TASK->name, name_size);
 	
-	return 0;
+	return EOK;
 }
 
 /** Read the arguments of a system call.
@@ -479,7 +479,7 @@ int udebug_args_read(thread_t *thread, void **buffer)
 	_thread_op_end(thread);
 	
 	*buffer = arg_buffer;
-	return 0;
+	return EOK;
 }
 
 /** Read the register state of the thread.
@@ -521,7 +521,7 @@ int udebug_regs_read(thread_t *thread, void **buffer)
 	_thread_op_end(thread);
 	
 	*buffer = (void *) state_buf;
-	return 0;
+	return EOK;
 }
 
 /** Read the memory of the debugged task.
@@ -559,7 +559,7 @@ int udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 		return rc;
 	
 	*buffer = data_buffer;
-	return 0;
+	return EOK;
 }
 
 /** @}

@@ -136,7 +136,7 @@ static void udebug_receive_go(call_t *call)
 	t = (thread_t *)IPC_GET_ARG2(call->data);
 
 	rc = udebug_go(t, call);
-	if (rc < 0) {
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
@@ -181,7 +181,7 @@ static void udebug_receive_thread_read(call_t *call)
 	 * of threads times thread-id size.
 	 */
 	rc = udebug_thread_read(&buffer, buf_size, &copied, &needed);
-	if (rc < 0) {
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
@@ -350,7 +350,7 @@ static void udebug_receive_regs_read(call_t *call)
 	t = (thread_t *) IPC_GET_ARG2(call->data);
 
 	rc = udebug_regs_read(t, &buffer);
-	if (rc < 0) {
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
@@ -396,7 +396,7 @@ static void udebug_receive_mem_read(call_t *call)
 	size = IPC_GET_ARG4(call->data);
 
 	rc = udebug_mem_read(uspace_src, size, &buffer);
-	if (rc < 0) {
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;

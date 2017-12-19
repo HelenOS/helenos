@@ -70,7 +70,7 @@ NO_TRACE static int sysinfo_item_constructor(void *obj, unsigned int kmflag)
 	item->subtree.table = NULL;
 	item->next = NULL;
 	
-	return 0;
+	return EOK;
 }
 
 /** Sysinfo item destructor

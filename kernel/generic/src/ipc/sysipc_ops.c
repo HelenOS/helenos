@@ -80,7 +80,7 @@ int null_request_forget(call_t *call)
 
 int null_request_process(call_t *call, answerbox_t *box)
 {
-	return EOK;
+	return 0;
 }
 
 int null_answer_cleanup(call_t *call, ipc_data_t *data)

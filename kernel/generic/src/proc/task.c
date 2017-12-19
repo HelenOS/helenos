@@ -184,7 +184,7 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	mutex_initialize(&task->kb.cleanup_lock, MUTEX_PASSIVE);
 #endif
 	
-	return 0;
+	return EOK;
 }
 
 size_t tsk_destructor(void *obj)

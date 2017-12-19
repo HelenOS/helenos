@@ -83,17 +83,17 @@ perm_t perm_get(task_t *task)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-static sysarg_t perm_grant(task_id_t taskid, perm_t perms)
+static int perm_grant(task_id_t taskid, perm_t perms)
 {
 	if (!(perm_get(TASK) & PERM_PERM))
-		return (sysarg_t) EPERM;
+		return EPERM;
 	
 	irq_spinlock_lock(&tasks_lock, true);
 	task_t *task = task_find_by_id(taskid);
 	
 	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		irq_spinlock_unlock(&tasks_lock, true);
-		return (sysarg_t) ENOENT;
+		return ENOENT;
 	}
 	
 	irq_spinlock_lock(&task->lock, false);
@@ -101,7 +101,7 @@ static sysarg_t perm_grant(task_id_t taskid, perm_t perms)
 	irq_spinlock_unlock(&task->lock, false);
 	
 	irq_spinlock_unlock(&tasks_lock, true);
-	return 0;
+	return EOK;
 }
 
 /** Revoke permissions from a task.
@@ -115,14 +115,14 @@ static sysarg_t perm_grant(task_id_t taskid, perm_t perms)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-static sysarg_t perm_revoke(task_id_t taskid, perm_t perms)
+static int perm_revoke(task_id_t taskid, perm_t perms)
 {
 	irq_spinlock_lock(&tasks_lock, true);
 	
 	task_t *task = task_find_by_id(taskid);
 	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		irq_spinlock_unlock(&tasks_lock, true);
-		return (sysarg_t) ENOENT;
+		return ENOENT;
 	}
 	
 	/*
@@ -135,14 +135,14 @@ static sysarg_t perm_revoke(task_id_t taskid, perm_t perms)
 	if ((!(TASK->perms & PERM_PERM)) || (task != TASK)) {
 		irq_spinlock_unlock(&TASK->lock, false);
 		irq_spinlock_unlock(&tasks_lock, true);
-		return (sysarg_t) EPERM;
+		return EPERM;
 	}
 	
 	task->perms &= ~perms;
 	irq_spinlock_unlock(&TASK->lock, false);
 	
 	irq_spinlock_unlock(&tasks_lock, true);
-	return 0;
+	return EOK;
 }
 
 #ifdef __32_BITS__

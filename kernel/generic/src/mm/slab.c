@@ -101,6 +101,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <synch/spinlock.h>
 #include <mm/slab.h>
 #include <adt/list.h>
@@ -333,7 +334,7 @@ NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 	
 	irq_spinlock_unlock(&cache->slablock, true);
 	
-	if ((cache->constructor) && (cache->constructor(obj, flags))) {
+	if ((cache->constructor) && (cache->constructor(obj, flags) != EOK)) {
 		/* Bad, bad, construction failed */
 		slab_obj_destroy(cache, obj, slab);
 		return NULL;
