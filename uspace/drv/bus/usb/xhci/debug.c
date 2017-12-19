@@ -107,6 +107,7 @@ void xhci_dump_port(const xhci_port_regs_t *port)
 	DUMP_REG(port, XHCI_PORT_PR);
 	DUMP_REG(port, XHCI_PORT_PLS);
 	DUMP_REG(port, XHCI_PORT_PP);
+	DUMP_REG(port, XHCI_PORT_PS);
 	DUMP_REG(port, XHCI_PORT_PIC);
 	DUMP_REG(port, XHCI_PORT_LWS);
 	DUMP_REG(port, XHCI_PORT_CSC);
