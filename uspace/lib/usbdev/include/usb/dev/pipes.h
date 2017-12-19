@@ -57,6 +57,10 @@ typedef struct {
 	bool auto_reset_halt;
 	/** The connection used for sending the data. */
 	usb_dev_session_t *bus_session;
+	/** The session used for isochronous endpoints.
+	 * Required as isochronous sends/receive can block the session.
+	 */
+	usb_dev_session_t *isoch_session;
 } usb_pipe_t;
 
 /** Description of endpoint characteristics. */

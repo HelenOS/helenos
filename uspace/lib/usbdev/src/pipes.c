@@ -190,12 +190,11 @@ int usb_pipe_read(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	/* Isochronous transfer are not supported (yet) */
-	if (pipe->desc.transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->desc.transfer_type != USB_TRANSFER_BULK)
-	    return ENOTSUP;
-
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	async_exch_t *exch;
+	if (pipe->desc.transfer_type == USB_TRANSFER_ISOCHRONOUS)
+		exch = async_exchange_begin(pipe->isoch_session);
+	else
+	 	exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
 	const int rc =
 	    usbhc_read(exch, pipe->desc.endpoint_no, 0, buffer, size, &act_size);
@@ -231,15 +230,41 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 		return EBADF;
 	}
 
-	/* Isochronous transfer are not supported (yet) */
-	if (pipe->desc.transfer_type != USB_TRANSFER_INTERRUPT &&
-	    pipe->desc.transfer_type != USB_TRANSFER_BULK)
-	    return ENOTSUP;
+	async_exch_t *exch;
+	if (pipe->desc.transfer_type == USB_TRANSFER_ISOCHRONOUS)
+		exch = async_exchange_begin(pipe->isoch_session);
+	else
+	 	exch = async_exchange_begin(pipe->bus_session);
 
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	const int rc = usbhc_write(exch, pipe->desc.endpoint_no, 0, buffer, size);
 	async_exchange_end(exch);
 	return rc;
+}
+
+/** Setup isochronous session for isochronous communication.
+ *  Isochronous endpoints need a different session as they might block while waiting for data.
+ *
+ * @param pipe Endpoint pipe being initialized.
+ * @return Error code.
+ */
+static int usb_isoch_session_initialize(usb_pipe_t *pipe) {
+	devman_handle_t handle;
+
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	if (!exch)
+		return EPARTY;
+
+	int ret = usb_get_my_device_handle(exch, &handle);
+
+	async_exchange_end(exch);
+	if (ret != EOK)
+		return ret;
+
+	pipe->isoch_session = usb_dev_connect(handle);
+	if (!pipe->isoch_session)
+		return ENAK;
+
+	return EOK;
 }
 
 /** Initialize USB endpoint pipe.
@@ -257,6 +282,7 @@ int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
     unsigned max_burst, unsigned max_streams, unsigned bytes_per_interval,
 	unsigned mult, usb_dev_session_t *bus_session)
 {
+	int ret = EOK;
 	// FIXME: refactor this function PLEASE
 	assert(pipe);
 
@@ -272,7 +298,11 @@ int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
 	pipe->auto_reset_halt = false;
 	pipe->bus_session = bus_session;
 
-	return EOK;
+	if (transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		ret = usb_isoch_session_initialize(pipe);
+	}
+
+	return ret;
 }
 
 /** Initialize USB endpoint pipe as the default zero control pipe.
