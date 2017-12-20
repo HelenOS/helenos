@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Pavel Jancik
- * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
  * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *

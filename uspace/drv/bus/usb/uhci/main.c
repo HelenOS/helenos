@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky, Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

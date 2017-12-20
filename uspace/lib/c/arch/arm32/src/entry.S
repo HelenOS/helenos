@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2007 Michal Kebrt
-# Copyright (c) 2007 Pavel Jancik
+# Copyright (c) 2007 Michal Kebrt, Pavel Jancik
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
