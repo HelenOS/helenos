@@ -102,9 +102,8 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
  */
 static int interrupt_polling(void *arg)
 {
-	hc_device_t *hcd = arg;
-	assert(hcd);
-	bus_t *bus = hcd->bus;
+	bus_t *bus = arg;
+	assert(bus);
 
 	const bus_ops_t *interrupt_ops = BUS_OPS_LOOKUP(bus->ops, interrupt);
 	const bus_ops_t *status_ops = BUS_OPS_LOOKUP(bus->ops, status);
