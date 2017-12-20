@@ -211,7 +211,7 @@ static int process_endpoint(
 	unsigned max_streams = 0;
 	unsigned bytes_per_interval = 0;
 	unsigned mult = 0;
-	if(companion_desc) {
+	if (companion_desc) {
 		max_burst = companion_desc->max_burst;
 		max_streams = SS_COMPANION_MAX_STREAMS(companion_desc->attributes);
 		bytes_per_interval = companion_desc->bytes_per_interval;
