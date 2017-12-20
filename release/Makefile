@@ -82,6 +82,8 @@ $(IMG_FILE):
 	$(MAKE) -r -C $(EXPORT_DIR)
 
 release: src_rel
+	mkdir -p $(EXPORT_DIR)/uspace/overlay
+	(cd ..; tools/cc.sh) >$(EXPORT_DIR)/uspace/overlay/COPYRIGHT
 	for profile in $(PROFILES); do \
 		$(MAKE) -r -C $(EXPORT_DIR) distclean ; \
 		$(MAKE) -r -C $(EXPORT_DIR) PROFILE=$$profile ; \
