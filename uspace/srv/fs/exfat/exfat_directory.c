@@ -217,7 +217,8 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
 {
 	uint16_t wname[EXFAT_FILENAME_LEN + 1];
 	exfat_dentry_t *d = NULL;
-	int rc, i;
+	int rc;
+	int i;
 	size_t offset = 0;
 	aoff64_t start_pos = 0;
 	
@@ -304,7 +305,8 @@ static uint16_t exfat_directory_set_checksum(const uint8_t *bytes, size_t count)
 int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df, 
     exfat_stream_dentry_t *ds)
 {
-	int rc, i, count;
+	int rc;
+	int i, count;
 	exfat_dentry_t *array = NULL, *de;
 	aoff64_t pos = di->pos;
 
@@ -371,7 +373,8 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 	uint16_t *uctable;
 	exfat_dentry_t df, ds, *de;
 	uint16_t wname[EXFAT_FILENAME_LEN + 1];
-	int rc, i;
+	int rc;
+	int i;
 	size_t uctable_chars, j;
 	aoff64_t pos;
 
@@ -472,7 +475,8 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 
 int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
 {
-	int rc, count;
+	int rc;
+	int count;
 	exfat_dentry_t *de;
 
 	di->pos = pos;

@@ -108,7 +108,8 @@ static struct option const long_options[] = {
 
 int main (int argc, char **argv)
 {
-	int rc, c, opt_ind;
+	int rc;
+	int c, opt_ind;
 	char *device_name;
 	size_t devblock_size;
 

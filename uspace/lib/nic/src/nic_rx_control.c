@@ -393,7 +393,7 @@ int nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask)
  *
  * @return True if the frame passes, false if it does not
  */
-int nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
+bool nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
 	nic_frame_type_t *frame_type)
 {
 	assert(frame_type != NULL);

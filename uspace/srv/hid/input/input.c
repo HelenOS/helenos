@@ -485,7 +485,7 @@ static int kbd_add_kbdev(service_id_t service_id, kbd_dev_t **kdevp)
 	
 	list_append(&kdev->link, &kbd_devs);
 	*kdevp = kdev;
-	return EOK;
+	return 0;
 	
 fail:
 	if (kdev->svc_name != NULL)
@@ -522,7 +522,7 @@ static int mouse_add_mousedev(service_id_t service_id, mouse_dev_t **mdevp)
 	
 	list_append(&mdev->link, &mouse_devs);
 	*mdevp = mdev;
-	return EOK;
+	return 0;
 	
 fail:
 	free(mdev);
@@ -598,7 +598,7 @@ static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 	}
 	
 	*sdevp = sdev;
-	return EOK;
+	return 0;
 	
 fail:
 	if (sdev->kdev->svc_name != NULL)
@@ -669,7 +669,7 @@ static int dev_check_new_kbdevs(void)
 		
 		if (!already_known) {
 			kbd_dev_t *kdev;
-			if (kbd_add_kbdev(svcs[i], &kdev) == EOK) {
+			if (kbd_add_kbdev(svcs[i], &kdev) == 0) {
 				printf("%s: Connected keyboard device '%s'\n",
 				    NAME, kdev->svc_name);
 			}
@@ -720,7 +720,7 @@ static int dev_check_new_mousedevs(void)
 		
 		if (!already_known) {
 			mouse_dev_t *mdev;
-			if (mouse_add_mousedev(svcs[i], &mdev) == EOK) {
+			if (mouse_add_mousedev(svcs[i], &mdev) == 0) {
 				printf("%s: Connected mouse device '%s'\n",
 				    NAME, mdev->svc_name);
 			}
@@ -771,7 +771,7 @@ static int dev_check_new_serialdevs(void)
 		
 		if (!already_known) {
 			serial_dev_t *sdev;
-			if (serial_add_srldev(svcs[i], &sdev) == EOK) {
+			if (serial_add_srldev(svcs[i], &sdev) == 0) {
 				printf("%s: Connected serial device '%s'\n",
 				    NAME, sdev->kdev->svc_name);
 			}

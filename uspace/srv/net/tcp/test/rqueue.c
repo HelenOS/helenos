@@ -62,7 +62,7 @@ PCUT_TEST_BEFORE
 
 	/* We will be calling functions that perform logging */
 	rc = log_init("test-tcp");
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** Test empty queue */

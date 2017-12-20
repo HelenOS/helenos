@@ -130,6 +130,7 @@ int nchoice_get(nchoice_t *choice, void **rarg)
 {
 	int i;
 	int rc;
+	int ret;
 	char *str;
 	unsigned long c;
 	char *eptr;
@@ -150,8 +151,8 @@ again:
 	}
 
 	if (def_i > 0) {
-		rc = asprintf(&istr, "%d", def_i);
-		if (rc < 0)
+		ret = asprintf(&istr, "%d", def_i);
+		if (ret < 0)
 			return ENOMEM;
 	} else {
 		istr = str_dup("");

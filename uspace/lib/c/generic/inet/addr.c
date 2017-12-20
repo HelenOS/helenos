@@ -583,13 +583,14 @@ static int inet_addr_format_v6(const addr128_t addr, char **bufp)
 int inet_addr_format(const inet_addr_t *addr, char **bufp)
 {
 	int rc;
+	int ret;
 
 	rc = ENOTSUP;
 
 	switch (addr->version) {
 	case ip_any:
-		rc = asprintf(bufp, "none");
-		if (rc < 0)
+		ret = asprintf(bufp, "none");
+		if (ret < 0)
 			return ENOMEM;
 		rc = EOK;
 		break;
@@ -617,14 +618,15 @@ int inet_addr_format(const inet_addr_t *addr, char **bufp)
 int inet_naddr_format(const inet_naddr_t *naddr, char **bufp)
 {
 	int rc;
+	int ret;
 	char *astr;
 
 	rc = ENOTSUP;
 
 	switch (naddr->version) {
 	case ip_any:
-		rc = asprintf(bufp, "none");
-		if (rc < 0)
+		ret = asprintf(bufp, "none");
+		if (ret < 0)
 			return ENOMEM;
 		rc = EOK;
 		break;
@@ -633,8 +635,8 @@ int inet_naddr_format(const inet_naddr_t *naddr, char **bufp)
 		if (rc != EOK)
 			return ENOMEM;
 
-		rc = asprintf(bufp, "%s/%" PRIu8, astr, naddr->prefix);
-		if (rc < 0) {
+		ret = asprintf(bufp, "%s/%" PRIu8, astr, naddr->prefix);
+		if (ret < 0) {
 			free(astr);
 			return ENOMEM;
 		}
@@ -646,8 +648,8 @@ int inet_naddr_format(const inet_naddr_t *naddr, char **bufp)
 		if (rc != EOK)
 			return ENOMEM;
 
-		rc = asprintf(bufp, "%s/%" PRIu8, astr, naddr->prefix);
-		if (rc < 0) {
+		ret = asprintf(bufp, "%s/%" PRIu8, astr, naddr->prefix);
+		if (ret < 0) {
 			free(astr);
 			return ENOMEM;
 		}

@@ -243,7 +243,8 @@ mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 	struct mfs_instance *inst = mnode->instance;
 	struct mfs_sb_info *sbi = inst->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
-	int nr_direct, ptrs_per_block, rblock, r;
+	int nr_direct, ptrs_per_block, rblock;
+	int r;
 	int i;
 
 	mfs_version_t fs_version = sbi->fs_version;

@@ -75,11 +75,12 @@ static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
 		char *child;
 		struct stat st;
 		int rc;
+		int ret;
 
-		rc = asprintf(&child, "%s/%s", path, dirent->d_name);
-		if (rc < 0) {
+		ret = asprintf(&child, "%s/%s", path, dirent->d_name);
+		if (ret < 0) {
 			closedir(dir);
-			return rc;
+			return ENOMEM;
 		}
 
 		char *pa = vfs_absolutize(child, NULL);

@@ -50,7 +50,7 @@ int register_interrupt_handler(ddf_dev_t *dev, int irq,
 	    dev, irq_code, handle);
 }
 
-int unregister_interrupt_handler(ddf_dev_t *dev, int cap)
+int unregister_interrupt_handler(ddf_dev_t *dev, cap_handle_t cap)
 {
 	return async_irq_unsubscribe(cap);
 }

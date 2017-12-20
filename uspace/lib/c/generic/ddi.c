@@ -70,7 +70,7 @@
  */
 int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 {
-	return __SYSCALL5(SYS_PHYSMEM_MAP, (sysarg_t) phys,
+	return (int) __SYSCALL5(SYS_PHYSMEM_MAP, (sysarg_t) phys,
 	    pages, flags, (sysarg_t) virt, (sysarg_t) __entry);
 }
 
@@ -86,7 +86,7 @@ int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
  */
 int physmem_unmap(void *virt)
 {
-	return __SYSCALL1(SYS_PHYSMEM_UNMAP, (sysarg_t) virt);
+	return (int) __SYSCALL1(SYS_PHYSMEM_UNMAP, (sysarg_t) virt);
 }
 
 /** Lock a piece physical memory for DMA transfers.
@@ -149,12 +149,12 @@ int dmamem_map_anonymous(size_t size, uintptr_t constraint,
 
 int dmamem_unmap(void *virt, size_t size)
 {
-	return __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, (sysarg_t) size, 0);
+	return (int) __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, (sysarg_t) size, 0);
 }
 
 int dmamem_unmap_anonymous(void *virt)
 {
-	return __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, 0,
+	return (int) __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, 0,
 	    DMAMEM_FLAGS_ANONYMOUS);
 }
 
@@ -180,7 +180,7 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 		.size = size
 	};
 	
-	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
+	return (int) __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
 /** Disable I/O space range to task.
@@ -204,7 +204,7 @@ static int iospace_disable(task_id_t id, void *ioaddr, size_t size)
 		.size = size
 	};
 	
-	return __SYSCALL1(SYS_IOSPACE_DISABLE, (sysarg_t) &arg);
+	return (int) __SYSCALL1(SYS_IOSPACE_DISABLE, (sysarg_t) &arg);
 }
 
 /** Enable PIO for specified address range.

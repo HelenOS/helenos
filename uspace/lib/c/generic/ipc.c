@@ -135,7 +135,7 @@ void ipc_call_async_fast(cap_handle_t phandle, sysarg_t imethod, sysarg_t arg1,
 	if (!call)
 		return;
 	
-	int rc = __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phandle, imethod, arg1,
+	int rc = (int) __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phandle, imethod, arg1,
 	    arg2, arg3, (sysarg_t) call);
 	
 	ipc_finish_async(rc, call);
@@ -174,7 +174,7 @@ void ipc_call_async_slow(int phandle, sysarg_t imethod, sysarg_t arg1,
 	IPC_SET_ARG4(call->msg.data, arg4);
 	IPC_SET_ARG5(call->msg.data, arg5);
 	
-	int rc = __SYSCALL3(SYS_IPC_CALL_ASYNC_SLOW, phandle,
+	int rc = (int) __SYSCALL3(SYS_IPC_CALL_ASYNC_SLOW, phandle,
 	    (sysarg_t) &call->msg.data, (sysarg_t) call);
 	
 	ipc_finish_async(rc, call);
@@ -199,7 +199,7 @@ void ipc_call_async_slow(int phandle, sysarg_t imethod, sysarg_t arg1,
 int ipc_answer_fast(cap_handle_t chandle, int retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
-	return __SYSCALL6(SYS_IPC_ANSWER_FAST, chandle, retval, arg1, arg2,
+	return (int) __SYSCALL6(SYS_IPC_ANSWER_FAST, chandle, (sysarg_t) retval, arg1, arg2,
 	    arg3, arg4);
 }
 
@@ -229,7 +229,7 @@ int ipc_answer_slow(cap_handle_t chandle, int retval, sysarg_t arg1,
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
 	
-	return __SYSCALL2(SYS_IPC_ANSWER_SLOW, chandle, (sysarg_t) &data);
+	return (int) __SYSCALL2(SYS_IPC_ANSWER_SLOW, chandle, (sysarg_t) &data);
 }
 
 /** Handle received answer.
@@ -259,7 +259,7 @@ static void handle_answer(ipc_call_t *data)
  */
 int ipc_wait_cycle(ipc_call_t *call, sysarg_t usec, unsigned int flags)
 {
-	int rc = __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
+	int rc = (int) __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
 	
 	/* Handle received answers */
 	if ((rc == EOK) && (call->cap_handle == CAP_NIL) &&
@@ -329,7 +329,7 @@ int ipc_trywait_for_call(ipc_call_t *call)
  */
 int ipc_hangup(cap_handle_t phandle)
 {
-	return __SYSCALL1(SYS_IPC_HANGUP, phandle);
+	return (int) __SYSCALL1(SYS_IPC_HANGUP, phandle);
 }
 
 /** Forward a received call to another destination.
@@ -352,7 +352,7 @@ int ipc_hangup(cap_handle_t phandle)
 int ipc_forward_fast(cap_handle_t chandle, cap_handle_t phandle,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
 {
-	return __SYSCALL6(SYS_IPC_FORWARD_FAST, chandle, phandle, imethod, arg1,
+	return (int) __SYSCALL6(SYS_IPC_FORWARD_FAST, chandle, phandle, imethod, arg1,
 	    arg2, mode);
 }
 
@@ -369,7 +369,7 @@ int ipc_forward_slow(cap_handle_t chandle, cap_handle_t phandle,
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
 	
-	return __SYSCALL4(SYS_IPC_FORWARD_SLOW, chandle, phandle,
+	return (int) __SYSCALL4(SYS_IPC_FORWARD_SLOW, chandle, phandle,
 	    (sysarg_t) &data, mode);
 }
 
@@ -378,7 +378,7 @@ int ipc_forward_slow(cap_handle_t chandle, cap_handle_t phandle,
  */
 int ipc_connect_kbox(task_id_t id, cap_handle_t *phone)
 {
-	return __SYSCALL2(SYS_IPC_CONNECT_KBOX, (sysarg_t) &id, (sysarg_t) phone);
+	return (int) __SYSCALL2(SYS_IPC_CONNECT_KBOX, (sysarg_t) &id, (sysarg_t) phone);
 }
 
 /** @}

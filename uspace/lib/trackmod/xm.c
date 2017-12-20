@@ -173,6 +173,7 @@ static int trackmod_xm_load_patterns(FILE *f, trackmod_module_t *module)
 	uint8_t *buf = NULL;
 	long seek_amount;
 	int rc;
+	int ret;
 
 	module->pattern = calloc(sizeof(trackmod_pattern_t), module->patterns);
 	if (module->pattern == NULL) {
@@ -181,8 +182,8 @@ static int trackmod_xm_load_patterns(FILE *f, trackmod_module_t *module)
 	}
 
 	for (i = 0; i < module->patterns; i++) {
-		rc = fread(&pattern, 1, sizeof(xm_pattern_t), f);
-		if (rc != sizeof(xm_pattern_t)) {
+		ret = fread(&pattern, 1, sizeof(xm_pattern_t), f);
+		if (ret != sizeof(xm_pattern_t)) {
 			rc = EIO;
 			goto error;
 		}
@@ -296,6 +297,7 @@ static int trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 	void *smp_data;
 	long pos;
 	int rc;
+	int ret;
 
 	module->instrs = uint16_t_le2host(xm_hdr->instruments);
 	module->instr = calloc(module->instrs, sizeof(trackmod_instr_t));
@@ -304,8 +306,8 @@ static int trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 
 	for (i = 0; i < module->instrs; i++) {
 		pos = ftell(f);
-		rc = fread(&instr, 1, sizeof(xm_instr_t), f);
-		if (rc != sizeof(xm_instr_t)) {
+		ret = fread(&instr, 1, sizeof(xm_instr_t), f);
+		if (ret != sizeof(xm_instr_t)) {
 			rc = EIO;
 			goto error;
 		}
@@ -314,8 +316,8 @@ static int trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 		instr_size = (size_t)uint32_t_le2host(instr.size);
 
 		if (samples > 0) {
-			rc = fread(&instrx, 1, sizeof(xm_instr_ext_t), f);
-			if (rc != sizeof(xm_instr_ext_t)) {
+			ret = fread(&instrx, 1, sizeof(xm_instr_ext_t), f);
+			if (ret != sizeof(xm_instr_ext_t)) {
 				rc = EIO;
 				goto error;
 			}
@@ -345,8 +347,8 @@ static int trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 			sample = &module->instr[i].sample[j];
 			pos = ftell(f);
 
-			rc = fread(&smp, 1, sizeof(xm_smp_t), f);
-			if (rc != sizeof(xm_smp_t)) {
+			ret = fread(&smp, 1, sizeof(xm_smp_t), f);
+			if (ret != sizeof(xm_smp_t)) {
 				rc = EIO;
 				goto error;
 			}

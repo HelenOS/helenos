@@ -98,7 +98,7 @@ static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static int pciintel_fun_owns_interrupt(pci_fun_t *fun, int irq)
+static bool pciintel_fun_owns_interrupt(pci_fun_t *fun, int irq)
 {
 	size_t i;
 	hw_resource_list_t *res = &fun->hw_resources;
@@ -382,14 +382,14 @@ void pci_conf_write_32(pci_fun_t *fun, int reg, uint32_t val)
 void pci_fun_create_match_ids(pci_fun_t *fun)
 {
 	int rc;
+	int ret;
 	char match_id_str[ID_MAX_STR_LEN];
 
 	/* Vendor ID & Device ID, length(incl \0) 22 */
-	rc = snprintf(match_id_str, ID_MAX_STR_LEN, "pci/ven=%04"
+	ret = snprintf(match_id_str, ID_MAX_STR_LEN, "pci/ven=%04"
 	    PRIx16 "&dev=%04" PRIx16, fun->vendor_id, fun->device_id);
-	if (rc < 0) {
-		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
-		    str_error(rc));
+	if (ret < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str");
 	}
 
 	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 90);
@@ -398,12 +398,11 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 	}
 
 	/* Class, subclass, prog IF, revision, length(incl \0) 47 */
-	rc = snprintf(match_id_str, ID_MAX_STR_LEN,
+	ret = snprintf(match_id_str, ID_MAX_STR_LEN,
 	    "pci/class=%02x&subclass=%02x&progif=%02x&revision=%02x",
 	    fun->class_code, fun->subclass_code, fun->prog_if, fun->revision);
-	if (rc < 0) {
-		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
-		    str_error(rc));
+	if (ret < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str");
 	}
 
 	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 70);
@@ -412,12 +411,11 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 	}
 
 	/* Class, subclass, prog IF, length(incl \0) 35 */
-	rc = snprintf(match_id_str, ID_MAX_STR_LEN,
+	ret = snprintf(match_id_str, ID_MAX_STR_LEN,
 	    "pci/class=%02x&subclass=%02x&progif=%02x",
 	    fun->class_code, fun->subclass_code, fun->prog_if);
-	if (rc < 0) {
-		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
-		    str_error(rc));
+	if (ret < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str");
 	}
 
 	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 60);
@@ -426,12 +424,11 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 	}
 
 	/* Class, subclass, length(incl \0) 25 */
-	rc = snprintf(match_id_str, ID_MAX_STR_LEN,
+	ret = snprintf(match_id_str, ID_MAX_STR_LEN,
 	    "pci/class=%02x&subclass=%02x",
 	    fun->class_code, fun->subclass_code);
-	if (rc < 0) {
-		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
-		    str_error(rc));
+	if (ret < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str");
 	}
 
 	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 50);
@@ -440,11 +437,10 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 	}
 
 	/* Class, length(incl \0) 13 */
-	rc = snprintf(match_id_str, ID_MAX_STR_LEN, "pci/class=%02x",
+	ret = snprintf(match_id_str, ID_MAX_STR_LEN, "pci/class=%02x",
 	    fun->class_code);
-	if (rc < 0) {
-		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
-		    str_error(rc));
+	if (ret < 0) {
+		ddf_msg(LVL_ERROR, "Failed creating match ID str");
 	}
 
 	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 40);

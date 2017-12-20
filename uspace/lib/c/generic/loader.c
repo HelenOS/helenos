@@ -55,7 +55,7 @@
  */
 int loader_spawn(const char *name)
 {
-	return __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
+	return (int) __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
 	    (sysarg_t) name, str_size(name));
 }
 

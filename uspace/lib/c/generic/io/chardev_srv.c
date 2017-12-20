@@ -81,7 +81,7 @@ static void chardev_read_srv(chardev_srv_t *srv, ipc_callid_t callid,
 	async_data_read_finalize(rcallid, buf, nread);
 
 	free(buf);
-	async_answer_2(callid, EOK, rc, nread);
+	async_answer_2(callid, EOK, (sysarg_t) rc, nread);
 }
 
 static void chardev_write_srv(chardev_srv_t *srv, ipc_callid_t callid,
@@ -110,7 +110,7 @@ static void chardev_write_srv(chardev_srv_t *srv, ipc_callid_t callid,
 		return;
 	}
 
-	async_answer_2(callid, EOK, rc, nwr);
+	async_answer_2(callid, EOK, (sysarg_t) rc, nwr);
 }
 
 static chardev_srv_t *chardev_srv_create(chardev_srvs_t *srvs)

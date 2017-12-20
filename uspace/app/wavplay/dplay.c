@@ -328,7 +328,7 @@ static void play(playback_t *pb)
  * Play audio file usign direct device access.
  * @param device The device.
  * @param file The file.
- * @return Error code.
+ * @return 0 on success, non-zero on failure.
  */
 int dplay(const char *device, const char *file)
 {

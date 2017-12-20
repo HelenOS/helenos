@@ -169,7 +169,7 @@ static void record_fragment(record_t *rec, pcm_format_t f)
  * Record directly from a device to a file.
  * @param device The device.
  * @param file The file.
- * @return Error code.
+ * @return 0 on succes, non-zero on failure.
  */
 int drecord(const char *device, const char *file)
 {

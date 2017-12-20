@@ -289,7 +289,7 @@ unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 	case AUDIO_CAP_INTERRUPT_MAX_FRAMES:
 		return 16535;
 	default:
-		return ENOTSUP;
+		return -1;
 	}
 }
 

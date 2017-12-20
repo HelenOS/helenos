@@ -56,8 +56,7 @@ static int create_dest(const char *name, logger_dest_t **dest)
 	logger_dest_t *result = malloc(sizeof(logger_dest_t));
 	if (result == NULL)
 		return ENOMEM;
-	int rc = asprintf(&result->filename, "/log/%s", name);
-	if (rc < 0) {
+	if (asprintf(&result->filename, "/log/%s", name) < 0) {
 		free(result);
 		return ENOMEM;
 	}
@@ -90,9 +89,8 @@ static logger_log_t *create_log_no_locking(const char *name, logger_log_t *paren
 		if (rc != EOK)
 			goto error;
 	} else {
-		int rc = asprintf(&result->full_name, "%s/%s",
-		    parent->full_name, name);
-		if (rc < 0)
+		if (asprintf(&result->full_name, "%s/%s",
+		    parent->full_name, name) < 0)
 			goto error;
 		result->dest = parent->dest;
 	}

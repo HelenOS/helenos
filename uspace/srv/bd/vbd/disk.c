@@ -1113,8 +1113,7 @@ static int vbds_part_svc_register(vbds_part_t *part)
 
 	idx = part->lpart->index;
 
-	rc = asprintf(&name, "%sp%u", part->disk->svc_name, idx);
-	if (rc < 0) {
+	if (asprintf(&name, "%sp%u", part->disk->svc_name, idx) < 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
 		return ENOMEM;
 	}

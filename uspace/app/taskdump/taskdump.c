@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 		return 1;
 
 	rc = connect_task(task_id);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("Failed connecting to task %" PRIu64 ".\n", task_id);
 		return 1;
 	}
@@ -104,15 +104,15 @@ int main(int argc, char *argv[])
 	putchar('\n');
 
 	rc = threads_dump();
-	if (rc < 0)
+	if (rc != EOK)
 		printf("Failed dumping threads.\n");
 
 	rc = areas_dump();
-	if (rc < 0)
+	if (rc != EOK)
 		printf("Failed dumping address space areas.\n");
 
 	rc = fibrils_dump(app_symtab, sess);
-	if (rc < 0)
+	if (rc != EOK)
 		printf("Failed dumping fibrils.\n");
 
 	udebug_end(sess);
@@ -140,7 +140,7 @@ static int connect_task(task_id_t task_id)
 	}
 	
 	int rc = udebug_begin(ksess);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("udebug_begin() -> %s\n", str_error_name(rc));
 		return rc;
 	}
@@ -222,7 +222,7 @@ static int threads_dump(void)
 
 	/* TODO: See why NULL does not work. */
 	rc = udebug_thread_read(sess, &dummy_buf, 0, &copied, &needed);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("udebug_thread_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
@@ -236,7 +236,7 @@ static int threads_dump(void)
 	thash_buf = malloc(buf_size);
 
 	rc = udebug_thread_read(sess, thash_buf, buf_size, &copied, &needed);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("udebug_thread_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
@@ -271,7 +271,7 @@ static int areas_dump(void)
 	int rc;
 
 	rc = udebug_areas_read(sess, &dummy_buf, 0, &copied, &needed);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("udebug_areas_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
@@ -280,7 +280,7 @@ static int areas_dump(void)
 	ainfo_buf = malloc(buf_size);
 
 	rc = udebug_areas_read(sess, ainfo_buf, buf_size, &copied, &needed);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("udebug_areas_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
@@ -356,7 +356,7 @@ static int thread_dump(uintptr_t thash)
 	int rc;
 
 	rc = udebug_regs_read(sess, thash, &istate);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("Failed reading registers: %s.\n", str_error_name(rc));
 		return EIO;
 	}
@@ -385,7 +385,7 @@ static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)
 	(void) arg;
 
 	rc = udebug_mem_read(sess, &data, addr, sizeof(data));
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("Warning: udebug_mem_read() failed.\n");
 		return rc;
 	}
@@ -399,12 +399,13 @@ static void autoload_syms(void)
 {
 	char *file_name;
 	int rc;
+	int ret;
 
 	assert(app_name != NULL);
 	assert(app_symtab == NULL);
 
-	rc = asprintf(&file_name, "/app/%s", app_name);
-	if (rc < 0) {
+	ret = asprintf(&file_name, "/app/%s", app_name);
+	if (ret < 0) {
 		printf("Memory allocation failure.\n");
 		exit(1);
 	}
@@ -418,8 +419,8 @@ static void autoload_syms(void)
 
 	free(file_name);
 
-	rc = asprintf(&file_name, "/srv/%s", app_name);
-	if (rc < 0) {
+	ret = asprintf(&file_name, "/srv/%s", app_name);
+	if (ret < 0) {
 		printf("Memory allocation failure.\n");
 		exit(1);
 	}
@@ -431,8 +432,8 @@ static void autoload_syms(void)
 		return;
 	}
 
-	rc = asprintf(&file_name, "/drv/%s/%s", app_name, app_name);
-	if (rc < 0) {
+	ret = asprintf(&file_name, "/drv/%s/%s", app_name, app_name);
+	if (ret < 0) {
 		printf("Memory allocation failure.\n");
 		exit(1);
 	}
@@ -456,13 +457,13 @@ static char *get_app_task_name(void)
 	int rc;
 
 	rc = udebug_name_read(sess, &dummy_buf, 0, &copied, &needed);
-	if (rc < 0)
+	if (rc != EOK)
 		return NULL;
 
 	name_size = needed;
 	name = malloc(name_size + 1);
 	rc = udebug_name_read(sess, name, name_size, &copied, &needed);
-	if (rc < 0) {
+	if (rc != EOK) {
 		free(name);
 		return NULL;
 	}
@@ -487,6 +488,7 @@ static char *fmt_sym_address(uintptr_t addr)
 	char *name;
 	size_t offs;
 	int rc;
+	int ret;
 	char *str;
 
 	if (app_symtab != NULL) {
@@ -496,12 +498,12 @@ static char *fmt_sym_address(uintptr_t addr)
 	}
 
 	if (rc == EOK) {
-		rc = asprintf(&str, "%p (%s+%zu)", (void *) addr, name, offs);
+		ret = asprintf(&str, "%p (%s+%zu)", (void *) addr, name, offs);
 	} else {
-		rc = asprintf(&str, "%p", (void *) addr);
+		ret = asprintf(&str, "%p", (void *) addr);
 	}
 
-	if (rc < 0) {
+	if (ret < 0) {
 		printf("Memory allocation error.\n");
 		exit(1);
 	}

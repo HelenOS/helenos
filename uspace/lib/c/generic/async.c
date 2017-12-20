@@ -762,7 +762,7 @@ static int connection_fibril(void *arg)
 		ipc_answer_0(fibril_connection->close_chandle, EOK);
 	
 	free(fibril_connection);
-	return 0;
+	return EOK;
 }
 
 /** Create a new fibril for a new connection.

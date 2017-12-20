@@ -107,11 +107,11 @@ extern void futex_upgrade_all_and_wait(void);
  *
  * @param futex Futex.
  *
- * @return Non-zero if the futex was acquired.
- * @return Zero if the futex was not acquired.
+ * @return true if the futex was acquired.
+ * @return false if the futex was not acquired.
  *
  */
-static inline int futex_trydown(futex_t *futex)
+static inline bool futex_trydown(futex_t *futex)
 {
 	return cas(&futex->val, 1, 0);
 }
@@ -128,7 +128,7 @@ static inline int futex_trydown(futex_t *futex)
 static inline int futex_down(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
-		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
+		return (int) __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
 	
 	return EOK;
 }
@@ -145,7 +145,7 @@ static inline int futex_down(futex_t *futex)
 static inline int futex_up(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
-		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
+		return (int) __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
 	
 	return EOK;
 }

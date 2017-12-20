@@ -84,7 +84,7 @@ int cmd_batch(char **argv, cliuser_t *usr)
 			continue_despite_errors = true;
 	}
 
-	int rc = 0;
+	int rc = EOK;
 	FILE *batch = fopen(argv[1], "r");
 	if (batch == NULL) {
 		printf("%s - Cannot open file %s\n", cmdname, argv[1]);
@@ -103,7 +103,7 @@ int cmd_batch(char **argv, cliuser_t *usr)
 				*cur = '\0';
 				if (cur == fusr.line) {
 					/* skip empty line */
-					rc = 0;
+					rc = EOK;
 					free(cur);
 				} else {
 					printf(">%s\n", fusr.line);

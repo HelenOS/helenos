@@ -350,7 +350,8 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base,
     uint32_t *chksum)
 {
 	uint32_t *ebs = calloc(cfg->sector_size, sizeof(uint8_t));
-	int i, rc;
+	int i;
+	int rc;
 
 	if (!ebs)
 		return ENOMEM;
@@ -756,7 +757,8 @@ int main (int argc, char **argv)
 	uint32_t next_cls;
 	char *dev_path;
 	service_id_t service_id;
-	int rc, c, opt_ind;
+	int rc;
+	int c, opt_ind;
 	aoff64_t user_fs_size = 0;
 
 	if (argc < 2) {

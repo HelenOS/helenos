@@ -53,7 +53,7 @@ static int receive_number(receive_buffer_t *rb, char **str)
 	
 	recv_mark(rb, &start);
 	int rc = recv_while(rb, is_digit);
-	if (rc < 0) {
+	if (rc != EOK) {
 		recv_unmark(rb, &start);
 		return rc;
 	}
@@ -148,7 +148,7 @@ int http_receive_status(receive_buffer_t *rb, http_version_t *out_version,
 	recv_mark(rb, &msg_start);
 	
 	rc = recv_while(rb, is_not_newline);
-	if (rc < 0) {
+	if (rc != EOK) {
 		recv_unmark(rb, &msg_start);
 		return rc;
 	}

@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
 	uri_t *uri = NULL;
 	http_t *http = NULL;
 	int rc;
+	int ret;
 
 	if (argc < 2) {
 		syntax_print();
@@ -154,8 +155,8 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 	} else {
-		rc = asprintf(&server_path, "%s?%s", path, uri->query);
-		if (rc < 0) {
+		ret = asprintf(&server_path, "%s?%s", path, uri->query);
+		if (ret < 0) {
 			fprintf(stderr, "Failed allocating path\n");
 			rc = ENOMEM;
 			goto error;

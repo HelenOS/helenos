@@ -131,7 +131,8 @@ int cmd_mount(char **argv)
 	unsigned int argc;
 	const char *mopts = "";
 	const char *dev = "";
-	int rc, c, opt_ind;
+	int rc;
+	int c, opt_ind;
 	unsigned int instance = 0;
 	bool instance_set = false;
 	char **t_argv;

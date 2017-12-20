@@ -221,7 +221,6 @@ static int file_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
     size_t size)
 {
 	size_t n_rd;
-	int rc;
 
 	if (size < cnt * block_size)
 		return EINVAL;
@@ -237,8 +236,7 @@ static int file_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
 	fibril_mutex_lock(&dev_lock);
 
 	clearerr(img);
-	rc = fseek(img, ba * block_size, SEEK_SET);
-	if (rc < 0) {
+	if (fseek(img, ba * block_size, SEEK_SET) < 0) {
 		fibril_mutex_unlock(&dev_lock);
 		return EIO;
 	}
@@ -263,7 +261,6 @@ static int file_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	size_t n_wr;
-	int rc;
 
 	if (size < cnt * block_size)
 		return EINVAL;
@@ -279,8 +276,7 @@ static int file_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	fibril_mutex_lock(&dev_lock);
 
 	clearerr(img);
-	rc = fseek(img, ba * block_size, SEEK_SET);
-	if (rc < 0) {
+	if (fseek(img, ba * block_size, SEEK_SET) < 0) {
 		fibril_mutex_unlock(&dev_lock);
 		return EIO;
 	}

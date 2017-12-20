@@ -141,8 +141,7 @@ static int sysinst_label_dev(const char *dev, char **pdev)
 	}
 
 	/* XXX libfdisk should give us the service name */
-	rc = asprintf(pdev, "%sp1", dev);
-	if (rc < 0)
+	if (asprintf(pdev, "%sp1", dev) < 0)
 		return ENOMEM;
 
 	printf("sysinst_label_dev(): OK\n");

@@ -39,6 +39,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <errno.h>
 
 /** Table metrics */
 typedef struct {

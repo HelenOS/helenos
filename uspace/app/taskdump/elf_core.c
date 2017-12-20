@@ -306,7 +306,7 @@ static int write_mem_area(int fd, aoff64_t *pos, as_area_info_t *area,
 	while (total < area->size) {
 		to_copy = min(area->size - total, BUFFER_SIZE);
 		rc = udebug_mem_read(sess, buffer, addr, to_copy);
-		if (rc < 0) {
+		if (rc != EOK) {
 			printf("Failed reading task memory.\n");
 			return EIO;
 		}

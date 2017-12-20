@@ -201,7 +201,7 @@ int cmd_mkfile(char **argv)
 
 	free(buffer);
 
-	if (vfs_put(fd) < 0)
+	if (vfs_put(fd) != EOK)
 		goto error;
 
 	return CMD_SUCCESS;

@@ -74,7 +74,7 @@ int task_set_name(const char *name)
 {
 	assert(name);
 	
-	return __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
+	return (int) __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
 }
 
 /** Kill a task.

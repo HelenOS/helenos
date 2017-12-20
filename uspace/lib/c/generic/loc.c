@@ -573,6 +573,9 @@ async_sess_t *loc_service_connect(service_id_t handle, iface_t iface,
 	return sess;
 }
 
+/**
+ * @return ID of a new NULL device, or -1 if failed.
+ */
 int loc_null_create(void)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);

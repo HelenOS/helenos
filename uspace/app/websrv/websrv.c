@@ -258,8 +258,7 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	if (str_cmp(uri, "/") == 0)
 		uri = "/index.html";
 	
-	rc = asprintf(&fname, "%s%s", WEB_ROOT, uri);
-	if (rc < 0) {
+	if (asprintf(&fname, "%s%s", WEB_ROOT, uri) < 0) {
 		rc = ENOMEM;
 		goto out;
 	}

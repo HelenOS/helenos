@@ -84,7 +84,8 @@ void help_cmd_cd(unsigned int level)
 
 int cmd_cd(char **argv, cliuser_t *usr)
 {
-	int argc, rc = 0;
+	int argc;
+	int rc = EOK;
 
 	argc = cli_count_args(argv);
 

@@ -636,7 +636,7 @@ int inflate(void *src, size_t srclen, void *dest, size_t destlen)
 	state.overrun = false;
 	
 	uint16_t last;
-	int ret = 0;
+	int ret = EOK;
 	
 	do {
 		/* Last block is indicated by a non-zero bit */

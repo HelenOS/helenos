@@ -215,7 +215,7 @@ int nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Set the address of the device (e.g. MAC on Ethernet)
@@ -242,7 +242,7 @@ int nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Request statistic data about NIC operation.
@@ -300,7 +300,7 @@ int nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Request status of the cable (plugged/unplugged)
@@ -634,7 +634,7 @@ int nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Retrieve current settings of multicast frames reception.
@@ -722,7 +722,7 @@ int nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode,
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Determine if broadcast packets are received.
@@ -883,7 +883,7 @@ int nic_blocked_sources_set(async_sess_t *dev_sess,
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Request current VLAN filtering mask.
@@ -943,7 +943,7 @@ int nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Set VLAN (802.1q) tag.
@@ -1010,7 +1010,7 @@ int nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
 	async_wait_for(message_id, &res);
 	
 	*id = IPC_GET_ARG1(result);
-	return (int) res;
+	return res;
 }
 
 /** Remove Wake-On-LAN virtue.
@@ -1316,7 +1316,7 @@ int nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Request the driver to poll the NIC.

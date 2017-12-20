@@ -177,6 +177,7 @@ void cap_simplify(cap_spec_t *cap)
 int cap_format(cap_spec_t *cap, char **rstr)
 {
 	int rc;
+	int ret;
 	const char *sunit;
 	uint64_t ipart;
 	uint64_t fpart;
@@ -195,12 +196,12 @@ int cap_format(cap_spec_t *cap, char **rstr)
 
 	sunit = cu_str[cap->cunit];
 	if (cap->dp > 0) {
-		rc = asprintf(rstr, "%" PRIu64 ".%0*" PRIu64 " %s", ipart,
+		ret = asprintf(rstr, "%" PRIu64 ".%0*" PRIu64 " %s", ipart,
 		    (int)cap->dp, fpart, sunit);
 	} else {
-		rc = asprintf(rstr, "%" PRIu64 " %s", ipart, sunit);
+		ret = asprintf(rstr, "%" PRIu64 " %s", ipart, sunit);
 	}
-	if (rc < 0)
+	if (ret < 0)
 		return ENOMEM;
 
 	return EOK;

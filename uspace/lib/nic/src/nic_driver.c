@@ -520,7 +520,7 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 	 * 		 calls it inside send_frame handler (with locked main lock) */
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_frame_type_t frame_type;
-	int check = nic_rxc_check(&nic_data->rx_control, frame->data,
+	bool check = nic_rxc_check(&nic_data->rx_control, frame->data,
 	    frame->size, &frame_type);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
 	/* Update statistics */
@@ -1091,7 +1091,7 @@ static int period_fibril_fun(void *data)
 		}
 		fibril_rwlock_read_unlock(&nic->main_lock);
 	}
-	return 0;
+	return EOK;
 }
 
 /** Starts software periodic polling

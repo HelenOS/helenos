@@ -106,6 +106,7 @@ static int pkg_install(int argc, char *argv[])
 	char *fname;
 	char *fnunpack;
 	int rc;
+	int ret;
 
 	if (argc != 3) {
 		print_syntax();
@@ -114,24 +115,24 @@ static int pkg_install(int argc, char *argv[])
 
 	pkg_name = argv[2];
 
-	rc = asprintf(&src_uri, "http://ci.helenos.org/latest/" STRING(UARCH)
+	ret = asprintf(&src_uri, "http://ci.helenos.org/latest/" STRING(UARCH)
 	    "/%s-for-helenos-" STRING(UARCH) ".tar.gz",
 	    pkg_name);
-	if (rc < 0) {
+	if (ret < 0) {
 		printf("Out of memory.\n");
 		return ENOMEM;
 	}
 
-	rc = asprintf(&fname, "/tmp/%s-for-helenos-" STRING(UARCH)
+	ret = asprintf(&fname, "/tmp/%s-for-helenos-" STRING(UARCH)
 	    ".tar.gz", pkg_name);
-	if (rc < 0) {
+	if (ret < 0) {
 		printf("Out of memory.\n");
 		return ENOMEM;
 	}
 
-	rc = asprintf(&fnunpack, "/tmp/%s-for-helenos-" STRING(UARCH) ".tar",
+	ret = asprintf(&fnunpack, "/tmp/%s-for-helenos-" STRING(UARCH) ".tar",
 	    pkg_name);
-	if (rc < 0) {
+	if (ret < 0) {
 		printf("Out of memory.\n");
 		return ENOMEM;
 	}

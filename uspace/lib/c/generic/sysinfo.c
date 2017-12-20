@@ -91,7 +91,7 @@ char *sysinfo_get_keys(const char *path, size_t *size)
 	
 	/* Get the data */
 	size_t sz;
-	ret = __SYSCALL5(SYS_SYSINFO_GET_KEYS, (sysarg_t) path,
+	ret = (int) __SYSCALL5(SYS_SYSINFO_GET_KEYS, (sysarg_t) path,
 	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
 	    (sysarg_t) &sz);
 	if (ret == EOK) {
@@ -185,7 +185,7 @@ void *sysinfo_get_data(const char *path, size_t *size)
 	
 	/* Get the data */
 	size_t sz;
-	ret = __SYSCALL5(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
+	ret = (int) __SYSCALL5(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
 	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
 	    (sysarg_t) &sz);
 	if (ret == EOK) {

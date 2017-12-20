@@ -267,8 +267,7 @@ static int pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
 	aoff64_t offset = data->bitmap_table.offset + (2 * sizeof(uint32_t)) +
 	    (glyph_id * sizeof(uint32_t));
 	
-	rc = fseek(data->file, offset, SEEK_SET);
-	if (rc != 0)
+	if (fseek(data->file, offset, SEEK_SET) < 0)
 		return errno;
 	
 	uint32_t bitmap_offset = 0;
@@ -283,8 +282,7 @@ static int pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
 	    (data->glyph_count * sizeof(uint32_t)) + (4 * sizeof(uint32_t))
 	    + bitmap_offset;
 	
-	rc = fseek(data->file, offset, SEEK_SET);
-	if (rc != 0)
+	if (fseek(data->file, offset, SEEK_SET) < 0)
 		return errno;
 	
 	surface_coord_t width = pcf_metrics.character_width;

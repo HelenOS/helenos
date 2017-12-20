@@ -38,7 +38,7 @@
 
 int smc_coherence(void *address, size_t size)
 {
-	return __SYSCALL2(SYS_SMC_COHERENCE, (sysarg_t) address,
+	return (int) __SYSCALL2(SYS_SMC_COHERENCE, (sysarg_t) address,
 	    (sysarg_t) size);
 }
 

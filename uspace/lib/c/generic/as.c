@@ -75,7 +75,7 @@ void *as_area_create(void *base, size_t size, unsigned int flags,
  */
 int as_area_resize(void *address, size_t size, unsigned int flags)
 {
-	return __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t) address,
+	return (int) __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t) address,
 	    (sysarg_t) size, (sysarg_t) flags);
 }
 
@@ -89,7 +89,7 @@ int as_area_resize(void *address, size_t size, unsigned int flags)
  */
 int as_area_destroy(void *address)
 {
-	return __SYSCALL1(SYS_AS_AREA_DESTROY, (sysarg_t) address);
+	return (int) __SYSCALL1(SYS_AS_AREA_DESTROY, (sysarg_t) address);
 }
 
 /** Change address-space area flags.
@@ -103,7 +103,7 @@ int as_area_destroy(void *address)
  */
 int as_area_change_flags(void *address, unsigned int flags)
 {
-	return __SYSCALL2(SYS_AS_AREA_CHANGE_FLAGS, (sysarg_t) address,
+	return (int) __SYSCALL2(SYS_AS_AREA_CHANGE_FLAGS, (sysarg_t) address,
 	    (sysarg_t) flags);
 }
 

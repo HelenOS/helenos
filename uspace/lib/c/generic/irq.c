@@ -68,7 +68,7 @@ int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode,
 	if (ucode == NULL)
 		ucode = &default_ucode;
 	
-	return __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, method, (sysarg_t) ucode,
+	return (int) __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, method, (sysarg_t) ucode,
 	    (sysarg_t) out_handle);
 }
 
@@ -81,7 +81,7 @@ int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode,
  */
 int ipc_irq_unsubscribe(cap_handle_t cap)
 {
-	return __SYSCALL1(SYS_IPC_IRQ_UNSUBSCRIBE, cap);
+	return (int) __SYSCALL1(SYS_IPC_IRQ_UNSUBSCRIBE, cap);
 }
 
 /** @}

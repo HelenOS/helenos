@@ -289,8 +289,7 @@ int main(int argc, char *argv[])
 		goto error;
 	}
 	
-	rc = asprintf(&sdest, "%s (%s)", host, adest);
-	if (rc < 0) {
+	if (asprintf(&sdest, "%s (%s)", host, adest) < 0) {
 		printf("Out of memory.\n");
 		goto error;
 	}

@@ -107,9 +107,9 @@ int ethip_iplink_init(ethip_nic_t *nic)
 	nic->iplink.ops = &ethip_iplink_ops;
 	nic->iplink.arg = nic;
 
-	rc = asprintf(&svc_name, "net/eth%u", ++link_num);
-	if (rc < 0) {
+	if (asprintf(&svc_name, "net/eth%u", ++link_num) < 0) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
+		rc = ENOMEM;
 		goto error;
 	}
 

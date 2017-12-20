@@ -129,7 +129,7 @@ void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
 	/* Spawn a loader. */
 	int rc = loader_spawn("loader");
 	
-	if (rc < 0) {
+	if (rc != EOK) {
 		free(csr);
 		async_answer_0(callid, rc);
 		return;

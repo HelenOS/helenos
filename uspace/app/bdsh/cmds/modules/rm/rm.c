@@ -208,7 +208,7 @@ static unsigned int rm_recursive(const char *path)
 	/* Delete directory */
 	rc = vfs_unlink_path(path);
 	if (rc == EOK)
-		return EOK;
+		return 0;
 
 	cli_error(CL_ENOTSUP, "Can not remove %s", path);
 

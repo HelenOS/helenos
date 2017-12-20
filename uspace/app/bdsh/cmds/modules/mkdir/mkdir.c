@@ -93,12 +93,13 @@ create_directory(const char *user_path, bool create_parents)
 	}
 
 	int ret = 0;
+	int rc;
 
 	if (!create_parents) {
-		ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
-		if (ret != EOK) {
+		rc = vfs_link_path(path, KIND_DIRECTORY, NULL);
+		if (rc != EOK) {
 			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-			    cmdname, path, str_error(ret));
+			    cmdname, path, str_error(rc));
 			ret = 1;
 		}
 	} else {
@@ -134,10 +135,10 @@ create_directory(const char *user_path, bool create_parents)
 			char slash_char = path[prev_off];
 			path[prev_off] = 0;
 
-			ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
-			if (ret != EOK && ret != EEXIST) {
+			rc = vfs_link_path(path, KIND_DIRECTORY, NULL);
+			if (rc != EOK && rc != EEXIST) {
 				cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-				    cmdname, path, str_error(ret));
+				    cmdname, path, str_error(rc));
 				ret = 1;
 				goto leave;
 			}
@@ -145,10 +146,10 @@ create_directory(const char *user_path, bool create_parents)
 			path[prev_off] = slash_char;
 		}
 		/* Create the final directory. */
-		ret = vfs_link_path(path, KIND_DIRECTORY, NULL);
-		if (ret != EOK) {
+		rc = vfs_link_path(path, KIND_DIRECTORY, NULL);
+		if (rc != EOK) {
 			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
-			    cmdname, path, str_error(ret));
+			    cmdname, path, str_error(rc));
 			ret = 1;
 		}
 	}

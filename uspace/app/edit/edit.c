@@ -760,7 +760,7 @@ static int file_save_range(char const *fname, spt_t const *spos,
 		sp = bep;
 	} while (!spt_equal(&bep, epos));
 
-	if (fclose(f) != EOK)
+	if (fclose(f) < 0)
 		return EIO;
 
 	return EOK;

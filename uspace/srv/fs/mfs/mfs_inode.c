@@ -82,7 +82,8 @@ mfs_read_inode_raw(const struct mfs_instance *instance,
 	struct mfs_ino_info *ino_i = NULL;
 	struct mfs_sb_info *sbi;
 	block_t *b;
-	int i, r;
+	int i;
+	int r;
 
 	sbi = instance->sbi;
 
@@ -141,7 +142,8 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
 	struct mfs_ino_info *ino_i = NULL;
 	struct mfs_sb_info *sbi;
 	block_t *b;
-	int i, r;
+	int i;
+	int r;
 
 	ino_i = malloc(sizeof(*ino_i));
 
@@ -223,7 +225,8 @@ out:
 static int
 mfs_write_inode_raw(struct mfs_node *mnode)
 {
-	int i, r;
+	int i;
+	int r;
 	block_t *b;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -269,7 +272,8 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	block_t *b;
-	int i, r;
+	int i;
+	int r;
 
 	const uint32_t inum = ino_i->index - 1;
 	const int itable_off = sbi->itable_off;

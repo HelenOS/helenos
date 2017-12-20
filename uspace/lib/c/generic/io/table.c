@@ -477,6 +477,7 @@ int table_printf(table_t *table, const char *fmt, ...)
 {
 	va_list args;
 	int rc;
+	int ret;
 	char *str;
 	char *sp, *ep;
 	size_t width;
@@ -485,10 +486,10 @@ int table_printf(table_t *table, const char *fmt, ...)
 		return table->error;
 
 	va_start(args, fmt);
-	rc = vasprintf(&str, fmt, args);
+	ret = vasprintf(&str, fmt, args);
 	va_end(args);
 
-	if (rc < 0) {
+	if (ret < 0) {
 		table->error = ENOMEM;
 		return table->error;
 	}

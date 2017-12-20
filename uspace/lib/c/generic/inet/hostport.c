@@ -139,6 +139,7 @@ have_host:
 int inet_hostport_format(inet_hostport_t *hp, char **rstr)
 {
 	int rc;
+	int ret;
 	char *astr, *str;
 	char *hstr = NULL;
 
@@ -153,8 +154,8 @@ int inet_hostport_format(inet_hostport_t *hp, char **rstr)
 		if (hp->host.addr.version != ip_v4) {
 			hstr = astr;
 		} else {
-			rc = asprintf(&hstr, "[%s]", astr);
-			if (rc < 0) {
+			ret = asprintf(&hstr, "[%s]", astr);
+			if (ret < 0) {
 				free(astr);
 				return ENOMEM;
 			}
@@ -170,8 +171,8 @@ int inet_hostport_format(inet_hostport_t *hp, char **rstr)
 		break;
 	}
 
-	rc = asprintf(&str, "%s:%u", hstr, hp->port);
-	if (rc < 0)
+	ret = asprintf(&str, "%s:%u", hstr, hp->port);
+	if (ret < 0)
 		return ENOMEM;
 
 	free(hstr);

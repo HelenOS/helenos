@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 	
 	async_set_fallback_port_handler(sata_bd_connection, NULL);
 	rc = loc_server_register(NAME);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf(NAME ": Unable to register driver: %s.\n", str_error(rc));
 		return rc;
 	}

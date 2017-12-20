@@ -57,8 +57,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = fseek(f, 0, SEEK_END);
-	if (rc != 0) {
+	if (fseek(f, 0, SEEK_END) < 0) {
 		printf("Error determining size of '%s'\n", argv[1]);
 		fclose(f);
 		return 1;
@@ -71,8 +70,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = fseek(f, 0, SEEK_SET);
-	if (rc != 0) {
+	if (fseek(f, 0, SEEK_SET) < 0) {
 		printf ("Error rewinding '%s'\n", argv[1]);
 		fclose(f);
 		return 1;

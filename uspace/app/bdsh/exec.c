@@ -97,7 +97,8 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	task_wait_t twait;
 	task_exit_t texit;
 	char *tmp;
-	int rc, retval, i;
+	int rc;
+	int retval, i;
 	int file_handles[3] = { -1, -1, -1 };
 	FILE *files[3];
 
