@@ -259,9 +259,9 @@ audio_data_t *audio_pipe_pop(audio_pipe_t *pipe)
  * @param data Target buffer.
  * @param size Target buffer size.
  * @param format Target data format.
- * @return Size of the target buffer used, Error code on failure.
+ * @return Size of the target buffer used.
  */
-ssize_t audio_pipe_mix_data(audio_pipe_t *pipe, void *data,
+size_t audio_pipe_mix_data(audio_pipe_t *pipe, void *data,
     size_t size, const pcm_format_t *f)
 {
 	assert(pipe);

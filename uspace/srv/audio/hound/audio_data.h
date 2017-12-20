@@ -77,7 +77,7 @@ void audio_pipe_fini(audio_pipe_t *pipe);
 int audio_pipe_push(audio_pipe_t *pipe, audio_data_t *data);
 audio_data_t *audio_pipe_pop(audio_pipe_t *pipe);
 
-ssize_t audio_pipe_mix_data(audio_pipe_t *pipe, void *buffer, size_t size,
+size_t audio_pipe_mix_data(audio_pipe_t *pipe, void *buffer, size_t size,
     const pcm_format_t *f);
 
 /**

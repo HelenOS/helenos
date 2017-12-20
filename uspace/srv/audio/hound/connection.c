@@ -100,7 +100,7 @@ void connection_destroy(connection_t *connection)
  * @param size size of the destination audio buffer.
  * @param format format of the destination audio buffer.
  */
-ssize_t connection_add_source_data(connection_t *connection, void *data,
+int connection_add_source_data(connection_t *connection, void *data,
     size_t size, pcm_format_t format)
 {
 	assert(connection);
@@ -115,12 +115,12 @@ ssize_t connection_add_source_data(connection_t *connection, void *data,
 	}
 	log_verbose("Data available after update: %zu",
 	    audio_pipe_bytes(&connection->fifo));
-	ssize_t ret =
+	size_t ret =
 	    audio_pipe_mix_data(&connection->fifo, data, size, &format);
-	if (ret != (ssize_t)size)
+	if (ret != size)
 		log_warning("Connection failed to provide enough data %zd/%zu",
 		    ret, size);
-	return ret > 0 ? EOK : ret;
+	return EOK;
 }
 /**
  * Add new data to the connection buffer.

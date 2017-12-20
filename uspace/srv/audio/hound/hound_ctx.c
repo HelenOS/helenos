@@ -339,12 +339,14 @@ int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
 	}
 
 	pcm_format_silence(data, size, &stream->format);
-	const int ret =
+	const size_t ret =
 	    audio_pipe_mix_data(&stream->fifo, data, size, &stream->format);
 	fibril_mutex_unlock(&stream->guard);
-	if (ret == EOK)
+	if (ret > 0) {
 		fibril_condvar_signal(&stream->change);
-	return ret;
+		return EOK;
+	}
+	return EEMPTY;
 }
 
 /**
@@ -353,15 +355,14 @@ int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
  * @param data Destination audio buffer.
  * @param size Size of the @p data buffer.
  * @param format Destination data format.
- * @return Size of the destination buffer touch with stream's data,
- *         error code on failure.
+ * @return Size of the destination buffer touch with stream's data.
  */
-ssize_t hound_ctx_stream_add_self(hound_ctx_stream_t *stream, void *data,
+size_t hound_ctx_stream_add_self(hound_ctx_stream_t *stream, void *data,
     size_t size, const pcm_format_t *f)
 {
 	assert(stream);
 	fibril_mutex_lock(&stream->guard);
-	const int ret = audio_pipe_mix_data(&stream->fifo, data, size, f);
+	const size_t ret = audio_pipe_mix_data(&stream->fifo, data, size, f);
 	fibril_condvar_signal(&stream->change);
 	fibril_mutex_unlock(&stream->guard);
 	return ret;
@@ -456,11 +457,8 @@ int new_data(audio_sink_t *sink)
 	pcm_format_silence(buffer, bsize, &sink->format);
 	list_foreach(sink->connections, source_link, connection_t, conn) {
 		/* This should not trigger data update on the source */
-		const size_t copied = connection_add_source_data(
+		connection_add_source_data(
 		    conn, buffer, bsize, sink->format);
-		if (copied != bsize)
-			log_error("Copied less than advertised data, "
-			    "something is wrong");
 	}
 	/* push to all streams */
 	list_foreach(ctx->streams, link, hound_ctx_stream_t, stream) {
