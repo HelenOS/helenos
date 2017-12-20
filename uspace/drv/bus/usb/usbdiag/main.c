@@ -128,36 +128,48 @@ static const usb_endpoint_description_t intr_in_ep = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
 	.flags = 0
 };
 static const usb_endpoint_description_t intr_out_ep = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_OUT,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
 	.flags = 0
 };
 static const usb_endpoint_description_t bulk_in_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
 	.flags = 0
 };
 static const usb_endpoint_description_t bulk_out_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_OUT,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
 	.flags = 0
 };
 static const usb_endpoint_description_t isoch_in_ep = {
 	.transfer_type = USB_TRANSFER_ISOCHRONOUS,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
 	.flags = 0
 };
 static const usb_endpoint_description_t isoch_out_ep = {
 	.transfer_type = USB_TRANSFER_ISOCHRONOUS,
 	.direction = USB_DIRECTION_OUT,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
 	.flags = 0
 };
 
