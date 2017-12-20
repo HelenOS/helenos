@@ -70,7 +70,6 @@ typedef struct xhci_hc {
 	uint64_t *dcbaa;
 	dma_buffer_t dcbaa_dma;
 	dma_buffer_t scratchpad_array;
-	dma_buffer_t *scratchpad_buffers;
 
 	/* Command ring management */
 	xhci_cmd_ring_t cr;

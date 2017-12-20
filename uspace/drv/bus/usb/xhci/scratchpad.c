@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <usb/debug.h>
 #include "hc.h"
+#include <align.h>
 #include "hw_struct/regs.h"
 #include "scratchpad.h"
 
@@ -56,38 +57,25 @@ int xhci_scratchpad_alloc(xhci_hc_t *hc)
 	if (!num_bufs)
 		return EOK;
 
-	if (dma_buffer_alloc(&hc->scratchpad_array, num_bufs * sizeof(uint64_t)))
+	const unsigned array_size = ALIGN_UP(num_bufs * sizeof(uint64_t), PAGE_SIZE);
+	const size_t size = array_size + num_bufs * PAGE_SIZE;
+
+	if (dma_buffer_alloc(&hc->scratchpad_array, size))
 		return ENOMEM;
-	uint64_t *phys_array = hc->scratchpad_array.virt;
+
+	memset(hc->scratchpad_array.virt, 0, size);
+
+	uint64_t phys_begin = hc->scratchpad_array.phys + array_size;
+	uint64_t *array = hc->scratchpad_array.virt;
+
+	for (unsigned i = 0; i < num_bufs; ++i)
+		array[i] = host2xhci(64, phys_begin + i * PAGE_SIZE);
 
 	hc->dcbaa[0] = host2xhci(64, hc->scratchpad_array.phys);
-
-	hc->scratchpad_buffers = calloc(num_bufs, sizeof(dma_buffer_t));
-	if (!hc->scratchpad_buffers)
-		goto err_dma;
-
-	for (unsigned i = 0; i < num_bufs; ++i) {
-		dma_buffer_t *cur = &hc->scratchpad_buffers[i];
-		if (dma_buffer_alloc(cur, PAGE_SIZE))
-			goto err_buffers;
-
-		memset(cur->virt, 0, PAGE_SIZE);
-		phys_array[i] = host2xhci(64, cur->phys);
-	}
-
 
 	usb_log_debug2("Allocated %d scratchpad buffers.", num_bufs);
 
 	return EOK;
-
-err_buffers:
-	for (unsigned i = 0; i < num_bufs; ++i)
-		dma_buffer_free(&hc->scratchpad_buffers[i]);
-	free(hc->scratchpad_buffers);
-err_dma:
-	hc->dcbaa[0] = 0;
-	dma_buffer_free(&hc->scratchpad_array);
-	return ENOMEM;
 }
 
 void xhci_scratchpad_free(xhci_hc_t *hc)
@@ -99,9 +87,6 @@ void xhci_scratchpad_free(xhci_hc_t *hc)
 
 	hc->dcbaa[0] = 0;
 	dma_buffer_free(&hc->scratchpad_array);
-	for (unsigned i = 0; i < num_bufs; ++i)
-		dma_buffer_free(&hc->scratchpad_buffers[i]);
-	free(hc->scratchpad_buffers);
 	return;
 }
 
