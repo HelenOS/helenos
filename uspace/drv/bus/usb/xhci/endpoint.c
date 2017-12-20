@@ -213,7 +213,7 @@ static int xhci_isoch_alloc_transfers(xhci_endpoint_t *xhci_ep) {
 	int i = 0;
 	int err = EOK;
 	while (i < XHCI_ISOCH_BUFFER_COUNT) {
-		xhci_isoch_transfer_t *transfer = xhci_ep->isoch_transfers[i];
+		xhci_isoch_transfer_t *transfer = &xhci_ep->isoch_transfers[i];
 		if (dma_buffer_alloc(&transfer->data, xhci_ep->isoch_max_size)) {
 			err = ENOMEM;
 			break;
@@ -225,7 +225,7 @@ static int xhci_isoch_alloc_transfers(xhci_endpoint_t *xhci_ep) {
 	if (err) {
 		--i;
 		while(i >= 0) {
-			dma_buffer_free(&xhci_ep->isoch_transfers[i]->data);
+			dma_buffer_free(&xhci_ep->isoch_transfers[i].data);
 			--i;
 		}
 	}

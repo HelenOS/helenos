@@ -237,13 +237,13 @@ static xhci_isoch_transfer_t* isoch_transfer_get_enqueue(xhci_endpoint_t *ep) {
 		/* None ready */
 		return NULL;
 	}
-	xhci_isoch_transfer_t *isoch_transfer = ep->isoch_transfers[ep->isoch_enqueue];
+	xhci_isoch_transfer_t *isoch_transfer = &ep->isoch_transfers[ep->isoch_enqueue];
 	ep->isoch_enqueue = (ep->isoch_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT;
 	return isoch_transfer;
 }
 
 static xhci_isoch_transfer_t* isoch_transfer_get_dequeue(xhci_endpoint_t *ep) {
-	xhci_isoch_transfer_t *isoch_transfer = ep->isoch_transfers[ep->isoch_dequeue];
+	xhci_isoch_transfer_t *isoch_transfer = &ep->isoch_transfers[ep->isoch_dequeue];
 	ep->isoch_dequeue = (ep->isoch_dequeue + 1) % XHCI_ISOCH_BUFFER_COUNT;
 	return isoch_transfer;
 }

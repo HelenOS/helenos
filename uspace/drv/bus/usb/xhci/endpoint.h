@@ -94,7 +94,7 @@ typedef struct xhci_endpoint {
 
 	/** Isochronous scheduled transfers with respective buffers */
 	#define XHCI_ISOCH_BUFFER_COUNT 4
-	xhci_isoch_transfer_t* isoch_transfers[XHCI_ISOCH_BUFFER_COUNT];
+	xhci_isoch_transfer_t isoch_transfers[XHCI_ISOCH_BUFFER_COUNT];
 
 	/** Indices to transfers */
 	size_t isoch_dequeue, isoch_enqueue;
