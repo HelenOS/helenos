@@ -174,12 +174,12 @@ static const usb_endpoint_description_t isoch_out_ep = {
 };
 
 static const usb_endpoint_description_t *diag_endpoints[] = {
-	&intr_in_ep,
-	&intr_out_ep,
-	&bulk_in_ep,
-	&bulk_out_ep,
-	&isoch_in_ep,
-	&isoch_out_ep,
+	[USB_DIAG_EP_INTR_IN] = &intr_in_ep,
+	[USB_DIAG_EP_INTR_OUT] = &intr_out_ep,
+	[USB_DIAG_EP_BULK_IN] = &bulk_in_ep,
+	[USB_DIAG_EP_BULK_OUT] = &bulk_out_ep,
+	[USB_DIAG_EP_ISOCH_IN] = &isoch_in_ep,
+	[USB_DIAG_EP_ISOCH_OUT] = &isoch_out_ep,
 	NULL
 };
 
@@ -196,7 +196,7 @@ static const usb_driver_ops_t diag_driver_ops = {
 static const usb_driver_t diag_driver = {
 	.name = NAME,
 	.ops = &diag_driver_ops,
-	.endpoints = diag_endpoints
+	.endpoints = &diag_endpoints[1] /* EPs are indexed from 1. */
 };
 
 int main(int argc, char *argv[])
