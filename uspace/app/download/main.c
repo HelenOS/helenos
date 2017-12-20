@@ -228,8 +228,8 @@ int main(int argc, char *argv[])
 			fwrite(buf, 1, body_size, ofile != NULL ? ofile : stdout);
 		}
 		
-		if (body_size != 0) {
-			fprintf(stderr, "Failed receiving body: %s", str_error(body_size));
+		if (rc != EOK) {
+			fprintf(stderr, "Failed receiving body: %s", str_error(rc));
 		}
 	}
 	
