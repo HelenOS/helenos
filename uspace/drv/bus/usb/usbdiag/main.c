@@ -35,6 +35,7 @@
  */
 #include <errno.h>
 #include <usb/debug.h>
+#include <usb/classes/classes.h>
 #include <usb/dev/driver.h>
 #include <usbdiag_iface.h>
 #include <str_error.h>
@@ -123,6 +124,53 @@ static int function_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
+static const usb_endpoint_description_t intr_in_ep = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.flags = 0
+};
+static const usb_endpoint_description_t intr_out_ep = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_OUT,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.flags = 0
+};
+static const usb_endpoint_description_t bulk_in_ep = {
+	.transfer_type = USB_TRANSFER_BULK,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.flags = 0
+};
+static const usb_endpoint_description_t bulk_out_ep = {
+	.transfer_type = USB_TRANSFER_BULK,
+	.direction = USB_DIRECTION_OUT,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.flags = 0
+};
+static const usb_endpoint_description_t isoch_in_ep = {
+	.transfer_type = USB_TRANSFER_ISOCHRONOUS,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.flags = 0
+};
+static const usb_endpoint_description_t isoch_out_ep = {
+	.transfer_type = USB_TRANSFER_ISOCHRONOUS,
+	.direction = USB_DIRECTION_OUT,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.flags = 0
+};
+
+static const usb_endpoint_description_t *diag_endpoints[] = {
+	&intr_in_ep,
+	&intr_out_ep,
+	&bulk_in_ep,
+	&bulk_out_ep,
+	&isoch_in_ep,
+	&isoch_out_ep,
+	NULL
+};
+
 /** USB diagnostic driver ops. */
 static const usb_driver_ops_t diag_driver_ops = {
 	.device_add = device_add,
@@ -136,7 +184,7 @@ static const usb_driver_ops_t diag_driver_ops = {
 static const usb_driver_t diag_driver = {
 	.name = NAME,
 	.ops = &diag_driver_ops,
-	.endpoints = NULL
+	.endpoints = diag_endpoints
 };
 
 int main(int argc, char *argv[])

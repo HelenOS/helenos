@@ -38,6 +38,13 @@
 
 #include <usb/dev/device.h>
 
+#define USB_DIAG_EP_INTR_IN    1
+#define USB_DIAG_EP_INTR_OUT   2
+#define USB_DIAG_EP_BULK_IN    3
+#define USB_DIAG_EP_BULK_OUT   4
+#define USB_DIAG_EP_ISOCH_IN   5
+#define USB_DIAG_EP_ISOCH_OUT  6
+
 /**
  * USB diagnostic device.
  */
