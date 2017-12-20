@@ -660,14 +660,15 @@ static int tcp_conn_send_impl(tcp_client_t *client, sysarg_t conn_id,
 {
 	tcp_cconn_t *cconn;
 	int rc;
+	tcp_error_t trc;
 
 	rc = tcp_cconn_get(client, conn_id, &cconn);
 	if (rc != EOK)
 		return rc;
 
-	rc = tcp_uc_send(cconn->conn, data, size, 0);
-	if (rc != EOK)
-		return rc;
+	trc = tcp_uc_send(cconn->conn, data, size, 0);
+	if (trc != TCP_EOK)
+		return EIO;
 
 	return EOK;
 }
@@ -690,6 +691,7 @@ static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
 	tcp_cconn_t *cconn;
 	xflags_t xflags;
 	int rc;
+	tcp_error_t trc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl()");
 
@@ -699,9 +701,9 @@ static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
 		return rc;
 	}
 
-	rc = tcp_uc_receive(cconn->conn, data, size, nrecv, &xflags);
-	if (rc != EOK) {
-		switch (rc) {
+	trc = tcp_uc_receive(cconn->conn, data, size, nrecv, &xflags);
+	if (trc != TCP_EOK) {
+		switch (trc) {
 		case TCP_EAGAIN:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl() - EAGAIN");
 			return EAGAIN;
@@ -709,7 +711,7 @@ static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
 			*nrecv = 0;
 			return EOK;
 		default:
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl() - trc=%d", rc);
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl() - trc=%d", trc);
 			return EIO;
 		}
 	}
