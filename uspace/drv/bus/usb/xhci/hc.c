@@ -398,7 +398,7 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	uint64_t dcbaaptr = hc->dcbaa_dma.phys;
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_LO, LOWER32(dcbaaptr));
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_HI, UPPER32(dcbaaptr));
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, 0);
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, hc->max_slots);
 
 	uint64_t crptr = xhci_trb_ring_get_dequeue_ptr(&hc->cr.trb_ring);
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_LO, LOWER32(crptr) >> 6);
