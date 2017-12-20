@@ -883,9 +883,9 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	interrupt_handler_t *irq_handler =
 	    driver->irq_handler ? driver->irq_handler : ddf_hcd_gen_irq_handler;
 	int irq_cap;
-	ret = hcd_ddf_setup_interrupts(device, &hw_res,
+	int irq_ret = hcd_ddf_setup_interrupts(device, &hw_res,
 	    irq_handler, driver->irq_code_gen, &irq_cap);
-	bool irqs_enabled = (ret == EOK);
+	bool irqs_enabled = (irq_ret == EOK);
 	if (irqs_enabled) {
 		usb_log_debug("Hw interrupts enabled.\n");
 	}
@@ -919,7 +919,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 		}
 		fibril_add_ready(hcd->polling_fibril);
 		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling.\n", str_error(irq_cap));
+		    " Falling back to polling.\n", str_error(irq_ret));
 	}
 
 	/*
