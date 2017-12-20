@@ -246,7 +246,7 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	}
 
 	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		if((err = xhci_isoch_alloc_transfers(xhci_ep))) {
+		if ((err = xhci_isoch_alloc_transfers(xhci_ep))) {
 			xhci_trb_ring_fini(&xhci_ep->ring);
 			return err;
 		}
@@ -277,6 +277,12 @@ void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 		usb_log_debug2("Freeing main transfer ring of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 		xhci_trb_ring_fini(&xhci_ep->ring);
+	}
+
+	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		for (size_t i = 0; i < XHCI_ISOCH_BUFFER_COUNT; ++i) {
+			dma_buffer_free(&xhci_ep->isoch_transfers[i].data);
+		}
 	}
 }
 
