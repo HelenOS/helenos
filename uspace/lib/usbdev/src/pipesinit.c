@@ -219,6 +219,7 @@ static int process_endpoint(
 	}
 
 	// FIXME: USB2 packets and USB3 max_burst are probably the same thing
+	// FIXME: USB2 max_packet_size is limited to 1023 bytes, 1024+ doesn't work for USB3
 	// See 4.14.2.1.1 of XHCI specification -> possibly refactor into one somehow-named field
 	int rc = usb_pipe_initialize(&ep_mapping->pipe,
 	    ep_no, description.transfer_type,
