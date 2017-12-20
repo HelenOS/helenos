@@ -101,9 +101,10 @@ static endpoint_t * find_locked(usb_bus_t *instance,
 /** Get a free USB address
  *
  * @param[in] instance Device manager structure to use.
- * @return Free address, or error code.
+ * @param[out] address Free address.
+ * @return Error code.
  */
-static usb_address_t usb_bus_get_free_address(usb_bus_t *instance)
+static int usb_bus_get_free_address(usb_bus_t *instance, usb_address_t *address)
 {
 
 	usb_address_t new_address = instance->last_address;
@@ -118,7 +119,8 @@ static usb_address_t usb_bus_get_free_address(usb_bus_t *instance)
 	assert(new_address != USB_ADDRESS_DEFAULT);
 	instance->last_address = new_address;
 
-	return new_address;
+	*address = new_address;
+	return EOK;
 }
 
 /** Calculate bandwidth that needs to be reserved for communication with EP.
@@ -473,7 +475,7 @@ int usb_bus_remove_address(usb_bus_t *instance,
 
 /** Request USB address.
  * @param instance usb_device_manager
- * @param address Pointer to requested address value, place to store new address
+ * @param[inout] address Pointer to requested address value, place to store new address
  * @parma strict Fail if the requested address is not available.
  * @return Error code.
  * @note Default address is only available in strict mode.
@@ -490,11 +492,16 @@ int usb_bus_request_address(usb_bus_t *instance,
 		return EINVAL;
 
 	usb_address_t addr = *address;
+	int rc;
 
 	fibril_mutex_lock(&instance->guard);
 	/* Only grant default address to strict requests */
 	if ((addr == USB_ADDRESS_DEFAULT) && !strict) {
-		addr = usb_bus_get_free_address(instance);
+		rc = usb_bus_get_free_address(instance, &addr);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&instance->guard);
+			return rc;
+		}
 	}
 
 	if (instance->devices[addr].occupied) {
@@ -502,7 +509,11 @@ int usb_bus_request_address(usb_bus_t *instance,
 			fibril_mutex_unlock(&instance->guard);
 			return ENOENT;
 		}
-		addr = usb_bus_get_free_address(instance);
+		rc = usb_bus_get_free_address(instance, &addr);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&instance->guard);
+			return rc;
+		}
 	}
 	if (usb_address_is_valid(addr)) {
 		assert(instance->devices[addr].occupied == false);
@@ -515,7 +526,9 @@ int usb_bus_request_address(usb_bus_t *instance,
 	}
 
 	fibril_mutex_unlock(&instance->guard);
-	return addr;
+
+	*address = addr;
+	return EOK;
 }
 
 /** Get speed assigned to USB address.
