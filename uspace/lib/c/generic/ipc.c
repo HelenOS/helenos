@@ -196,7 +196,7 @@ void ipc_call_async_slow(int phandle, sysarg_t imethod, sysarg_t arg1,
  * @return Value from @ref errno.h on failure.
  *
  */
-sysarg_t ipc_answer_fast(cap_handle_t chandle, sysarg_t retval, sysarg_t arg1,
+int ipc_answer_fast(cap_handle_t chandle, int retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
 	return __SYSCALL6(SYS_IPC_ANSWER_FAST, chandle, retval, arg1, arg2,
@@ -217,7 +217,7 @@ sysarg_t ipc_answer_fast(cap_handle_t chandle, sysarg_t retval, sysarg_t arg1,
  * @return Value from @ref errno.h on failure.
  *
  */
-sysarg_t ipc_answer_slow(cap_handle_t chandle, sysarg_t retval, sysarg_t arg1,
+int ipc_answer_slow(cap_handle_t chandle, int retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
 	ipc_call_t data;

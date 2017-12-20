@@ -128,7 +128,7 @@ int hound_service_register_context(hound_sess_t *sess,
 	async_exch_t *exch = async_exchange_begin(sess);
 	aid_t mid =
 	    async_send_1(exch, IPC_M_HOUND_CONTEXT_REGISTER, record, &call);
-	sysarg_t ret = mid ? EOK : EPARTY;
+	int ret = mid ? EOK : EPARTY;
 
 	if (ret == EOK)
 		ret = async_data_write_start(exch, name, str_size(name));
@@ -190,7 +190,7 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
 	aid_t mid = async_send_3(exch, IPC_M_HOUND_GET_LIST, flags, *count,
 	    connection != NULL, &res_call);
 
-	sysarg_t ret = EOK;
+	int ret = EOK;
 	if (mid && connection)
 		ret = async_data_write_start(exch, connection,
 		    str_size(connection));
@@ -258,7 +258,7 @@ int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
 		return ENOMEM;
 	ipc_call_t call;
 	aid_t id = async_send_0(exch, IPC_M_HOUND_CONNECT, &call);
-	sysarg_t ret = id ? EOK : EPARTY;
+	int ret = id ? EOK : EPARTY;
 	if (ret == EOK)
 		ret = async_data_write_start(exch, source, str_size(source));
 	if (ret == EOK)
@@ -284,7 +284,7 @@ int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
 		return ENOMEM;
 	ipc_call_t call;
 	aid_t id = async_send_0(exch, IPC_M_HOUND_DISCONNECT, &call);
-	sysarg_t ret = id ? EOK : EPARTY;
+	int ret = id ? EOK : EPARTY;
 	if (ret == EOK)
 		ret = async_data_write_start(exch, source, str_size(source));
 	if (ret == EOK)

@@ -113,7 +113,7 @@ int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
@@ -165,7 +165,7 @@ static int chardev_write_once(chardev_t *chardev, const void *data,
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK) {
 		*nwritten = 0;

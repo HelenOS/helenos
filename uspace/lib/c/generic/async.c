@@ -204,7 +204,7 @@ typedef struct {
 	/** Pointer to where the answer data is stored. */
 	ipc_call_t *dataptr;
 	
-	sysarg_t retval;
+	int retval;
 } amsg_t;
 
 /* Client connection data */
@@ -331,7 +331,7 @@ static amsg_t *amsg_create(void)
 		msg->forget = false;
 		msg->destroyed = false;
 		msg->dataptr = NULL;
-		msg->retval = (sysarg_t) EINVAL;
+		msg->retval = EINVAL;
 		awaiter_initialize(&msg->wdata);
 	}
 	
@@ -859,7 +859,7 @@ int async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t arg1,
 	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, iface, arg1, arg2,
 	    &answer);
 	
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 	if (ret != EOK)
 		return (int) ret;
@@ -1707,7 +1707,7 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
  *               be stored.
  *
  */
-void async_wait_for(aid_t amsgid, sysarg_t *retval)
+void async_wait_for(aid_t amsgid, int *retval)
 {
 	assert(amsgid);
 	
@@ -1753,7 +1753,7 @@ done:
  * @return Zero on success, ETIMEOUT if the timeout has expired.
  *
  */
-int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
+int async_wait_timeout(aid_t amsgid, int *retval, suseconds_t timeout)
 {
 	assert(amsgid);
 	
@@ -1916,7 +1916,7 @@ void async_sleep(unsigned int sec)
  * @return Return code of the reply or a negative error code.
  *
  */
-sysarg_t async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+int async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2,
     sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
@@ -1927,7 +1927,7 @@ sysarg_t async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	aid_t aid = async_send_4(exch, imethod, arg1, arg2, arg3, arg4,
 	    &result);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(aid, &rc);
 	
 	if (r1)
@@ -1968,7 +1968,7 @@ sysarg_t async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
  * @return Return code of the reply or a negative error code.
  *
  */
-sysarg_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+int async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1,
     sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
@@ -1979,7 +1979,7 @@ sysarg_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	aid_t aid = async_send_5(exch, imethod, arg1, arg2, arg3, arg4, arg5,
 	    &result);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(aid, &rc);
 	
 	if (r1)
@@ -2043,35 +2043,35 @@ void async_msg_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 		    arg5, NULL, NULL);
 }
 
-sysarg_t async_answer_0(cap_handle_t chandle, sysarg_t retval)
+int async_answer_0(cap_handle_t chandle, int retval)
 {
 	return ipc_answer_0(chandle, retval);
 }
 
-sysarg_t async_answer_1(cap_handle_t chandle, sysarg_t retval, sysarg_t arg1)
+int async_answer_1(cap_handle_t chandle, int retval, sysarg_t arg1)
 {
 	return ipc_answer_1(chandle, retval, arg1);
 }
 
-sysarg_t async_answer_2(cap_handle_t chandle, sysarg_t retval, sysarg_t arg1,
+int async_answer_2(cap_handle_t chandle, int retval, sysarg_t arg1,
     sysarg_t arg2)
 {
 	return ipc_answer_2(chandle, retval, arg1, arg2);
 }
 
-sysarg_t async_answer_3(cap_handle_t chandle, sysarg_t retval, sysarg_t arg1,
+int async_answer_3(cap_handle_t chandle, int retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3)
 {
 	return ipc_answer_3(chandle, retval, arg1, arg2, arg3);
 }
 
-sysarg_t async_answer_4(cap_handle_t chandle, sysarg_t retval, sysarg_t arg1,
+int async_answer_4(cap_handle_t chandle, int retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
 	return ipc_answer_4(chandle, retval, arg1, arg2, arg3, arg4);
 }
 
-sysarg_t async_answer_5(cap_handle_t chandle, sysarg_t retval, sysarg_t arg1,
+int async_answer_5(cap_handle_t chandle, int retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
 	return ipc_answer_5(chandle, retval, arg1, arg2, arg3, arg4, arg5);
@@ -2119,7 +2119,7 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
 	    &answer);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(req, &rc);
 	if (rc != EOK)
 		return (int) rc;
@@ -2146,7 +2146,7 @@ static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
 	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, arg4,
 	    msg, reply_received);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for((aid_t) msg, &rc);
 	
 	if (rc != EOK)
@@ -2885,7 +2885,7 @@ int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		return retval;
 	}
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(msg, &rc);
 	
 	return (int) rc;
@@ -3063,7 +3063,7 @@ int async_data_write_accept(void **data, const bool nullterm,
  * @param retval Error value from @ref errno.h to be returned to the caller.
  *
  */
-void async_data_write_void(sysarg_t retval)
+void async_data_write_void(int retval)
 {
 	cap_handle_t chandle;
 	async_data_write_receive(&chandle, NULL);
@@ -3101,7 +3101,7 @@ int async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		return retval;
 	}
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(msg, &rc);
 	
 	return (int) rc;

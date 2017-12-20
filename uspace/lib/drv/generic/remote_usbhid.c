@@ -173,8 +173,8 @@ int usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 		return ENOMEM;
 	}
 	
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	
@@ -258,8 +258,8 @@ int usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
 		return ENOMEM;
 	}
 	
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	

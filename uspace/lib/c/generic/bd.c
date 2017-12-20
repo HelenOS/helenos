@@ -97,7 +97,7 @@ int bd_read_blocks(bd_t *bd, aoff64_t ba, size_t cnt, void *data, size_t size)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK)
@@ -120,7 +120,7 @@ int bd_read_toc(bd_t *bd, uint8_t session, void *buf, size_t size)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK)
@@ -145,7 +145,7 @@ int bd_write_blocks(bd_t *bd, aoff64_t ba, size_t cnt, const void *data,
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;

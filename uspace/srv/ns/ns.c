@@ -79,7 +79,7 @@ static void ns_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		
 		task_id_t id;
-		sysarg_t retval;
+		int retval;
 		
 		service_t service;
 		sysarg_t phone;

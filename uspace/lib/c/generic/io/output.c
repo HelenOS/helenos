@@ -93,7 +93,7 @@ frontbuf_handle_t output_frontbuf_create(async_sess_t *sess,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 	
 	if ((rc != EOK) || (ret != EOK))

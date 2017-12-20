@@ -145,8 +145,8 @@ extern aid_t async_send_fast(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern aid_t async_send_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
-extern void async_wait_for(aid_t, sysarg_t *);
-extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
+extern void async_wait_for(aid_t, int *);
+extern int async_wait_timeout(aid_t, int *, suseconds_t);
 extern void async_forget(aid_t);
 
 extern void async_usleep(suseconds_t);
@@ -197,14 +197,14 @@ extern void async_msg_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
  * Wrappers for answer routines.
  */
 
-extern sysarg_t async_answer_0(cap_handle_t, sysarg_t);
-extern sysarg_t async_answer_1(cap_handle_t, sysarg_t, sysarg_t);
-extern sysarg_t async_answer_2(cap_handle_t, sysarg_t, sysarg_t, sysarg_t);
-extern sysarg_t async_answer_3(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
+extern int async_answer_0(cap_handle_t, int);
+extern int async_answer_1(cap_handle_t, int, sysarg_t);
+extern int async_answer_2(cap_handle_t, int, sysarg_t, sysarg_t);
+extern int async_answer_3(cap_handle_t, int, sysarg_t, sysarg_t,
     sysarg_t);
-extern sysarg_t async_answer_4(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
+extern int async_answer_4(cap_handle_t, int, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
-extern sysarg_t async_answer_5(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
+extern int async_answer_5(cap_handle_t, int, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
 /*
@@ -337,10 +337,10 @@ extern int async_forward_slow(cap_handle_t, async_exch_t *, sysarg_t, sysarg_t,
 	async_req_slow(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
 	    rc3, rc4, rc5)
 
-extern sysarg_t async_req_fast(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+extern int async_req_fast(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *);
-extern sysarg_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+extern int async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *, sysarg_t *);
 
@@ -467,7 +467,7 @@ extern int async_data_write_finalize(cap_handle_t, void *, size_t);
 
 extern int async_data_write_accept(void **, const bool, const size_t,
     const size_t, const size_t, size_t *);
-extern void async_data_write_void(sysarg_t);
+extern void async_data_write_void(int);
 
 extern int async_data_write_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);

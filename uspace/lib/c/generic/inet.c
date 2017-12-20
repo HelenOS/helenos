@@ -57,7 +57,7 @@ static int inet_callback_create(void)
 	if (rc != EOK)
 		return rc;
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
 	return retval;
@@ -140,10 +140,10 @@ int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
-	return (int) retval;
+	return retval;
 }
 
 int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
@@ -169,10 +169,10 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
-	return (int) retval;
+	return retval;
 }
 
 static void inet_ev_recv(ipc_callid_t iid, ipc_call_t *icall)

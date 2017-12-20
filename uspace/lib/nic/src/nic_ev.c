@@ -47,7 +47,7 @@ int nic_ev_addr_changed(async_sess_t *sess, const nic_address_t *addr)
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, NIC_EV_ADDR_CHANGED, &answer);
-	sysarg_t retval = async_data_write_start(exch, addr,
+	int retval = async_data_write_start(exch, addr,
 	    sizeof(nic_address_t));
 
 	async_exchange_end(exch);
@@ -80,7 +80,7 @@ int nic_ev_received(async_sess_t *sess, void *data, size_t size)
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, NIC_EV_RECEIVED, &answer);
-	sysarg_t retval = async_data_write_start(exch, data, size);
+	int retval = async_data_write_start(exch, data, size);
 
 	async_exchange_end(exch);
 

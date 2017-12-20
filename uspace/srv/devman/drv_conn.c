@@ -406,14 +406,14 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 	if (rc != EOK) {
 		fun_busy_unlock(fun);
 		fun_del_ref(fun);
-		async_answer_0(iid, (sysarg_t) rc);
+		async_answer_0(iid, rc);
 		return;
 	}
 	
 	fun_busy_unlock(fun);
 	fun_del_ref(fun);
 	
-	async_answer_0(iid, (sysarg_t) EOK);
+	async_answer_0(iid, EOK);
 }
 
 
@@ -447,13 +447,13 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
 	if (rc != EOK) {
 		fun_busy_unlock(fun);
 		fun_del_ref(fun);
-		async_answer_0(iid, (sysarg_t) rc);
+		async_answer_0(iid, rc);
 		return;
 	}
 	
 	fun_busy_unlock(fun);
 	fun_del_ref(fun);
-	async_answer_0(iid, (sysarg_t) EOK);
+	async_answer_0(iid, EOK);
 }
 
 /** Remove function. */

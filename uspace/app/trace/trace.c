@@ -259,7 +259,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 }
 
 
-static void print_sc_retval(sysarg_t retval, val_type_t val_type)
+static void print_sc_retval(int retval, val_type_t val_type)
 {
 	printf(" -> ");
 	val_print(retval, val_type);
@@ -278,12 +278,12 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 	putchar(')');
 }
 
-static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
+static void sc_ipc_call_async_fast(sysarg_t *sc_args, int sc_rc)
 {
 	ipc_call_t call;
 	sysarg_t phoneid;
 	
-	if (sc_rc != (sysarg_t) EOK)
+	if (sc_rc != EOK)
 		return;
 
 	phoneid = sc_args[0];

@@ -144,7 +144,7 @@ static int vfs_file_close_remote(vfs_file_t *file)
 	
 	vfs_exchange_release(exch);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(msg, &rc);
 	
 	return IPC_GET_RETVAL(answer);

@@ -130,8 +130,8 @@ int usbhc_read(async_exch_t *exch, usb_address_t address,
 	}
 
 	/* Wait for the answer. */
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 
@@ -181,7 +181,7 @@ int usbhc_write(async_exch_t *exch, usb_address_t address,
 	}
 
 	/* Wait for the answer. */
-	sysarg_t opening_request_rc;
+	int opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
 	return (int) opening_request_rc;

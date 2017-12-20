@@ -589,7 +589,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver. */
-		sysarg_t rc;
+		int rc;
 		async_wait_for(msg, &rc);
 
 		/* Do not propagate EHANGUP back to VFS. */
@@ -653,7 +653,7 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver. */
-		sysarg_t rc;
+		int rc;
 		async_wait_for(msg, &rc);
 
 		/* Do not propagate EHANGUP back to VFS. */
@@ -751,7 +751,7 @@ static int locfs_sync(service_id_t service_id, fs_index_t index)
 		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver */
-		sysarg_t rc;
+		int rc;
 		async_wait_for(msg, &rc);
 		
 		return rc;

@@ -93,7 +93,7 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_GET_TASKID, &answer);
-	sysarg_t rc = async_data_read_start(exch, task_id, sizeof(task_id_t));
+	int rc = async_data_read_start(exch, task_id, sizeof(task_id_t));
 	
 	async_exchange_end(exch);
 	
@@ -130,7 +130,7 @@ int loader_set_cwd(loader_t *ldr)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_CWD, &answer);
-	sysarg_t rc = async_data_write_start(exch, cwd, len);
+	int rc = async_data_write_start(exch, cwd, len);
 	
 	async_exchange_end(exch);
 	free(cwd);
@@ -160,7 +160,7 @@ int loader_set_program(loader_t *ldr, const char *name, int file)
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_PROGRAM, &answer);
 
-	sysarg_t rc = async_data_write_start(exch, name, str_size(name) + 1);
+	int rc = async_data_write_start(exch, name, str_size(name) + 1);
 	if (rc == EOK) {
 		async_exch_t *vfs_exch = vfs_exchange_begin();
 		rc = vfs_pass_handle(vfs_exch, file, exch);
@@ -251,7 +251,7 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_ARGS, &answer);
-	sysarg_t rc = async_data_write_start(exch, (void *) arg_buf,
+	int rc = async_data_write_start(exch, (void *) arg_buf,
 	    buffer_size);
 	
 	async_exchange_end(exch);
@@ -282,7 +282,7 @@ int loader_add_inbox(loader_t *ldr, const char *name, int file)
 	
 	aid_t req = async_send_0(exch, LOADER_ADD_INBOX, NULL);
 	
-	sysarg_t rc = async_data_write_start(exch, name, str_size(name) + 1);
+	int rc = async_data_write_start(exch, name, str_size(name) + 1);
 	if (rc == EOK) {
 		rc = vfs_pass_handle(vfs_exch, file, exch);
 	}

@@ -111,7 +111,7 @@ static void vol_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	int retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(iid, retval, act_size);

@@ -88,7 +88,7 @@ static int logger_message(async_sess_t *session, log_t log, log_level_t level, c
 	aid_t reg_msg = async_send_2(exchange, LOGGER_WRITER_MESSAGE,
 	    log, level, NULL);
 	int rc = async_data_write_start(exchange, message, str_size(message));
-	sysarg_t reg_msg_rc;
+	int reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);
@@ -198,7 +198,7 @@ log_t log_create(const char *name, log_t parent)
 	aid_t reg_msg = async_send_1(exchange, LOGGER_WRITER_CREATE_LOG,
 	    parent, &answer);
 	int rc = async_data_write_start(exchange, name, str_size(name));
-	sysarg_t reg_msg_rc;
+	int reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);

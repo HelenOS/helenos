@@ -67,7 +67,7 @@ int visualizer_enumerate_modes(async_sess_t *sess, vslmode_t *mode, sysarg_t nth
 
 	async_exchange_end(exch);
 
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -90,7 +90,7 @@ int visualizer_get_default_mode(async_sess_t *sess, vslmode_t *mode)
 
 	async_exchange_end(exch);
 
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -113,7 +113,7 @@ int visualizer_get_current_mode(async_sess_t *sess, vslmode_t *mode)
 
 	async_exchange_end(exch);
 
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -136,7 +136,7 @@ int visualizer_get_mode(async_sess_t *sess, vslmode_t *mode, sysarg_t index)
 
 	async_exchange_end(exch);
 
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -159,7 +159,7 @@ int visualizer_set_mode(async_sess_t *sess, sysarg_t index, sysarg_t version, vo
 
 	async_exchange_end(exch);
 
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {

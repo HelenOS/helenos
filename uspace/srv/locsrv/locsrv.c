@@ -598,7 +598,7 @@ static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	sysarg_t retval = async_data_read_finalize(callid, cat->name,
+	int retval = async_data_read_finalize(callid, cat->name,
 	    min(size, act_size));
 	
 	fibril_mutex_unlock(&cdir.mutex);
@@ -646,7 +646,7 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	sysarg_t retval = async_data_read_finalize(callid, fqn,
+	int retval = async_data_read_finalize(callid, fqn,
 	    min(size, act_size));
 	free(fqn);
 	
@@ -693,7 +693,7 @@ static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	sysarg_t retval = async_data_read_finalize(callid, svc->server->name,
+	int retval = async_data_read_finalize(callid, svc->server->name,
 	    min(size, act_size));
 	
 	fibril_mutex_unlock(&services_list_mutex);
@@ -999,7 +999,7 @@ static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
 	
 	fibril_mutex_unlock(&cdir.mutex);
 	
-	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	int retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 	
 	async_answer_1(iid, retval, act_size);
@@ -1046,7 +1046,7 @@ static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 		pos++;
 	}
 	
-	sysarg_t retval = async_data_read_finalize(callid, desc, size);
+	int retval = async_data_read_finalize(callid, desc, size);
 	
 	free(desc);
 	fibril_mutex_unlock(&services_list_mutex);
@@ -1109,7 +1109,7 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 		}
 	}
 	
-	sysarg_t retval = async_data_read_finalize(callid, desc, size);
+	int retval = async_data_read_finalize(callid, desc, size);
 	
 	free(desc);
 	fibril_mutex_unlock(&services_list_mutex);
@@ -1162,7 +1162,7 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&cat->mutex);
 	fibril_mutex_unlock(&cdir.mutex);
 	
-	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	int retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 	
 	async_answer_1(iid, retval, act_size);
@@ -1277,7 +1277,7 @@ static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
 	loc_service_t *svc;
 	catid_t cat_id;
 	service_id_t svc_id;
-	sysarg_t retval;
+	int retval;
 	
 	svc_id = IPC_GET_ARG1(*icall);
 	cat_id = IPC_GET_ARG2(*icall);

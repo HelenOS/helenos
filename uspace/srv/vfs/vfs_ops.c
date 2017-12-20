@@ -151,7 +151,7 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags,
 	aid_t msg = async_send_1(exch, VFS_OUT_MOUNTED, (sysarg_t) service_id,
 	    &answer);
 	/* Send the mount options */
-	sysarg_t rc = async_data_write_start(exch, options, str_size(options));
+	int rc = async_data_write_start(exch, options, str_size(options));
 	if (rc != EOK) {
 		async_forget(msg);
 		vfs_exchange_release(exch);
@@ -191,7 +191,7 @@ int vfs_op_fsprobe(const char *fs_name, service_id_t sid,
     vfs_fs_probe_info_t *info)
 {
 	fs_handle_t fs_handle = 0;
-	sysarg_t rc;
+	int rc;
 	int retval;
 	
 	fibril_mutex_lock(&fs_list_lock);
@@ -397,7 +397,7 @@ static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
 		return retval;
 	}
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(msg, &rc);
 	
 	chunk->size = IPC_GET_ARG1(*answer); 
@@ -676,7 +676,7 @@ int vfs_op_sync(int fd)
 	
 	vfs_exchange_release(fs_exch);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(msg, &rc);
 	
 	vfs_file_put(file);
@@ -688,7 +688,7 @@ static int vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service_id,
     fs_index_t index, aoff64_t size)
 {
 	async_exch_t *exch = vfs_exchange_grab(fs_handle);
-	sysarg_t rc = async_req_4_0(exch, VFS_OUT_TRUNCATE,
+	int rc = async_req_4_0(exch, VFS_OUT_TRUNCATE,
 	    (sysarg_t) service_id, (sysarg_t) index, LOWER32(size),
 	    UPPER32(size));
 	vfs_exchange_release(exch);

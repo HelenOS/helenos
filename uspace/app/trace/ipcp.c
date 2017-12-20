@@ -249,7 +249,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	sysarg_t phone;
 	sysarg_t method;
 	sysarg_t service;
-	sysarg_t retval;
+	int retval;
 	proto_t *proto;
 	int cphone;
 	
@@ -264,7 +264,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	resp = answer->args;
 	
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Response to %d: retval=%" PRIdn ", args = (%" PRIun ", "
+		printf("Response to %d: retval=%d, args = (%" PRIun ", "
 		    "%" PRIun ", %" PRIun ", %" PRIun ", %" PRIun ")\n",
 		    hash, retval, IPC_GET_ARG1(*answer),
 		    IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),

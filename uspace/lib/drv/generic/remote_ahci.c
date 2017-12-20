@@ -94,7 +94,7 @@ int ahci_get_sata_device_name(async_sess_t *sess, size_t sata_dev_name_length,
 	
 	async_data_read_start(exch, sata_dev_name, sata_dev_name_length);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(req, &rc);
 	
 	return rc;
@@ -154,7 +154,7 @@ int ahci_read_blocks(async_sess_t *sess, uint64_t blocknum, size_t count,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(req, &rc);
 	
 	return rc;
@@ -174,7 +174,7 @@ int ahci_write_blocks(async_sess_t *sess, uint64_t blocknum, size_t count,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(req, &rc);
 	
 	return rc;

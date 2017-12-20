@@ -368,7 +368,7 @@ int task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 	assert(texit);
 	assert(retval);
 
-	sysarg_t rc;
+	int rc;
 	async_wait_for(wait->aid, &rc);
 
 	if (rc == EOK) {

@@ -114,7 +114,7 @@ static void vbds_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	int retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(iid, retval, act_size);
@@ -171,7 +171,7 @@ static void vbds_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 	disk_sid = IPC_GET_ARG1(*icall);
 	ltype = IPC_GET_ARG2(*icall);
 	rc = vbds_label_create(disk_sid, ltype);
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void vbds_label_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
@@ -183,7 +183,7 @@ static void vbds_label_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 
 	disk_sid = IPC_GET_ARG1(*icall);
 	rc = vbds_label_delete(disk_sid);
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
@@ -218,7 +218,7 @@ static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	sysarg_t retval = async_data_read_finalize(callid, id_buf, size);
+	int retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(iid, retval, act_size);
@@ -302,7 +302,7 @@ static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	async_answer_1(iid, (sysarg_t)rc, (sysarg_t)part);
+	async_answer_1(iid, rc, (sysarg_t)part);
 }
 
 static void vbds_part_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
@@ -314,7 +314,7 @@ static void vbds_part_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 
 	part = IPC_GET_ARG1(*icall);
 	rc = vbds_part_delete(part);
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void vbds_suggest_ptype_srv(ipc_callid_t iid, ipc_call_t *icall)

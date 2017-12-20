@@ -62,7 +62,7 @@ static int udp_callback_create(udp_t *udp)
 	if (rc != EOK)
 		return rc;
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	return retval;
@@ -172,12 +172,12 @@ int udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
 
 	exch = async_exchange_begin(udp->sess);
 	aid_t req = async_send_0(exch, UDP_ASSOC_CREATE, &answer);
-	sysarg_t rc = async_data_write_start(exch, (void *)epp,
+	int rc = async_data_write_start(exch, (void *)epp,
 	    sizeof(inet_ep2_t));
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		sysarg_t rc_orig;
+		int rc_orig;
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
@@ -219,7 +219,7 @@ void udp_assoc_destroy(udp_assoc_t *assoc)
 	list_remove(&assoc->ludp);
 
 	exch = async_exchange_begin(assoc->udp->sess);
-	sysarg_t rc = async_req_1_0(exch, UDP_ASSOC_DESTROY, assoc->id);
+	int rc = async_req_1_0(exch, UDP_ASSOC_DESTROY, assoc->id);
 	async_exchange_end(exch);
 
 	free(assoc);
@@ -236,7 +236,7 @@ int udp_assoc_set_nolocal(udp_assoc_t *assoc)
 	async_exch_t *exch;
 
 	exch = async_exchange_begin(assoc->udp->sess);
-	sysarg_t rc = async_req_1_0(exch, UDP_ASSOC_SET_NOLOCAL, assoc->id);
+	int rc = async_req_1_0(exch, UDP_ASSOC_SET_NOLOCAL, assoc->id);
 	async_exchange_end(exch);
 
 	return rc;
@@ -259,7 +259,7 @@ int udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
 	exch = async_exchange_begin(assoc->udp->sess);
 	aid_t req = async_send_1(exch, UDP_ASSOC_SEND_MSG, assoc->id, NULL);
 
-	sysarg_t rc = async_data_write_start(exch, (void *)dest,
+	int rc = async_data_write_start(exch, (void *)dest,
 	    sizeof(inet_ep_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -332,7 +332,7 @@ int udp_rmsg_read(udp_rmsg_t *rmsg, size_t off, void *buf, size_t bsize)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK) {
 		return retval;
@@ -397,7 +397,7 @@ static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
@@ -419,7 +419,7 @@ static int udp_rmsg_discard(udp_t *udp)
 	async_exch_t *exch;
 
 	exch = async_exchange_begin(udp->sess);
-	sysarg_t rc = async_req_0_0(exch, UDP_RMSG_DISCARD);
+	int rc = async_req_0_0(exch, UDP_RMSG_DISCARD);
 	async_exchange_end(exch);
 
 	return rc;

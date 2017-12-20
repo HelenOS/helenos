@@ -104,7 +104,7 @@ int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SEND_MESSAGE, &answer);
-	sysarg_t retval = async_data_write_start(exch, data, size);
+	int retval = async_data_write_start(exch, data, size);
 	
 	async_exchange_end(exch);
 	
@@ -130,7 +130,7 @@ int nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
 {
 	ipc_call_t answer;
 	int rc;
-	sysarg_t retval;
+	int retval;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
@@ -146,7 +146,7 @@ int nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
 	async_exchange_end(exch);
 	
 	async_wait_for(req, &retval);
-	return (int) retval;
+	return retval;
 }
 
 /** Get the current state of the device
@@ -209,7 +209,7 @@ int nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
 	int rc = async_data_read_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
@@ -236,7 +236,7 @@ int nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
 	int rc = async_data_write_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
@@ -294,7 +294,7 @@ int nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
 	int rc = async_data_read_start(exch, device_info, sizeof(nic_device_info_t));
 	async_exchange_end(exch);
 
-	sysarg_t res;
+	int res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
@@ -628,7 +628,7 @@ int nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -716,7 +716,7 @@ int nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -877,7 +877,7 @@ int nic_blocked_sources_set(async_sess_t *dev_sess,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -937,7 +937,7 @@ int nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -996,7 +996,7 @@ int nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_ADD, (sysarg_t) type, send_data, &result);
 	
-	sysarg_t res;
+	int res;
 	if (send_data) {
 		int rc = async_data_write_start(exch, data, length);
 		if (rc != EOK) {
@@ -1310,7 +1310,7 @@ int nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)

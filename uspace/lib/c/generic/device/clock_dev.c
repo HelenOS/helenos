@@ -59,7 +59,7 @@ clock_dev_time_get(async_sess_t *sess, struct tm *t)
 
 	async_exchange_end(exch);
 
-	sysarg_t rc;
+	int rc;
 	if (ret != EOK) {
 		async_forget(req);
 		return ret;
@@ -90,7 +90,7 @@ clock_dev_time_set(async_sess_t *sess, struct tm *t)
 
 	async_exchange_end(exch);
 
-	sysarg_t rc;
+	int rc;
 	if (ret != EOK) {
 		async_forget(req);
 		return ret;

@@ -196,7 +196,7 @@ int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 	    triplet->index, child->index, NULL);
 	
 	rc = async_data_write_start(exch, component, str_size(component) + 1);
-	sysarg_t orig_rc;
+	int orig_rc;
 	async_wait_for(req, &orig_rc);
 	vfs_exchange_release(exch);
 	if (orig_rc != EOK)
@@ -212,7 +212,7 @@ static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 	assert(base);
 	assert(result);
 	
-	sysarg_t rc;
+	int rc;
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
 	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) *pfirst,

@@ -374,7 +374,7 @@ async_sess_t *vfs_fd_session(int file, iface_t iface)
 int vfs_fsprobe(const char *fs_name, service_id_t serv,
     vfs_fs_probe_info_t *info)
 {
-	sysarg_t rc;
+	int rc;
 	
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_begin();
@@ -615,7 +615,7 @@ int vfs_lookup_open(const char *path, int flags, int mode, int *handle)
 int vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *opts,
     unsigned int flags, unsigned int instance, int *mountedfd)
 {
-	sysarg_t rc, rc1;
+	int rc, rc1;
 	
 	if (!mountedfd)
 		flags |= VFS_MOUNT_NO_REF;
@@ -809,7 +809,7 @@ int vfs_receive_handle(bool high, int *handle)
 	async_state_change_finalize(callid, vfs_exch);
 
 	sysarg_t ret;
-	sysarg_t rc = async_req_1_1(vfs_exch, VFS_IN_WAIT_HANDLE, high, &ret);
+	int rc = async_req_1_1(vfs_exch, VFS_IN_WAIT_HANDLE, high, &ret);
 
 	async_exchange_end(vfs_exch);
 
@@ -878,7 +878,7 @@ int vfs_read(int file, aoff64_t *pos, void *buf, size_t nbyte, size_t *nread)
 int vfs_read_short(int file, aoff64_t pos, void *buf, size_t nbyte,
     ssize_t *nread)
 {
-	sysarg_t rc;
+	int rc;
 	ipc_call_t answer;
 	aid_t req;
 	
@@ -919,8 +919,8 @@ int vfs_read_short(int file, aoff64_t pos, void *buf, size_t nbyte,
  */
 int vfs_rename_path(const char *old, const char *new)
 {
-	sysarg_t rc;
-	sysarg_t rc_orig;
+	int rc;
+	int rc_orig;
 	aid_t req;
 	
 	size_t olda_size;
@@ -1050,7 +1050,7 @@ int vfs_root_set(int nroot)
  */
 int vfs_stat(int file, struct stat *stat)
 {
-	sysarg_t rc;
+	int rc;
 	aid_t req;
 	
 	async_exch_t *exch = vfs_exchange_begin();
@@ -1060,7 +1060,7 @@ int vfs_stat(int file, struct stat *stat)
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
 		
-		sysarg_t rc_orig;
+		int rc_orig;
 		async_wait_for(req, &rc_orig);
 		
 		if (rc_orig != EOK)
@@ -1105,7 +1105,7 @@ int vfs_stat_path(const char *path, struct stat *stat)
  */
 int vfs_statfs(int file, struct statfs *st)
 {
-	sysarg_t rc, ret;
+	int rc, ret;
 	aid_t req;
 
 	async_exch_t *exch = vfs_exchange_begin();
@@ -1172,7 +1172,7 @@ int vfs_sync(int file)
  */
 int vfs_unlink(int parent, const char *child, int expect)
 {
-	sysarg_t rc;
+	int rc;
 	aid_t req;
 	
 	async_exch_t *exch = vfs_exchange_begin();
@@ -1182,7 +1182,7 @@ int vfs_unlink(int parent, const char *child, int expect)
 	
 	vfs_exchange_end(exch);
 	
-	sysarg_t rc_orig;
+	int rc_orig;
 	async_wait_for(req, &rc_orig);
 	
 	if (rc_orig != EOK)
@@ -1269,10 +1269,10 @@ int vfs_walk(int parent, const char *path, int flags, int *handle)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, VFS_IN_WALK, parent, flags, &answer);
-	sysarg_t rc = async_data_write_start(exch, path, str_size(path));
+	int rc = async_data_write_start(exch, path, str_size(path));
 	vfs_exchange_end(exch);
 		
-	sysarg_t rc_orig;
+	int rc_orig;
 	async_wait_for(req, &rc_orig);
 
 	if (rc_orig != EOK)
@@ -1342,7 +1342,7 @@ int vfs_write(int file, aoff64_t *pos, const void *buf, size_t nbyte,
 int vfs_write_short(int file, aoff64_t pos, const void *buf, size_t nbyte,
     ssize_t *nwritten)
 {
-	sysarg_t rc;
+	int rc;
 	ipc_call_t answer;
 	aid_t req;
 	

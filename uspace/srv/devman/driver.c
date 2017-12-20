@@ -308,7 +308,7 @@ bool start_driver(driver_t *drv)
 int stop_driver(driver_t *drv)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "stop_driver(drv=\"%s\")", drv->name);
 
@@ -590,7 +590,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	    parent_handle, &answer);
 	
 	/* Send the device name to the driver. */
-	sysarg_t rc = async_data_write_start(exch, dev->pfun->name,
+	int rc = async_data_write_start(exch, dev->pfun->name,
 	    str_size(dev->pfun->name) + 1);
 	
 	async_exchange_end(exch);
@@ -620,7 +620,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	driver_t *drv;
 	devman_handle_t handle;
 	
@@ -643,7 +643,7 @@ int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 int driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	driver_t *drv;
 	devman_handle_t handle;
 	
@@ -666,7 +666,7 @@ int driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
 int driver_fun_online(dev_tree_t *tree, fun_node_t *fun)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	driver_t *drv;
 	devman_handle_t handle;
 	
@@ -694,7 +694,7 @@ int driver_fun_online(dev_tree_t *tree, fun_node_t *fun)
 int driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	driver_t *drv;
 	devman_handle_t handle;
 	

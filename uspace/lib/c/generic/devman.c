@@ -181,7 +181,7 @@ int devman_driver_register(const char *name)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, DEVMAN_DRIVER_REGISTER, 0, 0, &answer);
-	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+	int retval = async_data_write_start(exch, name, str_size(name));
 	
 	devman_exchange_end(exch);
 	
@@ -221,7 +221,7 @@ int devman_add_function(const char *name, fun_type_t ftype,
 	ipc_call_t answer;
 	aid_t req = async_send_3(exch, DEVMAN_ADD_FUNCTION, (sysarg_t) ftype,
 	    devh, match_count, &answer);
-	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+	int retval = async_data_write_start(exch, name, str_size(name));
 	if (retval != EOK) {
 		devman_exchange_end(exch);
 		async_forget(req);
@@ -271,7 +271,7 @@ int devman_add_device_to_category(devman_handle_t devman_handle,
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CATEGORY,
 	    devman_handle, &answer);
-	sysarg_t retval = async_data_write_start(exch, cat_name,
+	int retval = async_data_write_start(exch, cat_name,
 	    str_size(cat_name));
 	
 	devman_exchange_end(exch);
@@ -309,13 +309,13 @@ async_sess_t *devman_device_connect(devman_handle_t handle, unsigned int flags)
 int devman_remove_function(devman_handle_t funh)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	
 	exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
 	retval = async_req_1_0(exch, DEVMAN_REMOVE_FUNCTION, (sysarg_t) funh);
 	devman_exchange_end(exch);
 	
-	return (int) retval;
+	return retval;
 }
 
 int devman_drv_fun_online(devman_handle_t funh)
@@ -324,10 +324,10 @@ int devman_drv_fun_online(devman_handle_t funh)
 	if (exch == NULL)
 		return ENOMEM;
 	
-	sysarg_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_ONLINE, funh);
+	int retval = async_req_1_0(exch, DEVMAN_DRV_FUN_ONLINE, funh);
 	
 	devman_exchange_end(exch);
-	return (int) retval;
+	return retval;
 }
 
 int devman_drv_fun_offline(devman_handle_t funh)
@@ -336,10 +336,10 @@ int devman_drv_fun_offline(devman_handle_t funh)
 	if (exch == NULL)
 		return ENOMEM;
 	
-	sysarg_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_OFFLINE, funh);
+	int retval = async_req_1_0(exch, DEVMAN_DRV_FUN_OFFLINE, funh);
 	
 	devman_exchange_end(exch);
-	return (int) retval;
+	return retval;
 }
 
 async_sess_t *devman_parent_device_connect(devman_handle_t handle,
@@ -373,7 +373,7 @@ int devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, DEVMAN_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
-	sysarg_t retval = async_data_write_start(exch, pathname,
+	int retval = async_data_write_start(exch, pathname,
 	    str_size(pathname));
 	
 	devman_exchange_end(exch);
@@ -404,7 +404,7 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1,
 	async_exch_t *exch;
 	ipc_call_t dreply;
 	size_t act_size;
-	sysarg_t dretval;
+	int dretval;
 	
 	exch = devman_exchange_begin_blocking(INTERFACE_DDF_CLIENT);
 	
@@ -420,7 +420,7 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1,
 		return dretval;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK) {
@@ -475,10 +475,10 @@ int devman_fun_online(devman_handle_t funh)
 	if (exch == NULL)
 		return ENOMEM;
 	
-	sysarg_t retval = async_req_1_0(exch, DEVMAN_FUN_ONLINE, funh);
+	int retval = async_req_1_0(exch, DEVMAN_FUN_ONLINE, funh);
 	
 	devman_exchange_end(exch);
-	return (int) retval;
+	return retval;
 }
 
 int devman_fun_offline(devman_handle_t funh)
@@ -487,10 +487,10 @@ int devman_fun_offline(devman_handle_t funh)
 	if (exch == NULL)
 		return ENOMEM;
 	
-	sysarg_t retval = async_req_1_0(exch, DEVMAN_FUN_OFFLINE, funh);
+	int retval = async_req_1_0(exch, DEVMAN_FUN_OFFLINE, funh);
 	
 	devman_exchange_end(exch);
-	return (int) retval;
+	return retval;
 }
 
 static int devman_get_handles_once(sysarg_t method, sysarg_t arg1,
@@ -509,7 +509,7 @@ static int devman_get_handles_once(sysarg_t method, sysarg_t arg1,
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK) {
@@ -579,11 +579,11 @@ int devman_fun_get_child(devman_handle_t funh, devman_handle_t *devh)
 	if (exch == NULL)
 		return ENOMEM;
 	
-	sysarg_t retval = async_req_1_1(exch, DEVMAN_FUN_GET_CHILD,
+	int retval = async_req_1_1(exch, DEVMAN_FUN_GET_CHILD,
 	    funh, devh);
 	
 	devman_exchange_end(exch);
-	return (int) retval;
+	return retval;
 }
 
 int devman_dev_get_functions(devman_handle_t devh, devman_handle_t **funcs,
@@ -599,11 +599,11 @@ int devman_dev_get_parent(devman_handle_t devh, devman_handle_t *funh)
 	if (exch == NULL)
 		return ENOMEM;
 	
-	sysarg_t retval = async_req_1_1(exch, DEVMAN_DEV_GET_PARENT,
+	int retval = async_req_1_1(exch, DEVMAN_DEV_GET_PARENT,
 	    devh, funh);
 	
 	devman_exchange_end(exch);
-	return (int) retval;
+	return retval;
 }
 
 int devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
@@ -612,11 +612,11 @@ int devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
 	if (exch == NULL)
 		return ENOMEM;
 	
-	sysarg_t retval = async_req_1_1(exch, DEVMAN_FUN_SID_TO_HANDLE,
+	int retval = async_req_1_1(exch, DEVMAN_FUN_SID_TO_HANDLE,
 	    sid, handle);
 	
 	devman_exchange_end(exch);
-	return (int) retval;
+	return retval;
 }
 
 int devman_get_drivers(devman_handle_t **drvs,
@@ -642,7 +642,7 @@ int devman_driver_get_handle(const char *drvname, devman_handle_t *handle)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, DEVMAN_DRIVER_GET_HANDLE, &answer);
-	sysarg_t retval = async_data_write_start(exch, drvname,
+	int retval = async_data_write_start(exch, drvname,
 	    str_size(drvname));
 	
 	devman_exchange_end(exch);

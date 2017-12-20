@@ -120,7 +120,7 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 			break;
 		}
 		
-		sysarg_t retval = async_data_read_finalize(callid, clip_data, size);
+		int retval = async_data_read_finalize(callid, clip_data, size);
 		if (retval != EOK) {
 			async_answer_0(rid, retval);
 			break;

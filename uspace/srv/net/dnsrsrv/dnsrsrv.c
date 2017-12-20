@@ -144,7 +144,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 	if (rc != EOK)
 		async_answer_0(callid, rc);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 	
 	dns_hostinfo_destroy(hinfo);
 }
@@ -204,7 +204,7 @@ static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 		async_answer_0(iid, rc);
 	}
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void dnsr_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)

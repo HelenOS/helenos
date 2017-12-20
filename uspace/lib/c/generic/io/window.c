@@ -60,7 +60,7 @@ int win_get_event(async_sess_t *sess, window_event_t *event)
 
 	async_exchange_end(exch);
 
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -104,7 +104,7 @@ int win_resize(async_sess_t *sess, sysarg_t x, sysarg_t y, sysarg_t width,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t ret;
+	int ret;
 	async_wait_for(req, &ret);
 	
 	if (rc != EOK)

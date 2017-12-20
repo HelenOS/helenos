@@ -103,7 +103,7 @@ int clipboard_put_str(const char *str)
 	
 	if (size == 0) {
 		async_exch_t *exch = clip_exchange_begin();
-		sysarg_t rc = async_req_1_0(exch, CLIPBOARD_PUT_DATA,
+		int rc = async_req_1_0(exch, CLIPBOARD_PUT_DATA,
 		    CLIPBOARD_TAG_NONE);
 		clip_exchange_end(exch);
 		
@@ -112,11 +112,11 @@ int clipboard_put_str(const char *str)
 		async_exch_t *exch = clip_exchange_begin();
 		aid_t req = async_send_1(exch, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_DATA,
 		    NULL);
-		sysarg_t rc = async_data_write_start(exch, (void *) str, size);
+		int rc = async_data_write_start(exch, (void *) str, size);
 		clip_exchange_end(exch);
 		
 		if (rc != EOK) {
-			sysarg_t rc_orig;
+			int rc_orig;
 			async_wait_for(req, &rc_orig);
 			if (rc_orig == EOK)
 				return (int) rc;
@@ -147,7 +147,7 @@ int clipboard_get_str(char **str)
 		
 		sysarg_t size;
 		sysarg_t tag;
-		sysarg_t rc = async_req_0_2(exch, CLIPBOARD_CONTENT, &size, &tag);
+		int rc = async_req_0_2(exch, CLIPBOARD_CONTENT, &size, &tag);
 		
 		clip_exchange_end(exch);
 		
@@ -184,7 +184,7 @@ int clipboard_get_str(char **str)
 			}
 			
 			if (rc != EOK) {
-				sysarg_t rc_orig;
+				int rc_orig;
 				async_wait_for(req, &rc_orig);
 				if (rc_orig == EOK)
 					return (int) rc;

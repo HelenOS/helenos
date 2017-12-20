@@ -54,7 +54,7 @@ static int inetcfg_get_ids_once(sysarg_t method, sysarg_t arg1,
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
@@ -157,12 +157,12 @@ int inetcfg_addr_create_static(const char *name, inet_naddr_t *naddr,
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
 	*addr_id = IPC_GET_ARG1(answer);
 	
-	return (int) retval;
+	return retval;
 }
 
 int inetcfg_addr_delete(sysarg_t addr_id)
@@ -186,13 +186,13 @@ int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 	aid_t req_naddr = async_data_read(exch, &ainfo->naddr,
 	    sizeof(inet_naddr_t), &answer_naddr);
 	
-	sysarg_t retval_naddr;
+	int retval_naddr;
 	async_wait_for(req_naddr, &retval_naddr);
 	
 	if (retval_naddr != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
-		return (int) retval_naddr;
+		return retval_naddr;
 	}
 	
 	ipc_call_t answer_name;
@@ -202,19 +202,19 @@ int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 	
 	async_exchange_end(exch);
 	
-	sysarg_t retval_name;
+	int retval_name;
 	async_wait_for(req_name, &retval_name);
 	
 	if (retval_name != EOK) {
 		async_forget(req);
-		return (int) retval_name;
+		return retval_name;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK)
-		return (int) retval;
+		return retval;
 	
 	size_t act_size = IPC_GET_ARG2(answer_name);
 	assert(act_size <= LOC_NAME_MAXLEN);
@@ -233,7 +233,7 @@ int inetcfg_addr_get_id(const char *name, sysarg_t link_id, sysarg_t *addr_id)
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_ADDR_GET_ID, link_id, &answer);
-	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+	int retval = async_data_write_start(exch, name, str_size(name));
 
 	async_exchange_end(exch);
 
@@ -279,7 +279,7 @@ int inetcfg_link_add(sysarg_t link_id)
 int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 {
 	ipc_call_t dreply;
-	sysarg_t dretval;
+	int dretval;
 	size_t act_size;
 	char name_buf[LOC_NAME_MAXLEN + 1];
 
@@ -298,7 +298,7 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 		return dretval;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK)
@@ -355,12 +355,12 @@ int inetcfg_sroute_create(const char *name, inet_naddr_t *dest,
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
 	*sroute_id = IPC_GET_ARG1(answer);
 	
-	return (int) retval;
+	return retval;
 }
 
 int inetcfg_sroute_delete(sysarg_t sroute_id)
@@ -384,26 +384,26 @@ int inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
 	aid_t req_dest = async_data_read(exch, &srinfo->dest,
 	    sizeof(inet_naddr_t), &answer_dest);
 	
-	sysarg_t retval_dest;
+	int retval_dest;
 	async_wait_for(req_dest, &retval_dest);
 	
 	if (retval_dest != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
-		return (int) retval_dest;
+		return retval_dest;
 	}
 	
 	ipc_call_t answer_router;
 	aid_t req_router = async_data_read(exch, &srinfo->router,
 	    sizeof(inet_addr_t), &answer_router);
 	
-	sysarg_t retval_router;
+	int retval_router;
 	async_wait_for(req_router, &retval_router);
 	
 	if (retval_router != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
-		return (int) retval_router;
+		return retval_router;
 	}
 	
 	ipc_call_t answer_name;
@@ -413,19 +413,19 @@ int inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
 	
 	async_exchange_end(exch);
 	
-	sysarg_t retval_name;
+	int retval_name;
 	async_wait_for(req_name, &retval_name);
 	
 	if (retval_name != EOK) {
 		async_forget(req);
-		return (int) retval_name;
+		return retval_name;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK)
-		return (int) retval;
+		return retval;
 	
 	size_t act_size = IPC_GET_ARG2(answer_name);
 	assert(act_size <= LOC_NAME_MAXLEN);
@@ -443,7 +443,7 @@ int inetcfg_sroute_get_id(const char *name, sysarg_t *sroute_id)
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, INETCFG_SROUTE_GET_ID, &answer);
-	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
+	int retval = async_data_write_start(exch, name, str_size(name));
 
 	async_exchange_end(exch);
 

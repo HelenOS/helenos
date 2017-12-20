@@ -105,7 +105,7 @@ int vbd_get_disks(vbd_t *vbd, service_id_t **data, size_t *count)
 int vbd_disk_info(vbd_t *vbd, service_id_t sid, vbd_disk_info_t *vinfo)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(vbd->sess);
@@ -182,7 +182,7 @@ static int vbd_get_ids_once(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
@@ -258,7 +258,7 @@ int vbd_label_get_parts(vbd_t *vbd, service_id_t disk,
 int vbd_part_get_info(vbd_t *vbd, vbd_part_id_t part, vbd_part_info_t *pinfo)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(vbd->sess);
@@ -282,7 +282,7 @@ int vbd_part_create(vbd_t *vbd, service_id_t disk, vbd_part_spec_t *pspec,
     vbd_part_id_t *rpart)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(vbd->sess);
@@ -337,7 +337,7 @@ int vbd_suggest_ptype(vbd_t *vbd, service_id_t disk, label_pcnt_t pcnt,
     label_ptype_t *ptype)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(vbd->sess);

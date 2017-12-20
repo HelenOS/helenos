@@ -75,7 +75,7 @@ static int tcp_callback_create(tcp_t *tcp)
 	if (rc != EOK)
 		return rc;
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	return retval;
@@ -215,12 +215,12 @@ int tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
 
 	exch = async_exchange_begin(tcp->sess);
 	aid_t req = async_send_0(exch, TCP_CONN_CREATE, &answer);
-	sysarg_t rc = async_data_write_start(exch, (void *)epp,
+	int rc = async_data_write_start(exch, (void *)epp,
 	    sizeof(inet_ep2_t));
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		sysarg_t rc_orig;
+		int rc_orig;
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
@@ -259,7 +259,7 @@ void tcp_conn_destroy(tcp_conn_t *conn)
 	list_remove(&conn->ltcp);
 
 	exch = async_exchange_begin(conn->tcp->sess);
-	sysarg_t rc = async_req_1_0(exch, TCP_CONN_DESTROY, conn->id);
+	int rc = async_req_1_0(exch, TCP_CONN_DESTROY, conn->id);
 	async_exchange_end(exch);
 
 	free(conn);
@@ -330,12 +330,12 @@ int tcp_listener_create(tcp_t *tcp, inet_ep_t *ep, tcp_listen_cb_t *lcb,
 
 	exch = async_exchange_begin(tcp->sess);
 	aid_t req = async_send_0(exch, TCP_LISTENER_CREATE, &answer);
-	sysarg_t rc = async_data_write_start(exch, (void *)ep,
+	int rc = async_data_write_start(exch, (void *)ep,
 	    sizeof(inet_ep_t));
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		sysarg_t rc_orig;
+		int rc_orig;
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
@@ -376,7 +376,7 @@ void tcp_listener_destroy(tcp_listener_t *lst)
 	list_remove(&lst->ltcp);
 
 	exch = async_exchange_begin(lst->tcp->sess);
-	sysarg_t rc = async_req_1_0(exch, TCP_LISTENER_DESTROY, lst->id);
+	int rc = async_req_1_0(exch, TCP_LISTENER_DESTROY, lst->id);
 	async_exchange_end(exch);
 
 	free(lst);
@@ -450,7 +450,7 @@ int tcp_conn_wait_connected(tcp_conn_t *conn)
 int tcp_conn_send(tcp_conn_t *conn, const void *data, size_t bytes)
 {
 	async_exch_t *exch;
-	sysarg_t rc;
+	int rc;
 
 	exch = async_exchange_begin(conn->tcp->sess);
 	aid_t req = async_send_1(exch, TCP_CONN_SEND, conn->id, NULL);
@@ -484,7 +484,7 @@ int tcp_conn_send_fin(tcp_conn_t *conn)
 	async_exch_t *exch;
 
 	exch = async_exchange_begin(conn->tcp->sess);
-	sysarg_t rc = async_req_1_0(exch, TCP_CONN_SEND_FIN, conn->id);
+	int rc = async_req_1_0(exch, TCP_CONN_SEND_FIN, conn->id);
 	async_exchange_end(exch);
 
 	return rc;
@@ -500,7 +500,7 @@ int tcp_conn_push(tcp_conn_t *conn)
 	async_exch_t *exch;
 
 	exch = async_exchange_begin(conn->tcp->sess);
-	sysarg_t rc = async_req_1_0(exch, TCP_CONN_PUSH, conn->id);
+	int rc = async_req_1_0(exch, TCP_CONN_PUSH, conn->id);
 	async_exchange_end(exch);
 
 	return rc;
@@ -516,7 +516,7 @@ int tcp_conn_reset(tcp_conn_t *conn)
 	async_exch_t *exch;
 
 	exch = async_exchange_begin(conn->tcp->sess);
-	sysarg_t rc = async_req_1_0(exch, TCP_CONN_RESET, conn->id);
+	int rc = async_req_1_0(exch, TCP_CONN_RESET, conn->id);
 	async_exchange_end(exch);
 
 	return rc;
@@ -561,7 +561,7 @@ int tcp_conn_recv(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK) {
 		fibril_mutex_unlock(&conn->lock);
@@ -615,7 +615,7 @@ again:
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK) {
 		if (rc == EAGAIN) {

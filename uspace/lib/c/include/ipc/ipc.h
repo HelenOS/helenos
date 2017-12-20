@@ -77,9 +77,9 @@ extern int ipc_trywait_for_call(ipc_call_t *);
 	ipc_answer_slow((chandle), (retval), (arg1), (arg2), (arg3), (arg4), \
 	    (arg5))
 
-extern sysarg_t ipc_answer_fast(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
+extern int ipc_answer_fast(cap_handle_t, int, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
-extern sysarg_t ipc_answer_slow(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
+extern int ipc_answer_slow(cap_handle_t, int, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
 /*

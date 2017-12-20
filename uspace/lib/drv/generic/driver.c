@@ -198,7 +198,7 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	if (rc == EOK)
 		dev_del_ref(dev);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
@@ -226,7 +226,7 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 	if (rc == EOK)
 		dev_del_ref(dev);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
@@ -261,7 +261,7 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	
 	fun_del_ref(fun);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
@@ -294,7 +294,7 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	else
 		rc = ENOTSUP;
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void driver_stop(ipc_callid_t iid, ipc_call_t *icall)

@@ -479,10 +479,10 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
-	return (int) retval;
+	return retval;
 }
 
 int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
