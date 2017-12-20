@@ -47,9 +47,9 @@
  */
 
 #undef __errno_entry
-#define __errno_entry(name, num, desc) num,
+#define __errno_entry(name, num, desc) name,
 
-static const int err_num[] = {
+static const errno_t err_num[] = {
 #include <abi/errno.in>
 };
 
