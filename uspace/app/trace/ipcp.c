@@ -264,9 +264,9 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	resp = answer->args;
 	
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Response to %d: retval=%d, args = (%" PRIun ", "
+		printf("Response to %d: retval=%s, args = (%" PRIun ", "
 		    "%" PRIun ", %" PRIun ", %" PRIun ", %" PRIun ")\n",
-		    hash, retval, IPC_GET_ARG1(*answer),
+		    hash, str_error_name(retval), IPC_GET_ARG1(*answer),
 		    IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
 		    IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
 	}
