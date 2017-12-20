@@ -190,7 +190,7 @@ void usb_hid_print_usage_path(usb_hid_report_path_t *path)
  * @param path        Usage patrh structure to compare
  * @param flags       Flags determining the mode of comparison
  *
- * @return EOK if both paths are identical, non zero number otherwise
+ * @return 0 if both paths are identical, non zero number otherwise
  *
  */
 int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
@@ -212,7 +212,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 	
 	// Empty path match all others
 	if (path->depth == 0) {
-		return EOK;
+		return 0;
 	}
 	
 	if ((only_page = flags & USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY) != 0) {
@@ -238,9 +238,9 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 				if (only_page == 0) {
 					if (USB_HID_SAME_USAGE(report_item->usage,
 					    path_item->usage))
-						return EOK;
+						return 0;
 				} else {
-					return EOK;
+					return 0;
 				}
 			}
 		}
@@ -284,7 +284,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		    (path_link == &path->items.head)) ||
 		    ((report_link == &report_path->items.head) &&
 		    (path_link == &path->items.head))) {
-			return EOK;
+			return 0;
 		} else {
 			return 1;
 		}
@@ -296,7 +296,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		path_link = path->items.head.prev;
 		
 		if (list_empty(&path->items)) {
-			return EOK;
+			return 0;
 		}
 		
 		while ((report_link != &report_path->items.head) &&
@@ -319,14 +319,14 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		}
 		
 		if (path_link == &path->items.head) {
-			return EOK;
+			return 0;
 		} else {
 			return 1;
 		}
 		break;
 	
 	default:
-		return EINVAL;
+		return -1;
 	}
 }
 

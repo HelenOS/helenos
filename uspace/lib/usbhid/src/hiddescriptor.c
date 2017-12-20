@@ -74,6 +74,7 @@
 
 #define USB_HID_RESET_OFFSET	3
 
+#define USB_HID_INVALID                 -98
 /** Unknown tag was founded in report descriptor data*/
 #define USB_HID_UNKNOWN_TAG		-99
 
@@ -102,7 +103,7 @@ usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report,
 				cpath_link);
 		
 		if(usb_hid_report_compare_usage_path(path, cmp_path,
-					USB_HID_PATH_COMPARE_STRICT) == EOK){
+					USB_HID_PATH_COMPARE_STRICT) == 0){
 			break;
 		}
 		path_it = path_it->next;
@@ -552,7 +553,7 @@ int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const uint8_t *data,
 	case USB_HID_TAG_CLASS_MAIN:
 
 		if((ret=usb_hid_report_parse_main_tag(tag, data, item_size,
-			report_item, usage_path)) == EOK) {
+			report_item, usage_path)) == 0) {
 
 			return USB_HID_NEW_REPORT_ITEM;
 		}
@@ -583,7 +584,7 @@ int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const uint8_t *data,
  * @param Data buffer
  * @param Length of data buffer
  * @param Current state table
- * @return Error code
+ * @return 0 or USB_HID_ code
  */
 
 int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, 
@@ -598,7 +599,7 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data,
 	case USB_HID_REPORT_TAG_OUTPUT:
 	case USB_HID_REPORT_TAG_FEATURE:
 		report_item->item_flags = *data;			
-		return EOK;			
+		return 0;			
 		break;
 			
 	case USB_HID_REPORT_TAG_COLLECTION:
@@ -638,7 +639,7 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data,
 		return USB_HID_NO_ACTION;
 	}
 
-	return EOK;
+	return 0;
 }
 
 /**
@@ -648,7 +649,7 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data,
  * @param Data buffer
  * @param Length of data buffer
  * @param Current state table
- * @return Error code
+ * @return 0 or USB_HID_ code
  */
 int usb_hid_report_parse_global_tag(uint8_t tag, const uint8_t *data, 
 	size_t item_size, usb_hid_report_item_t *report_item, 
@@ -724,7 +725,7 @@ int usb_hid_report_parse_global_tag(uint8_t tag, const uint8_t *data,
 		return USB_HID_NO_ACTION;
 	}
 
-	return EOK;
+	return 0;
 }
 
 /**
@@ -734,7 +735,7 @@ int usb_hid_report_parse_global_tag(uint8_t tag, const uint8_t *data,
  * @param Data buffer
  * @param Length of data buffer
  * @param Current state table
- * @return Error code
+ * @return 0 or USB_HID_ code
  */
 int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data,
     size_t item_size, usb_hid_report_item_t *report_item,
@@ -790,7 +791,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data,
 			if (report_item->extended_usage_page !=
 			    USB_HID_EXTENDED_USAGE_PAGE(
 			    usb_hid_report_tag_data_uint32(data, item_size))) {
-				return EINVAL;
+				return USB_HID_INVALID;
 			}
 			
 			/* Usage extended usages */
@@ -861,7 +862,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data,
 		return USB_HID_NO_ACTION;
 	}
 	
-	return EOK;
+	return 0;
 }
 
 /**

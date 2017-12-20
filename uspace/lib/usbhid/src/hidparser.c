@@ -530,7 +530,7 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 			    field->usage_page, field->usage);
 
 			if (usb_hid_report_compare_usage_path(
-			    field->collection_path, path, flags) == EOK) {
+			    field->collection_path, path, flags) == 0) {
 				usb_hid_report_remove_last_item(
 				    field->collection_path);
 				return field;
