@@ -40,53 +40,28 @@
 #include <usbdiag_iface.h>
 
 #include "device.h"
+#include "tests.h"
 
 #define NAME "usbdiag"
 
-
-static int some_test(ddf_fun_t *fun, int x, int *y)
-{
-	int rc = EOK;
-	usb_diag_dev_t *dev = ddf_fun_to_usb_diag_dev(fun);
-
-	const size_t size = min(dev->bulk_in->desc.max_packet_size, dev->bulk_out->desc.max_packet_size);
-	char *buffer = (char *) malloc(size);
-	memset(buffer, 42, sizeof(buffer));
-
-	// Write buffer to device.
-	if ((rc = usb_pipe_write(dev->bulk_out, buffer, size))) {
-		usb_log_error("Bulk OUT write failed. %s\n", str_error(rc));
+#define TRANSLATE_FUNC_NAME(fun) translate_##fun
+#define TRANSLATE_FUNC(fun) \
+	static int TRANSLATE_FUNC_NAME(fun)(ddf_fun_t *f, int cycles, size_t size)\
+	{\
+		usb_diag_dev_t *dev = ddf_fun_to_usb_diag_dev(f);\
+		return fun(dev, cycles, size);\
 	}
 
-	// Read device's response.
-	size_t remaining = size;
-	size_t transferred;
-	while (remaining > 0) {
-		if ((rc = usb_pipe_read(dev->bulk_in, buffer + size - remaining, remaining, &transferred))) {
-			usb_log_error("Bulk IN read failed. %s\n", str_error(rc));
-			break;
-		}
-
-		if (transferred > remaining) {
-			usb_log_error("Bulk IN read more than expected.\n");
-			rc = EINVAL;
-			break;
-		}
-
-		remaining -= transferred;
-	}
-
-	// TODO: Check output?
-
-	free(buffer);
-
-	*y = x + 42;
-	return rc;
-}
+TRANSLATE_FUNC(usb_diag_stress_bulk_out)
+TRANSLATE_FUNC(usb_diag_stress_bulk_in)
 
 static usbdiag_iface_t diag_interface = {
-	.test = some_test,
+	.stress_bulk_out = TRANSLATE_FUNC_NAME(usb_diag_stress_bulk_out),
+	.stress_bulk_in = TRANSLATE_FUNC_NAME(usb_diag_stress_bulk_in)
 };
+
+#undef TRANSLATE_FUNC_NAME
+#undef TRANSLATE_FUNC
 
 static ddf_dev_ops_t diag_ops = {
 	.interfaces[USBDIAG_DEV_IFACE] = &diag_interface
@@ -104,17 +79,24 @@ static int device_init(usb_diag_dev_t *dev)
 	ddf_fun_set_ops(fun, &diag_ops);
 	dev->fun = fun;
 
-	usb_endpoint_mapping_t *epm_out = usb_device_get_mapped_ep(dev->usb_dev, USB_DIAG_EP_BULK_OUT);
-	usb_endpoint_mapping_t *epm_in = usb_device_get_mapped_ep(dev->usb_dev, USB_DIAG_EP_BULK_IN);
+#define _MAP_EP(target, ep_no) do {\
+	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep(dev->usb_dev, USB_DIAG_EP_##ep_no);\
+	if (!epm || !epm->present) {\
+		usb_log_error("Failed to map endpoint: " #ep_no ".\n");\
+		rc = ENOENT;\
+		goto err_fun;\
+	}\
+	target = &epm->pipe;\
+	} while (0);
 
-	if (!epm_in || !epm_out || !epm_in->present || !epm_out->present) {
-		usb_log_error("Required EPs were not mapped.\n");
-		rc = ENOENT;
-		goto err_fun;
-	}
+	_MAP_EP(dev->intr_in, INTR_IN);
+	_MAP_EP(dev->intr_out, INTR_OUT);
+	_MAP_EP(dev->bulk_in, BULK_IN);
+	_MAP_EP(dev->bulk_out, BULK_OUT);
+	_MAP_EP(dev->isoch_in, ISOCH_IN);
+	_MAP_EP(dev->isoch_out, ISOCH_OUT);
 
-	dev->bulk_out = &epm_out->pipe;
-	dev->bulk_in = &epm_in->pipe;
+#undef _MAP_EP
 
 	return EOK;
 

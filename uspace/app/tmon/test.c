@@ -113,18 +113,16 @@ static int resolve_and_test(int argc, char *argv[], int (*test)(devman_handle_t)
 	return test(fun);
 }
 
-static int bulk_worker(devman_handle_t fun) {
+static int stress_bulk_in(devman_handle_t fun) {
 	async_sess_t *sess = usbdiag_connect(fun);
 	async_exch_t *exch = async_exchange_begin(sess);
 
-	// TODO: do some testing
-	int y;
-	int rc = usbdiag_test(exch, 4200, &y);
+	const int cycles = 1024;
+	const size_t size = 65432;
+	int rc = usbdiag_stress_bulk_in(exch, cycles, size);
 
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
-	} else {
-		printf("The number is %d.\n", y);
 	}
 
 	async_exchange_end(exch);
@@ -132,9 +130,31 @@ static int bulk_worker(devman_handle_t fun) {
 	return 0;
 }
 
-int tmon_test_bulk(int argc, char *argv[])
+static int stress_bulk_out(devman_handle_t fun) {
+	async_sess_t *sess = usbdiag_connect(fun);
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	const int cycles = 1024;
+	const size_t size = 65432;
+	int rc = usbdiag_stress_bulk_out(exch, cycles, size);
+
+	if (rc) {
+		printf(NAME ": %s\n", str_error(rc));
+	}
+
+	async_exchange_end(exch);
+	usbdiag_disconnect(sess);
+	return 0;
+}
+
+int tmon_stress_bulk_in(int argc, char *argv[])
 {
-	return resolve_and_test(argc, argv, bulk_worker);
+	return resolve_and_test(argc, argv, stress_bulk_in);
+}
+
+int tmon_stress_bulk_out(int argc, char *argv[])
+{
+	return resolve_and_test(argc, argv, stress_bulk_out);
 }
 
 /** @}

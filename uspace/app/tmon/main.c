@@ -39,13 +39,6 @@
 
 #define NAME "tmon"
 
-static int fallback(int argc, char *argv[])
-{
-	// FIXME
-	printf(NAME ": Not implemented, lol!\n");
-	return 1;
-}
-
 typedef struct {
 	const char *name;
 	const char *description;
@@ -59,19 +52,14 @@ static usb_diag_cmd_t commands[] = {
 		.action = tmon_list,
 	},
 	{
-		.name = "test-bulk",
-		.description = "Benchmark bulk endpoints of a diagnostic device.",
-		.action = tmon_test_bulk,
+		.name = "stress-bulk-in",
+		.description = "Stress benchmark bulk in endpoints of a diagnostic device.",
+		.action = tmon_stress_bulk_in,
 	},
 	{
-		.name = "test-intr",
-		.description = "Benchmark interrupt endpoints of a diagnostic device.",
-		.action = fallback,
-	},
-	{
-		.name = "test-isoch",
-		.description = "Benchmark isochronous endpoints of a diagnostic device.",
-		.action = fallback,
+		.name = "stress-bulk-out",
+		.description = "Benchmark bulk out endpoints of a diagnostic device.",
+		.action = tmon_stress_bulk_out,
 	},
 	{
 		.name = NULL

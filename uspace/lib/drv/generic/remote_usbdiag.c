@@ -42,7 +42,8 @@
 #include "usbdiag_iface.h"
 
 typedef enum {
-	IPC_M_USBDIAG_TEST,
+	IPC_M_USBDIAG_STRESS_BULK_OUT,
+	IPC_M_USBDIAG_STRESS_BULK_IN
 } usb_iface_funcs_t;
 
 async_sess_t *usbdiag_connect(devman_handle_t handle)
@@ -56,25 +57,29 @@ void usbdiag_disconnect(async_sess_t *sess)
 		async_hangup(sess);
 }
 
-int usbdiag_test(async_exch_t *exch, int x, int *y)
+int usbdiag_stress_bulk_out(async_exch_t *exch, int cycles, size_t size)
 {
 	if (!exch)
 		return EBADMEM;
 
-	sysarg_t y_;
-	const int ret = async_req_2_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_TEST, x, &y_);
-
-	if (y)
-		*y = (int) y_;
-
-	return ret;
+	return async_req_3_0(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_STRESS_BULK_OUT, cycles, size);
 }
 
-static void remote_usbdiag_test(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+int usbdiag_stress_bulk_in(async_exch_t *exch, int cycles, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+
+	return async_req_3_0(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_STRESS_BULK_IN, cycles, size);
+}
+
+static void remote_usbdiag_stress_bulk_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbdiag_stress_bulk_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB diagnostic interface operations. */
 static const remote_iface_func_ptr_t remote_usbdiag_iface_ops [] = {
-	[IPC_M_USBDIAG_TEST] = remote_usbdiag_test,
+	[IPC_M_USBDIAG_STRESS_BULK_OUT] = remote_usbdiag_stress_bulk_out,
+	[IPC_M_USBDIAG_STRESS_BULK_IN] = remote_usbdiag_stress_bulk_in,
 };
 
 /** Remote USB diagnostic interface structure. */
@@ -83,23 +88,34 @@ const remote_iface_t remote_usbdiag_iface = {
 	.methods = remote_usbdiag_iface_ops,
 };
 
-void remote_usbdiag_test(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_usbdiag_stress_bulk_out(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
-	if (diag_iface->test == NULL) {
+	if (diag_iface->stress_bulk_out == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
-	int x = DEV_IPC_GET_ARG1(*call);
-	int y;
-	const int ret = diag_iface->test(fun, x, &y);
-	if (ret != EOK) {
-		async_answer_0(callid, ret);
-	} else {
-		async_answer_1(callid, EOK, y);
+	int cycles = DEV_IPC_GET_ARG1(*call);
+	size_t size = DEV_IPC_GET_ARG2(*call);
+	const int ret = diag_iface->stress_bulk_out(fun, cycles, size);
+	async_answer_0(callid, ret);
+}
+
+void remote_usbdiag_stress_bulk_in(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
+
+	if (diag_iface->stress_bulk_in == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
 	}
+
+	int cycles = DEV_IPC_GET_ARG1(*call);
+	size_t size = DEV_IPC_GET_ARG2(*call);
+	const int ret = diag_iface->stress_bulk_in(fun, cycles, size);
+	async_answer_0(callid, ret);
 }
 
 /**

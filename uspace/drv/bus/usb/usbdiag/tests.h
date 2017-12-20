@@ -30,57 +30,18 @@
  * @{
  */
 /** @file
- * USB diagnostic device structures.
+ * USB diagnostic tests.
  */
 
-#ifndef USB_DIAG_DEVICE_H_
-#define USB_DIAG_DEVICE_H_
+#ifndef USB_DIAG_TESTS_H_
+#define USB_DIAG_TESTS_H_
 
-#include <usb/dev/device.h>
+#include "device.h"
 
-#define USB_DIAG_EP_INTR_IN    1
-#define USB_DIAG_EP_INTR_OUT   2
-#define USB_DIAG_EP_BULK_IN    3
-#define USB_DIAG_EP_BULK_OUT   4
-#define USB_DIAG_EP_ISOCH_IN   5
-#define USB_DIAG_EP_ISOCH_OUT  6
+int usb_diag_stress_bulk_out(usb_diag_dev_t *, int, size_t);
+int usb_diag_stress_bulk_in(usb_diag_dev_t *, int, size_t);
 
-/**
- * USB diagnostic device.
- */
-typedef struct usb_diag_dev {
-	usb_device_t *usb_dev;
-	ddf_fun_t *fun;
-	usb_pipe_t *intr_in;
-	usb_pipe_t *intr_out;
-	usb_pipe_t *bulk_in;
-	usb_pipe_t *bulk_out;
-	usb_pipe_t *isoch_in;
-	usb_pipe_t *isoch_out;
-} usb_diag_dev_t;
-
-int usb_diag_dev_create(usb_device_t *, usb_diag_dev_t **);
-void usb_diag_dev_destroy(usb_diag_dev_t *);
-
-static inline usb_diag_dev_t * usb_device_to_usb_diag_dev(usb_device_t *usb_dev)
-{
-	assert(usb_dev);
-	return usb_device_data_get(usb_dev);
-}
-
-static inline usb_diag_dev_t * ddf_dev_to_usb_diag_dev(ddf_dev_t *ddf_dev)
-{
-	assert(ddf_dev);
-	return usb_device_to_usb_diag_dev(usb_device_get(ddf_dev));
-}
-
-static inline usb_diag_dev_t * ddf_fun_to_usb_diag_dev(ddf_fun_t *ddf_fun)
-{
-	assert(ddf_fun);
-	return ddf_dev_to_usb_diag_dev(ddf_fun_get_dev(ddf_fun));
-}
-
-#endif /* USB_DIAG_USBDIAG_H_ */
+#endif /* USB_DIAG_TESTS_H_ */
 
 /**
  * @}

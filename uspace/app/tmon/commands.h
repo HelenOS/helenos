@@ -37,7 +37,8 @@
 #define TMON_COMMANDS_H_
 
 int tmon_list(int, char **);
-int tmon_test_bulk(int, char **);
+int tmon_stress_bulk_in(int, char **);
+int tmon_stress_bulk_out(int, char **);
 
 #endif /* TMON_COMMANDS_H_ */
 
