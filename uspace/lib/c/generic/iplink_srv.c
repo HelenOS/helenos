@@ -88,10 +88,9 @@ static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	addr48_t mac;
 	ipc_callid_t callid;
 
-	rc = async_data_write_receive(&callid, &size);
-	if (rc != EOK) {
-		async_answer_0(callid, (sysarg_t) rc);
-		async_answer_0(iid, (sysarg_t) rc);
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, (sysarg_t) EREFUSED);
+		async_answer_0(iid, (sysarg_t) EREFUSED);
 	}
 
 	rc = srv->ops->set_mac48(srv, &mac);
