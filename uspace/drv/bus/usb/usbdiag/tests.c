@@ -100,6 +100,9 @@ int usb_diag_stress_bulk_in(usb_diag_dev_t *dev, int cycles, size_t size)
 
 			remaining -= transferred;
 		}
+
+		if (rc)
+			break;
 	}
 
 	free(buffer);
