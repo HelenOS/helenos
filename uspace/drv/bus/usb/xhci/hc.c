@@ -513,14 +513,18 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 
 			head = new_queue + (head - queue);
 		}
+
+		uint64_t erdp = hc->event_ring.dequeue_ptr;
+		XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
+		XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
 	}
 
 	/* Update the ERDP to make room in the ring. */
 	usb_log_debug2("Copying from ring finished, updating ERDP.");
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
+	erdp |= XHCI_REG_MASK(XHCI_INTR_ERDP_EHB);
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
-	XHCI_REG_SET(intr, XHCI_INTR_ERDP_EHB, 1);
 
 	/* Handle all of the collected events if possible. */
 	if (head == queue)
