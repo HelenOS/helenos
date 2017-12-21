@@ -53,22 +53,22 @@ static usb_diag_cmd_t commands[] = {
 	},
 	{
 		.name = "stress-intr-in",
-		.description = "Stress benchmark interrupt in endpoints of a diagnostic device.",
+		.description = "Stress benchmark interrupt in endpoints of a device.",
 		.action = tmon_stress_intr_in,
 	},
 	{
 		.name = "stress-intr-out",
-		.description = "Stress benchmark interrupt out endpoints of a diagnostic device.",
+		.description = "Stress benchmark interrupt out endpoints of a device.",
 		.action = tmon_stress_intr_out,
 	},
 	{
 		.name = "stress-bulk-in",
-		.description = "Stress benchmark bulk in endpoints of a diagnostic device.",
+		.description = "Stress benchmark bulk in endpoints of a device.",
 		.action = tmon_stress_bulk_in,
 	},
 	{
 		.name = "stress-bulk-out",
-		.description = "Stress benchmark bulk out endpoints of a diagnostic device.",
+		.description = "Stress benchmark bulk out endpoints of a device.",
 		.action = tmon_stress_bulk_out,
 	},
 	{
