@@ -41,6 +41,74 @@
 #define NAME "usbdiag"
 
 
+int usb_diag_stress_intr_out(usb_diag_dev_t *dev, int cycles, size_t size)
+{
+	if (!dev)
+		return EBADMEM;
+
+	char *buffer = (char *) malloc(size);
+	if (!buffer)
+		return ENOMEM;
+
+	memset(buffer, 42, size);
+
+	// TODO: Are we sure that no other test is running on this endpoint?
+
+	usb_log_info("Performing interrupt out stress test on device %s.", ddf_fun_get_name(dev->fun));
+	int rc = EOK;
+	for (int i = 0; i < cycles; ++i) {
+		// Write buffer to device.
+		if ((rc = usb_pipe_write(dev->intr_out, buffer, size))) {
+			usb_log_error("Interrupt OUT write failed. %s\n", str_error(rc));
+			break;
+		}
+	}
+
+	free(buffer);
+	return rc;
+}
+
+int usb_diag_stress_intr_in(usb_diag_dev_t *dev, int cycles, size_t size)
+{
+	if (!dev)
+		return EBADMEM;
+
+	char *buffer = (char *) malloc(size);
+	if (!buffer)
+		return ENOMEM;
+
+	// TODO: Are we sure that no other test is running on this endpoint?
+
+	usb_log_info("Performing interrupt in stress test on device %s.", ddf_fun_get_name(dev->fun));
+	int rc = EOK;
+	for (int i = 0; i < cycles; ++i) {
+		// Read device's response.
+		size_t remaining = size;
+		size_t transferred;
+
+		while (remaining > 0) {
+			if ((rc = usb_pipe_read(dev->intr_in, buffer + size - remaining, remaining, &transferred))) {
+				usb_log_error("Interrupt IN read failed. %s\n", str_error(rc));
+				break;
+			}
+
+			if (transferred > remaining) {
+				usb_log_error("Interrupt IN read more than expected.\n");
+				rc = EINVAL;
+				break;
+			}
+
+			remaining -= transferred;
+		}
+
+		if (rc)
+			break;
+	}
+
+	free(buffer);
+	return rc;
+}
+
 int usb_diag_stress_bulk_out(usb_diag_dev_t *dev, int cycles, size_t size)
 {
 	if (!dev)

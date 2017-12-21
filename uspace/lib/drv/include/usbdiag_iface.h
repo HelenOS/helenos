@@ -44,11 +44,15 @@
 
 async_sess_t *usbdiag_connect(devman_handle_t);
 void usbdiag_disconnect(async_sess_t*);
+int usbdiag_stress_intr_in(async_exch_t*, int, size_t);
+int usbdiag_stress_intr_out(async_exch_t*, int, size_t);
 int usbdiag_stress_bulk_in(async_exch_t*, int, size_t);
 int usbdiag_stress_bulk_out(async_exch_t*, int, size_t);
 
 /** USB diagnostic device communication interface. */
 typedef struct {
+	int (*stress_intr_in)(ddf_fun_t*, int, size_t);
+	int (*stress_intr_out)(ddf_fun_t*, int, size_t);
 	int (*stress_bulk_in)(ddf_fun_t*, int, size_t);
 	int (*stress_bulk_out)(ddf_fun_t*, int, size_t);
 } usbdiag_iface_t;
