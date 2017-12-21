@@ -95,6 +95,10 @@ err_sess:
 
 static int stress_intr_in(async_exch_t *exch, int cycles, size_t size)
 {
+	printf("Executing interrupt in stress test.\n"
+	    "      Packet count: %d\n"
+	    "      Packet size: %ld", cycles, size);
+
 	int rc = usbdiag_stress_intr_in(exch, cycles, size);
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
@@ -106,6 +110,10 @@ static int stress_intr_in(async_exch_t *exch, int cycles, size_t size)
 
 static int stress_intr_out(async_exch_t *exch, int cycles, size_t size)
 {
+	printf("Executing interrupt out stress test.\n"
+	    "      Packet count: %d\n"
+	    "      Packet size: %ld", cycles, size);
+
 	int rc = usbdiag_stress_intr_out(exch, cycles, size);
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
@@ -117,6 +125,10 @@ static int stress_intr_out(async_exch_t *exch, int cycles, size_t size)
 
 static int stress_bulk_in(async_exch_t *exch, int cycles, size_t size)
 {
+	printf("Executing bulk in stress test.\n"
+	    "      Packet count: %d\n"
+	    "      Packet size: %ld", cycles, size);
+
 	int rc = usbdiag_stress_bulk_in(exch, cycles, size);
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
@@ -128,6 +140,10 @@ static int stress_bulk_in(async_exch_t *exch, int cycles, size_t size)
 
 static int stress_bulk_out(async_exch_t *exch, int cycles, size_t size)
 {
+	printf("Executing bulk out stress test.\n"
+	    "      Packet count: %d\n"
+	    "      Packet size: %ld", cycles, size);
+
 	int rc = usbdiag_stress_bulk_out(exch, cycles, size);
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
