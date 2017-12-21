@@ -420,6 +420,8 @@ int hc_start(xhci_hc_t *hc, bool irq)
 		XHCI_REG_SET(hc->op_regs, XHCI_OP_INTE, 1);
 	}
 
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_HSEE, 1);
+
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_RS, 1);
 
 	/* The reset changed status of all ports, and SW originated reason does
