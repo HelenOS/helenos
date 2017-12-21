@@ -100,7 +100,7 @@ static int cmp_files(const char *fn0, const char *fn1)
 		if (offset[0] != offset[1] ||
 		    memcmp(buffer[0], buffer[1], offset[0]) != 0) {
 			printf("Return 1\n");
-			rc = 1;
+			rc = EBUSY;
 			goto end;
 		}
 	} while (offset[0] == CMP_BUFLEN);

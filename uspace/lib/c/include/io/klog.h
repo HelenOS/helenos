@@ -48,12 +48,12 @@ extern int klog_read(void *, size_t, size_t *);
 
 #define KLOG_PRINTF(lvl, fmt, ...) ({ \
 	char *_s; \
-	int _c = asprintf(&_s, fmt, ##__VA_ARGS__); \
-	if (_c >= 0) { \
-		_c = klog_write((lvl), _s, str_size(_s)); \
+	int _rc = ENOMEM; \
+	if (asprintf(&_s, fmt, ##__VA_ARGS__) >= 0) { \
+		_rc = klog_write((lvl), _s, str_size(_s)); \
 		free(_s); \
 	}; \
-	(_c >= 0); \
+	(_rc != EOK); \
 })
 
 #endif

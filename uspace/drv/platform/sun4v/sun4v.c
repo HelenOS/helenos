@@ -115,7 +115,7 @@ static hw_resource_list_t *sun4v_get_resources(ddf_fun_t *fnode)
 
 static int sun4v_enable_interrupt(ddf_fun_t *fun, int irq)
 {
-	return true;
+	return EOK;
 }
 
 static pio_window_t *sun4v_get_pio_window(ddf_fun_t *fnode)

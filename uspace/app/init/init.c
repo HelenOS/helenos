@@ -207,7 +207,7 @@ static int srv_startl(const char *path, ...)
 		printf("%s: Server %s failed to start (exit code %d)\n", NAME,
 		    path, retval);
 	
-	return retval;
+	return retval == 0 ? EOK : EPARTY;
 }
 
 static int console(const char *isvc, const char *osvc)

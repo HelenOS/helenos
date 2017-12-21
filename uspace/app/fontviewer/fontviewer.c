@@ -148,14 +148,13 @@ static int text(drawctx_t *drawctx, font_t *font, source_t *source,
 	int ret = vasprintf(&str, fmt, args);
 	va_end(args);
 	
-	if (ret <= 0)
-		return ret;
-	
-	drawctx_set_source(drawctx, source);
-	drawctx_set_font(drawctx, font);
-	drawctx_print(drawctx, str, x, y);
-	
-	free(str);
+	if (ret >= 0) {
+		drawctx_set_source(drawctx, source);
+		drawctx_set_font(drawctx, font);
+		drawctx_print(drawctx, str, x, y);
+
+		free(str);
+	}
 	
 	return ret;
 }

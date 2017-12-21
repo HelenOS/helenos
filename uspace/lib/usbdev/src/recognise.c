@@ -87,12 +87,14 @@ static int usb_add_match_id(match_id_list_t *matches, int score,
 	do { \
 		char *str = NULL; \
 		int __rc = asprintf(&str, format, ##__VA_ARGS__); \
-		if (__rc > 0) { \
-			__rc = usb_add_match_id((match_ids), (score), str); \
-		} \
-		if (__rc != EOK) { \
-			free(str); \
-			return __rc; \
+		if (__rc >= 0) { \
+			int __rc = usb_add_match_id((match_ids), (score), str); \
+			if (__rc != EOK) { \
+				free(str); \
+				return __rc; \
+			} \
+		} else { \
+			return ENOMEM; \
 		} \
 	} while (0)
 

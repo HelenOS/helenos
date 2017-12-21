@@ -155,7 +155,7 @@ static int msim_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	/* Nothing to do. */
 
-	return true;
+	return EOK;
 }
 
 static pio_window_t *msim_get_pio_window(ddf_fun_t *fnode)

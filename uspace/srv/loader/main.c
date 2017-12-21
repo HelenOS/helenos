@@ -299,7 +299,7 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	pcb.inbox = inbox;
 	pcb.inbox_entries = inbox_entries;
 	
-	async_answer_0(rid, rc);
+	async_answer_0(rid, EOK);
 	return 0;
 }
 

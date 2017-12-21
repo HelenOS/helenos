@@ -197,7 +197,7 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 	/* Find suitable driver and start it. */
 	dev_node_t *rdev = tree->root_node->child;
 	dev_add_ref(rdev);
-	int rc = assign_driver(rdev, drivers_list, tree);
+	bool rc = assign_driver(rdev, drivers_list, tree);
 	dev_del_ref(rdev);
 	
 	return rc;
