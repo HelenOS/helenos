@@ -113,13 +113,15 @@ void rewinddir(DIR *dirp)
  */
 int closedir(DIR *dirp)
 {
-	int rc;
-	
-	rc = vfs_put(dirp->fd);
+	int rc = vfs_put(dirp->fd);
 	free(dirp);
 
-	/* On error errno was set by close() */
-	return rc;
+	if (rc == EOK) {
+		return 0;
+	} else {
+		errno = rc;
+		return -1;
+	}
 }
 
 /** @}
