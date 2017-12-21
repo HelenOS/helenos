@@ -74,7 +74,7 @@ static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_par
 
 	int rc = usbdiag_stress_intr_in(exch, params->cycles, params->size);
 	if (rc) {
-		printf(NAME ": %s\n", str_error(rc));
+		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
 	}
 
@@ -90,7 +90,7 @@ static int run_intr_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 
 	int rc = usbdiag_stress_intr_out(exch, params->cycles, params->size);
 	if (rc) {
-		printf(NAME ": %s\n", str_error(rc));
+		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
 	}
 
@@ -106,7 +106,7 @@ static int run_bulk_in(async_exch_t *exch, const tmon_test_params_t *generic_par
 
 	int rc = usbdiag_stress_bulk_in(exch, params->cycles, params->size);
 	if (rc) {
-		printf(NAME ": %s\n", str_error(rc));
+		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
 	}
 
@@ -122,7 +122,7 @@ static int run_bulk_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 
 	int rc = usbdiag_stress_bulk_out(exch, params->cycles, params->size);
 	if (rc) {
-		printf(NAME ": %s\n", str_error(rc));
+		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
 	}
 

@@ -69,7 +69,7 @@ int tmon_test_main(int argc, char *argv[], const tmon_test_ops_t *ops) {
 
 	tmon_test_params_t *params = NULL;
 	if ((rc = ops->read_params(argc, argv, &params))) {
-		printf(NAME ": Reading test parameters failed.\n");
+		printf(NAME ": Reading test parameters failed. %s\n", str_error(rc));
 		return 1;
 	}
 
