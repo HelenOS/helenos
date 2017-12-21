@@ -177,6 +177,74 @@ int usb_diag_stress_bulk_in(usb_diag_dev_t *dev, int cycles, size_t size)
 	return rc;
 }
 
+int usb_diag_stress_isoch_out(usb_diag_dev_t *dev, int cycles, size_t size)
+{
+	if (!dev)
+		return EBADMEM;
+
+	char *buffer = (char *) malloc(size);
+	if (!buffer)
+		return ENOMEM;
+
+	memset(buffer, 42, size);
+
+	// TODO: Are we sure that no other test is running on this endpoint?
+
+	usb_log_info("Performing isochronous out stress test on device %s.", ddf_fun_get_name(dev->fun));
+	int rc = EOK;
+	for (int i = 0; i < cycles; ++i) {
+		// Write buffer to device.
+		if ((rc = usb_pipe_write(dev->isoch_out, buffer, size))) {
+			usb_log_error("Isochronous OUT write failed. %s\n", str_error(rc));
+			break;
+		}
+	}
+
+	free(buffer);
+	return rc;
+}
+
+int usb_diag_stress_isoch_in(usb_diag_dev_t *dev, int cycles, size_t size)
+{
+	if (!dev)
+		return EBADMEM;
+
+	char *buffer = (char *) malloc(size);
+	if (!buffer)
+		return ENOMEM;
+
+	// TODO: Are we sure that no other test is running on this endpoint?
+
+	usb_log_info("Performing isochronous in stress test on device %s.", ddf_fun_get_name(dev->fun));
+	int rc = EOK;
+	for (int i = 0; i < cycles; ++i) {
+		// Read device's response.
+		size_t remaining = size;
+		size_t transferred;
+
+		while (remaining > 0) {
+			if ((rc = usb_pipe_read(dev->isoch_in, buffer + size - remaining, remaining, &transferred))) {
+				usb_log_error("Isochronous IN read failed. %s\n", str_error(rc));
+				break;
+			}
+
+			if (transferred > remaining) {
+				usb_log_error("Isochronous IN read more than expected.\n");
+				rc = EINVAL;
+				break;
+			}
+
+			remaining -= transferred;
+		}
+
+		if (rc)
+			break;
+	}
+
+	free(buffer);
+	return rc;
+}
+
 /**
  * @}
  */

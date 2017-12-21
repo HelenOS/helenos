@@ -41,6 +41,8 @@ int tmon_stress_intr_in(int, char **);
 int tmon_stress_intr_out(int, char **);
 int tmon_stress_bulk_in(int, char **);
 int tmon_stress_bulk_out(int, char **);
+int tmon_stress_isoch_in(int, char **);
+int tmon_stress_isoch_out(int, char **);
 
 #endif /* TMON_COMMANDS_H_ */
 

@@ -129,6 +129,38 @@ static int run_bulk_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 	return 0;
 }
 
+static int run_isoch_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
+{
+	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
+	printf("Executing isochronous in stress test.\n"
+	    "      Packet count: %d\n"
+	    "      Packet size: %ld\n", params->cycles, params->size);
+
+	int rc = usbdiag_stress_isoch_in(exch, params->cycles, params->size);
+	if (rc) {
+		printf(NAME ": Test failed. %s\n", str_error(rc));
+		return 1;
+	}
+
+	return 0;
+}
+
+static int run_isoch_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
+{
+	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
+	printf("Executing isochronous out stress test.\n"
+	    "      Packet count: %d\n"
+	    "      Packet size: %ld\n", params->cycles, params->size);
+
+	int rc = usbdiag_stress_isoch_out(exch, params->cycles, params->size);
+	if (rc) {
+		printf(NAME ": Test failed. %s\n", str_error(rc));
+		return 1;
+	}
+
+	return 0;
+}
+
 int tmon_stress_intr_in(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
@@ -163,6 +195,26 @@ int tmon_stress_bulk_out(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
 		.run = run_bulk_out,
+		.read_params = read_params
+	};
+
+	return tmon_test_main(argc, argv, &ops);
+}
+
+int tmon_stress_isoch_in(int argc, char *argv[])
+{
+	static const tmon_test_ops_t ops = {
+		.run = run_isoch_in,
+		.read_params = read_params
+	};
+
+	return tmon_test_main(argc, argv, &ops);
+}
+
+int tmon_stress_isoch_out(int argc, char *argv[])
+{
+	static const tmon_test_ops_t ops = {
+		.run = run_isoch_out,
 		.read_params = read_params
 	};
 

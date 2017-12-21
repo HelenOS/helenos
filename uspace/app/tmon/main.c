@@ -72,6 +72,16 @@ static usb_diag_cmd_t commands[] = {
 		.action = tmon_stress_bulk_out,
 	},
 	{
+		.name = "stress-isoch-in",
+		.description = "Stress benchmark isochronous in endpoints of a device.",
+		.action = tmon_stress_isoch_in,
+	},
+	{
+		.name = "stress-isoch-out",
+		.description = "Stress benchmark isochronous out endpoints of a device.",
+		.action = tmon_stress_isoch_out,
+	},
+	{
 		.name = NULL
 	}
 };

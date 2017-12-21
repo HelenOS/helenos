@@ -42,6 +42,8 @@ int usb_diag_stress_intr_out(usb_diag_dev_t *, int, size_t);
 int usb_diag_stress_intr_in(usb_diag_dev_t *, int, size_t);
 int usb_diag_stress_bulk_out(usb_diag_dev_t *, int, size_t);
 int usb_diag_stress_bulk_in(usb_diag_dev_t *, int, size_t);
+int usb_diag_stress_isoch_out(usb_diag_dev_t *, int, size_t);
+int usb_diag_stress_isoch_in(usb_diag_dev_t *, int, size_t);
 
 #endif /* USB_DIAG_TESTS_H_ */
 
