@@ -408,7 +408,9 @@ typedef struct xhci_op_regs {
 #define XHCI_OP_CS             crcr_lo, 32,  FLAG, 1
 #define XHCI_OP_CA             crcr_lo, 32,  FLAG, 2
 #define XHCI_OP_CRR            crcr_lo, 32,  FLAG, 3
-#define XHCI_OP_CRCR_LO        crcr_lo, 32, RANGE, 31, 6
+/* This shall be RANGE, 6, 0, but the value containing CR pointer and RCS flag
+ * must be written at once. */
+#define XHCI_OP_CRCR_LO        crcr_lo, 32, FIELD
 #define XHCI_OP_CRCR_HI        crcr_hi, 32, FIELD
 #define XHCI_OP_DCBAAP_LO    dcbaap_lo, 32, FIELD
 #define XHCI_OP_DCBAAP_HI    dcbaap_hi, 32, FIELD

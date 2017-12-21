@@ -400,9 +400,11 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_HI, UPPER32(dcbaaptr));
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, hc->max_slots);
 
-	uint64_t crptr = xhci_trb_ring_get_dequeue_ptr(&hc->cr.trb_ring);
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_LO, LOWER32(crptr) >> 6);
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, UPPER32(crptr));
+	uint64_t crcr = xhci_trb_ring_get_dequeue_ptr(&hc->cr.trb_ring);
+	if (hc->cr.trb_ring.pcs)
+		crcr |= XHCI_REG_MASK(XHCI_OP_RCS);
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_LO, LOWER32(crcr));
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, UPPER32(crcr));
 
 	xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTSZ, hc->event_ring.segment_count);
