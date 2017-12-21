@@ -34,6 +34,7 @@ LIBS = drv
 SOURCES = \
 	main.c\
 	list.c\
-	test.c
+	test.c\
+	resolve.c
 
 include $(USPACE_PREFIX)/Makefile.common
