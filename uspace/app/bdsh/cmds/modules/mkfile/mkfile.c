@@ -191,7 +191,7 @@ int cmd_mkfile(char **argv)
 		to_write = min(file_size - total_written, BUFFER_SIZE);
 		rc = vfs_write(fd, &pos, buffer, to_write, &nwritten);
 		if (rc != EOK) {
-			printf("%s: Error writing file (%s).\n", cmdname, str_error(errno));
+			printf("%s: Error writing file (%s).\n", cmdname, str_error(rc));
 			vfs_put(fd);
 			free(buffer);
 			return CMD_FAILURE;
@@ -201,11 +201,12 @@ int cmd_mkfile(char **argv)
 
 	free(buffer);
 
-	if (vfs_put(fd) != EOK)
+	rc = vfs_put(fd);
+	if (rc != EOK)
 		goto error;
 
 	return CMD_SUCCESS;
 error:
-	printf("%s: Error writing file (%s).\n", cmdname, str_error(errno));
+	printf("%s: Error writing file (%s).\n", cmdname, str_error(rc));
 	return CMD_FAILURE;
 }
