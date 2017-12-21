@@ -57,7 +57,7 @@ static int read_params(int argc, char *argv[], tmon_test_params_t **params)
 
 	// Default values.
 	p->cycles = 1024;
-	p->size = 65432;
+	p->size = 65024;
 
 	// TODO: Parse argc, argv here.
 
