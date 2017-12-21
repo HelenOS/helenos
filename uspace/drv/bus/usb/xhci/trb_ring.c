@@ -31,6 +31,7 @@
 #include <ddi.h>
 #include <as.h>
 #include <align.h>
+#include <libarch/barrier.h>
 #include <usb/debug.h>
 #include "hw_struct/trb.h"
 #include "trb_ring.h"
@@ -326,6 +327,9 @@ int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
 		fibril_mutex_unlock(&ring->guard);
 		return ENOENT; /* The ring is empty. */
 	}
+
+	/* Do not reorder the Cycle bit reading with memcpy */
+	read_barrier();
 
 	memcpy(event, ring->dequeue_trb, sizeof(xhci_trb_t));
 
