@@ -47,7 +47,7 @@
 #define DEFAULT_CYCLES  1024
 #define DEFAULT_SIZE    65432
 
-static int resolve_and_test(int argc, char *argv[], int (*test)(devman_handle_t, int, size_t)) {
+static int resolve_and_test(int argc, char *argv[], int (*test)(async_exch_t *, int, size_t)) {
 	devman_handle_t fun = -1;
 
 	if (argc == 0) {
@@ -61,7 +61,7 @@ static int resolve_and_test(int argc, char *argv[], int (*test)(devman_handle_t,
 		return 1;
 	}
 
-	int rc;
+	int rc, ec;
 	char path[MAX_PATH_LENGTH];
 	if ((rc = devman_fun_get_path(fun, path, sizeof(path)))) {
 		printf(NAME ": Error resolving path of device with handle %ld. %s\n", fun, str_error(rc));
@@ -72,75 +72,69 @@ static int resolve_and_test(int argc, char *argv[], int (*test)(devman_handle_t,
 
 	// TODO: Read options here.
 
-	return test(fun, DEFAULT_CYCLES, DEFAULT_SIZE);
+	async_sess_t *sess = usbdiag_connect(fun);
+	if (!sess) {
+		printf(NAME ": Could not connect to the device.\n");
+		return 1;
+	}
+
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (!exch) {
+		printf(NAME ": Could not start exchange with the device.\n");
+		ec = 1;
+		goto err_sess;
+	}
+
+	ec = test(exch, DEFAULT_CYCLES, DEFAULT_SIZE);
+	async_exchange_end(exch);
+
+err_sess:
+	usbdiag_disconnect(sess);
+	return ec;
 }
 
-static int stress_intr_in(devman_handle_t fun, int cycles, size_t size) {
-	async_sess_t *sess = usbdiag_connect(fun);
-	async_exch_t *exch = async_exchange_begin(sess);
-
+static int stress_intr_in(async_exch_t *exch, int cycles, size_t size)
+{
 	int rc = usbdiag_stress_intr_in(exch, cycles, size);
-	int ec = 0;
-
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
-		ec = 1;
+		return 1;
 	}
 
-	async_exchange_end(exch);
-	usbdiag_disconnect(sess);
-	return ec;
+	return 0;
 }
 
-static int stress_intr_out(devman_handle_t fun, int cycles, size_t size) {
-	async_sess_t *sess = usbdiag_connect(fun);
-	async_exch_t *exch = async_exchange_begin(sess);
-
+static int stress_intr_out(async_exch_t *exch, int cycles, size_t size)
+{
 	int rc = usbdiag_stress_intr_out(exch, cycles, size);
-	int ec = 0;
-
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
-		ec = 1;
+		return 1;
 	}
 
-	async_exchange_end(exch);
-	usbdiag_disconnect(sess);
-	return ec;
+	return 0;
 }
 
-static int stress_bulk_in(devman_handle_t fun, int cycles, size_t size) {
-	async_sess_t *sess = usbdiag_connect(fun);
-	async_exch_t *exch = async_exchange_begin(sess);
-
+static int stress_bulk_in(async_exch_t *exch, int cycles, size_t size)
+{
 	int rc = usbdiag_stress_bulk_in(exch, cycles, size);
-	int ec = 0;
-
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
-		ec = 1;
+		return 1;
 	}
 
-	async_exchange_end(exch);
-	usbdiag_disconnect(sess);
-	return ec;
+	return 0;
 }
 
-static int stress_bulk_out(devman_handle_t fun, int cycles, size_t size) {
-	async_sess_t *sess = usbdiag_connect(fun);
-	async_exch_t *exch = async_exchange_begin(sess);
-
+static int stress_bulk_out(async_exch_t *exch, int cycles, size_t size)
+{
 	int rc = usbdiag_stress_bulk_out(exch, cycles, size);
-	int ec = 0;
-
 	if (rc) {
 		printf(NAME ": %s\n", str_error(rc));
-		ec = 1;
+		return 1;
 	}
 
-	async_exchange_end(exch);
-	usbdiag_disconnect(sess);
-	return ec;
+	return 0;
 }
 
 int tmon_stress_intr_in(int argc, char *argv[])
