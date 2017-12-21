@@ -54,10 +54,14 @@
 
 TRANSLATE_FUNC(usb_diag_stress_bulk_out)
 TRANSLATE_FUNC(usb_diag_stress_bulk_in)
+TRANSLATE_FUNC(usb_diag_stress_intr_out)
+TRANSLATE_FUNC(usb_diag_stress_intr_in)
 
 static usbdiag_iface_t diag_interface = {
 	.stress_bulk_out = TRANSLATE_FUNC_NAME(usb_diag_stress_bulk_out),
-	.stress_bulk_in = TRANSLATE_FUNC_NAME(usb_diag_stress_bulk_in)
+	.stress_bulk_in = TRANSLATE_FUNC_NAME(usb_diag_stress_bulk_in),
+	.stress_intr_out = TRANSLATE_FUNC_NAME(usb_diag_stress_intr_out),
+	.stress_intr_in = TRANSLATE_FUNC_NAME(usb_diag_stress_intr_in)
 };
 
 #undef TRANSLATE_FUNC_NAME
