@@ -35,6 +35,7 @@ SOURCES = \
 	main.c\
 	list.c\
 	test.c\
+	stress_test.c\
 	resolve.c
 
 include $(USPACE_PREFIX)/Makefile.common

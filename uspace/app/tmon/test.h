@@ -30,70 +30,27 @@
  * @{
  */
 /**
- * @file
- * Testing framework.
+ * @file Testing framework definitions.
  */
 
-#include <stdio.h>
-#include <devman.h>
-#include <str_error.h>
-#include <usbdiag_iface.h>
-#include "resolve.h"
-#include "test.h"
+#ifndef TMON_TEST_H_
+#define TMON_TEST_H_
 
-#define NAME "tmon"
-#define MAX_PATH_LENGTH 1024
+#include <async.h>
 
-int tmon_test_main(int argc, char *argv[], const tmon_test_ops_t *ops) {
-	devman_handle_t fun = -1;
+/** Parameters common for all tests. */
+typedef struct tmon_test_params {
+} tmon_test_params_t;
 
-	if (argc == 0) {
-		if (tmon_resolve_default(&fun))
-			return 1;
-	} else if (argc == 1) {
-		if (tmon_resolve_named(argv[0], &fun))
-			return 1;
-	} else {
-		printf(NAME ": Too many arguments provided.\n");
-		return 1;
-	}
+/** Operations to implement by all tests. */
+typedef struct tmon_test_ops {
+	int (*run)(async_exch_t *, const tmon_test_params_t *);
+	int (*read_params)(int, char **, tmon_test_params_t **);
+} tmon_test_ops_t;
 
-	int rc, ec;
-	char path[MAX_PATH_LENGTH];
-	if ((rc = devman_fun_get_path(fun, path, sizeof(path)))) {
-		printf(NAME ": Error resolving path of device with handle %ld. %s\n", fun, str_error(rc));
-		return 1;
-	}
+int tmon_test_main(int, char **, const tmon_test_ops_t *);
 
-	printf("Using device: %s\n", path);
-
-	tmon_test_params_t *params = NULL;
-	if ((rc = ops->read_params(argc, argv, &params))) {
-		printf(NAME ": Reading test parameters failed.\n");
-		return 1;
-	}
-
-	async_sess_t *sess = usbdiag_connect(fun);
-	if (!sess) {
-		printf(NAME ": Could not connect to the device.\n");
-		return 1;
-	}
-
-	async_exch_t *exch = async_exchange_begin(sess);
-	if (!exch) {
-		printf(NAME ": Could not start exchange with the device.\n");
-		ec = 1;
-		goto err_sess;
-	}
-
-	ec = ops->run(exch, params);
-	async_exchange_end(exch);
-
-err_sess:
-	usbdiag_disconnect(sess);
-	free(params);
-	return ec;
-}
+#endif /* TMON_TEST_H_ */
 
 /** @}
  */
