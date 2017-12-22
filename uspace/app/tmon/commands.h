@@ -37,12 +37,14 @@
 #define TMON_COMMANDS_H_
 
 int tmon_list(int, char **);
-int tmon_stress_intr_in(int, char **);
-int tmon_stress_intr_out(int, char **);
-int tmon_stress_bulk_in(int, char **);
-int tmon_stress_bulk_out(int, char **);
-int tmon_stress_isoch_in(int, char **);
-int tmon_stress_isoch_out(int, char **);
+
+/* Burst tests read/write into endpoints as fast as possible. */
+int tmon_burst_intr_in(int, char **);
+int tmon_burst_intr_out(int, char **);
+int tmon_burst_bulk_in(int, char **);
+int tmon_burst_bulk_out(int, char **);
+int tmon_burst_isoch_in(int, char **);
+int tmon_burst_isoch_out(int, char **);
 
 #endif /* TMON_COMMANDS_H_ */
 

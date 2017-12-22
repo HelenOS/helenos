@@ -34,8 +34,8 @@ LIBS = drv
 SOURCES = \
 	main.c\
 	list.c\
-	test.c\
-	stress_test.c\
+	tf.c\
+	burst_tests.c\
 	resolve.c
 
 include $(USPACE_PREFIX)/Makefile.common

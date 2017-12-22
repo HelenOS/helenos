@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * USB stress tests.
+ * USB burst tests.
  */
 
 #include <stdio.h>
@@ -40,15 +40,15 @@
 #include <getopt.h>
 #include <usbdiag_iface.h>
 #include "commands.h"
-#include "test.h"
+#include "tf.h"
 
 #define NAME "tmon"
 
-typedef struct tmon_stress_test_params {
+typedef struct tmon_burst_test_params {
 	tmon_test_params_t base; /* inheritance */
 	uint32_t cycles;
 	size_t size;
-} tmon_stress_test_params_t;
+} tmon_burst_test_params_t;
 
 static struct option long_options[] = {
 	{"cycles", required_argument, NULL, 'n'},
@@ -61,7 +61,7 @@ static const char *short_options = "n:s:";
 static int read_params(int argc, char *argv[], tmon_test_params_t **params)
 {
 	int rc;
-	tmon_stress_test_params_t *p = (tmon_stress_test_params_t *) malloc(sizeof(tmon_stress_test_params_t));
+	tmon_burst_test_params_t *p = (tmon_burst_test_params_t *) malloc(sizeof(tmon_burst_test_params_t));
 	if (!p)
 		return ENOMEM;
 
@@ -104,12 +104,12 @@ err_malloc:
 
 static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
-	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
-	printf("Executing interrupt in stress test.\n"
+	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
+	printf("Executing interrupt in test.\n"
 	    "      Number of cycles: %d\n"
 	    "      Data size: %ld B\n", params->cycles, params->size);
 
-	int rc = usbdiag_stress_intr_in(exch, params->cycles, params->size);
+	int rc = usbdiag_burst_intr_in(exch, params->cycles, params->size);
 	if (rc) {
 		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
@@ -120,12 +120,12 @@ static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_par
 
 static int run_intr_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
-	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
-	printf("Executing interrupt out stress test.\n"
+	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
+	printf("Executing interrupt out test.\n"
 	    "      Number of cycles: %d\n"
 	    "      Data size: %ld B\n", params->cycles, params->size);
 
-	int rc = usbdiag_stress_intr_out(exch, params->cycles, params->size);
+	int rc = usbdiag_burst_intr_out(exch, params->cycles, params->size);
 	if (rc) {
 		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
@@ -136,12 +136,12 @@ static int run_intr_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 
 static int run_bulk_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
-	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
-	printf("Executing bulk in stress test.\n"
+	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
+	printf("Executing bulk in test.\n"
 	    "      Number of cycles: %d\n"
 	    "      Data size: %ld B\n", params->cycles, params->size);
 
-	int rc = usbdiag_stress_bulk_in(exch, params->cycles, params->size);
+	int rc = usbdiag_burst_bulk_in(exch, params->cycles, params->size);
 	if (rc) {
 		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
@@ -152,12 +152,12 @@ static int run_bulk_in(async_exch_t *exch, const tmon_test_params_t *generic_par
 
 static int run_bulk_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
-	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
-	printf("Executing bulk out stress test.\n"
+	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
+	printf("Executing bulk out test.\n"
 	    "      Number of cycles: %d\n"
 	    "      Data size: %ld B\n", params->cycles, params->size);
 
-	int rc = usbdiag_stress_bulk_out(exch, params->cycles, params->size);
+	int rc = usbdiag_burst_bulk_out(exch, params->cycles, params->size);
 	if (rc) {
 		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
@@ -168,12 +168,12 @@ static int run_bulk_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 
 static int run_isoch_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
-	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
-	printf("Executing isochronous in stress test.\n"
+	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
+	printf("Executing isochronous in test.\n"
 	    "      Number of cycles: %d\n"
 	    "      Data size: %ld B\n", params->cycles, params->size);
 
-	int rc = usbdiag_stress_isoch_in(exch, params->cycles, params->size);
+	int rc = usbdiag_burst_isoch_in(exch, params->cycles, params->size);
 	if (rc) {
 		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
@@ -184,12 +184,12 @@ static int run_isoch_in(async_exch_t *exch, const tmon_test_params_t *generic_pa
 
 static int run_isoch_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
-	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
-	printf("Executing isochronous out stress test.\n"
+	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
+	printf("Executing isochronous out test.\n"
 	    "      Number of cycles: %d\n"
 	    "      Data size: %ld B\n", params->cycles, params->size);
 
-	int rc = usbdiag_stress_isoch_out(exch, params->cycles, params->size);
+	int rc = usbdiag_burst_isoch_out(exch, params->cycles, params->size);
 	if (rc) {
 		printf(NAME ": Test failed. %s\n", str_error(rc));
 		return 1;
@@ -198,7 +198,7 @@ static int run_isoch_out(async_exch_t *exch, const tmon_test_params_t *generic_p
 	return 0;
 }
 
-int tmon_stress_intr_in(int argc, char *argv[])
+int tmon_burst_intr_in(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
 		.run = run_intr_in,
@@ -208,7 +208,7 @@ int tmon_stress_intr_in(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
-int tmon_stress_intr_out(int argc, char *argv[])
+int tmon_burst_intr_out(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
 		.run = run_intr_out,
@@ -218,7 +218,7 @@ int tmon_stress_intr_out(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
-int tmon_stress_bulk_in(int argc, char *argv[])
+int tmon_burst_bulk_in(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
 		.run = run_bulk_in,
@@ -228,7 +228,7 @@ int tmon_stress_bulk_in(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
-int tmon_stress_bulk_out(int argc, char *argv[])
+int tmon_burst_bulk_out(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
 		.run = run_bulk_out,
@@ -238,7 +238,7 @@ int tmon_stress_bulk_out(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
-int tmon_stress_isoch_in(int argc, char *argv[])
+int tmon_burst_isoch_in(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
 		.run = run_isoch_in,
@@ -248,7 +248,7 @@ int tmon_stress_isoch_in(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
-int tmon_stress_isoch_out(int argc, char *argv[])
+int tmon_burst_isoch_out(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
 		.run = run_isoch_out,
