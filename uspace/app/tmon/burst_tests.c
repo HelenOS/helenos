@@ -116,8 +116,11 @@ static void print_results(const tmon_burst_test_params_t *params, usbdiag_dur_t 
 	const double dur_per_cycle = (double) duration / (double) params->cycles;
 	printf(INDENT "Duration per cycle: %0.3f ms\n", dur_per_cycle);
 
-	const double speed = (double) params->size / (double) duration;
-	printf(INDENT "Transfer speed: %0.3f B/s\n", speed);
+	const size_t total_size = params->size * params->cycles;
+	printf(INDENT "Total size: %ld B\n", total_size);
+
+	const double speed = 1000.0 * (double) total_size / (double) duration;
+	printf(INDENT "Average speed: %0.3f B/s\n", speed);
 }
 
 static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
