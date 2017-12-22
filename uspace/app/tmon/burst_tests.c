@@ -103,10 +103,51 @@ err_malloc:
 	return rc;
 }
 
+typedef struct tmon_unit {
+	char prefix;
+	uint64_t factor;
+} tmon_unit_t;
+
+static const tmon_unit_t units[] = {
+	{ .prefix = 'E', .factor = 1ul << 60 },
+	{ .prefix = 'P', .factor = 1ul << 50 },
+	{ .prefix = 'T', .factor = 1ul << 40 },
+	{ .prefix = 'G', .factor = 1ul << 30 },
+	{ .prefix = 'M', .factor = 1ul << 20 },
+	{ .prefix = 'k', .factor = 1ul << 10 },
+	{ /* NULL-terminated */ }
+};
+
+static char * format_size(double size, const char *fmt)
+{
+	int i;
+	for (i = 0; units[i].prefix; ++i) {
+		if (units[i].factor <= size)
+			break;
+	}
+
+	char prefix[2] = { '\0', '\0' };
+	double factor = 1;
+
+	if (units[i].prefix) {
+		prefix[0] = units[i].prefix;
+		factor = units[i].factor;
+	}
+
+	const double div_size = size / factor;
+	char *out = NULL;
+	asprintf(&out, fmt, div_size, prefix);
+
+	return out;
+}
+
 static void print_params(const tmon_burst_test_params_t *params)
 {
 	printf(INDENT "Number of cycles: %d\n", params->cycles);
-	printf(INDENT "Data size: %ld B\n", params->size);
+
+	char *str_size = format_size(params->size, "%0.3f %sB");
+	printf(INDENT "Data size: %s\n", str_size);
+	free(str_size);
 }
 
 static void print_results(const tmon_burst_test_params_t *params, usbdiag_dur_t duration)
@@ -117,10 +158,14 @@ static void print_results(const tmon_burst_test_params_t *params, usbdiag_dur_t 
 	printf(INDENT "Duration per cycle: %0.3f ms\n", dur_per_cycle);
 
 	const size_t total_size = params->size * params->cycles;
-	printf(INDENT "Total size: %ld B\n", total_size);
+	char *str_total_size = format_size(total_size, "%0.3f %sB");
+	printf(INDENT "Total size: %s\n", str_total_size);
+	free(str_total_size);
 
 	const double speed = 1000.0 * (double) total_size / (double) duration;
-	printf(INDENT "Average speed: %0.3f B/s\n", speed);
+	char *str_speed = format_size(speed, "%0.3f %sB/s");
+	printf(INDENT "Average speed: %s\n", str_speed);
+	free(str_speed);
 }
 
 static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
