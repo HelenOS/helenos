@@ -81,14 +81,8 @@ int tmon_resolve_default(devman_handle_t *fun)
 int tmon_resolve_named(const char *dev_path, devman_handle_t *fun)
 {
 	int rc;
-	service_id_t svc;
-	if ((rc = loc_service_get_id(dev_path, &svc, IPC_FLAG_BLOCKING))) {
-		printf(NAME ": Error resolving device. %s\n", str_error(rc));
-		return rc;
-	}
-
-	if ((rc = devman_fun_sid_to_handle(svc, fun))) {
-		printf(NAME ": Error resolving handle of device with SID %ld.\n", svc);
+	if ((rc = devman_fun_get_handle(dev_path, fun, 0))) {
+		printf(NAME ": Error resolving handle of device - %s.\n", str_error(rc));
 		return rc;
 	}
 
