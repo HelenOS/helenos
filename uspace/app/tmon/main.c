@@ -37,15 +37,16 @@
 #include <stdio.h>
 #include "commands.h"
 
-#define NAME "tmon"
+#define NAME   "tmon"
+#define INDENT "      "
 
-typedef struct {
+typedef struct tmon_cmd {
 	const char *name;
 	const char *description;
 	int (*action)(int, char **);
-} usb_diag_cmd_t;
+} tmon_cmd_t;
 
-static usb_diag_cmd_t commands[] = {
+static tmon_cmd_t commands[] = {
 	{
 		.name = "list",
 		.description = "Print a list of connected diagnostic devices.",
@@ -53,58 +54,78 @@ static usb_diag_cmd_t commands[] = {
 	},
 	{
 		.name = "test-intr-in",
-		.description = "Read from interrupt in endpoints as fast as possible.",
+		.description = "Read from interrupt endpoint as fast as possible.",
 		.action = tmon_burst_intr_in,
 	},
 	{
 		.name = "test-intr-out",
-		.description = "Write to interrupt out endpoints as fast as possible.",
+		.description = "Write to interrupt endpoint as fast as possible.",
 		.action = tmon_burst_intr_out,
 	},
 	{
 		.name = "test-bulk-in",
-		.description = "Read from bulk in endpoints as fast as possible.",
+		.description = "Read from bulk endpoint as fast as possible.",
 		.action = tmon_burst_bulk_in,
 	},
 	{
 		.name = "test-bulk-out",
-		.description = "Write to bulk out endpoints as fast as possible.",
+		.description = "Write to bulk endpoint as fast as possible.",
 		.action = tmon_burst_bulk_out,
 	},
 	{
 		.name = "test-isoch-in",
-		.description = "Read from isochronous in endpoints as fast as possible.",
+		.description = "Read from isochronous endpoint as fast as possible.",
 		.action = tmon_burst_isoch_in,
 	},
 	{
 		.name = "test-isoch-out",
-		.description = "Write to isochronouse out endpoints as fast as possible.",
+		.description = "Write to isochronous endpoint as fast as possible.",
 		.action = tmon_burst_isoch_out,
 	},
+	{ /* NULL-terminated */ }
+};
+
+typedef struct tmon_opt {
+	const char *long_name;
+	char short_name;
+	const char *description;
+} tmon_opt_t;
+
+static tmon_opt_t options[] = {
 	{
-		.name = NULL
-	}
+		.long_name = "cycles",
+		.short_name = 'n',
+		.description = "Set the number of read/write cycles."
+	},
+	{
+		.long_name = "size",
+		.short_name = 's',
+		.description = "Set the data size transferred in a single cycle."
+	},
+	{ /* NULL-terminated */ }
 };
 
 static void print_usage(char *app_name)
 {
-	printf(NAME ": benchmark USB diagnostic device\n\n");
+	puts(NAME ": benchmark USB diagnostic device\n\n");
+	printf("Usage: %s command [device] [options]\n\n", app_name);
 
-	printf("Usage: %s command [device] [options]\n", app_name);
-	printf("Available commands:\n");
 	for (int i = 0; commands[i].name; ++i) {
-		printf("      %s - %s\n", commands[i].name, commands[i].description);
+		printf(INDENT "%s - %s\n", commands[i].name, commands[i].description);
 	}
 
-	// TODO: Print options.
+	puts("\n");
+	for (int i = 0; options[i].long_name; ++i) {
+		printf(INDENT "-%c --%s\n" INDENT INDENT "%s\n", options[i].short_name, options[i].long_name, options[i].description);
+	}
 
-	printf("\nIf no device is specified, the first device is used provided that no other device is connected.\n\n");
+	puts("\nIf no device is specified, the first device is used provided that it is the only one connected. Otherwise, the command fails.\n\n");
 }
 
 int main(int argc, char *argv[])
 {
 	// Find a command to execute.
-	usb_diag_cmd_t *cmd = NULL;
+	tmon_cmd_t *cmd = NULL;
 	for (int i = 0; argc > 1 && commands[i].name; ++i) {
 		if (str_cmp(argv[1], commands[i].name) == 0) {
 			cmd = commands + i;
