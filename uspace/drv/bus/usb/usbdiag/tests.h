@@ -38,12 +38,12 @@
 
 #include <ddf/driver.h>
 
-int usbdiag_burst_test_intr_in(ddf_fun_t *, int, size_t);
-int usbdiag_burst_test_intr_out(ddf_fun_t *, int, size_t);
-int usbdiag_burst_test_bulk_in(ddf_fun_t *, int, size_t);
-int usbdiag_burst_test_bulk_out(ddf_fun_t *, int, size_t);
-int usbdiag_burst_test_isoch_in(ddf_fun_t *, int, size_t);
-int usbdiag_burst_test_isoch_out(ddf_fun_t *, int, size_t);
+int usbdiag_burst_test_intr_in(ddf_fun_t *, int, size_t, usbdiag_dur_t *);
+int usbdiag_burst_test_intr_out(ddf_fun_t *, int, size_t, usbdiag_dur_t *);
+int usbdiag_burst_test_bulk_in(ddf_fun_t *, int, size_t, usbdiag_dur_t *);
+int usbdiag_burst_test_bulk_out(ddf_fun_t *, int, size_t, usbdiag_dur_t *);
+int usbdiag_burst_test_isoch_in(ddf_fun_t *, int, size_t, usbdiag_dur_t *);
+int usbdiag_burst_test_isoch_out(ddf_fun_t *, int, size_t, usbdiag_dur_t *);
 
 #endif /* USBDIAG_TESTS_H_ */
 

@@ -42,7 +42,8 @@
 #include "commands.h"
 #include "tf.h"
 
-#define NAME "tmon"
+#define NAME   "tmon"
+#define INDENT "      "
 
 typedef struct tmon_burst_test_params {
 	tmon_test_params_t base; /* inheritance */
@@ -102,99 +103,128 @@ err_malloc:
 	return rc;
 }
 
+static void print_params(const tmon_burst_test_params_t *params)
+{
+	printf(INDENT "Number of cycles: %d\n", params->cycles);
+	printf(INDENT "Data size: %ld B\n", params->size);
+}
+
+static void print_results(const tmon_burst_test_params_t *params, usbdiag_dur_t duration)
+{
+	printf(INDENT "Total duration: %ld ms\n", duration);
+
+	const double dur_per_cycle = (double) duration / (double) params->cycles;
+	printf(INDENT "Duration per cycle: %0.3f ms\n", dur_per_cycle);
+
+	const double speed = (double) params->size / (double) duration;
+	printf(INDENT "Transfer speed: %0.3f B/s\n", speed);
+}
+
 static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
-	printf("Executing interrupt in test.\n"
-	    "      Number of cycles: %d\n"
-	    "      Data size: %ld B\n", params->cycles, params->size);
+	puts("Reading data from interrupt endpoint.\n");
+	print_params(params);
 
-	int rc = usbdiag_burst_intr_in(exch, params->cycles, params->size);
+	usbdiag_dur_t duration;
+	int rc = usbdiag_burst_intr_in(exch, params->cycles, params->size, &duration);
 	if (rc) {
-		printf(NAME ": Test failed. %s\n", str_error(rc));
+		printf(NAME ": Test failed with error: %s\n", str_error(rc));
 		return 1;
 	}
 
+	puts("Test succeeded.\n");
+	print_results(params, duration);
 	return 0;
 }
 
 static int run_intr_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
-	printf("Executing interrupt out test.\n"
-	    "      Number of cycles: %d\n"
-	    "      Data size: %ld B\n", params->cycles, params->size);
+	puts("Writing data to interrupt endpoint.\n");
+	print_params(params);
 
-	int rc = usbdiag_burst_intr_out(exch, params->cycles, params->size);
+	usbdiag_dur_t duration;
+	int rc = usbdiag_burst_intr_out(exch, params->cycles, params->size, &duration);
 	if (rc) {
-		printf(NAME ": Test failed. %s\n", str_error(rc));
+		printf(NAME ": Test failed with error: %s\n", str_error(rc));
 		return 1;
 	}
 
+	puts("Test succeeded.\n");
+	print_results(params, duration);
 	return 0;
 }
 
 static int run_bulk_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
-	printf("Executing bulk in test.\n"
-	    "      Number of cycles: %d\n"
-	    "      Data size: %ld B\n", params->cycles, params->size);
+	puts("Reading data from bulk endpoint.\n");
+	print_params(params);
 
-	int rc = usbdiag_burst_bulk_in(exch, params->cycles, params->size);
+	usbdiag_dur_t duration;
+	int rc = usbdiag_burst_bulk_in(exch, params->cycles, params->size, &duration);
 	if (rc) {
-		printf(NAME ": Test failed. %s\n", str_error(rc));
+		printf(NAME ": Test failed with error: %s\n", str_error(rc));
 		return 1;
 	}
 
+	puts("Test succeeded.\n");
+	print_results(params, duration);
 	return 0;
 }
 
 static int run_bulk_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
-	printf("Executing bulk out test.\n"
-	    "      Number of cycles: %d\n"
-	    "      Data size: %ld B\n", params->cycles, params->size);
+	puts("Writing data to bulk endpoint.\n");
+	print_params(params);
 
-	int rc = usbdiag_burst_bulk_out(exch, params->cycles, params->size);
+	usbdiag_dur_t duration;
+	int rc = usbdiag_burst_bulk_out(exch, params->cycles, params->size, &duration);
 	if (rc) {
-		printf(NAME ": Test failed. %s\n", str_error(rc));
+		printf(NAME ": Test failed with error: %s\n", str_error(rc));
 		return 1;
 	}
 
+	puts("Test succeeded.\n");
+	print_results(params, duration);
 	return 0;
 }
 
 static int run_isoch_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
-	printf("Executing isochronous in test.\n"
-	    "      Number of cycles: %d\n"
-	    "      Data size: %ld B\n", params->cycles, params->size);
+	puts("Reading data from isochronous endpoint.\n");
+	print_params(params);
 
-	int rc = usbdiag_burst_isoch_in(exch, params->cycles, params->size);
+	usbdiag_dur_t duration;
+	int rc = usbdiag_burst_isoch_in(exch, params->cycles, params->size, &duration);
 	if (rc) {
-		printf(NAME ": Test failed. %s\n", str_error(rc));
+		printf(NAME ": Test failed with error: %s\n", str_error(rc));
 		return 1;
 	}
 
+	puts("Test succeeded.\n");
+	print_results(params, duration);
 	return 0;
 }
 
 static int run_isoch_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
-	printf("Executing isochronous out test.\n"
-	    "      Number of cycles: %d\n"
-	    "      Data size: %ld B\n", params->cycles, params->size);
+	puts("Writing data to isochronous endpoint.\n");
+	print_params(params);
 
-	int rc = usbdiag_burst_isoch_out(exch, params->cycles, params->size);
+	usbdiag_dur_t duration;
+	int rc = usbdiag_burst_isoch_out(exch, params->cycles, params->size, &duration);
 	if (rc) {
-		printf(NAME ": Test failed. %s\n", str_error(rc));
+		printf(NAME ": Test failed with error: %s\n", str_error(rc));
 		return 1;
 	}
 
+	puts("Test succeeded.\n");
+	print_results(params, duration);
 	return 0;
 }
 
