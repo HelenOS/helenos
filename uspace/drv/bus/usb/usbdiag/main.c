@@ -40,7 +40,6 @@
 #include <usbdiag_iface.h>
 #include <str_error.h>
 
-#include "usbdiag.h"
 #include "device.h"
 
 #define NAME "usbdiag"
@@ -50,8 +49,8 @@ static int device_add(usb_device_t *dev)
 	int rc;
 	usb_log_info("Adding device '%s'", usb_device_get_name(dev));
 
-	usb_diag_dev_t *diag_dev;
-	if ((rc = usb_diag_dev_create(dev, &diag_dev))) {
+	usbdiag_dev_t *diag_dev;
+	if ((rc = usbdiag_dev_create(dev, &diag_dev))) {
 		usb_log_error("Failed create device: %s.\n", str_error(rc));
 		goto err;
 	}
@@ -72,7 +71,7 @@ static int device_add(usb_device_t *dev)
 err_bind:
 	ddf_fun_unbind(diag_dev->fun);
 err_create:
-	usb_diag_dev_destroy(diag_dev);
+	usbdiag_dev_destroy(diag_dev);
 err:
 	return rc;
 }
@@ -82,7 +81,7 @@ static int device_remove(usb_device_t *dev)
 	int rc;
 	usb_log_info("Removing device '%s'", usb_device_get_name(dev));
 
-	usb_diag_dev_t *diag_dev = usb_device_to_usb_diag_dev(dev);
+	usbdiag_dev_t *diag_dev = usb_device_to_usbdiag_dev(dev);
 
 	/* TODO: Make sure nothing is going on with the device. */
 
@@ -91,7 +90,7 @@ static int device_remove(usb_device_t *dev)
 		goto err;
 	}
 
-	usb_diag_dev_destroy(diag_dev);
+	usbdiag_dev_destroy(diag_dev);
 
 	return EOK;
 
@@ -103,13 +102,13 @@ static int device_gone(usb_device_t *dev)
 {
 	usb_log_info("Device '%s' gone.", usb_device_get_name(dev));
 
-	usb_diag_dev_t *diag_dev = usb_device_to_usb_diag_dev(dev);
+	usbdiag_dev_t *diag_dev = usb_device_to_usbdiag_dev(dev);
 
 	/* TODO: Make sure nothing is going on with the device. */
 	/* TODO: Unregister device DDF function. */
 	/* TODO: Remove device from list */
 
-	usb_diag_dev_destroy(diag_dev);
+	usbdiag_dev_destroy(diag_dev);
 
 	return EOK;
 }
@@ -174,12 +173,12 @@ static const usb_endpoint_description_t isoch_out_ep = {
 };
 
 static const usb_endpoint_description_t *diag_endpoints[] = {
-	[USB_DIAG_EP_INTR_IN] = &intr_in_ep,
-	[USB_DIAG_EP_INTR_OUT] = &intr_out_ep,
-	[USB_DIAG_EP_BULK_IN] = &bulk_in_ep,
-	[USB_DIAG_EP_BULK_OUT] = &bulk_out_ep,
-	[USB_DIAG_EP_ISOCH_IN] = &isoch_in_ep,
-	[USB_DIAG_EP_ISOCH_OUT] = &isoch_out_ep,
+	[USBDIAG_EP_INTR_IN] = &intr_in_ep,
+	[USBDIAG_EP_INTR_OUT] = &intr_out_ep,
+	[USBDIAG_EP_BULK_IN] = &bulk_in_ep,
+	[USBDIAG_EP_BULK_OUT] = &bulk_out_ep,
+	[USBDIAG_EP_ISOCH_IN] = &isoch_in_ep,
+	[USBDIAG_EP_ISOCH_OUT] = &isoch_out_ep,
 	NULL
 };
 

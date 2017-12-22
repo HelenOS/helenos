@@ -36,41 +36,14 @@
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
+#include "device.h"
 #include "tests.h"
 
 #define NAME "usbdiag"
 
-
-int usb_diag_stress_intr_out(usb_diag_dev_t *dev, int cycles, size_t size)
+static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size)
 {
-	if (!dev)
-		return EBADMEM;
-
-	char *buffer = (char *) malloc(size);
-	if (!buffer)
-		return ENOMEM;
-
-	memset(buffer, 42, size);
-
-	// TODO: Are we sure that no other test is running on this endpoint?
-
-	usb_log_info("Performing interrupt out stress test on device %s.", ddf_fun_get_name(dev->fun));
-	int rc = EOK;
-	for (int i = 0; i < cycles; ++i) {
-		// Write buffer to device.
-		if ((rc = usb_pipe_write(dev->intr_out, buffer, size))) {
-			usb_log_error("Interrupt OUT write failed. %s\n", str_error(rc));
-			break;
-		}
-	}
-
-	free(buffer);
-	return rc;
-}
-
-int usb_diag_stress_intr_in(usb_diag_dev_t *dev, int cycles, size_t size)
-{
-	if (!dev)
+	if (!pipe)
 		return EBADMEM;
 
 	char *buffer = (char *) malloc(size);
@@ -79,7 +52,7 @@ int usb_diag_stress_intr_in(usb_diag_dev_t *dev, int cycles, size_t size)
 
 	// TODO: Are we sure that no other test is running on this endpoint?
 
-	usb_log_info("Performing interrupt in stress test on device %s.", ddf_fun_get_name(dev->fun));
+	usb_log_info("Performing %s IN burst test.", usb_str_transfer_type(pipe->desc.transfer_type));
 	int rc = EOK;
 	for (int i = 0; i < cycles; ++i) {
 		// Read device's response.
@@ -87,13 +60,13 @@ int usb_diag_stress_intr_in(usb_diag_dev_t *dev, int cycles, size_t size)
 		size_t transferred;
 
 		while (remaining > 0) {
-			if ((rc = usb_pipe_read(dev->intr_in, buffer + size - remaining, remaining, &transferred))) {
-				usb_log_error("Interrupt IN read failed. %s\n", str_error(rc));
+			if ((rc = usb_pipe_read(pipe, buffer + size - remaining, remaining, &transferred))) {
+				usb_log_error("Read of %s IN endpoint failed with error: %s\n", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 				break;
 			}
 
 			if (transferred > remaining) {
-				usb_log_error("Interrupt IN read more than expected.\n");
+				usb_log_error("Read of %s IN endpoint returned more data than expected.\n", usb_str_transfer_type(pipe->desc.transfer_type));
 				rc = EINVAL;
 				break;
 			}
@@ -104,14 +77,15 @@ int usb_diag_stress_intr_in(usb_diag_dev_t *dev, int cycles, size_t size)
 		if (rc)
 			break;
 	}
+	usb_log_info("Burst test on %s IN endpoint completed.", usb_str_transfer_type(pipe->desc.transfer_type));
 
 	free(buffer);
 	return rc;
 }
 
-int usb_diag_stress_bulk_out(usb_diag_dev_t *dev, int cycles, size_t size)
+static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size)
 {
-	if (!dev)
+	if (!pipe)
 		return EBADMEM;
 
 	char *buffer = (char *) malloc(size);
@@ -122,127 +96,73 @@ int usb_diag_stress_bulk_out(usb_diag_dev_t *dev, int cycles, size_t size)
 
 	// TODO: Are we sure that no other test is running on this endpoint?
 
-	usb_log_info("Performing bulk out stress test on device %s.", ddf_fun_get_name(dev->fun));
+	usb_log_info("Performing %s OUT burst test.", usb_str_transfer_type(pipe->desc.transfer_type));
 	int rc = EOK;
 	for (int i = 0; i < cycles; ++i) {
 		// Write buffer to device.
-		if ((rc = usb_pipe_write(dev->bulk_out, buffer, size))) {
-			usb_log_error("Bulk OUT write failed. %s\n", str_error(rc));
+		if ((rc = usb_pipe_write(pipe, buffer, size))) {
+			usb_log_error("Write to %s OUT endpoint failed with error: %s\n", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 			break;
 		}
 	}
+	usb_log_info("Burst test on %s OUT endpoint completed.", usb_str_transfer_type(pipe->desc.transfer_type));
 
 	free(buffer);
 	return rc;
 }
 
-int usb_diag_stress_bulk_in(usb_diag_dev_t *dev, int cycles, size_t size)
+int usbdiag_burst_test_intr_in(ddf_fun_t *fun, int cycles, size_t size)
 {
+	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
 	if (!dev)
 		return EBADMEM;
 
-	char *buffer = (char *) malloc(size);
-	if (!buffer)
-		return ENOMEM;
-
-	// TODO: Are we sure that no other test is running on this endpoint?
-
-	usb_log_info("Performing bulk in stress test on device %s.", ddf_fun_get_name(dev->fun));
-	int rc = EOK;
-	for (int i = 0; i < cycles; ++i) {
-		// Read device's response.
-		size_t remaining = size;
-		size_t transferred;
-
-		while (remaining > 0) {
-			if ((rc = usb_pipe_read(dev->bulk_in, buffer + size - remaining, remaining, &transferred))) {
-				usb_log_error("Bulk IN read failed. %s\n", str_error(rc));
-				break;
-			}
-
-			if (transferred > remaining) {
-				usb_log_error("Bulk IN read more than expected.\n");
-				rc = EINVAL;
-				break;
-			}
-
-			remaining -= transferred;
-		}
-
-		if (rc)
-			break;
-	}
-
-	free(buffer);
-	return rc;
+	return burst_in_test(dev->intr_in, cycles, size);
 }
 
-int usb_diag_stress_isoch_out(usb_diag_dev_t *dev, int cycles, size_t size)
+int usbdiag_burst_test_intr_out(ddf_fun_t *fun, int cycles, size_t size)
 {
+	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
 	if (!dev)
 		return EBADMEM;
 
-	char *buffer = (char *) malloc(size);
-	if (!buffer)
-		return ENOMEM;
-
-	memset(buffer, 42, size);
-
-	// TODO: Are we sure that no other test is running on this endpoint?
-
-	usb_log_info("Performing isochronous out stress test on device %s.", ddf_fun_get_name(dev->fun));
-	int rc = EOK;
-	for (int i = 0; i < cycles; ++i) {
-		// Write buffer to device.
-		if ((rc = usb_pipe_write(dev->isoch_out, buffer, size))) {
-			usb_log_error("Isochronous OUT write failed. %s\n", str_error(rc));
-			break;
-		}
-	}
-
-	free(buffer);
-	return rc;
+	return burst_out_test(dev->intr_out, cycles, size);
 }
 
-int usb_diag_stress_isoch_in(usb_diag_dev_t *dev, int cycles, size_t size)
+int usbdiag_burst_test_bulk_in(ddf_fun_t *fun, int cycles, size_t size)
 {
+	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
 	if (!dev)
 		return EBADMEM;
 
-	char *buffer = (char *) malloc(size);
-	if (!buffer)
-		return ENOMEM;
+	return burst_in_test(dev->bulk_in, cycles, size);
+}
 
-	// TODO: Are we sure that no other test is running on this endpoint?
+int usbdiag_burst_test_bulk_out(ddf_fun_t *fun, int cycles, size_t size)
+{
+	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
+	if (!dev)
+		return EBADMEM;
 
-	usb_log_info("Performing isochronous in stress test on device %s.", ddf_fun_get_name(dev->fun));
-	int rc = EOK;
-	for (int i = 0; i < cycles; ++i) {
-		// Read device's response.
-		size_t remaining = size;
-		size_t transferred;
+	return burst_out_test(dev->bulk_out, cycles, size);
+}
 
-		while (remaining > 0) {
-			if ((rc = usb_pipe_read(dev->isoch_in, buffer + size - remaining, remaining, &transferred))) {
-				usb_log_error("Isochronous IN read failed. %s\n", str_error(rc));
-				break;
-			}
+int usbdiag_burst_test_isoch_in(ddf_fun_t *fun, int cycles, size_t size)
+{
+	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
+	if (!dev)
+		return EBADMEM;
 
-			if (transferred > remaining) {
-				usb_log_error("Isochronous IN read more than expected.\n");
-				rc = EINVAL;
-				break;
-			}
+	return burst_in_test(dev->isoch_in, cycles, size);
+}
 
-			remaining -= transferred;
-		}
+int usbdiag_burst_test_isoch_out(ddf_fun_t *fun, int cycles, size_t size)
+{
+	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
+	if (!dev)
+		return EBADMEM;
 
-		if (rc)
-			break;
-	}
-
-	free(buffer);
-	return rc;
+	return burst_out_test(dev->isoch_out, cycles, size);
 }
 
 /**

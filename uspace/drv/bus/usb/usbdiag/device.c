@@ -44,38 +44,20 @@
 
 #define NAME "usbdiag"
 
-#define TRANSLATE_FUNC_NAME(fun) translate_##fun
-#define TRANSLATE_FUNC(fun) \
-	static int TRANSLATE_FUNC_NAME(fun)(ddf_fun_t *f, int cycles, size_t size)\
-	{\
-		usb_diag_dev_t *dev = ddf_fun_to_usb_diag_dev(f);\
-		return fun(dev, cycles, size);\
-	}
-
-TRANSLATE_FUNC(usb_diag_stress_intr_out)
-TRANSLATE_FUNC(usb_diag_stress_intr_in)
-TRANSLATE_FUNC(usb_diag_stress_bulk_out)
-TRANSLATE_FUNC(usb_diag_stress_bulk_in)
-TRANSLATE_FUNC(usb_diag_stress_isoch_out)
-TRANSLATE_FUNC(usb_diag_stress_isoch_in)
-
 static usbdiag_iface_t diag_interface = {
-	.stress_intr_out = TRANSLATE_FUNC_NAME(usb_diag_stress_intr_out),
-	.stress_intr_in = TRANSLATE_FUNC_NAME(usb_diag_stress_intr_in),
-	.stress_bulk_out = TRANSLATE_FUNC_NAME(usb_diag_stress_bulk_out),
-	.stress_bulk_in = TRANSLATE_FUNC_NAME(usb_diag_stress_bulk_in),
-	.stress_isoch_out = TRANSLATE_FUNC_NAME(usb_diag_stress_isoch_out),
-	.stress_isoch_in = TRANSLATE_FUNC_NAME(usb_diag_stress_isoch_in)
+	.burst_intr_in = usbdiag_burst_test_intr_in,
+	.burst_intr_out = usbdiag_burst_test_intr_out,
+	.burst_bulk_in = usbdiag_burst_test_bulk_in,
+	.burst_bulk_out = usbdiag_burst_test_bulk_out,
+	.burst_isoch_in = usbdiag_burst_test_isoch_in,
+	.burst_isoch_out = usbdiag_burst_test_isoch_out
 };
-
-#undef TRANSLATE_FUNC_NAME
-#undef TRANSLATE_FUNC
 
 static ddf_dev_ops_t diag_ops = {
 	.interfaces[USBDIAG_DEV_IFACE] = &diag_interface
 };
 
-static int device_init(usb_diag_dev_t *dev)
+static int device_init(usbdiag_dev_t *dev)
 {
 	int rc;
 	ddf_fun_t *fun = usb_device_ddf_fun_create(dev->usb_dev, fun_exposed, "tmon");
@@ -88,7 +70,7 @@ static int device_init(usb_diag_dev_t *dev)
 	dev->fun = fun;
 
 #define _MAP_EP(target, ep_no) do {\
-	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep(dev->usb_dev, USB_DIAG_EP_##ep_no);\
+	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep(dev->usb_dev, USBDIAG_EP_##ep_no);\
 	if (!epm || !epm->present) {\
 		usb_log_error("Failed to map endpoint: " #ep_no ".\n");\
 		rc = ENOENT;\
@@ -114,17 +96,17 @@ err:
 	return rc;
 }
 
-static void device_fini(usb_diag_dev_t *dev)
+static void device_fini(usbdiag_dev_t *dev)
 {
 	ddf_fun_destroy(dev->fun);
 }
 
-int usb_diag_dev_create(usb_device_t *dev, usb_diag_dev_t **out_diag_dev)
+int usbdiag_dev_create(usb_device_t *dev, usbdiag_dev_t **out_diag_dev)
 {
 	assert(dev);
 	assert(out_diag_dev);
 
-	usb_diag_dev_t *diag_dev = usb_device_data_alloc(dev, sizeof(usb_diag_dev_t));
+	usbdiag_dev_t *diag_dev = usb_device_data_alloc(dev, sizeof(usbdiag_dev_t));
 	if (!diag_dev)
 		return ENOMEM;
 
@@ -142,7 +124,7 @@ err_init:
 	return err;
 }
 
-void usb_diag_dev_destroy(usb_diag_dev_t *dev)
+void usbdiag_dev_destroy(usbdiag_dev_t *dev)
 {
 	assert(dev);
 

@@ -33,19 +33,19 @@
  * USB diagnostic tests.
  */
 
-#ifndef USB_DIAG_TESTS_H_
-#define USB_DIAG_TESTS_H_
+#ifndef USBDIAG_TESTS_H_
+#define USBDIAG_TESTS_H_
 
-#include "device.h"
+#include <ddf/driver.h>
 
-int usb_diag_stress_intr_out(usb_diag_dev_t *, int, size_t);
-int usb_diag_stress_intr_in(usb_diag_dev_t *, int, size_t);
-int usb_diag_stress_bulk_out(usb_diag_dev_t *, int, size_t);
-int usb_diag_stress_bulk_in(usb_diag_dev_t *, int, size_t);
-int usb_diag_stress_isoch_out(usb_diag_dev_t *, int, size_t);
-int usb_diag_stress_isoch_in(usb_diag_dev_t *, int, size_t);
+int usbdiag_burst_test_intr_in(ddf_fun_t *, int, size_t);
+int usbdiag_burst_test_intr_out(ddf_fun_t *, int, size_t);
+int usbdiag_burst_test_bulk_in(ddf_fun_t *, int, size_t);
+int usbdiag_burst_test_bulk_out(ddf_fun_t *, int, size_t);
+int usbdiag_burst_test_isoch_in(ddf_fun_t *, int, size_t);
+int usbdiag_burst_test_isoch_out(ddf_fun_t *, int, size_t);
 
-#endif /* USB_DIAG_TESTS_H_ */
+#endif /* USBDIAG_TESTS_H_ */
 
 /**
  * @}

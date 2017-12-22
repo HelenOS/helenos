@@ -33,22 +33,22 @@
  * USB diagnostic device structures.
  */
 
-#ifndef USB_DIAG_DEVICE_H_
-#define USB_DIAG_DEVICE_H_
+#ifndef USBDIAG_DEVICE_H_
+#define USBDIAG_DEVICE_H_
 
 #include <usb/dev/device.h>
 
-#define USB_DIAG_EP_INTR_IN    1
-#define USB_DIAG_EP_INTR_OUT   2
-#define USB_DIAG_EP_BULK_IN    3
-#define USB_DIAG_EP_BULK_OUT   4
-#define USB_DIAG_EP_ISOCH_IN   5
-#define USB_DIAG_EP_ISOCH_OUT  6
+#define USBDIAG_EP_INTR_IN    1
+#define USBDIAG_EP_INTR_OUT   2
+#define USBDIAG_EP_BULK_IN    3
+#define USBDIAG_EP_BULK_OUT   4
+#define USBDIAG_EP_ISOCH_IN   5
+#define USBDIAG_EP_ISOCH_OUT  6
 
 /**
  * USB diagnostic device.
  */
-typedef struct usb_diag_dev {
+typedef struct usbdiag_dev {
 	usb_device_t *usb_dev;
 	ddf_fun_t *fun;
 	usb_pipe_t *intr_in;
@@ -57,30 +57,30 @@ typedef struct usb_diag_dev {
 	usb_pipe_t *bulk_out;
 	usb_pipe_t *isoch_in;
 	usb_pipe_t *isoch_out;
-} usb_diag_dev_t;
+} usbdiag_dev_t;
 
-int usb_diag_dev_create(usb_device_t *, usb_diag_dev_t **);
-void usb_diag_dev_destroy(usb_diag_dev_t *);
+int usbdiag_dev_create(usb_device_t *, usbdiag_dev_t **);
+void usbdiag_dev_destroy(usbdiag_dev_t *);
 
-static inline usb_diag_dev_t * usb_device_to_usb_diag_dev(usb_device_t *usb_dev)
+static inline usbdiag_dev_t * usb_device_to_usbdiag_dev(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_device_data_get(usb_dev);
 }
 
-static inline usb_diag_dev_t * ddf_dev_to_usb_diag_dev(ddf_dev_t *ddf_dev)
+static inline usbdiag_dev_t * ddf_dev_to_usbdiag_dev(ddf_dev_t *ddf_dev)
 {
 	assert(ddf_dev);
-	return usb_device_to_usb_diag_dev(usb_device_get(ddf_dev));
+	return usb_device_to_usbdiag_dev(usb_device_get(ddf_dev));
 }
 
-static inline usb_diag_dev_t * ddf_fun_to_usb_diag_dev(ddf_fun_t *ddf_fun)
+static inline usbdiag_dev_t * ddf_fun_to_usbdiag_dev(ddf_fun_t *ddf_fun)
 {
 	assert(ddf_fun);
-	return ddf_dev_to_usb_diag_dev(ddf_fun_get_dev(ddf_fun));
+	return ddf_dev_to_usbdiag_dev(ddf_fun_get_dev(ddf_fun));
 }
 
-#endif /* USB_DIAG_USBDIAG_H_ */
+#endif /* USBDIAG_USBDIAG_H_ */
 
 /**
  * @}
