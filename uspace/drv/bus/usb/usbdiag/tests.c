@@ -36,12 +36,13 @@
 #include <errno.h>
 #include <str_error.h>
 #include <usb/debug.h>
+#include <time.h>
 #include "device.h"
 #include "tests.h"
 
 #define NAME "usbdiag"
 
-static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size)
+static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size, unsigned long *duration)
 {
 	if (!pipe)
 		return EBADMEM;
@@ -53,7 +54,11 @@ static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size)
 	// TODO: Are we sure that no other test is running on this endpoint?
 
 	usb_log_info("Performing %s IN burst test.", usb_str_transfer_type(pipe->desc.transfer_type));
+
 	int rc = EOK;
+	struct timeval start_time;
+	gettimeofday(&start_time, NULL);
+
 	for (int i = 0; i < cycles; ++i) {
 		// Read device's response.
 		size_t remaining = size;
@@ -77,13 +82,22 @@ static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size)
 		if (rc)
 			break;
 	}
-	usb_log_info("Burst test on %s IN endpoint completed.", usb_str_transfer_type(pipe->desc.transfer_type));
+
+	struct timeval final_time;
+	gettimeofday(&final_time, NULL);
+	unsigned long in_duration = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
+	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
+
+	usb_log_info("Burst test on %s IN endpoint completed in %lu ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
 	free(buffer);
+	if (duration)
+		*duration = in_duration;
+
 	return rc;
 }
 
-static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size)
+static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size, unsigned long *duration)
 {
 	if (!pipe)
 		return EBADMEM;
@@ -97,7 +111,11 @@ static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size)
 	// TODO: Are we sure that no other test is running on this endpoint?
 
 	usb_log_info("Performing %s OUT burst test.", usb_str_transfer_type(pipe->desc.transfer_type));
+
 	int rc = EOK;
+	struct timeval start_time;
+	gettimeofday(&start_time, NULL);
+
 	for (int i = 0; i < cycles; ++i) {
 		// Write buffer to device.
 		if ((rc = usb_pipe_write(pipe, buffer, size))) {
@@ -105,9 +123,18 @@ static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size)
 			break;
 		}
 	}
-	usb_log_info("Burst test on %s OUT endpoint completed.", usb_str_transfer_type(pipe->desc.transfer_type));
+
+	struct timeval final_time;
+	gettimeofday(&final_time, NULL);
+	unsigned long in_duration = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
+	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
+
+	usb_log_info("Burst test on %s OUT endpoint completed in %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
 	free(buffer);
+	if (duration)
+		*duration = in_duration;
+
 	return rc;
 }
 
@@ -117,7 +144,8 @@ int usbdiag_burst_test_intr_in(ddf_fun_t *fun, int cycles, size_t size)
 	if (!dev)
 		return EBADMEM;
 
-	return burst_in_test(dev->intr_in, cycles, size);
+	// FIXME: report duration
+	return burst_in_test(dev->intr_in, cycles, size, NULL);
 }
 
 int usbdiag_burst_test_intr_out(ddf_fun_t *fun, int cycles, size_t size)
@@ -126,7 +154,8 @@ int usbdiag_burst_test_intr_out(ddf_fun_t *fun, int cycles, size_t size)
 	if (!dev)
 		return EBADMEM;
 
-	return burst_out_test(dev->intr_out, cycles, size);
+	// FIXME: report duration
+	return burst_out_test(dev->intr_out, cycles, size, NULL);
 }
 
 int usbdiag_burst_test_bulk_in(ddf_fun_t *fun, int cycles, size_t size)
@@ -135,7 +164,8 @@ int usbdiag_burst_test_bulk_in(ddf_fun_t *fun, int cycles, size_t size)
 	if (!dev)
 		return EBADMEM;
 
-	return burst_in_test(dev->bulk_in, cycles, size);
+	// FIXME: report duration
+	return burst_in_test(dev->bulk_in, cycles, size, NULL);
 }
 
 int usbdiag_burst_test_bulk_out(ddf_fun_t *fun, int cycles, size_t size)
@@ -144,7 +174,8 @@ int usbdiag_burst_test_bulk_out(ddf_fun_t *fun, int cycles, size_t size)
 	if (!dev)
 		return EBADMEM;
 
-	return burst_out_test(dev->bulk_out, cycles, size);
+	// FIXME: report duration
+	return burst_out_test(dev->bulk_out, cycles, size, NULL);
 }
 
 int usbdiag_burst_test_isoch_in(ddf_fun_t *fun, int cycles, size_t size)
@@ -153,7 +184,8 @@ int usbdiag_burst_test_isoch_in(ddf_fun_t *fun, int cycles, size_t size)
 	if (!dev)
 		return EBADMEM;
 
-	return burst_in_test(dev->isoch_in, cycles, size);
+	// FIXME: report duration
+	return burst_in_test(dev->isoch_in, cycles, size, NULL);
 }
 
 int usbdiag_burst_test_isoch_out(ddf_fun_t *fun, int cycles, size_t size)
@@ -162,7 +194,8 @@ int usbdiag_burst_test_isoch_out(ddf_fun_t *fun, int cycles, size_t size)
 	if (!dev)
 		return EBADMEM;
 
-	return burst_out_test(dev->isoch_out, cycles, size);
+	// FIXME: report duration
+	return burst_out_test(dev->isoch_out, cycles, size, NULL);
 }
 
 /**
