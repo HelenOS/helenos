@@ -1495,8 +1495,9 @@ static int async_manager_worker(void)
 		assert(rc == EOK);
 
 		if (call.cap_handle == CAP_NIL) {
-			if (call.flags == 0) {
-				/* This neither a notification nor an answer. */
+			if ((call.flags &
+			    (IPC_CALL_NOTIF | IPC_CALL_ANSWERED)) == 0) {
+				/* Neither a notification nor an answer. */
 				handle_expired_timeouts();
 				continue;
 			}

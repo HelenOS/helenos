@@ -59,6 +59,9 @@
 /** Interrupt notification */
 #define IPC_CALL_NOTIF           (1 << 3)
 
+/** The call was automatically answered by the kernel due to error */
+#define IPC_CALL_AUTO_REPLY      (1 << 4)
+
 /**
  * Maximum buffer size allowed for IPC_M_DATA_WRITE and
  * IPC_M_DATA_READ requests.

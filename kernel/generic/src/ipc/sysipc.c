@@ -760,17 +760,17 @@ restart:
 #endif
 
 	if (!call) {
-		ipc_data_t data = {0};
+		ipc_data_t data = {};
 		data.cap_handle = CAP_NIL;
 		STRUCT_TO_USPACE(calldata, &data);
 		return EOK;
 	}
 	
+	call->data.flags = call->flags;
 	if (call->flags & IPC_CALL_NOTIF) {
 		/* Set in_phone_hash to the interrupt counter */
 		call->data.phone = (void *) call->priv;
 		
-		call->data.flags = IPC_CALL_NOTIF;
 		call->data.cap_handle = CAP_NIL;
 
 		STRUCT_TO_USPACE(calldata, &call->data);
@@ -787,7 +787,6 @@ restart:
 			goto restart;
 		}
 
-		call->data.flags = IPC_CALL_ANSWERED;
 		call->data.cap_handle = CAP_NIL;
 		
 		STRUCT_TO_USPACE(calldata, &call->data);
@@ -825,7 +824,8 @@ error:
 
 	/*
 	 * The callee will not receive this call and no one else has a chance to
-	 * answer it. Reply with the EPARTY error code.
+	 * answer it. Set the IPC_CALL_AUTO_REPLY flag and return the EPARTY
+	 * error code.
 	 */
 	ipc_data_t saved_data;
 	bool saved;
@@ -838,6 +838,7 @@ error:
 
 	IPC_SET_RETVAL(call->data, EPARTY);
 	(void) answer_preprocess(call, saved ? &saved_data : NULL);
+	call->flags |= IPC_CALL_AUTO_REPLY;
 	ipc_answer(&TASK->answerbox, call);
 
 	return rc;
