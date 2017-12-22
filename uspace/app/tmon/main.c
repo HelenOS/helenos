@@ -90,7 +90,7 @@ static void print_usage(char *app_name)
 {
 	printf(NAME ": benchmark USB diagnostic device\n\n");
 
-	printf("Usage: %s command [options] [device]\n", app_name);
+	printf("Usage: %s command [device] [options]\n", app_name);
 	printf("Available commands:\n");
 	for (int i = 0; commands[i].name; ++i) {
 		printf("      %s - %s\n", commands[i].name, commands[i].description);
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	return cmd->action(argc - 2, argv + 2);
+	return cmd->action(argc - 1, argv + 1);
 }
 
 /** @}

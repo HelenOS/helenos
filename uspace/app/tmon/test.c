@@ -47,15 +47,14 @@
 int tmon_test_main(int argc, char *argv[], const tmon_test_ops_t *ops) {
 	devman_handle_t fun = -1;
 
-	if (argc == 0) {
-		if (tmon_resolve_default(&fun))
-			return 1;
-	} else if (argc == 1) {
-		if (tmon_resolve_named(argv[0], &fun))
+	if (argc >= 2 && *argv[1] != '-') {
+		// Assume that the first argument is device path.
+		if (tmon_resolve_named(argv[1], &fun))
 			return 1;
 	} else {
-		printf(NAME ": Too many arguments provided.\n");
-		return 1;
+		// The first argument is either an option or not present.
+		if (tmon_resolve_default(&fun))
+			return 1;
 	}
 
 	int rc, ec;

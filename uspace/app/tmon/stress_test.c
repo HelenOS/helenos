@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
+#include <getopt.h>
 #include <usbdiag_iface.h>
 #include "commands.h"
 #include "test.h"
@@ -45,32 +46,68 @@
 
 typedef struct tmon_stress_test_params {
 	tmon_test_params_t base; /* inheritance */
-	int cycles;
+	uint32_t cycles;
 	size_t size;
 } tmon_stress_test_params_t;
 
+static struct option long_options[] = {
+	{"cycles", required_argument, NULL, 'n'},
+	{"size", required_argument, NULL, 's'},
+	{0, 0, NULL, 0}
+};
+
+static const char *short_options = "n:s:";
+
 static int read_params(int argc, char *argv[], tmon_test_params_t **params)
 {
+	int rc;
 	tmon_stress_test_params_t *p = (tmon_stress_test_params_t *) malloc(sizeof(tmon_stress_test_params_t));
 	if (!p)
 		return ENOMEM;
 
 	// Default values.
-	p->cycles = 1024;
-	p->size = 65024;
+	p->cycles = 256;
+	p->size = 1024;
 
-	// TODO: Parse argc, argv here.
+	// Parse other than default values.
+	int c;
+	for (c = 0, optreset = 1, optind = 0; c != -1;) {
+		c = getopt_long(argc, argv, short_options, long_options, NULL);
+		switch (c) {
+		case -1:
+			break;
+		case 'n':
+			if (!optarg || str_uint32_t(optarg, NULL, 10, false, &p->cycles) != EOK) {
+				puts(NAME ": Invalid number of cycles.\n");
+				rc = EINVAL;
+				goto err_malloc;
+			}
+			break;
+		case 's':
+			if (!optarg || str_size_t(optarg, NULL, 10, false, &p->size) != EOK) {
+				puts(NAME ": Invalid data size.\n");
+				rc = EINVAL;
+				goto err_malloc;
+			}
+			break;
+		}
+	}
 
 	*params = (tmon_test_params_t *) p;
 	return EOK;
+
+err_malloc:
+	free(p);
+	*params = NULL;
+	return rc;
 }
 
 static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
 	printf("Executing interrupt in stress test.\n"
-	    "      Packet count: %d\n"
-	    "      Packet size: %ld\n", params->cycles, params->size);
+	    "      Number of cycles: %d\n"
+	    "      Data size: %ld B\n", params->cycles, params->size);
 
 	int rc = usbdiag_stress_intr_in(exch, params->cycles, params->size);
 	if (rc) {
@@ -85,8 +122,8 @@ static int run_intr_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 {
 	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
 	printf("Executing interrupt out stress test.\n"
-	    "      Packet count: %d\n"
-	    "      Packet size: %ld\n", params->cycles, params->size);
+	    "      Number of cycles: %d\n"
+	    "      Data size: %ld B\n", params->cycles, params->size);
 
 	int rc = usbdiag_stress_intr_out(exch, params->cycles, params->size);
 	if (rc) {
@@ -101,8 +138,8 @@ static int run_bulk_in(async_exch_t *exch, const tmon_test_params_t *generic_par
 {
 	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
 	printf("Executing bulk in stress test.\n"
-	    "      Packet count: %d\n"
-	    "      Packet size: %ld\n", params->cycles, params->size);
+	    "      Number of cycles: %d\n"
+	    "      Data size: %ld B\n", params->cycles, params->size);
 
 	int rc = usbdiag_stress_bulk_in(exch, params->cycles, params->size);
 	if (rc) {
@@ -117,8 +154,8 @@ static int run_bulk_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 {
 	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
 	printf("Executing bulk out stress test.\n"
-	    "      Packet count: %d\n"
-	    "      Packet size: %ld\n", params->cycles, params->size);
+	    "      Number of cycles: %d\n"
+	    "      Data size: %ld B\n", params->cycles, params->size);
 
 	int rc = usbdiag_stress_bulk_out(exch, params->cycles, params->size);
 	if (rc) {
@@ -133,8 +170,8 @@ static int run_isoch_in(async_exch_t *exch, const tmon_test_params_t *generic_pa
 {
 	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
 	printf("Executing isochronous in stress test.\n"
-	    "      Packet count: %d\n"
-	    "      Packet size: %ld\n", params->cycles, params->size);
+	    "      Number of cycles: %d\n"
+	    "      Data size: %ld B\n", params->cycles, params->size);
 
 	int rc = usbdiag_stress_isoch_in(exch, params->cycles, params->size);
 	if (rc) {
@@ -149,8 +186,8 @@ static int run_isoch_out(async_exch_t *exch, const tmon_test_params_t *generic_p
 {
 	const tmon_stress_test_params_t *params = (tmon_stress_test_params_t *) generic_params;
 	printf("Executing isochronous out stress test.\n"
-	    "      Packet count: %d\n"
-	    "      Packet size: %ld\n", params->cycles, params->size);
+	    "      Number of cycles: %d\n"
+	    "      Data size: %ld B\n", params->cycles, params->size);
 
 	int rc = usbdiag_stress_isoch_out(exch, params->cycles, params->size);
 	if (rc) {
