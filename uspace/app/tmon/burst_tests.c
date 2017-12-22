@@ -39,6 +39,7 @@
 #include <str_error.h>
 #include <getopt.h>
 #include <usbdiag_iface.h>
+#include <macros.h>
 #include "commands.h"
 #include "tf.h"
 
@@ -114,22 +115,21 @@ static const tmon_unit_t units[] = {
 	{ .prefix = 'T', .factor = 1ul << 40 },
 	{ .prefix = 'G', .factor = 1ul << 30 },
 	{ .prefix = 'M', .factor = 1ul << 20 },
-	{ .prefix = 'k', .factor = 1ul << 10 },
-	{ /* NULL-terminated */ }
+	{ .prefix = 'k', .factor = 1ul << 10 }
 };
 
 static char * format_size(double size, const char *fmt)
 {
-	int i;
-	for (i = 0; units[i].prefix; ++i) {
+	unsigned i;
+	for (i = 0; i < ARRAY_SIZE(units); ++i) {
 		if (units[i].factor <= size)
 			break;
 	}
 
-	char prefix[2] = { '\0', '\0' };
+	char prefix[] = { '\0', '\0' };
 	double factor = 1;
 
-	if (units[i].prefix) {
+	if (i < ARRAY_SIZE(units)) {
 		prefix[0] = units[i].prefix;
 		factor = units[i].factor;
 	}

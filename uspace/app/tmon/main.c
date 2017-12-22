@@ -35,6 +35,7 @@
  */
 
 #include <stdio.h>
+#include <macros.h>
 #include "commands.h"
 
 #define NAME   "tmon"
@@ -81,8 +82,7 @@ static tmon_cmd_t commands[] = {
 		.name = "test-isoch-out",
 		.description = "Write to isochronous endpoint as fast as possible.",
 		.action = tmon_burst_isoch_out,
-	},
-	{ /* NULL-terminated */ }
+	}
 };
 
 typedef struct tmon_opt {
@@ -101,8 +101,7 @@ static tmon_opt_t options[] = {
 		.long_name = "size",
 		.short_name = 's',
 		.description = "Set the data size transferred in a single cycle."
-	},
-	{ /* NULL-terminated */ }
+	}
 };
 
 static void print_usage(char *app_name)
@@ -110,12 +109,12 @@ static void print_usage(char *app_name)
 	puts(NAME ": benchmark USB diagnostic device\n\n");
 	printf("Usage: %s command [device] [options]\n\n", app_name);
 
-	for (int i = 0; commands[i].name; ++i) {
+	for (unsigned i = 0; i < ARRAY_SIZE(commands); ++i) {
 		printf(INDENT "%s - %s\n", commands[i].name, commands[i].description);
 	}
 
 	puts("\n");
-	for (int i = 0; options[i].long_name; ++i) {
+	for (unsigned i = 0; i < ARRAY_SIZE(options); ++i) {
 		printf(INDENT "-%c --%s\n" INDENT INDENT "%s\n", options[i].short_name, options[i].long_name, options[i].description);
 	}
 
@@ -126,7 +125,7 @@ int main(int argc, char *argv[])
 {
 	// Find a command to execute.
 	tmon_cmd_t *cmd = NULL;
-	for (int i = 0; argc > 1 && commands[i].name; ++i) {
+	for (unsigned i = 0; argc > 1 && i < ARRAY_SIZE(commands); ++i) {
 		if (str_cmp(argv[1], commands[i].name) == 0) {
 			cmd = commands + i;
 			break;
