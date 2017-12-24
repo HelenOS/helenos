@@ -434,7 +434,7 @@ static size_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
 	return size;
 }
 
-static size_t rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
+static int rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
     rfb_rectangle_t *tile, void *buf, size_t *size)
 {
 	/* Check if it is single color */

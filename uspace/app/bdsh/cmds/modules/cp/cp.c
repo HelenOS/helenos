@@ -265,7 +265,9 @@ static int do_copy(const char *src, const char *dest,
 		}
 
 		/* call copy_file and exit */
-		rc = (copy_file(src, dest_path, blen, vb) < 0);
+		if (copy_file(src, dest_path, blen, vb) < 0) {
+			rc = EIO;
+		}
 
 	} else if (src_type == TYPE_DIR) {
 		/* e.g. cp -r /x/srcdir /y/destdir/ */
@@ -433,7 +435,7 @@ static int copy_file(const char *src, const char *dest,
 
 	if (rc != EOK) {
 		printf("\nError copying %s: %s\n", src, str_error(rc));
-		return rc;
+		return -1;
 	}
 
 out:
@@ -441,7 +443,11 @@ out:
 	vfs_put(fd2);
 	if (buff)
 		free(buff);
-	return rc;
+	if (rc != EOK) {
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 void help_cmd_cp(unsigned int level)
@@ -472,7 +478,7 @@ int cmd_cp(char **argv)
 	int buffer = 0, recursive = 0;
 	int force = 0, interactive = 0;
 	int c, opt_ind;
-	int64_t ret;
+	int ret;
 
 	con = console_init(stdin, stdout);
 	argc = cli_count_args(argv);

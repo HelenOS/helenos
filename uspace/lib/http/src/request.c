@@ -95,13 +95,13 @@ int http_request_format(http_request_t *req, char **out_buf,
 	/* Compute the size of the request */
 	ssize_t meth_size = http_encode_method(NULL, 0, req->method, req->path);
 	if (meth_size < 0)
-		return meth_size;
+		return EINVAL;
 	size_t size = meth_size;
 	
 	http_headers_foreach(req->headers, header) {
 		ssize_t header_size = http_header_encode(header, NULL, 0);
 		if (header_size < 0)
-			return header_size;
+			return EINVAL;
 		size += header_size;
 	}
 	size += str_length(HTTP_REQUEST_LINE);
@@ -115,7 +115,7 @@ int http_request_format(http_request_t *req, char **out_buf,
 	ssize_t written = http_encode_method(pos, pos_size, req->method, req->path);
 	if (written < 0) {
 		free(buf);
-		return written;
+		return EINVAL;
 	}
 	pos += written;
 	pos_size -= written;
@@ -124,7 +124,7 @@ int http_request_format(http_request_t *req, char **out_buf,
 		written = http_header_encode(header, pos, pos_size);
 		if (written < 0) {
 			free(buf);
-			return written;
+			return EINVAL;
 		}
 		pos += written;
 		pos_size -= written;

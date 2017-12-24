@@ -280,7 +280,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 			
 			if (oper->rv_type != V_VOID) {
 				putchar(' ');
-				val_print(retval, oper->rv_type);
+				val_print((sysarg_t) retval, oper->rv_type);
 			}
 			
 			if (oper->respc > 0) {

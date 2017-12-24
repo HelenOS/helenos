@@ -242,7 +242,10 @@ static int stty_ctl_init(kbd_dev_t *kdev)
 	ds = 0;
 
 	gsp_init(&sp);
-	return gsp_insert_defs(&sp, seq_defs);
+	if (gsp_insert_defs(&sp, seq_defs) < 0) {
+		return EINVAL;
+	}
+	return EOK;
 }
 
 static void stty_ctl_parse(sysarg_t scancode)

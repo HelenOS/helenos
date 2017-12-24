@@ -245,7 +245,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 		if (idx > sbi->nzones) {
 			printf(NAME ": Error! Trying to free beyond the "
 			    "bitmap max size\n");
-			return -1;
+			return EIO;
 		}
 	} else {
 		/* bid == BMAP_INODE */
@@ -253,7 +253,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 		if (idx > sbi->ninodes) {
 			printf(NAME ": Error! Trying to free beyond the "
 			    "bitmap max size\n");
-			return -1;
+			return EIO;
 		}
 	}
 
@@ -302,7 +302,8 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 	unsigned long nblocks;
 	unsigned *search, i, start_block;
 	unsigned bits_per_block;
-	int r, freebit;
+	int r;
+	int freebit;
 
 	sbi = inst->sbi;
 

@@ -259,7 +259,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 }
 
 
-static void print_sc_retval(int retval, val_type_t val_type)
+static void print_sc_retval(sysarg_t retval, val_type_t val_type)
 {
 	printf(" -> ");
 	val_print(retval, val_type);
@@ -295,22 +295,22 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, int sc_rc)
 	IPC_SET_ARG4(call, sc_args[5]);
 	IPC_SET_ARG5(call, 0);
 
-	ipcp_call_out(phoneid, &call, sc_rc);
+	ipcp_call_out(phoneid, &call, 0);
 }
 
-static void sc_ipc_call_async_slow(sysarg_t *sc_args, sysarg_t sc_rc)
+static void sc_ipc_call_async_slow(sysarg_t *sc_args, int sc_rc)
 {
 	ipc_call_t call;
 	int rc;
 
-	if (sc_rc != (sysarg_t) EOK)
+	if (sc_rc != EOK)
 		return;
 
 	memset(&call, 0, sizeof(call));
 	rc = udebug_mem_read(sess, &call.args, sc_args[1], sizeof(call.args));
 
-	if (rc >= 0) {
-		ipcp_call_out(sc_args[0], &call, sc_rc);
+	if (rc == EOK) {
+		ipcp_call_out(sc_args[0], &call, 0);
 	}
 }
 
@@ -580,7 +580,7 @@ static int cev_fibril(void *arg)
 		fibril_mutex_unlock(&state_lock);
 		
 		if (!console_get_event(console, &event))
-			return -1;
+			return EINVAL;
 		
 		if (event.type == CEV_KEY) {
 			fibril_mutex_lock(&state_lock);

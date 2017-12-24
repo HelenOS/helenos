@@ -72,7 +72,7 @@ int process_input(cliuser_t *usr)
 	token_t *tokens = tokens_buf;
 	
 	char *cmd[WORD_MAX];
-	int rc = 0;
+	int rc = EOK;
 	tokenizer_t tok;
 	unsigned int i, pipe_count, processed_pipes;
 	unsigned int pipe_pos[2];
@@ -81,7 +81,7 @@ int process_input(cliuser_t *usr)
 
 	if (usr->line == NULL) {
 		free(tokens_buf);
-		return CL_EFAIL;
+		return EINVAL;
 	}
 
 	rc = tok_init(&tok, usr->line, tokens, WORD_MAX);
@@ -197,7 +197,11 @@ int process_input(cliuser_t *usr)
 		new_iostate.stdout = to;
 	}
 
-	rc = run_command(cmd, usr, &new_iostate);
+	if (run_command(cmd, usr, &new_iostate) == 0) {
+		rc = EOK;
+	} else {
+		rc = EINVAL;
+	}
 	
 finit_with_files:
 	if (from != NULL) {
