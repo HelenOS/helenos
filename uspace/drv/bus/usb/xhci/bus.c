@@ -300,7 +300,7 @@ static int device_online(device_t *dev_base)
 		usb_log_warning("Failed to configure device " XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*dev));
 	}
 
-	/* Block creation of new endpoints and transfers. */
+	/* Allow creation of new endpoints and transfers. */
 	usb_log_debug2("Device " XHCI_DEV_FMT " going online.", XHCI_DEV_ARGS(*dev));
 	fibril_mutex_lock(&dev_base->guard);
 	dev->online = true;
