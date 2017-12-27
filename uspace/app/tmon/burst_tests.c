@@ -160,6 +160,7 @@ static char * format_size(double size, const char *fmt)
 
 	// Format the size.
 	const double div_size = size / factor;
+
 	char *out = NULL;
 	asprintf(&out, fmt, div_size, prefix);
 
@@ -173,7 +174,7 @@ static void print_params(const tmon_burst_test_params_t *params)
 {
 	printf(INDENT "Number of cycles: %d\n", params->cycles);
 
-	char *str_size = format_size(params->size, "%0.3f %sB");
+	char *str_size = format_size(params->size, "%.3f %sB");
 	printf(INDENT "Data size: %s\n", str_size);
 	free(str_size);
 }
@@ -187,15 +188,15 @@ static void print_results(const tmon_burst_test_params_t *params, usbdiag_dur_t 
 	printf(INDENT "Total duration: %ld ms\n", duration);
 
 	const double dur_per_cycle = (double) duration / (double) params->cycles;
-	printf(INDENT "Duration per cycle: %0.3f ms\n", dur_per_cycle);
+	printf(INDENT "Duration per cycle: %.3f ms\n", dur_per_cycle);
 
 	const size_t total_size = params->size * params->cycles;
-	char *str_total_size = format_size(total_size, "%0.3f %sB");
+	char *str_total_size = format_size(total_size, "%.3f %sB");
 	printf(INDENT "Total size: %s\n", str_total_size);
 	free(str_total_size);
 
 	const double speed = 1000.0 * (double) total_size / (double) duration;
-	char *str_speed = format_size(speed, "%0.3f %sB/s");
+	char *str_speed = format_size(speed, "%.3f %sB/s");
 	printf(INDENT "Average speed: %s\n", str_speed);
 	free(str_speed);
 }
