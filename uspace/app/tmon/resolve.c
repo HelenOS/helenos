@@ -43,6 +43,11 @@
 
 #define NAME "tmon"
 
+/** Resolve a single function by its class (fail if there is more/less than 1).
+ * @param[out] fun Resolved function handle (if found).
+ *
+ * @return EOK if the function was resolved successfully.
+ */
 int tmon_resolve_default(devman_handle_t *fun)
 {
 	category_id_t diag_cat;
@@ -78,6 +83,12 @@ int tmon_resolve_default(devman_handle_t *fun)
 	return EOK;
 }
 
+/** Resolve a function by its name or device path.
+ * @param[in] dev_path Name or device path (see `devman_fun_get_handle` for possible values).
+ * @param[out] fun Resolved function handle (if found).
+ *
+ * @return EOK if the function was resolved successfully.
+ */
 int tmon_resolve_named(const char *dev_path, devman_handle_t *fun)
 {
 	int rc;

@@ -36,6 +36,9 @@
 #ifndef TMON_COMMANDS_H_
 #define TMON_COMMANDS_H_
 
+/* All commands are just versions of int main(int, char **). */
+
+/* List command just prints compatible devices. */
 int tmon_list(int, char **);
 
 /* Burst tests read/write into endpoints as fast as possible. */

@@ -40,6 +40,7 @@
 
 /** Parameters common for all tests. */
 typedef struct tmon_test_params {
+	/* Nothing here. */
 } tmon_test_params_t;
 
 /** Operations to implement by all tests. */

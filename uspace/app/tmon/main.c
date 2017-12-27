@@ -41,12 +41,17 @@
 #define NAME   "tmon"
 #define INDENT "      "
 
+/** Command which is executed by tmon. */
 typedef struct tmon_cmd {
+	/** Unique name, by which the command is executed. */
 	const char *name;
+	/** Description of the command, which is displayed in the usage string. */
 	const char *description;
+	/** Function, which executes the command. Same as int main(int, char**). */
 	int (*action)(int, char **);
 } tmon_cmd_t;
 
+/** Static array of commands supported by tmon. */
 static tmon_cmd_t commands[] = {
 	{
 		.name = "list",
@@ -85,12 +90,17 @@ static tmon_cmd_t commands[] = {
 	}
 };
 
+/** Option shown in the usage string. */
 typedef struct tmon_opt {
+	/** Long name of the option without "--" prefix. */
 	const char *long_name;
+	/** Short name of the option without "-" prefix. */
 	char short_name;
+	/** Description of the option displayed in the usage string. */
 	const char *description;
 } tmon_opt_t;
 
+/** Static array of options displayed in the tmon usage string. */
 static tmon_opt_t options[] = {
 	{
 		.long_name = "cycles",
@@ -104,6 +114,9 @@ static tmon_opt_t options[] = {
 	}
 };
 
+/** Print usage string.
+ * @param[in] app_name Name to print in the invocation example.
+ */
 static void print_usage(char *app_name)
 {
 	puts(NAME ": benchmark USB diagnostic device\n\n");
@@ -121,6 +134,12 @@ static void print_usage(char *app_name)
 	puts("\nIf no device is specified, the first device is used provided that it is the only one connected. Otherwise, the command fails.\n\n");
 }
 
+/** Main tmon entry point.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
 int main(int argc, char *argv[])
 {
 	// Find a command to execute.

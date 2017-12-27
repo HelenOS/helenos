@@ -46,20 +46,33 @@
 #define NAME   "tmon"
 #define INDENT "      "
 
+/** Generic burst test parameters. */
 typedef struct tmon_burst_test_params {
-	tmon_test_params_t base; /* inheritance */
+	/** Inherited base. */
+	tmon_test_params_t base;
+	/** The count of reads/writes to perform. */
 	uint32_t cycles;
+	/** Size of single read/write. */
 	size_t size;
 } tmon_burst_test_params_t;
 
+/** Static array of long options, from which test parameters are parsed. */
 static struct option long_options[] = {
 	{"cycles", required_argument, NULL, 'n'},
 	{"size", required_argument, NULL, 's'},
 	{0, 0, NULL, 0}
 };
 
+/** String of short options, from which test parameters are parsed. */
 static const char *short_options = "n:s:";
 
+/** Common option parser for all burst tests.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ * @param[out] params Parsed test parameters (if successful).
+ *
+ * @return EOK if successful (in such case caller becomes the owner of `params`).
+ */
 static int read_params(int argc, char *argv[], tmon_test_params_t **params)
 {
 	int rc;
@@ -104,11 +117,15 @@ err_malloc:
 	return rc;
 }
 
+/** Unit of quantity used for pretty formatting. */
 typedef struct tmon_unit {
+	/** Prefix letter, which is printed before the actual unit. */
 	char prefix;
+	/** Factor of the unit. */
 	uint64_t factor;
 } tmon_unit_t;
 
+/** Static array of units with decreasing factors. */
 static const tmon_unit_t units[] = {
 	{ .prefix = 'E', .factor = 1ul << 60 },
 	{ .prefix = 'P', .factor = 1ul << 50 },
@@ -118,8 +135,15 @@ static const tmon_unit_t units[] = {
 	{ .prefix = 'k', .factor = 1ul << 10 }
 };
 
+/** Format size in bytes for human reading.
+ * @param[in] size The size to format.
+ * @param[in] fmt Format string. Must include one double and char.
+ *
+ * @return Heap-allocated string if successful (caller becomes its owner), NULL otherwise.
+ */
 static char * format_size(double size, const char *fmt)
 {
+	// Figure out the "tightest" unit.
 	unsigned i;
 	for (i = 0; i < ARRAY_SIZE(units); ++i) {
 		if (units[i].factor <= size)
@@ -134,6 +158,7 @@ static char * format_size(double size, const char *fmt)
 		factor = units[i].factor;
 	}
 
+	// Format the size.
 	const double div_size = size / factor;
 	char *out = NULL;
 	asprintf(&out, fmt, div_size, prefix);
@@ -141,6 +166,9 @@ static char * format_size(double size, const char *fmt)
 	return out;
 }
 
+/** Print burst test parameters.
+ * @param[in] params Test parameters to print.
+ */
 static void print_params(const tmon_burst_test_params_t *params)
 {
 	printf(INDENT "Number of cycles: %d\n", params->cycles);
@@ -150,6 +178,10 @@ static void print_params(const tmon_burst_test_params_t *params)
 	free(str_size);
 }
 
+/** Print burst test results.
+ * @param[in] params Test parameters.
+ * @param[in] duration Duration of the burst test.
+ */
 static void print_results(const tmon_burst_test_params_t *params, usbdiag_dur_t duration)
 {
 	printf(INDENT "Total duration: %ld ms\n", duration);
@@ -168,6 +200,12 @@ static void print_results(const tmon_burst_test_params_t *params, usbdiag_dur_t 
 	free(str_speed);
 }
 
+/** Run "interrupt in" burst test.
+ * @param[in] exch Open async exchange with the diagnostic device.
+ * @param[in] generic_params Test parameters. Must point to 'tmon_burst_test_params_t'.
+ *
+ * @return Exit code
+ */
 static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
@@ -186,6 +224,12 @@ static int run_intr_in(async_exch_t *exch, const tmon_test_params_t *generic_par
 	return 0;
 }
 
+/** Run "interrupt out" burst test.
+ * @param[in] exch Open async exchange with the diagnostic device.
+ * @param[in] generic_params Test parameters. Must point to 'tmon_burst_test_params_t'.
+ *
+ * @return Exit code
+ */
 static int run_intr_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
@@ -204,6 +248,12 @@ static int run_intr_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 	return 0;
 }
 
+/** Run "bulk in" burst test.
+ * @param[in] exch Open async exchange with the diagnostic device.
+ * @param[in] generic_params Test parameters. Must point to 'tmon_burst_test_params_t'.
+ *
+ * @return Exit code
+ */
 static int run_bulk_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
@@ -222,6 +272,12 @@ static int run_bulk_in(async_exch_t *exch, const tmon_test_params_t *generic_par
 	return 0;
 }
 
+/** Run "bulk out" burst test.
+ * @param[in] exch Open async exchange with the diagnostic device.
+ * @param[in] generic_params Test parameters. Must point to 'tmon_burst_test_params_t'.
+ *
+ * @return Exit code
+ */
 static int run_bulk_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
@@ -240,6 +296,12 @@ static int run_bulk_out(async_exch_t *exch, const tmon_test_params_t *generic_pa
 	return 0;
 }
 
+/** Run "isochronous in" burst test.
+ * @param[in] exch Open async exchange with the diagnostic device.
+ * @param[in] generic_params Test parameters. Must point to 'tmon_burst_test_params_t'.
+ *
+ * @return Exit code
+ */
 static int run_isoch_in(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
@@ -258,6 +320,12 @@ static int run_isoch_in(async_exch_t *exch, const tmon_test_params_t *generic_pa
 	return 0;
 }
 
+/** Run "isochronous out" burst test.
+ * @param[in] exch Open async exchange with the diagnostic device.
+ * @param[in] generic_params Test parameters. Must point to 'tmon_burst_test_params_t'.
+ *
+ * @return Exit code
+ */
 static int run_isoch_out(async_exch_t *exch, const tmon_test_params_t *generic_params)
 {
 	const tmon_burst_test_params_t *params = (tmon_burst_test_params_t *) generic_params;
@@ -276,6 +344,12 @@ static int run_isoch_out(async_exch_t *exch, const tmon_test_params_t *generic_p
 	return 0;
 }
 
+/** Interrupt in burst test command handler.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
 int tmon_burst_intr_in(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
@@ -286,6 +360,12 @@ int tmon_burst_intr_in(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
+/** Interrupt out burst test command handler.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
 int tmon_burst_intr_out(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
@@ -296,6 +376,12 @@ int tmon_burst_intr_out(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
+/** Interrupt bulk burst test command handler.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
 int tmon_burst_bulk_in(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
@@ -306,6 +392,12 @@ int tmon_burst_bulk_in(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
+/** Bulk out burst test command handler.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
 int tmon_burst_bulk_out(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
@@ -316,6 +408,12 @@ int tmon_burst_bulk_out(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
+/** Isochronous in burst test command handler.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
 int tmon_burst_isoch_in(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {
@@ -326,6 +424,12 @@ int tmon_burst_isoch_in(int argc, char *argv[])
 	return tmon_test_main(argc, argv, &ops);
 }
 
+/** Isochronous out burst test command handler.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
 int tmon_burst_isoch_out(int argc, char *argv[])
 {
 	static const tmon_test_ops_t ops = {

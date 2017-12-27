@@ -43,6 +43,9 @@
 #define NAME "tmon"
 #define MAX_PATH_LENGTH 1024
 
+/** Print a single item of the device list.
+ * @param[in] svc Service ID of the devman function.
+ */
 static void print_list_item(service_id_t svc)
 {
 	int rc;
@@ -62,6 +65,12 @@ static void print_list_item(service_id_t svc)
 	printf("%s\n", path);
 }
 
+/** List command handler.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
 int tmon_list(int argc, char *argv[])
 {
 	category_id_t diag_cat;

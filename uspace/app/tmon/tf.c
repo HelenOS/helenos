@@ -44,7 +44,15 @@
 #define NAME "tmon"
 #define MAX_PATH_LENGTH 1024
 
-int tmon_test_main(int argc, char *argv[], const tmon_test_ops_t *ops) {
+/** Common command handler for all test commands.
+ * @param[in] argc Number of arguments.
+ * @param[in] argv Argument values. Must point to exactly `argc` strings.
+ *
+ * @return Exit code
+ */
+int tmon_test_main(int argc, char *argv[], const tmon_test_ops_t *ops)
+{
+	// Resolve device function.
 	devman_handle_t fun = -1;
 
 	if (argc >= 2 && *argv[1] != '-') {
@@ -66,12 +74,14 @@ int tmon_test_main(int argc, char *argv[], const tmon_test_ops_t *ops) {
 
 	printf("Using device: %s\n", path);
 
+	// Read test parameters from options.
 	tmon_test_params_t *params = NULL;
 	if ((rc = ops->read_params(argc, argv, &params))) {
 		printf(NAME ": Reading test parameters failed. %s\n", str_error(rc));
 		return 1;
 	}
 
+	// Run the test body.
 	async_sess_t *sess = usbdiag_connect(fun);
 	if (!sess) {
 		printf(NAME ": Could not connect to the device.\n");
