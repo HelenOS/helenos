@@ -44,6 +44,13 @@
 #include "commands.h"
 #include "endpoint.h"
 
+/** Initialize new XHCI endpoint.
+ * @param[in] xhci_ep Allocated XHCI endpoint to initialize.
+ * @param[in] dev Device, to which the endpoint belongs.
+ * @param[in] desc USB endpoint descriptor carrying configuration data.
+ *
+ * @return Error code.
+ */
 int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoint_desc_t *desc)
 {
 	assert(xhci_ep);
@@ -74,6 +81,9 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 	return EOK;
 }
 
+/** Finalize XHCI endpoint.
+ * @param[in] xhci_ep XHCI endpoint to finalize.
+ */
 void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 {
 	assert(xhci_ep);
@@ -81,6 +91,11 @@ void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 	// TODO: Something missed?
 }
 
+/** Determine the type of a XHCI endpoint.
+ * @param[in] ep XHCI endpoint to query.
+ *
+ * @return EP_TYPE_[CONTROL|ISOCH|BULK|INTERRUPT]_[IN|OUT]
+ */
 static int xhci_endpoint_type(xhci_endpoint_t *ep)
 {
 	const bool in = ep->base.direction == USB_DIRECTION_IN;
@@ -105,11 +120,21 @@ static int xhci_endpoint_type(xhci_endpoint_t *ep)
 	return EP_TYPE_INVALID;
 }
 
+/** Test whether an XHCI endpoint uses streams.
+ * @param[in] xhci_ep XHCI endpoint to query.
+ *
+ * @return True if the endpoint uses streams.
+ */
 static bool endpoint_using_streams(xhci_endpoint_t *xhci_ep)
 {
 	return xhci_ep->primary_stream_ctx_array != NULL;
 }
 
+/** Determine maximum size of XHCI endpoint's Primary Stream Context Array.
+ * @param[in] xhci_ep XHCI endpoint to query.
+ *
+ * @return Number of items in the Primary Stream Context Array.
+ */
 static size_t primary_stream_ctx_array_max_size(xhci_endpoint_t *xhci_ep)
 {
 	if (!xhci_ep->max_streams)
@@ -129,13 +154,18 @@ static size_t primary_stream_ctx_array_max_size(xhci_endpoint_t *xhci_ep)
 // 	return 2 << XHCI_STREAM_SCT(*primary_ctx);
 // }
 
+/** Initialize primary streams of XHCI bulk endpoint.
+ * @param[in] hc Host controller of the endpoint.
+ * @param[in] xhci_epi XHCI bulk endpoint to use.
+ * @param[in] count Number of primary streams to initialize.
+ */
 static void initialize_primary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, unsigned count) {
 	for (size_t index = 0; index < count; ++index) {
 		xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[index];
 		xhci_trb_ring_t *ring = &xhci_ep->primary_stream_rings[index];
 
 		/* Init and register TRB ring for every primary stream */
-		xhci_trb_ring_init(ring);
+		xhci_trb_ring_init(ring); // FIXME: Not checking error code?
 		XHCI_STREAM_DEQ_PTR_SET(*ctx, ring->dequeue);
 
 		/* Set to linear stream array */
@@ -143,6 +173,11 @@ static void initialize_primary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, 
 	}
 }
 
+/** Configure XHCI bulk endpoint's stream context.
+ * @param[in] xhci_ep Associated XHCI bulk endpoint.
+ * @param[in] ctx Endpoint context to configure.
+ * @param[in] pstreams The value of MaxPStreams.
+ */
 static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, unsigned pstreams) {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(xhci_ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, xhci_ep->base.max_packet_size);
@@ -155,6 +190,8 @@ static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, u
 	XHCI_EP_LSA_SET(*ctx, 1);
 }
 
+/** TODO document this
+ */
 int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *xhci_ep, unsigned count) {
 	if (xhci_ep->base.transfer_type != USB_TRANSFER_BULK
 		|| dev->base.speed != USB_SPEED_SUPER) {
@@ -209,6 +246,8 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 	return ENOTSUP;
 }
 
+/** TODO document this
+ */
 static int xhci_isoch_alloc_transfers(xhci_endpoint_t *xhci_ep) {
 	int i = 0;
 	int err = EOK;
@@ -233,6 +272,11 @@ static int xhci_isoch_alloc_transfers(xhci_endpoint_t *xhci_ep) {
 	return err;
 }
 
+/** Allocate transfer data structures for XHCI endpoint.
+ * @param[in] xhci_ep XHCI endpoint to allocate data structures for.
+ *
+ * @return Error code.
+ */
 int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	/* Can't use XHCI_EP_FMT because the endpoint may not have device. */
@@ -255,6 +299,9 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	return EOK;
 }
 
+/** Free transfer data structures for XHCI endpoint.
+ * @param[in] xhci_ep XHCI endpoint to free data structures for.
+ */
 void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	if (endpoint_using_streams(xhci_ep)) {
@@ -310,6 +357,10 @@ uint8_t xhci_endpoint_index(xhci_endpoint_t *ep)
 	return xhci_endpoint_dci(ep) - 1;
 }
 
+/** Configure endpoint context of a control endpoint.
+ * @param[in] ep XHCI control endpoint.
+ * @param[in] ctx Endpoint context to configure.
+ */
 static void setup_control_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
@@ -321,6 +372,10 @@ static void setup_control_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_DCS_SET(*ctx, 1);
 }
 
+/** Configure endpoint context of a bulk endpoint.
+ * @param[in] ep XHCI bulk endpoint.
+ * @param[in] ctx Endpoint context to configure.
+ */
 static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
@@ -333,6 +388,10 @@ static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_DCS_SET(*ctx, 1);
 }
 
+/** Configure endpoint context of a isochronous endpoint.
+ * @param[in] ep XHCI isochronous endpoint.
+ * @param[in] ctx Endpoint context to configure.
+ */
 static void setup_isoch_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
@@ -347,6 +406,10 @@ static void setup_isoch_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_MAX_ESIT_PAYLOAD_HI_SET(*ctx, (ep->isoch_max_size >> 16) & 0xFF);
 }
 
+/** Configure endpoint context of a interrupt endpoint.
+ * @param[in] ep XHCI interrupt endpoint.
+ * @param[in] ctx Endpoint context to configure.
+ */
 static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
@@ -359,8 +422,10 @@ static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	// TODO: max ESIT payload
 }
 
+/** Type of endpoint context configuration function. */
 typedef void (*setup_ep_ctx_helper)(xhci_endpoint_t *, xhci_ep_ctx_t *);
 
+/** Static array, which maps USB endpoint types to their respective endpoint context configuration functions. */
 static const setup_ep_ctx_helper setup_ep_ctx_helpers[] = {
 	[USB_TRANSFER_CONTROL] = setup_control_ep_ctx,
 	[USB_TRANSFER_ISOCHRONOUS] = setup_isoch_ep_ctx,
@@ -368,6 +433,10 @@ static const setup_ep_ctx_helper setup_ep_ctx_helpers[] = {
 	[USB_TRANSFER_INTERRUPT] = setup_interrupt_ep_ctx,
 };
 
+/** Configure endpoint context of XHCI endpoint.
+ * @param[in] ep Associated XHCI endpoint.
+ * @param[in] ep_ctx Endpoint context to configure.
+ */
 void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 {
 	assert(ep);
@@ -380,6 +449,13 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 	setup_ep_ctx_helpers[tt](ep, ep_ctx);
 }
 
+/** Add a new XHCI endpoint to a device. The device must be online unless
+ * the added endpoint is number 0.
+ * @param[in] dev XHCI device, to which to add the endpoint
+ * @param[in] ep XHCI endpoint to add.
+ *
+ * @return Error code.
+ */
 int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 {
 	assert(dev);
@@ -403,6 +479,9 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	return EOK;
 }
 
+/** Remove XHCI endpoint from a device.
+ * @param[in] ep XHCI endpoint to remove.
+ */
 void xhci_device_remove_endpoint(xhci_endpoint_t *ep)
 {
 	assert(ep);
@@ -415,6 +494,12 @@ void xhci_device_remove_endpoint(xhci_endpoint_t *ep)
 	endpoint_del_ref(&ep->base);
 }
 
+/** Retrieve XHCI endpoint from a device by the endpoint number.
+ * @param[in] dev XHCI device to query.
+ * @param[in] ep Endpoint number identifying the endpoint to retrieve.
+ *
+ * @return XHCI endpoint with the specified number or NULL if no such endpoint exists.
+ */
 xhci_endpoint_t *xhci_device_get_endpoint(xhci_device_t *dev, usb_endpoint_t ep)
 {
 	return dev->endpoints[ep];
