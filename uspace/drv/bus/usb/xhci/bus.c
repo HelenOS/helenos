@@ -49,6 +49,7 @@
 #include "transfers.h"
 
 
+/** Initial descriptor used for control endpoint 0 before more configuration is retrieved. */
 static const usb_endpoint_desc_t ep0_initial_desc = {
 	.endpoint_no = 0,
 	.direction = USB_DIRECTION_BOTH,
@@ -59,6 +60,12 @@ static const usb_endpoint_desc_t ep0_initial_desc = {
 
 static endpoint_t *endpoint_create(device_t *, const usb_endpoint_desc_t *);
 
+/** Assign address and control endpoint to a new XHCI device.
+ * @param[in] bus XHCI bus, in which the address is assigned.
+ * @param[in] dev New device to address and configure.
+ *
+ * @return Error code.
+ */
 static int address_device(xhci_bus_t *bus, xhci_device_t *dev)
 {
 	int err;
@@ -105,6 +112,12 @@ err_slot:
 	return err;
 }
 
+/** Retrieve and set maximum packet size for endpoint zero of a XHCI device.
+ * @param[in] hc Host controller, which manages the device.
+ * @param[in] dev Device with operational endpoint zero.
+ *
+ * @return Error code.
+ */
 static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 {
 	int err;
@@ -130,6 +143,13 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	return EOK;
 }
 
+/** Respond to a new device on the XHCI bus. Address it, negotiate packet size
+ * and retrieve USB descriptors.
+ * @param[in] bus XHCI bus, where the new device emerged.
+ * @param[in] dev XHCI device, which has appeared on the bus.
+ *
+ * @return Error code.
+ */
 int xhci_bus_enumerate_device(xhci_bus_t *bus, device_t *dev)
 {
 	int err;
@@ -181,6 +201,13 @@ err_address:
 
 static int endpoint_unregister(endpoint_t *);
 
+/** Remove device from XHCI bus. Transition it to the offline state, abort all
+ * ongoing transfers and unregister all of its endpoints.
+ * @param[in] bus XHCI bus, from which the device is removed.
+ * @param[in] dev XHCI device, which is removed from the bus.
+ *
+ * @return Error code.
+ */
 int xhci_bus_remove_device(xhci_bus_t *bus, device_t *dev)
 {
 	int err;
@@ -243,6 +270,8 @@ static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
 	assert(bus_base);
 	return (xhci_bus_t *) bus_base;
 }
+
+// TODO: Fill in docstrings for XHCI bus callbacks once generic bus callbacks get their docstrings.
 
 static int device_enumerate(device_t *dev)
 {
@@ -478,7 +507,9 @@ static void batch_destroy(usb_transfer_batch_t *batch)
 	xhci_transfer_destroy(xhci_transfer_from_batch(batch));
 }
 
+/** Structure binding XHCI static callbacks to generic bus callbacks. */
 static const bus_ops_t xhci_bus_ops = {
+// TODO: Is it good idea to use this macro? It blurrs the fact that the callbacks and static functions are called the same.
 #define BIND_OP(op) .op = op,
 	BIND_OP(reserve_default_address)
 	BIND_OP(release_default_address)
@@ -506,6 +537,12 @@ static const bus_ops_t xhci_bus_ops = {
 	.batch_schedule = hc_schedule,
 };
 
+/** Initialize XHCI bus.
+ * @param[in] bus Allocated XHCI bus to initialize.
+ * @param[in] hc Associated host controller, which manages the bus.
+ *
+ * @return Error code.
+ */
 int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 {
 	assert(bus);
@@ -522,9 +559,14 @@ int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 	return EOK;
 }
 
+/** Finalize XHCI bus.
+ * @param[in] bus XHCI bus to finalize.
+ */
 void xhci_bus_fini(xhci_bus_t *bus)
 {
-
+	// FIXME: Deallocate bus->devices_by_slot?
+	// FIXME: Should there be some bus_fini() to call?
+	// FIXME: Something else we forgot?
 }
 
 /**
