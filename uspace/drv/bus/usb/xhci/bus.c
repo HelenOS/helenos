@@ -216,7 +216,7 @@ int xhci_bus_remove_device(xhci_bus_t *bus, device_t *dev)
 	/* Block creation of new endpoints and transfers. */
 	usb_log_debug2("Device " XHCI_DEV_FMT " going offline.", XHCI_DEV_ARGS(*xhci_dev));
 	fibril_mutex_lock(&dev->guard);
-	xhci_dev->online = false;
+	dev->online = false;
 	fibril_mutex_unlock(&dev->guard);
 
 	/* Abort running transfers. */
@@ -303,7 +303,7 @@ static int device_online(device_t *dev_base)
 	/* Allow creation of new endpoints and transfers. */
 	usb_log_debug2("Device " XHCI_DEV_FMT " going online.", XHCI_DEV_ARGS(*dev));
 	fibril_mutex_lock(&dev_base->guard);
-	dev->online = true;
+	dev_base->online = true;
 	fibril_mutex_unlock(&dev_base->guard);
 
 	if ((err = ddf_fun_online(dev_base->fun))) {
@@ -331,7 +331,7 @@ static int device_offline(device_t *dev_base)
 	/* Block creation of new endpoints and transfers. */
 	usb_log_debug2("Device " XHCI_DEV_FMT " going offline.", XHCI_DEV_ARGS(*dev));
 	fibril_mutex_lock(&dev_base->guard);
-	dev->online = false;
+	dev_base->online = false;
 	fibril_mutex_unlock(&dev_base->guard);
 
 	/* We will need the endpoint array later for DS deallocation. */

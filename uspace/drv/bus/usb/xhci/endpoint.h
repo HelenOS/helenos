@@ -140,9 +140,6 @@ typedef struct xhci_device {
 
 	/** Flag indicating whether the device is USB3 (it's USB2 otherwise). */
 	bool usb3;
-
-	/** True if the device can add new endpoints and schedule transfers. */
-	volatile bool online;
 } xhci_device_t;
 
 #define XHCI_DEV_FMT  "(%s, slot %d)"

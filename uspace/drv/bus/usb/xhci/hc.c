@@ -705,7 +705,7 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 
 	/* From now on, the device is officially online, yay! */
 	fibril_mutex_lock(&dev->base.guard);
-	dev->online = true;
+	dev->base.online = true;
 	fibril_mutex_unlock(&dev->base.guard);
 
 	return EOK;

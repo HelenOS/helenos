@@ -462,7 +462,7 @@ int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
 	assert(ep);
 
 	/* Offline devices don't create new endpoints other than EP0. */
-	if (!dev->online && ep->base.endpoint > 0) {
+	if (!dev->base.online && ep->base.endpoint > 0) {
 		return EAGAIN;
 	}
 

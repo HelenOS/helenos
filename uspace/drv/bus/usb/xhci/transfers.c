@@ -260,7 +260,7 @@ static int schedule_isochronous_trb(xhci_trb_ring_t *ring, xhci_endpoint_t *ep, 
 	// see 4.14.1 and 4.11.2.3 for the explanation, how to calculate those
 	size_t tdpc = len / 1024 + ((len % 1024) ? 1 : 0);
 	size_t tbc = tdpc / (ep->max_burst + 1);
-	if(!tdpc % (ep->max_burst + 1)) --tbc;
+	if (!tdpc % (ep->max_burst + 1)) --tbc;
 	size_t bsp = tdpc % (ep->max_burst + 1);
 	size_t tlbpc = (bsp ? bsp - 1 : ep->max_burst);
 
@@ -519,11 +519,6 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
 	xhci_device_t *xhci_dev = xhci_ep_to_dev(xhci_ep);
 
-	/* Offline devices don't schedule transfers other than on EP0. */
-	if (!xhci_dev->online && ep->endpoint > 0) {
-		return EAGAIN;
-	}
-
 	// FIXME: find a better way to check if the ring is not initialized
 	if (!xhci_ep->ring.segment_count) {
 		usb_log_error("Ring not initialized for endpoint " XHCI_EP_FMT,
@@ -532,7 +527,7 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	}
 
 	// Isochronous transfer needs to be handled differently
-	if(batch->ep->transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+	if (batch->ep->transfer_type == USB_TRANSFER_ISOCHRONOUS) {
 		return schedule_isochronous(hc, transfer, xhci_ep, xhci_dev);
 	}
 

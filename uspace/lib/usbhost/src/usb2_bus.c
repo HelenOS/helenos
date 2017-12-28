@@ -270,6 +270,11 @@ static int address_device(device_t *dev)
 		goto err_address;
 	}
 
+	/* From now on, the device is officially online, yay! */
+	fibril_mutex_lock(&dev->guard);
+	dev->online = true;
+	fibril_mutex_unlock(&dev->guard);
+
 	return EOK;
 
 err_default_control_ep:

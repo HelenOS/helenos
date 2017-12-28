@@ -79,6 +79,9 @@ typedef struct device {
 	/* Managing bus */
 	bus_t *bus;
 
+	/** True if the device can add new endpoints and schedule transfers. */
+	volatile bool online;
+
 	/* This structure is meant to be extended by overriding. */
 } device_t;
 

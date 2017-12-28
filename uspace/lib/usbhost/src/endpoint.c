@@ -213,6 +213,11 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 		return ENOTSUP;
 	}
 
+	/* Offline devices don't schedule transfers other than on EP0. */
+	if (!ep->device->online && ep->endpoint > 0) {
+		return EAGAIN;
+	}
+
 	const size_t bw = endpoint_count_bw(ep, size);
 	/* Check if we have enough bandwidth reserved */
 	if (ep->bandwidth < bw) {
