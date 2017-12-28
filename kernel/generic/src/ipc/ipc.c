@@ -349,6 +349,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
 		call->forget = true;
 	} else {
 		atomic_inc(&phone->active_calls);
+		kobject_add_ref(phone->kobject);
 		call->sender = caller;
 		call->active = true;
 		spinlock_lock(&caller->active_calls_lock);
@@ -562,6 +563,7 @@ restart:
 		    call_t, ab_link);
 		list_remove(&request->ab_link);
 		atomic_dec(&request->caller_phone->active_calls);
+		kobject_put(request->caller_phone->kobject);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
 		call_cnt++;
@@ -706,6 +708,7 @@ static void ipc_forget_call(call_t *call)
 	spinlock_unlock(&TASK->active_calls_lock);
 
 	atomic_dec(&call->caller_phone->active_calls);
+	kobject_put(call->caller_phone->kobject);
 
 	SYSIPC_OP(request_forget, call);
 
