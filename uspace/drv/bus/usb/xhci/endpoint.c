@@ -63,6 +63,9 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 	xhci_ep->max_burst = desc->usb3.max_burst;
 	xhci_ep->mult = desc->usb3.mult;
 
+	// TODO: process according to 6.2.3.6 of XHCI specification; hardcoded for HS/SS EPs
+	xhci_ep->interval = desc->interval - 1;
+
 	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
 		xhci_ep->isoch_max_size = desc->usb3.bytes_per_interval
 			? desc->usb3.bytes_per_interval
@@ -71,7 +74,7 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 
 		/* Allocate and setup isochronous-specific structures. */
 		xhci_ep->isoch_enqueue = 0;
-		xhci_ep->isoch_dequeue = XHCI_ISOCH_BUFFER_COUNT - 1;
+		xhci_ep->isoch_dequeue = 0;
 		xhci_ep->isoch_started = false;
 
 		fibril_mutex_initialize(&xhci_ep->isoch_guard);
@@ -401,6 +404,7 @@ static void setup_isoch_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 0);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
+	XHCI_EP_INTERVAL_SET(*ctx, ep->interval);
 
 	XHCI_EP_MAX_ESIT_PAYLOAD_LO_SET(*ctx, ep->isoch_max_size & 0xFFFF);
 	XHCI_EP_MAX_ESIT_PAYLOAD_HI_SET(*ctx, (ep->isoch_max_size >> 16) & 0xFF);
@@ -419,6 +423,8 @@ static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
+
+	XHCI_EP_INTERVAL_SET(*ctx, ep->interval);
 	// TODO: max ESIT payload
 }
 

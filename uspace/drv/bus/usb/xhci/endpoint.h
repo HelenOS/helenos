@@ -89,6 +89,9 @@ typedef struct xhci_endpoint {
 	/** Maximum number of bursts within an interval that this endpoint supports */
 	uint8_t mult;
 
+	/** Scheduling interval for periodic endpoints */
+	size_t interval;
+
 	/** The maximum size of an isochronous transfer and therefore the size of buffers */
 	size_t isoch_max_size;
 

@@ -114,6 +114,9 @@ typedef struct {
 	/** Maximum packet size for the endpoint. */
 	size_t max_packet_size;
 
+	/** Scheduling interval for HC. Only valid for interrupt/isoch transfer. */
+	size_t interval;
+
 	/** Number of packets per frame/uframe.
 	 * Only valid for HS INT and ISO transfers. All others should set to 1*/
 	unsigned packets;

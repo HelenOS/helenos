@@ -233,7 +233,7 @@ static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 }
 
 static xhci_isoch_transfer_t* isoch_transfer_get_enqueue(xhci_endpoint_t *ep) {
-	if ((ep->isoch_enqueue % XHCI_ISOCH_BUFFER_COUNT) == ep->isoch_dequeue) {
+	if (((ep->isoch_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT) == ep->isoch_dequeue) {
 		/* None ready */
 		return NULL;
 	}
@@ -302,8 +302,8 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 	}
 
 	/* If not yet started, start the isochronous endpoint transfers - after buffer count - 1 writes */
-	/* The -2 is there because of the enqueue != dequeue check. The buffer must have at least 2 transfers. */
-	if (xhci_ep->isoch_enqueue == XHCI_ISOCH_BUFFER_COUNT - 2 && !xhci_ep->isoch_started) {
+	/* The -1 is there because of the enqueue != dequeue check. The buffer must have at least 2 transfers. */
+	if (((xhci_ep->isoch_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT) == xhci_ep->isoch_dequeue && !xhci_ep->isoch_started) {
 		const uint8_t slot_id = xhci_dev->slot_id;
 		const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 		err = hc_ring_doorbell(hc, slot_id, target);
@@ -321,15 +321,39 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 	return EOK;
 }
 
+static int schedule_isochronous_in_trbs(xhci_endpoint_t *xhci_ep, xhci_trb_ring_t *ring) {
+	xhci_trb_t trb;
+	xhci_isoch_transfer_t *isoch_transfer;
+	while ((isoch_transfer = isoch_transfer_get_enqueue(xhci_ep)) != NULL) {
+		xhci_trb_clean(&trb);
+		trb.parameter = isoch_transfer->data.phys;
+		isoch_transfer->size = xhci_ep->isoch_max_size;
+
+		int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
+			&isoch_transfer->interrupt_trb_phys);
+		if (err)
+			return err;
+	}
+	return EOK;
+}
+
 static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_endpoint_t *xhci_ep,
 	xhci_device_t *xhci_dev)
 {
 	fibril_mutex_lock(&xhci_ep->isoch_guard);
 	/* If not yet started, start the isochronous endpoint transfers - before first read */
 	if (!xhci_ep->isoch_started) {
+		xhci_trb_ring_t *ring = get_ring(hc, transfer);
+		/* Fill the TRB ring. */
+		int err = schedule_isochronous_in_trbs(xhci_ep, ring);
+		if (err) {
+			fibril_mutex_unlock(&xhci_ep->isoch_guard);
+			return err;
+		}
+		/* Ring the doorbell to start it. */
 		const uint8_t slot_id = xhci_dev->slot_id;
 		const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
-		int err = hc_ring_doorbell(hc, slot_id, target);
+		err = hc_ring_doorbell(hc, slot_id, target);
 		if (err) {
 			fibril_mutex_unlock(&xhci_ep->isoch_guard);
 			return err;
@@ -405,8 +429,11 @@ static int handle_isochronous_transfer_event(xhci_hc_t *hc, xhci_trb_t *trb, xhc
 	switch (completion_code) {
 		case XHCI_TRBC_RING_OVERRUN:
 		case XHCI_TRBC_RING_UNDERRUN:
-			// TODO: abort the phone; rings are unscheduled by xHC by now
+			/* Rings are unscheduled by xHC now */
 			ep->isoch_started = false;
+			/* For OUT, there was nothing to process */
+			/* For IN, the buffer has overfilled, we empty the buffers and readd TRBs */
+			ep->isoch_enqueue = ep->isoch_dequeue = 0;
 			err = EIO;
 			break;
 		case XHCI_TRBC_SHORT_PACKET:

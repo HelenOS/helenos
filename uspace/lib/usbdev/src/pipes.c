@@ -298,6 +298,9 @@ int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
 	pipe->auto_reset_halt = false;
 	pipe->bus_session = bus_session;
 
+	// TODO: hardcoded, remake to receive from device descriptors
+	pipe->desc.interval = 14;
+
 	if (transfer_type == USB_TRANSFER_ISOCHRONOUS) {
 		ret = usb_isoch_session_initialize(pipe);
 	}
