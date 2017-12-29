@@ -78,7 +78,19 @@ int elf_load(int file, elf_info_t *info)
 #ifdef CONFIG_RTLD
 	DPRINTF( "- prog dynamic: %p\n", info->finfo.dynamic);
 
-	rc = rtld_prog_process(&info->finfo, &env);
+	int rc2 = rtld_prog_process(&info->finfo, &env);
+	switch (rc2) {
+	case EOK:
+		rc = EE_OK;
+		break;
+	case ENOMEM:
+		rc = EE_MEMORY;
+		break;
+	default:
+		DPRINTF("Unexpected error code from rtld_prog_process(): %s\n", str_error_name(rc2));
+		rc = EE_INVALID;
+	}
+
 	info->env = env;
 #else
 	rc = EE_UNSUPPORTED;
