@@ -62,6 +62,7 @@ void transfer_list_add_batch(
     transfer_list_t *instance, uhci_transfer_batch_t *batch);
 void transfer_list_remove_finished(transfer_list_t *instance, list_t *done);
 void transfer_list_abort_all(transfer_list_t *instance);
+void transfer_list_abort_device(transfer_list_t *instance, usb_address_t address);
 
 #endif
 

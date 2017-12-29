@@ -320,6 +320,43 @@ static void destroy_transfer_batch(usb_transfer_batch_t *batch)
 	uhci_transfer_batch_destroy(uhci_transfer_batch_get(batch));
 }
 
+static int device_online(device_t *device)
+{
+	// FIXME: Implement me!
+
+	return ENOTSUP;
+}
+
+static int device_offline(device_t *device)
+{
+	hc_t *instance = bus_to_hc(device->bus);
+	assert(instance);
+
+	int err;
+	/* Tear down all drivers working with the device. */
+	if ((err = ddf_fun_offline(device->fun))) {
+		return err;
+	}
+
+	/* At this point, all drivers are assumed to have already terminated
+	 * in a consistent way. The following code just cleans up hanging
+	 * transfers if there are any. */
+
+	/* Block creation of new endpoints and transfers. */
+	usb_log_info("Device(%d): Going offline.", device->address);
+	fibril_mutex_lock(&device->guard);
+	device->online = false;
+	fibril_mutex_unlock(&device->guard);
+
+	/* Abort all transfers to all endpoints. */
+	transfer_list_abort_device(&instance->transfers_interrupt, device->address);
+	transfer_list_abort_device(&instance->transfers_control_slow, device->address);
+	transfer_list_abort_device(&instance->transfers_control_full, device->address);
+	transfer_list_abort_device(&instance->transfers_bulk_full, device->address);
+
+	return EOK;
+}
+
 static int hc_status(bus_t *, uint32_t *);
 static int hc_schedule(usb_transfer_batch_t *);
 
@@ -333,6 +370,9 @@ static const bus_ops_t uhci_bus_ops = {
 	.batch_create = create_transfer_batch,
 	.batch_schedule = hc_schedule,
 	.batch_destroy = destroy_transfer_batch,
+
+	.device_online = device_online,
+	.device_offline = device_offline,
 };
 
 /** Initialize UHCI hc memory structures.

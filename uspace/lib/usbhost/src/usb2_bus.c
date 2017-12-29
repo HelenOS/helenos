@@ -351,47 +351,6 @@ static endpoint_t *usb2_bus_find_ep(device_t *device, usb_target_t target, usb_d
 	return NULL;
 }
 
-static int usb2_bus_device_online(device_t *device)
-{
-	usb2_bus_t *bus = bus_to_usb2_bus(device->bus);
-	assert(bus);
-
-	// FIXME: Implement me!
-
-	return ENOTSUP;
-}
-
-static int usb2_bus_device_offline(device_t *device)
-{
-	usb2_bus_t *bus = bus_to_usb2_bus(device->bus);
-	assert(bus);
-
-	int err;
-	/* Tear down all drivers working with the device. */
-	if ((err = ddf_fun_offline(device->fun))) {
-		return err;
-	}
-
-	/* Block creation of new endpoints and transfers. */
-	usb_log_info("Device(%d): Going offline.", device->address);
-	fibril_mutex_lock(&device->guard);
-	device->online = false;
-	fibril_mutex_unlock(&device->guard);
-
-	/* FIXME: This implementation leaves sleeping parts of drivers around.
-	 * With XHCI bus, the HID driver disengages and completely deactivates
-	 * when the DDF function is offlined. In USB2 bus, the driver receives
-	 * dev_remove and disengages "on paper" but later when interrupt message arrives,
-	 * some sleeping code is woken up and crashes the driver.
-	 *
-	 * The XHCI does 2 extra things that might prevent this behavior:
-	 *   (1) deconfigure the device,
-	 *   (2) deallocate all transfer TRB rings
-	 */
-
-	return EOK;
-}
-
 static endpoint_t *usb2_bus_create_ep(device_t *dev, const usb_endpoint_desc_t *desc)
 {
 	endpoint_t *ep = malloc(sizeof(endpoint_t));
@@ -495,8 +454,6 @@ const bus_ops_t usb2_bus_ops = {
 	.reset_toggle = usb2_bus_reset_toggle,
 	.device_enumerate = usb2_bus_device_enumerate,
 	.device_find_endpoint = usb2_bus_find_ep,
-	.device_online = usb2_bus_device_online,
-	.device_offline = usb2_bus_device_offline,
 	.endpoint_create = usb2_bus_create_ep,
 	.endpoint_register = usb2_bus_register_ep,
 	.endpoint_unregister = usb2_bus_unregister_ep,
