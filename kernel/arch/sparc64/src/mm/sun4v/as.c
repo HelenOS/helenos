@@ -67,7 +67,7 @@ int as_constructor_arch(as_t *as, unsigned int flags)
 #ifdef CONFIG_TSB
 	uintptr_t tsb_base = frame_alloc(TSB_FRAMES, flags, TSB_SIZE - 1);
 	if (!tsb_base)
-		return -1;
+		return ENOMEM;
 
 	tsb_entry_t *tsb = (tsb_entry_t *) PA2KA(tsb_base);
 
@@ -82,7 +82,7 @@ int as_constructor_arch(as_t *as, unsigned int flags)
 	memsetb(tsb, TSB_SIZE, 0);
 #endif
 	
-	return 0;
+	return EOK;
 }
 
 int as_destructor_arch(as_t *as)
@@ -102,7 +102,7 @@ int as_create_arch(as_t *as, unsigned int flags)
 	tsb_invalidate(as, 0, (size_t) -1);
 #endif
 	
-	return 0;
+	return EOK;
 }
 
 /** Perform sparc64-specific tasks when an address space becomes active on the

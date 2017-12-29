@@ -104,7 +104,7 @@ void istate_decode(istate_t *istate)
 
 int context_save_arch(context_t *ctx)
 {
-	return 1;
+	return EOK;
 }
 
 void context_restore_arch(context_t *ctx)
