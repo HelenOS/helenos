@@ -50,7 +50,13 @@ static usbdiag_iface_t diag_interface = {
 	.burst_bulk_in = usbdiag_burst_test_bulk_in,
 	.burst_bulk_out = usbdiag_burst_test_bulk_out,
 	.burst_isoch_in = usbdiag_burst_test_isoch_in,
-	.burst_isoch_out = usbdiag_burst_test_isoch_out
+	.burst_isoch_out = usbdiag_burst_test_isoch_out,
+	.data_intr_in = usbdiag_data_test_intr_in,
+	.data_intr_out = usbdiag_data_test_intr_out,
+	.data_bulk_in = usbdiag_data_test_bulk_in,
+	.data_bulk_out = usbdiag_data_test_bulk_out,
+	.data_isoch_in = usbdiag_data_test_isoch_in,
+	.data_isoch_out = usbdiag_data_test_isoch_out
 };
 
 static ddf_dev_ops_t diag_ops = {
