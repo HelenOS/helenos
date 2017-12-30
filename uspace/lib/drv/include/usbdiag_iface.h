@@ -47,12 +47,20 @@ typedef unsigned long usbdiag_dur_t;
 
 async_sess_t *usbdiag_connect(devman_handle_t);
 void usbdiag_disconnect(async_sess_t*);
+
 int usbdiag_burst_intr_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
 int usbdiag_burst_intr_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
 int usbdiag_burst_bulk_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
 int usbdiag_burst_bulk_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
 int usbdiag_burst_isoch_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
 int usbdiag_burst_isoch_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
+
+int usbdiag_data_intr_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
+int usbdiag_data_intr_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
+int usbdiag_data_bulk_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
+int usbdiag_data_bulk_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
+int usbdiag_data_isoch_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
+int usbdiag_data_isoch_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
 
 /** USB diagnostic device communication interface. */
 typedef struct {
@@ -62,6 +70,12 @@ typedef struct {
 	int (*burst_bulk_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
 	int (*burst_isoch_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
 	int (*burst_isoch_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
+	int (*data_intr_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
+	int (*data_intr_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
+	int (*data_bulk_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
+	int (*data_bulk_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
+	int (*data_isoch_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
+	int (*data_isoch_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
 } usbdiag_iface_t;
 
 #endif

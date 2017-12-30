@@ -47,7 +47,13 @@ typedef enum {
 	IPC_M_USBDIAG_BURST_BULK_IN,
 	IPC_M_USBDIAG_BURST_BULK_OUT,
 	IPC_M_USBDIAG_BURST_ISOCH_IN,
-	IPC_M_USBDIAG_BURST_ISOCH_OUT
+	IPC_M_USBDIAG_BURST_ISOCH_OUT,
+	IPC_M_USBDIAG_DATA_INTR_IN,
+	IPC_M_USBDIAG_DATA_INTR_OUT,
+	IPC_M_USBDIAG_DATA_BULK_IN,
+	IPC_M_USBDIAG_DATA_BULK_OUT,
+	IPC_M_USBDIAG_DATA_ISOCH_IN,
+	IPC_M_USBDIAG_DATA_ISOCH_OUT
 } usb_iface_funcs_t;
 
 async_sess_t *usbdiag_connect(devman_handle_t handle)
@@ -145,12 +151,103 @@ int usbdiag_burst_isoch_out(async_exch_t *exch, int cycles, size_t size, usbdiag
 	return rc;
 }
 
+int usbdiag_data_intr_in(async_exch_t *exch, int cycles, size_t size, usbdiag_dur_t *duration)
+{
+	if (!exch)
+		return EBADMEM;
+
+	sysarg_t duration_;
+	const int rc = async_req_3_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_DATA_INTR_IN, cycles, size, &duration_);
+
+	if (rc == EOK && duration)
+		*duration = duration_;
+
+	return rc;
+}
+
+int usbdiag_data_intr_out(async_exch_t *exch, int cycles, size_t size, usbdiag_dur_t *duration)
+{
+	if (!exch)
+		return EBADMEM;
+
+	sysarg_t duration_;
+	const int rc = async_req_3_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_DATA_INTR_OUT, cycles, size, &duration_);
+
+	if (rc == EOK && duration)
+		*duration = duration_;
+
+	return rc;
+}
+
+int usbdiag_data_bulk_in(async_exch_t *exch, int cycles, size_t size, usbdiag_dur_t *duration)
+{
+	if (!exch)
+		return EBADMEM;
+
+	sysarg_t duration_;
+	const int rc = async_req_3_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_DATA_BULK_IN, cycles, size, &duration_);
+
+	if (rc == EOK && duration)
+		*duration = duration_;
+
+	return rc;
+}
+
+int usbdiag_data_bulk_out(async_exch_t *exch, int cycles, size_t size, usbdiag_dur_t *duration)
+{
+	if (!exch)
+		return EBADMEM;
+
+	sysarg_t duration_;
+	const int rc = async_req_3_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_DATA_BULK_OUT, cycles, size, &duration_);
+
+	if (rc == EOK && duration)
+		*duration = duration_;
+
+	return rc;
+}
+
+int usbdiag_data_isoch_in(async_exch_t *exch, int cycles, size_t size, usbdiag_dur_t *duration)
+{
+	if (!exch)
+		return EBADMEM;
+
+	sysarg_t duration_;
+	const int rc = async_req_3_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_DATA_ISOCH_IN, cycles, size, &duration_);
+
+	if (rc == EOK && duration)
+		*duration = duration_;
+
+	return rc;
+}
+
+int usbdiag_data_isoch_out(async_exch_t *exch, int cycles, size_t size, usbdiag_dur_t *duration)
+{
+	if (!exch)
+		return EBADMEM;
+
+	sysarg_t duration_;
+	const int rc = async_req_3_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_DATA_ISOCH_OUT, cycles, size, &duration_);
+
+	if (rc == EOK && duration)
+		*duration = duration_;
+
+	return rc;
+}
+
 static void remote_usbdiag_burst_intr_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbdiag_burst_intr_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbdiag_burst_bulk_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbdiag_burst_bulk_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbdiag_burst_isoch_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbdiag_burst_isoch_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+
+static void remote_usbdiag_data_intr_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbdiag_data_intr_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbdiag_data_bulk_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbdiag_data_bulk_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbdiag_data_isoch_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbdiag_data_isoch_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB diagnostic interface operations. */
 static const remote_iface_func_ptr_t remote_usbdiag_iface_ops [] = {
@@ -159,7 +256,13 @@ static const remote_iface_func_ptr_t remote_usbdiag_iface_ops [] = {
 	[IPC_M_USBDIAG_BURST_BULK_IN] = remote_usbdiag_burst_bulk_in,
 	[IPC_M_USBDIAG_BURST_BULK_OUT] = remote_usbdiag_burst_bulk_out,
 	[IPC_M_USBDIAG_BURST_ISOCH_IN] = remote_usbdiag_burst_isoch_in,
-	[IPC_M_USBDIAG_BURST_ISOCH_OUT] = remote_usbdiag_burst_isoch_out
+	[IPC_M_USBDIAG_BURST_ISOCH_OUT] = remote_usbdiag_burst_isoch_out,
+	[IPC_M_USBDIAG_DATA_INTR_IN] = remote_usbdiag_data_intr_in,
+	[IPC_M_USBDIAG_DATA_INTR_OUT] = remote_usbdiag_data_intr_out,
+	[IPC_M_USBDIAG_DATA_BULK_IN] = remote_usbdiag_data_bulk_in,
+	[IPC_M_USBDIAG_DATA_BULK_OUT] = remote_usbdiag_data_bulk_out,
+	[IPC_M_USBDIAG_DATA_ISOCH_IN] = remote_usbdiag_data_isoch_in,
+	[IPC_M_USBDIAG_DATA_ISOCH_OUT] = remote_usbdiag_data_isoch_out
 };
 
 /** Remote USB diagnostic interface structure. */
@@ -286,6 +389,132 @@ void remote_usbdiag_burst_isoch_out(ddf_fun_t *fun, void *iface, ipc_callid_t ca
 	size_t size = DEV_IPC_GET_ARG2(*call);
 	usbdiag_dur_t duration;
 	const int ret = diag_iface->burst_isoch_out(fun, cycles, size, &duration);
+
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
+	} else {
+		async_answer_1(callid, EOK, duration);
+	}
+}
+
+void remote_usbdiag_data_intr_in(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
+
+	if (diag_iface->data_bulk_in == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	int cycles = DEV_IPC_GET_ARG1(*call);
+	size_t size = DEV_IPC_GET_ARG2(*call);
+	usbdiag_dur_t duration;
+	const int ret = diag_iface->data_intr_in(fun, cycles, size, &duration);
+
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
+	} else {
+		async_answer_1(callid, EOK, duration);
+	}
+}
+
+void remote_usbdiag_data_intr_out(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
+
+	if (diag_iface->data_bulk_out == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	int cycles = DEV_IPC_GET_ARG1(*call);
+	size_t size = DEV_IPC_GET_ARG2(*call);
+	usbdiag_dur_t duration;
+	const int ret = diag_iface->data_intr_out(fun, cycles, size, &duration);
+
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
+	} else {
+		async_answer_1(callid, EOK, duration);
+	}
+}
+
+void remote_usbdiag_data_bulk_in(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
+
+	if (diag_iface->data_bulk_in == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	int cycles = DEV_IPC_GET_ARG1(*call);
+	size_t size = DEV_IPC_GET_ARG2(*call);
+	usbdiag_dur_t duration;
+	const int ret = diag_iface->data_bulk_in(fun, cycles, size, &duration);
+
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
+	} else {
+		async_answer_1(callid, EOK, duration);
+	}
+}
+
+void remote_usbdiag_data_bulk_out(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
+
+	if (diag_iface->data_bulk_out == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	int cycles = DEV_IPC_GET_ARG1(*call);
+	size_t size = DEV_IPC_GET_ARG2(*call);
+	usbdiag_dur_t duration;
+	const int ret = diag_iface->data_bulk_out(fun, cycles, size, &duration);
+
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
+	} else {
+		async_answer_1(callid, EOK, duration);
+	}
+}
+
+void remote_usbdiag_data_isoch_in(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
+
+	if (diag_iface->data_isoch_in == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	int cycles = DEV_IPC_GET_ARG1(*call);
+	size_t size = DEV_IPC_GET_ARG2(*call);
+	usbdiag_dur_t duration;
+	const int ret = diag_iface->data_isoch_in(fun, cycles, size, &duration);
+
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
+	} else {
+		async_answer_1(callid, EOK, duration);
+	}
+}
+
+void remote_usbdiag_data_isoch_out(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
+
+	if (diag_iface->data_isoch_out == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	int cycles = DEV_IPC_GET_ARG1(*call);
+	size_t size = DEV_IPC_GET_ARG2(*call);
+	usbdiag_dur_t duration;
+	const int ret = diag_iface->data_isoch_out(fun, cycles, size, &duration);
 
 	if (ret != EOK) {
 		async_answer_0(callid, ret);
