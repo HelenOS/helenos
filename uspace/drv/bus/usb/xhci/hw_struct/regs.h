@@ -195,9 +195,9 @@ typedef const struct xhci_cap_regs {
 #define XHCI_CAP_MAX_PORTS    hcsparams1, 32, RANGE, 31, 24
 #define XHCI_CAP_IST          hcsparams2, 32, RANGE,  3,  0
 #define XHCI_CAP_ERST_MAX     hcsparams2, 32, RANGE,  7,  4
-#define XHCI_CAP_MAX_SPBUF_LO hcsparams2, 32, RANGE, 25,  4
+#define XHCI_CAP_MAX_SPBUF_HI hcsparams2, 32, RANGE, 25, 21
 #define XHCI_CAP_SPR          hcsparams2, 32,  FLAG, 26
-#define XHCI_CAP_MAX_SPBUF_HI hcsparams2, 32, RANGE, 31, 27
+#define XHCI_CAP_MAX_SPBUF_LO hcsparams2, 32, RANGE, 31, 27
 #define XHCI_CAP_U1EL         hcsparams3, 32, RANGE,  7,  0
 #define XHCI_CAP_U2EL         hcsparams3, 32, RANGE, 31, 16
 #define XHCI_CAP_AC64         hccparams1, 32,  FLAG,  0
