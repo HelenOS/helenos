@@ -572,17 +572,12 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 	}
 }
 
-static void hc_dcbaa_fini(xhci_hc_t *hc)
-{
-	xhci_scratchpad_free(hc);
-	dma_buffer_free(&hc->dcbaa_dma);
-}
-
 void hc_fini(xhci_hc_t *hc)
 {
 	xhci_bus_fini(&hc->bus);
 	xhci_event_ring_fini(&hc->event_ring);
-	hc_dcbaa_fini(hc);
+	xhci_scratchpad_free(hc);
+	dma_buffer_free(&hc->dcbaa_dma);
 	xhci_fini_commands(hc);
 	xhci_rh_fini(&hc->rh);
 	pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
