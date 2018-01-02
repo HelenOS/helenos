@@ -44,6 +44,8 @@ EXTRA_CLEAN = $(LINKER_SCRIPTS)
 LIBRARY = libc
 SOVERSION = 0.0
 
+EXTRA_CFLAGS = -fno-builtin
+
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 

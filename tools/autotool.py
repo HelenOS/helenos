@@ -614,6 +614,7 @@ def main():
 					print_error(["Toolchain for target is not installed, or CROSS_PREFIX is not set correctly."])
 				path = "%s/%s/bin" % (cross_prefix, platform)
 		
+		common['TARGET'] = target
 		prefix = "%s-" % target
 		
 		# Compiler
