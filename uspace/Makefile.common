@@ -176,8 +176,7 @@ endif
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -fexec-charset=UTF-8 \
 	-finput-charset=UTF-8 -D__$(ENDIANESS)__ -fno-common \
-	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=. \
-	-D__OPAQUE_ERRNO__
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 
 GCC_CFLAGS = -ffunction-sections -Wall -Wextra -Wno-clobbered \
 	-Wno-unused-parameter -Wmissing-prototypes -std=gnu99 \
