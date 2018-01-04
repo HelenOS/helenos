@@ -56,6 +56,8 @@
  * move it up to the first group.
  */
 
+/* COMPAT_START -- do not remove or edit this comment */
+
 #define E2BIG             __errno_t(  101)
 #define EACCES            __errno_t(  102)
 #define EADDRINUSE        __errno_t(  103)

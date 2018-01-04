@@ -92,6 +92,13 @@ else
 	$(CHECK)
 endif
 
+# `sed` pulls a list of "compatibility-only" error codes from `errno.in`,
+# the following grep finds instances of those error codes in HelenOS code.
+check_errno:
+	@ ! cat abi/include/abi/errno.in | \
+	sed -n -e '1,/COMPAT_START/d' -e 's/__errno_entry(\([A-Z0-9]\+\).*/\\b\1\\b/p' | \
+	git grep -n -f - -- ':(exclude)abi' ':(exclude)uspace/lib/posix'
+
 # Autotool (detects compiler features)
 
 autotool $(COMMON_MAKEFILE) $(COMMON_HEADER): $(CONFIG_MAKEFILE) $(AUTOTOOL)

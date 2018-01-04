@@ -152,7 +152,7 @@ int ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
  * @param timeout Timeout in microseconds
  *
  * @return EOK if woken up by another fibril
- * @return ETIMEDOUT if timed out
+ * @return ETIMEOUT if timed out
  *
  */
 int ntrans_wait_timeout(suseconds_t timeout)
