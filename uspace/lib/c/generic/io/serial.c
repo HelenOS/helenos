@@ -40,7 +40,7 @@
  *
  * @return EOK on success, ENOMEM if out of memory, EIO on I/O error
  */
-int serial_open(async_sess_t *sess, serial_t **rserial)
+errno_t serial_open(async_sess_t *sess, serial_t **rserial)
 {
 	serial_t *serial;
 
@@ -67,12 +67,12 @@ void serial_close(serial_t *serial)
 }
 
 /** Set serial port communication properties. */
-int serial_set_comm_props(serial_t *serial, unsigned rate,
+errno_t serial_set_comm_props(serial_t *serial, unsigned rate,
     serial_parity_t parity, unsigned datab, unsigned stopb)
 {
 	async_exch_t *exch = async_exchange_begin(serial->sess);
 
-	int rc = async_req_4_0(exch, SERIAL_SET_COM_PROPS, rate, parity,
+	errno_t rc = async_req_4_0(exch, SERIAL_SET_COM_PROPS, rate, parity,
 	    datab, stopb);
 
 	async_exchange_end(exch);
@@ -80,13 +80,13 @@ int serial_set_comm_props(serial_t *serial, unsigned rate,
 }
 
 /** Get serial port communication properties. */
-int serial_get_comm_props(serial_t *serial, unsigned *rrate,
+errno_t serial_get_comm_props(serial_t *serial, unsigned *rrate,
     serial_parity_t *rparity, unsigned *rdatab, unsigned *rstopb)
 {
 	async_exch_t *exch = async_exchange_begin(serial->sess);
 	sysarg_t rate, parity, datab, stopb;
 
-	int rc = async_req_0_4(exch, SERIAL_GET_COM_PROPS, &rate, &parity,
+	errno_t rc = async_req_0_4(exch, SERIAL_GET_COM_PROPS, &rate, &parity,
 	    &datab, &stopb);
 
 	async_exchange_end(exch);

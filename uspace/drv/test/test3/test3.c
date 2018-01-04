@@ -40,10 +40,10 @@
 
 #define NUM_FUNCS 20
 
-static int test3_dev_add(ddf_dev_t *dev);
-static int test3_dev_remove(ddf_dev_t *dev);
-static int test3_fun_online(ddf_fun_t *fun);
-static int test3_fun_offline(ddf_fun_t *fun);
+static errno_t test3_dev_add(ddf_dev_t *dev);
+static errno_t test3_dev_remove(ddf_dev_t *dev);
+static errno_t test3_fun_online(ddf_fun_t *fun);
+static errno_t test3_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &test3_dev_add,
@@ -62,12 +62,12 @@ typedef struct {
 	ddf_fun_t *fun[NUM_FUNCS];
 } test3_t;
 
-static int register_fun_and_add_to_category(ddf_dev_t *parent,
+static errno_t register_fun_and_add_to_category(ddf_dev_t *parent,
     const char *base_name, size_t index, const char *class_name,
     ddf_fun_t **pfun)
 {
 	ddf_fun_t *fun = NULL;
-	int rc;
+	errno_t rc;
 	char *fun_name = NULL;
 	
 	if (asprintf(&fun_name, "%s%zu", base_name, index) < 0) {
@@ -105,9 +105,9 @@ leave:
 	return rc;
 }
 
-static int fun_remove(ddf_fun_t *fun, const char *name)
+static errno_t fun_remove(ddf_fun_t *fun, const char *name)
 {
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "fun_remove(%p, '%s')", fun, name);
 	rc = ddf_fun_offline(fun);
@@ -126,9 +126,9 @@ static int fun_remove(ddf_fun_t *fun, const char *name)
 	return EOK;
 }
 
-static int test3_dev_add(ddf_dev_t *dev)
+static errno_t test3_dev_add(ddf_dev_t *dev)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	test3_t *test3;
 
 	ddf_msg(LVL_DEBUG, "dev_add(name=\"%s\", handle=%d)",
@@ -152,11 +152,11 @@ static int test3_dev_add(ddf_dev_t *dev)
 	return rc;
 }
 
-static int test3_dev_remove(ddf_dev_t *dev)
+static errno_t test3_dev_remove(ddf_dev_t *dev)
 {
 	test3_t *test3 = (test3_t *)ddf_dev_data_get(dev);
 	char *fun_name;
-	int rc;
+	errno_t rc;
 	size_t i;
 
 	for (i = 0; i < NUM_FUNCS; i++) {
@@ -175,13 +175,13 @@ static int test3_dev_remove(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int test3_fun_online(ddf_fun_t *fun)
+static errno_t test3_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "test3_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int test3_fun_offline(ddf_fun_t *fun)
+static errno_t test3_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "test3_fun_offline()");
 	return ddf_fun_offline(fun);

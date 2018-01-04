@@ -80,7 +80,7 @@ static void ipc_get_name(usbvirt_device_t *dev,
 static void ipc_control_read(usbvirt_device_t *dev,
     ipc_callid_t iid, ipc_call_t *icall)
 {
-	int rc;
+	errno_t rc;
 
 	void *setup_packet = NULL;
 	size_t setup_packet_len = 0;
@@ -136,7 +136,7 @@ static void ipc_control_write(usbvirt_device_t *dev,
     ipc_callid_t iid, ipc_call_t *icall)
 {
 	size_t data_buffer_len = IPC_GET_ARG1(*icall);
-	int rc;
+	errno_t rc;
 
 	void *setup_packet = NULL;
 	void *data_buffer = NULL;
@@ -182,7 +182,7 @@ static void ipc_data_in(usbvirt_device_t *dev,
 {
 	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
 
-	int rc;
+	errno_t rc;
 
 	size_t data_len = 0;
 	ipc_callid_t data_callid;
@@ -229,7 +229,7 @@ static void ipc_data_out(usbvirt_device_t *dev,
 	void *data_buffer = NULL;
 	size_t data_buffer_size = 0;
 
-	int rc = async_data_write_accept(&data_buffer, false,
+	errno_t rc = async_data_write_accept(&data_buffer, false,
 	    1, 0, 0, &data_buffer_size);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);

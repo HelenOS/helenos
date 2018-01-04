@@ -41,9 +41,9 @@
 
 extern inet_addr_t dns_server_addr;
 
-extern int transport_init(void);
+extern errno_t transport_init(void);
 extern void transport_fini(void);
-extern int dns_request(dns_message_t *, dns_message_t **);
+extern errno_t dns_request(dns_message_t *, dns_message_t **);
 
 #endif
 

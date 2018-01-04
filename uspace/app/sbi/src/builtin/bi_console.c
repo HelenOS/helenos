@@ -106,7 +106,7 @@ static void bi_console_write(run_t *run)
 {
 	rdata_var_t *var;
 	int char_val;
-	int rc;
+	errno_t rc;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Called Console.Write()\n");

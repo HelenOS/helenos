@@ -173,7 +173,7 @@ bool init_button(button_t *btn, widget_t *parent, const void *data,
 	else
 		btn->caption = str_dup(caption);
 	
-	int rc = embedded_font_create(&btn->font, points);
+	errno_t rc = embedded_font_create(&btn->font, points);
 	if (rc != EOK) {
 		free(btn->caption);
 		btn->caption = NULL;

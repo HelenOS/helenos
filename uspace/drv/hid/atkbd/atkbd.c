@@ -199,11 +199,11 @@ static void push_event(async_sess_t *sess, kbd_event_type_t type,
  * @return EIO on error.
  *
  */
-static int polling(void *arg)
+static errno_t polling(void *arg)
 {
 	at_kbd_t *kbd = arg;
 	size_t nwr;
-	int rc;
+	errno_t rc;
 	
 	while (true) {
 		uint8_t code = 0;
@@ -354,10 +354,10 @@ static ddf_dev_ops_t kbd_ops = {
  * Connects to parent, creates keyboard function, starts polling fibril.
  *
  */
-int at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
+errno_t at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 {
 	async_sess_t *parent_sess;
-	int rc;
+	errno_t rc;
 	
 	assert(kbd);
 	assert(dev);
@@ -384,7 +384,7 @@ int at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 	
 	ddf_fun_set_ops(kbd->kbd_fun, &kbd_ops);
 	
-	int ret = ddf_fun_bind(kbd->kbd_fun);
+	errno_t ret = ddf_fun_bind(kbd->kbd_fun);
 	if (ret != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function 'kbd'.");
 		ddf_fun_destroy(kbd->kbd_fun);

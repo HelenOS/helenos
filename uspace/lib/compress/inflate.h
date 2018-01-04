@@ -31,6 +31,6 @@
 
 #include <stddef.h>
 
-extern int inflate(void *, size_t, void *, size_t);
+extern errno_t inflate(void *, size_t, void *, size_t);
 
 #endif

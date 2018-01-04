@@ -67,7 +67,7 @@ char *pcut_str_find_char(const char *haystack, const char needle) {
 	return str_chr(haystack, needle);
 }
 
-void pcut_str_error(int error, char *buffer, int size) {
+void pcut_str_error(errno_t error, char *buffer, int size) {
 	const char *str = str_error(error);
 	if (str == NULL) {
 		str = "(strerror failure)";
@@ -129,7 +129,7 @@ static int test_running;
  * @param arg Test that is currently running (pcut_item_t *).
  * @return EOK Always.
  */
-static int test_timeout_handler_fibril(void *arg) {
+static errno_t test_timeout_handler_fibril(void *arg) {
 	pcut_item_t *test = arg;
 	int timeout_sec = pcut_get_test_timeout(test);
 	suseconds_t timeout_us = (suseconds_t) timeout_sec * 1000 * 1000;
@@ -138,7 +138,7 @@ static int test_timeout_handler_fibril(void *arg) {
 	if (!test_running) {
 		goto leave_no_kill;
 	}
-	int rc = fibril_condvar_wait_timeout(&forced_termination_cv,
+	errno_t rc = fibril_condvar_wait_timeout(&forced_termination_cv,
 		&forced_termination_mutex, timeout_us);
 	if (rc == ETIMEOUT) {
 		task_kill(test_task_id);
@@ -159,7 +159,7 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
 	snprintf(tempfile_name, PCUT_TEMP_FILENAME_BUFFER_SIZE - 1, "pcut_%lld.tmp", (unsigned long long) task_get_id());
 	int tempfile;
-	int rc = vfs_lookup_open(tempfile_name, WALK_REGULAR | WALK_MAY_CREATE, MODE_READ | MODE_WRITE, &tempfile);
+	errno_t rc = vfs_lookup_open(tempfile_name, WALK_REGULAR | WALK_MAY_CREATE, MODE_READ | MODE_WRITE, &tempfile);
 	if (rc != EOK) {
 		pcut_report_test_done(test, PCUT_OUTCOME_INTERNAL_ERROR, "Failed to create temporary file.", NULL, NULL);
 		return PCUT_OUTCOME_INTERNAL_ERROR;

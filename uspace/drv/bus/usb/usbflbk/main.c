@@ -45,7 +45,7 @@
  * @param dev Representation of a generic DDF device.
  * @return Error code.
  */
-static int usbfallback_device_add(usb_device_t *dev)
+static errno_t usbfallback_device_add(usb_device_t *dev)
 {
 	usb_log_info("Pretending to control %s `%s'.\n",
 	    usb_device_get_iface_number(dev) < 0 ? "device" : "interface",
@@ -58,7 +58,7 @@ static int usbfallback_device_add(usb_device_t *dev)
  * @param dev Representation of a generic DDF device.
  * @return Error code.
  */
-static int usbfallback_device_gone(usb_device_t *dev)
+static errno_t usbfallback_device_gone(usb_device_t *dev)
 {
 	assert(dev);
 	return EOK;

@@ -37,8 +37,8 @@
 
 #include <task.h>
 
-extern int perm_grant(task_id_t, unsigned int);
-extern int perm_revoke(task_id_t, unsigned int);
+extern errno_t perm_grant(task_id_t, unsigned int);
+extern errno_t perm_revoke(task_id_t, unsigned int);
 
 #endif
 

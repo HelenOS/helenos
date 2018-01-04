@@ -38,20 +38,20 @@
 #include <async.h>
 #include <io/mode.h>
 
-extern int visualizer_claim(async_sess_t *, sysarg_t);
-extern int visualizer_yield(async_sess_t *);
+extern errno_t visualizer_claim(async_sess_t *, sysarg_t);
+extern errno_t visualizer_yield(async_sess_t *);
 
-extern int visualizer_enumerate_modes(async_sess_t *, vslmode_t *, sysarg_t);
-extern int visualizer_get_default_mode(async_sess_t *, vslmode_t *);
-extern int visualizer_get_current_mode(async_sess_t *, vslmode_t *);
-extern int visualizer_get_mode(async_sess_t *, vslmode_t *, sysarg_t);
-extern int visualizer_set_mode(async_sess_t *, sysarg_t, sysarg_t, void *);
+extern errno_t visualizer_enumerate_modes(async_sess_t *, vslmode_t *, sysarg_t);
+extern errno_t visualizer_get_default_mode(async_sess_t *, vslmode_t *);
+extern errno_t visualizer_get_current_mode(async_sess_t *, vslmode_t *);
+extern errno_t visualizer_get_mode(async_sess_t *, vslmode_t *, sysarg_t);
+extern errno_t visualizer_set_mode(async_sess_t *, sysarg_t, sysarg_t, void *);
 
-extern int visualizer_update_damaged_region(async_sess_t *,
+extern errno_t visualizer_update_damaged_region(async_sess_t *,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
 
-extern int visualizer_suspend(async_sess_t *);
-extern int visualizer_wakeup(async_sess_t *);
+extern errno_t visualizer_suspend(async_sess_t *);
+extern errno_t visualizer_wakeup(async_sess_t *);
 
 #endif
 

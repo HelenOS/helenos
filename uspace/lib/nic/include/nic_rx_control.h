@@ -113,9 +113,9 @@ typedef struct vlan_header {
 	uint8_t vid_lower;
 } __attribute__ ((packed)) vlan_header_t;
 
-extern int nic_rxc_init(nic_rxc_t *rxc);
-extern int nic_rxc_clear(nic_rxc_t *rxc);
-extern int nic_rxc_set_addr(nic_rxc_t *rxc,
+extern errno_t nic_rxc_init(nic_rxc_t *rxc);
+extern errno_t nic_rxc_clear(nic_rxc_t *rxc);
+extern errno_t nic_rxc_set_addr(nic_rxc_t *rxc,
 	const nic_address_t *prev_addr, const nic_address_t *curr_addr);
 extern bool nic_rxc_check(const nic_rxc_t *rxc,
 	const void *data, size_t size, nic_frame_type_t *frame_type);
@@ -125,22 +125,22 @@ extern uint64_t nic_rxc_mcast_hash(const nic_address_t *list, size_t count);
 extern uint64_t nic_rxc_multicast_get_hash(const nic_rxc_t *rxc);
 extern void nic_rxc_unicast_get_mode(const nic_rxc_t *, nic_unicast_mode_t *,
 	size_t max_count, nic_address_t *address_list, size_t *address_count);
-extern int nic_rxc_unicast_set_mode(nic_rxc_t *rxc, nic_unicast_mode_t mode,
+extern errno_t nic_rxc_unicast_set_mode(nic_rxc_t *rxc, nic_unicast_mode_t mode,
 	const nic_address_t *address_list, size_t address_count);
 extern void nic_rxc_multicast_get_mode(const nic_rxc_t *,
 	nic_multicast_mode_t *, size_t, nic_address_t *, size_t *);
-extern int nic_rxc_multicast_set_mode(nic_rxc_t *, nic_multicast_mode_t mode,
+extern errno_t nic_rxc_multicast_set_mode(nic_rxc_t *, nic_multicast_mode_t mode,
 	const nic_address_t *address_list, size_t address_count);
 extern void nic_rxc_broadcast_get_mode(const nic_rxc_t *,
 	nic_broadcast_mode_t *mode);
-extern int nic_rxc_broadcast_set_mode(nic_rxc_t *,
+extern errno_t nic_rxc_broadcast_set_mode(nic_rxc_t *,
 	nic_broadcast_mode_t mode);
 extern void nic_rxc_blocked_sources_get(const nic_rxc_t *,
 	size_t max_count, nic_address_t *address_list, size_t *address_count);
-extern int nic_rxc_blocked_sources_set(nic_rxc_t *,
+extern errno_t nic_rxc_blocked_sources_set(nic_rxc_t *,
 	const nic_address_t *address_list, size_t address_count);
-extern int nic_rxc_vlan_get_mask(const nic_rxc_t *rxc, nic_vlan_mask_t *mask);
-extern int nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask);
+extern errno_t nic_rxc_vlan_get_mask(const nic_rxc_t *rxc, nic_vlan_mask_t *mask);
+extern errno_t nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask);
 
 #endif
 

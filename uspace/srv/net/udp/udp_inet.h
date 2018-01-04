@@ -37,8 +37,8 @@
 
 #include "udp_type.h"
 
-extern int udp_inet_init(void);
-extern int udp_transmit_pdu(udp_pdu_t *);
+extern errno_t udp_inet_init(void);
+extern errno_t udp_transmit_pdu(udp_pdu_t *);
 
 #endif
 

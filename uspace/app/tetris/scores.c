@@ -204,7 +204,7 @@ void initscores(void)
 	}
 }
 
-int loadscores(void)
+errno_t loadscores(void)
 {
 	FILE *f;
 	size_t cnt;

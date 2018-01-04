@@ -61,8 +61,8 @@ typedef struct {
 	vslmode_list_element_t modes[1];
 } amdm37x_dispc_t;
 
-int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis);
-int amdm37x_dispc_fini(amdm37x_dispc_t *instance);
+errno_t amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis);
+errno_t amdm37x_dispc_fini(amdm37x_dispc_t *instance);
 
 #endif
 /** @}

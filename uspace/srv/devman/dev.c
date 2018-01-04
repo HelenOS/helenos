@@ -126,7 +126,7 @@ dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle)
 }
 
 /** Get list of device functions. */
-int dev_get_functions(dev_tree_t *tree, dev_node_t *dev,
+errno_t dev_get_functions(dev_tree_t *tree, dev_node_t *dev,
     devman_handle_t *hdl_buf, size_t buf_size, size_t *act_size)
 {
 	size_t act_cnt;

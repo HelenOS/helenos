@@ -70,11 +70,11 @@ typedef struct fibril {
 	context_t ctx;
 	void *stack;
 	void *arg;
-	int (*func)(void *);
+	errno_t (*func)(void *);
 	tcb_t *tcb;
 	
 	struct fibril *clean_after_me;
-	int retval;
+	errno_t retval;
 	int flags;
 	
 	fibril_owner_info_t *waits_for;
@@ -92,7 +92,7 @@ extern void context_restore(context_t *ctx) __attribute__((noreturn));
 
 #define fibril_create(func, arg) \
 	fibril_create_generic((func), (arg), FIBRIL_DFLT_STK_SIZE)
-extern fid_t fibril_create_generic(int (*func)(void *), void *arg, size_t);
+extern fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t);
 extern void fibril_destroy(fid_t fid);
 extern fibril_t *fibril_setup(void);
 extern void fibril_teardown(fibril_t *f, bool locked);

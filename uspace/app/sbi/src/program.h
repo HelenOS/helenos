@@ -31,7 +31,7 @@
 
 #include "mytypes.h"
 
-int program_file_process(stree_program_t *program, const char *fname);
-int program_lib_process(stree_program_t *program);
+errno_t program_file_process(stree_program_t *program, const char *fname);
+errno_t program_lib_process(stree_program_t *program);
 
 #endif

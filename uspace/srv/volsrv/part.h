@@ -42,14 +42,14 @@
 #include <types/vol.h>
 #include "types/part.h"
 
-extern int vol_part_init(void);
-extern int vol_part_discovery_start(void);
-extern int vol_part_add(service_id_t);
-extern int vol_part_get_ids(service_id_t *, size_t, size_t *);
-extern int vol_part_find_by_id(service_id_t, vol_part_t **);
-extern int vol_part_empty_part(vol_part_t *);
-extern int vol_part_mkfs_part(vol_part_t *, vol_fstype_t, const char *);
-extern int vol_part_get_info(vol_part_t *, vol_part_info_t *);
+extern errno_t vol_part_init(void);
+extern errno_t vol_part_discovery_start(void);
+extern errno_t vol_part_add(service_id_t);
+extern errno_t vol_part_get_ids(service_id_t *, size_t, size_t *);
+extern errno_t vol_part_find_by_id(service_id_t, vol_part_t **);
+extern errno_t vol_part_empty_part(vol_part_t *);
+extern errno_t vol_part_mkfs_part(vol_part_t *, vol_fstype_t, const char *);
+extern errno_t vol_part_get_info(vol_part_t *, vol_part_info_t *);
 
 #endif
 

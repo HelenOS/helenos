@@ -97,14 +97,14 @@ typedef enum {
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
+errno_t nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SEND_MESSAGE, &answer);
-	int retval = async_data_write_start(exch, data, size);
+	errno_t retval = async_data_write_start(exch, data, size);
 	
 	async_exchange_end(exch);
 	
@@ -125,12 +125,12 @@ int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
+errno_t nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
     void *carg)
 {
 	ipc_call_t answer;
-	int rc;
-	int retval;
+	errno_t rc;
+	errno_t retval;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
@@ -157,14 +157,14 @@ int nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_get_state(async_sess_t *dev_sess, nic_device_state_t *state)
+errno_t nic_get_state(async_sess_t *dev_sess, nic_device_state_t *state)
 {
 	assert(state);
 	
 	sysarg_t _state;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_STATE, &_state);
 	async_exchange_end(exch);
 	
@@ -181,10 +181,10 @@ int nic_get_state(async_sess_t *dev_sess, nic_device_state_t *state)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_set_state(async_sess_t *dev_sess, nic_device_state_t state)
+errno_t nic_set_state(async_sess_t *dev_sess, nic_device_state_t state)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SET_STATE, state);
 	async_exchange_end(exch);
 	
@@ -199,17 +199,17 @@ int nic_set_state(async_sess_t *dev_sess, nic_device_state_t state)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
+errno_t nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
 {
 	assert(address);
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_ADDRESS, NULL);
-	int rc = async_data_read_start(exch, address, sizeof(nic_address_t));
+	errno_t rc = async_data_read_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
 	
-	int res;
+	errno_t res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
@@ -226,17 +226,17 @@ int nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
+errno_t nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
 {
 	assert(address);
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SET_ADDRESS, NULL);
-	int rc = async_data_write_start(exch, address, sizeof(nic_address_t));
+	errno_t rc = async_data_write_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
 	
-	int res;
+	errno_t res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
@@ -253,13 +253,13 @@ int nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_get_stats(async_sess_t *dev_sess, nic_device_stats_t *stats)
+errno_t nic_get_stats(async_sess_t *dev_sess, nic_device_stats_t *stats)
 {
 	assert(stats);
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_STATS);
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -283,7 +283,7 @@ int nic_get_stats(async_sess_t *dev_sess, nic_device_stats_t *stats)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
+errno_t nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
 {
 	assert(device_info);
 	
@@ -291,10 +291,10 @@ int nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
 	
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_DEVICE_INFO, NULL);
-	int rc = async_data_read_start(exch, device_info, sizeof(nic_device_info_t));
+	errno_t rc = async_data_read_start(exch, device_info, sizeof(nic_device_info_t));
 	async_exchange_end(exch);
 
-	int res;
+	errno_t res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
@@ -311,14 +311,14 @@ int nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_get_cable_state(async_sess_t *dev_sess, nic_cable_state_t *cable_state)
+errno_t nic_get_cable_state(async_sess_t *dev_sess, nic_cable_state_t *cable_state)
 {
 	assert(cable_state);
 	
 	sysarg_t _cable_state;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_CABLE_STATE, &_cable_state);
 	async_exchange_end(exch);
 	
@@ -337,7 +337,7 @@ int nic_get_cable_state(async_sess_t *dev_sess, nic_cable_state_t *cable_state)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_get_operation_mode(async_sess_t *dev_sess, int *speed,
+errno_t nic_get_operation_mode(async_sess_t *dev_sess, int *speed,
    nic_channel_mode_t *duplex, nic_role_t *role)
 {
 	sysarg_t _speed;
@@ -345,7 +345,7 @@ int nic_get_operation_mode(async_sess_t *dev_sess, int *speed,
 	sysarg_t _role;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_OPERATION_MODE, &_speed, &_duplex, &_role);
 	async_exchange_end(exch);
 	
@@ -374,11 +374,11 @@ int nic_get_operation_mode(async_sess_t *dev_sess, int *speed,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_set_operation_mode(async_sess_t *dev_sess, int speed,
+errno_t nic_set_operation_mode(async_sess_t *dev_sess, int speed,
     nic_channel_mode_t duplex, nic_role_t role)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SET_OPERATION_MODE, (sysarg_t) speed, (sysarg_t) duplex,
 	    (sysarg_t) role);
 	async_exchange_end(exch);
@@ -399,10 +399,10 @@ int nic_set_operation_mode(async_sess_t *dev_sess, int speed,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_autoneg_enable(async_sess_t *dev_sess, uint32_t advertisement)
+errno_t nic_autoneg_enable(async_sess_t *dev_sess, uint32_t advertisement)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_ENABLE, (sysarg_t) advertisement);
 	async_exchange_end(exch);
 	
@@ -416,10 +416,10 @@ int nic_autoneg_enable(async_sess_t *dev_sess, uint32_t advertisement)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_autoneg_disable(async_sess_t *dev_sess)
+errno_t nic_autoneg_disable(async_sess_t *dev_sess)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_DISABLE);
 	async_exchange_end(exch);
 	
@@ -443,7 +443,7 @@ int nic_autoneg_disable(async_sess_t *dev_sess)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_autoneg_probe(async_sess_t *dev_sess, uint32_t *our_advertisement,
+errno_t nic_autoneg_probe(async_sess_t *dev_sess, uint32_t *our_advertisement,
     uint32_t *their_advertisement, nic_result_t *result,
     nic_result_t *their_result)
 {
@@ -453,7 +453,7 @@ int nic_autoneg_probe(async_sess_t *dev_sess, uint32_t *our_advertisement,
 	sysarg_t _their_result;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_4(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_4(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_PROBE, &_our_advertisement, &_their_advertisement,
 	    &_result, &_their_result);
 	async_exchange_end(exch);
@@ -480,10 +480,10 @@ int nic_autoneg_probe(async_sess_t *dev_sess, uint32_t *our_advertisement,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_autoneg_restart(async_sess_t *dev_sess)
+errno_t nic_autoneg_restart(async_sess_t *dev_sess)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_RESTART);
 	async_exchange_end(exch);
 	
@@ -500,7 +500,7 @@ int nic_autoneg_restart(async_sess_t *dev_sess)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_get_pause(async_sess_t *dev_sess, nic_result_t *we_send,
+errno_t nic_get_pause(async_sess_t *dev_sess, nic_result_t *we_send,
     nic_result_t *we_receive, uint16_t *pause)
 {
 	sysarg_t _we_send;
@@ -508,7 +508,7 @@ int nic_get_pause(async_sess_t *dev_sess, nic_result_t *we_send,
 	sysarg_t _pause;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_PAUSE, &_we_send, &_we_receive, &_pause);
 	async_exchange_end(exch);
 	
@@ -538,11 +538,11 @@ int nic_get_pause(async_sess_t *dev_sess, nic_result_t *we_send,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_set_pause(async_sess_t *dev_sess, int allow_send, int allow_receive,
+errno_t nic_set_pause(async_sess_t *dev_sess, int allow_send, int allow_receive,
     uint16_t pause)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SET_PAUSE, allow_send, allow_receive, pause);
 	async_exchange_end(exch);
 	
@@ -565,7 +565,7 @@ int nic_set_pause(async_sess_t *dev_sess, int allow_send, int allow_receive,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_unicast_get_mode(async_sess_t *dev_sess, nic_unicast_mode_t *mode,
+errno_t nic_unicast_get_mode(async_sess_t *dev_sess, nic_unicast_mode_t *mode,
     size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	assert(mode);
@@ -578,7 +578,7 @@ int nic_unicast_get_mode(async_sess_t *dev_sess, nic_unicast_mode_t *mode,
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
-	int rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_UNICAST_GET_MODE, max_count, &_mode, &_address_count);
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -608,7 +608,7 @@ int nic_unicast_get_mode(async_sess_t *dev_sess, nic_unicast_mode_t *mode,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
+errno_t nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
     const nic_address_t *address_list, size_t address_count)
 {
 	if (address_list == NULL)
@@ -619,7 +619,7 @@ int nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_UNICAST_SET_MODE, (sysarg_t) mode, address_count, NULL);
 	
-	int rc;
+	errno_t rc;
 	if (address_count)
 		rc = async_data_write_start(exch, address_list,
 		    address_count * sizeof(nic_address_t));
@@ -628,7 +628,7 @@ int nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	int res;
+	errno_t res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -654,7 +654,7 @@ int nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_multicast_get_mode(async_sess_t *dev_sess, nic_multicast_mode_t *mode,
+errno_t nic_multicast_get_mode(async_sess_t *dev_sess, nic_multicast_mode_t *mode,
     size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	assert(mode);
@@ -667,7 +667,7 @@ int nic_multicast_get_mode(async_sess_t *dev_sess, nic_multicast_mode_t *mode,
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	sysarg_t ac;
-	int rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_MULTICAST_GET_MODE, max_count, &_mode, &ac);
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -696,7 +696,7 @@ int nic_multicast_get_mode(async_sess_t *dev_sess, nic_multicast_mode_t *mode,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode,
+errno_t nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode,
     const nic_address_t *address_list, size_t address_count)
 {
 	if (address_list == NULL)
@@ -707,7 +707,7 @@ int nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode,
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_MULTICAST_SET_MODE, (sysarg_t) mode, address_count, NULL);
 	
-	int rc;
+	errno_t rc;
 	if (address_count)
 		rc = async_data_write_start(exch, address_list,
 		    address_count * sizeof(nic_address_t));
@@ -716,7 +716,7 @@ int nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	int res;
+	errno_t res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -733,14 +733,14 @@ int nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_broadcast_get_mode(async_sess_t *dev_sess, nic_broadcast_mode_t *mode)
+errno_t nic_broadcast_get_mode(async_sess_t *dev_sess, nic_broadcast_mode_t *mode)
 {
 	assert(mode);
 	
 	sysarg_t _mode;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_BROADCAST_GET_MODE, &_mode);
 	async_exchange_end(exch);
 	
@@ -757,10 +757,10 @@ int nic_broadcast_get_mode(async_sess_t *dev_sess, nic_broadcast_mode_t *mode)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_broadcast_set_mode(async_sess_t *dev_sess, nic_broadcast_mode_t mode)
+errno_t nic_broadcast_set_mode(async_sess_t *dev_sess, nic_broadcast_mode_t mode)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_BROADCAST_SET_MODE, mode);
 	async_exchange_end(exch);
 	
@@ -775,14 +775,14 @@ int nic_broadcast_set_mode(async_sess_t *dev_sess, nic_broadcast_mode_t mode)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_defective_get_mode(async_sess_t *dev_sess, uint32_t *mode)
+errno_t nic_defective_get_mode(async_sess_t *dev_sess, uint32_t *mode)
 {
 	assert(mode);
 	
 	sysarg_t _mode;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_DEFECTIVE_GET_MODE, &_mode);
 	async_exchange_end(exch);
 	
@@ -799,10 +799,10 @@ int nic_defective_get_mode(async_sess_t *dev_sess, uint32_t *mode)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_defective_set_mode(async_sess_t *dev_sess, uint32_t mode)
+errno_t nic_defective_set_mode(async_sess_t *dev_sess, uint32_t mode)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_DEFECTIVE_SET_MODE, mode);
 	async_exchange_end(exch);
 	
@@ -821,7 +821,7 @@ int nic_defective_set_mode(async_sess_t *dev_sess, uint32_t mode)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_blocked_sources_get(async_sess_t *dev_sess, size_t max_count,
+errno_t nic_blocked_sources_get(async_sess_t *dev_sess, size_t max_count,
     nic_address_t *address_list, size_t *address_count)
 {
 	if (!address_list)
@@ -830,7 +830,7 @@ int nic_blocked_sources_get(async_sess_t *dev_sess, size_t max_count,
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	sysarg_t ac;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_BLOCKED_SOURCES_GET, max_count, &ac);
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -857,7 +857,7 @@ int nic_blocked_sources_get(async_sess_t *dev_sess, size_t max_count,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_blocked_sources_set(async_sess_t *dev_sess,
+errno_t nic_blocked_sources_set(async_sess_t *dev_sess,
     const nic_address_t *address_list, size_t address_count)
 {
 	if (address_list == NULL)
@@ -868,7 +868,7 @@ int nic_blocked_sources_set(async_sess_t *dev_sess,
 	aid_t message_id = async_send_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_BLOCKED_SOURCES_SET, address_count, NULL);
 	
-	int rc;
+	errno_t rc;
 	if (address_count)
 		rc = async_data_write_start(exch, address_list,
 			address_count * sizeof(nic_address_t));
@@ -877,7 +877,7 @@ int nic_blocked_sources_set(async_sess_t *dev_sess,
 	
 	async_exchange_end(exch);
 	
-	int res;
+	errno_t res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -894,12 +894,12 @@ int nic_blocked_sources_set(async_sess_t *dev_sess,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_vlan_get_mask(async_sess_t *dev_sess, nic_vlan_mask_t *mask)
+errno_t nic_vlan_get_mask(async_sess_t *dev_sess, nic_vlan_mask_t *mask)
 {
 	assert(mask);
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_VLAN_GET_MASK);
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -922,14 +922,14 @@ int nic_vlan_get_mask(async_sess_t *dev_sess, nic_vlan_mask_t *mask)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
+errno_t nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	aid_t message_id = async_send_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_VLAN_SET_MASK, mask != NULL, NULL);
 	
-	int rc;
+	errno_t rc;
 	if (mask != NULL)
 		rc = async_data_write_start(exch, mask, sizeof(nic_vlan_mask_t));
 	else
@@ -937,7 +937,7 @@ int nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
 	
 	async_exchange_end(exch);
 	
-	int res;
+	errno_t res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -962,10 +962,10 @@ int nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_vlan_set_tag(async_sess_t *dev_sess, uint16_t tag, bool add, bool strip)
+errno_t nic_vlan_set_tag(async_sess_t *dev_sess, uint16_t tag, bool add, bool strip)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_VLAN_SET_TAG, (sysarg_t) tag, (sysarg_t) add, (sysarg_t) strip);
 	async_exchange_end(exch);
 	
@@ -984,7 +984,7 @@ int nic_vlan_set_tag(async_sess_t *dev_sess, uint16_t tag, bool add, bool strip)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
+errno_t nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
     const void *data, size_t length, nic_wv_id_t *id)
 {
 	assert(id);
@@ -996,9 +996,9 @@ int nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_ADD, (sysarg_t) type, send_data, &result);
 	
-	int res;
+	errno_t res;
 	if (send_data) {
-		int rc = async_data_write_start(exch, data, length);
+		errno_t rc = async_data_write_start(exch, data, length);
 		if (rc != EOK) {
 			async_exchange_end(exch);
 			async_wait_for(message_id, &res);
@@ -1021,10 +1021,10 @@ int nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_wol_virtue_remove(async_sess_t *dev_sess, nic_wv_id_t id)
+errno_t nic_wol_virtue_remove(async_sess_t *dev_sess, nic_wv_id_t id)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_REMOVE, (sysarg_t) id);
 	async_exchange_end(exch);
 	
@@ -1044,7 +1044,7 @@ int nic_wol_virtue_remove(async_sess_t *dev_sess, nic_wv_id_t id)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_wol_virtue_probe(async_sess_t *dev_sess, nic_wv_id_t id,
+errno_t nic_wol_virtue_probe(async_sess_t *dev_sess, nic_wv_id_t id,
     nic_wv_type_t *type, size_t max_length, void *data, size_t *length)
 {
 	sysarg_t _type;
@@ -1055,7 +1055,7 @@ int nic_wol_virtue_probe(async_sess_t *dev_sess, nic_wv_id_t id,
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
-	int rc = async_req_3_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_3_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_PROBE, (sysarg_t) id, max_length,
 	    &_type, &_length);
 	if (rc != EOK) {
@@ -1094,7 +1094,7 @@ int nic_wol_virtue_probe(async_sess_t *dev_sess, nic_wv_id_t id,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_wol_virtue_list(async_sess_t *dev_sess, nic_wv_type_t type,
+errno_t nic_wol_virtue_list(async_sess_t *dev_sess, nic_wv_type_t type,
     size_t max_count, nic_wv_id_t *id_list, size_t *id_count)
 {
 	if (id_list == NULL)
@@ -1103,7 +1103,7 @@ int nic_wol_virtue_list(async_sess_t *dev_sess, nic_wv_type_t type,
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	sysarg_t count;
-	int rc = async_req_3_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_3_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_LIST, (sysarg_t) type, max_count, &count);
 	
 	if (id_count)
@@ -1134,7 +1134,7 @@ int nic_wol_virtue_list(async_sess_t *dev_sess, nic_wv_type_t type,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_wol_virtue_get_caps(async_sess_t *dev_sess, nic_wv_type_t type,
+errno_t nic_wol_virtue_get_caps(async_sess_t *dev_sess, nic_wv_type_t type,
     int *count)
 {
 	assert(count);
@@ -1142,7 +1142,7 @@ int nic_wol_virtue_get_caps(async_sess_t *dev_sess, nic_wv_type_t type,
 	sysarg_t _count;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_GET_CAPS, (sysarg_t) type, &_count);
 	async_exchange_end(exch);
 	
@@ -1172,7 +1172,7 @@ int nic_wol_virtue_get_caps(async_sess_t *dev_sess, nic_wv_type_t type,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_wol_load_info(async_sess_t *dev_sess, nic_wv_type_t *matched_type,
+errno_t nic_wol_load_info(async_sess_t *dev_sess, nic_wv_type_t *matched_type,
     size_t max_length, uint8_t *frame, size_t *frame_length)
 {
 	assert(matched_type);
@@ -1185,7 +1185,7 @@ int nic_wol_load_info(async_sess_t *dev_sess, nic_wv_type_t *matched_type,
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
-	int rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_LOAD_INFO, max_length, &_matched_type, &_frame_length);
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -1212,7 +1212,7 @@ int nic_wol_load_info(async_sess_t *dev_sess, nic_wv_type_t *matched_type,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_offload_probe(async_sess_t *dev_sess, uint32_t *supported,
+errno_t nic_offload_probe(async_sess_t *dev_sess, uint32_t *supported,
     uint32_t *active)
 {
 	assert(supported);
@@ -1222,7 +1222,7 @@ int nic_offload_probe(async_sess_t *dev_sess, uint32_t *supported,
 	sysarg_t _active;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_1_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_OFFLOAD_PROBE, &_supported, &_active);
 	async_exchange_end(exch);
 	
@@ -1240,10 +1240,10 @@ int nic_offload_probe(async_sess_t *dev_sess, uint32_t *supported,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_offload_set(async_sess_t *dev_sess, uint32_t mask, uint32_t active)
+errno_t nic_offload_set(async_sess_t *dev_sess, uint32_t mask, uint32_t active)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_3_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_3_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_RESTART, (sysarg_t) mask, (sysarg_t) active);
 	async_exchange_end(exch);
 	
@@ -1260,7 +1260,7 @@ int nic_offload_set(async_sess_t *dev_sess, uint32_t mask, uint32_t active)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_poll_get_mode(async_sess_t *dev_sess, nic_poll_mode_t *mode,
+errno_t nic_poll_get_mode(async_sess_t *dev_sess, nic_poll_mode_t *mode,
     struct timeval *period)
 {
 	assert(mode);
@@ -1269,7 +1269,7 @@ int nic_poll_get_mode(async_sess_t *dev_sess, nic_poll_mode_t *mode,
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_POLL_GET_MODE, period != NULL, &_mode);
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -1294,7 +1294,7 @@ int nic_poll_get_mode(async_sess_t *dev_sess, nic_poll_mode_t *mode,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
+errno_t nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
     const struct timeval *period)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
@@ -1302,7 +1302,7 @@ int nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_POLL_SET_MODE, (sysarg_t) mode, period != NULL, NULL);
 	
-	int rc;
+	errno_t rc;
 	if (period)
 		rc = async_data_write_start(exch, period, sizeof(struct timeval));
 	else
@@ -1310,7 +1310,7 @@ int nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	int res;
+	errno_t res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
@@ -1326,10 +1326,10 @@ int nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_poll_now(async_sess_t *dev_sess)
+errno_t nic_poll_now(async_sess_t *dev_sess)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE), NIC_POLL_NOW);
+	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE), NIC_POLL_NOW);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -1343,7 +1343,7 @@ static void remote_nic_send_frame(ddf_fun_t *dev, void *iface,
 	
 	void *data;
 	size_t size;
-	int rc;
+	errno_t rc;
 	
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
@@ -1362,7 +1362,7 @@ static void remote_nic_callback_create(ddf_fun_t *dev, void *iface,
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->callback_create);
 	
-	int rc = nic_iface->callback_create(dev);
+	errno_t rc = nic_iface->callback_create(dev);
 	async_answer_0(callid, rc);
 }
 
@@ -1374,7 +1374,7 @@ static void remote_nic_get_state(ddf_fun_t *dev, void *iface,
 	
 	nic_device_state_t state = NIC_STATE_MAX;
 	
-	int rc = nic_iface->get_state(dev, &state);
+	errno_t rc = nic_iface->get_state(dev, &state);
 	async_answer_1(callid, rc, state);
 }
 
@@ -1386,7 +1386,7 @@ static void remote_nic_set_state(ddf_fun_t *dev, void *iface,
 	
 	nic_device_state_t state = (nic_device_state_t) IPC_GET_ARG2(*call);
 	
-	int rc = nic_iface->set_state(dev, state);
+	errno_t rc = nic_iface->set_state(dev, state);
 	async_answer_0(callid, rc);
 }
 
@@ -1399,7 +1399,7 @@ static void remote_nic_get_address(ddf_fun_t *dev, void *iface,
 	nic_address_t address;
 	memset(&address, 0, sizeof(nic_address_t));
 	
-	int rc = nic_iface->get_address(dev, &address);
+	errno_t rc = nic_iface->get_address(dev, &address);
 	if (rc == EOK) {
 		size_t max_len;
 		ipc_callid_t data_callid;
@@ -1450,7 +1450,7 @@ static void remote_nic_set_address(ddf_fun_t *dev, void *iface,
 	}
 	
 	if (nic_iface->set_address != NULL) {
-		int rc = nic_iface->set_address(dev, &address);
+		errno_t rc = nic_iface->set_address(dev, &address);
 		async_answer_0(callid, rc);
 	} else
 		async_answer_0(callid, ENOTSUP);
@@ -1468,7 +1468,7 @@ static void remote_nic_get_stats(ddf_fun_t *dev, void *iface,
 	nic_device_stats_t stats;
 	memset(&stats, 0, sizeof(nic_device_stats_t));
 	
-	int rc = nic_iface->get_stats(dev, &stats);
+	errno_t rc = nic_iface->get_stats(dev, &stats);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
 		size_t max_len;
@@ -1503,7 +1503,7 @@ static void remote_nic_get_device_info(ddf_fun_t *dev, void *iface,
 	nic_device_info_t info;
 	memset(&info, 0, sizeof(nic_device_info_t));
 	
-	int rc = nic_iface->get_device_info(dev, &info);
+	errno_t rc = nic_iface->get_device_info(dev, &info);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
 		size_t max_len;
@@ -1537,7 +1537,7 @@ static void remote_nic_get_cable_state(ddf_fun_t *dev, void *iface,
 	
 	nic_cable_state_t cs = NIC_CS_UNKNOWN;
 	
-	int rc = nic_iface->get_cable_state(dev, &cs);
+	errno_t rc = nic_iface->get_cable_state(dev, &cs);
 	async_answer_1(callid, rc, (sysarg_t) cs);
 }
 
@@ -1554,7 +1554,7 @@ static void remote_nic_get_operation_mode(ddf_fun_t *dev, void *iface,
 	nic_channel_mode_t duplex = NIC_CM_UNKNOWN;
 	nic_role_t role = NIC_ROLE_UNKNOWN;
 	
-	int rc = nic_iface->get_operation_mode(dev, &speed, &duplex, &role);
+	errno_t rc = nic_iface->get_operation_mode(dev, &speed, &duplex, &role);
 	async_answer_3(callid, rc, (sysarg_t) speed, (sysarg_t) duplex,
 	    (sysarg_t) role);
 }
@@ -1572,7 +1572,7 @@ static void remote_nic_set_operation_mode(ddf_fun_t *dev, void *iface,
 	nic_channel_mode_t duplex = (nic_channel_mode_t) IPC_GET_ARG3(*call);
 	nic_role_t role = (nic_role_t) IPC_GET_ARG4(*call);
 	
-	int rc = nic_iface->set_operation_mode(dev, speed, duplex, role);
+	errno_t rc = nic_iface->set_operation_mode(dev, speed, duplex, role);
 	async_answer_0(callid, rc);
 }
 
@@ -1587,7 +1587,7 @@ static void remote_nic_autoneg_enable(ddf_fun_t *dev, void *iface,
 	
 	uint32_t advertisement = (uint32_t) IPC_GET_ARG2(*call);
 	
-	int rc = nic_iface->autoneg_enable(dev, advertisement);
+	errno_t rc = nic_iface->autoneg_enable(dev, advertisement);
 	async_answer_0(callid, rc);
 }
 
@@ -1600,7 +1600,7 @@ static void remote_nic_autoneg_disable(ddf_fun_t *dev, void *iface,
 		return;
 	}
 	
-	int rc = nic_iface->autoneg_disable(dev);
+	errno_t rc = nic_iface->autoneg_disable(dev);
 	async_answer_0(callid, rc);
 }
 
@@ -1618,7 +1618,7 @@ static void remote_nic_autoneg_probe(ddf_fun_t *dev, void *iface,
 	nic_result_t result = NIC_RESULT_NOT_AVAILABLE;
 	nic_result_t their_result = NIC_RESULT_NOT_AVAILABLE;
 	
-	int rc = nic_iface->autoneg_probe(dev, &our_adv, &their_adv, &result,
+	errno_t rc = nic_iface->autoneg_probe(dev, &our_adv, &their_adv, &result,
 	    &their_result);
 	async_answer_4(callid, rc, our_adv, their_adv, (sysarg_t) result,
 	    (sysarg_t) their_result);
@@ -1633,7 +1633,7 @@ static void remote_nic_autoneg_restart(ddf_fun_t *dev, void *iface,
 		return;
 	}
 	
-	int rc = nic_iface->autoneg_restart(dev);
+	errno_t rc = nic_iface->autoneg_restart(dev);
 	async_answer_0(callid, rc);
 }
 
@@ -1650,7 +1650,7 @@ static void remote_nic_get_pause(ddf_fun_t *dev, void *iface,
 	nic_result_t we_receive;
 	uint16_t pause;
 	
-	int rc = nic_iface->get_pause(dev, &we_send, &we_receive, &pause);
+	errno_t rc = nic_iface->get_pause(dev, &we_send, &we_receive, &pause);
 	async_answer_3(callid, rc, we_send, we_receive, pause);
 }
 
@@ -1667,7 +1667,7 @@ static void remote_nic_set_pause(ddf_fun_t *dev, void *iface,
 	int allow_receive = (int) IPC_GET_ARG3(*call);
 	uint16_t pause = (uint16_t) IPC_GET_ARG4(*call);
 	
-	int rc = nic_iface->set_pause(dev, allow_send, allow_receive,
+	errno_t rc = nic_iface->set_pause(dev, allow_send, allow_receive,
 	    pause);
 	async_answer_0(callid, rc);
 }
@@ -1696,7 +1696,7 @@ static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
 	nic_unicast_mode_t mode = NIC_UNICAST_DEFAULT;
 	size_t address_count = 0;
 	
-	int rc = nic_iface->unicast_get_mode(dev, &mode, max_count, address_list,
+	errno_t rc = nic_iface->unicast_get_mode(dev, &mode, max_count, address_list,
 	    &address_count);
 	
 	if ((rc != EOK) || (max_count == 0) || (address_count == 0)) {
@@ -1767,7 +1767,7 @@ static void remote_nic_unicast_set_mode(ddf_fun_t *dev, void *iface,
 	}
 	
 	if (nic_iface->unicast_set_mode != NULL) {
-		int rc = nic_iface->unicast_set_mode(dev, mode, address_list,
+		errno_t rc = nic_iface->unicast_set_mode(dev, mode, address_list,
 		    address_count);
 		async_answer_0(callid, rc);
 	} else
@@ -1800,7 +1800,7 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 	nic_multicast_mode_t mode = NIC_MULTICAST_BLOCKED;
 	size_t address_count = 0;
 	
-	int rc = nic_iface->multicast_get_mode(dev, &mode, max_count, address_list,
+	errno_t rc = nic_iface->multicast_get_mode(dev, &mode, max_count, address_list,
 	    &address_count);
 	
 	
@@ -1871,7 +1871,7 @@ static void remote_nic_multicast_set_mode(ddf_fun_t *dev, void *iface,
 	}
 	
 	if (nic_iface->multicast_set_mode != NULL) {
-		int rc = nic_iface->multicast_set_mode(dev, mode, address_list,
+		errno_t rc = nic_iface->multicast_set_mode(dev, mode, address_list,
 		    address_count);
 		async_answer_0(callid, rc);
 	} else
@@ -1891,7 +1891,7 @@ static void remote_nic_broadcast_get_mode(ddf_fun_t *dev, void *iface,
 	
 	nic_broadcast_mode_t mode = NIC_BROADCAST_ACCEPTED;
 	
-	int rc = nic_iface->broadcast_get_mode(dev, &mode);
+	errno_t rc = nic_iface->broadcast_get_mode(dev, &mode);
 	async_answer_1(callid, rc, mode);
 }
 
@@ -1906,7 +1906,7 @@ static void remote_nic_broadcast_set_mode(ddf_fun_t *dev, void *iface,
 	
 	nic_broadcast_mode_t mode = IPC_GET_ARG2(*call);
 	
-	int rc = nic_iface->broadcast_set_mode(dev, mode);
+	errno_t rc = nic_iface->broadcast_set_mode(dev, mode);
 	async_answer_0(callid, rc);
 }
 
@@ -1921,7 +1921,7 @@ static void remote_nic_defective_get_mode(ddf_fun_t *dev, void *iface,
 	
 	uint32_t mode = 0;
 	
-	int rc = nic_iface->defective_get_mode(dev, &mode);
+	errno_t rc = nic_iface->defective_get_mode(dev, &mode);
 	async_answer_1(callid, rc, mode);
 }
 
@@ -1936,7 +1936,7 @@ static void remote_nic_defective_set_mode(ddf_fun_t *dev, void *iface,
 	
 	uint32_t mode = IPC_GET_ARG2(*call);
 	
-	int rc = nic_iface->defective_set_mode(dev, mode);
+	errno_t rc = nic_iface->defective_set_mode(dev, mode);
 	async_answer_0(callid, rc);
 }
 
@@ -1963,7 +1963,7 @@ static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
 	memset(address_list, 0, max_count * sizeof(nic_address_t));
 	size_t address_count = 0;
 	
-	int rc = nic_iface->blocked_sources_get(dev, max_count, address_list,
+	errno_t rc = nic_iface->blocked_sources_get(dev, max_count, address_list,
 	    &address_count);
 	
 	if ((rc != EOK) || (max_count == 0) || (address_count == 0)) {
@@ -2033,7 +2033,7 @@ static void remote_nic_blocked_sources_set(ddf_fun_t *dev, void *iface,
 	}
 	
 	if (nic_iface->blocked_sources_set != NULL) {
-		int rc = nic_iface->blocked_sources_set(dev, address_list,
+		errno_t rc = nic_iface->blocked_sources_set(dev, address_list,
 		    address_count);
 		async_answer_0(callid, rc);
 	} else
@@ -2054,7 +2054,7 @@ static void remote_nic_vlan_get_mask(ddf_fun_t *dev, void *iface,
 	nic_vlan_mask_t vlan_mask;
 	memset(&vlan_mask, 0, sizeof(nic_vlan_mask_t));
 	
-	int rc = nic_iface->vlan_get_mask(dev, &vlan_mask);
+	errno_t rc = nic_iface->vlan_get_mask(dev, &vlan_mask);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
 		size_t max_len;
@@ -2110,7 +2110,7 @@ static void remote_nic_vlan_set_mask(ddf_fun_t *dev, void *iface,
 	}
 	
 	if (nic_iface->vlan_set_mask != NULL) {
-		int rc = nic_iface->vlan_set_mask(dev, vlan_mask_pointer);
+		errno_t rc = nic_iface->vlan_set_mask(dev, vlan_mask_pointer);
 		async_answer_0(callid, rc);
 	} else
 		async_answer_0(callid, ENOTSUP);
@@ -2130,7 +2130,7 @@ static void remote_nic_vlan_set_tag(ddf_fun_t *dev, void *iface,
 	bool add = (int) IPC_GET_ARG3(*call);
 	bool strip = (int) IPC_GET_ARG4(*call);
 	
-	int rc = nic_iface->vlan_set_tag(dev, tag, add, strip);
+	errno_t rc = nic_iface->vlan_set_tag(dev, tag, add, strip);
 	async_answer_0(callid, rc);
 }
 
@@ -2179,7 +2179,7 @@ static void remote_nic_wol_virtue_add(ddf_fun_t *dev, void *iface,
 	nic_wv_id_t id = 0;
 	nic_wv_type_t type = (nic_wv_type_t) IPC_GET_ARG2(*call);
 	
-	int rc = nic_iface->wol_virtue_add(dev, type, data, length, &id);
+	errno_t rc = nic_iface->wol_virtue_add(dev, type, data, length, &id);
 	async_answer_1(callid, rc, (sysarg_t) id);
 	free(data);
 }
@@ -2196,7 +2196,7 @@ static void remote_nic_wol_virtue_remove(ddf_fun_t *dev, void *iface,
 	
 	nic_wv_id_t id = (nic_wv_id_t) IPC_GET_ARG2(*call);
 	
-	int rc = nic_iface->wol_virtue_remove(dev, id);
+	errno_t rc = nic_iface->wol_virtue_remove(dev, id);
 	async_answer_0(callid, rc);
 }
 
@@ -2227,7 +2227,7 @@ static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
 	
 	memset(data, 0, max_length);
 	
-	int rc = nic_iface->wol_virtue_probe(dev, id, &type, max_length,
+	errno_t rc = nic_iface->wol_virtue_probe(dev, id, &type, max_length,
 	    data, &length);
 	
 	if ((max_length != 0) && (length != 0)) {
@@ -2277,7 +2277,7 @@ static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
 	
 	memset(id_list, 0, max_count * sizeof (nic_wv_id_t));
 	
-	int rc = nic_iface->wol_virtue_list(dev, type, max_count, id_list,
+	errno_t rc = nic_iface->wol_virtue_list(dev, type, max_count, id_list,
 	    &count);
 	
 	if ((max_count != 0) && (count != 0)) {
@@ -2314,7 +2314,7 @@ static void remote_nic_wol_virtue_get_caps(ddf_fun_t *dev, void *iface,
 	int count = -1;
 	nic_wv_type_t type = (nic_wv_type_t) IPC_GET_ARG2(*call);
 	
-	int rc = nic_iface->wol_virtue_get_caps(dev, type, &count);
+	errno_t rc = nic_iface->wol_virtue_get_caps(dev, type, &count);
 	async_answer_1(callid, rc, (sysarg_t) count);
 }
 
@@ -2342,7 +2342,7 @@ static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
 	
 	memset(data, 0, max_length);
 	
-	int rc = nic_iface->wol_load_info(dev, &type, max_length, data,
+	errno_t rc = nic_iface->wol_load_info(dev, &type, max_length, data,
 	    &frame_length);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
@@ -2375,7 +2375,7 @@ static void remote_nic_offload_probe(ddf_fun_t *dev, void *iface,
 	uint32_t supported = 0;
 	uint32_t active = 0;
 	
-	int rc = nic_iface->offload_probe(dev, &supported, &active);
+	errno_t rc = nic_iface->offload_probe(dev, &supported, &active);
 	async_answer_2(callid, rc, supported, active);
 }
 
@@ -2391,7 +2391,7 @@ static void remote_nic_offload_set(ddf_fun_t *dev, void *iface,
 	uint32_t mask = (uint32_t) IPC_GET_ARG2(*call);
 	uint32_t active = (uint32_t) IPC_GET_ARG3(*call);
 	
-	int rc = nic_iface->offload_set(dev, mask, active);
+	errno_t rc = nic_iface->offload_set(dev, mask, active);
 	async_answer_0(callid, rc);
 }
 
@@ -2411,7 +2411,7 @@ static void remote_nic_poll_get_mode(ddf_fun_t *dev, void *iface,
 		.tv_usec = 0
 	};
 	
-	int rc = nic_iface->poll_get_mode(dev, &mode, &period);
+	errno_t rc = nic_iface->poll_get_mode(dev, &mode, &period);
 	if ((rc == EOK) && (request_data)) {
 		size_t max_len;
 		ipc_callid_t data_callid;
@@ -2469,7 +2469,7 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
 	}
 	
 	if (nic_iface->poll_set_mode != NULL) {
-		int rc = nic_iface->poll_set_mode(dev, mode, period);
+		errno_t rc = nic_iface->poll_set_mode(dev, mode, period);
 		async_answer_0(callid, rc);
 	} else
 		async_answer_0(callid, ENOTSUP);
@@ -2484,7 +2484,7 @@ static void remote_nic_poll_now(ddf_fun_t *dev, void *iface,
 		return;
 	}
 	
-	int rc = nic_iface->poll_now(dev);
+	errno_t rc = nic_iface->poll_now(dev);
 	async_answer_0(callid, rc);
 }
 

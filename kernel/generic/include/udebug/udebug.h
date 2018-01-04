@@ -101,7 +101,7 @@ void udebug_stoppable_end(void);
 
 void udebug_before_thread_runs(void);
 
-int udebug_task_cleanup(struct task *);
+errno_t udebug_task_cleanup(struct task *);
 void udebug_thread_fault(void);
 
 #endif

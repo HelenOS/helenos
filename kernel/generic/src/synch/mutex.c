@@ -84,9 +84,9 @@ bool mutex_locked(mutex_t *mtx)
  * @return See comment for waitq_sleep_timeout().
  *
  */
-int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
+errno_t _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 {
-	int rc;
+	errno_t rc;
 
 	if (mtx->type == MUTEX_PASSIVE && THREAD) {
 		rc = _semaphore_down_timeout(&mtx->sem, usec, flags);

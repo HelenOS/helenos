@@ -39,7 +39,7 @@
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 	void *data, *ddata;
 	size_t size, dsize;
 	size_t nread, nwr;

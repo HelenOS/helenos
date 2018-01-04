@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 	}
 	
 	port_id_t port;
-	int rc = async_create_port(INTERFACE_LOGGER_CONTROL,
+	errno_t rc = async_create_port(INTERFACE_LOGGER_CONTROL,
 	    connection_handler_control, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error while creating control port: %s\n", NAME, str_error(rc));

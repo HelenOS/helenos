@@ -62,13 +62,13 @@ static const irq_code_t default_ucode = {
  * @return Error code returned by the kernel.
  *
  */
-int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode,
+errno_t ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode,
     cap_handle_t *out_handle)
 {
 	if (ucode == NULL)
 		ucode = &default_ucode;
 	
-	return (int) __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, method, (sysarg_t) ucode,
+	return (errno_t) __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, method, (sysarg_t) ucode,
 	    (sysarg_t) out_handle);
 }
 
@@ -79,9 +79,9 @@ int ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode,
  * @return Value returned by the kernel.
  *
  */
-int ipc_irq_unsubscribe(cap_handle_t cap)
+errno_t ipc_irq_unsubscribe(cap_handle_t cap)
 {
-	return (int) __SYSCALL1(SYS_IPC_IRQ_UNSUBSCRIBE, cap);
+	return (errno_t) __SYSCALL1(SYS_IPC_IRQ_UNSUBSCRIBE, cap);
 }
 
 /** @}

@@ -133,7 +133,7 @@ usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report,
  * @retval EINVAL If no report structure was given
  * @retval EOK If report structure was successfully initialized
  */
-int usb_hid_report_init(usb_hid_report_t *report)
+errno_t usb_hid_report_init(usb_hid_report_t *report)
 {
 	if (report == NULL) {
 		return EINVAL;
@@ -161,7 +161,7 @@ int usb_hid_report_init(usb_hid_report_t *report)
  * @retval ENOMEM If there is no memmory to store new report description
  *
  */
-int usb_hid_report_append_fields(usb_hid_report_t *report,
+errno_t usb_hid_report_append_fields(usb_hid_report_t *report,
 		usb_hid_report_item_t *report_item) {
 
 	usb_hid_report_field_t *field;
@@ -355,7 +355,7 @@ usb_hid_report_description_t * usb_hid_report_find_description(
  * @retval EINVAL If invalid data are founded
  * @retval EOK If report descriptor is successfully parsed
  */
-int usb_hid_parse_report_descriptor(usb_hid_report_t *report, 
+errno_t usb_hid_parse_report_descriptor(usb_hid_report_t *report, 
     const uint8_t *data, size_t size)
 {
 	size_t i=0;

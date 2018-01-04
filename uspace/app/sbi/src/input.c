@@ -44,7 +44,7 @@
 /** Size of input buffer. XXX This limits the maximum line length. */
 #define INPUT_BUFFER_SIZE 256
 
-static int input_init_file(input_t *input, const char *fname);
+static errno_t input_init_file(input_t *input, const char *fname);
 static void input_init_interactive(input_t *input);
 static void input_init_string(input_t *input, const char *str);
 
@@ -56,7 +56,7 @@ static void input_init_string(input_t *input, const char *str);
  * @return		EOK on success, ENOMEM when allocation fails,
  *			ENOENT when opening file fails.
  */
-int input_new_file(input_t **input, const char *fname)
+errno_t input_new_file(input_t **input, const char *fname)
 {
 	*input = malloc(sizeof(input_t));
 	if (*input == NULL)
@@ -70,7 +70,7 @@ int input_new_file(input_t **input, const char *fname)
  * @param input		Place to store pointer to new input object.
  * @return		EOK on success, ENOMEM when allocation fails.
  */
-int input_new_interactive(input_t **input)
+errno_t input_new_interactive(input_t **input)
 {
 	*input = malloc(sizeof(input_t));
 	if (*input == NULL)
@@ -86,7 +86,7 @@ int input_new_interactive(input_t **input)
  * @param str		String literal from which to read input.
  * @return		EOK on success, ENOMEM when allocation fails.
  */
-int input_new_string(input_t **input, const char *str)
+errno_t input_new_string(input_t **input, const char *str)
 {
 	*input = malloc(sizeof(input_t));
 	if (*input == NULL)
@@ -103,7 +103,7 @@ int input_new_string(input_t **input, const char *str)
  *
  * @return		EOK on success, ENOENT when opening file fails.
 */
-static int input_init_file(input_t *input, const char *fname)
+static errno_t input_init_file(input_t *input, const char *fname)
 {
 	FILE *f;
 
@@ -173,7 +173,7 @@ static void input_init_string(input_t *input, const char *str)
  *
  * @return		EOK on success, EIO on failure.
  */
-int input_get_line(input_t *input, char **line)
+errno_t input_get_line(input_t *input, char **line)
 {
 	const char *prompt;
 	const char *sp;

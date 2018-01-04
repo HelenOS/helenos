@@ -65,14 +65,14 @@ static void touch_area(void *area, size_t size)
 #define VERIFY_MAPPING(area, page_count, expected_rc) \
     verify_mapping((area), (page_count), (expected_rc), #expected_rc)
 
-static bool verify_mapping(void *area, int page_count, int expected_rc,
+static bool verify_mapping(void *area, int page_count, errno_t expected_rc,
     const char *expected_rc_str)
 {
 	TPRINTF("Verifying mapping (expected: %s).\n", expected_rc_str);
 	int i;
 	for (i = 0; i < page_count; i++) {
 		void *page_start = ((char *) area) + PAGE_SIZE * i;
-		int rc = as_get_physical_mapping(page_start, NULL);
+		errno_t rc = as_get_physical_mapping(page_start, NULL);
 		if (rc != expected_rc) {
 			TPRINTF("as_get_physical_mapping() = %s != %s\n",
 			    str_error_name(rc), str_error_name(expected_rc));
@@ -84,7 +84,7 @@ static bool verify_mapping(void *area, int page_count, int expected_rc,
 
 const char *test_mapping1(void)
 {
-	int rc;
+	errno_t rc;
 	
 	size_t buffer1_len = BUFFER1_PAGES * PAGE_SIZE;
 	size_t buffer2_len = BUFFER2_PAGES * PAGE_SIZE;

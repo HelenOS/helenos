@@ -42,11 +42,11 @@
 
 #define NAME  "apic"
 
-static int apic_dev_add(ddf_dev_t *dev);
-static int apic_dev_remove(ddf_dev_t *dev);
-static int apic_dev_gone(ddf_dev_t *dev);
-static int apic_fun_online(ddf_fun_t *fun);
-static int apic_fun_offline(ddf_fun_t *fun);
+static errno_t apic_dev_add(ddf_dev_t *dev);
+static errno_t apic_dev_remove(ddf_dev_t *dev);
+static errno_t apic_dev_gone(ddf_dev_t *dev);
+static errno_t apic_fun_online(ddf_fun_t *fun);
+static errno_t apic_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.dev_add = apic_dev_add,
@@ -61,11 +61,11 @@ static driver_t apic_driver = {
 	.driver_ops = &driver_ops
 };
 
-static int apic_get_res(ddf_dev_t *dev, apic_res_t *res)
+static errno_t apic_get_res(ddf_dev_t *dev, apic_res_t *res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
-	int rc;
+	errno_t rc;
 
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
@@ -89,11 +89,11 @@ error:
 	return rc;
 }
 
-static int apic_dev_add(ddf_dev_t *dev)
+static errno_t apic_dev_add(ddf_dev_t *dev)
 {
 	apic_t *apic;
 	apic_res_t apic_res;
-	int rc;
+	errno_t rc;
 
         ddf_msg(LVL_DEBUG, "apic_dev_add(%p)", dev);
 	apic = ddf_dev_data_alloc(dev, sizeof(apic_t));
@@ -113,7 +113,7 @@ static int apic_dev_add(ddf_dev_t *dev)
 	return apic_add(apic, &apic_res);
 }
 
-static int apic_dev_remove(ddf_dev_t *dev)
+static errno_t apic_dev_remove(ddf_dev_t *dev)
 {
         apic_t *apic = (apic_t *)ddf_dev_data_get(dev);
 
@@ -122,7 +122,7 @@ static int apic_dev_remove(ddf_dev_t *dev)
         return apic_remove(apic);
 }
 
-static int apic_dev_gone(ddf_dev_t *dev)
+static errno_t apic_dev_gone(ddf_dev_t *dev)
 {
         apic_t *apic = (apic_t *)ddf_dev_data_get(dev);
 
@@ -131,13 +131,13 @@ static int apic_dev_gone(ddf_dev_t *dev)
         return apic_gone(apic);
 }
 
-static int apic_fun_online(ddf_fun_t *fun)
+static errno_t apic_fun_online(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "apic_fun_online()");
         return ddf_fun_online(fun);
 }
 
-static int apic_fun_offline(ddf_fun_t *fun)
+static errno_t apic_fun_offline(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "apic_fun_offline()");
         return ddf_fun_offline(fun);

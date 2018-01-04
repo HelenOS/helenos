@@ -285,7 +285,7 @@ static fun_node_t *find_node_child(dev_tree_t *tree, fun_node_t *pfun,
 	return find_fun_node_in_device(tree, pfun->child, name);
 }
 
-static int assign_driver_fibril(void *arg)
+static errno_t assign_driver_fibril(void *arg)
 {
 	dev_node_t *dev_node = (dev_node_t *) arg;
 	assign_driver(dev_node, &drivers_list, &device_tree);
@@ -295,7 +295,7 @@ static int assign_driver_fibril(void *arg)
 	return EOK;
 }
 
-int fun_online(fun_node_t *fun)
+errno_t fun_online(fun_node_t *fun)
 {
 	dev_node_t *dev;
 	
@@ -353,9 +353,9 @@ int fun_online(fun_node_t *fun)
 	return EOK;
 }
 
-int fun_offline(fun_node_t *fun)
+errno_t fun_offline(fun_node_t *fun)
 {
-	int rc;
+	errno_t rc;
 	
 	fibril_rwlock_write_lock(&device_tree.rwlock);
 	

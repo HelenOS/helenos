@@ -41,11 +41,11 @@
 
 #define NAME  "adb-kbd"
 
-static int adb_kbd_dev_add(ddf_dev_t *dev);
-static int adb_kbd_dev_remove(ddf_dev_t *dev);
-static int adb_kbd_dev_gone(ddf_dev_t *dev);
-static int adb_kbd_fun_online(ddf_fun_t *fun);
-static int adb_kbd_fun_offline(ddf_fun_t *fun);
+static errno_t adb_kbd_dev_add(ddf_dev_t *dev);
+static errno_t adb_kbd_dev_remove(ddf_dev_t *dev);
+static errno_t adb_kbd_dev_gone(ddf_dev_t *dev);
+static errno_t adb_kbd_fun_online(ddf_fun_t *fun);
+static errno_t adb_kbd_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.dev_add = adb_kbd_dev_add,
@@ -60,7 +60,7 @@ static driver_t adb_kbd_driver = {
 	.driver_ops = &driver_ops
 };
 
-static int adb_kbd_dev_add(ddf_dev_t *dev)
+static errno_t adb_kbd_dev_add(ddf_dev_t *dev)
 {
 	adb_kbd_t *adb_kbd;
 
@@ -76,7 +76,7 @@ static int adb_kbd_dev_add(ddf_dev_t *dev)
 	return adb_kbd_add(adb_kbd);
 }
 
-static int adb_kbd_dev_remove(ddf_dev_t *dev)
+static errno_t adb_kbd_dev_remove(ddf_dev_t *dev)
 {
         adb_kbd_t *adb_kbd = (adb_kbd_t *)ddf_dev_data_get(dev);
 
@@ -85,7 +85,7 @@ static int adb_kbd_dev_remove(ddf_dev_t *dev)
         return adb_kbd_remove(adb_kbd);
 }
 
-static int adb_kbd_dev_gone(ddf_dev_t *dev)
+static errno_t adb_kbd_dev_gone(ddf_dev_t *dev)
 {
         adb_kbd_t *adb_kbd = (adb_kbd_t *)ddf_dev_data_get(dev);
 
@@ -94,13 +94,13 @@ static int adb_kbd_dev_gone(ddf_dev_t *dev)
         return adb_kbd_gone(adb_kbd);
 }
 
-static int adb_kbd_fun_online(ddf_fun_t *fun)
+static errno_t adb_kbd_fun_online(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "adb_kbd_fun_online()");
         return ddf_fun_online(fun);
 }
 
-static int adb_kbd_fun_offline(ddf_fun_t *fun)
+static errno_t adb_kbd_fun_offline(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "adb_kbd_fun_offline()");
         return ddf_fun_offline(fun);

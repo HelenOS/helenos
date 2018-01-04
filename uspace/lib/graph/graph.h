@@ -53,14 +53,14 @@ typedef struct {
 	/**
 	 * Device driver shall allocate any necessary internal structures
 	 * specific for a claimed visualizer. */
-	int (* claim)(struct visualizer *vs);
+	errno_t (* claim)(struct visualizer *vs);
 	
 	/**
 	 * Device driver shall deallocate any necessary internal structures
 	 * specific for a claimed visualizer. Driver shall also check whether
 	 * the mode is set and if so it shall change its internal state
 	 * accordingly (e.g. deallocate frame buffers). */
-	int (* yield)(struct visualizer *vs);
+	errno_t (* yield)(struct visualizer *vs);
 	
 	/**
 	 * Device driver shall first try to claim all resources required for
@@ -71,7 +71,7 @@ typedef struct {
 	 * reason). If it is convenient for the device driver (e.g. for better
 	 * optimization), the pointer to the handle_damage operation can be
 	 * changed at this point. */
-	int (* change_mode)(struct visualizer *vs, vslmode_t new_mode);
+	errno_t (* change_mode)(struct visualizer *vs, vslmode_t new_mode);
 	
 	/**
 	 * Device driver shall render the cells from damaged region into its
@@ -81,7 +81,7 @@ typedef struct {
 	 * the shared backbuffer (i.e. when reading from backbuffer, the offsets
 	 * shall be added to the coordinates and if necessary the result shall be
 	 * wrapped around the edge of the backbuffer). */
-	int (* handle_damage)(struct visualizer *vs,
+	errno_t (* handle_damage)(struct visualizer *vs,
 	    sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height,
 		sysarg_t x_offset, sysarg_t y_offset);
 	
@@ -89,12 +89,12 @@ typedef struct {
 	 * Upper layers of the graphic stack might report inactivity. In such
 	 * case, device driver might enable power saving mode on the device
 	 * corresponding to the visualizer. */
-	int (* suspend)(struct visualizer *vs);
+	errno_t (* suspend)(struct visualizer *vs);
 	
 	/**
 	 * When upper layers detect activity on suspended visualizer, device
 	 * driver shall disable power saving mode on the corresponding device. */
-	int (* wakeup)(struct visualizer *vs);
+	errno_t (* wakeup)(struct visualizer *vs);
 } visualizer_ops_t;
 
 /**
@@ -289,7 +289,7 @@ extern visualizer_t *graph_alloc_visualizer(void);
  * is considered ready to handle client connection. Since visualizer
  * list is guarded by the mutex, visualizers might be added even after the
  * initialialization of the device driver. */
-extern int graph_register_visualizer(visualizer_t *);
+extern errno_t graph_register_visualizer(visualizer_t *);
 
 /** 
  * Retrieve the visualizer from the visualizer list according to its
@@ -300,7 +300,7 @@ extern visualizer_t *graph_get_visualizer(sysarg_t);
  * Unregister the visualizer from the location service and remove it 
  * from the driver visualizer list. Function shall be called by device driver
  * before deallocating the resources for the visualizer. */
-extern int graph_unregister_visualizer(visualizer_t *);
+extern errno_t graph_unregister_visualizer(visualizer_t *);
 
 /** 
  * Destroy the rest of the visualizer. Device driver shall call this function
@@ -309,9 +309,9 @@ extern int graph_unregister_visualizer(visualizer_t *);
 extern void graph_destroy_visualizer(visualizer_t *);
 
 extern renderer_t *graph_alloc_renderer(void);
-extern int graph_register_renderer(renderer_t *);
+extern errno_t graph_register_renderer(renderer_t *);
 extern renderer_t *graph_get_renderer(sysarg_t);
-extern int graph_unregister_renderer(renderer_t *);
+extern errno_t graph_unregister_renderer(renderer_t *);
 extern void graph_destroy_renderer(renderer_t *);
 
 /*----------------------------------------------------------------------------*/
@@ -320,13 +320,13 @@ extern void graph_destroy_renderer(renderer_t *);
  * Device driver can call this function to notify the client through the
  * callback connection that the visualizer with a specified service ID should
  * be switched to the mode with the given index. */
-extern int graph_notify_mode_change(async_sess_t *, sysarg_t, sysarg_t);
+extern errno_t graph_notify_mode_change(async_sess_t *, sysarg_t, sysarg_t);
 
 /**
  * Device driver can call this function to notify the client through the
  * callback connection that the visualizer with a specified service ID has
  * lost its output device (e.g. virtual monitor was closed by a user). */
-extern int graph_notify_disconnect(async_sess_t *, sysarg_t);
+extern errno_t graph_notify_disconnect(async_sess_t *, sysarg_t);
 
 /*----------------------------------------------------------------------------*/
 

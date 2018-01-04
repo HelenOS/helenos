@@ -85,15 +85,15 @@ typedef struct fat_cfg {
 
 static void syntax_print(void);
 
-static int fat_params_compute(struct fat_cfg *cfg);
-static int fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id);
+static errno_t fat_params_compute(struct fat_cfg *cfg);
+static errno_t fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id);
 static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs);
 
 int main(int argc, char **argv)
 {
 	struct fat_cfg cfg;
 
-	int rc;
+	errno_t rc;
 	char *dev_path;
 	service_id_t service_id;
 	char *endptr;
@@ -251,7 +251,7 @@ static void syntax_print(void)
 	    "\t--label <label>  Volume label\n");
 }
 
-static int fat_label_encode(void *dest, const char *src)
+static errno_t fat_label_encode(void *dest, const char *src)
 {
 	int i;
 	const char *sp;
@@ -283,7 +283,7 @@ static int fat_label_encode(void *dest, const char *src)
  * This function concentrates all the different computations of FAT
  * file system params.
  */
-static int fat_params_compute(struct fat_cfg *cfg)
+static errno_t fat_params_compute(struct fat_cfg *cfg)
 {
 	uint32_t fat_bytes;
 	uint32_t non_data_sectors_lb_16;
@@ -355,13 +355,13 @@ static int fat_params_compute(struct fat_cfg *cfg)
 }
 
 /** Create file system with the given parameters. */
-static int fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id)
+static errno_t fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id)
 {
 	aoff64_t addr;
 	uint8_t *buffer;
 	int i;
 	uint32_t j;
-	int rc;
+	errno_t rc;
 	struct fat_bs bs;
 	fat_dentry_t *de;
 

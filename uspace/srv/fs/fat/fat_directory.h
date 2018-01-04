@@ -51,27 +51,27 @@ typedef struct {
 } fat_directory_t;
 
 
-extern int fat_directory_open(fat_node_t *, fat_directory_t *);
-extern int fat_directory_close(fat_directory_t *);
+extern errno_t fat_directory_open(fat_node_t *, fat_directory_t *);
+extern errno_t fat_directory_close(fat_directory_t *);
 
-extern int fat_directory_next(fat_directory_t *);
-extern int fat_directory_prev(fat_directory_t *);
-extern int fat_directory_seek(fat_directory_t *, aoff64_t);
-extern int fat_directory_get(fat_directory_t *, fat_dentry_t **);
+extern errno_t fat_directory_next(fat_directory_t *);
+extern errno_t fat_directory_prev(fat_directory_t *);
+extern errno_t fat_directory_seek(fat_directory_t *, aoff64_t);
+extern errno_t fat_directory_get(fat_directory_t *, fat_dentry_t **);
 
-extern int fat_directory_read(fat_directory_t *, char *, fat_dentry_t **);
-extern int fat_directory_write(fat_directory_t *, const char *, fat_dentry_t *);
-extern int fat_directory_erase(fat_directory_t *);
-extern int fat_directory_lookup_name(fat_directory_t *, const char *,
+extern errno_t fat_directory_read(fat_directory_t *, char *, fat_dentry_t **);
+extern errno_t fat_directory_write(fat_directory_t *, const char *, fat_dentry_t *);
+extern errno_t fat_directory_erase(fat_directory_t *);
+extern errno_t fat_directory_lookup_name(fat_directory_t *, const char *,
     fat_dentry_t **);
 extern bool fat_directory_is_sfn_exist(fat_directory_t *, fat_dentry_t *);
 
-extern int fat_directory_lookup_free(fat_directory_t *, size_t);
-extern int fat_directory_write_dentry(fat_directory_t *, fat_dentry_t *);
-extern int fat_directory_create_sfn(fat_directory_t *, fat_dentry_t *,
+extern errno_t fat_directory_lookup_free(fat_directory_t *, size_t);
+extern errno_t fat_directory_write_dentry(fat_directory_t *, fat_dentry_t *);
+extern errno_t fat_directory_create_sfn(fat_directory_t *, fat_dentry_t *,
     const char *);
-extern int fat_directory_expand(fat_directory_t *);
-extern int fat_directory_vollabel_get(fat_directory_t *, char *);
+extern errno_t fat_directory_expand(fat_directory_t *);
+extern errno_t fat_directory_vollabel_get(fat_directory_t *, char *);
 
 #endif
 

@@ -91,9 +91,9 @@ static void odict_print_tree(odlink_t *cur)
  *
  * @return EOK on success, EINVAL on failure
  */
-static int odict_validate_tree(odlink_t *cur, int *rbd)
+static errno_t odict_validate_tree(odlink_t *cur, int *rbd)
 {
-	int rc;
+	errno_t rc;
 	int bd_a, bd_b;
 	int cur_d;
 
@@ -176,10 +176,10 @@ static int odict_validate_tree(odlink_t *cur, int *rbd)
  *
  * @param odict Ordered dictionary
  */
-int odict_validate(odict_t *odict)
+errno_t odict_validate(odict_t *odict)
 {
 	int bd;
-	int rc;
+	errno_t rc;
 
 	if (odict->root == NULL)
 		return EOK;

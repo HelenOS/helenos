@@ -42,10 +42,10 @@
 #include <ddf/driver.h>
 #include "ieee80211.h"
 
-extern int ieee80211_get_scan_results_impl(ddf_fun_t *,
+extern errno_t ieee80211_get_scan_results_impl(ddf_fun_t *,
     ieee80211_scan_results_t *, bool);
-extern int ieee80211_connect_impl(ddf_fun_t *, char *, char *);
-extern int ieee80211_disconnect_impl(ddf_fun_t *);
+extern errno_t ieee80211_connect_impl(ddf_fun_t *, char *, char *);
+extern errno_t ieee80211_disconnect_impl(ddf_fun_t *);
 
 #endif  /* LIB_IEEE80211_IFACE_IMPL_H */
 

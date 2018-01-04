@@ -35,8 +35,8 @@
 #ifndef LIBC_CLIPBOARD_H_
 #define LIBC_CLIPBOARD_H_
 
-extern int clipboard_put_str(const char *);
-extern int clipboard_get_str(char **);
+extern errno_t clipboard_put_str(const char *);
+extern errno_t clipboard_get_str(char **);
 
 #endif
 

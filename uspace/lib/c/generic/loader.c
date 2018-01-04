@@ -53,9 +53,9 @@
  *
  * @return Error code.
  */
-int loader_spawn(const char *name)
+errno_t loader_spawn(const char *name)
 {
-	return (int) __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
+	return (errno_t) __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
 	    (sysarg_t) name, str_size(name));
 }
 
@@ -86,24 +86,24 @@ loader_t *loader_connect(void)
  * @return Zero on success or an error code.
  *
  */
-int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
+errno_t loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 {
 	/* Get task ID. */
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_GET_TASKID, &answer);
-	int rc = async_data_read_start(exch, task_id, sizeof(task_id_t));
+	errno_t rc = async_data_read_start(exch, task_id, sizeof(task_id_t));
 	
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
 		async_forget(req);
-		return (int) rc;
+		return (errno_t) rc;
 	}
 	
 	async_wait_for(req, &rc);
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Set current working directory for the loaded task.
@@ -115,7 +115,7 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
  * @return Zero on success or an error code.
  *
  */
-int loader_set_cwd(loader_t *ldr)
+errno_t loader_set_cwd(loader_t *ldr)
 {
 	char *cwd = (char *) malloc(MAX_PATH_LEN + 1);
 	if (!cwd)
@@ -130,18 +130,18 @@ int loader_set_cwd(loader_t *ldr)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_CWD, &answer);
-	int rc = async_data_write_start(exch, cwd, len);
+	errno_t rc = async_data_write_start(exch, cwd, len);
 	
 	async_exchange_end(exch);
 	free(cwd);
 	
 	if (rc != EOK) {
 		async_forget(req);
-		return (int) rc;
+		return (errno_t) rc;
 	}
 	
 	async_wait_for(req, &rc);
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Set the program to load.
@@ -153,14 +153,14 @@ int loader_set_cwd(loader_t *ldr)
  * @return Zero on success or an error code.
  *
  */
-int loader_set_program(loader_t *ldr, const char *name, int file)
+errno_t loader_set_program(loader_t *ldr, const char *name, int file)
 {
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_PROGRAM, &answer);
 
-	int rc = async_data_write_start(exch, name, str_size(name) + 1);
+	errno_t rc = async_data_write_start(exch, name, str_size(name) + 1);
 	if (rc == EOK) {
 		async_exch_t *vfs_exch = vfs_exchange_begin();
 		rc = vfs_pass_handle(vfs_exch, file, exch);
@@ -171,11 +171,11 @@ int loader_set_program(loader_t *ldr, const char *name, int file)
 
 	if (rc != EOK) {
 		async_forget(req);
-		return (int) rc;
+		return (errno_t) rc;
 	}
 
 	async_wait_for(req, &rc);
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Set the program to load by path.
@@ -186,7 +186,7 @@ int loader_set_program(loader_t *ldr, const char *name, int file)
  * @return Zero on success or an error code.
  *
  */
-int loader_set_program_path(loader_t *ldr, const char *path)
+errno_t loader_set_program_path(loader_t *ldr, const char *path)
 {
 	const char *name = str_rchr(path, '/');
 	if (name == NULL) {
@@ -196,7 +196,7 @@ int loader_set_program_path(loader_t *ldr, const char *path)
 	}
 	
 	int fd;
-	int rc = vfs_lookup(path, 0, &fd);
+	errno_t rc = vfs_lookup(path, 0, &fd);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -219,7 +219,7 @@ int loader_set_program_path(loader_t *ldr, const char *path)
  * @return Zero on success or an error code.
  *
  */
-int loader_set_args(loader_t *ldr, const char *const argv[])
+errno_t loader_set_args(loader_t *ldr, const char *const argv[])
 {
 	/*
 	 * Serialize the arguments into a single array. First
@@ -251,7 +251,7 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_ARGS, &answer);
-	int rc = async_data_write_start(exch, (void *) arg_buf,
+	errno_t rc = async_data_write_start(exch, (void *) arg_buf,
 	    buffer_size);
 	
 	async_exchange_end(exch);
@@ -259,11 +259,11 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
 	
 	if (rc != EOK) {
 		async_forget(req);
-		return (int) rc;
+		return (errno_t) rc;
 	}
 	
 	async_wait_for(req, &rc);
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Add a file to the task's inbox.
@@ -275,14 +275,14 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
  * @return Zero on success or an error code.
  *
  */
-int loader_add_inbox(loader_t *ldr, const char *name, int file)
+errno_t loader_add_inbox(loader_t *ldr, const char *name, int file)
 {
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
 	async_exch_t *vfs_exch = vfs_exchange_begin();
 	
 	aid_t req = async_send_0(exch, LOADER_ADD_INBOX, NULL);
 	
-	int rc = async_data_write_start(exch, name, str_size(name) + 1);
+	errno_t rc = async_data_write_start(exch, name, str_size(name) + 1);
 	if (rc == EOK) {
 		rc = vfs_pass_handle(vfs_exch, file, exch);
 	}
@@ -296,7 +296,7 @@ int loader_add_inbox(loader_t *ldr, const char *name, int file)
 		async_forget(req);
 	}
 	
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Instruct loader to load the program.
@@ -309,10 +309,10 @@ int loader_add_inbox(loader_t *ldr, const char *name, int file)
  * @return Zero on success or an error code.
  *
  */
-int loader_load_program(loader_t *ldr)
+errno_t loader_load_program(loader_t *ldr)
 {
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
-	int rc = async_req_0_0(exch, LOADER_LOAD);
+	errno_t rc = async_req_0_0(exch, LOADER_LOAD);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -332,10 +332,10 @@ int loader_load_program(loader_t *ldr)
  * @return Zero on success or an error code.
  *
  */
-int loader_run(loader_t *ldr)
+errno_t loader_run(loader_t *ldr)
 {
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
-	int rc = async_req_0_0(exch, LOADER_RUN);
+	errno_t rc = async_req_0_0(exch, LOADER_RUN);
 	async_exchange_end(exch);
 	
 	if (rc != EOK)

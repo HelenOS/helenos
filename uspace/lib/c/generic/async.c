@@ -204,7 +204,7 @@ typedef struct {
 	/** Pointer to where the answer data is stored. */
 	ipc_call_t *dataptr;
 	
-	int retval;
+	errno_t retval;
 } amsg_t;
 
 /* Client connection data */
@@ -510,7 +510,7 @@ static LIST_INITIALIZE(inactive_exch_list);
  */
 static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 
-int async_create_port(iface_t iface, async_port_handler_t handler,
+errno_t async_create_port(iface_t iface, async_port_handler_t handler,
     void *data, port_id_t *port_id)
 {
 	if ((iface & IFACE_MOD_MASK) == IFACE_MOD_CALLBACK)
@@ -697,7 +697,7 @@ static void async_client_put(client_t *client)
  * @return Always zero.
  *
  */
-static int connection_fibril(void *arg)
+static errno_t connection_fibril(void *arg)
 {
 	assert(arg);
 	
@@ -846,7 +846,7 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
  * @return Zero on success or an error code.
  *
  */
-int async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t arg1,
+errno_t async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t arg1,
     sysarg_t arg2, async_port_handler_t handler, void *data, port_id_t *port_id)
 {
 	if ((iface & IFACE_MOD_CALLBACK) != IFACE_MOD_CALLBACK)
@@ -859,10 +859,10 @@ int async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t arg1,
 	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, iface, arg1, arg2,
 	    &answer);
 	
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 	if (ret != EOK)
-		return (int) ret;
+		return (errno_t) ret;
 	
 	sysarg_t phone_hash = IPC_GET_ARG5(answer);
 	interface_t *interface;
@@ -1055,7 +1055,7 @@ static void process_notification(ipc_call_t *call)
  * @return An error code.
  *
  */
-int async_irq_subscribe(int inr, async_notification_handler_t handler,
+errno_t async_irq_subscribe(int inr, async_notification_handler_t handler,
     void *data, const irq_code_t *ucode, cap_handle_t *handle)
 {
 	notification_t *notification =
@@ -1077,7 +1077,7 @@ int async_irq_subscribe(int inr, async_notification_handler_t handler,
 	futex_up(&async_futex);
 	
 	cap_handle_t cap;
-	int rc = ipc_irq_subscribe(inr, imethod, ucode, &cap);
+	errno_t rc = ipc_irq_subscribe(inr, imethod, ucode, &cap);
 	if (rc == EOK && handle != NULL) {
 		*handle = cap;
 	}
@@ -1091,7 +1091,7 @@ int async_irq_subscribe(int inr, async_notification_handler_t handler,
  * @return Zero on success or an error code.
  *
  */
-int async_irq_unsubscribe(int cap)
+errno_t async_irq_unsubscribe(int cap)
 {
 	// TODO: Remove entry from hash table
 	//       to avoid memory leak
@@ -1108,7 +1108,7 @@ int async_irq_unsubscribe(int cap)
  * @return Zero on success or an error code.
  *
  */
-int async_event_subscribe(event_type_t evno,
+errno_t async_event_subscribe(event_type_t evno,
     async_notification_handler_t handler, void *data)
 {
 	notification_t *notification =
@@ -1141,7 +1141,7 @@ int async_event_subscribe(event_type_t evno,
  * @return Zero on success or an error code.
  *
  */
-int async_event_task_subscribe(event_task_type_t evno,
+errno_t async_event_task_subscribe(event_task_type_t evno,
     async_notification_handler_t handler, void *data)
 {
 	notification_t *notification =
@@ -1172,7 +1172,7 @@ int async_event_task_subscribe(event_task_type_t evno,
  * @return Value returned by the kernel.
  *
  */
-int async_event_unmask(event_type_t evno)
+errno_t async_event_unmask(event_type_t evno)
 {
 	return ipc_event_unmask(evno);
 }
@@ -1184,7 +1184,7 @@ int async_event_unmask(event_type_t evno)
  * @return Value returned by the kernel.
  *
  */
-int async_event_task_unmask(event_task_type_t evno)
+errno_t async_event_task_unmask(event_task_type_t evno)
 {
 	return ipc_event_task_unmask(evno);
 }
@@ -1436,7 +1436,7 @@ static void handle_expired_timeouts(void)
  * @return Never returns.
  *
  */
-static int async_manager_worker(void)
+static errno_t async_manager_worker(void)
 {
 	while (true) {
 		if (fibril_switch(FIBRIL_FROM_MANAGER)) {
@@ -1488,7 +1488,7 @@ static int async_manager_worker(void)
 		atomic_inc(&threads_in_ipc_wait);
 		
 		ipc_call_t call;
-		int rc = ipc_wait_cycle(&call, timeout, flags);
+		errno_t rc = ipc_wait_cycle(&call, timeout, flags);
 		
 		atomic_dec(&threads_in_ipc_wait);
 		
@@ -1520,7 +1520,7 @@ static int async_manager_worker(void)
  * @return Never returns.
  *
  */
-static int async_manager_fibril(void *arg)
+static errno_t async_manager_fibril(void *arg)
 {
 	futex_up(&async_futex);
 	
@@ -1596,7 +1596,7 @@ void __async_init(void)
  * @param data   Call data of the answer.
  *
  */
-void reply_received(void *arg, int retval, ipc_call_t *data)
+void reply_received(void *arg, errno_t retval, ipc_call_t *data)
 {
 	assert(arg);
 	
@@ -1708,7 +1708,7 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
  *               be stored.
  *
  */
-void async_wait_for(aid_t amsgid, int *retval)
+void async_wait_for(aid_t amsgid, errno_t *retval)
 {
 	assert(amsgid);
 	
@@ -1754,7 +1754,7 @@ done:
  * @return Zero on success, ETIMEOUT if the timeout has expired.
  *
  */
-int async_wait_timeout(aid_t amsgid, int *retval, suseconds_t timeout)
+errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, suseconds_t timeout)
 {
 	assert(amsgid);
 	
@@ -1917,7 +1917,7 @@ void async_sleep(unsigned int sec)
  * @return Return code of the reply or an error code.
  *
  */
-int async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+errno_t async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2,
     sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
@@ -1928,7 +1928,7 @@ int async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	aid_t aid = async_send_4(exch, imethod, arg1, arg2, arg3, arg4,
 	    &result);
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(aid, &rc);
 	
 	if (r1)
@@ -1969,7 +1969,7 @@ int async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
  * @return Return code of the reply or an error code.
  *
  */
-int async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+errno_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1,
     sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
@@ -1980,7 +1980,7 @@ int async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	aid_t aid = async_send_5(exch, imethod, arg1, arg2, arg3, arg4, arg5,
 	    &result);
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(aid, &rc);
 	
 	if (r1)
@@ -2044,41 +2044,41 @@ void async_msg_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 		    arg5, NULL, NULL);
 }
 
-int async_answer_0(cap_handle_t chandle, int retval)
+errno_t async_answer_0(cap_handle_t chandle, errno_t retval)
 {
 	return ipc_answer_0(chandle, retval);
 }
 
-int async_answer_1(cap_handle_t chandle, int retval, sysarg_t arg1)
+errno_t async_answer_1(cap_handle_t chandle, errno_t retval, sysarg_t arg1)
 {
 	return ipc_answer_1(chandle, retval, arg1);
 }
 
-int async_answer_2(cap_handle_t chandle, int retval, sysarg_t arg1,
+errno_t async_answer_2(cap_handle_t chandle, errno_t retval, sysarg_t arg1,
     sysarg_t arg2)
 {
 	return ipc_answer_2(chandle, retval, arg1, arg2);
 }
 
-int async_answer_3(cap_handle_t chandle, int retval, sysarg_t arg1,
+errno_t async_answer_3(cap_handle_t chandle, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3)
 {
 	return ipc_answer_3(chandle, retval, arg1, arg2, arg3);
 }
 
-int async_answer_4(cap_handle_t chandle, int retval, sysarg_t arg1,
+errno_t async_answer_4(cap_handle_t chandle, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
 	return ipc_answer_4(chandle, retval, arg1, arg2, arg3, arg4);
 }
 
-int async_answer_5(cap_handle_t chandle, int retval, sysarg_t arg1,
+errno_t async_answer_5(cap_handle_t chandle, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
 	return ipc_answer_5(chandle, retval, arg1, arg2, arg3, arg4, arg5);
 }
 
-int async_forward_fast(cap_handle_t chandle, async_exch_t *exch,
+errno_t async_forward_fast(cap_handle_t chandle, async_exch_t *exch,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
 {
 	if (exch == NULL)
@@ -2087,7 +2087,7 @@ int async_forward_fast(cap_handle_t chandle, async_exch_t *exch,
 	return ipc_forward_fast(chandle, exch->phone, imethod, arg1, arg2, mode);
 }
 
-int async_forward_slow(cap_handle_t chandle, async_exch_t *exch,
+errno_t async_forward_slow(cap_handle_t chandle, async_exch_t *exch,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode)
 {
@@ -2110,7 +2110,7 @@ int async_forward_slow(cap_handle_t chandle, async_exch_t *exch,
  * @return Zero on success or an error code.
  *
  */
-int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
+errno_t async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3)
 {
 	if (exch == NULL)
@@ -2120,15 +2120,15 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
 	    &answer);
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(req, &rc);
 	if (rc != EOK)
-		return (int) rc;
+		return (errno_t) rc;
 	
 	return EOK;
 }
 
-static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
+static errno_t async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3, sysarg_t arg4, int *out_phone)
 {
 	ipc_call_t result;
@@ -2147,7 +2147,7 @@ static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
 	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, arg4,
 	    msg, reply_received);
 	
-	int rc;
+	errno_t rc;
 	async_wait_for((aid_t) msg, &rc);
 	
 	if (rc != EOK)
@@ -2185,7 +2185,7 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 	}
 	
 	int phone;
-	int rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
+	errno_t rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
 	    0, &phone);
 	if (rc != EOK) {
 		errno = rc;
@@ -2238,7 +2238,7 @@ async_sess_t *async_connect_me_to_iface(async_exch_t *exch, iface_t iface,
 	}
 	
 	int phone;
-	int rc = async_connect_me_to_internal(exch->phone, iface, arg2,
+	errno_t rc = async_connect_me_to_internal(exch->phone, iface, arg2,
 	    arg3, 0, &phone);
 	if (rc != EOK) {
 		errno = rc;
@@ -2309,7 +2309,7 @@ async_sess_t *async_connect_me_to_blocking(exch_mgmt_t mgmt, async_exch_t *exch,
 	}
 	
 	int phone;
-	int rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
+	errno_t rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
 	    IPC_FLAG_BLOCKING, &phone);
 	
 	if (rc != EOK) {
@@ -2363,7 +2363,7 @@ async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *exch, iface_t ifa
 	}
 	
 	int phone;
-	int rc = async_connect_me_to_internal(exch->phone, iface, arg2,
+	errno_t rc = async_connect_me_to_internal(exch->phone, iface, arg2,
 	    arg3, IPC_FLAG_BLOCKING, &phone);
 	if (rc != EOK) {
 		errno = rc;
@@ -2399,7 +2399,7 @@ async_sess_t *async_connect_kbox(task_id_t id)
 	}
 	
 	cap_handle_t phone;
-	int rc = ipc_connect_kbox(id, &phone);
+	errno_t rc = ipc_connect_kbox(id, &phone);
 	if (rc != EOK) {
 		errno = rc;
 		free(sess);
@@ -2423,7 +2423,7 @@ async_sess_t *async_connect_kbox(task_id_t id)
 	return sess;
 }
 
-static int async_hangup_internal(int phone)
+static errno_t async_hangup_internal(int phone)
 {
 	return ipc_hangup(phone);
 }
@@ -2435,7 +2435,7 @@ static int async_hangup_internal(int phone)
  * @return Zero on success or an error code.
  *
  */
-int async_hangup(async_sess_t *sess)
+errno_t async_hangup(async_sess_t *sess)
 {
 	async_exch_t *exch;
 	
@@ -2446,7 +2446,7 @@ int async_hangup(async_sess_t *sess)
 	
 	fibril_mutex_lock(&async_sess_mutex);
 	
-	int rc = async_hangup_internal(sess->phone);
+	errno_t rc = async_hangup_internal(sess->phone);
 	
 	while (!list_empty(&sess->exch_list)) {
 		exch = (async_exch_t *)
@@ -2518,7 +2518,7 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 			}
 		} else if (mgmt == EXCHANGE_PARALLEL) {
 			int phone;
-			int rc;
+			errno_t rc;
 			
 		retry:
 			/*
@@ -2615,7 +2615,7 @@ void async_exchange_end(async_exch_t *exch)
  * @return Zero on success or an error code from errno.h.
  *
  */
-int async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
+errno_t async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
     unsigned int *flags, void **dst)
 {
 	if (exch == NULL)
@@ -2623,7 +2623,7 @@ int async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
 	
 	sysarg_t _flags = 0;
 	sysarg_t _dst = (sysarg_t) -1;
-	int res = async_req_2_4(exch, IPC_M_SHARE_IN, (sysarg_t) size,
+	errno_t res = async_req_2_4(exch, IPC_M_SHARE_IN, (sysarg_t) size,
 	    arg, NULL, &_flags, NULL, &_dst);
 	
 	if (flags)
@@ -2675,7 +2675,7 @@ bool async_share_in_receive(cap_handle_t *chandle, size_t *size)
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_share_in_finalize(cap_handle_t chandle, void *src, unsigned int flags)
+errno_t async_share_in_finalize(cap_handle_t chandle, void *src, unsigned int flags)
 {
 	return ipc_answer_3(chandle, EOK, (sysarg_t) src, (sysarg_t) flags,
 	    (sysarg_t) __entry);
@@ -2690,7 +2690,7 @@ int async_share_in_finalize(cap_handle_t chandle, void *src, unsigned int flags)
  * @return Zero on success or an error code from errno.h.
  *
  */
-int async_share_out_start(async_exch_t *exch, void *src, unsigned int flags)
+errno_t async_share_out_start(async_exch_t *exch, void *src, unsigned int flags)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -2745,7 +2745,7 @@ bool async_share_out_receive(cap_handle_t *chandle, size_t *size,
  * @return  Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_share_out_finalize(cap_handle_t chandle, void **dst)
+errno_t async_share_out_finalize(cap_handle_t chandle, void **dst)
 {
 	return ipc_answer_2(chandle, EOK, (sysarg_t) __entry, (sysarg_t) dst);
 }
@@ -2776,7 +2776,7 @@ aid_t async_data_read(async_exch_t *exch, void *dst, size_t size,
  * @return Zero on success or an error code from errno.h.
  *
  */
-int async_data_read_start(async_exch_t *exch, void *dst, size_t size)
+errno_t async_data_read_start(async_exch_t *exch, void *dst, size_t size)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -2850,7 +2850,7 @@ bool async_data_read_receive_call(cap_handle_t *chandle, ipc_call_t *data,
  * @return  Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_data_read_finalize(cap_handle_t chandle, const void *src, size_t size)
+errno_t async_data_read_finalize(cap_handle_t chandle, const void *src, size_t size)
 {
 	return ipc_answer_2(chandle, EOK, (sysarg_t) src, (sysarg_t) size);
 }
@@ -2858,7 +2858,7 @@ int async_data_read_finalize(cap_handle_t chandle, const void *src, size_t size)
 /** Wrapper for forwarding any read request
  *
  */
-int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
+errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
     ipc_call_t *dataptr)
 {
@@ -2878,7 +2878,7 @@ int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		return EINVAL;
 	}
 	
-	int retval = ipc_forward_fast(chandle, exch->phone, 0, 0, 0,
+	errno_t retval = ipc_forward_fast(chandle, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
 		async_forget(msg);
@@ -2886,10 +2886,10 @@ int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		return retval;
 	}
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(msg, &rc);
 	
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Wrapper for IPC_M_DATA_WRITE calls using the async framework.
@@ -2901,7 +2901,7 @@ int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
  * @return Zero on success or an error code from errno.h.
  *
  */
-int async_data_write_start(async_exch_t *exch, const void *src, size_t size)
+errno_t async_data_write_start(async_exch_t *exch, const void *src, size_t size)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -2975,7 +2975,7 @@ bool async_data_write_receive_call(cap_handle_t *chandle, ipc_call_t *data,
  * @return  Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_data_write_finalize(cap_handle_t chandle, void *dst, size_t size)
+errno_t async_data_write_finalize(cap_handle_t chandle, void *dst, size_t size)
 {
 	return ipc_answer_2(chandle, EOK, (sysarg_t) dst, (sysarg_t) size);
 }
@@ -3001,7 +3001,7 @@ int async_data_write_finalize(cap_handle_t chandle, void *dst, size_t size)
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_data_write_accept(void **data, const bool nullterm,
+errno_t async_data_write_accept(void **data, const bool nullterm,
     const size_t min_size, const size_t max_size, const size_t granularity,
     size_t *received)
 {
@@ -3041,7 +3041,7 @@ int async_data_write_accept(void **data, const bool nullterm,
 		return ENOMEM;
 	}
 	
-	int rc = async_data_write_finalize(chandle, arg_data, size);
+	errno_t rc = async_data_write_finalize(chandle, arg_data, size);
 	if (rc != EOK) {
 		free(arg_data);
 		return rc;
@@ -3064,7 +3064,7 @@ int async_data_write_accept(void **data, const bool nullterm,
  * @param retval Error value from @ref errno.h to be returned to the caller.
  *
  */
-void async_data_write_void(int retval)
+void async_data_write_void(errno_t retval)
 {
 	cap_handle_t chandle;
 	async_data_write_receive(&chandle, NULL);
@@ -3074,7 +3074,7 @@ void async_data_write_void(int retval)
 /** Wrapper for forwarding any data that is about to be received
  *
  */
-int async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
+errno_t async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
     ipc_call_t *dataptr)
 {
@@ -3094,7 +3094,7 @@ int async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		return EINVAL;
 	}
 	
-	int retval = ipc_forward_fast(chandle, exch->phone, 0, 0, 0,
+	errno_t retval = ipc_forward_fast(chandle, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
 		async_forget(msg);
@@ -3102,10 +3102,10 @@ int async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		return retval;
 	}
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(msg, &rc);
 	
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Wrapper for receiving the IPC_M_CONNECT_TO_ME calls.
@@ -3199,7 +3199,7 @@ async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 	return sess;
 }
 
-int async_state_change_start(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
+errno_t async_state_change_start(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3, async_exch_t *other_exch)
 {
 	return async_req_5_0(exch, IPC_M_STATE_CHANGE_AUTHORIZE,
@@ -3227,7 +3227,7 @@ bool async_state_change_receive(cap_handle_t *chandle, sysarg_t *arg1,
 	return true;
 }
 
-int async_state_change_finalize(cap_handle_t chandle, async_exch_t *other_exch)
+errno_t async_state_change_finalize(cap_handle_t chandle, async_exch_t *other_exch)
 {
 	return ipc_answer_1(chandle, EOK, other_exch->phone);
 }

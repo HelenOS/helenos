@@ -100,7 +100,7 @@ void connection_destroy(connection_t *connection)
  * @param size size of the destination audio buffer.
  * @param format format of the destination audio buffer.
  */
-int connection_add_source_data(connection_t *connection, void *data,
+errno_t connection_add_source_data(connection_t *connection, void *data,
     size_t size, pcm_format_t format)
 {
 	assert(connection);
@@ -128,12 +128,12 @@ int connection_add_source_data(connection_t *connection, void *data,
  * @aparam adata Reference counted audio data buffer.
  * @return Error code.
  */
-int connection_push_data(connection_t *connection,
+errno_t connection_push_data(connection_t *connection,
     audio_data_t *adata)
 {
 	assert(connection);
 	assert(adata);
-	const int ret = audio_pipe_push(&connection->fifo, adata);
+	const errno_t ret = audio_pipe_push(&connection->fifo, adata);
 	if (ret == EOK && connection->sink->data_available)
 		connection->sink->data_available(connection->sink);
 	return ret;

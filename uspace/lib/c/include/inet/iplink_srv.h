@@ -52,22 +52,22 @@ typedef struct {
 } iplink_srv_t;
 
 typedef struct iplink_ops {
-	int (*open)(iplink_srv_t *);
-	int (*close)(iplink_srv_t *);
-	int (*send)(iplink_srv_t *, iplink_sdu_t *);
-	int (*send6)(iplink_srv_t *, iplink_sdu6_t *);
-	int (*get_mtu)(iplink_srv_t *, size_t *);
-	int (*get_mac48)(iplink_srv_t *, addr48_t *);
-	int (*set_mac48)(iplink_srv_t *, addr48_t *);
-	int (*addr_add)(iplink_srv_t *, inet_addr_t *);
-	int (*addr_remove)(iplink_srv_t *, inet_addr_t *);
+	errno_t (*open)(iplink_srv_t *);
+	errno_t (*close)(iplink_srv_t *);
+	errno_t (*send)(iplink_srv_t *, iplink_sdu_t *);
+	errno_t (*send6)(iplink_srv_t *, iplink_sdu6_t *);
+	errno_t (*get_mtu)(iplink_srv_t *, size_t *);
+	errno_t (*get_mac48)(iplink_srv_t *, addr48_t *);
+	errno_t (*set_mac48)(iplink_srv_t *, addr48_t *);
+	errno_t (*addr_add)(iplink_srv_t *, inet_addr_t *);
+	errno_t (*addr_remove)(iplink_srv_t *, inet_addr_t *);
 } iplink_ops_t;
 
 extern void iplink_srv_init(iplink_srv_t *);
 
-extern int iplink_conn(ipc_callid_t, ipc_call_t *, void *);
-extern int iplink_ev_recv(iplink_srv_t *, iplink_recv_sdu_t *, ip_ver_t);
-extern int iplink_ev_change_addr(iplink_srv_t *, addr48_t *);
+extern errno_t iplink_conn(ipc_callid_t, ipc_call_t *, void *);
+extern errno_t iplink_ev_recv(iplink_srv_t *, iplink_recv_sdu_t *, ip_ver_t);
+extern errno_t iplink_ev_change_addr(iplink_srv_t *, addr48_t *);
 
 #endif
 

@@ -51,9 +51,9 @@ typedef struct {
 	ddf_dev_t *dev;
 } apic_t;
 
-extern int apic_add(apic_t *, apic_res_t *);
-extern int apic_remove(apic_t *);
-extern int apic_gone(apic_t *);
+extern errno_t apic_add(apic_t *, apic_res_t *);
+extern errno_t apic_remove(apic_t *);
+extern errno_t apic_gone(apic_t *);
 
 #endif
 

@@ -41,8 +41,8 @@
 
 extern udp_pdu_t *udp_pdu_new(void);
 extern void udp_pdu_delete(udp_pdu_t *);
-extern int udp_pdu_decode(udp_pdu_t *, inet_ep2_t *, udp_msg_t **);
-extern int udp_pdu_encode(inet_ep2_t *, udp_msg_t *, udp_pdu_t **);
+extern errno_t udp_pdu_decode(udp_pdu_t *, inet_ep2_t *, udp_msg_t **);
+extern errno_t udp_pdu_encode(inet_ep2_t *, udp_msg_t *, udp_pdu_t **);
 
 #endif
 

@@ -113,7 +113,7 @@ void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance)
  * @param[in] error Error value to use.
  */
 void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
-    const void *data, size_t size, int error)
+    const void *data, size_t size, errno_t error)
 {
 	assert(instance);
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " finishing.\n",

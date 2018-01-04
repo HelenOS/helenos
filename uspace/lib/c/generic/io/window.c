@@ -39,28 +39,28 @@
 
 #include <stdio.h>
 
-int win_register(async_sess_t *sess, window_flags_t flags, service_id_t *in,
+errno_t win_register(async_sess_t *sess, window_flags_t flags, service_id_t *in,
     service_id_t *out)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_1_2(exch, WINDOW_REGISTER, flags, in, out);
+	errno_t ret = async_req_1_2(exch, WINDOW_REGISTER, flags, in, out);
 	async_exchange_end(exch);
 	
 	return ret;
 }
 
-int win_get_event(async_sess_t *sess, window_event_t *event)
+errno_t win_get_event(async_sess_t *sess, window_event_t *event)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, WINDOW_GET_EVENT, &answer);
 
-	int rc = async_data_read_start(exch, event, sizeof(window_event_t));
+	errno_t rc = async_data_read_start(exch, event, sizeof(window_event_t));
 
 	async_exchange_end(exch);
 
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -72,26 +72,26 @@ int win_get_event(async_sess_t *sess, window_event_t *event)
 	}
 }
 
-int win_damage(async_sess_t *sess,
+errno_t win_damage(async_sess_t *sess,
     sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_4_0(exch, WINDOW_DAMAGE, x, y, width, height);
+	errno_t ret = async_req_4_0(exch, WINDOW_DAMAGE, x, y, width, height);
 	async_exchange_end(exch);
 
 	return ret;
 }
 
-int win_grab(async_sess_t *sess, sysarg_t pos_id, sysarg_t grab_flags)
+errno_t win_grab(async_sess_t *sess, sysarg_t pos_id, sysarg_t grab_flags)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_2_0(exch, WINDOW_GRAB, pos_id, grab_flags);
+	errno_t ret = async_req_2_0(exch, WINDOW_GRAB, pos_id, grab_flags);
 	async_exchange_end(exch);
 
 	return ret;
 }
 
-int win_resize(async_sess_t *sess, sysarg_t x, sysarg_t y, sysarg_t width,
+errno_t win_resize(async_sess_t *sess, sysarg_t x, sysarg_t y, sysarg_t width,
     sysarg_t height, window_placement_flags_t placement_flags, void *cells)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -100,11 +100,11 @@ int win_resize(async_sess_t *sess, sysarg_t x, sysarg_t y, sysarg_t width,
 	aid_t req = async_send_5(exch, WINDOW_RESIZE, x, y, width, height,
 	    (sysarg_t) placement_flags, &answer);
 	
-	int rc = async_share_out_start(exch, cells, AS_AREA_READ | AS_AREA_CACHEABLE);
+	errno_t rc = async_share_out_start(exch, cells, AS_AREA_READ | AS_AREA_CACHEABLE);
 	
 	async_exchange_end(exch);
 	
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 	
 	if (rc != EOK)
@@ -115,19 +115,19 @@ int win_resize(async_sess_t *sess, sysarg_t x, sysarg_t y, sysarg_t width,
 	return EOK;
 }
 
-int win_close(async_sess_t *sess)
+errno_t win_close(async_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_0(exch, WINDOW_CLOSE);
+	errno_t ret = async_req_0_0(exch, WINDOW_CLOSE);
 	async_exchange_end(exch);
 
 	return ret;
 }
 
-int win_close_request(async_sess_t *sess)
+errno_t win_close_request(async_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_0(exch, WINDOW_CLOSE_REQUEST);
+	errno_t ret = async_req_0_0(exch, WINDOW_CLOSE_REQUEST);
 	async_exchange_end(exch);
 
 	return ret;

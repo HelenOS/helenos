@@ -51,7 +51,7 @@
  *         error code otherwise.
  *
  */
-static int hw_read_wait(ar9271_t *ar9271, uint32_t offset, uint32_t mask,
+static errno_t hw_read_wait(ar9271_t *ar9271, uint32_t offset, uint32_t mask,
     uint32_t value)
 {
 	for (size_t i = 0; i < HW_WAIT_LOOPS; i++) {
@@ -66,7 +66,7 @@ static int hw_read_wait(ar9271_t *ar9271, uint32_t offset, uint32_t mask,
 	return ETIMEOUT;
 }
 
-static int hw_reset_power_on(ar9271_t *ar9271)
+static errno_t hw_reset_power_on(ar9271_t *ar9271)
 {
 	wmi_reg_t buffer[] = {
 		{
@@ -92,7 +92,7 @@ static int hw_reset_power_on(ar9271_t *ar9271)
 	wmi_reg_write(ar9271->htc_device, AR9271_RC, 0);
 	wmi_reg_write(ar9271->htc_device, AR9271_RTC_RESET, 1);
 	
-	int rc = hw_read_wait(ar9271,
+	errno_t rc = hw_read_wait(ar9271,
 	    AR9271_RTC_STATUS,
 	    AR9271_RTC_STATUS_MASK,
 	    AR9271_RTC_STATUS_ON);
@@ -104,7 +104,7 @@ static int hw_reset_power_on(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_set_reset(ar9271_t *ar9271, bool cold)
+static errno_t hw_set_reset(ar9271_t *ar9271, bool cold)
 {
 	uint32_t reset_value = AR9271_RTC_RC_MAC_WARM;
 	
@@ -134,7 +134,7 @@ static int hw_set_reset(ar9271_t *ar9271, bool cold)
 	
 	wmi_reg_write(ar9271->htc_device, AR9271_RTC_RC, 0);
 	
-	int rc = hw_read_wait(ar9271, AR9271_RTC_RC, AR9271_RTC_RC_MASK, 0);
+	errno_t rc = hw_read_wait(ar9271, AR9271_RTC_RC, AR9271_RTC_RC_MASK, 0);
 	if (rc != EOK) {
 		usb_log_error("Failed to wait for RTC RC register.\n");
 		return rc;
@@ -147,7 +147,7 @@ static int hw_set_reset(ar9271_t *ar9271, bool cold)
 	return EOK;
 }
 
-static int hw_addr_init(ar9271_t *ar9271)
+static errno_t hw_addr_init(ar9271_t *ar9271)
 {
 	uint32_t value;
 	nic_address_t ar9271_address;
@@ -163,7 +163,7 @@ static int hw_addr_init(ar9271_t *ar9271)
 	
 	nic_t *nic = nic_get_from_ddf_dev(ar9271->ddf_dev);
 	
-	int rc = nic_report_address(nic, &ar9271_address);
+	errno_t rc = nic_report_address(nic, &ar9271_address);
 	if (rc != EOK) {
 		usb_log_error("Failed to report NIC HW address.\n");
 		return rc;
@@ -172,7 +172,7 @@ static int hw_addr_init(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_gpio_set_output(ar9271_t *ar9271, uint32_t gpio, uint32_t type)
+static errno_t hw_gpio_set_output(ar9271_t *ar9271, uint32_t gpio, uint32_t type)
 {
 	uint32_t address;
 	
@@ -203,7 +203,7 @@ static int hw_gpio_set_output(ar9271_t *ar9271, uint32_t gpio, uint32_t type)
 	return EOK;
 }
 
-static int hw_gpio_set_value(ar9271_t *ar9271, uint32_t gpio, uint32_t value)
+static errno_t hw_gpio_set_value(ar9271_t *ar9271, uint32_t gpio, uint32_t value)
 {
 	wmi_reg_set_clear_bit(ar9271->htc_device, AR9271_GPIO_IN_OUT,
 	    (~value & 1) << gpio, 1 << gpio);
@@ -217,9 +217,9 @@ static int hw_gpio_set_value(ar9271_t *ar9271, uint32_t gpio, uint32_t value)
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int hw_init_proc(ar9271_t *ar9271)
+static errno_t hw_init_proc(ar9271_t *ar9271)
 {
-	int rc = hw_reset_power_on(ar9271);
+	errno_t rc = hw_reset_power_on(ar9271);
 	if (rc != EOK) {
 		usb_log_error("Failed to HW reset power on.\n");
 		return rc;
@@ -240,9 +240,9 @@ static int hw_init_proc(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_init_led(ar9271_t *ar9271)
+static errno_t hw_init_led(ar9271_t *ar9271)
 {
-	int rc = hw_gpio_set_output(ar9271, AR9271_LED_PIN,
+	errno_t rc = hw_gpio_set_output(ar9271, AR9271_LED_PIN,
 	    AR9271_GPIO_OUT_MUX_AS_OUT);
 	if (rc != EOK) {
 		usb_log_error("Failed to set led GPIO to output.\n");
@@ -258,7 +258,7 @@ static int hw_init_led(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_activate_phy(ar9271_t *ar9271)
+static errno_t hw_activate_phy(ar9271_t *ar9271)
 {
 	wmi_reg_write(ar9271->htc_device, AR9271_PHY_ACTIVE, 1);
 	udelay(1000);
@@ -266,7 +266,7 @@ static int hw_activate_phy(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_set_operating_mode(ar9271_t *ar9271,
+static errno_t hw_set_operating_mode(ar9271_t *ar9271,
     ieee80211_operating_mode_t op_mode)
 {
 	uint32_t set_bit = 0x10000000;
@@ -294,9 +294,9 @@ static int hw_set_operating_mode(ar9271_t *ar9271,
 	return EOK;
 }
 
-static int hw_reset_operating_mode(ar9271_t *ar9271)
+static errno_t hw_reset_operating_mode(ar9271_t *ar9271)
 {
-	int rc = hw_set_operating_mode(ar9271, IEEE80211_OPMODE_STATION);
+	errno_t rc = hw_set_operating_mode(ar9271, IEEE80211_OPMODE_STATION);
 	if (rc != EOK) {
 		usb_log_error("Failed to set opmode to station.\n");
 		return rc;
@@ -305,7 +305,7 @@ static int hw_reset_operating_mode(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_noise_floor_calibration(ar9271_t *ar9271)
+static errno_t hw_noise_floor_calibration(ar9271_t *ar9271)
 {
 	uint32_t value;
 	wmi_reg_read(ar9271->htc_device, AR9271_PHY_CAL, &value);
@@ -324,7 +324,7 @@ static int hw_noise_floor_calibration(ar9271_t *ar9271)
 	wmi_reg_set_bit(ar9271->htc_device, AR9271_AGC_CONTROL,
 	    AR9271_AGC_CONTROL_NF_CALIB);
 	
-	int rc = hw_read_wait(ar9271, AR9271_AGC_CONTROL,
+	errno_t rc = hw_read_wait(ar9271, AR9271_AGC_CONTROL,
 	    AR9271_AGC_CONTROL_NF_CALIB, 0);
 	if (rc != EOK) {
 		usb_log_error("Failed to wait for NF calibration.\n");
@@ -343,7 +343,7 @@ static int hw_noise_floor_calibration(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_set_freq(ar9271_t *ar9271, uint16_t freq)
+static errno_t hw_set_freq(ar9271_t *ar9271, uint16_t freq)
 {
 	/* Not supported channel frequency. */
 	if ((freq < IEEE80211_FIRST_FREQ) || (freq > IEEE80211_MAX_FREQ))
@@ -372,11 +372,11 @@ static int hw_set_freq(ar9271_t *ar9271, uint16_t freq)
 	return EOK;
 }
 
-int hw_freq_switch(ar9271_t *ar9271, uint16_t freq)
+errno_t hw_freq_switch(ar9271_t *ar9271, uint16_t freq)
 {
 	wmi_reg_write(ar9271->htc_device, AR9271_PHY_RFBUS_KILL, 0x1);
 	
-	int rc = hw_read_wait(ar9271, AR9271_PHY_RFBUS_GRANT, 0x1, 0x1);
+	errno_t rc = hw_read_wait(ar9271, AR9271_PHY_RFBUS_GRANT, 0x1, 0x1);
 	if (rc != EOK) {
 		usb_log_error("Failed to kill RF bus.\n");
 		return rc;
@@ -406,7 +406,7 @@ int hw_freq_switch(ar9271_t *ar9271, uint16_t freq)
 	return EOK;
 }
 
-int hw_set_rx_filter(ar9271_t *ar9271, bool assoc)
+errno_t hw_set_rx_filter(ar9271_t *ar9271, bool assoc)
 {
 	uint32_t additional_bits = 0;
 	
@@ -424,7 +424,7 @@ int hw_set_rx_filter(ar9271_t *ar9271, bool assoc)
 	return EOK;
 }
 
-int hw_set_bssid(ar9271_t *ar9271)
+errno_t hw_set_bssid(ar9271_t *ar9271)
 {
 	ieee80211_dev_t *ieee80211_dev = ar9271->ieee80211_dev;
 	
@@ -444,12 +444,12 @@ int hw_set_bssid(ar9271_t *ar9271)
 	return EOK;
 }
 
-int hw_rx_init(ar9271_t *ar9271)
+errno_t hw_rx_init(ar9271_t *ar9271)
 {
 	wmi_reg_write(ar9271->htc_device, AR9271_COMMAND,
 	    AR9271_COMMAND_RX_ENABLE);
 	
-	int rc = hw_set_rx_filter(ar9271, false);
+	errno_t rc = hw_set_rx_filter(ar9271, false);
 	if (rc != EOK) {
 		usb_log_error("Failed to set RX filtering.\n");
 		return rc;
@@ -464,7 +464,7 @@ int hw_rx_init(ar9271_t *ar9271)
 	return EOK;
 }
 
-static int hw_init_pll(ar9271_t *ar9271)
+static errno_t hw_init_pll(ar9271_t *ar9271)
 {
 	/* Some magic here (set for 2GHz channels). But VERY important :-) */
 	uint32_t pll = (0x5 << 10) | 0x2c;
@@ -509,7 +509,7 @@ static void hw_set_init_values(ar9271_t *ar9271)
 	}
 }
 
-static int hw_calibration(ar9271_t *ar9271)
+static errno_t hw_calibration(ar9271_t *ar9271)
 {
 	wmi_reg_set_bit(ar9271->htc_device, AR9271_CARRIER_LEAK_CONTROL,
 	    AR9271_CARRIER_LEAK_CALIB);
@@ -522,7 +522,7 @@ static int hw_calibration(ar9271_t *ar9271)
 	wmi_reg_set_bit(ar9271->htc_device, AR9271_AGC_CONTROL,
 	    AR9271_AGC_CONTROL_CALIB);
 	
-	int rc = hw_read_wait(ar9271, AR9271_AGC_CONTROL,
+	errno_t rc = hw_read_wait(ar9271, AR9271_AGC_CONTROL,
 	    AR9271_AGC_CONTROL_CALIB, 0);
 	if (rc != EOK) {
 		usb_log_error("Failed to wait on calibrate completion.\n");
@@ -539,7 +539,7 @@ static int hw_calibration(ar9271_t *ar9271)
 	return EOK;
 }
 
-int hw_reset(ar9271_t *ar9271)
+errno_t hw_reset(ar9271_t *ar9271)
 {
 	/* Set physical layer as deactivated. */
 	wmi_reg_write(ar9271->htc_device, AR9271_PHY_ACTIVE, 0);
@@ -558,7 +558,7 @@ int hw_reset(ar9271_t *ar9271)
 	if (config_reg & AR9271_COMMAND_RX_ENABLE)
 		hw_set_reset(ar9271, true);
 	
-	int rc = hw_init_pll(ar9271);
+	errno_t rc = hw_init_pll(ar9271);
 	if (rc != EOK) {
 		usb_log_error("Failed to init PLL.\n");
 		return rc;
@@ -637,9 +637,9 @@ int hw_reset(ar9271_t *ar9271)
  *
  * @return EOK if succeed, error code otherwise.
  */
-int hw_init(ar9271_t *ar9271)
+errno_t hw_init(ar9271_t *ar9271)
 {
-	int rc = hw_init_proc(ar9271);
+	errno_t rc = hw_init_proc(ar9271);
 	if (rc != EOK) {
 		usb_log_error("Failed to HW reset device.\n");
 		return rc;

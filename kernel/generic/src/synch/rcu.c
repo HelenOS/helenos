@@ -956,7 +956,7 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 				condvar_signal(&rcu.expedite_now);
 			
 			/* Wait for the GP to complete. */
-			int ret = _condvar_wait_timeout_spinlock(&rcu.gp_ended, &rcu.gp_lock, 
+			errno_t ret = _condvar_wait_timeout_spinlock(&rcu.gp_ended, &rcu.gp_lock, 
 				SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 			
 			if (ret == EINTR) {
@@ -1012,7 +1012,7 @@ static bool gp_sleep(bool *expedite)
 	} else {
 		spinlock_lock(&rcu.gp_lock);
 
-		int ret = 0;
+		errno_t ret = 0;
 		ret = _condvar_wait_timeout_spinlock(&rcu.expedite_now, &rcu.gp_lock,
 			DETECT_SLEEP_MS * 1000, SYNCH_FLAGS_INTERRUPTIBLE);
 

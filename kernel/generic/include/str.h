@@ -67,7 +67,7 @@
 #define STR_BOUNDS(cnt)  ((cnt) << 2)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
-extern int chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
+extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
@@ -99,7 +99,7 @@ extern char *str_chr(const char *str, wchar_t ch);
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
 
-extern int str_uint64_t(const char *, char **, unsigned int, bool, uint64_t *);
+extern errno_t str_uint64_t(const char *, char **, unsigned int, bool, uint64_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);
 extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);

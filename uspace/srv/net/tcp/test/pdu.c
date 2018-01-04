@@ -46,7 +46,7 @@ PCUT_TEST(encdec_syn)
 	tcp_segment_t *seg, *dseg;
 	tcp_pdu_t *pdu;
 	inet_ep2_t epp, depp;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 	inet_addr(&epp.local.addr, 1, 2, 3, 4);
@@ -77,7 +77,7 @@ PCUT_TEST(encdec_data)
 	inet_ep2_t epp, depp;
 	uint8_t *data;
 	size_t i, dsize;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 	inet_addr(&epp.local.addr, 1, 2, 3, 4);

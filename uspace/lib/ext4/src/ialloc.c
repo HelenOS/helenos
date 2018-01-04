@@ -96,7 +96,7 @@ static uint32_t ext4_ialloc_get_bgid_of_inode(ext4_superblock_t *sb,
  * @param is_dir Flag us for information whether i-node is directory or not
  *
  */
-int ext4_ialloc_free_inode(ext4_filesystem_t *fs, uint32_t index, bool is_dir)
+errno_t ext4_ialloc_free_inode(ext4_filesystem_t *fs, uint32_t index, bool is_dir)
 {
 	ext4_superblock_t *sb = fs->superblock;
 	
@@ -104,7 +104,7 @@ int ext4_ialloc_free_inode(ext4_filesystem_t *fs, uint32_t index, bool is_dir)
 	uint32_t block_group = ext4_ialloc_get_bgid_of_inode(sb, index);
 	
 	ext4_block_group_ref_t *bg_ref;
-	int rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	errno_t rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK)
 		return rc;
 	
@@ -174,7 +174,7 @@ int ext4_ialloc_free_inode(ext4_filesystem_t *fs, uint32_t index, bool is_dir)
  * @return Error code
  *
  */
-int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
+errno_t ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 {
 	ext4_superblock_t *sb = fs->superblock;
 	
@@ -187,7 +187,7 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 	while (bgid < bg_count) {
 		/* Load block group to check */
 		ext4_block_group_ref_t *bg_ref;
-		int rc = ext4_filesystem_get_block_group_ref(fs, bgid, &bg_ref);
+		errno_t rc = ext4_filesystem_get_block_group_ref(fs, bgid, &bg_ref);
 		if (rc != EOK)
 			return rc;
 		

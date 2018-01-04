@@ -50,7 +50,7 @@
 #include <udebug/udebug_ops.h>
 #include <udebug/udebug_ipc.h>
 
-int udebug_request_preprocess(call_t *call, phone_t *phone)
+errno_t udebug_request_preprocess(call_t *call, phone_t *phone)
 {
 	switch (IPC_GET_ARG1(call->data)) {
 	/* future UDEBUG_M_REGS_WRITE, UDEBUG_M_MEM_WRITE: */
@@ -70,7 +70,7 @@ int udebug_request_preprocess(call_t *call, phone_t *phone)
  */
 static void udebug_receive_begin(call_t *call)
 {
-	int rc;
+	errno_t rc;
 	bool active;
 
 	rc = udebug_begin(call, &active);
@@ -97,7 +97,7 @@ static void udebug_receive_begin(call_t *call)
  */
 static void udebug_receive_end(call_t *call)
 {
-	int rc;
+	errno_t rc;
 
 	rc = udebug_end();
 
@@ -112,7 +112,7 @@ static void udebug_receive_end(call_t *call)
  */
 static void udebug_receive_set_evmask(call_t *call)
 {
-	int rc;
+	errno_t rc;
 	udebug_evmask_t mask;
 
 	mask = IPC_GET_ARG2(call->data);
@@ -131,7 +131,7 @@ static void udebug_receive_set_evmask(call_t *call)
 static void udebug_receive_go(call_t *call)
 {
 	thread_t *t;
-	int rc;
+	errno_t rc;
 
 	t = (thread_t *)IPC_GET_ARG2(call->data);
 
@@ -151,7 +151,7 @@ static void udebug_receive_go(call_t *call)
 static void udebug_receive_stop(call_t *call)
 {
 	thread_t *t;
-	int rc;
+	errno_t rc;
 
 	t = (thread_t *)IPC_GET_ARG2(call->data);
 
@@ -171,7 +171,7 @@ static void udebug_receive_thread_read(call_t *call)
 	size_t buf_size;
 	void *buffer;
 	size_t copied, needed;
-	int rc;
+	errno_t rc;
 
 	uspace_addr = IPC_GET_ARG2(call->data);	/* Destination address */
 	buf_size = IPC_GET_ARG3(call->data);	/* Dest. buffer size */
@@ -306,7 +306,7 @@ static void udebug_receive_args_read(call_t *call)
 {
 	thread_t *t;
 	sysarg_t uspace_addr;
-	int rc;
+	errno_t rc;
 	void *buffer;
 
 	t = (thread_t *)IPC_GET_ARG2(call->data);
@@ -345,7 +345,7 @@ static void udebug_receive_regs_read(call_t *call)
 	sysarg_t uspace_addr;
 	sysarg_t to_copy;
 	void *buffer = NULL;
-	int rc;
+	errno_t rc;
 
 	t = (thread_t *) IPC_GET_ARG2(call->data);
 
@@ -389,7 +389,7 @@ static void udebug_receive_mem_read(call_t *call)
 	sysarg_t uspace_src;
 	unsigned size;
 	void *buffer = NULL;
-	int rc;
+	errno_t rc;
 
 	uspace_dst = IPC_GET_ARG2(call->data);
 	uspace_src = IPC_GET_ARG3(call->data);

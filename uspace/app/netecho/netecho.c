@@ -74,7 +74,7 @@ static void send_char(wchar_t c)
 {
 	char cbuf[STR_BOUNDS(1)];
 	size_t offs;
-	int rc;
+	errno_t rc;
 
 	offs = 0;
 	chr_encode(c, cbuf, &offs, STR_BOUNDS(1));
@@ -136,7 +136,7 @@ static void netecho_interact(void)
 
 static void netecho_send_messages(char **msgs)
 {
-	int rc;
+	errno_t rc;
 
 	while (*msgs != NULL) {
 		rc = comm_send(*msgs, str_size(*msgs));
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 	char *hostport;
 	char *port;
 	char **msgs;
-	int rc;
+	errno_t rc;
 
 	if (argc < 2) {
 		print_syntax();

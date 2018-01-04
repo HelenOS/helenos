@@ -60,7 +60,7 @@
 #include "loc.h"
 #include "main.h"
 
-static int init_running_drv(void *drv);
+static errno_t init_running_drv(void *drv);
 
 /** Register running driver. */
 static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
@@ -71,7 +71,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_driver_register");
 	
 	/* Get driver name. */
-	int rc = async_data_write_accept((void **) &drv_name, true, 0, 0, 0, 0);
+	errno_t rc = async_data_write_accept((void **) &drv_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return NULL;
@@ -162,12 +162,12 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
  * @param match_ids	The list of the device's match ids.
  * @return		Zero on success, error code otherwise.
  */
-static int devman_receive_match_id(match_id_list_t *match_ids)
+static errno_t devman_receive_match_id(match_id_list_t *match_ids)
 {
 	match_id_t *match_id = create_match_id();
 	ipc_callid_t callid;
 	ipc_call_t call;
-	int rc = 0;
+	errno_t rc = 0;
 	
 	callid = async_get_call(&call);
 	if (DEVMAN_ADD_MATCH_ID != IPC_GET_IMETHOD(call)) {
@@ -212,10 +212,10 @@ static int devman_receive_match_id(match_id_list_t *match_ids)
  * @param match_ids	The list of the device's match ids.
  * @return		Zero on success, error code otherwise.
  */
-static int devman_receive_match_ids(sysarg_t match_count,
+static errno_t devman_receive_match_ids(sysarg_t match_count,
     match_id_list_t *match_ids)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 	size_t i;
 	
 	for (i = 0; i < match_count; i++) {
@@ -254,7 +254,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	char *fun_name = NULL;
-	int rc = async_data_write_accept((void **)&fun_name, true, 0, 0, 0, 0);
+	errno_t rc = async_data_write_accept((void **)&fun_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
 		dev_del_ref(pdev);
 		async_answer_0(callid, rc);
@@ -331,7 +331,7 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*call);
 	category_id_t cat_id;
-	int rc;
+	errno_t rc;
 	
 	/* Get category name. */
 	char *cat_name;
@@ -380,7 +380,7 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
     driver_t *drv)
 {
 	fun_node_t *fun;
-	int rc;
+	errno_t rc;
 	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_drv_fun_online()");
 	
@@ -424,7 +424,7 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
     driver_t *drv)
 {
 	fun_node_t *fun;
-	int rc;
+	errno_t rc;
 
 	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
 	if (fun == NULL) {
@@ -461,7 +461,7 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 {
 	devman_handle_t fun_handle = IPC_GET_ARG1(*call);
 	dev_tree_t *tree = &device_tree;
-	int rc;
+	errno_t rc;
 	
 	fun_node_t *fun = find_fun_node(&device_tree, fun_handle);
 	if (fun == NULL) {
@@ -489,7 +489,7 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 		if (fun->child != NULL) {
 			dev_node_t *dev = fun->child;
 			device_state_t dev_state;
-			int gone_rc;
+			errno_t gone_rc;
 			
 			dev_add_ref(dev);
 			dev_state = dev->state;
@@ -574,7 +574,7 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
  * The initialization is done in a separate fibril to avoid deadlocks (if the
  * driver needed to be served by devman during the driver's initialization).
  */
-static int init_running_drv(void *drv)
+static errno_t init_running_drv(void *drv)
 {
 	driver_t *driver = (driver_t *) drv;
 	

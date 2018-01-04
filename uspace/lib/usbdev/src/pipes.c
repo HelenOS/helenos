@@ -73,7 +73,7 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
  *                                  transfered during the DATA stage.
  * @return Error code.
  */
-int usb_pipe_control_read(usb_pipe_t *pipe,
+errno_t usb_pipe_control_read(usb_pipe_t *pipe,
     const void *setup_buffer, size_t setup_buffer_size,
     void *buffer, size_t buffer_size, size_t *transfered_size)
 {
@@ -97,7 +97,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc = usb_read(exch, pipe->endpoint_no, setup_packet, buffer,
+	const errno_t rc = usb_read(exch, pipe->endpoint_no, setup_packet, buffer,
 	    buffer_size, &act_size);
 	async_exchange_end(exch);
 
@@ -123,7 +123,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
  * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
  * @return Error code.
  */
-int usb_pipe_control_write(usb_pipe_t *pipe,
+errno_t usb_pipe_control_write(usb_pipe_t *pipe,
     const void *setup_buffer, size_t setup_buffer_size,
     const void *buffer, size_t buffer_size)
 {
@@ -150,7 +150,7 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 	memcpy(&setup_packet, setup_buffer, 8);
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	const int rc = usb_write(exch,
+	const errno_t rc = usb_write(exch,
 	    pipe->endpoint_no, setup_packet, buffer, buffer_size);
 	async_exchange_end(exch);
 
@@ -169,7 +169,7 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
  * @param[out] size_transfered Number of bytes that were actually transfered.
  * @return Error code.
  */
-int usb_pipe_read(usb_pipe_t *pipe,
+errno_t usb_pipe_read(usb_pipe_t *pipe,
     void *buffer, size_t size, size_t *size_transfered)
 {
 	assert(pipe);
@@ -197,7 +197,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc =
+	const errno_t rc =
 	    usb_read(exch, pipe->endpoint_no, 0, buffer, size, &act_size);
 	async_exchange_end(exch);
 
@@ -215,7 +215,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
  * @param[in] size Size of the buffer (in bytes).
  * @return Error code.
  */
-int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
+errno_t usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 {
 	assert(pipe);
 
@@ -237,7 +237,7 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 	    return ENOTSUP;
 
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	const int rc = usb_write(exch, pipe->endpoint_no, 0, buffer, size);
+	const errno_t rc = usb_write(exch, pipe->endpoint_no, 0, buffer, size);
 	async_exchange_end(exch);
 	return rc;
 }
@@ -251,7 +251,7 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
  * @param direction Endpoint direction (in/out).
  * @return Error code.
  */
-int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
+errno_t usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     usb_direction_t direction, unsigned packets, usb_dev_session_t *bus_session)
 {
@@ -273,12 +273,12 @@ int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
  * @param pipe Endpoint pipe to be initialized.
  * @return Error code.
  */
-int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
+errno_t usb_pipe_initialize_default_control(usb_pipe_t *pipe,
     usb_dev_session_t *bus_session)
 {
 	assert(pipe);
 
-	const int rc = usb_pipe_initialize(pipe, 0, USB_TRANSFER_CONTROL,
+	const errno_t rc = usb_pipe_initialize(pipe, 0, USB_TRANSFER_CONTROL,
 	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH, 1, bus_session);
 
 	pipe->auto_reset_halt = true;
@@ -292,14 +292,14 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
  * @param interval Polling interval.
  * @return Error code.
  */
-int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
+errno_t usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 {
 	assert(pipe);
 	assert(pipe->bus_session);
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	if (!exch)
 		return ENOMEM;
-	const int ret = usb_register_endpoint(exch, pipe->endpoint_no,
+	const errno_t ret = usb_register_endpoint(exch, pipe->endpoint_no,
 	    pipe->transfer_type, pipe->direction, pipe->max_packet_size,
 	    pipe->packets, interval);
 	async_exchange_end(exch);
@@ -311,14 +311,14 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
  * @param pipe Pipe to be unregistered.
  * @return Error code.
  */
-int usb_pipe_unregister(usb_pipe_t *pipe)
+errno_t usb_pipe_unregister(usb_pipe_t *pipe)
 {
 	assert(pipe);
 	assert(pipe->bus_session);
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	if (!exch)
 		return ENOMEM;
-	const int ret = usb_unregister_endpoint(exch, pipe->endpoint_no,
+	const errno_t ret = usb_unregister_endpoint(exch, pipe->endpoint_no,
 	    pipe->direction);
 	async_exchange_end(exch);
 	return ret;

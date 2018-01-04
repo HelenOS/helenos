@@ -40,8 +40,8 @@
 #include <types/inetping.h>
 #include "inetsrv.h"
 
-extern int icmp_recv(inet_dgram_t *);
-extern int icmp_ping_send(uint16_t, inetping_sdu_t *);
+extern errno_t icmp_recv(inet_dgram_t *);
+extern errno_t icmp_ping_send(uint16_t, inetping_sdu_t *);
 
 #endif
 

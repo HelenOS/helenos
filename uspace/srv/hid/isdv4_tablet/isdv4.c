@@ -293,12 +293,12 @@ static bool parse_response_touch(uint8_t *packet, size_t size,
 	return false;
 }
 
-static int read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
+static errno_t read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 {
 	bool reading = true;
 	while (reading) {
 		size_t nread;
-		int rc;
+		errno_t rc;
 
 		rc = chardev_read(state->chardev, state->buf + state->buf_end,
 		    state->buf_size - state->buf_end, &nread);
@@ -362,18 +362,18 @@ static int read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 
 static bool write_command(chardev_t *chardev, uint8_t command)
 {
-	int rc;
+	errno_t rc;
 	size_t nwr;
 
 	rc = chardev_write(chardev, &command, 1, &nwr);
 	return rc == EOK;
 }
 
-int isdv4_init(isdv4_state_t *state, async_sess_t *sess,
+errno_t isdv4_init(isdv4_state_t *state, async_sess_t *sess,
     isdv4_event_fn event_fn)
 {
 	chardev_t *chardev;
-	int rc;
+	errno_t rc;
 
 	rc = chardev_open(sess, &chardev);
 	if (rc != EOK)
@@ -395,7 +395,7 @@ int isdv4_init(isdv4_state_t *state, async_sess_t *sess,
 	return EOK;
 }
 
-int isdv4_init_tablet(isdv4_state_t *state)
+errno_t isdv4_init_tablet(isdv4_state_t *state)
 {
 	if (!write_command(state->chardev, CMD_STOP))
 		return EIO;
@@ -406,7 +406,7 @@ int isdv4_init_tablet(isdv4_state_t *state)
 	if (!write_command(state->chardev, CMD_QUERY_STYLUS))
 		return EIO;
 
-	int rc = read_packets(state, parse_response_stylus);
+	errno_t rc = read_packets(state, parse_response_stylus);
 	if (rc != EOK)
 		return rc;
 
@@ -423,7 +423,7 @@ int isdv4_init_tablet(isdv4_state_t *state)
 	return EOK;
 }
 
-int isdv4_read_events(isdv4_state_t *state)
+errno_t isdv4_read_events(isdv4_state_t *state)
 {
 	return read_packets(state, parse_event);
 }

@@ -110,7 +110,7 @@ LIST_INITIALIZE(inactive_as_with_asid_list);
 /** Kernel address space. */
 as_t *AS_KERNEL = NULL;
 
-NO_TRACE static int as_constructor(void *obj, unsigned int flags)
+NO_TRACE static errno_t as_constructor(void *obj, unsigned int flags)
 {
 	as_t *as = (as_t *) obj;
 	
@@ -759,7 +759,7 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
  * @return Zero on success or a value from @ref errno.h otherwise.
  *
  */
-int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
+errno_t as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 {
 	if (!IS_ALIGNED(address, PAGE_SIZE))
 		return EINVAL;
@@ -968,7 +968,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int as_area_destroy(as_t *as, uintptr_t address)
+errno_t as_area_destroy(as_t *as, uintptr_t address)
 {
 	mutex_lock(&as->lock);
 	
@@ -1084,7 +1084,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
  *         sharing.
  *
  */
-int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
+errno_t as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
     as_t *dst_as, unsigned int dst_flags_mask, uintptr_t *dst_base,
     uintptr_t bound)
 {
@@ -1247,7 +1247,7 @@ NO_TRACE static unsigned int area_flags_to_page_flags(unsigned int aflags)
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
+errno_t as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 {
 	/* Flags for the new memory mapping */
 	unsigned int page_flags = area_flags_to_page_flags(flags);
@@ -2207,19 +2207,19 @@ sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
 	return (sysarg_t) virt;
 }
 
-sysarg_t sys_as_area_resize(uintptr_t address, size_t size, unsigned int flags)
+sys_errno_t sys_as_area_resize(uintptr_t address, size_t size, unsigned int flags)
 {
-	return (sysarg_t) as_area_resize(AS, address, size, 0);
+	return (sys_errno_t) as_area_resize(AS, address, size, 0);
 }
 
-sysarg_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
+sys_errno_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
 {
-	return (sysarg_t) as_area_change_flags(AS, flags, address);
+	return (sys_errno_t) as_area_change_flags(AS, flags, address);
 }
 
-sysarg_t sys_as_area_destroy(uintptr_t address)
+sys_errno_t sys_as_area_destroy(uintptr_t address)
 {
-	return (sysarg_t) as_area_destroy(AS, address);
+	return (sys_errno_t) as_area_destroy(AS, address);
 }
 
 /** Get list of adress space areas.

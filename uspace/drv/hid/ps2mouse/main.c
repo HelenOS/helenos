@@ -44,7 +44,7 @@
 
 #define NAME "ps2mouse"
 
-static int mouse_add(ddf_dev_t *device);
+static errno_t mouse_add(ddf_dev_t *device);
 
 /** DDF driver ops. */
 static driver_ops_t mouse_driver_ops = {
@@ -77,9 +77,9 @@ int main(int argc, char *argv[])
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-static int mouse_add(ddf_dev_t *device)
+static errno_t mouse_add(ddf_dev_t *device)
 {
-	int rc;
+	errno_t rc;
 
 	if (!device)
 		return EINVAL;

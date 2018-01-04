@@ -109,7 +109,7 @@ static audio_sink_t *find_sink_by_name(list_t *list, const char *name)
 	return NULL;
 }
 
-static int hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name);
+static errno_t hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name);
 
 /**
  * Remove provided sink.
@@ -161,7 +161,7 @@ static void hound_remove_source_internal(hound_t *hound, audio_source_t *source)
  * @param hound The structure to initialize.
  * @return Error code.
  */
-int hound_init(hound_t *hound)
+errno_t hound_init(hound_t *hound)
 {
 	assert(hound);
 	fibril_mutex_initialize(&hound->list_guard);
@@ -179,7 +179,7 @@ int hound_init(hound_t *hound)
  * @param ctx Context to add.
  * @return Error code.
  */
-int hound_add_ctx(hound_t *hound, hound_ctx_t *ctx)
+errno_t hound_add_ctx(hound_t *hound, hound_ctx_t *ctx)
 {
 	log_info("Trying to add context %p", ctx);
 	assert(hound);
@@ -188,7 +188,7 @@ int hound_add_ctx(hound_t *hound, hound_ctx_t *ctx)
 	fibril_mutex_lock(&hound->list_guard);
 	list_append(&ctx->link, &hound->contexts);
 	fibril_mutex_unlock(&hound->list_guard);
-	int ret = EOK;
+	errno_t ret = EOK;
 	if (ret == EOK && ctx->source)
 		ret = hound_add_source(hound, ctx->source);
 	if (ret == EOK && ctx->sink)
@@ -207,7 +207,7 @@ int hound_add_ctx(hound_t *hound, hound_ctx_t *ctx)
  * @param ctx Context to remove.
  * @return Error code.
  */
-int hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx)
+errno_t hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx)
 {
 	assert(hound);
 	if (!ctx)
@@ -253,7 +253,7 @@ hound_ctx_t *hound_get_ctx_by_id(hound_t *hound, hound_context_id_t id)
  * @param name String identifier.
  * @return Error code.
  */
-int hound_add_device(hound_t *hound, service_id_t id, const char *name)
+errno_t hound_add_device(hound_t *hound, service_id_t id, const char *name)
 {
 	log_verbose("Adding device \"%s\", service: %zu", name, id);
 
@@ -282,7 +282,7 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 		return ENOMEM;
 	}
 
-	const int ret = audio_device_init(dev, id, name);
+	const errno_t ret = audio_device_init(dev, id, name);
 	if (ret != EOK) {
 		log_debug("Failed to initialize new audio device: %s",
 			str_error(ret));
@@ -295,7 +295,7 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 
 	audio_source_t *source = audio_device_get_source(dev);
 	if (source) {
-		const int ret = hound_add_source(hound, source);
+		const errno_t ret = hound_add_source(hound, source);
 		if (ret != EOK) {
 			log_debug("Failed to add device source: %s",
 			    str_error(ret));
@@ -307,7 +307,7 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 
 	audio_sink_t *sink = audio_device_get_sink(dev);
 	if (sink) {
-		const int ret = hound_add_sink(hound, sink);
+		const errno_t ret = hound_add_sink(hound, sink);
 		if (ret != EOK) {
 			log_debug("Failed to add device sink: %s",
 			    str_error(ret));
@@ -329,7 +329,7 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
  * @param source A new source to add.
  * @return Error code.
  */
-int hound_add_source(hound_t *hound, audio_source_t *source)
+errno_t hound_add_source(hound_t *hound, audio_source_t *source)
 {
 	assert(hound);
 	if (!source || !source->name || str_cmp(source->name, "default") == 0) {
@@ -353,7 +353,7 @@ int hound_add_source(hound_t *hound, audio_source_t *source)
  * @param sink A new sink to add.
  * @return Error code.
  */
-int hound_add_sink(hound_t *hound, audio_sink_t *sink)
+errno_t hound_add_sink(hound_t *hound, audio_sink_t *sink)
 {
 	assert(hound);
 	if (!sink || !sink->name || str_cmp(sink->name, "default") == 0) {
@@ -377,7 +377,7 @@ int hound_add_sink(hound_t *hound, audio_sink_t *sink)
  * @param source A registered source to remove.
  * @return Error code.
  */
-int hound_remove_source(hound_t *hound, audio_source_t *source)
+errno_t hound_remove_source(hound_t *hound, audio_source_t *source)
 {
 	assert(hound);
 	if (!source)
@@ -394,7 +394,7 @@ int hound_remove_source(hound_t *hound, audio_source_t *source)
  * @param sink A registered sink to remove.
  * @return Error code.
  */
-int hound_remove_sink(hound_t *hound, audio_sink_t *sink)
+errno_t hound_remove_sink(hound_t *hound, audio_sink_t *sink)
 {
 	assert(hound);
 	if (!sink)
@@ -412,7 +412,7 @@ int hound_remove_sink(hound_t *hound, audio_sink_t *sink)
  * @param[out] size Number of identifiers int he @p list.
  * @return Error code.
  */
-int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
+errno_t hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 {
 	assert(hound);
 	if (!list || !size)
@@ -427,7 +427,7 @@ int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 		return EOK;
 	}
 	const char **names = calloc(count, sizeof(char *));
-	int ret = names ? EOK : ENOMEM;
+	errno_t ret = names ? EOK : ENOMEM;
 	for (unsigned long i = 0; i < count && ret == EOK; ++i) {
 		link_t *slink = list_nth(&hound->sources, i);
 		audio_source_t *source = audio_source_list_instance(slink);
@@ -454,7 +454,7 @@ int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
  * @param[out] size Number of identifiers int he @p list.
  * @return Error code.
  */
-int hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
+errno_t hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
 {
 	assert(hound);
 	if (!list || !size)
@@ -469,7 +469,7 @@ int hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
 		return EOK;
 	}
 	const char **names = calloc(count, sizeof(char *));
-	int ret = names ? EOK : ENOMEM;
+	errno_t ret = names ? EOK : ENOMEM;
 	for (size_t i = 0; i < count && ret == EOK; ++i) {
 		link_t *slink = list_nth(&hound->sinks, i);
 		audio_sink_t *sink = audio_sink_list_instance(slink);
@@ -500,7 +500,7 @@ int hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
  * Lists include duplicit name entries. The order of entries is important,
  * identifiers with the same index are connected.
  */
-int hound_list_connections(hound_t *hound, const char ***sources,
+errno_t hound_list_connections(hound_t *hound, const char ***sources,
     const char ***sinks, size_t *size)
 {
 	fibril_mutex_lock(&hound->list_guard);
@@ -515,7 +515,7 @@ int hound_list_connections(hound_t *hound, const char ***sources,
  * @param sink_name Sink's string id.
  * @return Error code.
  */
-int hound_connect(hound_t *hound, const char* source_name, const char* sink_name)
+errno_t hound_connect(hound_t *hound, const char* source_name, const char* sink_name)
 {
 	assert(hound);
 	log_verbose("Connecting '%s' to '%s'.", source_name, sink_name);
@@ -554,11 +554,11 @@ int hound_connect(hound_t *hound, const char* source_name, const char* sink_name
  * @param sink_name Sink's string id.
  * @return Error code.
  */
-int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name)
+errno_t hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name)
 {
 	assert(hound);
 	fibril_mutex_lock(&hound->list_guard);
-	const int ret = hound_disconnect_internal(hound, source_name, sink_name);
+	const errno_t ret = hound_disconnect_internal(hound, source_name, sink_name);
 	fibril_mutex_unlock(&hound->list_guard);
 	return ret;
 }
@@ -572,7 +572,7 @@ int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_n
  *
  * This function has to be called with the list_guard lock held.
  */
-static int hound_disconnect_internal(hound_t *hound, const char* source_name,
+static errno_t hound_disconnect_internal(hound_t *hound, const char* source_name,
     const char* sink_name)
 {
 	assert(hound);

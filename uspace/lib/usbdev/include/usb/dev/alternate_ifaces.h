@@ -66,7 +66,7 @@ typedef struct {
 } usb_alternate_interfaces_t;
 
 size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
-int usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
+errno_t usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
     const uint8_t *, size_t, int);
 void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *);
 

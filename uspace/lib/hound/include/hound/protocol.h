@@ -60,11 +60,11 @@ typedef intptr_t hound_context_id_t;
 hound_sess_t *hound_service_connect(const char *service);
 void hound_service_disconnect(hound_sess_t *sess);
 
-int hound_service_register_context(hound_sess_t *sess,
+errno_t hound_service_register_context(hound_sess_t *sess,
     const char *name, bool record, hound_context_id_t *id);
-int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id);
+errno_t hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id);
 
-int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
+errno_t hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
     int flags, const char *connection);
 
 /**
@@ -75,52 +75,52 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
  * @param[in] flags Flags limiting the query.
  * @return Error code.
  */
-static inline int hound_service_get_list_all(hound_sess_t *sess,
+static inline errno_t hound_service_get_list_all(hound_sess_t *sess,
     const char ***ids, size_t *count, int flags)
 {
 	return hound_service_get_list(sess, ids, count, flags, NULL);
 }
 
-int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
+errno_t hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
     const char *sink);
-int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
+errno_t hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
     const char *sink);
 
-int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
+errno_t hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
     int flags, pcm_format_t format, size_t bsize);
-int hound_service_stream_drain(async_exch_t *exch);
-int hound_service_stream_exit(async_exch_t *exch);
+errno_t hound_service_stream_drain(async_exch_t *exch);
+errno_t hound_service_stream_exit(async_exch_t *exch);
 
-int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size);
-int hound_service_stream_read(async_exch_t *exch, void *data, size_t size);
+errno_t hound_service_stream_write(async_exch_t *exch, const void *data, size_t size);
+errno_t hound_service_stream_read(async_exch_t *exch, void *data, size_t size);
 
 /* Server */
 
 /** Hound server interace structure */
 typedef struct hound_server_iface {
 	/** Create new context */
-	int (*add_context)(void *, hound_context_id_t *, const char *, bool);
+	errno_t (*add_context)(void *, hound_context_id_t *, const char *, bool);
 	/** Destroy existing context */
-	int (*rem_context)(void *, hound_context_id_t);
+	errno_t (*rem_context)(void *, hound_context_id_t);
 	/** Query context direction */
 	bool (*is_record_context)(void *, hound_context_id_t);
 	/** Get string identifiers of specified objects */
-	int (*get_list)(void *, const char ***, size_t *, const char *, int);
+	errno_t (*get_list)(void *, const char ***, size_t *, const char *, int);
 	/** Create connection between source and sink */
-	int (*connect)(void *, const char *, const char *);
+	errno_t (*connect)(void *, const char *, const char *);
 	/** Destroy connection between source and sink */
-	int (*disconnect)(void *, const char *, const char *);
+	errno_t (*disconnect)(void *, const char *, const char *);
 	/** Create new stream tied to the context */
-	int (*add_stream)(void *, hound_context_id_t, int, pcm_format_t, size_t,
+	errno_t (*add_stream)(void *, hound_context_id_t, int, pcm_format_t, size_t,
 	    void **);
 	/** Destroy existing stream */
-	int (*rem_stream)(void *, void *);
+	errno_t (*rem_stream)(void *, void *);
 	/** Block until the stream buffer is empty */
-	int (*drain_stream)(void *);
+	errno_t (*drain_stream)(void *);
 	/** Write new data to the stream */
-	int (*stream_data_write)(void *, const void *, size_t);
+	errno_t (*stream_data_write)(void *, const void *, size_t);
 	/** Read data from the stream */
-	int (*stream_data_read)(void *, void *, size_t);
+	errno_t (*stream_data_read)(void *, void *, size_t);
 	void *server;
 } hound_server_iface_t;
 

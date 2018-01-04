@@ -36,9 +36,9 @@
 #include <errno.h>
 #include <async.h>
 
-int pio_window_get(async_sess_t *sess, pio_window_t *pio_win)
+errno_t pio_window_get(async_sess_t *sess, pio_window_t *pio_win)
 {
-	int rc;
+	errno_t rc;
 
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)

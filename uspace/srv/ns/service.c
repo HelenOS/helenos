@@ -94,7 +94,7 @@ typedef struct {
 
 static list_t pending_conn;
 
-int service_init(void)
+errno_t service_init(void)
 {
 	if (!hash_table_create(&service_hash_table, 0, 0,
 	    &service_hash_table_ops)) {
@@ -138,7 +138,7 @@ loop:
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-int register_service(service_t service, sysarg_t phone, ipc_call_t *call)
+errno_t register_service(service_t service, sysarg_t phone, ipc_call_t *call)
 {
 	if (hash_table_find(&service_hash_table, &service))
 		return EEXIST;
@@ -172,7 +172,7 @@ void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
 {
 	sysarg_t arg3 = IPC_GET_ARG3(*call);
 	sysarg_t flags = IPC_GET_ARG4(*call);
-	int retval;
+	errno_t retval;
 	
 	ht_link_t *link = hash_table_find(&service_hash_table, &service);
 	if (!link) {

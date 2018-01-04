@@ -50,7 +50,7 @@ typedef struct ehci_endpoint {
 	link_t link;
 } ehci_endpoint_t;
 
-int ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
+errno_t ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
 void ehci_endpoint_fini(hcd_t *hcd, endpoint_t *ep);
 
 /** Get and convert assigned ehci_endpoint_t structure

@@ -84,7 +84,7 @@ static void atexit_handler(void)
 static inline void initialize(void)
 {
 	g_initialized = 1;
-	int rc = atexit(atexit_handler);
+	errno_t rc = atexit(atexit_handler);
 	if (rc)
 		exit(127);
 
@@ -95,7 +95,7 @@ static inline void initialize(void)
 
 /* Record a hit for a backtrace address and return whether this is the first
  * hit. */
-static inline int backtrace_item_hit(void *addr)
+static inline errno_t backtrace_item_hit(void *addr)
 {
 	backtrace_item_t **bip;
 	for (bip = &g_backtrace_items; *bip; bip = &(*bip)->next) {
@@ -119,7 +119,7 @@ static inline int backtrace_item_hit(void *addr)
 	return 1;
 }
 
-int bithenge_should_fail(void)
+errno_t bithenge_should_fail(void)
 {
 	g_failure_index++;
 
@@ -201,7 +201,7 @@ off_t bithenge_failure_lseek(int fd, off_t offset, int whither)
 	return lseek(fd, offset, whither);
 }
 
-int bithenge_failure_ferror(FILE *stream)
+errno_t bithenge_failure_ferror(FILE *stream)
 {
 	if (bithenge_should_fail())
 		return 1;
@@ -215,7 +215,7 @@ char *bithenge_failure_str_ndup(const char *s, size_t max_len)
 	return str_ndup(s, max_len);
 }
 
-int bithenge_failure_open(const char *pathname, int flags)
+errno_t bithenge_failure_open(const char *pathname, int flags)
 {
 	if (bithenge_should_fail()) {
 		errno = EACCES;
@@ -224,7 +224,7 @@ int bithenge_failure_open(const char *pathname, int flags)
 	return open(pathname, flags);
 }
 
-int bithenge_failure_fstat(int fd, struct stat *buf)
+errno_t bithenge_failure_fstat(int fd, struct stat *buf)
 {
 	if (bithenge_should_fail()) {
 		errno = EIO;

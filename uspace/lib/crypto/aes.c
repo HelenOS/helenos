@@ -458,7 +458,7 @@ static void key_expansion(uint8_t *key, uint32_t *key_exp)
  *         otherwise EOK.
  *
  */
-int aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output)
+errno_t aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output)
 {
 	if ((!key) || (!input))
 		return EINVAL;
@@ -510,7 +510,7 @@ int aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output)
  *         otherwise EOK.
  *
  */
-int aes_decrypt(uint8_t *key, uint8_t *input, uint8_t *output)
+errno_t aes_decrypt(uint8_t *key, uint8_t *input, uint8_t *output)
 {
 	if ((!key) || (!input))
 		return EINVAL;

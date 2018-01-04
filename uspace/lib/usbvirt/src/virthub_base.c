@@ -53,7 +53,7 @@ void *virthub_get_data(usbvirt_device_t *dev)
 	return base->data;
 }
 
-int virthub_base_init(virthub_base_t *instance, const char *name,
+errno_t virthub_base_init(virthub_base_t *instance, const char *name,
     usbvirt_device_ops_t *ops, void *data,
     const usb_standard_device_descriptor_t *device_desc,
     const usb_hub_descriptor_header_t *hub_desc, usb_endpoint_t ep)
@@ -108,7 +108,7 @@ usb_address_t virthub_base_get_address(virthub_base_t *instance)
 	return instance->device.address;
 }
 
-int virthub_base_request(virthub_base_t *instance, usb_target_t target,
+errno_t virthub_base_request(virthub_base_t *instance, usb_target_t target,
     usb_direction_t dir, const usb_device_request_setup_packet_t *setup,
     void *buffer, size_t buffer_size, size_t *real_size)
 {
@@ -142,7 +142,7 @@ int virthub_base_request(virthub_base_t *instance, usb_target_t target,
 	}
 }
 
-int virthub_base_get_hub_descriptor(usbvirt_device_t *dev,
+errno_t virthub_base_get_hub_descriptor(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
@@ -158,7 +158,7 @@ int virthub_base_get_hub_descriptor(usbvirt_device_t *dev,
 	return EFORWARD;
 }
 
-int virthub_base_get_null_status(usbvirt_device_t *dev,
+errno_t virthub_base_get_null_status(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {

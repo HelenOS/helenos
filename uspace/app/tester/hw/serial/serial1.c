@@ -55,26 +55,26 @@ const char *test_serial1(void)
 	size_t cnt;
 	serial_t *serial;
 	chardev_t *chardev;
-	int rc;
+	errno_t rc;
 	size_t nread;
 	size_t nwritten;
 	
 	if (test_argc < 1)
 		cnt = DEFAULT_COUNT;
 	else
-		switch (str_size_t(test_argv[0], NULL, 0, true, &cnt)) {
-		case EOK:
+		switch ((case_errno_t) str_size_t(test_argv[0], NULL, 0, true, &cnt)) {
+		case (case_errno_t) EOK:
 			break;
-		case EINVAL:
+		case (case_errno_t) EINVAL:
 			return "Invalid argument, unsigned integer expected";
-		case EOVERFLOW:
+		case (case_errno_t) EOVERFLOW:
 			return "Argument size overflow";
 		default:
 			return "Unexpected argument error";
 		}
 	
 	service_id_t svc_id;
-	int res = loc_service_get_id("devices/\\hw\\pci0\\00:01.0\\com1\\a",
+	errno_t res = loc_service_get_id("devices/\\hw\\pci0\\00:01.0\\com1\\a",
 	    &svc_id, IPC_FLAG_BLOCKING);
 	if (res != EOK)
 		return "Failed getting serial port service ID";

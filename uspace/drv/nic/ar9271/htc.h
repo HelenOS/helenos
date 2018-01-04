@@ -296,12 +296,12 @@ typedef struct {
 	uint16_t message_id;  /**< Big Endian value! */
 } __attribute__((packed)) htc_setup_complete_msg_t;
 
-extern int htc_device_init(ath_t *, ieee80211_dev_t *, htc_device_t *);
-extern int htc_init(htc_device_t *);
-extern int htc_init_new_vif(htc_device_t *);
-extern int htc_read_control_message(htc_device_t *, void *, size_t, size_t *);
-extern int htc_read_data_message(htc_device_t *, void *, size_t, size_t *);
-extern int htc_send_control_message(htc_device_t *, void *, size_t, uint8_t);
-extern int htc_send_data_message(htc_device_t *, void *, size_t, uint8_t);
+extern errno_t htc_device_init(ath_t *, ieee80211_dev_t *, htc_device_t *);
+extern errno_t htc_init(htc_device_t *);
+extern errno_t htc_init_new_vif(htc_device_t *);
+extern errno_t htc_read_control_message(htc_device_t *, void *, size_t, size_t *);
+extern errno_t htc_read_data_message(htc_device_t *, void *, size_t, size_t *);
+extern errno_t htc_send_control_message(htc_device_t *, void *, size_t, uint8_t);
+extern errno_t htc_send_data_message(htc_device_t *, void *, size_t, uint8_t);
 
 #endif  /* ATHEROS_HTC_H */

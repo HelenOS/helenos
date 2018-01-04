@@ -41,7 +41,7 @@
 
 #include <io/con_srv.h>
 
-static int console_ev_encode(cons_event_t *event, ipc_call_t *call)
+static errno_t console_ev_encode(cons_event_t *event, ipc_call_t *call)
 {
 	IPC_SET_ARG1(*call, event->type);
 
@@ -70,7 +70,7 @@ static void con_read_srv(con_srv_t *srv, ipc_callid_t callid,
 {
 	void *buf;
 	size_t size;
-	int rc;
+	errno_t rc;
 	ipc_callid_t rcallid;
 
 	if (!async_data_read_receive(&rcallid, &size)) {
@@ -112,7 +112,7 @@ static void con_write_srv(con_srv_t *srv, ipc_callid_t callid,
 {
 	void *data;
 	size_t size;
-	int rc;
+	errno_t rc;
 
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
@@ -177,7 +177,7 @@ static void con_set_pos_srv(con_srv_t *srv, ipc_callid_t callid,
 static void con_get_pos_srv(con_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
+	errno_t rc;
 	sysarg_t col;
 	sysarg_t row;
 
@@ -193,7 +193,7 @@ static void con_get_pos_srv(con_srv_t *srv, ipc_callid_t callid,
 static void con_get_size_srv(con_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
+	errno_t rc;
 	sysarg_t cols;
 	sysarg_t rows;
 
@@ -209,7 +209,7 @@ static void con_get_size_srv(con_srv_t *srv, ipc_callid_t callid,
 static void con_get_color_cap_srv(con_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
+	errno_t rc;
 	console_caps_t ccap;
 
 	if (srv->srvs->ops->get_color_cap == NULL) {
@@ -294,7 +294,7 @@ static void con_set_cursor_visibility_srv(con_srv_t *srv, ipc_callid_t callid,
 static void con_get_event_srv(con_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
+	errno_t rc;
 	cons_event_t event;
 	ipc_call_t result;
 
@@ -339,10 +339,10 @@ void con_srvs_init(con_srvs_t *srvs)
 	srvs->aborted = false;
 }
 
-int con_conn(ipc_callid_t iid, ipc_call_t *icall, con_srvs_t *srvs)
+errno_t con_conn(ipc_callid_t iid, ipc_call_t *icall, con_srvs_t *srvs)
 {
 	con_srv_t *srv;
-	int rc;
+	errno_t rc;
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);

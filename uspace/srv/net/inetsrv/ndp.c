@@ -63,7 +63,7 @@ static void ndp_solicited_node_ip(addr128_t ip_addr,
 	memcpy(ip_solicited + 13, ip_addr + 13, 3);
 }
 
-static int ndp_send_packet(inet_link_t *link, ndp_packet_t *packet)
+static errno_t ndp_send_packet(inet_link_t *link, ndp_packet_t *packet)
 {
 	inet_dgram_t dgram;
 	ndp_pdu_encode(packet, &dgram);
@@ -76,18 +76,18 @@ static int ndp_send_packet(inet_link_t *link, ndp_packet_t *packet)
 	return EOK;
 }
 
-static int ndp_router_advertisement(inet_dgram_t *dgram, inet_addr_t *router)
+static errno_t ndp_router_advertisement(inet_dgram_t *dgram, inet_addr_t *router)
 {
 	// FIXME TODO
 	return ENOTSUP;
 }
 
-int ndp_received(inet_dgram_t *dgram)
+errno_t ndp_received(inet_dgram_t *dgram)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ndp_received()");
 	
 	ndp_packet_t packet;
-	int rc = ndp_pdu_decode(dgram, &packet);
+	errno_t rc = ndp_pdu_decode(dgram, &packet);
 	if (rc != EOK)
 		return rc;
 	
@@ -150,7 +150,7 @@ int ndp_received(inet_dgram_t *dgram)
  * @return ENOENT when NDP translation failed
  *
  */
-int ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t mac_addr,
+errno_t ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t mac_addr,
     inet_link_t *ilink)
 {
 	if (!ilink->mac_valid) {
@@ -159,7 +159,7 @@ int ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t mac_addr,
 		return EOK;
 	}
 	
-	int rc = ntrans_lookup(ip_addr, mac_addr);
+	errno_t rc = ntrans_lookup(ip_addr, mac_addr);
 	if (rc == EOK)
 		return EOK;
 	

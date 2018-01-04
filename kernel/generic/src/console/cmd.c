@@ -971,7 +971,7 @@ int cmd_call0(cmd_arg_t *argv)
 	char *symbol;
 	sysarg_t (*fnc)(void);
 	fncptr_t fptr;
-	int rc;
+	errno_t rc;
 
 	symbol = (char *) argv->buffer;
 	rc = symtab_addr_lookup(symbol, &symaddr);
@@ -1032,7 +1032,7 @@ int cmd_call1(cmd_arg_t *argv)
 	sysarg_t (*fnc)(sysarg_t, ...);
 	sysarg_t arg1 = argv[1].intval;
 	fncptr_t fptr;
-	int rc;
+	errno_t rc;
 
 	symbol = (char *) argv->buffer;
 	rc = symtab_addr_lookup(symbol, &symaddr);
@@ -1069,7 +1069,7 @@ int cmd_call2(cmd_arg_t *argv)
 	sysarg_t arg1 = argv[1].intval;
 	sysarg_t arg2 = argv[2].intval;
 	fncptr_t fptr;
-	int rc;
+	errno_t rc;
 
 	symbol = (char *) argv->buffer;
 	rc = symtab_addr_lookup(symbol, &symaddr);
@@ -1106,7 +1106,7 @@ int cmd_call3(cmd_arg_t *argv)
 	sysarg_t arg2 = argv[2].intval;
 	sysarg_t arg3 = argv[3].intval;
 	fncptr_t fptr;
-	int rc;
+	errno_t rc;
 	
 	symbol = (char *) argv->buffer;
 	rc = symtab_addr_lookup(symbol, &symaddr);
@@ -1181,7 +1181,7 @@ int cmd_set4(cmd_arg_t *argv)
 	uintptr_t addr = 0; // Prevent -Werror=maybe-uninitialized
 	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
-	int rc;
+	errno_t rc;
 	
 	if (((char *) argv->buffer)[0] == '*') {
 		rc = symtab_addr_lookup((char *) argv->buffer + 1, &addr);

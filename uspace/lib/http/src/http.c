@@ -46,7 +46,7 @@
 #include <http/http.h>
 #include <http/receive-buffer.h>
 
-static int http_receive(void *client_data, void *buf, size_t buf_size,
+static errno_t http_receive(void *client_data, void *buf, size_t buf_size,
     size_t *nrecv)
 {
 	http_t *http = client_data;
@@ -68,7 +68,7 @@ http_t *http_create(const char *host, uint16_t port)
 	http->port = port;
 	
 	http->buffer_size = 4096;
-	int rc = recv_buffer_init(&http->recv_buffer, http->buffer_size,
+	errno_t rc = recv_buffer_init(&http->recv_buffer, http->buffer_size,
 	    http_receive, http);
 	if (rc != EOK) {
 		free(http);
@@ -78,12 +78,12 @@ http_t *http_create(const char *host, uint16_t port)
 	return http;
 }
 
-int http_connect(http_t *http)
+errno_t http_connect(http_t *http)
 {
 	if (http->conn != NULL)
 		return EBUSY;
 	
-	int rc = inet_host_plookup_one(http->host, ip_any, &http->addr, NULL,
+	errno_t rc = inet_host_plookup_one(http->host, ip_any, &http->addr, NULL,
 	    NULL);
 	if (rc != EOK)
 		return rc;
@@ -109,7 +109,7 @@ int http_connect(http_t *http)
 	return rc;
 }
 
-int http_close(http_t *http)
+errno_t http_close(http_t *http)
 {
 	if (http->conn == NULL)
 		return EINVAL;

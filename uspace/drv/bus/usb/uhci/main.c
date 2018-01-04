@@ -48,9 +48,9 @@
 
 #define NAME "uhci"
 
-static int uhci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static errno_t uhci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
 static void uhci_driver_fini(hcd_t *);
-static int disable_legacy(ddf_dev_t *);
+static errno_t disable_legacy(ddf_dev_t *);
 
 static const ddf_hc_driver_t uhci_hc_driver = {
         .claim = disable_legacy,
@@ -66,7 +66,7 @@ static const ddf_hc_driver_t uhci_hc_driver = {
 	},
 };
 
-static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+static errno_t uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
 {
 	assert(hcd);
 	assert(hcd_get_driver_data(hcd) == NULL);
@@ -75,7 +75,7 @@ static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	if (!instance)
 		return ENOMEM;
 
-	const int ret = hc_init(instance, res, irq);
+	const errno_t ret = hc_init(instance, res, irq);
 	if (ret == EOK) {
 		hcd_set_implementation(hcd, instance, &uhci_hc_driver.ops);
 	} else {
@@ -100,7 +100,7 @@ static void uhci_driver_fini(hcd_t *hcd)
  * @param[in] device Device asking to disable interrupts
  * @return Error code.
  */
-static int disable_legacy(ddf_dev_t *device)
+static errno_t disable_legacy(ddf_dev_t *device)
 {
 	assert(device);
 
@@ -118,7 +118,7 @@ static int disable_legacy(ddf_dev_t *device)
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-static int uhci_dev_add(ddf_dev_t *device)
+static errno_t uhci_dev_add(ddf_dev_t *device)
 {
 	usb_log_debug2("uhci_dev_add() called\n");
 	assert(device);

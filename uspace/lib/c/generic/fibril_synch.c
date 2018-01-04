@@ -351,7 +351,7 @@ void fibril_condvar_initialize(fibril_condvar_t *fcv)
 	list_initialize(&fcv->waiters);
 }
 
-int
+errno_t
 fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
     suseconds_t timeout)
 {
@@ -391,7 +391,7 @@ fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
 
 void fibril_condvar_wait(fibril_condvar_t *fcv, fibril_mutex_t *fm)
 {
-	int rc;
+	errno_t rc;
 
 	rc = fibril_condvar_wait_timeout(fcv, fm, 0);
 	assert(rc == EOK);
@@ -433,10 +433,10 @@ void fibril_condvar_broadcast(fibril_condvar_t *fcv)
  *
  * @param arg	Timer
  */
-static int fibril_timer_func(void *arg)
+static errno_t fibril_timer_func(void *arg)
 {
 	fibril_timer_t *timer = (fibril_timer_t *) arg;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(timer->lockp);
 

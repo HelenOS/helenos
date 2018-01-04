@@ -152,7 +152,7 @@ static void usb_multimedia_push_ev(
 	}
 }
 
-int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
+errno_t usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 {
 	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
 		return EINVAL;
@@ -181,7 +181,7 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 
 	//todo Autorepeat?
 
-	int rc = ddf_fun_bind(fun);
+	errno_t rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
@@ -247,7 +247,7 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 	if (path == NULL)
 		return true; /* This might be a temporary failure. */
 
-	int ret =
+	errno_t ret =
 	    usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
 	if (ret != EOK) {
 		usb_hid_report_path_free(path);

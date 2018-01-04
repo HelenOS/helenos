@@ -50,23 +50,23 @@ struct _TASK;
 typedef struct _TASK task_t;
 
 extern task_id_t task_get_id(void);
-extern int task_set_name(const char *);
-extern int task_kill(task_id_t);
+extern errno_t task_set_name(const char *);
+extern errno_t task_kill(task_id_t);
 
-extern int task_spawnv(task_id_t *, task_wait_t *, const char *path,
+extern errno_t task_spawnv(task_id_t *, task_wait_t *, const char *path,
     const char *const []);
-extern int task_spawnvf(task_id_t *, task_wait_t *, const char *path,
+extern errno_t task_spawnvf(task_id_t *, task_wait_t *, const char *path,
     const char *const [], int, int, int);
-extern int task_spawn(task_id_t *, task_wait_t *, const char *path, int,
+extern errno_t task_spawn(task_id_t *, task_wait_t *, const char *path, int,
     va_list ap);
-extern int task_spawnl(task_id_t *, task_wait_t *, const char *path, ...)
+extern errno_t task_spawnl(task_id_t *, task_wait_t *, const char *path, ...)
     __attribute__((sentinel));
 
-extern int task_setup_wait(task_id_t, task_wait_t *);
+extern errno_t task_setup_wait(task_id_t, task_wait_t *);
 extern void task_cancel_wait(task_wait_t *);
-extern int task_wait(task_wait_t *, task_exit_t *, int *);
-extern int task_wait_task_id(task_id_t, task_exit_t *, int *);
-extern int task_retval(int);
+extern errno_t task_wait(task_wait_t *, task_exit_t *, int *);
+extern errno_t task_wait_task_id(task_id_t, task_exit_t *, int *);
+extern errno_t task_retval(int);
 
 #endif
 

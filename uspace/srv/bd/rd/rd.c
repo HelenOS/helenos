@@ -66,12 +66,12 @@ static size_t rd_size;
 /** Block size */
 static const size_t block_size = 512;
 
-static int rd_open(bd_srvs_t *, bd_srv_t *);
-static int rd_close(bd_srv_t *);
-static int rd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
-static int rd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
-static int rd_get_block_size(bd_srv_t *, size_t *);
-static int rd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t rd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t rd_close(bd_srv_t *);
+static errno_t rd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static errno_t rd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static errno_t rd_get_block_size(bd_srv_t *, size_t *);
+static errno_t rd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 /** This rwlock protects the ramdisk's data.
  *
@@ -99,19 +99,19 @@ static void rd_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Open device. */
-static int rd_open(bd_srvs_t *bds, bd_srv_t *bd)
+static errno_t rd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Close device. */
-static int rd_close(bd_srv_t *bd)
+static errno_t rd_close(bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Read blocks from the device. */
-static int rd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+static errno_t rd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
     size_t size)
 {
 	if ((ba + cnt) * block_size > rd_size) {
@@ -127,7 +127,7 @@ static int rd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
 }
 
 /** Write blocks to the device. */
-static int rd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+static errno_t rd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	if ((ba + cnt) * block_size > rd_size) {
@@ -146,7 +146,7 @@ static int rd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 static bool rd_init(void)
 {
 	sysarg_t size;
-	int ret = sysinfo_get_value("rd.size", &size);
+	errno_t ret = sysinfo_get_value("rd.size", &size);
 	if ((ret != EOK) || (size == 0)) {
 		printf("%s: No RAM disk found\n", NAME);
 		return false;
@@ -196,14 +196,14 @@ static bool rd_init(void)
 }
 
 /** Get device block size. */
-static int rd_get_block_size(bd_srv_t *bd, size_t *rsize)
+static errno_t rd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	*rsize = block_size;
 	return EOK;
 }
 
 /** Get number of blocks on device. */
-static int rd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+static errno_t rd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	*rnb = rd_size / block_size;
 	return EOK;

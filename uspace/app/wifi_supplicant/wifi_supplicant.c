@@ -86,10 +86,10 @@ static char *nic_addr_format(nic_address_t *addr)
 	return str;
 }
 
-static int get_wifi_list(service_id_t **wifis, size_t *count)
+static errno_t get_wifi_list(service_id_t **wifis, size_t *count)
 {
 	category_id_t wifi_cat;
-	int rc = loc_category_get_id("ieee80211", &wifi_cat, 0);
+	errno_t rc = loc_category_get_id("ieee80211", &wifi_cat, 0);
 	if (rc != EOK) {
 		printf("Error resolving category 'ieee80211'.\n");
 		return rc;
@@ -109,7 +109,7 @@ static async_sess_t *get_wifi_by_index(size_t i)
 	service_id_t *wifis = NULL;
 	size_t count;
 	
-	int rc = get_wifi_list(&wifis, &count);
+	errno_t rc = get_wifi_list(&wifis, &count);
 	if (rc != EOK) {
 		printf("Error fetching wifi list.\n");
 		return NULL;
@@ -132,12 +132,12 @@ static async_sess_t *get_wifi_by_index(size_t i)
 	return sess;
 }
 
-static int wifi_list(void)
+static errno_t wifi_list(void)
 {
 	service_id_t *wifis = NULL;
 	size_t count;
 	
-	int rc = get_wifi_list(&wifis, &count);
+	errno_t rc = get_wifi_list(&wifis, &count);
 	if (rc != EOK) {
 		printf("Error fetching wifi list: %s\n", str_error(rc));
 		return EINVAL;
@@ -161,7 +161,7 @@ static int wifi_list(void)
 	return EOK;
 }
 
-static int wifi_connect(uint32_t index, char *ssid_start, char *password)
+static errno_t wifi_connect(uint32_t index, char *ssid_start, char *password)
 {
 	assert(ssid_start);
 	
@@ -172,7 +172,7 @@ static int wifi_connect(uint32_t index, char *ssid_start, char *password)
 		return EINVAL;
 	}
 	
-	int rc = ieee80211_disconnect(sess);
+	errno_t rc = ieee80211_disconnect(sess);
 	if(rc != EOK) {
 		if (rc == EREFUSED)
 			printf("Device is not ready yet.\n");
@@ -205,7 +205,7 @@ static int wifi_connect(uint32_t index, char *ssid_start, char *password)
 	return EOK;
 }
 
-static int wifi_disconnect(uint32_t index)
+static errno_t wifi_disconnect(uint32_t index)
 {
 	async_sess_t *sess = get_wifi_by_index(index);
 	if (sess == NULL) {
@@ -214,7 +214,7 @@ static int wifi_disconnect(uint32_t index)
 		return EINVAL;
 	}
 	
-	int rc = ieee80211_disconnect(sess);
+	errno_t rc = ieee80211_disconnect(sess);
 	if (rc != EOK) {
 		if (rc == EREFUSED)
 			printf("Device is not ready yet.\n");
@@ -232,7 +232,7 @@ static int wifi_disconnect(uint32_t index)
 	return EOK;
 }
 
-static int wifi_scan(uint32_t index, bool now)
+static errno_t wifi_scan(uint32_t index, bool now)
 {
 	async_sess_t *sess = get_wifi_by_index(index);
 	if (sess == NULL) {
@@ -242,7 +242,7 @@ static int wifi_scan(uint32_t index, bool now)
 	}
 	
 	ieee80211_scan_results_t scan_results;
-	int rc = ieee80211_get_scan_results(sess, &scan_results, now);
+	errno_t rc = ieee80211_get_scan_results(sess, &scan_results, now);
 	if (rc != EOK) {
 		if (rc == EREFUSED)
 			printf("Device is not ready yet.\n");
@@ -276,7 +276,7 @@ static int wifi_scan(uint32_t index, bool now)
 
 int main(int argc, char *argv[])
 {
-	int rc = inetcfg_init();
+	errno_t rc = inetcfg_init();
 	if (rc != EOK) {
 		printf("%s: Failed connecting to inetcfg service: %s.\n",
 		    NAME, str_error(rc));

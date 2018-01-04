@@ -323,7 +323,7 @@ uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode)
  * @return Error code
  *
  */
-int ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
+errno_t ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
     uint64_t count)
 {
 	/* 32-bit maximum */

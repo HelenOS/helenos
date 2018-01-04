@@ -62,7 +62,7 @@
 static hub_port_t *get_hub_port(hub_t *, size_t);
 static void set_port_status_change(hub_port_t *, hub_status_change_t);
 static void clear_port_status_change(hub_port_t *, uint16_t);
-static int set_port_state_delayed_fibril(void *);
+static errno_t set_port_state_delayed_fibril(void *);
 static void set_port_state_delayed(hub_t *, size_t, suseconds_t,
     hub_port_state_t, hub_port_state_t);
 
@@ -162,7 +162,7 @@ size_t hub_connect_device(hub_t *hub, void *device)
  * @param device Device to be disconnected.
  * @return Error code.
  */
-int hub_disconnect_device(hub_t *hub, void *device)
+errno_t hub_disconnect_device(hub_t *hub, void *device)
 {
 	size_t index = hub_find_device(hub, device);
 	if (index == (size_t) -1) {
@@ -460,7 +460,7 @@ struct delay_port_state_change {
  * @param arg Pointer to delay_port_state_change.
  * @return Always EOK.
  */
-static int set_port_state_delayed_fibril(void *arg)
+static errno_t set_port_state_delayed_fibril(void *arg)
 {
 	struct delay_port_state_change *change
 	    = (struct delay_port_state_change *) arg;

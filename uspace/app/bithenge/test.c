@@ -56,7 +56,7 @@
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 	if (argc < 3) {
 		fprintf(stderr, "Usage: %s <script> <source>\n", argv[0]);
 		return 1;

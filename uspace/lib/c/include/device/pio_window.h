@@ -50,7 +50,7 @@ typedef struct {
 	} mem, io;
 } pio_window_t;
 
-extern int pio_window_get(async_sess_t *, pio_window_t *);
+extern errno_t pio_window_get(async_sess_t *, pio_window_t *);
 
 #endif
 

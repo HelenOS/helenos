@@ -49,7 +49,7 @@
 #include "part.h"
 #include "types/part.h"
 
-static int vol_part_add_locked(service_id_t);
+static errno_t vol_part_add_locked(service_id_t);
 static LIST_INITIALIZE(vol_parts); /* of vol_part_t */
 static FIBRIL_MUTEX_INITIALIZE(vol_parts_lock);
 
@@ -68,13 +68,13 @@ static struct fsname_type fstab[] = {
 };
 
 /** Check for new partitions */
-static int vol_part_check_new(void)
+static errno_t vol_part_check_new(void)
 {
 	bool already_known;
 	category_id_t part_cat;
 	service_id_t *svcs;
 	size_t count, i;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&vol_parts_lock);
 
@@ -143,13 +143,13 @@ static void vol_part_delete(vol_part_t *part)
 	free(part);
 }
 
-static int vol_part_probe(vol_part_t *part)
+static errno_t vol_part_probe(vol_part_t *part)
 {
 	bool empty;
 	vfs_fs_probe_info_t info;
 	struct fsname_type *fst;
 	char *label;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
 
@@ -203,10 +203,10 @@ error:
 	return rc;
 }
 
-static int vol_part_add_locked(service_id_t sid)
+static errno_t vol_part_add_locked(service_id_t sid)
 {
 	vol_part_t *part;
-	int rc;
+	errno_t rc;
 
 	assert(fibril_mutex_is_locked(&vol_parts_lock));
 
@@ -243,9 +243,9 @@ error:
 	return rc;
 }
 
-int vol_part_add(service_id_t sid)
+errno_t vol_part_add(service_id_t sid)
 {
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&vol_parts_lock);
 	rc = vol_part_add_locked(sid);
@@ -259,14 +259,14 @@ static void vol_part_cat_change_cb(void)
 	(void) vol_part_check_new();
 }
 
-int vol_part_init(void)
+errno_t vol_part_init(void)
 {
 	return EOK;
 }
 
-int vol_part_discovery_start(void)
+errno_t vol_part_discovery_start(void)
 {
-	int rc;
+	errno_t rc;
 
 	rc = loc_register_cat_change_cb(vol_part_cat_change_cb);
 	if (rc != EOK) {
@@ -279,7 +279,7 @@ int vol_part_discovery_start(void)
 }
 
 /** Get list of partitions as array of service IDs. */
-int vol_part_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
+errno_t vol_part_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
 {
 	size_t act_cnt;
 	size_t buf_cnt;
@@ -307,7 +307,7 @@ int vol_part_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
 	return EOK;
 }
 
-int vol_part_find_by_id(service_id_t sid, vol_part_t **rpart)
+errno_t vol_part_find_by_id(service_id_t sid, vol_part_t **rpart)
 {
 	list_foreach(vol_parts, lparts, vol_part_t, part) {
 		if (part->svc_id == sid) {
@@ -320,9 +320,9 @@ int vol_part_find_by_id(service_id_t sid, vol_part_t **rpart)
 	return ENOENT;
 }
 
-int vol_part_empty_part(vol_part_t *part)
+errno_t vol_part_empty_part(vol_part_t *part)
 {
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_part()");
 
@@ -337,10 +337,10 @@ int vol_part_empty_part(vol_part_t *part)
 	return EOK;
 }
 
-int vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
+errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
     const char *label)
 {
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part()");
 
@@ -369,7 +369,7 @@ int vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 	return EOK;
 }
 
-int vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
+errno_t vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
 {
 	pinfo->pcnt = part->pcnt;
 	pinfo->fstype = part->fstype;

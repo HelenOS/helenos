@@ -39,7 +39,7 @@
  * @param drv_name Driver name, will be printed as part of message
  *
  */
-int ddf_log_init(const char *drv_name)
+errno_t ddf_log_init(const char *drv_name)
 {
 	return log_init(drv_name);
 }

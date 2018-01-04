@@ -85,16 +85,16 @@ static kfb_t kfb;
 
 static vslmode_list_element_t pixel_mode;
 
-static int kfb_claim(visualizer_t *vs)
+static errno_t kfb_claim(visualizer_t *vs)
 {
 	return physmem_map(kfb.paddr + kfb.offset,
 	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
 	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
 }
 
-static int kfb_yield(visualizer_t *vs)
+static errno_t kfb_yield(visualizer_t *vs)
 {
-	int rc;
+	errno_t rc;
 
 	if (vs->mode_set) {
 		vs->ops.handle_damage = NULL;
@@ -108,7 +108,7 @@ static int kfb_yield(visualizer_t *vs)
 	return EOK;
 }
 
-static int kfb_handle_damage_pixels(visualizer_t *vs,
+static errno_t kfb_handle_damage_pixels(visualizer_t *vs,
     sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
     sysarg_t x_offset, sysarg_t y_offset)
 {
@@ -136,18 +136,18 @@ static int kfb_handle_damage_pixels(visualizer_t *vs,
 	return EOK;
 }
 
-static int kfb_change_mode(visualizer_t *vs, vslmode_t new_mode)
+static errno_t kfb_change_mode(visualizer_t *vs, vslmode_t new_mode)
 {
 	vs->ops.handle_damage = kfb_handle_damage_pixels;
 	return EOK;
 }
 
-static int kfb_suspend(visualizer_t *vs)
+static errno_t kfb_suspend(visualizer_t *vs)
 {
 	return EOK;
 }
 
-static int kfb_wakeup(visualizer_t *vs)
+static errno_t kfb_wakeup(visualizer_t *vs)
 {
 	return EOK;
 }
@@ -164,7 +164,7 @@ static visualizer_ops_t kfb_ops = {
 static void graph_vsl_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	visualizer_t *vsl;
-	int rc;
+	errno_t rc;
 
 	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
 	graph_visualizer_connection(vsl, iid, icall, NULL);
@@ -176,10 +176,10 @@ static void graph_vsl_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-int port_init(ddf_dev_t *dev)
+errno_t port_init(ddf_dev_t *dev)
 {
 	sysarg_t present;
-	int rc = sysinfo_get_value("fb", &present);
+	errno_t rc = sysinfo_get_value("fb", &present);
 	if (rc != EOK)
 		present = false;
 

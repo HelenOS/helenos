@@ -47,14 +47,14 @@ static void udp_cb_conn(ipc_callid_t, ipc_call_t *, void *);
  * @param udp UDP service
  * @return EOK on success or an error code
  */
-static int udp_callback_create(udp_t *udp)
+static errno_t udp_callback_create(udp_t *udp)
 {
 	async_exch_t *exch = async_exchange_begin(udp->sess);
 
 	aid_t req = async_send_0(exch, UDP_CALLBACK_CREATE, NULL);
 	
 	port_id_t port;
-	int rc = async_create_callback_port(exch, INTERFACE_UDP_CB, 0, 0,
+	errno_t rc = async_create_callback_port(exch, INTERFACE_UDP_CB, 0, 0,
 	    udp_cb_conn, udp, &port);
 	
 	async_exchange_end(exch);
@@ -62,7 +62,7 @@ static int udp_callback_create(udp_t *udp)
 	if (rc != EOK)
 		return rc;
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	return retval;
@@ -74,11 +74,11 @@ static int udp_callback_create(udp_t *udp)
  * @return EOK on success, ENOMEM if out of memory, EIO if service
  *         cannot be contacted
  */
-int udp_create(udp_t **rudp)
+errno_t udp_create(udp_t **rudp)
 {
 	udp_t *udp;
 	service_id_t udp_svcid;
-	int rc;
+	errno_t rc;
 
 	udp = calloc(1, sizeof(udp_t));
 	if (udp == NULL) {
@@ -159,7 +159,7 @@ void udp_destroy(udp_t *udp)
  *
  * @return EOK on success or an error code.
  */
-int udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
+errno_t udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
     udp_assoc_t **rassoc)
 {
 	async_exch_t *exch;
@@ -172,12 +172,12 @@ int udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
 
 	exch = async_exchange_begin(udp->sess);
 	aid_t req = async_send_0(exch, UDP_ASSOC_CREATE, &answer);
-	int rc = async_data_write_start(exch, (void *)epp,
+	errno_t rc = async_data_write_start(exch, (void *)epp,
 	    sizeof(inet_ep2_t));
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		int rc_orig;
+		errno_t rc_orig;
 		async_wait_for(req, &rc_orig);
 		if (rc_orig != EOK)
 			rc = rc_orig;
@@ -199,7 +199,7 @@ int udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
 	return EOK;
 error:
 	free(assoc);
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Destroy UDP association.
@@ -219,7 +219,7 @@ void udp_assoc_destroy(udp_assoc_t *assoc)
 	list_remove(&assoc->ludp);
 
 	exch = async_exchange_begin(assoc->udp->sess);
-	int rc = async_req_1_0(exch, UDP_ASSOC_DESTROY, assoc->id);
+	errno_t rc = async_req_1_0(exch, UDP_ASSOC_DESTROY, assoc->id);
 	async_exchange_end(exch);
 
 	free(assoc);
@@ -231,12 +231,12 @@ void udp_assoc_destroy(udp_assoc_t *assoc)
  * @param assoc Association
  * @param flags Flags
  */
-int udp_assoc_set_nolocal(udp_assoc_t *assoc)
+errno_t udp_assoc_set_nolocal(udp_assoc_t *assoc)
 {
 	async_exch_t *exch;
 
 	exch = async_exchange_begin(assoc->udp->sess);
-	int rc = async_req_1_0(exch, UDP_ASSOC_SET_NOLOCAL, assoc->id);
+	errno_t rc = async_req_1_0(exch, UDP_ASSOC_SET_NOLOCAL, assoc->id);
 	async_exchange_end(exch);
 
 	return rc;
@@ -251,7 +251,7 @@ int udp_assoc_set_nolocal(udp_assoc_t *assoc)
  *
  * @return EOK on success or an error code
  */
-int udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
+errno_t udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
     size_t bytes)
 {
 	async_exch_t *exch;
@@ -259,7 +259,7 @@ int udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
 	exch = async_exchange_begin(assoc->udp->sess);
 	aid_t req = async_send_1(exch, UDP_ASSOC_SEND_MSG, assoc->id, NULL);
 
-	int rc = async_data_write_start(exch, (void *)dest,
+	errno_t rc = async_data_write_start(exch, (void *)dest,
 	    sizeof(inet_ep_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -317,14 +317,14 @@ size_t udp_rmsg_size(udp_rmsg_t *rmsg)
  *
  * @return EOK on success or an error code.
  */
-int udp_rmsg_read(udp_rmsg_t *rmsg, size_t off, void *buf, size_t bsize)
+errno_t udp_rmsg_read(udp_rmsg_t *rmsg, size_t off, void *buf, size_t bsize)
 {
 	async_exch_t *exch;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(rmsg->udp->sess);
 	aid_t req = async_send_1(exch, UDP_RMSG_READ, off, &answer);
-	int rc = async_data_read_start(exch, buf, bsize);
+	errno_t rc = async_data_read_start(exch, buf, bsize);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -332,7 +332,7 @@ int udp_rmsg_read(udp_rmsg_t *rmsg, size_t off, void *buf, size_t bsize)
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK) {
 		return retval;
@@ -381,7 +381,7 @@ uint8_t udp_rerr_code(udp_rerr_t *rerr)
  *
  * @return EOK on success or an error code
  */
-static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
+static errno_t udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 {
 	async_exch_t *exch;
 	inet_ep_t ep;
@@ -389,7 +389,7 @@ static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 
 	exch = async_exchange_begin(udp->sess);
 	aid_t req = async_send_0(exch, UDP_RMSG_INFO, &answer);
-	int rc = async_data_read_start(exch, &ep, sizeof(inet_ep_t));
+	errno_t rc = async_data_read_start(exch, &ep, sizeof(inet_ep_t));
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -397,7 +397,7 @@ static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
@@ -414,12 +414,12 @@ static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
  * @param udp UDP client
  * @return EOK on success or an error code
  */
-static int udp_rmsg_discard(udp_t *udp)
+static errno_t udp_rmsg_discard(udp_t *udp)
 {
 	async_exch_t *exch;
 
 	exch = async_exchange_begin(udp->sess);
-	int rc = async_req_0_0(exch, UDP_RMSG_DISCARD);
+	errno_t rc = async_req_0_0(exch, UDP_RMSG_DISCARD);
 	async_exchange_end(exch);
 
 	return rc;
@@ -433,7 +433,7 @@ static int udp_rmsg_discard(udp_t *udp)
  *
  * @return EOK on success, EINVAL if no association with the given ID exists
  */
-static int udp_assoc_get(udp_t *udp, sysarg_t id, udp_assoc_t **rassoc)
+static errno_t udp_assoc_get(udp_t *udp, sysarg_t id, udp_assoc_t **rassoc)
 {
 	list_foreach(udp->assoc, ludp, udp_assoc_t, assoc) {
 		if (assoc->id == id) {
@@ -458,7 +458,7 @@ static void udp_ev_data(udp_t *udp, ipc_callid_t iid, ipc_call_t *icall)
 {
 	udp_rmsg_t rmsg;
 	udp_assoc_t *assoc;
-	int rc;
+	errno_t rc;
 
 	while (true) {
 		rc = udp_rmsg_info(udp, &rmsg);

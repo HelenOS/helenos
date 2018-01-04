@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
-	int rc = fs_register(vfs_sess, &tmpfs_vfs_info, &tmpfs_ops,
+	errno_t rc = fs_register(vfs_sess, &tmpfs_vfs_info, &tmpfs_ops,
 	    &tmpfs_libfs_ops);
 	if (rc != EOK) {
 		printf(NAME ": Failed to register file system: %s\n", str_error(rc));

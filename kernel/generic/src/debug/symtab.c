@@ -53,7 +53,7 @@
  *         ENOTSUP if symbol table not available.
  *
  */
-int symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
+errno_t symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
 {
 #ifdef CONFIG_SYMTAB
 	size_t i;
@@ -95,12 +95,12 @@ int symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
 const char *symtab_fmt_name_lookup(uintptr_t addr)
 {
 	const char *name;
-	int rc = symtab_name_lookup(addr, &name, NULL);
+	errno_t rc = symtab_name_lookup(addr, &name, NULL);
 	
-	switch (rc) {
-	case EOK:
+	switch ((case_errno_t) rc) {
+	case (case_errno_t) EOK:
 		return name;
-	case ENOENT:
+	case (case_errno_t) ENOENT:
 		return "unknown";
 	default:
 		return "N/A";
@@ -155,7 +155,7 @@ static const char *symtab_search_one(const char *name, size_t *startpos)
  *         symbol, ENOTSUP - no symbol information available.
  *
  */
-int symtab_addr_lookup(const char *name, uintptr_t *addr)
+errno_t symtab_addr_lookup(const char *name, uintptr_t *addr)
 {
 #ifdef CONFIG_SYMTAB
 	size_t found = 0;

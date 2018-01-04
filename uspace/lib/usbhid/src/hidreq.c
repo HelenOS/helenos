@@ -57,7 +57,7 @@
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from function usb_control_request_set().
  */
-int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
+errno_t usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size)
 {
 	if (ctrl_pipe == NULL) {
@@ -76,7 +76,7 @@ int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc;
+	errno_t rc;
 	
 	uint16_t value = 0;
 	value |= (type << 8);
@@ -107,7 +107,7 @@ int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from function usb_control_request_set().
  */
-int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
+errno_t usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_protocol_t protocol)
 {
 	if (ctrl_pipe == NULL) {
@@ -126,7 +126,7 @@ int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc;
+	errno_t rc;
 
 	usb_log_debug("Sending Set Protocol request to the device ("
 	    "protocol: %d, iface: %d).\n", protocol, iface_no);
@@ -156,7 +156,7 @@ int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from function usb_control_request_set().
  */
-int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
+errno_t usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 {
 	if (ctrl_pipe == NULL) {
 		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
@@ -174,7 +174,7 @@ int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc;
+	errno_t rc;
 
 	usb_log_debug("Sending Set Idle request to the device ("
 	    "duration: %u, iface: %d).\n", duration, iface_no);
@@ -209,7 +209,7 @@ int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from function usb_control_request_set().
  */
-int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
+errno_t usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
     size_t *actual_size)
 {
@@ -229,7 +229,7 @@ int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc;
+	errno_t rc;
 
 	uint16_t value = 0;
 	value |= (type << 8);
@@ -261,7 +261,7 @@ int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from function usb_control_request_set().
  */
-int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+errno_t usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
     usb_hid_protocol_t *protocol)
 {
 	if (ctrl_pipe == NULL) {
@@ -280,7 +280,7 @@ int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc;	
+	errno_t rc;	
 
 	usb_log_debug("Sending Get Protocol request to the device ("
 	    "iface: %d).\n", iface_no);
@@ -323,7 +323,7 @@ int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
  *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
-int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
+errno_t usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
 {
 	if (ctrl_pipe == NULL) {
 		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
@@ -341,7 +341,7 @@ int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc;
+	errno_t rc;
 
 	usb_log_debug("Sending Get Idle request to the device ("
 	    "iface: %d).\n", iface_no);

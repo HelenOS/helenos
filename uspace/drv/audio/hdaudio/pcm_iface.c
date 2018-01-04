@@ -46,21 +46,21 @@
 #include "spec/fmt.h"
 #include "stream.h"
 
-static int hda_get_info_str(ddf_fun_t *, const char **);
+static errno_t hda_get_info_str(ddf_fun_t *, const char **);
 static unsigned hda_query_cap(ddf_fun_t *, audio_cap_t);
-static int hda_test_format(ddf_fun_t *, unsigned *, unsigned *,
+static errno_t hda_test_format(ddf_fun_t *, unsigned *, unsigned *,
     pcm_sample_format_t *);
-static int hda_get_buffer(ddf_fun_t *, void **, size_t *);
-static int hda_get_buffer_position(ddf_fun_t *, size_t *);
-static int hda_set_event_session(ddf_fun_t *, async_sess_t *);
+static errno_t hda_get_buffer(ddf_fun_t *, void **, size_t *);
+static errno_t hda_get_buffer_position(ddf_fun_t *, size_t *);
+static errno_t hda_set_event_session(ddf_fun_t *, async_sess_t *);
 static async_sess_t *hda_get_event_session(ddf_fun_t *);
-static int hda_release_buffer(ddf_fun_t *);
-static int hda_start_playback(ddf_fun_t *, unsigned, unsigned, unsigned,
+static errno_t hda_release_buffer(ddf_fun_t *);
+static errno_t hda_start_playback(ddf_fun_t *, unsigned, unsigned, unsigned,
     pcm_sample_format_t);
-static int hda_stop_playback(ddf_fun_t *, bool);
-static int hda_start_capture(ddf_fun_t *, unsigned, unsigned, unsigned,
+static errno_t hda_stop_playback(ddf_fun_t *, bool);
+static errno_t hda_start_capture(ddf_fun_t *, unsigned, unsigned, unsigned,
     pcm_sample_format_t);
-static int hda_stop_capture(ddf_fun_t *, bool);
+static errno_t hda_stop_capture(ddf_fun_t *, bool);
 
 audio_pcm_iface_t hda_pcm_iface = {
 	.get_info_str = hda_get_info_str,
@@ -89,7 +89,7 @@ static hda_t *fun_to_hda(ddf_fun_t *fun)
 	return (hda_t *)ddf_dev_data_get(ddf_fun_get_dev(fun));
 }
 
-static int hda_get_info_str(ddf_fun_t *fun, const char **name)
+static errno_t hda_get_info_str(ddf_fun_t *fun, const char **name)
 {
 	ddf_msg(LVL_NOTE, "hda_get_info_str()");
 	if (name)
@@ -123,10 +123,10 @@ static unsigned hda_query_cap(ddf_fun_t *fun, audio_cap_t cap)
 	}
 }
 
-static int hda_test_format(ddf_fun_t *fun, unsigned *channels,
+static errno_t hda_test_format(ddf_fun_t *fun, unsigned *channels,
     unsigned *rate, pcm_sample_format_t *format)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	ddf_msg(LVL_NOTE, "hda_test_format(%u, %u, %d)\n",
 	    *channels, *rate, *format);
@@ -149,10 +149,10 @@ static int hda_test_format(ddf_fun_t *fun, unsigned *channels,
 	return rc;
 }
 
-static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
+static errno_t hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 {
 	hda_t *hda = fun_to_hda(fun);
-	int rc;
+	errno_t rc;
 
 	hda_lock(hda);
 
@@ -182,13 +182,13 @@ static int hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 	return EOK;
 }
 
-static int hda_get_buffer_position(ddf_fun_t *fun, size_t *pos)
+static errno_t hda_get_buffer_position(ddf_fun_t *fun, size_t *pos)
 {
 	ddf_msg(LVL_NOTE, "hda_get_buffer_position()");
 	return ENOTSUP;
 }
 
-static int hda_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
+static errno_t hda_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
 {
 	hda_t *hda = fun_to_hda(fun);
 
@@ -214,7 +214,7 @@ static async_sess_t *hda_get_event_session(ddf_fun_t *fun)
 	return sess;
 }
 
-static int hda_release_buffer(ddf_fun_t *fun)
+static errno_t hda_release_buffer(ddf_fun_t *fun)
 {
 	hda_t *hda = fun_to_hda(fun);
 
@@ -233,11 +233,11 @@ static int hda_release_buffer(ddf_fun_t *fun)
 	return EOK;
 }
 
-static int hda_start_playback(ddf_fun_t *fun, unsigned frames,
+static errno_t hda_start_playback(ddf_fun_t *fun, unsigned frames,
     unsigned channels, unsigned rate, pcm_sample_format_t format)
 {
 	hda_t *hda = fun_to_hda(fun);
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_NOTE, "hda_start_playback()");
 	hda_lock(hda);
@@ -274,7 +274,7 @@ static int hda_start_playback(ddf_fun_t *fun, unsigned frames,
 	return EOK;
 }
 
-static int hda_stop_playback(ddf_fun_t *fun, bool immediate)
+static errno_t hda_stop_playback(ddf_fun_t *fun, bool immediate)
 {
 	hda_t *hda = fun_to_hda(fun);
 
@@ -292,11 +292,11 @@ static int hda_stop_playback(ddf_fun_t *fun, bool immediate)
 	return EOK;
 }
 
-static int hda_start_capture(ddf_fun_t *fun, unsigned frames, unsigned channels,
+static errno_t hda_start_capture(ddf_fun_t *fun, unsigned frames, unsigned channels,
     unsigned rate, pcm_sample_format_t format)
 {
 	hda_t *hda = fun_to_hda(fun);
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_NOTE, "hda_start_capture()");
 	hda_lock(hda);
@@ -333,7 +333,7 @@ static int hda_start_capture(ddf_fun_t *fun, unsigned frames, unsigned channels,
 	return EOK;
 }
 
-static int hda_stop_capture(ddf_fun_t *fun, bool immediate)
+static errno_t hda_stop_capture(ddf_fun_t *fun, bool immediate)
 {
 	hda_t *hda = fun_to_hda(fun);
 

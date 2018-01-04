@@ -54,9 +54,9 @@ static tcp_rqueue_cb_t tcp_rqueue_cb = {
 	.seg_received = tcp_as_segment_arrived
 };
 
-static int tcp_init(void)
+static errno_t tcp_init(void)
 {
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_init()");
 
@@ -90,7 +90,7 @@ static int tcp_init(void)
 
 int main(int argc, char **argv)
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": TCP (Transmission Control Protocol) network module\n");
 

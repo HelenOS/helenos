@@ -44,7 +44,7 @@
  * @param uuid Place to store generated UUID
  * @return EOK on success or an error code
  */
-int uuid_generate(uuid_t *uuid)
+errno_t uuid_generate(uuid_t *uuid)
 {
 	int i;
 	struct timeval tv;
@@ -101,9 +101,9 @@ void uuid_decode(uint8_t *buf, uuid_t *uuid)
  *
  * @return EOK on success or an error code
  */
-int uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
+errno_t uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
 {
-	int rc;
+	errno_t rc;
 	const char *eptr;
 	uint32_t time_low;
 	uint16_t time_mid;
@@ -166,7 +166,7 @@ int uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-int uuid_format(uuid_t *uuid, char **rstr)
+errno_t uuid_format(uuid_t *uuid, char **rstr)
 {
 	return ENOTSUP;
 }

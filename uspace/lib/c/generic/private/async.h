@@ -84,7 +84,7 @@ extern void awaiter_initialize(awaiter_t *);
 
 extern void __async_init(void);
 extern void async_insert_timeout(awaiter_t *);
-extern void reply_received(void *, int, ipc_call_t *);
+extern void reply_received(void *, errno_t, ipc_call_t *);
 
 #endif
 

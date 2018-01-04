@@ -83,7 +83,7 @@ static void libfs_statfs(libfs_ops_t *, fs_handle_t, ipc_callid_t,
 static void vfs_out_fsprobe(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	int rc;
+	errno_t rc;
 	vfs_fs_probe_info_t info;
 	
 	ipc_callid_t callid;
@@ -111,7 +111,7 @@ static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
 	char *opts;
-	int rc;
+	errno_t rc;
 	
 	/* Accept the mount options. */
 	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
@@ -135,7 +135,7 @@ static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 static void vfs_out_unmounted(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	int rc; 
+	errno_t rc; 
 
 	rc = vfs_out_ops->unmounted(service_id);
 
@@ -159,7 +159,7 @@ static void vfs_out_read(ipc_callid_t rid, ipc_call_t *req)
 	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*req),
 	    IPC_GET_ARG4(*req));
 	size_t rbytes;
-	int rc;
+	errno_t rc;
 
 	rc = vfs_out_ops->read(service_id, index, pos, &rbytes);
 
@@ -177,7 +177,7 @@ static void vfs_out_write(ipc_callid_t rid, ipc_call_t *req)
 	    IPC_GET_ARG4(*req));
 	size_t wbytes;
 	aoff64_t nsize;
-	int rc;
+	errno_t rc;
 
 	rc = vfs_out_ops->write(service_id, index, pos, &wbytes, &nsize);
 
@@ -194,7 +194,7 @@ static void vfs_out_truncate(ipc_callid_t rid, ipc_call_t *req)
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
 	aoff64_t size = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*req),
 	    IPC_GET_ARG4(*req));
-	int rc;
+	errno_t rc;
 
 	rc = vfs_out_ops->truncate(service_id, index, size);
 
@@ -205,7 +205,7 @@ static void vfs_out_close(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
-	int rc;
+	errno_t rc;
 
 	rc = vfs_out_ops->close(service_id, index);
 
@@ -217,7 +217,7 @@ static void vfs_out_destroy(ipc_callid_t rid, ipc_call_t *req)
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
 
-	int rc;
+	errno_t rc;
 	fs_node_t *node = NULL;
 	rc = libfs_ops->node_get(&node, service_id, index);
 	if (rc == EOK && node != NULL) {
@@ -243,7 +243,7 @@ static void vfs_out_sync(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
-	int rc;
+	errno_t rc;
 
 	rc = vfs_out_ops->sync(service_id, index);
 
@@ -259,7 +259,7 @@ static void vfs_out_is_empty(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
-	int rc;
+	errno_t rc;
 
 	fs_node_t *node = NULL;
 	rc = libfs_ops->node_get(&node, service_id, index);
@@ -363,7 +363,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
  * @return EOK on success or a non-zero error code on errror.
  *
  */
-int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
+errno_t fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
     libfs_ops_t *lops)
 {
 	/*
@@ -380,7 +380,7 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	/*
 	 * Send our VFS info structure to VFS.
 	 */
-	int rc = async_data_write_start(exch, info, sizeof(*info));
+	errno_t rc = async_data_write_start(exch, info, sizeof(*info));
 	
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -445,7 +445,7 @@ static char plb_get_char(unsigned pos)
 	return reg.plb_ro[pos % PLB_SIZE];
 }
 
-static int plb_get_component(char *dest, unsigned *sz, unsigned *ppos,
+static errno_t plb_get_component(char *dest, unsigned *sz, unsigned *ppos,
     unsigned last)
 {
 	unsigned pos = *ppos;
@@ -475,7 +475,7 @@ static int plb_get_component(char *dest, unsigned *sz, unsigned *ppos,
 	return ENAMETOOLONG;
 }
 
-static int receive_fname(char *buffer)
+static errno_t receive_fname(char *buffer)
 {
 	size_t size;
 	ipc_callid_t wcall;
@@ -499,7 +499,7 @@ void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_index_t child_index = IPC_GET_ARG3(*req);
 	
 	char component[NAME_MAX + 1];
-	int rc = receive_fname(component);
+	errno_t rc = receive_fname(component);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
 		return;
@@ -554,7 +554,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	unsigned last = first + len;
 	
 	char component[NAME_MAX + 1];
-	int rc;
+	errno_t rc;
 	
 	fs_node_t *par = NULL;
 	fs_node_t *cur = NULL;
@@ -726,7 +726,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 
 	fs_node_t *fn;
-	int rc = ops->node_get(&fn, service_id, index);
+	errno_t rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
 
 	ipc_callid_t callid;
@@ -765,7 +765,7 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 
 	fs_node_t *fn;
-	int rc = ops->node_get(&fn, service_id, index);
+	errno_t rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
 
 	ipc_callid_t callid;
@@ -825,7 +825,7 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_index_t index = IPC_GET_ARG2(*request);
 	
 	fs_node_t *fn;
-	int rc = ops->node_get(&fn, service_id, index);
+	errno_t rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
 	
 	if (fn == NULL) {
@@ -852,7 +852,7 @@ typedef struct {
 	void *data;
 } fs_instance_t;
 
-int fs_instance_create(service_id_t service_id, void *data)
+errno_t fs_instance_create(service_id_t service_id, void *data)
 {
 	fs_instance_t *inst = malloc(sizeof(fs_instance_t));
 	if (!inst)
@@ -883,7 +883,7 @@ int fs_instance_create(service_id_t service_id, void *data)
 	return EOK;
 }
 
-int fs_instance_get(service_id_t service_id, void **idp)
+errno_t fs_instance_get(service_id_t service_id, void **idp)
 {
 	fibril_mutex_lock(&instances_mutex);
 	list_foreach(instances_list, link, fs_instance_t, inst) {
@@ -897,7 +897,7 @@ int fs_instance_get(service_id_t service_id, void **idp)
 	return ENOENT;
 }
 
-int fs_instance_destroy(service_id_t service_id)
+errno_t fs_instance_destroy(service_id_t service_id)
 {
 	fibril_mutex_lock(&instances_mutex);
 	list_foreach(instances_list, link, fs_instance_t, inst) {

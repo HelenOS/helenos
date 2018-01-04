@@ -40,7 +40,7 @@
 #include <loc.h>
 #include <types/vol.h>
 
-extern int volsrv_part_mkfs(service_id_t, vol_fstype_t, const char *);
+extern errno_t volsrv_part_mkfs(service_id_t, vol_fstype_t, const char *);
 extern void volsrv_part_get_lsupp(vol_fstype_t, vol_label_supp_t *);
 
 #endif

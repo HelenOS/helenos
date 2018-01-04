@@ -68,7 +68,7 @@ static void conn_conn_reset(tcp_conn_t *conn)
 
 static void conn_data_avail(tcp_conn_t *conn)
 {
-	int rc;
+	errno_t rc;
 	size_t nrecv;
 
 	while (true) {
@@ -85,11 +85,11 @@ static void conn_data_avail(tcp_conn_t *conn)
 	}
 }
 
-int conn_open(const char *hostport)
+errno_t conn_open(const char *hostport)
 {
 	inet_ep2_t epp;
 	const char *errmsg;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 	rc = inet_hostport_plookup_one(hostport, ip_any, &epp.remote, NULL,
@@ -125,9 +125,9 @@ error:
 	return EIO;
 }
 
-int conn_send(void *data, size_t size)
+errno_t conn_send(void *data, size_t size)
 {
-	int rc = tcp_conn_send(conn, data, size);
+	errno_t rc = tcp_conn_send(conn, data, size);
 	if (rc != EOK)
 		return EIO;
 

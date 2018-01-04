@@ -48,7 +48,7 @@ static vhc_virtdev_t *vhc_virtdev_create(void)
 	return dev;
 }
 
-static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
+static errno_t vhc_virtdev_plug_generic(vhc_data_t *vhc,
     async_sess_t *sess, usbvirt_device_t *virtdev,
     uintptr_t *handle, bool connect, usb_address_t address)
 {
@@ -84,17 +84,17 @@ static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
 	return EOK;
 }
 
-int vhc_virtdev_plug(vhc_data_t *vhc, async_sess_t *sess, uintptr_t *handle)
+errno_t vhc_virtdev_plug(vhc_data_t *vhc, async_sess_t *sess, uintptr_t *handle)
 {
 	return vhc_virtdev_plug_generic(vhc, sess, NULL, handle, true, 0);
 }
 
-int vhc_virtdev_plug_local(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *handle)
+errno_t vhc_virtdev_plug_local(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *handle)
 {
 	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, true, 0);
 }
 
-int vhc_virtdev_plug_hub(vhc_data_t *vhc, usbvirt_device_t *dev,
+errno_t vhc_virtdev_plug_hub(vhc_data_t *vhc, usbvirt_device_t *dev,
     uintptr_t *handle, usb_address_t address)
 {
 	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, false, address);

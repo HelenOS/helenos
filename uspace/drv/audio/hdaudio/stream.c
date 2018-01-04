@@ -48,7 +48,7 @@
 #include "spec/bdl.h"
 #include "stream.h"
 
-int hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
+errno_t hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 {
 	void *bdl;
 	void *buffer;
@@ -56,7 +56,7 @@ int hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 	hda_stream_buffers_t *bufs = NULL;
 	size_t i;
 //	size_t j, k;
-	int rc;
+	errno_t rc;
 
 	bufs = calloc(1, sizeof(hda_stream_buffers_t));
 	if (bufs == NULL) {

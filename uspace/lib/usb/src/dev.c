@@ -52,14 +52,14 @@
  * @param[out] out_dev_handle Where to store device handle.
  * @return Error code.
  */
-int usb_resolve_device_handle(const char *dev_path, devman_handle_t *dev_handle)
+errno_t usb_resolve_device_handle(const char *dev_path, devman_handle_t *dev_handle)
 {
 	if (dev_path == NULL || dev_handle == NULL) {
 		return EBADMEM;
 	}
 
 	/* First, try to get the device handle. */
-	int rc = devman_fun_get_handle(dev_path, dev_handle, 0);
+	errno_t rc = devman_fun_get_handle(dev_path, dev_handle, 0);
 
 	/* Next, try parsing dev_handle from the provided string */
 	if (rc != EOK) {

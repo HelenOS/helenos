@@ -123,7 +123,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
 	
 	char *dev_name = NULL;
-	int rc = async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
+	errno_t rc = async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
@@ -156,7 +156,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	(void) parent_fun_handle;
 	
-	int res = driver->driver_ops->dev_add(dev);
+	errno_t res = driver->driver_ops->dev_add(dev);
 	
 	if (res != EOK) {
 		fibril_rwlock_read_unlock(&stopping_lock);
@@ -188,7 +188,7 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	int rc;
+	errno_t rc;
 	
 	if (driver->driver_ops->dev_remove != NULL)
 		rc = driver->driver_ops->dev_remove(dev);
@@ -216,7 +216,7 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	int rc;
+	errno_t rc;
 	
 	if (driver->driver_ops->dev_gone != NULL)
 		rc = driver->driver_ops->dev_gone(dev);
@@ -252,7 +252,7 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	/* Call driver entry point */
-	int rc;
+	errno_t rc;
 	
 	if (driver->driver_ops->fun_online != NULL)
 		rc = driver->driver_ops->fun_online(fun);
@@ -287,7 +287,7 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	/* Call driver entry point */
-	int rc;
+	errno_t rc;
 	
 	if (driver->driver_ops->fun_offline != NULL)
 		rc = driver->driver_ops->fun_offline(fun);
@@ -403,7 +403,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 * use the device.
 	 */
 	
-	int ret = EOK;
+	errno_t ret = EOK;
 	/* Open device function */
 	if (fun->ops != NULL && fun->ops->open != NULL)
 		ret = (*fun->ops->open)(fun);
@@ -665,7 +665,7 @@ async_sess_t *ddf_dev_parent_sess_get(ddf_dev_t *dev)
  * @param name	Name, will be copied
  * @return	EOK on success, ENOMEM if out of memory
  */
-int ddf_fun_set_name(ddf_fun_t *dev, const char *name)
+errno_t ddf_fun_set_name(ddf_fun_t *dev, const char *name)
 {
 	assert(dev->name == NULL);
 
@@ -814,14 +814,14 @@ static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
  * @return EOK on success or an error code
  *
  */
-int ddf_fun_bind(ddf_fun_t *fun)
+errno_t ddf_fun_bind(ddf_fun_t *fun)
 {
 	assert(fun->bound == false);
 	assert(fun->name != NULL);
 	assert(fun->dev != NULL);
 	
 	add_to_functions_list(fun);
-	int res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
+	errno_t res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
 	    fun->dev->handle, &fun->handle);
 	if (res != EOK) {
 		remove_from_functions_list(fun);
@@ -842,11 +842,11 @@ int ddf_fun_bind(ddf_fun_t *fun)
  * @return EOK on success or an error code
  *
  */
-int ddf_fun_unbind(ddf_fun_t *fun)
+errno_t ddf_fun_unbind(ddf_fun_t *fun)
 {
 	assert(fun->bound == true);
 	
-	int res = devman_remove_function(fun->handle);
+	errno_t res = devman_remove_function(fun->handle);
 	if (res != EOK)
 		return res;
 	
@@ -863,11 +863,11 @@ int ddf_fun_unbind(ddf_fun_t *fun)
  * @return EOK on success or an error code
  *
  */
-int ddf_fun_online(ddf_fun_t *fun)
+errno_t ddf_fun_online(ddf_fun_t *fun)
 {
 	assert(fun->bound == true);
 	
-	int res = devman_drv_fun_online(fun->handle);
+	errno_t res = devman_drv_fun_online(fun->handle);
 	if (res != EOK)
 		return res;
 	
@@ -881,11 +881,11 @@ int ddf_fun_online(ddf_fun_t *fun)
  * @return EOK on success or an error code
  *
  */
-int ddf_fun_offline(ddf_fun_t *fun)
+errno_t ddf_fun_offline(ddf_fun_t *fun)
 {
 	assert(fun->bound == true);
 	
-	int res = devman_drv_fun_offline(fun->handle);
+	errno_t res = devman_drv_fun_offline(fun->handle);
 	if (res != EOK)
 		return res;
 	
@@ -905,7 +905,7 @@ int ddf_fun_offline(ddf_fun_t *fun)
  * @return ENOMEM if out of memory.
  *
  */
-int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
+errno_t ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
     int match_score)
 {
 	assert(fun->bound == false);
@@ -952,7 +952,7 @@ static remote_handler_t *function_get_default_handler(ddf_fun_t *fun)
  * Must only be called when the function is bound.
  *
  */
-int ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
+errno_t ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 {
 	assert(fun->bound == true);
 	assert(fun->ftype == fun_exposed);
@@ -973,7 +973,7 @@ int ddf_driver_main(const driver_t *drv)
 	 * incoming connections.
 	 */
 	port_id_t port;
-	int rc = async_create_port(INTERFACE_DDF_DRIVER, driver_connection_driver,
+	errno_t rc = async_create_port(INTERFACE_DDF_DRIVER, driver_connection_driver,
 	    NULL, &port);
 	if (rc != EOK) {
 		printf("Error: Failed to create driver port.\n");

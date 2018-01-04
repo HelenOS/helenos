@@ -47,9 +47,9 @@
  * @return Error code returned by the kernel.
  *
  */
-int ipc_event_subscribe(event_type_t evno, sysarg_t imethod)
+errno_t ipc_event_subscribe(event_type_t evno, sysarg_t imethod)
 {
-	return (int) __SYSCALL2(SYS_IPC_EVENT_SUBSCRIBE, (sysarg_t) evno,
+	return (errno_t) __SYSCALL2(SYS_IPC_EVENT_SUBSCRIBE, (sysarg_t) evno,
 	    (sysarg_t) imethod);
 }
 
@@ -61,9 +61,9 @@ int ipc_event_subscribe(event_type_t evno, sysarg_t imethod)
  * @return Error code returned by the kernel.
  *
  */
-int ipc_event_task_subscribe(event_task_type_t evno, sysarg_t imethod)
+errno_t ipc_event_task_subscribe(event_task_type_t evno, sysarg_t imethod)
 {
-	return (int) __SYSCALL2(SYS_IPC_EVENT_SUBSCRIBE, (sysarg_t) evno,
+	return (errno_t) __SYSCALL2(SYS_IPC_EVENT_SUBSCRIBE, (sysarg_t) evno,
 	    (sysarg_t) imethod);
 }
 
@@ -74,9 +74,9 @@ int ipc_event_task_subscribe(event_task_type_t evno, sysarg_t imethod)
  * @return Error code returned by the kernel.
  *
  */
-int ipc_event_unsubscribe(event_type_t evno)
+errno_t ipc_event_unsubscribe(event_type_t evno)
 {
-	return (int) __SYSCALL1(SYS_IPC_EVENT_UNSUBSCRIBE, (sysarg_t) evno);
+	return (errno_t) __SYSCALL1(SYS_IPC_EVENT_UNSUBSCRIBE, (sysarg_t) evno);
 }
 
 /** Unsubscribe from task event notifications.
@@ -86,9 +86,9 @@ int ipc_event_unsubscribe(event_type_t evno)
  * @return Error code returned by the kernel.
  *
  */
-int ipc_event_task_unsubscribe(event_task_type_t evno)
+errno_t ipc_event_task_unsubscribe(event_task_type_t evno)
 {
-	return (int) __SYSCALL1(SYS_IPC_EVENT_UNSUBSCRIBE, (sysarg_t) evno);
+	return (errno_t) __SYSCALL1(SYS_IPC_EVENT_UNSUBSCRIBE, (sysarg_t) evno);
 }
 
 /** Unmask event notifications.
@@ -98,9 +98,9 @@ int ipc_event_task_unsubscribe(event_task_type_t evno)
  * @return Error code returned by the kernel.
  *
  */
-int ipc_event_unmask(event_type_t evno)
+errno_t ipc_event_unmask(event_type_t evno)
 {
-	return (int) __SYSCALL1(SYS_IPC_EVENT_UNMASK, (sysarg_t) evno);
+	return (errno_t) __SYSCALL1(SYS_IPC_EVENT_UNMASK, (sysarg_t) evno);
 }
 
 /** Unmask task event notifications.
@@ -110,9 +110,9 @@ int ipc_event_unmask(event_type_t evno)
  * @return Error code returned by the kernel.
  *
  */
-int ipc_event_task_unmask(event_task_type_t evno)
+errno_t ipc_event_task_unmask(event_task_type_t evno)
 {
-	return (int) __SYSCALL1(SYS_IPC_EVENT_UNMASK, (sysarg_t) evno);
+	return (errno_t) __SYSCALL1(SYS_IPC_EVENT_UNMASK, (sysarg_t) evno);
 }
 
 /** @}

@@ -35,7 +35,7 @@
 #ifndef SERVICE_H
 #define SERVICE_H
 
-extern int udp_service_init(void);
+extern errno_t udp_service_init(void);
 
 #endif
 

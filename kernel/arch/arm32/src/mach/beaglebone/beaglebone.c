@@ -122,7 +122,7 @@ static void bbone_timer_irq_handler(irq_t *irq)
 static void bbone_timer_irq_start(void)
 {
 	unsigned sysclk_freq;
-	int rc;
+	errno_t rc;
 
 	/* Initialize the IRQ */
 	static irq_t timer_irq;

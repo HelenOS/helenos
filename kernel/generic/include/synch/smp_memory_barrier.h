@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 
-extern sysarg_t sys_smp_memory_barrier(void);
+extern sys_errno_t sys_smp_memory_barrier(void);
 
 #endif
 

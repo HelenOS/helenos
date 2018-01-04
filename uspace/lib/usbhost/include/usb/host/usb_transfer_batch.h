@@ -78,7 +78,7 @@ typedef struct usb_transfer_batch {
 	 * This member is never accessed by functions provided in this header,
 	 * with the exception of usb_transfer_batch_finish. For external use.
 	 */
-	int error;
+	errno_t error;
 } usb_transfer_batch_t;
 
 /** Printf formatting string for dumping usb_transfer_batch_t. */
@@ -107,7 +107,7 @@ usb_transfer_batch_t * usb_transfer_batch_create(
 void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance);
 
 void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
-    const void* data, size_t size, int error);
+    const void* data, size_t size, errno_t error);
 
 /** Finish batch using stored error value and transferred size.
  *

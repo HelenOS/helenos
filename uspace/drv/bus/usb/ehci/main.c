@@ -51,7 +51,7 @@
 
 #define NAME "ehci"
 
-static int ehci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
+static errno_t ehci_driver_init(hcd_t *, const hw_res_list_parsed_t *, bool);
 static void ehci_driver_fini(hcd_t *);
 
 static const ddf_hc_driver_t ehci_hc_driver = {
@@ -71,7 +71,7 @@ static const ddf_hc_driver_t ehci_hc_driver = {
 };
 
 
-static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res,
+static errno_t ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res,
     bool irq)
 {
 	assert(hcd);
@@ -81,7 +81,7 @@ static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res,
 	if (!instance)
 		return ENOMEM;
 
-	const int ret = hc_init(instance, res, irq);
+	const errno_t ret = hc_init(instance, res, irq);
 	if (ret == EOK) {
 		hcd_set_implementation(hcd, instance, &ehci_hc_driver.ops);
 	} else {
@@ -106,7 +106,7 @@ static void ehci_driver_fini(hcd_t *hcd)
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-static int ehci_dev_add(ddf_dev_t *device)
+static errno_t ehci_dev_add(ddf_dev_t *device)
 {
 	usb_log_debug("ehci_dev_add() called\n");
 	assert(device);

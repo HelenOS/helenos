@@ -39,7 +39,7 @@
 #include <async.h>
 #include <symtab.h>
 
-extern int fibrils_dump(symtab_t *, async_sess_t *sess);
+extern errno_t fibrils_dump(symtab_t *, async_sess_t *sess);
 
 #endif
 

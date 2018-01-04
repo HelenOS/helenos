@@ -418,7 +418,7 @@ static void draw_vp_char(fbvp_t *vp, sysarg_t col, sysarg_t row)
 	(*kfb_vp->draw_char)(x, y, inverted, field->ch, bgcolor, fgcolor);
 }
 
-static int kfb_yield(fbdev_t *dev)
+static errno_t kfb_yield(fbdev_t *dev)
 {
 	if (kfb.backbuf == NULL) {
 		kfb.backbuf =
@@ -434,7 +434,7 @@ static int kfb_yield(fbdev_t *dev)
 	return EOK;
 }
 
-static int kfb_claim(fbdev_t *dev)
+static errno_t kfb_claim(fbdev_t *dev)
 {
 	if (kfb.backbuf == NULL)
 		return ENOENT;
@@ -459,7 +459,7 @@ static void kfb_pointer_update(struct fbdev *dev, sysarg_t x, sysarg_t y,
 	pointer_show();
 }
 
-static int kfb_get_resolution(fbdev_t *dev, sysarg_t *width, sysarg_t *height)
+static errno_t kfb_get_resolution(fbdev_t *dev, sysarg_t *width, sysarg_t *height)
 {
 	*width = kfb.width;
 	*height = kfb.height;
@@ -473,7 +473,7 @@ static void kfb_font_metrics(fbdev_t *dev, sysarg_t width, sysarg_t height,
 	*rows = Y2ROW(height);
 }
 
-static int kfb_vp_create(fbdev_t *dev, fbvp_t *vp)
+static errno_t kfb_vp_create(fbdev_t *dev, fbvp_t *vp)
 {
 	kfb_vp_t *kfb_vp = malloc(sizeof(kfb_vp_t));
 	if (kfb_vp == NULL)
@@ -619,10 +619,10 @@ static void render_glyphs(size_t sz)
 	}
 }
 
-int kfb_init(void)
+errno_t kfb_init(void)
 {
 	sysarg_t present;
-	int rc = sysinfo_get_value("fb", &present);
+	errno_t rc = sysinfo_get_value("fb", &present);
 	if (rc != EOK)
 		present = false;
 	

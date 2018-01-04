@@ -62,13 +62,13 @@ static char *core_file_name;
 static char *app_name;
 static symtab_t *app_symtab;
 
-static int connect_task(task_id_t task_id);
+static errno_t connect_task(task_id_t task_id);
 static int parse_args(int argc, char *argv[]);
 static void print_syntax(void);
-static int threads_dump(void);
-static int thread_dump(uintptr_t thash);
-static int areas_dump(void);
-static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value);
+static errno_t threads_dump(void);
+static errno_t thread_dump(uintptr_t thash);
+static errno_t areas_dump(void);
+static errno_t td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value);
 
 static void autoload_syms(void);
 static char *get_app_task_name(void);
@@ -82,7 +82,7 @@ static stacktrace_ops_t td_stacktrace_ops = {
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf("Task Dump Utility\n");
 	write_core_file = false;
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-static int connect_task(task_id_t task_id)
+static errno_t connect_task(task_id_t task_id)
 {
 	async_sess_t *ksess = async_connect_kbox(task_id);
 	
@@ -139,7 +139,7 @@ static int connect_task(task_id_t task_id)
 		return errno;
 	}
 	
-	int rc = udebug_begin(ksess);
+	errno_t rc = udebug_begin(ksess);
 	if (rc != EOK) {
 		printf("udebug_begin() -> %s\n", str_error_name(rc));
 		return rc;
@@ -209,7 +209,7 @@ static void print_syntax(void)
 	printf("\t-t <task_id>\tWhich task to dump.\n");
 }
 
-static int threads_dump(void)
+static errno_t threads_dump(void)
 {
 	uintptr_t *thash_buf;
 	uintptr_t dummy_buf;
@@ -218,7 +218,7 @@ static int threads_dump(void)
 	size_t copied;
 	size_t needed;
 	size_t i;
-	int rc;
+	errno_t rc;
 
 	/* TODO: See why NULL does not work. */
 	rc = udebug_thread_read(sess, &dummy_buf, 0, &copied, &needed);
@@ -259,7 +259,7 @@ static int threads_dump(void)
 	return 0;
 }
 
-static int areas_dump(void)
+static errno_t areas_dump(void)
 {
 	as_area_info_t *ainfo_buf;
 	as_area_info_t dummy_buf;
@@ -268,7 +268,7 @@ static int areas_dump(void)
 	size_t copied;
 	size_t needed;
 	size_t i;
-	int rc;
+	errno_t rc;
 
 	rc = udebug_areas_read(sess, &dummy_buf, 0, &copied, &needed);
 	if (rc != EOK) {
@@ -319,12 +319,12 @@ static int areas_dump(void)
 	return 0;
 }
 
-int td_stacktrace(uintptr_t fp, uintptr_t pc)
+errno_t td_stacktrace(uintptr_t fp, uintptr_t pc)
 {
 	uintptr_t nfp;
 	stacktrace_t st;
 	char *sym_pc;
-	int rc;
+	errno_t rc;
 
 	st.op_arg = NULL;
 	st.ops = &td_stacktrace_ops;
@@ -348,12 +348,12 @@ int td_stacktrace(uintptr_t fp, uintptr_t pc)
 	return EOK;
 }
 
-static int thread_dump(uintptr_t thash)
+static errno_t thread_dump(uintptr_t thash)
 {
 	istate_t istate;
 	uintptr_t pc, fp;
 	char *sym_pc;
-	int rc;
+	errno_t rc;
 
 	rc = udebug_regs_read(sess, thash, &istate);
 	if (rc != EOK) {
@@ -377,10 +377,10 @@ static int thread_dump(uintptr_t thash)
 	return EOK;
 }
 
-static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)
+static errno_t td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)
 {
 	uintptr_t data;
-	int rc;
+	errno_t rc;
 
 	(void) arg;
 
@@ -398,7 +398,7 @@ static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)
 static void autoload_syms(void)
 {
 	char *file_name;
-	int rc;
+	errno_t rc;
 	int ret;
 
 	assert(app_name != NULL);
@@ -454,7 +454,7 @@ static char *get_app_task_name(void)
 	char dummy_buf;
 	size_t copied, needed, name_size;
 	char *name;
-	int rc;
+	errno_t rc;
 
 	rc = udebug_name_read(sess, &dummy_buf, 0, &copied, &needed);
 	if (rc != EOK)
@@ -487,7 +487,7 @@ static char *fmt_sym_address(uintptr_t addr)
 {
 	char *name;
 	size_t offs;
-	int rc;
+	errno_t rc;
 	int ret;
 	char *str;
 

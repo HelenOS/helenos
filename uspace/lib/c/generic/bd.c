@@ -47,7 +47,7 @@
 
 static void bd_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
-int bd_open(async_sess_t *sess, bd_t **rbd)
+errno_t bd_open(async_sess_t *sess, bd_t **rbd)
 {
 	bd_t *bd = calloc(1, sizeof(bd_t));
 	if (bd == NULL)
@@ -58,7 +58,7 @@ int bd_open(async_sess_t *sess, bd_t **rbd)
 	async_exch_t *exch = async_exchange_begin(sess);
 	
 	port_id_t port;
-	int rc = async_create_callback_port(exch, INTERFACE_BLOCK_CB, 0, 0,
+	errno_t rc = async_create_callback_port(exch, INTERFACE_BLOCK_CB, 0, 0,
 	    bd_cb_conn, bd, &port);
 	
 	async_exchange_end(exch);
@@ -82,14 +82,14 @@ void bd_close(bd_t *bd)
 	free(bd);
 }
 
-int bd_read_blocks(bd_t *bd, aoff64_t ba, size_t cnt, void *data, size_t size)
+errno_t bd_read_blocks(bd_t *bd, aoff64_t ba, size_t cnt, void *data, size_t size)
 {
 	async_exch_t *exch = async_exchange_begin(bd->sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_3(exch, BD_READ_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt, &answer);
-	int rc = async_data_read_start(exch, data, size);
+	errno_t rc = async_data_read_start(exch, data, size);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -97,7 +97,7 @@ int bd_read_blocks(bd_t *bd, aoff64_t ba, size_t cnt, void *data, size_t size)
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK)
@@ -106,13 +106,13 @@ int bd_read_blocks(bd_t *bd, aoff64_t ba, size_t cnt, void *data, size_t size)
 	return EOK;
 }
 
-int bd_read_toc(bd_t *bd, uint8_t session, void *buf, size_t size)
+errno_t bd_read_toc(bd_t *bd, uint8_t session, void *buf, size_t size)
 {
 	async_exch_t *exch = async_exchange_begin(bd->sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, BD_READ_TOC, session, &answer);
-	int rc = async_data_read_start(exch, buf, size);
+	errno_t rc = async_data_read_start(exch, buf, size);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -120,7 +120,7 @@ int bd_read_toc(bd_t *bd, uint8_t session, void *buf, size_t size)
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK)
@@ -129,7 +129,7 @@ int bd_read_toc(bd_t *bd, uint8_t session, void *buf, size_t size)
 	return EOK;
 }
 
-int bd_write_blocks(bd_t *bd, aoff64_t ba, size_t cnt, const void *data,
+errno_t bd_write_blocks(bd_t *bd, aoff64_t ba, size_t cnt, const void *data,
     size_t size)
 {
 	async_exch_t *exch = async_exchange_begin(bd->sess);
@@ -137,7 +137,7 @@ int bd_write_blocks(bd_t *bd, aoff64_t ba, size_t cnt, const void *data,
 	ipc_call_t answer;
 	aid_t req = async_send_3(exch, BD_WRITE_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt, &answer);
-	int rc = async_data_write_start(exch, data, size);
+	errno_t rc = async_data_write_start(exch, data, size);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -145,7 +145,7 @@ int bd_write_blocks(bd_t *bd, aoff64_t ba, size_t cnt, const void *data,
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
@@ -153,23 +153,23 @@ int bd_write_blocks(bd_t *bd, aoff64_t ba, size_t cnt, const void *data,
 	return EOK;
 }
 
-int bd_sync_cache(bd_t *bd, aoff64_t ba, size_t cnt)
+errno_t bd_sync_cache(bd_t *bd, aoff64_t ba, size_t cnt)
 {
 	async_exch_t *exch = async_exchange_begin(bd->sess);
 
-	int rc = async_req_3_0(exch, BD_SYNC_CACHE, LOWER32(ba),
+	errno_t rc = async_req_3_0(exch, BD_SYNC_CACHE, LOWER32(ba),
 	    UPPER32(ba), cnt);
 	async_exchange_end(exch);
 
 	return rc;
 }
 
-int bd_get_block_size(bd_t *bd, size_t *rbsize)
+errno_t bd_get_block_size(bd_t *bd, size_t *rbsize)
 {
 	sysarg_t bsize;
 	async_exch_t *exch = async_exchange_begin(bd->sess);
 
-	int rc = async_req_0_1(exch, BD_GET_BLOCK_SIZE, &bsize);
+	errno_t rc = async_req_0_1(exch, BD_GET_BLOCK_SIZE, &bsize);
 	async_exchange_end(exch);
 
 	if (rc != EOK)
@@ -179,13 +179,13 @@ int bd_get_block_size(bd_t *bd, size_t *rbsize)
 	return EOK;
 }
 
-int bd_get_num_blocks(bd_t *bd, aoff64_t *rnb)
+errno_t bd_get_num_blocks(bd_t *bd, aoff64_t *rnb)
 {
 	sysarg_t nb_l;
 	sysarg_t nb_h;
 	async_exch_t *exch = async_exchange_begin(bd->sess);
 
-	int rc = async_req_0_2(exch, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);
+	errno_t rc = async_req_0_2(exch, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);
 	async_exchange_end(exch);
 
 	if (rc != EOK)

@@ -220,7 +220,7 @@ static int log_printf_wstr_write(const wchar_t *wstr, size_t size, void *data)
 		kio_push_char(wstr[chars]);
 		
 		size_t buffer_offset = 0;
-		int rc = chr_encode(wstr[chars], buffer, &buffer_offset, 16);
+		errno_t rc = chr_encode(wstr[chars], buffer, &buffer_offset, 16);
 		if (rc != EOK) {
 			return EOF;
 		}
@@ -292,25 +292,25 @@ int log(log_facility_t fac, log_level_t level, const char *fmt, ...)
 /** Control of the log from uspace
  *
  */
-sysarg_t sys_klog(sysarg_t operation, void *buf, size_t size,
+sys_errno_t sys_klog(sysarg_t operation, void *buf, size_t size,
     sysarg_t level, size_t *uspace_nread)
 {
 	char *data;
-	int rc;
+	errno_t rc;
 	
 	if (size > PAGE_SIZE)
-		return (sysarg_t) ELIMIT;
+		return (sys_errno_t) ELIMIT;
 	
 	switch (operation) {
 		case KLOG_WRITE:
 			data = (char *) malloc(size + 1, 0);
 			if (!data)
-				return (sysarg_t) ENOMEM;
+				return (sys_errno_t) ENOMEM;
 			
 			rc = copy_from_uspace(data, buf, size);
 			if (rc) {
 				free(data);
-				return (sysarg_t) rc;
+				return (sys_errno_t) rc;
 			}
 			data[size] = 0;
 			
@@ -324,7 +324,7 @@ sysarg_t sys_klog(sysarg_t operation, void *buf, size_t size,
 		case KLOG_READ:
 			data = (char *) malloc(size, 0);
 			if (!data)
-				return (sysarg_t) ENOMEM;
+				return (sys_errno_t) ENOMEM;
 			
 			size_t entry_len = 0;
 			size_t copied = 0;
@@ -365,7 +365,7 @@ sysarg_t sys_klog(sysarg_t operation, void *buf, size_t size,
 			
 			if (rc != EOK) {
 				free(data);
-				return (sysarg_t) rc;
+				return (sys_errno_t) rc;
 			}
 			
 			rc = copy_to_uspace(buf, data, size);
@@ -373,12 +373,12 @@ sysarg_t sys_klog(sysarg_t operation, void *buf, size_t size,
 			free(data);
 			
 			if (rc != EOK)
-				return (sysarg_t) rc;
+				return (sys_errno_t) rc;
 			
 			return copy_to_uspace(uspace_nread, &copied, sizeof(copied));
 			return EOK;
 		default:
-			return (sysarg_t) ENOTSUP;
+			return (sys_errno_t) ENOTSUP;
 	}
 }
 

@@ -38,7 +38,7 @@
 
 #include "../font.h"
 
-extern int pcf_font_create(font_t **, char *path, uint16_t points);
+extern errno_t pcf_font_create(font_t **, char *path, uint16_t points);
 
 #endif
 

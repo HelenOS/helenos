@@ -100,12 +100,12 @@ static FIBRIL_MUTEX_INITIALIZE(switch_mtx);
 
 static console_t *active_console = &consoles[0];
 
-static int input_ev_active(input_t *);
-static int input_ev_deactive(input_t *);
-static int input_ev_key(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
-static int input_ev_move(input_t *, int, int);
-static int input_ev_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
-static int input_ev_button(input_t *, int, int);
+static errno_t input_ev_active(input_t *);
+static errno_t input_ev_deactive(input_t *);
+static errno_t input_ev_key(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
+static errno_t input_ev_move(input_t *, int, int);
+static errno_t input_ev_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
+static errno_t input_ev_button(input_t *, int, int);
 
 static input_ev_ops_t input_ev_ops = {
 	.active = input_ev_active,
@@ -116,22 +116,22 @@ static input_ev_ops_t input_ev_ops = {
 	.button = input_ev_button
 };
 
-static int cons_open(con_srvs_t *, con_srv_t *);
-static int cons_close(con_srv_t *);
-static int cons_read(con_srv_t *, void *, size_t, size_t *);
-static int cons_write(con_srv_t *, void *, size_t, size_t *);
+static errno_t cons_open(con_srvs_t *, con_srv_t *);
+static errno_t cons_close(con_srv_t *);
+static errno_t cons_read(con_srv_t *, void *, size_t, size_t *);
+static errno_t cons_write(con_srv_t *, void *, size_t, size_t *);
 static void cons_sync(con_srv_t *);
 static void cons_clear(con_srv_t *);
 static void cons_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
-static int cons_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
-static int cons_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
-static int cons_get_color_cap(con_srv_t *, console_caps_t *);
+static errno_t cons_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
+static errno_t cons_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
+static errno_t cons_get_color_cap(con_srv_t *, console_caps_t *);
 static void cons_set_style(con_srv_t *, console_style_t);
 static void cons_set_color(con_srv_t *, console_color_t, console_color_t,
     console_color_attr_t);
 static void cons_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void cons_set_cursor_visibility(con_srv_t *, bool);
-static int cons_get_event(con_srv_t *, cons_event_t *);
+static errno_t cons_get_event(con_srv_t *, cons_event_t *);
 
 static con_ops_t con_ops = {
 	.open = cons_open,
@@ -229,7 +229,7 @@ static void cons_switch(unsigned int index)
 	cons_damage(cons);
 }
 
-static int input_ev_active(input_t *input)
+static errno_t input_ev_active(input_t *input)
 {
 	active = true;
 	output_claim(output_sess);
@@ -238,7 +238,7 @@ static int input_ev_active(input_t *input)
 	return EOK;
 }
 
-static int input_ev_deactive(input_t *input)
+static errno_t input_ev_deactive(input_t *input)
 {
 	active = false;
 	output_yield(output_sess);
@@ -246,7 +246,7 @@ static int input_ev_deactive(input_t *input)
 	return EOK;
 }
 
-static int input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key,
+static errno_t input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key,
     keymod_t mods, wchar_t c)
 {
 	if ((key >= KC_F1) && (key <= KC_F1 + CONSOLE_COUNT) &&
@@ -273,18 +273,18 @@ static int input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key,
 	return EOK;
 }
 
-static int input_ev_move(input_t *input, int dx, int dy)
+static errno_t input_ev_move(input_t *input, int dx, int dy)
 {
 	return EOK;
 }
 
-static int input_ev_abs_move(input_t *input, unsigned x , unsigned y,
+static errno_t input_ev_abs_move(input_t *input, unsigned x , unsigned y,
     unsigned max_x, unsigned max_y)
 {
 	return EOK;
 }
 
-static int input_ev_button(input_t *input, int bnum, int bpress)
+static errno_t input_ev_button(input_t *input, int bnum, int bpress)
 {
 	return EOK;
 }
@@ -327,17 +327,17 @@ static void cons_set_cursor_vis(console_t *cons, bool visible)
 	cons_update_cursor(cons);
 }
 
-static int cons_open(con_srvs_t *srvs, con_srv_t *srv)
+static errno_t cons_open(con_srvs_t *srvs, con_srv_t *srv)
 {
 	return EOK;
 }
 
-static int cons_close(con_srv_t *srv)
+static errno_t cons_close(con_srv_t *srv)
 {
 	return EOK;
 }
 
-static int cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
+static errno_t cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 {
 	uint8_t *bbuf = buf;
 	console_t *cons = srv_to_console(srv);
@@ -381,7 +381,7 @@ static int cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 	return EOK;
 }
 
-static int cons_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
+static errno_t cons_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	console_t *cons = srv_to_console(srv);
 
@@ -422,7 +422,7 @@ static void cons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 	cons_update_cursor(cons);
 }
 
-static int cons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
+static errno_t cons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 {
 	console_t *cons = srv_to_console(srv);
 	
@@ -433,7 +433,7 @@ static int cons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 	return EOK;
 }
 
-static int cons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
+static errno_t cons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 {
 	console_t *cons = srv_to_console(srv);
 	
@@ -445,7 +445,7 @@ static int cons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 	return EOK;
 }
 
-static int cons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
+static errno_t cons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
 {
 	console_t *cons = srv_to_console(srv);
 	
@@ -492,7 +492,7 @@ static void cons_set_cursor_visibility(con_srv_t *srv, bool visible)
 	cons_set_cursor_vis(cons, visible);
 }
 
-static int cons_get_event(con_srv_t *srv, cons_event_t *event)
+static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	console_t *cons = srv_to_console(srv);
 	link_t *link = prodcons_consume(&cons->input_pc);
@@ -527,12 +527,12 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	con_conn(iid, icall, &cons->srvs);
 }
 
-static int input_connect(const char *svc)
+static errno_t input_connect(const char *svc)
 {
 	async_sess_t *sess;
 	service_id_t dsid;
 	
-	int rc = loc_service_get_id(svc, &dsid, 0);
+	errno_t rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc != EOK) {
 		printf("%s: Input service %s not found\n", NAME, svc);
 		return rc;
@@ -561,7 +561,7 @@ static async_sess_t *output_connect(const char *svc)
 	async_sess_t *sess;
 	service_id_t dsid;
 	
-	int rc = loc_service_get_id(svc, &dsid, 0);
+	errno_t rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc == EOK) {
 		sess = loc_service_connect(dsid, INTERFACE_OUTPUT, 0);
 		if (sess == NULL) {
@@ -578,7 +578,7 @@ static async_sess_t *output_connect(const char *svc)
 static bool console_srv_init(char *input_svc, char *output_svc)
 {
 	/* Connect to input service */
-	int rc = input_connect(input_svc);
+	errno_t rc = input_connect(input_svc);
 	if (rc != EOK)
 		return false;
 	

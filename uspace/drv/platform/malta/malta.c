@@ -76,7 +76,7 @@ typedef struct malta_fun {
 	pio_window_t pio_window;
 } malta_fun_t;
 
-static int malta_dev_add(ddf_dev_t *dev);
+static errno_t malta_dev_add(ddf_dev_t *dev);
 static void malta_init(void);
 
 /** The root device driver's standard operations. */
@@ -142,7 +142,7 @@ static hw_resource_list_t *malta_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static int malta_enable_interrupt(ddf_fun_t *fun, int irq)
+static errno_t malta_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	/* TODO */
 	
@@ -176,7 +176,7 @@ malta_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
 	ddf_fun_t *fnode = NULL;
-	int rc;
+	errno_t rc;
 	
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
@@ -222,11 +222,11 @@ static bool malta_add_functions(ddf_dev_t *dev)
  *			of HW and pseudo devices).
  * @return		Zero on success, error number otherwise.
  */
-static int malta_dev_add(ddf_dev_t *dev)
+static errno_t malta_dev_add(ddf_dev_t *dev)
 {
 	ioport32_t *gt;
 	uint32_t val;
-	int ret;
+	errno_t ret;
 
 	ddf_msg(LVL_DEBUG, "malta_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));

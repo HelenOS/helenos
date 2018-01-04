@@ -79,17 +79,17 @@ typedef struct hc {
 	ohci_rh_t rh;
 } hc_t;
 
-extern int hc_init(hc_t *, const hw_res_list_parsed_t *, bool);
+extern errno_t hc_init(hc_t *, const hw_res_list_parsed_t *, bool);
 extern void hc_fini(hc_t *);
 
 extern void hc_enqueue_endpoint(hc_t *, const endpoint_t *);
 extern void hc_dequeue_endpoint(hc_t *, const endpoint_t *);
 
-int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq);
+errno_t ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq);
 
 extern void ohci_hc_interrupt(hcd_t *, uint32_t);
-extern int ohci_hc_status(hcd_t *, uint32_t *);
-extern int ohci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
+extern errno_t ohci_hc_status(hcd_t *, uint32_t *);
+extern errno_t ohci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
 
 #endif
 

@@ -43,12 +43,12 @@ typedef enum {
  * 
  * @returns EOK on success or an error code on failure
  */
-typedef int (*line_consumer_fn)(wchar_t *, size_t, bool, void *);
+typedef errno_t (*line_consumer_fn)(wchar_t *, size_t, bool, void *);
 
-extern int print_aligned_w(const wchar_t *, size_t, bool, align_mode_t);
-extern int print_aligned(const char *, size_t, bool, align_mode_t);
-extern int print_wrapped(const char *, size_t, align_mode_t);
-extern int print_wrapped_console(const char *, align_mode_t);
+extern errno_t print_aligned_w(const wchar_t *, size_t, bool, align_mode_t);
+extern errno_t print_aligned(const char *, size_t, bool, align_mode_t);
+extern errno_t print_wrapped(const char *, size_t, align_mode_t);
+extern errno_t print_wrapped_console(const char *, align_mode_t);
 
 /** Wrap characters in a wide string to the given length.
  *
@@ -57,4 +57,4 @@ extern int print_wrapped_console(const char *, align_mode_t);
  * @param consumer the function that receives wrapped lines
  * @param data user data to pass to the consumer function
  */
-extern int wrap(wchar_t *, size_t, line_consumer_fn, void *);
+extern errno_t wrap(wchar_t *, size_t, line_consumer_fn, void *);

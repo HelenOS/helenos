@@ -50,7 +50,7 @@ typedef struct layout {
 
 /** Layout ops */
 typedef struct layout_ops {
-	int (*create)(layout_t *);
+	errno_t (*create)(layout_t *);
 	void (*destroy)(layout_t *);
 	wchar_t (*parse_ev)(layout_t *, kbd_event_t *);
 } layout_ops_t;

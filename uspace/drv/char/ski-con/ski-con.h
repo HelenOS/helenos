@@ -57,9 +57,9 @@ typedef struct {
 	fibril_condvar_t buf_cv;
 } ski_con_t;
 
-extern int ski_con_add(ski_con_t *);
-extern int ski_con_remove(ski_con_t *);
-extern int ski_con_gone(ski_con_t *);
+extern errno_t ski_con_add(ski_con_t *);
+extern errno_t ski_con_remove(ski_con_t *);
+extern errno_t ski_con_gone(ski_con_t *);
 
 #endif
 

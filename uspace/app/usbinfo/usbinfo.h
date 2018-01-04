@@ -55,7 +55,7 @@ extern void dump_match_ids(match_id_list_t *, const char *);
 extern void dump_usb_descriptor(uint8_t *, size_t);
 extern void dump_descriptor_tree(uint8_t *, size_t);
 
-static inline void internal_error(int err)
+static inline void internal_error(errno_t err)
 {
 	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
 }

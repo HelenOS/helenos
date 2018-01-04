@@ -38,9 +38,9 @@
 
 #define NAME   "date"
 
-static int read_date_from_arg(char *wdate, struct tm *t);
-static int read_time_from_arg(char *wdate, struct tm *t);
-static int tm_sanity_check(struct tm *t);
+static errno_t read_date_from_arg(char *wdate, struct tm *t);
+static errno_t read_time_from_arg(char *wdate, struct tm *t);
+static errno_t tm_sanity_check(struct tm *t);
 static bool is_leap_year(int year);
 
 static void usage(void);
@@ -50,7 +50,7 @@ static int days_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 int
 main(int argc, char **argv)
 {
-	int rc;
+	errno_t rc;
 	int c;
 	category_id_t cat_id;
 	size_t        svc_cnt;
@@ -196,10 +196,10 @@ exit:
 /** Read the day, month and year from a string
  *  with the following format: DD/MM/YYYY
  */
-static int
+static errno_t
 read_date_from_arg(char *wdate, struct tm *t)
 {
-	int rc;
+	errno_t rc;
 	uint32_t tmp;
 
 	if (str_size(wdate) != 10) /* str_size("DD/MM/YYYY") == 10 */
@@ -231,10 +231,10 @@ read_date_from_arg(char *wdate, struct tm *t)
 /** Read the hours, minutes and seconds from a string
  *  with the following format: HH:MM:SS or HH:MM
  */
-static int
+static errno_t
 read_time_from_arg(char *wtime, struct tm *t)
 {
-	int rc;
+	errno_t rc;
 	size_t len = str_size(wtime);
 	bool sec_present = len == 8;
 	uint32_t tmp;
@@ -277,7 +277,7 @@ read_time_from_arg(char *wtime, struct tm *t)
  *
  * @return      EOK on success or EINVAL
  */
-static int
+static errno_t
 tm_sanity_check(struct tm *t)
 {
 	int ndays;

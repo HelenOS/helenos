@@ -43,7 +43,7 @@ struct kbd_dev;
 
 typedef struct kbd_ctl_ops {
 	void (*parse)(sysarg_t);
-	int (*init)(struct kbd_dev *);
+	errno_t (*init)(struct kbd_dev *);
 	void (*set_ind)(struct kbd_dev *, unsigned int);
 } kbd_ctl_ops_t;
 

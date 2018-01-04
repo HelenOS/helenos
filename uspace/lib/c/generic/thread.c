@@ -104,7 +104,7 @@ void __thread_main(uspace_arg_t *uarg)
  *
  * @return Zero on success or a code from @ref errno.h on failure.
  */
-int thread_create(void (* function)(void *), void *arg, const char *name,
+errno_t thread_create(void (* function)(void *), void *arg, const char *name,
     thread_id_t *tid)
 {
 	uspace_arg_t *uarg =
@@ -131,7 +131,7 @@ int thread_create(void (* function)(void *), void *arg, const char *name,
 	uarg->uspace_thread_arg = arg;
 	uarg->uspace_uarg = uarg;
 	
-	int rc = (int) __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,
+	errno_t rc = (errno_t) __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,
 	    (sysarg_t) name, (sysarg_t) str_size(name), (sysarg_t) tid);
 	
 	if (rc != EOK) {
@@ -177,7 +177,7 @@ void thread_detach(thread_id_t thread)
  *
  * @return Thread exit status.
  */
-int thread_join(thread_id_t thread)
+errno_t thread_join(thread_id_t thread)
 {
 	return 0;
 }

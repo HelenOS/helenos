@@ -37,10 +37,10 @@
 
 static async_sess_t *corecfg_sess = NULL;
 
-int corecfg_init(void)
+errno_t corecfg_init(void)
 {
 	service_id_t corecfg_svc;
-	int rc;
+	errno_t rc;
 
 	assert(corecfg_sess == NULL);
 
@@ -58,12 +58,12 @@ int corecfg_init(void)
 }
 
 /** Get core dump enable status. */
-int corecfg_get_enable(bool *renable)
+errno_t corecfg_get_enable(bool *renable)
 {
 	async_exch_t *exch = async_exchange_begin(corecfg_sess);
 	sysarg_t enable;
 
-	int rc = async_req_0_1(exch, CORECFG_GET_ENABLE, &enable);
+	errno_t rc = async_req_0_1(exch, CORECFG_GET_ENABLE, &enable);
 
 	async_exchange_end(exch);
 
@@ -75,10 +75,10 @@ int corecfg_get_enable(bool *renable)
 }
 
 /** Enable or disable core dumps. */
-int corecfg_set_enable(bool enable)
+errno_t corecfg_set_enable(bool enable)
 {
 	async_exch_t *exch = async_exchange_begin(corecfg_sess);
-	int rc = async_req_1_0(exch, CORECFG_SET_ENABLE, (sysarg_t) enable);
+	errno_t rc = async_req_1_0(exch, CORECFG_SET_ENABLE, (sysarg_t) enable);
 
 	async_exchange_end(exch);
 

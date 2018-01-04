@@ -67,7 +67,7 @@ static_assert(sizeof(usb_device_request_setup_packet_t) == 8);
  * @retval ERANGE Data buffer too large.
  *
  */
-int usb_control_request_set(usb_pipe_t *pipe,
+errno_t usb_control_request_set(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t request, uint16_t value, uint16_t index,
     const void *data, size_t data_size)
@@ -126,7 +126,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
  * @retval ERANGE Data buffer too large.
  *
  */
-int usb_control_request_get(usb_pipe_t *pipe,
+errno_t usb_control_request_get(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t request, uint16_t value, uint16_t index,
     void *data, size_t data_size, size_t *actual_data_size)
@@ -169,7 +169,7 @@ int usb_control_request_get(usb_pipe_t *pipe,
  * @param[out] status Recipient status (in native endianness).
  * @return Error code.
  */
-int usb_request_get_status(usb_pipe_t *pipe,
+errno_t usb_request_get_status(usb_pipe_t *pipe,
     usb_request_recipient_t recipient, uint16_t index,
     uint16_t *status)
 {
@@ -183,7 +183,7 @@ int usb_request_get_status(usb_pipe_t *pipe,
 
 	uint16_t status_usb_endianess;
 	size_t data_transfered_size;
-	int rc = usb_control_request_get(pipe, USB_REQUEST_TYPE_STANDARD,
+	errno_t rc = usb_control_request_get(pipe, USB_REQUEST_TYPE_STANDARD,
 	    recipient, USB_DEVREQ_GET_STATUS, 0, uint16_host2usb(index),
 	    &status_usb_endianess, 2, &data_transfered_size);
 	if (rc != EOK) {
@@ -207,7 +207,7 @@ int usb_request_get_status(usb_pipe_t *pipe,
  * @param[in] index Recipient index (in native endianness).
  * @return Error code.
  */
-int usb_request_clear_feature(usb_pipe_t *pipe,
+errno_t usb_request_clear_feature(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint16_t feature_selector, uint16_t index)
 {
@@ -231,7 +231,7 @@ int usb_request_clear_feature(usb_pipe_t *pipe,
  * @param[in] index Recipient index (in native endianness).
  * @return Error code.
  */
-int usb_request_set_feature(usb_pipe_t *pipe,
+errno_t usb_request_set_feature(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint16_t feature_selector, uint16_t index)
 {
@@ -259,7 +259,7 @@ int usb_request_set_feature(usb_pipe_t *pipe,
  * @param[out] actual_size Number of bytes actually transferred.
  * @return Error code.
  */
-int usb_request_get_descriptor(usb_pipe_t *pipe,
+errno_t usb_request_get_descriptor(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
@@ -297,7 +297,7 @@ int usb_request_get_descriptor(usb_pipe_t *pipe,
  * @param[out] buffer_size Where to store the size of the descriptor.
  * @return
  */
-int usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
+errno_t usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
@@ -307,7 +307,7 @@ int usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
 		return EBADMEM;
 	}
 
-	int rc;
+	errno_t rc;
 
 	/*
 	 * Get only first byte to retrieve descriptor length.
@@ -363,7 +363,7 @@ int usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
  * @param[out] descriptor Storage for the device descriptor.
  * @return Error code.
  */
-int usb_request_get_device_descriptor(usb_pipe_t *pipe,
+errno_t usb_request_get_device_descriptor(usb_pipe_t *pipe,
     usb_standard_device_descriptor_t *descriptor)
 {
 	if (descriptor == NULL) {
@@ -372,7 +372,7 @@ int usb_request_get_device_descriptor(usb_pipe_t *pipe,
 
 	size_t actually_transferred = 0;
 	usb_standard_device_descriptor_t descriptor_tmp;
-	int rc = usb_request_get_descriptor(pipe,
+	errno_t rc = usb_request_get_descriptor(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_DEVICE, 0, 0, &descriptor_tmp, sizeof(descriptor_tmp),
 	    &actually_transferred);
@@ -403,7 +403,7 @@ int usb_request_get_device_descriptor(usb_pipe_t *pipe,
  * @param[out] descriptor Storage for the device descriptor.
  * @return Error code.
  */
-int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
+errno_t usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
     int index, usb_standard_configuration_descriptor_t *descriptor)
 {
 	if (descriptor == NULL) {
@@ -416,7 +416,7 @@ int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
 
 	size_t actually_transferred = 0;
 	usb_standard_configuration_descriptor_t descriptor_tmp;
-	const int rc = usb_request_get_descriptor(pipe,
+	const errno_t rc = usb_request_get_descriptor(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_CONFIGURATION, index, 0,
 	    &descriptor_tmp, sizeof(descriptor_tmp),
@@ -447,7 +447,7 @@ int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
  * @param[out] actual_size Number of bytes actually transferred.
  * @return Error code.
  */
-int usb_request_get_full_configuration_descriptor(usb_pipe_t *pipe,
+errno_t usb_request_get_full_configuration_descriptor(usb_pipe_t *pipe,
     int index, void *descriptor, size_t descriptor_size, size_t *actual_size)
 {
 	if ((index < 0) || (index > 0xFF)) {
@@ -472,11 +472,11 @@ int usb_request_get_full_configuration_descriptor(usb_pipe_t *pipe,
  * @param[out] descriptor_size Where to store the size of the descriptor.
  * @return Error code.
  */
-int usb_request_get_full_configuration_descriptor_alloc(
+errno_t usb_request_get_full_configuration_descriptor_alloc(
     usb_pipe_t *pipe, int index,
     const void **descriptor_ptr, size_t *descriptor_size)
 {
-	int rc;
+	errno_t rc;
 
 	if (descriptor_ptr == NULL) {
 		return EBADMEM;
@@ -538,7 +538,7 @@ int usb_request_get_full_configuration_descriptor_alloc(
  * @param[in] size Size of the @p buffer in bytes (in native endianness).
  * @return Error code.
  */
-int usb_request_set_descriptor(usb_pipe_t *pipe,
+errno_t usb_request_set_descriptor(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language, const void *buffer, size_t size)
@@ -564,13 +564,13 @@ int usb_request_set_descriptor(usb_pipe_t *pipe,
  * @param[out] configuration_value Current configuration value.
  * @return Error code.
  */
-int usb_request_get_configuration(usb_pipe_t *pipe,
+errno_t usb_request_get_configuration(usb_pipe_t *pipe,
     uint8_t *configuration_value)
 {
 	uint8_t value;
 	size_t actual_size;
 
-	const int rc = usb_control_request_get(pipe,
+	const errno_t rc = usb_control_request_get(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DEVREQ_GET_CONFIGURATION, 0, 0, &value, 1, &actual_size);
 
@@ -594,7 +594,7 @@ int usb_request_get_configuration(usb_pipe_t *pipe,
  * @param configuration_value New configuration value.
  * @return Error code.
  */
-int usb_request_set_configuration(usb_pipe_t *pipe,
+errno_t usb_request_set_configuration(usb_pipe_t *pipe,
     uint8_t configuration_value)
 {
 	const uint16_t config_value
@@ -613,13 +613,13 @@ int usb_request_set_configuration(usb_pipe_t *pipe,
  * @param[out] alternate_setting Alternate setting for the interface.
  * @return Error code.
  */
-int usb_request_get_interface(usb_pipe_t *pipe,
+errno_t usb_request_get_interface(usb_pipe_t *pipe,
     uint8_t interface_index, uint8_t *alternate_setting)
 {
 	uint8_t value;
 	size_t actual_size;
 
-	const int rc = usb_control_request_get(pipe,
+	const errno_t rc = usb_control_request_get(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_DEVREQ_GET_INTERFACE,
 	    0, uint16_host2usb((uint16_t) interface_index),
@@ -646,7 +646,7 @@ int usb_request_get_interface(usb_pipe_t *pipe,
  * @param[in] alternate_setting Alternate setting to select.
  * @return Error code.
  */
-int usb_request_set_interface(usb_pipe_t *pipe,
+errno_t usb_request_set_interface(usb_pipe_t *pipe,
     uint8_t interface_index, uint8_t alternate_setting)
 {
 	return usb_control_request_set(pipe,
@@ -665,7 +665,7 @@ int usb_request_set_interface(usb_pipe_t *pipe,
  * @param[out] languages_count Number of supported languages.
  * @return Error code.
  */
-int usb_request_get_supported_languages(usb_pipe_t *pipe,
+errno_t usb_request_get_supported_languages(usb_pipe_t *pipe,
     l18_win_locales_t **languages_ptr, size_t *languages_count)
 {
 	if (languages_ptr == NULL || languages_count == NULL) {
@@ -674,7 +674,7 @@ int usb_request_get_supported_languages(usb_pipe_t *pipe,
 
 	uint8_t *string_descriptor = NULL;
 	size_t string_descriptor_size = 0;
-	const int rc = usb_request_get_descriptor_alloc(pipe,
+	const errno_t rc = usb_request_get_descriptor_alloc(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_STRING, 0, 0,
 	    (void **) &string_descriptor, &string_descriptor_size);
@@ -732,7 +732,7 @@ int usb_request_get_supported_languages(usb_pipe_t *pipe,
  * @param[out] string_ptr Where to store allocated string in native encoding.
  * @return Error code.
  */
-int usb_request_get_string(usb_pipe_t *pipe,
+errno_t usb_request_get_string(usb_pipe_t *pipe,
     size_t index, l18_win_locales_t lang, char **string_ptr)
 {
 	if (string_ptr == NULL) {
@@ -750,7 +750,7 @@ int usb_request_get_string(usb_pipe_t *pipe,
 		return ERANGE;
 	}
 
-	int rc;
+	errno_t rc;
 
 	/* Prepare dynamically allocated variables. */
 	uint8_t *string = NULL;
@@ -823,7 +823,7 @@ leave:
  * @param ep_index Endpoint index (in native endianness).
  * @return Error code.
  */
-int usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
+errno_t usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
 {
 	return usb_request_clear_feature(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_ENDPOINT,
@@ -837,7 +837,7 @@ int usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
  * @param target_pipe Which pipe is halted and shall be cleared.
  * @return Error code.
  */
-int usb_pipe_clear_halt(usb_pipe_t *ctrl_pipe, usb_pipe_t *target_pipe)
+errno_t usb_pipe_clear_halt(usb_pipe_t *ctrl_pipe, usb_pipe_t *target_pipe)
 {
 	if ((ctrl_pipe == NULL) || (target_pipe == NULL)) {
 		return EINVAL;
@@ -853,12 +853,12 @@ int usb_pipe_clear_halt(usb_pipe_t *ctrl_pipe, usb_pipe_t *target_pipe)
  * @param[out] status Where to store pipe status (in native endianness).
  * @return Error code.
  */
-int usb_request_get_endpoint_status(usb_pipe_t *ctrl_pipe, usb_pipe_t *pipe,
+errno_t usb_request_get_endpoint_status(usb_pipe_t *ctrl_pipe, usb_pipe_t *pipe,
     uint16_t *status)
 {
 	uint16_t status_tmp;
 	uint16_t pipe_index = (uint16_t) pipe->endpoint_no;
-	int rc = usb_request_get_status(ctrl_pipe,
+	errno_t rc = usb_request_get_status(ctrl_pipe,
 	    USB_REQUEST_RECIPIENT_ENDPOINT, uint16_host2usb(pipe_index),
 	    &status_tmp);
 	if (rc != EOK) {

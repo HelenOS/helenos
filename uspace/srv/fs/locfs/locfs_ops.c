@@ -100,7 +100,7 @@ static hash_table_ops_t services_ops = {
 	.remove_callback = services_remove_callback
 };
 
-static int locfs_node_get_internal(fs_node_t **rfn, loc_object_type_t type,
+static errno_t locfs_node_get_internal(fs_node_t **rfn, loc_object_type_t type,
     service_id_t service_id)
 {
 	locfs_node_t *node = (locfs_node_t *) malloc(sizeof(locfs_node_t));
@@ -124,15 +124,15 @@ static int locfs_node_get_internal(fs_node_t **rfn, loc_object_type_t type,
 	return EOK;
 }
 
-static int locfs_root_get(fs_node_t **rfn, service_id_t service_id)
+static errno_t locfs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return locfs_node_get_internal(rfn, LOC_OBJECT_NONE, 0);
 }
 
-static int locfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+static errno_t locfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	locfs_node_t *node = (locfs_node_t *) pfn->data;
-	int ret;
+	errno_t ret;
 	
 	if (node->service_id == 0) {
 		/* Root directory */
@@ -207,12 +207,12 @@ static int locfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	return EOK;
 }
 
-static int locfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
+static errno_t locfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
 	return locfs_node_get_internal(rfn, loc_id_probe(index), index);
 }
 
-static int locfs_node_open(fs_node_t *fn)
+static errno_t locfs_node_open(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
@@ -311,14 +311,14 @@ restart:
 	return ENOENT;
 }
 
-static int locfs_node_put(fs_node_t *fn)
+static errno_t locfs_node_put(fs_node_t *fn)
 {
 	free(fn->data);
 	free(fn);
 	return EOK;
 }
 
-static int locfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
+static errno_t locfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 	
@@ -326,22 +326,22 @@ static int locfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag
 	return ENOTSUP;
 }
 
-static int locfs_destroy_node(fs_node_t *fn)
+static errno_t locfs_destroy_node(fs_node_t *fn)
 {
 	return ENOTSUP;
 }
 
-static int locfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+static errno_t locfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	return ENOTSUP;
 }
 
-static int locfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+static errno_t locfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	return ENOTSUP;
 }
 
-static int locfs_has_children(bool *has_children, fs_node_t *fn)
+static errno_t locfs_has_children(bool *has_children, fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
 	
@@ -454,12 +454,12 @@ bool locfs_init(void)
 	return true;
 }
 
-static int locfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+static errno_t locfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
 	return ENOTSUP;
 }
 
-static int locfs_mounted(service_id_t service_id, const char *opts,
+static errno_t locfs_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size)
 {
 	*index = 0;
@@ -467,12 +467,12 @@ static int locfs_mounted(service_id_t service_id, const char *opts,
 	return EOK;
 }
 
-static int locfs_unmounted(service_id_t service_id)
+static errno_t locfs_unmounted(service_id_t service_id)
 {
 	return ENOTSUP;
 }
 
-static int
+static errno_t
 locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
@@ -589,11 +589,11 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver. */
-		int rc;
+		errno_t rc;
 		async_wait_for(msg, &rc);
 
 		/* Do not propagate EHANGUP back to VFS. */
-		if ((int) rc == EHANGUP)
+		if ((errno_t) rc == EHANGUP)
 			rc = ENOTSUP;
 		
 		*rbytes = IPC_GET_ARG1(answer);
@@ -603,7 +603,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	return ENOENT;
 }
 
-static int
+static errno_t
 locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
@@ -653,11 +653,11 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver. */
-		int rc;
+		errno_t rc;
 		async_wait_for(msg, &rc);
 
 		/* Do not propagate EHANGUP back to VFS. */
-		if ((int) rc == EHANGUP)
+		if ((errno_t) rc == EHANGUP)
 			rc = ENOTSUP;
 		
 		*wbytes = IPC_GET_ARG1(answer);
@@ -668,13 +668,13 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	return ENOENT;
 }
 
-static int
+static errno_t
 locfs_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 {
 	return ENOTSUP;
 }
 
-static int locfs_close(service_id_t service_id, fs_index_t index)
+static errno_t locfs_close(service_id_t service_id, fs_index_t index)
 {
 	if (index == 0)
 		return EOK;
@@ -714,7 +714,7 @@ static int locfs_close(service_id_t service_id, fs_index_t index)
 	return ENOENT;
 }
 
-static int locfs_sync(service_id_t service_id, fs_index_t index)
+static errno_t locfs_sync(service_id_t service_id, fs_index_t index)
 {
 	if (index == 0)
 		return EOK;
@@ -751,7 +751,7 @@ static int locfs_sync(service_id_t service_id, fs_index_t index)
 		fibril_mutex_unlock(&services_mutex);
 		
 		/* Wait for reply from the driver */
-		int rc;
+		errno_t rc;
 		async_wait_for(msg, &rc);
 		
 		return rc;
@@ -760,7 +760,7 @@ static int locfs_sync(service_id_t service_id, fs_index_t index)
 	return  ENOENT;
 }
 
-static int locfs_destroy(service_id_t service_id, fs_index_t index)
+static errno_t locfs_destroy(service_id_t service_id, fs_index_t index)
 {
 	return ENOTSUP;
 }

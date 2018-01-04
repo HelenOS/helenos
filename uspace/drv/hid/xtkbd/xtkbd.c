@@ -204,11 +204,11 @@ static void push_event(async_sess_t *sess, kbd_event_type_t type,
  * @return EIO on error.
  *
  */
-static int polling(void *arg)
+static errno_t polling(void *arg)
 {
 	xt_kbd_t *kbd = arg;
 	size_t nread;
-	int rc;
+	errno_t rc;
 	
 	while (true) {
 		const unsigned int *map = scanmap_simple;
@@ -352,7 +352,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 		uint8_t cmds[] = { KBD_CMD_SET_LEDS, status };
 		
 		size_t nwr;
-		int rc = chardev_write(kbd->chardev, &cmds[0], 1, &nwr);
+		errno_t rc = chardev_write(kbd->chardev, &cmds[0], 1, &nwr);
 		if (rc != EOK) {
 			async_answer_0(icallid, rc);
 			break;
@@ -409,11 +409,11 @@ static ddf_dev_ops_t kbd_ops = {
  * Connects to parent, creates keyboard function, starts polling fibril.
  *
  */
-int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
+errno_t xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 {
 	async_sess_t *parent_sess;
 	bool bound = false;
-	int rc;
+	errno_t rc;
 	
 	kbd->client_sess = NULL;
 	

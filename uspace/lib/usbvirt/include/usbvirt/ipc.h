@@ -53,13 +53,13 @@ typedef enum {
 	IPC_M_USBVIRT_BULK_OUT
 } usbvirt_hc_to_device_method_t;
 
-extern int usbvirt_ipc_send_control_read(async_sess_t *, void *, size_t,
+extern errno_t usbvirt_ipc_send_control_read(async_sess_t *, void *, size_t,
     void *, size_t, size_t *);
-extern int usbvirt_ipc_send_control_write(async_sess_t *, void *, size_t,
+extern errno_t usbvirt_ipc_send_control_write(async_sess_t *, void *, size_t,
     void *, size_t);
-extern int usbvirt_ipc_send_data_in(async_sess_t *, usb_endpoint_t,
+extern errno_t usbvirt_ipc_send_data_in(async_sess_t *, usb_endpoint_t,
     usb_transfer_type_t, void *, size_t, size_t *);
-extern int usbvirt_ipc_send_data_out(async_sess_t *, usb_endpoint_t,
+extern errno_t usbvirt_ipc_send_data_out(async_sess_t *, usb_endpoint_t,
     usb_transfer_type_t, void *, size_t);
 
 extern bool usbvirt_is_usbvirt_method(sysarg_t);

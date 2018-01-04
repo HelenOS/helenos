@@ -52,31 +52,31 @@ hound_context_t * hound_context_create_capture(const char *name,
     pcm_format_t format, size_t bsize);
 void hound_context_destroy(hound_context_t *hound);
 
-int hound_context_set_main_stream_params(hound_context_t *hound,
+errno_t hound_context_set_main_stream_params(hound_context_t *hound,
     pcm_format_t format, size_t bsize);
 
-int hound_context_get_available_targets(hound_context_t *hound,
+errno_t hound_context_get_available_targets(hound_context_t *hound,
     const char ***names, size_t *count);
-int hound_context_get_connected_targets(hound_context_t *hound,
+errno_t hound_context_get_connected_targets(hound_context_t *hound,
     const char ***names, size_t *count);
 
-int hound_context_connect_target(hound_context_t *hound, const char* target);
-int hound_context_disconnect_target(hound_context_t *hound, const char* target);
+errno_t hound_context_connect_target(hound_context_t *hound, const char* target);
+errno_t hound_context_disconnect_target(hound_context_t *hound, const char* target);
 
 hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
     pcm_format_t format, size_t bsize);
 void hound_stream_destroy(hound_stream_t *stream);
 
-int hound_stream_write(hound_stream_t *stream, const void *data, size_t size);
-int hound_stream_read(hound_stream_t *stream, void *data, size_t size);
-int hound_stream_drain(hound_stream_t *stream);
+errno_t hound_stream_write(hound_stream_t *stream, const void *data, size_t size);
+errno_t hound_stream_read(hound_stream_t *stream, void *data, size_t size);
+errno_t hound_stream_drain(hound_stream_t *stream);
 
-int hound_write_main_stream(hound_context_t *hound,
+errno_t hound_write_main_stream(hound_context_t *hound,
     const void *data, size_t size);
-int hound_read_main_stream(hound_context_t *hound, void *data, size_t size);
-int hound_write_replace_main_stream(hound_context_t *hound,
+errno_t hound_read_main_stream(hound_context_t *hound, void *data, size_t size);
+errno_t hound_write_replace_main_stream(hound_context_t *hound,
     const void *data, size_t size);
-int hound_write_immediate(hound_context_t *hound,
+errno_t hound_write_immediate(hound_context_t *hound,
     pcm_format_t format, const void *data, size_t size);
 
 #endif

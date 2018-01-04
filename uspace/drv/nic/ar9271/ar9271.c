@@ -98,14 +98,14 @@ const usb_endpoint_description_t *endpoints[] = {
 };
 
 /* Callback when new device is to be controlled by this driver. */
-static int ar9271_add_device(ddf_dev_t *);
+static errno_t ar9271_add_device(ddf_dev_t *);
 
 /* IEEE 802.11 callbacks */
-static int ar9271_ieee80211_start(ieee80211_dev_t *);
-static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *, void *, size_t);
-static int ar9271_ieee80211_set_freq(ieee80211_dev_t *, uint16_t);
-static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *, bool);
-static int ar9271_ieee80211_key_config(ieee80211_dev_t *, ieee80211_key_config_t *,
+static errno_t ar9271_ieee80211_start(ieee80211_dev_t *);
+static errno_t ar9271_ieee80211_tx_handler(ieee80211_dev_t *, void *, size_t);
+static errno_t ar9271_ieee80211_set_freq(ieee80211_dev_t *, uint16_t);
+static errno_t ar9271_ieee80211_bssid_change(ieee80211_dev_t *, bool);
+static errno_t ar9271_ieee80211_key_config(ieee80211_dev_t *, ieee80211_key_config_t *,
     bool);
 
 static driver_ops_t ar9271_driver_ops = {
@@ -127,9 +127,9 @@ static ieee80211_ops_t ar9271_ieee80211_ops = {
 
 static ieee80211_iface_t ar9271_ieee80211_iface;
 
-static int ar9271_get_device_info(ddf_fun_t *, nic_device_info_t *);
-static int ar9271_get_cable_state(ddf_fun_t *, nic_cable_state_t *);
-static int ar9271_get_operation_mode(ddf_fun_t *, int *, nic_channel_mode_t *,
+static errno_t ar9271_get_device_info(ddf_fun_t *, nic_device_info_t *);
+static errno_t ar9271_get_cable_state(ddf_fun_t *, nic_cable_state_t *);
+static errno_t ar9271_get_operation_mode(ddf_fun_t *, int *, nic_channel_mode_t *,
     nic_role_t *);
 
 static nic_iface_t ar9271_ieee80211_nic_iface = {
@@ -143,7 +143,7 @@ static ddf_dev_ops_t ar9271_ieee80211_dev_ops;
 /** Get device information.
  *
  */
-static int ar9271_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
+static errno_t ar9271_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
 {
 	assert(dev);
 	assert(info);
@@ -163,7 +163,7 @@ static int ar9271_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
 /** Get cable state.
  *
  */
-static int ar9271_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
+static errno_t ar9271_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 {
 	*state = NIC_CS_PLUGGED;
 	
@@ -173,7 +173,7 @@ static int ar9271_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 /** Get operation mode of the device.
  *
  */
-static int ar9271_get_operation_mode(ddf_fun_t *fun, int *speed,
+static errno_t ar9271_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role)
 {
 	*duplex = NIC_CM_FULL_DUPLEX;
@@ -186,7 +186,7 @@ static int ar9271_get_operation_mode(ddf_fun_t *fun, int *speed,
 /** Set multicast frames acceptance mode.
  *
  */
-static int ar9271_on_multicast_mode_change(nic_t *nic,
+static errno_t ar9271_on_multicast_mode_change(nic_t *nic,
     nic_multicast_mode_t mode, const nic_address_t *addr, size_t addr_cnt)
 {
 	switch (mode) {
@@ -209,7 +209,7 @@ static int ar9271_on_multicast_mode_change(nic_t *nic,
 /** Set unicast frames acceptance mode.
  *
  */
-static int ar9271_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
+static errno_t ar9271_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
     const nic_address_t *addr, size_t addr_cnt)
 {
 	switch (mode) {
@@ -235,7 +235,7 @@ static int ar9271_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
 /** Set broadcast frames acceptance mode.
  *
  */
-static int ar9271_on_broadcast_mode_change(nic_t *nic,
+static errno_t ar9271_on_broadcast_mode_change(nic_t *nic,
     nic_broadcast_mode_t mode)
 {
 	switch (mode) {
@@ -257,7 +257,7 @@ static bool ar9271_rx_status_error(uint8_t status)
 	return (status & AR9271_RX_ERROR_PHY) || (status & AR9271_RX_ERROR_CRC);
 }
 
-static int ar9271_data_polling(void *arg)
+static errno_t ar9271_data_polling(void *arg)
 {
 	assert(arg);
 	
@@ -318,7 +318,7 @@ static int ar9271_data_polling(void *arg)
 /** IEEE 802.11 handlers.
  *
  */
-static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
+static errno_t ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
     uint16_t freq)
 {
 	assert(ieee80211_dev);
@@ -329,7 +329,7 @@ static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
 	wmi_send_command(ar9271->htc_device, WMI_DRAIN_TXQ_ALL, NULL, 0, NULL);
 	wmi_send_command(ar9271->htc_device, WMI_STOP_RECV, NULL, 0, NULL);
 	
-	int rc = hw_freq_switch(ar9271, freq);
+	errno_t rc = hw_freq_switch(ar9271, freq);
 	if (rc != EOK) {
 		usb_log_error("Failed to HW switch frequency.\n");
 		return rc;
@@ -351,7 +351,7 @@ static int ar9271_ieee80211_set_freq(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
-static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev,
+static errno_t ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev,
     bool connected)
 {
 	assert(ieee80211_dev);
@@ -400,7 +400,7 @@ static int ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
-static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
+static errno_t ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
     ieee80211_key_config_t *key_conf, bool insert)
 {
 	assert(ieee80211_dev);
@@ -518,7 +518,7 @@ static int ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
-static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
+static errno_t ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
     void *buffer, size_t buffer_size)
 {
 	assert(ieee80211_dev);
@@ -607,7 +607,7 @@ static int ar9271_ieee80211_tx_handler(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
-static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
+static errno_t ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
 {
 	assert(ieee80211_dev);
 	
@@ -615,7 +615,7 @@ static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
 	
 	wmi_send_command(ar9271->htc_device, WMI_FLUSH_RECV, NULL, 0, NULL);
 	
-	int rc = hw_reset(ar9271);
+	errno_t rc = hw_reset(ar9271);
 	if (rc != EOK) {
 		usb_log_error("Failed to do HW reset.\n");
 		return rc;
@@ -665,7 +665,7 @@ static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
 	return EOK;
 }
 
-static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
+static errno_t ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
 {
 	ar9271->starting_up = true;
 	ar9271->usb_device = usb_device;
@@ -679,7 +679,7 @@ static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
 		return ENOMEM;
 	}
 	
-	int rc = ath_usb_init(ar9271->ath_device, usb_device);
+	errno_t rc = ath_usb_init(ar9271->ath_device, usb_device);
 	if (rc != EOK) {
 		free(ar9271->ath_device);
 		usb_log_error("Failed to initialize ath device.\n");
@@ -736,7 +736,7 @@ static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
  * @return EOK if succeed, error code otherwise
  *
  */
-static int ar9271_upload_fw(ar9271_t *ar9271)
+static errno_t ar9271_upload_fw(ar9271_t *ar9271)
 {
 	usb_device_t *usb_device = ar9271->usb_device;
 	
@@ -774,7 +774,7 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 		size_t chunk_size = min(remain_size, MAX_TRANSFER_SIZE);
 		memcpy(buffer, current_data, chunk_size);
 		usb_pipe_t *ctrl_pipe = usb_device_get_default_pipe(usb_device);
-		int rc = usb_control_request_set(ctrl_pipe,
+		errno_t rc = usb_control_request_set(ctrl_pipe,
 		    USB_REQUEST_TYPE_VENDOR,
 		    USB_REQUEST_RECIPIENT_DEVICE,
 		    AR9271_FW_DOWNLOAD,
@@ -802,7 +802,7 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 	 * device side buffer which we will check in htc_check_ready function.
 	*/
 	usb_pipe_t *ctrl_pipe = usb_device_get_default_pipe(usb_device);
-	int rc = usb_control_request_set(ctrl_pipe,
+	errno_t rc = usb_control_request_set(ctrl_pipe,
 	    USB_REQUEST_TYPE_VENDOR,
 	    USB_REQUEST_RECIPIENT_DEVICE,
 	    AR9271_FW_DOWNLOAD_COMP,
@@ -833,7 +833,7 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 {
 	/* USB framework initialization. */
 	const char *err_msg = NULL;
-	int rc = usb_device_create_ddf(dev, endpoints, &err_msg);
+	errno_t rc = usb_device_create_ddf(dev, endpoints, &err_msg);
 	if (rc != EOK) {
 		usb_log_error("Failed to create USB device: %s, "
 		    "ERR_NUM = %s\n", err_msg, str_error_name(rc));
@@ -878,7 +878,7 @@ static void ar9271_delete_dev_data(ar9271_t *ar9271)
  *
  * @return EOK if succeed, error code otherwise
  */
-static int ar9271_add_device(ddf_dev_t *dev)
+static errno_t ar9271_add_device(ddf_dev_t *dev)
 {
 	assert(dev);
 	
@@ -895,7 +895,7 @@ static int ar9271_add_device(ddf_dev_t *dev)
 	ar9271_upload_fw(ar9271);
 	
 	/* Initialize AR9271 HTC services. */
-	int rc = htc_init(ar9271->htc_device);
+	errno_t rc = htc_init(ar9271->htc_device);
 	if (rc != EOK) {
 		ar9271_delete_dev_data(ar9271);
 		usb_log_error("HTC initialization failed.\n");

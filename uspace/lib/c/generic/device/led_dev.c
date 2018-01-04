@@ -38,7 +38,7 @@
 #include <ipc/dev_iface.h>
 #include <device/led_dev.h>
 
-int led_dev_color_set(async_sess_t *sess, pixel_t pixel)
+errno_t led_dev_color_set(async_sess_t *sess, pixel_t pixel)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
@@ -47,10 +47,10 @@ int led_dev_color_set(async_sess_t *sess, pixel_t pixel)
 	
 	async_exchange_end(exch);
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(req, &rc);
 	
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** @}

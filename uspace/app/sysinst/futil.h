@@ -40,9 +40,9 @@
 #include <ipc/loc.h>
 #include <stddef.h>
 
-extern int futil_copy_file(const char *, const char *);
-extern int futil_rcopy_contents(const char *, const char *);
-extern int futil_get_file(const char *, void **, size_t *);
+extern errno_t futil_copy_file(const char *, const char *);
+extern errno_t futil_rcopy_contents(const char *, const char *);
+extern errno_t futil_get_file(const char *, void **, size_t *);
 
 #endif
 

@@ -51,7 +51,7 @@
  *
  * @return EOK always.
  */
-int nic_get_state_impl(ddf_fun_t *fun, nic_device_state_t *state)
+errno_t nic_get_state_impl(ddf_fun_t *fun, nic_device_state_t *state)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
@@ -71,7 +71,7 @@ int nic_get_state_impl(ddf_fun_t *fun, nic_device_state_t *state)
  * @return EOK		If the state was changed
  * @return EINVAL	If the state cannot be changed
  */
-int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
+errno_t nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 {
 	if (state >= NIC_STATE_MAX) {
 		return EINVAL;
@@ -107,7 +107,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		break;
 	}
 	if (event_handler != NULL) {
-		int rc = event_handler(nic_data);
+		errno_t rc = event_handler(nic_data);
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&nic_data->main_lock);
 			return EINVAL;
@@ -116,7 +116,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 
 	if (state == NIC_STATE_STOPPED) {
 		/* Notify upper layers that we are reseting the MAC */
-		int rc = nic_ev_addr_changed(nic_data->client_session,
+		errno_t rc = nic_ev_addr_changed(nic_data->client_session,
 			&nic_data->default_mac);
 		nic_data->poll_mode = nic_data->default_poll_mode;
 		memcpy(&nic_data->poll_period, &nic_data->default_poll_period,
@@ -167,7 +167,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
  * @return EOK		If the message was sent
  * @return EBUSY	If the device is not in state when the frame can be sent.
  */
-int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
+errno_t nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 
@@ -190,7 +190,7 @@ int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
  *
  * @return EOK		On success, or an error code.
  */
-int nic_callback_create_impl(ddf_fun_t *fun)
+errno_t nic_callback_create_impl(ddf_fun_t *fun)
 {
 	nic_t *nic = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic->main_lock);
@@ -215,7 +215,7 @@ int nic_callback_create_impl(ddf_fun_t *fun)
  * @return EOK		If the services were bound
  * @return ELIMIT	If the buffer is too short
  */
-int nic_get_address_impl(ddf_fun_t *fun, nic_address_t *address)
+errno_t nic_get_address_impl(ddf_fun_t *fun, nic_address_t *address)
 {
 	assert(address);
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -234,7 +234,7 @@ int nic_get_address_impl(ddf_fun_t *fun, nic_address_t *address)
  *
  * @return EOK (cannot fail)
  */
-int nic_get_stats_impl(ddf_fun_t *fun, nic_device_stats_t *stats)
+errno_t nic_get_stats_impl(ddf_fun_t *fun, nic_device_stats_t *stats)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	assert (stats != NULL);
@@ -256,7 +256,7 @@ int nic_get_stats_impl(ddf_fun_t *fun, nic_device_stats_t *stats)
  *
  * @return EOK
  */
-int nic_unicast_get_mode_impl(ddf_fun_t *fun, nic_unicast_mode_t *mode,
+errno_t nic_unicast_get_mode_impl(ddf_fun_t *fun, nic_unicast_mode_t *mode,
 	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -280,7 +280,7 @@ int nic_unicast_get_mode_impl(ddf_fun_t *fun, nic_unicast_mode_t *mode,
  * @return ENOTSUP
  * @return ENOMEM
  */
-int nic_unicast_set_mode_impl(ddf_fun_t *fun,
+errno_t nic_unicast_set_mode_impl(ddf_fun_t *fun,
 	nic_unicast_mode_t mode, const nic_address_t *addr_list, size_t addr_count)
 {
 	assert((addr_count == 0 && addr_list == NULL)
@@ -293,7 +293,7 @@ int nic_unicast_set_mode_impl(ddf_fun_t *fun,
 
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
-	int rc = ENOTSUP;
+	errno_t rc = ENOTSUP;
 	if (nic_data->on_unicast_mode_change) {
 		rc = nic_data->on_unicast_mode_change(nic_data,
 			mode, addr_list, addr_count);
@@ -323,7 +323,7 @@ int nic_unicast_set_mode_impl(ddf_fun_t *fun,
  *
  * @return EOK
  */
-int nic_multicast_get_mode_impl(ddf_fun_t *fun, nic_multicast_mode_t *mode,
+errno_t nic_multicast_get_mode_impl(ddf_fun_t *fun, nic_multicast_mode_t *mode,
 	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -347,7 +347,7 @@ int nic_multicast_get_mode_impl(ddf_fun_t *fun, nic_multicast_mode_t *mode,
  * @return ENOTSUP
  * @return ENOMEM
  */
-int nic_multicast_set_mode_impl(ddf_fun_t *fun,	nic_multicast_mode_t mode,
+errno_t nic_multicast_set_mode_impl(ddf_fun_t *fun,	nic_multicast_mode_t mode,
 	const nic_address_t *addr_list, size_t addr_count)
 {
 	assert((addr_count == 0 && addr_list == NULL)
@@ -360,7 +360,7 @@ int nic_multicast_set_mode_impl(ddf_fun_t *fun,	nic_multicast_mode_t mode,
 
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
-	int rc = ENOTSUP;
+	errno_t rc = ENOTSUP;
 	if (nic_data->on_multicast_mode_change) {
 		rc = nic_data->on_multicast_mode_change(nic_data, mode, addr_list, addr_count);
 	}
@@ -380,7 +380,7 @@ int nic_multicast_set_mode_impl(ddf_fun_t *fun,	nic_multicast_mode_t mode,
  *
  * @return EOK
  */
-int nic_broadcast_get_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t *mode)
+errno_t nic_broadcast_get_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t *mode)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
@@ -400,11 +400,11 @@ int nic_broadcast_get_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t *mode)
  * @return ENOTSUP
  * @return ENOMEM
  */
-int nic_broadcast_set_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t mode)
+errno_t nic_broadcast_set_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t mode)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
-	int rc = ENOTSUP;
+	errno_t rc = ENOTSUP;
 	if (nic_data->on_broadcast_mode_change) {
 		rc = nic_data->on_broadcast_mode_change(nic_data, mode);
 	}
@@ -426,7 +426,7 @@ int nic_broadcast_set_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t mode)
  *
  * @return EOK
  */
-int nic_blocked_sources_get_impl(ddf_fun_t *fun,
+errno_t nic_blocked_sources_get_impl(ddf_fun_t *fun,
 	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -449,7 +449,7 @@ int nic_blocked_sources_get_impl(ddf_fun_t *fun,
  * @return ENOTSUP
  * @return ENOMEM
  */
-int nic_blocked_sources_set_impl(ddf_fun_t *fun,
+errno_t nic_blocked_sources_set_impl(ddf_fun_t *fun,
 	const nic_address_t *addr_list, size_t addr_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -457,7 +457,7 @@ int nic_blocked_sources_set_impl(ddf_fun_t *fun,
 	if (nic_data->on_blocked_sources_change) {
 		nic_data->on_blocked_sources_change(nic_data, addr_list, addr_count);
 	}
-	int rc = nic_rxc_blocked_sources_set(&nic_data->rx_control,
+	errno_t rc = nic_rxc_blocked_sources_set(&nic_data->rx_control,
 		addr_list, addr_count);
 	fibril_rwlock_write_unlock(&nic_data->rxc_lock);
 	return rc;
@@ -472,11 +472,11 @@ int nic_blocked_sources_set_impl(ddf_fun_t *fun,
  * @return EOK
  * @return ENOENT	If the mask is not set
  */
-int nic_vlan_get_mask_impl(ddf_fun_t *fun, nic_vlan_mask_t *mask)
+errno_t nic_vlan_get_mask_impl(ddf_fun_t *fun, nic_vlan_mask_t *mask)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
-	int rc = nic_rxc_vlan_get_mask(&nic_data->rx_control, mask);
+	errno_t rc = nic_rxc_vlan_get_mask(&nic_data->rx_control, mask);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
 	return rc;
 }
@@ -490,11 +490,11 @@ int nic_vlan_get_mask_impl(ddf_fun_t *fun, nic_vlan_mask_t *mask)
  * @return EOK
  * @return ENOMEM
  */
-int nic_vlan_set_mask_impl(ddf_fun_t *fun, const nic_vlan_mask_t *mask)
+errno_t nic_vlan_set_mask_impl(ddf_fun_t *fun, const nic_vlan_mask_t *mask)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
-	int rc = nic_rxc_vlan_set_mask(&nic_data->rx_control, mask);
+	errno_t rc = nic_rxc_vlan_set_mask(&nic_data->rx_control, mask);
 	if (rc == EOK && nic_data->on_vlan_mask_change) {
 		nic_data->on_vlan_mask_change(nic_data, mask);
 	}
@@ -517,7 +517,7 @@ int nic_vlan_set_mask_impl(ddf_fun_t *fun, const nic_vlan_mask_t *mask)
  * @return ELIMIT	If the driver does not allow to create more virtues
  * @return ENOMEM	If there was not enough memory to complete the operation
  */
-int nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
+errno_t nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
 	const void *data, size_t length, nic_wv_id_t *new_id)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -559,7 +559,7 @@ int nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
 		return ELIMIT;
 	}
 	/* Call the user-defined add callback */
-	int rc = nic_data->on_wol_virtue_add(nic_data, virtue);
+	errno_t rc = nic_data->on_wol_virtue_add(nic_data, virtue);
 	if (rc != EOK) {
 		free(virtue->data);
 		free(virtue);
@@ -592,7 +592,7 @@ int nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
  * @return ENOTSUP	If the function is not supported by the driver or device
  * @return ENOENT	If the virtue identifier is not valid.
  */
-int nic_wol_virtue_remove_impl(ddf_fun_t *fun, nic_wv_id_t id)
+errno_t nic_wol_virtue_remove_impl(ddf_fun_t *fun, nic_wv_id_t id)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	if (nic_data->on_wol_virtue_add == NULL
@@ -628,7 +628,7 @@ int nic_wol_virtue_remove_impl(ddf_fun_t *fun, nic_wv_id_t id)
  * @return ENOENT	If the virtue identifier is not valid.
  * @return ENOMEM	If there was not enough memory to complete the operation
  */
-int nic_wol_virtue_probe_impl(ddf_fun_t *fun, nic_wv_id_t id,
+errno_t nic_wol_virtue_probe_impl(ddf_fun_t *fun, nic_wv_id_t id,
 	nic_wv_type_t *type, size_t max_length, void *data, size_t *length)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -666,12 +666,12 @@ int nic_wol_virtue_probe_impl(ddf_fun_t *fun, nic_wv_id_t id,
  * @return ENOENT	If the filter identification is not valid.
  * @return ENOMEM	If there was not enough memory to complete the operation
  */
-int nic_wol_virtue_list_impl(ddf_fun_t *fun, nic_wv_type_t type,
+errno_t nic_wol_virtue_list_impl(ddf_fun_t *fun, nic_wv_type_t type,
 	size_t max_count, nic_wv_id_t *id_list, size_t *id_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->wv_lock);
-	int rc = nic_wol_virtues_list(&nic_data->wol_virtues, type,
+	errno_t rc = nic_wol_virtues_list(&nic_data->wol_virtues, type,
 		max_count, id_list, id_count);
 	fibril_rwlock_read_unlock(&nic_data->wv_lock);
 	return rc;
@@ -687,7 +687,7 @@ int nic_wol_virtue_list_impl(ddf_fun_t *fun, nic_wv_type_t type,
  *
  * @return EOK		If the operation was successfully completed
   */
-int nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *count)
+errno_t nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->wv_lock);
@@ -709,7 +709,7 @@ int nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *count)
  * @return ENOTSUP	This function is not supported.
  * @return EPARTY	Error in communication protocol
  */
-int nic_poll_get_mode_impl(ddf_fun_t *fun,
+errno_t nic_poll_get_mode_impl(ddf_fun_t *fun,
 	nic_poll_mode_t *mode, struct timeval *period)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -732,7 +732,7 @@ int nic_poll_get_mode_impl(ddf_fun_t *fun,
  * @return ENOTSUP	This operation is not supported.
  * @return EPARTY	Error in communication protocol
  */
-int nic_poll_set_mode_impl(ddf_fun_t *fun,
+errno_t nic_poll_set_mode_impl(ddf_fun_t *fun,
 	nic_poll_mode_t mode, const struct timeval *period)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -753,7 +753,7 @@ int nic_poll_set_mode_impl(ddf_fun_t *fun,
 			return EINVAL;
 	}
 	fibril_rwlock_write_lock(&nic_data->main_lock);
-	int rc = nic_data->on_poll_mode_change(nic_data, mode, period);
+	errno_t rc = nic_data->on_poll_mode_change(nic_data, mode, period);
 	assert(rc == EOK || rc == ENOTSUP || rc == EINVAL);
 	if (rc == ENOTSUP && (nic_data->on_poll_request != NULL) && 
 	    (mode == NIC_POLL_PERIODIC || mode == NIC_POLL_SOFTWARE_PERIODIC) ) {
@@ -782,7 +782,7 @@ int nic_poll_set_mode_impl(ddf_fun_t *fun,
  * @return ENOTSUP	If the function is not supported
  * @return EINVAL	If the NIC is not in state where it allows on demand polling
  */
-int nic_poll_now_impl(ddf_fun_t *fun) {
+errno_t nic_poll_now_impl(ddf_fun_t *fun) {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	if (nic_data->poll_mode != NIC_POLL_ON_DEMAND) {
@@ -820,7 +820,7 @@ void nic_default_handler_impl(ddf_fun_t *fun, ipc_callid_t callid,
  *
  * @return EOK always.
  */
-int nic_open_impl(ddf_fun_t *fun)
+errno_t nic_open_impl(ddf_fun_t *fun)
 {
 	return EOK;
 }

@@ -114,14 +114,14 @@ extern const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
 extern const char *HID_KBD_FUN_NAME;
 extern const char *HID_KBD_CATEGORY;
 
-extern int usb_kbd_init(usb_hid_dev_t *, void **);
+extern errno_t usb_kbd_init(usb_hid_dev_t *, void **);
 extern bool usb_kbd_polling_callback(usb_hid_dev_t *, void *);
 extern int usb_kbd_is_initialized(const usb_kbd_t *);
 extern int usb_kbd_is_ready_to_destroy(const usb_kbd_t *);
 extern void usb_kbd_destroy(usb_kbd_t *);
 extern void usb_kbd_push_ev(usb_kbd_t *, int, unsigned int);
 extern void usb_kbd_deinit(usb_hid_dev_t *, void *);
-extern int usb_kbd_set_boot_protocol(usb_hid_dev_t *);
+extern errno_t usb_kbd_set_boot_protocol(usb_hid_dev_t *);
 
 #endif /* USB_HID_KBDDEV_H_ */
 

@@ -46,9 +46,9 @@
 
 #define NAME       "udp"
 
-static int udp_init(void)
+static errno_t udp_init(void)
 {
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_init()");
 
@@ -75,7 +75,7 @@ static int udp_init(void)
 
 int main(int argc, char **argv)
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": UDP (User Datagram Protocol) service\n");
 

@@ -45,7 +45,7 @@
 
 typedef ioport32_t am335x_ctrl_module_t;
 
-static int
+static errno_t
 am335x_ctrl_module_clock_freq_get(am335x_ctrl_module_t *base, unsigned *freq)
 {
 	unsigned const control_status = AM335x_CTRL_MODULE_REG_VALUE(base,

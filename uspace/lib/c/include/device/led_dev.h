@@ -42,6 +42,6 @@ typedef enum {
 	LED_DEV_COLOR_SET = 0
 } led_dev_method_t;
 
-extern int led_dev_color_set(async_sess_t *, pixel_t);
+extern errno_t led_dev_color_set(async_sess_t *, pixel_t);
 
 #endif

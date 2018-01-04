@@ -40,7 +40,7 @@
 extern void tcp_iqueue_init(tcp_iqueue_t *, tcp_conn_t *);
 extern void tcp_iqueue_insert_seg(tcp_iqueue_t *, tcp_segment_t *);
 extern void tcp_iqueue_remove_seg(tcp_iqueue_t *, tcp_segment_t *);
-extern int tcp_iqueue_get_ready_seg(tcp_iqueue_t *, tcp_segment_t **);
+extern errno_t tcp_iqueue_get_ready_seg(tcp_iqueue_t *, tcp_segment_t **);
 
 #endif
 

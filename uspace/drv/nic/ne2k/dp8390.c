@@ -193,7 +193,7 @@ static void ne2k_init(ne2k_t *ne2k)
  * @return EXDEV if the network interface was not recognized.
  *
  */
-int ne2k_probe(ne2k_t *ne2k)
+errno_t ne2k_probe(ne2k_t *ne2k)
 {
 	unsigned int i;
 	
@@ -249,7 +249,7 @@ void ne2k_set_physical_address(ne2k_t *ne2k, const nic_address_t *address)
  * @return EXDEV if the network interface is disabled.
  *
  */
-int ne2k_up(ne2k_t *ne2k)
+errno_t ne2k_up(ne2k_t *ne2k)
 {
 	if (!ne2k->probed)
 		return EXDEV;

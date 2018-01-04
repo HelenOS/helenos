@@ -193,7 +193,7 @@ static void sha1_proc(uint32_t *h, uint32_t *sched_arr)
  *         is not allocated, otherwise EOK.
  *
  */
-int create_hash(uint8_t *input, size_t input_size, uint8_t *output,
+errno_t create_hash(uint8_t *input, size_t input_size, uint8_t *output,
     hash_func_t hash_sel)
 {
 	if (!input)
@@ -265,7 +265,7 @@ int create_hash(uint8_t *input, size_t input_size, uint8_t *output,
  *         is not allocated, otherwise EOK.
  *
  */
-int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size, 
+errno_t hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size, 
     uint8_t *hash, hash_func_t hash_sel)
 {
 	if ((!key) || (!msg))
@@ -321,7 +321,7 @@ int hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size,
  *         is not allocated, otherwise EOK.
  *
  */
-int pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, size_t salt_size,
+errno_t pbkdf2(uint8_t *pass, size_t pass_size, uint8_t *salt, size_t salt_size,
     uint8_t *hash)
 {
 	if ((!pass) || (!salt))

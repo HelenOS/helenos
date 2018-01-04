@@ -43,12 +43,12 @@ static int request_process(call_t *call, answerbox_t *box)
 	return -1;
 }
 
-static int answer_process(call_t *answer)
+static errno_t answer_process(call_t *answer)
 {
 	if (answer->buffer) {
 		uintptr_t dst = IPC_GET_ARG1(answer->data);
 		size_t size = IPC_GET_ARG2(answer->data);
-		int rc;
+		errno_t rc;
 
 		rc = copy_to_uspace((void *) dst, answer->buffer, size);
 		if (rc)

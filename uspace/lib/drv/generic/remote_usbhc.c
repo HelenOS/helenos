@@ -95,7 +95,7 @@ typedef enum {
 	IPC_M_USBHC_WRITE,
 } usbhc_iface_funcs_t;
 
-int usbhc_read(async_exch_t *exch, usb_address_t address,
+errno_t usbhc_read(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
     size_t *rec_size)
 {
@@ -130,28 +130,28 @@ int usbhc_read(async_exch_t *exch, usb_address_t address,
 	}
 
 	/* Wait for the answer. */
-	int data_request_rc;
-	int opening_request_rc;
+	errno_t data_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 
 	if (data_request_rc != EOK) {
 		/* Prefer the return code of the opening request. */
 		if (opening_request_rc != EOK) {
-			return (int) opening_request_rc;
+			return (errno_t) opening_request_rc;
 		} else {
-			return (int) data_request_rc;
+			return (errno_t) data_request_rc;
 		}
 	}
 	if (opening_request_rc != EOK) {
-		return (int) opening_request_rc;
+		return (errno_t) opening_request_rc;
 	}
 
 	*rec_size = IPC_GET_ARG2(data_request_call);
 	return EOK;
 }
 
-int usbhc_write(async_exch_t *exch, usb_address_t address,
+errno_t usbhc_write(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, const void *data, size_t size)
 {
 	if (!exch)
@@ -173,7 +173,7 @@ int usbhc_write(async_exch_t *exch, usb_address_t address,
 
 	/* Send the data if any. */
 	if (size > 0) {
-		const int ret = async_data_write_start(exch, data, size);
+		const errno_t ret = async_data_write_start(exch, data, size);
 		if (ret != EOK) {
 			async_forget(opening_request);
 			return ret;
@@ -181,10 +181,10 @@ int usbhc_write(async_exch_t *exch, usb_address_t address,
 	}
 
 	/* Wait for the answer. */
-	int opening_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
-	return (int) opening_request_rc;
+	return (errno_t) opening_request_rc;
 }
 
 static void remote_usbhc_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -234,7 +234,7 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	return trans;
 }
 
-static void callback_out(int outcome, void *arg)
+static void callback_out(errno_t outcome, void *arg)
 {
 	async_transaction_t *trans = arg;
 
@@ -243,7 +243,7 @@ static void callback_out(int outcome, void *arg)
 	async_transaction_destroy(trans);
 }
 
-static void callback_in(int outcome, size_t actual_size, void *arg)
+static void callback_in(errno_t outcome, size_t actual_size, void *arg)
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
@@ -305,7 +305,7 @@ void remote_usbhc_read(
 		return;
 	}
 
-	const int rc = hc_iface->read(
+	const errno_t rc = hc_iface->read(
 	    fun, target, setup, trans->buffer, size, callback_in, trans);
 
 	if (rc != EOK) {
@@ -343,7 +343,7 @@ void remote_usbhc_write(
 
 	size_t size = 0;
 	if (data_buffer_len > 0) {
-		const int rc = async_data_write_accept(&trans->buffer, false,
+		const errno_t rc = async_data_write_accept(&trans->buffer, false,
 		    1, USB_MAX_PAYLOAD_SIZE,
 		    0, &size);
 
@@ -354,7 +354,7 @@ void remote_usbhc_write(
 		}
 	}
 
-	const int rc = hc_iface->write(
+	const errno_t rc = hc_iface->write(
 	    fun, target, setup, trans->buffer, size, callback_out, trans);
 
 	if (rc != EOK) {

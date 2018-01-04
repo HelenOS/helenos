@@ -147,7 +147,7 @@ static void play_fragment(playback_t *pb)
 	assert(pb->device);
 	const size_t fragment_size = pb->buffer.size / DEFAULT_FRAGMENTS;
 	printf("Registering event callback\n");
-	int ret = audio_pcm_register_event_callback(pb->device,
+	errno_t ret = audio_pcm_register_event_callback(pb->device,
 	    device_event_callback, pb);
 	if (ret != EOK) {
 		printf("Failed to register event callback: %s.\n",
@@ -281,7 +281,7 @@ static void play(playback_t *pb)
 		}
 
 		if (!started) {
-			int ret = audio_pcm_start_playback(pb->device,
+			errno_t ret = audio_pcm_start_playback(pb->device,
 			    pb->f.channels, pb->f.sampling_rate,
 			    pb->f.sample_format);
 			if (ret != EOK) {
@@ -308,7 +308,7 @@ static void play(playback_t *pb)
 		if (real_delay)
 			async_usleep(real_delay);
 		/* update buffer position */
-		const int ret = audio_pcm_get_buffer_pos(pb->device, &pos);
+		const errno_t ret = audio_pcm_get_buffer_pos(pb->device, &pos);
 		if (ret != EOK) {
 			printf("Failed to update position indicator %s\n",
 			    str_error(ret));
@@ -332,7 +332,7 @@ static void play(playback_t *pb)
  */
 int dplay(const char *device, const char *file)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 	audio_pcm_sess_t *session = NULL;
 	if (str_cmp(device, "default") == 0) {
 		session = audio_pcm_open_default();

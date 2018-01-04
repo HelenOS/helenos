@@ -104,7 +104,7 @@ static endpoint_t * find_locked(usb_bus_t *instance,
  * @param[out] address Free address.
  * @return Error code.
  */
-static int usb_bus_get_free_address(usb_bus_t *instance, usb_address_t *address)
+static errno_t usb_bus_get_free_address(usb_bus_t *instance, usb_address_t *address)
 {
 
 	usb_address_t new_address = instance->last_address;
@@ -199,7 +199,7 @@ size_t bandwidth_count_usb20(usb_speed_t speed, usb_transfer_type_t type,
  * @param bw_count function to use to calculate endpoint bw requirements.
  * @return Error code.
  */
-int usb_bus_init(usb_bus_t *instance,
+errno_t usb_bus_init(usb_bus_t *instance,
     size_t available_bandwidth, bw_count_func_t bw_count, usb_speed_t max_speed)
 {
 	assert(instance);
@@ -223,7 +223,7 @@ int usb_bus_init(usb_bus_t *instance,
  * @param data_size Size of data to transfer.
  * @return Error code.
  */
-int usb_bus_register_ep(usb_bus_t *instance, endpoint_t *ep, size_t data_size)
+errno_t usb_bus_register_ep(usb_bus_t *instance, endpoint_t *ep, size_t data_size)
 {
 	assert(instance);
 	if (ep == NULL || ep->address < 0)
@@ -261,7 +261,7 @@ int usb_bus_register_ep(usb_bus_t *instance, endpoint_t *ep, size_t data_size)
  * @param ep endpoint_t to unregister.
  * @return Error code.
  */
-int usb_bus_unregister_ep(usb_bus_t *instance, endpoint_t *ep)
+errno_t usb_bus_unregister_ep(usb_bus_t *instance, endpoint_t *ep)
 {
 	assert(instance);
 	if (ep == NULL || ep->address < 0)
@@ -315,7 +315,7 @@ endpoint_t * usb_bus_find_ep(usb_bus_t *instance,
  * @param arg Argument to pass to the callback function.
  * @return Error code.
  */
-int usb_bus_add_ep(usb_bus_t *instance,
+errno_t usb_bus_add_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, size_t max_packet_size, unsigned packets,
     size_t data_size, ep_add_callback_t callback, void *arg,
@@ -363,7 +363,7 @@ int usb_bus_add_ep(usb_bus_t *instance,
 	endpoint_add_ref(ep);
 
 	if (callback) {
-		const int ret = callback(ep, arg);
+		const errno_t ret = callback(ep, arg);
 		if (ret != EOK) {
 			fibril_mutex_unlock(&instance->guard);
 			endpoint_del_ref(ep);
@@ -393,7 +393,7 @@ int usb_bus_add_ep(usb_bus_t *instance,
  * @arg Argument to pass to the callback function.
  * @return Error code.
  */
-int usb_bus_remove_ep(usb_bus_t *instance,
+errno_t usb_bus_remove_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     ep_remove_callback_t callback, void *arg)
 {
@@ -416,13 +416,13 @@ int usb_bus_remove_ep(usb_bus_t *instance,
 	return EOK;
 }
 
-int usb_bus_reset_toggle(usb_bus_t *instance, usb_target_t target, bool all)
+errno_t usb_bus_reset_toggle(usb_bus_t *instance, usb_target_t target, bool all)
 {
 	assert(instance);
 	if (!usb_target_is_valid(target))
 		return EINVAL;
 
-	int ret = ENOENT;
+	errno_t ret = ENOENT;
 
 	fibril_mutex_lock(&instance->guard);
 	list_foreach(*get_list(instance, target.address), link, endpoint_t, ep) {
@@ -445,7 +445,7 @@ int usb_bus_reset_toggle(usb_bus_t *instance, usb_target_t target, bool all)
  * @arg Argument to pass to the callback function.
  * @return Error code.
  */
-int usb_bus_remove_address(usb_bus_t *instance,
+errno_t usb_bus_remove_address(usb_bus_t *instance,
     usb_address_t address, ep_remove_callback_t callback, void *arg)
 {
 	assert(instance);
@@ -454,7 +454,7 @@ int usb_bus_remove_address(usb_bus_t *instance,
 
 	fibril_mutex_lock(&instance->guard);
 
-	const int ret = instance->devices[address].occupied ? EOK : ENOENT;
+	const errno_t ret = instance->devices[address].occupied ? EOK : ENOENT;
 	instance->devices[address].occupied = false;
 
 	list_t *list = get_list(instance, address);
@@ -480,7 +480,7 @@ int usb_bus_remove_address(usb_bus_t *instance,
  * @return Error code.
  * @note Default address is only available in strict mode.
  */
-int usb_bus_request_address(usb_bus_t *instance,
+errno_t usb_bus_request_address(usb_bus_t *instance,
     usb_address_t *address, bool strict, usb_speed_t speed)
 {
 	assert(instance);
@@ -492,7 +492,7 @@ int usb_bus_request_address(usb_bus_t *instance,
 		return EINVAL;
 
 	usb_address_t addr = *address;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&instance->guard);
 	/* Only grant default address to strict requests */
@@ -538,7 +538,7 @@ int usb_bus_request_address(usb_bus_t *instance,
  * @param[out] speed Assigned speed.
  * @return Error code.
  */
-int usb_bus_get_speed(usb_bus_t *instance, usb_address_t address,
+errno_t usb_bus_get_speed(usb_bus_t *instance, usb_address_t address,
     usb_speed_t *speed)
 {
 	assert(instance);
@@ -548,7 +548,7 @@ int usb_bus_get_speed(usb_bus_t *instance, usb_address_t address,
 
 	fibril_mutex_lock(&instance->guard);
 
-	const int ret = instance->devices[address].occupied ? EOK : ENOENT;
+	const errno_t ret = instance->devices[address].occupied ? EOK : ENOENT;
 	if (speed && instance->devices[address].occupied) {
 		*speed = instance->devices[address].speed;
 	}

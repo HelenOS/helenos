@@ -98,7 +98,7 @@ typedef struct transform_list {
 typedef struct {
 	/** Rather than constantly checking return values, the parser uses this
 	 * to indicate whether an error has occurred. */
-	int error;
+	errno_t error;
 
 	/** The list of named transforms. */
 	transform_list_t *transform_list;
@@ -147,7 +147,7 @@ static void done_with_token(state_t *state)
 }
 
 /** Note that an error has occurred if error is not EOK. */
-static void error_errno(state_t *state, int error)
+static void error_errno(state_t *state, errno_t error)
 {
 	// Don't overwrite a previous error.
 	if (state->error == EOK && error != EOK) {
@@ -275,7 +275,7 @@ static void next_token(state_t *state)
 		while (isdigit(state->buffer[state->buffer_pos]))
 			state->buffer_pos++;
 		state->token = TOKEN_INTEGER;
-		int rc = bithenge_parse_int(state->buffer +
+		errno_t rc = bithenge_parse_int(state->buffer +
 		    state->old_buffer_pos, &state->token_int);
 		error_errno(state, rc);
 	} else if (ch == '<') {
@@ -519,7 +519,7 @@ static precedence_t binary_operator_precedence(bithenge_binary_op_t op)
 
 static bithenge_expression_t *parse_term(state_t *state)
 {
-	int rc;
+	errno_t rc;
 	if (state->token == TOKEN_TRUE || state->token == TOKEN_FALSE) {
 		bool val = state->token == TOKEN_TRUE;
 		next_token(state);
@@ -629,7 +629,7 @@ static bithenge_expression_t *parse_term(state_t *state)
 
 static bithenge_expression_t *parse_postfix_expression(state_t *state)
 {
-	int rc;
+	errno_t rc;
 	bithenge_expression_t *expr = parse_term(state);
 	while (state->error == EOK) {
 		if (state->token == '.') {
@@ -736,7 +736,7 @@ static bithenge_expression_t *parse_expression_precedence(state_t *state,
 			bithenge_expression_dec_ref(expr2);
 			break;
 		}
-		int rc = bithenge_binary_expression(&expr, op, expr, expr2);
+		errno_t rc = bithenge_binary_expression(&expr, op, expr, expr2);
 		if (rc != EOK) {
 			expr = NULL;
 			error_errno(state, rc);
@@ -796,7 +796,7 @@ static bithenge_transform_t *parse_invocation(state_t *state)
 	}
 
 	if (num_params) {
-		int rc = bithenge_param_wrapper(&result, result, params);
+		errno_t rc = bithenge_param_wrapper(&result, result, params);
 		if (rc != EOK) {
 			error_errno(state, rc);
 			result = NULL;
@@ -812,7 +812,7 @@ static bithenge_transform_t *parse_invocation(state_t *state)
 static bithenge_transform_t *make_empty_transform(state_t *state)
 {
 	bithenge_node_t *node;
-	int rc = bithenge_new_empty_internal_node(&node);
+	errno_t rc = bithenge_new_empty_internal_node(&node);
 	if (rc != EOK) {
 		error_errno(state, rc);
 		return NULL;
@@ -868,7 +868,7 @@ static bithenge_transform_t *parse_if(state_t *state, bool in_struct)
 	}
 
 	bithenge_transform_t *if_xform;
-	int rc = bithenge_if_transform(&if_xform, expr, true_xform,
+	errno_t rc = bithenge_if_transform(&if_xform, expr, true_xform,
 	    false_xform);
 	if (rc != EOK) {
 		error_errno(state, rc);
@@ -892,7 +892,7 @@ static bithenge_transform_t *parse_switch(state_t *state, bool in_struct)
 		if (state->token == TOKEN_ELSE) {
 			next_token(state);
 			bithenge_node_t *node;
-			int rc = bithenge_new_boolean_node(&node, true);
+			errno_t rc = bithenge_new_boolean_node(&node, true);
 			if (rc != EOK) {
 				error_errno(state, rc);
 				break;
@@ -906,7 +906,7 @@ static bithenge_transform_t *parse_switch(state_t *state, bool in_struct)
 			expr = parse_expression(state);
 			if (state->error == EOK) {
 				bithenge_expression_inc_ref(ref_expr);
-				int rc = bithenge_binary_expression(&expr,
+				errno_t rc = bithenge_binary_expression(&expr,
 				    BITHENGE_EXPRESSION_EQUALS, ref_expr,
 				    expr);
 				if (rc != EOK) {
@@ -946,7 +946,7 @@ static bithenge_transform_t *parse_switch(state_t *state, bool in_struct)
 	bithenge_transform_inc_ref(switch_xform);
 	while (state->error == EOK && num >= 1) {
 		num--;
-		int rc = bithenge_if_transform(&switch_xform, exprs[num],
+		errno_t rc = bithenge_if_transform(&switch_xform, exprs[num],
 		    xforms[num], switch_xform);
 		if (rc != EOK) {
 			switch_xform = NULL;
@@ -986,7 +986,7 @@ static bithenge_transform_t *parse_repeat(state_t *state)
 	}
 
 	bithenge_transform_t *repeat_xform;
-	int rc = bithenge_repeat_transform(&repeat_xform, xform, expr);
+	errno_t rc = bithenge_repeat_transform(&repeat_xform, xform, expr);
 	if (rc != EOK) {
 		error_errno(state, rc);
 		return NULL;
@@ -1012,7 +1012,7 @@ static bithenge_transform_t *parse_do_while(state_t *state)
 	}
 
 	bithenge_transform_t *do_while_xform;
-	int rc = bithenge_do_while_transform(&do_while_xform, xform, expr);
+	errno_t rc = bithenge_do_while_transform(&do_while_xform, xform, expr);
 	if (rc != EOK) {
 		error_errno(state, rc);
 		return NULL;
@@ -1030,7 +1030,7 @@ static bithenge_transform_t *parse_partial(state_t *state)
 		expect(state, ')');
 
 		bithenge_expression_t *in_expr;
-		int rc = bithenge_in_node_expression(&in_expr);
+		errno_t rc = bithenge_in_node_expression(&in_expr);
 		if (rc != EOK)
 			error_errno(state, rc);
 		if (state->error != EOK) {
@@ -1060,7 +1060,7 @@ static bithenge_transform_t *parse_partial(state_t *state)
 		return NULL;
 	}
 
-	int rc = bithenge_partial_transform(&xform, xform);
+	errno_t rc = bithenge_partial_transform(&xform, xform);
 	if (rc != EOK) {
 		error_errno(state, rc);
 		bithenge_transform_dec_ref(offset_xform);
@@ -1129,7 +1129,7 @@ static bithenge_transform_t *parse_struct(state_t *state)
 	subxforms[num].name = NULL;
 	subxforms[num].transform = NULL;
 	bithenge_transform_t *result;
-	int rc = bithenge_new_struct(&result, subxforms);
+	errno_t rc = bithenge_new_struct(&result, subxforms);
 	if (rc != EOK) {
 		error_errno(state, rc);
 		return NULL;
@@ -1152,7 +1152,7 @@ static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 		}
 
 		bithenge_transform_t *xform;
-		int rc;
+		errno_t rc;
 		if (state->in_node_used)
 			rc = bithenge_expression_transform(&xform, expr);
 		else
@@ -1210,7 +1210,7 @@ static bithenge_transform_t *parse_transform(state_t *state)
 	}
 	if (xforms) {
 		xforms[0] = result;
-		int rc = bithenge_new_composed_transform(&result, xforms, num);
+		errno_t rc = bithenge_new_composed_transform(&result, xforms, num);
 		if (rc != EOK) {
 			error_errno(state, rc);
 			return NULL;
@@ -1243,7 +1243,7 @@ static void parse_definition(state_t *state)
 
 	bithenge_transform_t *barrier = NULL;
 	if (state->error == EOK) {
-		int rc = bithenge_new_barrier_transform(&barrier,
+		errno_t rc = bithenge_new_barrier_transform(&barrier,
 		    state->num_params);
 		if (rc != EOK) {
 			barrier = NULL;
@@ -1258,7 +1258,7 @@ static void parse_definition(state_t *state)
 	expect(state, ';');
 
 	if (state->error == EOK) {
-		int rc = bithenge_barrier_transform_set_subtransform(barrier,
+		errno_t rc = bithenge_barrier_transform_set_subtransform(barrier,
 		    xform);
 		xform = NULL;
 		if (rc != EOK)
@@ -1320,14 +1320,14 @@ static void state_destroy(state_t *state)
  * @param[out] out Stores the "main" transform.
  * @return EOK on success, EINVAL on syntax error, or an error code from
  * errno.h. */
-int bithenge_parse_script(const char *filename, bithenge_transform_t **out)
+errno_t bithenge_parse_script(const char *filename, bithenge_transform_t **out)
 {
 	state_t state;
 	state_init(&state, filename);
 	while (state.error == EOK && state.token != TOKEN_EOF)
 		parse_definition(&state);
 	*out = get_named_transform(&state, "main");
-	int rc = state.error;
+	errno_t rc = state.error;
 	state_destroy(&state);
 	if (rc == EOK && !*out) {
 		fprintf(stderr, "no \"main\" transform\n");

@@ -108,22 +108,22 @@
 		.cmd = CMD_ACCEPT \
 	}
 
-static int get_sata_device_name(ddf_fun_t *, size_t, char *);
-static int get_num_blocks(ddf_fun_t *, uint64_t *);
-static int get_block_size(ddf_fun_t *, size_t *);
-static int read_blocks(ddf_fun_t *, uint64_t, size_t, void *);
-static int write_blocks(ddf_fun_t *, uint64_t, size_t, void *);
+static errno_t get_sata_device_name(ddf_fun_t *, size_t, char *);
+static errno_t get_num_blocks(ddf_fun_t *, uint64_t *);
+static errno_t get_block_size(ddf_fun_t *, size_t *);
+static errno_t read_blocks(ddf_fun_t *, uint64_t, size_t, void *);
+static errno_t write_blocks(ddf_fun_t *, uint64_t, size_t, void *);
 
-static int ahci_identify_device(sata_dev_t *);
-static int ahci_set_highest_ultra_dma_mode(sata_dev_t *);
-static int ahci_rb_fpdma(sata_dev_t *, uintptr_t, uint64_t);
-static int ahci_wb_fpdma(sata_dev_t *, uintptr_t, uint64_t);
+static errno_t ahci_identify_device(sata_dev_t *);
+static errno_t ahci_set_highest_ultra_dma_mode(sata_dev_t *);
+static errno_t ahci_rb_fpdma(sata_dev_t *, uintptr_t, uint64_t);
+static errno_t ahci_wb_fpdma(sata_dev_t *, uintptr_t, uint64_t);
 
 static void ahci_sata_devices_create(ahci_dev_t *, ddf_dev_t *);
 static ahci_dev_t *ahci_ahci_create(ddf_dev_t *);
 static void ahci_ahci_hw_start(ahci_dev_t *);
 
-static int ahci_dev_add(ddf_dev_t *);
+static errno_t ahci_dev_add(ddf_dev_t *);
 
 static void ahci_get_model_name(uint16_t *, char *);
 
@@ -176,7 +176,7 @@ static ahci_dev_t *dev_ahci_dev(ddf_dev_t *dev)
  * @return EOK.
  *
  */
-static int get_sata_device_name(ddf_fun_t *fun,
+static errno_t get_sata_device_name(ddf_fun_t *fun,
     size_t sata_dev_name_length, char *sata_dev_name)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
@@ -192,7 +192,7 @@ static int get_sata_device_name(ddf_fun_t *fun,
  * @return EOK.
  *
  */
-static int get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
+static errno_t get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
 	*num_blocks = sata->blocks;
@@ -207,7 +207,7 @@ static int get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
  * @return EOK.
  *
  */
-static int get_block_size(ddf_fun_t *fun, size_t *block_size)
+static errno_t get_block_size(ddf_fun_t *fun, size_t *block_size)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
 	*block_size = sata->block_size;
@@ -224,14 +224,14 @@ static int get_block_size(ddf_fun_t *fun, size_t *block_size)
  * @return EOK if succeed, error code otherwise
  *
  */
-static int read_blocks(ddf_fun_t *fun, uint64_t blocknum,
+static errno_t read_blocks(ddf_fun_t *fun, uint64_t blocknum,
     size_t count, void *buf)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
 	
 	uintptr_t phys;
 	void *ibuf = AS_AREA_ANY;
-	int rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
+	errno_t rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &ibuf);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate read buffer.");
@@ -267,14 +267,14 @@ static int read_blocks(ddf_fun_t *fun, uint64_t blocknum,
  * @return EOK if succeed, error code otherwise
  *
  */
-static int write_blocks(ddf_fun_t *fun, uint64_t blocknum,
+static errno_t write_blocks(ddf_fun_t *fun, uint64_t blocknum,
     size_t count, void *buf)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
 	
 	uintptr_t phys;
 	void *ibuf = AS_AREA_ANY;
-	int rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
+	errno_t rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &ibuf);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate write buffer.");
@@ -423,7 +423,7 @@ static void ahci_identify_packet_device_cmd(sata_dev_t *sata, uintptr_t phys)
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ahci_identify_device(sata_dev_t *sata)
+static errno_t ahci_identify_device(sata_dev_t *sata)
 {
 	if (sata->is_invalid_device) {
 		ddf_msg(LVL_ERROR,
@@ -433,7 +433,7 @@ static int ahci_identify_device(sata_dev_t *sata)
 	
 	uintptr_t phys;
 	sata_identify_data_t *idata = AS_AREA_ANY;
-	int rc = dmamem_map_anonymous(SATA_IDENTIFY_DEVICE_BUFFER_LENGTH,
+	errno_t rc = dmamem_map_anonymous(SATA_IDENTIFY_DEVICE_BUFFER_LENGTH,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
 	    (void *) &idata);
 	if (rc != EOK) {
@@ -604,7 +604,7 @@ static void ahci_set_mode_cmd(sata_dev_t *sata, uintptr_t phys, uint8_t mode)
  * @return EOK if succeed, error code otherwise
  *
  */
-static int ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
+static errno_t ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
 {
 	if (sata->is_invalid_device) {
 		ddf_msg(LVL_ERROR,
@@ -627,7 +627,7 @@ static int ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
 	
 	uintptr_t phys;
 	sata_identify_data_t *idata = AS_AREA_ANY;
-	int rc = dmamem_map_anonymous(SATA_SET_FEATURE_BUFFER_LENGTH,
+	errno_t rc = dmamem_map_anonymous(SATA_SET_FEATURE_BUFFER_LENGTH,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
 	    (void *) &idata);
 	if (rc != EOK) {
@@ -733,7 +733,7 @@ static void ahci_rb_fpdma_cmd(sata_dev_t *sata, uintptr_t phys,
  * @return EOK if succeed, error code otherwise
  *
  */
-static int ahci_rb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum)
+static errno_t ahci_rb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum)
 {
 	if (sata->is_invalid_device) {
 		ddf_msg(LVL_ERROR,
@@ -821,7 +821,7 @@ static void ahci_wb_fpdma_cmd(sata_dev_t *sata, uintptr_t phys,
  * @return EOK if succeed, error code otherwise
  *
  */
-static int ahci_wb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum)
+static errno_t ahci_wb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum)
 {
 	if (sata->is_invalid_device) {
 		ddf_msg(LVL_ERROR,
@@ -948,7 +948,7 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 	sata->port = port;
 	
 	/* Allocate and init retfis structure. */
-	int rc = dmamem_map_anonymous(size, DMAMEM_4GiB,
+	errno_t rc = dmamem_map_anonymous(size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &virt_fb);
 	if (rc != EOK)
 		goto error_retfis;
@@ -1037,11 +1037,11 @@ static void ahci_sata_hw_start(sata_dev_t *sata)
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
+static errno_t ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
     volatile ahci_port_t *port, unsigned int port_num)
 {
 	ddf_fun_t *fun = NULL;
-	int rc;
+	errno_t rc;
 	
 	sata_dev_t *sata = ahci_sata_allocate(ahci, port);
 	if (sata == NULL)
@@ -1184,7 +1184,7 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	ct.ranges = ahci_ranges;
 	
 	int irq_cap;
-	int rc = register_interrupt_handler(dev,
+	errno_t rc = register_interrupt_handler(dev,
 	    hw_res_parsed.irqs.irqs[0], ahci_interrupt, &ct, &irq_cap);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler.");
@@ -1254,7 +1254,7 @@ static void ahci_ahci_hw_start(ahci_dev_t *ahci)
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ahci_dev_add(ddf_dev_t *dev)	
+static errno_t ahci_dev_add(ddf_dev_t *dev)	
 {
 	ahci_dev_t *ahci = ahci_ahci_create(dev);
 	if (ahci == NULL)

@@ -43,22 +43,22 @@
 #include <usb_iface.h>
 #include <stdbool.h>
 
-extern int usbhc_read(async_exch_t *, usb_address_t, usb_endpoint_t,
+extern errno_t usbhc_read(async_exch_t *, usb_address_t, usb_endpoint_t,
     uint64_t, void *, size_t, size_t *);
-extern int usbhc_write(async_exch_t *, usb_address_t, usb_endpoint_t,
+extern errno_t usbhc_write(async_exch_t *, usb_address_t, usb_endpoint_t,
     uint64_t, const void *, size_t);
 
 /** Callback for outgoing transfer. */
-typedef void (*usbhc_iface_transfer_out_callback_t)(int, void *);
+typedef void (*usbhc_iface_transfer_out_callback_t)(errno_t, void *);
 
 /** Callback for incoming transfer. */
-typedef void (*usbhc_iface_transfer_in_callback_t)(int, size_t, void *);
+typedef void (*usbhc_iface_transfer_in_callback_t)(errno_t, size_t, void *);
 
 /** USB host controller communication interface. */
 typedef struct {
-	int (*read)(ddf_fun_t *, usb_target_t, uint64_t, uint8_t *, size_t,
+	errno_t (*read)(ddf_fun_t *, usb_target_t, uint64_t, uint8_t *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
-	int (*write)(ddf_fun_t *, usb_target_t, uint64_t, const uint8_t *,
+	errno_t (*write)(ddf_fun_t *, usb_target_t, uint64_t, const uint8_t *,
 	    size_t, usbhc_iface_transfer_out_callback_t, void *);
 } usbhc_iface_t;
 

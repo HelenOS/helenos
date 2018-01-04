@@ -51,7 +51,7 @@ enum {
 	icpic_max_irq = 32
 };
 
-static int icpic_enable_irq(icpic_t *icpic, sysarg_t irq)
+static errno_t icpic_enable_irq(icpic_t *icpic, sysarg_t irq)
 {
 	if (irq > icpic_max_irq)
 		return EINVAL;
@@ -111,11 +111,11 @@ static void icpic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Add icp-ic device. */
-int icpic_add(icpic_t *icpic, icpic_res_t *res)
+errno_t icpic_add(icpic_t *icpic, icpic_res_t *res)
 {
 	ddf_fun_t *fun_a = NULL;
 	void *regs;
-	int rc;
+	errno_t rc;
 
 	rc = pio_enable((void *)res->base, sizeof(icpic_regs_t), &regs);
 	if (rc != EOK) {
@@ -152,13 +152,13 @@ error:
 }
 
 /** Remove icp-ic device */
-int icpic_remove(icpic_t *icpic)
+errno_t icpic_remove(icpic_t *icpic)
 {
 	return ENOTSUP;
 }
 
 /** icp-ic device gone */
-int icpic_gone(icpic_t *icpic)
+errno_t icpic_gone(icpic_t *icpic)
 {
 	return ENOTSUP;
 }

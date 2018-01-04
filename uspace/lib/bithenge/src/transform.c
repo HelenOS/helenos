@@ -56,7 +56,7 @@
  * whatever parameters it has, so they can be passed to any param_wrappers
  * within.
  * @return EOK or an error code from errno.h. */
-int bithenge_init_transform(bithenge_transform_t *self,
+errno_t bithenge_init_transform(bithenge_transform_t *self,
     const bithenge_transform_ops_t *ops, int num_params)
 {
 	assert(ops);
@@ -82,7 +82,7 @@ static void transform_indestructible(bithenge_transform_t *self)
  * @param in The input tree.
  * @param[out] out Where the output tree will be stored.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_transform_apply(bithenge_transform_t *self,
+errno_t bithenge_transform_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	assert(self);
@@ -93,7 +93,7 @@ int bithenge_transform_apply(bithenge_transform_t *self,
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
 		return EINVAL;
 	aoff64_t self_size, whole_size;
-	int rc = bithenge_transform_prefix_apply(self, scope,
+	errno_t rc = bithenge_transform_prefix_apply(self, scope,
 	    bithenge_node_as_blob(in), out, &self_size);
 	if (rc != EOK)
 		return rc;
@@ -118,7 +118,7 @@ int bithenge_transform_apply(bithenge_transform_t *self,
  * @param[out] out Where the prefix length will be stored.
  * @return EOK on success, ENOTSUP if not supported, or another error code from
  * errno.h. */
-int bithenge_transform_prefix_length(bithenge_transform_t *self,
+errno_t bithenge_transform_prefix_length(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
 	assert(self);
@@ -129,7 +129,7 @@ int bithenge_transform_prefix_length(bithenge_transform_t *self,
 		return ENOTSUP;
 
 	bithenge_node_t *node;
-	int rc = bithenge_transform_prefix_apply(self, scope, blob, &node,
+	errno_t rc = bithenge_transform_prefix_apply(self, scope, blob, &node,
 	    out);
 	if (rc != EOK)
 		return rc;
@@ -149,7 +149,7 @@ int bithenge_transform_prefix_length(bithenge_transform_t *self,
  * case the size is not determined.
  * @return EOK on success, ENOTSUP if not supported, or another error code from
  * errno.h. */
-int bithenge_transform_prefix_apply(bithenge_transform_t *self,
+errno_t bithenge_transform_prefix_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
     aoff64_t *out_size)
 {
@@ -162,7 +162,7 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *self,
 		return ENOTSUP;
 
 	aoff64_t size;
-	int rc = bithenge_transform_prefix_length(self, scope, blob, &size);
+	errno_t rc = bithenge_transform_prefix_length(self, scope, blob, &size);
 	if (rc != EOK)
 		return rc;
 	bithenge_node_t *prefix_blob;
@@ -187,7 +187,7 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *self,
  * @param[out] out Holds the new scope.
  * @param outer The outer scope, or NULL.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
+errno_t bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
 {
 	bithenge_scope_t *self = malloc(sizeof(*self));
 	if (!self)
@@ -250,7 +250,7 @@ const char *bithenge_scope_get_error(bithenge_scope_t *scope)
  * @param scope The scope.
  * @param format The format string.
  * @return EINVAL normally, or another error code from errno.h. */
-int bithenge_scope_error(bithenge_scope_t *scope, const char *format, ...)
+errno_t bithenge_scope_error(bithenge_scope_t *scope, const char *format, ...)
 {
 	if (scope->error)
 		return EINVAL;
@@ -270,7 +270,7 @@ int bithenge_scope_error(bithenge_scope_t *scope, const char *format, ...)
 	while (*format) {
 		if (format[0] == '%' && format[1] == 't') {
 			format += 2;
-			int rc = bithenge_print_node_to_string(&out,
+			errno_t rc = bithenge_print_node_to_string(&out,
 			    &space_left, BITHENGE_PRINT_PYTHON,
 			    va_arg(ap, bithenge_node_t *));
 			if (rc != EOK) {
@@ -363,7 +363,7 @@ bool bithenge_scope_is_barrier(bithenge_scope_t *self)
  * @param scope The scope in which to allocate parameters.
  * @param num_params The number of parameters to allocate.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_scope_alloc_params(bithenge_scope_t *scope, int num_params)
+errno_t bithenge_scope_alloc_params(bithenge_scope_t *scope, int num_params)
 {
 	scope->params = malloc(sizeof(*scope->params) * num_params);
 	if (!scope->params)
@@ -381,7 +381,7 @@ int bithenge_scope_alloc_params(bithenge_scope_t *scope, int num_params)
  * @param i The index of the parameter to set.
  * @param node The value to store in the parameter.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_scope_set_param( bithenge_scope_t *scope, int i,
+errno_t bithenge_scope_set_param( bithenge_scope_t *scope, int i,
     bithenge_node_t *node)
 {
 	assert(scope);
@@ -400,7 +400,7 @@ int bithenge_scope_set_param( bithenge_scope_t *scope, int i,
  * @param i The index of the parameter to set.
  * @param[out] out Stores a new reference to the parameter.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_scope_get_param(bithenge_scope_t *scope, int i,
+errno_t bithenge_scope_get_param(bithenge_scope_t *scope, int i,
     bithenge_node_t **out)
 {
 	assert(scope);
@@ -435,12 +435,12 @@ static inline bithenge_transform_t *barrier_as_transform(
 	return &self->base;
 }
 
-static int barrier_transform_apply(bithenge_transform_t *base,
+static errno_t barrier_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	barrier_transform_t *self = transform_as_barrier(base);
 	bithenge_scope_t *inner_scope;
-	int rc = bithenge_scope_new(&inner_scope, scope);
+	errno_t rc = bithenge_scope_new(&inner_scope, scope);
 	if (rc != EOK)
 		return rc;
 	bithenge_scope_set_barrier(inner_scope);
@@ -450,12 +450,12 @@ static int barrier_transform_apply(bithenge_transform_t *base,
 	return rc;
 }
 
-static int barrier_transform_prefix_length(bithenge_transform_t *base,
+static errno_t barrier_transform_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
 {
 	barrier_transform_t *self = transform_as_barrier(base);
 	bithenge_scope_t *inner_scope;
-	int rc = bithenge_scope_new(&inner_scope, scope);
+	errno_t rc = bithenge_scope_new(&inner_scope, scope);
 	if (rc != EOK)
 		return rc;
 	bithenge_scope_set_barrier(inner_scope);
@@ -466,13 +466,13 @@ static int barrier_transform_prefix_length(bithenge_transform_t *base,
 	return rc;
 }
 
-static int barrier_transform_prefix_apply(bithenge_transform_t *base,
+static errno_t barrier_transform_prefix_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *in, bithenge_node_t **out_node,
     aoff64_t *out_length)
 {
 	barrier_transform_t *self = transform_as_barrier(base);
 	bithenge_scope_t *inner_scope;
-	int rc = bithenge_scope_new(&inner_scope, scope);
+	errno_t rc = bithenge_scope_new(&inner_scope, scope);
 	if (rc != EOK)
 		return rc;
 	bithenge_scope_set_barrier(inner_scope);
@@ -502,7 +502,7 @@ static const bithenge_transform_ops_t barrier_transform_ops = {
  * @param base The barrier transform.
  * @param transform The subtransform to use for all operations.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_barrier_transform_set_subtransform(bithenge_transform_t *base,
+errno_t bithenge_barrier_transform_set_subtransform(bithenge_transform_t *base,
     bithenge_transform_t *transform)
 {
 	assert(transform);
@@ -526,9 +526,9 @@ int bithenge_barrier_transform_set_subtransform(bithenge_transform_t *base,
  * @param[out] out Holds the created transform.
  * @param num_params The number of parameters to require, which may be 0.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_barrier_transform(bithenge_transform_t **out, int num_params)
+errno_t bithenge_new_barrier_transform(bithenge_transform_t **out, int num_params)
 {
-	int rc;
+	errno_t rc;
 	barrier_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -550,10 +550,10 @@ error:
 
 /***************** ascii                                     *****************/
 
-static int ascii_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
+static errno_t ascii_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_node_t *in, bithenge_node_t **out)
 {
-	int rc;
+	errno_t rc;
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
 		return EINVAL;
 	bithenge_blob_t *blob = bithenge_node_as_blob(in);
@@ -595,13 +595,13 @@ bithenge_transform_t bithenge_ascii_transform = {
 
 /***************** bit                                       *****************/
 
-static int bit_prefix_apply(bithenge_transform_t *self,
+static errno_t bit_prefix_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
     aoff64_t *out_size)
 {
 	char buffer;
 	aoff64_t size = 1;
-	int rc = bithenge_blob_read_bits(blob, 0, &buffer, &size, true);
+	errno_t rc = bithenge_blob_read_bits(blob, 0, &buffer, &size, true);
 	if (rc != EOK)
 		return rc;
 	if (size != 1)
@@ -641,10 +641,10 @@ static bithenge_blob_t *bits_xe_as_blob(bits_xe_blob_t *self)
 	return &self->base;
 }
 
-static int bits_xe_size(bithenge_blob_t *base, aoff64_t *out)
+static errno_t bits_xe_size(bithenge_blob_t *base, aoff64_t *out)
 {
 	bits_xe_blob_t *self = blob_as_bits_xe(base);
-	int rc = bithenge_blob_size(self->bytes, out);
+	errno_t rc = bithenge_blob_size(self->bytes, out);
 	*out *= 8;
 	return rc;
 }
@@ -657,7 +657,7 @@ static uint8_t reverse_byte(uint8_t val)
 	return val;
 }
 
-static int bits_xe_read_bits(bithenge_blob_t *base, aoff64_t offset,
+static errno_t bits_xe_read_bits(bithenge_blob_t *base, aoff64_t offset,
     char *buffer, aoff64_t *size, bool little_endian)
 {
 	bits_xe_blob_t *self = blob_as_bits_xe(base);
@@ -675,7 +675,7 @@ static int bits_xe_read_bits(bithenge_blob_t *base, aoff64_t offset,
 	} else
 		bytes_buffer = (uint8_t *)buffer;
 
-	int rc = bithenge_blob_read(self->bytes, bytes_offset,
+	errno_t rc = bithenge_blob_read(self->bytes, bytes_offset,
 	    (char *)bytes_buffer, &bytes_size);
 	if (rc != EOK)
 		goto end;
@@ -714,7 +714,7 @@ static const bithenge_random_access_blob_ops_t bits_xe_blob_ops = {
 	.destroy = bits_xe_destroy,
 };
 
-static int bits_xe_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
+static errno_t bits_xe_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_node_t *in, bithenge_node_t **out)
 {
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
@@ -722,7 +722,7 @@ static int bits_xe_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
 	bits_xe_blob_t *blob = malloc(sizeof(*blob));
 	if (!blob)
 		return ENOMEM;
-	int rc = bithenge_init_random_access_blob(bits_xe_as_blob(blob),
+	errno_t rc = bithenge_init_random_access_blob(bits_xe_as_blob(blob),
 	    &bits_xe_blob_ops);
 	if (rc != EOK) {
 		free(blob);
@@ -756,7 +756,7 @@ bithenge_transform_t bithenge_bits_le_transform = {
 
 /***************** invalid                                   *****************/
 
-static int invalid_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
+static errno_t invalid_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_node_t *in, bithenge_node_t **out)
 {
 	return EINVAL;
@@ -776,11 +776,11 @@ bithenge_transform_t bithenge_invalid_transform = {
 
 /***************** known_length                              *****************/
 
-static int known_length_apply(bithenge_transform_t *self,
+static errno_t known_length_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	bithenge_node_t *length_node;
-	int rc = bithenge_scope_get_param(scope, 0, &length_node);
+	errno_t rc = bithenge_scope_get_param(scope, 0, &length_node);
 	if (rc != EOK)
 		return rc;
 	if (bithenge_node_type(length_node) != BITHENGE_NODE_INTEGER) {
@@ -804,11 +804,11 @@ static int known_length_apply(bithenge_transform_t *self,
 	return EOK;
 }
 
-static int known_length_prefix_length(bithenge_transform_t *self,
+static errno_t known_length_prefix_length(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
 {
 	bithenge_node_t *length_node;
-	int rc = bithenge_scope_get_param(scope, 0, &length_node);
+	errno_t rc = bithenge_scope_get_param(scope, 0, &length_node);
 	if (rc != EOK)
 		return rc;
 	if (bithenge_node_type(length_node) != BITHENGE_NODE_INTEGER) {
@@ -833,7 +833,7 @@ bithenge_transform_t bithenge_known_length_transform = {
 	&known_length_ops, 1, 1
 };
 
-static int nonzero_boolean_apply(bithenge_transform_t *self,
+static errno_t nonzero_boolean_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	if (bithenge_node_type(in) != BITHENGE_NODE_INTEGER)
@@ -852,28 +852,28 @@ bithenge_transform_t bithenge_nonzero_boolean_transform = {
 	&nonzero_boolean_ops, 1, 0
 };
 
-static int prefix_length_1(bithenge_transform_t *self, bithenge_scope_t *scope,
+static errno_t prefix_length_1(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_blob_t *blob, aoff64_t *out)
 {
 	*out = 1;
 	return EOK;
 }
 
-static int prefix_length_2(bithenge_transform_t *self, bithenge_scope_t *scope,
+static errno_t prefix_length_2(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_blob_t *blob, aoff64_t *out)
 {
 	*out = 2;
 	return EOK;
 }
 
-static int prefix_length_4(bithenge_transform_t *self, bithenge_scope_t *scope,
+static errno_t prefix_length_4(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_blob_t *blob, aoff64_t *out)
 {
 	*out = 4;
 	return EOK;
 }
 
-static int prefix_length_8(bithenge_transform_t *self, bithenge_scope_t *scope,
+static errno_t prefix_length_8(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_blob_t *blob, aoff64_t *out)
 {
 	*out = 8;
@@ -882,11 +882,11 @@ static int prefix_length_8(bithenge_transform_t *self, bithenge_scope_t *scope,
 
 /** @cond internal */
 #define MAKE_UINT_TRANSFORM(NAME, TYPE, ENDIAN, PREFIX_LENGTH_FUNC)            \
-	static int NAME##_apply(bithenge_transform_t *self,                    \
+	static errno_t NAME##_apply(bithenge_transform_t *self,                    \
 	    bithenge_scope_t *scope, bithenge_node_t *in,                      \
 	    bithenge_node_t **out)                                             \
 	{                                                                      \
-		int rc;                                                        \
+		errno_t rc;                                                        \
 		if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)              \
 			return EINVAL;                                         \
 		bithenge_blob_t *blob = bithenge_node_as_blob(in);             \
@@ -926,13 +926,13 @@ MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint64_t_be2host, prefix_length_8);
 
 /***************** uint_be, uint_le                          *****************/
 
-static int uint_xe_prefix_apply(bithenge_transform_t *self,
+static errno_t uint_xe_prefix_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
     aoff64_t *out_size)
 {
 	bool little_endian = (self == &bithenge_uint_le_transform);
 	bithenge_node_t *num_bits_node;
-	int rc = bithenge_scope_get_param(scope, 0, &num_bits_node);
+	errno_t rc = bithenge_scope_get_param(scope, 0, &num_bits_node);
 	if (rc != EOK)
 		return rc;
 	if (bithenge_node_type(num_bits_node) != BITHENGE_NODE_INTEGER) {
@@ -996,10 +996,10 @@ bithenge_transform_t bithenge_uint_le_transform = {
 
 /***************** zero_terminated                           *****************/
 
-static int zero_terminated_apply(bithenge_transform_t *self,
+static errno_t zero_terminated_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
-	int rc;
+	errno_t rc;
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
 		return EINVAL;
 	bithenge_blob_t *blob = bithenge_node_as_blob(in);
@@ -1020,10 +1020,10 @@ static int zero_terminated_apply(bithenge_transform_t *self,
 	return bithenge_new_subblob(out, blob, 0, size - 1);
 }
 
-static int zero_terminated_prefix_length(bithenge_transform_t *self,
+static errno_t zero_terminated_prefix_length(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
-	int rc;
+	errno_t rc;
 	char buffer[4096];
 	aoff64_t offset = 0, size_read = sizeof(buffer);
 	do {

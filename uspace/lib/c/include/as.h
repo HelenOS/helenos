@@ -56,11 +56,11 @@ static inline size_t PAGES2SIZE(size_t pages)
 
 extern void *as_area_create(void *, size_t, unsigned int,
     as_area_pager_info_t *);
-extern int as_area_resize(void *, size_t, unsigned int);
-extern int as_area_change_flags(void *, unsigned int);
-extern int as_area_destroy(void *);
+extern errno_t as_area_resize(void *, size_t, unsigned int);
+extern errno_t as_area_change_flags(void *, unsigned int);
+extern errno_t as_area_destroy(void *);
 extern void *set_maxheapsize(size_t);
-extern int as_get_physical_mapping(const void *, uintptr_t *);
+extern errno_t as_get_physical_mapping(const void *, uintptr_t *);
 
 #endif
 

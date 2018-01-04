@@ -269,7 +269,7 @@ static inline uint16_t get_bits(inflate_state_t *state, size_t cnt)
  * @return EINVAL on invalid data.
  *
  */
-static int inflate_stored(inflate_state_t *state)
+static errno_t inflate_stored(inflate_state_t *state)
 {
 	/* Discard bits in the bit buffer */
 	state->bitbuf = 0;
@@ -315,7 +315,7 @@ static int inflate_stored(inflate_state_t *state)
  * @param EINVAL on invalid Huffman code.
  *
  */
-static int huffman_decode(inflate_state_t *state, huffman_t *huffman,
+static errno_t huffman_decode(inflate_state_t *state, huffman_t *huffman,
     uint16_t *symbol)
 {
 	uint16_t code = 0; /* Decoded bits */
@@ -417,13 +417,13 @@ static int16_t huffman_construct(huffman_t *huffman, uint16_t *length, size_t n)
  * @return ENOMEM on output buffer overrun.
  *
  */
-static int inflate_codes(inflate_state_t *state, huffman_t* len_code,
+static errno_t inflate_codes(inflate_state_t *state, huffman_t* len_code,
     huffman_t* dist_code)
 {
 	uint16_t symbol;
 	
 	do {
-		int err = huffman_decode(state, len_code, &symbol);
+		errno_t err = huffman_decode(state, len_code, &symbol);
 		if (err != EOK) {
 			/* Error decoding */
 			return err;
@@ -483,7 +483,7 @@ static int inflate_codes(inflate_state_t *state, huffman_t* len_code,
  * @return ENOMEM on output buffer overrun.
  *
  */
-static int inflate_fixed(inflate_state_t *state, huffman_t *len_code,
+static errno_t inflate_fixed(inflate_state_t *state, huffman_t *len_code,
     huffman_t *dist_code)
 {
 	return inflate_codes(state, len_code, dist_code);
@@ -500,7 +500,7 @@ static int inflate_fixed(inflate_state_t *state, huffman_t *len_code,
  * @return ENOMEM on output buffer overrun.
  *
  */
-static int inflate_dynamic(inflate_state_t *state)
+static errno_t inflate_dynamic(inflate_state_t *state)
 {
 	uint16_t length[MAX_CODE];
 	uint16_t dyn_len_count[MAX_HUFFMAN_BIT + 1];
@@ -550,7 +550,7 @@ static int inflate_dynamic(inflate_state_t *state)
 	index = 0;
 	while (index < nlen + ndist) {
 		uint16_t symbol;
-		int err = huffman_decode(state, &dyn_len_code, &symbol);
+		errno_t err = huffman_decode(state, &dyn_len_code, &symbol);
 		if (err != EOK)
 			return EOK;
 		
@@ -617,7 +617,7 @@ static int inflate_dynamic(inflate_state_t *state)
  * @return ENOMEM on output buffer overrun.
  *
  */
-int inflate(void *src, size_t srclen, void *dest, size_t destlen)
+errno_t inflate(void *src, size_t srclen, void *dest, size_t destlen)
 {
 	/* Initialize the state */
 	inflate_state_t state;
@@ -636,7 +636,7 @@ int inflate(void *src, size_t srclen, void *dest, size_t destlen)
 	state.overrun = false;
 	
 	uint16_t last;
-	int ret = EOK;
+	errno_t ret = EOK;
 	
 	do {
 		/* Last block is indicated by a non-zero bit */

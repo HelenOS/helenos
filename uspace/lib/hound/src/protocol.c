@@ -92,7 +92,7 @@ const char *HOUND_SERVICE = "audio/hound";
 hound_sess_t *hound_service_connect(const char *service)
 {
 	service_id_t id = 0;
-	const int ret =
+	const errno_t ret =
 	    loc_service_get_id(service, &id, IPC_FLAG_BLOCKING);
 	if (ret != EOK)
 		return NULL;
@@ -119,7 +119,7 @@ void hound_service_disconnect(hound_sess_t *sess)
  *
  * @return EOK on success, Error code on failure.
  */
-int hound_service_register_context(hound_sess_t *sess,
+errno_t hound_service_register_context(hound_sess_t *sess,
     const char *name, bool record, hound_context_id_t *id)
 {
 	assert(sess);
@@ -128,7 +128,7 @@ int hound_service_register_context(hound_sess_t *sess,
 	async_exch_t *exch = async_exchange_begin(sess);
 	aid_t mid =
 	    async_send_1(exch, IPC_M_HOUND_CONTEXT_REGISTER, record, &call);
-	int ret = mid ? EOK : EPARTY;
+	errno_t ret = mid ? EOK : EPARTY;
 
 	if (ret == EOK)
 		ret = async_data_write_start(exch, name, str_size(name));
@@ -152,11 +152,11 @@ int hound_service_register_context(hound_sess_t *sess,
  * @param id Valid context id.
  * @return Error code.
  */
-int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
+errno_t hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
 {
 	assert(sess);
 	async_exch_t *exch = async_exchange_begin(sess);
-	const int ret =
+	const errno_t ret =
 	    async_req_1_0(exch, IPC_M_HOUND_CONTEXT_UNREGISTER, id);
 	async_exchange_end(exch);
 	return ret;
@@ -172,7 +172,7 @@ int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
  *            contain connected actors.
  * @retval Error code.
  */
-int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
+errno_t hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
     int flags, const char *connection)
 {
 	assert(sess);
@@ -190,7 +190,7 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
 	aid_t mid = async_send_3(exch, IPC_M_HOUND_GET_LIST, flags, *count,
 	    connection != NULL, &res_call);
 
-	int ret = EOK;
+	errno_t ret = EOK;
 	if (mid && connection)
 		ret = async_data_write_start(exch, connection,
 		    str_size(connection));
@@ -246,7 +246,7 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
  * @param sink Sink name, valid string.
  * @return Error code.
  */
-int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
+errno_t hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
     const char *sink)
 {
 	assert(sess);
@@ -258,7 +258,7 @@ int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
 		return ENOMEM;
 	ipc_call_t call;
 	aid_t id = async_send_0(exch, IPC_M_HOUND_CONNECT, &call);
-	int ret = id ? EOK : EPARTY;
+	errno_t ret = id ? EOK : EPARTY;
 	if (ret == EOK)
 		ret = async_data_write_start(exch, source, str_size(source));
 	if (ret == EOK)
@@ -275,7 +275,7 @@ int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
  * @param sink Sink name, valid string.
  * @return Error code.
  */
-int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
+errno_t hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
     const char *sink)
 {
 	assert(sess);
@@ -284,7 +284,7 @@ int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
 		return ENOMEM;
 	ipc_call_t call;
 	aid_t id = async_send_0(exch, IPC_M_HOUND_DISCONNECT, &call);
-	int ret = id ? EOK : EPARTY;
+	errno_t ret = id ? EOK : EPARTY;
 	if (ret == EOK)
 		ret = async_data_write_start(exch, source, str_size(source));
 	if (ret == EOK)
@@ -303,7 +303,7 @@ int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
  * @param bsize size of the server side buffer.
  * @return Error code.
  */
-int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
+errno_t hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
     int flags, pcm_format_t format, size_t bsize)
 {
 	const format_convert_t c = { .f = {
@@ -320,7 +320,7 @@ int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
  * @param exch IPC exchange.
  * @return Error code.
  */
-int hound_service_stream_exit(async_exch_t *exch)
+errno_t hound_service_stream_exit(async_exch_t *exch)
 {
 	return async_req_0_0(exch, IPC_M_HOUND_STREAM_EXIT);
 }
@@ -330,7 +330,7 @@ int hound_service_stream_exit(async_exch_t *exch)
  * @param exch IPC exchange.
  * @return Error code.
  */
-int hound_service_stream_drain(async_exch_t *exch)
+errno_t hound_service_stream_drain(async_exch_t *exch)
 {
 	return async_req_0_0(exch, IPC_M_HOUND_STREAM_DRAIN);
 }
@@ -342,7 +342,7 @@ int hound_service_stream_drain(async_exch_t *exch)
  * @size size of the buffer
  * @return Error code.
  */
-int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size)
+errno_t hound_service_stream_write(async_exch_t *exch, const void *data, size_t size)
 {
 	return async_data_write_start(exch, data, size);
 }
@@ -354,7 +354,7 @@ int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size
  * @size size of the buffer
  * @return Error code.
  */
-int hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
+errno_t hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
 {
 	return async_data_read_start(exch, data, size);
 }
@@ -406,7 +406,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			void *name;
 
 			/* Get context name */
-			int ret =
+			errno_t ret =
 			    async_data_write_accept(&name, true, 0, 0, 0, 0);
 			if (ret != EOK) {
 				async_answer_0(callid, ret);
@@ -433,7 +433,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 			/* get id, 1st param */
 			hound_context_id_t id = IPC_GET_ARG1(call);
-			const int ret =
+			const errno_t ret =
 			    server_iface->rem_context(server_iface->server, id);
 			async_answer_0(callid, ret);
 			break;
@@ -450,7 +450,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			size_t count = IPC_GET_ARG2(call);
 			const bool conn = IPC_GET_ARG3(call);
 			char *conn_name = NULL;
-			int ret = EOK;
+			errno_t ret = EOK;
 
 			/* get connected actor name if provided */
 			if (conn)
@@ -512,7 +512,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			void *sink = NULL;
 
 			/* read source name */
-			int ret =
+			errno_t ret =
 			    async_data_write_accept(&source, true, 0, 0, 0, 0);
 			/* read sink name */
 			if (ret == EOK)
@@ -538,7 +538,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			void *sink = NULL;
 
 			/* read source name */
-			int ret =
+			errno_t ret =
 			    async_data_write_accept(&source, true, 0, 0, 0, 0);
 			/*read sink name */
 			if (ret == EOK)
@@ -573,7 +573,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			size_t bsize = IPC_GET_ARG4(call);
 
 			void *stream;
-			int ret = server_iface->add_stream(server_iface->server,
+			errno_t ret = server_iface->add_stream(server_iface->server,
 			    id, flags, f, bsize, &stream);
 			if (ret != EOK) {
 				async_answer_0(callid, ret);
@@ -625,13 +625,13 @@ static void hound_server_read_data(void *stream)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	size_t size = 0;
-	int ret_answer = EOK;
+	errno_t ret_answer = EOK;
 	/* accept data write or drain */
 	while (async_data_write_receive_call(&callid, &call, &size)
 	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
 		/* check drain first */
 		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
-			int ret = ENOTSUP;
+			errno_t ret = ENOTSUP;
 			if (server_iface->drain_stream)
 				ret = server_iface->drain_stream(stream);
 			async_answer_0(callid, ret);
@@ -649,14 +649,14 @@ static void hound_server_read_data(void *stream)
 			async_answer_0(callid, ENOMEM);
 			continue;
 		}
-		const int ret = async_data_write_finalize(callid, buffer, size);
+		const errno_t ret = async_data_write_finalize(callid, buffer, size);
 		if (ret == EOK) {
 			/* push data to stream */
 			ret_answer = server_iface->stream_data_write(
 			    stream, buffer, size);
 		}
 	}
-	const int ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
+	const errno_t ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
 	    ? EOK : EINVAL;
 
 	async_answer_0(callid, ret);
@@ -672,13 +672,13 @@ static void hound_server_write_data(void *stream)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	size_t size = 0;
-	int ret_answer = EOK;
+	errno_t ret_answer = EOK;
 	/* accept data read and drain */
 	while (async_data_read_receive_call(&callid, &call, &size)
 	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
 		/* drain does not make much sense but it is allowed */
 		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
-			int ret = ENOTSUP;
+			errno_t ret = ENOTSUP;
 			if (server_iface->drain_stream)
 				ret = server_iface->drain_stream(stream);
 			async_answer_0(callid, ret);
@@ -694,13 +694,13 @@ static void hound_server_write_data(void *stream)
 			async_answer_0(callid, ENOMEM);
 			continue;
 		}
-		int ret = server_iface->stream_data_read(stream, buffer, size);
+		errno_t ret = server_iface->stream_data_read(stream, buffer, size);
 		if (ret == EOK) {
 			ret_answer =
 			    async_data_read_finalize(callid, buffer, size);
 		}
 	}
-	const int ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
+	const errno_t ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
 	    ? EOK : EINVAL;
 
 	async_answer_0(callid, ret);
@@ -717,12 +717,12 @@ static void hound_server_write_data(void *stream)
  * @param[out] id assigned service id.
  * @return Error code.
  */
-int hound_server_register(const char *name, service_id_t *id)
+errno_t hound_server_register(const char *name, service_id_t *id)
 {
 	if (!name || !id)
 		return EINVAL;
 
-	int ret = loc_server_register(name);
+	errno_t ret = loc_server_register(name);
 	if (ret != EOK)
 		return ret;
 
@@ -743,7 +743,7 @@ void hound_server_unregister(service_id_t id)
  * @param cb Callback function.
  * @return Error code.
  */
-int hound_server_set_device_change_callback(dev_change_callback_t cb)
+errno_t hound_server_set_device_change_callback(dev_change_callback_t cb)
 {
 	return loc_register_cat_change_cb(cb);
 }
@@ -753,7 +753,7 @@ int hound_server_set_device_change_callback(dev_change_callback_t cb)
  * @param callback Function to call on every device.
  * @return Error code.
  */
-int hound_server_devices_iterate(device_callback_t callback)
+errno_t hound_server_devices_iterate(device_callback_t callback)
 {
 	if (!callback)
 		return EINVAL;
@@ -761,7 +761,7 @@ int hound_server_devices_iterate(device_callback_t callback)
 	static category_id_t cat_id = 0;
 
 	if (!resolved) {
-		const int ret = loc_category_get_id("audio-pcm", &cat_id,
+		const errno_t ret = loc_category_get_id("audio-pcm", &cat_id,
 		    IPC_FLAG_BLOCKING);
 		if (ret != EOK)
 			return ret;
@@ -770,7 +770,7 @@ int hound_server_devices_iterate(device_callback_t callback)
 
 	service_id_t *svcs = NULL;
 	size_t count = 0;
-	const int ret = loc_category_get_svcs(cat_id, &svcs, &count);
+	const errno_t ret = loc_category_get_svcs(cat_id, &svcs, &count);
 	if (ret != EOK)
 		return ret;
 

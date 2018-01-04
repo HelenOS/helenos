@@ -43,10 +43,10 @@
 
 #include "empty.h"
 
-static int empty_get_bsize(void *, size_t *);
-static int empty_get_nblocks(void *, aoff64_t *);
-static int empty_read(void *, aoff64_t, size_t, void *);
-static int empty_write(void *, aoff64_t, size_t, const void *);
+static errno_t empty_get_bsize(void *, size_t *);
+static errno_t empty_get_nblocks(void *, aoff64_t *);
+static errno_t empty_read(void *, aoff64_t, size_t, void *);
+static errno_t empty_write(void *, aoff64_t, size_t, const void *);
 
 /** Provide disk access to liblabel */
 static label_bd_ops_t empty_bd_ops = {
@@ -56,9 +56,9 @@ static label_bd_ops_t empty_bd_ops = {
 	.write = empty_write
 };
 
-int volsrv_part_is_empty(service_id_t sid, bool *rempty)
+errno_t volsrv_part_is_empty(service_id_t sid, bool *rempty)
 {
-	int rc;
+	errno_t rc;
 	label_bd_t lbd;
 
 	rc = block_init(sid, 2048);
@@ -77,9 +77,9 @@ int volsrv_part_is_empty(service_id_t sid, bool *rempty)
 	return rc;
 }
 
-int volsrv_part_empty(service_id_t sid)
+errno_t volsrv_part_empty(service_id_t sid)
 {
-	int rc;
+	errno_t rc;
 	label_bd_t lbd;
 
 	rc = block_init(sid, 2048);
@@ -99,28 +99,28 @@ int volsrv_part_empty(service_id_t sid)
 }
 
 /** Get block size wrapper for liblabel */
-static int empty_get_bsize(void *arg, size_t *bsize)
+static errno_t empty_get_bsize(void *arg, size_t *bsize)
 {
 	service_id_t svc_id = *(service_id_t *)arg;
 	return block_get_bsize(svc_id, bsize);
 }
 
 /** Get number of blocks wrapper for liblabel */
-static int empty_get_nblocks(void *arg, aoff64_t *nblocks)
+static errno_t empty_get_nblocks(void *arg, aoff64_t *nblocks)
 {
 	service_id_t svc_id = *(service_id_t *)arg;
 	return block_get_nblocks(svc_id, nblocks);
 }
 
 /** Read blocks wrapper for liblabel */
-static int empty_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
+static errno_t empty_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
 {
 	service_id_t svc_id = *(service_id_t *)arg;
 	return block_read_direct(svc_id, ba, cnt, buf);
 }
 
 /** Write blocks wrapper for liblabel */
-static int empty_write(void *arg, aoff64_t ba, size_t cnt, const void *data)
+static errno_t empty_write(void *arg, aoff64_t ba, size_t cnt, const void *data)
 {
 	service_id_t svc_id = *(service_id_t *)arg;
 	return block_write_direct(svc_id, ba, cnt, data);

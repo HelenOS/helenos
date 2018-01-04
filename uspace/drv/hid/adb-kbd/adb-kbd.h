@@ -43,9 +43,9 @@ typedef struct {
 	async_sess_t *client_sess;
 } adb_kbd_t;
 
-extern int adb_kbd_add(adb_kbd_t *);
-extern int adb_kbd_remove(adb_kbd_t *);
-extern int adb_kbd_gone(adb_kbd_t *);
+extern errno_t adb_kbd_add(adb_kbd_t *);
+extern errno_t adb_kbd_remove(adb_kbd_t *);
+extern errno_t adb_kbd_gone(adb_kbd_t *);
 
 #endif
 

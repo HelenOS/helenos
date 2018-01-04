@@ -76,17 +76,17 @@ static const usb_endpoint_description_t *mast_endpoints[] = {
 	NULL
 };
 
-static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun);
+static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun);
 static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
 
-static int usbmast_bd_open(bd_srvs_t *, bd_srv_t *);
-static int usbmast_bd_close(bd_srv_t *);
-static int usbmast_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
-static int usbmast_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
-static int usbmast_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
-static int usbmast_bd_get_block_size(bd_srv_t *, size_t *);
-static int usbmast_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t usbmast_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t usbmast_bd_close(bd_srv_t *);
+static errno_t usbmast_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static errno_t usbmast_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
+static errno_t usbmast_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static errno_t usbmast_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t usbmast_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 static bd_ops_t usbmast_bd_ops = {
 	.open = usbmast_bd_open,
@@ -108,13 +108,13 @@ static usbmast_fun_t *bd_srv_usbmast(bd_srv_t *bd)
  * @param dev Representation of USB device.
  * @return Error code.
  */
-static int usbmast_device_gone(usb_device_t *dev)
+static errno_t usbmast_device_gone(usb_device_t *dev)
 {
 	usbmast_dev_t *mdev = usb_device_data_get(dev);
 	assert(mdev);
 
 	for (size_t i = 0; i < mdev->lun_count; ++i) {
-		const int rc = ddf_fun_unbind(mdev->luns[i]);
+		const errno_t rc = ddf_fun_unbind(mdev->luns[i]);
 		if (rc != EOK) {
 			usb_log_error("Failed to unbind LUN function %zu: "
 			    "%s\n", i, str_error(rc));
@@ -132,7 +132,7 @@ static int usbmast_device_gone(usb_device_t *dev)
  * @param dev Representation of USB device.
  * @return Error code.
  */
-static int usbmast_device_remove(usb_device_t *dev)
+static errno_t usbmast_device_remove(usb_device_t *dev)
 {
 	//TODO: flush buffers, or whatever.
 	//TODO: remove device
@@ -144,9 +144,9 @@ static int usbmast_device_remove(usb_device_t *dev)
  * @param dev Representation of USB device.
  * @return Error code.
  */
-static int usbmast_device_add(usb_device_t *dev)
+static errno_t usbmast_device_add(usb_device_t *dev)
 {
-	int rc;
+	errno_t rc;
 	usbmast_dev_t *mdev = NULL;
 	unsigned i;
 
@@ -198,7 +198,7 @@ error:
 	for (size_t i = 0; i < mdev->lun_count; ++i) {
 		if (mdev->luns[i] == NULL)
 			continue;
-		const int rc = ddf_fun_unbind(mdev->luns[i]);
+		const errno_t rc = ddf_fun_unbind(mdev->luns[i]);
 		if (rc != EOK) {
 			usb_log_warning("Failed to unbind LUN function %zu: "
 			    "%s.\n", i, str_error(rc));
@@ -217,9 +217,9 @@ error:
  * @param lun		LUN
  * @return		EOK on success or an error code.
  */
-static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
+static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 {
-	int rc;
+	errno_t rc;
 	char *fun_name = NULL;
 	ddf_fun_t *fun = NULL;
 	usbmast_fun_t *mfun = NULL;
@@ -326,19 +326,19 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 }
 
 /** Open device. */
-static int usbmast_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+static errno_t usbmast_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Close device. */
-static int usbmast_bd_close(bd_srv_t *bd)
+static errno_t usbmast_bd_close(bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Read blocks from the device. */
-static int usbmast_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
+static errno_t usbmast_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
     size_t size)
 {
 	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
@@ -350,7 +350,7 @@ static int usbmast_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *b
 }
 
 /** Synchronize blocks to nonvolatile storage. */
-static int usbmast_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
+static errno_t usbmast_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
 {
 	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
 
@@ -358,7 +358,7 @@ static int usbmast_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
 }
 
 /** Write blocks to the device. */
-static int usbmast_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+static errno_t usbmast_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
@@ -370,7 +370,7 @@ static int usbmast_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 }
 
 /** Get device block size. */
-static int usbmast_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+static errno_t usbmast_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
 	*rsize = mfun->block_size;
@@ -378,7 +378,7 @@ static int usbmast_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 }
 
 /** Get number of blocks on device. */
-static int usbmast_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+static errno_t usbmast_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
 	*rnb = mfun->nblocks;

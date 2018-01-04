@@ -41,8 +41,8 @@
 struct outdev;
 
 typedef struct {
-	int (* yield)(struct outdev *dev);
-	int (* claim)(struct outdev *dev);
+	errno_t (* yield)(struct outdev *dev);
+	errno_t (* claim)(struct outdev *dev);
 	
 	void (* get_dimensions)(struct outdev *dev, sysarg_t *cols,
 	    sysarg_t *rows);

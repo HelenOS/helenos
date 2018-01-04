@@ -40,8 +40,8 @@
 #include <types/inetping.h>
 #include "inetsrv.h"
 
-extern int icmpv6_recv(inet_dgram_t *);
-extern int icmpv6_ping_send(uint16_t, inetping_sdu_t *);
+extern errno_t icmpv6_recv(inet_dgram_t *);
+extern errno_t icmpv6_ping_send(uint16_t, inetping_sdu_t *);
 
 #endif
 

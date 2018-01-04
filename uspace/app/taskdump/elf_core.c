@@ -65,7 +65,7 @@
 #include "elf_core.h"
 
 static off64_t align_foff_up(off64_t, uintptr_t, size_t);
-static int write_mem_area(int, aoff64_t *, as_area_info_t *, async_sess_t *);
+static errno_t write_mem_area(int, aoff64_t *, as_area_info_t *, async_sess_t *);
 
 #define BUFFER_SIZE 0x1000
 static uint8_t buffer[BUFFER_SIZE];
@@ -83,7 +83,7 @@ static uint8_t buffer[BUFFER_SIZE];
  * @return EIO on write error.
  *
  */
-int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
+errno_t elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
     async_sess_t *sess, istate_t *istate)
 {
 	elf_header_t elf_hdr;
@@ -97,7 +97,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	aoff64_t pos = 0;
 
 	int fd;
-	int rc;
+	errno_t rc;
 	size_t nwr;
 	unsigned int i;
 
@@ -291,13 +291,13 @@ static off64_t align_foff_up(off64_t foff, uintptr_t vaddr, size_t page_size)
  * @return EOK on success, EIO on failure.
  *
  */
-static int write_mem_area(int fd, aoff64_t *pos, as_area_info_t *area,
+static errno_t write_mem_area(int fd, aoff64_t *pos, as_area_info_t *area,
     async_sess_t *sess)
 {
 	size_t to_copy;
 	size_t total;
 	uintptr_t addr;
-	int rc;
+	errno_t rc;
 	size_t nwr;
 
 	addr = area->start_addr;

@@ -80,8 +80,8 @@ static const usb_device_request_setup_packet_t get_hub_status_request = {
 	.length = sizeof(usb_hub_status_t),
 };
 
-static int usb_set_first_configuration(usb_device_t *usb_device);
-static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev);
+static errno_t usb_set_first_configuration(usb_device_t *usb_device);
+static errno_t usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev);
 static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
     usb_hub_status_t status);
 static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev);
@@ -96,7 +96,7 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
  * @param usb_dev generic usb device information
  * @return error code
  */
-int usb_hub_device_add(usb_device_t *usb_dev)
+errno_t usb_hub_device_add(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	/* Create driver soft-state structure */
@@ -113,7 +113,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	fibril_condvar_initialize(&hub_dev->pending_ops_cv);
 
 	/* Set hub's first configuration. (There should be only one) */
-	int opResult = usb_set_first_configuration(usb_dev);
+	errno_t opResult = usb_set_first_configuration(usb_dev);
 	if (opResult != EOK) {
 		usb_log_error("Could not set hub configuration: %s\n",
 		    str_error(opResult));
@@ -173,7 +173,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
  * @param usb_dev generic usb device information
  * @return error code
  */
-int usb_hub_device_remove(usb_device_t *usb_dev)
+errno_t usb_hub_device_remove(usb_device_t *usb_dev)
 {
 	return ENOTSUP;
 }
@@ -183,7 +183,7 @@ int usb_hub_device_remove(usb_device_t *usb_dev)
  * @param usb_dev generic usb device information
  * @return error code
  */
-int usb_hub_device_gone(usb_device_t *usb_dev)
+errno_t usb_hub_device_gone(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	usb_hub_dev_t *hub = usb_device_data_get(usb_dev);
@@ -201,13 +201,13 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	assert(!hub->running);
 
 	for (size_t port = 0; port < hub->port_count; ++port) {
-		const int ret = usb_hub_port_fini(&hub->ports[port], hub);
+		const errno_t ret = usb_hub_port_fini(&hub->ports[port], hub);
 		if (ret != EOK)
 			return ret;
 	}
 	free(hub->ports);
 
-	const int ret = ddf_fun_unbind(hub->hub_fun);
+	const errno_t ret = ddf_fun_unbind(hub->hub_fun);
 	if (ret != EOK) {
 		usb_log_error("(%p) Failed to unbind '%s' function: %s.",
 		   hub, HUB_FNC_NAME, str_error(ret));
@@ -265,7 +265,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
  * @param hub_dev hub representation
  * @return error code
  */
-static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
+static errno_t usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 {
 	assert(hub_dev);
 
@@ -276,7 +276,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 
 	usb_hub_descriptor_header_t descriptor;
 	size_t received_size;
-	int opResult = usb_request_get_descriptor(control_pipe,
+	errno_t opResult = usb_request_get_descriptor(control_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_HUB, 0, 0, &descriptor,
 	    sizeof(usb_hub_descriptor_header_t), &received_size);
@@ -316,7 +316,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 
 	for (unsigned int port = 0; port < hub_dev->port_count; ++port) {
 		usb_log_debug("(%p): Powering port %u.", hub_dev, port);
-		const int ret = usb_hub_port_set_feature(
+		const errno_t ret = usb_hub_port_set_feature(
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 
 		if (ret != EOK) {
@@ -342,7 +342,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
  * @param usb_device usb device representation
  * @return error code
  */
-static int usb_set_first_configuration(usb_device_t *usb_device)
+static errno_t usb_set_first_configuration(usb_device_t *usb_device)
 {
 	assert(usb_device);
 	/* Get number of possible configurations from device descriptor */
@@ -368,7 +368,7 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 
 	/* Set configuration. Use the configuration that was in
 	 * usb_device->descriptors.configuration i.e. The first one. */
-	const int opResult = usb_request_set_configuration(
+	const errno_t opResult = usb_request_set_configuration(
 	    usb_device_get_default_pipe(usb_device),
 	    config_descriptor->configuration_number);
 	if (opResult != EOK) {
@@ -405,7 +405,7 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
 
 	/* Over-current condition is gone, it is safe to turn the ports on. */
 	for (size_t port = 0; port < hub_dev->port_count; ++port) {
-		const int ret = usb_hub_port_set_feature(
+		const errno_t ret = usb_hub_port_set_feature(
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 		if (ret != EOK) {
 			usb_log_warning("(%p-%u): HUB OVER-CURRENT GONE: Cannot"
@@ -437,7 +437,7 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 	size_t rcvd_size;
 	/* NOTE: We can't use standard USB GET_STATUS request, because
 	 * hubs reply is 4byte instead of 2 */
-	const int opResult = usb_pipe_control_read(control_pipe,
+	const errno_t opResult = usb_pipe_control_read(control_pipe,
 	    &get_hub_status_request, sizeof(get_hub_status_request),
 	    &status, sizeof(usb_hub_status_t), &rcvd_size);
 	if (opResult != EOK) {
@@ -455,7 +455,7 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 	if (status & USB_HUB_STATUS_C_OVER_CURRENT) {
 		usb_hub_over_current(hub_dev, status);
 		/* Ack change in hub OC flag */
-		const int ret = usb_request_clear_feature(
+		const errno_t ret = usb_request_clear_feature(
 		    control_pipe, USB_REQUEST_TYPE_CLASS,
 		    USB_REQUEST_RECIPIENT_DEVICE,
 		    USB_HUB_FEATURE_C_HUB_OVER_CURRENT, 0);
@@ -479,7 +479,7 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 		 * implemented.
 		 * Just ACK the change.
 		 */
-		const int ret = usb_request_clear_feature(
+		const errno_t ret = usb_request_clear_feature(
 		    control_pipe, USB_REQUEST_TYPE_CLASS,
 		    USB_REQUEST_RECIPIENT_DEVICE,
 		    USB_HUB_FEATURE_C_HUB_LOCAL_POWER, 0);

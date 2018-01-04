@@ -193,17 +193,17 @@ typedef struct udf_space_bitmap_descriptor {
 	uint8_t bitmap[0];
 }__attribute__((packed)) udf_space_bitmap_descriptor_t;
 
-extern int udf_node_get_core(udf_node_t *);
-extern int udf_read_icb(udf_node_t *);
-extern int udf_read_allocation_sequence(udf_node_t *, uint8_t *, uint16_t,
+extern errno_t udf_node_get_core(udf_node_t *);
+extern errno_t udf_read_icb(udf_node_t *);
+extern errno_t udf_read_allocation_sequence(udf_node_t *, uint8_t *, uint16_t,
     uint32_t, uint32_t);
-extern int udf_read_file(size_t *, ipc_callid_t, udf_node_t *, aoff64_t,
+extern errno_t udf_read_file(size_t *, ipc_callid_t, udf_node_t *, aoff64_t,
     size_t);
-extern int udf_get_fid(udf_file_identifier_descriptor_t **, block_t **,
+extern errno_t udf_get_fid(udf_file_identifier_descriptor_t **, block_t **,
     udf_node_t *, aoff64_t);
-extern int udf_get_fid_in_allocator(udf_file_identifier_descriptor_t **,
+extern errno_t udf_get_fid_in_allocator(udf_file_identifier_descriptor_t **,
     block_t **, udf_node_t *, aoff64_t);
-extern int udf_get_fid_in_sector(udf_file_identifier_descriptor_t **,
+extern errno_t udf_get_fid_in_sector(udf_file_identifier_descriptor_t **,
     block_t **, udf_node_t *, aoff64_t, size_t *, void **, size_t *);
 
 #endif /* UDF_FILE_H_ */

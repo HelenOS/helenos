@@ -42,7 +42,7 @@
 /** IPC session with the logger service. */
 static async_sess_t *logger_session = NULL;
 
-static int start_logger_exchange(async_exch_t **exchange_out)
+static errno_t start_logger_exchange(async_exch_t **exchange_out)
 {
 	assert(exchange_out != NULL);
 
@@ -77,14 +77,14 @@ static int start_logger_exchange(async_exch_t **exchange_out)
  * @param new_level New reported logging level.
  * @return Error code of the conversion or EOK on success.
  */
-int logctl_set_default_level(log_level_t new_level)
+errno_t logctl_set_default_level(log_level_t new_level)
 {
 	async_exch_t *exchange = NULL;
-	int rc = start_logger_exchange(&exchange);
+	errno_t rc = start_logger_exchange(&exchange);
 	if (rc != EOK)
 		return rc;
 
-	rc = (int) async_req_1_0(exchange,
+	rc = (errno_t) async_req_1_0(exchange,
 	    LOGGER_CONTROL_SET_DEFAULT_LEVEL, new_level);
 
 	async_exchange_end(exchange);
@@ -100,17 +100,17 @@ int logctl_set_default_level(log_level_t new_level)
  * @param new_level New reported logging level.
  * @return Error code of the conversion or EOK on success.
  */
-int logctl_set_log_level(const char *logname, log_level_t new_level)
+errno_t logctl_set_log_level(const char *logname, log_level_t new_level)
 {
 	async_exch_t *exchange = NULL;
-	int rc = start_logger_exchange(&exchange);
+	errno_t rc = start_logger_exchange(&exchange);
 	if (rc != EOK)
 		return rc;
 
 	aid_t reg_msg = async_send_1(exchange, LOGGER_CONTROL_SET_LOG_LEVEL,
 	    new_level, NULL);
 	rc = async_data_write_start(exchange, logname, str_size(logname));
-	int reg_msg_rc;
+	errno_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);
@@ -118,17 +118,17 @@ int logctl_set_log_level(const char *logname, log_level_t new_level)
 	if (rc != EOK)
 		return rc;
 
-	return (int) reg_msg_rc;
+	return (errno_t) reg_msg_rc;
 }
 
 /** Set logger's VFS root.
  *
  * @return Error code or EOK on success.
  */
-int logctl_set_root(void)
+errno_t logctl_set_root(void)
 {
 	async_exch_t *exchange = NULL;
-	int rc = start_logger_exchange(&exchange);
+	errno_t rc = start_logger_exchange(&exchange);
 	if (rc != EOK)
 		return rc;
 
@@ -136,7 +136,7 @@ int logctl_set_root(void)
 	async_exch_t *vfs_exch = vfs_exchange_begin();
 	rc = vfs_pass_handle(vfs_exch, vfs_root(), exchange);
 	vfs_exchange_end(vfs_exch);
-	int reg_msg_rc;
+	errno_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);
@@ -144,7 +144,7 @@ int logctl_set_root(void)
 	if (rc != EOK)
 		return rc;
 
-	return (int) reg_msg_rc;
+	return (errno_t) reg_msg_rc;
 }
 
 /** @}

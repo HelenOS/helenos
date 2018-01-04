@@ -122,7 +122,7 @@ static hound_context_t *hound_context_create(const char *name, bool record,
 			free(new_context);
 			return NULL;
 		}
-		int rc = hound_service_register_context(
+		errno_t rc = hound_service_register_context(
 		    new_context->session, new_context->name, record,
 		    &new_context->id);
 		if (rc != EOK) {
@@ -194,7 +194,7 @@ void hound_context_destroy(hound_context_t *hound)
  *
  * The function will return deice sinks or source based on the context type.
  */
-int hound_context_get_available_targets(hound_context_t *hound,
+errno_t hound_context_get_available_targets(hound_context_t *hound,
     const char ***names, size_t *count)
 {
 	assert(hound);
@@ -211,7 +211,7 @@ int hound_context_get_available_targets(hound_context_t *hound,
  * @param[out] count Number of elements in @p names list
  * @return Error code.
  */
-int hound_context_get_connected_targets(hound_context_t *hound,
+errno_t hound_context_get_connected_targets(hound_context_t *hound,
     const char ***names, size_t *count)
 {
 	assert(hound);
@@ -231,14 +231,14 @@ int hound_context_get_connected_targets(hound_context_t *hound,
  * The function recognizes special 'HOUND_DEFAULT_TARGET' and will
  * connect to the first possible target if it is passed this value.
  */
-int hound_context_connect_target(hound_context_t *hound, const char* target)
+errno_t hound_context_connect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
 	assert(target);
 
 	const char **tgt = NULL;
 	size_t count = 1;
-	int ret = EOK;
+	errno_t ret = EOK;
 	if (str_cmp(target, HOUND_DEFAULT_TARGET) == 0) {
 		ret = hound_context_get_available_targets(hound, &tgt, &count);
 		if (ret != EOK)
@@ -268,7 +268,7 @@ int hound_context_connect_target(hound_context_t *hound, const char* target)
  * @param target String identifier of the desired target.
  * @return Error code.
  */
-int hound_context_disconnect_target(hound_context_t *hound, const char* target)
+errno_t hound_context_disconnect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
 	assert(target);
@@ -304,7 +304,7 @@ hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
 		new_stream->format = format;
 		new_stream->context = hound;
 		new_stream->flags = flags;
-		const int ret = hound_service_stream_enter(new_stream->exch,
+		const errno_t ret = hound_service_stream_enter(new_stream->exch,
 		    hound->id, flags, format, bsize);
 		if (ret != EOK) {
 			async_exchange_end(new_stream->exch);
@@ -342,7 +342,7 @@ void hound_stream_destroy(hound_stream_t *stream)
  * @param size size of the @p data buffer.
  * @return error code.
  */
-int hound_stream_write(hound_stream_t *stream, const void *data, size_t size)
+errno_t hound_stream_write(hound_stream_t *stream, const void *data, size_t size)
 {
 	assert(stream);
 	if (!data || size == 0)
@@ -357,7 +357,7 @@ int hound_stream_write(hound_stream_t *stream, const void *data, size_t size)
  * @param size size of the @p data buffer.
  * @return error code.
  */
-int hound_stream_read(hound_stream_t *stream, void *data, size_t size)
+errno_t hound_stream_read(hound_stream_t *stream, void *data, size_t size)
 {
 	assert(stream);
 	if (!data || size == 0)
@@ -370,7 +370,7 @@ int hound_stream_read(hound_stream_t *stream, void *data, size_t size)
  * @param stream The stream that shoulod be drained.
  * @return Error code.
  */
-int hound_stream_drain(hound_stream_t *stream)
+errno_t hound_stream_drain(hound_stream_t *stream)
 {
 	assert(stream);
 	return hound_service_stream_drain(stream->exch);
@@ -401,7 +401,7 @@ static hound_stream_t * hound_get_main_stream(hound_context_t *hound)
  * @param size size of the @p data buffer.
  * @return error code.
  */
-int hound_write_main_stream(hound_context_t *hound,
+errno_t hound_write_main_stream(hound_context_t *hound,
     const void *data, size_t size)
 {
 	assert(hound);
@@ -421,7 +421,7 @@ int hound_write_main_stream(hound_context_t *hound,
  * @param size size of the @p data buffer.
  * @return error code.
  */
-int hound_read_main_stream(hound_context_t *hound, void *data, size_t size)
+errno_t hound_read_main_stream(hound_context_t *hound, void *data, size_t size)
 {
 	assert(hound);
 	if (!hound->record)
@@ -441,7 +441,7 @@ int hound_read_main_stream(hound_context_t *hound, void *data, size_t size)
  *
  * NOT IMPLEMENTED
  */
-int hound_write_replace_main_stream(hound_context_t *hound,
+errno_t hound_write_replace_main_stream(hound_context_t *hound,
     const void *data, size_t size)
 {
 	assert(hound);
@@ -459,7 +459,7 @@ int hound_write_replace_main_stream(hound_context_t *hound,
  *
  * NOT IMPLEMENTED
  */
-int hound_context_set_main_stream_params(hound_context_t *hound,
+errno_t hound_context_set_main_stream_params(hound_context_t *hound,
     pcm_format_t format, size_t bsize)
 {
 	assert(hound);
@@ -478,7 +478,7 @@ int hound_context_set_main_stream_params(hound_context_t *hound,
  * This functnion creates a new stream writes the data, ti waits for the stream
  * to drain and destroys it before returning.
  */
-int hound_write_immediate(hound_context_t *hound, pcm_format_t format,
+errno_t hound_write_immediate(hound_context_t *hound, pcm_format_t format,
     const void *data, size_t size)
 {
 	assert(hound);
@@ -487,7 +487,7 @@ int hound_write_immediate(hound_context_t *hound, pcm_format_t format,
 	hound_stream_t *tmpstream = hound_stream_create(hound, 0, format, size);
 	if (!tmpstream)
 		return ENOMEM;
-	const int ret = hound_stream_write(tmpstream, data, size);
+	const errno_t ret = hound_stream_write(tmpstream, data, size);
 	if (ret == EOK) {
 		//TODO drain?
 		hound_service_stream_drain(tmpstream->exch);

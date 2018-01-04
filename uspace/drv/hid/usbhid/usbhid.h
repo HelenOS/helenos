@@ -54,7 +54,7 @@ typedef struct usb_hid_subdriver usb_hid_subdriver_t;
  * @param data Custom subdriver data (pointer where to store them).
  * @return Error code.
  */
-typedef int (*usb_hid_driver_init_t)(usb_hid_dev_t *dev, void **data);
+typedef errno_t (*usb_hid_driver_init_t)(usb_hid_dev_t *dev, void **data);
 
 /** Subdriver deinitialization callback.
  *
@@ -133,7 +133,7 @@ struct usb_hid_dev {
 
 extern const usb_endpoint_description_t *usb_hid_endpoints[];
 
-int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
+errno_t usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
 
 void usb_hid_deinit(usb_hid_dev_t *hid_dev);
 

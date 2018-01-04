@@ -46,7 +46,7 @@
 #include "pdu.h"
 
 /** Encode Ethernet PDU. */
-int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
+errno_t eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 {
 	void *data;
 	size_t size;
@@ -74,7 +74,7 @@ int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 }
 
 /** Decode Ethernet PDU. */
-int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
+errno_t eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 {
 	eth_header_t *hdr;
 
@@ -105,7 +105,7 @@ int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 }
 
 /** Encode ARP PDU. */
-int arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
+errno_t arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
 {
 	void *data;
 	size_t size;
@@ -148,7 +148,7 @@ int arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
 }
 
 /** Decode ARP PDU. */
-int arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
+errno_t arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 {
 	arp_eth_packet_fmt_t *pfmt;
 

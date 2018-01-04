@@ -162,7 +162,7 @@ static void paint_internal(widget_t *widget)
 	/* Window caption */
 	
 	font_t *font;
-	int rc = embedded_font_create(&font, 16);
+	errno_t rc = embedded_font_create(&font, 16);
 	if (rc != EOK) {
 		window_yield(widget->window);
 		return;
@@ -403,7 +403,7 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	fibril_mutex_unlock(&win->guard);
 	
 	/* Inform compositor about new surface. */
-	int rc = win_resize(win->osess, offset_x, offset_y, width, height,
+	errno_t rc = win_resize(win->osess, offset_x, offset_y, width, height,
 	    placement_flags, surface_direct_access(new_surface));
 	
 	if (rc != EOK) {
@@ -492,7 +492,7 @@ static void handle_close(window_t *win)
 }
 
 /* Window event loop. Runs in own dedicated fibril. */
-static int event_loop(void *arg)
+static errno_t event_loop(void *arg)
 {
 	bool is_main = false;
 	bool terminate = false;
@@ -560,9 +560,9 @@ static int event_loop(void *arg)
 }
 
 /* Input fetcher from compositor. Runs in own dedicated fibril. */
-static int fetch_input(void *arg)
+static errno_t fetch_input(void *arg)
 {
-	int rc;
+	errno_t rc;
 	bool terminate = false;
 	window_t *win = (window_t *) arg;
 
@@ -617,7 +617,7 @@ window_t *window_open(const char *winreg, const void *data,
 	win->surface = NULL;
 	
 	service_id_t reg_dsid;
-	int rc = loc_service_get_id(winreg, &reg_dsid, 0);
+	errno_t rc = loc_service_get_id(winreg, &reg_dsid, 0);
 	if (rc != EOK) {
 		free(win);
 		return NULL;
@@ -676,7 +676,7 @@ void window_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	}
 }
 
-int window_set_caption(window_t *win, const char *caption)
+errno_t window_set_caption(window_t *win, const char *caption)
 {
 	char *cap;
 	

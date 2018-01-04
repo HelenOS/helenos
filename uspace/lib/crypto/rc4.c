@@ -87,7 +87,7 @@ static void create_sbox(uint8_t *key, size_t key_size, uint8_t *sbox)
  *         otherwise EOK.
  *
  */
-int rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size,
+errno_t rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size,
     size_t skip, uint8_t *output)
 {
 	if ((!key) || (!input))

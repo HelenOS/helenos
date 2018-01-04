@@ -42,7 +42,7 @@
 #include "hound_ctx.h"
 #include "log.h"
 
-static int iface_add_context(void *server, hound_context_id_t *id,
+static errno_t iface_add_context(void *server, hound_context_id_t *id,
     const char *name, bool record)
 {
 	assert(server);
@@ -54,7 +54,7 @@ static int iface_add_context(void *server, hound_context_id_t *id,
 	if (!ctx)
 		return ENOMEM;
 
-	const int ret = hound_add_ctx(server, ctx);
+	const errno_t ret = hound_add_ctx(server, ctx);
 	if (ret != EOK)
 		hound_ctx_destroy(ctx);
 	else
@@ -62,13 +62,13 @@ static int iface_add_context(void *server, hound_context_id_t *id,
 	return ret;
 }
 
-static int iface_rem_context(void *server, hound_context_id_t id)
+static errno_t iface_rem_context(void *server, hound_context_id_t id)
 {
 	assert(server);
 	hound_ctx_t *ctx = hound_get_ctx_by_id(server, id);
 	if (!ctx)
 		return EINVAL;
-	const int ret = hound_remove_ctx(server, ctx);
+	const errno_t ret = hound_remove_ctx(server, ctx);
 	if (ret == EOK) {
 		hound_ctx_destroy(ctx);
 		log_info("%s: %p, %#" PRIxn, __FUNCTION__, server, id);
@@ -85,7 +85,7 @@ static bool iface_is_record_context(void *server, hound_context_id_t id)
 	return hound_ctx_is_record(ctx);
 }
 
-static int iface_get_list(void *server, const char ***list, size_t *size,
+static errno_t iface_get_list(void *server, const char ***list, size_t *size,
     const char *connection, int flags)
 {
 	log_info("%s: %p, %zu, %s, %#x\n", __FUNCTION__, server, *size,
@@ -97,19 +97,19 @@ static int iface_get_list(void *server, const char ***list, size_t *size,
 	return ENOTSUP;
 }
 
-static int iface_connect(void *server, const char *source, const char *sink)
+static errno_t iface_connect(void *server, const char *source, const char *sink)
 {
 	log_info("%s: %p, %s -> %s", __FUNCTION__, server, source, sink);
 	return hound_connect(server, source, sink);
 }
 
-static int iface_disconnect(void *server, const char *source, const char *sink)
+static errno_t iface_disconnect(void *server, const char *source, const char *sink)
 {
 	log_info("%s: %p, %s -> %s", __FUNCTION__, server, source, sink);
 	return hound_disconnect(server, source, sink);
 }
 
-static int iface_add_stream(void *server, hound_context_id_t id, int flags,
+static errno_t iface_add_stream(void *server, hound_context_id_t id, int flags,
     pcm_format_t format, size_t size, void **data)
 {
 	assert(data);
@@ -129,24 +129,24 @@ static int iface_add_stream(void *server, hound_context_id_t id, int flags,
 	return EOK;
 }
 
-static int iface_rem_stream(void *server, void *stream)
+static errno_t iface_rem_stream(void *server, void *stream)
 {
 	hound_ctx_destroy_stream(stream);
 	return EOK;
 }
 
-static int iface_drain_stream(void *stream)
+static errno_t iface_drain_stream(void *stream)
 {
 	hound_ctx_stream_drain(stream);
 	return EOK;
 }
 
-static int iface_stream_data_read(void *stream, void *buffer, size_t size)
+static errno_t iface_stream_data_read(void *stream, void *buffer, size_t size)
 {
 	return hound_ctx_stream_read(stream, buffer, size);
 }
 
-static int iface_stream_data_write(void *stream, const void *buffer, size_t size)
+static errno_t iface_stream_data_write(void *stream, const void *buffer, size_t size)
 {
 	return hound_ctx_stream_write(stream, buffer, size);
 }

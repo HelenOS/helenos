@@ -72,14 +72,14 @@ static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 fat_cluster_walk(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc,
     fat_cluster_t *lastc, uint32_t *numc, uint32_t max_clusters)
 {
 	uint32_t clusters = 0;
 	fat_cluster_t clst = firstc, clst_last1 = FAT_CLST_LAST1(bs);
 	fat_cluster_t clst_bad = FAT_CLST_BAD(bs);
-	int rc;
+	errno_t rc;
 
 	if (firstc == FAT_CLST_RES0) {
 		/* No space allocated to the file. */
@@ -122,14 +122,14 @@ fat_cluster_walk(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc,
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
     aoff64_t bn, int flags)
 {
 	fat_cluster_t firstc = nodep->firstc;
 	fat_cluster_t currc = 0;
 	aoff64_t relbn = bn;
-	int rc;
+	errno_t rc;
 
 	if (!nodep->size)
 		return ELIMIT;
@@ -187,14 +187,14 @@ fall_through:
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 _fat_block_get(block_t **block, fat_bs_t *bs, service_id_t service_id,
     fat_cluster_t fcl, fat_cluster_t *clp, aoff64_t bn, int flags)
 {
 	uint32_t clusters;
 	uint32_t max_clusters;
 	fat_cluster_t c = 0;
-	int rc;
+	errno_t rc;
 
 	/*
 	 * This function can only operate on non-zero length files.
@@ -236,12 +236,12 @@ _fat_block_get(block_t **block, fat_bs_t *bs, service_id_t service_id,
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
 {
 	block_t *b;
 	aoff64_t o, boundary;
-	int rc;
+	errno_t rc;
 
 	boundary = ROUND_UP(nodep->size, BPS(bs) * SPC(bs));
 
@@ -288,14 +288,14 @@ fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
  *
  * @return		EOK or an error code.
  */
-static int
+static errno_t
 fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t *value)
 {
 	block_t *b, *b1;
 	uint16_t byte1, byte2;
 	aoff64_t offset;
-	int rc;
+	errno_t rc;
 
 	offset = (clst + clst / 2);
 	if (offset / BPS(bs) >= SF(bs))
@@ -358,13 +358,13 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK or an error code.
  */
-static int
+static errno_t
 fat_get_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t *value)
 {
 	block_t *b;
 	aoff64_t offset;
-	int rc;
+	errno_t rc;
 
 	offset = (clst * FAT16_CLST_SIZE);
 
@@ -389,13 +389,13 @@ fat_get_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK or an error code.
  */
-static int
+static errno_t
 fat_get_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t *value)
 {
 	block_t *b;
 	aoff64_t offset;
-	int rc;
+	errno_t rc;
 
 	offset = (clst * FAT32_CLST_SIZE);
 
@@ -422,11 +422,11 @@ fat_get_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK or an error code.
  */
-int
+errno_t
 fat_get_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t *value)
 {
-	int rc;
+	errno_t rc;
 
 	assert(fatno < FATCNT(bs));
 
@@ -450,14 +450,14 @@ fat_get_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK on success or an error code.
  */
-static int
+static errno_t
 fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
 	block_t *b, *b1 = NULL;
 	aoff64_t offset;
 	uint16_t byte1, byte2;
-	int rc;
+	errno_t rc;
 
 	offset = (clst + clst / 2);
 	if (offset / BPS(bs) >= SF(bs))
@@ -538,13 +538,13 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK on success or an error code.
  */
-static int
+static errno_t
 fat_set_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
 	block_t *b;
 	aoff64_t offset;
-	int rc;
+	errno_t rc;
 
 	offset = (clst * FAT16_CLST_SIZE);
 
@@ -571,13 +571,13 @@ fat_set_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK on success or an error code.
  */
-static int
+static errno_t
 fat_set_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
 	block_t *b;
 	aoff64_t offset;
-	int rc;
+	errno_t rc;
 	fat_cluster_t temp;
 
 	offset = (clst * FAT32_CLST_SIZE);
@@ -608,11 +608,11 @@ fat_set_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 fat_set_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
-	int rc;
+	errno_t rc;
 
 	assert(fatno < FATCNT(bs));
 
@@ -635,13 +635,13 @@ fat_set_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  *
  * @return		EOK on success or an error code.
  */
-int fat_alloc_shadow_clusters(fat_bs_t *bs, service_id_t service_id,
+errno_t fat_alloc_shadow_clusters(fat_bs_t *bs, service_id_t service_id,
     fat_cluster_t *lifo, unsigned nclsts)
 {
 	uint8_t fatno;
 	unsigned c;
 	fat_cluster_t clst_last1 = FAT_CLST_LAST1(bs);
-	int rc;
+	errno_t rc;
 
 	for (fatno = FAT1 + 1; fatno < FATCNT(bs); fatno++) {
 		for (c = 0; c < nclsts; c++) {
@@ -672,7 +672,7 @@ int fat_alloc_shadow_clusters(fat_bs_t *bs, service_id_t service_id,
  *
  * @return		EOK on success, an error code otherwise.
  */
-int
+errno_t
 fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
     fat_cluster_t *mcl, fat_cluster_t *lcl)
 {
@@ -681,7 +681,7 @@ fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 	fat_cluster_t clst;
 	fat_cluster_t value = 0;
 	fat_cluster_t clst_last1 = FAT_CLST_LAST1(bs);
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	lifo = (fat_cluster_t *) malloc(nclsts * sizeof(fat_cluster_t));
 	if (!lifo)
@@ -743,13 +743,13 @@ fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
 {
 	unsigned fatno;
 	fat_cluster_t nextc = 0;
 	fat_cluster_t clst_bad = FAT_CLST_BAD(bs);
-	int rc;
+	errno_t rc;
 
 	/* Mark all clusters in the chain as free in all copies of FAT. */
 	while (firstc < FAT_CLST_LAST1(bs)) {
@@ -781,13 +781,13 @@ fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
  *
  * @return		EOK on success or an error code.
  */
-int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
+errno_t fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
     fat_cluster_t lcl)
 {
 	service_id_t service_id = nodep->idx->service_id;
 	fat_cluster_t lastc = 0;
 	uint8_t fatno;
-	int rc;
+	errno_t rc;
 
 	if (nodep->firstc == FAT_CLST_RES0) {
 		/* No clusters allocated to the node yet. */
@@ -828,10 +828,10 @@ int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
  *
  * @return		EOK on success or an error code.
  */
-int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
+errno_t fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 {
 	fat_cluster_t clst_last1 = FAT_CLST_LAST1(bs);
-	int rc;
+	errno_t rc;
 	service_id_t service_id = nodep->idx->service_id;
 
 	/*
@@ -879,12 +879,12 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 	return EOK;
 }
 
-int
+errno_t
 fat_zero_cluster(struct fat_bs *bs, service_id_t service_id, fat_cluster_t c)
 {
 	int i;
 	block_t *b;
-	int rc;
+	errno_t rc;
 
 	for (i = 0; i < SPC(bs); i++) {
 		rc = _fat_block_get(&b, bs, service_id, c, NULL, i,
@@ -907,12 +907,12 @@ fat_zero_cluster(struct fat_bs *bs, service_id_t service_id, fat_cluster_t c)
  * descriptor. This is used to rule out cases when a device obviously
  * does not contain a fat file system.
  */
-int fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
+errno_t fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
 {
 	fat_cluster_t e0 = 0;
 	fat_cluster_t e1 = 0;
 	unsigned fat_no;
-	int rc;
+	errno_t rc;
 
 	/* Check number of FATs. */
 	if (FATCNT(bs) == 0)

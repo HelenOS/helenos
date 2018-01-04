@@ -52,10 +52,10 @@ log(const volatile void *place, uint64_t val, volatile void *base, size_t size,
 }
 
 
-int amdm37x_init(amdm37x_t *device, bool trace)
+errno_t amdm37x_init(amdm37x_t *device, bool trace)
 {
 	assert(device);
-	int ret = EOK;
+	errno_t ret = EOK;
 
 	ret = pio_enable((void*)USBHOST_CM_BASE_ADDRESS, USBHOST_CM_SIZE,
 	    (void**)&device->cm.usbhost);
@@ -357,7 +357,7 @@ void amdm37x_usb_clocks_set(amdm37x_t *device, bool enabled)
  * Different modes are on page 3312 of the Manual Figure 22-34.
  * Select mode than can operate in FS/LS.
  */
-int amdm37x_usb_tll_init(amdm37x_t *device)
+errno_t amdm37x_usb_tll_init(amdm37x_t *device)
 {
 	/* Check access */
 	if (pio_read_32(&device->cm.core->idlest3) & CORE_CM_IDLEST3_ST_USBTLL_FLAG) {

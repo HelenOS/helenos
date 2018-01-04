@@ -42,7 +42,7 @@
 #define VUHID_DATA(vuhid, device) \
 	vuhid_data_t *vuhid = device->device_data
 
-int req_get_descriptor(usbvirt_device_t *device,
+errno_t req_get_descriptor(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -69,7 +69,7 @@ int req_get_descriptor(usbvirt_device_t *device,
 	return EFORWARD;
 }
 
-int req_set_protocol(usbvirt_device_t *device,
+errno_t req_set_protocol(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -88,7 +88,7 @@ int req_set_protocol(usbvirt_device_t *device,
 	return EOK;
 }
 
-int req_set_report(usbvirt_device_t *device,
+errno_t req_set_report(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -108,7 +108,7 @@ int req_set_report(usbvirt_device_t *device,
 	}
 
 	/* SET_REPORT is translated to data out */
-	int rc = iface->on_data_out(iface, data, data_length);
+	errno_t rc = iface->on_data_out(iface, data, data_length);
 
 	return rc;
 }

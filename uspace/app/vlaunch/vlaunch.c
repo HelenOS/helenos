@@ -65,7 +65,7 @@ static int app_launch(const char *app)
 	
 	task_id_t id;
 	task_wait_t wait;
-	int rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
+	errno_t rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
 		    winreg, str_error(rc));

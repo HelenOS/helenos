@@ -54,22 +54,22 @@ typedef struct {
 extern void ddi_init(void);
 extern void ddi_parea_register(parea_t *);
 
-extern sysarg_t sys_physmem_map(uintptr_t, size_t, unsigned int, void *,
+extern sys_errno_t sys_physmem_map(uintptr_t, size_t, unsigned int, void *,
     uintptr_t);
-extern sysarg_t sys_physmem_unmap(uintptr_t);
+extern sys_errno_t sys_physmem_unmap(uintptr_t);
 
-extern sysarg_t sys_dmamem_map(size_t, unsigned int, unsigned int, void *,
+extern sys_errno_t sys_dmamem_map(size_t, unsigned int, unsigned int, void *,
     void *, uintptr_t);
-extern sysarg_t sys_dmamem_unmap(uintptr_t, size_t, unsigned int);
+extern sys_errno_t sys_dmamem_unmap(uintptr_t, size_t, unsigned int);
 
-extern sysarg_t sys_iospace_enable(ddi_ioarg_t *);
-extern sysarg_t sys_iospace_disable(ddi_ioarg_t *);
+extern sys_errno_t sys_iospace_enable(ddi_ioarg_t *);
+extern sys_errno_t sys_iospace_disable(ddi_ioarg_t *);
 
 /*
  * Interface to be implemented by all architectures.
  */
-extern int ddi_iospace_enable_arch(task_t *, uintptr_t, size_t);
-extern int ddi_iospace_disable_arch(task_t *, uintptr_t, size_t);
+extern errno_t ddi_iospace_enable_arch(task_t *, uintptr_t, size_t);
+extern errno_t ddi_iospace_disable_arch(task_t *, uintptr_t, size_t);
 
 #endif
 

@@ -96,9 +96,9 @@ static void calc_num_check_blocks(aoff64_t nblocks, size_t block_size,
 	*ncb = n;
 }
 
-int label_bd_is_empty(label_bd_t *bd, bool *rempty)
+errno_t label_bd_is_empty(label_bd_t *bd, bool *rempty)
 {
-	int rc;
+	errno_t rc;
 	void *buf = NULL;
 	aoff64_t nblocks;
 	aoff64_t n;
@@ -173,9 +173,9 @@ error:
 	return rc;
 }
 
-int label_bd_empty(label_bd_t *bd)
+errno_t label_bd_empty(label_bd_t *bd)
 {
-	int rc;
+	errno_t rc;
 	void *buf = NULL;
 	aoff64_t nblocks;
 	aoff64_t n;
@@ -235,9 +235,9 @@ error:
 	return rc;
 }
 
-int label_part_empty(label_part_t *part)
+errno_t label_part_empty(label_part_t *part)
 {
-	int rc;
+	errno_t rc;
 	void *buf = NULL;
 	aoff64_t block0;
 	aoff64_t nblocks;

@@ -98,28 +98,28 @@ enum cache_mode {
 	CACHE_MODE_WB
 };
 
-extern int block_init(service_id_t, size_t);
+extern errno_t block_init(service_id_t, size_t);
 extern void block_fini(service_id_t);
 
-extern int block_bb_read(service_id_t, aoff64_t);
+extern errno_t block_bb_read(service_id_t, aoff64_t);
 extern void *block_bb_get(service_id_t);
 
-extern int block_cache_init(service_id_t, size_t, unsigned, enum cache_mode);
-extern int block_cache_fini(service_id_t);
+extern errno_t block_cache_init(service_id_t, size_t, unsigned, enum cache_mode);
+extern errno_t block_cache_fini(service_id_t);
 
-extern int block_get(block_t **, service_id_t, aoff64_t, int);
-extern int block_put(block_t *);
+extern errno_t block_get(block_t **, service_id_t, aoff64_t, int);
+extern errno_t block_put(block_t *);
 
-extern int block_seqread(service_id_t, void *, size_t *, size_t *, aoff64_t *,
+extern errno_t block_seqread(service_id_t, void *, size_t *, size_t *, aoff64_t *,
     void *, size_t);
 
-extern int block_get_bsize(service_id_t, size_t *);
-extern int block_get_nblocks(service_id_t, aoff64_t *);
-extern int block_read_toc(service_id_t, uint8_t, void *, size_t);
-extern int block_read_direct(service_id_t, aoff64_t, size_t, void *);
-extern int block_read_bytes_direct(service_id_t, aoff64_t, size_t, void *);
-extern int block_write_direct(service_id_t, aoff64_t, size_t, const void *);
-extern int block_sync_cache(service_id_t, aoff64_t, size_t);
+extern errno_t block_get_bsize(service_id_t, size_t *);
+extern errno_t block_get_nblocks(service_id_t, aoff64_t *);
+extern errno_t block_read_toc(service_id_t, uint8_t, void *, size_t);
+extern errno_t block_read_direct(service_id_t, aoff64_t, size_t, void *);
+extern errno_t block_read_bytes_direct(service_id_t, aoff64_t, size_t, void *);
+extern errno_t block_write_direct(service_id_t, aoff64_t, size_t, const void *);
+extern errno_t block_sync_cache(service_id_t, aoff64_t, size_t);
 
 #endif
 

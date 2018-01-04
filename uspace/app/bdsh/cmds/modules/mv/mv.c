@@ -51,7 +51,7 @@ void help_cmd_mv(unsigned int level)
 int cmd_mv(char **argv)
 {
 	unsigned int argc;
-	int rc;
+	errno_t rc;
 
 	argc = cli_count_args(argv);
 	if (argc != 3) {

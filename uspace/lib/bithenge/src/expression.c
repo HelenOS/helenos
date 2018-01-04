@@ -47,7 +47,7 @@
  * @param[out] self Expression to initialize.
  * @param[in] ops Operations provided by the expression.
  * @return EOK or an error code from errno.h. */
-int bithenge_init_expression(bithenge_expression_t *self,
+errno_t bithenge_init_expression(bithenge_expression_t *self,
     const bithenge_expression_ops_t *ops)
 {
 	assert(ops);
@@ -87,10 +87,10 @@ static inline bithenge_expression_t *binary_as_expression(
 	return &self->base;
 }
 
-static int binary_expression_evaluate(bithenge_expression_t *base,
+static errno_t binary_expression_evaluate(bithenge_expression_t *base,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
-	int rc;
+	errno_t rc;
 	binary_expression_t *self = expression_as_binary(base);
 	bithenge_node_t *a, *b;
 	rc = bithenge_expression_evaluate(self->a, scope, &a);
@@ -249,11 +249,11 @@ static const bithenge_expression_ops_t binary_expression_ops = {
  * @param a The first operand.
  * @param b The second operand.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_binary_expression(bithenge_expression_t **out,
+errno_t bithenge_binary_expression(bithenge_expression_t **out,
     bithenge_binary_op_t op, bithenge_expression_t *a,
     bithenge_expression_t *b)
 {
-	int rc;
+	errno_t rc;
 	binary_expression_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -282,7 +282,7 @@ error:
 
 /***************** in_node_expression                        *****************/
 
-static int in_node_evaluate(bithenge_expression_t *self,
+static errno_t in_node_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	for (; scope; scope = bithenge_scope_outer(scope)) {
@@ -305,7 +305,7 @@ static bithenge_expression_t in_node_expression = {
 /** Create an expression that gets the current input node.
  * @param[out] out Holds the new expression.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_in_node_expression(bithenge_expression_t **out)
+errno_t bithenge_in_node_expression(bithenge_expression_t **out)
 {
 	if (bithenge_should_fail())
 		return ENOMEM;
@@ -318,7 +318,7 @@ int bithenge_in_node_expression(bithenge_expression_t **out)
 
 /***************** current_node_expression                   *****************/
 
-static int current_node_evaluate(bithenge_expression_t *self,
+static errno_t current_node_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	*out = bithenge_scope_get_current_node(scope);
@@ -339,7 +339,7 @@ static bithenge_expression_t current_node_expression = {
 /** Create an expression that gets the current node being created.
  * @param[out] out Holds the new expression.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_current_node_expression(bithenge_expression_t **out)
+errno_t bithenge_current_node_expression(bithenge_expression_t **out)
 {
 	bithenge_expression_inc_ref(&current_node_expression);
 	*out = &current_node_expression;
@@ -367,7 +367,7 @@ static inline bithenge_expression_t *param_as_expression(
 	return &self->base;
 }
 
-static int param_expression_evaluate(bithenge_expression_t *base,
+static errno_t param_expression_evaluate(bithenge_expression_t *base,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	param_expression_t *self = expression_as_param(base);
@@ -389,9 +389,9 @@ static const bithenge_expression_ops_t param_expression_ops = {
  * @param[out] out Holds the created expression.
  * @param index The index of the parameter to get.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_param_expression(bithenge_expression_t **out, int index)
+errno_t bithenge_param_expression(bithenge_expression_t **out, int index)
 {
-	int rc;
+	errno_t rc;
 	param_expression_t *self = malloc(sizeof(*self));
 	if (!self)
 		return ENOMEM;
@@ -429,7 +429,7 @@ static inline bithenge_expression_t *const_as_expression(
 	return &self->base;
 }
 
-static int const_expression_evaluate(bithenge_expression_t *base,
+static errno_t const_expression_evaluate(bithenge_expression_t *base,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	const_expression_t *self = expression_as_const(base);
@@ -454,10 +454,10 @@ static const bithenge_expression_ops_t const_expression_ops = {
  * @param[out] out Holds the created expression.
  * @param node The constant.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_const_expression(bithenge_expression_t **out,
+errno_t bithenge_const_expression(bithenge_expression_t **out,
     bithenge_node_t *node)
 {
-	int rc;
+	errno_t rc;
 	const_expression_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -500,7 +500,7 @@ static bithenge_expression_t *scope_member_as_expression(
 	return &expr->base;
 }
 
-static int scope_member_expression_evaluate(bithenge_expression_t *base, 
+static errno_t scope_member_expression_evaluate(bithenge_expression_t *base, 
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	scope_member_expression_t *self = expression_as_scope_member(base);
@@ -510,7 +510,7 @@ static int scope_member_expression_evaluate(bithenge_expression_t *base,
 		if (!cur)
 			continue;
 		bithenge_node_inc_ref(self->key);
-		int rc = bithenge_node_get(cur, self->key, out);
+		errno_t rc = bithenge_node_get(cur, self->key, out);
 		bithenge_node_dec_ref(cur);
 		if (rc != ENOENT) /* EOK or error */
 			return rc;
@@ -536,10 +536,10 @@ static const bithenge_expression_ops_t scope_member_expression_ops = {
  * @param[out] out Holds the new expression.
  * @param key The key to search for in nodes being created.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_scope_member_expression(bithenge_expression_t **out,
+errno_t bithenge_scope_member_expression(bithenge_expression_t **out,
     bithenge_node_t *key)
 {
-	int rc;
+	errno_t rc;
 	scope_member_expression_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -581,12 +581,12 @@ static bithenge_expression_t *subblob_as_expression(subblob_expression_t *expr)
 	return &expr->base;
 }
 
-static int subblob_expression_evaluate(bithenge_expression_t *base, 
+static errno_t subblob_expression_evaluate(bithenge_expression_t *base, 
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	subblob_expression_t *self = expression_as_subblob(base);
 	bithenge_node_t *start_node;
-	int rc = bithenge_expression_evaluate(self->start, scope, &start_node);
+	errno_t rc = bithenge_expression_evaluate(self->start, scope, &start_node);
 	if (rc != EOK)
 		return rc;
 	if (bithenge_node_type(start_node) != BITHENGE_NODE_INTEGER) {
@@ -657,11 +657,11 @@ static const bithenge_expression_ops_t subblob_expression_ops = {
  * @param absolute_limit If true, the limit is an absolute offset; otherwise,
  * it is relative to the start.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_subblob_expression(bithenge_expression_t **out,
+errno_t bithenge_subblob_expression(bithenge_expression_t **out,
     bithenge_expression_t *blob, bithenge_expression_t *start,
     bithenge_expression_t *limit, bool absolute_limit)
 {
-	int rc;
+	errno_t rc;
 	subblob_expression_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -708,10 +708,10 @@ static inline param_wrapper_t *transform_as_param_wrapper(
 	return (param_wrapper_t *)base;
 }
 
-static int param_wrapper_fill_scope(param_wrapper_t *self, bithenge_scope_t
+static errno_t param_wrapper_fill_scope(param_wrapper_t *self, bithenge_scope_t
     *inner, bithenge_scope_t *outer)
 {
-	int rc;
+	errno_t rc;
 	int num_params = bithenge_transform_num_params(self->transform);
 	rc = bithenge_scope_alloc_params(inner, num_params);
 	if (rc != EOK)
@@ -729,12 +729,12 @@ static int param_wrapper_fill_scope(param_wrapper_t *self, bithenge_scope_t
 	return EOK;
 }
 
-static int param_wrapper_apply(bithenge_transform_t *base,
+static errno_t param_wrapper_apply(bithenge_transform_t *base,
     bithenge_scope_t *outer, bithenge_node_t *in, bithenge_node_t **out)
 {
 	param_wrapper_t *self = transform_as_param_wrapper(base);
 	bithenge_scope_t *inner;
-	int rc = bithenge_scope_new(&inner, outer);
+	errno_t rc = bithenge_scope_new(&inner, outer);
 	if (rc != EOK)
 		return rc;
 	rc = param_wrapper_fill_scope(self, inner, outer);
@@ -749,12 +749,12 @@ error:
 	return rc;
 }
 
-static int param_wrapper_prefix_length(bithenge_transform_t *base,
+static errno_t param_wrapper_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *outer, bithenge_blob_t *in, aoff64_t *out)
 {
 	param_wrapper_t *self = transform_as_param_wrapper(base);
 	bithenge_scope_t *inner;
-	int rc = bithenge_scope_new(&inner, outer);
+	errno_t rc = bithenge_scope_new(&inner, outer);
 	if (rc != EOK)
 		return rc;
 	rc = param_wrapper_fill_scope(self, inner, outer);
@@ -769,13 +769,13 @@ error:
 	return rc;
 }
 
-static int param_wrapper_prefix_apply(bithenge_transform_t *base,
+static errno_t param_wrapper_prefix_apply(bithenge_transform_t *base,
     bithenge_scope_t *outer, bithenge_blob_t *in, bithenge_node_t **out_node,
     aoff64_t *out_length)
 {
 	param_wrapper_t *self = transform_as_param_wrapper(base);
 	bithenge_scope_t *inner;
-	int rc = bithenge_scope_new(&inner, outer);
+	errno_t rc = bithenge_scope_new(&inner, outer);
 	if (rc != EOK)
 		return rc;
 	rc = param_wrapper_fill_scope(self, inner, outer);
@@ -815,10 +815,10 @@ static const bithenge_transform_ops_t param_wrapper_ops = {
  * @param transform The transform for which parameters are calculated.
  * @param params The expressions used to calculate the parameters.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_param_wrapper(bithenge_transform_t **out,
+errno_t bithenge_param_wrapper(bithenge_transform_t **out,
     bithenge_transform_t *transform, bithenge_expression_t **params)
 {
-	int rc;
+	errno_t rc;
 	int num_params = bithenge_transform_num_params(transform);
 	param_wrapper_t *self = malloc(sizeof(*self));
 	if (!self) {
@@ -867,12 +867,12 @@ static inline expression_transform_t *transform_as_expression(
 	return (expression_transform_t *)base;
 }
 
-static int expression_transform_apply(bithenge_transform_t *base,
+static errno_t expression_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	expression_transform_t *self = transform_as_expression(base);
 	bithenge_scope_t *inner;
-	int rc = bithenge_scope_new(&inner, scope);
+	errno_t rc = bithenge_scope_new(&inner, scope);
 	if (rc != EOK)
 		return rc;
 	bithenge_scope_set_in_node(inner, in);
@@ -899,10 +899,10 @@ static const bithenge_transform_ops_t expression_transform_ops = {
  * @param[out] out Holds the new transform.
  * @param expr The expression to evaluate.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_expression_transform(bithenge_transform_t ** out,
+errno_t bithenge_expression_transform(bithenge_transform_t ** out,
     bithenge_expression_t *expr)
 {
-	int rc;
+	errno_t rc;
 	expression_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -928,14 +928,14 @@ error:
 
 /***************** inputless_transform            *****************/
 
-static int inputless_transform_prefix_length(bithenge_transform_t *base,
+static errno_t inputless_transform_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
 {
 	*out = 0;
 	return EOK;
 }
 
-static int inputless_transform_prefix_apply(bithenge_transform_t *base,
+static errno_t inputless_transform_prefix_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *in, bithenge_node_t **out_node,
     aoff64_t *out_size)
 {
@@ -956,10 +956,10 @@ static const bithenge_transform_ops_t inputless_transform_ops = {
  * @param[out] out Holds the new transform.
  * @param expr The expression to evaluate.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_inputless_transform(bithenge_transform_t ** out,
+errno_t bithenge_inputless_transform(bithenge_transform_t ** out,
     bithenge_expression_t *expr)
 {
-	int rc;
+	errno_t rc;
 	expression_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -1003,12 +1003,12 @@ static inline bithenge_blob_t *concat_as_blob(concat_blob_t *blob)
 	return &blob->base;
 }
 
-static int concat_blob_evaluate_b(concat_blob_t *self)
+static errno_t concat_blob_evaluate_b(concat_blob_t *self)
 {
 	if (self->b)
 		return EOK;
 	bithenge_node_t *b_node;
-	int rc = bithenge_expression_evaluate(self->b_expr, self->scope,
+	errno_t rc = bithenge_expression_evaluate(self->b_expr, self->scope,
 	    &b_node);
 	if (rc != EOK)
 		return rc;
@@ -1025,10 +1025,10 @@ static int concat_blob_evaluate_b(concat_blob_t *self)
 	return EOK;
 }
 
-static int concat_blob_size(bithenge_blob_t *base, aoff64_t *size)
+static errno_t concat_blob_size(bithenge_blob_t *base, aoff64_t *size)
 {
 	concat_blob_t *self = blob_as_concat(base);
-	int rc = concat_blob_evaluate_b(self);
+	errno_t rc = concat_blob_evaluate_b(self);
 	if (rc != EOK)
 		return rc;
 	rc = bithenge_blob_size(self->b, size);
@@ -1036,10 +1036,10 @@ static int concat_blob_size(bithenge_blob_t *base, aoff64_t *size)
 	return rc;
 }
 
-static int concat_blob_read(bithenge_blob_t *base, aoff64_t offset,
+static errno_t concat_blob_read(bithenge_blob_t *base, aoff64_t offset,
     char *buffer, aoff64_t *size)
 {
-	int rc;
+	errno_t rc;
 	concat_blob_t *self = blob_as_concat(base);
 
 	aoff64_t a_size = 0, b_size = 0;
@@ -1064,10 +1064,10 @@ static int concat_blob_read(bithenge_blob_t *base, aoff64_t offset,
 	return EOK;
 }
 
-static int concat_blob_read_bits(bithenge_blob_t *base, aoff64_t offset,
+static errno_t concat_blob_read_bits(bithenge_blob_t *base, aoff64_t offset,
     char *buffer, aoff64_t *size, bool little_endian)
 {
-	int rc;
+	errno_t rc;
 	concat_blob_t *self = blob_as_concat(base);
 
 	aoff64_t a_size = 0, b_size = 0;
@@ -1117,13 +1117,13 @@ static const bithenge_random_access_blob_ops_t concat_blob_ops = {
  * @param a The first blob.
  * @param b The second blob.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_concat_blob(bithenge_node_t **out, bithenge_blob_t *a,
+errno_t bithenge_concat_blob(bithenge_node_t **out, bithenge_blob_t *a,
     bithenge_blob_t *b)
 {
 	assert(out);
 	assert(a);
 	assert(b);
-	int rc;
+	errno_t rc;
 	concat_blob_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -1159,14 +1159,14 @@ error:
  * @param b_expr An expression to calculate the second blob.
  * @param scope The scope in which @a b_expr should be evaluated.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_concat_blob_lazy(bithenge_node_t **out, bithenge_blob_t *a,
+errno_t bithenge_concat_blob_lazy(bithenge_node_t **out, bithenge_blob_t *a,
     bithenge_expression_t *b_expr, bithenge_scope_t *scope)
 {
 	assert(out);
 	assert(a);
 	assert(b_expr);
 	assert(scope);
-	int rc;
+	errno_t rc;
 	concat_blob_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;

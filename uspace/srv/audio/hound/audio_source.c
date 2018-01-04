@@ -55,9 +55,9 @@
  * @param update_available_data Data request callback.
  * @return Error code.
  */
-int audio_source_init(audio_source_t *source, const char *name, void *data,
-    int (*connection_change)(audio_source_t *, bool new),
-    int (*update_available_data)(audio_source_t *, size_t),
+errno_t audio_source_init(audio_source_t *source, const char *name, void *data,
+    errno_t (*connection_change)(audio_source_t *, bool new),
+    errno_t (*update_available_data)(audio_source_t *, size_t),
     const pcm_format_t *f)
 {
 	assert(source);
@@ -95,7 +95,7 @@ void audio_source_fini(audio_source_t *source)
  * @param size size of the @p dest buffer.
  * @return Error code.
  */
-int audio_source_push_data(audio_source_t *source, const void *data,
+errno_t audio_source_push_data(audio_source_t *source, const void *data,
     size_t size)
 {
 	assert(source);
@@ -106,7 +106,7 @@ int audio_source_push_data(audio_source_t *source, const void *data,
 		return ENOMEM;
 
 	list_foreach(source->connections, source_link, connection_t, conn) {
-		const int ret = connection_push_data(conn, adata);
+		const errno_t ret = connection_push_data(conn, adata);
 		if (ret != EOK) {
 			log_warning("Failed push data to %s: %s",
 			    connection_sink_name(conn), str_error(ret));

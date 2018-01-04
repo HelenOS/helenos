@@ -37,7 +37,7 @@ typedef struct {
 	size_t width;
 } printmode_t;
 
-int print_wrapped_console(const char *str, align_mode_t alignment)
+errno_t print_wrapped_console(const char *str, align_mode_t alignment)
 {
 	console_ctrl_t *console = console_init(stdin, stdout);
 	if (console == NULL) {
@@ -45,7 +45,7 @@ int print_wrapped_console(const char *str, align_mode_t alignment)
 		return EOK;
 	}
 	sysarg_t con_rows, con_cols, con_col, con_row;
-	int rc = console_get_size(console, &con_cols, &con_rows);
+	errno_t rc = console_get_size(console, &con_cols, &con_rows);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -62,17 +62,17 @@ int print_wrapped_console(const char *str, align_mode_t alignment)
 /** Line consumer that prints the lines aligned according to spec
  *
  **/
-static int print_line(wchar_t *wstr, size_t chars, bool last, void *data)
+static errno_t print_line(wchar_t *wstr, size_t chars, bool last, void *data)
 {
 	printmode_t *pm = (printmode_t *) data;
 	wchar_t old_char = wstr[chars];
 	wstr[chars] = 0;
-	int rc = print_aligned_w(wstr, pm->width, last, pm->alignment);
+	errno_t rc = print_aligned_w(wstr, pm->width, last, pm->alignment);
 	wstr[chars] = old_char;
 	return rc;
 }
 
-int print_wrapped(const char *str, size_t width, align_mode_t mode)
+errno_t print_wrapped(const char *str, size_t width, align_mode_t mode)
 {
 	printmode_t pm;
 	pm.alignment = mode;
@@ -82,12 +82,12 @@ int print_wrapped(const char *str, size_t width, align_mode_t mode)
 	if (wstr == NULL) {
 		return ENOMEM;
 	}
-	int rc = wrap(wstr, width, print_line, &pm);
+	errno_t rc = wrap(wstr, width, print_line, &pm);
 	free(wstr);
 	return rc;
 }
 
-int print_aligned_w(const wchar_t *wstr, size_t width, bool last,
+errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
     align_mode_t mode)
 {
 	size_t i;
@@ -168,18 +168,18 @@ skip_words:
 	
 	return EOK;
 }
-int print_aligned(const char *str, size_t width, bool last, align_mode_t mode)
+errno_t print_aligned(const char *str, size_t width, bool last, align_mode_t mode)
 {
 	wchar_t *wstr = str_to_awstr(str);
 	if (wstr == NULL) {
 		return ENOMEM;
 	}
-	int rc = print_aligned_w(wstr, width, last, mode);
+	errno_t rc = print_aligned_w(wstr, width, last, mode);
 	free(wstr);
 	return rc;
 }
 
-int wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
+errno_t wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 {
 	size_t word_start = 0;
 	size_t last_word_end = 0;

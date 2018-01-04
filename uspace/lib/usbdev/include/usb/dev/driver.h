@@ -42,11 +42,11 @@
 /** USB driver ops. */
 typedef struct {
 	/** Callback when a new device was added to the system. */
-	int (*device_add)(usb_device_t *);
+	errno_t (*device_add)(usb_device_t *);
 	/** Callback when a device is about to be removed from the system. */
-	int (*device_rem)(usb_device_t *);
+	errno_t (*device_rem)(usb_device_t *);
 	/** Callback when a device was removed from the system. */
-	int (*device_gone)(usb_device_t *);
+	errno_t (*device_gone)(usb_device_t *);
 } usb_driver_ops_t;
 
 /** USB driver structure. */

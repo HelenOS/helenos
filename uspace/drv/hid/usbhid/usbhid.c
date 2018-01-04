@@ -60,7 +60,7 @@ const usb_endpoint_description_t *usb_hid_endpoints[] = {
 	NULL
 };
 
-static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
+static errno_t usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
 	assert(hid_dev->subdriver_count == 0);
@@ -76,7 +76,7 @@ static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
 	return EOK;
 }
 
-static int usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
+static errno_t usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
 	assert(hid_dev->subdriver_count == 0);
@@ -92,7 +92,7 @@ static int usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
 	return EOK;
 }
 
-static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
+static errno_t usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
 	assert(hid_dev->subdriver_count == 0);
@@ -181,7 +181,7 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 	return matches;
 }
 
-static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
+static errno_t usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
     const usb_hid_subdriver_t **subdrivers, unsigned count)
 {
 	assert(hid_dev);
@@ -214,7 +214,7 @@ static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
 	return EOK;
 }
 
-static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
+static errno_t usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
 
@@ -266,7 +266,7 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 	return usb_hid_save_subdrivers(hid_dev, subdrivers, count);
 }
 
-static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
+static errno_t usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 {
 	assert(hid_dev);
 	assert(dev);
@@ -292,7 +292,7 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	return ENOTSUP;
 }
 
-static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
+static errno_t usb_hid_init_report(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
 
@@ -341,7 +341,7 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
  * @param dev USB device, non-NULL.
  * @return Error code.
  */
-int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
+errno_t usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 {
 	assert(hid_dev);
 	assert(dev);
@@ -354,7 +354,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	hid_dev->usb_dev = dev;
 	hid_dev->poll_pipe_mapping = NULL;
 
-	int rc = usb_hid_check_pipes(hid_dev, dev);
+	errno_t rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -419,7 +419,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].init != NULL) {
 			usb_log_debug("Initializing subdriver %d.\n",i);
-			const int pret = hid_dev->subdrivers[i].init(hid_dev,
+			const errno_t pret = hid_dev->subdrivers[i].init(hid_dev,
 			    &hid_dev->subdrivers[i].data);
 			if (pret != EOK) {
 				usb_log_warning("Failed to initialize"
@@ -472,7 +472,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	}
 
 	/* Parse the input report */
-	const int rc = usb_hid_parse_report(
+	const errno_t rc = usb_hid_parse_report(
 	    &hid_dev->report, buffer, buffer_size, &hid_dev->report_id);
 	if (rc != EOK) {
 		usb_log_warning("Failure in usb_hid_parse_report():"

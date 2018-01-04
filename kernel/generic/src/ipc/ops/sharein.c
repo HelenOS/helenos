@@ -40,7 +40,7 @@
 #include <abi/errno.h>
 #include <arch.h>
 
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	if (!IPC_GET_RETVAL(answer->data)) {
 		irq_spinlock_lock(&answer->sender->lock, true);
@@ -48,7 +48,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		irq_spinlock_unlock(&answer->sender->lock, true);
 			
 		uintptr_t dst_base = (uintptr_t) -1;
-		int rc = as_area_share(AS, IPC_GET_ARG1(answer->data),
+		errno_t rc = as_area_share(AS, IPC_GET_ARG1(answer->data),
 		    IPC_GET_ARG1(*olddata), as, IPC_GET_ARG2(answer->data),
 		    &dst_base, IPC_GET_ARG3(answer->data));
 		IPC_SET_ARG4(answer->data, dst_base);

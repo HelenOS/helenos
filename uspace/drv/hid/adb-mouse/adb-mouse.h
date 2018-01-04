@@ -46,9 +46,9 @@ typedef struct {
 	bool b2_pressed;
 } adb_mouse_t;
 
-extern int adb_mouse_add(adb_mouse_t *);
-extern int adb_mouse_remove(adb_mouse_t *);
-extern int adb_mouse_gone(adb_mouse_t *);
+extern errno_t adb_mouse_add(adb_mouse_t *);
+extern errno_t adb_mouse_remove(adb_mouse_t *);
+extern errno_t adb_mouse_gone(adb_mouse_t *);
 
 #endif
 

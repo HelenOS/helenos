@@ -63,7 +63,7 @@ static void hda_ctl_process_rirb(hda_ctl_t *);
  * for them to read as 1. Then we write them as 0 and we wait for them
  * to read as 0.
  */
-static int hda_ctl_reg16_set_reset(uint16_t *reg, uint16_t mask)
+static errno_t hda_ctl_reg16_set_reset(uint16_t *reg, uint16_t mask)
 {
 	uint16_t val;
 	int wcnt;
@@ -115,7 +115,7 @@ static int hda_ctl_reg16_set_reset(uint16_t *reg, uint16_t mask)
  * @return		EOK on success, EINVAL if sizecap has no valid bits set
  *
  */
-static int hda_rb_size_select(uint8_t sizecap, uint8_t *selsz)
+static errno_t hda_rb_size_select(uint8_t sizecap, uint8_t *selsz)
 {
 	int i;
 
@@ -145,13 +145,13 @@ static size_t hda_rb_entries(uint8_t selsz)
 }
 
 /** Initialize the CORB */
-static int hda_corb_init(hda_t *hda)
+static errno_t hda_corb_init(hda_t *hda)
 {
 	uint8_t ctl;
 	uint8_t corbsz;
 	uint8_t sizecap;
 	uint8_t selsz;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_NOTE, "hda_corb_init()");
 
@@ -236,13 +236,13 @@ static void hda_corb_fini(hda_t *hda)
 }
 
 /** Initialize the RIRB */
-static int hda_rirb_init(hda_t *hda)
+static errno_t hda_rirb_init(hda_t *hda)
 {
 	uint8_t ctl;
 	uint8_t rirbsz;
 	uint8_t sizecap;
 	uint8_t selsz;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_NOTE, "hda_rirb_init()");
 
@@ -371,7 +371,7 @@ static size_t hda_corb_avail(hda_t *hda)
 }
 
 /** Write to CORB */
-static int hda_corb_write(hda_t *hda, uint32_t *data, size_t count)
+static errno_t hda_corb_write(hda_t *hda, uint32_t *data, size_t count)
 {
 	size_t avail;
 	size_t wp;
@@ -413,7 +413,7 @@ static int hda_corb_write(hda_t *hda, uint32_t *data, size_t count)
 	return EOK;
 }
 
-static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data)
+static errno_t hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data)
 {
 	size_t wp;
 	hda_rirb_entry_t resp;
@@ -435,7 +435,7 @@ static int hda_rirb_read(hda_t *hda, hda_rirb_entry_t *data)
 	return EOK;
 }
 
-static int hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
+static errno_t hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 {
 	hda_rirb_entry_t resp;
 
@@ -489,7 +489,7 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	uint32_t gctl;
 	uint32_t intctl;
 	int cnt;
-	int rc;
+	errno_t rc;
 
 	ctl = calloc(1, sizeof(hda_ctl_t));
 	if (ctl == NULL)
@@ -614,9 +614,9 @@ void hda_ctl_fini(hda_ctl_t *ctl)
 	free(ctl);
 }
 
-int hda_cmd(hda_t *hda, uint32_t verb, uint32_t *resp)
+errno_t hda_cmd(hda_t *hda, uint32_t verb, uint32_t *resp)
 {
-	int rc;
+	errno_t rc;
 	hda_rirb_entry_t rentry;
 
 	rc = hda_corb_write(hda, &verb, 1);
@@ -638,7 +638,7 @@ int hda_cmd(hda_t *hda, uint32_t verb, uint32_t *resp)
 static void hda_ctl_process_rirb(hda_ctl_t *ctl)
 {
 	hda_rirb_entry_t resp;
-	int rc;
+	errno_t rc;
 
 	while (true) {
 		rc = hda_rirb_read(ctl->hda, &resp);

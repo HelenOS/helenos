@@ -44,23 +44,23 @@
 #define PCI_SUB_CLASS	0x0A
 #define PCI_BASE_CLASS	0x0B
 
-extern int pci_config_space_read_8(async_sess_t *, uint32_t, uint8_t *);
-extern int pci_config_space_read_16(async_sess_t *, uint32_t, uint16_t *);
-extern int pci_config_space_read_32(async_sess_t *, uint32_t, uint32_t *);
+extern errno_t pci_config_space_read_8(async_sess_t *, uint32_t, uint8_t *);
+extern errno_t pci_config_space_read_16(async_sess_t *, uint32_t, uint16_t *);
+extern errno_t pci_config_space_read_32(async_sess_t *, uint32_t, uint32_t *);
 
-extern int pci_config_space_write_8(async_sess_t *, uint32_t, uint8_t);
-extern int pci_config_space_write_16(async_sess_t *, uint32_t, uint16_t);
-extern int pci_config_space_write_32(async_sess_t *, uint32_t, uint32_t);
+extern errno_t pci_config_space_write_8(async_sess_t *, uint32_t, uint8_t);
+extern errno_t pci_config_space_write_16(async_sess_t *, uint32_t, uint16_t);
+extern errno_t pci_config_space_write_32(async_sess_t *, uint32_t, uint32_t);
 
 /** PCI device communication interface. */
 typedef struct {
-	int (*config_space_read_8)(ddf_fun_t *, uint32_t address, uint8_t *data);
-	int (*config_space_read_16)(ddf_fun_t *, uint32_t address, uint16_t *data);
-	int (*config_space_read_32)(ddf_fun_t *, uint32_t address, uint32_t *data);
+	errno_t (*config_space_read_8)(ddf_fun_t *, uint32_t address, uint8_t *data);
+	errno_t (*config_space_read_16)(ddf_fun_t *, uint32_t address, uint16_t *data);
+	errno_t (*config_space_read_32)(ddf_fun_t *, uint32_t address, uint32_t *data);
 
-	int (*config_space_write_8)(ddf_fun_t *, uint32_t address, uint8_t data);
-	int (*config_space_write_16)(ddf_fun_t *, uint32_t address, uint16_t data);
-	int (*config_space_write_32)(ddf_fun_t *, uint32_t address, uint32_t data);
+	errno_t (*config_space_write_8)(ddf_fun_t *, uint32_t address, uint8_t data);
+	errno_t (*config_space_write_16)(ddf_fun_t *, uint32_t address, uint16_t data);
+	errno_t (*config_space_write_32)(ddf_fun_t *, uint32_t address, uint32_t data);
 } pci_dev_iface_t;
 
 

@@ -64,11 +64,11 @@ typedef struct {
 	nchoice_opt_t *def_opt;
 } nchoice_t;
 
-extern int nchoice_create(nchoice_t **);
+extern errno_t nchoice_create(nchoice_t **);
 extern void nchoice_destroy(nchoice_t *);
-extern int nchoice_set_prompt(nchoice_t *, const char *);
-extern int nchoice_add(nchoice_t *, const char *, void *, nchoice_flag_t);
-extern int nchoice_get(nchoice_t *, void **);
+extern errno_t nchoice_set_prompt(nchoice_t *, const char *);
+extern errno_t nchoice_add(nchoice_t *, const char *, void *, nchoice_flag_t);
+extern errno_t nchoice_get(nchoice_t *, void **);
 
 #endif
 

@@ -175,10 +175,10 @@ extern void vfs_exchange_release(async_exch_t *);
 
 extern fs_handle_t fs_name_to_handle(unsigned int instance, const char *, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
-extern int vfs_get_fstypes(vfs_fstypes_t *);
+extern errno_t vfs_get_fstypes(vfs_fstypes_t *);
 
-extern int vfs_lookup_internal(vfs_node_t *, char *, int, vfs_lookup_res_t *);
-extern int vfs_link_internal(vfs_node_t *, char *, vfs_triplet_t *);
+extern errno_t vfs_lookup_internal(vfs_node_t *, char *, int, vfs_lookup_res_t *);
+extern errno_t vfs_link_internal(vfs_node_t *, char *, vfs_triplet_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
@@ -193,35 +193,35 @@ extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
 extern void vfs_op_pass_handle(task_id_t, task_id_t, int);
-extern int vfs_wait_handle_internal(bool, int *);
+extern errno_t vfs_wait_handle_internal(bool, int *);
 
 extern vfs_file_t *vfs_file_get(int);
 extern void vfs_file_put(vfs_file_t *);
-extern int vfs_fd_assign(vfs_file_t *, int);
-extern int vfs_fd_alloc(vfs_file_t **file, bool desc, int *);
-extern int vfs_fd_free(int);
+extern errno_t vfs_fd_assign(vfs_file_t *, int);
+extern errno_t vfs_fd_alloc(vfs_file_t **file, bool desc, int *);
+extern errno_t vfs_fd_free(int);
 
 extern void vfs_node_addref(vfs_node_t *);
 extern void vfs_node_delref(vfs_node_t *);
-extern int vfs_open_node_remote(vfs_node_t *);
+extern errno_t vfs_open_node_remote(vfs_node_t *);
 
-extern int vfs_op_clone(int oldfd, int newfd, bool desc, int *);
-extern int vfs_op_fsprobe(const char *, service_id_t, vfs_fs_probe_info_t *);
-extern int vfs_op_mount(int mpfd, unsigned servid, unsigned flags, unsigned instance, const char *opts, const char *fsname, int *outfd);
-extern int vfs_op_mtab_get(void);
-extern int vfs_op_open(int fd, int flags);
-extern int vfs_op_put(int fd);
-extern int vfs_op_read(int fd, aoff64_t, size_t *out_bytes);
-extern int vfs_op_rename(int basefd, char *old, char *new);
-extern int vfs_op_resize(int fd, int64_t size);
-extern int vfs_op_stat(int fd);
-extern int vfs_op_statfs(int fd);
-extern int vfs_op_sync(int fd);
-extern int vfs_op_unlink(int parentfd, int expectfd, char *path);
-extern int vfs_op_unmount(int mpfd);
-extern int vfs_op_wait_handle(bool high_fd, int *out_fd);
-extern int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd);
-extern int vfs_op_write(int fd, aoff64_t, size_t *out_bytes);
+extern errno_t vfs_op_clone(int oldfd, int newfd, bool desc, int *);
+extern errno_t vfs_op_fsprobe(const char *, service_id_t, vfs_fs_probe_info_t *);
+extern errno_t vfs_op_mount(int mpfd, unsigned servid, unsigned flags, unsigned instance, const char *opts, const char *fsname, int *outfd);
+extern errno_t vfs_op_mtab_get(void);
+extern errno_t vfs_op_open(int fd, int flags);
+extern errno_t vfs_op_put(int fd);
+extern errno_t vfs_op_read(int fd, aoff64_t, size_t *out_bytes);
+extern errno_t vfs_op_rename(int basefd, char *old, char *new);
+extern errno_t vfs_op_resize(int fd, int64_t size);
+extern errno_t vfs_op_stat(int fd);
+extern errno_t vfs_op_statfs(int fd);
+extern errno_t vfs_op_sync(int fd);
+extern errno_t vfs_op_unlink(int parentfd, int expectfd, char *path);
+extern errno_t vfs_op_unmount(int mpfd);
+extern errno_t vfs_op_wait_handle(bool high_fd, int *out_fd);
+extern errno_t vfs_op_walk(int parentfd, int flags, char *path, int *out_fd);
+extern errno_t vfs_op_write(int fd, aoff64_t, size_t *out_bytes);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 
@@ -232,7 +232,7 @@ typedef struct {
 	size_t size;
 } rdwr_io_chunk_t;
 
-extern int vfs_rdwr_internal(int, aoff64_t, bool, rdwr_io_chunk_t *);
+extern errno_t vfs_rdwr_internal(int, aoff64_t, bool, rdwr_io_chunk_t *);
 
 extern void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 

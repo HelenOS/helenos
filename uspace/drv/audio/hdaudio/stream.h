@@ -76,7 +76,7 @@ typedef struct hda_stream {
 	uint32_t fmt;
 } hda_stream_t;
 
-extern int hda_stream_buffers_alloc(hda_t *, hda_stream_buffers_t **);
+extern errno_t hda_stream_buffers_alloc(hda_t *, hda_stream_buffers_t **);
 extern void hda_stream_buffers_free(hda_stream_buffers_t *);
 extern hda_stream_t *hda_stream_create(hda_t *, hda_stream_dir_t,
     hda_stream_buffers_t *, uint32_t);

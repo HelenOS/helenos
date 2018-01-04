@@ -390,10 +390,10 @@ void putchar(const wchar_t ch)
  * Print to kernel log.
  *
  */
-sysarg_t sys_kio(int cmd, const void *buf, size_t size)
+sys_errno_t sys_kio(int cmd, const void *buf, size_t size)
 {
 	char *data;
-	int rc;
+	errno_t rc;
 
 	switch (cmd) {
 	case KIO_UPDATE:
@@ -407,17 +407,17 @@ sysarg_t sys_kio(int cmd, const void *buf, size_t size)
 	}
 
 	if (size > PAGE_SIZE)
-		return (sysarg_t) ELIMIT;
+		return (sys_errno_t) ELIMIT;
 	
 	if (size > 0) {
 		data = (char *) malloc(size + 1, 0);
 		if (!data)
-			return (sysarg_t) ENOMEM;
+			return (sys_errno_t) ENOMEM;
 		
 		rc = copy_from_uspace(data, buf, size);
 		if (rc) {
 			free(data);
-			return (sysarg_t) rc;
+			return (sys_errno_t) rc;
 		}
 		data[size] = 0;
 		

@@ -48,7 +48,7 @@
  * @return Error code.
  * @retval EFORWARD No suitable handler found.
  */
-int process_control_transfer(usbvirt_device_t *dev,
+errno_t process_control_transfer(usbvirt_device_t *dev,
     const usbvirt_control_request_handler_t *control_handlers,
     const usb_device_request_setup_packet_t *setup,
     uint8_t *data, size_t *data_sent_size)
@@ -69,7 +69,7 @@ int process_control_transfer(usbvirt_device_t *dev,
 
 		usb_log_debug("Control transfer: %s(%s)\n", handler->name,
 		    usb_debug_str_buffer((uint8_t*) setup, sizeof(*setup), 0));
-		int rc = handler->callback(dev, setup, data, data_sent_size);
+		errno_t rc = handler->callback(dev, setup, data, data_sent_size);
 		if (rc != EFORWARD) {
 			return rc;
 		}

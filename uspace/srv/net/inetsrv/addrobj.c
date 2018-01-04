@@ -77,7 +77,7 @@ void inet_addrobj_delete(inet_addrobj_t *addr)
 	free(addr);
 }
 
-int inet_addrobj_add(inet_addrobj_t *addr)
+errno_t inet_addrobj_add(inet_addrobj_t *addr)
 {
 	inet_addrobj_t *aobj;
 
@@ -211,7 +211,7 @@ inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t id)
 }
 
 /** Send datagram from address object */
-int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
+errno_t inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	inet_addr_t lsrc_addr;
@@ -228,7 +228,7 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 	if (lsrc_ver != ldest_ver)
 		return EINVAL;
 
-	int rc;
+	errno_t rc;
 	addr48_t ldest_mac;
 
 	switch (ldest_ver) {
@@ -254,7 +254,7 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 }
 
 /** Get IDs of all address objects. */
-int inet_addrobj_get_id_list(sysarg_t **rid_list, size_t *rcount)
+errno_t inet_addrobj_get_id_list(sysarg_t **rid_list, size_t *rcount)
 {
 	sysarg_t *id_list;
 	size_t count, i;

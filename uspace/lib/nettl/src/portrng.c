@@ -50,7 +50,7 @@
  * @param rpr Place to store pointer to new port range
  * @return EOK on success, ENOMEM if out of memory
  */
-int portrng_create(portrng_t **rpr)
+errno_t portrng_create(portrng_t **rpr)
 {
 	portrng_t *pr;
 
@@ -92,7 +92,7 @@ void portrng_destroy(portrng_t *pr)
  *         EINVAL if @a pnum is specified from the system range, but
  *         @c pf_allow_system was not set.
  */
-int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
+errno_t portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
     portrng_flags_t flags, uint16_t *apnum)
 {
 	portrng_port_t *p;
@@ -162,7 +162,7 @@ int portrng_alloc(portrng_t *pr, uint16_t pnum, void *arg,
  *
  * @return EOK on success, ENOENT if specified port number is not allocated
  */
-int portrng_find_port(portrng_t *pr, uint16_t pnum, void **rarg)
+errno_t portrng_find_port(portrng_t *pr, uint16_t pnum, void **rarg)
 {
 	list_foreach(pr->used, lprng, portrng_port_t, port) {
 		if (port->pn == pnum) {

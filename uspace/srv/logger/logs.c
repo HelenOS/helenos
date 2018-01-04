@@ -51,7 +51,7 @@ static logger_log_t *find_log_by_name_and_parent_no_list_lock(const char *name, 
 	return NULL;
 }
 
-static int create_dest(const char *name, logger_dest_t **dest)
+static errno_t create_dest(const char *name, logger_dest_t **dest)
 {
 	logger_dest_t *result = malloc(sizeof(logger_dest_t));
 	if (result == NULL)
@@ -85,7 +85,7 @@ static logger_log_t *create_log_no_locking(const char *name, logger_log_t *paren
 		result->full_name = str_dup(name);
 		if (result->full_name == NULL)
 			goto error;
-		int rc = create_dest(name, &result->dest);
+		errno_t rc = create_dest(name, &result->dest);
 		if (rc != EOK)
 			goto error;
 	} else {

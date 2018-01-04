@@ -53,7 +53,7 @@
 #include "ext4/ops.h"
 #include "ext4/superblock.h"
 
-static int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
+static errno_t ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
 
 /** Initialize filesystem for opening.
  *
@@ -66,10 +66,10 @@ static int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
  * @return Error code
  *
  */
-static int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
+static errno_t ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
     enum cache_mode cmode)
 {
-	int rc;
+	errno_t rc;
 	ext4_superblock_t *temp_superblock = NULL;
 
 	fs->device = service_id;
@@ -163,10 +163,10 @@ static void ext4_filesystem_fini(ext4_filesystem_t *fs)
  * @return EOK or an error code.
  *
  */
-int ext4_filesystem_probe(service_id_t service_id)
+errno_t ext4_filesystem_probe(service_id_t service_id)
 {
 	ext4_filesystem_t *fs = NULL;
-	int rc;
+	errno_t rc;
 
 	fs = calloc(1, sizeof(ext4_filesystem_t));
 	if (fs == NULL)
@@ -194,12 +194,12 @@ int ext4_filesystem_probe(service_id_t service_id)
  * @return Error code
  *
  */
-int ext4_filesystem_open(ext4_instance_t *inst, service_id_t service_id,
+errno_t ext4_filesystem_open(ext4_instance_t *inst, service_id_t service_id,
     enum cache_mode cmode, aoff64_t *size, ext4_filesystem_t **rfs)
 {
 	ext4_filesystem_t *fs = NULL;
 	fs_node_t *root_node = NULL;
-	int rc;
+	errno_t rc;
 
 	fs = calloc(1, sizeof(ext4_filesystem_t));
 	if (fs == NULL) {
@@ -255,11 +255,11 @@ error:
  *         system is unchanged.
  *
  */
-int ext4_filesystem_close(ext4_filesystem_t *fs)
+errno_t ext4_filesystem_close(ext4_filesystem_t *fs)
 {
 	/* Write the superblock to the device */
 	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_VALID_FS);
-	int rc = ext4_superblock_write_direct(fs->device, fs->superblock);
+	errno_t rc = ext4_superblock_write_direct(fs->device, fs->superblock);
 	if (rc != EOK)
 		return rc;
 
@@ -280,7 +280,7 @@ int ext4_filesystem_close(ext4_filesystem_t *fs)
  * @return Error code
  *
  */
-static int ext4_filesystem_check_features(ext4_filesystem_t *fs,
+static errno_t ext4_filesystem_check_features(ext4_filesystem_t *fs,
     bool *read_only)
 {
 	/* Feature flags are present only in higher revisions */
@@ -379,7 +379,7 @@ uint32_t ext4_filesystem_blockaddr2group(ext4_superblock_t *sb, uint64_t b)
  * @return Error code
  *
  */
-static int ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
+static errno_t ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 {
 	uint64_t itb;
 	uint32_t sz;
@@ -393,7 +393,7 @@ static int ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 	    bg_ref->block_group, bg_ref->fs->superblock);
 	
 	block_t *bitmap_block;
-	int rc = block_get(&bitmap_block, bg_ref->fs->device,
+	errno_t rc = block_get(&bitmap_block, bg_ref->fs->device,
 	    bitmap_block_addr, BLOCK_FLAGS_NOREAD);
 	if (rc != EOK)
 		return rc;
@@ -450,14 +450,14 @@ static int ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
  * @return Error code
  *
  */
-static int ext4_filesystem_init_inode_bitmap(ext4_block_group_ref_t *bg_ref)
+static errno_t ext4_filesystem_init_inode_bitmap(ext4_block_group_ref_t *bg_ref)
 {
 	/* Load bitmap */
 	uint32_t bitmap_block_addr = ext4_block_group_get_inode_bitmap(
 	    bg_ref->block_group, bg_ref->fs->superblock);
 	block_t *bitmap_block;
 	
-	int rc = block_get(&bitmap_block, bg_ref->fs->device,
+	errno_t rc = block_get(&bitmap_block, bg_ref->fs->device,
 	    bitmap_block_addr, BLOCK_FLAGS_NOREAD);
 	if (rc != EOK)
 		return rc;
@@ -493,7 +493,7 @@ static int ext4_filesystem_init_inode_bitmap(ext4_block_group_ref_t *bg_ref)
  * @return Error code
  *
  */
-static int ext4_filesystem_init_inode_table(ext4_block_group_ref_t *bg_ref)
+static errno_t ext4_filesystem_init_inode_table(ext4_block_group_ref_t *bg_ref)
 {
 	ext4_superblock_t *sb = bg_ref->fs->superblock;
 	
@@ -518,7 +518,7 @@ static int ext4_filesystem_init_inode_table(ext4_block_group_ref_t *bg_ref)
 	/* Initialization of all itable blocks */
 	for (uint32_t fblock = first_block; fblock <= last_block; ++fblock) {
 		block_t *block;
-		int rc = block_get(&block, bg_ref->fs->device, fblock,
+		errno_t rc = block_get(&block, bg_ref->fs->device, fblock,
 		    BLOCK_FLAGS_NOREAD);
 		if (rc != EOK)
 			return rc;
@@ -543,7 +543,7 @@ static int ext4_filesystem_init_inode_table(ext4_block_group_ref_t *bg_ref)
  * @return Error code
  *
  */
-int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
+errno_t ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
     ext4_block_group_ref_t **ref)
 {
 	/* Allocate memory for new structure */
@@ -567,7 +567,7 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	    ext4_superblock_get_desc_size(fs->superblock);
 	
 	/* Load block with descriptors */
-	int rc = block_get(&newref->block, fs->device, block_id, 0);
+	errno_t rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
 		free(newref);
 		return rc;
@@ -803,7 +803,7 @@ uint32_t ext4_filesystem_bg_get_backup_blocks(ext4_block_group_ref_t *bg)
  * @return Error code
  *
  */
-int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
+errno_t ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
 {
 	/* Check if reference modified */
 	if (ref->dirty) {
@@ -818,7 +818,7 @@ int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
 	}
 	
 	/* Put back block, that contains block group descriptor */
-	int rc = block_put(ref->block);
+	errno_t rc = block_put(ref->block);
 	free(ref);
 	
 	return rc;
@@ -833,7 +833,7 @@ int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
  * @return Error code
  *
  */
-int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
+errno_t ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
     ext4_inode_ref_t **ref)
 {
 	/* Allocate memory for new structure */
@@ -856,7 +856,7 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 	
 	/* Load block group, where i-node is located */
 	ext4_block_group_ref_t *bg_ref;
-	int rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	errno_t rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK) {
 		free(newref);
 		return rc;
@@ -908,7 +908,7 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
  * @return Error code
  *
  */
-int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
+errno_t ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 {
 	/* Check if reference modified */
 	if (ref->dirty) {
@@ -917,7 +917,7 @@ int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 	}
 	
 	/* Put back block, that contains i-node */
-	int rc = block_put(ref->block);
+	errno_t rc = block_put(ref->block);
 	free(ref);
 	
 	return rc;
@@ -932,7 +932,7 @@ int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
  * @return Error code
  *
  */
-int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
+errno_t ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
     ext4_inode_ref_t **inode_ref, int flags)
 {
 	/* Check if newly allocated i-node will be a directory */
@@ -942,7 +942,7 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	
 	/* Allocate inode by allocation algorithm */
 	uint32_t index;
-	int rc = ext4_ialloc_alloc_inode(fs, &index, is_dir);
+	errno_t rc = ext4_ialloc_alloc_inode(fs, &index, is_dir);
 	if (rc != EOK)
 		return rc;
 	
@@ -1024,7 +1024,7 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
  * @return Error code
  *
  */
-int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
+errno_t ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 {
 	ext4_filesystem_t *fs = inode_ref->fs;
 	
@@ -1041,7 +1041,7 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 	/* 1) Single indirect */
 	uint32_t fblock = ext4_inode_get_indirect_block(inode_ref->inode, 0);
 	if (fblock != 0) {
-		int rc = ext4_balloc_free_block(inode_ref, fblock);
+		errno_t rc = ext4_balloc_free_block(inode_ref, fblock);
 		if (rc != EOK)
 			return rc;
 		
@@ -1055,7 +1055,7 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 	/* 2) Double indirect */
 	fblock = ext4_inode_get_indirect_block(inode_ref->inode, 1);
 	if (fblock != 0) {
-		int rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		errno_t rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return rc;
 		
@@ -1087,7 +1087,7 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 	block_t *subblock;
 	fblock = ext4_inode_get_indirect_block(inode_ref->inode, 2);
 	if (fblock != 0) {
-		int rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
+		errno_t rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return rc;
 		
@@ -1152,7 +1152,7 @@ finish:
 	uint32_t xattr_block = ext4_inode_get_file_acl(
 	    inode_ref->inode, fs->superblock);
 	if (xattr_block) {
-		int rc = ext4_balloc_free_block(inode_ref, xattr_block);
+		errno_t rc = ext4_balloc_free_block(inode_ref, xattr_block);
 		if (rc != EOK)
 			return rc;
 		
@@ -1160,7 +1160,7 @@ finish:
 	}
 	
 	/* Free inode by allocator */
-	int rc;
+	errno_t rc;
 	if (ext4_inode_is_type(fs->superblock, inode_ref->inode,
 	    EXT4_INODE_MODE_DIRECTORY))
 		rc = ext4_ialloc_free_inode(fs, inode_ref->index, true);
@@ -1178,7 +1178,7 @@ finish:
  * @return Error code
  *
  */
-int ext4_filesystem_truncate_inode(ext4_inode_ref_t *inode_ref,
+errno_t ext4_filesystem_truncate_inode(ext4_inode_ref_t *inode_ref,
     aoff64_t new_size)
 {
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
@@ -1211,7 +1211,7 @@ int ext4_filesystem_truncate_inode(ext4_inode_ref_t *inode_ref,
 	    EXT4_FEATURE_INCOMPAT_EXTENTS)) &&
 	    (ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS))) {
 		/* Extents require special operation */
-		int rc = ext4_extent_release_blocks_from(inode_ref,
+		errno_t rc = ext4_extent_release_blocks_from(inode_ref,
 		    old_blocks_count - diff_blocks_count);
 		if (rc != EOK)
 			return rc;
@@ -1220,7 +1220,7 @@ int ext4_filesystem_truncate_inode(ext4_inode_ref_t *inode_ref,
 		
 		/* Starting from 1 because of logical blocks are numbered from 0 */
 		for (uint32_t i = 1; i <= diff_blocks_count; ++i) {
-			int rc = ext4_filesystem_release_inode_block(inode_ref,
+			errno_t rc = ext4_filesystem_release_inode_block(inode_ref,
 			    old_blocks_count - i);
 			if (rc != EOK)
 				return rc;
@@ -1243,7 +1243,7 @@ int ext4_filesystem_truncate_inode(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
+errno_t ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
     aoff64_t iblock, uint32_t *fblock)
 {
 	ext4_filesystem_t *fs = inode_ref->fs;
@@ -1260,7 +1260,7 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	if ((ext4_superblock_has_feature_incompatible(fs->superblock,
 	    EXT4_FEATURE_INCOMPAT_EXTENTS)) &&
 	    (ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS))) {
-		int rc = ext4_extent_find_block(inode_ref, iblock, &current_block);
+		errno_t rc = ext4_extent_find_block(inode_ref, iblock, &current_block);
 		if (rc != EOK)
 			return rc;
 		
@@ -1310,7 +1310,7 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	 */
 	while (level > 0) {
 		/* Load indirect block */
-		int rc = block_get(&block, fs->device, current_block, 0);
+		errno_t rc = block_get(&block, fs->device, current_block, 0);
 		if (rc != EOK)
 			return rc;
 		
@@ -1356,7 +1356,7 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
+errno_t ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
     aoff64_t iblock, uint32_t fblock)
 {
 	ext4_filesystem_t *fs = inode_ref->fs;
@@ -1406,7 +1406,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	/* Is needed to allocate indirect block on the i-node level */
 	if (current_block == 0) {
 		/* Allocate new indirect block */
-		int rc = ext4_balloc_alloc_block(inode_ref, &new_block_addr);
+		errno_t rc = ext4_balloc_alloc_block(inode_ref, &new_block_addr);
 		if (rc != EOK)
 			return rc;
 		
@@ -1440,7 +1440,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	 * or find null reference meaning we are dealing with sparse file
 	 */
 	while (level > 0) {
-		int rc = block_get(&block, fs->device, current_block, 0);
+		errno_t rc = block_get(&block, fs->device, current_block, 0);
 		if (rc != EOK)
 			return rc;
 		
@@ -1517,7 +1517,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-int ext4_filesystem_release_inode_block(ext4_inode_ref_t *inode_ref,
+errno_t ext4_filesystem_release_inode_block(ext4_inode_ref_t *inode_ref,
     uint32_t iblock)
 {
 	uint32_t fblock;
@@ -1574,7 +1574,7 @@ int ext4_filesystem_release_inode_block(ext4_inode_ref_t *inode_ref,
 		if (current_block == 0)
 			return EOK;
 		
-		int rc = block_get(&block, fs->device, current_block, 0);
+		errno_t rc = block_get(&block, fs->device, current_block, 0);
 		if (rc != EOK)
 			return rc;
 		
@@ -1624,7 +1624,7 @@ int ext4_filesystem_release_inode_block(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
+errno_t ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
     uint32_t *fblock, uint32_t *iblock)
 {
 	/* Handle extents separately */
@@ -1648,7 +1648,7 @@ int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 	
 	/* Allocate new physical block */
 	uint32_t phys_block;
-	int rc = ext4_balloc_alloc_block(inode_ref, &phys_block);
+	errno_t rc = ext4_balloc_alloc_block(inode_ref, &phys_block);
 	if (rc != EOK)
 		return rc;
 	

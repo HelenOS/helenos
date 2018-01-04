@@ -50,7 +50,7 @@
 #include "../kbd_ctl.h"
 #include "../kbd_port.h"
 
-static int kbdev_ctl_init(kbd_dev_t *);
+static errno_t kbdev_ctl_init(kbd_dev_t *);
 static void kbdev_ctl_set_ind(kbd_dev_t *, unsigned int);
 
 static void kbdev_callback_conn(ipc_callid_t, ipc_call_t *, void *arg);
@@ -89,7 +89,7 @@ static void kbdev_destroy(kbdev_t *kbdev)
 	free(kbdev);
 }
 
-static int kbdev_ctl_init(kbd_dev_t *kdev)
+static errno_t kbdev_ctl_init(kbd_dev_t *kdev)
 {
 	async_sess_t *sess = loc_service_connect(kdev->svc_id,
 	    INTERFACE_DDF, 0);
@@ -118,7 +118,7 @@ static int kbdev_ctl_init(kbd_dev_t *kdev)
 	}
 	
 	port_id_t port;
-	int rc = async_create_callback_port(exch, INTERFACE_KBD_CB, 0, 0,
+	errno_t rc = async_create_callback_port(exch, INTERFACE_KBD_CB, 0, 0,
 	    kbdev_callback_conn, kbdev, &port);
 	
 	if (rc != EOK) {
@@ -149,7 +149,7 @@ static void kbdev_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 static void kbdev_callback_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	kbdev_t *kbdev;
-	int retval;
+	errno_t retval;
 	int type, key;
 
 	/* Kbdev device structure */

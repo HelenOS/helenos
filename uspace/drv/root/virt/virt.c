@@ -61,10 +61,10 @@ virtual_function_t virtual_functions[] = {
 	}
 };
 
-static int virt_dev_add(ddf_dev_t *dev);
-static int virt_dev_remove(ddf_dev_t *dev);
-static int virt_fun_online(ddf_fun_t *fun);
-static int virt_fun_offline(ddf_fun_t *fun);
+static errno_t virt_dev_add(ddf_dev_t *dev);
+static errno_t virt_dev_remove(ddf_dev_t *dev);
+static errno_t virt_fun_online(ddf_fun_t *fun);
+static errno_t virt_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t virt_ops = {
 	.dev_add = &virt_dev_add,
@@ -99,12 +99,12 @@ static int instances = 0;
  * @param vfun		Virtual function description
  * @return		EOK on success or an error code.
  */
-static int virt_add_fun(virt_t *virt, virtual_function_t *vfun)
+static errno_t virt_add_fun(virt_t *virt, virtual_function_t *vfun)
 {
 	ddf_dev_t *vdev = virt->dev;
 	ddf_fun_t *fun;
 	virt_fun_t *rvfun;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "Registering function `%s' (match \"%s\")",
 	    vfun->name, vfun->match_id);
@@ -147,9 +147,9 @@ static int virt_add_fun(virt_t *virt, virtual_function_t *vfun)
 	return EOK;
 }
 
-static int virt_fun_remove(virt_fun_t *rvfun)
+static errno_t virt_fun_remove(virt_fun_t *rvfun)
 {
-	int rc;
+	errno_t rc;
 	const char *name = ddf_fun_get_name(rvfun->fun);
 
 	ddf_msg(LVL_DEBUG, "virt_fun_remove('%s')", name);
@@ -171,7 +171,7 @@ static int virt_fun_remove(virt_fun_t *rvfun)
 }
 
 
-static int virt_dev_add(ddf_dev_t *dev)
+static errno_t virt_dev_add(ddf_dev_t *dev)
 {
 	virt_t *virt;
 
@@ -204,10 +204,10 @@ static int virt_dev_add(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int virt_dev_remove(ddf_dev_t *dev)
+static errno_t virt_dev_remove(ddf_dev_t *dev)
 {
 	virt_t *virt = (virt_t *)ddf_dev_data_get(dev);
-	int rc;
+	errno_t rc;
 
 	while (!list_empty(&virt->functions)) {
 		virt_fun_t *rvfun = list_get_instance(
@@ -223,13 +223,13 @@ static int virt_dev_remove(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int virt_fun_online(ddf_fun_t *fun)
+static errno_t virt_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "virt_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int virt_fun_offline(ddf_fun_t *fun)
+static errno_t virt_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "virt_fun_offline()");
 	return ddf_fun_offline(fun);

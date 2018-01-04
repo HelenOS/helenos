@@ -46,7 +46,7 @@
 #include "inetping.h"
 #include "pdu.h"
 
-static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
+static errno_t icmpv6_recv_echo_request(inet_dgram_t *dgram)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmpv6_recv_echo_request()");
 	
@@ -100,7 +100,7 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	
 	reply->checksum = host2uint16_t_be(cs_all);
 	
-	int rc = inet_route_packet(&rdgram, IP_PROTO_ICMPV6,
+	errno_t rc = inet_route_packet(&rdgram, IP_PROTO_ICMPV6,
 	    INET6_HOP_LIMIT_MAX, 0);
 	
 	free(reply);
@@ -108,7 +108,7 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	return rc;
 }
 
-static int icmpv6_recv_echo_reply(inet_dgram_t *dgram)
+static errno_t icmpv6_recv_echo_reply(inet_dgram_t *dgram)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmpv6_recv_echo_reply()");
 	
@@ -131,7 +131,7 @@ static int icmpv6_recv_echo_reply(inet_dgram_t *dgram)
 	return inetping_recv(ident, &sdu);
 }
 
-int icmpv6_recv(inet_dgram_t *dgram)
+errno_t icmpv6_recv(inet_dgram_t *dgram)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmpv6_recv()");
 	
@@ -156,7 +156,7 @@ int icmpv6_recv(inet_dgram_t *dgram)
 	return EINVAL;
 }
 
-int icmpv6_ping_send(uint16_t ident, inetping_sdu_t *sdu)
+errno_t icmpv6_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 {
 	size_t rsize = sizeof(icmpv6_message_t) + sdu->size;
 	void *rdata = calloc(1, rsize);
@@ -201,7 +201,7 @@ int icmpv6_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 	
 	request->checksum = host2uint16_t_be(cs_all);
 	
-	int rc = inet_route_packet(&dgram, IP_PROTO_ICMPV6,
+	errno_t rc = inet_route_packet(&dgram, IP_PROTO_ICMPV6,
 	    INET6_HOP_LIMIT_MAX, 0);
 	
 	free(rdata);

@@ -84,9 +84,9 @@ void condvar_broadcast(condvar_t *cv)
  *
  * @return		See comment for waitq_sleep_timeout().
  */
-int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
+errno_t _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
 {
-	int rc;
+	errno_t rc;
 	ipl_t ipl;
 	bool blocked;
 
@@ -123,10 +123,10 @@ int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock, 
+errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock, 
 	uint32_t usec, int flags)
 {
-	int rc;
+	errno_t rc;
 	ipl_t ipl;
 	bool blocked;
 
@@ -160,10 +160,10 @@ int _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lock, 
+errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lock, 
 	uint32_t usec, int flags)
 {
-	int rc;
+	errno_t rc;
 	/* Save spinlock's state so we can restore it correctly later on. */
 	ipl_t ipl = irq_lock->ipl;
 	bool guard = irq_lock->guard;

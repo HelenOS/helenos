@@ -72,7 +72,7 @@ static void state_printf(state_t *state, const char *format, ...)
 	va_end(ap);
 }
 
-static int print_node(state_t *, bithenge_node_t *);
+static errno_t print_node(state_t *, bithenge_node_t *);
 
 static void newline(state_t *state)
 {
@@ -92,10 +92,10 @@ static void decrease_depth(state_t *state)
 	state->depth--;
 }
 
-static int print_internal_func(bithenge_node_t *key, bithenge_node_t *value, void *data)
+static errno_t print_internal_func(bithenge_node_t *key, bithenge_node_t *value, void *data)
 {
 	state_t *state = (state_t *)data;
-	int rc = EOK;
+	errno_t rc = EOK;
 	if (!state->first)
 		state_printf(state, ",");
 	newline(state);
@@ -119,9 +119,9 @@ end:
 	return rc;
 }
 
-static int print_internal(state_t *state, bithenge_node_t *node)
+static errno_t print_internal(state_t *state, bithenge_node_t *node)
 {
-	int rc;
+	errno_t rc;
 	state_printf(state, "{");
 	increase_depth(state);
 	state->first = true;
@@ -136,7 +136,7 @@ static int print_internal(state_t *state, bithenge_node_t *node)
 	return EOK;
 }
 
-static int print_boolean(state_t *state, bithenge_node_t *node)
+static errno_t print_boolean(state_t *state, bithenge_node_t *node)
 {
 	bool value = bithenge_boolean_node_value(node);
 	switch (state->type) {
@@ -150,20 +150,20 @@ static int print_boolean(state_t *state, bithenge_node_t *node)
 	return EOK;
 }
 
-static int print_integer(state_t *state, bithenge_node_t *node)
+static errno_t print_integer(state_t *state, bithenge_node_t *node)
 {
 	bithenge_int_t value = bithenge_integer_node_value(node);
 	state_printf(state, "%" BITHENGE_PRId, value);
 	return EOK;
 }
 
-static int print_string(state_t *state, bithenge_node_t *node)
+static errno_t print_string(state_t *state, bithenge_node_t *node)
 {
 	const char *value = bithenge_string_node_value(node);
 	state_printf(state, "\"");
 	for (string_iterator_t i = string_iterator(value); !string_iterator_done(&i); ) {
 		wchar_t ch;
-		int rc = string_iterator_next(&i, &ch);
+		errno_t rc = string_iterator_next(&i, &ch);
 		if (rc != EOK)
 			return rc;
 		if (ch == '"' || ch == '\\') {
@@ -178,13 +178,13 @@ static int print_string(state_t *state, bithenge_node_t *node)
 	return EOK;
 }
 
-static int print_blob(state_t *state, bithenge_node_t *node)
+static errno_t print_blob(state_t *state, bithenge_node_t *node)
 {
 	bithenge_blob_t *blob = bithenge_node_as_blob(node);
 	aoff64_t pos = 0;
 	uint8_t buffer[1024];
 	aoff64_t size = sizeof(buffer);
-	int rc;
+	errno_t rc;
 	state_printf(state,
 	    state->type == BITHENGE_PRINT_PYTHON ? "b\"" : "\"");
 	do {
@@ -200,7 +200,7 @@ static int print_blob(state_t *state, bithenge_node_t *node)
 	return EOK;
 }
 
-static int print_node(state_t *state, bithenge_node_t *tree)
+static errno_t print_node(state_t *state, bithenge_node_t *tree)
 {
 	switch (bithenge_node_type(tree)) {
 	case BITHENGE_NODE_INTERNAL:
@@ -221,7 +221,7 @@ static int print_node(state_t *state, bithenge_node_t *tree)
  * @param type The format to use.
  * @param tree The root node of the tree to print.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
+errno_t bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 {
 	state_t state = {type, true, 0, NULL, 0};
 	return print_node(&state, tree);
@@ -235,11 +235,11 @@ int bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
  * @param type The format to use.
  * @param tree The root node of the tree to print.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_print_node_to_string(char **str, size_t *size,
+errno_t bithenge_print_node_to_string(char **str, size_t *size,
     bithenge_print_type_t type, bithenge_node_t *tree)
 {
 	state_t state = {type, true, 0, *str, *size};
-	int rc = print_node(&state, tree);
+	errno_t rc = print_node(&state, tree);
 	*str = state.buffer;
 	*size = state.buffer_size;
 	return rc;

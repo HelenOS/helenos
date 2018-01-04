@@ -59,7 +59,7 @@ void exfat_directory_init(exfat_directory_t *di)
 	di->firstc = 0;
 }
 
-int exfat_directory_open(exfat_node_t *nodep, exfat_directory_t *di)
+errno_t exfat_directory_open(exfat_node_t *nodep, exfat_directory_t *di)
 {
 	exfat_directory_init(di);
 	di->nodep = nodep;	
@@ -75,7 +75,7 @@ int exfat_directory_open(exfat_node_t *nodep, exfat_directory_t *di)
 	return EOK;
 }
 
-int exfat_directory_open_parent(exfat_directory_t *di, 
+errno_t exfat_directory_open_parent(exfat_directory_t *di, 
     service_id_t service_id, exfat_cluster_t firstc, bool fragmented)
 {
 	exfat_directory_init(di);
@@ -87,9 +87,9 @@ int exfat_directory_open_parent(exfat_directory_t *di,
 	return EOK;
 }
 
-int exfat_directory_close(exfat_directory_t *di)
+errno_t exfat_directory_close(exfat_directory_t *di)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	if (di->b) {
 		rc = block_put(di->b);
@@ -99,10 +99,10 @@ int exfat_directory_close(exfat_directory_t *di)
 	return rc;
 }
 
-static int exfat_directory_block_load(exfat_directory_t *di)
+static errno_t exfat_directory_block_load(exfat_directory_t *di)
 {
 	uint32_t i;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	i = (di->pos * sizeof(exfat_dentry_t)) / BPS(di->bs);
 	if (di->nodep && (i >= di->blocks))
@@ -132,9 +132,9 @@ static int exfat_directory_block_load(exfat_directory_t *di)
 	return rc;
 }
 
-int exfat_directory_next(exfat_directory_t *di)
+errno_t exfat_directory_next(exfat_directory_t *di)
 {
-	int rc;
+	errno_t rc;
 
 	di->pos += 1;
 	rc = exfat_directory_block_load(di);
@@ -144,9 +144,9 @@ int exfat_directory_next(exfat_directory_t *di)
 	return rc;
 }
 
-int exfat_directory_prev(exfat_directory_t *di)
+errno_t exfat_directory_prev(exfat_directory_t *di)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	if (di->pos > 0) {
 		di->pos -= 1;
@@ -160,10 +160,10 @@ int exfat_directory_prev(exfat_directory_t *di)
 	return rc;
 }
 
-int exfat_directory_seek(exfat_directory_t *di, aoff64_t pos)
+errno_t exfat_directory_seek(exfat_directory_t *di, aoff64_t pos)
 {
 	aoff64_t _pos = di->pos;
-	int rc;
+	errno_t rc;
 
 	di->pos = pos;
 	rc = exfat_directory_block_load(di);
@@ -173,9 +173,9 @@ int exfat_directory_seek(exfat_directory_t *di, aoff64_t pos)
 	return rc;
 }
 
-int exfat_directory_get(exfat_directory_t *di, exfat_dentry_t **d)
+errno_t exfat_directory_get(exfat_directory_t *di, exfat_dentry_t **d)
 {
-	int rc;
+	errno_t rc;
 	
 	rc = exfat_directory_block_load(di);
 	if (rc == EOK) {
@@ -186,7 +186,7 @@ int exfat_directory_get(exfat_directory_t *di, exfat_dentry_t **d)
 	return rc;
 }
 
-int exfat_directory_find(exfat_directory_t *di, exfat_dentry_clsf_t type,
+errno_t exfat_directory_find(exfat_directory_t *di, exfat_dentry_clsf_t type,
     exfat_dentry_t **d)
 {
 	do {
@@ -200,11 +200,11 @@ int exfat_directory_find(exfat_directory_t *di, exfat_dentry_clsf_t type,
 	return ENOENT;
 }
 
-int
+errno_t
 exfat_directory_find_continue(exfat_directory_t *di, exfat_dentry_clsf_t type,
     exfat_dentry_t **d)
 {
-	int rc;
+	errno_t rc;
 	rc = exfat_directory_next(di);
 	if (rc != EOK)
 		return rc;
@@ -212,12 +212,12 @@ exfat_directory_find_continue(exfat_directory_t *di, exfat_dentry_clsf_t type,
 }
 
 
-int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size, 
+errno_t exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size, 
     exfat_file_dentry_t *df, exfat_stream_dentry_t *ds)
 {
 	uint16_t wname[EXFAT_FILENAME_LEN + 1];
 	exfat_dentry_t *d = NULL;
-	int rc;
+	errno_t rc;
 	int i;
 	size_t offset = 0;
 	aoff64_t start_pos = 0;
@@ -260,12 +260,12 @@ int exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
 	return EOK;
 }
 
-int exfat_directory_read_vollabel(exfat_directory_t *di, char *label,
+errno_t exfat_directory_read_vollabel(exfat_directory_t *di, char *label,
     size_t size)
 {
 	uint16_t wlabel[EXFAT_VOLLABEL_LEN + 1];
 	exfat_dentry_t *d = NULL;
-	int rc;
+	errno_t rc;
 	aoff64_t start_pos = 0;
 
 	start_pos = di->pos;
@@ -302,10 +302,10 @@ static uint16_t exfat_directory_set_checksum(const uint8_t *bytes, size_t count)
 	return checksum;
 }
 
-int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df, 
+errno_t exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df, 
     exfat_stream_dentry_t *ds)
 {
-	int rc;
+	errno_t rc;
 	int i, count;
 	exfat_dentry_t *array = NULL, *de;
 	aoff64_t pos = di->pos;
@@ -366,14 +366,14 @@ int exfat_directory_sync_file(exfat_directory_t *di, exfat_file_dentry_t *df,
 	return EOK;
 }
 
-int exfat_directory_write_file(exfat_directory_t *di, const char *name)
+errno_t exfat_directory_write_file(exfat_directory_t *di, const char *name)
 {
 	fs_node_t *fn;
 	exfat_node_t *uctablep;
 	uint16_t *uctable;
 	exfat_dentry_t df, ds, *de;
 	uint16_t wname[EXFAT_FILENAME_LEN + 1];
-	int rc;
+	errno_t rc;
 	int i;
 	size_t uctable_chars, j;
 	aoff64_t pos;
@@ -473,9 +473,9 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 	return exfat_directory_seek(di, pos);
 }
 
-int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
+errno_t exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
 {
-	int rc;
+	errno_t rc;
 	int count;
 	exfat_dentry_t *de;
 
@@ -501,9 +501,9 @@ int exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
 	return EOK;
 }
 
-int exfat_directory_expand(exfat_directory_t *di)
+errno_t exfat_directory_expand(exfat_directory_t *di)
 {
-	int rc;
+	errno_t rc;
 
 	if (!di->nodep)
 		return ENOSPC;
@@ -520,9 +520,9 @@ int exfat_directory_expand(exfat_directory_t *di)
 	return EOK;
 }
 
-int exfat_directory_lookup_free(exfat_directory_t *di, size_t count)
+errno_t exfat_directory_lookup_free(exfat_directory_t *di, size_t count)
 {
-	int rc;
+	errno_t rc;
 	exfat_dentry_t *d;
 	size_t found;
 	aoff64_t pos;

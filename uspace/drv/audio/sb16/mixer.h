@@ -50,13 +50,13 @@ typedef struct sb_mixer {
 } sb_mixer_t;
 
 const char * sb_mixer_type_str(sb_mixer_type_t type);
-int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type);
+errno_t sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type);
 int sb_mixer_get_control_item_count(const sb_mixer_t *mixer);
-int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
+errno_t sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
     const char **name, unsigned *levels);
-int sb_mixer_get_control_item_value(const sb_mixer_t *mixer, unsigned index,
+errno_t sb_mixer_get_control_item_value(const sb_mixer_t *mixer, unsigned index,
     unsigned *value);
-int sb_mixer_set_control_item_value(const sb_mixer_t *mixer, unsigned index,
+errno_t sb_mixer_set_control_item_value(const sb_mixer_t *mixer, unsigned index,
     unsigned value);
 #endif
 /**

@@ -70,7 +70,7 @@ extern winsize_t winsize;
 extern void moveto(sysarg_t r, sysarg_t c);
 extern void clear_screen(void);
 
-extern int put(int);
+extern errno_t put(int);
 extern void scr_clear(void);
 extern void scr_end(void);
 extern void scr_init(void);
@@ -79,8 +79,8 @@ extern void scr_set(void);
 extern void scr_update(void);
 
 extern void tsleep(void);
-extern int tgetchar(void);
-extern int twait(void);
+extern errno_t tgetchar(void);
+extern errno_t twait(void);
 
 /** @}
  */

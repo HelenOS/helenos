@@ -41,7 +41,7 @@
 #include "inetsrv.h"
 
 extern void inetping_conn(ipc_callid_t, ipc_call_t *, void *);
-extern int inetping_recv(uint16_t, inetping_sdu_t *);
+extern errno_t inetping_recv(uint16_t, inetping_sdu_t *);
 
 #endif
 

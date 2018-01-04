@@ -48,12 +48,12 @@ typedef struct {
 } uri_t;
 
 extern uri_t *uri_parse(const char *);
-extern int uri_scheme_parse(const char *, const char **);
+extern errno_t uri_scheme_parse(const char *, const char **);
 extern bool uri_scheme_validate(const char *);
-extern int uri_percent_parse(const char *, const char **, uint8_t *);
-extern int uri_user_info_parse(const char *, const char **);
+extern errno_t uri_percent_parse(const char *, const char **, uint8_t *);
+extern errno_t uri_user_info_parse(const char *, const char **);
 extern bool uri_user_info_validate(const char *);
-extern int uri_port_parse(const char *, const char **);
+extern errno_t uri_port_parse(const char *, const char **);
 extern bool uri_port_validate(const char *);
 extern bool uri_validate(uri_t *);
 extern void uri_destroy(uri_t *);

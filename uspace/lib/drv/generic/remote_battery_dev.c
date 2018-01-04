@@ -46,14 +46,14 @@
  *
  * @return         EOK on success or an error code
  */
-int
+errno_t
 battery_status_get(async_sess_t *sess, battery_status_t *batt_status)
 {
 	sysarg_t status;
 
 	async_exch_t *exch = async_exchange_begin(sess);
 
-	int const rc = async_req_1_1(exch, DEV_IFACE_ID(BATTERY_DEV_IFACE),
+	errno_t const rc = async_req_1_1(exch, DEV_IFACE_ID(BATTERY_DEV_IFACE),
 	    BATTERY_STATUS_GET, &status);
 
 	async_exchange_end(exch);
@@ -71,14 +71,14 @@ battery_status_get(async_sess_t *sess, battery_status_t *batt_status)
  *
  * @return         EOK on success or an error code
  */
-int
+errno_t
 battery_charge_level_get(async_sess_t *sess, int *level)
 {
 	sysarg_t charge_level;
 
 	async_exch_t *exch = async_exchange_begin(sess);
 
-	int const rc = async_req_1_1(exch, DEV_IFACE_ID(BATTERY_DEV_IFACE),
+	errno_t const rc = async_req_1_1(exch, DEV_IFACE_ID(BATTERY_DEV_IFACE),
 	    BATTERY_CHARGE_LEVEL_GET, &charge_level);
 
 	async_exchange_end(exch);
@@ -128,7 +128,7 @@ remote_battery_status_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 	}
 
 	battery_status_t batt_status;
-	const int rc = bops->battery_status_get(fun, &batt_status);
+	const errno_t rc = bops->battery_status_get(fun, &batt_status);
 
 	if (rc != EOK)
 		async_answer_0(callid, rc);
@@ -154,7 +154,7 @@ remote_battery_charge_level_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 	}
 
 	int battery_level;
-	const int rc = bops->battery_charge_level_get(fun, &battery_level);
+	const errno_t rc = bops->battery_charge_level_get(fun, &battery_level);
 
 	if (rc != EOK)
 		async_answer_0(callid, rc);

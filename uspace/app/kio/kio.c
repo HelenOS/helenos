@@ -109,7 +109,7 @@ static void producer(size_t length, wchar_t *data)
  * @return Always EOK (unreachable).
  *
  */
-static int consumer(void *data)
+static errno_t consumer(void *data)
 {
 	FILE *log = fopen(LOG_FNAME, "a");
 	if (log == NULL)
@@ -186,7 +186,7 @@ static void kio_notification_handler(ipc_call_t *call, void *arg)
 int main(int argc, char *argv[])
 {
 	size_t pages;
-	int rc = sysinfo_get_value("kio.pages", &pages);
+	errno_t rc = sysinfo_get_value("kio.pages", &pages);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to get number of kio pages\n",
 		    NAME);

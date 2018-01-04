@@ -40,9 +40,9 @@
 #include <loc.h>
 #include <types/liblabel.h>
 
-extern int label_bd_is_empty(label_bd_t *, bool *);
-extern int label_bd_empty(label_bd_t *);
-extern int label_part_empty(label_part_t *);
+extern errno_t label_bd_is_empty(label_bd_t *, bool *);
+extern errno_t label_bd_empty(label_bd_t *);
+extern errno_t label_part_empty(label_part_t *);
 
 #endif
 

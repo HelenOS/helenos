@@ -49,7 +49,7 @@
  *         EREFUSED when device is not ready yet.
  *
  */
-int ieee80211_get_scan_results_impl(ddf_fun_t *fun,
+errno_t ieee80211_get_scan_results_impl(ddf_fun_t *fun,
     ieee80211_scan_results_t *results, bool now)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
@@ -97,13 +97,13 @@ static uint16_t ieee80211_channel_to_freq(uint8_t channel)
  *         ETIMEOUT when timeout during authenticating.
  *
  */
-static int ieee80211_connect_proc(ieee80211_dev_t *ieee80211_dev,
+static errno_t ieee80211_connect_proc(ieee80211_dev_t *ieee80211_dev,
     ieee80211_scan_result_link_t *auth_data, char *password)
 {
 	ieee80211_dev->bssid_info.res_link = auth_data;
 	
 	/* Set channel. */
-	int rc = ieee80211_dev->ops->set_freq(ieee80211_dev,
+	errno_t rc = ieee80211_dev->ops->set_freq(ieee80211_dev,
 	    ieee80211_channel_to_freq(auth_data->scan_result.channel));
 	if (rc != EOK)
 		return rc;
@@ -177,7 +177,7 @@ static int ieee80211_connect_proc(ieee80211_dev_t *ieee80211_dev,
  *         EREFUSED when device is not ready yet.
  *
  */
-int ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, char *password)
+errno_t ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, char *password)
 {
 	assert(ssid_start);
 	assert(password);
@@ -189,14 +189,14 @@ int ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, char *password)
 		return EREFUSED;
 	
 	if (ieee80211_is_connected(ieee80211_dev)) {
-		int rc = ieee80211_dev->iface->disconnect(fun);
+		errno_t rc = ieee80211_dev->iface->disconnect(fun);
 		if (rc != EOK)
 			return rc;
 	}
 	
 	ieee80211_set_connect_request(ieee80211_dev);
 	
-	int rc = ENOENT;
+	errno_t rc = ENOENT;
 	fibril_mutex_lock(&ieee80211_dev->scan_mutex);
 	
 	ieee80211_dev->pending_conn_req = false;
@@ -223,7 +223,7 @@ int ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, char *password)
  *         EREFUSED if device is not ready yet.
  *
  */
-int ieee80211_disconnect_impl(ddf_fun_t *fun)
+errno_t ieee80211_disconnect_impl(ddf_fun_t *fun)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	ieee80211_dev_t *ieee80211_dev = nic_get_specific(nic_data);
@@ -235,7 +235,7 @@ int ieee80211_disconnect_impl(ddf_fun_t *fun)
 		return EOK;
 	
 	fibril_mutex_lock(&ieee80211_dev->ap_list.results_mutex);
-	int rc = ieee80211_deauthenticate(ieee80211_dev);
+	errno_t rc = ieee80211_deauthenticate(ieee80211_dev);
 	fibril_mutex_unlock(&ieee80211_dev->ap_list.results_mutex);
 	
 	return rc;

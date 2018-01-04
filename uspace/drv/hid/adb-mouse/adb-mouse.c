@@ -96,7 +96,7 @@ static void adb_mouse_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 
-		int retval = EOK;
+		errno_t retval = EOK;
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -116,9 +116,9 @@ static void adb_mouse_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Add ADB mouse device */
-int adb_mouse_add(adb_mouse_t *mouse)
+errno_t adb_mouse_add(adb_mouse_t *mouse)
 {
-	int rc;
+	errno_t rc;
 	bool bound = false;
 
 	mouse->fun = ddf_fun_create(mouse->dev, fun_exposed, "a");
@@ -187,13 +187,13 @@ error:
 }
 
 /** Remove ADB mouse device */
-int adb_mouse_remove(adb_mouse_t *con)
+errno_t adb_mouse_remove(adb_mouse_t *con)
 {
 	return ENOTSUP;
 }
 
 /** ADB mouse device gone */
-int adb_mouse_gone(adb_mouse_t *con)
+errno_t adb_mouse_gone(adb_mouse_t *con)
 {
 	return ENOTSUP;
 }

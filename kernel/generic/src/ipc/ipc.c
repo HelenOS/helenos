@@ -207,7 +207,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
  * @return EOK on success or an error code.
  *
  */
-int ipc_call_sync(phone_t *phone, call_t *request)
+errno_t ipc_call_sync(phone_t *phone, call_t *request)
 {
 	answerbox_t *mybox = slab_alloc(answerbox_cache, 0);
 	ipc_answerbox_init(mybox, TASK);
@@ -215,7 +215,7 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 	/* We will receive data in a special box. */
 	request->callerbox = mybox;
 	
-	int rc = ipc_call(phone, request);
+	errno_t rc = ipc_call(phone, request);
 	if (rc != EOK) {
 		slab_free(answerbox_cache, mybox);
 		return rc;
@@ -370,7 +370,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
  * @param err   Return value to be used for the answer.
  *
  */
-void ipc_backsend_err(phone_t *phone, call_t *call, int err)
+void ipc_backsend_err(phone_t *phone, call_t *call, errno_t err)
 {
 	_ipc_call_actions_internal(phone, call, false);
 	IPC_SET_RETVAL(call->data, err);
@@ -414,7 +414,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call,
  * @return Return 0 on success, ENOENT on error.
  *
  */
-int ipc_call(phone_t *phone, call_t *call)
+errno_t ipc_call(phone_t *phone, call_t *call)
 {
 	mutex_lock(&phone->lock);
 	if (phone->state != IPC_PHONE_CONNECTED) {
@@ -447,7 +447,7 @@ int ipc_call(phone_t *phone, call_t *call)
  * @return EINVAL if the phone was already disconnected.
  *
  */
-int ipc_phone_hangup(phone_t *phone)
+errno_t ipc_phone_hangup(phone_t *phone)
 {
 	mutex_lock(&phone->lock);
 	if (phone->state == IPC_PHONE_FREE ||
@@ -494,7 +494,7 @@ int ipc_phone_hangup(phone_t *phone)
  * the original caller is notified automatically with EFORWARD.
  *
  */
-int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
+errno_t ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
     unsigned int mode)
 {
 	/* Count forwarded calls */
@@ -534,7 +534,7 @@ call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags)
 	uint64_t irq_cnt = 0;
 	uint64_t answer_cnt = 0;
 	uint64_t call_cnt = 0;
-	int rc;
+	errno_t rc;
 	
 restart:
 	rc = waitq_sleep_timeout(&box->wq, usec, flags, NULL);

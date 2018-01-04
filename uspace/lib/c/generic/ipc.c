@@ -92,7 +92,7 @@ static inline async_call_t *ipc_prepare_async(void *private,
  * @param rc       Value returned by the SYS_IPC_CALL_ASYNC_* syscall.
  * @param call     Structure returned by ipc_prepare_async().
  */
-static inline void ipc_finish_async(int rc, async_call_t *call)
+static inline void ipc_finish_async(errno_t rc, async_call_t *call)
 {
 	if (!call) {
 		/* Nothing to do regardless if failed or not */
@@ -135,7 +135,7 @@ void ipc_call_async_fast(cap_handle_t phandle, sysarg_t imethod, sysarg_t arg1,
 	if (!call)
 		return;
 	
-	int rc = (int) __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phandle, imethod, arg1,
+	errno_t rc = (errno_t) __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phandle, imethod, arg1,
 	    arg2, arg3, (sysarg_t) call);
 	
 	ipc_finish_async(rc, call);
@@ -174,7 +174,7 @@ void ipc_call_async_slow(int phandle, sysarg_t imethod, sysarg_t arg1,
 	IPC_SET_ARG4(call->msg.data, arg4);
 	IPC_SET_ARG5(call->msg.data, arg5);
 	
-	int rc = (int) __SYSCALL3(SYS_IPC_CALL_ASYNC_SLOW, phandle,
+	errno_t rc = (errno_t) __SYSCALL3(SYS_IPC_CALL_ASYNC_SLOW, phandle,
 	    (sysarg_t) &call->msg.data, (sysarg_t) call);
 	
 	ipc_finish_async(rc, call);
@@ -196,10 +196,10 @@ void ipc_call_async_slow(int phandle, sysarg_t imethod, sysarg_t arg1,
  * @return Value from @ref errno.h on failure.
  *
  */
-int ipc_answer_fast(cap_handle_t chandle, int retval, sysarg_t arg1,
+errno_t ipc_answer_fast(cap_handle_t chandle, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
-	return (int) __SYSCALL6(SYS_IPC_ANSWER_FAST, chandle, (sysarg_t) retval, arg1, arg2,
+	return (errno_t) __SYSCALL6(SYS_IPC_ANSWER_FAST, chandle, (sysarg_t) retval, arg1, arg2,
 	    arg3, arg4);
 }
 
@@ -217,7 +217,7 @@ int ipc_answer_fast(cap_handle_t chandle, int retval, sysarg_t arg1,
  * @return Value from @ref errno.h on failure.
  *
  */
-int ipc_answer_slow(cap_handle_t chandle, int retval, sysarg_t arg1,
+errno_t ipc_answer_slow(cap_handle_t chandle, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
 	ipc_call_t data;
@@ -229,7 +229,7 @@ int ipc_answer_slow(cap_handle_t chandle, int retval, sysarg_t arg1,
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
 	
-	return (int) __SYSCALL2(SYS_IPC_ANSWER_SLOW, chandle, (sysarg_t) &data);
+	return (errno_t) __SYSCALL2(SYS_IPC_ANSWER_SLOW, chandle, (sysarg_t) &data);
 }
 
 /** Handle received answer.
@@ -257,9 +257,9 @@ static void handle_answer(ipc_call_t *data)
  *
  * @return  Error code.
  */
-int ipc_wait_cycle(ipc_call_t *call, sysarg_t usec, unsigned int flags)
+errno_t ipc_wait_cycle(ipc_call_t *call, sysarg_t usec, unsigned int flags)
 {
-	int rc = (int) __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
+	errno_t rc = (errno_t) __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
 	
 	/* Handle received answers */
 	if ((rc == EOK) && (call->cap_handle == CAP_NIL) &&
@@ -288,9 +288,9 @@ void ipc_poke(void)
  * @return  Error code.
  *
  */
-int ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
+errno_t ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
 {
-	int rc;
+	errno_t rc;
 	
 	do {
 		rc = ipc_wait_cycle(call, usec, SYNCH_FLAGS_NONE);
@@ -308,9 +308,9 @@ int ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
  * @return  Error code.
  *
  */
-int ipc_trywait_for_call(ipc_call_t *call)
+errno_t ipc_trywait_for_call(ipc_call_t *call)
 {
-	int rc;
+	errno_t rc;
 	
 	do {
 		rc = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT,
@@ -327,9 +327,9 @@ int ipc_trywait_for_call(ipc_call_t *call)
  * @return  Zero on success or an error code.
  *
  */
-int ipc_hangup(cap_handle_t phandle)
+errno_t ipc_hangup(cap_handle_t phandle)
 {
-	return (int) __SYSCALL1(SYS_IPC_HANGUP, phandle);
+	return (errno_t) __SYSCALL1(SYS_IPC_HANGUP, phandle);
 }
 
 /** Forward a received call to another destination.
@@ -349,14 +349,14 @@ int ipc_hangup(cap_handle_t phandle)
  * @return  Zero on success or an error code.
  *
  */
-int ipc_forward_fast(cap_handle_t chandle, cap_handle_t phandle,
+errno_t ipc_forward_fast(cap_handle_t chandle, cap_handle_t phandle,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
 {
-	return (int) __SYSCALL6(SYS_IPC_FORWARD_FAST, chandle, phandle, imethod, arg1,
+	return (errno_t) __SYSCALL6(SYS_IPC_FORWARD_FAST, chandle, phandle, imethod, arg1,
 	    arg2, mode);
 }
 
-int ipc_forward_slow(cap_handle_t chandle, cap_handle_t phandle,
+errno_t ipc_forward_slow(cap_handle_t chandle, cap_handle_t phandle,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode)
 {
@@ -369,16 +369,16 @@ int ipc_forward_slow(cap_handle_t chandle, cap_handle_t phandle,
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
 	
-	return (int) __SYSCALL4(SYS_IPC_FORWARD_SLOW, chandle, phandle,
+	return (errno_t) __SYSCALL4(SYS_IPC_FORWARD_SLOW, chandle, phandle,
 	    (sysarg_t) &data, mode);
 }
 
 /** Connect to a task specified by id.
  *
  */
-int ipc_connect_kbox(task_id_t id, cap_handle_t *phone)
+errno_t ipc_connect_kbox(task_id_t id, cap_handle_t *phone)
 {
-	return (int) __SYSCALL2(SYS_IPC_CONNECT_KBOX, (sysarg_t) &id, (sysarg_t) phone);
+	return (errno_t) __SYSCALL2(SYS_IPC_CONNECT_KBOX, (sysarg_t) &id, (sysarg_t) phone);
 }
 
 /** @}

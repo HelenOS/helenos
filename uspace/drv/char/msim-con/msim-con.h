@@ -69,9 +69,9 @@ typedef struct {
 	ioport8_t *out_reg;
 } msim_con_t;
 
-extern int msim_con_add(msim_con_t *, msim_con_res_t *);
-extern int msim_con_remove(msim_con_t *);
-extern int msim_con_gone(msim_con_t *);
+extern errno_t msim_con_add(msim_con_t *, msim_con_res_t *);
+extern errno_t msim_con_remove(msim_con_t *);
+extern errno_t msim_con_gone(msim_con_t *);
 
 #endif
 

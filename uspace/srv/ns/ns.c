@@ -80,7 +80,7 @@ static void ns_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		
 		task_id_t id;
-		int retval;
+		errno_t retval;
 		
 		service_t service;
 		sysarg_t phone;
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 {
 	printf("%s: HelenOS IPC Naming Service\n", NAME);
 	
-	int rc = service_init();
+	errno_t rc = service_init();
 	if (rc != EOK)
 		return EXIT_RC(rc);
 	

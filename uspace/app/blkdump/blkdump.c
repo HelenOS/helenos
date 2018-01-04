@@ -62,7 +62,7 @@ static service_id_t service_id;
 int main(int argc, char **argv)
 {
 
-	int rc;
+	errno_t rc;
 	char *dev_path;
 	size_t block_size;
 	char *endptr;
@@ -177,7 +177,7 @@ static int print_blocks(aoff64_t block_offset, aoff64_t block_count, size_t bloc
 	aoff64_t current;
 	aoff64_t limit;
 	size_t data_offset;
-	int rc;
+	errno_t rc;
 
 	data = malloc(block_size);
 	if (data == NULL) {
@@ -216,7 +216,7 @@ static int print_blocks(aoff64_t block_offset, aoff64_t block_count, size_t bloc
 static int print_toc(void)
 {
 	scsi_toc_multisess_data_t toc;
-	int rc;
+	errno_t rc;
 
 	rc = block_read_toc(service_id, 0, &toc, sizeof(toc));
 	if (rc != EOK)

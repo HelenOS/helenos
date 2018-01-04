@@ -39,12 +39,12 @@
 #include <task.h>
 #include <async.h>
 
-extern int service_register(service_t);
+extern errno_t service_register(service_t);
 extern async_sess_t *service_connect(service_t, iface_t, sysarg_t);
 extern async_sess_t *service_connect_blocking(service_t, iface_t, sysarg_t);
 
-extern int ns_ping(void);
-extern int ns_intro(task_id_t);
+extern errno_t ns_ping(void);
+extern errno_t ns_intro(task_id_t);
 extern async_sess_t *ns_session_get(void);
 
 #endif

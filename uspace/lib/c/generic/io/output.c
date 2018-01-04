@@ -39,39 +39,39 @@
 #include <io/concaps.h>
 #include <io/output.h>
 
-int output_yield(async_sess_t *sess)
+errno_t output_yield(async_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_0(exch, OUTPUT_YIELD);
+	errno_t ret = async_req_0_0(exch, OUTPUT_YIELD);
 	async_exchange_end(exch);
 	
 	return ret;
 }
 
-int output_claim(async_sess_t *sess)
+errno_t output_claim(async_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_0(exch, OUTPUT_CLAIM);
+	errno_t ret = async_req_0_0(exch, OUTPUT_CLAIM);
 	async_exchange_end(exch);
 	
 	return ret;
 }
 
-int output_get_dimensions(async_sess_t *sess, sysarg_t *maxx, sysarg_t *maxy)
+errno_t output_get_dimensions(async_sess_t *sess, sysarg_t *maxx, sysarg_t *maxy)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_2(exch, OUTPUT_GET_DIMENSIONS, maxx, maxy);
+	errno_t ret = async_req_0_2(exch, OUTPUT_GET_DIMENSIONS, maxx, maxy);
 	async_exchange_end(exch);
 	
 	return ret;
 }
 
-int output_get_caps(async_sess_t *sess, console_caps_t *ccaps)
+errno_t output_get_caps(async_sess_t *sess, console_caps_t *ccaps)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
 	sysarg_t rv;
-	int ret = async_req_0_1(exch, OUTPUT_GET_CAPS, &rv);
+	errno_t ret = async_req_0_1(exch, OUTPUT_GET_CAPS, &rv);
 	
 	async_exchange_end(exch);
 	
@@ -88,12 +88,12 @@ frontbuf_handle_t output_frontbuf_create(async_sess_t *sess,
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, OUTPUT_FRONTBUF_CREATE, &answer);
-	int rc = async_share_out_start(exch, frontbuf, AS_AREA_READ
+	errno_t rc = async_share_out_start(exch, frontbuf, AS_AREA_READ
 	    | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	
 	async_exchange_end(exch);
 	
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 	
 	if ((rc != EOK) || (ret != EOK))
@@ -102,38 +102,38 @@ frontbuf_handle_t output_frontbuf_create(async_sess_t *sess,
 	return (frontbuf_handle_t) IPC_GET_ARG1(answer);
 }
 
-int output_set_style(async_sess_t *sess, console_style_t style)
+errno_t output_set_style(async_sess_t *sess, console_style_t style)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_1_0(exch, OUTPUT_SET_STYLE, style);
+	errno_t ret = async_req_1_0(exch, OUTPUT_SET_STYLE, style);
 	async_exchange_end(exch);
 	
 	return ret;
 }
 
-int output_cursor_update(async_sess_t *sess, frontbuf_handle_t frontbuf)
+errno_t output_cursor_update(async_sess_t *sess, frontbuf_handle_t frontbuf)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_1_0(exch, OUTPUT_CURSOR_UPDATE, frontbuf);
+	errno_t ret = async_req_1_0(exch, OUTPUT_CURSOR_UPDATE, frontbuf);
 	async_exchange_end(exch);
 	
 	return ret;
 }
 
-int output_update(async_sess_t *sess, frontbuf_handle_t frontbuf)
+errno_t output_update(async_sess_t *sess, frontbuf_handle_t frontbuf)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_1_0(exch, OUTPUT_UPDATE, frontbuf);
+	errno_t ret = async_req_1_0(exch, OUTPUT_UPDATE, frontbuf);
 	async_exchange_end(exch);
 	
 	return ret;
 }
 
-int output_damage(async_sess_t *sess, frontbuf_handle_t frontbuf, sysarg_t col,
+errno_t output_damage(async_sess_t *sess, frontbuf_handle_t frontbuf, sysarg_t col,
     sysarg_t row, sysarg_t cols, sysarg_t rows)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_5_0(exch, OUTPUT_DAMAGE, frontbuf, col, row,
+	errno_t ret = async_req_5_0(exch, OUTPUT_DAMAGE, frontbuf, col, row,
 	    cols, rows);
 	async_exchange_end(exch);
 	

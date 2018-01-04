@@ -59,7 +59,7 @@ static FIBRIL_CONDVAR_INITIALIZE(cst_cv);
 
 PCUT_TEST_BEFORE
 {
-	int rc;
+	errno_t rc;
 
 	/* We will be calling functions that perform logging */
 	rc = log_init("test-tcp");

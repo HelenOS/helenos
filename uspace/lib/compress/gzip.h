@@ -31,6 +31,6 @@
 
 #include <stddef.h>
 
-extern int gzip_expand(void *, size_t, void **, size_t *);
+extern errno_t gzip_expand(void *, size_t, void **, size_t *);
 
 #endif

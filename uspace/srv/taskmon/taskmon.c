@@ -55,7 +55,7 @@ static void fault_event(ipc_call_t *call, void *arg)
 	const char *fname;
 	char *s_taskid;
 	char *dump_fname;
-	int rc;
+	errno_t rc;
 
 	task_id_t taskid;
 	uintptr_t thread;
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 	
 	async_set_fallback_port_handler(corecfg_client_conn, NULL);
 	
-	int rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Failed registering server: %s.\n",
 		    NAME, str_error(rc));

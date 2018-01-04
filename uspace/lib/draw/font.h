@@ -90,10 +90,10 @@ typedef struct {
 typedef uint32_t glyph_id_t;
 
 typedef struct {
-	int (*get_font_metrics)(void *, font_metrics_t *);
-	int (*resolve_glyph)(void *, wchar_t, glyph_id_t *);
-	int (*get_glyph_metrics)(void *, glyph_id_t, glyph_metrics_t *);
-	int (*render_glyph)(void *, drawctx_t *, source_t *, sysarg_t,
+	errno_t (*get_font_metrics)(void *, font_metrics_t *);
+	errno_t (*resolve_glyph)(void *, wchar_t, glyph_id_t *);
+	errno_t (*get_glyph_metrics)(void *, glyph_id_t, glyph_metrics_t *);
+	errno_t (*render_glyph)(void *, drawctx_t *, source_t *, sysarg_t,
 	    sysarg_t, glyph_id_t);
 	void (*release)(void *);
 } font_backend_t;
@@ -104,15 +104,15 @@ typedef struct {
 } font_t;
 
 extern font_t *font_create(font_backend_t *, void *);
-extern int font_get_metrics(font_t *, font_metrics_t *);
-extern int font_resolve_glyph(font_t *, wchar_t, glyph_id_t *);
-extern int font_get_glyph_metrics(font_t *, glyph_id_t, glyph_metrics_t *);
-extern int font_render_glyph(font_t *, drawctx_t *, source_t *,
+extern errno_t font_get_metrics(font_t *, font_metrics_t *);
+extern errno_t font_resolve_glyph(font_t *, wchar_t, glyph_id_t *);
+extern errno_t font_get_glyph_metrics(font_t *, glyph_id_t, glyph_metrics_t *);
+extern errno_t font_render_glyph(font_t *, drawctx_t *, source_t *,
     sysarg_t, sysarg_t, glyph_id_t);
 extern void font_release(font_t *);
 
-extern int font_get_box(font_t *, char *, sysarg_t *, sysarg_t *);
-extern int font_draw_text(font_t *, drawctx_t *, source_t *, const char *,
+extern errno_t font_get_box(font_t *, char *, sysarg_t *, sysarg_t *);
+extern errno_t font_draw_text(font_t *, drawctx_t *, source_t *, const char *,
     sysarg_t, sysarg_t);
 
 #endif

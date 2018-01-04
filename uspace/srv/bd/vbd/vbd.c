@@ -56,9 +56,9 @@ static void vbds_client_conn(ipc_callid_t, ipc_call_t *, void *);
 
 static service_id_t ctl_sid;
 
-static int vbds_init(void)
+static errno_t vbds_init(void)
 {
-	int rc;
+	errno_t rc;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_init()");
 
 	rc = vbds_disks_init();
@@ -91,7 +91,7 @@ static void vbds_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	size_t size;
 	size_t act_size;
-	int rc;
+	errno_t rc;
 
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -114,7 +114,7 @@ static void vbds_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	int retval = async_data_read_finalize(callid, id_buf, size);
+	errno_t retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(iid, retval, act_size);
@@ -124,7 +124,7 @@ static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	vbd_disk_info_t dinfo;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_info_srv()");
 
@@ -164,7 +164,7 @@ static void vbds_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	label_type_t ltype;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create_srv()");
 
@@ -177,7 +177,7 @@ static void vbds_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 static void vbds_label_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_delete_srv()");
 
@@ -192,7 +192,7 @@ static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 	size_t size;
 	size_t act_size;
 	service_id_t sid;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_get_parts_srv()");
 
@@ -218,7 +218,7 @@ static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	int retval = async_data_read_finalize(callid, id_buf, size);
+	errno_t retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(iid, retval, act_size);
@@ -228,7 +228,7 @@ static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	vbds_part_id_t part;
 	vbd_part_info_t pinfo;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_get_info_srv()");
 
@@ -269,7 +269,7 @@ static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 	service_id_t disk_sid;
 	vbd_part_spec_t pspec;
 	vbds_part_id_t part;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_create_srv()");
 
@@ -308,7 +308,7 @@ static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 static void vbds_part_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	vbds_part_id_t part;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_delete_srv()");
 
@@ -322,7 +322,7 @@ static void vbds_suggest_ptype_srv(ipc_callid_t iid, ipc_call_t *icall)
 	service_id_t disk_sid;
 	label_ptype_t ptype;
 	label_pcnt_t pcnt;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_suggest_ptype_srv()");
 
@@ -427,7 +427,7 @@ static void vbds_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf("%s: Virtual Block Device service\n", NAME);
 

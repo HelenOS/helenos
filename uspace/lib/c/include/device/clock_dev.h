@@ -43,8 +43,8 @@ typedef enum {
 	CLOCK_DEV_TIME_SET,
 } clock_dev_method_t;
 
-extern int clock_dev_time_get(async_sess_t *, struct tm *);
-extern int clock_dev_time_set(async_sess_t *, struct tm *);
+extern errno_t clock_dev_time_get(async_sess_t *, struct tm *);
+extern errno_t clock_dev_time_set(async_sess_t *, struct tm *);
 
 #endif
 

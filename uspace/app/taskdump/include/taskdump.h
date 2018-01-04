@@ -38,7 +38,7 @@
 
 #include <stdint.h>
 
-extern int td_stacktrace(uintptr_t, uintptr_t);
+extern errno_t td_stacktrace(uintptr_t, uintptr_t);
 
 #endif
 

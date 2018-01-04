@@ -70,14 +70,14 @@ void on_client_close(ddf_fun_t *fun);
 void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
     ipc_call_t *icall);
 
-int vhc_virtdev_plug(vhc_data_t *, async_sess_t *, uintptr_t *);
-int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
-int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *, usb_address_t address);
+errno_t vhc_virtdev_plug(vhc_data_t *, async_sess_t *, uintptr_t *);
+errno_t vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
+errno_t vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *, usb_address_t address);
 void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
 
-int vhc_init(vhc_data_t *instance);
-int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
-int vhc_transfer_queue_processor(void *arg);
+errno_t vhc_init(vhc_data_t *instance);
+errno_t vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+errno_t vhc_transfer_queue_processor(void *arg);
 
 #endif
 

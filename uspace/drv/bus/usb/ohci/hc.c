@@ -90,8 +90,8 @@ static const irq_cmd_t ohci_irq_commands[] = {
 
 static void hc_gain_control(hc_t *instance);
 static void hc_start(hc_t *instance);
-static int hc_init_transfer_lists(hc_t *instance);
-static int hc_init_memory(hc_t *instance);
+static errno_t hc_init_transfer_lists(hc_t *instance);
+static errno_t hc_init_memory(hc_t *instance);
 
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
@@ -102,7 +102,7 @@ static int hc_init_memory(hc_t *instance);
  *
  * @return Error code.
  */
-int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq)
+errno_t ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -151,7 +151,7 @@ int ohci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, i
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
+errno_t hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 {
 	assert(instance);
 	assert(hw_res);
@@ -159,7 +159,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 	    hw_res->mem_ranges.ranges[0].size < sizeof(ohci_regs_t))
 	    return EINVAL;
 
-	int ret = pio_enable_range(&hw_res->mem_ranges.ranges[0],
+	errno_t ret = pio_enable_range(&hw_res->mem_ranges.ranges[0],
 	    (void **) &instance->registers);
 	if (ret != EOK) {
 		usb_log_error("Failed to gain access to registers: %s.\n",
@@ -268,7 +268,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	}
 }
 
-int ohci_hc_status(hcd_t *hcd, uint32_t *status)
+errno_t ohci_hc_status(hcd_t *hcd, uint32_t *status)
 {
 	assert(hcd);
 	assert(status);
@@ -288,7 +288,7 @@ int ohci_hc_status(hcd_t *hcd, uint32_t *status)
  * @param[in] batch Batch representing the transfer.
  * @return Error code.
  */
-int ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+errno_t ohci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
 	hc_t *instance = hcd_get_driver_data(hcd);
@@ -517,13 +517,13 @@ void hc_start(hc_t *instance)
  * @param[in] instance OHCI hc driver structure
  * @return Error code
  */
-int hc_init_transfer_lists(hc_t *instance)
+errno_t hc_init_transfer_lists(hc_t *instance)
 {
 	assert(instance);
 #define SETUP_ENDPOINT_LIST(type) \
 do { \
 	const char *name = usb_str_transfer_type(type); \
-	const int ret = endpoint_list_init(&instance->lists[type], name); \
+	const errno_t ret = endpoint_list_init(&instance->lists[type], name); \
 	if (ret != EOK) { \
 		usb_log_error("Failed to setup %s endpoint list: %s.\n", \
 		    name, str_error(ret)); \
@@ -551,13 +551,13 @@ do { \
  * @param[in] instance OHCI hc driver structure.
  * @return Error code.
  */
-int hc_init_memory(hc_t *instance)
+errno_t hc_init_memory(hc_t *instance)
 {
 	assert(instance);
 
 	memset(&instance->rh, 0, sizeof(instance->rh));
 	/* Init queues */
-	const int ret = hc_init_transfer_lists(instance);
+	const errno_t ret = hc_init_transfer_lists(instance);
 	if (ret != EOK) {
 		return ret;
 	}

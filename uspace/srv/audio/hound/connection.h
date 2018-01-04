@@ -83,10 +83,10 @@ static inline connection_t * connection_from_hound_list(link_t *l)
 connection_t *connection_create(audio_source_t *source, audio_sink_t *sink);
 void connection_destroy(connection_t *connection);
 
-int connection_add_source_data(connection_t *connection, void *data,
+errno_t connection_add_source_data(connection_t *connection, void *data,
     size_t size, pcm_format_t format);
 
-int connection_push_data(connection_t *connection, audio_data_t *adata);
+errno_t connection_push_data(connection_t *connection, audio_data_t *adata);
 
 /**
  * Source name getter.

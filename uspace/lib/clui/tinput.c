@@ -184,7 +184,7 @@ static void tinput_jump_after(tinput_t *ti)
 	putchar('\n');
 }
 
-static int tinput_display(tinput_t *ti)
+static errno_t tinput_display(tinput_t *ti)
 {
 	sysarg_t col0, row0;
 	
@@ -541,7 +541,7 @@ error:
 static void tinput_paste_from_cb(tinput_t *ti)
 {
 	char *str;
-	int rc = clipboard_get_str(&str);
+	errno_t rc = clipboard_get_str(&str);
 	
 	if ((rc != EOK) || (str == NULL)) {
 		/* TODO: Give the user some kind of warning. */
@@ -666,7 +666,7 @@ static void tinput_text_complete(tinput_t *ti)
 	size_t compl_len;	/* Current length of @c compl array */
 	size_t cnum;
 	size_t i;
-	int rc;
+	errno_t rc;
 
 	if (ti->compl_ops == NULL)
 		return;
@@ -781,7 +781,7 @@ static void tinput_init(tinput_t *ti)
  *
  * @return		EOK on success, ENOMEM if out of memory.
  */
-int tinput_set_prompt(tinput_t *ti, const char *prompt)
+errno_t tinput_set_prompt(tinput_t *ti, const char *prompt)
 {
 	if (ti->prompt != NULL)
 		free(ti->prompt);
@@ -862,7 +862,7 @@ static void tinput_pos(tinput_t *ti, pos_event_t *ev)
  * @return EIO if communication with console failed
  *
  */
-int tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
+errno_t tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
 {
 	console_flush(ti->console);
 	if (console_get_size(ti->console, &ti->con_cols, &ti->con_rows) != EOK)
@@ -924,7 +924,7 @@ int tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
  * @return EIO if communication with console failed
  *
  */
-int tinput_read(tinput_t *ti, char **dstr)
+errno_t tinput_read(tinput_t *ti, char **dstr)
 {
 	return tinput_read_i(ti, "", dstr);
 }

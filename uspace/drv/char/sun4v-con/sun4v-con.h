@@ -61,9 +61,9 @@ typedef struct {
 	niagara_output_buffer_t *output_buffer;
 } sun4v_con_t;
 
-extern int sun4v_con_add(sun4v_con_t *, sun4v_con_res_t *);
-extern int sun4v_con_remove(sun4v_con_t *);
-extern int sun4v_con_gone(sun4v_con_t *);
+extern errno_t sun4v_con_add(sun4v_con_t *, sun4v_con_res_t *);
+extern errno_t sun4v_con_remove(sun4v_con_t *);
+extern errno_t sun4v_con_gone(sun4v_con_t *);
 
 #endif
 

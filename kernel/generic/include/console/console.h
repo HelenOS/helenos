@@ -70,7 +70,7 @@ SPINLOCK_EXTERN(kio_lock);
 
 extern wchar_t getc(indev_t *indev);
 extern size_t gets(indev_t *indev, char *buf, size_t buflen);
-extern sysarg_t sys_kio(int cmd, const void *buf, size_t size);
+extern sys_errno_t sys_kio(int cmd, const void *buf, size_t size);
 
 extern void grab_console(void);
 extern void release_console(void);

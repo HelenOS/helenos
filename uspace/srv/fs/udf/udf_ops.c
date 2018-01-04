@@ -67,11 +67,11 @@ static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
 /** List of cached free nodes. */
 static LIST_INITIALIZE(ffn_list);
 
-static int udf_node_get(fs_node_t **rfn, service_id_t service_id,
+static errno_t udf_node_get(fs_node_t **rfn, service_id_t service_id,
     fs_index_t index)
 {
 	udf_instance_t *instance;
-	int rc = fs_instance_get(service_id, (void **) &instance);
+	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
 	
@@ -93,10 +93,10 @@ static int udf_node_get(fs_node_t **rfn, service_id_t service_id,
 	return EOK;
 }
 
-static int udf_root_get(fs_node_t **rfn, service_id_t service_id)
+static errno_t udf_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	udf_instance_t *instance;
-	int rc = fs_instance_get(service_id, (void **) &instance);
+	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
 	
@@ -113,7 +113,7 @@ static service_id_t udf_service_get(fs_node_t *node)
 	return 0;
 }
 
-static int udf_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+static errno_t udf_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	char *name = malloc(MAX_FILE_NAME_LEN + 1);
 	if (name == NULL)
@@ -131,7 +131,7 @@ static int udf_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		    fid->lenght_file_id, &UDF_NODE(pfn)->instance->charset);
 		
 		if (str_casecmp(name, component) == 0) {
-			int rc = udf_node_get(rfn, udf_service_get(pfn),
+			errno_t rc = udf_node_get(rfn, udf_service_get(pfn),
 			    udf_long_ad_to_pos(UDF_NODE(pfn)->instance, &long_ad));
 			
 			if (block != NULL)
@@ -142,7 +142,7 @@ static int udf_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		}
 		
 		if (block != NULL) {
-			int rc = block_put(block);
+			errno_t rc = block_put(block);
 			if (rc != EOK)
 				return rc;
 		}
@@ -154,12 +154,12 @@ static int udf_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	return ENOENT;
 }
 
-static int udf_node_open(fs_node_t *fn)
+static errno_t udf_node_open(fs_node_t *fn)
 {
 	return EOK;
 }
 
-static int udf_node_put(fs_node_t *fn)
+static errno_t udf_node_put(fs_node_t *fn)
 {
 	udf_node_t *node = UDF_NODE(fn);
 	if (!node)
@@ -176,27 +176,27 @@ static int udf_node_put(fs_node_t *fn)
 	return EOK;
 }
 
-static int udf_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
+static errno_t udf_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
 	return ENOTSUP;
 }
 
-static int udf_destroy_node(fs_node_t *fn)
+static errno_t udf_destroy_node(fs_node_t *fn)
 {
 	return ENOTSUP;
 }
 
-static int udf_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+static errno_t udf_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	return ENOTSUP;
 }
 
-static int udf_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+static errno_t udf_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	return ENOTSUP;
 }
 
-static int udf_has_children(bool *has_children, fs_node_t *fn)
+static errno_t udf_has_children(bool *has_children, fs_node_t *fn)
 {
 	*has_children = true;
 	return EOK;
@@ -247,10 +247,10 @@ static bool udf_is_file(fs_node_t *fn)
 	return false;
 }
 
-static int udf_size_block(service_id_t service_id, uint32_t *size)
+static errno_t udf_size_block(service_id_t service_id, uint32_t *size)
 {
 	udf_instance_t *instance;
-	int rc = fs_instance_get(service_id, (void **) &instance);
+	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
 
@@ -262,14 +262,14 @@ static int udf_size_block(service_id_t service_id, uint32_t *size)
 	return EOK;
 }
 
-static int udf_total_block_count(service_id_t service_id, uint64_t *count)
+static errno_t udf_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	*count = 0;
 	
 	return EOK;
 }
 
-static int udf_free_block_count(service_id_t service_id, uint64_t *count)
+static errno_t udf_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	*count = 0;
 	
@@ -298,12 +298,12 @@ libfs_ops_t udf_libfs_ops = {
 	.free_block_count = udf_free_block_count
 };
 
-static int udf_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+static errno_t udf_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
 	return ENOTSUP;
 }
 
-static int udf_mounted(service_id_t service_id, const char *opts,
+static errno_t udf_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size)
 {
 	enum cache_mode cmode;
@@ -329,7 +329,7 @@ static int udf_mounted(service_id_t service_id, const char *opts,
 		instance->sector_size = 2048;
 	
 	/* initialize block cache */
-	int rc = block_init(service_id, MAX_SIZE);
+	errno_t rc = block_init(service_id, MAX_SIZE);
 	if (rc != EOK)
 		return rc;
 	
@@ -414,10 +414,10 @@ static int udf_mounted(service_id_t service_id, const char *opts,
 	return EOK;
 }
 
-static int udf_unmounted(service_id_t service_id)
+static errno_t udf_unmounted(service_id_t service_id)
 {
 	fs_node_t *fn;
-	int rc = udf_root_get(&fn, service_id);
+	errno_t rc = udf_root_get(&fn, service_id);
 	if (rc != EOK)
 		return rc;
 	
@@ -448,11 +448,11 @@ static int udf_unmounted(service_id_t service_id)
 	return EOK;
 }
 
-static int udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
+static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	udf_instance_t *instance;
-	int rc = fs_instance_get(service_id, (void **) &instance);
+	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
 	
@@ -522,29 +522,29 @@ static int udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	}
 }
 
-static int udf_close(service_id_t service_id, fs_index_t index)
+static errno_t udf_close(service_id_t service_id, fs_index_t index)
 {
 	return EOK;
 }
 
-static int udf_sync(service_id_t service_id, fs_index_t index)
+static errno_t udf_sync(service_id_t service_id, fs_index_t index)
 {
 	return ENOTSUP;
 }
 
-static int udf_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
+static errno_t udf_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
 	return ENOTSUP;
 }
 
-static int udf_truncate(service_id_t service_id, fs_index_t index,
+static errno_t udf_truncate(service_id_t service_id, fs_index_t index,
     aoff64_t size)
 {
 	return ENOTSUP;
 }
 
-static int udf_destroy(service_id_t service_id, fs_index_t index)
+static errno_t udf_destroy(service_id_t service_id, fs_index_t index)
 {
 	return ENOTSUP;
 }

@@ -72,25 +72,25 @@ static LIST_INITIALIZE(ffn_list);
 /*
  * Forward declarations of FAT libfs operations.
  */
-static int fat_root_get(fs_node_t **, service_id_t);
-static int fat_match(fs_node_t **, fs_node_t *, const char *);
-static int fat_node_get(fs_node_t **, service_id_t, fs_index_t);
-static int fat_node_open(fs_node_t *);
-static int fat_node_put(fs_node_t *);
-static int fat_create_node(fs_node_t **, service_id_t, int);
-static int fat_destroy_node(fs_node_t *);
-static int fat_link(fs_node_t *, fs_node_t *, const char *);
-static int fat_unlink(fs_node_t *, fs_node_t *, const char *);
-static int fat_has_children(bool *, fs_node_t *);
+static errno_t fat_root_get(fs_node_t **, service_id_t);
+static errno_t fat_match(fs_node_t **, fs_node_t *, const char *);
+static errno_t fat_node_get(fs_node_t **, service_id_t, fs_index_t);
+static errno_t fat_node_open(fs_node_t *);
+static errno_t fat_node_put(fs_node_t *);
+static errno_t fat_create_node(fs_node_t **, service_id_t, int);
+static errno_t fat_destroy_node(fs_node_t *);
+static errno_t fat_link(fs_node_t *, fs_node_t *, const char *);
+static errno_t fat_unlink(fs_node_t *, fs_node_t *, const char *);
+static errno_t fat_has_children(bool *, fs_node_t *);
 static fs_index_t fat_index_get(fs_node_t *);
 static aoff64_t fat_size_get(fs_node_t *);
 static unsigned fat_lnkcnt_get(fs_node_t *);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
 static service_id_t fat_service_get(fs_node_t *node);
-static int fat_size_block(service_id_t, uint32_t *);
-static int fat_total_block_count(service_id_t, uint64_t *);
-static int fat_free_block_count(service_id_t, uint64_t *);
+static errno_t fat_size_block(service_id_t, uint32_t *);
+static errno_t fat_total_block_count(service_id_t, uint64_t *);
+static errno_t fat_free_block_count(service_id_t, uint64_t *);
 
 /*
  * Helper functions.
@@ -113,12 +113,12 @@ static void fat_node_initialize(fat_node_t *node)
 	node->currc_cached_value = 0;
 }
 
-static int fat_node_sync(fat_node_t *node)
+static errno_t fat_node_sync(fat_node_t *node)
 {
 	block_t *b;
 	fat_bs_t *bs;
 	fat_dentry_t *d;
-	int rc;
+	errno_t rc;
 
 	assert(node->dirty);
 
@@ -147,9 +147,9 @@ static int fat_node_sync(fat_node_t *node)
 	return rc;
 }
 
-static int fat_node_fini_by_service_id(service_id_t service_id)
+static errno_t fat_node_fini_by_service_id(service_id_t service_id)
 {
-	int rc;
+	errno_t rc;
 
 	/*
 	 * We are called from fat_unmounted() and assume that there are already
@@ -203,11 +203,11 @@ restart:
 	return EOK;
 }
 
-static int fat_node_get_new(fat_node_t **nodepp)
+static errno_t fat_node_get_new(fat_node_t **nodepp)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&ffn_mutex);
 	if (!list_empty(&ffn_list)) {
@@ -265,13 +265,13 @@ skip_cache:
  *
  * @param idxp		Locked index structure.
  */
-static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
+static errno_t fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 {
 	block_t *b;
 	fat_bs_t *bs;
 	fat_dentry_t *d;
 	fat_node_t *nodep = NULL;
-	int rc;
+	errno_t rc;
 
 	if (idxp->nodep) {
 		/*
@@ -364,18 +364,18 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
  * FAT libfs operations.
  */
 
-int fat_root_get(fs_node_t **rfn, service_id_t service_id)
+errno_t fat_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return fat_node_get(rfn, service_id, 0);
 }
 
-int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+errno_t fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	fat_node_t *parentp = FAT_NODE(pfn);
 	char name[FAT_LFN_NAME_SIZE];
 	fat_dentry_t *d;
 	service_id_t service_id;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&parentp->idx->lock);
 	service_id = parentp->idx->service_id;
@@ -425,11 +425,11 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 }
 
 /** Instantiate a FAT in-core node. */
-int fat_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
+errno_t fat_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
 	fat_node_t *nodep;
 	fat_idx_t *idxp;
-	int rc;
+	errno_t rc;
 
 	idxp = fat_idx_get_by_index(service_id, index);
 	if (!idxp) {
@@ -444,7 +444,7 @@ int fat_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 	return rc;
 }
 
-int fat_node_open(fs_node_t *fn)
+errno_t fat_node_open(fs_node_t *fn)
 {
 	/*
 	 * Opening a file is stateless, nothing
@@ -453,7 +453,7 @@ int fat_node_open(fs_node_t *fn)
 	return EOK;
 }
 
-int fat_node_put(fs_node_t *fn)
+errno_t fat_node_put(fs_node_t *fn)
 {
 	fat_node_t *nodep = FAT_NODE(fn);
 	bool destroy = false;
@@ -482,13 +482,13 @@ int fat_node_put(fs_node_t *fn)
 	return EOK;
 }
 
-int fat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
+errno_t fat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
 	fat_idx_t *idxp;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
 	fat_cluster_t mcl, lcl;
-	int rc;
+	errno_t rc;
 
 	bs = block_bb_get(service_id);
 	if (flags & L_DIRECTORY) {
@@ -537,12 +537,12 @@ error:
 	return rc;		
 }
 
-int fat_destroy_node(fs_node_t *fn)
+errno_t fat_destroy_node(fs_node_t *fn)
 {
 	fat_node_t *nodep = FAT_NODE(fn);
 	fat_bs_t *bs;
 	bool has_children;
-	int rc;
+	errno_t rc;
 
 	/*
 	 * The node is not reachable from the file system. This means that the
@@ -574,7 +574,7 @@ int fat_destroy_node(fs_node_t *fn)
 	return rc;
 }
 
-int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+errno_t fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	fat_node_t *parentp = FAT_NODE(pfn);
 	fat_node_t *childp = FAT_NODE(cfn);
@@ -583,7 +583,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	block_t *b;
 	fat_directory_t di;
 	fat_dentry_t de;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&childp->lock);
 	if (childp->lnkcnt == 1) {
@@ -695,12 +695,12 @@ skip_dots:
 	return EOK;
 }
 
-int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+errno_t fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	fat_node_t *parentp = FAT_NODE(pfn);
 	fat_node_t *childp = FAT_NODE(cfn);
 	bool has_children;
-	int rc;
+	errno_t rc;
 
 	if (!parentp)
 		return EBUSY;
@@ -752,14 +752,14 @@ error:
 	return rc;
 }
 
-int fat_has_children(bool *has_children, fs_node_t *fn)
+errno_t fat_has_children(bool *has_children, fs_node_t *fn)
 {
 	fat_bs_t *bs;
 	fat_node_t *nodep = FAT_NODE(fn);
 	unsigned blocks;
 	block_t *b;
 	unsigned i, j;
-	int rc;
+	errno_t rc;
 
 	if (nodep->type != FAT_DIRECTORY) {
 		*has_children = false;
@@ -842,7 +842,7 @@ service_id_t fat_service_get(fs_node_t *fn)
 	return FAT_NODE(fn)->idx->service_id;
 }
 
-int fat_size_block(service_id_t service_id, uint32_t *size)
+errno_t fat_size_block(service_id_t service_id, uint32_t *size)
 {
 	fat_bs_t *bs;
 
@@ -852,7 +852,7 @@ int fat_size_block(service_id_t service_id, uint32_t *size)
 	return EOK;
 }
 
-int fat_total_block_count(service_id_t service_id, uint64_t *count)
+errno_t fat_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	fat_bs_t *bs;
 	
@@ -862,12 +862,12 @@ int fat_total_block_count(service_id_t service_id, uint64_t *count)
 	return EOK;
 }
 
-int fat_free_block_count(service_id_t service_id, uint64_t *count)
+errno_t fat_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	fat_bs_t *bs;
 	fat_cluster_t e0;
 	uint64_t block_count;
-	int rc;
+	errno_t rc;
 	uint32_t cluster_no, clusters;
 
 	block_count = 0;
@@ -909,11 +909,11 @@ libfs_ops_t fat_libfs_ops = {
 	.free_block_count = fat_free_block_count
 };
 
-static int fat_fs_open(service_id_t service_id, enum cache_mode cmode,
+static errno_t fat_fs_open(service_id_t service_id, enum cache_mode cmode,
     fs_node_t **rrfn, fat_idx_t **rridxp)
 {
 	fat_bs_t *bs;
-	int rc;
+	errno_t rc;
 
 	/* initialize libblock */
 	rc = block_init(service_id, BS_SIZE);
@@ -1036,14 +1036,14 @@ static void fat_fs_close(service_id_t service_id, fs_node_t *rfn)
  * FAT VFS_OUT operations.
  */
 
-static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+static errno_t fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
 	fat_idx_t *ridxp;
 	fs_node_t *rfn;
 	fat_node_t *nodep;
 	fat_directory_t di;
 	char label[FAT_VOLLABEL_LEN + 1];
-	int rc;
+	errno_t rc;
 
 	rc = fat_fs_open(service_id, CACHE_MODE_WT, &rfn, &ridxp);
 	if (rc != EOK)
@@ -1075,7 +1075,7 @@ static int fat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	return EOK;
 }
 
-static int
+static errno_t
 fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size)
 {
@@ -1083,7 +1083,7 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	fat_instance_t *instance;
 	fat_idx_t *ridxp;
 	fs_node_t *rfn;
-	int rc;
+	errno_t rc;
 
 	instance = malloc(sizeof(fat_instance_t));
 	if (!instance)
@@ -1124,12 +1124,12 @@ fat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	return EOK;
 }
 
-static int fat_update_fat32_fsinfo(service_id_t service_id)
+static errno_t fat_update_fat32_fsinfo(service_id_t service_id)
 {
 	fat_bs_t *bs;
 	fat32_fsinfo_t *info;
 	block_t *b;
-	int rc;
+	errno_t rc;
 
 	bs = block_bb_get(service_id);
 	assert(FAT_IS_FAT32(bs));
@@ -1155,12 +1155,12 @@ static int fat_update_fat32_fsinfo(service_id_t service_id)
 	return block_put(b);
 }
 
-static int fat_unmounted(service_id_t service_id)
+static errno_t fat_unmounted(service_id_t service_id)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
-	int rc;
+	errno_t rc;
 
 	bs = block_bb_get(service_id);
 
@@ -1207,7 +1207,7 @@ static int fat_unmounted(service_id_t service_id)
 	return EOK;
 }
 
-static int
+static errno_t
 fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
@@ -1216,7 +1216,7 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	fat_bs_t *bs;
 	size_t bytes;
 	block_t *b;
-	int rc;
+	errno_t rc;
 
 	rc = fat_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1317,7 +1317,7 @@ hit:
 	return rc;
 }
 
-static int
+static errno_t
 fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
@@ -1328,7 +1328,7 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	block_t *b;
 	aoff64_t boundary;
 	int flags = BLOCK_FLAGS_NONE;
-	int rc;
+	errno_t rc;
 	
 	rc = fat_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1454,13 +1454,13 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	}
 }
 
-static int
+static errno_t
 fat_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
-	int rc;
+	errno_t rc;
 
 	rc = fat_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1513,16 +1513,16 @@ out:
 	return rc;
 }
 
-static int fat_close(service_id_t service_id, fs_index_t index)
+static errno_t fat_close(service_id_t service_id, fs_index_t index)
 {
 	return EOK;
 }
 
-static int fat_destroy(service_id_t service_id, fs_index_t index)
+static errno_t fat_destroy(service_id_t service_id, fs_index_t index)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
-	int rc;
+	errno_t rc;
 
 	rc = fat_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1541,10 +1541,10 @@ static int fat_destroy(service_id_t service_id, fs_index_t index)
 	return rc;
 }
 
-static int fat_sync(service_id_t service_id, fs_index_t index)
+static errno_t fat_sync(service_id_t service_id, fs_index_t index)
 {
 	fs_node_t *fn;
-	int rc = fat_node_get(&fn, service_id, index);
+	errno_t rc = fat_node_get(&fn, service_id, index);
 	if (rc != EOK)
 		return rc;
 	if (!fn)

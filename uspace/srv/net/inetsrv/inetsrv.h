@@ -150,11 +150,11 @@ typedef struct {
 	inet_addr_t ldest;
 } inet_dir_t;
 
-extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
-extern int inet_recv_packet(inet_packet_t *);
-extern int inet_route_packet(inet_dgram_t *, uint8_t, uint8_t, int);
-extern int inet_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
-extern int inet_recv_dgram_local(inet_dgram_t *, uint8_t);
+extern errno_t inet_ev_recv(inet_client_t *, inet_dgram_t *);
+extern errno_t inet_recv_packet(inet_packet_t *);
+extern errno_t inet_route_packet(inet_dgram_t *, uint8_t, uint8_t, int);
+extern errno_t inet_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
+extern errno_t inet_recv_dgram_local(inet_dgram_t *, uint8_t);
 
 #endif
 

@@ -112,17 +112,17 @@ typedef struct {
 	window_event_data_t data;
 } window_event_t;
 
-extern int win_register(async_sess_t *, window_flags_t, service_id_t *,
+extern errno_t win_register(async_sess_t *, window_flags_t, service_id_t *,
     service_id_t *);
 
-extern int win_get_event(async_sess_t *, window_event_t *);
+extern errno_t win_get_event(async_sess_t *, window_event_t *);
 
-extern int win_damage(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
-extern int win_grab(async_sess_t *, sysarg_t, sysarg_t);
-extern int win_resize(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+extern errno_t win_damage(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
+extern errno_t win_grab(async_sess_t *, sysarg_t, sysarg_t);
+extern errno_t win_resize(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     window_placement_flags_t, void *);
-extern int win_close(async_sess_t *);
-extern int win_close_request(async_sess_t *);
+extern errno_t win_close(async_sess_t *);
+extern errno_t win_close_request(async_sess_t *);
 
 #endif
 

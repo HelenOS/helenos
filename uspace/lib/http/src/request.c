@@ -89,7 +89,7 @@ static ssize_t http_encode_method(char *buf, size_t buf_size,
 	}
 }
 
-int http_request_format(http_request_t *req, char **out_buf,
+errno_t http_request_format(http_request_t *req, char **out_buf,
     size_t *out_buf_size)
 {
 	/* Compute the size of the request */
@@ -140,12 +140,12 @@ int http_request_format(http_request_t *req, char **out_buf,
 	return EOK;
 }
 
-int http_send_request(http_t *http, http_request_t *req)
+errno_t http_send_request(http_t *http, http_request_t *req)
 {
 	char *buf = NULL;
 	size_t buf_size = 0;
 	
-	int rc = http_request_format(req, &buf, &buf_size);
+	errno_t rc = http_request_format(req, &buf, &buf_size);
 	if (rc != EOK)
 		return rc;
 	

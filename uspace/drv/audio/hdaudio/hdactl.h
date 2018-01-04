@@ -77,7 +77,7 @@ typedef struct hda_ctl {
 extern hda_ctl_t *hda_ctl_init(hda_t *);
 extern void hda_ctl_fini(hda_ctl_t *);
 extern void hda_ctl_interrupt(hda_ctl_t *);
-extern int hda_cmd(hda_t *, uint32_t, uint32_t *);
+extern errno_t hda_cmd(hda_t *, uint32_t, uint32_t *);
 extern void hda_ctl_dump_info(hda_ctl_t *);
 
 #endif

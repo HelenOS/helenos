@@ -53,7 +53,7 @@ enum {
 	CC_NOACCESS2 = 0xf,
 };
 
-inline static int cc_to_rc(unsigned int cc)
+inline static errno_t cc_to_rc(unsigned int cc)
 {
 	switch (cc) {
 	case CC_NOERROR:

@@ -63,7 +63,7 @@ static inline bool string_iterator_done(const string_iterator_t *i)
 	return i->ch == L'\0';
 }
 
-static inline int string_iterator_next(string_iterator_t *i, wchar_t *out)
+static inline errno_t string_iterator_next(string_iterator_t *i, wchar_t *out)
 {
 	*out = i->ch;
 	if (*out == U_SPECIAL)
@@ -80,11 +80,11 @@ static inline void *memchr(const void *s, int c, size_t n)
 	return NULL;
 }
 
-static inline int bithenge_parse_int(const char *start, bithenge_int_t *result)
+static inline errno_t bithenge_parse_int(const char *start, bithenge_int_t *result)
 {
 	const char *real_start = *start == '-' ? start + 1 : start;
 	uint64_t val;
-	int rc = str_uint64_t(real_start, NULL, 10, false, &val);
+	errno_t rc = str_uint64_t(real_start, NULL, 10, false, &val);
 	*result = val;
 	if (*start == '-')
 		*result = -*result;

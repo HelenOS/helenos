@@ -75,13 +75,13 @@ static inline void bithenge_scope_inc_ref(bithenge_scope_t *self)
  * transforms, transforms must provide prefix_length and/or prefix_apply. */
 typedef struct bithenge_transform_ops {
 	/** @copydoc bithenge_transform_t::bithenge_transform_apply */
-	int (*apply)(bithenge_transform_t *self, bithenge_scope_t *scope,
+	errno_t (*apply)(bithenge_transform_t *self, bithenge_scope_t *scope,
 	    bithenge_node_t *in, bithenge_node_t **out);
 	/** @copydoc bithenge_transform_t::bithenge_transform_prefix_length */
-	int (*prefix_length)(bithenge_transform_t *self,
+	errno_t (*prefix_length)(bithenge_transform_t *self,
 	    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out);
 	/** @copydoc bithenge_transform_t::bithenge_transform_prefix_apply */
-	int (*prefix_apply)(bithenge_transform_t *self,
+	errno_t (*prefix_apply)(bithenge_transform_t *self,
 	    bithenge_scope_t *scope, bithenge_blob_t *blob,
 	    bithenge_node_t **out_node, aoff64_t *out_size);
 	/** Destroy the transform.
@@ -157,23 +157,23 @@ extern bithenge_named_transform_t *bithenge_primitive_transforms;
 /** @endcond */
 
 /** @memberof bithenge_transform_t */
-int bithenge_init_transform(bithenge_transform_t *,
+errno_t bithenge_init_transform(bithenge_transform_t *,
     const bithenge_transform_ops_t *, int);
 /** @memberof bithenge_transform_t */
-int bithenge_transform_apply(bithenge_transform_t *, bithenge_scope_t *,
+errno_t bithenge_transform_apply(bithenge_transform_t *, bithenge_scope_t *,
     bithenge_node_t *, bithenge_node_t **);
 /** @memberof bithenge_transform_t */
-int bithenge_transform_prefix_length(bithenge_transform_t *,
+errno_t bithenge_transform_prefix_length(bithenge_transform_t *,
     bithenge_scope_t *, bithenge_blob_t *, aoff64_t *);
 /** @memberof bithenge_transform_t */
-int bithenge_transform_prefix_apply(bithenge_transform_t *, bithenge_scope_t *,
+errno_t bithenge_transform_prefix_apply(bithenge_transform_t *, bithenge_scope_t *,
     bithenge_blob_t *, bithenge_node_t **, aoff64_t *);
-int bithenge_new_barrier_transform(bithenge_transform_t **, int);
-int bithenge_barrier_transform_set_subtransform(bithenge_transform_t *,
+errno_t bithenge_new_barrier_transform(bithenge_transform_t **, int);
+errno_t bithenge_barrier_transform_set_subtransform(bithenge_transform_t *,
     bithenge_transform_t *);
 
 /** @memberof bithenge_scope_t */
-int bithenge_scope_new(bithenge_scope_t **, bithenge_scope_t *);
+errno_t bithenge_scope_new(bithenge_scope_t **, bithenge_scope_t *);
 /** @memberof bithenge_scope_t */
 void bithenge_scope_dec_ref(bithenge_scope_t *);
 /** @memberof bithenge_scope_t */
@@ -181,7 +181,7 @@ bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *);
 /** @memberof bithenge_scope_t */
 const char *bithenge_scope_get_error(bithenge_scope_t *);
 /** @memberof bithenge_scope_t */
-int bithenge_scope_error(bithenge_scope_t *, const char *, ...);
+errno_t bithenge_scope_error(bithenge_scope_t *, const char *, ...);
 /** @memberof bithenge_scope_t */
 bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *);
 /** @memberof bithenge_scope_t */
@@ -195,11 +195,11 @@ void bithenge_scope_set_barrier(bithenge_scope_t *);
 /** @memberof bithenge_scope_t */
 bool bithenge_scope_is_barrier(bithenge_scope_t *);
 /** @memberof bithenge_scope_t */
-int bithenge_scope_alloc_params(bithenge_scope_t *, int);
+errno_t bithenge_scope_alloc_params(bithenge_scope_t *, int);
 /** @memberof bithenge_scope_t */
-int bithenge_scope_set_param(bithenge_scope_t *, int, bithenge_node_t *);
+errno_t bithenge_scope_set_param(bithenge_scope_t *, int, bithenge_node_t *);
 /** @memberof bithenge_scope_t */
-int bithenge_scope_get_param(bithenge_scope_t *, int, bithenge_node_t **);
+errno_t bithenge_scope_get_param(bithenge_scope_t *, int, bithenge_node_t **);
 
 #endif
 

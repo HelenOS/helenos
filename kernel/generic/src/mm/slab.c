@@ -607,7 +607,7 @@ NO_TRACE static bool make_magcache(slab_cache_t *cache)
  *
  */
 NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
-    size_t size, size_t align, int (*constructor)(void *obj,
+    size_t size, size_t align, errno_t (*constructor)(void *obj,
     unsigned int kmflag), size_t (*destructor)(void *obj), unsigned int flags)
 {
 	assert(size > 0);
@@ -661,7 +661,7 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
  *
  */
 slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,
-    int (*constructor)(void *obj, unsigned int kmflag),
+    errno_t (*constructor)(void *obj, unsigned int kmflag),
     size_t (*destructor)(void *obj), unsigned int flags)
 {
 	slab_cache_t *cache = slab_alloc(&slab_cache_cache, 0);

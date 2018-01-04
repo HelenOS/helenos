@@ -49,10 +49,10 @@ bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 	return fp != 0;
 }
 
-int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
+errno_t stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 {
 	uintptr_t bprev;
-	int rc;
+	errno_t rc;
 
 	rc = (*st->ops->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV, &bprev);
 	if (rc == EOK)
@@ -60,7 +60,7 @@ int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 	return rc;
 }
 
-int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
+errno_t stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
 {
 	return (*st->ops->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_RA, ra);
 }

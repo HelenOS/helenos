@@ -68,7 +68,7 @@ static const char *read_root(void)
 const char *test_vfs1(void)
 {
 	aoff64_t pos = 0;
-	int rc;
+	errno_t rc;
 
 	rc = vfs_link_path(TEST_DIRECTORY, KIND_DIRECTORY, NULL);
 	if (rc != EOK) {

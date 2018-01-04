@@ -536,7 +536,7 @@ void show_warning(const char *fmt, ...)
 /** Get char with timeout
  *
  */
-int tgetchar(unsigned int sec)
+errno_t tgetchar(unsigned int sec)
 {
 	/*
 	 * Reset timeleft whenever it is not positive.

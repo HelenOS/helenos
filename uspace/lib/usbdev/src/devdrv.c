@@ -130,7 +130,7 @@ static inline size_t count_pipes(const usb_endpoint_description_t **endpoints)
  * @param endpoints New endpoint descriptions.
  * @return Error code.
  */
-int usb_device_select_interface(usb_device_t *usb_dev,
+errno_t usb_device_select_interface(usb_device_t *usb_dev,
     uint8_t alternate_setting, const usb_endpoint_description_t **endpoints)
 {
 	assert(usb_dev);
@@ -140,7 +140,7 @@ int usb_device_select_interface(usb_device_t *usb_dev,
 	}
 
 	/* Change the interface itself. */
-	int rc = usb_request_set_interface(&usb_dev->ctrl_pipe,
+	errno_t rc = usb_request_set_interface(&usb_dev->ctrl_pipe,
 	    usb_dev->interface_no, alternate_setting);
 	if (rc != EOK) {
 		return rc;
@@ -164,13 +164,13 @@ int usb_device_select_interface(usb_device_t *usb_dev,
  * @param[out] descriptors Where to store the descriptors.
  * @return Error code.
  */
-static int usb_device_retrieve_descriptors(usb_device_t *usb_dev)
+static errno_t usb_device_retrieve_descriptors(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	assert(usb_dev->descriptors.full_config == NULL);
 
 	/* Get the device descriptor. */
-	int rc = usb_request_get_device_descriptor(&usb_dev->ctrl_pipe,
+	errno_t rc = usb_request_get_device_descriptor(&usb_dev->ctrl_pipe,
 	    &usb_dev->descriptors.device);
 	if (rc != EOK) {
 		return rc;
@@ -216,7 +216,7 @@ static void usb_device_release_descriptors(usb_device_t *usb_dev)
  *	(set to NULL if you wish to ignore the count).
  * @return Error code.
  */
-int usb_device_create_pipes(usb_device_t *usb_dev,
+errno_t usb_device_create_pipes(usb_device_t *usb_dev,
     const usb_endpoint_description_t **endpoints)
 {
 	assert(usb_dev);
@@ -244,7 +244,7 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
 	}
 
 	/* Find the mapping from configuration descriptor. */
-	int rc = usb_pipe_initialize_from_configuration(pipes, pipe_count,
+	errno_t rc = usb_pipe_initialize_from_configuration(pipes, pipe_count,
 	    usb_dev->descriptors.full_config,
 	    usb_dev->descriptors.full_config_size,
 	    usb_dev->bus_session);
@@ -392,7 +392,7 @@ static void usb_device_fini(usb_device_t *usb_dev)
  *	(in case error occurs).
  * @return Error code.
  */
-static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
+static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
     const usb_endpoint_description_t **endpoints, const char **errstr_ptr,
     devman_handle_t handle, int interface_no)
 {
@@ -419,7 +419,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 
 	/* This pipe was registered by the hub driver,
 	 * during device initialization. */
-	int rc = usb_pipe_initialize_default_control(
+	errno_t rc = usb_pipe_initialize_default_control(
 	    &usb_dev->ctrl_pipe, usb_dev->bus_session);
 	if (rc != EOK) {
 		usb_dev_disconnect(usb_dev->bus_session);
@@ -456,7 +456,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	return EOK;
 }
 
-static int usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
+static errno_t usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
 	int *iface_no)
 {
 	assert(handle);
@@ -466,7 +466,7 @@ static int usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
 	if (!exch)
 		return EPARTY;
 	
-	int ret = usb_get_my_device_handle(exch, handle);
+	errno_t ret = usb_get_my_device_handle(exch, handle);
 	if (ret == EOK) {
 		ret = usb_get_my_interface(exch, iface_no);
 		if (ret == ENOTSUP) {
@@ -479,7 +479,7 @@ static int usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
 	return ret;
 }
 
-int usb_device_create_ddf(ddf_dev_t *ddf_dev,
+errno_t usb_device_create_ddf(ddf_dev_t *ddf_dev,
     const usb_endpoint_description_t **desc, const char **err)
 {
 	assert(ddf_dev);
@@ -491,7 +491,7 @@ int usb_device_create_ddf(ddf_dev_t *ddf_dev,
 	async_sess_t *sess = ddf_dev_parent_sess_get(ddf_dev);
 	if (sess == NULL)
 		return ENOMEM;
-	const int ret = usb_device_get_info(sess, &h, &iface_no);
+	const errno_t ret = usb_device_get_info(sess, &h, &iface_no);
 	if (ret != EOK)
 		return ret;
 
@@ -520,7 +520,7 @@ usb_device_t * usb_device_create(devman_handle_t handle)
 	int iface_no = -1;
 
 	async_sess_t *sess = devman_device_connect(handle, IPC_FLAG_BLOCKING);
-	int ret = usb_device_get_info(sess, &h, &iface_no);
+	errno_t ret = usb_device_get_info(sess, &h, &iface_no);
 	if (sess)
 		async_hangup(sess);
 	if (ret != EOK)

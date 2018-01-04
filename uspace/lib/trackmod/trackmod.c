@@ -151,9 +151,9 @@ void trackmod_module_destroy(trackmod_module_t *module)
 	free(module);
 }
 
-int trackmod_module_load(char *fname, trackmod_module_t **rmodule)
+errno_t trackmod_module_load(char *fname, trackmod_module_t **rmodule)
 {
-	int rc;
+	errno_t rc;
 
 	rc = trackmod_xm_load(fname, rmodule);
 	if (rc == EOK)
@@ -779,7 +779,7 @@ static void trackmod_next_tick(trackmod_modplay_t *modplay)
  * @param smp_freq Sampling frequency
  * @param rmodplay Place to store pointer to module playback object
  */
-int trackmod_modplay_create(trackmod_module_t *module,
+errno_t trackmod_modplay_create(trackmod_module_t *module,
     unsigned smp_freq, trackmod_modplay_t **rmodplay)
 {
 	trackmod_modplay_t *modplay = NULL;

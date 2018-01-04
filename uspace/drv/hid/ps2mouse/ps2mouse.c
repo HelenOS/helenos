@@ -76,7 +76,7 @@ do { \
 	uint8_t value = (value_); \
 	uint8_t data = 0; \
 	size_t nread; \
-	const int rc = chardev_read((mouse)->chardev, &data, 1, &nread); \
+	const errno_t rc = chardev_read((mouse)->chardev, &data, 1, &nread); \
 	if (rc != EOK) { \
 		ddf_msg(LVL_ERROR, "Failed reading byte: %s", str_error_name(rc));\
 		return rc; \
@@ -93,16 +93,16 @@ do { \
 	uint8_t value = (value_); \
 	uint8_t data = (value); \
 	size_t nwr; \
-	const int rc = chardev_write((mouse)->chardev, &data, 1, &nwr); \
+	const errno_t rc = chardev_write((mouse)->chardev, &data, 1, &nwr); \
 	if (rc != EOK) { \
 		ddf_msg(LVL_ERROR, "Failed writing byte: %s", str_error_name(rc)); \
 		return rc; \
 	} \
 } while (0)
 
-static int polling_ps2(void *);
-static int polling_intellimouse(void *);
-static int probe_intellimouse(ps2_mouse_t *, bool);
+static errno_t polling_ps2(void *);
+static errno_t polling_intellimouse(void *);
+static errno_t probe_intellimouse(ps2_mouse_t *, bool);
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
 /** ps/2 mouse driver ops. */
@@ -119,11 +119,11 @@ static ddf_dev_ops_t mouse_ops = {
  *
  * @return EOK on success or non-zero error code
  */
-int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
+errno_t ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 {
 	async_sess_t *parent_sess;
 	bool bound = false;
-	int rc;
+	errno_t rc;
 
 	mouse->client_sess = NULL;
 
@@ -164,7 +164,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	}
 
 	/* Probe IntelliMouse extensions. */
-	int (*polling_f)(void*) = polling_ps2;
+	errno_t (*polling_f)(void*) = polling_ps2;
 	if (probe_intellimouse(mouse, false) == EOK) {
 		ddf_msg(LVL_NOTE, "Enabled IntelliMouse extensions");
 		polling_f = polling_intellimouse;
@@ -222,9 +222,9 @@ error:
  *
  * @return EOK on success or non-zero error code
  */
-static int ps2_mouse_read_packet(ps2_mouse_t *mouse, void *pbuf, size_t psize)
+static errno_t ps2_mouse_read_packet(ps2_mouse_t *mouse, void *pbuf, size_t psize)
 {
-	int rc;
+	errno_t rc;
 	size_t pos;
 	size_t nread;
 
@@ -247,10 +247,10 @@ static int ps2_mouse_read_packet(ps2_mouse_t *mouse, void *pbuf, size_t psize)
  * @param arg Pointer to ps2_mouse_t structure.
  * @return Never.
  */
-int polling_ps2(void *arg)
+errno_t polling_ps2(void *arg)
 {
 	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
-	int rc;
+	errno_t rc;
 
 	bool buttons[PS2_BUTTON_COUNT] = {};
 	while (1) {
@@ -299,10 +299,10 @@ int polling_ps2(void *arg)
  * @param arg Pointer to ps2_mouse_t structure.
  * @return Never.
  */
-static int polling_intellimouse(void *arg)
+static errno_t polling_intellimouse(void *arg)
 {
 	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
-	int rc;
+	errno_t rc;
 
 	bool buttons[INTELLIMOUSE_BUTTON_COUNT] = {};
 	while (1) {
@@ -372,7 +372,7 @@ static int polling_intellimouse(void *arg)
  * false selects wheel support magic sequence.
  * See http://www.computer-engineering.org/ps2mouse/ for details.
  */
-static int probe_intellimouse(ps2_mouse_t *mouse, bool buttons)
+static errno_t probe_intellimouse(ps2_mouse_t *mouse, bool buttons)
 {
 	MOUSE_WRITE_BYTE(mouse, PS2_MOUSE_SET_SAMPLE_RATE);
 	MOUSE_READ_BYTE_TEST(mouse, PS2_MOUSE_ACK);

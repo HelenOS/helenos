@@ -209,7 +209,7 @@ static void kbox_thread_proc(void *arg)
  * @return Error code.
  *
  */
-int ipc_connect_kbox(task_id_t taskid, cap_handle_t *out_phone)
+errno_t ipc_connect_kbox(task_id_t taskid, cap_handle_t *out_phone)
 {
 	irq_spinlock_lock(&tasks_lock, true);
 	
@@ -252,7 +252,7 @@ int ipc_connect_kbox(task_id_t taskid, cap_handle_t *out_phone)
 	
 	/* Allocate a new phone. */
 	cap_handle_t phone_handle;
-	int rc = phone_alloc(TASK, &phone_handle);
+	errno_t rc = phone_alloc(TASK, &phone_handle);
 	if (rc != EOK) {
 		mutex_unlock(&task->kb.cleanup_lock);
 		return rc;

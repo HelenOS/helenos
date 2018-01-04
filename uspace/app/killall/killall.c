@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 	for (i = 0; i < count; i++) {
 		if (str_cmp(stats_tasks[i].name, argv[1]) == 0) {
 			task_id_t taskid = stats_tasks[i].task_id;
-			int rc = task_kill(taskid);
+			errno_t rc = task_kill(taskid);
 			if (rc != EOK)
 				printf("Failed to kill task ID %" PRIu64 ": %s\n",
 				    taskid, str_error(rc));

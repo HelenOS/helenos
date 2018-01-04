@@ -136,7 +136,7 @@ void tcp_iqueue_remove_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
  * @param seg		Place to store pointer to segment
  * @return		EOK on success, ENOENT if no segment is ready
  */
-int tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
+errno_t tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 {
 	tcp_iqueue_entry_t *iqe;
 	link_t *link;

@@ -44,8 +44,8 @@
 
 extern rtld_t *runtime_env;
 
-extern int rtld_init_static(void);
-extern int rtld_prog_process(elf_finfo_t *, rtld_t **);
+extern errno_t rtld_init_static(void);
+extern errno_t rtld_prog_process(elf_finfo_t *, rtld_t **);
 extern tcb_t *rtld_tls_make(rtld_t *);
 extern unsigned long rtld_get_next_id(rtld_t *);
 extern void *rtld_tls_get_addr(rtld_t *, tcb_t *, unsigned long, unsigned long);

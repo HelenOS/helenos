@@ -180,12 +180,12 @@ void vt100_get_dimensions(vt100_state_t *state, sysarg_t *cols,
 	*rows = state->rows;
 }
 
-int vt100_yield(vt100_state_t *state)
+errno_t vt100_yield(vt100_state_t *state)
 {
 	return EOK;
 }
 
-int vt100_claim(vt100_state_t *state)
+errno_t vt100_claim(vt100_state_t *state)
 {
 	return EOK;
 }

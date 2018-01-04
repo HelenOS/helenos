@@ -39,8 +39,8 @@
 #include "exec.h"
 #include "tok.h"
 
-static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state);
-static int compl_get_next(void *state, char **compl);
+static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state);
+static errno_t compl_get_next(void *state, char **compl);
 static void compl_fini(void *state);
 
 /** Bdsh implementation of completion ops. */
@@ -86,13 +86,13 @@ typedef struct {
  *
  * Set up iterators in completion object, based on current token.
  */
-static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
+static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 {
 	compl_t *cs = NULL;
 	char *stext = NULL;
 	char *prefix = NULL;
 	char *dirname = NULL;
-	int retval;
+	errno_t retval;
 	
 	token_t *tokens = calloc(WORD_MAX, sizeof(token_t));
 	if (tokens == NULL) {
@@ -287,7 +287,7 @@ static bool compl_match_prefix(compl_t *cs, const char *compl)
 }
 
 /** Get next match. */
-static int compl_get_next(void *state, char **compl)
+static errno_t compl_get_next(void *state, char **compl)
 {
 	compl_t *cs = (compl_t *) state;
 	struct dirent *dent;

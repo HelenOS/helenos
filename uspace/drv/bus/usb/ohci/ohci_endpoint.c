@@ -71,7 +71,7 @@ static int ohci_ep_toggle_get(void *ohci_ep)
  * @param[in] ep USBD endpoint structure
  * @return Error code.
  */
-int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
+errno_t ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 {
 	assert(ep);
 	ohci_endpoint_t *ohci_ep = malloc(sizeof(ohci_endpoint_t));

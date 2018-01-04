@@ -51,7 +51,7 @@ typedef struct {
 extern const char *HID_BLINK1_FUN_NAME;
 extern const char *HID_BLINK1_CATEGORY;
 
-extern int usb_blink1_init(usb_hid_dev_t *, void **);
+extern errno_t usb_blink1_init(usb_hid_dev_t *, void **);
 extern void usb_blink1_deinit(usb_hid_dev_t *, void *);
 
 #endif // USB_HID_BLINK1_H_

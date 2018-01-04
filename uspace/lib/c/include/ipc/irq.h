@@ -39,8 +39,8 @@
 #include <abi/ddi/irq.h>
 #include <abi/cap.h>
 
-extern int ipc_irq_subscribe(int, sysarg_t, const irq_code_t *, cap_handle_t *);
-extern int ipc_irq_unsubscribe(cap_handle_t);
+extern errno_t ipc_irq_subscribe(int, sysarg_t, const irq_code_t *, cap_handle_t *);
+extern errno_t ipc_irq_unsubscribe(cap_handle_t);
 
 #endif
 

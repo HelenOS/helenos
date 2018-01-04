@@ -186,11 +186,11 @@ bool telnet_user_is_zombie(telnet_user_t *user)
  * We need to return the value via extra argument because the read byte
  * might be negative.
  */
-static int telnet_user_recv_next_byte_no_lock(telnet_user_t *user, char *byte)
+static errno_t telnet_user_recv_next_byte_no_lock(telnet_user_t *user, char *byte)
 {
 	/* No more buffered data? */
 	if (user->socket_buffer_len <= user->socket_buffer_pos) {
-		int rc;
+		errno_t rc;
 		size_t recv_length;
 
 		rc = tcp_conn_recv_wait(user->conn, user->socket_buffer,
@@ -271,7 +271,7 @@ static void process_telnet_command(telnet_user_t *user,
  * @param event Where to store the keyboard event.
  * @return Error code.
  */
-int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event)
+errno_t telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event)
 {
 	fibril_mutex_lock(&user->guard);
 	if (list_empty(&user->in_events.list)) {
@@ -282,7 +282,7 @@ int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event)
 
 		/* Skip zeros, bail-out on error. */
 		while (next_byte == 0) {
-			int rc = telnet_user_recv_next_byte_no_lock(user, &next_byte);
+			errno_t rc = telnet_user_recv_next_byte_no_lock(user, &next_byte);
 			if (rc != EOK) {
 				fibril_mutex_unlock(&user->guard);
 				return rc;
@@ -338,7 +338,7 @@ int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event)
  * @param data Data buffer (not zero terminated).
  * @param size Size of @p data buffer in bytes.
  */
-static int telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data, size_t size)
+static errno_t telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data, size_t size)
 {
 	uint8_t *converted = malloc(3 * size + 1);
 	assert(converted);
@@ -361,7 +361,7 @@ static int telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data, siz
 	}
 
 
-	int rc = tcp_conn_send(user->conn, converted, converted_size);
+	errno_t rc = tcp_conn_send(user->conn, converted, converted_size);
 	free(converted);
 
 	return rc;
@@ -373,11 +373,11 @@ static int telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data, siz
  * @param data Data buffer (not zero terminated).
  * @param size Size of @p data buffer in bytes.
  */
-int telnet_user_send_data(telnet_user_t *user, uint8_t *data, size_t size)
+errno_t telnet_user_send_data(telnet_user_t *user, uint8_t *data, size_t size)
 {
 	fibril_mutex_lock(&user->guard);
 
-	int rc = telnet_user_send_data_no_lock(user, data, size);
+	errno_t rc = telnet_user_send_data_no_lock(user, data, size);
 
 	fibril_mutex_unlock(&user->guard);
 

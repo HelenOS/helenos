@@ -185,7 +185,7 @@ void bigint_destroy(bigint_t *bigint)
  * @return		EOK on success, ELIMIT if bigint is too big to fit
  *			to @a dval.
  */
-int bigint_get_value_int(bigint_t *bigint, int *dval)
+errno_t bigint_get_value_int(bigint_t *bigint, int *dval)
 {
 	bigint_t vval, diff;
 	size_t idx;

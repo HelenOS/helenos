@@ -43,10 +43,10 @@ static void inetping_ev_recv(ipc_callid_t, ipc_call_t *);
 static async_sess_t *inetping_sess = NULL;
 static inetping_ev_ops_t *inetping_ev_ops;
 
-int inetping_init(inetping_ev_ops_t *ev_ops)
+errno_t inetping_init(inetping_ev_ops_t *ev_ops)
 {
 	service_id_t inetping_svc;
-	int rc;
+	errno_t rc;
 
 	assert(inetping_sess == NULL);
 
@@ -79,14 +79,14 @@ int inetping_init(inetping_ev_ops_t *ev_ops)
 	return EOK;
 }
 
-int inetping_send(inetping_sdu_t *sdu)
+errno_t inetping_send(inetping_sdu_t *sdu)
 {
 	async_exch_t *exch = async_exchange_begin(inetping_sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETPING_SEND, sdu->seq_no, &answer);
 
-	int rc = async_data_write_start(exch, &sdu->src, sizeof(sdu->src));
+	errno_t rc = async_data_write_start(exch, &sdu->src, sizeof(sdu->src));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -109,20 +109,20 @@ int inetping_send(inetping_sdu_t *sdu)
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	return retval;
 }
 
-int inetping_get_srcaddr(const inet_addr_t *remote, inet_addr_t *local)
+errno_t inetping_get_srcaddr(const inet_addr_t *remote, inet_addr_t *local)
 {
 	async_exch_t *exch = async_exchange_begin(inetping_sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, INETPING_GET_SRCADDR, &answer);
 
-	int rc = async_data_write_start(exch, remote, sizeof(*remote));
+	errno_t rc = async_data_write_start(exch, remote, sizeof(*remote));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -135,7 +135,7 @@ int inetping_get_srcaddr(const inet_addr_t *remote, inet_addr_t *local)
 
 	async_exchange_end(exch);
 
-	int retval_local;
+	errno_t retval_local;
 	async_wait_for(req_local, &retval_local);
 
 	if (retval_local != EOK) {
@@ -143,7 +143,7 @@ int inetping_get_srcaddr(const inet_addr_t *remote, inet_addr_t *local)
 		return retval_local;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	return retval;
@@ -169,7 +169,7 @@ static void inetping_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	int rc = async_data_write_finalize(callid, &sdu.src, size);
+	errno_t rc = async_data_write_finalize(callid, &sdu.src, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);

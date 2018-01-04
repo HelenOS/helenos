@@ -46,69 +46,69 @@ typedef enum {
 	NIC_EV_DEVICE_STATE
 } nic_event_t;
 
-extern int nic_send_frame(async_sess_t *, void *, size_t);
-extern int nic_callback_create(async_sess_t *, async_port_handler_t, void *);
-extern int nic_get_state(async_sess_t *, nic_device_state_t *);
-extern int nic_set_state(async_sess_t *, nic_device_state_t);
-extern int nic_get_address(async_sess_t *, nic_address_t *);
-extern int nic_set_address(async_sess_t *, const nic_address_t *);
-extern int nic_get_stats(async_sess_t *, nic_device_stats_t *);
-extern int nic_get_device_info(async_sess_t *, nic_device_info_t *);
-extern int nic_get_cable_state(async_sess_t *, nic_cable_state_t *);
+extern errno_t nic_send_frame(async_sess_t *, void *, size_t);
+extern errno_t nic_callback_create(async_sess_t *, async_port_handler_t, void *);
+extern errno_t nic_get_state(async_sess_t *, nic_device_state_t *);
+extern errno_t nic_set_state(async_sess_t *, nic_device_state_t);
+extern errno_t nic_get_address(async_sess_t *, nic_address_t *);
+extern errno_t nic_set_address(async_sess_t *, const nic_address_t *);
+extern errno_t nic_get_stats(async_sess_t *, nic_device_stats_t *);
+extern errno_t nic_get_device_info(async_sess_t *, nic_device_info_t *);
+extern errno_t nic_get_cable_state(async_sess_t *, nic_cable_state_t *);
 
-extern int nic_get_operation_mode(async_sess_t *, int *, nic_channel_mode_t *,
+extern errno_t nic_get_operation_mode(async_sess_t *, int *, nic_channel_mode_t *,
     nic_role_t *);
-extern int nic_set_operation_mode(async_sess_t *, int, nic_channel_mode_t,
+extern errno_t nic_set_operation_mode(async_sess_t *, int, nic_channel_mode_t,
     nic_role_t);
-extern int nic_autoneg_enable(async_sess_t *, uint32_t);
-extern int nic_autoneg_disable(async_sess_t *);
-extern int nic_autoneg_probe(async_sess_t *, uint32_t *, uint32_t *,
+extern errno_t nic_autoneg_enable(async_sess_t *, uint32_t);
+extern errno_t nic_autoneg_disable(async_sess_t *);
+extern errno_t nic_autoneg_probe(async_sess_t *, uint32_t *, uint32_t *,
     nic_result_t *, nic_result_t *);
-extern int nic_autoneg_restart(async_sess_t *);
-extern int nic_get_pause(async_sess_t *, nic_result_t *, nic_result_t *,
+extern errno_t nic_autoneg_restart(async_sess_t *);
+extern errno_t nic_get_pause(async_sess_t *, nic_result_t *, nic_result_t *,
     uint16_t *);
-extern int nic_set_pause(async_sess_t *, int, int, uint16_t);
+extern errno_t nic_set_pause(async_sess_t *, int, int, uint16_t);
 
-extern int nic_unicast_get_mode(async_sess_t *, nic_unicast_mode_t *, size_t,
+extern errno_t nic_unicast_get_mode(async_sess_t *, nic_unicast_mode_t *, size_t,
     nic_address_t *, size_t *);
-extern int nic_unicast_set_mode(async_sess_t *, nic_unicast_mode_t,
+extern errno_t nic_unicast_set_mode(async_sess_t *, nic_unicast_mode_t,
     const nic_address_t *, size_t);
-extern int nic_multicast_get_mode(async_sess_t *, nic_multicast_mode_t *,
+extern errno_t nic_multicast_get_mode(async_sess_t *, nic_multicast_mode_t *,
     size_t, nic_address_t *, size_t *);
-extern int nic_multicast_set_mode(async_sess_t *, nic_multicast_mode_t,
+extern errno_t nic_multicast_set_mode(async_sess_t *, nic_multicast_mode_t,
     const nic_address_t *, size_t);
-extern int nic_broadcast_get_mode(async_sess_t *, nic_broadcast_mode_t *);
-extern int nic_broadcast_set_mode(async_sess_t *, nic_broadcast_mode_t);
-extern int nic_defective_get_mode(async_sess_t *, uint32_t *);
-extern int nic_defective_set_mode(async_sess_t *, uint32_t);
-extern int nic_blocked_sources_get(async_sess_t *, size_t, nic_address_t *,
+extern errno_t nic_broadcast_get_mode(async_sess_t *, nic_broadcast_mode_t *);
+extern errno_t nic_broadcast_set_mode(async_sess_t *, nic_broadcast_mode_t);
+extern errno_t nic_defective_get_mode(async_sess_t *, uint32_t *);
+extern errno_t nic_defective_set_mode(async_sess_t *, uint32_t);
+extern errno_t nic_blocked_sources_get(async_sess_t *, size_t, nic_address_t *,
     size_t *);
-extern int nic_blocked_sources_set(async_sess_t *, const nic_address_t *,
+extern errno_t nic_blocked_sources_set(async_sess_t *, const nic_address_t *,
     size_t);
 
-extern int nic_vlan_get_mask(async_sess_t *, nic_vlan_mask_t *);
-extern int nic_vlan_set_mask(async_sess_t *, const nic_vlan_mask_t *);
-extern int nic_vlan_set_tag(async_sess_t *, uint16_t, bool, bool);
+extern errno_t nic_vlan_get_mask(async_sess_t *, nic_vlan_mask_t *);
+extern errno_t nic_vlan_set_mask(async_sess_t *, const nic_vlan_mask_t *);
+extern errno_t nic_vlan_set_tag(async_sess_t *, uint16_t, bool, bool);
 
-extern int nic_wol_virtue_add(async_sess_t *, nic_wv_type_t, const void *,
+extern errno_t nic_wol_virtue_add(async_sess_t *, nic_wv_type_t, const void *,
     size_t, nic_wv_id_t *);
-extern int nic_wol_virtue_remove(async_sess_t *, nic_wv_id_t);
-extern int nic_wol_virtue_probe(async_sess_t *, nic_wv_id_t, nic_wv_type_t *,
+extern errno_t nic_wol_virtue_remove(async_sess_t *, nic_wv_id_t);
+extern errno_t nic_wol_virtue_probe(async_sess_t *, nic_wv_id_t, nic_wv_type_t *,
     size_t, void *, size_t *);
-extern int nic_wol_virtue_list(async_sess_t *, nic_wv_type_t, size_t,
+extern errno_t nic_wol_virtue_list(async_sess_t *, nic_wv_type_t, size_t,
     nic_wv_id_t *, size_t *);
-extern int nic_wol_virtue_get_caps(async_sess_t *, nic_wv_type_t, int *);
-extern int nic_wol_load_info(async_sess_t *, nic_wv_type_t *, size_t, uint8_t *,
+extern errno_t nic_wol_virtue_get_caps(async_sess_t *, nic_wv_type_t, int *);
+extern errno_t nic_wol_load_info(async_sess_t *, nic_wv_type_t *, size_t, uint8_t *,
     size_t *);
 
-extern int nic_offload_probe(async_sess_t *, uint32_t *, uint32_t *);
-extern int nic_offload_set(async_sess_t *, uint32_t, uint32_t);
+extern errno_t nic_offload_probe(async_sess_t *, uint32_t *, uint32_t *);
+extern errno_t nic_offload_set(async_sess_t *, uint32_t, uint32_t);
 
-extern int nic_poll_get_mode(async_sess_t *, nic_poll_mode_t *,
+extern errno_t nic_poll_get_mode(async_sess_t *, nic_poll_mode_t *,
     struct timeval *);
-extern int nic_poll_set_mode(async_sess_t *, nic_poll_mode_t,
+extern errno_t nic_poll_set_mode(async_sess_t *, nic_poll_mode_t,
     const struct timeval *);
-extern int nic_poll_now(async_sess_t *);
+extern errno_t nic_poll_now(async_sess_t *);
 
 #endif
 

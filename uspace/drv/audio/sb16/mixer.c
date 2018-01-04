@@ -122,7 +122,7 @@ const char * sb_mixer_type_str(sb_mixer_type_t type)
 	return names[type];
 }
 
-int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type)
+errno_t sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type)
 {
 	assert(mixer);
 	mixer->regs = regs;
@@ -148,7 +148,7 @@ int sb_mixer_get_control_item_count(const sb_mixer_t *mixer)
 	return volume_table[mixer->type].count;
 }
 
-int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned item,
+errno_t sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned item,
     const char** name, unsigned *levels)
 {
 	assert(mixer);
@@ -170,7 +170,7 @@ int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned item,
  * @param value New volume level.
  * @return Error code.
  */
-int sb_mixer_get_control_item_value(const sb_mixer_t *mixer, unsigned item,
+errno_t sb_mixer_get_control_item_value(const sb_mixer_t *mixer, unsigned item,
     unsigned *value)
 {
 	assert(mixer);
@@ -193,7 +193,7 @@ int sb_mixer_get_control_item_value(const sb_mixer_t *mixer, unsigned item,
  * @param value New volume level.
  * @return Error code.
  */
-int sb_mixer_set_control_item_value(const sb_mixer_t *mixer, unsigned item,
+errno_t sb_mixer_set_control_item_value(const sb_mixer_t *mixer, unsigned item,
     unsigned value)
 {
 	assert(mixer);

@@ -76,7 +76,7 @@ typedef struct {
  * @param arg Pointer to polling_data_t.
  * @return Always EOK.
  */
-static int polling_fibril(void *arg)
+static errno_t polling_fibril(void *arg)
 {
 	assert(arg);
 	const polling_data_t *data = arg;
@@ -101,7 +101,7 @@ static int polling_fibril(void *arg)
 	size_t failed_attempts = 0;
 	while (failed_attempts <= params->max_failures) {
 		size_t actual_size;
-		const int rc = usb_pipe_read(pipe, data->buffer,
+		const errno_t rc = usb_pipe_read(pipe, data->buffer,
 		    data->request_size, &actual_size);
 
 		if (rc == EOK) {
@@ -205,7 +205,7 @@ static int polling_fibril(void *arg)
  * @return Error code.
  * @retval EOK New fibril polling the device was already started.
  */
-static int usb_device_auto_polling_internal(usb_device_t *dev,
+static errno_t usb_device_auto_polling_internal(usb_device_t *dev,
     usb_endpoint_mapping_t *epm, const usb_device_auto_polling_t *polling,
     size_t request_size)
 {
@@ -274,7 +274,7 @@ static int usb_device_auto_polling_internal(usb_device_t *dev,
  * @return Error code.
  * @retval EOK New fibril polling the device was already started.
  */
-int usb_device_auto_polling(usb_device_t *usb_dev, usb_endpoint_t ep,
+errno_t usb_device_auto_polling(usb_device_t *usb_dev, usb_endpoint_t ep,
     const usb_device_auto_polling_t *polling, size_t req_size)
 {
 	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep(usb_dev, ep);
@@ -300,7 +300,7 @@ int usb_device_auto_polling(usb_device_t *usb_dev, usb_endpoint_t ep,
  * @return Error code.
  * @retval EOK New fibril polling the device was already started.
  */
-int usb_device_auto_poll(usb_device_t *dev, usb_endpoint_t ep,
+errno_t usb_device_auto_poll(usb_device_t *dev, usb_endpoint_t ep,
     usb_polling_callback_t callback, size_t request_size, int delay,
     usb_polling_terminted_callback_t terminated_callback, void *arg)
 {
@@ -320,7 +320,7 @@ int usb_device_auto_poll(usb_device_t *dev, usb_endpoint_t ep,
 	    dev, epm, &auto_polling, request_size);
 }
 
-int usb_device_auto_polling_desc(usb_device_t *usb_dev,
+errno_t usb_device_auto_polling_desc(usb_device_t *usb_dev,
     const usb_endpoint_description_t *desc,
     const usb_device_auto_polling_t *polling, size_t req_size)
 {
@@ -329,7 +329,7 @@ int usb_device_auto_polling_desc(usb_device_t *usb_dev,
 	return usb_device_auto_polling_internal(usb_dev, epm, polling, req_size);
 }
 
-int usb_device_auto_poll_desc(usb_device_t * usb_dev,
+errno_t usb_device_auto_poll_desc(usb_device_t * usb_dev,
     const usb_endpoint_description_t *desc, usb_polling_callback_t callback,
     size_t req_size, int delay,
     usb_polling_terminted_callback_t terminated_callback, void *arg)

@@ -190,7 +190,7 @@ static void tcp_header_decode(tcp_header_t *hdr, tcp_segment_t *seg)
 	seg->up = uint16_t_be2host(hdr->urg_ptr);
 }
 
-static int tcp_header_encode(inet_ep2_t *epp, tcp_segment_t *seg,
+static errno_t tcp_header_encode(inet_ep2_t *epp, tcp_segment_t *seg,
     void **header, size_t *size)
 {
 	tcp_header_t *hdr;
@@ -294,7 +294,7 @@ static void tcp_pdu_set_checksum(tcp_pdu_t *pdu, uint16_t checksum)
 }
 
 /** Decode incoming PDU */
-int tcp_pdu_decode(tcp_pdu_t *pdu, inet_ep2_t *epp, tcp_segment_t **seg)
+errno_t tcp_pdu_decode(tcp_pdu_t *pdu, inet_ep2_t *epp, tcp_segment_t **seg)
 {
 	tcp_segment_t *nseg;
 	tcp_header_t *hdr;
@@ -318,12 +318,12 @@ int tcp_pdu_decode(tcp_pdu_t *pdu, inet_ep2_t *epp, tcp_segment_t **seg)
 }
 
 /** Encode outgoing PDU */
-int tcp_pdu_encode(inet_ep2_t *epp, tcp_segment_t *seg, tcp_pdu_t **pdu)
+errno_t tcp_pdu_encode(inet_ep2_t *epp, tcp_segment_t *seg, tcp_pdu_t **pdu)
 {
 	tcp_pdu_t *npdu;
 	size_t text_size;
 	uint16_t checksum;
-	int rc;
+	errno_t rc;
 
 	npdu = tcp_pdu_new();
 	if (npdu == NULL)

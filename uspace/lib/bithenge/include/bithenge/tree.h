@@ -80,14 +80,14 @@ typedef struct bithenge_node_t {
  * @param value The value.
  * @param data Data provided to @a bithenge_node_t::bithenge_node_for_each.
  * @return EOK on success or an error code from errno.h. */
-typedef int (*bithenge_for_each_func_t)(bithenge_node_t *key, bithenge_node_t *value, void *data);
+typedef errno_t (*bithenge_for_each_func_t)(bithenge_node_t *key, bithenge_node_t *value, void *data);
 
 /** Operations providing access to an internal node. */
 typedef struct bithenge_internal_node_ops_t {
 	/** @copydoc bithenge_node_t::bithenge_node_for_each */
-	int (*for_each)(bithenge_node_t *self, bithenge_for_each_func_t func, void *data);
+	errno_t (*for_each)(bithenge_node_t *self, bithenge_for_each_func_t func, void *data);
 	/** @copydoc bithenge_node_t::bithenge_node_get */
-	int (*get)(bithenge_node_t *self, bithenge_node_t *key,
+	errno_t (*get)(bithenge_node_t *self, bithenge_node_t *key,
 	    bithenge_node_t **out);
 	/** Destroys the internal node.
 	 * @param self The node to destroy. */
@@ -121,7 +121,7 @@ void bithenge_node_dec_ref(bithenge_node_t *node);
  * @param func The callback function.
  * @param data Data to provide to the callback function.
  * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_node_for_each(bithenge_node_t *self,
+static inline errno_t bithenge_node_for_each(bithenge_node_t *self,
     bithenge_for_each_func_t func, void *data)
 {
 	assert(self->type == BITHENGE_NODE_INTERNAL);
@@ -129,7 +129,7 @@ static inline int bithenge_node_for_each(bithenge_node_t *self,
 }
 
 /** @memberof bithenge_node_t */
-int bithenge_node_get(bithenge_node_t *, bithenge_node_t *,
+errno_t bithenge_node_get(bithenge_node_t *, bithenge_node_t *,
     bithenge_node_t **);
 
 /** Get the value of a boolean node.
@@ -163,21 +163,21 @@ static inline const char *bithenge_string_node_value(bithenge_node_t *self)
 }
 
 /** @memberof bithenge_node_t */
-int bithenge_init_internal_node(bithenge_node_t *,
+errno_t bithenge_init_internal_node(bithenge_node_t *,
     const bithenge_internal_node_ops_t *);
 /** @memberof bithenge_node_t */
-int bithenge_new_empty_internal_node(bithenge_node_t **);
+errno_t bithenge_new_empty_internal_node(bithenge_node_t **);
 /** @memberof bithenge_node_t */
-int bithenge_new_simple_internal_node(bithenge_node_t **, bithenge_node_t **,
+errno_t bithenge_new_simple_internal_node(bithenge_node_t **, bithenge_node_t **,
     bithenge_int_t, bool needs_free);
 /** @memberof bithenge_node_t */
-int bithenge_new_boolean_node(bithenge_node_t **, bool);
+errno_t bithenge_new_boolean_node(bithenge_node_t **, bool);
 /** @memberof bithenge_node_t */
-int bithenge_new_integer_node(bithenge_node_t **, bithenge_int_t);
+errno_t bithenge_new_integer_node(bithenge_node_t **, bithenge_int_t);
 /** @memberof bithenge_node_t */
-int bithenge_new_string_node(bithenge_node_t **, const char *, bool);
+errno_t bithenge_new_string_node(bithenge_node_t **, const char *, bool);
 /** @memberof bithenge_node_t */
-int bithenge_node_equal(bool *, bithenge_node_t *, bithenge_node_t *);
+errno_t bithenge_node_equal(bool *, bithenge_node_t *, bithenge_node_t *);
 
 #endif
 

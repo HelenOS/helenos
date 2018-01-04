@@ -57,7 +57,7 @@ typedef struct {
 typedef struct usb_device usb_device_t;
 
 /* DDF parts */
-int usb_device_create_ddf(ddf_dev_t *, const usb_endpoint_description_t **, const char **);
+errno_t usb_device_create_ddf(ddf_dev_t *, const usb_endpoint_description_t **, const char **);
 void usb_device_destroy_ddf(ddf_dev_t *);
 
 static inline usb_device_t *usb_device_get(ddf_dev_t *dev)
@@ -75,10 +75,10 @@ ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *, fun_type_t, const char *);
 async_exch_t * usb_device_bus_exchange_begin(usb_device_t *);
 void usb_device_bus_exchange_end(async_exch_t *);
 
-int usb_device_select_interface(usb_device_t *, uint8_t,
+errno_t usb_device_select_interface(usb_device_t *, uint8_t,
     const usb_endpoint_description_t **);
 
-int usb_device_create_pipes(usb_device_t *usb_dev,
+errno_t usb_device_create_pipes(usb_device_t *usb_dev,
     const usb_endpoint_description_t **endpoints);
 void usb_device_destroy_pipes(usb_device_t *);
 

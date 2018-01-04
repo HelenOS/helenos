@@ -37,7 +37,7 @@ void bigint_clone(bigint_t *src, bigint_t *dest);
 void bigint_reverse_sign(bigint_t *src, bigint_t *dest);
 void bigint_destroy(bigint_t *bigint);
 
-int bigint_get_value_int(bigint_t *bigint, int *dval);
+errno_t bigint_get_value_int(bigint_t *bigint, int *dval);
 bool_t bigint_is_zero(bigint_t *bigint);
 bool_t bigint_is_negative(bigint_t *bigint);
 
