@@ -130,7 +130,7 @@ static errno_t program_run_fibril(void *arg)
 	 * we let the task reply to this call.
 	 */
 	rc = loader_run(task_ldr);
-	if (rc != 0) {
+	if (rc != EOK) {
 		printf("Error running program\n");
 		exit(1);
 	}

@@ -393,7 +393,7 @@ sys_errno_t sys_task_set_name(const char *uspace_name, size_t name_len)
 		name_len = TASK_NAME_BUFLEN - 1;
 	
 	errno_t rc = copy_from_uspace(namebuf, uspace_name, name_len);
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 	
 	namebuf[name_len] = '\0';
@@ -429,7 +429,7 @@ sys_errno_t sys_task_kill(task_id_t *uspace_taskid)
 {
 	task_id_t taskid;
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(taskid));
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 	
 	return (sys_errno_t) task_kill(taskid);

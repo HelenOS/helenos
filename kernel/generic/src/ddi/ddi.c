@@ -347,7 +347,7 @@ sys_errno_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 	
 	return (sys_errno_t) iospace_enable((task_id_t) arg.task_id,
@@ -358,7 +358,7 @@ sys_errno_t sys_iospace_disable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 
 	return (sys_errno_t) iospace_disable((task_id_t) arg.task_id,

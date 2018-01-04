@@ -232,7 +232,7 @@ sys_errno_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 	
 	char namebuf[TASK_NAME_BUFLEN];
 	errno_t rc = copy_from_uspace(namebuf, uspace_name, name_len);
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 	
 	namebuf[name_len] = 0;
@@ -240,7 +240,7 @@ sys_errno_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 	/* Spawn the new task. */
 	program_t prg;
 	rc = program_create_loader(&prg, namebuf);
-	if (rc != 0)
+	if (rc != EOK)
 		return rc;
 	
 	// FIXME: control the permissions 

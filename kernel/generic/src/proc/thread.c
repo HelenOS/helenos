@@ -937,7 +937,7 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	
 	char namebuf[THREAD_NAME_BUFLEN];
 	errno_t rc = copy_from_uspace(namebuf, uspace_name, name_len);
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 	
 	namebuf[name_len] = 0;
@@ -950,7 +950,7 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
 	
 	rc = copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
-	if (rc != 0) {
+	if (rc != EOK) {
 		free(kernel_uarg);
 		return (sys_errno_t) rc;
 	}
@@ -961,7 +961,7 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 		if (uspace_thread_id != NULL) {
 			rc = copy_to_uspace(uspace_thread_id, &thread->tid,
 			    sizeof(thread->tid));
-			if (rc != 0) {
+			if (rc != EOK) {
 				/*
 				 * We have encountered a failure, but the thread
 				 * has already been created. We need to undo its

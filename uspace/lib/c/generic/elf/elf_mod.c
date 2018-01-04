@@ -413,7 +413,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 
 //	printf("set area flags to %d\n", flags);
 	rc = as_area_change_flags(seg_ptr, flags);
-	if (rc != 0) {
+	if (rc != EOK) {
 		DPRINTF("Failed to set memory area flags.\n");
 		return EE_MEMORY;
 	}
