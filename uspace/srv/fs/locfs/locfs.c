@@ -39,6 +39,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ipc/services.h>
 #include <ns.h>
 #include <async.h>
@@ -88,7 +89,7 @@ int main(int argc, char *argv[])
 	    &locfs_libfs_ops);
 	if (rc != EOK) {
 		printf("%s: Failed to register file system: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	printf("%s: Accepting connections\n", NAME);

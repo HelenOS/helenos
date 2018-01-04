@@ -36,6 +36,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <task.h>
 #include <str_error.h>
 #include <errno.h>
@@ -136,7 +137,7 @@ int main(int argc, char *argv[])
 		if (rc != EOK) {
 			printf("%s: Error waiting on %s (%s)\n", APP_NAME, term,
 			    str_error(rc));
-			return rc;
+			return EXIT_RC(rc);
 		}
 	}
 	
@@ -173,7 +174,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	task_exit_t texit;
@@ -182,7 +183,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf("%s: Error waiting for %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	return 0;

@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
 	int rc = log_init(NAME);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to initialize log\n", NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	kernel_ctx = log_create("kernel", LOG_NO_PARENT);
@@ -231,14 +231,14 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Unable to register klog notifications");
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	fid_t fid = fibril_create(consumer, NULL);
 	if (!fid) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Unable to create consumer fibril");
-		return ENOMEM;
+		return EXIT_RC(ENOMEM);
 	}
 	
 	fibril_add_ready(fid);

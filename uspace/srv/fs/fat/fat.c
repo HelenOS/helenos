@@ -45,6 +45,7 @@
 #include <str_error.h>
 #include <task.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <libfs.h>
 #include "../../vfs/vfs.h"
 
@@ -96,7 +97,7 @@ int main(int argc, char **argv)
 	
 err:
 	printf(NAME ": Failed to register file system: %s\n", str_error(rc));
-	return rc;
+	return EXIT_RC(rc);
 }
 
 /**

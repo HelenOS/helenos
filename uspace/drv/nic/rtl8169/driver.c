@@ -1209,7 +1209,7 @@ int main(void)
 {
 	int rc = nic_driver_init(NAME);
 	if (rc != EOK)
-		return rc;
+		return EXIT_RC(rc);
 	nic_driver_implement(
 		&rtl8169_driver_ops, &rtl8169_dev_ops, &rtl8169_nic_iface);
 

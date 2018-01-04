@@ -2253,7 +2253,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME, str_error(rc));
-		return -1;
+		return rc;
 	}
 	
 	server_name = name;
@@ -2271,9 +2271,10 @@ static int compositor_srv_init(char *input_svc, char *name)
 	/* Prepare window registrator (entrypoint for clients). */
 	char winreg[LOC_NAME_MAXLEN + 1];
 	snprintf(winreg, LOC_NAME_MAXLEN, "%s%s/winreg", NAMESPACE, server_name);
-	if (loc_service_register(winreg, &winreg_id) != EOK) {
+	rc = loc_service_register(winreg, &winreg_id);
+	if (rc != EOK) {
 		printf("%s: Unable to register service %s\n", NAME, winreg);
-		return -1;
+		return rc;
 	}
 	
 	/* Establish input bidirectional connection. */
@@ -2314,7 +2315,7 @@ int main(int argc, char *argv[])
 	
 	int rc = compositor_srv_init(argv[1], argv[2]);
 	if (rc != EOK)
-		return rc;
+		return EXIT_RC(rc);
 	
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);

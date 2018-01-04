@@ -314,21 +314,20 @@ int main(int argc, char **argv)
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	service_id_t service_id;
 	char *service_name;
-	rc = asprintf(&service_name, "mouse/isdv4-%" PRIun, svc_id);
-	if (rc < 0) {
+	if (asprintf(&service_name, "mouse/isdv4-%" PRIun, svc_id) < 0) {
 		printf(NAME ": Unable to create service name\n");
-		return rc;
+		return EXIT_RC(ENOMEM);
 	}
 
 	rc = loc_service_register(service_name, &service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register service %s.\n", service_name);
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	category_id_t mouse_category;

@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to get number of kio pages\n",
 		    NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	uintptr_t faddr;
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to get kio physical address\n",
 		    NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	size_t size = pages * PAGE_SIZE;
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 	    (void *) &kio);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to map kio\n", NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	prodcons_initialize(&pc);
@@ -216,20 +216,20 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register kio notifications\n",
 		    NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	fid_t fid = fibril_create(consumer, NULL);
 	if (!fid) {
 		fprintf(stderr, "%s: Unable to create consumer fibril\n",
 		    NAME);
-		return ENOMEM;
+		return EXIT_RC(ENOMEM);
 	}
 	
 	tinput_t *input = tinput_new();
 	if (!input) {
 		fprintf(stderr, "%s: Could not create input\n", NAME);
-		return ENOMEM;
+		return EXIT_RC(ENOMEM);
 	}
 
 	fibril_add_ready(fid);
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 	if (rc == ENOENT)
 		rc = EOK;
 
-	return EOK;
+	return EXIT_RC(rc);
 }
 
 /** @}

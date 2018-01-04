@@ -420,13 +420,13 @@ int main(int argc, char *argv[])
 
 	if (argc != 3) {
 		usage();
-		return EINVAL;
+		return EXIT_RC(EINVAL);
 	}
 
 	rc = log_init(NAME);
 	if (rc != EOK) {
 		printf(NAME ": failed to initialize log\n");
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	rc = slip_init(argv[1], argv[2]);

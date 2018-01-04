@@ -89,7 +89,7 @@ static int print_item_data(char *ipath)
 	dump_bytes_text(data, size);
 	fputs("')\n", stdout);
 	
-	return EOK;
+	return 0;
 }
 
 static int print_item_property(char *ipath, char *iprop)
@@ -108,7 +108,7 @@ static int print_item_property(char *ipath, char *iprop)
 	dump_bytes_text(data, size);
 	fputs("')\n", stdout);
 	
-	return EOK;
+	return 0;
 }
 
 static void print_spaces(size_t spaces)
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 			rc = 2;
 			break;
 		case SYSINFO_VAL_VAL:
-			rc = print_item_val(ipath);
+			rc = EXIT_RC(print_item_val(ipath));
 			break;
 		case SYSINFO_VAL_DATA:
 			rc = print_item_data(ipath);

@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <libfs.h>
 #include "cdfs.h"
 #include "cdfs_ops.h"
@@ -84,7 +85,7 @@ int main(int argc, char **argv)
 	    &cdfs_libfs_ops);
 	if (rc != EOK) {
 		printf("%s: Failed to register file system: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	printf("%s: Accepting connections\n", NAME);

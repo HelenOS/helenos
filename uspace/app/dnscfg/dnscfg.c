@@ -127,11 +127,11 @@ static int dnscfg_print(void)
 int main(int argc, char *argv[])
 {
 	if ((argc < 2) || (str_cmp(argv[1], "get-ns") == 0))
-		return dnscfg_print();
+		return EXIT_RC(dnscfg_print());
 	else if (str_cmp(argv[1], "set-ns") == 0)
-		return dnscfg_set_ns(argc - 2, argv + 2);
+		return EXIT_RC(dnscfg_set_ns(argc - 2, argv + 2));
 	else if (str_cmp(argv[1], "unset-ns") == 0)
-		return dnscfg_unset_ns();
+		return EXIT_RC(dnscfg_unset_ns());
 	else {
 		printf("%s: Unknown command '%s'.\n", NAME, argv[1]);
 		print_syntax();

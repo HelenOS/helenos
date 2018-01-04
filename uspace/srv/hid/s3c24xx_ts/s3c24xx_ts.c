@@ -87,14 +87,14 @@ int main(int argc, char *argv[])
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	ts = malloc(sizeof(s3c24xx_ts_t));
 	if (ts == NULL)
 		return -1;
 
-	if (s3c24xx_ts_init(ts) != EOK)
+	if (s3c24xx_ts_init(ts) != 0)
 		return -1;
 
 	rc = loc_service_register(NAMESPACE "/mouse", &ts->service_id);
@@ -140,7 +140,7 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 
-	return EOK;
+	return 0;
 }
 
 /** Switch interface to wait for interrupt mode.

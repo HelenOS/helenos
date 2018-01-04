@@ -977,14 +977,14 @@ int ddf_driver_main(const driver_t *drv)
 	    NULL, &port);
 	if (rc != EOK) {
 		printf("Error: Failed to create driver port.\n");
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	rc = async_create_port(INTERFACE_DDF_DEVMAN, driver_connection_devman,
 	    NULL, &port);
 	if (rc != EOK) {
 		printf("Error: Failed to create devman port.\n");
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	async_set_fallback_port_handler(driver_connection_client, NULL);
@@ -995,20 +995,20 @@ int ddf_driver_main(const driver_t *drv)
 		    "(%s).\n", (rc == EEXIST) ? "driver already started" :
 		    str_error(rc));
 		
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	/* Return success from the task since server has started. */
 	rc = task_retval(0);
 	if (rc != EOK) {
 		printf("Error: Failed returning task value.\n");
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	async_manager();
 	
 	/* Never reached. */
-	return EOK;
+	return 0;
 }
 
 /**

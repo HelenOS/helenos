@@ -41,6 +41,7 @@
 #include <ipc/services.h>
 #include <abi/ipc/interfaces.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <macros.h>
 #include "ns.h"
@@ -132,15 +133,15 @@ int main(int argc, char **argv)
 	
 	int rc = service_init();
 	if (rc != EOK)
-		return rc;
+		return EXIT_RC(rc);
 	
 	rc = clonable_init();
 	if (rc != EOK)
-		return rc;
+		return EXIT_RC(rc);
 	
 	rc = task_init();
 	if (rc != EOK)
-		return rc;
+		return EXIT_RC(rc);
 	
 	async_set_fallback_port_handler(ns_connection, NULL);
 	

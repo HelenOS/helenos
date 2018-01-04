@@ -34,6 +34,7 @@
 #include <loc.h>
 #include <mem.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <task.h>
 
 #define NAME  "chardev-test"
@@ -113,7 +114,7 @@ int main(int argc, char *argv[])
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Failed registering server.: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	chardev_srvs_init(&smallx_srvs);
@@ -131,19 +132,19 @@ int main(int argc, char *argv[])
 	rc = loc_service_register(SERVICE_NAME_CHARDEV_TEST_SMALLX, &smallx_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	rc = loc_service_register(SERVICE_NAME_CHARDEV_TEST_LARGEX, &largex_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	rc = loc_service_register(SERVICE_NAME_CHARDEV_TEST_PARTIALX, &partialx_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 

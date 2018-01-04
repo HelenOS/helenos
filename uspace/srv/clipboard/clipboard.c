@@ -189,13 +189,13 @@ int main(int argc, char *argv[])
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Failed registering server: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	rc = loc_service_register(SERVICE_NAME_CLIPBOARD, &svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service : %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	printf("%s: Accepting connections\n", NAME);

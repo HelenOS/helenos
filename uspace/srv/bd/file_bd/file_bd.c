@@ -46,6 +46,7 @@
 #include <loc.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <str_error.h>
 #include <stdbool.h>
@@ -136,20 +137,20 @@ int main(int argc, char **argv)
 	if (rc != EOK) {
 		printf("%s: Unable to register device '%s': %s.\n",
 		    NAME, device_name, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	rc = loc_category_get_id("disk", &disk_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed resolving category 'disk': %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	rc = loc_service_add_to_cat(service_id, disk_cat);
 	if (rc != EOK) {
 		printf("%s: Failed adding %s to category: %s",
 		    NAME, device_name, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	printf("%s: Accepting connections\n", NAME);

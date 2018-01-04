@@ -39,6 +39,7 @@
 #include <libfs.h>
 #include <ns.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <task.h>
 #include <ipc/services.h>
 #include "ext4/ops.h"
@@ -74,14 +75,14 @@ int main(int argc, char **argv)
 	int rc = ext4_global_init();
 	if (rc != EOK) {
 		printf("%s: Global initialization failed\n", NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	rc = fs_register(vfs_sess, &ext4fs_vfs_info, &ext4_ops,
 	    &ext4_libfs_ops);
 	if (rc != EOK) {
 		printf("%s: Failed to register file system\n", NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	printf("%s: Accepting connections\n", NAME);

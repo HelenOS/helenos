@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 	if (!vfs_nodes_init()) {
 		printf("%s: Failed to initialize VFS node hash table\n",
 		    NAME);
-		return ENOMEM;
+		return EXIT_RC(ENOMEM);
 	}
 	
 	/*
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
 	if (plb == AS_MAP_FAILED) {
 		printf("%s: Cannot create address space area\n", NAME);
-		return ENOMEM;
+		return EXIT_RC(ENOMEM);
 	}
 	memset(plb, 0, PLB_SIZE);
 	
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 	rc = async_create_port(INTERFACE_PAGER, vfs_pager, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Cannot create pager port: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	/*
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 	rc = service_register(SERVICE_VFS);
 	if (rc != EOK) {
 		printf("%s: Cannot register VFS service: %s\n", NAME, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	/*

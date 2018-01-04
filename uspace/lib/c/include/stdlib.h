@@ -50,6 +50,14 @@ extern void srandom(unsigned int seed);
 extern void abort(void) __attribute__((noreturn));
 extern void exit(int) __attribute__((noreturn));
 
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE -1
+
+#include <errno.h>
+static inline int EXIT_RC(errno_t rc) {
+	return (int) rc;
+}
+
 #endif
 
 /** @}

@@ -239,10 +239,10 @@ int main(int argc, char *argv[])
 	uri_destroy(uri);
 	if (ofile != NULL && fclose(ofile) != 0) {
 		printf("Error writing '%s'.\n", ofname);
-		return EIO;
+		return EXIT_RC(EIO);
 	}
 
-	return EOK;
+	return 0;
 error:
 	free(buf);
 	if (http != NULL)
@@ -251,7 +251,7 @@ error:
 		uri_destroy(uri);
 	if (ofile != NULL)
 		fclose(ofile);
-	return rc;
+	return EXIT_RC(rc);
 }
 
 /** @}

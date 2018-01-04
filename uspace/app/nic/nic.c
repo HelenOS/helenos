@@ -412,7 +412,8 @@ static int nic_set_addr(int i, char *str)
 {
 	async_sess_t *sess;
 	nic_address_t addr;
-	int rc, idx;
+	int rc;
+	int idx;
 
 	sess = get_nic_by_index(i);
 	if (sess == NULL) {
@@ -542,25 +543,25 @@ int main(int argc, char *argv[])
 		}
 
 		if (!str_cmp(argv[2], "addr"))
-			return nic_set_addr(index, argv[3]);
+			return EXIT_RC(nic_set_addr(index, argv[3]));
 
 		if (!str_cmp(argv[2], "speed"))
-			return nic_set_speed(index, argv[3]);
+			return EXIT_RC(nic_set_speed(index, argv[3]));
 
 		if (!str_cmp(argv[2], "duplex"))
-			return nic_set_duplex(index, argv[3]);
+			return EXIT_RC(nic_set_duplex(index, argv[3]));
 
 		if (!str_cmp(argv[2], "auto"))
-			return nic_set_autoneg(index);
+			return EXIT_RC(nic_set_autoneg(index));
 
 		if (!str_cmp(argv[2], "unicast"))
-			return nic_set_rx_unicast(index, argv[3]);
+			return EXIT_RC(nic_set_rx_unicast(index, argv[3]));
 
 		if (!str_cmp(argv[2], "multicast"))
-			return nic_set_rx_multicast(index, argv[3]);
+			return EXIT_RC(nic_set_rx_multicast(index, argv[3]));
 
 		if (!str_cmp(argv[2], "broadcast"))
-			return nic_set_rx_broadcast(index, argv[3]);
+			return EXIT_RC(nic_set_rx_broadcast(index, argv[3]));
 
 	} else {
 		printf(NAME ": Invalid argument.\n");

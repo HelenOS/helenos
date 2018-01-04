@@ -868,14 +868,14 @@ int main(int argc, char **argv)
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server\n", NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	service_id_t service_id;
 	rc = loc_service_register(argv[1], &service_id);
 	if (rc != EOK) {
 		printf("%s: Unable to register service %s\n", NAME, argv[1]);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	/* Receive kernel notifications */

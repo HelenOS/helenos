@@ -237,7 +237,7 @@ int main(int argc, char * argv[])
 	if (rc != EOK) {
 		printf("Unable to start communication with VHCD `%s': %s.\n",
 		    controller, str_error(rc));
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	printf("Connected to VHCD `%s'...\n", controller);

@@ -386,7 +386,7 @@ static int sysinst_install(const char *dev)
 int main(int argc, char *argv[])
 {
 	const char *dev = DEFAULT_DEV;
-	return sysinst_install(dev);
+	return EXIT_RC(sysinst_install(dev));
 }
 
 /** @}

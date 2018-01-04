@@ -219,14 +219,13 @@ int main(int argc, char **argv)
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server.\n", NAME);
-		return rc;
+		return EXIT_RC(rc);
 	}
 
 	char *service_name;
-	rc = asprintf(&service_name, "rfb/%s", rfb_name);
-	if (rc < 0) {
+	if (asprintf(&service_name, "rfb/%s", rfb_name) < 0) {
 		printf(NAME ": Unable to create service name\n");
-		return rc;
+		return EXIT_RC(ENOMEM);
 	}
 
 	service_id_t service_id;
@@ -234,7 +233,7 @@ int main(int argc, char **argv)
 	rc = loc_service_register(service_name, &service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register service %s.\n", service_name);
-		return rc;
+		return EXIT_RC(rc);
 	}
 	
 	free(service_name);
