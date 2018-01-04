@@ -43,7 +43,9 @@
 #include "posix/ctype.h"
 #include "posix/stdint.h"
 #include "posix/strings.h"
-#include "posix/errno.h"
+
+#include <errno.h>
+
 #include "posix/limits.h"
 
 #include "posix/float.h"

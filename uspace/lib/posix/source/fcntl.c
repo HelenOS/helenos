@@ -39,7 +39,8 @@
 #include "posix/fcntl.h"
 
 #include "libc/vfs/vfs.h"
-#include "posix/errno.h"
+
+#include <errno.h>
 
 /**
  * Performs set of operations on the opened files.
@@ -102,7 +103,6 @@ int posix_fcntl(int fd, int cmd, ...)
  */
 int posix_open(const char *pathname, int posix_flags, ...)
 {
-	int rc;
 	posix_mode_t posix_mode = 0;
 	if (posix_flags & O_CREAT) {
 		va_list args;
@@ -135,20 +135,18 @@ int posix_open(const char *pathname, int posix_flags, ...)
 	    ((posix_flags & O_APPEND) ? MODE_APPEND : 0);
 
 	int file;
-	rc = rcerrno(vfs_lookup, pathname, flags, &file);
-	if (rc != EOK)
+
+	if (failed(vfs_lookup(pathname, flags, &file)))
 		return -1;
 
-	rc = rcerrno(vfs_open, file, mode);
-	if (rc != EOK) {
+	if (failed(vfs_open(file, mode))) {
 		vfs_put(file);
 		return -1;
 	}
 
 	if (posix_flags & O_TRUNC) {
 		if (posix_flags & (O_RDWR | O_WRONLY)) {
-			rc = rcerrno(vfs_resize, file, 0);
-			if (rc != EOK) {
+			if (failed(vfs_resize(file, 0))) {
 				vfs_put(file);
 				return -1;
 			}

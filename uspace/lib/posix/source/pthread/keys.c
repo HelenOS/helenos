@@ -37,7 +37,7 @@
 
 #include "posix/stdlib.h"
 #include "posix/pthread.h"
-#include "errno.h"
+#include <errno.h>
 #include "../internal/common.h"
 
 

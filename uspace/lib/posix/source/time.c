@@ -40,7 +40,9 @@
 #include "posix/time.h"
 
 #include "posix/ctype.h"
-#include "posix/errno.h"
+
+#include <errno.h>
+
 #include "posix/signal.h"
 #include "posix/assert.h"
 
@@ -99,9 +101,7 @@ time_t posix_time(time_t *t)
 struct tm *posix_gmtime_r(const time_t *restrict timer,
     struct tm *restrict result)
 {
-	int rc = time_utc2tm(*timer, result);
-	if (rc != EOK) {
-		errno = rc;
+	if (failed(time_utc2tm(*timer, result))) {
 		return NULL;
 	}
 
@@ -196,9 +196,7 @@ char *posix_asctime(const struct tm *restrict timeptr)
  */
 char *posix_ctime_r(const time_t *timer, char *buf)
 {
-	int r = time_local2str(*timer, buf);
-	if (r != EOK) {
-		errno = r;
+	if (failed(time_local2str(*timer, buf))) {
 		return NULL;
 	}
 

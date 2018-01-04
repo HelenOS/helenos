@@ -49,22 +49,16 @@
 		__not_implemented_counter++; \
 	} while (0)
 
-/* Convert negative errno to positive errno */
-#define negerrno(func, ...) ({ \
-	int rc = func(__VA_ARGS__); \
-	if (rc < 0) { \
-		errno = -errno; \
-	} \
-	rc; \
-})
-
-/* Convert error code to positive errno and -1 return value */
-#define rcerrno(func, ...) ({ \
-	int rc = func(__VA_ARGS__); \
-	if (rc < 0) \
-		errno = -rc; \
-	rc; \
-})
+/* Checks if the value is a failing error code.
+ * If so, writes the error code to errno and returns true.
+ */
+static inline bool failed(int rc) {
+	if (rc != EOK) {
+		errno = rc;
+		return true;
+	}
+	return false;
+}
 
 extern aoff64_t posix_pos[MAX_OPEN_FILES];
 

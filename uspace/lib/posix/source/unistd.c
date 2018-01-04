@@ -39,7 +39,8 @@
 #include "internal/common.h"
 #include "posix/unistd.h"
 
-#include "posix/errno.h"
+#include <errno.h>
+
 #include "posix/string.h"
 #include "posix/fcntl.h"
 
@@ -51,6 +52,7 @@
 
 #include <libarch/config.h>
 
+// FIXME: replace with a hash table
 aoff64_t posix_pos[MAX_OPEN_FILES];
 
 /* Array of environment variable strings (NAME=VALUE). */
@@ -125,8 +127,7 @@ int posix_isatty(int fd)
  */
 char *posix_getcwd(char *buf, size_t size)
 {
-	int rc = rcerrno(vfs_cwd_get, buf, size);
-	if (rc != EOK) 
+	if (failed(vfs_cwd_get(buf, size))) 
 		return NULL;
 	return buf;
 }
@@ -138,8 +139,7 @@ char *posix_getcwd(char *buf, size_t size)
  */
 int posix_chdir(const char *path)
 {
-	int rc = rcerrno(vfs_cwd_set, path);
-	if (rc != EOK)
+	if (failed(vfs_cwd_set(path)))
 		return -1;
 	return 0;
 }
@@ -195,8 +195,7 @@ posix_gid_t posix_getgid(void)
 int posix_close(int fildes)
 {
 	posix_pos[fildes] = 0;
-	int rc = rcerrno(vfs_put, fildes);
-	if (rc != EOK)
+	if (failed(vfs_put(fildes)))
 		return -1;
 	else
 		return 0;
@@ -213,10 +212,7 @@ int posix_close(int fildes)
 ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 {
 	size_t nread;
-	int rc;
-
-	rc = rcerrno(vfs_read, fildes, &posix_pos[fildes], buf, nbyte, &nread);
-	if (rc != EOK)
+	if (failed(vfs_read(fildes, &posix_pos[fildes], buf, nbyte, &nread)))
 		return -1;
 	return (ssize_t) nread;
 }
@@ -232,10 +228,7 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 {
 	size_t nwr;
-	int rc;
-
-	rc = rcerrno(vfs_write, fildes, &posix_pos[fildes], buf, nbyte, &nwr);
-	if (rc != EOK)
+	if (failed(vfs_write(fildes, &posix_pos[fildes], buf, nbyte, &nwr)))
 		return -1;
 	return nwr;
 }
@@ -252,7 +245,6 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 {
 	struct stat st;
-	int rc;
 
 	switch (whence) {
 	case SEEK_SET:
@@ -262,8 +254,7 @@ posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 		posix_pos[fildes] += offset;
 		break;
 	case SEEK_END:
-		rc = rcerrno(vfs_stat, fildes, &st);
-		if (rc != EOK)
+		if (failed(vfs_stat(fildes, &st)))
 			return -1;
 		posix_pos[fildes] = st.size + offset;
 		break;
@@ -284,7 +275,7 @@ posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
  */
 int posix_fsync(int fildes)
 {
-	if (rcerrno(vfs_sync, fildes) != EOK)
+	if (failed(vfs_sync(fildes)))
 		return -1;
 	else
 		return 0;
@@ -299,7 +290,7 @@ int posix_fsync(int fildes)
  */
 int posix_ftruncate(int fildes, posix_off_t length)
 {
-	if (rcerrno(vfs_resize, fildes, (aoff64_t) length) != EOK)
+	if (failed(vfs_resize(fildes, (aoff64_t) length)))
 		return -1;
 	else
 		return 0;
@@ -313,7 +304,7 @@ int posix_ftruncate(int fildes, posix_off_t length)
  */
 int posix_rmdir(const char *path)
 {
-	if (rcerrno(vfs_unlink_path, path) != EOK)
+	if (failed(vfs_unlink_path(path)))
 		return -1;
 	else
 		return 0;
@@ -327,7 +318,7 @@ int posix_rmdir(const char *path)
  */
 int posix_unlink(const char *path)
 {
-	if (rcerrno(vfs_unlink_path, path) != EOK)
+	if (failed(vfs_unlink_path(path)))
 		return -1;
 	else
 		return 0;
@@ -355,9 +346,7 @@ int posix_dup(int fildes)
 int posix_dup2(int fildes, int fildes2)
 {
 	int file;
-	int rc = vfs_clone(fildes, fildes2, false, &file);
-	if (rc != EOK) {
-		errno = rc < 0 ? -rc : rc;
+	if (failed(vfs_clone(fildes, fildes2, false, &file))) {
 		return -1;
 	}
 	return file;

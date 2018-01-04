@@ -41,7 +41,9 @@
 
 #include "libc/task.h"
 #include "posix/assert.h"
-#include "posix/errno.h"
+
+#include <errno.h>
+
 #include "posix/limits.h"
 #include "posix/signal.h"
 
@@ -99,11 +101,8 @@ posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
 	task_exit_t texit;
 	int retval;
 	
-	int rc = task_wait_task_id((task_id_t) pid, &texit, &retval);
-	
-	if (rc < 0) {
+	if (failed(task_wait_task_id((task_id_t) pid, &texit, &retval))) {
 		/* Unable to retrieve status. */
-		errno = -rc;
 		return (posix_pid_t) -1;
 	}
 	

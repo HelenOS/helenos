@@ -40,7 +40,8 @@
 #include "posix/limits.h"
 #include "posix/stdlib.h"
 #include "posix/string.h"
-#include "posix/errno.h"
+
+#include <errno.h>
 
 #include "libc/fibril_synch.h"
 #include "libc/task.h"

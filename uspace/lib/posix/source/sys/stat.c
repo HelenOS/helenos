@@ -40,7 +40,7 @@
 #include "posix/sys/stat.h"
 #include "libc/vfs/vfs.h"
 
-#include "posix/errno.h"
+#include <errno.h>
 #include "libc/mem.h"
 
 /**
@@ -88,8 +88,7 @@ static int stat_to_posix(struct posix_stat *dest, struct stat *src)
 int posix_fstat(int fd, struct posix_stat *st)
 {
 	struct stat hst;
-	int rc = rcerrno(vfs_stat, fd, &hst);
-	if (rc < 0)
+	if (failed(vfs_stat(fd, &hst)))
 		return -1;
 	return stat_to_posix(st, &hst);
 }
@@ -117,8 +116,7 @@ int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
 int posix_stat(const char *restrict path, struct posix_stat *restrict st)
 {
 	struct stat hst;
-	int rc = rcerrno(vfs_stat_path, path, &hst);
-	if (rc < 0)
+	if (failed(vfs_stat_path(path, &hst)))
 		return -1;
 	return stat_to_posix(st, &hst);
 }
@@ -158,8 +156,7 @@ posix_mode_t posix_umask(posix_mode_t mask)
  */
 int posix_mkdir(const char *path, posix_mode_t mode)
 {
-	int rc = rcerrno(vfs_link_path, path, KIND_DIRECTORY, NULL);
-	if (rc != EOK)
+	if (failed(vfs_link_path(path, KIND_DIRECTORY, NULL)))
 		return -1;
 	else
 		return 0;

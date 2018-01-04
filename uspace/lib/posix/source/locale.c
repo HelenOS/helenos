@@ -38,7 +38,8 @@
 #include "internal/common.h"
 #include "posix/locale.h"
 
-#include "posix/errno.h"
+#include <errno.h>
+
 #include "posix/limits.h"
 #include "posix/string.h"
 

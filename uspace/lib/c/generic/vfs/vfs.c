@@ -566,6 +566,9 @@ int vfs_lookup(const char *path, int flags, int *handle)
 		return ENOENT;
 	}
 
+	// XXX: Workaround for GCC diagnostics.
+	*handle = -1;
+
 	int rc = vfs_walk(root, p, flags, handle);
 	vfs_put(root);
 	free(p);
