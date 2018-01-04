@@ -55,7 +55,7 @@ extern void exit(int) __attribute__((noreturn));
 
 #include <errno.h>
 static inline int EXIT_RC(errno_t rc) {
-	return (int) (case_errno_t) rc;
+	return (int) rc;
 }
 
 #endif

@@ -95,7 +95,7 @@ const char *str_error_name(errno_t e)
 		return err_name[i];
 	}
 
-	snprintf(noerr, NOERR_LEN, "(%d)", (int)(case_errno_t) e);
+	snprintf(noerr, NOERR_LEN, "(%d)", (int)e);
 	return noerr;
 }
 
@@ -107,7 +107,7 @@ const char *str_error(errno_t e)
 		return err_desc[i];
 	}
 
-	snprintf(noerr, NOERR_LEN, "Unknown error code (%d)", (int)(case_errno_t) e);
+	snprintf(noerr, NOERR_LEN, "Unknown error code (%d)", (int)e);
 	return noerr;
 }
 

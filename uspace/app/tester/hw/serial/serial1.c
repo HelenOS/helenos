@@ -62,12 +62,12 @@ const char *test_serial1(void)
 	if (test_argc < 1)
 		cnt = DEFAULT_COUNT;
 	else
-		switch ((case_errno_t) str_size_t(test_argv[0], NULL, 0, true, &cnt)) {
-		case (case_errno_t) EOK:
+		switch (str_size_t(test_argv[0], NULL, 0, true, &cnt)) {
+		case EOK:
 			break;
-		case (case_errno_t) EINVAL:
+		case EINVAL:
 			return "Invalid argument, unsigned integer expected";
-		case (case_errno_t) EOVERFLOW:
+		case EOVERFLOW:
 			return "Argument size overflow";
 		default:
 			return "Unexpected argument error";

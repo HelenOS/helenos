@@ -263,16 +263,16 @@ errno_t inet_hostport_plookup_one(const char *str, ip_ver_t version, inet_ep_t *
 
 	rc = inet_hostport_parse(str, &hp, endptr != NULL ? &eptr : NULL);
 	if (rc != EOK) {
-		switch ((case_errno_t) rc) {
-		case (case_errno_t) EINVAL:
+		switch (rc) {
+		case EINVAL:
 			if (errmsg != NULL)
 				*errmsg = "Invalid format";
 			goto error;
-		case (case_errno_t) ENOMEM:
+		case ENOMEM:
 			if (errmsg != NULL)
 				*errmsg = "Out of memory";
 			goto error;
-		case (case_errno_t) EOK:
+		case EOK:
 			break;
 		default:
 			assert(false);

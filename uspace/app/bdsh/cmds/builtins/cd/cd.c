@@ -144,11 +144,11 @@ int cmd_cd(char **argv, cliuser_t *usr)
 		cli_set_prompt(usr);
 		return CMD_SUCCESS;
 	} else {
-		switch ((case_errno_t) rc) {
-		case (case_errno_t) ENOMEM:
+		switch (rc) {
+		case ENOMEM:
 			cli_error(CL_EFAIL, "Destination path too long");
 			break;
-		case (case_errno_t) ENOENT:
+		case ENOENT:
 			cli_error(CL_ENOENT, "Invalid directory `%s'", target_directory);
 			break;
 		default:

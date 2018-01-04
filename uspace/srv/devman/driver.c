@@ -602,11 +602,11 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 		async_wait_for(req, &rc);
 	}
 
-	switch ((case_errno_t) rc) {
-	case (case_errno_t) EOK:
+	switch (rc) {
+	case EOK:
 		dev->state = DEVICE_USABLE;
 		break;
-	case (case_errno_t) ENOENT:
+	case ENOENT:
 		dev->state = DEVICE_NOT_PRESENT;
 		break;
 	default:

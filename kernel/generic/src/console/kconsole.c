@@ -563,18 +563,18 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 		
 		uintptr_t symaddr;
 		errno_t rc = symtab_addr_lookup(symname, &symaddr);
-		switch ((case_errno_t) rc) {
-		case (case_errno_t) ENOENT:
+		switch (rc) {
+		case ENOENT:
 			printf("Symbol %s not found.\n", symname);
 			return false;
-		case (case_errno_t) EOVERFLOW:
+		case EOVERFLOW:
 			printf("Duplicate symbol %s.\n", symname);
 			symtab_print_search(symname);
 			return false;
-		case (case_errno_t) ENOTSUP:
+		case ENOTSUP:
 			printf("No symbol information available.\n");
 			return false;
-		case (case_errno_t) EOK:
+		case EOK:
 			if (isaddr)
 				*result = (sysarg_t) symaddr;
 			else if (isptr)
@@ -593,14 +593,14 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 		errno_t rc = str_uint64_t(text, &end, 0, false, &value);
 		if (end != text + len)
 			rc = EINVAL;
-		switch ((case_errno_t) rc) {
-		case (case_errno_t) EINVAL:
+		switch (rc) {
+		case EINVAL:
 			printf("Invalid number '%s'.\n", text);
 			return false;
-		case (case_errno_t) EOVERFLOW:
+		case EOVERFLOW:
 			printf("Integer overflow in '%s'.\n", text);
 			return false;
-		case (case_errno_t) EOK:
+		case EOK:
 			*result = (sysarg_t) value;
 			if (isptr)
 				*result = *((sysarg_t *) *result);

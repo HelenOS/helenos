@@ -80,21 +80,21 @@ static void info_print(void)
 static bool mount_report(const char *desc, const char *mntpt,
     const char *fstype, const char *dev, errno_t rc)
 {
-	switch ((case_errno_t) rc) {
-	case (case_errno_t) EOK:
+	switch (rc) {
+	case EOK:
 		if (dev != NULL)
 			printf("%s: %s mounted on %s (%s at %s)\n", NAME, desc, mntpt,
 			    fstype, dev);
 		else
 			printf("%s: %s mounted on %s (%s)\n", NAME, desc, mntpt, fstype);
 		break;
-	case (case_errno_t) EBUSY:
+	case EBUSY:
 		printf("%s: %s already mounted on %s\n", NAME, desc, mntpt);
 		return false;
-	case (case_errno_t) ELIMIT:
+	case ELIMIT:
 		printf("%s: %s limit exceeded\n", NAME, desc);
 		return false;
-	case (case_errno_t) ENOENT:
+	case ENOENT:
 		printf("%s: %s unknown type (%s)\n", NAME, desc, fstype);
 		return false;
 	default:

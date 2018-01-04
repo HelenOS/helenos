@@ -588,11 +588,11 @@ static errno_t file_save(char const *fname)
 
 	rc = file_save_range(fname, &sp, &ep);
 
-	switch ((case_errno_t) rc) {
-	case (case_errno_t) EINVAL:
+	switch (rc) {
+	case EINVAL:
 		status_display("Error opening file!");
 		break;
-	case (case_errno_t) EIO:
+	case EIO:
 		status_display("Error writing data!");
 		break;
 	default:
