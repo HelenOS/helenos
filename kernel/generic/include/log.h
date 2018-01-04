@@ -35,6 +35,7 @@
 #ifndef KERN_LOG_H_
 #define KERN_LOG_H_
 
+#include <errno.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <printf/verify.h>

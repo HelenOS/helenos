@@ -35,6 +35,7 @@
 #ifndef LIBC_THREAD_H_
 #define LIBC_THREAD_H_
 
+#include <errno.h>
 #include <libarch/thread.h>
 #include <stdint.h>
 #include <abi/proc/thread.h>

@@ -37,6 +37,7 @@
 #ifndef LIBUSBDEV_ALTERNATE_IFACES_H_
 #define LIBUSBDEV_ALTERNATE_IFACES_H_
 
+#include <errno.h>
 #include <usb/descriptor.h>
 #include <stddef.h>
 #include <stdint.h>

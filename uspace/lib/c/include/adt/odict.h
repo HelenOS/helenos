@@ -35,6 +35,7 @@
 #ifndef LIBC_ODICT_H_
 #define LIBC_ODICT_H_
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <types/adt/odict.h>

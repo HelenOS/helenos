@@ -35,6 +35,7 @@
 #ifndef LIBUSB_HIDDESCRIPTOR_H_
 #define LIBUSB_HIDDESCRIPTOR_H_
 
+#include <errno.h>
 #include <stdint.h>
 #include <adt/list.h>
 #include <usb/hid/hid_report_items.h>

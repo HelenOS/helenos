@@ -35,6 +35,7 @@
 #ifndef LIBC_CORECFG_H_
 #define LIBC_CORECFG_H_
 
+#include <errno.h>
 #include <stdbool.h>
 
 extern int corecfg_init(void);

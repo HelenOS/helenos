@@ -36,6 +36,7 @@
 #ifndef LIBC_STR_H_
 #define LIBC_STR_H_
 
+#include <errno.h>
 #include <mem.h>
 #include <stddef.h>
 #include <stdint.h>

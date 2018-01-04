@@ -35,6 +35,7 @@
 #ifndef LIBC_INET_ADDR_H_
 #define LIBC_INET_ADDR_H_
 
+#include <errno.h>
 #include <stdint.h>
 
 typedef uint32_t addr32_t;

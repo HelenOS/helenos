@@ -29,6 +29,7 @@
 #ifndef LIBCRYPTO_H
 #define LIBCRYPTO_H
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 
