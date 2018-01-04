@@ -33,13 +33,13 @@
  * @file
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <macros.h>
 
 #include <http/http.h>
-#include <http/errno.h>
 
 static bool is_digit(char c)
 {

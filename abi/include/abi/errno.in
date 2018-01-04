@@ -34,4 +34,10 @@ __errno_entry(EBADCHECKSUM   ,   -300, "Bad checksum")
 __errno_entry(ESTALL         ,   -301, "USB: Operation stalled")
 __errno_entry(EEMPTY         ,   -302, "Resource is empty")
 __errno_entry(ENAK           ,   -303, "Negative acknowledgement")
-__errno_entry(EAGAIN         , -11002, "Operation could not proceed. Try again.")
+__errno_entry(EAGAIN         , -11002, "Operation could not proceed, try again")
+
+__errno_entry(HTTP_EMULTIPLE_HEADERS , -20001, "HTTP: Multiple headers")  // libhttp error codes. Defining them here is a temporary hack.
+__errno_entry(HTTP_EMISSING_HEADER   , -20002, "HTTP: Missing header")
+__errno_entry(HTTP_EPARSE            , -20003, "HTTP: Parse error")
+
+__errno_entry(EXT4_ERR_BAD_DX_DIR    , -75000, "EXT4: Filesystem corrupted")  // libext4

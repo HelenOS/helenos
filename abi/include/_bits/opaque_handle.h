@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2017 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/* Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup bits
  * @{
  */
-/** @file
- */
 
-#ifndef KERN_ERRNO_H_
-#define KERN_ERRNO_H_
+#ifndef _BITS_OPAQUE_HANDLE_H_
+#define _BITS_OPAQUE_HANDLE_H_
 
-#include <_bits/errno.h>
-#include <abi/errno.h>
+#define opaque_handle(__name) typedef struct __opaque_##__name *__name
 
 #endif
 

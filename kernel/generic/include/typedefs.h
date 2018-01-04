@@ -36,6 +36,7 @@
 #define KERN_TYPEDEFS_H_
 
 #include <arch/types.h>
+#include <_bits/errno.h>
 
 typedef struct {
 	volatile atomic_count_t count;

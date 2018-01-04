@@ -475,7 +475,6 @@ typedef struct ext4_directory_dx_block {
 	ext4_directory_dx_entry_t *position;
 } ext4_directory_dx_block_t;
 
-#define EXT4_ERR_BAD_DX_DIR       (-75000)
 #define EXT4_DIRECTORY_HTREE_EOF  UINT32_C(0x7fffffff)
 
 /*

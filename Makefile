@@ -135,7 +135,7 @@ clean:
 
 $(ERRNO_HEADER): $(ERRNO_INPUT)
 	echo '/* Generated file. Edit errno.in instead. */' > $@.new
-	sed 's/__errno_entry(\([^,]*\),\([^,]*\),.*/#define \1 \2/' < $< >> $@.new
+	sed 's/__errno_entry(\([^,]*\),\([^,]*\),.*/#define \1 __errno_t(\2)/' < $< >> $@.new
 	mv $@.new $@
 
 -include Makefile.local

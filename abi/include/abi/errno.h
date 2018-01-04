@@ -1,38 +1,44 @@
 /* Generated file. Edit errno.in instead. */
-#define EOK                   0
-#define ENOENT               -1
-#define ENOMEM               -2
-#define ELIMIT               -3
-#define EREFUSED             -4
-#define EFORWARD             -5
-#define EPERM                -6
-#define EHANGUP              -7
-#define EPARTY               -8
-#define EEXIST               -9
-#define EBADMEM             -10
-#define ENOTSUP             -11
-#define EADDRNOTAVAIL       -12
-#define ETIMEOUT            -13
-#define EINVAL              -14
-#define EBUSY               -15
-#define EOVERFLOW           -16
-#define EINTR               -17
-#define EMFILE              -18
-#define ENAMETOOLONG       -256
-#define EISDIR             -257
-#define ENOTDIR            -258
-#define ENOSPC             -259
-#define ENOTEMPTY          -261
-#define EBADF              -262
-#define EDOM               -263
-#define ERANGE             -264
-#define EXDEV              -265
-#define EIO                -266
-#define EMLINK             -267
-#define ENXIO              -268
-#define ENOFS              -269
-#define EBADCHECKSUM       -300
-#define ESTALL             -301
-#define EEMPTY             -302
-#define ENAK               -303
-#define EAGAIN           -11002
+#define EOK             __errno_t(      0)
+#define ENOENT          __errno_t(     -1)
+#define ENOMEM          __errno_t(     -2)
+#define ELIMIT          __errno_t(     -3)
+#define EREFUSED        __errno_t(     -4)
+#define EFORWARD        __errno_t(     -5)
+#define EPERM           __errno_t(     -6)
+#define EHANGUP         __errno_t(     -7)
+#define EPARTY          __errno_t(     -8)
+#define EEXIST          __errno_t(     -9)
+#define EBADMEM         __errno_t(    -10)
+#define ENOTSUP         __errno_t(    -11)
+#define EADDRNOTAVAIL   __errno_t(    -12)
+#define ETIMEOUT        __errno_t(    -13)
+#define EINVAL          __errno_t(    -14)
+#define EBUSY           __errno_t(    -15)
+#define EOVERFLOW       __errno_t(    -16)
+#define EINTR           __errno_t(    -17)
+#define EMFILE          __errno_t(    -18)
+#define ENAMETOOLONG    __errno_t(   -256)
+#define EISDIR          __errno_t(   -257)
+#define ENOTDIR         __errno_t(   -258)
+#define ENOSPC          __errno_t(   -259)
+#define ENOTEMPTY       __errno_t(   -261)
+#define EBADF           __errno_t(   -262)
+#define EDOM            __errno_t(   -263)
+#define ERANGE          __errno_t(   -264)
+#define EXDEV           __errno_t(   -265)
+#define EIO             __errno_t(   -266)
+#define EMLINK          __errno_t(   -267)
+#define ENXIO           __errno_t(   -268)
+#define ENOFS           __errno_t(   -269)
+#define EBADCHECKSUM    __errno_t(   -300)
+#define ESTALL          __errno_t(   -301)
+#define EEMPTY          __errno_t(   -302)
+#define ENAK            __errno_t(   -303)
+#define EAGAIN          __errno_t( -11002)
+
+#define HTTP_EMULTIPLE_HEADERS  __errno_t( -20001)
+#define HTTP_EMISSING_HEADER    __errno_t( -20002)
+#define HTTP_EPARSE             __errno_t( -20003)
+
+#define EXT4_ERR_BAD_DX_DIR     __errno_t( -75000)

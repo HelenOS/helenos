@@ -33,6 +33,7 @@
  * @file
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -40,7 +41,6 @@
 
 #include <http/http.h>
 #include <http/ctype.h>
-#include <http/errno.h>
 
 #define HTTP_HEADER_LINE "%s: %s\r\n"
 

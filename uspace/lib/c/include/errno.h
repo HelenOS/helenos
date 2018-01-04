@@ -35,8 +35,7 @@
 #ifndef LIBC_ERRNO_H_
 #define LIBC_ERRNO_H_
 
-typedef int errno_t;
-
+#include <_bits/errno.h>
 #include <abi/errno.h>
 
 #define errno  (*(__errno()))
