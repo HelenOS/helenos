@@ -160,7 +160,7 @@ static void ext4_filesystem_fini(ext4_filesystem_t *fs)
  *
  * @param service_id Block device to probe
  *
- * @return EOK or negative error code.
+ * @return EOK or an error code.
  *
  */
 int ext4_filesystem_probe(service_id_t service_id)
@@ -251,7 +251,7 @@ error:
  *
  * @param fs Filesystem to be destroyed
  *
- * @return EOK or negative error code. On error the state of the file
+ * @return EOK or an error code. On error the state of the file
  *         system is unchanged.
  *
  */

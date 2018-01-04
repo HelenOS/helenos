@@ -86,7 +86,7 @@ void help_cmd_mkfile(unsigned int level)
  *
  * @param str	String containing the size specification.
  * @param rsize	Place to store size in bytes
- * @return	EOK on success or error code
+ * @return	EOK on success or an error code
  */
 static int read_size(const char *str, size_t *rsize)
 {

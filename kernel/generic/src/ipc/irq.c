@@ -386,7 +386,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
  * @param box     Answerbox associated with the notification.
  * @param handle  IRQ capability handle.
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int ipc_irq_unsubscribe(answerbox_t *box, int handle)

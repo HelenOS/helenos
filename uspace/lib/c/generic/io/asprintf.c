@@ -78,7 +78,7 @@ int printf_size(const char *fmt, ...)
  * @fmt        Format string.
  * @args       Variable argument list
  *
- * @return Number of characters printed or a negative error code.
+ * @return Number of characters printed or an error code.
  *
  */
 int vasprintf(char **strp, const char *fmt, va_list args)
@@ -105,7 +105,7 @@ int vasprintf(char **strp, const char *fmt, va_list args)
  *             the newly allocated string.
  * @fmt        Format string.
  *
- * @return Number of characters printed or a negative error code.
+ * @return Number of characters printed or an error code.
  *
  */
 int asprintf(char **strp, const char *fmt, ...)

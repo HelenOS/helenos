@@ -733,7 +733,7 @@ static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
  *
  * @param ar9271 AR9271 device structure
  *
- * @return EOK if succeed, negative error code otherwise
+ * @return EOK if succeed, error code otherwise
  *
  */
 static int ar9271_upload_fw(ar9271_t *ar9271)
@@ -876,7 +876,7 @@ static void ar9271_delete_dev_data(ar9271_t *ar9271)
  *
  * @param dev The device structure.
  *
- * @return EOK if succeed, negative error code otherwise
+ * @return EOK if succeed, error code otherwise
  */
 static int ar9271_add_device(ddf_dev_t *dev)
 {

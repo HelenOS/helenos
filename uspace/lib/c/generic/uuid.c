@@ -42,7 +42,7 @@
 /** Generate UUID.
  *
  * @param uuid Place to store generated UUID
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int uuid_generate(uuid_t *uuid)
 {
@@ -99,7 +99,7 @@ void uuid_decode(uint8_t *buf, uuid_t *uuid)
  * @param uuid   Place to store UUID
  * @param endptr Place to store pointer to end of UUID or @c NULL
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
 {

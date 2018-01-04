@@ -83,7 +83,7 @@ loader_t *loader_connect(void)
  * @param ldr     Loader connection structure.
  * @param task_id Points to a variable where the ID should be stored.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
@@ -112,7 +112,7 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
  *
  * @param ldr  Loader connection structure.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_set_cwd(loader_t *ldr)
@@ -150,7 +150,7 @@ int loader_set_cwd(loader_t *ldr)
  * @param name Name to set for the spawned program.
  * @param file Program file.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_set_program(loader_t *ldr, const char *name, int file)
@@ -183,7 +183,7 @@ int loader_set_program(loader_t *ldr, const char *name, int file)
  * @param ldr  Loader connection structure.
  * @param path Program path.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_set_program_path(loader_t *ldr, const char *path)
@@ -216,7 +216,7 @@ int loader_set_program_path(loader_t *ldr, const char *path)
  * @param ldr  Loader connection structure.
  * @param argv NULL-terminated array of pointers to arguments.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_set_args(loader_t *ldr, const char *const argv[])
@@ -272,7 +272,7 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
  * @param name       Identification of the file.
  * @param file       The file's descriptor.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_add_inbox(loader_t *ldr, const char *name, int file)
@@ -306,7 +306,7 @@ int loader_add_inbox(loader_t *ldr, const char *name, int file)
  *
  * @param ldr Loader connection structure.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_load_program(loader_t *ldr)
@@ -329,7 +329,7 @@ int loader_load_program(loader_t *ldr)
  *
  * @param ldr Loader connection structure.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_run(loader_t *ldr)
@@ -355,7 +355,7 @@ int loader_run(loader_t *ldr)
  *
  * @param ldr Loader connection structure.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 void loader_abort(loader_t *ldr)

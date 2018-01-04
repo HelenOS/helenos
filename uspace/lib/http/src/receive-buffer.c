@@ -199,7 +199,7 @@ int recv_buffer(receive_buffer_t *rb, char *buf, size_t buf_size,
 
 /** Receive a character and if it is c, discard it from input buffer
  * @param ndisc Place to store number of characters discarded
- * @return EOK or error code
+ * @return EOK or an error code
  */
 int recv_discard(receive_buffer_t *rb, char discard, size_t *ndisc)
 {
@@ -220,7 +220,7 @@ int recv_discard(receive_buffer_t *rb, char discard, size_t *ndisc)
 
 /** Receive a prefix of constant string discard and return number of bytes read
  * @param ndisc Place to store number of characters discarded
- * @return EOK or error code
+ * @return EOK or an error code
  */
 int recv_discard_str(receive_buffer_t *rb, const char *discard, size_t *ndisc)
 {
@@ -263,7 +263,7 @@ int recv_while(receive_buffer_t *rb, char_class_func_t class)
  *
  * @param nrecv Place to store number of bytes received (zero if
  *              no newline is present in the stream)
- * @return EOK on success or error code
+ * @return EOK on success or an error code
  */
 int recv_eol(receive_buffer_t *rb, size_t *nrecv)
 {

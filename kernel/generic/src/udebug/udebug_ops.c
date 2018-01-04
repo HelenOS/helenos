@@ -215,7 +215,7 @@ int udebug_begin(call_t *call, bool *active)
  *
  * Closes the debugging session for the current task.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int udebug_end(void)
@@ -235,7 +235,7 @@ int udebug_end(void)
  *
  * @param mask Or combination of events that should be enabled.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int udebug_set_evmask(udebug_evmask_t mask)

@@ -204,7 +204,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
  * @param phone   Destination kernel phone structure.
  * @param request Call structure with request.
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int ipc_call_sync(phone_t *phone, call_t *request)

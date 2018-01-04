@@ -204,7 +204,7 @@ static void udp_cassoc_recv_msg(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
  * @param epp       Endpoint pair
  * @param rassoc_id Place to store ID of new association
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int udp_assoc_create_impl(udp_client_t *client, inet_ep2_t *epp,
     sysarg_t *rassoc_id)
@@ -304,7 +304,7 @@ static int udp_assoc_set_nolocal_impl(udp_client_t *client, sysarg_t assoc_id)
  * @param data     Message data
  * @param size     Message size
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
     inet_ep_t *dest, void *data, size_t size)
@@ -749,7 +749,7 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 /** Initialize UDP service.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 int udp_service_init(void)
 {

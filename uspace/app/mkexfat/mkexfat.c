@@ -343,7 +343,7 @@ exit:
  * @param service_id  The service id.
  * @param cfg  Pointer to the exFAT configuration structure.
  * @param base Base sector of the EBS.
- * @return  EOK on success or a negative error code.
+ * @return  EOK on success or an error code.
  */
 static int
 ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base,
@@ -396,7 +396,7 @@ exit:
  *
  * @param service_id  The service id.
  * @param cfg Pointer to the exfat_cfg structure.
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  */
 static int
 fat_initialize(service_id_t service_id, exfat_cfg_t *cfg)
@@ -436,7 +436,7 @@ error:
  * @param cfg  Pointer to the exfat configuration structure.
  * @param cur_cls  Cluster index from where to start the allocation.
  * @param ncls  Number of clusters to allocate.
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  */
 static int
 fat_allocate_clusters(service_id_t service_id, exfat_cfg_t *cfg,
@@ -493,7 +493,7 @@ exit:
  *
  * @param service_id   The service id.
  * @param cfg  Pointer to the exfat configuration structure.
- * @return  EOK on success or a negative error code.
+ * @return  EOK on success or an error code.
  */
 static int
 bitmap_write(service_id_t service_id, exfat_cfg_t *cfg)
@@ -592,7 +592,7 @@ exit:
  *
  * @param service_id   The service id.
  * @param cfg   Pointer to the exFAT configuration structure.
- * @return   EOK on success or a negative error code.
+ * @return   EOK on success or an error code.
  */
 static int
 root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)

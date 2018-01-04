@@ -70,7 +70,7 @@ static FIBRIL_MUTEX_INITIALIZE(exfat_alloc_lock);
  *			clusters seen during the walk.
  * @param max_clusters	Maximum number of clusters to visit.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 exfat_cluster_walk(exfat_bs_t *bs, service_id_t service_id, 
@@ -119,7 +119,7 @@ exfat_cluster_walk(exfat_bs_t *bs, service_id_t service_id,
  * @param bn		Block number.
  * @param flags		Flags passed to libblock.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
@@ -183,7 +183,7 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
  * @param bn		Block number.
  * @param flags		Flags passed to libblock.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs, 
@@ -226,7 +226,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
  * @param clst		Cluster which to get.
  * @param value		Output argument holding the value of the cluster.
  *
- * @return		EOK or a negative error code.
+ * @return		EOK or an error code.
  */
 int
 exfat_get_cluster(exfat_bs_t *bs, service_id_t service_id,
@@ -256,7 +256,7 @@ exfat_get_cluster(exfat_bs_t *bs, service_id_t service_id,
  * @param clst		Cluster which is to be set.
  * @param value		Value to set the cluster with.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 exfat_set_cluster(exfat_bs_t *bs, service_id_t service_id,
@@ -294,7 +294,7 @@ exfat_set_cluster(exfat_bs_t *bs, service_id_t service_id,
  * @param lcl		Output parameter where the last cluster in the chain
  *			will be returned.
  *
- * @return		EOK on success, a negative error code otherwise.
+ * @return		EOK on success, an error code otherwise.
  */
 int
 exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
@@ -360,7 +360,7 @@ exit_error:
  * @param service_id	Service ID of the file system.
  * @param firstc	First cluster in the chain which is to be freed.
  *
- * @return		EOK on success or a negative return code.
+ * @return		EOK on success or an error code.
  */
 int
 exfat_free_clusters(exfat_bs_t *bs, service_id_t service_id, exfat_cluster_t firstc)
@@ -393,7 +393,7 @@ exfat_free_clusters(exfat_bs_t *bs, service_id_t service_id, exfat_cluster_t fir
  * @param mcl		First cluster of the cluster chain to append.
  * @param lcl		Last cluster of the cluster chain to append.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 exfat_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t mcl,
@@ -437,7 +437,7 @@ exfat_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t mcl,
  *			argument is FAT_CLST_RES0, then all clusters will
  *			be chopped off.
  *
- * @return		EOK on success or a negative return code.
+ * @return		EOK on success or an error code.
  */
 int exfat_chop_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t lcl)
 {

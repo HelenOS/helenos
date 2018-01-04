@@ -811,7 +811,7 @@ static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
  *
  * @param fun Function to bind
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  *
  */
 int ddf_fun_bind(ddf_fun_t *fun)
@@ -839,7 +839,7 @@ int ddf_fun_bind(ddf_fun_t *fun)
  *
  * @param fun Function to unbind
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  *
  */
 int ddf_fun_unbind(ddf_fun_t *fun)
@@ -860,7 +860,7 @@ int ddf_fun_unbind(ddf_fun_t *fun)
  *
  * @param fun Function to online
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  *
  */
 int ddf_fun_online(ddf_fun_t *fun)
@@ -878,7 +878,7 @@ int ddf_fun_online(ddf_fun_t *fun)
  *
  * @param fun Function to offline
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  *
  */
 int ddf_fun_offline(ddf_fun_t *fun)

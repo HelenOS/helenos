@@ -149,7 +149,7 @@ static void htc_config_frame_header(htc_frame_header_t *header,
  * @param buffer_size Size of buffer (including HTC frame header).
  * @param endpoint_id Destination endpoint.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_send_control_message(htc_device_t *htc_device, void *buffer,
@@ -172,7 +172,7 @@ int htc_send_control_message(htc_device_t *htc_device, void *buffer,
  * @param buffer_size Size of buffer (including HTC frame header).
  * @param endpoint_id Destination endpoint.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_send_data_message(htc_device_t *htc_device, void *buffer,
@@ -195,7 +195,7 @@ int htc_send_data_message(htc_device_t *htc_device, void *buffer,
  * @param buffer_size      Size of buffer.
  * @param transferred_size Real size of read data.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_read_data_message(htc_device_t *htc_device, void *buffer,
@@ -215,7 +215,7 @@ int htc_read_data_message(htc_device_t *htc_device, void *buffer,
  * @param buffer_size      Size of buffer.
  * @param transferred_size Real size of read data.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_read_control_message(htc_device_t *htc_device, void *buffer,
@@ -235,7 +235,7 @@ int htc_read_control_message(htc_device_t *htc_device, void *buffer,
  *                             this service.
  *
  * @return EOK if succeed, EINVAL when failed to connect service,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 static int htc_connect_service(htc_device_t *htc_device,
@@ -308,7 +308,7 @@ static int htc_connect_service(htc_device_t *htc_device,
  *
  * @param htc_device HTC device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int htc_config_credits(htc_device_t *htc_device)
@@ -356,7 +356,7 @@ static int htc_config_credits(htc_device_t *htc_device)
  *
  * @param htc_device HTC device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int htc_complete_setup(htc_device_t *htc_device)
@@ -390,7 +390,7 @@ static int htc_complete_setup(htc_device_t *htc_device)
  * @param htc_device HTC device structure.
  *
  * @return EOK if succeed, EINVAL if response error,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 static int htc_check_ready(htc_device_t *htc_device)
@@ -426,7 +426,7 @@ static int htc_check_ready(htc_device_t *htc_device)
  *                   with this HTC device.
  * @param htc_device HTC device structure to be initialized.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev,
@@ -447,7 +447,7 @@ int htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev,
  *
  * @param htc_device HTC device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_init(htc_device_t *htc_device)

@@ -45,7 +45,7 @@ static void udp_cb_conn(ipc_callid_t, ipc_call_t *, void *);
 /** Create callback connection from UDP service.
  *
  * @param udp UDP service
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int udp_callback_create(udp_t *udp)
 {
@@ -157,7 +157,7 @@ void udp_destroy(udp_t *udp)
  * @param arg    Argument to callbacks
  * @param rassoc Place to store pointer to new association
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 int udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
     udp_assoc_t **rassoc)
@@ -249,7 +249,7 @@ int udp_assoc_set_nolocal(udp_assoc_t *assoc)
  * @param data	Message data
  * @param bytes Message size in bytes
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
     size_t bytes)
@@ -315,7 +315,7 @@ size_t udp_rmsg_size(udp_rmsg_t *rmsg)
  * @param buf   Buffer for storing data
  * @param bsize Buffer size
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 int udp_rmsg_read(udp_rmsg_t *rmsg, size_t off, void *buf, size_t bsize)
 {
@@ -379,7 +379,7 @@ uint8_t udp_rerr_code(udp_rerr_t *rerr)
  * @param udp  UDP client
  * @param rmsg Place to store message information
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 {
@@ -412,7 +412,7 @@ static int udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 /** Discard next received message in UDP service.
  *
  * @param udp UDP client
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int udp_rmsg_discard(udp_t *udp)
 {

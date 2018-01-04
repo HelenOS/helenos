@@ -58,7 +58,7 @@ typedef struct {
 /** Create callback connection from TCP service.
  *
  * @param tcp TCP service
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int tcp_callback_create(tcp_t *tcp)
 {
@@ -204,7 +204,7 @@ static int tcp_conn_new(tcp_t *tcp, sysarg_t id, tcp_cb_t *cb, void *arg,
  * @param arg   Argument to callbacks
  * @param rconn Place to store pointer to new connection
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 int tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
     tcp_conn_t **rconn)
@@ -315,7 +315,7 @@ void *tcp_conn_userptr(tcp_conn_t *conn)
  * @param arg  Connection argument for every new connection
  * @param rlst Place to store pointer to new listener
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int tcp_listener_create(tcp_t *tcp, inet_ep_t *ep, tcp_listen_cb_t *lcb,
     void *larg, tcp_cb_t *cb, void *arg, tcp_listener_t **rlst)
@@ -445,7 +445,7 @@ int tcp_conn_wait_connected(tcp_conn_t *conn)
  * @param data  Data
  * @param bytes Data size in bytes
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int tcp_conn_send(tcp_conn_t *conn, const void *data, size_t bytes)
 {
@@ -477,7 +477,7 @@ int tcp_conn_send(tcp_conn_t *conn, const void *data, size_t bytes)
  * Send FIN, indicating no more data will be send over the connection.
  *
  * @param conn Connection
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int tcp_conn_send_fin(tcp_conn_t *conn)
 {
@@ -493,7 +493,7 @@ int tcp_conn_send_fin(tcp_conn_t *conn)
 /** Push connection.
  *
  * @param conn Connection
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int tcp_conn_push(tcp_conn_t *conn)
 {
@@ -509,7 +509,7 @@ int tcp_conn_push(tcp_conn_t *conn)
 /** Reset connection.
  *
  * @param conn Connection
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int tcp_conn_reset(tcp_conn_t *conn)
 {
@@ -537,7 +537,7 @@ int tcp_conn_reset(tcp_conn_t *conn)
  * @param nrecv Place to store actual number of received bytes
  *
  * @return EOK on success, EAGAIN if no received data is pending, or other
- *         negative error code in case of other error
+ *         error code in case of other error
  */
 int tcp_conn_recv(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
 {
@@ -585,7 +585,7 @@ int tcp_conn_recv(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
  * @param bsize Buffer size
  * @param nrecv Place to store actual number of received bytes
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int tcp_conn_recv_wait(tcp_conn_t *conn, void *buf, size_t bsize,
     size_t *nrecv)

@@ -41,7 +41,7 @@ typedef enum {
  * @param end_of_para true if the line is the last line of the paragraph
  * @param data user data
  * 
- * @returns EOK on success or error code on failure
+ * @returns EOK on success or an error code on failure
  */
 typedef int (*line_consumer_fn)(wchar_t *, size_t, bool, void *);
 

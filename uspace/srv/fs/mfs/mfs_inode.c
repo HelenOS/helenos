@@ -54,7 +54,7 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
  * 			where the inode content will be stored.
  * @param index		index of the inode to read.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
@@ -200,7 +200,7 @@ out_err:
  *
  * @param mnode		Pointer to the generic MINIX inode in memory.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_put_inode(struct mfs_node *mnode)
@@ -318,7 +318,7 @@ out:
  * @param mnode		Pointer to the generic MINIX inode in memory.
  * @param size_shrink	Number of bytes that will be subtracted to the inode.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink)

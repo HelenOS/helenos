@@ -102,7 +102,7 @@ typedef struct {
 	 *
 	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
 	 *
-	 * @return EOK if succeed, negative error code otherwise.
+	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
 	int (*start)(struct ieee80211_dev *);
@@ -114,7 +114,7 @@ typedef struct {
 	 *
 	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
 	 *
-	 * @return EOK if succeed, negative error code otherwise.
+	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
 	int (*scan)(struct ieee80211_dev *);
@@ -128,7 +128,7 @@ typedef struct {
 	 * @param buffer        Buffer with data to be send.
 	 * @param buffer_size   Size of buffer.
 	 *
-	 * @return EOK if succeed, negative error code otherwise.
+	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
 	int (*tx_handler)(struct ieee80211_dev *, void *, size_t);
@@ -138,7 +138,7 @@ typedef struct {
 	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
 	 * @param freq          New device operating frequency.
 	 *
-	 * @return EOK if succeed, negative error code otherwise.
+	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
 	int (*set_freq)(struct ieee80211_dev *, uint16_t);
@@ -148,7 +148,7 @@ typedef struct {
 	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
 	 * @param connected     True if connected to new BSSID, otherwise false.
 	 *
-	 * @return EOK if succeed, negative error code otherwise.
+	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
 	int (*bssid_change)(struct ieee80211_dev *, bool);
@@ -160,7 +160,7 @@ typedef struct {
 	 * @param insert        True to insert this key to device,
 	 *                      false to remove it.
 	 *
-	 * @return EOK if succeed, negative error code otherwise.
+	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
 	int (*key_config)(struct ieee80211_dev *,

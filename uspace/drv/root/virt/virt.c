@@ -97,7 +97,7 @@ static int instances = 0;
  *
  * @param vdev		The virtual device
  * @param vfun		Virtual function description
- * @return		EOK on success or negative error code.
+ * @return		EOK on success or an error code.
  */
 static int virt_add_fun(virt_t *virt, virtual_function_t *vfun)
 {

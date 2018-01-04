@@ -370,7 +370,7 @@ int loc_service_get_id(const char *fqdn, service_id_t *handle,
  * @param id		Object ID
  * @param name		Place to store pointer to new string. Caller should
  *			free it using free().
- * @return		EOK on success or negative error code
+ * @return		EOK on success or an error code
  */
 static int loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 {
@@ -420,7 +420,7 @@ static int loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
  * @param cat_id	Category ID
  * @param name		Place to store pointer to new string. Caller should
  *			free it using free().
- * @return		EOK on success or negative error code
+ * @return		EOK on success or an error code
  */
 int loc_category_get_name(category_id_t cat_id, char **name)
 {
@@ -434,7 +434,7 @@ int loc_category_get_name(category_id_t cat_id, char **name)
  * @param svc_id	Service ID
  * @param name		Place to store pointer to new string. Caller should
  *			free it using free().
- * @return		EOK on success or negative error code
+ * @return		EOK on success or an error code
  */
 int loc_service_get_name(service_id_t svc_id, char **name)
 {
@@ -448,7 +448,7 @@ int loc_service_get_name(service_id_t svc_id, char **name)
  * @param svc_id	Service ID
  * @param name		Place to store pointer to new string. Caller should
  *			free it using free().
- * @return		EOK on success or negative error code
+ * @return		EOK on success or an error code
  */
 int loc_service_get_server_name(service_id_t svc_id, char **name)
 {
@@ -502,7 +502,7 @@ int loc_namespace_get_id(const char *name, service_id_t *handle,
  * @param name		Category name
  * @param cat_id	Place to store ID
  * @param flags		IPC_FLAG_BLOCKING to wait for location service to start
- * @return		EOK on success or negative error code
+ * @return		EOK on success or an error code
  */
 int loc_category_get_id(const char *name, category_id_t *cat_id,
     unsigned int flags)
@@ -612,7 +612,7 @@ static size_t loc_count_namespaces_internal(async_exch_t *exch)
  *
  * @param svc_id	Service ID
  * @param cat_id	Category ID
- * @return		EOK on success or negative error code
+ * @return		EOK on success or an error code
  */
 int loc_service_add_to_cat(service_id_t svc_id, service_id_t cat_id)
 {
@@ -789,7 +789,7 @@ static int loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
  * @param arg1		IPC argument 1
  * @param data		Place to store pointer to array of IDs
  * @param count		Place to store number of IDs
- * @return 		EOK on success or negative error code
+ * @return 		EOK on success or an error code
  */
 static int loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
     sysarg_t **data, size_t *count)
@@ -835,7 +835,7 @@ static int loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
  * @param cat_id	Category ID
  * @param data		Place to store pointer to array of IDs
  * @param count		Place to store number of IDs
- * @return 		EOK on success or negative error code
+ * @return 		EOK on success or an error code
  */
 int loc_category_get_svcs(category_id_t cat_id, service_id_t **data,
     size_t *count)
@@ -850,7 +850,7 @@ int loc_category_get_svcs(category_id_t cat_id, service_id_t **data,
  *
  * @param data		Place to store pointer to array of IDs
  * @param count		Place to store number of IDs
- * @return 		EOK on success or negative error code
+ * @return 		EOK on success or an error code
  */
 int loc_get_categories(category_id_t **data, size_t *count)
 {

@@ -80,7 +80,7 @@ fs_index_t udf_long_ad_to_pos(udf_instance_t *instance, udf_long_ad_t *long_ad)
  * @param addr       Position sector with Volume Descriptor
  * @param vd         Returned value - Volume Descriptor.
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 static int udf_volume_recongnition_structure_test(service_id_t service_id,
@@ -97,7 +97,7 @@ static int udf_volume_recongnition_structure_test(service_id_t service_id,
  *
  * @param service_id
  *
- * @return    EOK on success or a negative error code.
+ * @return    EOK on success or an error code.
  */
 int udf_volume_recongnition(service_id_t service_id) 
 {
@@ -166,7 +166,7 @@ static void udf_prepare_tag(udf_descriptor_tag_t *tag)
  * @param avd         Returned value - Anchor Volume Descriptor
  * @param sector_size Expected sector size
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 static int udf_get_anchor_volume_descriptor_by_ssize(service_id_t service_id,
@@ -203,7 +203,7 @@ static int udf_get_anchor_volume_descriptor_by_ssize(service_id_t service_id,
  * @param service_id
  * @param avd        Returned value - Anchor Volume Descriptor
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_get_anchor_volume_descriptor(service_id_t service_id,
@@ -356,7 +356,7 @@ static bool udf_check_prevailing_pd(udf_partition_descriptor_t *pd, size_t cnt,
  * @param pos      Position (Extended) File entry descriptor
  * @param id       Index of partition in instance::partitions array
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 static int udf_read_virtual_partition(udf_instance_t *instance, uint32_t pos,
@@ -437,7 +437,7 @@ static size_t udf_find_partition(udf_partition_descriptor_t *pd, size_t pd_cnt,
  * @param pd_cnt   Count of items in pd array
  * @param instance UDF instance
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 static int udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
@@ -597,7 +597,7 @@ static int udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
  * @param service_id
  * @param addr       UDF extent descriptor (ECMA 167 3/7.1)
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_read_volume_descriptor_sequence(service_id_t service_id,

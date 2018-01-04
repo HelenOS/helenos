@@ -53,7 +53,7 @@ mfs_count_free_bits(struct mfs_instance *inst, bmap_id_t bid, uint32_t *free);
  * @param inum		Pointer to a 32 bit number where the index of
  * 			the new inode will be saved.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
@@ -67,7 +67,7 @@ mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum)
  * @param inst		Pointer to the filesystem instance.
  * @param inum		Number of the inode to free.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_free_inode(struct mfs_instance *inst, uint32_t inum)
@@ -81,7 +81,7 @@ mfs_free_inode(struct mfs_instance *inst, uint32_t inum)
  * @param zone		Pointer to a 32 bit number where the index
  * 			of the zone will be saved.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone)
@@ -104,7 +104,7 @@ mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone)
  * @param inst		Pointer to the filesystem instance.
  * @param zone		Index of the zone to free.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone)
@@ -131,7 +131,7 @@ mfs_free_zone(struct mfs_instance *inst, uint32_t zone)
  * @param zones         Pointer to the memory location where the result
  *                      will be stored.
  *
- * @return              EOK on success or a negative error code.
+ * @return              EOK on success or an error code.
  */
 int
 mfs_count_free_zones(struct mfs_instance *inst, uint32_t *zones)
@@ -145,7 +145,7 @@ mfs_count_free_zones(struct mfs_instance *inst, uint32_t *zones)
  * @param zones         Pointer to the memory location where the result
  *                      will be stored.
  *
- * @return              EOK on success or a negative error code.
+ * @return              EOK on success or an error code.
  */
 
 int
@@ -161,7 +161,7 @@ mfs_count_free_inodes(struct mfs_instance *inst, uint32_t *inodes)
  * @param free          Pointer to the memory location where the result
  *                      will be stores.
  *
- * @return              EOK on success or a negative error code.
+ * @return              EOK on success or an error code.
  */
 static int
 mfs_count_free_bits(struct mfs_instance *inst, bmap_id_t bid, uint32_t *free)
@@ -225,7 +225,7 @@ mfs_count_free_bits(struct mfs_instance *inst, bmap_id_t bid, uint32_t *free)
  * @param bid		BMAP_ZONE if operating on the zone's bitmap,
  * 			BMAP_INODE if operating on the inode's bitmap.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int
 mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
@@ -292,7 +292,7 @@ out_err:
  * @param bid		BMAP_ZONE if operating on the zone's bitmap,
  * 			BMAP_INODE if operating on the inode's bitmap.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int
 mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)

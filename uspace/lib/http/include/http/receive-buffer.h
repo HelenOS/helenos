@@ -46,7 +46,7 @@
  * @param buf buffer to store the data
  * @param buf_size buffer size
  * @param nrecv number of bytes actually received
- * @return EOK on success or error code
+ * @return EOK on success or an error code
  */
 typedef int (*receive_func_t)(void *, void *, size_t, size_t *);
 

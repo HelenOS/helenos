@@ -154,7 +154,7 @@ static inline bool answer_need_old(call_t *call)
  * @param answer  Call structure with the answer.
  * @param olddata Saved data of the request.
  *
- * @return Return EOK on success or a negative error code.
+ * @return Return EOK on success or an error code.
  *
  */
 int answer_preprocess(call_t *answer, ipc_data_t *olddata)
@@ -358,7 +358,7 @@ static int check_call_limit(phone_t *phone)
  * @param label    User-defined label.
  *
  * @return EOK on success.
- * @return Negative error code on error.
+ * @return An error code on error.
  *
  */
 sysarg_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
@@ -739,7 +739,7 @@ sysarg_t sys_ipc_hangup(sysarg_t handle)
  * @param flags    Select mode of sleep operation. See waitq_sleep_timeout()
  *                 for explanation.
  *
- * @return Negative error code on error.
+ * @return An error code on error.
  */
 sysarg_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
     unsigned int flags)

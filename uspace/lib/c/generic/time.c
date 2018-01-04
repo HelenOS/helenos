@@ -953,7 +953,7 @@ size_t strftime(char *restrict s, size_t maxsize,
  * @param time   Time to convert
  * @param result Structure to store the result to
  *
- * @return EOK or a negative error code
+ * @return EOK or an error code
  *
  */
 int time_utc2tm(const time_t time, struct tm *restrict result)
@@ -983,7 +983,7 @@ int time_utc2tm(const time_t time, struct tm *restrict result)
  * @param buf  Buffer to store the string to, must be at least
  *             ASCTIME_BUF_LEN bytes long.
  *
- * @return EOK or a negative error code.
+ * @return EOK or an error code.
  *
  */
 int time_utc2str(const time_t time, char *restrict buf)
@@ -1035,7 +1035,7 @@ void time_tm2str(const struct tm *restrict timeptr, char *restrict buf)
  * @param tv     Timeval to convert.
  * @param result Structure to store the result to.
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int time_tv2tm(const struct timeval *tv, struct tm *restrict result)
@@ -1065,7 +1065,7 @@ int time_tv2tm(const struct timeval *tv, struct tm *restrict result)
  * @param timer  Time to convert.
  * @param result Structure to store the result to.
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int time_local2tm(const time_t time, struct tm *restrict result)
@@ -1087,7 +1087,7 @@ int time_local2tm(const time_t time, struct tm *restrict result)
  * @param buf   Buffer to store the string to. Must be at least
  *              ASCTIME_BUF_LEN bytes long.
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int time_local2str(const time_t time, char *buf)

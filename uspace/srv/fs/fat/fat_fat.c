@@ -70,7 +70,7 @@ static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
  *			clusters seen during the walk.
  * @param max_clusters	Maximum number of clusters to visit.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 fat_cluster_walk(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc,
@@ -120,7 +120,7 @@ fat_cluster_walk(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc,
  * @param bn		Block number.
  * @param flags		Flags passed to libblock.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
@@ -185,7 +185,7 @@ fall_through:
  * @param bn		Block number.
  * @param flags		Flags passed to libblock.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 _fat_block_get(block_t **block, fat_bs_t *bs, service_id_t service_id,
@@ -234,7 +234,7 @@ _fat_block_get(block_t **block, fat_bs_t *bs, service_id_t service_id,
  *			this argument is ignored.
  * @param pos		Position in the last node block.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
@@ -286,7 +286,7 @@ fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
  * @param clst		Cluster which to get.
  * @param value		Output argument holding the value of the cluster.
  *
- * @return		EOK or a negative error code.
+ * @return		EOK or an error code.
  */
 static int
 fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
@@ -356,7 +356,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  * @param clst		Cluster which to get.
  * @param value		Output argument holding the value of the cluster.
  *
- * @return		EOK or a negative error code.
+ * @return		EOK or an error code.
  */
 static int
 fat_get_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
@@ -387,7 +387,7 @@ fat_get_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  * @param clst		Cluster which to get.
  * @param value		Output argument holding the value of the cluster.
  *
- * @return		EOK or a negative error code.
+ * @return		EOK or an error code.
  */
 static int
 fat_get_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
@@ -420,7 +420,7 @@ fat_get_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  * @param clst		Cluster which to get.
  * @param value		Output argument holding the value of the cluster.
  *
- * @return		EOK or a negative error code.
+ * @return		EOK or an error code.
  */
 int
 fat_get_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
@@ -448,7 +448,7 @@ fat_get_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  * @param clst		Cluster which is to be set.
  * @param value		Value to set the cluster with.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int
 fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
@@ -536,7 +536,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  * @param clst		Cluster which is to be set.
  * @param value		Value to set the cluster with.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int
 fat_set_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
@@ -569,7 +569,7 @@ fat_set_cluster_fat16(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  * @param clst		Cluster which is to be set.
  * @param value		Value to set the cluster with.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int
 fat_set_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
@@ -606,7 +606,7 @@ fat_set_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  * @param clst		Cluster which is to be set.
  * @param value		Value to set the cluster with.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 fat_set_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
@@ -633,7 +633,7 @@ fat_set_cluster(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
  * @param lifo		Chain of allocated clusters.
  * @param nclsts	Number of clusters in the lifo chain.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int fat_alloc_shadow_clusters(fat_bs_t *bs, service_id_t service_id,
     fat_cluster_t *lifo, unsigned nclsts)
@@ -670,7 +670,7 @@ int fat_alloc_shadow_clusters(fat_bs_t *bs, service_id_t service_id,
  * @param lcl		Output parameter where the last cluster in the chain
  *			will be returned.
  *
- * @return		EOK on success, a negative error code otherwise.
+ * @return		EOK on success, an error code otherwise.
  */
 int
 fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
@@ -741,7 +741,7 @@ fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
  * @param service_id	Device service ID of the file system.
  * @param firstc	First cluster in the chain which is to be freed.
  *
- * @return		EOK on success or a negative return code.
+ * @return		EOK on success or an error code.
  */
 int
 fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
@@ -779,7 +779,7 @@ fat_free_clusters(fat_bs_t *bs, service_id_t service_id, fat_cluster_t firstc)
  * @param mcl		First cluster of the cluster chain to append.
  * @param lcl		Last cluster of the cluster chain to append.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
     fat_cluster_t lcl)
@@ -826,7 +826,7 @@ int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
  *			argument is FAT_CLST_RES0, then all clusters will
  *			be chopped off.
  *
- * @return		EOK on success or a negative return code.
+ * @return		EOK on success or an error code.
  */
 int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 {

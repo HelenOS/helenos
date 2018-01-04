@@ -345,7 +345,7 @@ vfs_info_t *fs_handle_to_info(fs_handle_t handle)
  * @param fstypes Place to store list of file system types. Free using
  *                vfs_fstypes_free().
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int vfs_get_fstypes(vfs_fstypes_t *fstypes)
 {

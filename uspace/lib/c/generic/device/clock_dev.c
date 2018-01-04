@@ -43,7 +43,7 @@
  * @param sess     Session of the device
  * @param t        The current time that will be read from the device
  *
- * @return         EOK on success or a negative error code
+ * @return         EOK on success or an error code
  */
 int
 clock_dev_time_get(async_sess_t *sess, struct tm *t)
@@ -74,7 +74,7 @@ clock_dev_time_get(async_sess_t *sess, struct tm *t)
  * @param sess   Session of the device
  * @param t      The current time that will be written to the device
  *
- * @return       EOK on success or a negative error code
+ * @return       EOK on success or an error code
  */
 int
 clock_dev_time_set(async_sess_t *sess, struct tm *t)

@@ -284,7 +284,7 @@ int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
 
 /** Check if ELF header is valid.
  *
- * @return	EOK on success or negative error code.
+ * @return	EOK on success or an error code.
  */
 static int elf_hdr_check(elf_header_t *ehdr)
 {

@@ -94,7 +94,7 @@ int sheet_create(sheet_t **rsh)
  * @param dir	Whether to insert before or after the point (affects tags).
  * @param str	The text to insert (printable characters, tabs, newlines).
  *
- * @return	EOK on success or negative error code.
+ * @return	EOK on success or an error code.
  *
  * @note	@a dir affects which way tags that were placed on @a pos will
  * 		move. If @a dir is @c dir_before, the tags will move forward
@@ -144,7 +144,7 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
  * @param spos	Starting point.
  * @param epos	Ending point.
  *
- * @return	EOK on success or negative error code.
+ * @return	EOK on success or an error code.
  **/
 int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 {

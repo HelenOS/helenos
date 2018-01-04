@@ -1260,7 +1260,7 @@ static void e1000_interrupt_handler(ipc_call_t *icall,
  *
  * @param[out] handle  IRQ capability handle if the handler was registered
  *
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 inline static int e1000_register_int_handler(nic_t *nic, cap_handle_t *handle)
@@ -1369,7 +1369,7 @@ static void e1000_initialize_rx_registers(e1000_t *e1000)
  * @param nic NIC data
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_initialize_rx_structure(nic_t *nic)
@@ -1523,7 +1523,7 @@ static void e1000_fill_mac_from_eeprom(e1000_t *e1000)
  * @param dev E1000 data.
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static void e1000_initialize_registers(e1000_t *e1000)
@@ -1939,7 +1939,7 @@ static void e1000_dev_cleanup(ddf_dev_t *dev)
  * @param hw_resources Hardware resources obtained from the parent device
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_fill_resource_info(ddf_dev_t *dev,
@@ -1964,7 +1964,7 @@ static int e1000_fill_resource_info(ddf_dev_t *dev,
  * @param dev Device structure
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_get_resource_info(ddf_dev_t *dev)
@@ -1992,7 +1992,7 @@ static int e1000_get_resource_info(ddf_dev_t *dev)
  * @param dev Device information
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_device_initialize(ddf_dev_t *dev)
@@ -2106,7 +2106,7 @@ static int e1000_device_initialize(ddf_dev_t *dev)
  * @param dev E1000 device.
  *
  * @return EOK if successed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_pio_enable(ddf_dev_t *dev)
@@ -2254,7 +2254,7 @@ static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
  * @param max_len Maximal addresss length to store
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_get_address(e1000_t *e1000, nic_address_t *address)
@@ -2288,7 +2288,7 @@ static int e1000_get_address(e1000_t *e1000, nic_address_t *address)
  * @param address Address
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  */
 static int e1000_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {

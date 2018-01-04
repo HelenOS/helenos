@@ -324,7 +324,7 @@ int ipc_trywait_for_call(ipc_call_t *call)
  *
  * @param phandle  Handle of the phone to be hung up.
  *
- * @return  Zero on success or a negative error code.
+ * @return  Zero on success or an error code.
  *
  */
 int ipc_hangup(cap_handle_t phandle)

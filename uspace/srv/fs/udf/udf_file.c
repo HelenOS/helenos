@@ -53,7 +53,7 @@
  *                 According to ECMA 167 4/14.8.8
  * @param pos      Position with which we read
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 static int udf_read_extended_allocator(udf_node_t *node, uint16_t icb_flag,
@@ -89,7 +89,7 @@ static int udf_read_extended_allocator(udf_node_t *node, uint16_t icb_flag,
  * @param start_alloc Offset of the allocator
  * @param len         Length of sequence
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_read_allocation_sequence(udf_node_t *node, uint8_t *af,
@@ -230,7 +230,7 @@ int udf_read_allocation_sequence(udf_node_t *node, uint8_t *af,
  *
  * @param node    UDF node
  *
- * @return    EOK on success or a negative error code.
+ * @return    EOK on success or an error code.
  */
 int udf_read_icb(udf_node_t *node)
 {
@@ -299,7 +299,7 @@ int udf_read_icb(udf_node_t *node)
  *
  * @param node UDF node
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_node_get_core(udf_node_t *node)
@@ -314,7 +314,7 @@ int udf_node_get_core(udf_node_t *node)
  * @param node UDF node
  * @param pos  Number of FID which we need to find
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 static int udf_get_fid_in_data(udf_file_identifier_descriptor_t **fid,
@@ -365,7 +365,7 @@ static int udf_get_fid_in_data(udf_file_identifier_descriptor_t **fid,
  * @param node  UDF node
  * @param pos   Number of FID which we need to find
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_get_fid(udf_file_identifier_descriptor_t **fid, block_t **block,
@@ -384,7 +384,7 @@ int udf_get_fid(udf_file_identifier_descriptor_t **fid, block_t **block,
  * @param node  UDF node
  * @param pos   Number of FID which we need to find
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_get_fid_in_allocator(udf_file_identifier_descriptor_t **fid,
@@ -465,7 +465,7 @@ int udf_get_fid_in_allocator(udf_file_identifier_descriptor_t **fid,
  * @param buf   Part of FID from last sector (current allocator or previous)
  * @param len   Length of buf
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_get_fid_in_sector(udf_file_identifier_descriptor_t **fid,
@@ -572,7 +572,7 @@ int udf_get_fid_in_sector(udf_file_identifier_descriptor_t **fid,
  * @param pos      Position in file since we have to read.
  * @param len      Length of data for reading
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_read_file(size_t *read_len, ipc_callid_t callid, udf_node_t *node,

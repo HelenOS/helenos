@@ -407,7 +407,7 @@ error:
 /** Add new device
  *
  * @param  dev New device
- * @return     EOK on success or negative error code.
+ * @return     EOK on success or an error code.
  */
 static int ddisk_dev_add(ddf_dev_t *dev)
 {

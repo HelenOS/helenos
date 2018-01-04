@@ -404,7 +404,7 @@ static bool ns8250_dev_probe(ns8250_t *ns)
 /** Initialize serial port device.
  *
  * @param ns		Serial port device
- * @return		Zero on success, negative error number otherwise
+ * @return		Zero on success, error number otherwise
  */
 static int ns8250_dev_initialize(ns8250_t *ns)
 {
@@ -498,7 +498,7 @@ static inline void ns8250_port_interrupts_disable(ns8250_regs_t *regs)
 /** Enable interrupts for the serial port device.
  *
  * @param ns		Serial port device
- * @return		Zero on success, negative error number otherwise
+ * @return		Zero on success, error number otherwise
  */
 static int ns8250_interrupt_enable(ns8250_t *ns)
 {
@@ -543,7 +543,7 @@ static inline void clear_dlab(ns8250_regs_t *regs)
  *
  * @param port		The base address of the serial port device's ports.
  * @param baud_rate	The baud rate to be used by the device.
- * @return		Zero on success, negative error number otherwise (EINVAL
+ * @return		Zero on success, error number otherwise (EINVAL
  *			if the specified baud_rate is not valid).
  */
 static int ns8250_port_set_baud_rate(ns8250_regs_t *regs, unsigned int baud_rate)

@@ -39,7 +39,7 @@
  *			the dentry info will be stored.
  * @param index		index of the dentry in the list.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_read_dentry(struct mfs_node *mnode,
@@ -102,7 +102,7 @@ out_err:
  *
  * @param d_info The directory entry to write to disk.
  *
- * @return	 EOK on success or a negative error code.
+ * @return	 EOK on success or an error code.
  */
 int
 mfs_write_dentry(struct mfs_dentry_info *d_info)
@@ -153,7 +153,7 @@ out:
  * @param mnode		Pointer to the directory node.
  * @param d_name	Name of the directory entry to delete.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
@@ -194,7 +194,7 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
  * @param d_name	Name of the new directory entry.
  * @param d_inum	index of the inode that will be pointed by the new dentry.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_insert_dentry(struct mfs_node *mnode, const char *d_name,

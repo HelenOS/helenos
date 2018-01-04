@@ -94,7 +94,7 @@ static void clip_exchange_end(async_exch_t *exch)
  *
  * @param str String to put to clipboard or NULL.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int clipboard_put_str(const char *str)
@@ -136,7 +136,7 @@ int clipboard_put_str(const char *str)
  *
  * @param str Here pointer to the newly allocated string is stored.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int clipboard_get_str(char **str)

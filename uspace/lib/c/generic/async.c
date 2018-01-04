@@ -843,7 +843,7 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
  * @param data    Handler data.
  * @param port_id ID of the newly created port.
  *
- * @return Zero on success or a negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t arg1,
@@ -1052,7 +1052,7 @@ static void process_notification(ipc_call_t *call)
  *
  * @param[out] handle  IRQ capability handle on success.
  *
- * @return Negative error code.
+ * @return An error code.
  *
  */
 int async_irq_subscribe(int inr, async_notification_handler_t handler,
@@ -1088,7 +1088,7 @@ int async_irq_subscribe(int inr, async_notification_handler_t handler,
  *
  * @param cap     IRQ capability handle. 
  *
- * @return Zero on success or a negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int async_irq_unsubscribe(int cap)
@@ -1105,7 +1105,7 @@ int async_irq_unsubscribe(int cap)
  * @param handler Notification handler.
  * @param data    Notification handler client data.
  *
- * @return Zero on success or a negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int async_event_subscribe(event_type_t evno,
@@ -1138,7 +1138,7 @@ int async_event_subscribe(event_type_t evno,
  * @param handler Notification handler.
  * @param data    Notification handler client data.
  *
- * @return Zero on success or a negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int async_event_task_subscribe(event_task_type_t evno,
@@ -1914,7 +1914,7 @@ void async_sleep(unsigned int sec)
  * @param r4      If non-NULL, storage for the 4th reply argument.
  * @param r5      If non-NULL, storage for the 5th reply argument.
  *
- * @return Return code of the reply or a negative error code.
+ * @return Return code of the reply or an error code.
  *
  */
 int async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
@@ -1966,7 +1966,7 @@ int async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
  * @param r4      If non-NULL, storage for the 4th reply argument.
  * @param r5      If non-NULL, storage for the 5th reply argument.
  *
- * @return Return code of the reply or a negative error code.
+ * @return Return code of the reply or an error code.
  *
  */
 int async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
@@ -2107,7 +2107,7 @@ int async_forward_slow(cap_handle_t chandle, async_exch_t *exch,
  * @param arg2            User defined argument.
  * @param arg3            User defined argument.
  *
- * @return Zero on success or a negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
@@ -2432,7 +2432,7 @@ static int async_hangup_internal(int phone)
  *
  * @param sess Session to hung up.
  *
- * @return Zero on success or a negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int async_hangup(async_sess_t *sess)
@@ -2612,7 +2612,7 @@ void async_exchange_end(async_exch_t *exch)
  * @param dst   Address of the storage for the destination address space area
  *              base address. Cannot be NULL.
  *
- * @return Zero on success or a negative error code from errno.h.
+ * @return Zero on success or an error code from errno.h.
  *
  */
 int async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
@@ -2687,7 +2687,7 @@ int async_share_in_finalize(cap_handle_t chandle, void *src, unsigned int flags)
  * @param src   Source address space area base address.
  * @param flags Flags to be used for sharing. Bits can be only cleared.
  *
- * @return Zero on success or a negative error code from errno.h.
+ * @return Zero on success or an error code from errno.h.
  *
  */
 int async_share_out_start(async_exch_t *exch, void *src, unsigned int flags)
@@ -2773,7 +2773,7 @@ aid_t async_data_read(async_exch_t *exch, void *dst, size_t size,
  * @param dst  Address of the beginning of the destination buffer.
  * @param size Size of the destination buffer.
  *
- * @return Zero on success or a negative error code from errno.h.
+ * @return Zero on success or an error code from errno.h.
  *
  */
 int async_data_read_start(async_exch_t *exch, void *dst, size_t size)
@@ -2898,7 +2898,7 @@ int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
  * @param src  Address of the beginning of the source buffer.
  * @param size Size of the source buffer.
  *
- * @return Zero on success or a negative error code from errno.h.
+ * @return Zero on success or an error code from errno.h.
  *
  */
 int async_data_write_start(async_exch_t *exch, const void *src, size_t size)

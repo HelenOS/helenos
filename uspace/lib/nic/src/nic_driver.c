@@ -240,7 +240,7 @@ void nic_set_poll_handlers(nic_t *nic_data,
  * @param		nic_data
  * @param[out]	resources	Parsed lists of resources.
  *
- * @return EOK or negative error code
+ * @return EOK or an error code
  */
 int nic_get_resources(nic_t *nic_data, hw_res_list_parsed_t *resources)
 {

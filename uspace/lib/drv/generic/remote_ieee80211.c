@@ -58,7 +58,7 @@ typedef enum {
  * @param[out] results  Structure where to put scan results.
  *
  * @return EOK If the operation was successfully completed,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 int ieee80211_get_scan_results(async_sess_t *dev_sess,
@@ -122,7 +122,7 @@ static sysarg_t get_link_id(uint8_t *mac)
  * @param[in] password   Network password (pass empty string if not needed).
  *
  * @return EOK If the operation was successfully completed,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
@@ -189,7 +189,7 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
  * @param[in] dev_sess Device session.
  *
  * @return EOK If the operation was successfully completed,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 int ieee80211_disconnect(async_sess_t *dev_sess)

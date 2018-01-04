@@ -65,7 +65,7 @@ void *program_loader = NULL;
  * @param name       Name to set for the program's task.
  * @param prg        Buffer for storing program information.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
@@ -133,7 +133,7 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
  *                        prg->task will be set to NULL and EOK
  *                        will be returned.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int program_create_from_image(void *image_addr, char *name, program_t *prg)
@@ -170,7 +170,7 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
  * @param prg  Buffer for storing program info.
  * @param name Name to set for the program's task.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int program_create_loader(program_t *prg, char *name)

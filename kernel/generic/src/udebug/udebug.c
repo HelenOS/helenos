@@ -393,7 +393,7 @@ void udebug_thread_e_event(void)
  *
  * @param task Task structure. task->udebug.lock must be already locked.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int udebug_task_cleanup(struct task *task)

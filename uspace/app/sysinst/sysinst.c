@@ -82,7 +82,7 @@
  * @param dev Disk device to label
  * @param pdev Place to store partition device name
  *
- * @return EOK on success or error code
+ * @return EOK on success or an error code
  */
 static int sysinst_label_dev(const char *dev, char **pdev)
 {
@@ -151,7 +151,7 @@ static int sysinst_label_dev(const char *dev, char **pdev)
 /** Mount target file system.
  *
  * @param dev Partition device
- * @return EOK on success or error code
+ * @return EOK on success or an error code
  */
 static int sysinst_fs_mount(const char *dev)
 {
@@ -190,7 +190,7 @@ static int sysinst_fs_mount(const char *dev)
 
 /** Copy boot files.
  *
- * @return EOK on success or error code
+ * @return EOK on success or an error code
  */
 static int sysinst_copy_boot_files(void)
 {
@@ -257,7 +257,7 @@ static void set_unaligned_u64le(uint8_t *a, uint64_t data)
  * Install Grub's boot blocks.
  *
  * @param devp Disk device
- * @return EOK on success or error code
+ * @return EOK on success or an error code
  */
 static int sysinst_copy_boot_blocks(const char *devp)
 {
@@ -352,7 +352,7 @@ static int sysinst_copy_boot_blocks(const char *devp)
 /** Install system to a device.
  *
  * @param dev Device to install to.
- * @return EOK on success or error code
+ * @return EOK on success or an error code
  */
 static int sysinst_install(const char *dev)
 {

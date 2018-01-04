@@ -112,7 +112,7 @@ int ieee80211_key_config_impl(ieee80211_dev_t *ieee80211_dev,
  * @param ieee80211_dev Structure of IEEE802.11 device.
  * @param clear         Whether to clear current scan results.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)

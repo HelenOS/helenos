@@ -87,7 +87,7 @@ static hash_table_ops_t udf_idx_ops = {
 
 /** Initialization of hash table
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_idx_init(void)
@@ -100,7 +100,7 @@ int udf_idx_init(void)
 
 /** Delete hash table
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_idx_fini(void)
@@ -115,7 +115,7 @@ int udf_idx_fini(void)
  * @param instance UDF instance
  * @param index    Absolute position of ICB (sector)
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_idx_get(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
@@ -149,7 +149,7 @@ int udf_idx_get(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
  * @param instance UDF instance
  * @param index    Absolute position of ICB (sector)
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
@@ -195,7 +195,7 @@ int udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
  *
  * @param node UDF node
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int udf_idx_del(udf_node_t *node)

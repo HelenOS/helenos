@@ -46,7 +46,7 @@
  * @param reg_offset Registry offset (address) to be read.
  * @param res        Stored result.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset, uint32_t *res)
@@ -78,7 +78,7 @@ int wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset, uint32_t *res)
  * @param reg_offset Registry offset (address) to be written.
  * @param val        Value to be written
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t val)
@@ -111,7 +111,7 @@ int wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t val)
  * @param set_bit    Bit to be set.
  * @param clear_bit  Bit to be cleared.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int wmi_reg_set_clear_bit(htc_device_t *htc_device, uint32_t reg_offset,
@@ -145,7 +145,7 @@ int wmi_reg_set_clear_bit(htc_device_t *htc_device, uint32_t reg_offset,
  * @param reg_offset Registry offset (address) to be written.
  * @param set_bit    Bit to be set.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset,
@@ -160,7 +160,7 @@ int wmi_reg_set_bit(htc_device_t *htc_device, uint32_t reg_offset,
  * @param reg_offset Registry offset (address) to be written.
  * @param clear_bit  Bit to be cleared.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int wmi_reg_clear_bit(htc_device_t *htc_device, uint32_t reg_offset,
@@ -175,7 +175,7 @@ int wmi_reg_clear_bit(htc_device_t *htc_device, uint32_t reg_offset,
  * @param reg_buffer Array of registry values to be written.
  * @param elements   Number of elements in array.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int wmi_reg_buffer_write(htc_device_t *htc_device, wmi_reg_t *reg_buffer,
@@ -219,7 +219,7 @@ int wmi_reg_buffer_write(htc_device_t *htc_device, wmi_reg_t *reg_buffer,
  * @param command_length  Length of command data.
  * @param response_buffer Buffer with response data.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,

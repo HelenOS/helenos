@@ -258,7 +258,7 @@ static bool cap_reclaimer(ht_link_t *link, void *arg)
  *
  * @param[out] handle  New capability handle on success.
  *
- * @return Negative error code in case of error.
+ * @return An error code in case of error.
  */
 int cap_alloc(task_t *task, cap_handle_t *handle)
 {

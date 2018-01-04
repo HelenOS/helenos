@@ -235,7 +235,7 @@ char *vfs_absolutize(const char *path, size_t *retlen)
  * @param high          If file_to is -1, high controls whether the new file
  *                      handle will be allocated from high indices
  *
- * @return              New file handle on success or a negative error code
+ * @return              New file handle on success or an error code
  */
 int vfs_clone(int file_from, int file_to, bool high, int *handle)
 {
@@ -258,7 +258,7 @@ int vfs_clone(int file_from, int file_to, bool high, int *handle)
  * @param[out] buf      Buffer
  * @param size          Size of @a buf
  *
- * @return              EOK on success or a non-negative error code
+ * @return              EOK on success or a non-error code
  */
 int vfs_cwd_get(char *buf, size_t size)
 {
@@ -279,7 +279,7 @@ int vfs_cwd_get(char *buf, size_t size)
  *
  * @param path  Path of the new working directory
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 int vfs_cwd_set(const char *path)
 {
@@ -369,7 +369,7 @@ async_sess_t *vfs_fd_session(int file, iface_t iface)
  * @param serv    Service representing the mountee
  * @param info    Place to store volume identification information
  *
- * @return                      EOK on success or a negative error code
+ * @return                      EOK on success or an error code
  */
 int vfs_fsprobe(const char *fs_name, service_id_t serv,
     vfs_fs_probe_info_t *info)
@@ -403,7 +403,7 @@ int vfs_fsprobe(const char *fs_name, service_id_t serv,
  *        stored. It is read as a null-terminated list of strings
  *        fstypes->fstypes[0..]. To free the list use vfs_fstypes_free().
  *
- * @return                      EOK on success or a negative error code
+ * @return                      EOK on success or an error code
  */
 int vfs_fstypes(vfs_fstypes_t *fstypes)
 {
@@ -498,7 +498,7 @@ void vfs_fstypes_free(vfs_fstypes_t *fstypes)
  *                      KIND_DIRECTORY
  * @param[out] linkedfd If not NULL, will receive a file handle to the linked
  *                      child
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_link(int parent, const char *child, vfs_file_kind_t kind, int *linkedfd)
 {
@@ -528,7 +528,7 @@ int vfs_link(int parent, const char *child, vfs_file_kind_t kind, int *linkedfd)
  *                      KIND_DIRECTORY
  * @param[out] linkedfd If not NULL, will receive a file handle to the linked
  *                      child
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_link_path(const char *path, vfs_file_kind_t kind, int *linkedfd)
 {
@@ -584,7 +584,7 @@ int vfs_lookup(const char *path, int flags, int *handle)
  * @param mode  Mode in which to open file in
  * @param[out] handle Pointer to variable where handle is to be written.
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 int vfs_lookup_open(const char *path, int flags, int mode, int *handle)
 {
@@ -613,7 +613,7 @@ int vfs_lookup_open(const char *path, int flags, int mode, int *handle)
  * @param[in] instance          Instance number of the file system server
  * @param[out] mountedfd        File handle of the mounted root if not NULL
  *
- * @return                      EOK on success or a negative error code
+ * @return                      EOK on success or an error code
  */
 int vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *opts,
     unsigned int flags, unsigned int instance, int *mountedfd)
@@ -657,7 +657,7 @@ int vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *opts,
  * @param[in] flags             Mount flags
  * @param[in] instance          Instance number of the file system server
  *
- * @return                      EOK on success or a negative error code
+ * @return                      EOK on success or an error code
  */
 int vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
     const char *opts, unsigned int flags, unsigned int instance)
@@ -751,7 +751,7 @@ int vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
  * @param file  File handle to enable I/O on
  * @param mode  Mode in which to open file in
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 int vfs_open(int file, int mode)
 {
@@ -768,7 +768,7 @@ int vfs_open(int file, int mode)
  * @param file          Donor's file handle to pass
  * @param exch          Exchange to the acceptor
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch)
 {
@@ -780,7 +780,7 @@ int vfs_pass_handle(async_exch_t *vfs_exch, int file, async_exch_t *exch)
  *
  * @param file  File handle to put
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 int vfs_put(int file)
 {
@@ -797,7 +797,7 @@ int vfs_put(int file)
  *               indices
  * @param[out] handle  Received handle.
  *
- * @return       EOK on success or a negative error code
+ * @return       EOK on success or an error code
  */
 int vfs_receive_handle(bool high, int *handle)
 {
@@ -876,7 +876,7 @@ int vfs_read(int file, aoff64_t *pos, void *buf, size_t nbyte, size_t *nread)
  * @param nbyte         Maximum number of bytes to read
  * @param[out] nread	Actual number of bytes read (0 or more)
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_read_short(int file, aoff64_t pos, void *buf, size_t nbyte,
     ssize_t *nread)
@@ -918,7 +918,7 @@ int vfs_read_short(int file, aoff64_t pos, void *buf, size_t nbyte,
  * @param old   Old path
  * @param new   New path
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 int vfs_rename_path(const char *old, const char *new)
 {
@@ -985,7 +985,7 @@ int vfs_rename_path(const char *old, const char *new)
  * @param file          File handle to resize
  * @param length        New length
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_resize(int file, aoff64_t length)
 {
@@ -1049,7 +1049,7 @@ int vfs_root_set(int nroot)
  * @param file          File handle to get information about
  * @param[out] stat     Place to store file information
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_stat(int file, struct stat *stat)
 {
@@ -1083,7 +1083,7 @@ int vfs_stat(int file, struct stat *stat)
  * @param path          File path to get information about
  * @param[out] stat     Place to store file information
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_stat_path(const char *path, struct stat *stat)
 {
@@ -1104,7 +1104,7 @@ int vfs_stat_path(const char *path, struct stat *stat)
  * @param file          File located on the queried file system
  * @param[out] st       Buffer for storing information
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_statfs(int file, struct statfs *st)
 {
@@ -1129,7 +1129,7 @@ int vfs_statfs(int file, struct statfs *st)
  * @param file          Path pointing to the queried file system
  * @param[out] st       Buffer for storing information
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_statfs_path(const char *path, struct statfs *st)
 {
@@ -1149,7 +1149,7 @@ int vfs_statfs_path(const char *path, struct statfs *st)
  *
  * @param file  File handle to synchronize
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 int vfs_sync(int file)
 {
@@ -1171,7 +1171,7 @@ int vfs_sync(int file)
  * @param child         Old name to be unlinked
  * @param expect        File handle of the unlinked child
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_unlink(int parent, const char *child, int expect)
 {
@@ -1200,7 +1200,7 @@ int vfs_unlink(int parent, const char *child, int expect)
  *
  * @param path          Old path to be unlinked
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_unlink_path(const char *path)
 {
@@ -1229,7 +1229,7 @@ int vfs_unlink_path(const char *path)
  *
  * @param mp    File handle representing the mount-point
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 int vfs_unmount(int mp)
 {
@@ -1243,7 +1243,7 @@ int vfs_unmount(int mp)
  *
  * @param mpp   Mount-point path
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 int vfs_unmount_path(const char *mpp)
 {
@@ -1340,7 +1340,7 @@ int vfs_write(int file, aoff64_t *pos, const void *buf, size_t nbyte,
  * @param nbyte         Maximum number of bytes to write
  * @param[out] nread    Actual number of bytes written (0 or more)
  *
- * @return              EOK on success or a negative error code
+ * @return              EOK on success or an error code
  */
 int vfs_write_short(int file, aoff64_t pos, const void *buf, size_t nbyte,
     ssize_t *nwritten)

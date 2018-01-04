@@ -225,7 +225,7 @@ int pio_enable_range(addr_range_t *range, void **virt)
  * @param virt     Virtual address for application's PIO operations.
  *
  * @return EOK on success.
- * @return Negative error code on failure.
+ * @return An error code on failure.
  *
  */
 int pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
@@ -267,7 +267,7 @@ int pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
  *                 PIO operations. Can be NULL for PMIO.
  *
  * @return EOK on success.
- * @return Negative error code on failure.
+ * @return An error code on failure.
  *
  */
 int pio_enable(void *pio_addr, size_t size, void **virt)
@@ -305,7 +305,7 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
  * @param size     Size of the I/O region.
  *
  * @return EOK on success.
- * @return Negative error code on failure.
+ * @return An error code on failure.
  *
  */
 int pio_disable(void *virt, size_t size)

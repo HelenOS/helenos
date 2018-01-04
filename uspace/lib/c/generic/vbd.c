@@ -94,7 +94,7 @@ void vbd_destroy(vbd_t *vbd)
  * @param data Place to store pointer to array
  * @param count Place to store length of array (number of entries)
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int vbd_get_disks(vbd_t *vbd, service_id_t **data, size_t *count)
 {
@@ -164,7 +164,7 @@ int vbd_label_delete(vbd_t *vbd, service_id_t sid)
  * @param buf_size Buffer size
  * @param act_size Place to store actual size of complete data.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 static int vbd_get_ids_once(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
     sysarg_t *id_buf, size_t buf_size, size_t *act_size)
@@ -202,7 +202,7 @@ static int vbd_get_ids_once(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
  * @param arg1   IPC argument 1
  * @param data   Place to store pointer to array of IDs
  * @param count  Place to store number of IDs
- * @return       EOK on success or negative error code
+ * @return       EOK on success or an error code
  */
 static int vbd_get_ids_internal(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
     sysarg_t **data, size_t *count)
@@ -246,7 +246,7 @@ static int vbd_get_ids_internal(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
  * @param data  Place to store pointer to array
  * @param count Place to store length of array (number of entries)
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int vbd_label_get_parts(vbd_t *vbd, service_id_t disk,
     service_id_t **data, size_t *count)
@@ -331,7 +331,7 @@ void vbd_pspec_init(vbd_part_spec_t *pspec)
  * @param pcnt  Partition content
  * @param ptype Place to store suggested partition type
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int vbd_suggest_ptype(vbd_t *vbd, service_id_t disk, label_pcnt_t pcnt,
     label_ptype_t *ptype)

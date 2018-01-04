@@ -93,7 +93,7 @@ typedef enum {
  *
  * @param dev_sess Session to DDF device providing USB HID interface.
  *
- * @return Number of usages returned or negative error code.
+ * @return Number of usages returned or an error code.
  *
  */
 int usbhid_dev_get_event_length(async_sess_t *dev_sess, size_t *size)

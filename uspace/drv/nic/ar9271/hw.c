@@ -48,7 +48,7 @@
  * @param value  Required value we are waiting for.
  *
  * @return EOK if succeed, ETIMEOUT on timeout,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 static int hw_read_wait(ar9271_t *ar9271, uint32_t offset, uint32_t mask,
@@ -214,7 +214,7 @@ static int hw_gpio_set_value(ar9271_t *ar9271, uint32_t gpio, uint32_t value)
  *
  * @param ar9271 Device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int hw_init_proc(ar9271_t *ar9271)
@@ -635,7 +635,7 @@ int hw_reset(ar9271_t *ar9271)
  *
  * @param ar9271 Device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  */
 int hw_init(ar9271_t *ar9271)
 {

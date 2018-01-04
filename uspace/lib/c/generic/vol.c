@@ -100,7 +100,7 @@ void vol_destroy(vol_t *vol)
  * @param buf_size Buffer size
  * @param act_size Place to store actual size of complete data.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 static int vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
     sysarg_t *id_buf, size_t buf_size, size_t *act_size)
@@ -138,7 +138,7 @@ static int vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
  * @param arg1   IPC argument 1
  * @param data   Place to store pointer to array of IDs
  * @param count  Place to store number of IDs
- * @return       EOK on success or negative error code
+ * @return       EOK on success or an error code
  */
 static int vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
     sysarg_t **data, size_t *count)
@@ -182,7 +182,7 @@ static int vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
  * @param data Place to store pointer to array
  * @param count Place to store length of array (number of entries)
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
 {

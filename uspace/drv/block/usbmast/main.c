@@ -215,7 +215,7 @@ error:
  *
  * @param mdev		Mass storage device
  * @param lun		LUN
- * @return		EOK on success or negative error code.
+ * @return		EOK on success or an error code.
  */
 static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 {

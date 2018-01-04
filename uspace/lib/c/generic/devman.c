@@ -209,7 +209,7 @@ int devman_driver_register(const char *name)
  * @param devh      Devman handle of the device
  * @param funh      Place to store handle of the new function
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int devman_add_function(const char *name, fun_type_t ftype,
@@ -304,7 +304,7 @@ async_sess_t *devman_device_connect(devman_handle_t handle, unsigned int flags)
  * Request devman to remove function owned by this driver task.
  * @param funh      Devman handle of the function
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 int devman_remove_function(devman_handle_t funh)
 {
@@ -528,7 +528,7 @@ static int devman_get_handles_once(sysarg_t method, sysarg_t arg1,
  * @param arg1		IPC argument 1
  * @param data		Place to store pointer to array of handles
  * @param count		Place to store number of handles
- * @return 		EOK on success or negative error code
+ * @return 		EOK on success or an error code
  */
 static int devman_get_handles_internal(sysarg_t method, sysarg_t arg1,
     devman_handle_t **data, size_t *count)

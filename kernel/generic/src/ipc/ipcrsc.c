@@ -167,7 +167,7 @@ static kobject_ops_t phone_kobject_ops = {
  *
  * @param[out] out_handle  New phone capability handle.
  *
- * @return  Negative error code if a new capability cannot be allocated.
+ * @return  An error code if a new capability cannot be allocated.
  */
 int phone_alloc(task_t *task, cap_handle_t *out_handle)
 {

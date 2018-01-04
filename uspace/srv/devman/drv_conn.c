@@ -160,7 +160,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
  * list of devices match ids.
  *
  * @param match_ids	The list of the device's match ids.
- * @return		Zero on success, negative error code otherwise.
+ * @return		Zero on success, error code otherwise.
  */
 static int devman_receive_match_id(match_id_list_t *match_ids)
 {
@@ -210,7 +210,7 @@ static int devman_receive_match_id(match_id_list_t *match_ids)
  *
  * @param match_count	The number of device's match ids to be received.
  * @param match_ids	The list of the device's match ids.
- * @return		Zero on success, negative error code otherwise.
+ * @return		Zero on success, error code otherwise.
  */
 static int devman_receive_match_ids(sysarg_t match_count,
     match_id_list_t *match_ids)

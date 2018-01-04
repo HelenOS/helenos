@@ -380,7 +380,7 @@ static void block_initialize(block_t *b)
  * 				will not read the contents of the block from the
  *				device.
  *
- * @return			EOK on success or a negative error code.
+ * @return			EOK on success or an error code.
  */
 int block_get(block_t **block, service_id_t service_id, aoff64_t ba, int flags)
 {
@@ -577,7 +577,7 @@ out:
  *
  * @param block		Block of which a reference is to be released.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int block_put(block_t *block)
 {
@@ -698,7 +698,7 @@ retry:
  * @param size		Size of the destination buffer.
  * @param block_size	Block size to be used for the transfer.
  *
- * @return		EOK on success or a negative return code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 int block_seqread(service_id_t service_id, void *buf, size_t *bufpos,
     size_t *buflen, aoff64_t *pos, void *dst, size_t size)
@@ -757,7 +757,7 @@ int block_seqread(service_id_t service_id, void *buf, size_t *bufpos,
  * @param cnt		Number of blocks.
  * @param src		Buffer for storing the data.
  *
- * @return		EOK on success or negative error code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 int block_read_direct(service_id_t service_id, aoff64_t ba, size_t cnt, void *buf)
 {
@@ -776,7 +776,7 @@ int block_read_direct(service_id_t service_id, aoff64_t ba, size_t cnt, void *bu
  * @param cnt		Number of blocks.
  * @param src		The data to be written.
  *
- * @return		EOK on success or negative error code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 int block_write_direct(service_id_t service_id, aoff64_t ba, size_t cnt,
     const void *data)
@@ -795,7 +795,7 @@ int block_write_direct(service_id_t service_id, aoff64_t ba, size_t cnt,
  * @param ba		Address of first block (physical).
  * @param cnt		Number of blocks.
  *
- * @return		EOK on success or negative error code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 int block_sync_cache(service_id_t service_id, aoff64_t ba, size_t cnt)
 {
@@ -812,7 +812,7 @@ int block_sync_cache(service_id_t service_id, aoff64_t ba, size_t cnt)
  * @param service_id	Service ID of the block device.
  * @param bsize		Output block size.
  *
- * @return		EOK on success or negative error code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 int block_get_bsize(service_id_t service_id, size_t *bsize)
 {
@@ -829,7 +829,7 @@ int block_get_bsize(service_id_t service_id, size_t *bsize)
  * @param service_id	Service ID of the block device.
  * @param nblocks	Output number of blocks.
  *
- * @return		EOK on success or negative error code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 int block_get_nblocks(service_id_t service_id, aoff64_t *nblocks)
 {
@@ -846,7 +846,7 @@ int block_get_nblocks(service_id_t service_id, aoff64_t *nblocks)
  * @param bytes			Number of bytes to read
  * @param data			Buffer that receives the data
  * 
- * @return		EOK on success or negative error code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 int block_read_bytes_direct(service_id_t service_id, aoff64_t abs_offset,
     size_t bytes, void *data)
@@ -897,7 +897,7 @@ int block_read_bytes_direct(service_id_t service_id, aoff64_t abs_offset,
  * @param session    Starting session.
  *
  * @return Allocated TOC structure.
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int block_read_toc(service_id_t service_id, uint8_t session, void *buf,
@@ -916,7 +916,7 @@ int block_read_toc(service_id_t service_id, uint8_t session, void *buf,
  * @param cnt		Number of blocks.
  * @param src		Buffer for storing the data.
  *
- * @return		EOK on success or negative error code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *buf,
     size_t size)
@@ -943,7 +943,7 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *buf,
  * @param cnt		Number of blocks.
  * @param src		Buffer containing the data to write.
  *
- * @return		EOK on success or negative error code on failure.
+ * @return		EOK on success or an error code on failure.
  */
 static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *data,
     size_t size)

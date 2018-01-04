@@ -216,7 +216,7 @@ inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
  *  @param rtl8139  The RTL8139 device
  *  @param address  The place to store the address
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 inline static void rtl8139_hw_get_addr(rtl8139_t *rtl8139,
     nic_address_t *addr)
@@ -843,7 +843,7 @@ static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
  *
  *  @param[out] handle  IRQ capability handle if the handler was registered.
  *
- *  @return Negative error code otherwise.
+ *  @return An error code otherwise.
  */
 inline static int rtl8139_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
 {
@@ -1024,7 +1024,7 @@ static void rtl8139_dev_cleanup(ddf_dev_t *dev)
  *  @param dev           The device structure
  *  @param hw_resources  Devices hardware resources
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
     *hw_resources)
@@ -1064,7 +1064,7 @@ static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
  *
  *  @param dev  The device structure
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 static int rtl8139_get_resource_info(ddf_dev_t *dev)
 {
@@ -1146,7 +1146,7 @@ err_tx_alloc:
  *
  *  @param dev  The device information
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 static int rtl8139_device_initialize(ddf_dev_t *dev)
 {
@@ -1205,7 +1205,7 @@ failed:
  *
  * @param dev  The RTL8139 device.
  *
- * @return EOK if successed, negative error code otherwise
+ * @return EOK if successed, error code otherwise
  */
 static int rtl8139_pio_enable(ddf_dev_t *dev)
 {
@@ -1255,7 +1255,7 @@ static void rtl8139_data_init(rtl8139_t *rtl8139)
  *
  * @param dev  The RTL8139 device.
  *
- * @return EOK if added successfully, negative error code otherwise
+ * @return EOK if added successfully, error code otherwise
  */
 int rtl8139_dev_add(ddf_dev_t *dev)
 {
@@ -1338,7 +1338,7 @@ err_destroy:
  *  @param address  The place to store the address
  *  @param max_len  Maximal addresss length to store
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 static int rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {
