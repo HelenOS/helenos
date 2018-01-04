@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
 	errno_t rc = log_init(NAME);
 	if (rc != EOK) {
 		printf("%s: Error initializing logging subsystem: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	/* Set handlers for incoming connections. */
@@ -331,28 +331,28 @@ int main(int argc, char *argv[])
 	    devman_connection_driver, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error creating DDF driver port: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	rc = async_create_port(INTERFACE_DDF_CLIENT,
 	    devman_connection_client, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error creating DDF client port: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	rc = async_create_port(INTERFACE_DEVMAN_DEVICE,
 	    devman_connection_device, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error creating devman device port: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	rc = async_create_port(INTERFACE_DEVMAN_PARENT,
 	    devman_connection_parent, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error creating devman parent port: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	async_set_fallback_port_handler(devman_forward, NULL);
@@ -366,7 +366,7 @@ int main(int argc, char *argv[])
 	rc = service_register(SERVICE_DEVMAN);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering as a service: %s", str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	printf("%s: Accepting connections.\n", NAME);

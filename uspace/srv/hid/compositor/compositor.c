@@ -2315,7 +2315,7 @@ int main(int argc, char *argv[])
 	
 	errno_t rc = compositor_srv_init(argv[1], argv[2]);
 	if (rc != EOK)
-		return EXIT_RC(rc);
+		return rc;
 	
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);

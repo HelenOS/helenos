@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 		if (rc != EOK) {
 			printf("%s: Error waiting on %s (%s)\n", APP_NAME, term,
 			    str_error(rc));
-			return EXIT_RC(rc);
+			return rc;
 		}
 	}
 	
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	task_exit_t texit;
@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf("%s: Error waiting for %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	return 0;

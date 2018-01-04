@@ -1531,14 +1531,14 @@ int main(int argc, char *argv[])
 	    loc_connection_supplier, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error while creating supplier port: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	rc = async_create_port(INTERFACE_LOC_CONSUMER,
 	    loc_connection_consumer, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error while creating consumer port: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	/* Set a handler of incomming connections */
@@ -1548,7 +1548,7 @@ int main(int argc, char *argv[])
 	rc = service_register(SERVICE_LOC);
 	if (rc != EOK) {
 		printf("%s: Error while registering service: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	printf("%s: Accepting connections\n", NAME);

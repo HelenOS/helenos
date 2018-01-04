@@ -352,13 +352,13 @@ int main(int argc, char *argv[])
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register server\n", NAME);
-		return EXIT_RC(rc);
+		return rc;
 	}
 
 	rc = tcp_create(&tcp);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Error initializing TCP.\n", NAME);
-		return EXIT_RC(rc);
+		return rc;
 	}
 
 	inet_ep_init(&ep);
@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 	    &lst);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Error creating listener.\n", NAME);
-		return EXIT_RC(rc);
+		return rc;
 	}
 
 	printf("%s: HelenOS Remote console service\n", NAME);

@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 	if (ret != EOK) {
 		log_fatal("Failed to initialize hound structure: %s",
 		    str_error(ret));
-		return EXIT_RC(ret);
+		return ret;
 	}
 
 	hound_iface.server = &hound;
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	ret = hound_server_register(NAME, &id);
 	if (ret != EOK) {
 		log_fatal("Failed to register server: %s", str_error(ret));
-		return EXIT_RC(ret);
+		return ret;
 	}
 
 	ret = hound_server_set_device_change_callback(scan_for_devices);
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 		log_fatal("Failed to register for device changes: %s",
 		    str_error(ret));
 		hound_server_unregister(id);
-		return EXIT_RC(ret);
+		return ret;
 	}
 	log_info("Running with service id %" PRIun, id);
 

@@ -221,14 +221,14 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf("Device not found or not of USB kind: %s.\n",
 		    str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	async_sess_t *sess = devman_device_connect(dev_handle, 0);
 	if (!sess) {
 		printf(NAME ": failed to connect to the device (handle %"
 		       PRIun "): %s.\n", dev_handle, str_error(errno));
-		return EXIT_RC(errno);
+		return errno;
 	}
 	
 	dev_sess = sess;
@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf(NAME ": failed to get path (handle %"
 		       PRIun "): %s.\n", dev_handle, str_error(errno));
-		return EXIT_RC(ENOMEM);
+		return ENOMEM;
 	}
 	
 	printf("Device path: %s\n", path);
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf("Failed to initialize report parser: %s\n",
 		    str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	assert(report != NULL);
@@ -258,14 +258,14 @@ int main(int argc, char *argv[])
 	rc = usbhid_dev_get_event_length(dev_sess, &size);
 	if (rc != EOK) {
 		printf("Failed to get event length: %s.\n", str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	uint8_t *event = (uint8_t *)malloc(size);
 	if (event == NULL) {
 		printf("Out of memory.\n");
 		// TODO: hangup phone?
-		return EXIT_RC(ENOMEM);
+		return ENOMEM;
 	}
 	
 	fid_t quit_fibril = fibril_create(wait_for_quit_fibril, NULL);

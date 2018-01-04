@@ -252,13 +252,13 @@ int main(int argc, char *argv[])
 	errno_t rc = log_init(NAME);
 	if (rc != EOK) {
 		printf("%s: Failed to initialize logging: %s.\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	rc = loopip_init();
 	if (rc != EOK) {
 		printf("%s: Failed to initialize loopip: %s.\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	printf("%s: Accepting connections.\n", NAME);

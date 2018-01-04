@@ -543,25 +543,25 @@ int main(int argc, char *argv[])
 		}
 
 		if (!str_cmp(argv[2], "addr"))
-			return EXIT_RC(nic_set_addr(index, argv[3]));
+			return nic_set_addr(index, argv[3]);
 
 		if (!str_cmp(argv[2], "speed"))
-			return EXIT_RC(nic_set_speed(index, argv[3]));
+			return nic_set_speed(index, argv[3]);
 
 		if (!str_cmp(argv[2], "duplex"))
-			return EXIT_RC(nic_set_duplex(index, argv[3]));
+			return nic_set_duplex(index, argv[3]);
 
 		if (!str_cmp(argv[2], "auto"))
-			return EXIT_RC(nic_set_autoneg(index));
+			return nic_set_autoneg(index);
 
 		if (!str_cmp(argv[2], "unicast"))
-			return EXIT_RC(nic_set_rx_unicast(index, argv[3]));
+			return nic_set_rx_unicast(index, argv[3]);
 
 		if (!str_cmp(argv[2], "multicast"))
-			return EXIT_RC(nic_set_rx_multicast(index, argv[3]));
+			return nic_set_rx_multicast(index, argv[3]);
 
 		if (!str_cmp(argv[2], "broadcast"))
-			return EXIT_RC(nic_set_rx_broadcast(index, argv[3]));
+			return nic_set_rx_broadcast(index, argv[3]);
 
 	} else {
 		printf(NAME ": Invalid argument.\n");

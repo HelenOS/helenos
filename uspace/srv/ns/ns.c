@@ -133,15 +133,15 @@ int main(int argc, char **argv)
 	
 	errno_t rc = service_init();
 	if (rc != EOK)
-		return EXIT_RC(rc);
+		return rc;
 	
 	rc = clonable_init();
 	if (rc != EOK)
-		return EXIT_RC(rc);
+		return rc;
 	
 	rc = task_init();
 	if (rc != EOK)
-		return EXIT_RC(rc);
+		return rc;
 	
 	async_set_fallback_port_handler(ns_connection, NULL);
 	

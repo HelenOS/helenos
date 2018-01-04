@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 	    &tmpfs_libfs_ops);
 	if (rc != EOK) {
 		printf(NAME ": Failed to register file system: %s\n", str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	printf(NAME ": Accepting connections\n");

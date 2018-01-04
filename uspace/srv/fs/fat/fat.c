@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 	
 err:
 	printf(NAME ": Failed to register file system: %s\n", str_error(rc));
-	return EXIT_RC(rc);
+	return rc;
 }
 
 /**

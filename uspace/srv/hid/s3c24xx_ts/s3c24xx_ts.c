@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);
-		return EXIT_RC(rc);
+		return rc;
 	}
 
 	ts = malloc(sizeof(s3c24xx_ts_t));

@@ -449,10 +449,10 @@ int main(int argc, char *argv[])
 		if (argv[i][0] == '-') {
 			rc = parse_option(argc, argv, &i);
 			if (rc != EOK)
-				return EXIT_RC(rc);
+				return rc;
 		} else {
 			usage();
-			return EXIT_RC(EINVAL);
+			return EINVAL;
 		}
 	}
 	

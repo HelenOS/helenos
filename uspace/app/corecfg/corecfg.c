@@ -76,9 +76,9 @@ int main(int argc, char *argv[])
 	if ((argc < 2) || (str_cmp(argv[1], "get") == 0))
 		return corecfg_print();
 	else if (str_cmp(argv[1], "enable") == 0)
-		return EXIT_RC(corecfg_set_enable(true));
+		return corecfg_set_enable(true);
 	else if (str_cmp(argv[1], "disable") == 0)
-		return EXIT_RC(corecfg_set_enable(false));
+		return corecfg_set_enable(false);
 	else {
 		printf("%s: Unknown command '%s'.\n", NAME, argv[1]);
 		print_syntax();

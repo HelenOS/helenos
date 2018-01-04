@@ -292,14 +292,14 @@ int main(int argc, char *argv[])
 	
 	if (argc == 2) {
 		if (!str_cmp(argv[1], "list"))
-			return EXIT_RC(wifi_list());
+			return wifi_list();
 	} else if (argc > 2) {
 		uint32_t index;
 		rc = str_uint32_t(argv[2], NULL, 10, false, &index);
 		if (rc != EOK) {
 			printf("%s: Invalid argument.\n", NAME);
 			print_syntax();
-			return EXIT_RC(EINVAL);
+			return EINVAL;
 		}
 		
 		if (!str_cmp(argv[1], "scan")) {
@@ -308,17 +308,17 @@ int main(int argc, char *argv[])
 				if (!str_cmp(argv[3], "-n"))
 					now = true;
 			
-			return EXIT_RC(wifi_scan(index, now));
+			return wifi_scan(index, now);
 		} else if (!str_cmp(argv[1], "connect")) {
 			char *pass = NULL;
 			if (argc > 3) {
 				if (argc > 4)
 					pass = argv[4];
 				
-				return EXIT_RC(wifi_connect(index, argv[3], pass));
+				return wifi_connect(index, argv[3], pass);
 			}
 		} else if (!str_cmp(argv[1], "disconnect"))
-			return EXIT_RC(wifi_disconnect(index));
+			return wifi_disconnect(index);
 	}
 	
 	print_syntax();

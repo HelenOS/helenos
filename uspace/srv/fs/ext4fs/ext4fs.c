@@ -75,14 +75,14 @@ int main(int argc, char **argv)
 	errno_t rc = ext4_global_init();
 	if (rc != EOK) {
 		printf("%s: Global initialization failed\n", NAME);
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	rc = fs_register(vfs_sess, &ext4fs_vfs_info, &ext4_ops,
 	    &ext4_libfs_ops);
 	if (rc != EOK) {
 		printf("%s: Failed to register file system\n", NAME);
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	printf("%s: Accepting connections\n", NAME);

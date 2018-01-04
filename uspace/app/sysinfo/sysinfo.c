@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 			rc = 2;
 			break;
 		case SYSINFO_VAL_VAL:
-			rc = EXIT_RC(print_item_val(ipath));
+			rc = print_item_val(ipath);
 			break;
 		case SYSINFO_VAL_DATA:
 			rc = print_item_data(ipath);

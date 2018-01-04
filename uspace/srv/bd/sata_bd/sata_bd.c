@@ -252,19 +252,19 @@ int main(int argc, char **argv)
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register driver: %s.\n", str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	rc = get_sata_disks();
 	if (rc != EOK) {
 		printf(NAME ": Cannot find SATA disks: %s.\n", str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 
 	rc = loc_category_get_id("disk", &disk_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed resolving category 'disk': %s.\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 
 	for(int i = 0; i < disk_count; i++) {
@@ -273,14 +273,14 @@ int main(int argc, char **argv)
 		rc = loc_service_register(name, &disk[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s: %s\n", name, str_error(rc));
-			return EXIT_RC(rc);
+			return rc;
 		}
 
 		rc = loc_service_add_to_cat(disk[i].service_id, disk_cat);
 		if (rc != EOK) {
 			printf("%s: Failed adding %s to category: %s.",
 			    NAME, disk[i].dev_name, str_error(rc));
-			return EXIT_RC(rc);
+			return rc;
 		}
 	}
 

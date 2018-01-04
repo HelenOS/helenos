@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 	
 err:
 	log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to register file system: %s", str_error(rc));
-	return EXIT_RC(rc);
+	return rc;
 }
 
 /**

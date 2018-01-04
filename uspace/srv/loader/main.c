@@ -396,18 +396,18 @@ int main(int argc, char *argv[])
 	task_id_t id = task_get_id();
 	errno_t rc = ns_intro(id);
 	if (rc != EOK)
-		return EXIT_RC(rc);
+		return rc;
 	
 	/* Create port */
 	port_id_t port;
 	rc = async_create_port(INTERFACE_LOADER, ldr_connection, NULL, &port);
 	if (rc != EOK)
-		return EXIT_RC(rc);
+		return rc;
 	
 	/* Register at naming service. */
 	rc = service_register(SERVICE_LOADER);
 	if (rc != EOK)
-		return EXIT_RC(rc);
+		return rc;
 	
 	async_manager();
 	

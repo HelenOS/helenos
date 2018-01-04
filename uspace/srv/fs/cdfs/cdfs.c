@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 	    &cdfs_libfs_ops);
 	if (rc != EOK) {
 		printf("%s: Failed to register file system: %s\n", NAME, str_error(rc));
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	printf("%s: Accepting connections\n", NAME);

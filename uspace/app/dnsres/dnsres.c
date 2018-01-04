@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	errno_t rc = dnsr_name2host(hname, &hinfo, ver);
 	if (rc != EOK) {
 		printf("%s: Error resolving '%s'.\n", NAME, hname);
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	char *saddr;
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		dnsr_hostinfo_destroy(hinfo);
 		printf("%s: Error formatting address.\n", NAME);
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	printf("Host name: %s\n", hname);

@@ -2144,7 +2144,7 @@ int main(void)
 
 	errno_t rc = nic_driver_init(NAME);
 	if (rc != EOK)
-		return EXIT_RC(rc);
+		return rc;
 
 	nic_driver_implement(&rtl8139_driver_ops, &rtl8139_dev_ops,
 	    &rtl8139_nic_iface);

@@ -469,14 +469,14 @@ int main(int argc, char *argv[])
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver\n", NAME);
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	service_id_t service_id;
 	rc = loc_service_register(argv[1], &service_id);
 	if (rc != EOK) {
 		printf("%s: Unable to register service %s\n", NAME, argv[1]);
-		return EXIT_RC(rc);
+		return rc;
 	}
 	
 	if (!config_key_exists("console")) {

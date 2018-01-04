@@ -119,5 +119,5 @@ int main(int argc, char *argv[])
 	printf("Leaving %s.\n", progname);
 
 	cli_finit(&usr);
-	return EXIT_RC(ret);
+	return ret;
 }

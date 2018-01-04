@@ -386,7 +386,7 @@ static errno_t sysinst_install(const char *dev)
 int main(int argc, char *argv[])
 {
 	const char *dev = DEFAULT_DEV;
-	return EXIT_RC(sysinst_install(dev));
+	return sysinst_install(dev);
 }
 
 /** @}

@@ -190,7 +190,7 @@ main(int argc, char **argv)
 exit:
 	free(svc_name);
 	free(svc_ids);
-	return EXIT_RC(rc);
+	return rc;
 }
 
 /** Read the day, month and year from a string
