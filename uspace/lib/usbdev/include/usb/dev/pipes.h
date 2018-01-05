@@ -102,7 +102,6 @@ typedef struct {
 int usb_pipe_initialize(usb_pipe_t *, usb_dev_session_t *, const usb_endpoint_desc_t *);
 int usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
 
-int usb_pipe_probe_default_control(usb_pipe_t *);
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, const uint8_t *, size_t, usb_dev_session_t *);
 

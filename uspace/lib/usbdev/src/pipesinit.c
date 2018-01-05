@@ -378,53 +378,6 @@ int usb_pipe_initialize_from_configuration(
 	return EOK;
 }
 
-/** Probe default control pipe for max packet size.
- *
- * The function tries to get the correct value of max packet size several
- * time before giving up.
- *
- * The session on the pipe shall not be started.
- *
- * @param pipe Default control pipe.
- * @return Error code.
- */
-int usb_pipe_probe_default_control(usb_pipe_t *pipe)
-{
-	assert(pipe);
-	static_assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
-
-	if ((pipe->desc.direction != USB_DIRECTION_BOTH) ||
-	    (pipe->desc.transfer_type != USB_TRANSFER_CONTROL) ||
-	    (pipe->desc.endpoint_no != 0)) {
-		return EINVAL;
-	}
-
-	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
-	size_t transferred_size;
-	int rc;
-	for (size_t attempt_var = 0; attempt_var < 3; ++attempt_var) {
-		rc = usb_request_get_descriptor(pipe, USB_REQUEST_TYPE_STANDARD,
-		    USB_REQUEST_RECIPIENT_DEVICE, USB_DESCTYPE_DEVICE,
-		    0, 0, dev_descr_start, CTRL_PIPE_MIN_PACKET_SIZE,
-		    &transferred_size);
-		if (rc == EOK) {
-			if (transferred_size != CTRL_PIPE_MIN_PACKET_SIZE) {
-				rc = ELIMIT;
-				continue;
-			}
-			break;
-		}
-	}
-	if (rc != EOK) {
-		return rc;
-	}
-
-	pipe->desc.max_packet_size
-	    = dev_descr_start[DEV_DESCR_MAX_PACKET_SIZE_OFFSET];
-
-	return EOK;
-}
-
 /**
  * @}
  */
