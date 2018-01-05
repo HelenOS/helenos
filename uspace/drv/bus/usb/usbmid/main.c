@@ -161,7 +161,7 @@ static int usbmid_function_offline(ddf_fun_t *fun)
 /** USB MID driver ops. */
 static const usb_driver_ops_t mid_driver_ops = {
 	.device_add = usbmid_device_add,
-	.device_rem = usbmid_device_remove,
+	.device_remove = usbmid_device_remove,
 	.device_gone = usbmid_device_gone,
 	.function_online = usbmid_function_online,
 	.function_offline = usbmid_function_offline

@@ -67,7 +67,7 @@ static int usbfallback_device_gone(usb_device_t *dev)
 /** USB fallback driver ops. */
 static const usb_driver_ops_t usbfallback_driver_ops = {
 	.device_add = usbfallback_device_add,
-	.device_rem = usbfallback_device_gone,
+	.device_remove = usbfallback_device_gone,
 	.device_gone = usbfallback_device_gone,
 };
 

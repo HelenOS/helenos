@@ -84,13 +84,23 @@ static int generic_device_remove(ddf_dev_t *gen_dev)
 {
 	assert(driver);
 	assert(driver->ops);
-	if (driver->ops->device_rem == NULL)
+	if (driver->ops->device_remove == NULL)
 		return ENOTSUP;
+
 	/* Just tell the driver to stop whatever it is doing */
 	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
-	const int ret = driver->ops->device_rem(usb_dev);
+	int ret = driver->ops->device_remove(usb_dev);
 	if (ret != EOK)
 		return ret;
+
+	/* Notify the driver after endpoints were unregistered. */
+	usb_device_destroy_pipes(usb_dev);
+	if (driver->ops->device_removed != NULL) {
+		ret = driver->ops->device_removed(usb_dev);
+		if (ret != EOK)
+			return ret;
+	}
+
 	usb_device_destroy_ddf(gen_dev);
 	return EOK;
 }

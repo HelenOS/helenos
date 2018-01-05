@@ -185,7 +185,7 @@ static const usb_endpoint_description_t *diag_endpoints[] = {
 /** USB diagnostic driver ops. */
 static const usb_driver_ops_t diag_driver_ops = {
 	.device_add = device_add,
-	.device_rem = device_remove,
+	.device_remove = device_remove,
 	.device_gone = device_gone,
 	.function_online = function_online,
 	.function_offline = function_offline

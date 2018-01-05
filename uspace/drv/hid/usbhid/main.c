@@ -121,7 +121,7 @@ static int usb_hid_device_add(usb_device_t *dev)
  * @param dev Structure representing the device.
  * @return Error code.
  */
-static int usb_hid_device_rem(usb_device_t *dev)
+static int usb_hid_device_remove(usb_device_t *dev)
 {
 	assert(dev);
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
@@ -163,7 +163,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 /** USB generic driver callbacks */
 static const usb_driver_ops_t usb_hid_driver_ops = {
 	.device_add = usb_hid_device_add,
-	.device_rem = usb_hid_device_rem,
+	.device_remove = usb_hid_device_remove,
 	.device_gone = usb_hid_device_gone,
 };
 

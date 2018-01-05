@@ -389,7 +389,7 @@ static int usbmast_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 /** USB mass storage driver ops. */
 static const usb_driver_ops_t usbmast_driver_ops = {
 	.device_add = usbmast_device_add,
-	.device_rem = usbmast_device_remove,
+	.device_remove = usbmast_device_remove,
 	.device_gone = usbmast_device_gone,
 };
 
