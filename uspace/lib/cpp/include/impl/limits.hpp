@@ -30,6 +30,7 @@
 #define LIBCPP_LIMITS
 
 #include <cstdint>
+#include <climits>
 
 namespace std
 {
@@ -344,176 +345,242 @@ namespace std
      */
 
     template<>
-    class numeric_limits<int8_t>: public aux::numeric_limits<int8_t>
+    class numeric_limits<char>: public aux::numeric_limits<char>
     {
         public:
             static constexpr bool is_specialized = true;
 
-            static constexpr int8_t max()
+            static constexpr char max()
             {
-                return INT8_MAX;
+                return CHAR_MAX;
             }
 
-            static constexpr int8_t min()
+            static constexpr char min()
             {
-                return INT8_MIN;
+                return CHAR_MIN;
             }
 
-            static constexpr int8_t lowest()
+            static constexpr char lowest()
             {
                 return min();
             }
     };
 
     template<>
-    class numeric_limits<int16_t>: public aux::numeric_limits<int16_t>
+    class numeric_limits<signed char>: public aux::numeric_limits<signed char>
     {
         public:
             static constexpr bool is_specialized = true;
 
-            static constexpr int16_t max()
+            static constexpr signed char max()
             {
-                return INT16_MAX;
+                return SCHAR_MAX;
             }
 
-            static constexpr int16_t min()
+            static constexpr signed char min()
             {
-                return INT16_MIN;
+                return SCHAR_MIN;
             }
 
-            static constexpr int16_t lowest()
+            static constexpr signed char lowest()
             {
                 return min();
             }
     };
 
     template<>
-    class numeric_limits<int32_t>: public aux::numeric_limits<int32_t>
+    class numeric_limits<short>: public aux::numeric_limits<short>
     {
         public:
             static constexpr bool is_specialized = true;
 
-            static constexpr int32_t max()
+            static constexpr short max()
             {
-                return INT32_MAX;
+                return SHRT_MAX;
             }
 
-            static constexpr int32_t min()
+            static constexpr short min()
             {
-                return INT32_MIN;
+                return SHRT_MIN;
             }
 
-            static constexpr int32_t lowest()
+            static constexpr short lowest()
             {
                 return min();
             }
     };
 
     template<>
-    class numeric_limits<int64_t>: public aux::numeric_limits<int64_t>
+    class numeric_limits<int>: public aux::numeric_limits<int>
     {
         public:
             static constexpr bool is_specialized = true;
 
-            static constexpr int64_t max()
+            static constexpr int max()
             {
-                return INT64_MAX;
+                return INT_MAX;
             }
 
-            static constexpr int64_t min()
+            static constexpr int min()
             {
-                return INT64_MIN;
+                return INT_MIN;
             }
 
-            static constexpr int64_t lowest()
+            static constexpr int lowest()
             {
                 return min();
             }
     };
 
     template<>
-    class numeric_limits<uint8_t>: public aux::numeric_limits<uint8_t>
+    class numeric_limits<long>: public aux::numeric_limits<long>
     {
         public:
             static constexpr bool is_specialized = true;
 
-            static constexpr uint8_t max()
+            static constexpr long max()
             {
-                return UINT8_MAX;
+                return LONG_MAX;
             }
 
-            static constexpr uint8_t min()
+            static constexpr long min()
             {
-                return UINT8_MIN;
+                return LONG_MIN;
             }
 
-            static constexpr uint8_t lowest()
+            static constexpr long lowest()
             {
                 return min();
             }
     };
 
     template<>
-    class numeric_limits<uint16_t>: public aux::numeric_limits<uint16_t>
+    class numeric_limits<long long>: public aux::numeric_limits<long long>
     {
         public:
             static constexpr bool is_specialized = true;
 
-            static constexpr uint16_t max()
+            static constexpr long long max()
             {
-                return UINT16_MAX;
+                return LLONG_MAX;
             }
 
-            static constexpr uint16_t min()
+            static constexpr long long min()
             {
-                return UINT16_MIN;
+                return LLONG_MIN;
             }
 
-            static constexpr uint16_t lowest()
+            static constexpr long long lowest()
             {
                 return min();
             }
     };
 
     template<>
-    class numeric_limits<uint32_t>: public aux::numeric_limits<uint32_t>
+    class numeric_limits<unsigned char>: public aux::numeric_limits<unsigned char>
     {
         public:
             static constexpr bool is_specialized = true;
 
-            static constexpr uint32_t max()
+            static constexpr unsigned char max()
             {
-                return UINT32_MAX;
+                return SCHAR_MAX;
             }
 
-            static constexpr uint32_t min()
+            static constexpr unsigned char min()
             {
-                return UINT32_MIN;
+                return SCHAR_MIN;
             }
 
-            static constexpr uint32_t lowest()
+            static constexpr unsigned char lowest()
             {
                 return min();
             }
     };
 
     template<>
-    class numeric_limits<uint64_t>: public aux::numeric_limits<uint64_t>
+    class numeric_limits<unsigned short>: public aux::numeric_limits<unsigned short>
     {
         public:
             static constexpr bool is_specialized = true;
 
-            static constexpr uint64_t max()
+            static constexpr unsigned short max()
             {
-                return UINT64_MAX;
+                return USHRT_MAX;
             }
 
-            static constexpr uint64_t min()
+            static constexpr unsigned short min()
             {
-                return UINT64_MIN;
+                return USHRT_MIN;
             }
 
-            static constexpr uint64_t lowest()
+            static constexpr unsigned short lowest()
+            {
+                return min();
+            }
+    };
+
+    template<>
+    class numeric_limits<unsigned int>: public aux::numeric_limits<unsigned int>
+    {
+        public:
+            static constexpr bool is_specialized = true;
+
+            static constexpr unsigned int max()
+            {
+                return UINT_MAX;
+            }
+
+            static constexpr unsigned int min()
+            {
+                return UINT_MIN;
+            }
+
+            static constexpr unsigned int lowest()
+            {
+                return min();
+            }
+    };
+
+    template<>
+    class numeric_limits<unsigned long>: public aux::numeric_limits<unsigned long>
+    {
+        public:
+            static constexpr bool is_specialized = true;
+
+            static constexpr unsigned long max()
+            {
+                return ULONG_MAX;
+            }
+
+            static constexpr unsigned long min()
+            {
+                return ULONG_MIN;
+            }
+
+            static constexpr unsigned long lowest()
+            {
+                return min();
+            }
+    };
+
+    template<>
+    class numeric_limits<unsigned long long>: public aux::numeric_limits<unsigned long long>
+    {
+        public:
+            static constexpr bool is_specialized = true;
+
+            static constexpr unsigned long long max()
+            {
+                return ULLONG_MAX;
+            }
+
+            static constexpr unsigned long long min()
+            {
+                return ULLONG_MIN;
+            }
+
+            static constexpr unsigned long long lowest()
             {
                 return min();
             }
