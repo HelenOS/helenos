@@ -27,7 +27,7 @@
  */
 
 #ifndef LIBCPP_NUMERIC
-#define LUBCPP_NUMERIC
+#define LIBCPP_NUMERIC
 
 #include <utility>
 
