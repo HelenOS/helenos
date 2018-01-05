@@ -207,30 +207,37 @@ static int process_endpoint(
 		return EEXIST;
 	}
 
-	unsigned max_burst = 0;
-	unsigned max_streams = 0;
-	unsigned bytes_per_interval = 0;
-	unsigned mult = 0;
+	usb_endpoint_desc_t ep_desc = {
+		.endpoint_no = ep_no,
+		.transfer_type = description.transfer_type,
+		.direction = description.direction,
+		// FIXME: USB2 max_packet_size is limited to 1023 bytes, 1024+ doesn't work for USB3
+		// See 4.14.2.1.1 of XHCI specification -> possibly refactor into one somehow-named field
+		.max_packet_size
+			= ED_MPS_PACKET_SIZE_GET(uint16_usb2host(endpoint_desc->max_packet_size)),
+		.interval = endpoint_desc->poll_interval,
+		// FIXME: USB2 packets and USB3 max_burst are probably the same thing
+		.packets
+			= ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(endpoint_desc->max_packet_size)),
+	};
+
+	/* TODO Extract USB2-related information */
+	ep_desc.usb2 = (usb2_endpoint_desc_t) { 0 };
+
 	if (companion_desc) {
-		max_burst = companion_desc->max_burst;
-		max_streams = SS_COMPANION_MAX_STREAMS(companion_desc->attributes);
-		bytes_per_interval = companion_desc->bytes_per_interval;
-		mult = SS_COMPANION_MULT(companion_desc->attributes);
+		ep_desc.usb3 = (usb3_endpoint_desc_t) {
+			.max_burst = companion_desc->max_burst,
+			.max_streams
+				= SS_COMPANION_MAX_STREAMS(companion_desc->attributes),
+			.bytes_per_interval
+				= companion_desc->bytes_per_interval,
+			.mult = SS_COMPANION_MULT(companion_desc->attributes),
+		};
 	}
 
-	// FIXME: USB2 packets and USB3 max_burst are probably the same thing
-	// FIXME: USB2 max_packet_size is limited to 1023 bytes, 1024+ doesn't work for USB3
-	// See 4.14.2.1.1 of XHCI specification -> possibly refactor into one somehow-named field
-	int rc = usb_pipe_initialize(&ep_mapping->pipe,
-	    ep_no, description.transfer_type,
-	    ED_MPS_PACKET_SIZE_GET(
-	        uint16_usb2host(endpoint_desc->max_packet_size)),
-	    description.direction, ED_MPS_TRANS_OPPORTUNITIES_GET(
-	        uint16_usb2host(endpoint_desc->max_packet_size)),
-	    max_burst, max_streams, bytes_per_interval, mult, bus_session);
-	if (rc != EOK) {
-		return rc;
-	}
+	int err = usb_pipe_initialize(&ep_mapping->pipe, bus_session, &ep_desc);
+	if (err)
+		return err;
 
 	ep_mapping->present = true;
 	ep_mapping->descriptor = endpoint_desc;

@@ -270,60 +270,43 @@ static int usb_isoch_session_initialize(usb_pipe_t *pipe) {
 /** Initialize USB endpoint pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
- * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
- * @param transfer_type Transfer type (e.g. interrupt or bulk).
- * @param max_packet_size Maximum packet size in bytes.
- * @param direction Endpoint direction (in/out).
+ * @param bus_session Endpoint pipe to be initialized.
+ * @param ep_desc Prepared endpoint descriptor
  * @return Error code.
  */
-int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
-    usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_direction_t direction, unsigned packets,
-    unsigned max_burst, unsigned max_streams, unsigned bytes_per_interval,
-	unsigned mult, usb_dev_session_t *bus_session)
+int usb_pipe_initialize(usb_pipe_t *pipe,
+    usb_dev_session_t *bus_session,
+    const usb_endpoint_desc_t *ep_desc)
 {
 	int ret = EOK;
-	// FIXME: refactor this function PLEASE
 	assert(pipe);
 
-	pipe->desc.endpoint_no = endpoint_no;
-	pipe->desc.transfer_type = transfer_type;
-	pipe->desc.packets = packets;
-	pipe->desc.max_packet_size = max_packet_size;
-	pipe->desc.direction = direction;
-	pipe->desc.usb3.max_burst = max_burst;
-	pipe->desc.usb3.max_streams = max_streams;
-	pipe->desc.usb3.mult = mult;
-	pipe->desc.usb3.bytes_per_interval = bytes_per_interval;
+	pipe->desc = *ep_desc;
 	pipe->auto_reset_halt = false;
 	pipe->bus_session = bus_session;
 
-	// TODO: hardcoded, remake to receive from device descriptors
-	pipe->desc.interval = 14;
-
-	if (transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+	if (pipe->desc.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
 		ret = usb_isoch_session_initialize(pipe);
 	}
 
 	return ret;
 }
 
+static const usb_endpoint_desc_t default_control_ep_desc = {
+	.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
+	.direction = USB_DIRECTION_BOTH,
+	.packets = 1,
+};
+
 /** Initialize USB endpoint pipe as the default zero control pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
+ * @param bus_session
  * @return Error code.
  */
-int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
-    usb_dev_session_t *bus_session)
+int usb_pipe_initialize_default_control(usb_pipe_t *pipe, usb_dev_session_t *bus_session)
 {
-	assert(pipe);
-
-	const int rc = usb_pipe_initialize(pipe, 0, USB_TRANSFER_CONTROL,
-	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH, 1, 0, 0, 0, 0, bus_session);
-
-	pipe->auto_reset_halt = true;
-
-	return rc;
+	return usb_pipe_initialize(pipe, bus_session, &default_control_ep_desc); 
 }
 
 /** Register endpoint with the host controller.

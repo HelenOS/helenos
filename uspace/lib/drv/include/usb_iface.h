@@ -102,6 +102,17 @@ typedef union {
 /** Description of usb endpoint.
  */
 typedef struct {
+	unsigned max_burst;
+	unsigned max_streams;
+	unsigned mult;
+	unsigned bytes_per_interval;
+} usb3_endpoint_desc_t;
+
+typedef struct {
+	unsigned polling_interval;
+} usb2_endpoint_desc_t;
+
+typedef struct usb_endpoint_desc {
 	/** Endpoint number. */
 	usb_endpoint_t endpoint_no;
 
@@ -121,16 +132,9 @@ typedef struct {
 	 * Only valid for HS INT and ISO transfers. All others should set to 1*/
 	unsigned packets;
 
-	struct {
-		unsigned polling_interval;
-	} usb2;
-
-	struct {
-		unsigned max_burst;
-		unsigned max_streams;
-		unsigned mult;
-		unsigned bytes_per_interval;
-	} usb3;
+	/** Bus version specific information */
+	usb2_endpoint_desc_t usb2;
+	usb3_endpoint_desc_t usb3;
 } usb_endpoint_desc_t;
 
 
