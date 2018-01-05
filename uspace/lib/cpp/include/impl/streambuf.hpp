@@ -406,8 +406,6 @@ namespace std
 
             locale locale_;
 
-        private:
-
             bool write_avail_() const
             {
                 return output_next_ && output_next_ < output_end_;
