@@ -1464,6 +1464,9 @@ namespace std
             size_type capacity_;
             allocator_type allocator_;
 
+            template<class C, class T, class A>
+            friend class basic_stringbuf;
+
             /**
              * Arbitrary value, standard just requires
              * data() to have some capacity.
