@@ -439,8 +439,8 @@ errno_t ipc_call(phone_t *phone, call_t *call)
 
 /** Disconnect phone from answerbox.
  *
- * This call leaves the phone in the HUNGUP state. The change to 'free' is done
- * lazily later.
+ * This call leaves the phone in the hung-up state. The phone is destroyed when
+ * its last active call is answered and there are no references to it.
  *
  * @param phone Phone structure to be hung up.
  *
@@ -754,11 +754,6 @@ static bool phone_cap_wait_cb(cap_t *cap, void *arg)
 	bool *restart = (bool *) arg;
 
 	mutex_lock(&phone->lock);
-	if ((phone->state == IPC_PHONE_HUNGUP) &&
-	    (atomic_get(&phone->active_calls) == 0)) {
-		phone->state = IPC_PHONE_FREE;
-		phone->callee = NULL;
-	}
 
 	/*
 	 * We might have had some IPC_PHONE_CONNECTING phones at the beginning
