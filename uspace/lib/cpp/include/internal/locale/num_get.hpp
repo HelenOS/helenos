@@ -35,6 +35,10 @@
 #include <iterator>
 #include <limits>
 
+extern "C" {
+#include <errno.h>
+}
+
 namespace std
 {
     /**
@@ -280,7 +284,7 @@ namespace std
         private:
             template<class BaseType, class T>
             iter_type get_integral_(iter_type in, iter_type end, ios_base& base,
-                                    ios_base::iostate err, T& v) const
+                                    ios_base::iostate& err, T& v) const
             {
                 BaseType res{};
                 unsigned int num_base{10};
@@ -294,12 +298,18 @@ namespace std
                 auto size = fill_buffer_integral_(in, end, base);
                 if (size > 0)
                 {
+                    int ret{};
                     if constexpr (is_signed<BaseType>::value)
-                        str_int64_t(base.buffer_, nullptr, num_base, false, &res);
+                        ret = str_int64_t(base.buffer_, nullptr, num_base, false, &res);
                     else
-                        str_uint64_t(base.buffer_, nullptr, num_base, false, &res);
+                        ret = str_uint64_t(base.buffer_, nullptr, num_base, false, &res);
 
-                    if (res > static_cast<BaseType>(numeric_limits<T>::max()))
+                    if (ret != EOK)
+                    {
+                        err |= ios_base::failbit;
+                        v = 0;
+                    }
+                    else if (res > static_cast<BaseType>(numeric_limits<T>::max()))
                     {
                         err |= ios_base::failbit;
                         v = numeric_limits<T>::max();
