@@ -904,7 +904,43 @@ namespace std
      */
 
     template<class Char, class Traits>
-    class basic_iostream;
+    class basic_iostream
+        : public basic_istream<Char, Traits>,
+          public basic_ostream<Char, Traits>
+    {
+        public:
+            using char_type   = Char;
+            using traits_type = Traits;
+            using int_type    = typename traits_type::int_type;
+            using pos_type    = typename traits_type::pos_type;
+            using off_type    = typename traits_type::off_type;
+
+            explicit basic_iostream(basic_streambuf<char_type, traits_type>* sb)
+                : basic_istream<char_type, traits_type>(sb),
+                  basic_ostream<char_type, traits_type>(sb)
+            { /* DUMMY BODY */ }
+
+            virtual ~basic_iostream()
+            { /* DUMMY BODY */ }
+
+        protected:
+            basic_iostream(const basic_iostream&) = delete;
+            basic_iostream& operator=(const basic_iostream&) = delete;
+
+            basic_iostream(basic_iostream&& other)
+                : basic_istream<char_type, traits_type>(move(other))
+            { /* DUMMY BODY */ }
+
+            basic_iostream& operator=(basic_iostream&& other)
+            {
+                swap(other);
+            }
+
+            void swap(basic_iostream& other)
+            {
+                basic_istream<char_type, traits_type>::swap(other);
+            }
+    };
 
     using iostream  = basic_iostream<char>;
     using wiostream = basic_iostream<wchar_t>;
