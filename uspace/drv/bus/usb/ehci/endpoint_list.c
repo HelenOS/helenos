@@ -53,12 +53,12 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 {
 	assert(instance);
 	instance->name = name;
-	instance->list_head = malloc32(sizeof(qh_t));
-	if (!instance->list_head) {
+	if (dma_buffer_alloc(&instance->dma_buffer, sizeof(qh_t))) {
 		usb_log_error("EPL(%p-%s): Failed to allocate list head.",
 		    instance, name);
 		return ENOMEM;
 	}
+	instance->list_head = instance->dma_buffer.virt;
 	qh_init(instance->list_head, NULL);
 
 	list_initialize(&instance->endpoint_list);

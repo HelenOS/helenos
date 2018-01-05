@@ -44,7 +44,6 @@
 
 #include <usb/debug.h>
 #include <usb/usb.h>
-#include <usb/host/utils/malloc32.h>
 
 #include "ehci_batch.h"
 
@@ -197,16 +196,13 @@ int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
  *
  * @param[in] instance Host controller structure to use.
  */
-int hc_gone(hc_device_t *instance)
+int hc_gone(hc_device_t *hcd)
 {
-	assert(instance);
+	hc_t *hc = hcd_to_hc(hcd);
+	endpoint_list_fini(&hc->async_list);
+	endpoint_list_fini(&hc->int_list);
+	dma_buffer_free(&hc->dma_buffer);
 	return EOK;
-	//TODO: stop the hw
-#if 0
-	endpoint_list_fini(&instance->async_list);
-	endpoint_list_fini(&instance->int_list);
-	return_page(instance->periodic_list_base);
-#endif
 };
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
@@ -405,9 +401,9 @@ int hc_start(hc_device_t *hcd)
 	EHCI_WR(instance->registers->ctrldssegment, 0);
 
 	/* Enable periodic list */
-	assert(instance->periodic_list_base);
+	assert(instance->periodic_list);
 	uintptr_t phys_base =
-	    addr_to_phys((void*)instance->periodic_list_base);
+	    addr_to_phys((void*)instance->periodic_list);
 	assert((phys_base & USB_PERIODIC_LIST_BASE_MASK) == phys_base);
 	EHCI_WR(instance->registers->periodiclistbase, phys_base);
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_PERIODIC_SCHEDULE_FLAG);
@@ -476,21 +472,20 @@ int hc_init_memory(hc_t *instance)
 	}
 
 	/* Take 1024 periodic list heads, we ignore low mem options */
-	instance->periodic_list_base = get_page();
-	if (!instance->periodic_list_base) {
+	if (dma_buffer_alloc(&instance->dma_buffer, PAGE_SIZE)) {
 		usb_log_error("HC(%p): Failed to get ISO schedule page.",
 		    instance);
 		endpoint_list_fini(&instance->async_list);
 		endpoint_list_fini(&instance->int_list);
 		return ENOMEM;
 	}
+	instance->periodic_list = instance->dma_buffer.virt;
 
 	usb_log_debug2("HC(%p): Initializing Periodic list.", instance);
-	for (unsigned i = 0;
-	    i < PAGE_SIZE/sizeof(instance->periodic_list_base[0]); ++i)
+	for (unsigned i = 0; i < PAGE_SIZE/sizeof(link_pointer_t); ++i)
 	{
 		/* Disable everything for now */
-		instance->periodic_list_base[i] =
+		instance->periodic_list[i] =
 		    LINK_POINTER_QH(addr_to_phys(instance->int_list.list_head));
 	}
 	return EOK;

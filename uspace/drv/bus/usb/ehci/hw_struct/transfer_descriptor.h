@@ -36,6 +36,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <macros.h>
 #include "link_pointer.h"
 #include "mem_access.h"
 
@@ -74,7 +75,13 @@ typedef struct td {
 
 	/* 64 bit struct only */
 	volatile uint32_t extended_bp[5];
-} td_t;
+
+	/* TDs must be 32-byte aligned */
+	PADD32 [3];
+
+} __attribute__((packed)) td_t;
+
+static_assert(sizeof(td_t) % 32 == 0);
 
 static inline bool td_active(const td_t *td)
 {
@@ -91,7 +98,7 @@ static inline size_t td_remain_size(const td_t *td)
 
 int td_error(const td_t *td);
 
-void td_init(td_t *td, const td_t *next, usb_direction_t dir, const void * buf,
+void td_init(td_t *td, uintptr_t next_phys, uintptr_t buf, usb_direction_t dir,
     size_t buf_size, int toggle, bool ioc);
 
 #endif

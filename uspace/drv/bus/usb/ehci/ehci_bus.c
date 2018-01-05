@@ -35,7 +35,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <usb/host/utils/malloc32.h>
 #include <usb/host/bandwidth.h>
 #include <usb/debug.h>
 
@@ -89,12 +88,11 @@ static endpoint_t *ehci_endpoint_create(device_t *dev, const usb_endpoint_desc_t
 	endpoint_init(&ehci_ep->base, dev, desc);
 
 	// TODO: extract USB2 information from desc
-
-	ehci_ep->qh = malloc32(sizeof(qh_t));
-	if (ehci_ep->qh == NULL) {
-		free(ehci_ep);
+	
+	if (dma_buffer_alloc(&ehci_ep->dma_buffer, sizeof(qh_t)))
 		return NULL;
-	}
+
+	ehci_ep->qh = ehci_ep->dma_buffer.virt;
 
 	link_initialize(&ehci_ep->link);
 	return &ehci_ep->base;
@@ -110,7 +108,7 @@ static void ehci_endpoint_destroy(endpoint_t *ep)
 	assert(ep);
 	ehci_endpoint_t *instance = ehci_endpoint_get(ep);
 
-	free32(instance->qh);
+	dma_buffer_free(&instance->dma_buffer);
 	free(instance);
 }
 

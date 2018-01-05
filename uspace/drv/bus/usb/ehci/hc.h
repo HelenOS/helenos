@@ -62,8 +62,10 @@ typedef struct hc {
 	/** Memory mapped I/O registers area */
 	ehci_regs_t *registers;
 
-	/** Iso transfer list */
-	link_pointer_t *periodic_list_base;
+	/** Iso transfer list, backed by dma_buffer */
+	link_pointer_t *periodic_list;
+
+	dma_buffer_t dma_buffer;
 
 	/** CONTROL and BULK schedules */
 	endpoint_list_t async_list;

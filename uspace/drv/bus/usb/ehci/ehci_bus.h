@@ -39,6 +39,7 @@
 #include <adt/list.h>
 #include <usb/host/usb2_bus.h>
 #include <usb/host/endpoint.h>
+#include <usb/host/dma_buffer.h>
 
 #include "hw_struct/queue_head.h"
 
@@ -47,8 +48,10 @@ typedef struct ehci_endpoint {
 	/* Inheritance */
 	endpoint_t base;
 
-	/** EHCI endpoint descriptor */
+	/** EHCI endpoint descriptor, backed by dma_buffer */
 	qh_t *qh;
+	
+	dma_buffer_t dma_buffer;
 	/** Linked list used by driver software */
 	link_t link;
 } ehci_endpoint_t;

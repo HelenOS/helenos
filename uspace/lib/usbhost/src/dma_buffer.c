@@ -104,6 +104,16 @@ void dma_buffer_free(dma_buffer_t *db)
 	}
 }
 
+/** Convert a pointer inside a buffer to physical address.
+ *
+ * @param[in] db Buffer at which virt is pointing
+ * @param[in] virt Pointer somewhere inside db
+ */
+uintptr_t dma_buffer_phys(const dma_buffer_t *db, void *virt)
+{
+	return db->phys + (virt - db->virt);
+}
+
 /**
  * @}
  */

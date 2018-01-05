@@ -59,6 +59,7 @@ extern dma_policy_t dma_policy_default;
 extern int dma_buffer_alloc(dma_buffer_t *db, size_t size);
 extern int dma_buffer_alloc_policy(dma_buffer_t *, size_t, dma_policy_t);
 extern void dma_buffer_free(dma_buffer_t *);
+extern uintptr_t dma_buffer_phys(const dma_buffer_t *, void *);
 
 static inline int dma_buffer_is_set(dma_buffer_t *db)
 {

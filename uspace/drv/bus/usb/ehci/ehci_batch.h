@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <usb/host/usb_transfer_batch.h>
+#include <usb/host/dma_buffer.h>
 
 #include "hw_struct/queue_head.h"
 #include "hw_struct/transfer_descriptor.h"
@@ -45,16 +46,19 @@
 /** EHCI specific data required for USB transfer */
 typedef struct ehci_transfer_batch {
 	usb_transfer_batch_t base;
+	/** Number of TDs used by the transfer */
+	size_t td_count;
 	/** Link */
 	link_t link;
 	/** Endpoint descriptor of the target endpoint. */
 	qh_t *qh;
-	/** List of TDs needed for the transfer */
-	td_t **tds;
-	/** Number of TDs used by the transfer */
-	size_t td_count;
 	/** Data buffer, must be accessible by the EHCI hw. */
-	char *device_buffer;
+	dma_buffer_t dma_buffer;
+	/** List of TDs needed for the transfer - backed by dma_buffer */
+	td_t *tds;
+	/** Data buffers - backed by dma_buffer */
+	void *setup_buffer;
+	void *data_buffer;
 	/** Generic USB transfer structure */
 	usb_transfer_batch_t *usb_batch;
 } ehci_transfer_batch_t;
