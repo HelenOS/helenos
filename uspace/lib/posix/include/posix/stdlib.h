@@ -40,8 +40,6 @@
 #define __POSIX_DEF__(x) x
 #endif
 
-#include "libc/stdlib.h"
-
 #include "sys/types.h"
 
 #include <_bits/NULL.h>
