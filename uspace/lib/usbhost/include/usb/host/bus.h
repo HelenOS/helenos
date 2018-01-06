@@ -108,7 +108,7 @@ struct bus_ops {
 	int (*device_online)(device_t *);			/**< Optional */
 	int (*device_offline)(device_t *);			/**< Optional */
 	endpoint_t *(*device_find_endpoint)(device_t*, usb_target_t, usb_direction_t);
-	endpoint_t *(*endpoint_create)(device_t *, const usb_endpoint_desc_t *);
+	endpoint_t *(*endpoint_create)(device_t *, const usb_endpoint_descriptors_t *);
 
 	/* Operations on endpoint */
 	int (*endpoint_register)(endpoint_t *);
@@ -162,7 +162,7 @@ ssize_t bus_device_send_batch_sync(device_t *, usb_target_t,
     usb_direction_t direction, char *, size_t, uint64_t,
     const char *);
 
-int bus_endpoint_add(device_t *, const usb_endpoint_desc_t *, endpoint_t **);
+int bus_endpoint_add(device_t *, const usb_endpoint_descriptors_t *, endpoint_t **);
 endpoint_t *bus_find_endpoint(device_t *, usb_target_t, usb_direction_t);
 int bus_endpoint_remove(endpoint_t *);
 

@@ -199,22 +199,23 @@ typedef struct {
 	uint8_t descriptor_type;
 	/** Endpoint address together with data flow direction. */
 	uint8_t endpoint_address;
+#define USB_ED_GET_EP(ed)	((ed).endpoint_address & 0xf)
+#define USB_ED_GET_DIR(ed)	(!(((ed).endpoint_address >> 7) & 0x1))
+
 	/** Endpoint attributes.
 	 * Includes transfer type (usb_transfer_type_t).
 	 */
 	uint8_t attributes;
+#define USB_ED_GET_TRANSFER_TYPE(ed)	((ed).attributes & 0x3)
 	/** Maximum packet size.
 	 * Lower 10 bits represent the actuall size
 	 * Bits 11,12 specify addtional transfer opportunitities for
 	 * HS INT and ISO transfers. */
 	uint16_t max_packet_size;
-
-#define ED_MPS_PACKET_SIZE_MASK  0x3ff
-#define ED_MPS_PACKET_SIZE_GET(value) \
-	((value) & ED_MPS_PACKET_SIZE_MASK)
-#define ED_MPS_TRANS_OPPORTUNITIES_GET(value) \
-	((((value) >> 10) & 0x3) + 1)
-
+#define USB_ED_GET_MPS(ed) \
+	(uint16_usb2host((ed).max_packet_size) & 0x7ff)
+#define USB_ED_GET_ADD_OPPS(ed) \
+	((uint16_usb2host((ed).max_packet_size) >> 11) & 0x3)
 	/** Polling interval in milliseconds.
 	 * Ignored for bulk and control endpoints.
 	 * Isochronous endpoints must use value 1.
@@ -245,10 +246,8 @@ typedef struct {
 	 * for specific endpoint types.
 	 */
 	uint8_t attributes;
-#define SS_COMPANION_MAX_STREAMS(attributes) \
-	(attributes & 0x1f)
-#define SS_COMPANION_MULT(attributes) \
-	(attributes & 0x3)
+#define USB_SSC_MAX_STREAMS(sscd) ((sscd).attributes & 0x1f)
+#define USB_SSC_MULT(sscd) ((sscd).attributes & 0x3)
 	/** The total number of bytes this endpoint will transfer
 	 * every service interval (SI).
 	 * This field is only valid for periodic endpoints.

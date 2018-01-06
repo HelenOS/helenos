@@ -95,7 +95,7 @@ static int polling_fibril(void *arg)
 		    usb_str_class(mapping->interface->interface_class),
 		    (int) mapping->interface->interface_subclass,
 		    (int) mapping->interface->interface_protocol,
-		    data->request_size, pipe->desc.max_packet_size);
+		    data->request_size, pipe->desc.max_transfer_size);
 	}
 
 	size_t failed_attempts = 0;

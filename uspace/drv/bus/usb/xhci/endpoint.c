@@ -51,7 +51,7 @@
  *
  * @return Error code.
  */
-int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoint_desc_t *desc)
+int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
 	assert(xhci_ep);
 
@@ -59,17 +59,30 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 
 	endpoint_init(ep, dev, desc);
 
-	xhci_ep->max_streams = desc->usb3.max_streams;
-	xhci_ep->max_burst = desc->usb3.max_burst;
-	xhci_ep->mult = desc->usb3.mult;
+	xhci_ep->max_streams = USB_SSC_MAX_STREAMS(desc->companion);
+	xhci_ep->max_burst = desc->companion.max_burst + 1;
+	xhci_ep->mult = USB_SSC_MULT(desc->companion) + 1;
 
-	// TODO: process according to 6.2.3.6 of XHCI specification; hardcoded for HS/SS EPs
-	xhci_ep->interval = desc->interval - 1;
+	/* In USB 3, the semantics of wMaxPacketSize changed. Now the number of
+	 * packets per service interval is determined from max_burst and mult.
+	 */
+	if (dev->speed >= USB_SPEED_SUPER) {
+		ep->packets_per_uframe = xhci_ep->max_burst * xhci_ep->mult;
+		ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
+	}
+
+	xhci_ep->interval = desc->endpoint.poll_interval;
+	/* Only Low/Full speed interrupt endpoints have interval set directly,
+	 * others have 2-based log of it.
+	 */
+	if (dev->speed >= USB_SPEED_HIGH || ep->transfer_type != USB_TRANSFER_INTERRUPT) {
+		xhci_ep->interval = 1 << (xhci_ep->interval - 1);
+	}
 
 	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		xhci_ep->isoch_max_size = desc->usb3.bytes_per_interval
-			? desc->usb3.bytes_per_interval
-			: desc->max_packet_size * (desc->packets + 1);
+		xhci_ep->isoch_max_size = desc->companion.bytes_per_interval
+			? desc->companion.bytes_per_interval
+			: ep->max_transfer_size;
 		/* Technically there could be superspeed plus too. */
 
 		/* Allocate and setup isochronous-specific structures. */
@@ -496,8 +509,6 @@ void xhci_device_remove_endpoint(xhci_endpoint_t *ep)
 	assert(dev->endpoints[ep->base.endpoint]);
 	dev->endpoints[ep->base.endpoint] = NULL;
 	ep->base.device = NULL;
-
-	endpoint_del_ref(&ep->base);
 }
 
 /** Retrieve XHCI endpoint from a device by the endpoint number.

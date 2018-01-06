@@ -49,6 +49,7 @@
 #include <usbhc_iface.h>
 
 #include "bus.h"
+#include "endpoint.h"
 
 #include "ddf_helpers.h"
 
@@ -64,8 +65,8 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub, unsigned port
  * @param endpoint_desc Endpoint description.
  * @return Error code.
  */
-static int register_endpoint(
-	ddf_fun_t *fun, usb_endpoint_desc_t *endpoint_desc)
+static int register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
+     const usb_endpoint_descriptors_t *ep_desc)
 {
 	assert(fun);
 	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -74,13 +75,20 @@ static int register_endpoint(
 	assert(hcd->bus);
 	assert(dev);
 
-	usb_log_debug("Register endpoint %d:%d %s-%s %zuB %ums.\n",
-		dev->address, endpoint_desc->endpoint_no,
-		usb_str_transfer_type(endpoint_desc->transfer_type),
-		usb_str_direction(endpoint_desc->direction),
-		endpoint_desc->max_packet_size, endpoint_desc->interval);
+	endpoint_t *ep;
+	const int err = bus_endpoint_add(dev, ep_desc, &ep);
+	if (err)
+		return err;
 
-	return bus_endpoint_add(dev, endpoint_desc, NULL);
+	if (pipe_desc) {
+		pipe_desc->endpoint_no = ep->endpoint;
+		pipe_desc->direction = ep->direction;
+		pipe_desc->transfer_type = ep->transfer_type;
+		pipe_desc->max_transfer_size = ep->max_transfer_size;
+	}
+	endpoint_del_ref(ep);
+
+	return EOK;
 }
 
  /** Unregister endpoint interface function.
@@ -88,8 +96,7 @@ static int register_endpoint(
   * @param endpoint_desc Endpoint description.
   * @return Error code.
   */
-static int unregister_endpoint(
-	ddf_fun_t *fun, usb_endpoint_desc_t *endpoint_desc)
+static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *endpoint_desc)
 {
 	assert(fun);
 	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -102,10 +109,6 @@ static int unregister_endpoint(
 		.address = dev->address,
 		.endpoint = endpoint_desc->endpoint_no
 	}};
-
-	usb_log_debug("Unregister endpoint %d:%d %s.\n",
-		dev->address, endpoint_desc->endpoint_no,
-		usb_str_direction(endpoint_desc->direction));
 
 	endpoint_t *ep = bus_find_endpoint(dev, target, endpoint_desc->direction);
 	if (!ep)

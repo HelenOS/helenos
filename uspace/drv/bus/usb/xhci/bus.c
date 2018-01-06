@@ -50,15 +50,11 @@
 
 
 /** Initial descriptor used for control endpoint 0 before more configuration is retrieved. */
-static const usb_endpoint_desc_t ep0_initial_desc = {
-	.endpoint_no = 0,
-	.direction = USB_DIRECTION_BOTH,
-	.transfer_type = USB_TRANSFER_CONTROL,
-	.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
-	.packets = 1,
+static const usb_endpoint_descriptors_t ep0_initial_desc = {
+	.endpoint.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
 };
 
-static endpoint_t *endpoint_create(device_t *, const usb_endpoint_desc_t *);
+static endpoint_t *endpoint_create(device_t *, const usb_endpoint_descriptors_t *);
 
 /** Assign address and control endpoint to a new XHCI device.
  * @param[in] bus XHCI bus, in which the address is assigned.
@@ -367,7 +363,7 @@ static int device_offline(device_t *dev_base)
 	return EOK;
 }
 
-static endpoint_t *endpoint_create(device_t *dev, const usb_endpoint_desc_t *desc)
+static endpoint_t *endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
 	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t));
 	if (!ep)

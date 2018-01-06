@@ -155,41 +155,6 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
 	return NULL;
 }
 
-static void parse_endpoint_descriptors(usb_endpoint_desc_t *ep_desc,
-    usb_standard_endpoint_descriptor_t *endpoint_desc,
-    usb_superspeed_endpoint_companion_descriptor_t *companion_desc)
-{
-	*ep_desc = (usb_endpoint_desc_t) {
-		/* Actual endpoint number is in bits 0..3 */
-		.endpoint_no = endpoint_desc->endpoint_address & 0x0F,
-		/* Transfer type is in bits 0..2 and
-		 * the enum values corresponds 1:1 */
-		.transfer_type = endpoint_desc->attributes & 3,
-		/* Endpoint direction is set by bit 7 */
-		.direction = (endpoint_desc->endpoint_address & 128)
-		    ? USB_DIRECTION_IN : USB_DIRECTION_OUT,
-		// FIXME: USB2 max_packet_size is limited to 1023 bytes, 1024+ doesn't work for USB3
-		// See 4.14.2.1.1 of XHCI specification -> possibly refactor into one somehow-named field
-		.max_packet_size
-			= ED_MPS_PACKET_SIZE_GET(uint16_usb2host(endpoint_desc->max_packet_size)),
-		.interval = endpoint_desc->poll_interval,
-		// FIXME: USB2 packets and USB3 max_burst are probably the same thing
-		.packets = ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(endpoint_desc->max_packet_size)),
-	};
-
-	if (companion_desc) {
-		ep_desc->usb3 = (usb3_endpoint_desc_t) {
-			.max_burst = companion_desc->max_burst,
-			.max_streams
-				= SS_COMPANION_MAX_STREAMS(companion_desc->attributes),
-			.bytes_per_interval
-				= companion_desc->bytes_per_interval,
-			.mult = SS_COMPANION_MULT(companion_desc->attributes),
-		};
-	}
-}
-
-
 /** Process endpoint descriptor.
  *
  * @param mapping Endpoint mapping list.
@@ -210,12 +175,9 @@ static int process_endpoint(
 	/*
 	 * Get endpoint characteristics.
 	 */
-	usb_endpoint_desc_t ep_desc;
-	parse_endpoint_descriptors(&ep_desc, endpoint_desc, companion_desc);
-
 	const usb_endpoint_description_t description = {
-		.direction = ep_desc.direction,
-		.transfer_type = ep_desc.transfer_type,
+		.transfer_type = USB_ED_GET_TRANSFER_TYPE(*endpoint_desc),
+		.direction = USB_ED_GET_DIR(*endpoint_desc),
 
 		/* Get interface characteristics. */
 		.interface_class = interface->interface_class,
@@ -237,7 +199,7 @@ static int process_endpoint(
 		return EEXIST;
 	}
 
-	int err = usb_pipe_initialize(&ep_mapping->pipe, bus_session, &ep_desc);
+	int err = usb_pipe_initialize(&ep_mapping->pipe, bus_session, description.transfer_type);
 	if (err)
 		return err;
 

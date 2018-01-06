@@ -115,17 +115,14 @@ int usbhc_device_remove(async_exch_t *exch, unsigned port)
 	    IPC_M_USB_DEVICE_REMOVE, port);
 }
 
-int static_assert[sizeof(sysarg_t) >= 4 ? 1 : -1];
-typedef union {
-	uint8_t arr[sizeof(sysarg_t)];
-	sysarg_t arg;
-} pack8_t;
-
-int usbhc_register_endpoint(async_exch_t *exch,
-	usb_endpoint_desc_t *endpoint_desc)
+int usbhc_register_endpoint(async_exch_t *exch, usb_pipe_desc_t *pipe_desc,
+    const usb_endpoint_descriptors_t *desc)
 {
 	if (!exch)
 		return EBADMEM;
+
+	if (!desc)
+		return EINVAL;
 
 	aid_t opening_request = async_send_1(exch,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_REGISTER_ENDPOINT, NULL);
@@ -134,9 +131,7 @@ int usbhc_register_endpoint(async_exch_t *exch,
 		return ENOMEM;
 	}
 
-	const int ret = async_data_write_start(exch, (void *) endpoint_desc,
-		sizeof(usb_endpoint_desc_t));
-
+	int ret = async_data_write_start(exch, desc, sizeof(*desc));
 	if (ret != EOK) {
 		async_forget(opening_request);
 		return ret;
@@ -146,11 +141,22 @@ int usbhc_register_endpoint(async_exch_t *exch,
 	sysarg_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
-	return (int) opening_request_rc;
+	if (opening_request_rc)
+		return (int) opening_request_rc;
+
+	usb_pipe_desc_t dest;
+	ret = async_data_read_start(exch, &dest, sizeof(dest));
+	if (ret != EOK) {
+		return ret;
+	}
+
+	if (pipe_desc)
+		*pipe_desc = dest;
+
+	return EOK;
 }
 
-int usbhc_unregister_endpoint(async_exch_t *exch,
-	usb_endpoint_desc_t *endpoint_desc)
+int usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pipe_desc)
 {
 	if (!exch)
 		return EBADMEM;
@@ -162,8 +168,7 @@ int usbhc_unregister_endpoint(async_exch_t *exch,
 		return ENOMEM;
 	}
 
-	const int ret = async_data_write_start(exch, endpoint_desc,
-		sizeof(usb_endpoint_desc_t));
+	const int ret = async_data_write_start(exch, pipe_desc, sizeof(*pipe_desc));
 	if (ret != EOK) {
 		async_forget(opening_request);
 		return ret;
@@ -367,22 +372,27 @@ static void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	void *buffer = NULL;
-	size_t size = 0;
-	int rc = async_data_write_accept(&buffer, false,
-		sizeof(usb_endpoint_desc_t), sizeof(usb_endpoint_desc_t), 0, &size);
+	usb_endpoint_descriptors_t ep_desc;
+	ipc_callid_t data_callid;
+	size_t len;
 
-	if (rc != EOK) {
-		free(buffer);
-		async_answer_0(callid, rc);
+	if (!async_data_write_receive(&data_callid, &len)
+	    || len != sizeof(ep_desc)) {
+		async_answer_0(callid, EINVAL);
 		return;
 	}
+	async_data_write_finalize(data_callid, &ep_desc, sizeof(ep_desc));
 
-	usb_endpoint_desc_t *endpoint_desc = (usb_endpoint_desc_t *) buffer;
-	rc = usbhc_iface->register_endpoint(fun, endpoint_desc);
+	usb_pipe_desc_t pipe_desc;
 
-	free(buffer);
+	const int rc = usbhc_iface->register_endpoint(fun, &pipe_desc, &ep_desc);
 	async_answer_0(callid, rc);
+
+	if (!async_data_read_receive(&data_callid, &len)
+	    || len != sizeof(pipe_desc)) {
+		return;
+	}
+	async_data_read_finalize(data_callid, &pipe_desc, sizeof(pipe_desc));
 }
 
 static void remote_usbhc_unregister_endpoint(ddf_fun_t *fun, void *iface,
@@ -399,21 +409,18 @@ static void remote_usbhc_unregister_endpoint(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	void *buffer = NULL;
-	size_t size = 0;
-	int rc = async_data_write_accept(&buffer, false,
-		sizeof(usb_endpoint_desc_t), sizeof(usb_endpoint_desc_t), 0, &size);
+	usb_pipe_desc_t pipe_desc;
+	ipc_callid_t data_callid;
+	size_t len;
 
-	if (rc != EOK) {
-		free(buffer);
-		async_answer_0(callid, rc);
+	if (!async_data_write_receive(&data_callid, &len)
+	    || len != sizeof(pipe_desc)) {
+		async_answer_0(callid, EINVAL);
 		return;
 	}
+	async_data_write_finalize(data_callid, &pipe_desc, sizeof(pipe_desc));
 
-	usb_endpoint_desc_t *endpoint_desc = (usb_endpoint_desc_t *) buffer;
-	usbhc_iface->unregister_endpoint(fun, endpoint_desc);
-
-	free(buffer);
+	const int rc = usbhc_iface->unregister_endpoint(fun, &pipe_desc);
 	async_answer_0(callid, rc);
 }
 

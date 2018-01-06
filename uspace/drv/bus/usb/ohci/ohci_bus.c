@@ -71,7 +71,7 @@ static bool ohci_ep_toggle_get(endpoint_t *ep)
 
 /** Creates new hcd endpoint representation.
  */
-static endpoint_t *ohci_endpoint_create(device_t *dev, const usb_endpoint_desc_t *desc)
+static endpoint_t *ohci_endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
 	assert(dev);
 

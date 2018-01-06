@@ -127,17 +127,12 @@ int bus_device_offline(device_t *dev)
 	return ops->device_offline(dev);
 }
 
-int bus_endpoint_add(device_t *device, const usb_endpoint_desc_t *desc, endpoint_t **out_ep)
+int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, endpoint_t **out_ep)
 {
 	int err;
 	assert(device);
 
 	bus_t *bus = device->bus;
-
-	if (desc->max_packet_size == 0 || desc->packets == 0) {
-		usb_log_warning("Invalid endpoint description (mps %zu, %u packets)", desc->max_packet_size, desc->packets);
-		return EINVAL;
-	}
 
 	const bus_ops_t *create_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_create);
 	const bus_ops_t *register_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_register);
@@ -148,8 +143,22 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_desc_t *desc, endpoint
 	if (!ep)
 		return ENOMEM;
 
-	/* Temporary reference */
+	/* Bus reference */
 	endpoint_add_ref(ep);
+
+	if (ep->max_transfer_size == 0) {
+		usb_log_warning("Invalid endpoint description (mps %zu, "
+			"%u packets)", ep->max_packet_size, ep->packets_per_uframe);
+		/* Bus reference */
+		endpoint_del_ref(ep);
+		return EINVAL;
+	}
+
+	usb_log_debug("Register endpoint %d:%d %s-%s %zuB.\n",
+	    device->address, ep->endpoint,
+	    usb_str_transfer_type(ep->transfer_type),
+	    usb_str_direction(ep->direction),
+	    ep->max_transfer_size);
 
 	fibril_mutex_lock(&bus->guard);
 	err = register_ops->endpoint_register(ep);
@@ -161,8 +170,6 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_desc_t *desc, endpoint
 		*out_ep = ep;
 	}
 
-	/* Temporary reference */
-	endpoint_del_ref(ep);
 	return err;
 }
 
@@ -192,12 +199,21 @@ endpoint_t *bus_find_endpoint(device_t *device, usb_target_t endpoint, usb_direc
 int bus_endpoint_remove(endpoint_t *ep)
 {
 	assert(ep);
+	assert(ep->device);
+	assert(ep->device->bus);
+	assert(ep->device->bus->ops);
 
 	bus_t *bus = endpoint_get_bus(ep);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(ep->device->bus->ops, endpoint_unregister);
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, endpoint_unregister);
 	if (!ops)
 		return ENOTSUP;
+
+	usb_log_debug("Unregister endpoint %d:%d %s-%s %zuB.\n",
+	    ep->device->address, ep->endpoint,
+	    usb_str_transfer_type(ep->transfer_type),
+	    usb_str_direction(ep->direction),
+	    ep->max_transfer_size);
 
 	fibril_mutex_lock(&bus->guard);
 	const int r = ops->endpoint_unregister(ep);

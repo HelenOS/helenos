@@ -254,13 +254,15 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
 	}
 
 	/* Register created pipes. */
+	unsigned pipes_registered = 0;
 	for (size_t i = 0; i < pipe_count; i++) {
 		if (pipes[i].present) {
-			rc = usb_pipe_register(&pipes[i].pipe);
+			rc = usb_pipe_register(&pipes[i].pipe, pipes[i].descriptor, pipes[i].companion_descriptor);
 			if (rc != EOK) {
 				goto rollback_unregister_endpoints;
 			}
 		}
+		pipes_registered++;
 	}
 
 	usb_dev->pipes = pipes;
@@ -275,7 +277,7 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
 	 * endpoints fails.
 	 */
 rollback_unregister_endpoints:
-	for (size_t i = 0; i < pipe_count; i++) {
+	for (size_t i = 0; i < pipes_registered; i++) {
 		if (pipes[i].present) {
 			usb_pipe_unregister(&pipes[i].pipe);
 		}
@@ -418,8 +420,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 
 	/* This pipe was registered by the hub driver,
 	 * during device initialization. */
-	int rc = usb_pipe_initialize_default_control(
-	    &usb_dev->ctrl_pipe, usb_dev->bus_session);
+	int rc = usb_pipe_initialize_default_control(&usb_dev->ctrl_pipe, usb_dev->bus_session);
 	if (rc != EOK) {
 		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "default control pipe initialization";

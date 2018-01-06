@@ -99,40 +99,6 @@ typedef union {
 	uint32_t packed;
 } usb_target_t;
 
-/** Description of an usb endpoint.
- */
-typedef struct {
-	unsigned max_burst;
-	unsigned max_streams;
-	unsigned mult;
-	unsigned bytes_per_interval;
-} usb3_endpoint_desc_t;
-
-typedef struct usb_endpoint_desc {
-	/** Endpoint number. */
-	usb_endpoint_t endpoint_no;
-
-	/** Endpoint transfer type. */
-	usb_transfer_type_t transfer_type;
-
-	/** Endpoint direction. */
-	usb_direction_t direction;
-
-	/** Maximum packet size for the endpoint. */
-	size_t max_packet_size;
-
-	/** Scheduling interval for HC. Only valid for interrupt/isoch transfer. */
-	size_t interval;
-
-	/** Number of packets per frame/uframe.
-	 * Only valid for HS INT and ISO transfers. All others should set to 1*/
-	unsigned packets;
-
-	/** Superspeed-specific information */
-	usb3_endpoint_desc_t usb3;
-} usb_endpoint_desc_t;
-
-
 extern usb_dev_session_t *usb_dev_connect(devman_handle_t);
 extern usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
 extern void usb_dev_disconnect(usb_dev_session_t *);

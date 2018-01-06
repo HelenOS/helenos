@@ -81,7 +81,7 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 		EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_DTC_FLAG);
 	}
 	uint32_t ep_cap = QH_EP_CAP_C_MASK_SET(3 << 2) |
-		    QH_EP_CAP_MULTI_SET(ep->packets);
+		    QH_EP_CAP_MULTI_SET(ep->packets_per_uframe);
 	if (ep->device->speed != USB_SPEED_HIGH) {
 		ep_cap |=
 		    QH_EP_CAP_TT_PORT_SET(ep->device->tt.port) |

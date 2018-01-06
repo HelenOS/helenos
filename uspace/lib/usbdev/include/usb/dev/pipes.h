@@ -36,21 +36,23 @@
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usb_iface.h>
+#include <usbhc_iface.h>
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
+
 /** Abstraction of a logical connection to USB device endpoint.
- * It encapsulates endpoint attributes (transfer type etc.).
+ * It contains some vital information about the pipe.
  * This endpoint must be bound with existing usb_device_connection_t
  * (i.e. the wire to send data over).
  */
 typedef struct {
-	/** Endpoint description */
-	usb_endpoint_desc_t desc;
+	/** Pipe description received from HC */
+	usb_pipe_desc_t desc;
+
 	/** Whether to automatically reset halt on the endpoint.
 	 * Valid only for control endpoint zero.
 	 */
@@ -99,13 +101,13 @@ typedef struct {
 	bool present;
 } usb_endpoint_mapping_t;
 
-int usb_pipe_initialize(usb_pipe_t *, usb_dev_session_t *, const usb_endpoint_desc_t *);
+int usb_pipe_initialize(usb_pipe_t *, usb_dev_session_t *, usb_transfer_type_t);
 int usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
 
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, const uint8_t *, size_t, usb_dev_session_t *);
 
-int usb_pipe_register(usb_pipe_t *);
+int usb_pipe_register(usb_pipe_t *, const usb_standard_endpoint_descriptor_t *, const usb_superspeed_endpoint_companion_descriptor_t *);
 int usb_pipe_unregister(usb_pipe_t *);
 
 int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);

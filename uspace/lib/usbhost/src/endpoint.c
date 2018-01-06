@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <str_error.h>
 #include <usb/debug.h>
+#include <usb/descriptor.h>
 #include <usb/host/hcd.h>
 
 #include "usb_transfer_batch.h"
@@ -49,7 +50,7 @@
 
 /** Initialize provided endpoint structure.
  */
-void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_desc_t *desc)
+void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
 	memset(ep, 0, sizeof(endpoint_t));
 
@@ -61,13 +62,19 @@ void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_desc_t *des
 	fibril_mutex_initialize(&ep->guard);
 	fibril_condvar_initialize(&ep->avail);
 
-	ep->endpoint = desc->endpoint_no;
-	ep->direction = desc->direction;
-	ep->transfer_type = desc->transfer_type;
-	ep->max_packet_size = desc->max_packet_size;
-	ep->packets = desc->packets;
+	ep->endpoint = USB_ED_GET_EP(desc->endpoint);
+	ep->direction = USB_ED_GET_DIR(desc->endpoint);
+	ep->transfer_type = USB_ED_GET_TRANSFER_TYPE(desc->endpoint);
+	ep->max_packet_size = USB_ED_GET_MPS(desc->endpoint);
+	ep->packets_per_uframe = USB_ED_GET_ADD_OPPS(desc->endpoint) + 1;
 
-	ep->bandwidth = endpoint_count_bw(ep, desc->max_packet_size);
+	/** Direction both is our construct never present in descriptors */
+	if (ep->transfer_type == USB_TRANSFER_CONTROL)
+		ep->direction = USB_DIRECTION_BOTH;
+
+	ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
+
+	ep->bandwidth = endpoint_count_bw(ep, ep->max_transfer_size);
 }
 
 static inline const bus_ops_t *get_bus_ops(endpoint_t *ep)

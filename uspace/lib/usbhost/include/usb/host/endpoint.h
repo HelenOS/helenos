@@ -45,6 +45,7 @@
 #include <stdbool.h>
 #include <usb/usb.h>
 #include <usb/host/bus.h>
+#include <usbhc_iface.h>
 
 typedef struct bus bus_t;
 typedef struct device device_t;
@@ -58,16 +59,6 @@ typedef struct endpoint {
 	device_t *device;
 	/** Reference count. */
 	atomic_t refcnt;
-	/** Enpoint number */
-	usb_endpoint_t endpoint;
-	/** Communication direction. */
-	usb_direction_t direction;
-	/** USB transfer type. */
-	usb_transfer_type_t transfer_type;
-	/** Maximum size of data packets. */
-	size_t max_packet_size;
-	/** Additional opportunities per uframe */
-	unsigned packets;
 	/** Reserved bandwidth. */
 	size_t bandwidth;
 	/** Value of the toggle bit. */
@@ -79,10 +70,24 @@ typedef struct endpoint {
 	/** Signals change of active status. */
 	fibril_condvar_t avail;
 
+	/** Enpoint number */
+	usb_endpoint_t endpoint;
+	/** Communication direction. */
+	usb_direction_t direction;
+	/** USB transfer type. */
+	usb_transfer_type_t transfer_type;
+	/** Maximum size of one packet */
+	size_t max_packet_size;
+
+	/** Maximum size of one transfer */
+	size_t max_transfer_size;
+	/** Number of packats that can be sent in one service interval (not necessarily uframe) */
+	unsigned packets_per_uframe;
+
 	/* This structure is meant to be extended by overriding. */
 } endpoint_t;
 
-extern void endpoint_init(endpoint_t *, device_t *, const usb_endpoint_desc_t *);
+extern void endpoint_init(endpoint_t *, device_t *, const usb_endpoint_descriptors_t *);
 
 extern void endpoint_add_ref(endpoint_t *);
 extern void endpoint_del_ref(endpoint_t *);

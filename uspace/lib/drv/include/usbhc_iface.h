@@ -43,14 +43,51 @@
 #include "usb_iface.h"
 #include <async.h>
 
+typedef struct usb_pipe_desc {
+	/** Endpoint number. */
+	usb_endpoint_t endpoint_no;
+
+	/** Endpoint transfer type. */
+	usb_transfer_type_t transfer_type;
+
+	/** Endpoint direction. */
+	usb_direction_t direction;
+
+	/** Maximum size of one transfer */
+	size_t max_transfer_size;
+} usb_pipe_desc_t;
+
+/** This structure follows standard endpoint descriptor + superspeed companion
+ * descriptor, and exists to avoid dependency of libdrv on libusb. Keep the
+ * internal fields named exactly like their source (because we want to use the
+ * same macros to access them).
+ * Callers shall fill it with bare contents of respective descriptors (in usb endianity).
+ */
+typedef struct {
+	struct {
+		uint8_t endpoint_address;
+		uint8_t attributes;
+		uint16_t max_packet_size;
+		uint8_t poll_interval;
+	} endpoint;
+
+	/* Superspeed companion descriptor */
+	struct companion_desc_t {
+		uint8_t max_burst;
+		uint8_t attributes;
+		uint16_t bytes_per_interval;
+	} companion;
+} usb_endpoint_descriptors_t;
+
 extern int usbhc_reserve_default_address(async_exch_t *, usb_speed_t);
 extern int usbhc_release_default_address(async_exch_t *);
 
 extern int usbhc_device_enumerate(async_exch_t *, unsigned port);
 extern int usbhc_device_remove(async_exch_t *, unsigned port);
 
-extern int usbhc_register_endpoint(async_exch_t *, usb_endpoint_desc_t *);
-extern int usbhc_unregister_endpoint(async_exch_t *, usb_endpoint_desc_t *);
+extern int usbhc_register_endpoint(async_exch_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
+extern int usbhc_unregister_endpoint(async_exch_t *, const usb_pipe_desc_t *);
+
 extern int usbhc_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
     size_t *);
 extern int usbhc_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
@@ -67,8 +104,8 @@ typedef struct {
 	int (*device_enumerate)(ddf_fun_t *, unsigned);
 	int (*device_remove)(ddf_fun_t *, unsigned);
 
-	int (*register_endpoint)(ddf_fun_t *, usb_endpoint_desc_t *);
-	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_desc_t *);
+	int (*register_endpoint)(ddf_fun_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
+	int (*unregister_endpoint)(ddf_fun_t *, const usb_pipe_desc_t *);
 
 	int (*read)(ddf_fun_t *, usb_target_t,
 		uint64_t, char *, size_t,

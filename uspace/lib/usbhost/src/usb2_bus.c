@@ -185,15 +185,6 @@ static int request_address(usb2_bus_t *bus, usb_address_t *addr, bool strict, us
 	return EOK;
 }
 
-static const usb_endpoint_desc_t usb2_default_control_ep = {
-	.endpoint_no = 0,
-	.transfer_type = USB_TRANSFER_CONTROL,
-	.direction = USB_DIRECTION_BOTH,
-	.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
-	.packets = 1,
-};
-
-
 static const usb_target_t usb2_default_target = {{
 	.address = USB_ADDRESS_DEFAULT,
 	.endpoint = 0,
@@ -220,16 +211,18 @@ static int address_device(device_t *dev)
 	/* Add default pipe on default address */
 	usb_log_debug("Device(%d): Adding default target (0:0)", address);
 
+	usb_endpoint_descriptors_t ep0_desc = {
+	    .endpoint.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
+	};
 	endpoint_t *default_ep;
-	err = bus_endpoint_add(dev, &usb2_default_control_ep, &default_ep);
+	err = bus_endpoint_add(dev, &ep0_desc, &default_ep);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to add default target: %s.",
 		    address, str_error(err));
 		goto err_address;
 	}
 
-	uint16_t max_packet_size;
-	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, &bus->base, dev)))
+	if ((err = hcd_get_ep0_max_packet_size(&ep0_desc.endpoint.max_packet_size, &bus->base, dev)))
 		goto err_address;
 
 	/* Set new address */
@@ -253,17 +246,9 @@ static int address_device(device_t *dev)
 
 	dev->address = address;
 
-	const usb_endpoint_desc_t control_ep = {
-		.endpoint_no = 0,
-		.transfer_type = USB_TRANSFER_CONTROL,
-		.direction = USB_DIRECTION_BOTH,
-		.max_packet_size = max_packet_size,
-		.packets = 1,
-	};
-
 	/* Register EP on the new address */
 	usb_log_debug("Device(%d): Registering control EP.", address);
-	err = bus_endpoint_add(dev, &control_ep, NULL);
+	err = bus_endpoint_add(dev, &ep0_desc, NULL);
 	if (err != EOK) {
 		usb_log_error("Device(%d): Failed to register EP0: %s",
 		    address, str_error(err));
@@ -351,7 +336,7 @@ static endpoint_t *usb2_bus_find_ep(device_t *device, usb_target_t target, usb_d
 	return NULL;
 }
 
-static endpoint_t *usb2_bus_create_ep(device_t *dev, const usb_endpoint_desc_t *desc)
+static endpoint_t *usb2_bus_create_ep(device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
 	endpoint_t *ep = malloc(sizeof(endpoint_t));
 	if (!ep)
