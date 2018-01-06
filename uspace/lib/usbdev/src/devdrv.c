@@ -256,8 +256,7 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
 	/* Register created pipes. */
 	for (size_t i = 0; i < pipe_count; i++) {
 		if (pipes[i].present) {
-			rc = usb_pipe_register(&pipes[i].pipe,
-			    pipes[i].descriptor->poll_interval);
+			rc = usb_pipe_register(&pipes[i].pipe);
 			if (rc != EOK) {
 				goto rollback_unregister_endpoints;
 			}

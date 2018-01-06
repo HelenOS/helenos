@@ -78,7 +78,7 @@ static int register_endpoint(
 		dev->address, endpoint_desc->endpoint_no,
 		usb_str_transfer_type(endpoint_desc->transfer_type),
 		usb_str_direction(endpoint_desc->direction),
-		endpoint_desc->max_packet_size, endpoint_desc->usb2.polling_interval);
+		endpoint_desc->max_packet_size, endpoint_desc->interval);
 
 	return bus_endpoint_add(dev, endpoint_desc, NULL);
 }

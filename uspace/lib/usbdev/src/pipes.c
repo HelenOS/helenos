@@ -315,12 +315,11 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe, usb_dev_session_t *bus
  * @param interval Polling interval.
  * @return Error code.
  */
-int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
+int usb_pipe_register(usb_pipe_t *pipe)
 {
 	assert(pipe);
 	assert(pipe->bus_session);
 
-	pipe->desc.usb2.polling_interval = interval;
 	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	if (!exch)
 		return ENOMEM;

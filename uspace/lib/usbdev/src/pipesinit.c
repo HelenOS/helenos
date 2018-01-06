@@ -177,9 +177,6 @@ static void parse_endpoint_descriptors(usb_endpoint_desc_t *ep_desc,
 		.packets = ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(endpoint_desc->max_packet_size)),
 	};
 
-	/* TODO Extract USB2-related information */
-	ep_desc->usb2 = (usb2_endpoint_desc_t) { 0 };
-
 	if (companion_desc) {
 		ep_desc->usb3 = (usb3_endpoint_desc_t) {
 			.max_burst = companion_desc->max_burst,
