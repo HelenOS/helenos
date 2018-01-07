@@ -102,8 +102,8 @@ static inline bool usb_address_is_valid(usb_address_t a)
 /** Default control endpoint */
 #define USB_ENDPOINT_DEFAULT_CONTROL 0
 
-/** Maximum endpoint number in USB 1.1. */
-#define USB11_ENDPOINT_MAX 16
+/** Maximum endpoint number in USB */
+#define USB_ENDPOINT_MAX 16
 
 /** Check USB endpoint for allowed values.
  *
@@ -115,7 +115,7 @@ static inline bool usb_address_is_valid(usb_address_t a)
 static inline bool usb_endpoint_is_valid(usb_endpoint_t ep)
 {
 	return (ep >= USB_ENDPOINT_DEFAULT_CONTROL) &&
-	    (ep < USB11_ENDPOINT_MAX);
+	    (ep < USB_ENDPOINT_MAX);
 }
 
 /** Check USB target for allowed values (address and endpoint).

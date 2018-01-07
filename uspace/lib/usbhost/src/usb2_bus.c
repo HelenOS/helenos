@@ -56,39 +56,6 @@ static inline usb2_bus_t *bus_to_usb2_bus(bus_t *bus_base)
 	return (usb2_bus_t *) bus_base;
 }
 
-/** Get list that holds endpoints for given address.
- * @param bus usb2_bus structure, non-null.
- * @param addr USB address, must be >= 0.
- * @return Pointer to the appropriate list.
- */
-static list_t * get_list(usb2_bus_t *bus, usb_address_t addr)
-{
-	assert(bus);
-	assert(addr >= 0);
-	return &bus->devices[addr % ARRAY_SIZE(bus->devices)].endpoint_list;
-}
-
-/** Get speed assigned to USB address.
- *
- * @param[in] bus Device manager structure to use.
- * @param[in] address Address the caller wants to find.
- * @param[out] speed Assigned speed.
- * @return Error code.
- */
-static int get_speed(usb2_bus_t *bus, usb_address_t address, usb_speed_t *speed)
-{
-	if (!usb_address_is_valid(address))
-		return EINVAL;
-
-	if (!bus->devices[address].occupied)
-		return ENOENT;
-
-	if (speed)
-		*speed = bus->devices[address].speed;
-
-	return EOK;
-}
-
 /** Get a free USB address
  *
  * @param[in] bus Device manager structure to use.
@@ -103,7 +70,7 @@ static int get_free_address(usb2_bus_t *bus, usb_address_t *addr)
 			new_address = 1;
 		if (new_address == bus->last_address)
 			return ENOSPC;
-	} while (bus->devices[new_address].occupied);
+	} while (bus->address_occupied[new_address]);
 
 	assert(new_address != USB_ADDRESS_DEFAULT);
 	bus->last_address = new_address;
@@ -124,24 +91,8 @@ static int release_address(usb2_bus_t *bus, usb_address_t address)
 	if (!usb_address_is_valid(address))
 		return EINVAL;
 
-	const int ret = bus->devices[address].occupied ? EOK : ENOENT;
-	bus->devices[address].occupied = false;
-
-	list_t *list = get_list(bus, address);
-	for (link_t *link = list_first(list); link != NULL; ) {
-		endpoint_t *ep = list_get_instance(link, endpoint_t, link);
-		link = list_next(link, list);
-
-		assert(ep->device->address == address);
-		list_remove(&ep->link);
-
-		usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
-		    address, ep->endpoint, usb_str_direction(ep->direction));
-
-		/* Drop bus reference */
-		endpoint_del_ref(ep);
-	}
-
+	const int ret = bus->address_occupied[address] ? EOK : ENOENT;
+	bus->address_occupied[address] = false;
 	return ret;
 }
 
@@ -152,7 +103,7 @@ static int release_address(usb2_bus_t *bus, usb_address_t address)
  * @return Error code.
  * @note Default address is only available in strict mode.
  */
-static int request_address(usb2_bus_t *bus, usb_address_t *addr, bool strict, usb_speed_t speed)
+static int request_address(usb2_bus_t *bus, usb_address_t *addr, bool strict)
 {
 	int err;
 
@@ -167,7 +118,7 @@ static int request_address(usb2_bus_t *bus, usb_address_t *addr, bool strict, us
 		if ((err = get_free_address(bus, addr)))
 			return err;
 	}
-	else if (bus->devices[*addr].occupied) {
+	else if (bus->address_occupied[*addr]) {
 		if (strict) {
 			return ENOENT;
 		}
@@ -176,11 +127,10 @@ static int request_address(usb2_bus_t *bus, usb_address_t *addr, bool strict, us
 	}
 
 	assert(usb_address_is_valid(*addr));
-	assert(bus->devices[*addr].occupied == false);
+	assert(bus->address_occupied[*addr] == false);
 	assert(*addr != USB_ADDRESS_DEFAULT || strict);
 
-	bus->devices[*addr].occupied = true;
-	bus->devices[*addr].speed = speed;
+	bus->address_occupied[*addr] = true;
 
 	return EOK;
 }
@@ -201,7 +151,7 @@ static int address_device(device_t *dev)
 
 	/** Reserve address early, we want pretty log messages */
 	usb_address_t address = USB_ADDRESS_DEFAULT;
-	if ((err = request_address(bus, &address, false, dev->speed))) {
+	if ((err = request_address(bus, &address, false))) {
 		usb_log_error("Failed to reserve new address: %s.",
 		    str_error(err));
 		return err;
@@ -280,10 +230,7 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	/* The speed of the new device was reported by the hub when reserving
 	 * default address.
 	 */
-	if ((err = get_speed(bus, USB_ADDRESS_DEFAULT, &dev->speed))) {
-		usb_log_error("Failed to verify speed: %s.", str_error(err));
-		return err;
-	}
+	dev->speed = bus->default_address_speed;
 	usb_log_debug("Found new %s speed USB device.", usb_str_speed(dev->speed));
 
 	if (!dev->hub) {
@@ -312,30 +259,6 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	return EOK;
 }
 
-/** Find endpoint.
- * @param bus usb_bus structure, non-null.
- * @param target Endpoint address.
- * @param direction Communication direction.
- * @return Pointer to endpoint_t structure representing given communication
- * target, NULL if there is no such endpoint registered.
- * @note Assumes that the internal mutex is locked.
- */
-static endpoint_t *usb2_bus_find_ep(device_t *device, usb_target_t target, usb_direction_t direction)
-{
-	usb2_bus_t *bus = bus_to_usb2_bus(device->bus);
-
-	assert(device->address == target.address);
-
-	list_foreach(*get_list(bus, target.address), link, endpoint_t, ep) {
-		if (((direction == ep->direction)
-		       || (ep->direction == USB_DIRECTION_BOTH)
-		       || (direction == USB_DIRECTION_BOTH))
-		    && (target.endpoint == ep->endpoint))
-			return ep;
-	}
-	return NULL;
-}
-
 static endpoint_t *usb2_bus_create_ep(device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
 	endpoint_t *ep = malloc(sizeof(endpoint_t));
@@ -344,17 +267,6 @@ static endpoint_t *usb2_bus_create_ep(device_t *dev, const usb_endpoint_descript
 
 	endpoint_init(ep, dev, desc);
 	return ep;
-}
-
-static usb_target_t usb2_ep_to_target(endpoint_t *ep)
-{
-	assert(ep);
-	assert(ep->device);
-
-	return (usb_target_t) {{
-		.address = ep->device->address,
-		.endpoint = ep->endpoint,
-	}};
 }
 
 /** Register an endpoint to the bus. Reserves bandwidth.
@@ -367,16 +279,10 @@ static int usb2_bus_register_ep(endpoint_t *ep)
 	assert(fibril_mutex_is_locked(&bus->base.guard));
 	assert(ep);
 
-	/* Check for existence */
-	if (usb2_bus_find_ep(ep->device, usb2_ep_to_target(ep), ep->direction))
-		return EEXIST;
-
 	/* Check for available bandwidth */
 	if (ep->bandwidth > bus->free_bw)
 		return ENOSPC;
 
-	endpoint_add_ref(ep);
-	list_append(&ep->link, get_list(bus, ep->device->address));
 	bus->free_bw -= ep->bandwidth;
 
 	return EOK;
@@ -389,42 +295,20 @@ static int usb2_bus_unregister_ep(endpoint_t *ep)
 	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
 	assert(ep);
 
-	list_remove(&ep->link);
-
 	bus->free_bw += ep->bandwidth;
-	endpoint_del_ref(ep);
 
 	return EOK;
-}
-
-static int usb2_bus_reset_toggle(bus_t *bus_base, usb_target_t target, toggle_reset_mode_t mode)
-{
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
-
-	if (!usb_target_is_valid(target))
-		return EINVAL;
-
-	if (mode == RESET_NONE)
-		return EOK;
-
-	int ret = ENOENT;
-
-	list_foreach(*get_list(bus, target.address), link, endpoint_t, ep) {
-		assert(ep->device->address == target.address);
-
-		if (mode == RESET_ALL || ep->endpoint == target.endpoint) {
-			endpoint_toggle_set(ep, 0);
-			ret = EOK;
-		}
-	}
-	return ret;
 }
 
 static int usb2_bus_register_default_address(bus_t *bus_base, usb_speed_t speed)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
 	usb_address_t addr = USB_ADDRESS_DEFAULT;
-	return request_address(bus, &addr, true, speed);
+	const int err = request_address(bus, &addr, true);
+	if (err)
+		return err;
+	bus->default_address_speed = speed;
+	return EOK;
 }
 
 static int usb2_bus_release_default_address(bus_t *bus_base)
@@ -436,9 +320,7 @@ static int usb2_bus_release_default_address(bus_t *bus_base)
 const bus_ops_t usb2_bus_ops = {
 	.reserve_default_address = usb2_bus_register_default_address,
 	.release_default_address = usb2_bus_release_default_address,
-	.reset_toggle = usb2_bus_reset_toggle,
 	.device_enumerate = usb2_bus_device_enumerate,
-	.device_find_endpoint = usb2_bus_find_ep,
 	.endpoint_create = usb2_bus_create_ep,
 	.endpoint_register = usb2_bus_register_ep,
 	.endpoint_unregister = usb2_bus_unregister_ep,
@@ -459,12 +341,7 @@ int usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
 	bus->base.ops = &usb2_bus_ops;
 
 	bus->free_bw = available_bandwidth;
-	bus->last_address = 0;
-	for (unsigned i = 0; i < ARRAY_SIZE(bus->devices); ++i) {
-		list_initialize(&bus->devices[i].endpoint_list);
-		bus->devices[i].speed = USB_SPEED_MAX;
-		bus->devices[i].occupied = false;
-	}
+
 	return EOK;
 }
 /**

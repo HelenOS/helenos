@@ -107,6 +107,8 @@ void endpoint_del_ref(endpoint_t *ep)
 	}
 }
 
+static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode);
+
 /** Mark the endpoint as active and block access for further fibrils.
  * @param ep endpoint_t structure.
  */
@@ -131,7 +133,7 @@ void endpoint_deactivate_locked(endpoint_t *ep)
 	assert(fibril_mutex_is_locked(&ep->guard));
 
 	if (ep->active_batch && ep->active_batch->error == EOK)
-		usb_transfer_batch_reset_toggle(ep->active_batch);
+		endpoint_toggle_reset(ep, ep->active_batch->toggle_reset_mode);
 
 	ep->active_batch = NULL;
 	fibril_condvar_signal(&ep->avail);
@@ -154,34 +156,26 @@ void endpoint_abort(endpoint_t *ep)
 		usb_transfer_batch_abort(batch);
 }
 
-/** Get the value of toggle bit. Either uses the toggle_get op, or just returns
- * the value of the toggle.
- * @param ep endpoint_t structure.
- */
-int endpoint_toggle_get(endpoint_t *ep)
+static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode)
 {
 	assert(ep);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_get_toggle);
-	return ops
-	    ? ops->endpoint_get_toggle(ep)
-	    : ep->toggle;
-}
+	if (mode == RESET_NONE)
+		return;
 
-/** Set the value of toggle bit. Either uses the toggle_set op, or just sets
- * the toggle inside.
- * @param ep endpoint_t structure.
- */
-void endpoint_toggle_set(endpoint_t *ep, bool toggle)
-{
-	assert(ep);
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_toggle_reset);
+	if (!ops)
+		return;
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_set_toggle);
-	if (ops) {
-		ops->endpoint_set_toggle(ep, toggle);
-	}
-	else {
-		ep->toggle = toggle;
+	device_t *dev = ep->device;
+
+	if (mode == RESET_ALL) {
+		for (usb_endpoint_t i = 0; i < USB_ENDPOINT_MAX; ++i) {
+			if (dev->endpoints[i])
+				ops->endpoint_toggle_reset(dev->endpoints[i]);
+		}
+	} else {
+		ops->endpoint_toggle_reset(ep);
 	}
 }
 

@@ -61,7 +61,7 @@ typedef struct endpoint {
 	atomic_t refcnt;
 	/** Reserved bandwidth. */
 	size_t bandwidth;
-	/** Value of the toggle bit. */
+	/** Value of the toggle bit. Untouched by the library. */
 	unsigned toggle:1;
 	/** The currently active transfer batch. Write using methods, read under guard. */
 	usb_transfer_batch_t *active_batch;
@@ -105,10 +105,6 @@ extern void endpoint_deactivate_locked(endpoint_t *);
 
 /* Abort the currenty active batch. */
 void endpoint_abort(endpoint_t *);
-
-/* Manage the toggle bit */
-extern int endpoint_toggle_get(endpoint_t *);
-extern void endpoint_toggle_set(endpoint_t *, bool);
 
 /* Calculate bandwidth */
 ssize_t endpoint_count_bw(endpoint_t *, size_t);

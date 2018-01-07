@@ -70,24 +70,6 @@ void usb_transfer_batch_init(usb_transfer_batch_t *batch, endpoint_t *ep)
 	batch->ep = ep;
 }
 
-/** Resolve resetting toggle.
- *
- * @param[in] batch Batch structure to use.
- */
-int usb_transfer_batch_reset_toggle(usb_transfer_batch_t *batch)
-{
-	assert(batch);
-
-	if (batch->error != EOK || batch->toggle_reset_mode == RESET_NONE)
-		return EOK;
-
-	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " resets %s",
-	    batch, USB_TRANSFER_BATCH_ARGS(*batch),
-	    batch->toggle_reset_mode == RESET_ALL ? "all EPs toggle" : "EP toggle");
-
-	return bus_reset_toggle(endpoint_get_bus(batch->ep), batch->target, batch->toggle_reset_mode);
-}
-
 /** Destroy the batch.
  *
  * @param[in] batch Batch structure to use.

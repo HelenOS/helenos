@@ -468,49 +468,6 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 	setup_ep_ctx_helpers[tt](ep, ep_ctx);
 }
 
-/** Add a new XHCI endpoint to a device. The device must be online unless
- * the added endpoint is number 0.
- * @param[in] dev XHCI device, to which to add the endpoint
- * @param[in] ep XHCI endpoint to add.
- *
- * @return Error code.
- */
-int xhci_device_add_endpoint(xhci_device_t *dev, xhci_endpoint_t *ep)
-{
-	assert(dev);
-	assert(ep);
-
-	/* Offline devices don't create new endpoints other than EP0. */
-	if (!dev->base.online && ep->base.endpoint > 0) {
-		return EAGAIN;
-	}
-
-	const usb_endpoint_t ep_num = ep->base.endpoint;
-
-	if (dev->endpoints[ep_num])
-		return EEXIST;
-
-	/* Device reference */
-	endpoint_add_ref(&ep->base);
-	ep->base.device = &dev->base;
-	dev->endpoints[ep_num] = ep;
-
-	return EOK;
-}
-
-/** Remove XHCI endpoint from a device.
- * @param[in] ep XHCI endpoint to remove.
- */
-void xhci_device_remove_endpoint(xhci_endpoint_t *ep)
-{
-	assert(ep);
-	xhci_device_t *dev = xhci_device_get(ep->base.device);
-
-	assert(dev->endpoints[ep->base.endpoint]);
-	dev->endpoints[ep->base.endpoint] = NULL;
-	ep->base.device = NULL;
-}
-
 /** Retrieve XHCI endpoint from a device by the endpoint number.
  * @param[in] dev XHCI device to query.
  * @param[in] ep Endpoint number identifying the endpoint to retrieve.
@@ -519,7 +476,7 @@ void xhci_device_remove_endpoint(xhci_endpoint_t *ep)
  */
 xhci_endpoint_t *xhci_device_get_endpoint(xhci_device_t *dev, usb_endpoint_t ep)
 {
-	return dev->endpoints[ep];
+	return xhci_endpoint_get(dev->base.endpoints[ep]);
 }
 
 /**

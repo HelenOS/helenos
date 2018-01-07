@@ -49,18 +49,16 @@ typedef struct endpoint endpoint_t;
 typedef struct usb2_bus {
 	bus_t base;			/**< Inheritance - keep this first */
 
-	/* Device bookkeeping */
-	struct {
-		usb_speed_t speed;      /**< Device speed */
-		bool occupied;          /**< The address is in use. */
-		// TODO: This can be stored in usb2_bus-specific device_t
-		list_t endpoint_list;   /**< Store endpoint_t instances */
-	} devices[USB_ADDRESS_COUNT];
+	/** The speed which reserved default address. Invalid unless reserved. */
+	usb_speed_t default_address_speed;
+
+	/** Map of occupied addresses */
+	bool address_occupied [USB_ADDRESS_COUNT];
+	/** The last reserved address */
+	usb_address_t last_address;
 
 	/** Size of the bandwidth pool */
 	size_t free_bw;
-	/** The last reserved address */
-	usb_address_t last_address;
 } usb2_bus_t;
 
 extern const bus_ops_t usb2_bus_ops;

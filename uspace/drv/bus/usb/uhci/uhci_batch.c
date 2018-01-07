@@ -177,8 +177,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 			    &uhci_batch->tds[i], uhci_batch->tds[i].status);
 			td_print_status(&uhci_batch->tds[i]);
 
-			endpoint_toggle_set(batch->ep,
-			    td_toggle(&uhci_batch->tds[i]));
+			batch->ep->toggle = td_toggle(&uhci_batch->tds[i]);
 			if (i > 0)
 				goto substract_ret;
 			return true;
@@ -194,7 +193,6 @@ substract_ret:
 		batch->transfered_size -= USB_SETUP_PACKET_SIZE;
 
 	fibril_mutex_lock(&batch->ep->guard);
-	usb_transfer_batch_reset_toggle(batch);
 	endpoint_deactivate_locked(batch->ep);
 	fibril_mutex_unlock(&batch->ep->guard);
 
@@ -235,7 +233,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	    uhci_batch->base.ep->device->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->base.ep->max_packet_size;
 
-	int toggle = endpoint_toggle_get(uhci_batch->base.ep);
+	int toggle = uhci_batch->base.ep->toggle;
 	assert(toggle == 0 || toggle == 1);
 
 	size_t td = 0;
@@ -259,7 +257,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 		remain_size -= packet_size;
 	}
 	td_set_ioc(&uhci_batch->tds[td - 1]);
-	endpoint_toggle_set(uhci_batch->base.ep, toggle);
+	uhci_batch->base.ep->toggle = toggle;
 	usb_log_debug2(
 	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
 	    uhci_batch,

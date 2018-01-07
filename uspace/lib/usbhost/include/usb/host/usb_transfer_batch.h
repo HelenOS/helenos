@@ -110,9 +110,6 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
 /** Batch initializer. */
 void usb_transfer_batch_init(usb_transfer_batch_t *, endpoint_t *);
 
-/** Call after status is known, but before releasing endpoint */
-int usb_transfer_batch_reset_toggle(usb_transfer_batch_t *);
-
 /** Batch finalization. */
 void usb_transfer_batch_abort(usb_transfer_batch_t *);
 void usb_transfer_batch_finish(usb_transfer_batch_t *);

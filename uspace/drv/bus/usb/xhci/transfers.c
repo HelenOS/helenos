@@ -512,7 +512,6 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 			batch->error = EIO;
 	}
 
-	usb_transfer_batch_reset_toggle(batch);
 	endpoint_deactivate_locked(&ep->base);
 	fibril_mutex_unlock(&ep->base.guard);
 

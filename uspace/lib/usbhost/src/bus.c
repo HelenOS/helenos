@@ -98,7 +98,6 @@ int bus_device_remove(device_t *dev)
 	assert(dev);
 
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_remove);
-
 	if (!ops)
 		return ENOTSUP;
 
@@ -161,8 +160,20 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	    ep->max_transfer_size);
 
 	fibril_mutex_lock(&bus->guard);
-	err = register_ops->endpoint_register(ep);
+	if (!device->online && ep->endpoint != 0) {
+		err = EAGAIN;
+	} else if (device->endpoints[ep->endpoint] != NULL) {
+		err = EEXIST;
+	} else {
+		err = register_ops->endpoint_register(ep);
+		if (!err)
+			device->endpoints[ep->endpoint] = ep;
+	}
 	fibril_mutex_unlock(&bus->guard);
+	if (err) {
+		endpoint_del_ref(ep);
+		return err;
+	}
 
 	if (out_ep) {
 		/* Exporting reference */
@@ -170,28 +181,23 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 		*out_ep = ep;
 	}
 
-	return err;
+	return EOK;
 }
 
 /** Searches for an endpoint. Returns a reference.
  */
-endpoint_t *bus_find_endpoint(device_t *device, usb_target_t endpoint, usb_direction_t dir)
+endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint)
 {
 	assert(device);
 
 	bus_t *bus = device->bus;
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, device_find_endpoint);
-	if (!ops)
-		return NULL;
-
 	fibril_mutex_lock(&bus->guard);
-	endpoint_t *ep = ops->device_find_endpoint(device, endpoint, dir);
+	endpoint_t *ep = device->endpoints[endpoint];
 	if (ep) {
 		/* Exporting reference */
 		endpoint_add_ref(ep);
 	}
-
 	fibril_mutex_unlock(&bus->guard);
 	return ep;
 }
@@ -200,8 +206,6 @@ int bus_endpoint_remove(endpoint_t *ep)
 {
 	assert(ep);
 	assert(ep->device);
-	assert(ep->device->bus);
-	assert(ep->device->bus->ops);
 
 	bus_t *bus = endpoint_get_bus(ep);
 
@@ -217,6 +221,8 @@ int bus_endpoint_remove(endpoint_t *ep)
 
 	fibril_mutex_lock(&bus->guard);
 	const int r = ops->endpoint_unregister(ep);
+	if (!r)
+		ep->device->endpoints[ep->endpoint] = NULL;
 	fibril_mutex_unlock(&bus->guard);
 
 	if (r)
@@ -256,20 +262,6 @@ int bus_release_default_address(bus_t *bus)
 	return r;
 }
 
-int bus_reset_toggle(bus_t *bus, usb_target_t target, bool all)
-{
-	assert(bus);
-
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, reset_toggle);
-	if (!ops)
-		return ENOTSUP;
-
-	fibril_mutex_lock(&bus->guard);
-	const int r = ops->reset_toggle(bus, target, all);
-	fibril_mutex_unlock(&bus->guard);
-	return r;
-}
-
 /** Prepare generic usb_transfer_batch and schedule it.
  * @param device Device for which to send the batch
  * @param target address and endpoint number.
@@ -287,7 +279,7 @@ int bus_device_send_batch(device_t *device, usb_target_t target,
 	assert(device->address == target.address);
 
 	/* Temporary reference */
-	endpoint_t *ep = bus_find_endpoint(device, target, direction);
+	endpoint_t *ep = bus_find_endpoint(device, target.endpoint);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
 		    device->address, target.endpoint, name);

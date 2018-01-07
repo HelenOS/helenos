@@ -47,33 +47,15 @@
  * @param[in] hcd_ep hcd endpoint structure
  * @param[in] toggle new value of toggle bit
  */
-static void ehci_ep_toggle_set(endpoint_t *ep, bool toggle)
+static void ehci_ep_toggle_reset(endpoint_t *ep)
 {
 	ehci_endpoint_t *instance = ehci_endpoint_get(ep);
-	assert(instance);
-	assert(instance->qh);
-	ep->toggle = toggle;
 	if (qh_toggle_from_td(instance->qh))
-		usb_log_warning("EP(%p): Setting toggle bit for transfer "
-		    "directed EP", instance);
-	qh_toggle_set(instance->qh, toggle);
+		usb_log_warning("EP(%p): Resetting toggle bit for transfer directed EP", instance);
+	qh_toggle_set(instance->qh, 0);
+	ep->toggle = 0;
 }
 
-/** Callback to get value of toggle bit.
- *
- * @param[in] hcd_ep hcd endpoint structure
- * @return Current value of toggle bit.
- */
-static bool ehci_ep_toggle_get(endpoint_t *ep)
-{
-	ehci_endpoint_t *instance = ehci_endpoint_get(ep);
-	assert(instance);
-	assert(instance->qh);
-
-	if (qh_toggle_from_td(instance->qh))
-		usb_log_warning("EP(%p): Reading useless toggle bit", instance);
-	return qh_toggle_get(instance->qh);
-}
 
 /** Creates new hcd endpoint representation.
  */
@@ -165,8 +147,7 @@ static const bus_ops_t ehci_bus_ops = {
 	.endpoint_create = ehci_endpoint_create,
 	.endpoint_register = ehci_register_ep,
 	.endpoint_unregister = ehci_unregister_ep,
-	.endpoint_set_toggle = ehci_ep_toggle_set,
-	.endpoint_get_toggle = ehci_ep_toggle_get,
+	.endpoint_toggle_reset = ehci_ep_toggle_reset,
 	.endpoint_count_bw = bandwidth_count_usb11,
 	.batch_create = ehci_create_batch,
 	.batch_destroy = ehci_destroy_batch,

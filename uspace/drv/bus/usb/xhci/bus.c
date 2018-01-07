@@ -76,33 +76,27 @@ static int address_device(xhci_bus_t *bus, xhci_device_t *dev)
 	if (!ep0_base)
 		goto err_slot;
 
-	/* Temporary reference */
+	/* Bus reference */
 	endpoint_add_ref(ep0_base);
+	dev->base.endpoints[0] = ep0_base;
 
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
 
 	if ((err = xhci_endpoint_alloc_transfer_ds(ep0)))
-		goto err_ep;
-
-	/* Register EP0 */
-	if ((err = xhci_device_add_endpoint(dev, ep0)))
-		goto err_prepared;
+		goto err_added;
 
 	/* Address device */
 	if ((err = hc_address_device(bus->hc, dev, ep0)))
-		goto err_added;
+		goto err_prepared;
 
-	/* Temporary reference */
-	endpoint_del_ref(ep0_base);
 	return EOK;
 
-err_added:
-	xhci_device_remove_endpoint(ep0);
 err_prepared:
 	xhci_endpoint_free_transfer_ds(ep0);
-err_ep:
-	/* Temporary reference */
+err_added:
+	/* Bus reference */
 	endpoint_del_ref(ep0_base);
+	dev->base.endpoints[0] = NULL;
 err_slot:
 	hc_disable_slot(bus->hc, dev);
 	return err;
@@ -122,7 +116,7 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, (bus_t *) &hc->bus, &dev->base)))
 		return err;
 
-	xhci_endpoint_t *ep0 = dev->endpoints[0];
+	xhci_endpoint_t *ep0 = xhci_device_get_endpoint(dev, 0);
 	assert(ep0);
 
 	if (ep0->base.max_packet_size == max_packet_size)
@@ -217,8 +211,8 @@ int xhci_bus_remove_device(xhci_bus_t *bus, device_t *dev)
 
 	/* Abort running transfers. */
 	usb_log_debug2("Aborting all active transfers to device " XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*xhci_dev));
-	for (size_t i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
-		xhci_endpoint_t *ep = xhci_dev->endpoints[i];
+	for (usb_endpoint_t i = 0; i < USB_ENDPOINT_MAX; ++i) {
+		xhci_endpoint_t *ep = xhci_device_get_endpoint(xhci_dev, i);
 		if (!ep)
 			continue;
 
@@ -243,13 +237,13 @@ int xhci_bus_remove_device(xhci_bus_t *bus, device_t *dev)
 	bus->devices_by_slot[slot_id] = NULL;
 
 	/* Unregister remaining endpoints, freeing memory. */
-	for (unsigned i = 0; i < ARRAY_SIZE(xhci_dev->endpoints); ++i) {
-		if (!xhci_dev->endpoints[i])
+	for (usb_endpoint_t i = 0; i < USB_ENDPOINT_MAX; ++i) {
+		if (!dev->endpoints[i])
 			continue;
 
-		if ((err = endpoint_unregister(&xhci_dev->endpoints[i]->base))) {
+		if ((err = endpoint_unregister(dev->endpoints[i]))) {
 			usb_log_warning("Failed to unregister endpoint " XHCI_EP_FMT ": %s",
-			    XHCI_EP_ARGS(*xhci_dev->endpoints[i]), str_error(err));
+			    XHCI_EP_ARGS(*xhci_device_get_endpoint(xhci_dev, i)), str_error(err));
 		}
 	}
 
@@ -331,17 +325,12 @@ static int device_offline(device_t *dev_base)
 	fibril_mutex_unlock(&dev_base->guard);
 
 	/* We will need the endpoint array later for DS deallocation. */
-	xhci_endpoint_t *endpoints[ARRAY_SIZE(dev->endpoints)];
-	memcpy(endpoints, dev->endpoints, sizeof(dev->endpoints));
+	endpoint_t *endpoints[USB_ENDPOINT_MAX];
+	memcpy(endpoints, dev->base.endpoints, sizeof(endpoints));
 
-	/* Remove all endpoints except zero. */
-	for (unsigned i = 1; i < ARRAY_SIZE(endpoints); ++i) {
-		if (!endpoints[i])
-			continue;
-
+	for (usb_endpoint_t i = 1; i < USB_ENDPOINT_MAX; ++i) {
 		/* FIXME: Asserting here that the endpoint is not active. If not, EBUSY? */
-
-		xhci_device_remove_endpoint(endpoints[i]);
+		dev->base.endpoints[i] = NULL;
 	}
 
 	/* Issue one HC command to simultaneously drop all endpoints except zero. */
@@ -355,10 +344,10 @@ static int device_offline(device_t *dev_base)
 		if (!endpoints[i])
 			continue;
 
-		xhci_endpoint_free_transfer_ds(endpoints[i]);
+		xhci_endpoint_free_transfer_ds(xhci_endpoint_get(endpoints[i]));
+		/* Bus reference */
+		endpoint_del_ref(endpoints[i]);
 	}
-
-	/* FIXME: What happens to unregistered endpoints now? Destroy them? */
 
 	return EOK;
 }
@@ -396,21 +385,16 @@ static int endpoint_register(endpoint_t *ep_base)
 	if ((err = xhci_endpoint_alloc_transfer_ds(ep)))
 		return err;
 
-	if ((err = xhci_device_add_endpoint(dev, ep)))
-		goto err_prepared;
-
 	usb_log_info("Endpoint " XHCI_EP_FMT " registered to XHCI bus.", XHCI_EP_ARGS(*ep));
 
 	xhci_ep_ctx_t ep_ctx;
 	xhci_setup_endpoint_context(ep, &ep_ctx);
 
 	if ((err = hc_add_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx)))
-		goto err_added;
+		goto err_prepared;
 
 	return EOK;
 
-err_added:
-	xhci_device_remove_endpoint(ep);
 err_prepared:
 	xhci_endpoint_free_transfer_ds(ep);
 	return err;
@@ -424,8 +408,6 @@ static int endpoint_unregister(endpoint_t *ep_base)
 	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
 	usb_log_info("Endpoint " XHCI_EP_FMT " unregistered from XHCI bus.", XHCI_EP_ARGS(*ep));
-
-	xhci_device_remove_endpoint(ep);
 
 	/* If device slot is still available, drop the endpoint. */
 	if (dev->slot_id) {
@@ -441,35 +423,6 @@ static int endpoint_unregister(endpoint_t *ep_base)
 	xhci_endpoint_free_transfer_ds(ep);
 
 	return EOK;
-}
-
-static endpoint_t* device_find_endpoint(device_t *dev_base, usb_target_t target, usb_direction_t direction)
-{
-	xhci_device_t *dev = xhci_device_get(dev_base);
-
-	xhci_endpoint_t *ep = xhci_device_get_endpoint(dev, target.endpoint);
-	if (!ep)
-		return NULL;
-
-	return &ep->base;
-}
-
-static int reset_toggle(bus_t *bus_base, usb_target_t target, toggle_reset_mode_t mode)
-{
-	// TODO: Implement me!
-	return ENOTSUP;
-}
-
-/* Endpoint ops, optional (have generic fallback) */
-static bool endpoint_get_toggle(endpoint_t *ep)
-{
-	// TODO: Implement me!
-	return ENOTSUP;
-}
-
-static void endpoint_set_toggle(endpoint_t *ep, bool toggle)
-{
-	// TODO: Implement me!
 }
 
 static int reserve_default_address(bus_t *bus_base, usb_speed_t speed)
@@ -509,20 +462,16 @@ static const bus_ops_t xhci_bus_ops = {
 #define BIND_OP(op) .op = op,
 	BIND_OP(reserve_default_address)
 	BIND_OP(release_default_address)
-	BIND_OP(reset_toggle)
 
 	BIND_OP(device_enumerate)
 	BIND_OP(device_remove)
 	BIND_OP(device_online)
 	BIND_OP(device_offline)
-	BIND_OP(device_find_endpoint)
 
 	BIND_OP(endpoint_create)
 	BIND_OP(endpoint_destroy)
 	BIND_OP(endpoint_register)
 	BIND_OP(endpoint_unregister)
-	BIND_OP(endpoint_get_toggle)
-	BIND_OP(endpoint_set_toggle)
 
 	BIND_OP(batch_create)
 	BIND_OP(batch_destroy)
