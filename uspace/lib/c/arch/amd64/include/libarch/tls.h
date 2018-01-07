@@ -44,6 +44,8 @@
 typedef struct {
 	void *self;
 	void *fibril_data;
+	void **dtv;
+	void *pad;
 } tcb_t;
 
 static inline void __tcb_raw_set(void *tls)

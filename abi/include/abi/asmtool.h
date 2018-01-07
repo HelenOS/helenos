@@ -55,6 +55,12 @@
 #define FUNCTION_END(func) \
 	SYMBOL_END(func)
 
+#ifdef __PIC__
+#define FUNCTION_REF(func) func@PLT
+#else
+#define FUNCTION_REF(func) func
+#endif
+
 #endif
 
 /** @}

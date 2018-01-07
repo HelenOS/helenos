@@ -38,14 +38,25 @@
 #include <elf/elf.h>
 #include <libarch/rtld/elf_dyn.h>
 
-#define ELF32_R_SYM(i) ((i)>>8)
+#define ELF32_R_SYM(i) ((i) >> 8)
 #define ELF32_R_TYPE(i) ((unsigned char)(i))
+
+#define ELF64_R_SYM(i) ((i) >> 32)
+#define ELF64_R_TYPE(i) ((i) & 0xffffffffL)
 
 struct elf32_dyn {
 	elf_sword d_tag;
 	union {
 		elf_word d_val;
 		elf32_addr d_ptr;
+	} d_un;
+};
+
+struct elf64_dyn {
+	elf_sxword d_tag;
+	union {
+		elf_xword d_val;
+		elf64_addr d_ptr;
 	} d_un;
 };
 
@@ -60,10 +71,27 @@ struct elf32_rela {
 	elf_sword r_addend;
 };
 
+struct elf64_rel {
+	elf64_addr r_offset;
+	elf_xword r_info;
+};
+
+struct elf64_rela {
+	elf64_addr r_offset;
+	elf_xword r_info;
+	elf_sxword r_addend;
+};
+
 #ifdef __32_BITS__
 typedef struct elf32_dyn elf_dyn_t;
 typedef struct elf32_rel elf_rel_t;
 typedef struct elf32_rela elf_rela_t;
+#endif
+
+#ifdef __64_BITS__
+typedef struct elf64_dyn elf_dyn_t;
+typedef struct elf64_rel elf_rel_t;
+typedef struct elf64_rela elf_rela_t;
 #endif
 
 /*
