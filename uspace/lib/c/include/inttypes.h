@@ -35,6 +35,10 @@
 #ifndef LIBC_INTTYPES_H_
 #define LIBC_INTTYPES_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <_bits/inttypes.h>
 
 #ifndef __HELENOS_DISABLE_INTMAX__
@@ -42,6 +46,10 @@ intmax_t strtoimax(const char *__restrict__ nptr,
     char **__restrict__ endptr, int base);
 uintmax_t strtoumax(const char *__restrict__ nptr,
     char **__restrict__ endptr, int base);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

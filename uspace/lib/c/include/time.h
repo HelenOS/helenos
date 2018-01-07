@@ -35,9 +35,17 @@
 #ifndef LIBC_TIME_H_
 #define LIBC_TIME_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/time.h>
 
 extern time_t time(time_t *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

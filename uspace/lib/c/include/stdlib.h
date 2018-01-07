@@ -35,6 +35,10 @@
 #ifndef LIBC_STDLIB_H_
 #define LIBC_STDLIB_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
 #include <bsearch.h>
@@ -102,6 +106,10 @@ extern unsigned long long strtoull(const char *__restrict__, char **__restrict__
 extern div_t div(int, int);
 extern ldiv_t ldiv(long, long);
 extern lldiv_t lldiv(long long, long long);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

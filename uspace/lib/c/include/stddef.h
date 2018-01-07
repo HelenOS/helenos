@@ -35,6 +35,10 @@
 #ifndef LIBC_STDDEF_H_
 #define LIBC_STDDEF_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <_bits/size_t.h>
 #include <_bits/ssize_t.h>
 #include <_bits/ptrdiff_t.h>
@@ -44,6 +48,10 @@
 
 #define offsetof(type, member) \
 	((size_t) &(((type *) 0)->member))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

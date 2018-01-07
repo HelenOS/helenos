@@ -36,6 +36,10 @@
 #ifndef LIBC_STR_H_
 #define LIBC_STR_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <errno.h>
 #include <mem.h>
 #include <stddef.h>
@@ -137,6 +141,10 @@ extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);
 
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

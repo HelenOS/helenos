@@ -33,6 +33,10 @@
 #ifndef LIBC_SETJMP_H_
 #define LIBC_SETJMP_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <libarch/fibril_context.h>
 #include <_bits/__noreturn.h>
 
@@ -43,6 +47,10 @@ extern __noreturn void __longjmp(jmp_buf, int);
 
 #define setjmp __setjmp
 extern __noreturn void longjmp(jmp_buf, int);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

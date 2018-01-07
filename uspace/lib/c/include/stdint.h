@@ -35,7 +35,15 @@
 #ifndef LIBC_STDINT_H_
 #define LIBC_STDINT_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <_bits/stdint.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

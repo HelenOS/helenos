@@ -35,7 +35,15 @@
 #ifndef LIBC_LIMITS_H_
 #define LIBC_LIMITS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <_bits/limits.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

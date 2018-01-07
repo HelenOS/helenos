@@ -36,6 +36,10 @@
 #ifndef LIBC_STDIO_H_
 #define LIBC_STDIO_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <offset.h>
 #include <stdarg.h>
 #include <io/verify.h>
@@ -212,6 +216,10 @@ extern off64_t ftell64(FILE *);
 
 #endif
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
