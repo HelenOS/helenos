@@ -56,29 +56,6 @@ static inline usb2_bus_t *bus_to_usb2_bus(bus_t *bus_base)
 	return (usb2_bus_t *) bus_base;
 }
 
-/** Get a free USB address
- *
- * @param[in] bus Device manager structure to use.
- * @return Free address, or error code.
- */
-static int get_free_address(usb2_bus_t *bus, usb_address_t *addr)
-{
-	usb_address_t new_address = bus->last_address;
-	do {
-		new_address = (new_address + 1) % USB_ADDRESS_COUNT;
-		if (new_address == USB_ADDRESS_DEFAULT)
-			new_address = 1;
-		if (new_address == bus->last_address)
-			return ENOSPC;
-	} while (bus->address_occupied[new_address]);
-
-	assert(new_address != USB_ADDRESS_DEFAULT);
-	bus->last_address = new_address;
-
-	*addr = new_address;
-	return EOK;
-}
-
 /** Unregister and destroy all endpoints using given address.
  * @param bus usb_bus structure, non-null.
  * @param address USB address.
@@ -104,21 +81,18 @@ static int release_address(usb2_bus_t *bus, usb_address_t address)
  */
 static int request_address(usb2_bus_t *bus, usb_address_t *addr)
 {
-	int err;
+	// Find a free address
+	usb_address_t new_address = bus->last_address;
+	do {
+		new_address = (new_address + 1) % USB_ADDRESS_COUNT;
+		if (new_address == USB_ADDRESS_DEFAULT)
+			new_address = 1;
+		if (new_address == bus->last_address)
+			return ENOSPC;
+	} while (bus->address_occupied[new_address]);
+	bus->last_address = new_address;
 
-	assert(bus);
-	assert(addr);
-
-	if (!usb_address_is_valid(*addr))
-		return EINVAL;
-
-	if ((err = get_free_address(bus, addr)))
-		return err;
-
-	assert(usb_address_is_valid(*addr));
-	assert(bus->address_occupied[*addr] == false);
-	assert(*addr != USB_ADDRESS_DEFAULT);
-
+	*addr = new_address;
 	bus->address_occupied[*addr] = true;
 
 	return EOK;
