@@ -119,8 +119,16 @@ else
 	ifeq ($(STATIC_ONLY),y)
 		STATIC_BUILD = y
 	else
-		ifeq ($(CONFIG_USE_SHARED_LIBS),y)
-			STATIC_BUILD = n
+		ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
+			ifeq ($(CONFIG_USE_SHARED_LIBS),y)
+				STATIC_BUILD = n
+			else
+				ifeq ($(LIBRARY),)
+					STATIC_BUILD = y
+				else
+					STATIC_BUILD = n
+				endif
+			endif
 		else
 			STATIC_BUILD = y
 		endif
