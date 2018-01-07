@@ -214,7 +214,7 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 	if ((err = xhci_bus_init(&hc->bus, hc)))
 		goto err_cmd;
 
-	if ((err = xhci_rh_init(&hc->rh, hc, device)))
+	if ((err = xhci_rh_init(&hc->rh, hc)))
 		goto err_bus;
 
 	return EOK;

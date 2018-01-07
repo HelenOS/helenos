@@ -66,9 +66,6 @@ typedef struct {
 	/* Root for the device tree */
 	xhci_device_t device;
 
-	/* We need this to attach children to */
-	ddf_dev_t *hc_device;
-
 	/** Interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t *unfinished_interrupt_transfer;
 
@@ -79,7 +76,7 @@ typedef struct {
 	xhci_device_t **devices_by_port;
 } xhci_rh_t;
 
-int xhci_rh_init(xhci_rh_t *, xhci_hc_t *, ddf_dev_t *);
+int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
 int xhci_rh_fini(xhci_rh_t *);
 const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *, uint8_t);
 int xhci_rh_reset_port(xhci_rh_t *, uint8_t);

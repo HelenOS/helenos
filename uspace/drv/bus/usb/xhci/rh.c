@@ -60,7 +60,7 @@ static const uint32_t port_change_mask =
 	XHCI_REG_MASK(XHCI_PORT_PLC) |
 	XHCI_REG_MASK(XHCI_PORT_CEC);
 
-int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
+int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 {
 	assert(rh);
 	assert(hc);
@@ -68,7 +68,6 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc, ddf_dev_t *device)
 	rh->hc = hc;
 	rh->max_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
 	rh->devices_by_port = (xhci_device_t **) calloc(rh->max_ports, sizeof(xhci_device_t *));
-	rh->hc_device = device;
 
 	const int err = bus_device_init(&rh->device.base, &rh->hc->bus.base);
 	if (err)
@@ -87,7 +86,6 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 {
 	int err;
 	assert(rh);
-	assert(rh->hc_device);
 
 	assert(rh->devices_by_port[port_id - 1] == NULL);
 
@@ -352,11 +350,8 @@ int xhci_rh_reset_port(xhci_rh_t* rh, uint8_t port)
 
 int xhci_rh_fini(xhci_rh_t *rh)
 {
-	/* TODO: Implement me! */
-	usb_log_debug2("Called xhci_rh_fini().");
-
+	assert(rh);
 	free(rh->devices_by_port);
-
 	return EOK;
 }
 
