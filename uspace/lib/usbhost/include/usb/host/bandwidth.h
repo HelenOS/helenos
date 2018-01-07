@@ -43,10 +43,12 @@
 /** Bytes per second in FULL SPEED */
 #define BANDWIDTH_TOTAL_USB11 (12000000 / 8)
 /** 90% of total bandwidth is available for periodic transfers */
-#define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
+#define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 * 9) / 10)
 
-//TODO: Implement
-#define BANDWIDTH_AVAILABLE_USB20  1
+/** Number of nanoseconds in one microframe */
+#define BANDWIDTH_TOTAL_USB20 (125000)
+/** 90% of total bandwidth is available for periodic transfers */
+#define BANDWIDTH_AVAILABLE_USB20  ((BANDWIDTH_TOTAL_USB20 * 9) / 10)
 
 typedef struct endpoint endpoint_t;
 

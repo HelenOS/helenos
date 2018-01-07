@@ -95,11 +95,14 @@ ssize_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
 }
 
 /** Calculate bandwidth that needs to be reserved for communication with EP.
- * Calculation follows USB 2.0 specification.
+ * Calculation follows USB 2.0 specification, chapter 5.11.3.
+ *
  * @param speed Device's speed.
  * @param type Type of the transfer.
  * @param size Number of byte to transfer.
  * @param max_packet_size Maximum bytes in one packet.
+ * @return Number of nanoseconds transaction with @c size bytes payload will
+ *         take.
  */
 ssize_t bandwidth_count_usb20(endpoint_t *ep, size_t size)
 {
@@ -112,6 +115,37 @@ ssize_t bandwidth_count_usb20(endpoint_t *ep, size_t size)
 	    && (type != USB_TRANSFER_ISOCHRONOUS)) {
 		return 0;
 	}
-	//TODO Implement
-	return 0;
+
+	// FIXME: Come up with some upper bound for these (in ns).
+	const size_t host_delay = 0;
+	const size_t hub_ls_setup = 0;
+
+	// Approx. Floor(3.167 + BitStuffTime(Data_bc))
+	const size_t base_time = (size * 8 + 19) / 6;
+
+	switch (ep->device->speed) {
+	case USB_SPEED_LOW:
+		if (ep->direction == USB_DIRECTION_IN)
+			return 64060 + (2 * hub_ls_setup) + (677 * base_time) + host_delay;
+		else
+			return 64107 + (2 * hub_ls_setup) + (667 * base_time) + host_delay;
+
+	case USB_SPEED_FULL:
+		if (ep->transfer_type == USB_TRANSFER_INTERRUPT)
+			return 9107 + 84 * base_time + host_delay;
+
+		if (ep->direction == USB_DIRECTION_IN)
+			return 7268 + 84 * base_time + host_delay;
+		else
+			return 6265 + 84 * base_time + host_delay;
+
+	case USB_SPEED_HIGH:
+		if (ep->transfer_type == USB_TRANSFER_INTERRUPT)
+			return (3648 + 25 * base_time + 11) / 12 + host_delay;
+		else
+			return (5280 + 25 * base_time + 11) / 12 + host_delay;
+
+	default:
+		return 0;
+	}
 }

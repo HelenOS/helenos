@@ -148,7 +148,7 @@ static const bus_ops_t ehci_bus_ops = {
 	.endpoint_register = ehci_register_ep,
 	.endpoint_unregister = ehci_unregister_ep,
 	.endpoint_toggle_reset = ehci_ep_toggle_reset,
-	.endpoint_count_bw = bandwidth_count_usb11,
+	.endpoint_count_bw = bandwidth_count_usb20,
 	.batch_create = ehci_create_batch,
 	.batch_destroy = ehci_destroy_batch,
 	.batch_schedule = ehci_hc_schedule,
@@ -162,7 +162,7 @@ int ehci_bus_init(ehci_bus_t *bus, hc_t *hc)
 	usb2_bus_t *usb2_bus = (usb2_bus_t *) bus;
 	bus_t *bus_base = (bus_t *) bus;
 
-	usb2_bus_init(usb2_bus, BANDWIDTH_AVAILABLE_USB11);
+	usb2_bus_init(usb2_bus, BANDWIDTH_AVAILABLE_USB20);
 	bus_base->ops = &ehci_bus_ops;
 
 	bus->hc = hc;
