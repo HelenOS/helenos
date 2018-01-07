@@ -31,6 +31,10 @@
 
 #include <type_traits>
 
+extern "C" {
+#include <adt/hash.h>
+}
+
 namespace std
 {
     namespace aux
@@ -706,64 +710,236 @@ namespace std
      */
 
     template<class T>
-    struct hash;
+    struct hash
+    { /* DUMMY BODY */ };
 
     template<>
-    struct hash<bool>;
+    struct hash<bool>
+    {
+        size_t operator()(bool x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = bool;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<char>;
+    struct hash<char>
+    {
+        size_t operator()(char x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = char;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<signed char>;
+    struct hash<signed char>
+    {
+        size_t operator()(signed char x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = signed char;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<unsigned char>;
+    struct hash<unsigned char>
+    {
+        size_t operator()(unsigned char x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = unsigned char;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<char16_t>;
+    struct hash<char16_t>
+    {
+        size_t operator()(char16_t x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = char16_t;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<char32_t>;
+    struct hash<char32_t>
+    {
+        size_t operator()(char32_t x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = char32_t;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<wchar_t>;
+    struct hash<wchar_t>
+    {
+        size_t operator()(wchar_t x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = wchar_t;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<short>;
+    struct hash<short>
+    {
+        size_t operator()(short x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = short;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<unsigned short>;
+    struct hash<unsigned short>
+    {
+        size_t operator()(unsigned short x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = unsigned short;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<int>;
+    struct hash<int>
+    {
+        size_t operator()(int x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = int;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<unsigned int>;
+    struct hash<unsigned int>
+    {
+        size_t operator()(unsigned int x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = unsigned int;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<long>;
+    struct hash<long>
+    {
+        size_t operator()(long x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = long;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<long long>;
+    struct hash<long long>
+    {
+        size_t operator()(long long x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = long long;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<unsigned long>;
+    struct hash<unsigned long>
+    {
+        size_t operator()(unsigned long x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = unsigned long;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<unsigned long long>;
+    struct hash<unsigned long long>
+    {
+        size_t operator()(unsigned long long x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = unsigned long long;
+        using result_type   = size_t;
+    };
 
     template<>
-    struct hash<float>;
+    struct hash<float>
+    {
+        size_t operator()(float x) const noexcept
+        {
+            return hash_mix(*(size_t*)(&x));
+        }
+
+        using argument_type = float;
+        using result_type   = size_t;
+    };
 
     template<>
     struct hash<double>;
+    {
+        size_t operator()(double x) const noexcept
+        {
+            return hash_mix(*(size_t*)(&x));
+        }
+
+        using argument_type = double;
+        using result_type   = size_t;
+    };
 
     template<>
     struct hash<long double>;
+    {
+        size_t operator()(long double x) const noexcept
+        {
+            return hash_mix(*(size_t*)(&x));
+        }
+
+        using argument_type = long double;
+        using result_type   = size_t;
+    };
 
     template<class T>
-    struct hash<T*>;
+    struct hash<T*>
+    {
+        size_t operator()(T* x) const noexcept
+        {
+            return hash_mix(static_cast<size_t>(x));
+        }
+
+        using argument_type = T*;
+        using result_type   = size_t;
+    };
 }
 
 #endif
