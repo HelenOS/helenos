@@ -425,26 +425,6 @@ static int endpoint_unregister(endpoint_t *ep_base)
 	return EOK;
 }
 
-static int reserve_default_address(bus_t *bus_base, usb_speed_t speed)
-{
-	xhci_bus_t *xhci_bus = bus_to_xhci_bus(bus_base);
-
-	if (xhci_bus->default_address_speed != USB_SPEED_MAX)
-		/* Already allocated */
-		return ENOENT;
-
-	xhci_bus->default_address_speed = speed;
-	return EOK;
-}
-
-static int release_default_address(bus_t *bus_base)
-{
-	xhci_bus_t *xhci_bus = bus_to_xhci_bus(bus_base);
-
-	xhci_bus->default_address_speed = USB_SPEED_MAX;
-	return EOK;
-}
-
 static usb_transfer_batch_t *batch_create(endpoint_t *ep)
 {
 	xhci_transfer_t *transfer = xhci_transfer_create(ep);
@@ -460,9 +440,6 @@ static void batch_destroy(usb_transfer_batch_t *batch)
 static const bus_ops_t xhci_bus_ops = {
 // TODO: Is it good idea to use this macro? It blurrs the fact that the callbacks and static functions are called the same.
 #define BIND_OP(op) .op = op,
-	BIND_OP(reserve_default_address)
-	BIND_OP(release_default_address)
-
 	BIND_OP(device_enumerate)
 	BIND_OP(device_remove)
 	BIND_OP(device_online)
@@ -500,7 +477,6 @@ int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 
 	bus->hc = hc;
 	bus->base.ops = &xhci_bus_ops;
-	bus->default_address_speed = USB_SPEED_MAX;
 	return EOK;
 }
 

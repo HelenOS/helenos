@@ -387,11 +387,9 @@ static const bus_ops_t uhci_bus_ops = {
  */
 int hc_init_mem_structures(hc_t *instance, hc_device_t *hcd)
 {
-	int err;
 	assert(instance);
 
-	if ((err = usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11)))
-		return err;
+	usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11);
 
 	bus_t *bus = (bus_t *) &instance->bus;
 	bus->ops = &uhci_bus_ops;

@@ -53,6 +53,7 @@ void bus_init(bus_t *bus, size_t device_size)
 
 	fibril_mutex_initialize(&bus->guard);
 	bus->device_size = device_size;
+	bus->default_address_speed = USB_SPEED_MAX;
 }
 
 int bus_device_init(device_t *dev, bus_t *bus)
@@ -238,28 +239,21 @@ int bus_reserve_default_address(bus_t *bus, usb_speed_t speed)
 {
 	assert(bus);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, reserve_default_address);
-	if (!ops)
-		return ENOTSUP;
-
 	fibril_mutex_lock(&bus->guard);
-	const int r = ops->reserve_default_address(bus, speed);
-	fibril_mutex_unlock(&bus->guard);
-	return r;
+	if (bus->default_address_speed != USB_SPEED_MAX) {
+		fibril_mutex_unlock(&bus->guard);
+		return EAGAIN;
+	} else {
+		bus->default_address_speed = speed;
+		fibril_mutex_unlock(&bus->guard);
+		return EOK;
+	}
 }
 
-int bus_release_default_address(bus_t *bus)
+void bus_release_default_address(bus_t *bus)
 {
 	assert(bus);
-
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, release_default_address);
-	if (!ops)
-		return ENOTSUP;
-
-	fibril_mutex_lock(&bus->guard);
-	const int r = ops->release_default_address(bus);
-	fibril_mutex_unlock(&bus->guard);
-	return r;
+	bus->default_address_speed = USB_SPEED_MAX;
 }
 
 /** Prepare generic usb_transfer_batch and schedule it.

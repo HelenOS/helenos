@@ -136,7 +136,9 @@ static int release_default_address(ddf_fun_t *fun)
 	assert(dev);
 
 	usb_log_debug("Device %d released default address\n", dev->address);
-	return bus_release_default_address(hcd->bus);
+	bus_release_default_address(hcd->bus);
+
+	return EOK;
 }
 
 static int device_enumerate(ddf_fun_t *fun, unsigned port)

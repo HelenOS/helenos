@@ -50,8 +50,6 @@ typedef struct xhci_bus {
 	xhci_hc_t *hc;				/**< Pointer to managing HC (to issue commands) */
 
 	xhci_device_t **devices_by_slot;	/**< Devices by Slot ID */
-
-	usb_speed_t default_address_speed;	/**< Used to get speed from usb hubs */
 } xhci_bus_t;
 
 int xhci_bus_init(xhci_bus_t *, xhci_hc_t *);

@@ -99,11 +99,10 @@ static int release_address(usb2_bus_t *bus, usb_address_t address)
 /** Request USB address.
  * @param bus usb_device_manager
  * @param addr Pointer to requested address value, place to store new address
- * @parma strict Fail if the requested address is not available.
  * @return Error code.
  * @note Default address is only available in strict mode.
  */
-static int request_address(usb2_bus_t *bus, usb_address_t *addr, bool strict)
+static int request_address(usb2_bus_t *bus, usb_address_t *addr)
 {
 	int err;
 
@@ -113,22 +112,12 @@ static int request_address(usb2_bus_t *bus, usb_address_t *addr, bool strict)
 	if (!usb_address_is_valid(*addr))
 		return EINVAL;
 
-	/* Only grant default address to strict requests */
-	if ((*addr == USB_ADDRESS_DEFAULT) && !strict) {
-		if ((err = get_free_address(bus, addr)))
-			return err;
-	}
-	else if (bus->address_occupied[*addr]) {
-		if (strict) {
-			return ENOENT;
-		}
-		if ((err = get_free_address(bus, addr)))
-			return err;
-	}
+	if ((err = get_free_address(bus, addr)))
+		return err;
 
 	assert(usb_address_is_valid(*addr));
 	assert(bus->address_occupied[*addr] == false);
-	assert(*addr != USB_ADDRESS_DEFAULT || strict);
+	assert(*addr != USB_ADDRESS_DEFAULT);
 
 	bus->address_occupied[*addr] = true;
 
@@ -151,7 +140,7 @@ static int address_device(device_t *dev)
 
 	/** Reserve address early, we want pretty log messages */
 	usb_address_t address = USB_ADDRESS_DEFAULT;
-	if ((err = request_address(bus, &address, false))) {
+	if ((err = request_address(bus, &address))) {
 		usb_log_error("Failed to reserve new address: %s.",
 		    str_error(err));
 		return err;
@@ -230,7 +219,7 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	/* The speed of the new device was reported by the hub when reserving
 	 * default address.
 	 */
-	dev->speed = bus->default_address_speed;
+	dev->speed = bus->base.default_address_speed;
 	usb_log_debug("Found new %s speed USB device.", usb_str_speed(dev->speed));
 
 	if (!dev->hub) {
@@ -300,26 +289,7 @@ static int usb2_bus_unregister_ep(endpoint_t *ep)
 	return EOK;
 }
 
-static int usb2_bus_register_default_address(bus_t *bus_base, usb_speed_t speed)
-{
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
-	usb_address_t addr = USB_ADDRESS_DEFAULT;
-	const int err = request_address(bus, &addr, true);
-	if (err)
-		return err;
-	bus->default_address_speed = speed;
-	return EOK;
-}
-
-static int usb2_bus_release_default_address(bus_t *bus_base)
-{
-	usb2_bus_t *bus = bus_to_usb2_bus(bus_base);
-	return release_address(bus, USB_ADDRESS_DEFAULT);
-}
-
 const bus_ops_t usb2_bus_ops = {
-	.reserve_default_address = usb2_bus_register_default_address,
-	.release_default_address = usb2_bus_release_default_address,
 	.device_enumerate = usb2_bus_device_enumerate,
 	.endpoint_create = usb2_bus_create_ep,
 	.endpoint_register = usb2_bus_register_ep,
@@ -333,7 +303,7 @@ const bus_ops_t usb2_bus_ops = {
  * @param bw_count function to use to calculate endpoint bw requirements.
  * @return Error code.
  */
-int usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
+void usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
 {
 	assert(bus);
 
@@ -341,8 +311,6 @@ int usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
 	bus->base.ops = &usb2_bus_ops;
 
 	bus->free_bw = available_bandwidth;
-
-	return EOK;
 }
 /**
  * @}

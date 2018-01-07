@@ -405,7 +405,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	}
 
 	/* Reserve default address */
-	while ((ret = usbhc_reserve_default_address(exch, speed)) == ENOENT) {
+	while ((ret = usbhc_reserve_default_address(exch, speed)) == EAGAIN) {
 		async_usleep(1000000);
 	}
 	if (ret != EOK) {
