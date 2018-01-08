@@ -51,11 +51,17 @@ struct trb_segment {
 } __attribute__((aligned(PAGE_SIZE)));
 
 
+/**
+ * Get the first TRB of a segment.
+ */
 static inline xhci_trb_t *segment_begin(trb_segment_t *segment)
 {
 	return segment->trb_storage;
 }
 
+/**
+ * Get the one-past-end TRB of a segment.
+ */
 static inline xhci_trb_t *segment_end(trb_segment_t *segment)
 {
 	return segment_begin(segment) + SEGMENT_TRB_COUNT;
@@ -90,7 +96,6 @@ static void trb_segment_free(trb_segment_t *segment)
 
 /**
  * Initializes the ring with one segment.
- * Event when it fails, the structure needs to be finalized.
  */
 int xhci_trb_ring_init(xhci_trb_ring_t *ring)
 {
@@ -116,11 +121,12 @@ int xhci_trb_ring_init(xhci_trb_ring_t *ring)
 
 	fibril_mutex_initialize(&ring->guard);
 
-	usb_log_debug2("Initialized new TRB ring.");
-
 	return EOK;
 }
 
+/**
+ * Free all segments inside the ring.
+ */
 void xhci_trb_ring_fini(xhci_trb_ring_t *ring)
 {
 	assert(ring);
@@ -149,12 +155,18 @@ static void trb_ring_resolve_link(xhci_trb_ring_t *ring)
 	ring->enqueue_trb = segment_begin(ring->enqueue_segment);
 }
 
+/**
+ * Get the physical address of the enqueue pointer.
+ */
 static uintptr_t trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
 {
 	uintptr_t trb_id = ring->enqueue_trb - segment_begin(ring->enqueue_segment);
 	return ring->enqueue_segment->phys + trb_id * sizeof(xhci_trb_t);
 }
 
+/**
+ * Decides whether the TRB will trigger an interrupt after being processed.
+ */
 static bool trb_generates_interrupt(xhci_trb_t *trb)
 {
 	return TRB_TYPE(*trb) >= XHCI_TRB_TYPE_ENABLE_SLOT_CMD
@@ -162,7 +174,7 @@ static bool trb_generates_interrupt(xhci_trb_t *trb)
 }
 
 /**
- * Enqueue TDs composed of TRBs.
+ * Enqueue TD composed of TRBs.
  *
  * This will copy specified number of TRBs chained together into the ring. The
  * cycle flag in TRBs may be changed.
@@ -255,7 +267,6 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 
 /**
  * Initializes an event ring.
- * Even when it fails, the structure needs to be finalized.
  */
 int xhci_event_ring_init(xhci_event_ring_t *ring)
 {
@@ -274,8 +285,10 @@ int xhci_event_ring_init(xhci_event_ring_t *ring)
 	ring->dequeue_trb = segment_begin(segment);
 	ring->dequeue_ptr = segment->phys;
 
-	if (dma_buffer_alloc(&ring->erst, PAGE_SIZE))
+	if (dma_buffer_alloc(&ring->erst, PAGE_SIZE)) {
+		xhci_event_ring_fini(ring);
 		return ENOMEM;
+	}
 	xhci_erst_entry_t *erst = ring->erst.virt;
 
 	memset(erst, 0, PAGE_SIZE);
@@ -300,6 +313,9 @@ void xhci_event_ring_fini(xhci_event_ring_t *ring)
 	dma_buffer_free(&ring->erst);
 }
 
+/**
+ * Get the physical address of the dequeue pointer.
+ */
 static uintptr_t event_ring_dequeue_phys(xhci_event_ring_t *ring)
 {
 	uintptr_t trb_id = ring->dequeue_trb - segment_begin(ring->dequeue_segment);

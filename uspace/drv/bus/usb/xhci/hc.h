@@ -114,7 +114,6 @@ int hc_add_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
 int hc_drop_endpoint(xhci_hc_t *, uint32_t, uint8_t);
 int hc_update_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
 
-int hc_schedule(usb_transfer_batch_t *batch);
 int hc_status(bus_t *, uint32_t *);
 void hc_interrupt(bus_t *, uint32_t);
 

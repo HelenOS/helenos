@@ -44,7 +44,8 @@
 #include "commands.h"
 #include "endpoint.h"
 
-/** Initialize new XHCI endpoint.
+/**
+ * Initialize new XHCI endpoint.
  * @param[in] xhci_ep Allocated XHCI endpoint to initialize.
  * @param[in] dev Device, to which the endpoint belongs.
  * @param[in] desc USB endpoint descriptor carrying configuration data.
@@ -97,7 +98,8 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 	return EOK;
 }
 
-/** Finalize XHCI endpoint.
+/**
+ * Finalize XHCI endpoint.
  * @param[in] xhci_ep XHCI endpoint to finalize.
  */
 void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
@@ -107,7 +109,8 @@ void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 	// TODO: Something missed?
 }
 
-/** Determine the type of a XHCI endpoint.
+/**
+ * Determine the type of a XHCI endpoint.
  * @param[in] ep XHCI endpoint to query.
  *
  * @return EP_TYPE_[CONTROL|ISOCH|BULK|INTERRUPT]_[IN|OUT]
@@ -136,7 +139,8 @@ static int xhci_endpoint_type(xhci_endpoint_t *ep)
 	return EP_TYPE_INVALID;
 }
 
-/** Test whether an XHCI endpoint uses streams.
+/**
+ * Test whether an XHCI endpoint uses streams.
  * @param[in] xhci_ep XHCI endpoint to query.
  *
  * @return True if the endpoint uses streams.

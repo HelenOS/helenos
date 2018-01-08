@@ -56,10 +56,19 @@ static const usb_endpoint_descriptors_t ep0_initial_desc = {
 
 static endpoint_t *endpoint_create(device_t *, const usb_endpoint_descriptors_t *);
 
-/** Assign address and control endpoint to a new XHCI device.
- * @param[in] bus XHCI bus, in which the address is assigned.
- * @param[in] dev New device to address and configure.
+/** Ops receive generic bus_t pointer. */
+static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
+{
+	assert(bus_base);
+	return (xhci_bus_t *) bus_base;
+}
+
+/**
+ * Assign address and control endpoint to a new XHCI device. Once this function
+ * successfully returns, the device is online.
  *
+ * @param[in] bus XHCI bus, in which the address is assigned.
+ * @param[in] dev New device to address and configure./e
  * @return Error code.
  */
 static int address_device(xhci_bus_t *bus, xhci_device_t *dev)
@@ -102,10 +111,11 @@ err_slot:
 	return err;
 }
 
-/** Retrieve and set maximum packet size for endpoint zero of a XHCI device.
+/**
+ * Retrieve and set maximum packet size for endpoint zero of a XHCI device.
+ *
  * @param[in] hc Host controller, which manages the device.
  * @param[in] dev Device with operational endpoint zero.
- *
  * @return Error code.
  */
 static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
@@ -133,16 +143,19 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	return EOK;
 }
 
-/** Respond to a new device on the XHCI bus. Address it, negotiate packet size
+/**
+ * Respond to a new device on the XHCI bus. Address it, negotiate packet size
  * and retrieve USB descriptors.
+ *
  * @param[in] bus XHCI bus, where the new device emerged.
  * @param[in] dev XHCI device, which has appeared on the bus.
  *
  * @return Error code.
  */
-int xhci_bus_enumerate_device(xhci_bus_t *bus, device_t *dev)
+static int device_enumerate(device_t *dev)
 {
 	int err;
+	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
 	hcd_setup_device_tt(dev);
@@ -191,16 +204,20 @@ err_address:
 
 static int endpoint_unregister(endpoint_t *);
 
-/** Remove device from XHCI bus. Transition it to the offline state, abort all
+/**
+ * Remove device from XHCI bus. Transition it to the offline state, abort all
  * ongoing transfers and unregister all of its endpoints.
+ *
+ * Bus callback.
+ *
  * @param[in] bus XHCI bus, from which the device is removed.
  * @param[in] dev XHCI device, which is removed from the bus.
- *
  * @return Error code.
  */
-int xhci_bus_remove_device(xhci_bus_t *bus, device_t *dev)
+static int device_remove(device_t *dev)
 {
 	int err;
+	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
 	/* Block creation of new endpoints and transfers. */
@@ -254,27 +271,11 @@ int xhci_bus_remove_device(xhci_bus_t *bus, device_t *dev)
 	return EOK;
 }
 
-/** Ops receive generic bus_t pointer. */
-static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
-{
-	assert(bus_base);
-	return (xhci_bus_t *) bus_base;
-}
-
-// TODO: Fill in docstrings for XHCI bus callbacks once generic bus callbacks get their docstrings.
-
-static int device_enumerate(device_t *dev)
-{
-	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
-	return xhci_bus_enumerate_device(bus, dev);
-}
-
-static int device_remove(device_t *dev)
-{
-	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
-	return xhci_bus_remove_device(bus, dev);
-}
-
+/**
+ * Reverts things device_offline did, getting the device back up.
+ *
+ * Bus callback.
+ */
 static int device_online(device_t *dev_base)
 {
 	int err;
@@ -303,6 +304,12 @@ static int device_online(device_t *dev_base)
 	return EOK;
 }
 
+/**
+ * Make given device offline. Offline the DDF function, tear down all
+ * endpoints, issue Deconfigure Device command to xHC.
+ *
+ * Bus callback.
+ */
 static int device_offline(device_t *dev_base)
 {
 	int err;
@@ -352,6 +359,11 @@ static int device_offline(device_t *dev_base)
 	return EOK;
 }
 
+/**
+ * Create a new xHCI endpoint structure.
+ *
+ * Bus callback.
+ */
 static endpoint_t *endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
 	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t));
@@ -366,6 +378,11 @@ static endpoint_t *endpoint_create(device_t *dev, const usb_endpoint_descriptors
 	return &ep->base;
 }
 
+/**
+ * Destroy given xHCI endpoint structure.
+ *
+ * Bus callback.
+ */
 static void endpoint_destroy(endpoint_t *ep)
 {
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
@@ -374,6 +391,12 @@ static void endpoint_destroy(endpoint_t *ep)
 	free(xhci_ep);
 }
 
+/**
+ * Register an andpoint to the bus. Allocate its transfer ring(s) and inform
+ * xHC about it.
+ *
+ * Bus callback.
+ */
 static int endpoint_register(endpoint_t *ep_base)
 {
 	int err;
@@ -400,6 +423,12 @@ err_prepared:
 	return err;
 }
 
+/**
+ * Unregister an endpoint. If the device is still available, inform the xHC
+ * about it. Destroy resources allocated when registering.
+ *
+ * Bus callback.
+ */
 static int endpoint_unregister(endpoint_t *ep_base)
 {
 	int err;
@@ -425,38 +454,41 @@ static int endpoint_unregister(endpoint_t *ep_base)
 	return EOK;
 }
 
-static usb_transfer_batch_t *batch_create(endpoint_t *ep)
+/**
+ * Schedule a batch for xHC.
+ *
+ * Bus callback.
+ */
+static int batch_schedule(usb_transfer_batch_t *batch)
 {
-	xhci_transfer_t *transfer = xhci_transfer_create(ep);
-	return &transfer->batch;
+	assert(batch);
+	xhci_hc_t *hc = bus_to_hc(endpoint_get_bus(batch->ep));
+
+	if (!batch->target.address) {
+		usb_log_error("Attempted to schedule transfer to address 0.");
+		return EINVAL;
+	}
+
+	return xhci_transfer_schedule(hc, batch);
 }
 
-static void batch_destroy(usb_transfer_batch_t *batch)
-{
-	xhci_transfer_destroy(xhci_transfer_from_batch(batch));
-}
-
-/** Structure binding XHCI static callbacks to generic bus callbacks. */
 static const bus_ops_t xhci_bus_ops = {
-// TODO: Is it good idea to use this macro? It blurrs the fact that the callbacks and static functions are called the same.
-#define BIND_OP(op) .op = op,
-	BIND_OP(device_enumerate)
-	BIND_OP(device_remove)
-	BIND_OP(device_online)
-	BIND_OP(device_offline)
-
-	BIND_OP(endpoint_create)
-	BIND_OP(endpoint_destroy)
-	BIND_OP(endpoint_register)
-	BIND_OP(endpoint_unregister)
-
-	BIND_OP(batch_create)
-	BIND_OP(batch_destroy)
-#undef BIND_OP
-
 	.interrupt = hc_interrupt,
 	.status = hc_status,
-	.batch_schedule = hc_schedule,
+
+	.device_enumerate = device_enumerate,
+	.device_remove = device_remove,
+	.device_online = device_online,
+	.device_offline = device_offline,
+
+	.endpoint_create = endpoint_create,
+	.endpoint_destroy = endpoint_destroy,
+	.endpoint_register = endpoint_register,
+	.endpoint_unregister = endpoint_unregister,
+
+	.batch_schedule = batch_schedule,
+	.batch_create = xhci_transfer_create,
+	.batch_destroy = xhci_transfer_destroy,
 };
 
 /** Initialize XHCI bus.
@@ -485,8 +517,8 @@ int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
  */
 void xhci_bus_fini(xhci_bus_t *bus)
 {
-	// FIXME: Deallocate bus->devices_by_slot?
-	// FIXME: Should there be some bus_fini() to call?
+	// FIXME: Ensure there are no more devices?
+	free(bus->devices_by_slot);
 	// FIXME: Something else we forgot?
 }
 

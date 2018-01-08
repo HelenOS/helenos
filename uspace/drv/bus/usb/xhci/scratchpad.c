@@ -40,6 +40,9 @@
 #include "hw_struct/regs.h"
 #include "scratchpad.h"
 
+/**
+ * Get the number of scratchpad buffers needed.
+ */
 static inline unsigned xhci_scratchpad_count(xhci_hc_t *hc)
 {
 	unsigned lo, hi;
@@ -50,6 +53,9 @@ static inline unsigned xhci_scratchpad_count(xhci_hc_t *hc)
 	return (hi << 5) | lo;
 }
 
+/**
+ * Allocate all scratchpad buffers, and configure the xHC.
+ */
 int xhci_scratchpad_alloc(xhci_hc_t *hc)
 {
 	const unsigned num_bufs = xhci_scratchpad_count(hc);
@@ -78,6 +84,9 @@ int xhci_scratchpad_alloc(xhci_hc_t *hc)
 	return EOK;
 }
 
+/**
+ * Deallocate the scratchpads and deconfigure xHC.
+ */
 void xhci_scratchpad_free(xhci_hc_t *hc)
 {
 	const unsigned num_bufs = xhci_scratchpad_count(hc);

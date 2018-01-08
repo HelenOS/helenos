@@ -69,6 +69,12 @@ static xhci_cmd_ring_t *get_cmd_ring(xhci_hc_t *hc)
 	return &hc->cr;
 }
 
+/**
+ * Initialize the command subsystem. Allocates the comand ring.
+ *
+ * Does not configure the CR pointer to the hardware, because the xHC will be
+ * reset before starting.
+ */
 int xhci_init_commands(xhci_hc_t *hc)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
@@ -88,12 +94,25 @@ int xhci_init_commands(xhci_hc_t *hc)
 	return EOK;
 }
 
+/**
+ * Finish the command subsystem. Stops the hardware from running commands, then
+ * deallocates the ring.
+ */
 void xhci_fini_commands(xhci_hc_t *hc)
 {
-	xhci_stop_command_ring(hc);
 	assert(hc);
+	xhci_stop_command_ring(hc);
+
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
+
+	fibril_mutex_lock(&cr->guard);
+	xhci_trb_ring_fini(&cr->trb_ring);
+	fibril_mutex_unlock(&cr->guard);
 }
 
+/**
+ * Initialize a command structure for the given command.
+ */
 void xhci_cmd_init(xhci_cmd_t *cmd, xhci_cmd_type_t type)
 {
 	memset(cmd, 0, sizeof(*cmd));
@@ -106,6 +125,11 @@ void xhci_cmd_init(xhci_cmd_t *cmd, xhci_cmd_type_t type)
 	cmd->_header.cmd = type;
 }
 
+/**
+ * Finish the command structure. Some command invocation includes allocating
+ * a context structure. To have the convenience in calling commands, this
+ * method deallocates all resources.
+ */
 void xhci_cmd_fini(xhci_cmd_t *cmd)
 {
 	list_remove(&cmd->_header.link);
@@ -118,7 +142,11 @@ void xhci_cmd_fini(xhci_cmd_t *cmd)
 	}
 }
 
-/** Call with guard locked. */
+/**
+ * Find a command issued by TRB at @c phys inside the command list.
+ *
+ * Call with guard locked only.
+ */
 static inline xhci_cmd_t *find_command(xhci_hc_t *hc, uint64_t phys)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
@@ -139,7 +167,11 @@ static inline xhci_cmd_t *find_command(xhci_hc_t *hc, uint64_t phys)
 		: NULL;
 }
 
-static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd, unsigned doorbell, unsigned target)
+/**
+ * Enqueue a command on the TRB ring. Ring the doorbell to initiate processing.
+ * Register the command as waiting for completion inside the command list.
+ */
+static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
 	assert(cmd);
@@ -167,6 +199,10 @@ static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd, unsigned doorb
 	return EOK;
 }
 
+/**
+ * Stop the command ring. Stop processing commands, block issuing new ones.
+ * Wait until hardware acknowledges it is stopped.
+ */
 void xhci_stop_command_ring(xhci_hc_t *hc)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
@@ -186,6 +222,10 @@ void xhci_stop_command_ring(xhci_hc_t *hc)
 	fibril_mutex_unlock(&cr->guard);
 }
 
+/**
+ * Abort currently processed command. Note that it is only aborted when the
+ * command is "blocking" - see section 4.6.1.2 of xHCI spec.
+ */
 static void abort_command_ring(xhci_hc_t *hc)
 {
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CA, 1);
@@ -235,6 +275,9 @@ static const char *trb_codes [] = {
 #undef TRBC
 };
 
+/**
+ * Report an error according to command completion code.
+ */
 static void report_error(int code)
 {
 	if (code < XHCI_TRBC_MAX && trb_codes[code] != NULL)
@@ -243,6 +286,11 @@ static void report_error(int code)
 		usb_log_error("Command resulted in reserved or vendor specific error.");
 }
 
+/**
+ * Handle a command completion. Feed the fibril waiting for result.
+ *
+ * @param trb The COMMAND_COMPLETION TRB found in event ring.
+ */
 int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
@@ -342,7 +390,7 @@ static int no_op_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_NO_OP_CMD);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int enable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -354,7 +402,7 @@ static int enable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_ENABLE_SLOT_CMD);
 	cmd->_header.trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int disable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -367,7 +415,7 @@ static int disable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_DISABLE_SLOT_CMD);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int address_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -397,7 +445,7 @@ static int address_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int configure_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -418,7 +466,7 @@ static int configure_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 	TRB_SET_DC(cmd->_header.trb, cmd->deconfigure);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int evaluate_context_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -440,7 +488,7 @@ static int evaluate_context_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int reset_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -459,7 +507,7 @@ static int reset_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_EP(cmd->_header.trb, cmd->endpoint_id);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int stop_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -474,7 +522,7 @@ static int stop_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_SUSP(cmd->_header.trb, cmd->susp);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int set_tr_dequeue_pointer_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -494,7 +542,7 @@ static int set_tr_dequeue_pointer_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 * TODO: Set DCS (see section 4.6.10).
 	 */
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int reset_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -507,7 +555,7 @@ static int reset_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_RESET_DEVICE_CMD);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 static int get_port_bandwidth_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
@@ -523,7 +571,7 @@ static int get_port_bandwidth_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 	TRB_SET_DEV_SPEED(cmd->_header.trb, cmd->device_speed);
 
-	return enqueue_command(hc, cmd, 0, 0);
+	return enqueue_command(hc, cmd);
 }
 
 /* The table of command-issuing functions. */
@@ -540,19 +588,26 @@ static cmd_handler cmd_handlers [] = {
 	[XHCI_CMD_STOP_ENDPOINT] = stop_endpoint_cmd,
 	[XHCI_CMD_SET_TR_DEQUEUE_POINTER] = set_tr_dequeue_pointer_cmd,
 	[XHCI_CMD_RESET_DEVICE] = reset_device_cmd,
-	// TODO: Force event (optional normative, for VMM, section 4.6.12).
 	[XHCI_CMD_FORCE_EVENT] = NULL,
-	// TODO: Negotiate bandwidth (optional normative, section 4.6.13).
 	[XHCI_CMD_NEGOTIATE_BANDWIDTH] = NULL,
-	// TODO: Set latency tolerance value (optional normative, section 4.6.14).
 	[XHCI_CMD_SET_LATENCY_TOLERANCE_VALUE] = NULL,
-	// TODO: Get port bandwidth (mandatory, but needs root hub implementation, section 4.6.15).
 	[XHCI_CMD_GET_PORT_BANDWIDTH] = get_port_bandwidth_cmd,
-	// TODO: Force header (mandatory, but needs root hub implementation, section 4.6.16).
 	[XHCI_CMD_FORCE_HEADER] = NULL,
 	[XHCI_CMD_NO_OP] = no_op_cmd
 };
 
+/**
+ * Try to abort currently processed command. This is tricky, because
+ * calling fibril is not necessarily the one which issued the blocked command.
+ * Also, the trickiness intensifies by the fact that stopping a CR is denoted by
+ * event, which is again handled in different fibril. but, once we go to sleep
+ * on waiting for that event, another fibril may wake up and try to abort the
+ * blocked command.
+ *
+ * So, we mark the command ring as being restarted, wait for it to stop, and
+ * then start it again. If there was a blocked command, it will be satisfied by
+ * COMMAND_ABORTED event.
+ */
 static int try_abort_current_command(xhci_hc_t *hc)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
@@ -602,6 +657,15 @@ static int try_abort_current_command(xhci_hc_t *hc)
 	return EOK;
 }
 
+/**
+ * Wait, until the command is completed. The completion is triggered by
+ * COMMAND_COMPLETION event. As we do not want to rely on HW completing the
+ * command in timely manner, we timeout. Note that we can't just return an
+ * error after the timeout pass - it may be other command blocking the ring,
+ * and ours can be completed afterwards. Therefore, it is not guaranteed that
+ * this function will return in XHCI_COMMAND_TIMEOUT. It will continue waiting
+ * until COMMAND_COMPLETION event arrives.
+ */
 static int wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	int rv = EOK;
@@ -629,8 +693,9 @@ static int wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return rv;
 }
 
-/** Issue command and block the current fibril until it is completed or timeout
- *  expires. Nothing is deallocated. Caller should always execute `xhci_cmd_fini`.
+/**
+ * Issue command and block the current fibril until it is completed or timeout
+ * expires. Nothing is deallocated. Caller should always execute `xhci_cmd_fini`.
  */
 int xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
@@ -657,8 +722,9 @@ int xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return cmd->status == XHCI_TRBC_SUCCESS ? EOK : EINVAL;
 }
 
-/** Does the same thing as `xhci_cmd_sync` and executes `xhci_cmd_fini`. This
- *  is a useful shorthand for issuing commands without out parameters.
+/**
+ * Does the same thing as `xhci_cmd_sync` and executes `xhci_cmd_fini`. This
+ * is a useful shorthand for issuing commands without out parameters.
  */
 int xhci_cmd_sync_fini(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
@@ -668,8 +734,9 @@ int xhci_cmd_sync_fini(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return err;
 }
 
-/** Does the same thing as `xhci_cmd_sync_fini` without blocking the current
- *  fibril. The command is copied to stack memory and `fini` is called upon its completion.
+/**
+ * Does the same thing as `xhci_cmd_sync_fini` without blocking the current
+ * fibril. The command is copied to stack memory and `fini` is called upon its completion.
  */
 int xhci_cmd_async_fini(xhci_hc_t *hc, xhci_cmd_t *stack_cmd)
 {

@@ -93,23 +93,26 @@ static inline bool configure_endpoint_needed(usb_device_request_setup_packet_t *
 }
 
 /**
- * There can currently be only one active transfer, because
- * usb_transfer_batch_init locks the endpoint by endpoint_use.
- * Therefore, we store the only active transfer per endpoint there.
+ * Create a xHCI-specific transfer batch.
+ *
+ * Bus callback.
  */
-xhci_transfer_t* xhci_transfer_create(endpoint_t* ep)
+usb_transfer_batch_t * xhci_transfer_create(endpoint_t* ep)
 {
 	xhci_transfer_t *transfer = calloc(1, sizeof(xhci_transfer_t));
 	if (!transfer)
 		return NULL;
 
 	usb_transfer_batch_init(&transfer->batch, ep);
-	return transfer;
+	return &transfer->batch;
 }
 
-void xhci_transfer_destroy(xhci_transfer_t* transfer)
+/**
+ * Destroy a xHCI transfer.
+ */
+void xhci_transfer_destroy(usb_transfer_batch_t* batch)
 {
-	assert(transfer);
+	xhci_transfer_t *transfer = xhci_transfer_from_batch(batch);
 
 	dma_buffer_free(&transfer->hc_buffer);
 	free(transfer);

@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * Memory-mapped register structures of the xHC.
+ * Various functions to examine current state of the xHC.
  */
 
 #include <inttypes.h>
@@ -99,6 +99,9 @@ void xhci_dump_cap_regs(const xhci_cap_regs_t *cap)
 	DUMP_REG(cap, XHCI_CAP_CIC);
 }
 
+/**
+ * Dumps registers of one port.
+ */
 void xhci_dump_port(const xhci_port_regs_t *port)
 {
 	DUMP_REG(port, XHCI_PORT_CCS);
@@ -125,6 +128,9 @@ void xhci_dump_port(const xhci_port_regs_t *port)
 	DUMP_REG(port, XHCI_PORT_WPR);
 }
 
+/**
+ * Dumps all registers that define state of the HC.
+ */
 void xhci_dump_state(const xhci_hc_t *hc)
 {
 	usb_log_debug2("Operational registers:");
@@ -172,6 +178,9 @@ void xhci_dump_state(const xhci_hc_t *hc)
 	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERDP_HI);
 }
 
+/**
+ * Dump registers of all ports.
+ */
 void xhci_dump_ports(const xhci_hc_t *hc)
 {
 	const size_t num_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
@@ -220,6 +229,9 @@ static const char *trb_types [] = {
 	[XHCI_TRB_TYPE_MAX] = NULL,
 };
 
+/**
+ * Stringify XHCI_TRB_TYPE_*.
+ */
 const char *xhci_trb_str_type(unsigned type)
 {
 	static char type_buf [20];
@@ -231,6 +243,9 @@ const char *xhci_trb_str_type(unsigned type)
 	return type_buf;
 }
 
+/**
+ * Dump a TRB.
+ */
 void xhci_dump_trb(const xhci_trb_t *trb)
 {
 	usb_log_debug2("TRB(%p): type %s, cycle %u", trb, xhci_trb_str_type(TRB_TYPE(*trb)), TRB_CYCLE(*trb));
@@ -251,6 +266,9 @@ static const char *ec_ids [] = {
 	[XHCI_EC_MAX] = NULL
 };
 
+/**
+ * Dump Extended Capability ID.
+ */
 const char *xhci_ec_str_id(unsigned id)
 {
 	static char buf [20];
@@ -262,6 +280,9 @@ const char *xhci_ec_str_id(unsigned id)
 	return buf;
 }
 
+/**
+ * Dump Protocol Speed ID.
+ */
 static void xhci_dump_psi(const xhci_psi_t *psi)
 {
 	static const char speed_exp [] = " KMG";
@@ -275,6 +296,9 @@ static void xhci_dump_psi(const xhci_psi_t *psi)
 	    XHCI_REG_RD(psi, XHCI_PSI_PFD) ? "full-duplex" : "");
 }
 
+/**
+ * Dump given Extended Capability.
+ */
 void xhci_dump_extcap(const xhci_extcap_t *ec)
 {
 	xhci_sp_name_t name;

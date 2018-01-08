@@ -65,6 +65,9 @@ static const xhci_port_speed_t ps_default_super = PORT_SPEED(SUPER, 3, 3, 5);
 
 /**
  * Walk the list of extended capabilities.
+ *
+ * The most interesting thing hidden in extended capabilities is the mapping of
+ * ports to protocol versions and speeds.
  */
 static int hc_parse_ec(xhci_hc_t *hc)
 {
@@ -144,6 +147,9 @@ static int hc_parse_ec(xhci_hc_t *hc)
 	return EOK;
 }
 
+/**
+ * Initialize MMIO spaces of xHC.
+ */
 int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 {
 	int err;
@@ -194,6 +200,9 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 	return EOK;
 }
 
+/**
+ * Initialize structures kept in allocated memory.
+ */
 int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 {
 	int err;
@@ -337,13 +346,15 @@ int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t 
 	return hw_res->irqs.irqs[0];
 }
 
+/**
+ * Claim xHC from BIOS. Implements handoff as per Section 4.22.1 of xHCI spec.
+ */
 int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 {
 	/* No legacy support capability, the controller is solely for us */
 	if (!hc->legsup)
 		return EOK;
 
-	/* Section 4.22.1 */
 	/* TODO: Test this with USB3-aware BIOS */
 	usb_log_debug2("LEGSUP: bios: %x, os: %x", hc->legsup->sem_bios, hc->legsup->sem_os);
 	XHCI_REG_WR(hc->legsup, XHCI_LEGSUP_SEM_OS, 1);
@@ -362,6 +373,9 @@ int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 	return ENOTSUP;
 }
 
+/**
+ * Ask the xHC to reset its state. Implements sequence 
+ */
 static int hc_reset(xhci_hc_t *hc)
 {
 	/* Stop the HC: set R/S to 0 */
@@ -453,19 +467,6 @@ int hc_status(bus_t *bus, uint32_t *status)
 	return EOK;
 }
 
-int hc_schedule(usb_transfer_batch_t *batch)
-{
-	assert(batch);
-	xhci_hc_t *hc = bus_to_hc(endpoint_get_bus(batch->ep));
-
-	if (!batch->target.address) {
-		usb_log_error("Attempted to schedule transfer to address 0.");
-		return EINVAL;
-	}
-
-	return xhci_transfer_schedule(hc, batch);
-}
-
 typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
 
 static event_handler event_handlers [] = {
@@ -483,6 +484,16 @@ static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_regs
 	return event_handlers[type](hc, trb);
 }
 
+/**
+ * Dequeue from event ring and handle dequeued events.
+ *
+ * As there can be events, that blocks on waiting for subsequent events,
+ * we solve this problem by first copying the event TRBs from the event ring,
+ * then asserting EHB and only after, handling the events.
+ *
+ * Whenever the event handling blocks, it switches fibril, and incoming
+ * IPC notification will create new event handling fibril for us.
+ */
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci_interrupter_regs_t *intr)
 {
 	int err;
@@ -540,6 +551,15 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	usb_log_debug2("Event ring run finished.");
 }
 
+/**
+ * Handle an interrupt request from xHC. Resolve all situations that trigger an
+ * interrupt separately.
+ *
+ * Note that all RW1C bits in USBSTS register are cleared at the time of
+ * handling the interrupt in irq_code. This method is the top-half.
+ *
+ * @param status contents of USBSTS register at the time of the interrupt.
+ */
 void hc_interrupt(bus_t *bus, uint32_t status)
 {
 	xhci_hc_t *hc = bus_to_hc(bus);
@@ -572,6 +592,9 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 	}
 }
 
+/**
+ * Tear down all in-memory structures.
+ */
 void hc_fini(xhci_hc_t *hc)
 {
 	xhci_bus_fini(&hc->bus);
@@ -584,6 +607,9 @@ void hc_fini(xhci_hc_t *hc)
 	usb_log_info("HC(%p): Finalized.", hc);
 }
 
+/**
+ * Ring a xHC Doorbell. Implements section 4.7.
+ */
 int hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 {
 	assert(hc);
@@ -593,6 +619,11 @@ int hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 	return EOK;
 }
 
+/**
+ * Issue an Enable Slot command, returning the obtained Slot ID.
+ *
+ * @param slot_id Pointer where to store the obtained Slot ID.
+ */
 int hc_enable_slot(xhci_hc_t *hc, uint32_t *slot_id)
 {
 	assert(hc);
@@ -614,6 +645,11 @@ end:
 	return err;
 }
 
+/**
+ * Issue a Disable Slot command for a slot occupied by device.
+ *
+ * Frees the device context 
+ */
 int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
 {
 	int err;
@@ -633,6 +669,9 @@ int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
 	return EOK;
 }
 
+/**
+ * Prepare an empty Endpoint Input Context inside a dma buffer.
+ */
 static int create_configure_ep_input_ctx(dma_buffer_t *dma_buf)
 {
 	const int err = dma_buffer_alloc(dma_buf, sizeof(xhci_input_ctx_t));
@@ -648,6 +687,12 @@ static int create_configure_ep_input_ctx(dma_buffer_t *dma_buf)
 	return EOK;
 }
 
+/**
+ * Initialize a device, assigning it an address. Implements section 4.3.4.
+ *
+ * @param dev Device to assing an address (unconfigured yet)
+ * @param ep0 EP0 of device TODO remove, can be fetched from dev
+ */
 int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 {
 	int err = ENOMEM;
@@ -712,6 +757,11 @@ err:
 	return err;
 }
 
+/**
+ * Issue a Configure Device command for a device in slot.
+ *
+ * @param slot_id Slot ID assigned to the device.
+ */
 int hc_configure_device(xhci_hc_t *hc, uint32_t slot_id)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
@@ -725,12 +775,24 @@ int hc_configure_device(xhci_hc_t *hc, uint32_t slot_id)
 	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
 }
 
+/**
+ * Issue a Deconfigure Device command for a device in slot.
+ *
+ * @param slot_id Slot ID assigned to the device.
+ */
 int hc_deconfigure_device(xhci_hc_t *hc, uint32_t slot_id)
 {
 	/* Issue configure endpoint command (sec 4.3.5) with the DC flag. */
 	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .deconfigure = true);
 }
 
+/**
+ * Instruct xHC to add an endpoint with supplied endpoint context.
+ *
+ * @param slot_id Slot ID assigned to the device.
+ * @param ep_idx Endpoint index (number + direction) in question
+ * @param ep_ctx Endpoint context of the endpoint
+ */
 int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
@@ -747,6 +809,12 @@ int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx
 	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
 }
 
+/**
+ * Instruct xHC to drop an endpoint.
+ *
+ * @param slot_id Slot ID assigned to the device.
+ * @param ep_idx Endpoint index (number + direction) in question
+ */
 int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
@@ -762,6 +830,14 @@ int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
 	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
 }
 
+/**
+ * Instruct xHC to update information about an endpoint, using supplied
+ * endpoint context.
+ *
+ * @param slot_id Slot ID assigned to the device.
+ * @param ep_idx Endpoint index (number + direction) in question
+ * @param ep_ctx Endpoint context of the endpoint
+ */
 int hc_update_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
 {
 	dma_buffer_t ictx_dma_buf;

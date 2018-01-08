@@ -60,6 +60,9 @@ static const uint32_t port_change_mask =
 	XHCI_REG_MASK(XHCI_PORT_PLC) |
 	XHCI_REG_MASK(XHCI_PORT_CEC);
 
+/**
+ * Initialize the roothub subsystem.
+ */
 int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 {
 	assert(rh);
@@ -80,7 +83,19 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 	return EOK;
 }
 
-/** Create a device node for device directly connected to RH.
+/**
+ * Finalize the RH subsystem.
+ */
+int xhci_rh_fini(xhci_rh_t *rh)
+{
+	assert(rh);
+	free(rh->devices_by_port);
+	return EOK;
+}
+
+/**
+ * Create and setup a device directly connected to RH. As the xHCI is not using
+ * a virtual usbhub device for RH, this routine is called for devices directly.
  */
 static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 {
@@ -88,8 +103,6 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	assert(rh);
 
 	assert(rh->devices_by_port[port_id - 1] == NULL);
-
-	xhci_bus_t *bus = &rh->hc->bus;
 
 	device_t *dev = hcd_ddf_fun_create(&rh->hc->base);
 	if (!dev) {
@@ -106,7 +119,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	dev->port = port_id;
 	dev->speed = port_speed->usb_speed;
 
-	if ((err = xhci_bus_enumerate_device(bus, dev))) {
+	if ((err = bus_device_enumerate(dev))) {
 		usb_log_error("Failed to enumerate USB device: %s", str_error(err));
 		return err;
 	}
@@ -133,6 +146,10 @@ err_usb_dev:
 	return err;
 }
 
+/**
+ * Handle a device connection. USB 3+ devices are set up directly, USB 2 and
+ * below first need to have their port reset.
+ */
 static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 {
 	xhci_port_regs_t *regs = &rh->hc->op_regs->portrs[port_id - 1];
@@ -160,16 +177,12 @@ static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 	else {
 		usb_log_debug("USB 2 device attached, issuing reset.");
 		xhci_rh_reset_port(rh, port_id);
-		/*
-			FIXME: we need to wait for the event triggered by the reset
-			and then alloc_dev()... can't it be done directly instead of
-			going around?
-		*/
 		return EOK;
 	}
 }
 
-/** Deal with a detached device.
+/**
+ * Deal with a detached device.
  */
 static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 {
@@ -193,7 +206,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	fibril_mutex_unlock(&rh->device.base.guard);
 
 	/* Remove device from XHCI bus. */
-	if ((err = xhci_bus_remove_device(&rh->hc->bus, &dev->base))) {
+	if ((err = bus_device_remove(&dev->base))) {
 		usb_log_warning("Failed to remove device " XHCI_DEV_FMT " from XHCI bus: %s",
 		    XHCI_DEV_ARGS(*dev), str_error(err));
 	}
@@ -201,7 +214,8 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	return EOK;
 }
 
-/** Handle an incoming Port Change Detected Event.
+/**
+ * Handle an incoming Port Change Detected Event.
  */
 int xhci_rh_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
@@ -218,6 +232,9 @@ int xhci_rh_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	return EOK;
 }
 
+/**
+ * Handle all changes on all ports.
+ */
 void xhci_rh_handle_port_change(xhci_rh_t *rh)
 {
 	for (uint8_t i = 1; i <= rh->max_ports; ++i) {
@@ -302,35 +319,9 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 	 */
 }
 
-static inline int get_hub_available_bandwidth(xhci_hc_t *hc, xhci_device_t* dev, uint8_t speed, xhci_port_bandwidth_ctx_t *ctx)
-{
-	int err = EOK;
-
-	// TODO: find a correct place for this function + API
-	// We need speed, because a root hub device has both USB 2 and USB 3 speeds
-	// and the command can query only one of them
-	// ctx is an out parameter as of now
-	assert(dev);
-	assert(ctx);
-
-	xhci_cmd_t cmd;
-	xhci_cmd_init(&cmd, XHCI_CMD_GET_PORT_BANDWIDTH);
-
-	if ((err = dma_buffer_alloc(&cmd.bandwidth_ctx, sizeof(xhci_port_bandwidth_ctx_t))))
-		goto end;
-
-	cmd.device_speed = speed;
-
-	if ((err = xhci_cmd_sync(hc, &cmd)))
-		goto end;
-
-	memcpy(ctx, cmd.bandwidth_ctx.virt, sizeof(xhci_port_bandwidth_ctx_t));
-
-end:
-	xhci_cmd_fini(&cmd);
-	return err;
-}
-
+/**
+ * Get a port speed for a given port id.
+ */
 const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *rh, uint8_t port)
 {
 	xhci_port_regs_t *port_regs = &rh->hc->op_regs->portrs[port - 1];
@@ -339,19 +330,15 @@ const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *rh, uint8_t port)
 	return &rh->hc->speeds[psiv];
 }
 
+/**
+ * Issue a port reset for a given port.
+ */
 int xhci_rh_reset_port(xhci_rh_t* rh, uint8_t port)
 {
 	usb_log_debug2("Resetting port %u.", port);
 	xhci_port_regs_t *regs = &rh->hc->op_regs->portrs[port-1];
 	XHCI_REG_SET(regs, XHCI_PORT_PR, 1);
 
-	return EOK;
-}
-
-int xhci_rh_fini(xhci_rh_t *rh)
-{
-	assert(rh);
-	free(rh->devices_by_port);
 	return EOK;
 }
 
