@@ -35,6 +35,7 @@
 #include <usb/host/ddf_helpers.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
+#include <usb/descriptor.h>
 #include <usb/debug.h>
 
 #include <assert.h>
@@ -367,7 +368,10 @@ static int device_offline(device_t *dev_base)
  */
 static endpoint_t *endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
-	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t));
+	const usb_transfer_type_t type = USB_ED_GET_TRANSFER_TYPE(desc->endpoint);
+
+	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t)
+		+ (type == USB_TRANSFER_ISOCHRONOUS) * sizeof(*ep->isoch));
 	if (!ep)
 		return NULL;
 

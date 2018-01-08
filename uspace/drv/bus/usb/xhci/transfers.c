@@ -236,18 +236,18 @@ static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 }
 
 static xhci_isoch_transfer_t* isoch_transfer_get_enqueue(xhci_endpoint_t *ep) {
-	if (((ep->isoch_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT) == ep->isoch_dequeue) {
+	if (((ep->isoch->enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT) == ep->isoch->dequeue) {
 		/* None ready */
 		return NULL;
 	}
-	xhci_isoch_transfer_t *isoch_transfer = &ep->isoch_transfers[ep->isoch_enqueue];
-	ep->isoch_enqueue = (ep->isoch_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+	xhci_isoch_transfer_t *isoch_transfer = &ep->isoch->transfers[ep->isoch->enqueue];
+	ep->isoch->enqueue = (ep->isoch->enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT;
 	return isoch_transfer;
 }
 
 static xhci_isoch_transfer_t* isoch_transfer_get_dequeue(xhci_endpoint_t *ep) {
-	xhci_isoch_transfer_t *isoch_transfer = &ep->isoch_transfers[ep->isoch_dequeue];
-	ep->isoch_dequeue = (ep->isoch_dequeue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+	xhci_isoch_transfer_t *isoch_transfer = &ep->isoch->transfers[ep->isoch->dequeue];
+	ep->isoch->dequeue = (ep->isoch->dequeue + 1) % XHCI_ISOCH_BUFFER_COUNT;
 	return isoch_transfer;
 }
 
@@ -282,10 +282,10 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 	xhci_trb_t trb;
 	xhci_trb_clean(&trb);
 
-	fibril_mutex_lock(&xhci_ep->isoch_guard);
+	fibril_mutex_lock(&xhci_ep->isoch->guard);
 	xhci_isoch_transfer_t *isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
 	while (!isoch_transfer) {
-		fibril_condvar_wait(&xhci_ep->isoch_avail, &xhci_ep->isoch_guard);
+		fibril_condvar_wait(&xhci_ep->isoch->avail, &xhci_ep->isoch->guard);
 		isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
 	}
 
@@ -300,19 +300,19 @@ static int schedule_isochronous_out(xhci_hc_t* hc, xhci_transfer_t* transfer, xh
 	int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
 		&isoch_transfer->interrupt_trb_phys);
 	if (err) {
-		fibril_mutex_unlock(&xhci_ep->isoch_guard);
+		fibril_mutex_unlock(&xhci_ep->isoch->guard);
 		return err;
 	}
 
 	/* If not yet started, start the isochronous endpoint transfers - after buffer count - 1 writes */
 	/* The -1 is there because of the enqueue != dequeue check. The buffer must have at least 2 transfers. */
-	if (((xhci_ep->isoch_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT) == xhci_ep->isoch_dequeue && !xhci_ep->isoch_started) {
+	if (((xhci_ep->isoch->enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT) == xhci_ep->isoch->dequeue && !xhci_ep->isoch->started) {
 		const uint8_t slot_id = xhci_dev->slot_id;
 		const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 		err = hc_ring_doorbell(hc, slot_id, target);
-		xhci_ep->isoch_started = true;
+		xhci_ep->isoch->started = true;
 	}
-	fibril_mutex_unlock(&xhci_ep->isoch_guard);
+	fibril_mutex_unlock(&xhci_ep->isoch->guard);
 	if (err) {
 		return err;
 	}
@@ -330,7 +330,7 @@ static int schedule_isochronous_in_trbs(xhci_endpoint_t *xhci_ep, xhci_trb_ring_
 	while ((isoch_transfer = isoch_transfer_get_enqueue(xhci_ep)) != NULL) {
 		xhci_trb_clean(&trb);
 		trb.parameter = isoch_transfer->data.phys;
-		isoch_transfer->size = xhci_ep->isoch_max_size;
+		isoch_transfer->size = xhci_ep->isoch->max_size;
 
 		int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
 			&isoch_transfer->interrupt_trb_phys);
@@ -343,14 +343,14 @@ static int schedule_isochronous_in_trbs(xhci_endpoint_t *xhci_ep, xhci_trb_ring_
 static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_endpoint_t *xhci_ep,
 	xhci_device_t *xhci_dev)
 {
-	fibril_mutex_lock(&xhci_ep->isoch_guard);
+	fibril_mutex_lock(&xhci_ep->isoch->guard);
 	/* If not yet started, start the isochronous endpoint transfers - before first read */
-	if (!xhci_ep->isoch_started) {
+	if (!xhci_ep->isoch->started) {
 		xhci_trb_ring_t *ring = get_ring(hc, transfer);
 		/* Fill the TRB ring. */
 		int err = schedule_isochronous_in_trbs(xhci_ep, ring);
 		if (err) {
-			fibril_mutex_unlock(&xhci_ep->isoch_guard);
+			fibril_mutex_unlock(&xhci_ep->isoch->guard);
 			return err;
 		}
 		/* Ring the doorbell to start it. */
@@ -358,15 +358,15 @@ static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhc
 		const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
 		err = hc_ring_doorbell(hc, slot_id, target);
 		if (err) {
-			fibril_mutex_unlock(&xhci_ep->isoch_guard);
+			fibril_mutex_unlock(&xhci_ep->isoch->guard);
 			return err;
 		}
-		xhci_ep->isoch_started = true;
+		xhci_ep->isoch->started = true;
 	}
 
 	xhci_isoch_transfer_t *isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
 	while(!isoch_transfer) {
-		fibril_condvar_wait(&xhci_ep->isoch_avail, &xhci_ep->isoch_guard);
+		fibril_condvar_wait(&xhci_ep->isoch->avail, &xhci_ep->isoch->guard);
 		isoch_transfer = isoch_transfer_get_enqueue(xhci_ep);
 	}
 
@@ -390,12 +390,12 @@ static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhc
 	xhci_trb_clean(&trb);
 
 	trb.parameter = isoch_transfer->data.phys;
-	isoch_transfer->size = xhci_ep->isoch_max_size;
+	isoch_transfer->size = xhci_ep->isoch->max_size;
 
 	xhci_trb_ring_t *ring = get_ring(hc, transfer);
 	int err = schedule_isochronous_trb(ring, xhci_ep, &trb, isoch_transfer->size,
 		&isoch_transfer->interrupt_trb_phys);
-	fibril_mutex_unlock(&xhci_ep->isoch_guard);
+	fibril_mutex_unlock(&xhci_ep->isoch->guard);
 
 	if (err) {
 		return err;
@@ -410,7 +410,7 @@ static int schedule_isochronous_in(xhci_hc_t* hc, xhci_transfer_t* transfer, xhc
 static int schedule_isochronous(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_endpoint_t *xhci_ep,
 	xhci_device_t *xhci_dev)
 {
-	if (transfer->batch.buffer_size > xhci_ep->isoch_max_size) {
+	if (transfer->batch.buffer_size > xhci_ep->isoch->max_size) {
 		usb_log_error("Cannot schedule an oversized isochronous transfer.");
 		return EINVAL;
 	}
@@ -424,7 +424,7 @@ static int schedule_isochronous(xhci_hc_t* hc, xhci_transfer_t* transfer, xhci_e
 }
 
 static int handle_isochronous_transfer_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_endpoint_t *ep) {
-	fibril_mutex_lock(&ep->isoch_guard);
+	fibril_mutex_lock(&ep->isoch->guard);
 
 	int err = EOK;
 
@@ -433,10 +433,10 @@ static int handle_isochronous_transfer_event(xhci_hc_t *hc, xhci_trb_t *trb, xhc
 		case XHCI_TRBC_RING_OVERRUN:
 		case XHCI_TRBC_RING_UNDERRUN:
 			/* Rings are unscheduled by xHC now */
-			ep->isoch_started = false;
+			ep->isoch->started = false;
 			/* For OUT, there was nothing to process */
 			/* For IN, the buffer has overfilled, we empty the buffers and readd TRBs */
-			ep->isoch_enqueue = ep->isoch_dequeue = 0;
+			ep->isoch->enqueue = ep->isoch->dequeue = 0;
 			err = EIO;
 			break;
 		case XHCI_TRBC_SHORT_PACKET:
@@ -461,8 +461,8 @@ static int handle_isochronous_transfer_event(xhci_hc_t *hc, xhci_trb_t *trb, xhc
 		isoch_transfer->size -= TRB_TRANSFER_LENGTH(*trb);
 	}
 
-	fibril_condvar_signal(&ep->isoch_avail);
-	fibril_mutex_unlock(&ep->isoch_guard);
+	fibril_condvar_signal(&ep->isoch->avail);
+	fibril_mutex_unlock(&ep->isoch->guard);
 	return err;
 }
 

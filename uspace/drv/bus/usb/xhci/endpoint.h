@@ -92,25 +92,27 @@ typedef struct xhci_endpoint {
 	/** Scheduling interval for periodic endpoints, as a number of 125us units. (0 - 2^16) */
 	uint32_t interval;
 
-	/** The maximum size of an isochronous transfer and therefore the size of buffers */
-	size_t isoch_max_size;
+	/** This field is a valid pointer for (and only for) isochronous transfers. */
+	struct {
+		/** The maximum size of an isochronous transfer and therefore the size of buffers */
+		size_t max_size;
 
-	/** Isochronous scheduled transfers with respective buffers */
-	#define XHCI_ISOCH_BUFFER_COUNT 4
-	xhci_isoch_transfer_t isoch_transfers[XHCI_ISOCH_BUFFER_COUNT];
+		/** Isochronous scheduled transfers with respective buffers */
+		#define XHCI_ISOCH_BUFFER_COUNT 4
+		xhci_isoch_transfer_t transfers[XHCI_ISOCH_BUFFER_COUNT];
 
-	/** Indices to transfers */
-	size_t isoch_dequeue, isoch_enqueue;
+		/** Indices to transfers */
+		size_t dequeue, enqueue;
 
-	/** Are isochronous transfers started? */
-	bool isoch_started;
+		/** Are isochronous transfers started? */
+		bool started;
 
-	/** Protects common buffers. */
-	fibril_mutex_t isoch_guard;
+		/** Protects common buffers. */
+		fibril_mutex_t guard;
 
-	/** Signals filled buffer. */
-	fibril_condvar_t isoch_avail;
-
+		/** Signals filled buffer. */
+		fibril_condvar_t avail;
+	} isoch [0];
 } xhci_endpoint_t;
 
 #define XHCI_EP_FMT  "(%d:%d %s)"

@@ -216,10 +216,8 @@ typedef struct {
 	(uint16_usb2host((ed).max_packet_size) & 0x7ff)
 #define USB_ED_GET_ADD_OPPS(ed) \
 	((uint16_usb2host((ed).max_packet_size) >> 11) & 0x3)
-	/** Polling interval in milliseconds.
-	 * Ignored for bulk and control endpoints.
-	 * Isochronous endpoints must use value 1.
-	 * Interrupt endpoints any value from 1 to 255.
+	/** Polling interval. Different semantics for various (speed, type)
+	 * pairs.
 	 */
 	uint8_t poll_interval;
 } __attribute__ ((packed)) usb_standard_endpoint_descriptor_t;
