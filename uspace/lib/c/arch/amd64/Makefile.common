@@ -30,7 +30,10 @@ COMMON_CFLAGS += -fno-omit-frame-pointer
 
 # XXX: clang doesn't support this flag, but the optimization is OS-specific,
 #      so it isn't used for amd64-unknown-elf target.
-GCC_CFLAGS += -mno-tls-direct-seg-refs
+
+ifneq ($(COMPILER),clang)
+	COMMON_CFLAGS += -mno-tls-direct-seg-refs
+endif
 
 LFLAGS += --gc-sections
 

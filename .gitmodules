@@ -1,0 +1,3 @@
+[submodule "ports"]
+	path = uspace/ports
+	url = https://github.com/HelenOS/harbours.git

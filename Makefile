@@ -60,6 +60,9 @@ kernel: common
 uspace: common
 	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
 
+ports-%: common
+	$(MAKE) -r -C uspace $@ PRECHECK=$(PRECHECK)
+
 precheck: clean
 	$(MAKE) -r all PRECHECK=y
 

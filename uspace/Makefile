@@ -254,9 +254,93 @@ BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) $(BASE_LIBS))
 DEPS = $(addsuffix /deps.mk,$(DIRS) $(LIBS))
 CLEANS := $(addsuffix .clean,$(DIRS) $(LIBS) $(BASE_LIBS))
 
-.PHONY: all $(BASE_BUILDS) $(BUILDS) $(BUILDS_TESTS) $(CLEANS) clean
+PORTS_BUILD_DIR := ../build/ports
+PORT_CFLAGS := \
+	-specs $(abspath lib/posix/gcc.specs) \
+	-isystem $(abspath $(PORTS_BUILD_DIR)/include) \
+	-isystem $(abspath $(PORTS_BUILD_DIR)/include/posix) \
+	-isystem $(abspath $(PORTS_BUILD_DIR)/include/libc) \
+	-L$(abspath $(PORTS_BUILD_DIR)/lib) \
+	-Wl,-T,link.ld \
+	-Wl,--whole-archive,-lc,-lmath,--no-whole-archive
+
+.PHONY: all $(BASE_BUILDS) $(BUILDS) $(BUILDS_TESTS) $(CLEANS) clean ports_cache
 
 all: $(BUILDS) $(BUILDS_TESTS)
+
+ports_cache: lib/posix.build lib/math.build lib/clui.build
+	git submodule update --init -- ports
+	
+	# Copy libs
+	mkdir -p $(PORTS_BUILD_DIR)/lib
+	cp lib/posix/link.ld $(PORTS_BUILD_DIR)/lib/link.ld
+	cp lib/posix/libc.a $(PORTS_BUILD_DIR)/lib/libc.a
+	# We don't currently build a dedicated debug-enabled libc version.
+	cp lib/posix/libc.a $(PORTS_BUILD_DIR)/lib/libg.a
+	cp lib/math/libmath.a $(PORTS_BUILD_DIR)/lib/libmath.a
+	cp lib/clui/libclui.a $(PORTS_BUILD_DIR)/lib/libclui.a
+	
+	# Copy headers
+	mkdir -p $(PORTS_BUILD_DIR)/include
+	cp -L -R lib/posix/include/posix/ $(PORTS_BUILD_DIR)/include/
+	mkdir -p $(PORTS_BUILD_DIR)/include/libc
+	cp -L -R lib/c/include/* $(PORTS_BUILD_DIR)/include/libc
+	cp -L -R lib/c/arch/$(UARCH)/include/libarch $(PORTS_BUILD_DIR)/include/
+	cp -L -R lib/math/include/* $(PORTS_BUILD_DIR)/include/libc
+	cp -L -R lib/math/arch/$(UARCH)/include/libarch/ $(PORTS_BUILD_DIR)/include/
+	cp -L -R ../abi/include/* $(PORTS_BUILD_DIR)/include/
+	ln -s -f -n libc $(PORTS_BUILD_DIR)/include/libmath
+	
+	# FIXME: Just for temporary compatibility.
+	touch $(PORTS_BUILD_DIR)/coastline.specs
+	
+	mkdir -p $(PORTS_BUILD_DIR)/include/libclui
+	cp -L lib/clui/tinput.h $(PORTS_BUILD_DIR)/include/libclui/
+	
+	# TODO: Get rid of this.
+	find $(PORTS_BUILD_DIR)/include/libc $(PORTS_BUILD_DIR)/include/libarch -name '*.h' -exec sed \
+		-e 's:#include <:#include <libc/:' \
+		-e 's:#include <libc/libarch/:#include <libarch/:' \
+		-e 's:#include <libc/abi/:#include <abi/:' \
+		-e 's:#include <libc/_bits/:#include <_bits/:' \
+		-e 's:#include <libc/libc/:#include <libc/:' \
+		-i {} \;
+	
+	mkdir -p overlay
+
+ports-all: ports_cache
+	for x in ports/*; do if [ -d "$$x" ]; then $(MAKE) ports-install-`basename $$x` || exit 1; fi; done
+
+ports-%: ports_cache
+	$(MAKE) $(@:ports-%=ports-install-%)
+
+# This is a separate target to avoid running ports_cache multiple times.
+ports-install-%:
+	PATH="$(CROSS_PREFIX)/$(TARGET)/bin:$$PATH" \
+	HSCT_HELENOS_ROOT="$(abspath ..)" \
+	HSCT_HOME="$(abspath ports)" \
+	HSCT_HSCT="$(abspath ../tools/hsct.sh)" \
+	HSCT_SOURCES_DIR="$(abspath $(PORTS_BUILD_DIR)/sources)" \
+	HSCT_BUILD_DIR="$(abspath $(PORTS_BUILD_DIR)/build)" \
+	HSCT_INCLUDE_DIR="$(abspath $(PORTS_BUILD_DIR)/include)" \
+	HSCT_LIB_DIR="$(abspath $(PORTS_BUILD_DIR)/lib)" \
+	HSCT_CACHE_DIR="$(abspath $(PORTS_BUILD_DIR))" \
+	HSCT_CACHE_LIB="$(abspath $(PORTS_BUILD_DIR)/lib)" \
+	HSCT_DIST_DIR="$(abspath $(PORTS_BUILD_DIR)/dist)" \
+	HSCT_ARCHIVE_DIR="$(abspath $(PORTS_BUILD_DIR)/archives)" \
+	HSCT_PARALLELISM="$(JOBS)" \
+	HSCT_GNU_TARGET="$(TARGET)" \
+	HSCT_CC="$(CC) $(PORT_CFLAGS)" \
+	HSCT_CFLAGS="" \
+	HSCT_LDFLAGS_FOR_CC="" \
+	HSCT_LD="$(LD)" \
+	HSCT_AR="$(AR)" \
+	HSCT_RANLIB="$(RANLIB)" \
+	HSCT_OBJDUMP="$(OBJDUMP)" \
+	HSCT_OBJCOPY="$(OBJCOPY)" \
+	HSCT_AS="$(AS)" \
+	HSCT_STRIP="$(STRIP)" \
+	../tools/hsct.sh install $(@:ports-install-%=%)
 
 $(BUILDS_TESTS): $(BASE_BUILDS) $(BUILDS)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)

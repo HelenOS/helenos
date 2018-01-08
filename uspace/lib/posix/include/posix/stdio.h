@@ -71,7 +71,7 @@
 
 typedef struct _IO_FILE FILE;
 
-#ifndef LIBPOSIX_INTERNAL
+#if !defined(LIBPOSIX_INTERNAL) && !defined(LIBC_STDIO_H_)
 	enum _buffer_type {
 		/** No buffering */
 		_IONBF,

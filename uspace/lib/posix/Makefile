@@ -45,6 +45,12 @@ MERGE_LIBRARIES = \
 	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
 	$(LIBSOFTINT_PREFIX)/libsoftint.a
 
+SPECS = gcc.specs
+LINKER_SCRIPT = link.ld
+STARTUP_FILE = crt0.o
+LIBC_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
+LIBC_STARTUP_FILE = $(LIBC_PREFIX)/arch/$(UARCH)/src/entry.o
+
 REDEFS_HIDE_LIBC = redefs-hide-libc-symbols.list
 REDEFS_SHOW_LIBPOSIX = redefs-show-posix-symbols.list
 COLLISIONS_LIST = collisions.list
@@ -57,7 +63,7 @@ EXTRA_CLEAN = \
 	$(COLLISIONS_LIST) \
 	libc.o
 
-EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY) $(MERGED_C_LIBRARY)
+EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY) $(MERGED_C_LIBRARY) $(SPECS) $(LINKER_SCRIPT) $(STARTUP_FILE)
 
 SOURCES = \
 	source/ctype.c \
@@ -90,6 +96,21 @@ TEST_SOURCES = \
 	test/scanf.c
 
 include $(USPACE_PREFIX)/Makefile.common
+
+$(SPECS): $(CONFIG_MAKEFILE)
+	echo '*self_spec:' > $@.new
+	echo '+ $(COMMON_CFLAGS)' >> $@.new
+	echo >> $@.new
+	echo '*lib:' >> $@.new
+	echo '--whole-archive -lc -lm --no-whole-archive' >> $@.new
+	echo >> $@.new
+	mv $@.new $@
+
+$(LINKER_SCRIPT): $(LIBC_LINKER_SCRIPT)
+	cp $< $@
+
+$(STARTUP_FILE): $(LIBC_STARTUP_FILE)
+	cp $< $@
 
 $(INCLUDE_LIBC): ../c/include
 	ln -s -f -n ../$^ $@
