@@ -43,7 +43,10 @@
 
 #include "usb_transfer_batch.h"
 
-/** Create a batch on given endpoint.
+/**
+ * Create a batch on a given endpoint.
+ *
+ * If the bus callback is not defined, it just creates a default batch.
  */
 usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
 {
@@ -54,6 +57,8 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
 
 	if (!ops) {
 		usb_transfer_batch_t *batch = calloc(1, sizeof(usb_transfer_batch_t));
+		if (!batch)
+			return NULL;
 		usb_transfer_batch_init(batch, ep);
 		return batch;
 	}
@@ -61,18 +66,19 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
 	return ops->batch_create(ep);
 }
 
-/** Initialize given batch structure.
+/**
+ * Initialize given batch structure.
  */
 void usb_transfer_batch_init(usb_transfer_batch_t *batch, endpoint_t *ep)
 {
 	assert(ep);
+	/* Batch reference */
 	endpoint_add_ref(ep);
 	batch->ep = ep;
 }
 
-/** Destroy the batch.
- *
- * @param[in] batch Batch structure to use.
+/**
+ * Destroy the batch. If there's no bus callback, just free it.
  */
 void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 {
@@ -82,6 +88,7 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 	bus_t *bus = endpoint_get_bus(batch->ep);
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, batch_destroy);
 
+	/* Batch reference */
 	endpoint_del_ref(batch->ep);
 
 	if (ops) {
@@ -96,11 +103,10 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 	}
 }
 
-/** Finish a transfer batch: call handler, destroy batch, release endpoint.
+/**
+ * Finish a transfer batch: call handler, destroy batch, release endpoint.
  *
  * Call only after the batch have been scheduled && completed!
- *
- * @param[in] batch Batch structure to use.
  */
 void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 {
@@ -120,9 +126,8 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 	usb_transfer_batch_destroy(batch);
 }
 
-/** Finish a transfer batch as an aborted one.
- *
- * @param[in] batch Batch structure to use.
+/**
+ * Finish a transfer batch as an aborted one.
  */
 void usb_transfer_batch_abort(usb_transfer_batch_t *batch)
 {

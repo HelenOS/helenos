@@ -31,6 +31,11 @@
  */
 /** @file
  *
+ * The Bus is a structure that serves as an interface of the HC driver
+ * implementation for the usbhost library. Every HC driver that uses libusbhost
+ * must use a bus_t (or its child), fill it with bus_ops and present it to the
+ * library. The library then handles the DDF interface and translates it to the
+ * bus callbacks.
  */
 
 #include <ddf/driver.h>
@@ -43,7 +48,7 @@
 #include "bus.h"
 
 /**
- * Initializes the bus structure.
+ * Initializes the base bus structure.
  */
 void bus_init(bus_t *bus, size_t device_size)
 {
@@ -56,6 +61,9 @@ void bus_init(bus_t *bus, size_t device_size)
 	bus->default_address_speed = USB_SPEED_MAX;
 }
 
+/**
+ * Initialize the device_t structure belonging to a bus.
+ */
 int bus_device_init(device_t *dev, bus_t *bus)
 {
 	assert(bus);
@@ -71,6 +79,9 @@ int bus_device_init(device_t *dev, bus_t *bus)
 	return EOK;
 }
 
+/**
+ * Create a name of the ddf function node.
+ */
 int bus_device_set_default_name(device_t *dev)
 {
 	assert(dev);
@@ -83,6 +94,9 @@ int bus_device_set_default_name(device_t *dev)
 	return ddf_fun_set_name(dev->fun, buf);
 }
 
+/**
+ * Invoke the device_enumerate bus operation.
+ */
 int bus_device_enumerate(device_t *dev)
 {
 	assert(dev);
@@ -94,6 +108,9 @@ int bus_device_enumerate(device_t *dev)
 	return ops->device_enumerate(dev);
 }
 
+/**
+ * Invoke the device_remove bus operation.
+ */
 int bus_device_remove(device_t *dev)
 {
 	assert(dev);
@@ -105,6 +122,9 @@ int bus_device_remove(device_t *dev)
 	return ops->device_remove(dev);
 }
 
+/**
+ * Invoke the device_online bus operation.
+ */
 int bus_device_online(device_t *dev)
 {
 	assert(dev);
@@ -116,6 +136,9 @@ int bus_device_online(device_t *dev)
 	return ops->device_online(dev);
 }
 
+/**
+ * Invoke the device_offline bus operation.
+ */
 int bus_device_offline(device_t *dev)
 {
 	assert(dev);
@@ -127,6 +150,13 @@ int bus_device_offline(device_t *dev)
 	return ops->device_offline(dev);
 }
 
+/**
+ * Create and register new endpoint to the bus.
+ *
+ * @param[in] device The device of which the endpoint shall be created
+ * @param[in] desc Endpoint descriptors as reported by the device
+ * @param[out] out_ep The resulting new endpoint reference, if any. Can be NULL.
+ */
 int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, endpoint_t **out_ep)
 {
 	int err;
@@ -134,14 +164,22 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 
 	bus_t *bus = device->bus;
 
-	const bus_ops_t *create_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_create);
 	const bus_ops_t *register_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_register);
-	if (!create_ops || !register_ops)
+	if (!register_ops)
 		return ENOTSUP;
 
-	endpoint_t *ep = create_ops->endpoint_create(device, desc);
-	if (!ep)
-		return ENOMEM;
+	const bus_ops_t *create_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_create);
+	endpoint_t *ep;
+	if (create_ops) {
+		ep = create_ops->endpoint_create(device, desc);
+		if (!ep)
+			return ENOMEM;
+	} else {
+		ep = calloc(1, sizeof(endpoint_t));
+		if (!ep)
+			return ENOMEM;
+		endpoint_init(ep, device, desc);
+	}
 
 	/* Bus reference */
 	endpoint_add_ref(ep);
@@ -185,7 +223,8 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	return EOK;
 }
 
-/** Searches for an endpoint. Returns a reference.
+/**
+ * Search for an endpoint. Returns a reference.
  */
 endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint)
 {
@@ -203,6 +242,9 @@ endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint)
 	return ep;
 }
 
+/**
+ * Remove an endpoint from the device. Consumes a reference.
+ */
 int bus_endpoint_remove(endpoint_t *ep)
 {
 	assert(ep);
@@ -232,9 +274,18 @@ int bus_endpoint_remove(endpoint_t *ep)
 	/* Bus reference */
 	endpoint_del_ref(ep);
 
+	/* Given reference */
+	endpoint_del_ref(ep);
+
 	return EOK;
 }
 
+/**
+ * Reserve the default address on the bus. Also, report the speed of the device
+ * that is listening on the default address.
+ *
+ * The speed is then used for devices enumerated while the address is reserved.
+ */
 int bus_reserve_default_address(bus_t *bus, usb_speed_t speed)
 {
 	assert(bus);
@@ -250,18 +301,26 @@ int bus_reserve_default_address(bus_t *bus, usb_speed_t speed)
 	}
 }
 
+/**
+ * Release the default address.
+ */
 void bus_release_default_address(bus_t *bus)
 {
 	assert(bus);
 	bus->default_address_speed = USB_SPEED_MAX;
 }
 
-/** Prepare generic usb_transfer_batch and schedule it.
+/**
+ * Initiate a transfer on the bus. Finds the target endpoint, creates
+ * a transfer batch and schedules it.
+ *
  * @param device Device for which to send the batch
- * @param target address and endpoint number.
- * @param setup_data Data to use in setup stage (Control communication type)
- * @param in Callback for device to host communication.
- * @param out Callback for host to device communication.
+ * @param target The target of the transfer.
+ * @param direction A direction of the transfer.
+ * @param data A pointer to the data buffer.
+ * @param size Size of the data buffer.
+ * @param setup_data Data to use in the setup stage (Control communication type)
+ * @param on_complete Callback which is called after the batch is complete
  * @param arg Callback parameter.
  * @param name Communication identifier (for nicer output).
  * @return Error code.
@@ -300,6 +359,9 @@ typedef struct {
 	int error;
 } sync_data_t;
 
+/**
+ * Callback for finishing the transfer. Wake the issuing thread.
+ */
 static int sync_transfer_complete(void *arg, int error, size_t transfered_size)
 {
 	sync_data_t *d = arg;
@@ -313,6 +375,17 @@ static int sync_transfer_complete(void *arg, int error, size_t transfered_size)
 	return EOK;
 }
 
+/**
+ * Issue a transfer on the bus, wait for result.
+ *
+ * @param device Device for which to send the batch
+ * @param target The target of the transfer.
+ * @param direction A direction of the transfer.
+ * @param data A pointer to the data buffer.
+ * @param size Size of the data buffer.
+ * @param setup_data Data to use in the setup stage (Control communication type)
+ * @param name Communication identifier (for nicer output).
+ */
 ssize_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
     const char *name)
@@ -329,9 +402,7 @@ ssize_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
 
 	fibril_mutex_lock(&sd.done_mtx);
 	while (!sd.done) {
-		fibril_condvar_wait_timeout(&sd.done_cv, &sd.done_mtx, 3000000);
-		if (!sd.done)
-			usb_log_debug2("Still waiting...");
+		fibril_condvar_wait(&sd.done_cv, &sd.done_mtx);
 	}
 	fibril_mutex_unlock(&sd.done_mtx);
 

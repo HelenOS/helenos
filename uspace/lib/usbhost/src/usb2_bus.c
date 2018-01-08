@@ -30,7 +30,9 @@
  * @{
  */
 /** @file
- * HC Endpoint management.
+ *
+ * A bus_t implementation for USB 2 and lower. Implements USB 2 enumeration and
+ * configurable bandwidth counting.
  */
 
 #include <assert.h>
@@ -49,35 +51,23 @@
 
 #include "usb2_bus.h"
 
-/** Ops receive generic bus_t pointer. */
+/**
+ * Ops receive generic bus_t pointer.
+ */
 static inline usb2_bus_t *bus_to_usb2_bus(bus_t *bus_base)
 {
 	assert(bus_base);
 	return (usb2_bus_t *) bus_base;
 }
 
-/** Unregister and destroy all endpoints using given address.
- * @param bus usb_bus structure, non-null.
- * @param address USB address.
- * @param endpoint USB endpoint number.
- * @param direction Communication direction.
- * @return Error code.
- */
-static int release_address(usb2_bus_t *bus, usb_address_t address)
-{
-	if (!usb_address_is_valid(address))
-		return EINVAL;
-
-	const int ret = bus->address_occupied[address] ? EOK : ENOENT;
-	bus->address_occupied[address] = false;
-	return ret;
-}
-
-/** Request USB address.
+/**
+ * Request a new address. A free address is found and marked as occupied.
+ *
+ * There's no need to synchronize this method, because it is called only with
+ * default address reserved.
+ *
  * @param bus usb_device_manager
  * @param addr Pointer to requested address value, place to store new address
- * @return Error code.
- * @note Default address is only available in strict mode.
  */
 static int request_address(usb2_bus_t *bus, usb_address_t *addr)
 {
@@ -98,11 +88,25 @@ static int request_address(usb2_bus_t *bus, usb_address_t *addr)
 	return EOK;
 }
 
+/**
+ * Mark address as free.
+ */
+static void release_address(usb2_bus_t *bus, usb_address_t address)
+{
+	bus->address_occupied[address] = false;
+}
+
 static const usb_target_t usb2_default_target = {{
 	.address = USB_ADDRESS_DEFAULT,
 	.endpoint = 0,
 }};
 
+/**
+ * Transition the device to the addressed state.
+ *
+ * Reserve address, configure the control EP, issue a SET_ADDRESS command.
+ * Configure the device with the new address, mark the device as online.
+ */
 static int address_device(device_t *dev)
 {
 	int err;
@@ -183,7 +187,9 @@ err_address:
 	return err;
 }
 
-/** Enumerate a new USB device
+/**
+ * Enumerate a USB device. Move it to the addressed state, then explore it
+ * to create a DDF function node with proper characteristics.
  */
 static int usb2_bus_device_enumerate(device_t *dev)
 {
@@ -222,19 +228,8 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	return EOK;
 }
 
-static endpoint_t *usb2_bus_create_ep(device_t *dev, const usb_endpoint_descriptors_t *desc)
-{
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	if (!ep)
-		return NULL;
-
-	endpoint_init(ep, dev, desc);
-	return ep;
-}
-
-/** Register an endpoint to the bus. Reserves bandwidth.
- * @param bus usb_bus structure, non-null.
- * @param endpoint USB endpoint number.
+/**
+ * Register an endpoint to the bus. Reserves bandwidth.
  */
 static int usb2_bus_register_ep(endpoint_t *ep)
 {
@@ -251,7 +246,8 @@ static int usb2_bus_register_ep(endpoint_t *ep)
 	return EOK;
 }
 
-/** Release bandwidth reserved by the given endpoint.
+/**
+ * Release bandwidth reserved by the given endpoint.
  */
 static int usb2_bus_unregister_ep(endpoint_t *ep)
 {
@@ -265,7 +261,6 @@ static int usb2_bus_unregister_ep(endpoint_t *ep)
 
 const bus_ops_t usb2_bus_ops = {
 	.device_enumerate = usb2_bus_device_enumerate,
-	.endpoint_create = usb2_bus_create_ep,
 	.endpoint_register = usb2_bus_register_ep,
 	.endpoint_unregister = usb2_bus_unregister_ep,
 };
@@ -274,8 +269,6 @@ const bus_ops_t usb2_bus_ops = {
  *
  * @param bus usb_bus structure, non-null.
  * @param available_bandwidth Size of the bandwidth pool.
- * @param bw_count function to use to calculate endpoint bw requirements.
- * @return Error code.
  */
 void usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
 {
@@ -286,6 +279,7 @@ void usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
 
 	bus->free_bw = available_bandwidth;
 }
+
 /**
  * @}
  */

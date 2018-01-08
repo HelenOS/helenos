@@ -41,7 +41,8 @@
 
 #include "bandwidth.h"
 
-/** Calculate bandwidth that needs to be reserved for communication with EP.
+/**
+ * Calculate bandwidth that needs to be reserved for communication with EP.
  * Calculation follows USB 1.1 specification.
  * @param ep Registered endpoint
  * @param size Number of bytes to transfer.
@@ -94,7 +95,8 @@ ssize_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
 	}
 }
 
-/** Calculate bandwidth that needs to be reserved for communication with EP.
+/** 
+ * Calculate bandwidth that needs to be reserved for communication with EP.
  * Calculation follows USB 2.0 specification, chapter 5.11.3.
  *
  * @param speed Device's speed.

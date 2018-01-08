@@ -48,7 +48,8 @@
 
 #include "endpoint.h"
 
-/** Initialize provided endpoint structure.
+/**
+ * Initialize provided endpoint structure.
  */
 void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
@@ -77,16 +78,25 @@ void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors
 	ep->bandwidth = endpoint_count_bw(ep, ep->max_transfer_size);
 }
 
+/**
+ * Get the bus endpoint belongs to.
+ */
 static inline const bus_ops_t *get_bus_ops(endpoint_t *ep)
 {
 	return ep->device->bus->ops;
 }
 
+/**
+ * Increase the reference count on endpoint.
+ */
 void endpoint_add_ref(endpoint_t *ep)
 {
 	atomic_inc(&ep->refcnt);
 }
 
+/**
+ * Call the desctruction callback. Default behavior is to free the memory directly.
+ */
 static inline void endpoint_destroy(endpoint_t *ep)
 {
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_destroy);
@@ -100,6 +110,9 @@ static inline void endpoint_destroy(endpoint_t *ep)
 	}
 }
 
+/**
+ * Decrease the reference count.
+ */
 void endpoint_del_ref(endpoint_t *ep)
 {
 	if (atomic_predec(&ep->refcnt) == 0) {
@@ -109,8 +122,15 @@ void endpoint_del_ref(endpoint_t *ep)
 
 static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode);
 
-/** Mark the endpoint as active and block access for further fibrils.
+/**
+ * Mark the endpoint as active and block access for further fibrils. If the
+ * endpoint is already active, it will block on ep->avail condvar.
+ *
+ * Call only under endpoint guard. After you activate the endpoint and release
+ * the guard, you must assume that particular transfer is already finished/aborted.
+ *
  * @param ep endpoint_t structure.
+ * @param batch Transfer batch this endpoint is bocked by.
  */
 void endpoint_activate_locked(endpoint_t *ep, usb_transfer_batch_t *batch)
 {
@@ -124,7 +144,9 @@ void endpoint_activate_locked(endpoint_t *ep, usb_transfer_batch_t *batch)
 	ep->active_batch = batch;
 }
 
-/** Mark the endpoint as inactive and allow access for further fibrils.
+/**
+ * Mark the endpoint as inactive and allow access for further fibrils.
+ *
  * @param ep endpoint_t structure.
  */
 void endpoint_deactivate_locked(endpoint_t *ep)
@@ -139,7 +161,8 @@ void endpoint_deactivate_locked(endpoint_t *ep)
 	fibril_condvar_signal(&ep->avail);
 }
 
-/** Abort an active batch on endpoint, if any.
+/**
+ * Abort an active batch on endpoint, if any.
  *
  * @param[in] ep endpoint_t structure.
  */
@@ -156,6 +179,13 @@ void endpoint_abort(endpoint_t *ep)
 		usb_transfer_batch_abort(batch);
 }
 
+/**
+ * The transfer on an endpoint can trigger a reset of the toggle bit. This
+ * function calls the respective bus callbacks to resolve it.
+ *
+ * @param ep The endpoint that triggered the reset
+ * @param mode Whether to reset no, one or all endpoints on a device.
+ */
 static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode)
 {
 	assert(ep);
@@ -167,9 +197,9 @@ static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode)
 	if (!ops)
 		return;
 
-	device_t *dev = ep->device;
 
 	if (mode == RESET_ALL) {
+		const device_t *dev = ep->device;
 		for (usb_endpoint_t i = 0; i < USB_ENDPOINT_MAX; ++i) {
 			if (dev->endpoints[i])
 				ops->endpoint_toggle_reset(dev->endpoints[i]);
@@ -179,7 +209,13 @@ static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode)
 	}
 }
 
-ssize_t endpoint_count_bw(endpoint_t *ep, size_t packet_size)
+/**
+ * Call the bus operation to count bandwidth.
+ *
+ * @param ep Endpoint on which the transfer will take place.
+ * @param size The payload size.
+ */
+ssize_t endpoint_count_bw(endpoint_t *ep, size_t size)
 {
 	assert(ep);
 
@@ -187,18 +223,22 @@ ssize_t endpoint_count_bw(endpoint_t *ep, size_t packet_size)
 	if (!ops)
 		return 0;
 
-	return ops->endpoint_count_bw(ep, packet_size);
+	return ops->endpoint_count_bw(ep, size);
 }
 
-/** Prepare generic usb_transfer_batch and schedule it.
- * @param ep Endpoint for which the batch shall be created.
- * @param target address and endpoint number.
- * @param setup_data Data to use in setup stage (Control communication type)
- * @param in Callback for device to host communication.
- * @param out Callback for host to device communication.
+/**
+ * Initiate a transfer on an endpoint. Creates a transfer batch, checks the
+ * bandwidth requirements and schedules the batch.
+ *
+ * @param endpoint Endpoint for which to send the batch
+ * @param target The target of the transfer.
+ * @param direction A direction of the transfer.
+ * @param data A pointer to the data buffer.
+ * @param size Size of the data buffer.
+ * @param setup_data Data to use in the setup stage (Control communication type)
+ * @param on_complete Callback which is called after the batch is complete
  * @param arg Callback parameter.
  * @param name Communication identifier (for nicer output).
- * @return Error code.
  */
 int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,

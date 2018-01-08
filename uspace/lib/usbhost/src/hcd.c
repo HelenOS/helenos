@@ -31,6 +31,8 @@
  */
 /** @file
  *
+ * Host controller driver framework. Encapsulates DDF device of HC to an
+ * hc_device_t, which is passed to driver implementing hc_driver_t.
  */
 
 #include <assert.h>
@@ -67,6 +69,9 @@ static driver_ops_t hc_driver_ops = {
 
 static const hc_driver_t *hc_driver;
 
+/**
+ * The main HC driver routine.
+ */
 int hc_driver_main(const hc_driver_t *driver)
 {
 	driver_t ddf_driver = {
@@ -80,11 +85,14 @@ int hc_driver_main(const hc_driver_t *driver)
 	return ddf_driver_main(&ddf_driver);
 }
 
-/** IRQ handling callback, forward status from call to diver structure.
+/**
+ * IRQ handling callback. Call the bus operation.
  *
- * @param[in] dev DDF instance of the device to use.
- * @param[in] iid (Unused).
- * @param[in] call Pointer to the call from kernel.
+ * Currently, there is a bus ops lookup to find the interrupt handler. So far,
+ * the mechanism is too flexible, as it allows different instances of HC to
+ * have different IRQ handlers, disallowing us to optimize the lookup here.
+ * TODO: Make the bus mechanism less flexible in irq handling and remove the
+ * lookup.
  */
 static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 {
@@ -98,7 +106,8 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 	ops->interrupt(hcd->bus, status);
 }
 
-/** Worker for the HW interrupt replacement fibril.
+/**
+ * Worker for the HW interrupt replacement fibril.
  */
 static int interrupt_polling(void *arg)
 {
@@ -122,6 +131,9 @@ static int interrupt_polling(void *arg)
 	return EOK;
 }
 
+/**
+ * Clean the IRQ code bottom-half.
+ */
 static inline void irq_code_clean(irq_code_t *code)
 {
 	if (code) {
@@ -134,13 +146,14 @@ static inline void irq_code_clean(irq_code_t *code)
 	}
 }
 
-/** Register interrupt handler
+/**
+ * Register an interrupt handler. If there is a callback to setup the bottom half,
+ * invoke it and register it. Register for notifications.
  *
- * @param[in] device Host controller DDF device
- * @param[in] regs Register range
- * @param[in] irq Interrupt number
- * @paran[in] handler Interrupt handler
- * @param[in] gen_irq_code IRQ code generator.
+ * If this method fails, a polling fibril is started instead.
+ *
+ * @param[in] hcd Host controller device.
+ * @param[in] hw_res Resources to be used.
  *
  * @return IRQ capability handle on success.
  * @return Negative error code.
@@ -180,10 +193,8 @@ static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t
 	return irq_cap;
 }
 
-/** Initialize HC in memory of the driver.
- *
- * @param device DDF instance of the device to use
- * @return Error code
+/**
+ * Initialize HC in memory of the driver.
  *
  * This function does all the preparatory work for hc and rh drivers:
  *  - gets device's hw resources
@@ -191,6 +202,9 @@ static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t
  *  - registers interrupt handler
  *  - calls driver specific initialization
  *  - registers root hub
+ *
+ * @param device DDF instance of the device to use
+ * @return Error code
  */
 int hc_dev_add(ddf_dev_t *device)
 {

@@ -44,7 +44,8 @@ dma_policy_t dma_policy_default = {
 	.alignment = PAGE_SIZE,
 };
 
-/** Allocate a DMA buffer.
+/**
+ * Allocate a DMA buffer.
  *
  * @param[in] db dma_buffer_t structure to fill
  * @param[in] policy dma_policy_t structure to guide
@@ -79,7 +80,8 @@ int dma_buffer_alloc_policy(dma_buffer_t *db, size_t size, dma_policy_t policy)
 	return ret;
 }
 
-/** Allocate a DMA buffer using the default policy.
+/**
+ * Allocate a DMA buffer using the default policy.
  *
  * @param[in] db dma_buffer_t structure to fill
  * @param[in] size Size of the required memory space
@@ -91,7 +93,8 @@ int dma_buffer_alloc(dma_buffer_t *db, size_t size)
 }
 
 
-/** Free a DMA buffer.
+/**
+ * Free a DMA buffer.
  *
  * @param[in] db dma_buffer_t structure buffer of which will be freed
  */
@@ -104,7 +107,8 @@ void dma_buffer_free(dma_buffer_t *db)
 	}
 }
 
-/** Convert a pointer inside a buffer to physical address.
+/**
+ * Convert a pointer inside a buffer to physical address.
  *
  * @param[in] db Buffer at which virt is pointing
  * @param[in] virt Pointer somewhere inside db

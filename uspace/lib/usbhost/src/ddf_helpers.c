@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- *
+ * Helpers to work with the DDF interface.
  */
 
 #include <adt/list.h>
@@ -58,11 +58,13 @@ static int hcd_ddf_new_device(hc_device_t *hcd, ddf_dev_t *hc, device_t *hub_dev
 static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub, unsigned port);
 
 
-/* DDF INTERFACE */
-
-/** Register endpoint interface function.
- * @param fun DDF function.
- * @param endpoint_desc Endpoint description.
+/**
+ * DDF usbhc_iface callback. Passes the endpoint descriptors, fills the pipe
+ * descriptor according to the contents of the endpoint.
+ *
+ * @param[in] fun DDF function of the device in question.
+ * @param[out] pipe_desc The pipe descriptor to be filled.
+ * @param[in] endpoint_desc Endpoint descriptors from the device.
  * @return Error code.
  */
 static int register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
@@ -91,12 +93,15 @@ static int register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
 	return EOK;
 }
 
- /** Unregister endpoint interface function.
-  * @param fun DDF function.
-  * @param endpoint_desc Endpoint description.
+ /**
+  * DDF usbhc_iface callback. Unregister endpoint that makes the other end of
+  * the pipe described.
+  *
+  * @param fun DDF function of the device in question.
+  * @param pipe_desc Pipe description.
   * @return Error code.
   */
-static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *endpoint_desc)
+static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_desc)
 {
 	assert(fun);
 	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -105,13 +110,19 @@ static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *endpoint_d
 	assert(hcd->bus);
 	assert(dev);
 
-	endpoint_t *ep = bus_find_endpoint(dev, endpoint_desc->endpoint_no);
+	endpoint_t *ep = bus_find_endpoint(dev, pipe_desc->endpoint_no);
 	if (!ep)
 		return ENOENT;
 
 	return bus_endpoint_remove(ep);
 }
 
+/**
+ * DDF usbhc_iface callback. Calls the bus operation directly.
+ *
+ * @param fun DDF function of the device (hub) requesting the address.
+ * @param speed An USB speed of the device for which the address is reserved.
+ */
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
 	assert(fun);
@@ -126,6 +137,11 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 	return bus_reserve_default_address(hcd->bus, speed);
 }
 
+/**
+ * DDF usbhc_iface callback. Calls the bus operation directly.
+ *
+ * @param fun DDF function of the device (hub) releasing the address.
+ */
 static int release_default_address(ddf_fun_t *fun)
 {
 	assert(fun);
@@ -141,6 +157,11 @@ static int release_default_address(ddf_fun_t *fun)
 	return EOK;
 }
 
+/**
+ * DDF usbhc_iface callback. Calls the bus operation directly.
+ *
+ * @param fun DDF function of the device (hub) requesting the address.
+ */
 static int device_enumerate(ddf_fun_t *fun, unsigned port)
 {
 	assert(fun);
