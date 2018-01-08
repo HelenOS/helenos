@@ -60,7 +60,7 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 
 	endpoint_init(ep, dev, desc);
 
-	xhci_ep->max_streams = USB_SSC_MAX_STREAMS(desc->companion);
+	xhci_ep->max_streams = 1 << (USB_SSC_MAX_STREAMS(desc->companion));
 	xhci_ep->max_burst = desc->companion.max_burst + 1;
 	xhci_ep->mult = USB_SSC_MULT(desc->companion) + 1;
 
@@ -73,11 +73,18 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 	}
 
 	xhci_ep->interval = desc->endpoint.poll_interval;
-	/* Only Low/Full speed interrupt endpoints have interval set directly,
+
+	/*
+	 * Only Low/Full speed interrupt endpoints have interval as a linear field,
 	 * others have 2-based log of it.
 	 */
 	if (dev->speed >= USB_SPEED_HIGH || ep->transfer_type != USB_TRANSFER_INTERRUPT) {
-		xhci_ep->interval = 1 << (xhci_ep->interval - 1);
+		xhci_ep->interval = desc->endpoint.poll_interval;
+	}
+
+	/* Full speed devices have interval in frames */
+	if (dev->speed <= USB_SPEED_FULL) {
+		xhci_ep->interval *= 8;
 	}
 
 	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
@@ -150,20 +157,6 @@ static bool endpoint_using_streams(xhci_endpoint_t *xhci_ep)
 	return xhci_ep->primary_stream_ctx_array != NULL;
 }
 
-/** Determine maximum size of XHCI endpoint's Primary Stream Context Array.
- * @param[in] xhci_ep XHCI endpoint to query.
- *
- * @return Number of items in the Primary Stream Context Array.
- */
-static size_t primary_stream_ctx_array_max_size(xhci_endpoint_t *xhci_ep)
-{
-	if (!xhci_ep->max_streams)
-		return 0;
-
-	/* Section 6.2.3, Table 61 */
-	return 1 << (xhci_ep->max_streams + 1);
-}
-
 // static bool primary_stream_ctx_has_secondary_array(xhci_stream_ctx_t *primary_ctx) {
 // 	/* Section 6.2.4.1, SCT values */
 // 	return XHCI_STREAM_SCT(*primary_ctx) >= 2;
@@ -201,7 +194,7 @@ static void initialize_primary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, 
 static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, unsigned pstreams) {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(xhci_ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, xhci_ep->base.max_packet_size);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, xhci_ep->max_burst);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, xhci_ep->max_burst - 1);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 
 	XHCI_EP_MAX_P_STREAMS_SET(*ctx, pstreams);
@@ -219,7 +212,7 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 		return EINVAL;
 	}
 
-	if (!primary_stream_ctx_array_max_size(xhci_ep)) {
+	if (xhci_ep->max_streams == 1) {
 		usb_log_error("Streams are not supported by endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 		return EINVAL;
 	}
@@ -230,9 +223,9 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 		return ENOTSUP;
 	}
 
-	if (count > (unsigned) (1 << xhci_ep->max_streams)) {
-		usb_log_error("Endpoint " XHCI_EP_FMT " supports only %u streams.",
-			XHCI_EP_ARGS(*xhci_ep), (1 << xhci_ep->max_streams));
+	if (count > xhci_ep->max_streams) {
+		usb_log_error("Endpoint " XHCI_EP_FMT " supports only %" PRIu32 " streams.",
+			XHCI_EP_ARGS(*xhci_ep), xhci_ep->max_streams);
 		return EINVAL;
 	}
 
@@ -385,8 +378,8 @@ static void setup_control_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, ep->base.max_packet_size);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst);
-	XHCI_EP_MULT_SET(*ctx, ep->mult);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst - 1);
+	XHCI_EP_MULT_SET(*ctx, ep->mult - 1);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
@@ -400,7 +393,7 @@ static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, ep->base.max_packet_size);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst - 1);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 
 	XHCI_EP_MAX_P_STREAMS_SET(*ctx, 0);
@@ -416,12 +409,12 @@ static void setup_isoch_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, ep->base.max_packet_size & 0x07FF);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst);
-	XHCI_EP_MULT_SET(*ctx, ep->mult);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst - 1);
+	XHCI_EP_MULT_SET(*ctx, ep->mult - 1);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 0);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
-	XHCI_EP_INTERVAL_SET(*ctx, ep->interval);
+	XHCI_EP_INTERVAL_SET(*ctx, fnzb32(ep->interval) % 32 - 1);
 
 	XHCI_EP_MAX_ESIT_PAYLOAD_LO_SET(*ctx, ep->isoch_max_size & 0xFFFF);
 	XHCI_EP_MAX_ESIT_PAYLOAD_HI_SET(*ctx, (ep->isoch_max_size >> 16) & 0xFF);
@@ -435,13 +428,12 @@ static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, ep->base.max_packet_size & 0x07FF);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst);
+	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, ep->max_burst - 1);
 	XHCI_EP_MULT_SET(*ctx, 0);
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
-
-	XHCI_EP_INTERVAL_SET(*ctx, ep->interval);
+	XHCI_EP_INTERVAL_SET(*ctx, fnzb32(ep->interval) % 32 - 1);
 	// TODO: max ESIT payload
 }
 

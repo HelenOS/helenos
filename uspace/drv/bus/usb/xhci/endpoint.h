@@ -80,8 +80,8 @@ typedef struct xhci_endpoint {
 	/** Size of the allocated primary stream context array (and ring array). */
 	uint16_t primary_stream_ctx_array_size;
 
-	/** 2-log of maximum number of primary streams (0-16). Not to be used directly. */
-	uint8_t max_streams;
+	/* Maximum number of primary streams (0 - 2^16). */
+	uint32_t max_streams;
 
 	/** Maximum number of consecutive USB transactions (0-15) that should be executed per scheduling opportunity */
 	uint8_t max_burst;
@@ -89,8 +89,8 @@ typedef struct xhci_endpoint {
 	/** Maximum number of bursts within an interval that this endpoint supports */
 	uint8_t mult;
 
-	/** Scheduling interval for periodic endpoints */
-	size_t interval;
+	/** Scheduling interval for periodic endpoints, as a number of 125us units. (0 - 2^16) */
+	uint32_t interval;
 
 	/** The maximum size of an isochronous transfer and therefore the size of buffers */
 	size_t isoch_max_size;

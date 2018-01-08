@@ -133,6 +133,7 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 		return EOK;
 
 	ep0->base.max_packet_size = max_packet_size;
+	ep0->base.max_transfer_size = max_packet_size * ep0->base.packets_per_uframe;
 
 	xhci_ep_ctx_t ep_ctx;
 	xhci_setup_endpoint_context(ep0, &ep_ctx);

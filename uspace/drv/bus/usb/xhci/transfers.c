@@ -262,10 +262,10 @@ static int schedule_isochronous_trb(xhci_trb_ring_t *ring, xhci_endpoint_t *ep, 
 
 	// see 4.14.1 and 4.11.2.3 for the explanation, how to calculate those
 	size_t tdpc = len / 1024 + ((len % 1024) ? 1 : 0);
-	size_t tbc = tdpc / (ep->max_burst + 1);
-	if (!tdpc % (ep->max_burst + 1)) --tbc;
-	size_t bsp = tdpc % (ep->max_burst + 1);
-	size_t tlbpc = (bsp ? bsp - 1 : ep->max_burst);
+	size_t tbc = tdpc / ep->max_burst;
+	if (!tdpc % ep->max_burst) --tbc;
+	size_t bsp = tdpc % ep->max_burst;
+	size_t tlbpc = (bsp ? bsp : ep->max_burst) - 1;
 
 	TRB_CTRL_SET_TBC(*trb, tbc);
 	TRB_CTRL_SET_TLBPC(*trb, tlbpc);
