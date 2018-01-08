@@ -35,19 +35,21 @@ fcnt=0
 
 find abi kernel boot uspace -type f -regex '^.*\.[ch]$' | (
 while read fname; do
-	$ccheck $fname >/tmp/ccheck.out 2>&1
+	outfile="$(mktemp)"
+	$ccheck $fname >"$outfile" 2>&1
 	rc=$?
 	if [ .$rc == .0 ]; then
-		if [ -s /tmp/ccheck.out ] ; then
+		if [ -s "$outfile" ] ; then
 			srepcnt=$((srepcnt + 1))
-			echo '**' Reports for file $fname: '**'
-			cat /tmp/ccheck.out
+			cat "$outfile"
 		else
 			snorepcnt=$((snorepcnt + 1))
 		fi
 	else
 		fcnt=$((fcnt + 1))
 	fi
+
+	rm -f "$outfile"
 done
 
 echo "Checked files with issues: $srepcnt"
