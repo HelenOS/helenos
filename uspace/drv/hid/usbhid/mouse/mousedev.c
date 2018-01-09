@@ -164,14 +164,14 @@ static const usb_hid_report_field_t *get_mouse_axis_move_field(uint8_t rid, usb_
 	return field;
 }
 
-static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
+static void usb_mouse_process_report(usb_hid_dev_t *hid_dev,
     usb_mouse_t *mouse_dev)
 {
 	assert(mouse_dev != NULL);
 
 	if (mouse_dev->mouse_sess == NULL) {
 		usb_log_warning(NAME " No console session.\n");
-		return true;
+		return;
 	}
 
 	const usb_hid_report_field_t *move_x = get_mouse_axis_move_field(
@@ -190,7 +190,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	/* Tablet shall always report both X and Y */
 	if (absolute_x != absolute_y) {
 		usb_log_error(NAME " cannot handle mix of absolute and relative mouse move.");
-		return true;
+		return;
 	}
 
 	int shift_x = move_x ? move_x->value : 0;
@@ -225,14 +225,14 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL) {
 		usb_log_warning("Failed to create USB HID report path.\n");
-		return true;
+		return;
 	}
 	int ret =
 	   usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
 	if (ret != EOK) {
 		usb_hid_report_path_free(path);
 		usb_log_warning("Failed to add buttons to report path.\n");
-		return true;
+		return;
 	}
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
@@ -265,8 +265,6 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	}
 
 	usb_hid_report_path_free(path);
-
-	return true;
 }
 
 #define FUN_UNBIND_DESTROY(fun) \
@@ -413,8 +411,10 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 	}
 
 	usb_mouse_t *mouse_dev = data;
+	usb_mouse_process_report(hid_dev, mouse_dev);
 
-	return usb_mouse_process_report(hid_dev, mouse_dev);
+	/* Continue polling until the device is about to be removed. */
+	return !hid_dev->will_deinit;
 }
 
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)

@@ -218,7 +218,8 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 
 bool usb_generic_hid_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
-	return true;
+	/* Continue polling until the device is about to be removed. */
+	return !hid_dev->will_deinit;
 }
 
 /**

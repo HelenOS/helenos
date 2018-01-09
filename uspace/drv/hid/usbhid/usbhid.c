@@ -331,10 +331,10 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
  *
  * During initialization, the keyboard is switched into boot protocol, the idle
  * rate is set to 0 (infinity), resulting in the keyboard only reporting event
- * when a key is pressed or released. Finally, the LED lights are turned on 
+ * when a key is pressed or released. Finally, the LED lights are turned on
  * according to the default setup of lock keys.
  *
- * @note By default, the keyboards is initialized with Num Lock turned on and 
+ * @note By default, the keyboards is initialized with Num Lock turned on and
  *       other locks turned off.
  *
  * @param hid_dev Device to initialize, non-NULL.
@@ -353,6 +353,10 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	/* The USB device should already be initialized, save it in structure */
 	hid_dev->usb_dev = dev;
 	hid_dev->poll_pipe_mapping = NULL;
+
+	hid_dev->will_deinit = false;
+	fibril_mutex_initialize(&hid_dev->guard);
+	fibril_condvar_initialize(&hid_dev->poll_end);
 
 	int rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {
@@ -491,6 +495,19 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	return cont;
 }
 
+bool usb_hid_polling_error_callback(usb_device_t *dev, int err_code, void *arg)
+{
+	assert(dev);
+	assert(arg);
+	usb_hid_dev_t *hid_dev = arg;
+
+	usb_log_error("Device %s polling error: %s", usb_device_get_name(dev),
+	    str_error(err_code));
+
+	/* Continue polling until the device is about to be removed. */
+	return hid_dev->running && !hid_dev->will_deinit;
+}
+
 void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
 {
 	assert(dev);
@@ -506,6 +523,11 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
 	}
 
 	hid_dev->running = false;
+
+	/* Signal polling end to joining thread. */
+	fibril_mutex_lock(&hid_dev->guard);
+	fibril_condvar_signal(&hid_dev->poll_end);
+	fibril_mutex_unlock(&hid_dev->guard);
 }
 
 void usb_hid_new_report(usb_hid_dev_t *hid_dev)
@@ -518,13 +540,18 @@ int usb_hid_report_number(const usb_hid_dev_t *hid_dev)
 	return hid_dev->report_nr;
 }
 
+void usb_hid_prepare_deinit(usb_hid_dev_t *hid_dev)
+{
+	assert(hid_dev);
+	hid_dev->will_deinit = true;
+}
+
 void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev);
 	assert(hid_dev->subdrivers != NULL || hid_dev->subdriver_count == 0);
 
-
-	usb_log_debug("Subdrivers: %p, subdriver count: %d\n", 
+	usb_log_debug("Subdrivers: %p, subdriver count: %d\n",
 	    hid_dev->subdrivers, hid_dev->subdriver_count);
 
 	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
@@ -540,7 +567,6 @@ void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 
 	/* Destroy the parser */
 	usb_hid_report_deinit(&hid_dev->report);
-
 }
 
 /**
