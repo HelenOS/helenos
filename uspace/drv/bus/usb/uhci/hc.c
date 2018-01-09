@@ -322,17 +322,29 @@ static void destroy_transfer_batch(usb_transfer_batch_t *batch)
 
 static int device_online(device_t *device)
 {
-	// FIXME: Implement me!
+	int err;
+	hc_t *instance = bus_to_hc(device->bus);
+	assert(instance);
 
-	return ENOTSUP;
+	/* Allow creation of new endpoints and transfers. */
+	usb_log_info("Device(%d): Going online.", device->address);
+	fibril_mutex_lock(&device->guard);
+	device->online = true;
+	fibril_mutex_unlock(&device->guard);
+
+	if ((err = ddf_fun_online(device->fun))) {
+		return err;
+	}
+
+	return EOK;
 }
 
 static int device_offline(device_t *device)
 {
+	int err;
 	hc_t *instance = bus_to_hc(device->bus);
 	assert(instance);
 
-	int err;
 	/* Tear down all drivers working with the device. */
 	if ((err = ddf_fun_offline(device->fun))) {
 		return err;
