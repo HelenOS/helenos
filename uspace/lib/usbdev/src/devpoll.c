@@ -331,7 +331,7 @@ int usb_device_auto_polling_desc(usb_device_t *usb_dev,
 
 int usb_device_auto_poll_desc(usb_device_t * usb_dev,
     const usb_endpoint_description_t *desc, usb_polling_callback_t callback,
-    size_t req_size, int delay,
+    size_t req_size, int delay, usb_polling_error_callback_t error_callback,
     usb_polling_terminted_callback_t terminated_callback, void *arg)
 {
 	const usb_device_auto_polling_t auto_polling = {
@@ -341,7 +341,7 @@ int usb_device_auto_poll_desc(usb_device_t * usb_dev,
 		.max_failures = MAX_FAILED_ATTEMPTS,
 		.on_data = callback,
 		.on_polling_end = terminated_callback,
-		.on_error = NULL,
+		.on_error = error_callback,
 		.arg = arg,
 	};
 

@@ -150,7 +150,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	opResult = usb_device_auto_poll_desc(hub_dev->usb_device,
 	    &hub_status_change_endpoint_description,
 	    hub_port_changes_callback, ((hub_dev->port_count + 1 + 7) / 8),
-	    -1, usb_hub_polling_terminated_callback, hub_dev);
+	    -1, NULL, usb_hub_polling_terminated_callback, hub_dev);
 	if (opResult != EOK) {
 		/* Function is already bound */
 		ddf_fun_unbind(hub_dev->hub_fun);
