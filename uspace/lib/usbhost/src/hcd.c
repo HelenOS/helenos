@@ -63,7 +63,7 @@ static driver_ops_t hc_driver_ops = {
 	.dev_add = hc_dev_add,
 	.dev_remove = hc_dev_remove,
 	.dev_gone = hc_dev_gone,
-	.fun_online = hc_fun_offline,
+	.fun_online = hc_fun_online,
 	.fun_offline = hc_fun_offline,
 };
 
