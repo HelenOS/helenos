@@ -63,7 +63,7 @@ typedef struct usb_pipe_desc {
  * same macros to access them).
  * Callers shall fill it with bare contents of respective descriptors (in usb endianity).
  */
-typedef struct {
+typedef struct usb_endpoint_descriptors {
 	struct {
 		uint8_t endpoint_address;
 		uint8_t attributes;

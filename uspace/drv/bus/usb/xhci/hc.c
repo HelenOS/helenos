@@ -191,6 +191,8 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 
 	hc->ac64 = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_AC64);
 	hc->max_slots = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_SLOTS);
+	unsigned ist = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_IST);
+	hc->ist = (ist & 0x10 >> 1) * (ist & 0xf);
 
 	if ((err = hc_parse_ec(hc))) {
 		pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
@@ -610,13 +612,12 @@ void hc_fini(xhci_hc_t *hc)
 /**
  * Ring a xHC Doorbell. Implements section 4.7.
  */
-int hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
+void hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 {
 	assert(hc);
 	uint32_t v = host2xhci(32, target & BIT_RRANGE(uint32_t, 7));
 	pio_write_32(&hc->db_arry[doorbell], v);
 	usb_log_debug2("Ringing doorbell %d (target: %d)", doorbell, target);
-	return EOK;
 }
 
 /**

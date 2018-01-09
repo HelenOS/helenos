@@ -480,7 +480,8 @@ typedef struct xhci_rt_regs {
 	xhci_interrupter_regs_t ir [];
 } xhci_rt_regs_t;
 
-#define XHCI_RT_MFINDEX        mfindex, 32, FIELD
+#define XHCI_RT_MFINDEX        mfindex, 32, RANGE, 13, 0
+#define XHCI_MFINDEX_MAX	(1 << 14)
 
 /**
  * XHCI Doorbell Registers: section 5.6

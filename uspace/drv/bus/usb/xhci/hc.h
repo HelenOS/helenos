@@ -83,6 +83,7 @@ typedef struct xhci_hc {
 	/* Cached capabilities */
 	unsigned max_slots;
 	bool ac64;
+	unsigned ist;			/**< IST in microframes */
 
 	/** Port speed mapping */
 	xhci_port_speed_t speeds [16];
@@ -104,7 +105,7 @@ int hc_claim(xhci_hc_t *, ddf_dev_t *);
 int hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *);
 int hc_start(xhci_hc_t *, bool);
 void hc_fini(xhci_hc_t *);
-int hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
+void hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
 int hc_enable_slot(xhci_hc_t *, uint32_t *);
 int hc_disable_slot(xhci_hc_t *, xhci_device_t *);
 int hc_address_device(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *);

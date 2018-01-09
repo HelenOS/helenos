@@ -44,9 +44,9 @@
 #include <usb/host/hcd.h>
 #include <ddf/driver.h>
 
-#include "trb_ring.h"
-
+#include "isoch.h"
 #include "transfers.h"
+#include "trb_ring.h"
 
 typedef struct xhci_device xhci_device_t;
 typedef struct xhci_endpoint xhci_endpoint_t;
@@ -93,26 +93,7 @@ typedef struct xhci_endpoint {
 	uint32_t interval;
 
 	/** This field is a valid pointer for (and only for) isochronous transfers. */
-	struct {
-		/** The maximum size of an isochronous transfer and therefore the size of buffers */
-		size_t max_size;
-
-		/** Isochronous scheduled transfers with respective buffers */
-		#define XHCI_ISOCH_BUFFER_COUNT 4
-		xhci_isoch_transfer_t transfers[XHCI_ISOCH_BUFFER_COUNT];
-
-		/** Indices to transfers */
-		size_t dequeue, enqueue;
-
-		/** Are isochronous transfers started? */
-		bool started;
-
-		/** Protects common buffers. */
-		fibril_mutex_t guard;
-
-		/** Signals filled buffer. */
-		fibril_condvar_t avail;
-	} isoch [0];
+	xhci_isoch_t isoch [0];
 } xhci_endpoint_t;
 
 #define XHCI_EP_FMT  "(%d:%d %s)"

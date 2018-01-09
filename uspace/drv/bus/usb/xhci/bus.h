@@ -58,6 +58,12 @@ void xhci_bus_fini(xhci_bus_t *);
 int xhci_bus_enumerate_device(xhci_bus_t *, device_t *);
 int xhci_bus_remove_device(xhci_bus_t *, device_t *);
 
+static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
+{
+	assert(bus_base);
+	return (xhci_bus_t *) bus_base;
+}
+
 #endif
 /**
  * @}

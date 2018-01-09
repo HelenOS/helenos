@@ -57,13 +57,6 @@ static const usb_endpoint_descriptors_t ep0_initial_desc = {
 
 static endpoint_t *endpoint_create(device_t *, const usb_endpoint_descriptors_t *);
 
-/** Ops receive generic bus_t pointer. */
-static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
-{
-	assert(bus_base);
-	return (xhci_bus_t *) bus_base;
-}
-
 /**
  * Assign address and control endpoint to a new XHCI device. Once this function
  * successfully returns, the device is online.

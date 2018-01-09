@@ -38,6 +38,7 @@ SOURCES = \
 	debug.c \
 	endpoint.c \
 	hc.c \
+	isoch.c \
 	main.c \
 	rh.c \
 	scratchpad.c \

@@ -83,7 +83,7 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 	 * others have 2-based log of it.
 	 */
 	if (dev->speed >= USB_SPEED_HIGH || ep->transfer_type != USB_TRANSFER_INTERRUPT) {
-		xhci_ep->interval = desc->endpoint.poll_interval;
+		xhci_ep->interval = 1 << (xhci_ep->interval - 1);
 	}
 
 	/* Full speed devices have interval in frames */
@@ -91,20 +91,8 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 		xhci_ep->interval *= 8;
 	}
 
-	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		xhci_ep->isoch->max_size = desc->companion.bytes_per_interval
-			? desc->companion.bytes_per_interval
-			: ep->max_transfer_size;
-		/* Technically there could be superspeed plus too. */
-
-		/* Allocate and setup isochronous-specific structures. */
-		xhci_ep->isoch->enqueue = 0;
-		xhci_ep->isoch->dequeue = 0;
-		xhci_ep->isoch->started = false;
-
-		fibril_mutex_initialize(&xhci_ep->isoch->guard);
-		fibril_condvar_initialize(&xhci_ep->isoch->avail);
-	}
+	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS)
+		isoch_init(xhci_ep, desc);
 
 	if ((rc = alloc_transfer_ds(xhci_ep)))
 		goto err;
@@ -271,32 +259,6 @@ int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoi
 	return ENOTSUP;
 }
 
-/** TODO document this
- */
-static int xhci_isoch_alloc_transfers(xhci_endpoint_t *xhci_ep) {
-	int i = 0;
-	int err = EOK;
-	while (i < XHCI_ISOCH_BUFFER_COUNT) {
-		xhci_isoch_transfer_t *transfer = &xhci_ep->isoch->transfers[i];
-		if (dma_buffer_alloc(&transfer->data, xhci_ep->isoch->max_size)) {
-			err = ENOMEM;
-			break;
-		}
-		transfer->size = 0;
-		++i;
-	}
-
-	if (err) {
-		--i;
-		while(i >= 0) {
-			dma_buffer_free(&xhci_ep->isoch->transfers[i].data);
-			--i;
-		}
-	}
-
-	return err;
-}
-
 /** Allocate transfer data structures for XHCI endpoint.
  * @param[in] xhci_ep XHCI endpoint to allocate data structures for.
  *
@@ -315,7 +277,7 @@ static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	}
 
 	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		if ((err = xhci_isoch_alloc_transfers(xhci_ep))) {
+		if ((err = isoch_alloc_transfers(xhci_ep))) {
 			xhci_trb_ring_fini(&xhci_ep->ring);
 			return err;
 		}
@@ -426,7 +388,7 @@ static void setup_isoch_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 0);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
-	XHCI_EP_INTERVAL_SET(*ctx, fnzb32(ep->interval) % 32 - 1);
+	XHCI_EP_INTERVAL_SET(*ctx, fnzb32(ep->interval) % 32);
 
 	XHCI_EP_MAX_ESIT_PAYLOAD_LO_SET(*ctx, ep->isoch->max_size & 0xFFFF);
 	XHCI_EP_MAX_ESIT_PAYLOAD_HI_SET(*ctx, (ep->isoch->max_size >> 16) & 0xFF);
@@ -445,7 +407,7 @@ static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 	XHCI_EP_TR_DPTR_SET(*ctx, ep->ring.dequeue);
 	XHCI_EP_DCS_SET(*ctx, 1);
-	XHCI_EP_INTERVAL_SET(*ctx, fnzb32(ep->interval) % 32 - 1);
+	XHCI_EP_INTERVAL_SET(*ctx, fnzb32(ep->interval) % 32);
 	// TODO: max ESIT payload
 }
 
