@@ -327,11 +327,11 @@ static size_t find_in_array_int32(int32_t val, int32_t *arr, size_t arr_size)
  *
  * An event is created only when key is pressed or released. Besides handling
  * the events (usb_kbd_push_ev()), the auto-repeat fibril is notified about
- * key presses and releases (see usb_kbd_repeat_start() and 
+ * key presses and releases (see usb_kbd_repeat_start() and
  * usb_kbd_repeat_stop()).
  *
  * @param kbd_dev Keyboard device structure.
- * @param key_codes Parsed keyboard report - codes of currently pressed keys 
+ * @param key_codes Parsed keyboard report - codes of currently pressed keys
  *                  according to HID Usage Tables.
  * @param count Number of key codes in report (size of the report).
  *
@@ -708,7 +708,8 @@ bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 	// TODO: add return value from this function
 	usb_kbd_process_data(hid_dev, kbd_dev);
 
-	return true;
+	/* Continue polling until the device is about to be removed. */
+	return !hid_dev->will_deinit;
 }
 
 int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev)
