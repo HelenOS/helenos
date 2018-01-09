@@ -44,6 +44,9 @@
 #include "commands.h"
 #include "endpoint.h"
 
+static int alloc_transfer_ds(xhci_endpoint_t *);
+static void free_transfer_ds(xhci_endpoint_t *);
+
 /**
  * Initialize new XHCI endpoint.
  * @param[in] xhci_ep Allocated XHCI endpoint to initialize.
@@ -54,6 +57,7 @@
  */
 int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
+	int rc;
 	assert(xhci_ep);
 
 	endpoint_t *ep = &xhci_ep->base;
@@ -102,7 +106,13 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 		fibril_condvar_initialize(&xhci_ep->isoch->avail);
 	}
 
+	if ((rc = alloc_transfer_ds(xhci_ep)))
+		goto err;
+
 	return EOK;
+
+err:
+	return rc;
 }
 
 /**
@@ -112,6 +122,8 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 {
 	assert(xhci_ep);
+
+	free_transfer_ds(xhci_ep);
 
 	// TODO: Something missed?
 }
@@ -290,7 +302,7 @@ static int xhci_isoch_alloc_transfers(xhci_endpoint_t *xhci_ep) {
  *
  * @return Error code.
  */
-int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
+static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	/* Can't use XHCI_EP_FMT because the endpoint may not have device. */
 	usb_log_debug2("Allocating main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
@@ -315,7 +327,7 @@ int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 /** Free transfer data structures for XHCI endpoint.
  * @param[in] xhci_ep XHCI endpoint to free data structures for.
  */
-void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
+static void free_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	if (endpoint_using_streams(xhci_ep)) {
 		usb_log_debug2("Freeing primary stream context array of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));

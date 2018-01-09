@@ -149,8 +149,6 @@ typedef struct xhci_device {
 
 int xhci_endpoint_init(xhci_endpoint_t *, device_t *, const usb_endpoint_descriptors_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
-int xhci_endpoint_alloc_transfer_ds(xhci_endpoint_t *);
-void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
 
 int xhci_endpoint_request_streams(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *, unsigned);
 

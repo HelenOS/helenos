@@ -92,17 +92,12 @@ static int address_device(xhci_bus_t *bus, xhci_device_t *dev)
 
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
 
-	if ((err = xhci_endpoint_alloc_transfer_ds(ep0)))
-		goto err_added;
-
 	/* Address device */
 	if ((err = hc_address_device(bus->hc, dev, ep0)))
-		goto err_prepared;
+		goto err_added;
 
 	return EOK;
 
-err_prepared:
-	xhci_endpoint_free_transfer_ds(ep0);
 err_added:
 	/* Bus reference */
 	endpoint_del_ref(ep0_base);
@@ -353,7 +348,6 @@ static int device_offline(device_t *dev_base)
 		if (!endpoints[i])
 			continue;
 
-		xhci_endpoint_free_transfer_ds(xhci_endpoint_get(endpoints[i]));
 		/* Bus reference */
 		endpoint_del_ref(endpoints[i]);
 	}
@@ -410,22 +404,15 @@ static int endpoint_register(endpoint_t *ep_base)
 
 	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
-	if ((err = xhci_endpoint_alloc_transfer_ds(ep)))
-		return err;
-
 	usb_log_info("Endpoint " XHCI_EP_FMT " registered to XHCI bus.", XHCI_EP_ARGS(*ep));
 
 	xhci_ep_ctx_t ep_ctx;
 	xhci_setup_endpoint_context(ep, &ep_ctx);
 
 	if ((err = hc_add_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx)))
-		goto err_prepared;
+		return err;
 
 	return EOK;
-
-err_prepared:
-	xhci_endpoint_free_transfer_ds(ep);
-	return err;
 }
 
 /**
@@ -452,9 +439,6 @@ static int endpoint_unregister(endpoint_t *ep_base)
 		usb_log_debug("Not going to drop endpoint " XHCI_EP_FMT " because"
 		    " the slot has already been disabled.", XHCI_EP_ARGS(*ep));
 	}
-
-	/* Tear down TRB ring / PSA. */
-	xhci_endpoint_free_transfer_ds(ep);
 
 	return EOK;
 }
