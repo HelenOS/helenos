@@ -484,7 +484,11 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
  */
 xhci_endpoint_t *xhci_device_get_endpoint(xhci_device_t *dev, usb_endpoint_t ep)
 {
-	return xhci_endpoint_get(dev->base.endpoints[ep]);
+	endpoint_t *ep_base = dev->base.endpoints[ep];
+	if (!ep_base)
+		return NULL;
+
+	return xhci_endpoint_get(ep_base);
 }
 
 /**
