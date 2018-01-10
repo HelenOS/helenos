@@ -247,15 +247,20 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 	usb_log_debug2("%s %d:%d %zu(%zu).\n",
 	    name, target.address, target.endpoint, size, ep->max_packet_size);
 
-	bus_t *bus = endpoint_get_bus(ep);
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, batch_schedule);
+	device_t * const device = ep->device;
+	if (!device) {
+		usb_log_warning("Endpoint detached");
+		return EAGAIN;
+	}
+
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(device->bus->ops, batch_schedule);
 	if (!ops) {
 		usb_log_error("HCD does not implement scheduler.\n");
 		return ENOTSUP;
 	}
 
 	/* Offline devices don't schedule transfers other than on EP0. */
-	if (!ep->device->online && ep->endpoint > 0) {
+	if (!device->online && ep->endpoint > 0) {
 		return EAGAIN;
 	}
 
@@ -264,7 +269,7 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 	if (ep->bandwidth < bw) {
 		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
 		    "but only %zu is reserved.\n",
-		    ep->device->address, ep->endpoint, name, bw, ep->bandwidth);
+		    device->address, ep->endpoint, name, bw, ep->bandwidth);
 		return ENOSPC;
 	}
 

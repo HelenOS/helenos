@@ -115,7 +115,8 @@ int endpoint_send_batch(endpoint_t *, usb_target_t, usb_direction_t,
 
 static inline bus_t *endpoint_get_bus(endpoint_t *ep)
 {
-	return ep->device->bus;
+	device_t * const device = ep->device;
+	return device ? device->bus : NULL;
 }
 
 /** list_get_instance wrapper.
