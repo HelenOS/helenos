@@ -53,10 +53,6 @@ void isoch_init(xhci_endpoint_t *ep, const usb_endpoint_descriptors_t *desc)
 	fibril_mutex_initialize(&isoch->guard);
 	fibril_condvar_initialize(&isoch->avail);
 
-	isoch->max_size = desc->companion.bytes_per_interval
-		? desc->companion.bytes_per_interval
-		: ep->base.max_transfer_size;
-
 	const xhci_hc_t *hc = bus_to_xhci_bus(ep->base.device->bus)->hc;
 
 	/*
@@ -121,7 +117,7 @@ int isoch_alloc_transfers(xhci_endpoint_t *ep) {
  
 	for (size_t i = 0; i < isoch->buffer_count; ++i) {
 		xhci_isoch_transfer_t *transfer = &isoch->transfers[i];
-		if (dma_buffer_alloc(&transfer->data, isoch->max_size)) {
+		if (dma_buffer_alloc(&transfer->data, ep->base.max_transfer_size)) {
 			goto err;
 		}
 	}
@@ -275,7 +271,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 				it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_out_timer, ep);
-			break;
+			goto out;
 		}
 
 		case WINDOW_INSIDE:
@@ -304,6 +300,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 			break;
 		}
 	}
+out:
 
 	if (fed) {
 		const uint8_t slot_id = xhci_device_get(ep->base.device)->slot_id;
@@ -344,7 +341,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 
 		/* IN buffers are "filled" with free space */
 		if (it->state == ISOCH_EMPTY) {
-			it->size = isoch->max_size;
+			it->size = ep->base.max_transfer_size;
 			it->state = ISOCH_FILLED;
 			calc_next_mfindex(ep, it);
 		}
@@ -360,7 +357,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 			    it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_in_timer, ep);
-			break;
+			goto out;
 		}
 
 		case WINDOW_TOO_LATE:
@@ -390,6 +387,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 			break;
 		}
 	}
+out:
 
 	if (fed) {
 		const uint8_t slot_id = xhci_device_get(ep->base.device)->slot_id;
@@ -421,7 +419,7 @@ int isoch_schedule_out(xhci_transfer_t *transfer)
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
 	xhci_isoch_t * const isoch = ep->isoch;
 
-	if (transfer->batch.buffer_size > isoch->max_size) {
+	if (transfer->batch.buffer_size > ep->base.max_transfer_size) {
 		usb_log_error("Cannot schedule an oversized isochronous transfer.");
 		return ELIMIT;
 	}
@@ -486,7 +484,7 @@ int isoch_schedule_in(xhci_transfer_t *transfer)
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
 	xhci_isoch_t * const isoch = ep->isoch;
 
-	if (transfer->batch.buffer_size < isoch->max_size) {
+	if (transfer->batch.buffer_size < ep->base.max_transfer_size) {
 		usb_log_error("Cannot schedule an undersized isochronous transfer.");
 		return ELIMIT;
 	}

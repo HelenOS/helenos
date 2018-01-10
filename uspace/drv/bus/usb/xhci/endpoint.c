@@ -64,9 +64,17 @@ int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoi
 
 	endpoint_init(ep, dev, desc);
 
-	xhci_ep->max_streams = 1 << (USB_SSC_MAX_STREAMS(desc->companion));
 	xhci_ep->max_burst = desc->companion.max_burst + 1;
-	xhci_ep->mult = USB_SSC_MULT(desc->companion) + 1;
+
+	if (ep->transfer_type == USB_TRANSFER_BULK)
+		xhci_ep->max_streams = 1 << (USB_SSC_MAX_STREAMS(desc->companion));
+	else
+		xhci_ep->max_streams = 1;
+
+	if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
+		xhci_ep->mult = USB_SSC_MULT(desc->companion) + 1;
+	else
+		xhci_ep->mult = 1;
 
 	/* In USB 3, the semantics of wMaxPacketSize changed. Now the number of
 	 * packets per service interval is determined from max_burst and mult.
@@ -313,7 +321,8 @@ static void free_transfer_ds(xhci_endpoint_t *xhci_ep)
 		xhci_trb_ring_fini(&xhci_ep->ring);
 	}
 
-	isoch_fini(xhci_ep);
+	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS)
+		isoch_fini(xhci_ep);
 }
 
 /** See section 4.5.1 of the xHCI spec.
