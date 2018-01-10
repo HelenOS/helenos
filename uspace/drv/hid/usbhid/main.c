@@ -175,7 +175,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
 
-	usb_log_debug2("Device %s gone.\n", usb_device_get_name(dev));
+	usb_log_info("Device %s gone, joining the polling fibril.\n", usb_device_get_name(dev));
 	usb_hid_prepare_deinit(hid_dev);
 
 	unsigned tries = 100;
@@ -189,7 +189,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	}
 
 	usb_hid_deinit(hid_dev);
-	usb_log_debug2("%s destruction complete.\n", usb_device_get_name(dev));
+	usb_log_info("%s destruction complete.\n", usb_device_get_name(dev));
 
 	return EOK;
 }
