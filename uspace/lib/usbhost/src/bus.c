@@ -198,7 +198,7 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	    usb_str_direction(ep->direction),
 	    ep->max_transfer_size);
 
-	fibril_mutex_lock(&bus->guard);
+	fibril_mutex_lock(&device->guard);
 	if (!device->online && ep->endpoint != 0) {
 		err = EAGAIN;
 	} else if (device->endpoints[ep->endpoint] != NULL) {
@@ -208,7 +208,7 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 		if (!err)
 			device->endpoints[ep->endpoint] = ep;
 	}
-	fibril_mutex_unlock(&bus->guard);
+	fibril_mutex_unlock(&device->guard);
 	if (err) {
 		endpoint_del_ref(ep);
 		return err;
@@ -230,15 +230,13 @@ endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint)
 {
 	assert(device);
 
-	bus_t *bus = device->bus;
-
-	fibril_mutex_lock(&bus->guard);
+	fibril_mutex_lock(&device->guard);
 	endpoint_t *ep = device->endpoints[endpoint];
 	if (ep) {
 		/* Exporting reference */
 		endpoint_add_ref(ep);
 	}
-	fibril_mutex_unlock(&bus->guard);
+	fibril_mutex_unlock(&device->guard);
 	return ep;
 }
 
@@ -250,23 +248,27 @@ int bus_endpoint_remove(endpoint_t *ep)
 	assert(ep);
 	assert(ep->device);
 
-	bus_t *bus = endpoint_get_bus(ep);
+	device_t *device = ep->device;
+	if (!device)
+		return ENOENT;
+
+	bus_t *bus = device->bus;
 
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, endpoint_unregister);
 	if (!ops)
 		return ENOTSUP;
 
 	usb_log_debug("Unregister endpoint %d:%d %s-%s %zuB.\n",
-	    ep->device->address, ep->endpoint,
+	    device->address, ep->endpoint,
 	    usb_str_transfer_type(ep->transfer_type),
 	    usb_str_direction(ep->direction),
 	    ep->max_transfer_size);
 
-	fibril_mutex_lock(&bus->guard);
+	fibril_mutex_lock(&device->guard);
 	const int r = ops->endpoint_unregister(ep);
 	if (!r)
-		ep->device->endpoints[ep->endpoint] = NULL;
-	fibril_mutex_unlock(&bus->guard);
+		device->endpoints[ep->endpoint] = NULL;
+	fibril_mutex_unlock(&device->guard);
 
 	if (r)
 		return r;
