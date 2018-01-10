@@ -130,7 +130,7 @@ static int usb_hid_device_remove(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
 
-	usb_log_debug2("%s will be removed, setting remove flag.\n", usb_device_get_name(dev));
+	usb_log_info("%s will be removed, setting remove flag.\n", usb_device_get_name(dev));
 	usb_hid_prepare_deinit(hid_dev);
 
 	return EOK;
@@ -148,6 +148,8 @@ static int usb_hid_device_removed(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
 
+	usb_log_info("%s endpoints unregistered, joining polling fibril.\n", usb_device_get_name(dev));
+
 	/* Join polling fibril. */
 	fibril_mutex_lock(&hid_dev->guard);
 	while (hid_dev->running)
@@ -156,7 +158,7 @@ static int usb_hid_device_removed(usb_device_t *dev)
 
 	/* Clean up. */
 	usb_hid_deinit(hid_dev);
-	usb_log_debug2("%s destruction complete.\n", usb_device_get_name(dev));
+	usb_log_info("%s destruction complete.\n", usb_device_get_name(dev));
 
 	return EOK;
 }
@@ -172,6 +174,10 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	assert(dev);
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
+
+	usb_log_debug2("Device %s gone.\n", usb_device_get_name(dev));
+	usb_hid_prepare_deinit(hid_dev);
+
 	unsigned tries = 100;
 	/* Wait for fail. */
 	while (hid_dev->running && tries--) {
@@ -184,6 +190,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 
 	usb_hid_deinit(hid_dev);
 	usb_log_debug2("%s destruction complete.\n", usb_device_get_name(dev));
+
 	return EOK;
 }
 
