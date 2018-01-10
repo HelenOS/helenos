@@ -271,6 +271,9 @@ int bus_endpoint_remove(endpoint_t *ep)
 	if (r)
 		return r;
 
+	/* Abort a transfer batch, if there was any */
+	endpoint_abort(ep);
+
 	/* Bus reference */
 	endpoint_del_ref(ep);
 
