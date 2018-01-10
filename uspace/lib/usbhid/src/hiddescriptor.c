@@ -174,7 +174,7 @@ int usb_hid_report_append_fields(usb_hid_report_t *report,
 	}
 
 	if(report_item->usages_count > 0){
-		usages = malloc(sizeof(int32_t) * report_item->usages_count);
+		usages = malloc(sizeof(uint32_t) * report_item->usages_count);
 		memcpy(usages, report_item->usages, sizeof(int32_t) *
 				report_item->usages_count); 
 	}

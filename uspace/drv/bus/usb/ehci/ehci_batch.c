@@ -61,8 +61,8 @@ void ehci_transfer_batch_destroy(ehci_transfer_batch_t *ehci_batch)
 {
 	assert(ehci_batch);
 	dma_buffer_free(&ehci_batch->dma_buffer);
-	free(ehci_batch);
 	usb_log_debug2("Batch(%p): disposed", ehci_batch);
+	free(ehci_batch);
 }
 
 /** Allocate memory and initialize internal data structure.

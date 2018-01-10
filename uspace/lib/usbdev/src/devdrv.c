@@ -439,7 +439,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	 * We might either control one interface or an entire device,
 	 * it makes no sense to speak about alternate interfaces when
 	 * controlling a device. */
-	rc = usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
+	usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
 	    usb_dev->descriptors.full_config,
 	    usb_dev->descriptors.full_config_size, usb_dev->interface_no);
 
