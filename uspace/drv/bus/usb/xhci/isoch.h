@@ -86,9 +86,11 @@ typedef struct {
 	/** The MFINDEX at which the last TRB was scheduled. */
 	uint32_t last_mfindex;
 
+	/** The number of transfer buffers allocated */
+	size_t buffer_count;
+
 	/** Isochronous scheduled transfers with respective buffers */
-	#define XHCI_ISOCH_BUFFER_COUNT 4
-	xhci_isoch_transfer_t transfers[XHCI_ISOCH_BUFFER_COUNT];
+	xhci_isoch_transfer_t *transfers;
 
 	/**
 	 * Out: Next buffer that will be handed to HW.

@@ -114,7 +114,7 @@ static const hc_driver_t xhci_driver = {
 int main(int argc, char *argv[])
 {
 	log_init(NAME);
-	logctl_set_log_level(NAME, LVL_DEBUG2);
+	logctl_set_log_level(NAME, LVL_NOTE);
 	return hc_driver_main(&xhci_driver);
 }
 

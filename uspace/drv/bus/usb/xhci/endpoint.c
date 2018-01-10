@@ -313,11 +313,7 @@ static void free_transfer_ds(xhci_endpoint_t *xhci_ep)
 		xhci_trb_ring_fini(&xhci_ep->ring);
 	}
 
-	if (xhci_ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		for (size_t i = 0; i < XHCI_ISOCH_BUFFER_COUNT; ++i) {
-			dma_buffer_free(&xhci_ep->isoch->transfers[i].data);
-		}
-	}
+	isoch_fini(xhci_ep);
 }
 
 /** See section 4.5.1 of the xHCI spec.

@@ -34,6 +34,7 @@
  */
 
 #include <str_error.h>
+#include <macros.h>
 
 #include "endpoint.h"
 #include "hw_struct/trb.h"
@@ -55,7 +56,19 @@ void isoch_init(xhci_endpoint_t *ep, const usb_endpoint_descriptors_t *desc)
 	isoch->max_size = desc->companion.bytes_per_interval
 		? desc->companion.bytes_per_interval
 		: ep->base.max_transfer_size;
-	/* Technically there could be superspeed plus too. */
+
+	const xhci_hc_t *hc = bus_to_xhci_bus(ep->base.device->bus)->hc;
+
+	/*
+	 * We shall cover at least twice the IST period, otherwise we will get
+	 * an over/underrun every time.
+	 */
+	isoch->buffer_count = (2 * hc->ist) / ep->interval;
+
+	/* 2 buffers are the very minimum. */
+	isoch->buffer_count = max(2, isoch->buffer_count);
+
+	usb_log_error("[isoch] isoch setup with %zu buffers", isoch->buffer_count);
 }
 
 static void isoch_reset(xhci_endpoint_t *ep)
@@ -65,7 +78,7 @@ static void isoch_reset(xhci_endpoint_t *ep)
 
 	isoch->dequeue = isoch->enqueue = isoch->hw_enqueue = 0;
 
-	for (size_t i = 0; i < XHCI_ISOCH_BUFFER_COUNT; ++i) {
+	for (size_t i = 0; i < isoch->buffer_count; ++i) {
 		isoch->transfers[i].state = ISOCH_EMPTY;
 	}
 
@@ -84,8 +97,11 @@ void isoch_fini(xhci_endpoint_t *ep)
 		fibril_timer_destroy(isoch->feeding_timer);
 	}
 
-	for (size_t i = 0; i < XHCI_ISOCH_BUFFER_COUNT; ++i)
-		dma_buffer_free(&isoch->transfers[i].data);
+	if (isoch->transfers) {
+		for (size_t i = 0; i < isoch->buffer_count; ++i)
+			dma_buffer_free(&isoch->transfers[i].data);
+		free(isoch->transfers);
+	}
 }
 
 /**
@@ -99,11 +115,14 @@ int isoch_alloc_transfers(xhci_endpoint_t *ep) {
 	if (!isoch->feeding_timer)
 		return ENOMEM;
 
-	for (size_t i = 0; i < XHCI_ISOCH_BUFFER_COUNT; ++i) {
+	isoch->transfers = calloc(isoch->buffer_count, sizeof(xhci_isoch_transfer_t));
+	if(!isoch->transfers)
+		goto err;
+ 
+	for (size_t i = 0; i < isoch->buffer_count; ++i) {
 		xhci_isoch_transfer_t *transfer = &isoch->transfers[i];
 		if (dma_buffer_alloc(&transfer->data, isoch->max_size)) {
-			isoch_fini(ep);
-			return ENOMEM;
+			goto err;
 		}
 	}
 
@@ -112,6 +131,9 @@ int isoch_alloc_transfers(xhci_endpoint_t *ep) {
 	fibril_mutex_unlock(&isoch->guard);
 
 	return EOK;
+err:
+	isoch_fini(ep);
+	return ENOMEM;
 }
 
 static int schedule_isochronous_trb(xhci_endpoint_t *ep, xhci_isoch_transfer_t *it)
@@ -150,7 +172,7 @@ static inline void calc_next_mfindex(xhci_endpoint_t *ep, xhci_isoch_transfer_t 
 		/* Choose some number, give us a little time to prepare the
 		 * buffers */
 		it->mfindex = XHCI_REG_RD(hc->rt_regs, XHCI_RT_MFINDEX) + 1
-		       + XHCI_ISOCH_BUFFER_COUNT * ep->interval
+		       + isoch->buffer_count * ep->interval
 		       + hc->ist;
 
 		// Align to ESIT start boundary
@@ -206,7 +228,7 @@ static inline void window_decide(window_decision_t *res, xhci_hc_t *hc, uint32_t
 	/*
 	 * TODO: The "size" of the clock is too low. We have to scale it a bit
 	 * to ensure correct scheduling of transfers, that are
-	 * XHCI_ISOCH_BUFFER_COUNT * interval away from now.
+	 * buffer_count * interval away from now.
 	 * Maximum interval is 8 seconds, which means we need a size of 
 	 * 16 seconds. The size of MFIINDEX is 2 seconds only.
 	 *
@@ -267,7 +289,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 				fed = true;
 			}
 
-			isoch->hw_enqueue = (isoch->hw_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+			isoch->hw_enqueue = (isoch->hw_enqueue + 1) % isoch->buffer_count;
 			break;
 
 		case WINDOW_TOO_LATE:
@@ -278,7 +300,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 			it->error = EOK;
 			it->size = 0;
 
-			isoch->hw_enqueue = (isoch->hw_enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+			isoch->hw_enqueue = (isoch->hw_enqueue + 1) % isoch->buffer_count;
 			break;
 		}
 	}
@@ -352,7 +374,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 
 			/* fallthrough */
 		case WINDOW_INSIDE:
-			isoch->enqueue = (isoch->enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+			isoch->enqueue = (isoch->enqueue + 1) % isoch->buffer_count;
 			isoch->last_mfindex = it->mfindex;
 
 			usb_log_debug2("[isoch] feeding buffer %lu at 0x%x",
@@ -416,13 +438,13 @@ int isoch_schedule_out(xhci_transfer_t *transfer)
 		it = &isoch->transfers[isoch->enqueue];
 	}
 
-	isoch->enqueue = (isoch->enqueue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+	isoch->enqueue = (isoch->enqueue + 1) % isoch->buffer_count;
 
 	/* Withdraw results from previous transfers. */
 	transfer->batch.transfered_size = 0;
 	xhci_isoch_transfer_t *res = &isoch->transfers[isoch->dequeue];
 	while (res->state == ISOCH_COMPLETE) {
-		isoch->dequeue = (isoch->dequeue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+		isoch->dequeue = (isoch->dequeue + 1) % isoch->buffer_count;
 
 		res->state = ISOCH_EMPTY;
 		transfer->batch.transfered_size += res->size;
@@ -486,7 +508,7 @@ int isoch_schedule_in(xhci_transfer_t *transfer)
 		it = &isoch->transfers[isoch->dequeue];
 	}
 
-	isoch->dequeue = (isoch->dequeue + 1) % XHCI_ISOCH_BUFFER_COUNT;
+	isoch->dequeue = (isoch->dequeue + 1) % isoch->buffer_count;
 
 	/* Withdraw results from previous transfer. */
 	if (!it->error) {
@@ -542,7 +564,7 @@ int isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *
 	 * expect. It is safer to walk the list of our 4 transfers and check
 	 * which one it is.
 	 */
-	for (size_t i = 0; i < XHCI_ISOCH_BUFFER_COUNT; ++i) {
+	for (size_t i = 0; i < isoch->buffer_count; ++i) {
 		xhci_isoch_transfer_t * const it = &isoch->transfers[i];
 
 		switch (it->state) {
