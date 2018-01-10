@@ -227,7 +227,7 @@ static int usb_device_auto_polling_internal(usb_device_t *dev,
 	}
 
 	/* Fill-in the data. */
-	polling_data->buffer = malloc(sizeof(request_size));
+	polling_data->buffer = malloc(request_size);
 	if (polling_data->buffer == NULL) {
 		free(polling_data);
 		return ENOMEM;
