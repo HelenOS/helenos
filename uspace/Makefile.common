@@ -111,7 +111,7 @@ LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 START_FILES = $(LIBC_PREFIX)/crt0.o $(LIBC_PREFIX)/crt1.o
 
 AFLAGS = --fatal-warnings
-LDFLAGS = -Wl,--fatal-warnings,--warn-common -Wl,-z,max-page-size=0x1000
+LDFLAGS = -Wl,--fatal-warnings,--warn-common
 
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
