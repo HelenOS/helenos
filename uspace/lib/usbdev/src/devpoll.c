@@ -135,7 +135,7 @@ static int polling_fibril(void *arg)
 			const bool cont = (params->on_error == NULL) ? true :
 			    params->on_error(data->dev, rc, params->arg);
 			if (!cont) {
-				failed_attempts = params->max_failures;
+				failed_attempts = params->max_failures + 1;
 			}
 			continue;
 		}
