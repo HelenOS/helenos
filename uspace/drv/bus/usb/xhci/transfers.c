@@ -340,7 +340,6 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	}
 
 	const usb_transfer_type_t type = batch->ep->transfer_type;
-	assert(type >= 0 && type < ARRAY_SIZE(transfer_handlers));
 	assert(transfer_handlers[type]);
 
 	if (batch->buffer_size > 0) {

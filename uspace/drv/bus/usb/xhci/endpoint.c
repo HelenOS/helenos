@@ -428,7 +428,6 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 	assert(ep_ctx);
 
 	usb_transfer_type_t tt = ep->base.transfer_type;
-	assert(tt < ARRAY_SIZE(setup_ep_ctx_helpers));
 
 	memset(ep_ctx, 0, sizeof(*ep_ctx));
 	setup_ep_ctx_helpers[tt](ep, ep_ctx);

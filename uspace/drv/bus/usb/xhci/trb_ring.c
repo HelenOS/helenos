@@ -150,6 +150,7 @@ static void trb_ring_resolve_link(xhci_trb_ring_t *ring)
 	link_t *next_segment = list_next(&ring->enqueue_segment->segments_link, &ring->segments);
 	if (!next_segment)
 		next_segment = list_first(&ring->segments);
+	assert(next_segment);
 
 	ring->enqueue_segment = list_get_instance(next_segment, trb_segment_t, segments_link);
 	ring->enqueue_trb = segment_begin(ring->enqueue_segment);
@@ -206,7 +207,7 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	 */
 	xhci_trb_t *trb = first_trb;
 	for (size_t i = 0; i < trbs; ++i, ++trb) {
-		if (trb_generates_interrupt(trb)) {
+		if (phys && trb_generates_interrupt(trb)) {
 			if (*phys)
 				return ENOTSUP;
 			*phys = trb_ring_enqueue_phys(ring);

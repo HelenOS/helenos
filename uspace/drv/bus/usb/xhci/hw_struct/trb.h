@@ -95,7 +95,7 @@ typedef struct xhci_trb {
 	xhci_qword_t parameter;
 	xhci_dword_t status;
 	xhci_dword_t control;
-} __attribute__((packed)) xhci_trb_t;
+} __attribute__((packed)) __attribute__((aligned(16))) xhci_trb_t;
 
 #define TRB_TYPE(trb)           XHCI_DWORD_EXTRACT((trb).control, 15, 10)
 #define TRB_CYCLE(trb)          XHCI_DWORD_EXTRACT((trb).control, 0, 0)

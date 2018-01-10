@@ -61,7 +61,7 @@ int dma_buffer_alloc_policy(dma_buffer_t *db, size_t size, dma_policy_t policy)
 
 	const size_t aligned_size = ALIGN_UP(size, policy.alignment);
 	const size_t real_size = ALIGN_UP(aligned_size, PAGE_SIZE);
-	const int flags = policy.use64 ? 0 : DMAMEM_4GiB;
+	const uintptr_t flags = policy.use64 ? 0 : DMAMEM_4GiB;
 
 	uintptr_t phys;
 	void *address = AS_AREA_ANY;
