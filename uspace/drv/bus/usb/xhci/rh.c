@@ -378,15 +378,5 @@ const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *rh, uint8_t port)
 }
 
 /**
- * Issue a port reset for a given port.
- */
-int xhci_rh_reset_port(xhci_rh_t* rh, uint8_t port)
-{
-	usb_log_debug2("Resetting port %u.", port);
-
-	return EOK;
-}
-
-/**
  * @}
  */
