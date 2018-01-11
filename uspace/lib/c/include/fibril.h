@@ -101,9 +101,6 @@ extern void fibril_add_ready(fid_t fid);
 extern void fibril_add_manager(fid_t fid);
 extern void fibril_remove_manager(void);
 extern fid_t fibril_get_id(void);
-extern void fibril_inc_sercount(void);
-extern void fibril_dec_sercount(void);
-extern int fibril_get_sercount(void);
 
 static inline int fibril_yield(void)
 {
