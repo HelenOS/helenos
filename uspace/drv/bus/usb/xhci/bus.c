@@ -192,8 +192,6 @@ err_address:
 	return err;
 }
 
-static int endpoint_unregister(endpoint_t *);
-
 /**
  * Remove device from XHCI bus. Transition it to the offline state, abort all
  * ongoing transfers and unregister all of its endpoints.
@@ -204,7 +202,7 @@ static int endpoint_unregister(endpoint_t *);
  * @param[in] dev XHCI device, which is removed from the bus.
  * @return Error code.
  */
-static int device_remove(device_t *dev)
+static void device_remove(device_t *dev)
 {
 	int err;
 	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
@@ -248,17 +246,12 @@ static int device_remove(device_t *dev)
 		if (!dev->endpoints[i])
 			continue;
 
-		if ((err = endpoint_unregister(dev->endpoints[i]))) {
-			usb_log_warning("Failed to unregister endpoint " XHCI_EP_FMT ": %s",
-			    XHCI_EP_ARGS(*xhci_device_get_endpoint(xhci_dev, i)), str_error(err));
-		}
+		bus_endpoint_remove(dev->endpoints[i]);
 	}
 
 	/* Destroy DDF device. */
 	/* XXX: Not a good idea, this method should not destroy devices. */
 	hcd_ddf_fun_destroy(dev);
-
-	return EOK;
 }
 
 /**
@@ -414,7 +407,7 @@ static int endpoint_register(endpoint_t *ep_base)
  *
  * Bus callback.
  */
-static int endpoint_unregister(endpoint_t *ep_base)
+static void endpoint_unregister(endpoint_t *ep_base)
 {
 	int err;
 	xhci_bus_t *bus = bus_to_xhci_bus(endpoint_get_bus(ep_base));
@@ -432,8 +425,6 @@ static int endpoint_unregister(endpoint_t *ep_base)
 		usb_log_debug("Not going to drop endpoint " XHCI_EP_FMT " because"
 		    " the slot has already been disabled.", XHCI_EP_ARGS(*ep));
 	}
-
-	return EOK;
 }
 
 /**

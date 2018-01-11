@@ -102,22 +102,22 @@ struct bus_ops {
 
 	/* Operations on device */
 	int (*device_enumerate)(device_t *);
-	int (*device_remove)(device_t *);
+	void (*device_remove)(device_t *);
 	int (*device_online)(device_t *);			/**< Optional */
 	int (*device_offline)(device_t *);			/**< Optional */
 	endpoint_t *(*endpoint_create)(device_t *, const usb_endpoint_descriptors_t *);
 
 	/* Operations on endpoint */
 	int (*endpoint_register)(endpoint_t *);
-	int (*endpoint_unregister)(endpoint_t *);
+	void (*endpoint_unregister)(endpoint_t *);
 	void (*endpoint_destroy)(endpoint_t *);			/**< Optional */
 	void (*endpoint_toggle_reset)(endpoint_t *);		/**< Optional */
 	ssize_t (*endpoint_count_bw) (endpoint_t *, size_t);	/**< Optional */
 	usb_transfer_batch_t *(*batch_create)(endpoint_t *);	/**< Optional */
 
 	/* Operations on batch */
-	void (*batch_destroy)(usb_transfer_batch_t *);		/**< Optional */
 	int (*batch_schedule)(usb_transfer_batch_t *);
+	void (*batch_destroy)(usb_transfer_batch_t *);		/**< Optional */
 };
 
 /**
@@ -148,7 +148,7 @@ int bus_device_init(device_t *, bus_t *);
 int bus_device_set_default_name(device_t *);
 
 int bus_device_enumerate(device_t *);
-int bus_device_remove(device_t *);
+void bus_device_remove(device_t *);
 
 int bus_device_online(device_t *);
 int bus_device_offline(device_t *);

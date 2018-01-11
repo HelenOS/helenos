@@ -187,7 +187,6 @@ static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 {
 	assert(rh);
-	int err;
 
 	/* Find XHCI device by the port. */
 	xhci_device_t *dev = rh->devices_by_port[port_id - 1];
@@ -206,10 +205,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	fibril_mutex_unlock(&rh->device.base.guard);
 
 	/* Remove device from XHCI bus. */
-	if ((err = bus_device_remove(&dev->base))) {
-		usb_log_warning("Failed to remove device " XHCI_DEV_FMT " from XHCI bus: %s",
-		    XHCI_DEV_ARGS(*dev), str_error(err));
-	}
+	bus_device_remove(&dev->base);
 
 	return EOK;
 }

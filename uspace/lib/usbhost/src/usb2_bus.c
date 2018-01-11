@@ -249,14 +249,12 @@ static int usb2_bus_register_ep(endpoint_t *ep)
 /**
  * Release bandwidth reserved by the given endpoint.
  */
-static int usb2_bus_unregister_ep(endpoint_t *ep)
+static void usb2_bus_unregister_ep(endpoint_t *ep)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
 	assert(ep);
 
 	bus->free_bw += ep->bandwidth;
-
-	return EOK;
 }
 
 const bus_ops_t usb2_bus_ops = {

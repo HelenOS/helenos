@@ -112,19 +112,15 @@ static int ehci_register_ep(endpoint_t *ep)
 	return EOK;
 }
 
-static int ehci_unregister_ep(endpoint_t *ep)
+static void ehci_unregister_ep(endpoint_t *ep)
 {
 	bus_t *bus_base = endpoint_get_bus(ep);
 	ehci_bus_t *bus = (ehci_bus_t *) bus_base;
 	assert(bus);
 	assert(ep);
 
-	const int err = usb2_bus_ops.endpoint_unregister(ep);
-	if (err)
-		return err;
-
+	usb2_bus_ops.endpoint_unregister(ep);
 	hc_dequeue_endpoint(bus->hc, ep);
-	return EOK;
 }
 
 static usb_transfer_batch_t *ehci_create_batch(endpoint_t *ep)

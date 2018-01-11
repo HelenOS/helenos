@@ -111,13 +111,12 @@ int bus_device_enumerate(device_t *dev)
 /**
  * Invoke the device_remove bus operation.
  */
-int bus_device_remove(device_t *dev)
+void bus_device_remove(device_t *dev)
 {
 	assert(dev);
 
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_remove);
-	if (!ops)
-		return ENOTSUP;
+	assert(ops);
 
 	return ops->device_remove(dev);
 }
@@ -265,13 +264,9 @@ int bus_endpoint_remove(endpoint_t *ep)
 	    ep->max_transfer_size);
 
 	fibril_mutex_lock(&device->guard);
-	const int r = ops->endpoint_unregister(ep);
-	if (!r)
-		device->endpoints[ep->endpoint] = NULL;
+	ops->endpoint_unregister(ep);
+	device->endpoints[ep->endpoint] = NULL;
 	fibril_mutex_unlock(&device->guard);
-
-	if (r)
-		return r;
 
 	/* Abort a transfer batch, if there was any */
 	endpoint_abort(ep);
