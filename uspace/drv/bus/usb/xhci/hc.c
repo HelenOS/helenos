@@ -191,6 +191,7 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 
 	hc->ac64 = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_AC64);
 	hc->max_slots = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_SLOTS);
+	hc->wrap_count = 0;
 	unsigned ist = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_IST);
 	hc->ist = (ist & 0x10 >> 1) * (ist & 0xf);
 
@@ -376,7 +377,7 @@ int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 }
 
 /**
- * Ask the xHC to reset its state. Implements sequence 
+ * Ask the xHC to reset its state. Implements sequence
  */
 static int hc_reset(xhci_hc_t *hc)
 {
@@ -422,6 +423,8 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_LO, LOWER32(crcr));
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, UPPER32(crcr));
 
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_EWE, 1);
+
 	xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTSZ, hc->event_ring.segment_count);
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
@@ -430,6 +433,7 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	uint64_t erstptr = hc->event_ring.erst.phys;
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_LO, LOWER32(erstptr));
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_HI, UPPER32(erstptr));
+
 
 	if (irq) {
 		XHCI_REG_SET(intr0, XHCI_INTR_IE, 1);
@@ -469,12 +473,19 @@ int hc_status(bus_t *bus, uint32_t *status)
 	return EOK;
 }
 
+static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
+{
+	++hc->wrap_count;
+	return EOK;
+}
+
 typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
 
 static event_handler event_handlers [] = {
 	[XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT] = &xhci_handle_command_completion,
 	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &xhci_rh_handle_port_status_change_event,
 	[XHCI_TRB_TYPE_TRANSFER_EVENT] = &xhci_handle_transfer_event,
+	[XHCI_TRB_TYPE_MFINDEX_WRAP_EVENT] = &xhci_handle_mfindex_wrap_event,
 };
 
 static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_regs_t *intr)
@@ -649,7 +660,7 @@ end:
 /**
  * Issue a Disable Slot command for a slot occupied by device.
  *
- * Frees the device context 
+ * Frees the device context
  */
 int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
 {

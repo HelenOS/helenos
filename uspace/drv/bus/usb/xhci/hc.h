@@ -83,6 +83,7 @@ typedef struct xhci_hc {
 	/* Cached capabilities */
 	unsigned max_slots;
 	bool ac64;
+	uint32_t wrap_count;	/** Amount of mfindex wraps HC has done */
 	unsigned ist;			/**< IST in microframes */
 
 	/** Port speed mapping */
