@@ -228,21 +228,21 @@ void bus_device_gone(device_t *dev)
  */
 int bus_device_online(device_t *dev)
 {
-	int err;
+	int rc;
 	assert(dev);
 
 	fibril_mutex_lock(&dev->guard);
 	if (dev->online) {
-		fibril_mutex_unlock(&dev->guard);
-		return EINVAL;
+		rc = EINVAL;
+		goto err_lock;
 	}
 
 	/* First, tell the HC driver. */
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_online);
-	if (ops && (err = ops->device_online(dev))) {
-		usb_log_warning("Host controller refused to make device '%s' online: %s",
-		    ddf_fun_get_name(dev->fun), str_error(err));
-		return err;
+	if (ops && (rc = ops->device_online(dev))) {
+		usb_log_warning("Host controller failed to make device '%s' online: %s",
+		    ddf_fun_get_name(dev->fun), str_error(rc));
+		goto err_lock;
 	}
 
 	/* Allow creation of new endpoints and communication with the device. */
@@ -251,14 +251,19 @@ int bus_device_online(device_t *dev)
 	/* Onlining will need the guard */
 	fibril_mutex_unlock(&dev->guard);
 
-	if ((err = ddf_fun_online(dev->fun))) {
+	if ((rc = ddf_fun_online(dev->fun))) {
 		usb_log_warning("Failed to take device '%s' online: %s",
-		    ddf_fun_get_name(dev->fun), str_error(err));
-		return err;
+		    ddf_fun_get_name(dev->fun), str_error(rc));
+		goto err;
 	}
 
-	usb_log_info("USB Device '%s' offlined.", ddf_fun_get_name(dev->fun));
+	usb_log_info("USB Device '%s' is now online.", ddf_fun_get_name(dev->fun));
 	return EOK;
+
+err_lock:
+	fibril_mutex_unlock(&dev->guard);
+err:
+	return rc;
 }
 
 /**
@@ -266,12 +271,14 @@ int bus_device_online(device_t *dev)
  */
 int bus_device_offline(device_t *dev)
 {
-	int err;
+	int rc;
 	assert(dev);
 
 	/* Make sure we're the one who offlines this device */
-	if (!dev->online)
-		return ENOENT;
+	if (!dev->online) {
+		rc = ENOENT;
+		goto err;
+	}
 
 	/*
 	 * XXX: If the device is removed/offlined just now, this can fail on
@@ -280,8 +287,8 @@ int bus_device_offline(device_t *dev)
 	 */
 	
 	/* Tear down all drivers working with the device. */
-	if ((err = ddf_fun_offline(dev->fun))) {
-		return err;
+	if ((rc = ddf_fun_offline(dev->fun))) {
+		goto err;
 	}
 
 	fibril_mutex_lock(&dev->guard);
@@ -294,8 +301,11 @@ int bus_device_offline(device_t *dev)
 		ops->device_offline(dev);
 
 	fibril_mutex_unlock(&dev->guard);
-	usb_log_info("USB Device '%s' offlined.", ddf_fun_get_name(dev->fun));
+	usb_log_info("USB Device '%s' is now offline.", ddf_fun_get_name(dev->fun));
 	return EOK;
+
+err:
+	return rc;
 }
 
 /**
