@@ -744,11 +744,6 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	dev->base.address = XHCI_SLOT_DEVICE_ADDRESS(dev_ctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.\n", dev->base.address);
 
-	/* From now on, the device is officially online, yay! */
-	fibril_mutex_lock(&dev->base.guard);
-	dev->base.online = true;
-	fibril_mutex_unlock(&dev->base.guard);
-
 	return EOK;
 
 err_dev_ctx:

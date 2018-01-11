@@ -105,7 +105,7 @@ static const usb_target_t usb2_default_target = {{
  * Transition the device to the addressed state.
  *
  * Reserve address, configure the control EP, issue a SET_ADDRESS command.
- * Configure the device with the new address, mark the device as online.
+ * Configure the device with the new address,
  */
 static int address_device(device_t *dev)
 {
@@ -159,7 +159,6 @@ static int address_device(device_t *dev)
 		usb_log_error("Device(%d): Failed to unregister default target: %s", address, str_error(err));
 		goto err_address;
 	}
-	endpoint_del_ref(default_ep);
 
 	dev->address = address;
 
@@ -172,16 +171,10 @@ static int address_device(device_t *dev)
 		goto err_address;
 	}
 
-	/* From now on, the device is officially online, yay! */
-	fibril_mutex_lock(&dev->guard);
-	dev->online = true;
-	fibril_mutex_unlock(&dev->guard);
-
 	return EOK;
 
 err_default_control_ep:
 	bus_endpoint_remove(default_ep);
-	endpoint_del_ref(default_ep);
 err_address:
 	release_address(bus, address);
 	return err;
@@ -234,7 +227,7 @@ static int usb2_bus_device_enumerate(device_t *dev)
 static int usb2_bus_register_ep(endpoint_t *ep)
 {
 	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
-	assert(fibril_mutex_is_locked(&bus->base.guard));
+	assert(fibril_mutex_is_locked(&ep->device->guard));
 	assert(ep);
 
 	/* Check for available bandwidth */

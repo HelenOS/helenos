@@ -100,7 +100,6 @@ static int ehci_register_ep(endpoint_t *ep)
 	bus_t *bus_base = endpoint_get_bus(ep);
 	ehci_bus_t *bus = (ehci_bus_t *) bus_base;
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
-	assert(fibril_mutex_is_locked(&bus_base->guard));
 
 	const int err = usb2_bus_ops.endpoint_register(ep);
 	if (err)

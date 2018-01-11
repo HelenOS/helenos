@@ -108,21 +108,22 @@ int bus_device_enumerate(device_t *dev)
 	if (!ops)
 		return ENOTSUP;
 
-	if (dev->online) {
-		fibril_mutex_unlock(&dev->guard);
+	if (dev->online)
 		return EINVAL;
-	}
 
 	const int r = ops->device_enumerate(dev);
-	if (!r) {
-		dev->online = true;
+	if (r)
+		return r;
 
+	dev->online = true;
+
+	if (dev->hub) {
 		fibril_mutex_lock(&dev->hub->guard);
 		list_append(&dev->link, &dev->hub->devices);
 		fibril_mutex_unlock(&dev->hub->guard);
 	}
 
-	return r;
+	return EOK;
 }
 
 /**
@@ -191,9 +192,11 @@ void bus_device_gone(device_t *dev)
 	fibril_mutex_unlock(&dev->guard);
 
 	/* Remove our device from our hub's children. */
-	fibril_mutex_lock(&dev->hub->guard);
-	list_remove(&dev->link);
-	fibril_mutex_unlock(&dev->hub->guard);
+	if (dev->hub) {
+		fibril_mutex_lock(&dev->hub->guard);
+		list_remove(&dev->link);
+		fibril_mutex_unlock(&dev->hub->guard);
+	}
 
 	/*
 	 * Unbind the DDF function. That will result in dev_gone called in
