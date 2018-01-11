@@ -166,7 +166,7 @@ static void device_clean_ep_children(device_t *dev, const char *op)
 		 * itself from the list.
 		 */
 		fibril_mutex_unlock(&dev->guard);
-		bus_device_remove(child);
+		bus_device_gone(child);
 		fibril_mutex_lock(&dev->guard);
 	}
 	assert(list_empty(&dev->devices));
@@ -175,12 +175,12 @@ static void device_clean_ep_children(device_t *dev, const char *op)
 /**
  * Resolve a USB device that is gone.
  */
-void bus_device_remove(device_t *dev)
+void bus_device_gone(device_t *dev)
 {
 	assert(dev);
 	assert(dev->fun == NULL);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_remove);
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_gone);
 	assert(ops);
 
 	/* First, block new transfers and operations. */
@@ -211,7 +211,7 @@ void bus_device_remove(device_t *dev)
 	device_clean_ep_children(dev, "removing");
 
 	/* Tell the HC to release its resources. */
-	ops->device_remove(dev);
+	ops->device_gone(dev);
 
 	/* Release the EP0 bus reference */
 	endpoint_del_ref(dev->endpoints[0]);

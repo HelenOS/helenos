@@ -353,7 +353,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub,
 	assert(victim->port == port);
 	assert(victim->hub == hub);
 
-	bus_device_remove(victim);
+	bus_device_gone(victim);
 	return EOK;
 }
 

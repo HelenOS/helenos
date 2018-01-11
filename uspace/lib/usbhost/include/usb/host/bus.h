@@ -102,7 +102,7 @@ struct bus_ops {
 
 	/* Operations on device */
 	int (*device_enumerate)(device_t *);
-	void (*device_remove)(device_t *);
+	void (*device_gone)(device_t *);
 	int (*device_online)(device_t *);			/**< Optional */
 	void (*device_offline)(device_t *);			/**< Optional */
 	endpoint_t *(*endpoint_create)(device_t *, const usb_endpoint_descriptors_t *);
@@ -148,7 +148,7 @@ int bus_device_init(device_t *, bus_t *);
 int bus_device_set_default_name(device_t *);
 
 int bus_device_enumerate(device_t *);
-void bus_device_remove(device_t *);
+void bus_device_gone(device_t *);
 
 int bus_device_online(device_t *);
 int bus_device_offline(device_t *);

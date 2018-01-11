@@ -202,7 +202,7 @@ err_address:
  * @param[in] dev XHCI device, which is removed from the bus.
  * @return Error code.
  */
-static void device_remove(device_t *dev)
+static void device_gone(device_t *dev)
 {
 	int err;
 	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
@@ -368,7 +368,7 @@ static const bus_ops_t xhci_bus_ops = {
 	.status = hc_status,
 
 	.device_enumerate = device_enumerate,
-	.device_remove = device_remove,
+	.device_gone = device_gone,
 	.device_online = device_online,
 	.device_offline = device_offline,
 

@@ -205,7 +205,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	fibril_mutex_unlock(&rh->device.base.guard);
 
 	/* Remove device from XHCI bus. */
-	bus_device_remove(&dev->base);
+	bus_device_gone(&dev->base);
 
 	return EOK;
 }
