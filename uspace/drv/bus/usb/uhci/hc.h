@@ -138,6 +138,8 @@ static inline hc_t *bus_to_hc(bus_t *bus)
 	return member_to_inst(bus, hc_t, bus);
 }
 
+int hc_unschedule_batch(usb_transfer_batch_t *);
+
 extern int hc_add(hc_device_t *, const hw_res_list_parsed_t *);
 extern int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *);
 extern int hc_start(hc_device_t *);

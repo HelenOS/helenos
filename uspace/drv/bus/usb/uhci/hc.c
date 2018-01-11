@@ -52,6 +52,7 @@
 #include <usb/host/bandwidth.h>
 
 #include "uhci_batch.h"
+#include "transfer_list.h"
 #include "hc.h"
 
 #define UHCI_INTR_ALLOW_INTERRUPTS \
@@ -322,16 +323,36 @@ static void destroy_transfer_batch(usb_transfer_batch_t *batch)
 
 static void endpoint_unregister(endpoint_t *ep)
 {
+	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
 	usb2_bus_ops.endpoint_unregister(ep);
+
+	uhci_transfer_batch_t *batch = NULL;
 
 	fibril_mutex_lock(&ep->guard);
 	if (ep->active_batch) {
-		uhci_transfer_batch_t *ub = uhci_transfer_batch_get(ep->active_batch);
-		uhci_transfer_batch_abort(ub);
+		batch = uhci_transfer_batch_get(ep->active_batch);
 
-		assert(ep->active_batch == NULL);
+		transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
+		assert(list);
+
+		fibril_mutex_lock(&list->guard);
+		transfer_list_remove_batch(list, batch);
+		fibril_mutex_unlock(&list->guard);
+
+		endpoint_wait_timeout_locked(ep, 2000);
+
+		batch = uhci_transfer_batch_get(ep->active_batch);
+		if (ep->active_batch) {
+			endpoint_deactivate_locked(ep);
+		}
 	}
 	fibril_mutex_unlock(&ep->guard);
+
+	if (batch) {
+		batch->base.error = EINTR;
+		batch->base.transfered_size = 0;
+		usb_transfer_batch_finish(&batch->base);
+	}
 }
 
 static int hc_status(bus_t *, uint32_t *);
@@ -485,26 +506,27 @@ static int hc_status(bus_t *bus, uint32_t *status)
  */
 static int hc_schedule(usb_transfer_batch_t *batch)
 {
-	assert(batch);
-	hc_t *instance = bus_to_hc(endpoint_get_bus(batch->ep));
+	uhci_transfer_batch_t *uhci_batch = uhci_transfer_batch_get(batch);
+	endpoint_t *ep = batch->ep;
+	hc_t *hc = bus_to_hc(endpoint_get_bus(ep));
 
-	if (batch->target.address == uhci_rh_get_address(&instance->rh))
-		return uhci_rh_schedule(&instance->rh, batch);
+	if (batch->target.address == uhci_rh_get_address(&hc->rh))
+		return uhci_rh_schedule(&hc->rh, batch);
 
-	uhci_transfer_batch_t *uhci_batch = (uhci_transfer_batch_t *) batch;
-	if (!uhci_batch) {
-		usb_log_error("Failed to create UHCI transfer structures.\n");
-		return ENOMEM;
-	}
 
 	const int err = uhci_transfer_batch_prepare(uhci_batch);
 	if (err)
 		return err;
 
-	transfer_list_t *list =
-	    instance->transfers[batch->ep->device->speed][batch->ep->transfer_type];
+	transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
 	assert(list);
 	transfer_list_add_batch(list, uhci_batch);
+
+	return EOK;
+}
+
+int hc_unschedule_batch(usb_transfer_batch_t *batch)
+{
 
 	return EOK;
 }

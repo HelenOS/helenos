@@ -69,7 +69,6 @@ typedef struct uhci_transfer_batch {
 uhci_transfer_batch_t * uhci_transfer_batch_create(endpoint_t *);
 int uhci_transfer_batch_prepare(uhci_transfer_batch_t *);
 bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *);
-void uhci_transfer_batch_abort(uhci_transfer_batch_t *);
 void uhci_transfer_batch_destroy(uhci_transfer_batch_t *);
 
 /** Get offset to setup buffer accessible to the HC hw.

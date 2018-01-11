@@ -44,9 +44,6 @@
 #include "hw_struct/link_pointer.h"
 #include "transfer_list.h"
 
-static void transfer_list_remove_batch(
-    transfer_list_t *instance, uhci_transfer_batch_t *uhci_batch);
-
 /** Initialize transfer list structures.
  *
  * @param[in] instance Memory place to use.
